@@ -4,16 +4,16 @@
 ## Makefile for OpenSSL
 ##
 
-VERSION=1.0.0d
+VERSION=1.0.2d
 MAJOR=1
-MINOR=0.0
+MINOR=0.2
 SHLIB_VERSION_NUMBER=1.0.0
 SHLIB_VERSION_HISTORY=
 SHLIB_MAJOR=1
 SHLIB_MINOR=0.0
 SHLIB_EXT=.$(SHLIB_MAJOR).$(SHLIB_MINOR).dylib
 PLATFORM=darwin-i386-cc
-OPTIONS= no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-shared no-store no-zlib no-zlib-dynamic static-engine
+OPTIONS= no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-libunbound no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-ssl-trace no-store no-unit-test no-zlib no-zlib-dynamic static-engine
 CONFIGURE_ARGS=darwin-i386-cc
 SHLIB_TARGET=darwin-shared
 
@@ -60,8 +60,8 @@ OPENSSLDIR=/usr/local/ssl
 # PKCS1_CHECK - pkcs1 tests.
 
 CC= cc
-CFLAG= -DOPENSSL_THREADS -D_REENTRANT -DDSO_DLFCN -DHAVE_DLFCN_H -arch i386 -O3 -fomit-frame-pointer -DL_ENDIAN -DOPENSSL_BN_ASM_PART_WORDS -DOPENSSL_IA32_SSE2 -DOPENSSL_BN_ASM_MONT -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DMD5_ASM -DRMD160_ASM -DAES_ASM -DWHIRLPOOL_ASM
-DEPFLAG= -DOPENSSL_NO_GMP -DOPENSSL_NO_JPAKE -DOPENSSL_NO_MD2 -DOPENSSL_NO_RC5 -DOPENSSL_NO_RFC3779 -DOPENSSL_NO_STORE
+CFLAG= -DOPENSSL_THREADS -D_REENTRANT -DDSO_DLFCN -DHAVE_DLFCN_H -arch i386 -O3 -fomit-frame-pointer -DL_ENDIAN -DOPENSSL_BN_ASM_PART_WORDS -DOPENSSL_IA32_SSE2 -DOPENSSL_BN_ASM_MONT -DOPENSSL_BN_ASM_GF2m -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DMD5_ASM -DRMD160_ASM -DAES_ASM -DVPAES_ASM -DWHIRLPOOL_ASM -DGHASH_ASM
+DEPFLAG= -DOPENSSL_NO_EC_NISTP_64_GCC_128 -DOPENSSL_NO_GMP -DOPENSSL_NO_JPAKE -DOPENSSL_NO_LIBUNBOUND -DOPENSSL_NO_MD2 -DOPENSSL_NO_RC5 -DOPENSSL_NO_RFC3779 -DOPENSSL_NO_SCTP -DOPENSSL_NO_SSL_TRACE -DOPENSSL_NO_STORE -DOPENSSL_NO_UNIT_TEST
 PEX_LIBS= -Wl,-search_paths_first
 EX_LIBS= 
 EXE_EXT= 
@@ -89,11 +89,12 @@ PROCESSOR=
 
 # CPUID module collects small commonly used assembler snippets
 CPUID_OBJ= x86cpuid.o
-BN_ASM= bn-586.o co-586.o x86-mont.o
+BN_ASM= bn-586.o co-586.o x86-mont.o x86-gf2m.o
+EC_ASM= 
 DES_ENC= des-586.o crypt586.o
-AES_ENC= aes-586.o
+AES_ENC= aes-586.o vpaes-x86.o aesni-x86.o
 BF_ENC= bf-586.o
-CAST_ENC= cast-586.o
+CAST_ENC= c_enc.o
 RC4_ENC= rc4-586.o
 RC5_ENC= rc5-586.o
 MD5_ASM_OBJ= md5-586.o
@@ -101,6 +102,8 @@ SHA1_ASM_OBJ= sha1-586.o sha256-586.o sha512-586.o
 RMD160_ASM_OBJ= rmd-586.o
 WP_ASM_OBJ= wp_block.o wp-mmx.o
 CMLL_ENC= cmll-x86.o
+MODES_ASM_OBJ= ghash-x86.o
+ENGINES_ASM_OBJ= 
 PERLASM_SCHEME= macosx
 
 # KRB5 stuff
@@ -111,6 +114,30 @@ LIBKRB5=
 ZLIB_INCLUDE=
 LIBZLIB=
 
+# TOP level FIPS install directory.
+FIPSDIR=/usr/local/ssl/fips-2.0
+
+# This is the location of fipscanister.o and friends.
+# The FIPS module build will place it $(INSTALLTOP)/lib
+# but since $(INSTALLTOP) can only take the default value
+# when the module is built it will be in /usr/local/ssl/lib
+# $(INSTALLTOP) for this build may be different so hard
+# code the path.
+
+FIPSLIBDIR=
+
+# The location of the library which contains fipscanister.o
+# normally it will be libcrypto unless fipsdso is set in which
+# case it will be libfips. If not compiling in FIPS mode at all
+# this is empty making it a useful test for a FIPS compile.
+
+FIPSCANLIB=
+
+# Shared library base address. Currently only used on Windows.
+#
+
+BASEADDR=0xFB00000
+
 DIRS=   crypto ssl engines apps test tools
 ENGDIRS= ccgost
 SHLIBDIRS= crypto ssl
@@ -118,12 +145,12 @@ SHLIBDIRS= crypto ssl
 # dirs in crypto to build
 SDIRS=  \
 	objects \
-	md4 md5 sha mdc2 hmac ripemd whrlpool \
+	md4 md5 sha mdc2 hmac sm3 sms4 ripemd whrlpool \
 	des aes rc2 rc4 idea bf cast camellia seed modes \
 	bn ec rsa dsa ecdsa dh ecdh dso engine \
 	buffer bio stack lhash rand err \
 	evp asn1 pem x509 x509v3 conf txt_db pkcs7 pkcs12 comp ocsp ui krb5 \
-	cms pqueue ts
+	cms pqueue ts srp cmac
 # keep in mind that the above list is adjusted by ./Configure
 # according to no-xxx arguments...
 
@@ -160,7 +187,7 @@ WTARFILE=       $(NAME)-win.tar
 EXHEADER=       e_os2.h
 HEADER=         e_os.h
 
-all: Makefile build_all openssl.pc libssl.pc libcrypto.pc
+all: Makefile build_all
 
 # as we stick to -e, CLEARENV ensures that local variables in lower
 # Makefiles remain local and variable. $${VAR+VAR} is tribute to Korn
@@ -174,7 +201,7 @@ CLEARENV=	TOP= && unset TOP $${LIB+LIB} $${LIBS+LIBS}	\
 		$${EXHEADER+EXHEADER} $${HEADER+HEADER}		\
 		$${GENERAL+GENERAL} $${CFLAGS+CFLAGS}		\
 		$${ASFLAGS+ASFLAGS} $${AFLAGS+AFLAGS}		\
-		$${LDCMD+LDCMD} $${LDFLAGS+LDFLAGS}		\
+		$${LDCMD+LDCMD} $${LDFLAGS+LDFLAGS} $${SCRIPTS+SCRIPTS}	\
 		$${SHAREDCMD+SHAREDCMD} $${SHAREDFLAGS+SHAREDFLAGS}	\
 		$${SHARED_LIB+SHARED_LIB} $${LIBEXTRAS+LIBEXTRAS}
 
@@ -197,8 +224,8 @@ BUILDENV=	PLATFORM='$(PLATFORM)' PROCESSOR='$(PROCESSOR)' \
 		EXE_EXT='$(EXE_EXT)' SHARED_LIBS='$(SHARED_LIBS)'	\
 		SHLIB_EXT='$(SHLIB_EXT)' SHLIB_TARGET='$(SHLIB_TARGET)'	\
 		PEX_LIBS='$(PEX_LIBS)' EX_LIBS='$(EX_LIBS)'	\
-		CPUID_OBJ='$(CPUID_OBJ)'			\
-		BN_ASM='$(BN_ASM)' DES_ENC='$(DES_ENC)' 	\
+		CPUID_OBJ='$(CPUID_OBJ)' BN_ASM='$(BN_ASM)'	\
+		EC_ASM='$(EC_ASM)' DES_ENC='$(DES_ENC)' 	\
 		AES_ENC='$(AES_ENC)' CMLL_ENC='$(CMLL_ENC)'	\
 		BF_ENC='$(BF_ENC)' CAST_ENC='$(CAST_ENC)'	\
 		RC4_ENC='$(RC4_ENC)' RC5_ENC='$(RC5_ENC)'	\
@@ -206,7 +233,12 @@ BUILDENV=	PLATFORM='$(PLATFORM)' PROCESSOR='$(PROCESSOR)' \
 		MD5_ASM_OBJ='$(MD5_ASM_OBJ)'			\
 		RMD160_ASM_OBJ='$(RMD160_ASM_OBJ)'		\
 		WP_ASM_OBJ='$(WP_ASM_OBJ)'			\
+		MODES_ASM_OBJ='$(MODES_ASM_OBJ)'		\
+		ENGINES_ASM_OBJ='$(ENGINES_ASM_OBJ)'		\
 		PERLASM_SCHEME='$(PERLASM_SCHEME)'		\
+		FIPSLIBDIR='${FIPSLIBDIR}'			\
+		FIPSDIR='${FIPSDIR}'				\
+		FIPSCANLIB="$${FIPSCANLIB:-$(FIPSCANLIB)}"	\
 		THIS=$${THIS:-$@} MAKEFILE=Makefile MAKEOVERRIDES=
 # MAKEOVERRIDES= effectively "equalizes" GNU-ish and SysV-ish make flavors,
 # which in turn eliminates ambiguities in variable treatment with -e.
@@ -239,30 +271,46 @@ reflect:
 	@[ -n "$(THIS)" ] && $(CLEARENV) && $(MAKE) $(THIS) -e $(BUILDENV)
 
 sub_all: build_all
+
 build_all: build_libs build_apps build_tests build_tools
 
-build_libs: build_crypto build_ssl build_engines
+build_libs: build_libcrypto build_libssl openssl.pc
+
+build_libcrypto: build_crypto build_engines libcrypto.pc
+build_libssl: build_ssl libssl.pc
 
 build_crypto:
 	@dir=crypto; target=all; $(BUILD_ONE_CMD)
-build_ssl:
+build_ssl: build_crypto
 	@dir=ssl; target=all; $(BUILD_ONE_CMD)
-build_engines:
+build_engines: build_crypto
 	@dir=engines; target=all; $(BUILD_ONE_CMD)
-build_apps:
+build_apps: build_libs
 	@dir=apps; target=all; $(BUILD_ONE_CMD)
-build_tests:
+build_tests: build_libs
 	@dir=test; target=all; $(BUILD_ONE_CMD)
-build_tools:
+build_tools: build_libs
 	@dir=tools; target=all; $(BUILD_ONE_CMD)
 
 all_testapps: build_libs build_testapps
 build_testapps:
 	@dir=crypto; target=testapps; $(BUILD_ONE_CMD)
 
-libcrypto$(SHLIB_EXT): libcrypto.a
+fips_premain_dso$(EXE_EXT): libcrypto.a
+	[ -z "$(FIPSCANLIB)" ] || $(CC) $(CFLAG) -Iinclude \
+		-DFINGERPRINT_PREMAIN_DSO_LOAD -o $@  \
+		$(FIPSLIBDIR)fips_premain.c $(FIPSLIBDIR)fipscanister.o \
+		libcrypto.a $(EX_LIBS)
+
+libcrypto$(SHLIB_EXT): libcrypto.a fips_premain_dso$(EXE_EXT)
 	@if [ "$(SHLIB_TARGET)" != "" ]; then \
-		$(MAKE) SHLIBDIRS=crypto build-shared; \
+		if [ "$(FIPSCANLIB)" = "libcrypto" ]; then \
+			FIPSLD_LIBCRYPTO=libcrypto.a ; \
+			FIPSLD_CC="$(CC)"; CC=$(FIPSDIR)/bin/fipsld; \
+			export CC FIPSLD_CC FIPSLD_LIBCRYPTO; \
+		fi; \
+		$(MAKE) -e SHLIBDIRS=crypto  CC="$${CC:-$(CC)}" build-shared && \
+		(touch -c fips_premain_dso$(EXE_EXT) || :); \
 	else \
 		echo "There's no support for shared libraries on this platform" >&2; \
 		exit 1; \
@@ -285,7 +333,7 @@ clean-shared:
 			done; \
 		fi; \
 		( set -x; rm -f lib$$i$(SHLIB_EXT) ); \
-		if [ "$(PLATFORM)" = "Cygwin" ]; then \
+		if expr "$(PLATFORM)" : "Cygwin" >/dev/null; then \
 			( set -x; rm -f cyg$$i$(SHLIB_EXT) lib$$i$(SHLIB_EXT).a ); \
 		fi; \
 	done
@@ -324,7 +372,8 @@ libcrypto.pc: Makefile
 	    echo 'Description: OpenSSL cryptography library'; \
 	    echo 'Version: '$(VERSION); \
 	    echo 'Requires: '; \
-	    echo 'Libs: -L$${libdir} -lcrypto $(EX_LIBS)'; \
+	    echo 'Libs: -L$${libdir} -lcrypto'; \
+	    echo 'Libs.private: $(EX_LIBS)'; \
 	    echo 'Cflags: -I$${includedir} $(KRB5_INCLUDES)' ) > libcrypto.pc
 
 libssl.pc: Makefile
@@ -333,11 +382,12 @@ libssl.pc: Makefile
 	    echo 'libdir=$${exec_prefix}/$(LIBDIR)'; \
 	    echo 'includedir=$${prefix}/include'; \
 	    echo ''; \
-	    echo 'Name: OpenSSL'; \
+	    echo 'Name: OpenSSL-libssl'; \
 	    echo 'Description: Secure Sockets Layer and cryptography libraries'; \
 	    echo 'Version: '$(VERSION); \
-	    echo 'Requires: '; \
-	    echo 'Libs: -L$${libdir} -lssl -lcrypto $(EX_LIBS)'; \
+	    echo 'Requires.private: libcrypto'; \
+	    echo 'Libs: -L$${libdir} -lssl'; \
+	    echo 'Libs.private: $(EX_LIBS)'; \
 	    echo 'Cflags: -I$${includedir} $(KRB5_INCLUDES)' ) > libssl.pc
 
 openssl.pc: Makefile
@@ -349,9 +399,7 @@ openssl.pc: Makefile
 	    echo 'Name: OpenSSL'; \
 	    echo 'Description: Secure Sockets Layer and cryptography libraries and tools'; \
 	    echo 'Version: '$(VERSION); \
-	    echo 'Requires: '; \
-	    echo 'Libs: -L$${libdir} -lssl -lcrypto $(EX_LIBS)'; \
-	    echo 'Cflags: -I$${includedir} $(KRB5_INCLUDES)' ) > openssl.pc
+	    echo 'Requires: libssl libcrypto' ) > openssl.pc
 
 Makefile: Makefile.org Configure config
 	@echo "Makefile is older than Makefile.org, Configure or config."
@@ -359,7 +407,7 @@ Makefile: Makefile.org Configure config
 	@false
 
 libclean:
-	rm -f *.map *.so *.so.* *.dll engines/*.so engines/*.dll *.a engines/*.a */lib */*/lib
+	rm -f *.map *.so *.so.* *.dylib *.dll engines/*.so engines/*.dll engines/*.dylib *.a engines/*.a */lib */*/lib
 
 clean:	libclean
 	rm -f shlib/*.o *.o core a.out fluff rehash.time testlog make.log cctest cctest.c
@@ -401,7 +449,7 @@ rehash.time: certs apps
 		[ -x "apps/openssl.exe" ] && OPENSSL="apps/openssl.exe" || :; \
 		OPENSSL_DEBUG_MEMORY=on; \
 		export OPENSSL OPENSSL_DEBUG_MEMORY; \
-		$(PERL) tools/c_rehash certs) && \
+		$(PERL) tools/c_rehash certs/demo) && \
 		touch rehash.time; \
 	else :; fi
 
@@ -415,6 +463,9 @@ tests: rehash
 report:
 	@$(PERL) util/selftest.pl
 
+update: errors stacks util/libeay.num util/ssleay.num TABLE
+	@set -e; target=update; $(RECURSIVE_BUILD_CMD)
+
 depend:
 	@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
 
@@ -426,9 +477,9 @@ tags:
 	find . -name '[^.]*.[ch]' | xargs etags -a
 
 errors:
+	$(PERL) util/ck_errf.pl -strict */*.c */*/*.c
 	$(PERL) util/mkerr.pl -recurse -write
 	(cd engines; $(MAKE) PERL=$(PERL) errors)
-	$(PERL) util/ck_errf.pl */*.c */*/*.c
 
 stacks:
 	$(PERL) util/mkstack.pl -write
@@ -439,25 +490,9 @@ util/libeay.num::
 util/ssleay.num::
 	$(PERL) util/mkdef.pl ssl update
 
-crypto/objects/obj_dat.h: crypto/objects/obj_dat.pl crypto/objects/obj_mac.h
-	$(PERL) crypto/objects/obj_dat.pl crypto/objects/obj_mac.h crypto/objects/obj_dat.h
-crypto/objects/obj_mac.h: crypto/objects/objects.pl crypto/objects/objects.txt crypto/objects/obj_mac.num
-	$(PERL) crypto/objects/objects.pl crypto/objects/objects.txt crypto/objects/obj_mac.num crypto/objects/obj_mac.h
-crypto/objects/obj_xref.h: crypto/objects/objxref.pl crypto/objects/obj_xref.txt crypto/objects/obj_mac.num
-	$(PERL) crypto/objects/objxref.pl crypto/objects/obj_mac.num crypto/objects/obj_xref.txt >crypto/objects/obj_xref.h
-
-apps/openssl-vms.cnf: apps/openssl.cnf
-	$(PERL) VMS/VMSify-conf.pl < apps/openssl.cnf > apps/openssl-vms.cnf
-
-crypto/bn/bn_prime.h: crypto/bn/bn_prime.pl
-	$(PERL) crypto/bn/bn_prime.pl >crypto/bn/bn_prime.h
-
-
 TABLE: Configure
 	(echo 'Output of `Configure TABLE'"':"; \
 	$(PERL) Configure TABLE) > TABLE
-
-update: errors stacks util/libeay.num util/ssleay.num crypto/objects/obj_dat.h crypto/objects/obj_xref.h apps/openssl-vms.cnf crypto/bn/bn_prime.h TABLE depend
 
 # Build distribution tar-file. As the list of files returned by "find" is
 # pretty long, on several platforms a "too many arguments" error or similar
@@ -511,7 +546,7 @@ install_sw:
 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
 	done;
 	@set -e; target=install; $(RECURSIVE_BUILD_CMD)
-	@set -e; for i in $(LIBS) ;\
+	@set -e; liblist="$(LIBS)"; for i in $$liblist ;\
 	do \
 		if [ -f "$$i" ]; then \
 		(       echo installing $$i; \
@@ -527,17 +562,17 @@ install_sw:
 		do \
 			if [ -f "$$i" -o -f "$$i.a" ]; then \
 			(       echo installing $$i; \
-				if [ "$(PLATFORM)" != "Cygwin" ]; then \
-					cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \
-					chmod 555 $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \
-					mv -f $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i; \
-				else \
+				if expr "$(PLATFORM)" : "Cygwin" >/dev/null; then \
 					c=`echo $$i | sed 's/^lib\(.*\)\.dll\.a/cyg\1-$(SHLIB_VERSION_NUMBER).dll/'`; \
 					cp $$c $(INSTALL_PREFIX)$(INSTALLTOP)/bin/$$c.new; \
 					chmod 755 $(INSTALL_PREFIX)$(INSTALLTOP)/bin/$$c.new; \
 					mv -f $(INSTALL_PREFIX)$(INSTALLTOP)/bin/$$c.new $(INSTALL_PREFIX)$(INSTALLTOP)/bin/$$c; \
 					cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \
 					chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \
+					mv -f $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i; \
+				else \
+					cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \
+					chmod 555 $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new; \
 					mv -f $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i.new $(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/$$i; \
 				fi ); \
 				if expr $(PLATFORM) : 'mingw' > /dev/null; then \
@@ -571,6 +606,10 @@ install_sw:
 
 install_html_docs:
 	here="`pwd`"; \
+	filecase=; \
+	case "$(PLATFORM)" in DJGPP|Cygwin*|mingw*|darwin*-*-cc) \
+		filecase=-i; \
+	esac; \
 	for subdir in apps crypto ssl; do \
 		mkdir -p $(INSTALL_PREFIX)$(HTMLDIR)/$$subdir; \
 		for i in doc/$$subdir/*.pod; do \
@@ -599,9 +638,9 @@ install_docs:
 	@pod2man="`cd ./util; ./pod2mantest $(PERL)`"; \
 	here="`pwd`"; \
 	filecase=; \
-	if [ "$(PLATFORM)" = "DJGPP" -o "$(PLATFORM)" = "Cygwin" -o "$(PLATFORM)" = "mingw" ]; then \
+	case "$(PLATFORM)" in DJGPP|Cygwin*|mingw*|darwin*-*-cc) \
 		filecase=-i; \
-	fi; \
+	esac; \
 	set -e; for i in doc/apps/*.pod; do \
 		fn=`basename $$i .pod`; \
 		sec=`$(PERL) util/extract-section.pl 1 < $$i`; \

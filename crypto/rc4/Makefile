@@ -21,8 +21,8 @@ TEST=rc4test.c
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=rc4_skey.c rc4_enc.c
-LIBOBJ=$(RC4_ENC)
+LIBSRC=rc4_skey.c rc4_enc.c rc4_utl.c
+LIBOBJ=$(RC4_ENC) rc4_utl.o
 
 SRC= $(LIBSRC)
 
@@ -42,16 +42,18 @@ lib:	$(LIBOBJ)
 	@touch lib
 
 rc4-586.s:	asm/rc4-586.pl ../perlasm/x86asm.pl
-	$(PERL) asm/rc4-586.pl $(PERLASM_SCHEME) $(CFLAGS) > $@
+	$(PERL) asm/rc4-586.pl $(PERLASM_SCHEME) $(CFLAGS) $(PROCESSOR) > $@
 
 rc4-x86_64.s: asm/rc4-x86_64.pl
 	$(PERL) asm/rc4-x86_64.pl $(PERLASM_SCHEME) > $@
+rc4-md5-x86_64.s:	asm/rc4-md5-x86_64.pl
+	$(PERL) asm/rc4-md5-x86_64.pl $(PERLASM_SCHEME) > $@
 
 rc4-ia64.S: asm/rc4-ia64.pl
 	$(PERL) asm/rc4-ia64.pl $(CFLAGS) > $@
 
-rc4-s390x.s:	asm/rc4-s390x.pl
-	$(PERL) asm/rc4-s390x.pl > $@
+rc4-parisc.s:	asm/rc4-parisc.pl
+	$(PERL) asm/rc4-parisc.pl $(PERLASM_SCHEME) $@
 
 rc4-ia64.s: rc4-ia64.S
 	@case `awk '/^#define RC4_INT/{print$$NF}' $(TOP)/include/openssl/opensslconf.h` in \
@@ -60,8 +62,11 @@ rc4-ia64.s: rc4-ia64.S
 	*)	exit 1 ;; \
 	esac
 
+# GNU make "catch all"
+rc4-%.s:	asm/rc4-%.pl;	$(PERL) $< $(PERLASM_SCHEME) $@
+
 files:
-	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
+	$(PERL) $(TOP)/util/files.pl "RC4_ENC=$(RC4_ENC)" Makefile >> $(TOP)/MINFO
 
 links:
 	@$(PERL) $(TOP)/util/mklink.pl ../../include/openssl $(EXHEADER)
@@ -83,6 +88,8 @@ tests:
 
 lint:
 	lint -DLINT $(INCLUDES) $(SRC)>fluff
+
+update: depend
 
 depend:
 	@[ -n "$(MAKEDEPEND)" ] # should be set by upper Makefile...
@@ -113,3 +120,8 @@ rc4_skey.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
 rc4_skey.o: ../../include/openssl/rc4.h ../../include/openssl/safestack.h
 rc4_skey.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
 rc4_skey.o: ../cryptlib.h rc4_locl.h rc4_skey.c
+rc4_utl.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+rc4_utl.o: ../../include/openssl/opensslconf.h ../../include/openssl/opensslv.h
+rc4_utl.o: ../../include/openssl/ossl_typ.h ../../include/openssl/rc4.h
+rc4_utl.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
+rc4_utl.o: ../../include/openssl/symhacks.h rc4_utl.c

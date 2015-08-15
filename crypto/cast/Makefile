@@ -69,6 +69,8 @@ tests:
 lint:
 	lint -DLINT $(INCLUDES) $(SRC)>fluff
 
+update: depend
+
 depend:
 	@[ -n "$(MAKEDEPEND)" ] # should be set by upper Makefile...
 	$(MAKEDEPEND) -- $(CFLAG) $(INCLUDES) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
@@ -95,5 +97,8 @@ c_ofb64.o: ../../e_os.h ../../include/openssl/cast.h
 c_ofb64.o: ../../include/openssl/e_os2.h ../../include/openssl/opensslconf.h
 c_ofb64.o: c_ofb64.c cast_lcl.h
 c_skey.o: ../../e_os.h ../../include/openssl/cast.h
-c_skey.o: ../../include/openssl/e_os2.h ../../include/openssl/opensslconf.h
+c_skey.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+c_skey.o: ../../include/openssl/opensslconf.h ../../include/openssl/opensslv.h
+c_skey.o: ../../include/openssl/ossl_typ.h ../../include/openssl/safestack.h
+c_skey.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
 c_skey.o: c_skey.c cast_lcl.h cast_s.h

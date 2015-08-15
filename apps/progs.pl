@@ -32,7 +32,7 @@ foreach (@ARGV)
 	push(@files,$_);
 	$str="\t{FUNC_TYPE_GENERAL,\"$_\",${_}_main},\n";
 	if (($_ =~ /^s_/) || ($_ =~ /^ciphers$/))
-		{ print "#if !defined(OPENSSL_NO_SOCK) && !(defined(OPENSSL_NO_SSL2) && defined(OPENSSL_NO_SSL3))\n${str}#endif\n"; } 
+		{ print "#if !defined(OPENSSL_NO_SOCK)\n${str}#endif\n"; } 
 	elsif ( ($_ =~ /^speed$/))
 		{ print "#ifndef OPENSSL_NO_SPEED\n${str}#endif\n"; }
 	elsif ( ($_ =~ /^engine$/))
@@ -51,6 +51,8 @@ foreach (@ARGV)
 		{ print "#ifndef OPENSSL_NO_CMS\n${str}#endif\n"; }
 	elsif ( ($_ =~ /^ocsp$/))
 		{ print "#ifndef OPENSSL_NO_OCSP\n${str}#endif\n"; }
+	elsif ( ($_ =~ /^srp$/))
+		{ print "#ifndef OPENSSL_NO_SRP\n${str}#endif\n"; }
 	else
 		{ print $str; }
 	}
@@ -70,7 +72,7 @@ foreach (
 	"camellia-256-cbc", "camellia-256-ecb",
 	"base64", "zlib",
 	"des", "des3", "desx", "idea", "seed", "rc4", "rc4-40",
-	"rc2", "bf", "cast", "rc5",
+	"rc2", "bf", "cast", "rc5", "sms4",
 	"des-ecb", "des-ede",    "des-ede3",
 	"des-cbc", "des-ede-cbc","des-ede3-cbc",
 	"des-cfb", "des-ede-cfb","des-ede3-cfb",
@@ -80,7 +82,8 @@ foreach (
 	"rc2-cbc", "rc2-ecb", "rc2-cfb","rc2-ofb", "rc2-64-cbc", "rc2-40-cbc",
 	"bf-cbc",  "bf-ecb",     "bf-cfb",   "bf-ofb",
 	"cast5-cbc","cast5-ecb", "cast5-cfb","cast5-ofb",
-	"cast-cbc", "rc5-cbc",   "rc5-ecb",  "rc5-cfb",  "rc5-ofb")
+	"cast-cbc", "rc5-cbc",   "rc5-ecb",  "rc5-cfb",  "rc5-ofb",
+	"sms4-cbc", "sms4-ecb", "sms4-cfb", "sms4-ofb")
 	{
 	push(@files,$_);
 
@@ -95,6 +98,7 @@ foreach (
 	elsif ($_ =~ /bf/)   { $t="#ifndef OPENSSL_NO_BF\n${t}#endif\n"; }
 	elsif ($_ =~ /cast/) { $t="#ifndef OPENSSL_NO_CAST\n${t}#endif\n"; }
 	elsif ($_ =~ /rc5/)  { $t="#ifndef OPENSSL_NO_RC5\n${t}#endif\n"; }
+	elsif ($_ =~ /sms4/)  { $t="#ifndef OPENSSL_NO_SMS4\n${t}#endif\n"; }
 	elsif ($_ =~ /zlib/)  { $t="#ifdef ZLIB\n${t}#endif\n"; }
 	print $t;
 	}

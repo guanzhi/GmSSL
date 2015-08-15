@@ -1,0 +1,1 @@
+../crypto/sm3/sm3test.c
