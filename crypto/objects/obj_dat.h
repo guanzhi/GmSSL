@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 983
-#define NUM_SN 968
-#define NUM_LN 968
-#define NUM_OBJ 907
+#define NUM_NID 1000
+#define NUM_SN 985
+#define NUM_LN 985
+#define NUM_OBJ 924
 
-static const unsigned char lvalues[6386]={
+static const unsigned char lvalues[6483]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -969,6 +969,23 @@ static const unsigned char lvalues[6386]={
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x02,     /* [6361] OBJ_sms4_cbc */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x04,     /* [6369] OBJ_sms4_ofb128 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x03,     /* [6377] OBJ_sms4_cfb128 */
+0x2B,0x81,0x04,0x01,0x07,                    /* [6385] OBJ_ecies_recommendedParameters */
+0x2B,0x81,0x04,0x01,0x08,                    /* [6390] OBJ_ecies_specifiedParameters */
+0x2B,0x81,0x04,0x01,0x11,0x00,               /* [6395] OBJ_x9_63_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x01,               /* [6401] OBJ_nist_concatenation_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x02,               /* [6407] OBJ_tls_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x03,               /* [6413] OBJ_ikev2_kdf */
+0x2B,0x81,0x04,0x01,0x12,                    /* [6419] OBJ_xor_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x00,               /* [6424] OBJ_aes128_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x01,               /* [6430] OBJ_aes192_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x02,               /* [6436] OBJ_aes256_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x00,               /* [6442] OBJ_aes128_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x01,               /* [6448] OBJ_aes192_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x02,               /* [6454] OBJ_aes256_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x16,                    /* [6460] OBJ_hmac_full_ecies */
+0x2B,0x81,0x04,0x01,0x17,                    /* [6465] OBJ_hmac_half_ecies */
+0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6470] OBJ_cmac_aes128_ecies */
+0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6476] OBJ_cmac_aes192_ecies */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2560,6 +2577,36 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 {NULL,NULL,NID_undef,0,NULL,0},
 {"SMS4-OFB","sms4-ofb",NID_sms4_ofb128,8,&(lvalues[6369]),0},
 {"SMS4-CFB","sms4-cfb",NID_sms4_cfb128,8,&(lvalues[6377]),0},
+{"ecies-recommendedParameters","ecies-recommendedParameters",
+	NID_ecies_recommendedParameters,5,&(lvalues[6385]),0},
+{"ecies-specifiedParameters","ecies-specifiedParameters",
+	NID_ecies_specifiedParameters,5,&(lvalues[6390]),0},
+{"x9-63-kdf","x9-63-kdf",NID_x9_63_kdf,6,&(lvalues[6395]),0},
+{"nist-concatenation-kdf","nist-concatenation-kdf",
+	NID_nist_concatenation_kdf,6,&(lvalues[6401]),0},
+{"tls-kdf","tls-kdf",NID_tls_kdf,6,&(lvalues[6407]),0},
+{"ikev2-kdf","ikev2-kdf",NID_ikev2_kdf,6,&(lvalues[6413]),0},
+{"xor-in-ecies","xor-in-ecies",NID_xor_in_ecies,5,&(lvalues[6419]),0},
+{"aes128-cbc-in-ecies","aes128-cbc-in-ecies",NID_aes128_cbc_in_ecies,
+	6,&(lvalues[6424]),0},
+{"aes192-cbc-in-ecies","aes192-cbc-in-ecies",NID_aes192_cbc_in_ecies,
+	6,&(lvalues[6430]),0},
+{"aes256-cbc-in-ecies","aes256-cbc-in-ecies",NID_aes256_cbc_in_ecies,
+	6,&(lvalues[6436]),0},
+{"aes128-ctr-in-ecies","aes128-ctr-in-ecies",NID_aes128_ctr_in_ecies,
+	6,&(lvalues[6442]),0},
+{"aes192-ctr-in-ecies","aes192-ctr-in-ecies",NID_aes192_ctr_in_ecies,
+	6,&(lvalues[6448]),0},
+{"aes256-ctr-in-ecies","aes256-ctr-in-ecies",NID_aes256_ctr_in_ecies,
+	6,&(lvalues[6454]),0},
+{"hmac-full-ecies","hmac-full-ecies",NID_hmac_full_ecies,5,
+	&(lvalues[6460]),0},
+{"hmac-half-ecies","hmac-half-ecies",NID_hmac_half_ecies,5,
+	&(lvalues[6465]),0},
+{"cmac-aes128-ecies","cmac-aes128-ecies",NID_cmac_aes128_ecies,6,
+	&(lvalues[6470]),0},
+{"cmac-aes192-ecies","cmac-aes192-ecies",NID_cmac_aes192_ecies,6,
+	&(lvalues[6476]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2774,6 +2821,12 @@ static const unsigned int sn_objs[NUM_SN]={
 368,	/* "acceptableResponses" */
 446,	/* "account" */
 363,	/* "ad_timestamping" */
+990,	/* "aes128-cbc-in-ecies" */
+993,	/* "aes128-ctr-in-ecies" */
+991,	/* "aes192-cbc-in-ecies" */
+994,	/* "aes192-ctr-in-ecies" */
+992,	/* "aes256-cbc-in-ecies" */
+995,	/* "aes256-ctr-in-ecies" */
 376,	/* "algorithm" */
 405,	/* "ansi-X9-62" */
 910,	/* "anyExtendedKeyUsage" */
@@ -2838,6 +2891,8 @@ static const unsigned int sn_objs[NUM_SN]={
 407,	/* "characteristic-two-field" */
 395,	/* "clearance" */
 130,	/* "clientAuth" */
+998,	/* "cmac-aes128-ecies" */
+999,	/* "cmac-aes192-ecies" */
 131,	/* "codeSigning" */
 50,	/* "contentType" */
 53,	/* "countersignature" */
@@ -2897,6 +2952,8 @@ static const unsigned int sn_objs[NUM_SN]={
 795,	/* "ecdsa-with-SHA384" */
 796,	/* "ecdsa-with-SHA512" */
 792,	/* "ecdsa-with-Specified" */
+983,	/* "ecies-recommendedParameters" */
+984,	/* "ecies-specifiedParameters" */
 48,	/* "emailAddress" */
 132,	/* "emailProtection" */
 885,	/* "enhancedSearchGuide" */
@@ -2920,6 +2977,8 @@ static const unsigned int sn_objs[NUM_SN]={
 814,	/* "gost89-cnt" */
 812,	/* "gost94" */
 850,	/* "gost94cc" */
+996,	/* "hmac-full-ecies" */
+997,	/* "hmac-half-ecies" */
 797,	/* "hmacWithMD5" */
 163,	/* "hmacWithSHA1" */
 798,	/* "hmacWithSHA224" */
@@ -3172,6 +3231,7 @@ static const unsigned int sn_objs[NUM_SN]={
 250,	/* "id-smime-spq-ets-sqt-unotice" */
 249,	/* "id-smime-spq-ets-sqt-uri" */
 676,	/* "identified-organization" */
+988,	/* "ikev2-kdf" */
 461,	/* "info" */
 748,	/* "inhibitAnyPolicy" */
 101,	/* "initials" */
@@ -3216,6 +3276,7 @@ static const unsigned int sn_objs[NUM_SN]={
 481,	/* "nSRecord" */
 173,	/* "name" */
 666,	/* "nameConstraints" */
+986,	/* "nist-concatenation-kdf" */
 369,	/* "noCheck" */
 403,	/* "noRevAvail" */
 72,	/* "nsBaseUrl" */
@@ -3503,6 +3564,7 @@ static const unsigned int sn_objs[NUM_SN]={
 293,	/* "textNotice" */
 133,	/* "timeStamping" */
 106,	/* "title" */
+987,	/* "tls-kdf" */
 682,	/* "tpBasis" */
 375,	/* "trustRoot" */
 436,	/* "ucl" */
@@ -3531,6 +3593,8 @@ static const unsigned int sn_objs[NUM_SN]={
 503,	/* "x500UniqueIdentifier" */
 158,	/* "x509Certificate" */
 160,	/* "x509Crl" */
+985,	/* "x9-63-kdf" */
+989,	/* "xor-in-ecies" */
 };
 
 static const unsigned int ln_objs[NUM_LN]={
@@ -3718,6 +3782,12 @@ static const unsigned int ln_objs[NUM_LN]={
 901,	/* "aes-256-gcm" */
 428,	/* "aes-256-ofb" */
 914,	/* "aes-256-xts" */
+990,	/* "aes128-cbc-in-ecies" */
+993,	/* "aes128-ctr-in-ecies" */
+991,	/* "aes192-cbc-in-ecies" */
+994,	/* "aes192-ctr-in-ecies" */
+992,	/* "aes256-cbc-in-ecies" */
+995,	/* "aes256-ctr-in-ecies" */
 376,	/* "algorithm" */
 484,	/* "associatedDomain" */
 485,	/* "associatedName" */
@@ -3797,6 +3867,8 @@ static const unsigned int ln_objs[NUM_LN]={
 395,	/* "clearance" */
 633,	/* "cleartext track 2" */
 894,	/* "cmac" */
+998,	/* "cmac-aes128-ecies" */
+999,	/* "cmac-aes192-ecies" */
 13,	/* "commonName" */
 513,	/* "content types" */
 50,	/* "contentType" */
@@ -3876,6 +3948,8 @@ static const unsigned int ln_objs[NUM_LN]={
 795,	/* "ecdsa-with-SHA384" */
 796,	/* "ecdsa-with-SHA512" */
 792,	/* "ecdsa-with-Specified" */
+983,	/* "ecies-recommendedParameters" */
+984,	/* "ecies-specifiedParameters" */
 48,	/* "emailAddress" */
 632,	/* "encrypted track 2" */
 885,	/* "enhancedSearchGuide" */
@@ -3891,6 +3965,8 @@ static const unsigned int ln_objs[NUM_LN]={
 99,	/* "givenName" */
 814,	/* "gost89-cnt" */
 855,	/* "hmac" */
+996,	/* "hmac-full-ecies" */
+997,	/* "hmac-half-ecies" */
 780,	/* "hmac-md5" */
 781,	/* "hmac-sha1" */
 963,	/* "hmac-sm3" */
@@ -4123,6 +4199,7 @@ static const unsigned int ln_objs[NUM_LN]={
 36,	/* "idea-ecb" */
 46,	/* "idea-ofb" */
 676,	/* "identified-organization" */
+988,	/* "ikev2-kdf" */
 461,	/* "info" */
 101,	/* "initials" */
 869,	/* "internationaliSDNNumber" */
@@ -4165,6 +4242,7 @@ static const unsigned int ln_objs[NUM_LN]={
 488,	/* "mobileTelephoneNumber" */
 481,	/* "nSRecord" */
 173,	/* "name" */
+986,	/* "nist-concatenation-kdf" */
 681,	/* "onBasis" */
 379,	/* "org" */
 17,	/* "organizationName" */
@@ -4472,6 +4550,7 @@ static const unsigned int ln_objs[NUM_LN]={
 459,	/* "textEncodedORAddress" */
 293,	/* "textNotice" */
 106,	/* "title" */
+987,	/* "tls-kdf" */
 682,	/* "tpBasis" */
 436,	/* "ucl" */
  0,	/* "undefined" */
@@ -4501,6 +4580,8 @@ static const unsigned int ln_objs[NUM_LN]={
 503,	/* "x500UniqueIdentifier" */
 158,	/* "x509Certificate" */
 160,	/* "x509Crl" */
+985,	/* "x9-63-kdf" */
+989,	/* "xor-in-ecies" */
 125,	/* "zlib compression" */
 };
 
@@ -4794,6 +4875,11 @@ static const unsigned int obj_objs[NUM_OBJ]={
 732,	/* OBJ_sect409r1                    1 3 132 0 37 */
 733,	/* OBJ_sect571k1                    1 3 132 0 38 */
 734,	/* OBJ_sect571r1                    1 3 132 0 39 */
+983,	/* OBJ_ecies_recommendedParameters  1 3 132 1 7 */
+984,	/* OBJ_ecies_specifiedParameters    1 3 132 1 8 */
+989,	/* OBJ_xor_in_ecies                 1 3 132 1 18 */
+996,	/* OBJ_hmac_full_ecies              1 3 132 1 22 */
+997,	/* OBJ_hmac_half_ecies              1 3 132 1 23 */
 624,	/* OBJ_set_rootKeyThumb             2 23 42 3 0 0 */
 625,	/* OBJ_set_addPolicy                2 23 42 3 0 1 */
 626,	/* OBJ_setAttr_Token_EMV            2 23 42 3 2 1 */
@@ -4842,6 +4928,18 @@ static const unsigned int obj_objs[NUM_OBJ]={
 943,	/* OBJ_dhSinglePass_cofactorDH_sha256kdf_scheme 1 3 132 1 14 1 */
 944,	/* OBJ_dhSinglePass_cofactorDH_sha384kdf_scheme 1 3 132 1 14 2 */
 945,	/* OBJ_dhSinglePass_cofactorDH_sha512kdf_scheme 1 3 132 1 14 3 */
+985,	/* OBJ_x9_63_kdf                    1 3 132 1 17 0 */
+986,	/* OBJ_nist_concatenation_kdf       1 3 132 1 17 1 */
+987,	/* OBJ_tls_kdf                      1 3 132 1 17 2 */
+988,	/* OBJ_ikev2_kdf                    1 3 132 1 17 3 */
+990,	/* OBJ_aes128_cbc_in_ecies          1 3 132 1 20 0 */
+991,	/* OBJ_aes192_cbc_in_ecies          1 3 132 1 20 1 */
+992,	/* OBJ_aes256_cbc_in_ecies          1 3 132 1 20 2 */
+993,	/* OBJ_aes128_ctr_in_ecies          1 3 132 1 21 0 */
+994,	/* OBJ_aes192_ctr_in_ecies          1 3 132 1 21 1 */
+995,	/* OBJ_aes256_ctr_in_ecies          1 3 132 1 21 2 */
+998,	/* OBJ_cmac_aes128_ecies            1 3 132 1 24 0 */
+999,	/* OBJ_cmac_aes192_ecies            1 3 132 1 24 1 */
 631,	/* OBJ_setAttr_GenCryptgrm          2 23 42 3 3 3 1 */
 632,	/* OBJ_setAttr_T2Enc                2 23 42 3 3 4 1 */
 633,	/* OBJ_setAttr_T2cleartxt           2 23 42 3 3 4 2 */

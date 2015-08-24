@@ -84,7 +84,7 @@ my @known_ossl_platforms = ( "VMS", "WIN16", "WIN32", "WINNT", "OS2" );
 my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
 			 "CAST", "MD2", "MD4", "MD5", "SHA", "SHA0", "SHA1",
 			 "SHA256", "SHA512", "RIPEMD", "SM3", "SMS4",
-			 "MDC2", "WHIRLPOOL", "RSA", "DSA", "DH", "EC", "ECDH", "ECDSA", "EC2M",
+			 "MDC2", "WHIRLPOOL", "RSA", "DSA", "DH", "EC", "ECDH", "ECDSA", "EC2M", "ECIES",
 			 "HMAC", "AES", "CAMELLIA", "SEED", "GOST",
 			 # EC_NISTP_64_GCC_128
 			 "EC_NISTP_64_GCC_128",
@@ -318,6 +318,8 @@ $crypto.=" crypto/dsa/dsa.h" ; # unless $no_dsa;
 $crypto.=" crypto/dh/dh.h" ; # unless $no_dh;
 $crypto.=" crypto/ec/ec.h" ; # unless $no_ec;
 $crypto.=" crypto/ecdsa/ecdsa.h" ; # unless $no_ecdsa;
+$crypto.=" crypto/ecies/ecies.h" ;
+$crypto.=" crypto/ecies/kdf.h" ;
 $crypto.=" crypto/ecdh/ecdh.h" ; # unless $no_ecdh;
 $crypto.=" crypto/hmac/hmac.h" ; # unless $no_hmac;
 $crypto.=" crypto/cmac/cmac.h" ; # unless $no_hmac;

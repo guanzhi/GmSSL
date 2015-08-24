@@ -1349,6 +1349,29 @@ secg-scheme 14 3 : dhSinglePass-cofactorDH-sha512kdf-scheme
 1 3 6 1 4 1 311 60 2 1 2	: jurisdictionST	: jurisdictionStateOrProvinceName
 1 3 6 1 4 1 311 60 2 1 3	: jurisdictionC		: jurisdictionCountryName
 
+
+# ECIES OID
+!Alias secg_scheme certicom-arc 1
+secg-scheme 7		: ecies-recommendedParameters
+secg-scheme 8		: ecies-specifiedParameters
+secg-scheme 17 0	: x9-63-kdf
+secg-scheme 17 1	: nist-concatenation-kdf
+secg-scheme 17 2	: tls-kdf
+secg-scheme 17 3	: ikev2-kdf
+secg-scheme 18		: xor-in-ecies
+secg-scheme 20 0	: aes128-cbc-in-ecies
+secg-scheme 20 1	: aes192-cbc-in-ecies
+secg-scheme 20 2	: aes256-cbc-in-ecies
+secg-scheme 21 0	: aes128-ctr-in-ecies
+secg-scheme 21 1	: aes192-ctr-in-ecies
+secg-scheme 21 2	: aes256-ctr-in-ecies
+secg-scheme 22		: hmac-full-ecies
+secg-scheme 23		: hmac-half-ecies
+secg-scheme 24 0	: cmac-aes128-ecies
+secg-scheme 24 1	: cmac-aes192-ecies
+ 
+
+
 # SM: China National Cryptography Standards
 member-body 156	: ISO-CN		: ISO CN Member Body
 ISO-CN 10197	: oscca
