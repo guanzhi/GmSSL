@@ -5,9 +5,6 @@
 extern "C" {
 #endif
 /* OpenSSL was configured with the following options: */
-#ifndef OPENSSL_SYSNAME_MACOSX
-# define OPENSSL_SYSNAME_MACOSX
-#endif
 #ifndef OPENSSL_DOING_MAKEDEPEND
 
 
@@ -109,8 +106,8 @@ extern "C" {
 
 #if !(defined(VMS) || defined(__VMS)) /* VMS uses logical names instead */
 #if defined(HEADER_CRYPTLIB_H) && !defined(OPENSSLDIR)
-#define ENGINESDIR "/usr/local/lib/engines"
-#define OPENSSLDIR "/usr/local/openssl"
+#define ENGINESDIR "/usr/lib64/engines"
+#define OPENSSLDIR "/usr/ssl"
 #endif
 #endif
 

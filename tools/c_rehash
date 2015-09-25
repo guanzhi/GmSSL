@@ -1,10 +1,10 @@
-#!/opt/local/bin/perl5
+#!/usr/bin/perl
 
 # Perl c_rehash script, scan all files in a directory
 # and add symbolic links to their hash values.
 
-my $dir = "/usr/local/openssl";
-my $prefix = "/usr/local";
+my $dir = "/usr/ssl";
+my $prefix = "/usr";
 
 my $openssl = $ENV{OPENSSL} || "openssl";
 my $pwd;
