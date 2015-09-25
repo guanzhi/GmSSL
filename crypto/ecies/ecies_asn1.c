@@ -7,6 +7,16 @@
 #include "ecies.h"
 
 
+#ifndef ERR_LIB_ECIES
+#define ERR_LIB_ECIES           129
+#endif
+
+#ifndef ERR_R_ECIES_LIB
+#define ERR_R_ECIES_LIB         ERR_LIB_ECIES
+#endif
+
+
+
 /*
  * From SEC 1, Version 1.9 Draft, 2008
  *
