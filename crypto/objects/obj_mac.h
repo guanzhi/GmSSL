@@ -4193,6 +4193,76 @@
 #define NID_jurisdictionCountryName             957
 #define OBJ_jurisdictionCountryName             1L,3L,6L,1L,4L,1L,311L,60L,2L,1L,3L
 
+#define OBJ_secg_scheme         OBJ_certicom_arc,1L
+
+#define SN_ecies_recommendedParameters          "ecies-recommendedParameters"
+#define NID_ecies_recommendedParameters         983
+#define OBJ_ecies_recommendedParameters         OBJ_secg_scheme,7L
+
+#define SN_ecies_specifiedParameters            "ecies-specifiedParameters"
+#define NID_ecies_specifiedParameters           984
+#define OBJ_ecies_specifiedParameters           OBJ_secg_scheme,8L
+
+#define SN_x9_63_kdf            "x9-63-kdf"
+#define NID_x9_63_kdf           985
+#define OBJ_x9_63_kdf           OBJ_secg_scheme,17L,0L
+
+#define SN_nist_concatenation_kdf               "nist-concatenation-kdf"
+#define NID_nist_concatenation_kdf              986
+#define OBJ_nist_concatenation_kdf              OBJ_secg_scheme,17L,1L
+
+#define SN_tls_kdf              "tls-kdf"
+#define NID_tls_kdf             987
+#define OBJ_tls_kdf             OBJ_secg_scheme,17L,2L
+
+#define SN_ikev2_kdf            "ikev2-kdf"
+#define NID_ikev2_kdf           988
+#define OBJ_ikev2_kdf           OBJ_secg_scheme,17L,3L
+
+#define SN_xor_in_ecies         "xor-in-ecies"
+#define NID_xor_in_ecies                989
+#define OBJ_xor_in_ecies                OBJ_secg_scheme,18L
+
+#define SN_aes128_cbc_in_ecies          "aes128-cbc-in-ecies"
+#define NID_aes128_cbc_in_ecies         990
+#define OBJ_aes128_cbc_in_ecies         OBJ_secg_scheme,20L,0L
+
+#define SN_aes192_cbc_in_ecies          "aes192-cbc-in-ecies"
+#define NID_aes192_cbc_in_ecies         991
+#define OBJ_aes192_cbc_in_ecies         OBJ_secg_scheme,20L,1L
+
+#define SN_aes256_cbc_in_ecies          "aes256-cbc-in-ecies"
+#define NID_aes256_cbc_in_ecies         992
+#define OBJ_aes256_cbc_in_ecies         OBJ_secg_scheme,20L,2L
+
+#define SN_aes128_ctr_in_ecies          "aes128-ctr-in-ecies"
+#define NID_aes128_ctr_in_ecies         993
+#define OBJ_aes128_ctr_in_ecies         OBJ_secg_scheme,21L,0L
+
+#define SN_aes192_ctr_in_ecies          "aes192-ctr-in-ecies"
+#define NID_aes192_ctr_in_ecies         994
+#define OBJ_aes192_ctr_in_ecies         OBJ_secg_scheme,21L,1L
+
+#define SN_aes256_ctr_in_ecies          "aes256-ctr-in-ecies"
+#define NID_aes256_ctr_in_ecies         995
+#define OBJ_aes256_ctr_in_ecies         OBJ_secg_scheme,21L,2L
+
+#define SN_hmac_full_ecies              "hmac-full-ecies"
+#define NID_hmac_full_ecies             996
+#define OBJ_hmac_full_ecies             OBJ_secg_scheme,22L
+
+#define SN_hmac_half_ecies              "hmac-half-ecies"
+#define NID_hmac_half_ecies             997
+#define OBJ_hmac_half_ecies             OBJ_secg_scheme,23L
+
+#define SN_cmac_aes128_ecies            "cmac-aes128-ecies"
+#define NID_cmac_aes128_ecies           998
+#define OBJ_cmac_aes128_ecies           OBJ_secg_scheme,24L,0L
+
+#define SN_cmac_aes192_ecies            "cmac-aes192-ecies"
+#define NID_cmac_aes192_ecies           999
+#define OBJ_cmac_aes192_ecies           OBJ_secg_scheme,24L,1L
+
 #define SN_ISO_CN               "ISO-CN"
 #define LN_ISO_CN               "ISO CN Member Body"
 #define NID_ISO_CN              960
