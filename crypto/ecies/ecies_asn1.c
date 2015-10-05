@@ -95,6 +95,9 @@ secg-scheme 22		: hmac-full-ecies
 secg-scheme 23		: hmac-half-ecies
 secg-scheme 24 0	: cmac-aes128-ecies
 secg-scheme 24 1	: cmac-aes192-ecies
+
+FIXME: we can not get an EVP_algor object from these new NIDs
+
 */
 
 typedef struct ecies_parameters_st {

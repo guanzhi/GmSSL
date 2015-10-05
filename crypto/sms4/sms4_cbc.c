@@ -5,7 +5,8 @@
 
 void sms4_cbc_encrypt(const unsigned char *in, unsigned char *out,
 		     size_t len, const sms4_key_t *key,
-		     unsigned char *ivec, int encrypt) {
+		     unsigned char *ivec, int encrypt)
+{
         if(encrypt)
                 CRYPTO_cbc128_encrypt(in,out,len,key,ivec,(block128_f)sms4_encrypt);
         else

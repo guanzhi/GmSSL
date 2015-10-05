@@ -12,10 +12,22 @@ extern "C" {
 #endif
 
 
+/*
+ KDFSet ALGORITHM ::= {
+	{ OID x9-63-kdf PARMS HashAlgorithm } |
+	{ OID nist-concatenation-kdf PARMS HashAlgorithm } | 
+	{ OID tls-kdf PARMS HashAlgorithm } |
+	{ OID ikev2-kdf PARMS HashAlgorithm }
+ }
+*/
+
 typedef struct ecies_params_st {
+	int                  kdf_nid;
 	const EVP_MD        *kdf_md;
 	const EVP_CIPHER    *sym_cipher;
+	int                  mac_nid;
 	const EVP_MD        *mac_md;
+	const EVP_CIPHER    *mac_cipher;
 } ECIES_PARAMS;
 
 typedef struct ecies_ciphertext_value_st {
@@ -36,14 +48,6 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 	EC_KEY *pri_key);
 
 
-
-/* ERR function (should in openssl/err.h) begin */
-/*
-#define ERR_LIB_ECIES		129
-#define ERR_R_ECIES_LIB		ERR_LIB_ECIES
-#define ECIESerr(f,r) ERR_PUT_error(ERR_LIB_ECIES,(f),(r),__FILE__,__LINE__)
-*/
- 
 void ERR_load_ECIES_strings(void);
 
 /* Error codes for the ECIES functions. */

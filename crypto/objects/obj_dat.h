@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1000
-#define NUM_SN 985
-#define NUM_LN 985
-#define NUM_OBJ 924
+#define NUM_NID 1001
+#define NUM_SN 986
+#define NUM_LN 986
+#define NUM_OBJ 925
 
-static const unsigned char lvalues[6483]={
+static const unsigned char lvalues[6491]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -986,6 +986,7 @@ static const unsigned char lvalues[6483]={
 0x2B,0x81,0x04,0x01,0x17,                    /* [6465] OBJ_hmac_half_ecies */
 0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6470] OBJ_cmac_aes128_ecies */
 0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6476] OBJ_cmac_aes192_ecies */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x48,     /* [6482] OBJ_zuc */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2607,6 +2608,7 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 	&(lvalues[6470]),0},
 {"cmac-aes192-ecies","cmac-aes192-ecies",NID_cmac_aes192_ecies,6,
 	&(lvalues[6476]),0},
+{"ZUC","zuc",NID_zuc,8,&(lvalues[6482]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2813,6 +2815,7 @@ static const unsigned int sn_objs[NUM_SN]={
 184,	/* "X9-57" */
 185,	/* "X9cm" */
 125,	/* "ZLIB" */
+1000,	/* "ZUC" */
 478,	/* "aRecord" */
 289,	/* "aaControls" */
 287,	/* "ac-auditEntity" */
@@ -4583,6 +4586,7 @@ static const unsigned int ln_objs[NUM_LN]={
 985,	/* "x9-63-kdf" */
 989,	/* "xor-in-ecies" */
 125,	/* "zlib compression" */
+1000,	/* "zuc" */
 };
 
 static const unsigned int obj_objs[NUM_OBJ]={
@@ -5021,6 +5025,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 978,	/* OBJ_sms4_cbc                     1 2 156 10197 1 104 2 */
 982,	/* OBJ_sms4_cfb128                  1 2 156 10197 1 104 3 */
 981,	/* OBJ_sms4_ofb128                  1 2 156 10197 1 104 4 */
+1000,	/* OBJ_zuc                          1 2 156 10197 1 200 */
 969,	/* OBJ_sm2                          1 2 156 10197 1 301 */
 962,	/* OBJ_sm3                          1 2 156 10197 1 401 */
 973,	/* OBJ_sm2sign_with_sm3             1 2 156 10197 1 501 */

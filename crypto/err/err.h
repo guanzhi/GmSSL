@@ -291,7 +291,7 @@ typedef struct err_state_st {
 # define ERR_R_ECDH_LIB  ERR_LIB_ECDH/* 43 */
 # define ERR_R_STORE_LIB ERR_LIB_STORE/* 44 */
 # define ERR_R_TS_LIB    ERR_LIB_TS/* 45 */
-# define ERR_R_EICES_LIB    ERR_LIB_ECIES/* 50 */
+# define ERR_R_ECIES_LIB    ERR_LIB_ECIES/* 50 */
 
 # define ERR_R_NESTED_ASN1_ERROR                 58
 # define ERR_R_BAD_ASN1_OBJECT_HEADER            59

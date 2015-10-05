@@ -386,7 +386,7 @@ int main(int Argc, char *ARGV[])
             if (i++)
                 prompt = ">";
             else
-                prompt = "OpenSSL> ";
+                prompt = "GmSSL> ";
             fputs(prompt, stdout);
             fflush(stdout);
             if (!fgets(p, n, stdin))

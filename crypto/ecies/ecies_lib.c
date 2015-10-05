@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/aes.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include <openssl/ecdh.h>
@@ -16,7 +17,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	EC_KEY *ephem_key = NULL;
 	unsigned char *share = NULL;
 	unsigned char *enckey, *mackey, *p;
-	int sharelen, enckeylen, mackeylen, len;
+	int sharelen, enckeylen, mackeylen, maclen, len;
 
 	EVP_CIPHER_CTX cipher_ctx;
 	EVP_CIPHER_CTX_init(&cipher_ctx);
@@ -67,7 +68,29 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	if (param->sym_cipher)
 		enckeylen = EVP_CIPHER_key_length(param->sym_cipher);
 	else	enckeylen = inlen;
-	mackeylen = EVP_MD_size(param->mac_md); //TODO: is this true for hmac-half-ecies?
+
+	switch (param->mac_nid) {
+	case NID_hmac_full_ecies:
+		maclen = EVP_MD_size(param->mac_md);
+		mackeylen = EVP_MD_size(param->mac_md);
+		break;
+	case NID_hmac_half_ecies:
+		maclen = EVP_MD_size(param->mac_md)/2;
+		mackeylen = EVP_MD_size(param->mac_md);
+		break;
+	case NID_cmac_aes128_ecies:
+		maclen = AES_BLOCK_SIZE;
+		mackeylen = 128/8;
+		break;
+	case NID_cmac_aes192_ecies:
+		maclen = AES_BLOCK_SIZE;
+		mackeylen = 192/8;
+		break;
+	default:
+		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_EC_LIB);
+		goto err;
+	}
+
 	sharelen = enckeylen + mackeylen;
 
 	if (!(share = OPENSSL_malloc(sharelen)))
@@ -138,12 +161,12 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	/*
 	 * calculate mactag of ciphertext and encode
 	 */
-	cv->mactag->length = EVP_MD_size(param->mac_md);
+	cv->mactag->length = maclen;
 	
-	if (!M_ASN1_OCTET_STRING_set(cv->mactag, NULL, EVP_MD_size(param->mac_md)))
+	if (!M_ASN1_OCTET_STRING_set(cv->mactag, NULL, cv->mactag->length))
 		{
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
-		goto err;		
+		goto err;	
 		}
 	if (!HMAC(param->mac_md, mackey, mackeylen,
 		cv->ciphertext->data, (size_t)cv->ciphertext->length,

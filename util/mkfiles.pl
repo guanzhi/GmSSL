@@ -23,6 +23,7 @@ my @dirs = (
 "crypto/rc4",
 "crypto/rc5",
 "crypto/sms4",
+"crypto/zuc",
 "crypto/idea",
 "crypto/bf",
 "crypto/cast",

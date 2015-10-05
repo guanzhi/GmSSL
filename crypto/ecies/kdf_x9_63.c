@@ -14,7 +14,7 @@ static void *x963_kdf(const EVP_MD *md, const void *share, size_t sharelen,
 	void *key, size_t keylen)
 {
 	EVP_MD_CTX ctx;
-	unsigned int counter = 1;
+	unsigned int counter = 1; //FIXME: uint32_t
 	unsigned int counter_be;
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen;

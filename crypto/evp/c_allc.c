@@ -172,6 +172,10 @@ void OpenSSL_add_all_ciphers(void)
         EVP_add_cipher_alias(SN_sms4_cbc,"sms4");
 #endif
 
+#ifndef OPENSSL_NO_ZUC
+	EVP_add_cipher(EVP_zuc());
+#endif
+
 #ifndef OPENSSL_NO_AES
     EVP_add_cipher(EVP_aes_128_ecb());
     EVP_add_cipher(EVP_aes_128_cbc());

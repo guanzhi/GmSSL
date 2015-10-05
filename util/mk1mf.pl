@@ -111,7 +111,7 @@ and [options] can be one of
 	no-ripemd no-sm3
 	no-rc2 no-rc4 no-rc5 no-idea no-des     - Skip this symetric cipher
 	no-bf no-cast no-aes no-camellia no-seed
-	no-sms4
+	no-sms4 no-zuc
 	no-rsa no-dsa no-dh			- Skip this public key cipher
 	no-ssl2 no-ssl3				- Skip this version of SSL
 	just-ssl				- remove all non-ssl keys/digest
@@ -295,6 +295,7 @@ $cflags.= " -DZLIB" if $zlib_opt;
 $cflags.= " -DZLIB_SHARED" if $zlib_opt == 2;
 $cflags.=" -DOPENSSL_NO_SM3"  if $no_sm3;
 $cflags.=" -DOPENSSL_NO_SMS4" if $no_sms4;
+$cflags.=" -DOPENSSL_NO_ZUC" if $no_zuc;
 
 if ($no_static_engine)
 	{
@@ -919,6 +920,7 @@ sub var_add
 
 	@a=grep(!/(^sm3)|(_sm3$)/,@a) if $no_sm3;
 	@a=grep(!/(^sms4)|(_sms4$)/,@a) if $no_sms4;
+	@a=grep(!/(^zuc)|(_zuc$)/,@a) if $no_zuc;
 
 	grep($_="$dir/$_",@a);
 	@a=grep(!/(^|\/)s_/,@a) if $no_sock;
@@ -1248,7 +1250,8 @@ sub read_options
 		"no-multiblock" => 0,
 		"fips" => \$fips,
 		"no-sm3" => \$no_sm3,
-		"no-sms4" => \$no_sms4
+		"no-sms4" => \$no_sms4,
+		"no-zuc" => \$no_zuc
 		);
 
 	if (exists $valid_options{$_})

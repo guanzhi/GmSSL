@@ -1393,3 +1393,6 @@ sm 104 2		: SMS4-CBC		: sms4-cbc
 sm 104 3		: SMS4-CFB		: sms4-cfb
 !Cname sms4-ofb128
 sm 104 4		: SMS4-OFB		: sms4-ofb
+
+sm 200		: ZUC			: zuc
+

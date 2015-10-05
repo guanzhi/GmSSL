@@ -57,7 +57,7 @@ foreach (@ARGV)
 		{ print $str; }
 	}
 
-foreach ("md2","md4","md5","sha","sha1","mdc2","rmd160")
+foreach ("md2","md4","md5","sha","sha1","mdc2","rmd160","sm3")
 	{
 	push(@files,$_);
 	printf "#ifndef OPENSSL_NO_".uc($_)."\n\t{FUNC_TYPE_MD,\"".$_."\",dgst_main},\n#endif\n";
@@ -83,7 +83,7 @@ foreach (
 	"bf-cbc",  "bf-ecb",     "bf-cfb",   "bf-ofb",
 	"cast5-cbc","cast5-ecb", "cast5-cfb","cast5-ofb",
 	"cast-cbc", "rc5-cbc",   "rc5-ecb",  "rc5-cfb",  "rc5-ofb",
-	"sms4-cbc", "sms4-ecb", "sms4-cfb", "sms4-ofb")
+	"sms4-cbc", "sms4-ecb", "sms4-cfb", "sms4-ofb", "zuc")
 	{
 	push(@files,$_);
 
@@ -99,6 +99,7 @@ foreach (
 	elsif ($_ =~ /cast/) { $t="#ifndef OPENSSL_NO_CAST\n${t}#endif\n"; }
 	elsif ($_ =~ /rc5/)  { $t="#ifndef OPENSSL_NO_RC5\n${t}#endif\n"; }
 	elsif ($_ =~ /sms4/)  { $t="#ifndef OPENSSL_NO_SMS4\n${t}#endif\n"; }
+	elsif ($_ =~ /zuc/)  { $t="#ifndef OPENSSL_NO_ZUC\n${t}#endif\n"; }
 	elsif ($_ =~ /zlib/)  { $t="#ifdef ZLIB\n${t}#endif\n"; }
 	print $t;
 	}

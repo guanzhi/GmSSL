@@ -4340,3 +4340,8 @@
 #define LN_sms4_ofb128          "sms4-ofb"
 #define NID_sms4_ofb128         981
 #define OBJ_sms4_ofb128         OBJ_sm,104L,4L
+
+#define SN_zuc          "ZUC"
+#define LN_zuc          "zuc"
+#define NID_zuc         1000
+#define OBJ_zuc         OBJ_sm,200L

@@ -30,7 +30,7 @@ LIBSRC= encode.c digest.c evp_enc.c evp_key.c evp_acnf.c evp_cnf.c \
 	evp_pkey.c evp_pbe.c p5_crpt.c p5_crpt2.c \
 	e_old.c pmeth_lib.c pmeth_fn.c pmeth_gn.c m_sigver.c \
 	e_aes_cbc_hmac_sha1.c e_aes_cbc_hmac_sha256.c e_rc4_hmac_md5.c \
-	m_sm3.c e_sms4.c
+	m_sm3.c e_sms4.c e_zuc.c
 
 LIBOBJ=	encode.o digest.o evp_enc.o evp_key.o evp_acnf.o evp_cnf.o \
 	e_des.o e_bf.o e_idea.o e_des3.o e_camellia.o\
@@ -44,7 +44,7 @@ LIBOBJ=	encode.o digest.o evp_enc.o evp_key.o evp_acnf.o evp_cnf.o \
 	evp_pkey.o evp_pbe.o p5_crpt.o p5_crpt2.o \
 	e_old.o pmeth_lib.o pmeth_fn.o pmeth_gn.o m_sigver.o \
 	e_aes_cbc_hmac_sha1.o e_aes_cbc_hmac_sha256.o e_rc4_hmac_md5.o \
-	m_sm3.o e_sms4.o
+	m_sm3.o e_sms4.o e_zuc.o
 
 SRC= $(LIBSRC)
 
@@ -353,6 +353,16 @@ e_sms4.o: ../../include/openssl/objects.h ../../include/openssl/opensslconf.h
 e_sms4.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
 e_sms4.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
 e_sms4.o: ../../include/openssl/symhacks.h ../cryptlib.h e_sms4.c evp_locl.h
+
+e_zuc.o: ../../e_os.h ../../include/openssl/asn1.h ../../include/openssl/bio.h
+e_zuc.o: ../../include/openssl/buffer.h ../../include/openssl/crypto.h
+e_zuc.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
+#e_zuc.o: ../../include/openssl/evp.h ../../include/openssl/zuc.h
+e_zuc.o: ../../include/openssl/lhash.h ../../include/openssl/obj_mac.h
+e_zuc.o: ../../include/openssl/objects.h ../../include/openssl/opensslconf.h
+e_zuc.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+e_zuc.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
+e_zuc.o: ../../include/openssl/symhacks.h ../cryptlib.h e_zuc.c evp_locl.h
 
 e_seed.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
 e_seed.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h

@@ -838,6 +838,9 @@ const EVP_CIPHER *EVP_sms4_ofb128(void);
 #define EVP_sm4_cfb128 EVP_sms4_cfb128
 #define EVP_sm4_ofb128 EVP_sms4_ofb128
 #endif
+#ifndef OPENSSL_NO_ZUC
+const EVP_CIPHER *EVP_zuc(void);
+#endif
 # ifndef OPENSSL_NO_AES
 const EVP_CIPHER *EVP_aes_128_ecb(void);
 const EVP_CIPHER *EVP_aes_128_cbc(void);

@@ -997,3 +997,4 @@ hmac_full_ecies		996
 hmac_half_ecies		997
 cmac_aes128_ecies		998
 cmac_aes192_ecies		999
+zuc		1000
