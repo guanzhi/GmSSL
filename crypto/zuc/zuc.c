@@ -200,12 +200,27 @@ void ZUC_set_key(ZUC_KEY *key, const unsigned char *k, const unsigned char *iv)
 		LFSRWithInitialisationMode(key, w >> 1);
 		nCount--;
 	}
+
+	/* set buffer */
+	key->buflen = 0;
 }
 
 void ZUC_encrypt(ZUC_KEY *key, size_t inlen, const unsigned char *in, unsigned char *out)
 {
 #if 0
 	int i;
+
+	if (key->buflen) {
+		int len = inlen < 4 - key->buflen ? inlen : 4 - key->buflen;
+		memcpy(key->buf + key->buflen, in, len);
+		inlen -= len;
+
+		if (key->buflen == 4) {
+		}
+	}
+	if (inlen < 4) {
+	}
+
 	BitReorganization(key);
 	F(key); /* discard the output of F */
 	LFSRWithWorkMode(key);
@@ -216,6 +231,6 @@ void ZUC_encrypt(ZUC_KEY *key, size_t inlen, const unsigned char *in, unsigned c
 		pKeystream[i] = F(key) ^ key->BRC_X3;
 		LFSRWithWorkMode(key);
 	}
-#endif 
+#endif
 }
 

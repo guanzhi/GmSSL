@@ -121,6 +121,8 @@ and [options] can be one of
 	no-ec					- No EC
 	no-ecdsa				- No ECDSA
 	no-ecdh					- No ECDH
+	no-ecies				- No ECIES
+	no-cpk					- No CPK
 	no-engine				- No engine
 	no-hw					- No hw
 	nasm 					- Use NASM for x86 asm
@@ -296,6 +298,8 @@ $cflags.= " -DZLIB_SHARED" if $zlib_opt == 2;
 $cflags.=" -DOPENSSL_NO_SM3"  if $no_sm3;
 $cflags.=" -DOPENSSL_NO_SMS4" if $no_sms4;
 $cflags.=" -DOPENSSL_NO_ZUC" if $no_zuc;
+$cflags.=" -DOPENSSL_NO_ECIES" if $no_ecies;
+$cflags.=" -DOPENSSL_NO_CPK" if $no_cpk;
 
 if ($no_static_engine)
 	{
@@ -921,6 +925,8 @@ sub var_add
 	@a=grep(!/(^sm3)|(_sm3$)/,@a) if $no_sm3;
 	@a=grep(!/(^sms4)|(_sms4$)/,@a) if $no_sms4;
 	@a=grep(!/(^zuc)|(_zuc$)/,@a) if $no_zuc;
+	@a=grep(!/(^ecies)|(_ecies$)/,@a) if $no_ecies;
+	@a=grep(!/(^cpk)|(_cpk$)/,@a) if $no_cpk;
 
 	grep($_="$dir/$_",@a);
 	@a=grep(!/(^|\/)s_/,@a) if $no_sock;
@@ -1252,6 +1258,8 @@ sub read_options
 		"no-sm3" => \$no_sm3,
 		"no-sms4" => \$no_sms4,
 		"no-zuc" => \$no_zuc
+		"no-ecies" => \$no_ecies
+		"no-cpk" => \$no_cpk
 		);
 
 	if (exists $valid_options{$_})

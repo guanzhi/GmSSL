@@ -4,7 +4,7 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/ossl_typ.h>
-#include "ecies.h"
+#include <openssl/ecies.h>
 
 #ifdef  __cplusplus
 extern "C" {

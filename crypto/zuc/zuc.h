@@ -36,6 +36,10 @@ typedef struct {
 	uint32_t BRC_X1;
 	uint32_t BRC_X2;
 	uint32_t BRC_X3;
+
+	/* word buffer */
+	unsigned char buf[4];
+	int buflen;
 } ZUC_KEY;
 
 

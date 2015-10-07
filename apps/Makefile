@@ -946,6 +946,7 @@ speed.o: ../include/openssl/lhash.h ../include/openssl/md4.h
 speed.o: ../include/openssl/md5.h ../include/openssl/mdc2.h
 speed.o: ../include/openssl/sm3.h ../include/openssl/sms4.h
 speed.o: ../include/openssl/zuc.h
+speed.o: ../include/openssl/cpk.h
 speed.o: ../include/openssl/modes.h ../include/openssl/obj_mac.h
 speed.o: ../include/openssl/objects.h ../include/openssl/ocsp.h
 speed.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
