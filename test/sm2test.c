@@ -1,0 +1,1 @@
+../crypto/sm2/sm2test.c

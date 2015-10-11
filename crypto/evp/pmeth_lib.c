@@ -76,6 +76,7 @@ STACK_OF(EVP_PKEY_METHOD) *app_pkey_methods = NULL;
 extern const EVP_PKEY_METHOD rsa_pkey_meth, dh_pkey_meth, dsa_pkey_meth;
 extern const EVP_PKEY_METHOD ec_pkey_meth, hmac_pkey_meth, cmac_pkey_meth;
 extern const EVP_PKEY_METHOD dhx_pkey_meth;
+extern const EVP_PKEY_METHOD sm2_pkey_meth;
 
 static const EVP_PKEY_METHOD *standard_methods[] = {
 #ifndef OPENSSL_NO_RSA
@@ -89,6 +90,7 @@ static const EVP_PKEY_METHOD *standard_methods[] = {
 #endif
 #ifndef OPENSSL_NO_EC
     &ec_pkey_meth,
+    &sm2_pkey_meth,
 #endif
     &hmac_pkey_meth,
     &cmac_pkey_meth,

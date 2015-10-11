@@ -1223,6 +1223,14 @@ void ERR_load_EC_strings(void);
 # define EC_F_PKEY_EC_PARAMGEN                            219
 # define EC_F_PKEY_EC_SIGN                                218
 
+#ifndef OPENSSL_NO_GMSSL
+#define EC_F_PKEY_EC_ENCRYPT				300
+#define EC_F_PKEY_EC_DECRYPT				301
+#define EC_F_PKEY_SM2_SIGN				302
+#define EC_F_PKEY_SM2_ENCRYPT				303
+#define EC_F_PKEY_SM2_DECRYPT				304
+#endif
+
 /* Reason codes. */
 # define EC_R_ASN1_ERROR                                  115
 # define EC_R_ASN1_UNKNOWN_FIELD                          116

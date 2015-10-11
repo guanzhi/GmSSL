@@ -65,6 +65,7 @@
 #include <openssl/ecdsa.h>
 #include <openssl/evp.h>
 #include "evp_locl.h"
+#include <openssl/sm2.h>
 
 /* EC pkey context structure */
 
@@ -276,6 +277,14 @@ static int pkey_ec_kdf_derive(EVP_PKEY_CTX *ctx,
     }
     return rv;
 }
+#endif
+
+
+#ifndef OPENSSL_NO_ECIES
+static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen);
+static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen);
 #endif
 
 static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
@@ -514,9 +523,19 @@ const EVP_PKEY_METHOD ec_pkey_meth = {
 
     0, 0, 0, 0,
 
-    0, 0,
+    0,
+#ifndef OPENSSL_NO_ECIES
+    pkey_ec_encrypt,
+#else
+    0,
+#endif
 
-    0, 0,
+    0,
+#ifndef OPENSSL_NO_ECIES
+    pkey_ec_decrypt,
+#else
+    0,
+#endif
 
     0,
 #ifndef OPENSSL_NO_ECDH
@@ -528,3 +547,140 @@ const EVP_PKEY_METHOD ec_pkey_meth = {
     pkey_ec_ctrl,
     pkey_ec_ctrl_str
 };
+
+#ifndef OPENSSL_NO_ECIES
+static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen)
+{
+	return 0;
+}
+
+static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen)
+{
+	return 0;
+}
+#endif
+
+#ifndef OPENSSL_NO_SM2
+static int pkey_sm2_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
+	const unsigned char *tbs, size_t tbslen)
+{
+    int ret, type;
+    unsigned int sltmp;
+    EC_PKEY_CTX *dctx = ctx->data;
+    EC_KEY *ec = ctx->pkey->pkey.ec;
+
+    if (!sig) {
+        *siglen = ECDSA_size(ec);
+        return 1;
+    } else if (*siglen < (size_t)ECDSA_size(ec)) {
+        ECerr(EC_F_PKEY_EC_SIGN, EC_R_BUFFER_TOO_SMALL);
+        return 0;
+    }
+
+    if (dctx->md)
+        type = EVP_MD_type(dctx->md);
+    else
+        type = NID_sha1;
+
+    ret = ECDSA_sign(type, tbs, tbslen, sig, &sltmp, ec);
+
+    if (ret <= 0)
+        return ret;
+    *siglen = (size_t)sltmp;
+    return 1;
+}
+
+static int pkey_sm2_verify(EVP_PKEY_CTX *ctx,
+                          const unsigned char *sig, size_t siglen,
+                          const unsigned char *tbs, size_t tbslen)
+{
+    int ret, type;
+    EC_PKEY_CTX *dctx = ctx->data;
+    EC_KEY *ec = ctx->pkey->pkey.ec;
+
+    if (dctx->md)
+        type = EVP_MD_type(dctx->md);
+    else
+        type = NID_sha1;
+
+    ret = ECDSA_verify(type, tbs, tbslen, sig, siglen, ec);
+
+    return ret;
+}
+
+static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen)
+{
+	int ret = 0;
+	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_KEY *ec_key = ctx->pkey->pkey.ec;
+	const EVP_MD *kdf_md = ec_ctx->kdf_md;
+	const EVP_MD *mac_md = ec_ctx->md;
+	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
+
+	if (!(ret = SM2_encrypt(kdf_md, mac_md, point_form, out, outlen, in, inlen, ec_key))) {
+		return 0;
+	}
+
+	return ret;
+}
+
+static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen)
+{
+	int ret = 0;
+	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_KEY *ec_key = ctx->pkey->pkey.ec;
+	const EVP_MD *kdf_md = ec_ctx->kdf_md;
+	const EVP_MD *mac_md = ec_ctx->md;
+	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
+
+	if (!(ret = SM2_decrypt(kdf_md, mac_md, point_form, in, inlen, out, outlen, ec_key))) {
+		return 0;
+	}
+
+	return ret;
+}
+
+const EVP_PKEY_METHOD sm2_pkey_meth = {
+    EVP_PKEY_EC,
+    0,
+    pkey_ec_init,
+    pkey_ec_copy,
+    pkey_ec_cleanup,
+
+    0,
+    pkey_ec_paramgen,
+
+    0,
+    pkey_ec_keygen,
+
+    0,
+    pkey_sm2_sign,
+
+    0,
+    pkey_sm2_verify,
+
+    0, 0,
+
+    0, 0, 0, 0,
+
+    0,
+    pkey_sm2_encrypt,
+
+    0,
+    pkey_sm2_decrypt,
+
+    0,
+#ifndef OPENSSL_NO_ECDH
+    pkey_ec_kdf_derive,
+#else
+    0,
+#endif
+
+    pkey_ec_ctrl,
+    pkey_ec_ctrl_str
+};
+#endif

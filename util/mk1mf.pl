@@ -122,6 +122,7 @@ and [options] can be one of
 	no-ecdsa				- No ECDSA
 	no-ecdh					- No ECDH
 	no-ecies				- No ECIES
+	no-sm2					- No SM2
 	no-cpk					- No CPK
 	no-engine				- No engine
 	no-hw					- No hw
@@ -295,6 +296,7 @@ $cflags.=" -DOPENSSL_NO_JPAKE"    if $no_jpake;
 $cflags.=" -DOPENSSL_NO_EC2M"    if $no_ec2m;
 $cflags.= " -DZLIB" if $zlib_opt;
 $cflags.= " -DZLIB_SHARED" if $zlib_opt == 2;
+$cflags.=" -DOPENSSL_NO_SM2"  if $no_sm2;
 $cflags.=" -DOPENSSL_NO_SM3"  if $no_sm3;
 $cflags.=" -DOPENSSL_NO_SMS4" if $no_sms4;
 $cflags.=" -DOPENSSL_NO_ZUC" if $no_zuc;
@@ -922,6 +924,7 @@ sub var_add
 
 	@a=grep(!/(^dh)|(_sha1$)|(m_dss1$)/,@a) if $no_sha1;
 
+	@a=grep(!/(^sm2)|(_sm2$)/,@a) if $no_sm2;
 	@a=grep(!/(^sm3)|(_sm3$)/,@a) if $no_sm3;
 	@a=grep(!/(^sms4)|(_sms4$)/,@a) if $no_sms4;
 	@a=grep(!/(^zuc)|(_zuc$)/,@a) if $no_zuc;
@@ -1255,6 +1258,7 @@ sub read_options
 		"no-libunbound" => 0,
 		"no-multiblock" => 0,
 		"fips" => \$fips,
+		"no-sm2" => \$no_sm2,
 		"no-sm3" => \$no_sm3,
 		"no-sms4" => \$no_sms4,
 		"no-zuc" => \$no_zuc

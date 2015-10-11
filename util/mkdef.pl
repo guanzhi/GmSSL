@@ -146,7 +146,7 @@ my $no_rfc3779; my $no_psk; my $no_tlsext; my $no_cms; my $no_capieng;
 my $no_jpake; my $no_srp; my $no_ssl2; my $no_ec2m; my $no_nistp_gcc; 
 my $no_nextprotoneg; my $no_sctp; my $no_srtp; my $no_ssl_trace;
 my $no_unit_test; my $no_ssl3_method;
-my $no_sm3; my $no_sms4; my $no_zuc; my $no_ecies; my $no_cpk;
+my $no_sm3; my $no_sms4; my $no_zuc; my $no_ecies; my $no_cpk; my $no_sm2;
 
 my $fips;
 
@@ -249,6 +249,7 @@ foreach (@ARGV, split(/ /, $options))
 	elsif (/^no-sctp$/)	{ $no_sctp=1; }
 	elsif (/^no-srtp$/)	{ $no_srtp=1; }
 	elsif (/^no-unit-test$/){ $no_unit_test=1; }
+	elsif (/^no-sm2$/)	{ $no_sm2=1; }
 	elsif (/^no-sm3$/)	{ $no_sm3=1; }
 	elsif (/^no-sms4$/)	{ $no_sms4=1; }
 	elsif (/^no-zuc$/)	{ $no_zuc=1; }
@@ -360,6 +361,7 @@ $crypto.=" crypto/jpake/jpake.h";
 $crypto.=" crypto/modes/modes.h";
 $crypto.=" crypto/srp/srp.h";
 
+$crypto.=" crypto/sm2/sm2.h"; # unless $no_sm2;
 $crypto.=" crypto/sm3/sm3.h"; # unless $no_sm3;
 $crypto.=" crypto/sms4/sms4.h"; # unless $no_sms4;
 $crypto.=" crypto/zuc/zuc.h"; # unless $no_zuc;
@@ -1240,6 +1242,7 @@ sub is_valid
 			if ($keyword eq "SRTP" && $no_srtp) { return 0; }
 			if ($keyword eq "UNIT_TEST" && $no_unit_test) { return 0; }
 			if ($keyword eq "DEPRECATED" && $no_deprecated) { return 0; }
+			if ($keyword eq "SM2" && $no_sm2) { return 0; }
 			if ($keyword eq "SM3" && $no_sm3) { return 0; }
 			if ($keyword eq "SMS4" && $no_sms4) { return 0; }
 			if ($keyword eq "ZUC" && $no_zuc) { return 0; }

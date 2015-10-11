@@ -4276,25 +4276,21 @@
 #define NID_sm          968
 #define OBJ_sm          OBJ_oscca,1L
 
-#define SN_sm2          "sm2"
-#define NID_sm2         969
-#define OBJ_sm2         OBJ_sm,301L
+#define SN_sm2p256v1            "sm2p256v1"
+#define NID_sm2p256v1           958
+#define OBJ_sm2p256v1           OBJ_sm,301L
 
 #define SN_sm2sign              "sm2sign"
 #define NID_sm2sign             970
-#define OBJ_sm2sign             OBJ_sm2,1L
+#define OBJ_sm2sign             OBJ_sm,301L,1L
 
 #define SN_sm2keyagreement              "sm2keyagreement"
 #define NID_sm2keyagreement             971
-#define OBJ_sm2keyagreement             OBJ_sm2,2L
+#define OBJ_sm2keyagreement             OBJ_sm,301L,2L
 
 #define SN_sm2encrypt           "sm2encrypt"
 #define NID_sm2encrypt          972
-#define OBJ_sm2encrypt          OBJ_sm2,3L
-
-#define SN_sm2p256v1            "sm2p256v1"
-#define NID_sm2p256v1           958
-#define OBJ_sm2p256v1           OBJ_sm2,4L
+#define OBJ_sm2encrypt          OBJ_sm,301L,3L
 
 #define SN_sm3          "SM3"
 #define LN_sm3          "sm3"

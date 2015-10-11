@@ -1,5 +1,5 @@
 #
-# crypto/ecies/Makefile
+# crypto/sm2/Makefile
 #
 
 DIR=	sm2
@@ -23,7 +23,7 @@ LIBOBJ=	sm2_dgst.o sm2_enc.o
 
 SRC= $(LIBSRC)
 
-EXHEADER= sm2_enc.h
+EXHEADER= sm2.h
 HEADER=	 $(EXHEADER)
 
 ALL=    $(GENERAL) $(SRC) $(HEADER)

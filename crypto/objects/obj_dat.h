@@ -63,11 +63,11 @@
  */
 
 #define NUM_NID 1001
-#define NUM_SN 986
-#define NUM_LN 986
-#define NUM_OBJ 925
+#define NUM_SN 985
+#define NUM_LN 985
+#define NUM_OBJ 924
 
-static const unsigned char lvalues[6491]={
+static const unsigned char lvalues[6482]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -952,41 +952,40 @@ static const unsigned char lvalues[6491]={
 0x2B,0x06,0x01,0x04,0x01,0x82,0x37,0x3C,0x02,0x01,0x01,/* [6221] OBJ_jurisdictionLocalityName */
 0x2B,0x06,0x01,0x04,0x01,0x82,0x37,0x3C,0x02,0x01,0x02,/* [6232] OBJ_jurisdictionStateOrProvinceName */
 0x2B,0x06,0x01,0x04,0x01,0x82,0x37,0x3C,0x02,0x01,0x03,/* [6243] OBJ_jurisdictionCountryName */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x04,/* [6254] OBJ_sm2p256v1 */
-0x2A,0x81,0x1C,                              /* [6263] OBJ_ISO_CN */
-0x2A,0x81,0x1C,0xCF,0x55,                    /* [6266] OBJ_oscca */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x11,     /* [6271] OBJ_sm3 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x11,0x02,/* [6279] OBJ_hmac_sm3 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,               /* [6288] OBJ_sm */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,     /* [6294] OBJ_sm2 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x01,/* [6302] OBJ_sm2sign */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x02,/* [6311] OBJ_sm2keyagreement */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,/* [6320] OBJ_sm2encrypt */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x75,     /* [6329] OBJ_sm2sign_with_sm3 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x76,     /* [6337] OBJ_sm2sign_with_sha1 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x77,     /* [6345] OBJ_sm2sign_with_sha256 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x01,     /* [6353] OBJ_sms4_ecb */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x02,     /* [6361] OBJ_sms4_cbc */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x04,     /* [6369] OBJ_sms4_ofb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x03,     /* [6377] OBJ_sms4_cfb128 */
-0x2B,0x81,0x04,0x01,0x07,                    /* [6385] OBJ_ecies_recommendedParameters */
-0x2B,0x81,0x04,0x01,0x08,                    /* [6390] OBJ_ecies_specifiedParameters */
-0x2B,0x81,0x04,0x01,0x11,0x00,               /* [6395] OBJ_x9_63_kdf */
-0x2B,0x81,0x04,0x01,0x11,0x01,               /* [6401] OBJ_nist_concatenation_kdf */
-0x2B,0x81,0x04,0x01,0x11,0x02,               /* [6407] OBJ_tls_kdf */
-0x2B,0x81,0x04,0x01,0x11,0x03,               /* [6413] OBJ_ikev2_kdf */
-0x2B,0x81,0x04,0x01,0x12,                    /* [6419] OBJ_xor_in_ecies */
-0x2B,0x81,0x04,0x01,0x14,0x00,               /* [6424] OBJ_aes128_cbc_in_ecies */
-0x2B,0x81,0x04,0x01,0x14,0x01,               /* [6430] OBJ_aes192_cbc_in_ecies */
-0x2B,0x81,0x04,0x01,0x14,0x02,               /* [6436] OBJ_aes256_cbc_in_ecies */
-0x2B,0x81,0x04,0x01,0x15,0x00,               /* [6442] OBJ_aes128_ctr_in_ecies */
-0x2B,0x81,0x04,0x01,0x15,0x01,               /* [6448] OBJ_aes192_ctr_in_ecies */
-0x2B,0x81,0x04,0x01,0x15,0x02,               /* [6454] OBJ_aes256_ctr_in_ecies */
-0x2B,0x81,0x04,0x01,0x16,                    /* [6460] OBJ_hmac_full_ecies */
-0x2B,0x81,0x04,0x01,0x17,                    /* [6465] OBJ_hmac_half_ecies */
-0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6470] OBJ_cmac_aes128_ecies */
-0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6476] OBJ_cmac_aes192_ecies */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x48,     /* [6482] OBJ_zuc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,     /* [6254] OBJ_sm2p256v1 */
+0x2A,0x81,0x1C,                              /* [6262] OBJ_ISO_CN */
+0x2A,0x81,0x1C,0xCF,0x55,                    /* [6265] OBJ_oscca */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x11,     /* [6270] OBJ_sm3 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x11,0x02,/* [6278] OBJ_hmac_sm3 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,               /* [6287] OBJ_sm */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x01,/* [6293] OBJ_sm2sign */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x02,/* [6302] OBJ_sm2keyagreement */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,/* [6311] OBJ_sm2encrypt */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x75,     /* [6320] OBJ_sm2sign_with_sm3 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x76,     /* [6328] OBJ_sm2sign_with_sha1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x77,     /* [6336] OBJ_sm2sign_with_sha256 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x01,     /* [6344] OBJ_sms4_ecb */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x02,     /* [6352] OBJ_sms4_cbc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x04,     /* [6360] OBJ_sms4_ofb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x03,     /* [6368] OBJ_sms4_cfb128 */
+0x2B,0x81,0x04,0x01,0x07,                    /* [6376] OBJ_ecies_recommendedParameters */
+0x2B,0x81,0x04,0x01,0x08,                    /* [6381] OBJ_ecies_specifiedParameters */
+0x2B,0x81,0x04,0x01,0x11,0x00,               /* [6386] OBJ_x9_63_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x01,               /* [6392] OBJ_nist_concatenation_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x02,               /* [6398] OBJ_tls_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x03,               /* [6404] OBJ_ikev2_kdf */
+0x2B,0x81,0x04,0x01,0x12,                    /* [6410] OBJ_xor_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x00,               /* [6415] OBJ_aes128_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x01,               /* [6421] OBJ_aes192_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x02,               /* [6427] OBJ_aes256_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x00,               /* [6433] OBJ_aes128_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x01,               /* [6439] OBJ_aes192_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x02,               /* [6445] OBJ_aes256_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x16,                    /* [6451] OBJ_hmac_full_ecies */
+0x2B,0x81,0x04,0x01,0x17,                    /* [6456] OBJ_hmac_half_ecies */
+0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6461] OBJ_cmac_aes128_ecies */
+0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6467] OBJ_cmac_aes192_ecies */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x48,     /* [6473] OBJ_zuc */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2549,66 +2548,66 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 	NID_jurisdictionStateOrProvinceName,11,&(lvalues[6232]),0},
 {"jurisdictionC","jurisdictionCountryName",
 	NID_jurisdictionCountryName,11,&(lvalues[6243]),0},
-{"sm2p256v1","sm2p256v1",NID_sm2p256v1,9,&(lvalues[6254]),0},
+{"sm2p256v1","sm2p256v1",NID_sm2p256v1,8,&(lvalues[6254]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"ISO-CN","ISO CN Member Body",NID_ISO_CN,3,&(lvalues[6263]),0},
-{"oscca","oscca",NID_oscca,5,&(lvalues[6266]),0},
-{"SM3","sm3",NID_sm3,8,&(lvalues[6271]),0},
-{"HMAC-SM3","hmac-sm3",NID_hmac_sm3,9,&(lvalues[6279]),0},
-{NULL,NULL,NID_undef,0,NULL,0},
-{NULL,NULL,NID_undef,0,NULL,0},
+{"ISO-CN","ISO CN Member Body",NID_ISO_CN,3,&(lvalues[6262]),0},
+{"oscca","oscca",NID_oscca,5,&(lvalues[6265]),0},
+{"SM3","sm3",NID_sm3,8,&(lvalues[6270]),0},
+{"HMAC-SM3","hmac-sm3",NID_hmac_sm3,9,&(lvalues[6278]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"sm","sm",NID_sm,6,&(lvalues[6288]),0},
-{"sm2","sm2",NID_sm2,8,&(lvalues[6294]),0},
-{"sm2sign","sm2sign",NID_sm2sign,9,&(lvalues[6302]),0},
+{NULL,NULL,NID_undef,0,NULL,0},
+{NULL,NULL,NID_undef,0,NULL,0},
+{"sm","sm",NID_sm,6,&(lvalues[6287]),0},
+{NULL,NULL,NID_undef,0,NULL,0},
+{"sm2sign","sm2sign",NID_sm2sign,9,&(lvalues[6293]),0},
 {"sm2keyagreement","sm2keyagreement",NID_sm2keyagreement,9,
-	&(lvalues[6311]),0},
-{"sm2encrypt","sm2encrypt",NID_sm2encrypt,9,&(lvalues[6320]),0},
+	&(lvalues[6302]),0},
+{"sm2encrypt","sm2encrypt",NID_sm2encrypt,9,&(lvalues[6311]),0},
 {"SM2Sign-with-SM3","sm2sign-with-sm3",NID_sm2sign_with_sm3,8,
-	&(lvalues[6329]),0},
+	&(lvalues[6320]),0},
 {"SM2Sign-with-SHA1","sm2sign-with-sha1",NID_sm2sign_with_sha1,8,
-	&(lvalues[6337]),0},
+	&(lvalues[6328]),0},
 {"SM2Sign-with-SHA256","sm2sign-with-sha256",NID_sm2sign_with_sha256,
-	8,&(lvalues[6345]),0},
+	8,&(lvalues[6336]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"SMS4-ECB","sms4-ecb",NID_sms4_ecb,8,&(lvalues[6353]),0},
-{"SMS4-CBC","sms4-cbc",NID_sms4_cbc,8,&(lvalues[6361]),0},
+{"SMS4-ECB","sms4-ecb",NID_sms4_ecb,8,&(lvalues[6344]),0},
+{"SMS4-CBC","sms4-cbc",NID_sms4_cbc,8,&(lvalues[6352]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"SMS4-OFB","sms4-ofb",NID_sms4_ofb128,8,&(lvalues[6369]),0},
-{"SMS4-CFB","sms4-cfb",NID_sms4_cfb128,8,&(lvalues[6377]),0},
+{"SMS4-OFB","sms4-ofb",NID_sms4_ofb128,8,&(lvalues[6360]),0},
+{"SMS4-CFB","sms4-cfb",NID_sms4_cfb128,8,&(lvalues[6368]),0},
 {"ecies-recommendedParameters","ecies-recommendedParameters",
-	NID_ecies_recommendedParameters,5,&(lvalues[6385]),0},
+	NID_ecies_recommendedParameters,5,&(lvalues[6376]),0},
 {"ecies-specifiedParameters","ecies-specifiedParameters",
-	NID_ecies_specifiedParameters,5,&(lvalues[6390]),0},
-{"x9-63-kdf","x9-63-kdf",NID_x9_63_kdf,6,&(lvalues[6395]),0},
+	NID_ecies_specifiedParameters,5,&(lvalues[6381]),0},
+{"x9-63-kdf","x9-63-kdf",NID_x9_63_kdf,6,&(lvalues[6386]),0},
 {"nist-concatenation-kdf","nist-concatenation-kdf",
-	NID_nist_concatenation_kdf,6,&(lvalues[6401]),0},
-{"tls-kdf","tls-kdf",NID_tls_kdf,6,&(lvalues[6407]),0},
-{"ikev2-kdf","ikev2-kdf",NID_ikev2_kdf,6,&(lvalues[6413]),0},
-{"xor-in-ecies","xor-in-ecies",NID_xor_in_ecies,5,&(lvalues[6419]),0},
+	NID_nist_concatenation_kdf,6,&(lvalues[6392]),0},
+{"tls-kdf","tls-kdf",NID_tls_kdf,6,&(lvalues[6398]),0},
+{"ikev2-kdf","ikev2-kdf",NID_ikev2_kdf,6,&(lvalues[6404]),0},
+{"xor-in-ecies","xor-in-ecies",NID_xor_in_ecies,5,&(lvalues[6410]),0},
 {"aes128-cbc-in-ecies","aes128-cbc-in-ecies",NID_aes128_cbc_in_ecies,
-	6,&(lvalues[6424]),0},
+	6,&(lvalues[6415]),0},
 {"aes192-cbc-in-ecies","aes192-cbc-in-ecies",NID_aes192_cbc_in_ecies,
-	6,&(lvalues[6430]),0},
+	6,&(lvalues[6421]),0},
 {"aes256-cbc-in-ecies","aes256-cbc-in-ecies",NID_aes256_cbc_in_ecies,
-	6,&(lvalues[6436]),0},
+	6,&(lvalues[6427]),0},
 {"aes128-ctr-in-ecies","aes128-ctr-in-ecies",NID_aes128_ctr_in_ecies,
-	6,&(lvalues[6442]),0},
+	6,&(lvalues[6433]),0},
 {"aes192-ctr-in-ecies","aes192-ctr-in-ecies",NID_aes192_ctr_in_ecies,
-	6,&(lvalues[6448]),0},
+	6,&(lvalues[6439]),0},
 {"aes256-ctr-in-ecies","aes256-ctr-in-ecies",NID_aes256_ctr_in_ecies,
-	6,&(lvalues[6454]),0},
+	6,&(lvalues[6445]),0},
 {"hmac-full-ecies","hmac-full-ecies",NID_hmac_full_ecies,5,
-	&(lvalues[6460]),0},
+	&(lvalues[6451]),0},
 {"hmac-half-ecies","hmac-half-ecies",NID_hmac_half_ecies,5,
-	&(lvalues[6465]),0},
+	&(lvalues[6456]),0},
 {"cmac-aes128-ecies","cmac-aes128-ecies",NID_cmac_aes128_ecies,6,
-	&(lvalues[6470]),0},
+	&(lvalues[6461]),0},
 {"cmac-aes192-ecies","cmac-aes192-ecies",NID_cmac_aes192_ecies,6,
-	&(lvalues[6476]),0},
-{"ZUC","zuc",NID_zuc,8,&(lvalues[6482]),0},
+	&(lvalues[6467]),0},
+{"ZUC","zuc",NID_zuc,8,&(lvalues[6473]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -3544,7 +3543,6 @@ static const unsigned int sn_objs[NUM_SN]={
 454,	/* "simpleSecurityObject" */
 496,	/* "singleLevelQuality" */
 968,	/* "sm" */
-969,	/* "sm2" */
 972,	/* "sm2encrypt" */
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
@@ -4527,7 +4525,6 @@ static const unsigned int ln_objs[NUM_LN]={
 454,	/* "simpleSecurityObject" */
 496,	/* "singleLevelQuality" */
 968,	/* "sm" */
-969,	/* "sm2" */
 972,	/* "sm2encrypt" */
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
@@ -5026,7 +5023,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 982,	/* OBJ_sms4_cfb128                  1 2 156 10197 1 104 3 */
 981,	/* OBJ_sms4_ofb128                  1 2 156 10197 1 104 4 */
 1000,	/* OBJ_zuc                          1 2 156 10197 1 200 */
-969,	/* OBJ_sm2                          1 2 156 10197 1 301 */
+958,	/* OBJ_sm2p256v1                    1 2 156 10197 1 301 */
 962,	/* OBJ_sm3                          1 2 156 10197 1 401 */
 973,	/* OBJ_sm2sign_with_sm3             1 2 156 10197 1 501 */
 974,	/* OBJ_sm2sign_with_sha1            1 2 156 10197 1 502 */
@@ -5211,7 +5208,6 @@ static const unsigned int obj_objs[NUM_OBJ]={
 970,	/* OBJ_sm2sign                      1 2 156 10197 1 301 1 */
 971,	/* OBJ_sm2keyagreement              1 2 156 10197 1 301 2 */
 972,	/* OBJ_sm2encrypt                   1 2 156 10197 1 301 3 */
-958,	/* OBJ_sm2p256v1                    1 2 156 10197 1 301 4 */
 963,	/* OBJ_hmac_sm3                     1 2 156 10197 1 401 2 */
 108,	/* OBJ_cast5_cbc                    1 2 840 113533 7 66 10 */
 112,	/* OBJ_pbeWithMD5AndCast5_CBC       1 2 840 113533 7 66 12 */

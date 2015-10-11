@@ -19,7 +19,29 @@ $ echo -n abc | gmssl dgst -sm3
 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
 ```
 
+显示SM2推荐椭圆曲线域参数
+
+``` bash
+$ gmssl ecparam -text -noout -name sm2p256v1 -param_enc explicit
+```
+
+在代码目录`./certs/sm2/`目录中给出了SM2证书的例子，可以用`gmssl`工具进行解析
+```
+$ gmssl x509 -text -noout -in certs/sm2/sm2-x509.pem
+$ gmssl pkcs7 -print_certs -in certs/sm2/sm2-pkcs7.pem
+```
+
+
+
 GmSSL新增的EVP对象包括`EVP_sm3()`、`EVP_sm4_ecb()`、`EVP_sm4_cbc()`、`EVP_sm4_ofb()`、`EVP_sm4_cfb()`和`EVP_zuc()`。
+
+
+
+
+
+
+
+
 
 ## 安装
 
@@ -59,6 +81,3 @@ SM2标准中规定采用256比特的椭圆曲线域参数，并采用256比特�
 - 增加对Pairing、IBE和SM9的支持
 - 增加对SSL的支持
 - 通过ENGINE机制增加对密码硬件设备的支持
-
-
-
