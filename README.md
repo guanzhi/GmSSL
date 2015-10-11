@@ -43,13 +43,6 @@ GmSSL新增的EVP对象包括`EVP_sm3()`、`EVP_sm4_ecb()`、`EVP_sm4_cbc()`、`
 
 
 
-## 安装
-
-``` bash
-./Configure darwin64-x86_64-cc --prefix=/usr/local --openssldir=/usr/local/openssl
-make
-sudo make install
-```
 
 
 
@@ -63,21 +56,3 @@ SM2数字签名方案中被签名的杂凑值不仅仅是消息的杂凑值，�
 
 SM2标准中规定采用256比特的椭圆曲线域参数，并采用256比特的密码杂凑算法，并规定某些步骤中须采用SM3。GmSSL的实现支持灵活的参数设定，并支持内置的所有密码杂凑算法，因此应用可以选择安全程度更高的椭圆曲线域参数和密码杂凑算法，如521比特的域参数和SHA-512算法。
 
-### 国密对SSL/TLS的扩展
-
-国密《中华人民共和国密码行业标准(GM/T 0024-2014) SSL VPN技术规范》在RFC 4346 (TLS 1.1)的握手协议基础上增加了基于ECC和IBC的认证模式和密钥交换模式，增加的相关密码套件包括：
-
-1. ECDHE_SM4_SM3  {0xe0,0x11}
-2. ECC_SM4_SM3 {0xe0,0x13}
-3. IBSDH_SM4_SM3 {0xe0,0x15}
-4. IBC_SM4_SM3 {0xe0,0x17}
-5. RSA_SM4_SM3 {0xe0,0x19}
-6. RSA_SM4_SHA1 {0xe0,0x1a}
-
-## 开发计划
-
-- 版本号的定义
-- 在EVP_PKEY中增加对ECIES和SM2的支持
-- 增加对Pairing、IBE和SM9的支持
-- 增加对SSL的支持
-- 通过ENGINE机制增加对密码硬件设备的支持
