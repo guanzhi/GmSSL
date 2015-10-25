@@ -823,6 +823,10 @@ const char *SSL_state_string(const SSL *s)
         str = "DWCHVB";
         break;
 
+#ifndef OPENSSL_NO_GMSSL
+/* GMSSL */
+#endif
+
     default:
         str = "UNKWN ";
         break;
@@ -1049,6 +1053,26 @@ const char *SSL_alert_desc_string_long(int value)
     case TLS1_AD_UNKNOWN_PSK_IDENTITY:
         str = "unknown PSK identity";
         break;
+#ifndef OPENSSL_NO_GMSSL
+	case GM1_AD_UNSUPPORTED_SITE2SITE:
+		str = "unsupported site2site";
+		break;
+	case GM1_AD_NO_AREA:
+		str = "no area";
+		break;
+	case GM1_AD_UNSUPPORTED_AREATYPE:
+		str = "unsupported areatype";
+		break;
+	case GM1_AD_BAD_IBCPARAM:
+		str = "bad ibc parameters";
+		break;
+	case GM1_AD_UNSUPPORTED_IBCPARAM:
+		str = "unsupported ibcparam";
+		break;
+	case GM1_AD_IDENTITY_NEED:
+		str = "identity need";
+		break;
+#endif
     default:
         str = "unknown";
         break;

@@ -1,7 +1,7 @@
 #ifndef HEADER_ZUC_H
 #define HEADER_ZUC_H
 
-
+#include <stdint.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus

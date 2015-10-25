@@ -354,6 +354,9 @@
 # define SSL_SEED                0x00000800L
 # define SSL_AES128GCM           0x00001000L
 # define SSL_AES256GCM           0x00002000L
+#ifndef OPENSSL_NO_GMSSL
+# define SSL_SM4                 0x00004000L
+#endif
 
 # define SSL_AES                 (SSL_AES128|SSL_AES256|SSL_AES128GCM|SSL_AES256GCM)
 # define SSL_CAMELLIA            (SSL_CAMELLIA128|SSL_CAMELLIA256)
@@ -368,6 +371,9 @@
 # define SSL_SHA384              0x00000020L
 /* Not a real MAC, just an indication it is part of cipher */
 # define SSL_AEAD                0x00000040L
+#ifndef OPENSSL_NO_GMSSL
+# define SSL_SM3                 0x00000080L
+#endif
 
 /* Bits for algorithm_ssl (protocol version) */
 # define SSL_SSLV2               0x00000001UL
@@ -382,13 +388,20 @@
 # define SSL_HANDSHAKE_MAC_GOST94 0x40
 # define SSL_HANDSHAKE_MAC_SHA256 0x80
 # define SSL_HANDSHAKE_MAC_SHA384 0x100
+#ifndef OPENSSL_NO_GMSSL
+# define SSL_HANDSHAKE_MAC_SM3 0x200
+#endif
 # define SSL_HANDSHAKE_MAC_DEFAULT (SSL_HANDSHAKE_MAC_MD5 | SSL_HANDSHAKE_MAC_SHA)
 
 /*
  * When adding new digest in the ssl_ciph.c and increment SSM_MD_NUM_IDX make
  * sure to update this constant too
  */
-# define SSL_MAX_DIGEST 6
+#ifndef OPENSSL_NO_GMSSL
+#define SSL_MAX_DIGEST 7
+#else
+#define SSL_MAX_DIGEST 6
+#endif
 
 # define TLS1_PRF_DGST_MASK      (0xff << TLS1_PRF_DGST_SHIFT)
 
@@ -847,6 +860,46 @@ extern SSL3_ENC_METHOD TLSv1_2_enc_data;
 extern SSL3_ENC_METHOD SSLv3_enc_data;
 extern SSL3_ENC_METHOD DTLSv1_enc_data;
 extern SSL3_ENC_METHOD DTLSv1_2_enc_data;
+
+#ifndef OPENSSL_NO_GMSSL
+#define IMPLEMENT_tls_meth_func(version, func_name, s_accept, s_connect, \
+                                s_get_meth, enc_data) \
+const SSL_METHOD *func_name(void)  \
+        { \
+        static const SSL_METHOD func_name##_data= { \
+                version, \
+                tls1_new, \
+                tls1_clear, \
+                tls1_free, \
+                s_accept, \
+                s_connect, \
+                ssl3_read, \
+                ssl3_peek, \
+                ssl3_write, \
+                ssl3_shutdown, \
+                ssl3_renegotiate, \
+                ssl3_renegotiate_check, \
+                ssl3_get_message, \
+                ssl3_read_bytes, \
+                ssl3_write_bytes, \
+                ssl3_dispatch_alert, \
+                ssl3_ctrl, \
+                ssl3_ctx_ctrl, \
+                ssl3_get_cipher_by_char, \
+                ssl3_put_cipher_by_char, \
+                ssl3_pending, \
+                ssl3_num_ciphers, \
+                ssl3_get_cipher, \
+                s_get_meth, \
+                tls1_default_timeout, \
+                &enc_data, \
+                ssl_undefined_void_function, \
+                ssl3_callback_ctrl, \
+                ssl3_ctx_callback_ctrl, \
+        }; \
+        return &func_name##_data; \
+        }
+#endif
 
 # define IMPLEMENT_tls_meth_func(version, func_name, s_accept, s_connect, \
                                 s_get_meth, enc_data) \

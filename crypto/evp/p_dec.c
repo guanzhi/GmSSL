@@ -66,7 +66,7 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
-int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
+static int ossl_EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
                          EVP_PKEY *priv)
 {
     int ret = -1;
@@ -85,3 +85,37 @@ int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
 #endif
     return (ret);
 }
+
+int EVP_PKEY_decrypt_old(unsigned char *out, const unsigned char *in, int inlen,
+	EVP_PKEY *pkey)
+{
+	int ret = 0;
+	EVP_PKEY_CTX *ctx = NULL;
+	size_t outlen;
+
+	if (pkey->type == EVP_PKEY_RSA) {
+		return ossl_EVP_PKEY_decrypt_old(out, in, inlen, pkey);
+	}
+
+	if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))) {
+		return 0;
+	}
+
+	if (!EVP_PKEY_encrypt_init(ctx)) {
+		goto end;
+	}
+	if (!EVP_PKEY_encrypt(ctx, out, &outlen, in, inlen)) {
+		goto end;
+	}
+
+	ret = (int)outlen;
+
+end:
+	EVP_PKEY_CTX_free(ctx);
+	return ret;
+}
+
+
+
+
+

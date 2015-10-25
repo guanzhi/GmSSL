@@ -1,3 +1,55 @@
+/* crypto/ecies/ecies_lib.c */
+/* ====================================================================
+ * Copyright (c) 2007 - 2015 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,8 +61,35 @@
 #include "kdf.h"
 
 
+static void *ecies_data_dup(void *data) {
+	return data;
+}
+
+static void ecies_data_free(void *data) {
+	return;
+}
+
+int ECIES_set_parameters(EC_KEY *ec_key, const ECIES_PARAMS *param)
+{
+	if (!EC_KEY_insert_key_method_data(ec_key, param,
+		ecies_data_dup, ecies_data_free, ecies_data_free)) {
+		return 0;
+	}
+	return 1;
+}
+
+ECIES_PARAMS *ECIES_get_parameters(const EC_KEY *ec_key)
+{
+	ECIES_PARAMS *ret;
+	if (!(ret = EC_KEY_get_key_method_data(ec_key,
+		ecies_data_dup, ecies_data_free, ecies_data_free))) {
+		return NULL;
+	}
+	return ret;
+}
+
 ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
-	const unsigned char *in, size_t inlen, const EC_KEY *pub_key)
+	const unsigned char *in, size_t inlen, EC_KEY *pub_key)
 {
 	int e = 1;
 	ECIES_CIPHERTEXT_VALUE *cv = NULL;
@@ -333,5 +412,73 @@ err:
 	if (ephem_point) EC_POINT_free(ephem_point);
 
 	return r;
+}
+
+int ECIES_encrypt(unsigned char *out, size_t *outlen,
+	const ECIES_PARAMS *param, const unsigned char *in, size_t inlen,
+	EC_KEY *ec_key)
+{
+	int ret = 0;
+	ECIES_CIPHERTEXT_VALUE *cv = NULL;
+	unsigned char *p = out;
+	int len;
+
+	if (!(cv = ECIES_do_encrypt(param, in, inlen, ec_key))) {
+		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		return 0;
+	}
+	
+	if ((len = i2d_ECIES_CIPHERTEXT_VALUE(cv, NULL)) <= 0) {
+		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		goto end;
+	}
+
+	if (!out) {
+		*outlen = (size_t)len;
+		ret = 1;
+		goto end;
+	}
+
+	if (*outlen < len) {
+		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		*outlen = (size_t)len;
+		goto end;
+	}
+
+	if ((len = i2d_ECIES_CIPHERTEXT_VALUE(cv, &p)) <= 0) {
+		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		goto end;
+	}
+
+	*outlen = (size_t)len;
+	ret = 1;
+
+end:
+	ECIES_CIPHERTEXT_VALUE_free(cv);
+	return ret;
+}
+
+int ECIES_decrypt(unsigned char *out, size_t *outlen,
+	const ECIES_PARAMS *param, const unsigned char *in, size_t inlen,
+	EC_KEY *ec_key)
+{
+	int ret = 0;
+	ECIES_CIPHERTEXT_VALUE *cv = NULL;
+	const unsigned char *p = in;
+
+	if (!(cv = d2i_ECIES_CIPHERTEXT_VALUE(NULL, &p, (long)inlen))) {
+		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		return 0;
+	}
+
+	if (!ECIES_do_decrypt(cv, param, out, outlen, ec_key)) {
+		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		goto end;
+	}
+
+	ret = 1;
+end:
+	ECIES_CIPHERTEXT_VALUE_free(cv);
+	return ret;
 }
 

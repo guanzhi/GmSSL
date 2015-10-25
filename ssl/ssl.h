@@ -1700,6 +1700,11 @@ struct ssl_st {
 # include <openssl/ssl23.h>
 # include <openssl/srtp.h>      /* Support for the use_srtp extension */
 
+#ifndef OPENSSL_NO_GMSSL
+#include <openssl/gmssl.h>
+#endif
+
+
 #ifdef  __cplusplus
 extern "C" {
 #endif

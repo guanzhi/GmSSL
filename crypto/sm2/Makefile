@@ -17,9 +17,9 @@ TEST=sm2test.c
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=	sm2_dgst.c sm2_enc.c
+LIBSRC=	sm2_lib.c sm2_err.c sm2_sign.c sm2_enc.c
 
-LIBOBJ=	sm2_dgst.o sm2_enc.o
+LIBOBJ=	sm2_lib.o sm2_err.o sm2_sign.o sm2_enc.o
 
 SRC= $(LIBSRC)
 

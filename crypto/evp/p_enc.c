@@ -66,22 +66,49 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 
-int EVP_PKEY_encrypt_old(unsigned char *ek, const unsigned char *key,
+static int ossl_EVP_PKEY_encrypt_old(unsigned char *ek, const unsigned char *key,
                          int key_len, EVP_PKEY *pubk)
 {
     int ret = 0;
 
-#ifndef OPENSSL_NO_RSA
     if (pubk->type != EVP_PKEY_RSA) {
-#endif
         EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, EVP_R_PUBLIC_KEY_NOT_RSA);
-#ifndef OPENSSL_NO_RSA
         goto err;
     }
     ret =
         RSA_public_encrypt(key_len, key, ek, pubk->pkey.rsa,
                            RSA_PKCS1_PADDING);
  err:
-#endif
     return (ret);
 }
+
+
+int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
+	int inlen, EVP_PKEY *pkey)
+{
+	int ret = 0;
+	EVP_PKEY_CTX *ctx = NULL;
+	size_t outlen;
+
+	if (pkey->type == EVP_PKEY_RSA) {
+		return ossl_EVP_PKEY_encrypt_old(out, in, inlen, pkey);
+	}
+
+	if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))) {
+		return 0;
+	}
+	if (EVP_PKEY_encrypt_init(ctx) <= 0) {
+		goto end;
+	}
+	/* ctrl operations can be added here */
+	if (EVP_PKEY_encrypt(ctx, out, &outlen, in, inlen) <= 0) {
+		goto end;
+	}
+
+	ret = (int)outlen;
+
+end:
+	EVP_PKEY_CTX_free(ctx);
+	return ret;
+}
+
