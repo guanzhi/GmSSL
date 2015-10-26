@@ -1,6 +1,6 @@
 # GmSSL
 
-GmSSL(国密SSL)是支持国密算法和标准的OpenSSL分支，增加了对国密SM2/SM3/SM4算法和ECIES、CPK、ZUC算法的支持，实现了这些算法与EVP API和命令行工具的集成。
+GmSSL (http://gmssl.org) 是支持国密算法和标准的OpenSSL分支，增加了对国密SM2/SM3/SM4算法和ECIES、CPK、ZUC算法的支持，实现了这些算法与EVP API和命令行工具的集成。GmSSL由北京大学信息安全实验室(http://infosec.pku.edu.cn)开发和维护。
 
 GmSSL的`libcrypto`密码库增加的密码算法包括：
 
@@ -31,20 +31,7 @@ $ gmssl x509 -text -noout -in certs/sm2/sm2-x509.pem
 $ gmssl pkcs7 -print_certs -in certs/sm2/sm2-pkcs7.pem
 ```
 
-
-
 GmSSL新增的EVP对象包括`EVP_sm3()`、`EVP_sm4_ecb()`、`EVP_sm4_cbc()`、`EVP_sm4_ofb()`、`EVP_sm4_cfb()`和`EVP_zuc()`。
-
-
-
-
-
-
-
-
-
-
-
 
 ## 注意事项
 
