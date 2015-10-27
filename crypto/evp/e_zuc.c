@@ -12,7 +12,7 @@
 static int zuc_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	const unsigned char *iv, int enc)
 {
-	ZUC_set_key((ZUC_KEY *)&ctx->cipher_data, EVP_CIPHER_CTX_key_length(ctx), key);
+	ZUC_set_key((ZUC_KEY *)&ctx->cipher_data, key, iv);
 	return 1;
 }
 
