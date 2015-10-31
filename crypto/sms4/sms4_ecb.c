@@ -56,7 +56,7 @@
 #include "sms4.h"
 #include <assert.h>
 
-void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out, const sms4_key_t *key, int encrypt) {
+void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out, sms4_key_t *key, int encrypt) {
         assert(in && out && key);
         if(encrypt)
                 sms4_encrypt(in, out, key);

@@ -68,7 +68,7 @@
 
 
 void sms4_cfb128_encrypt(const unsigned char *in, unsigned char *out,
-                        size_t length, const sms4_key_t *key,
+                        size_t length, sms4_key_t *key,
                         unsigned char *ivec, int *num, int encrypt) {
         CRYPTO_cfb128_encrypt(in,out,length,key,ivec,num,encrypt,(block128_f)sms4_encrypt);
 }

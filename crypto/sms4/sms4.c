@@ -243,7 +243,6 @@ void sms4_encrypt(const unsigned char *in, unsigned char *out, sms4_key_t *key)
 {
 	uint32_t *rk = key->rk;
 	uint32_t X0, X1, X2, X3, X4;
-	int i;
 
 	X0 = GETU32(in     );
 	X1 = GETU32(in +  4);

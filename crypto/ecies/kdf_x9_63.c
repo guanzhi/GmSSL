@@ -49,8 +49,9 @@
  *
  */
 
-
+#include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include "kdf.h"
 
 
@@ -62,84 +63,88 @@
 #define cpu_to_be32(v) ((cpu_to_be16(v) << 16) | cpu_to_be16(v >> 16))
 #endif
 
-static void *x963_kdf(const EVP_MD *md, const void *share, size_t sharelen,
-	void *key, size_t keylen)
+static void *x963_kdf(const EVP_MD *md, const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
 	EVP_MD_CTX ctx;
-	unsigned int counter = 1; //FIXME: uint32_t
-	unsigned int counter_be;
+	uint32_t counter = 1;
+	uint32_t counter_be;
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen;
-	int rlen = (int)keylen;
-	unsigned char *out = key;
+	size_t rlen = *outlen;
+	size_t len;
 
 	EVP_MD_CTX_init(&ctx);
 
+	//FIXME: it might be wrong
 	while (rlen > 0) {
 		counter_be = cpu_to_be32(counter);
 		counter++;
 
 		EVP_DigestInit(&ctx, md);
-		EVP_DigestUpdate(&ctx, share, sharelen);
-		EVP_DigestUpdate(&ctx, (const void *)&counter_be, 4);
+		EVP_DigestUpdate(&ctx, in, inlen);
+		EVP_DigestUpdate(&ctx, &counter_be, sizeof(counter_be));
 		EVP_DigestFinal(&ctx, dgst, &dgstlen);
 
-		memcpy(out, dgst, (int)dgstlen > rlen ? rlen : dgstlen);
-		rlen -= dgstlen;
-		out += dgstlen;
+		len = dgstlen <= rlen ? dgstlen : rlen;
+		memcpy(out, dgst, len);
+		rlen -= len;
+		out += len;
 	}
 
 	EVP_MD_CTX_cleanup(&ctx);
-	return key;
+	return out;
 }
 
-static void *x963_md5kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_md5kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_md5(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_md5(), in, inlen, out, outlen);
 }
 
-static void *x963_rmd160kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_rmd160kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_ripemd160(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_ripemd160(), in, inlen, out, outlen);
 }
 
-static void *x963_sha1kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_sha1kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha1(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_sha1(), in, inlen, out, outlen);
 }
 
-static void *x963_sha224kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_sha224kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha224(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_sha224(), in, inlen, out, outlen);
 }
 
-static void *x963_sha256kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_sha256kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha256(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_sha256(), in, inlen, out, *outlen);
 }
 
-static void *x963_sha384kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_sha384kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha384(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_sha384(), in, inlen, out, outlen);
 }
 
-static void *x963_sha512kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_sha512kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha512(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_sha512(), in, inlen, out, outlen);
 }
 
-static void *x963_sm3kdf(const void *share, size_t sharelen,
-	void *key, size_t *keylen)
+static void *x963_sm3kdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sm3(), share, sharelen, key, *keylen);
+	return x963_kdf(EVP_sm3(), in, inlen, out, outlen);
 }
+
+//FIXME: whirlpool
 
 KDF_FUNC KDF_get_x9_63(const EVP_MD *md)
 {

@@ -73,18 +73,18 @@ typedef struct {
 void sms4_set_encrypt_key(sms4_key_t *key, const unsigned char *user_key);
 void sms4_set_decrypt_key(sms4_key_t *key, const unsigned char *user_key);
 void sms4_encrypt(const unsigned char *in, unsigned char *out, sms4_key_t *key);
-void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out, const sms4_key_t *key, int encrypt);
+void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out, sms4_key_t *key, int enc);
 
 
 void sms4_cbc_encrypt(const unsigned char *in, unsigned char *out, size_t len,
-	const sms4_key_t *key, unsigned char *ivec, int encrypt);
+	sms4_key_t *key, unsigned char *ivec, int encrypt);
 void sms4_cfb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t length, const sms4_key_t *key,
+	size_t length, sms4_key_t *key,
                          unsigned char *ivec, int *num, int encrypt);
 void sms4_ofb128_encrypt(const unsigned char *in, unsigned char *out,
                                  size_t length, const sms4_key_t *key,
                                  unsigned char ivec[SMS4_BLOCK_SIZE],
-                                 unsigned int *num);
+                                 int *num);
 
 #define sms4_decrypt(in,out,key)  sms4_encrypt(in,out,key)
 

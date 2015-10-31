@@ -59,26 +59,77 @@
 #define ERR_FUNC(func) ERR_PACK(ERR_LIB_ECIES,func,0)
 #define ERR_REASON(reason) ERR_PACK(ERR_LIB_ECIES,0,reason)
 
+
+#define SM2_F_SM2_SET_ID			100
+#define SM2_F_SM2_GET_ID			101
+#define SM2_F_SM2_COMPUTE_ID_DIGEST		102
+#define SM2_F_SM2_CIPHERTEXT_VALUE_SIZE		103
+#define SM2_F_SM2_CIPHERTEXT_VALUE_FREE		104
+#define SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE	105
+#define SM2_F_SM2_CIPHERTEXT_VALUE_DECODE	106
+#define SM2_F_SM2_CIPHERTEXT_VALUE_PRINT	107
+#define SM2_F_SM2_DO_ENCRYPT			108
+#define SM2_F_SM2_DO_DECRYPT			109
+#define SM2_F_SM2_ENCRYPT			110
+#define SM2_F_SM2_DECRYPT			111
+#define SM2_SIGNATURE_SIZE			112
+#define SM2_SIGN_SETUP				113
+#define SM2_DO_SIGN_EX				114
+#define SM2_DO_SIGN				115
+#define SM2_DO_VERIFY				116
+#define SM2_SIGN_EX				117
+#define SM2_SIGN				118
+#define SM2_VERIFY				119
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static ERR_STRING_DATA SM2_str_functs[] = {
-/*
-	{ERR_FUNC(ECIES_F_ECIES_DO_ENCRYPT),	"ECIES_do_encrypt"},
-	{ERR_FUNC(ECIES_F_ECIES_DO_DECRYPT),	"ECIES_do_decrypt"},
-*/
+	{ERR_FUNC(SM2_F_SM2_SET_ID),			"SM2_SET_ID"},
+	{ERR_FUNC(SM2_F_SM2_GET_ID),			"SM2_F_SM2_GET_ID"},
+	{ERR_FUNC(SM2_F_SM2_COMPUTE_ID_DIGEST),		"SM2_compute_id_digest"},
+	{ERR_FUNC(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE),	"SM2_CIPHERTEXT_VALUE_size"},
+	{ERR_FUNC(SM2_F_SM2_CIPHERTEXT_VALUE_FREE),	"SM2_CIPHERTEXT_VALUE_free"},
+	{ERR_FUNC(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE),	"SM2_CIPHERTEXT_VALUE_encode"},
+	{ERR_FUNC(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE),	"SM2_CIPHERTEXT_VALUE_decode"},
+	{ERR_FUNC(SM2_F_SM2_CIPHERTEXT_VALUE_PRINT),	"SM2_CIPHERTEXT_VALUE_print"},
+	{ERR_FUNC(SM2_F_SM2_DO_ENCRYPT),		"SM2_do_encrypt"},
+	{ERR_FUNC(SM2_F_SM2_DO_DECRYPT),		"SM2_do_decrypt"},
+	{ERR_FUNC(SM2_F_SM2_ENCRYPT),			"SM2_encrypt"},
+	{ERR_FUNC(SM2_F_SM2_DECRYPT),			"SM2_decrypt"},
+	{ERR_FUNC(SM2_SIGNATURE_SIZE),			"SM2_signature_size"},
+	{ERR_FUNC(SM2_SIGN_SETUP),			"SM2_sign_setup"},
+	{ERR_FUNC(SM2_DO_SIGN_EX),			"SM2_do_sign_ex"},
+	{ERR_FUNC(SM2_DO_SIGN),				"SM2_do_sign"},
+	{ERR_FUNC(SM2_DO_VERIFY),			"SM2_do_verify"},
+	{ERR_FUNC(SM2_SIGN_EX),				"SM2_sign_ex"},
+	{ERR_FUNC(SM2_SIGN),				"SM2_sign"},
+	{ERR_FUNC(SM2_VERIFY),				"SM2_verify"},
 	{0,NULL}
 };
 
 static ERR_STRING_DATA SM2_str_reasons[] = {
-/*
-	{ERR_REASON(ECIES_R_BAD_DATA),		"bad data"},
-	{ERR_REASON(ECIES_R_UNKNOWN_CIPHER_TYPE),"unknown cipher type"},
-	{ERR_REASON(ECIES_R_ENCRYPT_FAILED),	"encrypt failed"},
-	{ERR_REASON(ECIES_R_DECRYPT_FAILED),	"decrypt failed"},
-	{ERR_REASON(ECIES_R_UNKNOWN_MAC_TYPE),	"unknown MAC type"},
-	{ERR_REASON(ECIES_R_GEN_MAC_FAILED),	"MAC generation failed"},
-	{ERR_REASON(ECIES_R_VERIFY_MAC_FAILED),	"MAC verification failed"},
-	{ERR_REASON(ECIES_R_ECDH_FAILED),	"ECDH failed"},
-	{ERR_REASON(ECIES_R_BUFFER_TOO_SMALL),	"buffer too small"},
-*/
+	{ERR_REASON(SM2_R_BAD_DATA),		"bad data"},
+	{ERR_REASON(SM2_R_UNKNOWN_CIPHER_TYPE),"unknown cipher type"},
+	{ERR_REASON(SM2_R_ENCRYPT_FAILED),	"encrypt failed"},
+	{ERR_REASON(SM2_R_DECRYPT_FAILED),	"decrypt failed"},
+	{ERR_REASON(SM2_R_UNKNOWN_MAC_TYPE),	"unknown MAC type"},
+	{ERR_REASON(SM2_R_GEN_MAC_FAILED),	"MAC generation failed"},
+	{ERR_REASON(SM2_R_VERIFY_MAC_FAILED),	"MAC verification failed"},
+	{ERR_REASON(SM2_R_ECDH_FAILED),	"ECDH failed"},
+	{ERR_REASON(SM2_R_BUFFER_TOO_SMALL),	"buffer too small"},
 	{0,NULL}
 };
 

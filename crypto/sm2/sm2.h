@@ -80,83 +80,75 @@ typedef struct sm2_ciphertext_value_st {
 } SM2_CIPHERTEXT_VALUE;
 
 
-typedef ECDSA_SIG SM2_SIG;
-
-
 char *SM2_get_id(EC_KEY *ec_key);
 int SM2_set_id(EC_KEY *ec_key, const char *id);
-
-
 int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
 	const EVP_MD *md, const void *id, size_t idlen, EC_KEY *ec_key);
-
-int SM2_compute_za(unsigned char *za, const EVP_MD *md,
-	const void *id, size_t idlen, EC_KEY *ec_key);
-
-int SM2_compute_digest(unsigned char *dgst, unsigned int *dgstlen,
-	const EVP_MD *za_md, const void *id, size_t idlen, EC_KEY *ec_key,
-	const EVP_MD *msg_md, const void *msg, size_t msglen);
 
 int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *ec_group,
 	point_conversion_form_t point_form, size_t mlen,
 	const EVP_MD *mac_md);
-
 void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv);
-
 int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
 	const EC_GROUP *ec_group, point_conversion_form_t point_form,
 	unsigned char *buf, size_t *buflen);
-
 SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
 	point_conversion_form_t point_form, const EVP_MD *mac_md,
 	const unsigned char *buf, size_t buflen);
-
-int SM2_CIPHERTEXT_VALUE_print(BIO *out, const SM2_CIPHERTEXT_VALUE *cv,
-	int indent, unsigned long flags);
-
+int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
+	const SM2_CIPHERTEXT_VALUE *cv, int indent, unsigned long flags);
 SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
-
 int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key);
-
 int SM2_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form, unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
-
 int SM2_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form, const unsigned char *in,
 	size_t inlen, unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
-ECDSA_SIG *SM2_do_sign(const unsigned char *dgst, int dgst_len,
-	EC_KEY *ec_key);
-
-ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgstlen,
-	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key);
-
-int SM2_do_verify(const unsigned char *dgst, int dgstlen,
-	const ECDSA_SIG *sig, EC_KEY *ec_key);
-
-int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
-
-int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
-	unsigned char *sig, unsigned int *siglen, EC_KEY *eckey);
 
 #define SM2_signature_size(ec_key)	ECDSA_size(ec_key)
-
+int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
+ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgstlen,
+	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key);
+ECDSA_SIG *SM2_do_sign(const unsigned char *dgst, int dgst_len,
+	EC_KEY *ec_key);
+int SM2_do_verify(const unsigned char *dgst, int dgstlen,
+	const ECDSA_SIG *sig, EC_KEY *ec_key);
+int SM2_sign_ex(int type, const unsigned char *dgst, int dgstlen,
+	unsigned char *sig, unsigned int *siglen,
+	const BIGNUM *k, const BIGNUM *x, EC_KEY *ec_key);
+int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
+	unsigned char *sig, unsigned int *siglen, EC_KEY *eckey);
 int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	const unsigned char *sig, int siglen, EC_KEY *ec_key);
 
-
 void ERR_load_SM2_strings(void);
 
-/* Error codes for the ECIES functions. */
-
 /* Function codes. */
-#define SM2_F_SM2_DO_ENCRYPT			100
-#define SM2_F_SM2_DO_DECRYPT			101
-#define SM2_F_SM2_CIPHERTEXT_VALUE_FREE	102
+#define SM2_F_SM2_SET_ID			100
+#define SM2_F_SM2_GET_ID			101
+#define SM2_F_SM2_COMPUTE_ID_DIGEST		102
+#define SM2_F_SM2_CIPHERTEXT_VALUE_SIZE		103
+#define SM2_F_SM2_CIPHERTEXT_VALUE_FREE		104
+#define SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE	105
+#define SM2_F_SM2_CIPHERTEXT_VALUE_DECODE	106
+#define SM2_F_SM2_CIPHERTEXT_VALUE_PRINT	107
+#define SM2_F_SM2_DO_ENCRYPT			108
+#define SM2_F_SM2_DO_DECRYPT			109
+#define SM2_F_SM2_ENCRYPT			110
+#define SM2_F_SM2_DECRYPT			111
+#define SM2_SIGNATURE_SIZE			112
+#define SM2_SIGN_SETUP				113
+#define SM2_DO_SIGN_EX				114
+#define SM2_DO_SIGN				115
+#define SM2_DO_VERIFY				116
+#define SM2_SIGN_EX				117
+#define SM2_SIGN				118
+#define SM2_VERIFY				119
 
 /* Reason codes. */
 #define SM2_R_BAD_DATA				100
