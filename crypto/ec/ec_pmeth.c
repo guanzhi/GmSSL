@@ -499,6 +499,9 @@ static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 {
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	ECIES_PARAMS *param = ECIES_get_parameters(ec_key);
+
+	fprintf(stderr, "%s %s %d\n", __FUNCTION__, __FILE__, __LINE__);
+
 	return ECIES_encrypt(out, outlen, param, in, inlen, ec_key);
 }
 
@@ -507,6 +510,7 @@ static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 {
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	ECIES_PARAMS *param = ECIES_get_parameters(ec_key);
+	fprintf(stderr, "%s %s %d\n", __FUNCTION__, __FILE__, __LINE__);
 	return ECIES_decrypt(out, outlen, param, in, inlen, ec_key);
 }
 #endif

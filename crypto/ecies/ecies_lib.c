@@ -62,17 +62,41 @@
 
 
 static void *ecies_data_dup(void *data) {
-	return data;
+	ECIES_PARAMS *ret = NULL;
+	ECIES_PARAMS *param = (ECIES_PARAMS *)data;
+
+	OPENSSL_assert(data);
+
+	if (!(ret = OPENSSL_malloc(sizeof(ECIES_PARAMS)))) {
+		return NULL;
+	}
+
+	ret->kdf_md = param->kdf_md;
+	ret->sym_cipher = param->sym_cipher;
+	ret->mac_md = param->mac_md;
+
+	return ret;
 }
 
 static void ecies_data_free(void *data) {
+	OPENSSL_free(data);
 	return;
 }
 
 int ECIES_set_parameters(EC_KEY *ec_key, const ECIES_PARAMS *param)
 {
-	if (!EC_KEY_insert_key_method_data(ec_key, param,
+	ECIES_PARAMS *data = NULL;
+	OPENSSL_assert(ec_key);
+	OPENSSL_assert(param);
+
+	data = ecies_data_dup(param);
+
+
+	if (!EC_KEY_insert_key_method_data(ec_key, data,
 		ecies_data_dup, ecies_data_free, ecies_data_free)) {
+
+		printf("EC_KEY_insert_key_method_data() error\n");
+
 		return 0;
 	}
 	return 1;

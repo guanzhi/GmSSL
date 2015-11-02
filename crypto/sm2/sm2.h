@@ -103,11 +103,13 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key);
 int SM2_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
-	point_conversion_form_t point_form, unsigned char *out, size_t *outlen,
-	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+	point_conversion_form_t point_form,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 int SM2_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
-	point_conversion_form_t point_form, const unsigned char *in,
-	size_t inlen, unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+	point_conversion_form_t point_form,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
 
 #define SM2_signature_size(ec_key)	ECDSA_size(ec_key)
