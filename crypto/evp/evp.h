@@ -118,6 +118,10 @@
 # define EVP_PKEY_HMAC   NID_hmac
 # define EVP_PKEY_CMAC   NID_cmac
 
+# ifndef OPENSSL_NO_SM2
+#  define EVP_PKEY_SM2    NID_sm2p256v1 /* FIXME: NID_sm2 */
+# endif
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -504,6 +508,11 @@ typedef int (EVP_PBE_KEYGEN) (EVP_CIPHER_CTX *ctx, const char *pass,
 
 # ifndef OPENSSL_NO_EC
 #  define EVP_PKEY_assign_EC_KEY(pkey,eckey) EVP_PKEY_assign((pkey),EVP_PKEY_EC,\
+                                        (char *)(eckey))
+# endif
+
+# ifndef OPENSSL_NO_SM2
+#  define EVP_PKEY_assign_SM2(pkey,eckey) EVP_PKEY_assign((pkey),EVP_PKEY_SM2,\
                                         (char *)(eckey))
 # endif
 
@@ -991,6 +1000,10 @@ struct dh_st *EVP_PKEY_get1_DH(EVP_PKEY *pkey);
 struct ec_key_st;
 int EVP_PKEY_set1_EC_KEY(EVP_PKEY *pkey, struct ec_key_st *key);
 struct ec_key_st *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey);
+# ifndef OPENSSL_NO_SM2
+int EVP_PKEY_set1_SM2(EVP_PKEY *pkey, struct ec_key_st *key);
+struct ec_key_st *EVP_PKEY_get1_SM2(EVP_PKEY *pkey);
+# endif
 # endif
 
 EVP_PKEY *EVP_PKEY_new(void);

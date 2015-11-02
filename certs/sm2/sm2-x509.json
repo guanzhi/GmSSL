@@ -1,0 +1,61 @@
+{
+	"Certificate":
+	{
+		"Data":
+		{
+			"Version": "3 (0x2)",
+			"Serial Number":"2d:a1:a6:bd:0c:e7:6c:62:4e:63:4b:7d:6a:29:d0:2a",
+			"Signature Algorithm": "sm2sign-with-sm3",
+			"Issuer": "C=CN, O=NRCAC, CN=ROOTCA",
+			"Validity":
+			{
+				"Not Before":"Sep 13 08:10:25 2013 GMT",
+				"Not After":"Sep  8 08:10:25 2033 GMT"
+			}
+			"Subject":"C=CN, O=UniTrust, CN=SHECA SM2",
+			"Subject Public Key Info":
+			{
+				"Public Key Algorithm":"id-ecPublicKey",
+				"Public-Key":
+				{
+					"pub":"04:7d:d1:1f:91:2d:06:4a:54:10:f0:84:84:55:25:1d:bc:a2:fb:b5:c7:77:6e:c3:6c:b1:69:66:98:e8:4d:e5:50:a0:d6:22:c9:80:c0:c3:aa:13:bd:4c:5b:78:10:3b:19:ba:f1:02:5f:3f:2e:89:4f:81:2f:8a:5d:74:17:0c:80",
+					"ASN1 OID":"sm2p256v1"
+				}
+			}
+			"X509v3 extensions":
+			{
+				"X509v3 Authority Key Identifier":
+				{
+					"keyid":"4C:32:B1:97:D9:33:1B:C4:A6:05:C1:C6:E5:8B:62:5B:F0:97:76:58"
+				}
+				"X509v3 Basic Constraints":"critical",
+				"CA":"TRUE",
+				"X509v3 CRL Distribution Points:
+				[
+					"Full Name":
+					{
+						"DirName":"C = CN, O = NRCAC, OU = ARL, CN = arl"
+					},
+					"Full Name":
+					{
+						"URI":"http://www.rootca.gov.cn/arl/arl.crl"
+					},
+					"Full Name":
+					{
+						"URI":"ldap://ldap.rootca.gov.cn:389/CN=arl,OU=ARL,O=NRCAC,C=CN"
+					}
+				],
+				"X509v3 Key Usage":
+				[
+					"critical",
+					"Certificate Sign",
+					"CRL Sign"
+				]
+				"X509v3 Subject Key Identifier":"89:31:04:91:7B:43:AA:AA:9A:BF:84:1D:9B:86:EE:F0:B8:70:99:A0"
+			}
+		}
+		"Signature Algorithm":"sm2sign-with-sm3",
+		"Signature":"30:45:02:21:00:8a:7b:ff:7b:ef:6b:e6:71:15:e3:ca:76:a9:33:74:6a:15:c8:6b:1f:18:78:62:2c:b4:1e:2a:b0:99:43:64:39:02:20:26:30:e7:5f:d1:fd:1b:f0:28:a5:ad:55:9d:8b:ca:5f:67:23:ba:46:a6:1f:9e:97:09:eb:7f:25:ec:a1:df:34"
+	}
+}
+

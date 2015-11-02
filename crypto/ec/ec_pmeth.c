@@ -669,7 +669,7 @@ static int pkey_sm2_ctrl(EVP_PKEY_CTX *pk_ctx, int type, int p1, void *p2)
 }
 
 const EVP_PKEY_METHOD sm2_pkey_meth = {
-	EVP_PKEY_EC,
+	EVP_PKEY_SM2,
 	0, /* flags */
 	pkey_ec_init,
 	pkey_ec_copy,

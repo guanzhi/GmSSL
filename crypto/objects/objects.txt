@@ -1376,10 +1376,27 @@ secg-scheme 24 1	: cmac-aes192-ecies
 member-body 156	: ISO-CN		: ISO CN Member Body
 ISO-CN 10197	: oscca
 oscca 1		: sm
+
+sm 101		: SM6			: sm6
+
+sm 102		: SM1			: sm1
+
+sm 103		: SSF33			: ssf33
+sm 105		: SM7			: sm7
+sm 106		: SM8			: sm8
+
+sm 201		: SM5			: sm5
+
 sm 301		: sm2p256v1
 sm 301 1	: sm2sign
 sm 301 2	: sm2keyagreement
 sm 301 3	: sm2encrypt
+
+sm 302		: SM9			: sm9
+sm 302 1	: sm9sign
+sm 302 2	: sm9keyagreement
+sm 302 3	: sm9encrypt
+
 sm 401		: SM3			: sm3
 sm 401 2	: HMAC-SM3		: hmac-sm3
 sm 501		: SM2Sign-with-SM3	: sm2sign-with-sm3

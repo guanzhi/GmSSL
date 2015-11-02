@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1001
-#define NUM_SN 985
-#define NUM_LN 985
-#define NUM_OBJ 924
+#define NUM_NID 1011
+#define NUM_SN 995
+#define NUM_LN 995
+#define NUM_OBJ 934
 
-static const unsigned char lvalues[6482]={
+static const unsigned char lvalues[6560]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -986,6 +986,16 @@ static const unsigned char lvalues[6482]={
 0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6461] OBJ_cmac_aes128_ecies */
 0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6467] OBJ_cmac_aes192_ecies */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x48,     /* [6473] OBJ_zuc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,          /* [6481] OBJ_sm6 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,          /* [6488] OBJ_sm1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,          /* [6495] OBJ_ssf33 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x69,          /* [6502] OBJ_sm7 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x6A,          /* [6509] OBJ_sm8 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x49,     /* [6516] OBJ_sm5 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,     /* [6524] OBJ_sm9 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x01,/* [6532] OBJ_sm9sign */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x02,/* [6541] OBJ_sm9keyagreement */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x03,/* [6550] OBJ_sm9encrypt */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2608,6 +2618,17 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 {"cmac-aes192-ecies","cmac-aes192-ecies",NID_cmac_aes192_ecies,6,
 	&(lvalues[6467]),0},
 {"ZUC","zuc",NID_zuc,8,&(lvalues[6473]),0},
+{"SM6","sm6",NID_sm6,7,&(lvalues[6481]),0},
+{"SM1","sm1",NID_sm1,7,&(lvalues[6488]),0},
+{"SSF33","ssf33",NID_ssf33,7,&(lvalues[6495]),0},
+{"SM7","sm7",NID_sm7,7,&(lvalues[6502]),0},
+{"SM8","sm8",NID_sm8,7,&(lvalues[6509]),0},
+{"SM5","sm5",NID_sm5,8,&(lvalues[6516]),0},
+{"SM9","sm9",NID_sm9,8,&(lvalues[6524]),0},
+{"sm9sign","sm9sign",NID_sm9sign,9,&(lvalues[6532]),0},
+{"sm9keyagreement","sm9keyagreement",NID_sm9keyagreement,9,
+	&(lvalues[6541]),0},
+{"sm9encrypt","sm9encrypt",NID_sm9encrypt,9,&(lvalues[6550]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2793,10 +2814,16 @@ static const unsigned int sn_objs[NUM_SN]={
 672,	/* "SHA256" */
 673,	/* "SHA384" */
 674,	/* "SHA512" */
+1002,	/* "SM1" */
 974,	/* "SM2Sign-with-SHA1" */
 975,	/* "SM2Sign-with-SHA256" */
 973,	/* "SM2Sign-with-SM3" */
 962,	/* "SM3" */
+1006,	/* "SM5" */
+1001,	/* "SM6" */
+1004,	/* "SM7" */
+1005,	/* "SM8" */
+1007,	/* "SM9" */
 188,	/* "SMIME" */
 167,	/* "SMIME-CAPS" */
 978,	/* "SMS4-CBC" */
@@ -2804,6 +2831,7 @@ static const unsigned int sn_objs[NUM_SN]={
 977,	/* "SMS4-ECB" */
 981,	/* "SMS4-OFB" */
 100,	/* "SN" */
+1003,	/* "SSF33" */
 16,	/* "ST" */
 143,	/* "SXNetID" */
 458,	/* "UID" */
@@ -3547,6 +3575,9 @@ static const unsigned int sn_objs[NUM_SN]={
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
 970,	/* "sm2sign" */
+1010,	/* "sm9encrypt" */
+1009,	/* "sm9keyagreement" */
+1008,	/* "sm9sign" */
 387,	/* "snmpv2" */
 660,	/* "street" */
 85,	/* "subjectAltName" */
@@ -4525,6 +4556,7 @@ static const unsigned int ln_objs[NUM_LN]={
 454,	/* "simpleSecurityObject" */
 496,	/* "singleLevelQuality" */
 968,	/* "sm" */
+1002,	/* "sm1" */
 972,	/* "sm2encrypt" */
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
@@ -4533,10 +4565,19 @@ static const unsigned int ln_objs[NUM_LN]={
 975,	/* "sm2sign-with-sha256" */
 973,	/* "sm2sign-with-sm3" */
 962,	/* "sm3" */
+1006,	/* "sm5" */
+1001,	/* "sm6" */
+1004,	/* "sm7" */
+1005,	/* "sm8" */
+1007,	/* "sm9" */
+1010,	/* "sm9encrypt" */
+1009,	/* "sm9keyagreement" */
+1008,	/* "sm9sign" */
 978,	/* "sms4-cbc" */
 982,	/* "sms4-cfb" */
 977,	/* "sms4-ecb" */
 981,	/* "sms4-ofb" */
+1003,	/* "ssf33" */
 16,	/* "stateOrProvinceName" */
 660,	/* "streetAddress" */
 498,	/* "subtreeMaximumQuality" */
@@ -4947,6 +4988,11 @@ static const unsigned int obj_objs[NUM_OBJ]={
 634,	/* OBJ_setAttr_TokICCsig            2 23 42 3 3 5 1 */
 635,	/* OBJ_setAttr_SecDevSig            2 23 42 3 3 5 2 */
 436,	/* OBJ_ucl                          0 9 2342 19200300 */
+1001,	/* OBJ_sm6                          1 2 156 10197 1 101 */
+1002,	/* OBJ_sm1                          1 2 156 10197 1 102 */
+1003,	/* OBJ_ssf33                        1 2 156 10197 1 103 */
+1004,	/* OBJ_sm7                          1 2 156 10197 1 105 */
+1005,	/* OBJ_sm8                          1 2 156 10197 1 106 */
 820,	/* OBJ_id_Gost28147_89_None_KeyMeshing 1 2 643 2 2 14 0 */
 819,	/* OBJ_id_Gost28147_89_CryptoPro_KeyMeshing 1 2 643 2 2 14 1 */
 845,	/* OBJ_id_GostR3410_94_a            1 2 643 2 2 20 1 */
@@ -5023,7 +5069,9 @@ static const unsigned int obj_objs[NUM_OBJ]={
 982,	/* OBJ_sms4_cfb128                  1 2 156 10197 1 104 3 */
 981,	/* OBJ_sms4_ofb128                  1 2 156 10197 1 104 4 */
 1000,	/* OBJ_zuc                          1 2 156 10197 1 200 */
+1006,	/* OBJ_sm5                          1 2 156 10197 1 201 */
 958,	/* OBJ_sm2p256v1                    1 2 156 10197 1 301 */
+1007,	/* OBJ_sm9                          1 2 156 10197 1 302 */
 962,	/* OBJ_sm3                          1 2 156 10197 1 401 */
 973,	/* OBJ_sm2sign_with_sm3             1 2 156 10197 1 501 */
 974,	/* OBJ_sm2sign_with_sha1            1 2 156 10197 1 502 */
@@ -5208,6 +5256,9 @@ static const unsigned int obj_objs[NUM_OBJ]={
 970,	/* OBJ_sm2sign                      1 2 156 10197 1 301 1 */
 971,	/* OBJ_sm2keyagreement              1 2 156 10197 1 301 2 */
 972,	/* OBJ_sm2encrypt                   1 2 156 10197 1 301 3 */
+1008,	/* OBJ_sm9sign                      1 2 156 10197 1 302 1 */
+1009,	/* OBJ_sm9keyagreement              1 2 156 10197 1 302 2 */
+1010,	/* OBJ_sm9encrypt                   1 2 156 10197 1 302 3 */
 963,	/* OBJ_hmac_sm3                     1 2 156 10197 1 401 2 */
 108,	/* OBJ_cast5_cbc                    1 2 840 113533 7 66 10 */
 112,	/* OBJ_pbeWithMD5AndCast5_CBC       1 2 840 113533 7 66 12 */

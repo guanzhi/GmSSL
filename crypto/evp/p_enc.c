@@ -82,6 +82,8 @@ static int ossl_EVP_PKEY_encrypt_old(unsigned char *ek, const unsigned char *key
     return (ret);
 }
 
+// OPENSSL_NO_GMSSL
+// here is to mark changes
 
 int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 	int inlen, EVP_PKEY *pkey)

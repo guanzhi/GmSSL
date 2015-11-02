@@ -89,7 +89,9 @@ static const EVP_PKEY_METHOD *standard_methods[] = {
 #endif
 #ifndef OPENSSL_NO_EC
     &ec_pkey_meth,
-    //&sm2_pkey_meth,
+#endif
+#ifndef OPENSSL_NO_SM2
+    &sm2_pkey_meth,
 #endif
     &hmac_pkey_meth,
     &cmac_pkey_meth,

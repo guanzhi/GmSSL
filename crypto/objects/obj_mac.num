@@ -998,3 +998,13 @@ hmac_half_ecies		997
 cmac_aes128_ecies		998
 cmac_aes192_ecies		999
 zuc		1000
+sm6		1001
+sm1		1002
+ssf33		1003
+sm7		1004
+sm8		1005
+sm5		1006
+sm9		1007
+sm9sign		1008
+sm9keyagreement		1009
+sm9encrypt		1010

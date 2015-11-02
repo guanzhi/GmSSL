@@ -116,6 +116,15 @@ int EVP_PKEY_save_parameters(EVP_PKEY *pkey, int mode)
         return (ret);
     }
 #endif
+#ifndef OPENSSL_NO_SM2
+    if (pkey->type == EVP_PKEY_SM2) {
+        int ret = pkey->save_parameters;
+
+        if (mode >= 0)
+            pkey->save_parameters = mode;
+        return (ret);
+    }
+#endif
     return (0);
 }
 
@@ -318,6 +327,26 @@ EC_KEY *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey)
 {
     if (pkey->type != EVP_PKEY_EC) {
         EVPerr(EVP_F_EVP_PKEY_GET1_EC_KEY, EVP_R_EXPECTING_A_EC_KEY);
+        return NULL;
+    }
+    EC_KEY_up_ref(pkey->pkey.ec);
+    return pkey->pkey.ec;
+}
+#endif
+
+#ifndef OPENSSL_NO_SM2
+int EVP_PKEY_set1_SM2(EVP_PKEY *pkey, EC_KEY *key)
+{
+    int ret = EVP_PKEY_assign_SM2(pkey, key);
+    if (ret)
+        EC_KEY_up_ref(key);
+    return ret;
+}
+
+EC_KEY *EVP_PKEY_get1_SM2(EVP_PKEY *pkey)
+{
+    if (pkey->type != EVP_PKEY_SM2) {
+        EVPerr(EVP_F_EVP_PKEY_GET1_EC_KEY, EVP_R_EXPECTING_A_EC_KEY);//FIXME:errno
         return NULL;
     }
     EC_KEY_up_ref(pkey->pkey.ec);

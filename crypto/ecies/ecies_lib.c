@@ -71,9 +71,7 @@ static void *ecies_data_dup(void *data) {
 		return NULL;
 	}
 
-	ret->kdf_md = param->kdf_md;
-	ret->sym_cipher = param->sym_cipher;
-	ret->mac_md = param->mac_md;
+	memcpy(ret, param, sizeof(*param));	
 
 	return ret;
 }
@@ -89,16 +87,13 @@ int ECIES_set_parameters(EC_KEY *ec_key, const ECIES_PARAMS *param)
 	OPENSSL_assert(ec_key);
 	OPENSSL_assert(param);
 
-	data = ecies_data_dup(param);
+	data = (ECIES_PARAMS *)ecies_data_dup((void *)param);
 
-
-	if (!EC_KEY_insert_key_method_data(ec_key, data,
+	if (EC_KEY_insert_key_method_data(ec_key, data,
 		ecies_data_dup, ecies_data_free, ecies_data_free)) {
-
-		printf("EC_KEY_insert_key_method_data() error\n");
-
 		return 0;
 	}
+
 	return 1;
 }
 
@@ -127,6 +122,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 
 	if (!(cv = ECIES_CIPHERTEXT_VALUE_new())) 
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto err;
 		}
@@ -135,16 +131,19 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	 */
 	if (!(ephem_key = EC_KEY_new()))
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto err;
 		}
 	if (!EC_KEY_set_group(ephem_key, EC_KEY_get0_group(pub_key)))
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_EC_LIB);
 		goto err;
 		}
 	if (!EC_KEY_generate_key(ephem_key))
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_EC_LIB);
 		goto err;
 		}
@@ -154,6 +153,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		NULL, 0, NULL);
 	if (!M_ASN1_OCTET_STRING_set(cv->ephem_point, NULL, len))
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_ASN1_LIB);
 		goto err;
 		}
@@ -161,6 +161,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		EC_KEY_get0_public_key(ephem_key), POINT_CONVERSION_COMPRESSED,
 		cv->ephem_point->data, len, NULL) <= 0)
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_EC_LIB);
 		goto err;
 		}		
@@ -190,6 +191,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		mackeylen = 192/8;
 		break;
 	default:
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_EC_LIB);
 		goto err;
 	}
@@ -198,6 +200,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 
 	if (!(share = OPENSSL_malloc(sharelen)))
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto err;
 		}
@@ -206,6 +209,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		EC_KEY_get0_public_key(pub_key), ephem_key,
 		KDF_get_x9_63(param->kdf_md)))
 		{
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ECIES_R_ECDH_FAILED);
 		goto err;
 		}
@@ -222,6 +226,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	if (!M_ASN1_OCTET_STRING_set(cv->ciphertext, NULL, len))
 		{
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto err;
 		}
 	
@@ -232,6 +237,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 
 		if (!EVP_EncryptInit(&cipher_ctx, param->sym_cipher, enckey, iv))
 			{
+			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 			ECIESerr(ECIES_F_ECIES_DO_ENCRYPT,
 				ECIES_R_ENCRYPT_FAILED);
 			goto err;
@@ -239,6 +245,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		p = cv->ciphertext->data;
 		if (!EVP_EncryptUpdate(&cipher_ctx, p, &len, in, (int)inlen)) 
 			{
+			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 			ECIESerr(ECIES_F_ECIES_DO_ENCRYPT,
 				ECIES_R_ENCRYPT_FAILED);
 			goto err;
@@ -246,6 +253,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		p += len;
 		if (!EVP_EncryptFinal(&cipher_ctx, p, &len))
 			{
+			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 			ECIESerr(ECIES_F_ECIES_DO_ENCRYPT,
 				ECIES_R_ENCRYPT_FAILED);
 			goto err;
@@ -268,6 +276,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	
 	if (!M_ASN1_OCTET_STRING_set(cv->mactag, NULL, cv->mactag->length))
 		{
+			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto err;	
 		}
@@ -275,6 +284,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		cv->ciphertext->data, (size_t)cv->ciphertext->length,
 		cv->mactag->data, (unsigned int *)&len))
 		{
+			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ECIES_R_GEN_MAC_FAILED);
 		goto err;
 		}
@@ -449,10 +459,12 @@ int ECIES_encrypt(unsigned char *out, size_t *outlen,
 
 	if (!(cv = ECIES_do_encrypt(param, in, inlen, ec_key))) {
 		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 	
 	if ((len = i2d_ECIES_CIPHERTEXT_VALUE(cv, NULL)) <= 0) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
 		goto end;
 	}
@@ -466,11 +478,13 @@ int ECIES_encrypt(unsigned char *out, size_t *outlen,
 	if (*outlen < len) {
 		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
 		*outlen = (size_t)len;
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 
 	if ((len = i2d_ECIES_CIPHERTEXT_VALUE(cv, &p)) <= 0) {
 		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 
