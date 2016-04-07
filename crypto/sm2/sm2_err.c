@@ -60,42 +60,6 @@
 #define ERR_REASON(reason) ERR_PACK(ERR_LIB_ECIES,0,reason)
 
 
-#define SM2_F_SM2_SET_ID			100
-#define SM2_F_SM2_GET_ID			101
-#define SM2_F_SM2_COMPUTE_ID_DIGEST		102
-#define SM2_F_SM2_CIPHERTEXT_VALUE_SIZE		103
-#define SM2_F_SM2_CIPHERTEXT_VALUE_FREE		104
-#define SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE	105
-#define SM2_F_SM2_CIPHERTEXT_VALUE_DECODE	106
-#define SM2_F_SM2_CIPHERTEXT_VALUE_PRINT	107
-#define SM2_F_SM2_DO_ENCRYPT			108
-#define SM2_F_SM2_DO_DECRYPT			109
-#define SM2_F_SM2_ENCRYPT			110
-#define SM2_F_SM2_DECRYPT			111
-#define SM2_SIGNATURE_SIZE			112
-#define SM2_SIGN_SETUP				113
-#define SM2_DO_SIGN_EX				114
-#define SM2_DO_SIGN				115
-#define SM2_DO_VERIFY				116
-#define SM2_SIGN_EX				117
-#define SM2_SIGN				118
-#define SM2_VERIFY				119
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static ERR_STRING_DATA SM2_str_functs[] = {
 	{ERR_FUNC(SM2_F_SM2_SET_ID),			"SM2_SET_ID"},
 	{ERR_FUNC(SM2_F_SM2_GET_ID),			"SM2_F_SM2_GET_ID"},
@@ -109,27 +73,34 @@ static ERR_STRING_DATA SM2_str_functs[] = {
 	{ERR_FUNC(SM2_F_SM2_DO_DECRYPT),		"SM2_do_decrypt"},
 	{ERR_FUNC(SM2_F_SM2_ENCRYPT),			"SM2_encrypt"},
 	{ERR_FUNC(SM2_F_SM2_DECRYPT),			"SM2_decrypt"},
-	{ERR_FUNC(SM2_SIGNATURE_SIZE),			"SM2_signature_size"},
-	{ERR_FUNC(SM2_SIGN_SETUP),			"SM2_sign_setup"},
-	{ERR_FUNC(SM2_DO_SIGN_EX),			"SM2_do_sign_ex"},
-	{ERR_FUNC(SM2_DO_SIGN),				"SM2_do_sign"},
-	{ERR_FUNC(SM2_DO_VERIFY),			"SM2_do_verify"},
-	{ERR_FUNC(SM2_SIGN_EX),				"SM2_sign_ex"},
-	{ERR_FUNC(SM2_SIGN),				"SM2_sign"},
-	{ERR_FUNC(SM2_VERIFY),				"SM2_verify"},
+	{ERR_FUNC(SM2_F_SM2_SIGNATURE_SIZE),		"SM2_signature_size"},
+	{ERR_FUNC(SM2_F_SM2_SIGN_SETUP),		"SM2_sign_setup"},
+	{ERR_FUNC(SM2_F_SM2_DO_SIGN_EX),		"SM2_do_sign_ex"},
+	{ERR_FUNC(SM2_F_SM2_DO_SIGN),			"SM2_do_sign"},
+	{ERR_FUNC(SM2_F_SM2_DO_VERIFY),			"SM2_do_verify"},
+	{ERR_FUNC(SM2_F_SM2_SIGN_EX),			"SM2_sign_ex"},
+	{ERR_FUNC(SM2_F_SM2_SIGN),			"SM2_sign"},
+	{ERR_FUNC(SM2_F_SM2_VERIFY),			"SM2_verify"},
+	{ERR_FUNC(SM2_F_SM2_KAP_CTX_INIT),		"SM2_KAP_CTX_init"},
+	{ERR_FUNC(SM2_F_SM2_KAP_CTX_CLEANUP),		"SM2_KAP_CTX_cleanup"},
+	{ERR_FUNC(SM2_F_SM2_KAP_PREPARE),		"SM2_KAP_prepare"},
+	{ERR_FUNC(SM2_F_SM2_KAP_COMPUTE_KEY),		"SM2_KAP_compute_key"},
+	{ERR_FUNC(SM2_F_SM2_KAP_FINAL_CHECK),		"SM2_KAP_final_check"},
 	{0,NULL}
 };
 
 static ERR_STRING_DATA SM2_str_reasons[] = {
 	{ERR_REASON(SM2_R_BAD_DATA),		"bad data"},
-	{ERR_REASON(SM2_R_UNKNOWN_CIPHER_TYPE),"unknown cipher type"},
+	{ERR_REASON(SM2_R_UNKNOWN_CIPHER_TYPE),	"unknown cipher type"},
 	{ERR_REASON(SM2_R_ENCRYPT_FAILED),	"encrypt failed"},
 	{ERR_REASON(SM2_R_DECRYPT_FAILED),	"decrypt failed"},
 	{ERR_REASON(SM2_R_UNKNOWN_MAC_TYPE),	"unknown MAC type"},
 	{ERR_REASON(SM2_R_GEN_MAC_FAILED),	"MAC generation failed"},
 	{ERR_REASON(SM2_R_VERIFY_MAC_FAILED),	"MAC verification failed"},
-	{ERR_REASON(SM2_R_ECDH_FAILED),	"ECDH failed"},
+	{ERR_REASON(SM2_R_ECDH_FAILED),		"ECDH failed"},
 	{ERR_REASON(SM2_R_BUFFER_TOO_SMALL),	"buffer too small"},
+	{ERR_REASON(SM2_R_SM2_KAP_NOT_INITED),	"KAP not inited"},
+	{ERR_REASON(SM2_R_RANDOM_NUMBER_GENERATION_FAILED), "random number generation failed"},
 	{0,NULL}
 };
 

@@ -165,9 +165,9 @@ void OpenSSL_add_all_ciphers(void)
 
 #ifndef OPENSSL_NO_SMS4
         EVP_add_cipher(EVP_sms4_ecb());
-        //EVP_add_cipher(EVP_sms4_cfb128());
-        //EVP_add_cipher(EVP_sms4_ofb());
         EVP_add_cipher(EVP_sms4_cbc());
+        EVP_add_cipher(EVP_sms4_ofb());
+        EVP_add_cipher(EVP_sms4_cfb128());
         EVP_add_cipher_alias(SN_sms4_cbc,"SMS4");
         EVP_add_cipher_alias(SN_sms4_cbc,"sms4");
 #endif

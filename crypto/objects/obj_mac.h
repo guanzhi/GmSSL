@@ -4276,28 +4276,111 @@
 #define NID_sm          968
 #define OBJ_sm          OBJ_oscca,1L
 
-#define SN_sm6          "SM6"
-#define LN_sm6          "sm6"
-#define NID_sm6         1001
-#define OBJ_sm6         OBJ_sm,101L
+#define SN_sm6_ecb              "SM6-ECB"
+#define LN_sm6_ecb              "sm6-ecb"
+#define NID_sm6_ecb             1012
+#define OBJ_sm6_ecb             OBJ_sm,101L,1L
 
-#define SN_sm1          "SM1"
-#define LN_sm1          "sm1"
-#define NID_sm1         1002
-#define OBJ_sm1         OBJ_sm,102L
+#define SN_sm6_cbc              "SM6-CBC"
+#define LN_sm6_cbc              "sm6-cbc"
+#define NID_sm6_cbc             1013
+#define OBJ_sm6_cbc             OBJ_sm,101L,2L
 
-#define SN_ssf33                "SSF33"
-#define LN_ssf33                "ssf33"
-#define NID_ssf33               1003
-#define OBJ_ssf33               OBJ_sm,103L
+#define SN_sm6_ofb128           "SM6-OFB"
+#define LN_sm6_ofb128           "sm6-ofb"
+#define NID_sm6_ofb128          1014
+#define OBJ_sm6_ofb128          OBJ_sm,101L,3L
 
-#define SN_sm7          "SM7"
-#define LN_sm7          "sm7"
+#define SN_sm6_cfb128           "SM6-CFB"
+#define LN_sm6_cfb128           "sm6-cfb"
+#define NID_sm6_cfb128          1015
+#define OBJ_sm6_cfb128          OBJ_sm,101L,4L
+
+#define SN_sm1_ecb              "SM1-ECB"
+#define LN_sm1_ecb              "sm1-ecb"
+#define NID_sm1_ecb             1016
+#define OBJ_sm1_ecb             OBJ_sm,102L,1L
+
+#define SN_sm1_cbc              "SM1-CBC"
+#define LN_sm1_cbc              "sm1-cbc"
+#define NID_sm1_cbc             1017
+#define OBJ_sm1_cbc             OBJ_sm,102L,2L
+
+#define SN_sm1_ofb128           "SM1-OFB"
+#define LN_sm1_ofb128           "sm1-ofb"
+#define NID_sm1_ofb128          1018
+#define OBJ_sm1_ofb128          OBJ_sm,102L,3L
+
+#define NID_sm1_cfb128          1019
+#define OBJ_sm1_cfb128          OBJ_sm,102L,4L
+
+#define SN_sm1_cfb              "SM1-CFB"
+#define LN_sm1_cfb              "sm1-cfb"
+#define NID_sm1_cfb             1030
+
+#define SN_ssf33_ecb            "SSF33-ECB"
+#define LN_ssf33_ecb            "ssf33-ecb"
+#define NID_ssf33_ecb           1020
+#define OBJ_ssf33_ecb           OBJ_sm,103L,1L
+
+#define SN_ssf33_cbc            "SSF33-CBC"
+#define LN_ssf33_cbc            "ssf33-cbc"
+#define NID_ssf33_cbc           1021
+#define OBJ_ssf33_cbc           OBJ_sm,103L,2L
+
+#define SN_ssf33_ofb128         "SSF33-OFB"
+#define LN_ssf33_ofb128         "ssf33-ofb"
+#define NID_ssf33_ofb128                1022
+#define OBJ_ssf33_ofb128                OBJ_sm,103L,3L
+
+#define SN_ssf33_cfb128         "SSF33-CFB"
+#define LN_ssf33_cfb128         "ssf33-cfb"
+#define NID_ssf33_cfb128                1023
+#define OBJ_ssf33_cfb128                OBJ_sm,104L,4L
+
+#define SN_sms4_ecb             "SMS4-ECB"
+#define LN_sms4_ecb             "sms4-ecb"
+#define NID_sms4_ecb            977
+#define OBJ_sms4_ecb            OBJ_sm,104L,1L
+
+#define SN_sms4_cbc             "SMS4-CBC"
+#define LN_sms4_cbc             "sms4-cbc"
+#define NID_sms4_cbc            978
+#define OBJ_sms4_cbc            OBJ_sm,104L,2L
+
+#define SN_sms4_ofb128          "SMS4-OFB"
+#define LN_sms4_ofb128          "sms4-ofb"
+#define NID_sms4_ofb128         981
+#define OBJ_sms4_ofb128         OBJ_sm,104L,3L
+
+#define SN_sms4_cfb128          "SMS4-CFB"
+#define LN_sms4_cfb128          "sms4-cfb"
+#define NID_sms4_cfb128         982
+#define OBJ_sms4_cfb128         OBJ_sm,104L,4L
+
+#define SN_sms4_ctr             "SMS4-CTR"
+#define LN_sms4_ctr             "sms4-ctr"
+#define NID_sms4_ctr            1026
+#define OBJ_sms4_ctr            OBJ_sm,104L,5L
+
+#define SN_sms4_gcm             "SMS4-GCM"
+#define LN_sms4_gcm             "sms4-gcm"
+#define NID_sms4_gcm            1027
+#define OBJ_sms4_gcm            OBJ_sm,104L,6L
+
+#define SN_sms4_ccm             "SMS4-CCM"
+#define LN_sms4_ccm             "sms4-ccm"
+#define NID_sms4_ccm            1028
+#define OBJ_sms4_ccm            OBJ_sm,104L,7L
+
+#define SN_sms4_xts             "SMS4-XTS"
+#define LN_sms4_xts             "sms4-xts"
+#define NID_sms4_xts            1029
+#define OBJ_sms4_xts            OBJ_sm,104L,8L
+
 #define NID_sm7         1004
 #define OBJ_sm7         OBJ_sm,105L
 
-#define SN_sm8          "SM8"
-#define LN_sm8          "sm8"
 #define NID_sm8         1005
 #define OBJ_sm8         OBJ_sm,106L
 
@@ -4322,10 +4405,9 @@
 #define NID_sm2encrypt          972
 #define OBJ_sm2encrypt          OBJ_sm,301L,3L
 
-#define SN_sm9          "SM9"
-#define LN_sm9          "sm9"
-#define NID_sm9         1007
-#define OBJ_sm9         OBJ_sm,302L
+#define SN_id_sm9PublicKey              "id-sm9PublicKey"
+#define NID_id_sm9PublicKey             1025
+#define OBJ_id_sm9PublicKey             OBJ_sm,302L
 
 #define SN_sm9sign              "sm9sign"
 #define NID_sm9sign             1008
@@ -4364,27 +4446,7 @@
 #define NID_sm2sign_with_sha256         975
 #define OBJ_sm2sign_with_sha256         OBJ_sm,503L
 
-#define SN_sms4_ecb             "SMS4-ECB"
-#define LN_sms4_ecb             "sms4-ecb"
-#define NID_sms4_ecb            977
-#define OBJ_sms4_ecb            OBJ_sm,104L,1L
-
-#define SN_sms4_cbc             "SMS4-CBC"
-#define LN_sms4_cbc             "sms4-cbc"
-#define NID_sms4_cbc            978
-#define OBJ_sms4_cbc            OBJ_sm,104L,2L
-
-#define SN_sms4_cfb128          "SMS4-CFB"
-#define LN_sms4_cfb128          "sms4-cfb"
-#define NID_sms4_cfb128         982
-#define OBJ_sms4_cfb128         OBJ_sm,104L,3L
-
-#define SN_sms4_ofb128          "SMS4-OFB"
-#define LN_sms4_ofb128          "sms4-ofb"
-#define NID_sms4_ofb128         981
-#define OBJ_sms4_ofb128         OBJ_sm,104L,4L
-
 #define SN_zuc          "ZUC"
 #define LN_zuc          "zuc"
 #define NID_zuc         1000
-#define OBJ_zuc         OBJ_sm,200L
+#define OBJ_zuc         OBJ_sm,800L

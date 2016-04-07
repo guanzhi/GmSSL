@@ -239,9 +239,9 @@ void sms4_set_decrypt_key(sms4_key_t *key, const unsigned char *user_key)
 	ROUND_(X1, X2, X3, X4, X0, CK31, rk[0]);
 }
 
-void sms4_encrypt(const unsigned char *in, unsigned char *out, sms4_key_t *key)
+void sms4_encrypt(const unsigned char *in, unsigned char *out, const sms4_key_t *key)
 {
-	uint32_t *rk = key->rk;
+	const uint32_t *rk = key->rk;
 	uint32_t X0, X1, X2, X3, X4;
 
 	X0 = GETU32(in     );

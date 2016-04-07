@@ -72,6 +72,9 @@ extern const EVP_PKEY_ASN1_METHOD dhx_asn1_meth;
 extern const EVP_PKEY_ASN1_METHOD eckey_asn1_meth;
 extern const EVP_PKEY_ASN1_METHOD hmac_asn1_meth;
 extern const EVP_PKEY_ASN1_METHOD cmac_asn1_meth;
+#ifndef OPENSSL_NO_SM2
+extern const EVP_PKEY_ASN1_METHOD sm2_asn1_meth;
+#endif
 
 /* Keep this sorted in type order !! */
 static const EVP_PKEY_ASN1_METHOD *standard_methods[] = {
@@ -91,6 +94,9 @@ static const EVP_PKEY_ASN1_METHOD *standard_methods[] = {
 #endif
 #ifndef OPENSSL_NO_EC
     &eckey_asn1_meth,
+#endif
+#ifndef OPENSSL_NO_SM2
+    &sm2_asn1_meth,
 #endif
     &hmac_asn1_meth,
     &cmac_asn1_meth,
@@ -159,6 +165,33 @@ static const EVP_PKEY_ASN1_METHOD *pkey_asn1_find(int type)
     }
     ret = OBJ_bsearch_ameth(&t, standard_methods, sizeof(standard_methods)
                             / sizeof(EVP_PKEY_ASN1_METHOD *));
+
+#ifndef OPENSSL_NO_SM2
+	//FIXME: i dont know why sm2_asn1_meth can not be found
+	/*
+	{
+    int i;
+    for (i = 0;
+         i < sizeof(standard_methods) / sizeof(EVP_PKEY_ASN1_METHOD *); i++)
+        fprintf(stderr, "Number %d id=%d (%s)\n", i,
+                standard_methods[i]->pkey_id,
+                OBJ_nid2sn(standard_methods[i]->pkey_id));
+	}
+	*/
+	
+	/*
+	fprintf(stderr, "%s:%d: type = %d, NID_sm2 = %d\n", __FILE__, __LINE__, 
+		type, NID_sm2p256v1);
+	if (ret == NULL) {
+		fprintf(stderr, "shit, not found!");
+	}
+	*/
+
+	if (type == EVP_PKEY_SM2) {
+		return &sm2_asn1_meth;
+	}
+#endif
+
     if (!ret || !*ret)
         return NULL;
     return *ret;
@@ -200,6 +233,9 @@ const EVP_PKEY_ASN1_METHOD *EVP_PKEY_asn1_find_str(ENGINE **pe,
 {
     int i;
     const EVP_PKEY_ASN1_METHOD *ameth;
+
+	printf("%s:%d: EVP_PKEY_asn1_find_str(%s)\n", __FILE__, __LINE__, str);
+
     if (len == -1)
         len = strlen(str);
     if (pe) {

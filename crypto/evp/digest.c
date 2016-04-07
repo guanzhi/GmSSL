@@ -211,6 +211,7 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
         type = ctx->digest;
     }
 #endif
+	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     if (ctx->digest != type) {
         if (ctx->digest && ctx->digest->ctx_size)
             OPENSSL_free(ctx->md_data);
@@ -218,6 +219,7 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
         if (!(ctx->flags & EVP_MD_CTX_FLAG_NO_INIT) && type->ctx_size) {
             ctx->update = type->update;
             ctx->md_data = OPENSSL_malloc(type->ctx_size);
+	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             if (ctx->md_data == NULL) {
                 EVPerr(EVP_F_EVP_DIGESTINIT_EX, ERR_R_MALLOC_FAILURE);
                 return 0;
@@ -229,6 +231,7 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 #endif
     if (ctx->pctx) {
         int r;
+	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
         r = EVP_PKEY_CTX_ctrl(ctx->pctx, -1, EVP_PKEY_OP_TYPE_SIG,
                               EVP_PKEY_CTRL_DIGESTINIT, 0, ctx);
         if (r <= 0 && (r != -2))
@@ -245,6 +248,7 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
         return 0;
     }
 #endif
+	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     return ctx->digest->init(ctx);
 }
 

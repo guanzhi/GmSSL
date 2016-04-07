@@ -83,7 +83,8 @@ typedef struct sm2_ciphertext_value_st {
 char *SM2_get_id(EC_KEY *ec_key);
 int SM2_set_id(EC_KEY *ec_key, const char *id);
 int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
-	const EVP_MD *md, const void *id, size_t idlen, EC_KEY *ec_key);
+	const EVP_MD *md, EC_KEY *ec_key);
+
 
 int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *ec_group,
 	point_conversion_form_t point_form, size_t mlen,
@@ -128,6 +129,55 @@ int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
 int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	const unsigned char *sig, int siglen, EC_KEY *ec_key);
 
+
+
+typedef struct sm2_kap_ctx_st {
+
+	const EVP_MD *id_dgst_md;
+	const EVP_MD *kdf_md;
+	const EVP_MD *checksum_md;
+	point_conversion_form_t point_form;
+	KDF_FUNC kdf;
+	
+	int is_initiator;
+	int do_checksum;
+
+	EC_KEY *ec_key;
+	unsigned char id_dgst[EVP_MAX_MD_SIZE];
+	unsigned int id_dgstlen;
+	
+	EC_KEY *remote_pubkey;
+	unsigned char remote_id_dgst[EVP_MAX_MD_SIZE];
+	unsigned int remote_id_dgstlen;
+
+	const EC_GROUP *group;
+	BN_CTX *bn_ctx;
+	BIGNUM *order;
+	BIGNUM *two_pow_w;
+	
+	BIGNUM *t;
+	EC_POINT *point;
+	unsigned char pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
+	unsigned char checksum[EVP_MAX_MD_SIZE];
+
+} SM2_KAP_CTX;
+
+
+
+int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
+	EC_KEY *remote_pubkey, int is_initiator, int do_checksum);
+void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
+int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,
+	size_t ephem_point_len);
+int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_ephem_point,
+	size_t remote_ephem_point_len, unsigned char *key, size_t *keylen,
+	unsigned char *checksum, size_t *checksumlen);
+int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
+	size_t checksumlen);
+
+
+
+
 void ERR_load_SM2_strings(void);
 
 /* Function codes. */
@@ -143,14 +193,20 @@ void ERR_load_SM2_strings(void);
 #define SM2_F_SM2_DO_DECRYPT			109
 #define SM2_F_SM2_ENCRYPT			110
 #define SM2_F_SM2_DECRYPT			111
-#define SM2_SIGNATURE_SIZE			112
-#define SM2_SIGN_SETUP				113
-#define SM2_DO_SIGN_EX				114
-#define SM2_DO_SIGN				115
-#define SM2_DO_VERIFY				116
-#define SM2_SIGN_EX				117
-#define SM2_SIGN				118
-#define SM2_VERIFY				119
+#define SM2_F_SM2_SIGNATURE_SIZE		112
+#define SM2_F_SM2_SIGN_SETUP			113
+#define SM2_F_SM2_DO_SIGN_EX			114
+#define SM2_F_SM2_DO_SIGN			115
+#define SM2_F_SM2_DO_VERIFY			116
+#define SM2_F_SM2_SIGN_EX			117
+#define SM2_F_SM2_SIGN				118
+#define SM2_F_SM2_VERIFY			119
+#define SM2_F_SM2_KAP_CTX_INIT			120
+#define SM2_F_SM2_KAP_CTX_CLEANUP		121
+#define SM2_F_SM2_KAP_PREPARE			122
+#define SM2_F_SM2_KAP_COMPUTE_KEY		123
+#define SM2_F_SM2_KAP_FINAL_CHECK		124	
+
 
 /* Reason codes. */
 #define SM2_R_BAD_DATA				100
@@ -162,6 +218,8 @@ void ERR_load_SM2_strings(void);
 #define SM2_R_VERIFY_MAC_FAILED			106
 #define SM2_R_ECDH_FAILED			107
 #define SM2_R_BUFFER_TOO_SMALL			108
+#define SM2_R_SM2_KAP_NOT_INITED		109
+#define SM2_R_RANDOM_NUMBER_GENERATION_FAILED	110
 
 #ifdef __cplusplus
 }

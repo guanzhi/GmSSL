@@ -664,3 +664,19 @@ int EVP_CIPHER_CTX_copy(EVP_CIPHER_CTX *out, const EVP_CIPHER_CTX *in)
         return in->cipher->ctrl((EVP_CIPHER_CTX *)in, EVP_CTRL_COPY, 0, out);
     return 1;
 }
+
+#ifndef OPENSSL_NO_GMSSL
+int EVP_Encrypt_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outlen,
+	const unsigned char *in, int inlen)
+{
+	return 0;
+}
+
+int EVP_Decrypt_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outlen,
+	const unsigned char *in, int inlen)
+{
+
+	return 1;
+}
+#endif /* GMSSL */
+

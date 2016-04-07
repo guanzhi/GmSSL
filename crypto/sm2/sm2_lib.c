@@ -185,17 +185,24 @@ err:
 }
 
 int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
-	const EVP_MD *md, const void *id, size_t idlen, EC_KEY *ec_key)
+	const EVP_MD *md, EC_KEY *ec_key)
 {
         int ret = 0;
         EVP_MD_CTX *md_ctx = NULL;
         unsigned char pkdata[EC_MAX_NBYTES * 6];
-	uint16_t idbits = idlen * 8;
+	uint16_t idbits;
 	int pkdatalen;
+	char *id = NULL;
 	
 	if ((pkdatalen = sm2_get_public_key_data(pkdata, ec_key)) < 0) {
 		goto err;
 	}
+
+	if (!(id = SM2_get_id(ec_key))) {
+		goto err;
+	}
+
+	idbits = strlen(id) * 8;
 
 	if (!(md_ctx = EVP_MD_CTX_create())) {
 		goto err;
@@ -206,7 +213,7 @@ int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
 	if (!EVP_DigestUpdate(md_ctx, &idbits, sizeof(idbits))) {
 		goto err;
 	}
-	if (!EVP_DigestUpdate(md_ctx, id, idlen)) {
+	if (!EVP_DigestUpdate(md_ctx, id, strlen(id))) {
 		goto err;
 	}
 	if (!EVP_DigestUpdate(md_ctx, pkdata, pkdatalen)) {

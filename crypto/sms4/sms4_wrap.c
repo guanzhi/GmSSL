@@ -1,4 +1,4 @@
-/* crypto/sms4/sms4_ofb.c */
+/* crypto/sms4/sms4_cbc.c */
 /* ====================================================================
  * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
  *
@@ -49,13 +49,20 @@
  *
  */
 
+#include "cryptlib.h"
 #include <openssl/sms4.h>
 #include <openssl/modes.h>
 
 
-void sms4_ofb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv, int *num)
+int sms4_wrap_key(sms4_key_t *key, const unsigned char *iv,
+	unsigned char *out, const unsigned char *in, unsigned int inlen)
 {
-	CRYPTO_ofb128_encrypt(in, out, len, key, iv, num, (block128_f)sms4_encrypt);
+	return CRYPTO_128_wrap(key, iv, out, in, inlen, (block128_f)sms4_encrypt);
+}
+
+int sms4_unwrap_key(sms4_key_t *key, const unsigned char *iv,
+	unsigned char *out, const unsigned char *in, unsigned int inlen)
+{
+	return CRYPTO_128_unwrap(key, iv, out, in, inlen, (block128_f)sms4_decrypt);
 }
 

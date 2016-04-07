@@ -1,4 +1,4 @@
-/* crypto/sms4/sms4_ofb.c */
+/* crypto/sms4/sms4_cbc.c */
 /* ====================================================================
  * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
  *
@@ -53,9 +53,11 @@
 #include <openssl/modes.h>
 
 
-void sms4_ofb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv, int *num)
+void sms4_ctr128_encrypt(const unsigned char *in, unsigned char *out,
+	size_t len, const sms4_key_t *key, unsigned char *iv,
+	unsigned char ecount_buf[SMS4_BLOCK_SIZE], unsigned int *num)
 {
-	CRYPTO_ofb128_encrypt(in, out, len, key, iv, num, (block128_f)sms4_encrypt);
+	/* this should be replaced with a parallelized version */
+	CRYPTO_ctr128_encrypt(in, out, len, key, iv, ecount_buf, num, (block128_f)sms4_encrypt);
 }
 

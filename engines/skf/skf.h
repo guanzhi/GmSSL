@@ -1,12 +1,6 @@
 #ifndef HEADER_SKF_H
 #define HEADER_SKF_H
 
-#include "smapi_err.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 
 /* Algorithms */
 #define SGD_SM1_ECB		0x00000101
@@ -31,7 +25,6 @@ extern "C" {
 #define SGD_SM3			0x00000001
 #define SGD_SHA1		0x00000002
 #define SGD_SHA256		0x00000004
-
 
 #ifndef WIN32
 typedef signed char		INT8;
@@ -103,11 +96,17 @@ typedef HANDLE HCONTAINER;
 #define DEV_PRESENT_STATE		0x00000001
 #define DEV_UNKNOW_STATE		0x00000010
 
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 	
 typedef struct Struct_Version{
 	BYTE major;
 	BYTE minor;
-}VERSION;
+} VERSION;
 
 typedef struct Struct_DEVINFO {
 	VERSION	Version;
@@ -135,7 +134,7 @@ typedef struct Struct_RSAPUBLICKEYBLOB {
 	BYTE	PublicExponent[MAX_RSA_EXPONENT_LEN];
 } RSAPUBLICKEYBLOB, *PRSAPUBLICKEYBLOB;
 
-typedef struct Struct_RSAPRIVATEKEYBLOB{
+typedef struct Struct_RSAPRIVATEKEYBLOB {
 	ULONG	AlgID;
 	ULONG	BitLen;
 	BYTE	Modulus[MAX_RSA_MODULUS_LEN];
@@ -146,20 +145,20 @@ typedef struct Struct_RSAPRIVATEKEYBLOB{
 	BYTE	Prime1Exponent[MAX_RSA_MODULUS_LEN/2];
 	BYTE	Prime2Exponent[MAX_RSA_MODULUS_LEN/2];
 	BYTE	Coefficient[MAX_RSA_MODULUS_LEN/2];
-}RSAPRIVATEKEYBLOB, *PRSAPRIVATEKEYBLOB;
+} RSAPRIVATEKEYBLOB, *PRSAPRIVATEKEYBLOB;
 
-typedef struct Struct_ECCPUBLICKEYBLOB{
+typedef struct Struct_ECCPUBLICKEYBLOB {
 	ULONG	BitLen;
 	BYTE	XCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	YCoordinate[ECC_MAX_YCOORDINATE_BITS_LEN/8];
-}ECCPUBLICKEYBLOB, *PECCPUBLICKEYBLOB;
+} ECCPUBLICKEYBLOB, *PECCPUBLICKEYBLOB;
 
-typedef struct Struct_ECCPRIVATEKEYBLOB{
+typedef struct Struct_ECCPRIVATEKEYBLOB {
 	ULONG	BitLen;
 	BYTE	PrivateKey[ECC_MAX_MODULUS_BITS_LEN/8];
-}ECCPRIVATEKEYBLOB, *PECCPRIVATEKEYBLOB;
+} ECCPRIVATEKEYBLOB, *PECCPRIVATEKEYBLOB;
 
-typedef struct Struct_ECCCIPHERBLOB{
+typedef struct Struct_ECCCIPHERBLOB {
 	BYTE	XCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	YCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	HASH[32];
@@ -167,28 +166,28 @@ typedef struct Struct_ECCCIPHERBLOB{
 	BYTE	Cipher[1];
 } ECCCIPHERBLOB, *PECCCIPHERBLOB;
 
-typedef struct Struct_ECCSIGNATUREBLOB{
+typedef struct Struct_ECCSIGNATUREBLOB {
 	BYTE	r[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	s[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 } ECCSIGNATUREBLOB, *PECCSIGNATUREBLOB;
 
-typedef struct Struct_BLOCKCIPHERPARAM{
+typedef struct Struct_BLOCKCIPHERPARAM {
 	BYTE	IV[MAX_IV_LEN];
 	ULONG	IVLen;
 	ULONG	PaddingType;
 	ULONG	FeedBitLen;
 } BLOCKCIPHERPARAM, *PBLOCKCIPHERPARAM;
 
-typedef struct SKF_ENVELOPEDKEYBLOB{
+typedef struct SKF_ENVELOPEDKEYBLOB {
 	ULONG	Version;
 	ULONG	ulSymmAlgID;
 	ULONG	ulBits;
 	BYTE	cbEncryptedPriKey[64];
 	ECCPUBLICKEYBLOB	PubKey;
 	ECCCIPHERBLOB		ECCCipherBlob;
-}ENVELOPEDKEYBLOB, *PENVELOPEDKEYBLOB;
+} ENVELOPEDKEYBLOB, *PENVELOPEDKEYBLOB;
 
-typedef struct Struct_FILEATTRIBUTE{
+typedef struct Struct_FILEATTRIBUTE {
 	CHAR	FileName[MAX_FILE_NAME_SIZE];
 	ULONG	FileSize;
 	ULONG	ReadRights;
@@ -226,11 +225,7 @@ ULONG DEVAPI SKF_ChangeDevAuthKey(DEVHANDLE hDev,
 ULONG DEVAPI SKF_DevAuth(DEVHANDLE hDev,
 	BYTE *pbAuthData,
 	ULONG ulLen);
-ULONG DEVAPI SKF_ChangePIN(HAPPLICATION hApplication,
-	ULONG ulPINType,
-	LPSTR szOldPin, 
-	LPSTR szNewPin, 
-	ULONG *pulRetryCount);
+ULONG DEVAPI SKF_ChangePIN(HAPPLICATION hApplication, ULONG ulPINType, LPSTR szOldPin, LPSTR szNewPin, ULONG *pulRetryCount);
 LONG DEVAPI SKF_GetPINInfo(HAPPLICATION hApplication,
 	ULONG ulPINType,
 	ULONG *pulMaxRetryCount, 

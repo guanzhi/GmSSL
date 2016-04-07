@@ -152,6 +152,10 @@ static ERR_STRING_DATA EVP_str_functs[] = {
     {ERR_FUNC(EVP_F_PKEY_SET_TYPE), "PKEY_SET_TYPE"},
     {ERR_FUNC(EVP_F_RC2_MAGIC_TO_METH), "RC2_MAGIC_TO_METH"},
     {ERR_FUNC(EVP_F_RC5_CTRL), "RC5_CTRL"},
+#ifndef OPENSSL_NO_GMSSL
+    {ERR_FUNC(EVP_F_EVP_ENCRYPT_EX), "EVP_Encrypt_ex"},
+    {ERR_FUNC(EVP_F_EVP_DECRYPT_EX), "EVP_Decrypt_ex"},
+#endif
     {0, NULL}
 };
 

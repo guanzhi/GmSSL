@@ -91,6 +91,10 @@
 #  include <openssl/ecdh.h>
 # endif
 
+# ifndef OPENSSL_NO_SM2
+#  include <openssl/sm2.h>
+# endif
+
 # ifndef OPENSSL_NO_DEPRECATED
 #  ifndef OPENSSL_NO_RSA
 #   include <openssl/rsa.h>

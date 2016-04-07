@@ -1,4 +1,4 @@
-/* crypto/sms4/sms4_ofb.c */
+/* crypto/ssf33/ssf33.h */
 /* ====================================================================
  * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
  *
@@ -49,13 +49,19 @@
  *
  */
 
-#include <openssl/sms4.h>
-#include <openssl/modes.h>
+#ifndef HEADER_SSF33_H
+#define HEADER_SSF33_H
+
+#define SSF33_KEY_LENGTH		16
+#define SSF33_BLOCK_SIZE		16
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
-void sms4_ofb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv, int *num)
-{
-	CRYPTO_ofb128_encrypt(in, out, len, key, iv, num, (block128_f)sms4_encrypt);
+#ifdef __cplusplus
 }
+#endif
+#endif
 

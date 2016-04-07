@@ -657,6 +657,13 @@ int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
 int EVP_CipherFinal(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl);
 int EVP_CipherFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl);
 
+#ifndef OPENSSL_NO_GMSSL
+int EVP_Encrypt_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outlen,
+	const unsigned char *in, int inlen);
+int EVP_Decrypt_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outlen,
+	const unsigned char *in, int inlen);
+#endif
+
 int EVP_SignFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s,
                   EVP_PKEY *pkey);
 
@@ -842,6 +849,11 @@ const EVP_CIPHER *EVP_sms4_ecb(void);
 const EVP_CIPHER *EVP_sms4_cbc(void);
 const EVP_CIPHER *EVP_sms4_cfb128(void);
 const EVP_CIPHER *EVP_sms4_ofb128(void);
+const EVP_CIPHER *EVP_sms4_ctr(void);
+const EVP_CIPHER *EVP_sms4_ccm(void);
+const EVP_CIPHER *EVP_sms4_gcm(void);
+const EVP_CIPHER *EVP_sms4_xts(void);
+const EVP_CIPHER *EVP_sms4_wrap(void);
 #define EVP_sm4_ecb EVP_sms4_ecb
 #define EVP_sm4_cbc EVP_sms4_cbc
 #define EVP_sm4_cfb128 EVP_sms4_cfb128
@@ -1483,6 +1495,11 @@ void ERR_load_EVP_strings(void);
 # define EVP_F_PKEY_SET_TYPE                              158
 # define EVP_F_RC2_MAGIC_TO_METH                          109
 # define EVP_F_RC5_CTRL                                   125
+
+# ifndef OPENSSL_NO_GMSSL
+#  define EVP_F_EVP_ENCRYPT_EX				  200
+#  define EVP_F_EVP_DECRYPT_EX				  201
+# endif
 
 /* Reason codes. */
 # define EVP_R_AES_IV_SETUP_FAILED                        162

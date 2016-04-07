@@ -499,9 +499,7 @@ static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 {
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	ECIES_PARAMS *param = ECIES_get_parameters(ec_key);
-
-	fprintf(stderr, "%s %s %d\n", __FUNCTION__, __FILE__, __LINE__);
-
+	OPENSSL_assert(param);
 	return ECIES_encrypt(out, outlen, param, in, inlen, ec_key);
 }
 
@@ -510,7 +508,7 @@ static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 {
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	ECIES_PARAMS *param = ECIES_get_parameters(ec_key);
-	fprintf(stderr, "%s %s %d\n", __FUNCTION__, __FILE__, __LINE__);
+	OPENSSL_assert(param);
 	return ECIES_decrypt(out, outlen, param, in, inlen, ec_key);
 }
 #endif
@@ -564,6 +562,31 @@ const EVP_PKEY_METHOD ec_pkey_meth = {
 };
 
 #ifndef OPENSSL_NO_SM2
+static int pkey_sm2_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
+{
+    EC_KEY *ec = NULL;
+    EC_PKEY_CTX *dctx = ctx->data;
+   
+     if (ctx->pkey == NULL && dctx->gen_group == NULL) {
+        ECerr(EC_F_PKEY_EC_KEYGEN, EC_R_NO_PARAMETERS_SET);
+        return 0;
+    }
+    ec = EC_KEY_new();
+    if (!ec)
+        return 0;
+    EVP_PKEY_assign_SM2(pkey, ec);
+    if (ctx->pkey) {
+        /* Note: if error return, pkey is freed by parent routine */
+        if (!EVP_PKEY_copy_parameters(pkey, ctx->pkey))
+            return 0;
+    } else {
+        if (!EC_KEY_set_group(ec, dctx->gen_group))
+            return 0;
+    }
+    return EC_KEY_generate_key(pkey->pkey.ec);
+}
+
+
 static int pkey_sm2_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 	const unsigned char *dgst, size_t dgstlen)
 {
@@ -611,7 +634,11 @@ static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outle
 	const EVP_MD *mac_md = ec_ctx->md;
 	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
 
-	return SM2_encrypt(kdf_md, mac_md, point_form, out, outlen, in, inlen, ec_key);
+	//FIXME: the ec_ctx is not work, no one init it
+	kdf_md = EVP_sm3();
+	mac_md = EVP_sm3();
+	
+	return SM2_encrypt(kdf_md, mac_md, point_form, in, inlen, out, outlen, ec_key);
 }
 
 static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
@@ -623,35 +650,55 @@ static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outle
 	const EVP_MD *mac_md = ec_ctx->md;
 	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
 
+	//FIXME: the ec_ctx is not work, no one init it
+	kdf_md = EVP_sm3();
+	mac_md = EVP_sm3();
+
 	return SM2_decrypt(kdf_md, mac_md, point_form, in, inlen, out, outlen, ec_key);
 }
 
 static int pkey_sm2_ctrl_digestinit(EVP_PKEY_CTX *pk_ctx, EVP_MD_CTX *md_ctx)
 {
-	int ret;
+	int ret = 0;
 	EC_KEY *ec_key = pk_ctx->pkey->pkey.ec;
 	const EVP_MD *md = EVP_MD_CTX_md(md_ctx);
 	char *id;
 	unsigned char zid[EVP_MAX_MD_SIZE];
 	unsigned int zidlen = sizeof(zid);
 
+	EVP_PKEY_CTX *pctx;
+
+	fprintf(stderr, "%s() called\n", __FUNCTION__);
+
 	if (!(id = SM2_get_id(ec_key))) {
-		return 0;
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		id = "alice@pku.edu.cn";
+		//return 0;
 	}
 	//FIXME: check this function
-	if (!SM2_compute_id_digest(zid, &zidlen, md, id, strlen(zidlen), ec_key)) {
+	if (!SM2_compute_id_digest(zid, &zidlen, md, id, strlen(id), ec_key)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 
+	pctx = md_ctx->pctx;
+	md_ctx->pctx = NULL;
+	
 	if (!EVP_DigestInit_ex(md_ctx, md, NULL)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
+
+	md_ctx->pctx = pctx;
+		
 	if (!EVP_DigestUpdate(md_ctx, zid, zidlen)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 
 	EVP_MD_CTX_set_flags(md_ctx, EVP_MD_CTX_FLAG_NO_INIT);
 
+	ret = 1;
 end:
 	return ret;
 }
@@ -677,7 +724,7 @@ const EVP_PKEY_METHOD sm2_pkey_meth = {
 	0, /* paramgen_init */
 	pkey_ec_paramgen,
 	0, /* keygen_init */
-	pkey_ec_keygen,
+	pkey_sm2_keygen,
 	0, /* sign_init */
 	pkey_sm2_sign,
 	0, /* verify_init */

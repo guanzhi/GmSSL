@@ -88,6 +88,58 @@ static int test_sm2_enc(void)
 	return 0;
 }
 
+static int test_sm2_kap(void)
+{
+	int rv = 0;
+
+	int curve_name = NID_sm2p256v1;
+	EC_KEY *eckey1 = NULL;
+	EC_KEY *eckey2 = NULL;
+	SM2_KAP_CTX ctx1;
+	SM2_KAP_CTX ctx2;
+
+	eckey1 = EC_KEY_new_by_curve_name(curve_name);
+	OPENSSL_assert(eckey1 != NULL);
+
+	eckey2 = EC_KEY_new_by_curve_name(curve_name);
+	OPENSSL_assert(eckey2 != NULL);
+
+	rv = EC_KEY_generate_key(eckey1);
+	OPENSSL_assert(rv == 1);
+
+	rv = EC_KEY_generate_key(eckey2);
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_set_id(eckey1, "Alice");
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_set_id(eckey2, "Bob");
+	OPENSSL_assert(rv == 1);
+
+
+	rv = SM2_KAP_init();
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_KAP_prepare(&ctx1);
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_KAP_prepare(&ctx2);
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_KAP_compute_key(&ctx1);
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_KAP_compute_key(&ctx2);
+	OPENSSL_assert(rv == 1);
+
+	rv = SM2_KAP_final_check(&ctx1);
+	OPENSSL_assert(rv == 1);
+	
+	rv = SM2_KAP_final_check(&ctx2);
+	OPENSSL_assert(rv == 1);
+
+	return 0;
+}
 
 int main(int argc, char **argv)
 {

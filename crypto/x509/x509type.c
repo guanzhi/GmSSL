@@ -90,6 +90,11 @@ int X509_certificate_type(X509 *x, EVP_PKEY *pkey)
     case EVP_PKEY_EC:
         ret = EVP_PK_EC | EVP_PKT_SIGN | EVP_PKT_EXCH;
         break;
+#ifndef OPENSSL_NO_SM2
+    case EVP_PKEY_SM2:
+        ret = EVP_PK_EC | EVP_PKT_SIGN | EVP_PKT_EXCH;
+        break;
+#endif
     case EVP_PKEY_DH:
         ret = EVP_PK_DH | EVP_PKT_EXCH;
         break;
@@ -116,6 +121,9 @@ int X509_certificate_type(X509 *x, EVP_PKEY *pkey)
         case NID_X9_62_id_ecPublicKey:
             ret |= EVP_PKS_EC;
             break;
+#ifndef OPENSSL_NO_SM2
+	/* what to do ? */
+#endif
         default:
             break;
         }
