@@ -670,13 +670,16 @@ static int pkey_sm2_ctrl_digestinit(EVP_PKEY_CTX *pk_ctx, EVP_MD_CTX *md_ctx)
 
 	fprintf(stderr, "%s() called\n", __FUNCTION__);
 
+	/*
 	if (!(id = SM2_get_id(ec_key))) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		id = "alice@pku.edu.cn";
 		//return 0;
 	}
+	*/
+
 	//FIXME: check this function
-	if (!SM2_compute_id_digest(zid, &zidlen, md, id, strlen(id), ec_key)) {
+	if (!SM2_compute_id_digest(zid, &zidlen, md, ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		return 0;
 	}

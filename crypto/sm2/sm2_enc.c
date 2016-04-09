@@ -417,6 +417,7 @@ end:
 		cv = NULL;
 	}
 
+	if (point) EC_POINT_free(point);
 	if (n) BN_free(n);
 	if (h) BN_free(h);
 	if (k) BN_free(k);

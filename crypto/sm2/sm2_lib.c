@@ -65,6 +65,8 @@
 #define EC_MAX_NBYTES	((OPENSSL_ECC_MAX_FIELD_BITS + 7)/8)
 
 
+#define SM2_DEFAULT_ID "1234567812345678" 
+
 static void *sm2_data_dup(void *data) {
 	return OPENSSL_strdup((const char *)data);
 }
@@ -184,6 +186,7 @@ err:
 	return ret;
 }
 
+//TODO: review this function again.
 int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
 	const EVP_MD *md, EC_KEY *ec_key)
 {
@@ -199,7 +202,7 @@ int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
 	}
 
 	if (!(id = SM2_get_id(ec_key))) {
-		goto err;
+		id = SM2_DEFAULT_ID; 
 	}
 
 	idbits = strlen(id) * 8;

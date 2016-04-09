@@ -451,7 +451,6 @@ int ssl_get_new_session(SSL *s, int session)
         } else if (s->version == GMSSL1_1_VERSION) {
             ss->ssl_version = GMSSL1_1_VERSION;
             ss->session_id_length = SSL3_SSL_SESSION_ID_LENGTH;
-        }
 #endif
         } else {
             SSLerr(SSL_F_SSL_GET_NEW_SESSION, SSL_R_UNSUPPORTED_SSL_VERSION);
