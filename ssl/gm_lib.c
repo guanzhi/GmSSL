@@ -59,6 +59,11 @@
 #include <openssl/evp.h>
 #include <openssl/gmssl.h>
 
+const char gmssl1_version_str[] - "GMSSLv1" OPENSSL_VERSION_PTEXT;
+
+#define GM1_NUM_CIPHERS		(sizeof(gm1_ciphers)/sizeof(SSL_CIPHER))
+
+
 SSL3_ENC_METHOD GMSSLv1_1_enc_data = {
 	gmssl_enc,
 	gmssl_mac,
@@ -78,6 +83,12 @@ SSL3_ENC_METHOD GMSSLv1_1_enc_data = {
 	ssl3_handshake_write
 };
 
+
+/*
+ * ECDHE_XXX is the same as ECDHE_ECDSA_XXX in TLS
+ * ECC_XXX and RSA_XXX is similar with ECDH_ECDSA_XXX, ECDH_RSA_XXX,
+ *	except that the ServerKeyExchange format is not null.
+ */
 OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 
 	/* Cipher 1 */
@@ -85,15 +96,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_ECDHE_SM1_SM3,
 		GM1_CK_ECDHE_SM1_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kEECDH,
+		SSL_aSM2,
+		SSL_SM1,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 			
 	/* Cipher 2 */
@@ -101,15 +112,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_ECC_SM1_SM3,
 		GM1_CK_ECC_SM1_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kECDHs,
+		SSL_aECDH,
+		SSL_SM1,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 3 */
@@ -117,15 +128,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_IBSDH_SM1_SM3,
 		GM1_CK_IBSDH_SM1_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kEECDH,
+		SSL_aSM9,
+		SSL_SM1,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 4 */
@@ -133,15 +144,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_IBC_SM1_SHA1,
 		GM1_CK_IBC_SM1_SHA1,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kECDHe,
+		SSL_aSM2,
+		SSL_SM1,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 5 */
@@ -149,15 +160,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_RSA_SM1_SM3,
 		GM1_CK_RSA_SM1_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kEECDH,
+		SSL_aSM2,
+		SSL_SM1,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 6 */
@@ -165,15 +176,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_RSA_SM1_SHA1,
 		GM1_CK_RSA_SM1_SHA1,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kEECDH,
+		SSL_aSM2,
+		SSL_SM1,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 
@@ -182,15 +193,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_ECDHE_SM4_SM3,
 		GM1_CK_ECDHE_SM4_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kEECDH,
+		SSL_aSM2,
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 8 */
@@ -198,15 +209,15 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_ECC_SM4_SM3,
 		GM1_CK_ECC_SM4_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
+		SSL_kECDHe,
 		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 
@@ -217,13 +228,13 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		GM1_CK_IBSDH_SM4_SM3,
 		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
 		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 10 */
@@ -231,32 +242,31 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_IBC_SM4_SM3,
 		GM1_CK_IBC_SM4_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
+		SSL_kECDHe,	/* fixed ECDH key exchange algorithm bits */
 		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
-
 
 	/* Cipher 11 */
 	{
 		1,
 		GM1_TXT_RSA_SM4_SM3,
 		GM1_CK_RSA_SM4_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_kRSA,
+		SSL_aRSA,
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 	/* Cipher 12 */
@@ -266,16 +276,14 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		GM1_CK_RSA_SM4_SHA1,
 		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
 		SSL_aSM2,	/* auth algor bits */
-		SSL_SM1,	/* symmetric encryption */
-		SSL_SM3,	/* symmetric authentication */
-		SSL_GMV1_1,	/* (major) protocol version */
-		SSL_NOT_EXP | SSL_STRONG_NONE, /* strength and export flags */
-		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF, /* extra flags */
-		0, /* number of bits really used */
-		0, /* number of bits for algorithm */
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP | SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+		128,
+		128,
 	},
 
 };
 
-
-	

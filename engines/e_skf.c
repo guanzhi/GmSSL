@@ -5,11 +5,12 @@
 #include <openssl/engine.h>
 #include <openssl/obj_mac.h>
 #include <openssl/objects.h>
+#include <openssl/ssf33.h>
 #include <openssl/sm1.h>
 #include <openssl/sm2.h>
 #include <openssl/sm3.h>
 #include <openssl/sms4.h>
-#include <openssl/ssf33.h>
+#include <openssl/sm9.h>
 #include "skf.h"
 #include "e_skf_err.h"
 

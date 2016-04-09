@@ -951,6 +951,26 @@ const char *SSL_alert_desc_string(int value)
     case TLS1_AD_UNKNOWN_PSK_IDENTITY:
         str = "UP";
         break;
+#ifndef OPENSSL_NO_GMSSL
+    case GM1_AD_UNSUPPORTED_SITE2SITE:
+        str = "U2";
+        break;
+    case GM1_AD_NO_AREA:
+        str = "NA";
+        break;
+    case GM1_AD_UNSUPPORTED_AREATYPE:
+        str = "AT";
+        break;
+    case GM1_AD_BAD_IBCPARAM:
+        str = "BI";
+        break;
+    case GM1_AD_UNSUPPORTED_IBCPARAM:
+        str = "UI";
+        break;
+    case GM1_AD_IDENTITY_NEED:
+        str = "IN";
+        break;
+#endif
     default:
         str = "UK";
         break;
@@ -1054,24 +1074,24 @@ const char *SSL_alert_desc_string_long(int value)
         str = "unknown PSK identity";
         break;
 #ifndef OPENSSL_NO_GMSSL
-	case GM1_AD_UNSUPPORTED_SITE2SITE:
-		str = "unsupported site2site";
-		break;
-	case GM1_AD_NO_AREA:
-		str = "no area";
-		break;
-	case GM1_AD_UNSUPPORTED_AREATYPE:
-		str = "unsupported areatype";
-		break;
-	case GM1_AD_BAD_IBCPARAM:
-		str = "bad ibc parameters";
-		break;
-	case GM1_AD_UNSUPPORTED_IBCPARAM:
-		str = "unsupported ibcparam";
-		break;
-	case GM1_AD_IDENTITY_NEED:
-		str = "identity need";
-		break;
+    case GM1_AD_UNSUPPORTED_SITE2SITE:
+        str = "unsupported site2site";
+        break;
+    case GM1_AD_NO_AREA:
+        str = "no area";
+        break;
+    case GM1_AD_UNSUPPORTED_AREATYPE:
+        str = "unsupported areatype";
+        break;
+    case GM1_AD_BAD_IBCPARAM:
+        str = "bad ibc parameters";
+        break;
+    case GM1_AD_UNSUPPORTED_IBCPARAM:
+        str = "unsupported ibc parameters";
+        break;
+    case GM1_AD_IDENTITY_NEED:
+        str = "identity need";
+        break;
 #endif
     default:
         str = "unknown";

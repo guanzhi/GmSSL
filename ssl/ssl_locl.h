@@ -354,9 +354,9 @@
 # define SSL_SEED                0x00000800L
 # define SSL_AES128GCM           0x00001000L
 # define SSL_AES256GCM           0x00002000L
-#ifndef OPENSSL_NO_GMSSL
-# define SSL_SM4                 0x00004000L
-#endif
+# ifndef OPENSSL_NO_GMSSL
+#  define SSL_SM4                0x00004000L
+# endif
 
 # define SSL_AES                 (SSL_AES128|SSL_AES256|SSL_AES128GCM|SSL_AES256GCM)
 # define SSL_CAMELLIA            (SSL_CAMELLIA128|SSL_CAMELLIA256)
@@ -371,15 +371,18 @@
 # define SSL_SHA384              0x00000020L
 /* Not a real MAC, just an indication it is part of cipher */
 # define SSL_AEAD                0x00000040L
-#ifndef OPENSSL_NO_GMSSL
-# define SSL_SM3                 0x00000080L
-#endif
+# ifndef OPENSSL_NO_GMSSL
+#  define SSL_SM3                 0x00000080L
+# endif
 
 /* Bits for algorithm_ssl (protocol version) */
 # define SSL_SSLV2               0x00000001UL
 # define SSL_SSLV3               0x00000002UL
 # define SSL_TLSV1               SSL_SSLV3/* for now */
 # define SSL_TLSV1_2             0x00000004UL
+# ifndef OPENSSL_NO_GMSSL
+// #define SSL_GMV1              0x00000008UL
+# endif
 
 /* Bits for algorithm2 (handshake digests and other extra flags) */
 

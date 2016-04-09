@@ -61,7 +61,7 @@
 #include <openssl/lhash.h>
 #include "ssl_locl.h"
 
-static int _SSL_library_init(void)
+int SSL_library_init(void)
 {
 
 #ifndef OPENSSL_NO_DES
@@ -137,6 +137,10 @@ static int _SSL_library_init(void)
 #ifndef OPENSSL_NO_ECDSA
     EVP_add_digest(EVP_ecdsa());
 #endif
+#ifndef OPENSSL_NO_GMSSL
+    EVP_add_cipher(EVP_sms4_cbc());
+    EVP_add_digest(EVP_sm3());
+#endif
 
     /* If you want support for phased out ciphers, add the following */
 #if 0
@@ -155,11 +159,3 @@ static int _SSL_library_init(void)
     return (1);
 }
 
-int SSL_library_init(void)
-{
-
-	EVP_add_cipher(EVP_sms4_cbc());
-	EVP_add_digest(EVP_sm3());
-	
-	return _SSL_library_init();
-}

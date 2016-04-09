@@ -214,11 +214,17 @@ static const EVP_MD *ssl_digest_methods[SSL_MD_NUM_IDX] = {
  */
 static int ssl_mac_pkey_id[SSL_MD_NUM_IDX] = {
     EVP_PKEY_HMAC, EVP_PKEY_HMAC, EVP_PKEY_HMAC, NID_undef,
-    EVP_PKEY_HMAC, EVP_PKEY_HMAC
+    EVP_PKEY_HMAC, EVP_PKEY_HMAC,
+#ifndef OPENSSL_NO_GMSSL
+    EVP_PKEY_HMAC
+#endif
 };
 
 static int ssl_mac_secret_size[SSL_MD_NUM_IDX] = {
-    0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0,
+#ifndef OPENSSL_NO_GMSSL
+    0
+#endif
 };
 
 static int ssl_handshake_digest_flag[SSL_MD_NUM_IDX] = {
@@ -477,10 +483,11 @@ void ssl_load_ciphers(void)
         EVP_MD_size(ssl_digest_methods[SSL_MD_SHA384_IDX]);
 
 #ifndef OPENSSL_NO_GMSSL
-	ssl_cipher_methods[SSL_ENC_SM4_IDX] = EVP_get_cipherbyname(SN_sms4_cbc);
-	ssl_digest_methods[SSL_MD_SM3_IDX] = EVP_get_digestbyname(SN_sm3);
+    ssl_cipher_methods[SSL_ENC_SM4_IDX] = EVP_get_cipherbyname(SN_sms4_cbc);
+    ssl_digest_methods[SSL_MD_SM3_IDX] = EVP_get_digestbyname(SN_sm3);
+    ssl_mac_secret_size[SSL_MD_SM3_IDX] =
+        EVP_MD_size(ssl_digest_methods[SSL_MD_SM3_IDX]);
 #endif
-
 }
 
 #ifndef OPENSSL_NO_COMP
@@ -604,9 +611,9 @@ int ssl_cipher_get_evp(const SSL_SESSION *s, const EVP_CIPHER **enc,
         i = SSL_ENC_AES256GCM_IDX;
         break;
 #ifndef OPENSSL_NO_GMSSL
-	case SSL_SM4:
-		i = SSL_ENC_SM4_IDX;
-		break;
+    case SSL_SM4:
+        i = SSL_ENC_SM4_IDX;
+        break;
 #endif
     default:
         i = -1;
@@ -642,9 +649,9 @@ int ssl_cipher_get_evp(const SSL_SESSION *s, const EVP_CIPHER **enc,
         i = SSL_MD_GOST89MAC_IDX;
         break;
 #ifndef OPENSSL_NO_GMSSL
-	case SSL_SM3:
-		i = SSL_MD_SM3_IDX;
-		break;
+    case SSL_SM3:
+        i = SSL_MD_SM3_IDX;
+        break;
 #endif
     default:
         i = -1;
@@ -701,10 +708,10 @@ int ssl_cipher_get_evp(const SSL_SESSION *s, const EVP_CIPHER **enc,
                  (evp = EVP_get_cipherbyname("AES-256-CBC-HMAC-SHA256")))
             *enc = evp, *md = NULL;
 #ifndef OPENSSL_NO_GMSSL
-		else if (c->algorithm_enc == SSL_SM4 &&
-				 c->algorithm_mac == SSL_SM3 &&
-				 (evp = EVP_get_cipherbyname("SM4-CBC-HMAC_SM3")))
-			*enc = evp, *md = NULL;
+        else if (c->algorithm_enc == SSL_SM4 &&
+                 c->algorithm_mac == SSL_SM3 &&
+                 (evp = EVP_get_cipherbyname("SM4-CBC-HMAC-SM3")))
+            *enc = evp, *md = NULL;
 #endif
         return (1);
     } else
