@@ -51,7 +51,7 @@
 
 
 #include "sm3.h"
-#include "byteorder.h"
+#include "../byteorder.h"
 #include <string.h>
 
 

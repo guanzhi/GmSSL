@@ -57,7 +57,7 @@ void sms4_ctr128_encrypt(const unsigned char *in, unsigned char *out,
 	size_t len, const sms4_key_t *key, unsigned char *iv,
 	unsigned char ecount_buf[SMS4_BLOCK_SIZE], unsigned int *num)
 {
-	/* this should be replaced with a parallelized version */
+	/* TODO: this should be replaced with a parallelized version */
 	CRYPTO_ctr128_encrypt(in, out, len, key, iv, ecount_buf, num, (block128_f)sms4_encrypt);
 }
 

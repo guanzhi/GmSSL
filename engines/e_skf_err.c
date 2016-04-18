@@ -1,4 +1,85 @@
-#include "smapi_err.h"
+#include "skf/skf.h"
+
+
+
+
+
+
+
+static ERR_STRING_DATA SKF_str_functs[] = {
+	{ERR_FUNC(SKF_F_SKF_INIT_KEY), "SKF_INIT_KEY"},
+	{ERR_FUNC(SKF_F_SKF_CIPHER), "SKF_CIPHER"},
+	{ERR_FUNC(SKF_F_SKF_INIT), "SKF_INIT"},
+	{ERR_FUNC(SKF_F_SKF_CTRL), "SKF_CTRL"},
+	{ERR_FUNC(SKF_F_SKF_FINISH), "SKF_FINISH"},
+	{0, NULL}
+};
+
+static ERR_STRING_DATA SKF_str_reasons[] = {
+	{ERR_REASON(SKF_F_OK),	ok"},
+	{0, NULL}
+};
+
+
+int skf_err2openssl(int err)
+{
+	switch (err) {
+	case SAR_OK:
+		return SKF_R_SAR_OK;
+	case SAR_FAIL:
+		return SKF_R_SAR_FAIL;
+	case SAR_UNKNOWNERR:
+	case SAR_NOTSUPPORTYETERR:
+	case SAR_FILEERR:
+	case SAR_INVALIDHANDLEERR:
+	case SAR_INVALIDPARAMERR:
+	case SAR_READFILEERR:
+	case SAR_WRITEFILEERR:
+	case SAR_NAMELENERR:
+	case SAR_KEYUSAGEERR:
+	case SAR_MODULUSLENERR:
+	case SAR_NOTINITIALIZEERR:
+	case SAR_OBJERR:
+	case SAR_MEMORYERR:
+	case SAR_TIMEOUTERR:
+	case SAR_INDATALENERR
+	case SAR_INDATAERR
+	case SAR_GENRANDERR
+	case SAR_HASHOBJERR
+	case SAR_HASHERR
+	case SAR_GENRSAKEYERR
+	case SAR_RSAMODULUSLENERR
+	case SAR_CSPIMPRTPUBKEYERR
+	case SAR_RSAENCERR
+	case SAR_RSADECERR
+	case SAR_HASHNOTEQUALERR
+	case SAR_KEYNOTFOUNTERR
+	case SAR_CERTNOTFOUNTERR
+	case SAR_NOTEXPORTERR
+	case SAR_DECRYPTPADERR
+	case SAR_MACLENERR
+	case SAR_BUFFER_TOO_SMALL
+	case SAR_KEYINFOTYPEERR
+	case SAR_NOT_EVENTERR
+	case SAR_DEVICE_REMOVED
+	case SAR_PIN_INCORRECT
+	case SAR_PIN_LOCKED
+	case SAR_PIN_INVALID
+	case SAR_PIN_LEN_RANGE
+	case SAR_USER_ALREADY_LOGGED_IN
+	case SAR_USER_PIN_NOT_INITIALIZED
+	case SAR_USER_TYPE_INVALID
+	case SAR_APPLICATION_NAME_INVALID
+	case SAR_APPLICATION_EXISTS
+	case SAR_USER_NOT_LOGGED_IN
+	case SAR_APPLICATION_NOT_EXISTS
+	case SAR_FILE_ALREADY_EXIST
+	case SAR_NO_ROOM
+	case SAR_FILE_NOT_EXIST
+}
+
+
+
 
 typedef struct {
 	int err_no;
@@ -56,24 +137,10 @@ typedef struct {
 	{ SAR_FILE_NOT_EXIST,		"File not exist" }
 };
 
-typedef struct {
-	uint32_t alg_id;
-	char *alg_name;
-} smapi_algid[] = {
-	{ SGD_RSA,			"RSA" },
-	{ SGD_RSA | SGD_SHA1,		"RSA-with-SHA1" },
-};
 
 LPSTR DEVAPI SKF_GetErrorString(ULONG ulError)
 {
-	/*
-	 * TODO: check smapi_errstr[] and return the error string
-	 * if error number not exist, return NULL;
-	 */
 	return NULL;
 }
 
-LPSTR DEVAPI SKF_GetAlgorString(ULONG ulAlgId)
-{
-	return NULL;
-}
+

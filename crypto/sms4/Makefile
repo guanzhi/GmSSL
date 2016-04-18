@@ -17,8 +17,8 @@ TEST=
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=sms4_cbc.c sms4_cfb.c sms4_ecb.c sms4_ofb.c sms4.c
-LIBOBJ=sms4_cbc.o sms4_cfb.o sms4_ecb.o sms4_ofb.o sms4.o
+LIBSRC=sms4_cbc.c sms4_cfb.c sms4_ecb.c sms4_ofb.c sms4_ctr.c sms4_wrap.c sms4.c
+LIBOBJ=sms4_cbc.o sms4_cfb.o sms4_ecb.o sms4_ofb.o sms4_ctr.o sms4_wrap.o sms4.o
 
 SRC= $(LIBSRC)
 

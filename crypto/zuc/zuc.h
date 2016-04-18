@@ -39,7 +39,7 @@ typedef struct {
 
 	/* word buffer */
 	unsigned char buf[4];
-	int buflen;
+	int buf_index;
 } ZUC_KEY;
 
 

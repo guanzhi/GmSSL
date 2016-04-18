@@ -1028,3 +1028,5 @@ sms4_gcm		1027
 sms4_ccm		1028
 sms4_xts		1029
 sm1_cfb		1030
+sms4_cfb1		1031
+sms4_cfb8		1032

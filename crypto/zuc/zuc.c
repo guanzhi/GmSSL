@@ -1,5 +1,5 @@
+#include "../byteorder.h"
 #include "zuc.h"
-
 
 
 static uint8_t S0[256] = {
@@ -52,6 +52,7 @@ static inline uint32_t AddM(uint32_t a, uint32_t b)
 }
 
 #define MulByPow2(x, k) ((((x) << k) | ((x) >> (31 - k))) & 0x7FFFFFFF)
+
 static void LFSRWithInitialisationMode(ZUC_KEY *key, uint32_t u)
 {
 	uint32_t f, v;
@@ -171,7 +172,6 @@ void ZUC_set_key(ZUC_KEY *key, const unsigned char *k, const unsigned char *iv)
 {
 	uint32_t w, nCount;
 
-	/* expand key */
 	key->LFSR_S0 = MAKEU31(k[0], EK_d[0], iv[0]);
 	key->LFSR_S1 = MAKEU31(k[1], EK_d[1], iv[1]);
 	key->LFSR_S2 = MAKEU31(k[2], EK_d[2], iv[2]);
@@ -189,48 +189,46 @@ void ZUC_set_key(ZUC_KEY *key, const unsigned char *k, const unsigned char *iv)
 	key->LFSR_S14 = MAKEU31(k[14], EK_d[14], iv[14]);
 	key->LFSR_S15 = MAKEU31(k[15], EK_d[15], iv[15]);
 
-	/* set F_R1 and F_R2 to zero */
 	key->F_R1 = 0;
 	key->F_R2 = 0;
 	nCount = 32;
-	while (nCount > 0)
-	{
+
+	while (nCount > 0) {
 		BitReorganization(key);
 		w = F(key);
 		LFSRWithInitialisationMode(key, w >> 1);
 		nCount--;
 	}
 
-	/* set buffer */
-	key->buflen = 0;
+	BitReorganization(key);
+	F(key);
+	LFSRWithWorkMode(key);
+
 }
 
 void ZUC_encrypt(ZUC_KEY *key, size_t inlen, const unsigned char *in, unsigned char *out)
 {
-#if 0
-	int i;
+	uint32_t word;
 
-	if (key->buflen) {
-		int len = inlen < 4 - key->buflen ? inlen : 4 - key->buflen;
-		memcpy(key->buf + key->buflen, in, len);
-		inlen -= len;
-
-		if (key->buflen == 4) {
-		}
-	}
-	if (inlen < 4) {
+/*
+	while (key->buf_index < 4 && inlen > 0) {
+		*out++ = *in++ ^ key->buf[key->buf_index++];
+		inlen--;
 	}
 
-	BitReorganization(key);
-	F(key); /* discard the output of F */
-	LFSRWithWorkMode(key);
-	
-	for (i = 0; i < KeystreamLen; i ++)
-	{
+	while (inlen >= 4) {
 		BitReorganization(key);
-		pKeystream[i] = F(key) ^ key->BRC_X3;
+		word = le32_to_cpu((uint32_t *)in);
+		word ^= F(key) ^ key->BRC_X3;
+		*((uint32_t *)out) = cpu_to_le32(word);
 		LFSRWithWorkMode(key);
+		inlen -= 4;
 	}
-#endif
+
+	while (inlen-- > 0) {
+		*out++ = *in++ ^ *buf++;
+		key->buflen--;
+	}
+*/
 }
 

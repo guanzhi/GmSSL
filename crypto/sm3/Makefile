@@ -79,5 +79,5 @@ clean:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-sm3.o: sm3.c sm3.h byteorder.h
-sm3test.o: sm3test.c sm3.h byteorder.h
+sm3.o: sm3.c sm3.h ../byteorder.h
+sm3test.o: sm3test.c sm3.h ../byteorder.h

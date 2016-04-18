@@ -4336,7 +4336,7 @@
 #define SN_ssf33_cfb128         "SSF33-CFB"
 #define LN_ssf33_cfb128         "ssf33-cfb"
 #define NID_ssf33_cfb128                1023
-#define OBJ_ssf33_cfb128                OBJ_sm,104L,4L
+#define OBJ_ssf33_cfb128                OBJ_sm,103L,4L
 
 #define SN_sms4_ecb             "SMS4-ECB"
 #define LN_sms4_ecb             "sms4-ecb"
@@ -4358,25 +4358,35 @@
 #define NID_sms4_cfb128         982
 #define OBJ_sms4_cfb128         OBJ_sm,104L,4L
 
+#define SN_sms4_cfb1            "SMS4-CFB1"
+#define LN_sms4_cfb1            "sms4-cfb1"
+#define NID_sms4_cfb1           1031
+#define OBJ_sms4_cfb1           OBJ_sm,104L,5L
+
+#define SN_sms4_cfb8            "SMS4-CFB8"
+#define LN_sms4_cfb8            "sms4-cfb8"
+#define NID_sms4_cfb8           1032
+#define OBJ_sms4_cfb8           OBJ_sm,104L,6L
+
 #define SN_sms4_ctr             "SMS4-CTR"
 #define LN_sms4_ctr             "sms4-ctr"
 #define NID_sms4_ctr            1026
-#define OBJ_sms4_ctr            OBJ_sm,104L,5L
+#define OBJ_sms4_ctr            OBJ_sm,104L,7L
 
 #define SN_sms4_gcm             "SMS4-GCM"
 #define LN_sms4_gcm             "sms4-gcm"
 #define NID_sms4_gcm            1027
-#define OBJ_sms4_gcm            OBJ_sm,104L,6L
+#define OBJ_sms4_gcm            OBJ_sm,104L,8L
 
 #define SN_sms4_ccm             "SMS4-CCM"
 #define LN_sms4_ccm             "sms4-ccm"
 #define NID_sms4_ccm            1028
-#define OBJ_sms4_ccm            OBJ_sm,104L,7L
+#define OBJ_sms4_ccm            OBJ_sm,104L,9L
 
 #define SN_sms4_xts             "SMS4-XTS"
 #define LN_sms4_xts             "sms4-xts"
 #define NID_sms4_xts            1029
-#define OBJ_sms4_xts            OBJ_sm,104L,8L
+#define OBJ_sms4_xts            OBJ_sm,104L,10L
 
 #define NID_sm7         1004
 #define OBJ_sm7         OBJ_sm,105L

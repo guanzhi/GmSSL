@@ -11,7 +11,7 @@
 #include <openssl/sm3.h>
 #include <openssl/sms4.h>
 #include <openssl/sm9.h>
-#include "skf.h"
+#include "skf/skf.h"
 #include "e_skf_err.h"
 
 static DEVHANDLE skf_dev_handle = NULL;
@@ -19,11 +19,29 @@ static HAPPLICATION skf_app_handle = NULL;
 static HCONTAINER skf_container_handle = NULL;
 
 
+static int skf_init(ENGINE *e);
+static int skf_finish(ENGINE *e);
+static int skf_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)(void));
+static int skf_destroy(ENGINE *e);
+
+
+/*
+
+1. 
+
+
+
+*/
+
+#define SKF_CMD_LIST_DEVS	ENGINE_CMD_BASE
+
+
+
+
 static int skf_init(ENGINE *e)
 {
 	ULONG rv;
 	ULONG len;
-/*
 	BOOL bPresent = TRUE;
 	CHAR *devNameList = NULL;
 	LPSTR devName;
@@ -41,13 +59,14 @@ static int skf_init(ENGINE *e)
 	ULONG containerType;
 
 	if ((rv = SKF_EnumDev(bPresent, NULL, &len)) != SAR_OK) {
-		return -1;
+		SKFerr(SKF_F_SKF_INIT, skf_err2openssl(rv));
+		goto end;
 	}
 	if (!(devNameList = OPENSSL_malloc(len))) {
-		return -1;
+		goto end;
 	}
 	if ((rv = SKF_EnumDev(bPresent, devNameList, &len)) != SAR_OK) {
-		return -1;
+		goto end;
 	}
 	if (devNameList[0] = 0) {
 		return -1;
@@ -85,7 +104,6 @@ static int skf_init(ENGINE *e)
 	for (p = containerNameList; p; p += strlen(p)) {
 		// check container type
 	}
-*/
 	return 0;
 }
 
@@ -94,101 +112,154 @@ static int skf_finish(ENGINE *e)
 	return 0;
 }
 
-#if 0
-void ENGINE_load_skf(void)
-{
-}
 
-static int skf_bind_helper(ENGINE *e)
-{
-	if (!ENGINE_set_id(e, SKF_ENGINE_ID) ||
-	    !ENGINE_set_name(e, SKF_ENGINE_NAME) ||
-	    !ENGINE_set_init_function(e, skf_init) ||
-	    !ENGINE_set_ciphers(e, skf_ciphers) ||
-	    !ENGINE_set_RSA(e, SKF_get_rsa_method()) ||
-	    !ENGINE_set_SM2(e, SKF_get_sm2_method()) ||
-	    !ENGINE_set_RAND(e, skf_rand)) {
-		return 0;
-	}
-
-	return 1;
-}
-
-static ENGINE *ENGINE_skf(void)
-{
-	ENGINE *eng = ENGINE_new();
-
-	if (!eng) {
-		return NULL;
-	}
-
-	if (!skf_bind_helper(eng)) {
-		ENGINE_free(eng);
-		return NULL;
-	}
-
-	return eng;
-}
-
-static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher,
-	const int **nids, int nid)
-{
-	if (!cipher) {
-		*nid = skf_cipher_nids;
-		return skf_num_cipher_nids;	
-	}
-
-	switch (nid) {
-	case NID_ssf33_ecb:
-		*cipher = &skf_ssf33_ecb;
-		break;
-	default:
-		*cipher = NULL;
-		return 0;
-	}
-
-	return 1;
-}
-
-#endif
+typedef struct {
+	HANDLE hKey;
+} EVP_SKF_KEY;
 
 
-#define SSF33_IV_LENGTH		SSF33_BLOCK_SIZE
-#define SM1_IV_LENGTH		SM1_BLOCK_SIZE
-#define SMS4_IV_LENGTH		SMS4_BLOCK_SIZE
-
-
-static int skf_ssf33_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+static int skf_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	const unsigned char *iv, int enc)
 {
-	DEVHANDLE hDev = skf_dev_handle;
-	BYTE *pbKey = key;
-	ULONG ulAlgID = SGD_SSF33_ECB;
-	HANDLE *phKey;
+	EVP_SKF_KEY *dat = (EVP_SKF_KEY *)ctx->cipher_data;
+	ULONG ulAlgID;
 
-	if ((rv = SKF_SetSymmKey(hDev, pbKey, ulAlgID, (HANDLE *)ctx->cipher_data)) != SAR_OK) {
-		SKFerr(SKF_F_SKF_SSF33_INIT_KEY, 0);
+	switch (EVP_CIPHER_CTX_nid(ctx)) {
+	case NID_ssf33_ecb:
+		ulAlgID = SGD_SSF33_ECB;
+		break;
+	case NID_ssf33_cbc:	
+		ulAlgID = SGD_SSF33_CBC;
+		break;
+	case NID_ssf33_cfb128:
+		ulAlgID = SGD_SSF33_CFB;
+		break;
+	case NID_ssf33_ofb128:
+		ulAlgID = SGD_SSF33_OFB;
+		break;
+
+	case NID_sm1_ecb:
+		ulAlgID = SGD_SM1_ECB;
+		break;
+	case NID_sm1_cbc:
+		ulAlgID = SGD_SM1_CBC;
+		break;
+	case NID_sm1_cfb128:
+		ulAlgID = SGD_SM1_CFB;
+		break;
+	case NID_sm1_ofb128:
+		ulAlgID = SGD_SM1_OFB;
+		break;
+
+	case NID_sms4_ecb:
+		ulAlgID = SGD_SM4_ECB;
+		break;
+	case NID_sms4_cbc:
+		ulAlgID = SGD_SM4_CBC;
+		break;
+	case NID_sms4_cfb128:
+		ulAlgID = SGD_SM4_CFB;
+		break;
+	case NID_sms4_ofb128:
+		ulAlgID = SGD_SM4_OFB;
+		break;
+
+	default:
+		OPENSSL_assert(0);
+		return 0;
+	}
+
+	if ((rv = SKF_SetSymmKey(skf_dev_handle, (BYTE *)key, ulAlgID,
+		&(dat->hKey))) != SAR_OK) {
+		SKFerr(SKF_F_SKF_INIT_KEY, 0);
 		return 0;
 	}
 
 	return 1;
 }
 
-static const EVP_CIPHER skf_ssf33_ecb = {
-	NID_ssf33_ecb,
-	SSF33_BLOCK_SIZE,
-	SSF33_KEY_LENGTH,
-	SSF33_IV_LENGTH,
-	0,
-	skf_ssf33_init_key,
-	skf_ssf33_ecb_cipher,
-	NULL,
-	sizeof(EVP_SMS4_CTX),
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-};
+static int skf_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
+	const unsigned char *in, size_t len)
+{
+	ULONG rv;
+	EVP_SKF_KEY *dat = (EVP_SKF_KEY *)ctx->cipher_data;
+	BLOCKCIPHERPARAM param;
+	ULONG ulDataLen, ulEncryptedLen;
+	BYTE block[MAX_IV_LEN] = {0};
+	int i;
+
+	memcpy(&(param.IV), ctx->iv, ctx->cipher->block_size);
+	param.IVLen = ctx->cipher->block_size;
+	param.PaddingType = SKF_NO_PADDING;
+	param.FeedBitLen = 0;
+
+	if (ctx->encrypt) {
+		if ((rv = SKF_EncryptInit(dat->hKey, &param)) != SAR_OK) {
+			return 0;
+		}
+	} else {
+		if ((rv = SKF_DecryptInit(dat->hKey, &param)) != SAR_OK) {
+			return 0;
+		}
+	}
+
+	ulDataLen = len - len % ctx->cipher->block_size;
+
+	if (ctx->encrypt) {
+		if ((rv = SKF_EncryptUpdate(hKey, in, ulDataLen,
+			(BYTE *)out, &ulEncryptedLen)) != SAR_OK) {
+			return 0;
+		}
+	} else {
+		if ((rv = SKF_DecryptUpdate(hKey, in, ulDataLen,
+			(BYTE *)out, &ulEncryptedLen)) != SAR_OK) {
+			return 0;
+		}
+	}
+
+	in += ulDataLen;
+	out += ulEncryptedLen;
+
+	memcpy(block, in, len - ulDataLen);
+
+	if (ctx->encrypt) {
+		if ((rv = SKF_EncryptUpdate(hKey, block, ctx->cipher->block_size,
+			out, &ulEncryptedLen)) != SAR_OK) {
+			return 0;
+		}
+	} else {
+
+	}
+
+	return 1;
+}
+
+
+#define BLOCK_CIPHER_generic(cipher,mode,MODE)	\
+static const EVP_CIPHER skf_##cipher##_##mode = { \
+	NID_##cipher##_##mode,	\
+	16,16,16,		\
+	EVP_CIPH_##MODE##_MODE,	\
+	skf_init_key,		\
+	skf_cipher,		\
+	NULL,			\
+	sizeof(EVP_SKF_KEY),	\
+	NULL,NULL,NULL,NULL };
+
+
+BLOCK_CIPHER_generic(ssf33,ecb,ECB)
+BLOCK_CIPHER_generic(ssf33,cbc,CBC)
+BLOCK_CIPHER_generic(ssf33,cfb,CFB)
+BLOCK_CIPHER_generic(ssf33,ofb,OFB)
+BLOCK_CIPHER_generic(sm1,ecb,ECB)
+BLOCK_CIPHER_generic(sm1,cbc,CBC)
+BLOCK_CIPHER_generic(sm1,cfb,CFB)
+BLOCK_CIPHER_generic(sm1,ofb,OFB)
+BLOCK_CIPHER_generic(sm4,ecb,ECB)
+BLOCK_CIPHER_generic(sm4,cbc,CBC)
+BLOCK_CIPHER_generic(sm4,cfb,CFB)
+BLOCK_CIPHER_generic(sm4,ofb,OFB)
+
 
 static int skf_cipher_nids[] = {
 	NID_ssf33_ecb,
@@ -206,7 +277,6 @@ static int skf_cipher_nids[] = {
 };
 
 static int skf_num_ciphers = sizeof(skf_cipher_nids)/sizeof(skf_cipher_nids[0]);
-
 static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, int nid)
 {
 	if (!cipher) {
@@ -263,19 +333,12 @@ static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, i
 	return 1;	
 }
 
-int skf_err2openssl(ULONG rv)
-{
-	return 0;
-}
-
-
-/* RAND_METHOD */
 
 int skf_rand_bytes(unsigned char *buf, int num)
 {
 	ULONG rv;
 
-	if ((rv = SKF_GenRandom(skf_dev_handle, buf, num)) != SAR_OK) {
+	if ((rv = SKF_GenRandom(skf_dev_handle, buf, (ULONG)num)) != SAR_OK) {
 		SKFerr(SKF_F_SKF_RAND_BYTES, skf_err2openssl(rv));
 		return 0;
 	}
@@ -292,7 +355,6 @@ static RAND_METHOD skf_rand = {
 	NULL,
 };
 
-/* EVP_MD */
 
 static int skf_sm3_init(EVP_MD_CTX *ctx)
 {
@@ -380,7 +442,54 @@ static int skf_digests(ENGINE *e, const EVP_MD **digest, const int **nids, int n
 	return 1;
 }
 
-/* Dynamic ENGINE */
+
+static RSA_METHOD skf_rsa = {
+	"SKF RSA method",
+	skf_rsa_pub_enc,
+	NULL,
+	NULL,
+	skf_rsa_priv_dec,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	RSA_FLAG_SIGN_VER,
+	NULL,
+	skf_rsa_sign,
+	skf_rsa_verify,
+	NULL
+};
+
+
+
+#ifdef OPENSSL_NO_DYNAMIC_ENGINE
+static ENGINE *engine_skf(void)
+{
+	ENGINE *ret = ENGINE_new();
+	if (!ret) {
+		return NULL;
+	}
+
+	if (!bind_helper(ret)) {
+		ENGINE_free(ret);
+		return NULL;
+	}
+
+	return ret;
+}
+
+void ENGINE_load_4758cca(void)
+{
+	ENGINE *e_skf = engine_skf();
+	if (!e_skf) {
+		return;
+	}
+
+	ENGINE_add(e_skf);
+	ENGINE_free(e_skf);
+	ERR_clear_error();
+}
+#endif
 
 static const char *engine_skf_id = "SKF";
 static const char *engine_skf_name = "SKF API Hardware Engine";
@@ -394,7 +503,7 @@ static int bind(ENGINE *e, const char *id)
 	if (!ENGINE_set_id(e, engine_skf_id) ||
 		!ENGINE_set_name(e, engine_skf_name) ||
 		!ENGINE_set_digests(e, skf_digests) ||
-		//!ENGINE_set_ciphers(e, skf_ciphers) ||
+		!ENGINE_set_ciphers(e, skf_ciphers) ||
 		!ENGINE_set_RAND(e, &skf_random)) {
 		return 0;
 	}

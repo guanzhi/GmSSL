@@ -1395,7 +1395,7 @@ sm 103 2	: SSF33-CBC		: ssf33-cbc
 !Cname ssf33-ofb128
 sm 103 3	: SSF33-OFB		: ssf33-ofb
 !Cname ssf33-cfb128
-sm 104 4	: SSF33-CFB		: ssf33-cfb
+sm 103 4	: SSF33-CFB		: ssf33-cfb
 
 sm 104 1	: SMS4-ECB		: sms4-ecb
 sm 104 2	: SMS4-CBC		: sms4-cbc
@@ -1403,10 +1403,12 @@ sm 104 2	: SMS4-CBC		: sms4-cbc
 sm 104 3	: SMS4-OFB		: sms4-ofb
 !Cname sms4-cfb128
 sm 104 4	: SMS4-CFB		: sms4-cfb
-sm 104 5	: SMS4-CTR		: sms4-ctr
-sm 104 6	: SMS4-GCM		: sms4-gcm
-sm 104 7	: SMS4-CCM		: sms4-ccm
-sm 104 8	: SMS4-XTS		: sms4-xts
+sm 104 5	: SMS4-CFB1		: sms4-cfb1
+sm 104 6	: SMS4-CFB8		: sms4-cfb8
+sm 104 7	: SMS4-CTR		: sms4-ctr
+sm 104 8	: SMS4-GCM		: sms4-gcm
+sm 104 9	: SMS4-CCM		: sms4-ccm
+sm 104 10	: SMS4-XTS		: sms4-xts
 
 
 !Alias sm7 sm 105

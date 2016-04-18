@@ -847,8 +847,11 @@ const EVP_CIPHER *EVP_rc5_32_12_16_ofb(void);
 #ifndef OPENSSL_NO_SMS4
 const EVP_CIPHER *EVP_sms4_ecb(void);
 const EVP_CIPHER *EVP_sms4_cbc(void);
+const EVP_CIPHER *EVP_sms4_cfb1(void);
+const EVP_CIPHER *EVP_sms4_cfb8(void);
 const EVP_CIPHER *EVP_sms4_cfb128(void);
-const EVP_CIPHER *EVP_sms4_ofb128(void);
+#define EVP_sms4_cfb EVP_sms4_cfb128
+const EVP_CIPHER *EVP_sms4_ofb(void);
 const EVP_CIPHER *EVP_sms4_ctr(void);
 const EVP_CIPHER *EVP_sms4_ccm(void);
 const EVP_CIPHER *EVP_sms4_gcm(void);
@@ -856,8 +859,8 @@ const EVP_CIPHER *EVP_sms4_xts(void);
 const EVP_CIPHER *EVP_sms4_wrap(void);
 #define EVP_sm4_ecb EVP_sms4_ecb
 #define EVP_sm4_cbc EVP_sms4_cbc
-#define EVP_sm4_cfb128 EVP_sms4_cfb128
-#define EVP_sm4_ofb128 EVP_sms4_ofb128
+#define EVP_sm4_cfb EVP_sms4_cfb
+#define EVP_sm4_ofb EVP_sms4_ofb
 #endif
 #ifndef OPENSSL_NO_ZUC
 const EVP_CIPHER *EVP_zuc(void);

@@ -1,6 +1,6 @@
-/* crypto/sms4/sms4_cbc.c */
+/* crypto/sm2/sm2_locl.h */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,20 +49,34 @@
  *
  */
 
-#include "cryptlib.h"
-#include <openssl/sms4.h>
-#include <openssl/modes.h>
+
+#ifndef HEADER_SM2_LOCL_H
+#define HEADER_SM2_LOCL_H
 
 
-int sms4_wrap_key(sms4_key_t *key, const unsigned char *iv,
-	unsigned char *out, const unsigned char *in, unsigned int inlen)
-{
-	return CRYPTO_128_wrap(key, iv, out, in, inlen, (block128_f)sms4_encrypt);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+struct sm2sign_method {
+	const char *name;
+	SM2_SIG *(*sm2_do_sign)(const unsigned char *dgst, int dgstlen);
+	int (*sm2_sign_setup)(void);
+	int (*sm2_do_verify)(void);
+	int flag;
+	void *app_data;
+};
+
+
+
+
+
+
+
+
+#ifdef __cplusplus
 }
-
-int sms4_unwrap_key(sms4_key_t *key, const unsigned char *iv,
-	unsigned char *out, const unsigned char *in, unsigned int inlen)
-{
-	return CRYPTO_128_unwrap(key, iv, out, in, inlen, (block128_f)sms4_encrypt);
-}
+#endif
+#endif
 
