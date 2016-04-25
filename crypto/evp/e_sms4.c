@@ -178,7 +178,7 @@ static int sms4_ctr_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	EVP_SMS4_KEY *sms4 = (EVP_SMS4_KEY *)ctx->cipher_data;
 
 	CRYPTO_ctr128_encrypt_ctr32(in, out, len, &sms4->ks, ctx->iv, ctx->buf,
-		&num, sms4_ctr128_encrypt);
+		&num, (ctr128_f)sms4_encrypt);
 
 	ctx->num = (size_t)num;
 	return 1;
@@ -240,6 +240,7 @@ static int sms4_gcm_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
 
 
 }
+#endif
 
 typedef struct {
 	union {
@@ -253,28 +254,81 @@ typedef struct {
 static int sms4_wrap_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	const unsigned char *iv, int enc)
 {
+	EVP_SMS4_WRAP_CTX *sms4_wrap = ctx->cipher_data;
+	
+	if (!iv && !key)
+		return 1;
+
+	if (key) {
+		if (ctx->encrypt) {
+			sms4_set_encrypt_key(&sms4_wrap->ks.ks, key);
+		} else {
+			sms4_set_decrypt_key(&sms4_wrap->ks.ks, key);
+		}
+
+		if (!iv) {
+			sms4_wrap->iv = NULL;
+		}
+	}
+
+	if (iv) {
+		memcpy(ctx->iv, iv, 8);
+		sms4_wrap->iv = ctx->iv;
+	}
+
 	return -1;
 }
 
 static int sms4_wrap_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	const unsigned char *in, size_t inlen)
 {
-	return -1;
+	EVP_SMS4_WRAP_CTX *sms4_wrap = ctx->cipher_data;
+	size_t rv;
+
+	if (!in) {
+		return 0;
+	}
+
+	if (inlen % 8) {
+		return -1;
+	}
+
+	if (ctx->encrypt && inlen < 8)
+		return -1;
+
+	if (!ctx->encrypt && inlen < 8)
+		return -1;
+
+	if (!out) {
+		if (ctx->encrypt)
+			return inlen + 8;
+		else	return inlen - 8;
+	}
+
+	if (ctx->encrypt)
+		rv = CRYPTO_128_wrap(&sms4_wrap->ks.ks, sms4_wrap->iv,
+			out, in, inlen, (block128_f)sms4_encrypt);
+	else	rv = CRYPTO_128_unwrap(&sms4_wrap->ks.ks, sms4_wrap->iv,
+			out, in, inlen, (block128_f)sms4_encrypt);
+
+	return rv ? (int)rv : -1;
 }
 
 
-#define WRAP_FLAGS      (EVP_CIPH_WRAP_MODE \
+#define SMS4_WRAP_FLAGS		(EVP_CIPH_WRAP_MODE \
                 | EVP_CIPH_CUSTOM_IV | EVP_CIPH_FLAG_CUSTOM_CIPHER \
                 | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_FLAG_DEFAULT_ASN1)
 
 
+#define SMS4_WRAP_BLOCK_SIZE	8
+#define SMS4_WRAP_IV_LENGTH	8
 
  const EVP_CIPHER sms4_wrap = {
 	NID_sms4_wrap,
 	SMS4_WRAP_BLOCK_SIZE,
 	SMS4_KEY_LENGTH,
 	SMS4_WRAP_IV_LENGTH,
-	WRAP_FLAGS,
+	SMS4_WRAP_FLAGS,
 	sms4_wrap_init_key,
 	sms4_wrap_do_cipher,
 	NULL, /* cleanup() */
@@ -290,6 +344,5 @@ const EVP_CIPHER *EVP_sms4_wrap(void)
 	return &sms4_wrap;
 }
 
-#endif
 
 #endif

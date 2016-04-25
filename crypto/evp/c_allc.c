@@ -171,6 +171,7 @@ void OpenSSL_add_all_ciphers(void)
     EVP_add_cipher(EVP_sms4_cfb8());
     EVP_add_cipher(EVP_sms4_ofb());
     EVP_add_cipher(EVP_sms4_ctr());
+    EVP_add_cipher(EVP_sms4_wrap());
     EVP_add_cipher_alias(SN_sms4_cbc,"SMS4");
     EVP_add_cipher_alias(SN_sms4_cbc,"sms4");
 #endif

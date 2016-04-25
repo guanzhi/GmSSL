@@ -59,9 +59,29 @@ int main(int argc, char **argv)
 	printf(" MaxECCBuffer     : %ld\n", devInfo.MaxECCBufferSize);
 	printf(" MaxBuffer        : %ld\n", devInfo.MaxBufferSize);
 
-	rv = SKF_DevAuth(hDev, authData, sizeof(authData));
+
+
+	ULONG ulAuthAlgId = devInfo.DevAuthAlgId;
+	unsigned char pbAuthKey[16] = {0};
+	
+
+	/* get the DevAuth challenge from GenRandom API
+	 * encrypt challenge with DevAuthKey
+	 */
+	rv = SKF_GenRandom(hDev, authRandom, sizeof(authRandom));
+
+
+	rv = SKF_EncryptInit(hKey, param);
+	
+	rv = SKF_Encrypt(hKey, authRandom, 16, authResponse, &ulAuthLen);
+
+
+	rv = SKF_DevAuth(hDev, authData, authDataLen);
 	assert(rv == SAR_OK);
 
+
+	/*
+	 */
 
 	len = sizeof(appNameList);		
 	rv = SKF_EnumApplication(hDev, appNameList, &len);

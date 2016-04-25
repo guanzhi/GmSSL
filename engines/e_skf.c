@@ -25,14 +25,6 @@ static int skf_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)(void));
 static int skf_destroy(ENGINE *e);
 
 
-/*
-
-1. 
-
-
-
-*/
-
 #define SKF_CMD_LIST_DEVS	ENGINE_CMD_BASE
 
 
@@ -264,14 +256,20 @@ BLOCK_CIPHER_generic(sm4,ofb,OFB)
 static int skf_cipher_nids[] = {
 	NID_ssf33_ecb,
 	NID_ssf33_cbc,
+	NID_ssf33_cfb1,
+	NID_ssf33_cfb8,
 	NID_ssf33_cfb128,
 	NID_ssf33_ofb128,
 	NID_sm1_ecb,
 	NID_sm1_cbc,
+	NID_sm1_cfb1,
+	NID_sm1_cfb8,
 	NID_sm1_cfb128,
 	NID_sm1_ofb128,
 	NID_sms4_ecb,
 	NID_sms4_cbc,
+	NID_sms4_cfb1,
+	NID_sms4_cfb8,
 	NID_sms4_cfb128,
 	NID_sms4_ofb128,
 };

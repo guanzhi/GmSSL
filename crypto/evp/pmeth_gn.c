@@ -198,16 +198,25 @@ EVP_PKEY *EVP_PKEY_new_mac_key(int type, ENGINE *e,
     EVP_PKEY_CTX *mac_ctx = NULL;
     EVP_PKEY *mac_key = NULL;
     mac_ctx = EVP_PKEY_CTX_new_id(type, e);
-    if (!mac_ctx)
+    if (!mac_ctx) {
+        if (e) fprintf(stderr, "engine is not null\n");
+        fprintf(stderr, "error %s %d\n", __FILE__, __LINE__);
         return NULL;
-    if (EVP_PKEY_keygen_init(mac_ctx) <= 0)
+    }
+    if (EVP_PKEY_keygen_init(mac_ctx) <= 0) {
+        fprintf(stderr, "error %s %d\n", __FILE__, __LINE__);
         goto merr;
+    }
     if (EVP_PKEY_CTX_ctrl(mac_ctx, -1, EVP_PKEY_OP_KEYGEN,
                           EVP_PKEY_CTRL_SET_MAC_KEY,
-                          keylen, (void *)key) <= 0)
+                          keylen, (void *)key) <= 0) {
+        fprintf(stderr, "error %s %d\n", __FILE__, __LINE__);
         goto merr;
-    if (EVP_PKEY_keygen(mac_ctx, &mac_key) <= 0)
+    }
+    if (EVP_PKEY_keygen(mac_ctx, &mac_key) <= 0) {
+        fprintf(stderr, "error %s %d\n", __FILE__, __LINE__);
         goto merr;
+    }
  merr:
     if (mac_ctx)
         EVP_PKEY_CTX_free(mac_ctx);

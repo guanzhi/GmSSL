@@ -87,7 +87,7 @@ static int do_sigver_init(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
         }
     }
 
-	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+	//fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 
     if (ver) {
         if (ctx->pctx->pmeth->verifyctx_init) {
@@ -104,16 +104,16 @@ static int do_sigver_init(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
         } else if (EVP_PKEY_sign_init(ctx->pctx) <= 0)
             return 0;
     }
-	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+	//fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     if (EVP_PKEY_CTX_set_signature_md(ctx->pctx, type) <= 0)
         return 0;
-	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+	//fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     if (pctx)
         *pctx = ctx->pctx;
-	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+	//fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     if (ctx->pctx->pmeth->flags & EVP_PKEY_FLAG_SIGCTX_CUSTOM)
         return 1;
-	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+	//fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     if (!EVP_DigestInit_ex(ctx, type, e))
         return 0;
     return 1;

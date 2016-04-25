@@ -4388,6 +4388,11 @@
 #define NID_sms4_xts            1029
 #define OBJ_sms4_xts            OBJ_sm,104L,10L
 
+#define SN_sms4_wrap            "SMS4-WRAP"
+#define LN_sms4_wrap            "sms4-wrap"
+#define NID_sms4_wrap           1033
+#define OBJ_sms4_wrap           OBJ_sm,104L,11L
+
 #define NID_sm7         1004
 #define OBJ_sm7         OBJ_sm,105L
 

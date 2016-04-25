@@ -1,4 +1,5 @@
-#include "../byteorder.h"
+#include <assert.h>
+#include "../modes/modes_lcl.h"
 #include "zuc.h"
 
 
@@ -209,26 +210,39 @@ void ZUC_set_key(ZUC_KEY *key, const unsigned char *k, const unsigned char *iv)
 void ZUC_encrypt(ZUC_KEY *key, size_t inlen, const unsigned char *in, unsigned char *out)
 {
 	uint32_t word;
+	int n = key->buf_index;
 
-/*
-	while (key->buf_index < 4 && inlen > 0) {
-		*out++ = *in++ ^ key->buf[key->buf_index++];
+	assert(n < 4);
+
+	while (n && inlen) {
+		*(out++) = *(in++) ^ key->buf[n];
+		n = (n + 1) % 4;
 		inlen--;
 	}
-
+	
 	while (inlen >= 4) {
 		BitReorganization(key);
-		word = le32_to_cpu((uint32_t *)in);
+		word = GETU32(in);
 		word ^= F(key) ^ key->BRC_X3;
-		*((uint32_t *)out) = cpu_to_le32(word);
+		PUTU32(out, word);
 		LFSRWithWorkMode(key);
 		inlen -= 4;
+		in += 4;
+		out += 4;
 	}
 
-	while (inlen-- > 0) {
-		*out++ = *in++ ^ *buf++;
-		key->buflen--;
+	if (inlen) {
+		BitReorganization(key);
+		word = F(key) ^ key->BRC_X3;
+		LFSRWithWorkMode(key);
+		PUTU32(key->buf, word);
+		while (inlen-- > 0) {
+			out[n] = in[n] ^ key->buf[n];
+			n++;
+		}
 	}
-*/
+
+	key->buf_index = n;
+	return;
 }
 

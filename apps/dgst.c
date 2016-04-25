@@ -399,8 +399,11 @@ int MAIN(int argc, char **argv)
     if (hmac_key) {
         sigkey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, impl,
                                       (unsigned char *)hmac_key, -1);
-        if (!sigkey)
+        if (!sigkey) {
+            ERR_print_errors_fp(stderr);
+            fprintf(stderr, "error %s %d\n", __FILE__, __LINE__);
             goto end;
+        }
     }
 
     if (sigkey) {

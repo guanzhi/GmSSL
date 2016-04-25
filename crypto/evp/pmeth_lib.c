@@ -119,15 +119,30 @@ const EVP_PKEY_METHOD *EVP_PKEY_meth_find(int type)
     tmp.pkey_id = type;
     if (app_pkey_methods) {
         int idx;
+
+	//fprintf(stderr, "check %s %d\n", __FILE__, __LINE__);
         idx = sk_EVP_PKEY_METHOD_find(app_pkey_methods, &tmp);
         if (idx >= 0)
             return sk_EVP_PKEY_METHOD_value(app_pkey_methods, idx);
+	//fprintf(stderr, "check %s %d\n", __FILE__, __LINE__);
     }
+    //fprintf(stderr, "%s %d: t->pkey_id = %d\n", __FILE__, __LINE__, t->pkey_id);
+	int i;
+	for (i = 0; i < sizeof(standard_methods) / sizeof(EVP_PKEY_METHOD *); i++) {
+		if (type == standard_methods[i]->pkey_id) {
+			return standard_methods[i];
+		}
+	}
+/*
     ret = OBJ_bsearch_pmeth(&t, standard_methods,
                             sizeof(standard_methods) /
                             sizeof(EVP_PKEY_METHOD *));
-    if (!ret || !*ret)
+
+*/
+    if (!ret || !*ret) {
+	//fprintf(stderr, "check %s %d\n", __FILE__, __LINE__);
         return NULL;
+    }
     return *ret;
 }
 
@@ -136,8 +151,10 @@ static EVP_PKEY_CTX *int_ctx_new(EVP_PKEY *pkey, ENGINE *e, int id)
     EVP_PKEY_CTX *ret;
     const EVP_PKEY_METHOD *pmeth;
     if (id == -1) {
-        if (!pkey || !pkey->ameth)
+        if (!pkey || !pkey->ameth) {
+            fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
             return NULL;
+        }
         id = pkey->ameth->pkey_id;
     }
 #ifndef OPENSSL_NO_ENGINE
@@ -159,7 +176,7 @@ static EVP_PKEY_CTX *int_ctx_new(EVP_PKEY *pkey, ENGINE *e, int id)
 
     if (e)
         pmeth = ENGINE_get_pkey_meth(e, id);
-    else
+    else 
 #endif
         pmeth = EVP_PKEY_meth_find(id);
 

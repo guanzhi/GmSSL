@@ -1409,7 +1409,7 @@ sm 104 7	: SMS4-CTR		: sms4-ctr
 sm 104 8	: SMS4-GCM		: sms4-gcm
 sm 104 9	: SMS4-CCM		: sms4-ccm
 sm 104 10	: SMS4-XTS		: sms4-xts
-
+sm 104 11	: SMS4-WRAP		: sms4-wrap
 
 !Alias sm7 sm 105
 

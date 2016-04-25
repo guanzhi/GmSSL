@@ -58,6 +58,7 @@
 extern "C" {
 #endif
 
+typedef struct CBCMAC_CTX_st CBCMAC_CTX;
 
 CBCMAC_CTX *CBCMAC_CTX_new(void);
 void CBCMAC_CTX_cleanup(CBCMAC_CTX *ctx);

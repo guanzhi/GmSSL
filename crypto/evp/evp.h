@@ -657,13 +657,6 @@ int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
 int EVP_CipherFinal(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl);
 int EVP_CipherFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl);
 
-#ifndef OPENSSL_NO_GMSSL
-int EVP_Encrypt_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outlen,
-	const unsigned char *in, int inlen);
-int EVP_Decrypt_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outlen,
-	const unsigned char *in, int inlen);
-#endif
-
 int EVP_SignFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s,
                   EVP_PKEY *pkey);
 

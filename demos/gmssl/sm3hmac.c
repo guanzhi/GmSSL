@@ -1,4 +1,4 @@
-/* crypto/sm3/sm3test.c */
+/* demo/gmssl/sm3hmac.c */
 /* ====================================================================
  * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
  *
@@ -50,73 +50,59 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
 
-#include "../e_os.h"
-
-#ifdef OPENSSL_NO_SM3
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
-    printf("No SM3 support\n");
-    return (0);
-}
-#else
-# include <openssl/evp.h>
-# include <openssl/sm3.h>
+	int ret = -1;
+	FILE *fp = stdin;
+	unsigned char key[32];
+	unsigned char buf[1024];
+	int len;
+	const EVP_MD *md;
+	HMAC_CTX hmctx;
+	unsigned char mac[EVP_MAX_MD_SIZE];
+	unsigned int maclen, i;
 
-static char *test[] = {
-    //"",
-    "abc",
-    "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
-    NULL,
-};
+	if (argc == 2) {
+		if (!(fp = fopen(argv[1], "r"))) {
+			fprintf(stderr, "open file %s failed\n", argv[1]);
+			return -1;
+		}
+	}
 
-static char *ret[] = {
-    "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0",
-    "debe9ff92275b8a138604889c18e5a4d6fdb70e5387e5765293dcba39c0c5732",
-};
+	HMAC_CTX_init(&hmctx);
 
-static char *pt(unsigned char *md);
-int main(int argc, char *argv[])
-{
-    int i, err = 0;
-    char **P, **R;
-    char *p;
-    unsigned char md[SM3_DIGEST_LENGTH];
+	RAND_bytes(key, sizeof(key));
 
-    P = test;
-    R = ret;
-    i = 1;
-    while (*P != NULL) {
-        EVP_Digest(&(P[0][0]), strlen((char *)*P), md, NULL, EVP_sm3(), NULL);
-        p = pt(md);
-        if (strcmp(p, (char *)*R) != 0) {
-            printf("error calculating SM3 on '%s'\n", *P);
-            printf("got %s instead of %s\n", p, *R);
-            err++;
-        } else
-            printf("test %d ok\n", i);
-        i++;
-        R++;
-        P++;
-    }
+	OpenSSL_add_all_digests();
+	if (!(md = EVP_get_digestbyname("sm3"))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	
+	HMAC_Init_ex(&hmctx, key, sizeof(key), md, NULL);
 
-# ifdef OPENSSL_SYS_NETWARE
-    if (err)
-        printf("ERROR: %d\n", err);
-# endif
-    EXIT(err);
-    return (0);
+	while ((len = fread(buf, 1, sizeof(buf), fp))) {
+		HMAC_Update(&hmctx, buf, len);
+	}
+
+	HMAC_Final(&hmctx, mac, &maclen);
+
+	for (i = 0; i < maclen; i++) {
+		printf("%02x", mac[i]);
+	}
+	printf("\n");
+	ret = 0;
+
+end:
+	fclose(fp);
+	HMAC_CTX_cleanup(&hmctx);
+	EVP_cleanup();
+	return ret;
 }
 
-static char *pt(unsigned char *md)
-{
-    int i;
-    static char buf[80]; //FIXME: 80?
-
-    for (i = 0; i < SM3_DIGEST_LENGTH; i++)
-        sprintf(&(buf[i * 2]), "%02x", md[i]);
-    return (buf);
-}
-#endif

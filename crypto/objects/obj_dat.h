@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1033
-#define NUM_SN 1011
-#define NUM_LN 1011
-#define NUM_OBJ 949
+#define NUM_NID 1034
+#define NUM_SN 1012
+#define NUM_LN 1012
+#define NUM_OBJ 950
 
-static const unsigned char lvalues[6683]={
+static const unsigned char lvalues[6691]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -1011,6 +1011,7 @@ static const unsigned char lvalues[6683]={
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x0A,     /* [6658] OBJ_sms4_xts */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x05,     /* [6666] OBJ_sms4_cfb1 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x06,     /* [6674] OBJ_sms4_cfb8 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x0B,     /* [6682] OBJ_sms4_wrap */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2667,6 +2668,7 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 {"SM1-CFB","sm1-cfb",NID_sm1_cfb,0,NULL,0},
 {"SMS4-CFB1","sms4-cfb1",NID_sms4_cfb1,8,&(lvalues[6666]),0},
 {"SMS4-CFB8","sms4-cfb8",NID_sms4_cfb8,8,&(lvalues[6674]),0},
+{"SMS4-WRAP","sms4-wrap",NID_sms4_wrap,8,&(lvalues[6682]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2879,6 +2881,7 @@ static const unsigned int sn_objs[NUM_SN]={
 977,	/* "SMS4-ECB" */
 1027,	/* "SMS4-GCM" */
 981,	/* "SMS4-OFB" */
+1033,	/* "SMS4-WRAP" */
 1029,	/* "SMS4-XTS" */
 100,	/* "SN" */
 1021,	/* "SSF33-CBC" */
@@ -4643,6 +4646,7 @@ static const unsigned int ln_objs[NUM_LN]={
 977,	/* "sms4-ecb" */
 1027,	/* "sms4-gcm" */
 981,	/* "sms4-ofb" */
+1033,	/* "sms4-wrap" */
 1029,	/* "sms4-xts" */
 1021,	/* "ssf33-cbc" */
 1023,	/* "ssf33-cfb" */
@@ -5153,6 +5157,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 1027,	/* OBJ_sms4_gcm                     1 2 156 10197 1 104 8 */
 1028,	/* OBJ_sms4_ccm                     1 2 156 10197 1 104 9 */
 1029,	/* OBJ_sms4_xts                     1 2 156 10197 1 104 10 */
+1033,	/* OBJ_sms4_wrap                    1 2 156 10197 1 104 11 */
 1006,	/* OBJ_sm5                          1 2 156 10197 1 201 */
 958,	/* OBJ_sm2p256v1                    1 2 156 10197 1 301 */
 1025,	/* OBJ_id_sm9PublicKey              1 2 156 10197 1 302 */

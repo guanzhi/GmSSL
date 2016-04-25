@@ -69,12 +69,6 @@ struct sm2sign_method {
 };
 
 
-
-
-
-
-
-
 #ifdef __cplusplus
 }
 #endif
