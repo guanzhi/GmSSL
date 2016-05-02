@@ -67,9 +67,15 @@ extern "C" {
 
 
 #define SM2_MAX_ID_BITS				65535
-#define SM2_MAX_ID_LENGTH			8191
+#define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
+#define SM2_DEFAULT_ID				"1234567812345678" 
 #define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
 
+
+char *SM2_get0_id(EC_KEY *ec_key);
+int SM2_set_id(EC_KEY *ec_key, const char *id);
+int SM2_compute_id_digest(const EVP_MD *md, unsigned char *dgst,
+	unsigned int *dgstlen, EC_KEY *ec_key);
 
 
 typedef struct sm2_ciphertext_value_st {
@@ -79,13 +85,6 @@ typedef struct sm2_ciphertext_value_st {
 	unsigned char mactag[EVP_MAX_MD_SIZE];
 	unsigned int mactag_size;
 } SM2_CIPHERTEXT_VALUE;
-
-
-char *SM2_get_id(EC_KEY *ec_key);
-int SM2_set_id(EC_KEY *ec_key, const char *id);
-int SM2_compute_id_digest(unsigned char *dgst, unsigned int *dgstlen,
-	const EVP_MD *md, EC_KEY *ec_key);
-
 
 int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *ec_group,
 	point_conversion_form_t point_form, size_t mlen,
@@ -97,13 +96,19 @@ int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
 SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
 	point_conversion_form_t point_form, const EVP_MD *mac_md,
 	const unsigned char *buf, size_t buflen);
+int i2d_SM2_CIPHERTEXT_VALUE(const SM2_CIPHERTEXT_VALUE *c, unsigned char **out);
+SM2_CIPHERTEXT_VALUE *d2i_SM2_CIPHERTEXT_VALUE(SM2_CIPHERTEXT_VALUE **c,
+	const unsigned char **in, long len);
 int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
 	const SM2_CIPHERTEXT_VALUE *cv, int indent, unsigned long flags);
+
+/* FIXME: we should provide optional return value */
 SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
 int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key);
+
 int SM2_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form,
 	const unsigned char *in, size_t inlen,
@@ -113,6 +118,12 @@ int SM2_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
+
+
+
+int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
+	const void *msg, size_t msglen, unsigned char *dgst,
+	unsigned int *dgstlen, EC_KEY *ec_key);
 
 #define SM2_signature_size(ec_key)	ECDSA_size(ec_key)
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
@@ -127,6 +138,9 @@ int SM2_sign_ex(int type, const unsigned char *dgst, int dgstlen,
 	const BIGNUM *k, const BIGNUM *x, EC_KEY *ec_key);
 int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
 	unsigned char *sig, unsigned int *siglen, EC_KEY *eckey);
+#define SM2_VERIFY_SUCCESS	 1
+#define SM2_VERIFY_FAILED	 0
+#define SM2_VERIFY_INNER_ERROR	-1
 int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	const unsigned char *sig, int siglen, EC_KEY *ec_key);
 
@@ -165,13 +179,13 @@ typedef struct sm2_kap_ctx_st {
 
 
 
-int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
+int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 	EC_KEY *remote_pubkey, int is_initiator, int do_checksum);
 void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
 int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,
-	size_t ephem_point_len);
+	size_t *ephem_point_len);
 int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_ephem_point,
-	size_t remote_ephem_point_len, unsigned char *key, size_t *keylen,
+	size_t remote_ephem_point_len, unsigned char *key, size_t keylen,
 	unsigned char *checksum, size_t *checksumlen);
 int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	size_t checksumlen);

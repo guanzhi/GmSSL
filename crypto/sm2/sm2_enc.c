@@ -330,7 +330,9 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		goto end;
 	}
 	nbytes = (EC_GROUP_get_degree(ec_group) + 7) / 8;
-	OPENSSL_assert(nbytes == BN_num_bytes(n));
+
+
+	//OPENSSL_assert(nbytes == BN_num_bytes(n));
 
 #if 0
 	/* check sm2 curve and md is 256 bits */
@@ -345,6 +347,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		do {
 			BN_rand_range(k, n);
 		} while (BN_is_zero(k));
+
 	
 		/* A2: C1 = [k]G = (x1, y1) */
 		if (!EC_POINT_mul(ec_group, cv->ephem_point, k, NULL, NULL, bn_ctx)) {
@@ -358,7 +361,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		if (EC_POINT_is_at_infinity(ec_group, point)) {
 			goto end;
 		}
-		
+
 		/* A4: compute ECDH [k]P_B = (x2, y2) */
 		if (!EC_POINT_mul(ec_group, point, NULL, pub_key, k, bn_ctx)) {
 			goto end;
@@ -368,10 +371,9 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 			goto end;
 		}
 		OPENSSL_assert(len == nbytes * 2 + 1);
-
+		
 		/* A5: t = KDF(x2 || y2, klen) */
 		kdf(buf + 1, len - 1, cv->ciphertext, &cv->ciphertext_size);
-
 
 		for (i = 0; i < cv->ciphertext_size; i++) {
 			if (cv->ciphertext[i]) {
@@ -391,7 +393,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	for (i = 0; i < inlen; i++) {
 		cv->ciphertext[i] ^= in[i];
 	}
-
+	
 	/* A7: C3 = Hash(x2 || M || y2) */
 	if (!EVP_DigestInit_ex(md_ctx, mac_md, NULL)) {
 		goto end;
@@ -408,6 +410,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	if (!EVP_DigestFinal_ex(md_ctx, cv->mactag, &cv->mactag_size)) {
 		goto end;
 	}
+
 
 	ok = 1;
 
@@ -525,7 +528,7 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		goto end;
 	}
 	nbytes = (EC_GROUP_get_degree(ec_group) + 7) / 8;
-	OPENSSL_assert(nbytes == BN_num_bytes(n));
+	//OPENSSL_assert(nbytes == BN_num_bytes(n));
 
 #if 0
 	/* check sm2 curve and md is 256 bits */

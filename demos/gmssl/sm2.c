@@ -1,4 +1,4 @@
-/* crypto/sm2/sm2_locl.h */
+/* demo/gmssl/sm2.c */
 /* ====================================================================
  * Copyright (c) 2015-2016 The GmSSL Project.  All rights reserved.
  *
@@ -49,29 +49,24 @@
  *
  */
 
-
-#ifndef HEADER_SM2_LOCL_H
-#define HEADER_SM2_LOCL_H
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct sm2_data_st {
-	int (*init)(EC_KEY *);
-	ENGINE *engine;
-	int flags;
-	const ECDSA_METHOD *sign_meth;
-	const ECDH_METHOD *kap_meth; /* FIXME: SM2 KAP is different from ECDH */
-	CRYPTO_EX_DATA ex_data;
-} SM2_DATA;
-
-SM2_DATA *sm2_check(EC_KEY *eckey);
+#include <stdio.h>
+#include <string.h>
+#include <strings.h>
+#include <openssl/ec.h>
+#include <openssl/bn.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <openssl/engine.h>
+#include <openssl/sm2.h>
 
 
-#ifdef __cplusplus
+int main()
+{
+	ENGINE *engine = NULL;
+	EVP_PKEY_CTX *pkctx;
+
+
+	pkctx = EVP_PKEY_CTX_new_id(id, engine);
 }
-#endif
-#endif
+
 

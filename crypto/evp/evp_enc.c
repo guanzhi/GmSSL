@@ -210,6 +210,9 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
 #endif
     /* we assume block size is a power of 2 in *cryptUpdate */
     OPENSSL_assert(ctx->cipher->block_size == 1
+#ifndef OPENSSL_NO_GMSSL
+                   || ctx->cipher->block_size == 4
+#endif
                    || ctx->cipher->block_size == 8
                    || ctx->cipher->block_size == 16);
 

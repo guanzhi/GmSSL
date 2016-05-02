@@ -625,7 +625,97 @@ static int pkey_sm2_verify(EVP_PKEY_CTX *ctx,
 	return SM2_verify(type, dgst, dgstlen, sig, siglen, ec_key);
 }
 
-static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+static int pkey_sm2_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
+{
+	int ret = 0;
+	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_KEY *ec_key = ctx->pkey->pkey.ec;
+	const EVP_MD *md = EVP_sm3();
+	unsigned char zid[EVP_MAX_MD_SIZE];
+	unsigned int zidlen;
+
+	if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
+        	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_SM2_LIB);
+		return 0;
+	}
+	if (!mctx->update(mctx, zid, zidlen)) {
+        	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_EVP_LIB);
+		return 0;
+	}
+
+	return 1;
+}
+
+static int pkey_sm2_signctx(EVP_PKEY_CTX *ctx,
+	unsigned char *sig, size_t *siglen, EVP_MD_CTX *mctx)
+{
+	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_KEY *ec_key = ctx->pkey->pkey.ec;
+	unsigned char dgst[EVP_MAX_MD_SIZE];
+	unsigned int dgstlen;
+	int type = NID_undef;
+
+	if (!sig) {
+		*siglen = SM2_signature_size(ec_key);
+		return 1;
+	}
+
+	if (*siglen < (size_t)SM2_signature_size(ec_key)) {
+		ECerr(EC_F_PKEY_SM2_SIGNCTX, EC_R_BUFFER_TOO_SMALL);
+		return 0;
+	}
+
+	if (!EVP_DigestFinal_ex(mctx, dgst, &dgstlen)) {
+		ECerr(EC_F_PKEY_SM2_SIGNCTX, ERR_R_EVP_LIB);
+		return 0;
+	}
+
+	return SM2_sign(type, dgst, dgstlen, sig, &siglen, ec_key);
+}
+
+static int pkey_sm2_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
+{
+	int ret = 0;
+	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_KEY *ec_key = ctx->pkey->pkey.ec;
+	const EVP_MD *md = EVP_sm3();
+	unsigned char zid[EVP_MAX_MD_SIZE];
+	unsigned int zidlen;
+
+	// FIXME: we need to get md from somewhere
+
+	if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
+		goto end;
+	}
+	if (!mctx->update(mctx, zid, zidlen)) {
+		goto end;
+	}
+
+	ret = 1;
+end:
+	return 0;
+}
+
+static int pkey_sm2_verifyctx(EVP_PKEY_CTX *ctx,
+	const unsigned char *sig, int siglen, EVP_MD_CTX *mctx)
+{
+	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_KEY *ec_key = ctx->pkey->pkey.ec;
+	int type = ec_ctx->md ? EVP_MD_type(ec_ctx->md) : NID_sm3;
+
+	/*
+	if (!EVP_DigestFinal_ex(mctx, dgst, &dgstlen)) {
+		goto end;
+	}
+
+	return SM2_verify(type, dgst, dgstlen, sig, siglen, ec_key);
+	*/
+	
+	return 0;
+}
+
+static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx,
+	unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {
 	EC_PKEY_CTX *ec_ctx = ctx->data;
@@ -641,7 +731,8 @@ static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outle
 	return SM2_encrypt(kdf_md, mac_md, point_form, in, inlen, out, outlen, ec_key);
 }
 
-static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
+static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx,
+	unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {
 	EC_PKEY_CTX *ec_ctx = ctx->data;
@@ -654,7 +745,8 @@ static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outle
 	kdf_md = EVP_sm3();
 	mac_md = EVP_sm3();
 
-	return SM2_decrypt(kdf_md, mac_md, point_form, in, inlen, out, outlen, ec_key);
+	return SM2_decrypt(kdf_md, mac_md, point_form,
+		in, inlen, out, outlen, ec_key);
 }
 
 static int pkey_sm2_ctrl_digestinit(EVP_PKEY_CTX *pk_ctx, EVP_MD_CTX *md_ctx)
@@ -679,7 +771,7 @@ static int pkey_sm2_ctrl_digestinit(EVP_PKEY_CTX *pk_ctx, EVP_MD_CTX *md_ctx)
 	*/
 
 	//FIXME: check this function
-	if (!SM2_compute_id_digest(zid, &zidlen, md, ec_key)) {
+	if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		return 0;
 	}
@@ -706,6 +798,16 @@ end:
 	return ret;
 }
 
+static int pkey_sm2_derive_init(EVP_PKEY_CTX *ctx)
+{
+	return 0;
+}
+
+static int pkey_sm2_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen)
+{
+	return 0;
+}
+
 static int pkey_sm2_ctrl(EVP_PKEY_CTX *pk_ctx, int type, int p1, void *p2)
 {
 	switch (type) {
@@ -720,34 +822,30 @@ static int pkey_sm2_ctrl(EVP_PKEY_CTX *pk_ctx, int type, int p1, void *p2)
 
 const EVP_PKEY_METHOD sm2_pkey_meth = {
 	EVP_PKEY_SM2,
-	0, /* flags */
+	0,
 	pkey_ec_init,
 	pkey_ec_copy,
 	pkey_ec_cleanup,
-	0, /* paramgen_init */
-	pkey_ec_paramgen,
-	0, /* keygen_init */
-	pkey_sm2_keygen,
-	0, /* sign_init */
-	pkey_sm2_sign,
-	0, /* verify_init */
-	pkey_sm2_verify,
-	0, /* verify_recover_init */
-	0, /* verify_recover */
-	0, /* signctx_init */
-	0, /* signctx */
-	0, /* verifyctx_init */
-	0, /* verifyctx */
-	0, /* encrypt_init */
-	pkey_sm2_encrypt,
-	0, /* decrypt_init */
-	pkey_sm2_decrypt,
-	0, /* derive_init */
-#ifndef OPENSSL_NO_ECDH
-	pkey_ec_kdf_derive,
-#else
 	0,
-#endif
+	pkey_ec_paramgen,
+	0,
+	pkey_sm2_keygen,
+	0,
+	pkey_sm2_sign,
+	0,
+	pkey_sm2_verify,
+	0,
+	0,
+	pkey_sm2_signctx_init,
+	pkey_sm2_signctx,
+	pkey_sm2_verifyctx_init,
+	pkey_sm2_verifyctx,
+	0,
+	pkey_sm2_encrypt,
+	0,
+	pkey_sm2_decrypt,
+	pkey_sm2_derive_init,
+	pkey_sm2_derive,
 	pkey_sm2_ctrl,
 	pkey_ec_ctrl_str
 };

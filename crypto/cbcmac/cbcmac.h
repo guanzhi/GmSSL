@@ -48,7 +48,11 @@
  * ====================================================================
  *
  */
-
+/* Note:
+ * 1. CBC-MAC should be only used for fixed-length message
+ * 2. the message length should be multiple of block size
+ * 3. the implementation do not add padding
+ */
 #ifndef HEADER_CBCMAC_H
 #define HEADER_CBCMAC_H
 

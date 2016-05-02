@@ -219,8 +219,8 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
         if (!(ctx->flags & EVP_MD_CTX_FLAG_NO_INIT) && type->ctx_size) {
             ctx->update = type->update;
             ctx->md_data = OPENSSL_malloc(type->ctx_size);
-	//fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             if (ctx->md_data == NULL) {
+	fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
                 EVPerr(EVP_F_EVP_DIGESTINIT_EX, ERR_R_MALLOC_FAILURE);
                 return 0;
             }

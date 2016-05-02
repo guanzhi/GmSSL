@@ -23,6 +23,11 @@ static int zuc_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	return 1;
 }
 
+
+/*
+ * FIXME:
+ * evp_enc.c assert block_size in {1, 8, 16}, 4 not ok!
+ */
 static const EVP_CIPHER zuc_cipher = {
 	NID_zuc, /* nid */
 	4, /* block_size */

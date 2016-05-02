@@ -90,16 +90,16 @@ static ERR_STRING_DATA SM2_str_functs[] = {
 };
 
 static ERR_STRING_DATA SM2_str_reasons[] = {
-	{ERR_REASON(SM2_R_BAD_DATA),		"bad data"},
-	{ERR_REASON(SM2_R_UNKNOWN_CIPHER_TYPE),	"unknown cipher type"},
-	{ERR_REASON(SM2_R_ENCRYPT_FAILED),	"encrypt failed"},
-	{ERR_REASON(SM2_R_DECRYPT_FAILED),	"decrypt failed"},
-	{ERR_REASON(SM2_R_UNKNOWN_MAC_TYPE),	"unknown MAC type"},
-	{ERR_REASON(SM2_R_GEN_MAC_FAILED),	"MAC generation failed"},
-	{ERR_REASON(SM2_R_VERIFY_MAC_FAILED),	"MAC verification failed"},
-	{ERR_REASON(SM2_R_ECDH_FAILED),		"ECDH failed"},
-	{ERR_REASON(SM2_R_BUFFER_TOO_SMALL),	"buffer too small"},
-	{ERR_REASON(SM2_R_SM2_KAP_NOT_INITED),	"KAP not inited"},
+	{ERR_REASON(SM2_R_BAD_DATA),			"bad data"},
+	{ERR_REASON(SM2_R_UNKNOWN_CIPHER_TYPE),		"unknown cipher type"},
+	{ERR_REASON(SM2_R_ENCRYPT_FAILED),		"encrypt failed"},
+	{ERR_REASON(SM2_R_DECRYPT_FAILED),		"decrypt failed"},
+	{ERR_REASON(SM2_R_UNKNOWN_MAC_TYPE),		"unknown MAC type"},
+	{ERR_REASON(SM2_R_GEN_MAC_FAILED),		"MAC generation failed"},
+	{ERR_REASON(SM2_R_VERIFY_MAC_FAILED),		"MAC verification failed"},
+	{ERR_REASON(SM2_R_ECDH_FAILED),			"ECDH failed"},
+	{ERR_REASON(SM2_R_BUFFER_TOO_SMALL),		"buffer too small"},
+	{ERR_REASON(SM2_R_SM2_KAP_NOT_INITED),		"KAP not inited"},
 	{ERR_REASON(SM2_R_RANDOM_NUMBER_GENERATION_FAILED), "random number generation failed"},
 	{0,NULL}
 };

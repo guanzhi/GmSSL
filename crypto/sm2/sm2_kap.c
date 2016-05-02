@@ -53,7 +53,7 @@
 #include <openssl/kdf.h>
 #include "sm2.h"
 
-int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
+int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 	EC_KEY *remote_pubkey, int is_initiator, int do_checksum)
 {
 	int ret = 0;
@@ -64,7 +64,7 @@ int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 	ctx->id_dgst_md = EVP_sm3();
 	ctx->kdf_md = EVP_sm3();
 	ctx->checksum_md = EVP_sm3();
-	ctx->point_form = POINT_CONVERSION_COMPRESSED;
+	ctx->point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
 
 	if (!(ctx->kdf = KDF_get_x9_63(ctx->kdf_md))) {
 		SM2err(SM2_F_SM2_KAP_CTX_INIT, 0);
@@ -80,8 +80,8 @@ int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 		goto end;
 	}
 
-	if (!SM2_compute_id_digest(ctx->id_dgst, &ctx->id_dgstlen,
-		ctx->id_dgst_md, ec_key)) {
+	if (!SM2_compute_id_digest(ctx->id_dgst_md, ctx->id_dgst,
+		&ctx->id_dgstlen, ec_key)) {
 		SM2err(SM2_F_SM2_KAP_CTX_INIT, 0);
 		goto end;
 	}
@@ -91,8 +91,8 @@ int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 		goto end;
 	}
 	
-	if (!SM2_compute_id_digest(ctx->remote_id_dgst, &ctx->remote_id_dgstlen,
-		ctx->id_dgst_md, remote_pubkey)) {
+	if (!SM2_compute_id_digest(ctx->id_dgst_md, ctx->remote_id_dgst,
+		&ctx->remote_id_dgstlen, remote_pubkey)) {
 		SM2err(SM2_F_SM2_KAP_CTX_INIT, 0);
 		goto end;
 	}
@@ -118,7 +118,7 @@ int SM2_KAP_CTX_init_ex(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 		goto end;
 	}
 
-	w = (EC_GROUP_get_degree(ctx->group) + 1)/2 - 1;
+	w = (BN_num_bits(ctx->order) + 1)/2 - 1;
 
 	if (!BN_one(ctx->two_pow_w)) {
 		SM2err(SM2_F_SM2_KAP_CTX_INIT, ERR_R_BN_LIB);
@@ -155,8 +155,10 @@ void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
+
+/* FIXME: ephem_point_len should be both input and output */
 int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,
-	size_t ephem_point_len)
+	size_t *ephem_point_len)
 {
 	int ret = 0;
 	const BIGNUM *prikey;
@@ -191,10 +193,12 @@ int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,
 
 	} while (BN_is_zero(r));
 
+
 	if (!EC_POINT_mul(ctx->group, ctx->point, r, NULL, NULL, ctx->bn_ctx)) {
 		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
 		goto end;
 	}
+
 
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(ctx->group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_get_affine_coordinates_GFp(ctx->group, ctx->point, x, NULL, ctx->bn_ctx)) {
@@ -252,11 +256,13 @@ int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,
 
 	/* encode R = (x, y) for output and local buffer */
 
+	// FIXME: ret is size_t and ret is the output length 
 	ret = EC_POINT_point2oct(ctx->group, ctx->point, ctx->point_form,
-		ephem_point, ephem_point_len, ctx->bn_ctx);
+		ephem_point, *ephem_point_len, ctx->bn_ctx);
 
 	memcpy(ctx->pt_buf, ephem_point, ret);
-
+	*ephem_point_len = ret;
+	ret = 1;
 
 end:
 	if (h) BN_free(h);
@@ -267,19 +273,21 @@ end:
 }
 
 int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
-	size_t remote_point_len, unsigned char *key, size_t *keylen,
+	size_t remote_point_len, unsigned char *key, size_t keylen,
 	unsigned char *checksum, size_t *checksumlen)
 {
 	int ret = 0;
 
 	EVP_MD_CTX md_ctx;
 	BIGNUM *x = NULL;
-	unsigned char share_pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4 + EVP_MAX_MD_SIZE * 2];
-	unsigned char remote_pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
+	unsigned char share_pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4 + EVP_MAX_MD_SIZE * 2 + 100];
+	unsigned char remote_pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4 + 111];
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen;
 	unsigned int len, bnlen;
+	size_t klen = keylen;
 
+	
 	EVP_MD_CTX_init(&md_ctx);
 
 	if (!(x = BN_new())) {
@@ -329,14 +337,16 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_BN_LIB);
 		goto end;
 	}
-
+	
+	/*
 	if (!BN_mod_mul(x, x, ctx->t, ctx->order, ctx->bn_ctx)) {
 		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_BN_LIB);
 		goto end;
 	}
+	*/
 
 	/* U = ht * (P + x * R), check U != O */
-
+	
 	if (!EC_POINT_mul(ctx->group, ctx->point, NULL, ctx->point, x, ctx->bn_ctx)) {
 		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
 		goto end;
@@ -352,8 +362,8 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
 		goto end;
 	}
-	
-	if (!EC_POINT_is_at_infinity(ctx->group, ctx->point)) {
+
+	if (EC_POINT_is_at_infinity(ctx->group, ctx->point)) {
 		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, 0);
 		goto end;
 	}
@@ -380,12 +390,13 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 
 	/* key = KDF(xu, yu, ZA, ZB) */
 
-	if (!ctx->kdf(share_pt_buf, len, key, keylen)) {
+
+	if (!ctx->kdf(share_pt_buf + 1, len - 1, key, &klen)) {
 		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, 0);
 		goto end;
 	}
 
-	if (!ctx->do_checksum) {
+	if (ctx->do_checksum) {
 
 		/* generate checksum S1 or SB start with 0x02
 		 * S1 = SB = Hash(0x02, yu, Hash(xu, ZA, ZB, x1, y1, x2, y2))
@@ -403,7 +414,8 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 		}
 
 		if (ctx->is_initiator) {
-			
+
+			/* update ZA,ZB,x1,y1,x2,y2 */
 			if (!EVP_DigestUpdate(&md_ctx, ctx->id_dgst, ctx->id_dgstlen)) {
 				SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
 				goto end;
@@ -422,6 +434,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 			}
 
 		} else {
+
 			if (!EVP_DigestUpdate(&md_ctx, ctx->remote_id_dgst, ctx->remote_id_dgstlen)) {
 				SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
 				goto end;
@@ -444,6 +457,8 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
 			goto end;
 		}
+		/* now dgst == H(xu,ZA,ZB,x1,y1,x2,y2)
+		 */
 
 		/* S1 = SB = Hash(0x02, yu, dgst) */
 
@@ -452,7 +467,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 			goto end;
 		}
 
-		if (!EVP_DigestUpdate(&md_ctx, "\0x02", 1)) {
+		if (!EVP_DigestUpdate(&md_ctx, "\x02", 1)) {
 			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
 			goto end;
 		}
@@ -473,6 +488,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 				SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
 				goto end;
 			}
+
 		} else {
 			if (!EVP_DigestFinal_ex(&md_ctx, checksum, &len)) {
 				SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
@@ -490,7 +506,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 			goto end;
 		}
 
-		if (!EVP_DigestUpdate(&md_ctx, "\0x03", 1)) {
+		if (!EVP_DigestUpdate(&md_ctx, "\x03", 1)) {
 			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EVP_LIB);
 			goto end;
 		}
@@ -519,6 +535,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 			}
 		}
 
+
 	}
 
 	ret = 1;
@@ -526,7 +543,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 end:
 	EVP_MD_CTX_cleanup(&md_ctx);
 	if (x) BN_free(x);
-	return 0;
+	return ret;
 }
 
 int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,

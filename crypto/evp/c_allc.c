@@ -177,7 +177,7 @@ void OpenSSL_add_all_ciphers(void)
 #endif
 
 #ifndef OPENSSL_NO_ZUC
-	EVP_add_cipher(EVP_zuc());
+    EVP_add_cipher(EVP_zuc());
 #endif
 
 #ifndef OPENSSL_NO_AES

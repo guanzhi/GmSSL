@@ -58,7 +58,6 @@
 #include <openssl/rand.h>
 #include <openssl/sm2.h>
 
-//FIXME: ECDSAerr()
 
 /* k in [1, n-1], (x, y) = kG */
 static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **xp)
@@ -69,7 +68,7 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	BIGNUM *k = NULL;
 	BIGNUM *x = NULL;
 	BIGNUM *order = NULL;
-	EC_POINT *point=NULL;
+	EC_POINT *point = NULL;
 
 	if (ec_key == NULL || (ec_group = EC_KEY_get0_group(ec_key)) == NULL) {
 		ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_PASSED_NULL_PARAMETER);
@@ -89,7 +88,6 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	k = BN_new();	
 	x = BN_new();
 	order = BN_new();
-
 	if (!k || !x || !order) {
 		ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
 		goto err;
@@ -133,7 +131,8 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 				goto err;
 			}
 		}
-
+		
+		//FIXME: do we need this?
 		if (!BN_nnmod(x, x, order, ctx)) {
 			ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_BN_LIB);
 			goto err;
@@ -206,17 +205,22 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 
 	/* convert dgst to e */
 	i = BN_num_bits(order);
+#if 0
 	if (8 * dgst_len > i) {
 		dgst_len = (i + 7)/8;
 	}
+#endif
 	if (!BN_bin2bn(dgst, dgst_len, e)) {
 		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
 		goto err;
 	}
+
+#if 0
 	if ((8 * dgst_len > i) && !BN_rshift(e, e, 8 - (i & 0x7))) {
 		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
 		goto err;
 	}
+#endif
 
 	do {
 		/* use or compute k and (kG).x */
@@ -234,11 +238,14 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 			}
 		}
 
+
 		/* r = e + x (mod n) */	
 		if (!BN_mod_add(ret->r, ret->r, e, order, ctx)) {
 			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
+
+
 		if (!BN_mod_add(bn, ret->r, ck, order, ctx)) {
 			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
@@ -266,6 +273,7 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
+
 		if (!BN_mod_mul(bn, ret->r, priv_key, order, ctx)) {
 			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
@@ -309,7 +317,7 @@ err:
 int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	const ECDSA_SIG *sig, EC_KEY *ec_key)
 {
-	int ret = -1;
+	int ret = SM2_VERIFY_INNER_ERROR;
 	const EC_GROUP *ec_group;
 	const EC_POINT *pub_key;
 	EC_POINT *point = NULL;
@@ -366,17 +374,21 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 
 	/* convert digest to e */
 	i = BN_num_bits(order);
+#if 0
 	if (8 * dgstlen > i) {
 		dgstlen = (i + 7)/8;
 	}
+#endif
 	if (!BN_bin2bn(dgst, dgstlen, e)) {
 		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
+#if 0
 	if ((8 * dgstlen > i) && !BN_rshift(e, e, 8 - (i & 0x7))) {
 		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
+#endif
 
 	/* compute (x, y) = sG + tP, P is pub_key */
 	if (!(point = EC_POINT_new(ec_group))) {
@@ -408,8 +420,12 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
-	ret = (BN_ucmp(t, sig->r) == 0);
-	
+	if (BN_ucmp(t, sig->r) == 0) {
+		ret = SM2_VERIFY_SUCCESS;
+	} else {
+		ret = SM2_VERIFY_FAILED;
+	}
+
 err:
 	if (point) EC_POINT_free(point);
 	if (order) BN_free(order);

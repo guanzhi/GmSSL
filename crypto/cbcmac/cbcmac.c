@@ -1,7 +1,3 @@
-
-
-
-
 #include <stdio.h>
 
 
@@ -54,17 +50,21 @@ int CBCMAC_CTX_copy(CBCMAC_CTX *to, const CBCMAC_CTX *from)
 int CBCMAC_Init(CBCMAC_CTX *ctx, const void *key, size_t keylen,
 	const EVP_CIPHER *cipher, ENGINE *impl)
 {
+	return 0;
 }
 
 int CBCMAC_Update(CBCMAC_CTX *ctx, const void *data, size_t datalen)
 {
+	return 0;
 }
 
 int CBCMAC_Final(CBCMAC_CTX *ctx, unsigned char *out, size_t *outlen)
 {
+	return 0;
 }
 
 int CBCMAC_resume(CBCMAC_CTX *ctx)
 {
+	return 0;
 }
 

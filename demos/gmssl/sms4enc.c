@@ -1,6 +1,6 @@
-/* crypto/sm2/sm2_locl.h */
+/* demo/gmssl/sms4enc.c */
 /* ====================================================================
- * Copyright (c) 2015-2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,29 +49,63 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
 
-#ifndef HEADER_SM2_LOCL_H
-#define HEADER_SM2_LOCL_H
+int main(int argc, char **argv)
+{
+	int ret = -1;
+	FILE *fp = stdin;
+	unsigned char key[32];
+	unsigned char buf[1024];
+	int len;
+	const EVP_MD *md;
+	HMAC_CTX hmctx;
+	unsigned char mac[EVP_MAX_MD_SIZE];
+	unsigned int maclen, i;
 
+	if (argc == 2) {
+		if (!(fp = fopen(argv[1], "r"))) {
+			fprintf(stderr, "open file %s failed\n", argv[1]);
+			return -1;
+		}
+	}
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+	HMAC_CTX_init(&hmctx);
 
-typedef struct sm2_data_st {
-	int (*init)(EC_KEY *);
-	ENGINE *engine;
-	int flags;
-	const ECDSA_METHOD *sign_meth;
-	const ECDH_METHOD *kap_meth; /* FIXME: SM2 KAP is different from ECDH */
-	CRYPTO_EX_DATA ex_data;
-} SM2_DATA;
+	RAND_bytes(key, sizeof(key));
 
-SM2_DATA *sm2_check(EC_KEY *eckey);
+	OpenSSL_add_all_digests();
+	if (!(md = EVP_get_digestbyname("sm3"))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
+	if (!EVP_DigestSignInit()) {
+		goto end;
+	}	
 
-#ifdef __cplusplus
+	while ((len = fread(buf, 1, sizeof(buf), fp))) {
+		EVP_DigestSignUpdate(&hmctx, buf, len);
+	}
+
+	if (!EVP_DigestSignFinal()) {
+		goto end;
+	}
+
+	for (i = 0; i < maclen; i++) {
+		printf("%02x", mac[i]);
+	}
+	printf("\n");
+	ret = 0;
+
+end:
+	fclose(fp);
+	EVP_cleanup();
+	return ret;
 }
-#endif
-#endif
 
