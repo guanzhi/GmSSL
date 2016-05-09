@@ -1,6 +1,6 @@
-/* crypto/sms4/sms4.h */
+/* crypto/sms4/sms4_enc_nblks.c */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,53 +46,30 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
-#include <stdio.h>
-#include "cryptlib.h"
 
-#ifndef OPENSSL_NO_SM3
+#include "sms4.h"
 
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/sm3.h>
-
-
-static int init(EVP_MD_CTX *ctx)
+void sms4_encrypt_init(sms4_key_t *key)
 {
-	return sm3_init(ctx->md_data);
 }
 
-static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+void sms4_encrypt_8blocks(sms4_key_t *key, const unsigned char *in, unsigned char *out)
 {
-	return sm3_update(ctx->md_data, in, inlen);
+	sms4_encrypt(key, in         , out         );
+	sms4_encrypt(key, in + 16    , out + 16    );
+	sms4_encrypt(key, in + 16 * 2, out + 16 * 2);
+	sms4_encrypt(key, in + 16 * 3, out + 16 * 3);
+	sms4_encrypt(key, in + 16 * 4, out + 16 * 4);
+	sms4_encrypt(key, in + 16 * 5, out + 16 * 5);
+	sms4_encrypt(key, in + 16 * 6, out + 16 * 6);
+	sms4_encrypt(key, in + 16 * 7, out + 16 * 7);
 }
 
-static int final(EVP_MD_CTX *ctx, unsigned char *md)
+void sms4_encrypt_16blocks(sms4_key_t *key, const unsigned char *in, unsigned char *out)
 {
-	return sm3_final(ctx->md_data, md);
+	sms4_encrypt_8blocks(key, in, out);
+	sms4_encrypt_8blocks(key, in + 16 * 8, out + 16 * 8);
 }
 
-static const EVP_MD sm3_md = {
-        NID_sm3,
-        NID_sm2sign_with_sm3,
-        SM3_DIGEST_LENGTH,
-        0,
-        init,
-        update,
-        final,
-        NULL,
-        NULL,
-        EVP_PKEY_SM2_method,
-        SM3_BLOCK_SIZE,
-        sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
-};
-
-const EVP_MD *EVP_sm3(void)
-{
-        return &sm3_md;
-}
-
-#endif

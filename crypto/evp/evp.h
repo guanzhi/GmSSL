@@ -254,6 +254,14 @@ typedef int evp_verify_method(int type, const unsigned char *m,
 #   define EVP_PKEY_ECDSA_method   EVP_PKEY_NULL_method
 #  endif
 
+#  ifndef OPENSSL_NO_SM2
+#   define EVP_PKEY_SM2_method   (evp_sign_method *)SM2_sign, \
+                                (evp_verify_method *)SM2_verify, \
+                                 {EVP_PKEY_SM2,0,0,0}
+#  else
+#   define EVP_PKEY_SM2_method   EVP_PKEY_NULL_method
+#  endif
+
 #  ifndef OPENSSL_NO_RSA
 #   define EVP_PKEY_RSA_method     (evp_sign_method *)RSA_sign, \
                                 (evp_verify_method *)RSA_verify, \

@@ -110,21 +110,39 @@ IMPLEMENT_ASN1_DUP_FUNCTION(SM2CiphertextValue)
 
 int i2d_SM2_CIPHERTEXT_VALUE(const SM2_CIPHERTEXT_VALUE *c, unsigned char **out)
 {
+	int ret = 0;
 	SM2CiphertextValue *asn1 = NULL;
+	BIGNUM *x = NULL;
+	BIGNUM *y = NULL;
 
-	/*
-	asn1 = SM2CiphertextValue_new();
-	
-	asn1->xCoordinate = BN_to_ASN1_INTEGER(x, NULL);
-	asn1->yCoordinate = BN_to_ASN1_INTEGER(y, NULL);
-	*/
 
-	return 0;
+	if (!(asn1 = SM2CiphertextValue_new())) {
+		goto end;
+	}
+	OPENSSL_assert(asn1->xCoordinate);
+	OPENSSL_assert(asn1->yCoordinate);
+	if (!BN_to_ASN1_INTEGER(x, asn1->xCoordinate)) {
+	}
+
+	if (!BN_to_ASN1_INTEGER(y, asn1->yCoordinate)) {
+	}
+
+	M_ASN1_OCTET_STRING_set(asn1->hash, c->mactag, c->mactag_size);
+	M_ASN1_OCTET_STRING_set(asn1->ciphertext, c->ciphertext, c->ciphertext_size);
+
+	ret = 1;
+end:
+	return ret;
 }
 
 SM2_CIPHERTEXT_VALUE *d2i_SM2_CIPHERTEXT_VALUE(SM2_CIPHERTEXT_VALUE **c,
 	const unsigned char **in, long len)
 {
+	
+
+
+
+
 	return NULL;
 }
 

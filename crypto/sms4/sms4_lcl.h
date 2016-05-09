@@ -1,6 +1,6 @@
-/* crypto/sms4/sms4.h */
+/* crypto/sms4/sms4_lcl.h */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,53 +46,80 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
-#include <stdio.h>
-#include "cryptlib.h"
 
-#ifndef OPENSSL_NO_SM3
+#ifndef LIBSM_SMS4_LCL_H
+#define LIBSM_SMS4_LCL_H
 
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/sm3.h>
-
-
-static int init(EVP_MD_CTX *ctx)
-{
-	return sm3_init(ctx->md_data);
-}
-
-static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
-{
-	return sm3_update(ctx->md_data, in, inlen);
-}
-
-static int final(EVP_MD_CTX *ctx, unsigned char *md)
-{
-	return sm3_final(ctx->md_data, md);
-}
-
-static const EVP_MD sm3_md = {
-        NID_sm3,
-        NID_sm2sign_with_sm3,
-        SM3_DIGEST_LENGTH,
-        0,
-        init,
-        update,
-        final,
-        NULL,
-        NULL,
-        EVP_PKEY_SM2_method,
-        SM3_BLOCK_SIZE,
-        sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
-};
-
-const EVP_MD *EVP_sm3(void)
-{
-        return &sm3_md;
-}
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+extern uint8_t  SBOX[256];
+extern uint32_t SBOX32L[256 * 256];
+extern uint32_t SBOX32H[256 * 256];
+
+
+#define GET32(pc)  (					\
+	((uint32_t)(pc)[0] << 24) ^			\
+	((uint32_t)(pc)[1] << 16) ^			\
+	((uint32_t)(pc)[2] <<  8) ^			\
+	((uint32_t)(pc)[3]))
+
+#define PUT32(st, ct)					\
+	(ct)[0] = (uint8_t)((st) >> 24);		\
+	(ct)[1] = (uint8_t)((st) >> 16);		\
+	(ct)[2] = (uint8_t)((st) >>  8);		\
+	(ct)[3] = (uint8_t)(st)
+
+#define ROT32(x,i)					\
+	(((x) << i) | ((x) >> (32-i)))
+
+#define S32(A)						\
+	((SBOX[((A) >> 24)       ] << 24) ^		\
+	 (SBOX[((A) >> 16) & 0xff] << 16) ^		\
+	 (SBOX[((A) >>  8) & 0xff] <<  8) ^		\
+	 (SBOX[((A))       & 0xff]))
+
+#define ROUNDS(x0, x1, x2, x3, x4)		\
+	ROUND(x0, x1, x2, x3, x4, 0);		\
+	ROUND(x1, x2, x3, x4, x0, 1);		\
+	ROUND(x2, x3, x4, x0, x1, 2);		\
+	ROUND(x3, x4, x0, x1, x2, 3);		\
+	ROUND(x4, x0, x1, x2, x3, 4);		\
+	ROUND(x0, x1, x2, x3, x4, 5);		\
+	ROUND(x1, x2, x3, x4, x0, 6);		\
+	ROUND(x2, x3, x4, x0, x1, 7);		\
+	ROUND(x3, x4, x0, x1, x2, 8);		\
+	ROUND(x4, x0, x1, x2, x3, 9);		\
+	ROUND(x0, x1, x2, x3, x4, 10);		\
+	ROUND(x1, x2, x3, x4, x0, 11);		\
+	ROUND(x2, x3, x4, x0, x1, 12);		\
+	ROUND(x3, x4, x0, x1, x2, 13);		\
+	ROUND(x4, x0, x1, x2, x3, 14);		\
+	ROUND(x0, x1, x2, x3, x4, 15);		\
+	ROUND(x1, x2, x3, x4, x0, 16);		\
+	ROUND(x2, x3, x4, x0, x1, 17);		\
+	ROUND(x3, x4, x0, x1, x2, 18);		\
+	ROUND(x4, x0, x1, x2, x3, 19);		\
+	ROUND(x0, x1, x2, x3, x4, 20);		\
+	ROUND(x1, x2, x3, x4, x0, 21);		\
+	ROUND(x2, x3, x4, x0, x1, 22);		\
+	ROUND(x3, x4, x0, x1, x2, 23);		\
+	ROUND(x4, x0, x1, x2, x3, 24);		\
+	ROUND(x0, x1, x2, x3, x4, 25);		\
+	ROUND(x1, x2, x3, x4, x0, 26);		\
+	ROUND(x2, x3, x4, x0, x1, 27);		\
+	ROUND(x3, x4, x0, x1, x2, 28);		\
+	ROUND(x4, x0, x1, x2, x3, 29);		\
+	ROUND(x0, x1, x2, x3, x4, 30);		\
+	ROUND(x1, x2, x3, x4, x0, 31)
+
+void sms4_init_sbox32(void);
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+

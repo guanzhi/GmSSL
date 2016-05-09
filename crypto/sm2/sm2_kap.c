@@ -155,6 +155,102 @@ void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx)
 	memset(ctx, 0, sizeof(*ctx));
 }
 
+#if 0
+int SM2_update_key(EC_KEY *ec_key, EC_POINT **point)
+{
+	EC_KEY *tmp = NULL;
+	BIGNUM *d = EC_KEY_get0_private_key(ec_key);
+
+
+	if (!(tmp = EC_KEY_new())) {
+		goto end;
+	}
+
+	if (!EC_KEY_set_group(tmp, EC_KEY_get0_group(ec_key))) {
+		goto end;
+	}
+
+	if (!EC_KEY_generate_key(tmp)) {
+		goto end;
+	}
+
+	if (!EC_KEY_get_affine_coordinates(tmp, x, y)) {
+		goto end;
+	}
+
+	/* convert x to x' */
+
+	if (**point == NULL) {
+		*point = EC_POINT_dup(EC_KEY_get0_public_key(ec_key), EC_KEY_get0_group(ec_key));
+	} else {
+		EC_POINT_copy(*point, EC_KEY_get0_public_key(ec_key), EC_KEY_get0_group(ec_key));
+	}
+
+end:
+	EC_KEY_free(tmp);
+	return 0;
+}
+
+int SM2_update_public_key(EC_KEY *ec_key, const EC_POINT *pub_key)
+{
+	EC_GROUP *group;
+
+
+	group = EC_KEY_get0_group(ec_key);
+
+
+
+	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
+		if (!EC_POINT_get_affine_coordinates_GFp(group, pub_key, x, NULL, bn_ctx)) {
+			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
+			goto end;
+		}
+	} else {
+		if (!EC_POINT_get_affine_coordinates_GF2m(group, pub_key, x, NULL, bn_ctx)) {
+			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
+			goto end;
+		}
+	}
+
+	if (!BN_nnmod(x, x, ctx->two_pow_w, bn_ctx)) {
+		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!BN_add(x, x, ctx->two_pow_w)) {
+		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!BN_mod_mul(ctx->t, x, r, ctx->order, ctx->bn_ctx)) {
+		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!EC_POINT_mul(group, point, NULL, point, x, ctx->bn_ctx)) {
+		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!EC_POINT_add(group, pubkey, pubkey, point, bn_ctx)) {
+		goto end;
+	}
+
+	ret = 1;
+end:
+	return ret;
+}
+
+int SM2_derive_key(void *out, size_t outlen,
+	const EC_POINT *pub_key, EC_KEY *ec_key,
+	void *(*KDF)(const void *in, size_t inlen, void *out, size_t *outlen))
+{
+
+
+
+	return 0;
+}
+#endif
 
 /* FIXME: ephem_point_len should be both input and output */
 int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,

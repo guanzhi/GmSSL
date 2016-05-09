@@ -109,21 +109,27 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key);
 
-int SM2_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+int SM2_encrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+int SM2_decrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
-
+int SM2_encrypt(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int SM2_decrypt(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
 
 int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 	const void *msg, size_t msglen, unsigned char *dgst,
 	unsigned int *dgstlen, EC_KEY *ec_key);
+int SM2_digest(const void *msg, size_t msglen, unsigned char *dgst,
+	unsigned int *dgstlen, EC_KEY *ec_key);
+
 
 #define SM2_signature_size(ec_key)	ECDSA_size(ec_key)
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
@@ -181,7 +187,6 @@ typedef struct sm2_kap_ctx_st {
 
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx, EC_KEY *ec_key,
 	EC_KEY *remote_pubkey, int is_initiator, int do_checksum);
-void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
 int SM2_KAP_prepare(SM2_KAP_CTX *ctx, unsigned char *ephem_point,
 	size_t *ephem_point_len);
 int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_ephem_point,
@@ -189,6 +194,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_ephem_poin
 	unsigned char *checksum, size_t *checksumlen);
 int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	size_t checksumlen);
+void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
 
 
 

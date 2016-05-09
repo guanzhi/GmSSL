@@ -239,7 +239,7 @@ end:
 	return 0;
 }
 
-int SM2_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+int SM2_encrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
@@ -430,7 +430,7 @@ end:
 	return cv;
 }
 
-int SM2_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+int SM2_decrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	point_conversion_form_t point_form,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
@@ -597,5 +597,28 @@ end:
 	if (md_ctx) EVP_MD_CTX_destroy(md_ctx);
 
 	return ret;
+}
+
+
+int SM2_encrypt(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	const EVP_MD *kdf_md = EVP_sm3();
+	const EVP_MD *mac_md = EVP_sm3();
+	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
+	
+	return SM2_encrypt_ex(kdf_md, mac_md, point_form,
+		in, inlen, out, outlen, ec_key);
+}
+
+int SM2_decrypt(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	const EVP_MD *kdf_md = EVP_sm3();
+	const EVP_MD *mac_md = EVP_sm3();
+	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
+
+	return SM2_decrypt_ex(kdf_md, mac_md, point_form,
+		in, inlen, out, outlen, ec_key);	
 }
 

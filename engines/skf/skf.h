@@ -143,9 +143,6 @@ typedef HANDLE HCONTAINER;
 #define SECURE_USER_ACCOUNT		0x00000010
 #define SECURE_ANYONE_ACCOUNT		0x000000FF
 
-#define DEV_ABSENT_STATE		0x00000000
-#define DEV_PRESENT_STATE		0x00000001
-#define DEV_UNKNOW_STATE		0x00000010
 
 
 
@@ -259,6 +256,10 @@ ULONG DEVAPI SKF_EnumDev(BOOL bPresent,
 ULONG DEVAPI SKF_ConnectDev(LPSTR szName,
 	DEVHANDLE *phDev);
 ULONG DEVAPI SKF_DisConnectDev(DEVHANDLE hDev);
+
+#define DEV_ABSENT_STATE		0x00000000
+#define DEV_PRESENT_STATE		0x00000001
+#define DEV_UNKNOW_STATE		0x00000010
 ULONG DEVAPI SKF_GetDevState(LPSTR szDevName,
 	ULONG *pulDevState);
 ULONG DEVAPI SKF_SetLabel(DEVHANDLE hDev,
@@ -354,16 +355,29 @@ ULONG DEVAPI SKF_OpenContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer);
 ULONG DEVAPI SKF_CloseContainer(HCONTAINER hContainer);
+
+#define CONTAINER_TYPE_UNDEF	0
+#define CONTAINER_TYPE_RSA	1
+#define CONTAINER_TYPE_ECC	2
 ULONG DEVAPI SKF_GetContainerType(HCONTAINER hContainer,
 	ULONG *pulContainerType);
+
 ULONG DEVAPI SKF_ImportCertificate(HCONTAINER hContainer, 
-	BOOL bSignFlag,
+	BOOL bExportSignKey,
 	BYTE *pbCert,
 	ULONG ulCertLen);
+
 ULONG DEVAPI SKF_ExportCertificate(HCONTAINER hContainer,
 	BOOL bSignFlag,
 	BYTE *pbCert,
 	ULONG *pulCertLen);
+
+ULONG DEVAPI SKF_ExportPublicKey(HCONTAINER hContainer, 
+	BOOL bSignFlag,
+	BYTE *pbBlob,
+	ULONG *pulBlobLen);
+
+
 
 ULONG DEVAPI SKF_GenRandom(DEVHANDLE hDev,
 	BYTE *pbRandom,
@@ -409,14 +423,16 @@ ULONG DEVAPI SKF_ExtRSAPriKeyOperation(DEVHANDLE hDev,
 	ULONG ulInputLen,
 	BYTE *pbOutput,
 	ULONG *pulOutputLen);
+
 ULONG DEVAPI SKF_GenECCKeyPair(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pBlob);
 ULONG DEVAPI SKF_ImportECCKeyPair(HCONTAINER hContainer,
 	PENVELOPEDKEYBLOB pEnvelopedKeyBlob);
+
 ULONG DEVAPI SKF_ECCSignData(HCONTAINER hContainer,
-	BYTE *pbData,
-	ULONG ulDataLen, 
+	BYTE *pbDigest,
+	ULONG ulDigestLen,
 	PECCSIGNATUREBLOB pSignature);
 
 ULONG DEVAPI SKF_ECCVerify(DEVHANDLE hDev,
@@ -439,7 +455,7 @@ ULONG DEVAPI SKF_ExtECCDecrypt(DEVHANDLE hDev,
 	PECCCIPHERBLOB pCipherText,
 	BYTE *pbPlainText,
 	ULONG *pulPlainTextLen);
-ULONG DEVAPI SKF_ExtECCSign(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_ExtECCSign(DEVHANDLE hDev,
 	ECCPRIVATEKEYBLOB *pECCPriKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
@@ -449,6 +465,7 @@ ULONG DEVAPI SKF_ExtECCVerify(DEVHANDLE hDev,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	PECCSIGNATUREBLOB pSignature);
+
 ULONG DEVAPI SKF_GenerateAgreementDataWithECC(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pTempECCPubKeyBlob,
@@ -471,10 +488,8 @@ ULONG DEVAPI SKF_GenerateKeyWithECC(HANDLE hAgreementHandle,
 	BYTE *pbID,
 	ULONG ulIDLen,
 	HANDLE *phKeyHandle);
-ULONG DEVAPI SKF_ExportPublicKey(HCONTAINER hContainer, 
-	BOOL bSignFlag,
-	BYTE *pbBlob,
-	ULONG *pulBlobLen);
+
+
 ULONG DEVAPI SKF_ImportSessionKey(HCONTAINER hContainer, 
 	ULONG ulAlgId,
 	BYTE *pbWrapedData,
@@ -484,6 +499,7 @@ ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev,
 	BYTE *pbKey,
 	ULONG ulAlgID,
 	HANDLE *phKey);
+
 ULONG DEVAPI SKF_EncryptInit(HANDLE hKey,
 	BLOCKCIPHERPARAM EncryptParam);
 ULONG DEVAPI SKF_Encrypt(HANDLE hKey,
@@ -514,6 +530,7 @@ ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey,
 ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey, 
 	BYTE *pbDecryptedData,
 	ULONG *pulDecryptedDataLen);
+
 ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev, 
 	ULONG ulAlgID,
 	ECCPUBLICKEYBLOB *pPubKey,

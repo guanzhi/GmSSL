@@ -182,7 +182,7 @@ SHARED_LIBS_LINK_EXTS=.$(SHLIB_MAJOR).dylib .dylib
 SHARED_LDFLAGS=-arch x86_64 -dynamiclib
 
 GENERAL=        Makefile
-BASENAME=       openssl
+BASENAME=       gmssl
 NAME=           $(BASENAME)-$(VERSION)
 TARFILE=        $(NAME).tar
 WTARFILE=       $(NAME)-win.tar

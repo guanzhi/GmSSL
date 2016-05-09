@@ -80,6 +80,10 @@
 
 #include "asn1_locl.h"
 
+#ifndef OPENSSL_NO_GMSSL
+#include "../ec/ec_lcl.h"
+#endif
+
 static void EVP_PKEY_free_it(EVP_PKEY *x);
 
 int EVP_PKEY_bits(EVP_PKEY *pkey)
@@ -206,7 +210,6 @@ EVP_PKEY *EVP_PKEY_new(void)
  * Setup a public key ASN1 method and ENGINE from a NID or a string. If pkey
  * is NULL just return 1 or 0 if the algorithm exists.
  */
-
 static int pkey_set_type(EVP_PKEY *pkey, int type, const char *str, int len)
 {
     const EVP_PKEY_ASN1_METHOD *ameth;
@@ -247,6 +250,7 @@ static int pkey_set_type(EVP_PKEY *pkey, int type, const char *str, int len)
         pkey->type = pkey->ameth->pkey_id;
         pkey->save_type = type;
     }
+
     return 1;
 }
 
@@ -345,6 +349,7 @@ int EVP_PKEY_set1_SM2(EVP_PKEY *pkey, EC_KEY *key)
 
 EC_KEY *EVP_PKEY_get1_SM2(EVP_PKEY *pkey)
 {
+    /* FIXME: reconsider the SM2 and EC_KEY relationship */
     if (pkey->type != EVP_PKEY_SM2) {
         EVPerr(EVP_F_EVP_PKEY_GET1_EC_KEY, EVP_R_EXPECTING_A_EC_KEY);//FIXME:errno
         return NULL;

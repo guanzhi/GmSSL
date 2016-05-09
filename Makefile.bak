@@ -151,7 +151,7 @@ SDIRS=  \
 	buffer bio stack lhash rand err \
 	evp asn1 pem x509 x509v3 conf txt_db pkcs7 pkcs12 comp ocsp ui krb5 \
 	cms pqueue ts srp cmac \
-	sm2 sm3 sms4 ecies
+	sm2 sm3 sms4 ecies zuc
 
 # keep in mind that the above list is adjusted by ./Configure
 # according to no-xxx arguments...
@@ -182,7 +182,7 @@ SHARED_LIBS_LINK_EXTS=.$(SHLIB_MAJOR).dylib .dylib
 SHARED_LDFLAGS=-arch x86_64 -dynamiclib
 
 GENERAL=        Makefile
-BASENAME=       openssl
+BASENAME=       gmssl
 NAME=           $(BASENAME)-$(VERSION)
 TARFILE=        $(NAME).tar
 WTARFILE=       $(NAME)-win.tar

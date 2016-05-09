@@ -1,3 +1,7 @@
+/*
+ * The SKF ENGINE will be released when EC_KEY_METHOD is avaiable
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -28,74 +32,106 @@ static int skf_destroy(ENGINE *e);
 #define SKF_CMD_LIST_DEVS	ENGINE_CMD_BASE
 
 
+static int skf_open_container(const char *dev,
+	const unsigned char *authkey, size_t authkeylen,
+	const char *app, const char *pin,
+	const char *container, HCONTAINER *phContainer)
+{
+	ULONG rv;
+	DEVINFO devInfo;
+	DEVHANDLE hDev = NULL;
+	HAPPLICATION hApp = NULL;
+	HCONTAINER hContainer = NULL;
 
+	if ((rv = SKF_ConnectDev(dev, &hDev)) != SAR_OK) {
+		goto end;
+	}
+
+	if ((rv = SKF_GetDevInfo(hDev, &devInfo)) != SAR_OK) {
+		goto end;
+	}
+
+	if ((rv = SKF_GenRandom(hDev, authRand, sizeof(authRand))) != SAR_OK) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		goto end;
+	}
+
+	/* Encrypt(authRand, authData, authKey) */
+
+	if ((rv = SKF_DevAuth(hDev, authData, len)) != SAR_OK) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		goto end;
+	}
+
+	if ((rv = SKF_OpenApplication(hDev, appName, &hApp)) != SAR_OK) {
+		goto end;
+	}
+	if ((rv = SKF_VerifyPIN(hApp, USER_TYPE, pin, &retryCount)) != SAR_OK) {
+		goto end;
+	}
+
+	if ((rv = SKF_OpenContainer(hApp, containerName, &hContainer)) != SAR_OK) {
+		goto end;
+	}
+	if ((rv = SKF_GetContainerType(hContainer, &containerType)) != SAR_OK) {
+		goto end;
+	}
+	if (containerType != CONTAINER_TYPE_ECC) {
+		goto end;
+	}
+
+end:
+	return 0;
+}
+
+
+static EVP_PKEY *skf_load_pubkey(ENGINE *e, const char *key_id,
+	UI_METHOD *ui_method, void *callback_data)
+{
+	ULONG rv, len;
+	EVP_PKEY *ret = NULL;
+	EC_KEY *ec_key = NULL;
+	ECCPUBLICKEYBLOB blob;
+	BIGNUM *x = NULL;
+	BIGNUM *y = NULL;
+	int nbytes;
+
+	len = sizeof(blob);
+	if ((rv = SKF_ExportPublicKey(hContainer, TRUE, &blob, &len)) != SAR_OK) {
+		goto end;
+	}
+
+	if (!(ec_key = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+		goto end;
+	}
+	if (EC_KEY_get_degree(ec_key) != blob.BitLen) {
+		goto end;
+	}
+	nbytes = (blob.BitLen + 7)/8;
+	if (!(x = BN_bin2bn(&(blob.XCoordinate), nbytes, NULL))) {
+		goto end;
+	}
+	if (!(y = BN_bin2bn(&(blob.YCoordinate), nbytes, NULL))) {
+		goto end;
+	}
+	if (!EC_KEY_set_public_key_affine_coordinates(ec_key, x, y)) {
+		goto end;
+	}
+
+	if (!(ret = EVP_PKEY_new())) {
+		goto end;
+	}
+	EVP_PKEY_assign_SM2(ret, ec_key);	
+
+end:
+	EC_KEY_free(ec_key);
+	BN_free(x);
+	BN_free(y)
+	return ret;	
+}
 
 static int skf_init(ENGINE *e)
 {
-	ULONG rv;
-	ULONG len;
-	BOOL bPresent = TRUE;
-	CHAR *devNameList = NULL;
-	LPSTR devName;
-	ULONG devState;
-	DEVINFO devInfo;
-	BYTE authData[16];
-
-	CHAR appNameList[256];
-	LPSTR appName;
-	HAPPLICATION hApp;
-
-	CHAR containerNameList[256];
-	LPSTR containerName; 
-	HCONTAINER hContainer;
-	ULONG containerType;
-
-	if ((rv = SKF_EnumDev(bPresent, NULL, &len)) != SAR_OK) {
-		SKFerr(SKF_F_SKF_INIT, skf_err2openssl(rv));
-		goto end;
-	}
-	if (!(devNameList = OPENSSL_malloc(len))) {
-		goto end;
-	}
-	if ((rv = SKF_EnumDev(bPresent, devNameList, &len)) != SAR_OK) {
-		goto end;
-	}
-	if (devNameList[0] = 0) {
-		return -1;
-	}
-	devName = devNameList;
-
-	if ((rv = SKF_ConnectDev(devName, &hDev)) != SAR_OK) {
-		return -1;
-	}
-	if ((rv = SKF_GetDevInfo(hDev, &devInfo)) != SAR_OK) {
-		return -1;
-	}
-	if ((rv = SKF_DevAuth(hDev, authData, sizeof(authData))) != SAR_OK) {
-		return -1;
-	}
-	
-	if ((rv = SKF_EnumApplication(hDev, NULL, &len)) != SAR_OK) {
-		return -1;
-	}
-	if (!(appNameList = OPENSSL_malloc(len))) {
-		return -1;
-	}
-	if ((rv = SKF_EnumApplication(hDev, appNameList, &len)) != SAR_OK) {
-		return -1;
-	}
-	if (appNameList[0] = 0) {
-		return -1;
-	}
-	appName = appNameList;
-
-	if ((rv = SKF_OpenApplication(hDev, appName, &hApp)) != SAR_OK) {
-		return -1;
-	}
-
-	for (p = containerNameList; p; p += strlen(p)) {
-		// check container type
-	}
 	return 0;
 }
 
@@ -103,12 +139,6 @@ static int skf_finish(ENGINE *e)
 {	
 	return 0;
 }
-
-
-typedef struct {
-	HANDLE hKey;
-} EVP_SKF_KEY;
-
 
 static int skf_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	const unsigned char *iv, int enc)
@@ -476,7 +506,7 @@ static ENGINE *engine_skf(void)
 	return ret;
 }
 
-void ENGINE_load_4758cca(void)
+void ENGINE_load_skf(void)
 {
 	ENGINE *e_skf = engine_skf();
 	if (!e_skf) {
@@ -500,9 +530,15 @@ static int bind(ENGINE *e, const char *id)
 
 	if (!ENGINE_set_id(e, engine_skf_id) ||
 		!ENGINE_set_name(e, engine_skf_name) ||
+		!ENGINE_set_init_function(e, skf_init) ||
+		!ENGINE_set_finish_function(e, skf_finish) ||
+		!ENGINE_set_ctrl_function(e, skf_ctrl) ||
+		!ENGINE_set_destroy_function(e, skf_destroy) ||
 		!ENGINE_set_digests(e, skf_digests) ||
 		!ENGINE_set_ciphers(e, skf_ciphers) ||
+		!ENGINE_set_load_pubkey_function(e, skf_load_pubkey) ||
 		!ENGINE_set_RAND(e, &skf_random)) {
+
 		return 0;
 	}
 

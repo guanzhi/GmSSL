@@ -298,3 +298,13 @@ err:
 	return ret;
 }
 
+int SM2_digest(const void *msg, size_t msglen, unsigned char *dgst,
+	unsigned int *dgstlen, EC_KEY *ec_key)
+{
+	const EVP_MD *id_md = EVP_sm3();
+	const EVP_MD *msg_md = EVP_sm3();
+	
+	return SM2_compute_message_digest(id_md, msg_md,
+		msg, msglen, dgst, dgstlen, ec_key);
+}
+

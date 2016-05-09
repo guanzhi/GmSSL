@@ -1,6 +1,6 @@
-/* crypto/sms4/sms4.h */
+/* crypto/sms4/sms4_ede.c */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,53 +46,22 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
-#include <stdio.h>
-#include "cryptlib.h"
+#include "sms4.h"
 
-#ifndef OPENSSL_NO_SM3
-
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/sm3.h>
-
-
-static int init(EVP_MD_CTX *ctx)
+void sms4_ede_encrypt(sms4_ede_key_t *key, const unsigned char *in, unsigned char *out)
 {
-	return sm3_init(ctx->md_data);
+	sms4_encrypt(&key->k1, in, out);
+	sms4_decrypt(&key->k2, out, in);
+	sms4_encrypt(&key->k1, in, out);
 }
 
-static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+void sms4_ede_decrypt(sms4_ede_key_t *key, const unsigned char *in, unsigned char *out)
 {
-	return sm3_update(ctx->md_data, in, inlen);
+	sms4_decrypt(&key->k1, in, out);
+	sms4_encrypt(&key->k2, in, out);
+	sms4_decrypt(&key->k1, in, out);
 }
 
-static int final(EVP_MD_CTX *ctx, unsigned char *md)
-{
-	return sm3_final(ctx->md_data, md);
-}
 
-static const EVP_MD sm3_md = {
-        NID_sm3,
-        NID_sm2sign_with_sm3,
-        SM3_DIGEST_LENGTH,
-        0,
-        init,
-        update,
-        final,
-        NULL,
-        NULL,
-        EVP_PKEY_SM2_method,
-        SM3_BLOCK_SIZE,
-        sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
-};
-
-const EVP_MD *EVP_sm3(void)
-{
-        return &sm3_md;
-}
-
-#endif

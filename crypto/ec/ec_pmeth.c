@@ -385,6 +385,9 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             EVP_MD_type((const EVP_MD *)p2) != NID_ecdsa_with_SHA1 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha224 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha256 &&
+#ifndef OPENSSL_NO_GMSSL
+            EVP_MD_type((const EVP_MD *)p2) != NID_sm3 &&
+#endif
             EVP_MD_type((const EVP_MD *)p2) != NID_sha384 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha512) {
             ECerr(EC_F_PKEY_EC_CTRL, EC_R_INVALID_DIGEST_TYPE);
@@ -562,6 +565,32 @@ const EVP_PKEY_METHOD ec_pkey_meth = {
 };
 
 #ifndef OPENSSL_NO_SM2
+
+static int pkey_sm2_init(EVP_PKEY_CTX *ctx)
+{
+    EC_PKEY_CTX *dctx;
+    dctx = OPENSSL_malloc(sizeof(EC_PKEY_CTX));
+    if (!dctx)
+        return 0;
+    dctx->gen_group = EC_GROUP_new_by_curve_name(NID_sm2p256v1);
+    if (dctx->gen_group == NULL) {
+        return 0;
+    }
+    dctx->md = NULL; //FIXME: sm3
+
+    dctx->cofactor_mode = -1;
+    dctx->co_key = NULL;
+    dctx->kdf_type = EVP_PKEY_ECDH_KDF_NONE;
+    dctx->kdf_md = NULL;
+    dctx->kdf_outlen = 0;
+    dctx->kdf_ukm = NULL;
+    dctx->kdf_ukmlen = 0;
+
+    ctx->data = dctx;
+
+    return 1;
+}
+
 static int pkey_sm2_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
 {
     EC_KEY *ec = NULL;
@@ -593,8 +622,8 @@ static int pkey_sm2_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 	int ret;
 	EC_PKEY_CTX *ec_ctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
-	int type;
-	unsigned int len;
+	int type = NID_sm3;
+	size_t len;
 
 	if (!sig) {
 		*siglen = SM2_signature_size(ec_key);
@@ -605,12 +634,11 @@ static int pkey_sm2_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 		return 0;
 	}
 
-	type = ec_ctx->md ? EVP_MD_type(ec_ctx->md) : NID_sm3;
 	if ((ret = SM2_sign(type, dgst, dgstlen, sig, &len, ec_key)) <= 0) {
 		return ret;
 	}
 
-	*siglen = (size_t)len;
+	*siglen = len;
 	return 1;
 }
 
@@ -632,7 +660,7 @@ static int pkey_sm2_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	const EVP_MD *md = EVP_sm3();
 	unsigned char zid[EVP_MAX_MD_SIZE];
-	unsigned int zidlen;
+	unsigned int zidlen = sizeof(zid);
 
 	if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
         	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_SM2_LIB);
@@ -678,12 +706,11 @@ static int pkey_sm2_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	int ret = 0;
 	EC_PKEY_CTX *ec_ctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
-	const EVP_MD *md = EVP_sm3();
+	const EVP_MD *md = EVP_sm3(); // FIXME: we need to get md from somewhere
 	unsigned char zid[EVP_MAX_MD_SIZE];
 	unsigned int zidlen;
 
-	// FIXME: we need to get md from somewhere
-
+	zidlen = sizeof(zid);
 	if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
 		goto end;
 	}
@@ -693,25 +720,24 @@ static int pkey_sm2_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 
 	ret = 1;
 end:
-	return 0;
+	return ret;
 }
 
 static int pkey_sm2_verifyctx(EVP_PKEY_CTX *ctx,
 	const unsigned char *sig, int siglen, EVP_MD_CTX *mctx)
 {
+	unsigned char dgst[EVP_MAX_MD_SIZE];
+	size_t dgstlen;
 	EC_PKEY_CTX *ec_ctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	int type = ec_ctx->md ? EVP_MD_type(ec_ctx->md) : NID_sm3;
 
-	/*
+	dgstlen = sizeof(dgst);
 	if (!EVP_DigestFinal_ex(mctx, dgst, &dgstlen)) {
-		goto end;
+		return -1;
 	}
 
 	return SM2_verify(type, dgst, dgstlen, sig, siglen, ec_key);
-	*/
-	
-	return 0;
 }
 
 static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx,
@@ -728,7 +754,9 @@ static int pkey_sm2_encrypt(EVP_PKEY_CTX *ctx,
 	kdf_md = EVP_sm3();
 	mac_md = EVP_sm3();
 	
-	return SM2_encrypt(kdf_md, mac_md, point_form, in, inlen, out, outlen, ec_key);
+
+	//FIXME: where to put the parameters?
+	return SM2_encrypt(in, inlen, out, outlen, ec_key);
 }
 
 static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx,
@@ -741,12 +769,8 @@ static int pkey_sm2_decrypt(EVP_PKEY_CTX *ctx,
 	const EVP_MD *mac_md = ec_ctx->md;
 	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
 
-	//FIXME: the ec_ctx is not work, no one init it
-	kdf_md = EVP_sm3();
-	mac_md = EVP_sm3();
 
-	return SM2_decrypt(kdf_md, mac_md, point_form,
-		in, inlen, out, outlen, ec_key);
+	return SM2_decrypt(in, inlen, out, outlen, ec_key);
 }
 
 static int pkey_sm2_ctrl_digestinit(EVP_PKEY_CTX *pk_ctx, EVP_MD_CTX *md_ctx)
@@ -823,7 +847,7 @@ static int pkey_sm2_ctrl(EVP_PKEY_CTX *pk_ctx, int type, int p1, void *p2)
 const EVP_PKEY_METHOD sm2_pkey_meth = {
 	EVP_PKEY_SM2,
 	0,
-	pkey_ec_init,
+	pkey_sm2_init,
 	pkey_ec_copy,
 	pkey_ec_cleanup,
 	0,
@@ -846,7 +870,7 @@ const EVP_PKEY_METHOD sm2_pkey_meth = {
 	pkey_sm2_decrypt,
 	pkey_sm2_derive_init,
 	pkey_sm2_derive,
-	pkey_sm2_ctrl,
+	pkey_ec_ctrl,
 	pkey_ec_ctrl_str
 };
 #endif

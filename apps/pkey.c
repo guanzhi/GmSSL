@@ -210,6 +210,8 @@ int MAIN(int argc, char **argv)
     if (!pkey)
         goto end;
 
+printf("GMSSL %s %d\n", __FILE__, __LINE__);
+
     if (!noout) {
         if (outformat == FORMAT_PEM) {
             if (pubout)

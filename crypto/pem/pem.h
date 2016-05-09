@@ -137,6 +137,10 @@ extern "C" {
 # define PEM_STRING_ECPRIVATEKEY "EC PRIVATE KEY"
 # define PEM_STRING_PARAMETERS   "PARAMETERS"
 # define PEM_STRING_CMS          "CMS"
+# ifndef OPENSSL_NO_GMSSL
+# define PEM_STRING_SM2PARAMETERS "SM2 PARAMETERS"
+# define PEM_STRING_SM2PRIVATEKEY "SM2 PRIVATE KEY"
+# endif
 
   /*
    * Note that this structure is initialised by PEM_SealInit and cleaned up

@@ -2,23 +2,13 @@
 #include <string.h>
 #include "skf.h"
 
-#define DEV_NAME		"dev0"
+#define DEV_NAME		"skf-soft-token"
 #define DEV_NAME_LIST		DEV_NAME"\0"
-#define APP_NAME		"app0"
+#define APP_NAME		"default-app"
 #define APP_NAME_LIST		APP_NAME"\0"
 #define CONTAINER_NAME		"container0"
 #define CONTAINER_NAME_LIST	CONTAINER_NAME"\0"
-#define CONTAINER_TYPE_UNDEF	0
-#define CONTAINER_TYPE_RSA	1
-#define CONTAINER_TYPE_ECC	2
 
-
-int default_dev = 1;
-int default_app = 1;
-int default_container = 1;
-DEVHANDLE DEV_HANDLE = &default_dev;
-HAPPLICATION APP_HANDLE = &default_app;
-HCONTAINER CONTAINER_HANDLE = &default_container;
 
 
 ULONG DEVAPI SKF_WaitForDevEvent(LPSTR szDevName,
@@ -36,39 +26,12 @@ ULONG DEVAPI SKF_EnumDev(BOOL bPresent,
 	LPSTR szNameList,
 	ULONG *pulSize)
 {
-	if (!szNameList) {
-		*pulSize = sizeof(DEV_NAME_LIST);
-		return SAR_OK;
-	}
-
-	if (*pulSize < sizeof(DEV_NAME_LIST)) {
-		return SAR_BUFFER_TOO_SMALL;
-	}
-
-	memcpy(szNameList, DEV_NAME_LIST, sizeof(DEV_NAME_LIST));
-	*pulSize = sizeof(DEV_NAME_LIST);
-
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ConnectDev(LPSTR szName,
 	DEVHANDLE *phDev)
 {
-	printf("%s\n", (char *)szName);
-
-
-	if (!phDev) {
-		printf("shit\n");
-		return SAR_INVALIDPARAMERR;
-	}
-
-	if (memcmp(szName, DEV_NAME, sizeof(DEV_NAME))) {
-		printf("%s  %s\n", szName, DEV_NAME);
-		return SAR_FAIL;
-	}
-
-	*phDev = DEV_HANDLE;
-
 	return SAR_OK;
 }
 
@@ -80,23 +43,17 @@ ULONG DEVAPI SKF_DisConnectDev(DEVHANDLE hDev)
 ULONG DEVAPI SKF_GetDevState(LPSTR szDevName,
 	ULONG *pulDevState)
 {
-	if (!szDevName || !pulDevState) {
+	if (!pulDevState) {
 		return SAR_INVALIDPARAMERR;
 	}
-
-	if (memcmp(szDevName, DEV_NAME, sizeof(DEV_NAME))) {
-		return SAR_FAIL;
-	}
-
 	*pulDevState = DEV_PRESENT_STATE;
-
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_SetLabel(DEVHANDLE hDev,
 	LPSTR szLabel)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
@@ -131,12 +88,12 @@ ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
 ULONG DEVAPI SKF_LockDev(DEVHANDLE hDev,
 	ULONG ulTimeOut)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_UnlockDev(DEVHANDLE hDev)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Transmit(DEVHANDLE hDev,
@@ -145,14 +102,14 @@ ULONG DEVAPI SKF_Transmit(DEVHANDLE hDev,
 	BYTE *pbData,
 	ULONG *pulDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ChangeDevAuthKey(DEVHANDLE hDev,
 	BYTE *pbKeyValue,
 	ULONG ulKeyLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DevAuth(DEVHANDLE hDev,
@@ -168,7 +125,7 @@ ULONG DEVAPI SKF_ChangePIN(HAPPLICATION hApplication,
 	LPSTR szNewPin,
 	ULONG *pulRetryCount)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 LONG DEVAPI SKF_GetPINInfo(HAPPLICATION hApplication,
@@ -193,12 +150,12 @@ ULONG DEVAPI SKF_UnblockPIN(HAPPLICATION hApplication,
 	LPSTR szNewUserPIN,
 	ULONG *pulRetryCount)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ClearSecureState(HAPPLICATION hApplication)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CreateApplication(DEVHANDLE hDev,
@@ -210,7 +167,7 @@ ULONG DEVAPI SKF_CreateApplication(DEVHANDLE hDev,
 	DWORD dwCreateFileRights,
 	HAPPLICATION *phApplication)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EnumApplication(DEVHANDLE hDev,
@@ -221,45 +178,31 @@ ULONG DEVAPI SKF_EnumApplication(DEVHANDLE hDev,
 		*pulSize = sizeof(APP_NAME_LIST);
 		return SAR_OK;
 	}
-
 	if (*pulSize < sizeof(APP_NAME_LIST)) {
 		return SAR_BUFFER_TOO_SMALL;
 	}
-
 	memcpy(szAppName, APP_NAME_LIST, sizeof(APP_NAME_LIST));
-
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DeleteApplication(DEVHANDLE hDev,
 	LPSTR szAppName)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_OpenApplication(DEVHANDLE hDev,
 	LPSTR szAppName,
 	HAPPLICATION *phApplication)
 {
-	if (!szAppName || !phApplication) {
+	if (!phApplication) {
 		return SAR_INVALIDPARAMERR;
 	}
-
-	if (hDev != DEV_HANDLE || memcmp(szAppName, APP_NAME, sizeof(APP_NAME))) {
-		return SAR_FAIL;
-	}
-
-	*phApplication = APP_HANDLE;
-
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseApplication(HAPPLICATION hApplication)
 {
-	if (hApplication != APP_HANDLE) {
-		return SAR_FAIL;
-	}
-
 	return SAR_OK;
 }
 
@@ -315,13 +258,13 @@ ULONG DEVAPI SKF_CreateContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DeleteContainer(HAPPLICATION hApplication, 
 	LPSTR szContainerName)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EnumContainer(HAPPLICATION hApplication,
@@ -331,22 +274,14 @@ ULONG DEVAPI SKF_EnumContainer(HAPPLICATION hApplication,
 	if (!pulSize) {
 		return SAR_INVALIDPARAMERR;
 	}
-
-	if (hApplication != APP_HANDLE) {
-		return SAR_FAIL;
-	}
-
 	if (!szContainerName) {
 		*pulSize = sizeof(CONTAINER_NAME_LIST);
 		return SAR_OK;
 	}
-
 	if (*pulSize < sizeof(CONTAINER_NAME_LIST)) {
 		return SAR_BUFFER_TOO_SMALL;
 	}
-
 	memcpy(szContainerName, CONTAINER_NAME_LIST, sizeof(CONTAINER_NAME_LIST));
-
 	return SAR_OK;
 }
 
@@ -354,25 +289,11 @@ ULONG DEVAPI SKF_OpenContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer)
 {
-	if (!szContainerName || !phContainer) {
-		return SAR_INVALIDPARAMERR;
-	}
-
-	if (hApplication != APP_HANDLE || memcmp(szContainerName, CONTAINER_NAME, sizeof(CONTAINER_NAME))) {
-		return SAR_FAIL;
-	}
-
-	*phContainer = CONTAINER_HANDLE;
-
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseContainer(HCONTAINER hContainer)
 {
-	if (hContainer != CONTAINER_HANDLE) {
-		return SAR_FAIL;
-	}
-
 	return SAR_OK;
 }
 
@@ -382,13 +303,7 @@ ULONG DEVAPI SKF_GetContainerType(HCONTAINER hContainer,
 	if (!pulContainerType) {
 		return SAR_INVALIDPARAMERR;
 	}
-
-	if (hContainer != CONTAINER_HANDLE) {
-		return SAR_FAIL;
-	}
-
-	*pulContainerType = CONTAINER_TYPE_UNDEF;
-	
+	*pulContainerType = CONTAINER_TYPE_ECC;
 	return SAR_OK;
 }
 
@@ -397,7 +312,7 @@ ULONG DEVAPI SKF_ImportCertificate(HCONTAINER hContainer,
 	BYTE *pbCert,
 	ULONG ulCertLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExportCertificate(HCONTAINER hContainer,
@@ -412,19 +327,6 @@ ULONG DEVAPI SKF_GenRandom(DEVHANDLE hDev,
 	BYTE *pbRandom,
 	ULONG ulRandomLen)
 {
-/*
-	if (!pbRandom || ulRandomLen > 100 * 1024 * 1024) {
-		return SAR_INVALIDPARAMERR;
-	}
-
-	if (hDev != DEV_HANDLE) {
-		return SAR_FAIL;
-	}
-
-	if (!RAND_pseudo_bytes(pbRandom, ulRandomLen)) {
-		return SAR_GENRANDERR;
-	}
-*/
 	return SAR_OK;
 }
 
@@ -632,13 +534,13 @@ ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev,
 	ULONG ulAlgID, 
 	HANDLE *phKey)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptInit(HANDLE hKey, 
 	BLOCKCIPHERPARAM EncryptParam)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Encrypt(HANDLE hKey,
@@ -647,7 +549,7 @@ ULONG DEVAPI SKF_Encrypt(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptUpdate(HANDLE hKey,
@@ -656,20 +558,20 @@ ULONG DEVAPI SKF_EncryptUpdate(HANDLE hKey,
 	BYTE *pbEncryptedData, 
 	ULONG *pulEncryptedLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptFinal(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DecryptInit(HANDLE hKey, 
 	BLOCKCIPHERPARAM DecryptParam)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Decrypt(HANDLE hKey, 
@@ -678,7 +580,7 @@ ULONG DEVAPI SKF_Decrypt(HANDLE hKey,
 	BYTE *pbData, 
 	ULONG *pulDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey, 
@@ -687,14 +589,14 @@ ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey,
 	BYTE *pbData, 
 	ULONG *pulDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey, 
 	BYTE *pbDecryptedData,
 	ULONG *pulDecryptedDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev,

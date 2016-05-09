@@ -344,7 +344,11 @@ int MAIN(int argc, char **argv)
     }
 
     if (dgst == NULL) {
+#ifndef OPENSSL_NO_GMSSL
+        dgst = EVP_sm3();
+#else
         dgst = EVP_md5();
+#endif
     }
 
     if (bufsize != NULL) {

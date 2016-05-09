@@ -502,6 +502,7 @@ static int eckey_param_decode(EVP_PKEY *pkey,
                               const unsigned char **pder, int derlen)
 {
     EC_KEY *eckey;
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
     if (!(eckey = d2i_ECParameters(NULL, pder, derlen))) {
         ECerr(EC_F_ECKEY_PARAM_DECODE, ERR_R_EC_LIB);
         return 0;
@@ -641,40 +642,6 @@ const EVP_PKEY_ASN1_METHOD eckey_asn1_meth = {
     old_ec_priv_encode
 };
 
-#ifndef OPENSSL_NO_SM2
-const EVP_PKEY_ASN1_METHOD sm2_asn1_meth = {
-    EVP_PKEY_SM2,
-    EVP_PKEY_SM2,
-    0,
-    "SM2",
-    "GmSSL SM2 algorithm",
-
-    eckey_pub_decode,
-    eckey_pub_encode,
-    eckey_pub_cmp,
-    eckey_pub_print,
-
-    eckey_priv_decode,
-    eckey_priv_encode,
-    eckey_priv_print,
-
-    int_ec_size,
-    ec_bits,
-
-    eckey_param_decode,
-    eckey_param_encode,
-    ec_missing_parameters,
-    ec_copy_parameters,
-    ec_cmp_parameters,
-    eckey_param_print,
-    0,
-
-    int_ec_free,
-    ec_pkey_ctrl,
-    old_ec_priv_decode,
-    old_ec_priv_encode
-};
-#endif
 
 
 #ifndef OPENSSL_NO_CMS
@@ -998,4 +965,175 @@ static int ecdh_cms_encrypt(CMS_RecipientInfo *ri)
     return rv;
 }
 
+#endif
+
+
+#ifndef OPENSSL_NO_GMSSL
+static int sm2_pub_decode(EVP_PKEY *pkey, X509_PUBKEY *pubkey)
+{
+    const unsigned char *p = NULL;
+    void *pval;
+    int ptype, pklen;
+    EC_KEY *eckey = NULL;
+    X509_ALGOR *palg;
+
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+
+    if (!X509_PUBKEY_get0_param(NULL, &p, &pklen, &palg, pubkey))
+        return 0;
+    X509_ALGOR_get0(NULL, &ptype, &pval, palg);
+
+    eckey = eckey_type2param(ptype, pval);
+
+    if (!eckey) {
+        ECerr(EC_F_ECKEY_PUB_DECODE, ERR_R_EC_LIB);
+        return 0;
+    }
+
+    /* We have parameters now set public key */
+    if (!o2i_ECPublicKey(&eckey, &p, pklen)) {
+        ECerr(EC_F_ECKEY_PUB_DECODE, EC_R_DECODE_ERROR);
+        goto ecerr;
+    }
+
+    EVP_PKEY_assign_EC_KEY(pkey, eckey);
+    return 1;
+
+ ecerr:
+    if (eckey)
+        EC_KEY_free(eckey);
+    return 0;
+}
+
+static int sm2_priv_decode(EVP_PKEY *pkey, PKCS8_PRIV_KEY_INFO *p8)
+{
+    const unsigned char *p = NULL;
+    void *pval;
+    int ptype, pklen;
+    EC_KEY *eckey = NULL;
+    X509_ALGOR *palg;
+
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+    if (!PKCS8_pkey_get0(NULL, &p, &pklen, &palg, p8))
+        return 0;
+    X509_ALGOR_get0(NULL, &ptype, &pval, palg);
+
+    eckey = eckey_type2param(ptype, pval);
+
+    if (!eckey)
+        goto ecliberr;
+
+    /* We have parameters now set private key */
+    if (!d2i_ECPrivateKey(&eckey, &p, pklen)) {
+        ECerr(EC_F_ECKEY_PRIV_DECODE, EC_R_DECODE_ERROR);
+        goto ecerr;
+    }
+
+    /* calculate public key (if necessary) */
+    if (EC_KEY_get0_public_key(eckey) == NULL) {
+        const BIGNUM *priv_key;
+        const EC_GROUP *group;
+        EC_POINT *pub_key;
+        /*
+         * the public key was not included in the SEC1 private key =>
+         * calculate the public key
+         */
+        group = EC_KEY_get0_group(eckey);
+        pub_key = EC_POINT_new(group);
+        if (pub_key == NULL) {
+            ECerr(EC_F_ECKEY_PRIV_DECODE, ERR_R_EC_LIB);
+            goto ecliberr;
+        }
+        if (!EC_POINT_copy(pub_key, EC_GROUP_get0_generator(group))) {
+            EC_POINT_free(pub_key);
+            ECerr(EC_F_ECKEY_PRIV_DECODE, ERR_R_EC_LIB);
+            goto ecliberr;
+        }
+        priv_key = EC_KEY_get0_private_key(eckey);
+        if (!EC_POINT_mul(group, pub_key, priv_key, NULL, NULL, NULL)) {
+            EC_POINT_free(pub_key);
+            ECerr(EC_F_ECKEY_PRIV_DECODE, ERR_R_EC_LIB);
+            goto ecliberr;
+        }
+        if (EC_KEY_set_public_key(eckey, pub_key) == 0) {
+            EC_POINT_free(pub_key);
+            ECerr(EC_F_ECKEY_PRIV_DECODE, ERR_R_EC_LIB);
+            goto ecliberr;
+        }
+        EC_POINT_free(pub_key);
+    }
+
+    EVP_PKEY_assign_SM2(pkey, eckey);
+    return 1;
+
+ ecliberr:
+    ECerr(EC_F_ECKEY_PRIV_DECODE, ERR_R_EC_LIB);
+ ecerr:
+    if (eckey)
+        EC_KEY_free(eckey);
+    return 0;
+}
+
+static int sm2_param_decode(EVP_PKEY *pkey,
+                              const unsigned char **pder, int derlen)
+{
+    EC_KEY *eckey;
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+    if (!(eckey = d2i_ECParameters(NULL, pder, derlen))) {
+        ECerr(EC_F_ECKEY_PARAM_DECODE, ERR_R_EC_LIB);
+        return 0;
+    }
+    EVP_PKEY_assign_SM2(pkey, eckey);
+    return 1;
+}
+
+static int old_sm2_priv_decode(EVP_PKEY *pkey,
+                              const unsigned char **pder, int derlen)
+{
+    EC_KEY *ec;
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+    if (!(ec = d2i_ECPrivateKey(NULL, pder, derlen))) {
+        ECerr(EC_F_OLD_EC_PRIV_DECODE, EC_R_DECODE_ERROR);
+        return 0;
+    }
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+    EVP_PKEY_assign_SM2(pkey, ec);
+fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+
+OPENSSL_assert(EC_KEY_get0_group(ec));
+    return 1;
+}
+
+const EVP_PKEY_ASN1_METHOD sm2_asn1_meth = {
+    EVP_PKEY_SM2,
+    EVP_PKEY_SM2,
+    0,
+    "SM2",
+    "GmSSL SM2 algorithm",
+
+    sm2_pub_decode,
+    eckey_pub_encode,
+    eckey_pub_cmp,
+    eckey_pub_print,
+
+    sm2_priv_decode,
+    eckey_priv_encode,
+    eckey_priv_print,
+
+    int_ec_size,
+    ec_bits,
+
+    sm2_param_decode,
+    eckey_param_encode,
+    ec_missing_parameters,
+    ec_copy_parameters,
+    ec_cmp_parameters,
+    eckey_param_print,
+    0,
+
+    int_ec_free,
+    ec_pkey_ctrl,
+    old_sm2_priv_decode,
+    old_ec_priv_encode
+};
 #endif

@@ -1,4 +1,4 @@
-/* demo/gmssl/sms4enc.c */
+/* crypto/sms4/sms4speed.c */
 /* ====================================================================
  * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
@@ -46,66 +46,42 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
+
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/hmac.h>
-#include <openssl/rand.h>
+#include <string.h>
+#include <libgen.h>
+#include <openmp.h>
+#include "sms4.h"
+
 
 int main(int argc, char **argv)
 {
-	int ret = -1;
-	FILE *fp = stdin;
-	unsigned char key[32];
-	unsigned char buf[1024];
-	int len;
-	const EVP_MD *md;
-	HMAC_CTX hmctx;
-	unsigned char mac[EVP_MAX_MD_SIZE];
-	unsigned int maclen, i;
+	sms4_key_t sms4_key;
+	unsigned char user_key[16] = {
+		0x11,  0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+		0x11,  0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+	};
+	size_t buflen = SMS4_BLOCK_SIZE * 8 * 3 * 1000 * 1000;	
+	unsigned char *buf = NULL;
+	unsigned char *p;
+	int i;	
 
-	if (argc == 2) {
-		if (!(fp = fopen(argv[1], "r"))) {
-			fprintf(stderr, "open file %s failed\n", argv[1]);
-			return -1;
-		}
+
+	if (!(buf = (unsigned char *)malloc(buflen))) {
+		fprintf(stderr, "malloc failed\n");
+		return -1;
 	}
 
-	HMAC_CTX_init(&hmctx);
-
-	RAND_bytes(key, sizeof(key));
-
-	OpenSSL_add_all_digests();
-	if (!(md = EVP_get_digestbyname("sm3"))) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	if (!EVP_DigestSignInit()) {
-		goto end;
+	sms4_set_encrypt_key(&sms4_key, user_key);
+	
+	#pragma omp parallel for
+	for (i = 0, p = buf; i < buflen/(SMS4_BLOCK_SIZE * 16); i++, p += SMS4_BLOCK_SIZE * 16) {
+		sms4_encrypt_16blocks(&sms4_key, p, p);
 	}	
-
-	while ((len = fread(buf, 1, sizeof(buf), fp))) {
-		EVP_DigestSignUpdate(&hmctx, buf, len);
-	}
-
-	if (!EVP_DigestSignFinal()) {
-		goto end;
-	}
-
-	for (i = 0; i < maclen; i++) {
-		printf("%02x", mac[i]);
-	}
-	printf("\n");
-	ret = 0;
-
-end:
-	fclose(fp);
-	EVP_cleanup();
-	return ret;
+	
+	return 0;
 }
 

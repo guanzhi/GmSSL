@@ -101,10 +101,10 @@ int EVP_PKEY_decrypt_old(unsigned char *out, const unsigned char *in, int inlen,
 		return 0;
 	}
 
-	if (!EVP_PKEY_encrypt_init(ctx)) {
+	if (!EVP_PKEY_decrypt_init(ctx)) {
 		goto end;
 	}
-	if (!EVP_PKEY_encrypt(ctx, out, &outlen, in, inlen)) {
+	if (!EVP_PKEY_decrypt(ctx, out, &outlen, in, inlen)) {
 		goto end;
 	}
 

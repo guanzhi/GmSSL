@@ -89,8 +89,10 @@ EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb,
         return NULL;
     p = data;
 
+fprintf(stderr, "GMSSL: %s %d: nm = %s\n", __FILE__, __LINE__, nm);
     if (strcmp(nm, PEM_STRING_PKCS8INF) == 0) {
         PKCS8_PRIV_KEY_INFO *p8inf;
+fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
         p8inf = d2i_PKCS8_PRIV_KEY_INFO(NULL, &p, len);
         if (!p8inf)
             goto p8err;
@@ -106,6 +108,7 @@ EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb,
         X509_SIG *p8;
         int klen;
         char psbuf[PEM_BUFSIZE];
+fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
         p8 = d2i_X509_SIG(NULL, &p, len);
         if (!p8)
             goto p8err;
@@ -131,11 +134,20 @@ EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb,
         PKCS8_PRIV_KEY_INFO_free(p8inf);
     } else if ((slen = pem_check_suffix(nm, "PRIVATE KEY")) > 0) {
         const EVP_PKEY_ASN1_METHOD *ameth;
+fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
+fprintf(stderr, "GMSSL: %s %d: slen = %d\n", __FILE__, __LINE__, slen);
+
         ameth = EVP_PKEY_asn1_find_str(NULL, nm, slen);
+
+OPENSSL_assert(ameth != NULL);
+
         if (!ameth || !ameth->old_priv_decode)
             goto p8err;
+fprintf(stderr, "GMSSL: %s %d: type id = %d\n", __FILE__, __LINE__, ameth->pkey_id);
         ret = d2i_PrivateKey(ameth->pkey_id, x, &p, len);
+OPENSSL_assert(ret != NULL);
     }
+fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
  p8err:
     if (ret == NULL)
         PEMerr(PEM_F_PEM_READ_BIO_PRIVATEKEY, ERR_R_ASN1_LIB);
@@ -143,6 +155,7 @@ EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb,
     OPENSSL_free(nm);
     OPENSSL_cleanse(data, len);
     OPENSSL_free(data);
+fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
     return (ret);
 }
 

@@ -180,7 +180,7 @@ SHARED_LIBS_LINK_EXTS=
 SHARED_LDFLAGS=
 
 GENERAL=        Makefile
-BASENAME=       openssl
+BASENAME=       gmssl
 NAME=           $(BASENAME)-$(VERSION)
 TARFILE=        $(NAME).tar
 WTARFILE=       $(NAME)-win.tar

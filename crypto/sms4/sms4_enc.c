@@ -1,6 +1,6 @@
-/* crypto/sms4/sms4.h */
+/* crypto/sms4/sms4_enc.c */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,53 +46,42 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
-#include <stdio.h>
-#include "cryptlib.h"
-
-#ifndef OPENSSL_NO_SM3
-
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/sm3.h>
+#include "sms4.h"
+#include "sms4_lcl.h"
 
 
-static int init(EVP_MD_CTX *ctx)
+#define L32(x)						\
+	((x) ^						\
+	ROT32((x),  2) ^				\
+	ROT32((x), 10) ^				\
+	ROT32((x), 18) ^				\
+	ROT32((x), 24))
+
+#define ROUND(x0, x1, x2, x3, x4, i)			\
+	x4 = x1 ^ x2 ^ x3 ^ *(rk + i);			\
+	x4 = S32(x4);					\
+	x4 = x0 ^ L32(x4)
+
+
+void sms4_encrypt(sms4_key_t *key, const unsigned char *in, unsigned char *out)
 {
-	return sm3_init(ctx->md_data);
+	uint32_t *rk = key->rk;
+	uint32_t x0, x1, x2, x3, x4;
+
+	x0 = GET32(in     );
+	x1 = GET32(in +  4);
+	x2 = GET32(in +  8);
+	x3 = GET32(in + 12);
+
+	ROUNDS(x0, x1, x2, x3, x4);
+
+	PUT32(x0, out     );
+	PUT32(x4, out +  4);
+	PUT32(x3, out +  8);
+	PUT32(x2, out + 12);
+
+	x0 = x1 = x2 = x3 = x4 = 0;
 }
 
-static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
-{
-	return sm3_update(ctx->md_data, in, inlen);
-}
-
-static int final(EVP_MD_CTX *ctx, unsigned char *md)
-{
-	return sm3_final(ctx->md_data, md);
-}
-
-static const EVP_MD sm3_md = {
-        NID_sm3,
-        NID_sm2sign_with_sm3,
-        SM3_DIGEST_LENGTH,
-        0,
-        init,
-        update,
-        final,
-        NULL,
-        NULL,
-        EVP_PKEY_SM2_method,
-        SM3_BLOCK_SIZE,
-        sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
-};
-
-const EVP_MD *EVP_sm3(void)
-{
-        return &sm3_md;
-}
-
-#endif
