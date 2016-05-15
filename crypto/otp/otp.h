@@ -1,4 +1,4 @@
-/* ssl/gmssl.h */
+/* crypto/otp/otp.h */
 /* ====================================================================
  * Copyright (c) 2015 The GmSSL Project.  All rights reserved.
  *
@@ -49,86 +49,37 @@
  *
  */
 
+#ifndef HEADER_OTP_H
+#define HEADER_OTP_H
 
-#ifndef HEADER_GMSSL_H
-#define HEADER_GMSSL_H
-
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct OTP_PARAMS_st {
+	int type;
+	int te;
+	void *option;
+	size_t option_size;
+	int otp_digits;
+} OTP_PARAMS;
 
-#define GM1_VERSION		0x0101
-#define GM1_VERSION_MAJOR	0x01
-#define GM1_VERSION_MINOR	0x01
-
-#define GMSSL1_1_VERSION	0x0101
-
-
-#define GM1_get_version(s) \
-	((s->version >> 8) == GM1_VERSION_MAJOR ? s->version : 0)
-
-#define GM1_get_client_version(s) \
-	((s->client_version >> 8) == GM1_VERSION_MAJOR ? s->client_version : 0)
-
-
-/* from GM/T 0024-2014 Table 2 */
-#define GM1_CK_ECDHE_SM1_SM3	0x0300E001
-#define GM1_CK_ECC_SM1_SM3	0x0300E003
-#define GM1_CK_IBSDH_SM1_SM3	0x0300E005
-#define GM1_CK_IBC_SM1_SM3	0x0300E007
-#define GM1_CK_RSA_SM1_SM3	0x0300E009
-#define GM1_CK_RSA_SM1_SHA1	0x0300E00A
-#define GM1_CK_ECDHE_SM4_SM3	0x0300E011
-#define GM1_CK_ECC_SM4_SM3	0x0300E013
-#define GM1_CK_IBSDH_SM4_SM3	0x0300E015
-#define GM1_CK_IBC_SM4_SM3	0x0300E017
-#define GM1_CK_RSA_SM4_SM3	0x0300E019
-#define GM1_CK_RSA_SM4_SHA1	0x0300E01A
-
-#define GM1_TXT_ECDHE_SM1_SM3	"ECDHE-SM1-SM3"
-#define GM1_TXT_ECC_SM1_SM3	"ECC-SM1-SM3"
-#define GM1_TXT_IBSDH_SM1_SM3	"IBSDH-SM1-SM3"
-#define GM1_TXT_IBC_SM1_SM3	"IBC-SM1-SM3"
-#define GM1_TXT_RSA_SM1_SM3	"RSA-SM1-SM3"
-#define GM1_TXT_RSA_SM1_SHA1	"RSA-SM1-SHA1"
-#define GM1_TXT_ECDHE_SM4_SM3	"ECDHE-SM4-SM3"
-#define GM1_TXT_ECC_SM4_SM3	"ECC-SM4-SM3"
-#define GM1_TXT_IBSDH_SM4_SM3	"IBSDH-SM4-SM3"
-#define GM1_TXT_IBC_SM4_SM3	"IBC-SM4-SM3"
-#define GM1_TXT_RSA_SM4_SM3	"RSA-SM4-SM3"
-#define GM1_TXT_RSA_SM4_SHA1	"RSA-SM4-SHA1"
-
-/* from GM/T 0024-2014 Table 1 */
-#define GM1_AD_UNSUPPORTED_SITE2SITE	200 /* fatal */
-#define GM1_AD_NO_AREA			201
-#define GM1_AD_UNSUPPORTED_AREATYPE	202
-#define GM1_AD_BAD_IBCPARAM		203 /* fatal */
-#define GM1_AD_UNSUPPORTED_IBCPARAM	204 /* fatal */
-#define GM1_AD_IDENTITY_NEED		205 /* fatal */
-
-#if 0
-/* Bits for algorithm_enc (symmetric encryption */
-#define SSL_SM1			0x00004000L
-#define SSL_SM4			0x00008000L
-
-/* bits for algorithm_mac */
-#define SSL_SM3			0x00000040L
-#endif
-
-#define SSL_HANDSHAKE_MAC_SM3	0x200
-
-/* SSL_MAX_DIGEST in ssl_locl.h should be update */
-
-#define GM1_PRF_SM3 (SSL_HANDSHAKE_MAC_SM3 << TLS1_PRF_DGST_SHIFT)
-
-
-
+/* OTP reference to the GM/T OTP specification
+ * type should be a valid md nid or a ECB cipher nid
+ * te is the time period in the range [1, 60]
+ * event is the C in ID = {T|C|O}
+ * opt is the O in ID = {T|C|O}
+ * otp_digits is the number of digits of otp, choose in the range [4, 8]
+ * otp the output otp value, convert to digits with snprintf()
+ */
+int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
+	unsigned int *otp, const unsigned char *key, size_t keylen);
 
 
 #ifdef __cplusplus
-}
+extern "C" {
 #endif
 #endif
 

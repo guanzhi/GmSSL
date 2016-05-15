@@ -17,8 +17,8 @@ TEST=
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=cbcmac.c cbcmac_ameth.c cbcmac_pmeth.c
-LIBOBJ=cbcmac.o cbcmac_ameth.o cbcmac_pmeth.o
+LIBSRC=cbcmac.c cbcm_ameth.c cbcm_pmeth.c
+LIBOBJ=cbcmac.o cbcm_ameth.o cbcm_pmeth.o
 
 SRC= $(LIBSRC)
 

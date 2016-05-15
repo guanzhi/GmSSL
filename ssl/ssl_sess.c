@@ -448,8 +448,8 @@ int ssl_get_new_session(SSL *s, int session)
             ss->ssl_version = DTLS1_2_VERSION;
             ss->session_id_length = SSL3_SSL_SESSION_ID_LENGTH;
 #ifndef OPENSSL_NO_GMSSL
-        } else if (s->version == GMSSL1_1_VERSION) {
-            ss->ssl_version = GMSSL1_1_VERSION;
+        } else if (s->version == GM1_VERSION) {
+            ss->ssl_version = GM1_VERSION;
             ss->session_id_length = SSL3_SSL_SESSION_ID_LENGTH;
 #endif
         } else {

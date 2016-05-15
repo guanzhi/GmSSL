@@ -55,19 +55,17 @@
 #include <openssl/rand.h>
 #include <openssl/objects.h>
 #include <openssl/evp.h>
-#include <openssl/gmssl.h>
+#include <openssl/gmssl1.h>
 
-static const SSL_METHOD *gmssl_get_client_method(int ver)
+static const SSL_METHOD *gm1_get_client_method(int ver)
 {
-	if (ver == GMSSL1_1_VERSION) {
-		return GMSSLv1_1_client_method();
+	if (ver == GM1_VERSION) {
+		return GMSSLv1_client_method();
 	}
 	return NULL;
 }
 
-IMPLEMENT_gmssl_meth_func(GMSSL1_1_VERSION, GMSSLv1_1_client_method,
-                        ssl_undefined_function,
-                        ssl3_connect,
-                        gmssl_get_client_method, GMSSLv1_1_enc_data)
-
+IMPLEMENT_gm1_meth_func(GMSSLv1_client_method,
+			ssl_undefined_function,ssl3_connect,
+			gm1_get_client_method)
 

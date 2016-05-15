@@ -13,8 +13,8 @@ SHLIB_MAJOR=1
 SHLIB_MINOR=0.0
 SHLIB_EXT=.$(SHLIB_MAJOR).$(SHLIB_MINOR).dylib
 PLATFORM=darwin64-x86_64-cc
-OPTIONS=--prefix=/usr/local --openssldir=/usr/local/openssl no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-libunbound no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-ssl-trace no-store no-unit-test no-zlib no-zlib-dynamic static-engine
-CONFIGURE_ARGS=darwin64-x86_64-cc --prefix=/usr/local --openssldir=/usr/local/openssl
+OPTIONS=--prefix=/usr/local/ --openssldir=/usr/local/openssl/ no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-libunbound no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-ssl-trace no-store no-unit-test no-zlib no-zlib-dynamic static-engine
+CONFIGURE_ARGS=darwin64-x86_64-cc --prefix=/usr/local/ --openssldir=/usr/local/openssl/
 SHLIB_TARGET=darwin-shared
 
 # HERE indicates where this Makefile lives.  This can be used to indicate
@@ -151,7 +151,7 @@ SDIRS=  \
 	buffer bio stack lhash rand err \
 	evp asn1 pem x509 x509v3 conf txt_db pkcs7 pkcs12 comp ocsp ui krb5 \
 	cms pqueue ts srp cmac \
-	sm2 sm3 sms4 ecies zuc
+	sm2 sm3 sms4 ecies cpk zuc cbcmac otp
 
 # keep in mind that the above list is adjusted by ./Configure
 # according to no-xxx arguments...

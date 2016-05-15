@@ -117,10 +117,7 @@
 # define EVP_PKEY_EC     NID_X9_62_id_ecPublicKey
 # define EVP_PKEY_HMAC   NID_hmac
 # define EVP_PKEY_CMAC   NID_cmac
-
-# ifndef OPENSSL_NO_SM2
-#  define EVP_PKEY_SM2    NID_sm2p256v1 /* FIXME: NID_sm2 */
-# endif
+# define EVP_PKEY_CBCMAC NID_cbc_mac
 
 #ifdef  __cplusplus
 extern "C" {
@@ -252,14 +249,6 @@ typedef int evp_verify_method(int type, const unsigned char *m,
                                  {EVP_PKEY_EC,0,0,0}
 #  else
 #   define EVP_PKEY_ECDSA_method   EVP_PKEY_NULL_method
-#  endif
-
-#  ifndef OPENSSL_NO_SM2
-#   define EVP_PKEY_SM2_method   (evp_sign_method *)SM2_sign, \
-                                (evp_verify_method *)SM2_verify, \
-                                 {EVP_PKEY_SM2,0,0,0}
-#  else
-#   define EVP_PKEY_SM2_method   EVP_PKEY_NULL_method
 #  endif
 
 #  ifndef OPENSSL_NO_RSA
@@ -519,10 +508,6 @@ typedef int (EVP_PBE_KEYGEN) (EVP_CIPHER_CTX *ctx, const char *pass,
                                         (char *)(eckey))
 # endif
 
-# ifndef OPENSSL_NO_SM2
-#  define EVP_PKEY_assign_SM2(pkey,eckey) EVP_PKEY_assign((pkey),EVP_PKEY_SM2,\
-                                        (char *)(eckey))
-# endif
 
 /* Add some extra combinations */
 # define EVP_get_digestbynid(a) EVP_get_digestbyname(OBJ_nid2sn(a))
@@ -756,7 +741,7 @@ const EVP_MD *EVP_ripemd160(void);
 # ifndef OPENSSL_NO_WHIRLPOOL
 const EVP_MD *EVP_whirlpool(void);
 # endif
-# ifndef OPENSSL_NO_SM3
+# ifndef OPENSSL_NO_GMSSL
 const EVP_MD *EVP_sm3(void);
 # endif
 const EVP_CIPHER *EVP_enc_null(void); /* does nothing :-) */
@@ -845,7 +830,7 @@ const EVP_CIPHER *EVP_rc5_32_12_16_cfb64(void);
 #  define EVP_rc5_32_12_16_cfb EVP_rc5_32_12_16_cfb64
 const EVP_CIPHER *EVP_rc5_32_12_16_ofb(void);
 # endif
-#ifndef OPENSSL_NO_SMS4
+#ifndef OPENSSL_NO_GMSSL
 const EVP_CIPHER *EVP_sms4_ecb(void);
 const EVP_CIPHER *EVP_sms4_cbc(void);
 const EVP_CIPHER *EVP_sms4_cfb1(void);
@@ -862,8 +847,6 @@ const EVP_CIPHER *EVP_sms4_wrap(void);
 #define EVP_sm4_cbc EVP_sms4_cbc
 #define EVP_sm4_cfb EVP_sms4_cfb
 #define EVP_sm4_ofb EVP_sms4_ofb
-#endif
-#ifndef OPENSSL_NO_ZUC
 const EVP_CIPHER *EVP_zuc(void);
 #endif
 # ifndef OPENSSL_NO_AES
@@ -1016,10 +999,6 @@ struct dh_st *EVP_PKEY_get1_DH(EVP_PKEY *pkey);
 struct ec_key_st;
 int EVP_PKEY_set1_EC_KEY(EVP_PKEY *pkey, struct ec_key_st *key);
 struct ec_key_st *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey);
-# ifndef OPENSSL_NO_SM2
-int EVP_PKEY_set1_SM2(EVP_PKEY *pkey, struct ec_key_st *key);
-struct ec_key_st *EVP_PKEY_get1_SM2(EVP_PKEY *pkey);
-# endif
 # endif
 
 EVP_PKEY *EVP_PKEY_new(void);
@@ -1237,6 +1216,8 @@ void EVP_PKEY_asn1_set_item(EVP_PKEY_ASN1_METHOD *ameth,
 # define EVP_PKEY_CTRL_CIPHER            12
 
 # define EVP_PKEY_CTRL_GET_MD            13
+
+
 
 # define EVP_PKEY_ALG_CTRL               0x1000
 

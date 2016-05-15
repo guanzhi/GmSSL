@@ -76,7 +76,9 @@ X9-62_primeCurve 4	 	: prime239v1
 X9-62_primeCurve 5	 	: prime239v2
 X9-62_primeCurve 6	 	: prime239v3
 X9-62_primeCurve 7	 	: prime256v1
-!Alias id-ecSigType ansi-X9-62 4
+# GMSSL export ecdsa type
+#!Alias id-ecSigType ansi-X9-62 4
+ansi-X9-62 4			: id-ecSigType
 !global
 X9-62_id-ecSigType 1		: ecdsa-with-SHA1
 X9-62_id-ecSigType 2		: ecdsa-with-Recommended
@@ -1319,8 +1321,8 @@ ISO-US 10046 2 1	: dhpublicnumber		: X9.42 DH
 
 # ECDH schemes from RFC5753
 !Alias x9-63-scheme 1 3 133 16 840 63 0
-!Alias secg-scheme certicom-arc 1
-
+#!Alias secg-scheme certicom-arc 1
+certicom-arc 1   : secg-scheme
 x9-63-scheme 2   : dhSinglePass-stdDH-sha1kdf-scheme
 secg-scheme 11 0 : dhSinglePass-stdDH-sha224kdf-scheme
 secg-scheme 11 1 : dhSinglePass-stdDH-sha256kdf-scheme
@@ -1351,7 +1353,6 @@ secg-scheme 14 3 : dhSinglePass-cofactorDH-sha512kdf-scheme
 
 
 # GmSSL SECG ECIES OID
-!Alias secg_scheme certicom-arc 1
 secg-scheme 7		: ecies-recommendedParameters
 secg-scheme 8		: ecies-specifiedParameters
 secg-scheme 17 0	: x9-63-kdf
@@ -1369,72 +1370,77 @@ secg-scheme 22		: hmac-full-ecies
 secg-scheme 23		: hmac-half-ecies
 secg-scheme 24 0	: cmac-aes128-ecies
 secg-scheme 24 1	: cmac-aes192-ecies
- 
+
+# No NID for CBC-MAC 
+			: CBC-MAC		: cbc-mac
+
 # GmSSL SM OID 
 member-body 156		: ISO-CN	: ISO CN Member Body
 ISO-CN 10197		: oscca
-oscca 1		: sm
+oscca 1			: sm-scheme
 
-sm 101 1		: SM6-ECB		: sm6-ecb
-sm 101 2		: SM6-CBC		: sm6-cbc
+sm-scheme 101 1		: SM6-ECB		: sm6-ecb
+sm-scheme 101 2		: SM6-CBC		: sm6-cbc
 !Cname sm6-ofb128
-sm 101 3		: SM6-OFB		: sm6-ofb
+sm-scheme 101 3		: SM6-OFB		: sm6-ofb
 !Cname sm6-cfb128
-sm 101 4		: SM6-CFB		: sm6-cfb
+sm-scheme 101 4		: SM6-CFB		: sm6-cfb
 
-sm 102 1		: SM1-ECB		: sm1-ecb
-sm 102 2		: SM1-CBC		: sm1-cbc
+sm-scheme 102 1		: SM1-ECB		: sm1-ecb
+sm-scheme 102 2		: SM1-CBC		: sm1-cbc
 !Cname sm1-ofb128
-sm 102 3		: SM1-OFB		: sm1-ofb
+sm-scheme 102 3		: SM1-OFB		: sm1-ofb
 !Cname sm1-cfb128
-sm 102 4
-	: SM1-CFB		: sm1-cfb
+sm-scheme 102 4		: SM1-CFB		: sm1-cfb
 
-sm 103 1	: SSF33-ECB		: ssf33-ecb
-sm 103 2	: SSF33-CBC		: ssf33-cbc
+sm-scheme 103 1		: SSF33-ECB		: ssf33-ecb
+sm-scheme 103 2		: SSF33-CBC		: ssf33-cbc
 !Cname ssf33-ofb128
-sm 103 3	: SSF33-OFB		: ssf33-ofb
+sm-scheme 103 3		: SSF33-OFB		: ssf33-ofb
 !Cname ssf33-cfb128
-sm 103 4	: SSF33-CFB		: ssf33-cfb
+sm-scheme 103 4		: SSF33-CFB		: ssf33-cfb
 
-sm 104 1	: SMS4-ECB		: sms4-ecb
-sm 104 2	: SMS4-CBC		: sms4-cbc
+sm-scheme 104 1		: SMS4-ECB		: sms4-ecb
+sm-scheme 104 2		: SMS4-CBC		: sms4-cbc
 !Cname sms4-ofb128
-sm 104 3	: SMS4-OFB		: sms4-ofb
+sm-scheme 104 3		: SMS4-OFB		: sms4-ofb
 !Cname sms4-cfb128
-sm 104 4	: SMS4-CFB		: sms4-cfb
-sm 104 5	: SMS4-CFB1		: sms4-cfb1
-sm 104 6	: SMS4-CFB8		: sms4-cfb8
-sm 104 7	: SMS4-CTR		: sms4-ctr
-sm 104 8	: SMS4-GCM		: sms4-gcm
-sm 104 9	: SMS4-CCM		: sms4-ccm
-sm 104 10	: SMS4-XTS		: sms4-xts
-sm 104 11	: SMS4-WRAP		: sms4-wrap
+sm-scheme 104 4		: SMS4-CFB		: sms4-cfb
+sm-scheme 104 5		: SMS4-CFB1		: sms4-cfb1
+sm-scheme 104 6		: SMS4-CFB8		: sms4-cfb8
+sm-scheme 104 7		: SMS4-CTR		: sms4-ctr
+sm-scheme 104 8		: SMS4-GCM		: sms4-gcm
+sm-scheme 104 9		: SMS4-CCM		: sms4-ccm
+sm-scheme 104 10	: SMS4-XTS		: sms4-xts
+sm-scheme 104 11	: SMS4-WRAP		: sms4-wrap
 
-!Alias sm7 sm 105
 
-!Alias sm8 sm 106
 
-sm 201		: SM5			: sm5
+!Alias sm7 sm-scheme 105
 
-# sm 301	: id-sm2PublicKey
-sm 301		: sm2p256v1
-sm 301 1	: sm2sign
-sm 301 2	: sm2keyagreement
-sm 301 3	: sm2encrypt
+!Alias sm8 sm-scheme 106
 
-sm 302		: id-sm9PublicKey
-sm 302 1	: sm9sign
-sm 302 2	: sm9keyagreement
-sm 302 3	: sm9encrypt
+sm-scheme 201		: SM5			: sm5
 
-sm 401		: SM3			: sm3
-sm 401 2	: HMAC-SM3		: hmac-sm3
-sm 501		: SM2Sign-with-SM3	: sm2sign-with-sm3
-sm 502		: SM2Sign-with-SHA1 	: sm2sign-with-sha1 
-sm 503		: SM2Sign-with-SHA256	: sm2sign-with-sha256
+sm-scheme 301		: sm2p256v1
+sm-scheme 301 1		: sm2sign
+sm-scheme 301 2		: sm2keyagreement
+sm-scheme 301 3		: sm2encrypt
+sm2encrypt 1		: sm2encrypt-recommendedParameters
+sm2encrypt 2		: sm2encrypt-specifiedParameters
+
+sm-scheme 302		: id-sm9PublicKey
+sm-scheme 302 1		: sm9sign
+sm-scheme 302 2		: sm9keyagreement
+sm-scheme 302 3		: sm9encrypt
+
+sm-scheme 401		: SM3			: sm3
+sm-scheme 401 2		: HMAC-SM3		: hmac-sm3
+sm-scheme 501		: SM2Sign-with-SM3	: sm2sign-with-sm3
+sm-scheme 502		: SM2Sign-with-SHA1 	: sm2sign-with-sha1 
+sm-scheme 503		: SM2Sign-with-SHA256	: sm2sign-with-sha256
 
 # GmSSL ZUC OID
-sm 800		: ZUC			: zuc
+sm-scheme 800		: ZUC			: zuc
 
 

@@ -57,9 +57,9 @@
 #include <openssl/rand.h>
 #include <openssl/objects.h>
 #include <openssl/evp.h>
-#include <openssl/gmssl.h>
+#include <openssl/gmssl1.h>
 
-
+/* convert error code to some byte can be encode */
 int gmssl_alert_code(int code)
 {
 	return tls1_alert_code(code);

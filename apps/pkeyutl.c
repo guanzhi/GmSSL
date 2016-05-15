@@ -72,9 +72,6 @@ static void usage(void);
 
 #define PROG pkeyutl_main
 
-#ifndef OPENSSL_NO_GMSSL
-int is_sm2 = 0;
-#endif
 
 static EVP_PKEY_CTX *init_ctx(int *pkeysize,
                               char *keyfile, int keyform, int key_type,
@@ -210,14 +207,6 @@ int MAIN(int argc, char **argv)
                 ERR_print_errors(bio_err);
                 goto end;
             }
-#ifndef OPENSSL_NO_GMSSL
-        } else if (strcmp(*argv, "-algorithm") == 0) {
-            if (!argv[1])
-                goto end;
-            if (strcmp(*(++argv), "SM2"))
-                goto end;
-            is_sm2 = 1;
-#endif
         } else
             badarg = 1;
         if (badarg) {
@@ -430,16 +419,6 @@ static EVP_PKEY_CTX *init_ctx(int *pkeysize,
 
     if (!pkey)
         goto end;
-
-#ifndef OPENSSL_NO_GMSSL
-    if (is_sm2) {
-        if (!EVP_PKEY_set_type(pkey, EVP_PKEY_SM2)) {
-            fprintf(stderr, "GmSSL: %s %d\n", __FILE__, __LINE__);
-            ERR_print_errors_fp(stderr);
-            goto end;
-        }
-    }
-#endif
 
     ctx = EVP_PKEY_CTX_new(pkey, e);
 

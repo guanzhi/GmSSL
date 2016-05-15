@@ -75,7 +75,7 @@ STACK_OF(EVP_PKEY_METHOD) *app_pkey_methods = NULL;
 
 extern const EVP_PKEY_METHOD rsa_pkey_meth, dh_pkey_meth, dsa_pkey_meth;
 extern const EVP_PKEY_METHOD ec_pkey_meth, hmac_pkey_meth, cmac_pkey_meth;
-extern const EVP_PKEY_METHOD dhx_pkey_meth, sm2_pkey_meth;
+extern const EVP_PKEY_METHOD dhx_pkey_meth, cbcmac_pkey_meth;
 
 static const EVP_PKEY_METHOD *standard_methods[] = {
 #ifndef OPENSSL_NO_RSA
@@ -90,13 +90,13 @@ static const EVP_PKEY_METHOD *standard_methods[] = {
 #ifndef OPENSSL_NO_EC
     &ec_pkey_meth,
 #endif
-#ifndef OPENSSL_NO_SM2
-    &sm2_pkey_meth,
-#endif
     &hmac_pkey_meth,
     &cmac_pkey_meth,
 #ifndef OPENSSL_NO_DH
-    &dhx_pkey_meth
+    &dhx_pkey_meth,
+#endif
+#ifndef OPENSSL_NO_GMSSL
+    &cbcmac_pkey_meth,
 #endif
 };
 
@@ -119,28 +119,14 @@ const EVP_PKEY_METHOD *EVP_PKEY_meth_find(int type)
     tmp.pkey_id = type;
     if (app_pkey_methods) {
         int idx;
-
-	//fprintf(stderr, "check %s %d\n", __FILE__, __LINE__);
         idx = sk_EVP_PKEY_METHOD_find(app_pkey_methods, &tmp);
         if (idx >= 0)
             return sk_EVP_PKEY_METHOD_value(app_pkey_methods, idx);
-	//fprintf(stderr, "check %s %d\n", __FILE__, __LINE__);
     }
-    //fprintf(stderr, "%s %d: t->pkey_id = %d\n", __FILE__, __LINE__, t->pkey_id);
-	int i;
-	for (i = 0; i < sizeof(standard_methods) / sizeof(EVP_PKEY_METHOD *); i++) {
-		if (type == standard_methods[i]->pkey_id) {
-			return standard_methods[i];
-		}
-	}
-/*
     ret = OBJ_bsearch_pmeth(&t, standard_methods,
                             sizeof(standard_methods) /
                             sizeof(EVP_PKEY_METHOD *));
-
-*/
     if (!ret || !*ret) {
-	//fprintf(stderr, "check %s %d\n", __FILE__, __LINE__);
         return NULL;
     }
     return *ret;
@@ -152,7 +138,6 @@ static EVP_PKEY_CTX *int_ctx_new(EVP_PKEY *pkey, ENGINE *e, int id)
     const EVP_PKEY_METHOD *pmeth;
     if (id == -1) {
         if (!pkey || !pkey->ameth) {
-            fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
             return NULL;
         }
         id = pkey->ameth->pkey_id;

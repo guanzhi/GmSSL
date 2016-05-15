@@ -1004,6 +1004,42 @@ int EC_KEY_print_fp(FILE *fp, const EC_KEY *key, int off);
                                 EVP_PKEY_OP_PARAMGEN|EVP_PKEY_OP_KEYGEN, \
                                 EVP_PKEY_CTRL_EC_PARAM_ENC, flag, NULL)
 
+# ifndef OPENSSL_NO_GMSSL
+# define EVP_PKEY_CTX_set_ec_sign_type(ctx, type) \
+        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+				EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+                                EVP_PKEY_CTRL_EC_SIGN_TYPE, type, NULL)
+
+# define EVP_PKEY_CTX_get_ec_sign_type(ctx) \
+        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+				EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+                                EVP_PKEY_CTRL_EC_SIGN_TYPE, -2, NULL)
+
+# define EVP_PKEY_CTX_set_ec_enc_type(ctx, type) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+                                EVP_PKEY_CTRL_EC_ENC_TYPE, type, NULL)
+
+# define EVP_PKEY_CTX_get_ec_enc_type(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+				EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+				EVP_PKEY_CTRL_EC_ENC_TYPE, -2, NULL)
+
+# define EVP_PKEY_CTX_set_ec_dh_type(ctx, type) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+				EVP_PKEY_OP_DERIVE, \
+				EVP_PKEY_CTRL_EC_DH_TYPE, type, NULL)
+
+# define EVP_PKEY_CTX_get_ec_dh_type(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+				EVP_PKEY_OP_DERIVE, \
+				EVP_PKEY_CTRL_EC_DH_TYPE, -2, NULL);
+# endif /* OPENSSL_NO_GMSSL */
+
+
+
 # define EVP_PKEY_CTX_set_ecdh_cofactor_mode(ctx, flag) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
@@ -1064,6 +1100,16 @@ int EC_KEY_print_fp(FILE *fp, const EC_KEY *key, int off);
 # define EVP_PKEY_CTRL_GET_EC_KDF_OUTLEN                 (EVP_PKEY_ALG_CTRL + 8)
 # define EVP_PKEY_CTRL_EC_KDF_UKM                        (EVP_PKEY_ALG_CTRL + 9)
 # define EVP_PKEY_CTRL_GET_EC_KDF_UKM                    (EVP_PKEY_ALG_CTRL + 10)
+
+# ifndef OPENSSL_NO_GMSSL
+# define EVP_PKEY_CTRL_EC_SIGN_TYPE                      (EVP_PKEY_ALG_CTRL + 11)
+# define EVP_PKEY_CTRL_GET_EC_SIGN_TYPE                  (EVP_PKEY_ALG_CTRL + 12)
+# define EVP_PKEY_CTRL_EC_ENC_TYPE                       (EVP_PKEY_ALG_CTRL + 13)
+# define EVP_PKEY_CTRL_GET_EC_ENC_TYPE                   (EVP_PKEY_ALG_CTRL + 14)
+# define EVP_PKEY_CTRL_EC_DH_TYPE                        (EVP_PKEY_ALG_CTRL + 15)
+# define EVP_PKEY_CTRL_GET_EC_DH_TYPE                    (EVP_PKEY_ALG_CTRL + 16)
+# endif
+
 /* KDF types */
 # define EVP_PKEY_ECDH_KDF_NONE                          1
 # define EVP_PKEY_ECDH_KDF_X9_62                         2

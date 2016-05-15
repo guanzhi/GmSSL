@@ -178,39 +178,25 @@
 # undef PROG
 # define PROG    cpkparam_main
 
-# define DEFBITS 2048
+
 
 /*-
- * -inform arg  - input format - default PEM (DER or PEM)
- * -outform arg - output format - default PEM
- * -in arg      - input file - default stdin
+ * -id          - domain identifier 
+ * -algorithm   - public key algorithm
+ * -pkeyopt     - public key options
+ * -paramfile   - public key parameters
  * -out arg     - output file - default stdout
  * -dsaparam  - read or generate DSA parameters, convert to DH
- * -check       - check the parameters are ok
- * -noout
- * -text
- * -C
  */
-
-static int MS_CALLBACK dh_cb(int p, int n, BN_GENCB *cb);
 
 int MAIN(int, char **);
 
 int MAIN(int argc, char **argv)
 {
-    DH *dh = NULL;
-    int i, badops = 0, text = 0;
-# ifndef OPENSSL_NO_DSA
-    int dsaparam = 0;
-# endif
     BIO *in = NULL, *out = NULL;
-    int informat, outformat, check = 0, noout = 0, C = 0, ret = 1;
     char *infile, *outfile, *prog;
     char *inrand = NULL;
-# ifndef OPENSSL_NO_ENGINE
-    char *engine = NULL;
-# endif
-    int num = 0, g = 0;
+    char *id = NULL;
 
     apps_startup();
 
@@ -221,10 +207,7 @@ int MAIN(int argc, char **argv)
     if (!load_config(bio_err, NULL))
         goto end;
 
-    infile = NULL;
     outfile = NULL;
-    informat = FORMAT_PEM;
-    outformat = FORMAT_PEM;
 
     prog = argv[0];
     argc--;
@@ -247,21 +230,12 @@ int MAIN(int argc, char **argv)
                 goto bad;
             outfile = *(++argv);
         }
-# ifndef OPENSSL_NO_ENGINE
-        else if (strcmp(*argv, "-engine") == 0) {
-            if (--argc < 1)
-                goto bad;
-            engine = *(++argv);
-        }
-# endif
         else if (strcmp(*argv, "-check") == 0)
             check = 1;
         else if (strcmp(*argv, "-text") == 0)
             text = 1;
-# ifndef OPENSSL_NO_DSA
         else if (strcmp(*argv, "-dsaparam") == 0)
             dsaparam = 1;
-# endif
         else if (strcmp(*argv, "-C") == 0)
             C = 1;
         else if (strcmp(*argv, "-noout") == 0)
@@ -289,10 +263,8 @@ int MAIN(int argc, char **argv)
                    " -outform arg  output format - one of DER PEM\n");
         BIO_printf(bio_err, " -in arg       input file\n");
         BIO_printf(bio_err, " -out arg      output file\n");
-# ifndef OPENSSL_NO_DSA
         BIO_printf(bio_err,
                    " -dsaparam     read or generate DSA parameters, convert to DH\n");
-# endif
         BIO_printf(bio_err, " -check        check the DH parameters\n");
         BIO_printf(bio_err,
                    " -text         print a text form of the DH parameters\n");
@@ -303,10 +275,6 @@ int MAIN(int argc, char **argv)
                    " -5            generate parameters using  5 as the generator value\n");
         BIO_printf(bio_err,
                    " numbits       number of bits in to generate (default 2048)\n");
-# ifndef OPENSSL_NO_ENGINE
-        BIO_printf(bio_err,
-                   " -engine e     use engine e, possibly a hardware device.\n");
-# endif
         BIO_printf(bio_err, " -rand file%cfile%c...\n", LIST_SEPARATOR_CHAR,
                    LIST_SEPARATOR_CHAR);
         BIO_printf(bio_err,
@@ -318,14 +286,9 @@ int MAIN(int argc, char **argv)
 
     ERR_load_crypto_strings();
 
-# ifndef OPENSSL_NO_ENGINE
-    setup_engine(bio_err, engine, 0);
-# endif
-
     if (g && !num)
         num = DEFBITS;
 
-# ifndef OPENSSL_NO_DSA
     if (dsaparam) {
         if (g) {
             BIO_printf(bio_err,
@@ -333,7 +296,6 @@ int MAIN(int argc, char **argv)
             goto end;
         }
     } else
-# endif
     {
         /* DH parameters */
         if (num && !g)
@@ -454,12 +416,6 @@ int MAIN(int argc, char **argv)
     }
     if (outfile == NULL) {
         BIO_set_fp(out, stdout, BIO_NOCLOSE);
-# ifdef OPENSSL_SYS_VMS
-        {
-            BIO *tmpbio = BIO_new(BIO_f_linebuffer());
-            out = BIO_push(tmpbio, out);
-        }
-# endif
     } else {
         if (BIO_write_filename(out, outfile) <= 0) {
             perror(outfile);
@@ -564,26 +520,6 @@ int MAIN(int argc, char **argv)
     OPENSSL_EXIT(ret);
 }
 
-/* dh_cb is identical to dsa_cb in apps/dsaparam.c */
-static int MS_CALLBACK dh_cb(int p, int n, BN_GENCB *cb)
-{
-    char c = '*';
-
-    if (p == 0)
-        c = '.';
-    if (p == 1)
-        c = '+';
-    if (p == 2)
-        c = '*';
-    if (p == 3)
-        c = '\n';
-    BIO_write(cb->arg, &c, 1);
-    (void)BIO_flush(cb->arg);
-# ifdef LINT
-    p = n;
-# endif
-    return 1;
-}
 
 #else                           /* !OPENSSL_NO_GMSSL */
 

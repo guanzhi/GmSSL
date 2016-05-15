@@ -60,6 +60,7 @@
 #include <openssl/x509.h>
 #include <openssl/asn1.h>
 #include <openssl/ecdsa.h>
+#include <openssl/sm3.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,7 +69,9 @@ extern "C" {
 
 #define SM2_MAX_ID_BITS				65535
 #define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
-#define SM2_DEFAULT_ID				"1234567812345678" 
+#define SM2_DEFAULT_ID_GMT09			"1234567812345678"			
+#define SM2_DEFAULT_ID_GMSSL			"anonym@gmssl.org" 
+#define SM2_DEFAULT_ID				SM2_DEFAULT_ID_GMSSL
 #define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
 
 
@@ -77,6 +80,14 @@ int SM2_set_id(EC_KEY *ec_key, const char *id);
 int SM2_compute_id_digest(const EVP_MD *md, unsigned char *dgst,
 	unsigned int *dgstlen, EC_KEY *ec_key);
 
+
+
+typedef struct sm2_enc_params_st {
+	EVP_MD *kdf_md;
+	EVP_MD *mac_md;
+	int mactag_size;
+	point_conversion_form_t point_form;
+} SM2_ENC_PARAMS;
 
 typedef struct sm2_ciphertext_value_st {
 	EC_POINT *ephem_point;
@@ -103,33 +114,31 @@ int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
 	const SM2_CIPHERTEXT_VALUE *cv, int indent, unsigned long flags);
 
 /* FIXME: we should provide optional return value */
-SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
-int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key);
-
-int SM2_encrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
-	point_conversion_form_t point_form,
+int SM2_encrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
-	point_conversion_form_t point_form,
+int SM2_decrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-
-int SM2_encrypt(const unsigned char *in, size_t inlen,
+int SM2_encrypt_with_recommended(const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt(const unsigned char *in, size_t inlen,
+int SM2_decrypt_with_recommended(const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-
+int SM2_encrypt_elgamal(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int SM2_decrypt_elgamal(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
 int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 	const void *msg, size_t msglen, unsigned char *dgst,
 	unsigned int *dgstlen, EC_KEY *ec_key);
 int SM2_digest(const void *msg, size_t msglen, unsigned char *dgst,
 	unsigned int *dgstlen, EC_KEY *ec_key);
-
 
 #define SM2_signature_size(ec_key)	ECDSA_size(ec_key)
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);

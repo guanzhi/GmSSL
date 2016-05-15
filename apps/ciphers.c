@@ -76,6 +76,9 @@ static const char *ciphers_usage[] = {
     " -ssl2       - SSL2 mode\n",
     " -ssl3       - SSL3 mode\n",
     " -tls1       - TLS1 mode\n",
+#ifndef OPENSSL_NO_GMSSL
+	" -gmssl      - GMSSL mode\n",
+#endif
     NULL
 };
 
@@ -137,6 +140,10 @@ int MAIN(int argc, char **argv)
 #ifndef OPENSSL_NO_TLS1
         else if (strcmp(*argv, "-tls1") == 0)
             meth = TLSv1_client_method();
+#endif
+#ifndef OPENSSL_NO_GMSSL
+		else if (strcmp(*argv, "-gmssl") == 0)
+			meth = GMSSLv1_client_method();
 #endif
         else if ((strncmp(*argv, "-h", 2) == 0) || (strcmp(*argv, "-?") == 0)) {
             badops = 1;

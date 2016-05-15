@@ -89,7 +89,7 @@ int i2d_CPK_PUBLIC_PARAMS_bio(BIO *bp, CPK_PUBLIC_PARAMS *params) {
 	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(CPK_PUBLIC_PARAMS), bp, params);
 }
 
-
+#if 0
 
 /* This is the ANY DEFINED BY table for the top level PKCS#7 structure */
 ASN1_ADB_TEMPLATE(cpkcmsdefault) = ASN1_EXP_OPT(CPK_CMS, d.other, ASN1_ANY, 0);
@@ -172,4 +172,4 @@ ASN1_NDEF_SEQUENCE(CPK_SIGN_ENVELOPE) = {
 	ASN1_SET_OF(CPK_SIGN_ENVELOPE, signer_infos, CPK_SIGNER_INFO)
 } ASN1_NDEF_SEQUENCE_END(CPK_SIGN_ENVELOPE)
 IMPLEMENT_ASN1_FUNCTIONS(CPK_SIGN_ENVELOPE)
-
+#endif

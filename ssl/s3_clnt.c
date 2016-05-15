@@ -1356,6 +1356,7 @@ int ssl3_get_server_certificate(SSL *s)
     return (ret);
 }
 
+//TODO: GMSSL modified server_send_key_exchange, so we need to check client_get_...
 int ssl3_get_key_exchange(SSL *s)
 {
 #ifndef OPENSSL_NO_RSA
@@ -2477,6 +2478,7 @@ int ssl3_send_client_key_exchange(SSL *s)
 
             q = p;
             /* Fix buf for TLS and beyond */
+//TODO: GMSSL version problem?
             if (s->version > SSL3_VERSION)
                 p += 2;
             n = RSA_public_encrypt(sizeof tmp_buf,

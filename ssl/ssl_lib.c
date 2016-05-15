@@ -263,6 +263,7 @@ int SSL_clear(SSL *s)
 }
 
 /** Used to change an SSL_CTXs default SSL method type */
+//TODO: GMSSL
 int SSL_CTX_set_ssl_version(SSL_CTX *ctx, const SSL_METHOD *meth)
 {
     STACK_OF(SSL_CIPHER) *sk;
@@ -874,6 +875,7 @@ int SSL_pending(const SSL *s)
     return (s->method->ssl_pending(s));
 }
 
+//FIXME: GMSSL: do we need more API for GMSSLv1.1?
 X509 *SSL_get_peer_certificate(const SSL *s)
 {
     X509 *r;
@@ -891,6 +893,7 @@ X509 *SSL_get_peer_certificate(const SSL *s)
     return (r);
 }
 
+//FIXME: GMSSL: do we need more API for GMSSLv1.1?
 STACK_OF(X509) *SSL_get_peer_cert_chain(const SSL *s)
 {
     STACK_OF(X509) *r;
@@ -941,6 +944,7 @@ void SSL_copy_session_id(SSL *t, const SSL *f)
 }
 
 /* Fix this so it checks all the valid key/cert options */
+//FIXME: GMSSL: do we need more API for GMSSLv1.1?
 int SSL_CTX_check_private_key(const SSL_CTX *ctx)
 {
     if ((ctx == NULL) ||
@@ -959,6 +963,7 @@ int SSL_CTX_check_private_key(const SSL_CTX *ctx)
 }
 
 /* Fix this function so that it takes an optional type parameter */
+//FIXME: GMSSL: do we need more API for GMSSLv1.1?
 int SSL_check_private_key(const SSL *ssl)
 {
     if (ssl == NULL) {
@@ -1095,6 +1100,7 @@ int SSL_renegotiate_pending(SSL *s)
     return (s->renegotiate != 0);
 }
 
+//FIXME: GMSSL: add GMSSLv1.1 specific functions here?
 long SSL_ctrl(SSL *s, int cmd, long larg, void *parg)
 {
     long l;
@@ -1173,6 +1179,8 @@ LHASH_OF(SSL_SESSION) *SSL_CTX_sessions(SSL_CTX *ctx)
     return ctx->sessions;
 }
 
+//FIXME: GMSSL: add GMSSLv1.1 specific functions here?
+//The double cert should be added here, we might add the extra cert
 long SSL_CTX_ctrl(SSL_CTX *ctx, int cmd, long larg, void *parg)
 {
     long l;
@@ -2842,6 +2850,10 @@ const char *SSL_get_version(const SSL *s)
         return ("DTLSv1");
     else if (s->version == DTLS1_2_VERSION)
         return ("DTLSv1.2");
+#ifndef OPENSSL_NO_GMSSL
+    else if (s->version == GM1_VERSION)
+        return ("GMSSLv1.1");
+#endif
     else
         return ("unknown");
 }

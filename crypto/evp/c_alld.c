@@ -67,7 +67,7 @@ void OpenSSL_add_all_digests(void)
 #ifndef OPENSSL_NO_MD4
     EVP_add_digest(EVP_md4());
 #endif
-#ifndef OPENSSL_NO_SM3
+#ifndef OPENSSL_NO_GMSSL
 	EVP_add_digest(EVP_sm3());
 #endif
 #ifndef OPENSSL_NO_MD5

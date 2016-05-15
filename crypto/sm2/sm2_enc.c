@@ -239,8 +239,7 @@ end:
 	return 0;
 }
 
-int SM2_encrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
-	point_conversion_form_t point_form,
+int SM2_encrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
@@ -249,7 +248,8 @@ int SM2_encrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	SM2_CIPHERTEXT_VALUE *cv = NULL;
 	int len;
 
-	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, point_form, inlen, mac_md))) {
+	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group,
+		params->point_form, inlen, params->mac_md))) {
 		goto end;
 	}
 
@@ -261,10 +261,11 @@ int SM2_encrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		return 0;
 	}
 
-	if (!(cv = SM2_do_encrypt(kdf_md, mac_md, in, inlen, ec_key))) {
+	if (!(cv = SM2_do_encrypt(params, in, inlen, ec_key))) {
 		goto end;
 	}
-	if (!SM2_CIPHERTEXT_VALUE_encode(cv, ec_group, point_form, out, outlen)) {
+	if (!SM2_CIPHERTEXT_VALUE_encode(cv, ec_group,
+		params->point_form, out, outlen)) {
 		goto end;
 	}
 	
@@ -274,14 +275,14 @@ end:
 	return ret;
 }
 
-SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key)
 {
 	int ok = 0;
 	SM2_CIPHERTEXT_VALUE *cv = NULL;
 	const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
 	const EC_POINT *pub_key = EC_KEY_get0_public_key(ec_key);
-	KDF_FUNC kdf = KDF_get_x9_63(kdf_md);
+	KDF_FUNC kdf = KDF_get_x9_63(params->kdf_md);
 	EC_POINT *point = NULL;
 	BIGNUM *n = NULL;
 	BIGNUM *h = NULL;
@@ -290,6 +291,8 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	EVP_MD_CTX *md_ctx = NULL;
 	unsigned char buf[(OPENSSL_ECC_MAX_FIELD_BITS + 7)/4 + 1];
 	int nbytes;
+	unsigned char dgst[EVP_MAX_MD_SIZE];
+	unsigned int dgstlen;
 	size_t len;
 	int i;
 
@@ -330,16 +333,6 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		goto end;
 	}
 	nbytes = (EC_GROUP_get_degree(ec_group) + 7) / 8;
-
-
-	//OPENSSL_assert(nbytes == BN_num_bytes(n));
-
-#if 0
-	/* check sm2 curve and md is 256 bits */
-	OPENSSL_assert(nbytes == 32);
-	OPENSSL_assert(EVP_MD_size(kdf_md) == 32);
-	OPENSSL_assert(EVP_MD_size(mac_md) == 32);
-#endif
 
 	do
 	{
@@ -395,7 +388,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	}
 	
 	/* A7: C3 = Hash(x2 || M || y2) */
-	if (!EVP_DigestInit_ex(md_ctx, mac_md, NULL)) {
+	if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
 		goto end;
 	}
 	if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
@@ -407,10 +400,16 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
 		goto end;
 	}
-	if (!EVP_DigestFinal_ex(md_ctx, cv->mactag, &cv->mactag_size)) {
+	if (!EVP_DigestFinal_ex(md_ctx, dgst, &dgstlen)) {
 		goto end;
 	}
 
+	/* GmSSL specific: reduce mactag size */
+	if (params->mactag_size > dgstlen) {
+		goto end;
+	}
+	cv->mactag_size = params->mactag_size;
+	memcpy(cv->mactag, dgst, cv->mactag_size);
 
 	ok = 1;
 
@@ -430,8 +429,7 @@ end:
 	return cv;
 }
 
-int SM2_decrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
-	point_conversion_form_t point_form,
+int SM2_decrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
@@ -440,7 +438,7 @@ int SM2_decrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	SM2_CIPHERTEXT_VALUE *cv = NULL;
 	int len;
 
-	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, point_form, 0, mac_md))) {
+	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, params->point_form, 0, params->mac_md))) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -457,11 +455,11 @@ int SM2_decrypt_ex(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		return 0;
 	}
 
-	if (!(cv = SM2_CIPHERTEXT_VALUE_decode(ec_group, point_form, mac_md, in, inlen))) {
+	if (!(cv = SM2_CIPHERTEXT_VALUE_decode(ec_group, params->point_form, params->mac_md, in, inlen))) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-	if (!SM2_do_decrypt(kdf_md, mac_md, cv, out, outlen, ec_key)) {
+	if (!SM2_do_decrypt(params, cv, out, outlen, ec_key)) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -472,14 +470,14 @@ end:
 	return ret;
 }
 
-int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
+int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key)
 {
 	int ret = 0;
 	const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
 	const BIGNUM *pri_key = EC_KEY_get0_private_key(ec_key);
-	KDF_FUNC kdf = KDF_get_x9_63(kdf_md);
+	KDF_FUNC kdf = KDF_get_x9_63(params->kdf_md);
 	EC_POINT *point = NULL;
 	BIGNUM *n = NULL;
 	BIGNUM *h = NULL;
@@ -488,12 +486,11 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	unsigned char buf[(OPENSSL_ECC_MAX_FIELD_BITS + 7)/4 + 1];
 	unsigned char mac[EVP_MAX_MD_SIZE];
 	unsigned int maclen;
+	unsigned char dgst[EVP_MAX_MD_SIZE];
+	unsigned int dgstlen;
 	int nbytes;
 	size_t size;
 	int i;
-
-	OPENSSL_assert(kdf_md && mac_md && cv && ec_key);
-	OPENSSL_assert(cv->ephem_point && cv->ciphertext);
 
 	if (!ec_group || !pri_key) {
 		goto end;
@@ -528,14 +525,6 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 		goto end;
 	}
 	nbytes = (EC_GROUP_get_degree(ec_group) + 7) / 8;
-	//OPENSSL_assert(nbytes == BN_num_bytes(n));
-
-#if 0
-	/* check sm2 curve and md is 256 bits */
-	OPENSSL_assert(nbytes == 32);
-	OPENSSL_assert(EVP_MD_size(kdf_md) == 32);
-	OPENSSL_assert(EVP_MD_size(mac_md) == 32);
-#endif
 
 	/* B2: check [h]C1 != O */
 	if (!EC_POINT_mul(ec_group, point, NULL, cv->ephem_point, h, bn_ctx)) {
@@ -568,7 +557,7 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	*outlen = cv->ciphertext_size;
 
 	/* B6: check Hash(x2 || M || y2) == C3 */
-	if (!EVP_DigestInit_ex(md_ctx, mac_md, NULL)) {
+	if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
 		goto end;
 	}
 	if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
@@ -583,8 +572,13 @@ int SM2_do_decrypt(const EVP_MD *kdf_md, const EVP_MD *mac_md,
 	if (!EVP_DigestFinal_ex(md_ctx, mac, &maclen)) {
 		goto end;
 	}
-	if (cv->mactag_size != maclen ||
-		memcmp(cv->mactag, mac, maclen)) {
+
+	/* GmSSL specific */
+	if (params->mactag_size > maclen) {
+		goto end;
+	}
+	if (cv->mactag_size != params->mactag_size ||
+		memcmp(mac, cv->mactag, cv->mactag_size)) {
 		goto end;
 	}
 
@@ -599,26 +593,55 @@ end:
 	return ret;
 }
 
-
-int SM2_encrypt(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+int SM2_ENC_PARAMS_init_with_recommended(SM2_ENC_PARAMS *params)
 {
-	const EVP_MD *kdf_md = EVP_sm3();
-	const EVP_MD *mac_md = EVP_sm3();
-	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
-	
-	return SM2_encrypt_ex(kdf_md, mac_md, point_form,
-		in, inlen, out, outlen, ec_key);
+	if (!params) {
+		return 0;
+	}
+	params->kdf_md = EVP_sm3();
+	params->mac_md = EVP_sm3();
+	params->mactag_size = -1;
+	params->point_form = POINT_CONVERSION_UNCOMPRESSED;
+	return 1; 
 }
 
-int SM2_decrypt(const unsigned char *in, size_t inlen,
+int SM2_encrypt_with_recommended(const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
-	const EVP_MD *kdf_md = EVP_sm3();
-	const EVP_MD *mac_md = EVP_sm3();
-	point_conversion_form_t point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
-
-	return SM2_decrypt_ex(kdf_md, mac_md, point_form,
-		in, inlen, out, outlen, ec_key);	
+	SM2_ENC_PARAMS params;
+	SM2_ENC_PARAMS_init_with_recommended(&params);
+	return SM2_encrypt(&params, in, inlen, out, outlen, ec_key);
 }
+
+int SM2_decrypt_with_recommended(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	SM2_ENC_PARAMS params;
+	SM2_ENC_PARAMS_init_with_recommended(&params);
+	return SM2_decrypt(&params, in, inlen, out, outlen, ec_key);	
+}
+
+int SM2_encrypt_elgamal(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	SM2_ENC_PARAMS params;
+	params.kdf_md = EVP_sm3();
+	params.mac_md = EVP_sm3();
+	params.mactag_size = 0;
+	params.point_form = POINT_CONVERSION_COMPRESSED;
+	return SM2_encrypt(&params, in, inlen, out, outlen, ec_key);
+}
+
+int SM2_decrypt_elgamal(const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	SM2_ENC_PARAMS params;
+	params.kdf_md = EVP_sm3();
+	params.mac_md = EVP_sm3();
+	params.mactag_size = 0;
+	params.point_form = POINT_CONVERSION_COMPRESSED;
+	return SM2_decrypt(&params, in, inlen, out, outlen, ec_key);
+}
+
+
 

@@ -232,7 +232,7 @@ static int ssl_handshake_digest_flag[SSL_MD_NUM_IDX] = {
     SSL_HANDSHAKE_MAC_GOST94, 0, SSL_HANDSHAKE_MAC_SHA256,
     SSL_HANDSHAKE_MAC_SHA384,
 #ifndef OPENSSL_NO_GMSSL
-    SSL_HANDSHAKE_MAC_SM3
+    SSL_HANDSHAKE_MAC_SM3,
 #endif
 };
 
@@ -485,8 +485,7 @@ void ssl_load_ciphers(void)
 #ifndef OPENSSL_NO_GMSSL
     ssl_cipher_methods[SSL_ENC_SM4_IDX] = EVP_get_cipherbyname(SN_sms4_cbc);
     ssl_digest_methods[SSL_MD_SM3_IDX] = EVP_get_digestbyname(SN_sm3);
-    ssl_mac_secret_size[SSL_MD_SM3_IDX] =
-        EVP_MD_size(ssl_digest_methods[SSL_MD_SM3_IDX]);
+    ssl_mac_secret_size[SSL_MD_SM3_IDX] = EVP_MD_size(ssl_digest_methods[SSL_MD_SM3_IDX]);
 #endif
 }
 
@@ -1746,6 +1745,10 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
         ver = "SSLv3";
     else if (alg_ssl & SSL_TLSV1_2)
         ver = "TLSv1.2";
+#ifndef OPENSSL_NO_GMSSL
+	else if (alg_ssl & SSL_GMV1)
+		ver = "GMSSLv1.1";
+#endif
     else
         ver = "unknown";
 
@@ -1783,6 +1786,23 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_kGOST:
         kx = "GOST";
         break;
+#ifndef OPENSSL_NO_GMSSL
+    case SSL_kECDHE2:
+        kx = "ECDHE2";
+        break;
+    case SSL_kECC:
+        kx = "ECC";
+        break;
+    case SSL_kIBSDH:
+        kx = "IBSDH";
+        break;
+    case SSL_kIBC:
+        kx = "GOST";
+        break;
+    case SSL_kSM2:
+        kx = "SM2";
+        break;
+#endif
     default:
         kx = "unknown";
     }
@@ -1821,6 +1841,11 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_aGOST01:
         au = "GOST01";
         break;
+#ifndef OPENSSL_NO_GMSSL
+    case SSL_aSM2:
+        au = "SM2";
+        break;
+#endif
     default:
         au = "unknown";
         break;
@@ -1903,9 +1928,9 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
         mac = "GOST94";
         break;
 #ifndef OPENSSL_NO_GMSSL
-	case SSL_SM3:
-		mac = "SM3";
-		break;
+    case SSL_SM3:
+        mac = "SM3";
+        break;
 #endif
     default:
         mac = "unknown";
@@ -1942,8 +1967,8 @@ char *SSL_CIPHER_get_version(const SSL_CIPHER *c)
     else if (i == 2)
         return ("SSLv2");
 #ifndef OPENSSL_NO_GMSSL
-	else if (i == 1)
-		return ("GMSSLv1");
+    else if (i == 1)
+        return ("GMSSLv1");
 #endif
     else
         return ("unknown");
@@ -2085,6 +2110,7 @@ const char *SSL_COMP_get_name(const COMP_METHOD *comp)
 }
 #endif
 /* For a cipher return the index corresponding to the certificate type */
+//FIXME: GMSSL: do we need change this?
 int ssl_cipher_get_cert_index(const SSL_CIPHER *c)
 {
     unsigned long alg_k, alg_a;

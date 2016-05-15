@@ -52,7 +52,7 @@
 #include <stdio.h>
 #include "cryptlib.h"
 
-#ifndef OPENSSL_NO_SM3
+#ifndef OPENSSL_NO_GMSSL
 
 #include <openssl/evp.h>
 #include <openssl/objects.h>
@@ -76,18 +76,20 @@ static int final(EVP_MD_CTX *ctx, unsigned char *md)
 }
 
 static const EVP_MD sm3_md = {
-        NID_sm3,
-        NID_sm2sign_with_sm3,
-        SM3_DIGEST_LENGTH,
-        0,
-        init,
-        update,
-        final,
-        NULL,
-        NULL,
-        EVP_PKEY_SM2_method,
-        SM3_BLOCK_SIZE,
-        sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
+	NID_sm3,
+	NID_sm2sign_with_sm3,
+	SM3_DIGEST_LENGTH,
+	0,
+	init,
+	update,
+	final,
+	NULL,
+	NULL,
+	(evp_sign_method *)SM2_sign,
+	(evp_verify_method *)SM2_verify,
+	{EVP_PKEY_EC, 0, 0, 0},
+	SM3_BLOCK_SIZE,
+	sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
 };
 
 const EVP_MD *EVP_sm3(void)

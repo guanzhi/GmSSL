@@ -662,3 +662,11 @@ int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	return 1;
 }
 
+int SM2_compute_key(void *out, size_t outlen,
+	const EC_POINT *pub_key, EC_KEY *ecdh,
+	const EC_POINT *pub_key2, EC_KEY *ec_key2,
+	const char *id1, const char *id2, int is_ini)
+{
+	return 0;
+}
+

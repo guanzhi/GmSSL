@@ -64,8 +64,7 @@
 	x4 = S32(x4);					\
 	x4 = x0 ^ L32(x4)
 
-
-void sms4_encrypt(sms4_key_t *key, const unsigned char *in, unsigned char *out)
+void sms4_encrypt(const unsigned char *in, unsigned char *out, const sms4_key_t *key)
 {
 	uint32_t *rk = key->rk;
 	uint32_t x0, x1, x2, x3, x4;

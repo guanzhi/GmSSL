@@ -57,31 +57,102 @@
 #include <openssl/rand.h>
 #include <openssl/objects.h>
 #include <openssl/evp.h>
-#include <openssl/gmssl.h>
+#include <openssl/gmssl1.h>
 
-const char gmssl1_version_str[] - "GMSSLv1" OPENSSL_VERSION_PTEXT;
+const char gm1_version_str[] = "GMSSLv1" OPENSSL_VERSION_PTEXT;
 
 #define GM1_NUM_CIPHERS		(sizeof(gm1_ciphers)/sizeof(SSL_CIPHER))
 
 
-SSL3_ENC_METHOD GMSSLv1_1_enc_data = {
-	gmssl_enc,
-	gmssl_mac,
-	gmssl_setup_key_block,
-	gmssl_generate_master_secret,
-	gmssl_change_cipher_state,
-	gmssl_final_finish_mac,
-	GMSSL_FINISH_MAC_LENGTH,
-	gmssl_cert_verify_mac,
+SSL3_ENC_METHOD GMSSLv1_enc_data = {
+	tls1_enc,
+	tls1_mac,
+	tls1_setup_key_block,
+	tls1_generate_master_secret,
+	tls1_change_cipher_state,
+	tls1_final_finish_mac,
+	TLS1_FINISH_MAC_LENGTH,
+	tls1_cert_verify_mac,
 	TLS_MD_CLIENT_FINISH_CONST, TLS_MD_CLIENT_FINISH_CONST_SIZE,
 	TLS_MD_SERVER_FINISH_CONST, TLS_MD_SERVER_FINISH_CONST_SIZE,
-	tls1_alert_code,
+	tls1_alert_code, //FIXME: GMSSL has some extra code
 	tls1_export_keying_material,
-	0,
+	SSL_ENC_FLAG_EXPLICIT_IV | SSL_ENC_FLAG_SIGALGS /* | SSL_ENC_FLAG_SM3_PRF */
+		/* | SSL_ENC_FLAGS_GM1_CIPHERS */,
 	SSL3_HM_HEADER_LENGTH,
 	ssl3_set_handshake_header,
 	ssl3_handshake_write
 };
+
+/*
+struct {
+	ECParameters curve_params;
+	ECPoint pubkey;
+} ServerECDHEParams;
+
+IBCEncryptionKey: derived from server ID
+
+struct {
+	switch (KeyExchangeAlgorithm):
+	case ECDHE:
+		ServerECDHEParams params;
+		signed struct {
+			uint8 client_random[32];
+			uint8 server_random[32];
+			ServerECDHEParams params;
+		} signed_params;
+	case ECC:
+		signed struct {
+			uint8 client_random[32];
+			uint8 server_random[32];
+			uint8 server_enc_cert[];
+		} signed_params;
+	case IBSDH:
+		ServerIBSDHParams params;
+		signed struct {
+			uint8 client_random[32];
+			uint8 server_random[32];
+			ServerIBSDHParams params;
+		} signed_params;
+	case IBC:
+		ServerIBCParams params;
+		signed struct {
+			uint8 client_random[32];
+			uint8 server_random[32];
+			ServerIBCParams params;
+			uint8 IBCEncryptionKey[1024];
+		} signed_params;
+	case RSA:
+		signed struct {
+			uint8 client_random[32];
+			uint8 server_random[32];
+			uint8 server_enc_cert[];
+		} signed_params;
+	}
+} ServerKeyExchange;
+
+struct {
+	switch (KeyExchangeAlgorithm):
+	case ECDHE:
+		uint8 ClientECDHEParams[];
+	case IBSDH:
+		uint8 ClientIBSDHParams[];
+	case ECC:
+		uint8 ECCEncryptedPreMasterSecret[];
+	case IBE:
+		uint8 IBCEncryptedPreMasterSecret[];
+	case RSA:
+		uint8 RSAEncryptedPreMasterSecret[];
+	} exchangeKeys;
+} ClientKeyExchange;
+*/
+
+
+	
+
+
+
+
 
 
 /*
@@ -90,13 +161,13 @@ SSL3_ENC_METHOD GMSSLv1_1_enc_data = {
  *	except that the ServerKeyExchange format is not null.
  */
 OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
-
+#if 1
 	/* Cipher 1 */
 	{
 		1,
 		GM1_TXT_ECDHE_SM1_SM3,
 		GM1_CK_ECDHE_SM1_SM3,
-		SSL_kEECDH,
+		SSL_kECDHE2,
 		SSL_aSM2,
 		SSL_SM1,
 		SSL_SM3,
@@ -112,8 +183,8 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_ECC_SM1_SM3,
 		GM1_CK_ECC_SM1_SM3,
-		SSL_kECDHs,
-		SSL_aECDH,
+		SSL_kSM2,
+		SSL_aSM2,
 		SSL_SM1,
 		SSL_SM3,
 		SSL_GMV1,
@@ -129,7 +200,7 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		GM1_TXT_IBSDH_SM1_SM3,
 		GM1_CK_IBSDH_SM1_SM3,
 		SSL_kEECDH,
-		SSL_aSM9,
+		SSL_aSM2,
 		SSL_SM1,
 		SSL_SM3,
 		SSL_GMV1,
@@ -142,8 +213,8 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 	/* Cipher 4 */
 	{
 		1,
-		GM1_TXT_IBC_SM1_SHA1,
-		GM1_CK_IBC_SM1_SHA1,
+		GM1_TXT_IBC_SM1_SM3,
+		GM1_CK_IBC_SM1_SM3,
 		SSL_kECDHe,
 		SSL_aSM2,
 		SSL_SM1,
@@ -186,7 +257,7 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		128,
 		128,
 	},
-
+#endif
 
 	/* Cipher 7 */
 	{
@@ -220,14 +291,14 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		128,
 	},
 
-
+#if 1
 	/* Cipher 9 */
 	{
 		1,
 		GM1_TXT_IBSDH_SM4_SM3,
 		GM1_CK_IBSDH_SM4_SM3,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
+		SSL_kIBSDH,
+		SSL_aSM2,
 		SSL_SM4,
 		SSL_SM3,
 		SSL_GMV1,
@@ -242,8 +313,8 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_IBC_SM4_SM3,
 		GM1_CK_IBC_SM4_SM3,
-		SSL_kECDHe,	/* fixed ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
+		SSL_kIBC,
+		SSL_aSM2,
 		SSL_SM4,
 		SSL_SM3,
 		SSL_GMV1,
@@ -252,7 +323,7 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		128,
 		128,
 	},
-
+#endif
 	/* Cipher 11 */
 	{
 		1,
@@ -274,8 +345,8 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		1,
 		GM1_TXT_RSA_SM4_SHA1,
 		GM1_CK_RSA_SM4_SHA1,
-		SSL_kEECDH,	/* ephemeral ECDH key exchange algorithm bits */
-		SSL_aSM2,	/* auth algor bits */
+		SSL_kEECDH,
+		SSL_aSM2,
 		SSL_SM4,
 		SSL_SM3,
 		SSL_GMV1,
@@ -285,5 +356,52 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		128,
 	},
 
+	/* Cipher 13 (GmSSL specific) */
+	{
+		1,
+		GM1_TXT_ECDHE_SM2_SM4_SM3,
+		GM1_CK_ECDHE_SM2_SM4_SM3,
+		SSL_kEECDH,
+		SSL_aSM2,
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP|SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
+		128,
+		128,
+	},
+
+	/* Cipher 14, (GmSSL Specific) */
+	{
+		1,
+		GM1_TXT_SM2_SM4_SM3,
+		GM1_CK_SM2_SM4_SM3,
+		SSL_kSM2,
+		SSL_aSM2,
+		SSL_SM4,
+		SSL_SM3,
+		SSL_GMV1,
+		SSL_NOT_EXP|SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
+		128,
+		128,
+	}
+
 };
+
+int gm1_num_ciphers(void)
+{
+	return GM1_NUM_CIPHERS;
+}
+
+const SSL_CIPHER *gm1_get_cipher(unsigned int u)
+{
+	if (u < GM1_NUM_CIPHERS)
+		return (&(gm1_ciphers[GM1_NUM_CIPHERS - 1 - u]));
+	else
+		return NULL;
+}
+
+
 

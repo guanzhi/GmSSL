@@ -448,8 +448,9 @@ err:
 	return r;
 }
 
-int ECIES_encrypt(unsigned char *out, size_t *outlen,
-	const ECIES_PARAMS *param, const unsigned char *in, size_t inlen,
+int ECIES_encrypt(const ECIES_PARAMS *param,
+	unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
 	EC_KEY *ec_key)
 {
 	int ret = 0;
@@ -496,8 +497,9 @@ end:
 	return ret;
 }
 
-int ECIES_decrypt(unsigned char *out, size_t *outlen,
-	const ECIES_PARAMS *param, const unsigned char *in, size_t inlen,
+int ECIES_decrypt(const ECIES_PARAMS *param,
+	unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
 	EC_KEY *ec_key)
 {
 	int ret = 0;
@@ -519,4 +521,38 @@ end:
 	ECIES_CIPHERTEXT_VALUE_free(cv);
 	return ret;
 }
+
+int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param)
+{
+	if (!param) {
+		return 0;
+	}
+	param->kdf_nid = NID_undef;
+	param->kdf_md = EVP_sha256();
+	param->sym_cipher = EVP_aes_128_cbc();
+	param->mac_nid = NID_undef;
+	param->mac_md = EVP_sha256();
+	param->mac_cipher = NULL;
+	return 1;
+}
+
+int ECIES_encrypt_with_recommended(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
+	EC_KEY *ec_key)
+{
+	ECIES_PARAMS param;
+	ECIES_PARAMS_init_with_recommended(&param);
+	return ECIES_encrypt(&param, out, outlen, in, inlen, ec_key);
+}
+
+int ECIES_decrypt_with_recommended(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
+	EC_KEY *ec_key)
+{
+	ECIES_PARAMS param;
+	ECIES_PARAMS_init_with_recommended(&param);
+	return ECIES_decrypt(&param, out, outlen, in, inlen, ec_key);
+}
+
+
 

@@ -74,12 +74,36 @@ extern "C" {
 */
 
 typedef struct ecies_params_st {
-	int                  kdf_nid;
+	/* supported kdf algors:
+	 *   x9-63-kdf
+	 *   nist-concatenation-kdf
+         *   tls-kdf
+         *   ikev2-kdf
+	 */
+	int kdf_nid;
 	const EVP_MD        *kdf_md;
+
+	/* supported enc algors:
+	 *   xor-in-ecies
+         *   aes128-cbc-in-ecies
+	 *   aes192-cbc-in-ecies
+	 *   aes256-cbc-in-ecies
+	 *   aes128-ctr-in-ecies
+	 *   aes192-ctr-in-ecies
+	 *   aes256-ctr-in-ecies
+         */
 	const EVP_CIPHER    *sym_cipher;
-	int                  mac_nid;
-	const EVP_MD        *mac_md;
-	const EVP_CIPHER    *mac_cipher;
+
+	/*
+	 * supported mac algors:
+	 *   hmac-full-ecies
+	 *   hmac-half-ecies
+	 *   cmac-aes128-ecies
+	 *   cmac-aes192-ecies
+	 */
+	int mac_nid;
+	const EVP_MD *mac_md;
+	const EVP_CIPHER *mac_cipher;
 } ECIES_PARAMS;
 
 typedef struct ecies_ciphertext_value_st {
@@ -100,11 +124,19 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 	const ECIES_PARAMS *param, unsigned char *out, size_t *outlen, 
 	EC_KEY *ec_key);
-int ECIES_encrypt(unsigned char *out, size_t *outlen,
-	const ECIES_PARAMS *param, const unsigned char *in, size_t inlen,
+int ECIES_encrypt(const ECIES_PARAMS *param,
+	unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
 	EC_KEY *ec_key);
-int ECIES_decrypt(unsigned char *out, size_t *outlen,
-	const ECIES_PARAMS *param, const unsigned char *in, size_t inlen,
+int ECIES_decrypt(const ECIES_PARAMS *param,
+	unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
+	EC_KEY *ec_key);
+int ECIES_encrypt_with_recommended(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
+	EC_KEY *ec_key);
+int ECIES_decrypt_with_recommended(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen,
 	EC_KEY *ec_key);
 
 

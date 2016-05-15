@@ -163,7 +163,7 @@ void OpenSSL_add_all_ciphers(void)
     EVP_add_cipher_alias(SN_rc5_cbc, "RC5");
 #endif
 
-#ifndef OPENSSL_NO_SMS4
+#ifndef OPENSSL_NO_GMSSL
     EVP_add_cipher(EVP_sms4_ecb());
     EVP_add_cipher(EVP_sms4_cbc());
     EVP_add_cipher(EVP_sms4_cfb());
@@ -174,9 +174,6 @@ void OpenSSL_add_all_ciphers(void)
     EVP_add_cipher(EVP_sms4_wrap());
     EVP_add_cipher_alias(SN_sms4_cbc,"SMS4");
     EVP_add_cipher_alias(SN_sms4_cbc,"sms4");
-#endif
-
-#ifndef OPENSSL_NO_ZUC
     EVP_add_cipher(EVP_zuc());
 #endif
 

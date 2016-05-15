@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1034
-#define NUM_SN 1012
-#define NUM_LN 1012
-#define NUM_OBJ 950
+#define NUM_NID 1040
+#define NUM_SN 1016
+#define NUM_LN 1016
+#define NUM_OBJ 954
 
-static const unsigned char lvalues[6691]={
+static const unsigned char lvalues[6721]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -957,61 +957,65 @@ static const unsigned char lvalues[6691]={
 0x2A,0x81,0x1C,0xCF,0x55,                    /* [6265] OBJ_oscca */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x11,     /* [6270] OBJ_sm3 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x11,0x02,/* [6278] OBJ_hmac_sm3 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,               /* [6287] OBJ_sm */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x01,/* [6293] OBJ_sm2sign */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x02,/* [6302] OBJ_sm2keyagreement */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,/* [6311] OBJ_sm2encrypt */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x75,     /* [6320] OBJ_sm2sign_with_sm3 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x76,     /* [6328] OBJ_sm2sign_with_sha1 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x77,     /* [6336] OBJ_sm2sign_with_sha256 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x01,     /* [6344] OBJ_sms4_ecb */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x02,     /* [6352] OBJ_sms4_cbc */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x03,     /* [6360] OBJ_sms4_ofb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x04,     /* [6368] OBJ_sms4_cfb128 */
-0x2B,0x81,0x04,0x01,0x07,                    /* [6376] OBJ_ecies_recommendedParameters */
-0x2B,0x81,0x04,0x01,0x08,                    /* [6381] OBJ_ecies_specifiedParameters */
-0x2B,0x81,0x04,0x01,0x11,0x00,               /* [6386] OBJ_x9_63_kdf */
-0x2B,0x81,0x04,0x01,0x11,0x01,               /* [6392] OBJ_nist_concatenation_kdf */
-0x2B,0x81,0x04,0x01,0x11,0x02,               /* [6398] OBJ_tls_kdf */
-0x2B,0x81,0x04,0x01,0x11,0x03,               /* [6404] OBJ_ikev2_kdf */
-0x2B,0x81,0x04,0x01,0x12,                    /* [6410] OBJ_xor_in_ecies */
-0x2B,0x81,0x04,0x01,0x14,0x00,               /* [6415] OBJ_aes128_cbc_in_ecies */
-0x2B,0x81,0x04,0x01,0x14,0x01,               /* [6421] OBJ_aes192_cbc_in_ecies */
-0x2B,0x81,0x04,0x01,0x14,0x02,               /* [6427] OBJ_aes256_cbc_in_ecies */
-0x2B,0x81,0x04,0x01,0x15,0x00,               /* [6433] OBJ_aes128_ctr_in_ecies */
-0x2B,0x81,0x04,0x01,0x15,0x01,               /* [6439] OBJ_aes192_ctr_in_ecies */
-0x2B,0x81,0x04,0x01,0x15,0x02,               /* [6445] OBJ_aes256_ctr_in_ecies */
-0x2B,0x81,0x04,0x01,0x16,                    /* [6451] OBJ_hmac_full_ecies */
-0x2B,0x81,0x04,0x01,0x17,                    /* [6456] OBJ_hmac_half_ecies */
-0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6461] OBJ_cmac_aes128_ecies */
-0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6467] OBJ_cmac_aes192_ecies */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,     /* [6473] OBJ_zuc */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x69,          /* [6481] OBJ_sm7 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x6A,          /* [6488] OBJ_sm8 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x49,     /* [6495] OBJ_sm5 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x01,/* [6503] OBJ_sm9sign */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x02,/* [6512] OBJ_sm9keyagreement */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x03,/* [6521] OBJ_sm9encrypt */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x01,     /* [6530] OBJ_sm6_ecb */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x02,     /* [6538] OBJ_sm6_cbc */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x03,     /* [6546] OBJ_sm6_ofb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x04,     /* [6554] OBJ_sm6_cfb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x01,     /* [6562] OBJ_sm1_ecb */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x02,     /* [6570] OBJ_sm1_cbc */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x03,     /* [6578] OBJ_sm1_ofb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x04,     /* [6586] OBJ_sm1_cfb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x01,     /* [6594] OBJ_ssf33_ecb */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x02,     /* [6602] OBJ_ssf33_cbc */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x03,     /* [6610] OBJ_ssf33_ofb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x04,     /* [6618] OBJ_ssf33_cfb128 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,     /* [6626] OBJ_id_sm9PublicKey */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x07,     /* [6634] OBJ_sms4_ctr */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x08,     /* [6642] OBJ_sms4_gcm */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x09,     /* [6650] OBJ_sms4_ccm */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x0A,     /* [6658] OBJ_sms4_xts */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x05,     /* [6666] OBJ_sms4_cfb1 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x06,     /* [6674] OBJ_sms4_cfb8 */
-0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x0B,     /* [6682] OBJ_sms4_wrap */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x01,/* [6287] OBJ_sm2sign */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x02,/* [6296] OBJ_sm2keyagreement */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,/* [6305] OBJ_sm2encrypt */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x75,     /* [6314] OBJ_sm2sign_with_sm3 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x76,     /* [6322] OBJ_sm2sign_with_sha1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x77,     /* [6330] OBJ_sm2sign_with_sha256 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x01,     /* [6338] OBJ_sms4_ecb */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x02,     /* [6346] OBJ_sms4_cbc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x03,     /* [6354] OBJ_sms4_ofb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x04,     /* [6362] OBJ_sms4_cfb128 */
+0x2B,0x81,0x04,0x01,0x07,                    /* [6370] OBJ_ecies_recommendedParameters */
+0x2B,0x81,0x04,0x01,0x08,                    /* [6375] OBJ_ecies_specifiedParameters */
+0x2B,0x81,0x04,0x01,0x11,0x00,               /* [6380] OBJ_x9_63_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x01,               /* [6386] OBJ_nist_concatenation_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x02,               /* [6392] OBJ_tls_kdf */
+0x2B,0x81,0x04,0x01,0x11,0x03,               /* [6398] OBJ_ikev2_kdf */
+0x2B,0x81,0x04,0x01,0x12,                    /* [6404] OBJ_xor_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x00,               /* [6409] OBJ_aes128_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x01,               /* [6415] OBJ_aes192_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x14,0x02,               /* [6421] OBJ_aes256_cbc_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x00,               /* [6427] OBJ_aes128_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x01,               /* [6433] OBJ_aes192_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x15,0x02,               /* [6439] OBJ_aes256_ctr_in_ecies */
+0x2B,0x81,0x04,0x01,0x16,                    /* [6445] OBJ_hmac_full_ecies */
+0x2B,0x81,0x04,0x01,0x17,                    /* [6450] OBJ_hmac_half_ecies */
+0x2B,0x81,0x04,0x01,0x18,0x00,               /* [6455] OBJ_cmac_aes128_ecies */
+0x2B,0x81,0x04,0x01,0x18,0x01,               /* [6461] OBJ_cmac_aes192_ecies */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,     /* [6467] OBJ_zuc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x69,          /* [6475] OBJ_sm7 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x6A,          /* [6482] OBJ_sm8 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x81,0x49,     /* [6489] OBJ_sm5 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x01,/* [6497] OBJ_sm9sign */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x02,/* [6506] OBJ_sm9keyagreement */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x03,/* [6515] OBJ_sm9encrypt */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x01,     /* [6524] OBJ_sm6_ecb */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x02,     /* [6532] OBJ_sm6_cbc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x03,     /* [6540] OBJ_sm6_ofb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x65,0x04,     /* [6548] OBJ_sm6_cfb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x01,     /* [6556] OBJ_sm1_ecb */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x02,     /* [6564] OBJ_sm1_cbc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x03,     /* [6572] OBJ_sm1_ofb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x04,     /* [6580] OBJ_sm1_cfb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x01,     /* [6588] OBJ_ssf33_ecb */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x02,     /* [6596] OBJ_ssf33_cbc */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x03,     /* [6604] OBJ_ssf33_ofb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x04,     /* [6612] OBJ_ssf33_cfb128 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,     /* [6620] OBJ_id_sm9PublicKey */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x07,     /* [6628] OBJ_sms4_ctr */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x08,     /* [6636] OBJ_sms4_gcm */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x09,     /* [6644] OBJ_sms4_ccm */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x0A,     /* [6652] OBJ_sms4_xts */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x05,     /* [6660] OBJ_sms4_cfb1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x06,     /* [6668] OBJ_sms4_cfb8 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x68,0x0B,     /* [6676] OBJ_sms4_wrap */
+0x2A,0x86,0x48,0xCE,0x3D,0x04,               /* [6684] OBJ_X9_62_id_ecSigType */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,0x01,/* [6690] OBJ_sm2encrypt_recommendedParameters */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,0x02,/* [6700] OBJ_sm2encrypt_specifiedParameters */
+0x2B,0x81,0x04,0x01,                         /* [6710] OBJ_secg_scheme */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,               /* [6714] OBJ_sm_scheme */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2584,91 +2588,101 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"sm","sm",NID_sm,6,&(lvalues[6287]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"sm2sign","sm2sign",NID_sm2sign,9,&(lvalues[6293]),0},
+{NULL,NULL,NID_undef,0,NULL,0},
+{"sm2sign","sm2sign",NID_sm2sign,9,&(lvalues[6287]),0},
 {"sm2keyagreement","sm2keyagreement",NID_sm2keyagreement,9,
-	&(lvalues[6302]),0},
-{"sm2encrypt","sm2encrypt",NID_sm2encrypt,9,&(lvalues[6311]),0},
+	&(lvalues[6296]),0},
+{"sm2encrypt","sm2encrypt",NID_sm2encrypt,9,&(lvalues[6305]),0},
 {"SM2Sign-with-SM3","sm2sign-with-sm3",NID_sm2sign_with_sm3,8,
-	&(lvalues[6320]),0},
+	&(lvalues[6314]),0},
 {"SM2Sign-with-SHA1","sm2sign-with-sha1",NID_sm2sign_with_sha1,8,
-	&(lvalues[6328]),0},
+	&(lvalues[6322]),0},
 {"SM2Sign-with-SHA256","sm2sign-with-sha256",NID_sm2sign_with_sha256,
-	8,&(lvalues[6336]),0},
+	8,&(lvalues[6330]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"SMS4-ECB","sms4-ecb",NID_sms4_ecb,8,&(lvalues[6344]),0},
-{"SMS4-CBC","sms4-cbc",NID_sms4_cbc,8,&(lvalues[6352]),0},
+{"SMS4-ECB","sms4-ecb",NID_sms4_ecb,8,&(lvalues[6338]),0},
+{"SMS4-CBC","sms4-cbc",NID_sms4_cbc,8,&(lvalues[6346]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"SMS4-OFB","sms4-ofb",NID_sms4_ofb128,8,&(lvalues[6360]),0},
-{"SMS4-CFB","sms4-cfb",NID_sms4_cfb128,8,&(lvalues[6368]),0},
+{"SMS4-OFB","sms4-ofb",NID_sms4_ofb128,8,&(lvalues[6354]),0},
+{"SMS4-CFB","sms4-cfb",NID_sms4_cfb128,8,&(lvalues[6362]),0},
 {"ecies-recommendedParameters","ecies-recommendedParameters",
-	NID_ecies_recommendedParameters,5,&(lvalues[6376]),0},
+	NID_ecies_recommendedParameters,5,&(lvalues[6370]),0},
 {"ecies-specifiedParameters","ecies-specifiedParameters",
-	NID_ecies_specifiedParameters,5,&(lvalues[6381]),0},
-{"x9-63-kdf","x9-63-kdf",NID_x9_63_kdf,6,&(lvalues[6386]),0},
+	NID_ecies_specifiedParameters,5,&(lvalues[6375]),0},
+{"x9-63-kdf","x9-63-kdf",NID_x9_63_kdf,6,&(lvalues[6380]),0},
 {"nist-concatenation-kdf","nist-concatenation-kdf",
-	NID_nist_concatenation_kdf,6,&(lvalues[6392]),0},
-{"tls-kdf","tls-kdf",NID_tls_kdf,6,&(lvalues[6398]),0},
-{"ikev2-kdf","ikev2-kdf",NID_ikev2_kdf,6,&(lvalues[6404]),0},
-{"xor-in-ecies","xor-in-ecies",NID_xor_in_ecies,5,&(lvalues[6410]),0},
+	NID_nist_concatenation_kdf,6,&(lvalues[6386]),0},
+{"tls-kdf","tls-kdf",NID_tls_kdf,6,&(lvalues[6392]),0},
+{"ikev2-kdf","ikev2-kdf",NID_ikev2_kdf,6,&(lvalues[6398]),0},
+{"xor-in-ecies","xor-in-ecies",NID_xor_in_ecies,5,&(lvalues[6404]),0},
 {"aes128-cbc-in-ecies","aes128-cbc-in-ecies",NID_aes128_cbc_in_ecies,
-	6,&(lvalues[6415]),0},
+	6,&(lvalues[6409]),0},
 {"aes192-cbc-in-ecies","aes192-cbc-in-ecies",NID_aes192_cbc_in_ecies,
-	6,&(lvalues[6421]),0},
+	6,&(lvalues[6415]),0},
 {"aes256-cbc-in-ecies","aes256-cbc-in-ecies",NID_aes256_cbc_in_ecies,
-	6,&(lvalues[6427]),0},
+	6,&(lvalues[6421]),0},
 {"aes128-ctr-in-ecies","aes128-ctr-in-ecies",NID_aes128_ctr_in_ecies,
-	6,&(lvalues[6433]),0},
+	6,&(lvalues[6427]),0},
 {"aes192-ctr-in-ecies","aes192-ctr-in-ecies",NID_aes192_ctr_in_ecies,
-	6,&(lvalues[6439]),0},
+	6,&(lvalues[6433]),0},
 {"aes256-ctr-in-ecies","aes256-ctr-in-ecies",NID_aes256_ctr_in_ecies,
-	6,&(lvalues[6445]),0},
+	6,&(lvalues[6439]),0},
 {"hmac-full-ecies","hmac-full-ecies",NID_hmac_full_ecies,5,
-	&(lvalues[6451]),0},
+	&(lvalues[6445]),0},
 {"hmac-half-ecies","hmac-half-ecies",NID_hmac_half_ecies,5,
-	&(lvalues[6456]),0},
+	&(lvalues[6450]),0},
 {"cmac-aes128-ecies","cmac-aes128-ecies",NID_cmac_aes128_ecies,6,
-	&(lvalues[6461]),0},
+	&(lvalues[6455]),0},
 {"cmac-aes192-ecies","cmac-aes192-ecies",NID_cmac_aes192_ecies,6,
-	&(lvalues[6467]),0},
-{"ZUC","zuc",NID_zuc,8,&(lvalues[6473]),0},
+	&(lvalues[6461]),0},
+{"ZUC","zuc",NID_zuc,8,&(lvalues[6467]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"NULL","NULL",NID_sm7,7,&(lvalues[6481]),0},
-{"NULL","NULL",NID_sm8,7,&(lvalues[6488]),0},
-{"SM5","sm5",NID_sm5,8,&(lvalues[6495]),0},
+{"NULL","NULL",NID_sm7,7,&(lvalues[6475]),0},
+{"NULL","NULL",NID_sm8,7,&(lvalues[6482]),0},
+{"SM5","sm5",NID_sm5,8,&(lvalues[6489]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"sm9sign","sm9sign",NID_sm9sign,9,&(lvalues[6503]),0},
+{"sm9sign","sm9sign",NID_sm9sign,9,&(lvalues[6497]),0},
 {"sm9keyagreement","sm9keyagreement",NID_sm9keyagreement,9,
-	&(lvalues[6512]),0},
-{"sm9encrypt","sm9encrypt",NID_sm9encrypt,9,&(lvalues[6521]),0},
+	&(lvalues[6506]),0},
+{"sm9encrypt","sm9encrypt",NID_sm9encrypt,9,&(lvalues[6515]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
-{"SM6-ECB","sm6-ecb",NID_sm6_ecb,8,&(lvalues[6530]),0},
-{"SM6-CBC","sm6-cbc",NID_sm6_cbc,8,&(lvalues[6538]),0},
-{"SM6-OFB","sm6-ofb",NID_sm6_ofb128,8,&(lvalues[6546]),0},
-{"SM6-CFB","sm6-cfb",NID_sm6_cfb128,8,&(lvalues[6554]),0},
-{"SM1-ECB","sm1-ecb",NID_sm1_ecb,8,&(lvalues[6562]),0},
-{"SM1-CBC","sm1-cbc",NID_sm1_cbc,8,&(lvalues[6570]),0},
-{"SM1-OFB","sm1-ofb",NID_sm1_ofb128,8,&(lvalues[6578]),0},
-{"NULL","NULL",NID_sm1_cfb128,8,&(lvalues[6586]),0},
-{"SSF33-ECB","ssf33-ecb",NID_ssf33_ecb,8,&(lvalues[6594]),0},
-{"SSF33-CBC","ssf33-cbc",NID_ssf33_cbc,8,&(lvalues[6602]),0},
-{"SSF33-OFB","ssf33-ofb",NID_ssf33_ofb128,8,&(lvalues[6610]),0},
-{"SSF33-CFB","ssf33-cfb",NID_ssf33_cfb128,8,&(lvalues[6618]),0},
+{"SM6-ECB","sm6-ecb",NID_sm6_ecb,8,&(lvalues[6524]),0},
+{"SM6-CBC","sm6-cbc",NID_sm6_cbc,8,&(lvalues[6532]),0},
+{"SM6-OFB","sm6-ofb",NID_sm6_ofb128,8,&(lvalues[6540]),0},
+{"SM6-CFB","sm6-cfb",NID_sm6_cfb128,8,&(lvalues[6548]),0},
+{"SM1-ECB","sm1-ecb",NID_sm1_ecb,8,&(lvalues[6556]),0},
+{"SM1-CBC","sm1-cbc",NID_sm1_cbc,8,&(lvalues[6564]),0},
+{"SM1-OFB","sm1-ofb",NID_sm1_ofb128,8,&(lvalues[6572]),0},
+{"SM1-CFB","sm1-cfb",NID_sm1_cfb128,8,&(lvalues[6580]),0},
+{"SSF33-ECB","ssf33-ecb",NID_ssf33_ecb,8,&(lvalues[6588]),0},
+{"SSF33-CBC","ssf33-cbc",NID_ssf33_cbc,8,&(lvalues[6596]),0},
+{"SSF33-OFB","ssf33-ofb",NID_ssf33_ofb128,8,&(lvalues[6604]),0},
+{"SSF33-CFB","ssf33-cfb",NID_ssf33_cfb128,8,&(lvalues[6612]),0},
 {NULL,NULL,NID_undef,0,NULL,0},
 {"id-sm9PublicKey","id-sm9PublicKey",NID_id_sm9PublicKey,8,
-	&(lvalues[6626]),0},
-{"SMS4-CTR","sms4-ctr",NID_sms4_ctr,8,&(lvalues[6634]),0},
-{"SMS4-GCM","sms4-gcm",NID_sms4_gcm,8,&(lvalues[6642]),0},
-{"SMS4-CCM","sms4-ccm",NID_sms4_ccm,8,&(lvalues[6650]),0},
-{"SMS4-XTS","sms4-xts",NID_sms4_xts,8,&(lvalues[6658]),0},
-{"SM1-CFB","sm1-cfb",NID_sm1_cfb,0,NULL,0},
-{"SMS4-CFB1","sms4-cfb1",NID_sms4_cfb1,8,&(lvalues[6666]),0},
-{"SMS4-CFB8","sms4-cfb8",NID_sms4_cfb8,8,&(lvalues[6674]),0},
-{"SMS4-WRAP","sms4-wrap",NID_sms4_wrap,8,&(lvalues[6682]),0},
+	&(lvalues[6620]),0},
+{"SMS4-CTR","sms4-ctr",NID_sms4_ctr,8,&(lvalues[6628]),0},
+{"SMS4-GCM","sms4-gcm",NID_sms4_gcm,8,&(lvalues[6636]),0},
+{"SMS4-CCM","sms4-ccm",NID_sms4_ccm,8,&(lvalues[6644]),0},
+{"SMS4-XTS","sms4-xts",NID_sms4_xts,8,&(lvalues[6652]),0},
+{NULL,NULL,NID_undef,0,NULL,0},
+{"SMS4-CFB1","sms4-cfb1",NID_sms4_cfb1,8,&(lvalues[6660]),0},
+{"SMS4-CFB8","sms4-cfb8",NID_sms4_cfb8,8,&(lvalues[6668]),0},
+{"SMS4-WRAP","sms4-wrap",NID_sms4_wrap,8,&(lvalues[6676]),0},
+{"id-ecSigType","id-ecSigType",NID_X9_62_id_ecSigType,6,
+	&(lvalues[6684]),0},
+{"sm2encrypt-recommendedParameters",
+	"sm2encrypt-recommendedParameters",
+	NID_sm2encrypt_recommendedParameters,10,&(lvalues[6690]),0},
+{"sm2encrypt-specifiedParameters","sm2encrypt-specifiedParameters",
+	NID_sm2encrypt_specifiedParameters,10,&(lvalues[6700]),0},
+{"secg-scheme","secg-scheme",NID_secg_scheme,4,&(lvalues[6710]),0},
+{"sm-scheme","sm-scheme",NID_sm_scheme,6,&(lvalues[6714]),0},
+{"CBC-MAC","cbc-mac",NID_cbc_mac,0,NULL,0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2729,6 +2743,7 @@ static const unsigned int sn_objs[NUM_SN]={
 110,	/* "CAST5-CFB" */
 109,	/* "CAST5-ECB" */
 111,	/* "CAST5-OFB" */
+1039,	/* "CBC-MAC" */
 894,	/* "CMAC" */
 13,	/* "CN" */
 141,	/* "CRLReason" */
@@ -2789,7 +2804,6 @@ static const unsigned int sn_objs[NUM_SN]={
 404,	/* "NULL" */
 1004,	/* "NULL" */
 1005,	/* "NULL" */
-1019,	/* "NULL" */
 57,	/* "Netscape" */
 366,	/* "Nonce" */
 17,	/* "O" */
@@ -2858,7 +2872,7 @@ static const unsigned int sn_objs[NUM_SN]={
 673,	/* "SHA384" */
 674,	/* "SHA512" */
 1017,	/* "SM1-CBC" */
-1030,	/* "SM1-CFB" */
+1019,	/* "SM1-CFB" */
 1016,	/* "SM1-ECB" */
 1018,	/* "SM1-OFB" */
 974,	/* "SM2Sign-with-SHA1" */
@@ -3179,6 +3193,7 @@ static const unsigned int sn_objs[NUM_SN]={
 331,	/* "id-cmc-transactionId" */
 787,	/* "id-ct-asciiTextWithCRLF" */
 408,	/* "id-ecPublicKey" */
+1034,	/* "id-ecSigType" */
 508,	/* "id-hex-multipart-message" */
 507,	/* "id-hex-partial-message" */
 260,	/* "id-it" */
@@ -3455,6 +3470,7 @@ static const unsigned int sn_objs[NUM_SN]={
 292,	/* "sbgp-routerIdentifier" */
 159,	/* "sdsiCertificate" */
 859,	/* "searchGuide" */
+1037,	/* "secg-scheme" */
 704,	/* "secp112r1" */
 705,	/* "secp112r2" */
 706,	/* "secp128r1" */
@@ -3627,8 +3643,10 @@ static const unsigned int sn_objs[NUM_SN]={
 52,	/* "signingTime" */
 454,	/* "simpleSecurityObject" */
 496,	/* "singleLevelQuality" */
-968,	/* "sm" */
+1038,	/* "sm-scheme" */
 972,	/* "sm2encrypt" */
+1035,	/* "sm2encrypt-recommendedParameters" */
+1036,	/* "sm2encrypt-specifiedParameters" */
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
 970,	/* "sm2sign" */
@@ -3759,7 +3777,6 @@ static const unsigned int ln_objs[NUM_LN]={
 404,	/* "NULL" */
 1004,	/* "NULL" */
 1005,	/* "NULL" */
-1019,	/* "NULL" */
 72,	/* "Netscape Base Url" */
 76,	/* "Netscape CA Policy Url" */
 74,	/* "Netscape CA Revocation Url" */
@@ -3950,6 +3967,7 @@ static const unsigned int ln_objs[NUM_LN]={
 110,	/* "cast5-cfb" */
 109,	/* "cast5-ecb" */
 111,	/* "cast5-ofb" */
+1039,	/* "cbc-mac" */
 152,	/* "certBag" */
 677,	/* "certicom-arc" */
 517,	/* "certificate extensions" */
@@ -4156,6 +4174,7 @@ static const unsigned int ln_objs[NUM_LN]={
 331,	/* "id-cmc-transactionId" */
 787,	/* "id-ct-asciiTextWithCRLF" */
 408,	/* "id-ecPublicKey" */
+1034,	/* "id-ecSigType" */
 508,	/* "id-hex-multipart-message" */
 507,	/* "id-hex-partial-message" */
 260,	/* "id-it" */
@@ -4443,6 +4462,7 @@ static const unsigned int ln_objs[NUM_LN]={
 292,	/* "sbgp-routerIdentifier" */
 159,	/* "sdsiCertificate" */
 859,	/* "searchGuide" */
+1037,	/* "secg-scheme" */
 704,	/* "secp112r1" */
 705,	/* "secp112r2" */
 706,	/* "secp128r1" */
@@ -4616,12 +4636,14 @@ static const unsigned int ln_objs[NUM_LN]={
 52,	/* "signingTime" */
 454,	/* "simpleSecurityObject" */
 496,	/* "singleLevelQuality" */
-968,	/* "sm" */
+1038,	/* "sm-scheme" */
 1017,	/* "sm1-cbc" */
-1030,	/* "sm1-cfb" */
+1019,	/* "sm1-cfb" */
 1016,	/* "sm1-ecb" */
 1018,	/* "sm1-ofb" */
 972,	/* "sm2encrypt" */
+1035,	/* "sm2encrypt-recommendedParameters" */
+1036,	/* "sm2encrypt-specifiedParameters" */
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
 970,	/* "sm2sign" */
@@ -4820,6 +4842,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 387,	/* OBJ_SNMPv2                       1 3 6 1 6 */
 388,	/* OBJ_Mail                         1 3 6 1 7 */
 376,	/* OBJ_algorithm                    1 3 14 3 2 */
+1037,	/* OBJ_secg_scheme                  1 3 132 1 */
 395,	/* OBJ_clearance                    2 5 1 5 55 */
 19,	/* OBJ_rsa                          2 5 8 1 1 */
 96,	/* OBJ_mdc2WithRSA                  2 5 8 3 100 */
@@ -5017,7 +5040,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 745,	/* OBJ_wap_wsg_idm_ecid_wtls12      2 23 43 1 4 12 */
 804,	/* OBJ_whirlpool                    1 0 10118 3 0 55 */
 124,	/* OBJ_rle_compression              1 1 1 1 666 1 */
-968,	/* OBJ_sm                           1 2 156 10197 1 */
+1038,	/* OBJ_sm_scheme                    1 2 156 10197 1 */
 773,	/* OBJ_kisa                         1 2 410 200004 */
 807,	/* OBJ_id_GostR3411_94_with_GostR3410_2001 1 2 643 2 2 3 */
 808,	/* OBJ_id_GostR3411_94_with_GostR3410_94 1 2 643 2 2 4 */
@@ -5032,6 +5055,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 818,	/* OBJ_id_GostR3410_94DH            1 2 643 2 2 99 */
  1,	/* OBJ_rsadsi                       1 2 840 113549 */
 185,	/* OBJ_X9cm                         1 2 840 10040 4 */
+1034,	/* OBJ_X9_62_id_ecSigType           1 2 840 10045 4 */
 127,	/* OBJ_id_pkix                      1 3 6 1 5 5 7 */
 505,	/* OBJ_mime_mhs_headings            1 3 6 1 7 1 1 */
 506,	/* OBJ_mime_mhs_bodies              1 3 6 1 7 1 2 */
@@ -5543,6 +5567,8 @@ static const unsigned int obj_objs[NUM_OBJ]={
 455,	/* OBJ_pilotOrganization            0 9 2342 19200300 100 4 20 */
 456,	/* OBJ_pilotDSA                     0 9 2342 19200300 100 4 21 */
 457,	/* OBJ_qualityLabelledData          0 9 2342 19200300 100 4 22 */
+1035,	/* OBJ_sm2encrypt_recommendedParameters 1 2 156 10197 1 301 3 1 */
+1036,	/* OBJ_sm2encrypt_specifiedParameters 1 2 156 10197 1 301 3 2 */
 189,	/* OBJ_id_smime_mod                 1 2 840 113549 1 9 16 0 */
 190,	/* OBJ_id_smime_ct                  1 2 840 113549 1 9 16 1 */
 191,	/* OBJ_id_smime_aa                  1 2 840 113549 1 9 16 2 */

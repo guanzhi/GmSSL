@@ -1031,3 +1031,9 @@ sm1_cfb		1030
 sms4_cfb1		1031
 sms4_cfb8		1032
 sms4_wrap		1033
+X9_62_id_ecSigType		1034
+sm2encrypt_recommendedParameters		1035
+sm2encrypt_specifiedParameters		1036
+secg_scheme		1037
+sm_scheme		1038
+cbc_mac		1039

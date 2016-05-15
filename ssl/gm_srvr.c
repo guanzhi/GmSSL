@@ -57,57 +57,17 @@
 #include <openssl/objects.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
-#include <openssl/gmssl.h>
+#include <openssl/gmssl1.h>
 
-static const SSL_METHOD *gmssl_get_server_method(int ver)
+static const SSL_METHOD *gm1_get_server_method(int ver)
 {
-	if (ver == GMSSL1_1_VERSION) {
-		return GMSSLv1_1_server_method();
+	if (ver == GM1_VERSION) {
+		return GMSSLv1_server_method();
 	}
 	return NULL;
 }
 
-IMPLEMENT_gmssl_meth_func(GMSSL1_1_VERSION, GMSSLv1_1_server_method,
-                        ssl3_accept,
-                        ssl_undefined_function,
-                        gmssl_get_server_method, GMSSLv1_1_enc_data)
+IMPLEMENT_gm1_meth_func(GMSSLv1_server_method,
+			ssl3_accept,ssl_undefined_function,
+			gm1_get_server_method)
 
-int gm1_send_server_certificate(SSL *s)
-{
-
-    CERT_PKEY *cpk;
-
-    if (s->state == SSL3_ST_SW_CERT_A) {
-        cpk = ssl_get_server_send_pkey(s);
-        if (cpk == NULL) {
-            /* VRS: allow null cert if auth == KRB5 */
-            if ((s->s3->tmp.new_cipher->algorithm_auth != SSL_aKRB5) ||
-                (s->s3->tmp.new_cipher->algorithm_mkey & SSL_kKRB5)) {
-                SSLerr(SSL_F_SSL3_SEND_SERVER_CERTIFICATE,
-                       ERR_R_INTERNAL_ERROR);
-                s->state = SSL_ST_ERR;
-                return (0);
-            }
-        }
-
-        if (!ssl3_output_cert_chain(s, cpk)) {
-            SSLerr(SSL_F_SSL3_SEND_SERVER_CERTIFICATE, ERR_R_INTERNAL_ERROR);
-            s->state = SSL_ST_ERR;
-            return (0);
-        }
-        s->state = SSL3_ST_SW_CERT_B;
-    }
-
-    /* SSL3_ST_SW_CERT_B */
-    return ssl_do_write(s);
-}
-
-/*
-
-s3_srvr.c:s3_send_server_certificate
-	ssl_get_server_send_pkey
-	ssl3_output_cert_chain
-		ssl_add_cert_chain
-		ssl_set_handshake_header
-	ssl_do_write
-*/

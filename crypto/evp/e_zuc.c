@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "cryptlib.h"
 
-#ifndef OPENSSL_NO_ZUC
+#ifndef OPENSSL_NO_GMSSL
 
 #include <openssl/evp.h>
 #include "evp_locl.h"

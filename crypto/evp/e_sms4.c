@@ -53,7 +53,7 @@
 #include <stdio.h>
 #include "cryptlib.h"
 
-#ifndef OPENSSL_NO_SMS4
+#ifndef OPENSSL_NO_GMSSL
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/crypto.h>

@@ -366,7 +366,7 @@ int skf_rand_bytes(unsigned char *buf, int num)
 {
 	ULONG rv;
 
-	if ((rv = SKF_GenRandom(skf_dev_handle, buf, (ULONG)num)) != SAR_OK) {
+	if ((rv = SKF_GenRandom(hDev, buf, (ULONG)num)) != SAR_OK) {
 		SKFerr(SKF_F_SKF_RAND_BYTES, skf_err2openssl(rv));
 		return 0;
 	}
@@ -387,11 +387,10 @@ static RAND_METHOD skf_rand = {
 static int skf_sm3_init(EVP_MD_CTX *ctx)
 {
 	ULONG rv;
-	DEVHANDLE hDev = skf_dev_handle;
+	DEVHANDLE hDev;
 	HANDLE hHash;
 
-	if ((rv = SKF_DigestInit(hDev, SGD_SM3, NULL, NULL, 0,
-		(HANDLE *)&ctx->md_data)) != SAR_OK) {
+	if ((rv = SKF_DigestInit(hDev, SGD_SM3, NULL, NULL, 0, &hHash)) != SAR_OK) {
 		SKFerr(SKF_F_SM3_INIT, skf_err2openssl(rv));
 		return 0;
 	}
@@ -547,4 +546,3 @@ static int bind(ENGINE *e, const char *id)
 
 IMPLEMENT_DYNAMIC_BIND_FN(bind);
 IMPLEMENT_DYNAMIC_CHECK_FN();
-

@@ -228,14 +228,3 @@ int EVP_PKEY_add1_attr_by_txt(EVP_PKEY *key,
     return 0;
 }
 
-#ifndef OPENSSL_NO_GMSSL
-int EVP_PKEY_ec_to_sm2(EVP_PKEY *pkey, int only_sm2_curve)
-{
-	return 0;
-}
-
-int EVP_PKEY_sm2_to_ec(EVP_PKEY *pkey)
-{
-	return 0;
-}
-#endif
