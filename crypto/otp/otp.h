@@ -64,6 +64,8 @@ typedef struct OTP_PARAMS_st {
 	void *option;
 	size_t option_size;
 	int otp_digits;
+	/* adjust the clock in seconds */
+	int offset;
 } OTP_PARAMS;
 
 /* OTP reference to the GM/T OTP specification

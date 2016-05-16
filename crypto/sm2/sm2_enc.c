@@ -61,34 +61,33 @@
 #include <openssl/kdf.h>
 #include "sm2.h"
 
-int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *ec_group,
-	point_conversion_form_t point_form, size_t mlen,
-	const EVP_MD *mac_md)
+int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *group,
+	const SM2_ENC_PARAMS *params, size_t mlen)
 {
 	int ret = 0;
-	EC_POINT *point = EC_POINT_new(ec_group);
-	BN_CTX *bn_ctx = BN_CTX_new();
-	size_t len;
+	EC_KEY *ec_key = NULL;
+	size_t len = 0;
 
-	if (!point || !bn_ctx) {
+	if (!(ec_key = EC_KEY_new())) {
 		goto end;
 	}
-
-#if 0	
-	//FIXME: len will be 1 !!!
-	if (!(len = EC_POINT_point2oct(ec_group, point, point_form,
-		NULL, 0, bn_ctx))) {
+	if (!EC_KEY_set_group(ec_key, group)) {
 		goto end;
 	}
-#endif
-	len = 1 + 2 * ((EC_GROUP_get_degree(ec_group) + 7)/8);
-	len += mlen + EVP_MD_size(mac_md);
+	if (!EC_KEY_generate_key(ec_key)) {
+		goto end;
+	}
+	len += EC_POINT_point2oct(group, EC_KEY_get0_public_key(ec_key),
+		params->point_form, NULL, 0, NULL);
+	len += mlen;
+	len += params->mactag_size < 0 ? EVP_MD_size(params->mac_md) :
+		params->mactag_size;
 
-	ret = len;
+ 	ret = (int)len;
+
 end:
-	if (point) EC_POINT_free(point);
-	if (bn_ctx) BN_CTX_free(bn_ctx);
- 	return ret;
+	EC_KEY_free(ec_key);
+	return ret;
 }
 
 void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv)
@@ -100,7 +99,7 @@ void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv)
 }
 
 int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
-	const EC_GROUP *ec_group, point_conversion_form_t point_form,
+	const EC_GROUP *ec_group, const SM2_ENC_PARAMS *params,
 	unsigned char *buf, size_t *buflen)
 {
 	int ret = 0;
@@ -112,7 +111,7 @@ int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
 	}
 
 	if (!(ptlen = EC_POINT_point2oct(ec_group, cv->ephem_point,
-		point_form, NULL, 0, bn_ctx))) {
+		params->point_form, NULL, 0, bn_ctx))) {
 		goto end;
 	}
 	cvlen = ptlen + cv->ciphertext_size + cv->mactag_size;
@@ -127,13 +126,15 @@ int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
 	}
 
 	if (!(ptlen = EC_POINT_point2oct(ec_group, cv->ephem_point,
-		point_form, buf, *buflen, bn_ctx))) {
+		params->point_form, buf, *buflen, bn_ctx))) {
 		goto end;
 	}
 	buf += ptlen;
 	memcpy(buf, cv->ciphertext, cv->ciphertext_size);
 	buf += cv->ciphertext_size;
-	memcpy(buf, cv->mactag, cv->mactag_size);
+	if (cv->mactag_size > 0) {
+		memcpy(buf, cv->mactag, cv->mactag_size);
+	}
 
 	*buflen = cvlen;
 	ret = 1;
@@ -142,8 +143,8 @@ end:
 	return ret;
 }
 
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
-	point_conversion_form_t point_form, const EVP_MD *mac_md,
+SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(
+	const EC_GROUP *ec_group, const SM2_ENC_PARAMS *params,
 	const unsigned char *buf, size_t buflen)
 {
 	int ok = 0;
@@ -156,7 +157,7 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
 		return NULL;
 	}
 
-	if (!(fixlen = SM2_CIPHERTEXT_VALUE_size(ec_group, point_form, 0, mac_md))) {
+	if (!(fixlen = SM2_CIPHERTEXT_VALUE_size(ec_group, params, 0))) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -179,7 +180,7 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
 		goto end;
 	}
 
-	ptlen = fixlen - EVP_MD_size(mac_md);
+	ptlen = fixlen - SM2_ENC_PARAMS_mactag_size(params);
 	if (!EC_POINT_oct2point(ec_group, ret->ephem_point, buf, ptlen, bn_ctx)) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		ERR_print_errors_fp(stdout);
@@ -187,9 +188,10 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
 	}
 
 	memcpy(ret->ciphertext, buf + ptlen, ret->ciphertext_size);
-	ret->mactag_size = EVP_MD_size(mac_md);
-	memcpy(ret->mactag, buf + buflen - ret->mactag_size, ret->mactag_size);
-
+	ret->mactag_size = SM2_ENC_PARAMS_mactag_size(params);
+	if (ret->mactag_size > 0) {
+		memcpy(ret->mactag, buf + buflen - ret->mactag_size, ret->mactag_size);
+	}
 	ok = 1;
 
 end:
@@ -248,8 +250,7 @@ int SM2_encrypt(const SM2_ENC_PARAMS *params,
 	SM2_CIPHERTEXT_VALUE *cv = NULL;
 	int len;
 
-	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group,
-		params->point_form, inlen, params->mac_md))) {
+	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, params, inlen))) {
 		goto end;
 	}
 
@@ -264,8 +265,7 @@ int SM2_encrypt(const SM2_ENC_PARAMS *params,
 	if (!(cv = SM2_do_encrypt(params, in, inlen, ec_key))) {
 		goto end;
 	}
-	if (!SM2_CIPHERTEXT_VALUE_encode(cv, ec_group,
-		params->point_form, out, outlen)) {
+	if (!SM2_CIPHERTEXT_VALUE_encode(cv, ec_group, params, out, outlen)) {
 		goto end;
 	}
 	
@@ -386,30 +386,34 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 	for (i = 0; i < inlen; i++) {
 		cv->ciphertext[i] ^= in[i];
 	}
-	
-	/* A7: C3 = Hash(x2 || M || y2) */
-	if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, in, inlen)) {
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
-		goto end;
-	}
-	if (!EVP_DigestFinal_ex(md_ctx, dgst, &dgstlen)) {
-		goto end;
-	}
 
-	/* GmSSL specific: reduce mactag size */
-	if (params->mactag_size > dgstlen) {
-		goto end;
+	if (params->mactag_size) {
+
+		/* A7: C3 = Hash(x2 || M || y2) */
+		if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
+			goto end;
+		}
+		if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
+			goto end;
+		}
+		if (!EVP_DigestUpdate(md_ctx, in, inlen)) {
+			goto end;
+		}
+		if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
+			goto end;
+		}
+		if (!EVP_DigestFinal_ex(md_ctx, dgst, &dgstlen)) {
+			goto end;
+		}
+
+		/* GmSSL specific: reduce mactag size */
+		if (params->mactag_size > dgstlen) {
+			goto end;
+		}
+
+		cv->mactag_size = params->mactag_size;
+		memcpy(cv->mactag, dgst, cv->mactag_size);
 	}
-	cv->mactag_size = params->mactag_size;
-	memcpy(cv->mactag, dgst, cv->mactag_size);
 
 	ok = 1;
 
@@ -438,7 +442,7 @@ int SM2_decrypt(const SM2_ENC_PARAMS *params,
 	SM2_CIPHERTEXT_VALUE *cv = NULL;
 	int len;
 
-	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, params->point_form, 0, params->mac_md))) {
+	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, params, 0))) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -455,7 +459,7 @@ int SM2_decrypt(const SM2_ENC_PARAMS *params,
 		return 0;
 	}
 
-	if (!(cv = SM2_CIPHERTEXT_VALUE_decode(ec_group, params->point_form, params->mac_md, in, inlen))) {
+	if (!(cv = SM2_CIPHERTEXT_VALUE_decode(ec_group, params, in, inlen))) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -486,8 +490,6 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 	unsigned char buf[(OPENSSL_ECC_MAX_FIELD_BITS + 7)/4 + 1];
 	unsigned char mac[EVP_MAX_MD_SIZE];
 	unsigned int maclen;
-	unsigned char dgst[EVP_MAX_MD_SIZE];
-	unsigned int dgstlen;
 	int nbytes;
 	size_t size;
 	int i;
@@ -556,30 +558,33 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 	}
 	*outlen = cv->ciphertext_size;
 
-	/* B6: check Hash(x2 || M || y2) == C3 */
-	if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, out, *outlen)) {
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
-		goto end;
-	}
-	if (!EVP_DigestFinal_ex(md_ctx, mac, &maclen)) {
-		goto end;
-	}
+	if (params->mactag_size) {
 
-	/* GmSSL specific */
-	if (params->mactag_size > maclen) {
-		goto end;
-	}
-	if (cv->mactag_size != params->mactag_size ||
-		memcmp(mac, cv->mactag, cv->mactag_size)) {
-		goto end;
+		/* B6: check Hash(x2 || M || y2) == C3 */
+		if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
+			goto end;
+		}
+		if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
+			goto end;
+		}
+		if (!EVP_DigestUpdate(md_ctx, out, *outlen)) {
+			goto end;
+		}
+		if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
+			goto end;
+		}
+		if (!EVP_DigestFinal_ex(md_ctx, mac, &maclen)) {
+			goto end;
+		}
+
+		/* GmSSL specific */
+		if (params->mactag_size > maclen) {
+			goto end;
+		}
+		if (cv->mactag_size != params->mactag_size ||
+			memcmp(mac, cv->mactag, cv->mactag_size)) {
+			goto end;
+		}
 	}
 
 	ret = 1;
@@ -642,6 +647,4 @@ int SM2_decrypt_elgamal(const unsigned char *in, size_t inlen,
 	params.point_form = POINT_CONVERSION_COMPRESSED;
 	return SM2_decrypt(&params, in, inlen, out, outlen, ec_key);
 }
-
-
 

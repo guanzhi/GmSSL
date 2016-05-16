@@ -130,8 +130,6 @@ int sm2_get_public_key_data(unsigned char *buf, EC_KEY *ec_key)
 	BIGNUM *y = NULL;
 	size_t len;
 
-	unsigned char *pbuf = buf;
-
 	if (!ec_key || !buf) {
 		return 0;
 	}
@@ -288,10 +286,11 @@ int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 		goto err;
 	}
 
-	if (!EVP_DigestFinal_ex(&md_ctx, dgst, &dgstlen)) {
+	if (!EVP_DigestFinal_ex(&md_ctx, dgst, &len)) {
 		goto err;
 	}
 
+	*dgstlen = len;
 	ret = 1;
 err:
 	EVP_MD_CTX_cleanup(&md_ctx);

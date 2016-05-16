@@ -83,11 +83,15 @@ int SM2_compute_id_digest(const EVP_MD *md, unsigned char *dgst,
 
 
 typedef struct sm2_enc_params_st {
-	EVP_MD *kdf_md;
-	EVP_MD *mac_md;
+	const EVP_MD *kdf_md;
+	const EVP_MD *mac_md;
 	int mactag_size;
 	point_conversion_form_t point_form;
 } SM2_ENC_PARAMS;
+
+#define SM2_ENC_PARAMS_mactag_size(params) \
+	((params)->mactag_size<0 ? EVP_MD_size((params)->mac_md) : (params->mactag_size))
+
 
 typedef struct sm2_ciphertext_value_st {
 	EC_POINT *ephem_point;
@@ -98,15 +102,13 @@ typedef struct sm2_ciphertext_value_st {
 } SM2_CIPHERTEXT_VALUE;
 
 int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *ec_group,
-	point_conversion_form_t point_form, size_t mlen,
-	const EVP_MD *mac_md);
+	const SM2_ENC_PARAMS *params, size_t mlen);
 void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv);
 int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
-	const EC_GROUP *ec_group, point_conversion_form_t point_form,
+	const EC_GROUP *ec_group, const SM2_ENC_PARAMS *params,
 	unsigned char *buf, size_t *buflen);
 SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
-	point_conversion_form_t point_form, const EVP_MD *mac_md,
-	const unsigned char *buf, size_t buflen);
+	const SM2_ENC_PARAMS *params, const unsigned char *buf, size_t buflen);
 int i2d_SM2_CIPHERTEXT_VALUE(const SM2_CIPHERTEXT_VALUE *c, unsigned char **out);
 SM2_CIPHERTEXT_VALUE *d2i_SM2_CIPHERTEXT_VALUE(SM2_CIPHERTEXT_VALUE **c,
 	const unsigned char **in, long len);

@@ -1,6 +1,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <strings.h>
 #include <openssl/evp.h>
@@ -45,11 +46,12 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 	unsigned char s[EVP_MAX_MD_SIZE];
 	size_t slen;
 	uint32_t od;
-	int i;
+	int i, n;
 
 	OPENSSL_assert(sizeof(time_t) == 8);
 
 	if (!check_params(params)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		return 0;
 	}
 
@@ -58,11 +60,12 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 		idlen = 16;
 	}
 	if (!(id = OPENSSL_malloc(idlen))) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 	bzero(id, idlen);
 
-	t = time(NULL);
+	t = time(NULL) + params->offset;
 	t /= params->te;
 
 	memcpy(id, &t, sizeof(t));
@@ -108,7 +111,9 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 	OPENSSL_assert(slen % 4 == 0);
 
 	od = 0;
-	for (i = 0; i < slen/4; i++) {
+
+	n = (int)slen;
+	for (i = 0; i < n/4; i++) {
 		od += GETU32(&s[i * 4]);
 	}
 

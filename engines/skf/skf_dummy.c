@@ -10,7 +10,6 @@
 #define CONTAINER_NAME_LIST	CONTAINER_NAME"\0"
 
 
-
 ULONG DEVAPI SKF_WaitForDevEvent(LPSTR szDevName,
 	ULONG *pulDevNameLen, ULONG *pulEvent)
 {
