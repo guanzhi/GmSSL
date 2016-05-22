@@ -1,5 +1,52 @@
-/*
- * The SKF ENGINE will be released when EC_KEY_METHOD is avaiable
+/* engines/e_skf.c */
+/* ====================================================================
+ * Copyright (c) 2015-2016 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ *
  */
 
 #include <stdio.h>
@@ -22,6 +69,10 @@ static DEVHANDLE skf_dev_handle = NULL;
 static HAPPLICATION skf_app_handle = NULL;
 static HCONTAINER skf_container_handle = NULL;
 
+static int authkey_set = 0;
+static unsigned char authkey[16];
+static int userpin_set = 0;
+static char userpin[64];
 
 static int skf_init(ENGINE *e);
 static int skf_finish(ENGINE *e);
@@ -29,20 +80,58 @@ static int skf_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)(void));
 static int skf_destroy(ENGINE *e);
 
 
-#define SKF_CMD_LIST_DEVS	ENGINE_CMD_BASE
+#define SKF_CMD_SO_PATH			ENGINE_CMD_BASE
+#define SKF_CMD_OPEN_DEV		(ENGINE_CMD_BASE + 1)
+#define SKF_CMD_DEV_AUTH		(ENGINE_CMD_BASE + 2)
+#define SKF_CMD_OPEN_APP		(ENGINE_CMD_BASE + 3)
+#define SKF_CMD_VERIFY_PIN		(ENGINE_CMD_BASE + 4)
+#define SKF_CMD_OPEN_CONTAINER		(ENGINE_CMD_BASE + 5)
+
+static const ENGINE_CMD_DEFN skf_cmd_defns[] = {
+	{SKF_CMD_SO_PATH,
+	 "SO_PATH",
+	 "Specifies the path to the vendor's SKF shared library",
+	 ENGINE_CMD_FLAG_STRING},
+	{SKF_CMD_OPEN_DEV,
+	 "OPEN_DEVICE",
+	 "Open SKF device with device name",
+	 ENGINE_CMD_FLAG_STRING},
+	{SKF_CMD_DEV_AUTH,
+	 "DEV_AUTH",
+	 "Device authentication with authentication key",
+	 ENGINE_CMD_FLAG_STRING},
+	{SKF_CMD_OPEN_APP,
+	 "OPEN_APP",
+	 "Open application with specified name",
+	{SKF_CMD_VERIFY_PIN,
+	 "VERIFY_PIN",
+	 "Specifies user's PIN of the application to open",
+	 ENGINE_CMD_FLAG_STRING},
+	{SKF_CMD_OPEN_CONTAINER,
+	 "OPEN_CONTAINER",
+	 "Open container wtith specified name",
+	 ENGINE_CMD_FLAG_STRING},
+	{0, NULL, NULL, 0}
+};
+	
 
 
-static int skf_open_container(const char *dev,
-	const unsigned char *authkey, size_t authkeylen,
-	const char *app, const char *pin,
-	const char *container, HCONTAINER *phContainer)
+int set_authkey(const char *authkey_hex)
 {
-	ULONG rv;
-	DEVINFO devInfo;
-	DEVHANDLE hDev = NULL;
-	HAPPLICATION hApp = NULL;
-	HCONTAINER hContainer = NULL;
+	// convert the 
+}
 
+int set_userpin(const char *pin)
+{
+	if (strlen(pin) > sizeof(userpin)) {
+		return 0;
+	}
+	strcpy(userpin, pin);
+	return 0;
+}
+
+int open_dev(const char *devname)
+{
 	if ((rv = SKF_ConnectDev(dev, &hDev)) != SAR_OK) {
 		goto end;
 	}
@@ -63,13 +152,22 @@ static int skf_open_container(const char *dev,
 		goto end;
 	}
 
+	return 0;
+}
+
+int open_app(const char *appname)
+{
 	if ((rv = SKF_OpenApplication(hDev, appName, &hApp)) != SAR_OK) {
 		goto end;
 	}
 	if ((rv = SKF_VerifyPIN(hApp, USER_TYPE, pin, &retryCount)) != SAR_OK) {
 		goto end;
 	}
+	return 0;
+}
 
+int open_container(const char *containername)
+{
 	if ((rv = SKF_OpenContainer(hApp, containerName, &hContainer)) != SAR_OK) {
 		goto end;
 	}
@@ -79,11 +177,27 @@ static int skf_open_container(const char *dev,
 	if (containerType != CONTAINER_TYPE_ECC) {
 		goto end;
 	}
-
-end:
 	return 0;
 }
 
+static int skf_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)())
+{
+	switch (cmd) {
+	case SKF_CMD_OPEN_DEV:
+		return open_dev(p);
+	case SKF_CMD_DEV_AUTH:
+		return dev_auth(p);
+	case SKF_CMD_OPEN_APP:
+		return open_app(p);
+	case SKF_CMD_VERIFY_PIN:
+		return verify_pin(p);
+	case SKF_CMD_OPEN_CONTAINER:
+		return open_container(p);
+	default:
+		break;
+	}
+	return 0;
+}
 
 static EVP_PKEY *skf_load_pubkey(ENGINE *e, const char *key_id,
 	UI_METHOD *ui_method, void *callback_data)
@@ -470,12 +584,30 @@ static int skf_digests(ENGINE *e, const EVP_MD **digest, const int **nids, int n
 }
 
 
+static int skf_rsa_sign(int type, const unsigned char *m, unsigned int mlen,
+	unsigned char *sig, unsigned int *siglen, const RSA *rsa)
+{
+	int ret = 0;
+	ULONG rv;
+	BYTE *pbData = (BYTE *)m;
+	ULONG ulDataLen = (ULONG)mlen;
+	BYTE signature[256];
+	ULONG ulSigLen;
+
+	if ((rv = SKF_RSASignData(hContainer, pbData, ulDataLen,
+		signature, &ulSigLen)) != SAR_OK) {
+		goto end;
+	}
+
+	return 0;
+}
+
 static RSA_METHOD skf_rsa = {
 	"SKF RSA method",
-	skf_rsa_pub_enc,
 	NULL,
 	NULL,
-	skf_rsa_priv_dec,
+	NULL,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -483,10 +615,51 @@ static RSA_METHOD skf_rsa = {
 	RSA_FLAG_SIGN_VER,
 	NULL,
 	skf_rsa_sign,
-	skf_rsa_verify,
-	NULL
+	NULL,
+	NULL,
 };
 
+
+static ECDSA_SIG *skf_sm2_do_sign(const unsigned char *dgst, int dgstlen,
+	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key)
+{
+	ECDSA_SIG *ret = NULL;
+	ULONG rv;
+	BYTE *pbDigest = (BYTE *)dgst;
+	ULONG ulDigestLen = (ULONG)dgstlen,
+	ECCSIGNATUREBLOB sigBlob;
+	int ok = 0;
+
+	OPENSSL_assert(!a);
+	OPENSSL_assert(!b);
+
+	if ((rv = SKF_ECCSignData(hContainer, pbDigest, ulDigestLen, &sigBlob)) != SAR_OK) {
+		goto end;
+	}
+	if (!(ret = ECDSA_SIG_new())) {
+		goto end;
+	}
+	if (!ECDSA_SIG_set_ECCSIGNATUREBLOB(group, ret, &sigBlob)) {
+		goto end;
+	}
+
+	ok = 1;
+end:
+	if (!ok && ret) {
+		ECDSA_SIG_free(ret);
+		ret = NULL;
+	}
+	return ret;
+}
+
+static int ECDSA_METHOD skf_sm2sign = {
+	"SKF ECDSA method (SM2 signature)",
+	skf_sm2_do_sign,
+	NULL,
+	NULL,
+	0,
+	NULL,
+};
 
 
 #ifdef OPENSSL_NO_DYNAMIC_ENGINE
@@ -536,6 +709,8 @@ static int bind(ENGINE *e, const char *id)
 		!ENGINE_set_digests(e, skf_digests) ||
 		!ENGINE_set_ciphers(e, skf_ciphers) ||
 		!ENGINE_set_load_pubkey_function(e, skf_load_pubkey) ||
+		!ENGINE_set_ECDSA(e, &skf_sm2sign) ||
+		!ENGINE_set_RSA(e, &skf_rsa) ||
 		!ENGINE_set_RAND(e, &skf_random)) {
 
 		return 0;

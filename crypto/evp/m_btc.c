@@ -1,6 +1,6 @@
-/* demo/gmssl/sm3.c */
+/* crypto/evp/m_btc.c */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,64 +46,72 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
+ */
+/*
+ * This module is to support crypto-currency such as Bitcoin
  */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include "cryptlib.h"
+
+#ifndef OPENSSL_NO_GMSSL
+
 #include <openssl/evp.h>
-#include <openssl/err.h>
+#include <openssl/objects.h>
+#include <openssl/x509.h>
+#include <openssl/sha.h>
+#include <openssl/ripemd.h>
 
-int main(int argc, char **argv)
+static int init(EVP_MD_CTX *ctx)
 {
-	int ret = -1;
-	FILE *fp = stdin;
-	unsigned char buf[1024];
-	size_t len;
-	const EVP_MD *md;
-	EVP_MD_CTX mdctx;
-	unsigned char dgst[EVP_MAX_MD_SIZE];
-	unsigned int dgstlen, i;
-
-	if (argc == 2) {
-		if (!(fp = fopen(argv[1], "r"))) {
-			fprintf(stderr, "open file %s failed\n", argv[1]);
-			return -1;
-		}
-	}
-
-	OpenSSL_add_all_digests();
-	if (!(md = EVP_get_digestbyname("sm3"))) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	if (!EVP_DigestInit(&mdctx, md)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	while ((len = fread(buf, 1, sizeof(buf), fp))) {
-		if (!EVP_DigestUpdate(&mdctx, buf, len)) {
-			ERR_print_errors_fp(stderr);
-			goto end;
-		}
-	}
-
-	if (!EVP_DigestFinal(&mdctx, dgst, &dgstlen)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	for (i = 0; i < dgstlen; i++) {
-		printf("%02x", dgst[i]);
-	}
-	printf("\n");
-	ret = 0;
-
-end:
-	fclose(fp);
-	EVP_cleanup();
-	return ret;
+	SHA256_Init(ctx->md_data->sha256);
+	RIPEMD_Init(ctx->md_data->rmd160);
 }
+
+static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+{
+	SHA256_Update(ctx, in, inlen);
+}
+
+static int final(EVP_MD_CTX *ctx, unsigned char *md)
+{
+	return sm3_final(ctx->md_data, md);
+}
+
+static const EVP_MD sm3_md = {
+	NID_btchash,
+	NID_sm2sign_with_sm3,
+	SM3_DIGEST_LENGTH,
+	0,
+	init,
+	update,
+	final,
+	NULL,
+	NULL,
+	(evp_sign_method *)SM2_sign,
+	(evp_verify_method *)SM2_verify,
+	{EVP_PKEY_EC, 0, 0, 0},
+	SM3_BLOCK_SIZE,
+	sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
+};
+
+const EVP_MD *EVP_btc160(void)
+{
+        return &btc160_md;
+}
+
+const EVP_MD *EVP_btc256(void)
+{
+	return &btc256_md;
+}
+
+const EVP_MD *EVP_sm3_rmd160(void)
+{
+	return 0;
+}
+
+
+#endif
+
+
 

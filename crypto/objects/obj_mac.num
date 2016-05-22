@@ -1037,3 +1037,7 @@ sm2encrypt_specifiedParameters		1036
 secg_scheme		1037
 sm_scheme		1038
 cbc_mac		1039
+sm2sign_with_sha512		1040
+sm2sign_with_sha224		1041
+sm2sign_with_sha384		1042
+sm2sign_with_rmd160		1043

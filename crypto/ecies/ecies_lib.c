@@ -528,10 +528,10 @@ int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param)
 		return 0;
 	}
 	param->kdf_nid = NID_undef;
-	param->kdf_md = EVP_sha256();
+	param->kdf_md = EVP_sha1(); //FIXME: EVP_sha256() will error
 	param->sym_cipher = EVP_aes_128_cbc();
-	param->mac_nid = NID_undef;
-	param->mac_md = EVP_sha256();
+	param->mac_nid = NID_hmac_full_ecies;
+	param->mac_md = EVP_sha1(); //FIXME: EVP_sha256() need test
 	param->mac_cipher = NULL;
 	return 1;
 }
@@ -553,6 +553,5 @@ int ECIES_decrypt_with_recommended(unsigned char *out, size_t *outlen,
 	ECIES_PARAMS_init_with_recommended(&param);
 	return ECIES_decrypt(&param, out, outlen, in, inlen, ec_key);
 }
-
 
 

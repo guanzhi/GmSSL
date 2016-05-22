@@ -115,26 +115,25 @@ SM2_CIPHERTEXT_VALUE *d2i_SM2_CIPHERTEXT_VALUE(SM2_CIPHERTEXT_VALUE **c,
 int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
 	const SM2_CIPHERTEXT_VALUE *cv, int indent, unsigned long flags);
 
-/* FIXME: we should provide optional return value */
+
 SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+//FIXME: output first, and change ECIES
 int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 	const SM2_CIPHERTEXT_VALUE *cv, unsigned char *out, size_t *outlen,
 	EC_KEY *ec_key);
-int SM2_encrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_encrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_encrypt_elgamal(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt_elgamal(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int SM2_encrypt(const SM2_ENC_PARAMS *params, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+int SM2_decrypt(const SM2_ENC_PARAMS *params, unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+int SM2_encrypt_with_recommended(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+int SM2_decrypt_with_recommended(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+int SM2_encrypt_elgamal(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+int SM2_decrypt_elgamal(unsigned char *out, size_t *outlen,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
 
 int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 	const void *msg, size_t msglen, unsigned char *dgst,
@@ -252,6 +251,7 @@ void ERR_load_SM2_strings(void);
 #define SM2_R_BUFFER_TOO_SMALL			108
 #define SM2_R_SM2_KAP_NOT_INITED		109
 #define SM2_R_RANDOM_NUMBER_GENERATION_FAILED	110
+#define SM2_R_ERROR				111
 
 #ifdef __cplusplus
 }

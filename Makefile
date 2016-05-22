@@ -11,11 +11,11 @@ SHLIB_VERSION_NUMBER=1.0.0
 SHLIB_VERSION_HISTORY=
 SHLIB_MAJOR=1
 SHLIB_MINOR=0.0
-SHLIB_EXT=
-PLATFORM=dist
-OPTIONS= no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-libunbound no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-ssl-trace no-store no-unit-test no-zlib no-zlib-dynamic static-engine
-CONFIGURE_ARGS=dist
-SHLIB_TARGET=
+SHLIB_EXT=.$(SHLIB_MAJOR).$(SHLIB_MINOR).dylib
+PLATFORM=darwin64-x86_64-cc
+OPTIONS=--prefix=/usr/local/ --openssldir=/usr/local/openssl/ no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-libunbound no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-ssl-trace no-store no-unit-test no-zlib no-zlib-dynamic static-engine
+CONFIGURE_ARGS=darwin64-x86_64-cc --prefix=/usr/local/ --openssldir=/usr/local/openssl/
+SHLIB_TARGET=darwin-shared
 
 # HERE indicates where this Makefile lives.  This can be used to indicate
 # where sub-Makefiles are expected to be.  Currently has very limited usage,
@@ -26,10 +26,10 @@ HERE=.
 # for, say, /usr/ and yet have everything installed to /tmp/somedir/usr/.
 # Normally it is left empty.
 INSTALL_PREFIX=
-INSTALLTOP=/usr/local/ssl
+INSTALLTOP=/usr/local
 
 # Do not edit this manually. Use Configure --openssldir=DIR do change this!
-OPENSSLDIR=/usr/local/ssl
+OPENSSLDIR=/usr/local/openssl
 
 # NO_IDEA - Define to build without the IDEA algorithm
 # NO_RC4  - Define to build without the RC4 algorithm
@@ -60,9 +60,9 @@ OPENSSLDIR=/usr/local/ssl
 # PKCS1_CHECK - pkcs1 tests.
 
 CC= cc
-CFLAG= -O
+CFLAG= -DOPENSSL_THREADS -D_REENTRANT -DDSO_DLFCN -DHAVE_DLFCN_H -arch x86_64 -O3 -DL_ENDIAN -Wall -DOPENSSL_IA32_SSE2 -DOPENSSL_BN_ASM_MONT -DOPENSSL_BN_ASM_MONT5 -DOPENSSL_BN_ASM_GF2m -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DMD5_ASM -DAES_ASM -DVPAES_ASM -DBSAES_ASM -DWHIRLPOOL_ASM -DGHASH_ASM -DECP_NISTZ256_ASM
 DEPFLAG= -DOPENSSL_NO_EC_NISTP_64_GCC_128 -DOPENSSL_NO_GMP -DOPENSSL_NO_JPAKE -DOPENSSL_NO_LIBUNBOUND -DOPENSSL_NO_MD2 -DOPENSSL_NO_RC5 -DOPENSSL_NO_RFC3779 -DOPENSSL_NO_SCTP -DOPENSSL_NO_SSL_TRACE -DOPENSSL_NO_STORE -DOPENSSL_NO_UNIT_TEST
-PEX_LIBS= 
+PEX_LIBS= -Wl,-search_paths_first
 EX_LIBS= 
 EXE_EXT= 
 ARFLAGS= 
@@ -88,23 +88,23 @@ ASFLAG=$(CFLAG)
 PROCESSOR= 
 
 # CPUID module collects small commonly used assembler snippets
-CPUID_OBJ= mem_clr.o
-BN_ASM= bn_asm.o
-EC_ASM= 
+CPUID_OBJ= x86_64cpuid.o
+BN_ASM= x86_64-gcc.o x86_64-mont.o x86_64-mont5.o x86_64-gf2m.o rsaz_exp.o rsaz-x86_64.o rsaz-avx2.o
+EC_ASM= ecp_nistz256.o ecp_nistz256-x86_64.o
 DES_ENC= des_enc.o fcrypt_b.o
-AES_ENC= aes_core.o aes_cbc.o
+AES_ENC= aes-x86_64.o vpaes-x86_64.o bsaes-x86_64.o aesni-x86_64.o aesni-sha1-x86_64.o aesni-sha256-x86_64.o aesni-mb-x86_64.o
 BF_ENC= bf_enc.o
 CAST_ENC= c_enc.o
 RC4_ENC= rc4_enc.o rc4_skey.o
 RC5_ENC= rc5_enc.o
-MD5_ASM_OBJ= 
-SHA1_ASM_OBJ= 
+MD5_ASM_OBJ= md5-x86_64.o
+SHA1_ASM_OBJ= sha1-x86_64.o sha256-x86_64.o sha512-x86_64.o sha1-mb-x86_64.o sha256-mb-x86_64.o
 RMD160_ASM_OBJ= 
-WP_ASM_OBJ= wp_block.o
-CMLL_ENC= camellia.o cmll_misc.o cmll_cbc.o
-MODES_ASM_OBJ= 
+WP_ASM_OBJ= wp-x86_64.o
+CMLL_ENC= cmll-x86_64.o cmll_misc.o
+MODES_ASM_OBJ= ghash-x86_64.o aesni-gcm-x86_64.o
 ENGINES_ASM_OBJ= 
-PERLASM_SCHEME= 
+PERLASM_SCHEME= macosx
 
 # KRB5 stuff
 KRB5_INCLUDES=
@@ -178,8 +178,8 @@ LIBS=   libcrypto.a libssl.a
 SHARED_CRYPTO=libcrypto$(SHLIB_EXT)
 SHARED_SSL=libssl$(SHLIB_EXT)
 SHARED_LIBS=
-SHARED_LIBS_LINK_EXTS=
-SHARED_LDFLAGS=
+SHARED_LIBS_LINK_EXTS=.$(SHLIB_MAJOR).dylib .dylib
+SHARED_LDFLAGS=-arch x86_64 -dynamiclib
 
 GENERAL=        Makefile
 BASENAME=       gmssl

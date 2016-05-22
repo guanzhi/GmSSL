@@ -356,38 +356,6 @@ OPENSSL_GLOBAL SSL_CIPHER gm1_ciphers[] = {
 		128,
 	},
 
-	/* Cipher 13 (GmSSL specific) */
-	{
-		1,
-		GM1_TXT_ECDHE_SM2_SM4_SM3,
-		GM1_CK_ECDHE_SM2_SM4_SM3,
-		SSL_kEECDH,
-		SSL_aSM2,
-		SSL_SM4,
-		SSL_SM3,
-		SSL_GMV1,
-		SSL_NOT_EXP|SSL_HIGH,
-		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
-		128,
-		128,
-	},
-
-	/* Cipher 14, (GmSSL Specific) */
-	{
-		1,
-		GM1_TXT_SM2_SM4_SM3,
-		GM1_CK_SM2_SM4_SM3,
-		SSL_kSM2,
-		SSL_aSM2,
-		SSL_SM4,
-		SSL_SM3,
-		SSL_GMV1,
-		SSL_NOT_EXP|SSL_HIGH,
-		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
-		128,
-		128,
-	}
-
 };
 
 int gm1_num_ciphers(void)

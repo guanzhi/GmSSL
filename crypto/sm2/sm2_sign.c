@@ -479,6 +479,7 @@ int SM2_sign_ex(int type, const unsigned char *dgst, int dgstlen,
 int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
 	unsigned char *sig, unsigned int *siglen, EC_KEY *ec_key)
 {
+	fprintf(stderr, "%s %d %s() executed\n", __FILE__, __LINE__, __FUNCTION__);
 	return SM2_sign_ex(type, dgst, dgstlen, sig, siglen, NULL, NULL, ec_key);
 }
 
@@ -490,6 +491,8 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	unsigned char *der = NULL;
 	int derlen = -1;
 	int ret = -1;
+
+fprintf(stderr, "%s %d %s() executed\n", __FILE__, __LINE__, __FUNCTION__);
 
 	if (!(s = ECDSA_SIG_new())) {
 		return ret;

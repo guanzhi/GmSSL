@@ -4473,6 +4473,26 @@
 #define NID_sm2sign_with_sha256         975
 #define OBJ_sm2sign_with_sha256         OBJ_sm_scheme,503L
 
+#define SN_sm2sign_with_sha512          "SM2Sign-with-SHA511"
+#define LN_sm2sign_with_sha512          "sm2sign-with-sha512"
+#define NID_sm2sign_with_sha512         1040
+#define OBJ_sm2sign_with_sha512         OBJ_sm_scheme,504L
+
+#define SN_sm2sign_with_sha224          "SM2Sign-with-SHA224"
+#define LN_sm2sign_with_sha224          "sm2sign-with-sha224"
+#define NID_sm2sign_with_sha224         1041
+#define OBJ_sm2sign_with_sha224         OBJ_sm_scheme,505L
+
+#define SN_sm2sign_with_sha384          "SM2Sign-with-SHA384"
+#define LN_sm2sign_with_sha384          "sm2sign-with-sha384"
+#define NID_sm2sign_with_sha384         1042
+#define OBJ_sm2sign_with_sha384         OBJ_sm_scheme,506L
+
+#define SN_sm2sign_with_rmd160          "SM2Sign-with-RMD160"
+#define LN_sm2sign_with_rmd160          "sm2sign-with-rmd160"
+#define NID_sm2sign_with_rmd160         1043
+#define OBJ_sm2sign_with_rmd160         OBJ_sm_scheme,507L
+
 #define SN_zuc          "ZUC"
 #define LN_zuc          "zuc"
 #define NID_zuc         1000

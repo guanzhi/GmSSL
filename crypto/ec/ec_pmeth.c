@@ -93,6 +93,7 @@ typedef struct {
     int enc_type;
     int dh_type;
 	union {
+		void *ptr;
 		ECIES_PARAMS *ecies;
 		SM2_ENC_PARAMS *sm2;
 	} enc_param;
@@ -114,9 +115,10 @@ static int pkey_ec_init(EVP_PKEY_CTX *ctx)
     dctx->kdf_outlen = 0;
     dctx->kdf_ukm = NULL;
     dctx->kdf_ukmlen = 0;
-    dctx->sign_type = NID_secg_scheme;
-	dctx->enc_type = NID_secg_scheme;
-	dctx->dh_type = NID_secg_scheme;
+    dctx->sign_type = NID_sm_scheme;
+	dctx->enc_type = NID_sm_scheme;
+	dctx->dh_type = NID_sm_scheme;
+	dctx->enc_param.ptr = NULL;
 
     ctx->data = dctx;
 
@@ -200,6 +202,8 @@ static int pkey_ec_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 		type = NID_sha1;
 	else if (dctx->sign_type == NID_sm_scheme)
 		type = NID_sm3;
+	else
+		type = NID_undef;
 
 	if (dctx->sign_type == NID_secg_scheme) {
 		ret = ECDSA_sign(type, dgst, dgstlen, sig, &len, ec_key);
@@ -227,13 +231,22 @@ static int pkey_ec_verify(EVP_PKEY_CTX *ctx,
 	else
 		type = NID_sha1;
 
-	if (dctx->sign_type == NID_sm2sign)
+	if (dctx->sign_type == NID_sm_scheme)
 		ret = SM2_verify(type, dgst, dgstlen, sig, siglen, ec_key);
 	else
 		ret = ECDSA_verify(type, dgst, dgstlen, sig, siglen, ec_key);
 
 	return ret;
 }
+
+#if 0
+static int int_update(EVP_MD_CTX *ctx, const void *data, size_t count)
+{
+	if (!EVP_DigestUpdate(ctx, data, count))
+		return 0;
+	return 1;
+}
+#endif
 
 static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 {
@@ -243,8 +256,11 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	unsigned char zid[EVP_MAX_MD_SIZE];
 	unsigned int zidlen = sizeof(zid);
 
-	if (dctx->sign_type == NID_sm2sign) {
+	// the reason might be we need to init mctx->udpate 
 
+
+	if (dctx->sign_type == NID_sm_scheme) {
+		/*
 		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
        		 	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_SM2_LIB);
 			return 0;
@@ -253,8 +269,11 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	        	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_EVP_LIB);
 			return 0;
 		}
+		*/
 	}
 
+	//ctx->update = int_update;
+	
 	return 1;
 }
 
@@ -282,12 +301,15 @@ static int pkey_ec_signctx(EVP_PKEY_CTX *ctx,
 		return 0;
 	}
 
-	if (dctx->sign_type == NID_sm2sign)
+	if (dctx->sign_type == NID_sm_scheme)
 		ret = SM2_sign(type, dgst, dgstlen, sig, &len, ec_key);
-	else
+	else if (dctx->sign_type == NID_secg_scheme)
 		ret = ECDSA_sign(type, dgst, dgstlen, sig, &len, ec_key);
+	else
+		ret = 0;
 
 	*siglen = (size_t)len;
+
 	return ret;
 }
 
@@ -301,7 +323,7 @@ static int pkey_ec_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	unsigned int zidlen;
 
 
-	if (dctx->sign_type == NID_sm2sign) {
+	if (dctx->sign_type == NID_sm_scheme) {
 	
 		zidlen = sizeof(zid);
 		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
@@ -320,47 +342,52 @@ end:
 static int pkey_ec_verifyctx(EVP_PKEY_CTX *ctx,
 	const unsigned char *sig, int siglen, EVP_MD_CTX *mctx)
 {
+	int ret = 0;
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen;
-	EC_PKEY_CTX *ec_ctx = ctx->data;
+	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
-	int type = ec_ctx->md ? EVP_MD_type(ec_ctx->md) : NID_sm3;
+	int type = dctx->md ? EVP_MD_type(dctx->md) : NID_sm3;
 
 	dgstlen = sizeof(dgst);
 	if (!EVP_DigestFinal_ex(mctx, dgst, &dgstlen)) {
 		return -1;
 	}
-	
-	return SM2_verify(type, dgst, dgstlen, sig, siglen, ec_key);
+
+	switch (dctx->sign_type) {
+	case NID_sm_scheme:
+		ret = SM2_verify(type, dgst, dgstlen, sig, siglen, ec_key);
+		break;
+	case NID_secg_scheme:
+		ret = ECDSA_verify(type, dgst, dgstlen, sig, siglen, ec_key);
+		break;
+	}
+
+	return ret;
 }
 
 static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {
-	int ret;
+	int ret = 0;
 	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
-	ECIES_PARAMS *params = NULL;
-
-	if (dctx->enc_type == NID_sm2encrypt) {
-		ret = SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
-	} else if (dctx->enc_type == NID_ecies_recommendedParameters) {
-		ret = ECIES_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
-	}
 
 	switch (dctx->enc_type) {
-	case NID_sm2encrypt:
-		ret = SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
+	case NID_sm_scheme:
+		if (dctx->enc_param.sm2) {
+			ret = SM2_encrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key);
+		} else {
+			ret = SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
+		}
 		break;
-	case NID_ecies_recommendedParameters:
-		ret = ECIES_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
+	case NID_secg_scheme:
+		if (dctx->enc_param.ecies) {
+			ret = ECIES_encrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key);
+		} else {
+			ret = ECIES_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
+		}
 		break;
-	case NID_ecies_specifiedParameters:
-		//we need to get ECIES_PARAMS from context
-		ret = ECIES_encrypt(params, out, outlen, in, inlen, ec_key);
-		break;
-	default:
-		ret = 0;
 	}
 
 	return ret;
@@ -373,10 +400,21 @@ static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 
-	if (dctx->enc_type == NID_sm2encrypt) {
-		ret = SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
-	} else {
-		ret = ECIES_decrypt_with_recommended(out, outlen, in, inlen, ec_key);
+	switch (dctx->enc_type) {
+	case  NID_sm_scheme:
+		if (dctx->enc_param.sm2) {
+			ret = SM2_decrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key);
+		} else {
+			ret = SM2_decrypt_with_recommended(out, outlen, in, inlen, ec_key);
+		}
+		break;
+	case NID_secg_scheme:
+		if (dctx->enc_param.ecies) {	
+			ret = ECIES_decrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key);
+		} else {
+			ret = ECIES_decrypt_with_recommended(out, outlen, in, inlen, ec_key);
+		}
+		break;
 	}
 
 	return ret;

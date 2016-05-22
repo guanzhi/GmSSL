@@ -1,4 +1,4 @@
-/* crypto/sms4/sms4.h */
+/* crypto/evp/m_sm3.c */
 /* ====================================================================
  * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
  *

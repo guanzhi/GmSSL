@@ -101,6 +101,7 @@ static ERR_STRING_DATA SM2_str_reasons[] = {
 	{ERR_REASON(SM2_R_BUFFER_TOO_SMALL),		"buffer too small"},
 	{ERR_REASON(SM2_R_SM2_KAP_NOT_INITED),		"KAP not inited"},
 	{ERR_REASON(SM2_R_RANDOM_NUMBER_GENERATION_FAILED), "random number generation failed"},
+	{ERR_REASON(SM2_R_ERROR),			"Error"},
 	{0,NULL}
 };
 

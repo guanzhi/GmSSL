@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1040
-#define NUM_SN 1016
-#define NUM_LN 1016
-#define NUM_OBJ 954
+#define NUM_NID 1044
+#define NUM_SN 1020
+#define NUM_LN 1020
+#define NUM_OBJ 958
 
-static const unsigned char lvalues[6721]={
+static const unsigned char lvalues[6753]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -1016,6 +1016,10 @@ static const unsigned char lvalues[6721]={
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x03,0x02,/* [6700] OBJ_sm2encrypt_specifiedParameters */
 0x2B,0x81,0x04,0x01,                         /* [6710] OBJ_secg_scheme */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,               /* [6714] OBJ_sm_scheme */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x78,     /* [6720] OBJ_sm2sign_with_sha512 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x79,     /* [6728] OBJ_sm2sign_with_sha224 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x7A,     /* [6736] OBJ_sm2sign_with_sha384 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x7B,     /* [6744] OBJ_sm2sign_with_rmd160 */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2683,6 +2687,14 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 {"secg-scheme","secg-scheme",NID_secg_scheme,4,&(lvalues[6710]),0},
 {"sm-scheme","sm-scheme",NID_sm_scheme,6,&(lvalues[6714]),0},
 {"CBC-MAC","cbc-mac",NID_cbc_mac,0,NULL,0},
+{"SM2Sign-with-SHA511","sm2sign-with-sha512",NID_sm2sign_with_sha512,
+	8,&(lvalues[6720]),0},
+{"SM2Sign-with-SHA224","sm2sign-with-sha224",NID_sm2sign_with_sha224,
+	8,&(lvalues[6728]),0},
+{"SM2Sign-with-SHA384","sm2sign-with-sha384",NID_sm2sign_with_sha384,
+	8,&(lvalues[6736]),0},
+{"SM2Sign-with-RMD160","sm2sign-with-rmd160",NID_sm2sign_with_rmd160,
+	8,&(lvalues[6744]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2875,8 +2887,12 @@ static const unsigned int sn_objs[NUM_SN]={
 1019,	/* "SM1-CFB" */
 1016,	/* "SM1-ECB" */
 1018,	/* "SM1-OFB" */
+1043,	/* "SM2Sign-with-RMD160" */
 974,	/* "SM2Sign-with-SHA1" */
+1041,	/* "SM2Sign-with-SHA224" */
 975,	/* "SM2Sign-with-SHA256" */
+1042,	/* "SM2Sign-with-SHA384" */
+1040,	/* "SM2Sign-with-SHA511" */
 973,	/* "SM2Sign-with-SM3" */
 962,	/* "SM3" */
 1006,	/* "SM5" */
@@ -4647,8 +4663,12 @@ static const unsigned int ln_objs[NUM_LN]={
 971,	/* "sm2keyagreement" */
 958,	/* "sm2p256v1" */
 970,	/* "sm2sign" */
+1043,	/* "sm2sign-with-rmd160" */
 974,	/* "sm2sign-with-sha1" */
+1041,	/* "sm2sign-with-sha224" */
 975,	/* "sm2sign-with-sha256" */
+1042,	/* "sm2sign-with-sha384" */
+1040,	/* "sm2sign-with-sha512" */
 973,	/* "sm2sign-with-sm3" */
 962,	/* "sm3" */
 1006,	/* "sm5" */
@@ -5189,6 +5209,10 @@ static const unsigned int obj_objs[NUM_OBJ]={
 973,	/* OBJ_sm2sign_with_sm3             1 2 156 10197 1 501 */
 974,	/* OBJ_sm2sign_with_sha1            1 2 156 10197 1 502 */
 975,	/* OBJ_sm2sign_with_sha256          1 2 156 10197 1 503 */
+1040,	/* OBJ_sm2sign_with_sha512          1 2 156 10197 1 504 */
+1041,	/* OBJ_sm2sign_with_sha224          1 2 156 10197 1 505 */
+1042,	/* OBJ_sm2sign_with_sha384          1 2 156 10197 1 506 */
+1043,	/* OBJ_sm2sign_with_rmd160          1 2 156 10197 1 507 */
 1000,	/* OBJ_zuc                          1 2 156 10197 1 800 */
 776,	/* OBJ_seed_ecb                     1 2 410 200004 1 3 */
 777,	/* OBJ_seed_cbc                     1 2 410 200004 1 4 */
