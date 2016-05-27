@@ -38,6 +38,7 @@ IDEATEST=	ideatest
 SHATEST=	shatest
 SHA1TEST=	sha1test
 SHA256TEST=	sha256t
+SM2TEST=        sm2test
 SHA512TEST=	sha512t
 MDC2TEST=	mdc2test
 RMDTEST=	rmdtest
@@ -74,7 +75,7 @@ TESTS=		alltests
 
 EXE=	$(BNTEST)$(EXE_EXT) $(ECTEST)$(EXE_EXT)  $(ECDSATEST)$(EXE_EXT) $(ECDHTEST)$(EXE_EXT) $(IDEATEST)$(EXE_EXT) \
 	$(MD2TEST)$(EXE_EXT)  $(MD4TEST)$(EXE_EXT) $(MD5TEST)$(EXE_EXT) $(HMACTEST)$(EXE_EXT) $(WPTEST)$(EXE_EXT) \
-	$(RC2TEST)$(EXE_EXT) $(RC4TEST)$(EXE_EXT) $(RC5TEST)$(EXE_EXT) \
+	$(RC2TEST)$(EXE_EXT) $(RC4TEST)$(EXE_EXT) $(RC5TEST)$(EXE_EXT) $(SM2TEST)$(EXE_EXT) \
 	$(DESTEST)$(EXE_EXT) $(SHATEST)$(EXE_EXT) $(SHA1TEST)$(EXE_EXT) $(SHA256TEST)$(EXE_EXT) $(SHA512TEST)$(EXE_EXT) \
 	$(MDC2TEST)$(EXE_EXT) $(RMDTEST)$(EXE_EXT) \
 	$(RANDTEST)$(EXE_EXT) $(DHTEST)$(EXE_EXT) $(ENGINETEST)$(EXE_EXT) \
@@ -88,7 +89,7 @@ EXE=	$(BNTEST)$(EXE_EXT) $(ECTEST)$(EXE_EXT)  $(ECDSATEST)$(EXE_EXT) $(ECDHTEST)
 OBJ=	$(BNTEST).o $(ECTEST).o  $(ECDSATEST).o $(ECDHTEST).o $(IDEATEST).o \
 	$(MD2TEST).o $(MD4TEST).o $(MD5TEST).o \
 	$(HMACTEST).o $(WPTEST).o \
-	$(RC2TEST).o $(RC4TEST).o $(RC5TEST).o \
+	$(RC2TEST).o $(RC4TEST).o $(RC5TEST).o $(SM2TEST).o \
 	$(DESTEST).o $(SHATEST).o $(SHA1TEST).o $(SHA256TEST).o $(SHA512TEST).o \
 	$(MDC2TEST).o $(RMDTEST).o \
 	$(RANDTEST).o $(DHTEST).o $(ENGINETEST).o $(CASTTEST).o \
@@ -106,7 +107,7 @@ SRC=	$(BNTEST).c $(ECTEST).c  $(ECDSATEST).c $(ECDHTEST).c $(IDEATEST).c \
 	$(EVPTEST).c $(EVPEXTRATEST).c $(IGETEST).c $(JPAKETEST).c $(SRPTEST).c $(ASN1TEST).c \
 	$(V3NAMETEST).c $(HEARTBEATTEST).c $(CONSTTIMETEST).c $(VERIFYEXTRATEST).c
 
-EXHEADER= 
+EXHEADER=
 HEADER=	testutil.h $(EXHEADER)
 
 ALL=    $(GENERAL) $(SRC) $(HEADER)
@@ -140,7 +141,7 @@ apps:
 	@(cd ..; $(MAKE) DIRS=apps all)
 
 alltests: \
-	test_des test_idea test_sha test_md4 test_md5 test_hmac \
+	test_des test_idea test_sm test_sha test_md4 test_md5 test_hmac \
 	test_md2 test_mdc2 test_wp \
 	test_rmd test_rc2 test_rc4 test_rc5 test_bf test_cast test_aes \
 	test_rand test_bn test_ec test_ecdsa test_ecdh \
@@ -167,6 +168,9 @@ test_sha: $(SHATEST)$(EXE_EXT) $(SHA1TEST)$(EXE_EXT) $(SHA256TEST)$(EXE_EXT) $(S
 	../util/shlib_wrap.sh ./$(SHA1TEST)
 	../util/shlib_wrap.sh ./$(SHA256TEST)
 	../util/shlib_wrap.sh ./$(SHA512TEST)
+
+test_sm: $(SM2TEST)$(EXE_EXT)
+	../util/shlib_wrap.sh ./$(SM2TEST)
 
 test_mdc2: $(MDC2TEST)$(EXE_EXT)
 	../util/shlib_wrap.sh ./$(MDC2TEST)
@@ -430,6 +434,9 @@ $(SHATEST)$(EXE_EXT): $(SHATEST).o $(DLIBCRYPTO)
 
 $(SHA1TEST)$(EXE_EXT): $(SHA1TEST).o $(DLIBCRYPTO)
 	@target=$(SHA1TEST); $(BUILD_CMD)
+
+$(SM2TEST)$(EXE_EXT): $(SM2TEST).o $(DLIBCRYPTO)
+	@target=$(SM2TEST); $(BUILD_CMD)
 
 $(SHA256TEST)$(EXE_EXT): $(SHA256TEST).o $(DLIBCRYPTO)
 	@target=$(SHA256TEST); $(BUILD_CMD)
