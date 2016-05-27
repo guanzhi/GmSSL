@@ -26,7 +26,6 @@ test/enginetest
 test/md5test
 test/wp_test
 test/heartbeat_test
-test/asn1test.c
 test/v3nametest
 test/srptest
 test/rc4test
