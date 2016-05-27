@@ -337,8 +337,9 @@ int test_sm2_enc(const EC_GROUP *group,
 	}
 
 	buflen = sizeof(buf);
-	if (!SM2_encrypt_with_recommended((const unsigned char *)M, strlen(M),
-		buf, &buflen, ec_key)) {
+	if (!SM2_encrypt_with_recommended(buf, &buflen,
+					  (const unsigned char *)M, strlen(M),
+					  ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -355,7 +356,7 @@ int test_sm2_enc(const EC_GROUP *group,
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-	if (!SM2_decrypt_with_recommended(buf, buflen, msg, &msglen, ec_key)) {
+	if (!SM2_decrypt_with_recommended(msg, &msglen, buf, buflen, ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}

@@ -13,6 +13,9 @@ crypto/opensslconf.h
 crypto/buildinf.h
 tools/c_rehash
 rehash.time
+GPATH
+GTAGS
+GRTAGS
 
 
 #find . -executable -type f >> .gitignore
