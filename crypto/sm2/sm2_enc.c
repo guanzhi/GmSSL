@@ -95,6 +95,11 @@ end:
 	return ret;
 }
 
+SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new(const EC_GROUP *group)
+{
+	return NULL;
+}
+
 void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv)
 {
 	if (cv->ephem_point) EC_POINT_free(cv->ephem_point);
@@ -631,7 +636,7 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 			goto end;
 		}
 		if (cv->mactag_size != mactag_size ||
-			memcmp(mac, cv->mactag, cv->mactag_size)) {
+			OPENSSL_memcmp(mac, cv->mactag, cv->mactag_size)) {
 			SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_ERROR);
 			goto end;
 		}

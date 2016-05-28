@@ -202,33 +202,27 @@ int SM2_update_public_key(EC_KEY *ec_key, const EC_POINT *pub_key)
 
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_get_affine_coordinates_GFp(group, pub_key, x, NULL, bn_ctx)) {
-			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else {
 		if (!EC_POINT_get_affine_coordinates_GF2m(group, pub_key, x, NULL, bn_ctx)) {
-			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 
 	if (!BN_nnmod(x, x, ctx->two_pow_w, bn_ctx)) {
-		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	if (!BN_add(x, x, ctx->two_pow_w)) {
-		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	if (!BN_mod_mul(ctx->t, x, r, ctx->order, ctx->bn_ctx)) {
-		SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	if (!EC_POINT_mul(group, point, NULL, point, x, ctx->bn_ctx)) {
-		SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
 		goto end;
 	}
 
@@ -648,12 +642,10 @@ int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	if (ctx->do_checksum) {
 
 		if (checksumlen != EVP_MD_size(ctx->checksum_md)) {
-			SM2err(SM2_F_SM2_KAP_FINAL_CHECK, 0);
 			return 0;
 		}
 
 		if (memcmp(ctx->checksum, checksum, checksumlen)) {
-			SM2err(SM2_F_SM2_KAP_COMPUTE_KEY, ERR_R_EC_LIB);
 			return 0;
 		}
 

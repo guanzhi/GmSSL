@@ -348,7 +348,7 @@ const EVP_CIPHER *EVP_sms4_wrap(void)
 //TODO: EVP_sms4_256_xxx();
 
 
-
+//TODO: EVP_sms4_ctr_avx2()
 
 
 #endif

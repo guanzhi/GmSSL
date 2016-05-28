@@ -1264,32 +1264,31 @@ void ERR_load_EC_strings(void);
 # define EC_F_OLD_EC_PRIV_DECODE                          222
 # define EC_F_PKEY_EC_CTRL                                197
 # define EC_F_PKEY_EC_CTRL_STR                            198
+# define EC_F_PKEY_EC_DECRYPT                             301
 # define EC_F_PKEY_EC_DERIVE                              217
+# define EC_F_PKEY_EC_ENCRYPT                             300
 # define EC_F_PKEY_EC_KEYGEN                              199
 # define EC_F_PKEY_EC_PARAMGEN                            219
 # define EC_F_PKEY_EC_SIGN                                218
-
-# ifndef OPENSSL_NO_GMSSL
-# define EC_F_PKEY_EC_ENCRYPT				  300
-# define EC_F_PKEY_EC_DECRYPT				  301
-# define EC_F_PKEY_SM2_INIT				  302
-# define EC_F_PKEY_SM2_COPY				  303
-# define EC_F_PKEY_SM2_CLEANUP				  304
-# define EC_F_PKEY_SM2_PARAMGEN				  305
-# define EC_F_PKEY_SM2_KEYGEN				  306
-# define EC_F_PKEY_SM2_SIGN				  307
-# define EC_F_PKEY_SM2_VERIFY				  308
-# define EC_F_PKEY_SM2_SIGNCTX_INIT			  309
-# define EC_F_PKEY_SM2_SIGNCTX				  310
-# define EC_F_PKEY_SM2_VERIFYCTX_INIT			  311
-# define EC_F_PKEY_SM2_VERIFYCTX			  312 
-# define EC_F_PKEY_SM2_ENCRYPT				  313
-# define EC_F_PKEY_SM2_DECRYPT				  314
-# define EC_F_PKEY_SM2_DERIVE_INIT			  315
-# define EC_F_PKEY_SM2_DERIVE				  316
-# define EC_F_PKEY_SM2_CTRL				  317
-# define EC_F_PKEY_SM2_CTRL_STR				  318
-# endif
+# define EC_F_PKEY_EC_SIGNCTX                             246
+# define EC_F_PKEY_EC_SIGNCTX_INIT                        247
+# define EC_F_PKEY_SM2_CLEANUP                            304
+# define EC_F_PKEY_SM2_COPY                               303
+# define EC_F_PKEY_SM2_CTRL                               317
+# define EC_F_PKEY_SM2_CTRL_STR                           318
+# define EC_F_PKEY_SM2_DECRYPT                            314
+# define EC_F_PKEY_SM2_DERIVE                             316
+# define EC_F_PKEY_SM2_DERIVE_INIT                        315
+# define EC_F_PKEY_SM2_ENCRYPT                            313
+# define EC_F_PKEY_SM2_INIT                               302
+# define EC_F_PKEY_SM2_KEYGEN                             306
+# define EC_F_PKEY_SM2_PARAMGEN                           305
+# define EC_F_PKEY_SM2_SIGN                               307
+# define EC_F_PKEY_SM2_SIGNCTX                            310
+# define EC_F_PKEY_SM2_SIGNCTX_INIT                       309
+# define EC_F_PKEY_SM2_VERIFY                             308
+# define EC_F_PKEY_SM2_VERIFYCTX                          312
+# define EC_F_PKEY_SM2_VERIFYCTX_INIT                     311
 
 /* Reason codes. */
 # define EC_R_ASN1_ERROR                                  115

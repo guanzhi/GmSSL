@@ -54,6 +54,7 @@
 
 #define SM1_KEY_LENGTH		16
 #define SM1_BLOCK_SIZE		16
+#define SM1_IV_LENGTH		(SM1_BLOCK_SIZE)
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,4 +1,4 @@
-/* crypto/ecies/kdf_x9_63.c */
+/* crypto/kdf/kdf_x9_63.c */
 /* ====================================================================
  * Copyright (c) 2007 - 2015 The GmSSL Project.  All rights reserved.
  *
@@ -76,7 +76,6 @@ static void *x963_kdf(const EVP_MD *md, const void *in, size_t inlen,
 
 	EVP_MD_CTX_init(&ctx);
 
-	//FIXME: it might be wrong
 	while (rlen > 0) {
 		counter_be = cpu_to_be32(counter);
 		counter++;
@@ -138,32 +137,47 @@ static void *x963_sha512kdf(const void *in, size_t inlen,
 	return x963_kdf(EVP_sha512(), in, inlen, out, outlen);
 }
 
+static void *x963_whirlpoolkdf(const void *in, size_t inlen,
+	void *out, size_t *outlen)
+{
+	return x963_kdf(EVP_whirlpool(), in, inlen, out, outlen);
+}
+
 static void *x963_sm3kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
 	return x963_kdf(EVP_sm3(), in, inlen, out, outlen);
 }
 
-//FIXME: whirlpool
-
 KDF_FUNC KDF_get_x9_63(const EVP_MD *md)
 {
-	if 	(md == EVP_md5())
+	if (md == EVP_md5()) {
 		return x963_md5kdf;
-	else if (md == EVP_ripemd160())
+
+	} else if (md == EVP_ripemd160()) {
 		return x963_rmd160kdf;
-	else if (md == EVP_sha1())
+
+	} else if (md == EVP_sha1()) {
 		return x963_sha1kdf;
-	else if (md == EVP_sha224())	
+
+	} else if (md == EVP_sha224()) {
 		return x963_sha224kdf;
-	else if (md == EVP_sha256())
+
+	} else if (md == EVP_sha256()) {
 		return x963_sha256kdf;
-	else if (md == EVP_sha384())
+
+	} else if (md == EVP_sha384()) {
 		return x963_sha384kdf;
-	else if (md == EVP_sha512())
+
+	} else if (md == EVP_sha512()) {
 		return x963_sha512kdf;
-	else if (md == EVP_sm3())
+
+	} else if (md == EVP_whirlpool()) {
+		return x963_whirlpoolkdf;
+
+	} else if (md == EVP_sm3()) {
 		return x963_sm3kdf;
+	}
 
 	return NULL;
 }

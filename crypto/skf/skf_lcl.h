@@ -1,4 +1,4 @@
-/* crypto/skf/skf.h */
+/* crypto/skf/skf_lcl.h */
 /* ====================================================================
  * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
  *
@@ -49,87 +49,52 @@
  *
  */
 
-#ifndef HEADER_SKF_H
-#define HEADER_SKF_H
+#ifndef HEADER_SKF_LCL_H
+#define HEADER_SKF_LCL_H
+
+#include <openssl/evp.h>
+#include <openssl/cmac.h>
+#include <openssl/cbcmac.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define SKF_HANDLE_MAGIC 	0x31323334
+#define SKF_HASH_HANDLE		1
+#define SKF_MAC_HANDLE		2
+#define SKF_KEY_HANDLE		10
+#define SKF_CIPHER_HANDLE	11
 
-int EC_KEY_set_ECCPUBLICKEYBLOB(EC_KEY *ec_key, const ECCPUBLICKEYBLOB *blob);
-int EC_KEY_get_ECCPUBLICKEYBLOB(EC_KEY *ec_key, ECCPUBLICKEYBLOB *blob);
-int EC_KEY_set_ECCPRIVATEKEYBLOB(EC_KEY *ec_key, const ECCPRIVATEKEYBLOB *blob)
-int EC_KEY_get_ECCPRIVATEKEYBLOB(EC_KEY *ec_key, ECCPRIVATEKEYBLOB *blob);
+struct SKF_HANDLE {
+	unsigned int magic;
+	int type;
+	int algid;
+	unsigned int keylen;
+	unsigned char key[EVP_MAX_KEY_LENGTH];
+	union {
+		EVP_MD_CTX *md_ctx;
+		CBCMAC_CTX *cbcmac_ctx;
+		EVP_CIPHER_CTX *cipher_ctx;
+	} u;
+	struct SKF_HANDLE *next;
+	struct SKF_HANDLE *prev;
+};
 
-int SM2_CIPHERTEXT_VALUE_set_ECCCIPHERBLOB(SM2_CIPHERTEXT_VALUE *cv,
-	const ECCCIPHERBLOB *blob);
-int SM2_CIPHERTEXT_VALUE_get_ECCCIPHERBLOB(const SM2_CIPHERTEXT_VALUE *a,
-	void *out, size_t *outlen);
-int ECDSA_SIG_to_SKF_ECCSIGNATUREBLOB(const ECDSA_SIG *sig,
-	const EC_GROUP *group, void *out, size_t *outlen);
+typedef struct SKF_HANDLE SKF_HANDLE;
 
-int RSA_set_RSAPUBLICKEYBLOB(RSA *rsa, const RSAPUBLICKEYBLOB *blob);
-int RSA_get_RSAPUBLICKEYBLOB(RSA *rsa, RSAPUBLICKEYBLOB *blob);
-int RSA_set_RSAPRIVATEKEYBLOB(RSA *rsa, const RSAPRIVATEKEYBLOB *blob);
-int RSA_to_RSAPRIVATEKEYBLOB(RSA *rsa, RSAPRIVATEKEYBLOB *blob);
-
-
-
-#define SAR_OK				0x00000000
-#define SAR_FAIL			0x0A000001
-#define SAR_UNKNOWNERR			0x0A000002
-#define SAR_NOTSUPPORTYETERR		0x0A000003
-#define SAR_FILEERR			0x0A000004
-#define SAR_INVALIDHANDLEERR		0x0A000005
-#define SAR_INVALIDPARAMERR		0x0A000006
-#define SAR_READFILEERR			0x0A000007
-#define SAR_WRITEFILEERR		0x0A000008
-#define SAR_NAMELENERR			0x0A000009
-#define SAR_KEYUSAGEERR			0x0A00000A
-#define SAR_MODULUSLENERR		0x0A00000B
-#define SAR_NOTINITIALIZEERR		0x0A00000C
-#define SAR_OBJERR			0x0A00000D
-#define SAR_MEMORYERR			0x0A00000E
-#define SAR_TIMEOUTERR			0x0A00000F
-#define SAR_INDATALENERR		0x0A000010
-#define SAR_INDATAERR			0x0A000011
-#define SAR_GENRANDERR			0x0A000012
-#define SAR_HASHOBJERR			0x0A000013
-#define SAR_HASHERR			0x0A000014
-#define SAR_GENRSAKEYERR		0x0A000015
-#define SAR_RSAMODULUSLENERR		0x0A000016
-#define SAR_CSPIMPRTPUBKEYERR		0x0A000017
-#define SAR_RSAENCERR			0x0A000018
-#define SAR_RSADECERR			0x0A000019
-#define SAR_HASHNOTEQUALERR		0x0A00001A
-#define SAR_KEYNOTFOUNTERR		0x0A00001B
-#define SAR_KEYNOTFOUNDERR		0x0A00001B
-#define SAR_CERTNOTFOUNTERR		0x0A00001C
-#define SAR_NOTEXPORTERR		0x0A00001D
-#define SAR_DECRYPTPADERR		0x0A00001E
-#define SAR_MACLENERR			0x0A00001F
-#define SAR_BUFFER_TOO_SMALL		0x0A000020
-#define SAR_KEYINFOTYPEERR		0x0A000021
-#define SAR_NOT_EVENTERR		0x0A000022
-#define SAR_DEVICE_REMOVED		0x0A000023
-#define SAR_PIN_INCORRECT		0x0A000024
-#define SAR_PIN_LOCKED			0x0A000025
-#define SAR_PIN_INVALID			0x0A000026
-#define SAR_PIN_LEN_RANGE		0x0A000027
-#define SAR_USER_ALREADY_LOGGED_IN	0x0A000028
-#define SAR_USER_PIN_NOT_INITIALIZED	0x0A000029
-#define SAR_USER_TYPE_INVALID		0x0A00002A
-#define SAR_APPLICATION_NAME_INVALID	0x0A00002B
-#define SAR_APPLICATION_EXISTS		0x0A00002C
-#define SAR_USER_NOT_LOGGED_IN		0x0A00002D
-#define SAR_APPLICATION_NOT_EXISTS	0x0A00002E
-#define SAR_FILE_ALREADY_EXIST		0x0A00002F
-#define SAR_NO_ROOM			0x0A000030
+SKF_HANDLE *SKF_HANDLE_new(int type);
+EVP_MD_CTX *SKF_HANDLE_get_md_ctx(SKF_HANDLE *hHash);
+CBCMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(SKF_HANDLE *hMac);
+EVP_CIPHER_CTX *SKF_HANDLE_get_cipher_ctx(SKF_HANDLE *hKey);
+unsigned char *SKF_HANDLE_get_key(SKF_HANDLE *hKey);
+int SKF_HANDLE_set1_md_ctx(SKF_HANDLE *hHash, EVP_MD_CTX *ctx);
+int SKF_HANDLE_set1_cbcmac_ctx(SKF_HANDLE *hMac, CBCMAC_CTX *ctx);
+int SKF_HANDLE_set1_cipher_ctx(SKF_HANDLE *hKey, EVP_CIPHER_CTX *ctx);
+int SKF_HANDLE_free(SKF_HANDLE *handle);
 
 
-#ifdef __cplusplus
+#ifdef  __cplusplus
 }
 #endif
 #endif
-

@@ -58,7 +58,6 @@
 #include <openssl/rand.h>
 #include <openssl/sm2.h>
 
-
 /* k in [1, n-1], (x, y) = kG */
 static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **xp)
 {
@@ -71,13 +70,13 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	EC_POINT *point = NULL;
 
 	if (ec_key == NULL || (ec_group = EC_KEY_get0_group(ec_key)) == NULL) {
-		ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_PASSED_NULL_PARAMETER);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
 
 	if (ctx_in == NULL)  {
 		if ((ctx = BN_CTX_new()) == NULL) {
-			ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP,ERR_R_MALLOC_FAILURE);
+			SM2err(SM2_F_SM2_SIGN_SETUP,ERR_R_MALLOC_FAILURE);
 			return 0;
 		}
 	}
@@ -89,17 +88,17 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	x = BN_new();
 	order = BN_new();
 	if (!k || !x || !order) {
-		ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 		goto err;
 	}
 	
 	if ((point = EC_POINT_new(ec_group)) == NULL) {
-		ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 		goto err;
 	}
 
@@ -107,8 +106,8 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 		/* get random k */	
 		do {
 			if (!BN_rand_range(k, order)) {
-				ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP,
-					ECDSA_R_RANDOM_NUMBER_GENERATION_FAILED);	
+				SM2err(SM2_F_SM2_SIGN_SETUP,
+					SM2_R_RANDOM_NUMBER_GENERATION_FAILED);	
 				goto err;
 			}
 
@@ -116,25 +115,25 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 
 		/* compute r the x-coordinate of generator * k */
 		if (!EC_POINT_mul(ec_group, point, k, NULL, NULL, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 			goto err;
 		}
 
 		if (EC_METHOD_get_field_type(EC_GROUP_method_of(ec_group)) == NID_X9_62_prime_field) {
 			if (!EC_POINT_get_affine_coordinates_GFp(ec_group, point, x, NULL, ctx)) {
-				ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP,ERR_R_EC_LIB);
+				SM2err(SM2_F_SM2_SIGN_SETUP,ERR_R_EC_LIB);
 				goto err;
 			}
 		} else /* NID_X9_62_characteristic_two_field */ {
 			if (!EC_POINT_get_affine_coordinates_GF2m(ec_group, point, x, NULL, ctx)) {
-				ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP,ERR_R_EC_LIB);
+				SM2err(SM2_F_SM2_SIGN_SETUP,ERR_R_EC_LIB);
 				goto err;
 			}
 		}
 		
 		//FIXME: do we need this?
 		if (!BN_nnmod(x, x, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_SIGN_SETUP, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_BN_LIB);
 			goto err;
 		}
 	
@@ -181,12 +180,12 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 	ec_group = EC_KEY_get0_group(ec_key);
 	priv_key = EC_KEY_get0_private_key(ec_key);
 	if (!ec_group || !priv_key) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_PASSED_NULL_PARAMETER);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
 	}
 
 	if (!(ret = ECDSA_SIG_new())) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
 		return NULL;
 	}	
 	
@@ -195,11 +194,11 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 	e = BN_new();
 	bn = BN_new();
 	if (!ctx || !order || !e || !bn) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
 		goto err;
 	}
 
@@ -211,13 +210,13 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 	}
 #endif
 	if (!BN_bin2bn(dgst, dgst_len, e)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 		goto err;
 	}
 
 #if 0
 	if ((8 * dgst_len > i) && !BN_rshift(e, e, 8 - (i & 0x7))) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 		goto err;
 	}
 #endif
@@ -226,14 +225,14 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 		/* use or compute k and (kG).x */
 		if (!in_k || !in_x) {
 			if (!sm2_sign_setup(ec_key, ctx, &k, &ret->r)) {
-				ECDSAerr(ECDSA_F_ECDSA_DO_SIGN,ERR_R_ECDSA_LIB);
+				SM2err(SM2_F_SM2_DO_SIGN,ERR_R_ECDSA_LIB);
 				goto err;
 			}
 			ck = k;
 		} else {
 			ck = in_k;
 			if (!BN_copy(ret->r, in_x)) {
-				ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_MALLOC_FAILURE);
+				SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
 				goto err;
 			}
 		}
@@ -241,20 +240,20 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 
 		/* r = e + x (mod n) */	
 		if (!BN_mod_add(ret->r, ret->r, e, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 
 
 		if (!BN_mod_add(bn, ret->r, ck, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 
 		/* check r != 0 && r + k != n */
 		if (BN_is_zero(ret->r) || BN_is_zero(bn)) {
 			if (in_k && in_x) {
-				ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ECDSA_R_NEED_NEW_SETUP_VALUES);
+				SM2err(SM2_F_SM2_DO_SIGN, SM2_R_NEED_NEW_SETUP_VALUES);
 				goto err;
 			} else
 				continue;
@@ -262,35 +261,35 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgst_len,
 
 		/* s = ((1 + d)^-1 * (k - rd)) mod n */
 		if (!BN_one(bn)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 		if (!BN_mod_add(ret->s, priv_key, bn, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 		if (!BN_mod_inverse(ret->s, ret->s, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 
 		if (!BN_mod_mul(bn, ret->r, priv_key, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 		if (!BN_mod_sub(bn, ck, bn, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 		if (!BN_mod_mul(ret->s, ret->s, bn, order, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto err;
 		}
 
 		/* check s != 0 */
 		if (BN_is_zero(ret->s)) {
 			if (in_k && in_x) {
-				ECDSAerr(ECDSA_F_ECDSA_DO_SIGN, ECDSA_R_NEED_NEW_SETUP_VALUES);
+				SM2err(SM2_F_SM2_DO_SIGN, SM2_R_NEED_NEW_SETUP_VALUES);
 				goto err;
 			}
 		} else
@@ -331,7 +330,7 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 		!(ec_group = EC_KEY_get0_group(ec_key)) ||
 		!(pub_key  = EC_KEY_get0_public_key(ec_key))) {
 
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ECDSA_R_MISSING_PARAMETERS);
+		SM2err(SM2_F_SM2_DO_VERIFY, SM2_R_MISSING_PARAMETERS);
 		return -1;
 	}
 
@@ -341,11 +340,11 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	t = BN_new();
 
 	if (!ctx || !order || !e || !t) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 		goto err;
 	}
 
@@ -357,14 +356,14 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 		BN_is_negative(sig->s) || 
 		BN_ucmp(sig->s, order) >= 0) {
 
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ECDSA_R_BAD_SIGNATURE);
+		SM2err(SM2_F_SM2_DO_VERIFY, SM2_R_BAD_SIGNATURE);
 		ret = 0;
 		goto err;
 	}
 
 	/* check t = r + s != 0 */
 	if (!BN_mod_add(t, sig->r, sig->s, order, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
 	if (BN_is_zero(t)) {
@@ -380,44 +379,44 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	}
 #endif
 	if (!BN_bin2bn(dgst, dgstlen, e)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
 #if 0
 	if ((8 * dgstlen > i) && !BN_rshift(e, e, 8 - (i & 0x7))) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
 #endif
 
 	/* compute (x, y) = sG + tP, P is pub_key */
 	if (!(point = EC_POINT_new(ec_group))) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	if (!EC_POINT_mul(ec_group, point, sig->s, pub_key, t, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 		goto err;
 	}
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(ec_group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_get_affine_coordinates_GFp(ec_group, point, t, NULL, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 			goto err;
 		}
 	} else /* NID_X9_62_characteristic_two_field */ { 
 		if (!EC_POINT_get_affine_coordinates_GF2m(ec_group, point, t, NULL, ctx)) {
-			ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 			goto err;
 		}
 	}
 	if (!BN_nnmod(t, t, order, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
 
 	/* check (sG + tP).x + e  == sig.r */
 	if (!BN_mod_add(t, t, e, order, ctx)) {
-		ECDSAerr(ECDSA_F_ECDSA_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto err;
 	}
 	if (BN_ucmp(t, sig->r) == 0) {
@@ -492,8 +491,6 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	int derlen = -1;
 	int ret = -1;
 
-fprintf(stderr, "%s %d %s() executed\n", __FILE__, __LINE__, __FUNCTION__);
-
 	if (!(s = ECDSA_SIG_new())) {
 		return ret;
 	}
@@ -516,4 +513,3 @@ err:
 	ECDSA_SIG_free(s);
 	return ret;
 }
-

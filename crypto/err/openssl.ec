@@ -37,7 +37,11 @@ L CMS		crypto/cms/cms.h		crypto/cms/cms_err.c
 L JPAKE		crypto/jpake/jpake.h		crypto/jpake/jpake_err.c
 L ECIES		crypto/ecies/ecies.h		crypto/ecies/ecies_err.c
 L SM2		crypto/sm2/sm2.h		crypto/sm2/sm2_err.c
-L SKF		crypto/skf/skf.h		crypto/skf/skf_err.c
+L SKF		crypto/skf/skf_ex.h		crypto/skf/skf_err.c
+L CPK		crypto/cpk/cpk.h		crypto/cpk/cpk_err.c
+L CBCMAC	crypto/cbcmac/cbcmac.h		crypto/cbcmac/cbcmac_err.c
+L OTP		crypto/otp/otp.h		crypto/otp/otp_err.c
+L SM9		crypto/sm9/sm9.h		crypto/sm9/sm9_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE

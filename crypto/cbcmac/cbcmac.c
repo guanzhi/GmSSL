@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/cbcmac.h>
 
@@ -55,10 +56,12 @@ int CBCMAC_Init(CBCMAC_CTX *ctx, const void *key, size_t keylen,
 {
 	int i, block_size;
 	
-	if (!EVP_EncryptInit_ex(&ctx->cipher_ctx, cipher, key, NULL, eng)) {
+	if (!EVP_EncryptInit_ex(&ctx->cipher_ctx, cipher, eng, key, NULL)) {
+		CBCMACerr(CBCMAC_F_CBCMAC_INIT, CBCMAC_R_CIPHER_CTX_INIT_FAILED);
 		return 0;
 	}
 	if (EVP_CIPHER_CTX_mode(&ctx->cipher_ctx) != EVP_CIPH_ECB_MODE) {
+		CBCMACerr(CBCMAC_F_CBCMAC_INIT, CBCMAC_R_CIPHER_NOT_ECB_MODE);
 		return 0;
 	}
 	ctx->worklen = 0;
@@ -90,6 +93,7 @@ int CBCMAC_Update(CBCMAC_CTX *ctx, const void *data, size_t datalen)
 			}
 			if (!EVP_EncryptUpdate(&ctx->cipher_ctx, ctx->cbcstate, &len,
 				ctx->workspace, block_size)) {
+				CBCMACerr(CBCMAC_F_CBCMAC_UPDATE, ERR_R_EVP_LIB);
 				return 0;
 			}
 		}
@@ -127,7 +131,10 @@ int CBCMAC_Final(CBCMAC_CTX *ctx, unsigned char *out, size_t *outlen)
 		for (i = ctx->worklen; i < block_size; i++) {
 			ctx->workspace[i] = ctx->cbcstate[i];
 		}
-		EVP_EncryptUpdate(&(ctx->cipher_ctx), out, outlen, ctx->workspace, block_size);
+		if (!EVP_EncryptUpdate(&(ctx->cipher_ctx), out, outlen, ctx->workspace, block_size)) {
+			CBCMACerr(CBCMAC_F_CBCMAC_FINAL, ERR_R_EVP_LIB);
+			return 0;
+		}
 
 	} else {
 		for (i = 0; i < block_size; i++) {
@@ -135,7 +142,7 @@ int CBCMAC_Final(CBCMAC_CTX *ctx, unsigned char *out, size_t *outlen)
 		}
 	}
 
-	return 0;
+	return 1;
 }
 
 int CBCMAC_resume(CBCMAC_CTX *ctx)

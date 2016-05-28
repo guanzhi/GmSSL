@@ -92,12 +92,13 @@ hm_pmeth.o: ../../include/openssl/conf.h ../../include/openssl/crypto.h
 hm_pmeth.o: ../../include/openssl/e_os2.h ../../include/openssl/ec.h
 hm_pmeth.o: ../../include/openssl/ecdh.h ../../include/openssl/ecdsa.h
 hm_pmeth.o: ../../include/openssl/err.h ../../include/openssl/evp.h
-hm_pmeth.o: ../../include/openssl/hmac.h ../../include/openssl/lhash.h
-hm_pmeth.o: ../../include/openssl/obj_mac.h ../../include/openssl/objects.h
-hm_pmeth.o: ../../include/openssl/opensslconf.h
+hm_pmeth.o: ../../include/openssl/hmac.h ../../include/openssl/kdf.h
+hm_pmeth.o: ../../include/openssl/lhash.h ../../include/openssl/obj_mac.h
+hm_pmeth.o: ../../include/openssl/objects.h ../../include/openssl/opensslconf.h
 hm_pmeth.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
 hm_pmeth.o: ../../include/openssl/pkcs7.h ../../include/openssl/safestack.h
-hm_pmeth.o: ../../include/openssl/sha.h ../../include/openssl/stack.h
+hm_pmeth.o: ../../include/openssl/sha.h ../../include/openssl/sm2.h
+hm_pmeth.o: ../../include/openssl/sm3.h ../../include/openssl/stack.h
 hm_pmeth.o: ../../include/openssl/symhacks.h ../../include/openssl/x509.h
 hm_pmeth.o: ../../include/openssl/x509_vfy.h ../../include/openssl/x509v3.h
 hm_pmeth.o: ../cryptlib.h ../evp/evp_locl.h hm_pmeth.c

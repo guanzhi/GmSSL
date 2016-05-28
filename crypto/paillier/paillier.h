@@ -26,8 +26,7 @@ int PAILLIER_generate_key(PAILLIER *key, int bits);
 int PAILLIER_check_key(PAILLIER *key);
 int PAILLIER_encrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *pub_key);
 int PAILLIER_decrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *pri_key);
-int PAILLIER_ciphertext_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b,
-	PAILLIER *pub_key);
+int PAILLIER_ciphertext_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, PAILLIER *pub_key);
 int PAILLIER_ciphertext_scalar_mul(BIGNUM *r, unsigned int k,
 	const BIGNUM *a, PAILLIER *pub_key)
 

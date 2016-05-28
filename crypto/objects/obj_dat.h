@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1044
-#define NUM_SN 1020
-#define NUM_LN 1020
-#define NUM_OBJ 958
+#define NUM_NID 1045
+#define NUM_SN 1021
+#define NUM_LN 1021
+#define NUM_OBJ 959
 
-static const unsigned char lvalues[6753]={
+static const unsigned char lvalues[6762]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -1020,6 +1020,7 @@ static const unsigned char lvalues[6753]={
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x79,     /* [6728] OBJ_sm2sign_with_sha224 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x7A,     /* [6736] OBJ_sm2sign_with_sha384 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x7B,     /* [6744] OBJ_sm2sign_with_rmd160 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x65,/* [6752] OBJ_wapip192v1 */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2695,6 +2696,7 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 	8,&(lvalues[6736]),0},
 {"SM2Sign-with-RMD160","sm2sign-with-rmd160",NID_sm2sign_with_rmd160,
 	8,&(lvalues[6744]),0},
+{"wapip192v1","wapip192v1",NID_wapip192v1,9,&(lvalues[6752]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -3711,6 +3713,7 @@ static const unsigned int sn_objs[NUM_SN]={
 740,	/* "wap-wsg-idm-ecid-wtls7" */
 741,	/* "wap-wsg-idm-ecid-wtls8" */
 742,	/* "wap-wsg-idm-ecid-wtls9" */
+1044,	/* "wapip192v1" */
 804,	/* "whirlpool" */
 868,	/* "x121Address" */
 503,	/* "x500UniqueIdentifier" */
@@ -4732,6 +4735,7 @@ static const unsigned int ln_objs[NUM_LN]={
 740,	/* "wap-wsg-idm-ecid-wtls7" */
 741,	/* "wap-wsg-idm-ecid-wtls8" */
 742,	/* "wap-wsg-idm-ecid-wtls9" */
+1044,	/* "wapip192v1" */
 804,	/* "whirlpool" */
 868,	/* "x121Address" */
 503,	/* "x500UniqueIdentifier" */
@@ -5394,6 +5398,7 @@ static const unsigned int obj_objs[NUM_OBJ]={
 970,	/* OBJ_sm2sign                      1 2 156 10197 1 301 1 */
 971,	/* OBJ_sm2keyagreement              1 2 156 10197 1 301 2 */
 972,	/* OBJ_sm2encrypt                   1 2 156 10197 1 301 3 */
+1044,	/* OBJ_wapip192v1                   1 2 156 10197 1 301 101 */
 1008,	/* OBJ_sm9sign                      1 2 156 10197 1 302 1 */
 1009,	/* OBJ_sm9keyagreement              1 2 156 10197 1 302 2 */
 1010,	/* OBJ_sm9encrypt                   1 2 156 10197 1 302 3 */

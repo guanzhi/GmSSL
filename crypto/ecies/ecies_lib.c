@@ -57,8 +57,8 @@
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include <openssl/ecdh.h>
-#include "ecies.h"
-#include "kdf.h"
+#include <openssl/kdf.h>
+#include <openssl/ecies.h>
 
 
 static void *ecies_data_dup(void *data) {
@@ -342,7 +342,7 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 		}
 	if (!(ephem_point = EC_POINT_new(EC_KEY_get0_group(pri_key))))
 		{
-		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
+		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ERR_R_MALLOC_FAILURE);
 		goto err;
 		}
 	if (!EC_POINT_oct2point(EC_KEY_get0_group(pri_key), ephem_point,
@@ -397,7 +397,7 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ECIES_R_VERIFY_MAC_FAILED);
 		goto err;
 		}
-	if (memcmp(cv->mactag->data, mac, len))
+	if (OPENSSL_memcmp(cv->mactag->data, mac, len))
 		{
 		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ECIES_R_VERIFY_MAC_FAILED);
 		goto err;
@@ -507,12 +507,12 @@ int ECIES_decrypt(const ECIES_PARAMS *param,
 	const unsigned char *p = in;
 
 	if (!(cv = d2i_ECIES_CIPHERTEXT_VALUE(NULL, &p, (long)inlen))) {
-		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		ECIESerr(ECIES_F_ECIES_DECRYPT, ECIES_R_ENCRYPT_FAILED);
 		return 0;
 	}
 
 	if (!ECIES_do_decrypt(cv, param, out, outlen, ec_key)) {
-		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);
+		ECIESerr(ECIES_F_ECIES_DECRYPT, ECIES_R_ENCRYPT_FAILED);
 		goto end;
 	}
 
@@ -553,5 +553,4 @@ int ECIES_decrypt_with_recommended(unsigned char *out, size_t *outlen,
 	ECIES_PARAMS_init_with_recommended(&param);
 	return ECIES_decrypt(&param, out, outlen, in, inlen, ec_key);
 }
-
 

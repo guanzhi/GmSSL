@@ -1041,3 +1041,4 @@ sm2sign_with_sha512		1040
 sm2sign_with_sha224		1041
 sm2sign_with_sha384		1042
 sm2sign_with_rmd160		1043
+wapip192v1		1044

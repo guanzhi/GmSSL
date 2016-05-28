@@ -177,7 +177,7 @@ static void pkey_ec_cleanup(EVP_PKEY_CTX *ctx)
 static int pkey_ec_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
                         const unsigned char *dgst, size_t dgstlen)
 {
-	int ret;
+	int ret = 0;
 	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 	int type;
@@ -209,6 +209,8 @@ static int pkey_ec_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 		ret = ECDSA_sign(type, dgst, dgstlen, sig, &len, ec_key);
 	} else if (dctx->sign_type == NID_sm_scheme) {
 		ret = SM2_sign(type, dgst, dgstlen, sig, &len, ec_key);
+	} else {
+		//error
 	}
 
 	if (ret <= 0)
@@ -239,14 +241,12 @@ static int pkey_ec_verify(EVP_PKEY_CTX *ctx,
 	return ret;
 }
 
-#if 0
 static int int_update(EVP_MD_CTX *ctx, const void *data, size_t count)
 {
 	if (!EVP_DigestUpdate(ctx, data, count))
 		return 0;
 	return 1;
 }
-#endif
 
 static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 {
@@ -256,23 +256,22 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	unsigned char zid[EVP_MAX_MD_SIZE];
 	unsigned int zidlen = sizeof(zid);
 
-	// the reason might be we need to init mctx->udpate 
 
 
 	if (dctx->sign_type == NID_sm_scheme) {
-		/*
 		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
-       		 	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_SM2_LIB);
+       		 	ECerr(EC_F_PKEY_EC_SIGNCTX_INIT, ERR_R_SM2_LIB);
 			return 0;
 		}
+
+		mctx->update = int_update;
+
 		if (!mctx->update(mctx, zid, zidlen)) {
-	        	ECerr(EC_F_PKEY_SM2_SIGNCTX_INIT, ERR_R_EVP_LIB);
+	        	ECerr(EC_F_PKEY_EC_SIGNCTX_INIT, ERR_R_EVP_LIB);
 			return 0;
 		}
-		*/
 	}
 
-	//ctx->update = int_update;
 	
 	return 1;
 }
@@ -280,7 +279,7 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 static int pkey_ec_signctx(EVP_PKEY_CTX *ctx,
 	unsigned char *sig, size_t *siglen, EVP_MD_CTX *mctx)
 {
-	int ret;
+	int ret = 0;
 	unsigned int len;
 	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
@@ -292,15 +291,16 @@ static int pkey_ec_signctx(EVP_PKEY_CTX *ctx,
 		*siglen = SM2_signature_size(ec_key);
 		return 1;
 	} else if (*siglen < (size_t)SM2_signature_size(ec_key)) {
-		ECerr(EC_F_PKEY_SM2_SIGNCTX, EC_R_BUFFER_TOO_SMALL);
+		ECerr(EC_F_PKEY_EC_SIGNCTX, EC_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
 	if (!EVP_DigestFinal_ex(mctx, dgst, &dgstlen)) {
-		ECerr(EC_F_PKEY_SM2_SIGNCTX, ERR_R_EVP_LIB);
+		ECerr(EC_F_PKEY_EC_SIGNCTX, ERR_R_EVP_LIB);
 		return 0;
 	}
 
+	len = *siglen;
 	if (dctx->sign_type == NID_sm_scheme)
 		ret = SM2_sign(type, dgst, dgstlen, sig, &len, ec_key);
 	else if (dctx->sign_type == NID_secg_scheme)

@@ -119,4 +119,27 @@ static char *pt(unsigned char *md)
         sprintf(&(buf[i * 2]), "%02x", md[i]);
     return (buf);
 }
+
+
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+*/
+
+
+
+
+
+
+
 #endif

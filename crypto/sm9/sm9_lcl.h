@@ -1,4 +1,4 @@
-/* crypto/sm9/sm9.h */
+/* crypto/sm9/sm9_lcl.h */
 /* ====================================================================
  * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
  *
@@ -49,6 +49,8 @@
  *
  */
 
+#ifndef HEADER_SM9_LCL_H
+#define HEADER_SM9_LCL_H
 
 #include "sm9.h"
 
@@ -86,14 +88,6 @@ struct sm9_method_st {
 		const unsigned char *in, size_t inlen,
 		unsigned char *out, size_t *outlen,
 		EVP_PKEY *pkey);
-	int (*sign)(SM9_PUBLIC_PARAMS *params,
-		const unsigned char *dgst, int dgstlen,
-		unsigned char *sig, unsigned int *siglen,
-		EVP_PKEY *pkey);
-	int (*verify)(SM9_PUBLIC_PARAMS *params,
-		const unsigned char *dgst, int dgstlen,
-		const unsigned char *sig, int siglen,
-		const char *id, size_t idlen);
 };
 
 #ifdef __cplusplus

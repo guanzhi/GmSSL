@@ -18,7 +18,7 @@ ASFLAGS= $(INCLUDES) $(ASFLAG)
 AFLAGS= $(ASFLAGS)
 
 GENERAL=Makefile
-TEST=
+TEST=zuctest.c
 APPS=
 
 LIB=$(TOP)/libcrypto.a
@@ -81,14 +81,4 @@ clean:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-
-
-
-zuc.o: ../../e_os.h ../../include/openssl/bio.h
-zuc.o: ../../include/openssl/buffer.h ../../include/openssl/crypto.h
-zuc.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
-zuc.o: ../../include/openssl/lhash.h ../../include/openssl/opensslconf.h
-zuc.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
-zuc.o: ../../include/openssl/rc4.h ../../include/openssl/safestack.h
-zuc.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
-zuc.o: ../cryptlib.h zuc.c zuc.h
+zuc.o: ../../include/openssl/modes.h ../modes/modes_lcl.h zuc.c zuc.h

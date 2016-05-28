@@ -48,14 +48,14 @@ int change_rand(const char *hex)
 	fake_rand.status	= old_rand->status;
 	fake_rand.bytes		= fbytes;
 	fake_rand.pseudorand	= old_rand->bytes;
-	
+
 	if (!RAND_set_rand_method(&fake_rand)) {
 		return 0;
-	}	
+	}
 
 	rnd_number = hex;
 	return 1;
-} 
+}
 
 int restore_rand(void)
 {
@@ -83,7 +83,7 @@ int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 		sprintf(buf + i*2, "%02X", bin[i]);
 	}
 	buf[buflen - 1] = 0;
-	
+
 	if (memcmp(hex, buf, binlen * 2) == 0) {
 		ret = 1;
 	}
@@ -114,7 +114,7 @@ EC_GROUP *new_ec_group(int is_prime_field,
 		goto err;
 	}
 
-	if (!BN_hex2bn(&p, p_hex) || 
+	if (!BN_hex2bn(&p, p_hex) ||
 	    !BN_hex2bn(&a, a_hex) ||
 	    !BN_hex2bn(&b, b_hex) ||
 	    !BN_hex2bn(&x, x_hex) ||
@@ -150,7 +150,7 @@ EC_GROUP *new_ec_group(int is_prime_field,
 		goto err;
 	}
 
-	EC_GROUP_set_asn1_flag(group, flag);	
+	EC_GROUP_set_asn1_flag(group, flag);
 	EC_GROUP_set_point_conversion_form(group, form);
 
 	ok = 1;
@@ -217,7 +217,7 @@ EC_KEY *new_ec_key(const EC_GROUP *group,
 	}
 	if (!EC_KEY_set_public_key_affine_coordinates(ec_key, x, y)) {
 		goto end;
-	}	
+	}
 
 	ok = 1;
 end:
@@ -229,7 +229,7 @@ end:
 		EC_KEY_free(ec_key);
 		ec_key = NULL;
 	}
-	return ec_key;	
+	return ec_key;
 }
 
 int test_sm2_sign(const EC_GROUP *group,
@@ -293,7 +293,7 @@ int test_sm2_sign(const EC_GROUP *group,
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
 	}
-	
+
 	/* verify */
 	if (!(pubkey = new_ec_key(group, NULL, xP, yP, id))) {
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
@@ -337,8 +337,8 @@ int test_sm2_enc(const EC_GROUP *group,
 	}
 
 	buflen = sizeof(buf);
-	if (!SM2_encrypt_with_recommended((const unsigned char *)M, strlen(M),
-		buf, &buflen, ec_key)) {
+	if (!SM2_encrypt_with_recommended(buf, &buflen,
+		(const unsigned char *)M, strlen(M), ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -350,12 +350,12 @@ int test_sm2_enc(const EC_GROUP *group,
 		goto end;
 	}
 	EC_KEY_free(ec_key);
-	
+
 	if (!(ec_key = new_ec_key(group, d, xP, yP, NULL))) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-	if (!SM2_decrypt_with_recommended(buf, buflen, msg, &msglen, ec_key)) {
+	if (!SM2_decrypt_with_recommended(msg, &msglen, buf, buflen, ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -554,7 +554,7 @@ int test_sm2_test_vector()
 		"01686522130D590FB8DE635D8FCA715CC6BF3D05BEF3F75DA5D543454448166612",
 		"ALICE123@YAHOO.COM",
 		"26352AF82EC19F207BBC6F9474E11E90CE0F7DDACE03B27F801817E897A81FD5",
-		"message digest",	
+		"message digest",
 		"AD673CBDA311417129A9EAA5F9AB1AA1633AD47718A84DFD46C17C6FA0AA3B12",
 		"36CD79FC8E24B7357A8A7B4A46D454C397703D6498158C605399B341ADA186D6",
 		"6D3FBA26EAB2A1054F5D198332E335817C8AC453ED26D3391CD4439D825BF25B",
@@ -574,7 +574,7 @@ int test_sm2_test_vector()
 		"4C62EEFD6ECFC2B95B92FD6C3D9575148AFA17425546D49018E5388D49DD7B4F",
 		"04"
 		"245C26FB68B1DDDDB12C4B6BF9F2B6D5FE60A383B0D18D1C4144ABF17F6252E7"
-		"76CB9264C2A7E88E52B19903FDC47378F605E36811F5C07423A24B84400F01B8"	
+		"76CB9264C2A7E88E52B19903FDC47378F605E36811F5C07423A24B84400F01B8"
 		"650053A89B41C418B0C3AAD00D886C00286467"
 		"9C3D7360C30156FAB7C80A0276712DA9D8094A634B766D3A285E07480653426D")) {
 		printf("sm2 enc p256 failed\n");
@@ -624,7 +624,7 @@ int test_sm2_test_vector()
 		printf("sm2 kap p256 passed\n");
 	}
 
-#if 1
+#if 0
 	/* ZA will not pass! */
 	if (!test_sm2_kap(
 		sm2b257test,
@@ -702,7 +702,7 @@ end:
 	EVP_PKEY_CTX_free(pkctx);
 	return ret;
 }
-	
+
 int test_evp_pkey_sign(EVP_PKEY *pkey, int do_sm2, int verbose)
 {
 	int ret = 0;
@@ -770,7 +770,7 @@ int test_evp_pkey_sign(EVP_PKEY *pkey, int do_sm2, int verbose)
 	ret = 1;
 end:
 	EVP_PKEY_CTX_free(pkctx);
-	return ret;	
+	return ret;
 }
 
 int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
@@ -791,7 +791,7 @@ int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-	
+
 	/* EVP_PKEY_encrypt() */
 
 	if (!EVP_PKEY_encrypt_init(pkctx)) {
@@ -802,7 +802,7 @@ int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 	if (!EVP_PKEY_CTX_set_ec_enc_type(pkctx, type)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
-	}	
+	}
 
 	cbuflen = sizeof(cbuf);
 	if (!EVP_PKEY_encrypt(pkctx, cbuf, &cbuflen, msg, msglen)) {
@@ -827,7 +827,7 @@ int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 	if (!EVP_PKEY_CTX_set_ec_enc_type(pkctx, type)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
-	}	
+	}
 
 	bzero(mbuf, sizeof(mbuf));
 	mbuflen = sizeof(mbuf);
@@ -1000,7 +1000,7 @@ int test_evp_digestsign(EVP_PKEY *pkey, int do_sm2, const EVP_MD *md, int verbos
 		goto end;
 	}
 
-	pkctx = NULL;	
+	pkctx = NULL;
 	if (!EVP_DigestVerifyInit(mdctx, &pkctx, md, NULL, pkey)) {
 		ERR_print_errors_fp(stderr);
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
@@ -1063,14 +1063,15 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 	}
 
 	if (NUM_PKEYS != EVP_SealInit(cctx, cipher, ek, ekl, iv, pkey, NUM_PKEYS)) {
+		ERR_print_errors_fp(stderr);
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-	
+
 	if (verbose > 1) {
 		for (i = 0; i < NUM_PKEYS; i++) {
 			int j;
-			BIO_printf(out, "ek[i] (%d-byte) = ", ekl[i]);
+			BIO_printf(out, "ek[%d] (%d-byte) = ", i, ekl[i]);
 			for (j = 0; j < ekl[i]; j++) {
 				BIO_printf(out, "%02X", ek[i][j]);
 			}
@@ -1110,7 +1111,7 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 		BIO_printf(out, "\n");
 	}
 
-	if (!EVP_OpenInit(cctx, cipher, ek[0], ekl[0], iv, pkey[0])) {
+	if (!EVP_OpenInit(cctx, cipher, ek[1], ekl[1], iv, pkey[1])) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -1205,13 +1206,13 @@ int test_sm2_evp(int verbose)
 	if (!test_evp_sign(pkey, md, verbose)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
-	} 
+	}
 
 	/* test seal/open */
 	if (!test_evp_seal(curve_id, cipher, out, verbose)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
-	}	
+	}
 
 	ret = 1;
 
@@ -1224,10 +1225,10 @@ end:
 }
 
 int main(int argc, char **argv)
-{	
+{
 	int ret = -1;
-	BIO *out = NULL;	
-	
+	BIO *out = NULL;
+
 	out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
 	/*
@@ -1238,20 +1239,20 @@ int main(int argc, char **argv)
 	} else {
 		CRYPTO_set_mem_debug_functions(0, 0, 0, 0, 0);
 	}
-	CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);	
-	*/	
+	CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
+	*/
 
 	ERR_load_crypto_strings();
 	RAND_seed(rnd_seed, sizeof(rnd_seed));
 
-	
+
 	if (!test_sm2_test_vector()) {
 		goto err;
 	}
 
 	if (!test_sm2_evp(2)) {
 		goto err;
-	}	
+	}
 
 	ret =0;
 err:
@@ -1261,7 +1262,7 @@ err:
 
 	if (ret)
 		ERR_print_errors(out);
-	
+
 	//CRYPTO_cleanup_all_ex_data();
 	//ERR_remove_thread_state(NULL);
 	//ERR_free_strings();

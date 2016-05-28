@@ -22,8 +22,8 @@ TEST=otptest.c
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=otp.c
-LIBOBJ=otp.o
+LIBSRC=otp.c otp_err.c
+LIBOBJ=otp.o otp_err.o
 
 SRC= $(LIBSRC)
 
@@ -79,3 +79,20 @@ clean:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
+otp.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+otp.o: ../../include/openssl/cbcmac.h ../../include/openssl/crypto.h
+otp.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
+otp.o: ../../include/openssl/evp.h ../../include/openssl/lhash.h
+otp.o: ../../include/openssl/modes.h ../../include/openssl/obj_mac.h
+otp.o: ../../include/openssl/objects.h ../../include/openssl/opensslconf.h
+otp.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+otp.o: ../../include/openssl/otp.h ../../include/openssl/safestack.h
+otp.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
+otp.o: ../modes/modes_lcl.h otp.c
+otp_err.o: ../../include/openssl/bio.h ../../include/openssl/crypto.h
+otp_err.o: ../../include/openssl/e_os2.h ../../include/openssl/err.h
+otp_err.o: ../../include/openssl/lhash.h ../../include/openssl/opensslconf.h
+otp_err.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+otp_err.o: ../../include/openssl/otp.h ../../include/openssl/safestack.h
+otp_err.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
+otp_err.o: otp_err.c

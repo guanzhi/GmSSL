@@ -48,7 +48,9 @@
  * ====================================================================
  *
  */
-
+/* This header file is from the official specification with minor
+ * modification.
+ */
 
 #ifndef HEADER_SKF_H
 #define HEADER_SKF_H
@@ -150,7 +152,7 @@ typedef HANDLE HCONTAINER;
 extern "C" {
 #endif
 
-	
+
 typedef struct Struct_Version{
 	BYTE major;
 	BYTE minor;
@@ -247,12 +249,12 @@ typedef struct Struct_FILEATTRIBUTE {
 	ULONG	WriteRights;
 } FILEATTRIBUTE, *PFILEATTRIBUTE;
 
-	
+
 ULONG DEVAPI SKF_WaitForDevEvent(LPSTR szDevName,
 	ULONG *pulDevNameLen,
 	ULONG *pulEvent);
 
-ULONG DEVAPI SKF_CancelWaitForDevEvent();
+ULONG DEVAPI SKF_CancelWaitForDevEvent(void);
 
 ULONG DEVAPI SKF_EnumDev(BOOL bPresent,
 	LPSTR szNameList,
@@ -305,39 +307,39 @@ ULONG DEVAPI SKF_ChangePIN(HAPPLICATION hApplication,
 
 LONG DEVAPI SKF_GetPINInfo(HAPPLICATION hApplication,
 	ULONG ulPINType,
-	ULONG *pulMaxRetryCount, 
-	ULONG *pulRemainRetryCount, 
+	ULONG *pulMaxRetryCount,
+	ULONG *pulRemainRetryCount,
 	BOOL *pbDefaultPin);
 
 ULONG DEVAPI SKF_VerifyPIN(HAPPLICATION hApplication,
 	ULONG ulPINType,
-	LPSTR szPIN, 
+	LPSTR szPIN,
 	ULONG *pulRetryCount);
 
 ULONG DEVAPI SKF_UnblockPIN(HAPPLICATION hApplication,
 	LPSTR szAdminPIN,
-	LPSTR szNewUserPIN,  
+	LPSTR szNewUserPIN,
 	ULONG *pulRetryCount);
 
 ULONG DEVAPI SKF_ClearSecureState(HAPPLICATION hApplication);
 
 ULONG DEVAPI SKF_CreateApplication(DEVHANDLE hDev,
 	LPSTR szAppName,
-	LPSTR szAdminPin, 
+	LPSTR szAdminPin,
 	DWORD dwAdminPinRetryCount,
-	LPSTR szUserPin, 
+	LPSTR szUserPin,
 	DWORD dwUserPinRetryCount,
-	DWORD dwCreateFileRights, 
+	DWORD dwCreateFileRights,
 	HAPPLICATION *phApplication);
 
 ULONG DEVAPI SKF_EnumApplication(DEVHANDLE hDev,
 	LPSTR szAppName,
 	ULONG *pulSize);
 
-ULONG DEVAPI SKF_DeleteApplication(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_DeleteApplication(DEVHANDLE hDev,
 	LPSTR szAppName);
 
-ULONG DEVAPI SKF_OpenApplication(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_OpenApplication(DEVHANDLE hDev,
 	LPSTR szAppName,
 	HAPPLICATION *phApplication);
 
@@ -345,14 +347,14 @@ ULONG DEVAPI SKF_CloseApplication(HAPPLICATION hApplication);
 
 ULONG DEVAPI SKF_CreateFile(HAPPLICATION hApplication,
 	LPSTR szFileName,
-	ULONG ulFileSize, 
+	ULONG ulFileSize,
 	ULONG ulReadRights,
 	ULONG ulWriteRights);
 
 ULONG DEVAPI SKF_DeleteFile(HAPPLICATION hApplication,
 	LPSTR szFileName);
 
-ULONG DEVAPI SKF_EnumFiles(HAPPLICATION hApplication, 
+ULONG DEVAPI SKF_EnumFiles(HAPPLICATION hApplication,
 	LPSTR szFileList,
 	ULONG *pulSize);
 
@@ -362,14 +364,14 @@ ULONG DEVAPI SKF_GetFileInfo(HAPPLICATION hApplication,
 
 ULONG DEVAPI SKF_ReadFile(HAPPLICATION hApplication,
 	LPSTR szFileName,
-	ULONG ulOffset, 
-	ULONG ulSize, 
-	BYTE *pbOutData, 
+	ULONG ulOffset,
+	ULONG ulSize,
+	BYTE *pbOutData,
 	ULONG *pulOutLen);
 
-ULONG DEVAPI SKF_WriteFile(HAPPLICATION hApplication, 
+ULONG DEVAPI SKF_WriteFile(HAPPLICATION hApplication,
 	LPSTR szFileName,
-	ULONG ulOffset, 
+	ULONG ulOffset,
 	BYTE *pbData,
 	ULONG ulSize);
 
@@ -377,7 +379,7 @@ ULONG DEVAPI SKF_CreateContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer);
 
-ULONG DEVAPI SKF_DeleteContainer(HAPPLICATION hApplication, 
+ULONG DEVAPI SKF_DeleteContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName);
 
 ULONG DEVAPI SKF_EnumContainer(HAPPLICATION hApplication,
@@ -399,7 +401,7 @@ ULONG DEVAPI SKF_CloseContainer(HCONTAINER hContainer);
 ULONG DEVAPI SKF_GetContainerType(HCONTAINER hContainer,
 	ULONG *pulContainerType);
 
-ULONG DEVAPI SKF_ImportCertificate(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ImportCertificate(HCONTAINER hContainer,
 	BOOL bExportSignKey,
 	BYTE *pbCert,
 	ULONG ulCertLen);
@@ -409,7 +411,7 @@ ULONG DEVAPI SKF_ExportCertificate(HCONTAINER hContainer,
 	BYTE *pbCert,
 	ULONG *pulCertLen);
 
-ULONG DEVAPI SKF_ExportPublicKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ExportPublicKey(HCONTAINER hContainer,
 	BOOL bSignFlag,
 	BYTE *pbBlob,
 	ULONG *pulBlobLen);
@@ -418,42 +420,42 @@ ULONG DEVAPI SKF_GenRandom(DEVHANDLE hDev,
 	BYTE *pbRandom,
 	ULONG ulRandomLen);
 
-ULONG DEVAPI SKF_GenExtRSAKey(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_GenExtRSAKey(DEVHANDLE hDev,
 	ULONG ulBitsLen,
 	RSAPRIVATEKEYBLOB *pBlob);
 
-ULONG DEVAPI SKF_GenRSAKeyPair(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_GenRSAKeyPair(HCONTAINER hContainer,
 	ULONG ulBitsLen,
 	RSAPUBLICKEYBLOB *pBlob);
 
-ULONG DEVAPI SKF_ImportRSAKeyPair(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ImportRSAKeyPair(HCONTAINER hContainer,
 	ULONG ulSymAlgId,
 	BYTE *pbWrappedKey,
 	ULONG ulWrappedKeyLen,
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedDataLen);
 
-ULONG DEVAPI SKF_RSASignData(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_RSASignData(HCONTAINER hContainer,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbSignature,
 	ULONG *pulSignLen);
 
-ULONG DEVAPI SKF_RSAVerify(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_RSAVerify(DEVHANDLE hDev,
 	RSAPUBLICKEYBLOB *pRSAPubKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
-	BYTE *pbSignature, 
+	BYTE *pbSignature,
 	ULONG ulSignLen);
 
-ULONG DEVAPI SKF_RSAExportSessionKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_RSAExportSessionKey(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	RSAPUBLICKEYBLOB *pPubKey,
 	BYTE *pbData,
 	ULONG *pulDataLen,
 	HANDLE *phSessionKey);
 
-ULONG DEVAPI SKF_ExtRSAPubKeyOperation(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_ExtRSAPubKeyOperation(DEVHANDLE hDev,
 	RSAPUBLICKEYBLOB *pRSAPubKeyBlob,
 	BYTE *pbInput,
 	ULONG ulInputLen,
@@ -482,7 +484,7 @@ ULONG DEVAPI SKF_ECCSignData(HCONTAINER hContainer,
 ULONG DEVAPI SKF_ECCVerify(DEVHANDLE hDev,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbData,
-	ULONG ulDataLen, 
+	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature);
 
 ULONG DEVAPI SKF_ECCExportSessionKey(HCONTAINER hContainer,
@@ -522,7 +524,7 @@ ULONG DEVAPI SKF_GenerateAgreementDataWithECC(HCONTAINER hContainer,
 	ULONG ulIDLen,
 	HANDLE *phAgreementHandle);
 
-ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(HANDLE hContainer, 
+ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(HANDLE hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pSponsorECCPubKeyBlob,
 	ECCPUBLICKEYBLOB *pSponsorTempECCPubKeyBlob,
@@ -540,13 +542,13 @@ ULONG DEVAPI SKF_GenerateKeyWithECC(HANDLE hAgreementHandle,
 	ULONG ulIDLen,
 	HANDLE *phKeyHandle);
 
-ULONG DEVAPI SKF_ImportSessionKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ImportSessionKey(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	BYTE *pbWrapedData,
 	ULONG ulWrapedLen,
 	HANDLE *phKey);
 
-ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev,
 	BYTE *pbKey,
 	ULONG ulAlgID,
 	HANDLE *phKey);
@@ -570,39 +572,39 @@ ULONG DEVAPI SKF_EncryptFinal(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedDataLen);
 
-ULONG DEVAPI SKF_DecryptInit(HANDLE hKey, 
+ULONG DEVAPI SKF_DecryptInit(HANDLE hKey,
 	BLOCKCIPHERPARAM DecryptParam);
 
-ULONG DEVAPI SKF_Decrypt(HANDLE hKey, 
+ULONG DEVAPI SKF_Decrypt(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedLen,
 	BYTE *pbData,
 	ULONG *pulDataLen);
 
-ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey, 
+ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedLen,
 	BYTE *pbData,
 	ULONG *pulDataLen);
 
-ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey, 
+ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey,
 	BYTE *pbDecryptedData,
 	ULONG *pulDecryptedDataLen);
 
-ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev,
 	ULONG ulAlgID,
 	ECCPUBLICKEYBLOB *pPubKey,
 	BYTE *pbID,
 	ULONG ulIDLen,
 	HANDLE *phHash);
 
-ULONG DEVAPI SKF_Digest(HANDLE hHash, 
+ULONG DEVAPI SKF_Digest(HANDLE hHash,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbHashData,
 	ULONG *pulHashLen);
 
-ULONG DEVAPI SKF_DigestUpdate(HANDLE hHash, 
+ULONG DEVAPI SKF_DigestUpdate(HANDLE hHash,
 	BYTE *pbData,
 	ULONG ulDataLen);
 
@@ -629,7 +631,6 @@ ULONG DEVAPI SKF_MacFinal(HANDLE hMac,
 	ULONG *pulMacDataLen);
 
 ULONG DEVAPI SKF_CloseHandle(HANDLE hHandle);
-
 
 
 #define SAR_OK				0x00000000
@@ -660,7 +661,6 @@ ULONG DEVAPI SKF_CloseHandle(HANDLE hHandle);
 #define SAR_RSADECERR			0x0A000019
 #define SAR_HASHNOTEQUALERR		0x0A00001A
 #define SAR_KEYNOTFOUNTERR		0x0A00001B
-#define SAR_KEYNOTFOUNDERR		0x0A00001B
 #define SAR_CERTNOTFOUNTERR		0x0A00001C
 #define SAR_NOTEXPORTERR		0x0A00001D
 #define SAR_DECRYPTPADERR		0x0A00001E

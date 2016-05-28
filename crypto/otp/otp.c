@@ -5,6 +5,7 @@
 #include <string.h>
 #include <strings.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <openssl/crypto.h>
 #include <openssl/cbcmac.h>
 #include "../modes/modes_lcl.h"
@@ -51,7 +52,7 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 	OPENSSL_assert(sizeof(time_t) == 8);
 
 	if (!check_params(params)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		OTPerr(OTP_F_OTP_GENERATE, OTP_R_INVALID_PARAMS);
 		return 0;
 	}
 
@@ -60,7 +61,7 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 		idlen = 16;
 	}
 	if (!(id = OPENSSL_malloc(idlen))) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		OTPerr(OTP_F_OTP_GENERATE, OTP_R_MALLOC_FAILED);
 		goto end;
 	}
 	bzero(id, idlen);
@@ -77,32 +78,41 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 	if (params->type == NID_sm3) {
 		md = EVP_get_digestbynid(params->type);
 		if (!(mdctx = EVP_MD_CTX_create())) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 		if (!EVP_DigestInit_ex(mdctx, md, NULL)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 		if (!EVP_DigestUpdate(mdctx, key, keylen)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 		if (!EVP_DigestUpdate(mdctx, id, idlen)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 		if (!EVP_DigestFinal_ex(mdctx, s, (unsigned int *)&slen)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 	} else if (params->type == NID_sms4_ecb) {
 		cipher = EVP_get_cipherbynid(params->type);
 		if (!(cmctx = CBCMAC_CTX_new())) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_CBCMAC_LIB);
 			goto end;
 		}
 		if (!CBCMAC_Init(cmctx, key, keylen, cipher, NULL)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_CBCMAC_LIB);
 			goto end;
 		}
 		if (!CBCMAC_Update(cmctx, id, idlen)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_CBCMAC_LIB);
 			goto end;
 		}
 		if (!CBCMAC_Final(cmctx, s, &slen)) {
+			OTPerr(OTP_F_OTP_GENERATE, ERR_R_CBCMAC_LIB);
 			goto end;
 		}
 	} else {

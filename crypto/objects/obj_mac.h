@@ -4493,6 +4493,10 @@
 #define NID_sm2sign_with_rmd160         1043
 #define OBJ_sm2sign_with_rmd160         OBJ_sm_scheme,507L
 
+#define SN_wapip192v1           "wapip192v1"
+#define NID_wapip192v1          1044
+#define OBJ_wapip192v1          OBJ_sm_scheme,301L,101L
+
 #define SN_zuc          "ZUC"
 #define LN_zuc          "zuc"
 #define NID_zuc         1000

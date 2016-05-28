@@ -146,12 +146,10 @@ int sm2_get_public_key_data(unsigned char *buf, EC_KEY *ec_key)
 
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(ec_group)) == NID_X9_62_prime_field) {
 		if (!EC_GROUP_get_curve_GFp(ec_group, p, x, y, bn_ctx)) {
-			SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
 			goto err;
 		}
 	} else {
 		if (!EC_GROUP_get_curve_GF2m(ec_group, p, x, y, bn_ctx)) {
-			SM2err(SM2_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
 			goto err;
 		}
 	}

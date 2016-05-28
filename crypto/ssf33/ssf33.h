@@ -54,6 +54,7 @@
 
 #define SSF33_KEY_LENGTH		16
 #define SSF33_BLOCK_SIZE		16
+#define SSF33_IV_LENGTH			(SSF33_BLOCK_SIZE)
 
 #ifdef __cplusplus
 extern "C" {

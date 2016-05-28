@@ -250,7 +250,7 @@ CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *ma
 		break;
 
 	default:
-		CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, CPK_R_INVALID_PKEY_TYPE);
+		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS, CPK_R_INVALID_PKEY_TYPE);
 		goto err;
 	}
 	return param;
@@ -562,34 +562,24 @@ static int extract_dsa_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *para
 	unsigned char *pub_ptr;
 	
 	if (!pri || !pub || !ctx) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	
 	if (!(dsa = (DSA *)X509_ALGOR_get1_DSA(master->pkey_algor))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			CPK_R_BAD_DATA);
 		goto err;
 	}
 	pri_size = BN_num_bytes(dsa->q);
 	pub_size = BN_num_bytes(dsa->p);
 	
 	if ((num_factors = CPK_MAP_num_factors(master->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (M_ASN1_STRING_length(master->secret_factors) != pri_size * num_factors) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			CPK_R_BAD_DATA);
 		goto err;
 	}
 	
 	ASN1_STRING_free(param->public_factors);
 	if (!ASN1_STRING_set(param->public_factors, NULL, pub_size * num_factors)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	
@@ -600,24 +590,16 @@ static int extract_dsa_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *para
 	for (i = 0; i < num_factors; i++) {
 	
 		if (!BN_bin2bn(pri_ptr, pri_size, pri)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_BN_LIB);
 			goto err;
 		}
 		if (BN_is_zero(pri) || BN_cmp(pri, dsa->q) >= 0) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				CPK_R_BAD_DATA);
 			goto err;
 		}
 		
 		if (!BN_mod_exp(pub, dsa->g, pri, dsa->p, ctx)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_BN_LIB);
 			goto err;
 		}
 		if (!BN_bn2bin(pub, pub_ptr + pub_size - BN_num_bytes(pub))) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_BN_LIB);
 			goto err;
 		}
 		
@@ -646,35 +628,23 @@ static DSA *extract_dsa_priv_key(CPK_MASTER_SECRET *master, const char *id)
 
 	
 	if (!bn || !ctx) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	if (!(dsa = X509_ALGOR_get1_DSA(master->pkey_algor))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_BAD_DATA);
 		goto err;
 	}
 	
 	if ((num_indexes = CPK_MAP_num_indexes(master->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}		
 	if (!CPK_MAP_str2index(master->map_algor, id, index)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (!dsa->priv_key) {
 		if (!(dsa->priv_key = BN_new())) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				ERR_R_MALLOC_FAILURE);
 			goto err;
 		}
 	}
@@ -684,30 +654,21 @@ static DSA *extract_dsa_priv_key(CPK_MASTER_SECRET *master, const char *id)
 	for (i = 0; i < num_indexes; i++) {
 		p = M_ASN1_STRING_data(master->secret_factors) + bn_size * index[i];
 		if (!BN_bin2bn(p, bn_size, bn)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				ERR_R_BN_LIB);
 			goto err;
 		}
 		if (BN_is_zero(bn) || BN_cmp(bn, dsa->q) >= 0) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				CPK_R_BAD_DATA);
 			goto err;
 		}
 		if (!BN_mod_add(dsa->priv_key, dsa->priv_key, bn, dsa->q, ctx)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				ERR_R_X509_LIB);
 			goto err;
 		}
 	}
 	
 	if (!(dsa->pub_key))
 		if (!(dsa->pub_key = BN_new())) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				ERR_R_MALLOC_FAILURE);
 			goto err;
 		}
 	if (!BN_mod_exp(dsa->pub_key, dsa->g, dsa->priv_key, dsa->p, ctx)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 		goto err;
 	}
 	e = 0;
@@ -735,35 +696,23 @@ static DSA *extract_dsa_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 
 	
 	if (!bn || !ctx) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	if (!(dsa = X509_ALGOR_get1_DSA(param->pkey_algor))) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_BAD_DATA);
 		goto err;
 	}
 	
 	if ((num_indexes = CPK_MAP_num_indexes(param->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}		
 	if (!CPK_MAP_str2index(param->map_algor, id, index)) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (!dsa->pub_key) {
 		if (!(dsa->pub_key = BN_new())) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				ERR_R_MALLOC_FAILURE);
 			goto err;
 		}
 	}
@@ -773,18 +722,12 @@ static DSA *extract_dsa_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 	for (i = 0; i < num_indexes; i++) {
 		p = M_ASN1_STRING_data(param->public_factors) + bn_size * index[i];
 		if (!BN_bin2bn(p, bn_size, bn)) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				ERR_R_BN_LIB);
 			goto err;
 		}
 		if (BN_is_zero(bn) || BN_cmp(bn, dsa->p) >= 0) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				CPK_R_BAD_DATA);
 			goto err;
 		}
 		if (!BN_mod_add(dsa->pub_key, dsa->pub_key, bn, dsa->p, ctx)) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				ERR_R_X509_LIB);
 			goto err;
 		}
 	}
@@ -860,35 +803,26 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 	unsigned char *pt_ptr;
 	
 	if (!bn || !order || !ctx) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(master->pkey_algor))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS, CPK_R_BAD_DATA);
 		goto err;
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
 	if (!(EC_GROUP_get_order(ec_group, order, ctx))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS, ERR_R_EC_LIB);
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
 	pt_size = bn_size + 1;
 	
 	if ((num_factors = CPK_MAP_num_factors(master->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (M_ASN1_STRING_length(master->secret_factors) != bn_size * num_factors) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS, CPK_R_BAD_DATA);
 		goto err;
 	}
 	if (!ASN1_STRING_set(param->public_factors, NULL, pt_size * num_factors)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	
@@ -897,30 +831,21 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 	memset(pt_ptr, 0, M_ASN1_STRING_length(param->public_factors));
 	
 	if (!(pt = EC_POINT_new(ec_group))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS, ERR_R_X509_LIB);
 		goto err;			
 	}
 	for (i = 0; i < num_factors; i++) {
 		if (!BN_bin2bn(bn_ptr, bn_size, bn)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_BN_LIB);
 			goto err;
 		}
 		if (BN_is_zero(bn) || BN_cmp(bn, order) >= 0) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				CPK_R_BAD_DATA);
 			goto err;
 		}
 		if (!EC_POINT_mul(ec_group, pt, bn, NULL, NULL, ctx)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_EC_LIB);
 			goto err;
 		}
 		
 		if (!EC_POINT_point2oct(ec_group, pt, 
 			POINT_CONVERSION_COMPRESSED, pt_ptr, pt_size, ctx)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_EC_LIB);
 			goto err;
 		}
 		bn_ptr += bn_size;
@@ -954,41 +879,29 @@ static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 
 	
 	if (!priv_key || !bn || !order || !ctx) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 	
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(master->pkey_algor))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
 	if (!(pub_key = EC_POINT_new(ec_group))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
 
 	if ((num_indexes = CPK_MAP_num_indexes(master->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}		
 	if (!CPK_MAP_str2index(master->map_algor, id, index)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	
 	BN_zero(priv_key);
 	if (!(EC_GROUP_get_order(EC_KEY_get0_group(ec_key), order, ctx))) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY, ERR_R_EC_LIB);
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
@@ -999,33 +912,23 @@ static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 			bn_size * index[i];
 		
 		if (!BN_bin2bn(p, bn_size, bn)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 			goto err;
 		}
 		if (BN_is_zero(bn) || BN_cmp(bn, order) >= 0) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				CPK_R_BAD_DATA);
 			goto err;
 		}		
 		if (!BN_mod_add(priv_key, priv_key, bn, order, ctx)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 			goto err;
 		}
 	}
 	if (!EC_KEY_set_private_key(ec_key, priv_key)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			ERR_R_EC_LIB);
 		goto err;
 	}
 
 	if (!EC_POINT_mul(ec_group, pub_key, priv_key, NULL, NULL, ctx)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			ERR_R_EC_LIB);
 		goto err;
 	}
 	if (!EC_KEY_set_public_key(ec_key, pub_key)) {
-		CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-			ERR_R_EC_LIB);
 		goto err;
 	}
 	e = 0;
@@ -1058,55 +961,39 @@ static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 	int i, bn_size, pt_size, num_indexes, num_factors;
 	
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(param->pkey_algor))) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			ERR_R_CPK_LIB);
 		goto err;		
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
 	
 	if (!(pub_key = EC_POINT_new(ec_group))) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY, ERR_R_EC_LIB);
 		goto err;
 	}
 	if (!(pt = EC_POINT_new(ec_group))) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY, ERR_R_EC_LIB);
 		goto err;
 	}
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY, ERR_R_EC_LIB);
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
 	pt_size = bn_size + 1;
 	if ((num_factors = CPK_MAP_num_factors(param->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (M_ASN1_STRING_length(param->public_factors) != pt_size * num_factors) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_BAD_DATA);
 		goto err;
 	}
 
 	if ((num_indexes = CPK_MAP_num_indexes(param->map_algor)) <= 0) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}		
 	if (!CPK_MAP_str2index(param->map_algor, id, index)) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			CPK_R_INVALID_MAP_ALGOR);
 		goto err;
 	}
 
 	if (!EC_POINT_set_to_infinity(ec_group, pub_key)) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY, ERR_R_EC_LIB);
 		goto err;
 	}
 	for (i = 0; i < num_indexes; i++) {
@@ -1115,20 +1002,14 @@ static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 			pt_size * index[i];		
 
 		if (!EC_POINT_oct2point(ec_group, pt, p, pt_size, ctx)) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				CPK_R_BAD_DATA);
 			goto err;
 		}
 		if (!EC_POINT_add(ec_group, pub_key, pub_key, pt, ctx)) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				ERR_R_EC_LIB);
 			goto err;
 		}
 	}
 
 	if (!EC_KEY_set_public_key(ec_key, pub_key)) {
-		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-			ERR_R_EC_LIB);
 		goto err;
 	}
 	e = 0;

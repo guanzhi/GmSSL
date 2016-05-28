@@ -23,8 +23,6 @@
 #define IPAD	0x36
 #define OPAD	0x5C
 
-
-
 void hmac_sm3_init(hmac_sm3_ctx_t *ctx, const unsigned char *key, size_t key_len)
 {
 	int i;

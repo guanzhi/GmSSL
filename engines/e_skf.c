@@ -62,12 +62,13 @@
 #include <openssl/sm3.h>
 #include <openssl/sms4.h>
 #include <openssl/sm9.h>
-#include "skf/skf.h"
+#include <openssl/skf.h>
+#include <openssl/skf_ex.h>
 #include "e_skf_err.h"
 
-static DEVHANDLE skf_dev_handle = NULL;
-static HAPPLICATION skf_app_handle = NULL;
-static HCONTAINER skf_container_handle = NULL;
+static DEVHANDLE hDev = NULL;
+static HAPPLICATION hApp = NULL;
+static HCONTAINER hContainer = NULL;
 
 static int authkey_set = 0;
 static unsigned char authkey[16];
@@ -103,6 +104,7 @@ static const ENGINE_CMD_DEFN skf_cmd_defns[] = {
 	{SKF_CMD_OPEN_APP,
 	 "OPEN_APP",
 	 "Open application with specified name",
+	 ENGINE_CMD_FLAG_STRING},
 	{SKF_CMD_VERIFY_PIN,
 	 "VERIFY_PIN",
 	 "Specifies user's PIN of the application to open",
@@ -111,14 +113,14 @@ static const ENGINE_CMD_DEFN skf_cmd_defns[] = {
 	 "OPEN_CONTAINER",
 	 "Open container wtith specified name",
 	 ENGINE_CMD_FLAG_STRING},
-	{0, NULL, NULL, 0}
+	{0, NULL, NULL, 0},
 };
-	
 
 
 int set_authkey(const char *authkey_hex)
 {
-	// convert the 
+	ESKFerr(ESKF_F_SET_AUTHKEY, ESKF_R_NOT_IMPLEMENTED);
+	return 0;
 }
 
 int set_userpin(const char *pin)
@@ -127,12 +129,17 @@ int set_userpin(const char *pin)
 		return 0;
 	}
 	strcpy(userpin, pin);
+
+	ESKFerr(ESKF_F_SET_USERPIN, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
 int open_dev(const char *devname)
 {
-	if ((rv = SKF_ConnectDev(dev, &hDev)) != SAR_OK) {
+	ULONG rv;
+	DEVINFO devInfo;
+
+	if ((rv = SKF_ConnectDev(devname, &hDev)) != SAR_OK) {
 		goto end;
 	}
 
@@ -152,6 +159,8 @@ int open_dev(const char *devname)
 		goto end;
 	}
 
+
+	ESKFerr(ESKF_F_OPEN_DEV, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
@@ -163,6 +172,8 @@ int open_app(const char *appname)
 	if ((rv = SKF_VerifyPIN(hApp, USER_TYPE, pin, &retryCount)) != SAR_OK) {
 		goto end;
 	}
+
+	ESKFerr(ESKF_F_OPEN_APP, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
@@ -177,6 +188,8 @@ int open_container(const char *containername)
 	if (containerType != CONTAINER_TYPE_ECC) {
 		goto end;
 	}
+
+	ESKFerr(ESKF_F_OPEN_CONTAINER, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
@@ -196,6 +209,8 @@ static int skf_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)())
 	default:
 		break;
 	}
+
+	ESKFerr(ESKF_F_SKF_ENGINE_CTRL, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
@@ -235,22 +250,28 @@ static EVP_PKEY *skf_load_pubkey(ENGINE *e, const char *key_id,
 	if (!(ret = EVP_PKEY_new())) {
 		goto end;
 	}
-	EVP_PKEY_assign_SM2(ret, ec_key);	
+	//EVP_PKEY_assign_SM2(ret, ec_key);
 
 end:
 	EC_KEY_free(ec_key);
 	BN_free(x);
 	BN_free(y)
-	return ret;	
+
+	ESKFerr(ESKF_F_SKF_LOAD_PUBKEY, ESKF_R_NOT_IMPLEMENTED);
+	return ret;
 }
 
 static int skf_init(ENGINE *e)
 {
+
+	ESKFerr(ESKF_F_SKF_INIT, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
 static int skf_finish(ENGINE *e)
-{	
+{
+
+	ESKFerr(ESKF_F_SKF_FINISH, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
@@ -264,7 +285,7 @@ static int skf_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	case NID_ssf33_ecb:
 		ulAlgID = SGD_SSF33_ECB;
 		break;
-	case NID_ssf33_cbc:	
+	case NID_ssf33_cbc:
 		ulAlgID = SGD_SSF33_CBC;
 		break;
 	case NID_ssf33_cfb128:
@@ -307,10 +328,11 @@ static int skf_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 
 	if ((rv = SKF_SetSymmKey(skf_dev_handle, (BYTE *)key, ulAlgID,
 		&(dat->hKey))) != SAR_OK) {
-		SKFerr(SKF_F_SKF_INIT_KEY, 0);
 		return 0;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_INIT_KEY, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -367,6 +389,8 @@ static int skf_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
 	}
 
+
+	ESKFerr(ESKF_F_SKF_CIPHER, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -472,7 +496,9 @@ static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, i
 		return 0;
 	}
 
-	return 1;	
+
+	ESKFerr(ESKF_F_SKF_CIPHERS, ESKF_R_NOT_IMPLEMENTED);
+	return 1;
 }
 
 
@@ -481,10 +507,11 @@ int skf_rand_bytes(unsigned char *buf, int num)
 	ULONG rv;
 
 	if ((rv = SKF_GenRandom(hDev, buf, (ULONG)num)) != SAR_OK) {
-		SKFerr(SKF_F_SKF_RAND_BYTES, skf_err2openssl(rv));
 		return 0;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_RAND_BYTES, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -505,10 +532,11 @@ static int skf_sm3_init(EVP_MD_CTX *ctx)
 	HANDLE hHash;
 
 	if ((rv = SKF_DigestInit(hDev, SGD_SM3, NULL, NULL, 0, &hHash)) != SAR_OK) {
-		SKFerr(SKF_F_SM3_INIT, skf_err2openssl(rv));
 		return 0;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_SM3_INIT, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -519,10 +547,11 @@ static int skf_sm3_update(EVP_MD_CTX *ctx, const void *data, size_t count)
 	ULONG ulDataLen = (ULONG)count;
 
 	if ((rv = SKF_DigestUpdate((HANDLE)ctx->md_data, pbData, ulDataLen)) != SAR_OK) {
-		SKFerr(SKF_F_SKF_SM3_UPDATE, skf_err2openssl(rv));
 		return 0;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_SM3_UPDATE, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -533,15 +562,15 @@ static int skf_sm3_final(EVP_MD_CTX *ctx, unsigned char *md)
 	ULONG ulHashLen = SM3_DIGEST_LENGTH;
 
 	if ((rv = SKF_DigestFinal(hHash, pHashData, &ulHashLen)) != SAR_OK) {
-		SKFerr(SKF_F_SKF_SM3_FINAL, skf_err2openssl(rv));
 		return 0;
 	}
 
 	if ((rv = SKF_CloseHandle(hHash)) != SAR_OK) {
-		SKFerr(SKF_F_SKF_SM3_FINAL, skf_err2openssl(rv));
 		return 0;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_SM3_FINAL, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -580,6 +609,8 @@ static int skf_digests(ENGINE *e, const EVP_MD **digest, const int **nids, int n
 		return 0;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_DIGESTS, ESKF_R_NOT_IMPLEMENTED);
 	return 1;
 }
 
@@ -599,6 +630,8 @@ static int skf_rsa_sign(int type, const unsigned char *m, unsigned int mlen,
 		goto end;
 	}
 
+
+	ESKFerr(ESKF_F_SKF_RSA_SIGN, ESKF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
@@ -649,6 +682,8 @@ end:
 		ECDSA_SIG_free(ret);
 		ret = NULL;
 	}
+
+	ESKFerr(ESKF_F_SKF_SM2_DO_SIGN, ESKF_R_NOT_IMPLEMENTED);
 	return ret;
 }
 
@@ -674,6 +709,7 @@ static ENGINE *engine_skf(void)
 		ENGINE_free(ret);
 		return NULL;
 	}
+
 
 	return ret;
 }

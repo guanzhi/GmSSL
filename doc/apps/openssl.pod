@@ -3,16 +3,16 @@
 
 =head1 NAME
 
-openssl - OpenSSL command line tool
+gmssl - GmSSL command line tool
 
 =head1 SYNOPSIS
 
-B<openssl>
+B<gmssl>
 I<command>
 [ I<command_opts> ]
 [ I<command_args> ]
 
-B<openssl> [ B<list-standard-commands> | B<list-message-digest-commands> | B<list-cipher-commands> | B<list-cipher-algorithms> | B<list-message-digest-algorithms> | B<list-public-key-algorithms>]
+B<gmssl> [ B<list-standard-commands> | B<list-message-digest-commands> | B<list-cipher-commands> | B<list-cipher-algorithms> | B<list-message-digest-algorithms> | B<list-public-key-algorithms>]
 
 B<openssl> B<no->I<XXX> [ I<arbitrary options> ]
 
@@ -20,10 +20,11 @@ B<openssl> B<no->I<XXX> [ I<arbitrary options> ]
 
 OpenSSL is a cryptography toolkit implementing the Secure Sockets Layer (SSL
 v2/v3) and Transport Layer Security (TLS v1) network protocols and related
-cryptography standards required by them.
+cryptography standards required by them. GmSSL is a fork of OpenSSL with
+Chinese cryptography algorithms and standards.
 
-The B<openssl> program is a command line tool for using the various
-cryptography functions of OpenSSL's B<crypto> library from the shell. 
+The B<gmssl> program is a command line tool for using the various
+cryptography functions of GmSSL's B<crypto> library from the shell. 
 It can be used for 
 
  o  Creation and management of private keys, public keys and parameters
@@ -37,14 +38,14 @@ It can be used for
 
 =head1 COMMAND SUMMARY
 
-The B<openssl> program provides a rich variety of commands (I<command> in the
+The B<gmssl> program provides a rich variety of commands (I<command> in the
 SYNOPSIS above), each of which often has a wealth of options and arguments
 (I<command_opts> and I<command_args> in the SYNOPSIS).
 
 The pseudo-commands B<list-standard-commands>, B<list-message-digest-commands>,
 and B<list-cipher-commands> output a list (one entry per line) of the names
 of all standard commands, message digest commands, or cipher commands,
-respectively, that are available in the present B<openssl> utility.
+respectively, that are available in the present B<gmssl> utility.
 
 The pseudo-commands B<list-cipher-algorithms> and
 B<list-message-digest-algorithms> list all cipher and message digest names, one entry per line. Aliases are listed as:
@@ -61,7 +62,7 @@ and prints I<XXX>.  In both cases, the output goes to B<stdout> and
 nothing is printed to B<stderr>.  Additional command line arguments
 are always ignored.  Since for each cipher there is a command of the
 same name, this provides an easy way for shell scripts to test for the
-availability of ciphers in the B<openssl> program.  (B<no->I<XXX> is
+availability of ciphers in the B<gmssl> program.  (B<no->I<XXX> is
 not able to detect pseudo-commands such as B<quit>,
 B<list->I<...>B<-commands>, or B<no->I<XXX> itself.)
 

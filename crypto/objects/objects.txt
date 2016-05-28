@@ -1444,6 +1444,8 @@ sm-scheme 505		: SM2Sign-with-SHA224	: sm2sign-with-sha224
 sm-scheme 506		: SM2Sign-with-SHA384	: sm2sign-with-sha384
 sm-scheme 507		: SM2Sign-with-RMD160	: sm2sign-with-rmd160
 
+sm-scheme 301 101	: wapip192v1
+
 # GmSSL ZUC OID
 sm-scheme 800		: ZUC			: zuc
 
