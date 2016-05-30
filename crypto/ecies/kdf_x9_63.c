@@ -123,7 +123,7 @@ static void *x963_sha224kdf(const void *in, size_t inlen,
 static void *x963_sha256kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha256(), in, inlen, out, *outlen);
+	return x963_kdf(EVP_sha256(), in, inlen, out, outlen);
 }
 
 static void *x963_sha384kdf(const void *in, size_t inlen,
@@ -154,7 +154,7 @@ KDF_FUNC KDF_get_x9_63(const EVP_MD *md)
 		return x963_rmd160kdf;
 	else if (md == EVP_sha1())
 		return x963_sha1kdf;
-	else if (md == EVP_sha224())	
+	else if (md == EVP_sha224())
 		return x963_sha224kdf;
 	else if (md == EVP_sha256())
 		return x963_sha256kdf;
@@ -167,4 +167,3 @@ KDF_FUNC KDF_get_x9_63(const EVP_MD *md)
 
 	return NULL;
 }
-
