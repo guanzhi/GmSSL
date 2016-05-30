@@ -75,16 +75,29 @@ int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 	size_t size;
 
 	if (pkey->type == EVP_PKEY_RSA) {
-		ret = RSA_public_encrypt(inlen, in, out, pkey->pkey.rsa,
-			RSA_PKCS1_PADDING);
+		if ((ret = RSA_public_encrypt(inlen, in, out, pkey->pkey.rsa,
+			RSA_PKCS1_PADDING)) < 0) {
+			EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD,
+				EVP_R_RSA_PUBLIC_ENCRYPT_FAILED);
+			return 0;
+		}
 	} else {
 		if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))) {
+			EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
 			return 0;
 		}
-		if (1 != EVP_PKEY_encrypt_init(ctx)) {
+		if (!EVP_PKEY_encrypt_init(ctx)) {
+			EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
 			return 0;
 		}
-		if (1 != EVP_PKEY_encrypt(ctx, out, &size, in, inlen)) {
+		if (!EVP_PKEY_CTX_set_ec_enc_type(ctx, NID_sm_scheme)) {
+			EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
+			goto end;
+		}
+		/* FIXME: this old API lost input buffer length */
+		size = inlen + 256;
+		if (!EVP_PKEY_encrypt(ctx, out, &size, in, inlen)) {
+			EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
 			goto end;
 		}
 		ret = (int)size;

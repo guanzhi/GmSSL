@@ -1,38 +1,43 @@
 #
-# OpenSSL/crypto/ffx/Makefile
+# OpenSSL/crypto/paillier/Makefile
 #
 
-DIR=	ffx
-TOP=	../..
-CC=	cc
-INCLUDES=
+DIR=    paillier
+TOP=    ../..
+CC=     cc
+CPP=    $(CC) -E
+INCLUDES=-I.. -I$(TOP) -I../../include
 CFLAG=-g
-MAKEFILE=	Makefile
-AR=		ar r
+MAKEFILE=       Makefile
+AR=             ar r
+
+SM3_ASM_OBJ=
 
 CFLAGS= $(INCLUDES) $(CFLAG)
+ASFLAGS= $(INCLUDES) $(ASFLAG)
+AFLAGS= $(ASFLAGS)
 
 GENERAL=Makefile
-TEST=ffxtest.c
+TEST=pailliertest.c
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=ffx.c ffx_err.c
-LIBOBJ=ffx.o ffx_err.o
+LIBSRC=pai_lib.c pai_err.c
+LIBOBJ=pai_lib.o pai_err.o
 
 SRC= $(LIBSRC)
 
-EXHEADER= ffx.h
-HEADER=	../../include/openssl/modes.h $(EXHEADER)
+EXHEADER= paillier.h
+HEADER= $(EXHEADER)
 
 ALL=    $(GENERAL) $(SRC) $(HEADER)
 
 top:
 	(cd ../..; $(MAKE) DIRS=crypto SDIRS=$(DIR) sub_all)
 
-all:	lib
+all:    lib
 
-lib:	$(LIBOBJ)
+lib:    $(LIBOBJ)
 	$(AR) $(LIB) $(LIBOBJ)
 	$(RANLIB) $(LIB) || echo Never mind.
 	@touch lib
@@ -70,7 +75,7 @@ dclean:
 	mv -f Makefile.new $(MAKEFILE)
 
 clean:
-	rm -f *.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+	rm -f *.s *.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 

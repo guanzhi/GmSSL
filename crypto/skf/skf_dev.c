@@ -133,3 +133,26 @@ ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
 	return SAR_OK;
 }
 
+int SKF_print_dev_info(DEVINFO *devInfo)
+{
+	printf("Device Info:\n");
+	printf(" Device Version   : %d.%d\n", devInfo->Version.major, devInfo->Version.minor);
+	printf(" Manufacturer     : %s\n", devInfo->Manufacturer);
+	printf(" Issuer           : %s\n", devInfo->Issuer);
+	printf(" Label            : %s\n", devInfo->Label);
+	printf(" Serial Number    : %s\n", devInfo->SerialNumber);
+	printf(" Hardware Version : %d.%d\n", devInfo->HWVersion.major, devInfo->HWVersion.minor);
+	printf(" Firmware Version : %d.%d\n", devInfo->FirmwareVersion.major, devInfo->FirmwareVersion.minor);
+	printf(" AlgSymCap        : 0x%08x\n", devInfo->AlgSymCap);
+	printf(" AlgAsymCap       : 0x%08x\n", devInfo->AlgAsymCap);
+	printf(" AlgHashCap       : 0x%08x\n", devInfo->AlgHashCap);
+	printf(" AlgHashCap       : 0x%08x\n", devInfo->DevAuthAlgId);
+	printf(" Total Space      : %u\n", devInfo->TotalSpace);
+	printf(" Free Space       : %u\n", devInfo->FreeSpace);
+	printf(" MaxECCBuffer     : %u\n", devInfo->MaxECCBufferSize);
+	printf(" MaxBuffer        : %u\n", devInfo->MaxBufferSize);
+
+	return 1;
+}
+
+

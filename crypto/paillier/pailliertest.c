@@ -51,53 +51,8 @@
 
 #include <openssl/paillier.h>
 
-PAILLIER *PAILLIER_new(void)
+int main(int argc, char **argv)
 {
-	PAILLIERerr(PAILLIER_F_PAILLIER_NEW, PAILLIER_R_NOT_IMPLEMENTED);
-	return NULL;
+	return -1;
 }
-
-void PAILLIER_free(PAILLIER *key)
-{
-}
-
-int PAILLIER_generate_key(PAILLIER *key, int bits)
-{
-	PAILLIERerr(PAILLIER_F_PAILLIER_GENERATE_KEY, PAILLIER_R_NOT_IMPLEMENTED);
-	return 0;
-}
-
-int PAILLIER_check_key(PAILLIER *key)
-{
-	PAILLIERerr(PAILLIER_F_PAILLIER_CHECK_KEY, PAILLIER_R_NOT_IMPLEMENTED);
-	return 0;
-}
-
-int PAILLIER_encrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *pub_key)
-{
-	PAILLIERerr(PAILLIER_F_PAILLIER_ENCRYPT, PAILLIER_R_NOT_IMPLEMENTED);
-	return 0;
-}
-
-int PAILLIER_decrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *pri_key)
-{
-	PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, PAILLIER_R_NOT_IMPLEMENTED);
-	return 0;
-}
-
-int PAILLIER_ciphertext_add(BIGNUM *r, const BIGNUM *a,
-	const BIGNUM *b, PAILLIER *pub_key)
-{
-	PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_ADD, PAILLIER_R_NOT_IMPLEMENTED);
-	return 0;
-}
-
-int PAILLIER_ciphertext_scalar_mul(BIGNUM *r, unsigned int k,
-	const BIGNUM *a, PAILLIER *pub_key)
-{
-	PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_SCALAR_MUL, PAILLIER_R_NOT_IMPLEMENTED);
-	return 0;
-}
-
-
 

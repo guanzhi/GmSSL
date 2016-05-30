@@ -42,6 +42,8 @@ L CPK		crypto/cpk/cpk.h		crypto/cpk/cpk_err.c
 L CBCMAC	crypto/cbcmac/cbcmac.h		crypto/cbcmac/cbcmac_err.c
 L OTP		crypto/otp/otp.h		crypto/otp/otp_err.c
 L SM9		crypto/sm9/sm9.h		crypto/sm9/sm9_err.c
+L PAILLIER	crypto/paillier/paillier.h	crypto/paillier/pai_err.c
+L FFX		crypto/ffx/ffx.h		crypto/ffx/ffx_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE

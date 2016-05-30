@@ -69,6 +69,7 @@ static void ERR_ESKF_error(int function, int reason, char *file, int line);
 /* Error codes for the ESKF functions. */
 
 /* Function codes. */
+# define ESKF_F_DEV_AUTH                                  119
 # define ESKF_F_OPEN_APP                                  100
 # define ESKF_F_OPEN_CONTAINER                            101
 # define ESKF_F_OPEN_DEV                                  102
@@ -88,9 +89,39 @@ static void ERR_ESKF_error(int function, int reason, char *file, int line);
 # define ESKF_F_SKF_SM3_FINAL                             116
 # define ESKF_F_SKF_SM3_INIT                              117
 # define ESKF_F_SKF_SM3_UPDATE                            118
+# define ESKF_F_VERIFY_PIN                                120
 
 /* Reason codes. */
+# define ESKF_R_APP_ALREADY_OPENED                        101
+# define ESKF_R_APP_NOT_OPENED                            102
+# define ESKF_R_CONTAINER_ALREADY_OPENED                  103
+# define ESKF_R_CONTAINER_NOT_OPENED                      104
+# define ESKF_R_DEV_ALREADY_AUTHENTICATED                 105
+# define ESKF_R_DEV_ALREADY_CONNECTED                     106
+# define ESKF_R_DEV_IS_NOT_CONNECTED                      107
+# define ESKF_R_DEV_NOT_AUTHENCATED                       108
+# define ESKF_R_DEV_NOT_AUTHENTICATED                     109
+# define ESKF_R_DEV_NOT_CONNECTED                         110
+# define ESKF_R_GEN_RANDOM_FAILED                         111
+# define ESKF_R_INVALID_CONTAINER_TYPE                    112
+# define ESKF_R_INVALID_CTRL_CMD                          113
 # define ESKF_R_NOT_IMPLEMENTED                           100
+# define ESKF_R_PIN_NOT_VERIFIED                          114
+# define ESKF_R_SKF_CLOSE_HANDLE_FAILED                   124
+# define ESKF_R_SKF_CONNECT_DEV_FAILED                    115
+# define ESKF_R_SKF_DEV_AUTH_FAILED                       116
+# define ESKF_R_SKF_DIGEST_FINAL_FAILED                   125
+# define ESKF_R_SKF_DIGEST_INIT_FAILED                    126
+# define ESKF_R_SKF_DIGEST_UPDATE_FAILED                  127
+# define ESKF_R_SKF_DIS_CONNNECT_DEV_FAILED               128
+# define ESKF_R_SKF_EXPORT_PUBLIC_KEY_FAILED              117
+# define ESKF_R_SKF_GEN_RANDOM_FAILED                     118
+# define ESKF_R_SKF_GET_CONTAINER_TYPE_FAILED             119
+# define ESKF_R_SKF_GET_DEV_INFO_FAILED                   120
+# define ESKF_R_SKF_OPEN_APPLICATION_FAILED               121
+# define ESKF_R_SKF_OPEN_CONTAINER_FAILED                 122
+# define ESKF_R_SKF_SET_SYMMKEY_FAILED                    129
+# define ESKF_R_SKF_VERIFY_PIN_FAILED                     123
 
 #ifdef  __cplusplus
 }

@@ -59,7 +59,8 @@
 #include <openssl/ecdsa.h>
 #include <openssl/rand.h>
 #include <openssl/kdf.h>
-#include "sm2.h"
+#include <openssl/sm2.h>
+#include "../o_str.h"
 
 int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *group,
 	const SM2_ENC_PARAMS *params, size_t mlen)
@@ -70,15 +71,15 @@ int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *group,
 
 
 	if (!(ec_key = EC_KEY_new())) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE, ERR_R_EC_LIB);
 		goto end;
 	}
 	if (!EC_KEY_set_group(ec_key, group)) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE, ERR_R_EC_LIB);
 		goto end;
 	}
 	if (!EC_KEY_generate_key(ec_key)) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_SIZE, ERR_R_EC_LIB);
 		goto end;
 	}
 
@@ -97,7 +98,22 @@ end:
 
 SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new(const EC_GROUP *group)
 {
-	return NULL;
+	SM2_CIPHERTEXT_VALUE *cv;
+
+	if (!(cv = OPENSSL_malloc(sizeof(*cv)))) {
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_NEW, SM2_R_MALLOC_FAILED);
+		return NULL;
+	}
+
+	bzero(cv, sizeof(*cv));
+
+	if (!(cv->ephem_point = EC_POINT_new(group))) {
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_NEW, SM2_R_POINT_NEW_FAILED);
+		OPENSSL_free(cv);
+		return NULL;
+	}
+
+	return cv;
 }
 
 void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv)
@@ -116,14 +132,19 @@ int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
 	BN_CTX *bn_ctx = BN_CTX_new();
 	size_t ptlen, cvlen;
 
+	OPENSSL_assert(cv);
+	OPENSSL_assert(ec_group);
+	OPENSSL_assert(buf);
+	OPENSSL_assert(cv->ephem_point);
+
 	if (!bn_ctx) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, ERR_R_BN_LIB);
 		return 0;
 	}
 
 	if (!(ptlen = EC_POINT_point2oct(ec_group, cv->ephem_point,
 		params->point_form, NULL, 0, bn_ctx))) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_POINT2OCT_FAILED);
 		goto end;
 	}
 	cvlen = ptlen + cv->ciphertext_size + cv->mactag_size;
@@ -134,13 +155,13 @@ int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
 		goto end;
 
 	} else if (*buflen < cvlen) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_BUFFER_TOO_SMALL);
 		goto end;
 	}
 
 	if (!(ptlen = EC_POINT_point2oct(ec_group, cv->ephem_point,
 		params->point_form, buf, *buflen, bn_ctx))) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_ENCODE, SM2_R_POINT2OCT_FAILED);
 		goto end;
 	}
 	buf += ptlen;
@@ -168,21 +189,22 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(
 	int fixlen;
 
 	if (!bn_ctx) {
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, ERR_R_BN_LIB);
 		return NULL;
 	}
 
 	if (!(fixlen = SM2_CIPHERTEXT_VALUE_size(ec_group, params, 0))) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_GET_CIPHERTEXT_SIZE_FAILED);
 		goto end;
 	}
 
 	if (buflen <= fixlen) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_BUFFER_TOO_SMALL);
 		goto end;
 	}
 
 	if (!(ret = OPENSSL_malloc(sizeof(SM2_CIPHERTEXT_VALUE)))) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_MALLOC_FAILED);
 		goto end;
 	}
 
@@ -190,13 +212,13 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(
 	ret->ciphertext_size = buflen - fixlen;
 	ret->ciphertext = OPENSSL_malloc(ret->ciphertext_size);
 	if (!ret->ephem_point || !ret->ciphertext) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_INNOR_ERROR);
 		goto end;
 	}
 
 	ptlen = fixlen - SM2_ENC_PARAMS_mactag_size(params);
 	if (!EC_POINT_oct2point(ec_group, ret->ephem_point, buf, ptlen, bn_ctx)) {
-		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_DECODE, SM2_R_OCT2POINT_FAILED);
 		goto end;
 	}
 
@@ -274,18 +296,20 @@ int SM2_encrypt(const SM2_ENC_PARAMS *params,
 		return 1;
 
 	} else if (*outlen < (size_t)len) {
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
 	if (!(cv = SM2_do_encrypt(params, in, inlen, ec_key))) {
-		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_ENCRYPT_FAILED);
 		goto end;
 	}
+
 	if (!SM2_CIPHERTEXT_VALUE_encode(cv, ec_group, params, out, outlen)) {
-		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_CIPHERTEXT_ENCODE_FAILED);
 		goto end;
 	}
-	
+
 	ret = 1;
 end:
 	if (cv) SM2_CIPHERTEXT_VALUE_free(cv);
@@ -315,15 +339,17 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 	int i;
 
 	if (!ec_group || !pub_key) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_INVALID_EC_KEY);
 		goto end;
 	}
 	if (!kdf) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_GET_KDF_FAILED);
 		goto end;
 	}
 
 	/* init ciphertext_value */
 	if (!(cv = OPENSSL_malloc(sizeof(SM2_CIPHERTEXT_VALUE)))) {
-		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_ERROR);
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_MALLOC_FAILED);
 		goto end;
 	}
 	bzero(cv, sizeof(SM2_CIPHERTEXT_VALUE));
@@ -364,13 +390,13 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 			BN_rand_range(k, n);
 		} while (BN_is_zero(k));
 
-	
+
 		/* A2: C1 = [k]G = (x1, y1) */
 		if (!EC_POINT_mul(ec_group, cv->ephem_point, k, NULL, NULL, bn_ctx)) {
 			SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_ERROR);
 			goto end;
 		}
-		
+
 		/* A3: check [h]P_B != O */
 		if (!EC_POINT_mul(ec_group, point, NULL, pub_key, h, bn_ctx)) {
 			SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_ERROR);
@@ -392,7 +418,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 			goto end;
 		}
 		OPENSSL_assert(len == nbytes * 2 + 1);
-		
+
 		/* A5: t = KDF(x2 || y2, klen) */
 		kdf(buf + 1, len - 1, cv->ciphertext, &cv->ciphertext_size);
 
@@ -644,11 +670,11 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 
 	ret = 1;
 end:
-	if (point) EC_POINT_free(point);
-	if (n) BN_free(n);	
-	if (h) BN_free(h);
-	if (bn_ctx) BN_CTX_free(bn_ctx);
-	if (md_ctx) EVP_MD_CTX_destroy(md_ctx);
+	EC_POINT_free(point);
+	BN_free(n);
+	BN_free(h);
+	BN_CTX_free(bn_ctx);
+	EVP_MD_CTX_destroy(md_ctx);
 
 	return ret;
 }
@@ -656,13 +682,15 @@ end:
 int SM2_ENC_PARAMS_init_with_recommended(SM2_ENC_PARAMS *params)
 {
 	if (!params) {
+		SM2err(SM2_F_SM2_ENC_PARAMS_INIT_WITH_RECOMMENDED,
+			SM2_R_NULL_ARGUMENT);
 		return 0;
 	}
 	params->kdf_md = EVP_sm3();
 	params->mac_md = EVP_sm3();
 	params->mactag_size = -1;
 	params->point_form = POINT_CONVERSION_UNCOMPRESSED;
-	return 1; 
+	return 1;
 }
 
 int SM2_encrypt_with_recommended(unsigned char *out, size_t *outlen,
@@ -678,7 +706,7 @@ int SM2_decrypt_with_recommended(unsigned char *out, size_t *outlen,
 {
 	SM2_ENC_PARAMS params;
 	SM2_ENC_PARAMS_init_with_recommended(&params);
-	return SM2_decrypt(&params, out, outlen, in, inlen, ec_key);	
+	return SM2_decrypt(&params, out, outlen, in, inlen, ec_key);
 }
 
 int SM2_encrypt_elgamal(unsigned char *out, size_t *outlen,

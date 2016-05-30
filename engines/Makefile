@@ -38,6 +38,7 @@ LIBSRC=	e_4758cca.c \
 	e_sureware.c \
 	e_ubsec.c \
 	e_padlock.c \
+	e_skf.c \
 	e_capi.c
 LIBOBJ= e_4758cca.o \
 	e_aep.o \
@@ -49,6 +50,7 @@ LIBOBJ= e_4758cca.o \
 	e_sureware.o \
 	e_ubsec.o \
 	e_padlock.o \
+	e_skf.o \
 	e_capi.o
 
 SRC= $(LIBSRC)
@@ -63,6 +65,7 @@ HEADER=	e_4758cca_err.c e_4758cca_err.h \
 	e_nuron_err.c e_nuron_err.h \
 	e_sureware_err.c e_sureware_err.h \
 	e_ubsec_err.c e_ubsec_err.h \
+	e_skf_err.c e_skf_err.h \
 	e_capi_err.c e_capi_err.h
 
 ALL=    $(GENERAL) $(SRC) $(HEADER)

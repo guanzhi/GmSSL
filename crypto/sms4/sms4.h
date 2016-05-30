@@ -98,7 +98,7 @@ int sms4_unwrap_key(sms4_key_t *key, const unsigned char *iv,
 
 typedef struct {
 	sms4_key_t k1;
-	sms4_key_t k2;	
+	sms4_key_t k2;
 } sms4_ede_key_t;
 
 void sms4_ede_set_encrypt_key(sms4_ede_key_t *key, const unsigned char *user_key);

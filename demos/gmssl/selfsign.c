@@ -1,37 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <openssl/pem.h>
 #include <openssl/conf.h>
 #include <openssl/x509v3.h>
-
-int mkit(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int days);
-
-int main()
-{
-	BIO *bio_err;
-	X509 *x509 = NULL;
-	EVP_PKEY *pkey = NULL;
-
-	CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
-
-	bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
-
-	mkit(&x509, &pkey, 512, 0, 365);
-
-	EC_KEY_print_fp(stdout, pkey->pkey.ec, 0);
-	X509_print_fp(stdout, x509);
-
-	PEM_write_PrivateKey(stdout, pkey, NULL, NULL, 0, NULL, NULL);
-	PEM_write_X509(stdout, x509);
-
-	X509_free(x509);
-	EVP_PKEY_free(pkey);
-
-	CRYPTO_mem_leaks(bio_err);
-	BIO_free(bio_err);
-	return (0);
-}
 
 int mkit(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int days)
 {
@@ -51,8 +22,8 @@ int mkit(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int days)
 		pk = *pkeyp;
 
 	if ((x509p == NULL) || (*x509p == NULL)) {
-	if ((x = X509_new()) == NULL)
-		goto err;
+		if ((x = X509_new()) == NULL)
+			goto err;
 	} else {
 		x = *x509p;
 	}
@@ -115,6 +86,33 @@ int mkit(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int days)
 	*x509p = x;
 	*pkeyp = pk;
 	return (1);
-	err:
+err:
+	return (0);
+}
+
+int main()
+{
+	BIO *bio_err;
+	X509 *x509 = NULL;
+	EVP_PKEY *pkey = NULL;
+
+	CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
+
+	bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
+
+
+	mkit(&x509, &pkey, 512, 0, 365);
+
+	EC_KEY_print_fp(stdout, pkey->pkey.ec, 0);
+	X509_print_fp(stdout, x509);
+
+	PEM_write_PrivateKey(stdout, pkey, NULL, NULL, 0, NULL, NULL);
+	PEM_write_X509(stdout, x509);
+
+	X509_free(x509);
+	EVP_PKEY_free(pkey);
+
+	CRYPTO_mem_leaks(bio_err);
+	BIO_free(bio_err);
 	return (0);
 }

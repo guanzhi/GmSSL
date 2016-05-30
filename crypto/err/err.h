@@ -206,6 +206,8 @@ typedef struct err_state_st {
 # define ERR_LIB_CBCMAC          54
 # define ERR_LIB_OTP             55
 # define ERR_LIB_SM9             56
+# define ERR_LIB_PAILLIER        57
+# define ERR_LIB_FFX             58
 # endif
 
 # define ERR_LIB_USER            128
@@ -252,6 +254,8 @@ typedef struct err_state_st {
 # define CBCMACerr(f,r) ERR_PUT_error(ERR_LIB_CBCMAC,(f),(r),__FILE__,__LINE__);
 # define OTPerr(f,r) ERR_PUT_error(ERR_LIB_OTP,(f),(r),__FILE__,__LINE__);
 # define SM9err(f,r) ERR_PUT_error(ERR_LIB_SM9,(f),(r),__FILE__,__LINE__);
+# define PAILLIERerr(f,r) ERR_PUT_error(ERR_LIB_PAILLIER,(f),(r),__FILE__,__LINE__);
+# define FFXerr(f,r) ERR_PUT_error(ERR_LIB_FFX,(f),(r),__FILE__,__LINE__);
 # endif
 
 /*
@@ -318,6 +322,8 @@ typedef struct err_state_st {
 # define ERR_R_CBCMAC_LIB ERR_LIB_CBCMAC/* 54 */
 # define ERR_R_OTP_LIB   ERR_LIB_CBCMAC/* 55 */
 # define ERR_R_SM9_LIB   ERR_LIB_SM9/* 56 */
+# define ERR_R_PAILLIER_LIB ERR_LIB_PAILLIER/* 57 */
+# define ERR_R_FFX_LIB   ERR_LIB_FFX/* 58 */
 # endif
 
 # define ERR_R_NESTED_ASN1_ERROR                 58

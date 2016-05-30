@@ -1299,6 +1299,10 @@ void ERR_load_EC_strings(void);
 # define EC_R_D2I_ECPKPARAMETERS_FAILURE                  117
 # define EC_R_DECODE_ERROR                                142
 # define EC_R_DISCRIMINANT_IS_ZERO                        118
+# define EC_R_ECIES_DECRYPT_FAILED                        152
+# define EC_R_ECIES_DECRYPT_WITH_RECOMMENDED_FAILED       153
+# define EC_R_ECIES_ENCRYPT_FAILED                        154
+# define EC_R_ECIES_ENCRYPT_WITH_RECOMMENDED_FAILED       155
 # define EC_R_EC_GROUP_NEW_BY_NAME_FAILURE                119
 # define EC_R_FIELD_TOO_LARGE                             143
 # define EC_R_GF2M_NOT_SUPPORTED                          147
@@ -1312,6 +1316,7 @@ void ERR_load_EC_strings(void);
 # define EC_R_INVALID_DIGEST                              151
 # define EC_R_INVALID_DIGEST_TYPE                         138
 # define EC_R_INVALID_ENCODING                            102
+# define EC_R_INVALID_ENC_TYPE                            156
 # define EC_R_INVALID_FIELD                               103
 # define EC_R_INVALID_FORM                                104
 # define EC_R_INVALID_GROUP_ORDER                         122
@@ -1335,6 +1340,10 @@ void ERR_load_EC_strings(void);
 # define EC_R_POINT_IS_NOT_ON_CURVE                       107
 # define EC_R_SHARED_INFO_ERROR                           150
 # define EC_R_SLOT_FULL                                   108
+# define EC_R_SM2_DECRYPT_FAILED                          157
+# define EC_R_SM2_DECRYPT_WITH_RECOMMENDED_FAILED         158
+# define EC_R_SM2_ENCRYPT_FAILED                          159
+# define EC_R_SM2_ENCRYPT_WITH_RECOMMENDED_FAILED         160
 # define EC_R_UNDEFINED_GENERATOR                         113
 # define EC_R_UNDEFINED_ORDER                             128
 # define EC_R_UNKNOWN_GROUP                               129

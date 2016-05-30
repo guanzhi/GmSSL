@@ -62,12 +62,12 @@
  * [including the GNU Public Licence.]
  */
 
-#define NUM_NID 1045
-#define NUM_SN 1021
-#define NUM_LN 1021
-#define NUM_OBJ 959
+#define NUM_NID 1049
+#define NUM_SN 1025
+#define NUM_LN 1025
+#define NUM_OBJ 963
 
-static const unsigned char lvalues[6762]={
+static const unsigned char lvalues[6794]={
 0x2A,0x86,0x48,0x86,0xF7,0x0D,               /* [  0] OBJ_rsadsi */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,          /* [  6] OBJ_pkcs */
 0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,     /* [ 13] OBJ_md2 */
@@ -1021,6 +1021,10 @@ static const unsigned char lvalues[6762]={
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x7A,     /* [6736] OBJ_sm2sign_with_sha384 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x83,0x7B,     /* [6744] OBJ_sm2sign_with_rmd160 */
 0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2D,0x65,/* [6752] OBJ_wapip192v1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x05,     /* [6761] OBJ_sm1_cfb1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x66,0x06,     /* [6769] OBJ_sm1_cfb8 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x05,     /* [6777] OBJ_ssf33_cfb1 */
+0x2A,0x81,0x1C,0xCF,0x55,0x01,0x67,0x06,     /* [6785] OBJ_ssf33_cfb8 */
 };
 
 static const ASN1_OBJECT nid_objs[NUM_NID]={
@@ -2697,6 +2701,10 @@ static const ASN1_OBJECT nid_objs[NUM_NID]={
 {"SM2Sign-with-RMD160","sm2sign-with-rmd160",NID_sm2sign_with_rmd160,
 	8,&(lvalues[6744]),0},
 {"wapip192v1","wapip192v1",NID_wapip192v1,9,&(lvalues[6752]),0},
+{"SM1-CFB1","sm1-cfb1",NID_sm1_cfb1,8,&(lvalues[6761]),0},
+{"SM1-CFB8","sm1-cfb8",NID_sm1_cfb8,8,&(lvalues[6769]),0},
+{"SSF33-CFB1","ssf33-cfb1",NID_ssf33_cfb1,8,&(lvalues[6777]),0},
+{"SSF33-CFB8","ssf33-cfb8",NID_ssf33_cfb8,8,&(lvalues[6785]),0},
 };
 
 static const unsigned int sn_objs[NUM_SN]={
@@ -2887,6 +2895,8 @@ static const unsigned int sn_objs[NUM_SN]={
 674,	/* "SHA512" */
 1017,	/* "SM1-CBC" */
 1019,	/* "SM1-CFB" */
+1045,	/* "SM1-CFB1" */
+1046,	/* "SM1-CFB8" */
 1016,	/* "SM1-ECB" */
 1018,	/* "SM1-OFB" */
 1043,	/* "SM2Sign-with-RMD160" */
@@ -2918,6 +2928,8 @@ static const unsigned int sn_objs[NUM_SN]={
 100,	/* "SN" */
 1021,	/* "SSF33-CBC" */
 1023,	/* "SSF33-CFB" */
+1047,	/* "SSF33-CFB1" */
+1048,	/* "SSF33-CFB8" */
 1020,	/* "SSF33-ECB" */
 1022,	/* "SSF33-OFB" */
 16,	/* "ST" */
@@ -4658,6 +4670,8 @@ static const unsigned int ln_objs[NUM_LN]={
 1038,	/* "sm-scheme" */
 1017,	/* "sm1-cbc" */
 1019,	/* "sm1-cfb" */
+1045,	/* "sm1-cfb1" */
+1046,	/* "sm1-cfb8" */
 1016,	/* "sm1-ecb" */
 1018,	/* "sm1-ofb" */
 972,	/* "sm2encrypt" */
@@ -4695,6 +4709,8 @@ static const unsigned int ln_objs[NUM_LN]={
 1029,	/* "sms4-xts" */
 1021,	/* "ssf33-cbc" */
 1023,	/* "ssf33-cfb" */
+1047,	/* "ssf33-cfb1" */
+1048,	/* "ssf33-cfb8" */
 1020,	/* "ssf33-ecb" */
 1022,	/* "ssf33-ofb" */
 16,	/* "stateOrProvinceName" */
@@ -5191,10 +5207,14 @@ static const unsigned int obj_objs[NUM_OBJ]={
 1017,	/* OBJ_sm1_cbc                      1 2 156 10197 1 102 2 */
 1018,	/* OBJ_sm1_ofb128                   1 2 156 10197 1 102 3 */
 1019,	/* OBJ_sm1_cfb128                   1 2 156 10197 1 102 4 */
+1045,	/* OBJ_sm1_cfb1                     1 2 156 10197 1 102 5 */
+1046,	/* OBJ_sm1_cfb8                     1 2 156 10197 1 102 6 */
 1020,	/* OBJ_ssf33_ecb                    1 2 156 10197 1 103 1 */
 1021,	/* OBJ_ssf33_cbc                    1 2 156 10197 1 103 2 */
 1022,	/* OBJ_ssf33_ofb128                 1 2 156 10197 1 103 3 */
 1023,	/* OBJ_ssf33_cfb128                 1 2 156 10197 1 103 4 */
+1047,	/* OBJ_ssf33_cfb1                   1 2 156 10197 1 103 5 */
+1048,	/* OBJ_ssf33_cfb8                   1 2 156 10197 1 103 6 */
 977,	/* OBJ_sms4_ecb                     1 2 156 10197 1 104 1 */
 978,	/* OBJ_sms4_cbc                     1 2 156 10197 1 104 2 */
 981,	/* OBJ_sms4_ofb128                  1 2 156 10197 1 104 3 */

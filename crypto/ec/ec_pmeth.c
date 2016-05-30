@@ -195,7 +195,7 @@ static int pkey_ec_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 		dctx->sign_type != NID_sm_scheme) {
 		return 0;
 	}
-		
+
 	if (dctx->md)
 		type = EVP_MD_type(dctx->md);
 	else if (dctx->sign_type == NID_secg_scheme)
@@ -324,7 +324,7 @@ static int pkey_ec_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 
 
 	if (dctx->sign_type == NID_sm_scheme) {
-	
+
 		zidlen = sizeof(zid);
 		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
 			goto end;
@@ -369,55 +369,87 @@ static int pkey_ec_verifyctx(EVP_PKEY_CTX *ctx,
 static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {
-	int ret = 0;
 	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 
 	switch (dctx->enc_type) {
 	case NID_sm_scheme:
 		if (dctx->enc_param.sm2) {
-			ret = SM2_encrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key);
+			if (!SM2_encrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_SM2_ENCRYPT_FAILED);
+				return 0;
+			}
 		} else {
-			ret = SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
+			if (!SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_SM2_ENCRYPT_WITH_RECOMMENDED_FAILED);
+				return 0;
+			}
 		}
 		break;
+
 	case NID_secg_scheme:
 		if (dctx->enc_param.ecies) {
-			ret = ECIES_encrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key);
+			if (!ECIES_encrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_ECIES_ENCRYPT_FAILED);
+				return 0;
+			}
 		} else {
-			ret = ECIES_encrypt_with_recommended(out, outlen, in, inlen, ec_key);
+			if (!ECIES_encrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_ECIES_ENCRYPT_WITH_RECOMMENDED_FAILED);
+				return 0;
+			}
 		}
 		break;
+
+	default:
+		ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_INVALID_ENC_TYPE);
+		return 0;
 	}
 
-	return ret;
+	return 1;
 }
 
 static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {
-	int ret;
 	EC_PKEY_CTX *dctx = ctx->data;
 	EC_KEY *ec_key = ctx->pkey->pkey.ec;
 
 	switch (dctx->enc_type) {
 	case  NID_sm_scheme:
 		if (dctx->enc_param.sm2) {
-			ret = SM2_decrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key);
+			if (!SM2_decrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_SM2_DECRYPT_FAILED);
+				return 0;
+			}
 		} else {
-			ret = SM2_decrypt_with_recommended(out, outlen, in, inlen, ec_key);
+			if (!SM2_decrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_SM2_DECRYPT_WITH_RECOMMENDED_FAILED);
+				return 0;
+			}
 		}
 		break;
+
 	case NID_secg_scheme:
-		if (dctx->enc_param.ecies) {	
-			ret = ECIES_decrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key);
+		if (dctx->enc_param.ecies) {
+			if (!ECIES_decrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_ECIES_DECRYPT_FAILED);
+				return 0;
+			}
 		} else {
-			ret = ECIES_decrypt_with_recommended(out, outlen, in, inlen, ec_key);
+			if (!ECIES_decrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+				ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_ECIES_DECRYPT_WITH_RECOMMENDED_FAILED);
+				return 0;
+			}
 		}
 		break;
+
+	default:
+		ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_INVALID_ENC_TYPE);
+		return 0;
 	}
 
-	return ret;
+	return 1;
 }
 
 #ifndef OPENSSL_NO_ECDH
@@ -680,7 +712,6 @@ static int pkey_ec_ctrl_str(EVP_PKEY_CTX *ctx,
             ECerr(EC_F_PKEY_EC_CTRL_STR, EC_R_INVALID_CURVE);
             return 0;
         }
-	printf("curve = %s\n", value);
         return EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
     } else if (!strcmp(type, "ec_param_enc")) {
         int param_enc;

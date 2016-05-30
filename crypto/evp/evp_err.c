@@ -1,6 +1,6 @@
 /* crypto/evp/evp_err.c */
 /* ====================================================================
- * Copyright (c) 1999-2013 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 1999-2016 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -92,8 +92,10 @@ static ERR_STRING_DATA EVP_str_functs[] = {
     {ERR_FUNC(EVP_F_EVP_CIPHER_CTX_SET_KEY_LENGTH),
      "EVP_CIPHER_CTX_set_key_length"},
     {ERR_FUNC(EVP_F_EVP_DECRYPTFINAL_EX), "EVP_DecryptFinal_ex"},
+    {ERR_FUNC(EVP_F_EVP_DECRYPT_EX), "EVP_Decrypt_ex"},
     {ERR_FUNC(EVP_F_EVP_DIGESTINIT_EX), "EVP_DigestInit_ex"},
     {ERR_FUNC(EVP_F_EVP_ENCRYPTFINAL_EX), "EVP_EncryptFinal_ex"},
+    {ERR_FUNC(EVP_F_EVP_ENCRYPT_EX), "EVP_Encrypt_ex"},
     {ERR_FUNC(EVP_F_EVP_MD_CTX_COPY_EX), "EVP_MD_CTX_copy_ex"},
     {ERR_FUNC(EVP_F_EVP_MD_SIZE), "EVP_MD_size"},
     {ERR_FUNC(EVP_F_EVP_OPENINIT), "EVP_OpenInit"},
@@ -152,10 +154,6 @@ static ERR_STRING_DATA EVP_str_functs[] = {
     {ERR_FUNC(EVP_F_PKEY_SET_TYPE), "PKEY_SET_TYPE"},
     {ERR_FUNC(EVP_F_RC2_MAGIC_TO_METH), "RC2_MAGIC_TO_METH"},
     {ERR_FUNC(EVP_F_RC5_CTRL), "RC5_CTRL"},
-#ifndef OPENSSL_NO_GMSSL
-    {ERR_FUNC(EVP_F_EVP_ENCRYPT_EX), "EVP_Encrypt_ex"},
-    {ERR_FUNC(EVP_F_EVP_DECRYPT_EX), "EVP_Decrypt_ex"},
-#endif
     {0, NULL}
 };
 
@@ -169,8 +167,7 @@ static ERR_STRING_DATA EVP_str_reasons[] = {
     {ERR_REASON(EVP_R_BN_DECODE_ERROR), "bn decode error"},
     {ERR_REASON(EVP_R_BN_PUBKEY_ERROR), "bn pubkey error"},
     {ERR_REASON(EVP_R_BUFFER_TOO_SMALL), "buffer too small"},
-    {ERR_REASON(EVP_R_CAMELLIA_KEY_SETUP_FAILED),
-     "camellia key setup failed"},
+    {ERR_REASON(EVP_R_CAMELLIA_KEY_SETUP_FAILED), "camellia key setup failed"},
     {ERR_REASON(EVP_R_CIPHER_PARAMETER_ERROR), "cipher parameter error"},
     {ERR_REASON(EVP_R_COMMAND_NOT_SUPPORTED), "command not supported"},
     {ERR_REASON(EVP_R_CTRL_NOT_IMPLEMENTED), "ctrl not implemented"},
@@ -216,11 +213,11 @@ static ERR_STRING_DATA EVP_str_reasons[] = {
     {ERR_REASON(EVP_R_OPERATION_NOT_SUPPORTED_FOR_THIS_KEYTYPE),
      "operation not supported for this keytype"},
     {ERR_REASON(EVP_R_OPERATON_NOT_INITIALIZED), "operaton not initialized"},
-    {ERR_REASON(EVP_R_PKCS8_UNKNOWN_BROKEN_TYPE),
-     "pkcs8 unknown broken type"},
+    {ERR_REASON(EVP_R_PKCS8_UNKNOWN_BROKEN_TYPE), "pkcs8 unknown broken type"},
     {ERR_REASON(EVP_R_PRIVATE_KEY_DECODE_ERROR), "private key decode error"},
     {ERR_REASON(EVP_R_PRIVATE_KEY_ENCODE_ERROR), "private key encode error"},
     {ERR_REASON(EVP_R_PUBLIC_KEY_NOT_RSA), "public key not rsa"},
+    {ERR_REASON(EVP_R_RSA_PUBLIC_ENCRYPT_FAILED), "rsa public encrypt failed"},
     {ERR_REASON(EVP_R_TOO_LARGE), "too large"},
     {ERR_REASON(EVP_R_UNKNOWN_CIPHER), "unknown cipher"},
     {ERR_REASON(EVP_R_UNKNOWN_DIGEST), "unknown digest"},

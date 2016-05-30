@@ -50,7 +50,7 @@
 /*
  * Format-Preserve Encryption
  * implementation of NIST 800-38G FF1 schemes
- * 
+ *
  * FPE is used to encrypt strings such as credit card numbers and phone numbers
  * the ciphertext is still in valid format, for example:
  *	 FPE_encrypt("13810631266") == "98723498792"
@@ -65,12 +65,12 @@
 #include <inttypes.h>
 #include <openssl/err.h>
 #include <openssl/aes.h>
-#include "ffx.h"
+#include <openssl/ffx.h>
 
 #define FFX_MIN_DIGITS	   		 6
 #define FFX_MAX_DIGITS	  		18
 #define FFX_MIN_TWEAKLEN	  	 4
-#define FFX_MAX_TWEAKLEN	  	11 
+#define FFX_MAX_TWEAKLEN	  	11
 #define FFX_NUM_ROUNDS	  		10
 
 
@@ -93,11 +93,11 @@ int FFX_init(FFX_CTX *ctx, int flag, const unsigned char *key, int keybits)
 	ctx->flag = flag;
 
 	if (AES_set_encrypt_key(key, keybits, &ctx->key) < 0) {
-		fprintf(stderr, "error: %s: %s: %d\n", __FUNCTION__, __FILE__, __LINE__);
-		return -1;
+		FFXerr(FFX_F_FFX_INIT, FFX_R_INIT_KEY_FAILED);
+		return 0;
 	}
 
-	return 0;
+	return 1;
 }
 
 void FFX_cleanup(FFX_CTX *ctx)
@@ -122,15 +122,15 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 	assert(in);
 	assert(tweak);
 
-	if (inlen > strlen(in) || 
+	if (inlen > strlen(in) ||
 		inlen < FFX_MIN_DIGITS || inlen > FFX_MAX_DIGITS) {
-		fprintf(stderr, "%s: invalid digits length\n", __FUNCTION__);
-		return -1;
+		FFXerr(FFX_F_FFX_ENCRYPT, FFX_R_INVALID_DIGITS_LENGTH);
+		return 0;
 	}
 	for (i = 0; i < inlen; i++) {
 		if (!isdigit(in[i])) {
-			fprintf(stderr, "%s: invalid digits format\n", __FUNCTION__);
-			return -1;
+			FFXerr(FFX_F_FFX_ENCRYPT, FFX_R_INVALID_DIGITS_FORMAT);
+			return 0;
 		}
 	}
 	llen = inlen / 2;
@@ -138,8 +138,8 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 
 
 	if (tweaklen < FFX_MIN_TWEAKLEN || tweaklen > FFX_MAX_TWEAKLEN) {
-		fprintf(stderr, "%s: invalid tweak length\n", __FUNCTION__);
-		return -1;
+		FFXerr(FFX_F_FFX_ENCRYPT, FFX_R_INVALID_TWEAK_LENGTH);
+		return 0;
 	}
 
 	memcpy(lbuf, in, llen);
@@ -155,9 +155,9 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 
 	memset(qblock, 0, sizeof(qblock));
 	memcpy(qblock, tweak, tweaklen);
-	
+
 	for (i = 0; i < FFX_NUM_ROUNDS; i += 2) {
-	
+
 		unsigned char rblock[16];
 		int j;
 
@@ -169,7 +169,7 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 		AES_encrypt(rblock, rblock, &ctx->key);
 		yval = *((uint64_t *)rblock) % modulo[llen];
 		lval = (lval + yval) % modulo[llen];
-		
+
 		qblock[11] = (i + 1) & 0xff;
 		memcpy(qblock + 12, &lval, sizeof(lval));
 		for (j = 0; j < sizeof(rblock); j++) {
@@ -186,7 +186,7 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 	sprintf(lbuf, "%d", lval);
 	strcpy(out + inlen - strlen(lbuf), lbuf);
 
-	return 0;
+	return 1;
 }
 
 int FFX_decrypt(FFX_CTX *ctx, const char *in, size_t inlen,
@@ -208,21 +208,21 @@ int FFX_decrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 
 	if (inlen > strlen(in) ||
 		inlen < FFX_MIN_DIGITS || inlen > FFX_MAX_DIGITS) {
-		fprintf(stderr, "%s: invalid digits length\n", __FUNCTION__);
-		return -1;
+		FFXerr(FFX_F_FFX_DECRYPT, FFX_R_INVALID_DIGITS_LENGTH);
+		return 0;
 	}
 	for (i = 0; i < inlen; i++) {
 		if (!isdigit(in[i])) {
-			fprintf(stderr, "%s: invalid digits format\n", __FUNCTION__);
-			return -1;
+			FFXerr(FFX_F_FFX_DECRYPT, FFX_R_INVALID_DIGITS_FORMAT);
+			return 0;
 		}
 	}
 	rlen = inlen / 2;
 	llen = inlen - rlen;
 
 	if (tweaklen < FFX_MIN_TWEAKLEN || tweaklen > FFX_MAX_TWEAKLEN) {
-		fprintf(stderr, "%s: invalid tweak length\n", __FUNCTION__);
-		return -1;
+		FFXerr(FFX_F_FFX_DECRYPT, FFX_R_INVALID_TWEAK_LENGTH);
+		return 0;
 	}
 
 	memcpy(lbuf, in, llen);
@@ -238,9 +238,9 @@ int FFX_decrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 
 	memset(qblock, 0, sizeof(qblock));
 	memcpy(qblock, tweak, tweaklen);
-	
+
 	for (i = FFX_NUM_ROUNDS - 1; i > 0; i -= 2) {
-	
+
 		unsigned char rblock[16];
 		int j;
 
@@ -252,7 +252,7 @@ int FFX_decrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 		AES_encrypt(rblock, rblock, &ctx->key);
 		yval = *((uint64_t *)rblock) % modulo[llen];
 		lval = (lval >= yval) ? (lval - yval) : lval + modulo[llen] - yval;
-		
+
 		qblock[11] = (i - 1) & 0xff;
 		memcpy(qblock + 12, &lval, sizeof(lval));
 		for (j = 0; j < sizeof(rblock); j++) {
@@ -272,40 +272,6 @@ int FFX_decrypt(FFX_CTX *ctx, const char *in, size_t inlen,
 	return 0;
 }
 
-static int test()
-{
-	char buf[100];
-	char buf2[100];
-	unsigned char key[32] = {0};
-	unsigned char tweak[8] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38 };
-	FFX_CTX ctx;
-	int r;
-
-	ERR_load_crypto_strings();
-
-	if (FFX_init(&ctx, 0, key, sizeof(key) * 8) < 0) {
-		ERR_print_errors_fp(stderr);
-		fprintf(stderr, "%s: %d\n", __FILE__, __LINE__);
-		return -1;
-	}
-
-	char *in = "99999999999999999";
-	r = FFX_encrypt(&ctx, in, strlen(in), tweak, sizeof(tweak), buf);
-
-	if (r < 0) {
-		printf("failed\n");
-		return -1;
-	}
-
-	printf("%s\n", buf);
-	printf("\n");
-
-	r = FFX_decrypt(&ctx, buf, strlen(buf), tweak, sizeof(tweak), buf2);
-	printf("%s\n", buf2);
-
-	return 0;
-}
-
 static int luhn_table[10] = {0, 2, 4, 6, 8, 1, 3, 5, 7, 9};
 
 /*
@@ -320,7 +286,7 @@ int FFX_compute_luhn(const char *in, size_t inlen)
 	for (i = inlen - 1; i >= 0; i--) {
 		int a;
 		if (!isdigit(in[i])) {
-			fprintf(stderr, "%s: invalid digit string\n", __FUNCTION__);
+			FFXerr(FFX_F_FFX_COMPUTE_LUHN, FFX_R_INVALID_DIGIT_STRING);
 			return -2;
 		}
 		a = in[i] - '0';
@@ -332,16 +298,4 @@ int FFX_compute_luhn(const char *in, size_t inlen)
 	r = ((r * 9) % 10) + '0';
 	return r;
 }
-
-#if 0
-int luhn_test()
-{
-	char *digits = "7992739871";
-	int r = compute_luhn(digits, strlen(digits));
-	printf("%c", r);
-	return 0;
-}
-#endif
-
-
 

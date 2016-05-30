@@ -110,7 +110,7 @@ skf_errinfo skf_errstr[] = {
 	{ SAR_FILE_NOT_EXIST,		"File not exist" }
 };
 
-LPSTR DEVAPI SKF_GetErrorString(ULONG ulError)
+char *SKF_get_errstr(ULONG ulError)
 {
 	int i;
 	for (i = 0; i < sizeof(skf_errstr)/sizeof(skf_errstr[0]); i++) {
@@ -120,4 +120,6 @@ LPSTR DEVAPI SKF_GetErrorString(ULONG ulError)
 	}
 	return (LPSTR)"(undef)";
 }
+
+
 

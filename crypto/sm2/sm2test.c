@@ -764,7 +764,7 @@ int test_evp_pkey_sign(EVP_PKEY *pkey, int do_sm2, int verbose)
 	}
 
 	if (verbose) {
-		printf("test %s signing passed\n", OBJ_nid2sn(type));
+		printf("%s(%s) passed\n", __FUNCTION__, OBJ_nid2sn(type));
 	}
 
 	ret = 1;
@@ -842,7 +842,7 @@ int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 	}
 
 	if (verbose) {
-		printf("test %s encryption passed\n", OBJ_nid2sn(type));
+		printf("%s(%s) passed\n", __FUNCTION__, OBJ_nid2sn(type));
 	}
 
 	ret = 1;
@@ -889,7 +889,7 @@ int test_evp_pkey_encrypt_old(EVP_PKEY *pkey, int verbose)
 	}
 
 	if (verbose) {
-		printf("EVP_PKEY_encrypt_old() passed!\n");
+		printf("%s() passed!\n", __FUNCTION__);
 	}
 
 	ret = 1;
@@ -952,7 +952,7 @@ int test_evp_sign(EVP_PKEY *pkey, const EVP_MD *md, int verbose)
 	}
 
 	if (verbose) {
-		printf("EVP_SignInit/Update/Final() passed\n");
+		printf("%s() passed\n", __FUNCTION__);
 	}
 
 	ret = 1;
@@ -1023,7 +1023,7 @@ int test_evp_digestsign(EVP_PKEY *pkey, int do_sm2, const EVP_MD *md, int verbos
 	}
 
 	if (verbose) {
-		printf("EVP_DigestSignInit/Update/Final() passed\n");
+		printf("%s() passed\n", __FUNCTION__);
 	}
 
 	ret = 1;
@@ -1033,7 +1033,7 @@ end:
 }
 
 #define NUM_PKEYS	3
-#define MAX_PKEY_SIZE	256
+#define MAX_PKEY_SIZE	1024
 
 int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 {
@@ -1041,7 +1041,7 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 	EVP_PKEY *pkey[NUM_PKEYS] = {0};
 	EVP_CIPHER_CTX *cctx = NULL;
 	unsigned char iv[16];
-	unsigned char ek[NUM_PKEYS][MAX_PKEY_SIZE];
+	unsigned char *ek[NUM_PKEYS] = {0};
 	int ekl[NUM_PKEYS];
 	unsigned char msg1[] = "Hello ";
 	unsigned char msg2[] = "World!";
@@ -1052,8 +1052,12 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 
 
 	for (i = 0; i < NUM_PKEYS; i++) {
-		pkey[i] = genpkey(curve_id, out, verbose);
+		if (!(pkey[i] = genpkey(curve_id, out, verbose))) {
+			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+			goto end;
+		}
 		ekl[i] = MAX_PKEY_SIZE;
+		ek[i] = OPENSSL_malloc(ekl[i]);
 	}
 	RAND_bytes(iv, sizeof(iv));
 
@@ -1062,8 +1066,7 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 		goto end;
 	}
 
-	if (NUM_PKEYS != EVP_SealInit(cctx, cipher, ek, ekl, iv, pkey, NUM_PKEYS)) {
-		ERR_print_errors_fp(stderr);
+	if ((i = EVP_SealInit(cctx, cipher, ek, ekl, iv, pkey, NUM_PKEYS)) != NUM_PKEYS) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
@@ -1141,7 +1144,7 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 	}
 
 	if (verbose) {
-		BIO_printf(out, "EVP_SealInit/Update/Final() passed!\n");
+		BIO_printf(out, "%s() passed!\n", __FUNCTION__);
 	}
 
 	ret = 1;
@@ -1150,6 +1153,7 @@ end:
 	EVP_CIPHER_CTX_free(cctx);
 	for (i = 0; i < NUM_PKEYS; i++) {
 		EVP_PKEY_free(pkey[i]);
+		OPENSSL_free(ek[i]);
 	}
 	return ret;
 }
@@ -1250,7 +1254,7 @@ int main(int argc, char **argv)
 		goto err;
 	}
 
-	if (!test_sm2_evp(2)) {
+	if (!test_sm2_evp(1)) {
 		goto err;
 	}
 

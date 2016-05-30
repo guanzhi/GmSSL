@@ -4322,6 +4322,16 @@
 #define NID_sm1_cfb128          1019
 #define OBJ_sm1_cfb128          OBJ_sm_scheme,102L,4L
 
+#define SN_sm1_cfb1             "SM1-CFB1"
+#define LN_sm1_cfb1             "sm1-cfb1"
+#define NID_sm1_cfb1            1045
+#define OBJ_sm1_cfb1            OBJ_sm_scheme,102L,5L
+
+#define SN_sm1_cfb8             "SM1-CFB8"
+#define LN_sm1_cfb8             "sm1-cfb8"
+#define NID_sm1_cfb8            1046
+#define OBJ_sm1_cfb8            OBJ_sm_scheme,102L,6L
+
 #define SN_ssf33_ecb            "SSF33-ECB"
 #define LN_ssf33_ecb            "ssf33-ecb"
 #define NID_ssf33_ecb           1020
@@ -4341,6 +4351,16 @@
 #define LN_ssf33_cfb128         "ssf33-cfb"
 #define NID_ssf33_cfb128                1023
 #define OBJ_ssf33_cfb128                OBJ_sm_scheme,103L,4L
+
+#define SN_ssf33_cfb1           "SSF33-CFB1"
+#define LN_ssf33_cfb1           "ssf33-cfb1"
+#define NID_ssf33_cfb1          1047
+#define OBJ_ssf33_cfb1          OBJ_sm_scheme,103L,5L
+
+#define SN_ssf33_cfb8           "SSF33-CFB8"
+#define LN_ssf33_cfb8           "ssf33-cfb8"
+#define NID_ssf33_cfb8          1048
+#define OBJ_ssf33_cfb8          OBJ_sm_scheme,103L,6L
 
 #define SN_sms4_ecb             "SMS4-ECB"
 #define LN_sms4_ecb             "sms4-ecb"

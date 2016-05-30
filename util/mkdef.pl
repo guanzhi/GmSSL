@@ -83,8 +83,8 @@ my @known_platforms = ( "__FreeBSD__", "PERL5", "NeXT",
 my @known_ossl_platforms = ( "VMS", "WIN16", "WIN32", "WINNT", "OS2" );
 my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
 			 "CAST", "MD2", "MD4", "MD5", "SHA", "SHA0", "SHA1",
-			 "SHA256", "SHA512", "RIPEMD", "SM3", "SMS4",
-			 "MDC2", "WHIRLPOOL", "RSA", "DSA", "DH", "EC", "ECDH", "ECDSA", "EC2M", "ECIES",
+			 "SHA256", "SHA512", "RIPEMD",
+			 "MDC2", "WHIRLPOOL", "RSA", "DSA", "DH", "EC", "ECDH", "ECDSA", "EC2M",
 			 "HMAC", "AES", "CAMELLIA", "SEED", "GOST",
 			 # EC_NISTP_64_GCC_128
 			 "EC_NISTP_64_GCC_128",
@@ -146,7 +146,6 @@ my $no_rfc3779; my $no_psk; my $no_tlsext; my $no_cms; my $no_capieng;
 my $no_jpake; my $no_srp; my $no_ssl2; my $no_ec2m; my $no_nistp_gcc; 
 my $no_nextprotoneg; my $no_sctp; my $no_srtp; my $no_ssl_trace;
 my $no_unit_test; my $no_ssl3_method;
-my $no_sm3; my $no_sms4; my $no_zuc; my $no_ecies; my $no_cpk; my $no_sm2;
 
 my $fips;
 
@@ -249,12 +248,6 @@ foreach (@ARGV, split(/ /, $options))
 	elsif (/^no-sctp$/)	{ $no_sctp=1; }
 	elsif (/^no-srtp$/)	{ $no_srtp=1; }
 	elsif (/^no-unit-test$/){ $no_unit_test=1; }
-	elsif (/^no-sm2$/)	{ $no_sm2=1; }
-	elsif (/^no-sm3$/)	{ $no_sm3=1; }
-	elsif (/^no-sms4$/)	{ $no_sms4=1; }
-	elsif (/^no-zuc$/)	{ $no_zuc=1; }
-	elsif (/^no-ecies$/)	{ $no_ecies=1; }
-	elsif (/^no-cpk$/)	{ $no_cpk=1; }
 	}
 
 
@@ -360,14 +353,6 @@ $crypto.=" crypto/cms/cms.h";
 $crypto.=" crypto/jpake/jpake.h";
 $crypto.=" crypto/modes/modes.h";
 $crypto.=" crypto/srp/srp.h";
-
-$crypto.=" crypto/sm2/sm2.h"; # unless $no_sm2;
-$crypto.=" crypto/sm3/sm3.h"; # unless $no_sm3;
-$crypto.=" crypto/sms4/sms4.h"; # unless $no_sms4;
-$crypto.=" crypto/zuc/zuc.h"; # unless $no_zuc;
-$crypto.=" crypto/ecies/ecies.h";
-$crypto.=" crypto/ecies/kdf.h";
-$crypto.=" crypto/ecies/cpk.h";
 
 my $symhacks="crypto/symhacks.h";
 
@@ -988,9 +973,6 @@ sub do_defs
 			$a .= ",RSA" if($s =~ /PEM_Seal(Final|Init|Update)/);
 			$a .= ",RSA" if($s =~ /RSAPrivateKey/);
 			$a .= ",RSA" if($s =~ /SSLv23?_((client|server)_)?method/);
-			$a .= ",SM3" if($s =~ /EVP_sm3/);
-			$a .= ",SMS4" if($s =~ /EVP_sms4/);
-			$a .= ",ZUC" if($s =~ /EVP_zuc/);
 
 			$platform{$s} =
 			    &reduce_platforms((defined($platform{$s})?$platform{$s}.',':"").$p);
@@ -1242,12 +1224,6 @@ sub is_valid
 			if ($keyword eq "SRTP" && $no_srtp) { return 0; }
 			if ($keyword eq "UNIT_TEST" && $no_unit_test) { return 0; }
 			if ($keyword eq "DEPRECATED" && $no_deprecated) { return 0; }
-			if ($keyword eq "SM2" && $no_sm2) { return 0; }
-			if ($keyword eq "SM3" && $no_sm3) { return 0; }
-			if ($keyword eq "SMS4" && $no_sms4) { return 0; }
-			if ($keyword eq "ZUC" && $no_zuc) { return 0; }
-			if ($keyword eq "ECIES" && $no_ecies) { return 0; }
-			if ($keyword eq "CPK" && $no_cpk) { return 0; }
 
 			# Nothing recognise as true
 			return 1;

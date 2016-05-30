@@ -1422,8 +1422,10 @@ void ERR_load_EVP_strings(void);
 # define EVP_F_EVP_CIPHER_CTX_CTRL                        124
 # define EVP_F_EVP_CIPHER_CTX_SET_KEY_LENGTH              122
 # define EVP_F_EVP_DECRYPTFINAL_EX                        101
+# define EVP_F_EVP_DECRYPT_EX                             201
 # define EVP_F_EVP_DIGESTINIT_EX                          128
 # define EVP_F_EVP_ENCRYPTFINAL_EX                        127
+# define EVP_F_EVP_ENCRYPT_EX                             200
 # define EVP_F_EVP_MD_CTX_COPY_EX                         110
 # define EVP_F_EVP_MD_SIZE                                162
 # define EVP_F_EVP_OPENINIT                               102
@@ -1481,11 +1483,6 @@ void ERR_load_EVP_strings(void);
 # define EVP_F_RC2_MAGIC_TO_METH                          109
 # define EVP_F_RC5_CTRL                                   125
 
-# ifndef OPENSSL_NO_GMSSL
-#  define EVP_F_EVP_ENCRYPT_EX				  200
-#  define EVP_F_EVP_DECRYPT_EX				  201
-# endif
-
 /* Reason codes. */
 # define EVP_R_AES_IV_SETUP_FAILED                        162
 # define EVP_R_AES_KEY_SETUP_FAILED                       143
@@ -1541,6 +1538,7 @@ void ERR_load_EVP_strings(void);
 # define EVP_R_PRIVATE_KEY_DECODE_ERROR                   145
 # define EVP_R_PRIVATE_KEY_ENCODE_ERROR                   146
 # define EVP_R_PUBLIC_KEY_NOT_RSA                         106
+# define EVP_R_RSA_PUBLIC_ENCRYPT_FAILED                  171
 # define EVP_R_TOO_LARGE                                  164
 # define EVP_R_UNKNOWN_CIPHER                             160
 # define EVP_R_UNKNOWN_DIGEST                             161

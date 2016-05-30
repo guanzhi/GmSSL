@@ -116,6 +116,8 @@
 # include <openssl/cbcmac.h>
 # include <openssl/otp.h>
 # include <openssl/sm9.h>
+# include <openssl/paillier.h>
+# include <openssl/ffx.h>
 #endif
 
 void ERR_load_crypto_strings(void)
@@ -182,6 +184,8 @@ void ERR_load_crypto_strings(void)
     ERR_load_CBCMAC_strings();
     ERR_load_OTP_strings();
     ERR_load_SM9_strings();
+    ERR_load_PAILLIER_strings();
+    ERR_load_FFX_strings();
 # endif
 #endif
 }

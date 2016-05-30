@@ -70,6 +70,7 @@
 # define ERR_REASON(reason) ERR_PACK(0,0,reason)
 
 static ERR_STRING_DATA ESKF_str_functs[] = {
+    {ERR_FUNC(ESKF_F_DEV_AUTH), "DEV_AUTH"},
     {ERR_FUNC(ESKF_F_OPEN_APP), "OPEN_APP"},
     {ERR_FUNC(ESKF_F_OPEN_CONTAINER), "OPEN_CONTAINER"},
     {ERR_FUNC(ESKF_F_OPEN_DEV), "OPEN_DEV"},
@@ -89,11 +90,47 @@ static ERR_STRING_DATA ESKF_str_functs[] = {
     {ERR_FUNC(ESKF_F_SKF_SM3_FINAL), "SKF_SM3_FINAL"},
     {ERR_FUNC(ESKF_F_SKF_SM3_INIT), "SKF_SM3_INIT"},
     {ERR_FUNC(ESKF_F_SKF_SM3_UPDATE), "SKF_SM3_UPDATE"},
+    {ERR_FUNC(ESKF_F_VERIFY_PIN), "VERIFY_PIN"},
     {0, NULL}
 };
 
 static ERR_STRING_DATA ESKF_str_reasons[] = {
+    {ERR_REASON(ESKF_R_APP_ALREADY_OPENED), "app already opened"},
+    {ERR_REASON(ESKF_R_APP_NOT_OPENED), "app not opened"},
+    {ERR_REASON(ESKF_R_CONTAINER_ALREADY_OPENED), "container already opened"},
+    {ERR_REASON(ESKF_R_CONTAINER_NOT_OPENED), "container not opened"},
+    {ERR_REASON(ESKF_R_DEV_ALREADY_AUTHENTICATED),
+     "dev already authenticated"},
+    {ERR_REASON(ESKF_R_DEV_ALREADY_CONNECTED), "dev already connected"},
+    {ERR_REASON(ESKF_R_DEV_IS_NOT_CONNECTED), "dev is not connected"},
+    {ERR_REASON(ESKF_R_DEV_NOT_AUTHENCATED), "dev not authencated"},
+    {ERR_REASON(ESKF_R_DEV_NOT_AUTHENTICATED), "dev not authenticated"},
+    {ERR_REASON(ESKF_R_DEV_NOT_CONNECTED), "dev not connected"},
+    {ERR_REASON(ESKF_R_GEN_RANDOM_FAILED), "gen random failed"},
+    {ERR_REASON(ESKF_R_INVALID_CONTAINER_TYPE), "invalid container type"},
+    {ERR_REASON(ESKF_R_INVALID_CTRL_CMD), "invalid ctrl cmd"},
     {ERR_REASON(ESKF_R_NOT_IMPLEMENTED), "not implemented"},
+    {ERR_REASON(ESKF_R_PIN_NOT_VERIFIED), "pin not verified"},
+    {ERR_REASON(ESKF_R_SKF_CLOSE_HANDLE_FAILED), "skf close handle failed"},
+    {ERR_REASON(ESKF_R_SKF_CONNECT_DEV_FAILED), "skf connect dev failed"},
+    {ERR_REASON(ESKF_R_SKF_DEV_AUTH_FAILED), "skf dev auth failed"},
+    {ERR_REASON(ESKF_R_SKF_DIGEST_FINAL_FAILED), "skf digest final failed"},
+    {ERR_REASON(ESKF_R_SKF_DIGEST_INIT_FAILED), "skf digest init failed"},
+    {ERR_REASON(ESKF_R_SKF_DIGEST_UPDATE_FAILED), "skf digest update failed"},
+    {ERR_REASON(ESKF_R_SKF_DIS_CONNNECT_DEV_FAILED),
+     "skf dis connnect dev failed"},
+    {ERR_REASON(ESKF_R_SKF_EXPORT_PUBLIC_KEY_FAILED),
+     "skf export public key failed"},
+    {ERR_REASON(ESKF_R_SKF_GEN_RANDOM_FAILED), "skf gen random failed"},
+    {ERR_REASON(ESKF_R_SKF_GET_CONTAINER_TYPE_FAILED),
+     "skf get container type failed"},
+    {ERR_REASON(ESKF_R_SKF_GET_DEV_INFO_FAILED), "skf get dev info failed"},
+    {ERR_REASON(ESKF_R_SKF_OPEN_APPLICATION_FAILED),
+     "skf open application failed"},
+    {ERR_REASON(ESKF_R_SKF_OPEN_CONTAINER_FAILED),
+     "skf open container failed"},
+    {ERR_REASON(ESKF_R_SKF_SET_SYMMKEY_FAILED), "skf set symmkey failed"},
+    {ERR_REASON(ESKF_R_SKF_VERIFY_PIN_FAILED), "skf verify pin failed"},
     {0, NULL}
 };
 

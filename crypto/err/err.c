@@ -163,6 +163,8 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_CBCMAC, 0, 0), "CBCMAC routines"},
     {ERR_PACK(ERR_LIB_OTP, 0, 0), "OTP routines"},
     {ERR_PACK(ERR_LIB_SM9, 0, 0), "SM9 routines"},
+    {ERR_PACK(ERR_LIB_PAILLIER, 0, 0), "Paillier routines"},
+    {ERR_PACK(ERR_LIB_FFX, 0, 0), "FFX routines"},
 # endif
     {0, NULL},
 };
