@@ -61,7 +61,6 @@ ULONG DEVAPI SKF_MacInit(HANDLE hKey,
 	BLOCKCIPHERPARAM *pMacParam,
 	HANDLE *phMac)
 {
-	int ok = 0;
 	SKF_HANDLE *key;
 	SKF_HANDLE *hMac = NULL;
 	const EVP_CIPHER *cipher;
@@ -71,14 +70,14 @@ ULONG DEVAPI SKF_MacInit(HANDLE hKey,
 		return SAR_INVALIDPARAMERR;
 	}
 
-	OPENSSL_assert(!pMacParam);
+	//TODO: check pMacParam
 
 	if (key->magic != SKF_HANDLE_MAGIC) {
 		SKFerr(SKF_F_SKF_MACINIT, SKF_R_INVALID_HANDLE_MAGIC);
 		return SAR_INVALIDPARAMERR;
 	}
 
-	if (key->type <= SKF_KEY_HANDLE) {
+	if (key->type < SKF_KEY_HANDLE) {
 		SKFerr(SKF_F_SKF_MACINIT, SKF_R_INVALID_KEY_HANDLE);
 		return SAR_INVALIDPARAMERR;
 	}
@@ -142,17 +141,20 @@ ULONG DEVAPI SKF_MacFinal(HANDLE hMac,
 	ULONG *pulMacDataLen)
 {
 	CBCMAC_CTX *ctx;
+	size_t size;
 
 	if (!(ctx = SKF_HANDLE_get_cbcmac_ctx(hMac))) {
 		SKFerr(SKF_F_SKF_MACFINAL, SKF_R_INVALID_MAC_HANDLE);
 		return SAR_INVALIDPARAMERR;
 	}
 
-	if (!CBCMAC_Final(ctx, pbMacData, pulMacDataLen)) {
+	size = *pulMacDataLen;
+	if (!CBCMAC_Final(ctx, pbMacData, &size)) {
 		SKFerr(SKF_F_SKF_MACFINAL, ERR_R_CBCMAC_LIB);
 		return SAR_FAIL;
 	}
 
+	*pulMacDataLen = (ULONG)size;
 	return SAR_OK;
 }
 

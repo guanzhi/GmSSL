@@ -1699,7 +1699,7 @@ struct ssl_st {
 # include <openssl/dtls1.h>     /* Datagram TLS */
 # include <openssl/ssl23.h>
 # include <openssl/srtp.h>      /* Support for the use_srtp extension */
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # include <openssl/gmssl1.h>
 # endif
 
@@ -2392,7 +2392,7 @@ const SSL_METHOD *DTLS_method(void); /* DTLS 1.0 and 1.2 */
 const SSL_METHOD *DTLS_server_method(void); /* DTLS 1.0 and 1.2 */
 const SSL_METHOD *DTLS_client_method(void); /* DTLS 1.0 and 1.2 */
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 const SSL_METHOD *GMSSLv1_method(void);
 const SSL_METHOD *GMSSLv1_server_method(void);
 const SSL_METHOD *GMSSLv1_client_method(void);

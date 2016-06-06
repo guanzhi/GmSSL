@@ -59,6 +59,101 @@
 #define PADDING_TYPE_NO_PADDING		0
 #define PADDING_TYPE_PKCS5		1
 
+/*
+229 typedef struct Struct_BLOCKCIPHERPARAM {
+230         BYTE    IV[MAX_IV_LEN];
+231         ULONG   IVLen;
+232         ULONG   PaddingType;
+233         ULONG   FeedBitLen;
+234 } BLOCKCIPHERPARAM, *PBLOCKCIPHERPARAM;
+*/
+
+int SKF_nid_to_encparams(int nid, ULONG *algID, BLOCKCIPHERPARAM *params)
+{
+	ULONG ulAlgID = 0;
+
+	switch (nid) {
+	case NID_ssf33_ecb:
+		ulAlgID = SGD_SSF33_ECB;
+		break;
+	case NID_ssf33_cbc:
+		ulAlgID = SGD_SSF33_CBC;
+		break;
+	case NID_ssf33_cfb1:
+	case NID_ssf33_cfb8:
+	case NID_ssf33_cfb128:
+		ulAlgID = SGD_SSF33_CFB;
+		break;
+	case NID_ssf33_ofb128:
+		ulAlgID = SGD_SSF33_OFB;
+		break;
+	case NID_sm1_ecb:
+		ulAlgID = SGD_SM1_ECB;
+		break;
+	case NID_sm1_cbc:
+		ulAlgID = SGD_SM1_CBC;
+		break;
+	case NID_sm1_cfb1:
+	case NID_sm1_cfb8:
+	case NID_sm1_cfb128:
+		ulAlgID = SGD_SM1_CFB;
+		break;
+	case NID_sm1_ofb128:
+		ulAlgID = SGD_SM1_OFB;
+		break;
+	case NID_sms4_ecb:
+		ulAlgID = SGD_SM4_ECB;
+		break;
+	case NID_sms4_cbc:
+		ulAlgID = SGD_SM4_CBC;
+		break;
+	case NID_sms4_cfb1:
+	case NID_sms4_cfb8:
+	case NID_sms4_cfb128:
+		ulAlgID = SGD_SM4_CFB;
+		break;
+	case NID_sms4_ofb128:
+		ulAlgID = SGD_SM4_OFB;
+		break;
+	default:
+		return 0;
+	}
+
+	*algID = ulAlgID;
+
+	switch (nid) {
+	case NID_sm1_cfb1:
+	case NID_sms4_cfb1:
+	case NID_ssf33_cfb1:
+		params->FeedBitLen = 1;
+		break;
+	case NID_sm1_cfb8:
+	case NID_sms4_cfb8:
+	case NID_ssf33_cfb8:
+		params->FeedBitLen = 8;
+		break;
+	case NID_sm1_cfb128:
+	case NID_sms4_cfb128:
+	case NID_ssf33_cfb128:
+		params->FeedBitLen = 128;
+		break;
+	default:
+		params->FeedBitLen = 0;
+	}
+
+	switch (nid) {
+	case NID_sm1_cbc:
+	case NID_sms4_cbc:
+	case NID_ssf33_cbc:
+		params->PaddingType = SKF_PKCS5_PADDING;
+		break;
+	default:
+		params->PaddingType = SKF_NO_PADDING;
+	}
+
+	return 1;
+}
+
 
 ULONG DEVAPI SKF_EncryptInit(HANDLE hKey,
 	BLOCKCIPHERPARAM encryptParam)
@@ -70,25 +165,25 @@ ULONG DEVAPI SKF_EncryptInit(HANDLE hKey,
 	unsigned char *key;
 	unsigned char *iv;
 
-	//FIXME: CFB bits!
+	if (!(cipher = SKF_HANDLE_get_cipher(hKey, encparam))) {
+		SKFerr(SKF_F_SKF_ENCRYPTINIT, SKF_R_INVALID_KEY_HANDLE);
+		return SAR_INVALIDPARAMERR;
+	}
 
 	if (!(key = SKF_HANDLE_get_key(hKey))) {
 		SKFerr(SKF_F_SKF_ENCRYPTINIT, SKF_R_INVALID_KEY_HANDLE);
-		ret = SAR_INVALIDPARAMERR;
-		goto end;
+		return SAR_INVALIDPARAMERR;
 	}
 
 	if (encparam->IVLen != SMS4_IV_LENGTH) {
 		SKFerr(SKF_F_SKF_ENCRYPTINIT, SKF_R_INVALID_IV_LENGTH);
-		ret = SAR_INVALIDPARAMERR;
-		goto end;
+		return SAR_INVALIDPARAMERR;
 	}
-
 	iv = encparam->IV;
 
 	if (!(ctx = EVP_CIPHER_CTX_new())) {
 		SKFerr(SKF_F_SKF_ENCRYPTINIT, ERR_R_EVP_LIB);
-		goto end;
+		return SAR_INVALIDPARAMERR;
 	}
 
 	if (!EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv)) {
@@ -96,10 +191,8 @@ ULONG DEVAPI SKF_EncryptInit(HANDLE hKey,
 		goto end;
 	}
 
-	if (!SKF_HANDLE_set1_cipher_ctx(hKey, ctx)) {
-		SKFerr(SKF_F_SKF_ENCRYPTINIT, SKF_R_SET_CIPHER_CTX_FAILED);
-		goto end;
-	}
+	((SKF_HANDLE *)hKey)->type = SKF_CIPHER_HANDLE;
+	((SKF_HANDLE *)hKey)->u.cipher_ctx = ctx;
 	ctx = NULL;
 
 	ret = SAR_OK;
@@ -153,7 +246,9 @@ ULONG DEVAPI SKF_EncryptFinal(HANDLE hKey,
 	}
 
 	*pulEncryptedDataLen = outlen;
-	SKF_HANDLE_free_cipher_ctx(hKey);
+	EVP_CIPHER_CTX_free(ctx);
+	((SKF_HANDLE *)hKey)->u.cipher_ctx = NULL;
+	((SKF_HANDLE *)hKey)->type = SKF_KEY_HANDLE;
 	return SAR_OK;
 }
 
@@ -167,18 +262,19 @@ ULONG DEVAPI SKF_DecryptInit(HANDLE hKey,
 	unsigned char *key;
 	unsigned char *iv;
 
+	if (!(cipher = SKF_HANDLE_get_cipher(hKey, param))) {
+		SKFerr(SKF_F_SKF_DECRYPTINIT, SKF_R_INVALID_KEY_HANDLE);
+		return SAR_INVALIDPARAMERR;
+	}
 	if (!(key = SKF_HANDLE_get_key(hKey))) {
 		SKFerr(SKF_F_SKF_DECRYPTINIT, SKF_R_INVALID_KEY_HANDLE);
-		ret = SAR_INVALIDPARAMERR;
-		goto end;
+		return SAR_INVALIDPARAMERR;
 	}
-
 	if (param->IVLen != SMS4_IV_LENGTH) {
 		SKFerr(SKF_F_SKF_DECRYPTINIT, SKF_R_INVALID_IV_LENGTH);
 		ret = SAR_INVALIDPARAMERR;
 		goto end;
 	}
-
 	iv = param->IV;
 
 	if (!(ctx = EVP_CIPHER_CTX_new())) {
@@ -191,10 +287,8 @@ ULONG DEVAPI SKF_DecryptInit(HANDLE hKey,
 		goto end;
 	}
 
-	if (!SKF_HANDLE_set1_cipher_ctx(hKey, ctx)) {
-		SKFerr(SKF_F_SKF_DECRYPTINIT, SKF_R_SET_CIPHER_CTX_FAILED);
-		goto end;
-	}
+	((SKF_HANDLE *)hKey)->type = SKF_CIPHER_HANDLE;
+	((SKF_HANDLE *)hKey)->u.cipher_ctx = ctx;
 	ctx = NULL;
 
 	ret = SAR_OK;
@@ -248,7 +342,9 @@ ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey,
 	}
 
 	*pulDecryptedDataLen = len;
-	SKF_HANDLE_free_cipher_ctx(hKey);
+	EVP_CIPHER_CTX_free(ctx);
+	((SKF_HANDLE *)hKey)->u.cipher_ctx = NULL;
+	((SKF_HANDLE *)hKey)->type = SKF_KEY_HANDLE;
 	return SAR_OK;
 }
 

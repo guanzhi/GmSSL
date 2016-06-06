@@ -2850,7 +2850,7 @@ const char *SSL_get_version(const SSL *s)
         return ("DTLSv1");
     else if (s->version == DTLS1_2_VERSION)
         return ("DTLSv1.2");
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     else if (s->version == GM1_VERSION)
         return ("GMSSLv1.1");
 #endif

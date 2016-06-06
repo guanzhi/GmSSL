@@ -107,6 +107,7 @@ static void ERR_ESKF_error(int function, int reason, char *file, int line);
 # define ESKF_R_INVALID_CTRL_CMD                          113
 # define ESKF_R_NOT_IMPLEMENTED                           100
 # define ESKF_R_PIN_NOT_VERIFIED                          114
+# define ESKF_R_SIGN_FAILED                               130
 # define ESKF_R_SKF_CLOSE_HANDLE_FAILED                   124
 # define ESKF_R_SKF_CONNECT_DEV_FAILED                    115
 # define ESKF_R_SKF_DEV_AUTH_FAILED                       116

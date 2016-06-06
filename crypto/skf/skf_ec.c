@@ -56,6 +56,30 @@
 #include <openssl/skf_ex.h>
 #include "skf_lcl.h"
 
+ULONG DEVAPI SKF_GenExtECCKeyPair(DEVHANDLE hDev,
+	ECCPRIVATEKEYBLOB *priKey,
+	ECCPUBLICKEYBLOB *pubKey)
+{
+	ULONG ret = SAR_FAIL;
+	EC_KEY *ec_key;
+
+	if(!(ec_key = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+		SKFerr(SKF_F_SKF_GENEXTECCKEYPAIR, ERR_R_EC_LIB);
+		return SAR_FAIL;
+	}
+	if (!EC_KEY_get_ECCPRIVATEKEYBLOB(ec_key, priKey)) {
+		SKFerr(SKF_F_SKF_GENEXTECCKEYPAIR, SKF_R_GET_PRIVATE_KEY_FAILED);
+		goto end;
+	}
+	if (!EC_KEY_get_ECCPUBLICKEYBLOB(ec_key, pubKey)) {
+		SKFerr(SKF_F_SKF_GENEXTECCKEYPAIR, SKF_R_GET_PUBLIC_KEY_FAILED);
+		goto end;
+	}
+	ret = SAR_OK;
+end:
+	EC_KEY_free(ec_key);
+	return ret;
+}
 
 ULONG DEVAPI SKF_ExtECCSign(DEVHANDLE hDev,
 	ECCPRIVATEKEYBLOB *pECCPriKeyBlob,

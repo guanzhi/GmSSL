@@ -61,7 +61,7 @@
 #include <openssl/err.h>
 #include <openssl/asn1t.h>
 #include <openssl/objects.h>
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 #include <openssl/evp.h>
 #endif
 

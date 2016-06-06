@@ -49,6 +49,7 @@
  *
  */
 
+#include <openssl/err.h>
 #include <openssl/sm9.h>
 #include "sm9_lcl.h"
 
@@ -104,7 +105,7 @@ int SM9_encrypt(SM9_PUBLIC_PARAMS *params,
 	const char *id, size_t idlen)
 {
 	SM9err(SM9_F_SM9_ENCRYPT, SM9_R_NOT_IMPLEMENTED);
-	return NULL;
+	return 0;
 }
 
 int SM9_decrypt(SM9_PUBLIC_PARAMS *params,

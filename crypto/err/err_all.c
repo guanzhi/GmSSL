@@ -108,7 +108,7 @@
 # include <openssl/jpake.h>
 #endif
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 # include <openssl/sm2.h>
 # include <openssl/skf.h>
 # include <openssl/cpk.h>
@@ -176,7 +176,7 @@ void ERR_load_crypto_strings(void)
 # ifndef OPENSSL_NO_JPAKE
     ERR_load_JPAKE_strings();
 # endif
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
     ERR_load_ECIES_strings();
     ERR_load_CPK_strings();
     ERR_load_SM2_strings();

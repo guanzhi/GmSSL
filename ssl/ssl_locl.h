@@ -314,7 +314,7 @@
 # define SSL_kGOST               0x00000200L
 /* SRP */
 # define SSL_kSRP                0x00000400L
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 /* GM/T 0024 ECDHE */
 # define SSL_kECDHE2             0x00000800L
 /* GM/T 0024 ECC */
@@ -350,7 +350,7 @@
 # define SSL_aGOST01             0x00000200L
 /* SRP auth */
 # define SSL_aSRP                0x00000400L
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 /* GM/T 0024 ECDHE, ECC, IBSDH, IBC */
 # define SSL_aSM2                0x00000800L
 # endif
@@ -371,7 +371,7 @@
 # define SSL_SEED                0x00000800L
 # define SSL_AES128GCM           0x00001000L
 # define SSL_AES256GCM           0x00002000L
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define SSL_SM4                 0x00004000L
 # define SSL_SM1                 0x00008000L
 # endif
@@ -389,7 +389,7 @@
 # define SSL_SHA384              0x00000020L
 /* Not a real MAC, just an indication it is part of cipher */
 # define SSL_AEAD                0x00000040L
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define SSL_SM3                 0x00000080L
 # endif
 
@@ -398,7 +398,7 @@
 # define SSL_SSLV3               0x00000002UL
 # define SSL_TLSV1               SSL_SSLV3/* for now */
 # define SSL_TLSV1_2             0x00000004UL
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define SSL_GMV1                0x00000008UL
 # endif
 
@@ -409,7 +409,7 @@
 # define SSL_HANDSHAKE_MAC_GOST94 0x40
 # define SSL_HANDSHAKE_MAC_SHA256 0x80
 # define SSL_HANDSHAKE_MAC_SHA384 0x100
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define SSL_HANDSHAKE_MAC_SM3 0x200
 # endif
 # define SSL_HANDSHAKE_MAC_DEFAULT (SSL_HANDSHAKE_MAC_MD5 | SSL_HANDSHAKE_MAC_SHA)
@@ -418,7 +418,7 @@
  * When adding new digest in the ssl_ciph.c and increment SSM_MD_NUM_IDX make
  * sure to update this constant too
  */
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 #define SSL_MAX_DIGEST 7
 #else
 #define SSL_MAX_DIGEST 6
@@ -534,7 +534,7 @@
 # define SSL_PKEY_ECC            5
 # define SSL_PKEY_GOST94         6
 # define SSL_PKEY_GOST01         7
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define SSL_PKEY_SM9            8
 # define SSL_PKEY_NUM            9
 # else
@@ -886,11 +886,11 @@ extern SSL3_ENC_METHOD TLSv1_2_enc_data;
 extern SSL3_ENC_METHOD SSLv3_enc_data;
 extern SSL3_ENC_METHOD DTLSv1_enc_data;
 extern SSL3_ENC_METHOD DTLSv1_2_enc_data;
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 extern SSL3_ENC_METHOD GMSSLv1_enc_data;
 # endif
 
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define IMPLEMENT_gm1_meth_func(func_name, s_accept, s_connect, \
                                  s_get_meth) \
 const SSL_METHOD *func_name(void)  \
@@ -1385,7 +1385,7 @@ void tls1_clear(SSL *s);
 long tls1_ctrl(SSL *s, int cmd, long larg, void *parg);
 long tls1_callback_ctrl(SSL *s, int cmd, void (*fp) (void));
 
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 int gm1_num_ciphers(void);
 const SSL_CIPHER *gm1_get_cipher(unsigned int u);
 # endif

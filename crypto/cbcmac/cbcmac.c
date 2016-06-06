@@ -55,7 +55,7 @@ int CBCMAC_Init(CBCMAC_CTX *ctx, const void *key, size_t keylen,
 	const EVP_CIPHER *cipher, ENGINE *eng)
 {
 	int i, block_size;
-	
+
 	if (!EVP_EncryptInit_ex(&ctx->cipher_ctx, cipher, eng, key, NULL)) {
 		CBCMACerr(CBCMAC_F_CBCMAC_INIT, CBCMAC_R_CIPHER_CTX_INIT_FAILED);
 		return 0;
@@ -67,7 +67,7 @@ int CBCMAC_Init(CBCMAC_CTX *ctx, const void *key, size_t keylen,
 	ctx->worklen = 0;
 	block_size = EVP_CIPHER_CTX_block_size(&ctx->cipher_ctx);
 	bzero(ctx->cbcstate, block_size);
-	return 0;
+	return 1;
 }
 
 int CBCMAC_Update(CBCMAC_CTX *ctx, const void *data, size_t datalen)
@@ -119,7 +119,7 @@ int CBCMAC_Update(CBCMAC_CTX *ctx, const void *data, size_t datalen)
 	}
 
 
-	return 0;
+	return 1;
 }
 
 int CBCMAC_Final(CBCMAC_CTX *ctx, unsigned char *out, size_t *outlen)

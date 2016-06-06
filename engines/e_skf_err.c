@@ -111,6 +111,7 @@ static ERR_STRING_DATA ESKF_str_reasons[] = {
     {ERR_REASON(ESKF_R_INVALID_CTRL_CMD), "invalid ctrl cmd"},
     {ERR_REASON(ESKF_R_NOT_IMPLEMENTED), "not implemented"},
     {ERR_REASON(ESKF_R_PIN_NOT_VERIFIED), "pin not verified"},
+    {ERR_REASON(ESKF_R_SIGN_FAILED), "sign failed"},
     {ERR_REASON(ESKF_R_SKF_CLOSE_HANDLE_FAILED), "skf close handle failed"},
     {ERR_REASON(ESKF_R_SKF_CONNECT_DEV_FAILED), "skf connect dev failed"},
     {ERR_REASON(ESKF_R_SKF_DEV_AUTH_FAILED), "skf dev auth failed"},

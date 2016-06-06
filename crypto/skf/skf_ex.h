@@ -65,7 +65,9 @@ extern "C" {
 #endif
 
 int SKF_print_dev_info(DEVINFO *devInfo);
+char *SKF_get_alg_name(ULONG ulAlgID);
 char *SKF_get_errstr(ULONG ulError);
+int SKF_nid_to_encparams(int nid, ULONG *algID, BLOCKCIPHERPARAM *params);
 
 RSA *RSA_new_from_RSAPUBLICKEYBLOB(const RSAPUBLICKEYBLOB *blob);
 RSA *RSA_new_from_RSAPRIVATEKEYBLOB(const RSAPRIVATEKEYBLOB *blob);
@@ -73,6 +75,10 @@ int RSA_set_RSAPUBLICKEYBLOB(RSA *rsa, const RSAPUBLICKEYBLOB *blob);
 int RSA_get_RSAPUBLICKEYBLOB(RSA *rsa, RSAPUBLICKEYBLOB *blob);
 int RSA_set_RSAPRIVATEKEYBLOB(RSA *rsa, const RSAPRIVATEKEYBLOB *blob);
 int RSA_get_RSAPRIVATEKEYBLOB(RSA *rsa, RSAPRIVATEKEYBLOB *blob);
+
+ULONG DEVAPI SKF_GenExtECCKeyPair(DEVHANDLE hDev,
+	ECCPRIVATEKEYBLOB *priKey,
+	ECCPUBLICKEYBLOB *pubKey);
 
 EC_KEY *EC_KEY_new_from_ECCPUBLICKEYBLOB(const ECCPUBLICKEYBLOB *blob);
 EC_KEY *EC_KEY_new_from_ECCPRIVATEKEYBLOB(const ECCPRIVATEKEYBLOB *blob);
@@ -110,6 +116,7 @@ void ERR_load_SKF_strings(void);
 # define SKF_F_EC_KEY_SET_ECCPRIVATEKEYBLOB               157
 # define SKF_F_EC_KEY_SET_ECCPUBLICKEYBLOB                158
 # define SKF_F_RSA_GET_RSAPRIVATEKEYBLOB                  169
+# define SKF_F_RSA_GET_RSAPUBLICKEYBLOB                   173
 # define SKF_F_RSA_NEW_FROM_RSAPRIVATEKEYBLOB             163
 # define SKF_F_RSA_NEW_FROM_RSAPUBLICKEYBLOB              164
 # define SKF_F_RSA_SET_RSAPRIVATEKEYBLOB                  170
@@ -146,6 +153,7 @@ void ERR_load_SKF_strings(void);
 # define SKF_F_SKF_EXTECCVERIFY                           151
 # define SKF_F_SKF_EXTRSAPRIKEYOPERATION                  166
 # define SKF_F_SKF_EXTRSAPUBKEYOPERATION                  167
+# define SKF_F_SKF_GENEXTECCKEYPAIR                       174
 # define SKF_F_SKF_GENEXTRSAKEY                           132
 # define SKF_F_SKF_GENRANDOM                              133
 # define SKF_F_SKF_GETDEVINFO                             116
@@ -153,7 +161,9 @@ void ERR_load_SKF_strings(void);
 # define SKF_F_SKF_GETFILEINFO                            118
 # define SKF_F_SKF_GETPININFO                             119
 # define SKF_F_SKF_HANDLE_GET_CBCMAC_CTX                  140
+# define SKF_F_SKF_HANDLE_GET_CIPHER                      171
 # define SKF_F_SKF_HANDLE_GET_CIPHER_CTX                  141
+# define SKF_F_SKF_HANDLE_GET_KEY                         172
 # define SKF_F_SKF_HANDLE_GET_MD_CTX                      142
 # define SKF_F_SKF_LOCKDEV                                120
 # define SKF_F_SKF_MAC                                    168
@@ -183,11 +193,14 @@ void ERR_load_SKF_strings(void);
 # define SKF_R_DECRYPT_FAILED                             133
 # define SKF_R_ENCODE_CIPHERTEXT_FAILED                   134
 # define SKF_R_ENCODE_FAILED                              114
+# define SKF_R_ENCODE_RSA_PUBLIC_KEY_FAILED               162
 # define SKF_R_ENCODE_SIGNATURE_FAILED                    135
 # define SKF_R_ENCRYPT_FAILED                             136
 # define SKF_R_FAIL                                       104
 # define SKF_R_FREE_HANDLE_FAILED                         128
 # define SKF_R_GEN_RSA_FAILED                             115
+# define SKF_R_GET_PRIVATE_KEY_FAILED                     164
+# define SKF_R_GET_PUBLIC_KEY_FAILED                      165
 # define SKF_R_INVALID_ALGID                              122
 # define SKF_R_INVALID_ALGOR                              156
 # define SKF_R_INVALID_APP_HANDLE                         105
@@ -206,7 +219,9 @@ void ERR_load_SKF_strings(void);
 # define SKF_R_INVALID_EC_KEY                             151
 # define SKF_R_INVALID_EC_PRIVATE_KEY                     145
 # define SKF_R_INVALID_EC_PUBLIC_KEY                      146
+# define SKF_R_INVALID_FEED_BIT_LENGTH                    160
 # define SKF_R_INVALID_HANDLE                             107
+# define SKF_R_INVALID_HANDLE_ALGOR                       161
 # define SKF_R_INVALID_HANDLE_MAGIC                       125
 # define SKF_R_INVALID_HANDLE_TYPE                        126
 # define SKF_R_INVALID_HASH_HANDLE                        127
@@ -220,6 +235,7 @@ void ERR_load_SKF_strings(void);
 # define SKF_R_INVALID_PRIVATE_KEY                        152
 # define SKF_R_INVALID_PUBLIC_KEY                         153
 # define SKF_R_INVALID_RANDOM_LENGTH                      119
+# define SKF_R_INVALID_RSA_KEY_LENGTH                     163
 # define SKF_R_INVALID_RSA_PRIVATE_KEY                    158
 # define SKF_R_INVALID_RSA_PUBLIC_KEY                     159
 # define SKF_R_INVALID_SIGNATURE                          148

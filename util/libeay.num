@@ -4414,3 +4414,17 @@ X509_VERIFY_PARAM_add1_host             4771	EXIST::FUNCTION:
 EC_GROUP_get_mont_data                  4772	EXIST::FUNCTION:EC
 i2d_re_X509_tbs                         4773	EXIST::FUNCTION:
 EVP_PKEY_asn1_set_item                  4774	EXIST::FUNCTION:
+EVP_sms4_ofb                            4775	EXIST::FUNCTION:
+EVP_sms4_cfb8                           4776	EXIST::FUNCTION:
+EVP_sms4_ecb                            4777	EXIST::FUNCTION:
+EVP_zuc                                 4778	EXIST::FUNCTION:
+EVP_sms4_gcm                            4779	EXIST::FUNCTION:
+EVP_sms4_wrap                           4780	EXIST::FUNCTION:
+EVP_sms4_cfb128                         4781	EXIST::FUNCTION:
+EVP_sms4_ctr                            4782	EXIST::FUNCTION:
+EVP_sm3                                 4783	EXIST::FUNCTION:
+ENGINE_load_skf                         4784	EXIST::FUNCTION:ENGINE,STATIC_ENGINE
+EVP_sms4_ccm                            4785	EXIST::FUNCTION:
+EVP_sms4_xts                            4786	EXIST::FUNCTION:
+EVP_sms4_cfb1                           4787	EXIST::FUNCTION:
+EVP_sms4_cbc                            4788	EXIST::FUNCTION:

@@ -199,6 +199,14 @@ err:
 	return ret;
 }
 
+int SM2_compute_id_digest_ex(const EVP_MD *md,
+	unsigned char *dgst, size_t dgstlen,
+	const char *id, size_t idlen, EC_KEY *ec_key)
+{
+	SM2err(SM2_F_SM2_COMPUTE_ID_DIGEST_EX, ERR_R_SM2_LIB);
+	return 0;
+}
+
 //TODO: review this function again.
 int SM2_compute_id_digest(const EVP_MD *md, unsigned char *dgst,
 	unsigned int *dgstlen, EC_KEY *ec_key)
@@ -209,7 +217,7 @@ int SM2_compute_id_digest(const EVP_MD *md, unsigned char *dgst,
 	unsigned char idbits[2];
 	int pkdatalen;
 	char *id;
-	
+
 	if ((pkdatalen = sm2_get_public_key_data(pkdata, ec_key)) < 0) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto err;
@@ -272,7 +280,7 @@ int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 		goto err;
 	}
 
-	if (!SM2_compute_id_digest(id_md, buf, &len, ec_key)) {	
+	if (!SM2_compute_id_digest(id_md, buf, &len, ec_key)) {
 		goto err;
 	}
 
@@ -300,7 +308,7 @@ int SM2_digest(const void *msg, size_t msglen, unsigned char *dgst,
 {
 	const EVP_MD *id_md = EVP_sm3();
 	const EVP_MD *msg_md = EVP_sm3();
-	
+
 	return SM2_compute_message_digest(id_md, msg_md,
 		msg, msglen, dgst, dgstlen, ec_key);
 }

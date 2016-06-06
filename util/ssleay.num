@@ -368,3 +368,6 @@ SSL_CTX_use_serverinfo_file             406	EXIST::FUNCTION:STDIO,TLSEXT
 SSL_COMP_free_compression_methods       407	EXIST:!VMS:FUNCTION:COMP
 SSL_COMP_free_compress_methods          407	EXIST:VMS:FUNCTION:COMP
 SSL_extension_supported                 409	EXIST::FUNCTION:TLSEXT
+GMSSLv1_server_method                   410	EXIST::FUNCTION:
+GMSSLv1_method                          411	EXIST::FUNCTION:
+GMSSLv1_client_method                   412	EXIST::FUNCTION:

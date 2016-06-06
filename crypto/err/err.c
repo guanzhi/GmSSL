@@ -155,7 +155,7 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_FIPS, 0, 0), "FIPS routines"},
     {ERR_PACK(ERR_LIB_CMS, 0, 0), "CMS routines"},
     {ERR_PACK(ERR_LIB_HMAC, 0, 0), "HMAC routines"},
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
     {ERR_PACK(ERR_LIB_ECIES, 0, 0), "ECIES routines"},
     {ERR_PACK(ERR_LIB_CPK, 0, 0), "CPK routines"},
     {ERR_PACK(ERR_LIB_SM2, 0, 0), "SM2 routines"},

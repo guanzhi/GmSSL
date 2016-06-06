@@ -86,7 +86,6 @@ static int do_sigver_init(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
             return 0;
         }
     }
-
     if (ver) {
         if (ctx->pctx->pmeth->verifyctx_init) {
             if (ctx->pctx->pmeth->verifyctx_init(ctx->pctx, ctx) <= 0)
@@ -97,14 +96,12 @@ static int do_sigver_init(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
     } else {
         if (ctx->pctx->pmeth->signctx_init) {
             if (ctx->pctx->pmeth->signctx_init(ctx->pctx, ctx) <= 0) {
-fprintf(stderr, "error %s %d\n", __FILE__, __LINE__);
                 return 0;
             }
             ctx->pctx->operation = EVP_PKEY_OP_SIGNCTX;
         } else if (EVP_PKEY_sign_init(ctx->pctx) <= 0)
             return 0;
     }
-
     if (EVP_PKEY_CTX_set_signature_md(ctx->pctx, type) <= 0)
         return 0;
     if (pctx)

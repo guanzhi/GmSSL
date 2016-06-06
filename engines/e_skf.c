@@ -64,9 +64,11 @@
 #include <openssl/sm3.h>
 #include <openssl/sms4.h>
 #include <openssl/sm9.h>
+#include <openssl/ossl_typ.h>
 #include <openssl/skf.h>
 #include <openssl/skf_ex.h>
-#include "e_skf_err.h"
+#include "e_skf_err.c"
+#include "../crypto/ecdsa/ecs_locl.h"
 
 static DEVHANDLE hDev = NULL;
 static HAPPLICATION hApp = NULL;
@@ -118,12 +120,10 @@ static int open_dev(const char *devname)
 		ESKFerr(ESKF_F_OPEN_DEV, ESKF_R_DEV_ALREADY_CONNECTED);
 		return 0;
 	}
-
 	if ((rv = SKF_ConnectDev((LPSTR)devname, &hDev)) != SAR_OK) {
 		ESKFerr(ESKF_F_OPEN_DEV, ESKF_R_SKF_CONNECT_DEV_FAILED);
 		return 0;
 	}
-
 	if ((rv = SKF_GetDevInfo(hDev, &devInfo)) != SAR_OK) {
 		ESKFerr(ESKF_F_OPEN_DEV, ESKF_R_SKF_GET_DEV_INFO_FAILED);
 		return 0;
@@ -380,70 +380,23 @@ static int skf_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	ULONG rv;
 	ULONG ulAlgID;
 
-	switch (EVP_CIPHER_CTX_nid(ctx)) {
-	case NID_ssf33_ecb:
-		ulAlgID = SGD_SSF33_ECB;
-		break;
-	case NID_ssf33_cbc:
-		ulAlgID = SGD_SSF33_CBC;
-		break;
-	case NID_ssf33_cfb128:
-		ulAlgID = SGD_SSF33_CFB;
-		break;
-	case NID_ssf33_ofb128:
-		ulAlgID = SGD_SSF33_OFB;
-		break;
-
-	case NID_sm1_ecb:
-		ulAlgID = SGD_SM1_ECB;
-		break;
-	case NID_sm1_cbc:
-		ulAlgID = SGD_SM1_CBC;
-		break;
-	case NID_sm1_cfb128:
-		ulAlgID = SGD_SM1_CFB;
-		break;
-	case NID_sm1_ofb128:
-		ulAlgID = SGD_SM1_OFB;
-		break;
-
-	case NID_sms4_ecb:
-		ulAlgID = SGD_SM4_ECB;
-		break;
-	case NID_sms4_cbc:
-		ulAlgID = SGD_SM4_CBC;
-		break;
-	case NID_sms4_cfb128:
-		ulAlgID = SGD_SM4_CFB;
-		break;
-	case NID_sms4_ofb128:
-		ulAlgID = SGD_SM4_OFB;
-		break;
-
-	default:
-		OPENSSL_assert(0);
+	if (!SKF_nid_to_encparam(EVP_CIPHER_CTX_nid(ctx), &ulAlgID, NULL)) {
 		return 0;
 	}
-
-	if ((rv = SKF_SetSymmKey(hDev, (BYTE *)key, ulAlgID,
-		(HANDLE *)&(ctx->cipher_data))) != SAR_OK) {
+	if ((rv = SKF_SetSymmKey(hDev, (BYTE *)key, ulAlgID, &(ctx->cipher_data))) != SAR_OK) {
 		ESKFerr(ESKF_F_SKF_INIT_KEY, ESKF_R_SKF_SET_SYMMKEY_FAILED);
 		return 0;
 	}
-
 	return 1;
 }
 
 static int skf_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	const unsigned char *in, size_t len)
 {
-/*
 	ULONG rv;
-	EVP_SKF_KEY *dat = (EVP_SKF_KEY *)ctx->cipher_data;
 	BLOCKCIPHERPARAM param;
 	ULONG ulDataLen, ulEncryptedLen;
 	BYTE block[MAX_IV_LEN] = {0};
-	int i;
 
 	memcpy(&(param.IV), ctx->iv, ctx->cipher->block_size);
 	param.IVLen = ctx->cipher->block_size;
@@ -451,11 +404,11 @@ static int skf_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	param.FeedBitLen = 0;
 
 	if (ctx->encrypt) {
-		if ((rv = SKF_EncryptInit(dat->hKey, &param)) != SAR_OK) {
+		if ((rv = SKF_EncryptInit(ctx->cipher_data, param)) != SAR_OK) {
 			return 0;
 		}
 	} else {
-		if ((rv = SKF_DecryptInit(dat->hKey, &param)) != SAR_OK) {
+		if ((rv = SKF_DecryptInit(ctx->cipher_data, param)) != SAR_OK) {
 			return 0;
 		}
 	}
@@ -463,12 +416,12 @@ static int skf_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	ulDataLen = len - len % ctx->cipher->block_size;
 
 	if (ctx->encrypt) {
-		if ((rv = SKF_EncryptUpdate(hKey, in, ulDataLen,
+		if ((rv = SKF_EncryptUpdate(ctx->cipher_data, (BYTE *)in, ulDataLen,
 			(BYTE *)out, &ulEncryptedLen)) != SAR_OK) {
 			return 0;
 		}
 	} else {
-		if ((rv = SKF_DecryptUpdate(hKey, in, ulDataLen,
+		if ((rv = SKF_DecryptUpdate(ctx->cipher_data, (BYTE *)in, ulDataLen,
 			(BYTE *)out, &ulEncryptedLen)) != SAR_OK) {
 			return 0;
 		}
@@ -480,14 +433,13 @@ static int skf_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	memcpy(block, in, len - ulDataLen);
 
 	if (ctx->encrypt) {
-		if ((rv = SKF_EncryptUpdate(hKey, block, ctx->cipher->block_size,
+		if ((rv = SKF_EncryptUpdate(ctx->cipher_data, block, ctx->cipher->block_size,
 			out, &ulEncryptedLen)) != SAR_OK) {
 			return 0;
 		}
 	} else {
 		return 0;
 	}
-*/
 	return 1;
 }
 
@@ -566,7 +518,6 @@ static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, i
 	case NID_ssf33_ofb128:
 		*cipher = &skf_ssf33_ofb128;
 		break;
-
 	case NID_sm1_ecb:
 		*cipher = &skf_sm1_ecb;
 		break;
@@ -579,7 +530,6 @@ static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, i
 	case NID_sm1_ofb128:
 		*cipher = &skf_sm1_ofb128;
 		break;
-
 	case NID_sms4_ecb:
 		*cipher = &skf_sms4_ecb;
 		break;
@@ -605,12 +555,10 @@ static int skf_ciphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, i
 int skf_rand_bytes(unsigned char *buf, int num)
 {
 	ULONG rv;
-
 	if ((rv = SKF_GenRandom(hDev, buf, (ULONG)num)) != SAR_OK) {
 		ESKFerr(ESKF_F_SKF_RAND_BYTES, ESKF_R_GEN_RANDOM_FAILED);
 		return 0;
 	}
-
 	return 1;
 }
 
@@ -623,17 +571,13 @@ static RAND_METHOD skf_rand = {
 	NULL,
 };
 
-
 static int skf_sm3_init(EVP_MD_CTX *ctx)
 {
 	ULONG rv;
-
-	if ((rv = SKF_DigestInit(hDev, SGD_SM3, NULL, NULL, 0,
-		(HANDLE *)&(ctx->md_data))) != SAR_OK) {
+	if ((rv = SKF_DigestInit(hDev, SGD_SM3, NULL, NULL, 0, &(ctx->md_data))) != SAR_OK) {
 		ESKFerr(ESKF_F_SKF_SM3_INIT, ESKF_R_SKF_DIGEST_INIT_FAILED);
 		return 0;
 	}
-
 	return 1;
 }
 
@@ -643,7 +587,7 @@ static int skf_sm3_update(EVP_MD_CTX *ctx, const void *data, size_t count)
 	BYTE *pbData = (BYTE *)data;
 	ULONG ulDataLen = (ULONG)count;
 
-	if ((rv = SKF_DigestUpdate((HANDLE)ctx->md_data, pbData, ulDataLen)) != SAR_OK) {
+	if ((rv = SKF_DigestUpdate(ctx->md_data, pbData, ulDataLen)) != SAR_OK) {
 		ESKFerr(ESKF_F_SKF_SM3_UPDATE, ESKF_R_SKF_DIGEST_UPDATE_FAILED);
 		return 0;
 	}
@@ -657,16 +601,16 @@ static int skf_sm3_final(EVP_MD_CTX *ctx, unsigned char *md)
 	BYTE *pHashData = (BYTE *)md;
 	ULONG ulHashLen = SM3_DIGEST_LENGTH;
 
-	if ((rv = SKF_DigestFinal((HANDLE)ctx->md_data, pHashData, &ulHashLen)) != SAR_OK) {
+	if ((rv = SKF_DigestFinal(ctx->md_data, pHashData, &ulHashLen)) != SAR_OK) {
 		ESKFerr(ESKF_F_SKF_SM3_FINAL, ESKF_R_SKF_DIGEST_FINAL_FAILED);
 		return 0;
 	}
-
-	if ((rv = SKF_CloseHandle((HANDLE)ctx->md_data)) != SAR_OK) {
+	if ((rv = SKF_CloseHandle(ctx->md_data)) != SAR_OK) {
 		ESKFerr(ESKF_F_SKF_SM3_FINAL, ESKF_R_SKF_CLOSE_HANDLE_FAILED);
 		return 0;
 	}
 
+	ctx->md_data = NULL;
 	return 1;
 }
 
@@ -712,18 +656,23 @@ static int skf_digests(ENGINE *e, const EVP_MD **digest, const int **nids, int n
 static int skf_rsa_sign(int type, const unsigned char *m, unsigned int mlen,
 	unsigned char *sig, unsigned int *siglen, const RSA *rsa)
 {
-	int ret = 0;
 	ULONG rv;
-	BYTE *pbData = (BYTE *)m;
-	ULONG ulDataLen = (ULONG)mlen;
-	BYTE signature[256];
-	ULONG ulSigLen;
+	BYTE *data = (BYTE *)m;
+	ULONG dataLen = (ULONG)mlen;
+	BYTE signature[1024];
+	ULONG sigLen;
 
-	if ((rv = SKF_RSASignData(hContainer, pbData, ulDataLen,
-		signature, &ulSigLen)) != SAR_OK) {
+	/* we need to check if container type is RSA */
+
+	sigLen = (ULONG)sizeof(signature);
+	if ((rv = SKF_RSASignData(hContainer, data, dataLen, signature, &sigLen)) != SAR_OK) {
+		ESKFerr(ESKF_F_SKF_RSA_SIGN, ESKF_R_SIGN_FAILED);
 		return 0;
 	}
 
+	/* do we need to convert signature format? */
+	memcpy(sig, signature, sigLen);
+	*siglen = (unsigned int)sigLen;
 	return 1;
 }
 
@@ -744,28 +693,36 @@ static RSA_METHOD skf_rsa = {
 	NULL,
 };
 
+static ECDSA_METHOD skf_sm2sign = {
+	"SKF ECDSA method (SM2 signature)",
+	NULL,
+	NULL,
+	NULL,
+	0,
+	NULL,
+};
+
+
 
 static ECDSA_SIG *skf_sm2_do_sign(const unsigned char *dgst, int dgstlen,
 	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key)
 {
 	ECDSA_SIG *ret = NULL;
-	/*
-	ULONG rv;
 	BYTE *pbDigest = (BYTE *)dgst;
 	ULONG ulDigestLen = (ULONG)dgstlen;
 	ECCSIGNATUREBLOB sigBlob;
+	ULONG rv;
 	int ok = 0;
 
-	OPENSSL_assert(!a);
-	OPENSSL_assert(!b);
-
+	if (a || b) {
+	}
 	if ((rv = SKF_ECCSignData(hContainer, pbDigest, ulDigestLen, &sigBlob)) != SAR_OK) {
 		goto end;
 	}
 	if (!(ret = ECDSA_SIG_new())) {
 		goto end;
 	}
-	if (!ECDSA_SIG_set_ECCSIGNATUREBLOB(group, ret, &sigBlob)) {
+	if (!ECDSA_SIG_set_ECCSIGNATUREBLOB(ret, &sigBlob)) {
 		goto end;
 	}
 
@@ -776,21 +733,8 @@ end:
 		ret = NULL;
 	}
 
-	*/
-	ESKFerr(ESKF_F_SKF_SM2_DO_SIGN, ESKF_R_NOT_IMPLEMENTED);
 	return ret;
 }
-
-/*
-static ECDSA_METHOD skf_sm2sign = {
-	"SKF ECDSA method (SM2 signature)",
-	NULL,
-	NULL,
-	NULL,
-	0,
-	NULL,
-};
-*/
 
 #ifdef OPENSSL_NO_DYNAMIC_ENGINE
 static ENGINE *engine_skf(void)

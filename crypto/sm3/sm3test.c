@@ -120,26 +120,4 @@ static char *pt(unsigned char *md)
     return (buf);
 }
 
-
-
-
-/*
-
-
-
-
-
-
-
-
-
-
-*/
-
-
-
-
-
-
-
 #endif

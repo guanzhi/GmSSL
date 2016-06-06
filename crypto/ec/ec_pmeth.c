@@ -88,15 +88,21 @@ typedef struct {
     size_t kdf_ukmlen;
     /* KDF output length */
     size_t kdf_outlen;
+#ifndef NO_GMSSL
     /* SECG, SM2 or other standards */
     int sign_type;
     int enc_type;
     int dh_type;
-	union {
-		void *ptr;
-		ECIES_PARAMS *ecies;
-		SM2_ENC_PARAMS *sm2;
-	} enc_param;
+
+	unsigned char sm2_id_dgst[EVP_MAX_MD_SIZE];
+	size_t sm2_id_dgstlen;
+
+    union {
+        void *ptr;
+        ECIES_PARAMS *ecies;
+        SM2_ENC_PARAMS *sm2;
+    } enc_param;
+#endif
 } EC_PKEY_CTX;
 
 static int pkey_ec_init(EVP_PKEY_CTX *ctx)
@@ -115,11 +121,13 @@ static int pkey_ec_init(EVP_PKEY_CTX *ctx)
     dctx->kdf_outlen = 0;
     dctx->kdf_ukm = NULL;
     dctx->kdf_ukmlen = 0;
+#ifndef NO_GMSSL
     dctx->sign_type = NID_sm_scheme;
-	dctx->enc_type = NID_sm_scheme;
-	dctx->dh_type = NID_sm_scheme;
-	dctx->enc_param.ptr = NULL;
-
+    dctx->enc_type = NID_sm_scheme;
+    dctx->dh_type = NID_sm_scheme;
+    dctx->sm2_id_dgstlen = 0;
+    dctx->enc_param.ptr = NULL;
+#endif
     ctx->data = dctx;
 
     return 1;
@@ -157,6 +165,7 @@ static int pkey_ec_copy(EVP_PKEY_CTX *dst, EVP_PKEY_CTX *src)
     dctx->sign_type = sctx->sign_type;
     dctx->enc_type = sctx->enc_type;
     dctx->dh_type = sctx->dh_type;
+	// fixme
     return 1;
 }
 
@@ -256,8 +265,7 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	unsigned char zid[EVP_MAX_MD_SIZE];
 	unsigned int zidlen = sizeof(zid);
 
-
-
+	//FIXME: it is wrong to do it here!
 	if (dctx->sign_type == NID_sm_scheme) {
 		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
        		 	ECerr(EC_F_PKEY_EC_SIGNCTX_INIT, ERR_R_SM2_LIB);
@@ -272,7 +280,6 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 		}
 	}
 
-	
 	return 1;
 }
 
@@ -595,13 +602,16 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
         dctx->kdf_type = p1;
         return 1;
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 	case EVP_PKEY_CTRL_EC_SIGN_TYPE:
 		if (p1 == -2)
 			return dctx->sign_type;
 		if (p1 != NID_secg_scheme && p1 != NID_sm_scheme)
 			return -2;
 		dctx->sign_type = p1;
+
+		//SM2_compute_id_digest();
+		//set this data to pkey_ctx
 		return 1;
 
 	case EVP_PKEY_CTRL_GET_EC_SIGN_TYPE:
@@ -670,7 +680,7 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             EVP_MD_type((const EVP_MD *)p2) != NID_ecdsa_with_SHA1 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha224 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha256 &&
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
             EVP_MD_type((const EVP_MD *)p2) != NID_sm3 &&
 #endif
             EVP_MD_type((const EVP_MD *)p2) != NID_sha384 &&
@@ -722,7 +732,7 @@ static int pkey_ec_ctrl_str(EVP_PKEY_CTX *ctx,
         else
             return -2;
         return EVP_PKEY_CTX_set_ec_param_enc(ctx, param_enc);
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 	} else if (!strcmp(type, "ec_sign_algor")) {
 		int sign_type;
 		if (!strcmp(value, "ecdsa"))

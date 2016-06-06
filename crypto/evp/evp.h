@@ -741,7 +741,7 @@ const EVP_MD *EVP_ripemd160(void);
 # ifndef OPENSSL_NO_WHIRLPOOL
 const EVP_MD *EVP_whirlpool(void);
 # endif
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 const EVP_MD *EVP_sm3(void);
 # endif
 const EVP_CIPHER *EVP_enc_null(void); /* does nothing :-) */
@@ -830,7 +830,7 @@ const EVP_CIPHER *EVP_rc5_32_12_16_cfb64(void);
 #  define EVP_rc5_32_12_16_cfb EVP_rc5_32_12_16_cfb64
 const EVP_CIPHER *EVP_rc5_32_12_16_ofb(void);
 # endif
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 const EVP_CIPHER *EVP_sms4_ecb(void);
 const EVP_CIPHER *EVP_sms4_cbc(void);
 const EVP_CIPHER *EVP_sms4_cfb1(void);

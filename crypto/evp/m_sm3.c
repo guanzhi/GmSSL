@@ -52,7 +52,7 @@
 #include <stdio.h>
 #include "cryptlib.h"
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 
 #include <openssl/evp.h>
 #include <openssl/objects.h>
@@ -62,17 +62,29 @@
 
 static int init(EVP_MD_CTX *ctx)
 {
-	return sm3_init(ctx->md_data);
+	if (!ctx || !ctx->md_data) {
+		return 0;
+	}
+	sm3_init(ctx->md_data);
+	return 1;
 }
 
 static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
 {
-	return sm3_update(ctx->md_data, in, inlen);
+	if (!ctx || !ctx->md_data || !in) {
+		return 0;
+	}
+	sm3_update(ctx->md_data, in, inlen);
+	return 1;
 }
 
 static int final(EVP_MD_CTX *ctx, unsigned char *md)
 {
-	return sm3_final(ctx->md_data, md);
+	if (!ctx || !ctx->md_data || !md) {
+		return 0;
+	}
+	sm3_final(ctx->md_data, md);
+	return 1;
 }
 
 static const EVP_MD sm3_md = {

@@ -103,8 +103,8 @@ sm2_enc.o: ../../include/openssl/pkcs7.h ../../include/openssl/rand.h
 sm2_enc.o: ../../include/openssl/safestack.h ../../include/openssl/sha.h
 sm2_enc.o: ../../include/openssl/sm2.h ../../include/openssl/sm3.h
 sm2_enc.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
-sm2_enc.o: ../../include/openssl/x509.h ../../include/openssl/x509_vfy.h sm2.h
-sm2_enc.o: sm2_enc.c
+sm2_enc.o: ../../include/openssl/x509.h ../../include/openssl/x509_vfy.h
+sm2_enc.o: ../o_str.h sm2_enc.c
 sm2_err.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
 sm2_err.o: ../../include/openssl/buffer.h ../../include/openssl/crypto.h
 sm2_err.o: ../../include/openssl/e_os2.h ../../include/openssl/ec.h

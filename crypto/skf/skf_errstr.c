@@ -115,10 +115,10 @@ char *SKF_get_errstr(ULONG ulError)
 	int i;
 	for (i = 0; i < sizeof(skf_errstr)/sizeof(skf_errstr[0]); i++) {
 		if (ulError == skf_errstr[i].err_no) {
-			return (LPSTR)skf_errstr[i].err_str;
+			return skf_errstr[i].err_str;
 		}
 	}
-	return (LPSTR)"(undef)";
+	return "(undef)";
 }
 
 

@@ -54,21 +54,84 @@
 #include <openssl/skf_ex.h>
 #include "skf_lcl.h"
 
-
-EVP_MD_CTX *SKF_HANDLE_get_md_ctx(SKF_HANDLE *handle)
+unsigned char *SKF_HANDLE_get_key(HANDLE hKey)
 {
-	EVP_MD_CTX *ret;
+	SKF_HANDLE *handle;
 
-	if (!handle) {
-		SKFerr(SKF_F_SKF_HANDLE_GET_MD_CTX, SKF_R_NULL_ARGUMENT);
+	if (!(handle = (SKF_HANDLE *)hKey)) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_KEY, ERR_R_PASSED_NULL_PARAMETER);
+		return NULL;
+	}
+	if (handle->magic != SKF_HANDLE_MAGIC) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_KEY, SKF_R_INVALID_HANDLE_MAGIC);
+		return NULL;
+	}
+	if (handle->type < SKF_KEY_HANDLE) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_KEY, SKF_R_INVALID_HANDLE_TYPE);
 		return NULL;
 	}
 
+	switch (handle->algid) {
+	case SGD_SM4_ECB:
+	case SGD_SM4_CBC:
+	case SGD_SM4_CFB:
+	case SGD_SM4_OFB:
+	case SGD_SM4_MAC:
+		break;
+	default:
+		SKFerr(SKF_F_SKF_HANDLE_GET_KEY, SKF_R_INVALID_ALGOR);
+		return NULL;
+	}
+
+	if (!handle->keylen) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_KEY, SKF_R_INVALID_KEY_HANDLE);
+		return NULL;
+	}
+	return handle->key;
+}
+
+const EVP_CIPHER *SKF_HANDLE_get_cipher(HANDLE hKey, BLOCKCIPHERPARAM *param)
+{
+	SKF_HANDLE *handle = (SKF_HANDLE *)hKey;
+	if (!SKF_HANDLE_get_key(hKey)) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER, SKF_R_INVALID_KEY_HANDLE);
+		return NULL;
+	}
+
+	switch (handle->algid) {
+	case SGD_SM4_ECB:
+		return EVP_sms4_ecb();
+	case SGD_SM4_CBC:
+		return EVP_sms4_cbc();
+	case SGD_SM4_OFB:
+		return EVP_sms4_ofb();
+	case SGD_SM4_CFB:
+		switch (param->FeedBitLen) {
+		case   1: return EVP_sms4_cfb1();
+		case   8: return EVP_sms4_cfb8();
+		case 128: return EVP_sms4_cfb128();
+		}
+		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER, SKF_R_INVALID_FEED_BIT_LENGTH);
+		return NULL;
+	}
+
+	SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER, SKF_R_INVALID_HANDLE_ALGOR);
+	return NULL;
+}
+
+EVP_MD_CTX *SKF_HANDLE_get_md_ctx(HANDLE hHash)
+{
+	EVP_MD_CTX *ret;
+	SKF_HANDLE *handle;
+
+	if (!(handle = (SKF_HANDLE *)hHash)) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_MD_CTX, ERR_R_PASSED_NULL_PARAMETER);
+		return NULL;
+	}
 	if (handle->magic != SKF_HANDLE_MAGIC) {
 		SKFerr(SKF_F_SKF_HANDLE_GET_MD_CTX, SKF_R_INVALID_HANDLE_MAGIC);
 		return NULL;
 	}
-
 	if (handle->type != SKF_HASH_HANDLE) {
 		SKFerr(SKF_F_SKF_HANDLE_GET_MD_CTX, SKF_R_INVALID_HANDLE_TYPE);
 		return NULL;
@@ -78,24 +141,22 @@ EVP_MD_CTX *SKF_HANDLE_get_md_ctx(SKF_HANDLE *handle)
 		SKFerr(SKF_F_SKF_HANDLE_GET_MD_CTX, SKF_R_CTX_NOT_CREATED);
 		return NULL;
 	}
-
 	return ret;
 }
 
-CBCMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(SKF_HANDLE *handle)
+CBCMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(HANDLE hMac)
 {
 	CBCMAC_CTX *ret;
+	SKF_HANDLE *handle;
 
-	if (!handle) {
-		SKFerr(SKF_F_SKF_HANDLE_GET_CBCMAC_CTX, SKF_R_NULL_ARGUMENT);
+	if (!(handle = (SKF_HANDLE *)hMac)) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_CBCMAC_CTX, ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
 	}
-
 	if (handle->magic != SKF_HANDLE_MAGIC) {
 		SKFerr(SKF_F_SKF_HANDLE_GET_CBCMAC_CTX, SKF_R_INVALID_HANDLE_MAGIC);
 		return NULL;
 	}
-
 	if (handle->type != SKF_MAC_HANDLE) {
 		SKFerr(SKF_F_SKF_HANDLE_GET_CBCMAC_CTX, SKF_R_INVALID_HANDLE_TYPE);
 		return NULL;
@@ -105,24 +166,22 @@ CBCMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(SKF_HANDLE *handle)
 		SKFerr(SKF_F_SKF_HANDLE_GET_CBCMAC_CTX, SKF_R_CTX_NOT_CREATED);
 		return NULL;
 	}
-
 	return ret;
 }
 
-EVP_CIPHER_CTX *SKF_HANDLE_get_cipher_ctx(SKF_HANDLE *handle)
+EVP_CIPHER_CTX *SKF_HANDLE_get_cipher_ctx(HANDLE hKey)
 {
 	EVP_CIPHER_CTX *ret;
+	SKF_HANDLE *handle;
 
-	if (!handle) {
-		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER_CTX, SKF_R_NULL_ARGUMENT);
+	if (!(handle = (SKF_HANDLE *)hKey)) {
+		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER_CTX, ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
 	}
-
 	if (handle->magic != SKF_HANDLE_MAGIC) {
 		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER_CTX, SKF_R_INVALID_HANDLE_MAGIC);
 		return NULL;
 	}
-
 	if (handle->type != SKF_CIPHER_HANDLE) {
 		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER_CTX, SKF_R_INVALID_HANDLE_TYPE);
 		return NULL;
@@ -132,44 +191,28 @@ EVP_CIPHER_CTX *SKF_HANDLE_get_cipher_ctx(SKF_HANDLE *handle)
 		SKFerr(SKF_F_SKF_HANDLE_GET_CIPHER_CTX, SKF_R_CTX_NOT_CREATED);
 		return NULL;
 	}
-
 	return ret;
 }
 
-int SKF_HANDLE_free_cipher_ctx(SKF_HANDLE *handle)
+int SKF_HANDLE_free(HANDLE handle)
 {
 	return 0;
 }
 
-int SKF_HANDLE_free(SKF_HANDLE *handle)
-{
-	return 0;
-}
 
-unsigned char *SKF_HANDLE_get_key(SKF_HANDLE *handle)
+HANDLE SKF_HANDLE_new(int type)
 {
+
 	return NULL;
 }
-
-SKF_HANDLE *SKF_HANDLE_new(int type)
-{
-	return NULL;
-}
-
-int SKF_HANDLE_set1_cipher_ctx(SKF_HANDLE *handle, EVP_CIPHER_CTX *ctx)
-{
-	return 0;
-}
-
-
 
 ULONG DEVAPI SKF_CloseHandle(HANDLE hHandle)
 {
 	SKF_HANDLE *handle;
+	return SAR_OK; //FIXME:
 
 	if (!(handle = (SKF_HANDLE *)hHandle)) {
-		SKFerr(SKF_F_SKF_CLOSEHANDLE, SKF_R_NULL_ARGUMENT);
-		return SAR_INVALIDPARAMERR;
+		return SAR_OK;
 	}
 
 	if (handle->magic != SKF_HANDLE_MAGIC) {

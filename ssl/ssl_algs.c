@@ -137,7 +137,7 @@ int SSL_library_init(void)
 #ifndef OPENSSL_NO_ECDSA
     EVP_add_digest(EVP_ecdsa());
 #endif
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     EVP_add_cipher(EVP_sms4_cbc());
     EVP_add_digest(EVP_sm3());
 #endif

@@ -61,6 +61,8 @@ tests:
 lint:
 	lint -DLINT $(INCLUDES) $(SRC)>fluff
 
+update: depend
+
 depend:
 	@[ -n "$(MAKEDEPEND)" ] # should be set by upper Makefile...
 	$(MAKEDEPEND) -- $(CFLAG) $(INCLUDES) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
@@ -74,3 +76,17 @@ clean:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
+ffx.o: ../../include/openssl/aes.h ../../include/openssl/bio.h
+ffx.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+ffx.o: ../../include/openssl/err.h ../../include/openssl/ffx.h
+ffx.o: ../../include/openssl/lhash.h ../../include/openssl/opensslconf.h
+ffx.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+ffx.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
+ffx.o: ../../include/openssl/symhacks.h ffx.c
+ffx_err.o: ../../include/openssl/aes.h ../../include/openssl/bio.h
+ffx_err.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+ffx_err.o: ../../include/openssl/err.h ../../include/openssl/ffx.h
+ffx_err.o: ../../include/openssl/lhash.h ../../include/openssl/opensslconf.h
+ffx_err.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+ffx_err.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
+ffx_err.o: ../../include/openssl/symhacks.h ffx_err.c

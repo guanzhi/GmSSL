@@ -67,7 +67,7 @@ ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev,
 	const EVP_MD *md;
 	EVP_MD_CTX *mdctx = NULL;
 	EC_KEY *ec_key = NULL;
-	SKF_HANDLE *handle;
+	SKF_HANDLE *hHash;
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen = 0;
 
@@ -137,17 +137,20 @@ ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev,
 		}
 	}
 
-	if (!(handle = SKF_HANDLE_new(SKF_HASH_HANDLE))) {
-		SKFerr(SKF_F_SKF_DIGESTINIT, SKF_R_MALLOC_FAILED);
-		ret = SAR_MEMORYERR;
+
+	if (!(hHash = OPENSSL_malloc(sizeof(*hHash)))) {
+		SKFerr(SKF_F_SKF_DIGESTINIT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	handle->u.md_ctx = mdctx;
+	bzero(hHash, sizeof(*hHash));
+	hHash->magic = SKF_HANDLE_MAGIC;
+	hHash->type = SKF_HASH_HANDLE;
+	hHash->u.md_ctx = mdctx;
 	mdctx = NULL;
 
+	*phHash = hHash;
 	ret = SAR_OK;
-
 end:
 	EVP_MD_CTX_destroy(mdctx);
 	EC_KEY_free(ec_key);
@@ -204,11 +207,8 @@ ULONG DEVAPI SKF_DigestFinal(HANDLE hHash,
 		return SAR_FAIL;
 	}
 
-	if (!SKF_HANDLE_free(hHash)) {
-		SKFerr(SKF_F_SKF_DIGESTFINAL, SKF_R_FREE_HANDLE_FAILED);
-		return SAR_FAIL;
-	}
-
+	EVP_MD_CTX_destroy(mdctx);
+	((SKF_HANDLE *)hHash)->u.md_ctx = NULL;
 	return SAR_OK;
 }
 

@@ -1,6 +1,6 @@
 /* demo/gmssl/sm3.c */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,60 +50,48 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <openssl/sm3.h>
+
+/*
+ * usage of sm3dgst:
+ * ./sm3dgst <file>
+ * 324234234234235234234234234234
+ *
+ * echo "hello world" | sm3dgst
+ * lksjdlfksdjlfkjsdlfkjsdlfkjsdljkfffffffldjfk=
+ *
+ */
 
 int main(int argc, char **argv)
 {
-	int ret = -1;
-	FILE *fp = stdin;
-	unsigned char buf[1024];
-	size_t len;
-	const EVP_MD *md;
-	EVP_MD_CTX mdctx;
-	unsigned char dgst[EVP_MAX_MD_SIZE];
-	unsigned int dgstlen, i;
+	sm3_ctx_t ctx;
+	unsigned char dgst[SM3_DIGEST_LENGTH];
+	unsigned char buf[4096];
+	ssize_t len;
+	int i;
 
-	if (argc == 2) {
-		if (!(fp = fopen(argv[1], "r"))) {
-			fprintf(stderr, "open file %s failed\n", argv[1]);
-			return -1;
-		}
+	if (argc > 1) {
+		printf("usage: %s < file\n", basename(argv[0]));
+		return 0;
 	}
 
-	OpenSSL_add_all_digests();
-	if (!(md = EVP_get_digestbyname("sm3"))) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
+	sm3_init(&ctx);
 
-	if (!EVP_DigestInit(&mdctx, md)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
+	while ((len = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
+		sm3_update(&ctx, buf, len);
 	}
+	memset(dgst, 0, sizeof(dgst));
+	sm3_final(&ctx, dgst);
 
-	while ((len = fread(buf, 1, sizeof(buf), fp))) {
-		if (!EVP_DigestUpdate(&mdctx, buf, len)) {
-			ERR_print_errors_fp(stderr);
-			goto end;
-		}
-	}
-
-	if (!EVP_DigestFinal(&mdctx, dgst, &dgstlen)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	for (i = 0; i < dgstlen; i++) {
+	for (i = 0; i < sizeof(dgst); i++) {
 		printf("%02x", dgst[i]);
 	}
 	printf("\n");
-	ret = 0;
 
-end:
-	fclose(fp);
-	EVP_cleanup();
-	return ret;
+	return 0;
 }
 

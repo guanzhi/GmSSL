@@ -29,6 +29,7 @@ dsaWithSHA1		sha1	dsa
 
 dsaWithSHA1_2		sha1	dsa_2
 
+# GMSSL: here is the problem!
 ecdsa_with_SHA1		sha1	X9_62_id_ecPublicKey
 ecdsa_with_SHA224	sha224	X9_62_id_ecPublicKey
 ecdsa_with_SHA256	sha256	X9_62_id_ecPublicKey
@@ -36,6 +37,7 @@ ecdsa_with_SHA384	sha384	X9_62_id_ecPublicKey
 ecdsa_with_SHA512	sha512	X9_62_id_ecPublicKey
 ecdsa_with_Recommended	undef	X9_62_id_ecPublicKey
 ecdsa_with_Specified	undef	X9_62_id_ecPublicKey
+sm2sign_with_sm3	sm3	X9_62_id_ecPublicKey
 
 dsa_with_SHA224		sha224	dsa
 dsa_with_SHA256		sha256	dsa
@@ -56,3 +58,11 @@ dhSinglePass_cofactorDH_sha224kdf_scheme	sha224	dh_cofactor_kdf
 dhSinglePass_cofactorDH_sha256kdf_scheme	sha256	dh_cofactor_kdf
 dhSinglePass_cofactorDH_sha384kdf_scheme	sha384	dh_cofactor_kdf
 dhSinglePass_cofactorDH_sha512kdf_scheme	sha512	dh_cofactor_kdf
+
+# GMSSL SM2 schemes
+sm2sign_with_sha1	sha1		sm2sign
+sm2sign_with_sha256	sha256		sm2sign
+sm2sign_with_sha512	sha512		sm2sign
+sm2sign_with_sha224	sha224		sm2sign
+sm2sign_with_sha384	sha384		sm2sign
+sm2sign_with_rmd160	ripemd160	sm2sign

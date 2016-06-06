@@ -135,6 +135,7 @@ int ASN1_sign(i2d_of_void *i2d, X509_ALGOR *algor1, X509_ALGOR *algor2,
     unsigned char *p, *buf_in = NULL, *buf_out = NULL;
     int i, inl = 0, outl = 0, outll = 0;
     X509_ALGOR *a;
+    printf("%s %d: %s executed\n", __FILE__, __LINE__, __FUNCTION__);
 
     EVP_MD_CTX_init(&ctx);
     for (i = 0; i < 2; i++) {
@@ -222,8 +223,10 @@ int ASN1_item_sign(const ASN1_ITEM *it, X509_ALGOR *algor1,
 {
     EVP_MD_CTX ctx;
     EVP_MD_CTX_init(&ctx);
+    printf("%s %d: %s executed\n", __FILE__, __LINE__, __FUNCTION__);
     if (!EVP_DigestSignInit(&ctx, NULL, type, NULL, pkey)) {
         EVP_MD_CTX_cleanup(&ctx);
+	ERR_print_errors_fp(stderr);
         return 0;
     }
     return ASN1_item_sign_ctx(it, algor1, algor2, signature, asn, &ctx);
@@ -239,6 +242,7 @@ int ASN1_item_sign_ctx(const ASN1_ITEM *it,
     size_t inl = 0, outl = 0, outll = 0;
     int signid, paramtype;
     int rv;
+    printf("%s %d: %s executed\n", __FILE__, __LINE__, __FUNCTION__);
 
     type = EVP_MD_CTX_md(ctx);
     pkey = EVP_PKEY_CTX_get0_pkey(ctx->pctx);

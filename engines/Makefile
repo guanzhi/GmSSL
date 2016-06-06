@@ -321,7 +321,8 @@ e_padlock.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
 e_padlock.o: ../include/openssl/x509.h ../include/openssl/x509_vfy.h
 e_padlock.o: e_padlock.c
 e_skf.o: ../include/openssl/asn1.h ../include/openssl/bio.h
-e_skf.o: ../include/openssl/buffer.h ../include/openssl/crypto.h
+e_skf.o: ../include/openssl/buffer.h ../include/openssl/cbcmac.h
+e_skf.o: ../include/openssl/cmac.h ../include/openssl/crypto.h
 e_skf.o: ../include/openssl/e_os2.h ../include/openssl/ec.h
 e_skf.o: ../include/openssl/ecdh.h ../include/openssl/ecdsa.h
 e_skf.o: ../include/openssl/engine.h ../include/openssl/err.h
@@ -329,13 +330,15 @@ e_skf.o: ../include/openssl/evp.h ../include/openssl/kdf.h
 e_skf.o: ../include/openssl/lhash.h ../include/openssl/obj_mac.h
 e_skf.o: ../include/openssl/objects.h ../include/openssl/opensslconf.h
 e_skf.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
-e_skf.o: ../include/openssl/pkcs7.h ../include/openssl/safestack.h
-e_skf.o: ../include/openssl/sha.h ../include/openssl/sm1.h
-e_skf.o: ../include/openssl/sm2.h ../include/openssl/sm3.h
-e_skf.o: ../include/openssl/sm9.h ../include/openssl/sms4.h
-e_skf.o: ../include/openssl/ssf33.h ../include/openssl/stack.h
-e_skf.o: ../include/openssl/symhacks.h ../include/openssl/x509.h
-e_skf.o: ../include/openssl/x509_vfy.h e_skf.c e_skf_err.h
+e_skf.o: ../include/openssl/pkcs7.h ../include/openssl/rsa.h
+e_skf.o: ../include/openssl/safestack.h ../include/openssl/sha.h
+e_skf.o: ../include/openssl/skf.h ../include/openssl/skf_ex.h
+e_skf.o: ../include/openssl/sm1.h ../include/openssl/sm2.h
+e_skf.o: ../include/openssl/sm3.h ../include/openssl/sm9.h
+e_skf.o: ../include/openssl/sms4.h ../include/openssl/ssf33.h
+e_skf.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
+e_skf.o: ../include/openssl/x509.h ../include/openssl/x509_vfy.h e_skf.c
+e_skf.o: e_skf_err.h
 e_sureware.o: ../include/openssl/asn1.h ../include/openssl/bio.h
 e_sureware.o: ../include/openssl/bn.h ../include/openssl/buffer.h
 e_sureware.o: ../include/openssl/crypto.h ../include/openssl/dh.h

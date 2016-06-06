@@ -2835,7 +2835,7 @@ static const struct {
     }
 };
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 static const struct {
 	EC_CURVE_DATA h;
 	unsigned char data[0 + 32 * 6];
@@ -3112,7 +3112,7 @@ static const ec_list_element curve_list[] = {
      "RFC 5639 curve over a 512 bit prime field"},
     {NID_brainpoolP512t1, &_EC_brainpoolP512t1.h, 0,
      "RFC 5639 curve over a 512 bit prime field"},
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     {NID_sm2p256v1, &_EC_SM2_PRIME_256V1.h, 0,
      "SM2 curve over a 256 bit prime field"},
     {NID_wapip192v1, &_EC_WAPI_PRIME_192V1.h, 0,

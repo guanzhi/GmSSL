@@ -1,4 +1,4 @@
-/* crypto/evp/m_btc.c */
+/* crypto/mycipher/mycipher.c */
 /* ====================================================================
  * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
@@ -46,72 +46,27 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
+ *
  */
 /*
- * This module is to support crypto-currency such as Bitcoin
+ * author's information
  */
 
-#include <stdio.h>
-#include "cryptlib.h"
+#include "mycipher.h"
 
-#ifndef OPENSSL_NO_GMSSL
-
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/sha.h>
-#include <openssl/ripemd.h>
-
-static int init(EVP_MD_CTX *ctx)
+void mycipher_set_encrypt_key(mycipher_key_t *key, const unsigned char *user_key)
 {
-	SHA256_Init(ctx->md_data->sha256);
-	RIPEMD_Init(ctx->md_data->rmd160);
 }
 
-static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+void mycipher_set_decrypt_key(mycipher_key_t *key, const unsigned char *user_key)
 {
-	SHA256_Update(ctx, in, inlen);
 }
 
-static int final(EVP_MD_CTX *ctx, unsigned char *md)
+void mycipher_encrypt(const unsigned char *in, unsigned char *out, const mycipher_key_t *key)
 {
-	return sm3_final(ctx->md_data, md);
 }
 
-static const EVP_MD sm3_md = {
-	NID_btchash,
-	NID_sm2sign_with_sm3,
-	SM3_DIGEST_LENGTH,
-	0,
-	init,
-	update,
-	final,
-	NULL,
-	NULL,
-	(evp_sign_method *)SM2_sign,
-	(evp_verify_method *)SM2_verify,
-	{EVP_PKEY_EC, 0, 0, 0},
-	SM3_BLOCK_SIZE,
-	sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
-};
-
-const EVP_MD *EVP_btc160(void)
+void mycipher_decrypt(const unsigned char *in, unsigned char *out, const mycipher_key_t *key)
 {
-        return &btc160_md;
 }
-
-const EVP_MD *EVP_btc256(void)
-{
-	return &btc256_md;
-}
-
-const EVP_MD *EVP_sm3_rmd160(void)
-{
-	return 0;
-}
-
-
-#endif
-
-
 

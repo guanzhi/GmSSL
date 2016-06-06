@@ -163,7 +163,7 @@ void OpenSSL_add_all_ciphers(void)
     EVP_add_cipher_alias(SN_rc5_cbc, "RC5");
 #endif
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     EVP_add_cipher(EVP_sms4_ecb());
     EVP_add_cipher(EVP_sms4_cbc());
     EVP_add_cipher(EVP_sms4_cfb());

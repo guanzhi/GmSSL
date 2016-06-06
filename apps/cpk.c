@@ -105,7 +105,7 @@
  */
 
 #include <openssl/opensslconf.h>
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
@@ -404,7 +404,7 @@ int MAIN(int argc, char **argv)
     apps_shutdown();
     OPENSSL_EXIT(ret);
 }
-#else                           /* !OPENSSL_NO_GMSSL */
+#else                           /* !NO_GMSSL */
 
 # if PEDANTIC
 static void *dummy = &dummy;

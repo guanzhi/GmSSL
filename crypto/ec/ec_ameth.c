@@ -613,7 +613,7 @@ const EVP_PKEY_ASN1_METHOD eckey_asn1_meth = {
     EVP_PKEY_EC,
     0,
     "EC",
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     "GmSSL EC/SM2 algorithm",
 #else
     "OpenSSL EC algorithm",

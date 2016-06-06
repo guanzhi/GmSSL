@@ -58,6 +58,7 @@
 #define DEV_NAME		"pseudo_dev"
 #define DEV_NAME_LIST		DEV_NAME"\0"
 
+SKF_HANDLE skf_dev_handle;
 
 ULONG DEVAPI SKF_EnumDev(BOOL bPresent,
 	LPSTR szNameList,
@@ -79,11 +80,14 @@ ULONG DEVAPI SKF_EnumDev(BOOL bPresent,
 ULONG DEVAPI SKF_ConnectDev(LPSTR szName,
 	DEVHANDLE *phDev)
 {
+	*phDev = &skf_dev_handle;
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DisConnectDev(DEVHANDLE hDev)
 {
+	//FIXME: close all handles
+	hDev = NULL;
 	return SAR_OK;
 }
 
@@ -155,4 +159,33 @@ int SKF_print_dev_info(DEVINFO *devInfo)
 	return 1;
 }
 
+char *SKF_get_alg_name(ULONG ulAlgID)
+{
+	//FIXME: make these name compatible with OBJ short name
+	switch (ulAlgID) {
+	case SGD_SM1_ECB: return "SM1-ECB";
+	case SGD_SM1_CBC: return "SM1-CBC";
+	case SGD_SM1_CFB: return "SM1-CFB";
+	case SGD_SM1_OFB: return "SM1-OFB";
+	case SGD_SM1_MAC: return "SM1-MAC";
+	case SGD_SM4_ECB: return "SM4-ECB";
+	case SGD_SM4_CBC: return "SM4-CBC";
+	case SGD_SM4_CFB: return "SM4-CFB";
+	case SGD_SM4_OFB: return "SM4-OFB";
+	case SGD_SM4_MAC: return "SM4-MAC";
+	case SGD_SSF33_ECB: return "SSF33-ECB";
+	case SGD_SSF33_CBC: return "SSF33-CBC";
+	case SGD_SSF33_CFB: return "SSF33-CFB";
+	case SGD_SSF33_OFB: return "SSF33-OFB";
+	case SGD_SSF33_MAC: return "SSF33-MAC";
+	case SGD_RSA: return "RSA";
+	case SGD_SM2_1: return "SM2-1";
+	case SGD_SM2_2: return "SM2-2";
+	case SGD_SM2_3: return "SM2-3";
+	case SGD_SM3: return "SM3";
+	case SGD_SHA1: return "SHA-1";
+	case SGD_SHA256: return "SHA256";
+	}
+	return "(unknown)";
+}
 

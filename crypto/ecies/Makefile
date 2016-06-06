@@ -122,4 +122,4 @@ ecies_lib.o: ../../include/openssl/safestack.h ../../include/openssl/sha.h
 ecies_lib.o: ../../include/openssl/sm2.h ../../include/openssl/sm3.h
 ecies_lib.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
 ecies_lib.o: ../../include/openssl/x509.h ../../include/openssl/x509_vfy.h
-ecies_lib.o: ecies_lib.c
+ecies_lib.o: ../o_str.h ecies_lib.c

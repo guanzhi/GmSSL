@@ -59,6 +59,7 @@
 #include <openssl/ecdh.h>
 #include <openssl/kdf.h>
 #include <openssl/ecies.h>
+#include "../o_str.h"
 
 
 static void *ecies_data_dup(void *data) {
@@ -71,7 +72,7 @@ static void *ecies_data_dup(void *data) {
 		return NULL;
 	}
 
-	memcpy(ret, param, sizeof(*param));	
+	memcpy(ret, param, sizeof(*param));
 
 	return ret;
 }
@@ -97,7 +98,8 @@ int ECIES_set_parameters(EC_KEY *ec_key, const ECIES_PARAMS *param)
 	return 1;
 }
 
-ECIES_PARAMS *ECIES_get_parameters(const EC_KEY *ec_key)
+//FIXME: is is _get0_ ?
+ECIES_PARAMS *ECIES_get_parameters(EC_KEY *ec_key)
 {
 	ECIES_PARAMS *ret;
 	if (!(ret = EC_KEY_get_key_method_data(ec_key,
@@ -120,7 +122,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	EVP_CIPHER_CTX cipher_ctx;
 	EVP_CIPHER_CTX_init(&cipher_ctx);
 
-	if (!(cv = ECIES_CIPHERTEXT_VALUE_new())) 
+	if (!(cv = ECIES_CIPHERTEXT_VALUE_new()))
 		{
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
@@ -164,7 +166,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_EC_LIB);
 		goto err;
-		}		
+		}
 
 	/*
 	 * use ecdh to compute enckey and mackey
@@ -205,7 +207,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		goto err;
 		}
 
-	if (!ECDH_compute_key(share, sharelen, 
+	if (!ECDH_compute_key(share, sharelen,
 		EC_KEY_get0_public_key(pub_key), ephem_key,
 		KDF_get_x9_63(param->kdf_md)))
 		{
@@ -222,15 +224,15 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	if (param->sym_cipher)
 		len = (int)(inlen + EVP_MAX_BLOCK_LENGTH * 2);
 	else	len = inlen;
-	
+
 	if (!M_ASN1_OCTET_STRING_set(cv->ciphertext, NULL, len))
 		{
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto err;
 		}
-	
-	if (param->sym_cipher) 
+
+	if (param->sym_cipher)
 		{
 		unsigned char iv[EVP_MAX_IV_LENGTH];
 		memset(iv, 0, sizeof(iv));
@@ -243,7 +245,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 			goto err;
 			}
 		p = cv->ciphertext->data;
-		if (!EVP_EncryptUpdate(&cipher_ctx, p, &len, in, (int)inlen)) 
+		if (!EVP_EncryptUpdate(&cipher_ctx, p, &len, in, (int)inlen))
 			{
 			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 			ECIESerr(ECIES_F_ECIES_DO_ENCRYPT,
@@ -259,7 +261,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 			goto err;
 			}
 		p += len;
-		cv->ciphertext->length = (int)(p - cv->ciphertext->data);		
+		cv->ciphertext->length = (int)(p - cv->ciphertext->data);
 		}
 	else
 		{
@@ -273,12 +275,12 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	 * calculate mactag of ciphertext and encode
 	 */
 	cv->mactag->length = maclen;
-	
+
 	if (!M_ASN1_OCTET_STRING_set(cv->mactag, NULL, cv->mactag->length))
 		{
 			fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
-		goto err;	
+		goto err;
 		}
 	if (!HMAC(param->mac_md, mackey, mackeylen,
 		cv->ciphertext->data, (size_t)cv->ciphertext->length,
@@ -293,8 +295,8 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 err:
 	EVP_CIPHER_CTX_cleanup(&cipher_ctx);
 	if (share) OPENSSL_free(share);
-	if (ephem_key) EC_KEY_free(ephem_key);	
-	if (e && cv) 
+	if (ephem_key) EC_KEY_free(ephem_key);
+	if (e && cv)
 		{
 		ECIES_CIPHERTEXT_VALUE_free(cv);
 		cv = NULL;
@@ -303,7 +305,7 @@ err:
 }
 
 int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
-	const ECIES_PARAMS *param, unsigned char *out, size_t *outlen, 
+	const ECIES_PARAMS *param, unsigned char *out, size_t *outlen,
 	EC_KEY *pri_key)
 {
 	int r = 0;
@@ -351,10 +353,10 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ECIES_R_BAD_DATA);
 		goto err;
 		}
-	
+
 	/*
 	 * use ecdh to compute enckey and mackey
-	 */	
+	 */
 	if (param->sym_cipher)
 		enckeylen = EVP_CIPHER_key_length(param->sym_cipher);
 	else	enckeylen = cv->ciphertext->length;
@@ -366,17 +368,17 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ERR_R_MALLOC_FAILURE);
 		goto err;
 		}
-	
+
 	if (!ECDH_compute_key(share, enckeylen + mackeylen,
 		ephem_point, pri_key,
-		KDF_get_x9_63(param->kdf_md))) 
+		KDF_get_x9_63(param->kdf_md)))
 		{
 		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ECIES_R_ECDH_FAILED);
 		goto err;
-		}		
+		}
 	enckey = share;
 	mackey = share + enckeylen;
-	
+
 	/*
 	 * generate and verify mac
 	 */
@@ -387,7 +389,7 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 		}
 	if (!HMAC(param->mac_md, mackey, mackeylen,
 		cv->ciphertext->data, (size_t)cv->ciphertext->length,
-		mac, (unsigned int *)&len)) 
+		mac, (unsigned int *)&len))
 		{
 		ECIESerr(ECIES_F_ECIES_DO_DECRYPT, ECIES_R_GEN_MAC_FAILED);
 		goto err;
@@ -431,14 +433,14 @@ int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,
 		p += len;
 		*outlen = (int)(p - out);
 		}
-		else 
+		else
 		{
 		int i;
 		for (i = 0; i < cv->ciphertext->length; i++)
 			out[i] = cv->ciphertext->data[i] ^ enckey[i];
 		*outlen = cv->ciphertext->length;
 		}
-		
+
 	r = 1;
 err:
 	if (share) OPENSSL_free(share);
@@ -463,7 +465,7 @@ int ECIES_encrypt(const ECIES_PARAMS *param,
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		return 0;
 	}
-	
+
 	if ((len = i2d_ECIES_CIPHERTEXT_VALUE(cv, NULL)) <= 0) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		ECIESerr(ECIES_F_ECIES_ENCRYPT, ECIES_R_ENCRYPT_FAILED);

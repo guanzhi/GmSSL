@@ -22,8 +22,8 @@ TEST=sm3test.c
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBSRC=sm3.c
-LIBOBJ=sm3.o
+LIBSRC=sm3.c sm3_hmac.c
+LIBOBJ=sm3.o sm3_hmac.o
 
 SRC= $(LIBSRC)
 
@@ -66,6 +66,8 @@ tests:
 lint:
 	lint -DLINT $(INCLUDES) $(SRC)>fluff
 
+update: depend
+
 depend:
 	@[ -n "$(MAKEDEPEND)" ] # should be set by upper Makefile...
 	$(MAKEDEPEND) -- $(CFLAG) $(INCLUDES) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
@@ -79,4 +81,5 @@ clean:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-sm3.o: ../byteorder.h sm3.c sm3.h
+sm3.o: ../../include/openssl/sm3.h ../byteorder.h sm3.c
+sm3_hmac.o: ../../include/openssl/sm3.h sm3_hmac.c

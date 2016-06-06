@@ -118,7 +118,7 @@ int i2d_ECIESParameters(const ECIES_PARAMS *param, unsigned char **out);
 ECIES_PARAMS *d2i_ECIESParameters(ECIES_PARAMS **param, const unsigned char **in, long len);
 
 int ECIES_set_parameters(EC_KEY *ec_key, const ECIES_PARAMS *param);
-ECIES_PARAMS *ECIES_get_parameters(const EC_KEY *ec_key);
+ECIES_PARAMS *ECIES_get_parameters(EC_KEY *ec_key);
 ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
 int ECIES_do_decrypt(const ECIES_CIPHERTEXT_VALUE *cv,

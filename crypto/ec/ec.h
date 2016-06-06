@@ -1004,7 +1004,7 @@ int EC_KEY_print_fp(FILE *fp, const EC_KEY *key, int off);
                                 EVP_PKEY_OP_PARAMGEN|EVP_PKEY_OP_KEYGEN, \
                                 EVP_PKEY_CTRL_EC_PARAM_ENC, flag, NULL)
 
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define EVP_PKEY_CTX_set_ec_sign_type(ctx, type) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
@@ -1036,7 +1036,7 @@ int EC_KEY_print_fp(FILE *fp, const EC_KEY *key, int off);
 	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
 				EVP_PKEY_OP_DERIVE, \
 				EVP_PKEY_CTRL_EC_DH_TYPE, -2, NULL);
-# endif /* OPENSSL_NO_GMSSL */
+# endif /* NO_GMSSL */
 
 
 
@@ -1101,7 +1101,7 @@ int EC_KEY_print_fp(FILE *fp, const EC_KEY *key, int off);
 # define EVP_PKEY_CTRL_EC_KDF_UKM                        (EVP_PKEY_ALG_CTRL + 9)
 # define EVP_PKEY_CTRL_GET_EC_KDF_UKM                    (EVP_PKEY_ALG_CTRL + 10)
 
-# ifndef OPENSSL_NO_GMSSL
+# ifndef NO_GMSSL
 # define EVP_PKEY_CTRL_EC_SIGN_TYPE                      (EVP_PKEY_ALG_CTRL + 11)
 # define EVP_PKEY_CTRL_GET_EC_SIGN_TYPE                  (EVP_PKEY_ALG_CTRL + 12)
 # define EVP_PKEY_CTRL_EC_ENC_TYPE                       (EVP_PKEY_ALG_CTRL + 13)

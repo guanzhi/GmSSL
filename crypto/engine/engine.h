@@ -411,7 +411,7 @@ void ENGINE_load_gmp(void);
 #  ifndef OPENSSL_NO_GOST
 void ENGINE_load_gost(void);
 #  endif
-#  ifndef OPENSSL_NO_SKF
+#  ifndef NO_GMSSL
 void ENGINE_load_skf(void);
 #  endif
 # endif

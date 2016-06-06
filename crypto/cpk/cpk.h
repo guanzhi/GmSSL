@@ -72,7 +72,7 @@ typedef struct cpk_master_secret_st {
 	ASN1_OCTET_STRING *secret_factors;
 } CPK_MASTER_SECRET;
 
-
+DECLARE_ASN1_FUNCTIONS(CPK_MASTER_SECRET)
 
 typedef struct cpk_public_params_st {
 	long version;
@@ -82,6 +82,7 @@ typedef struct cpk_public_params_st {
 	ASN1_OCTET_STRING *public_factors;
 } CPK_PUBLIC_PARAMS;
 
+DECLARE_ASN1_FUNCTIONS(CPK_PUBLIC_PARAMS)
 
 X509_ALGOR *CPK_MAP_new_default(void);
 int CPK_MAP_is_valid(const X509_ALGOR *algor);

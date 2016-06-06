@@ -211,3 +211,5 @@ link failures. Apply 109147-09 or later or modify Makefile generated
 by ./Configure solaris64-sparcv9-cc and replace RANLIB assignment with
 
 	RANLIB= /usr/ccs/bin/ar rs
+
+* gmssl warings: skf kdf

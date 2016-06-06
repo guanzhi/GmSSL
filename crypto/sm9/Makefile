@@ -66,6 +66,8 @@ tests:
 lint:
 	lint -DLINT $(INCLUDES) $(SRC)>fluff
 
+update: depend
+
 depend:
 	@[ -n "$(MAKEDEPEND)" ] # should be set by upper Makefile...
 	$(MAKEDEPEND) -- $(CFLAG) $(INCLUDES) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
@@ -88,3 +90,12 @@ sm9_err.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
 sm9_err.o: ../../include/openssl/safestack.h ../../include/openssl/sm9.h
 sm9_err.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
 sm9_err.o: sm9_err.c
+sm9_lib.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
+sm9_lib.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
+sm9_lib.o: ../../include/openssl/err.h ../../include/openssl/evp.h
+sm9_lib.o: ../../include/openssl/lhash.h ../../include/openssl/obj_mac.h
+sm9_lib.o: ../../include/openssl/objects.h ../../include/openssl/opensslconf.h
+sm9_lib.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
+sm9_lib.o: ../../include/openssl/safestack.h ../../include/openssl/sm9.h
+sm9_lib.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h sm9.h
+sm9_lib.o: sm9_lcl.h sm9_lib.c

@@ -823,7 +823,7 @@ const char *SSL_state_string(const SSL *s)
         str = "DWCHVB";
         break;
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 /* GMSSL */
 #endif
 
@@ -951,7 +951,7 @@ const char *SSL_alert_desc_string(int value)
     case TLS1_AD_UNKNOWN_PSK_IDENTITY:
         str = "UP";
         break;
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     case GM1_AD_UNSUPPORTED_SITE2SITE:
         str = "U2";
         break;
@@ -1073,7 +1073,7 @@ const char *SSL_alert_desc_string_long(int value)
     case TLS1_AD_UNKNOWN_PSK_IDENTITY:
         str = "unknown PSK identity";
         break;
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     case GM1_AD_UNSUPPORTED_SITE2SITE:
         str = "unsupported site2site";
         break;

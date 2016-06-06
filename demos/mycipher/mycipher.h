@@ -1,6 +1,6 @@
-/* demo/gmssl/sm3hmac.c */
+/* crypto/mycipher/mycipher.h */
 /* ====================================================================
- * Copyright (c) 2014 - 2015 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,61 +48,38 @@
  * ====================================================================
  *
  */
+/*
+ * author's information
+ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/hmac.h>
-#include <openssl/rand.h>
+#ifndef HEADER_MYCIPHER_H
+#define HEADER_MYCIPHER_H
 
-int main(int argc, char **argv)
-{
-	int ret = -1;
-	FILE *fp = stdin;
-	unsigned char key[32];
-	unsigned char buf[1024];
-	int len;
-	const EVP_MD *md;
-	HMAC_CTX hmctx;
-	unsigned char mac[EVP_MAX_MD_SIZE];
-	unsigned int maclen, i;
+#define MYCIPHER_KEY_LENGTH		16
+#define MYCIPHER_BLOCK_SIZE		16
+#define MYCIPHER_IV_LENGTH		(MYCIPHER_BLOCK_SIZE)
 
-	if (argc == 2) {
-		if (!(fp = fopen(argv[1], "r"))) {
-			fprintf(stderr, "open file %s failed\n", argv[1]);
-			return -1;
-		}
-	}
+#include <sys/types.h>
+#include <stdint.h>
+#include <string.h>
 
-	HMAC_CTX_init(&hmctx);
 
-	RAND_bytes(key, sizeof(key));
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-	OpenSSL_add_all_digests();
-	if (!(md = EVP_get_digestbyname("sm3"))) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-	
-	HMAC_Init_ex(&hmctx, key, sizeof(key), md, NULL);
+typedef struct {
+	unsigned char rk[100];
+} mycipher_key_t;
 
-	while ((len = fread(buf, 1, sizeof(buf), fp))) {
-		HMAC_Update(&hmctx, buf, len);
-	}
+void mycipher_set_encrypt_key(mycipher_key_t *key, const unsigned char *user_key);
+void mycipher_set_decrypt_key(mycipher_key_t *key, const unsigned char *user_key);
+void mycipher_encrypt(const unsigned char *in, unsigned char *out, const mycipher_key_t *key);
+void mycipher_decrypt(const unsigned char *in, unsigned char *out, const mycipher_key_t *key);
 
-	HMAC_Final(&hmctx, mac, &maclen);
 
-	for (i = 0; i < maclen; i++) {
-		printf("%02x", mac[i]);
-	}
-	printf("\n");
-	ret = 0;
-
-end:
-	fclose(fp);
-	HMAC_CTX_cleanup(&hmctx);
-	EVP_cleanup();
-	return ret;
+#ifdef __cplusplus
 }
+#endif
+#endif
 

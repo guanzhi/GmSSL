@@ -54,8 +54,7 @@
 #include <openssl/skf.h>
 #include <openssl/skf_ex.h>
 #include "skf_lcl.h"
-
-#if 0
+#if 1
 ULONG DEVAPI SKF_GenExtRSAKey(DEVHANDLE hDev,
 	ULONG ulBitsLen,
 	RSAPRIVATEKEYBLOB *pBlob)
@@ -226,104 +225,101 @@ ULONG DEVAPI SKF_RSAVerify(DEVHANDLE hDev,
 RSA *RSA_new_from_RSAPUBLICKEYBLOB(const RSAPUBLICKEYBLOB *blob)
 {
 	RSA *ret;
-
 	if (!(ret = RSA_new())) {
 		SKFerr(SKF_F_RSA_NEW_FROM_RSAPUBLICKEYBLOB, ERR_R_RSA_LIB);
 		return NULL;
 	}
-
 	if (!RSA_set_RSAPUBLICKEYBLOB(ret, blob)) {
 		SKFerr(SKF_F_RSA_NEW_FROM_RSAPUBLICKEYBLOB, SKF_R_INVALID_RSA_PUBLIC_KEY);
 		RSA_free(ret);
 		return NULL;
 	}
-
 	return ret;
 }
 
 RSA *RSA_new_from_RSAPRIVATEKEYBLOB(const RSAPRIVATEKEYBLOB *blob)
 {
 	RSA *ret;
-
 	if (!(ret = RSA_new())) {
 		SKFerr(SKF_F_RSA_NEW_FROM_RSAPRIVATEKEYBLOB, ERR_R_RSA_LIB);
 		return NULL;
 	}
-
 	if (!RSA_set_RSAPRIVATEKEYBLOB(ret, blob)) {
 		SKFerr(SKF_F_RSA_NEW_FROM_RSAPRIVATEKEYBLOB, SKF_R_INVALID_RSA_PRIVATE_KEY);
 		RSA_free(ret);
 		return NULL;
 	}
-
 	return ret;
 }
 
 int RSA_set_RSAPUBLICKEYBLOB(RSA *rsa, const RSAPUBLICKEYBLOB *blob)
 {
-	int ret = 0;
-
 	if (!rsa || !blob) {
-		SKFerr(SKF_F_RSA_SET_RSAPUBLICKEYBLOB, SKF_R_NULL_ARGUMENT);
+		SKFerr(SKF_F_RSA_SET_RSAPUBLICKEYBLOB,
+			ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
-
-	if (!(rsa->n = BN_bin2bn(blob->Modulus, blob->BitLen/8, rsa->n))) {
-		goto end;
+	if ((blob->BitLen < 1024) || (blob->BitLen > MAX_RSA_MODULUS_LEN*8) ||
+		(blob->BitLen / 8 != 0)) {
+		SKFerr(SKF_F_RSA_SET_RSAPUBLICKEYBLOB, SKF_R_INVALID_RSA_KEY_LENGTH);
+		return 0;
 	}
-
-	if (!(rsa->e = BN_bin2bn(blob->PublicExponent, blob->BitLen/8, rsa->e))) {
-		goto end;
+	if (!(rsa->n = BN_bin2bn(blob->Modulus, blob->BitLen/8, rsa->n))) {
+		SKFerr(SKF_F_RSA_SET_RSAPUBLICKEYBLOB, SKF_R_INVALID_RSA_PUBLIC_KEY);
+		return 0;
+	}
+	if (!(rsa->e = BN_bin2bn(blob->PublicExponent, MAX_RSA_EXPONENT_LEN, rsa->e))) {
+		SKFerr(SKF_F_RSA_SET_RSAPUBLICKEYBLOB, SKF_R_INVALID_RSA_PUBLIC_KEY);
+		return 0;
 	}
 	if (!RSA_check_key(rsa)) {
-		goto end;
+		SKFerr(SKF_F_RSA_SET_RSAPUBLICKEYBLOB, SKF_R_INVALID_RSA_PUBLIC_KEY);
+		return 0;
 	}
-
-end:
-	return ret;
+	return 1;
 }
 
 int RSA_get_RSAPUBLICKEYBLOB(RSA *rsa, RSAPUBLICKEYBLOB *blob)
 {
-	int ret = 0;
 	int nbytes;
-
+	if (!rsa || !blob) {
+		SKFerr(SKF_F_RSA_GET_RSAPUBLICKEYBLOB,
+			ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
 	if (!rsa->n || !rsa->e) {
-		goto end;
+		SKFerr(SKF_F_RSA_GET_RSAPUBLICKEYBLOB,
+			SKF_R_INVALID_RSA_PUBLIC_KEY);
+		return 0;
 	}
-
 	nbytes = BN_num_bytes(rsa->n);
-
-	if (!BN_bn2bin(rsa->n, blob->Modulus + bnlen - BN_num_bytes(rsa->n)) ||
-		!BN_bn2bin(rsa->e, blob->PublicExponent + bnlen - BN_num_bytes(rsa->e))) {
+	if (!BN_bn2bin(rsa->n, blob->Modulus) || !BN_bn2bin(rsa->e,
+		blob->PublicExponent + MAX_RSA_EXPONENT_LEN - BN_num_bytes(rsa->e))) {
+		SKFerr(SKF_F_RSA_GET_RSAPUBLICKEYBLOB,
+			SKF_R_ENCODE_RSA_PUBLIC_KEY_FAILED);
+		return 0;
 	}
-
-	return ret;
+	return 1;
 }
-
 
 int RSA_set_RSAPRIVATEKEYBLOB(RSA *rsa, const RSAPRIVATEKEYBLOB *blob)
 {
-	int ret = 0;
 	int nbytes;
-
 	if (!rsa || !blob) {
-		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKF_R_NULL_ARGUMENT);
-		return SAR_INVALIDPARAMERR;
+		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB,
+			ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
 	}
-
 	if (blob->AlgID != SGD_RSA) {
-		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKR_R_INVALID_ALGOR);
-		return SAR_INVALIDPARAMERR;
+		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKF_R_INVALID_ALGOR);
+		return 0;
 	}
-
 	if ((blob->BitLen < 1024) || (blob->BitLen > MAX_RSA_MODULUS_LEN*8) ||
 		(blob->BitLen % 8 != 0) || (blob->BitLen % 16 != 0)) {
-		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKR_R_INVALID_KEY_LENGTH);
-		return SAR_INVALIDPARAMERR;
+		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKF_R_INVALID_KEY_LENGTH);
+		return 0;
 	}
 	nbytes = blob->BitLen/8;
-
 	if (!(rsa->n = BN_bin2bn(blob->Modulus, nbytes, rsa->n)) ||
 		!(rsa->e = BN_bin2bn(blob->PublicExponent, MAX_RSA_EXPONENT_LEN, rsa->e)) ||
 		!(rsa->d = BN_bin2bn(blob->PrivateExponent, nbytes, rsa->d)) ||
@@ -332,26 +328,24 @@ int RSA_set_RSAPRIVATEKEYBLOB(RSA *rsa, const RSAPRIVATEKEYBLOB *blob)
 		!(rsa->dmp1 = BN_bin2bn(blob->Prime1Exponent, nbytes/2, rsa->dmp1)) ||
 		!(rsa->dmq1 = BN_bin2bn(blob->Prime2Exponent, nbytes/2, rsa->dmq1)) ||
 		!(rsa->iqmp = BN_bin2bn(blob->Coefficient, nbytes/2, rsa->iqmp))) {
-
-		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKR_R_INVALID_RSA_PRIVATE_KEY);
-		return SAR_INVALIDPARAMERR;
+		SKFerr(SKF_F_RSA_SET_RSAPRIVATEKEYBLOB, SKF_R_INVALID_RSA_PRIVATE_KEY);
+		return 0;
 	}
-
-	return SAR_OK;
+	return 1;
 }
 
 int RSA_get_RSAPRIVATEKEYBLOB(RSA *rsa, RSAPRIVATEKEYBLOB *blob)
 {
 	int nbytes;
 	if (!rsa || !blob) {
-		SKFerr(SKF_F_RSA_GET_RSAPRIVATEKEYBLOB, SKF_R_NULL_ARGUMENT);
-		return SAR_INVALIDPARAMERR;
+		SKFerr(SKF_F_RSA_GET_RSAPRIVATEKEYBLOB,
+			ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
 	}
-
 	if (!rsa->n || !rsa->e || !rsa->d || !rsa->p || !rsa->q ||
-		!rsa->dmp1 || !rsa->dmq1 || !rsa->iqmp)
+		!rsa->dmp1 || !rsa->dmq1 || !rsa->iqmp) {
 		SKFerr(SKF_F_RSA_GET_RSAPRIVATEKEYBLOB, SKF_R_INVALID_RSA_PRIVATE_KEY);
-		return SAR_INVALIDPARAMERR;
+		return 0;
 	}
 
 	bzero(blob, sizeof(*blob));
@@ -367,11 +361,10 @@ int RSA_get_RSAPRIVATEKEYBLOB(RSA *rsa, RSAPRIVATEKEYBLOB *blob)
 		!BN_bn2bin(rsa->dmp1, blob->Prime1Exponent + nbytes/2 - BN_num_bytes(rsa->dmp1)) ||
 		!BN_bn2bin(rsa->dmq1, blob->Prime2Exponent + nbytes/2 - BN_num_bytes(rsa->dmq1)) ||
 		!BN_bn2bin(rsa->iqmp, blob->Coefficient + nbytes/2 - BN_num_bytes(rsa->iqmp))) {
-
 		SKFerr(SKF_F_RSA_GET_RSAPRIVATEKEYBLOB, SKF_R_INVALID_RSA_PRIVATE_KEY);
-		return SAR_INVALIDPARAMERR;
+		return 0;
 	}
 
-	return SAR_OK;
+	return 1;
 }
 #endif

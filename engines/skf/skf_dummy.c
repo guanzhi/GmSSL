@@ -50,8 +50,10 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include "skf.h"
+#include <openssl/skf.h>
+
 
 #define DEV_NAME		"skf-soft-token"
 #define DEV_NAME_LIST		DEV_NAME"\0"
@@ -61,14 +63,19 @@
 #define CONTAINER_NAME_LIST	CONTAINER_NAME"\0"
 
 
+#define PRINT_LOG() \
+	printf("skf_dummy engine: %s() called\n", __FUNCTION__)
+
 ULONG DEVAPI SKF_WaitForDevEvent(LPSTR szDevName,
 	ULONG *pulDevNameLen, ULONG *pulEvent)
 {
+	PRINT_LOG();
 	return SAR_NOTSUPPORTYETERR;
 }
 
 ULONG DEVAPI SKF_CancelWaitForDevEvent()
 {
+	PRINT_LOG();
 	return SAR_NOTSUPPORTYETERR;
 }
 
@@ -76,23 +83,35 @@ ULONG DEVAPI SKF_EnumDev(BOOL bPresent,
 	LPSTR szNameList,
 	ULONG *pulSize)
 {
+	PRINT_LOG();
+	*pulSize = sizeof(DEV_NAME_LIST);
+	if (szNameList) {
+		memcpy(szNameList, DEV_NAME_LIST, sizeof(DEV_NAME_LIST));
+	}
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ConnectDev(LPSTR szName,
 	DEVHANDLE *phDev)
 {
+	PRINT_LOG();
+	*phDev = malloc(256);
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DisConnectDev(DEVHANDLE hDev)
 {
+	PRINT_LOG();
+	if (hDev) {
+		free(hDev);
+	}
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetDevState(LPSTR szDevName,
 	ULONG *pulDevState)
 {
+	PRINT_LOG();
 	if (!pulDevState) {
 		return SAR_INVALIDPARAMERR;
 	}
@@ -103,6 +122,7 @@ ULONG DEVAPI SKF_GetDevState(LPSTR szDevName,
 ULONG DEVAPI SKF_SetLabel(DEVHANDLE hDev,
 	LPSTR szLabel)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -110,6 +130,7 @@ ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
 	DEVINFO *pDevInfo)
 {
 	DEVINFO devInfo;
+	PRINT_LOG();
 
 	bzero(&devInfo, sizeof(DEVINFO));
 	devInfo.Version.major = 1;
@@ -138,11 +159,13 @@ ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
 ULONG DEVAPI SKF_LockDev(DEVHANDLE hDev,
 	ULONG ulTimeOut)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_UnlockDev(DEVHANDLE hDev)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -152,6 +175,8 @@ ULONG DEVAPI SKF_Transmit(DEVHANDLE hDev,
 	BYTE *pbData,
 	ULONG *pulDataLen)
 {
+	PRINT_LOG();
+	*pulDataLen = ulCommandLen;
 	return SAR_OK;
 }
 
@@ -159,6 +184,7 @@ ULONG DEVAPI SKF_ChangeDevAuthKey(DEVHANDLE hDev,
 	BYTE *pbKeyValue,
 	ULONG ulKeyLen)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -166,6 +192,7 @@ ULONG DEVAPI SKF_DevAuth(DEVHANDLE hDev,
 	BYTE *pbAuthData,
 	ULONG ulLen)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -175,6 +202,8 @@ ULONG DEVAPI SKF_ChangePIN(HAPPLICATION hApplication,
 	LPSTR szNewPin,
 	ULONG *pulRetryCount)
 {
+	PRINT_LOG();
+	*pulRetryCount = 10;
 	return SAR_OK;
 }
 
@@ -184,7 +213,11 @@ LONG DEVAPI SKF_GetPINInfo(HAPPLICATION hApplication,
 	ULONG *pulRemainRetryCount,
 	BOOL *pbDefaultPin)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulMaxRetryCount = 10;
+	*pulRemainRetryCount = 10;
+	*pbDefaultPin = 0;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_VerifyPIN(HAPPLICATION hApplication,
@@ -192,6 +225,8 @@ ULONG DEVAPI SKF_VerifyPIN(HAPPLICATION hApplication,
 	LPSTR szPIN,
 	ULONG *pulRetryCount)
 {
+	PRINT_LOG();
+	*pulRetryCount = 10;
 	return SAR_OK;
 }
 
@@ -200,11 +235,14 @@ ULONG DEVAPI SKF_UnblockPIN(HAPPLICATION hApplication,
 	LPSTR szNewUserPIN,
 	ULONG *pulRetryCount)
 {
+	PRINT_LOG();
+	*pulRetryCount = 10;
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ClearSecureState(HAPPLICATION hApplication)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -217,6 +255,8 @@ ULONG DEVAPI SKF_CreateApplication(DEVHANDLE hDev,
 	DWORD dwCreateFileRights,
 	HAPPLICATION *phApplication)
 {
+	PRINT_LOG();
+	*phApplication = malloc(256);
 	return SAR_OK;
 }
 
@@ -224,6 +264,7 @@ ULONG DEVAPI SKF_EnumApplication(DEVHANDLE hDev,
 	LPSTR szAppName,
 	ULONG *pulSize)
 {
+	PRINT_LOG();
 	if (!szAppName) {
 		*pulSize = sizeof(APP_NAME_LIST);
 		return SAR_OK;
@@ -238,6 +279,7 @@ ULONG DEVAPI SKF_EnumApplication(DEVHANDLE hDev,
 ULONG DEVAPI SKF_DeleteApplication(DEVHANDLE hDev,
 	LPSTR szAppName)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -245,75 +287,93 @@ ULONG DEVAPI SKF_OpenApplication(DEVHANDLE hDev,
 	LPSTR szAppName,
 	HAPPLICATION *phApplication)
 {
-	if (!phApplication) {
-		return SAR_INVALIDPARAMERR;
-	}
+	PRINT_LOG();
+	*phApplication = malloc(256);
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseApplication(HAPPLICATION hApplication)
 {
+	PRINT_LOG();
+	if (hApplication) {
+		free(hApplication);
+	}
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CreateFile(HAPPLICATION hApplication,
 	LPSTR szFileName,
-	ULONG ulFileSize, 
+	ULONG ulFileSize,
 	ULONG ulReadRights,
 	ULONG ulWriteRights)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DeleteFile(HAPPLICATION hApplication,
 	LPSTR szFileName)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_EnumFiles(HAPPLICATION hApplication, 
+ULONG DEVAPI SKF_EnumFiles(HAPPLICATION hApplication,
 	LPSTR szFileList,
 	ULONG *pulSize)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulSize = sizeof("File1\0");
+	if (szFileList) {
+		memcpy(szFileList, "File1\0", sizeof("File1\0"));
+	}
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetFileInfo(HAPPLICATION hApplication,
 	LPSTR szFileName,
 	FILEATTRIBUTE *pFileInfo)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	bzero(pFileInfo, sizeof(*pFileInfo));
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ReadFile(HAPPLICATION hApplication,
 	LPSTR szFileName,
-	ULONG ulOffset, 
-	ULONG ulSize, 
-	BYTE * pbOutData, 
+	ULONG ulOffset,
+	ULONG ulSize,
+	BYTE * pbOutData,
 	ULONG *pulOutLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulOutLen = ulSize;
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_WriteFile(HAPPLICATION hApplication, 
+ULONG DEVAPI SKF_WriteFile(HAPPLICATION hApplication,
 	LPSTR szFileName,
-	ULONG  ulOffset, 
+	ULONG  ulOffset,
 	BYTE *pbData,
 	ULONG ulSize)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CreateContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer)
 {
+	PRINT_LOG();
+	*phContainer = malloc(256);
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_DeleteContainer(HAPPLICATION hApplication, 
+ULONG DEVAPI SKF_DeleteContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -321,6 +381,7 @@ ULONG DEVAPI SKF_EnumContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	ULONG *pulSize)
 {
+	PRINT_LOG();
 	if (!pulSize) {
 		return SAR_INVALIDPARAMERR;
 	}
@@ -339,29 +400,32 @@ ULONG DEVAPI SKF_OpenContainer(HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer)
 {
+	PRINT_LOG();
+	*phContainer = malloc(256);
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseContainer(HCONTAINER hContainer)
 {
+	PRINT_LOG();
+	free(hContainer);
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetContainerType(HCONTAINER hContainer,
 	ULONG *pulContainerType)
 {
-	if (!pulContainerType) {
-		return SAR_INVALIDPARAMERR;
-	}
+	PRINT_LOG();
 	*pulContainerType = CONTAINER_TYPE_ECC;
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ImportCertificate(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ImportCertificate(HCONTAINER hContainer,
 	BOOL bSignFlag,
 	BYTE *pbCert,
 	ULONG ulCertLen)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -370,77 +434,91 @@ ULONG DEVAPI SKF_ExportCertificate(HCONTAINER hContainer,
 	BYTE* pbCert,
 	ULONG *pulCertLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulCertLen = 2048;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenRandom(DEVHANDLE hDev,
 	BYTE *pbRandom,
 	ULONG ulRandomLen)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_GenExtRSAKey(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_GenExtRSAKey(DEVHANDLE hDev,
 	ULONG ulBitsLen,
 	RSAPRIVATEKEYBLOB *pBlob)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_GenRSAKeyPair(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_GenRSAKeyPair(HCONTAINER hContainer,
 	ULONG ulBitsLen,
 	RSAPUBLICKEYBLOB *pBlob)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ImportRSAKeyPair(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ImportRSAKeyPair(HCONTAINER hContainer,
 	ULONG ulSymAlgId,
 	BYTE *pbWrappedKey,
 	ULONG ulWrappedKeyLen,
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_RSASignData(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_RSASignData(HCONTAINER hContainer,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbSignature,
 	ULONG *pulSignLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulSignLen = 256;
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_RSAVerify(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_RSAVerify(DEVHANDLE hDev,
 	RSAPUBLICKEYBLOB *pRSAPubKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbSignature,
 	ULONG ulSignLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_RSAExportSessionKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_RSAExportSessionKey(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	RSAPUBLICKEYBLOB *pPubKey,
 	BYTE *pbData,
 	ULONG *pulDataLen,
 	HANDLE *phSessionKey)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulDataLen = 100;
+	*phSessionKey = malloc(256);
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ExtRSAPubKeyOperation(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_ExtRSAPubKeyOperation(DEVHANDLE hDev,
 	RSAPUBLICKEYBLOB *pRSAPubKeyBlob,
 	BYTE *pbInput,
 	ULONG ulInputLen,
 	BYTE *pbOutput,
 	ULONG *pulOutputLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulOutputLen = ulInputLen;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtRSAPriKeyOperation(DEVHANDLE hDev,
@@ -450,82 +528,95 @@ ULONG DEVAPI SKF_ExtRSAPriKeyOperation(DEVHANDLE hDev,
 	BYTE *pbOutput,
 	ULONG *pulOutputLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulOutputLen = ulInputLen;
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenECCKeyPair(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pBlob)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ImportECCKeyPair(HCONTAINER hContainer,
-	PENVELOPEDKEYBLOB pEnvelopedKeyBlob)
+	ENVELOPEDKEYBLOB *pEnvelopedKeyBlob)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ECCSignData(HCONTAINER hContainer,
 	BYTE *pbData,
 	ULONG ulDataLen,
-	PECCSIGNATUREBLOB pSignature)
+	ECCSIGNATUREBLOB *pSignature)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ECCVerify(DEVHANDLE hDev,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
-	PECCSIGNATUREBLOB pSignature)
+	ECCSIGNATUREBLOB *pSignature)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ECCExportSessionKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ECCExportSessionKey(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pPubKey,
 	PECCCIPHERBLOB pData,
 	HANDLE *phSessionKey)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*phSessionKey = malloc(256);
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtECCEncrypt(DEVHANDLE hDev,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbPlainText,
 	ULONG ulPlainTextLen,
-	PECCCIPHERBLOB pCipherText)
+	ECCCIPHERBLOB *pCipherText)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtECCDecrypt(DEVHANDLE hDev,
 	ECCPRIVATEKEYBLOB *pECCPriKeyBlob,
-	PECCCIPHERBLOB pCipherText,
+	ECCCIPHERBLOB *pCipherText,
 	BYTE *pbPlainText,
 	ULONG *pulPlainTextLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulPlainTextLen = sizeof(ECCCIPHERBLOB) + pCipherText->CipherLen - 1;
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ExtECCSign(DEVHANDLE hDev, 
+ULONG DEVAPI SKF_ExtECCSign(DEVHANDLE hDev,
 	ECCPRIVATEKEYBLOB *pECCPriKeyBlob,
+	BYTE *pbData,
+	ULONG ulDataLen,
+	ECCSIGNATUREBLOB *pSignature)
+{
+	PRINT_LOG();
+	return SAR_OK;
+}
+
+ULONG DEVAPI SKF_ExtECCVerify(DEVHANDLE hDev,
+	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	PECCSIGNATUREBLOB pSignature)
 {
-	return SAR_NOTSUPPORTYETERR;
-}
-
-ULONG DEVAPI SKF_ExtECCVerify(DEVHANDLE hDev, 
-	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
-	BYTE *pbData, 
-	ULONG ulDataLen, 
-	PECCSIGNATUREBLOB pSignature)
-{
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenerateAgreementDataWithECC(HCONTAINER hContainer,
@@ -535,10 +626,12 @@ ULONG DEVAPI SKF_GenerateAgreementDataWithECC(HCONTAINER hContainer,
 	ULONG ulIDLen,
 	HANDLE *phAgreementHandle)
 {
+	PRINT_LOG();
+	*phAgreementHandle = malloc(256);
 	return SAR_NOTSUPPORTYETERR;
 }
 
-ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(HANDLE hContainer, 
+ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(HANDLE hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pSponsorECCPubKeyBlob,
 	ECCPUBLICKEYBLOB *pSponsorTempECCPubKeyBlob,
@@ -549,47 +642,58 @@ ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(HANDLE hContainer,
 	ULONG ulSponsorIDLen,
 	HANDLE *phKeyHandle)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*phKeyHandle = malloc(256);
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenerateKeyWithECC(HANDLE hAgreementHandle,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	ECCPUBLICKEYBLOB *pTempECCPubKeyBlob,
-	BYTE *pbID, 
-	ULONG ulIDLen, 
+	BYTE *pbID,
+	ULONG ulIDLen,
 	HANDLE *phKeyHandle)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*phKeyHandle = malloc(256);
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ExportPublicKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ExportPublicKey(HCONTAINER hContainer,
 	BOOL bSignFlag,
-	BYTE* pbBlob, 
-	ULONG* pulBlobLen)
+	BYTE *pbBlob,
+	ULONG *pulBlobLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulBlobLen = 1024;
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_ImportSessionKey(HCONTAINER hContainer, 
+ULONG DEVAPI SKF_ImportSessionKey(HCONTAINER hContainer,
 	ULONG ulAlgId,
 	BYTE *pbWrapedData,
 	ULONG ulWrapedLen,
 	HANDLE *phKey)
 {
-	return SAR_NOTSUPPORTYETERR;
-}
-
-ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev, 
-	BYTE *pbKey,
-	ULONG ulAlgID, 
-	HANDLE *phKey)
-{
+	PRINT_LOG();
+	*phKey = malloc(256);
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_EncryptInit(HANDLE hKey, 
+ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev,
+	BYTE *pbKey,
+	ULONG ulAlgID,
+	HANDLE *phKey)
+{
+	PRINT_LOG();
+	*phKey = malloc(256);
+	return SAR_OK;
+}
+
+ULONG DEVAPI SKF_EncryptInit(HANDLE hKey,
 	BLOCKCIPHERPARAM EncryptParam)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -599,15 +703,19 @@ ULONG DEVAPI SKF_Encrypt(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen)
 {
+	PRINT_LOG();
+	*pulEncryptedLen = ulDataLen;
 	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptUpdate(HANDLE hKey,
 	BYTE *pbData,
-	ULONG ulDataLen, 
-	BYTE *pbEncryptedData, 
+	ULONG ulDataLen,
+	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen)
 {
+	PRINT_LOG();
+	*pulEncryptedLen = ulDataLen;
 	return SAR_OK;
 }
 
@@ -615,37 +723,46 @@ ULONG DEVAPI SKF_EncryptFinal(HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedDataLen)
 {
+	PRINT_LOG();
+	*pulEncryptedDataLen = 0;
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_DecryptInit(HANDLE hKey, 
+ULONG DEVAPI SKF_DecryptInit(HANDLE hKey,
 	BLOCKCIPHERPARAM DecryptParam)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_Decrypt(HANDLE hKey, 
+ULONG DEVAPI SKF_Decrypt(HANDLE hKey,
 	BYTE *pbEncryptedData,
-	ULONG ulEncryptedLen, 
-	BYTE *pbData, 
+	ULONG ulEncryptedLen,
+	BYTE *pbData,
 	ULONG *pulDataLen)
 {
+	PRINT_LOG();
+	*pulDataLen = ulEncryptedLen;
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey, 
+ULONG DEVAPI SKF_DecryptUpdate(HANDLE hKey,
 	BYTE *pbEncryptedData,
-	ULONG ulEncryptedLen, 
-	BYTE *pbData, 
+	ULONG ulEncryptedLen,
+	BYTE *pbData,
 	ULONG *pulDataLen)
 {
+	PRINT_LOG();
+	*pulDataLen = ulEncryptedLen;
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey, 
+ULONG DEVAPI SKF_DecryptFinal(HANDLE hKey,
 	BYTE *pbDecryptedData,
 	ULONG *pulDecryptedDataLen)
 {
+	PRINT_LOG();
+	*pulDecryptedDataLen = 0;
 	return SAR_OK;
 }
 
@@ -656,6 +773,8 @@ ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev,
 	ULONG ulIDLen,
 	HANDLE *phHash)
 {
+	PRINT_LOG();
+	*phHash = malloc(256);
 	return SAR_OK;
 }
 
@@ -665,6 +784,8 @@ ULONG DEVAPI SKF_Digest(HANDLE hHash,
 	BYTE *pbHashData,
 	ULONG *pulHashLen)
 {
+	PRINT_LOG();
+	*pulHashLen = 32;
 	return SAR_OK;
 }
 
@@ -672,6 +793,7 @@ ULONG DEVAPI SKF_DigestUpdate(HANDLE hHash,
 	BYTE *pbData,
 	ULONG ulDataLen)
 {
+	PRINT_LOG();
 	return SAR_OK;
 }
 
@@ -679,41 +801,54 @@ ULONG DEVAPI SKF_DigestFinal(HANDLE hHash,
 	BYTE *pHashData,
 	ULONG *pulHashLen)
 {
+	PRINT_LOG();
+	*pulHashLen = 32;
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_MacInit(HANDLE hKey, 
+ULONG DEVAPI SKF_MacInit(HANDLE hKey,
 	BLOCKCIPHERPARAM *pMacParam,
 	HANDLE *phMac)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*phMac = malloc(256);
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Mac(HANDLE hMac,
 	BYTE *pbData,
-	ULONG ulDataLen, 
-	BYTE *pbMacData, 
+	ULONG ulDataLen,
+	BYTE *pbMac,
 	ULONG *pulMacLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulMacLen = 16;
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_MacUpdate(HANDLE hMac, 
+ULONG DEVAPI SKF_MacUpdate(HANDLE hMac,
 	BYTE *pbData,
 	ULONG ulDataLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_MacFinal(HANDLE hMac, 
-	BYTE *pbMacData,
-	ULONG *pulMacDataLen)
+ULONG DEVAPI SKF_MacFinal(HANDLE hMac,
+	BYTE *pbMac,
+	ULONG *pulMacLen)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	*pulMacLen = 16;
+	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_CloseHandle(HANDLE hHandle)
+ULONG DEVAPI SKF_CloseHandle(HANDLE handle)
 {
-	return SAR_NOTSUPPORTYETERR;
+	PRINT_LOG();
+	if (handle) {
+		free(handle);
+	}
+	return SAR_OK;
 }
 

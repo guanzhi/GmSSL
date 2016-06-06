@@ -228,6 +228,7 @@ void ERR_load_SM2_strings(void);
 # define SM2_F_SM2_CIPHERTEXT_VALUE_PRINT                 103
 # define SM2_F_SM2_CIPHERTEXT_VALUE_SIZE                  104
 # define SM2_F_SM2_COMPUTE_ID_DIGEST                      105
+# define SM2_F_SM2_COMPUTE_ID_DIGEST_EX                   127
 # define SM2_F_SM2_DECRYPT                                106
 # define SM2_F_SM2_DO_DECRYPT                             107
 # define SM2_F_SM2_DO_ENCRYPT                             108

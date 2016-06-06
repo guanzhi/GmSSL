@@ -2891,7 +2891,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      256},
 #endif
 
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
 	/* (GmSSL specific) */
 	{
 		1,

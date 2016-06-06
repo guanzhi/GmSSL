@@ -83,15 +83,13 @@ struct SKF_HANDLE {
 
 typedef struct SKF_HANDLE SKF_HANDLE;
 
-SKF_HANDLE *SKF_HANDLE_new(int type);
-EVP_MD_CTX *SKF_HANDLE_get_md_ctx(SKF_HANDLE *hHash);
-CBCMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(SKF_HANDLE *hMac);
-EVP_CIPHER_CTX *SKF_HANDLE_get_cipher_ctx(SKF_HANDLE *hKey);
-unsigned char *SKF_HANDLE_get_key(SKF_HANDLE *hKey);
-int SKF_HANDLE_set1_md_ctx(SKF_HANDLE *hHash, EVP_MD_CTX *ctx);
-int SKF_HANDLE_set1_cbcmac_ctx(SKF_HANDLE *hMac, CBCMAC_CTX *ctx);
-int SKF_HANDLE_set1_cipher_ctx(SKF_HANDLE *hKey, EVP_CIPHER_CTX *ctx);
-int SKF_HANDLE_free(SKF_HANDLE *handle);
+EVP_MD_CTX *SKF_HANDLE_get_md_ctx(HANDLE hHash);
+CBCMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(HANDLE hMac);
+const EVP_CIPHER *SKF_HANDLE_get_cipher(HANDLE hKey, BLOCKCIPHERPARAM *param);
+EVP_CIPHER_CTX *SKF_HANDLE_get_cipher_ctx(HANDLE hKey);
+unsigned char *SKF_HANDLE_get_key(HANDLE hKey);
+
+
 
 
 #ifdef  __cplusplus

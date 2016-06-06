@@ -128,7 +128,7 @@ int SSL_SESSION_print(BIO *bp, const SSL_SESSION *x)
         s = "DTLSv1.2";
     else if (x->ssl_version == DTLS1_BAD_VER)
         s = "DTLSv1-bad";
-#ifndef OPENSSL_NO_GMSSL
+#ifndef NO_GMSSL
     else if (x->ssl_version == GM1_VERSION)
         s = "GMSSLv1.1";
 #endif

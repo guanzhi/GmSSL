@@ -48,10 +48,10 @@ int main(int argc, char **argv)
 		goto end;
 	}
 	printf("sms4 key scheduling passed!\n");
-	
+
 	/* test encrypt once */
 	sms4_encrypt(&key, plaintext, buf);
-	
+
 	if (memcmp(buf, ciphertext1, sizeof(ciphertext1)) != 0) {
 		printf("sms4 encrypt not pass!\n");
 		goto end;
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	}
 	printf("sms4 encrypt 1000000 times pass!\n");
 	printf("sms4 all test vectors pass!\n");
-	
+
 	return 0;
 end:
 	printf("some test vector failed\n");
