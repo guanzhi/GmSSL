@@ -28,7 +28,7 @@ LIBOBJ=sm3.o sm3_hmac.o
 SRC= $(LIBSRC)
 
 EXHEADER= sm3.h
-HEADER= byteorder.h $(EXHEADER)
+HEADER= $(EXHEADER)
 
 ALL=    $(GENERAL) $(SRC) $(HEADER)
 
