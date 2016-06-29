@@ -68,6 +68,7 @@ my @dirs = (
 "crypto/sm2",
 "crypto/sm3",
 "crypto/sms4",
+"crypto/zuc",
 "crypto/ssf33",
 "crypto/kdf",
 "crypto/ecies",

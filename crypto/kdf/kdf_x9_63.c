@@ -88,7 +88,7 @@ static void *x963_kdf(const EVP_MD *md, const void *in, size_t inlen,
 		len = dgstlen <= rlen ? dgstlen : rlen;
 		memcpy(out, dgst, len);
 		rlen -= len;
-		out += len;
+		out = (char*)out + len;
 	}
 
 	EVP_MD_CTX_cleanup(&ctx);
@@ -122,7 +122,7 @@ static void *x963_sha224kdf(const void *in, size_t inlen,
 static void *x963_sha256kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha256(), in, inlen, out, *outlen);
+	return x963_kdf(EVP_sha256(), in, inlen, out, outlen);
 }
 
 static void *x963_sha384kdf(const void *in, size_t inlen,

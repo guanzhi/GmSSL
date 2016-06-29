@@ -209,13 +209,16 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
         return FIPS_cipherinit(ctx, cipher, key, iv, enc);
 #endif
     /* we assume block size is a power of 2 in *cryptUpdate */
-    OPENSSL_assert(ctx->cipher->block_size == 1
 #ifndef NO_GMSSL
+    OPENSSL_assert(ctx->cipher->block_size == 1
                    || ctx->cipher->block_size == 4
-#endif
                    || ctx->cipher->block_size == 8
                    || ctx->cipher->block_size == 16);
-
+#else    
+	OPENSSL_assert(ctx->cipher->block_size == 1
+                   || ctx->cipher->block_size == 8
+                   || ctx->cipher->block_size == 16);
+#endif
     if (!(ctx->flags & EVP_CIPHER_CTX_FLAG_WRAP_ALLOW)
         && EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_WRAP_MODE) {
         EVPerr(EVP_F_EVP_CIPHERINIT_EX, EVP_R_WRAP_MODE_NOT_ALLOWED);
