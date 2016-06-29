@@ -53,7 +53,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <strings.h>
+//#include <strings.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>

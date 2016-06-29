@@ -48,9 +48,10 @@
  * ====================================================================
  *
  */
+#include <openssl/evp.h>
 #include <string.h>
 #include <assert.h>
-#include <strings.h>
+//#include <strings.h>
 #include <openssl/sm3.h>
 
 /**

@@ -50,7 +50,7 @@
  */
 
 #include <stdio.h>
-#include <strings.h>
+//#include <strings.h>
 #include <openssl/sms4.h>
 #include <openssl/evp.h>
 #include <openssl/skf.h>

@@ -50,7 +50,7 @@
  */
 
 #include <openssl/paillier.h>
-
+#include <openssl/err.h>
 PAILLIER *PAILLIER_new(void)
 {
 	PAILLIERerr(PAILLIER_F_PAILLIER_NEW, PAILLIER_R_NOT_IMPLEMENTED);
