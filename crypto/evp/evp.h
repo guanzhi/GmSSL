@@ -847,6 +847,7 @@ const EVP_CIPHER *EVP_sms4_wrap(void);
 #define EVP_sm4_cbc EVP_sms4_cbc
 #define EVP_sm4_cfb EVP_sms4_cfb
 #define EVP_sm4_ofb EVP_sms4_ofb
+#define EVP_sm4_ccm EVP_sms4_ccm
 const EVP_CIPHER *EVP_zuc(void);
 #endif
 # ifndef OPENSSL_NO_AES
@@ -1556,6 +1557,8 @@ void ERR_load_EVP_strings(void);
 # define EVP_R_WRAP_MODE_NOT_ALLOWED                      170
 # define EVP_R_WRONG_FINAL_BLOCK_LENGTH                   109
 # define EVP_R_WRONG_PUBLIC_KEY_TYPE                      110
+
+#define bzero(a, b) memset(a, 0, b)
 
 #ifdef  __cplusplus
 }

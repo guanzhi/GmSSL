@@ -54,7 +54,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
-#include <strings.h>
+//#include <strings.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>

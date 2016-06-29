@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+//#include <strings.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/cbcmac.h>
