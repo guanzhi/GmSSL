@@ -53,7 +53,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <strings.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
@@ -105,7 +104,7 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new(const EC_GROUP *group)
 		return NULL;
 	}
 
-	bzero(cv, sizeof(*cv));
+	memset(cv, 0, sizeof(*cv));
 
 	if (!(cv->ephem_point = EC_POINT_new(group))) {
 		SM2err(SM2_F_SM2_CIPHERTEXT_VALUE_NEW, SM2_R_POINT_NEW_FAILED);
@@ -120,7 +119,7 @@ void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv)
 {
 	if (cv->ephem_point) EC_POINT_free(cv->ephem_point);
 	if (cv->ciphertext) OPENSSL_free(cv->ciphertext);
-	bzero(cv, sizeof(SM2_CIPHERTEXT_VALUE));
+	memset(cv, 0, sizeof(*cv));
 	OPENSSL_free(cv);
 }
 
@@ -352,7 +351,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_MALLOC_FAILED);
 		goto end;
 	}
-	bzero(cv, sizeof(SM2_CIPHERTEXT_VALUE));
+	memset(cv, 0, sizeof(*cv));
 	cv->ephem_point = EC_POINT_new(ec_group);
 	cv->ciphertext = OPENSSL_malloc(inlen);
 	cv->ciphertext_size = inlen;

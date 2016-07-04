@@ -520,7 +520,7 @@ FIPSLINK=\$(PERL) \$(FIPSDIR)${o}bin${o}fipslink.pl
 # You should not need to touch anything below this point
 ######################################################
 
-E_EXE=openssl
+E_EXE=gmssl
 SSL=$ssl
 CRYPTO=$crypto
 

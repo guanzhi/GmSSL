@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <strings.h>
 #include <openssl/ec.h>
 #include <openssl/bn.h>
 #include <openssl/evp.h>
@@ -26,7 +25,7 @@ int fbytes(unsigned char *buf, int num)
 	if (BN_num_bytes(bn) > num) {
 		goto end;
 	}
-	bzero(buf, num);
+	memset(buf, 0, num);
 	if (!BN_bn2bin(bn, buf + num - BN_num_bytes(bn))) {
 		goto end;
 	}
@@ -732,7 +731,7 @@ int test_evp_pkey_sign(EVP_PKEY *pkey, int do_sm2, int verbose)
 	}
 
 	dgstlen = 32;
-	bzero(sig, sizeof(sig));
+	memset(sig, 0, sizeof(sig));
 	siglen = sizeof(sig);
 	if (!EVP_PKEY_sign(pkctx, sig, &siglen, dgst, dgstlen)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
@@ -829,7 +828,7 @@ int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 		goto end;
 	}
 
-	bzero(mbuf, sizeof(mbuf));
+	memset(mbuf, 0, sizeof(mbuf));
 	mbuflen = sizeof(mbuf);
 	if (!EVP_PKEY_decrypt(pkctx, mbuf, &mbuflen, cbuf, cbuflen)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
@@ -877,7 +876,7 @@ int test_evp_pkey_encrypt_old(EVP_PKEY *pkey, int verbose)
 		printf("\n");
 	}
 
-	bzero(mbuf, sizeof(mbuf));
+	memset(mbuf, 0, sizeof(mbuf));
 	if ((len = EVP_PKEY_decrypt_old(mbuf, cbuf, len, pkey)) <= 0) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
@@ -1119,7 +1118,7 @@ int test_evp_seal(int curve_id, const EVP_CIPHER *cipher, BIO *out, int verbose)
 		goto end;
 	}
 
-	bzero(mbuf, sizeof(mbuf));
+	memset(mbuf, 0, sizeof(mbuf));
 	p = mbuf;
 	len = sizeof(mbuf);
 

@@ -280,9 +280,12 @@ extern "C" {
 # define TLSEXT_signature_rsa                            1
 # define TLSEXT_signature_dsa                            2
 # define TLSEXT_signature_ecdsa                          3
+# ifndef NO_GMSSL
+# define TLSEXT_signature_sm2sign                        4
+# endif
 
 /* Total number of different signature algorithms */
-# define TLSEXT_signature_num                            4
+# define TLSEXT_signature_num                            5
 
 # define TLSEXT_hash_none                                0
 # define TLSEXT_hash_md5                                 1
@@ -291,10 +294,13 @@ extern "C" {
 # define TLSEXT_hash_sha256                              4
 # define TLSEXT_hash_sha384                              5
 # define TLSEXT_hash_sha512                              6
+# ifndef NO_GMSSL
+# define TLSEXT_hash_sm3                                 7
+# endif
 
 /* Total number of different digest algorithms */
 
-# define TLSEXT_hash_num                                 7
+# define TLSEXT_hash_num                                 8
 
 /* Flag set for unrecognised algorithms */
 # define TLSEXT_nid_unknown                              0x1000000

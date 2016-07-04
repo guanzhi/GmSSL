@@ -343,6 +343,22 @@ const EVP_CIPHER *EVP_sms4_wrap(void)
 	return &sms4_wrap;
 }
 
+const EVP_CIPHER *EVP_sms4_ccm(void)
+{
+	return NULL;
+}
+
+const EVP_CIPHER *EVP_sms4_gcm(void)
+{
+	return NULL;
+}
+
+const EVP_CIPHER *EVP_sms4_xts(void)
+{
+	return NULL;
+}
+
+
 
 //TODO: EVP_sms4_256_xxx();
 

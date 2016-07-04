@@ -50,7 +50,6 @@
  */
 #include <string.h>
 #include <assert.h>
-#include <strings.h>
 #include <openssl/sm3.h>
 
 /**
@@ -124,6 +123,6 @@ void sm3_hmac(const unsigned char *data, size_t data_len,
 	sm3_hmac_init(&ctx, key, key_len);
 	sm3_hmac_update(&ctx, data, data_len);
 	sm3_hmac_final(&ctx, mac);
-	bzero(&ctx, sizeof(ctx));
+	memset(&ctx, 0, sizeof(ctx));
 }
 

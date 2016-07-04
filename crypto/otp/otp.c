@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <strings.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/crypto.h>
@@ -64,7 +63,7 @@ int OTP_generate(const OTP_PARAMS *params, const void *event, size_t eventlen,
 		OTPerr(OTP_F_OTP_GENERATE, OTP_R_MALLOC_FAILED);
 		goto end;
 	}
-	bzero(id, idlen);
+	memset(id, 0, idlen);
 
 	t = time(NULL) + params->offset;
 	t /= params->te;

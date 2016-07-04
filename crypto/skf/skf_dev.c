@@ -113,7 +113,7 @@ ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
 		return SAR_INVALIDPARAMERR;
 	}
 
-	bzero(&devInfo, sizeof(DEVINFO));
+	memset(&devInfo, 0, sizeof(devInfo));
 	devInfo.Version.major = 1;
 	devInfo.Version.minor = 0;
 	strcpy((char *)&devInfo.Manufacturer, "GmSSL Project (http://gmssl.org)");

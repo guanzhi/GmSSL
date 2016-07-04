@@ -56,13 +56,13 @@
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 #include <openssl/objects.h>
-#include "cpk.h"
-#include "kdf.h"
-#include "ecies.h"
+#include <openssl/cpk.h>
+#include <openssl/kdf.h>
+#include <openssl/ecies.h>
 
 
 const char *id_short = "id";
-const char *id_long = 
+const char *id_long =
 		"123456789022345678903234567890423456789052345678906234567890"
 		"123456789022345678903234567890423456789052345678906234567890";
 
@@ -73,7 +73,7 @@ int EVP_PKEY_print_fp(const EVP_PKEY *pkey, FILE *fp)
 	ASN1_PCTX *ctx = ASN1_PCTX_new();
 	BIO *bio = BIO_new_fp(fp, BIO_NOCLOSE);
 
-	EVP_PKEY_print_params(bio, pkey, 0, ctx);	
+	EVP_PKEY_print_params(bio, pkey, 0, ctx);
 	EVP_PKEY_print_public(bio, pkey, 0, ctx);
 	EVP_PKEY_print_private(bio, pkey, 0, NULL);
 

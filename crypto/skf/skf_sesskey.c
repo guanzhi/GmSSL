@@ -50,7 +50,7 @@
  */
 
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 #include <openssl/sms4.h>
 #include <openssl/evp.h>
 #include <openssl/skf.h>
@@ -72,7 +72,7 @@ ULONG DEVAPI SKF_SetSymmKey(DEVHANDLE hDev,
 		SKFerr(SKF_F_SKF_SETSYMMKEY, SKF_R_MALLOC_FAILED);
 		return SAR_FAIL;
 	}
-	bzero(hKey, sizeof(*hKey));
+	memset(hKey, 0, sizeof(*hKey));
 
 	hKey->magic = SKF_HANDLE_MAGIC;
 	hKey->type = SKF_KEY_HANDLE;

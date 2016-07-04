@@ -52,8 +52,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "kdf.h"
-
+#include <openssl/kdf.h>
 
 #ifdef CPU_BIGENDIAN
 #define cpu_to_be16(v) (v)
@@ -71,6 +70,7 @@ static void *x963_kdf(const EVP_MD *md, const void *in, size_t inlen,
 	uint32_t counter_be;
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen;
+	unsigned char *pout = out;
 	size_t rlen = *outlen;
 	size_t len;
 
@@ -86,9 +86,9 @@ static void *x963_kdf(const EVP_MD *md, const void *in, size_t inlen,
 		EVP_DigestFinal(&ctx, dgst, &dgstlen);
 
 		len = dgstlen <= rlen ? dgstlen : rlen;
-		memcpy(out, dgst, len);
+		memcpy(pout, dgst, len);
 		rlen -= len;
-		out += len;
+		pout += len;
 	}
 
 	EVP_MD_CTX_cleanup(&ctx);
@@ -122,7 +122,7 @@ static void *x963_sha224kdf(const void *in, size_t inlen,
 static void *x963_sha256kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
-	return x963_kdf(EVP_sha256(), in, inlen, out, *outlen);
+	return x963_kdf(EVP_sha256(), in, inlen, out, outlen);
 }
 
 static void *x963_sha384kdf(const void *in, size_t inlen,

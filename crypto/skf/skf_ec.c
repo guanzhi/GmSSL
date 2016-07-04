@@ -383,7 +383,7 @@ int EC_KEY_get_ECCPUBLICKEYBLOB(EC_KEY *ec_key, ECCPUBLICKEYBLOB *blob)
 		}
 	}
 
-	bzero(blob, sizeof(*blob));
+	memset(blob, 0, sizeof(*blob));
 	blob->BitLen = EC_GROUP_get_degree(group);
 	if (!BN_bn2bin(x, blob->XCoordinate + nbytes - BN_num_bytes(x))) {
 		SKFerr(SKF_F_EC_KEY_GET_ECCPUBLICKEYBLOB, ERR_R_BN_LIB);

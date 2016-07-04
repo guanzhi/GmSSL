@@ -49,6 +49,7 @@
  *
  */
 
+#include <openssl/err.h>
 #include <openssl/paillier.h>
 
 PAILLIER *PAILLIER_new(void)

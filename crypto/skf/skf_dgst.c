@@ -143,7 +143,7 @@ ULONG DEVAPI SKF_DigestInit(DEVHANDLE hDev,
 		goto end;
 	}
 
-	bzero(hHash, sizeof(*hHash));
+	memset(hHash, 0, sizeof(*hHash));
 	hHash->magic = SKF_HANDLE_MAGIC;
 	hHash->type = SKF_HASH_HANDLE;
 	hHash->u.md_ctx = mdctx;

@@ -110,6 +110,13 @@ static int do_sigver_init(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
         return 1;
     if (!EVP_DigestInit_ex(ctx, type, e))
         return 0;
+#ifndef NO_GMSSL
+    // EVP_DigestUpdate()
+    // we need to check it is SM2, from EVP_PKEY
+    // we need to get Z, also from EVP_PKEY
+    // or we can get some pre data if EVP_PKEY has
+	// EVP_PKEY_get_id_digest() is it ok? might return NULL, but not error?
+#endif
     return 1;
 }
 
@@ -123,6 +130,21 @@ int EVP_DigestVerifyInit(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
                          const EVP_MD *type, ENGINE *e, EVP_PKEY *pkey)
 {
     return do_sigver_init(ctx, pctx, type, e, pkey, 1);
+}
+
+int EVP_DigestSignUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
+{
+	/* if this is the first time we update,
+	 * and if this is sm2
+	 * we need to update ZID first
+	 */
+
+
+#ifdef OPENSSL_FIPS
+    return FIPS_digestupdate(ctx, data, count);
+#else
+    return ctx->update(ctx, data, count);
+#endif
 }
 
 int EVP_DigestSignFinal(EVP_MD_CTX *ctx, unsigned char *sigret,
@@ -173,6 +195,15 @@ int EVP_DigestSignFinal(EVP_MD_CTX *ctx, unsigned char *sigret,
         }
     }
     return 1;
+}
+
+int EVP_DigestVerifyUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
+{
+#ifdef OPENSSL_FIPS
+    return FIPS_digestupdate(ctx, data, count);
+#else
+    return ctx->update(ctx, data, count);
+#endif
 }
 
 int EVP_DigestVerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sig,

@@ -266,6 +266,7 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	unsigned int zidlen = sizeof(zid);
 
 	//FIXME: it is wrong to do it here!
+#if 0
 	if (dctx->sign_type == NID_sm_scheme) {
 		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
        		 	ECerr(EC_F_PKEY_EC_SIGNCTX_INIT, ERR_R_SM2_LIB);
@@ -279,6 +280,7 @@ static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 			return 0;
 		}
 	}
+#endif
 
 	return 1;
 }
@@ -329,7 +331,7 @@ static int pkey_ec_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 	unsigned char zid[EVP_MAX_MD_SIZE];
 	unsigned int zidlen;
 
-
+#if 0
 	if (dctx->sign_type == NID_sm_scheme) {
 
 		zidlen = sizeof(zid);
@@ -340,6 +342,7 @@ static int pkey_ec_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 			goto end;
 		}
 	}
+#endif
 
 	ret = 1;
 end:

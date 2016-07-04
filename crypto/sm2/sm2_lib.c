@@ -54,7 +54,6 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
-#include <strings.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>
@@ -134,7 +133,7 @@ int sm2_get_public_key_data(unsigned char *buf, EC_KEY *ec_key)
 		return 0;
 	}
 	nbytes = (EC_GROUP_get_degree(EC_KEY_get0_group(ec_key)) + 7)/8;
-	bzero(buf, nbytes * 6);
+	memset(buf, 0, nbytes * 6);
 
 	bn_ctx = BN_CTX_new();
 	p = BN_new();

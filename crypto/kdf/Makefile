@@ -78,9 +78,9 @@ clean:
 
 kdf_x9_63.o: ../../include/openssl/asn1.h ../../include/openssl/bio.h
 kdf_x9_63.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
-kdf_x9_63.o: ../../include/openssl/evp.h ../../include/openssl/obj_mac.h
-kdf_x9_63.o: ../../include/openssl/objects.h
+kdf_x9_63.o: ../../include/openssl/evp.h ../../include/openssl/kdf.h
+kdf_x9_63.o: ../../include/openssl/obj_mac.h ../../include/openssl/objects.h
 kdf_x9_63.o: ../../include/openssl/opensslconf.h
 kdf_x9_63.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
 kdf_x9_63.o: ../../include/openssl/safestack.h ../../include/openssl/stack.h
-kdf_x9_63.o: ../../include/openssl/symhacks.h kdf.h kdf_x9_63.c
+kdf_x9_63.o: ../../include/openssl/symhacks.h kdf_x9_63.c

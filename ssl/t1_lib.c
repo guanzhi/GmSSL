@@ -253,7 +253,10 @@ static int nid_list[] = {
     NID_secp521r1,              /* secp521r1 (25) */
     NID_brainpoolP256r1,        /* brainpoolP256r1 (26) */
     NID_brainpoolP384r1,        /* brainpoolP384r1 (27) */
-    NID_brainpoolP512r1         /* brainpool512r1 (28) */
+    NID_brainpoolP512r1,        /* brainpool512r1 (28) */
+#ifndef NO_GMSSL
+    NID_sm2p256v1,              /* sm2p256v1 (29) */
+#endif
 };
 
 static const unsigned char ecformats_default[] = {
@@ -264,6 +267,9 @@ static const unsigned char ecformats_default[] = {
 
 /* The client's default curves / the server's 'auto' curves. */
 static const unsigned char eccurves_auto[] = {
+#ifndef NO_GMSSL
+    0, 29,                      /* sm2p256v1 (29) */
+#endif
     /* Prefer P-256 which has the fastest and most secure implementations. */
     0, 23,                      /* secp256r1 (23) */
     /* Other >= 256-bit prime curves. */
@@ -285,6 +291,9 @@ static const unsigned char eccurves_auto[] = {
 };
 
 static const unsigned char eccurves_all[] = {
+#ifndef NO_GMSSL
+    0, 29,                      /* sm2p256v1 (29) */
+#endif
     /* Prefer P-256 which has the fastest and most secure implementations. */
     0, 23,                      /* secp256r1 (23) */
     /* Other >= 256-bit prime curves. */
@@ -443,6 +452,10 @@ int tls1_ec_nid2curve_id(int nid)
         return 27;
     case NID_brainpoolP512r1:  /* brainpool512r1 (28) */
         return 28;
+#ifndef NO_GMSSL
+    case NID_sm2p256v1:        /* sm2p256v1 (29) */
+	return 29;
+#endif
     default:
         return 0;
     }
@@ -3465,13 +3478,20 @@ static tls12_lookup tls12_md[] = {
     {NID_sha224, TLSEXT_hash_sha224},
     {NID_sha256, TLSEXT_hash_sha256},
     {NID_sha384, TLSEXT_hash_sha384},
-    {NID_sha512, TLSEXT_hash_sha512}
+    {NID_sha512, TLSEXT_hash_sha512},
+#ifndef NO_GMSSL
+    {NID_sm3, TLSEXT_hash_sm3},
+#endif
 };
 
 static tls12_lookup tls12_sig[] = {
     {EVP_PKEY_RSA, TLSEXT_signature_rsa},
     {EVP_PKEY_DSA, TLSEXT_signature_dsa},
-    {EVP_PKEY_EC, TLSEXT_signature_ecdsa}
+#ifndef NO_GMSSL
+    {EVP_PKEY_EC, TLSEXT_signature_sm2sign},
+#else
+    {EVP_PKEY_EC, TLSEXT_signature_ecdsa},
+#endif
 };
 
 static int tls12_find_id(int nid, tls12_lookup *table, size_t tlen)
@@ -3512,6 +3532,7 @@ int tls12_get_sigandhash(unsigned char *p, const EVP_PKEY *pk,
     return 1;
 }
 
+//FIXME: to support both ecdsa and sm2sign
 int tls12_get_sigid(const EVP_PKEY *pk)
 {
     return tls12_find_id(pk->type, tls12_sig,
@@ -3547,6 +3568,10 @@ const EVP_MD *tls12_get_hash(unsigned char hash_alg)
     case TLSEXT_hash_sha512:
         return EVP_sha512();
 # endif
+# ifndef NO_GMSSL
+    case TLSEXT_hash_sm3:
+        return EVP_sm3();
+# endif
     default:
         return NULL;
 
@@ -3566,6 +3591,10 @@ static int tls12_get_pkey_idx(unsigned char sig_alg)
 # endif
 # ifndef OPENSSL_NO_ECDSA
     case TLSEXT_signature_ecdsa:
+        return SSL_PKEY_ECC;
+# endif
+# ifndef NO_GMSSL
+    case TLSEXT_signature_sm2sign:
         return SSL_PKEY_ECC;
 # endif
     }

@@ -81,4 +81,4 @@ clean:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-zuc.o: ../../include/openssl/modes.h ../modes/modes_lcl.h zuc.c zuc.h
+zuc.o: ../../include/openssl/zuc.h zuc.c

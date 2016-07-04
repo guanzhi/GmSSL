@@ -62,6 +62,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <openssl/err.h>
 #include <openssl/ffx.h>
 
 static int test()
@@ -106,7 +107,7 @@ static int test()
 int luhn_test()
 {
 	char *digits = "7992739871";
-	int r = compute_luhn(digits, strlen(digits));
+	int r = FFX_compute_luhn(digits, strlen(digits));
 	printf("%c", r);
 	return 0;
 }

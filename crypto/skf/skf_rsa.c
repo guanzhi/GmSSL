@@ -348,7 +348,7 @@ int RSA_get_RSAPRIVATEKEYBLOB(RSA *rsa, RSAPRIVATEKEYBLOB *blob)
 		return 0;
 	}
 
-	bzero(blob, sizeof(*blob));
+	memset(blob, 0, sizeof(*blob));
 	blob->AlgID = SGD_RSA;
 	blob->BitLen = BN_num_bits(rsa->n);
 

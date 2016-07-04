@@ -58,7 +58,7 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 #include <openssl/sm3.h>
-
+#include <openssl/sm2.h>
 
 static int init(EVP_MD_CTX *ctx)
 {

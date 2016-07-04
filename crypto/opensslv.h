@@ -34,7 +34,7 @@ extern "C" {
 # ifdef OPENSSL_FIPS
 #  define OPENSSL_VERSION_TEXT    "OpenSSL 1.0.2d-fips 9 Jul 2015"
 # else
-#  define OPENSSL_VERSION_TEXT    "GmSSL 1.2.1"
+#  define OPENSSL_VERSION_TEXT    "GmSSL 1.2.2 (OpenSSL 1.0.2d)"
 # endif
 # define OPENSSL_VERSION_PTEXT   " part of " OPENSSL_VERSION_TEXT
 

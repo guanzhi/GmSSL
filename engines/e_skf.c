@@ -154,7 +154,7 @@ static int dev_auth(const char *hexauthkey)
 	}
 
 	len = 16; //FIXME: or 8?
-	bzero(authrand, sizeof(authrand));
+	memset(authrand, 0, sizeof(authrand));
 	if ((rv = SKF_GenRandom(hDev, authrand, len)) != SAR_OK) {
 		ESKFerr(ESKF_F_DEV_AUTH, ESKF_R_SKF_GEN_RANDOM_FAILED);
 		goto end;

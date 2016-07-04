@@ -559,8 +559,13 @@ unsigned long EVP_CIPHER_CTX_flags(const EVP_CIPHER_CTX *ctx);
 # define EVP_VerifyUpdate(a,b,c)         EVP_DigestUpdate(a,b,c)
 # define EVP_OpenUpdate(a,b,c,d,e)       EVP_DecryptUpdate(a,b,c,d,e)
 # define EVP_SealUpdate(a,b,c,d,e)       EVP_EncryptUpdate(a,b,c,d,e)
+# ifndef NO_GMSSL
+int EVP_DigestSignUpdate(EVP_MD_CTX *ctx, const void *data, size_t count);
+int EVP_DigestVerifyUpdate(EVP_MD_CTX *ctx, const void *data, size_t count);
+# else
 # define EVP_DigestSignUpdate(a,b,c)     EVP_DigestUpdate(a,b,c)
 # define EVP_DigestVerifyUpdate(a,b,c)   EVP_DigestUpdate(a,b,c)
+# endif
 
 # ifdef CONST_STRICT
 void BIO_set_md(BIO *, const EVP_MD *md);

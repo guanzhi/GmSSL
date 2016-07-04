@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/cbcmac.h>
@@ -66,7 +65,7 @@ int CBCMAC_Init(CBCMAC_CTX *ctx, const void *key, size_t keylen,
 	}
 	ctx->worklen = 0;
 	block_size = EVP_CIPHER_CTX_block_size(&ctx->cipher_ctx);
-	bzero(ctx->cbcstate, block_size);
+	memset(ctx->cbcstate, 0, block_size);
 	return 1;
 }
 
