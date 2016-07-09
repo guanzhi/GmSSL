@@ -106,7 +106,7 @@ void sm3_hmac_final(sm3_hmac_ctx_t *ctx, unsigned char mac[SM3_HMAC_SIZE])
 {
 	int i;
 	for (i = 0; i < SM3_BLOCK_SIZE; i++) {
-		ctx->key[i] ^= (IPAD ^ OPAD);
+		ctx->key[i] ^= OPAD;
 	}
 	sm3_final(&ctx->sm3_ctx, mac);
 	sm3_init(&ctx->sm3_ctx);
