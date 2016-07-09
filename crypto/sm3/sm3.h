@@ -82,7 +82,7 @@ void sm3(const unsigned char *data, size_t datalen,
 
 typedef struct {
 	sm3_ctx_t sm3_ctx;
-	unsigned char key[SM3_DIGEST_LENGTH];
+	unsigned char key[SM3_BLOCK_SIZE];
 } sm3_hmac_ctx_t;
 
 void sm3_hmac_init(sm3_hmac_ctx_t *ctx, const unsigned char *key, size_t key_len);
