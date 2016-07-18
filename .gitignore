@@ -174,3 +174,5 @@ cscope.*
 # auto create by Configure
 crypto/opensslconf.h
 tool/c_rehash
+# exec file
+apps/gmssl
