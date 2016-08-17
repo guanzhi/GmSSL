@@ -88,11 +88,11 @@ int X509_STORE_load_locations(X509_STORE *ctx, const char *file,
     X509_LOOKUP *lookup;
     
     //Support Go: 
-    //Go调用此函数无法传递NULL指针,只能传递空串。
+    //Go璋冪敤姝ゅ嚱鏁颁紶閫掔┖涓叉椂澶勭悊寮傚父
     if (file && *file == '\0')
 	file = NULL; 
     if (path && *path == '\0')
-	path = NULL 	
+	path = NULL; 	
 
     if (file != NULL) {
         lookup = X509_STORE_add_lookup(ctx, X509_LOOKUP_file());
