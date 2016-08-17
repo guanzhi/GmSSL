@@ -43,7 +43,7 @@ sudo make install
 
 在WIN32(MINGW+MSYS)操作系统上通过如下指令实现编译和安装：
 
-注意，解压或Git clone代码请在MSYS环境，否则会因换行符导致出现编译错误
+(请在MSYS环境解压或Git clone代码，否则会因换行符导致出现编译错误)
 
 ```
 ./config
