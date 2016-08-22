@@ -1026,6 +1026,10 @@ static int tls1_check_cert_param(SSL *s, X509 *x, int set_ee_md)
                 tlsext_sigalg_ecdsa(md)
 
 static unsigned char tls12_sigalgs[] = {
+# ifndef NO_GMSSL
+        TLSEXT_hash_sm3,
+        TLSEXT_signature_sm2sign,
+# endif
 # ifndef OPENSSL_NO_SHA512
     tlsext_sigalg(TLSEXT_hash_sha512)
         tlsext_sigalg(TLSEXT_hash_sha384)

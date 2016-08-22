@@ -2414,6 +2414,12 @@ void ssl_set_cert_masks(CERT *c, const SSL_CIPHER *cipher)
             emask_a |= SSL_aECDSA;
         }
 # endif
+# ifndef NO_GMSSL
+            mask_a |= SSL_aSM2;
+            emask_a |= SSL_aSM2;
+            mask_k |= SSL_kSM2;
+            emask_k |= SSL_kSM2;	
+# endif
     }
 #endif
 
@@ -2579,9 +2585,16 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
             idx = SSL_PKEY_RSA_SIGN;
         else if (c->pkeys[SSL_PKEY_RSA_ENC].privatekey != NULL)
             idx = SSL_PKEY_RSA_ENC;
-    } else if ((alg_a & SSL_aECDSA) &&
+    } 
+# ifndef NO_GMSSL	
+	 else if ((alg_a & SSL_aSM2) &&
                (c->pkeys[SSL_PKEY_ECC].privatekey != NULL))
         idx = SSL_PKEY_ECC;
+# endif
+	else if ((alg_a & SSL_aECDSA) &&
+               (c->pkeys[SSL_PKEY_ECC].privatekey != NULL))
+        idx = SSL_PKEY_ECC;
+
     if (idx == -1) {
         SSLerr(SSL_F_SSL_GET_SIGN_PKEY, ERR_R_INTERNAL_ERROR);
         return (NULL);

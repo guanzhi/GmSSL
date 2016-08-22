@@ -86,6 +86,13 @@ int X509_STORE_load_locations(X509_STORE *ctx, const char *file,
                               const char *path)
 {
     X509_LOOKUP *lookup;
+    
+    //Support Go: 
+    //Go调用此函数传递空串时处理异常
+    if (file && *file == '\0')
+	file = NULL; 
+    if (path && *path == '\0')
+	path = NULL; 	
 
     if (file != NULL) {
         lookup = X509_STORE_add_lookup(ctx, X509_LOOKUP_file());
