@@ -2414,6 +2414,12 @@ void ssl_set_cert_masks(CERT *c, const SSL_CIPHER *cipher)
             emask_a |= SSL_aECDSA;
         }
 # endif
+# ifndef NO_GMSSL
+            mask_a |= SSL_aSM2;
+            emask_a |= SSL_aSM2;
+            mask_k |= SSL_kSM2;
+            emask_k |= SSL_kSM2;	
+# endif
     }
 #endif
 

@@ -163,7 +163,40 @@ const char ssl3_version_str[] = "SSLv3" OPENSSL_VERSION_PTEXT;
 
 /* list of available SSLv3 ciphers (sorted by id) */
 OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
+# ifndef NO_GMSSL
+	/* (GmSSL specific) */
+	{
+		1,
+		GM1_TXT_ECDHE_SM2_SM4_SM3,
+		GM1_CK_ECDHE_SM2_SM4_SM3,
+		SSL_kEECDH,
+		SSL_aSM2,
+		SSL_SM4,
+		SSL_SM3,
+		SSL_TLSV1_2,
+		SSL_NOT_EXP|SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
+		128,
+		128,
+	},
 
+	/* (GmSSL Specific) */
+	{
+		1,
+		GM1_TXT_SM2_SM4_SM3,
+		GM1_CK_SM2_SM4_SM3,
+		SSL_kSM2,
+		SSL_aSM2,
+		SSL_SM4,
+		SSL_SM3,
+		SSL_TLSV1_2,
+		SSL_NOT_EXP|SSL_HIGH,
+		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
+		128,
+		128,
+	}
+# endif
+#if 0
 /* The RSA ciphers */
 /* Cipher 01 */
     {
@@ -2890,42 +2923,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      256,
      256},
 #endif
-
-#ifndef NO_GMSSL
-	/* (GmSSL specific) */
-	{
-		1,
-		GM1_TXT_ECDHE_SM2_SM4_SM3,
-		GM1_CK_ECDHE_SM2_SM4_SM3,
-		SSL_kEECDH,
-		SSL_aSM2,
-		SSL_SM4,
-		SSL_SM3,
-		SSL_TLSV1_2,
-		SSL_NOT_EXP|SSL_HIGH,
-		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
-		128,
-		128,
-	},
-
-	/* (GmSSL Specific) */
-	{
-		1,
-		GM1_TXT_SM2_SM4_SM3,
-		GM1_CK_SM2_SM4_SM3,
-		SSL_kSM2,
-		SSL_aSM2,
-		SSL_SM4,
-		SSL_SM3,
-		SSL_TLSV1_2,
-		SSL_NOT_EXP|SSL_HIGH,
-		SSL_HANDSHAKE_MAC_DEFAULT|TLS1_PRF,
-		128,
-		128,
-	}
-
 #endif
-
 /* end of list */
 };
 

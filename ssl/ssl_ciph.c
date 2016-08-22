@@ -2128,7 +2128,12 @@ int ssl_cipher_get_cert_index(const SSL_CIPHER *c)
          * chosen.
          */
         return SSL_PKEY_ECC;
-    } else if (alg_a & SSL_aECDSA)
+    } 
+# ifndef NO_GMSSL
+    else if (alg_a & SSL_aSM2)
+        return SSL_PKEY_ECC;
+# endif
+    else if (alg_a & SSL_aECDSA)
         return SSL_PKEY_ECC;
     else if (alg_k & SSL_kDHr)
         return SSL_PKEY_DH_RSA;
