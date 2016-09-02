@@ -5,7 +5,7 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/engine.h>
-#include "./sm2.h"
+#include <openssl/sm2.h>
 
 RAND_METHOD fake_rand;
 const RAND_METHOD *old_rand;
@@ -336,7 +336,15 @@ int test_sm2_enc(const EC_GROUP *group,
 	}
 
 	buflen = sizeof(buf);
-	if (!SM2_encrypt_with_recommended(buf, &buflen,
+	if (!SM2_encrypt_with_recommended(NULL, &buflen,
+		(const unsigned char *)M, strlen(M), ec_key)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		goto end;
+	}
+	if(buflen > sizeof(buf)){
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		goto end;
+	}else if (!SM2_encrypt_with_recommended(buf, &buflen,
 		(const unsigned char *)M, strlen(M), ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
@@ -354,7 +362,15 @@ int test_sm2_enc(const EC_GROUP *group,
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-	if (!SM2_decrypt_with_recommended(msg, &msglen, buf, buflen, ec_key)) {
+	
+	if (!SM2_decrypt_with_recommended(NULL, &msglen, buf, buflen, ec_key)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		goto end;
+	}
+	if(msglen > sizeof(msg)){
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+		goto end;
+	} else if (!SM2_decrypt_with_recommended(msg, &msglen, buf, buflen, ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
