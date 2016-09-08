@@ -232,10 +232,13 @@ SM2_CIPHERTEXT_VALUE *d2i_SM2_CIPHERTEXT_VALUE(SM2_CIPHERTEXT_VALUE **c, const E
         ret->ciphertext = OPENSSL_malloc(asn1->ciphertext->length);
         if(!ret->ciphertext) 
             goto err;
-        
+
         memcpy(ret->ciphertext, asn1->ciphertext->data, ret->ciphertext_size);
     }
-    
+
+    if (asn1->hash->length>EVP_MAX_MD_SIZE)
+        goto err;
+
     ret->mactag_size = asn1->hash->length;
     memcpy(ret->mactag, asn1->hash->data, ret->mactag_size);
 
