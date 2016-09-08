@@ -1243,6 +1243,92 @@ end:
 	return ret;
 }
 
+int do_test_sm2_asn1(const char *val)
+{
+    SM2_CIPHERTEXT_VALUE *cv = NULL;
+	int curve_id = NID_sm2p256v1, res_len, ret = 0;
+    long len;
+    EC_GROUP *group = NULL;
+    unsigned char *hex = NULL, *p = NULL, res[256];
+
+    hex = (unsigned char *)string_to_hex(val, &len);
+    if(!hex) {
+        printf("invalid arg:val\n");
+        goto end;
+    }
+
+    group = EC_GROUP_new_by_curve_name(curve_id);
+
+    p = hex;
+    if (!d2i_SM2_CIPHERTEXT_VALUE(&cv, group, (const unsigned char **)&p, len)) {
+        printf("d2i_SM2_CIPHERTEXT_VALUE fail\n");
+        goto end;
+    }
+
+    p = res;
+    if (!(res_len = i2d_SM2_CIPHERTEXT_VALUE(cv, group, &p))) {
+        printf("i2d_SM2_CIPHERTEXT_VALUE fail\n");
+        goto end;
+    }
+
+    if (res_len != len) {
+        printf("compare len err\n");
+        goto end;
+    }
+
+    if (OPENSSL_memcmp(hex, res, res_len)) {
+        printf("compare val err\n");
+        goto end;
+    }
+
+    ret = 1;
+
+end:
+    if (group)
+        EC_GROUP_free(group);
+
+    if (hex)
+        OPENSSL_free(hex);
+
+    if (cv)
+        SM2_CIPHERTEXT_VALUE_free(cv);
+
+    if (!ret)
+        printf("do_test_sm2_asn1 fail\n");
+    
+    return ret;
+}
+
+int test_sm2_asn1(void)
+{
+    int ret = 0;
+
+    if(!do_test_sm2_asn1("30819902203ee231ec745fadf56e36a5ed96081"
+        "a1d339d63552f609deaeac276129d0e8cae022100d56491a5f26557c6"
+        "4800d9fa74ac022510ba1e31394083c3d1db28176e009c5d0420e30fed"
+        "4358b28b52b94f3ee809d3e45c941e2aab58fc424342b2cfca42f3f07e"
+        "04302e17306db0f8c1b9bae36837d4bef87637745cd5c15f8fc174602c"
+        "6aec80c4e95b6fd754a76e74accccfdaff9d6f952b")) {
+        printf("error: %s %d\n", __FUNCTION__, __LINE__);
+        goto end;
+        }
+    
+    if(!do_test_sm2_asn1("308198022030d4a4940a12d6a107363083f799a"
+        "499e5eec6cb5e98dc72ef3c602f475146640220013d72d01b6ef03178"
+        "6978d3eaa19ae9b48f2226ff9b034d202b22fd7de0a9f6042093bb4ebe"
+        "c715697e726d1d153e3743f411499e86888fc2491261000f4c93fdb704"
+        "3073457db224eafb170d9c6c3787d2ad2edce7351d49b6f26f5707085ea"
+        "d674ea10e2eb752c35ebe868a3153e4041c205a")) {
+        printf("error: %s %d\n", __FUNCTION__, __LINE__);
+        goto end;
+        }
+
+    printf("sm2 asn1 test passed\n");
+    ret = 1;
+end:
+    return ret;
+}
+
 int main(int argc, char **argv)
 {
 	int ret = -1;
@@ -1272,7 +1358,11 @@ int main(int argc, char **argv)
 	if (!test_sm2_evp(1)) {
 		goto err;
 	}
-
+    
+	if (!test_sm2_asn1()) {
+		goto err;
+	}
+    
 	ret =0;
 err:
 	if (ret)
