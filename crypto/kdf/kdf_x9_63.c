@@ -95,24 +95,31 @@ static void *x963_kdf(const EVP_MD *md, const void *in, size_t inlen,
 	return out;
 }
 
+#ifndef OPENSSL_NO_MD5
 static void *x963_md5kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
 	return x963_kdf(EVP_md5(), in, inlen, out, outlen);
 }
+#endif
 
+#ifndef OPENSSL_NO_RIPEMD
 static void *x963_rmd160kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
 	return x963_kdf(EVP_ripemd160(), in, inlen, out, outlen);
 }
+#endif
 
+#ifndef OPENSSL_NO_SHA
 static void *x963_sha1kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
 	return x963_kdf(EVP_sha1(), in, inlen, out, outlen);
 }
+#endif
 
+#ifndef OPENSSL_NO_SHA256
 static void *x963_sha224kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
@@ -124,7 +131,9 @@ static void *x963_sha256kdf(const void *in, size_t inlen,
 {
 	return x963_kdf(EVP_sha256(), in, inlen, out, outlen);
 }
+#endif
 
+#ifndef OPENSSL_NO_SHA512
 static void *x963_sha384kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
@@ -136,47 +145,68 @@ static void *x963_sha512kdf(const void *in, size_t inlen,
 {
 	return x963_kdf(EVP_sha512(), in, inlen, out, outlen);
 }
+#endif
 
+#ifndef OPENSSL_NO_WHIRLPOOL
 static void *x963_whirlpoolkdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
 	return x963_kdf(EVP_whirlpool(), in, inlen, out, outlen);
 }
+#endif
 
+#ifndef NO_GMSSL
 static void *x963_sm3kdf(const void *in, size_t inlen,
 	void *out, size_t *outlen)
 {
 	return x963_kdf(EVP_sm3(), in, inlen, out, outlen);
 }
+#endif
 
 KDF_FUNC KDF_get_x9_63(const EVP_MD *md)
 {
-	if (md == EVP_md5()) {
-		return x963_md5kdf;
+	if(0){
 
+#ifndef OPENSSL_NO_MD5
+	}else if (md == EVP_md5()) {
+		return x963_md5kdf;
+#endif
+
+#ifndef OPENSSL_NO_RIPEMD
 	} else if (md == EVP_ripemd160()) {
 		return x963_rmd160kdf;
+#endif
 
+#ifndef OPENSSL_NO_SHA
 	} else if (md == EVP_sha1()) {
 		return x963_sha1kdf;
+#endif
 
+#ifndef OPENSSL_NO_SHA256
 	} else if (md == EVP_sha224()) {
 		return x963_sha224kdf;
 
 	} else if (md == EVP_sha256()) {
 		return x963_sha256kdf;
+#endif
 
+#ifndef OPENSSL_NO_SHA512
 	} else if (md == EVP_sha384()) {
 		return x963_sha384kdf;
 
 	} else if (md == EVP_sha512()) {
 		return x963_sha512kdf;
+#endif
 
+#ifndef OPENSSL_NO_WHIRLPOOL
 	} else if (md == EVP_whirlpool()) {
 		return x963_whirlpoolkdf;
+#endif
 
+#ifndef NO_GMSSL
 	} else if (md == EVP_sm3()) {
 		return x963_sm3kdf;
+#endif
 	}
 
 	return NULL;
