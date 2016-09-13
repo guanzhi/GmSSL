@@ -1,1 +1,0 @@
-../../crypto/sm1/sm1.h
