@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	printf("sms4 key scheduling passed!\n");
 
 	/* test encrypt once */
-	sms4_encrypt(&key, plaintext, buf);
+	sms4_encrypt(plaintext, buf, &key);
 
 	if (memcmp(buf, ciphertext1, sizeof(ciphertext1)) != 0) {
 		printf("sms4 encrypt not pass!\n");
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 	/* test encrypt 1000000 times */
 	memcpy(buf, plaintext, sizeof(plaintext));
 	for (i = 0; i < 1000000; i++) {
-		sms4_encrypt(&key, buf, buf);
+		sms4_encrypt(buf, buf, &key);
 	}
 
 	if (memcmp(buf, ciphertext2, sizeof(ciphertext2)) != 0) {
