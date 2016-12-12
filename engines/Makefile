@@ -26,7 +26,7 @@ TEST=
 APPS=
 
 LIB=$(TOP)/libcrypto.a
-LIBNAMES= 4758cca aep atalla cswift gmp chil nuron sureware ubsec padlock skf capi
+LIBNAMES= 4758cca aep atalla cswift gmp chil nuron sureware ubsec padlock capi
 
 LIBSRC=	e_4758cca.c \
 	e_aep.c \
@@ -38,7 +38,6 @@ LIBSRC=	e_4758cca.c \
 	e_sureware.c \
 	e_ubsec.c \
 	e_padlock.c \
-	e_skf.c \
 	e_capi.c
 LIBOBJ= e_4758cca.o \
 	e_aep.o \
@@ -50,7 +49,6 @@ LIBOBJ= e_4758cca.o \
 	e_sureware.o \
 	e_ubsec.o \
 	e_padlock.o \
-	e_skf.o \
 	e_capi.o
 
 SRC= $(LIBSRC)
@@ -65,7 +63,6 @@ HEADER=	e_4758cca_err.c e_4758cca_err.h \
 	e_nuron_err.c e_nuron_err.h \
 	e_sureware_err.c e_sureware_err.h \
 	e_ubsec_err.c e_ubsec_err.h \
-	e_skf_err.c e_skf_err.h \
 	e_capi_err.c e_capi_err.h
 
 ALL=    $(GENERAL) $(SRC) $(HEADER)
@@ -320,25 +317,6 @@ e_padlock.o: ../include/openssl/sm2.h ../include/openssl/sm3.h
 e_padlock.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
 e_padlock.o: ../include/openssl/x509.h ../include/openssl/x509_vfy.h
 e_padlock.o: e_padlock.c
-e_skf.o: ../crypto/ecdsa/ecs_locl.h ../include/openssl/asn1.h
-e_skf.o: ../include/openssl/bio.h ../include/openssl/buffer.h
-e_skf.o: ../include/openssl/cbcmac.h ../include/openssl/cmac.h
-e_skf.o: ../include/openssl/crypto.h ../include/openssl/e_os2.h
-e_skf.o: ../include/openssl/ec.h ../include/openssl/ecdh.h
-e_skf.o: ../include/openssl/ecdsa.h ../include/openssl/engine.h
-e_skf.o: ../include/openssl/err.h ../include/openssl/evp.h
-e_skf.o: ../include/openssl/kdf.h ../include/openssl/lhash.h
-e_skf.o: ../include/openssl/obj_mac.h ../include/openssl/objects.h
-e_skf.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
-e_skf.o: ../include/openssl/ossl_typ.h ../include/openssl/pkcs7.h
-e_skf.o: ../include/openssl/rsa.h ../include/openssl/safestack.h
-e_skf.o: ../include/openssl/sha.h ../include/openssl/skf.h
-e_skf.o: ../include/openssl/skf_ex.h ../include/openssl/sm1.h
-e_skf.o: ../include/openssl/sm2.h ../include/openssl/sm3.h
-e_skf.o: ../include/openssl/sm9.h ../include/openssl/sms4.h
-e_skf.o: ../include/openssl/ssf33.h ../include/openssl/stack.h
-e_skf.o: ../include/openssl/symhacks.h ../include/openssl/x509.h
-e_skf.o: ../include/openssl/x509_vfy.h e_skf.c e_skf_err.c e_skf_err.h
 e_sureware.o: ../include/openssl/asn1.h ../include/openssl/bio.h
 e_sureware.o: ../include/openssl/bn.h ../include/openssl/buffer.h
 e_sureware.o: ../include/openssl/crypto.h ../include/openssl/dh.h
