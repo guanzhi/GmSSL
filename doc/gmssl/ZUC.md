@@ -88,6 +88,7 @@ Linear feedback shift register(LFSR)state:
 |9       |1879dddc | 9232b729| 9a1afff1| f1ffff5e| 76bc13d7| a49ea404| 2cb05071| 0b9d257b|
 
 LFSR state after initiation:
+
 |i       | s<sub>0+i</sub>| s<sub>1+i</sub>| s<sub>2+i</sub>| s<sub>3+i</sub>| s<sub>4+i</sub>| s<sub>5+i</sub>| s<sub>6+i</sub>| s<sub>7+i</sub>|
 | ------ | -------:| -------:| -------:| -------:| -------:| -------:| -------:| -------:|  
 |0       |09a339ad |1291d190 |25554227 |36c09187 |0697773b |443cf9cd |6a4cd899 |49c34bd0 |
@@ -142,6 +143,7 @@ Linear feedback shift register(LFSR)state:
 |9       |c8753ce7 | 5785823d| 93c045f1| f16b8f5e| 755cbac8| 3f9c6c86| eef1ao39| 625ac5d7|
 
 LFSR state after initiation:
+
 |i       | s<sub>0+i</sub>| s<sub>1+i</sub>| s<sub>2+i</sub>| s<sub>3+i</sub>| s<sub>4+i</sub>| s<sub>5+i</sub>| s<sub>6+i</sub>| s<sub>7+i</sub>|
 | ------ | -------:| -------:| -------:| -------:| -------:| -------:| -------:| -------:|  
 |0       |10da5941 |5b6acbf6 |17060ce1 |35368174 |5cf4385a |479943df |2753bab2 |73775d6a | 
