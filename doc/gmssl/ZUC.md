@@ -34,6 +34,7 @@ Linear feedback shift register(LFSR)state:
 |9       |f6b213ea | 144ce8c9| cb1b00f1| f100005e| e14727d6| d0225869| 5f2ffdde| 70e21147|
 
 LFSR state after initiation:
+
 |i       | s<sub>0+i</sub>| s<sub>1+i</sub>| s<sub>2+i</sub>| s<sub>3+i</sub>| s<sub>4+i</sub>| s<sub>5+i</sub>| s<sub>6+i</sub>| s<sub>7+i</sub>|
 | ------ | -------:| -------:| -------:| -------:| -------:| -------:| -------:| -------:|  
 |0       | 7ce15b8b| 747caOc4| 6259ddOb| 47a94c2b| 3a89c82e| 32b433fc| 231ea13f| 31711c42| 
