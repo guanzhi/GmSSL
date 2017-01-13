@@ -175,7 +175,7 @@ static int pkey_cbcmac_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
     case EVP_PKEY_CTRL_SET_MAC_KEY:
         if (!p2 || p1 < 0)
             return 0;
-        if (!CMAC_Init(cmctx, p2, p1, NULL, NULL))
+        if (!CBCMAC_Init(cmctx, p2, p1, NULL, NULL))
             return 0;
         break;
 

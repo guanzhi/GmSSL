@@ -690,7 +690,7 @@ jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(JNIEnv *env, jobject this,
 		goto end;
 	}
 
-	if (!EVP_PKEY_encrypt_init(pkctx)) {
+	if (!EVP_PKEY_decrypt_init(pkctx)) {
 		PRINT_ERROR();
 		goto end;
 	}
@@ -702,7 +702,7 @@ jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(JNIEnv *env, jobject this,
 		}
 	}
 
-	if (!EVP_PKEY_encrypt(pkctx, outbuf, &outlen, inbuf, inlen)) {
+	if (!EVP_PKEY_decrypt(pkctx, outbuf, &outlen, inbuf, inlen)) {
 		PRINT_ERROR();
 		goto end;
 	}
