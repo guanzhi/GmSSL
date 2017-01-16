@@ -66,7 +66,7 @@
 
 void sms4_encrypt(const unsigned char *in, unsigned char *out, const sms4_key_t *key)
 {
-	uint32_t *rk = key->rk;
+	const uint32_t *rk = key->rk;
 	uint32_t x0, x1, x2, x3, x4;
 
 	x0 = GET32(in     );

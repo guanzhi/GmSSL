@@ -250,38 +250,8 @@ static int pkey_ec_verify(EVP_PKEY_CTX *ctx,
 	return ret;
 }
 
-static int int_update(EVP_MD_CTX *ctx, const void *data, size_t count)
-{
-	if (!EVP_DigestUpdate(ctx, data, count))
-		return 0;
-	return 1;
-}
-
 static int pkey_ec_signctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 {
-	EC_PKEY_CTX *dctx = ctx->data;
-	EC_KEY *ec_key = ctx->pkey->pkey.ec;
-	const EVP_MD *md = EVP_sm3();
-	unsigned char zid[EVP_MAX_MD_SIZE];
-	unsigned int zidlen = sizeof(zid);
-
-	//FIXME: it is wrong to do it here!
-#if 0
-	if (dctx->sign_type == NID_sm_scheme) {
-		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
-       		 	ECerr(EC_F_PKEY_EC_SIGNCTX_INIT, ERR_R_SM2_LIB);
-			return 0;
-		}
-
-		mctx->update = int_update;
-
-		if (!mctx->update(mctx, zid, zidlen)) {
-	        	ECerr(EC_F_PKEY_EC_SIGNCTX_INIT, ERR_R_EVP_LIB);
-			return 0;
-		}
-	}
-#endif
-
 	return 1;
 }
 
@@ -324,29 +294,7 @@ static int pkey_ec_signctx(EVP_PKEY_CTX *ctx,
 
 static int pkey_ec_verifyctx_init(EVP_PKEY_CTX *ctx, EVP_MD_CTX *mctx)
 {
-	int ret = 0;
-	EC_PKEY_CTX *dctx = ctx->data;
-	EC_KEY *ec_key = ctx->pkey->pkey.ec;
-	const EVP_MD *md = EVP_sm3(); // FIXME: we need to get md from somewhere
-	unsigned char zid[EVP_MAX_MD_SIZE];
-	unsigned int zidlen;
-
-#if 0
-	if (dctx->sign_type == NID_sm_scheme) {
-
-		zidlen = sizeof(zid);
-		if (!SM2_compute_id_digest(md, zid, &zidlen, ec_key)) {
-			goto end;
-		}
-		if (!mctx->update(mctx, zid, zidlen)) {
-			goto end;
-		}
-	}
-#endif
-
-	ret = 1;
-end:
-	return ret;
+	return 1;
 }
 
 static int pkey_ec_verifyctx(EVP_PKEY_CTX *ctx,

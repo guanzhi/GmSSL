@@ -110,7 +110,7 @@
 
 #ifndef NO_GMSSL
 # include <openssl/sm2.h>
-# include <openssl/skf.h>
+# include <openssl/skf_ex.h>
 # include <openssl/cpk.h>
 # include <openssl/ecies.h>
 # include <openssl/cbcmac.h>
