@@ -68,7 +68,7 @@ int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 {
 	int ret = 0;
 	char *buf = NULL;
-	int i = 0;
+	size_t i = 0;
 	size_t buflen = binlen * 2 + 1;
 
 
@@ -799,8 +799,6 @@ int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 	size_t cbuflen = sizeof(cbuf);
 	unsigned char mbuf[512];
 	size_t mbuflen = sizeof(mbuf);
-	int len;
-	unsigned int ulen;
 
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
@@ -920,7 +918,6 @@ int test_evp_sign(EVP_PKEY *pkey, const EVP_MD *md, int verbose)
 	size_t msglen = sizeof(msg);
 	unsigned char sig[256];
 	unsigned int siglen = (unsigned int)sizeof(sig);
-	unsigned int i;
 
 	if (!(mdctx = EVP_MD_CTX_create())) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
