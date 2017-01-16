@@ -132,21 +132,6 @@ int EVP_DigestVerifyInit(EVP_MD_CTX *ctx, EVP_PKEY_CTX **pctx,
     return do_sigver_init(ctx, pctx, type, e, pkey, 1);
 }
 
-int EVP_DigestSignUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
-{
-	/* if this is the first time we update,
-	 * and if this is sm2
-	 * we need to update ZID first
-	 */
-
-
-#ifdef OPENSSL_FIPS
-    return FIPS_digestupdate(ctx, data, count);
-#else
-    return ctx->update(ctx, data, count);
-#endif
-}
-
 int EVP_DigestSignFinal(EVP_MD_CTX *ctx, unsigned char *sigret,
                         size_t *siglen)
 {
@@ -195,15 +180,6 @@ int EVP_DigestSignFinal(EVP_MD_CTX *ctx, unsigned char *sigret,
         }
     }
     return 1;
-}
-
-int EVP_DigestVerifyUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
-{
-#ifdef OPENSSL_FIPS
-    return FIPS_digestupdate(ctx, data, count);
-#else
-    return ctx->update(ctx, data, count);
-#endif
 }
 
 int EVP_DigestVerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sig,
