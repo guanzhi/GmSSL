@@ -14,50 +14,58 @@ GmSSL是一个开源的密码工具箱，支持SM2/SM3/SM4/SM9等国密(国家�
 
 快速上手指南介绍GmSSL的编译、安装和`gmssl`命令行工具的基本指令。
 
-1. 下载源代码，当前稳定版 `gmssl-1.3.0.tar.gz`
-
-2. 解压缩至当前工作目录
+1. 下载源代码，解压缩至当前工作目录
 
    ```sh
-   $ tar xzvf gmssl-1.3.0.tar.gz
+   $ tar xzvf gmssl-<version>.tar.gz
    ```
 
-3. 编译与安装
+2. 编译与安装
 
    Linux平台（其他平台的安装过程见[编译与安装](http://gmssl.org)）
 
    ```sh
    $ ./config
-   make
-   sudo make install
+   $ make
+   $ sudo make install
    ```
 
    安装之后可以执行`gmssl`命令行工具检查是否成功
 
    ```sh
-   gmssl version -a
+   $ gmssl version
+   GmSSL 1.3.0 - OpenSSL 1.0.2d
    ```
 
-4. SM4加解密文件
+3. SM4加密文件
 
    ```sh
-   gmssl sms4 -a -in <your-file> -out <your-file>.sms4
+   $ gmssl sms4 -e -in <yourfile> -out <yourfile>.sms4
+   enter sms4-cbc encryption password: <your-password>
+   Verifying - enter sms4-cbc encryption password: <your-password>
    ```
 
-   通过SM3哈希算法生成文件摘要
-
-   ```
-   gmssl sm3 -in <your-file> -out <your-file>.sm3
-   ```
-
-
-1. SM2签名
+   解密
 
    ```sh
-   gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve  -out signkey.pem
+   $ gmssl sms4 -d -in <yourfile>.sms4
+   enter sms4-cbc decryption password: <your-password>
+   ```
 
-   gmssl pkeyutl -sign -pkeyopt ec_sign_algor:sm2 -inkey signkey.pem -in <yourfile>.sm3 -out <yourfile>.sig
-   gmssl 
+4. 生成SM3摘要
+
+   ```
+   $ gmssl sm3 <yourfile>
+   SM3(yourfile)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
+   ```
+
+5. 生成SM2密钥并签名
+
+   ```sh
+   $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 \
+                   -pkeyopt ec_param_enc:named_curve  -out signkey.pem
+   $ gmssl pkeyutl -sign -pkeyopt ec_sign_algor:sm2 -inkey signkey.pem \
+                   -in <yourfile> -out <yourfile>.sig
    ```
 
 ## 项目文档
