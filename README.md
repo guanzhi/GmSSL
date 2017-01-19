@@ -67,15 +67,48 @@ GmSSL是一个开源的密码工具箱，支持SM2/SM3/SM4/SM9等国密(国家�
    $ gmssl pkeyutl -sign -pkeyopt ec_sign_algor:sm2 -inkey signkey.pem \
                    -in <yourfile> -out <yourfile>.sig
    ```
+   可以将公钥从`signkey.pem`中导出并发发布给验证签名的一方
+   ```sh
+   $ gmssl pkey -in signkey.pem -out vrfykey.pem
+   $ gmssl pkeyutl -verify -pkeyopt ec_sign_algor:sm2 -inkey vrfykey.pem \
+                   -in <yourfile> -sigfile <yourfile>.sig
+   ```
+
 
 ## 项目文档
 
-- [编译与安装](https://github.com/guanzhi/GmSSL/wiki/编译和安装)
-- 密码算法：[SM1分组密码](https://github.com/guanzhi/GmSSL/wiki/SM1和SSF33分组密码)；[SSF33分组密码](https://github.com/guanzhi/GmSSL/wiki/SM1和SSF33分组密码)；[SM2椭圆曲线公钥密码](https://github.com/guanzhi/GmSSL/wiki/SM2椭圆曲线公钥密码)；[SM3密码杂凑算法](https://github.com/guanzhi/GmSSL/wiki/SM3密码杂凑算法)；[SM4/SMS4分组密码](https://github.com/guanzhi/GmSSL/wiki/SM4分组密码)；[SM9基于身份的密码](https://github.com/guanzhi/GmSSL/wiki/SM9身份密码)；[ZUC序列密码](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/zuc.md)；[CPK组合公钥密码](https://github.com/guanzhi/GmSSL/wiki/CPK组合公钥)
-- 安全协议：国密SSL VPN协议；国密IPSec VPN协议
-- [GmSSL命令行工具](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/gmsslcli.md)
-- [GmSSL编码风格 (GmSSL Coding Style)](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/codingstyle.md)
-- GmSSL编程接口：国密应用编程接口(GmSSL SAF/SDF/SKF/SOF API)；GmSSL EVP API](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/evp.md)；[GmSSL Java API](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/java.md)；[国密算法标识OID](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/oid.md)
-- [中华人民共和国密码行业标准(共44项)]()
+用户手册：
+
+[编译与安装](https://github.com/guanzhi/GmSSL/wiki/install)；
+[命令行工具手册](https://github.com/guanzhi/GmSSL/wiki/commands.md)；
+ [GmSSL EVP API](https://github.com/guanzhimSSL/blob/develop/doc/gmssl/evp.md)；
+ [GmSSL Java API](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/java.md)；
+
+密码算法
+
+[SM1分组密码](https://github.com/guanzhi/GmSSL/wiki/sm1)
+[SSF33分组密码](https://github.com/guanzhi/GmSSL/wiki/ssf33)
+[SM2椭圆曲线公钥密码](https://github.com/guanzhi/GmSSL/wiki/sm2)
+[SM3密码杂凑算法](https://github.com/guanzhi/GmSSL/wiki/sm3)
+[SM4/SMS4分组密码](https://github.com/guanzhi/GmSSL/wiki/sms4)
+[SM9基于身份的密码](https://github.com/guanzhi/GmSSL/wiki/sm9)
+[ZUC序列密码](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/zuc.md)
+[CPK组合公钥密码](https://github.com/guanzhi/GmSSL/wiki/cpk)
+[BF-IBE (Boneh-Franklin Identity-Based Encryption)](https://github.com/guanzhi/GmSSL/wiki/bfibe)
+[BB~1~-IBE (Boneh-Boyen Identity-Based Encryption)](https://github.com/guanzhi/GmSSL/wiki/bb1-ibe)
+
+安全协议：
+
+[SSL/TLS协议]()、
+[国密SSL VPN协议]()；
+[国密IPSec VPN协议]()；
+
+开发者：
+[GmSSL编码风格 (Coding Style)](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/codingstyle.md)；
+[开发路线 (Road Map)]()；
+
+国密应用编程接口(GmSSL SAF/SDF/SKF/SOF API)；
+- 标准规范：[中华人民共和国密码行业标准(共44项)]()；
+  [国密算法标识OID](https://github.com/guanzhi/GmSSL/blob/develop/doc/gmssl/oid.md)
 
 

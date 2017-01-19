@@ -7,7 +7,7 @@ s_server - SSL/TLS server program
 
 =head1 SYNOPSIS
 
-B<openssl> B<s_server>
+B<gmssl> B<s_server>
 [B<-accept port>]
 [B<-context id>]
 [B<-verify depth>]
@@ -105,7 +105,7 @@ The private format to use: DER or PEM. PEM is the default.
 =item B<-pass arg>
 
 the private key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-dcert filename>, B<-dkey keyname>
 
@@ -380,13 +380,13 @@ print out some session cache status information.
 B<s_server> can be used to debug SSL clients. To accept connections from
 a web browser the command:
 
- openssl s_server -accept 443 -www
+ gmssl s_server -accept 443 -www
 
 can be used for example.
 
 Most web browsers (in particular Netscape and MSIE) only support RSA cipher
 suites, so they cannot connect to servers which don't use a certificate
-carrying an RSA key or a version of OpenSSL with RSA disabled.
+carrying an RSA key or a version of GmSSL with RSA disabled.
 
 Although specifying an empty list of CAs when requesting a client certificate
 is strictly speaking a protocol violation, some SSL clients interpret this to
@@ -402,7 +402,7 @@ hard to read and not a model of how things should be done. A typical
 SSL server program would be much simpler.
 
 The output of common ciphers is wrong: it just gives the list of ciphers that
-OpenSSL recognizes and the client supports.
+GmSSL recognizes and the client supports.
 
 There should be a way for the B<s_server> program to print out details of any
 unknown cipher suites a client says it supports.
@@ -413,6 +413,6 @@ L<sess_id(1)|sess_id(1)>, L<s_client(1)|s_client(1)>, L<ciphers(1)|ciphers(1)>
 
 =head1 HISTORY
 
-The -no_alt_chains options was first added to OpenSSL 1.0.2b.
+The -no_alt_chains options was first added to GmSSL 1.0.2b.
 
 =cut

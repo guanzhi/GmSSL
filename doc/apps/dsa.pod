@@ -6,7 +6,7 @@ dsa - DSA key processing
 
 =head1 SYNOPSIS
 
-B<openssl> B<dsa>
+B<gmssl> B<dsa>
 [B<-inform PEM|DER>]
 [B<-outform PEM|DER>]
 [B<-in filename>]
@@ -66,7 +66,7 @@ prompted for.
 =item B<-passin arg>
 
 the input file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-out filename>
 
@@ -78,7 +78,7 @@ filename.
 =item B<-passout arg>
 
 the output file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-aes128|-aes192|-aes256|-camellia128|-camellia192|-camellia256|-des|-des3|-idea>
 
@@ -138,23 +138,23 @@ The PEM public key format uses the header and footer lines:
 
 To remove the pass phrase on a DSA private key:
 
- openssl dsa -in key.pem -out keyout.pem
+ gmssl dsa -in key.pem -out keyout.pem
 
 To encrypt a private key using triple DES:
 
- openssl dsa -in key.pem -des3 -out keyout.pem
+ gmssl dsa -in key.pem -des3 -out keyout.pem
 
 To convert a private key from PEM to DER format: 
 
- openssl dsa -in key.pem -outform DER -out keyout.der
+ gmssl dsa -in key.pem -outform DER -out keyout.der
 
 To print out the components of a private key to standard output:
 
- openssl dsa -in key.pem -text -noout
+ gmssl dsa -in key.pem -text -noout
 
 To just output the public part of a private key:
 
- openssl dsa -in key.pem -pubout -out pubkey.pem
+ gmssl dsa -in key.pem -pubout -out pubkey.pem
 
 =head1 SEE ALSO
 

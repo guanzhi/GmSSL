@@ -6,7 +6,7 @@ speed - test library performance
 
 =head1 SYNOPSIS
 
-B<openssl speed>
+B<gmssl speed>
 [B<-engine id>]
 [B<md2>]
 [B<mdc2>]

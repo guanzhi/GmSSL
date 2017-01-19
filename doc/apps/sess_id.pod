@@ -7,7 +7,7 @@ sess_id - SSL/TLS session handling utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<sess_id>
+B<gmssl> B<sess_id>
 [B<-inform PEM|DER>]
 [B<-outform PEM|DER>]
 [B<-in filename>]

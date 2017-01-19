@@ -7,7 +7,7 @@ pkeyparam - public key algorithm parameter processing tool
 
 =head1 SYNOPSIS
 
-B<openssl> B<pkeyparam>
+B<gmssl> B<pkeyparam>
 [B<-in filename>]
 [B<-out filename>]
 [B<-text>]
@@ -54,7 +54,7 @@ for all available algorithms.
 
 Print out text version of parameters:
 
- openssl pkeyparam -in param.pem -text
+ gmssl pkeyparam -in param.pem -text
 
 =head1 NOTES
 

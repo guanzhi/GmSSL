@@ -2,11 +2,11 @@
 
 =head1 NAME
 
-version - print OpenSSL version information
+version - print GmSSL version information
 
 =head1 SYNOPSIS
 
-B<openssl version>
+B<gmssl version>
 [B<-a>]
 [B<-v>]
 [B<-b>]
@@ -17,7 +17,7 @@ B<openssl version>
 
 =head1 DESCRIPTION
 
-This command is used to print out version information about OpenSSL.
+This command is used to print out version information about GmSSL.
 
 =head1 OPTIONS
 
@@ -29,11 +29,11 @@ all information, this is the same as setting all the other flags.
 
 =item B<-v>
 
-the current OpenSSL version.
+the current GmSSL version.
 
 =item B<-b>
 
-the date the current version of OpenSSL was built.
+the date the current version of GmSSL was built.
 
 =item B<-o>
 
@@ -55,11 +55,11 @@ OPENSSLDIR setting.
 
 =head1 NOTES
 
-The output of B<openssl version -a> would typically be used when sending
+The output of B<gmssl version -a> would typically be used when sending
 in a bug report.
 
 =head1 HISTORY
 
-The B<-d> option was added in OpenSSL 0.9.7.
+The B<-d> option was added in GmSSL 0.9.7.
 
 =cut

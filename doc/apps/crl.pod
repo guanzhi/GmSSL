@@ -6,7 +6,7 @@ crl - CRL utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<crl>
+B<gmssl> B<crl>
 [B<-inform PEM|DER>]
 [B<-outform PEM|DER>]
 [B<-text>]
@@ -71,7 +71,7 @@ a directory by issuer name.
 =item B<-hash_old>
 
 outputs the "hash" of the CRL issuer name using the older algorithm
-as used by OpenSSL versions before 1.0.0.
+as used by GmSSL versions before 1.0.0.
 
 =item B<-issuer>
 
@@ -110,11 +110,11 @@ The PEM CRL format uses the header and footer lines:
 
 Convert a CRL file from PEM to DER:
 
- openssl crl -in crl.pem -outform DER -out crl.der
+ gmssl crl -in crl.pem -outform DER -out crl.der
 
 Output the text form of a DER encoded certificate:
 
- openssl crl -in crl.der -text -noout
+ gmssl crl -in crl.der -text -noout
 
 =head1 BUGS
 

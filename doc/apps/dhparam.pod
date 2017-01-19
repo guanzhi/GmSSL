@@ -6,7 +6,7 @@ dhparam - DH parameter manipulation and generation
 
 =head1 SYNOPSIS
 
-B<openssl dhparam>
+B<gmssl dhparam>
 [B<-inform DER|PEM>]
 [B<-outform DER|PEM>]
 [B<-in> I<filename>]
@@ -117,9 +117,9 @@ for all available algorithms.
 =head1 WARNINGS
 
 The program B<dhparam> combines the functionality of the programs B<dh> and
-B<gendh> in previous versions of OpenSSL and SSLeay. The B<dh> and B<gendh>
+B<gendh> in previous versions of GmSSL and SSLeay. The B<dh> and B<gendh>
 programs are retained for now but may have different purposes in future 
-versions of OpenSSL.
+versions of GmSSL.
 
 =head1 NOTES
 
@@ -128,7 +128,7 @@ PEM format DH parameters use the header and footer lines:
  -----BEGIN DH PARAMETERS-----
  -----END DH PARAMETERS-----
 
-OpenSSL currently only supports the older PKCS#3 DH, not the newer X9.42
+GmSSL currently only supports the older PKCS#3 DH, not the newer X9.42
 DH.
 
 This program manipulates DH parameters not keys.
@@ -143,7 +143,7 @@ L<dsaparam(1)|dsaparam(1)>
 
 =head1 HISTORY
 
-The B<dhparam> command was added in OpenSSL 0.9.5.
-The B<-dsaparam> option was added in OpenSSL 0.9.6.
+The B<dhparam> command was added in GmSSL 0.9.5.
+The B<-dsaparam> option was added in GmSSL 0.9.6.
 
 =cut

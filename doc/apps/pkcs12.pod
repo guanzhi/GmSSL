@@ -7,7 +7,7 @@ pkcs12 - PKCS#12 file utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<pkcs12>
+B<gmssl> B<pkcs12>
 [B<-export>]
 [B<-chain>]
 [B<-inkey filename>]
@@ -71,13 +71,13 @@ default.  They are all written in PEM format.
 
 the PKCS#12 file (i.e. input file) password source. For more information about
 the format of B<arg> see the B<PASS PHRASE ARGUMENTS> section in
-L<openssl(1)|openssl(1)>.
+L<gmssl(1)|gmssl(1)>.
 
 =item B<-passout arg>
 
 pass phrase source to encrypt any outputted private keys with. For more
 information about the format of B<arg> see the B<PASS PHRASE ARGUMENTS> section
-in L<openssl(1)|openssl(1)>.
+in L<gmssl(1)|gmssl(1)>.
 
 =item B<-password arg>
 
@@ -192,13 +192,13 @@ displays them.
 
 the PKCS#12 file (i.e. output file) password source. For more information about
 the format of B<arg> see the B<PASS PHRASE ARGUMENTS> section in
-L<openssl(1)|openssl(1)>.
+L<gmssl(1)|gmssl(1)>.
 
 =item B<-passin password>
 
 pass phrase source to decrypt any input private keys with. For more information
 about the format of B<arg> see the B<PASS PHRASE ARGUMENTS> section in
-L<openssl(1)|openssl(1)>.
+L<gmssl(1)|gmssl(1)>.
 
 =item B<-chain>
 
@@ -315,38 +315,38 @@ description of all algorithms is contained in the B<pkcs8> manual page.
 
 Parse a PKCS#12 file and output it to a file:
 
- openssl pkcs12 -in file.p12 -out file.pem
+ gmssl pkcs12 -in file.p12 -out file.pem
 
 Output only client certificates to a file:
 
- openssl pkcs12 -in file.p12 -clcerts -out file.pem
+ gmssl pkcs12 -in file.p12 -clcerts -out file.pem
 
 Don't encrypt the private key:
  
- openssl pkcs12 -in file.p12 -out file.pem -nodes
+ gmssl pkcs12 -in file.p12 -out file.pem -nodes
 
 Print some info about a PKCS#12 file:
 
- openssl pkcs12 -in file.p12 -info -noout
+ gmssl pkcs12 -in file.p12 -info -noout
 
 Create a PKCS#12 file:
 
- openssl pkcs12 -export -in file.pem -out file.p12 -name "My Certificate"
+ gmssl pkcs12 -export -in file.pem -out file.p12 -name "My Certificate"
 
 Include some extra certificates:
 
- openssl pkcs12 -export -in file.pem -out file.p12 -name "My Certificate" \
+ gmssl pkcs12 -export -in file.pem -out file.p12 -name "My Certificate" \
   -certfile othercerts.pem
 
 =head1 BUGS
 
 Some would argue that the PKCS#12 standard is one big bug :-)
 
-Versions of OpenSSL before 0.9.6a had a bug in the PKCS#12 key generation
+Versions of GmSSL before 0.9.6a had a bug in the PKCS#12 key generation
 routines. Under rare circumstances this could produce a PKCS#12 file encrypted
 with an invalid key. As a result some PKCS#12 files which triggered this bug
 from other implementations (MSIE or Netscape) could not be decrypted
-by OpenSSL and similarly OpenSSL could produce PKCS#12 files which could
+by GmSSL and similarly GmSSL could produce PKCS#12 files which could
 not be decrypted by other implementations. The chances of producing such
 a file are relatively small: less than 1 in 256.
 
@@ -356,11 +356,11 @@ the B<pkcs12> utility will report that the MAC is OK but fail with a decryption
 error when extracting private keys.
 
 This problem can be resolved by extracting the private keys and certificates
-from the PKCS#12 file using an older version of OpenSSL and recreating the PKCS#12
-file from the keys and certificates using a newer version of OpenSSL. For example:
+from the PKCS#12 file using an older version of GmSSL and recreating the PKCS#12
+file from the keys and certificates using a newer version of GmSSL. For example:
 
- old-openssl -in bad.p12 -out keycerts.pem
- openssl -in keycerts.pem -export -name "My PKCS#12 file" -out fixed.p12
+ old-gmssl -in bad.p12 -out keycerts.pem
+ gmssl -in keycerts.pem -export -name "My PKCS#12 file" -out fixed.p12
 
 =head1 SEE ALSO
 

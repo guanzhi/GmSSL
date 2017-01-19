@@ -6,7 +6,7 @@ enc - symmetric cipher routines
 
 =head1 SYNOPSIS
 
-B<openssl enc -ciphername>
+B<gmssl enc -ciphername>
 [B<-in filename>]
 [B<-out filename>]
 [B<-pass arg>]
@@ -53,7 +53,7 @@ the output filename, standard output by default.
 =item B<-pass arg>
 
 the password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-salt>
 
@@ -62,7 +62,7 @@ use a salt in the key derivation routines. This is the default.
 =item B<-nosalt>
 
 don't use a salt in the key derivation routines. This option B<SHOULD NOT> be
-used except for test purposes or compatibility with ancient versions of OpenSSL
+used except for test purposes or compatibility with ancient versions of GmSSL
 and SSLeay.
 
 =item B<-e>
@@ -90,12 +90,12 @@ if the B<-a> option is set then base64 process the data on one line.
 =item B<-k password>
 
 the password to derive the key from. This is for compatibility with previous
-versions of OpenSSL. Superseded by the B<-pass> argument.
+versions of GmSSL. Superseded by the B<-pass> argument.
 
 =item B<-kfile filename>
 
 read the password to derive the key from the first line of B<filename>.
-This is for compatibility with previous versions of OpenSSL. Superseded by
+This is for compatibility with previous versions of GmSSL. Superseded by
 the B<-pass> argument.
 
 =item B<-nosalt>
@@ -151,7 +151,7 @@ debug the BIOs used for I/O.
 =item B<-z>
 
 Compress or decompress clear text using zlib before encryption or after
-decryption. This option exists only if OpenSSL with compiled with zlib
+decryption. This option exists only if GmSSL with compiled with zlib
 or zlib-dynamic option.
 
 =item B<-none>
@@ -162,8 +162,8 @@ Use NULL cipher (no encryption or decryption of input).
 
 =head1 NOTES
 
-The program can be called either as B<openssl ciphername> or
-B<openssl enc -ciphername>. But the first form doesn't work with
+The program can be called either as B<gmssl ciphername> or
+B<gmssl enc -ciphername>. But the first form doesn't work with
 engine-provided ciphers, because this form is processed before the
 configuration file is read and any ENGINEs loaded.
 
@@ -171,7 +171,7 @@ Engines which provide entirely new encryption algorithms (such as ccgost
 engine which provides gost89 algorithm) should be configured in the
 configuration file. Engines, specified in the command line using -engine
 options can only be used for hadrware-assisted implementations of
-ciphers, which are supported by OpenSSL core or other engine, specified
+ciphers, which are supported by GmSSL core or other engine, specified
 in the configuration file.
 
 When enc command lists supported ciphers, ciphers provided by engines,
@@ -181,7 +181,7 @@ A password will be prompted for to derive the key and IV if necessary.
 
 The B<-salt> option should B<ALWAYS> be used if the key is being derived
 from a password unless you want compatibility with previous versions of
-OpenSSL and SSLeay.
+GmSSL and SSLeay.
 
 Without the B<-salt> option it is possible to perform efficient dictionary
 attacks on the password and to attack stream cipher encrypted data. The reason
@@ -211,8 +211,8 @@ Blowfish and RC5 algorithms use a 128 bit key.
 Note that some of these ciphers can be disabled at compile time
 and some are available only if an appropriate engine is configured
 in the configuration file. The output of the B<enc> command run with
-unsupported options (for example B<openssl enc -help>) includes a
-list of ciphers, supported by your versesion of OpenSSL, including
+unsupported options (for example B<gmssl enc -help>) includes a
+list of ciphers, supported by your versesion of GmSSL, including
 ones provided by configured engines.
 
 The B<enc> program does not support authenticated encryption modes
@@ -293,32 +293,32 @@ authentication tag.
 
 Just base64 encode a binary file:
 
- openssl base64 -in file.bin -out file.b64
+ gmssl base64 -in file.bin -out file.b64
 
 Decode the same file
 
- openssl base64 -d -in file.b64 -out file.bin 
+ gmssl base64 -d -in file.b64 -out file.bin 
 
 Encrypt a file using triple DES in CBC mode using a prompted password:
 
- openssl des3 -salt -in file.txt -out file.des3 
+ gmssl des3 -salt -in file.txt -out file.des3 
 
 Decrypt a file using a supplied password:
 
- openssl des3 -d -salt -in file.des3 -out file.txt -k mypassword
+ gmssl des3 -d -salt -in file.des3 -out file.txt -k mypassword
 
 Encrypt a file then base64 encode it (so it can be sent via mail for example)
 using Blowfish in CBC mode:
 
- openssl bf -a -salt -in file.txt -out file.bf
+ gmssl bf -a -salt -in file.txt -out file.bf
 
 Base64 decode a file then decrypt it:
 
- openssl bf -d -salt -a -in file.bf -out file.txt
+ gmssl bf -d -salt -a -in file.bf -out file.txt
 
 Decrypt some data using a supplied 40 bit RC4 key:
 
- openssl rc4-40 -in file.rc4 -out file.txt -K 0102030405
+ gmssl rc4-40 -in file.rc4 -out file.txt -K 0102030405
 
 =head1 BUGS
 

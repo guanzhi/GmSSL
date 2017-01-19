@@ -2,12 +2,12 @@
 
 =head1 NAME
 
-dgst, sha, sha1, mdc2, ripemd160, sha224, sha256, sha384, sha512, md2, md4, md5, dss1 - message digests
+dgst, sha, sha1, mdc2, ripemd160, sha224, sm3, sha384, sha512, md2, md4, md5, dss1 - message digests
 
 =head1 SYNOPSIS
 
-B<openssl> B<dgst> 
-[B<-sha|-sha1|-mdc2|-ripemd160|-sha224|-sha256|-sha384|-sha512|-md2|-md4|-md5|-dss1>]
+B<gmssl> B<dgst> 
+[B<-sha|-sha1|-mdc2|-ripemd160|-sha224|-sm3|-sha384|-sha512|-md2|-md4|-md5|-dss1>]
 [B<-c>]
 [B<-d>]
 [B<-hex>]
@@ -27,7 +27,7 @@ B<openssl> B<dgst>
 [B<-fips-fingerprint>]
 [B<file...>]
 
-B<openssl>
+B<gmssl>
 [I<digest>]
 [B<...>]
 
@@ -101,7 +101,7 @@ Names and values of these options are algorithm-specific.
 =item B<-passin arg>
 
 the private key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-verify filename>
 
@@ -164,7 +164,7 @@ enable use of non-FIPS algorithms such as MD5 even in FIPS mode.
 =item B<-fips-fingerprint>
 
 compute HMAC using a specific key
-for certain OpenSSL-FIPS operations.
+for certain GmSSL-FIPS operations.
 
 =item B<file...>
 
@@ -177,13 +177,13 @@ used.
 =head1 EXAMPLES
 
 To create a hex-encoded message digest of a file:
- openssl dgst -md5 -hex file.txt
+ gmssl dgst -md5 -hex file.txt
 
 To sign a file using SHA-256 with binary file output:
- openssl dgst -sha256 -sign privatekey.pem -out signature.sign file.txt
+ gmssl dgst -sm3 -sign privatekey.pem -out signature.sign file.txt
 
 To verify a signature:
- openssl dgst -sha256 -verify publickey.pem \
+ gmssl dgst -sm3 -verify publickey.pem \
  -signature signature.sign \
  file.txt
 
@@ -205,7 +205,7 @@ particular ECDSA and DSA.
 The signing and verify options should only be used if a single file is
 being signed or verified.
 
-Hex signatures cannot be verified using B<openssl>.  Instead, use "xxd -r"
+Hex signatures cannot be verified using B<gmssl>.  Instead, use "xxd -r"
 or similar program to transform the hex signature into a binary signature
 prior to verification.
 

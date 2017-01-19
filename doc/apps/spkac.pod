@@ -6,7 +6,7 @@ spkac - SPKAC printing and generating utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<spkac>
+B<gmssl> B<spkac>
 [B<-in filename>]
 [B<-out filename>]
 [B<-key keyfile>]
@@ -48,7 +48,7 @@ present.
 =item B<-passin password>
 
 the input file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-challenge string>
 
@@ -92,15 +92,15 @@ for all available algorithms.
 
 Print out the contents of an SPKAC:
 
- openssl spkac -in spkac.cnf
+ gmssl spkac -in spkac.cnf
 
 Verify the signature of an SPKAC:
 
- openssl spkac -in spkac.cnf -noout -verify
+ gmssl spkac -in spkac.cnf -noout -verify
 
 Create an SPKAC using the challenge string "hello":
 
- openssl spkac -key key.pem -challenge hello -out spkac.cnf
+ gmssl spkac -key key.pem -challenge hello -out spkac.cnf
 
 Example of an SPKAC, (long lines split up for clarity):
 

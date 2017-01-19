@@ -6,7 +6,7 @@ dsaparam - DSA parameter manipulation and generation
 
 =head1 SYNOPSIS
 
-B<openssl dsaparam>
+B<gmssl dsaparam>
 [B<-inform DER|PEM>]
 [B<-outform DER|PEM>]
 [B<-in filename>]

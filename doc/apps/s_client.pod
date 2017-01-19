@@ -7,7 +7,7 @@ s_client - SSL/TLS client program
 
 =head1 SYNOPSIS
 
-B<openssl> B<s_client>
+B<gmssl> B<s_client>
 [B<-connect host:port>]
 [B<-servername name>]
 [B<-verify depth>]
@@ -95,7 +95,7 @@ The private format to use: DER or PEM. PEM is the default.
 =item B<-pass arg>
 
 the private key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-verify depth>
 
@@ -308,7 +308,7 @@ connection will be closed down.
 B<s_client> can be used to debug SSL servers. To connect to an SSL HTTP
 server the command:
 
- openssl s_client -connect servername:443
+ gmssl s_client -connect servername:443
 
 would typically be used (https uses port 443). If the connection succeeds
 then an HTTP command can be given such as "GET /" to retrieve a web page.
@@ -317,7 +317,7 @@ If the handshake fails then there are several possible causes, if it is
 nothing obvious like no client certificate then the B<-bugs>, B<-ssl2>,
 B<-ssl3>, B<-tls1>, B<-no_ssl2>, B<-no_ssl3>, B<-no_tls1> options can be tried
 in case it is a buggy server. In particular you should play with these
-options B<before> submitting a bug report to an OpenSSL mailing list.
+options B<before> submitting a bug report to an GmSSL mailing list.
 
 A frequent problem when attempting to get client certificates working
 is that a web client complains it has no certificates or gives an empty
@@ -364,6 +364,6 @@ L<sess_id(1)|sess_id(1)>, L<s_server(1)|s_server(1)>, L<ciphers(1)|ciphers(1)>
 
 =head1 HISTORY
 
-The -no_alt_chains options was first added to OpenSSL 1.0.2b.
+The -no_alt_chains options was first added to GmSSL 1.0.2b.
 
 =cut

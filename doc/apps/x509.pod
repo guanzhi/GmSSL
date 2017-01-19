@@ -7,7 +7,7 @@ x509 - Certificate display and signing utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<x509>
+B<gmssl> B<x509>
 [B<-inform DER|PEM|NET>]
 [B<-outform DER|PEM|NET>]
 [B<-keyform DER|PEM>]
@@ -156,7 +156,7 @@ outputs the certificate serial number.
 
 =item B<-subject_hash>
 
-outputs the "hash" of the certificate subject name. This is used in OpenSSL to
+outputs the "hash" of the certificate subject name. This is used in GmSSL to
 form an index to allow certificates in a directory to be looked up by subject
 name.
 
@@ -175,12 +175,12 @@ synonym for "-subject_hash" for backward compatibility reasons.
 =item B<-subject_hash_old>
 
 outputs the "hash" of the certificate subject name using the older algorithm
-as used by OpenSSL versions before 1.0.0.
+as used by GmSSL versions before 1.0.0.
 
 =item B<-issuer_hash_old>
 
 outputs the "hash" of the certificate issuer name using the older algorithm
-as used by OpenSSL versions before 1.0.0.
+as used by GmSSL versions before 1.0.0.
 
 =item B<-subject>
 
@@ -253,7 +253,7 @@ may be trusted for SSL client but not SSL server use.
 See the description of the B<verify> utility for more information on the
 meaning of trust settings.
 
-Future versions of OpenSSL will recognize trust settings on any
+Future versions of GmSSL will recognize trust settings on any
 certificate: not just root CAs.
 
 
@@ -289,7 +289,7 @@ clears all the prohibited or rejected uses of the certificate.
 adds a trusted certificate use. Any object name can be used here
 but currently only B<clientAuth> (SSL client use), B<serverAuth>
 (SSL server use) and B<emailProtection> (S/MIME email) are used.
-Other OpenSSL applications may define additional uses.
+Other GmSSL applications may define additional uses.
 
 =item B<-addreject arg>
 
@@ -330,7 +330,7 @@ the request.
 =item B<-passin arg>
 
 the key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-clrext>
 
@@ -434,7 +434,7 @@ The format or B<key> can be specified using the B<-keyform> option.
 
 The B<nameopt> command line switch determines how the subject and issuer
 names are displayed. If no B<nameopt> switch is present the default "oneline"
-format is used which is compatible with previous versions of OpenSSL.
+format is used which is compatible with previous versions of GmSSL.
 Each option is described in detail below, all options can be preceded by
 a B<-> to turn the option off. Only the first four will normally be used.
 
@@ -528,7 +528,7 @@ DER encoding of the structure to be unambiguously determined.
 
 =item B<dump_unknown>
 
-dump any field whose OID is not recognised by OpenSSL.
+dump any field whose OID is not recognised by GmSSL.
 
 =item B<sep_comma_plus>, B<sep_comma_plus_space>, B<sep_semi_plus_space>,
 B<sep_multiline>
@@ -653,58 +653,58 @@ line.
 
 Display the contents of a certificate:
 
- openssl x509 -in cert.pem -noout -text
+ gmssl x509 -in cert.pem -noout -text
 
 Display the certificate serial number:
 
- openssl x509 -in cert.pem -noout -serial
+ gmssl x509 -in cert.pem -noout -serial
 
 Display the certificate subject name:
 
- openssl x509 -in cert.pem -noout -subject
+ gmssl x509 -in cert.pem -noout -subject
 
 Display the certificate subject name in RFC2253 form:
 
- openssl x509 -in cert.pem -noout -subject -nameopt RFC2253
+ gmssl x509 -in cert.pem -noout -subject -nameopt RFC2253
 
 Display the certificate subject name in oneline form on a terminal
 supporting UTF8:
 
- openssl x509 -in cert.pem -noout -subject -nameopt oneline,-esc_msb
+ gmssl x509 -in cert.pem -noout -subject -nameopt oneline,-esc_msb
 
 Display the certificate MD5 fingerprint:
 
- openssl x509 -in cert.pem -noout -fingerprint
+ gmssl x509 -in cert.pem -noout -fingerprint
 
 Display the certificate SHA1 fingerprint:
 
- openssl x509 -sha1 -in cert.pem -noout -fingerprint
+ gmssl x509 -sha1 -in cert.pem -noout -fingerprint
 
 Convert a certificate from PEM to DER format:
 
- openssl x509 -in cert.pem -inform PEM -out cert.der -outform DER
+ gmssl x509 -in cert.pem -inform PEM -out cert.der -outform DER
 
 Convert a certificate to a certificate request:
 
- openssl x509 -x509toreq -in cert.pem -out req.pem -signkey key.pem
+ gmssl x509 -x509toreq -in cert.pem -out req.pem -signkey key.pem
 
 Convert a certificate request into a self signed certificate using
 extensions for a CA:
 
- openssl x509 -req -in careq.pem -extfile openssl.cnf -extensions v3_ca \
+ gmssl x509 -req -in careq.pem -extfile openssl.cnf -extensions v3_ca \
 	-signkey key.pem -out cacert.pem
 
 Sign a certificate request using the CA certificate above and add user
 certificate extensions:
 
- openssl x509 -req -in req.pem -extfile openssl.cnf -extensions v3_usr \
+ gmssl x509 -req -in req.pem -extfile openssl.cnf -extensions v3_usr \
 	-CA cacert.pem -CAkey key.pem -CAcreateserial
 
 
 Set a certificate to be trusted for SSL client use and change set its alias to
 "Steve's Class 1 CA"
 
- openssl x509 -in cert.pem -addtrust clientAuth \
+ gmssl x509 -in cert.pem -addtrust clientAuth \
 	-setalias "Steve's Class 1 CA" -out trust.pem
 
 =head1 NOTES
@@ -868,7 +868,7 @@ dates rather than an offset from the current time.
 The code to implement the verify behaviour described in the B<TRUST SETTINGS>
 is currently being developed. It thus describes the intended behaviour rather
 than the current behaviour. It is hoped that it will represent reality in
-OpenSSL 0.9.5 and later.
+GmSSL 0.9.5 and later.
 
 =head1 SEE ALSO
 
@@ -878,11 +878,11 @@ L<x509v3_config(5)|x509v3_config(5)>
 
 =head1 HISTORY
 
-Before OpenSSL 0.9.8, the default digest for RSA keys was MD5.
+Before GmSSL 0.9.8, the default digest for RSA keys was MD5.
 
 The hash algorithm used in the B<-subject_hash> and B<-issuer_hash> options
-before OpenSSL 1.0.0 was based on the deprecated MD5 algorithm and the encoding
-of the distinguished name. In OpenSSL 1.0.0 and later it is based on a
+before GmSSL 1.0.0 was based on the deprecated MD5 algorithm and the encoding
+of the distinguished name. In GmSSL 1.0.0 and later it is based on a
 canonical version of the DN using SHA1. This means that any directories using
 the old form must have their links rebuilt using B<c_rehash> or similar. 
 

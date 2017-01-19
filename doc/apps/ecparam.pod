@@ -6,7 +6,7 @@ ecparam - EC parameter manipulation and generation
 
 =head1 SYNOPSIS
 
-B<openssl ecparam>
+B<gmssl ecparam>
 [B<-inform DER|PEM>]
 [B<-outform DER|PEM>]
 [B<-in filename>]
@@ -100,7 +100,7 @@ specified by a OID, or B<explicit> where the ec parameters are
 explicitly given (see RFC 3279 for the definition of the 
 EC parameters structures). The default value is B<named_curve>.
 B<Note> the B<implicitlyCA> alternative ,as specified in RFC 3279,
-is currently not implemented in OpenSSL.
+is currently not implemented in GmSSL.
 
 =item B<-no_seed>
 
@@ -135,34 +135,34 @@ PEM format EC parameters use the header and footer lines:
  -----BEGIN EC PARAMETERS-----
  -----END EC PARAMETERS-----
 
-OpenSSL is currently not able to generate new groups and therefore
+GmSSL is currently not able to generate new groups and therefore
 B<ecparam> can only create EC parameters from known (named) curves. 
 
 =head1 EXAMPLES
 
 To create EC parameters with the group 'prime192v1':
 
-  openssl ecparam -out ec_param.pem -name prime192v1
+  gmssl ecparam -out ec_param.pem -name prime192v1
 
 To create EC parameters with explicit parameters:
 
-  openssl ecparam -out ec_param.pem -name prime192v1 -param_enc explicit
+  gmssl ecparam -out ec_param.pem -name prime192v1 -param_enc explicit
 
 To validate given EC parameters:
 
-  openssl ecparam -in ec_param.pem -check
+  gmssl ecparam -in ec_param.pem -check
 
 To create EC parameters and a private key:
 
-  openssl ecparam -out ec_key.pem -name prime192v1 -genkey
+  gmssl ecparam -out ec_key.pem -name prime192v1 -genkey
 
 To change the point encoding to 'compressed':
 
-  openssl ecparam -in ec_in.pem -out ec_out.pem -conv_form compressed
+  gmssl ecparam -in ec_in.pem -out ec_out.pem -conv_form compressed
 
 To print out the EC parameters to standard output:
 
-  openssl ecparam -in ec_param.pem -noout -text
+  gmssl ecparam -in ec_param.pem -noout -text
 
 =head1 SEE ALSO
 
@@ -170,10 +170,10 @@ L<ec(1)|ec(1)>, L<dsaparam(1)|dsaparam(1)>
 
 =head1 HISTORY
 
-The ecparam command was first introduced in OpenSSL 0.9.8.
+The ecparam command was first introduced in GmSSL 0.9.8.
 
 =head1 AUTHOR
 
-Nils Larsch for the OpenSSL project (http://www.openssl.org)
+Nils Larsch for the GmSSL project (http://www.openssl.org)
 
 =cut

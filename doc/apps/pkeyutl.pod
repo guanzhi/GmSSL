@@ -6,7 +6,7 @@ pkeyutl - public key algorithm utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<pkeyutl>
+B<gmssl> B<pkeyutl>
 [B<-in file>]
 [B<-out file>]
 [B<-sigfile file>]
@@ -59,7 +59,7 @@ the key format PEM, DER or ENGINE.
 =item B<-passin arg>
 
 the input key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 
 =item B<-peerkey file>
@@ -131,7 +131,7 @@ B<-verifyrecover> option when an ASN1 structure is signed.
 =head1 NOTES
 
 The operations and options supported vary according to the key algorithm
-and its implementation. The OpenSSL operations and options are indicated below.
+and its implementation. The GmSSL operations and options are indicated below.
 
 Unless otherwise mentioned all algorithms support the B<digest:alg> option
 which specifies the digest in use for sign, verify and verifyrecover operations.
@@ -198,23 +198,23 @@ this digest is assumed by default.
 
 Sign some data using a private key:
 
- openssl pkeyutl -sign -in file -inkey key.pem -out sig
+ gmssl pkeyutl -sign -in file -inkey key.pem -out sig
 
 Recover the signed data (e.g. if an RSA key is used):
 
- openssl pkeyutl -verifyrecover -in sig -inkey key.pem
+ gmssl pkeyutl -verifyrecover -in sig -inkey key.pem
 
 Verify the signature (e.g. a DSA key):
 
- openssl pkeyutl -verify -in file -sigfile sig -inkey key.pem
+ gmssl pkeyutl -verify -in file -sigfile sig -inkey key.pem
 
 Sign data using a message digest value (this is currently only valid for RSA):
 
- openssl pkeyutl -sign -in file -inkey key.pem -out sig -pkeyopt digest:sha256
+ gmssl pkeyutl -sign -in file -inkey key.pem -out sig -pkeyopt digest:sha256
 
 Derive a shared secret value:
 
- openssl pkeyutl -derive -inkey key.pem -peerkey pubkey.pem -out secret
+ gmssl pkeyutl -derive -inkey key.pem -peerkey pubkey.pem -out secret
 
 =head1 SEE ALSO
 

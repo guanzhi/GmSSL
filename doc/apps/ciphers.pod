@@ -6,7 +6,7 @@ ciphers - SSL cipher display and cipher list tool.
 
 =head1 SYNOPSIS
 
-B<openssl> B<ciphers>
+B<gmssl> B<ciphers>
 [B<-v>]
 [B<-V>]
 [B<-ssl2>]
@@ -16,7 +16,7 @@ B<openssl> B<ciphers>
 
 =head1 DESCRIPTION
 
-The B<ciphers> command converts textual OpenSSL cipher lists into ordered
+The B<ciphers> command converts textual GmSSL cipher lists into ordered
 SSL cipher preference lists. It can be used as a test tool to determine
 the appropriate cipherlist.
 
@@ -122,7 +122,7 @@ which is not included by B<ALL> (use B<COMPLEMENTOFALL> if necessary).
 =item B<ALL>
 
 all cipher suites except the B<eNULL> ciphers which must be explicitly enabled;
-as of OpenSSL, the B<ALL> cipher suites are reasonably ordered by default
+as of GmSSL, the B<ALL> cipher suites are reasonably ordered by default
 
 =item B<COMPLEMENTOFALL>
 
@@ -152,8 +152,8 @@ export encryption algorithms. Including 40 and 56 bits algorithms.
 
 =item B<EXPORT56>
 
-56 bit export encryption algorithms. In OpenSSL 0.9.8c and later the set of
-56 bit export ciphers is empty unless OpenSSL has been explicitly configured
+56 bit export encryption algorithms. In GmSSL 0.9.8c and later the set of
+56 bit export ciphers is empty unless GmSSL has been explicitly configured
 with support for experimental ciphers.
 
 =item B<eNULL>, B<NULL>
@@ -348,7 +348,7 @@ ECDHE-ECDSA-AES256-GCM-SHA384) are permissible.
 =head1 CIPHER SUITE NAMES
 
 The following lists give the SSL or TLS cipher suites names from the
-relevant specification and their OpenSSL equivalents. It should be noted,
+relevant specification and their GmSSL equivalents. It should be noted,
 that several cipher suite names do not include the authentication used,
 e.g. DES-CBC3-SHA. In these cases, RSA authentication is used.
 
@@ -469,7 +469,7 @@ e.g. DES-CBC3-SHA. In these cases, RSA authentication is used.
 =head2 GOST ciphersuites from draft-chudov-cryptopro-cptls, extending TLS v1.0
 
 Note: these ciphers require an engine which including GOST cryptographic
-algorithms, such as the B<ccgost> engine, included in the OpenSSL distribution.
+algorithms, such as the B<ccgost> engine, included in the GmSSL distribution.
 
  TLS_GOSTR341094_WITH_28147_CNT_IMIT GOST94-GOST89-GOST89
  TLS_GOSTR341001_WITH_28147_CNT_IMIT GOST2001-GOST89-GOST89
@@ -591,37 +591,37 @@ Note: these ciphers can also be used in SSL v3.
 
 =head1 NOTES
 
-Some compiled versions of OpenSSL may not include all the ciphers
+Some compiled versions of GmSSL may not include all the ciphers
 listed here because some ciphers were excluded at compile time.
 
 =head1 EXAMPLES
 
-Verbose listing of all OpenSSL ciphers including NULL ciphers:
+Verbose listing of all GmSSL ciphers including NULL ciphers:
 
- openssl ciphers -v 'ALL:eNULL'
+ gmssl ciphers -v 'ALL:eNULL'
 
 Include all ciphers except NULL and anonymous DH then sort by
 strength:
 
- openssl ciphers -v 'ALL:!ADH:@STRENGTH'
+ gmssl ciphers -v 'ALL:!ADH:@STRENGTH'
 
 Include all ciphers except ones with no encryption (eNULL) or no
 authentication (aNULL):
 
- openssl ciphers -v 'ALL:!aNULL'
+ gmssl ciphers -v 'ALL:!aNULL'
 
 Include only 3DES ciphers and then place RSA ciphers last:
 
- openssl ciphers -v '3DES:+RSA'
+ gmssl ciphers -v '3DES:+RSA'
 
 Include all RC4 ciphers but leave out those without authentication:
 
- openssl ciphers -v 'RC4:!COMPLEMENTOFDEFAULT'
+ gmssl ciphers -v 'RC4:!COMPLEMENTOFDEFAULT'
 
 Include all chiphers with RSA authentication but leave out ciphers without
 encryption.
 
- openssl ciphers -v 'RSA:!COMPLEMENTOFALL'
+ gmssl ciphers -v 'RSA:!COMPLEMENTOFALL'
 
 =head1 SEE ALSO
 
@@ -630,7 +630,7 @@ L<s_client(1)|s_client(1)>, L<s_server(1)|s_server(1)>, L<ssl(3)|ssl(3)>
 =head1 HISTORY
 
 The B<COMPLENTOFALL> and B<COMPLEMENTOFDEFAULT> selection options
-for cipherlist strings were added in OpenSSL 0.9.7.
-The B<-V> option for the B<ciphers> command was added in OpenSSL 1.0.0.
+for cipherlist strings were added in GmSSL 0.9.7.
+The B<-V> option for the B<ciphers> command was added in GmSSL 1.0.0.
 
 =cut

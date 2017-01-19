@@ -6,7 +6,7 @@ errstr - lookup error codes
 
 =head1 SYNOPSIS
 
-B<openssl errstr error_code>
+B<gmssl errstr error_code>
 
 =head1 DESCRIPTION
 
@@ -23,7 +23,7 @@ The error code:
 
 can be displayed with:
  
- openssl errstr 2006D080
+ gmssl errstr 2006D080
 
 to produce the error message:
 

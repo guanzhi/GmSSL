@@ -6,7 +6,7 @@ nseq - create or examine a netscape certificate sequence
 
 =head1 SYNOPSIS
 
-B<openssl> B<nseq>
+B<gmssl> B<nseq>
 [B<-in filename>]
 [B<-out filename>]
 [B<-toseq>]
@@ -44,11 +44,11 @@ a file of certificates.
 
 Output the certificates in a Netscape certificate sequence
 
- openssl nseq -in nseq.pem -out certs.pem
+ gmssl nseq -in nseq.pem -out certs.pem
 
 Create a Netscape certificate sequence
 
- openssl nseq -in certs.pem -toseq -out nseq.pem
+ gmssl nseq -in certs.pem -toseq -out nseq.pem
 
 =head1 NOTES
 

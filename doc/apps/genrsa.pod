@@ -6,7 +6,7 @@ genrsa - generate an RSA private key
 
 =head1 SYNOPSIS
 
-B<openssl> B<genrsa>
+B<gmssl> B<genrsa>
 [B<-out filename>]
 [B<-passout arg>]
 [B<-aes128>]
@@ -46,7 +46,7 @@ used.
 =item B<-passout arg>
 
 the output file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-aes128|-aes192|-aes256|-camellia128|-camellia192|-camellia256|-des|-des3|-idea>
 

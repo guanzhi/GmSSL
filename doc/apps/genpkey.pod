@@ -6,7 +6,7 @@ genpkey - generate a private key
 
 =head1 SYNOPSIS
 
-B<openssl> B<genpkey>
+B<gmssl> B<genpkey>
 [B<-out filename>]
 [B<-outform PEM|DER>]
 [B<-pass arg>]
@@ -38,7 +38,7 @@ This specifies the output format DER or PEM.
 =item B<-pass arg>
 
 the output file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)|openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
 
 =item B<-cipher>
 
@@ -88,7 +88,7 @@ parameters along with the PEM or DER structure.
 =head1 KEY GENERATION OPTIONS
 
 The options supported by each algorith and indeed each implementation of an
-algorithm can vary. The options for the OpenSSL implementations are detailed
+algorithm can vary. The options for the GmSSL implementations are detailed
 below.
 
 =head1 RSA KEY GENERATION OPTIONS
@@ -152,7 +152,7 @@ the EC curve to use.
 =head1 GOST2001 KEY GENERATION AND PARAMETER OPTIONS
 
 Gost 2001 support is not enabled by default. To enable this algorithm,
-one should load the ccgost engine in the OpenSSL configuration file.
+one should load the ccgost engine in the GmSSL configuration file.
 See README.gost file in the engines/ccgost directiry of the source
 distribution for more details.
 
@@ -190,38 +190,38 @@ can be used.
 
 Generate an RSA private key using default parameters:
 
- openssl genpkey -algorithm RSA -out key.pem 
+ gmssl genpkey -algorithm RSA -out key.pem 
 
 Encrypt output private key using 128 bit AES and the passphrase "hello":
 
- openssl genpkey -algorithm RSA -out key.pem -aes-128-cbc -pass pass:hello
+ gmssl genpkey -algorithm RSA -out key.pem -aes-128-cbc -pass pass:hello
 
 Generate a 2048 bit RSA key using 3 as the public exponent:
 
- openssl genpkey -algorithm RSA -out key.pem -pkeyopt rsa_keygen_bits:2048 \
+ gmssl genpkey -algorithm RSA -out key.pem -pkeyopt rsa_keygen_bits:2048 \
  						-pkeyopt rsa_keygen_pubexp:3
 
 Generate 1024 bit DSA parameters:
 
- openssl genpkey -genparam -algorithm DSA -out dsap.pem \
+ gmssl genpkey -genparam -algorithm DSA -out dsap.pem \
 						-pkeyopt dsa_paramgen_bits:1024
 
 Generate DSA key from parameters:
 
- openssl genpkey -paramfile dsap.pem -out dsakey.pem 
+ gmssl genpkey -paramfile dsap.pem -out dsakey.pem 
 
 Generate 1024 bit DH parameters:
 
- openssl genpkey -genparam -algorithm DH -out dhp.pem \
+ gmssl genpkey -genparam -algorithm DH -out dhp.pem \
 					-pkeyopt dh_paramgen_prime_len:1024
 
 Output RFC5114 2048 bit DH parameters with 224 bit subgroup:
 
- openssl genpkey -genparam -algorithm DH -out dhp.pem -pkeyopt dh_rfc5114:2
+ gmssl genpkey -genparam -algorithm DH -out dhp.pem -pkeyopt dh_rfc5114:2
 
 Generate DH key from parameters:
 
- openssl genpkey -paramfile dhp.pem -out dhkey.pem 
+ gmssl genpkey -paramfile dhp.pem -out dhkey.pem 
 
 
 =cut

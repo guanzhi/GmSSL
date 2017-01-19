@@ -6,7 +6,7 @@ verify - Utility to verify certificates.
 
 =head1 SYNOPSIS
 
-B<openssl> B<verify>
+B<gmssl> B<verify>
 [B<-CApath directory>]
 [B<-CAfile file>]
 [B<-purpose purpose>]
@@ -134,10 +134,10 @@ Set policy variable inhibit-policy-mapping (see RFC5280).
 =item B<-no_alt_chains>
 
 When building a certificate chain, if the first certificate chain found is not
-trusted, then OpenSSL will continue to check to see if an alternative chain can
+trusted, then GmSSL will continue to check to see if an alternative chain can
 be found that is trusted. With this option that behaviour is suppressed so that
 only the first chain found is ever used. Using this option will force the
-behaviour to match that of previous OpenSSL versions.
+behaviour to match that of previous GmSSL versions.
 
 =item B<-trusted file>
 
@@ -161,7 +161,7 @@ to look up valid CRLs.
 =item B<-ignore_critical>
 
 Normally if an unhandled critical extension is present which is not
-supported by OpenSSL the certificate is rejected (as required by RFC5280).
+supported by GmSSL the certificate is rejected (as required by RFC5280).
 If this option is set critical extensions are ignored.
 
 =item B<-x509_strict>
@@ -218,9 +218,9 @@ certificate. If a certificate is found which is its own issuer it is assumed
 to be the root CA.
 
 The process of 'looking up the issuers certificate' itself involves a number
-of steps. In versions of OpenSSL before 0.9.5a the first certificate whose
+of steps. In versions of GmSSL before 0.9.5a the first certificate whose
 subject name matched the issuer of the current certificate was assumed to be
-the issuers certificate. In OpenSSL 0.9.6 and later all certificates
+the issuers certificate. In GmSSL 0.9.6 and later all certificates
 whose subject name matches the issuer name of the current certificate are 
 subject to further tests. The relevant authority key identifier components
 of the current certificate (if present) must match the subject key identifier
@@ -243,7 +243,7 @@ the B<CERTIFICATE EXTENSIONS> section of the B<x509> utility.
 
 The third operation is to check the trust settings on the root CA. The root
 CA should be trusted for the supplied purpose. For compatibility with previous
-versions of SSLeay and OpenSSL a certificate with no trust settings is considered
+versions of SSLeay and GmSSL a certificate with no trust settings is considered
 to be valid for all purposes. 
 
 The final operation is to check the validity of the certificate chain. The validity
@@ -434,7 +434,7 @@ trusted certificates with matching subject name must either appear in a file (as
 B<-CAfile> option) or a directory (as specified by B<-CApath>. If they occur in both then only
 the certificates in the file will be recognised.
 
-Previous versions of OpenSSL assume certificates with matching subject name are identical and
+Previous versions of GmSSL assume certificates with matching subject name are identical and
 mishandled them.
 
 Previous versions of this documentation swapped the meaning of the
@@ -447,6 +447,6 @@ L<x509(1)|x509(1)>
 
 =head1 HISTORY
 
-The -no_alt_chains options was first added to OpenSSL 1.0.2b.
+The -no_alt_chains options was first added to GmSSL 1.0.2b.
 
 =cut
