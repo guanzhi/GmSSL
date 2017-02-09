@@ -854,13 +854,9 @@ int pem_check_suffix(const char *pem_str, const char *suffix)
     int suffix_len = strlen(suffix);
     const char *p;
 
-fprintf(stderr, "GMSSL: %s %d: pem_str = %s\n", __FILE__, __LINE__, pem_str);
-fprintf(stderr, "GMSSL: %s %d: suffix = %s\n", __FILE__, __LINE__, suffix);
-
     if (suffix_len + 1 >= pem_len)
         return 0;
     p = pem_str + pem_len - suffix_len;
-fprintf(stderr, "GMSSL: %s %d: p = %s\n", __FILE__, __LINE__, suffix);
     if (strcmp(p, suffix))
         return 0;
     p--;
