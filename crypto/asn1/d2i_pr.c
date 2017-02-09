@@ -93,38 +93,27 @@ EVP_PKEY *d2i_PrivateKey(int type, EVP_PKEY **a, const unsigned char **pp,
         goto err;
     }
 
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
-
     if (!ret->ameth->old_priv_decode ||
         !ret->ameth->old_priv_decode(ret, pp, length)) {
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
         if (ret->ameth->priv_decode) {
             PKCS8_PRIV_KEY_INFO *p8 = NULL;
             p8 = d2i_PKCS8_PRIV_KEY_INFO(NULL, pp, length);
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
             if (!p8)
                 goto err;
             EVP_PKEY_free(ret);
             ret = EVP_PKCS82PKEY(p8);
             PKCS8_PRIV_KEY_INFO_free(p8);
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
-
         } else {
             ASN1err(ASN1_F_D2I_PRIVATEKEY, ERR_R_ASN1_LIB);
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
             goto err;
         }
     }
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
     if (a != NULL)
         (*a) = ret;
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
     return (ret);
  err:
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
     if ((ret != NULL) && ((a == NULL) || (*a != ret)))
         EVP_PKEY_free(ret);
-fprintf(stderr, "GMSSL: %s %d\n", __FILE__, __LINE__);
     return (NULL);
 }
 
@@ -151,15 +140,10 @@ EVP_PKEY *d2i_AutoPrivateKey(EVP_PKEY **a, const unsigned char **pp,
      * can just count the elements.
      */
 
-fprintf(stderr, "GMSSL %s %d: %s %d\n", __FILE__, __LINE__, __FUNCTION__, sk_ASN1_TYPE_num(inkey));
-
     if (sk_ASN1_TYPE_num(inkey) == 6)
         keytype = EVP_PKEY_DSA;
-    else if (sk_ASN1_TYPE_num(inkey) == 4) {
+    else if (sk_ASN1_TYPE_num(inkey) == 4)
         keytype = EVP_PKEY_EC;
-
-fprintf(stderr, "GMSSL %s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-}
     else if (sk_ASN1_TYPE_num(inkey) == 3) { /* This seems to be PKCS8, not
                                               * traditional format */
         PKCS8_PRIV_KEY_INFO *p8 = d2i_PKCS8_PRIV_KEY_INFO(NULL, pp, length);
