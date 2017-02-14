@@ -1368,6 +1368,7 @@ int ERR_load_EC_strings(void);
 
 /* Function codes. */
 # define EC_F_BN_TO_FELEM                                 224
+# define EC_F_D2I_ECIESPARAMETERS                         270
 # define EC_F_D2I_ECPARAMETERS                            144
 # define EC_F_D2I_ECPKPARAMETERS                          145
 # define EC_F_D2I_ECPRIVATEKEY                            146
@@ -1382,6 +1383,14 @@ int ERR_load_EC_strings(void);
 # define EC_F_ECDSA_SIGN_SETUP                            248
 # define EC_F_ECDSA_SIG_NEW                               265
 # define EC_F_ECDSA_VERIFY                                253
+# define EC_F_ECIES_DECRYPT                               271
+# define EC_F_ECIES_DO_DECRYPT                            272
+# define EC_F_ECIES_DO_ENCRYPT                            273
+# define EC_F_ECIES_ENCRYPT                               274
+# define EC_F_ECIES_PARAMS_GET_ENC                        275
+# define EC_F_ECIES_PARAMS_GET_KDF                        276
+# define EC_F_ECIES_PARAMS_GET_MAC                        277
+# define EC_F_ECIES_PARAMS_INIT_WITH_RECOMMENDED          278
 # define EC_F_ECKEY_PARAM2TYPE                            223
 # define EC_F_ECKEY_PARAM_DECODE                          212
 # define EC_F_ECKEY_PRIV_DECODE                           213
@@ -1493,6 +1502,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_EC_PRE_COMP_NEW                             196
 # define EC_F_EC_WNAF_MUL                                 187
 # define EC_F_EC_WNAF_PRECOMPUTE_MULT                     188
+# define EC_F_I2D_ECIESPARAMETERS                         279
 # define EC_F_I2D_ECPARAMETERS                            190
 # define EC_F_I2D_ECPKPARAMETERS                          191
 # define EC_F_I2D_ECPRIVATEKEY                            192
@@ -1518,16 +1528,27 @@ int ERR_load_EC_strings(void);
 # define EC_R_BAD_SIGNATURE                               156
 # define EC_R_BIGNUM_OUT_OF_RANGE                         144
 # define EC_R_BUFFER_TOO_SMALL                            100
+# define EC_R_CMAC_FINAL_FAILURE                          136
+# define EC_R_CMAC_INIT_FAILURE                           153
+# define EC_R_CMAC_UPDATE_FAILURE                         162
 # define EC_R_COORDINATES_OUT_OF_RANGE                    146
 # define EC_R_CURVE_DOES_NOT_SUPPORT_ECDH                 160
 # define EC_R_CURVE_DOES_NOT_SUPPORT_SIGNING              159
 # define EC_R_D2I_ECPKPARAMETERS_FAILURE                  117
 # define EC_R_DECODE_ERROR                                142
+# define EC_R_DECRYPT_FAILED                              163
 # define EC_R_DISCRIMINANT_IS_ZERO                        118
+# define EC_R_ECDH_FAILED                                 164
+# define EC_R_ECDH_FAILURE                                165
+# define EC_R_ECIES_DECRYPT_INIT_FAILURE                  166
+# define EC_R_ECIES_VERIFY_MAC_FAILURE                    167
 # define EC_R_EC_GROUP_NEW_BY_NAME_FAILURE                119
+# define EC_R_ENCRYPT_FAILED                              168
 # define EC_R_FIELD_TOO_LARGE                             143
+# define EC_R_GEN_MAC_FAILED                              169
 # define EC_R_GF2M_NOT_SUPPORTED                          147
 # define EC_R_GROUP2PKPARAMETERS_FAILURE                  120
+# define EC_R_HMAC_FAILURE                                170
 # define EC_R_I2D_ECPKPARAMETERS_FAILURE                  121
 # define EC_R_INCOMPATIBLE_OBJECTS                        101
 # define EC_R_INVALID_ARGUMENT                            112
@@ -1536,6 +1557,8 @@ int ERR_load_EC_strings(void);
 # define EC_R_INVALID_CURVE                               141
 # define EC_R_INVALID_DIGEST                              151
 # define EC_R_INVALID_DIGEST_TYPE                         138
+# define EC_R_INVALID_ECIES_CIPHERTEXT                    171
+# define EC_R_INVALID_ECIES_PARAMETERS                    172
 # define EC_R_INVALID_ENCODING                            102
 # define EC_R_INVALID_FIELD                               103
 # define EC_R_INVALID_FORM                                104
