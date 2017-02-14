@@ -4215,3 +4215,16 @@ X509_VERIFY_PARAM_get_inh_flags         4175	1_1_0d	EXIST::FUNCTION:
 X509_VERIFY_PARAM_get_time              4181	1_1_0d	EXIST::FUNCTION:
 DH_check_params                         4183	1_1_0d	EXIST::FUNCTION:DH
 EVP_sm3                                 4184	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_xts                            4185	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_wrap                           4186	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_ecb                            4187	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_cfb128                         4188	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_cfb1                           4189	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_cbc                            4190	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_ofb                            4191	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_ctr                            4192	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_cfb8                           4193	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_gcm                            4194	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_ocb                            4195	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_ccm                            4196	1_1_0d	EXIST::FUNCTION:
+EVP_sms4_wrap_pad                       4197	1_1_0d	EXIST::FUNCTION:

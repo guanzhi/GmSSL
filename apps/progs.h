@@ -236,6 +236,10 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_BLAKE2
     { FT_md, "blake2s256", dgst_main},
 #endif
+    { FT_cipher, "sms4-cbc", enc_main, enc_options },
+    { FT_cipher, "sms4-ecb", enc_main, enc_options },
+    { FT_cipher, "sms4-ofb", enc_main, enc_options },
+    { FT_cipher, "sms4-cfb", enc_main, enc_options },
     { FT_cipher, "aes-128-cbc", enc_main, enc_options },
     { FT_cipher, "aes-128-ecb", enc_main, enc_options },
     { FT_cipher, "aes-192-cbc", enc_main, enc_options },

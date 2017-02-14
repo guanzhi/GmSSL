@@ -1,0 +1,4 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=\
+	sms4_common.c sms4_setkey.c sms4_enc.c sms4_enc_nblks.c \
+	sms4_ecb.c sms4_cbc.c sms4_cfb.c sms4_ctr.c sms4_ofb.c sms4_wrap.c
