@@ -33,7 +33,7 @@ B<X509> structure.
 
 PKCS12_parse() returns 1 for success and zero if an error occurred.
 
-The error can be obtained from L<ERR_get_error(3)|ERR_get_error(3)>
+The error can be obtained from L<ERR_get_error(3)>
 
 =head1 BUGS
 
@@ -48,10 +48,15 @@ Attributes currently cannot be stored in the private key B<EVP_PKEY> structure.
 
 =head1 SEE ALSO
 
-L<d2i_PKCS12(3)|d2i_PKCS12(3)>
+L<d2i_PKCS12(3)>
 
-=head1 HISTORY
+=head1 COPYRIGHT
 
-PKCS12_parse was added in OpenSSL 0.9.3
+Copyright 2002-2016 The OpenSSL Project Authors. All Rights Reserved.
+
+Licensed under the OpenSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
 
 =cut

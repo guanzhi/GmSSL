@@ -6,7 +6,9 @@ enc - symmetric cipher routines
 
 =head1 SYNOPSIS
 
-B<gmssl enc -ciphername>
+B<openssl enc -ciphername>
+[B<-help>]
+[B<-ciphers>]
 [B<-in filename>]
 [B<-out filename>]
 [B<-pass arg>]
@@ -22,7 +24,7 @@ B<gmssl enc -ciphername>
 [B<-salt>]
 [B<-nosalt>]
 [B<-z>]
-[B<-md>]
+[B<-md digest>]
 [B<-p>]
 [B<-P>]
 [B<-bufsize number>]
@@ -42,6 +44,14 @@ either by itself or in addition to the encryption or decryption.
 
 =over 4
 
+=item B<-help>
+
+Print out a usage message.
+
+=item B<-ciphers>
+
+List all supported ciphers.
+
 =item B<-in filename>
 
 the input filename, standard input by default.
@@ -53,17 +63,7 @@ the output filename, standard output by default.
 =item B<-pass arg>
 
 the password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)|gmssl(1)>.
-
-=item B<-salt>
-
-use a salt in the key derivation routines. This is the default.
-
-=item B<-nosalt>
-
-don't use a salt in the key derivation routines. This option B<SHOULD NOT> be
-used except for test purposes or compatibility with ancient versions of GmSSL
-and SSLeay.
+see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
 
 =item B<-e>
 
@@ -90,17 +90,24 @@ if the B<-a> option is set then base64 process the data on one line.
 =item B<-k password>
 
 the password to derive the key from. This is for compatibility with previous
-versions of GmSSL. Superseded by the B<-pass> argument.
+versions of OpenSSL. Superseded by the B<-pass> argument.
 
 =item B<-kfile filename>
 
 read the password to derive the key from the first line of B<filename>.
-This is for compatibility with previous versions of GmSSL. Superseded by
+This is for compatibility with previous versions of OpenSSL. Superseded by
 the B<-pass> argument.
+
+=item B<-md digest>
+
+Use the specified digest to create the key from the passphrase.
+The default algorithm is sha-256.
 
 =item B<-nosalt>
 
-do not use a salt 
+don't use a salt in the key derivation routines. This option B<SHOULD NOT> be
+used except for test purposes or compatibility with ancient versions of
+OpenSSL.
 
 =item B<-salt>
 
@@ -151,7 +158,7 @@ debug the BIOs used for I/O.
 =item B<-z>
 
 Compress or decompress clear text using zlib before encryption or after
-decryption. This option exists only if GmSSL with compiled with zlib
+decryption. This option exists only if OpenSSL with compiled with zlib
 or zlib-dynamic option.
 
 =item B<-none>
@@ -162,16 +169,16 @@ Use NULL cipher (no encryption or decryption of input).
 
 =head1 NOTES
 
-The program can be called either as B<gmssl ciphername> or
-B<gmssl enc -ciphername>. But the first form doesn't work with
+The program can be called either as B<openssl ciphername> or
+B<openssl enc -ciphername>. But the first form doesn't work with
 engine-provided ciphers, because this form is processed before the
 configuration file is read and any ENGINEs loaded.
 
 Engines which provide entirely new encryption algorithms (such as ccgost
 engine which provides gost89 algorithm) should be configured in the
 configuration file. Engines, specified in the command line using -engine
-options can only be used for hadrware-assisted implementations of
-ciphers, which are supported by GmSSL core or other engine, specified
+options can only be used for hardware-assisted implementations of
+ciphers, which are supported by OpenSSL core or other engine, specified
 in the configuration file.
 
 When enc command lists supported ciphers, ciphers provided by engines,
@@ -181,7 +188,7 @@ A password will be prompted for to derive the key and IV if necessary.
 
 The B<-salt> option should B<ALWAYS> be used if the key is being derived
 from a password unless you want compatibility with previous versions of
-GmSSL and SSLeay.
+OpenSSL.
 
 Without the B<-salt> option it is possible to perform efficient dictionary
 attacks on the password and to attack stream cipher encrypted data. The reason
@@ -211,8 +218,8 @@ Blowfish and RC5 algorithms use a 128 bit key.
 Note that some of these ciphers can be disabled at compile time
 and some are available only if an appropriate engine is configured
 in the configuration file. The output of the B<enc> command run with
-unsupported options (for example B<gmssl enc -help>) includes a
-list of ciphers, supported by your versesion of GmSSL, including
+unsupported options (for example B<openssl enc -help>) includes a
+list of ciphers, supported by your version of OpenSSL, including
 ones provided by configured engines.
 
 The B<enc> program does not support authenticated encryption modes
@@ -255,7 +262,7 @@ authentication tag.
  desx               DESX algorithm.
 
  gost89             GOST 28147-89 in CFB mode (provided by ccgost engine)
- gost89-cnt        `GOST 28147-89 in CNT mode (provided by ccgost engine) 
+ gost89-cnt        `GOST 28147-89 in CNT mode (provided by ccgost engine)
 
  idea-cbc           IDEA algorithm in CBC mode
  idea               same as idea-cbc
@@ -281,44 +288,44 @@ authentication tag.
  rc5-ecb            RC5 cipher in ECB mode
  rc5-ofb            RC5 cipher in OFB mode
 
- aes-[128|192|256]-cbc	128/192/256 bit AES in CBC mode
- aes-[128|192|256]	Alias for aes-[128|192|256]-cbc
- aes-[128|192|256]-cfb	128/192/256 bit AES in 128 bit CFB mode
- aes-[128|192|256]-cfb1	128/192/256 bit AES in 1 bit CFB mode
- aes-[128|192|256]-cfb8	128/192/256 bit AES in 8 bit CFB mode
- aes-[128|192|256]-ecb	128/192/256 bit AES in ECB mode
- aes-[128|192|256]-ofb	128/192/256 bit AES in OFB mode
+ aes-[128|192|256]-cbc  128/192/256 bit AES in CBC mode
+ aes[128|192|256]       Alias for aes-[128|192|256]-cbc
+ aes-[128|192|256]-cfb  128/192/256 bit AES in 128 bit CFB mode
+ aes-[128|192|256]-cfb1 128/192/256 bit AES in 1 bit CFB mode
+ aes-[128|192|256]-cfb8 128/192/256 bit AES in 8 bit CFB mode
+ aes-[128|192|256]-ecb  128/192/256 bit AES in ECB mode
+ aes-[128|192|256]-ofb  128/192/256 bit AES in OFB mode
 
 =head1 EXAMPLES
 
 Just base64 encode a binary file:
 
- gmssl base64 -in file.bin -out file.b64
+ openssl base64 -in file.bin -out file.b64
 
 Decode the same file
 
- gmssl base64 -d -in file.b64 -out file.bin 
+ openssl base64 -d -in file.b64 -out file.bin
 
 Encrypt a file using triple DES in CBC mode using a prompted password:
 
- gmssl des3 -salt -in file.txt -out file.des3 
+ openssl des3 -salt -in file.txt -out file.des3
 
 Decrypt a file using a supplied password:
 
- gmssl des3 -d -salt -in file.des3 -out file.txt -k mypassword
+ openssl des3 -d -salt -in file.des3 -out file.txt -k mypassword
 
 Encrypt a file then base64 encode it (so it can be sent via mail for example)
 using Blowfish in CBC mode:
 
- gmssl bf -a -salt -in file.txt -out file.bf
+ openssl bf -a -salt -in file.txt -out file.bf
 
 Base64 decode a file then decrypt it:
 
- gmssl bf -d -salt -a -in file.bf -out file.txt
+ openssl bf -d -salt -a -in file.bf -out file.txt
 
 Decrypt some data using a supplied 40 bit RC4 key:
 
- gmssl rc4-40 -in file.rc4 -out file.txt -K 0102030405
+ openssl rc4-40 -in file.rc4 -out file.txt -K 0102030405
 
 =head1 BUGS
 
@@ -329,5 +336,18 @@ There should be an option to allow an iteration count to be included.
 The B<enc> program only supports a fixed number of algorithms with
 certain parameters. So if, for example, you want to use RC2 with a
 76 bit key or RC4 with an 84 bit key you can't use this program.
+
+=head1 HISTORY
+
+The default digest was changed from MD5 to SHA256 in Openssl 1.1.
+
+=head1 COPYRIGHT
+
+Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
+
+Licensed under the OpenSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
 
 =cut

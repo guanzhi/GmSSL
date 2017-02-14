@@ -1,4 +1,0 @@
-#!/bin/bash
-
-curl https://curl.haxx.se/ca/cacert.pem > ../certs/mozilla-cacerts.pem
-

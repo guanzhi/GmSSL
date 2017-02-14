@@ -6,7 +6,8 @@ ecparam - EC parameter manipulation and generation
 
 =head1 SYNOPSIS
 
-B<gmssl ecparam>
+B<openssl ecparam>
+[B<-help>]
 [B<-inform DER|PEM>]
 [B<-outform DER|PEM>]
 [B<-in filename>]
@@ -32,16 +33,20 @@ This command is used to manipulate or generate EC parameter files.
 
 =over 4
 
+=item B<-help>
+
+Print out a usage message.
+
 =item B<-inform DER|PEM>
 
 This specifies the input format. The B<DER> option uses an ASN.1 DER encoded
 form compatible with RFC 3279 EcpkParameters. The PEM form is the default
-format: it consists of the B<DER> format base64 encoded with additional 
+format: it consists of the B<DER> format base64 encoded with additional
 header and footer lines.
 
 =item B<-outform DER|PEM>
 
-This specifies the output format, the options have the same meaning as the 
+This specifies the output format, the options have the same meaning as the
 B<-inform> option.
 
 =item B<-in filename>
@@ -66,7 +71,7 @@ This option prints out the EC parameters in human readable form.
 =item B<-C>
 
 This option converts the EC parameters into C code. The parameters can then
-be loaded by calling the B<get_ec_group_XXX()> function.
+be loaded by calling the get_ec_group_XXX() function.
 
 =item B<-check>
 
@@ -96,11 +101,11 @@ the preprocessor macro B<OPENSSL_EC_BIN_PT_COMP> at compile time.
 
 This specifies how the elliptic curve parameters are encoded.
 Possible value are: B<named_curve>, i.e. the ec parameters are
-specified by a OID, or B<explicit> where the ec parameters are
-explicitly given (see RFC 3279 for the definition of the 
+specified by an OID, or B<explicit> where the ec parameters are
+explicitly given (see RFC 3279 for the definition of the
 EC parameters structures). The default value is B<named_curve>.
-B<Note> the B<implicitlyCA> alternative ,as specified in RFC 3279,
-is currently not implemented in GmSSL.
+B<Note> the B<implicitlyCA> alternative, as specified in RFC 3279,
+is currently not implemented in OpenSSL.
 
 =item B<-no_seed>
 
@@ -109,13 +114,13 @@ is included in the ECParameters structure (see RFC 3279).
 
 =item B<-genkey>
 
-This option will generate a EC private key using the specified parameters.
+This option will generate an EC private key using the specified parameters.
 
 =item B<-rand file(s)>
 
 a file or files containing random data used to seed the random number
-generator, or an EGD socket (see L<RAND_egd(3)|RAND_egd(3)>).
-Multiple files can be specified separated by a OS-dependent character.
+generator, or an EGD socket (see L<RAND_egd(3)>).
+Multiple files can be specified separated by an OS-dependent character.
 The separator is B<;> for MS-Windows, B<,> for OpenVMS, and B<:> for
 all others.
 
@@ -135,45 +140,46 @@ PEM format EC parameters use the header and footer lines:
  -----BEGIN EC PARAMETERS-----
  -----END EC PARAMETERS-----
 
-GmSSL is currently not able to generate new groups and therefore
-B<ecparam> can only create EC parameters from known (named) curves. 
+OpenSSL is currently not able to generate new groups and therefore
+B<ecparam> can only create EC parameters from known (named) curves.
 
 =head1 EXAMPLES
 
 To create EC parameters with the group 'prime192v1':
 
-  gmssl ecparam -out ec_param.pem -name prime192v1
+  openssl ecparam -out ec_param.pem -name prime192v1
 
 To create EC parameters with explicit parameters:
 
-  gmssl ecparam -out ec_param.pem -name prime192v1 -param_enc explicit
+  openssl ecparam -out ec_param.pem -name prime192v1 -param_enc explicit
 
 To validate given EC parameters:
 
-  gmssl ecparam -in ec_param.pem -check
+  openssl ecparam -in ec_param.pem -check
 
 To create EC parameters and a private key:
 
-  gmssl ecparam -out ec_key.pem -name prime192v1 -genkey
+  openssl ecparam -out ec_key.pem -name prime192v1 -genkey
 
 To change the point encoding to 'compressed':
 
-  gmssl ecparam -in ec_in.pem -out ec_out.pem -conv_form compressed
+  openssl ecparam -in ec_in.pem -out ec_out.pem -conv_form compressed
 
 To print out the EC parameters to standard output:
 
-  gmssl ecparam -in ec_param.pem -noout -text
+  openssl ecparam -in ec_param.pem -noout -text
 
 =head1 SEE ALSO
 
-L<ec(1)|ec(1)>, L<dsaparam(1)|dsaparam(1)>
+L<ec(1)>, L<dsaparam(1)>
 
-=head1 HISTORY
+=head1 COPYRIGHT
 
-The ecparam command was first introduced in GmSSL 0.9.8.
+Copyright 2003-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-=head1 AUTHOR
-
-Nils Larsch for the GmSSL project (http://www.openssl.org)
+Licensed under the OpenSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
 
 =cut
