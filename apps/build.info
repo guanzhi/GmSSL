@@ -1,9 +1,9 @@
 {- our $tsget_name = $config{target} =~ /^(VC|vms)-/ ? "tsget.pl" : "tsget";
    "" -}
 IF[{- !$disabled{apps} -}]
-  PROGRAMS=openssl
-  SOURCE[openssl]=\
-          openssl.c \
+  PROGRAMS=gmssl
+  SOURCE[gmssl]=\
+          gmssl.c \
           asn1pars.c ca.c ciphers.c cms.c crl.c crl2p7.c dgst.c dhparam.c \
           dsa.c dsaparam.c ec.c ecparam.c enc.c engine.c errstr.c gendsa.c \
           genpkey.c genrsa.c nseq.c ocsp.c passwd.c pkcs12.c pkcs7.c pkcs8.c \
@@ -13,8 +13,8 @@ IF[{- !$disabled{apps} -}]
           apps.c opt.c s_cb.c s_socket.c \
           app_rand.c \
           {- $target{apps_aux_src} -}
-  INCLUDE[openssl]=.. ../include
-  DEPEND[openssl]=../libssl
+  INCLUDE[gmssl]=.. ../include
+  DEPEND[gmssl]=../libssl
 
   SCRIPTS=CA.pl {- $tsget_name -}
   SOURCE[CA.pl]=CA.pl.in
