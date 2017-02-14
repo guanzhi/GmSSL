@@ -41,7 +41,7 @@ sub tconversion {
     $totaltests-- if ($testtype eq "p7d"); # no comparison of original test file
     plan tests => $totaltests;
 
-    my @cmd = ("openssl", @openssl_args);
+    my @cmd = ("gmssl", @openssl_args);
 
     my $init;
     if (scalar @openssl_args > 0 && $openssl_args[0] eq "pkey") {

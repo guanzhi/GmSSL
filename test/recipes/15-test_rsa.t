@@ -22,7 +22,7 @@ require_ok(srctop_file('test','recipes','tconversion.pl'));
 
 ok(run(test(["rsa_test"])), "running rsatest");
 
-ok(run(app([ 'openssl', 'rsa', '-check', '-in', srctop_file('test', 'testrsa.pem'), '-noout'])), "rsa -check");
+ok(run(app([ 'gmssl', 'rsa', '-check', '-in', srctop_file('test', 'testrsa.pem'), '-noout'])), "rsa -check");
 
  SKIP: {
      skip "Skipping rsa conversion test", 3

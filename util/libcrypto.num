@@ -4214,3 +4214,4 @@ X509_VERIFY_PARAM_set_inh_flags         4174	1_1_0d	EXIST::FUNCTION:
 X509_VERIFY_PARAM_get_inh_flags         4175	1_1_0d	EXIST::FUNCTION:
 X509_VERIFY_PARAM_get_time              4181	1_1_0d	EXIST::FUNCTION:
 DH_check_params                         4183	1_1_0d	EXIST::FUNCTION:DH
+EVP_sm3                                 4184	1_1_0d	EXIST::FUNCTION:

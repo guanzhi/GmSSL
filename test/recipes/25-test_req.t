@@ -34,11 +34,11 @@ subtest "generating certificate requests" => sub {
 
     plan tests => 2;
 
-    ok(run(app(["openssl", "req", "-config", srctop_file("test", "test.cnf"),
+    ok(run(app(["gmssl", "req", "-config", srctop_file("test", "test.cnf"),
 		@req_new, "-out", "testreq.pem"])),
        "Generating request");
 
-    ok(run(app(["openssl", "req", "-config", srctop_file("test", "test.cnf"),
+    ok(run(app(["gmssl", "req", "-config", srctop_file("test", "test.cnf"),
 		"-verify", "-in", "testreq.pem", "-noout"])),
        "Verifying signature on request");
 };
@@ -57,7 +57,7 @@ sub run_conversion {
     my $reqfile = shift;
 
     subtest $title => sub {
-	run(app(["openssl", @openssl_args,
+	run(app(["gmssl", @openssl_args,
 		 "-in", $reqfile, "-inform", "p",
 		 "-noout", "-text"],
 		stderr => "req-check.err", stdout => undef));

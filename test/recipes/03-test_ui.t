@@ -23,7 +23,7 @@ ensures that one gets tested well enough as well.
 EOF
 
 my $outfile = "rsa_$$.pem";
-ok(run(app(["openssl", "genrsa", "-passout", "pass:password", "-aes128",
+ok(run(app(["gmssl", "genrsa", "-passout", "pass:password", "-aes128",
             "-out", $outfile])),
    "Checking that genrsa with a password works properly");
 

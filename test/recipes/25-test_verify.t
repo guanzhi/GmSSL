@@ -17,7 +17,7 @@ setup("test_verify");
 
 sub verify {
     my ($cert, $purpose, $trusted, $untrusted, @opts) = @_;
-    my @args = qw(openssl verify -auth_level 1 -purpose);
+    my @args = qw(gmssl verify -auth_level 1 -purpose);
     my @path = qw(test certs);
     push(@args, "$purpose", @opts);
     for (@$trusted) { push(@args, "-trusted", srctop_file(@path, "$_.pem")) }
