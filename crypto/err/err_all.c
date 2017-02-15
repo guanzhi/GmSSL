@@ -42,6 +42,7 @@
 #include <openssl/kdf2.h>
 #include <openssl/ffx.h>
 #include <openssl/paillier.h>
+#include <openssl/cpk.h>
 
 int err_load_crypto_strings_int(void)
 {
@@ -112,6 +113,9 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_PAILLIER
         ERR_load_PAILLIER_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_CPK
+        ERR_load_CPK_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

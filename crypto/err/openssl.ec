@@ -38,6 +38,7 @@ L KDF		include/openssl/kdf.h		crypto/kdf/kdf_err.c
 L KDF2		include/openssl/kdf2.h		crypto/kdf2/kdf2_err.c
 L FFX		include/openssl/ffx.h		crypto/ffx/ffx_err.c
 L PAILLIER	include/openssl/paillier.h	crypto/paillier/paillier_err.c
+L CPK		include/openssl/cpk.h		crypto/cpk/cpk_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE
