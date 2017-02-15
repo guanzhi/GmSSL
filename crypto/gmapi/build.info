@@ -1,0 +1,3 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=gmapi_err.c gmapi_sgd.c \
+	gmapi_sdf_ec.c gmapi_sdf_rsa.c gmapi_skf_ec.c gmapi_skf_rsa.c

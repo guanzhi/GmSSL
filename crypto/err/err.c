@@ -64,6 +64,7 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_PAILLIER, 0, 0), "PAILLIER routines"},
     {ERR_PACK(ERR_LIB_CPK, 0, 0), "CPK routines"},
     {ERR_PACK(ERR_LIB_OTP, 0, 0), "OTP routines"},
+    {ERR_PACK(ERR_LIB_GMAPI, 0, 0), "GMAPI routines"},
     {0, NULL},
 };
 
@@ -113,6 +114,7 @@ static ERR_STRING_DATA ERR_str_reasons[] = {
     {ERR_R_PAILLIER_LIB, "PAILLIER lib"},
     {ERR_R_CPK_LIB, "CPK lib"},
     {ERR_R_OTP_LIB, "OTP lib"},
+    {ERR_R_GMAPI_LIB, "GMAPI lib"},
 
     {ERR_R_NESTED_ASN1_ERROR, "nested asn1 error"},
     {ERR_R_MISSING_ASN1_EOS, "missing asn1 eos"},

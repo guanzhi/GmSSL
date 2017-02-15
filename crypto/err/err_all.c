@@ -43,6 +43,8 @@
 #include <openssl/ffx.h>
 #include <openssl/paillier.h>
 #include <openssl/cpk.h>
+#include <openssl/otp.h>
+#include <openssl/gmapi.h>
 
 int err_load_crypto_strings_int(void)
 {
@@ -119,6 +121,9 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_OTP
         ERR_load_OTP_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_GMAPI
+        ERR_load_GMAPI_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

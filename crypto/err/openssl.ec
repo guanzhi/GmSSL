@@ -40,6 +40,7 @@ L FFX		include/openssl/ffx.h		crypto/ffx/ffx_err.c
 L PAILLIER	include/openssl/paillier.h	crypto/paillier/pai_err.c
 L CPK		include/openssl/cpk.h		crypto/cpk/cpk_err.c
 L OTP		include/openssl/otp.h		crypto/otp/otp_err.c
+L GMAPI		include/openssl/gmapi.h		crypto/gmapi/gmapi_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE
