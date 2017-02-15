@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 		p = pt(dgst);
 		if (memcmp(dgstbuf, dgst, dgstlen) != 0) {
 			printf("error calculating SM3 on %s\n", testhex[i]);
-			printf("got %s instead of %s\n", p, testhex[i]);
+			printf("got %s instead of %s\n", p, dgsthex[i]);
 		} else {
 			printf("test %d ok\n", i+1);
 		}
