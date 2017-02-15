@@ -510,6 +510,7 @@ int ERR_load_BN_strings(void);
 # define BN_F_BN_BLINDING_UPDATE                          103
 # define BN_F_BN_BN2DEC                                   104
 # define BN_F_BN_BN2HEX                                   105
+# define BN_F_BN_BN2SOLINAS                               138
 # define BN_F_BN_COMPUTE_WNAF                             142
 # define BN_F_BN_CTX_GET                                  116
 # define BN_F_BN_CTX_NEW                                  106
@@ -528,6 +529,20 @@ int ERR_load_BN_strings(void);
 # define BN_F_BN_GF2M_MOD_SOLVE_QUAD_ARR                  135
 # define BN_F_BN_GF2M_MOD_SQR                             136
 # define BN_F_BN_GF2M_MOD_SQRT                            137
+# define BN_F_BN_GFP2_ADD                                 147
+# define BN_F_BN_GFP2_CANONICAL                           148
+# define BN_F_BN_GFP2_CMP                                 149
+# define BN_F_BN_GFP2_COPY                                150
+# define BN_F_BN_GFP2_DIV_BN                              151
+# define BN_F_BN_GFP2_INV                                 152
+# define BN_F_BN_GFP2_IS_ZERO                             153
+# define BN_F_BN_GFP2_MUL                                 154
+# define BN_F_BN_GFP2_NEW                                 155
+# define BN_F_BN_GFP2_ONE                                 156
+# define BN_F_BN_GFP2_SET_BN                              157
+# define BN_F_BN_GFP2_SUB                                 158
+# define BN_F_BN_GFP2_ZERO                                159
+# define BN_F_BN_HASH_TO_RANGE                            160
 # define BN_F_BN_LSHIFT                                   145
 # define BN_F_BN_MOD_EXP2_MONT                            118
 # define BN_F_BN_MOD_EXP_MONT                             109
@@ -545,6 +560,7 @@ int ERR_load_BN_strings(void);
 # define BN_F_BN_RAND_RANGE                               122
 # define BN_F_BN_RSHIFT                                   146
 # define BN_F_BN_SET_WORDS                                144
+# define BN_F_BN_SOLINAS2BN                               161
 # define BN_F_BN_USUB                                     115
 
 /* Reason codes. */
@@ -552,6 +568,7 @@ int ERR_load_BN_strings(void);
 # define BN_R_BAD_RECIPROCAL                              101
 # define BN_R_BIGNUM_TOO_LONG                             114
 # define BN_R_BITS_TOO_SMALL                              118
+# define BN_R_BUFFER_TOO_SMALL                            120
 # define BN_R_CALLED_WITH_EVEN_MODULUS                    102
 # define BN_R_DIV_BY_ZERO                                 103
 # define BN_R_ENCODING_ERROR                              104
@@ -560,6 +577,8 @@ int ERR_load_BN_strings(void);
 # define BN_R_INVALID_LENGTH                              106
 # define BN_R_INVALID_RANGE                               115
 # define BN_R_INVALID_SHIFT                               119
+# define BN_R_INVALID_SOLINAS                             121
+# define BN_R_INVALID_SOLINAS_PARAMETERS                  122
 # define BN_R_NOT_A_SQUARE                                111
 # define BN_R_NOT_INITIALIZED                             107
 # define BN_R_NO_INVERSE                                  108

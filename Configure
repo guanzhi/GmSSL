@@ -311,7 +311,7 @@ $config{sdirs} = [
     "buffer", "bio", "stack", "lhash", "rand", "err",
     "evp", "asn1", "pem", "x509", "x509v3", "conf", "txt_db", "pkcs7", "pkcs12", "comp", "ocsp", "ui",
     "cms", "ts", "srp", "cmac", "ct", "async", "kdf",
-    "sm3", "sms4", "kdf2", "ecies", "ffx", "sm2", "paillier", "cpk", "otp", "gmapi"
+    "sm3", "sms4", "kdf2", "ecies", "ffx", "sm2", "paillier", "cpk", "otp", "gmapi", "ec2"
     ];
 
 # Known TLS and DTLS protocols
