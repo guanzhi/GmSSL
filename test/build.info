@@ -19,7 +19,8 @@ IF[{- !$disabled{tests} -}]
           bioprinttest sslapitest dtlstest sslcorrupttest bio_enc_test \
           sm3test sms4test kdf2test eciestest ffxtest sm2test \
           pailliertest cpktest otptest gmapitest ec2test \
-          bfibetest bb1ibetest sm9test
+          bfibetest bb1ibetest sm9test \
+          saftest sdftest skftest softest zuctest
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include
@@ -341,6 +342,26 @@ IF[{- !$disabled{tests} -}]
   SOURCE[sm9test]=sm9test.c
   INCLUDE[sm9test]=../include
   DEPEND[sm9test]=../libcrypto
+
+  SOURCE[saftest]=saftest.c
+  INCLUDE[saftest]=../include
+  DEPEND[saftest]=../libcrypto
+
+  SOURCE[sdftest]=sdftest.c
+  INCLUDE[sdftest]=../include
+  DEPEND[sdftest]=../libcrypto
+
+  SOURCE[skftest]=skftest.c
+  INCLUDE[skftest]=../include
+  DEPEND[skftest]=../libcrypto
+
+  SOURCE[softest]=softest.c
+  INCLUDE[softest]=../include
+  DEPEND[softest]=../libcrypto
+
+  SOURCE[zuctest]=zuctest.c
+  INCLUDE[zuctest]=../include
+  DEPEND[zuctest]=../libcrypto
 
   IF[{- !$disabled{shared} -}]
     PROGRAMS_NO_INST=shlibloadtest

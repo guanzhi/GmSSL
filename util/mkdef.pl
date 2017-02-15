@@ -133,7 +133,7 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
                          # APPLINK (win build feature?)
                          "APPLINK",
                          "SM3", "SMS4", "KDF2", "ECIES", "FFX", "PAILLIER", "CPK", "OTP", "GMAPI", "EC2",
-                         "BFIBE", "BB1IBE", "SM9", "SAF", "SDF", "SKF", "SOF"
+                         "BFIBE", "BB1IBE", "SM9", "SAF", "SDF", "SKF", "SOF", "ZUC"
                      );
 
 my %disabled_algorithms;
