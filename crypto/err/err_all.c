@@ -117,6 +117,9 @@ int err_load_crypto_strings_int(void)
 # ifndef OPENSSL_NO_CPK
         ERR_load_CPK_strings() == 0 ||
 # endif
+# ifndef OPENSSL_NO_OTP
+        ERR_load_OTP_strings() == 0 ||
+# endif
 #endif
         ERR_load_KDF_strings() == 0)
         return 0;

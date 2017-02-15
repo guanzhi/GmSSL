@@ -97,6 +97,7 @@ typedef struct err_state_st {
 # define ERR_LIB_FFX             54
 # define ERR_LIB_PAILLIER        55
 # define ERR_LIB_CPK             56
+# define ERR_LIB_OTP             57
 
 # define ERR_LIB_USER            128
 
@@ -139,6 +140,7 @@ typedef struct err_state_st {
 # define FFXerr(f,r) ERR_PUT_error(ERR_LIB_FFX,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define PAILLIERerr(f,r) ERR_PUT_error(ERR_LIB_PAILLIER,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define CPKerr(f,r) ERR_PUT_error(ERR_LIB_CPK,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define OTPerr(f,r) ERR_PUT_error(ERR_LIB_OTP,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 
 # define ERR_PACK(l,f,r) ( \
         (((unsigned int)(l) & 0x0FF) << 24L) | \
@@ -190,6 +192,7 @@ typedef struct err_state_st {
 # define ERR_R_FFX_LIB  ERR_LIB_FFX/* 54 */
 # define ERR_R_PAILLIER_LIB ERR_LIB_PAILLIER/* 55 */
 # define ERR_R_CPK_LIB  ERR_LIB_CPK/* 56 */
+# define ERR_R_OTP_LIB  ERR_LIB_OTP/* 57 */
 
 # define ERR_R_NESTED_ASN1_ERROR                 58
 # define ERR_R_MISSING_ASN1_EOS                  63
