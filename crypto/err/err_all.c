@@ -45,6 +45,9 @@
 #include <openssl/cpk.h>
 #include <openssl/otp.h>
 #include <openssl/gmapi.h>
+#include <openssl/bfibe.h>
+#include <openssl/bb1ibe.h>
+#include <openssl/sm9.h>
 
 int err_load_crypto_strings_int(void)
 {
@@ -124,6 +127,15 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_GMAPI
         ERR_load_GMAPI_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_BFIBE
+        ERR_load_BFIBE_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_BB1IBE
+        ERR_load_BB1IBE_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SM9
+        ERR_load_SM9_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

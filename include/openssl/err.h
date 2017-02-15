@@ -99,6 +99,9 @@ typedef struct err_state_st {
 # define ERR_LIB_CPK             56
 # define ERR_LIB_OTP             57
 # define ERR_LIB_GMAPI           58
+# define ERR_LIB_BFIBE           59
+# define ERR_LIB_BB1IBE          60
+# define ERR_LIB_SM9             61
 
 # define ERR_LIB_USER            128
 
@@ -143,6 +146,9 @@ typedef struct err_state_st {
 # define CPKerr(f,r) ERR_PUT_error(ERR_LIB_CPK,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define OTPerr(f,r) ERR_PUT_error(ERR_LIB_OTP,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define GMAPIerr(f,r) ERR_PUT_error(ERR_LIB_GMAPI,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define BFIBEerr(f,r) ERR_PUT_error(ERR_LIB_BFIBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define BB1IBEerr(f,r) ERR_PUT_error(ERR_LIB_BB1IBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define SM9err(f,r) ERR_PUT_error(ERR_LIB_SM9,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 
 # define ERR_PACK(l,f,r) ( \
         (((unsigned int)(l) & 0x0FF) << 24L) | \
@@ -196,6 +202,11 @@ typedef struct err_state_st {
 # define ERR_R_CPK_LIB  ERR_LIB_CPK/* 56 */
 # define ERR_R_OTP_LIB  ERR_LIB_OTP/* 57 */
 # define ERR_R_GMAPI_LIB  ERR_LIB_GMAPI/* 58 */
+# define ERR_R_BFIBE_LIB  ERR_LIB_BFIBE/* 59 */
+# define ERR_R_BB1IBE_LIB  ERR_LIB_BB1IBE/* 60 */
+# define ERR_R_SM9_LIB  ERR_LIB_SM9/* 61 */
+
+# define ERR_R_NESTED_ASN1_ERROR                 58
 
 # define ERR_R_NESTED_ASN1_ERROR                 58
 # define ERR_R_MISSING_ASN1_EOS                  63

@@ -65,6 +65,9 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_CPK, 0, 0), "CPK routines"},
     {ERR_PACK(ERR_LIB_OTP, 0, 0), "OTP routines"},
     {ERR_PACK(ERR_LIB_GMAPI, 0, 0), "GMAPI routines"},
+    {ERR_PACK(ERR_LIB_BFIBE, 0, 0), "BFIBE routines"},
+    {ERR_PACK(ERR_LIB_BB1IBE, 0, 0), "BB1IBE routines"},
+    {ERR_PACK(ERR_LIB_SM9, 0, 0), "SM9 routines"},
     {0, NULL},
 };
 
@@ -115,6 +118,9 @@ static ERR_STRING_DATA ERR_str_reasons[] = {
     {ERR_R_CPK_LIB, "CPK lib"},
     {ERR_R_OTP_LIB, "OTP lib"},
     {ERR_R_GMAPI_LIB, "GMAPI lib"},
+    {ERR_R_BFIBE_LIB, "BFIBE lib"},
+    {ERR_R_BB1IBE_LIB, "BB1IBE lib"},
+    {ERR_R_SM9_LIB, "SM9 lib"},
 
     {ERR_R_NESTED_ASN1_ERROR, "nested asn1 error"},
     {ERR_R_MISSING_ASN1_EOS, "missing asn1 eos"},
