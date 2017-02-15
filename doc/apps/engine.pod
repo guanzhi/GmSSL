@@ -6,7 +6,7 @@ engine - load and query engines
 
 =head1 SYNOPSIS
 
-B<openssl engine>
+B<gmssl engine>
 [ I<engine...> ]
 [B<-v>]
 [B<-vv>]
@@ -67,7 +67,7 @@ See the example below.
 
 To list all the commands available to a dynamic engine:
 
- % openssl engine -t -tt -vvvv dynamic
+ % gmssl engine -t -tt -vvvv dynamic
  (dynamic) Dynamic engine loading support
       [ unavailable ]
       SO_PATH: Specifies the path to the new ENGINE shared library
@@ -87,7 +87,7 @@ To list all the commands available to a dynamic engine:
 
 To list the capabilities of the I<rsax> engine:
 
- % openssl engine -c
+ % gmssl engine -c
  (rsax) RSAX engine support
   [RSA]
  (dynamic) Dynamic engine loading support
@@ -96,7 +96,7 @@ To list the capabilities of the I<rsax> engine:
 
 Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

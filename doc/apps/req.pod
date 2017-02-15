@@ -6,7 +6,7 @@ req - PKCS#10 certificate request and certificate generating utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<req>
+B<gmssl> B<req>
 [B<-help>]
 [B<-inform PEM|DER>]
 [B<-outform PEM|DER>]
@@ -81,7 +81,7 @@ options (B<-new> and B<-newkey>) are not specified.
 =item B<-passin arg>
 
 the input file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
 =item B<-out filename>
 
@@ -91,7 +91,7 @@ default.
 =item B<-passout arg>
 
 the output file password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
 =item B<-text>
 
@@ -194,7 +194,7 @@ will not be encrypted.
 =item B<-[digest]>
 
 this specifies the message digest to sign the request.
-Any digest supported by the OpenSSL B<dgst> command can be used.
+Any digest supported by the GmSSL B<dgst> command can be used.
 This overrides the digest algorithm specified in
 the configuration file.
 
@@ -220,7 +220,7 @@ characters may be escaped by \ (backslash), no spaces are skipped.
 this option causes the -subj argument to be interpreted with full
 support for multivalued RDNs. Example:
 
-I</DC=org/DC=OpenSSL/DC=users/UID=123456+CN=John Doe>
+I</DC=org/DC=GmSSL/DC=users/UID=123456+CN=John Doe>
 
 If -multi-rdn is not used then the UID value is I<123456+CN=John Doe>.
 
@@ -365,7 +365,7 @@ option. For compatibility B<encrypt_rsa_key> is an equivalent option.
 =item B<default_md>
 
 This option specifies the digest algorithm to use.
-Any digest supported by the OpenSSL B<dgst> command can be used.
+Any digest supported by the GmSSL B<dgst> command can be used.
 If not present then MD5 is used.
 This option can be overridden on the command line.
 
@@ -415,7 +415,7 @@ configuration file, must be valid UTF8 strings.
 this specifies the section containing any request attributes: its format
 is the same as B<distinguished_name>. Typically these may contain the
 challengePassword or unstructuredName types. They are currently ignored
-by OpenSSL's request signing utilities but some CAs might want them.
+by GmSSL's request signing utilities but some CAs might want them.
 
 =item B<distinguished_name>
 
@@ -467,7 +467,7 @@ they will be ignored. So for example a second organizationName can
 be input by calling it "1.organizationName".
 
 The actual permitted field names are any object identifier short or
-long names. These are compiled into OpenSSL and include the usual
+long names. These are compiled into GmSSL and include the usual
 values such as commonName, countryName, localityName, organizationName,
 organizationalUnitName, stateOrProvinceName. Additionally emailAddress
 is include as well as name, surname, givenName initials and dnQualifier.
@@ -481,20 +481,20 @@ will be treated as though they were a DirectoryString.
 
 Examine and verify certificate request:
 
- openssl req -in req.pem -text -verify -noout
+ gmssl req -in req.pem -text -verify -noout
 
 Create a private key and then generate a certificate request from it:
 
- openssl genrsa -out key.pem 2048
- openssl req -new -key key.pem -out req.pem
+ gmssl genrsa -out key.pem 2048
+ gmssl req -new -key key.pem -out req.pem
 
 The same but just using req:
 
- openssl req -newkey rsa:2048 -keyout key.pem -out req.pem
+ gmssl req -newkey rsa:2048 -keyout key.pem -out req.pem
 
 Generate a self signed root certificate:
 
- openssl req -x509 -newkey rsa:2048 -keyout key.pem -out req.pem
+ gmssl req -x509 -newkey rsa:2048 -keyout key.pem -out req.pem
 
 Example of a file pointed to by the B<oid_file> option:
 
@@ -632,13 +632,13 @@ line switch if it is present.
 
 =head1 BUGS
 
-OpenSSL's handling of T61Strings (aka TeletexStrings) is broken: it effectively
+GmSSL's handling of T61Strings (aka TeletexStrings) is broken: it effectively
 treats them as ISO-8859-1 (Latin 1), Netscape and MSIE have similar behaviour.
 This can cause problems if you need characters that aren't available in
 PrintableStrings and you don't want to or can't use BMPStrings.
 
 As a consequence of the T61String handling the only correct way to represent
-accented characters in OpenSSL is to use a BMPString: unfortunately Netscape
+accented characters in GmSSL is to use a BMPString: unfortunately Netscape
 currently chokes on these. If you have to use accented characters with Netscape
 and MSIE then you currently need to use the invalid T61String form.
 
@@ -657,7 +657,7 @@ L<x509v3_config(5)>
 
 Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

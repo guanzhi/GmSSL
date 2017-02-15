@@ -6,7 +6,7 @@ ca - sample minimal CA application
 
 =head1 SYNOPSIS
 
-B<openssl> B<ca>
+B<gmssl> B<ca>
 [B<-help>]
 [B<-verbose>]
 [B<-config filename>]
@@ -151,7 +151,7 @@ self-signed certificate.
 =item B<-passin arg>
 
 the key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
 =item B<-notext>
 
@@ -174,7 +174,7 @@ the number of days to certify the certificate for.
 =item B<-md alg>
 
 the message digest to use.
-Any digest supported by the OpenSSL B<dgst> command can be used.
+Any digest supported by the GmSSL B<dgst> command can be used.
 This option also applies to CRLs.
 
 =item B<-policy arg>
@@ -261,7 +261,7 @@ serial number.
 This option causes the -subj argument to be interpreted with full
 support for multivalued RDNs. Example:
 
-I</DC=org/DC=OpenSSL/DC=users/UID=123456+CN=John Doe>
+I</DC=org/DC=GmSSL/DC=users/UID=123456+CN=John Doe>
 
 If -multi-rdn is not used then the UID value is I<123456+CN=John Doe>.
 
@@ -436,7 +436,7 @@ if the value B<yes> is given, the valid certificate entries in the
 database must have unique subjects.  if the value B<no> is given,
 several valid certificate entries may have the exact same subject.
 The default value is B<yes>, to be compatible with older (pre 0.9.8)
-versions of OpenSSL.  However, to make CA certificate roll-over easier,
+versions of GmSSL.  However, to make CA certificate roll-over easier,
 it's recommended to use the value B<no>, especially if combined with
 the B<-selfsign> command line option.
 
@@ -491,7 +491,7 @@ For convenience the values B<ca_default> are accepted by both to produce
 a reasonable output.
 
 If neither option is present the format used in earlier versions of
-OpenSSL is used. Use of the old format is B<strongly> discouraged because
+GmSSL is used. Use of the old format is B<strongly> discouraged because
 it only displays fields mentioned in the B<policy> section, mishandles
 multicharacter string types and does not display extensions.
 
@@ -555,30 +555,30 @@ demoCA/index.txt.
 
 Sign a certificate request:
 
- openssl ca -in req.pem -out newcert.pem
+ gmssl ca -in req.pem -out newcert.pem
 
 Sign a certificate request, using CA extensions:
 
- openssl ca -in req.pem -extensions v3_ca -out newcert.pem
+ gmssl ca -in req.pem -extensions v3_ca -out newcert.pem
 
 Generate a CRL
 
- openssl ca -gencrl -out crl.pem
+ gmssl ca -gencrl -out crl.pem
 
 Sign several requests:
 
- openssl ca -infiles req1.pem req2.pem req3.pem
+ gmssl ca -infiles req1.pem req2.pem req3.pem
 
 Certify a Netscape SPKAC:
 
- openssl ca -spkac spkac.txt
+ gmssl ca -spkac spkac.txt
 
 A sample SPKAC file (the SPKAC line has been truncated for clarity):
 
  SPKAC=MIG0MGAwXDANBgkqhkiG9w0BAQEFAANLADBIAkEAn7PDhCeV/xIxUg8V70YRxK2A5
  CN=Steve Test
- emailAddress=steve@openssl.org
- 0.OU=OpenSSL Group
+ emailAddress=steve@gmssl.org
+ 0.OU=GmSSL Group
  1.OU=Another Group
 
 A sample configuration file with the relevant sections for B<ca>:
@@ -714,7 +714,7 @@ L<config(5)>, L<x509v3_config(5)>
 
 Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

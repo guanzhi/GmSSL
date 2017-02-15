@@ -1,6 +1,6 @@
 =pod
 
-=for comment openssl_manual_section:5
+=for comment gmssl_manual_section:5
 
 =head1 NAME
 
@@ -8,7 +8,7 @@ x509v3_config - X509 V3 certificate extension configuration format
 
 =head1 DESCRIPTION
 
-Several of the OpenSSL utilities can add extensions to a certificate or
+Several of the GmSSL utilities can add extensions to a certificate or
 certificate request based on the contents of a configuration file.
 
 Typically the application will contain an option to point to an extension
@@ -447,7 +447,7 @@ B<objsign>, B<reserved>, B<sslCA>, B<emailCA>, B<objCA>.
 
 =head1 ARBITRARY EXTENSIONS
 
-If an extension is not supported by the OpenSSL code then it must be encoded
+If an extension is not supported by the GmSSL code then it must be encoded
 using the arbitrary extension format. It is also possible to use the arbitrary
 format for supported extensions. Extreme care should be taken to ensure that
 the data is formatted correctly for the given extension type.
@@ -507,7 +507,7 @@ will produce an error but the equivalent form:
 
 is valid.
 
-Due to the behaviour of the OpenSSL B<conf> library the same field name
+Due to the behaviour of the GmSSL B<conf> library the same field name
 can only occur once in a section. This means that:
 
  subjectAltName=@alt_section
@@ -533,7 +533,7 @@ L<ASN1_generate_nconf(3)>
 
 Copyright 2004-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

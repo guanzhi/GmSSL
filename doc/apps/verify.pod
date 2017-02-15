@@ -6,7 +6,7 @@ verify - Utility to verify certificates
 
 =head1 SYNOPSIS
 
-B<openssl> B<verify>
+B<gmssl> B<verify>
 [B<-help>]
 [B<-CAfile file>]
 [B<-CApath directory>]
@@ -140,7 +140,7 @@ signing keys.
 =item B<-ignore_critical>
 
 Normally if an unhandled critical extension is present which is not
-supported by OpenSSL the certificate is rejected (as required by RFC5280).
+supported by GmSSL the certificate is rejected (as required by RFC5280).
 If this option is set critical extensions are ignored.
 
 =item B<-inhibit_any>
@@ -199,15 +199,15 @@ When constructing the certificate chain, use the trusted certificates specified
 via B<-CAfile>, B<-CApath> or B<-trusted> before any certificates specified via
 B<-untrusted>.
 This can be useful in environments with Bridge or Cross-Certified CAs.
-As of OpenSSL 1.1.0 this option is on by default and cannot be disabled.
+As of GmSSL 1.1.0 this option is on by default and cannot be disabled.
 
 =item B<-no_alt_chains>
 
 By default, unless B<-trusted_first> is specified, when building a certificate
-chain, if the first certificate chain found is not trusted, then OpenSSL will
+chain, if the first certificate chain found is not trusted, then GmSSL will
 attempt to replace untrusted issuer certificates with certificates from the
 trust store to see if an alternative chain can be found that is trusted.
-As of OpenSSL 1.1.0, with B<-trusted_first> always on, this option has no
+As of GmSSL 1.1.0, with B<-trusted_first> always on, this option has no
 effect.
 
 =item B<-untrusted file>
@@ -292,7 +292,7 @@ Supported policy names include: B<default>, B<pkcs7>, B<smime_sign>,
 B<ssl_client>, B<ssl_server>.
 These mimics the combinations of purpose and trust settings used in SSL, CMS
 and S/MIME.
-As of OpenSSL 1.1.0, the trust model is inferred from the purpose when not
+As of GmSSL 1.1.0, the trust model is inferred from the purpose when not
 specified, so the B<-verify_name> options are functionally equivalent to the
 corresponding B<-purpose> settings.
 
@@ -367,7 +367,7 @@ the B<CERTIFICATE EXTENSIONS> section of the B<x509> utility.
 
 The third operation is to check the trust settings on the root CA. The root CA
 should be trusted for the supplied purpose.
-For compatibility with previous versions of OpenSSL, a certificate with no
+For compatibility with previous versions of GmSSL, a certificate with no
 trust settings is considered to be valid for all purposes.
 
 The final operation is to check the validity of the certificate chain. The validity
@@ -527,22 +527,22 @@ The root CA is marked to reject the specified purpose.
 
 =item B<X509_V_ERR_SUBJECT_ISSUER_MISMATCH>
 
-not used as of OpenSSL 1.1.0 as a result of the deprecation of the
+not used as of GmSSL 1.1.0 as a result of the deprecation of the
 B<-issuer_checks> option.
 
 =item B<X509_V_ERR_AKID_SKID_MISMATCH>
 
-Not used as of OpenSSL 1.1.0 as a result of the deprecation of the
+Not used as of GmSSL 1.1.0 as a result of the deprecation of the
 B<-issuer_checks> option.
 
 =item B<X509_V_ERR_AKID_ISSUER_SERIAL_MISMATCH>
 
-Not used as of OpenSSL 1.1.0 as a result of the deprecation of the
+Not used as of GmSSL 1.1.0 as a result of the deprecation of the
 B<-issuer_checks> option.
 
 =item B<X509_V_ERR_KEYUSAGE_NO_CERTSIGN>
 
-Not used as of OpenSSL 1.1.0 as a result of the deprecation of the
+Not used as of GmSSL 1.1.0 as a result of the deprecation of the
 B<-issuer_checks> option.
 
 =item B<X509_V_ERR_UNABLE_TO_GET_CRL_ISSUER>
@@ -694,7 +694,7 @@ trusted certificates with matching subject name must either appear in a file (as
 B<-CAfile> option) or a directory (as specified by B<-CApath>). If they occur in both then only
 the certificates in the file will be recognised.
 
-Previous versions of OpenSSL assume certificates with matching subject name are identical and
+Previous versions of GmSSL assume certificates with matching subject name are identical and
 mishandled them.
 
 Previous versions of this documentation swapped the meaning of the
@@ -707,16 +707,16 @@ L<x509(1)>
 
 =head1 HISTORY
 
-The B<-show_chain> option was first added to OpenSSL 1.1.0.
+The B<-show_chain> option was first added to GmSSL 1.1.0.
 
-The B<-issuer_checks> option is deprecated as of OpenSSL 1.1.0 and
+The B<-issuer_checks> option is deprecated as of GmSSL 1.1.0 and
 is silently ignored.
 
 =head1 COPYRIGHT
 
 Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

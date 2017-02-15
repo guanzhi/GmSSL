@@ -6,7 +6,7 @@ s_server - SSL/TLS server program
 
 =head1 SYNOPSIS
 
-B<openssl> B<s_server>
+B<gmssl> B<s_server>
 [B<-help>]
 [B<-port port>]
 [B<-accept val>]
@@ -186,7 +186,7 @@ The private format to use: DER or PEM. PEM is the default.
 =item B<-pass arg>
 
 The private key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
 =item B<-dcert filename>, B<-dkey keyname>
 
@@ -291,7 +291,7 @@ Show all protocol messages with hex dump.
 
 =item B<-trace>
 
-Show verbose trace output of protocol messages. OpenSSL needs to be compiled
+Show verbose trace output of protocol messages. GmSSL needs to be compiled
 with B<enable-ssl-trace> for this option to work.
 
 =item B<-msgfile>
@@ -387,15 +387,15 @@ option enables various workarounds.
 =item B<-comp>
 
 Enable negotiation of TLS compression.
-This option was introduced in OpenSSL 1.1.0.
+This option was introduced in GmSSL 1.1.0.
 TLS compression is not recommended and is off by default as of
-OpenSSL 1.1.0.
+GmSSL 1.1.0.
 
 =item B<-no_comp>
 
 Disable negotiation of TLS compression.
 TLS compression is not recommended and is off by default as of
-OpenSSL 1.1.0.
+GmSSL 1.1.0.
 
 =item B<-brief>
 
@@ -558,13 +558,13 @@ print out some session cache status information.
 B<s_server> can be used to debug SSL clients. To accept connections from
 a web browser the command:
 
- openssl s_server -accept 443 -www
+ gmssl s_server -accept 443 -www
 
 can be used for example.
 
 Most web browsers (in particular Netscape and MSIE) only support RSA cipher
 suites, so they cannot connect to servers which don't use a certificate
-carrying an RSA key or a version of OpenSSL with RSA disabled.
+carrying an RSA key or a version of GmSSL with RSA disabled.
 
 Although specifying an empty list of CAs when requesting a client certificate
 is strictly speaking a protocol violation, some SSL clients interpret this to
@@ -580,7 +580,7 @@ read and not a model of how things should be done.
 A typical SSL server program would be much simpler.
 
 The output of common ciphers is wrong: it just gives the list of ciphers that
-OpenSSL recognizes and the client supports.
+GmSSL recognizes and the client supports.
 
 There should be a way for the B<s_server> program to print out details of any
 unknown cipher suites a client says it supports.
@@ -592,13 +592,13 @@ L<sess_id(1)>, L<s_client(1)>, L<ciphers(1)>
 
 =head1 HISTORY
 
-The -no_alt_chains options was first added to OpenSSL 1.1.0.
+The -no_alt_chains options was first added to GmSSL 1.1.0.
 
 =head1 COPYRIGHT
 
 Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

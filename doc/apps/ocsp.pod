@@ -6,7 +6,7 @@ ocsp - Online Certificate Status Protocol utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<ocsp>
+B<gmssl> B<ocsp>
 [B<-help>]
 [B<-out file>]
 [B<-issuer file>]
@@ -287,7 +287,7 @@ By default this additional check is not performed.
 =item B<-[digest]>
 
 this option sets digest algorithm to use for certificate identification in the
-OCSP request. Any digest supported by the OpenSSL B<dgst> command can be used.
+OCSP request. Any digest supported by the GmSSL B<dgst> command can be used.
 The default is SHA-1. This option may be used multiple times to specify the
 digest used by subsequent certificate identifiers.
 
@@ -362,7 +362,7 @@ the OCSP request checked using the responder certificate's public key.
 Then a normal certificate verify is performed on the OCSP responder certificate
 building up a certificate chain in the process. The locations of the trusted
 certificates used to build the chain can be specified by the B<CAfile>
-and B<CApath> options or they will be looked for in the standard OpenSSL
+and B<CApath> options or they will be looked for in the standard GmSSL
 certificates directory.
 
 If the initial verify fails then the OCSP verify process halts with an
@@ -390,7 +390,7 @@ If the OCSP responder is a "global responder" which can give details about
 multiple CAs and has its own separate certificate chain then its root
 CA can be trusted for OCSP signing. For example:
 
- openssl x509 -in ocspCA.pem -addtrust OCSPSigning -out trustedCA.pem
+ gmssl x509 -in ocspCA.pem -addtrust OCSPSigning -out trustedCA.pem
 
 Alternatively the responder certificate itself can be explicitly trusted
 with the B<-VAfile> option.
@@ -416,49 +416,49 @@ script using the B<reqin> and B<respout> options.
 
 Create an OCSP request and write it to a file:
 
- openssl ocsp -issuer issuer.pem -cert c1.pem -cert c2.pem -reqout req.der
+ gmssl ocsp -issuer issuer.pem -cert c1.pem -cert c2.pem -reqout req.der
 
 Send a query to an OCSP responder with URL http://ocsp.myhost.com/ save the
 response to a file, print it out in text form, and verify the response:
 
- openssl ocsp -issuer issuer.pem -cert c1.pem -cert c2.pem \
+ gmssl ocsp -issuer issuer.pem -cert c1.pem -cert c2.pem \
      -url http://ocsp.myhost.com/ -resp_text -respout resp.der
 
 Read in an OCSP response and print out text form:
 
- openssl ocsp -respin resp.der -text -noverify
+ gmssl ocsp -respin resp.der -text -noverify
 
 OCSP server on port 8888 using a standard B<ca> configuration, and a separate
 responder certificate. All requests and responses are printed to a file.
 
- openssl ocsp -index demoCA/index.txt -port 8888 -rsigner rcert.pem -CA demoCA/cacert.pem
+ gmssl ocsp -index demoCA/index.txt -port 8888 -rsigner rcert.pem -CA demoCA/cacert.pem
         -text -out log.txt
 
 As above but exit after processing one request:
 
- openssl ocsp -index demoCA/index.txt -port 8888 -rsigner rcert.pem -CA demoCA/cacert.pem
+ gmssl ocsp -index demoCA/index.txt -port 8888 -rsigner rcert.pem -CA demoCA/cacert.pem
      -nrequest 1
 
 Query status information using an internally generated request:
 
- openssl ocsp -index demoCA/index.txt -rsigner rcert.pem -CA demoCA/cacert.pem
+ gmssl ocsp -index demoCA/index.txt -rsigner rcert.pem -CA demoCA/cacert.pem
      -issuer demoCA/cacert.pem -serial 1
 
 Query status information using request read from a file, and write the response
 to a second file.
 
- openssl ocsp -index demoCA/index.txt -rsigner rcert.pem -CA demoCA/cacert.pem
+ gmssl ocsp -index demoCA/index.txt -rsigner rcert.pem -CA demoCA/cacert.pem
      -reqin req.der -respout resp.der
 
 =head1 HISTORY
 
-The -no_alt_chains options was first added to OpenSSL 1.1.0.
+The -no_alt_chains options was first added to GmSSL 1.1.0.
 
 =head1 COPYRIGHT
 
 Copyright 2001-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

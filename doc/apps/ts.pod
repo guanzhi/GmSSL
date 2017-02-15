@@ -6,7 +6,7 @@ ts - Time Stamping Authority tool (client/server)
 
 =head1 SYNOPSIS
 
-B<openssl> B<ts>
+B<gmssl> B<ts>
 B<-query>
 [B<-rand> file:file...]
 [B<-config> configfile]
@@ -20,7 +20,7 @@ B<-query>
 [B<-out> request.tsq]
 [B<-text>]
 
-B<openssl> B<ts>
+B<gmssl> B<ts>
 B<-reply>
 [B<-config> configfile]
 [B<-section> tsa_section]
@@ -38,7 +38,7 @@ B<-reply>
 [B<-text>]
 [B<-engine> id]
 
-B<openssl> B<ts>
+B<gmssl> B<ts>
 B<-verify>
 [B<-data> file_to_hash]
 [B<-digest> digest_bytes]
@@ -160,7 +160,7 @@ in use. (Optional)
 =item B<-[digest]>
 
 The message digest to apply to the data file.
-Any digest supported by the OpenSSL B<dgst> command can be used.
+Any digest supported by the GmSSL B<dgst> command can be used.
 The default is SHA-1. (Optional)
 
 =item B<-tspolicy> object_id
@@ -233,7 +233,7 @@ The name of the file containing a DER encoded time stamp request. (Optional)
 =item B<-passin> password_src
 
 Specifies the password source for the private key of the TSA. See
-B<PASS PHRASE ARGUMENTS> in L<openssl(1)>. (Optional)
+B<PASS PHRASE ARGUMENTS> in L<gmssl(1)>. (Optional)
 
 =item B<-signer> tsa_cert.pem
 
@@ -425,9 +425,9 @@ generation a new file is created with serial number 1. (Mandatory)
 
 =item B<crypto_device>
 
-Specifies the OpenSSL engine that will be set as the default for
+Specifies the GmSSL engine that will be set as the default for
 all available algorithms. The default value is builtin, you can specify
-any other engines supported by OpenSSL (e.g. use chil for the NCipher HSM).
+any other engines supported by GmSSL (e.g. use chil for the NCipher HSM).
 (Optional)
 
 =item B<signer_cert>
@@ -514,32 +514,32 @@ overridden by the B<-config> command line option.
 
 All the examples below presume that B<OPENSSL_CONF> is set to a proper
 configuration file, e.g. the example configuration file
-openssl/apps/openssl.cnf will do.
+gmssl/apps/openssl.cnf will do.
 
 =head2 Time Stamp Request
 
 To create a time stamp request for design1.txt with SHA-1
 without nonce and policy and no certificate is required in the response:
 
-  openssl ts -query -data design1.txt -no_nonce \
+  gmssl ts -query -data design1.txt -no_nonce \
         -out design1.tsq
 
 To create a similar time stamp request with specifying the message imprint
 explicitly:
 
-  openssl ts -query -digest b7e5d3f93198b38379852f2c04e78d73abdd0f4b \
+  gmssl ts -query -digest b7e5d3f93198b38379852f2c04e78d73abdd0f4b \
          -no_nonce -out design1.tsq
 
 To print the content of the previous request in human readable format:
 
-  openssl ts -query -in design1.tsq -text
+  gmssl ts -query -in design1.tsq -text
 
 To create a time stamp request which includes the MD-5 digest
 of design2.txt, requests the signer certificate and nonce,
 specifies a policy id (assuming the tsa_policy1 name is defined in the
 OID section of the config file):
 
-  openssl ts -query -data design2.txt -md5 \
+  gmssl ts -query -data design2.txt -md5 \
         -tspolicy tsa_policy1 -cert -out design2.tsq
 
 =head2 Time Stamp Response
@@ -556,52 +556,52 @@ tsakey.pem is the private key of the TSA.
 
 To create a time stamp response for a request:
 
-  openssl ts -reply -queryfile design1.tsq -inkey tsakey.pem \
+  gmssl ts -reply -queryfile design1.tsq -inkey tsakey.pem \
         -signer tsacert.pem -out design1.tsr
 
 If you want to use the settings in the config file you could just write:
 
-  openssl ts -reply -queryfile design1.tsq -out design1.tsr
+  gmssl ts -reply -queryfile design1.tsq -out design1.tsr
 
 To print a time stamp reply to stdout in human readable format:
 
-  openssl ts -reply -in design1.tsr -text
+  gmssl ts -reply -in design1.tsr -text
 
 To create a time stamp token instead of time stamp response:
 
-  openssl ts -reply -queryfile design1.tsq -out design1_token.der -token_out
+  gmssl ts -reply -queryfile design1.tsq -out design1_token.der -token_out
 
 To print a time stamp token to stdout in human readable format:
 
-  openssl ts -reply -in design1_token.der -token_in -text -token_out
+  gmssl ts -reply -in design1_token.der -token_in -text -token_out
 
 To extract the time stamp token from a response:
 
-  openssl ts -reply -in design1.tsr -out design1_token.der -token_out
+  gmssl ts -reply -in design1.tsr -out design1_token.der -token_out
 
 To add 'granted' status info to a time stamp token thereby creating a
 valid response:
 
-  openssl ts -reply -in design1_token.der -token_in -out design1.tsr
+  gmssl ts -reply -in design1_token.der -token_in -out design1.tsr
 
 =head2 Time Stamp Verification
 
 To verify a time stamp reply against a request:
 
-  openssl ts -verify -queryfile design1.tsq -in design1.tsr \
+  gmssl ts -verify -queryfile design1.tsq -in design1.tsr \
         -CAfile cacert.pem -untrusted tsacert.pem
 
 To verify a time stamp reply that includes the certificate chain:
 
-  openssl ts -verify -queryfile design2.tsq -in design2.tsr \
+  gmssl ts -verify -queryfile design2.tsq -in design2.tsr \
         -CAfile cacert.pem
 
 To verify a time stamp token against the original data file:
-  openssl ts -verify -data design2.txt -in design2.tsr \
+  gmssl ts -verify -data design2.txt -in design2.tsr \
         -CAfile cacert.pem
 
 To verify a time stamp token against a message imprint:
-  openssl ts -verify -digest b7e5d3f93198b38379852f2c04e78d73abdd0f4b \
+  gmssl ts -verify -digest b7e5d3f93198b38379852f2c04e78d73abdd0f4b \
          -in design2.tsr -CAfile cacert.pem
 
 You could also look at the 'test' directory for more examples.
@@ -621,7 +621,7 @@ L<tsget(1)>. Pure TCP/IP protocol is not supported.
 
 =item * The file containing the last serial number of the TSA is not
 locked when being read or written. This is a problem if more than one
-instance of L<openssl(1)> is trying to create a time stamp
+instance of L<gmssl(1)> is trying to create a time stamp
 response at the same time. This is not an issue when using the apache
 server module, it does proper locking.
 
@@ -636,7 +636,7 @@ test/testtsa).
 
 =head1 SEE ALSO
 
-L<tsget(1)>, L<openssl(1)>, L<req(1)>,
+L<tsget(1)>, L<gmssl(1)>, L<req(1)>,
 L<x509(1)>, L<ca(1)>, L<genrsa(1)>,
 L<config(5)>
 
@@ -644,7 +644,7 @@ L<config(5)>
 
 Copyright 2006-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

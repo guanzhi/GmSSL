@@ -6,7 +6,7 @@ cms - CMS utility
 
 =head1 SYNOPSIS
 
-B<openssl> B<cms>
+B<gmssl> B<cms>
 [B<-help>]
 [B<-encrypt>]
 [B<-decrypt>]
@@ -173,12 +173,12 @@ Verify a CMS B<DigestedData> type and output the content.
 
 =item B<-compress>
 
-Create a CMS B<CompressedData> type. OpenSSL must be compiled with B<zlib>
+Create a CMS B<CompressedData> type. GmSSL must be compiled with B<zlib>
 support for this option to work, otherwise it will output an error.
 
 =item B<-uncompress>
 
-Uncompress a CMS B<CompressedData> type and output the content. OpenSSL must be
+Uncompress a CMS B<CompressedData> type and output the content. GmSSL must be
 compiled with B<zlib> support for this option to work, otherwise it will
 output an error.
 
@@ -303,7 +303,7 @@ the encryption algorithm to use. For example triple DES (168 bits) - B<-des3>
 or 256 bit AES - B<-aes256>. Any standard algorithm name (as used by the
 EVP_get_cipherbyname() function) can also be used preceded by a dash, for
 example B<-aes-128-cbc>. See L<B<enc>|enc(1)> for a list of ciphers
-supported by your version of OpenSSL.
+supported by your version of GmSSL.
 
 If not specified triple DES is used. Only used with B<-encrypt> and
 B<-EncryptedData_create> commands.
@@ -459,7 +459,7 @@ or to modify default parameters for ECDH.
 =item B<-passin arg>
 
 the private key password source. For more information about the format of B<arg>
-see the B<PASS PHRASE ARGUMENTS> section in L<openssl(1)>.
+see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
 =item B<-rand file(s)>
 
@@ -600,46 +600,46 @@ be processed by the older B<smime> command.
 
 Create a cleartext signed message:
 
- openssl cms -sign -in message.txt -text -out mail.msg \
+ gmssl cms -sign -in message.txt -text -out mail.msg \
         -signer mycert.pem
 
 Create an opaque signed message
 
- openssl cms -sign -in message.txt -text -out mail.msg -nodetach \
+ gmssl cms -sign -in message.txt -text -out mail.msg -nodetach \
         -signer mycert.pem
 
 Create a signed message, include some additional certificates and
 read the private key from another file:
 
- openssl cms -sign -in in.txt -text -out mail.msg \
+ gmssl cms -sign -in in.txt -text -out mail.msg \
         -signer mycert.pem -inkey mykey.pem -certfile mycerts.pem
 
 Create a signed message with two signers, use key identifier:
 
- openssl cms -sign -in message.txt -text -out mail.msg \
+ gmssl cms -sign -in message.txt -text -out mail.msg \
         -signer mycert.pem -signer othercert.pem -keyid
 
 Send a signed message under Unix directly to sendmail, including headers:
 
- openssl cms -sign -in in.txt -text -signer mycert.pem \
-        -from steve@openssl.org -to someone@somewhere \
+ gmssl cms -sign -in in.txt -text -signer mycert.pem \
+        -from steve@gmssl.org -to someone@somewhere \
         -subject "Signed message" | sendmail someone@somewhere
 
 Verify a message and extract the signer's certificate if successful:
 
- openssl cms -verify -in mail.msg -signer user.pem -out signedtext.txt
+ gmssl cms -verify -in mail.msg -signer user.pem -out signedtext.txt
 
 Send encrypted mail using triple DES:
 
- openssl cms -encrypt -in in.txt -from steve@openssl.org \
+ gmssl cms -encrypt -in in.txt -from steve@gmssl.org \
         -to someone@somewhere -subject "Encrypted message" \
         -des3 user.pem -out mail.msg
 
 Sign and encrypt mail:
 
- openssl cms -sign -in ml.txt -signer my.pem -text \
-        | openssl cms -encrypt -out mail.msg \
-        -from steve@openssl.org -to someone@somewhere \
+ gmssl cms -sign -in ml.txt -signer my.pem -text \
+        | gmssl cms -encrypt -out mail.msg \
+        -from steve@gmssl.org -to someone@somewhere \
         -subject "Signed and Encrypted message" -des3 user.pem
 
 Note: the encryption command does not include the B<-text> option because the
@@ -647,7 +647,7 @@ message being encrypted already has MIME headers.
 
 Decrypt mail:
 
- openssl cms -decrypt -in mail.msg -recip mycert.pem -inkey key.pem
+ gmssl cms -decrypt -in mail.msg -recip mycert.pem -inkey key.pem
 
 The output from Netscape form signing is a PKCS#7 structure with the
 detached signature format. You can use this program to verify the
@@ -659,33 +659,33 @@ it with:
 
 and using the command,
 
- openssl cms -verify -inform PEM -in signature.pem -content content.txt
+ gmssl cms -verify -inform PEM -in signature.pem -content content.txt
 
 alternatively you can base64 decode the signature and use
 
- openssl cms -verify -inform DER -in signature.der -content content.txt
+ gmssl cms -verify -inform DER -in signature.der -content content.txt
 
 Create an encrypted message using 128 bit Camellia:
 
- openssl cms -encrypt -in plain.txt -camellia128 -out mail.msg cert.pem
+ gmssl cms -encrypt -in plain.txt -camellia128 -out mail.msg cert.pem
 
 Add a signer to an existing message:
 
- openssl cms -resign -in mail.msg -signer newsign.pem -out mail2.msg
+ gmssl cms -resign -in mail.msg -signer newsign.pem -out mail2.msg
 
 Sign mail using RSA-PSS:
 
- openssl cms -sign -in message.txt -text -out mail.msg \
+ gmssl cms -sign -in message.txt -text -out mail.msg \
         -signer mycert.pem -keyopt rsa_padding_mode:pss
 
 Create encrypted mail using RSA-OAEP:
 
- openssl cms -encrypt -in plain.txt -out mail.msg \
+ gmssl cms -encrypt -in plain.txt -out mail.msg \
         -recip cert.pem -keyopt rsa_padding_mode:oaep
 
 Use SHA256 KDF with an ECDH certificate:
 
- openssl cms -encrypt -in plain.txt -out mail.msg \
+ gmssl cms -encrypt -in plain.txt -out mail.msg \
         -recip ecdhcert.pem -keyopt ecdh_kdf_md:sha256
 
 =head1 BUGS
@@ -711,25 +711,25 @@ No revocation checking is done on the signer's certificate.
 =head1 HISTORY
 
 The use of multiple B<-signer> options and the B<-resign> command were first
-added in OpenSSL 1.0.0
+added in GmSSL 1.0.0
 
-The B<keyopt> option was first added in OpenSSL 1.1.0
+The B<keyopt> option was first added in GmSSL 1.1.0
 
 The use of B<-recip> to specify the recipient when encrypting mail was first
-added to OpenSSL 1.1.0
+added to GmSSL 1.1.0
 
-Support for RSA-OAEP and RSA-PSS was first added to OpenSSL 1.1.0.
+Support for RSA-OAEP and RSA-PSS was first added to GmSSL 1.1.0.
 
 The use of non-RSA keys with B<-encrypt> and B<-decrypt> was first added
-to OpenSSL 1.1.0.
+to GmSSL 1.1.0.
 
-The -no_alt_chains options was first added to OpenSSL 1.1.0.
+The -no_alt_chains options was first added to GmSSL 1.1.0.
 
 =head1 COPYRIGHT
 
 Copyright 2008-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.

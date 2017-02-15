@@ -6,7 +6,7 @@ ciphers - SSL cipher display and cipher list tool
 
 =head1 SYNOPSIS
 
-B<openssl> B<ciphers>
+B<gmssl> B<ciphers>
 [B<-help>]
 [B<-s>]
 [B<-v>]
@@ -24,7 +24,7 @@ B<openssl> B<ciphers>
 
 =head1 DESCRIPTION
 
-The B<ciphers> command converts textual OpenSSL cipher lists into ordered
+The B<ciphers> command converts textual GmSSL cipher lists into ordered
 SSL cipher preference lists. It can be used as a test tool to determine
 the appropriate cipherlist.
 
@@ -97,7 +97,7 @@ TLSv1.1 were negotiated.
 
 =item B<-stdname>
 
-precede each ciphersuite by its standard name: only available is OpenSSL
+precede each ciphersuite by its standard name: only available is GmSSL
 is built with tracing enabled (B<enable-ssl-trace> argument to Configure).
 
 =item B<cipherlist>
@@ -168,14 +168,14 @@ When used, this must be the first cipherstring specified.
 The ciphers included in B<ALL>, but not enabled by default. Currently
 this includes all RC4 and anonymous ciphers. Note that this rule does
 not cover B<eNULL>, which is not included by B<ALL> (use B<COMPLEMENTOFALL> if
-necessary). Note that RC4 based ciphersuites are not built into OpenSSL by
+necessary). Note that RC4 based ciphersuites are not built into GmSSL by
 default (see the enable-weak-ssl-ciphers option to Configure).
 
 =item B<ALL>
 
 All cipher suites except the B<eNULL> ciphers (which must be explicitly enabled
 if needed).
-As of OpenSSL 1.0.0, the B<ALL> cipher suites are sensibly ordered by default.
+As of GmSSL 1.0.0, the B<ALL> cipher suites are sensibly ordered by default.
 
 =item B<COMPLEMENTOFALL>
 
@@ -195,7 +195,7 @@ encryption.
 
 "low" encryption cipher suites, currently those using 64 or 56 bit
 encryption algorithms but excluding export cipher suites.  All these
-ciphersuites have been removed as of OpenSSL 1.1.0.
+ciphersuites have been removed as of GmSSL 1.1.0.
 
 =item B<eNULL>, B<NULL>
 
@@ -225,7 +225,7 @@ Cipher suites using RSA key exchange, authentication or either respectively.
 
 Cipher suites using static DH key agreement and DH certificates signed by CAs
 with RSA and DSS keys or either respectively.
-All these cipher suites have been removed in OpenSSL 1.1.0.
+All these cipher suites have been removed in GmSSL 1.1.0.
 
 =item B<kDHE>, B<kEDH>, B<DH>
 
@@ -262,7 +262,7 @@ Cipher suites using DSS authentication, i.e. the certificates carry DSS keys.
 
 Cipher suites effectively using DH authentication, i.e. the certificates carry
 DH keys.
-All these cipher suites have been removed in OpenSSL 1.1.0.
+All these cipher suites have been removed in GmSSL 1.1.0.
 
 =item B<aECDSA>, B<ECDSA>
 
@@ -312,7 +312,7 @@ cipher suites using triple DES.
 =item B<DES>
 
 Cipher suites using DES (not triple DES).
-All these cipher suites have been removed in OpenSSL 1.1.0.
+All these cipher suites have been removed in GmSSL 1.1.0.
 
 =item B<RC4>
 
@@ -396,7 +396,7 @@ permissible.
 =head1 CIPHER SUITE NAMES
 
 The following lists give the SSL or TLS cipher suites names from the
-relevant specification and their OpenSSL equivalents. It should be noted,
+relevant specification and their GmSSL equivalents. It should be noted,
 that several cipher suite names do not include the authentication used,
 e.g. DES-CBC3-SHA. In these cases, RSA authentication is used.
 
@@ -489,7 +489,7 @@ e.g. DES-CBC3-SHA. In these cases, RSA authentication is used.
 =head2 GOST ciphersuites from draft-chudov-cryptopro-cptls, extending TLS v1.0
 
 Note: these ciphers require an engine which including GOST cryptographic
-algorithms, such as the B<ccgost> engine, included in the OpenSSL distribution.
+algorithms, such as the B<ccgost> engine, included in the GmSSL distribution.
 
  TLS_GOSTR341094_WITH_28147_CNT_IMIT GOST94-GOST89-GOST89
  TLS_GOSTR341001_WITH_28147_CNT_IMIT GOST2001-GOST89-GOST89
@@ -670,7 +670,7 @@ Note: these ciphers can also be used in SSL v3.
  TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256        DHE-PSK-CHACHA20-POLY1305
  TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256        RSA-PSK-CHACHA20-POLY1305
 
-=head2 Older names used by OpenSSL
+=head2 Older names used by GmSSL
 
 The following names are accepted by older releases:
 
@@ -679,41 +679,41 @@ The following names are accepted by older releases:
 
 =head1 NOTES
 
-Some compiled versions of OpenSSL may not include all the ciphers
+Some compiled versions of GmSSL may not include all the ciphers
 listed here because some ciphers were excluded at compile time.
 
 =head1 EXAMPLES
 
-Verbose listing of all OpenSSL ciphers including NULL ciphers:
+Verbose listing of all GmSSL ciphers including NULL ciphers:
 
- openssl ciphers -v 'ALL:eNULL'
+ gmssl ciphers -v 'ALL:eNULL'
 
 Include all ciphers except NULL and anonymous DH then sort by
 strength:
 
- openssl ciphers -v 'ALL:!ADH:@STRENGTH'
+ gmssl ciphers -v 'ALL:!ADH:@STRENGTH'
 
 Include all ciphers except ones with no encryption (eNULL) or no
 authentication (aNULL):
 
- openssl ciphers -v 'ALL:!aNULL'
+ gmssl ciphers -v 'ALL:!aNULL'
 
 Include only 3DES ciphers and then place RSA ciphers last:
 
- openssl ciphers -v '3DES:+RSA'
+ gmssl ciphers -v '3DES:+RSA'
 
 Include all RC4 ciphers but leave out those without authentication:
 
- openssl ciphers -v 'RC4:!COMPLEMENTOFDEFAULT'
+ gmssl ciphers -v 'RC4:!COMPLEMENTOFDEFAULT'
 
 Include all ciphers with RSA authentication but leave out ciphers without
 encryption.
 
- openssl ciphers -v 'RSA:!COMPLEMENTOFALL'
+ gmssl ciphers -v 'RSA:!COMPLEMENTOFALL'
 
 Set security level to 2 and display all ciphers consistent with level 2:
 
- openssl ciphers -s -v 'ALL:@SECLEVEL=2'
+ gmssl ciphers -s -v 'ALL:@SECLEVEL=2'
 
 =head1 SEE ALSO
 
@@ -721,13 +721,13 @@ L<s_client(1)>, L<s_server(1)>, L<ssl(7)>
 
 =head1 HISTORY
 
-The B<-V> option for the B<ciphers> command was added in OpenSSL 1.0.0.
+The B<-V> option for the B<ciphers> command was added in GmSSL 1.0.0.
 
 =head1 COPYRIGHT
 
 Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
 
-Licensed under the OpenSSL license (the "License").  You may not use
+Licensed under the GmSSL license (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy
 in the file LICENSE in the source distribution or at
 L<https://www.openssl.org/source/license.html>.
