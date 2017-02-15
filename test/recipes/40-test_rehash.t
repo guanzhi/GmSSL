@@ -21,24 +21,24 @@ setup("test_rehash");
 #If "openssl rehash -help" fails it's most likely because we're on a platform
 #that doesn't support the rehash command (e.g. Windows)
 plan skip_all => "test_rehash is not available on this platform"
-    unless run(app(["openssl", "rehash", "-help"]));
+    unless run(app(["gmssl", "rehash", "-help"]));
 
 plan tests => 5;
 
 indir "rehash.$$" => sub {
     prepare();
-    ok(run(app(["openssl", "rehash", curdir()])),
+    ok(run(app(["gmssl", "rehash", curdir()])),
        'Testing normal rehash operations');
 }, create => 1, cleanup => 1;
 
 indir "rehash.$$" => sub {
     prepare(sub { chmod 400, $_ foreach (@_); });
-    ok(run(app(["openssl", "rehash", curdir()])),
+    ok(run(app(["gmssl", "rehash", curdir()])),
        'Testing rehash operations on readonly files');
 }, create => 1, cleanup => 1;
 
 indir "rehash.$$" => sub {
-    ok(run(app(["openssl", "rehash", curdir()])),
+    ok(run(app(["gmssl", "rehash", curdir()])),
        'Testing rehash operations on empty directory');
 }, create => 1, cleanup => 1;
 
@@ -51,7 +51,7 @@ indir "rehash.$$" => sub {
           close FOO;
           skip "It's pointless to run the next test as root", 1;
       }
-      isnt(run(app(["openssl", "rehash", curdir()])), 1,
+      isnt(run(app(["gmssl", "rehash", curdir()])), 1,
            'Testing rehash operations on readonly directory');
     }
     chmod 0700, curdir();       # make it writable again, so cleanup works

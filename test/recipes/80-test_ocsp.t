@@ -31,11 +31,11 @@ sub test_ocsp {
     my $CAfile = shift;
     my $expected_exit = shift;
 
-    run(app(["openssl", "base64", "-d",
+    run(app(["gmssl", "base64", "-d",
              "-in", catfile($ocspdir,$inputfile),
              "-out", "ocsp-resp-fff.dat"]));
     with({ exit_checker => sub { return shift == $expected_exit; } },
-         sub { ok(run(app(["openssl", "ocsp", "-respin", "ocsp-resp-fff.dat",
+         sub { ok(run(app(["gmssl", "ocsp", "-respin", "ocsp-resp-fff.dat",
                            "-partial_chain", @check_time,
                            "-CAfile", catfile($ocspdir, $CAfile),
                            "-verify_other", catfile($ocspdir, $CAfile),

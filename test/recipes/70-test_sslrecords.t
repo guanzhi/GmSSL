@@ -29,7 +29,7 @@ plan skip_all => "$test_name needs TLSv1.2 enabled"
 $ENV{OPENSSL_ia32cap} = '~0x200000200000000';
 my $proxy = TLSProxy::Proxy->new(
     \&add_empty_recs_filter,
-    cmdstr(app(["openssl"]), display => 1),
+    cmdstr(app(["gmssl"]), display => 1),
     srctop_file("apps", "server.pem"),
     (!$ENV{HARNESS_ACTIVE} || $ENV{HARNESS_VERBOSE})
 );

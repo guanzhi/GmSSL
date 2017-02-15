@@ -25,7 +25,7 @@ my $testsrc = srctop_file("test","recipes",basename($0));
 
 my $test = catfile(".", "p");
 
-my $cmd = "openssl";
+my $cmd = "gmssl";
 
 my @ciphers =
     map { s/^\s+//; s/\s+$//; split /\s+/ }

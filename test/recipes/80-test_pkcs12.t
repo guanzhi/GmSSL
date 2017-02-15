@@ -58,7 +58,7 @@ $ENV{OPENSSL_WIN32_UTF8}=1;
 plan tests => 1;
 
 # just see that we can read shibboleth.pfx protected with $pass
-ok(run(app(["openssl", "pkcs12", "-noout",
+ok(run(app(["gmssl", "pkcs12", "-noout",
             "-password", "pass:$pass",
             "-in", srctop_file("test", "shibboleth.pfx")])),
    "test_pkcs12");

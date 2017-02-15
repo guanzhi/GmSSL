@@ -33,10 +33,10 @@ plan skip_all => "No SSL/TLS/DTLS protocol is support by this OpenSSL build"
     if $no_anytls && $no_anydtls;
 
 my $digest = "-sha1";
-my @reqcmd = ("openssl", "req");
-my @x509cmd = ("openssl", "x509", $digest);
-my @verifycmd = ("openssl", "verify");
-my @gendsacmd = ("openssl", "gendsa");
+my @reqcmd = ("gmssl", "req");
+my @x509cmd = ("gmssl", "x509", $digest);
+my @verifycmd = ("gmssl", "verify");
+my @gendsacmd = ("gmssl", "gendsa");
 my $dummycnf = srctop_file("apps", "openssl.cnf");
 
 my $CAkey = "keyCA.ss";
@@ -225,7 +225,7 @@ sub testss {
             SKIP: {
                 $ENV{CN2} = "ECDSA Certificate";
                 skip 'failure', 4 unless
-                    ok(run(app(["openssl", "ecparam", "-name", "P-256",
+                    ok(run(app(["gmssl", "ecparam", "-name", "P-256",
                                 "-out", "ecp.ss"])),
                        "make EC parameters");
                 skip 'failure', 3 unless
@@ -321,7 +321,7 @@ sub testssl {
     my $serverinfo = srctop_file("test","serverinfo.pem");
 
     my $dsa_cert = 0;
-    if (grep /DSA Public Key/, run(app(["openssl", "x509", "-in", $cert,
+    if (grep /DSA Public Key/, run(app(["gmssl", "x509", "-in", $cert,
 					"-text", "-noout"]), capture => 1)) {
 	$dsa_cert = 1;
     }
@@ -452,7 +452,7 @@ sub testssl {
 	my %ciphersuites =
 	    map { my @c =
 		      map { split(/:/, $_) }
-		      run(app(["openssl", "ciphers", "${_}:$ciphers"]),
+		      run(app(["gmssl", "ciphers", "${_}:$ciphers"]),
                           capture => 1);
 		  map { s/\R//; } @c;  # chomp @c;
 		  $protocolciphersuitcount += scalar @c;

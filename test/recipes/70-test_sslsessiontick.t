@@ -40,7 +40,7 @@ my $ticketseen = 0;
 
 my $proxy = TLSProxy::Proxy->new(
     undef,
-    cmdstr(app(["openssl"]), display => 1),
+    cmdstr(app(["gmssl"]), display => 1),
     srctop_file("apps", "server.pem"),
     (!$ENV{HARNESS_ACTIVE} || $ENV{HARNESS_VERBOSE})
 );

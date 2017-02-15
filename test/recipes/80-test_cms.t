@@ -391,8 +391,8 @@ subtest "CMS => PKCS#7 compatibility tests\n" => sub {
 	  my $skip_reason = check_availability($$_[0]);
 	  skip $skip_reason, 1 if $skip_reason;
 
-	  ok(run(app(["openssl", "cms", @{$$_[1]}]))
-	     && run(app(["openssl", "smime", @{$$_[2]}]))
+	  ok(run(app(["gmssl", "cms", @{$$_[1]}]))
+	     && run(app(["gmssl", "smime", @{$$_[2]}]))
 	     && compare_text($smcont, "smtst.txt") == 0,
 	     $$_[0]);
 	}
@@ -406,8 +406,8 @@ subtest "CMS <= PKCS#7 compatibility tests\n" => sub {
 	  my $skip_reason = check_availability($$_[0]);
 	  skip $skip_reason, 1 if $skip_reason;
 
-	  ok(run(app(["openssl", "smime", @{$$_[1]}]))
-	     && run(app(["openssl", "cms", @{$$_[2]}]))
+	  ok(run(app(["gmssl", "smime", @{$$_[1]}]))
+	     && run(app(["gmssl", "cms", @{$$_[2]}]))
 	     && compare_text($smcont, "smtst.txt") == 0,
 	     $$_[0]);
 	}
@@ -422,8 +422,8 @@ subtest "CMS <=> CMS consistency tests\n" => sub {
 	  my $skip_reason = check_availability($$_[0]);
 	  skip $skip_reason, 1 if $skip_reason;
 
-	  ok(run(app(["openssl", "cms", @{$$_[1]}]))
-	     && run(app(["openssl", "cms", @{$$_[2]}]))
+	  ok(run(app(["gmssl", "cms", @{$$_[1]}]))
+	     && run(app(["gmssl", "cms", @{$$_[2]}]))
 	     && compare_text($smcont, "smtst.txt") == 0,
 	     $$_[0]);
 	}
@@ -433,8 +433,8 @@ subtest "CMS <=> CMS consistency tests\n" => sub {
 	  my $skip_reason = check_availability($$_[0]);
 	  skip $skip_reason, 1 if $skip_reason;
 
-	  ok(run(app(["openssl", "cms", @{$$_[1]}]))
-	     && run(app(["openssl", "cms", @{$$_[2]}]))
+	  ok(run(app(["gmssl", "cms", @{$$_[1]}]))
+	     && run(app(["gmssl", "cms", @{$$_[2]}]))
 	     && compare_text($smcont, "smtst.txt") == 0,
 	     $$_[0]);
 	}
@@ -450,8 +450,8 @@ subtest "CMS <=> CMS consistency tests, modified key parameters\n" => sub {
 	  my $skip_reason = check_availability($$_[0]);
 	  skip $skip_reason, 1 if $skip_reason;
 
-	  ok(run(app(["openssl", "cms", @{$$_[1]}]))
-	     && run(app(["openssl", "cms", @{$$_[2]}]))
+	  ok(run(app(["gmssl", "cms", @{$$_[1]}]))
+	     && run(app(["gmssl", "cms", @{$$_[2]}]))
 	     && compare_text($smcont, "smtst.txt") == 0,
 	     $$_[0]);
 	}
@@ -467,8 +467,8 @@ subtest "CMS <=> CMS consistency tests, modified key parameters\n" => sub {
 	    my $skip_reason = check_availability($$_[0]);
 	    skip $skip_reason, 1 if $skip_reason;
 
-	    ok(run(app(["openssl", "cms", @{$$_[1]}]))
-	       && run(app(["openssl", "cms", @{$$_[2]}]))
+	    ok(run(app(["gmssl", "cms", @{$$_[1]}]))
+	       && run(app(["gmssl", "cms", @{$$_[2]}]))
 	       && compare_text($smcont, "smtst.txt") == 0,
 	       $$_[0]);
 	  }
