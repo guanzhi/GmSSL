@@ -102,6 +102,10 @@ typedef struct err_state_st {
 # define ERR_LIB_BFIBE           59
 # define ERR_LIB_BB1IBE          60
 # define ERR_LIB_SM9             61
+# define ERR_LIB_SAF             62
+# define ERR_LIB_SDF             63
+# define ERR_LIB_SKF             64
+# define ERR_LIB_SOF             65
 
 # define ERR_LIB_USER            128
 
@@ -149,6 +153,10 @@ typedef struct err_state_st {
 # define BFIBEerr(f,r) ERR_PUT_error(ERR_LIB_BFIBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define BB1IBEerr(f,r) ERR_PUT_error(ERR_LIB_BB1IBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SM9err(f,r) ERR_PUT_error(ERR_LIB_SM9,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define SAFerr(f,r) ERR_PUT_error(ERR_LIB_SAF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define SDFerr(f,r) ERR_PUT_error(ERR_LIB_SDF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define SKFerr(f,r) ERR_PUT_error(ERR_LIB_SKF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+# define SOFerr(f,r) ERR_PUT_error(ERR_LIB_SOF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 
 # define ERR_PACK(l,f,r) ( \
         (((unsigned int)(l) & 0x0FF) << 24L) | \
@@ -205,6 +213,10 @@ typedef struct err_state_st {
 # define ERR_R_BFIBE_LIB  ERR_LIB_BFIBE/* 59 */
 # define ERR_R_BB1IBE_LIB  ERR_LIB_BB1IBE/* 60 */
 # define ERR_R_SM9_LIB  ERR_LIB_SM9/* 61 */
+# define ERR_R_SAF_LIB  ERR_LIB_SAF/* 62 */
+# define ERR_R_SDF_LIB  ERR_LIB_SDF/* 63 */
+# define ERR_R_SKF_LIB  ERR_LIB_SKF/* 64 */
+# define ERR_R_SOF_LIB  ERR_LIB_SOF/* 65 */
 
 # define ERR_R_NESTED_ASN1_ERROR                 58
 

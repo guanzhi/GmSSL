@@ -1,0 +1,17 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=\
+	sdf_dev.c	\
+	sdf_ec.c	\
+	sdf_enc.c	\
+	sdf_err.c	\
+	sdf_errstr.c	\
+	sdf_ext.c	\
+	sdf_file.c	\
+	sdf_hash.c	\
+	sdf_key.c	\
+	sdf_key2.c	\
+	sdf_lib.c	\
+	sdf_mac.c	\
+	sdf_rand.c	\
+	sdf_rsa.c	\
+	sdf_session.c

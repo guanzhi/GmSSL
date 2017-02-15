@@ -48,6 +48,10 @@
 #include <openssl/bfibe.h>
 #include <openssl/bb1ibe.h>
 #include <openssl/sm9.h>
+#include <openssl/saf.h>
+#include <openssl/sdf.h>
+#include <openssl/skf.h>
+#include <openssl/sof.h>
 
 int err_load_crypto_strings_int(void)
 {
@@ -136,6 +140,18 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_SM9
         ERR_load_SM9_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SAF
+        ERR_load_SAF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SDF
+        ERR_load_SDF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SKF
+        ERR_load_SKF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SOF
+        ERR_load_SOF_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

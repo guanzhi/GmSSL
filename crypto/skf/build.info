@@ -1,0 +1,15 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=\
+	skf_dev.c	\
+	skf_dgst.c	\
+	skf_ec.c	\
+	skf_enc.c	\
+	skf_err.c	\
+	skf_errstr.c	\
+	skf_handle.c	\
+	skf_mac.c	\
+	skf_rand.c	\
+	skf_rsa.c	\
+	skf_sesskey.c	\
+	skf_print.c	\
+	skf_token.c

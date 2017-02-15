@@ -44,6 +44,10 @@ L GMAPI		include/openssl/gmapi.h		crypto/gmapi/gmapi_err.c
 L BFIBE		include/openssl/bfibe.h		crypto/bfibe/bfibe_err.c
 L BB1IBE	include/openssl/bb1ibe.h	crypto/bb1ibe/bb1ibe_err.c
 L SM9		include/openssl/sm9.h		crypto/sm9/sm9_err.c
+L SAF		include/openssl/gmsaf.h		crypto/saf/saf_err.c
+L SDF		include/openssl/gmsdf.h		crypto/sdf/sdf_err.c
+L SKF		include/openssl/gmskf.h		crypto/skf/skf_err.c
+L SOF		include/openssl/gmsof.h		crypto/sof/sof_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE
