@@ -335,6 +335,7 @@ static ERR_STRING_DATA EC_str_reasons[] = {
     {ERR_REASON(EC_R_INVALID_ID_LENGTH), "invalid id length"},
     {ERR_REASON(EC_R_INVALID_KDF_MD), "invalid kdf md"},
     {ERR_REASON(EC_R_INVALID_KEY), "invalid key"},
+    {ERR_REASON(EC_R_INVALID_MD), "invalid md"},
     {ERR_REASON(EC_R_INVALID_OUTPUT_LENGTH), "invalid output length"},
     {ERR_REASON(EC_R_INVALID_PEER_KEY), "invalid peer key"},
     {ERR_REASON(EC_R_INVALID_PENTANOMIAL_BASIS), "invalid pentanomial basis"},

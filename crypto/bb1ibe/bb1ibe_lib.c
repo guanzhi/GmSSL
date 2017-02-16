@@ -441,8 +441,8 @@ end:
 /*
  * c->u = HashToRange(DoubleHash(c->Chi0, c->Chi1, y, wbuf))
  */
-static int BB1CiphertextBlock_hash_to_range(const BB1PublicParameters *mpk,
-	BB1CiphertextBlock *c, const unsigned char *wbuf, size_t wbuflen,
+static int BB1CiphertextBlock_hash_to_range(BB1PublicParameters *mpk,
+	const BB1CiphertextBlock *c, const unsigned char *wbuf, size_t wbuflen,
 	BIGNUM *bn, BN_CTX *bn_ctx)
 {
 	int ret = 0;

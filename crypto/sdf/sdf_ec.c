@@ -95,8 +95,6 @@
  * caller can use a function more than once and do the padding himself.
  */
 
-
-
 int SDF_GenerateKeyPair_ECC(
 	void *hSessionHandle,
 	unsigned int uiAlgID,

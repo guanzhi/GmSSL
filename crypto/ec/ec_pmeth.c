@@ -215,12 +215,12 @@ static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
     switch (dctx->enc_type) {
     case NID_sm_scheme:
         if (dctx->enc_param.sm2) {
-            if (!SM2_encrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key)) {
+            if (!SM2_encrypt(dctx->enc_param.sm2, in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_SM2_ENCRYPT_FAILED);
                 return 0;
             }
         } else {
-            if (!SM2_encrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+            if (!SM2_encrypt_with_recommended(in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_SM2_ENCRYPT_WITH_RECOMMENDED_FAILED);
                 return 0;
             }
@@ -229,12 +229,12 @@ static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 
     case NID_secg_scheme:
         if (dctx->enc_param.ecies) {
-            if (!ECIES_encrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key)) {
+            if (!ECIES_encrypt(dctx->enc_param.ecies, in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_ECIES_ENCRYPT_FAILED);
                 return 0;
             }
         } else {
-            if (!ECIES_encrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+            if (!ECIES_encrypt_with_recommended(in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_ECIES_ENCRYPT_WITH_RECOMMENDED_FAILED);
                 return 0;
             }
@@ -258,12 +258,12 @@ static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
     switch (dctx->enc_type) {
     case  NID_sm_scheme:
         if (dctx->enc_param.sm2) {
-            if (!SM2_decrypt(dctx->enc_param.sm2, out, outlen, in, inlen, ec_key)) {
+            if (!SM2_decrypt(dctx->enc_param.sm2, in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_SM2_DECRYPT_FAILED);
                 return 0;
             }
         } else {
-            if (!SM2_decrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+            if (!SM2_decrypt_with_recommended(in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_SM2_DECRYPT_WITH_RECOMMENDED_FAILED);
                 return 0;
             }
@@ -272,12 +272,12 @@ static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen
 
     case NID_secg_scheme:
         if (dctx->enc_param.ecies) {
-            if (!ECIES_decrypt(dctx->enc_param.ecies, out, outlen, in, inlen, ec_key)) {
+            if (!ECIES_decrypt(dctx->enc_param.ecies, in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_ECIES_DECRYPT_FAILED);
                 return 0;
             }
         } else {
-            if (!ECIES_decrypt_with_recommended(out, outlen, in, inlen, ec_key)) {
+            if (!ECIES_decrypt_with_recommended(in, inlen, out, outlen, ec_key)) {
                 ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_ECIES_DECRYPT_WITH_RECOMMENDED_FAILED);
                 return 0;
             }

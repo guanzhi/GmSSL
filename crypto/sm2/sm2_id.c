@@ -68,17 +68,13 @@ int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen)
 	int ret = 0;
 	const EC_GROUP *group;
 	BN_CTX *bn_ctx = NULL;
-	BIGNUM *p = NULL;
-	BIGNUM *x = NULL;
-	BIGNUM *y = NULL;
+	BIGNUM *p;
+	BIGNUM *x;
+	BIGNUM *y;
 	int nbytes;
 	size_t len;
 
-	if (!ec_key || !outlen) {
-		ECerr(EC_F_SM2_GET_PUBLIC_KEY_DATA, ERR_R_PASSED_NULL_PARAMETER);
-		return 0;
-	}
-	if (!(group = EC_KEY_get0_group(ec_key))) {
+	if (!ec_key || !outlen || !(group = EC_KEY_get0_group(ec_key))) {
 		ECerr(EC_F_SM2_GET_PUBLIC_KEY_DATA, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
@@ -96,16 +92,21 @@ int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen)
 		return 0;
 	}
 
-	memset(out, 0, len);
+	if (!(bn_ctx = BN_CTX_new())) {
+		ECerr(EC_F_SM2_GET_PUBLIC_KEY_DATA,  ERR_R_MALLOC_FAILURE);
+		goto  end;
+	}
 
-	p = BN_new();
-	x = BN_new();
-	y = BN_new();
-	bn_ctx = BN_CTX_new();
-	if (!bn_ctx || !p || !x || !y) {
+	BN_CTX_start(bn_ctx);
+	p = BN_CTX_get(bn_ctx);
+	x = BN_CTX_get(bn_ctx);
+	y = BN_CTX_get(bn_ctx);
+	if (!y) {
 		ECerr(EC_F_SM2_GET_PUBLIC_KEY_DATA,  ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
+
+	memset(out, 0, len);
 
 	/* get curve coefficients */
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
@@ -120,10 +121,14 @@ int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen)
 		}
 	}
 
+	/* when coeffiient a is zero, BN_bn2bin/BN_num_bytes return 0 */
 	BN_bn2bin(x, out + nbytes - BN_num_bytes(x));
 	out += nbytes;
 
-	BN_bn2bin(y, out + nbytes - BN_num_bytes(y));
+	if (!BN_bn2bin(y, out + nbytes - BN_num_bytes(y))) {
+		ECerr(EC_F_SM2_GET_PUBLIC_KEY_DATA, ERR_R_BN_LIB);
+		goto end;
+	}
 	out += nbytes;
 
 	/* get curve generator coordinates */
@@ -152,7 +157,6 @@ int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen)
 		goto end;
 	}
 	out += nbytes;
-
 
 	/* get pub_key coorindates */
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
@@ -184,9 +188,9 @@ int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen)
 	ret = 1;
 
 end:
-	BN_free(p);
-	BN_free(x);
-	BN_free(y);
+	if (bn_ctx) {
+		BN_CTX_end(bn_ctx);
+	}
 	BN_CTX_free(bn_ctx);
 	return ret;
 }
@@ -197,7 +201,7 @@ int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	int ret = 0;
 	EVP_MD_CTX *md_ctx = NULL;
 	unsigned char idbits[2];
-	unsigned char buf[SM2_MAX_PKEY_DATA_LENGTH];
+	unsigned char pkdata[SM2_MAX_PKEY_DATA_LENGTH];
 	unsigned int len;
 	size_t size;
 
@@ -206,15 +210,13 @@ int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 		return 0;
 	}
 
-	/*
-	 * check compatibility with the GM/T 0003.2-2012 standard
-	 * digest length must be 256-bit/32-byte
-	 * id length should be less than SM2_MAX_ID_LENGTH
-	 */
+#ifndef OPENSSL_NO_STRICT_GM
 	if (EVP_MD_size(md) != SM2_ID_DIGEST_LENGTH) {
 		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, EC_R_INVALID_DIGEST_ALGOR);
 		return 0;
 	}
+#endif
+
 	if (strlen(id) != idlen) {
 		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, EC_R_INVALID_SM2_ID);
 		return 0;
@@ -233,15 +235,10 @@ int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 		return 0;
 	}
 
-	/* prepare */
-	if (!(md_ctx = EVP_MD_CTX_new())) {
-		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, ERR_R_MALLOC_FAILURE);
-		return 0;
-	}
 
 	/* get public key data from ec_key */
-	size = sizeof(buf);
-	if (!SM2_get_public_key_data(ec_key, buf, &size)) {
+	size = sizeof(pkdata);
+	if (!SM2_get_public_key_data(ec_key, pkdata, &size)) {
 		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, EC_R_GET_PUBLIC_KEY_DATA_FAILURE);
 		goto end;
 	}
@@ -250,25 +247,14 @@ int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	idbits[0] = ((idlen * 8) >> 8) % 256;
 	idbits[1] = (idlen * 8) % 256;
 
-	/* compute digest of (idbits, id, pkeydata) */
-	if (!EVP_DigestInit_ex(md_ctx, md, NULL)) {
-		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, idbits, sizeof(idbits))) {
-		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, id, idlen)) {
-		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, buf, size)) {
-		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
 	len = EVP_MD_size(md);
-	if (!EVP_DigestFinal_ex(md_ctx, out, &len)) {
+
+	if (!(md_ctx = EVP_MD_CTX_new())
+		|| !EVP_DigestInit_ex(md_ctx, md, NULL)
+		|| !EVP_DigestUpdate(md_ctx, idbits, sizeof(idbits))
+		|| !EVP_DigestUpdate(md_ctx, id, idlen)
+		|| !EVP_DigestUpdate(md_ctx, pkdata, size)
+		|| !EVP_DigestFinal_ex(md_ctx, out, &len)) {
 		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -282,62 +268,58 @@ end:
 }
 
 /*
- * Generate GM/T 0003.2-2012 message digest for SM2 signature scheme.
- * Return dgst = msg_md( id_md(id, ec_key) || msg )
+ * return msg_md( id_md(id, ec_key) || msg )
  */
 int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 	const unsigned char *msg, size_t msglen, const char *id, size_t idlen,
-	unsigned char *out, size_t *outlen,
+	unsigned char *out, size_t *poutlen,
 	EC_KEY *ec_key)
 {
 	int ret = 0;
-	EVP_MD_CTX *md_ctx;
-	unsigned char buf[EVP_MAX_MD_SIZE];
-	size_t len;
+	EVP_MD_CTX *md_ctx = NULL;
+	unsigned char za[EVP_MAX_MD_SIZE];
+	size_t zalen = sizeof(za);
+	unsigned int outlen;
 
-	if (!id_md || !msg_md || !msg || msglen <= 0 || !id || idlen <= 0 || !ec_key) {
+	if (!id_md || !msg_md || !msg || msglen <= 0 || msglen > INT_MAX ||
+		!id || idlen <= 0 || idlen > INT_MAX || !poutlen || !ec_key) {
 		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
 
-	if (!(md_ctx = EVP_MD_CTX_new())) {
-		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_MALLOC_FAILURE);
+	if (EVP_MD_size(msg_md) <= 0) {
+		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, EC_R_INVALID_MD);
+		return 0;
+	}
+	outlen = EVP_MD_size(msg_md);
+
+	if (!out) {
+		*poutlen = outlen;
+		return 1;
+	} else if (*poutlen < outlen) {
+		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, EC_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
-	len = sizeof(buf);
-	if (!SM2_compute_id_digest(id_md, id, idlen, buf, &len, ec_key)) {
+	if (!SM2_compute_id_digest(id_md, id, idlen, za, &zalen, ec_key)) {
 		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_EC_LIB);
 		goto end;
 	}
 
-	if (!EVP_DigestInit_ex(md_ctx, msg_md, NULL)) {
-		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
-	if (!EVP_DigestUpdate(md_ctx, buf, len)) {
-		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
-	printf("zid(%d)=", len); for (int i=0; i<len; i++) printf("%02x", buf[i]); printf("\n");
-
-	if (!EVP_DigestUpdate(md_ctx, msg, msglen)) {
-		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_EVP_LIB);
-		goto end;
-	}
-	printf("msg="); for (int i=0; i<len; i++) printf("%02x", msg[i]); printf("\n");
-
-	len = sizeof(buf);
-	if (!EVP_DigestFinal_ex(md_ctx, out, &len)) {
+	/* msg_md(za || msg) */
+	if (!(md_ctx = EVP_MD_CTX_new())
+		|| !EVP_DigestInit_ex(md_ctx, msg_md, NULL)
+		|| !EVP_DigestUpdate(md_ctx, za, zalen)
+		|| !EVP_DigestUpdate(md_ctx, msg, msglen)
+		|| !EVP_DigestFinal_ex(md_ctx, out, &outlen)) {
 		ECerr(EC_F_SM2_COMPUTE_MESSAGE_DIGEST, ERR_R_EVP_LIB);
 		goto end;
 	}
 
-	*outlen = len;
+	*poutlen = outlen;
 	ret = 1;
 
 end:
 	EVP_MD_CTX_free(md_ctx);
 	return ret;
 }
-

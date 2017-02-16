@@ -1663,6 +1663,7 @@ int ERR_load_EC_strings(void);
 # define EC_R_INVALID_ID_LENGTH                           181
 # define EC_R_INVALID_KDF_MD                              182
 # define EC_R_INVALID_KEY                                 116
+# define EC_R_INVALID_MD                                  205
 # define EC_R_INVALID_OUTPUT_LENGTH                       161
 # define EC_R_INVALID_PEER_KEY                            133
 # define EC_R_INVALID_PENTANOMIAL_BASIS                   132
