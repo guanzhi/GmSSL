@@ -26,6 +26,9 @@
 #include <openssl/obj_mac.h>
 #include <openssl/ec.h>
 #include <openssl/bn.h>
+#ifndef OPENSSL_NO_SM2
+#include <openssl/ecies.h>
+#endif
 
 #include "e_os.h"
 
@@ -579,6 +582,16 @@ struct ec_key_method_st {
                   const unsigned char *sigbuf, int sig_len, EC_KEY *eckey);
     int (*verify_sig)(const unsigned char *dgst, int dgst_len,
                       const ECDSA_SIG *sig, EC_KEY *eckey);
+#ifndef OPENSSL_NO_SM2
+    int (*encrypt)(int type, const unsigned char *in, size_t inlen,
+                   unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+    ECIES_CIPHERTEXT_VALUE *(*do_encrypt)(int type, const unsigned char *in,
+                                          size_t inlen, EC_KEY *ec_key);
+    int (*decrypt)(int type, const unsigned char *in, size_t inlen,
+                   unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+    int (*do_decrypt)(int type, const ECIES_CIPHERTEXT_VALUE *in,
+                      unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+#endif
 };
 
 #define EC_KEY_METHOD_DYNAMIC   1

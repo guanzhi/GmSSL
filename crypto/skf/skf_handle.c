@@ -144,7 +144,7 @@ EVP_MD_CTX *SKF_HANDLE_get_md_ctx(HANDLE hHash)
 	return ret;
 }
 
-CMAC_CTX *SKF_HANDLE_get_cbcmac_ctx(HANDLE hMac)
+CMAC_CTX *SKF_HANDLE_get_cmac_ctx(HANDLE hMac)
 {
 	CMAC_CTX *ret;
 	SKF_HANDLE *handle;

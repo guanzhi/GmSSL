@@ -127,6 +127,7 @@ int ERR_load_SKF_strings(void);
 # define SKF_F_SKF_HANDLE_GET_CBCMAC_CTX                  124
 # define SKF_F_SKF_HANDLE_GET_CIPHER                      125
 # define SKF_F_SKF_HANDLE_GET_CIPHER_CTX                  126
+# define SKF_F_SKF_HANDLE_GET_CMAC_CTX                    134
 # define SKF_F_SKF_HANDLE_GET_KEY                         127
 # define SKF_F_SKF_HANDLE_GET_MD_CTX                      128
 # define SKF_F_SKF_MAC                                    129

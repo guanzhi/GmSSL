@@ -1342,6 +1342,40 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_GET_EC_KDF_UKM, 0, (void *)p)
 
+# ifndef OPENSSL_NO_SM2
+#  define EVP_PKEY_CTX_set_ec_sign_type(ctx, type) \
+        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+                                EVP_PKEY_CTRL_EC_SIGN_TYPE, type, NULL)
+
+#  define EVP_PKEY_CTX_get_ec_sign_type(ctx) \
+        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+                                EVP_PKEY_CTRL_EC_SIGN_TYPE, -2, NULL)
+
+#  define EVP_PKEY_CTX_set_ec_enc_type(ctx, type) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+                                EVP_PKEY_CTRL_EC_ENC_TYPE, type, NULL)
+
+#  define EVP_PKEY_CTX_get_ec_enc_type(ctx) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+                EVP_PKEY_CTRL_EC_ENC_TYPE, -2, NULL)
+
+#  define EVP_PKEY_CTX_set_ec_dh_type(ctx, type) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                EVP_PKEY_OP_DERIVE, \
+                EVP_PKEY_CTRL_EC_DH_TYPE, type, NULL)
+
+#  define EVP_PKEY_CTX_get_ec_dh_type(ctx) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                EVP_PKEY_OP_DERIVE, \
+                EVP_PKEY_CTRL_EC_DH_TYPE, -2, NULL);
+# endif
+
 # define EVP_PKEY_CTRL_EC_PARAMGEN_CURVE_NID             (EVP_PKEY_ALG_CTRL + 1)
 # define EVP_PKEY_CTRL_EC_PARAM_ENC                      (EVP_PKEY_ALG_CTRL + 2)
 # define EVP_PKEY_CTRL_EC_ECDH_COFACTOR                  (EVP_PKEY_ALG_CTRL + 3)
@@ -1355,6 +1389,15 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
 /* KDF types */
 # define EVP_PKEY_ECDH_KDF_NONE                          1
 # define EVP_PKEY_ECDH_KDF_X9_62                         2
+
+# ifndef OPENSSL_NO_SM2
+#  define EVP_PKEY_CTRL_EC_SIGN_TYPE                     (EVP_PKEY_ALG_CTRL + 11)
+#  define EVP_PKEY_CTRL_GET_EC_SIGN_TYPE                 (EVP_PKEY_ALG_CTRL + 12)
+#  define EVP_PKEY_CTRL_EC_ENC_TYPE                      (EVP_PKEY_ALG_CTRL + 13)
+#  define EVP_PKEY_CTRL_GET_EC_ENC_TYPE                  (EVP_PKEY_ALG_CTRL + 14)
+#  define EVP_PKEY_CTRL_EC_DH_TYPE                       (EVP_PKEY_ALG_CTRL + 15)
+#  define EVP_PKEY_CTRL_GET_EC_DH_TYPE                   (EVP_PKEY_ALG_CTRL + 16)
+# endif
 
 /* BEGIN ERROR CODES */
 /*
@@ -1528,7 +1571,9 @@ int ERR_load_EC_strings(void);
 # define EC_F_PKEY_ECX_DERIVE                             269
 # define EC_F_PKEY_EC_CTRL                                197
 # define EC_F_PKEY_EC_CTRL_STR                            198
+# define EC_F_PKEY_EC_DECRYPT                             318
 # define EC_F_PKEY_EC_DERIVE                              217
+# define EC_F_PKEY_EC_ENCRYPT                             319
 # define EC_F_PKEY_EC_KEYGEN                              199
 # define EC_F_PKEY_EC_PARAMGEN                            219
 # define EC_F_PKEY_EC_SIGN                                218
@@ -1579,7 +1624,11 @@ int ERR_load_EC_strings(void);
 # define EC_R_DISCRIMINANT_IS_ZERO                        118
 # define EC_R_ECDH_FAILED                                 164
 # define EC_R_ECDH_FAILURE                                165
+# define EC_R_ECIES_DECRYPT_FAILED                        196
 # define EC_R_ECIES_DECRYPT_INIT_FAILURE                  166
+# define EC_R_ECIES_DECRYPT_WITH_RECOMMENDED_FAILED       197
+# define EC_R_ECIES_ENCRYPT_FAILED                        198
+# define EC_R_ECIES_ENCRYPT_WITH_RECOMMENDED_FAILED       199
 # define EC_R_ECIES_VERIFY_MAC_FAILURE                    167
 # define EC_R_EC_GROUP_NEW_BY_NAME_FAILURE                119
 # define EC_R_ENCRYPT_FAILED                              168
@@ -1607,6 +1656,7 @@ int ERR_load_EC_strings(void);
 # define EC_R_INVALID_ECIES_PARAMETERS                    172
 # define EC_R_INVALID_EC_KEY                              180
 # define EC_R_INVALID_ENCODING                            102
+# define EC_R_INVALID_ENC_TYPE                            200
 # define EC_R_INVALID_FIELD                               103
 # define EC_R_INVALID_FORM                                104
 # define EC_R_INVALID_GROUP_ORDER                         122
@@ -1649,6 +1699,10 @@ int ERR_load_EC_strings(void);
 # define EC_R_RANDOM_NUMBER_GENERATION_FAILED             158
 # define EC_R_SHARED_INFO_ERROR                           150
 # define EC_R_SLOT_FULL                                   108
+# define EC_R_SM2_DECRYPT_FAILED                          201
+# define EC_R_SM2_DECRYPT_WITH_RECOMMENDED_FAILED         202
+# define EC_R_SM2_ENCRYPT_FAILED                          203
+# define EC_R_SM2_ENCRYPT_WITH_RECOMMENDED_FAILED         204
 # define EC_R_SM2_KAP_NOT_INITED                          191
 # define EC_R_UNDEFINED_GENERATOR                         113
 # define EC_R_UNDEFINED_ORDER                             128

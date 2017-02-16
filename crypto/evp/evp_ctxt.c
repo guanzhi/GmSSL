@@ -1,5 +1,5 @@
- /* ====================================================================
- * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
+/* ====================================================================
+ * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,67 +46,24 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
- *
- * Licensed under the OpenSSL license (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * in the file LICENSE in the source distribution or at
- * https://www.openssl.org/source/license.html
- */
 
 #include <stdio.h>
-#include "internal/cryptlib.h"
-#include <openssl/rsa.h>
 #include <openssl/evp.h>
-#include <openssl/objects.h>
 #include <openssl/x509.h>
+#include <openssl/objects.h>
+#include "internal/cryptlib.h"
+#include "internal/evp_int.h"
 
-int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
-	int inlen, EVP_PKEY *pkey)
+int EVP_PKEY_CTX_ciphertext_size(EVP_PKEY_CTX *ctx,
+	size_t inlen, size_t *outlen)
 {
-	int ret = 0;
-	EVP_PKEY_CTX *ctx = NULL;
-	size_t size;
-
-# ifndef OPENSSL_NO_RSA
-	if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA) {
-		if ((ret = RSA_public_encrypt(inlen, in, out,
-			EVP_PKEY_get0_RSA(pkey), RSA_PKCS1_PADDING)) < 0) {
-			EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD,
-				EVP_R_RSA_PUBLIC_ENCRYPT_FAILED);
-			return 0;
-		}
-	}
-# endif
-
-# ifndef OPENSSL_NO_SM2
-	if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_MALLOC_FAILURE);
+	if (inlen > 4096) {
+		EVPerr(EVP_F_EVP_PKEY_CTX_CIPHERTEXT_SIZE,
+			EVP_R_INVALID_INPUT_LENGTH);
 		return 0;
 	}
-
-	if (!EVP_PKEY_encrypt_init(ctx)) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
-		return 0;
-	}
-
-	if (!EVP_PKEY_CTX_set_ec_enc_type(ctx, NID_sm_scheme)) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
-		goto end;
-	}
-
-	size = inlen + EVP_PKEY_size(pkey);
-	if (!EVP_PKEY_encrypt(ctx, out, &size, in, inlen)) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
-		goto end;
-	}
-
-	ret = (int)size;
-#endif
-
-end:
-	EVP_PKEY_CTX_free(ctx);
-	return ret;
+	//FIXME: this function should call some func_ptr from ctx->pkey
+	*outlen = inlen + 4096;
+	return 1;
 }
 
