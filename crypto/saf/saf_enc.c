@@ -269,4 +269,3 @@ int SAF_SymmDecrypt(
 	*puiOutDataLen = out - pucOutData;
 	return SAR_OK;
 }
-

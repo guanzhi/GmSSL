@@ -60,13 +60,20 @@ int SAF_GenRandom(
 	unsigned int uiRandLen,
 	unsigned char *pucRand)
 {
-	int len;
-	if (uiRandLen > 1024 * 1024) {
+	if (uiRandLen <= 0 || uiRandLen > INT_MAX) {
+		SAFerr(SAF_F_SAF_GENRANDOM, SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
 	}
-	len = (int)uiRandLen;
+
+	if (!pucRand) {
+		SAFerr(SAF_F_SAF_GENRANDOM, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
 	if (!RAND_bytes(pucRand, len)) {
+		SAFerr(SAF_F_SAF_GENRANDOM, SAF_R_GEN_RANDOM_FAILURE);
 		return SAR_GenRandErr;
 	}
+
 	return SAR_OK;
 }

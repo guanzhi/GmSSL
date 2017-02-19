@@ -49,7 +49,6 @@
 
 #include <openssl/evp.h>
 #include <openssl/cmac.h>
-#include <openssl/cbcmac.h>
 #include <openssl/gmsaf.h>
 #include <openssl/gmapi.h>
 
@@ -60,35 +59,35 @@ int SAF_MacUpdate(
 	unsigned int uiInDataLen)
 {
 	int ret = SAR_UnknownErr;
-	SAF_KEY_HANDLE *hkey = (SAF_KEY_HANDLE *)hKeyHandle;
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
 
 	if (!hKeyHandle || !pucInData) {
 		SAFerr(SAF_F_SAF_MACUPDATE, ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
 
-	if (!hkey->cbcmac_ctx) {
-		if (!(hkey->cbcmac_ctx = CBCMAC_CTX_new())) {
+	if (!hkey->cmac_ctx) {
+		if (!(hkey->cmac_ctx = CMAC_CTX_new())) {
 			SAFerr(SAF_F_SAF_MACUPDATE, ERR_R_MALLOC_FAILURE);
 			goto end;
 		}
-		if (!CBCMAC_Init(hkey->cbcmac_ctx, hkey->key, hkey->keylen, hkey->cipher, NULL)) {
-			SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_CBCMAC_FAILURE);
+		if (!CMAC_Init(hkey->cmac_ctx, hkey->key, hkey->keylen, hkey->cipher, NULL)) {
+			SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_CMAC_FAILURE);
 			goto end;
 		}
 	}
 
-	if (!CBCMAC_Update(hkey->cbcmac_ctx, pucInData, (size_t)uiInDataLen)) {
-		SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_CBCMAC_FAILURE);
+	if (!CMAC_Update(hkey->cmac_ctx, pucInData, (size_t)uiInDataLen)) {
+		SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_CMAC_FAILURE);
 		return SAR_UnknownErr;
 	}
 
 	ret = SAR_OK;
 
 end:
-	if (ret != SAR_OK && hkey->cbcmac_ctx) {
-		CBCMAC_CTX_free(hkey->cbcmac_ctx);
-		hkey->cbcmac_ctx = NULL;
+	if (ret != SAR_OK && hkey->cmac_ctx) {
+		CMAC_CTX_free(hkey->cmac_ctx);
+		hkey->cmac_ctx = NULL;
 	}
 	return ret;
 }
@@ -99,7 +98,7 @@ int SAF_MacFinal(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
-	SAF_KEY_HANDLE *hkey = (SAF_KEY_HANDLE *)hKeyHandle;
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
 	size_t siz;
 
 	if (!hKeyHandle || !pucOutData || !puiOutDataLen) {
@@ -112,7 +111,7 @@ int SAF_MacFinal(
 		return SAR_IndataLenErr;
 	}
 
-	if (!hkey->cbcmac_ctx) {
+	if (!hkey->cmac_ctx) {
 		SAFerr(SAF_F_SAF_MACFINAL, SAF_R_OPERATION_NOT_INITIALIZED);
 		return SAR_UnknownErr;
 	}
@@ -123,7 +122,7 @@ int SAF_MacFinal(
 		return SAR_UnknownErr;
 	}
 
-	*puiOutDataLen = siz;
+	*puiOutDataLen = (unsigned int)siz;
 	return SAR_OK;
 }
 

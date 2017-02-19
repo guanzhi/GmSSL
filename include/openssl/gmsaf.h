@@ -80,6 +80,7 @@ int ERR_load_SAF_strings(void);
 # define SAF_F_SAF_BASE64_ENCODE                          104
 # define SAF_F_SAF_BASE64_ENCODEFINAL                     105
 # define SAF_F_SAF_BASE64_ENCODEUPDATE                    106
+# define SAF_F_SAF_CHANGEPIN                              123
 # define SAF_F_SAF_CREATESYMMKEYOBJ                       107
 # define SAF_F_SAF_ECCPUBLICKEYENC                        108
 # define SAF_F_SAF_ECCPUBLICKEYENCBYCERT                  109
@@ -89,7 +90,14 @@ int ERR_load_SAF_strings(void);
 # define SAF_F_SAF_GENECCKEYPAIR                          113
 # define SAF_F_SAF_GENERATEAGREEMENTDATAWITHECC           114
 # define SAF_F_SAF_GENERATEKEYWITHECC                     115
+# define SAF_F_SAF_GENERATEKEYWITHEPK                     124
+# define SAF_F_SAF_GENRANDOM                              125
 # define SAF_F_SAF_GETECCPUBLICKEY                        116
+# define SAF_F_SAF_GETVERSION                             126
+# define SAF_F_SAF_IMPORTENCEDKEY                         127
+# define SAF_F_SAF_INITIALIZE                             128
+# define SAF_F_SAF_LOGIN                                  129
+# define SAF_F_SAF_LOGOUT                                 130
 # define SAF_F_SAF_MACFINAL                               117
 # define SAF_F_SAF_MACUPDATE                              118
 # define SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA               119
@@ -100,7 +108,10 @@ int ERR_load_SAF_strings(void);
 /* Reason codes. */
 # define SAF_R_BUFFER_TOO_SMALL                           100
 # define SAF_R_CBCMAC_FAILURE                             101
+# define SAF_R_CMAC_FAILURE                               115
+# define SAF_R_ENCRYPT_KEY_FAILURE                        116
 # define SAF_R_GEN_RANDOM                                 102
+# define SAF_R_GEN_RANDOM_FAILURE                         117
 # define SAF_R_INT_OVERFLOW                               103
 # define SAF_R_INVALID_ALGOR                              104
 # define SAF_R_INVALID_CONTEXT                            105
@@ -111,6 +122,7 @@ int ERR_load_SAF_strings(void);
 # define SAF_R_INVALID_KEY_USAGE                          110
 # define SAF_R_INVALID_LENGTH                             111
 # define SAF_R_MAC_FAILURE                                112
+# define SAF_R_NOT_SUPPORTED                              118
 # define SAF_R_OPERATION_NOT_INITIALIZED                  113
 # define SAF_R_SAF_ERROR                                  114
 

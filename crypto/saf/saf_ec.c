@@ -47,30 +47,10 @@
  * ====================================================================
  */
 
-/* GM/T 0019-2012: 7.3.23 */
-/*
- * uiKeyUsage in {SGD_SM2_1, SGD_SM2_2, SGD_SM2_3}
- * uiExportFlag = 1 means exportable, 0 means non-exportable
- * we will generate a key pair and import into ENGINE
- * or use ENGINE to generate key pair
- */
-
 #include <openssl/gmapi.h>
 #include <openssl/gmsdf.h>
 #include <openssl/gmsaf.h>
 
-int saf_save_ec_keypair(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyBits,
-	unsigned int uiKeyUsage,
-	unsigned int uiExportFlag,
-	ECCrefPublicKey *pucPublicKey,
-	ECCrefPrivateKey *pucPrivateKey)
-{
-	return -1;
-}
 
 /* 7.3.23 */
 int SAF_GenEccKeyPair(
@@ -82,8 +62,6 @@ int SAF_GenEccKeyPair(
 	unsigned int uiExportFlag)
 {
 	int ret = -1;
-	ECCrefPublicKey publicKey;
-	ECCrefPrivateKey privateKey;
 
 	/* check arguments */
 	if (!hAppHandle || !pucContainerName) {
@@ -91,7 +69,7 @@ int SAF_GenEccKeyPair(
 			ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
-	if (uiContainerNameLen <= 0 || uiContainerName > SGD_MAX_NAME_SIZE ||
+	if (uiContainerNameLen <= 0 || uiContainerNameLen > SGD_MAX_NAME_SIZE ||
 		strlen((char *)pucContainerName) != uiContainerNameLen) {
 		SAFerr(SAF_F_SAF_GENECCKEYPAIR,
 			SAF_R_INVALID_INPUT_LENGTH);
@@ -109,63 +87,15 @@ int SAF_GenEccKeyPair(
 		return SAR_KeyUsageErr;
 	}
 
-	/* generate keypair */
-	if (SDF_GenerateKeyPair_ECC(
-		NULL,
-		uiKeyUsage,
-		uiKeyBits,
-		&publicKey,
-		&privateKey) != SDR_OK) {
 
-		SAFerr(SAF_F_SAF_GENECCKEYPAIR, SAF_R_SAF_ERROR);
-		goto end;
-	}
-
-	/* save keypair */
-	if (saf_save_ec_keypair(
-		hAppHandle,
-		pucContainerName,
-		uiContainerNameLen,
-		uiKeyBits,
-		uiKeyUsage,
-		uiExportFlag,
-		&publicKey,
-		&privateKey) != SAR_Ok) {
-
-		SAFerr(SAF_F_SAF_GENECCKEYPAIR, ERR_R_GMAPI_LIB);
-		goto end;
-	}
 
 	/* set return value */
 	ret = SAR_Ok;
 
 end:
-	/* clear private key */
-	memset(&privateKey, 0, sizeof(ECCrefPrivateKey));
 	return ret;
 }
 
-int saf_get_sdf_session_and_keyindex(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyUsage,
-	void *phSessionHandle,
-	unsigned int puiKeyIndex)
-{
-	return -1;
-}
-
-void saf_release_sdf_session(
-	void *hSessionHandle)
-{
-}
-
-/*
- * `crypto/ec` only support `i2o_ECPublicKey` and `o2i_ECPublicKey`, there
- * are no DER encoding/decoding routines for EC public key. The encoding of
- * `i2o` is just the result of `EC_POINT_point2oct` on the public key point.
- */
 /* 7.3.24 */
 int SAF_GetEccPublicKey(
 	void *hAppHandle,
@@ -175,9 +105,8 @@ int SAF_GetEccPublicKey(
 	unsigned char *pucPublicKey,
 	unsigned int *puiPublicKeyLen)
 {
-	int ret = -1;
-	void *hSessionHandle = NULL;
-	unsigned int uiKeyIndex;
+	int ret = SAR_UnknownErr;
+	SAF_APP *app = (SAF_APP *)hAppHandle;
 	int rv;
 
 	/* check arguments */
@@ -206,64 +135,17 @@ int SAF_GetEccPublicKey(
 		return SAR_IndataErr;
 	}
 
-	/* get session and key index*/
-	if ((rv = saf_get_sdf_session_and_keyindex(
-		hAppHandle,
-		pucContainerName,
-		uiContainerNameLen,
-		uiKeyUsage,
-		&hSessionHandle,
-		&uiKeyIndex)) != SAR_Ok) {
+	/* load public key */
 
-		SAFerr(SAF_F_SAF_GETECCPUBLICKEY, ERR_R_GMAPI_LIB);
-		ret = rv;
-		goto end;
-	}
-
-	/* load key */
-	if (uiKeyUsage == SGD_SM2_1) {
-		if (SDF_ExportSignPublicKey_ECC(
-			hSessionHandle,
-			uiKeyIndex,
-			(ECCrefPublicKey *)pucPublicKey) != SDR_OK) {
-
-			SAFerr(SAF_F_SAF_GETECCPUBLICKEY, ERR_R_GMAPI_LIB);
-			goto end;
-		}
-	} else {
-		if (SDF_ExportEncPublicKey_ECC(
-			hSessionHandle,
-			uiKeyIndex,
-			(ECCrefPublicKey *)pucPublicKey) != SDR_OK) {
-
-			SAFerr(SAF_F_SAF_GETECCPUBLICKEY, ERR_R_GMAPI_LIB);
-			goto end;
-		}
-	}
 
 	/* set return value */
-	*puiPublicKeyLen = (unsigned int)sizeof(ECCrefPublicKey);
 	ret = SAR_Ok;
 
 end:
-	sdf_release_sdf_session(hSessionHandle);
 	return ret;
 }
 
 /* 7.3.25 */
-/* input data is message, not digest
- * otuput is the DER encoding of the signature
- *
- * WHY do we need a seperate function for EC and RSA?
- */
-int saf_get_sdf_session_and_ecsignkey(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiAlgorithmID, /* SGD_SM2_1 */
-	void **phSessionhandle,
-	unsigned int *puiISKIndex);
-
 int SAF_EccSign(
 	void *hAppHandle,
 	unsigned char *pucContainerName,
@@ -304,43 +186,12 @@ int SAF_EccSign(
 		return SAR_IndataErr;
 	}
 
-	/* get session and ec sign key */
-	if ((rv = saf_get_sdf_session_and_ecsignkey(
-		hAppHandle,
-		pucContainerName,
-		uiContainerNameLen,
-		uiAlgorithmID,
-		&hSessionHandle,
-		&uiISKIndex)) != SAR_Ok) {
-		
-		SAFerr(SAF_F_SAF_ECCSIGN, ERR_R_GMAPI_LIB);
-		ret = rv;
-		goto end;
-	}
-
-	/* sign */
-	if (SDF_InternalSign_ECC(
-		hSessionHandle,
-		uiISKIndex,
-		pucInData,
-		uiInDataLen,
-		(ECCSignature *)pucSignData) != SDR_OK) {
-		
-		SAFerr(SAF_F_SAF_ECCSIGN, ERR_R_GMAPI_LIB);
-		goto end;
-	}
-
-	/* set return value */
-	*puiSignDataLen = (unsigned int)sizeof(ECCSignature);
 	ret = SAR_Ok;
-	
 end:
-	saf_release_sdf_session(hSessionhandle);
 	return ret;
 }
 
 /* 7.3.26 */
-/* it seems that we need the public key has more info */
 int SAF_EccVerifySign(
 	unsigned char *pucPublicKey,
 	unsigned int uiPublicKeyLen,
@@ -351,11 +202,11 @@ int SAF_EccVerifySign(
 	unsigned int uiSignDataLen)
 {
 	int ret = SAR_UnknownErr;
-	
+
 	/* check arguments */
 	if (!pucPublicKey || !pucInData || !pucSignData) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGN, ERR_R_PASSED_NULL_PARAMETER);
-		return SAR_IndataErr);
+		return SAR_IndataErr;
 	}
 	if (uiPublicKeyLen != sizeof(ECCrefPublic)) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGN, SAF_R_INVALID_INPUT_LENGTH);
@@ -372,18 +223,6 @@ int SAF_EccVerifySign(
 	if (uiSignDataLen != sizeof(ECCSignature)) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGN, SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
-	}
-
-	if (SDF_ExternalVerify_ECC(
-		NULL, /* hSessionHandle */
-		uiAlgorithmID,
-		(ECCrefPublicKey *)pucPublicKey,
-		pucInData,
-		uiInDataLen,
-		(ECCSignature *)pucSignData) != SDR_OK) {
-
-		SAFerr(SAF_F_SAF_ECCVERIFYSIGN, ERR_R_GMAPI_LIB);
-		goto end;
 	}
 
 	ret = SAR_Ok;
@@ -429,31 +268,9 @@ int SAF_EccPublicKeyEnc(
 		return SAR_IndataLenErr;
 	}
 
-	/* encrypt */
-	if (SDF_ExternalEncrypt_ECC(
-		NULL, /* hSessionHandle */
-		uiAlgorithmID,
-		(ECCrefPublicKey *)pucPublicKey,
-		pucInData,
-		uiInDataLen,
-		(ECCCipher *)pucOutData) != SDR_OK) {
-		
-		SAFerr(SAF_F_SAF_ECCPUBLICKEYENC, ERR_R_GMAPI_LIB);
-		goto end;
-	}
-
 	ret = SAR_Ok;
-	
 end:
 	return ret;
-}
-
-int saf_get_ec_public_key_from_cert(
-	unsigned char *pucCertificate,
-	unsigned int uiCertificateLen,
-	ECCrefPublicKey *pucPublicKey)
-{
-	return -1;
 }
 
 /* 7.3.28 */
@@ -474,7 +291,7 @@ int SAF_EccPublicKeyEncByCert(
 	if (!pucCertificate || !pucInData || !pucOutData || !puiOutDataLen) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT,
 			ERR_R_PASSED_NULL_PARAMETER);
-		return SAR_IndataErr);
+		return SAR_IndataErr;
 	}
 	if (uiCertificateLen <= 0 || uiCertificate > INT_MAX) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT,
@@ -497,34 +314,8 @@ int SAF_EccPublicKeyEncByCert(
 		return SAR_IndataLenErr;
 	}
 
-	/* get public key from cert */
-	if ((rv = saf_get_ec_public_key_from_cert(
-		pucCertificate,
-		uiCertificateLen,
-		&publicKey)) != SAR_OK) {
-		
-		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT, ERR_R_GMAPI_LIB);
-		ret = rv;
-		goto end;
-	}
-
-	/* encrypt */
-	if (SAF_EccPublicKeyEnc(
-		(unsigned char *)&publicKey,
-		(unsigned int)sizeof(ECCrefPublicKey),
-		uiAlgorithmID,
-		pucInData,
-		uiInDataLen,
-		pucOutData,
-		puiOutDataLen) != SAR_OK) {
-		
-		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT, ERR_R_GMAPI_LIB);
-		goto end;
-	}
-	
 	/* set return value */
 	ret = SAR_Ok;
-	
 end:
 	return ret;
 }
@@ -547,7 +338,7 @@ int SAF_EccVerifySignByCert(
 	if (!pucCertificate || !pucInData || !pucSignData) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGNBYCERT,
 			ERR_R_PASSED_NULL_PARAMETER);
-		return SAR_IndataErr);
+		return SAR_IndataErr;
 	}
 	if (uiCertificateLen <= 0 || uiCertificate > INT_MAX) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGNBYCERT,
@@ -571,33 +362,9 @@ int SAF_EccVerifySignByCert(
 	}
 
 	/* load public key form cert */
-	if ((rv = saf_get_ec_public_key_from_cert(
-		pucCertificate,
-		uiCertificateLen,
-		&publicKey))!= SAR_OK) {
-		
-		SAFerr(SAF_F_SAF_ECCVERIFYSIGNBYCERT, ERR_R_GMAPI_LIB);
-		ret = rv;
-		goto end;
-	}
-
-	/* verify */
-	if (SAF_EccVerifySign(
-		(unsigned char *)&publicKey,
-		(unsigned int )sizeof(ECCrefPublicKey),
-		uiAlgorithmID,
-		pucInData,
-		uiInDataLen,
-		pucSignData,
-		uiSignDataLen)!= SAR_Ok) {
-		
-		SAFerr(SAF_F_SAF_ECCVERIFYSIGNBYCERT, ERR_R_GMAPI_LIB);
-		goto end;
-	}
 
 	/* set return value */
 	ret = SAR_Ok;
-	
 end:
 	return ret;
 }
@@ -616,24 +383,7 @@ int SAF_GenerateAgreementDataWithECC(
 	void **phAgreementHandle)
 {
 	int ret = -1;
-	void *hSessionHandle = NULL;
 	unsigned int uiISKIndex;
-	
-
-	if (SDF_GenerateAgreementDataWithECC(
-		hSessionHandle,
-		uiISKIndex,
-		uiKeyBits,
-		pucSponsorID,
-		uiSponsorIDLength,
-		(ECCrefPublicKey *)pucSponsorPublicKey,
-		(ECCrefPublicKey *)pucSponsorTmpPublicKey,
-		phAgreementHandle) != SDR_OK) {
-
-		SAFerr(SAF_F_SAF_GENERATEAGREEMENTDATAWITHECC,
-			ERR_R_GMAPI_LIB);
-		goto end;
-	}
 
 	ret = SAR_Ok;
 end:
@@ -652,19 +402,6 @@ int SAF_GenerateKeyWithECC(
 	void **phKeyHandle)
 {
 	int ret = -1;
-
-	if (SDF_GenerateKeyWithECC(
-		NULL, /*hSessionHandle */
-		pucResponseID,
-		uiResponseIDLength,
-		(ECCrefPublicKey *)pucResponsePublicKey,
-		(ECCrefPublicKey *)pucResponseTmpPublicKey,
-		phAgreementHandle,
-		phKeyHandle) != SDR_OK) {
-
-		SAFerr(SAF_F_SAF_GENERATEKEYWITHECC, ERR_R_GMAPI_LIB);
-		goto end;
-	}
 
 	return 0;
 }

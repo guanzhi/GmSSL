@@ -70,17 +70,6 @@ int SAF_SM2_EncodeSignedAndEnvelopedData(
 	unsigned int *puiDerSignedAndEnvelopedDataLen)
 {
 	int ret = SAR_UnknownErr;
-	PKCS7 *p7 = NULL;
-	EVP_PKEY *pkey = NULL;
-	const EVP_MD *md;
-
-	p7 = PKCS7_new();
-
-	pkey = saf_load_private_key(hAppHandle,
-		pucSignContainerName, uiSignContainerNameLen
-		uiSignKeyUsage);
-
-	PKCS7_set_type(p7, 0);
 	return 0;
 }
 
@@ -115,42 +104,6 @@ int SAF_SM2_EncodeSignedData(
 	unsigned char *pucDerSignedData,
 	unsigned int *puiDerSignedDataLen)
 {
-
-	int flags;
-	BIO *bio = NULL;
-	EVP_PKEY *pkey = NULL;
-	X509 *cert = NULL;
-	unsigned char *p;
-
-	if (!(pkey = saf_load_private_key(hAppHandle, pucSignContainerName,
-		uiSignContainerNameLen, uiSignKeyUsage))) {
-	}
-
-	/* decode certificate, check no extra input */
-	p = pucSignerCertificate;
-	if (!(cert = d2i_X509(NULL, &p, (long)uiSignerCertificateLen))) {
-	}
-	if (p - pucSignerCertificate != uiSignerCertificateLen) {
-	}
-
-	/* data bio */
-	if (!(bio = BIO_new_mem_buf(pucData, (int)uiDataLen))) {
-	}
-
-	/* set digest */
-	if (!(md = EVP_get_digestbysgd(uiDigestAlgorithm))) {
-	}
-
-	flags = PKCS7_BINARY;
-	p7 = PKCS7_sign(cert, pkey, NULL, bio, flags);
-
-
-	p = pucDerP7Data;
-	if (i2d_PKCS7(p7, &p) < 0) {
-	}
-
-	*puiDerP7DataLen = p - pucDerP7Data;
-
 	return 0;
 }
 
@@ -167,36 +120,6 @@ int SAF_SM2_DecodeSignedData(
 	unsigned char *pucSign,
 	unsigned int *puiSignLen)
 {
-	int ret;
-	PKCS7 *p7 = NULL;
-	X509 *cert = NULL;
-	const EVP_MD *md;
-	BIO *bio = NULL;
-	STACK_OF(X509) *certs = NULL;
-	X509_STORE *store = NULL;
-	int flags = 0;
-
-	p = pucDerP7SignedData;
-	if (!(p7 = d2i_PKCS7(NULL, &p, (long)uiDerP7SignedDataLen))) {
-	}
-	if (p - pucDerP7SignedData != uiDerP7SignedDataLen) {
-	}
-
-	p = pucSignerCertificate;
-	if (!(cert = d2i_X509(NULL, &p, (long)uiSignerCertificateLen))) {
-	}
-	if (p - pucSignerCertificate != uiSignerCertificateLen) {
-	}
-
-	if (!(md = EVP_get_digestbysgd(uiDigestAlgorithm))) {
-	}
-	if (!PKCS7_set_digest(p7, md)) {
-	}
-
-	if (!PKCS7_verify(p7, cert, store, bio, NULL, flags)) {
-	}
-
-
 	return 0;
 }
 
@@ -212,22 +135,6 @@ int SAF_SM2_EncodeEnvelopedData(
 	unsigned int *puiDerEnvelopedDataLen)
 {
 	int ret = SAR_UnknownErr;
-	PKCS7 *p7 = NULL;
-	X509 *cert = NULL;
-	BIO *bio = NULL;
-	const EVP_CIPHER *cipher;
-	int flags;
-
-	cipher = EVP_get_cipherbysgd(uiSymmAlgorithm);
-	bio = BIO_new(BIO_s_mem());
-	// set data to bio
-
-	p = pucEncCertificate;
-	cert = d2i_X509(NULL, &p, uiEncCertificateLen);
-
-	p7 = PKCS7_encrypt(cert, bio, cipher, flags);
-end:
-	PKCS7_free(p7);
 	return ret;
 }
 
@@ -242,14 +149,5 @@ int SAF_SM2_DecodeEnvelopedData(
 	unsigned char *pucData,
 	unsigned int *puiDataLen)
 {
-	PKCS7 *p7 = NULL;
-	BIO *bio = NULL;
-	X509 *cert = NULL;
-	EVP_PKEY *pkey = NULL;
-
-	// get cert and pkey from App.Container.KeyUsage
-
-	PKCS7_decrypt(p7, pkey, cert, bio, flags);
-
 	return 0;
 }

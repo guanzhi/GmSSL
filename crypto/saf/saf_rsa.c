@@ -61,28 +61,6 @@ int SAF_GenRsaKeyPair(void *hAppHandle,
 	unsigned int uiKeyUsage,
 	unsigned int uiExportFlag)
 {
-	RSArefPublicKey publicKey;
-	RSArefPrivateKey privateKey;
-
-	if (SDR_OK != SDF_GenerateKeyPair_RSA(
-		NULL,
-		uiKeyBits,
-		&publicKey,
-		&privateKey)) {
-	}
-
-	if ((ret = saf_save_rsa_keypair(
-		hAppHandle,
-		pucContainerName,
-		uiContainerNameLen,
-		uiKeyBits,
-		uiKeyUsage,
-		uiExportFlag,
-		&publicKey,
-		&privateKey))
-		!= SAR_Ok) {
-	}
-
 	return SAR_NotSupportYetErr;
 }
 
@@ -95,47 +73,10 @@ int SAF_GetPublicKey(
 	unsigned char *pucPublicKey,
 	unsigned int *puiPublicKeyLen)
 {
-
-	unsigned int uiAlgID;
-
-
-	if (uiAlgID = SGD_RSA) {
-		if (uiKeyUsage == 1) {
-			if (SDF_ExportSignPublicKey_RSA(
-				hSessionHandle,
-				uiKeyIndex,
-				(RSArefPublicKey *)pucPublicKey) != SDR_OK) {
-			}
-		} else {
-			if (SDF_ExportEncPublicKey_RSA(
-				hSessionHandle,
-				uiKeyIndex,
-				(RSArefPublicKey *)pucPublicKey) != SDR_OK) {
-			}
-		}
-		*puiPublicKeyLen = (unsigned int)sizeof(RSArefPublicKey);
-	} else {
-		if (uiKeyUsage == 1) {
-			if (SDF_ExportSignPublicKey_ECC(
-				hSessionHandle,
-				uiKeyIndex,
-				(ECCrefPublicKey *)pucPublicKey) != SDR_OK) {
-			}
-		} else {
-			if (SDF_ExportEncPublicKey_ECC(
-				hSessionHandle,
-				uiKeyIndex,
-				(ECCrefPublicKey *)pucPublicKey) != SDR_OK) {
-			}
-		}
-		*puiPublicKeyLen = (unsigned int)sizeof(ECCrefPublicKey);
-	}
-
 	return SAR_NotSupportYetErr;
 }
 
 /* 7.3.18 */
-/* the `pucInData` is message, not digest */
 int SAF_RsaSign(
 	void *hAppHandle,
 	unsigned char *pucContainerName,
@@ -146,8 +87,6 @@ int SAF_RsaSign(
 	unsigned char *pucSignature,
 	unsigned int *puiSignatureLen)
 {
-
-
 	return SAR_NotSupportYetErr;
 }
 
@@ -161,20 +100,6 @@ int SAF_RsaSignFile(
 	unsigned char *pucSignature,
 	unsigned int *puiSignatureLen)
 {
-	int ret;
-	unsigned char *buf = NULL;
-	unsigned int buflen;
-
-	if ((ret = readfile(pucFileName, &buf, &buflen)) != SAR_OK) {
-		return ret;
-	}
-	if ((ret = SAF_RsaSign(hAppHandle, pucContainerName, uiContainerNameLen,
-		uiHashAlgoType, buf, buflen, pucSignature, puiSignatureLen)) != SAR_OK) {
-		OPENSSL_free(buf);
-		return ret;
-	}
-
-	OPENSSL_free(buf);
 	return SAR_OK;
 }
 
@@ -200,20 +125,6 @@ int SAF_RsaVerifySignFile(
 	unsigned char *pucSignature,
 	unsigned int uiSignatureLen)
 {
-	int ret;
-	unsigned char *buf = NULL;
-	unsigned int buflen;
-
-	if ((ret = readfile(pucFileName, &buf, &buflen)) != SAR_OK) {
-		return ret;
-	}
-	if ((ret = SAF_RsaVerifySign(uiHashAlgoType, pucPublicKey, uiPublicKeyLen,
-		buf, buflen, pucSignature, puiSignatureLen)) != SAR_OK) {
-		OPENSSL_free(buf);
-		return ret;
-	}
-
-	OPENSSL_free(buf);
 	return SAR_OK;
 }
 
@@ -227,20 +138,6 @@ int SAF_VerifySignByCert(
 	unsigned char *pucSignature,
 	unsigned int uiSignatureLen)
 {
-	int ret;
-	unsigned char *buf = NULL;
-	unsigned int buflen;
-
-	if ((ret = cert_get_pubkey(pucCertificate, uiCertificateLen, &buf, &buflen)) != SAR_OK) {
-		return ret;
-	}
-	if ((ret = SAF_RsaVerifySign(uiHashAlgoType, pucPublicKey, uiPublicKeyLen,
-		buf, buflen, pucSignature, puiSignatureLen)) != SAR_OK) {
-		OPENSSL_free(buf);
-		return ret;
-	}
-
-	OPENSSL_free(buf);
 	return SAR_OK;
 }
 

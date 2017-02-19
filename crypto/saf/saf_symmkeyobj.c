@@ -54,10 +54,7 @@
 #include "saf_lcl.h"
 
 
-/* 7.3.30
- * All symmetric keys in GMAPI are session objects.
- * The `SymmKeyObj` is a EVP_CIPHER_CTX
- */
+/* 7.3.30 */
 int SAF_CreateSymmKeyObj(
 	void *hAppHandle,
 	void **phSymmKeyObj,
@@ -69,52 +66,31 @@ int SAF_CreateSymmKeyObj(
 	unsigned int uiCryptoAlgID)
 {
 	int ret = SAR_UnknownErr;
-	SAF_SymmKeyObj *obj = NULL;
+	SAF_SYMMKEYOBJ *obj = NULL;
 
 	/* check arguments */
 	if (!hAppHandle || !phSymmKeyObj || !pucContainerName || !pucIV) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			ERR_R_PASSED_NULL_PARAMETER);
-		return -1;
+		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
 	}
-	if (uiContainerLen > INT_MAX) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			SAF_R_INVALID_INPUT_LENGTH);
-		return -1;
-	}
-	if (uiIVLen > EVP_MAX_IV_LENGTH) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			SAF_R_INVALID_INPUT_LENGTH);
-		return -1;
+	if (uiContainerLen <= 0 || uiContainerLen > 255 ||
+		uiIVLen > EVP_MAX_IV_LENGTH) {
+		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ, SAF_R_INVALID_INPUT_LENGTH);
+		return SAR_IndataLenErr;
 	}
 
 	/* init object */
 	if (!(obj = OPENSSL_zalloc(sizeof(*obj)))) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			ERR_R_MALLOC_FAILURE);
+		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	obj->hAppHandle = hAppHandle;
-	if (!(obj->pucContainerName = OPENSSL_memdup(pucContainerName,
-		(size_t)uiContainerLen))) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-	if (!(obj->pucIV = OPENSSL_memdup(pucIV, (size_t)uiIVLen))) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-	obj->uiEncOrDec = uiEncOrDec;
-
-	if (!EVP_get_cipherbysgd(uiCryptoAlgID)) {
-		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ,
-			SAF_R_INVALID_ALGOR);
-		goto end;
-	}
-	obj->uiCryptoAlgID = uiCryptoAlgID;
+	memcpy(obj->container, pucContainerName, uiContainerLen);
+	obj->containerlen = uiContainerLen;
+	memcpy(obj->iv, pucIV, uiIVLen);
+	obj->ivlen = uiIVLen;
+	obj->enc = uiEncOrDec;
+	obj->algor = uiCryptoAlgID;
 
 	/* set output */
 	*phSymmKeyObj = obj;
@@ -131,14 +107,10 @@ end:
 int SAF_DestroySymmAlgoObj(
 	void *hSymmKeyObj)
 {
-	SAF_SymmKeyObj *obj = (SAF_SymmKeyObj *)hSymmKeyObj;
-
-	if (!hSymmKeyObj) {
-		return SAR_OK;
+	SAF_SYMMKEYOBJ *obj = (SAF_SYMMKEYOBJ *)hSymmKeyObj;
+	if (obj) {
+		OPENSSL_cleanse(obj, sizeof(*obj));
+		OPENSSL_free(obj);
 	}
-
-	OPENSSL_free(obj->pucContainerName);
-	OPENSSL_free(obj->pucIV);
-	memset(obj, 0, sizeof(*obj));
 	return SAR_OK;
 }

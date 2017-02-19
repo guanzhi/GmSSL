@@ -46,35 +46,35 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * the software implementation of SAF application and related storage
- * is determined by a standard OpenSSL configuration file `openssl.cnf`.
- * If no config file is given, the default openssl config file will be
- * used. This means that the SAF API is only a wrapper of the EVP API.
- *
- * The OpenSSL use file-level access control, i.e. private keys are
- * encrypted by passwords, there is no default container-level access
- * control mechnsims such as the Java Keytool for the application-level
- * access control of SAF API.
- *
- * We use the AppHandle to preserve the CONF object.
- *
- * So we dont provide such access control. The Login() will always
- * success. And the ChangePin() has no effects.
- */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/gmsaf.h>
+#include <openssl/crypto.h>
+#include "saf_lcl.h"
 
 /* 7.1.2 */
 int SAF_Initialize(
 	void **phAppHandle,
 	char *pubCfgFilePath)
 {
+	int ret = SAR_UnknownErr;
+	SAF_APP *app = NULL;
 
+	if (!phAppHandle || !pubCfgFilePath) {
+		SAFerr(SAF_F_SAF_INITIALIZE, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (!(app = OPENSSL_zalloc(sizeof(*app)))) {
+		SAFerr(SAF_F_SAF_INITIALIZE, ERR_R_MALLOC_FAILURE);
+		return SAR_MemoryErr;
+	}
+
+	*phAppHandle = app;
 	return SAR_Ok;
 }
 
@@ -82,6 +82,8 @@ int SAF_Initialize(
 int SAF_Finalize(
 	void *hAppHandle)
 {
+	SAF_APP *app = (SAF_APP *)hAppHandle;
+	OPENSSL_free(app);
 	return SAR_Ok;
 }
 
@@ -89,7 +91,12 @@ int SAF_Finalize(
 int SAF_GetVersion(
 	unsigned int *puiVersion)
 {
-	*puiVersion = 0x01000000;
+	if (!puiVersion) {
+		SAFerr(SAF_F_SAF_GETVERSION, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	*puiVersion = (unsigned int)OpenSSL_version_num();
 	return SAR_Ok;
 }
 
@@ -103,8 +110,8 @@ int SAF_Login(
 	unsigned int uiPinLen,
 	unsigned int *puiRemainCount)
 {
-	*puiRemainCount = 100;
-	return SAR_Ok;
+	SAFerr(SAF_F_SAF_LOGIN, SAF_R_NOT_SUPPORTED);
+	return SAR_NotSupportYetErr;
 }
 
 /* 7.1.6 */
@@ -119,8 +126,8 @@ int SAF_ChangePin(
 	unsigned int uiNewPinLen,
 	unsigned int *puiRemainCount)
 {
-	*puiRemainCount = 100;
-	return SAR_Ok;
+	SAFerr(SAF_F_SAF_CHANGEPIN, SAF_R_NOT_SUPPORTED);
+	return SAR_NotSupportYetErr;
 }
 
 /* 7.1.7 */
@@ -128,6 +135,6 @@ int SAF_Logout(
 	void *hAppHandle,
 	unsigned int uiUsrType)
 {
-	return SAR_Ok;
+	SAFerr(SAF_F_SAF_LOGOUT, SAF_R_NOT_SUPPORTED);
+	return SAR_NotSupportYetErr;
 }
-

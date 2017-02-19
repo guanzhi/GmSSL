@@ -464,7 +464,7 @@ int SAF_GenerateKeyWithEPK(
 	unsigned char *pucPublicKey,
 	unsigned int uiPublicKeyLen,
 	unsigned char *pucSymmKey,
-	unsigned int uiSymmKeyLen,
+	unsigned int *puiSymmKeyLen,
 	void **phKeyHandle);
 
 int SAF_ImportEncedKey(

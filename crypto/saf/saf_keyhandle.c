@@ -53,60 +53,77 @@
 #include <openssl/gmapi.h>
 #include "saf_lcl.h"
 
-/* 7.3.31
- * Generate session key returned by `phKeyHandle`
- * Encrypt the symmetric key `hSymmKeyObj` with the input public key
- * `pucPublicKey`, output the encrypted results to `pucSymmKey`, 
- *
- * how can we encrypt data with public key?
- * it this function relies on ther SAF API?
- *
- * The function don't care the input public key. It should be an exported
- * public key. Some extra information should be appened into the output key.
- */
+/* 7.3.31 */
 int SAF_GenerateKeyWithEPK(
 	void *hSymmKeyObj,
 	unsigned char *pucPublicKey,
 	unsigned int uiPublicKeyLen,
 	unsigned char *pucSymmKey,
-	unsigned int uiSymmKeyLen,
+	unsigned int *puiSymmKeyLen,
 	void **phKeyHandle)
 {
-	int pkey_type;
+	int ret = SAR_UnknownErr;
+	SAF_KEY *hkey = NULL;
+	SAF_SYMMKEYOBJ *obj = (SAF_SYMMKEYOBJ *)hSymmKeyObj;
+	const EVP_CIPHER *cipher;
+	unsigned char keybuf[32];
 	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pkctx = NULL;
+	size_t outlen;
 
-
-	if (!(pkey = d2i_PublicKey(pkey_type, NULL, &p,
-		(long)uiPublicKeyLen))) {
+	if (!hSymmKeyObj || !pucPublicKey || !pucSymmKey
+		|| !puiSymmKeyLen || !phKeyHandle) {
+		SAFerr(SAF_F_SAF_GENERATEKEYWITHEPK, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
 	}
 
+	if (uiPublicKeyLen <= 0 || uiPublicKeyLen > INT_MAX) {
+		SAFerr(SAF_F_SAF_GENERATEKEYWITHEPK, SAF_R_INVALID_INPUT_LENGTH);
+		return SAR_IndataLenErr;
+	}
 
+	outlen = (size_t)*puiSymmKeyLen;
+	if (!(cipher = EVP_get_cipherbysgd(obj->algor))
+		|| !RAND_bytes(keybuf, EVP_CIPHER_key_length(cipher))
+		|| !(pkey = d2i_PUBKEY(NULL, &pucPublicKey, (long)uiPublicKeyLen))
+		|| !(pkctx = EVP_PKEY_CTX_new(pkey, NULL))
+		|| !EVP_PKEY_encrypt_init(pkctx)
+		|| !EVP_PKEY_encrypt(pkctx, pucSymmKey, &outlen, keybuf, (size_t)EVP_CIPHER_key_length(cipher))) {
+		SAFerr(SAF_F_SAF_GENERATEKEYWITHEPK, SAF_R_ENCRYPT_KEY_FAILURE);
+		goto end;
+	}
+
+	// init EVP_CIPHER_CTX
+	if (!(hkey = OPENSSL_zalloc(sizeof(*hkey)))) {
+		SAFerr(SAF_F_SAF_GENERATEKEYWITHEPK, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	*puiSymmKeyLen = (unsigned int)outlen;
+	ret = SAR_Ok;
+
+end:
+	EVP_PKEY_free(pkey);
+	EVP_PKEY_CTX_free(pkctx);
+	return ret;
 }
 
 /* 7.3.32 */
-/* all the inforamtion should be kept in encrypted key
- * the encrytped key can be decrypted with the default private key
- */
 int SAF_ImportEncedKey(
 	void *hSymmKeyObj,
 	unsigned char *pucSymmKey,
 	unsigned int uiSymmKeyLen,
 	void **phKeyHandle)
 {
-	return 0;
+	SAFerr(SAF_F_SAF_IMPORTENCEDKEY, SAF_R_NOT_SUPPORTED);
+	return SAR_NotSupportYetErr;
 }
 
 /* 7.3.37 */
 int SAF_DestroyKeyHandle(
 	void *hKeyHandle)
 {
-	SAF_KeyHandle *hkey = (SAF_KeyHandle *)hKeyHandle;
-
-	if (!hKeyHandle) {
-		return SAR_OK;
-	}
-
-	OPENSSL_clear_free(hkey->key, hkey->keylen);
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
+	OPENSSL_clear_free(hkey, hkey->keylen);
 	return SAR_OK;
 }
-

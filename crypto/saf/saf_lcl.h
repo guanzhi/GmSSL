@@ -47,7 +47,6 @@
  * ====================================================================
  */
 
-
 #include <openssl/evp.h>
 #include <openssl/cmac.h>
 #include <openssl/gmsdf.h>
@@ -65,73 +64,18 @@ typedef struct {
 } SAF_BASE64OBJ;
 
 typedef struct {
-	void *hAppHandle;
-	unsigned char *pucContainerName;
-	unsigned int uiContainerLen;
-	unsigned char *pucIV;
-	unsigned int uiIVLen;
-	unsigned int uiEncOrDec;
-	unsigned int uiCryptoAlgID;
-} SAF_SymmKeyObj;
+	unsigned int algor;
+	unsigned char container[256];
+	unsigned int containerlen;
+	unsigned char iv[16];
+	unsigned int ivlen;
+	unsigned int enc;
+} SAF_SYMMKEYOBJ;
 
 typedef struct {
-	unsigned char *key;
-	size_t keylen;
-
-	/* used by `SAF_SymmEncryptUpdate`, `SAF_SymmEncryptFinal`,
-	 * `SAF_SymmDecryptUpdate`, `SAF_SymmDecryptFinal`
-	 */
+	SAF_SYMMKEYOBJ obj;
+	unsigned char key[64];
 	EVP_CIPHER_CTX *cipher_ctx;
-	const EVP_CIPHER *cipher;
 	CMAC_CTX *cmac_ctx;
-} SAF_KEY_HANDLE;
-
-int saf_readfile(
-	const char *file,
-	unsigned char **pout,
-	size_t *len);
-
-int saf_save_ec_keypair(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyBits,
-	unsigned int uiKeyUsage,
-	unsigned int uiExportFlag,
-	ECCrefPublicKey *pucPublicKey,
-	ECCrefPrivateKey *pucPrivateKey);
-
-int saf_save_rsa_keypair(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyBits,
-	unsigned int uiKeyUsage,
-	unsigned int uiExportFlag,
-	RSArefPublicKey *pucPublicKey,
-	RSArefPrivateKey *pucPrivateKey);
-
-int saf_get_sdf_session_and_keyindex(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyUsage,
-	void *phSessionHandle,
-	unsigned int puiKeyIndex);
-
-int saf_get_sdf_session_and_ecsignkey(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiAlgorithmID, /* SGD_SM2_1 */
-	void **phSessionhandle,
-	unsigned int *puiISKIndex);
-
-void saf_release_sdf_session(
-	void *hSessionHandle);
-
-int saf_get_ec_public_key_from_cert(
-	unsigned char *pucCertificate,
-	unsigned int uiCertificateLen,
-	ECCrefPublicKey *pucPublicKey);
+} SAF_KEY;
 
