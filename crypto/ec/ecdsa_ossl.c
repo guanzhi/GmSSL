@@ -297,6 +297,19 @@ ECDSA_SIG *ossl_ecdsa_sign_sig(const unsigned char *dgst, int dgst_len,
     }
     while (1);
 
+#if 0
+    if (!BN_rshift1(tmp, order)) {
+        ECerr(EC_F_OSSL_ECDSA_SIGN_SIG, ERR_R_BN_LIB);
+        goto err;
+    }
+    if (BN_cmp(ret->s, tmp) <= 0) {
+        if (!BN_sub(ret->s, order, ret->s)) {
+            ECerr(EC_F_OSSL_ECDSA_SIGN_SIG, ERR_R_BN_LIB);
+            goto err;
+        }
+    }
+#endif
+
     ok = 1;
  err:
     if (!ok) {
@@ -392,6 +405,18 @@ int ossl_ecdsa_verify_sig(const unsigned char *dgst, int dgst_len,
         ret = 0;                /* signature is invalid */
         goto err;
     }
+#if 0
+    if (!BN_rshift1(m, order)) {
+        ECerr(EC_F_OSSL_ECDSA_VERIFY_SIG, ERR_R_BN_LIB);
+        goto err;
+    }
+    if (BN_cmp(sig->r, m) <= 0) {
+        ECerr(EC_F_OSSL_ECDSA_VERIFY_SIG, EC_R_BAD_SIGNATURE);
+        ret = 0;
+        goto err;
+    }
+#endif
+
     /* calculate tmp1 = inv(S) mod order */
     if (!BN_mod_inverse(u2, sig->s, order, ctx)) {
         ECerr(EC_F_OSSL_ECDSA_VERIFY_SIG, ERR_R_BN_LIB);

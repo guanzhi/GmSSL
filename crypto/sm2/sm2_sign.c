@@ -220,8 +220,6 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 	}
 #endif
 
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
-
 	do {
 		/* use or compute k and (kG).x */
 		if (!in_k || !in_x) {
@@ -237,8 +235,6 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 				goto end;
 			}
 		}
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
-
 
 		/* r = e + x (mod n) */
 		if (!BN_mod_add(ret->r, ret->r, e, order, ctx)) {
@@ -246,13 +242,10 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 			goto end;
 		}
 
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
-
 		if (!BN_mod_add(bn, ret->r, ck, order, ctx)) {
 			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
 
 		/* check r != 0 && r + k != n */
 		if (BN_is_zero(ret->r) || BN_is_zero(bn)) {
@@ -263,28 +256,21 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 				continue;
 		}
 
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
 		/* s = ((1 + d)^-1 * (k - rd)) mod n */
 		if (!BN_one(bn)) {
 			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
-		if (ret->s == NULL) {
-			fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
-		}
 
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
 		if (!BN_mod_add(ret->s, priv_key, bn, order, ctx)) {
 			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
 		if (!BN_mod_inverse(ret->s, ret->s, order, ctx)) {
 			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 
-		fprintf(stderr, " --- %s %d\n", __func__, __LINE__);
 		if (!BN_mod_mul(bn, ret->r, priv_key, order, ctx)) {
 			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
@@ -309,6 +295,21 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 		}
 
 	} while (1);
+
+#if 0
+	if (!BN_rshift1(bn, order)) {
+		ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		goto end;
+	}
+	if (BN_cmp(ret->r, bn) <= 0) {
+		if (!BN_sub(ret->r, order, ret->r)
+			|| !BN_sub(ret->s, order, ret->s)) {
+			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			goto end;
+		}
+	}
+
+#endif
 
 	ok = 1;
 
@@ -359,6 +360,17 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 		goto end;
 	}
+
+#if 0
+	if (!BN_rshift1(t, order)) {
+		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		goto end;
+	}
+	if (BN_cmp(sig->r, t) <= 0) {
+		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB); //FIXME: error code
+		goto end;
+	}
+#endif
 
 	/* check r, s in [1, n-1] and r + s != 0 (mod n) */
 	if (BN_is_zero(sig->r) ||

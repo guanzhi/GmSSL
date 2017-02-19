@@ -624,3 +624,14 @@ int X25519(uint8_t out_shared_key[32], const uint8_t private_key[32],
            const uint8_t peer_public_value[32]);
 void X25519_public_from_private(uint8_t out_public_value[32],
                                 const uint8_t private_key[32]);
+
+#ifndef OPENSSL_NO_SM2
+int ossl_ecies_encrypt(int type, const unsigned char *in, size_t inlen,
+                       unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+ECIES_CIPHERTEXT_VALUE *ossl_ecies_do_encrypt(int type, const unsigned char *in,
+                                              size_t inlen, EC_KEY *ec_key);
+int ossl_ecies_decrypt(int type, const unsigned char *in, size_t inlen,
+                       unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int ossl_ecies_do_decrypt(int type, const ECIES_CIPHERTEXT_VALUE *in,
+                      unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+#endif

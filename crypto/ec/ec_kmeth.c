@@ -24,7 +24,13 @@ static const EC_KEY_METHOD openssl_ec_key_method = {
     ossl_ecdsa_sign_setup,
     ossl_ecdsa_sign_sig,
     ossl_ecdsa_verify,
-    ossl_ecdsa_verify_sig
+    ossl_ecdsa_verify_sig,
+#ifndef OPENSSL_NO_SM2
+    ossl_ecies_encrypt,
+    ossl_ecies_do_encrypt,
+    ossl_ecies_decrypt,
+    ossl_ecies_do_decrypt,
+#endif
 };
 
 static const EC_KEY_METHOD *default_ec_key_meth = &openssl_ec_key_method;
@@ -315,3 +321,18 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
     if (pverify_sig != NULL)
         *pverify_sig = meth->verify_sig;
 }
+
+#ifndef OPENSSL_NO_SM2
+void EC_KEY_METHOD_get_encrypt(EC_KEY_METHOD *meth,
+                               int (**pencrypt)(int a),
+                               int (**pdo_encrypt)(int a))
+{
+    if (pencrypt != NULL)
+        *pencrypt = meth->encrypt;
+    if (pdo_encrypt != NULL)
+        *pdo_encrypt = meth->do_encrypt;
+}
+
+
+
+#endif
