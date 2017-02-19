@@ -410,7 +410,7 @@ int ossl_ecdsa_verify_sig(const unsigned char *dgst, int dgst_len,
         ECerr(EC_F_OSSL_ECDSA_VERIFY_SIG, ERR_R_BN_LIB);
         goto err;
     }
-    if (BN_cmp(sig->r, m) <= 0) {
+    if (BN_cmp(sig->s, m) <= 0) {
         ECerr(EC_F_OSSL_ECDSA_VERIFY_SIG, EC_R_BAD_SIGNATURE);
         ret = 0;
         goto err;
