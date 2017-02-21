@@ -1272,6 +1272,58 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
                                                   const ECDSA_SIG *sig,
                                                   EC_KEY *eckey));
 
+# ifndef OPENSSL_NO_SM2
+void EC_KEY_METHOD_set_encrypt(EC_KEY_METHOD *meth,
+                               int (*encrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              unsigned char *out,
+                                              size_t *outlen,
+                                              EC_KEY *ec_key),
+                               ECIES_CIPHERTEXT_VALUE *(*do_encrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              EC_KEY *ec_key));
+
+void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
+                               int (*decrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              unsigned char *out,
+                                              size_t *outlen,
+                                              EC_KEY *ec_key),
+                               int (do_decrypt)(int type,
+                                                const ECIES_CIPHERTEXT_VALUE *in,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key));
+
+void EC_KEY_METHOD_get_encrypt(EC_KEY_METHOD *meth,
+                               int (**pencrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key),
+                               ECIES_CIPHERTEXT_VALUE *(**pdo_encrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                EC_KEY *ec_key));
+
+void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
+                               int (**pdecrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key),
+                               int (*pdo_decrypt)(int type,
+                                                  const ECIES_CIPHERTEXT_VALUE *in,
+                                                  unsigned char *out,
+                                                  size_t *outlen,
+                                                  EC_KEY *ec_key));
+# endif
+
 # define ECParameters_dup(x) ASN1_dup_of(EC_KEY,i2d_ECParameters,d2i_ECParameters,x)
 
 # ifndef __cplusplus

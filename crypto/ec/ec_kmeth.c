@@ -323,9 +323,50 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
 }
 
 #ifndef OPENSSL_NO_SM2
+void EC_KEY_METHOD_set_encrypt(EC_KEY_METHOD *meth,
+                               int (*encrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              unsigned char *out,
+                                              size_t *outlen,
+                                              EC_KEY *ec_key),
+                               ECIES_CIPHERTEXT_VALUE *(*do_encrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              EC_KEY *ec_key))
+{
+    meth->encrypt = encrypt;
+    meth->do_encrypt = do_encrypt;
+}
+
+void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
+                               int (*decrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              unsigned char *out,
+                                              size_t *outlen,
+                                              EC_KEY *ec_key),
+                               int (do_decrypt)(int type,
+                                                const ECIES_CIPHERTEXT_VALUE *in,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key))
+{
+    meth->decrypt = decrypt;
+    meth->do_decrypt = do_decrypt;
+}
+
 void EC_KEY_METHOD_get_encrypt(EC_KEY_METHOD *meth,
-                               int (**pencrypt)(int a),
-                               int (**pdo_encrypt)(int a))
+                               int (**pencrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key),
+                               ECIES_CIPHERTEXT_VALUE *(**pdo_encrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                EC_KEY *ec_key))
 {
     if (pencrypt != NULL)
         *pencrypt = meth->encrypt;
@@ -333,6 +374,22 @@ void EC_KEY_METHOD_get_encrypt(EC_KEY_METHOD *meth,
         *pdo_encrypt = meth->do_encrypt;
 }
 
-
-
+void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
+                               int (**pdecrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key),
+                               int (*pdo_decrypt)(int type,
+                                                  const ECIES_CIPHERTEXT_VALUE *in,
+                                                  unsigned char *out,
+                                                  size_t *outlen,
+                                                  EC_KEY *ec_key))
+{
+    if (pdecrypt != NULL)
+        *pdecrypt = meth->decrypt;
+    if (pdo_decrypt != NULL)
+        *pdo_decrypt = meth->do_decrypt;
+}
 #endif
