@@ -49,53 +49,55 @@
 
 #include <openssl/err.h>
 #include <openssl/gmsof.h>
+#include "../../e_os.h"
 
-BSTR sof_version = "1.0";
-long sof_sign_method = SGD_SM2;
-long sof_enc_method = SGD_SM4_CBC;
+static long sof_sign_method = SGD_SM2;
+static long sof_enc_method = SGD_SM4_CBC;
+static long sof_last_error = SOR_OK;
+
 
 BSTR SOF_GetVersion(void)
 {
-	SOFerr(SOF_F_SOF_GETVERSION, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	return OpenSSL_version(0);
 }
 
 long SOF_SetSignMethod(long SignMethod)
 {
-	SOFerr(SOF_F_SOF_SETSIGNMETHOD, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	sof_sign_method = SignMethod;
+	return SOR_OK;
 }
 
 long SOF_GetSignMethod(void)
 {
-	SOFerr(SOF_F_SOF_GETSIGNMETHOD, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	return sof_sign_method;
 }
 
 long SOF_SetEncryptMethod(long EncryptMethod)
 {
-	SOFerr(SOF_F_SOF_SETENCRYPTMETHOD, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	sof_enc_method = EncryptMethod;
+	return SOR_OK;
 }
 
 long SOF_GetEncryptMethod(void)
 {
-	SOFerr(SOF_F_SOF_GETENCRYPTMETHOD, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	return sof_enc_method;
 }
 
+/* list installed client's certificates */
 BSTR SOF_GetUserList(void)
 {
 	SOFerr(SOF_F_SOF_GETUSERLIST, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
+/* we need an reference to engine */
 BSTR SOF_ExportUserCert(BSTR ContainerName)
 {
 	SOFerr(SOF_F_SOF_EXPORTUSERCERT, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
+/* LOGIN CMD ? */
 BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
 {
 	SOFerr(SOF_F_SOF_LOGIN, SOF_R_NOT_IMPLEMENTED);
@@ -105,7 +107,7 @@ BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
 long SOF_GetPinRetryCount(BSTR ContainerName)
 {
 	SOFerr(SOF_F_SOF_GETPINRETRYCOUNT, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	return SOR_NotSupportYetErr;
 }
 
 BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd)
@@ -114,12 +116,13 @@ BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd)
 	return NULL;
 }
 
-BSTR SOF_ExportExChangeUserCert(BSTR ContainerName)
+BSTR SOF_ExportExchangeUserCert(BSTR ContainerName)
 {
 	SOFerr(SOF_F_SOF_EXPORTEXCHANGEUSERCERT, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
+/* `type` defined as SGD_CERT_XXX, SGD_EXT_XXX in sgd.h */
 BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type)
 {
 	SOFerr(SOF_F_SOF_GETCERTINFO, SOF_R_NOT_IMPLEMENTED);
@@ -144,6 +147,7 @@ long SOF_ValidateCert(BSTR Base64EncodeCert)
 	return 0;
 }
 
+/* PKCS #7 or CMS ? */
 BSTR SOF_SignData(BSTR ContainerName, BSTR InData)
 {
 	SOFerr(SOF_F_SOF_SIGNDATA, SOF_R_NOT_IMPLEMENTED);
@@ -228,6 +232,7 @@ BSTR SOF_GetXMLSignatureInfo(BSTR XMLSignedData, short Type)
 	return NULL;
 }
 
+/* return base64 encoded data */
 BSTR SOF_GenRandom(short RandomLen)
 {
 	SOFerr(SOF_F_SOF_GENRANDOM, SOF_R_NOT_IMPLEMENTED);
@@ -236,8 +241,7 @@ BSTR SOF_GenRandom(short RandomLen)
 
 long SOF_GetLastError(void)
 {
-	SOFerr(SOF_F_SOF_GETLASTERROR, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	return sof_last_error;
 }
 
 long SOF_SetCertTrustList(BSTR CTLAltName, BSTR CTLContent, short CTLContentLen)
@@ -312,3 +316,21 @@ BSTR SOF_GetTimeStampInfo(BSTR tsResponseData, short type)
 	return NULL;
 }
 
+static ERR_STRING_DATA sof_errstr[] = {
+	{ SOR_OK,		"Success" },
+	{ SOR_UnknownErr,	"Unknown error" },
+	{ SOR_FileErr,		"File error" },
+	{ SOR_ProviderTypeErr,	"Provider type error" },
+	{ SOR_LoadProviderErr,	"Load provider error" },
+};
+
+char *SOF_GetErrorString(int err)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(sof_errstr); i++) {
+		if (err == sof_errstr[i].error) {
+			return sof_errstr[i].string;
+		}
+	}
+	return "(undef)";
+}

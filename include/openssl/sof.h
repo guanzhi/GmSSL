@@ -46,13 +46,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/* GM/T 0020 */
-
+/* This header file is from "GM/T 0020-2012 Certificate Application
+ * Integrated Service Interface Specification"
+ */
 
 #ifndef HEADER_SOF_H
 #define HEADER_SOF_H
 
-typedef char * BSTR;
+typedef char *BSTR;
 typedef long BOOL;
 
 #ifdef __cplusplus
@@ -69,7 +70,7 @@ BSTR SOF_ExportUserCert(BSTR ContainerName);
 BOOL SOF_Login(BSTR ContainerName, BSTR PassWd);
 long SOF_GetPinRetryCount(BSTR ContainerName);
 BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd);
-BSTR SOF_ExportExChangeUserCert(BSTR ContainerName);
+BSTR SOF_ExportExchangeUserCert(BSTR ContainerName);
 BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type);
 BSTR SOF_GetCertInfoByOid(BSTR Base64EncodeCert, BSTR Oid);
 BSTR SOF_GetDeviceInfo(BSTR ContainerName, long Type);

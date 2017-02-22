@@ -148,6 +148,8 @@ int ERR_load_SDF_strings(void);
 # define SDF_R_INVALID_SDF_LIBRARY                        101
 # define SDF_R_INVALID_SESSION_HANDLE                     102
 # define SDF_R_LOAD_LIBRARY_FAILURE                       107
+# define SDF_R_METHOD_OPERATION_FAILURE                   108
+# define SDF_R_NOT_INITIALIZED                            109
 # define SDF_R_NOT_SUPPORTED                              103
 # define SDF_R_OPERATION_FAILED                           104
 # define SDF_R_SDF_METHOD_RETURN_FAILURE                  105
