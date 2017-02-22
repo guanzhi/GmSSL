@@ -53,8 +53,12 @@
 #include <openssl/sm2.h>
 #include <openssl/ecies.h>
 #include "../ec/ec_lcl.h"
+#include "sm2_lcl.h"
 
 #define SM2_KMETH_FLAGS		0
+
+
+extern EC_KEY_METHOD *default_ec_key_meth;
 
 int SM2_ENC_PARAMS_set_type(SM2_ENC_PARAMS *params, int type)
 {
@@ -169,7 +173,7 @@ end:
 
 static const EC_KEY_METHOD gmssl_ec_key_method = {
 	"GmSSL EC_KEY method",
-	0,
+	EC_KEY_METHOD_SM2,
 	0,0,0,0,0,0,
 	ossl_ec_key_gen,
 	sm2_compute_key,
@@ -186,6 +190,102 @@ static const EC_KEY_METHOD gmssl_ec_key_method = {
 
 const EC_KEY_METHOD *EC_KEY_GmSSL(void)
 {
-    return &gmssl_ec_key_method;
+	return &gmssl_ec_key_method;
 }
 
+const EC_KEY_METHOD *EC_KEY_get_default_secg_method(void)
+{
+	return EC_KEY_OpenSSL();
+}
+
+const EC_KEY_METHOD *EC_KEY_get_default_sm_method(void)
+{
+	return EC_KEY_GmSSL();
+}
+
+void EC_KEY_set_default_secg_method(const EC_KEY_METHOD *meth)
+{
+	if (meth == NULL)
+		default_ec_key_meth = EC_KEY_OpenSSL();
+	else
+		default_ec_key_meth = meth;
+
+}
+
+void EC_KEY_set_default_sm_method(const EC_KEY_METHOD *meth)
+{
+	if (meth == NULL)
+		default_ec_key_meth = EC_KEY_GmSSL();
+	else
+		default_ec_key_meth = meth;
+}
+
+void EC_KEY_METHOD_set_encrypt(EC_KEY_METHOD *meth,
+                               int (*encrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              unsigned char *out,
+                                              size_t *outlen,
+                                              EC_KEY *ec_key),
+                               ECIES_CIPHERTEXT_VALUE *(*do_encrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              EC_KEY *ec_key))
+{
+    meth->encrypt = encrypt;
+    meth->do_encrypt = do_encrypt;
+}
+
+void EC_KEY_METHOD_set_decrypt(EC_KEY_METHOD *meth,
+                               int (*decrypt)(int type,
+                                              const unsigned char *in,
+                                              size_t inlen,
+                                              unsigned char *out,
+                                              size_t *outlen,
+                                              EC_KEY *ec_key),
+                               int (do_decrypt)(int type,
+                                                const ECIES_CIPHERTEXT_VALUE *in,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key))
+{
+    meth->decrypt = decrypt;
+    meth->do_decrypt = do_decrypt;
+}
+
+void EC_KEY_METHOD_get_encrypt(EC_KEY_METHOD *meth,
+                               int (**pencrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key),
+                               ECIES_CIPHERTEXT_VALUE *(**pdo_encrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                EC_KEY *ec_key))
+{
+    if (pencrypt != NULL)
+        *pencrypt = meth->encrypt;
+    if (pdo_encrypt != NULL)
+        *pdo_encrypt = meth->do_encrypt;
+}
+
+void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
+                               int (**pdecrypt)(int type,
+                                                const unsigned char *in,
+                                                size_t inlen,
+                                                unsigned char *out,
+                                                size_t *outlen,
+                                                EC_KEY *ec_key),
+                               int (**pdo_decrypt)(int type,
+                                                   const ECIES_CIPHERTEXT_VALUE *in,
+                                                   unsigned char *out,
+                                                   size_t *outlen,
+                                                   EC_KEY *ec_key))
+{
+	if (pdecrypt != NULL)
+		*pdecrypt = meth->decrypt;
+	if (pdo_decrypt != NULL)
+		*pdo_decrypt = meth->do_decrypt;
+}
