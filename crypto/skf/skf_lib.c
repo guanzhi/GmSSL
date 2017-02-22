@@ -50,18 +50,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/err.h>
 #include <openssl/skf.h>
 #include "internal/dso.h"
-#include "skf_meth.h"
+#include "internal/skf_meth.h"
+#include "../../e_os.h"
 
 static SKF_METHOD *skf_method = NULL;
 
 ULONG SKF_LoadLibrary(const char *so_path)
 {
-	DSO *dso = NULL;
-
-	dso = DSO_load(NULL, so_path);
-	SKF_METHOD_load_library(skf_method, dso);
 
 	return SAR_OK;
 }
@@ -70,6 +68,7 @@ ULONG SKF_UnloadLibrary(void)
 {
 	skf_method = NULL;
 }
+
 
 ULONG DEVAPI SKF_WaitForDevEvent(
 	LPSTR szDevName,
@@ -1277,4 +1276,150 @@ ULONG DEVAPI SKF_CloseHandle(
 
 	}
 	return SAR_NOTSUPPORTYETERR;
+}
+
+
+static ERR_STRING_DATA skf_errstr[] = {
+	{ SAR_OK,			"Success" },
+	{ SAR_FAIL,			"Failure" },
+	{ SAR_UNKNOWNERR,		"Unknown error" },
+	{ SAR_NOTSUPPORTYETERR,		"Not supported" },
+	{ SAR_FILEERR,			"File error" },
+	{ SAR_INVALIDHANDLEERR,		"Invalid handle" },
+	{ SAR_INVALIDPARAMERR,		"Invalid parameter" },
+	{ SAR_READFILEERR,		"Read file error" },
+	{ SAR_WRITEFILEERR,		"Write file error" },
+	{ SAR_NAMELENERR,		"Name length error" },
+	{ SAR_KEYUSAGEERR,		"Key usage error" },
+	{ SAR_MODULUSLENERR,		"Modulus length error" },
+	{ SAR_NOTINITIALIZEERR,		"Not initialized" },
+	{ SAR_OBJERR,			"Object error" },
+	{ SAR_MEMORYERR,		"Memory error" },
+	{ SAR_TIMEOUTERR,		"Time out" },
+	{ SAR_INDATALENERR,		"Input data length error" },
+	{ SAR_INDATAERR,		"Input data error" },
+	{ SAR_GENRANDERR,		"Generate randomness error" },
+	{ SAR_HASHOBJERR,		"Hash object error" },
+	{ SAR_HASHERR,			"Hash error" },
+	{ SAR_GENRSAKEYERR,		"Genenerate RSA key error" },
+	{ SAR_RSAMODULUSLENERR,		"RSA modulus length error" },
+	{ SAR_CSPIMPRTPUBKEYERR,	"CSP import public key error" },
+	{ SAR_RSAENCERR,		"RSA encryption error" },
+	{ SAR_RSADECERR,		"RSA decryption error" },
+	{ SAR_HASHNOTEQUALERR,		"Hash not equal" },
+	{ SAR_KEYNOTFOUNTERR,		"Key not found" },
+	{ SAR_CERTNOTFOUNTERR,		"Certificate not found" },
+	{ SAR_NOTEXPORTERR,		"Not exported" },
+	{ SAR_DECRYPTPADERR,		"Decrypt pad error" },
+	{ SAR_MACLENERR,		"MAC length error" },
+	{ SAR_BUFFER_TOO_SMALL,		"Buffer too small" },
+	{ SAR_KEYINFOTYPEERR,		"Key info type error" },
+	{ SAR_NOT_EVENTERR,		"No event error" },
+	{ SAR_DEVICE_REMOVED,		"Device removed" },
+	{ SAR_PIN_INCORRECT,		"PIN incorrect" },
+	{ SAR_PIN_LOCKED,		"PIN locked" },
+	{ SAR_PIN_INVALID,		"PIN invalid" },
+	{ SAR_PIN_LEN_RANGE,		"PIN length error" },
+	{ SAR_USER_ALREADY_LOGGED_IN,	"User already logged in" },
+	{ SAR_USER_PIN_NOT_INITIALIZED,	"User PIN not initialized" },
+	{ SAR_USER_TYPE_INVALID,	"User type invalid" },
+	{ SAR_APPLICATION_NAME_INVALID, "Application name invalid" },
+	{ SAR_APPLICATION_EXISTS,	"Application already exist" },
+	{ SAR_USER_NOT_LOGGED_IN,	"User not logged in" },
+	{ SAR_APPLICATION_NOT_EXISTS,	"Application not exist" },
+	{ SAR_FILE_ALREADY_EXIST,	"File already exist" },
+	{ SAR_NO_ROOM,			"No file space" },
+	{ SAR_FILE_NOT_EXIST,		"File not exist" }
+};
+
+const char *SKF_GetErrorString(ULONG ulError)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(skf_errstr); i++) {
+		if (ulError == skf_errstr[i].error) {
+			return skf_errstr[i].string;
+		}
+	}
+	return "(undef)";
+}
+
+int SKF_PrintRSAPublicKey(FILE *fp, RSAPUBLICKEYBLOB *pk)
+{
+	return 0;
+}
+
+int SKF_PrintRSAPrivateKey(FILE *fp, RSAPRIVATEKEYBLOB *pk)
+{
+	return 0;
+}
+
+int SKF_PrintECCPublicKey(FILE *fp, ECCPUBLICKEYBLOB *pk)
+{
+	return 0;
+}
+
+int SKF_PrintECCPrivateKey(FILE *fp, ECCPRIVATEKEYBLOB *pk)
+{
+	return 0;
+}
+
+int SKF_PrintECCCipher(FILE *fp, ECCCIPHERBLOB *cipher)
+{
+	return 0;
+}
+
+int SKF_PrintECCSignature(FILE *fp, ECCSIGNATUREBLOB *sig)
+{
+	return 0;
+}
+
+int SKF_PrintDeviceInfo(FILE *fp, DEVINFO *devInfo)
+{
+	int ret = 0;
+	ret += fprintf(fp, "Device Info:\n");
+	ret += fprintf(fp, " Device Version   : %d.%d\n", devInfo->Version.major, devInfo->Version.minor);
+	ret += fprintf(fp, " Manufacturer     : %s\n", devInfo->Manufacturer);
+	ret += fprintf(fp, " Issuer           : %s\n", devInfo->Issuer);
+	ret += fprintf(fp, " Label            : %s\n", devInfo->Label);
+	ret += fprintf(fp, " Serial Number    : %s\n", devInfo->SerialNumber);
+	ret += fprintf(fp, " Hardware Version : %d.%d\n", devInfo->HWVersion.major, devInfo->HWVersion.minor);
+	ret += fprintf(fp, " Firmware Version : %d.%d\n", devInfo->FirmwareVersion.major, devInfo->FirmwareVersion.minor);
+	ret += fprintf(fp, " AlgSymCap        : 0x%08x\n", devInfo->AlgSymCap);
+	ret += fprintf(fp, " AlgAsymCap       : 0x%08x\n", devInfo->AlgAsymCap);
+	ret += fprintf(fp, " AlgHashCap       : 0x%08x\n", devInfo->AlgHashCap);
+	ret += fprintf(fp, " AlgHashCap       : 0x%08x\n", devInfo->DevAuthAlgId);
+	ret += fprintf(fp, " Total Space      : %u\n", devInfo->TotalSpace);
+	ret += fprintf(fp, " Free Space       : %u\n", devInfo->FreeSpace);
+	ret += fprintf(fp, " MaxECCBuffer     : %u\n", devInfo->MaxECCBufferSize);
+	ret += fprintf(fp, " MaxBuffer        : %u\n", devInfo->MaxBufferSize);
+	return ret;
+}
+
+const char *SKF_GetAlgorName(ULONG ulAlgID)
+{
+	switch (ulAlgID) {
+	case SGD_SM1_ECB: return "sm1-ecb";
+	case SGD_SM1_CBC: return "sm1-cbc";
+	case SGD_SM1_CFB: return "sm1-ocb";
+	case SGD_SM1_OFB: return "sm1-ofb";
+	case SGD_SM1_MAC: return "sm1-mac";
+	case SGD_SM4_ECB: return "sms4-ecb";
+	case SGD_SM4_CBC: return "sms4-cbc";
+	case SGD_SM4_CFB: return "sms4-cfb";
+	case SGD_SM4_OFB: return "sms4-ofb";
+	case SGD_SM4_MAC: return "sms4-mac";
+	case SGD_SSF33_ECB: return "ssf33-ecb";
+	case SGD_SSF33_CBC: return "ssf33-cbc";
+	case SGD_SSF33_CFB: return "ssf33-cfb";
+	case SGD_SSF33_OFB: return "ssf33-ofb";
+	case SGD_SSF33_MAC: return "ssf33-mac";
+	case SGD_RSA: return "rsa";
+	case SGD_SM2_1: return "sm2sign";
+	case SGD_SM2_2: return "sm2encrypt";
+	case SGD_SM2_3: return "sm2keyagreement";
+	case SGD_SM3: return "sm3";
+	case SGD_SHA1: return "sha1";
+	case SGD_SHA256: return "sha256";
+	}
+	return NULL;
 }

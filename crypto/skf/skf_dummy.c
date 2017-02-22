@@ -126,6 +126,40 @@ ULONG DEVAPI SKF_GetDevInfo(
 	return SAR_OK;
 }
 
+ULONG DEVAPI SKF_GetDevInfo(DEVHANDLE hDev,
+	DEVINFO *pDevInfo)
+{
+	DEVINFO devInfo;
+
+	if (!pDevInfo) {
+		SKFerr(SKF_F_SKF_GETDEVINFO, SKF_R_NULL_ARGUMENT);
+		return SAR_INVALIDPARAMERR;
+	}
+
+	memset(&devInfo, 0, sizeof(devInfo));
+	devInfo.Version.major = 1;
+	devInfo.Version.minor = 0;
+	strcpy((char *)&devInfo.Manufacturer, "GmSSL Project (http://gmssl.org)");
+	strcpy((char *)&devInfo.Issuer, "GmSSL Project (http://gmssl.org)");
+	strcpy((char *)&devInfo.Label, "SKF Softotken");
+	strcpy((char *)&devInfo.SerialNumber, "1");
+	devInfo.HWVersion.major = 1;
+	devInfo.HWVersion.minor = 0;
+	devInfo.FirmwareVersion.major = 1;
+	devInfo.FirmwareVersion.minor = 0;
+	devInfo.AlgSymCap = 0x0000041F;
+	devInfo.AlgAsymCap = 0x00030700;
+	devInfo.AlgHashCap = 0x00000007;
+	devInfo.DevAuthAlgId = SGD_SM4_CBC;
+	devInfo.TotalSpace = 0;
+	devInfo.FreeSpace = 0;
+	devInfo.MaxECCBufferSize = 0; /* FIXME: max inlen of ECC encrypt */
+	devInfo.MaxBufferSize = 0; /* FIXME: max inlen of SM4 encrypt */
+
+	memcpy(pDevInfo, &devInfo, sizeof(DEVINFO));
+	return SAR_OK;
+}
+
 ULONG DEVAPI SKF_LockDev(
 	DEVHANDLE hDev,
 	ULONG ulTimeOut)
