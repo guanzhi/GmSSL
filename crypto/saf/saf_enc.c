@@ -51,6 +51,7 @@
 #include <openssl/rand.h>
 #include <openssl/gmsaf.h>
 #include <openssl/gmapi.h>
+#include "saf_lcl.h"
 
 /* 7.3.39 */
 int SAF_SymmEncryptUpdate(
@@ -61,7 +62,7 @@ int SAF_SymmEncryptUpdate(
 	unsigned int *puiOutDataLen)
 {
 	int ret = SAR_UnknownErr;
-	SAF_KEY_HANDLE *hkey = (SAF_KEY_HANDLE *)hKeyHandle;
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
 	unsigned char *out = pucOutData;
 	int inlen, outlen;
 
@@ -142,7 +143,7 @@ int SAF_SymmDecryptUpdate(
 	unsigned int *puiOutDataLen)
 {
 	int ret = SAR_UnknownErr;
-	SAF_KEY_HANDLE *hkey = (SAF_KEY_HANDLE *)hKeyHandle;
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
 	unsigned char *in = pucInData;
 	int inlen, outlen;
 
@@ -204,8 +205,6 @@ end:
 /* 7.3.43 */
 int SAF_SymmDecryptFinal(
 	void *hKeyHandle,
-	const unsigned char *pucInData,
-	unsigned int uiInDataLen,
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {

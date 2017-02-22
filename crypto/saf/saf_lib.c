@@ -112,16 +112,7 @@ int saf_get_ec_public_key_from_cert(
 
 static int readfile(const char *file, unsigned char **pout, size_t *len)
 {
-	FILE *fp = fopen(file, "rb");
-	fseek(fp, 0, SEEK_END);
-	long fsize = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	char *out = malloc(fsize);
-	fread(out, fsize, 1, f);
-	fclose(f);
-	*pout = out;
-	*len = fsize;
-	return SAR_OK;
+	return SAR_Ok;
 }
 
 static int cert_get_pubkey(

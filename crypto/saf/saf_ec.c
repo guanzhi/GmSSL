@@ -50,6 +50,7 @@
 #include <openssl/gmapi.h>
 #include <openssl/gmsdf.h>
 #include <openssl/gmsaf.h>
+#include "saf_lcl.h"
 
 
 /* 7.3.23 */
@@ -87,8 +88,6 @@ int SAF_GenEccKeyPair(
 		return SAR_KeyUsageErr;
 	}
 
-
-
 	/* set return value */
 	ret = SAR_Ok;
 
@@ -110,7 +109,7 @@ int SAF_GetEccPublicKey(
 	int rv;
 
 	/* check arguments */
-	if (!hAppHandle || !pucContainerNamae || !pucPUblicKey ||
+	if (!hAppHandle || !pucContainerName || !pucPublicKey ||
 		!puiPublicKeyLen) {
 		SAFerr(SAF_F_SAF_GETECCPUBLICKEY,
 			ERR_R_PASSED_NULL_PARAMETER);
@@ -161,8 +160,8 @@ int SAF_EccSign(
 	unsigned int uiISKIndex;
 
 	/* check arguments */
-	if (!hAppHandle || !pucContainerNamae || !pucPUblicKey ||
-		!pucSignData || !pucSignDataLen) {
+	if (!hAppHandle || !pucContainerName || !pucInData ||
+		!pucSignData || !puiSignDataLen) {
 		SAFerr(SAF_F_SAF_ECCSIGN,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
@@ -208,7 +207,7 @@ int SAF_EccVerifySign(
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGN, ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
-	if (uiPublicKeyLen != sizeof(ECCrefPublic)) {
+	if (uiPublicKeyLen != sizeof(ECCrefPublicKey)) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGN, SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
 	}
@@ -241,13 +240,15 @@ int SAF_EccPublicKeyEnc(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
+	int ret = -1;
+
 	/* check arguments */
 	if (!pucPublicKey || !pucInData || !pucOutData || !puiOutDataLen) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENC,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
-	if (uiPublicKeyLen != sizeof(ECCrefPublic)) {
+	if (uiPublicKeyLen != sizeof(ECCrefPublicKey)) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENC,
 			SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
@@ -293,7 +294,7 @@ int SAF_EccPublicKeyEncByCert(
 			ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
-	if (uiCertificateLen <= 0 || uiCertificate > INT_MAX) {
+	if (uiCertificateLen <= 0 || uiCertificateLen > INT_MAX) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT,
 			SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
@@ -340,7 +341,7 @@ int SAF_EccVerifySignByCert(
 			ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
-	if (uiCertificateLen <= 0 || uiCertificate > INT_MAX) {
+	if (uiCertificateLen <= 0 || uiCertificateLen > INT_MAX) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGNBYCERT,
 			SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
@@ -372,7 +373,8 @@ end:
 /* 7.3.33 */
 int SAF_GenerateAgreementDataWithECC(
 	void *hSymmKeyObj,
-	unsigned int uiISKIndex,
+	unsigned char *pucContainerName,
+	unsigned int uiContainerNameLen,
 	unsigned int uiKeyBits,
 	unsigned char *pucSponsorID,
 	unsigned int uiSponsorIDLength,
@@ -409,7 +411,8 @@ int SAF_GenerateKeyWithECC(
 /* 7.3.35 */
 int SAF_GenerateAgreementDataAdnKeyWithECC(
 	void *hSymmKeyObj,
-	unsigned int uiISKIndex,
+	unsigned char *pucContainerName,
+	unsigned int uiContainerNameLen,
 	unsigned int uiKeyBits,
 	unsigned char *pucResponseID,
 	unsigned int uiResponseIDLength,
@@ -430,7 +433,8 @@ int SAF_GenerateAgreementDataAdnKeyWithECC(
 
 	if ((ret = SAF_GenerateAgreementDataWithECC(
 		hSymmKeyObj,
-		uiISKIndex,
+		pucContainerName,
+		uiContainerNameLen,
 		uiKeyBits,
 		pucSponsorID,
 		uiSponsorIDLength,

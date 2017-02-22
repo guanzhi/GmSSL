@@ -92,7 +92,7 @@ static ERR_STRING_DATA saf_errstr[] = {
 	{ SAR_NotLogin,		"Not login" },
 };
 
-char *SAF_GetErrorString(int err)
+const char *SAF_GetErrorString(int err)
 {
 	int i;
 	for (i = 0; i < OSSL_NELEM(saf_errstr); i++) {

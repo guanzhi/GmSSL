@@ -51,9 +51,9 @@
 #include <openssl/cmac.h>
 #include <openssl/gmsdf.h>
 #include <openssl/gmsaf.h>
+#include <openssl/engine.h>
 
-
-typedef struct {
+typedef struct saf_app_st {
 	const char *config_path;
 	ENGINE *engine;
 } SAF_APP;
@@ -75,6 +75,8 @@ typedef struct {
 typedef struct {
 	SAF_SYMMKEYOBJ obj;
 	unsigned char key[64];
+	int keylen;
+	const EVP_CIPHER *cipher;
 	EVP_CIPHER_CTX *cipher_ctx;
 	CMAC_CTX *cmac_ctx;
 } SAF_KEY;

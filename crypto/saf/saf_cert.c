@@ -53,6 +53,7 @@
 #include <openssl/evp.h>
 #include <openssl/conf.h>
 #include <openssl/gmsaf.h>
+#include "saf_lcl.h"
 
 
 /* 7.2.2 */

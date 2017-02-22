@@ -51,6 +51,7 @@
 #include <openssl/cmac.h>
 #include <openssl/gmsaf.h>
 #include <openssl/gmapi.h>
+#include "saf_lcl.h"
 
 /* 7.3.45 */
 int SAF_MacUpdate(
@@ -117,7 +118,7 @@ int SAF_MacFinal(
 	}
 
 	siz = EVP_CIPHER_block_size(hkey->cipher);
-	if (!CBCMAC_Final(hkey->cbcmac_ctx, pucOutData, &siz)) {
+	if (!CBCMAC_Final(hkey->cmac_ctx, pucOutData, &siz)) {
 		SAFerr(SAF_F_SAF_MACFINAL, SAF_R_MAC_FAILURE);
 		return SAR_UnknownErr;
 	}

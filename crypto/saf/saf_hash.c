@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <openssl/evp.h>
 #include <openssl/gmsaf.h>
+#include "saf_lcl.h"
 
 /* 7.3.12 */
 int SAF_CreateHashObj(void **phHashObj,
@@ -61,11 +62,11 @@ int SAF_CreateHashObj(void **phHashObj,
 	unsigned char *pucID,
 	unsigned int ulIDLen)
 {
-	int ret = SAR_UnkownErr;
+	int ret = SAR_UnknownErr;
 	const EVP_MD *md;
 	EVP_MD_CTX *ctx = NULL;
 
-	if (!(md = EVP_get_digestbysgd(uiAlgorithmType))) {
+	if (!(md = EVP_get_digestbysgd(uiAlgoType))) {
 		return SAR_AlgoTypeErr;
 	}
 
@@ -80,7 +81,7 @@ int SAF_CreateHashObj(void **phHashObj,
 	*phHashObj = ctx;
 
 end:
-	if (ret != SAR_OK) {
+	if (ret != SAR_Ok) {
 		EVP_MD_CTX_free(ctx);
 		*phHashObj = NULL;
 	}
@@ -92,7 +93,7 @@ int SAF_DestroyHashObj(
 	void *phHashObj)
 {
 	EVP_MD_CTX_free((EVP_MD_CTX *)phHashObj);
-	return SAR_OK;
+	return SAR_Ok;
 }
 
 /* 7.3.14 */
@@ -101,10 +102,10 @@ int SAF_HashUpdate(
 	const unsigned char *pucInData,
 	unsigned int uiInDataLen)
 {
-	if (!EVP_DigestUpdate((EVP_MD_CTX *)phHashObj, pucInData, (size_t)uiInDataLne)) {
+	if (!EVP_DigestUpdate((EVP_MD_CTX *)phHashObj, pucInData, (size_t)uiInDataLen)) {
 		return SAR_HashErr;
 	}
-	return SAR_OK;
+	return SAR_Ok;
 }
 
 /* 7.3.15 */
@@ -115,7 +116,7 @@ int SAF_HashFinal(void *phHashObj,
 	if (!EVP_DigestFinal((EVP_MD_CTX *)phHashObj, pucOutData, uiOutDataLen)) {
 		return SAR_HashErr;
 	}
-	return SAR_OK;
+	return SAR_Ok;
 }
 
 /* 7.3.11 */
@@ -142,6 +143,6 @@ int SAF_Hash(
 		return SAR_HashErr;
 	}
 
-	return SAR_OK;
+	return SAR_Ok;
 }
 
