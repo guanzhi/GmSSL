@@ -108,21 +108,28 @@ static EVP_CIPHER *avx2_sms4_ctr = NULL;
 static int avx2_sms4_ecb_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	const unsigned char *iv, int enc)
 {
-	printf("  %s\n", __FUNCTION__);
+	if (enc)
+		sms4_avx2_encrypt_init(ctx->data, key);
+	else
+		sms4_avx2_decrypt_init(ctx->data, key);
+
 	return 1;
 }
 
 static int avx2_sms4_ecb_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	const unsigned char *in, size_t inlen)
 {
-	printf("  %s\n", __FUNCTION__);
-	memcpy(out, in, inlen);
+	while (inlen >= 8 * 16) {
+		sms4_avx2_encrypt_8blocks(ctx, out, in);
+		inlen -= 8 * 16;
+	}
+
 	return 1;
 }
 
 static int avx2_sms4_ecb_cleanup(EVP_CIPHER_CTX *ctx)
 {
-	printf("  %s\n", __FUNCTION__);
+	memset(ctx->data, 0, sizeof(sms4_avx2_key));
 	return 1;
 }
 
