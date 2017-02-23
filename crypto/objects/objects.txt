@@ -1607,3 +1607,9 @@ ibcs1 3 3		: ate-pairing
 ibcs1 3 4		: r-ate-pairing
 
 # CPK OID
+
+sm-scheme 1000		: cpk
+sm-scheme 1001		: paillier
+
+
+
