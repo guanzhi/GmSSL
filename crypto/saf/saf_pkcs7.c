@@ -48,6 +48,7 @@
  */
 
 #include <openssl/evp.h>
+#include <openssl/pkcs7.h>
 #include <openssl/gmapi.h>
 #include <openssl/gmsaf.h>
 #include "saf_lcl.h"
@@ -128,6 +129,80 @@ int SAF_Pkcs7_EncodeEnvelopedData(
 	unsigned int *puiDerP7EnvelopedDataLen)
 {
 	int ret = SAR_UnknownErr;
+	PKCS7 *p7 = NULL;
+	X509 *x509 = NULL;
+	STACK_OF(X509) *certs = NULL;
+	BIO *bio = NULL;
+	const EVP_CIPHER *cipher;
+
+	/* check arguments */
+	if (!hAppHandle || !pucData || !pucEncCertificate || !puiDerP7EnvelopedDataLen) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (uiDataLen <= 0 || uiDataLen > INT_MAX
+		|| uiEncCertificateLen <= 0 || uiEncCertificateLen > INT_MAX) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, SAF_R_INVALID_INPUT_LENGTH);
+		return SAR_IndataLenErr;
+	}
+
+	if (!(cipher = EVP_get_cipherbysgd(uiSymmAlgorithm))) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, SAF_R_UNSUPPORTED_ALGOR);
+		return SAR_AlgoTypeErr;
+	}
+
+	/* process */
+	if (!(bio = BIO_new_mem_buf(pucData, (int)uiDataLen))
+		|| !(certs = sk_X509_new_null())
+		|| !(x509 = X509_new())) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, ERR_R_MALLOC_FAILURE);
+		ret = SAR_MemoryErr;
+		goto end;
+	}
+
+	if (!d2i_X509(&x509, &pucEncCertificate, (long)uiEncCertificateLen)) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, SAF_R_INVALID_CERTIFICATE);
+		ret = SAR_CertEncodeErr;
+		goto end;
+	}
+	// FIXME: check usage, valid time of x509
+
+	sk_X509_push(certs, x509);
+	x509 = NULL;
+
+	if (!(p7 = PKCS7_encrypt(certs, bio, cipher, PKCS7_BINARY))) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, ERR_R_PKCS7_LIB);
+		goto end;
+	}
+
+	if ((len = i2d_PKCS7(p7, NULL)) <= 0) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, ERR_R_PKCS7_LIB);
+		goto end;
+	}
+
+	if (!pucDerP7EnvelopedData) {
+		*puiDerP7EnvelopedDataLen = (unsigned int)len;
+		ret = SAR_Ok;
+		goto end;
+	}
+
+	if (*puiDerP7EnvelopedDataLen < (unsigned int)len) {
+		SAFerr(SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA, SAF_R_BUFFER_TOO_SMALL);
+		ret = SAR_IndataLenErr;
+		goto end;
+	}
+
+	len = i2d_PKCS7(p7, pucDerP7EnvelopedData);
+	*puiDerP7EnvelopedDataLen = (unsigned int)len;
+
+	ret = SAR_OK;
+
+end:
+	PKCS7_free(p7);
+	X509_free(x509);
+	sk_X509_free(certs);
+	BIO_free(bio);
 	return ret;
 }
 

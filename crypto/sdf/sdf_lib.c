@@ -1330,3 +1330,38 @@ int SDF_DeleteFile(
 	return SDR_OK;
 }
 
+/* helpers */
+const char *SDF_GetErrorString(int err)
+{
+	return NULL;
+}
+
+int SDF_PrintDeviceInfo(FILE *fp, DEVICEINFO *devInfo)
+{
+	return 0;
+}
+
+int SDF_PrintECCPrivateKey(FILE *fp, ECCrefPrivateKey *privateKey)
+{
+	return 0;
+}
+
+int SDF_PrintECCPublicKey(FILE *fp, ECCrefPublicKey *publicKey)
+{
+	return 0;
+}
+
+int SDF_PrintRSAPrivateKey(FILE *fp, RSArefPrivateKey *privateKey)
+{
+	return 0;
+}
+
+int SDF_PrintRSAPublicKey(FILE *fp, RSArefPublicKey *publicKey)
+{
+	return 0;
+}
+
+
+
+
+
