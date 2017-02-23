@@ -58,8 +58,6 @@
 #define SM2_KMETH_FLAGS		0
 
 
-extern EC_KEY_METHOD *default_ec_key_meth;
-
 int SM2_ENC_PARAMS_set_type(SM2_ENC_PARAMS *params, int type)
 {
 	// FIXME:
@@ -193,32 +191,15 @@ const EC_KEY_METHOD *EC_KEY_GmSSL(void)
 	return &gmssl_ec_key_method;
 }
 
-const EC_KEY_METHOD *EC_KEY_get_default_secg_method(void)
+int EC_KEY_METHOD_type(const EC_KEY_METHOD *meth)
 {
-	return EC_KEY_OpenSSL();
+	if (meth->flags & EC_KEY_METHOD_SM2) {
+		return NID_sm_scheme;
+	} else {
+		return NID_secg_scheme;
+	}
 }
 
-const EC_KEY_METHOD *EC_KEY_get_default_sm_method(void)
-{
-	return EC_KEY_GmSSL();
-}
-
-void EC_KEY_set_default_secg_method(const EC_KEY_METHOD *meth)
-{
-	if (meth == NULL)
-		default_ec_key_meth = EC_KEY_OpenSSL();
-	else
-		default_ec_key_meth = meth;
-
-}
-
-void EC_KEY_set_default_sm_method(const EC_KEY_METHOD *meth)
-{
-	if (meth == NULL)
-		default_ec_key_meth = EC_KEY_GmSSL();
-	else
-		default_ec_key_meth = meth;
-}
 
 void EC_KEY_METHOD_set_encrypt(EC_KEY_METHOD *meth,
                                int (*encrypt)(int type,
