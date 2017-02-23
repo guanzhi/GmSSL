@@ -221,61 +221,35 @@ void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
 
 
 const EC_KEY_METHOD *EC_KEY_GmSSL(void);
-const EC_KEY_METHOD *EC_KEY_get_default_secg_method(void);
-const EC_KEY_METHOD *EC_KEY_get_default_sm_method(void);
-void EC_KEY_set_default_secg_method(const EC_KEY_METHOD *meth);
-void EC_KEY_set_default_sm_method(const EC_KEY_METHOD *meth);
+void EC_KEY_set_default_secg_method(void);
+void EC_KEY_set_default_sm_method(void);
 
+
+int EC_KEY_METHOD_type(const EC_KEY_METHOD *meth);
 
 void EC_KEY_METHOD_set_encrypt(EC_KEY_METHOD *meth,
-                               int (*encrypt)(int type,
-                                              const unsigned char *in,
-                                              size_t inlen,
-                                              unsigned char *out,
-                                              size_t *outlen,
-                                              EC_KEY *ec_key),
-                               ECIES_CIPHERTEXT_VALUE *(*do_encrypt)(int type,
-                                              const unsigned char *in,
-                                              size_t inlen,
-                                              EC_KEY *ec_key));
+	int (*encrypt)(int type, const unsigned char *in, size_t inlen,
+		unsigned char *out, size_t *outlen, EC_KEY *ec_key),
+	ECIES_CIPHERTEXT_VALUE *(*do_encrypt)(int type,
+		const unsigned char *in, size_t inlen, EC_KEY *ec_key));
 
 void EC_KEY_METHOD_set_decrypt(EC_KEY_METHOD *meth,
-                               int (*decrypt)(int type,
-                                              const unsigned char *in,
-                                              size_t inlen,
-                                              unsigned char *out,
-                                              size_t *outlen,
-                                              EC_KEY *ec_key),
-                               int (do_decrypt)(int type,
-                                                const ECIES_CIPHERTEXT_VALUE *in,
-                                                unsigned char *out,
-                                                size_t *outlen,
-                                                EC_KEY *ec_key));
+	int (*decrypt)(int type, const unsigned char *in, size_t inlen,
+		unsigned char *out, size_t *outlen, EC_KEY *ec_key),
+	int (do_decrypt)(int type, const ECIES_CIPHERTEXT_VALUE *in,
+		unsigned char *out, size_t *outlen, EC_KEY *ec_key));
 
 void EC_KEY_METHOD_get_encrypt(EC_KEY_METHOD *meth,
-                               int (**pencrypt)(int type,
-                                                const unsigned char *in,
-                                                size_t inlen,
-                                                unsigned char *out,
-                                                size_t *outlen,
-                                                EC_KEY *ec_key),
-                               ECIES_CIPHERTEXT_VALUE *(**pdo_encrypt)(int type,
-                                                const unsigned char *in,
-                                                size_t inlen,
-                                                EC_KEY *ec_key));
+	int (**pencrypt)(int type, const unsigned char *in, size_t inlen,
+		unsigned char *out, size_t *outlen, EC_KEY *ec_key),
+	ECIES_CIPHERTEXT_VALUE *(**pdo_encrypt)(int type,
+		const unsigned char *in, size_t inlen, EC_KEY *ec_key));
 
 void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
-                               int (**pdecrypt)(int type,
-                                                const unsigned char *in,
-                                                size_t inlen,
-                                                unsigned char *out,
-                                                size_t *outlen,
-                                                EC_KEY *ec_key),
-                               int (**pdo_decrypt)(int type,
-                                                   const ECIES_CIPHERTEXT_VALUE *in,
-                                                   unsigned char *out,
-                                                   size_t *outlen,
-                                                   EC_KEY *ec_key));
+	int (**pdecrypt)(int type, const unsigned char *in, size_t inlen,
+		unsigned char *out, size_t *outlen, EC_KEY *ec_key),
+	int (**pdo_decrypt)(int type, const ECIES_CIPHERTEXT_VALUE *in,
+		unsigned char *out, size_t *outlen, EC_KEY *ec_key));
 
 #ifdef  __cplusplus
 }

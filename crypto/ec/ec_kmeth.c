@@ -12,7 +12,9 @@
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include "ec_lcl.h"
-
+#ifndef OPENSSL_NO_SM2
+# include "../ecies/ecies_lcl.h"
+#endif
 
 static const EC_KEY_METHOD openssl_ec_key_method = {
     "OpenSSL EC_KEY method",
@@ -26,10 +28,10 @@ static const EC_KEY_METHOD openssl_ec_key_method = {
     ossl_ecdsa_verify,
     ossl_ecdsa_verify_sig,
 #ifndef OPENSSL_NO_SM2
-    ossl_ecies_encrypt,
-    ossl_ecies_do_encrypt,
-    ossl_ecies_decrypt,
-    ossl_ecies_do_decrypt,
+    gmssl_ecies_encrypt,
+    gmssl_ecies_do_encrypt,
+    gmssl_ecies_decrypt,
+    gmssl_ecies_do_decrypt,
 #endif
 };
 
@@ -52,6 +54,18 @@ void EC_KEY_set_default_method(const EC_KEY_METHOD *meth)
     else
         default_ec_key_meth = meth;
 }
+
+#ifndef OPENSSL_NO_SM2
+void EC_KEY_set_default_secg_method(void)
+{
+    default_ec_key_meth = EC_KEY_OpenSSL();
+}
+
+void EC_KEY_set_default_sm_method(void)
+{
+    default_ec_key_meth = EC_KEY_GmSSL();
+}
+#endif
 
 const EC_KEY_METHOD *EC_KEY_get_method(const EC_KEY *key)
 {
