@@ -208,7 +208,7 @@ int EVP_CIPHER_type(const EVP_CIPHER *ctx)
         return NID_sms4_cfb128;
 #endif
 
-#ifndef OPENSSL_NO_SM1:
+#ifndef OPENSSL_NO_SM1
     case NID_sm1_cfb128:
     case NID_sm1_cfb8:
     case NID_sm1_cfb1:

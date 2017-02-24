@@ -95,8 +95,12 @@ int ERR_load_PAILLIER_strings(void);
 # define PAILLIER_F_PAILLIER_ENCRYPT                      104
 # define PAILLIER_F_PAILLIER_GENERATE_KEY                 105
 # define PAILLIER_F_PAILLIER_NEW                          106
+# define PAILLIER_F_PAILLIER_PUB_DECODE                   107
+# define PAILLIER_F_PKEY_PAILLIER_DECRYPT                 108
+# define PAILLIER_F_PKEY_PAILLIER_ENCRYPT                 109
 
 /* Reason codes. */
+# define PAILLIER_R_BUFFER_TOO_SMALL                      104
 # define PAILLIER_R_GENERATE_PRIME_FAILED                 100
 # define PAILLIER_R_INVALID_PLAINTEXT                     101
 # define PAILLIER_R_MALLOC_FAILED                         102

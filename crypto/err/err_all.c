@@ -48,10 +48,10 @@
 #include <openssl/bfibe.h>
 #include <openssl/bb1ibe.h>
 #include <openssl/sm9.h>
-#include <openssl/saf.h>
-#include <openssl/sdf.h>
-#include <openssl/skf.h>
-#include <openssl/sof.h>
+#include <openssl/gmsaf.h>
+#include <openssl/gmsdf.h>
+#include <openssl/gmskf.h>
+#include <openssl/gmsof.h>
 
 int err_load_crypto_strings_int(void)
 {

@@ -4962,3 +4962,11 @@
 #define SN_r_ate_pairing                "r-ate-pairing"
 #define NID_r_ate_pairing               1146
 #define OBJ_r_ate_pairing               OBJ_ibcs1,3L,4L
+
+#define SN_cpk          "cpk"
+#define NID_cpk         1147
+#define OBJ_cpk         OBJ_sm_scheme,1000L
+
+#define SN_paillier             "paillier"
+#define NID_paillier            1148
+#define OBJ_paillier            OBJ_sm_scheme,1001L

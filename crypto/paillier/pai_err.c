@@ -27,10 +27,14 @@ static ERR_STRING_DATA PAILLIER_str_functs[] = {
     {ERR_FUNC(PAILLIER_F_PAILLIER_ENCRYPT), "PAILLIER_encrypt"},
     {ERR_FUNC(PAILLIER_F_PAILLIER_GENERATE_KEY), "PAILLIER_generate_key"},
     {ERR_FUNC(PAILLIER_F_PAILLIER_NEW), "PAILLIER_new"},
+    {ERR_FUNC(PAILLIER_F_PAILLIER_PUB_DECODE), "paillier_pub_decode"},
+    {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_DECRYPT), "pkey_paillier_decrypt"},
+    {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_ENCRYPT), "pkey_paillier_encrypt"},
     {0, NULL}
 };
 
 static ERR_STRING_DATA PAILLIER_str_reasons[] = {
+    {ERR_REASON(PAILLIER_R_BUFFER_TOO_SMALL), "buffer too small"},
     {ERR_REASON(PAILLIER_R_GENERATE_PRIME_FAILED), "generate prime failed"},
     {ERR_REASON(PAILLIER_R_INVALID_PLAINTEXT), "invalid plaintext"},
     {ERR_REASON(PAILLIER_R_MALLOC_FAILED), "malloc failed"},

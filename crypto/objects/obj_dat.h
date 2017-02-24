@@ -10,7 +10,7 @@
  */
 
 /* Serialized OID's */
-static const unsigned char so[7417] = {
+static const unsigned char so[7433] = {
     0x2A,0x86,0x48,0x86,0xF7,0x0D,                 /* [    0] OBJ_rsadsi */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,            /* [    6] OBJ_pkcs */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,       /* [   13] OBJ_md2 */
@@ -1046,9 +1046,11 @@ static const unsigned char so[7417] = {
     0x2A,0x86,0x48,0x01,0x86,0xFD,0x1E,0x01,0x03,0x02,  /* [ 7386] OBJ_weil_pairing */
     0x2A,0x86,0x48,0x01,0x86,0xFD,0x1E,0x01,0x03,0x03,  /* [ 7396] OBJ_ate_pairing */
     0x2A,0x86,0x48,0x01,0x86,0xFD,0x1E,0x01,0x03,0x04,  /* [ 7406] OBJ_r_ate_pairing */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x87,0x68,       /* [ 7416] OBJ_cpk */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x87,0x69,       /* [ 7424] OBJ_paillier */
 };
 
-#define NUM_NID 1147
+#define NUM_NID 1149
 static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"UNDEF", "undefined", NID_undef},
     {"rsadsi", "RSA Data Security, Inc.", NID_rsadsi, 6, &so[0]},
@@ -2197,9 +2199,11 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"weil-pairing", "weil-pairing", NID_weil_pairing, 10, &so[7386]},
     {"ate-pairing", "ate-pairing", NID_ate_pairing, 10, &so[7396]},
     {"r-ate-pairing", "r-ate-pairing", NID_r_ate_pairing, 10, &so[7406]},
+    {"cpk", "cpk", NID_cpk, 8, &so[7416]},
+    {"paillier", "paillier", NID_paillier, 8, &so[7424]},
 };
 
-#define NUM_SN 1138
+#define NUM_SN 1140
 static const unsigned int sn_objs[NUM_SN] = {
      364,    /* "AD_DVCS" */
      419,    /* "AES-128-CBC" */
@@ -2567,6 +2571,7 @@ static const unsigned int sn_objs[NUM_SN] = {
      131,    /* "codeSigning" */
       50,    /* "contentType" */
       53,    /* "countersignature" */
+    1147,    /* "cpk" */
      153,    /* "crlBag" */
      103,    /* "crlDistributionPoints" */
       88,    /* "crlNumber" */
@@ -3016,6 +3021,7 @@ static const unsigned int sn_objs[NUM_SN] = {
      475,    /* "otherMailbox" */
      876,    /* "owner" */
      489,    /* "pagerTelephoneNumber" */
+    1148,    /* "paillier" */
      374,    /* "path" */
      112,    /* "pbeWithMD5AndCast5CBC" */
      499,    /* "personalSignature" */
@@ -3341,7 +3347,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1069,    /* "xor-in-ecies" */
 };
 
-#define NUM_LN 1138
+#define NUM_LN 1140
 static const unsigned int ln_objs[NUM_LN] = {
      363,    /* "AD Time Stamping" */
      405,    /* "ANSI X9.62" */
@@ -3681,6 +3687,7 @@ static const unsigned int ln_objs[NUM_LN] = {
       50,    /* "contentType" */
       53,    /* "countersignature" */
       14,    /* "countryName" */
+    1147,    /* "cpk" */
      153,    /* "crlBag" */
      884,    /* "crossCertificatePair" */
      806,    /* "cryptocom" */
@@ -4105,6 +4112,7 @@ static const unsigned int ln_objs[NUM_LN] = {
      876,    /* "owner" */
      935,    /* "pSpecified" */
      489,    /* "pagerTelephoneNumber" */
+    1148,    /* "paillier" */
      782,    /* "password based MAC" */
      374,    /* "path" */
      621,    /* "payment gateway capabilities" */
@@ -4483,7 +4491,7 @@ static const unsigned int ln_objs[NUM_LN] = {
     1136,    /* "zuc" */
 };
 
-#define NUM_OBJ 1041
+#define NUM_OBJ 1043
 static const unsigned int obj_objs[NUM_OBJ] = {
        0,    /* OBJ_undef                        0 */
      181,    /* OBJ_iso                          1 */
@@ -4993,6 +5001,8 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1133,    /* OBJ_sm2sign_with_sha384          1 2 156 10197 1 506 */
     1134,    /* OBJ_sm2sign_with_rmd160          1 2 156 10197 1 507 */
     1136,    /* OBJ_zuc                          1 2 156 10197 1 800 */
+    1147,    /* OBJ_cpk                          1 2 156 10197 1 1000 */
+    1148,    /* OBJ_paillier                     1 2 156 10197 1 1001 */
      776,    /* OBJ_seed_ecb                     1 2 410 200004 1 3 */
      777,    /* OBJ_seed_cbc                     1 2 410 200004 1 4 */
      779,    /* OBJ_seed_cfb128                  1 2 410 200004 1 5 */

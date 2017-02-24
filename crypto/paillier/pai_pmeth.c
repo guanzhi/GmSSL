@@ -135,7 +135,7 @@ static int pkey_paillier_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 	}
 
 	if (!BN_bin2bn(in, (int)inlen, c)) {
-		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_BN_LIB);
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!PAILLIER_decrypt(m, c, key)) {
