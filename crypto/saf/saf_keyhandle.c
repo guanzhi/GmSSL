@@ -82,8 +82,28 @@ int SAF_GenerateKeyWithEPK(
 		return SAR_IndataLenErr;
 	}
 
+/*
+ 65 typedef struct {
+ 66         SAF_APP *app;
+ 67         unsigned char *pucContainerName;
+ 68         unsigned int uiContainerLen;
+ 69         unsigned char *pucIV;
+ 70         unsigned int uiIVLen;
+ 71         unsigned int uiEncOrDec;
+ 72         unsigned int uiCryptoAlgID;
+ 73 } SAF_SYMMKEYOBJ;
+ 74 
+ 75 typedef struct {
+ 76         SAF_SYMMKEYOBJ *hSymmKeyObj;
+ 77         unsigned char key[64];
+ 78         int keylen;
+ 79         EVP_CIPHER_CTX *cipher_ctx;
+ 80         CMAC_CTX *cmac_ctx;
+ 81 } SAF_KEY;
+*/
+
 	outlen = (size_t)*puiSymmKeyLen;
-	if (!(cipher = EVP_get_cipherbysgd(obj->algor))
+	if (!(cipher = EVP_get_cipherbysgd(obj->uiCryptoAlgID))
 		|| !RAND_bytes(keybuf, EVP_CIPHER_key_length(cipher))
 		|| !(pkey = d2i_PUBKEY(NULL, &pucPublicKey, (long)uiPublicKeyLen))
 		|| !(pkctx = EVP_PKEY_CTX_new(pkey, NULL))

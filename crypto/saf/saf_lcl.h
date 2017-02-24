@@ -54,7 +54,6 @@
 #include <openssl/engine.h>
 
 typedef struct saf_app_st {
-	const char *config_path;
 	ENGINE *engine;
 } SAF_APP;
 
@@ -64,20 +63,22 @@ typedef struct {
 } SAF_BASE64OBJ;
 
 typedef struct {
-	unsigned int algor;
-	unsigned char container[256];
-	unsigned int containerlen;
-	unsigned char iv[16];
-	unsigned int ivlen;
-	unsigned int enc;
+	SAF_APP *app;
+	unsigned char *pucContainerName;
+	unsigned int uiContainerLen;
+	unsigned char *pucIV;
+	unsigned int uiIVLen;
+	unsigned int uiEncOrDec;
+	unsigned int uiCryptoAlgID;
 } SAF_SYMMKEYOBJ;
 
 typedef struct {
-	SAF_SYMMKEYOBJ obj;
+	SAF_SYMMKEYOBJ *hSymmKeyObj;
 	unsigned char key[64];
 	int keylen;
-	const EVP_CIPHER *cipher;
 	EVP_CIPHER_CTX *cipher_ctx;
 	CMAC_CTX *cmac_ctx;
 } SAF_KEY;
 
+SAF_SYMMKEYOBJ *SAF_SYMMKEYOBJ_dup(const SAF_SYMMKEYOBJ *a);
+void SAF_SYMMKEYOBJ_free(SAF_SYMMKEYOBJ *a);

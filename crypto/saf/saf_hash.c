@@ -145,4 +145,3 @@ int SAF_Hash(
 
 	return SAR_Ok;
 }
-

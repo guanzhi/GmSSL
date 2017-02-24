@@ -61,11 +61,30 @@ int SAF_GenRsaKeyPair(void *hAppHandle,
 	unsigned int uiKeyUsage,
 	unsigned int uiExportFlag)
 {
-	return SAR_NotSupportYetErr;
+	int ret = SAR_UnknownErr;
+	SAF_APP *app = (SAF_APP *)hAppHandle;
+
+	/* process */
+	EVP_PKEY_CTX *pctx = NULL;
+	EVP_PKEY *pkey = NULL;
+
+	if (!(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, app->engine))
+		|| EVP_PKEY_keygen_init(pctx) <= 0
+		|| EVP_PKEY_CTX_set_rsa_keygen_bits(pctx, uiKeyBits) <= 0
+		|| EVP_PKEY_keygen(pctx, &pkey) <= 0) {
+		SAFerr(SAF_F_SAF_GENRSAKEYPAIR, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	ret = SAR_Ok;
+end:
+	EVP_PKEY_CTX_free(pctx);
+	EVP_PKEY_free(pkey);
+	return ret;
 }
 
 /* 7.3.17 */
-int SAF_GetPublicKey(
+int SAF_GetRsaPublicKey(
 	void *hAppHandle,
 	unsigned char *pucContainerName,
 	unsigned int uiContainerNameLen,
@@ -73,7 +92,38 @@ int SAF_GetPublicKey(
 	unsigned char *pucPublicKey,
 	unsigned int *puiPublicKeyLen)
 {
-	return SAR_NotSupportYetErr;
+	int ret = SAR_UnknownErr;
+	SAF_APP *app = (SAF_APP *)hAppHandle;
+
+	/* process */
+	EVP_PKEY *pkey = NULL;
+	char key_id[1024];
+	int len;
+
+	snprintf(key_id, sizeof(key_id), "%s.%s", (char *)pucContainerName,
+		SGD_GetKeyUsageName(uiKeyUsage));
+
+	if (!(pkey = ENGINE_load_public_key(app->engine, key_id, NULL, NULL))) {
+		SAFerr(SAF_F_SAF_GETRSAPUBLICKEY, ERR_R_ENGINE_LIB);
+		goto end;
+	}
+	if (EVP_PKEY_base_id(pkey) != EVP_PKEY_RSA) {
+		SAFerr(SAF_F_SAF_GETRSAPUBLICKEY, ERR_R_ENGINE_LIB);
+		goto end;
+	}
+	if ((len = i2d_PUBKEY(pkey, &pucPublicKey)) <= 0) {
+		SAFerr(SAF_F_SAF_GETRSAPUBLICKEY, ERR_R_X509_LIB);
+		goto end;
+	}
+
+	*puiPublicKeyLen = (unsigned int)len;
+
+	/* set return value */
+	ret = SAR_Ok;
+
+end:
+	EVP_PKEY_free(pkey);
+	return ret;
 }
 
 /* 7.3.18 */
@@ -87,7 +137,32 @@ int SAF_RsaSign(
 	unsigned char *pucSignature,
 	unsigned int *puiSignatureLen)
 {
-	return SAR_NotSupportYetErr;
+	int ret = SAR_UnknownErr;
+	SAF_APP *app = (SAF_APP *)hAppHandle;
+
+	/* process */
+	char key_id[1024];
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pctx = NULL;
+	size_t siglen;
+
+	snprintf(key_id, sizeof(key_id), "%s.sign", (char *)pucContainerName);
+
+	if (!(pkey = ENGINE_load_private_key(app->engine, key_id, NULL, NULL))
+		|| !(pctx = EVP_PKEY_CTX_new(pkey, app->engine))
+		|| EVP_PKEY_sign_init(pctx) <= 0
+		|| EVP_PKEY_sign(pctx, pucSignData, &siglen, pucInData, (size_t)uiInDataLen) <= 0) {
+		SAFerr(SAF_F_SAF_RSASIGN, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	*puiSignDataLen = (unsigned int)siglen;
+
+	ret = SAR_Ok;
+end:
+	EVP_PKEY_free(pkey);
+	EVP_PKEY_CTX_free(pctx);
+	return ret;
 }
 
 /* 7.3.19 */
@@ -113,7 +188,24 @@ int SAF_RsaVerifySign(
 	unsigned char *pucSignature,
 	unsigned int uiSignatureLen)
 {
-	return SAR_NotSupportYetErr;
+	int ret = SAR_UnknownErr;
+	/* process */
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pctx = NULL;
+
+	if (!(pkey = d2i_PUBKEY(NULL, (const unsigned char **)&pucPublicKey, (long)uiPublicKeyLen))
+		|| !(pctx = EVP_PKEY_CTX_new(pkey, NULL))
+		|| EVP_PKEY_verify_init(pctx) <= 0
+		|| EVP_PKEY_verify(pctx, pucSignData, uiSignDataLen, pucInData, uiInDataLen) <= 0) {
+		SAFerr(SAF_F_SAF_RSAVERIFYSIGN, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	ret = SAR_Ok;
+end:
+	EVP_PKEY_free(pkey);
+	EVP_PKEY_CTX_free(pctx);
+	return ret;
 }
 
 /* 7.3.21 */
@@ -138,6 +230,39 @@ int SAF_VerifySignByCert(
 	unsigned char *pucSignature,
 	unsigned int uiSignatureLen)
 {
-	return SAR_OK;
-}
+	int ret = SAR_UnknownErr;
+	/* process */
+	X509 *x509 = NULL;
+	unsigned char pucPublicKey[1024];
+	unsigned int uiPublicKeyLen;
+	unsigned char *p = pucPublicKey;
+	int len;
 
+	if (!(x509 = d2i_X509(NULL, (const unsigned char **)&pucCertificate, (long)uiCertificateLen))) {
+		SAFerr(SAF_F_SAF_VERIFYSIGNBYCERT, ERR_R_X509_LIB);
+		goto end;
+	}
+
+	if ((len = i2d_PUBKEY(X509_get0_pubkey(x509), &p)) <= 0) {
+		SAFerr(SAF_F_SAF_VERIFYSIGNBYCERT, ERR_R_X509_LIB);
+		goto end;
+	}
+
+	uiPublicKeyLen = (unsigned int)len;
+
+	ret = SAF_RsaVerifySign(
+		pucPublicKey,
+		uiPublicKeyLen,
+		uiAlgorithmID,
+		pucInData,
+		uiInDataLen,
+		pucSignData,
+		uiSignDataLen);
+
+
+	/* set return value */
+	ret = SAR_Ok;
+end:
+	X509_free(x509);
+	return ret;
+}

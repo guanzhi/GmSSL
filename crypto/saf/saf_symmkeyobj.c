@@ -79,18 +79,18 @@ int SAF_CreateSymmKeyObj(
 		return SAR_IndataLenErr;
 	}
 
-	/* init object */
-	if (!(obj = OPENSSL_zalloc(sizeof(*obj)))) {
+	if (!(obj = OPENSSL_zalloc(sizeof(*obj)))
+		|| !(obj->pucContainerName = OPENSSL_memdup(pucContainerName, uiContainerLen))
+		|| !(obj->pucIV = OPENSSL_memdup(pucIV, uiIVLen))) {
 		SAFerr(SAF_F_SAF_CREATESYMMKEYOBJ, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	memcpy(obj->container, pucContainerName, uiContainerLen);
-	obj->containerlen = uiContainerLen;
-	memcpy(obj->iv, pucIV, uiIVLen);
-	obj->ivlen = uiIVLen;
-	obj->enc = uiEncOrDec;
-	obj->algor = uiCryptoAlgID;
+	obj->app = (SAF_APP *)hAppHandle;
+	obj->uiContainerLen = uiContainerLen;
+	obj->uiIVLen = uiIVLen;
+	obj->uiEncOrDec = uiEncOrDec;
+	obj->uiCryptoAlgID = uiCryptoAlgID;
 
 	/* set output */
 	*phSymmKeyObj = obj;
@@ -109,7 +109,8 @@ int SAF_DestroySymmAlgoObj(
 {
 	SAF_SYMMKEYOBJ *obj = (SAF_SYMMKEYOBJ *)hSymmKeyObj;
 	if (obj) {
-		OPENSSL_cleanse(obj, sizeof(*obj));
+		OPENSSL_free(obj->pucContainerName);
+		OPENSSL_free(obj->pucIV);
 		OPENSSL_free(obj);
 	}
 	return SAR_OK;

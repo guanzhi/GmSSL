@@ -334,7 +334,7 @@ int SAF_GenRsaKeyPair(
 	unsigned int uiKeyUsage,
 	unsigned int uiExportFlag);
 
-int SAF_GetPublicKey(
+int SAF_GetRsaPublicKey(
 	void *hAppHandle,
 	unsigned char *pucContainerName,
 	unsigned int uiContainerNameLen,

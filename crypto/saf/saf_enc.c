@@ -63,21 +63,26 @@ int SAF_SymmEncryptUpdate(
 {
 	int ret = SAR_UnknownErr;
 	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
-	unsigned char *out = pucOutData;
-	int inlen, outlen;
+	int outlen;
 
 	if (!hKeyHandle || !pucInData || !pucOutData || !puiOutDataLen) {
 		SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
-	if (uiInDataLen > INT_MAX) {
+
+	if (uiInDataLen <= 0 || uiInDataLen > INT_MAX) {
 		SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, SAF_R_INVALID_LENGTH);
 		return SAR_IndataLenErr;
 	}
 
 	if (!hkey->cipher_ctx) {
-		unsigned char iv[32];
-		int ivlen;
+		const EVP_CIPHER *cipher;
+
+		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID))) {
+			SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, SAF_R_INVALID_KEY_HANDLE);
+			ret = SAR_IndataErr;
+			goto end;
+		}
 
 		if (!(hkey->cipher_ctx = EVP_CIPHER_CTX_new())) {
 			SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, ERR_R_MALLOC_FAILURE);
@@ -85,31 +90,16 @@ int SAF_SymmEncryptUpdate(
 			goto end;
 		}
 
-		/* generate random iv and output */
-		ivlen = EVP_CIPHER_block_size(hkey->cipher);
-		if (ivlen <= 0 || ivlen > sizeof(iv)) {
-			SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, SAF_R_INVALID_CONTEXT);
-			ret = SAR_ObjErr;
-			goto end;
-		}
-		if (!RAND_bytes(iv, ivlen)) {
-			SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, SAF_R_GEN_RANDOM);
-			ret = SAR_GenRandErr;
-			goto end;
-		}
-
-		/* output iv, update out pointer */
-		memcpy(out, iv, ivlen);
-		out += ivlen;
-
-		if (!EVP_EncryptInit(hkey->cipher_ctx, hkey->cipher, hkey->key, iv)) {
+		if (!EVP_EncryptInit_ex(hkey->cipher_ctx, cipher,
+			hkey->hSymmKeyObj->app->engine,
+			hkey->key, hkey->hSymmKeyObj->pucIV)) {
 			SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 	}
 
-	inlen = (int)uiInDataLen;
-	if (!EVP_EncryptUpdate(hkey->cipher_ctx, out, &outlen, pucInData, inlen)) {
+	if (!EVP_EncryptUpdate(hkey->cipher_ctx, pucOutData, &outlen,
+		pucInData, (int)uiInDataLen)) {
 		SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -131,7 +121,31 @@ int SAF_SymmEncryptFinal(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
-	return 0;
+	int ret = SAR_UnknownErr;
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
+	int outlen;
+
+	if (!hKeyHandle || !pucOutData || !puiOutDataLen) {
+		SAFerr(SAF_F_SAF_SYMMENCRYPTFINAL, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (!hkey->cipher_ctx) {
+		SAFerr(SAF_F_SAF_SYMMENCRYPTFINAL, SAF_R_ENCRYPT_NOT_INITIALIED);
+		return SAR_NotInitializeErr;
+	}
+
+	if (!EVP_EncryptFinal_ex(hkey->cipher_ctx, pucOutData, &outlen)) {
+		SAFerr(SAF_F_SAF_SYMMENCRYPTFINAL, ERR_R_EVP_LIB);
+		goto end;
+	}
+	*puiOutDataLen = (unsigned int)outlen;
+
+	ret = SAR_OK;
+end:
+	EVP_CIPHER_CTX_free(hkey->cipher_ctx);
+	hkey->cipher_ctx = NULL;
+	return ret;
 }
 
 /* 7.3.42 */
@@ -144,8 +158,7 @@ int SAF_SymmDecryptUpdate(
 {
 	int ret = SAR_UnknownErr;
 	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
-	unsigned char *in = pucInData;
-	int inlen, outlen;
+	int outlen;
 
 	if (!hKeyHandle || !pucInData || !pucOutData || !puiOutDataLen) {
 		SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, ERR_R_PASSED_NULL_PARAMETER);
@@ -156,11 +169,14 @@ int SAF_SymmDecryptUpdate(
 		return SAR_IndataLenErr;
 	}
 
-	inlen = (int)uiInDataLen;
-
 	if (!hkey->cipher_ctx) {
-		unsigned char iv[32];
-		int ivlen;
+		const EVP_CIPHER *cipher;
+
+		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID))) {
+			SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, SAF_R_INVALID_KEY_HANDLE);
+			ret = SAR_IndataErr;
+			goto end;
+		}
 
 		if (!(hkey->cipher_ctx = EVP_CIPHER_CTX_new())) {
 			SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, ERR_R_MALLOC_FAILURE);
@@ -168,25 +184,16 @@ int SAF_SymmDecryptUpdate(
 			goto end;
 		}
 
-		/* get iv from input */
-		ivlen = EVP_CIPHER_block_size(hkey->cipher);
-		if (ivlen <= 0 || ivlen > sizeof(iv)) {
-			SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, SAF_R_INVALID_CONTEXT);
-			ret = SAR_ObjErr;
-			goto end;
-		}
-
-		memcpy(iv, in, ivlen);
-		in += ivlen;
-		inlen -= ivlen;
-
-		if (!EVP_DecryptInit(hkey->cipher_ctx, hkey->cipher, hkey->key, iv)) {
+		if (!EVP_DecryptInit_ex(hkey->cipher_ctx, cipher,
+			hkey->hSymmKeyObj->app->engine,
+			hkey->key, hkey->hSymmKeyObj->pucIV)) {
 			SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, ERR_R_EVP_LIB);
 			goto end;
 		}
 	}
 
-	if (!EVP_DecryptUpdate(hkey->cipher_ctx, pucOutData, &outlen, in, inlen)) {
+	if (!EVP_DecryptUpdate(hkey->cipher_ctx, pucOutData, &outlen,
+		pucInData, (int)uiInDataLen)) {
 		SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -208,7 +215,32 @@ int SAF_SymmDecryptFinal(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
-	return 0;
+	int ret = SAR_UnknownErr;
+	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
+	int outlen;
+
+	if (!hKeyHandle || !pucOutData || !puiOutDataLen) {
+		SAFerr(SAF_F_SAF_SYMMDECRYPTFINAL, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (!hkey->cipher_ctx) {
+		SAFerr(SAF_F_SAF_SYMMDECRYPTFINAL, SAF_R_DECRYPT_NOT_INITIALIZED);
+		return SAR_NotInitializeErr;
+	}
+
+	if (!EVP_DecryptFinal_ex(hkey->cipher_ctx, pucOutData, &outlen)) {
+		SAFerr(SAF_F_SAF_SYMMDECRYPTFINAL, ERR_R_EVP_LIB);
+		goto end;
+	}
+	*puiOutDataLen = (unsigned int)outlen;
+
+	ret = SAR_OK;
+
+end:
+	EVP_CIPHER_CTX_free(hkey->cipher_ctx);
+	hkey->cipher_ctx = NULL;
+	return ret;
 }
 
 /* 7.3.38 */
@@ -219,24 +251,20 @@ int SAF_SymmEncrypt(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
-	int ret;
-	unsigned char *out;
-	unsigned int outlen;
-
-	out = pucOutData;
-	outlen = *puiOutDataLen;
+	int ret = SAR_UnknownErr;
+	unsigned int len;
 
 	if ((ret = SAF_SymmEncryptUpdate(hKeyHandle, pucInData, uiInDataLen,
-		out, &outlen)) != SAR_OK) {
+		pucOutData, puiOutDataLen)) != SAR_OK) {
 		return ret;
 	}
-	out += outlen;
-	if ((ret = SAF_SymmEncryptFinal(hKeyHandle, out, &outlen)) != SAR_OK) {
-		return ret;
-	}
-	out += outlen;
 
-	*puiOutDataLen = out - pucOutData;
+	if ((ret = SAF_SymmEncryptFinal(hKeyHandle,
+		pucOutData + *puiOutDataLen, &len)) != SAR_OK) {
+		return ret;
+	}
+	*puiOutDataLen += len;
+
 	return SAR_OK;
 }
 
@@ -248,23 +276,19 @@ int SAF_SymmDecrypt(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
-	int ret;
-	unsigned char *out;
-	unsigned int outlen;
-
-	out = pucOutData;
-	outlen = *puiOutDataLen;
+	int ret = SAR_UnknownErr;
+	unsigned int len;
 
 	if ((ret = SAF_SymmDecryptUpdate(hKeyHandle, pucInData, uiInDataLen,
-		out, &outlen)) != SAR_OK) {
+		pucOutData, puiOutDataLen)) != SAR_OK) {
 		return ret;
 	}
-	out += outlen;
-	if ((ret = SAF_SymmDecryptFinal(hKeyHandle, out, &outlen)) != SAR_OK) {
-		return ret;
-	}
-	out += outlen;
 
-	*puiOutDataLen = out - pucOutData;
+	if ((ret = SAF_SymmDecryptFinal(hKeyHandle,
+		pucOutData + *puiOutDataLen, &len)) != SAR_OK) {
+		return ret;
+	}
+	*puiOutDataLen += len;
+
 	return SAR_OK;
 }

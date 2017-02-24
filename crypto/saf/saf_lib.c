@@ -50,77 +50,8 @@
 #include <openssl/gmsaf.h>
 #include "saf_lcl.h"
 
-//FIXME: use PEM_write_bio_ECPrivateKey in next version
-int saf_save_ec_keypair(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyBits,
-	unsigned int uiKeyUsage,
-	unsigned int uiExportFlag,
-	ECCrefPublicKey *pucPublicKey,
-	ECCrefPrivateKey *pucPrivateKey)
-{
-	return -1;
-}
-
-int saf_save_rsa_keypair(void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyBits,
-	unsigned int uiKeyUsage,
-	unsigned int uiExportFlag,
-	RSArefPublicKey *pucPublicKey,
-	RSArefPrivateKey *pucPrivateKey)
-{
-	return -1;
-}
-
-int saf_get_sdf_session_and_keyindex(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiKeyUsage,
-	void *phSessionHandle,
-	unsigned int puiKeyIndex)
-{
-	return -1;
-}
-
-void saf_release_sdf_session(void *hSessionHandle)
-{
-}
-
-int saf_get_sdf_session_and_ecsignkey(
-	void *hAppHandle,
-	unsigned char *pucContainerName,
-	unsigned int uiContainerNameLen,
-	unsigned int uiAlgorithmID, /* SGD_SM2_1 */
-	void **phSessionhandle,
-	unsigned int *puiISKIndex)
-{
-	return -1;
-}
-
-int saf_get_ec_public_key_from_cert(
-	unsigned char *pucCertificate,
-	unsigned int uiCertificateLen,
-	ECCrefPublicKey *pucPublicKey)
-{
-	return -1;
-}
-
 static int readfile(const char *file, unsigned char **pout, size_t *len)
 {
 	return SAR_Ok;
-}
-
-static int cert_get_pubkey(
-	unsigned char *pucCertificate,
-	unsigned int uiCertificateLen,
-	unsigned char **pout,
-	unsigned int *outlen)
-{
-	return 0;
 }
 

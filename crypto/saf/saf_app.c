@@ -63,6 +63,7 @@ int SAF_Initialize(
 {
 	int ret = SAR_UnknownErr;
 	SAF_APP *app = NULL;
+	char *engine_id = pubCfgFilePath;
 
 	if (!phAppHandle || !pubCfgFilePath) {
 		SAFerr(SAF_F_SAF_INITIALIZE, ERR_R_PASSED_NULL_PARAMETER);
@@ -74,8 +75,19 @@ int SAF_Initialize(
 		return SAR_MemoryErr;
 	}
 
+	if (!(app->engine = ENGINE_by_id(engine_id))
+		|| !ENGINE_init(app->engine)) {
+		SAFerr(SAF_F_SAF_INITIALIZE, ERR_R_ENGINE_LIB);
+		goto end;
+	}
+
 	*phAppHandle = app;
-	return SAR_Ok;
+	app = NULL;
+	ret = SAR_Ok;
+
+end:
+	SAF_Finalize(app);
+	return ret;
 }
 
 /* 7.1.3 */
@@ -83,6 +95,11 @@ int SAF_Finalize(
 	void *hAppHandle)
 {
 	SAF_APP *app = (SAF_APP *)hAppHandle;
+
+	if (app->engine) {
+		ENGINE_finish(app->engine);
+	}
+
 	OPENSSL_free(app);
 	return SAR_Ok;
 }

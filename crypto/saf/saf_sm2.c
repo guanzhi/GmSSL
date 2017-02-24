@@ -104,7 +104,18 @@ int SAF_SM2_EncodeSignedData(
 	unsigned char *pucDerSignedData,
 	unsigned int *puiDerSignedDataLen)
 {
-	return 0;
+	return SAF_Pkcs7_EncodeSignedData(
+		hAppHandle,
+		pucSignContainerName,
+		pucSignContainerName,
+		uiSignKeyUsage,
+		pucSignerCertificate,
+		uiSignerCertificateLen,
+		uiDigestAlgorithm,
+		pucData,
+		uiDataLen,
+		pucDerSignedData,
+		puiDerSignedDataLen);
 }
 
 /* 7.4.13 */
@@ -120,7 +131,17 @@ int SAF_SM2_DecodeSignedData(
 	unsigned char *pucSign,
 	unsigned int *puiSignLen)
 {
-	return 0;
+	return SAF_Pkcs7_DecodeSignedData(
+		hAppHandle,
+		pucDerSignedData,
+		uiDerSignedDataLen,
+		pucSignerCertificate,
+		uiSignerCertificateLen,
+		uiDigestAlgorithm,
+		pucData,
+		uiDataLen,
+		pucSign,
+		puiSignLen);
 }
 
 /* 7.4.14 */
@@ -134,8 +155,15 @@ int SAF_SM2_EncodeEnvelopedData(
 	unsigned char *pucDerEnvelopedData,
 	unsigned int *puiDerEnvelopedDataLen)
 {
-	int ret = SAR_UnknownErr;
-	return ret;
+	return SAF_Pkcs7_EncodeEnvelopedData(
+		hAppHandle,
+		pucData,
+		uiDataLen,
+		pucEncCertificate,
+		uiEncCertificateLen,
+		uiSymmAlgorithm,
+		pucDerEnvelopedData,
+		puiDerEnvelopedDataLen);
 }
 
 /* 7.4.15 */
@@ -149,5 +177,13 @@ int SAF_SM2_DecodeEnvelopedData(
 	unsigned char *pucData,
 	unsigned int *puiDataLen)
 {
-	return 0;
+	return SAF_Pkcs7_DecodeEnvelopedData(
+		hAppHandle,
+		pucDecContainerName,
+		uiDecContainerNameLen,
+		uiDecKeyUsage,
+		pucDerEnvelopedData,
+		uiDerEnvelopedDataLen,
+		pucData,
+		puiDataLen);
 }

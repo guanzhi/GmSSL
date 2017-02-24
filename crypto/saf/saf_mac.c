@@ -67,18 +67,33 @@ int SAF_MacUpdate(
 		return SAR_IndataErr;
 	}
 
+	if (uiInDataLen <= 0 || uiInDataLen > INT_MAX) {
+		SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_INVALID_INPUT_LENGTH);
+		return SAR_IndataLenErr;
+	}
+
 	if (!hkey->cmac_ctx) {
+		const EVP_CIPHER *cipher;
+
+		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID))) {
+			SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_INVALID_KEY_HANDLE);
+			ret = SAR_IndataErr;
+			goto end;
+		}
+
 		if (!(hkey->cmac_ctx = CMAC_CTX_new())) {
 			SAFerr(SAF_F_SAF_MACUPDATE, ERR_R_MALLOC_FAILURE);
 			goto end;
 		}
-		if (!CMAC_Init(hkey->cmac_ctx, hkey->key, hkey->keylen, hkey->cipher, NULL)) {
+
+		if (!CMAC_Init(hkey->cmac_ctx, hkey->key, hkey->keylen, cipher,
+			hkey->hSymmKeyObj->app->engine)) {
 			SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_CMAC_FAILURE);
 			goto end;
 		}
 	}
 
-	if (!CMAC_Update(hkey->cmac_ctx, pucInData, (size_t)uiInDataLen)) {
+	if (!CMAC_Update(hkey->cmac_ctx, pucInData, uiInDataLen)) {
 		SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_CMAC_FAILURE);
 		return SAR_UnknownErr;
 	}
@@ -99,15 +114,16 @@ int SAF_MacFinal(
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
+	int ret = SAR_UnknownErr;
 	SAF_KEY *hkey = (SAF_KEY *)hKeyHandle;
-	size_t siz;
+	size_t outlen = *puiOutDataLen;
 
 	if (!hKeyHandle || !pucOutData || !puiOutDataLen) {
 		SAFerr(SAF_F_SAF_MACFINAL, ERR_R_PASSED_NULL_PARAMETER);
 		return SAR_IndataErr;
 	}
 
-	if (*puiOutDataLen < EVP_CIPHER_block_size(hkey->cipher)) {
+	if (*puiOutDataLen < EVP_MAX_MD_SIZE) {
 		SAFerr(SAF_F_SAF_MACFINAL, SAF_R_BUFFER_TOO_SMALL);
 		return SAR_IndataLenErr;
 	}
@@ -117,14 +133,18 @@ int SAF_MacFinal(
 		return SAR_UnknownErr;
 	}
 
-	siz = EVP_CIPHER_block_size(hkey->cipher);
-	if (!CMAC_Final(hkey->cmac_ctx, pucOutData, &siz)) {
+	if (!CMAC_Final(hkey->cmac_ctx, pucOutData, &outlen)) {
 		SAFerr(SAF_F_SAF_MACFINAL, SAF_R_MAC_FAILURE);
-		return SAR_UnknownErr;
+		goto end;
 	}
 
-	*puiOutDataLen = (unsigned int)siz;
-	return SAR_OK;
+	*puiOutDataLen = (unsigned int)outlen;
+	ret = SAR_Ok;
+
+end:
+	CMAC_CTX_free(hkey->cmac_ctx);
+	hkey->cmac_ctx = NULL;
+	return ret;
 }
 
 /* 7.4.44 */
@@ -144,4 +164,3 @@ int SAF_Mac(
 	}
 	return SAR_OK;
 }
-

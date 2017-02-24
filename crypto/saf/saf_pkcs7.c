@@ -134,6 +134,7 @@ int SAF_Pkcs7_EncodeEnvelopedData(
 	STACK_OF(X509) *certs = NULL;
 	BIO *bio = NULL;
 	const EVP_CIPHER *cipher;
+	int len;
 
 	/* check arguments */
 	if (!hAppHandle || !pucData || !pucEncCertificate || !puiDerP7EnvelopedDataLen) {

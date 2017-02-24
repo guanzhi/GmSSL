@@ -70,7 +70,7 @@ int SAF_GenRandom(
 		return SAR_IndataErr;
 	}
 
-	if (!RAND_bytes(pucRand, uiRandLen)) {
+	if (!RAND_bytes(pucRand, (int)uiRandLen)) {
 		SAFerr(SAF_F_SAF_GENRANDOM, SAF_R_GEN_RANDOM_FAILURE);
 		return SAR_GenRandErr;
 	}
