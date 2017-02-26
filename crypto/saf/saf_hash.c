@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <openssl/evp.h>
 #include <openssl/gmsaf.h>
+#include <openssl/gmapi.h>
 #include "saf_lcl.h"
 
 /* 7.3.12 */
@@ -60,31 +61,84 @@ int SAF_CreateHashObj(void **phHashObj,
 	unsigned char *pucPublicKey,
 	unsigned int uiPublicKeyLen,
 	unsigned char *pucID,
-	unsigned int ulIDLen)
+	unsigned int uiIDLen)
 {
 	int ret = SAR_UnknownErr;
 	const EVP_MD *md;
 	EVP_MD_CTX *ctx = NULL;
+	EVP_PKEY *pkey = NULL;
+
+	if (!phHashObj) {
+		SAFerr(SAF_F_SAF_CREATEHASHOBJ, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
 
 	if (!(md = EVP_get_digestbysgd(uiAlgoType))) {
+		SAFerr(SAF_F_SAF_CREATEHASHOBJ, SAF_R_INVALID_ALGOR);
 		return SAR_AlgoTypeErr;
 	}
 
 	if (!(ctx = EVP_MD_CTX_new())) {
-		return 0;
+		SAFerr(SAF_F_SAF_CREATEHASHOBJ, ERR_R_MALLOC_FAILURE);
+		goto end;
 	}
 
-	if (!EVP_DigestInit(ctx, md)) {
-		return 0;
+	/* limitation of the SAF hashing:
+	 * can not specify an engine, only use the default implementation
+	 */
+	if (!EVP_DigestInit_ex(ctx, md, NULL)) {
+		SAFerr(SAF_F_SAF_CREATEHASHOBJ, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	if (pucPublicKey) {
+		unsigned char dgst[EVP_MAX_MD_SIZE];
+		size_t dgstlen = sizeof(dgst);
+
+		if (!pucID) {
+			SAFerr(SAF_F_SAF_CREATEHASHOBJ, ERR_R_PASSED_NULL_PARAMETER);
+			ret = SAR_IndataErr;
+			goto end;
+		}
+
+		if (uiIDLen <= 0 || uiIDLen > SM2_MAX_ID_LENGTH
+			|| strlen((char *)pucID) != uiIDLen
+			|| uiPublicKeyLen <= 0 || uiPublicKeyLen > INT_MAX) {
+			SAFerr(SAF_F_SAF_CREATEHASHOBJ, SAF_R_INVALID_INPUT_LENGTH);
+			ret = SAR_IndataLenErr;
+			goto end;
+		}
+
+		if (!(pkey = d2i_PUBKEY(NULL, (const unsigned char **)&pucPublicKey, (long)uiPublicKeyLen))
+			|| EVP_PKEY_base_id(pkey) != EVP_PKEY_EC) {
+			SAFerr(SAF_F_SAF_CREATEHASHOBJ, SAF_R_INVALID_PUBLIC_KEY);
+			ret = SAR_IndataErr;
+			goto end;
+		}
+
+		if (!SM2_compute_id_digest(md, (char *)pucID, uiIDLen, dgst, &dgstlen,
+			EVP_PKEY_get0_EC_KEY(pkey))) {
+			SAFerr(SAF_F_SAF_CREATEHASHOBJ, ERR_R_EC_LIB);
+			goto end;
+		}
+
+		if (!EVP_DigestUpdate(ctx, dgst, dgstlen)) {
+			SAFerr(SAF_F_SAF_CREATEHASHOBJ, ERR_R_EVP_LIB);
+			goto end;
+		}
 	}
 
 	*phHashObj = ctx;
+	ctx = NULL;
+
+	ret = SAR_Ok;
 
 end:
 	if (ret != SAR_Ok) {
-		EVP_MD_CTX_free(ctx);
 		*phHashObj = NULL;
 	}
+	EVP_MD_CTX_free(ctx);
+	EVP_PKEY_free(pkey);
 	return ret;
 }
 
@@ -92,6 +146,10 @@ end:
 int SAF_DestroyHashObj(
 	void *phHashObj)
 {
+	if (!phHashObj) {
+		SAFerr(SAF_F_SAF_DESTROYHASHOBJ, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
 	EVP_MD_CTX_free((EVP_MD_CTX *)phHashObj);
 	return SAR_Ok;
 }
@@ -102,9 +160,21 @@ int SAF_HashUpdate(
 	const unsigned char *pucInData,
 	unsigned int uiInDataLen)
 {
-	if (!EVP_DigestUpdate((EVP_MD_CTX *)phHashObj, pucInData, (size_t)uiInDataLen)) {
+	if (!phHashObj || pucInData) {
+		SAFerr(SAF_F_SAF_HASHUPDATE, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (uiInDataLen <= 0 || uiInDataLen > INT_MAX) {
+		SAFerr(SAF_F_SAF_HASHUPDATE, SAF_R_INVALID_INPUT_LENGTH);
+		return SAR_IndataLenErr;
+	}
+
+	if (!EVP_DigestUpdate((EVP_MD_CTX *)phHashObj, pucInData, uiInDataLen)) {
+		SAFerr(SAF_F_SAF_HASHUPDATE, ERR_R_EVP_LIB);
 		return SAR_HashErr;
 	}
+
 	return SAR_Ok;
 }
 
@@ -113,9 +183,21 @@ int SAF_HashFinal(void *phHashObj,
 	unsigned char *pucOutData,
 	unsigned int *uiOutDataLen)
 {
-	if (!EVP_DigestFinal((EVP_MD_CTX *)phHashObj, pucOutData, uiOutDataLen)) {
+	if (!phHashObj || !pucOutData || !uiOutDataLen) {
+		SAFerr(SAF_F_SAF_HASHFINAL, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (*uiOutDataLen < EVP_MAX_MD_SIZE) {
+		SAFerr(SAF_F_SAF_HASHFINAL, SAF_R_BUFFER_TOO_SMALL);
+		return SAR_IndataLenErr;
+	}
+
+	if (!EVP_DigestFinal_ex((EVP_MD_CTX *)phHashObj, pucOutData, uiOutDataLen)) {
+		SAFerr(SAF_F_SAF_HASHFINAL, ERR_R_EVP_LIB);
 		return SAR_HashErr;
 	}
+
 	return SAR_Ok;
 }
 
@@ -127,21 +209,50 @@ int SAF_Hash(
 	unsigned char *pucPublicKey,
 	unsigned int uiPublicKeyLen,
 	unsigned char *pubID,
-	unsigned int ulIDLen,
+	unsigned int uiIDLen,
 	unsigned char *pucOutData,
 	unsigned int *puiOutDataLen)
 {
-	const EVP_MD *md;
-	size_t siz;
+	int ret;
+	void *hHashObj = NULL;
 
-	if (!(md = EVP_get_digestbysgd(uiAlgoType))) {
-		return SAR_AlgoTypeErr;
+	if ((ret = SAF_CreateHashObj(
+		&hHashObj,
+		uiAlgoType,
+		pucPublicKey,
+		uiPublicKeyLen,
+		pubID,
+		uiIDLen)) != SAR_Ok) {
+		SAFerr(SAF_F_SAF_HASH, ERR_R_SAF_LIB);
+		return ret;
 	}
 
-	siz = (size_t)uiInDataLen;
-	if (!EVP_Digest(pucInData, siz, pucOutData, puiOutDataLen, md, NULL)) {
-		return SAR_HashErr;
+	if ((ret = SAF_HashUpdate(
+		hHashObj,
+		pucInData,
+		uiInDataLen)) != SAR_Ok) {
+		SAFerr(SAF_F_SAF_HASH, ERR_R_SAF_LIB);
+		goto err;
+	}
+
+	if ((ret = SAF_HashFinal(
+		hHashObj,
+		pucOutData,
+		puiOutDataLen)) != SAR_Ok) {
+		SAFerr(SAF_F_SAF_HASH, ERR_R_SAF_LIB);
+		goto err;
+	}
+
+	if ((ret = SAF_DestroyHashObj(
+		hHashObj)) != SAR_Ok) {
+		SAFerr(SAF_F_SAF_HASH, ERR_R_SAF_LIB);
+		return ret;
 	}
 
 	return SAR_Ok;
+
+err:
+	/* keep the first error */
+	(void)SAF_DestroyHashObj(hHashObj);
+	return ret;
 }

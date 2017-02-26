@@ -55,6 +55,8 @@
 
 typedef struct saf_app_st {
 	ENGINE *engine;
+	char *rootcacerts;
+	char *cacerts;
 } SAF_APP;
 
 typedef struct {
@@ -79,6 +81,9 @@ typedef struct {
 	EVP_CIPHER_CTX *cipher_ctx;
 	CMAC_CTX *cmac_ctx;
 } SAF_KEY;
+
+SAF_KEY *SAF_KEY_new(const SAF_SYMMKEYOBJ *obj);
+void SAF_KEY_free(SAF_KEY *key);
 
 SAF_SYMMKEYOBJ *SAF_SYMMKEYOBJ_dup(const SAF_SYMMKEYOBJ *a);
 void SAF_SYMMKEYOBJ_free(SAF_SYMMKEYOBJ *a);

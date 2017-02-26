@@ -98,6 +98,7 @@ int SAF_Finalize(
 
 	if (app->engine) {
 		ENGINE_finish(app->engine);
+		ENGINE_free(app->engine);
 	}
 
 	OPENSSL_free(app);

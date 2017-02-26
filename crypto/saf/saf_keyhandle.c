@@ -51,6 +51,7 @@
 #include <openssl/evp.h>
 #include <openssl/gmsaf.h>
 #include <openssl/gmapi.h>
+#include <openssl/crypto.h>
 #include "saf_lcl.h"
 
 /* 7.3.31 */
@@ -82,26 +83,6 @@ int SAF_GenerateKeyWithEPK(
 		return SAR_IndataLenErr;
 	}
 
-/*
- 65 typedef struct {
- 66         SAF_APP *app;
- 67         unsigned char *pucContainerName;
- 68         unsigned int uiContainerLen;
- 69         unsigned char *pucIV;
- 70         unsigned int uiIVLen;
- 71         unsigned int uiEncOrDec;
- 72         unsigned int uiCryptoAlgID;
- 73 } SAF_SYMMKEYOBJ;
- 74 
- 75 typedef struct {
- 76         SAF_SYMMKEYOBJ *hSymmKeyObj;
- 77         unsigned char key[64];
- 78         int keylen;
- 79         EVP_CIPHER_CTX *cipher_ctx;
- 80         CMAC_CTX *cmac_ctx;
- 81 } SAF_KEY;
-*/
-
 	outlen = (size_t)*puiSymmKeyLen;
 	if (!(cipher = EVP_get_cipherbysgd(obj->uiCryptoAlgID))
 		|| !RAND_bytes(keybuf, EVP_CIPHER_key_length(cipher))
@@ -128,6 +109,87 @@ end:
 	return ret;
 }
 
+/*
+ 65 typedef struct {
+ 66         SAF_APP *app;
+ 67         unsigned char *pucContainerName;
+ 68         unsigned int uiContainerLen;
+ 69         unsigned char *pucIV;
+ 70         unsigned int uiIVLen;
+ 71         unsigned int uiEncOrDec;
+ 72         unsigned int uiCryptoAlgID;
+ 73 } SAF_SYMMKEYOBJ;
+ 74 
+ 75 typedef struct {
+ 76         SAF_SYMMKEYOBJ *hSymmKeyObj;
+ 77         unsigned char key[64];
+ 78         int keylen;
+ 79         EVP_CIPHER_CTX *cipher_ctx;
+ 80         CMAC_CTX *cmac_ctx;
+ 81 } SAF_KEY;
+*/
+
+SAF_KEY *SAF_KEY_new(const SAF_SYMMKEYOBJ *hSymmKeyObj)
+{
+	SAF_KEY *ret = NULL;
+	SAF_KEY *key = NULL;
+
+	if (!(key = OPENSSL_zalloc(sizeof(*key)))
+		|| !(key->hSymmKeyObj = SAF_SYMMKEYOBJ_dup(hSymmKeyObj))) {
+		SAFerr(SAF_F_SAF_KEY_NEW, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	ret = key;
+	key = NULL;
+
+end:
+	SAF_KEY_free(key);
+	return ret;
+}
+
+void SAF_KEY_free(SAF_KEY *key)
+{
+	if (key) {
+		SAF_SYMMKEYOBJ_free(key->hSymmKeyObj);
+	}
+	OPENSSL_clear_free(key, sizeof(*key));
+}
+
+SAF_SYMMKEYOBJ *SAF_SYMMKEYOBJ_dup(const SAF_SYMMKEYOBJ *a)
+{
+	SAF_SYMMKEYOBJ *ret = NULL;
+	SAF_SYMMKEYOBJ *obj = NULL;
+
+	if (!(obj = OPENSSL_zalloc(sizeof(*obj)))
+		|| !(obj->pucContainerName = OPENSSL_memdup(a->pucContainerName, a->uiContainerLen))
+		|| !(obj->pucIV = OPENSSL_memdup(a->pucIV, a->uiIVLen))) {
+		SAFerr(SAF_F_SAF_SYMMKEYOBJ_DUP, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	obj->uiContainerLen = a->uiContainerLen;
+	obj->uiIVLen = a->uiIVLen;
+	obj->uiEncOrDec = a->uiEncOrDec;
+	obj->uiCryptoAlgID = a->uiCryptoAlgID;
+
+	ret = obj;
+	obj = NULL;
+
+end:
+	SAF_SYMMKEYOBJ_free(obj);
+	return ret;
+}
+
+void SAF_SYMMKEYOBJ_free(SAF_SYMMKEYOBJ *obj)
+{
+	if (obj) {
+		OPENSSL_free(obj->pucContainerName);
+		OPENSSL_free(obj->pucIV);
+		OPENSSL_free(obj);
+	}
+}
+
 /* 7.3.32 */
 int SAF_ImportEncedKey(
 	void *hSymmKeyObj,
@@ -135,8 +197,23 @@ int SAF_ImportEncedKey(
 	unsigned int uiSymmKeyLen,
 	void **phKeyHandle)
 {
-	SAFerr(SAF_F_SAF_IMPORTENCEDKEY, SAF_R_NOT_SUPPORTED);
-	return SAR_NotSupportYetErr;
+	SAF_KEY *hkey = NULL;
+	SAF_SYMMKEYOBJ *hobj = (SAF_SYMMKEYOBJ *)hSymmKeyObj;
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pctx = NULL;
+	char key_id[1024];
+
+	snprintf(key_id, sizeof(key_id), "%s.enc", hobj->pucContainerName);
+
+	if (!(pkey = ENGINE_load_private_key(hobj->app->engine, key_id, NULL, NULL))
+		|| !(pctx = EVP_PKEY_CTX_new(pkey, hobj->app->engine))
+		|| EVP_PKEY_decrypt_init(pctx) <= 0
+		|| EVP_PKEY_decrypt(pctx, hkey->key, &hkey->keylen, pucSymmKey, uiSymmKeyLen) <= 0) {
+		goto end;
+	}
+
+end:
+	return 0;
 }
 
 /* 7.3.37 */

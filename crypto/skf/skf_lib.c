@@ -67,6 +67,7 @@ ULONG SKF_LoadLibrary(const char *so_path)
 ULONG SKF_UnloadLibrary(void)
 {
 	skf_method = NULL;
+	return 0;
 }
 
 

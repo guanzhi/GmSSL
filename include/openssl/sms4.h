@@ -98,6 +98,14 @@ int sms4_unwrap_key(sms4_key_t *key, const unsigned char *iv,
 	unsigned char *out, const unsigned char *in, unsigned int inlen);
 
 
+void sms4_avx2_encrypt_init(sms4_key_t *key);
+void sms4_avx2_encrypt_8blocks(const unsigned char *in, unsigned char *out, const sms4_key_t *key);
+void sms4_avx2_encrypt_16blocks(const unsigned char *in, unsigned char *out, const sms4_key_t *key);
+
+void sms4_knc_encrypt_init(sms4_key_t *key);
+void sms4_knc_encrypt_8blocks(const unsigned char *in, unsigned char *out, const sms4_key_t *key);
+void sms4_knc_encrypt_16blocks(const unsigned char *in, unsigned char *out, const sms4_key_t *key);
+
 
 #define SMS4_EDE_KEY_LENGTH	32
 

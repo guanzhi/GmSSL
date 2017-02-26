@@ -57,22 +57,12 @@
 static const char *avx2_id = "avx2";
 static const char *avx2_name = "ENGINE with Intel AVX2 Intructions";
 
-#define SDF_CMD_STRING		ENGINE_CMD_BASE
-#define SDF_CMD_NUMERIC		(ENGINE_CMD_BASE + 1)
-#define SDF_CMD_NO_INPUT	(ENGINE_CMD_BASE + 2)
+#define SDF_CMD_CPUID		ENGINE_CMD_BASE
 
 static const ENGINE_CMD_DEFN avx2_cmd_defns[] = {
-	{SDF_CMD_STRING,
-	 "STRING",
-	 "Specifies the path to the vendor's SDF shared library",
-	 ENGINE_CMD_FLAG_STRING},
-	{SDF_CMD_NUMERIC,
-	 "NUMERIC",
-	 "Connect SKF device with device name",
-	 ENGINE_CMD_FLAG_NUMERIC},
-	{SDF_CMD_NO_INPUT,
-	 "NO_INPUT",
-	 "Example NO_INPUT",
+	{SDF_CMD_CPUID,
+	 "CPUID",
+	 "Show CPUID",
 	 ENGINE_CMD_FLAG_NO_INPUT},
 	{0, NULL, NULL, 0},
 };
@@ -80,14 +70,8 @@ static const ENGINE_CMD_DEFN avx2_cmd_defns[] = {
 static int avx2_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)(void))
 {
 	switch (cmd) {
-	case SDF_CMD_STRING:
-		printf("cmd = %s\n", (char *)p);
-		break;
-	case SDF_CMD_NUMERIC:
-		printf("cmd = %d\n", (int)i);
-		break;
-	case SDF_CMD_NO_INPUT:
-		printf("cmd = (null)\n");
+	case SDF_CMD_CPUID:
+		printf("not implemented\n");
 		break;
 	default:
 		printf("unknown cmd\n");

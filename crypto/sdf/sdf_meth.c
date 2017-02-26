@@ -56,8 +56,6 @@ SDF_METHOD *SDF_METHOD_load_library(const char *so_path)
 	SDF_METHOD *ret = NULL;
 	SDF_METHOD *sdf = NULL;
 	DSO *dso = NULL;
-	void *func;
-	int i;
 
 	if (!(dso = DSO_load(NULL, so_path, NULL, 0))) {
 		goto end;

@@ -155,7 +155,7 @@ int SAF_RemoveRootCaCertificate(
 int SAF_AddCaCertificate(
 	void *hAppHandle,
 	unsigned char *pucCertificate,
-	unsigned int *puiCertificateLen);
+	unsigned int uiCertificateLen);
 
 int SAF_GetCaCertificateCount(
 	void *hAppHandle,

@@ -1611,5 +1611,3 @@ ibcs1 3 4		: r-ate-pairing
 sm-scheme 1000		: cpk
 sm-scheme 1001		: paillier
 
-
-
