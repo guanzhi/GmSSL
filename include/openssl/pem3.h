@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,81 +47,47 @@
  * ====================================================================
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "../e_os.h"
+#ifndef HEADER_PEM3_H
+#define HEADER_PEM3_H
 
-#ifdef OPENSSL_NO_SAF
-int main(int argc, char **argv)
-{
-	printf("NO SAF support\n");
-	return 0;
+#include <openssl/cpk.h>
+#include <openssl/sm9.h>
+#include <openssl/bfibe.h>
+#include <openssl/bb1ibe.h>
+#include <openssl/paillier.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+#include <openssl/pem.h>
+
+
+#define PEM_STRING_PAILLIER		"PAILLIER PRIVATE KEY"
+#define PEM_STRING_PAILLIER_PUBLIC	"PAILLIER PUBLIC KEY"
+#define PEM_STRING_CPK_PARAMS		"CPK PUBLIC PARAMETERS"
+#define PEM_STRING_CPK_MASTER		"CPK MASTER SECRET"
+#define PEM_STRING_SM9_PARAMS		"SM9 PUBLIC PARAMETERS"
+#define PEM_STRING_SM9_MASTER		"SM9 MASTER SECRET"
+#define PEM_STRING_SM9_PRIVATE		"SM9 PRIVATE KEY"
+#define PEM_STRING_BFIBE_PARAMS		"BFIBE PUBLIC PARAMETERS"
+#define PEM_STRING_BFIBE_MASTER		"BFIBE MASTER SECRET"
+#define PEM_STRING_BFIBE_PRIVATE	"BFIBE PRIVATE KEY"
+#define PEM_STRING_BB1IBE_PARAMS	"BB1IBE PUBLIC PARAMETERS"
+#define PEM_STRING_BB1IBE_MASTER	"BB1IBE MASTER SECRET"
+#define PEM_STRING_BB1IBE_PRIVATE	"BB1IBE PRIVATE KEY"
+
+/*
+DECLARE_PEM_rw_cb(PaillierPrivateKey, PAILLIER)
+DECLARE_PEM_rw(PaillierPrivateKey, PAILLIER)
+DECLARE_PEM_rw_cb(CPK_PUBLIC_PARAM, CPK)
+DECLARE_PEM_rw_cb(CPK_PUBLIC_PARAMS, CPK)
+*/
+
+
+#ifdef __cplusplus
 }
-#else
-# include <openssl/evp.h>
-
-static int test_saf_base64(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_cert(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_ec(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_hash(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_mac(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_pkcs7(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_rand(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_rsa(int verbose)
-{
-	return 0;
-}
-
-static int test_saf_sm2(int verbose)
-{
-	return 0;
-}
-
-int main(int argc, char **argv)
-{
-	int err = 0;
-	int verboe = 2;
-
-	if (!test_saf_base64(verbose)) err++;
-	if (!test_saf_cert(verbose)) err++;
-	if (!test_saf_ec(verbose)) err++
-	if (!test_saf_enc(verbose)) err++;
-	if (!test_saf_hash(verbose)) err++;
-	if (!test_saf_mac(verbose)) err++;
-	if (!test_saf_pkcs7(verbose)) err++;
-	if (!test_saf_rand(verbose)) err++;
-	if (!test_saf_rsa(verbose)) err++;
-	if (!test_saf_sm2(verbose)) err++;
-
-	return err;
-}
+#endif
 #endif

@@ -111,7 +111,9 @@ int ERR_load_SAF_strings(void);
 # define SAF_F_SAF_LOGOUT                                 135
 # define SAF_F_SAF_MACFINAL                               136
 # define SAF_F_SAF_MACUPDATE                              137
+# define SAF_F_SAF_PKCS7_ENCODEDIGESTEDDATA               149
 # define SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA              138
+# define SAF_F_SAF_PKCS7_ENCODESIGNEDDATA                 150
 # define SAF_F_SAF_REMOVECACERTIFICATE                    139
 # define SAF_F_SAF_REMOVEROOTCACERTIFICATE                140
 # define SAF_F_SAF_RSASIGN                                141
@@ -133,6 +135,7 @@ int ERR_load_SAF_strings(void);
 # define SAF_R_INT_OVERFLOW                               106
 # define SAF_R_INVALID_ALGOR                              107
 # define SAF_R_INVALID_CERTIFICATE                        108
+# define SAF_R_INVALID_DIGEST_ALGOR                       122
 # define SAF_R_INVALID_HANDLE                             109
 # define SAF_R_INVALID_INDEX                              110
 # define SAF_R_INVALID_INPUT_LENGTH                       111
@@ -142,6 +145,7 @@ int ERR_load_SAF_strings(void);
 # define SAF_R_INVALID_LENGTH                             115
 # define SAF_R_INVALID_PUBLIC_KEY                         116
 # define SAF_R_LOAD_CERTS_FAILURE                         117
+# define SAF_R_LOAD_KEY_FAILURE                           123
 # define SAF_R_MAC_FAILURE                                118
 # define SAF_R_NOT_SUPPORTED                              119
 # define SAF_R_OPERATION_NOT_INITIALIZED                  120

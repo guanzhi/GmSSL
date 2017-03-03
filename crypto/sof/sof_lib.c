@@ -54,6 +54,8 @@
 static long sof_sign_method = SGD_SM2;
 static long sof_enc_method = SGD_SM4_CBC;
 static long sof_last_error = SOR_OK;
+static void *sof_app = NULL;
+static int sof_user_type = SGD_USER;
 
 
 BSTR SOF_GetVersion(void)
@@ -97,11 +99,23 @@ BSTR SOF_ExportUserCert(BSTR ContainerName)
 	return NULL;
 }
 
-/* LOGIN CMD ? */
 BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
 {
-	SOFerr(SOF_F_SOF_LOGIN, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	unsigned int uiRemainCount;
+
+	if ((rv = SAF_Login(
+		sof_app,
+		sof_user_type,
+		(unsigned char *)ContainerName,
+		(unsigned int)strlen(ContainerName),
+		(unsigned char *)PassWd,
+		(unsigned int)strlen(PassWd),
+		&uiRemainCount)) != SAR_Ok) {
+		SOFerr(SOF_F_SOF_LOGIN, ERR_R_SAF_LIB);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 long SOF_GetPinRetryCount(BSTR ContainerName)
@@ -112,12 +126,30 @@ long SOF_GetPinRetryCount(BSTR ContainerName)
 
 BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd)
 {
-	SOFerr(SOF_F_SOF_CHANGEPASSWD, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	int rv;
+	unsigned int uiRemainCount;
+
+	if ((rv = SAF_ChangePin(
+		sof_app,
+		sof_user_type,
+		(unsigned char *)ContainerName,
+		(unsigned int)strlen(ContainerName),
+		(unsigned char *)OldPassWd,
+		(unsigned int)strlen(OldPassWd),
+		(unsigned char *)NewPassWd,
+		(unsigned int)strlen(NewPassWd),
+		&uiRemainCount)) != SAR_Ok) {
+		SOFerr(SOF_F_SOF_CHANGEPASSWD, ERR_R_SAF_LIB);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 BSTR SOF_ExportExchangeUserCert(BSTR ContainerName)
 {
+
+
 	SOFerr(SOF_F_SOF_EXPORTEXCHANGEUSERCERT, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
@@ -125,6 +157,40 @@ BSTR SOF_ExportExchangeUserCert(BSTR ContainerName)
 /* `type` defined as SGD_CERT_XXX, SGD_EXT_XXX in sgd.h */
 BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type)
 {
+	// decode x.509 in pem format
+
+	switch (Type) {
+	case SGD_CERT_VERSION:
+	case SGD_CERT_SERIAL:
+	case SGD_CERT_ISSUER:
+	case SGD_CERT_VALID_TIME:
+	case SGD_CERT_SUBJECT:
+	case SGD_CERT_DER_PUBLIC_KEY:
+	case SGD_CERT_DER_EXTENSIONS:
+	case SGD_EXT_AUTHORITYKEYIDENTIFIER_INFO:
+	case SGD_EXT_SUBJECTKEYIDENTIFIER_INFO:
+	case SGD_EXT_KEYUSAGE_INFO:
+	case SGD_EXT_PRIVATEKEYUSAGEPERIOD_INFO:
+	case SGD_EXT_CERTIFICATEPOLICIES_INFO:
+	case SGD_EXT_POLICYMAPPINGS_INFO:
+	case SGD_EXT_BASICCONSTRAINTS_INFO:
+	case SGD_EXT_POLICYCONSTRAINTS_INFO:
+	case SGD_EXT_EXTKEYUSAGE_INFO:
+	case SGD_EXT_CRLDISTRIBUTIONPOINTS_INFO:
+	case SGD_EXT_NETSCAPE_CERT_TYPE_INFO:
+	case SGD_EXT_SELFDEFINED_EXTENSION_INFO:
+	case SGD_CERT_ISSUER_CN:
+	case SGD_CERT_ISSUER_O:
+	case SGD_CERT_ISSUER_OU:
+	case SGD_CERT_SUBJECT_CN:
+	case SGD_CERT_SUBJECT_O:
+	case SGD_CERT_SUBJECT_OU:
+	case SGD_CERT_SUBJECT_EMAIL:
+	case SGD_CERT_NOTBEFORE_TIME:
+	case SGD_CERT_NOTAFTER_TIME:
+	default:
+	}
+
 	SOFerr(SOF_F_SOF_GETCERTINFO, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
@@ -147,11 +213,45 @@ long SOF_ValidateCert(BSTR Base64EncodeCert)
 	return 0;
 }
 
-/* PKCS #7 or CMS ? */
 BSTR SOF_SignData(BSTR ContainerName, BSTR InData)
 {
-	SOFerr(SOF_F_SOF_SIGNDATA, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	char *ret = NULL;
+	char *b64 = NULL;
+	unsigned int uiHashAlgoType;
+	unsigned char *pucInData = NULL;
+	unsigned int uiInDataLen;
+	unsigned char pucSignature[256];
+	unsigned int uiSignatureLen = (unsigned int)sizeof(pucSignature);
+
+	if (SOF_Decode(InData, &pucInData, &uiInDataLen) != SOR_OK) {
+		SOFerr(SOF_F_SOF_SIGNDATA, SOF_R_DECODE_FAILURE);
+		goto end;
+	}
+
+	rv = SAF_RsaSign(
+		hAppHandle,
+		(unsigned char *)ContainerName,
+		(unsigned int)strlen(ContainerName),
+		uiHashAlgoType,
+		pucInData,
+		uiInDataLen,
+		pucSignature,
+		&uiSignatureLen);
+
+	rv = SAF_EccSign(
+		hAppHandle,
+		(unsigned char *)ContainerName,
+		(unsigned int)strlen(ContainerName),
+		uiHashAlgoType,
+		pucInData,
+		uiInDataLen,
+		pucSignature,
+		&uiSignatureLen);
+
+end:
+	OPENSSL_free(b64);
+	OPENSSL_free(pucInData);
+	return ret;
 }
 
 BOOL SOF_VerifySignedData(BSTR Base64EncodeCert, BSTR InData, BSTR SignValue)
@@ -162,20 +262,66 @@ BOOL SOF_VerifySignedData(BSTR Base64EncodeCert, BSTR InData, BSTR SignValue)
 
 BSTR SOF_SignFile(BSTR ContainerName, BSTR InFile)
 {
-	SOFerr(SOF_F_SOF_SIGNFILE, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	BSTR ret;
+	unsigned char *pucInData = NULL;
+	unsigned int uiInDataLen;
+	unsigned char pucSignature[256];
+	unsigned int uiSignatureLen = (unsigned int)sizeof(pucSignature);
+
+	if (SOF_ReadFile(InFile, &pucInData, &uiInDataLen) != SOR_OK) {
+		SOFerr(SOF_F_SOF_SIGNFILE, SOF_R_READ_FILE_FAILURE);
+		return NULL;
+	}
+
+	if ((rv = SAF_EccSign(
+		hAppHandle,
+		(unsigned char *)ContainerName,
+		(unsigned int)strlen(ContainerName),
+		uiHashAlgoType,
+		pucInData,
+		uiInDataLen,
+		pucSignature,
+		&uiSignatureLen)) != SAR_Ok) {
+		SOFerr(SOF_F_SOF_SIGNFILE, ERR_R_SAF_LIB);
+		goto end;
+	}
+
+	if (!(b64 = SOF_Encode(pucSignature, uiSignatureLen))) {
+	}
+
+	ret = b64;
+	b64 = NULL;
+
+end:
+	OPENSSL_free(b64);
+	OPENSSL_free(pucInData);
+	return ret;
 }
 
 BOOL SOF_VerifySignedFile(BSTR Base64EncodeCert, BSTR InFile, BSTR SignValue)
 {
-	SOFerr(SOF_F_SOF_VERIFYSIGNEDFILE, SOF_R_NOT_IMPLEMENTED);
-	return 0;
 }
 
 BSTR SOF_EncryptData(BSTR Base64EncodeCert, BSTR InData)
 {
-	SOFerr(SOF_F_SOF_ENCRYPTDATA, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	char *ret = NULL;
+	unsigned char *pucCertificate = NULL;
+	unsigned int uiCertificateLen;
+	unsigned char *pucInData = NULL;
+	unsigned int uiInDataLen;
+
+	if (SOF_Decode(Base64EncodeCert, &pucCertificate, &uiCertificateLen) != SOR_OK
+		|| SOF_Decode(InData, &pucInData, &uiInDataLen) != SOR_OK
+		|| (rv = SAF_EccPublicKeyEncByCert(
+			pucCertificate,
+			uiCertificateLen,
+			uiAlgorithmID,
+			pucInData,
+			uiInDataLen,
+			pucOutData,
+			puiOutDataLen)) != SAR_Ok) {
+	}
+
 }
 
 BSTR SOF_DecryptData(BSTR ContainerName, BSTR InData)
@@ -186,14 +332,40 @@ BSTR SOF_DecryptData(BSTR ContainerName, BSTR InData)
 
 BOOL SOF_EncryptFile(BSTR Base64EncodeCert, BSTR InFile, BSTR OutFile)
 {
-	SOFerr(SOF_F_SOF_ENCRYPTFILE, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	int ret = FALSE;
+	int rv;
+	unsigned char *pucCertificate = NULL;
+	unsigned int uiCertificateLen;
+
+	if (SOF_Decode(Base64EncodeCert, &pucCertificate, &uiCertificateLen) != SOR_OK) {
+		SOFerr(SOF_F_SOF_ENCRYPTFILE, SOF_R_DECODE_FAILURE);
+		goto end;
+	}
+
+	if ((rv = SAF_EccPublicKeyEncByCert(
+		pucCertificate,
+		uiCertificateLen,
+		uiAlgorithmID,
+		pucInData,
+		uiInDataLen,
+		pucOutData,
+		puiOutDataLen)) != SAR_Ok) {
+		SOFerr(SOF_F_SOF_ENCRYPTFILE, ERR_R_SAF_LIB);
+		goto end;
+	}
+
+	ret = TRUE;
+
+end:
+	OPENSSL_free(pucCertificate);
+	return ret;
 }
+
 
 BOOL SOF_DecryptFile(BSTR ContainerName, BSTR InFile, BSTR OutFile)
 {
-	SOFerr(SOF_F_SOF_DECRYPTFILE, SOF_R_NOT_IMPLEMENTED);
-	return 0;
+	int ret = FALSE;
+	int rv;
 }
 
 BSTR SOF_SignMessage(short flag, BSTR ContainerName, BSTR InData)
@@ -216,6 +388,15 @@ BSTR SOF_GetInfoFromSignedMessage(BSTR SignedMessage, short Type)
 
 BSTR SOF_SignDataXML(BSTR ContainerName, BSTR InData)
 {
+	int rv;
+	unsigned char outbuf[1024];
+
+	if ((rv = SAF_EccSignFile(
+		hAppHandle,
+		(unsigned char *)ContainerName,
+		(unsigned int)strlen(ContainerName),
+		sof_digest_method,
+
 	SOFerr(SOF_F_SOF_SIGNDATAXML, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
@@ -232,11 +413,27 @@ BSTR SOF_GetXMLSignatureInfo(BSTR XMLSignedData, short Type)
 	return NULL;
 }
 
-/* return base64 encoded data */
 BSTR SOF_GenRandom(short RandomLen)
 {
-	SOFerr(SOF_F_SOF_GENRANDOM, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	int rv;
+	unsigned char *ret = NULL;
+	unsigned char *bin = NULL;
+	unsigned char *b64 = NULL;
+
+	if (!(bin = OPENSSL_malloc(RandomLen))
+		|| !(ret = OPENSSL_zalloc((RandomLen * 4)/3 + 128))
+		|| (rv = SAF_GenRandom(RandomLen, buf)) != SAR_Ok
+		|| (rv = SAF_Base64_Encode(buf, RandomLen, ret, &retlen)) != SAR_Ok) {
+		goto end;
+	}
+
+	ret = b64;
+	b64 = NULL;
+
+end:
+	OPENSSL_free(bin);
+	OPENSSL_free(b64);
+	return ret;
 }
 
 long SOF_GetLastError(void)

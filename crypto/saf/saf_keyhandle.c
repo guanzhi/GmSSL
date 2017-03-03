@@ -86,7 +86,7 @@ int SAF_GenerateKeyWithEPK(
 	outlen = (size_t)*puiSymmKeyLen;
 	if (!(cipher = EVP_get_cipherbysgd(obj->uiCryptoAlgID))
 		|| !RAND_bytes(keybuf, EVP_CIPHER_key_length(cipher))
-		|| !(pkey = d2i_PUBKEY(NULL, &pucPublicKey, (long)uiPublicKeyLen))
+		|| !(pkey = d2i_PUBKEY(NULL, (const unsigned char **)&pucPublicKey, (long)uiPublicKeyLen))
 		|| !(pkctx = EVP_PKEY_CTX_new(pkey, NULL))
 		|| !EVP_PKEY_encrypt_init(pkctx)
 		|| !EVP_PKEY_encrypt(pkctx, pucSymmKey, &outlen, keybuf, (size_t)EVP_CIPHER_key_length(cipher))) {

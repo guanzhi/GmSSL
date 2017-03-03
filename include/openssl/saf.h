@@ -580,12 +580,12 @@ int SAF_Pkcs7_EncodeData(
 	void *hAppHandle,
 	unsigned char *pucSignContainerName,
 	unsigned int uiSignContainerNameLen,
-	unsigned int uiSignKeyUsage,
 	unsigned char *pucSignerCertificate,
 	unsigned int uiSignerCertificateLen,
 	unsigned int uiDigestAlgorithm,
 	unsigned char *pucEncCertificate,
 	unsigned int uiEncCertificateLen,
+	unsigned int uiSymmAlgorithm,
 	unsigned char *pucData,
 	unsigned int uiDataLen,
 	unsigned char *pucDerP7Data,
@@ -649,7 +649,7 @@ int SAF_Pkcs7_EncodeDigestedData(
 
 int SAF_Pkcs7_DecodeDigestedData(
 	void *hAppHandle,
-	unsigned int uiDigestAlgorithm,
+	unsigned int *puiDigestAlgorithm,
 	unsigned char *pucDerP7DigestedData,
 	unsigned int uiDerP7DigestedDataLen,
 	unsigned char *pucData,

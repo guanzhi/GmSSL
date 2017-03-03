@@ -51,6 +51,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <openssl/evp.h>
+#include <openssl/pem.h>
 #include <openssl/conf.h>
 #include <openssl/gmsaf.h>
 #include "saf_lcl.h"
@@ -82,7 +83,7 @@ int SAF_AddTrustedRootCaCertificate(
 		goto end;
 	}
 
-	if (!(x509 = d2i_X509(NULL, &pucCertificate, uiCertificateLen))) {
+	if (!(x509 = d2i_X509(NULL, (const unsigned char **)&pucCertificate, uiCertificateLen))) {
 		SAFerr(SAF_F_SAF_ADDTRUSTEDROOTCACERTIFICATE, SAF_R_LOAD_CERTS_FAILURE);
 		goto end;
 	}
@@ -162,7 +163,7 @@ int SAF_GetRootCaCertificate(
 		goto end;
 	}
 
-	if ((len = i2d_X509(x509, pucCertificate)) <= 0) {
+	if ((len = i2d_X509(x509, &pucCertificate)) <= 0) {
 		SAFerr(SAF_F_SAF_GETROOTCACERTIFICATE, ERR_R_X509_LIB);
 		goto end;
 	}
@@ -248,7 +249,7 @@ int SAF_AddCaCertificate(
 		goto end;
 	}
 
-	if (!(x509 = d2i_X509(NULL, &pucCertificate, uiCertificateLen))) {
+	if (!(x509 = d2i_X509(NULL, (const unsigned char **)&pucCertificate, uiCertificateLen))) {
 		SAFerr(SAF_F_SAF_ADDCACERTIFICATE, SAF_R_LOAD_CERTS_FAILURE);
 		goto end;
 	}
@@ -327,7 +328,7 @@ int SAF_GetCaCertificate(
 		goto end;
 	}
 
-	if ((len = i2d_X509(x509, pucCertificate)) <= 0) {
+	if ((len = i2d_X509(x509, &pucCertificate)) <= 0) {
 		SAFerr(SAF_F_SAF_GETCACERTIFICATE, ERR_R_X509_LIB);
 		goto end;
 	}
@@ -393,8 +394,6 @@ int SAF_AddCrl(
 	unsigned char *pucDerCrl,
 	unsigned int uiDerCrlLen)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -404,8 +403,6 @@ int SAF_VerifyCertificate(
 	unsigned char *pucUsrCertificate,
 	unsigned int uiUsrCertificateLen)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -417,8 +414,6 @@ int SAF_VerifyCertificateByCrl(
 	unsigned char *pucDerCrl,
 	unsigned int uiDerCrlLen)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -445,8 +440,6 @@ int SAF_GetCertFromLdap(
 	unsigned char *pucOutCert,
 	unsigned int *puiOutCertLen)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -472,8 +465,6 @@ int SAF_GetCertificateInfo(
 	unsigned char *pucInfo,
 	unsigned int *puiInfoLen)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -488,8 +479,6 @@ int SAF_GetExtTypeInfo(
 	unsigned char *pucInfo,
 	unsigned int *puiInfoLen)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -498,8 +487,6 @@ int SAF_EnumCertificates(
 	void *hAppHandle,
 	SGD_USR_CERT_ENUMLIST *usrCerts)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -508,8 +495,6 @@ int SAF_EnumKeyContainerInfo(
 	void *hAppHandle,
 	SGD_KEYCONTAINERINFO_ENUMLIST *keyContainerInfo)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -518,8 +503,6 @@ int SAF_EnumCertificatesFree(
 	void *hAppHandle,
 	SGD_USR_CERT_ENUMLIST *usrCerts)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }
 
@@ -528,7 +511,5 @@ int SAF_EnumKeyContainerInfoFree(
 	void *hAppHandle,
 	SGD_KEYCONTAINERINFO_ENUMLIST *keyContainerInfo)
 {
-	int ret = SAR_UnknownErr;
-	SAF_APP *app = (SAF_APP *)hAppHandle;
 	return SAR_NotSupportYetErr;
 }

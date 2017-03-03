@@ -57,7 +57,6 @@ int SAF_SM2_EncodeSignedAndEnvelopedData(
 	void *hAppHandle,
 	unsigned char *pucSignContainerName,
 	unsigned int uiSignContainerNameLen,
-	unsigned int uiSignKeyUsage,
 	unsigned char *pucSignerCertificate,
 	unsigned int uiSignerCertificateLen,
 	unsigned int uiDigestAlgorithm,
@@ -69,8 +68,20 @@ int SAF_SM2_EncodeSignedAndEnvelopedData(
 	unsigned char *pucDerSignedAndEnvelopedData,
 	unsigned int *puiDerSignedAndEnvelopedDataLen)
 {
-	int ret = SAR_UnknownErr;
-	return 0;
+	return SAF_Pkcs7_EncodeData(
+		hAppHandle,
+		pucSignContainerName,
+		uiSignContainerNameLen,
+		pucSignerCertificate,
+		uiSignerCertificateLen,
+		uiDigestAlgorithm,
+		pucEncCertificate,
+		uiEncCertificateLen,
+		uiSymmAlgorithm,
+		pucData,
+		uiDataLen,
+		pucDerSignedAndEnvelopedData,
+		puiDerSignedAndEnvelopedDataLen);
 }
 
 /* 7.4.11 */
@@ -78,16 +89,25 @@ int SAF_SM2_DecodeSignedAndEnvelopedData(
 	void *hAppHandle,
 	unsigned char *pucDerContainerName,
 	unsigned int uiDerContainerNameLen,
-	unsigned int uiDecKeyUsage,
 	unsigned char *pucDerSignedAndEnvelopedData,
 	unsigned int uiDerSignedAndEnvelopedDataLen,
 	unsigned char *pucData,
 	unsigned int *puiDataLen,
 	unsigned char *pucSignerCertificate,
 	unsigned int *puiSignerCertificateLen,
-	unsigned int *puiDigestAlgorithms)
+	unsigned int *puiDigestAlgorithm)
 {
-	return 0;
+	return SAF_Pkcs7_DecodeData(
+		hAppHandle,
+		pucDerContainerName,
+		uiDerContainerNameLen,
+		pucDerSignedAndEnvelopedData,
+		uiDerSignedAndEnvelopedDataLen,
+		pucData,
+		puiDataLen,
+		pucSignerCertificate,
+		puiSignerCertificateLen,
+		puiDigestAlgorithm);
 }
 
 /* 7.4.12 */
