@@ -28,6 +28,7 @@ extern int asn1parse_main(int argc, char *argv[]);
 extern int ca_main(int argc, char *argv[]);
 extern int ciphers_main(int argc, char *argv[]);
 extern int cms_main(int argc, char *argv[]);
+extern int cpk_main(int argc, char *argv[]);
 extern int crl_main(int argc, char *argv[]);
 extern int crl2pkcs7_main(int argc, char *argv[]);
 extern int dgst_main(int argc, char *argv[]);
@@ -77,6 +78,7 @@ extern OPTIONS asn1parse_options[];
 extern OPTIONS ca_options[];
 extern OPTIONS ciphers_options[];
 extern OPTIONS cms_options[];
+extern OPTIONS cpk_options[];
 extern OPTIONS crl_options[];
 extern OPTIONS crl2pkcs7_options[];
 extern OPTIONS dgst_options[];
@@ -131,6 +133,9 @@ static FUNCTION functions[] = {
 #endif
 #ifndef OPENSSL_NO_CMS
     { FT_general, "cms", cms_main, cms_options },
+#endif
+#ifndef OPENSSL_NO_CPK
+    { FT_general, "cpk", cpk_main, cpk_options },
 #endif
     { FT_general, "crl", crl_main, crl_options },
     { FT_general, "crl2pkcs7", crl2pkcs7_main, crl2pkcs7_options },
