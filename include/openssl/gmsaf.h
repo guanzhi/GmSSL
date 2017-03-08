@@ -107,10 +107,15 @@ int ERR_load_SAF_strings(void);
 # define SAF_F_SAF_HASHUPDATE                             131
 # define SAF_F_SAF_INITIALIZE                             132
 # define SAF_F_SAF_KEY_NEW                                133
+# define SAF_F_SAF_LOAD_PRIVATE_KEY                       151
+# define SAF_F_SAF_LOAD_PUBLIC_KEY                        152
 # define SAF_F_SAF_LOGIN                                  134
 # define SAF_F_SAF_LOGOUT                                 135
 # define SAF_F_SAF_MACFINAL                               136
 # define SAF_F_SAF_MACUPDATE                              137
+# define SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA               153
+# define SAF_F_SAF_PKCS7_DECODEENVELOPEDDATA              154
+# define SAF_F_SAF_PKCS7_DECODESIGNEDDATA                 155
 # define SAF_F_SAF_PKCS7_ENCODEDIGESTEDDATA               149
 # define SAF_F_SAF_PKCS7_ENCODEENVELOPEDDATA              138
 # define SAF_F_SAF_PKCS7_ENCODESIGNEDDATA                 150
@@ -134,6 +139,7 @@ int ERR_load_SAF_strings(void);
 # define SAF_R_GEN_RANDOM_FAILURE                         105
 # define SAF_R_INT_OVERFLOW                               106
 # define SAF_R_INVALID_ALGOR                              107
+# define SAF_R_INVALID_APP                                124
 # define SAF_R_INVALID_CERTIFICATE                        108
 # define SAF_R_INVALID_DIGEST_ALGOR                       122
 # define SAF_R_INVALID_HANDLE                             109
@@ -143,13 +149,22 @@ int ERR_load_SAF_strings(void);
 # define SAF_R_INVALID_KEY_LENGTH                         113
 # define SAF_R_INVALID_KEY_USAGE                          114
 # define SAF_R_INVALID_LENGTH                             115
+# define SAF_R_INVALID_PKCS7                              125
+# define SAF_R_INVALID_PKCS7_DATA                         126
+# define SAF_R_INVALID_PKCS7_TYPE                         127
+# define SAF_R_INVALID_PKEY_TYPE                          128
 # define SAF_R_INVALID_PUBLIC_KEY                         116
+# define SAF_R_LOA                                        132
 # define SAF_R_LOAD_CERTS_FAILURE                         117
 # define SAF_R_LOAD_KEY_FAILURE                           123
+# define SAF_R_LOAD_PRIVATE_KEY_FAILURE                   129
+# define SAF_R_LOAD_PUBLIC_KEY_FAILURE                    130
 # define SAF_R_MAC_FAILURE                                118
 # define SAF_R_NOT_SUPPORTED                              119
 # define SAF_R_OPERATION_NOT_INITIALIZED                  120
+# define SAF_R_PKCS7_VERIFY_FAILURE                       133
 # define SAF_R_UNSUPPORTED_ALGOR                          121
+# define SAF_R_UNSUPPORTED_DIGEST_ALGOR                   131
 
 # ifdef  __cplusplus
 }

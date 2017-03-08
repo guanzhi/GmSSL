@@ -61,6 +61,9 @@ void EC_KEY_set_default_secg_method(void)
     default_ec_key_meth = EC_KEY_OpenSSL();
 }
 
+/* defained in sm2/sm2_kmeth.c */
+extern const EC_KEY_METHOD *EC_KEY_GmSSL(void);
+
 void EC_KEY_set_default_sm_method(void)
 {
     default_ec_key_meth = EC_KEY_GmSSL();

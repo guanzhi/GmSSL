@@ -592,7 +592,17 @@ int SAF_Pkcs7_EncodeData(
 	unsigned int *puiDerP7DataLen);
 
 int SAF_Pkcs7_DecodeData(
-	void *hAppHandle);
+	void *hAppHandle,
+	unsigned char *pucDecContainerName,
+	unsigned int uiDecContainerNameLen,
+	unsigned int uiDecKeyUsage,
+	unsigned char *pucDerP7Data,
+	unsigned int uiDerP7DataLen,
+	unsigned char *pucData,
+	unsigned int *puiDataLen,
+	unsigned char *pucSignerCertificate,
+	unsigned int *puiSignerCertificateLen,
+	unsigned int *puiDigestAlgorithm);
 
 int SAF_Pkcs7_EncodeSignedData(
 	void *hAppHandle,
@@ -611,13 +621,13 @@ int SAF_Pkcs7_DecodeSignedData(
 	void *hAppHandle,
 	unsigned char *pucDerP7SignedData,
 	unsigned int uiDerP7SignedDataLen,
+	unsigned int *puiDigestAlgorithm,
 	unsigned char *pucSignerCertificate,
-	unsigned int uiSignerCertificateLen,
-	unsigned int uiDigestAlgorithm,
+	unsigned int *puiSignerCertificateLen,
 	unsigned char *pucData,
-	unsigned int uiDataLen,
-	unsigned char *pucSign,
-	unsigned int *puiSignLen);
+	unsigned int *puiDataLen,
+	unsigned char *pucSig,
+	unsigned int *puiSigLen);
 
 int SAF_Pkcs7_EncodeEnvelopedData(
 	void *hAppHandle,

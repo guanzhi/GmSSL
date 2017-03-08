@@ -47,6 +47,9 @@
  * ====================================================================
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -888,8 +891,10 @@ end:
 		SM9Ciphertext_free(ret);
 		ret = NULL;
 	}
-	OPENSSL_cleanse(key, keylen);
-	OPENSSL_free(key);
+	if (key) {
+		OPENSSL_cleanse(key, keylen);
+		OPENSSL_free(key);
+	}
 	return ret;
 }
 

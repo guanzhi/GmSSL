@@ -497,7 +497,7 @@ static DSA *X509_ALGOR_get1_DSA(X509_ALGOR *algor)
 {
 	DSA *dsa = NULL;
 	int ptype;
-	void *pval;
+	const void *pval;
 	ASN1_OCTET_STRING *pstr;
 	const unsigned char *p;
 
@@ -713,7 +713,7 @@ static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor)
 {
 	EC_KEY *ec_key = NULL;
 	int ptype;
-	void *pval;
+	const void *pval;
 	const unsigned char *p;
 	
 	X509_ALGOR_get0(NULL, &ptype, &pval, algor);

@@ -77,7 +77,7 @@ typedef struct {
 typedef struct {
 	SAF_SYMMKEYOBJ *hSymmKeyObj;
 	unsigned char key[64];
-	int keylen;
+	size_t keylen;
 	EVP_CIPHER_CTX *cipher_ctx;
 	CMAC_CTX *cmac_ctx;
 } SAF_KEY;
@@ -87,3 +87,8 @@ void SAF_KEY_free(SAF_KEY *key);
 
 SAF_SYMMKEYOBJ *SAF_SYMMKEYOBJ_dup(const SAF_SYMMKEYOBJ *a);
 void SAF_SYMMKEYOBJ_free(SAF_SYMMKEYOBJ *a);
+
+
+EVP_PKEY *SAF_load_private_key(SAF_APP *app, const char *container, int flags);
+EVP_PKEY *SAF_load_public_key(SAF_APP *app, const char *container, int flags);
+

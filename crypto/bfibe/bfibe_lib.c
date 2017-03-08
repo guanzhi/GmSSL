@@ -468,7 +468,8 @@ int BFIBE_do_decrypt(BFPublicParameters *mpk,
 	const EVP_MD *md;
 	KDF_FUNC hash_bytes;
 	unsigned char rho[EVP_MAX_MD_SIZE * 2];
-	unsigned int size;
+	size_t size;
+	unsigned int len;
 	int i;
 
 	if (!mpk || !in || !outlen || !sk) {
@@ -539,7 +540,8 @@ int BFIBE_do_decrypt(BFPublicParameters *mpk,
 		BFIBEerr(BFIBE_F_BFIBE_DO_DECRYPT, ERR_R_EC_LIB);
 		goto end;
 	}
-	if (!EVP_Digest(rho, size, rho, &size, md, NULL)) {
+	len = size;
+	if (!EVP_Digest(rho, size, rho, &len, md, NULL)) {
 		BFIBEerr(BFIBE_F_BFIBE_DO_DECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -566,8 +568,8 @@ int BFIBE_do_decrypt(BFPublicParameters *mpk,
 	}
 
 	/* k = HashToRange(rho || Hash(out)) in [0, mpk->q) */
-	size = EVP_MD_size(md);
-	if (!EVP_Digest(out, in->w->length, rho + EVP_MD_size(md), &size, md, NULL)) {
+	len = EVP_MD_size(md);
+	if (!EVP_Digest(out, in->w->length, rho + EVP_MD_size(md), &len, md, NULL)) {
 		BFIBEerr(BFIBE_F_BFIBE_DO_DECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}

@@ -133,7 +133,7 @@ KDF_FUNC KDF_get_ibcs(const EVP_MD *md)
 #endif
 #ifndef OPENSSL_NO_BLAKE2
 	case NID_blake2b512:
-		return ibcs_blake2s256kdf;
+		return ibcs_blake2b512kdf;
 	case NID_blake2s256:
 		return ibcs_blake2s256kdf;
 #endif

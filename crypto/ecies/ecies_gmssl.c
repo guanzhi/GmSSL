@@ -50,15 +50,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/rand.h>
 #include <openssl/ecies.h>
+
+static int ECIES_PARAMS_init_with_type(ECIES_PARAMS *params, int type)
+{
+			
+	return 0;
+}
 
 int gmssl_ecies_encrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
 	ECIES_CIPHERTEXT_VALUE *cv = NULL;
+	ECIES_PARAMS params;
+
+	if (!ECIES_PARAMS_init_with_type(&params, type)) {
+		return 0;
+	}
 
 	RAND_seed(in, inlen);
-	if (!(cv = ECIES_do_encrypt(type, in, inlen, ec_key))) {
+	if (!(cv = ECIES_do_encrypt(&params, in, inlen, ec_key))) {
 		*outlen = 0;
 		return 0;
 	}
@@ -72,10 +84,15 @@ int gmssl_ecies_decrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
 	ECIES_CIPHERTEXT_VALUE *cv = NULL;
+	ECIES_PARAMS params;
 	const unsigned char *cp = in;
 	unsigned char *der = NULL;
 	int derlen = -1;
 	int ret = -1;
+
+	if (!ECIES_PARAMS_init_with_type(&params, type)) {
+		return -1;
+	}
 
 	if (!(cv = d2i_ECIES_CIPHERTEXT_VALUE(NULL, &cp, inlen))) {
 		return -1;
@@ -86,7 +103,7 @@ int gmssl_ecies_decrypt(int type, const unsigned char *in, size_t inlen,
 		goto end;
 	}
 
-	ret = ECIES_do_decrypt(type, cv, out, outlen, ec_key);
+	ret = ECIES_do_decrypt(&params, cv, out, outlen, ec_key);
 
 end:
 	OPENSSL_clear_free(der, derlen);

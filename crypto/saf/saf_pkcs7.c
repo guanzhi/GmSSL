@@ -48,6 +48,7 @@
  */
 
 #include <openssl/evp.h>
+#include <openssl/asn1.h>
 #include <openssl/pkcs7.h>
 #include <openssl/gmapi.h>
 #include <openssl/gmsaf.h>
@@ -70,35 +71,26 @@ int SAF_Pkcs7_EncodeData(
 	unsigned int *puiDerP7DataLen)
 {
 	int ret = SAR_UnknownErr;
-
-	STACK_OF(X509) *encerts = NULL;
-
-	p7 = PKCS7_encrypt(encerts, in, cipher, flags);
-
-	p7 = PKCS7_sign(NULL, NULL, other, in, flags);
-
-
-
-
-
 	return ret;
 }
 
 
 /* 7.4.3 */
 int SAF_Pkcs7_DecodeData(
-	void *hAppHandle)
+	void *hAppHandle,
+	unsigned char *pucDecContainerName,
+	unsigned int uiDecContainerNameLen,
+	unsigned int uiDecKeyUsage,
+	unsigned char *pucDerP7Data,
+	unsigned int uiDerP7DataLen,
+	unsigned char *pucData,
+	unsigned int *puiDataLen,
+	unsigned char *pucSignerCertificate,
+	unsigned int *puiSignerCertificateLen,
+	unsigned int *puiDigestAlgorithm)
 {
 	int ret = SAR_UnknownErr;
 	return ret;
-}
-
-EVP_PKEY *SAF_LoadPrivateKey(
-	void *hAppHandle,
-	unsigned char *pucSignContainerName,
-	unsigned int uiSignContainerNameLen)
-{
-	return NULL;
 }
 
 /* 7.4.4 */
@@ -116,9 +108,12 @@ int SAF_Pkcs7_EncodeSignedData(
 	unsigned int *puiDerP7DataLen)
 {
 	int ret = SAR_UnknownErr;
+	SAF_APP *app = (SAF_APP *)hAppHandle;
+	PKCS7 *p7 = NULL;
 	EVP_PKEY *pkey = NULL;
 	X509 *x509 = NULL;
 	BIO *data = NULL;
+	int len;
 
 	if (!hAppHandle || !pucSignContainerName || !pucSignerCertificate
 		|| !pucData || !pucDerP7Data || !puiDerP7DataLen) {
@@ -127,21 +122,21 @@ int SAF_Pkcs7_EncodeSignedData(
 	}
 
 	if (uiSignContainerNameLen <= 0 || uiSignContainerNameLen > INT_MAX
+		|| strlen((char *)pucSignContainerName) != uiSignContainerNameLen
 		|| uiSignerCertificateLen <= 0 || uiSignerCertificateLen > INT_MAX
 		|| uiDataLen <= 0 || uiDataLen > INT_MAX) {
 		SAFerr(SAF_F_SAF_PKCS7_ENCODESIGNEDDATA, SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
 	}
 
-	if (!(pkey = SAF_LoadPrivateKey(
-		hAppHandle,
-		pucSignContainerName,
-		uiSignContainerNameLen))) {
+	if (!(pkey = SAF_load_private_key(app, (char *)pucSignContainerName,
+		EVP_PK_EC|EVP_PKT_SIGN))) {
 		SAFerr(SAF_F_SAF_PKCS7_ENCODESIGNEDDATA, SAF_R_LOAD_KEY_FAILURE);
 		goto end;
 	}
 
-	if (!(x509 = d2i_X509(NULL, &pucSignerCertificate, uiSignerCertificateLen))) {
+	if (!(x509 = d2i_X509(NULL, (const unsigned char **)&pucSignerCertificate,
+		uiSignerCertificateLen))) {
 		SAFerr(SAF_F_SAF_PKCS7_ENCODESIGNEDDATA, ERR_R_X509_LIB);
 		goto end;
 	}
@@ -192,36 +187,114 @@ int SAF_Pkcs7_DecodeSignedData(
 {
 	int ret = SAR_UnknownErr;
 	PKCS7 *p7 = NULL;
+	PKCS7_SIGNED *p7signed;
 	X509 *x509 = NULL;
+	PKCS7_SIGNER_INFO *signer_info;
+	X509_ALGOR *algor;
+	BIO *bio = NULL;
 
-	p7 = d2i_PKCS7(NULL, &pucDerP7SignedData, uiDerP7SignedDataLen);
+	if (!hAppHandle || !pucDerP7SignedData || !puiDigestAlgorithm
+		|| !puiSignerCertificateLen || !puiDataLen || !puiSigLen) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, ERR_R_PASSED_NULL_PARAMETER);
+		return SAR_IndataErr;
+	}
+
+	if (uiDerP7SignedDataLen <= 0 || uiDerP7SignedDataLen > INT_MAX) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_INPUT_LENGTH);
+		return SAR_IndataLenErr;
+	}
+
+	/* process */
+	if (!(p7 = d2i_PKCS7(NULL, (const unsigned char **)&pucDerP7SignedData,
+		uiDerP7SignedDataLen))) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_DATA);
+		goto end;
+	}
+
+	if (!(bio = BIO_new(BIO_s_mem()))) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
 
 	if (!PKCS7_type_is_signed(p7)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_TYPE);
 		goto end;
 	}
 
-	PKCS7_SIGNED *p7signed = p7->d.sign;
-
-	X509_ALGOR *algor = sk_X509_ALGOR_value(p7signed->md_algs, 0);
-	const EVP_MD *md = EVP_get_digestbyobj(algor->algorithm);
-	*puiDigestAlgorithm = EVP_MD_sdg(md);
-
-	X509 *x509 = sk_X509_ALGOR_value(p7signed->cert);
-	PKCS7_SIGNER_INFO *signer_info = sk_PKCS7_SIGNER_INFO_value(p7signed->signer_info, 0);
-
-	PKCS7 *p7data = p7signed->contents;
-	if (!PKCS7_type_is_data(p7data)) {
+	if (!PKCS7_verify(p7, NULL, NULL, NULL, bio, 0)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_PKCS7_VERIFY_FAILURE);
 		goto end;
 	}
-	ASN1_OCTET_STRING *data = p7data->d.data;
 
+	if (!(p7signed = p7->d.sign)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_DATA);
+		goto end;
+	}
+
+	/* get digest algor */
+	if (sk_X509_ALGOR_num(p7signed->md_algs) != 1
+		|| !(algor = sk_X509_ALGOR_value(p7signed->md_algs, 0))
+		|| (*puiDigestAlgorithm = EVP_MD_sgd(EVP_get_digestbyobj(algor->algorithm))) <= 0) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_DATA);
+		goto end;
+	}
+
+	/* get signer's certificate */
+	if (sk_X509_ALGOR_num(p7signed->cert) != 1
+		|| !(x509 = sk_X509_ALGOR_value(p7signed->cert, 0))) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_DATA);
+		goto end;
+	}
+	if ((len = i2d_X509(x509, NULL)) <= 0) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, ERR_R_X509_LIB);
+		goto end;
+	}
+	if (*puiSignerCertificateLen < len) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_BUFFER_TOO_SMALL);
+		goto end;
+	}
+	if ((len = i2d_X509(x509, &pucSignerCertficate)) <= 0) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, ERR_R_X509_LIB);
+		goto end;
+	}
+	*puiSignerCertificateLen = len;
+
+	/* get data */
+	if (!(p7signed->contents)
+		|| !PKCS7_type_is_data(p7signed->contents)
+		|| !(data = p7signed->contents->d.data)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_DATA);
+		goto end;
+	}
+
+	if (*puiDataLen < ASN1_OCTET_STRING_length(data)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_BUFFER_TOO_SMALL);
+		goto end;
+	}
+
+	memcpy(pucData, ASN1_OCTET_STRING_get0_data(data), ASN1_OCTET_STRING_length(data));
 	*puiDataLen = ASN1_OCTET_STRING_length(data);
-	memcpy(pucData, ASN1_OCTET_STRING_get0_data(data), *puiDataLen);
 
+	/* get signature */
+	if (sk_SIGNER_INFO_num(p7signed->signer_info) <= 0
+		|| !(signer_info = sk_SIGNER_INFO_value(p7signed->signer_info, 0))) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_INVALID_PKCS7_DATA);
+		goto end;
+	}
 
-	PKCS7_verify(p7, NULL, chain_store, NULL, outbio, flags);
+	if (*puiSigLen < ASN1_OCTET_STRING_length(signer_info->enc_digest)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_BUFFER_TOO_SMALL);
+		goto end;
+	}
+	memcpy(pucSig, ASN1_OCTET_STRING_get0_data(signer_info->enc_digest),
+		ASN1_OCTET_STRING_length(signer_info->enc_digest));
+	*puiSigLen = ASN1_OCTET_STRING_length(signer_info->enc_digest);
 
-
+	ret = SAR_Ok;
+end:
+	PKCS7_free(p7);
+	X509_free(x509);
+	BIO_free(bio);
 	return ret;
 }
 
@@ -275,7 +348,6 @@ int SAF_Pkcs7_EncodeEnvelopedData(
 		ret = SAR_CertEncodeErr;
 		goto end;
 	}
-	// FIXME: check usage, valid time of x509
 
 	sk_X509_push(certs, x509);
 	x509 = NULL;
@@ -340,7 +412,7 @@ int SAF_Pkcs7_DecodeEnvelopedData(
 
 	if (uiDecContainerNameLen <= 0 || uiDecContainerNameLen > INT_MAX
 		|| uiDerP7EnvelopedDataLen <= 0 || uiDerP7EnvelopedDataLen > INT_MAX) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEENVELOPEDDATA, SAR_R_INVALID_INPUT_LENGTH);
+		SAFerr(SAF_F_SAF_PKCS7_DECODEENVELOPEDDATA, SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
 	}
 
@@ -352,21 +424,27 @@ int SAF_Pkcs7_DecodeEnvelopedData(
 		return SAR_IndataLenErr;
 	}
 
-	if (!(pkey = SAF_load_private_key(app, pucDecContainerName,
-		uiDecContainerNameLen, SGD_PK_ENC))) {
+	if (!(pkey = SAF_load_private_key(app, (char *)pucDecContainerName,
+		EVP_PK_EC|EVP_PKT_ENC))) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODEENVELOPEDDATA, SAF_R_LOAd_PUBLIC_KEY_FAILURE);
+		goto end;
 	}
 
 	if (!(x509 = SAF_LoadCertificate(app, pucDecContainerName,
 		uiDecContainerNameLen, SGD_PK_ENC))) {
+		goto end;
 	}
 
 	if (!(bio = BIO_new(BIO_s_membuf()))) {
+		goto end;
 	}
 
 	if (!PKCS7_decrypt(p7, pkey, x509, bio, 0)) {
+		goto end;
 	}
 
 	if (!BIO_get_mem_buf(bio, &buf)) {
+		goto end;
 	}
 
 	memcpy(pucData, buf->data, buf->length);

@@ -56,8 +56,6 @@ SKF_METHOD *SKF_METHOD_load_library(const char *so_path)
 	SKF_METHOD *ret = NULL;
 	SKF_METHOD *skf = NULL;
 	DSO *dso = NULL;
-	void *func;
-	int i;
 
 	if (!(dso = DSO_load(NULL, so_path, NULL, 0))) {
 		goto end;

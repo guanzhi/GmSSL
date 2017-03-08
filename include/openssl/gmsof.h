@@ -135,7 +135,9 @@ int ERR_load_SOF_strings(void);
 # define SOF_F_SOF_VERIFYTIMESTAMP                        142
 
 /* Reason codes. */
+# define SOF_R_DECODE_FAILURE                             101
 # define SOF_R_NOT_IMPLEMENTED                            100
+# define SOF_R_READ_FILE_FAILURE                          102
 
 # ifdef  __cplusplus
 }

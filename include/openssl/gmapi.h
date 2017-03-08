@@ -71,6 +71,8 @@ const char *GMAPI_keyusage2str(int usage);
 int GMAPI_sgd2ciphernid(int sgd);
 int GMAPI_sgd2mdnid(int sgd);
 
+int EVP_MD_sgd(const EVP_MD *md);
+int EVP_CIPHER_sgd(const EVP_CIPHER *cipher);
 
 /* SGD <==> EVP */
 const EVP_MD *EVP_get_digestbysgd(int sgd);

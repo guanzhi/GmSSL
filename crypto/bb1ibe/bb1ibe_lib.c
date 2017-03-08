@@ -442,7 +442,7 @@ end:
  * c->u = HashToRange(DoubleHash(c->Chi0, c->Chi1, y, wbuf))
  */
 static int BB1CiphertextBlock_hash_to_range(BB1PublicParameters *mpk,
-	const BB1CiphertextBlock *c, const unsigned char *wbuf, size_t wbuflen,
+	BB1CiphertextBlock *c, const unsigned char *wbuf, size_t wbuflen,
 	BIGNUM *bn, BN_CTX *bn_ctx)
 {
 	int ret = 0;
@@ -870,7 +870,7 @@ int BB1IBE_do_decrypt(BB1PublicParameters *mpk,
 		BB1IBEerr(BB1IBE_F_BB1IBE_DO_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (BN_GFP2_cmp(w, w1) != 0) {
+	if (!BN_GFP2_equ(w, w1)) {
 		BB1IBEerr(BB1IBE_F_BB1IBE_DO_DECRYPT, BB1IBE_R_BB1CIPHERTEXT_INVALID_MAC);
 		goto end;
 	}

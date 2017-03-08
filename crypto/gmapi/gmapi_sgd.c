@@ -116,3 +116,13 @@ int GMAPI_sgd2mdnid(int sgd)
 	return 0;
 }
 
+
+int EVP_MD_sgd(const EVP_MD *md)
+{
+	return 0;
+}
+
+int EVP_CIPHER_sgd(const EVP_CIPHER *cipher)
+{
+	return 0;
+}

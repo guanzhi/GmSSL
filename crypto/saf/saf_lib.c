@@ -50,9 +50,68 @@
 #include <openssl/gmsaf.h>
 #include "saf_lcl.h"
 
-static int readfile(const char *file, unsigned char **pout, size_t *len)
+
+EVP_PKEY *SAF_load_private_key(SAF_APP *app, const char *container, int flags)
 {
-	return SAR_Ok;
+	EVP_PKEY *ret = NULL;
+	EVP_PKEY *pkey = NULL;
+	char key_id[1024];
+	int type;
+
+	if (!app->engine) {
+		SAFerr(SAF_F_SAF_LOAD_PRIVATE_KEY, SAF_R_INVALID_APP);
+		return NULL;
+	}
+
+	snprintf(key_id, sizeof(key_id), "%s.%s", container,
+		((flags & EVP_PKT_SIGN) ? "sign" : "enc"));
+
+	if (!(pkey = ENGINE_load_private_key(app->engine, key_id, NULL, NULL))) {
+		SAFerr(SAF_F_SAF_LOAD_PRIVATE_KEY, SAF_R_LOAD_PRIVATE_KEY_FAILURE);
+		goto end;
+	}
+
+	if (EVP_PKEY_base_id(pkey) !=
+		((flags & EVP_PK_EC) ? EVP_PKEY_EC : EVP_PKEY_RSA)) {
+		SAFerr(SAF_F_SAF_LOAD_PRIVATE_KEY, SAF_R_INVALID_PKEY_TYPE);
+		goto end;
+	}
+
+	ret = pkey;
+	pkey = NULL;
+end:
+	EVP_PKEY_free(pkey);
+	return ret;
 }
 
+EVP_PKEY *SAF_load_public_key(SAF_APP *app, const char *container, int flags)
+{
+	EVP_PKEY *ret = NULL;
+	EVP_PKEY *pkey = NULL;
+	char key_id[1024];
 
+	if (!app->engine) {
+		SAFerr(SAF_F_SAF_LOAD_PUBLIC_KEY, SAF_R_INVALID_APP);
+		return NULL;
+	}
+
+	snprintf(key_id, sizeof(key_id), "%s.%s", container,
+		((flags & EVP_PKT_SIGN) ? "sign" : "enc"));
+
+	if (!(pkey = ENGINE_load_public_key(app->engine, key_id, NULL, NULL))) {
+		SAFerr(SAF_F_SAF_LOAD_PUBLIC_KEY, SAF_R_LOAD_PUBLIC_KEY_FAILURE);
+		goto end;
+	}
+
+	if (EVP_PKEY_base_id(pkey) !=
+		((flags & EVP_PK_EC) ? EVP_PKEY_EC : EVP_PKEY_RSA)) {
+		SAFerr(SAF_F_SAF_LOAD_PUBLIC_KEY, SAF_R_INVALID_PKEY_TYPE);
+		goto end;
+	}
+
+	ret = pkey;
+	pkey = NULL;
+end:
+	EVP_PKEY_free(pkey);
+	return ret;
+}

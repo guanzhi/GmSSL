@@ -175,6 +175,8 @@ int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
 int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	const unsigned char *sig, int siglen, EC_KEY *ec_key);
 
+int SM2_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
+	const EC_KEY *ec_key, void *(*KDF) (const void *in, size_t inlen, void *out, size_t *outlen));
 
 typedef struct sm2_kap_ctx_st {
 

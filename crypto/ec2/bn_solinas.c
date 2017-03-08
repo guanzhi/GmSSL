@@ -127,14 +127,14 @@ int BN_bn2solinas(const BIGNUM *bn, BN_SOLINAS *solinas)
 	}
 
 end:
-	return 0;
+	return ret;
 }
 
 int BN_solinas2bn(const BN_SOLINAS *solinas, BIGNUM *bn)
 {
 	int ret = 0;
-	BIGNUM *tmp = NULL;
 #if 0
+	BIGNUM *tmp = NULL;
 	if (b <= 0 || a <= b || (s != 1 && s != -1) ||
 		(c != 1 && c != -1)) {
 		BNerr(BN_F_BN_SOLINAS2BN, BN_R_INVALID_SOLINAS_PARAMETERS);

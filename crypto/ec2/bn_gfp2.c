@@ -169,6 +169,13 @@ int BN_GFP2_cmp(const BN_GFP2 *a, const BN_GFP2 *b)
 	return ((BN_cmp(a->a0, b->a0) == 0) && (BN_cmp(a->a1, b->a1) == 0));
 }
 
+int BN_GFP2_equ(const BN_GFP2 *a, const BN_GFP2 *b)
+{
+	//FIXME
+									
+	return 0;
+}
+
 int BN_GFP2_add(BN_GFP2 *r, const BN_GFP2 *a, const BN_GFP2 *b,
 	const BIGNUM *p, BN_CTX *ctx)
 {
@@ -494,4 +501,3 @@ int BN_gfp22bn(const BN_GFP2 *gfp2, BIGNUM *bn, const BIGNUM *p, BN_CTX *ctx)
 	}
 	return 1;
 }
-

@@ -61,9 +61,52 @@ int main(int argc, char **argv)
 #else
 # include <openssl/evp.h>
 
-static int test_saf_base64(int verbose)
+int test_saf_base64(int verbose)
 {
-	return 0;
+	int ret = SAR_UnknownErr;
+	/* sizeof(buf1)%3 == 1 makes base64 ended with "==" */
+	unsigned char buf1[121];
+	unsigned char buf2[512];
+	unsigned char buf3[512];
+	unsigned int len1, len2, len3;
+
+	/* generate some random binary for testing */
+	RAND_bytes(buf1, sizeof(buf1));
+	memset(buf2, 0, sizeof(buf2));
+	memset(buf3, 0, sizeof(buf3));
+
+	len1 = (unsigned int)sizeof(buf1);
+	len2 = (unsigned int)sizeof(buf2);
+	if ((ret = SAF_Base64_Encode(buf1, len1, buf2, &len2)) != SAR_Ok) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	if (verbose) {
+		printf("%s\n", buf2);
+	}
+
+	len3 = sizeof(buf3);
+	if ((ret = SAF_Base64_Decode(buf2, len2, buf3, &len3)) != SAR_Ok) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	/* check correctness */
+	if (len1 == len3 && memcmp(buf1, buf3, len1) == 0) {
+		ret = SAR_Ok;
+	} else {
+		/* make sure to assign `ret`, or it might be set as OK by
+		 * previous functions */
+		ret = SAR_UnknownErr;
+	}
+
+end:
+	if (verbose) {
+		printf("%s %s\n", __FUNCTION__,
+			ret == SAR_Ok ? "passed" : "failed");
+	}
+
+	return ret;
 }
 
 static int test_saf_cert(int verbose)
@@ -78,11 +121,44 @@ static int test_saf_ec(int verbose)
 
 static int test_saf_hash(int verbose)
 {
-	return 0;
+	int ret = 0;
+	unsigned char msg[3] = "abc";
+	unsigned char pubkey[] = "FIXME";
+	unsigned char id[] = "FIXME";
+	unsigned char dgst[EVP_MAX_MD_SIZE];
+	unsigned int dgstlen;
+
+	dgstlen = (unsigned int)sizeof(dgst);
+	if (SAF_Hash(SGD_SM3, msg, sizeof(msg), NULL, 0, NULL, 0,
+		dgst, &dgstlen) != SAR_Ok) {
+		if (verbose) {
+			fprintf(stderr, "%s() error on test 1\n", __func__);
+		}
+		return 0;
+	}
+
+	dgstlen = (unsigned int)sizeof(dgst);
+	if (SAF_Hash(SGD_SM3, msg, sizeof(msg), pubkey, sizeof(pubkey),
+		id, sizeof(id), dgst, &dgstlen) != SAR_Ok) {
+		if (verbose) {
+			fprintf(stderr, "%s() error on test 2\n", __func__);
+		}
+		return 0;
+	}
+
+	return 1;
 }
 
 static int test_saf_mac(int verbose)
 {
+	int ret = 0;
+	void *hKeyHandle = NULL;
+	unsigned char data[] = "hello world";
+	unsigned char mac[EVP_MAX_MD_SIZE];
+
+
+
+
 	return 0;
 }
 
@@ -111,7 +187,7 @@ int main(int argc, char **argv)
 	int err = 0;
 	int verboe = 2;
 
-	if (!test_saf_base64(verbose)) err++;
+	if (SAR_Ok != test_saf_base64(verbose)) err++;
 	if (!test_saf_cert(verbose)) err++;
 	if (!test_saf_ec(verbose)) err++
 	if (!test_saf_enc(verbose)) err++;

@@ -195,10 +195,10 @@ int RSA_get_RSArefPrivateKey(RSA *rsa, RSArefPrivateKey *ref)
 	if (!BN_bn2bin(rsa->n, ref->m) ||
 		!BN_bn2bin(rsa->e, ref->e + MAX_RSA_EXPONENT_LEN - BN_num_bytes(rsa->e)) ||
 		!BN_bn2bin(rsa->d, ref->d + nbytes - BN_num_bytes(rsa->d)) ||
-		!BN_bn2bin(rsa->p, &(ref->prime[0]) + nbytes/2 - BN_num_bytes(rsa->p)) ||
-		!BN_bn2bin(rsa->q, &(ref->prime[1]) + nbytes/2 - BN_num_bytes(rsa->q)) ||
-		!BN_bn2bin(rsa->dmp1, &(ref->pexp[0]) + nbytes/2 - BN_num_bytes(rsa->dmp1)) ||
-		!BN_bn2bin(rsa->dmq1, &(ref->pexp[1]) + nbytes/2 - BN_num_bytes(rsa->dmq1)) ||
+		!BN_bn2bin(rsa->p, (unsigned char *)&(ref->prime[0]) + nbytes/2 - BN_num_bytes(rsa->p)) ||
+		!BN_bn2bin(rsa->q, (unsigned char *)&(ref->prime[1]) + nbytes/2 - BN_num_bytes(rsa->q)) ||
+		!BN_bn2bin(rsa->dmp1, (unsigned char *)&(ref->pexp[0]) + nbytes/2 - BN_num_bytes(rsa->dmp1)) ||
+		!BN_bn2bin(rsa->dmq1, (unsigned char *)&(ref->pexp[1]) + nbytes/2 - BN_num_bytes(rsa->dmq1)) ||
 		!BN_bn2bin(rsa->iqmp, ref->coef + nbytes/2 - BN_num_bytes(rsa->iqmp))) {
 		GMAPIerr(GMAPI_F_RSA_GET_RSAREFPRIVATEKEY,
 			GMAPI_R_INVALID_RSA_PRIVATE_KEY);
