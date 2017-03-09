@@ -65,6 +65,7 @@ extern int s_client_main(int argc, char *argv[]);
 extern int s_server_main(int argc, char *argv[]);
 extern int s_time_main(int argc, char *argv[]);
 extern int sess_id_main(int argc, char *argv[]);
+extern int sm9_main(int argc, char *argv[]);
 extern int smime_main(int argc, char *argv[]);
 extern int speed_main(int argc, char *argv[]);
 extern int spkac_main(int argc, char *argv[]);
@@ -115,6 +116,7 @@ extern OPTIONS s_client_options[];
 extern OPTIONS s_server_options[];
 extern OPTIONS s_time_options[];
 extern OPTIONS sess_id_options[];
+extern OPTIONS sm9_options[];
 extern OPTIONS smime_options[];
 extern OPTIONS speed_options[];
 extern OPTIONS spkac_options[];
@@ -201,6 +203,9 @@ static FUNCTION functions[] = {
     { FT_general, "s_time", s_time_main, s_time_options },
 #endif
     { FT_general, "sess_id", sess_id_main, sess_id_options },
+#ifndef OPENSSL_NO_SM9
+    { FT_general, "sm9", sm9_main, sm9_options },
+#endif
     { FT_general, "smime", smime_main, smime_options },
     { FT_general, "speed", speed_main, speed_options },
     { FT_general, "spkac", spkac_main, spkac_options },
