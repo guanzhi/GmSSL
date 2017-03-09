@@ -1508,9 +1508,6 @@ secg-scheme 24 0	: cmac-aes128-ecies
 secg-scheme 24 1	: cmac-aes192-ecies
 secg-scheme 24 2	: cmac-aes256-ecies
 
-# No NID for CBC-MAC
-			: CBC-MAC		: cbc-mac
-
 # GmSSL SM OID
 member-body 156		: ISO-CN	: ISO CN Member Body
 ISO-CN 10197		: oscca
@@ -1565,7 +1562,7 @@ sm-scheme 201		: SM5			: sm5
 
 sm-scheme 301		: sm2p256v1
 sm-scheme 301 1		: sm2sign
-sm-scheme 301 2		: sm2keyagreement
+sm-scheme 301 2		: sm2exchange
 sm-scheme 301 3		: sm2encrypt
 sm2encrypt 1		: sm2encrypt-recommendedParameters
 sm2encrypt 2		: sm2encrypt-specifiedParameters
@@ -1590,7 +1587,6 @@ sm-scheme 301 101	: wapip192v1
 # GmSSL ZUC OID
 sm-scheme 800		: ZUC			: zuc
 
-
 # IBCS1
 !Alias ibcs1 ISO-US 1 114334 1
 ibcs1 2 1		: bfibe
@@ -1606,8 +1602,21 @@ ibcs1 3 2		: weil-pairing
 ibcs1 3 3		: ate-pairing
 ibcs1 3 4		: r-ate-pairing
 
-# CPK OID
+# GmSSL
 
-sm-scheme 1000		: cpk
-sm-scheme 1001		: paillier
+Enterprises 49549	: GmSSL	: gmssl
+
+
+GmSSL 1			: CPK	: cpk
+CPK 1			: cpk-map
+cpk-map 1		: cpk-sha1-map
+cpk-map 2		: cpk-sha256-map
+cpk-map 3		: cpk-sm3-map
+
+
+
+GmSSL 21		: paillier
+
+
+
 
