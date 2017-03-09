@@ -60,9 +60,15 @@
 
 int SM2_ENC_PARAMS_set_type(SM2_ENC_PARAMS *params, int type)
 {
-	// FIXME:
-	ECerr(EC_F_SM2_ENC_PARAMS_SET_TYPE, ERR_R_EVP_LIB);
-	return 0;
+	const EVP_MD *md;
+	if (!(md = EVP_get_digestbynid(type))) {
+		ECerr(EC_F_SM2_ENC_PARAMS_SET_TYPE, EC_R_INVALID_DIGEST_TYPE);
+		return 0;
+	}
+	params->kdf_md = md;
+	params->mac_md = md;
+	params->point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
+	return 1;
 }
 
 SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECIES_CIPHERTEXT_VALUE(
