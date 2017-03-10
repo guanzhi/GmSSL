@@ -62,6 +62,7 @@ int SAF_GenRsaKeyPair(void *hAppHandle,
 	unsigned int uiExportFlag)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	SAF_APP *app = (SAF_APP *)hAppHandle;
 
 	/* process */
@@ -80,6 +81,7 @@ int SAF_GenRsaKeyPair(void *hAppHandle,
 end:
 	EVP_PKEY_CTX_free(pctx);
 	EVP_PKEY_free(pkey);
+#endif
 	return ret;
 }
 
@@ -93,6 +95,7 @@ int SAF_GetRsaPublicKey(
 	unsigned int *puiPublicKeyLen)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	SAF_APP *app = (SAF_APP *)hAppHandle;
 
 	/* process */
@@ -123,6 +126,7 @@ int SAF_GetRsaPublicKey(
 
 end:
 	EVP_PKEY_free(pkey);
+#endif
 	return ret;
 }
 
@@ -138,6 +142,8 @@ int SAF_RsaSign(
 	unsigned int *puiSignatureLen)
 {
 	int ret = SAR_UnknownErr;
+
+#if 0
 	SAF_APP *app = (SAF_APP *)hAppHandle;
 
 	/* process */
@@ -162,6 +168,7 @@ int SAF_RsaSign(
 end:
 	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(pctx);
+#endif
 	return ret;
 }
 
@@ -189,6 +196,7 @@ int SAF_RsaVerifySign(
 	unsigned int uiSignatureLen)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	/* process */
 	EVP_PKEY *pkey = NULL;
 	EVP_PKEY_CTX *pctx = NULL;
@@ -205,6 +213,7 @@ int SAF_RsaVerifySign(
 end:
 	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(pctx);
+#endif
 	return ret;
 }
 
@@ -231,6 +240,7 @@ int SAF_VerifySignByCert(
 	unsigned int uiSignatureLen)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	/* process */
 	X509 *x509 = NULL;
 	unsigned char pucPublicKey[1024];
@@ -264,5 +274,6 @@ int SAF_VerifySignByCert(
 	ret = SAR_Ok;
 end:
 	X509_free(x509);
+#endif
 	return ret;
 }

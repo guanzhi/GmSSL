@@ -81,6 +81,10 @@ int BN_GFP2_mul_bn(BN_GFP2 *r, const BN_GFP2 *a, const BIGNUM *b, const BIGNUM *
 int BN_GFP2_div_bn(BN_GFP2 *r, const BN_GFP2 *a, const BIGNUM *b, const BIGNUM *p, BN_CTX *ctx);
 void BN_GFP2_free(BN_GFP2 *a);
 
+
+int BN_GFP2_add_bn(BN_GFP2 *r, const BN_GFP2 *a, const BIGNUM *b,
+	const BIGNUM *p, BN_CTX *ctx);
+
 int BN_bn2gfp2(const BIGNUM *bn, BN_GFP2 *gfp2, const BIGNUM *p, BN_CTX *ctx);
 int BN_gfp22bn(const BN_GFP2 *gfp2, BIGNUM *bn, const BIGNUM *p, BN_CTX *ctx);
 

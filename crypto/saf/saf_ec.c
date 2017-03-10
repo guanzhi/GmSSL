@@ -598,3 +598,29 @@ int SAF_GenerateAgreementDataAdnKeyWithECC(
 
 	return 0;
 }
+
+/* GmSSL Extension  */
+int SAF_EccSignFile(
+	void *hAppHandle,
+	unsigned char *pucContainerName,
+	unsigned int uiContainerNameLen,
+	unsigned int uiHashAlgoType,
+	unsigned char *pucFileName,
+	unsigned char *pucSignature,
+	unsigned int *puiSignatureLen)
+{
+	return SAR_OK;
+}
+
+int SAF_EccVerifySignFile(
+	unsigned int uiHashAlgoType,
+	unsigned char *pucPublicKey,
+	unsigned int uiPublicKeyLen,
+	unsigned char *pucFileName,
+	unsigned char *pucSignature,
+	unsigned int uiSignatureLen)
+{
+	return SAR_OK;
+}
+
+

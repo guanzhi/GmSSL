@@ -100,6 +100,7 @@ int ERR_load_SOF_strings(void);
 # define SOF_F_SOF_ENCRYPTFILE                            107
 # define SOF_F_SOF_EXPORTEXCHANGEUSERCERT                 108
 # define SOF_F_SOF_EXPORTUSERCERT                         109
+# define SOF_F_SOF_G                                      143
 # define SOF_F_SOF_GENRANDOM                              110
 # define SOF_F_SOF_GETCERTINFO                            111
 # define SOF_F_SOF_GETCERTINFOBYOID                       112
@@ -136,6 +137,7 @@ int ERR_load_SOF_strings(void);
 
 /* Reason codes. */
 # define SOF_R_DECODE_FAILURE                             101
+# define SOF_R_INVALID_CERT_ATTRIBUTE                     103
 # define SOF_R_NOT_IMPLEMENTED                            100
 # define SOF_R_READ_FILE_FAILURE                          102
 

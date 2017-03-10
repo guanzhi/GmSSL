@@ -32,6 +32,7 @@ static ERR_STRING_DATA SOF_str_functs[] = {
     {ERR_FUNC(SOF_F_SOF_EXPORTEXCHANGEUSERCERT),
      "SOF_ExportExchangeUserCert"},
     {ERR_FUNC(SOF_F_SOF_EXPORTUSERCERT), "SOF_ExportUserCert"},
+    {ERR_FUNC(SOF_F_SOF_G), "SOF_GenRandom"},
     {ERR_FUNC(SOF_F_SOF_GENRANDOM), "SOF_GenRandom"},
     {ERR_FUNC(SOF_F_SOF_GETCERTINFO), "SOF_GetCertInfo"},
     {ERR_FUNC(SOF_F_SOF_GETCERTINFOBYOID), "SOF_GetCertInfoByOid"},
@@ -73,6 +74,7 @@ static ERR_STRING_DATA SOF_str_functs[] = {
 
 static ERR_STRING_DATA SOF_str_reasons[] = {
     {ERR_REASON(SOF_R_DECODE_FAILURE), "decode failure"},
+    {ERR_REASON(SOF_R_INVALID_CERT_ATTRIBUTE), "invalid cert attribute"},
     {ERR_REASON(SOF_R_NOT_IMPLEMENTED), "not implemented"},
     {ERR_REASON(SOF_R_READ_FILE_FAILURE), "read file failure"},
     {0, NULL}

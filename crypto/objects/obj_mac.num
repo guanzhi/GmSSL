@@ -1146,3 +1146,9 @@ ate_pairing		1145
 r_ate_pairing		1146
 cpk		1147
 paillier		1148
+sm2exchange		1149
+GmSSL		1150
+cpk_map		1151
+cpk_sha1_map		1152
+cpk_sha256_map		1153
+cpk_sm3_map		1154

@@ -595,7 +595,6 @@ int SAF_Pkcs7_DecodeData(
 	void *hAppHandle,
 	unsigned char *pucDecContainerName,
 	unsigned int uiDecContainerNameLen,
-	unsigned int uiDecKeyUsage,
 	unsigned char *pucDerP7Data,
 	unsigned int uiDerP7DataLen,
 	unsigned char *pucData,
@@ -643,7 +642,6 @@ int SAF_Pkcs7_DecodeEnvelopedData(
 	void *hAppHandle,
 	unsigned char *pucDecContainerName,
 	unsigned int uiDecContainerNameLen,
-	unsigned int uiDecKeyUsage,
 	unsigned char *pucDerP7EnvelopedData,
 	unsigned int uiDerP7EnvelopedDataLen,
 	unsigned char *pucData,
@@ -659,11 +657,11 @@ int SAF_Pkcs7_EncodeDigestedData(
 
 int SAF_Pkcs7_DecodeDigestedData(
 	void *hAppHandle,
-	unsigned int *puiDigestAlgorithm,
 	unsigned char *pucDerP7DigestedData,
 	unsigned int uiDerP7DigestedDataLen,
+	unsigned int *puiDigestAlgorithm,
 	unsigned char *pucData,
-	unsigned int uiDataLen,
+	unsigned int *puiDataLen,
 	unsigned char *pucDigest,
 	unsigned int *puiDigestLen);
 
@@ -671,7 +669,6 @@ int SAF_SM2_EncodeSignedAndEnvelopedData(
 	void *hAppHandle,
 	unsigned char *pucSignContainerName,
 	unsigned int uiSignContainerNameLen,
-	unsigned int uiSignKeyUsage,
 	unsigned char *pucSignerCertificate,
 	unsigned int uiSignerCertificateLen,
 	unsigned int uiDigestAlgorithm,
@@ -687,14 +684,13 @@ int SAF_SM2_DecodeSignedAndEnvelopedData(
 	void *hAppHandle,
 	unsigned char *pucDerContainerName,
 	unsigned int uiDerContainerNameLen,
-	unsigned int uiDecKeyUsage,
 	unsigned char *pucDerSignedAndEnvelopedData,
 	unsigned int uiDerSignedAndEnvelopedDataLen,
 	unsigned char *pucData,
 	unsigned int *puiDataLen,
 	unsigned char *pucSignerCertificate,
 	unsigned int *puiSignerCertificateLen,
-	unsigned int *puiDigestAlgorithms);
+	unsigned int *puiDigestAlgorithm);
 
 int SAF_SM2_EncodeSignedData(
 	void *hAppHandle,
@@ -713,11 +709,11 @@ int SAF_SM2_DecodeSignedData(
 	void *hAppHandle,
 	unsigned char *pucDerSignedData,
 	unsigned int uiDerSignedDataLen,
+	unsigned int *puiDigestAlgorithm,
 	unsigned char *pucSignerCertificate,
-	unsigned int uiSignerCertificateLen,
-	unsigned int uiDigestAlgorithm,
+	unsigned int *puiSignerCertificateLen,
 	unsigned char *pucData,
-	unsigned int uiDataLen,
+	unsigned int *puiDataLen,
 	unsigned char *pucSign,
 	unsigned int *puiSignLen);
 
@@ -735,7 +731,6 @@ int SAF_SM2_DecodeEnvelopedData(
 	void *hAppHandle,
 	unsigned char *pucDecContainerName,
 	unsigned int uiDecContainerNameLen,
-	unsigned int uiDecKeyUsage,
 	unsigned char *pucDerEnvelopedData,
 	unsigned int uiDerEnvelopedDataLen,
 	unsigned char *pucData,

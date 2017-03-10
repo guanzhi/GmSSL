@@ -56,7 +56,6 @@ EVP_PKEY *SAF_load_private_key(SAF_APP *app, const char *container, int flags)
 	EVP_PKEY *ret = NULL;
 	EVP_PKEY *pkey = NULL;
 	char key_id[1024];
-	int type;
 
 	if (!app->engine) {
 		SAFerr(SAF_F_SAF_LOAD_PRIVATE_KEY, SAF_R_INVALID_APP);

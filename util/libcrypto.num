@@ -4871,3 +4871,4 @@ SM2_do_sign_ex                          4818	1_1_0d	EXIST::FUNCTION:
 SOF_CreateTimeStampRequest              4819	1_1_0d	EXIST::FUNCTION:
 BN_GF2P_add                             4820	1_1_0d	EXIST::FUNCTION:
 SM2_compute_key                         4821	1_1_0d	EXIST::FUNCTION:
+BN_GFP2_add_bn                          4822	1_1_0d	EXIST::FUNCTION:

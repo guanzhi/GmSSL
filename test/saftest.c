@@ -59,7 +59,10 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
+# include <openssl/err.h>
 # include <openssl/evp.h>
+# include <openssl/rand.h>
+# include <openssl/gmsaf.h>
 
 int test_saf_base64(int verbose)
 {
@@ -121,7 +124,6 @@ static int test_saf_ec(int verbose)
 
 static int test_saf_hash(int verbose)
 {
-	int ret = 0;
 	unsigned char msg[3] = "abc";
 	unsigned char pubkey[] = "FIXME";
 	unsigned char id[] = "FIXME";
@@ -149,16 +151,13 @@ static int test_saf_hash(int verbose)
 	return 1;
 }
 
+static int test_saf_enc(int verbose)
+{
+	return 0;
+}
+
 static int test_saf_mac(int verbose)
 {
-	int ret = 0;
-	void *hKeyHandle = NULL;
-	unsigned char data[] = "hello world";
-	unsigned char mac[EVP_MAX_MD_SIZE];
-
-
-
-
 	return 0;
 }
 
@@ -185,11 +184,11 @@ static int test_saf_sm2(int verbose)
 int main(int argc, char **argv)
 {
 	int err = 0;
-	int verboe = 2;
+	int verbose = 2;
 
 	if (SAR_Ok != test_saf_base64(verbose)) err++;
 	if (!test_saf_cert(verbose)) err++;
-	if (!test_saf_ec(verbose)) err++
+	if (!test_saf_ec(verbose)) err++;
 	if (!test_saf_enc(verbose)) err++;
 	if (!test_saf_hash(verbose)) err++;
 	if (!test_saf_mac(verbose)) err++;

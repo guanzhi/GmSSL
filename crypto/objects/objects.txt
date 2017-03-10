@@ -1604,19 +1604,13 @@ ibcs1 3 4		: r-ate-pairing
 
 # GmSSL
 
-Enterprises 49549	: GmSSL	: gmssl
+Enterprises 49549	: gmssl		: GmSSL
 
-
-GmSSL 1			: CPK	: cpk
-CPK 1			: cpk-map
+GmSSL 1			: CPK		: cpk
+cpk 1			: cpk-map
 cpk-map 1		: cpk-sha1-map
 cpk-map 2		: cpk-sha256-map
 cpk-map 3		: cpk-sm3-map
 
-
-
 GmSSL 21		: paillier
-
-
-
 

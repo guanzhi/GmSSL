@@ -47,20 +47,40 @@
  * ====================================================================
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <openssl/err.h>
+#include <openssl/gmsaf.h>
 #include <openssl/gmsof.h>
+#include <openssl/crypto.h>
 #include "../../e_os.h"
 
 static long sof_sign_method = SGD_SM2;
 static long sof_enc_method = SGD_SM4_CBC;
 static long sof_last_error = SOR_OK;
 static void *sof_app = NULL;
-static int sof_user_type = SGD_USER;
+static int sof_user_type = SGD_ROLE_USER;
 
+static int sof_read_file(const char *path, unsigned char **pdata,
+	unsigned int *pdatalen)
+{
+	return 0;
+}
+
+static char *sof_encode(const unsigned char *bin, unsigned int binlen)
+{
+	return NULL;
+}
+
+static int sof_decode(const char *b64, unsigned char **pdata, unsigned int *pdatalen)
+{
+	return 0;
+}
 
 BSTR SOF_GetVersion(void)
 {
-	return OpenSSL_version(0);
+	return OPENSSL_strdup(OpenSSL_version(0));
 }
 
 long SOF_SetSignMethod(long SignMethod)
@@ -102,6 +122,7 @@ BSTR SOF_ExportUserCert(BSTR ContainerName)
 BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
 {
 	unsigned int uiRemainCount;
+	int rv;
 
 	if ((rv = SAF_Login(
 		sof_app,
@@ -112,10 +133,10 @@ BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
 		(unsigned int)strlen(PassWd),
 		&uiRemainCount)) != SAR_Ok) {
 		SOFerr(SOF_F_SOF_LOGIN, ERR_R_SAF_LIB);
-		return FALSE;
+		return SGD_FALSE;
 	}
 
-	return TRUE;
+	return SGD_TRUE;
 }
 
 long SOF_GetPinRetryCount(BSTR ContainerName)
@@ -140,16 +161,14 @@ BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd)
 		(unsigned int)strlen(NewPassWd),
 		&uiRemainCount)) != SAR_Ok) {
 		SOFerr(SOF_F_SOF_CHANGEPASSWD, ERR_R_SAF_LIB);
-		return FALSE;
+		return SGD_FALSE;
 	}
 
-	return TRUE;
+	return SGD_TRUE;
 }
 
 BSTR SOF_ExportExchangeUserCert(BSTR ContainerName)
 {
-
-
 	SOFerr(SOF_F_SOF_EXPORTEXCHANGEUSERCERT, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
@@ -157,7 +176,7 @@ BSTR SOF_ExportExchangeUserCert(BSTR ContainerName)
 /* `type` defined as SGD_CERT_XXX, SGD_EXT_XXX in sgd.h */
 BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type)
 {
-	// decode x.509 in pem format
+	char *ret = NULL;
 
 	switch (Type) {
 	case SGD_CERT_VERSION:
@@ -188,11 +207,16 @@ BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type)
 	case SGD_CERT_SUBJECT_EMAIL:
 	case SGD_CERT_NOTBEFORE_TIME:
 	case SGD_CERT_NOTAFTER_TIME:
+		SOFerr(SOF_F_SOF_GETCERTINFO, SOF_R_NOT_IMPLEMENTED);
+		goto end;
 	default:
+		SOFerr(SOF_F_SOF_GETCERTINFO, SOF_R_INVALID_CERT_ATTRIBUTE);
+		goto end;
 	}
 
+end:
 	SOFerr(SOF_F_SOF_GETCERTINFO, SOF_R_NOT_IMPLEMENTED);
-	return NULL;
+	return ret;
 }
 
 BSTR SOF_GetCertInfoByOid(BSTR Base64EncodeCert, BSTR Oid)
@@ -217,37 +241,53 @@ BSTR SOF_SignData(BSTR ContainerName, BSTR InData)
 {
 	char *ret = NULL;
 	char *b64 = NULL;
-	unsigned int uiHashAlgoType;
+	unsigned int uiHashAlgoType = SGD_SM3;
 	unsigned char *pucInData = NULL;
-	unsigned int uiInDataLen;
+	unsigned int uiInDataLen = strlen(InData) + 128;
 	unsigned char pucSignature[256];
 	unsigned int uiSignatureLen = (unsigned int)sizeof(pucSignature);
+	int rv;
 
-	if (SOF_Decode(InData, &pucInData, &uiInDataLen) != SOR_OK) {
+	if (!(pucInData = OPENSSL_malloc(uiInDataLen))) {
+		SOFerr(SOF_F_SOF_SIGNDATA, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (SAF_Base64_Decode((unsigned char *)InData, (unsigned int)strlen(InData),
+		pucInData, &uiInDataLen) != SOR_OK) {
 		SOFerr(SOF_F_SOF_SIGNDATA, SOF_R_DECODE_FAILURE);
 		goto end;
 	}
 
-	rv = SAF_RsaSign(
-		hAppHandle,
-		(unsigned char *)ContainerName,
-		(unsigned int)strlen(ContainerName),
-		uiHashAlgoType,
-		pucInData,
-		uiInDataLen,
-		pucSignature,
-		&uiSignatureLen);
+	if (SOF_GetSignMethod() == SGD_SM2) {
+		if ((rv = SAF_RsaSign(
+			sof_app,
+			(unsigned char *)ContainerName,
+			(unsigned int)strlen(ContainerName),
+			uiHashAlgoType,
+			pucInData,
+			uiInDataLen,
+			pucSignature,
+			&uiSignatureLen)) != SAR_Ok) {
+			SOFerr(SOF_F_SOF_SIGNDATA, ERR_R_SAF_LIB);
+			goto end;
+		}
+	} else {
+		if ((rv = SAF_EccSign(
+			sof_app,
+			(unsigned char *)ContainerName,
+			(unsigned int)strlen(ContainerName),
+			uiHashAlgoType,
+			pucInData,
+			uiInDataLen,
+			pucSignature,
+			&uiSignatureLen)) != SAR_Ok) {
+			SOFerr(SOF_F_SOF_SIGNDATA, ERR_R_SAF_LIB);
+			goto end;
+		}
+	}
 
-	rv = SAF_EccSign(
-		hAppHandle,
-		(unsigned char *)ContainerName,
-		(unsigned int)strlen(ContainerName),
-		uiHashAlgoType,
-		pucInData,
-		uiInDataLen,
-		pucSignature,
-		&uiSignatureLen);
-
+	ret = SOR_OK;
 end:
 	OPENSSL_free(b64);
 	OPENSSL_free(pucInData);
@@ -260,21 +300,25 @@ BOOL SOF_VerifySignedData(BSTR Base64EncodeCert, BSTR InData, BSTR SignValue)
 	return 0;
 }
 
+
 BSTR SOF_SignFile(BSTR ContainerName, BSTR InFile)
 {
-	BSTR ret;
+	BSTR ret = NULL;
+	char *b64 = NULL;
+	unsigned int uiHashAlgoType = SGD_SM3;
 	unsigned char *pucInData = NULL;
 	unsigned int uiInDataLen;
 	unsigned char pucSignature[256];
 	unsigned int uiSignatureLen = (unsigned int)sizeof(pucSignature);
+	int rv;
 
-	if (SOF_ReadFile(InFile, &pucInData, &uiInDataLen) != SOR_OK) {
+	if (!sof_read_file(InFile, &pucInData, &uiInDataLen)) {
 		SOFerr(SOF_F_SOF_SIGNFILE, SOF_R_READ_FILE_FAILURE);
 		return NULL;
 	}
 
 	if ((rv = SAF_EccSign(
-		hAppHandle,
+		sof_app,
 		(unsigned char *)ContainerName,
 		(unsigned int)strlen(ContainerName),
 		uiHashAlgoType,
@@ -286,7 +330,9 @@ BSTR SOF_SignFile(BSTR ContainerName, BSTR InFile)
 		goto end;
 	}
 
-	if (!(b64 = SOF_Encode(pucSignature, uiSignatureLen))) {
+	if (!(b64 = sof_encode(pucSignature, uiSignatureLen))) {
+		SOFerr(SOF_F_SOF_SIGNFILE, ERR_R_SOF_LIB);
+		goto end;
 	}
 
 	ret = b64;
@@ -300,15 +346,18 @@ end:
 
 BOOL SOF_VerifySignedFile(BSTR Base64EncodeCert, BSTR InFile, BSTR SignValue)
 {
+	return SGD_FALSE;
 }
 
 BSTR SOF_EncryptData(BSTR Base64EncodeCert, BSTR InData)
 {
+#if 0
 	char *ret = NULL;
 	unsigned char *pucCertificate = NULL;
 	unsigned int uiCertificateLen;
 	unsigned char *pucInData = NULL;
 	unsigned int uiInDataLen;
+	int rv;
 
 	if (SOF_Decode(Base64EncodeCert, &pucCertificate, &uiCertificateLen) != SOR_OK
 		|| SOF_Decode(InData, &pucInData, &uiInDataLen) != SOR_OK
@@ -321,7 +370,8 @@ BSTR SOF_EncryptData(BSTR Base64EncodeCert, BSTR InData)
 			pucOutData,
 			puiOutDataLen)) != SAR_Ok) {
 	}
-
+#endif
+	return NULL;
 }
 
 BSTR SOF_DecryptData(BSTR ContainerName, BSTR InData)
@@ -332,10 +382,11 @@ BSTR SOF_DecryptData(BSTR ContainerName, BSTR InData)
 
 BOOL SOF_EncryptFile(BSTR Base64EncodeCert, BSTR InFile, BSTR OutFile)
 {
-	int ret = FALSE;
-	int rv;
+	int ret = SGD_FALSE;
+#if 0
 	unsigned char *pucCertificate = NULL;
 	unsigned int uiCertificateLen;
+	int rv;
 
 	if (SOF_Decode(Base64EncodeCert, &pucCertificate, &uiCertificateLen) != SOR_OK) {
 		SOFerr(SOF_F_SOF_ENCRYPTFILE, SOF_R_DECODE_FAILURE);
@@ -354,18 +405,18 @@ BOOL SOF_EncryptFile(BSTR Base64EncodeCert, BSTR InFile, BSTR OutFile)
 		goto end;
 	}
 
-	ret = TRUE;
+	ret = SGD_TRUE;
 
 end:
 	OPENSSL_free(pucCertificate);
+#endif
 	return ret;
 }
 
-
 BOOL SOF_DecryptFile(BSTR ContainerName, BSTR InFile, BSTR OutFile)
 {
-	int ret = FALSE;
-	int rv;
+	int ret = SGD_FALSE;
+	return ret;
 }
 
 BSTR SOF_SignMessage(short flag, BSTR ContainerName, BSTR InData)
@@ -388,16 +439,6 @@ BSTR SOF_GetInfoFromSignedMessage(BSTR SignedMessage, short Type)
 
 BSTR SOF_SignDataXML(BSTR ContainerName, BSTR InData)
 {
-	int rv;
-	unsigned char outbuf[1024];
-
-	if ((rv = SAF_EccSignFile(
-		hAppHandle,
-		(unsigned char *)ContainerName,
-		(unsigned int)strlen(ContainerName),
-		sof_digest_method,
-
-	SOFerr(SOF_F_SOF_SIGNDATAXML, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
@@ -415,20 +456,18 @@ BSTR SOF_GetXMLSignatureInfo(BSTR XMLSignedData, short Type)
 
 BSTR SOF_GenRandom(short RandomLen)
 {
-	int rv;
-	unsigned char *ret = NULL;
+	char *ret = NULL;
+	char *b64 = NULL;
 	unsigned char *bin = NULL;
-	unsigned char *b64 = NULL;
+	unsigned int b64len = (RandomLen * 4)/3 + 128;
+	int rv;
 
 	if (!(bin = OPENSSL_malloc(RandomLen))
-		|| !(ret = OPENSSL_zalloc((RandomLen * 4)/3 + 128))
-		|| (rv = SAF_GenRandom(RandomLen, buf)) != SAR_Ok
-		|| (rv = SAF_Base64_Encode(buf, RandomLen, ret, &retlen)) != SAR_Ok) {
+		|| (rv = SAF_GenRandom(RandomLen, bin)) != SAR_Ok
+		|| !(b64 = sof_encode(bin, RandomLen))) {
+		SOFerr(SOF_F_SOF_GENRANDOM, ERR_R_SOF_LIB);
 		goto end;
 	}
-
-	ret = b64;
-	b64 = NULL;
 
 end:
 	OPENSSL_free(bin);

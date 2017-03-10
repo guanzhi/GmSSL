@@ -4656,10 +4656,6 @@
 #define NID_cmac_aes256_ecies           1081
 #define OBJ_cmac_aes256_ecies           OBJ_secg_scheme,24L,2L
 
-#define SN_cbc_mac              "CBC-MAC"
-#define LN_cbc_mac              "cbc-mac"
-#define NID_cbc_mac             1082
-
 #define SN_ISO_CN               "ISO-CN"
 #define LN_ISO_CN               "ISO CN Member Body"
 #define NID_ISO_CN              1083
@@ -4835,9 +4831,9 @@
 #define NID_sm2sign             1117
 #define OBJ_sm2sign             OBJ_sm_scheme,301L,1L
 
-#define SN_sm2keyagreement              "sm2keyagreement"
-#define NID_sm2keyagreement             1118
-#define OBJ_sm2keyagreement             OBJ_sm_scheme,301L,2L
+#define SN_sm2exchange          "sm2exchange"
+#define NID_sm2exchange         1149
+#define OBJ_sm2exchange         OBJ_sm_scheme,301L,2L
 
 #define SN_sm2encrypt           "sm2encrypt"
 #define NID_sm2encrypt          1119
@@ -4963,10 +4959,32 @@
 #define NID_r_ate_pairing               1146
 #define OBJ_r_ate_pairing               OBJ_ibcs1,3L,4L
 
-#define SN_cpk          "cpk"
+#define SN_GmSSL                "gmssl"
+#define LN_GmSSL                "GmSSL"
+#define NID_GmSSL               1150
+#define OBJ_GmSSL               OBJ_Enterprises,49549L
+
+#define SN_cpk          "CPK"
+#define LN_cpk          "cpk"
 #define NID_cpk         1147
-#define OBJ_cpk         OBJ_sm_scheme,1000L
+#define OBJ_cpk         OBJ_GmSSL,1L
+
+#define SN_cpk_map              "cpk-map"
+#define NID_cpk_map             1151
+#define OBJ_cpk_map             OBJ_cpk,1L
+
+#define SN_cpk_sha1_map         "cpk-sha1-map"
+#define NID_cpk_sha1_map                1152
+#define OBJ_cpk_sha1_map                OBJ_cpk_map,1L
+
+#define SN_cpk_sha256_map               "cpk-sha256-map"
+#define NID_cpk_sha256_map              1153
+#define OBJ_cpk_sha256_map              OBJ_cpk_map,2L
+
+#define SN_cpk_sm3_map          "cpk-sm3-map"
+#define NID_cpk_sm3_map         1154
+#define OBJ_cpk_sm3_map         OBJ_cpk_map,3L
 
 #define SN_paillier             "paillier"
 #define NID_paillier            1148
-#define OBJ_paillier            OBJ_sm_scheme,1001L
+#define OBJ_paillier            OBJ_GmSSL,21L

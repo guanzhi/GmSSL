@@ -47,6 +47,10 @@
  * ====================================================================
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/asn1.h>
 #include <openssl/pkcs7.h>
@@ -74,13 +78,11 @@ int SAF_Pkcs7_EncodeData(
 	return ret;
 }
 
-
 /* 7.4.3 */
 int SAF_Pkcs7_DecodeData(
 	void *hAppHandle,
 	unsigned char *pucDecContainerName,
 	unsigned int uiDecContainerNameLen,
-	unsigned int uiDecKeyUsage,
 	unsigned char *pucDerP7Data,
 	unsigned int uiDerP7DataLen,
 	unsigned char *pucData,
@@ -186,6 +188,7 @@ int SAF_Pkcs7_DecodeSignedData(
 	unsigned int *puiSigLen)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	PKCS7 *p7 = NULL;
 	PKCS7_SIGNED *p7signed;
 	X509 *x509 = NULL;
@@ -267,13 +270,13 @@ int SAF_Pkcs7_DecodeSignedData(
 		goto end;
 	}
 
-	if (*puiDataLen < ASN1_OCTET_STRING_length(data)) {
+	if (*puiDataLen < ASN1_STRING_length(data)) {
 		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_BUFFER_TOO_SMALL);
 		goto end;
 	}
 
-	memcpy(pucData, ASN1_OCTET_STRING_get0_data(data), ASN1_OCTET_STRING_length(data));
-	*puiDataLen = ASN1_OCTET_STRING_length(data);
+	memcpy(pucData, ASN1_STRING_get0_data(data), ASN1_STRING_length(data));
+	*puiDataLen = ASN1_STRING_length(data);
 
 	/* get signature */
 	if (sk_SIGNER_INFO_num(p7signed->signer_info) <= 0
@@ -282,19 +285,20 @@ int SAF_Pkcs7_DecodeSignedData(
 		goto end;
 	}
 
-	if (*puiSigLen < ASN1_OCTET_STRING_length(signer_info->enc_digest)) {
+	if (*puiSigLen < ASN1_STRING_length(signer_info->enc_digest)) {
 		SAFerr(SAF_F_SAF_PKCS7_DECODESIGNEDDATA, SAF_R_BUFFER_TOO_SMALL);
 		goto end;
 	}
-	memcpy(pucSig, ASN1_OCTET_STRING_get0_data(signer_info->enc_digest),
-		ASN1_OCTET_STRING_length(signer_info->enc_digest));
-	*puiSigLen = ASN1_OCTET_STRING_length(signer_info->enc_digest);
+	memcpy(pucSig, ASN1_STRING_get0_data(signer_info->enc_digest),
+		ASN1_STRING_length(signer_info->enc_digest));
+	*puiSigLen = ASN1_STRING_length(signer_info->enc_digest);
 
 	ret = SAR_Ok;
 end:
 	PKCS7_free(p7);
 	X509_free(x509);
 	BIO_free(bio);
+#endif
 	return ret;
 }
 
@@ -310,6 +314,7 @@ int SAF_Pkcs7_EncodeEnvelopedData(
 	unsigned int *puiDerP7EnvelopedDataLen)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	PKCS7 *p7 = NULL;
 	X509 *x509 = NULL;
 	STACK_OF(X509) *certs = NULL;
@@ -384,6 +389,7 @@ end:
 	X509_free(x509);
 	sk_X509_free(certs);
 	BIO_free(bio);
+#endif
 	return ret;
 }
 
@@ -398,6 +404,7 @@ int SAF_Pkcs7_DecodeEnvelopedData(
 	unsigned int *puiDataLen)
 {
 	int ret = SAR_UnknownErr;
+#if 0
 	SAF_APP *app = (SAF_APP *)hAppHandle;
 	PKCS7 *p7 = NULL;
 	EVP_PKEY *pkey = NULL;
@@ -420,7 +427,7 @@ int SAF_Pkcs7_DecodeEnvelopedData(
 		*puiDataLen = uiDerP7EnvelopedDataLen;
 		return SAR_Ok;
 	} else if (*puiDataLen <= 0 || *puiDataLen > INT_MAX) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEENVELOPEDDATA, SAR_R_INVALID_INPUT_LENGTH);
+		SAFerr(SAF_F_SAF_PKCS7_DECODEENVELOPEDDATA, SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
 	}
 
@@ -456,6 +463,7 @@ end:
 	EVP_PKEY_free(pkey);
 	X509_free(x509);
 	BIO_free(bio);
+#endif
 	return ret;
 }
 
@@ -522,7 +530,7 @@ end:
 /* 7.4.9 */
 int SAF_Pkcs7_DecodeDigestedData(
 	void *hAppHandle,
-	unsigned char pucDerP7DigestedData,
+	unsigned char *pucDerP7DigestedData,
 	unsigned int uiDerP7DigestedDataLen,
 	unsigned int *puiDigestAlgorithm,
 	unsigned char *pucData,
@@ -558,14 +566,15 @@ int SAF_Pkcs7_DecodeDigestedData(
 	}
 
 	/* process */
-	if (!(p7 = d2i_PKCS7(NULL, &pucDerP7DigestedData, uiDerP7DigestedDataLen))) {
+	if (!(p7 = d2i_PKCS7(NULL, (const unsigned char **)&pucDerP7DigestedData,
+		uiDerP7DigestedDataLen))) {
 		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_INVALID_PKCS7);
 		ret = SAR_IndataErr;
 		goto end;
 	}
 
 	if (!PKCS7_type_is_digest(p7)) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_INVALID_PKCS7_TYPE;
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_INVALID_PKCS7_TYPE);
 		ret = SAR_IndataErr;
 		goto end;
 	}
@@ -574,46 +583,46 @@ int SAF_Pkcs7_DecodeDigestedData(
 	/* output digset algor */
 	if ((*puiDigestAlgorithm = EVP_MD_sgd(
 		EVP_get_digestbyobj(p7dgst->md->algorithm))) <= 0) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_UNSUPPORTED_DIGEST_ALGOR;
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_UNSUPPORTED_DIGEST_ALGOR);
 		ret = SAR_IndataErr;
 		goto end;
 	}
 
 	/* output digested data */
 	if (!PKCS7_type_is_data(p7dgst->contents)) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAR_R_INVALID_PKCS7_DATA);
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_INVALID_PKCS7_DATA);
 		ret = SAR_IndataErr;
 		goto end;
 	}
 
 	if (!(data = p7dgst->contents->d.data)) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAR_R_INVALID_PKCS7_DATA);
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_INVALID_PKCS7_DATA);
 		ret = SAR_IndataErr;
 		goto end;
 	}
 
-	if (*puiDataLen < ASN1_OCTET_STRING_length(data)) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAR_R_BUFFER_TOO_SMALL);
+	if (*puiDataLen < ASN1_STRING_length(data)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_BUFFER_TOO_SMALL);
 		ret = SAR_IndataLenErr;
 		goto end;
 	}
-	memcpy(pucData, ASN1_OCTET_STRING_get0_data(data), ASN1_OCTET_STRING_length(data));
-	*puiDataLen = ASN1_OCTET_STRING_length(data);
+	memcpy(pucData, ASN1_STRING_get0_data(data), ASN1_STRING_length(data));
+	*puiDataLen = ASN1_STRING_length(data);
 
 	/* output digest */
 	if (!p7dgst->digest) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAR_R_INVALID_PKCS7_DATA);
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_INVALID_PKCS7_DATA);
 		ret = SAR_IndataErr;
 		goto end;
 	}
 
-	if (*puiDigestLen < ASN1_OCTET_STRING_length(p7dgst->digest)) {
-		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAR_R_BUFFER_TOO_SMALL);
+	if (*puiDigestLen < ASN1_STRING_length(p7dgst->digest)) {
+		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_BUFFER_TOO_SMALL);
 		ret = SAR_IndataLenErr;
 		goto end;
 	}
-	memcpy(pucDigest, ASN1_OCTET_STRING_get0_data(p7dgst->digest), ASN1_OCTET_STRING_length(p7dgst->digest));
-	*puiDigestLen = ASN1_OCTET_STRING_length(p7dgst->digest);
+	memcpy(pucDigest, ASN1_STRING_get0_data(p7dgst->digest), ASN1_STRING_length(p7dgst->digest));
+	*puiDigestLen = ASN1_STRING_length(p7dgst->digest);
 
 	ret = SAR_Ok;
 end:

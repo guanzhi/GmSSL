@@ -57,6 +57,12 @@
 #include "saf_lcl.h"
 #include "../../apps/apps.h"
 
+int load_certs(const char *file, STACK_OF(X509) **certs, int format,
+               const char *pass, const char *cert_descrip)
+{
+	return 0;
+}
+
 /* 7.2.2 */
 int SAF_AddTrustedRootCaCertificate(
 	void *hAppHandle,
