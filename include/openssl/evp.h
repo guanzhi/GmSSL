@@ -100,6 +100,7 @@
 # define EVP_PKEY_CMAC   NID_cmac
 # define EVP_PKEY_TLS1_PRF NID_tls1_prf
 # define EVP_PKEY_HKDF   NID_hkdf
+# define EVP_PKEY_PAILLIER NID_paillier
 
 #ifdef  __cplusplus
 extern "C" {
@@ -443,6 +444,11 @@ typedef int (EVP_PBE_KEYGEN) (EVP_CIPHER_CTX *ctx, const char *pass,
 # ifndef OPENSSL_NO_EC
 #  define EVP_PKEY_assign_EC_KEY(pkey,eckey) EVP_PKEY_assign((pkey),EVP_PKEY_EC,\
                                         (char *)(eckey))
+# endif
+
+# ifndef OPENSSL_NO_PAILLIER
+#  define EVP_PKEY_assign_PAILLIER(pkey,paillier) EVP_PKEY_assign((pkey),EVP_PKEY_PAILLIER,\
+                                        (char *)(paillier))
 # endif
 
 /* Add some extra combinations */
@@ -999,6 +1005,12 @@ struct ec_key_st;
 int EVP_PKEY_set1_EC_KEY(EVP_PKEY *pkey, struct ec_key_st *key);
 struct ec_key_st *EVP_PKEY_get0_EC_KEY(EVP_PKEY *pkey);
 struct ec_key_st *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey);
+# endif
+# ifndef OPENSSL_NO_PAILLIER
+struct paillier_st;
+int EVP_PKEY_set1_PAILLIER(EVP_PKEY *pkey, struct paillier_st *key);
+struct paillier_st *EVP_PKEY_get0_PAILLIER(EVP_PKEY *pkey);
+struct paillier_st *EVP_PKEY_get1_PAILLIER(EVP_PKEY *pkey);
 # endif
 
 EVP_PKEY *EVP_PKEY_new(void);
@@ -1572,6 +1584,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_F_EVP_PKEY_GET0_DSA                          120
 # define EVP_F_EVP_PKEY_GET0_EC_KEY                       131
 # define EVP_F_EVP_PKEY_GET0_HMAC                         183
+# define EVP_F_EVP_PKEY_GET0_PAILLIER                     172
 # define EVP_F_EVP_PKEY_GET0_RSA                          121
 # define EVP_F_EVP_PKEY_KEYGEN                            146
 # define EVP_F_EVP_PKEY_KEYGEN_INIT                       147
@@ -1616,6 +1629,7 @@ int ERR_load_EVP_strings(void);
 # define EVP_R_EXPECTING_A_DH_KEY                         128
 # define EVP_R_EXPECTING_A_DSA_KEY                        129
 # define EVP_R_EXPECTING_A_EC_KEY                         142
+# define EVP_R_EXPECTING_A_PAILLIER                       176
 # define EVP_R_FIPS_MODE_NOT_SUPPORTED                    167
 # define EVP_R_ILLEGAL_SCRYPT_PARAMETERS                  171
 # define EVP_R_INITIALIZATION_ERROR                       134

@@ -444,6 +444,12 @@ our %disabled = ( # "what"         => "comment"
 		  "weak-ssl-ciphers"    => "default",
 		  "zlib"                => "default",
 		  "zlib-dynamic"        => "default",
+		  "zuc"                 => "default",
+		  "sm9"                 => "default",
+                  "bfibe"               => "default",
+                  "bb1ibe"              => "default",
+		  "saf"                 => "default",
+		  "sof"                 => "default",
 		);
 
 # Note: => pair form used for aesthetics, not to truly make a hash table

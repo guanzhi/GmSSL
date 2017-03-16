@@ -53,6 +53,8 @@
 #include <openssl/evp.h>
 #include <openssl/engine.h>
 
+#if (defined(__x86_64) || defined(__x86_64__)) && defined(OPENSSL_CPUID_OBJ)
+#endif
 
 static const char *avx2_id = "avx2";
 static const char *avx2_name = "ENGINE with Intel AVX2 Intructions";
@@ -80,8 +82,6 @@ static int avx2_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f)(void))
 
 	return 1;
 }
-
-/****************************************************************************/
 
 static int avx2_cipher_nids[] = {NID_sms4_ecb, NID_sms4_ctr, 0};
 static int avx2_num_ciphers = OSSL_NELEM(avx2_cipher_nids) - 1;
@@ -282,12 +282,18 @@ static ENGINE *engine_avx2(void)
 
 void engine_load_avx2_int(void)
 {
-	ENGINE *eng = NULL;
-	if (!(eng = engine_avx2())) {
-		return;
+	extern unsigned int OPENSSL_ia32cap_P[];
+
+	if (OPENSSL_ia32cap_P[1] & (1 << (62 - 32))) {
+	        ENGINE *toadd = ENGINE_rdrand();
+		ENGINE *eng = NULL;
+		if (!(eng = engine_avx2())) {
+			return;
+		}
+		ENGINE_add(eng);
+		ENGINE_free(eng);
+		ERR_clear_error();
 	}
-	ENGINE_add(eng);
-	ENGINE_free(eng);
-	ERR_clear_error();
 }
+
 #endif /* OPENSSL_NO_DYNAMIC_ENGINE */

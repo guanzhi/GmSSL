@@ -145,6 +145,8 @@ int PAILLIER_generate_key(PAILLIER *key, int bits)
 
 	} while (0);
 
+	ret = 1;
+
 end:
 	BN_clear_free(p);
 	BN_clear_free(q);
@@ -345,3 +347,14 @@ end:
 	return 0;
 }
 
+int PAILLIER_up_ref(PAILLIER *r)
+{
+	int i;
+
+	if (CRYPTO_atomic_add(&r->references, 1, &i, r->lock) <= 0)
+		return 0;
+
+	REF_PRINT_COUNT("PAILLIER", r);
+	REF_ASSERT_ISNT(i < 2);
+	return ((i > 1) ? 1 : 0);
+}

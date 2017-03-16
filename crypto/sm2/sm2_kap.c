@@ -60,6 +60,7 @@ int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 {
 	int ret = 0;
 	int w;
+	size_t len;
 
 	if (!ctx || !ec_key || !remote_pubkey) {
 		ECerr(EC_F_SM2_KAP_CTX_INIT, ERR_R_PASSED_NULL_PARAMETER);
@@ -87,22 +88,26 @@ int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 		goto end;
 	}
 
+	len = ctx->id_dgstlen;
 	if (!SM2_compute_id_digest(ctx->id_dgst_md, id, idlen,
-		ctx->id_dgst, &ctx->id_dgstlen, ec_key)) {
+		ctx->id_dgst, &len, ec_key)) {
 		ECerr(EC_F_SM2_KAP_CTX_INIT, 0);
 		goto end;
 	}
+	ctx->id_dgstlen = len;
 
 	if (!(ctx->ec_key = EC_KEY_dup(ec_key))) {
 		ECerr(EC_F_SM2_KAP_CTX_INIT, ERR_R_EC_LIB);
 		goto end;
 	}
 
+	len = ctx->remote_id_dgstlen;
 	if (!SM2_compute_id_digest(ctx->id_dgst_md, rid, ridlen,
-		ctx->remote_id_dgst, &ctx->remote_id_dgstlen, remote_pubkey)) {
+		ctx->remote_id_dgst, &len, remote_pubkey)) {
 		ECerr(EC_F_SM2_KAP_CTX_INIT, 0);
 		goto end;
 	}
+	ctx->remote_id_dgstlen = len;
 
 	if (!(ctx->remote_pubkey = EC_KEY_dup(remote_pubkey))) {
 		ECerr(EC_F_SM2_KAP_CTX_INIT, 0);

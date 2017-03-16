@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,24 +47,62 @@
  * ====================================================================
  */
 
-#ifndef HEADER_PAI_LCL_H
-#define HEADER_PAI_LCL_H
+#include <stdio.h>
+#include "internal/cryptlib.h"
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+#include <openssl/pkcs7.h>
+#include <openssl/pem.h>
+#include <openssl/pem3.h>
+#include <openssl/paillier.h>
 
-#include "e_os.h"
+/*
+extern PAILLIER *EVP_PKEY_get1_PAILLIER(EVP_PKEY *key);
+extern int i2d_PAILLIER_PUBKEY(PAILLIER *a, unsigned char **p);
+extern PAILLIER *d2i_PAILLIER_PUBKEY(PAILLIER **a, const unsigned char **p, long len);
+*/
 
-struct paillier_st {
-	int bits;
-	BIGNUM *n;		/* public key */
-	BIGNUM *lambda;		/* private key, lambda(n) = lcm(p-1, q-1) */
-	BIGNUM *n_squared;	/* online */
-	BIGNUM *n_plusone;	/* online */
-	BIGNUM *x;		/* online */
+#ifndef OPENSSL_NO_PAILLIER
+static PAILLIER *pkey_get_paillier(EVP_PKEY *key, PAILLIER **paillier)
+{
+	PAILLIER *rtmp;
+	if (!key)
+		return NULL;
+	rtmp = EVP_PKEY_get1_PAILLIER(key);
+	EVP_PKEY_free(key);
+	if (!rtmp)
+		return NULL;
+	if (paillier) {
+		PAILLIER_free(*paillier);
+		*paillier = rtmp;
+	}
+	return rtmp;
+}
 
-	int references;
-	int flags;
-	CRYPTO_EX_DATA ex_data;
-	CRYPTO_RWLOCK *lock;
-};
+PAILLIER *PEM_read_bio_PaillierPrivateKey(BIO *bp, PAILLIER **paillier,
+	pem_password_cb *cb, void *u)
+{
+	EVP_PKEY *pktmp;
+	pktmp = PEM_read_bio_PrivateKey(bp, NULL, cb, u);
+	return pkey_get_paillier(pktmp, paillier);
+}
+
+# ifndef OPENSSL_NO_STDIO
+PAILLIER *PEM_read_PaillierPrivateKey(FILE *fp, PAILLIER **paillier,
+	pem_password_cb *cb, void *u)
+{
+	EVP_PKEY *pktmp;
+	pktmp = PEM_read_PrivateKey(fp, NULL, cb, u);
+	return pkey_get_paillier(pktmp, paillier);
+}
+
+# endif
+
+IMPLEMENT_PEM_write_cb_const(PaillierPrivateKey, PAILLIER, PEM_STRING_PAILLIER,
+	PaillierPrivateKey)
+IMPLEMENT_PEM_rw_const(PaillierPublicKey, PAILLIER, PEM_STRING_PAILLIER_PUBLIC,
+	PaillierPublicKey)
+IMPLEMENT_PEM_rw(PAILLIER_PUBKEY, PAILLIER, PEM_STRING_PUBLIC, PAILLIER_PUBKEY)
 
 #endif
-
