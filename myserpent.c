@@ -317,6 +317,3 @@ void linear(IN unsigned long int *li_0,IN unsigned long int *li_1,IN unsigned lo
 	*lo_2  = tmp_2;                              
 	*lo_3  = tmp_3;
 }
-
-
-}
