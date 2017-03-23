@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 
+#ifndef OPENSSL_NO_SHA1
+
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/sha.h>
@@ -231,3 +233,4 @@ const EVP_MD *EVP_sha512(void)
 {
     return (&sha512_md);
 }
+#endif

@@ -155,6 +155,9 @@ extern "C" {
 # define SSL_TXT_CAMELLIA        "CAMELLIA"
 # define SSL_TXT_CHACHA20        "CHACHA20"
 # define SSL_TXT_GOST            "GOST89"
+# define SSL_TXT_SMS4            "SMS4"
+# define SSL_TXT_SMS4_GCM        "SMS4GCM"
+# define SSL_TXT_SMS4_CCM        "SMS4CCM"
 
 # define SSL_TXT_MD5             "MD5"
 # define SSL_TXT_SHA1            "SHA1"
@@ -165,11 +168,13 @@ extern "C" {
 # define SSL_TXT_GOST89MAC12     "GOST89MAC12"
 # define SSL_TXT_SHA256          "SHA256"
 # define SSL_TXT_SHA384          "SHA384"
+# define SSL_TXT_SM3             "SM3"
 
 # define SSL_TXT_SSLV3           "SSLv3"
 # define SSL_TXT_TLSV1           "TLSv1"
 # define SSL_TXT_TLSV1_1         "TLSv1.1"
 # define SSL_TXT_TLSV1_2         "TLSv1.2"
+# define SSL_TXT_GMSV1_1         "GMSv1.1"
 
 # define SSL_TXT_ALL             "ALL"
 

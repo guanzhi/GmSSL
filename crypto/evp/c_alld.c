@@ -24,9 +24,11 @@ void openssl_add_all_digests_int(void)
     EVP_add_digest_alias(SN_md5, "ssl3-md5");
     EVP_add_digest(EVP_md5_sha1());
 #endif
+#ifndef OPENSSL_NO_SHA1
     EVP_add_digest(EVP_sha1());
     EVP_add_digest_alias(SN_sha1, "ssl3-sha1");
     EVP_add_digest_alias(SN_sha1WithRSAEncryption, SN_sha1WithRSA);
+#endif
 #if !defined(OPENSSL_NO_MDC2) && !defined(OPENSSL_NO_DES)
     EVP_add_digest(EVP_mdc2());
 #endif
@@ -35,10 +37,12 @@ void openssl_add_all_digests_int(void)
     EVP_add_digest_alias(SN_ripemd160, "ripemd");
     EVP_add_digest_alias(SN_ripemd160, "rmd160");
 #endif
+#ifndef OPENSSL_NO_SHA1
     EVP_add_digest(EVP_sha224());
     EVP_add_digest(EVP_sha256());
     EVP_add_digest(EVP_sha384());
     EVP_add_digest(EVP_sha512());
+#endif
 #ifndef OPENSSL_NO_WHIRLPOOL
     EVP_add_digest(EVP_whirlpool());
 #endif
