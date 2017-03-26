@@ -35,9 +35,9 @@ extern "C" {
 
 	typedef struct {
 		unsigned char rk[num_word];
-	} mycipher_key_t;
+	} speck_key_t;
 
-	void mycipher_set_encrypt_key(mycipher_key_t *key, const unsigned char *user_key);
+	void speck_set_encrypt_key(speck_key_t *key, const unsigned char *user_key);
 	void speck_expand(SPECK_TYPE const K[SPECK_KEY_LEN], SPECK_TYPE S[SPECK_ROUNDS]);
 	void speck_encrypt(SPECK_TYPE const pt[2], SPECK_TYPE ct[2], SPECK_TYPE const K[SPECK_ROUNDS]);
 	void speck_decrypt(SPECK_TYPE const ct[2], SPECK_TYPE pt[2], SPECK_TYPE const K[SPECK_ROUNDS]);

@@ -1,4 +1,4 @@
-#include "speck.h"
+#include <openssl/speck.h>
 
 #define ROR(x, r) ((x >> r) | (x << ((sizeof(SPECK_TYPE) * 8) - r)))//循环右移
 #define ROL(x, r) ((x << r) | (x >> ((sizeof(SPECK_TYPE) * 8) - r)))//循环左移
@@ -11,7 +11,7 @@
 #define RR(x, y, k) (y ^= x, y = ROR(y, 3), x ^= k, x -= y, x = ROL(x, 8))
 #endif
 
-void mycipher_set_encrypt_key(mycipher_key_t *key, const unsigned char *user_key)
+void speck_set_encrypt_key(speck_key_t *key, const unsigned char *user_key)
 {
 	int i;
 	for (i = 0; i < num_word; i++)
