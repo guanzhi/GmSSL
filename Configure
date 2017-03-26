@@ -429,6 +429,9 @@ my @disablables = (
     "sha",
     "md5",
     "rsa",
+    "pem",
+    "pkcs7",
+    "pkcs12",
     );
 foreach my $proto ((@tls, @dtls))
 	{
