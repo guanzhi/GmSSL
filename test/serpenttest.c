@@ -1,6 +1,18 @@
-#include <stdio.h> 
-#include "myserpent.h"  
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
+#include "../e_os.h"
+
+#ifdef OPENSSL_NO_SERPENT
+int main(int argc, char **argv)
+{
+	printf("No Serpent support\n");
+	return 0;
+}
+#else
+
+#include <openssl/serpent.h>
 
 int main(int argc, char* argv[]){
     
@@ -267,4 +279,4 @@ int main(int argc, char* argv[]){
 	fclose(fp);	
     return 0;
 }
-
+#endif

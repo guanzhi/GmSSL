@@ -9,7 +9,7 @@
    
 #include <stdio.h>
 #include <stdlib.h>
-#include "myserpent.h"
+#include <openssl/serpent.h>
 
 #define IN
 #define OUT

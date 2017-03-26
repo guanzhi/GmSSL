@@ -312,7 +312,8 @@ $config{sdirs} = [
     "evp", "asn1", "pem", "x509", "x509v3", "conf", "txt_db", "pkcs7", "pkcs12", "comp", "ocsp", "ui",
     "cms", "ts", "srp", "cmac", "ct", "async", "kdf",
     "sm3", "sms4", "kdf2", "ecies", "ffx", "sm2", "paillier", "cpk", "otp", "gmapi", "ec2",
-    "bfibe", "bb1ibe", "sm9", "saf", "sdf", "skf", "sof", "zuc"
+    "bfibe", "bb1ibe", "sm9", "saf", "sdf", "skf", "sof", "zuc",
+    "serpent"
     ];
 
 # Known TLS and DTLS protocols
@@ -432,6 +433,7 @@ my @disablables = (
     "pem",
     "pkcs7",
     "pkcs12",
+    "serpent",
     );
 foreach my $proto ((@tls, @dtls))
 	{
@@ -474,6 +476,7 @@ our %disabled = ( # "what"         => "comment"
                   "bb1ibe"              => "default",
 		  "saf"                 => "default",
 		  "sof"                 => "default",
+		  "serpent"             => "default",
 		);
 
 # Note: => pair form used for aesthetics, not to truly make a hash table

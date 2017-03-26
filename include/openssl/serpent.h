@@ -17,3 +17,22 @@ extern char sb7(char sb7_in);
 #define rotr(x,n)    (((x) >> ((int)(n))) | ((x) << (32 - (int)(n))))
 
 #endif
+
+/*
+The following should be implemented
+
+#define SERPENT_KEY_LENGTH		??
+#define SERPENT_BLOCK_SIZE		??
+#define SERPENT_IV_LENGTH		(SERPENT_BLOCK_SIZE)
+#define SERPENT_NUM_ROUNDS		??
+
+typedef struct {
+	uint32_t rk[SMS4_NUM_ROUNDS];
+} serpent_key_t;
+
+void serpent_set_encrypt_key(serpent_key_t *key, const unsigned char *user_key);
+void serpent_set_decrypt_key(serpent_key_t *key, const unsigned char *user_key);
+void serpent_encrypt(const unsigned char *in, unsigned char *out, const serpent_key_t *key);
+void serpent_decrypt(const unsigned char *in, unsigned char *out, const serpent_key_t *key);
+
+*/
