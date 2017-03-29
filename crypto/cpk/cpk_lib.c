@@ -143,7 +143,10 @@ CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id,
 	}
 	X509_ALGOR_free(master->pkey_algor);
 
-	X509_ALGOR_set0(master->pkey_algor, OBJ_nid2obj(EVP_PKEY_id(pkey)), 0, NULL);
+//	X509_ALGOR_set0(master->pkey_algor, OBJ_nid2obj(EVP_PKEY_id(pkey)), 0, NULL);
+	X509_ALGOR *algor = X509_ALGOR_new();
+	X509_PUBKEY_get0_param(NULL, NULL, NULL, &algor, pubkey);
+	master->pkey_algor = X509_ALGOR_dup(algor);
 
 	/*
 	if (!(master->pkey_algor = X509_ALGOR_dup(pubkey->algor))) {
