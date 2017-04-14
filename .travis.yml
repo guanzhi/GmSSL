@@ -6,20 +6,6 @@ cache: ccache
 git:
     submodules: false
 
-before_install:
-    - if [ -n "$COVERALLS" ]; then
-          pip install --user cpp-coveralls;
-      fi;
-    - if expr "$CONFIG_OPTS" ":" ".*enable-external-tests" > /dev/null; then
-          git submodule update --init --recursive;
-      fi;
-
-addons:
-    apt:
-        packages:
-            - ccache
-            - golang-1.6
-
 os:
     - linux
 
@@ -29,7 +15,7 @@ compiler:
 
 
 before_script:
-    - ./configu
+    - ./config
 
 script:
     - $make
