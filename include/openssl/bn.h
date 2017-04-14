@@ -534,6 +534,7 @@ int ERR_load_BN_strings(void);
 # define BN_F_BN_GFP2_CMP                                 149
 # define BN_F_BN_GFP2_COPY                                150
 # define BN_F_BN_GFP2_DIV_BN                              151
+# define BN_F_BN_GFP2_EQU                                 162
 # define BN_F_BN_GFP2_INV                                 152
 # define BN_F_BN_GFP2_IS_ZERO                             153
 # define BN_F_BN_GFP2_MUL                                 154

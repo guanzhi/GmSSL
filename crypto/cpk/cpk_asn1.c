@@ -50,6 +50,7 @@
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <openssl/cpk.h>
+#include "cpk_lcl.h"
 
 ASN1_SEQUENCE(CPK_MASTER_SECRET) = {
 	ASN1_SIMPLE(CPK_MASTER_SECRET, version, LONG),
@@ -91,4 +92,3 @@ int i2d_CPK_PUBLIC_PARAMS_bio(BIO *bp, CPK_PUBLIC_PARAMS *params)
 {
 	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(CPK_PUBLIC_PARAMS), bp, params);
 }
-

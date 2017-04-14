@@ -135,33 +135,3 @@ end:
 	OPENSSL_free(buf);
 	return ret;
 }
-
-#if 0
-int main(void)
-{
-	char *s = "This ASCII string without null-terminator";
-	BIGNUM *bn = NULL;
-	BIGNUM *ret = NULL;
-	BIGNUM *range = NULL;
-
-	BN_hex2bn(&range, "ffffffffffffffffffffefffffffffffffffffff");
-	BN_hex2bn(&bn, "79317c1610c1fc018e9c53d89d59c108cd518608");
-
-	if (!BN_hash2bn(&ret, s, strlen(s), EVP_sha1(), range)) {
-		printf("BN_hash2bn() function failed\n");
-		return 0;
-	}
-	if (!ret) {
-		printf("shit\n");
-	}
-	printf("%s\n", BN_bn2hex(ret));
-	if (BN_cmp(ret, bn) != 0) {
-		printf("BN_hash2bn() test failed\n");
-		return 0;
-	}
-
-	printf("BN_hash2bn() test passed\n");
-	return 1;
-}
-#endif
-

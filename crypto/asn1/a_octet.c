@@ -27,3 +27,16 @@ int ASN1_OCTET_STRING_set(ASN1_OCTET_STRING *x, const unsigned char *d,
 {
     return ASN1_STRING_set(x, d, len);
 }
+
+#ifndef OPENSSL_NO_SM2
+int ASN1_OCTET_STRING_is_zero(const ASN1_OCTET_STRING *a)
+{
+    int i;
+    for (i = 0; i < a->length; i++) {
+        if (a->data[i] != 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif

@@ -58,138 +58,22 @@
 #define SM2_KMETH_FLAGS		0
 
 
-int SM2_ENC_PARAMS_set_type(SM2_ENC_PARAMS *params, int type)
-{
-	const EVP_MD *md;
-	if (!(md = EVP_get_digestbynid(type))) {
-		ECerr(EC_F_SM2_ENC_PARAMS_SET_TYPE, EC_R_INVALID_DIGEST_TYPE);
-		return 0;
-	}
-	params->kdf_md = md;
-	params->mac_md = md;
-	params->point_form = SM2_DEFAULT_POINT_CONVERSION_FORM;
-	return 1;
-}
-
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECIES_CIPHERTEXT_VALUE(
-	const ECIES_CIPHERTEXT_VALUE *in)
-{
-	ECerr(EC_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECIES_CIPHERTEXT_VALUE,
-		ERR_R_EC_LIB);
-	return NULL;
-}
-
-int SM2_CIPHERTEXT_VALUE_set_ECIES_CIPHERTEXT_VALUE(SM2_CIPHERTEXT_VALUE *sm2,
-	const ECIES_CIPHERTEXT_VALUE *in)
-{
-	ECerr(EC_F_SM2_CIPHERTEXT_VALUE_SET_ECIES_CIPHERTEXT_VALUE,
-		ERR_R_EC_LIB);
-	return 0;
-}
-
-int SM2_CIPHERTEXT_VALUE_get_ECIES_CIPHERTEXT_VALUE(
-	const SM2_CIPHERTEXT_VALUE *sm2, ECIES_CIPHERTEXT_VALUE *out)
-{
-	ECerr(EC_F_SM2_CIPHERTEXT_VALUE_GET_ECIES_CIPHERTEXT_VALUE,
-		ERR_R_EC_LIB);
-	return 0;
-}
-
-static int sm2_compute_key(unsigned char **Pout, size_t *poutlen,
-	const EC_POINT *pub_key, const EC_KEY *ec_key)
-{
-	return 0;
-}
-
-static int sm2_encrypt(int type, const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	SM2_ENC_PARAMS param;
-	if (!SM2_ENC_PARAMS_set_type(&param, type)) {
-		return 0;
-	}
-	return SM2_encrypt(&param, in, inlen, out, outlen, ec_key);
-}
-
-ECIES_CIPHERTEXT_VALUE *sm2_do_encrypt(int type, const unsigned char *in,
-	size_t inlen, EC_KEY *ec_key)
-{
-	ECIES_CIPHERTEXT_VALUE *ret = NULL;
-	ECIES_CIPHERTEXT_VALUE *ecies = NULL;
-	SM2_CIPHERTEXT_VALUE *sm2 = NULL;
-	SM2_ENC_PARAMS param;
-
-	if (!(ecies = ECIES_CIPHERTEXT_VALUE_new())) {
-		goto end;
-	}
-	if (!SM2_ENC_PARAMS_set_type(&param, type)) {
-		goto end;
-	}
-	if (!(sm2 = SM2_do_encrypt(&param, in, inlen, ec_key))) {
-		goto end;
-	}
-	if (!SM2_CIPHERTEXT_VALUE_get_ECIES_CIPHERTEXT_VALUE(sm2, ecies)) {
-		goto end;
-	}
-
-	ret = ecies;
-	ecies = NULL;
-
-end:
-	ECIES_CIPHERTEXT_VALUE_free(ecies);
-	SM2_CIPHERTEXT_VALUE_free(sm2);
-	return ret;
-}
-
-int sm2_decrypt(int type, const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	SM2_ENC_PARAMS param;
-	if (!SM2_ENC_PARAMS_set_type(&param, type)) {
-		return 0;
-	}
-	return SM2_decrypt(&param, in, inlen, out, outlen, ec_key);
-}
-
-int sm2_do_decrypt(int type, const ECIES_CIPHERTEXT_VALUE *in,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	int ret = 0;
-	SM2_CIPHERTEXT_VALUE *sm2 = NULL;
-	SM2_ENC_PARAMS param;
-
-	if (!SM2_ENC_PARAMS_set_type(&param, type)) {
-		goto end;
-	}
-	// we might require type/param
-	if (!(sm2 = SM2_CIPHERTEXT_VALUE_new_from_ECIES_CIPHERTEXT_VALUE(in))) {
-		goto end;
-	}
-	if (!SM2_do_decrypt(&param, sm2, out, outlen, ec_key)) {
-		goto end;
-	}
-
-	ret = 1;
-end:
-	SM2_CIPHERTEXT_VALUE_free(sm2);
-	return ret;
-}
 
 static const EC_KEY_METHOD gmssl_ec_key_method = {
 	"GmSSL EC_KEY method",
 	EC_KEY_METHOD_SM2,
 	0,0,0,0,0,0,
 	ossl_ec_key_gen,
-	sm2_compute_key,
-	SM2_sign,
+	NULL,
+	SM2_sign_ex,
 	SM2_sign_setup,
-	SM2_do_sign,
+	SM2_do_sign_ex,
 	SM2_verify,
 	SM2_do_verify,
-	sm2_encrypt,
-	sm2_do_encrypt,
-	sm2_decrypt,
-	sm2_do_decrypt,
+	SM2_encrypt,
+	NULL,
+	SM2_decrypt,
+	NULL,
 };
 
 const EC_KEY_METHOD *EC_KEY_GmSSL(void)
@@ -205,7 +89,6 @@ int EC_KEY_METHOD_type(const EC_KEY_METHOD *meth)
 		return NID_secg_scheme;
 	}
 }
-
 
 void EC_KEY_METHOD_set_encrypt(EC_KEY_METHOD *meth,
                                int (*encrypt)(int type,

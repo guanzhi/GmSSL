@@ -59,6 +59,7 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/x509.h>
+#include "sm2_lcl.h"
 
 #define EC_MAX_NBYTES  ((OPENSSL_ECC_MAX_FIELD_BITS + 7)/8)
 
@@ -211,7 +212,7 @@ int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	}
 
 #ifndef OPENSSL_NO_STRICT_GM
-	if (EVP_MD_size(md) != SM2_ID_DIGEST_LENGTH) {
+	if (EVP_MD_size(md) != SM2_DEFAULT_ID_DIGEST_LENGTH) {
 		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, EC_R_INVALID_DIGEST_ALGOR);
 		return 0;
 	}

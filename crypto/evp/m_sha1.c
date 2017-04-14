@@ -10,13 +10,15 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 
-#ifndef OPENSSL_NO_SHA1
+#ifndef OPENSSL_NO_SHA
 
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/sha.h>
-#include <openssl/rsa.h>
-#include "internal/evp_int.h"
+# include <openssl/evp.h>
+# include <openssl/objects.h>
+# include <openssl/sha.h>
+# ifndef OPENSSL_NO_RSA
+#  include <openssl/rsa.h>
+# endif
+# include "internal/evp_int.h"
 
 static int init(EVP_MD_CTX *ctx)
 {
@@ -112,6 +114,7 @@ const EVP_MD *EVP_sha1(void)
     return (&sha1_md);
 }
 
+# ifndef OPENSSL_NO_SHA256
 static int init224(EVP_MD_CTX *ctx)
 {
     return SHA224_Init(EVP_MD_CTX_md_data(ctx));
@@ -174,7 +177,9 @@ const EVP_MD *EVP_sha256(void)
 {
     return (&sha256_md);
 }
+# endif
 
+# ifndef OPENSSL_NO_SHA512
 static int init384(EVP_MD_CTX *ctx)
 {
     return SHA384_Init(EVP_MD_CTX_md_data(ctx));
@@ -233,4 +238,5 @@ const EVP_MD *EVP_sha512(void)
 {
     return (&sha512_md);
 }
+# endif
 #endif

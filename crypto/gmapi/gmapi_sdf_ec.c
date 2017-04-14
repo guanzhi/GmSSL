@@ -288,40 +288,39 @@ int EC_KEY_get_ECCrefPrivateKey(EC_KEY *ec_key, ECCrefPrivateKey *ref)
 	return 1;
 }
 
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECCCipher(
-	const ECCCipher *ref)
+SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref)
 {
-	SM2_CIPHERTEXT_VALUE *ret = NULL;
-	SM2_CIPHERTEXT_VALUE *cv = NULL;
+	SM2CiphertextValue *ret = NULL;
+	SM2CiphertextValue *cv = NULL;
 	EC_GROUP *group = NULL;
 
 	/* check arguments */
 	if (!ref) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
 	}
 	if (ref->L > INT_MAX) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHETEXT_LENGTH);
 		return NULL;
 	}
 
-	/* ECCCipher => SM2_CIPHERTEXT_VALUE */
+	/* ECCCipher => SM2CiphertextValue */
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			ERR_R_EC_LIB);
 		goto end;
 	}
 
-	if (!(cv = SM2_CIPHERTEXT_VALUE_new(group))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+	if (!(cv = SM2CiphertextValue_new(group))) {
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			GMAPI_R_MALLOC_FAILED);
 		goto end;
 	}
 
-	if (!SM2_CIPHERTEXT_VALUE_set_ECCCipher(cv, ref)) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+	if (!SM2CiphertextValue_set_ECCCipher(cv, ref)) {
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			GMAPI_R_INVALID_SM2_CIPHERTEXT);
 		goto end;
 	}
@@ -331,7 +330,7 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECCCipher(
 
 end:
 	EC_GROUP_free(group);
-	SM2_CIPHERTEXT_VALUE_free(cv);
+	SM2CiphertextValue_free(cv);
 	return ret;
 }
 
@@ -344,7 +343,7 @@ end:
  * implementations, developers have to check the encoding of the vendor's
  * library to make sure the encoding/decoding is correct
  */
-int SM2_CIPHERTEXT_VALUE_set_ECCCipher(SM2_CIPHERTEXT_VALUE *cv,
+int SM2CiphertextValue_set_ECCCipher(SM2CiphertextValue *cv,
 	const ECCCipher *ref)
 {
 	int ret = 0;
@@ -356,20 +355,20 @@ int SM2_CIPHERTEXT_VALUE_set_ECCCipher(SM2_CIPHERTEXT_VALUE *cv,
 
 	/* check arguments */
 	if (!cv || !ref) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
 
 	/* variables */
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_EC_LIB);
 		goto end;
 	}
 	/* this will never happen with GmSSL's sdf.h */
 	if (EC_GROUP_get_degree(group) > ECCref_MAX_BITS) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			GMAPI_R_INVALID_KEY_LENGTH);
 		goto end;
 	}
@@ -377,7 +376,7 @@ int SM2_CIPHERTEXT_VALUE_set_ECCCipher(SM2_CIPHERTEXT_VALUE *cv,
 
 	/* malloc */
 	if (!(bn_ctx = BN_CTX_new())) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
@@ -385,36 +384,37 @@ int SM2_CIPHERTEXT_VALUE_set_ECCCipher(SM2_CIPHERTEXT_VALUE *cv,
 	x = BN_CTX_get(bn_ctx);
 	y = BN_CTX_get(bn_ctx);
 	if (!x || !y) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	/* ECCCipher ==> SM2_CIPHERTEXT_VALUE */
-	if (!BN_bin2bn(ref->x, ECCref_MAX_LEN, x)) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+	/* ECCCipher ==> SM2CiphertextValue */
+	if (!BN_bin2bn(ref->x, ECCref_MAX_LEN, cv->xCoordinate)) {
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!BN_bin2bn(ref->y, ECCref_MAX_LEN, y)) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+	if (!BN_bin2bn(ref->y, ECCref_MAX_LEN, cv->yCoordinate)) {
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_BN_LIB);
 		goto end;
 	}
+
 	if (!cv->ephem_point) {
 		if (!(cv->ephem_point = EC_POINT_new(group))) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_set_affine_coordinates_GFp(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else  {
 		if (!EC_POINT_get_affine_coordinates_GF2m(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
@@ -423,14 +423,14 @@ int SM2_CIPHERTEXT_VALUE_set_ECCCipher(SM2_CIPHERTEXT_VALUE *cv,
 	memcpy(cv->mactag, ref->M, 32);
 
 	if (ref->L <= 0 || ref->L > INT_MAX) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_LENGTH);
 		goto end;
 	}
 	cv->ciphertext_size = (size_t)ref->L;
 
 	if (!(cv->ciphertext = OPENSSL_realloc(cv->ciphertext, (size_t)ref->L))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			GMAPI_R_MALLOC_FAILED);
 		goto end;
 	}
@@ -459,7 +459,7 @@ end:
  * use the vendor's header file. Then the errors can be found by the
  * compiler.
  */
-int SM2_CIPHERTEXT_VALUE_get_ECCCipher(const SM2_CIPHERTEXT_VALUE *cv,
+int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv,
 	ECCCipher *ref)
 {
 	int ret = 0;
@@ -470,7 +470,7 @@ int SM2_CIPHERTEXT_VALUE_get_ECCCipher(const SM2_CIPHERTEXT_VALUE *cv,
 
 	/* check arguments */
 	if (!cv || !ref) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
@@ -480,19 +480,19 @@ int SM2_CIPHERTEXT_VALUE_get_ECCCipher(const SM2_CIPHERTEXT_VALUE *cv,
 	 * ciphertext
 	 */
 	if (ref->L < cv->ciphertext_size) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
 	/* malloc */
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER, ERR_R_EC_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER, ERR_R_EC_LIB);
 		return 0;
 	}
 
 	if (!(bn_ctx = BN_CTX_new())) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER, ERR_R_BN_LIB);
 		goto end;
 	}
 
@@ -500,53 +500,53 @@ int SM2_CIPHERTEXT_VALUE_get_ECCCipher(const SM2_CIPHERTEXT_VALUE *cv,
 	x = BN_CTX_get(bn_ctx);
 	y = BN_CTX_get(bn_ctx);
 	if (!x || !y) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	/* SM2_CIPHERTEXT_VALUE ==> ECCCipher */
+	/* SM2CiphertextValue ==> ECCCipher */
 	memset(ref, 0, sizeof(*ref));
 
 	/* encode ephem point `ECCCipher->x`, `ECCCipher->y` */
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_get_affine_coordinates_GFp(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else  {
 		if (!EC_POINT_get_affine_coordinates_GF2m(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 				ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 	/*
-	 * check compatible of SM2_CIPHERTEXT_VALUE with EC_GROUP
+	 * check compatible of SM2CiphertextValue with EC_GROUP
 	 * In gmapi we only do simple checks, i.e. length of coordinates.
 	 * We assume that more checks, such as x, y in the range of [1, p]
 	 * and other semantic checks should be done by the `sm2` module.
 	 */
 	if (BN_num_bits(x) > EC_GROUP_get_degree(group) ||
 		BN_num_bits(y) > EC_GROUP_get_degree(group)) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_POINT);
 		goto end;
 	}
 	if (!BN_bn2bin(x, ref->x + ECCref_MAX_LEN - BN_num_bytes(x))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!BN_bn2bin(y, ref->y + ECCref_MAX_LEN - BN_num_bytes(y))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			ERR_R_BN_LIB);
 		goto end;
 	}
 
 	/* encode mac `ECCCipher->M[32]` */
 	if (cv->mactag_size != 32) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_MAC);
 		goto end;
 	}
@@ -554,7 +554,7 @@ int SM2_CIPHERTEXT_VALUE_get_ECCCipher(const SM2_CIPHERTEXT_VALUE *cv,
 
 	/* encode ciphertext `ECCCipher->L`, `ECCCipher->C[]` */
 	if (cv->ciphertext_size <= 0 || cv->ciphertext_size > INT_MAX) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_LENGTH);
 		goto end;
 	}
@@ -693,4 +693,3 @@ int ECDSA_SIG_get_ECCSignature(const ECDSA_SIG *sig, ECCSignature *ref)
 
 	return 1;
 }
-

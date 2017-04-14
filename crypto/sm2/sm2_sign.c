@@ -69,13 +69,13 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	EC_POINT *point = NULL;
 
 	if (ec_key == NULL || (ec_group = EC_KEY_get0_group(ec_key)) == NULL) {
-		ECerr(EC_F_SM2_SIGN_SETUP, ERR_R_PASSED_NULL_PARAMETER);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
 
 	if (ctx_in == NULL)  {
 		if ((ctx = BN_CTX_new()) == NULL) {
-			ECerr(EC_F_SM2_SIGN_SETUP,ERR_R_MALLOC_FAILURE);
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
 			return 0;
 		}
 	}
@@ -87,17 +87,17 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	x = BN_new();
 	order = BN_new();
 	if (!k || !x || !order) {
-		ECerr(EC_F_SM2_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		ECerr(EC_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 		goto end;
 	}
 
 	if ((point = EC_POINT_new(ec_group)) == NULL) {
-		ECerr(EC_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 		goto end;
 	}
 
@@ -105,8 +105,8 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 		/* get random k */
 		do {
 			if (!BN_rand_range(k, order)) {
-				ECerr(EC_F_SM2_SIGN_SETUP,
-					EC_R_RANDOM_NUMBER_GENERATION_FAILED);
+				SM2err(SM2_F_SM2_SIGN_SETUP,
+					SM2_R_RANDOM_NUMBER_GENERATION_FAILED);
 				goto end;
 			}
 
@@ -114,24 +114,24 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 
 		/* compute r the x-coordinate of generator * k */
 		if (!EC_POINT_mul(ec_group, point, k, NULL, NULL, ctx)) {
-			ECerr(EC_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 			goto end;
 		}
 
 		if (EC_METHOD_get_field_type(EC_GROUP_method_of(ec_group)) == NID_X9_62_prime_field) {
 			if (!EC_POINT_get_affine_coordinates_GFp(ec_group, point, x, NULL, ctx)) {
-				ECerr(EC_F_SM2_SIGN_SETUP,ERR_R_EC_LIB);
+				SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 				goto end;
 			}
 		} else /* NID_X9_62_characteristic_two_field */ {
 			if (!EC_POINT_get_affine_coordinates_GF2m(ec_group, point, x, NULL, ctx)) {
-				ECerr(EC_F_SM2_SIGN_SETUP,ERR_R_EC_LIB);
+				SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 				goto end;
 			}
 		}
 
 		if (!BN_nnmod(x, x, order, ctx)) {
-			ECerr(EC_F_SM2_SIGN_SETUP, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_BN_LIB);
 			goto end;
 		}
 
@@ -178,12 +178,12 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 	ec_group = EC_KEY_get0_group(ec_key);
 	priv_key = EC_KEY_get0_private_key(ec_key);
 	if (!ec_group || !priv_key) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_PASSED_NULL_PARAMETER);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
 	}
 
 	if (!(ret = ECDSA_SIG_new())) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
 		return NULL;
 	}
 	ret->r = BN_new();
@@ -193,11 +193,11 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 	e = BN_new();
 	bn = BN_new();
 	if (!ret->r || !ret->s || !ctx || !order || !e || !bn) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_EC_LIB);
 		goto end;
 	}
 
@@ -209,13 +209,13 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 	}
 #endif
 	if (!BN_bin2bn(dgst, dgstlen, e)) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 		goto end;
 	}
 
 #if 0
 	if ((8 * dgstlen > i) && !BN_rshift(e, e, 8 - (i & 0x7))) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 		goto end;
 	}
 #endif
@@ -224,33 +224,33 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 		/* use or compute k and (kG).x */
 		if (!in_k || !in_x) {
 			if (!sm2_sign_setup(ec_key, ctx, &k, &ret->r)) {
-				ECerr(EC_F_SM2_DO_SIGN,ERR_R_ECDSA_LIB);
+				SM2err(SM2_F_SM2_DO_SIGN, ERR_R_ECDSA_LIB);
 				goto end;
 			}
 			ck = k;
 		} else {
 			ck = in_k;
 			if (!BN_copy(ret->r, in_x)) {
-				ECerr(EC_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
+				SM2err(SM2_F_SM2_DO_SIGN, ERR_R_MALLOC_FAILURE);
 				goto end;
 			}
 		}
 
 		/* r = e + x (mod n) */
 		if (!BN_mod_add(ret->r, ret->r, e, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 
 		if (!BN_mod_add(bn, ret->r, ck, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 
 		/* check r != 0 && r + k != n */
 		if (BN_is_zero(ret->r) || BN_is_zero(bn)) {
 			if (in_k && in_x) {
-				ECerr(EC_F_SM2_DO_SIGN, EC_R_NEED_NEW_SETUP_VALUES);
+				SM2err(SM2_F_SM2_DO_SIGN, SM2_R_NEED_NEW_SETUP_VALUES);
 				goto end;
 			} else
 				continue;
@@ -258,36 +258,36 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 
 		/* s = ((1 + d)^-1 * (k - rd)) mod n */
 		if (!BN_one(bn)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 
 		if (!BN_mod_add(ret->s, priv_key, bn, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!BN_mod_inverse(ret->s, ret->s, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 
 		if (!BN_mod_mul(bn, ret->r, priv_key, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!BN_mod_sub(bn, ck, bn, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 		if (!BN_mod_mul(ret->s, ret->s, bn, order, ctx)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 
 		/* check s != 0 */
 		if (BN_is_zero(ret->s)) {
 			if (in_k && in_x) {
-				ECerr(EC_F_SM2_DO_SIGN, EC_R_NEED_NEW_SETUP_VALUES);
+				SM2err(SM2_F_SM2_DO_SIGN, SM2_R_NEED_NEW_SETUP_VALUES);
 				goto end;
 			}
 		} else {
@@ -298,13 +298,13 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 
 #if 0
 	if (!BN_rshift1(bn, order)) {
-		ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (BN_cmp(ret->r, bn) <= 0) {
 		if (!BN_sub(ret->r, order, ret->r)
 			|| !BN_sub(ret->s, order, ret->s)) {
-			ECerr(EC_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
 	}
@@ -344,7 +344,7 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 		!(ec_group = EC_KEY_get0_group(ec_key)) ||
 		!(pub_key  = EC_KEY_get0_public_key(ec_key))) {
 
-		ECerr(EC_F_SM2_DO_VERIFY, EC_R_MISSING_PARAMETERS);
+		SM2err(SM2_F_SM2_DO_VERIFY, SM2_R_MISSING_PARAMETERS);
 		return -1;
 	}
 
@@ -353,21 +353,21 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	e = BN_new();
 	t = BN_new();
 	if (!ctx || !order || !e || !t) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 		goto end;
 	}
 
 #if 0
 	if (!BN_rshift1(t, order)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (BN_cmp(sig->r, t) <= 0) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB); //FIXME: error code
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB); //FIXME: error code
 		goto end;
 	}
 #endif
@@ -380,14 +380,14 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 		BN_is_negative(sig->s) ||
 		BN_ucmp(sig->s, order) >= 0) {
 
-		ECerr(EC_F_SM2_DO_VERIFY, EC_R_BAD_SIGNATURE);
+		SM2err(SM2_F_SM2_DO_VERIFY, SM2_R_BAD_SIGNATURE);
 		ret = 0;
 		goto end;
 	}
 
 	/* check t = r + s != 0 */
 	if (!BN_mod_add(t, sig->r, sig->s, order, ctx)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (BN_is_zero(t)) {
@@ -403,44 +403,44 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	}
 #endif
 	if (!BN_bin2bn(dgst, dgstlen, e)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto end;
 	}
 #if 0
 	if ((8 * dgstlen > i) && !BN_rshift(e, e, 8 - (i & 0x7))) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto end;
 	}
 #endif
 
 	/* compute (x, y) = sG + tP, P is pub_key */
 	if (!(point = EC_POINT_new(ec_group))) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!EC_POINT_mul(ec_group, point, sig->s, pub_key, t, ctx)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 		goto end;
 	}
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(ec_group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_get_affine_coordinates_GFp(ec_group, point, t, NULL, ctx)) {
-			ECerr(EC_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else /* NID_X9_62_characteristic_two_field */ {
 		if (!EC_POINT_get_affine_coordinates_GF2m(ec_group, point, t, NULL, ctx)) {
-			ECerr(EC_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 	if (!BN_nnmod(t, t, order, ctx)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	/* check (sG + tP).x + e  == sig.r */
 	if (!BN_mod_add(t, t, e, order, ctx)) {
-		ECerr(EC_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
+		SM2err(SM2_F_SM2_DO_VERIFY, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (BN_ucmp(t, sig->r) == 0) {

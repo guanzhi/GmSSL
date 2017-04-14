@@ -1342,39 +1342,6 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_GET_EC_KDF_UKM, 0, (void *)p)
 
-# ifndef OPENSSL_NO_SM2
-#  define EVP_PKEY_CTX_set_ec_sign_type(ctx, type) \
-        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
-                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
-                                EVP_PKEY_CTRL_EC_SIGN_TYPE, type, NULL)
-
-#  define EVP_PKEY_CTX_get_ec_sign_type(ctx) \
-        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
-                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
-                                EVP_PKEY_CTRL_EC_SIGN_TYPE, -2, NULL)
-
-#  define EVP_PKEY_CTX_set_ec_enc_type(ctx, type) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
-                                EVP_PKEY_CTRL_EC_ENC_TYPE, type, NULL)
-
-#  define EVP_PKEY_CTX_get_ec_enc_type(ctx) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
-                EVP_PKEY_CTRL_EC_ENC_TYPE, -2, NULL)
-
-#  define EVP_PKEY_CTX_set_ec_dh_type(ctx, type) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                EVP_PKEY_OP_DERIVE, \
-                EVP_PKEY_CTRL_EC_DH_TYPE, type, NULL)
-
-#  define EVP_PKEY_CTX_get_ec_dh_type(ctx) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                EVP_PKEY_OP_DERIVE, \
-                EVP_PKEY_CTRL_EC_DH_TYPE, -2, NULL);
-# endif
 
 # define EVP_PKEY_CTRL_EC_PARAMGEN_CURVE_NID             (EVP_PKEY_ALG_CTRL + 1)
 # define EVP_PKEY_CTRL_EC_PARAM_ENC                      (EVP_PKEY_ALG_CTRL + 2)
@@ -1390,14 +1357,6 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
 # define EVP_PKEY_ECDH_KDF_NONE                          1
 # define EVP_PKEY_ECDH_KDF_X9_62                         2
 
-# ifndef OPENSSL_NO_SM2
-#  define EVP_PKEY_CTRL_EC_SIGN_TYPE                     (EVP_PKEY_ALG_CTRL + 11)
-#  define EVP_PKEY_CTRL_GET_EC_SIGN_TYPE                 (EVP_PKEY_ALG_CTRL + 12)
-#  define EVP_PKEY_CTRL_EC_ENC_TYPE                      (EVP_PKEY_ALG_CTRL + 13)
-#  define EVP_PKEY_CTRL_GET_EC_ENC_TYPE                  (EVP_PKEY_ALG_CTRL + 14)
-#  define EVP_PKEY_CTRL_EC_DH_TYPE                       (EVP_PKEY_ALG_CTRL + 15)
-#  define EVP_PKEY_CTRL_GET_EC_DH_TYPE                   (EVP_PKEY_ALG_CTRL + 16)
-# endif
 
 /* BEGIN ERROR CODES */
 /*
@@ -1435,6 +1394,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_ECIES_PARAMS_GET_KDF                        276
 # define EC_F_ECIES_PARAMS_GET_MAC                        277
 # define EC_F_ECIES_PARAMS_INIT_WITH_RECOMMENDED          278
+# define EC_F_ECIES_PARAMS_INIT_WITH_TYPE                 320
 # define EC_F_ECKEY_PARAM2TYPE                            223
 # define EC_F_ECKEY_PARAM_DECODE                          212
 # define EC_F_ECKEY_PRIV_DECODE                           213
@@ -1632,6 +1592,7 @@ int ERR_load_EC_strings(void);
 # define EC_R_ECIES_VERIFY_MAC_FAILURE                    167
 # define EC_R_EC_GROUP_NEW_BY_NAME_FAILURE                119
 # define EC_R_ENCRYPT_FAILED                              168
+# define EC_R_ENCRYPT_FAILURE                             206
 # define EC_R_ERROR                                       174
 # define EC_R_FIELD_TOO_LARGE                             143
 # define EC_R_GEN_MAC_FAILED                              169
@@ -1654,13 +1615,16 @@ int ERR_load_EC_strings(void);
 # define EC_R_INVALID_DIGEST_TYPE                         138
 # define EC_R_INVALID_ECIES_CIPHERTEXT                    171
 # define EC_R_INVALID_ECIES_PARAMETERS                    172
+# define EC_R_INVALID_ECIES_PARAMS                        207
 # define EC_R_INVALID_EC_KEY                              180
 # define EC_R_INVALID_ENCODING                            102
+# define EC_R_INVALID_ENC_PARAM                           208
 # define EC_R_INVALID_ENC_TYPE                            200
 # define EC_R_INVALID_FIELD                               103
 # define EC_R_INVALID_FORM                                104
 # define EC_R_INVALID_GROUP_ORDER                         122
 # define EC_R_INVALID_ID_LENGTH                           181
+# define EC_R_INVALID_INPUT_LENGTH                        209
 # define EC_R_INVALID_KDF_MD                              182
 # define EC_R_INVALID_KEY                                 116
 # define EC_R_INVALID_MD                                  205

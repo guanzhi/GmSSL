@@ -27,6 +27,10 @@ struct evp_pkey_ctx_st {
     /* implementation specific keygen data */
     int *keygen_info;
     int keygen_info_count;
+#ifndef OPENSSL_NO_SM2
+    unsigned char *pre_update;
+    size_t pre_update_len;
+#endif
 } /* EVP_PKEY_CTX */ ;
 
 #define EVP_PKEY_FLAG_DYNAMIC   1

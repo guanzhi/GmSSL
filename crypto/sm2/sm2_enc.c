@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,551 +46,280 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/sm2.h>
 #include <openssl/rand.h>
 #include <openssl/kdf.h>
 #include "internal/o_str.h"
+#include "sm2_lcl.h"
 
-SM2_ENC_PARAMS *SM2_ENC_PARAMS_new(void)
+SM2CiphertextValue *SM2_do_encrypt(const EVP_MD *md,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key)
 {
-	SM2_ENC_PARAMS *ret = NULL;
-
-	if (!(ret = OPENSSL_zalloc(sizeof(*ret)))) {
-		ECerr(EC_F_SM2_ENC_PARAMS_NEW, ERR_R_MALLOC_FAILURE);
-		return NULL;
-	}
-
-	SM2_ENC_PARAMS_init_with_recommended(ret);
-	return ret;
-}
-
-SM2_ENC_PARAMS *SM2_ENC_PARAMS_dup(const SM2_ENC_PARAMS *param)
-{
-	SM2_ENC_PARAMS *ret = NULL;
-
-	if (!param) {
-		ECerr(EC_F_SM2_ENC_PARAMS_DUP, EC_R_NULL_ARGUMENT);
-		return NULL;
-	}
-	if (!(ret = OPENSSL_memdup(param, sizeof(*param)))) {
-		ECerr(EC_F_SM2_ENC_PARAMS_DUP, ERR_R_MALLOC_FAILURE);
-		return NULL;
-	}
-
-	return ret;
-}
-
-int SM2_ENC_PARAMS_init_with_recommended(SM2_ENC_PARAMS *params)
-{
-	if (!params) {
-		ECerr(EC_F_SM2_ENC_PARAMS_INIT_WITH_RECOMMENDED,
-			EC_R_NULL_ARGUMENT);
-		return 0;
-	}
-	params->kdf_md = EVP_sm3();
-	params->mac_md = EVP_sm3();
-	params->point_form = POINT_CONVERSION_UNCOMPRESSED;
-	return 1;
-}
-
-void SM2_ENC_PARAMS_free(SM2_ENC_PARAMS *param)
-{
-	OPENSSL_free(param);
-}
-
-int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *group,
-	const SM2_ENC_PARAMS *params, size_t mlen)
-{
-	int ret = 0;
-	EC_KEY *ec_key = NULL;
-	size_t len = 0;
-
-	if (!(ec_key = EC_KEY_new())) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_SIZE, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!EC_KEY_set_group(ec_key, group)) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_SIZE, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!EC_KEY_generate_key(ec_key)) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_SIZE, ERR_R_EC_LIB);
-		goto end;
-	}
-
-	len += EC_POINT_point2oct(group, EC_KEY_get0_public_key(ec_key),
-		params->point_form, NULL, 0, NULL);
-	len += mlen;
-	len += EVP_MD_size(params->mac_md);
-
- 	ret = (int)len;
-
-end:
-	EC_KEY_free(ec_key);
-	return ret;
-}
-
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new(const EC_GROUP *group)
-{
-	SM2_CIPHERTEXT_VALUE *cv;
-
-	if (!(cv = OPENSSL_malloc(sizeof(*cv)))) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_NEW, EC_R_MALLOC_FAILED);
-		return NULL;
-	}
-
-	memset(cv, 0, sizeof(*cv));
-
-	if (!(cv->ephem_point = EC_POINT_new(group))) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_NEW, EC_R_POINT_NEW_FAILED);
-		OPENSSL_free(cv);
-		return NULL;
-	}
-
-	return cv;
-}
-
-void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv)
-{
-	if (cv->ephem_point) EC_POINT_free(cv->ephem_point);
-	if (cv->ciphertext) OPENSSL_free(cv->ciphertext);
-	memset(cv, 0, sizeof(*cv));
-	OPENSSL_free(cv);
-}
-
-int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
-	const EC_GROUP *ec_group, const SM2_ENC_PARAMS *params,
-	unsigned char *buf, size_t *buflen)
-{
-	int ret = 0;
-	BN_CTX *bn_ctx = BN_CTX_new();
-	size_t ptlen, cvlen;
-
-	OPENSSL_assert(cv);
-	OPENSSL_assert(ec_group);
-	OPENSSL_assert(buf);
-	OPENSSL_assert(cv->ephem_point);
-
-	if (!bn_ctx) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_ENCODE, ERR_R_BN_LIB);
-		return 0;
-	}
-
-	if (!(ptlen = EC_POINT_point2oct(ec_group, cv->ephem_point,
-		params->point_form, NULL, 0, bn_ctx))) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_ENCODE, EC_R_POINT2OCT_FAILED);
-		goto end;
-	}
-	cvlen = ptlen + cv->ciphertext_size + cv->mactag_size;
-
-	if (!buf) {
-		*buflen = cvlen;
-		ret = 1;
-		goto end;
-
-	} else if (*buflen < cvlen) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_ENCODE, EC_R_BUFFER_TOO_SMALL);
-		goto end;
-	}
-
-	if (!(ptlen = EC_POINT_point2oct(ec_group, cv->ephem_point,
-		params->point_form, buf, *buflen, bn_ctx))) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_ENCODE, EC_R_POINT2OCT_FAILED);
-		goto end;
-	}
-	buf += ptlen;
-	memcpy(buf, cv->ciphertext, cv->ciphertext_size);
-	buf += cv->ciphertext_size;
-	if (cv->mactag_size > 0) {
-		memcpy(buf, cv->mactag, cv->mactag_size);
-	}
-
-	*buflen = cvlen;
-	ret = 1;
-end:
-	if (bn_ctx) BN_CTX_free(bn_ctx);
-	return ret;
-}
-
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(
-	const EC_GROUP *ec_group, const SM2_ENC_PARAMS *params,
-	const unsigned char *buf, size_t buflen)
-{
-	int ok = 0;
-	SM2_CIPHERTEXT_VALUE *ret = NULL;
-	BN_CTX *bn_ctx = BN_CTX_new();
-	int ptlen;
-	int fixlen;
-
-	if (!bn_ctx) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, ERR_R_BN_LIB);
-		return NULL;
-	}
-
-	if (!(fixlen = SM2_CIPHERTEXT_VALUE_size(ec_group, params, 0))) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_GET_CIPHERTEXT_SIZE_FAILED);
-		goto end;
-	}
-
-	if (buflen <= (size_t)fixlen) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_BUFFER_TOO_SMALL);
-		goto end;
-	}
-
-	if (!(ret = OPENSSL_malloc(sizeof(SM2_CIPHERTEXT_VALUE)))) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_MALLOC_FAILED);
-		goto end;
-	}
-
-	ret->ephem_point = EC_POINT_new(ec_group);
-	ret->ciphertext_size = buflen - fixlen;
-	ret->ciphertext = OPENSSL_malloc(ret->ciphertext_size);
-	if (!ret->ephem_point || !ret->ciphertext) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_INNOR_ERROR);
-		goto end;
-	}
-
-#if 0
-	//FIXME
-	ptlen = fixlen - SM2_ENC_PARAMS_mactag_size(params);
-#endif
-	ptlen = (int)fixlen; //FIXME
-	if (!EC_POINT_oct2point(ec_group, ret->ephem_point, buf, ptlen, bn_ctx)) {
-		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_OCT2POINT_FAILED);
-		goto end;
-	}
-
-	memcpy(ret->ciphertext, buf + ptlen, ret->ciphertext_size);
-	//FIXME
-	//ret->mactag_size = SM2_ENC_PARAMS_mactag_size(params);
-	if (ret->mactag_size > 0) {
-		memcpy(ret->mactag, buf + buflen - ret->mactag_size, ret->mactag_size);
-	}
-	ok = 1;
-
-end:
-	if (!ok && ret) {
-		SM2_CIPHERTEXT_VALUE_free(ret);
-		ret = NULL;
-	}
-	if (bn_ctx) BN_CTX_free(bn_ctx);
-
-	return ret;
-}
-
-int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
-	const SM2_CIPHERTEXT_VALUE *cv, int indent, unsigned long flags)
-{
-	int ret = 0;
-	char *hex = NULL;
-	BN_CTX *ctx = BN_CTX_new();
-	size_t i;
-
-	if (!ctx) {
-		goto end;
-	}
-
-	if (!(hex = EC_POINT_point2hex(ec_group, cv->ephem_point,
-		POINT_CONVERSION_UNCOMPRESSED, ctx))) {
-		goto end;
-	}
-
-	BIO_printf(out, "SM2_CIPHERTEXT_VALUE.ephem_point: %s\n", hex);
-	BIO_printf(out, "SM2_CIPHERTEXT_VALUE.ciphertext : ");
-	for (i = 0; i < cv->ciphertext_size; i++) {
-		BIO_printf(out, "%02X", cv->ciphertext[i]);
-	}
-	BIO_printf(out, "\n");
-	BIO_printf(out, "SM2_CIPHERTEXT_VALUE.mactag :");
-	for (i = 0; i < cv->mactag_size; i++) {
-		BIO_printf(out, "%02X", cv->mactag[i]);
-	}
-	BIO_printf(out, "\n");
-
-	ret = 1;
-
-end:
-	OPENSSL_free(hex);
-	BN_CTX_free(ctx);
-	return 0;
-}
-
-int SM2_encrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key)
-{
-	int ret = 0;
-	const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
-	SM2_CIPHERTEXT_VALUE *cv = NULL;
-	int len;
-
-	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, params, inlen))) {
-		ECerr(EC_F_SM2_ENCRYPT, EC_R_ERROR);
-		goto end;
-	}
-
-	if (!out) {
-		*outlen = (size_t)len;
-		return 1;
-
-	} else if (*outlen < (size_t)len) {
-		ECerr(EC_F_SM2_ENCRYPT, EC_R_BUFFER_TOO_SMALL);
-		return 0;
-	}
-
-	if (!(cv = SM2_do_encrypt(params, in, inlen, ec_key))) {
-		ECerr(EC_F_SM2_ENCRYPT, EC_R_ENCRYPT_FAILED);
-		goto end;
-	}
-
-	if (!SM2_CIPHERTEXT_VALUE_encode(cv, ec_group, params, out, outlen)) {
-		ECerr(EC_F_SM2_ENCRYPT, EC_R_CIPHERTEXT_ENCODE_FAILED);
-		goto end;
-	}
-
-	ret = 1;
-end:
-	if (cv) SM2_CIPHERTEXT_VALUE_free(cv);
-	return ret;
-}
-
-SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	EC_KEY *ec_key)
-{
-	int ok = 0;
-	SM2_CIPHERTEXT_VALUE *cv = NULL;
-	const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
-	const EC_POINT *pub_key = EC_KEY_get0_public_key(ec_key);
-	KDF_FUNC kdf = KDF_get_x9_63(params->kdf_md);
-	EC_POINT *point = NULL;
+	SM2CiphertextValue *ret = NULL;
+	SM2CiphertextValue *cv = NULL;
+	const EC_GROUP *group;
+	const EC_POINT *pub_key;
+	KDF_FUNC kdf;
+	EC_POINT *ephem_point = NULL;
+	EC_POINT *share_point = NULL;
 	BIGNUM *n = NULL;
 	BIGNUM *h = NULL;
 	BIGNUM *k = NULL;
 	BN_CTX *bn_ctx = NULL;
 	EVP_MD_CTX *md_ctx = NULL;
+
 	unsigned char buf[(OPENSSL_ECC_MAX_FIELD_BITS + 7)/4 + 1];
 	int nbytes;
-	unsigned char dgst[EVP_MAX_MD_SIZE];
-	unsigned int dgstlen;
-	int mactag_size;
 	size_t len;
 	size_t i;
+	unsigned int hashlen;
 
-	if (!ec_group || !pub_key) {
-		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_INVALID_EC_KEY);
-		goto end;
-	}
-	if (!kdf) {
-		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_GET_KDF_FAILED);
-		goto end;
+	/* check arguments */
+	if (!md || !in || !ec_key) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
 	}
 
-	/* init ciphertext_value */
-	if (!(cv = OPENSSL_malloc(sizeof(SM2_CIPHERTEXT_VALUE)))) {
-		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_MALLOC_FAILED);
-		goto end;
+	if (inlen < SM2_MIN_PLAINTEXT_LENGTH || inlen > SM2_MAX_PLAINTEXT_LENGTH) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_INVALID_PLAINTEXT_LENGTH);
+		return 0;
 	}
-	memset(cv, 0, sizeof(*cv));
-	cv->ephem_point = EC_POINT_new(ec_group);
-	cv->ciphertext = OPENSSL_malloc(inlen);
-	cv->ciphertext_size = inlen;
-	if (!cv->ephem_point || !cv->ciphertext) {
-		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
+
+	if (!(kdf = KDF_get_x9_63(md))) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_INVALID_DIGEST_ALGOR);
+		return 0;
+	}
+
+	if (!(group = EC_KEY_get0_group(ec_key))
+		|| !(pub_key = EC_KEY_get0_public_key(ec_key))) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_INVALID_EC_KEY);
+		return 0;
+	}
+
+	/* malloc */
+	if (!(cv = SM2CiphertextValue_new())
+		|| !(ephem_point = EC_POINT_new(group))
+		|| !(share_point = EC_POINT_new(group))
+		|| !(n = BN_new())
+		|| !(h = BN_new())
+		|| !(k = BN_new())
+		|| !(bn_ctx = BN_CTX_new())
+		|| !(md_ctx = EVP_MD_CTX_new())) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	point = EC_POINT_new(ec_group);
-	n = BN_new();
-	h = BN_new();
-	k = BN_new();
-	bn_ctx = BN_CTX_new();
-	md_ctx = EVP_MD_CTX_create();
-	if (!point || !n || !h || !k || !bn_ctx || !md_ctx) {
-		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
+	if (!ASN1_OCTET_STRING_set(cv->ciphertext, NULL, (int)inlen)
+		|| !ASN1_OCTET_STRING_set(cv->hash, NULL, EVP_MD_size(md))) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_ASN1_LIB);
 		goto end;
 	}
 
 	/* init ec domain parameters */
-	if (!EC_GROUP_get_order(ec_group, n, bn_ctx)) {
+	if (!EC_GROUP_get_order(group, n, bn_ctx)) {
 		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
 		goto end;
 	}
-	if (!EC_GROUP_get_cofactor(ec_group, h, bn_ctx)) {
+
+	if (!EC_GROUP_get_cofactor(group, h, bn_ctx)) {
 		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
 		goto end;
 	}
-	nbytes = (EC_GROUP_get_degree(ec_group) + 7) / 8;
+
+	nbytes = (EC_GROUP_get_degree(group) + 7) / 8;
+
+	/* check [h]P_B != O */
+	if (!EC_POINT_mul(group, share_point, NULL, pub_key, h, bn_ctx)) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (EC_POINT_is_at_infinity(group, share_point)) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_INVALID_PUBLIC_KEY);
+		goto end;
+	}
 
 	do
 	{
-		/* A1: rand k in [1, n-1] */
+		size_t size;
+
+		/* rand k in [1, n-1] */
 		do {
 			BN_rand_range(k, n);
 		} while (BN_is_zero(k));
 
-
-		/* A2: C1 = [k]G = (x1, y1) */
-		if (!EC_POINT_mul(ec_group, cv->ephem_point, k, NULL, NULL, bn_ctx)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
+		/* compute ephem_point [k]G = (x1, y1) */
+		if (!EC_POINT_mul(group, ephem_point, k, NULL, NULL, bn_ctx)) {
+			SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
 
-		/* A3: check [h]P_B != O */
-		if (!EC_POINT_mul(ec_group, point, NULL, pub_key, h, bn_ctx)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (EC_POINT_is_at_infinity(ec_group, point)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
+		/* compute ECDH share_point [k]P_B = (x2, y2) */
+		if (!EC_POINT_mul(group, share_point, NULL, pub_key, k, bn_ctx)) {
+			SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
 
-		/* A4: compute ECDH [k]P_B = (x2, y2) */
-		if (!EC_POINT_mul(ec_group, point, NULL, pub_key, k, bn_ctx)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!(len = EC_POINT_point2oct(ec_group, point,
+		/* compute t = KDF(x2 || y2, klen) */
+		if (!(len = EC_POINT_point2oct(group, share_point,
 			POINT_CONVERSION_UNCOMPRESSED, buf, sizeof(buf), bn_ctx))) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
+			SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
-		OPENSSL_assert(len == nbytes * 2 + 1);
 
-		/* A5: t = KDF(x2 || y2, klen) */
-		kdf(buf + 1, len - 1, cv->ciphertext, &cv->ciphertext_size);
-
-		for (i = 0; i < cv->ciphertext_size; i++) {
-			if (cv->ciphertext[i]) {
-				break;
-			}
-		}
-		if (i == cv->ciphertext_size) {
-			continue;
+		size = cv->ciphertext->length;
+		kdf(buf + 1, len - 1, cv->ciphertext->data, &size);
+		if (size != inlen) {
+			SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_KDF_FAILURE);
+			goto end;
 		}
 
-		break;
+		/* ASN1_OCTET_STRING_is_zero in asn1.h and a_octet.c */
+	} while (ASN1_OCTET_STRING_is_zero(cv->ciphertext));
 
-	} while (1);
+	/* set x/yCoordinates as (x1, y1) */
+	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
+		if (!EC_POINT_get_affine_coordinates_GFp(group, ephem_point,
+			cv->xCoordinate, cv->yCoordinate, bn_ctx)) {
+			SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EC_LIB);
+			goto end;
+		}
+	} else {
+		if (!EC_POINT_get_affine_coordinates_GF2m(group, ephem_point,
+			cv->xCoordinate, cv->yCoordinate, bn_ctx)) {
+			SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EC_LIB);
+			goto end;
+		}
+	}
 
-
-	/* A6: C2 = M xor t */
+	/* ciphertext = t xor in */
 	for (i = 0; i < inlen; i++) {
-		cv->ciphertext[i] ^= in[i];
+		cv->ciphertext->data[i] ^= in[i];
 	}
 
-	mactag_size = EVP_MD_size(params->mac_md);
-	if (mactag_size) {
-
-		/* A7: C3 = Hash(x2 || M || y2) */
-		if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestUpdate(md_ctx, in, inlen)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestFinal_ex(md_ctx, dgst, &dgstlen)) {
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-
-		/* GmSSL specific: reduce mactag size */
-		if (mactag_size > dgstlen) {                    
-			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
-			goto end;
-		}
-
-		cv->mactag_size = mactag_size;
-		memcpy(cv->mactag, dgst, cv->mactag_size);
-	}
-
-	ok = 1;
-
-end:
-	if (!ok && cv) {
-		SM2_CIPHERTEXT_VALUE_free(cv);
-		cv = NULL;
-	}
-
-	if (point) EC_POINT_free(point);
-	if (n) BN_free(n);
-	if (h) BN_free(h);
-	if (k) BN_free(k);
-	if (bn_ctx) BN_CTX_free(bn_ctx);
-	if (md_ctx) EVP_MD_CTX_destroy(md_ctx);
-
-	return cv;
-}
-
-int SM2_decrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key)
-{
-	int ret = 0;
-	const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
-	SM2_CIPHERTEXT_VALUE *cv = NULL;
-	int len;
-
-	if (!(len = SM2_CIPHERTEXT_VALUE_size(ec_group, params, 0))) {
-		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
+	/* generate hash = Hash(x2 || M || y2) */
+	hashlen = cv->hash->length;
+	if (!EVP_DigestInit_ex(md_ctx, md, NULL)
+		|| !EVP_DigestUpdate(md_ctx, buf + 1, nbytes)
+		|| !EVP_DigestUpdate(md_ctx, in, inlen)
+		|| !EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)
+		|| !EVP_DigestFinal_ex(md_ctx, cv->hash->data, &hashlen)) {
+		SM2err(SM2_F_SM2_DO_ENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (inlen <= len) {                
-		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
+
+	ret = cv;
+	cv = NULL;
+
+end:
+	SM2CiphertextValue_free(cv);
+	EC_POINT_free(share_point);
+	EC_POINT_free(ephem_point);
+	BN_free(n);
+	BN_free(h);
+	BN_clear_free(k);
+	BN_CTX_free(bn_ctx);
+	EVP_MD_CTX_free(md_ctx);
+	return ret;
+}
+
+int SM2_encrypt(int type, const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	int ret = 0;
+	SM2CiphertextValue *cv = NULL;
+	const EVP_MD *md;
+	int len;
+
+	if (!(md = EVP_get_digestbynid(type))) {
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_INVALID_DIGEST_ALGOR);
+		return 0;
+	}
+
+	if (!(cv = SM2_do_encrypt(md, in, inlen, ec_key))) {
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_ENCRYPT_FAILURE);
 		goto end;
 	}
 
 	if (!out) {
-		*outlen = inlen - len;
-		return 1;
-	} else if (*outlen < inlen - len) {
-		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
+		*outlen = i2d_SM2CiphertextValue(cv, NULL);
+		ret = 1;
+	} else if (*outlen < i2d_SM2CiphertextValue(cv, NULL)) {
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_BUFFER_TOO_SMALL);
+		ret = 0;
+	} else {
+		len = i2d_SM2CiphertextValue(cv, &out);
+		*outlen = len;
+		ret = 1;
+	}
+
+end:
+	SM2CiphertextValue_free(cv);
+	return ret;
+}
+
+int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
+{
+	int ret = 0;
+	SM2CiphertextValue *cv = NULL;
+	const EVP_MD *md;
+
+	if (!in) {
+		SM2err(SM2_F_SM2_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
 
-	if (!(cv = SM2_CIPHERTEXT_VALUE_decode(ec_group, params, in, inlen))) {
-		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
+	if (inlen <= 0 || inlen > INT_MAX) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_INPUT_LENGTH);
+		return 0;
+	}
+
+	if (!out) {
+		*outlen = inlen;
+		return 1;
+	} else if (*outlen < inlen) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_BUFFER_TOO_SMALL);
+		return 0;
+	}
+
+	if (!(md = EVP_get_digestbynid(type))) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_DIGEST_ALGOR);
+		return 0;
+	}
+
+	if (!(cv = d2i_SM2CiphertextValue(NULL, &in, (long)inlen))) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+		return 0;
+	}
+
+	if (inlen != i2d_SM2CiphertextValue(cv, NULL)) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
 		goto end;
 	}
-	if (!SM2_do_decrypt(params, cv, out, outlen, ec_key)) {
-		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
+
+	if (!SM2_do_decrypt(md, cv, out, outlen, ec_key)) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_DECRYPT_FAILURE);
 		goto end;
 	}
 
 	ret = 1;
 end:
-	if (cv) SM2_CIPHERTEXT_VALUE_free(cv);
+	SM2CiphertextValue_free(cv);
 	return ret;
 }
 
-int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
-	const SM2_CIPHERTEXT_VALUE *cv,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key)
+int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *cv,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
 	int ret = 0;
-	const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
-	const BIGNUM *pri_key = EC_KEY_get0_private_key(ec_key);
-	KDF_FUNC kdf = KDF_get_x9_63(params->kdf_md);
+	const EC_GROUP *group;
+	const BIGNUM *pri_key;
+	KDF_FUNC kdf;
 	EC_POINT *point = NULL;
 	BIGNUM *n = NULL;
 	BIGNUM *h = NULL;
@@ -598,121 +327,136 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 	EVP_MD_CTX *md_ctx = NULL;
 	unsigned char buf[(OPENSSL_ECC_MAX_FIELD_BITS + 7)/4 + 1];
 	unsigned char mac[EVP_MAX_MD_SIZE];
-	unsigned int maclen;
-	int mactag_size;
-	int nbytes;
-	size_t size;
-	int i;
+	unsigned int maclen = sizeof(mac);
+	int nbytes, len, i;
 
-	if (!ec_group || !pri_key) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-		goto end;
+	/* check arguments */
+	if (!md || !cv || !outlen || !ec_key) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
 	}
-	if (!kdf) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-		goto end;
+
+	if (!(kdf = KDF_get_x9_63(md))) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_DIGEST_ALGOR);
+		return 0;
+	}
+
+	if (!cv->xCoordinate || !cv->yCoordinate || !cv->hash || !cv->ciphertext) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+		return 0;
+	}
+
+	if (cv->hash->length != EVP_MD_size(md)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+		return 0;
+	}
+
+	if (cv->ciphertext->length < SM2_MIN_PLAINTEXT_LENGTH
+		|| cv->ciphertext->length > SM2_MAX_PLAINTEXT_LENGTH) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+		return 0;
+	}
+
+	if (!(group = EC_KEY_get0_group(ec_key))
+		|| !(pri_key = EC_KEY_get0_private_key(ec_key))) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_EC_KEY);
+		return 0;
 	}
 
 	if (!out) {
-		*outlen = cv->ciphertext_size;
+		*outlen = cv->ciphertext->length;
 		return 1;
 	}
-	if (*outlen < cv->ciphertext_size) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-		goto end;
+	if (*outlen < cv->ciphertext->length) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_BUFFER_TOO_SMALL);
+		return 0;
 	}
 
-	/* init vars */
-	point = EC_POINT_new(ec_group);
+	/* malloc */
+	point = EC_POINT_new(group);
 	n = BN_new();
 	h = BN_new();
 	bn_ctx = BN_CTX_new();
-	md_ctx = EVP_MD_CTX_create();
+	md_ctx = EVP_MD_CTX_new();
 	if (!point || !n || !h || !bn_ctx || !md_ctx) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	/* init ec domain parameters */
-	if (!EC_GROUP_get_order(ec_group, n, bn_ctx)) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-		goto end;
-	}
-	if (!EC_GROUP_get_cofactor(ec_group, h, bn_ctx)) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-		goto end;
-	}
-	nbytes = (EC_GROUP_get_degree(ec_group) + 7) / 8;
-
-	/* B2: check [h]C1 != O */
-	if (!EC_POINT_mul(ec_group, point, NULL, cv->ephem_point, h, bn_ctx)) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-		goto end;
-	}
-	if (EC_POINT_is_at_infinity(ec_group, point)) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
+	if (!EC_GROUP_get_order(group, n, bn_ctx)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EC_LIB);
 		goto end;
 	}
 
-	/* B3: compute ECDH [d]C1 = (x2, y2) */
-	if (!EC_POINT_mul(ec_group, point, NULL, cv->ephem_point, pri_key, bn_ctx)) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
+	if (!EC_GROUP_get_cofactor(group, h, bn_ctx)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EC_LIB);
 		goto end;
 	}
-	if (!(size = EC_POINT_point2oct(ec_group, point,
+
+	nbytes = (EC_GROUP_get_degree(group) + 7) / 8;
+
+	/* get x/yCoordinates as C1 = (x1, y1) */
+	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
+		if (!EC_POINT_set_affine_coordinates_GFp(group, point,
+			cv->xCoordinate, cv->yCoordinate, bn_ctx)) {
+			SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+			goto end;
+		}
+	} else {
+		if (!EC_POINT_set_affine_coordinates_GF2m(group, point,
+			cv->xCoordinate, cv->yCoordinate, bn_ctx)) {
+			SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+			goto end;
+		}
+	}
+
+	/* check [h]C1 != O */
+	if (!EC_POINT_mul(group, point, NULL, point, h, bn_ctx)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (EC_POINT_is_at_infinity(group, point)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+		goto end;
+	}
+
+	/* compute ECDH [d]C1 = (x2, y2) */
+	if (!EC_POINT_mul(group, point, NULL, point, pri_key, bn_ctx)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!(len = EC_POINT_point2oct(group, point,
 		POINT_CONVERSION_UNCOMPRESSED, buf, sizeof(buf), bn_ctx))) {
-		ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EC_LIB);
 		goto end;
 	}
-	OPENSSL_assert(size == 1 + nbytes * 2);
 
-	/* B4: compute t = KDF(x2 || y2, clen) */
-
-	*outlen = cv->ciphertext_size; //FIXME: duplicated code
-	kdf(buf + 1, size - 1, out, outlen);
+	/* compute t = KDF(x2 || y2, clen) */
+	*outlen = cv->ciphertext->length;
+	kdf(buf + 1, len - 1, out, outlen);
 
 
-	/* B5: compute M = C2 xor t */
-	for (i = 0; i < cv->ciphertext_size; i++) {              
-		out[i] ^= cv->ciphertext[i];
+	/* compute M = C2 xor t */
+	for (i = 0; i < cv->ciphertext->length; i++) {
+		out[i] ^= cv->ciphertext->data[i];
 	}
-	*outlen = cv->ciphertext_size;
 
-	mactag_size = EVP_MD_size(params->mac_md);
-	if (mactag_size) {
+	/* check hash == Hash(x2 || M || y2) */
+	if (!EVP_DigestInit_ex(md_ctx, md, NULL)
+		|| !EVP_DigestUpdate(md_ctx, buf + 1, nbytes)
+		|| !EVP_DigestUpdate(md_ctx, out, *outlen)
+		|| !EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)
+		|| !EVP_DigestFinal_ex(md_ctx, mac, &maclen)) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
 
-		/* B6: check Hash(x2 || M || y2) == C3 */
-		if (!EVP_DigestInit_ex(md_ctx, params->mac_md, NULL)) {
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestUpdate(md_ctx, buf + 1, nbytes)) {
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestUpdate(md_ctx, out, *outlen)) {
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestUpdate(md_ctx, buf + 1 + nbytes, nbytes)) {
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (!EVP_DigestFinal_ex(md_ctx, mac, &maclen)) {
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
-
-		/* GmSSL specific */
-		if (mactag_size > (int)maclen) {             
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
-		if (cv->mactag_size != mactag_size ||
-			OPENSSL_memcmp(mac, cv->mactag, cv->mactag_size)) {
-			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
-			goto end;
-		}
+	if (OPENSSL_memcmp(cv->hash->data, mac, maclen) != 0) {
+		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
+		goto end;
 	}
 
 	ret = 1;
@@ -721,24 +465,6 @@ end:
 	BN_free(n);
 	BN_free(h);
 	BN_CTX_free(bn_ctx);
-	EVP_MD_CTX_destroy(md_ctx);
-
+	EVP_MD_CTX_free(md_ctx);
 	return ret;
-}
-
-int SM2_encrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	SM2_ENC_PARAMS params;
-	SM2_ENC_PARAMS_init_with_recommended(&params);
-	return SM2_encrypt(&params, in, inlen, out, outlen, ec_key);
-}
-
-int SM2_decrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key)
-{
-	SM2_ENC_PARAMS params;
-	SM2_ENC_PARAMS_init_with_recommended(&params);
-	return SM2_decrypt(&params, in, inlen, out, outlen, ec_key);
 }

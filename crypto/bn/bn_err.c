@@ -51,6 +51,7 @@ static ERR_STRING_DATA BN_str_functs[] = {
     {ERR_FUNC(BN_F_BN_GFP2_CMP), "BN_GFP2_cmp"},
     {ERR_FUNC(BN_F_BN_GFP2_COPY), "BN_GFP2_copy"},
     {ERR_FUNC(BN_F_BN_GFP2_DIV_BN), "BN_GFP2_div_bn"},
+    {ERR_FUNC(BN_F_BN_GFP2_EQU), "BN_GFP2_equ"},
     {ERR_FUNC(BN_F_BN_GFP2_INV), "BN_GFP2_inv"},
     {ERR_FUNC(BN_F_BN_GFP2_IS_ZERO), "BN_GFP2_is_zero"},
     {ERR_FUNC(BN_F_BN_GFP2_MUL), "BN_GFP2_mul"},

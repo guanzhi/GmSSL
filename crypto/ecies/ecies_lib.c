@@ -60,8 +60,39 @@
 #include <openssl/kdf2.h>
 #include <openssl/ecies.h>
 #include "internal/o_str.h"
+#include "ecies_lcl.h"
 
 #define ECIES_ENC_RANDOM_IV	1
+
+int ECIES_PARAMS_init_with_type(ECIES_PARAMS *params, int type)
+{
+	if (!params) {
+		ECerr(EC_F_ECIES_PARAMS_INIT_WITH_TYPE, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+
+	switch (type) {
+	case NID_ecies_with_x9_63_sha1_xor_hmac:
+		params->kdf_nid = NID_x9_63_kdf;
+		params->kdf_md = EVP_sha1();
+		params->enc_nid = NID_xor_in_ecies;
+		params->mac_nid = NID_hmac_full_ecies;
+		params->hmac_md = EVP_sha1();
+		break;
+	case NID_ecies_with_x9_63_sha256_xor_hmac:
+		params->kdf_nid = NID_x9_63_kdf;
+		params->kdf_md = EVP_sha256();
+		params->enc_nid = NID_xor_in_ecies;
+		params->mac_nid = NID_hmac_full_ecies;
+		params->hmac_md = EVP_sha256();
+		break;
+	default:
+		ECerr(EC_F_ECIES_PARAMS_INIT_WITH_TYPE, EC_R_INVALID_ECIES_PARAMS);
+		return 0;
+	}
+
+	return 1;
+}
 
 int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param)
 {
@@ -78,37 +109,6 @@ int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param)
 	param->mac_nid = NID_hmac_full_ecies;
 	param->hmac_md = EVP_sha256();
 	return 1;
-}
-
-ECIES_PARAMS *ECIES_PARAMS_new(void)
-{
-	ECIES_PARAMS *ret = NULL;
-
-	if (!(ret = OPENSSL_malloc(sizeof(*ret)))) {
-		return NULL;
-	}
-
-	ECIES_PARAMS_init_with_recommended(ret);
-	return ret;
-}
-
-ECIES_PARAMS *ECIES_PARAMS_dup(const ECIES_PARAMS *param)
-{
-	ECIES_PARAMS *ret = NULL;
-
-	if (!(ret = OPENSSL_zalloc(sizeof(*ret)))) {
-		return NULL;
-	}
-
-	/* check param */
-
-	memcpy(ret, param, sizeof(*param));
-	return ret;
-}
-
-void ECIES_PARAMS_free(ECIES_PARAMS *param)
-{
-	OPENSSL_free(param);
 }
 
 KDF_FUNC ECIES_PARAMS_get_kdf(const ECIES_PARAMS *param)
@@ -650,16 +650,22 @@ end:
 	return ret;
 }
 
-int ECIES_encrypt(const ECIES_PARAMS *param,
-	const unsigned char *in, size_t inlen,
+int ECIES_encrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
 	int ret = 0;
+	ECIES_PARAMS param;
 	ECIES_CIPHERTEXT_VALUE *cv = NULL;
 	unsigned char *p = out;
 	int len;
 
-	if (!(cv = ECIES_do_encrypt(param, in, inlen, ec_key))) {
+	if (!ECIES_PARAMS_init_with_type(&param, type)) {
+		ECerr(EC_F_ECIES_ENCRYPT, EC_R_INVALID_ENC_PARAM);
+		return 0;
+	}
+
+	RAND_seed(in, inlen);
+	if (!(cv = ECIES_do_encrypt(&param, in, inlen, ec_key))) {
 		ECerr(EC_F_ECIES_ENCRYPT, EC_R_ENCRYPT_FAILED);
 		return 0;
 	}
@@ -694,22 +700,40 @@ end:
 	return ret;
 }
 
-
-int ECIES_decrypt(const ECIES_PARAMS *param,
-	const unsigned char *in, size_t inlen,
+int ECIES_decrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
 	int ret = 0;
+	ECIES_PARAMS param;
 	ECIES_CIPHERTEXT_VALUE *cv = NULL;
-	const unsigned char *p = in;
 
-	if (!(cv = d2i_ECIES_CIPHERTEXT_VALUE(NULL, &p, (long)inlen))) {
-		ECerr(EC_F_ECIES_DECRYPT, EC_R_ENCRYPT_FAILED);
+	if (!in) {
+		ECerr(EC_F_ECIES_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
 
-	if (!ECIES_do_decrypt(param, cv, out, outlen, ec_key)) {
-		ECerr(EC_F_ECIES_DECRYPT, EC_R_ENCRYPT_FAILED);
+	if (inlen <= 0 || inlen > INT_MAX) {
+		ECerr(EC_F_ECIES_DECRYPT, EC_R_INVALID_INPUT_LENGTH);
+		return 0;
+	}
+
+	if (!ECIES_PARAMS_init_with_type(&param, type)) {
+		ECerr(EC_F_ECIES_DECRYPT, EC_R_INVALID_ENC_PARAM);
+		return 0;
+	}
+
+	if (!(cv = d2i_ECIES_CIPHERTEXT_VALUE(NULL, &in, (long)inlen))) {
+		ECerr(EC_F_ECIES_DECRYPT, EC_R_INVALID_ECIES_CIPHERTEXT);
+		return 0;
+	}
+
+	if (inlen != i2d_ECIES_CIPHERTEXT_VALUE(cv, NULL)) {
+		ECerr(EC_F_ECIES_DECRYPT, EC_R_INVALID_ECIES_CIPHERTEXT);
+		goto end;
+	}
+
+	if (!ECIES_do_decrypt(&param, cv, out, outlen, ec_key)) {
+		ECerr(EC_F_ECIES_DECRYPT, EC_R_ENCRYPT_FAILURE);
 		goto end;
 	}
 
@@ -718,21 +742,3 @@ end:
 	ECIES_CIPHERTEXT_VALUE_free(cv);
 	return ret;
 }
-
-
-int ECIES_encrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	ECIES_PARAMS param;
-	ECIES_PARAMS_init_with_recommended(&param);
-	return ECIES_encrypt(&param, in, inlen, out, outlen, ec_key);
-}
-
-int ECIES_decrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	ECIES_PARAMS param;
-	ECIES_PARAMS_init_with_recommended(&param);
-	return ECIES_decrypt(&param, in, inlen, out, outlen, ec_key);
-}
-

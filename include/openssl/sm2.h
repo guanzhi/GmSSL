@@ -66,100 +66,18 @@ extern "C" {
 
 #define SM2_MAX_ID_BITS				65535
 #define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
-
 #define SM2_DEFAULT_ID_GMT09			"1234567812345678"
 #define SM2_DEFAULT_ID_GMSSL			"anonym@gmssl.org"
 #define SM2_DEFAULT_ID				SM2_DEFAULT_ID_GMSSL
 #define SM2_DEFAULT_ID_LENGTH			(sizeof(SM2_DEFAULT_ID) - 1)
 #define SM2_DEFAULT_ID_BITS			(SM2_DEFAULT_ID_LENGTH * 8)
-#define SM2_ID_DIGEST_LENGTH			SM3_DIGEST_LENGTH
+#define SM2_DEFAULT_ID_DIGEST_LENGTH		SM3_DIGEST_LENGTH
 
-#define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
-
-#define SM2_MAX_PKEY_DATA_LENGTH		((EC_MAX_NBYTES + 1) * 6)
-
-
-
-int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
-
+/* compute identity digest Z */
 int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 
-/*
- * Generate GM/T 0003.2-2012 message digest for SM2 signature scheme.
- * Return dgst = msg_md( id_md(id, ec_key) || msg )
- */
-int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
-	const unsigned char *msg, size_t msglen, const char *id, size_t idlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key);
-
-
-typedef struct sm2_enc_params_st {
-	const EVP_MD *kdf_md;
-	const EVP_MD *mac_md;
-	point_conversion_form_t point_form;
-} SM2_ENC_PARAMS;
-
-
-/* SM2_ENC_PARAMS_dup() is used by ec_pmeth.c,
- * so the SM2_ENC_PARAMS_new() and SM2_ENC_PARAMS_free() is also provided
- */
-SM2_ENC_PARAMS *SM2_ENC_PARAMS_new(void);
-SM2_ENC_PARAMS *SM2_ENC_PARAMS_dup(const SM2_ENC_PARAMS *param);
-void SM2_ENC_PARAMS_free(SM2_ENC_PARAMS *param);
-
-int SM2_ENC_PARAMS_init_with_recommended(SM2_ENC_PARAMS *param);
-
-
-typedef struct sm2_ciphertext_value_st {
-	EC_POINT *ephem_point;
-	unsigned char *ciphertext;
-	size_t ciphertext_size;
-	unsigned char mactag[EVP_MAX_MD_SIZE];
-	unsigned int mactag_size;
-} SM2_CIPHERTEXT_VALUE;
-
-int SM2_CIPHERTEXT_VALUE_size(const EC_GROUP *ec_group,
-	const SM2_ENC_PARAMS *params, size_t mlen);
-
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new(const EC_GROUP *group);
-void SM2_CIPHERTEXT_VALUE_free(SM2_CIPHERTEXT_VALUE *cv);
-int SM2_CIPHERTEXT_VALUE_encode(const SM2_CIPHERTEXT_VALUE *cv,
-	const EC_GROUP *ec_group, const SM2_ENC_PARAMS *params,
-	unsigned char *buf, size_t *buflen);
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(const EC_GROUP *ec_group,
-	const SM2_ENC_PARAMS *params, const unsigned char *buf, size_t buflen);
-
-int i2d_SM2_CIPHERTEXT_VALUE(const EC_GROUP *group,
-	const SM2_CIPHERTEXT_VALUE *c, unsigned char **out);
-SM2_CIPHERTEXT_VALUE *d2i_SM2_CIPHERTEXT_VALUE(const EC_GROUP *group,
-	SM2_CIPHERTEXT_VALUE **c, const unsigned char **in, long len);
-
-int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
-	const SM2_CIPHERTEXT_VALUE *cv, int indent, unsigned long flags);
-
-SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
-int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
-	const SM2_CIPHERTEXT_VALUE *in, unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key);
-int SM2_encrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key);
-int SM2_decrypt(const SM2_ENC_PARAMS *params,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key);
-
-
-int SM2_encrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int SM2_decrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-
-
+/* SM2 digital signature */
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
 ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgstlen,
 	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key);
@@ -175,38 +93,33 @@ int SM2_sign(int type, const unsigned char *dgst, int dgstlen,
 int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	const unsigned char *sig, int siglen, EC_KEY *ec_key);
 
+/* SM2 Public Key Encryption */
+
+#define SM2_MIN_PLAINTEXT_LENGTH	0
+#define SM2_MAX_PLAINTEXT_LENGTH	1024
+
+typedef struct SM2CiphertextValue_st SM2CiphertextValue;
+DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
+
+SM2CiphertextValue *SM2_do_encrypt(const EVP_MD *md,
+	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
+int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *in,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int SM2_encrypt(int type, const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+#define SM2_encrypt_with_recommended(in,inlen,out,outlen,ec_key) \
+	SM2_encrypt(NID_sm3,in,inlen,out,outlen,ec_key)
+#define SM2_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
+	SM2_decrypt(NID_sm3,in,inlen,out,outlen,ec_key)
+
+
+/* SM2 Key Exchange */
+typedef struct sm2_kap_ctx_st SM2_KAP_CTX;
+
 int SM2_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
 	const EC_KEY *ec_key, void *(*KDF) (const void *in, size_t inlen, void *out, size_t *outlen));
-
-typedef struct sm2_kap_ctx_st {
-
-	const EVP_MD *id_dgst_md;
-	const EVP_MD *kdf_md;
-	const EVP_MD *checksum_md;
-	point_conversion_form_t point_form;
-	KDF_FUNC kdf;
-
-	int is_initiator;
-	int do_checksum;
-
-	EC_KEY *ec_key;
-	unsigned char id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int id_dgstlen;
-
-	EC_KEY *remote_pubkey;
-	unsigned char remote_id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int remote_id_dgstlen;
-
-	const EC_GROUP *group;
-	BN_CTX *bn_ctx;
-	BIGNUM *order;
-	BIGNUM *two_pow_w;
-
-	BIGNUM *t;
-	EC_POINT *point;
-	unsigned char pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
-	unsigned char checksum[EVP_MAX_MD_SIZE];
-} SM2_KAP_CTX;
 
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 	EC_KEY *ec_key, const char *id, size_t idlen,
@@ -221,11 +134,10 @@ int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	size_t checksumlen);
 void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
 
-
+/* EC_KEY_METHOD */
 const EC_KEY_METHOD *EC_KEY_GmSSL(void);
 void EC_KEY_set_default_secg_method(void);
 void EC_KEY_set_default_sm_method(void);
-
 
 int EC_KEY_METHOD_type(const EC_KEY_METHOD *meth);
 
@@ -253,7 +165,93 @@ void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
 	int (**pdo_decrypt)(int type, const ECIES_CIPHERTEXT_VALUE *in,
 		unsigned char *out, size_t *outlen, EC_KEY *ec_key));
 
-#ifdef  __cplusplus
+
+#define EVP_PKEY_CTX_set_ec_sign_type(ctx, type) \
+        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+                                EVP_PKEY_CTRL_EC_SIGN_TYPE, type, NULL)
+
+#define EVP_PKEY_CTX_get_ec_sign_type(ctx) \
+        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+                                EVP_PKEY_CTRL_EC_SIGN_TYPE, -2, NULL)
+
+#define EVP_PKEY_CTX_set_ec_enc_type(ctx, type) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+                                EVP_PKEY_CTRL_EC_ENC_TYPE, type, NULL)
+
+#define EVP_PKEY_CTX_get_ec_enc_type(ctx) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+                EVP_PKEY_CTRL_EC_ENC_TYPE, -2, NULL)
+
+#define EVP_PKEY_CTX_set_ec_dh_type(ctx, type) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                EVP_PKEY_OP_DERIVE, \
+                EVP_PKEY_CTRL_EC_DH_TYPE, type, NULL)
+
+#define EVP_PKEY_CTX_get_ec_dh_type(ctx) \
+    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+                EVP_PKEY_OP_DERIVE, \
+                EVP_PKEY_CTRL_EC_DH_TYPE, -2, NULL);
+
+#define EVP_PKEY_CTX_set_sm2_id(ctx, type) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX| \
+		EVP_PKEY_OP_DERIVE, type, NULL)
+
+
+#define EVP_PKEY_CTRL_EC_SIGN_TYPE		(EVP_PKEY_ALG_CTRL + 11)
+#define EVP_PKEY_CTRL_GET_EC_SIGN_TYPE		(EVP_PKEY_ALG_CTRL + 12)
+#define EVP_PKEY_CTRL_EC_ENC_TYPE		(EVP_PKEY_ALG_CTRL + 13)
+#define EVP_PKEY_CTRL_GET_EC_ENC_TYPE		(EVP_PKEY_ALG_CTRL + 14)
+#define EVP_PKEY_CTRL_EC_DH_TYPE		(EVP_PKEY_ALG_CTRL + 15)
+#define EVP_PKEY_CTRL_GET_EC_DH_TYPE		(EVP_PKEY_ALG_CTRL + 16)
+
+
+
+/* BEGIN ERROR CODES */
+/*
+ * The following lines are auto generated by the script mkerr.pl. Any changes
+ * made after this point may be overwritten when the script is next run.
+ */
+
+int ERR_load_SM2_strings(void);
+
+/* Error codes for the SM2 functions. */
+
+/* Function codes. */
+# define SM2_F_I2O_SM2CIPHERTEXTVALUE                     107
+# define SM2_F_O2I_SM2CIPHERTEXTVALUE                     108
+# define SM2_F_SM2_DECRYPT                                100
+# define SM2_F_SM2_DO_DECRYPT                             101
+# define SM2_F_SM2_DO_ENCRYPT                             102
+# define SM2_F_SM2_DO_SIGN                                104
+# define SM2_F_SM2_DO_VERIFY                              105
+# define SM2_F_SM2_ENCRYPT                                103
+# define SM2_F_SM2_SIGN_SETUP                             106
+
+/* Reason codes. */
+# define SM2_R_BAD_SIGNATURE                              110
+# define SM2_R_BUFFER_TOO_SMALL                           100
+# define SM2_R_DECRYPT_FAILURE                            101
+# define SM2_R_ENCRYPT_FAILURE                            102
+# define SM2_R_INVALID_CIPHERTEXT                         103
+# define SM2_R_INVALID_DIGEST_ALGOR                       104
+# define SM2_R_INVALID_EC_KEY                             105
+# define SM2_R_INVALID_INPUT_LENGTH                       106
+# define SM2_R_INVALID_PLAINTEXT_LENGTH                   107
+# define SM2_R_INVALID_PUBLIC_KEY                         108
+# define SM2_R_KDF_FAILURE                                109
+# define SM2_R_MISSING_PARAMETERS                         111
+# define SM2_R_NEED_NEW_SETUP_VALUES                      112
+# define SM2_R_RANDOM_NUMBER_GENERATION_FAILED            113
+
+# ifdef  __cplusplus
 }
-#endif
+# endif
 #endif

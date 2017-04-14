@@ -91,9 +91,9 @@ int EC_KEY_set_ECCrefPublicKey(EC_KEY *ec_key, const ECCrefPublicKey *ref);
 int EC_KEY_set_ECCrefPrivateKey(EC_KEY *ec_key, const ECCrefPrivateKey *ref);
 int EC_KEY_get_ECCrefPublicKey(EC_KEY *ec_key, ECCrefPublicKey *ref);
 int EC_KEY_get_ECCrefPrivateKey(EC_KEY *ec_key, ECCrefPrivateKey *ref);
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECCCipher(const ECCCipher *ref);
-int SM2_CIPHERTEXT_VALUE_set_ECCCipher(SM2_CIPHERTEXT_VALUE *cv, const ECCCipher *ref);
-int SM2_CIPHERTEXT_VALUE_get_ECCCipher(const SM2_CIPHERTEXT_VALUE *cv, ECCCipher *ref);
+SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref);
+int SM2CiphertextValue_set_ECCCipher(SM2CiphertextValue *cv, const ECCCipher *ref);
+int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv, ECCCipher *ref);
 ECDSA_SIG *ECDSA_SIG_new_from_ECCSignature(const ECCSignature *ref);
 int ECDSA_SIG_set_ECCSignature(ECDSA_SIG *sig, const ECCSignature *ref);
 int ECDSA_SIG_get_ECCSignature(const ECDSA_SIG *sig, ECCSignature *ref);
@@ -111,9 +111,9 @@ int EC_KEY_set_ECCPUBLICKEYBLOB(EC_KEY *ec_key, const ECCPUBLICKEYBLOB *blob);
 int EC_KEY_get_ECCPUBLICKEYBLOB(EC_KEY *ec_key, ECCPUBLICKEYBLOB *blob);
 int EC_KEY_set_ECCPRIVATEKEYBLOB(EC_KEY *ec_key, const ECCPRIVATEKEYBLOB *blob);
 int EC_KEY_get_ECCPRIVATEKEYBLOB(EC_KEY *ec_key, ECCPRIVATEKEYBLOB *blob);
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECCCIPHERBLOB(const ECCCIPHERBLOB *blob);
-int SM2_CIPHERTEXT_VALUE_set_ECCCIPHERBLOB(SM2_CIPHERTEXT_VALUE *cv, const ECCCIPHERBLOB *blob);
-int SM2_CIPHERTEXT_VALUE_get_ECCCIPHERBLOB(const SM2_CIPHERTEXT_VALUE *cv, ECCCIPHERBLOB *blob);
+SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCIPHERBLOB(const ECCCIPHERBLOB *blob);
+int SM2CiphertextValue_set_ECCCIPHERBLOB(SM2CiphertextValue *cv, const ECCCIPHERBLOB *blob);
+int SM2CiphertextValue_get_ECCCIPHERBLOB(const SM2CiphertextValue *cv, ECCCIPHERBLOB *blob);
 ECDSA_SIG *ECDSA_SIG_new_from_ECCSIGNATUREBLOB(const ECCSIGNATUREBLOB *blob);
 int ECDSA_SIG_get_ECCSIGNATUREBLOB(const ECDSA_SIG *sig, ECCSIGNATUREBLOB *blob);
 int ECDSA_SIG_set_ECCSIGNATUREBLOB(ECDSA_SIG *sig, const ECCSIGNATUREBLOB *blob);
@@ -217,6 +217,12 @@ int ERR_load_GMAPI_strings(void);
 # define GMAPI_F_SKF_MACINIT                              184
 # define GMAPI_F_SKF_MACUPDATE                            185
 # define GMAPI_F_SKF_SETSYMMKEY                           186
+# define GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER         193
+# define GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB     194
+# define GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER    195
+# define GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHERBLOB 196
+# define GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER         197
+# define GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB     198
 # define GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHER       187
 # define GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB   188
 # define GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER  189
