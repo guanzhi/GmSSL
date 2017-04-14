@@ -2,7 +2,7 @@
 #define SPECK_H
 
 /*
-* define speck type to use 
+* define speck type to use
 *(one of SPECK_32_64, SPECK_64_128, SPECK_128_256)
 */
 #define SPECK_32_64
@@ -29,16 +29,13 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
+#include<iostream>
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	typedef struct {
-		unsigned char rk[num_word];
-	} speck_key_t;
 
-	void speck_set_encrypt_key(speck_key_t *key, const unsigned char *user_key);
-	void speck_expand(SPECK_TYPE const K[SPECK_KEY_LEN], SPECK_TYPE S[SPECK_ROUNDS]);
+	void speck_set_encrypt_key(SPECK_TYPE const K[SPECK_KEY_LEN], SPECK_TYPE S[SPECK_ROUNDS]);
 	void speck_encrypt(SPECK_TYPE const pt[2], SPECK_TYPE ct[2], SPECK_TYPE const K[SPECK_ROUNDS]);
 	void speck_decrypt(SPECK_TYPE const ct[2], SPECK_TYPE pt[2], SPECK_TYPE const K[SPECK_ROUNDS]);
 
