@@ -1,8 +1,5 @@
-#include <openssl/speck.h>
-
 #define ROR(x, r) ((x >> r) | (x << ((sizeof(SPECK_TYPE) * 8) - r)))//循环右移
 #define ROL(x, r) ((x << r) | (x >> ((sizeof(SPECK_TYPE) * 8) - r)))//循环左移
-
 #ifdef SPECK_32_64
 #define R(x, y, k) (x = ROR(x, 7), x += y, x ^= k, y = ROL(y, 2), y ^= x)
 #define RR(x, y, k) (y ^= x, y = ROR(y, 2), x ^= k, x -= y, x = ROL(x, 7))
@@ -11,22 +8,7 @@
 #define RR(x, y, k) (y ^= x, y = ROR(y, 3), x ^= k, x -= y, x = ROL(x, 8))
 #endif
 
-void speck_set_encrypt_key(speck_key_t *key, const unsigned char *user_key)
-{
-	int i;
-	for (i = 0; i < num_word; i++)
-	{
-		if (user_key[i] == '\0')
-			break;
-		key->rk[i] = user_key[i];
-	}
-	int j = 0;
-	for (; i < num_word; i++)
-	{
-		key->rk[i] = user_key[j++];
-	}
-}
-void speck_expand(SPECK_TYPE const K[ SPECK_KEY_LEN], SPECK_TYPE S[ SPECK_ROUNDS])
+void speck_set_encrypt_key(SPECK_TYPE const K[SPECK_KEY_LEN], SPECK_TYPE S[SPECK_ROUNDS])
 {
 	SPECK_TYPE i, b = K[0];
 	SPECK_TYPE a[SPECK_KEY_LEN - 1];
@@ -40,7 +22,7 @@ void speck_expand(SPECK_TYPE const K[ SPECK_KEY_LEN], SPECK_TYPE S[ SPECK_ROUNDS
 		S[i + 1] = b;
 	}
 }
-void speck_encrypt(SPECK_TYPE const pt[ 2], SPECK_TYPE ct[ 2], SPECK_TYPE const K[ SPECK_ROUNDS])
+void speck_encrypt(SPECK_TYPE const pt[2], SPECK_TYPE ct[2], SPECK_TYPE const K[SPECK_ROUNDS])
 {
 	SPECK_TYPE i;
 	ct[0] = pt[0]; ct[1] = pt[1];
@@ -49,7 +31,7 @@ void speck_encrypt(SPECK_TYPE const pt[ 2], SPECK_TYPE ct[ 2], SPECK_TYPE const 
 	}
 }
 
-void speck_decrypt(SPECK_TYPE const ct[ 2], SPECK_TYPE pt[ 2], SPECK_TYPE const K[ SPECK_ROUNDS])
+void speck_decrypt(SPECK_TYPE const ct[2], SPECK_TYPE pt[2], SPECK_TYPE const K[SPECK_ROUNDS])
 {
 	SPECK_TYPE i;
 	pt[0] = ct[0]; pt[1] = ct[1];
