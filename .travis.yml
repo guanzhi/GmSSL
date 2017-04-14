@@ -34,7 +34,7 @@ before_script:
     - env
     - pwd
     - ls -l
-    - ../config -v $CONFIG_OPTS;
+    - ./config -v $CONFIG_OPTS;
     - cd $top
 
 script:
