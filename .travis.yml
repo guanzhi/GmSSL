@@ -35,7 +35,6 @@ before_script:
     - pwd
     - ls -l
     - ./config -v $CONFIG_OPTS;
-    - cd $top
 
 script:
     - if [ -z "$BUILDONLY" ]; then
@@ -43,30 +42,9 @@ script:
       else
           make="make";
       fi
-    - top=${PWD}
-    - if [ -n "$DESTDIR" ]; then
-          cd _build;
-      fi
-    - $make update
-    - if [ -n "$CHECKDOCS" ]; then
-          $make doc-nits;
-      fi
     - $make
-    - if [ -z "$BUILDONLY" ]; then
-          if [ -n "$CROSS_COMPILE" ]; then
-              sudo dpkg --add-architecture i386;
-              sudo apt-get update;
-              sudo apt-get -yq --no-install-suggests --no-install-recommends --force-yes install wine;
-              export EXE_SHELL="wine" WINEPREFIX=`pwd`;
-          fi;
-          HARNESS_VERBOSE=yes BORING_RUNNER_DIR=$top/boringssl/ssl/test/runner make test;
-      else
-          $make build_tests;
-      fi
-    - if [ -n "$DESTDIR" ]; then
-          mkdir "$top/$DESTDIR";
-          $make install install_docs DESTDIR="$top/$DESTDIR";
-      fi
+    - $make test
+    - $make install
     - cd $top
 
 after_success:
