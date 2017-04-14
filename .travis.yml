@@ -6,6 +6,20 @@ cache: ccache
 git:
     submodules: false
 
+before_install:
+    - if [ -n "$COVERALLS" ]; then
+          pip install --user cpp-coveralls;
+      fi;
+    - if expr "$CONFIG_OPTS" ":" ".*enable-external-tests" > /dev/null; then
+          git submodule update --init --recursive;
+      fi;
+
+addons:
+    apt:
+        packages:
+            - ccache
+            - golang-1.6
+
 os:
     - linux
 
@@ -13,11 +27,182 @@ compiler:
     - clang
     - gcc
 
+env:
+    - CONFIG_OPTS="" DESTDIR="_install" TESTS="-test_fuzz"
+    - CONFIG_OPTS="no-asm -Werror --debug no-afalgeng no-shared enable-crypto-mdebug enable-rc5 enable-md2 enable-aria" TESTS="-test_fuzz"
+    - CONFIG_OPTS="no-asm --strict-warnings" BUILDONLY="yes" CHECKDOCS="yes"
+
+matrix:
+    include:
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - gcc-5
+                      - g++-5
+                  sources:
+                      - ubuntu-toolchain-r-test
+          compiler: gcc-5
+          env: CONFIG_OPTS="--strict-warnings enable-tls1_3" TESTS="-test_fuzz" COMMENT="Move to the BORINGTEST build when interoperable"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - clang-3.9
+                  sources:
+                      - llvm-toolchain-trusty-3.9
+                      - ubuntu-toolchain-r-test
+          compiler: clang-3.9
+          env: CONFIG_OPTS="--strict-warnings no-deprecated" BUILDONLY="yes"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - binutils-mingw-w64
+                      - gcc-mingw-w64
+          compiler: i686-w64-mingw32-gcc
+          env: CONFIG_OPTS="no-stdio" BUILDONLY="yes"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - gcc-5
+                      - g++-5
+                  sources:
+                      - ubuntu-toolchain-r-test
+          compiler: gcc-5
+          env:  EXTENDED_TEST="yes" CONFIG_OPTS="--debug --coverage no-asm enable-rc5 enable-md2 enable-aria enable-ec_nistp_64_gcc_128 enable-ssl3 enable-ssl3-method enable-nextprotoneg enable-weak-ssl-ciphers no-shared -DPEDANTIC -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION" COVERALLS="yes" BORINGSSL_TESTS="yes" CXX="g++-5"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - gcc-5
+                      - g++-5
+                  sources:
+                      - ubuntu-toolchain-r-test
+          compiler: gcc-5
+          env:  EXTENDED_TEST="yes" CONFIG_OPTS="--debug enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers enable-external-tests" BORINGSSL_TESTS="yes" CXX="g++-5" TESTS=95
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - clang-3.9
+                  sources:
+                      - llvm-toolchain-trusty-3.9
+                      - ubuntu-toolchain-r-test
+          compiler: clang-3.9
+          env: EXTENDED_TEST="yes" CONFIG_OPTS="enable-msan"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - clang-3.9
+                  sources:
+                      - llvm-toolchain-trusty-3.9
+                      - ubuntu-toolchain-r-test
+          compiler: clang-3.9
+          env:  EXTENDED_TEST="yes" CONFIG_OPTS="no-asm enable-ubsan enable-rc5 enable-md2 enable-aria enable-ssl3 enable-ssl3-method enable-nextprotoneg -fno-sanitize=alignment no-shared -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - clang-3.9
+                  sources:
+                      - llvm-toolchain-trusty-3.9
+                      - ubuntu-toolchain-r-test
+          compiler: clang-3.9
+          env: EXTENDED_TEST="yes" CONFIG_OPTS="no-asm enable-asan enable-rc5 enable-md2 enable-aria no-shared -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - gcc-5
+                      - g++-5
+                  sources:
+                      - ubuntu-toolchain-r-test
+          compiler: gcc-5
+          env: EXTENDED_TEST="yes" CONFIG_OPTS="no-asm enable-ubsan enable-rc5 enable-md2 enable-aria -DPEDANTIC"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - binutils-mingw-w64
+                      - gcc-mingw-w64
+          compiler: i686-w64-mingw32-gcc
+          env: EXTENDED_TEST="yes" CONFIG_OPTS="no-pic" TESTS="-test_fuzz"
+        - os: linux
+          addons:
+              apt:
+                  packages:
+                      - binutils-mingw-w64
+                      - gcc-mingw-w64
+          compiler: x86_64-w64-mingw32-gcc
+          env: EXTENDED_TEST="yes" CONFIG_OPTS="no-pic" TESTS="-test_fuzz"
+    exclude:
+        - os: linux
+          compiler: clang
+        - os: osx
+          compiler: gcc
 
 before_script:
-    - cd GmSSL
-    - ./config
+    - env
+    - if [ "$TRAVIS_PULL_REQUEST" != "false" -a -n "$EXTENDED_TEST" ]; then
+          (git log -1 $TRAVIS_COMMIT_RANGE | grep '\[extended tests\]' > /dev/null) || exit 0;
+      fi
+    - if [ -n "$DESTDIR" ]; then
+          sh .travis-create-release.sh $TRAVIS_OS_NAME;
+          tar -xvzf _srcdist.tar.gz;
+          mkdir _build;
+          cd _build;
+          srcdir=../_srcdist;
+          top=..;
+      else
+          srcdir=.;
+          top=.;
+      fi
+    - if [ "$CC" == i686-w64-mingw32-gcc ]; then
+          export CROSS_COMPILE=${CC%%gcc}; unset CC;
+          $srcdir/Configure mingw $CONFIG_OPTS -Wno-pedantic-ms-format;
+      elif [ "$CC" == x86_64-w64-mingw32-gcc ]; then
+          export CROSS_COMPILE=${CC%%gcc}; unset CC;
+          $srcdir/Configure mingw64 $CONFIG_OPTS -Wno-pedantic-ms-format;
+      else
+          if which ccache >/dev/null && [ "$CC" != clang-3.9 ]; then
+              CC="ccache $CC";
+          fi;
+          $srcdir/config -v $CONFIG_OPTS;
+      fi
+    - cd $top
 
 script:
+    - if [ -z "$BUILDONLY" ]; then
+          make="make -s";
+      else
+          make="make";
+      fi
+    - top=${PWD}
+    - if [ -n "$DESTDIR" ]; then
+          cd _build;
+      fi
     - $make
+    - if [ -z "$BUILDONLY" ]; then
+          if [ -n "$CROSS_COMPILE" ]; then
+              sudo dpkg --add-architecture i386;
+              sudo apt-get update;
+              sudo apt-get -yq --no-install-suggests --no-install-recommends --force-yes install wine;
+              export EXE_SHELL="wine" WINEPREFIX=`pwd`;
+          fi;
+          HARNESS_VERBOSE=yes BORING_RUNNER_DIR=$top/boringssl/ssl/test/runner make test;
+      else
+          $make tests;
+      fi
+    - if [ -n "$DESTDIR" ]; then
+          mkdir "$top/$DESTDIR";
+          $make install install_docs DESTDIR="$top/$DESTDIR";
+      fi
+    - cd $top
 
+after_success:
+    - if [ -n "$COVERALLS" ]; then
+          coveralls -b . --gcov gcov-5 --gcov-options '\-lp';
+      fi;
