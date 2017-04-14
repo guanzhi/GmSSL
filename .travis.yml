@@ -15,6 +15,7 @@ compiler:
 
 
 before_script:
+    - cd GmSSL
     - ./config
 
 script:
