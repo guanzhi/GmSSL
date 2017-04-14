@@ -123,6 +123,7 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher_alias(SN_rc5_cbc, "RC5");
 #endif
 
+#ifndef OPENSSL_NO_AES
     EVP_add_cipher(EVP_aes_128_ecb());
     EVP_add_cipher(EVP_aes_128_cbc());
     EVP_add_cipher(EVP_aes_128_cfb());
@@ -131,9 +132,9 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_aes_128_ofb());
     EVP_add_cipher(EVP_aes_128_ctr());
     EVP_add_cipher(EVP_aes_128_gcm());
-#ifndef OPENSSL_NO_OCB
+# ifndef OPENSSL_NO_OCB
     EVP_add_cipher(EVP_aes_128_ocb());
-#endif
+# endif
     EVP_add_cipher(EVP_aes_128_xts());
     EVP_add_cipher(EVP_aes_128_ccm());
     EVP_add_cipher(EVP_aes_128_wrap());
@@ -149,9 +150,9 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_aes_192_ofb());
     EVP_add_cipher(EVP_aes_192_ctr());
     EVP_add_cipher(EVP_aes_192_gcm());
-#ifndef OPENSSL_NO_OCB
+# ifndef OPENSSL_NO_OCB
     EVP_add_cipher(EVP_aes_192_ocb());
-#endif
+# endif
     EVP_add_cipher(EVP_aes_192_ccm());
     EVP_add_cipher(EVP_aes_192_wrap());
     EVP_add_cipher_alias(SN_id_aes192_wrap, "aes192-wrap");
@@ -166,9 +167,9 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_aes_256_ofb());
     EVP_add_cipher(EVP_aes_256_ctr());
     EVP_add_cipher(EVP_aes_256_gcm());
-#ifndef OPENSSL_NO_OCB
+# ifndef OPENSSL_NO_OCB
     EVP_add_cipher(EVP_aes_256_ocb());
-#endif
+# endif
     EVP_add_cipher(EVP_aes_256_xts());
     EVP_add_cipher(EVP_aes_256_ccm());
     EVP_add_cipher(EVP_aes_256_wrap());
@@ -180,6 +181,7 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_aes_256_cbc_hmac_sha1());
     EVP_add_cipher(EVP_aes_128_cbc_hmac_sha256());
     EVP_add_cipher(EVP_aes_256_cbc_hmac_sha256());
+#endif
 
 #ifndef OPENSSL_NO_CAMELLIA
     EVP_add_cipher(EVP_camellia_128_ecb());
@@ -216,6 +218,7 @@ void openssl_add_all_ciphers_int(void)
 # ifndef OPENSSL_NO_POLY1305
     EVP_add_cipher(EVP_chacha20_poly1305());
 # endif
+#endif
 
 #ifndef OPENSSL_NO_SMS4
     EVP_add_cipher(EVP_sms4_ecb());
@@ -235,7 +238,5 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_sms4_wrap_pad());
     EVP_add_cipher_alias(SN_sms4_cbc,"SMS4");
     EVP_add_cipher_alias(SN_sms4_cbc,"sms4");
-#endif
-
 #endif
 }

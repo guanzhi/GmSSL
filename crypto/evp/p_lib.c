@@ -17,6 +17,7 @@
 #include <openssl/rsa.h>
 #include <openssl/dsa.h>
 #include <openssl/dh.h>
+#include <openssl/paillier.h>
 #include <openssl/engine.h>
 
 #include "internal/asn1_int.h"
@@ -327,6 +328,34 @@ EC_KEY *EVP_PKEY_get1_EC_KEY(EVP_PKEY *pkey)
     EC_KEY *ret = EVP_PKEY_get0_EC_KEY(pkey);
     if (ret != NULL)
         EC_KEY_up_ref(ret);
+    return ret;
+}
+#endif
+
+#ifndef OPENSSL_NO_PAILLIER
+
+int EVP_PKEY_set1_PAILLIER(EVP_PKEY *pkey, PAILLIER *key)
+{
+    int ret = EVP_PKEY_assign_PAILLIER(pkey, key);
+    if (ret)
+        PAILLIER_up_ref(key);
+    return ret;
+}
+
+PAILLIER *EVP_PKEY_get0_PAILLIER(EVP_PKEY *pkey)
+{
+    if (pkey->type != EVP_PKEY_PAILLIER) {
+        EVPerr(EVP_F_EVP_PKEY_GET0_PAILLIER, EVP_R_EXPECTING_A_PAILLIER);
+        return NULL;
+    }
+    return pkey->pkey.paillier;
+}
+
+PAILLIER *EVP_PKEY_get1_PAILLIER(EVP_PKEY *pkey)
+{
+    PAILLIER *ret = EVP_PKEY_get0_PAILLIER(pkey);
+    if (ret != NULL)
+        PAILLIER_up_ref(ret);
     return ret;
 }
 #endif

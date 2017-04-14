@@ -457,7 +457,7 @@ int SM9_sign(SM9PublicParameters *mpk, const unsigned char *dgst,
 		return 0;
 	}
 
-	p = &sig;
+	p = sig;
 	if (i2d_SM9Signature(sigobj, &p) < 0) {
 		SM9err(SM9_F_SM9_SIGN, ERR_R_SM9_LIB);
 		goto end;
@@ -493,10 +493,10 @@ int SM9_verify(SM9PublicParameters *mpk, const unsigned char *dgst,
 		return 0;
 	}
 
-	p = &sig;
+	p = sig;
 	if (!(sigobj = d2i_SM9Signature(NULL, &p, siglen))) {
 		SM9err(SM9_F_SM9_VERIFY, ERR_R_SM9_LIB);
-		return 0;
+		goto end;
 	}
 
 	ret = SM9_do_verify(mpk, dgst, dgstlen, sigobj, id, idlen);
@@ -504,6 +504,5 @@ int SM9_verify(SM9PublicParameters *mpk, const unsigned char *dgst,
 
 end:
 	SM9Signature_free(sigobj);
-	return 0;
+	return ret;
 }
-

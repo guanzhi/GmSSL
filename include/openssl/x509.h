@@ -26,6 +26,7 @@
 # include <openssl/asn1.h>
 # include <openssl/safestack.h>
 # include <openssl/ec.h>
+# include <openssl/paillier.h>
 
 # if OPENSSL_API_COMPAT < 0x10100000L
 #  include <openssl/rsa.h>
@@ -393,6 +394,14 @@ int i2d_RSAPublicKey_fp(FILE *fp, RSA *rsa);
 RSA *d2i_RSA_PUBKEY_fp(FILE *fp, RSA **rsa);
 int i2d_RSA_PUBKEY_fp(FILE *fp, RSA *rsa);
 #  endif
+#  ifndef OPENSSL_NO_PAILLIER
+PAILLIER *d2i_PaillierPrivateKey_fp(FILE *fp, PAILLIER **paillier);
+int i2d_PaillierPrivateKey_fp(FILE *fp, PAILLIER *paillier);
+PAILLIER *d2i_PaillierPublicKey_fp(FILE *fp, PAILLIER **paillier);
+int i2d_PaillierPublicKey_fp(FILE *fp, PAILLIER *paillier);
+PAILLIER *d2i_PAILLIER_PUBKEY_fp(FILE *fp, PAILLIER **paillier);
+int i2d_PAILLIER_PUBKEY_fp(FILE *fp, PAILLIER *paillier);
+#  endif
 #  ifndef OPENSSL_NO_DSA
 DSA *d2i_DSA_PUBKEY_fp(FILE *fp, DSA **dsa);
 int i2d_DSA_PUBKEY_fp(FILE *fp, DSA *dsa);
@@ -430,6 +439,14 @@ RSA *d2i_RSAPublicKey_bio(BIO *bp, RSA **rsa);
 int i2d_RSAPublicKey_bio(BIO *bp, RSA *rsa);
 RSA *d2i_RSA_PUBKEY_bio(BIO *bp, RSA **rsa);
 int i2d_RSA_PUBKEY_bio(BIO *bp, RSA *rsa);
+#  endif
+#  ifndef OPENSSL_NO_PAILLIER
+PAILLIER *d2i_PaillierPrivateKey_bio(BIO *bp, PAILLIER **paillier);
+int i2d_PaillierPrivateKey_bio(BIO *bp, PAILLIER *paillier);
+PAILLIER *d2i_PaillierPublicKey_bio(BIO *bp, PAILLIER **paillier);
+int i2d_PaillierPublicKey_bio(BIO *bp, PAILLIER *paillier);
+PAILLIER *d2i_PAILLIER_PUBKEY_bio(BIO *bp, PAILLIER **paillier);
+int i2d_PAILLIER_PUBKEY_bio(BIO *bp, PAILLIER *paillier);
 #  endif
 #  ifndef OPENSSL_NO_DSA
 DSA *d2i_DSA_PUBKEY_bio(BIO *bp, DSA **dsa);
@@ -513,6 +530,11 @@ DSA *d2i_DSA_PUBKEY(DSA **a, const unsigned char **pp, long length);
 int i2d_EC_PUBKEY(EC_KEY *a, unsigned char **pp);
 EC_KEY *d2i_EC_PUBKEY(EC_KEY **a, const unsigned char **pp, long length);
 # endif
+# ifndef OPENSSL_NO_PAILLIER
+int i2d_PAILLIER_PUBKEY(PAILLIER *a, unsigned char **pp);
+PAILLIER *d2i_PAILLIER_PUBKEY(PAILLIER **a, const unsigned char **pp, long length);
+# endif
+
 
 DECLARE_ASN1_FUNCTIONS(X509_SIG)
 void X509_SIG_get0(const X509_SIG *sig, const X509_ALGOR **palg,
@@ -762,7 +784,7 @@ int X509_print_ex_fp(FILE *bp, X509 *x, unsigned long nmflag,
 int X509_print_fp(FILE *bp, X509 *x);
 int X509_CRL_print_fp(FILE *bp, X509_CRL *x);
 int X509_REQ_print_fp(FILE *bp, X509_REQ *req);
-int X509_NAME_print_ex_fp(FILE *fp, const X509_NAME *nm, int indent,
+int X509_NAMpaillierE_print_ex_fp(FILE *fp, const X509_NAME *nm, int indent,
                           unsigned long flags);
 # endif
 

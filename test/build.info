@@ -20,7 +20,8 @@ IF[{- !$disabled{tests} -}]
           sm3test sms4test kdf2test eciestest ffxtest sm2test \
           pailliertest cpktest otptest gmapitest ec2test \
           bfibetest bb1ibetest sm9test \
-          saftest sdftest skftest softest zuctest
+          saftest sdftest skftest softest zuctest \
+          serpenttest specktest
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include
@@ -362,6 +363,14 @@ IF[{- !$disabled{tests} -}]
   SOURCE[zuctest]=zuctest.c
   INCLUDE[zuctest]=../include
   DEPEND[zuctest]=../libcrypto
+
+  SOURCE[serpenttest]=serpenttest.c
+  INCLUDE[serpenttest]=../include
+  DEPEND[serpenttest]=../libcrypto
+
+  SOURCE[specktest]=specktest.c
+  INCLUDE[specktest]=../include
+  DEPEND[specktest]=../libcrypto
 
   IF[{- !$disabled{shared} -}]
     PROGRAMS_NO_INST=shlibloadtest

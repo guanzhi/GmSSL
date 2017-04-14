@@ -622,5 +622,3 @@ int SAF_EccVerifySignFile(
 {
 	return SAR_OK;
 }
-
-

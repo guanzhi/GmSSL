@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 # include <openssl/evp.h>
 # include <openssl/paillier.h>
 
-static int PAILLIER_test(int verbose)
+static int test_paillier(int verbose)
 {
 	int ret = 0;
 	int kbits = 2048;
@@ -179,6 +179,7 @@ end:
 int main(int argc, char **argv)
 {
 	int err = 0;
+	if (!test_paillier(2)) err++;
 	return err;
 }
 #endif

@@ -370,6 +370,9 @@ struct evp_pkey_st {
 # ifndef OPENSSL_NO_EC
         struct ec_key_st *ec;   /* ECC */
 # endif
+# ifndef OPENSSL_NO_PAILLIER
+        struct paillier_st *paillier;
+# endif
     } pkey;
     int save_parameters;
     STACK_OF(X509_ATTRIBUTE) *attributes; /* [ 0 ] */

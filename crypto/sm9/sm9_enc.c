@@ -431,7 +431,7 @@ int SM9_unwrap_key(SM9PublicParameters *mpk, size_t keylen,
 	}
 
 	/* is outkey is all zero, return failed */
-	for (i = 0; (i < keylen) && (outkey[i] == 0); i++) {
+	for (i = 0; (i < keylen) && (outkey[i] == 0); i++) {           
 	}
 	if (i == keylen) {
 		SM9err(SM9_F_SM9_UNWRAP_KEY, ERR_R_EC_LIB);
@@ -630,7 +630,7 @@ static int SM9EncParameters_decrypt(const SM9EncParameters *encparams,
 		/* output iv */
 		iv = in;
 		ivlen = EVP_CIPHER_iv_length(encparams->enc_cipher);
-		if (inlen <= ivlen) {
+		if (inlen <= (size_t)ivlen) {
 			SM9err(SM9_F_SM9ENCPARAMETERS_DECRYPT, SM9_R_INVALID_CIPHERTEXT);
 			goto end;
 		}
@@ -948,7 +948,7 @@ int SM9_do_decrypt(SM9PublicParameters *mpk, const SM9EncParameters *encparams,
 		*outlen = in->c2->length;
 		return 1;
 	}
-	if (*outlen < in->c2->length) {
+	if (*outlen < in->c2->length) {             
 		SM9err(SM9_F_SM9_DO_DECRYPT, SM9_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
@@ -1065,7 +1065,7 @@ int SM9_decrypt(SM9PublicParameters *mpk, const SM9EncParameters *encparams,
 		return 0;
 	}
 
-	p = &in;
+	p = in;
 	if (!(c = d2i_SM9Ciphertext(NULL, &p, inlen))) {
 		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
 		goto end;

@@ -238,7 +238,7 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(
 		goto end;
 	}
 
-	if (buflen <= fixlen) {
+	if (buflen <= (size_t)fixlen) {
 		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_BUFFER_TOO_SMALL);
 		goto end;
 	}
@@ -260,7 +260,7 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_decode(
 	//FIXME
 	ptlen = fixlen - SM2_ENC_PARAMS_mactag_size(params);
 #endif
-	ptlen = fixlen; //FIXME
+	ptlen = (int)fixlen; //FIXME
 	if (!EC_POINT_oct2point(ec_group, ret->ephem_point, buf, ptlen, bn_ctx)) {
 		ECerr(EC_F_SM2_CIPHERTEXT_VALUE_DECODE, EC_R_OCT2POINT_FAILED);
 		goto end;
@@ -290,7 +290,7 @@ int SM2_CIPHERTEXT_VALUE_print(BIO *out, const EC_GROUP *ec_group,
 	int ret = 0;
 	char *hex = NULL;
 	BN_CTX *ctx = BN_CTX_new();
-	int i;
+	size_t i;
 
 	if (!ctx) {
 		goto end;
@@ -382,7 +382,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 	unsigned int dgstlen;
 	int mactag_size;
 	size_t len;
-	int i;
+	size_t i;
 
 	if (!ec_group || !pub_key) {
 		ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_INVALID_EC_KEY);
@@ -513,7 +513,7 @@ SM2_CIPHERTEXT_VALUE *SM2_do_encrypt(const SM2_ENC_PARAMS *params,
 		}
 
 		/* GmSSL specific: reduce mactag size */
-		if (mactag_size > dgstlen) {
+		if (mactag_size > dgstlen) {                    
 			ECerr(EC_F_SM2_DO_ENCRYPT, EC_R_ERROR);
 			goto end;
 		}
@@ -554,7 +554,7 @@ int SM2_decrypt(const SM2_ENC_PARAMS *params,
 		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
 		goto end;
 	}
-	if (inlen <= len) {
+	if (inlen <= len) {                
 		ECerr(EC_F_SM2_DECRYPT, EC_R_ERROR);
 		goto end;
 	}
@@ -673,7 +673,7 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 
 
 	/* B5: compute M = C2 xor t */
-	for (i = 0; i < cv->ciphertext_size; i++) {
+	for (i = 0; i < cv->ciphertext_size; i++) {              
 		out[i] ^= cv->ciphertext[i];
 	}
 	*outlen = cv->ciphertext_size;
@@ -704,7 +704,7 @@ int SM2_do_decrypt(const SM2_ENC_PARAMS *params,
 		}
 
 		/* GmSSL specific */
-		if (mactag_size > maclen) {
+		if (mactag_size > (int)maclen) {             
 			ECerr(EC_F_SM2_DO_DECRYPT, EC_R_ERROR);
 			goto end;
 		}
@@ -742,4 +742,3 @@ int SM2_decrypt_with_recommended(const unsigned char *in, size_t inlen,
 	SM2_ENC_PARAMS_init_with_recommended(&params);
 	return SM2_decrypt(&params, in, inlen, out, outlen, ec_key);
 }
-

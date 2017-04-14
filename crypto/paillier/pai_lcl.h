@@ -50,6 +50,8 @@
 #ifndef HEADER_PAI_LCL_H
 #define HEADER_PAI_LCL_H
 
+#include "e_os.h"
+
 struct paillier_st {
 	int bits;
 	BIGNUM *n;		/* public key */
@@ -57,6 +59,11 @@ struct paillier_st {
 	BIGNUM *n_squared;	/* online */
 	BIGNUM *n_plusone;	/* online */
 	BIGNUM *x;		/* online */
+
+	int references;
+	int flags;
+	CRYPTO_EX_DATA ex_data;
+	CRYPTO_RWLOCK *lock;
 };
 
 #endif

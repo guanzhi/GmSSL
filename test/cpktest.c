@@ -90,7 +90,6 @@ int main(int argc, char **argv)
 {
 	int r, i;
 	KDF_FUNC kdf = NULL;
-	EC_GROUP *ec_group = NULL;
 	EC_KEY *ec_key = NULL;
 	EVP_PKEY *pkey = NULL;
 	EVP_PKEY *pub_key = NULL;

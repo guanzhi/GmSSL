@@ -8,6 +8,9 @@
  */
 
 #include <openssl/opensslconf.h>
+#ifdef OPENSSL_NO_AES
+NON_EMPTY_TRANSLATION_UNIT
+#else
 
 #include <stdio.h>
 #include <string.h>
@@ -936,4 +939,5 @@ const EVP_CIPHER *EVP_aes_256_cbc_hmac_sha256(void)
 {
     return NULL;
 }
+#endif
 #endif
