@@ -32,24 +32,9 @@ env:
 
 before_script:
     - env
-    - if [ "$TRAVIS_PULL_REQUEST" != "false" -a -n "$EXTENDED_TEST" ]; then
-          (git log -1 $TRAVIS_COMMIT_RANGE | grep '\[extended tests\]' > /dev/null) || exit 0;
-      fi
-    - if [ -n "$DESTDIR" ]; then
-          sh .travis-create-release.sh $TRAVIS_OS_NAME;
-          tar -xvzf _srcdist.tar.gz;
-          mkdir _build;
-          cd _build;
-          srcdir=../_srcdist;
-          top=..;
-      else
-          srcdir=.;
-          top=.;
-      fi
-    - if which ccache >/dev/null && [ "$CC" != clang-3.9 ]; then
-              CC="ccache $CC";
-      fi;
-    - $srcdir/config -v $CONFIG_OPTS;
+    - pwd
+    - ls -l
+    - ../config -v $CONFIG_OPTS;
     - cd $top
 
 script:
