@@ -28,7 +28,7 @@ compiler:
     - gcc
 
 env:
-    - CONFIG_OPTS="" DESTDIR="_install" TESTS="-test_fuzz"
+    - CONFIG_OPTS="" DESTDIR="_install" 
     -
 
 before_script:
@@ -44,6 +44,7 @@ before_script:
           srcdir=.;
           top=.;
       fi
+    - $srcdir/config;
     - cd $top
 
 script:
