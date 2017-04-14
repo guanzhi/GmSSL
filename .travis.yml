@@ -42,6 +42,7 @@ script:
       else
           make="make";
       fi
+    - $make update
     - $make
     - $make test
     - $make install
