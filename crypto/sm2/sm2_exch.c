@@ -54,7 +54,6 @@
 #include <openssl/kdf.h>
 #include "sm2_lcl.h"
 
-
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 	EC_KEY *ec_key, const char *id, size_t idlen,
 	EC_KEY *remote_pubkey, const char *rid, size_t ridlen,
@@ -577,9 +576,9 @@ int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 }
 
 int SM2_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
-	const EC_KEY *ec_key, void *(*KDF) (const void *in, size_t inlen, void *out, size_t *outlen))
+	const EC_KEY *ec_key, KDF_FUNC kdf_f)
 {
+
+
 	return 0;
 }
-
-

@@ -65,6 +65,9 @@ int main(int argc, char **argv)
 # include <openssl/rand.h>
 # include <openssl/engine.h>
 # include <openssl/sm2.h>
+# include "../crypto/sm2/sm2_lcl.h"
+
+# define VERBOSE 1
 
 RAND_METHOD fake_rand;
 const RAND_METHOD *old_rand;
@@ -73,7 +76,7 @@ static const char rnd_seed[] =
 	"string to make the random number generator think it has entropy";
 static const char *rnd_number = NULL;
 
-int fbytes(unsigned char *buf, int num)
+static int fbytes(unsigned char *buf, int num)
 {
 	int ret = 0;
 	BIGNUM *bn = NULL;
@@ -94,7 +97,7 @@ end:
 	return ret;
 }
 
-int change_rand(const char *hex)
+static int change_rand(const char *hex)
 {
 	if (!(old_rand = RAND_get_rand_method())) {
 		return 0;
@@ -115,7 +118,7 @@ int change_rand(const char *hex)
 	return 1;
 }
 
-int restore_rand(void)
+static int restore_rand(void)
 {
 	rnd_number = NULL;
 	if (!RAND_set_rand_method(old_rand))
@@ -123,7 +126,7 @@ int restore_rand(void)
 	else	return 1;
 }
 
-int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
+static int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 {
 	int ret = 0;
 	char *buf = NULL;
@@ -150,7 +153,7 @@ int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 	return ret;
 }
 
-EC_GROUP *new_ec_group(int is_prime_field,
+static EC_GROUP *new_ec_group(int is_prime_field,
 	const char *p_hex, const char *a_hex, const char *b_hex,
 	const char *x_hex, const char *y_hex, const char *n_hex, const char *h_hex)
 {
@@ -231,7 +234,7 @@ err:
 	return group;
 }
 
-EC_KEY *new_ec_key(const EC_GROUP *group,
+static EC_KEY *new_ec_key(const EC_GROUP *group,
 	const char *sk, const char *xP, const char *yP,
 	const char *id, const EVP_MD *id_md)
 {
@@ -294,13 +297,14 @@ end:
 	return ec_key;
 }
 
-int test_sm2_sign(const EC_GROUP *group,
+static int test_sm2_sign(const EC_GROUP *group,
 	const char *sk, const char *xP, const char *yP,
 	const char *id, const char *Z,
 	const char *M, const char *e,
 	const char *k, const char *r, const char *s)
 {
 	int ret = 0;
+	int verbose = VERBOSE;
 	const EVP_MD *id_md = EVP_sm3();
 	const EVP_MD *msg_md = EVP_sm3();
 	int type = NID_undef;
@@ -323,16 +327,23 @@ int test_sm2_sign(const EC_GROUP *group,
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
 	}
-	EC_KEY_print_fp(stdout, ec_key, 4);
 
+	if (verbose > 1) {
+		EC_KEY_print_fp(stdout, ec_key, 4);
+	}
 
 	dgstlen = sizeof(dgst);
 	if (!SM2_compute_id_digest(id_md, id, strlen(id), dgst, &dgstlen, ec_key)) {
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
 	}
-	printf("id=%s\n", id);
-	printf("zid(xx):"); for (int j = 0; j < dgstlen; j++) { printf("%02x", dgst[j]); } printf("\n");
+
+	if (verbose > 1) {
+		printf("id=%s\n", id);
+		printf("zid(xx):");
+		for (int j = 0; j < dgstlen; j++) { printf("%02x", dgst[j]); } printf("\n");
+	}
+
 	if (!hexequbin(Z, dgst, dgstlen)) {
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
@@ -386,7 +397,7 @@ int test_sm2_sign(const EC_GROUP *group,
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
 	}
-	fprintf(stderr, " -> %d\n", __LINE__);
+
 	if (1 != SM2_verify(type, dgst, dgstlen, sig, siglen, pubkey)) {
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
@@ -403,57 +414,57 @@ err:
 	return ret;
 }
 
-int test_sm2_enc(const EC_GROUP *group,
+static int test_sm2_enc(const EC_GROUP *group, const EVP_MD *md,
 	const char *d, const char *xP, const char *yP,
-	const char *M,
-	const char *k, const char *C)
+	const char *M, const char *k, const char *C)
 {
 	int ret = 0;
-	EC_KEY *ec_key = NULL;
-	const EVP_MD *kdf_md = EVP_sm3();
-	const EVP_MD *mac_md = EVP_sm3();
-	point_conversion_form_t point_form = POINT_CONVERSION_UNCOMPRESSED;
-	unsigned char msg[128];
-	unsigned char buf[sizeof(msg) + 128];
+	EC_KEY *pub_key = NULL;
+	EC_KEY *pri_key = NULL;
+	SM2CiphertextValue *cv = NULL;
+	unsigned char mbuf[128];
+	unsigned char cbuf[sizeof(mbuf) + 256];
+	unsigned char *tbuf = NULL;
 	size_t msglen, buflen;
+	unsigned char *p = buf;
+	unsigned char *testcbuf;
+	long testbuflen;
 
+	if (!(pub_key = new_ec_key(group, NULL, xP, yP, NULL, NULL))) {
+		goto end;
+	}
+
+	/* test encrypt */
 	change_rand(k);
-
-	if (!(ec_key = new_ec_key(group, NULL, xP, yP, NULL, NULL))) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+	if (!(cv = SM2_do_encrypt(md, (unsigned char *)M, strlen(M), pub_key))) {
 		goto end;
 	}
 
-	buflen = sizeof(buf);
-	if (!SM2_encrypt_with_recommended(
-		(const unsigned char *)M, strlen(M),
-		buf, &buflen,
-		ec_key)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+	p = cbuf;
+	if ((clen = i2o_SM2CiphertextValue(group, cv, &p)) <= 0) {
 		goto end;
 	}
 
+	if (!(tbuf = OPENSSL_hexstr2buf(C, &tlen))) {
+		EXIT(1);
+	}
 
-	if (!hexequbin(C, buf, buflen)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
-		printf("shit\n");
+	if (tlen != clen || memcmp(tbuf, cbuf, clen) != 0) {
 		goto end;
 	}
-	EC_KEY_free(ec_key);
 
-	if (!(ec_key = new_ec_key(group, d, xP, yP, NULL, NULL))) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+	/* test decrypt */
+
+	if (!(pri_key = new_ec_key(group, d, xP, yP, NULL, NULL))) {
 		goto end;
 	}
-	if (!SM2_decrypt_with_recommended(
-		buf, buflen,
-		msg, &msglen,
-		ec_key)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+
+	mlen = sizeof(mbuf);
+	if (!SM2_do_decrypt(md, cv, mbuf, &mlen, pri_key)) {
 		goto end;
 	}
-	if (msglen != strlen(M) || memcmp(msg, M, strlen(M))) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
+
+	if (mlen != strlen(M) || memcmp(mbuf, M, strlen(M))) {
 		goto end;
 	}
 
@@ -463,10 +474,11 @@ end:
 	ERR_print_errors_fp(stderr);
 	restore_rand();
 	EC_KEY_free(ec_key);
+	EC_KEY_free(pub_key);
 	return ret;
 }
 
-int test_sm2_kap(const EC_GROUP *group,
+static int test_sm2_kap(const EC_GROUP *group,
 	const char *A, const char *dA, const char *xA, const char *yA, const char *ZA,
 	const char *B, const char *dB, const char *xB, const char *yB, const char *ZB,
 	const char *rA, const char *rB, const char *KAB, const char *S1, const char *S2)
@@ -479,9 +491,6 @@ int test_sm2_kap(const EC_GROUP *group,
 	EC_KEY *pubkeyB = NULL;
 	SM2_KAP_CTX ctxA;
 	SM2_KAP_CTX ctxB;
-	unsigned char za[EVP_MAX_MD_SIZE];
-	unsigned char zb[EVP_MAX_MD_SIZE];
-	size_t zalen, zblen;
 	unsigned char RA[256];
 	unsigned char RB[256];
 	size_t RAlen = sizeof(RA);
@@ -497,7 +506,6 @@ int test_sm2_kap(const EC_GROUP *group,
 	memset(&ctxA, 0, sizeof(ctxA));
 	memset(&ctxB, 0, sizeof(ctxB));
 
-
 	eckeyA = new_ec_key(group, dA, xA, yA, A, id_md);
 	eckeyB = new_ec_key(group, dB, xB, yB, B, id_md);
 	pubkeyA = new_ec_key(group, NULL, xA, yA, A, id_md);
@@ -506,30 +514,10 @@ int test_sm2_kap(const EC_GROUP *group,
 		goto end;
 	}
 
-	/*
-	zalen = sizeof(za);
-	if (!SM2_get_id_digest(eckeyA, za, &zalen)) {
+	if (!SM2_KAP_CTX_init(&ctxA, eckeyA, A, strlen(A), pubkeyB, B, strlen(B), 1, 1)) {
 		goto end;
 	}
-	zblen = sizeof(zb);
-	if (!SM2_get_id_digest(eckeyB, zb, &zblen)) {
-		goto end;
-	}
-	*/
-
-	if (!hexequbin(ZA, za, zalen)) {
-		fprintf(stderr, "error (%s %d):  ZA != value in test vector !!!\n", __FILE__, __LINE__);
-		goto end;
-	}
-
-	if (!hexequbin(ZB, zb, zblen)) {
-		goto end;
-	}
-
-	if (!SM2_KAP_CTX_init(&ctxA, eckeyA, ZA, strlen(ZA), pubkeyB, ZB, strlen(ZB), 1, 1)) {
-		goto end;
-	}
-	if (!SM2_KAP_CTX_init(&ctxB, eckeyB, ZB, strlen(ZB), pubkeyA, ZA, strlen(ZA), 0, 1)) {
+	if (!SM2_KAP_CTX_init(&ctxB, eckeyB, B, strlen(B), pubkeyA, A, strlen(A), 0, 1)) {
 		goto end;
 	}
 
@@ -545,12 +533,10 @@ int test_sm2_kap(const EC_GROUP *group,
 	}
 	restore_rand();
 
-
 	if (!SM2_KAP_compute_key(&ctxA, RB, RBlen, kab, kablen, s1, &s1len)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
-
 
 	if (!SM2_KAP_compute_key(&ctxB, RA, RAlen, kba, kbalen, s2, &s2len)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
@@ -576,13 +562,15 @@ end:
 	return ret;
 }
 
-int test_sm2_test_vector()
+int main(int argc, char **argv)
 {
-	int ret = 0;
+	int err = 0;
 	EC_GROUP *sm2p192test = NULL;
 	EC_GROUP *sm2p256test = NULL;
 	EC_GROUP *sm2b193test = NULL;
 	EC_GROUP *sm2b257test = NULL;
+
+	RAND_seed(rnd_seed, sizeof(rnd_seed));
 
 	sm2p192test = new_ec_group(1,
 		"BDB6F4FE3E8B1D9E0DA8C0D46F4C318CEFE4AFE3B6B8551F",
@@ -621,6 +609,7 @@ int test_sm2_test_vector()
 		"4");
 
 	if (!sm2p192test || !sm2p256test || !sm2b193test || !sm2b257test) {
+		err++;
 		goto end;
 	}
 
@@ -637,7 +626,7 @@ int test_sm2_test_vector()
 		"40F1EC59F793D9F49E09DCEF49130D4194F79FB1EED2CAA55BACDB49C4E755D1",
 		"6FC6DAC32C5D5CF10C77DFB20F7C2EB667A457872FB09EC56327A67EC7DEEBE7")) {
 		printf("sm2 sign p256 failed\n");
-		goto end;
+		err++;
 	} else {
 		printf("sm2 sign p256 passed\n");
 	}
@@ -656,13 +645,13 @@ int test_sm2_test_vector()
 		"6D3FBA26EAB2A1054F5D198332E335817C8AC453ED26D3391CD4439D825BF25B",
 		"3124C5688D95F0A10252A9BED033BEC84439DA384621B6D6FAD77F94B74A9556")) {
 		printf("sm2 sign b257 failed\n");
-		goto end;
+		err++;
 	} else {
 		printf("sm2 sign b257 passed\n");
 	}
 
 	if (!test_sm2_enc(
-		sm2p256test,
+		sm2p256test, EVP_sm3(),
 		"1649AB77A00637BD5E2EFE283FBF353534AA7F7CB89463F208DDBC2920BB0DA0",
 		"435B39CCA8F3B508C1488AFC67BE491A0F7BA07E581A0E4849A5CF70628A7E0A",
 		"75DDBA78F15FEECB4C7895E2C1CDF5FE01DEBB2CDBADF45399CCF77BBA076A42",
@@ -674,13 +663,13 @@ int test_sm2_test_vector()
 		"650053A89B41C418B0C3AAD00D886C00286467"
 		"9C3D7360C30156FAB7C80A0276712DA9D8094A634B766D3A285E07480653426D")) {
 		printf("sm2 enc p256 failed\n");
-		goto end;
+		err++;
 	} else {
 		printf("sm2 enc p256 passed\n");
 	}
 
 	if (!test_sm2_enc(
-		sm2b257test,
+		sm2b257test, EVP_sm3(),
 		"56A270D17377AA9A367CFA82E46FA5267713A9B91101D0777B07FCE018C757EB",
 		"00A67941E6DE8A61805F7BCFF0985BB3BED986F1C297E4D8880D82B821C624EE57",
 		"0193ED5A6707B5908781B860841085F52EEFA7FE329A5C811843533A874D027271",
@@ -692,7 +681,7 @@ int test_sm2_test_vector()
 		"FD55AC6213C2A8A040E4CAB5B26A9CFCDA7373"
 		"73A48625D3758FA37B3EAB80E9CFCABA665E3199EA15A1FA8189D96F579125E4")) {
 		printf("sm2 enc b257 failed\n");
-		goto end;
+		err++;
 	} else {
 		printf("sm2 enc b257 passed\n");
 	}
@@ -715,12 +704,11 @@ int test_sm2_test_vector()
 		"284C8F198F141B502E81250F1581C7E9EEB4CA6990F9E02DF388B45471F5BC5C",
 		"23444DAF8ED7534366CB901C84B3BDBB63504F4065C1116C91A4C00697E6CF7A")) {
 		printf("sm2 kap p256 failed\n");
-		goto end;
+		err++;
 	} else {
 		printf("sm2 kap p256 passed\n");
 	}
 
-#if 0
 	/* ZA will not pass! */
 	if (!test_sm2_kap(
 		sm2b257test,
@@ -740,107 +728,16 @@ int test_sm2_test_vector()
 		"4EB47D28AD3906D6244D01E0F6AEC73B0B51DE1574C13798184E4833DBAE295A",
 		"588AA67064F24DC27CCAA1FAB7E27DFF811D500AD7EF2FB8F69DDF48CC0FECB7")) {
 		printf("sm2 kap b257 failed\n");
-		goto end;
+		err++;
 	} else {
 		printf("sm2 kap b257 passed\n");
 	}
-#endif
-
-	ret = 1;
 
 end:
 	EC_GROUP_free(sm2p192test);
 	EC_GROUP_free(sm2p256test);
 	EC_GROUP_free(sm2b193test);
 	EC_GROUP_free(sm2b257test);
-
-	return ret;
-}
-
-
-EVP_PKEY *genpkey(int curve_nid, BIO *out, int verbose)
-{
-	int ok = 0;
-	EVP_PKEY *ret = NULL;
-	EVP_PKEY_CTX *pkctx = NULL;
-
-	if (!(pkctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL))) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
-		goto end;
-	}
-
-	if (!EVP_PKEY_keygen_init(pkctx)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
-		goto end;
-	}
-
-	if (!EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pkctx, curve_nid)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
-		goto end;
-	}
-
-	if (!EVP_PKEY_keygen(pkctx, &ret)) {
-		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
-		goto end;
-	}
-
-	if (verbose > 1) {
-		EVP_PKEY_print_private(out, ret, 4, NULL);
-		BIO_printf(out, "\n");
-	}
-
-	ok = 1;
-end:
-	if (!ok && ret) {
-		EVP_PKEY_free(ret);
-		ret = NULL;
-	}
-	EVP_PKEY_CTX_free(pkctx);
-	return ret;
-}
-
-int main(int argc, char **argv)
-{
-	int ret = -1;
-	BIO *out = NULL;
-
-	out = BIO_new_fp(stdout, BIO_NOCLOSE);
-
-	/*
-	if (!((getenv("OPENSSL_DEBUG_MEMORY") != NULL) &&
-		(0 == strcmp(getenv("OPENSSL_DEBUG_MEMORY"), "off")))) {
-		CRYPTO_malloc_debug_init();
-		CRYPTO_set_mem_debug_options(V_CRYPTO_MDEBUG_ALL);
-	} else {
-		CRYPTO_set_mem_debug_functions(0, 0, 0, 0, 0);
-	}
-	CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
-	*/
-
-	ERR_load_crypto_strings();
-	RAND_seed(rnd_seed, sizeof(rnd_seed));
-
-
-	if (!test_sm2_test_vector()) {
-		goto err;
-	}
-
-
-	ret =0;
-err:
-	if (ret)
-		BIO_printf(out, "\nSM2 test failed\n");
-	else	BIO_printf(out, "\nSM2 test passed\n");
-
-	if (ret)
-		ERR_print_errors(out);
-
-	//CRYPTO_cleanup_all_ex_data();
-	//ERR_remove_thread_state(NULL);
-	//ERR_free_strings();
-	//CRYPTO_mem_leaks(out);
-	//BIO_free(out);
-
-	return ret;
+	EXIT(err);
 }
 #endif

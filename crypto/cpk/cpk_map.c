@@ -52,6 +52,7 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/cpk.h>
+#include "cpk_lcl.h"
 
 X509_ALGOR *CPK_MAP_new_default()
 {
@@ -175,4 +176,3 @@ err:
 	if (bn) BN_free(bn);
 	return ret;
 }
-

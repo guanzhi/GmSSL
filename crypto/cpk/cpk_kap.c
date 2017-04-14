@@ -51,6 +51,7 @@
 #include <openssl/ecdh.h>
 #include <openssl/objects.h>
 #include <openssl/cpk.h>
+#include "cpk_lcl.h"
 
 int CPK_PUBLIC_PARAMS_compute_share_key(CPK_PUBLIC_PARAMS *params,
 	void *out, size_t outlen, const char *id, EVP_PKEY *priv_key,

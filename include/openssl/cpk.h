@@ -74,28 +74,21 @@ int CPK_MAP_str2index(const X509_ALGOR *algor, const char *str, int *index);
 int CPK_MAP_print(BIO *out, X509_ALGOR *map, int indent, unsigned long flags);
 
 
-typedef struct cpk_master_secret_st {
-	long version;
-	X509_NAME *id;
-	X509_ALGOR *pkey_algor;
-	X509_ALGOR *map_algor;
-	ASN1_OCTET_STRING *secret_factors;
-} CPK_MASTER_SECRET;
+typedef struct cpk_master_secret_st CPK_MASTER_SECRET;
 DECLARE_ASN1_FUNCTIONS(CPK_MASTER_SECRET)
 
-typedef struct cpk_public_params_st {
-	long version;
-	X509_NAME *id;
-	X509_ALGOR *pkey_algor;
-	X509_ALGOR *map_algor;
-	ASN1_OCTET_STRING *public_factors;
-} CPK_PUBLIC_PARAMS;
+typedef struct cpk_public_params_st CPK_PUBLIC_PARAMS;
 DECLARE_ASN1_FUNCTIONS(CPK_PUBLIC_PARAMS)
+
+//CPK_MASTER_SECERT *CPK_MASTER_SECRET_new(const char *domain, const EC_GROUP *group, int map_algor);
+
 
 CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id, EVP_PKEY *pkey, X509_ALGOR *map_algor);
 CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *master);
 EVP_PKEY *CPK_MASTER_SECRET_extract_private_key(CPK_MASTER_SECRET *master, const char *id);
 EVP_PKEY *CPK_PUBLIC_PARAMS_extract_public_key(CPK_PUBLIC_PARAMS *params, const char *id);
+
+
 int CPK_PUBLIC_PARAMS_compute_share_key(CPK_PUBLIC_PARAMS *params,
 	void *out, size_t outlen, const char *id, EVP_PKEY *priv_key,
 	void *(*kdf)(const void *in, size_t inlen, void *out, size_t *outlen));

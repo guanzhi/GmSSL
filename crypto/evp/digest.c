@@ -145,7 +145,16 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 {
-    return ctx->update(ctx, data, count);
+#ifndef OPENSSL_NO_SM2
+	if (!ctx->is_updated && ctx->pctx && ctx->pctx->pre_update) {
+		if (!ctx->update(ctx, ctx->pctx->pre_update,
+			ctx->pctx->pre_update_len)) {
+			return 0;
+		}
+	}
+	ctx->is_updated = 1;
+#endif
+	return ctx->update(ctx, data, count);
 }
 
 /* The caller can assume that this removes any secret data from the context */

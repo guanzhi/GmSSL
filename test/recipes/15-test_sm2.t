@@ -10,4 +10,4 @@
 use OpenSSL::Test::Simple;
 
 simple_test("test_sm2", "sm2test", "sm2");
-#simple_test("test_sm2evp", "sm2evptest", "sm2");
+simple_test("test_sm2evp", "sm2evptest", "sm2");

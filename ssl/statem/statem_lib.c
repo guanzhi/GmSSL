@@ -639,6 +639,13 @@ typedef struct {
 #endif
 
 static const version_info tls_version_table[] = {
+/*
+#ifndef OPENSSL_NO_GMTLS
+    {GMTLS_VERSION, gmtls_client_method, gmtls_server_method},
+#else
+    {GMTLS_VERSION, NULL, NULL},
+#endif
+*/
 #ifndef OPENSSL_NO_TLS1_2
     {TLS1_2_VERSION, tlsv1_2_client_method, tlsv1_2_server_method},
 #else
@@ -667,6 +674,13 @@ static const version_info tls_version_table[] = {
 #endif
 
 static const version_info dtls_version_table[] = {
+/*
+#ifndef OPENSSL_NO_GMTLS
+    {GMTLS_VERSION, gmdtls_client_method, gmdtls_server_method},
+#else
+    {GMTLS_VERSION, NULL, NULL},
+#endif
+*/
 #ifndef OPENSSL_NO_DTLS1_2
     {DTLS1_2_VERSION, dtlsv1_2_client_method, dtlsv1_2_server_method},
 #else

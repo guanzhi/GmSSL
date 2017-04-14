@@ -50,6 +50,7 @@
 #include <string.h>
 #include <openssl/bio.h>
 #include <openssl/cpk.h>
+#include "cpk_lcl.h"
 
 int CPK_MASTER_SECRET_print(BIO *out, CPK_MASTER_SECRET *master,
 	int indent, unsigned long flags)

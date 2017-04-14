@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2007 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,81 +48,34 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <openssl/rand.h>
-#include <openssl/ecies.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/bn.h>
 
-static int ECIES_PARAMS_init_with_type(ECIES_PARAMS *params, int type)
+int main(void)
 {
-			
-	return 0;
-}
+	char *s = "This ASCII string without null-terminator";
+	BIGNUM *bn = NULL;
+	BIGNUM *ret = NULL;
+	BIGNUM *range = NULL;
 
-int gmssl_ecies_encrypt(int type, const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	ECIES_CIPHERTEXT_VALUE *cv = NULL;
-	ECIES_PARAMS params;
+	BN_hex2bn(&range, "ffffffffffffffffffffefffffffffffffffffff");
+	BN_hex2bn(&bn, "79317c1610c1fc018e9c53d89d59c108cd518608");
 
-	if (!ECIES_PARAMS_init_with_type(&params, type)) {
+	if (!BN_hash2bn(&ret, s, strlen(s), EVP_sha1(), range)) {
+		printf("BN_hash2bn() function failed\n");
+		return 0;
+	}
+	if (!ret) {
+		printf("shit\n");
+	}
+	printf("%s\n", BN_bn2hex(ret));
+	if (BN_cmp(ret, bn) != 0) {
+		printf("BN_hash2bn() test failed\n");
 		return 0;
 	}
 
-	RAND_seed(in, inlen);
-	if (!(cv = ECIES_do_encrypt(&params, in, inlen, ec_key))) {
-		*outlen = 0;
-		return 0;
-	}
-
-	*outlen = i2d_ECIES_CIPHERTEXT_VALUE(cv, &out);
-	ECIES_CIPHERTEXT_VALUE_free(cv);
+	printf("BN_hash2bn() test passed\n");
 	return 1;
-}
-
-int gmssl_ecies_decrypt(int type, const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	ECIES_CIPHERTEXT_VALUE *cv = NULL;
-	ECIES_PARAMS params;
-	const unsigned char *cp = in;
-	unsigned char *der = NULL;
-	int derlen = -1;
-	int ret = -1;
-
-	if (!ECIES_PARAMS_init_with_type(&params, type)) {
-		return -1;
-	}
-
-	if (!(cv = d2i_ECIES_CIPHERTEXT_VALUE(NULL, &cp, inlen))) {
-		return -1;
-	}
-
-	derlen = i2d_ECIES_CIPHERTEXT_VALUE(cv, &der);
-	if (derlen != inlen || memcmp(in, der, derlen) != 0) {
-		goto end;
-	}
-
-	ret = ECIES_do_decrypt(&params, cv, out, outlen, ec_key);
-
-end:
-	OPENSSL_clear_free(der, derlen);
-	ECIES_CIPHERTEXT_VALUE_free(cv);
-	return ret;
-}
-
-ECIES_CIPHERTEXT_VALUE *gmssl_ecies_do_encrypt(int type, const unsigned char *in,
-                                              size_t inlen, EC_KEY *ec_key)
-{
-	ECIES_PARAMS param;
-	ECIES_PARAMS_init_with_recommended(&param);
-	return ECIES_do_encrypt(&param, in, inlen, ec_key);
-}
-
-int gmssl_ecies_do_decrypt(int type, const ECIES_CIPHERTEXT_VALUE *in,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	ECIES_PARAMS param;
-	ECIES_PARAMS_init_with_recommended(&param);
-	return ECIES_do_decrypt(&param, in, out, outlen, ec_key);
 }

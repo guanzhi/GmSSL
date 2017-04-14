@@ -597,6 +597,9 @@ int ASN1_OCTET_STRING_cmp(const ASN1_OCTET_STRING *a,
                           const ASN1_OCTET_STRING *b);
 int ASN1_OCTET_STRING_set(ASN1_OCTET_STRING *str, const unsigned char *data,
                           int len);
+#ifndef OPENSSL_NO_SM2
+int ASN1_OCTET_STRING_is_zero(const ASN1_OCTET_STRING *a);
+#endif
 
 DECLARE_ASN1_FUNCTIONS(ASN1_VISIBLESTRING)
 DECLARE_ASN1_FUNCTIONS(ASN1_UNIVERSALSTRING)

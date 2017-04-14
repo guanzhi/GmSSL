@@ -46,11 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * Ellitpic Curve Integrated Encryption Scheme (ECIES)
- * see http://www.secg.org/sec1-v2.pdf (section 5)
- * SEC1: Elliptic Curve Cryptography version 2.0
- */
 
 #ifndef HEADER_ECIES_H
 #define HEADER_ECIES_H
@@ -61,6 +56,7 @@
 #include <openssl/x509.h>
 #include <openssl/asn1.h>
 #include <openssl/kdf2.h>
+#include <openssl/objects.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,6 +67,11 @@ ECIESAlgorithmSet ALGORITHM ::= {
 	{OID ecies-recommendedParameters} |
 	{OID ecies-specifiedParameters PARMS ECIESParameters},
 	... -- Future combinations may be added
+	{OID ecies-with-x9-63-sha1-aes128-cbc-hmac}
+	{OID ecies-with-x9-63-sha256-aes128-cbc-hmac}
+	{OID ecies-with-x9-63-sha256-aes192-cbc-hmac}
+	{OID ecies-with-x9-63-sha512-aes256-cbc-hmac}
+	{OID ecies-with-x9-63-sha256-xor-hmac}
 }
 */
 
@@ -119,6 +120,7 @@ typedef struct ecies_params_st {
 
 ECIES_PARAMS *ECIES_PARAMS_new(void);
 int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param);
+int ECIES_PARAMS_init_with_type(ECIES_PARAMS *param, int type);
 ECIES_PARAMS *ECIES_PARAMS_dup(const ECIES_PARAMS *param);
 KDF_FUNC ECIES_PARAMS_get_kdf(const ECIES_PARAMS *param);
 int ECIES_PARAMS_get_enc(const ECIES_PARAMS *param, size_t inlen,
@@ -132,13 +134,7 @@ int i2d_ECIESParameters(const ECIES_PARAMS *param, unsigned char **out);
 ECIES_PARAMS *d2i_ECIESParameters(ECIES_PARAMS **param,
 	const unsigned char **in, long len);
 
-
-typedef struct ecies_ciphertext_value_st {
-	ASN1_OCTET_STRING *ephem_point;
-	ASN1_OCTET_STRING *ciphertext;
-	ASN1_OCTET_STRING *mactag;
-} ECIES_CIPHERTEXT_VALUE;
-
+typedef struct ecies_ciphertext_value_st ECIES_CIPHERTEXT_VALUE;
 DECLARE_ASN1_FUNCTIONS(ECIES_CIPHERTEXT_VALUE)
 
 
@@ -146,17 +142,14 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
 int ECIES_do_decrypt(const ECIES_PARAMS *param, const ECIES_CIPHERTEXT_VALUE *in,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int ECIES_encrypt(const ECIES_PARAMS *param,
-	const unsigned char *in, size_t inlen,
+int ECIES_encrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int ECIES_decrypt(const ECIES_PARAMS *param,
-	const unsigned char *in, size_t inlen,
+int ECIES_decrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-
-int ECIES_encrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int ECIES_decrypt_with_recommended(const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+#define ECIES_encrypt_with_recommended(in,inlen,out,outlen,ec_key) \
+	ECIES_encrypt(NID_ecies_with_x9_63_sha256_xor_hmac,in,inlen,out,outlen,ec_key)
+#define ECIES_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
+	ECIES_decrypt(NID_ecies_with_x9_63_sha256_xor_hmac,in,inlen,out,outlen,ec_key)
 
 
 #ifdef __cplusplus

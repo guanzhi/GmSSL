@@ -1476,6 +1476,7 @@ id-pkinit 5                     : pkInitKDC             : Signing KDC Response
                             : KxPSK        : kx-psk
                             : KxSRP        : kx-srp
                             : KxGOST       : kx-gost
+                            : KxSM2        : kx-sm2
 
 # NIDs for cipher authentication
                             : AuthRSA      : auth-rsa
@@ -1486,6 +1487,7 @@ id-pkinit 5                     : pkInitKDC             : Signing KDC Response
                             : AuthGOST12   : auth-gost12
                             : AuthSRP      : auth-srp
                             : AuthNULL     : auth-null
+                            : AuthSM2      : auth-sm2
 
 # GmSSL SECG ECIES OID
 secg-scheme 7		: ecies-recommendedParameters
@@ -1507,6 +1509,26 @@ secg-scheme 23		: hmac-half-ecies
 secg-scheme 24 0	: cmac-aes128-ecies
 secg-scheme 24 1	: cmac-aes192-ecies
 secg-scheme 24 2	: cmac-aes256-ecies
+
+
+ecies-specifiedParameters 1	: ecies-with-x9-63-sha1-xor-hmac
+ecies-specifiedParameters 2	: ecies-with-x9-63-sha256-xor-hmac
+ecies-specifiedParameters 3	: ecies-with-x9-63-sha512-xor-hmac
+ecies-specifiedParameters 4	: ecies-with-x9-63-sha1-aes128-cbc-hmac
+ecies-specifiedParameters 5	: ecies-with-x9-63-sha256-aes128-cbc-hmac
+ecies-specifiedParameters 6	: ecies-with-x9-63-sha512-aes256-cbc-hmac
+ecies-specifiedParameters 7	: ecies-with-x9-63-sha256-aes128-ctr-hmac
+ecies-specifiedParameters 8	: ecies-with-x9-63-sha512-aes256-ctr-hmac
+ecies-specifiedParameters 9	: ecies-with-x9-63-sha256-aes128-cbc-hmac-half
+ecies-specifiedParameters 10	: ecies-with-x9-63-sha512-aes256-cbc-hmac-half
+ecies-specifiedParameters 11	: ecies-with-x9-63-sha256-aes128-ctr-hmac-half
+ecies-specifiedParameters 12	: ecies-with-x9-63-sha512-aes256-ctr-hmac-half
+ecies-specifiedParameters 13	: ecies-with-x9-63-sha1-aes128-cbc-cmac
+ecies-specifiedParameters 14	: ecies-with-x9-63-sha256-aes128-cbc-cmac
+ecies-specifiedParameters 15	: ecies-with-x9-63-sha512-aes256-cbc-cmac
+ecies-specifiedParameters 16	: ecies-with-x9-63-sha256-aes128-ctr-cmac
+ecies-specifiedParameters 17	: ecies-with-x9-63-sha512-aes256-ctr-cmac
+
 
 # GmSSL SM OID
 member-body 156		: ISO-CN	: ISO CN Member Body
@@ -1564,8 +1586,21 @@ sm-scheme 301		: sm2p256v1
 sm-scheme 301 1		: sm2sign
 sm-scheme 301 2		: sm2exchange
 sm-scheme 301 3		: sm2encrypt
+sm-scheme 301 101	: wapip192v1
+
 sm2encrypt 1		: sm2encrypt-recommendedParameters
 sm2encrypt 2		: sm2encrypt-specifiedParameters
+sm2encrypt 2 1		: sm2encrypt-with-sm3
+sm2encrypt 2 2		: sm2encrypt-with-sha1
+sm2encrypt 2 3		: sm2encrypt-with-sha224
+sm2encrypt 2 4		: sm2encrypt-with-sha256
+sm2encrypt 2 5		: sm2encrypt-with-sha384
+sm2encrypt 2 6		: sm2encrypt-with-sha512
+sm2encrypt 2 7		: sm2encrypt-with-rmd160
+sm2encrypt 2 8		: sm2encrypt-with-whirlpool
+sm2encrypt 2 9		: sm2encrypt-with-blake2b512
+sm2encrypt 2 10		: sm2encrypt-with-blake2s256
+sm2encrypt 2 11		: sm2encrypt-with-md5
 
 sm-scheme 302		: id-sm9PublicKey
 sm-scheme 302 1		: sm9sign
@@ -1574,6 +1609,7 @@ sm-scheme 302 3		: sm9encrypt
 
 sm-scheme 401		: SM3			: sm3
 sm-scheme 401 2		: HMAC-SM3		: hmac-sm3
+
 sm-scheme 501		: SM2Sign-with-SM3	: sm2sign-with-sm3
 sm-scheme 502		: SM2Sign-with-SHA1 	: sm2sign-with-sha1
 sm-scheme 503		: SM2Sign-with-SHA256	: sm2sign-with-sha256
@@ -1581,8 +1617,10 @@ sm-scheme 504		: SM2Sign-with-SHA511	: sm2sign-with-sha512
 sm-scheme 505		: SM2Sign-with-SHA224	: sm2sign-with-sha224
 sm-scheme 506		: SM2Sign-with-SHA384	: sm2sign-with-sha384
 sm-scheme 507		: SM2Sign-with-RMD160	: sm2sign-with-rmd160
+sm-scheme 520		: SM2Sign-with-Whirlpool : sm2sign-with-whirlpool
+sm-scheme 521		: SM2Sign-with-Blake2b512 : sm2sign-with-blake2b512
+sm-scheme 522		: SM2Sign-with-Blake2s256 : sm2sign-with-blake2s256
 
-sm-scheme 301 101	: wapip192v1
 
 # GmSSL ZUC OID
 sm-scheme 800		: ZUC			: zuc
