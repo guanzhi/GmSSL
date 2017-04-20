@@ -57,6 +57,7 @@
 #include <openssl/obj_mac.h>
 #include <openssl/kdf2.h>
 #include <openssl/ecies.h>
+#include "ecies_lcl.h"
 
 /*
  * From SEC 1, Version 1.9 Draft, 2008

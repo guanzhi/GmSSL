@@ -182,10 +182,12 @@ static FUNCTION functions[] = {
     { FT_general, "otp", otp_main, otp_options },
 #endif
     { FT_general, "passwd", passwd_main, passwd_options },
-#ifndef OPENSSL_NO_DES
+#ifndef OPENSSL_NO_PKCS12
     { FT_general, "pkcs12", pkcs12_main, pkcs12_options },
 #endif
+#ifndef OPENSSL_NO_PKCS7
     { FT_general, "pkcs7", pkcs7_main, pkcs7_options },
+#endif
     { FT_general, "pkcs8", pkcs8_main, pkcs8_options },
     { FT_general, "pkey", pkey_main, pkey_options },
     { FT_general, "pkeyparam", pkeyparam_main, pkeyparam_options },
@@ -194,7 +196,9 @@ static FUNCTION functions[] = {
     { FT_general, "rand", rand_main, rand_options },
     { FT_general, "rehash", rehash_main, rehash_options },
     { FT_general, "req", req_main, req_options },
+#ifndef OPENSSL_NO_RSA
     { FT_general, "rsa", rsa_main, rsa_options },
+#endif
 #ifndef OPENSSL_NO_RSA
     { FT_general, "rsautl", rsautl_main, rsautl_options },
 #endif
@@ -229,7 +233,9 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_MD4
     { FT_md, "md4", dgst_main},
 #endif
+#ifndef OPENSSL_NO_MD5
     { FT_md, "md5", dgst_main},
+#endif
 #ifndef OPENSSL_NO_GOST
     { FT_md, "gost", dgst_main},
 #endif
@@ -265,12 +271,24 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_SMS4
     { FT_cipher, "sms4-cfb", enc_main, enc_options },
 #endif
+#ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-128-cbc", enc_main, enc_options },
+#endif
+#ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-128-ecb", enc_main, enc_options },
+#endif
+#ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-192-cbc", enc_main, enc_options },
+#endif
+#ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-192-ecb", enc_main, enc_options },
+#endif
+#ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-256-cbc", enc_main, enc_options },
+#endif
+#ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-256-ecb", enc_main, enc_options },
+#endif
 #ifndef OPENSSL_NO_CAMELLIA
     { FT_cipher, "camellia-128-cbc", enc_main, enc_options },
 #endif

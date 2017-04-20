@@ -52,6 +52,8 @@
 #include <openssl/ec.h>
 #include <openssl/sm2.h>
 #include <openssl/kdf.h>
+#include "sm2_lcl.h"
+
 
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 	EC_KEY *ec_key, const char *id, size_t idlen,

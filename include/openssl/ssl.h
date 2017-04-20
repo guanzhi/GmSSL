@@ -111,6 +111,8 @@ extern "C" {
 # define SSL_TXT_kDHEPSK         "kDHEPSK"
 # define SSL_TXT_kGOST           "kGOST"
 # define SSL_TXT_kSRP            "kSRP"
+# define SSL_TXT_kSM2            "kSM2"
+# define SSL_TXT_kSM2PSK         "kSM2PSK"
 
 # define SSL_TXT_aRSA            "aRSA"
 # define SSL_TXT_aDSS            "aDSS"
@@ -123,6 +125,7 @@ extern "C" {
 # define SSL_TXT_aGOST12         "aGOST12"
 # define SSL_TXT_aGOST           "aGOST"
 # define SSL_TXT_aSRP            "aSRP"
+# define SSL_TXT_aSM2            "aSM2"
 
 # define SSL_TXT_DSS             "DSS"
 # define SSL_TXT_DH              "DH"
@@ -155,6 +158,13 @@ extern "C" {
 # define SSL_TXT_CAMELLIA        "CAMELLIA"
 # define SSL_TXT_CHACHA20        "CHACHA20"
 # define SSL_TXT_GOST            "GOST89"
+# define SSL_TXT_SMS4            "SMS4"
+# define SSL_TXT_SMS4GCM         "SMS4GCM"
+# define SSL_TXT_SMS4CCM         "SMS4CCM"
+# define SSL_TXT_SMS4CCM8        "SMS4CCM8"
+# define SSL_TXT_ZUC             "ZUC"
+# define SSL_TXT_SM1             "SM1"
+# define SSL_TXT_SSF33           "SSF33"
 
 # define SSL_TXT_MD5             "MD5"
 # define SSL_TXT_SHA1            "SHA1"
@@ -165,11 +175,13 @@ extern "C" {
 # define SSL_TXT_GOST89MAC12     "GOST89MAC12"
 # define SSL_TXT_SHA256          "SHA256"
 # define SSL_TXT_SHA384          "SHA384"
+# define SSL_TXT_SM3             "SM3"
 
 # define SSL_TXT_SSLV3           "SSLv3"
 # define SSL_TXT_TLSV1           "TLSv1"
 # define SSL_TXT_TLSV1_1         "TLSv1.1"
 # define SSL_TXT_TLSV1_2         "TLSv1.2"
+# define SSL_TXT_GMTLSV1_1       "GMTLSv1.1"
 
 # define SSL_TXT_ALL             "ALL"
 
@@ -812,6 +824,7 @@ __owur int SSL_extension_supported(unsigned int ext_type);
 # include <openssl/tls1.h>      /* This is mostly sslv3 with a few tweaks */
 # include <openssl/dtls1.h>     /* Datagram TLS */
 # include <openssl/srtp.h>      /* Support for the use_srtp extension */
+# include <openssl/gmtls.h>
 
 #ifdef  __cplusplus
 extern "C" {

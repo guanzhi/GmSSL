@@ -61,13 +61,10 @@
 #include <openssl/cpk.h>
 #include "../dsa/dsa_locl.h"
 #include "../x509/x509_lcl.h"
+#include "cpk_lcl.h"
 
 #define ASN1_STRING_data(a) ((a)->data)
 
-static DSA *X509_ALGOR_get1_DSA(X509_ALGOR *algor);
-static int extract_dsa_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param);
-static DSA *extract_dsa_priv_key(CPK_MASTER_SECRET *master, const char *id);
-static DSA *extract_dsa_pub_key(CPK_PUBLIC_PARAMS *param, const char *id);
 
 static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor);
 static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param);
@@ -244,14 +241,6 @@ CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *ma
 	}
 
 	switch (pkey_type) {
-	case EVP_PKEY_DSA:
-		if (!extract_dsa_params(master, param)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
-				ERR_R_CPK_LIB);
-			goto err;
-		}
-		break;
-
 	case EVP_PKEY_EC:
 		if (!extract_ec_params(master, param)) {
 			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS,
@@ -285,21 +274,7 @@ EVP_PKEY *CPK_MASTER_SECRET_extract_private_key(
 
 	pkey_type = OBJ_obj2nid(master->pkey_algor->algorithm);
 
-	if (pkey_type == EVP_PKEY_DSA) {
-		DSA *dsa;
-		if (!(dsa = extract_dsa_priv_key(master, id))) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				ERR_R_CPK_LIB);
-			goto err;
-		}
-		if (!EVP_PKEY_assign_DSA(pkey, dsa)) {
-			DSA_free(dsa);
-			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
-				ERR_R_EVP_LIB);
-			goto err;
-		}
-
-	} else if (pkey_type == EVP_PKEY_EC) {
+	if (pkey_type == EVP_PKEY_EC) {
 		EC_KEY *ec_key;
 		if (!(ec_key = extract_ec_priv_key(master, id))) {
 			CPKerr(CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY,
@@ -341,21 +316,8 @@ EVP_PKEY *CPK_PUBLIC_PARAMS_extract_public_key(CPK_PUBLIC_PARAMS *param,
 
 	pkey_type = OBJ_obj2nid(param->pkey_algor->algorithm);
 
-	if (pkey_type == EVP_PKEY_DSA) {
-		DSA *dsa = NULL;
-		if (!(dsa = extract_dsa_pub_key(param, id))) {
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				ERR_R_CPK_LIB);
-			goto err;
-		}
-		if (!EVP_PKEY_assign_DSA(pkey, dsa)) {
-			DSA_free(dsa);
-			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
-				ERR_R_EVP_LIB);
-			goto err;
-		}
 
-	} else if (pkey_type == EVP_PKEY_EC) {
+	if (pkey_type == EVP_PKEY_EC) {
 		EC_KEY *ec_key = NULL;
 		if (!(ec_key = extract_ec_pub_key(param, id))) {
 			CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
@@ -477,237 +439,6 @@ err:
 	return ret;
 }
 
-/*
- * static functions
- */
-#if 0
-// FIXME: check DSA and EC_KEY
-static int X509_ALGOR_cmp(X509_ALGOR *a, X509_ALGOR *b)
-{
-	int pkey_type = OBJ_obj2nid(a->algorithm);
-	if (pkey_type != EVP_PKEY_DSA || pkey_type != EVP_PKEY_EC)
-		return 1;
-	if (a->algorithm != b->algorithm)
-		return -1;
-	return 0;
-}
-#endif
-
-static DSA *X509_ALGOR_get1_DSA(X509_ALGOR *algor)
-{
-	DSA *dsa = NULL;
-	int ptype;
-	const void *pval;
-	ASN1_OCTET_STRING *pstr;
-	const unsigned char *p;
-
-	X509_ALGOR_get0(NULL, &ptype, &pval, algor);
-	if (ptype != V_ASN1_SEQUENCE) {
-		CPKerr(CPK_F_X509_ALGOR_GET1_DSA, CPK_R_BAD_DATA);
-		return NULL;
-	}
-	pstr = (ASN1_OCTET_STRING *)pval;
-	p = pstr->data;
-	if (!(dsa = d2i_DSAparams(NULL, &p, pstr->length))) {
-		CPKerr(CPK_F_X509_ALGOR_GET1_DSA, ERR_R_DSA_LIB);
-		return NULL;
-	}
-	return dsa;
-}
-
-static int extract_dsa_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param)
-{
-	int ret = 0;
-	DSA *dsa = NULL;
-	BIGNUM *pri = BN_new();
-	BIGNUM *pub = BN_new();
-	BN_CTX *ctx = BN_CTX_new();
-	int i, pri_size, pub_size, num_factors;
-	const unsigned char *pri_ptr;
-	unsigned char *pub_ptr;
-
-	if (!pri || !pub || !ctx) {
-		goto err;
-	}
-
-	if (!(dsa = (DSA *)X509_ALGOR_get1_DSA(master->pkey_algor))) {
-		goto err;
-	}
-	pri_size = BN_num_bytes(dsa->q);
-	pub_size = BN_num_bytes(dsa->p);
-
-	if ((num_factors = CPK_MAP_num_factors(master->map_algor)) <= 0) {
-		goto err;
-	}
-	if (ASN1_STRING_length(master->secret_factors) != pri_size * num_factors) {
-		goto err;
-	}
-
-	ASN1_STRING_free(param->public_factors);
-	if (!ASN1_STRING_set(param->public_factors, NULL, pub_size * num_factors)) {
-		goto err;
-	}
-
-	pri_ptr = ASN1_STRING_data(master->secret_factors);
-	pub_ptr = ASN1_STRING_data(param->public_factors);
-	memset(pub_ptr, 0, ASN1_STRING_length(param->public_factors));
-
-	for (i = 0; i < num_factors; i++) {
-
-		if (!BN_bin2bn(pri_ptr, pri_size, pri)) {
-			goto err;
-		}
-		if (BN_is_zero(pri) || BN_cmp(pri, dsa->q) >= 0) {
-			goto err;
-		}
-
-		if (!BN_mod_exp(pub, dsa->g, pri, dsa->p, ctx)) {
-			goto err;
-		}
-		if (!BN_bn2bin(pub, pub_ptr + pub_size - BN_num_bytes(pub))) {
-			goto err;
-		}
-
-		pri_ptr += pri_size;
-		pub_ptr += pub_size;
-	}
-
-	ret = 1;
-err:
-	if (dsa) DSA_free(dsa);
-	if (pri) BN_free(pri);
-	if (pub) BN_free(pub);
-	if (ctx) BN_CTX_free(ctx);
-	return ret;
-}
-
-static DSA *extract_dsa_priv_key(CPK_MASTER_SECRET *master, const char *id)
-{
-	int e = 1;
-	DSA *dsa = NULL;
-	BIGNUM *bn = BN_new();
-	BN_CTX *ctx = BN_CTX_new();	
-	const unsigned char *p;
-	int *index = NULL;
-	int i, num_indexes, bn_size;
-
-	
-	if (!bn || !ctx) {
-		goto err;
-	}
-	if (!(dsa = X509_ALGOR_get1_DSA(master->pkey_algor))) {
-		goto err;
-	}
-	
-	if ((num_indexes = CPK_MAP_num_indexes(master->map_algor)) <= 0) {
-		goto err;
-	}
-	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
-		goto err;
-	}		
-	if (!CPK_MAP_str2index(master->map_algor, id, index)) {
-		goto err;
-	}
-	if (!dsa->priv_key) {
-		if (!(dsa->priv_key = BN_new())) {
-			goto err;
-		}
-	}
-	BN_zero(dsa->priv_key);
-	bn_size = BN_num_bytes(dsa->q);
-	
-	for (i = 0; i < num_indexes; i++) {
-		p = ASN1_STRING_data(master->secret_factors) + bn_size * index[i];
-		if (!BN_bin2bn(p, bn_size, bn)) {
-			goto err;
-		}
-		if (BN_is_zero(bn) || BN_cmp(bn, dsa->q) >= 0) {
-			goto err;
-		}
-		if (!BN_mod_add(dsa->priv_key, dsa->priv_key, bn, dsa->q, ctx)) {
-			goto err;
-		}
-	}
-	
-	if (!(dsa->pub_key))
-		if (!(dsa->pub_key = BN_new())) {
-			goto err;
-		}
-	if (!BN_mod_exp(dsa->pub_key, dsa->g, dsa->priv_key, dsa->p, ctx)) {
-		goto err;
-	}
-	e = 0;
-	
-err:
-	if (e && dsa) {
-		DSA_free(dsa);
-		dsa = NULL;
-	}
-	if (bn) BN_free(bn);
-	if (ctx) BN_CTX_free(ctx);
-	if (index) OPENSSL_free(index);
-	return dsa;
-}
-
-static DSA *extract_dsa_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
-{
-	int e = 1;
-	DSA *dsa = NULL;
-	BIGNUM *bn = BN_new();
-	BN_CTX *ctx = BN_CTX_new();	
-	const unsigned char *p;
-	int *index = NULL;
-	int i, num_indexes, bn_size;
-
-	
-	if (!bn || !ctx) {
-		goto err;
-	}
-	if (!(dsa = X509_ALGOR_get1_DSA(param->pkey_algor))) {
-		goto err;
-	}
-	
-	if ((num_indexes = CPK_MAP_num_indexes(param->map_algor)) <= 0) {
-		goto err;
-	}
-	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
-		goto err;
-	}		
-	if (!CPK_MAP_str2index(param->map_algor, id, index)) {
-		goto err;
-	}
-	if (!dsa->pub_key) {
-		if (!(dsa->pub_key = BN_new())) {
-			goto err;
-		}
-	}
-	BN_zero(dsa->pub_key);
-	bn_size = BN_num_bytes(dsa->p);
-	
-	for (i = 0; i < num_indexes; i++) {
-		p = ASN1_STRING_data(param->public_factors) + bn_size * index[i];
-		if (!BN_bin2bn(p, bn_size, bn)) {
-			goto err;
-		}
-		if (BN_is_zero(bn) || BN_cmp(bn, dsa->p) >= 0) {
-			goto err;
-		}
-		if (!BN_mod_add(dsa->pub_key, dsa->pub_key, bn, dsa->p, ctx)) {
-			goto err;
-		}
-	}
-	e = 0;
-	
-err:
-	if (e && dsa) {
-		DSA_free(dsa);
-		dsa = NULL;
-	}
-	if (bn) BN_free(bn);
-	if (ctx) BN_CTX_free(ctx);
-	if (index) OPENSSL_free(index);
-	return dsa;
-}
 
 static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor)
 {
@@ -715,9 +446,9 @@ static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor)
 	int ptype;
 	const void *pval;
 	const unsigned char *p;
-	
+
 	X509_ALGOR_get0(NULL, &ptype, &pval, algor);
-	
+
 	if (ptype == V_ASN1_SEQUENCE) {
 		ASN1_OCTET_STRING *pstr = (ASN1_OCTET_STRING *)pval;
 		p = pstr->data;
@@ -725,14 +456,14 @@ static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor)
 			CPKerr(CPK_F_X509_ALGOR_GET1_EC_KEY, ERR_R_EC_LIB);
 			return NULL;
 		}
-	
+
 	} else if (ptype == V_ASN1_OBJECT) {
 		ASN1_OBJECT *poid = (ASN1_OBJECT *)pval;
 		EC_GROUP *group;
-		if (!(ec_key = EC_KEY_new())) {	
+		if (!(ec_key = EC_KEY_new())) {
 			CPKerr(CPK_F_X509_ALGOR_GET1_EC_KEY, ERR_R_MALLOC_FAILURE);
 			return NULL;
-		}	
+		}
 		if (!(group = EC_GROUP_new_by_curve_name(OBJ_obj2nid(poid)))) {
 			EC_KEY_free(ec_key);
 			CPKerr(CPK_F_X509_ALGOR_GET1_EC_KEY, ERR_R_EC_LIB);
@@ -746,12 +477,12 @@ static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor)
 			return NULL;
 		}
 		EC_GROUP_free(group);
-	
+
 	} else {
 		CPKerr(CPK_F_X509_ALGOR_GET1_EC_KEY, CPK_R_BAD_DATA);
 		return NULL;
 	}
-	return ec_key;	
+	return ec_key;
 }
 
 static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param)
@@ -766,11 +497,11 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 	int i, bn_size, pt_size, num_factors;
 	const unsigned char *bn_ptr;
 	unsigned char *pt_ptr;
-	
+
 	if (!bn || !order || !ctx) {
 		goto err;
 	}
-	
+
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(master->pkey_algor))) {
 		goto err;
 	}
@@ -780,7 +511,7 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 	}
 	bn_size = BN_num_bytes(order);
 	pt_size = bn_size + 1;
-	
+
 	if ((num_factors = CPK_MAP_num_factors(master->map_algor)) <= 0) {
 		goto err;
 	}
@@ -790,13 +521,13 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 	if (!ASN1_STRING_set(param->public_factors, NULL, pt_size * num_factors)) {
 		goto err;
 	}
-	
+
 	bn_ptr = ASN1_STRING_data(master->secret_factors);
 	pt_ptr = ASN1_STRING_data(param->public_factors);
 	memset(pt_ptr, 0, ASN1_STRING_length(param->public_factors));
-	
+
 	if (!(pt = EC_POINT_new(ec_group))) {
-		goto err;			
+		goto err;
 	}
 	for (i = 0; i < num_factors; i++) {
 		if (!BN_bin2bn(bn_ptr, bn_size, bn)) {
@@ -808,17 +539,17 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 		if (!EC_POINT_mul(ec_group, pt, bn, NULL, NULL, ctx)) {
 			goto err;
 		}
-		
-		if (!EC_POINT_point2oct(ec_group, pt, 
+
+		if (!EC_POINT_point2oct(ec_group, pt,
 			POINT_CONVERSION_COMPRESSED, pt_ptr, pt_size, ctx)) {
 			goto err;
 		}
 		bn_ptr += bn_size;
 		pt_ptr += pt_size;
 	}
-	
+
 	ret = 1;
-err:	
+err:
 	if (ec_key) EC_KEY_free(ec_key);
 	if (bn) BN_free(bn);
 	if (order) BN_free(order);
@@ -826,8 +557,6 @@ err:
 	if (pt) EC_POINT_free(pt);
 	return ret;
 }
-
-
 
 static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 {
@@ -842,11 +571,11 @@ static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 	int *index = NULL;
 	int i, num_indexes, bn_size;
 
-	
+
 	if (!priv_key || !bn || !order || !ctx) {
 		goto err;
 	}
-	
+
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(master->pkey_algor))) {
 		goto err;
 	}
@@ -860,17 +589,17 @@ static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
 		goto err;
-	}		
+	}
 	if (!CPK_MAP_str2index(master->map_algor, id, index)) {
 		goto err;
 	}
-	
+
 	BN_zero(priv_key);
 	if (!(EC_GROUP_get_order(EC_KEY_get0_group(ec_key), order, ctx))) {
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
-	
+
 	for (i = 0; i < num_indexes; i++) {
 		const unsigned char *p = 
 			ASN1_STRING_data(master->secret_factors) + 
@@ -897,7 +626,7 @@ static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 		goto err;
 	}
 	e = 0;
-	
+
 err:
 	if (e && ec_key) {
 		EC_KEY_free(ec_key);
@@ -924,12 +653,12 @@ static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 	BN_CTX *ctx = BN_CTX_new();
 	int *index = NULL;
 	int i, bn_size, pt_size, num_indexes, num_factors;
-	
+
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(param->pkey_algor))) {
-		goto err;		
+		goto err;
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
-	
+
 	if (!(pub_key = EC_POINT_new(ec_group))) {
 		goto err;
 	}
@@ -953,7 +682,7 @@ static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
 		goto err;
-	}		
+	}
 	if (!CPK_MAP_str2index(param->map_algor, id, index)) {
 		goto err;
 	}
@@ -962,9 +691,9 @@ static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 		goto err;
 	}
 	for (i = 0; i < num_indexes; i++) {
-		const unsigned char *p = 
-			ASN1_STRING_data(param->public_factors) + 
-			pt_size * index[i];		
+		const unsigned char *p =
+			ASN1_STRING_data(param->public_factors) +
+			pt_size * index[i];
 
 		if (!EC_POINT_oct2point(ec_group, pt, p, pt_size, ctx)) {
 			goto err;
@@ -990,5 +719,3 @@ err:
 	if (index) OPENSSL_free(index);
 	return ec_key;
 }
-
-

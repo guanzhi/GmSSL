@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2007 - 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,45 +46,25 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * this file is to implement elliptic curve operations over extension
- * fields
- */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <openssl/bn.h>
+
 #include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/asn1.h>
+#include <openssl/x509.h>
+#include <openssl/ossl_typ.h>
 
 
-typedef struct {
-	int security_bits;
-	int n_bits;
-	int p_bits;
-	int q_bits;
-} PAIRING_SEC;
-
-static PAIRING_SEC sec_tbl[] = {
-	/* k    |n|   |p|  |q| */
-	{ 80,  1024,  512, 160},
-	{112,  2048, 1024, 224},
-	{128,  3072, 1536, 256},
-	{192,  7680, 3840, 384},
-	{256, 15360, 7680, 512}
+struct cpk_master_secret_st {
+	long version;
+	X509_NAME *id;
+	X509_ALGOR *pkey_algor;
+	X509_ALGOR *map_algor;
+	ASN1_OCTET_STRING *secret_factors;
 };
 
-const EVP_MD *PAIRING_nbits_to_md(int nbits)
-{
-	switch (nbits) {
-	case 1024: return EVP_sha1();
-	case 2048: return EVP_sha224();
-	case 3072: return EVP_sha256();
-	case 7680: return EVP_sha384();
-	case 15360: return EVP_sha512();
-	}
-	return NULL;
-}
-
+struct cpk_public_params_st {
+	long version;
+	X509_NAME *id;
+	X509_ALGOR *pkey_algor;
+	X509_ALGOR *map_algor;
+	ASN1_OCTET_STRING *public_factors;
+};

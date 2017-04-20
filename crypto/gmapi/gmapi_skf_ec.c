@@ -250,27 +250,27 @@ end:
 	return ret;
 }
 
-SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECCCIPHERBLOB(
+SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCIPHERBLOB(
 	const ECCCIPHERBLOB *blob)
 {
 	int ok = 0;
-	SM2_CIPHERTEXT_VALUE *ret = NULL;
+	SM2CiphertextValue *ret = NULL;
 	EC_GROUP *group = NULL;
 
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHERBLOB,
 			ERR_R_EC_LIB);
 		goto end;
 	}
 
-	if (!(ret = SM2_CIPHERTEXT_VALUE_new(group))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHERBLOB,
+	if (!(ret = SM2CiphertextValue_new(group))) {
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHERBLOB,
 			GMAPI_R_MALLOC_FAILED);
 		goto end;
 	}
 
-	if (!SM2_CIPHERTEXT_VALUE_set_ECCCIPHERBLOB(ret, blob)) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHERBLOB,
+	if (!SM2CiphertextValue_set_ECCCIPHERBLOB(ret, blob)) {
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHERBLOB,
 			GMAPI_R_INVALID_EC_PUBLIC_KEY);
 		goto end;
 	}
@@ -279,14 +279,14 @@ SM2_CIPHERTEXT_VALUE *SM2_CIPHERTEXT_VALUE_new_from_ECCCIPHERBLOB(
 
 end:
 	if (!ok) {
-		SM2_CIPHERTEXT_VALUE_free(ret);
+		SM2CiphertextValue_free(ret);
 		ret = NULL;
 	}
 	EC_GROUP_free(group);
 	return ret;
 }
 
-int SM2_CIPHERTEXT_VALUE_set_ECCCIPHERBLOB(SM2_CIPHERTEXT_VALUE *cv,
+int SM2CiphertextValue_set_ECCCIPHERBLOB(SM2CiphertextValue *cv,
 	const ECCCIPHERBLOB *blob)
 {
 	int ret = 0;
@@ -297,45 +297,45 @@ int SM2_CIPHERTEXT_VALUE_set_ECCCIPHERBLOB(SM2_CIPHERTEXT_VALUE *cv,
 	int nbytes;
 
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB,
 			ERR_R_EC_LIB);
 		return 0;
 	}
 
 	nbytes = (EC_GROUP_get_degree(group) + 7)/8;
 	if (nbytes > ECC_MAX_XCOORDINATE_BITS_LEN/8) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB,
 			GMAPI_R_INVALID_KEY_LENGTH);
 		goto end;
 	}
 
 	if (!(x = BN_bin2bn(blob->XCoordinate, nbytes, NULL))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!(y = BN_bin2bn(blob->YCoordinate, nbytes, NULL))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!(bn_ctx = BN_CTX_new())) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	if (!cv->ephem_point) {
 		if (!(cv->ephem_point = EC_POINT_new(group))) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_set_affine_coordinates_GFp(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else  {
 		if (!EC_POINT_get_affine_coordinates_GF2m(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
@@ -344,12 +344,12 @@ int SM2_CIPHERTEXT_VALUE_set_ECCCIPHERBLOB(SM2_CIPHERTEXT_VALUE *cv,
 	cv->mactag_size = 32;
 
 	if ((cv->ciphertext_size = blob->CipherLen) <= 0) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB,
 			GMAPI_R_INVALID_CIPHERTEXT_LENGTH);
 		goto end;
 	}
 	if (!(cv->ciphertext = OPENSSL_realloc(cv->ciphertext, blob->CipherLen))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_SET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHERBLOB,
 			GMAPI_R_MALLOC_FAILED);
 		goto end;
 	}
@@ -365,7 +365,7 @@ end:
 	return ret;
 }
 
-int SM2_CIPHERTEXT_VALUE_get_ECCCIPHERBLOB(const SM2_CIPHERTEXT_VALUE *cv,
+int SM2CiphertextValue_get_ECCCIPHERBLOB(const SM2CiphertextValue *cv,
 	ECCCIPHERBLOB *blob)
 {
 	int ret = 0;
@@ -375,7 +375,7 @@ int SM2_CIPHERTEXT_VALUE_get_ECCCIPHERBLOB(const SM2_CIPHERTEXT_VALUE *cv,
 	BN_CTX *bn_ctx = NULL;
 
 	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB, ERR_R_EC_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB, ERR_R_EC_LIB);
 		return 0;
 	}
 
@@ -383,45 +383,45 @@ int SM2_CIPHERTEXT_VALUE_get_ECCCIPHERBLOB(const SM2_CIPHERTEXT_VALUE *cv,
 	y = BN_new();
 	bn_ctx = BN_CTX_new();
 	if (!x || !y || !bn_ctx) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
 		if (!EC_POINT_get_affine_coordinates_GFp(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else  {
 		if (!EC_POINT_get_affine_coordinates_GF2m(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB, ERR_R_EC_LIB);
+			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 
 	if ((BN_num_bytes(x) > 256/8) || (BN_num_bytes(y) > 256/8)) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB,
 			GMAPI_R_INVALID_CIPHERTEXT_POINT);
 		goto end;
 	}
 	if (!BN_bn2bin(x, blob->XCoordinate + 256/8 - BN_num_bytes(x))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!BN_bn2bin(y, blob->YCoordinate + 256/8 - BN_num_bytes(y))) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB, ERR_R_BN_LIB);
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	if (cv->mactag_size != 32) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB,
 			GMAPI_R_INVALID_CIPHERTEXT_MAC);
 		goto end;
 	}
 	memcpy(blob->HASH, cv->mactag, cv->mactag_size);
 
 	if (cv->ciphertext_size <= 0) {
-		GMAPIerr(GMAPI_F_SM2_CIPHERTEXT_VALUE_GET_ECCCIPHERBLOB,
+		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHERBLOB,
 			GMAPI_R_INVALID_CIPHERTEXT_LENGTH);
 		goto end;
 	}

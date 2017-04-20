@@ -68,7 +68,15 @@
 #define SSL_ENC_AES256CCM8_IDX  17
 #define SSL_ENC_GOST8912_IDX    18
 #define SSL_ENC_CHACHA_IDX      19
-#define SSL_ENC_NUM_IDX         20
+#define SSL_ENC_SMS4_IDX        20
+#define SSL_ENC_SMS4GCM_IDX     21
+#define SSL_ENC_SMS4CCM_IDX     22
+#define SSL_ENC_SMS4CCM8_IDX    23
+#define SSL_ENC_ZUC_IDX         24
+#define SSL_ENC_SM1_IDX         25
+#define SSL_ENC_SSF33_IDX       26
+#define SSL_ENC_NUM_IDX         27
+
 
 /* NB: make sure indices in these tables match values above */
 
@@ -97,13 +105,20 @@ static const ssl_cipher_table ssl_cipher_table_cipher[SSL_ENC_NUM_IDX] = {
     {SSL_AES256CCM, NID_aes_256_ccm}, /* SSL_ENC_AES256CCM_IDX 15 */
     {SSL_AES128CCM8, NID_aes_128_ccm}, /* SSL_ENC_AES128CCM8_IDX 16 */
     {SSL_AES256CCM8, NID_aes_256_ccm}, /* SSL_ENC_AES256CCM8_IDX 17 */
-    {SSL_eGOST2814789CNT12, NID_gost89_cnt_12}, /* SSL_ENC_GOST8912_IDX */
-    {SSL_CHACHA20POLY1305, NID_chacha20_poly1305},
+    {SSL_eGOST2814789CNT12, NID_gost89_cnt_12}, /* SSL_ENC_GOST8912_IDX 18 */
+    {SSL_CHACHA20POLY1305, NID_chacha20_poly1305}, /* SSL_ENC_CHACHA_IDX 19 */
+    {SSL_SMS4, NID_sms4_cbc}, /* SSL_ENC_SMS4_IDX 20 */
+    {SSL_SMS4GCM, NID_sms4_gcm}, /* SSL_ENC_SMS4GCM_IDX 21 */
+    {SSL_SMS4CCM, NID_sms4_ccm}, /* SSL_ENC_SMS4CCM_IDX 22 */
+    {SSL_SMS4CCM8, NID_sms4_ccm}, /* SSL_ENC_SMS4CCM8_IDX 23 */
+    {SSL_ZUC, NID_zuc}, /* SSL_ENC_ZUC_IDX 24 */
+    {SSL_SM1, NID_sm1_cbc}, /* SSL_ENC_SM1_IDX 25 */
+    {SSL_SSF33, NID_ssf33_cbc}, /* SSL_ENC_SSF33_IDX 26 */
 };
 
 static const EVP_CIPHER *ssl_cipher_methods[SSL_ENC_NUM_IDX] = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 #define SSL_COMP_NULL_IDX       0
@@ -136,11 +151,13 @@ static const ssl_cipher_table ssl_cipher_table_mac[SSL_MD_NUM_IDX] = {
     {SSL_GOST12_512, NID_id_GostR3411_2012_512}, /* SSL_MD_GOST12_512_IDX 8 */
     {0, NID_md5_sha1},          /* SSL_MD_MD5_SHA1_IDX 9 */
     {0, NID_sha224},            /* SSL_MD_SHA224_IDX 10 */
-    {0, NID_sha512}             /* SSL_MD_SHA512_IDX 11 */
+    {0, NID_sha512},            /* SSL_MD_SHA512_IDX 11 */
+    {SSL_SM3, NID_sm3},         /* SSL_MD_SM3_IDX 12 */
 };
 
 static const EVP_MD *ssl_digest_methods[SSL_MD_NUM_IDX] = {
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL
 };
 
 /* *INDENT-OFF* */
@@ -153,7 +170,8 @@ static const ssl_cipher_table ssl_cipher_table_kx[] = {
     {SSL_kRSAPSK,   NID_kx_rsa_psk},
     {SSL_kPSK,      NID_kx_psk},
     {SSL_kSRP,      NID_kx_srp},
-    {SSL_kGOST,     NID_kx_gost}
+    {SSL_kGOST,     NID_kx_gost},
+    {SSL_kSM2,      NID_kx_sm2},
 };
 
 static const ssl_cipher_table ssl_cipher_table_auth[] = {
@@ -164,7 +182,8 @@ static const ssl_cipher_table ssl_cipher_table_auth[] = {
     {SSL_aGOST01, NID_auth_gost01},
     {SSL_aGOST12, NID_auth_gost12},
     {SSL_aSRP,    NID_auth_srp},
-    {SSL_aNULL,   NID_auth_null}
+    {SSL_aNULL,   NID_auth_null},
+    {SSL_aSM2,    NID_auth_sm2},
 };
 /* *INDENT-ON* */
 
@@ -195,6 +214,8 @@ static int ssl_mac_pkey_id[SSL_MD_NUM_IDX] = {
     EVP_PKEY_HMAC, EVP_PKEY_HMAC, EVP_PKEY_HMAC, NID_undef,
     /* GOST2012_512 */
     EVP_PKEY_HMAC,
+    /* SM3 */
+    EVP_PKEY_HMAC,        
 };
 
 static int ssl_mac_secret_size[SSL_MD_NUM_IDX];
@@ -404,9 +425,10 @@ void ssl_load_ciphers(void)
         }
     }
     /* Make sure we can access MD5 and SHA1 */
+						
     OPENSSL_assert(ssl_digest_methods[SSL_MD_MD5_IDX] != NULL);
     OPENSSL_assert(ssl_digest_methods[SSL_MD_SHA1_IDX] != NULL);
-
+						
     disabled_mkey_mask = 0;
     disabled_auth_mask = 0;
 
@@ -423,6 +445,9 @@ void ssl_load_ciphers(void)
 #ifdef OPENSSL_NO_EC
     disabled_mkey_mask |= SSL_kECDHEPSK;
     disabled_auth_mask |= SSL_aECDSA;
+# ifdef OPENSSL_NO_GMTLS
+   /* do something */
+# endif
 #endif
 #ifdef OPENSSL_NO_PSK
     disabled_mkey_mask |= SSL_PSK;
@@ -1573,6 +1598,9 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_kGOST:
         kx = "GOST";
         break;
+    case SSL_kSM2:
+        kx = "SM2";
+        break;
     default:
         kx = "unknown";
     }
@@ -1602,6 +1630,9 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
         /* New GOST ciphersuites have both SSL_aGOST12 and SSL_aGOST01 bits */
     case (SSL_aGOST12 | SSL_aGOST01):
         au = "GOST12";
+        break;
+    case SSL_aSM2:
+        au = "SM2";
         break;
     default:
         au = "unknown";
@@ -1667,6 +1698,27 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_CHACHA20POLY1305:
         enc = "CHACHA20/POLY1305(256)";
         break;
+    case SSL_SMS4:
+        enc = "SMS4(128)";
+        break;
+    case SSL_SMS4GCM:
+        enc = "SMS4GCM(128)";
+        break;
+    case SSL_SMS4CCM:
+        enc = "SMS4CCM(128)";
+        break;
+    case SSL_SMS4CCM8:
+        enc = "SMS4CCM8(128)";
+        break;
+    case SSL_ZUC:
+        enc = "ZUC(128)";
+        break;
+    case SSL_SM1:
+        enc = "SM1(128)";
+        break;
+    case SSL_SSF33:
+        enc = "SSF33(128)";
+        break;
     default:
         enc = "unknown";
         break;
@@ -1699,6 +1751,9 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_GOST12_512:
         mac = "GOST2012";
         break;
+    case SSL_SM3:
+        mac = "SM3";
+        break;
     default:
         mac = "unknown";
         break;
@@ -1714,7 +1769,7 @@ const char *SSL_CIPHER_get_version(const SSL_CIPHER *c)
     if (c == NULL)
         return "(NONE)";
 
-    /*
+    /*                     
      * Backwards-compatibility crutch.  In almost all contexts we report TLS
      * 1.0 as "TLSv1", but for ciphers we report "TLSv1.0".
      */
@@ -1903,6 +1958,8 @@ int ssl_cipher_get_cert_index(const SSL_CIPHER *c)
         return SSL_PKEY_GOST_EC;
     else if (alg_a & SSL_aGOST01)
         return SSL_PKEY_GOST01;
+    else if (alg_a & SSL_aSM2)
+        return SSL_PKEY_ECC;
 
     return -1;
 }

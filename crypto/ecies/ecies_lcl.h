@@ -50,6 +50,12 @@
 #include <string.h>
 #include <openssl/ecies.h>
 
+struct ecies_ciphertext_value_st {
+	ASN1_OCTET_STRING *ephem_point;
+	ASN1_OCTET_STRING *ciphertext;
+	ASN1_OCTET_STRING *mactag;
+};
+
 int gmssl_ecies_encrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 int gmssl_ecies_decrypt(int type, const unsigned char *in, size_t inlen,

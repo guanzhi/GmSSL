@@ -4548,6 +4548,10 @@
 #define LN_kx_gost              "kx-gost"
 #define NID_kx_gost             1045
 
+#define SN_kx_sm2               "KxSM2"
+#define LN_kx_sm2               "kx-sm2"
+#define NID_kx_sm2              1186
+
 #define SN_auth_rsa             "AuthRSA"
 #define LN_auth_rsa             "auth-rsa"
 #define NID_auth_rsa            1046
@@ -4579,6 +4583,10 @@
 #define SN_auth_null            "AuthNULL"
 #define LN_auth_null            "auth-null"
 #define NID_auth_null           1053
+
+#define SN_auth_sm2             "AuthSM2"
+#define LN_auth_sm2             "auth-sm2"
+#define NID_auth_sm2            1187
 
 #define SN_ecies_recommendedParameters          "ecies-recommendedParameters"
 #define NID_ecies_recommendedParameters         1063
@@ -4655,6 +4663,74 @@
 #define SN_cmac_aes256_ecies            "cmac-aes256-ecies"
 #define NID_cmac_aes256_ecies           1081
 #define OBJ_cmac_aes256_ecies           OBJ_secg_scheme,24L,2L
+
+#define SN_ecies_with_x9_63_sha1_xor_hmac               "ecies-with-x9-63-sha1-xor-hmac"
+#define NID_ecies_with_x9_63_sha1_xor_hmac              1169
+#define OBJ_ecies_with_x9_63_sha1_xor_hmac              OBJ_ecies_specifiedParameters,1L
+
+#define SN_ecies_with_x9_63_sha256_xor_hmac             "ecies-with-x9-63-sha256-xor-hmac"
+#define NID_ecies_with_x9_63_sha256_xor_hmac            1170
+#define OBJ_ecies_with_x9_63_sha256_xor_hmac            OBJ_ecies_specifiedParameters,2L
+
+#define SN_ecies_with_x9_63_sha512_xor_hmac             "ecies-with-x9-63-sha512-xor-hmac"
+#define NID_ecies_with_x9_63_sha512_xor_hmac            1171
+#define OBJ_ecies_with_x9_63_sha512_xor_hmac            OBJ_ecies_specifiedParameters,3L
+
+#define SN_ecies_with_x9_63_sha1_aes128_cbc_hmac                "ecies-with-x9-63-sha1-aes128-cbc-hmac"
+#define NID_ecies_with_x9_63_sha1_aes128_cbc_hmac               1172
+#define OBJ_ecies_with_x9_63_sha1_aes128_cbc_hmac               OBJ_ecies_specifiedParameters,4L
+
+#define SN_ecies_with_x9_63_sha256_aes128_cbc_hmac              "ecies-with-x9-63-sha256-aes128-cbc-hmac"
+#define NID_ecies_with_x9_63_sha256_aes128_cbc_hmac             1173
+#define OBJ_ecies_with_x9_63_sha256_aes128_cbc_hmac             OBJ_ecies_specifiedParameters,5L
+
+#define SN_ecies_with_x9_63_sha512_aes256_cbc_hmac              "ecies-with-x9-63-sha512-aes256-cbc-hmac"
+#define NID_ecies_with_x9_63_sha512_aes256_cbc_hmac             1174
+#define OBJ_ecies_with_x9_63_sha512_aes256_cbc_hmac             OBJ_ecies_specifiedParameters,6L
+
+#define SN_ecies_with_x9_63_sha256_aes128_ctr_hmac              "ecies-with-x9-63-sha256-aes128-ctr-hmac"
+#define NID_ecies_with_x9_63_sha256_aes128_ctr_hmac             1175
+#define OBJ_ecies_with_x9_63_sha256_aes128_ctr_hmac             OBJ_ecies_specifiedParameters,7L
+
+#define SN_ecies_with_x9_63_sha512_aes256_ctr_hmac              "ecies-with-x9-63-sha512-aes256-ctr-hmac"
+#define NID_ecies_with_x9_63_sha512_aes256_ctr_hmac             1176
+#define OBJ_ecies_with_x9_63_sha512_aes256_ctr_hmac             OBJ_ecies_specifiedParameters,8L
+
+#define SN_ecies_with_x9_63_sha256_aes128_cbc_hmac_half         "ecies-with-x9-63-sha256-aes128-cbc-hmac-half"
+#define NID_ecies_with_x9_63_sha256_aes128_cbc_hmac_half                1177
+#define OBJ_ecies_with_x9_63_sha256_aes128_cbc_hmac_half                OBJ_ecies_specifiedParameters,9L
+
+#define SN_ecies_with_x9_63_sha512_aes256_cbc_hmac_half         "ecies-with-x9-63-sha512-aes256-cbc-hmac-half"
+#define NID_ecies_with_x9_63_sha512_aes256_cbc_hmac_half                1178
+#define OBJ_ecies_with_x9_63_sha512_aes256_cbc_hmac_half                OBJ_ecies_specifiedParameters,10L
+
+#define SN_ecies_with_x9_63_sha256_aes128_ctr_hmac_half         "ecies-with-x9-63-sha256-aes128-ctr-hmac-half"
+#define NID_ecies_with_x9_63_sha256_aes128_ctr_hmac_half                1179
+#define OBJ_ecies_with_x9_63_sha256_aes128_ctr_hmac_half                OBJ_ecies_specifiedParameters,11L
+
+#define SN_ecies_with_x9_63_sha512_aes256_ctr_hmac_half         "ecies-with-x9-63-sha512-aes256-ctr-hmac-half"
+#define NID_ecies_with_x9_63_sha512_aes256_ctr_hmac_half                1180
+#define OBJ_ecies_with_x9_63_sha512_aes256_ctr_hmac_half                OBJ_ecies_specifiedParameters,12L
+
+#define SN_ecies_with_x9_63_sha1_aes128_cbc_cmac                "ecies-with-x9-63-sha1-aes128-cbc-cmac"
+#define NID_ecies_with_x9_63_sha1_aes128_cbc_cmac               1181
+#define OBJ_ecies_with_x9_63_sha1_aes128_cbc_cmac               OBJ_ecies_specifiedParameters,13L
+
+#define SN_ecies_with_x9_63_sha256_aes128_cbc_cmac              "ecies-with-x9-63-sha256-aes128-cbc-cmac"
+#define NID_ecies_with_x9_63_sha256_aes128_cbc_cmac             1182
+#define OBJ_ecies_with_x9_63_sha256_aes128_cbc_cmac             OBJ_ecies_specifiedParameters,14L
+
+#define SN_ecies_with_x9_63_sha512_aes256_cbc_cmac              "ecies-with-x9-63-sha512-aes256-cbc-cmac"
+#define NID_ecies_with_x9_63_sha512_aes256_cbc_cmac             1183
+#define OBJ_ecies_with_x9_63_sha512_aes256_cbc_cmac             OBJ_ecies_specifiedParameters,15L
+
+#define SN_ecies_with_x9_63_sha256_aes128_ctr_cmac              "ecies-with-x9-63-sha256-aes128-ctr-cmac"
+#define NID_ecies_with_x9_63_sha256_aes128_ctr_cmac             1184
+#define OBJ_ecies_with_x9_63_sha256_aes128_ctr_cmac             OBJ_ecies_specifiedParameters,16L
+
+#define SN_ecies_with_x9_63_sha512_aes256_ctr_cmac              "ecies-with-x9-63-sha512-aes256-ctr-cmac"
+#define NID_ecies_with_x9_63_sha512_aes256_ctr_cmac             1185
+#define OBJ_ecies_with_x9_63_sha512_aes256_ctr_cmac             OBJ_ecies_specifiedParameters,17L
 
 #define SN_ISO_CN               "ISO-CN"
 #define LN_ISO_CN               "ISO CN Member Body"
@@ -4839,6 +4915,10 @@
 #define NID_sm2encrypt          1119
 #define OBJ_sm2encrypt          OBJ_sm_scheme,301L,3L
 
+#define SN_wapip192v1           "wapip192v1"
+#define NID_wapip192v1          1135
+#define OBJ_wapip192v1          OBJ_sm_scheme,301L,101L
+
 #define SN_sm2encrypt_recommendedParameters             "sm2encrypt-recommendedParameters"
 #define NID_sm2encrypt_recommendedParameters            1120
 #define OBJ_sm2encrypt_recommendedParameters            OBJ_sm2encrypt,1L
@@ -4846,6 +4926,50 @@
 #define SN_sm2encrypt_specifiedParameters               "sm2encrypt-specifiedParameters"
 #define NID_sm2encrypt_specifiedParameters              1121
 #define OBJ_sm2encrypt_specifiedParameters              OBJ_sm2encrypt,2L
+
+#define SN_sm2encrypt_with_sm3          "sm2encrypt-with-sm3"
+#define NID_sm2encrypt_with_sm3         1155
+#define OBJ_sm2encrypt_with_sm3         OBJ_sm2encrypt,2L,1L
+
+#define SN_sm2encrypt_with_sha1         "sm2encrypt-with-sha1"
+#define NID_sm2encrypt_with_sha1                1156
+#define OBJ_sm2encrypt_with_sha1                OBJ_sm2encrypt,2L,2L
+
+#define SN_sm2encrypt_with_sha224               "sm2encrypt-with-sha224"
+#define NID_sm2encrypt_with_sha224              1157
+#define OBJ_sm2encrypt_with_sha224              OBJ_sm2encrypt,2L,3L
+
+#define SN_sm2encrypt_with_sha256               "sm2encrypt-with-sha256"
+#define NID_sm2encrypt_with_sha256              1158
+#define OBJ_sm2encrypt_with_sha256              OBJ_sm2encrypt,2L,4L
+
+#define SN_sm2encrypt_with_sha384               "sm2encrypt-with-sha384"
+#define NID_sm2encrypt_with_sha384              1159
+#define OBJ_sm2encrypt_with_sha384              OBJ_sm2encrypt,2L,5L
+
+#define SN_sm2encrypt_with_sha512               "sm2encrypt-with-sha512"
+#define NID_sm2encrypt_with_sha512              1160
+#define OBJ_sm2encrypt_with_sha512              OBJ_sm2encrypt,2L,6L
+
+#define SN_sm2encrypt_with_rmd160               "sm2encrypt-with-rmd160"
+#define NID_sm2encrypt_with_rmd160              1161
+#define OBJ_sm2encrypt_with_rmd160              OBJ_sm2encrypt,2L,7L
+
+#define SN_sm2encrypt_with_whirlpool            "sm2encrypt-with-whirlpool"
+#define NID_sm2encrypt_with_whirlpool           1162
+#define OBJ_sm2encrypt_with_whirlpool           OBJ_sm2encrypt,2L,8L
+
+#define SN_sm2encrypt_with_blake2b512           "sm2encrypt-with-blake2b512"
+#define NID_sm2encrypt_with_blake2b512          1163
+#define OBJ_sm2encrypt_with_blake2b512          OBJ_sm2encrypt,2L,9L
+
+#define SN_sm2encrypt_with_blake2s256           "sm2encrypt-with-blake2s256"
+#define NID_sm2encrypt_with_blake2s256          1164
+#define OBJ_sm2encrypt_with_blake2s256          OBJ_sm2encrypt,2L,10L
+
+#define SN_sm2encrypt_with_md5          "sm2encrypt-with-md5"
+#define NID_sm2encrypt_with_md5         1165
+#define OBJ_sm2encrypt_with_md5         OBJ_sm2encrypt,2L,11L
 
 #define SN_id_sm9PublicKey              "id-sm9PublicKey"
 #define NID_id_sm9PublicKey             1122
@@ -4908,9 +5032,20 @@
 #define NID_sm2sign_with_rmd160         1134
 #define OBJ_sm2sign_with_rmd160         OBJ_sm_scheme,507L
 
-#define SN_wapip192v1           "wapip192v1"
-#define NID_wapip192v1          1135
-#define OBJ_wapip192v1          OBJ_sm_scheme,301L,101L
+#define SN_sm2sign_with_whirlpool               "SM2Sign-with-Whirlpool"
+#define LN_sm2sign_with_whirlpool               "sm2sign-with-whirlpool"
+#define NID_sm2sign_with_whirlpool              1166
+#define OBJ_sm2sign_with_whirlpool              OBJ_sm_scheme,520L
+
+#define SN_sm2sign_with_blake2b512              "SM2Sign-with-Blake2b512"
+#define LN_sm2sign_with_blake2b512              "sm2sign-with-blake2b512"
+#define NID_sm2sign_with_blake2b512             1167
+#define OBJ_sm2sign_with_blake2b512             OBJ_sm_scheme,521L
+
+#define SN_sm2sign_with_blake2s256              "SM2Sign-with-Blake2s256"
+#define LN_sm2sign_with_blake2s256              "sm2sign-with-blake2s256"
+#define NID_sm2sign_with_blake2s256             1168
+#define OBJ_sm2sign_with_blake2s256             OBJ_sm_scheme,522L
 
 #define SN_zuc          "ZUC"
 #define LN_zuc          "zuc"

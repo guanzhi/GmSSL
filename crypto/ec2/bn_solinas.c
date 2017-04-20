@@ -60,6 +60,16 @@
  * use it for fast check of solinas
  */
 
+#define BN_SOLINAS_192V1	0
+#define BN_SOLINAS_192V2	1
+#define BN_SOLINAS_224V1	2
+#define BN_SOLINAS_256V1	3
+#define BN_SOLINAS_384V1	4
+#define BN_SOLINAS_512V1	5
+#define BN_SOLINAS_512V2	6
+#define BN_SOLINAS_1024V1	7
+#define BN_SOLINAS_1024V2	8
+
 static BN_SOLINAS BN_solinas_table[] = {
 	{ 192, 16, -1, -1 },
 	{ 192, 64, -1, -1 },
@@ -92,7 +102,6 @@ static BN_SOLINAS BN_solinas_table[] = {
  *   0xfffffffffbfffffffffffffffffffffffff
  */
 
-
 int BN_bn2solinas(const BIGNUM *bn, BN_SOLINAS *solinas)
 {
 	int ret = 0;
@@ -115,6 +124,7 @@ int BN_bn2solinas(const BIGNUM *bn, BN_SOLINAS *solinas)
 	}
 
 	solinas->c = BN_is_bit_set(bn, 1) ? 1 : -1;
+
 	if (BN_is_bit_set(bn, nbits - 1)) {
 		solinas->s = -1;
 		solinas->a = nbits;
@@ -133,10 +143,16 @@ end:
 int BN_solinas2bn(const BN_SOLINAS *solinas, BIGNUM *bn)
 {
 	int ret = 0;
-#if 0
 	BIGNUM *tmp = NULL;
-	if (b <= 0 || a <= b || (s != 1 && s != -1) ||
-		(c != 1 && c != -1)) {
+
+	if (!solinas || !bn) {
+		BNerr(BN_F_BN_SOLINAS2BN, ERR_R_MALLOC_FAILURE);
+		return 0;
+	}
+
+	if (solinas->b <= 0 || solinas->a <= solinas->b
+		|| (solinas->s != 1 && solinas->s != -1)
+		|| (solinas->c != 1 && solinas->c != -1)) {
 		BNerr(BN_F_BN_SOLINAS2BN, BN_R_INVALID_SOLINAS_PARAMETERS);
 		return 0;
 	}
@@ -148,36 +164,38 @@ int BN_solinas2bn(const BN_SOLINAS *solinas, BIGNUM *bn)
 
 	BN_one(tmp);
 
-	if (!BN_lshift(solinas, tmp, a)) {
+	if (!BN_lshift(bn, tmp, solinas->a)) {
 		BNerr(BN_F_BN_SOLINAS2BN, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!BN_lshift(tmp, tmp, b)) {
+
+	if (!BN_lshift(tmp, tmp, solinas->b)) {
 		BNerr(BN_F_BN_SOLINAS2BN, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!BN_add_word(tmp, c)) {
+
+	if (!BN_add_word(tmp, solinas->c)) {
 		BNerr(BN_F_BN_SOLINAS2BN, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (s > 0) {
-		if (!BN_add(solinas, solinas, tmp)) {
+
+	if (solinas->s > 0) {
+		if (!BN_add(bn, bn, tmp)) {
 			BNerr(BN_F_BN_SOLINAS2BN, ERR_R_BN_LIB);
 			goto end;
 		}
 	} else {
-		if (!BN_sub(solinas, solinas, tmp)) {
+		if (!BN_sub(bn, bn, tmp)) {
 			BNerr(BN_F_BN_SOLINAS2BN, ERR_R_BN_LIB);
 			goto end;
 		}
 	}
 
-	/* check if solinas is a prime */
+	/* check if it is a prime */
 
 	ret = 1;
 end:
 	BN_free(tmp);
-#endif
 	return ret;
 }
 
@@ -191,3 +209,7 @@ int BN_is_solinas(const BIGNUM *a)
 	return 0;
 }
 
+BN_SOLINAS *BN_get_solinas(int index)
+{
+	return NULL;
+}

@@ -50,6 +50,7 @@
 #ifndef HEADER_GMSKF_H
 #define HEADER_GMSKF_H
 
+#include <stdio.h>
 #include <openssl/sgd.h>
 #include <openssl/skf.h>
 

@@ -81,7 +81,6 @@ static int compute_key(void *out, size_t outlen,
 		{
 			if (KDF(&q.x, xlen, out, &outlen) == NULL)
 			{
-				ECDHerr(ECDH_F_ECDH_COMPUTE_KEY,ECDH_R_KDF_FAILED);
 				return -1;
 			}
 			ret = outlen;

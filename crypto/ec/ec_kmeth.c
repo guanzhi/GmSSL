@@ -28,10 +28,10 @@ static const EC_KEY_METHOD openssl_ec_key_method = {
     ossl_ecdsa_verify,
     ossl_ecdsa_verify_sig,
 #ifndef OPENSSL_NO_SM2
-    gmssl_ecies_encrypt,
-    gmssl_ecies_do_encrypt,
-    gmssl_ecies_decrypt,
-    gmssl_ecies_do_decrypt,
+    ECIES_encrypt,
+    NULL,
+    ECIES_decrypt,
+    NULL,
 #endif
 };
 

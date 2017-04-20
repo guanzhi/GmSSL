@@ -61,6 +61,7 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
+#include <openssl/sm2.h>
 
 int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 	int inlen, EVP_PKEY *pkey)
