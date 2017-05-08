@@ -130,5 +130,20 @@ func (pkey *PublicKey) Verify(scheme string, args map[string]string, data, signa
 }
 
 func (pkey *PrivateKey) DeriveKey(scheme string, args map[string]string, publicKey PublicKey) ([]byte, error) {
+	ctx := C.EVP_PKEY_CTX_new(pkey.pkey, nil)
+	if ctx == nil {
+		return nil, errors.New("Failure")
+	}
+	if 1 != C.EVP_PKEY_derive_init(ctx) {
+	}
+	/*
+	if 1 != C.EVP_PKEY_derive_set_peer(ctx, PublicKey.pkey) {
+	}
+	*/
+
+	outbuf := make([]byte, C.EVP_PKEY_size(pkey.pkey))
+	outlen := C.size_t(len(outbuf))
+	if 1 != C.EVP_PKEY_derive(ctx, (*C.uchar)(&outbuf[0]), &outlen) {
+	}
 	return nil, errors.New("Not implemented")
 }
