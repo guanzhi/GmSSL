@@ -110,7 +110,7 @@ bool base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 {
 	const uint8_t *bin = data;
 	int carry;
-	size_t i, j, high, zcount = 0;
+	ssize_t i, j, high, zcount = 0;
 	size_t size;
 	
 	while (zcount < binsz && !bin[zcount])
