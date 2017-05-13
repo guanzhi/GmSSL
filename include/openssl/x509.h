@@ -395,12 +395,14 @@ RSA *d2i_RSA_PUBKEY_fp(FILE *fp, RSA **rsa);
 int i2d_RSA_PUBKEY_fp(FILE *fp, RSA *rsa);
 #  endif
 #  ifndef OPENSSL_NO_PAILLIER
+/*
 PAILLIER *d2i_PaillierPrivateKey_fp(FILE *fp, PAILLIER **paillier);
 int i2d_PaillierPrivateKey_fp(FILE *fp, PAILLIER *paillier);
 PAILLIER *d2i_PaillierPublicKey_fp(FILE *fp, PAILLIER **paillier);
 int i2d_PaillierPublicKey_fp(FILE *fp, PAILLIER *paillier);
 PAILLIER *d2i_PAILLIER_PUBKEY_fp(FILE *fp, PAILLIER **paillier);
 int i2d_PAILLIER_PUBKEY_fp(FILE *fp, PAILLIER *paillier);
+*/
 #  endif
 #  ifndef OPENSSL_NO_DSA
 DSA *d2i_DSA_PUBKEY_fp(FILE *fp, DSA **dsa);
@@ -441,12 +443,14 @@ RSA *d2i_RSA_PUBKEY_bio(BIO *bp, RSA **rsa);
 int i2d_RSA_PUBKEY_bio(BIO *bp, RSA *rsa);
 #  endif
 #  ifndef OPENSSL_NO_PAILLIER
+/*
 PAILLIER *d2i_PaillierPrivateKey_bio(BIO *bp, PAILLIER **paillier);
 int i2d_PaillierPrivateKey_bio(BIO *bp, PAILLIER *paillier);
 PAILLIER *d2i_PaillierPublicKey_bio(BIO *bp, PAILLIER **paillier);
 int i2d_PaillierPublicKey_bio(BIO *bp, PAILLIER *paillier);
 PAILLIER *d2i_PAILLIER_PUBKEY_bio(BIO *bp, PAILLIER **paillier);
 int i2d_PAILLIER_PUBKEY_bio(BIO *bp, PAILLIER *paillier);
+*/
 #  endif
 #  ifndef OPENSSL_NO_DSA
 DSA *d2i_DSA_PUBKEY_bio(BIO *bp, DSA **dsa);
@@ -784,7 +788,7 @@ int X509_print_ex_fp(FILE *bp, X509 *x, unsigned long nmflag,
 int X509_print_fp(FILE *bp, X509 *x);
 int X509_CRL_print_fp(FILE *bp, X509_CRL *x);
 int X509_REQ_print_fp(FILE *bp, X509_REQ *req);
-int X509_NAMpaillierE_print_ex_fp(FILE *fp, const X509_NAME *nm, int indent,
+int X509_NAME_print_ex_fp(FILE *fp, const X509_NAME *nm, int indent,
                           unsigned long flags);
 # endif
 
