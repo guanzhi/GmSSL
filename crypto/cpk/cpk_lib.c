@@ -371,7 +371,7 @@ char *CPK_MASTER_SECRET_get_name(CPK_MASTER_SECRET *master, char *buf, int size)
 	return X509_NAME_oneline(master->id, buf, size);
 }
 
-char *CPK_PUBLIC_PARAMS_name(CPK_PUBLIC_PARAMS *params, char *buf, int size)
+char *CPK_PUBLIC_PARAMS_get_name(CPK_PUBLIC_PARAMS *params, char *buf, int size)
 {
 	return X509_NAME_oneline(params->id, buf, size);
 }

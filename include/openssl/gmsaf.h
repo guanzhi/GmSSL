@@ -59,7 +59,6 @@ extern "C" {
 #endif
 
 
-int SAF_PrintNameInfo(FILE *fp, SGD_NAME_INFO *nameInfo);
 const char *SAF_GetErrorString(int err);
 
 /* GmSSL Extension  */

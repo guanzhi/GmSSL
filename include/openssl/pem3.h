@@ -81,9 +81,11 @@ extern "C" {
 
 
 # ifndef OPENSSL_NO_PAILLIER
+/*
 DECLARE_PEM_rw_cb(PAILLIERPrivateKey, PAILLIER)
 DECLARE_PEM_rw_const(PAILLIERPublicKey, PAILLIER)
 DECLARE_PEM_rw(PAILLIER_PUBKEY, PAILLIER)
+*/
 # endif
 
 

@@ -68,7 +68,6 @@ extern "C" {
 #endif
 
 
-EC_GROUP *EC_GROUP_generate_typ1curve(const BIGNUM *order, BN_CTX *ctx);
 
 EC_GROUP *EC_GROUP_new_type1curve(const BIGNUM *p, const BIGNUM *x,
 	const BIGNUM *y, const BIGNUM *order, BN_CTX *ctx);

@@ -118,17 +118,14 @@ typedef struct ecies_params_st {
 
 } ECIES_PARAMS;
 
-ECIES_PARAMS *ECIES_PARAMS_new(void);
 int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param);
 int ECIES_PARAMS_init_with_type(ECIES_PARAMS *param, int type);
-ECIES_PARAMS *ECIES_PARAMS_dup(const ECIES_PARAMS *param);
 KDF_FUNC ECIES_PARAMS_get_kdf(const ECIES_PARAMS *param);
 int ECIES_PARAMS_get_enc(const ECIES_PARAMS *param, size_t inlen,
 	const EVP_CIPHER **enc_cipher, size_t *enckeylen, size_t *ciphertextlen);
 int ECIES_PARAMS_get_mac(const ECIES_PARAMS *param,
 	const EVP_MD **hmac_md, const EVP_CIPHER **cmac_cipher,
 	unsigned int *mackeylen, unsigned int *maclen);
-void ECIES_PARAMS_free(ECIES_PARAMS *param);
 
 int i2d_ECIESParameters(const ECIES_PARAMS *param, unsigned char **out);
 ECIES_PARAMS *d2i_ECIESParameters(ECIES_PARAMS **param,

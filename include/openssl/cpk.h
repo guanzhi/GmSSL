@@ -71,7 +71,6 @@ int CPK_MAP_is_valid(const X509_ALGOR *algor);
 int CPK_MAP_num_factors(const X509_ALGOR *algor);
 int CPK_MAP_num_indexes(const X509_ALGOR *algor);
 int CPK_MAP_str2index(const X509_ALGOR *algor, const char *str, int *index);
-int CPK_MAP_print(BIO *out, X509_ALGOR *map, int indent, unsigned long flags);
 
 
 typedef struct cpk_master_secret_st CPK_MASTER_SECRET;
@@ -94,7 +93,7 @@ int CPK_PUBLIC_PARAMS_compute_share_key(CPK_PUBLIC_PARAMS *params,
 	void *(*kdf)(const void *in, size_t inlen, void *out, size_t *outlen));
 
 char *CPK_MASTER_SECRET_get_name(CPK_MASTER_SECRET *master, char *buf, int size);
-char *CPK_PUBLIC_PARAMS_get_name(CPK_PUBLIC_PARAMS *params);
+char *CPK_PUBLIC_PARAMS_get_name(CPK_PUBLIC_PARAMS *params, char *buf, int size);
 int CPK_MASTER_SECRET_digest(CPK_MASTER_SECRET *master, const EVP_MD *type, unsigned char *md, unsigned int *len);
 int CPK_PUBLIC_PARAMS_digest(CPK_PUBLIC_PARAMS *params, const EVP_MD *type, unsigned char *md, unsigned int *len);
 int CPK_MASTER_SECRET_print(BIO *out, CPK_MASTER_SECRET *master, int indent, unsigned long flags);

@@ -77,7 +77,9 @@ extern "C" {
 
 
 //FIXME: change name
+/*
 const char *SKF_get_alg_name(ULONG ulAlgID);
+*/
 
 int SKF_PrintDeviceInfo(FILE *fp, DEVINFO *devInfo);
 int SKF_PrintRSAPublicKey(FILE *fp, RSAPUBLICKEYBLOB *pk);

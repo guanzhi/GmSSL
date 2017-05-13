@@ -71,17 +71,20 @@ int SDF_PrintRSAPublicKey(FILE *fp, RSArefPublicKey *pk);
 int SDF_PrintRSAPrivateKey(FILE *fp, RSArefPrivateKey *pk);
 int SDF_PrintECCPublicKey(FILE *fp, ECCrefPublicKey *pk);
 int SDF_PrintECCPrivateKey(FILE *fp, ECCrefPrivateKey *pk);
+/*
 int SDF_PrintECCCipher(FILE *fp, ECCCipher *cipher);
 int SDF_PrintECCSignature(FILE *fp, ECCSignature *sig);
+*/
 const char *SDF_GetErrorString(int err);
 
 //FIXME: implement this in a standalone file in sdf module
+/*
 int SDF_ImportKey(
 	void *hSessionHandle,
 	unsigned char *pucKey,
 	unsigned int uiKeyLength,
 	void **phKeyHandle);
-
+*/
 
 /* BEGIN ERROR CODES */
 /*
