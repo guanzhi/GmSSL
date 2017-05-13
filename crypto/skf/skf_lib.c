@@ -393,8 +393,8 @@ ULONG DEVAPI SKF_CreateFile(
 	ULONG ulReadRights,
 	ULONG ulWriteRights)
 {
-	if (skf_method->CreateFile) {
-		return skf_method->CreateFile(
+	if (skf_method->CreateFileObject) {
+		return skf_method->CreateFileObject(
 			hApplication,
 			szFileName,
 			ulFileSize,
@@ -408,8 +408,8 @@ ULONG DEVAPI SKF_DeleteFile(
 	HAPPLICATION hApplication,
 	LPSTR szFileName)
 {
-	if (skf_method->DeleteFile) {
-		return skf_method->DeleteFile(
+	if (skf_method->DeleteFileObject) {
+		return skf_method->DeleteFileObject(
 			hApplication,
 			szFileName);
 	}
@@ -452,8 +452,8 @@ ULONG DEVAPI SKF_ReadFile(
 	BYTE *pbOutData,
 	ULONG *pulOutLen)
 {
-	if (skf_method->ReadFile) {
-		return skf_method->ReadFile(
+	if (skf_method->ReadFileObject) {
+		return skf_method->ReadFileObject(
 			hApplication,
 			szFileName,
 			ulOffset,
@@ -471,8 +471,8 @@ ULONG DEVAPI SKF_WriteFile(
 	BYTE *pbData,
 	ULONG ulSize)
 {
-	if (skf_method->WriteFile) {
-		return skf_method->WriteFile(
+	if (skf_method->WriteFileObject) {
+		return skf_method->WriteFileObject(
 			hApplication,
 			szFileName,
 			ulOffset,
