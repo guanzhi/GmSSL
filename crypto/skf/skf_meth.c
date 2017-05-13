@@ -87,12 +87,12 @@ SKF_METHOD *SKF_METHOD_load_library(const char *so_path)
 	skf->DeleteApplication = (SKF_DeleteApplication_FuncPtr)DSO_bind_func(dso, "SKF_DeleteApplication");
 	skf->OpenApplication = (SKF_OpenApplication_FuncPtr)DSO_bind_func(dso, "SKF_OpenApplication");
 	skf->CloseApplication = (SKF_CloseApplication_FuncPtr)DSO_bind_func(dso, "SKF_CloseApplication");
-	skf->CreateFile = (SKF_CreateFile_FuncPtr)DSO_bind_func(dso, "SKF_CreateFile");
-	skf->DeleteFile = (SKF_DeleteFile_FuncPtr)DSO_bind_func(dso, "SKF_DeleteFile");
+	skf->CreateFileObject = (SKF_CreateFile_FuncPtr)DSO_bind_func(dso, "SKF_CreateFile");
+	skf->DeleteFileObject = (SKF_DeleteFile_FuncPtr)DSO_bind_func(dso, "SKF_DeleteFile");
 	skf->EnumFiles = (SKF_EnumFiles_FuncPtr)DSO_bind_func(dso, "SKF_EnumFiles");
 	skf->GetFileInfo = (SKF_GetFileInfo_FuncPtr)DSO_bind_func(dso, "SKF_GetFileInfo");
-	skf->ReadFile = (SKF_ReadFile_FuncPtr)DSO_bind_func(dso, "SKF_ReadFile");
-	skf->WriteFile = (SKF_WriteFile_FuncPtr)DSO_bind_func(dso, "SKF_WriteFile");
+	skf->ReadFileObject = (SKF_ReadFile_FuncPtr)DSO_bind_func(dso, "SKF_ReadFile");
+	skf->WriteFileObject = (SKF_WriteFile_FuncPtr)DSO_bind_func(dso, "SKF_WriteFile");
 	skf->CreateContainer = (SKF_CreateContainer_FuncPtr)DSO_bind_func(dso, "SKF_CreateContainer");
 	skf->DeleteContainer = (SKF_DeleteContainer_FuncPtr)DSO_bind_func(dso, "SKF_DeleteContainer");
 	skf->EnumContainer = (SKF_EnumContainer_FuncPtr)DSO_bind_func(dso, "SKF_EnumContainer");
