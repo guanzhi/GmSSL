@@ -108,10 +108,10 @@ SDF_METHOD *SDF_METHOD_load_library(const char *so_path)
 	sdf->HashInit = (SDF_HashInit_FuncPtr)DSO_bind_func(dso, "SDF_HashInit");
 	sdf->HashUpdate = (SDF_HashUpdate_FuncPtr)DSO_bind_func(dso, "SDF_HashUpdate");
 	sdf->HashFinal = (SDF_HashFinal_FuncPtr)DSO_bind_func(dso, "SDF_HashFinal");
-	sdf->CreateFile = (SDF_CreateFile_FuncPtr)DSO_bind_func(dso, "SDF_CreateFile");
-	sdf->ReadFile = (SDF_ReadFile_FuncPtr)DSO_bind_func(dso, "SDF_ReadFile");
-	sdf->WriteFile = (SDF_WriteFile_FuncPtr)DSO_bind_func(dso, "SDF_WriteFile");
-	sdf->DeleteFile = (SDF_DeleteFile_FuncPtr)DSO_bind_func(dso, "SDF_DeleteFile");
+	sdf->CreateFileObject = (SDF_CreateFile_FuncPtr)DSO_bind_func(dso, "SDF_CreateFile");
+	sdf->ReadFileObject = (SDF_ReadFile_FuncPtr)DSO_bind_func(dso, "SDF_ReadFile");
+	sdf->WriteFileObject = (SDF_WriteFile_FuncPtr)DSO_bind_func(dso, "SDF_WriteFile");
+	sdf->DeleteFileObject = (SDF_DeleteFile_FuncPtr)DSO_bind_func(dso, "SDF_DeleteFile");
 
 
 	ret = sdf;

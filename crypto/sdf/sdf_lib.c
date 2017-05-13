@@ -1232,12 +1232,12 @@ int SDF_CreateFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->CreateFile) {
+	if (!sdf_method || !sdf_method->CreateFileObject) {
 		SDFerr(SDF_F_SDF_CREATEFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->CreateFile(
+	if ((ret = sdf_method->CreateFileObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen,
@@ -1259,12 +1259,12 @@ int SDF_ReadFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->ReadFile) {
+	if (!sdf_method || !sdf_method->ReadFileObject) {
 		SDFerr(SDF_F_SDF_READFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->ReadFile(
+	if ((ret = sdf_method->ReadFileObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen,
@@ -1288,12 +1288,12 @@ int SDF_WriteFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->WriteFile) {
+	if (!sdf_method || !sdf_method->WriteFileObject) {
 		SDFerr(SDF_F_SDF_WRITEFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->WriteFile(
+	if ((ret = sdf_method->WriteFileObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen,
@@ -1314,12 +1314,12 @@ int SDF_DeleteFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->DeleteFile) {
+	if (!sdf_method || !sdf_method->DeleteFileObject) {
 		SDFerr(SDF_F_SDF_DELETEFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->DeleteFile(
+	if ((ret = sdf_method->DeleteFileObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen)) != SDR_OK) {

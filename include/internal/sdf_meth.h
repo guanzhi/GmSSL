@@ -432,10 +432,10 @@ typedef struct sdf_method_st {
 	SDF_HashInit_FuncPtr HashInit;
 	SDF_HashUpdate_FuncPtr HashUpdate;
 	SDF_HashFinal_FuncPtr HashFinal;
-	SDF_CreateFile_FuncPtr CreateFile;
-	SDF_ReadFile_FuncPtr ReadFile;
-	SDF_WriteFile_FuncPtr WriteFile;
-	SDF_DeleteFile_FuncPtr DeleteFile;
+	SDF_CreateFile_FuncPtr CreateFileObject;
+	SDF_ReadFile_FuncPtr ReadFileObject;
+	SDF_WriteFile_FuncPtr WriteFileObject;
+	SDF_DeleteFile_FuncPtr DeleteFileObject;
 } SDF_METHOD;
 
 SDF_METHOD *SDF_METHOD_load_library(const char *so_path);
