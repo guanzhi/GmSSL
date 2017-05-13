@@ -25,7 +25,8 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE. */
 
-#include "serpent.h"
+#include <string.h>
+#include <openssl/serpent.h>
 
 
 void serpent_whiten(serpent_blk *dst, serpent_key_t *src, int idx) {
@@ -169,7 +170,7 @@ void serpent_lt(serpent_blk* x, int enc)
 	x->w[3] = x3;
 }
 
-void serpent_set_encrypt_key(serpent_key_t *key, void *user_key)
+void serpent_set_encrypt_key(serpent_key_t *key, const unsigned char *user_key)
 {
 	union {
 		uint8_t b[32];

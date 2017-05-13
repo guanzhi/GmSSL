@@ -480,8 +480,8 @@ our %disabled = ( # "what"         => "comment"
 		  #"sdf"                 => "default",
 		  #"skf"                 => "default",
 		  #"sof"                 => "default",
-		  "serpent"             => "default",
-		  # "speck"               => "default",
+		  #"serpent"             => "default",
+		  #"speck"               => "default",
 		);
 
 # Note: => pair form used for aesthetics, not to truly make a hash table

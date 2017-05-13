@@ -1,2 +1,0 @@
-crypto/serpent/serpent.o: crypto/serpent/serpent.c \
-  include/openssl/serpent.h

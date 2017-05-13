@@ -59,10 +59,13 @@
  */
 
 #include <openssl/ec.h>
+#include <openssl/sm2.h>
 #include <openssl/err.h>
 #include <openssl/sdf.h>
 #include <openssl/gmapi.h>
 #include <openssl/objects.h>
+#include "../sm2/sm2_lcl.h"
+
 
 EC_KEY *EC_KEY_new_from_ECCrefPublicKey(const ECCrefPublicKey *ref)
 {
@@ -313,7 +316,7 @@ SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref)
 		goto end;
 	}
 
-	if (!(cv = SM2CiphertextValue_new(group))) {
+	if (!(cv = SM2CiphertextValue_new())) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			GMAPI_R_MALLOC_FAILED);
 		goto end;
@@ -334,59 +337,16 @@ end:
 	return ret;
 }
 
-/*
- * Different vendors might have different encoding of field elements when
- * the buffer is larger than requirment. We assume the encoding to be
- * big-endian, which means that there will be prefix zeros in the buffer
- * before the field element. Another popular encoding is to use the suffix
- * zeros. When the gmapi wrapper is working with vendor's SDF
- * implementations, developers have to check the encoding of the vendor's
- * library to make sure the encoding/decoding is correct
- */
 int SM2CiphertextValue_set_ECCCipher(SM2CiphertextValue *cv,
 	const ECCCipher *ref)
 {
 	int ret = 0;
-	BN_CTX *bn_ctx = NULL;
-	EC_GROUP *group = NULL;
-	BIGNUM *x;
-	BIGNUM *y;
-	int nbytes;
 
 	/* check arguments */
 	if (!cv || !ref) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
-	}
-
-	/* variables */
-	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
-			ERR_R_EC_LIB);
-		goto end;
-	}
-	/* this will never happen with GmSSL's sdf.h */
-	if (EC_GROUP_get_degree(group) > ECCref_MAX_BITS) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
-			GMAPI_R_INVALID_KEY_LENGTH);
-		goto end;
-	}
-	nbytes = (EC_GROUP_get_degree(group) + 7)/8;
-
-	/* malloc */
-	if (!(bn_ctx = BN_CTX_new())) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
-			ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-	BN_CTX_start(bn_ctx);
-	x = BN_CTX_get(bn_ctx);
-	y = BN_CTX_get(bn_ctx);
-	if (!x || !y) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
-			ERR_R_MALLOC_FAILURE);
-		goto end;
 	}
 
 	/* ECCCipher ==> SM2CiphertextValue */
@@ -401,72 +361,31 @@ int SM2CiphertextValue_set_ECCCipher(SM2CiphertextValue *cv,
 		goto end;
 	}
 
-	if (!cv->ephem_point) {
-		if (!(cv->ephem_point = EC_POINT_new(group))) {
-			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
-			goto end;
-		}
+	if (!ASN1_OCTET_STRING_set(cv->hash, ref->M, 32)) {
+		goto end;
 	}
-	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
-		if (!EC_POINT_set_affine_coordinates_GFp(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
-			goto end;
-		}
-	} else  {
-		if (!EC_POINT_get_affine_coordinates_GF2m(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER, ERR_R_EC_LIB);
-			goto end;
-		}
-	}
-
-	cv->mactag_size = 32;
-	memcpy(cv->mactag, ref->M, 32);
 
 	if (ref->L <= 0 || ref->L > INT_MAX) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_LENGTH);
 		goto end;
 	}
-	cv->ciphertext_size = (size_t)ref->L;
-
-	if (!(cv->ciphertext = OPENSSL_realloc(cv->ciphertext, (size_t)ref->L))) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_SET_ECCCIPHER,
-			GMAPI_R_MALLOC_FAILED);
+	if (!ASN1_OCTET_STRING_set(cv->ciphertext, ref->C, ref->L)) {
 		goto end;
 	}
-	memcpy(cv->ciphertext, ref->C, (size_t)ref->L);
+
 
 	/* set return value */
-	ret = 0;
+	ret = 1;
 
 end:
-	EC_GROUP_free(group);
-	if (bn_ctx) {
-		BN_CTX_end(bn_ctx);
-	}
-	BN_CTX_free(bn_ctx);
 	return ret;
 }
 
-/* The caller need to prepare buffer larger than `sizeof(ECCipher)` to hold
- * the result. Some vendors might change the define of `ECCCipher->C[1]` to
- * larger buffer, such as `ECCCipher->C[ECC_CIPHER_MAX_LEN]`, but our
- * implementation will not know this. So always init `ECCCipher->L` to the
- * buffer size for ciphertext.
- * Some vendors might even change the definition of `ECCCipher`, then there
- * will be compiling errors when compiled with the vendor's header file. So
- * when you will use a vendor's SDF library, do not use `openssl/sdf.h`, but
- * use the vendor's header file. Then the errors can be found by the
- * compiler.
- */
 int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv,
 	ECCCipher *ref)
 {
 	int ret = 0;
-	BN_CTX *bn_ctx = NULL;
-	EC_GROUP *group = NULL;
-	BIGNUM *x;
-	BIGNUM *y;
 
 	/* check arguments */
 	if (!cv || !ref) {
@@ -474,101 +393,76 @@ int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
+
 	/* as the `ECCCipher->C[1]` default size is too small, we have to
 	 * check `ECCCipher->L` to make sure caller has initialized this
 	 * structure and prepared enough buffer to hold variable length
 	 * ciphertext
 	 */
-	if (ref->L < cv->ciphertext_size) {
+	if (ref->L < ASN1_STRING_length(cv->ciphertext)) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
-	/* malloc */
-	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER, ERR_R_EC_LIB);
-		return 0;
-	}
-
-	if (!(bn_ctx = BN_CTX_new())) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER, ERR_R_BN_LIB);
-		goto end;
-	}
-
-	BN_CTX_start(bn_ctx);
-	x = BN_CTX_get(bn_ctx);
-	y = BN_CTX_get(bn_ctx);
-	if (!x || !y) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
-			ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-
-	/* SM2CiphertextValue ==> ECCCipher */
-	memset(ref, 0, sizeof(*ref));
-
-	/* encode ephem point `ECCCipher->x`, `ECCCipher->y` */
-	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
-		if (!EC_POINT_get_affine_coordinates_GFp(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER, ERR_R_EC_LIB);
-			goto end;
-		}
-	} else  {
-		if (!EC_POINT_get_affine_coordinates_GF2m(group, cv->ephem_point, x, y, bn_ctx)) {
-			GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
-				ERR_R_EC_LIB);
-			goto end;
-		}
-	}
 	/*
 	 * check compatible of SM2CiphertextValue with EC_GROUP
 	 * In gmapi we only do simple checks, i.e. length of coordinates.
 	 * We assume that more checks, such as x, y in the range of [1, p]
 	 * and other semantic checks should be done by the `sm2` module.
 	 */
-	if (BN_num_bits(x) > EC_GROUP_get_degree(group) ||
-		BN_num_bits(y) > EC_GROUP_get_degree(group)) {
+	if (BN_num_bytes(cv->xCoordinate) > ECCref_MAX_LEN
+		|| BN_num_bytes(cv->yCoordinate) > ECCref_MAX_LEN) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_POINT);
 		goto end;
 	}
-	if (!BN_bn2bin(x, ref->x + ECCref_MAX_LEN - BN_num_bytes(x))) {
+
+	if (ASN1_STRING_length(cv->hash) != 32) {
+		goto end;
+	}
+
+	/* SM2CiphertextValue ==> ECCCipher */
+	memset(ref, 0, sizeof(*ref));
+
+	if (!BN_bn2bin(cv->xCoordinate,
+		ref->x + ECCref_MAX_LEN - BN_num_bytes(cv->xCoordinate))) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!BN_bn2bin(y, ref->y + ECCref_MAX_LEN - BN_num_bytes(y))) {
+
+	if (!BN_bn2bin(cv->yCoordinate,
+		ref->y + ECCref_MAX_LEN - BN_num_bytes(cv->yCoordinate))) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			ERR_R_BN_LIB);
 		goto end;
 	}
 
 	/* encode mac `ECCCipher->M[32]` */
-	if (cv->mactag_size != 32) {
+	if (ASN1_STRING_length(cv->hash) != 32) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_MAC);
 		goto end;
 	}
-	memcpy(ref->M, cv->mactag, cv->mactag_size);
+	memcpy(ref->M, ASN1_STRING_get0_data(cv->hash),
+		ASN1_STRING_length(cv->hash));
 
 	/* encode ciphertext `ECCCipher->L`, `ECCCipher->C[]` */
-	if (cv->ciphertext_size <= 0 || cv->ciphertext_size > INT_MAX) {
+
+	if (ASN1_STRING_length(cv->ciphertext) <= 0
+		|| ASN1_STRING_length(cv->ciphertext) > INT_MAX) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_INVALID_CIPHERTEXT_LENGTH);
 		goto end;
 	}
-	ref->L = (unsigned int)cv->ciphertext_size;
-	memcpy(ref->C, cv->ciphertext, cv->ciphertext_size);
+	ref->L = ASN1_STRING_length(cv->ciphertext);
+	memcpy(ref->C, ASN1_STRING_get0_data(cv->ciphertext),
+		ASN1_STRING_length(cv->ciphertext));
 
 	/* set return value */
 	ret = 1;
 end:
-	if (bn_ctx) {
-		BN_CTX_end(bn_ctx);
-	}
-	BN_CTX_free(bn_ctx);
-	EC_GROUP_free(group);
 	return ret;
 }
 

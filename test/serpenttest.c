@@ -7,7 +7,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "serpent.h"
+#include <openssl/serpent.h>
 
 char *plain[] =
 { "3DA46FFA6F4D6F30CD258333E5A61369" };

@@ -67,6 +67,8 @@ int main(int argc, char **argv)
 # include <openssl/sm2.h>
 # include "../crypto/sm2/sm2_lcl.h"
 
+#if 0
+
 # define VERBOSE 1
 
 RAND_METHOD fake_rand;
@@ -740,4 +742,11 @@ end:
 	EC_GROUP_free(sm2b257test);
 	EXIT(err);
 }
+#else
+int main()
+{
+	return 0;
+}
+
+#endif
 #endif
