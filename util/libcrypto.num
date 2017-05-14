@@ -4832,3 +4832,10 @@ BN_mod_exp_recp                         4673	1_1_0d	EXIST::FUNCTION:
 DSA_meth_get_flags                      4674	1_1_0d	EXIST::FUNCTION:DSA
 CMS_RecipientInfo_decrypt               4675	1_1_0d	EXIST::FUNCTION:CMS
 EC_GROUP_get_curve_GF2m                 4676	1_1_0d	EXIST::FUNCTION:EC,EC2M
+serpent_encrypt                         4677	1_1_0d	EXIST::FUNCTION:
+speck_decrypt                           4678	1_1_0d	EXIST::FUNCTION:
+speck_encrypt                           4679	1_1_0d	EXIST::FUNCTION:
+serpent_set_encrypt_key                 4680	1_1_0d	EXIST::FUNCTION:
+speck_expand                            4681	1_1_0d	EXIST::FUNCTION:
+serpent_decrypt                         4682	1_1_0d	EXIST::FUNCTION:
+speck_set_encrypt_key                   4683	1_1_0d	EXIST::FUNCTION:
