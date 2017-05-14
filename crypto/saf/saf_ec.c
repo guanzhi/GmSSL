@@ -47,6 +47,7 @@
  * ====================================================================
  */
 
+#include <string.h>
 #include <openssl/gmapi.h>
 #include <openssl/gmsdf.h>
 #include <openssl/gmsaf.h>

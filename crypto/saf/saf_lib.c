@@ -47,6 +47,7 @@
  * ====================================================================
  */
 
+#include <string.h>
 #include <openssl/gmsaf.h>
 #include "saf_lcl.h"
 
