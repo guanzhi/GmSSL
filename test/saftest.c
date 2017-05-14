@@ -134,7 +134,7 @@ static int test_saf_hash(int verbose)
 	if (SAF_Hash(SGD_SM3, msg, sizeof(msg), NULL, 0, NULL, 0,
 		dgst, &dgstlen) != SAR_Ok) {
 		if (verbose) {
-			fprintf(stderr, "%s() error on test 1\n", __func__);
+			fprintf(stderr, "%s() error on test 1\n", __FUNCTION__);
 		}
 		return 0;
 	}
@@ -143,7 +143,7 @@ static int test_saf_hash(int verbose)
 	if (SAF_Hash(SGD_SM3, msg, sizeof(msg), pubkey, sizeof(pubkey),
 		id, sizeof(id), dgst, &dgstlen) != SAR_Ok) {
 		if (verbose) {
-			fprintf(stderr, "%s() error on test 2\n", __func__);
+			fprintf(stderr, "%s() error on test 2\n", __FUNCTION__);
 		}
 		return 0;
 	}
