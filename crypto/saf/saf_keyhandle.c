@@ -204,7 +204,9 @@ int SAF_ImportEncedKey(
 	EVP_PKEY_CTX *pctx = NULL;
 	char key_id[1024];
 
+	/*			
 	snprintf(key_id, sizeof(key_id), "%s.enc", hobj->pucContainerName);
+	*/
 
 	if (!(pkey = ENGINE_load_private_key(hobj->app->engine, key_id, NULL, NULL))
 		|| !(pctx = EVP_PKEY_CTX_new(pkey, hobj->app->engine))

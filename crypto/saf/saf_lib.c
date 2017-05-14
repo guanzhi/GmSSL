@@ -63,8 +63,10 @@ EVP_PKEY *SAF_load_private_key(SAF_APP *app, const char *container, int flags)
 		return NULL;
 	}
 
+	/*		
 	snprintf(key_id, sizeof(key_id), "%s.%s", container,
 		((flags & EVP_PKT_SIGN) ? "sign" : "enc"));
+	*/
 
 	if (!(pkey = ENGINE_load_private_key(app->engine, key_id, NULL, NULL))) {
 		SAFerr(SAF_F_SAF_LOAD_PRIVATE_KEY, SAF_R_LOAD_PRIVATE_KEY_FAILURE);
@@ -95,8 +97,10 @@ EVP_PKEY *SAF_load_public_key(SAF_APP *app, const char *container, int flags)
 		return NULL;
 	}
 
+	/*				
 	snprintf(key_id, sizeof(key_id), "%s.%s", container,
 		((flags & EVP_PKT_SIGN) ? "sign" : "enc"));
+	*/
 
 	if (!(pkey = ENGINE_load_public_key(app->engine, key_id, NULL, NULL))) {
 		SAFerr(SAF_F_SAF_LOAD_PUBLIC_KEY, SAF_R_LOAD_PUBLIC_KEY_FAILURE);

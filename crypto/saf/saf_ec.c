@@ -164,8 +164,11 @@ int SAF_GetEccPublicKey(
 	char key_id[1024];
 	int len;
 
+	/*
+			
 	snprintf(key_id, sizeof(key_id), "%s.%s", (char *)pucContainerName,
 		SGD_GetKeyUsageName(uiKeyUsage));
+	*/
 
 	if (!(pkey = ENGINE_load_public_key(app->engine, key_id, NULL, NULL))) {
 		SAFerr(SAF_F_SAF_GETECCPUBLICKEY, ERR_R_ENGINE_LIB);
@@ -232,7 +235,9 @@ int SAF_EccSign(
 	EVP_PKEY_CTX *pctx = NULL;
 	size_t siglen;
 
+	/*		
 	snprintf(key_id, sizeof(key_id), "%s.sign", (char *)pucContainerName);
+	*/
 
 	if (!(pkey = ENGINE_load_private_key(app->engine, key_id, NULL, NULL))
 		|| !(pctx = EVP_PKEY_CTX_new(pkey, app->engine))
