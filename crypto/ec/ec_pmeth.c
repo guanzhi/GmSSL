@@ -61,7 +61,7 @@ static int pkey_ec_init(EVP_PKEY_CTX *ctx)
     dctx->sign_type = NID_secg_scheme;
     dctx->exch_type = NID_secg_scheme;
     dctx->enc_type = NID_secg_scheme;
-    dctx->enc_param = NID_undef;
+    dctx->enc_param = NID_sm3;            
 #endif
     ctx->data = dctx;
     return 1;

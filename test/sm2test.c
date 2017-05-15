@@ -67,7 +67,6 @@ int main(int argc, char **argv)
 # include <openssl/sm2.h>
 # include "../crypto/sm2/sm2_lcl.h"
 
-#if 0
 
 # define VERBOSE 1
 
@@ -424,19 +423,18 @@ static int test_sm2_enc(const EC_GROUP *group, const EVP_MD *md,
 	EC_KEY *pub_key = NULL;
 	EC_KEY *pri_key = NULL;
 	SM2CiphertextValue *cv = NULL;
-	unsigned char mbuf[128];
-	unsigned char cbuf[sizeof(mbuf) + 256];
 	unsigned char *tbuf = NULL;
-	size_t msglen, buflen;
-	unsigned char *p = buf;
-	unsigned char *testcbuf;
-	long testbuflen;
+	long tlen;
+	unsigned char mbuf[128] = {0};
+	unsigned char cbuf[sizeof(mbuf) + 256] = {0};
+	size_t mlen, clen;
+	unsigned char *p;
 
+	/* test encrypt */
 	if (!(pub_key = new_ec_key(group, NULL, xP, yP, NULL, NULL))) {
 		goto end;
 	}
 
-	/* test encrypt */
 	change_rand(k);
 	if (!(cv = SM2_do_encrypt(md, (unsigned char *)M, strlen(M), pub_key))) {
 		goto end;
@@ -456,7 +454,6 @@ static int test_sm2_enc(const EC_GROUP *group, const EVP_MD *md,
 	}
 
 	/* test decrypt */
-
 	if (!(pri_key = new_ec_key(group, d, xP, yP, NULL, NULL))) {
 		goto end;
 	}
@@ -475,8 +472,10 @@ static int test_sm2_enc(const EC_GROUP *group, const EVP_MD *md,
 end:
 	ERR_print_errors_fp(stderr);
 	restore_rand();
-	EC_KEY_free(ec_key);
 	EC_KEY_free(pub_key);
+	EC_KEY_free(pri_key);
+	SM2CiphertextValue_free(cv);
+	OPENSSL_free(tbuf);
 	return ret;
 }
 
@@ -513,24 +512,29 @@ static int test_sm2_kap(const EC_GROUP *group,
 	pubkeyA = new_ec_key(group, NULL, xA, yA, A, id_md);
 	pubkeyB = new_ec_key(group, NULL, xB, yB, B, id_md);
 	if (!eckeyA || !eckeyB || !pubkeyA || !pubkeyB) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 
 	if (!SM2_KAP_CTX_init(&ctxA, eckeyA, A, strlen(A), pubkeyB, B, strlen(B), 1, 1)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 	if (!SM2_KAP_CTX_init(&ctxB, eckeyB, B, strlen(B), pubkeyA, A, strlen(A), 0, 1)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 
 	change_rand(rA);
 	if (!SM2_KAP_prepare(&ctxA, RA, &RAlen)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 	restore_rand();
 
 	change_rand(rB);
 	if (!SM2_KAP_prepare(&ctxB, RB, &RBlen)) {
+		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;
 	}
 	restore_rand();
@@ -555,6 +559,7 @@ static int test_sm2_kap(const EC_GROUP *group,
 	ret = 1;
 
 end:
+	ERR_print_errors_fp(stderr);
 	EC_KEY_free(eckeyA);
 	EC_KEY_free(eckeyB);
 	EC_KEY_free(pubkeyA);
@@ -742,11 +747,4 @@ end:
 	EC_GROUP_free(sm2b257test);
 	EXIT(err);
 }
-#else
-int main()
-{
-	return 0;
-}
-
-#endif
 #endif

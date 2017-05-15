@@ -134,7 +134,7 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
                          "APPLINK",
                          # GmSSL
                          "SM3", "SMS4", "KDF2", "ECIES", "FFX", "SM2", "PAILLIER", "CPK", "OTP", "GMAPI", "EC2",
-                         "BFIBE", "BB1IBE", "SM9", "SAF", "SDF", "SKF", "SOF", "ZUC", "SERPENT", "SPECK"
+                         "BFIBE", "BB1IBE", "SM9", "SAF", "SDF", "SKF", "SOF", "ZUC", "SERPENT", "SPECK", "BASE58"
                      );
 
 my %disabled_algorithms;

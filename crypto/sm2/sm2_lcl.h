@@ -99,7 +99,7 @@ struct sm2_kap_ctx_st {
 
 int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
 	unsigned char **pout);
-SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group,
+SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
 	SM2CiphertextValue **cv, const unsigned char **pin, long len);
 
 

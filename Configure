@@ -313,7 +313,7 @@ $config{sdirs} = [
     "cms", "ts", "srp", "cmac", "ct", "async", "kdf",
     "sm3", "sms4", "kdf2", "ecies", "ffx", "sm2", "paillier", "cpk", "otp", "gmapi", "ec2",
     "bfibe", "bb1ibe", "sm9", "saf", "sdf", "skf", "sof", "zuc",
-    "serpent", "speck"
+    "serpent", "speck", "base58"
     ];
 
 # Known TLS and DTLS protocols
@@ -435,6 +435,7 @@ my @disablables = (
     "pkcs12",
     "serpent",
     "speck",
+    "base58",
     );
 foreach my $proto ((@tls, @dtls))
 	{

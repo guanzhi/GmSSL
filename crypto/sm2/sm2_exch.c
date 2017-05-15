@@ -69,6 +69,8 @@ int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 	}
 
 	memset(ctx, 0, sizeof(*ctx));
+	ctx->id_dgstlen = sizeof(ctx->id_dgst);
+	ctx->remote_id_dgstlen = sizeof(ctx->remote_id_dgst);
 
 	ctx->id_dgst_md = EVP_sm3();
 	ctx->kdf_md = EVP_sm3();

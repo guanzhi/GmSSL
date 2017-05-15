@@ -98,7 +98,7 @@ MISC_SCRIPTS=$(BLDDIR)\apps\CA.pl $(BLDDIR)\apps\tsget.pl
 INSTALLTOP_dev={- # $prefix is used in the OPENSSLDIR perl snippet
                   #
                   use File::Spec::Functions qw(:DEFAULT splitpath);
-                  our $prefix = $config{prefix} || "$win_installroot\\OpenSSL";
+                  our $prefix = $config{prefix} || "$win_installroot\\GmSSL";
                   our ($prefix_dev, $prefix_dir, $prefix_file) =
                       splitpath($prefix, 1);
                   $prefix_dev -}

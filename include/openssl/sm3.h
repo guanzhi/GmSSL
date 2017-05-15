@@ -49,7 +49,6 @@
 
 #ifndef HEADER_SM3_H
 #define HEADER_SM3_H
-#ifndef NO_GMSSL
 
 #define SM3_DIGEST_LENGTH	32
 #define SM3_BLOCK_SIZE		64
@@ -94,6 +93,5 @@ void sm3_hmac(const unsigned char *data, size_t data_len,
 
 #ifdef __cplusplus
 }
-#endif
 #endif
 #endif

@@ -21,7 +21,7 @@ IF[{- !$disabled{tests} -}]
           pailliertest cpktest otptest gmapitest ec2test \
           bfibetest bb1ibetest sm9test \
           saftest sdftest skftest softest zuctest \
-          serpenttest specktest
+          serpenttest specktest base58test
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include
@@ -375,6 +375,10 @@ IF[{- !$disabled{tests} -}]
   SOURCE[specktest]=specktest.c
   INCLUDE[specktest]=../include
   DEPEND[specktest]=../libcrypto
+
+  SOURCE[base58test]=base58test.c
+  INCLUDE[base58test]=../include
+  DEPEND[base58test]=../libcrypto
 
   IF[{- !$disabled{shared} -}]
     PROGRAMS_NO_INST=shlibloadtest

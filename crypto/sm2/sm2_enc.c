@@ -321,6 +321,7 @@ int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *cv,
 	const BIGNUM *pri_key;
 	KDF_FUNC kdf;
 	EC_POINT *point = NULL;
+	EC_POINT *tmp_point = NULL;
 	BIGNUM *n = NULL;
 	BIGNUM *h = NULL;
 	BN_CTX *bn_ctx = NULL;
@@ -374,6 +375,7 @@ int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *cv,
 
 	/* malloc */
 	point = EC_POINT_new(group);
+	tmp_point = EC_POINT_new(group);
 	n = BN_new();
 	h = BN_new();
 	bn_ctx = BN_CTX_new();
@@ -412,12 +414,12 @@ int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *cv,
 	}
 
 	/* check [h]C1 != O */
-	if (!EC_POINT_mul(group, point, NULL, point, h, bn_ctx)) {
+	if (!EC_POINT_mul(group, tmp_point, NULL, point, h, bn_ctx)) {
 		SM2err(SM2_F_SM2_DO_DECRYPT, ERR_R_EC_LIB);
 		goto end;
 	}
 
-	if (EC_POINT_is_at_infinity(group, point)) {
+	if (EC_POINT_is_at_infinity(group, tmp_point)) {
 		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
 		goto end;
 	}
@@ -462,6 +464,7 @@ int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *cv,
 	ret = 1;
 end:
 	EC_POINT_free(point);
+	EC_POINT_free(tmp_point);
 	BN_free(n);
 	BN_free(h);
 	BN_CTX_free(bn_ctx);

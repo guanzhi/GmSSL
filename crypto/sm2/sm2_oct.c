@@ -66,6 +66,7 @@ int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
 	BN_CTX *bn_ctx = NULL;
 	unsigned char *buf;
 	unsigned char *p;
+	size_t siz;
 
 	if (!group || !cv || !pout) {
 		SM2err(SM2_F_I2O_SM2CIPHERTEXTVALUE,
@@ -76,7 +77,7 @@ int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
 	nbytes = (EC_GROUP_get_degree(group) + 7)/8;
 
 	if (!cv->xCoordinate || BN_num_bytes(cv->xCoordinate) > nbytes
-		|| !cv->yCoordinate || BN_num_bytes(cv->BN_num_bytes) > nbytes
+		|| !cv->yCoordinate || BN_num_bytes(cv->yCoordinate) > nbytes
 		|| ASN1_STRING_length(cv->hash) <= 0
 		|| ASN1_STRING_length(cv->hash) > EVP_MAX_MD_SIZE
 		|| ASN1_STRING_length(cv->ciphertext) <= 0) {
@@ -133,13 +134,13 @@ int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
 	memcpy(p, ASN1_STRING_get0_data(cv->ciphertext),
 		ASN1_STRING_length(cv->ciphertext));
 	p += ASN1_STRING_length(cv->ciphertext);
-	outlen += siz;
+	outlen += ASN1_STRING_length(cv->ciphertext);
 
 	/* encode hash */
-	memcpy(out, ASN1_STRING_get0_data(cv->hash),
+	memcpy(p, ASN1_STRING_get0_data(cv->hash),
 		ASN1_STRING_length(cv->hash));
 	p += ASN1_STRING_length(cv->hash);
-	outlen += siz;
+	outlen += ASN1_STRING_length(cv->hash);
 
 	/* output */
 	if (*pout) {
@@ -163,7 +164,9 @@ SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group,
 	SM2CiphertextValue *ret = NULL;
 	SM2CiphertextValue *cv = NULL;
 	BN_CTX *bn_ctx = NULL;
-	unsigned char *p;
+	EC_POINT *point = NULL;
+	const unsigned char *p;
+	int nbytes;
 
 	if (!group || !pin) {
 		SM2err(SM2_F_O2I_SM2CIPHERTEXTVALUE,
@@ -190,7 +193,7 @@ SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group,
 	}
 
 	if (!(point = EC_POINT_new(group))
-		|| !(bn_ctx = BN_CTX_new(bn_ctx))) {
+		|| !(bn_ctx = BN_CTX_new())) {
 		SM2err(SM2_F_O2I_SM2CIPHERTEXTVALUE,
 			ERR_R_MALLOC_FAILURE);
 		goto end;
@@ -275,37 +278,4 @@ end:
 	EC_POINT_free(point);
 	BN_CTX_free(bn_ctx);
 	return ret;
-}
-
-
-int SM2_encrypt(const EVP_MD *md, const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-	int ret = 0;
-	SM2CiphertextValue *cv = NULL;
-
-	if (!(cv = SM2_do_encrypt(md, in, inlen, ec_key))) {
-		goto end;
-	}
-
-	if (!out) {
-		len = i2o_SM2CiphertextValue(cv, NULL);
-		*outlen = len;
-		return 1;
-	}
-
-	if (!(i2o_SM2CiphertextValue(cv, &out))) {
-		goto end;
-	}
-
-	return 0;
-}
-
-int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
-{
-
-	SM2CiphertextValue *cv = NULL;
-
-
 }

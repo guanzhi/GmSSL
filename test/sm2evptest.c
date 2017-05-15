@@ -208,6 +208,10 @@ static int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 		goto end;
 	}
 
+					
+	/* we need to set the sm2 encrypt params (hash = sm3) */
+									
+
 	cbuflen = sizeof(cbuf);
 	if (!EVP_PKEY_encrypt(pkctx, cbuf, &cbuflen, msg, msglen)) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
@@ -251,6 +255,7 @@ static int test_evp_pkey_encrypt(EVP_PKEY *pkey, int do_sm2, int verbose)
 
 	ret = 1;
 end:
+	ERR_print_errors_fp(stderr);
 	EVP_PKEY_CTX_free(pkctx);
 	return ret;
 }
@@ -590,14 +595,14 @@ int main(int argc, char **argv)
 		goto end;
 	}
 
-	if (!test_evp_pkey_sign(pkey, 1, verbose)) err++;
-	if (!test_evp_pkey_sign(pkey, 0, verbose)) err++;
+	//if (!test_evp_pkey_sign(pkey, 1, 0)) err++;
+	//if (!test_evp_pkey_sign(pkey, 0, 0)) err++;
 	if (!test_evp_pkey_encrypt(pkey, 1, verbose)) err++;
-	if (!test_evp_pkey_encrypt(pkey, 0, verbose)) err++;
-	if (!test_evp_pkey_encrypt_old(pkey, verbose)) err++;
-	if (!test_evp_sign(pkey, md, verbose)) err++;
-	if (!test_evp_seal(curve_id, cipher, out, verbose)) err++;
-	if (!test_evp_digestsign(pkey, 1, md, verbose)) err++;
+	//if (!test_evp_pkey_encrypt(pkey, 0, verbose)) err++;
+	//if (!test_evp_pkey_encrypt_old(pkey, verbose)) err++;
+	//if (!test_evp_sign(pkey, md, 0)) err++;
+	//if (!test_evp_seal(curve_id, cipher, out, verbose)) err++;
+	//if (!test_evp_digestsign(pkey, 1, md, verbose)) err++;
 
 end:
 	EVP_PKEY_free(pkey);
