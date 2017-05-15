@@ -86,7 +86,14 @@ int EC_KEY_set_ECCPUBLICKEYBLOB(EC_KEY *ec_key, const ECCPUBLICKEYBLOB *blob)
 		return 0;
 	}
 
+#if 1
+	nbytes = 64;
+#else
+	/* we assume that the coordinates are stored in big-endian format.
+	 * but if it is not
+	 */
 	nbytes = (blob->BitLen + 7)/8;
+#endif
 
 	if (!(x = BN_bin2bn(blob->XCoordinate, nbytes, NULL))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCPUBLICKEYBLOB, ERR_R_BN_LIB);

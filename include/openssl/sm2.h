@@ -76,6 +76,11 @@ extern "C" {
 /* compute identity digest Z */
 int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
+int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
+	const unsigned char *msg, size_t msglen, const char *id, size_t idlen,
+	unsigned char *out, size_t *outlen,
+	EC_KEY *ec_key);
+
 
 /* SM2 digital signature */
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
@@ -100,6 +105,11 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
+
+int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
+	unsigned char **pout);
+SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
+	SM2CiphertextValue **cv, const unsigned char **pin, long len);
 
 SM2CiphertextValue *SM2_do_encrypt(const EVP_MD *md,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);

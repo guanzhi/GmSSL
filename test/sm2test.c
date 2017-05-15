@@ -340,9 +340,10 @@ static int test_sm2_sign(const EC_GROUP *group,
 	}
 
 	if (verbose > 1) {
+		int j;
 		printf("id=%s\n", id);
 		printf("zid(xx):");
-		for (int j = 0; j < dgstlen; j++) { printf("%02x", dgst[j]); } printf("\n");
+		for (j = 0; j < dgstlen; j++) { printf("%02x", dgst[j]); } printf("\n");
 	}
 
 	if (!hexequbin(Z, dgst, dgstlen)) {

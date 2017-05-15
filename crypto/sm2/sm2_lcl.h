@@ -54,11 +54,6 @@
 
 int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
 
-int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
-	const unsigned char *msg, size_t msglen, const char *id, size_t idlen,
-	unsigned char *out, size_t *outlen,
-	EC_KEY *ec_key);
-
 struct SM2CiphertextValue_st {
 	BIGNUM *xCoordinate;
 	BIGNUM *yCoordinate;
@@ -96,12 +91,6 @@ struct sm2_kap_ctx_st {
 	unsigned char checksum[EVP_MAX_MD_SIZE];
 
 };
-
-int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
-	unsigned char **pout);
-SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
-	SM2CiphertextValue **cv, const unsigned char **pin, long len);
-
 
 
 
