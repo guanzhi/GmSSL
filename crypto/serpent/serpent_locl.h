@@ -46,129 +46,67 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
+/**
+Copyright © 2015 Odzhan
+Copyright © 2008 Daniel Otte
+All Rights Reserved.
 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+3. The name of the author may not be used to endorse or promote products
+derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY AUTHORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE. */
 
-
-/* ======================
-* test unit for serpent-256
-* Odzhan
-*========================
-*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <ctype.h>
-
-#include "../e_os.h"
-
-#ifdef OPENSSL_NO_SERPENT
-
-int main(int argc, char **argv)
-{
-	printf("No Serpent support\n");
-	return 0;
-}
-#else
-
+#include <openssl/opensslconf.h>
+#include <openssl/e_os2.h>
 #include <openssl/serpent.h>
 
-char *plain[] =
-{ "3DA46FFA6F4D6F30CD258333E5A61369" };
+#ifdef INTRINSICS
+#define memcpy(x,y,z) __movsb(x,y,z)
+#define memmove(x,y,z) __movsb(x,y,z)
+#define memset(x,y,z) __stosb(x,y,z)
+#define ROTL32(x,r) _rotl(x,r)
+#define ROTR32(x,r) _rotr(x,r)
+#else
 
-char *keys[] =
-{ "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
-};
+#define U8V(v)  ((uint8_t)(v)  & 0xFFU)
+#define U16V(v) ((uint16_t)(v) & 0xFFFFU)
+#define U32V(v) ((uint32_t)(v) & 0xFFFFFFFFUL)
+#define U64V(v) ((uint64_t)(v) & 0xFFFFFFFFFFFFFFFFULL)
 
-char *cipher[] =
-{ "00112233445566778899AABBCCDDEEFF" };
+#define ROTL8(v, n) \
+  (U8V((v) << (n)) | ((v) >> (8 - (n))))
 
-size_t hex2bin(void *bin, char hex[]) {
-	size_t len, i;
-	int x;
-	uint8_t *p = (uint8_t*)bin;
+#define ROTL16(v, n) \
+  (U16V((v) << (n)) | ((v) >> (16 - (n))))
 
-	len = strlen(hex);
+#define ROTL32(v, n) \
+  (U32V((v) << (n)) | ((v) >> (32 - (n))))
 
-	if ((len & 1) != 0) {
-		return 0;
-	}
+#define ROTL64(v, n) \
+  (U64V((v) << (n)) | ((v) >> (64 - (n))))
 
-	for (i = 0; i<len; i++) {
-		if (isxdigit((int)hex[i]) == 0) {
-			return 0;
-		}
-	}
+#define ROTR8(v, n) ROTL8(v, 8 - (n))
+#define ROTR16(v, n) ROTL16(v, 16 - (n))
+#define ROTR32(v, n) ROTL32(v, 32 - (n))
+#define ROTR64(v, n) ROTL64(v, 64 - (n))
 
-	for (i = 0; i<len / 2; i++) {
-		sscanf(&hex[i * 2], "%2x", &x);
-		p[i] = (uint8_t)x;
-	}
-	return len / 2;
-}
+#endif
 
-void dump_hex(char *s, uint8_t bin[], int len)
-{
-	int i;
-	printf("\n%s=", s);
-	for (i = 0; i<len; i++) {
-		printf("%02x", bin[i]);
-	}
-}
-
-int main(void)
-{
-	uint8_t ct1[32], pt1[32], pt2[32], key[64];
-	int klen, plen, clen, i, j;
-	serpent_key_t skey;
-	serpent_blk ct2;
-	uint32_t *p;
-
-	printf("\nserpent-256 test\n");
-
-	for (i = 0; i<sizeof(keys) / sizeof(char*); i++) {
-		clen = hex2bin(ct1, cipher[i]);
-		plen = hex2bin(pt1, plain[i]);
-		klen = hex2bin(key, keys[i]);
-
-		/* set key */
-		memset(&skey, 0, sizeof(skey));
-		p = (uint32_t*)&skey.x[0][0];
-
-		serpent_set_encrypt_key(&skey, key);
-		printf("\nkey=");
-
-		for (j = 0; j<sizeof(skey) / sizeof(serpent_subkey_t) * 4; j++) {
-			if ((j % 8) == 0) 
-				putchar('\n');
-			printf("%08X ", p[j]);
-		}
-
-		/* encrypt */
-		memcpy(ct2.b, pt1, SERPENT_BLOCK_SIZE);
-
-		printf("\n\n");
-		dump_hex("plaintext", ct2.b, 16);
-
-		serpent_encrypt(pt1, ct2.b, &skey);
-
-		dump_hex("ciphertext", ct2.b, 16);
-
-		if (memcmp(ct1, ct2.b, clen) == 0) {
-			printf("\nEncryption OK");
-			serpent_decrypt(ct1, ct2.b, &skey);
-			if (memcmp(pt1, ct2.b, plen) == 0) {
-				printf("\nDecryption OK");
-				dump_hex("plaintext", ct2.b, 16);
-			}
-			else {
-				printf("\nDecryption failed");
-			}
-		}
-		else {
-			printf("\nEncryption failed");
-		}
-	}
-	return 0;
-}
+#define GOLDEN_RATIO    0x9e3779b9l

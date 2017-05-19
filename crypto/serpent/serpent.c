@@ -74,25 +74,25 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE. */
 
 #include <string.h>
+#include <openssl/crypto.h>
 #include <openssl/serpent.h>
 
 
-void serpent_whiten(serpent_blk *dst, serpent_key_t *src, int idx) {
+static void serpent_whiten(serpent_blk *dst, serpent_key_t *src, int idx) {
 	uint8_t i;
 	serpent_blk *p = (serpent_blk*)&src->x[idx];
 
-	for (i = 0; i<SERPENT_BLK_LEN / 4; i++) {
+	for (i = 0; i<SERPENT_BLOCK_SIZE / 4; i++) {
 		dst->w[i] ^= p->w[i];
 	}
 }
 
-void permute(serpent_blk *out,
-	serpent_blk *in, int type)
+static void permute(serpent_blk *out, serpent_blk *in, int type)
 {
 	uint8_t cy;
 	uint8_t n, m;
 
-	for (n = 0; n<SERPENT_BLK_LEN / 4; n++) {
+	for (n = 0; n<SERPENT_BLOCK_SIZE / 4; n++) {
 		out->w[n] = 0;
 	}
 
@@ -120,13 +120,13 @@ void permute(serpent_blk *out,
 #define HI_NIBBLE(b) (((b) >> 4) & 0x0F)
 #define LO_NIBBLE(b) ((b) & 0x0F)
 
-uint32_t serpent_gen_w(uint32_t *b, uint32_t i) {
+static uint32_t serpent_gen_w(uint32_t *b, uint32_t i) {
 	uint32_t ret;
 	ret = b[0] ^ b[3] ^ b[5] ^ b[7] ^ GOLDEN_RATIO ^ i;
 	return ROTL32(ret, 11);
 }
 
-void serpent_subbytes(serpent_blk *blk, uint32_t box_idx, int type)
+static void serpent_subbytes(serpent_blk *blk, uint32_t box_idx, int type)
 {
 	serpent_blk tmp_blk, sb;
 	uint8_t *sbp;
@@ -171,18 +171,18 @@ void serpent_subbytes(serpent_blk *blk, uint32_t box_idx, int type)
 
 	permute(&tmp_blk, blk, SERPENT_IP);
 
-	for (i = 0; i<SERPENT_BLK_LEN; i++) {
+	for (i = 0; i<SERPENT_BLOCK_SIZE; i++) {
 		t = tmp_blk.b[i];
 		tmp_blk.b[i] = (sb.b[HI_NIBBLE(t)] << 4) | sb.b[LO_NIBBLE(t)];
 	}
 	permute(blk, &tmp_blk, SERPENT_FP);
 }
 
-void serpent_lt(serpent_blk* x, int enc)
+static fvoid serpent_lt(serpent_blk* x, int enc)
 {
 	uint32_t x0, x1, x2, x3;
 
-	// load
+	/* load */
 	x0 = x->w[0];
 	x1 = x->w[1];
 	x2 = x->w[2];
@@ -210,7 +210,7 @@ void serpent_lt(serpent_blk* x, int enc)
 		x0 ^= x1 ^ x3;
 		x2 ^= x3 ^ (x1 << 7);
 		x0 = ROTL32(x0, 5);
-		x2 = ROTR32(x2, 10);
+	    x2 = ROTR32(x2, 10);
 	}
 	x->w[0] = x0;
 	x->w[1] = x1;
@@ -227,10 +227,10 @@ void serpent_set_encrypt_key(serpent_key_t *key, const unsigned char *user_key)
 
 	uint32_t i, j;
 
-	// copy key input to local buffer
+	/* copy key input to local buffer */
 	memcpy(&s_ws.b[0], user_key, SERPENT_KEY256);
 
-	// expand the key
+	/* expand the key */
 	for (i = 0; i <= SERPENT_ROUNDS; i++) {
 		for (j = 0; j<4; j++) {
 			key->x[i][j] = serpent_gen_w(s_ws.w, i * 4 + j);
@@ -241,39 +241,67 @@ void serpent_set_encrypt_key(serpent_key_t *key, const unsigned char *user_key)
 	}
 }
 
-void serpent_encrypt(void *in, serpent_key_t *key)
+void serpent_set_decrypt_key(serpent_key_t *key, const unsigned char *user_key)
 {
-	int8_t i;
-	serpent_blk *out = in;
+    	union {
+		uint8_t b[32];
+		uint32_t w[8];
+	} s_ws;
 
-		i = 0;
-		for (;;) {
-			// xor with subkey
-			serpent_whiten(out, key, i);
-			// apply sbox
-			serpent_subbytes(out, i, SERPENT_ENCRYPT);
-			if (++i == SERPENT_ROUNDS) break;
-			// linear transformation
-			serpent_lt(out, SERPENT_ENCRYPT);
+	uint32_t i, j;
+
+	/* copy key input to local buffer */
+	memcpy(&s_ws.b[0], user_key, SERPENT_KEY256);
+
+	/* expand the key */
+	for (i = 0; i <= SERPENT_ROUNDS; i++) {
+		for (j = 0; j<4; j++) {
+			key->x[i][j] = serpent_gen_w(s_ws.w, i * 4 + j);
+			memmove(&s_ws.b, &s_ws.b[4], 7 * 4);
+			s_ws.w[7] = key->x[i][j];
 		}
-		serpent_whiten(out, key, i);
+		serpent_subbytes((serpent_blk*)&key->x[i], 3 - i, SERPENT_ENCRYPT);
+	}
 }
 
-void serpent_decrypt(void *in, serpent_key_t *key)
+void serpent_encrypt(const void *in, void *out, serpent_key_t *key)
 {
-	int8_t i; 
-		serpent_blk *out = in;
+	int8_t i;
+    	memcpy(out, in, SERPENT_BLOCK_SIZE);
+	serpent_blk *_out = out;
 
-		i = SERPENT_ROUNDS;
-		serpent_whiten(out, key, i);
-		for (;;) {
-			--i;
-			// apply sbox
-			serpent_subbytes(out, i, SERPENT_DECRYPT);
-			// xor with subkey
-			serpent_whiten(out, key, i);
-			if (i == 0) break;
-			// linear transformation
-			serpent_lt(out, SERPENT_DECRYPT);
-		}
+	i = 0;
+	for (;;) {
+		/* xor with subkey */
+		serpent_whiten(_out, key, i);
+		/* apply sbox */
+		serpent_subbytes(_out, i, SERPENT_ENCRYPT);
+		if (++i == SERPENT_ROUNDS) 
+            break;
+		/* linear transformation */
+		serpent_lt(_out, SERPENT_ENCRYPT);
+	}
+	serpent_whiten(_out, key, i);
+}
+
+void serpent_decrypt(const void *in, void *out, serpent_key_t *key)
+{
+	int8_t i;
+    	memcpy(out, in, SERPENT_BLOCK_SIZE);
+
+	serpent_blk *_out = out;
+
+	i = SERPENT_ROUNDS;
+	serpent_whiten(_out, key, i);
+	for (;;) {
+		--i;
+		/* apply sbox */
+		serpent_subbytes(_out, i, SERPENT_DECRYPT);
+		/* xor with subkey */
+		serpent_whiten(_out, key, i);
+		if (i == 0) 
+            break;
+		/* linear transformation */
+		serpent_lt(_out, SERPENT_DECRYPT);
+	}
 }
