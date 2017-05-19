@@ -49,14 +49,27 @@
 
 
 
-// test unit for serpent-256
-// Odzhan
+/* ======================
+* test unit for serpent-256
+* Odzhan
+*========================
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+
+#include "../e_os.h"
+
+#ifdef OPENSSL_NO_SERPENT
+int main(int argc, char **argv)
+{
+	printf("No Serpent support\n");
+	return 0;
+}
+#else
 
 #include <openssl/serpent.h>
 
@@ -118,7 +131,7 @@ int main(void)
 		plen = hex2bin(pt1, plain[i]);
 		klen = hex2bin(key, keys[i]);
 
-		// set key
+		/* set key */
 		memset(&skey, 0, sizeof(skey));
 		p = (uint32_t*)&skey.x[0][0];
 
@@ -126,23 +139,24 @@ int main(void)
 		printf("\nkey=");
 
 		for (j = 0; j<sizeof(skey) / sizeof(serpent_subkey_t) * 4; j++) {
-			if ((j % 8) == 0) putchar('\n');
+			if ((j % 8) == 0) 
+				putchar('\n');
 			printf("%08X ", p[j]);
 		}
 
-		// encrypt
-		memcpy(ct2.b, pt1, SERPENT_BLK_LEN);
+		/* encrypt */
+		memcpy(ct2.b, pt1, SERPENT_BLOCK_SIZE);
 
 		printf("\n\n");
 		dump_hex("plaintext", ct2.b, 16);
 
-		serpent_encrypt(ct2.b, &skey);
+		serpent_encrypt(pt1, ct2.b, &skey);
 
 		dump_hex("ciphertext", ct2.b, 16);
 
 		if (memcmp(ct1, ct2.b, clen) == 0) {
 			printf("\nEncryption OK");
-			serpent_decrypt(ct2.b, &skey);
+			serpent_decrypt(ct1, ct2.b, &skey);
 			if (memcmp(pt1, ct2.b, plen) == 0) {
 				printf("\nDecryption OK");
 				dump_hex("plaintext", ct2.b, 16);
