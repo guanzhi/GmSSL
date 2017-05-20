@@ -4842,3 +4842,4 @@ PKCS12_item_decrypt_d2i                 4683	1_1_0d	EXIST::FUNCTION:
 o2i_SM2CiphertextValue                  4684	1_1_0d	EXIST::FUNCTION:
 i2o_SM2CiphertextValue                  4685	1_1_0d	EXIST::FUNCTION:
 SM2_compute_message_digest              4686	1_1_0d	EXIST::FUNCTION:
+serpent_set_decrypt_key                 4687	1_1_0d	EXIST::FUNCTION:
