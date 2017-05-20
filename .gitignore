@@ -177,3 +177,5 @@ crypto/opensslconf.h
 tool/c_rehash
 # exec file
 apps/gmssl
+
+include/openssl/srp.h
