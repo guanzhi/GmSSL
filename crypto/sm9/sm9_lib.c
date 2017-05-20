@@ -47,8 +47,10 @@
  * ====================================================================
  */
 
+#include <string.h>
 #include <openssl/err.h>
 #include <openssl/sm9.h>
+#include <openssl/bn_hash.h>
 #include "sm9_lcl.h"
 
 int SM9_hash1(const EVP_MD *md, BIGNUM **r,

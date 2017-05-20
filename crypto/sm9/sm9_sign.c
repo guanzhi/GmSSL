@@ -47,6 +47,7 @@
  * ====================================================================
  */
 
+#include <string.h>
 #include <openssl/err.h>
 #include <openssl/sm9.h>
 #include <openssl/ec.h>
