@@ -58,7 +58,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
-
+#include <openssl/err.h>
 #include <openssl/base58.h>
 
 static const int8_t b58digits_map[] = {
@@ -97,9 +97,11 @@ bool base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 	
 	for ( ; i < b58sz; ++i)
 	{
-		if (b58u[i] & 0x80)
+		if (b58u[i] & 0x80) {
 			// High-bit set on invalid digit
+			BASE58err(BASE58_F_BASE58_DECODE, BASE58_R_HIGHBIT_SET_ON_INVALID_DIGIT);
 			return false;
+		}
 		if (b58digits_map[b58u[i]] == -1)
 			// Invalid base58 digit
 			return false;

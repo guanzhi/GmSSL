@@ -49,6 +49,7 @@ L SAF		include/openssl/gmsaf.h		crypto/saf/saf_err.c
 L SDF		include/openssl/gmsdf.h		crypto/sdf/sdf_err.c
 L SKF		include/openssl/gmskf.h		crypto/skf/skf_err.c
 L SOF		include/openssl/gmsof.h		crypto/sof/sof_err.c
+L BASE58	include/openssl/base58.h	crypto/base58/base58_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE
