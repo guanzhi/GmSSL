@@ -53,6 +53,8 @@
 #include <openssl/gmsdf.h>
 #include <openssl/gmskf.h>
 #include <openssl/gmsof.h>
+#include <openssl/base58.h>
+
 
 int err_load_crypto_strings_int(void)
 {
@@ -156,6 +158,9 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_SOF
         ERR_load_SOF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_BASE58
+        ERR_load_BASE58_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

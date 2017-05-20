@@ -64,7 +64,7 @@
 #include "../e_os.h"
 
 #ifdef OPENSSL_NO_SERPENT
-int main(int argc. char **argv)
+int main(int argc, char **argv)
 {
 	printf("No Serpent support\n");
 	return 0;
@@ -171,3 +171,4 @@ int main(void)
 	}
 	return 0;
 }
+#endif
