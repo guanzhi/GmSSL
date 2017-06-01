@@ -178,7 +178,7 @@ static void serpent_subbytes(serpent_blk *blk, uint32_t box_idx, int type)
 	permute(blk, &tmp_blk, SERPENT_FP);
 }
 
-static fvoid serpent_lt(serpent_blk* x, int enc)
+static void serpent_lt(serpent_blk* x, int enc)
 {
 	uint32_t x0, x1, x2, x3;
 
