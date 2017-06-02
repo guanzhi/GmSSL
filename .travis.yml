@@ -28,7 +28,7 @@ compiler:
     - gcc
 
 env:
-    - CONFIG_OPTS="no-paillier no-serpent  --prefix=dist/" DESTDIR="_install" 
+    - CONFIG_OPTS="no-paillier no-serpent  --prefix=/home/travis/dist/" DESTDIR="_install" 
 
 before_script:
     - env
@@ -42,6 +42,6 @@ script:
       else
           make="make";
       fi
-    - mkdir dist/
+    - mkdir ~/dist
     - $make
     - $make install
