@@ -6,12 +6,6 @@ cache: ccache
 git:
     submodules: false
 
-addons:
-    apt:
-        packages:
-            - ccache
-            - golang-1.6
-
 os:
     - linux
 
@@ -41,6 +35,7 @@ before_script:
 
 script:
     - make="make";
+    - config no-serpent
     - $make
     - cd $top
 
