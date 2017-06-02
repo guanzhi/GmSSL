@@ -28,7 +28,7 @@ compiler:
     - gcc
 
 env:
-    - CONFIG_OPTS="no-paillier" DESTDIR="_install" 
+    - CONFIG_OPTS="no-paillier no-serpent" DESTDIR="_install" 
 
 before_script:
     - env
