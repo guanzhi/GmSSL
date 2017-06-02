@@ -28,7 +28,7 @@ compiler:
     - gcc
 
 env:
-    - CONFIG_OPTS="no-paillier no-serpent" DESTDIR="_install" 
+    - CONFIG_OPTS="no-paillier no-serpent  --prefix=dist/" DESTDIR="_install" 
 
 before_script:
     - env
@@ -42,7 +42,6 @@ script:
       else
           make="make";
       fi
-    - $make update
+    - mkdir dist/
     - $make
-    - $make test
     - $make install
