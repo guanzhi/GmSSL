@@ -1,0 +1,3 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=sm2_err.c sm2_asn1.c sm2_id.c sm2_sign.c sm2_enc.c \
+			sm2_oct.c sm2_exch.c sm2_kmeth.c

@@ -1,0 +1,18 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]= \
+	saf_app.c \
+	saf_base64.c \
+	saf_cert.c \
+	saf_ec.c \
+	saf_enc.c \
+	saf_err.c \
+	saf_errstr.c \
+	saf_hash.c \
+	saf_keyhandle.c \
+	saf_lib.c \
+	saf_mac.c \
+	saf_pkcs7.c \
+	saf_rand.c \
+	saf_rsa.c \
+	saf_sm2.c \
+	saf_symmkeyobj.c

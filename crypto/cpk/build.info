@@ -1,0 +1,3 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=cpk_asn1.c cpk_err.c cpk_kap.c cpk_lib.c cpk_map.c \
+			cpk_prn.c

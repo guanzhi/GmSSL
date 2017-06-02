@@ -1,0 +1,2 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=kdf2_err.c kdf_x9_63.c kdf_ibcs.c

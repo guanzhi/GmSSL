@@ -1,0 +1,4 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=\
+	sof_err.c \
+	sof_lib.c

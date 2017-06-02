@@ -1,0 +1,3 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=bn_gfp2.c bn_solinas.c bn_hash.c \
+    fppoint.c ec_hash.c ec_type1.c

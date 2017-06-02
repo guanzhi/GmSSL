@@ -1,0 +1,2 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=sdf_err.c sdf_lib.c sdf_meth.c

@@ -1,0 +1,2 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=bb1ibe_err.c bb1ibe_asn1.c bb1ibe_lib.c
