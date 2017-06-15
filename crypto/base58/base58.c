@@ -72,7 +72,7 @@ static const int8_t b58digits_map[] = {
 	47,48,49,50,51,52,53,54, 55,56,57,-1,-1,-1,-1,-1,
 };
 
-bool base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
+int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 {
 	size_t binsz = *binszp;
 	const unsigned char *b58u = (void*)b58;
@@ -100,11 +100,11 @@ bool base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 		if (b58u[i] & 0x80) {
 			// High-bit set on invalid digit
 			BASE58err(BASE58_F_BASE58_DECODE, BASE58_R_HIGHBIT_SET_ON_INVALID_DIGIT);
-			return false;
+			return 0;
 		}
 		if (b58digits_map[b58u[i]] == -1)
 			// Invalid base58 digit
-			return false;
+			return 0;
 		c = (unsigned)b58digits_map[b58u[i]];
 		for (j = outisz; j--; )
 		{
@@ -114,10 +114,10 @@ bool base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 		}
 		if (c)
 			// Output number too big (carry to the next int32)
-			return false;
+			return 0;
 		if (outi[0] & zeromask)
 			// Output number too big (last int32 filled too far)
-			return false;
+			return 0;
 	}
 	
 	j = 0;
@@ -151,12 +151,12 @@ bool base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 	}
 	*binszp += zerocount;
 	
-	return true;
+	return 1;
 }
 
 static const char b58digits_ordered[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-bool base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
+int base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 {
 	const uint8_t *bin = data;
 	int carry;
@@ -185,7 +185,7 @@ bool base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 	if (*b58sz <= zcount + size - j)
 	{
 		*b58sz = zcount + size - j + 1;
-		return false;
+		return 0;
 	}
 	
 	if (zcount)
@@ -195,5 +195,6 @@ bool base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 	b58[i] = '\0';
 	*b58sz = i + 1;
 	
-	return true;
+	return 1;
 }
+f
