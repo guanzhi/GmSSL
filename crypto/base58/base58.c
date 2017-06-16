@@ -197,4 +197,3 @@ int base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 	
 	return 1;
 }
-f
