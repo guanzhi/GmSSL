@@ -43,5 +43,6 @@ script:
           make="make";
       fi
     - mkdir ~/dist
+    - $make update
     - $make
     - $make install
