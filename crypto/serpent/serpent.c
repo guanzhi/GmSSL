@@ -76,7 +76,7 @@ POSSIBILITY OF SUCH DAMAGE. */
 #include <string.h>
 #include <openssl/crypto.h>
 #include <openssl/serpent.h>
-
+#include "serpent_locl.h"
 
 static void serpent_whiten(serpent_blk *dst, serpent_key_t *src, int idx) {
 	uint8_t i;
