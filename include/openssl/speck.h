@@ -49,18 +49,6 @@
 #ifndef SPECK_H
 #define SPECK_H
 
-/*
-* define speck type to use 
-*(one of SPECK_32_64, SPECK_64_128, SPECK_128_256)
-*/
-#ifndef SPECK_H
-#define SPECK_H
-
-/*
-* define speck type to use
-*(one of SPECK_32_64, SPECK_64_128, SPECK_128_256)
-*/
-
 #define SPECK_TYPE16 uint16_t
 #define SPECK_ROUNDS16 22
 #define SPECK_KEY_LEN16 4
