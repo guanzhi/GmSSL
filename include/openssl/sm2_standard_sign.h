@@ -1,11 +1,8 @@
 #include <string.h>
 #include <malloc.h>
 #include "miracl.h"
+#include "kdf_standard_sign.h"
 
-
-#define SM2_WORDSIZE 8
-#define SM2_NUMBITS 256
-#define SM2_NUMWORD (SM2_NUMBITS / SM2_WORDSIZE)	//32
 #define ERR_ECURVE_INIT 0x00000001
 #define ERR_INFINITY_POINT 0x00000002
 #define ERR_NOT_VALID_POINT 0x00000003
