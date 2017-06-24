@@ -1,5 +1,4 @@
 #include "openssl/sm2_standard_sign.h"
-#include "openssl/kdf_standard_sign.h"
 
 
 /* Initiate SM2 curve */
