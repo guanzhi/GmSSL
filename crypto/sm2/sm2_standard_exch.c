@@ -90,8 +90,8 @@ void SM3_z(unsigned char ID[], unsigned short int ELAN, epoint* pubKey, unsigned
 	epoint_get(pubKey, x, y);
 	big_to_bytes(SM2_NUMWORD, x, Px, 1);
 	big_to_bytes(SM2_NUMWORD, y, Py, 1);
-	memcpy(IDlen, &ELAN + 1, 1);
-	memcpy(IDlen + 1, &ELAN, 1);
+	memcpy(IDlen, &(unsigned char)ELAN + 1, 1);
+	memcpy(IDlen + 1, &(unsigned char)ELAN, 1);
 	SM3_init(&md);
 	SM3_process(&md, IDlen, 2);
 	SM3_process(&md, ID, ELAN / 8);
