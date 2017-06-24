@@ -257,9 +257,7 @@ typedef int BOOL;
 #ifdef MR_FP
 
   typedef mr_utype mr_small;
-  #ifdef mr_dltype
   typedef mr_dltype mr_large;
-  #endif
 
   #define MR_DIV(a,b)    (modf((a)/(b),&dres),dres)
 
