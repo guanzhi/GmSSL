@@ -1,5 +1,4 @@
 #include <string.h>
-#include "sm2_standard_sign.h"
 
 
 #define SM3_len 256
@@ -13,6 +12,10 @@
 #define SM3_IVF 0x163138aa
 #define SM3_IVG 0xe38dee4d
 #define SM3_IVH 0xb0fb0e4e
+
+#define SM2_WORDSIZE 8
+#define SM2_NUMBITS 256
+#define SM2_NUMWORD (SM2_NUMBITS / SM2_WORDSIZE)	//32
 
 
 /* Various logical functions */
