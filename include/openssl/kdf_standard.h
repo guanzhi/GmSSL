@@ -328,7 +328,7 @@ void SM3_KDF( unsigned char Z[] ,unsigned short zlen,unsigned short klen,unsigne
 	else
 		t = bitklen / SM2_NUMBITS;
 
-	//s4: K = Ha1 || Ha2 || ...  
+	//s4: K = Ha1 || Ha2 || ...
 	for (i = 1; i < t; i++)
 	{
 		//s2: Hai = Hv(Z || ct)
