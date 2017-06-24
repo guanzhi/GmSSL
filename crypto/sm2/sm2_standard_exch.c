@@ -1,6 +1,5 @@
 #include <malloc.h>
 #include "openssl/sm2_standard_exch.h"
-#include "openssl/kdf_standard_exch.h"
 
 /* calculation of w */
 int SM2_w(big n)
