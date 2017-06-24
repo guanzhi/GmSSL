@@ -1,7 +1,6 @@
 #include "openssl/miracl.h"
 #include "openssl/mirdef.h"
 #include "openssl/sm2_standard_enc.h"
-#include "openssl/kdf_standard_enc.h"
 
 
 /* test if the given point is on SM2 curve */
