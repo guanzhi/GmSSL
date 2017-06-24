@@ -1,9 +1,6 @@
 #include "miracl.h"
 #include "mirdef.h"
-
-#define ECC_WORDSIZE 8
-#define SM2_NUMBITS 256
-#define SM2_NUMWORD	(SM2_NUMBITS/ECC_WORDSIZE) //32
+#include "kdf_standard_enc.h"
 
 #define ERR_INFINITY_POINT 0x00000001
 #define ERR_NOT_VALID_ELEMENT 0x00000002
