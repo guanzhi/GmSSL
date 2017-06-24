@@ -49,31 +49,38 @@
 #ifndef SPECK_H
 #define SPECK_H
 
-/*
-* define speck type to use 
-*(one of SPECK_32_64, SPECK_64_128, SPECK_128_256)
-*/
-#define SPECK_32_64
+#define SPECK_TYPE16 uint16_t
+#define SPECK_ROUNDS16 22
+#define SPECK_KEY_LEN16 4
 
-#ifdef SPECK_32_64
-#define SPECK_TYPE uint16_t
-#define SPECK_ROUNDS 22
-#define SPECK_KEY_LEN 4
-#endif
 
-#ifdef SPECK_64_128
-#define SPECK_TYPE uint32_t
-#define SPECK_ROUNDS 27
-#define SPECK_KEY_LEN 4
-#endif
+#define SPECK_TYPE32 uint32_t
+#define SPECK_ROUNDS32 27
+#define SPECK_KEY_LEN32 4
 
-#ifdef SPECK_128_256
-#define SPECK_TYPE uint64_t
-#define SPECK_ROUNDS 34
-#define SPECK_KEY_LEN 4
-#endif
+#define SPECK_TYPE64 uint64_t
+#define SPECK_ROUNDS64 34
+#define SPECK_KEY_LEN64 4
 
-#define num_word sizeof(SPECK_TYPE)
+#define ROR16(x, r) ((x >> r) | (x << ((sizeof(SPECK_TYPE16) * 8) - r)))//循环右移
+#define ROL16(x, r) ((x << r) | (x >> ((sizeof(SPECK_TYPE16) * 8) - r)))//循环左移
+
+#define ROR32(x, r) ((x >> r) | (x << ((sizeof(SPECK_TYPE32) * 8) - r)))//循环右移
+#define ROL32(x, r) ((x << r) | (x >> ((sizeof(SPECK_TYPE32) * 8) - r)))//循环左移
+
+#define ROR64(x, r) ((x >> r) | (x << ((sizeof(SPECK_TYPE64) * 8) - r)))//循环右移
+#define ROL64(x, r) ((x << r) | (x >> ((sizeof(SPECK_TYPE64) * 8) - r)))//循环左移
+
+
+#define R16(x, y, k) (x = ROR16(x, 7), x += y, x ^= k, y = ROL16(y, 2), y ^= x)
+#define RR16(x, y, k) (y ^= x, y = ROR16(y, 2), x ^= k, x -= y, x = ROL16(x, 7))
+
+#define R32(x, y, k) (x = ROR32(x, 8), x += y, x ^= k, y = ROL32(y, 3), y ^= x)
+#define RR32(x, y, k) (y ^= x, y = ROR32(y, 3), x ^= k, x -= y, x = ROL32(x, 8))
+
+#define R64(x, y, k) (x = ROR64(x, 8), x += y, x ^= k, y = ROL64(y, 3), y ^= x)
+#define RR64(x, y, k) (y ^= x, y = ROR64(y, 3), x ^= k, x -= y, x = ROL64(x, 8))
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
@@ -81,14 +88,23 @@
 extern "C" {
 #endif
 
-	typedef struct {
-		unsigned char rk[num_word];
-	} speck_key_t;
+	void speck_set_encrypt_key16(SPECK_TYPE16 const user[SPECK_KEY_LEN16], SPECK_TYPE16 key[SPECK_ROUNDS16]);
+	void speck_set_decrypt_key16(SPECK_TYPE16 const user[SPECK_KEY_LEN16], SPECK_TYPE16 key[SPECK_ROUNDS16]);
+	void speck_expand16(SPECK_TYPE16 const K[SPECK_KEY_LEN16], SPECK_TYPE16 S[SPECK_ROUNDS16]);
+	void speck_encrypt16(SPECK_TYPE16 const pt[2], SPECK_TYPE16 ct[2], SPECK_TYPE16 const K[SPECK_ROUNDS16]);
+	void speck_decrypt16(SPECK_TYPE16 const ct[2], SPECK_TYPE16 pt[2], SPECK_TYPE16 const K[SPECK_ROUNDS16]);
 
-	void speck_set_encrypt_key(speck_key_t *key, const unsigned char *user_key);
-	void speck_expand(SPECK_TYPE const K[SPECK_KEY_LEN], SPECK_TYPE S[SPECK_ROUNDS]);
-	void speck_encrypt(SPECK_TYPE const pt[2], SPECK_TYPE ct[2], SPECK_TYPE const K[SPECK_ROUNDS]);
-	void speck_decrypt(SPECK_TYPE const ct[2], SPECK_TYPE pt[2], SPECK_TYPE const K[SPECK_ROUNDS]);
+	void speck_set_encrypt_key32(SPECK_TYPE32 const user[SPECK_KEY_LEN32], SPECK_TYPE32 key[SPECK_ROUNDS32]);
+	void speck_set_decrypt_key32(SPECK_TYPE32 const user[SPECK_KEY_LEN32], SPECK_TYPE32 key[SPECK_ROUNDS32]);
+	void speck_expand32(SPECK_TYPE32 const K[SPECK_KEY_LEN32], SPECK_TYPE32 S[SPECK_ROUNDS32]);
+	void speck_encrypt32(SPECK_TYPE32 const pt[2], SPECK_TYPE32 ct[2], SPECK_TYPE32 const K[SPECK_ROUNDS32]);
+	void speck_decrypt32(SPECK_TYPE32 const ct[2], SPECK_TYPE32 pt[2], SPECK_TYPE32 const K[SPECK_ROUNDS32]);
+
+	void speck_set_encrypt_key64(SPECK_TYPE64 const user[SPECK_KEY_LEN64], SPECK_TYPE64 key[SPECK_ROUNDS64]);
+	void speck_set_decrypt_key64(SPECK_TYPE64 const user[SPECK_KEY_LEN64], SPECK_TYPE64 key[SPECK_ROUNDS64]);
+	void speck_expand64(SPECK_TYPE64 const K[SPECK_KEY_LEN64], SPECK_TYPE64 S[SPECK_ROUNDS64]);
+	void speck_encrypt64(SPECK_TYPE64 const pt[2], SPECK_TYPE64 ct[2], SPECK_TYPE64 const K[SPECK_ROUNDS64]);
+	void speck_decrypt64(SPECK_TYPE64 const ct[2], SPECK_TYPE64 pt[2], SPECK_TYPE64 const K[SPECK_ROUNDS64]);
 
 #ifdef __cplusplus
 }
