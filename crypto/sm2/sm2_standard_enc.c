@@ -46,7 +46,9 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <openssl\sm2_standard.h>
+#include <openssl/miracl.h>
+#include <openssl/mirdef.h>
+#include <openssl/sm2_standard.h>
 
 
 /* test if the given array is all zero */
