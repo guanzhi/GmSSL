@@ -50,7 +50,7 @@
 
 
 #include <malloc.h>
-#include <openssl/sm2_standard.h>
+#include <openssl\sm2_standard.h>
 
 
 /* calculation of w */
