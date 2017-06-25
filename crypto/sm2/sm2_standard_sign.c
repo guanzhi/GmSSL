@@ -223,7 +223,7 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 
 	//step7:generate RR
 	add(e, x1, RR);
-	divide(RR, n, rem);
+	divide(RR, para_n, rem);
 
 	free(M);
 	if (compare(RR, r) == 0)
@@ -269,7 +269,7 @@ int SM2_standard_selfcheck()
 	mip = mirsys(10000, 16);
 	mip->IOBASE = 16;
 
-	temp = SM2_standard_keygeneration(dA, xA, yA);
+	temp = SM2_standard_sign_keygeneration(dA, xA, yA);
 	if (temp)
 		return temp;
 	
