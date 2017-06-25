@@ -1,97 +1,5 @@
-#include "openssl/sm2_standard_sign.h"
-
-
-/* Initiate SM2 curve */
-int SM2_standard_init()
-{
-	Gx = mirvar(0);
-	Gy = mirvar(0);
-	p = mirvar(0);
-	a = mirvar(0);
-	b = mirvar(0);
-	n = mirvar(0);
-
-	bytes_to_big(SM2_NUMWORD, SM2_Gx, Gx);
-	bytes_to_big(SM2_NUMWORD, SM2_Gy, Gy);
-	bytes_to_big(SM2_NUMWORD, SM2_p, p);
-	bytes_to_big(SM2_NUMWORD, SM2_a, a);
-	bytes_to_big(SM2_NUMWORD, SM2_b, b);
-	bytes_to_big(SM2_NUMWORD, SM2_n, n);
-
-	ecurve_init(a, b, p, MR_PROJECTIVE);
-	G = epoint_init();
-	nG = epoint_init();
-
-	if (!epoint_set(Gx, Gy, 0, G))	//initialise point G
-	{
-		return ERR_ECURVE_INIT;
-	}
-	ecurve_mult(n, G, nG);
-	if (!point_at_infinity(nG))		//test if the order of the point is n
-	{
-		return ERR_ORDER;
-	}
-
-	return 0;
-}
-
-
-/* test if the given point is on SM2 curve */
-int Test_Point(epoint* point)
-{
-	big x, y, x_3, tmp;
-	x = mirvar(0);
-	y = mirvar(0);
-	x_3 = mirvar(0);
-	tmp = mirvar(0);
-
-	//test if y^2 = x^3 + ax + b
-	epoint_get(point, x, y);
-	power(x, 3, p, x_3); 	//x_3 = x^3 mod p
-	multiply(x, a, x); 		//x = a * x
-	divide(x, p, tmp); 		//x = a * x mod p, tmp = a * x / p
-	add(x_3, x, x);			//x = x^3 + ax
-	add(x, b, x); 			//x = x^3 + ax + b
-	divide(x, p, tmp); 		//x = x^3 + ax + b mod p
-	power(y, 2, p, y); 		//y = y^2 mod p
-	if (compare(x, y) != 0)
-		return ERR_NOT_VALID_POINT;
-	else
-		return 0;
-}
-
-
-/* test if the given public key is valid */
-int Test_PubKey(epoint *pubKey)
-{
-	big x, y, x_3, tmp;
-	epoint *nP;
-	x = mirvar(0);
-	y = mirvar(0);
-	x_3 = mirvar(0);
-	tmp = mirvar(0);
-
-	nP = epoint_init();
-
-	//test if the pubKey is the point at infinity
-	if (point_at_infinity(pubKey))	//if pubKey is point at infinity, return error;
-		return ERR_INFINITY_POINT;
-
-	//test if x < p and y < p both hold
-	epoint_get(pubKey, x, y);
-	if ((compare(x, p) != -1) || (compare(y, p) != -1))
-		return ERR_NOT_VALID_ELEMENT;
-
-	if (Test_Point(pubKey) != 0)
-		return ERR_NOT_VALID_POINT;
-
-	//test if the order of pubKey is equal to n
-	ecurve_mult(n, pubKey, nP);		//nP = [n]P
-	if (!point_at_infinity(nP))		//if np is point NOT at infinity, return error;
-		return ERR_ORDER;
-	return 0;
-}
-
+#include "openssl/sm2_standard.h"
+#include "openssl/kdf_standard.h"
 
 
 /* test if the big x is zero */
@@ -106,17 +14,15 @@ int Test_Zero(big x)
 }
 
 
-
 /* test if the big x is order n */
 int Test_n(big x)
 {
 	//bytes_to_big(32, SM2_n, n);
-	if (compare(x, n) == 0)
+	if (compare(x, para_n) == 0)
 		return 1;
 	else 
 		return 0;
 }
-
 
 
 /* test if the big x belong to the range[1, n-1] */
@@ -128,7 +34,7 @@ int Test_Range(big x)
 	decr_n = mirvar(0);
 
 	convert(1, one);
-	decr(n, 1, decr_n);
+	decr(para_n, 1, decr_n);
 
 	if ((compare(x, one) < 0) | (compare(x, decr_n) > 0))
 		return 1;
@@ -136,9 +42,8 @@ int Test_Range(big x)
 }
 
 
-
 /* calculate a pubKey out of a given priKey */
-int SM2_standard_keygeneration(unsigned char PriKey[], unsigned char Px[], unsigned char Py[])
+int SM2_standard_sign_keygeneration(unsigned char PriKey[], unsigned char Px[], unsigned char Py[])
 {
 	int i = 0;
 	big d, PAx, PAy;
@@ -164,7 +69,6 @@ int SM2_standard_keygeneration(unsigned char PriKey[], unsigned char Px[], unsig
 	else
 		return 0;
 }
-
 
 
 /* SM2 signature algorithm */
@@ -217,7 +121,7 @@ int SM2_standard_sign(unsigned char *message, int len, unsigned char ZA[], unsig
 	//step5:calculate r
 	epoint_get(KG, KGx, KGy);
 	add(e, KGx, r);
-	divide(r, n, rem);
+	divide(r, para_n, rem);
 
 	//judge r = 0 or n + k = n?
 	add(r, k, rk);
@@ -226,13 +130,13 @@ int SM2_standard_sign(unsigned char *message, int len, unsigned char ZA[], unsig
 
 	//step6:generate s
 	incr(dA, 1, z1);
-	xgcd(z1, n, z1, z1, z1);
+	xgcd(z1, para_n, z1, z1, z1);
 	multiply(r, dA, z2);
-	divide(z2, n, rem);
+	divide(z2, para_n, rem);
 	subtract(k, z2, z2);
-	add(z2, n, z2);
+	add(z2, para_n, z2);
 	multiply(z1, z2, s);
-	divide(s, n, rem);
+	divide(s, para_n, rem);
 
 	//judge s = 0?
 	if (Test_Zero(s))
@@ -244,6 +148,8 @@ int SM2_standard_sign(unsigned char *message, int len, unsigned char ZA[], unsig
 	free(M);
 	return 0;
 }
+
+
 /* SM2 verification algorithm */
 int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], unsigned char Px[], unsigned char Py[], unsigned char R[], unsigned char S[])
 {
@@ -305,7 +211,7 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 
 	//step5:generate t
 	add(r, s, t);
-	divide(t, n, rem);
+	divide(t, para_n, rem);
 
 	if (Test_Zero(t))
 		return ERR_GENERATE_T;
@@ -326,8 +232,9 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 	else
 		return ERR_DATA_MEMCMP;
 }
-/* SM2 self check */
 
+
+/* SM2 self check */
 int SM2_standard_selfcheck()
 {
 	//the private key
@@ -360,7 +267,7 @@ int SM2_standard_selfcheck()
 	
 	int temp;
 
-	miracl *mip = mirsys(10000, 16);
+	mip = mirsys(10000, 16);
 	mip->IOBASE = 16;
 
 	temp = SM2_standard_keygeneration(dA, xA, yA);
