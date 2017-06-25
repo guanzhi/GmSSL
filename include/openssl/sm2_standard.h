@@ -60,9 +60,9 @@
 extern "C" {
 #endif
 
-#include "miracl.h"
-#include "mirdef.h"
-#include "kdf_standard.h"
+#include <openssl/miracl.h>
+#include <openssl/mirdef.h>
+#include <openssl/kdf_standard.h>
 
 #define ERR_INFINITY_POINT 0x00000001
 #define ERR_NOT_VALID_ELEMENT 0x00000002
