@@ -54,20 +54,20 @@ typedef struct {
 } SM3_STATE;
 
 
-void BiToW(unsigned long Bi[], unsigned long W[]);
-void WToW1(unsigned long W[], unsigned long W1[]);
-void CF(unsigned long W[], unsigned long W1[], unsigned long V[]);
-void BigEndian(unsigned char src[], unsigned int bytelen, unsigned char des[]);
-void SM3_init(SM3_STATE *md);
-void SM3_compress(SM3_STATE *md);
-void SM3_process(SM3_STATE *md, unsigned char *buf, int len);
-void SM3_done(SM3_STATE *md, unsigned char hash[]);
-void SM3_256(unsigned char buf[], int len, unsigned char hash[]);
-void SM3_kdf(unsigned char Z[], unsigned short zlen, unsigned short klen, unsigned char K[]);
+static void BiToW(unsigned long Bi[], unsigned long W[]);
+static void WToW1(unsigned long W[], unsigned long W1[]);
+static void CF(unsigned long W[], unsigned long W1[], unsigned long V[]);
+static void BigEndian(unsigned char src[], unsigned int bytelen, unsigned char des[]);
+static void SM3_init(SM3_STATE *md);
+static void SM3_compress(SM3_STATE *md);
+static void SM3_process(SM3_STATE *md, unsigned char *buf, int len);
+static void SM3_done(SM3_STATE *md, unsigned char hash[]);
+static void SM3_256(unsigned char buf[], int len, unsigned char hash[]);
+static void SM3_kdf(unsigned char Z[], unsigned short zlen, unsigned short klen, unsigned char K[]);
 
 
 /* calculate W from Bi */
-void BiToW(unsigned long Bi[], unsigned long W[])
+static void BiToW(unsigned long Bi[], unsigned long W[])
 {
 	int i;
 	unsigned long tmp;
@@ -85,7 +85,7 @@ void BiToW(unsigned long Bi[], unsigned long W[])
 
 
 /* calculate W1 from W */
-void WToW1(unsigned long W[], unsigned long W1[])
+static void WToW1(unsigned long W[], unsigned long W1[])
 {
 	int i;
 	for(i = 0; i <= 63; i++)
@@ -96,7 +96,7 @@ void WToW1(unsigned long W[], unsigned long W1[])
 
 
 /* calculate the CF compress function and update V */
-void CF(unsigned long W[], unsigned long W1[], unsigned long V[])
+static void CF(unsigned long W[], unsigned long W1[], unsigned long V[])
 {
 	unsigned long SS1;
 	unsigned long SS2;
@@ -203,7 +203,7 @@ void CF(unsigned long W[], unsigned long W1[], unsigned long V[])
  * if CPu uses little-endian, BigEndian function is a necessary
  * call to change the little-endian format into big-endian format.
  */
-void BigEndian(unsigned char src[], unsigned int bytelen, unsigned char des[])
+static void BigEndian(unsigned char src[], unsigned int bytelen, unsigned char des[])
 {
 	unsigned char tmp = 0;
 	unsigned long i = 0;
@@ -221,7 +221,7 @@ void BigEndian(unsigned char src[], unsigned int bytelen, unsigned char des[])
 
 
 /* initiate SM3 state */
-void SM3_init(SM3_STATE *md)
+static void SM3_init(SM3_STATE *md)
 {
 	md->curlen = md->length = 0;
 	md->state[0] = SM3_IVA;
@@ -236,7 +236,7 @@ void SM3_init(SM3_STATE *md)
 
 
 /* compress a single a block of message */
-void SM3_compress(SM3_STATE *md)
+static void SM3_compress(SM3_STATE *md)
 {
 	unsigned long W[68];
 	unsigned long W1[64];
@@ -250,7 +250,7 @@ void SM3_compress(SM3_STATE *md)
 
 
 /* compress the first(len/64) blocks of message */
-void SM3_process(SM3_STATE *md, unsigned char *buf, int len)
+static void SM3_process(SM3_STATE *md, unsigned char *buf, int len)
 {
 	while (len--)
 	{
@@ -270,7 +270,7 @@ void SM3_process(SM3_STATE *md, unsigned char *buf, int len)
 
 
 /* compress the rest message that the SM3_process has left behind */
-void SM3_done(SM3_STATE *md, unsigned char hash[])
+static void SM3_done(SM3_STATE *md, unsigned char hash[])
 {
 	int i;
 	unsigned char tmp = 0;
@@ -325,7 +325,7 @@ void SM3_done(SM3_STATE *md, unsigned char hash[])
 
 
 /* calculate a hash value from a given message */
-void SM3_256(unsigned char buf[], int len, unsigned char hash[])
+static void SM3_256(unsigned char buf[], int len, unsigned char hash[])
 {
 	SM3_STATE md;
 	SM3_init(&md);
@@ -335,7 +335,7 @@ void SM3_256(unsigned char buf[], int len, unsigned char hash[])
 
 
 /* key derivation function */
-void SM3_kdf(unsigned char Z[], unsigned short zlen, unsigned short klen, unsigned char K[])
+static void SM3_kdf(unsigned char Z[], unsigned short zlen, unsigned short klen, unsigned char K[])
 {
 	unsigned short i, j, t;
 	unsigned int bitklen;
