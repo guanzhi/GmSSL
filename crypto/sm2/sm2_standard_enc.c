@@ -1,64 +1,52 @@
-#include "openssl/miracl.h"
-#include "openssl/mirdef.h"
-#include "openssl/sm2_standard_enc.h"
+/*
+ * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-
-/* test if the given point is on SM2 curve */
-int Test_Point(epoint* point)
-{
-	big x, y, x_3, tmp;
-	x = mirvar(0);
-	y = mirvar(0);
-	x_3 = mirvar(0);
-	tmp = mirvar(0);
-
-
-	//test if y^2 = x^3 + ax + b
-	epoint_get(point, x, y);
-	power(x, 3, para_p, x_3);	//x_3 = x^3 mod p
-	multiply(x, para_a, x);		//x = a * x
-	divide(x, para_p, tmp);		//x = a * x mod p, tmp = a * x / p
-	add(x_3, x, x);				//x = x^3 + ax
-	add(x, para_b, x);			//x = x^3 + ax + b
-	divide(x, para_p, tmp); 	//x = x^3 + ax + b mod p
-	power(y, 2, para_p, y);		//y = y^2 mod p
-	if (compare(x, y) != 0)
-		return ERR_NOT_VALID_POINT;
-	else
-		return 0; 
-}
-
-
-/* test if the given point is valid */
-int Test_PubKey(epoint *pubKey)
-{
-	big x, y, x_3, tmp;
-	epoint *nP;
-	x = mirvar(0);
-	y = mirvar(0);
-	x_3 = mirvar(0);
-	tmp = mirvar(0);
-
-	nP = epoint_init();
-
-	//test if the pubKey is the point at infinity
-	if (point_at_infinity(pubKey))	//if pubKey is point at infinity, return error;
-		return ERR_INFINITY_POINT;
-
-	//test if x < p and y < p both hold
-	epoint_get(pubKey, x, y);
-	if ((compare(x, para_p) != -1) || (compare(y, para_p) != -1))
-		return ERR_NOT_VALID_ELEMENT;
-
-	if (Test_Point(pubKey) != 0)
-		return ERR_INFINITY_POINT;
-
-	//test if the order of pubKey is equal to n
-	ecurve_mult(para_n, pubKey, nP);	//nP = [n]P
-	if (!point_at_infinity(nP))			//if np is point NOT at infinity, return error;
-		return ERR_ORDER;
-	return 0;
-}
+#include <openssl\sm2_standard.h>
 
 
 /* test if the given array is all zero */
@@ -72,61 +60,6 @@ int Test_Null(unsigned char array[], int len)
 			return 0;
 	}
 	return 1;
-}
-
-int SM2_standard_init()
-{
-	epoint *nG;
-	para_p = mirvar(0);
-	para_a = mirvar(0);
-	para_b = mirvar(0);
-	para_n = mirvar(0);
-	para_Gx = mirvar(0);
-	para_Gy = mirvar(0);
-	para_h = mirvar(0);
-	G = epoint_init();
-	nG = epoint_init();
-	bytes_to_big(SM2_NUMWORD, SM2_p, para_p);
-	bytes_to_big(SM2_NUMWORD, SM2_a, para_a);
-	bytes_to_big(SM2_NUMWORD, SM2_b, para_b);
-	bytes_to_big(SM2_NUMWORD, SM2_n, para_n);
-	bytes_to_big(SM2_NUMWORD, SM2_Gx, para_Gx);
-	bytes_to_big(SM2_NUMWORD, SM2_Gy, para_Gy);
-	bytes_to_big(SM2_NUMWORD, SM2_h, para_h);
-
-	ecurve_init(para_a, para_b, para_p, MR_PROJECTIVE);		//Initialises GF(p) elliptic curve.
-															//MR_PROJECTIVE specifying projective coordinates
-
-	if (!epoint_set(para_Gx, para_Gy, 0, G))	//initialise point G
-	{
-		return ERR_ECURVE_INIT;
-	}
-
-	ecurve_mult(para_n, G, nG);
-	if (!point_at_infinity(nG))		//test if the order of the point is n
-	{
-		return ERR_ORDER;
-	}
-	return 0;
-}
-
-
-/* calculate a pubKey out of a given priKey */
-int SM2_standard_keygeneration(big priKey, epoint *pubKey)
-{
-	int i;
-	i = 0;
-	big x, y;
-	x = mirvar(0);
-	y = mirvar(0);
-
-	ecurve_mult(priKey, G, pubKey);
-	epoint_get(pubKey, x, y);
-
-	if (Test_PubKey(pubKey) != 0)
-		return 1;
-	else
-		return 0;
 }
 
 
