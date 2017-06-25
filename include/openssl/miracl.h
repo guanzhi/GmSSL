@@ -32,8 +32,8 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
                                                                            *
 ***************************************************************************/
 
-#ifndef MIRACL_H
-#define MIRACL_H
+#ifndef HEADER_MIRACL_H
+#define HEADER_MIRACL_H
 
 /*
  *   main MIRACL header - miracl.h.
@@ -44,6 +44,10 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
 /* Some modifiable defaults... */
 
 /* Use a smaller buffer if space is limited, don't be so wasteful! */
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 #ifdef MR_STATIC
 #define MR_DEFAULT_BUFFER_SIZE 260
@@ -1504,6 +1508,10 @@ functions. But it works!
     #endif
     #endif
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 
