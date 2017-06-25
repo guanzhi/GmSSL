@@ -1,97 +1,54 @@
-#include "openssl/sm2_standard_sign.h"
+/* ====================================================================
+ * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ */
 
 
-/* Initiate SM2 curve */
-int SM2_standard_init()
-{
-	Gx = mirvar(0);
-	Gy = mirvar(0);
-	p = mirvar(0);
-	a = mirvar(0);
-	b = mirvar(0);
-	n = mirvar(0);
-
-	bytes_to_big(SM2_NUMWORD, SM2_Gx, Gx);
-	bytes_to_big(SM2_NUMWORD, SM2_Gy, Gy);
-	bytes_to_big(SM2_NUMWORD, SM2_p, p);
-	bytes_to_big(SM2_NUMWORD, SM2_a, a);
-	bytes_to_big(SM2_NUMWORD, SM2_b, b);
-	bytes_to_big(SM2_NUMWORD, SM2_n, n);
-
-	ecurve_init(a, b, p, MR_PROJECTIVE);
-	G = epoint_init();
-	nG = epoint_init();
-
-	if (!epoint_set(Gx, Gy, 0, G))	//initialise point G
-	{
-		return ERR_ECURVE_INIT;
-	}
-	ecurve_mult(n, G, nG);
-	if (!point_at_infinity(nG))		//test if the order of the point is n
-	{
-		return ERR_ORDER;
-	}
-
-	return 0;
-}
-
-
-/* test if the given point is on SM2 curve */
-int Test_Point(epoint* point)
-{
-	big x, y, x_3, tmp;
-	x = mirvar(0);
-	y = mirvar(0);
-	x_3 = mirvar(0);
-	tmp = mirvar(0);
-
-	//test if y^2 = x^3 + ax + b
-	epoint_get(point, x, y);
-	power(x, 3, p, x_3); 	//x_3 = x^3 mod p
-	multiply(x, a, x); 		//x = a * x
-	divide(x, p, tmp); 		//x = a * x mod p, tmp = a * x / p
-	add(x_3, x, x);			//x = x^3 + ax
-	add(x, b, x); 			//x = x^3 + ax + b
-	divide(x, p, tmp); 		//x = x^3 + ax + b mod p
-	power(y, 2, p, y); 		//y = y^2 mod p
-	if (compare(x, y) != 0)
-		return ERR_NOT_VALID_POINT;
-	else
-		return 0;
-}
-
-
-/* test if the given public key is valid */
-int Test_PubKey(epoint *pubKey)
-{
-	big x, y, x_3, tmp;
-	epoint *nP;
-	x = mirvar(0);
-	y = mirvar(0);
-	x_3 = mirvar(0);
-	tmp = mirvar(0);
-
-	nP = epoint_init();
-
-	//test if the pubKey is the point at infinity
-	if (point_at_infinity(pubKey))	//if pubKey is point at infinity, return error;
-		return ERR_INFINITY_POINT;
-
-	//test if x < p and y < p both hold
-	epoint_get(pubKey, x, y);
-	if ((compare(x, p) != -1) || (compare(y, p) != -1))
-		return ERR_NOT_VALID_ELEMENT;
-
-	if (Test_Point(pubKey) != 0)
-		return ERR_NOT_VALID_POINT;
-
-	//test if the order of pubKey is equal to n
-	ecurve_mult(n, pubKey, nP);		//nP = [n]P
-	if (!point_at_infinity(nP))		//if np is point NOT at infinity, return error;
-		return ERR_ORDER;
-	return 0;
-}
-
+#include <openssl\sm2_standard.h>
 
 
 /* test if the big x is zero */
@@ -106,17 +63,15 @@ int Test_Zero(big x)
 }
 
 
-
 /* test if the big x is order n */
 int Test_n(big x)
 {
 	//bytes_to_big(32, SM2_n, n);
-	if (compare(x, n) == 0)
+	if (compare(x, para_n) == 0)
 		return 1;
 	else 
 		return 0;
 }
-
 
 
 /* test if the big x belong to the range[1, n-1] */
@@ -128,7 +83,7 @@ int Test_Range(big x)
 	decr_n = mirvar(0);
 
 	convert(1, one);
-	decr(n, 1, decr_n);
+	decr(para_n, 1, decr_n);
 
 	if ((compare(x, one) < 0) | (compare(x, decr_n) > 0))
 		return 1;
@@ -136,9 +91,8 @@ int Test_Range(big x)
 }
 
 
-
 /* calculate a pubKey out of a given priKey */
-int SM2_standard_keygeneration(unsigned char PriKey[], unsigned char Px[], unsigned char Py[])
+int SM2_standard_sign_keygeneration(unsigned char PriKey[], unsigned char Px[], unsigned char Py[])
 {
 	int i = 0;
 	big d, PAx, PAy;
@@ -164,7 +118,6 @@ int SM2_standard_keygeneration(unsigned char PriKey[], unsigned char Px[], unsig
 	else
 		return 0;
 }
-
 
 
 /* SM2 signature algorithm */
@@ -217,7 +170,7 @@ int SM2_standard_sign(unsigned char *message, int len, unsigned char ZA[], unsig
 	//step5:calculate r
 	epoint_get(KG, KGx, KGy);
 	add(e, KGx, r);
-	divide(r, n, rem);
+	divide(r, para_n, rem);
 
 	//judge r = 0 or n + k = n?
 	add(r, k, rk);
@@ -226,13 +179,13 @@ int SM2_standard_sign(unsigned char *message, int len, unsigned char ZA[], unsig
 
 	//step6:generate s
 	incr(dA, 1, z1);
-	xgcd(z1, n, z1, z1, z1);
+	xgcd(z1, para_n, z1, z1, z1);
 	multiply(r, dA, z2);
-	divide(z2, n, rem);
+	divide(z2, para_n, rem);
 	subtract(k, z2, z2);
-	add(z2, n, z2);
+	add(z2, para_n, z2);
 	multiply(z1, z2, s);
-	divide(s, n, rem);
+	divide(s, para_n, rem);
 
 	//judge s = 0?
 	if (Test_Zero(s))
@@ -244,6 +197,8 @@ int SM2_standard_sign(unsigned char *message, int len, unsigned char ZA[], unsig
 	free(M);
 	return 0;
 }
+
+
 /* SM2 verification algorithm */
 int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], unsigned char Px[], unsigned char Py[], unsigned char R[], unsigned char S[])
 {
@@ -305,7 +260,7 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 
 	//step5:generate t
 	add(r, s, t);
-	divide(t, n, rem);
+	divide(t, para_n, rem);
 
 	if (Test_Zero(t))
 		return ERR_GENERATE_T;
@@ -318,7 +273,7 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 
 	//step7:generate RR
 	add(e, x1, RR);
-	divide(RR, n, rem);
+	divide(RR, para_n, rem);
 
 	free(M);
 	if (compare(RR, r) == 0)
@@ -326,8 +281,9 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 	else
 		return ERR_DATA_MEMCMP;
 }
-/* SM2 self check */
 
+
+/* SM2 self check */
 int SM2_standard_selfcheck()
 {
 	//the private key
@@ -360,10 +316,10 @@ int SM2_standard_selfcheck()
 	
 	int temp;
 
-	miracl *mip = mirsys(10000, 16);
+	mip = mirsys(10000, 16);
 	mip->IOBASE = 16;
 
-	temp = SM2_standard_keygeneration(dA, xA, yA);
+	temp = SM2_standard_sign_keygeneration(dA, xA, yA);
 	if (temp)
 		return temp;
 	
