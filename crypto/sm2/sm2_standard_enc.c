@@ -1,7 +1,6 @@
 #include "openssl/miracl.h"
 #include "openssl/mirdef.h"
 #include "openssl/sm2_standard.h"
-#include "openssl/kdf_standard.h"
 
 
 /* test if the given array is all zero */
