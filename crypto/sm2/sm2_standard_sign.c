@@ -1,5 +1,4 @@
 #include "openssl/sm2_standard.h"
-#include "openssl/kdf_standard.h"
 
 
 /* test if the big x is zero */
