@@ -41,6 +41,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
 
 #include "mirdef.h"
 
+
 /* Some modifiable defaults... */
 
 /* Use a smaller buffer if space is limited, don't be so wasteful! */
@@ -1565,5 +1566,6 @@ extern unsigned int muldvd(unsigned int, unsigned int, unsigned int, unsigned in
 
 
 #endif
+
 
 
