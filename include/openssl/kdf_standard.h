@@ -402,5 +402,8 @@ static void SM3_kdf(unsigned char Z[], unsigned short zlen, unsigned short klen,
 
 #ifdef __cplusplus
 }
-# endif
 #endif
+
+
+#endif
+

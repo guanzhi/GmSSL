@@ -50,8 +50,9 @@
 
 
 #include <malloc.h>
-#include <openssl/mirdef.h>
+
 #include <openssl/miracl.h>
+#include <openssl/mirdef.h>
 #include <openssl/sm2_standard.h>
 
 
@@ -233,7 +234,7 @@ int SM2_standard_keyex_init_ii(big ra, big dA, epoint* RA, epoint* RB, epoint* P
 	Uy = mirvar(0);
 	temp_x = mirvar(0);
 	temp_y = mirvar(0);
-	tA=mirvar(0);
+	tA = mirvar(0);
 
 	w = SM2_w(para_n);
 	epoint_get(RA, x1, y1);

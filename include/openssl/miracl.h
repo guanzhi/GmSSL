@@ -41,6 +41,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
 
 #include "mirdef.h"
 
+
 /* Some modifiable defaults... */
 
 /* Use a smaller buffer if space is limited, don't be so wasteful! */
@@ -1423,7 +1424,7 @@ first two of the above.
 #endif
 
 #ifdef _MSC_VER
-    #define ASM _asm
+    #define ASM asm
 #endif
 
 #ifndef MR_NOASM
@@ -1565,5 +1566,6 @@ extern unsigned int muldvd(unsigned int, unsigned int, unsigned int, unsigned in
 
 
 #endif
+
 
 
