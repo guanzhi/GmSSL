@@ -40,7 +40,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
  *   Shallit and Sorenson
  */
 #include <stdlib.h>
-#include "miracl.h"
+#include <openssl/miracl.h>
 
 int jack(_MIPD_ big a,big n)
 { /* find jacobi symbol (a/n), for positive odd n */

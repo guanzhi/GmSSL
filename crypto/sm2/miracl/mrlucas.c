@@ -38,7 +38,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
  */
 
 #include <stdlib.h>
-#include "miracl.h"
+#include <openssl/miracl.h>
 
 void nres_lucas(_MIPD_ big p,big r,big vp,big v)
 {

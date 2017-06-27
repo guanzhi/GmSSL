@@ -44,7 +44,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
  *   any substituted routine does the same!
  */
 
-#include "miracl.h"
+#include <openssl/miracl.h>
 #include <stdlib.h>
 
 #ifndef MR_STATIC

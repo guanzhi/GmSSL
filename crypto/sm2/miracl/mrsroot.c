@@ -59,7 +59,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
  */
 
 #include <stdlib.h>
-#include "miracl.h"
+#include <openssl/miracl.h>
 
 BOOL nres_sqroot(_MIPD_ big x,big w)
 { /* w=sqrt(x) mod p. This depends on p being prime! */

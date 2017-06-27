@@ -37,7 +37,7 @@ the CertiVox MIRACL Crypto SDK with a closed source product.               *
  *   mrarth0.c
  *
  */
-#include "miracl.h"
+#include <openssl/miracl.h>
 
 void mr_padd(_MIPD_ big x,big y,big z)
 { /*  add two  big numbers, z=x+y where *
