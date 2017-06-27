@@ -1424,7 +1424,7 @@ first two of the above.
 #endif
 
 #ifdef _MSC_VER
-    #define ASM _asm
+    #define ASM asm
 #endif
 
 #ifndef MR_NOASM

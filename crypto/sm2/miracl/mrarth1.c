@@ -92,7 +92,7 @@ mr_large mr_invert(mr_small n)
     return inn;   
 #endif
 #ifdef _MSC_VER
-    _asm
+    asm
     {
         fldcw WORD PTR up
         fld1

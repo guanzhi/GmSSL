@@ -4,7 +4,7 @@
  *  Also compatible with Microsoft Visual C++ 32-bit compiler
  */
 
-#define ASM _asm
+#define ASM asm
 
 int muldiv(a,b,c,m,rp)
 int a,b,c,m,*rp;
