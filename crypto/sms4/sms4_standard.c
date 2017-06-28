@@ -47,7 +47,7 @@
  * ====================================================================
  */
 
-#include <openssl/sms4.h>
+#include <openssl/sms4_standard.h>
 //rotate n bits to the left in a 32bit buffer
 #define SM4_ROTL32(buf, n) (((buf)<<n)|((buf)>>(32-n)))
 uint32_t SM4_CK[32] = {0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,

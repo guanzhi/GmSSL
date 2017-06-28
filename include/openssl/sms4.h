@@ -123,9 +123,6 @@ void sms4_ede_decrypt_8blocks(sms4_ede_key_t *key, const unsigned char *in, unsi
 void sms4_ede_decrypt_16blocks(sms4_ede_key_t *key, const unsigned char *in, unsigned char *out);
 */
 
-void sms4_standard_encrypt(const unsigned char *in, unsigned char *out, const unsigned char  *key);
-void sms4_standard_decrypt(const unsigned char *in, unsigned char *out, const unsigned char  *key);
-
 #ifdef __cplusplus
 }
 #endif
