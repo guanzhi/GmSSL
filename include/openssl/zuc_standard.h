@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/e_os2.h>
 
 # ifdef  __cplusplus
 extern "C" {
