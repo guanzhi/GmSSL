@@ -49,7 +49,6 @@
  */
 
 
-#include <malloc.h>
 #include <openssl/mirdef.h>
 #include <openssl/miracl.h>
 #include <openssl/sm2_standard.h>
