@@ -82,7 +82,7 @@ Quick Start Guide describes the basic instructions for compiling, installing, an
                    -in <yourfile> -sigfile <yourfile>.sig
    ```
 
-6. 生成自签名证书
+6. Generate self-signed certificate 
 
    ```sh
    $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 \
