@@ -6,6 +6,8 @@
 enum mode_t { ECB, CTR, CBC, CFB, OFB };
 #endif
 
+#include <stdint.h>
+
 enum simon_cipher_config_t { simon_64_32,
                        simon_72_48,
                        simon_96_48,
