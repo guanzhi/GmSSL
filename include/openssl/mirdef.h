@@ -25,8 +25,8 @@ extern "C"{
 #endif
 
 
-#define MIRACL 32
-#define MR_BIG_ENDIAN    /* This may need to be changed        */
+#define MIRACL 64
+#define MR_LITTLE_ENDIAN    /* This may need to be changed        */
 #define mr_utype int
 #define mr_unsign32 unsigned int
 #define mr_dltype long long
