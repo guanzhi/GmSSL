@@ -4,4 +4,4 @@ SOURCE[../../libcrypto]=sm2_err.c sm2_asn1.c sm2_id.c sm2_sign.c sm2_enc.c \
             		sm2_standard_sign.c ./miracl/mralloc.c ./miracl/mrarth0.c \
             		./miracl/mrarth1.c ./miracl/mrarth2.c ./miracl/mrarth3.c ./miracl/mrbits.c \
             		./miracl/mrcore.c ./miracl/mrcurve.c ./miracl/mrjack.c ./miracl/mrlucas.c\
-            		./miracl/mrmonty.c ./miracl/mrmuldv.c ./miracl/mrsroot.c ./miracl/mrxgcd.c
+            		./miracl/mrmonty.c ./miracl/mrmuldv.g64 ./miracl/mrsroot.c ./miracl/mrxgcd.c
