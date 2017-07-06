@@ -88,7 +88,7 @@ int Test_Range(big x)
 	convert(1, one);
 	decr(para_n, 1, decr_n);
 
-	if ((mr_compare(x, one) < 0) | (compare(x, decr_n) > 0))
+	if ((mr_compare(x, one) < 0) | (mr_compare(x, decr_n) > 0))
 		return 1;
 	return 0;
 }
