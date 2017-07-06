@@ -62,7 +62,7 @@ int SM2_w(big n)
 	n1 = mirvar(0);
 	w = logb2(para_n); 	//approximate integer log to the base 2 of para_n
 	expb2(w, n1); 	//n1 = 2^w
-	if (compare(para_n, n1) == 1)
+	if (mr_compare(para_n, n1) == 1)
 		w++;
 	if ((w % 2) == 0)
 		w = w / 2 - 1;
@@ -440,7 +440,7 @@ int SM2_standard_keyex_selftest()
 	RB = epoint_init();
 	V = epoint_init();
 
-	SM2_init();
+	SM2_standard_init();
 
 	bytes_to_big(SM2_NUMWORD, std_priKeyA, dA);
 	bytes_to_big(SM2_NUMWORD, std_priKeyB, dB);
