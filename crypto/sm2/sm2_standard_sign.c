@@ -59,7 +59,7 @@ int Test_Zero(big x)
 {
 	big zero;
 	zero = mirvar(0);
-	if (compare(x, zero) == 0)
+	if (mr_compare(x, zero) == 0)
 		return 1;
 	else 
 		return 0;
@@ -70,7 +70,7 @@ int Test_Zero(big x)
 int Test_n(big x)
 {
 	//bytes_to_big(32, SM2_n, n);
-	if (compare(x, para_n) == 0)
+	if (mr_compare(x, para_n) == 0)
 		return 1;
 	else 
 		return 0;
@@ -88,7 +88,7 @@ int Test_Range(big x)
 	convert(1, one);
 	decr(para_n, 1, decr_n);
 
-	if ((compare(x, one) < 0) | (compare(x, decr_n) > 0))
+	if ((mr_compare(x, one) < 0) | (compare(x, decr_n) > 0))
 		return 1;
 	return 0;
 }
@@ -279,7 +279,7 @@ int SM2_standard_verify(unsigned char *message, int len, unsigned char ZA[], uns
 	divide(RR, para_n, rem);
 
 	free(M);
-	if (compare(RR, r) == 0)
+	if (mr_compare(RR, r) == 0)
 		return 0;
 	else
 		return ERR_DATA_MEMCMP;
