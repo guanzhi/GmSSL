@@ -9,49 +9,49 @@
 int muldiv(a,b,c,m,rp)
 int a,b,c,m,*rp;
 {
-        ASM ("mov   %eax,DWORD PTR a");      
-        ASM ("mul   DWORD PTR b");          
-        ASM ("add   %eax,DWORD PTR c");      
-        ASM ("adc   %edx,0h");                 
-        ASM ("div   DWORD PTR m");          
-        ASM ("mov   %ebx,DWORD PTR rp");     
-        ASM ("mov   [%ebx],%edx");              
+        ASM ("movl   %eax,a");      
+        ASM ("mull   b");          
+        ASM ("addl   %eax,c");      
+        ASM ("adcl   %edx,0h");                 
+        ASM ("divl   m");          
+        ASM ("movl   %ebx,rp");     
+        ASM ("movl   (%ebx),%edx");              
 }
 
 int muldvm(a,c,m,rp)
 int a,c,m,*rp;
 {
-        ASM ("mov   %edx,DWORD PTR a");      
-        ASM ("mov   %eax,DWORD PTR c");      
-        ASM ("div   DWORD PTR m");          
-        ASM ("mov   %ebx,DWORD PTR rp");     
-        ASM ("mov   [%ebx],%edx");              
+        ASM ("movl   %edx,a");      
+        ASM ("movl   %eax,c");      
+        ASM ("divl   m");          
+        ASM ("movl   %ebx,rp");     
+        ASM ("movl   (%ebx),%edx");              
 }
 
 int muldvd(a,b,c,rp)
 int a,b,c,*rp;
 {
-        ASM ("mov   %eax,DWORD PTR a");      
-        ASM ("mul   DWORD PTR b");          
-        ASM ("add   %eax,DWORD PTR c");      
-        ASM ("adc   %edx,0h");                 
-        ASM ("mov   %ebx,DWORD PTR rp");     
-        ASM ("mov   [%ebx],%eax");              
-        ASM ("mov   %eax,%edx");
+        ASM ("movl   %eax,a");      
+        ASM ("mull   b");          
+        ASM ("addl   %eax,c");      
+        ASM ("adcl   %edx,0h");                 
+        ASM ("movl   %ebx,rp");     
+        ASM ("movl   (%ebx),%eax");              
+        ASM ("movl   %eax,%edx");
 }
 
 void muldvd2(a,b,c,rp)
 int a,b,*c,*rp;
 {
-        ASM ("mov   %eax,DWORD PTR a");      
-        ASM ("mul   DWORD PTR b");          
-        ASM ("mov   %ebx,DWORD PTR c");
-        ASM ("add   %eax,[%ebx]");
-        ASM ("adc   %edx,0h");
-        ASM ("mov   %esi,DWORD PTR rp");
-        ASM ("add   %eax,[esi]");
-        ASM ("adc   %edx,0h");
-        ASM ("mov   [%esi],%eax");              
-        ASM ("mov   [%ebx],%edx");
+        ASM ("movl   %eax,a");      
+        ASM ("mull   b");          
+        ASM ("movl   %ebx,c");
+        ASM ("addl   %eax,(%ebx)");
+        ASM ("adcl   %edx,0h");
+        ASM ("movl   %esi,rp");
+        ASM ("addl   %eax,(esi)");
+        ASM ("adcl   %edx,0h");
+        ASM ("movl   (%esi),%eax");              
+        ASM ("movl   (%ebx),%edx");
 }
 
