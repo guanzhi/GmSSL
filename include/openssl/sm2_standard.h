@@ -148,10 +148,10 @@ static int SM2_standard_init()
 	para_Gy = mirvar(0);
 	para_h = mirvar(0);
 	
-    G = epoint_init();
+    	G = epoint_init();
 	nG = epoint_init();
 	
-    bytes_to_big(SM2_NUMWORD, SM2_p, para_p);
+    	bytes_to_big(SM2_NUMWORD, SM2_p, para_p);
 	bytes_to_big(SM2_NUMWORD, SM2_a, para_a);
 	bytes_to_big(SM2_NUMWORD, SM2_b, para_b);
 	bytes_to_big(SM2_NUMWORD, SM2_n, para_n);
@@ -192,7 +192,7 @@ static int Test_Point(epoint* point)
 	add(x, para_b, x);			//x = x^3 + ax + b
 	divide(x, para_p, tmp);		//x = x^3 + ax + b mod p
 	power(y, 2, para_p, y);		//y = y^2 mod p
-	if (compare(x, y) != 0)
+	if (mr_compare(x, y) != 0)
 		return ERR_NOT_VALID_POINT;
 	else
 		return 0;
@@ -217,7 +217,7 @@ static int Test_PubKey(epoint *pubKey)
 	
 	//test if x < p and y<p both hold
 	epoint_get(pubKey, x, y);
-	if ((compare(x, para_p) != -1) || (compare(y, para_p) != -1))
+	if ((mr_compare(x, para_p) != -1) || (mr_compare(y, para_p) != -1))
 		return ERR_NOT_VALID_ELEMENT;
 
 	if (Test_Point(pubKey) != 0)
