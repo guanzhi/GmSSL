@@ -9,49 +9,49 @@
 int muldiv(a,b,c,m,rp)
 int a,b,c,m,*rp;
 {
-        ASM ("movl   %eax,a");      
+        ASM ("movl   a,%eax");      
         ASM ("mull   b");          
-        ASM ("addl   %eax,c");      
-        ASM ("adcl   %edx,$0h");                 
+        ASM ("addl   c,%eax");      
+        ASM ("adcl   $0h,%edx");                 
         ASM ("divl   m");          
-        ASM ("movl   %ebx,rp");     
-        ASM ("movl   (%ebx),%edx");              
+        ASM ("movl   rp,%ebx");     
+        ASM ("movl   %edx,(%ebx)");              
 }
 
 int muldvm(a,c,m,rp)
 int a,c,m,*rp;
 {
-        ASM ("movl   %edx,a");      
-        ASM ("movl   %eax,c");      
+        ASM ("movl   a,%edx");      
+        ASM ("movl   c,%eax");      
         ASM ("divl   m");          
-        ASM ("movl   %ebx,rp");     
-        ASM ("movl   (%ebx),%edx");              
+        ASM ("movl   rp,%ebx");     
+        ASM ("movl   %edx,(%ebx)");              
 }
 
 int muldvd(a,b,c,rp)
 int a,b,c,*rp;
 {
-        ASM ("movl   %eax,a");      
+        ASM ("movl   a,%eax");      
         ASM ("mull   b");          
-        ASM ("addl   %eax,c");      
-        ASM ("adcl   %edx,$0h");                 
-        ASM ("movl   %ebx,rp");     
-        ASM ("movl   (%ebx),%eax");              
-        ASM ("movl   %eax,%edx");
+        ASM ("addl   c,%eax");      
+        ASM ("adcl   $0h,%edx");                 
+        ASM ("movl   rp,%ebx");     
+        ASM ("movl   %eax,(%ebx)");              
+        ASM ("movl   %edx,%eax");
 }
 
 void muldvd2(a,b,c,rp)
 int a,b,*c,*rp;
 {
-        ASM ("movl   %eax,a");      
+        ASM ("movl   a,%eax");      
         ASM ("mull   b");          
-        ASM ("movl   %ebx,c");
-        ASM ("addl   %eax,(%ebx)");
-        ASM ("adcl   %edx,$0h");
-        ASM ("movl   %esi,rp");
-        ASM ("addl   %eax,(esi)");
-        ASM ("adcl   %edx,$0h");
-        ASM ("movl   (%esi),%eax");              
-        ASM ("movl   (%ebx),%edx");
+        ASM ("movl   c,%ebx");
+        ASM ("addl   (%ebx),%eax");
+        ASM ("adcl   $0h,%edx");
+        ASM ("movl   rp,%esi");
+        ASM ("addl   (%esi),%eax");
+        ASM ("adcl   $0h,%edx");
+        ASM ("movl   %eax,(%esi)");              
+        ASM ("movl   %edx,(%ebx)");
 }
 
