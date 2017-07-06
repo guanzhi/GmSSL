@@ -1,7 +1,7 @@
 /* Standard C version of mrmuldv.c */
 
 #include <stdio.h>
-#include "miracl.h"
+#include <openssl/miracl.h>
 
 mr_small muldiv(mr_small a,mr_small b,mr_small c,mr_small m,mr_small *rp)
 {
