@@ -54,6 +54,11 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+
 //rotate n bits to the left in a 32bit buffer
 #define SM4_rotl32(buf, n) (((buf) << n) | ((buf) >> (32 - n)))
 
@@ -175,3 +180,9 @@ void SM4_decrypt(unsigned char MK[], unsigned char CipherText[], unsigned char P
         PlainText[4 * j + 3] = (X[35 - j]) & 0xFF;
     }
 }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

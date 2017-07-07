@@ -347,7 +347,7 @@ int SM9_standard_decrypt (unsigned char C[], int C_len, unsigned char deB[], uns
     else
     {
         //Step:3-1: calculate K=KDF(C1||w||IDB,klen)
-        kle = k1_len + k2_len;
+        klen = k1_len + k2_len;
         Zlen = strlen(IDB) + BNLEN * 14;
         Z = (char *)malloc(sizeof(char)*(Zlen + 1));
         K = (char *)malloc(sizeof(char)*(klen + 1));
