@@ -1,3 +1,8 @@
 LIBS=../../libcrypto
 SOURCE[../../libcrypto]=sm9_lib.c sm9_err.c sm9_asn1.c sm9_params.c \
-	sm9_setup.c sm9_keygen.c sm9_sign.c sm9_enc.c sm9_kap.c
+			sm9_setup.c sm9_keygen.c sm9_sign.c sm9_enc.c sm9_kap.c \
+			sm9_standard_enc.c sm9_standard_encap.c sm9_standard_exch.c \
+			sm9_standard_sv.c ../sm2/miracl/mralloc.c ../sm2/miracl/mrarth0.c \
+            		../sm2/miracl/mrarth1.c ../sm2/miracl/mrarth2.c ../sm2/miracl/mrarth3.c ../sm2/miracl/mrbits.c \
+            		../sm2/miracl/mrcore.c ../sm2/miracl/mrcurve.c ../sm2/miracl/mrjack.c ../sm2/miracl/mrlucas.c\
+            		../sm2/miracl/mrmonty.c ../sm2/miracl/mrmuldv.c ../sm2/miracl/mrsroot.c ../sm2/miracl/mrxgcd.c
