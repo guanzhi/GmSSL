@@ -77,22 +77,6 @@ int Test_n(big x)
 }
 
 
-/* test if the big x belong to the range[1, n-1] */
-int Test_Range(big x)
-{
-	big one, decr_n;
-
-	one = mirvar(0);
-	decr_n = mirvar(0);
-
-	convert(1, one);
-	decr(para_n, 1, decr_n);
-
-	if ((mr_compare(x, one) < 0) | (mr_compare(x, decr_n) > 0))
-		return 1;
-	return 0;
-}
-
 
 /* calculate a pubKey out of a given priKey */
 int SM2_standard_sign_keygeneration(unsigned char PriKey[], unsigned char Px[], unsigned char Py[])

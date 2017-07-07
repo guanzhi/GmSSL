@@ -151,7 +151,7 @@ int SM9_standard_decrypt(unsigned char C[], int C_len, unsigned char deB[], unsi
 int SM9_standard_key_encap(unsigned char hid[], unsigned char *IDB, unsigned char rand[], unsigned char Ppub[], unsigned char C[], unsigned char K[], int Klen);
 int SM9_standard_key_decap(unsigned char *IDB, unsigned char deB[], unsigned char C[], int Klen, unsigned char K[]);
 int SM9_standard_encap_selfcheck();
-int Test_Range(big x);
+static int Test_Range(big x);
 int SM9_standard_h2(unsigned char Z[], int Zlen, big n, big h2);
 int SM9_standard_generatesignkey(unsigned char hid[], unsigned char *ID, int IDlen, big ks, unsigned char Ppubs[], unsigned char dsa[]);
 int SM9_standard_sign(unsigned char hid[], unsigned char *IDA, unsigned char *message, int len, unsigned char rand[], unsigned char dsa[], unsigned char Ppub[], unsigned char H[], unsigned char S[]);
@@ -454,6 +454,23 @@ static int SM9_standard_generateencryptkey(unsigned char hid[], unsigned char *I
     big_to_bytes(BNLEN, tmp, deB + BNLEN * 3, 1);
 
     free(Z);
+    return 0;
+}
+
+
+static int Test_Range(big x)
+{
+    big one, decr_n;
+    
+    one = mirvar(0);
+    decr_n = mirvar(0);
+
+    convert(1, one);
+    decr(N, 1, decr_n);
+
+    if((mr_compare(x, one) < 0) | (mr_compare(x, decr_n) > 0))
+        return 1;
+    
     return 0;
 }
 

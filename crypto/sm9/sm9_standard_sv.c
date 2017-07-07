@@ -53,23 +53,6 @@
 #include <openssl/mirdef.h>
 
 
-int Test_Range(big x)
-{
-    big one, decr_n;
-    
-    one = mirvar(0);
-    decr_n = mirvar(0);
-
-    convert(1, one);
-    decr(N, 1, decr_n);
-
-    if((mr_compare(x, one) < 0) | (mr_compare(x, decr_n) > 0))
-        return 1;
-    
-    return 0;
-}
-
-
 int SM9_standard_h2(unsigned char Z[], int Zlen, big n, big h2)
 {
     int hlen, ZHlen, i;
