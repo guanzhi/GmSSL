@@ -60,7 +60,7 @@ extern "C"{
 #endif
 
 
-zzn2 zzn2_pow(zzn2 x, big k)
+static zzn2 zzn2_pow(zzn2 x, big k)
 {
     int i, j, nb, n, nbw, nzs;
     big zero;
@@ -123,7 +123,7 @@ zzn2 zzn2_pow(zzn2 x, big k)
 }
 
 
-void set_frobenius_constant(zzn2 *X)
+static void set_frobenius_constant(zzn2 *X)
 {
     big p, zero, one, two;
     p = mirvar(0);
@@ -160,7 +160,7 @@ void set_frobenius_constant(zzn2 *X)
 }
 
 
-void q_power_frobenius(ecn2 A, zzn2 F)
+static void q_power_frobenius(ecn2 A, zzn2 F)
 {
     // Fast multiplication of A by q (for Trace-Zero group members only)
     zzn2 x, y, z, w, r;
@@ -194,7 +194,7 @@ void q_power_frobenius(ecn2 A, zzn2 F)
 }
 
 
-zzn12 line(ecn2 A, ecn2 *C, ecn2 *B, zzn2 slope, zzn2 extra, BOOL Doubling, big Qx, big Qy)
+static zzn12 line(ecn2 A, ecn2 *C, ecn2 *B, zzn2 slope, zzn2 extra, BOOL Doubling, big Qx, big Qy)
 {
     zzn12 res;
     zzn2 X, Y, Z, Z2, U, QY, CZ;
@@ -291,7 +291,7 @@ zzn12 line(ecn2 A, ecn2 *C, ecn2 *B, zzn2 slope, zzn2 extra, BOOL Doubling, big 
 }
 
 
-zzn12 g(ecn2 *A, ecn2 *B, big Qx, big Qy)
+static zzn12 g(ecn2 *A, ecn2 *B, big Qx, big Qy)
 {
     zzn2 lam, extra;
     BOOL Doubling;
@@ -330,7 +330,7 @@ zzn12 g(ecn2 *A, ecn2 *B, big Qx, big Qy)
 }
 
 
-BOOL fast_pairing(ecn2 P, big Qx, big Qy, big x, zzn2 X, zzn12 *r)
+static BOOL fast_pairing(ecn2 P, big Qx, big Qy, big x, zzn2 X, zzn12 *r)
 {
     int i, nb;
     big n, zero, negify_x;
@@ -474,7 +474,7 @@ BOOL fast_pairing(ecn2 P, big Qx, big Qy, big x, zzn2 X, zzn12 *r)
 }
 
 
-BOOL ecap(ecn2 P, epoint *Q, big x, zzn2 X, zzn12 *r)
+static BOOL ecap(ecn2 P, epoint *Q, big x, zzn2 X, zzn12 *r)
 {
     BOOL Ok;
     big Qx, Qy;
@@ -492,7 +492,7 @@ BOOL ecap(ecn2 P, epoint *Q, big x, zzn2 X, zzn12 *r)
 }
 
 
-BOOL member(zzn12 r, big x, zzn2 F)
+static BOOL member(zzn12 r, big x, zzn2 F)
 {
     zzn12 w;
     big six;

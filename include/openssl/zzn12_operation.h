@@ -69,7 +69,7 @@ typedef struct
 } zzn12;
 
 
-void zzn12_init(zzn12 *x)
+static void zzn12_init(zzn12 *x)
 {
     x->a.a.a = mirvar(0);
     x->a.a.b = mirvar(0);
@@ -103,7 +103,7 @@ void zzn12_init(zzn12 *x)
 }
 
 
-void zzn12_copy(zzn12 *x, zzn12 *y)
+static void zzn12_copy(zzn12 *x, zzn12 *y)
 {
     zzn4_copy(&x->a, &y->a);
     zzn4_copy(&x->b, &y->b);
@@ -114,7 +114,7 @@ void zzn12_copy(zzn12 *x, zzn12 *y)
 }
 
 
-void zzn12_mul(zzn12 x, zzn12 y, zzn12 *z)
+static void zzn12_mul(zzn12 x, zzn12 y, zzn12 *z)
 {
     // Karatsuba
     zzn4 Z0, Z1, Z2, Z3, T0, T1;
@@ -314,7 +314,7 @@ void zzn12_mul(zzn12 x, zzn12 y, zzn12 *z)
 }
 
 
-void zzn12_conj(zzn12 *x, zzn12 *y)
+static void zzn12_conj(zzn12 *x, zzn12 *y)
 {
     zzn4_conj(&x->a, &y->a);
     zzn4_conj(&x->b, &y->b);
@@ -325,7 +325,7 @@ void zzn12_conj(zzn12 *x, zzn12 *y)
 }
 
 
-zzn12 zzn12_inverse(zzn12 w)
+static zzn12 zzn12_inverse(zzn12 w)
 {
     zzn4 tmp1, tmp2;
     zzn12 res;
@@ -389,7 +389,7 @@ zzn12 zzn12_inverse(zzn12 w)
 }
 
 
-void zzn12_powq(zzn2 F, zzn12 *y)
+static void zzn12_powq(zzn2 F, zzn12 *y)
 {
     zzn2 X2, X3;
     X2.a = mirvar(0);
@@ -408,14 +408,14 @@ void zzn12_powq(zzn2 F, zzn12 *y)
 }
 
 
-void zzn12_div(zzn12 x, zzn12 y, zzn12 *z)
+static void zzn12_div(zzn12 x, zzn12 y, zzn12 *z)
 {
     y=zzn12_inverse(y);
     zzn12_mul(x, y, z);
 }
 
 
-zzn12 zzn12_pow(zzn12 x, big k)
+static zzn12 zzn12_pow(zzn12 x, big k)
 {
     big zero, tmp, tmp1;
     int nb, i;
