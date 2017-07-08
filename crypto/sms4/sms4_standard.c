@@ -50,7 +50,7 @@
 #include <openssl/sms4_standard.h>
 //rotate n bits to the left in a 32bit buffer
 #define SM4_ROTL32(buf, n) (((buf)<<n)|((buf)>>(32-n)))
-static unsigned int SM4_CK[32] = {0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
+static uint32_t SM4_CK[32] = {0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
                        				0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9,
                        				0xe0e7eef5, 0xfc030a11, 0x181f262d, 0x343b4249,
                        				0x50575e65, 0x6c737a81, 0x888f969d, 0xa4abb2b9,
@@ -78,7 +78,7 @@ uint8_t SM4_SBOX[256] =
   0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48
 };
 
-static unsigned int SM4_FK[4] = {0xA3B1BAC6, 0x56AA3350, 0x677D9197, 0xB27022DC};
+static uint32_t SM4_FK[4] = {0xA3B1BAC6, 0x56AA3350, 0x677D9197, 0xB27022DC};
 
 void sm4_standard_key_schedule(const unsigned char *key, uint32_t *rk)
 {

@@ -51,6 +51,7 @@
 #include <openssl/sm9_standard.h>
 #include <openssl/miracl.h>
 #include <openssl/mirdef.h>
+#include <math.h>
 
 
 int SM9_standard_h2(unsigned char Z[], int Zlen, big n, big h2)
