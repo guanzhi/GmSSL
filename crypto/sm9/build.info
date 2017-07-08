@@ -6,4 +6,5 @@ SOURCE[../../libcrypto]=sm9_lib.c sm9_err.c sm9_asn1.c sm9_params.c \
             		../sm2/miracl/mrarth1.c ../sm2/miracl/mrarth2.c ../sm2/miracl/mrarth3.c ../sm2/miracl/mrbits.c \
             		../sm2/miracl/mrcore.c ../sm2/miracl/mrcurve.c ../sm2/miracl/mrjack.c ../sm2/miracl/mrlucas.c \
             		../sm2/miracl/mrmonty.c ../sm2/miracl/mrmuldv.c ../sm2/miracl/mrsroot.c ../sm2/miracl/mrxgcd.c \
-			../sm2/miracl/mrecn2.c ../sm2/miracl/mrio2.c ../sm2/miracl/mrzzn2.c ../sm2/miracl/mrzzn4.c
+			../sm2/miracl/mrecn2.c ../sm2/miracl/mrio2.c ../sm2/miracl/mrzzn2.c ../sm2/miracl/mrzzn4.c \
+			../sm2/miracl/mrio1.c ../sm2/miracl/mrzzn2b.c
