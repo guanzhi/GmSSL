@@ -54,7 +54,7 @@
 #ifndef NO_GMSSL
 
 #include <sys/types.h>
-#include <stdint.h>
+#include <openssl/e_os2.h>
 #include <string.h>
 
 #ifdef __cplusplus

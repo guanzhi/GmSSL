@@ -47,7 +47,7 @@
  * ====================================================================
  */
 
-#include <openssl/sms4_standard.h>
+#include "sms4_standard.h"
 //rotate n bits to the left in a 32bit buffer
 #define SM4_ROTL32(buf, n) (((buf)<<n)|((buf)>>(32-n)))
 uint32_t SM4_CK[32] = {0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
@@ -179,29 +179,4 @@ void sms4_standard_decrypt(const unsigned char *in, unsigned char *out, const un
     out[4 * j + 2] = (X[35 - j] >> 8) & 0xFF;
     out[4 * j + 3] = (X[35 - j]) & 0xFF;
   }
-}
-int sm4_standard_self_check()
-{
-  int i;
-
-  //Standard data
-  unsigned char key[16] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
-  unsigned char plain[16] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
-  unsigned char cipher[16] = {0x68, 0x1e, 0xdf, 0x34, 0xd2, 0x06, 0x96, 0x5e, 0x86, 0xb3, 0xe9, 0x4f, 0x53, 0x6e, 0x42, 0x46};
-
-  unsigned char En_output[16];
-  unsigned char De_output[16];
-
-  sms4_standard_encrypt(plain, En_output,key);
-  sms4_standard_decrypt(cipher, De_output,key);
-
-  for (i = 0; i < 16; i++)
-  {
-    if ( (En_output[i] != cipher[i]) | (De_output[i] != plain[i]) )
-    {
-      return 1;
-    }
-  }
-  return 0;
-
 }
