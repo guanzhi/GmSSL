@@ -12,8 +12,11 @@
 #include <openssl/err.h>
 #include <openssl/base58.h>
 
+#ifndef OPENSSL_NO_BASE58
+ 
 /* BEGIN ERROR CODES */
 #ifndef OPENSSL_NO_ERR
+
 
 # define ERR_FUNC(func) ERR_PACK(ERR_LIB_BASE58,func,0)
 # define ERR_REASON(reason) ERR_PACK(ERR_LIB_BASE58,0,reason)
@@ -42,3 +45,5 @@ int ERR_load_BASE58_strings(void)
 #endif
     return 1;
 }
+
+#endif
