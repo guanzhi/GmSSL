@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DEFINE_STACK_OF, DEFINE_STACK_OF_CONST, DEFINE_SPECIAL_STACK_OF,

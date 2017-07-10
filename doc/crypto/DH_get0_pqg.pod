@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DH_get0_pqg, DH_set0_pqg, DH_get0_key, DH_set0_key, DH_clear_flags,

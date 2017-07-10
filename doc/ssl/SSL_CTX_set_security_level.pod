@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_security_level, SSL_set_security_level, SSL_CTX_get_security_level, SSL_get_security_level, SSL_CTX_set_security_callback, SSL_set_security_callback, SSL_CTX_get_security_callback, SSL_get_security_callback, SSL_CTX_set0_security_ex_data, SSL_set0_security_ex_data, SSL_CTX_get0_security_ex_data, SSL_get0_security_ex_data - SSL/TLS security framework

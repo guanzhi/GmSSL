@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_STORE_get0_param, X509_STORE_set1_param,

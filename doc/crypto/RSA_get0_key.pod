@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_set0_key, RSA_set0_factors, RSA_set0_crt_params, RSA_get0_key,

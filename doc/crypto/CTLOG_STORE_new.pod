@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CTLOG_STORE_new, CTLOG_STORE_free,

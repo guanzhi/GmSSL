@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 d2i_X509_AUX, i2d_X509_AUX,

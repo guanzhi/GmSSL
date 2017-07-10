@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ASN1_INTEGER_get_uint64, ASN1_INTEGER_set_uint64,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DSA_get0_pqg, DSA_set0_pqg, DSA_get0_key, DSA_set0_key, DSA_clear_flags,

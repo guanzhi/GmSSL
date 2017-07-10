@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ERR_get_error, ERR_peek_error, ERR_peek_last_error,

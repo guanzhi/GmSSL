@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 MDC2, MDC2_Init, MDC2_Update, MDC2_Final - MDC2 hash function

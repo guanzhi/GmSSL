@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_set_default_method, RSA_get_default_method, RSA_set_method,

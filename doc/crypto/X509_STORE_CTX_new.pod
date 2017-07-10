@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_STORE_CTX_new, X509_STORE_CTX_cleanup, X509_STORE_CTX_free,

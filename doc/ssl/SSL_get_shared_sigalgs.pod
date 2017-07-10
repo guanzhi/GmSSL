@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_shared_sigalgs, SSL_get_sigalgs - get supported signature algorithms

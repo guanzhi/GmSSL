@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DSA_do_sign, DSA_do_verify - raw DSA signature operations

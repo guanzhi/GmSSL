@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DSA_SIG_get0, DSA_SIG_set0,

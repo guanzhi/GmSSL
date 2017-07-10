@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OCSP_sendreq_new, OCSP_sendreq_nbio, OCSP_REQ_CTX_free,

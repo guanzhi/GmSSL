@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CRYPTO_EX_new, CRYPTO_EX_free, CRYPTO_EX_dup,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 PEM_write_bio_PKCS7_stream - output PKCS7 structure in PEM format

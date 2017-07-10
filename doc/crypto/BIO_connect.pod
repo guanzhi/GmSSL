@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_socket, BIO_connect, BIO_listen, BIO_accept_ex, BIO_closesocket - BIO

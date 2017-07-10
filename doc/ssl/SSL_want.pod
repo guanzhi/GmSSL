@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_want, SSL_want_nothing, SSL_want_read, SSL_want_write, SSL_want_x509_lookup,

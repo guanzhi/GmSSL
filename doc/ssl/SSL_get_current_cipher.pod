@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_current_cipher, SSL_get_cipher_name, SSL_get_cipher,

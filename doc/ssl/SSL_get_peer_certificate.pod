@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_peer_certificate - get the X509 certificate of the peer

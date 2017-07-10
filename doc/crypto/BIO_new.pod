@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_new, BIO_up_ref, BIO_free, BIO_vfree, BIO_free_all,

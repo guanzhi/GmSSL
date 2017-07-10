@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_sess_set_cache_size, SSL_CTX_sess_get_cache_size - manipulate session cache size

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DSA_new, DSA_free - allocate and free DSA objects

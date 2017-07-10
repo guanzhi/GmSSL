@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_meth_get0_app_data, RSA_meth_set0_app_data,

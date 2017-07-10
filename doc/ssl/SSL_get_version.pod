@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_version, SSL_is_dtls - get the protocol information of a connection

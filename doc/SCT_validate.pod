@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SCT_validate, SCT_LIST_validate, SCT_get_validation_status -

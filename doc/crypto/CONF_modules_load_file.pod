@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CONF_modules_load_file, CONF_modules_load - OpenSSL configuration functions

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ERR_print_errors, ERR_print_errors_fp, ERR_print_errors_cb

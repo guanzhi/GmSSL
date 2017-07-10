@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_set_data, BIO_get_data, BIO_set_init, BIO_get_init, BIO_set_shutdown,

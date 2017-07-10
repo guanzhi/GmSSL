@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_s_file, BIO_new_file, BIO_new_fp, BIO_set_fp, BIO_get_fp,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 pkcs8 - PKCS#8 format private key conversion tool

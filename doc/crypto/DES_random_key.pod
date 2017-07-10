@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DES_random_key, DES_set_key, DES_key_sched, DES_set_key_checked,

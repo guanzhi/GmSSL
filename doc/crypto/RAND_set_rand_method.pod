@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RAND_set_rand_method, RAND_get_rand_method, RAND_OpenSSL - select RAND method

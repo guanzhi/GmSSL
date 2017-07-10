@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CMS_verify, CMS_get0_signers - verify a CMS SignedData structure

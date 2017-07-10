@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_set_connect_state, SSL_set_accept_state - prepare SSL object to work in client or server mode

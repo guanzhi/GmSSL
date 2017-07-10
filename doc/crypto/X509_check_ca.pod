@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_check_ca - check if given certificate is CA certificate

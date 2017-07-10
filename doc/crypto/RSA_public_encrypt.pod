@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_public_encrypt, RSA_private_decrypt - RSA public key cryptography

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_ADDR, BIO_ADDR_new, BIO_ADDR_clear, BIO_ADDR_free, BIO_ADDR_rawmake,

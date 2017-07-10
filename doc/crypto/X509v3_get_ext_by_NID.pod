@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509v3_get_ext_count, X509v3_get_ext, X509v3_get_ext_by_NID,

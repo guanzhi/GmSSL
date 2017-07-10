@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_generate_prime_ex, BN_is_prime_ex, BN_is_prime_fasttest_ex, BN_GENCB_call,

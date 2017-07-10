@@ -1,6 +1,10 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
+
+=encoding utf8
 
 ca - sample minimal CA application
 
@@ -62,6 +66,9 @@ and their status.
 
 The options descriptions will be divided into each purpose.
 
+ca指令是CA中很小的应用。它可以用来签发各种形式的用户证书并产生CRL。它还可以用来更新证书库。
+在这些选项的介绍中，将尽可能地对它们进行分类介绍。
+
 =head1 OPTIONS
 
 =over 4
@@ -70,27 +77,39 @@ The options descriptions will be divided into each purpose.
 
 Print out a usage message.
 
+显示用法信息。
+
 =item B<-verbose>
 
 this prints extra details about the operations being performed.
 
+输出更详细的一些操作过程信息。
+
 =item B<-config filename>
 
 specifies the configuration file to use.
+
+指定将要使用的配置文件。
 
 =item B<-name section>
 
 specifies the configuration file section to use (overrides
 B<default_ca> in the B<ca> section).
 
+指定将要使用的配置文件部分（覆盖ca部分中的default_ca部分）
+
 =item B<-in filename>
 
 an input filename containing a single certificate request to be
 signed by the CA.
 
+一个输入文件名包含了一个要由CA签名的单独证书请求。
+
 =item B<-ss_cert filename>
 
 a single self-signed certificate to be signed by the CA.
+
+一个要由CA签名的自签名证书。
 
 =item B<-spkac filename>
 
@@ -98,10 +117,15 @@ a file containing a single Netscape signed public key and challenge
 and additional field values to be signed by the CA. See the B<SPKAC FORMAT>
 section for information on the required input and output format.
 
+一个包含了一个单独的Netscape签名的公钥和其他附加用户信息。
+关于输入输出格式的信息具体可以参考SPKAC部分。
+
 =item B<-infiles>
 
 if present this should be the last option, all subsequent arguments
 are taken as the names of files containing certificate requests.
+
+该选项总是作为指令的最后一个选项，其后面所有的参数都被认为是证书请求文件。
 
 =item B<-out filename>
 
@@ -109,30 +133,42 @@ the output file to output certificates to. The default is standard
 output. The certificate details will also be printed out to this
 file in PEM format (except that B<-spkac> outputs DER format).
 
+输出文件输出签发好的证书。默认值为标准输出。输出的证书都是PEM编码的（除了spkac输出DER编码）
+
 =item B<-outdir directory>
 
 the directory to output certificates to. The certificate will be
 written to a filename consisting of the serial number in hex with
 ".pem" appended.
 
+将新生成的证书输出到目录。新生成证书将会序列号加“pem”后缀成为一个完整的证书文件名。
+
 =item B<-cert>
 
 the CA certificate file.
 
+CA证书文件。
+
 =item B<-keyfile filename>
 
 the private key to sign requests with.
+
+用于签署请求的私钥。
 
 =item B<-keyform PEM|DER>
 
 the format of the data in the private key file.
 The default is PEM.
 
+私钥文件中数据的格式。默认为PEM。
+
 =item B<-key password>
 
 the password used to encrypt the private key. Since on some
 systems the command line arguments are visible (e.g. Unix with
 the 'ps' utility) this option should be used with caution.
+
+用于加密私钥的密码。因为在某些系统上命令行参数是可见的（例如使用“ps”实用程序的Unix），应谨慎使用此选项。
 
 =item B<-selfsign>
 
@@ -148,28 +184,43 @@ certificate appears among the entries in the certificate database
 serial number counter as all other certificates sign with the
 self-signed certificate.
 
+表示发出的证书将使用证书请求签名的密钥（以-keyfile命名）进行签名。
+使用不同密钥签名的证书请求将被忽略。如果给出-spkac，-ss_cert或-gencrl，则忽略-selfsign
+
+使用-selfsign的结果是自签名证书出现在证书数据库的条目中，并使用与其他证书相同的序列号计数器。
+
 =item B<-passin arg>
 
 the key password source. For more information about the format of B<arg>
 see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
+给定了读取私钥文件的时候需要提供的口令。
+
 =item B<-notext>
 
 don't output the text form of a certificate to the output file.
+
+不把证书的文本形式输出到输出文件。
 
 =item B<-startdate date>
 
 this allows the start date to be explicitly set. The format of the
 date is YYMMDDHHMMSSZ (the same as an ASN1 UTCTime structure).
 
+设置证书的生效时间，其参数格式是“YYMMDDHHMMSSZ”。
+
 =item B<-enddate date>
 
 this allows the expiry date to be explicitly set. The format of the
 date is YYMMDDHHMMSSZ (the same as an ASN1 UTCTime structure).
 
+设置证书的到期时间，其参数格式是“YYMMDDHHMMSSZ”。
+
 =item B<-days arg>
 
 the number of days to certify the certificate for.
+
+设置证书的有效天数。
 
 =item B<-md alg>
 
@@ -177,12 +228,19 @@ the message digest to use.
 Any digest supported by the GmSSL B<dgst> command can be used.
 This option also applies to CRLs.
 
+消息摘要使用。
+可以使用GmSSL dgst命令支持的任何摘要。
+该选项也适用于CRLs。
+
 =item B<-policy arg>
 
 this option defines the CA "policy" to use. This is a section in
 the configuration file which decides which fields should be mandatory
 or match the CA certificate. Check out the B<POLICY FORMAT> section
 for more information.
+
+该选项定义了CA的匹配策略。这是配置文件中的一部分，它决定了哪些字段应该是必须的
+或与CA证书匹配。查看policy format部分来了解更多信息。
 
 =item B<-msie_hack>
 
@@ -192,6 +250,10 @@ for almost everything. Since the old control has various security bugs
 its use is strongly discouraged. The newer control "Xenroll" does not
 need this option.
 
+这是一个遗留的项目，它可以使ca可以使用非常老的ie证书注册控件centenr3.它几乎所有东西
+都使用了UniversalStrings。我们非常不推荐使用旧版控件应为它有很多的安全漏洞。新的控件
+Xenroll不需要这一项。
+
 =item B<-preserveDN>
 
 Normally the DN order of a certificate is the same as the order of the
@@ -199,6 +261,11 @@ fields in the relevant policy section. When this option is set the order
 is the same as the request. This is largely for compatibility with the
 older IE enrollment control which would only accept certificates if their
 DNs match the order of the request. This is not needed for Xenroll.
+
+使指令在签发证书的时候让证书主体名称内的各项内容顺序跟证书请求中的顺序保持一致。
+而在默认情况下，证书主题名称内的各个选项顺序是按照配置文件中的证书匹配策略子段的
+选项顺序进行排列的。
+
 
 =item B<-noemailDN>
 
@@ -208,6 +275,8 @@ the altName extension of the certificate. When this option is set the
 EMAIL field is removed from the certificate' subject and set only in
 the, eventually present, extensions. The B<email_in_dn> keyword can be
 used in the configuration file to enable this behaviour.
+
+
 
 =item B<-batch>
 

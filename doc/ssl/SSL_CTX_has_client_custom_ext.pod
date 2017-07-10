@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_has_client_custom_ext - check whether a handler exists for a particular

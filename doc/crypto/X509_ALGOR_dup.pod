@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_ALGOR_dup, X509_ALGOR_set0, X509_ALGOR_get0, X509_ALGOR_set_md, X509_ALGOR_cmp - AlgorithmIdentifier functions

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_set_callback_ex, BIO_get_callback_ex, BIO_set_callback, BIO_get_callback,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CMS_verify_receipt - verify a CMS signed receipt

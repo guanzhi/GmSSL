@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EVP_OpenInit, EVP_OpenUpdate, EVP_OpenFinal - EVP envelope decryption

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_ssl_version, SSL_set_ssl_method, SSL_get_ssl_method

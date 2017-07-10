@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EC_GROUP_get_ecparameters, EC_GROUP_get_ecpkparameters,

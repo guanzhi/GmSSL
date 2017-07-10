@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EC_POINT_set_Jprojective_coordinates_GFp, EC_POINT_point2buf,

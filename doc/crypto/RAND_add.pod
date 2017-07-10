@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RAND_add, RAND_seed, RAND_status, RAND_event, RAND_screen - add

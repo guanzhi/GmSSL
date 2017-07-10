@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_cipher_list, SSL_set_cipher_list - choose list of available SSL_CIPHERs

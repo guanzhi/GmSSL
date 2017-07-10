@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_enable_ct, SSL_CTX_enable_ct, SSL_disable_ct, SSL_CTX_disable_ct,

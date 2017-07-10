@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_push, BIO_pop, BIO_set_next - add and remove BIOs from a chain
