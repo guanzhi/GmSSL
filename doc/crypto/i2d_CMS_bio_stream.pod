@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 i2d_CMS_bio_stream - output CMS_ContentInfo structure in BER format

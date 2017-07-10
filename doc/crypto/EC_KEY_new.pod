@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EC_KEY_get_method, EC_KEY_set_method,

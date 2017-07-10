@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ASN1_OBJECT_new, ASN1_OBJECT_free - object allocation functions

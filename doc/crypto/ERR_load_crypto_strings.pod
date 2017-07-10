@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ERR_load_crypto_strings, SSL_load_error_strings, ERR_free_strings -

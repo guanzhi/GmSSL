@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_min_proto_version, SSL_CTX_set_max_proto_version,

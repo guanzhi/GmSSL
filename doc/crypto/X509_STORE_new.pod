@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_STORE_new, X509_STORE_up_ref, X509_STORE_free, X509_STORE_lock,

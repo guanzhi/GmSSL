@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_set1_host, SSL_add1_host, SSL_set_hostflags, SSL_get0_peername -

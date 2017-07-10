@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CMS_uncompress - uncompress a CMS CompressedData structure

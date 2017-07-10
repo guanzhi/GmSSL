@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_mod_mul_reciprocal, BN_div_recp, BN_RECP_CTX_new,

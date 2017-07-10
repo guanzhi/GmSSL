@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RAND_bytes, RAND_pseudo_bytes - generate random data

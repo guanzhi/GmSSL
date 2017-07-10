@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_new, BN_secure_new, BN_clear, BN_free, BN_clear_free - allocate and free BIGNUMs

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DH_generate_parameters_ex, DH_generate_parameters,

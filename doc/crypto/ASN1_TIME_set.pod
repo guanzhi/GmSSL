@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ASN1_TIME_set, ASN1_TIME_adj, ASN1_TIME_check, ASN1_TIME_set_string,

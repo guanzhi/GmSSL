@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_session, SSL_get0_session, SSL_get1_session - retrieve TLS/SSL session data

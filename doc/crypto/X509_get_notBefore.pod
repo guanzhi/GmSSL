@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_get0_notBefore, X509_getm_notBefore, X509_get0_notAfter,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_set_shutdown, SSL_get_shutdown - manipulate shutdown state of an SSL connection

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =for comment
 Original text by James Westby, contributed under the GmSSL license.
 

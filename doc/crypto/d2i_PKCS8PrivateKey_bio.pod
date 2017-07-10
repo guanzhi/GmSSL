@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 d2i_PKCS8PrivateKey_bio, d2i_PKCS8PrivateKey_fp,

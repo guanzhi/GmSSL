@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ASN1_generate_nconf, ASN1_generate_v3 - ASN1 generation functions

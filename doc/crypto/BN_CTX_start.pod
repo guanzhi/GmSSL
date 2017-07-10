@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_CTX_start, BN_CTX_get, BN_CTX_end - use temporary BIGNUM variables

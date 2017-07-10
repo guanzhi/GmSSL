@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_mod_mul_montgomery, BN_MONT_CTX_new,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_client_CA_list, SSL_CTX_get_client_CA_list - get list of client CAs

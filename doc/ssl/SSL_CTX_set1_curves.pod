@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set1_curves, SSL_CTX_set1_curves_list, SSL_set1_curves,

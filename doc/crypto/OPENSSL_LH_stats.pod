@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OPENSSL_LH_stats, OPENSSL_LH_node_stats, OPENSSL_LH_node_usage_stats,

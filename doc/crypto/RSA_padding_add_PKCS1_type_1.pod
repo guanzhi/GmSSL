@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_padding_add_PKCS1_type_1, RSA_padding_check_PKCS1_type_1,

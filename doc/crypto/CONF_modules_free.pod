@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CONF_modules_free, CONF_modules_finish, CONF_modules_unload -

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_NAME_get0_der - get X509_NAME DER encoding

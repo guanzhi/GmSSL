@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_generate_key_ex, RSA_generate_key - generate RSA key pair

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_SESSION_get_protocol_version - retrieve session protocol version

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_state_string, SSL_state_string_long - get textual description of state of an SSL object

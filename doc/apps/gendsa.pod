@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 gendsa - generate a DSA private key from a set of parameters

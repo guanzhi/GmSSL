@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EC_GROUP_get0_order, EC_GROUP_order_bits, EC_GROUP_get0_cofactor,

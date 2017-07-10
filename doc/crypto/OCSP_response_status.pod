@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OCSP_response_status, OCSP_response_get1_basic, OCSP_response_create,

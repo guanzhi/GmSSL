@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DH_meth_new, DH_meth_free, DH_meth_dup, DH_meth_get0_name, DH_meth_set1_name,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OPENSSL_ia32cap - the x86[_64] processor capabilities vector

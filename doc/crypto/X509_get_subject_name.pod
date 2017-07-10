@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_get_subject_name, X509_set_subject_name, X509_get_issuer_name,
