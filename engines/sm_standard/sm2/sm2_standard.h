@@ -61,9 +61,9 @@
 extern "C" {
 #endif
 
-#include <openssl/miracl.h>
-#include <openssl/mirdef.h>
-#include <openssl/kdf_standard.h>
+#include "miracl.h"
+#include "mirdef.h"
+#include "kdf_standard.h"
 
 #define ERR_INFINITY_POINT 0x00000001
 #define ERR_NOT_VALID_ELEMENT 0x00000002
@@ -119,7 +119,7 @@ static int Test_PubKey(epoint *pubKey);
 int Test_Null(unsigned char array[], int len);
 int Test_Zero(big x);
 int Test_n(big x);
-int Test_Range(big x);
+static int Test_Range(big x);
 static int SM2_standard_init();
 static int SM2_standard_keygeneration(big priKey, epoint *pubKey);
 int SM2_standard_sign_keygeneration(unsigned char PriKey[], unsigned char Px[], unsigned char Py[]);
@@ -228,6 +228,23 @@ static int Test_PubKey(epoint *pubKey)
 	ecurve_mult(para_n, pubKey, nP);	//nP=[n]P
 	if (!point_at_infinity(nP))			//if np is point NOT at infinity, return error;
 		return ERR_ORDER;
+	return 0;
+}
+
+
+/* test if the big x belong to the range[1, n-1] */
+static int Test_Range(big x)
+{
+	big one, decr_n;
+
+	one = mirvar(0);
+	decr_n = mirvar(0);
+
+	convert(1, one);
+	decr(para_n, 1, decr_n);
+
+	if ((mr_compare(x, one) < 0) | (mr_compare(x, decr_n) > 0))
+		return 1;
 	return 0;
 }
 
