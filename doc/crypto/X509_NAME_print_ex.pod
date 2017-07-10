@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_NAME_print_ex, X509_NAME_print_ex_fp, X509_NAME_print,

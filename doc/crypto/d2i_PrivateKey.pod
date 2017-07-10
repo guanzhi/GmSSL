@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 d2i_PrivateKey, d2i_AutoPrivateKey, i2d_PrivateKey,

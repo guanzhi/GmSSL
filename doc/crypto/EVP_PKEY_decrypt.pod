@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EVP_PKEY_decrypt_init, EVP_PKEY_decrypt - decrypt using a public key algorithm

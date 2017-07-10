@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BUF_MEM_new, BUF_MEM_new_ex, BUF_MEM_free, BUF_MEM_grow

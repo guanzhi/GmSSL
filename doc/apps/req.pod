@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 req - PKCS#10 certificate request and certificate generating utility

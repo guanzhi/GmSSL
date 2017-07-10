@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_add_session, SSL_add_session, SSL_CTX_remove_session, SSL_remove_session - manipulate session cache

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_get0_param, SSL_get0_param, SSL_CTX_set1_param, SSL_set1_param -

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EVP_DigestSignInit, EVP_DigestSignUpdate, EVP_DigestSignFinal - EVP signing functions

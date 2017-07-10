@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CONF_CTX_set1_prefix - Set configuration context command prefix

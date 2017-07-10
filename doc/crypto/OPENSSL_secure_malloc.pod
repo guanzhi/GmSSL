@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CRYPTO_secure_malloc_init, CRYPTO_secure_malloc_initialized,

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_tlsext_ticket_key_cb - set a callback for session ticket processing

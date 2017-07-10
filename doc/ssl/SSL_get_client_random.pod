@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_get_client_random, SSL_get_server_random, SSL_SESSION_get_master_key - retrieve internal TLS/SSL random values and master key

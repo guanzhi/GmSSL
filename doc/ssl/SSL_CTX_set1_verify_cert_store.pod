@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set0_verify_cert_store, SSL_CTX_set1_verify_cert_store,

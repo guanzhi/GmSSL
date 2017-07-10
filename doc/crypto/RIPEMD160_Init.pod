@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RIPEMD160, RIPEMD160_Init, RIPEMD160_Update, RIPEMD160_Final -

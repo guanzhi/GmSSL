@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 dgst, sha, sha1, mdc2, ripemd160, sha224, sm3, sha384, sha512, md4, md5, blake2b, blake2s - message digests

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_config, SSL_config - configure SSL_CTX or SSL structure

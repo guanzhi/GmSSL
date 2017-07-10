@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_read, BIO_write, BIO_gets, BIO_puts - BIO I/O functions

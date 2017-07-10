@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_set_bio, SSL_set0_rbio, SSL_set0_wbio - connect the SSL object with a BIO

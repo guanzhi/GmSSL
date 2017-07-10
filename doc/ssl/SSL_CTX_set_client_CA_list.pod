@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_client_CA_list, SSL_set_client_CA_list, SSL_CTX_add_client_CA,

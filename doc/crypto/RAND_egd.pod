@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RAND_egd, RAND_egd_bytes, RAND_query_egd_bytes - query entropy gathering daemon

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 DH_size, DH_bits - get Diffie-Hellman prime size

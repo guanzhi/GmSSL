@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_CRL_get0_by_serial, X509_CRL_get0_by_cert, X509_CRL_get_REVOKED,

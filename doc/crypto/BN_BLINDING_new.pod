@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_BLINDING_new, BN_BLINDING_free, BN_BLINDING_update, BN_BLINDING_convert,

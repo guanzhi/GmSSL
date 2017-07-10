@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_size, RSA_bits - get RSA modulus size

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set0_chain, SSL_CTX_set1_chain, SSL_CTX_add0_chain_cert,

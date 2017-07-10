@@ -49,9 +49,9 @@
  */
 
 
-#include <openssl/mirdef.h>
-#include <openssl/miracl.h>
-#include <openssl/sm2_standard.h>
+#include "mirdef.h"
+#include "miracl.h"
+#include "sm2_standard.h"
 
 
 /* calculation of w */

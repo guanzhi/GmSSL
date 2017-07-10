@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_sign, X509_sign_ctx, X509_verify, X509_REQ_sign, X509_REQ_sign_ctx,

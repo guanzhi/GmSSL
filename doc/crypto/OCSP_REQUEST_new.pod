@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OCSP_REQUEST_new, OCSP_REQUEST_free, OCSP_request_add0_id, OCSP_request_sign,

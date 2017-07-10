@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CONF_CTX_new, SSL_CONF_CTX_free - SSL configuration allocation functions

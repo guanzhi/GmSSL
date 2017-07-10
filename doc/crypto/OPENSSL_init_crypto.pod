@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OPENSSL_init_new, OPENSSL_INIT_set_config_appname, OPENSSL_INIT_free,

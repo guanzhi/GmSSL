@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CT_POLICY_EVAL_CTX_new, CT_POLICY_EVAL_CTX_free,

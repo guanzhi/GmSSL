@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_default_ctlog_list_file, SSL_CTX_set_ctlog_list_file -

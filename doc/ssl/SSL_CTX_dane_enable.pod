@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_dane_enable, SSL_CTX_dane_mtype_set, SSL_dane_enable,

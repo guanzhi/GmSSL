@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_get_version, X509_set_version, X509_REQ_get_version, X509_REQ_set_version,

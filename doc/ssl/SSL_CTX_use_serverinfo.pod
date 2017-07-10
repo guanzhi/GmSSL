@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_use_serverinfo, SSL_CTX_use_serverinfo_file - use serverinfo extension

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SCT_print, SCT_LIST_print, SCT_validation_status_string -

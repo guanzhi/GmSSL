@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ECPKParameters_print, ECPKParameters_print_fp - Functions for decoding and

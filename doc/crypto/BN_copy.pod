@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BN_copy, BN_dup, BN_with_flags - copy BIGNUMs

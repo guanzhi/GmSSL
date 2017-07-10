@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_psk_client_callback, SSL_set_psk_client_callback - set PSK client callback

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =for comment gmssl_manual_section:5
 
 =head1 NAME

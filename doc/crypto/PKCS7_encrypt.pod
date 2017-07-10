@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 PKCS7_encrypt - create a PKCS#7 envelopedData structure

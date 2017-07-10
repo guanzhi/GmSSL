@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OPENSSL_instrument_bus, OPENSSL_instrument_bus2 - instrument references to memory bus

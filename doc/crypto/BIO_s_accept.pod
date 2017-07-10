@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 BIO_s_accept, BIO_set_accept_name, BIO_set_accept_port, BIO_get_accept_name,

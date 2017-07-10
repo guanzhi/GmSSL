@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_PUBKEY_new, X509_PUBKEY_free, X509_PUBKEY_set, X509_PUBKEY_get0,

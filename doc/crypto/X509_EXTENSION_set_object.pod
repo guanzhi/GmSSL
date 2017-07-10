@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 X509_EXTENSION_set_object, X509_EXTENSION_set_critical,

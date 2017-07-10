@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 ENGINE_get_DH, ENGINE_get_DSA, ENGINE_get_ECDH, ENGINE_get_ECDSA,

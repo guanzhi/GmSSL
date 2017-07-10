@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_set_session - set a TLS/SSL session to be used during TLS/SSL connect

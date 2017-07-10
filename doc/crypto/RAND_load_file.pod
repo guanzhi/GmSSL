@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RAND_load_file, RAND_write_file, RAND_file_name - PRNG seed file

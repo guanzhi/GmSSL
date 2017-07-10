@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 o2i_SCT_LIST, i2o_SCT_LIST, o2i_SCT, i2o_SCT -

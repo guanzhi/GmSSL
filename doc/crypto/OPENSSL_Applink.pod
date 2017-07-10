@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 OPENSSL_Applink - glue between OpenSSL BIO and Win32 compiler run-time

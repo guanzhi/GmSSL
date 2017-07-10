@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_set_cert_cb, SSL_set_cert_cb - handle certificate callback function

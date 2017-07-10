@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 CMS_add1_signer, CMS_SignerInfo_sign - add a signer to a CMS_ContentInfo signed data structure

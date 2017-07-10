@@ -145,18 +145,18 @@ int main(void)
 		}
 
 		/* encrypt */
-		memcpy(ct2.b, pt1, SERPENT_BLK_LEN);
+		memcpy(ct2.b, pt1, SERPENT_BLOCK_SIZE);
 
 		printf("\n\n");
 		dump_hex("plaintext", ct2.b, 16);
 
-		serpent_encrypt(ct2.b, &skey);
+		serpent_encrypt(pt1,ct2.b, &skey);
 
 		dump_hex("ciphertext", ct2.b, 16);
 
 		if (memcmp(ct1, ct2.b, clen) == 0) {
 			printf("\nEncryption OK");
-			serpent_decrypt(ct2.b, &skey);
+			serpent_decrypt(ct2.b,pt1, &skey);
 			if (memcmp(pt1, ct2.b, plen) == 0) {
 				printf("\nDecryption OK");
 				dump_hex("plaintext", ct2.b, 16);

@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 EVP_PKEY_get_default_digest_nid - get default signature digest

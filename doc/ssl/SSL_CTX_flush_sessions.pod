@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 SSL_CTX_flush_sessions, SSL_flush_sessions - remove expired sessions

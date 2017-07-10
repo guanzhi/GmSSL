@@ -1,5 +1,7 @@
 =pod
 
+=encoding utf8 
+
 =head1 NAME
 
 RSA_blinding_on, RSA_blinding_off - protect the RSA operation from timing attacks
