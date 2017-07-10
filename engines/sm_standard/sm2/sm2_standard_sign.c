@@ -48,9 +48,9 @@
  */
 
 
-#include <openssl/mirdef.h>
-#include <openssl/miracl.h>
-#include <openssl/sm2_standard.h>
+#include "mirdef.h"
+#include "miracl.h"
+#include "sm2_standard.h"
 
 
 
@@ -76,22 +76,6 @@ int Test_n(big x)
 		return 0;
 }
 
-
-/* test if the big x belong to the range[1, n-1] */
-int Test_Range(big x)
-{
-	big one, decr_n;
-
-	one = mirvar(0);
-	decr_n = mirvar(0);
-
-	convert(1, one);
-	decr(para_n, 1, decr_n);
-
-	if ((mr_compare(x, one) < 0) | (mr_compare(x, decr_n) > 0))
-		return 1;
-	return 0;
-}
 
 
 /* calculate a pubKey out of a given priKey */
