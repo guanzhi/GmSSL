@@ -47,6 +47,7 @@ To see the list of supported algorithms, use the I<list --digest-commands>
 command.
 
 摘要功能输出所提供文件的消息摘要或是十六进制文件。摘要功能还能使用消息摘要生成和验证数字签名。
+
 通用名称dgst可以与指定要使用算法的选项一起使用。默认的摘要是sm3.支持的digest名称也可作为命令名称。要查看支持的算法列表，请使用list --digest-commands。
 
 =head1 OPTIONS

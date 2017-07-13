@@ -40,12 +40,19 @@ GmSSL是实现安全套接字层（SSL v2 / v3）和传输层安全（TLS v1）�
  o  Time Stamp requests, generation and verification
 
 创建并管理公钥，私钥和参数。
+
 公钥加密操作。
+
 x509，CSR和CRL的创建
+
 计算消息摘要。
+
 密码加密解密
+
 SSC/TLS客户端服务器的测试
+
 处理S / MIME签名或加密的邮件
+
 时间戳请求，生成和验证
 
 =head1 COMMAND SUMMARY

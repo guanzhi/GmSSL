@@ -28,6 +28,8 @@ B<gmssl> B<crl>
 
 The B<crl> command processes CRL files in DER or PEM format.
 
+crl命令以DER或PEM格式处理CRL文件。
+
 =head1 OPTIONS
 
 =over 4
