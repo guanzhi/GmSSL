@@ -23,6 +23,8 @@ B<gmssl list>
 This command is used to generate list of algorithms or disabled
 features.
 
+这条命令用于生成算法或禁用功能的列表。
+
 =head1 OPTIONS
 
 =over 4
@@ -31,14 +33,20 @@ features.
 
 Display out a usage message.
 
+输出使用信息。
+
 =item B<-commands>
 
 Display a list of standard commands.
+
+输出标准命令列表。
 
 =item B<-digest-commands>
 
 Display a list of message digest commands, which are typically used
 as input to the L<dgst(1)> or L<speed(1)> commands.
+
+显示消息摘要命令列表，通常用作dgst或speed命令的输入。
 
 =item B<-digest-algorithms>
 
@@ -47,10 +55,15 @@ If a line is of the form
   foo => bar
 then B<foo> is an alias for the official algorithm name, B<bar>.
 
+显示消息摘要算法的列表。
+
 =item B<-cipher-commands>
 
 Display a list of cipher commands, which are typically used as input
 to the L<dgst(1)> or L<speed(1)> commands.
+
+显示密码命令列表，通常用作dgst或speed命令的输入。
+
 
 =item B<-cipher-algorithms>
 
@@ -59,15 +72,21 @@ If a line is of the form
   foo => bar
 then B<foo> is an alias for the official algorithm name, B<bar>.
 
+显示密码算法的列表
+
 =item B<-public-key-algorithms>
 
 Display a list of public key algorithms, with each algorithm as
 a block of multiple lines, all but the first are indented.
 
+显示公钥算法列表，每个算法作为多行的块，除第一个都是缩进。
+
 =item B<-disabled>
 
 Display a list of disabled features, those that were compiled out
 of the installation.
+
+显示已禁用功能的列表，这些功能是从安装中编译出来的功能。
 
 =back
 
