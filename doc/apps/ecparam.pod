@@ -31,6 +31,8 @@ B<gmssl ecparam>
 
 This command is used to manipulate or generate EC parameter files.
 
+此命令用于操作或生成EC参数文件。
+
 =head1 OPTIONS
 
 =over 4
@@ -39,6 +41,8 @@ This command is used to manipulate or generate EC parameter files.
 
 Print out a usage message.
 
+输出使用信息。
+
 =item B<-inform DER|PEM>
 
 This specifies the input format. The B<DER> option uses an ASN.1 DER encoded
@@ -46,15 +50,21 @@ form compatible with RFC 3279 EcpkParameters. The PEM form is the default
 format: it consists of the B<DER> format base64 encoded with additional
 header and footer lines.
 
+输入文件格式，DER或PEM格式。DER采用与RFC 3279EcpkParameters兼容的ASN1的DER标准格式。PEM格式是默认格式：它由DER格式base64编码，带有附加的页眉和页脚行。
+
 =item B<-outform DER|PEM>
 
 This specifies the output format, the options have the same meaning as the
 B<-inform> option.
 
+指出输出格式。和-inform用法相同。
+
 =item B<-in filename>
 
 This specifies the input filename to read parameters from or standard input if
 this option is not specified.
+
+指出输入的如果未指定此选项，则指定从或从标准输入读取参数的输入文件名。
 
 =item B<-out filename>
 
@@ -62,32 +72,46 @@ This specifies the output filename parameters to. Standard output is used
 if this option is not present. The output filename should B<not> be the same
 as the input filename.
 
+指定输出文件名参数。 如果此选项不存在，则使用标准输出。 输出文件名不能与输入文件名相同
+
 =item B<-noout>
 
 This option inhibits the output of the encoded version of the parameters.
 
+不打印参数编码的版本信息。
+
 =item B<-text>
 
 This option prints out the EC parameters in human readable form.
+
+打印椭圆曲线密钥参数信息值。
 
 =item B<-C>
 
 This option converts the EC parameters into C code. The parameters can then
 be loaded by calling the get_ec_group_XXX() function.
 
+用C语言打印椭圆曲线参数。然后可以通过调用get_ec_group_XXX函数来加载参数。
+
 =item B<-check>
 
 Validate the elliptic curve parameters.
+
+验证椭圆曲线密钥参数。
 
 =item B<-name arg>
 
 Use the EC parameters with the specified 'short' name. Use B<-list_curves>
 to get a list of all currently implemented EC parameters.
 
+使用EC参数的指定短名称。使用-list_curves来得到所有当前实现的EC参数的列表。
+
 =item B<-list_curves>
 
 If this options is specified B<ecparam> will print out a list of all
 currently implemented EC parameters names and exit.
+
+打印所有可用的短名称。
 
 =item B<-conv_form>
 
@@ -99,6 +123,8 @@ B<Note> Due to patent issues the B<compressed> option is disabled
 by default for binary curves and can be enabled by defining
 the preprocessor macro B<OPENSSL_EC_BIN_PT_COMP> at compile time.
 
+这指定椭圆曲线上的点如何转换为八位字节串。 可能的值有：压缩（默认值），未压缩和混合。 有关点转换表单的更多信息，请阅读X9.62标准。 注意由于专利问题，压缩选项默认情况下禁用二进制曲线，并且可以通过在编译时定义预处理器宏OPENSSL_EC_BIN_PT_COMP来启用。
+
 =item B<-param_enc arg>
 
 This specifies how the elliptic curve parameters are encoded.
@@ -109,14 +135,20 @@ EC parameters structures). The default value is B<named_curve>.
 B<Note> the B<implicitlyCA> alternative, as specified in RFC 3279,
 is currently not implemented in GmSSL.
 
+这指定椭圆曲线参数的编码方式。 可能的值为：named_curve，即ec参数由OID指定，或显式指定ec参数（参见RFC 3279以了解EC参数结构的定义）。 默认值为named_curve。 注意，如RFC 3279所述，implicitlyCA替代方案目前尚未在GmSSL中实现
+
 =item B<-no_seed>
 
 This option inhibits that the 'seed' for the parameter generation
 is included in the ECParameters structure (see RFC 3279).
 
+该选项禁止参数生成“seed”包含在ECParameters结构中（参见RFC 3279）。
+
 =item B<-genkey>
 
 This option will generate an EC private key using the specified parameters.
+
+该指令会生成一个指定参数的EC私钥。
 
 =item B<-rand file(s)>
 
@@ -126,12 +158,16 @@ Multiple files can be specified separated by an OS-dependent character.
 The separator is B<;> for MS-Windows, B<,> for OpenVMS, and B<:> for
 all others.
 
+含有随机数产生种子的文件。
+
 =item B<-engine id>
 
 specifying an engine (by its unique B<id> string) will cause B<ecparam>
 to attempt to obtain a functional reference to the specified engine,
 thus initialising it if needed. The engine will then be set as the default
 for all available algorithms.
+
+指定硬件引擎。该引擎会被设为所有可行的算法的默认引擎。
 
 =back
 
