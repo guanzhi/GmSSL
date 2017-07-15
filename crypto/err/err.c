@@ -74,7 +74,7 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_SKF, 0, 0), "SKF routines"},
     {ERR_PACK(ERR_LIB_SOF, 0, 0), "SOF routines"},
     #ifndef OPENSSL_NO_BASE58
-    {ERR_PACK(ERR_LIB_BASE58, 0, 0), "BASE58 routines"},
+        {ERR_PACK(ERR_LIB_BASE58, 0, 0), "BASE58 routines"},
     #endif
     {0, NULL},
 };
