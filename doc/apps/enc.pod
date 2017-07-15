@@ -42,6 +42,8 @@ using various block and stream ciphers using keys based on passwords
 or explicitly provided. Base64 encoding or decoding can also be performed
 either by itself or in addition to the encryption or decryption.
 
+对称密码命令允许使用基于密码或明确提供的密钥的各种块和流密码来加密或解密数据。 Base64编码或解码也可以通过本身或加密或解密来执行。
+
 =head1 OPTIONS
 
 =over 4
@@ -50,30 +52,44 @@ either by itself or in addition to the encryption or decryption.
 
 Print out a usage message.
 
+输出使用信息
+
 =item B<-ciphers>
 
 List all supported ciphers.
+
+列出所有支持的密码。
 
 =item B<-in filename>
 
 the input filename, standard input by default.
 
+输入的文件名，默认为标准输入。
+
 =item B<-out filename>
 
 the output filename, standard output by default.
+
+输出的文件名，默认为标准输出。
 
 =item B<-pass arg>
 
 the password source. For more information about the format of B<arg>
 see the B<PASS PHRASE ARGUMENTS> section in L<gmssl(1)>.
 
+指定密码的来源。
+
 =item B<-e>
 
 encrypt the input data: this is the default.
 
+进行加密操作，默认操作。
+
 =item B<-d>
 
 decrypt the input data.
+
+进行解密操作。
 
 =item B<-a>
 
@@ -81,18 +97,26 @@ base64 process the data. This means that if encryption is taking place
 the data is base64 encoded after encryption. If decryption is set then
 the input data is base64 decoded before being decrypted.
 
+base64处理数据。这意味着加密结果进行64位编码。解密前先进行base64解码。
+
 =item B<-base64>
 
 same as B<-a>
+
+和-a一样。
 
 =item B<-A>
 
 if the B<-a> option is set then base64 process the data on one line.
 
+将生成的结果在文件中只有一行。
+
 =item B<-k password>
 
 the password to derive the key from. This is for compatibility with previous
 versions of GmSSL. Superseded by the B<-pass> argument.
+
+加密口令。这是为了当前GmSSL版本的兼容。
 
 =item B<-kfile filename>
 
@@ -100,10 +124,14 @@ read the password to derive the key from the first line of B<filename>.
 This is for compatibility with previous versions of GmSSL. Superseded by
 the B<-pass> argument.
 
+指定口令存放的文件。
+
 =item B<-md digest>
 
 Use the specified digest to create the key from the passphrase.
 The default algorithm is SM3.
+
+运用指定摘要算法来从密码中创建密钥。默认算法为SM3.
 
 =item B<-nosalt>
 
@@ -111,14 +139,20 @@ don't use a salt in the key derivation routines. This option B<SHOULD NOT> be
 used except for test purposes or compatibility with ancient versions of
 GmSSL.
 
+在密钥导出例程中不使用salt，除了测试目的或与以前版本的Gmssl兼容，不应使用此选项。
+
 =item B<-salt>
 
 use salt (randomly generated or provide with B<-S> option) when
 encrypting (this is the default).
 
+在加密过程中使用salt（默认设置）。
+
 =item B<-S salt>
 
 the actual salt to use: this must be represented as a string of hex digits.
+
+salt的值为16进制。
 
 =item B<-K key>
 
@@ -129,6 +163,10 @@ key given with the B<-K> option will be used and the IV generated from the
 password will be taken. It probably does not make much sense to specify
 both key and password.
 
+用的实际密钥值：这个必须提出，它是一个16进制的输入口令。如果没有这个选
+项IV必须用-IV选项指定。当key和密钥都指定时，用-K选项给定的key将会被使
+用，而使用密钥来产生初始化向量IV。不建议两者都指定。
+
 =item B<-iv IV>
 
 the actual IV to use: this must be represented as a string comprised only
@@ -136,26 +174,40 @@ of hex digits. When only the key is specified using the B<-K> option, the
 IV must explicitly be defined. When a password is being specified using
 one of the other options, the IV is generated from this password.
 
+实际上使用的初始化向量：这个必须提出，它是一个16进制的输入口令。如果没有这个选
+项IV必须用-IV选项指定。当一个密钥用其中一个选项所指定，IV将会与偶这个口令
+值来产生。
+
 =item B<-p>
 
 print out the key and IV used.
+
+打印使用的密钥和IV。
 
 =item B<-P>
 
 print out the key and IV used then immediately exit: don't do any encryption
 or decryption.
 
+打印使用的key和IV然后直接退出，不做加密和解密操作。
+
 =item B<-bufsize number>
 
 set the buffer size for I/O
+
+设置I/O操作的缓冲区大小。
 
 =item B<-nopad>
 
 disable standard block padding
 
+没有数据填充。
+
 =item B<-debug>
 
 debug the BIOs used for I/O.
+
+调试用于I/O的BIO。
 
 =item B<-z>
 
@@ -163,9 +215,14 @@ Compress or decompress clear text using zlib before encryption or after
 decryption. This option exists only if GmSSL with compiled with zlib
 or zlib-dynamic option.
 
+在加密或解密之后使用zlib压缩或解压缩明文。 只有使用zlib或zlib-
+dynamic选项编译的GmSSL时，此选项才会存在。
+
 =item B<-none>
 
 Use NULL cipher (no encryption or decryption of input).
+
+不对数据进行加解密操作。
 
 =back
 
