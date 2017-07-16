@@ -107,7 +107,9 @@ typedef struct err_state_st {
 # define ERR_LIB_SDF             63
 # define ERR_LIB_SKF             64
 # define ERR_LIB_SOF             65
+#ifndef OPENSSL_NO_BASE58
 # define ERR_LIB_BASE58          66
+#endif
 
 # define ERR_LIB_USER            128
 
@@ -160,8 +162,9 @@ typedef struct err_state_st {
 # define SDFerr(f,r) ERR_PUT_error(ERR_LIB_SDF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SKFerr(f,r) ERR_PUT_error(ERR_LIB_SKF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SOFerr(f,r) ERR_PUT_error(ERR_LIB_SOF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
+#ifndef OPENSSL_NO_BASE58
 # define BASE58err(f,r) ERR_PUT_error(ERR_LIB_BASE58,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-
+#endif
 # define ERR_PACK(l,f,r) ( \
         (((unsigned int)(l) & 0x0FF) << 24L) | \
         (((unsigned int)(f) & 0xFFF) << 12L) | \
@@ -222,8 +225,9 @@ typedef struct err_state_st {
 # define ERR_R_SDF_LIB  ERR_LIB_SDF/* 63 */
 # define ERR_R_SKF_LIB  ERR_LIB_SKF/* 64 */
 # define ERR_R_SOF_LIB  ERR_LIB_SOF/* 65 */
+#ifndef OPENSSL_NO_BASE58
 # define ERR_R_BASE58_LIB  ERR_LIB_BASE58/* 66 */
-
+#endif
 # define ERR_R_NESTED_ASN1_ERROR                 58
 
 # define ERR_R_NESTED_ASN1_ERROR                 58

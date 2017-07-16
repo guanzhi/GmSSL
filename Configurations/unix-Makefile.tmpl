@@ -630,7 +630,7 @@ install_man_docs:
 	@\
 	OUTSUFFIX='.$${SEC}$(MANSUFFIX)'; \
 	OUTTOP="$(DESTDIR)$(MANDIR)"; \
-	GENERATE='pod2man --name=$$NAME --section=$$SEC --center=OpenSSL --release=$(VERSION)'; \
+	GENERATE='pod2man --utf8 --name=$$NAME --section=$$SEC --center=OpenSSL --release=$(VERSION)'; \
 	$(PROCESS_PODS)
 
 uninstall_man_docs:
@@ -646,7 +646,7 @@ install_html_docs:
 	@\
 	OUTSUFFIX='.$(HTMLSUFFIX)'; \
 	OUTTOP="$(DESTDIR)$(HTMLDIR)"; \
-	GENERATE="pod2html --podroot=$(SRCDIR)/doc --htmldir=.. \
+	GENERATE="pod2html --utf8 --podroot=$(SRCDIR)/doc --htmldir=.. \
 			   --podpath=apps:crypto:ssl --title=\$$Name \
 		  | perl -pe 's|href=\"http://man.he.net/man|href=\"../man|g; s|href=\"(.*/man.*)(?<!\.html)\">|href=\"\$$1.html\">|g;'"; \
 	$(PROCESS_PODS)

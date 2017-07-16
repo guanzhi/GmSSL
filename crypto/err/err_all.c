@@ -53,7 +53,9 @@
 #include <openssl/gmsdf.h>
 #include <openssl/gmskf.h>
 #include <openssl/gmsof.h>
+#ifndef OPENSSL_NO_BASE58
 #include <openssl/base58.h>
+#endif
 
 
 int err_load_crypto_strings_int(void)

@@ -92,8 +92,8 @@ foreach my $subdir (keys %{$options{subdir}}) {
         my $name = uc $podname;
         my $suffix = { man  => ".$podinfo{section}",
                        html => ".html" } -> {$options{type}};
-        my $generate = { man  => "pod2man --name=$name --section=$podinfo{section} --center=OpenSSL --release=$config{version} \"$podpath\"",
-                         html => "pod2html \"--podroot=$options{sourcedir}\" --htmldir=$updir --podpath=apps:crypto:ssl \"--infile=$podpath\" \"--title=$podname\""
+        my $generate = { man  => "pod2man --utf8 --name=$name --section=$podinfo{section} --center=OpenSSL --release=$config{version} \"$podpath\"",
+                         html => "pod2html --utf8 \"--podroot=$options{sourcedir}\" --htmldir=$updir --podpath=apps:crypto:ssl \"--infile=$podpath\" \"--title=$podname\""
                          } -> {$options{type}};
         my $output_dir = catdir($options{destdir}, "man$podinfo{section}");
         my $output_file = $podname . $suffix;
