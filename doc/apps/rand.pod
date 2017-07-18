@@ -25,6 +25,10 @@ in addition to the files given in the B<-rand> option.  A new
 I<$HOME>/B<.rnd> or B<.rnd> file will be written back if enough
 seeding was obtained from these sources.
 
+rand命令在播放随机数生成器一次后输出num伪随机字节。 与其他gmssl命令行工具一样，
+除了-rand选项中提供的文件外，PRNG种子使用文件$ HOME / .rnd或.rnd。
+ 如果从这些来源获得足够的播种，将会写入新的$ HOME / .rnd或.rnd文件。
+
 =head1 OPTIONS
 
 =over 4
@@ -33,9 +37,13 @@ seeding was obtained from these sources.
 
 Print out a usage message.
 
+输出使用信息
+
 =item B<-out> I<file>
 
 Write to I<file> instead of standard output.
+
+写入file而不是标准输出。
 
 =item B<-rand> I<file(s)>
 
@@ -45,13 +53,21 @@ Multiple files can be specified separated by an OS-dependent character.
 The separator is B<;> for MS-Windows, B<,> for OpenVMS, and B<:> for
 all others.
 
+使用指定的文件或EGD套接字（请参阅RAND_egd（3））播放随机数生成器。
+ 多个文件可以由与操作系统相关的字符分隔。 分离器是 对于MS-Windows，对于OpenVMS
+，以及：对于所有其他。
+
 =item B<-base64>
 
 Perform base64 encoding on the output.
 
+在输出上执行base64编码。
+
 =item B<-hex>
 
 Show the output as a hex string.
+
+将输出显示为十六进制字符串。
 
 =back
 

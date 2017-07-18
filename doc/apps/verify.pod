@@ -57,6 +57,8 @@ B<gmssl> B<verify>
 
 The B<verify> command verifies certificate chains.
 
+verify命令验证证书链。
+
 =head1 OPTIONS
 
 =over 4
@@ -65,10 +67,14 @@ The B<verify> command verifies certificate chains.
 
 Print out a usage message.
 
+打印使用信息。
+
 =item B<-CAfile file>
 
 A B<file> of trusted certificates.
 The file should contain one or more certificates in PEM format.
+
+可信证书文件。该文件应包含在一个或多个PEM格式的证书里。
 
 =item B<-CApath directory>
 
@@ -78,17 +84,27 @@ form ("hash" is the hashed certificate subject name: see the B<-hash> option
 of the B<x509> utility). Under Unix the B<c_rehash> script will automatically
 create symbolic links to a directory of certificates.
 
+可信证书目录。 证书应具有以下格式的名称：hash.0或具有此表单的符号链接
+（“哈希”是散列的证书主题名称：请参阅x509实用程序的-hash选项）。 在Unix下，
+c_rehash脚本将自动创建到证书目录的符号链接。
+
 =item B<-no-CAfile>
 
 Do not load the trusted CA certificates from the default file location
+
+不要从默认文件位置加载受信任的CA证书。
 
 =item B<-no-CApath>
 
 Do not load the trusted CA certificates from the default directory location
 
+不要从默认目录位置加载受信任的CA证书。
+
 =item B<-allow_proxy_certs>
 
 Allow the verification of proxy certificates
+
+允许验证代理证书。
 
 =item B<-attime timestamp>
 
@@ -96,10 +112,14 @@ Perform validation checks using time specified by B<timestamp> and not
 current system time. B<timestamp> is the number of seconds since
 01.01.1970 (UNIX time).
 
+使用由时间戳指定的时间而不是当前系统时间执行验证检查。 时间戳是自01.01.1970（UNIX时间）以来的秒数。
+
 =item B<-check_ss_sig>
 
 Verify the signature on the self-signed root CA. This is disabled by default
 because it doesn't add any security.
+
+验证自签名根CA上的签名。 这是默认禁用的，因为它不添加任何安全性。
 
 =item B<-CRLfile file>
 
@@ -107,19 +127,27 @@ The B<file> should contain one or more CRLs in PEM format.
 This option can be specified more than once to include CRLs from multiple
 B<files>.
 
+文件应包含一个或多个PEM格式的CRL。 可以多次指定此选项以包含来自多个文件的CRL。
+
 =item B<-crl_download>
 
 Attempt to download CRL information for this certificate.
+
+尝试下载此证书的CRL信息。
 
 =item B<-crl_check>
 
 Checks end entity certificate validity by attempting to look up a valid CRL.
 If a valid CRL cannot be found an error occurs.
 
+通过尝试查找有效的CRL来检查终端实体证书的有效性。 如果找不到有效的CRL，则会发生错误。
+
 =item B<-crl_check_all>
 
 Checks the validity of B<all> certificates in the chain by attempting
 to look up valid CRLs.
+
+通过尝试查找有效的CRL来检查链中所有证书的有效性。
 
 =item B<-engine id>
 
@@ -130,14 +158,22 @@ If you want to load certificates or CRLs that require engine support via any of
 the B<-trusted>, B<-untrusted> or B<-CRLfile> options, the B<-engine> option
 must be specified before those options.
 
+指定引擎ID将导致verify（1）尝试加载指定的引擎。 引擎将被设置为所有支持的算法的默认值。
+ 如果要通过任何-trusted，-untrusted或-CRLfile选项加载需要引擎支持的证书或CRL，
+则必须在这些选项之前指定-engine选项。
+
 =item B<-explicit_policy>
 
 Set policy variable require-explicit-policy (see RFC5280).
+
+设置策略变量require-explicit-policy（参见RFC5280）。
 
 =item B<-extended_crl>
 
 Enable extended CRL features such as indirect CRLs and alternate CRL
 signing keys.
+
+启用扩展CRL功能，如间接CRL和备用CRL签名密钥
 
 =item B<-ignore_critical>
 
@@ -145,13 +181,20 @@ Normally if an unhandled critical extension is present which is not
 supported by GmSSL the certificate is rejected (as required by RFC5280).
 If this option is set critical extensions are ignored.
 
+通常如果GmSSL不支持未处理的关键扩展，那么证书将被拒绝（根据RFC5280的要求）。
+ 如果设置了此选项，则将忽略关键扩展。
+
 =item B<-inhibit_any>
 
 Set policy variable inhibit-any-policy (see RFC5280).
 
+设置策略变量suppress-any-policy（参见RFC5280）。
+
 =item B<-inhibit_map>
 
 Set policy variable inhibit-policy-mapping (see RFC5280).
+
+设置策略变量inhibit-policy-mapping（参见RFC5280）。
 
 =item B<-no_check_time>
 
@@ -159,11 +202,17 @@ This option suppresses checking the validity period of certificates and CRLs
 against the current time. If option B<-attime timestamp> is used to specify
 a verification time, the check is not suppressed.
 
+此选项禁止根据当前时间检查证书和CRL的有效期。
+ 如果选项-attime时间戳用于指定验证时间，则不会抑制该检查。
+
 =item B<-partial_chain>
 
 Allow verification to succeed even if a I<complete> chain cannot be built to a
 self-signed trust-anchor, provided it is possible to construct a chain to a
 trusted certificate that might not be self-signed.
+
+即使完整的链不能构建一个自签署的信任锚点也可以允许验证成功，
+这可以构建一个链链接到一个不是自签署的受信任证书。
 
 =item B<-policy arg>
 
@@ -171,13 +220,20 @@ Enable policy processing and add B<arg> to the user-initial-policy-set (see
 RFC5280). The policy B<arg> can be an object name an OID in numeric form.
 This argument can appear more than once.
 
+启用策略处理，并将arg添加到用户初始策略集（请参阅RFC5280）。
+策略参数可以是一个数字形式的OID的对象名称。 这个参数可能会出现不止一次。
+
 =item B<-policy_check>
 
 Enables certificate policy processing.
 
+启用证书策略处理。
+
 =item B<-policy_print>
 
 Print out diagnostics related to policy processing.
+
+打印与策略处理有关的诊断。
 
 =item B<-purpose purpose>
 
@@ -187,6 +243,10 @@ Currently accepted uses are B<sslclient>, B<sslserver>, B<nssslserver>,
 B<smimesign>, B<smimeencrypt>. See the B<VERIFY OPERATION> section for more
 information.
 
+证书的预期用途。 如果未指定此选项，验证将不会在链验证期间考虑证书目的。
+目前接受的用途是sslclient，sslserver，nssslserver，smimesign，smimeencrypt。
+有关详细信息，请参阅“验证操作”部分。
+
 =item B<-suiteB_128_only>, B<-suiteB_128>, B<-suiteB_192>
 
 enable the Suite B mode operation at 128 bit Level of Security, 128 bit or
@@ -195,6 +255,10 @@ See RFC6460 for details. In particular the supported signature algorithms are
 reduced to support only ECDSA and SHA256 or SHA384 and only the elliptic curves
 P-256 and P-384.
 
+启用Suite B模式操作，分别为128位安全级别，128位或192位或仅192位安全级别。
+有关详细信息，请参阅RFC6460。 特别地，支持的签名算法被减少以仅支持ECDSA
+和SHA256或SHA384，并且仅支持椭圆曲线P-256和P-384。
+
 =item B<-trusted_first>
 
 When constructing the certificate chain, use the trusted certificates specified
@@ -202,6 +266,9 @@ via B<-CAfile>, B<-CApath> or B<-trusted> before any certificates specified via
 B<-untrusted>.
 This can be useful in environments with Bridge or Cross-Certified CAs.
 As of GmSSL 1.1.0 this option is on by default and cannot be disabled.
+
+在构建证书链时，请使用通过-CAfile指定的受信任证书，-CApath或-trusted，然后通过-rustrusted指定任何证书。
+这可以在具有桥接或交叉认证CA的环境中使用。 从GmSSL 1.1.0开始，默认情况下，该选项处于打开状态，无法禁用。
 
 =item B<-no_alt_chains>
 
@@ -212,6 +279,10 @@ trust store to see if an alternative chain can be found that is trusted.
 As of GmSSL 1.1.0, with B<-trusted_first> always on, this option has no
 effect.
 
+默认情况下，除非指定了-trusted_first，否则在构建证书链时，如果发现第一个证书链不受信任，
+则GmSSL将尝试用信任存储中的证书替换不受信任的颁发者证书，以查看是否可以找到可信任的替代链。
+从GmSSL 1.1.0开始，使用-trusted_first始终处于打开状态，此选项不起作用。
+
 =item B<-untrusted file>
 
 A B<file> of additional untrusted certificates (intermediate issuer CAs) used
@@ -219,6 +290,9 @@ to construct a certificate chain from the subject certificate to a trust-anchor.
 The B<file> should contain one or more certificates in PEM format.
 This option can be specified more than once to include untrusted certificates
 from multiple B<files>.
+
+用于构建从主题证书到信任锚的证书链的其他不可信证书（中间颁发者CA）的文件。
+ 该文件应包含一个或多个PEM格式的证书。 可以多次指定此选项以包含来自多个文件的不受信任的证书。
 
 =item B<-trusted file>
 
@@ -234,13 +308,22 @@ This option implies the B<-no-CAfile> and B<-no-CApath> options.
 This option cannot be used in combination with either of the B<-CAfile> or
 B<-CApath> options.
 
+可信证书的文件，必须是自签名的，除非指定了-partial_chain选项。 该文件包含一个或多个PEM格式的证书。
+ 使用此选项，不会查询附加（例如，默认）证书列表。 也就是说，唯一的信任锚是列出的文件。
+ 可以多次指定此选项以包含来自多个文件的可信证书。 此选项意味着-no-CAfile和-no-CApath选项。
+ 此选项不能与-CAfile或-CApath选项中的任何一个组合使用。
+
 =item B<-use_deltas>
 
 Enable support for delta CRLs.
 
+启用对delta CRL的支持。
+
 =item B<-verbose>
 
 Print extra information about the operations being performed.
+
+打印有关正在执行的操作的额外信息。
 
 =item B<-auth_level level>
 
@@ -260,6 +343,12 @@ Security level 1 requires at least 80-bit-equivalent security and is broadly
 interoperable, though it will, for example, reject MD5 signatures or RSA keys
 shorter than 1024 bits.
 
+将证书链认证安全级别设置为级别。 认证安全级别在验证证书链时确定可接受的签名和公开密钥强度。
+ 要验证证书链，所有证书的公钥必须满足指定的安全级别。 对链中的所有证书执行签名算法安全级别，
+除了该链的信任锚，其通过除签名之外的方式直接受信任或验证。 有关可用级别的定义，请参阅SSL_CTX_set_security_level（3）。
+ 默认安全级别为-1或“未设置”。 在0或更低的安全级别，所有算法都可以接受。 安全级别1需要至少80位等效的安全性，
+并且可以广泛地互操作，尽管它将例如拒绝MD5签名或短于1024位的RSA密钥。
+
 =item B<-verify_depth num>
 
 Limit the certificate chain to B<num> intermediate CA certificates.
@@ -267,20 +356,28 @@ A maximal depth chain can have up to B<num+2> certificates, since neither the
 end-entity certificate nor the trust-anchor certificate count against the
 B<-verify_depth> limit.
 
+将证书链限制为中间CA证书。 最大深度链可以具有最多num + 2个证书，因为终端实体证书和信任锚证书都不符合-verify_depth限制。
+
 =item B<-verify_email email>
 
 Verify if the B<email> matches the email address in Subject Alternative Name or
 the email in the subject Distinguished Name.
+
+验证电子邮件是否匹配主题备用名称中的电子邮件地址或主题可分辨名称中的电子邮件。
 
 =item B<-verify_hostname hostname>
 
 Verify if the B<hostname> matches DNS name in Subject Alternative Name or
 Common Name in the subject certificate.
 
+验证主题名称是否匹配主题证书中主题备用名称或公用名称中的DNS名称。
+
 =item B<-verify_ip ip>
 
 Verify if the B<ip> matches the IP address in Subject Alternative Name of
 the subject certificate.
+
+验证IP匹配主题证书的主题备用名称中的IP地址。
 
 =item B<-verify_name name>
 
@@ -298,10 +395,17 @@ As of GmSSL 1.1.0, the trust model is inferred from the purpose when not
 specified, so the B<-verify_name> options are functionally equivalent to the
 corresponding B<-purpose> settings.
 
+使用默认验证策略，如信任模型和由名称标识的所需证书策略。 信任模型确定哪些辅助信任或拒绝OID适用于验证给定的证书链。
+ 请参阅x509（1）命令行实用程序的-addtrust和-addreject选项。 支持的策略名称包括：default，pkcs7，smime_sign，ssl_client，ssl_server。
+ 这些模拟了SSL，CMS和S / MIME中使用的目的和信任设置的组合。 从GmSSL 1.1.0开始，从未指定的目的推断信任模型
+，因此-verify_name选项在功能上等同于相应的设置。
+
 =item B<-x509_strict>
 
 For strict X.509 compliance, disable non-compliant workarounds for broken
 certificates.
+
+对于严格的X.509合规性，请禁用破坏的证书的不符合标准的解决方法。
 
 =item B<-show_chain>
 
@@ -309,17 +413,23 @@ Display information about the certificate chain that has been built (if
 successful). Certificates in the chain that came from the untrusted list will be
 flagged as "untrusted".
 
+显示有关已建立的证书链的信息（如果成功）。 来自不受信任名单的链中的证书将被标记为“不受信任”。
+
 =item B<->
 
 Indicates the last option. All arguments following this are assumed to be
 certificate files. This is useful if the first certificate filename begins
 with a B<->.
 
+表示最后一个选项。 以下所有参数都被认为是证书文件。 如果第一个证书文件名以 - 开头，这将非常有用。
+
 =item B<certificates>
 
 One or more certificates to verify. If no certificates are given, B<verify>
 will attempt to read a certificate from standard input. Certificates must be
 in PEM format.
+
+一个或多个验证证书。 如果没有给出证书，验证将尝试从标准输入读取证书。 证书必须采用PEM格式。
 
 =back
 
