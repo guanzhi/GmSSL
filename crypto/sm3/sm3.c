@@ -118,8 +118,8 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 		pdigest[i] = cpu_to_be32(ctx->digest[i]);
 	}
 }
-
-#define ROTATELEFT(X,n)  (((X)<<(n)) | ((X)>>(32-(n))))
+#define  SHL(x,n) (((x) & 0xFFFFFFFF) << n%32)
+#define ROTATELEFT(X,n)  (SHL((x),n) | ((X)>>(32-(n%32))))
 
 #define P0(x) ((x) ^  ROTATELEFT((x),9)  ^ ROTATELEFT((x),17))
 #define P1(x) ((x) ^  ROTATELEFT((x),15) ^ ROTATELEFT((x),23))
