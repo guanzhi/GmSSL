@@ -570,7 +570,7 @@ end:
 
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(
+JNIEXPORT jbyteArray JNICALL Java_GmSSL_PrivateKeyDecrypt(
 	JNIEnv *env, jobject this, jstring algor, jint flag,
 	jbyteArray in, jbyteArray key)
 {
