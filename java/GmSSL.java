@@ -69,7 +69,7 @@ public class GmSSL {
 	public native int verify(String algor, int flag, byte [] digest, byte [] signature, byte [] publicKey);
 	public native String [] getPublicKeyEncryptions(boolean aliases);
 	public native byte [] publicKeyEncrypt(String algor, int flag, byte [] in, byte [] publicKey);
-	public native byte [] publicKeyDecrypt(String algor, int falg, byte [] in, byte [] privateKey);
+	public native byte [] privateKeyDecrypt(String algor, int falg, byte [] in, byte [] privateKey);
 	public native String [] getDeriveKeyAlgorithms(boolean aliases);
 	public native byte [] deriveKey(String algor, int flag, int keyLength, byte [] peerPublicKey, byte [] privateKey);
 	public native String getErrorString();
