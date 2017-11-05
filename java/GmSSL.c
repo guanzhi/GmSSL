@@ -1256,7 +1256,6 @@ end:
 
 }
 
-<<<<<<< HEAD
 /*
 static int gmssl_pkey_encrypt(const char *algor, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, const unsigned char *key, size_t keylen)
@@ -1266,10 +1265,6 @@ static int gmssl_pkey_encrypt(const char *algor, const unsigned char *in, size_t
 
 JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(
 	JNIEnv *env, jobject this, jstring algor,
-=======
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_privateKeyDecrypt(
-	JNIEnv *env, jobject this, jstring algor, jint flag,
->>>>>>> origin/master
 	jbyteArray in, jbyteArray key)
 {
 	jbyteArray ret = NULL;

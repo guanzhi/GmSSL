@@ -60,7 +60,6 @@ public class GmSSL {
 	public native int getCipherIVLength(String cipher);
 	public native int getCipherKeyLength(String cipher);
 	public native int getCipherBlockSize(String cipher);
-<<<<<<< HEAD
 	public native byte[] symmetricEncrypt(String cipher, byte[] in, byte[] key, byte[] iv);
 	public native byte[] symmetricDecrypt(String cipher, byte[] in, byte[] key, byte[] iv);
 	public native int getDigestLength(String digest);
@@ -74,26 +73,6 @@ public class GmSSL {
 	public native byte[] publicKeyDecrypt(String algor, byte[] in, byte[] privateKey);
 	public native byte[] deriveKey(String algor, int keyLength, byte[] peerPublicKey, byte[] privateKey);
 	public native String[] getErrorStrings();
-=======
-	public native byte [] symmetricEncrypt(String cipher, int flag, byte [] in, byte [] key, byte [] iv);
-	public native byte [] symmetricDecrypt(String cipher, int flag, byte [] in, byte [] key, byte [] iv);
-	public native String [] getDigests(boolean aliases);
-	public native int getDigestLength(String digestAlgor);
-	public native int getDigestBlockSize(String digestAlgor);
-	public native byte [] digest(String algor, int flag, byte [] data);
-	public native String [] getMacs(boolean aliases);
-	public native String [] getMacLength(String algor);
-	public native byte [] mac(String algor, int flag, byte [] data, byte [] key);
-	public native String [] getSignAlgorithms(boolean aliases);
-	public native byte [] sign(String algor, int flag, byte [] data, byte [] privateKey);
-	public native int verify(String algor, int flag, byte [] digest, byte [] signature, byte [] publicKey);
-	public native String [] getPublicKeyEncryptions(boolean aliases);
-	public native byte [] publicKeyEncrypt(String algor, int flag, byte [] in, byte [] publicKey);
-	public native byte [] privateKeyDecrypt(String algor, int falg, byte [] in, byte [] privateKey);
-	public native String [] getDeriveKeyAlgorithms(boolean aliases);
-	public native byte [] deriveKey(String algor, int flag, int keyLength, byte [] peerPublicKey, byte [] privateKey);
-	public native String getErrorString();
->>>>>>> origin/master
 
 	public static void main(String[] args) {
 		int i;
