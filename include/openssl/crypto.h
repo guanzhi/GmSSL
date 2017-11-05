@@ -166,6 +166,7 @@ const char *OpenSSL_version(int type);
 # define OPENSSL_PLATFORM         3
 # define OPENSSL_DIR              4
 # define OPENSSL_ENGINES_DIR      5
+char *GmSSL_version(void);
 
 int OPENSSL_issetugid(void);
 
@@ -367,6 +368,8 @@ int CRYPTO_memcmp(const volatile void * volatile in_a,
 # define OPENSSL_INIT_ENGINE_CAPI            0x00002000L
 # define OPENSSL_INIT_ENGINE_PADLOCK         0x00004000L
 # define OPENSSL_INIT_ENGINE_AFALG           0x00008000L
+# define OPENSSL_INIT_ENGINE_SKF             0x00020000L
+# define OPENSSL_INIT_ENGINE_SDF             0x00040000L
 /* OPENSSL_INIT flag 0x00010000 reserved for internal use */
 /* OPENSSL_INIT flag range 0xfff00000 reserved for OPENSSL_init_ssl() */
 /* Max OPENSSL_INIT flag value is 0x80000000 */
@@ -374,6 +377,7 @@ int CRYPTO_memcmp(const volatile void * volatile in_a,
 /* openssl and dasync not counted as builtin */
 # define OPENSSL_INIT_ENGINE_ALL_BUILTIN \
     (OPENSSL_INIT_ENGINE_RDRAND | OPENSSL_INIT_ENGINE_DYNAMIC \
+    | OPENSSL_INIT_ENGINE_SKF | OPENSSL_INIT_ENGINE_SDF \
     | OPENSSL_INIT_ENGINE_CRYPTODEV | OPENSSL_INIT_ENGINE_CAPI | \
     OPENSSL_INIT_ENGINE_PADLOCK)
 

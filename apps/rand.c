@@ -19,7 +19,8 @@
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
-    OPT_OUT, OPT_ENGINE, OPT_RAND, OPT_BASE64, OPT_HEX
+    OPT_OUT, OPT_ENGINE, OPT_RAND, OPT_BASE64, OPT_HEX,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS rand_options[] = {
@@ -33,6 +34,7 @@ OPTIONS rand_options[] = {
     {"hex", OPT_HEX, '-', "Hex encode output"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 #endif
     {NULL}
 };
@@ -44,6 +46,8 @@ int rand_main(int argc, char **argv)
     char *inrand = NULL, *outfile = NULL, *prog;
     OPTION_CHOICE o;
     int format = FORMAT_BINARY, i, num = -1, r, ret = 1;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, rand_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -72,6 +76,9 @@ int rand_main(int argc, char **argv)
         case OPT_HEX:
             format = FORMAT_TEXT;
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
@@ -79,6 +86,13 @@ int rand_main(int argc, char **argv)
 
     if (argc != 1 || !opt_int(argv[0], &num) || num < 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     app_RAND_load_file(NULL, (inrand != NULL));
     if (inrand != NULL)
@@ -128,5 +142,6 @@ int rand_main(int argc, char **argv)
         ERR_print_errors(bio_err);
     release_engine(e);
     BIO_free_all(out);
+    NCONF_free(conf);
     return (ret);
 }

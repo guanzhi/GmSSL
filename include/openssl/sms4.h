@@ -51,7 +51,7 @@
 #define HEADER_SMS4_H
 
 #include <openssl/opensslconf.h>
-#ifndef NO_GMSSL
+#ifndef OPENSSL_NO_SMS4
 
 #define SMS4_KEY_LENGTH		16
 #define SMS4_BLOCK_SIZE		16
@@ -59,7 +59,7 @@
 #define SMS4_NUM_ROUNDS		32
 
 #include <sys/types.h>
-#include <stdint.h>
+#include <openssl/e_os2.h>
 #include <string.h>
 
 
@@ -128,6 +128,3 @@ void sms4_ede_decrypt_16blocks(sms4_ede_key_t *key, const unsigned char *in, uns
 #endif
 #endif
 #endif
-
-
-

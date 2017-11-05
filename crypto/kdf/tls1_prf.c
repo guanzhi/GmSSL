@@ -237,7 +237,7 @@ static int tls1_prf_alg(const EVP_MD *md,
                         const unsigned char *seed, size_t seed_len,
                         unsigned char *out, size_t olen)
 {
-
+#if !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_SHA)
     if (EVP_MD_type(md) == NID_md5_sha1) {
         size_t i;
         unsigned char *tmp;
@@ -258,6 +258,7 @@ static int tls1_prf_alg(const EVP_MD *md,
         OPENSSL_clear_free(tmp, olen);
         return 1;
     }
+#endif
     if (!tls1_prf_P_hash(md, sec, slen, seed, seed_len, out, olen))
         return 0;
 

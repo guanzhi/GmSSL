@@ -8,16 +8,26 @@
  */
 
 #include <stdio.h>
+#include <openssl/opensslconf.h>
+
 #include "internal/err_int.h"
 #include <openssl/asn1.h>
 #include <openssl/bn.h>
-#include <openssl/ec.h>
+#ifndef OPENSSL_NO_EC
+# include <openssl/ec.h>
+#endif
 #include <openssl/buffer.h>
 #include <openssl/bio.h>
 #include <openssl/comp.h>
-#include <openssl/rsa.h>
-#include <openssl/dh.h>
-#include <openssl/dsa.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
+#ifndef OPENSSL_NO_DH
+# include <openssl/dh.h>
+#endif
+#ifndef OPENSSL_NO_DSA
+# include <openssl/dsa.h>
+#endif
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/pem2.h>
@@ -35,26 +45,58 @@
 # include <openssl/fips.h>
 #endif
 #include <openssl/ts.h>
-#include <openssl/cms.h>
-#include <openssl/ct.h>
-#include <openssl/async.h>
+#ifndef OPENSSL_NO_CMS
+# include <openssl/cms.h>
+#endif
+#ifndef OPENSSL_NO_CT
+# include <openssl/ct.h>
+#endif
+#ifndef OPENSSL_NO_ASYNC
+# include <openssl/async.h>
+#endif
 #include <openssl/kdf.h>
 #include <openssl/kdf2.h>
-#include <openssl/ffx.h>
-#include <openssl/paillier.h>
-#include <openssl/cpk.h>
-#include <openssl/otp.h>
-#include <openssl/gmapi.h>
-#include <openssl/bfibe.h>
-#include <openssl/bb1ibe.h>
-#include <openssl/sm2.h>
-#include <openssl/sm9.h>
-#include <openssl/gmsaf.h>
-#include <openssl/gmsdf.h>
-#include <openssl/gmskf.h>
-#include <openssl/gmsof.h>
+#ifndef OPENSSL_NO_FFX
+# include <openssl/ffx.h>
+#endif
+#ifndef OPENSSL_NO_PAILLIER
+# include <openssl/paillier.h>
+#endif
+#ifndef OPENSSL_NO_CPK
+# include <openssl/cpk.h>
+#endif
+#ifndef OPENSSL_NO_OTP
+# include <openssl/otp.h>
+#endif
+#ifndef OPENSSL_NO_GMAPI
+# include <openssl/gmapi.h>
+#endif
+#ifndef OPENSSL_NO_BFIBE
+# include <openssl/bfibe.h>
+#endif
+#ifndef OPENSSL_NO_BB1IBE
+# include <openssl/bb1ibe.h>
+#endif
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
+#endif
+#ifndef OPENSSL_NO_SAF
+# include <openssl/gmsaf.h>
+#endif
+#ifndef OPENSSL_NO_SDF
+# include <openssl/gmsdf.h>
+#endif
+#ifndef OPENSSL_NO_SKF
+# include <openssl/gmskf.h>
+#endif
+#ifndef OPENSSL_NO_SOF
+# include <openssl/gmsof.h>
+#endif
 #ifndef OPENSSL_NO_BASE58
-#include <openssl/base58.h>
+# include <openssl/base58.h>
 #endif
 
 
@@ -94,7 +136,9 @@ int err_load_crypto_strings_int(void)
         ERR_load_BIO_strings() == 0 ||
         ERR_load_PKCS7_strings() == 0 ||
         ERR_load_X509V3_strings() == 0 ||
+# ifndef OPENSSL_NO_PKCS12
         ERR_load_PKCS12_strings() == 0 ||
+# endif
         ERR_load_RAND_strings() == 0 ||
         ERR_load_DSO_strings() == 0 ||
 # ifndef OPENSSL_NO_TS

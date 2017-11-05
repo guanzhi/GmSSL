@@ -50,13 +50,13 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 #include <openssl/cmac.h>
 #include <openssl/kdf2.h>
+#include <openssl/e_os2.h>
 #include <openssl/otp.h>
 #include "../modes/modes_lcl.h"
 

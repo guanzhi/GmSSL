@@ -1,2 +1,0 @@
-/* +build cgo */
-package gmssl

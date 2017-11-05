@@ -1185,3 +1185,11 @@ ecies_with_x9_63_sha256_aes128_ctr_cmac		1184
 ecies_with_x9_63_sha512_aes256_ctr_cmac		1185
 kx_sm2		1186
 auth_sm2		1187
+kx_sm9		1188
+auth_sm9		1189
+kx_sm2dhe		1190
+kx_sm2_psk		1191
+kx_sm9dhe		1192
+zuc_128eea3		1193
+zuc_128eia3		1194
+pbe_WithSM3AndSMS4_CBC		1195

@@ -58,18 +58,29 @@
  * This is different from SAF/SDF/SKF where return 0 means success.
  */
 
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/err.h>
-#include <openssl/sdf.h>
-#include <openssl/gmapi.h>
-#include <openssl/objects.h>
-#include "../sm2/sm2_lcl.h"
+#include <stdio.h>
+#include "internal/cryptlib.h"
+
+#if !defined(OPENSSL_NO_SDF) && !defined(OPENSSL_NO_EC)
+# include <openssl/ec.h>
+# include <openssl/sm2.h>
+# include <openssl/err.h>
+# include <openssl/sdf.h>
+# include <openssl/gmapi.h>
+# include <openssl/objects.h>
+# include "../sm2/sm2_lcl.h"
+# include "../ecies/ecies_lcl.h"
 
 
 EC_KEY *EC_KEY_new_from_ECCrefPublicKey(const ECCrefPublicKey *ref)
 {
 	EC_KEY *ret;
+
+	if (!ref) {
+		GMAPIerr(GMAPI_F_EC_KEY_NEW_FROM_ECCREFPUBLICKEY,
+			ERR_R_PASSED_NULL_PARAMETER);
+		return NULL;
+	}
 
 	if (!(ret = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
 		GMAPIerr(GMAPI_F_EC_KEY_NEW_FROM_ECCREFPUBLICKEY, ERR_R_EC_LIB);
@@ -253,7 +264,6 @@ int EC_KEY_get_ECCrefPrivateKey(EC_KEY *ec_key, ECCrefPrivateKey *ref)
 {
 	const EC_GROUP *group;
 	const BIGNUM *sk;
-	int nbytes;
 
 	/* check arguments */
 	if (!ec_key || !ref) {
@@ -282,8 +292,7 @@ int EC_KEY_get_ECCrefPrivateKey(EC_KEY *ec_key, ECCrefPrivateKey *ref)
 
 	ref->bits = EC_GROUP_get_degree(group);
 
-	nbytes = (EC_GROUP_get_degree(group) + 7)/8;
-	if (!BN_bn2bin(sk, ref->K + nbytes - BN_num_bytes(sk))) {
+	if (!BN_bn2bin(sk, ref->K + sizeof(ref->K) - BN_num_bytes(sk))) {
 		GMAPIerr(GMAPI_F_EC_KEY_GET_ECCREFPRIVATEKEY, ERR_R_BN_LIB);
 		return 0;
 	}
@@ -291,6 +300,7 @@ int EC_KEY_get_ECCrefPrivateKey(EC_KEY *ec_key, ECCrefPrivateKey *ref)
 	return 1;
 }
 
+# ifndef OPENSSL_NO_SM2
 SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref)
 {
 	SM2CiphertextValue *ret = NULL;
@@ -465,6 +475,7 @@ int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv,
 end:
 	return ret;
 }
+# endif
 
 ECDSA_SIG *ECDSA_SIG_new_from_ECCSignature(const ECCSignature *ref)
 {
@@ -587,3 +598,306 @@ int ECDSA_SIG_get_ECCSignature(const ECDSA_SIG *sig, ECCSignature *ref)
 
 	return 1;
 }
+
+ECCCipher *d2i_ECCCipher(ECCCipher **a, const unsigned char **pp, long length)
+{
+	ECCCipher *ret = NULL;
+	ECCCipher *sdf = NULL;
+	SM2CiphertextValue *cv = NULL;
+
+	if (!(cv = d2i_SM2CiphertextValue(NULL, pp, length))) {
+		GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_SM2_LIB);
+		goto end;
+	}
+
+	if (*a) {
+		if (!SM2CiphertextValue_get_ECCCipher(cv, *a)) {
+			GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_GMAPI_LIB);
+			goto end;
+		}
+		ret = *a;
+	} else {
+		if (!(sdf = OPENSSL_malloc(sizeof(ECCCipher) - 1 +
+			ASN1_STRING_length(cv->ciphertext)))) {
+			GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+		sdf->L = ASN1_STRING_length(cv->ciphertext);
+		if (!SM2CiphertextValue_get_ECCCipher(cv, sdf)) {
+			GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_GMAPI_LIB);
+			goto end;
+		}
+		ret = sdf;
+		sdf = NULL;
+	}
+
+end:
+	OPENSSL_free(sdf);
+	SM2CiphertextValue_free(cv);
+	return ret;
+}
+
+ECCCipher *d2i_ECCCipher_bio(BIO *bp, ECCCipher **a)
+{
+	return NULL;
+}
+
+ECCCipher *d2i_ECCCipher_fp(FILE *fp, ECCCipher **a)
+{
+	return NULL;
+}
+
+int i2d_ECCCipher(ECCCipher *a, unsigned char **pp)
+{
+	int ret;
+	SM2CiphertextValue *cv = NULL;
+
+	if (!(cv = SM2CiphertextValue_new_from_ECCCipher(a))) {
+		GMAPIerr(GMAPI_F_I2D_ECCCIPHER, ERR_R_SM2_LIB);
+		return 0;
+	}
+
+	ret = i2d_SM2CiphertextValue(cv, pp);
+	SM2CiphertextValue_free(cv);
+	return ret;
+}
+
+int i2d_ECCCipher_bio(BIO *bp, ECCCipher *a)
+{
+	return 0;
+}
+
+int i2d_ECCCipher_fp(FILE *fp, ECCCipher *a)
+{
+	return 0;
+}
+
+ECCSignature *d2i_ECCSignature(ECCSignature **a, const unsigned char **pp, long length)
+{
+	ECCSignature *ret = NULL;
+	ECCSignature *sdf_sig = NULL;
+	ECDSA_SIG *sig = NULL;
+
+	if (!(sig = d2i_ECDSA_SIG(NULL, pp, length))) {
+		GMAPIerr(GMAPI_F_D2I_ECCSIGNATURE, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!(sdf_sig = OPENSSL_malloc(sizeof(ECCSignature)))) {
+		GMAPIerr(GMAPI_F_D2I_ECCSIGNATURE, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (!ECDSA_SIG_get_ECCSignature(sig, sdf_sig)) {
+		GMAPIerr(GMAPI_F_D2I_ECCSIGNATURE, ERR_R_GMAPI_LIB);
+		goto end;
+	}
+
+	ret = sdf_sig;
+	sdf_sig = NULL;
+
+end:
+	OPENSSL_free(sdf_sig);
+	ECDSA_SIG_free(sig);
+	return ret;
+}
+
+ECCSignature *d2i_ECCSignature_bio(BIO *bp, ECCSignature **a)
+{
+	return NULL;
+}
+
+ECCSignature *d2i_ECCSignature_fp(FILE *fp, ECCSignature **a)
+{
+	return NULL;
+}
+
+int i2d_ECCSignature(ECCSignature *a, unsigned char **pp)
+{
+	int ret;
+	ECDSA_SIG *sig = NULL;
+
+	if (!(sig = ECDSA_SIG_new_from_ECCSignature(a))) {
+		GMAPIerr(GMAPI_F_I2D_ECCSIGNATURE, ERR_R_GMAPI_LIB);
+		return 0;
+	}
+
+	ret = i2d_ECDSA_SIG(sig, pp);
+	ECDSA_SIG_free(sig);
+	return ret;
+}
+
+int i2d_ECCSignature_bio(BIO *bp, ECCSignature *a)
+{
+	return 0;
+}
+
+int i2d_ECCSignature_fp(FILE *fp, ECCSignature *a)
+{
+	return 0;
+}
+
+# ifndef OPENSSL_NO_ECIES
+ECIES_CIPHERTEXT_VALUE *ECIES_CIPHERTEXT_VALUE_new_from_ECCCipher(
+	const ECCCipher *ref)
+{
+	ECIES_CIPHERTEXT_VALUE *ret = NULL;
+	ECIES_CIPHERTEXT_VALUE *cv = NULL;
+
+
+	if (!(cv = ECIES_CIPHERTEXT_VALUE_new())) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+			ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (!ECIES_CIPHERTEXT_VALUE_set_ECCCipher(cv, ref)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_NEW_FROM_ECCCIPHER,
+			ERR_R_GMAPI_LIB);
+		goto end;
+	}
+
+	ret = cv;
+	cv = NULL;
+
+end:
+	ECIES_CIPHERTEXT_VALUE_free(cv);
+	return ret;
+}
+
+int ECIES_CIPHERTEXT_VALUE_set_ECCCipher(ECIES_CIPHERTEXT_VALUE *cv, const ECCCipher *ref)
+{
+	int ret = 0;
+	int point_form = POINT_CONVERSION_COMPRESSED;
+	EC_GROUP *group = NULL;
+	EC_POINT *point = NULL;
+	BIGNUM *x = NULL;
+	BIGNUM *y = NULL;
+	BN_CTX *bn_ctx = NULL;
+	int len;
+
+	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))
+		|| !(point = EC_POINT_new(group))
+		|| !(x = BN_new())
+		|| !(y = BN_new())
+		|| !(bn_ctx = BN_CTX_new())) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (!BN_bin2bn(ref->x, sizeof(ref->x), x)
+		|| !BN_bin2bn(ref->y, sizeof(ref->y), y)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!EC_POINT_set_affine_coordinates_GFp(group, point, x, y, bn_ctx)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_EC_LIB);
+		goto end;
+	}
+
+	len = EC_POINT_point2oct(group, point, point_form, NULL, 0, NULL);
+	if (!ASN1_OCTET_STRING_set(cv->ephem_point, NULL, len)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (EC_POINT_point2oct(group, point, point_form,
+		cv->ephem_point->data, len, NULL) <= 0) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!ASN1_OCTET_STRING_set(cv->ciphertext, ref->C, ref->L)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_ASN1_LIB);
+		goto end;
+	}
+
+	if (!ASN1_OCTET_STRING_set(cv->mactag, ref->M, sizeof(ref->M))) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_SET_ECCCIPHER,
+			ERR_R_ASN1_LIB);
+		goto end;
+	}
+
+	ret = 1;
+
+end:
+	EC_GROUP_free(group);
+	EC_POINT_free(point);
+	BN_free(x);
+	BN_free(y);
+	BN_CTX_free(bn_ctx);
+	return ret;
+}
+
+int ECIES_CIPHERTEXT_VALUE_get_ECCCipher(const ECIES_CIPHERTEXT_VALUE *cv, ECCCipher *ref)
+{
+	int ret = 0;
+	EC_GROUP *group = NULL;
+	EC_POINT *point = NULL;
+	BIGNUM *x = NULL;
+	BIGNUM *y = NULL;
+	BN_CTX *bn_ctx = NULL;
+	int len;
+
+	if (ASN1_STRING_length(cv->mactag) != sizeof(ref->M)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+			GMAPI_R_INVALID_SM2_CIPHERTEXT_MAC_LENGTH);
+		return 0;
+	}
+
+	len = sizeof(ECCCipher) - 1 + ASN1_STRING_length(cv->ciphertext);
+
+	if (!ref) {
+		return len;
+	}
+
+	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))
+		|| !(point = EC_POINT_new(group))
+		|| !(x = BN_new())
+		|| !(y = BN_new())
+		|| !(bn_ctx = BN_CTX_new())) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+			ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (!EC_POINT_oct2point(group, point,
+		ASN1_STRING_get0_data(cv->ephem_point),
+		ASN1_STRING_length(cv->ephem_point), bn_ctx)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+			ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!EC_POINT_get_affine_coordinates_GFp(group, point, x, y, bn_ctx)) {
+		GMAPIerr(GMAPI_F_ECIES_CIPHERTEXT_VALUE_GET_ECCCIPHER,
+			ERR_R_EC_LIB);
+		goto end;
+	}
+
+	memset(ref, 0, len);
+	BN_bn2bin(x, ref->x + sizeof(ref->x) - BN_num_bytes(x));
+	BN_bn2bin(y, ref->y + sizeof(ref->y) - BN_num_bytes(y));
+	memcpy(ref->C, ASN1_STRING_get0_data(cv->ciphertext),
+		ASN1_STRING_length(cv->ciphertext));
+	memcpy(ref->M, ASN1_STRING_get0_data(cv->mactag),
+		ASN1_STRING_length(cv->mactag));
+
+	ret = len;
+
+end:
+	EC_GROUP_free(group);
+	EC_POINT_free(point);
+	BN_free(x);
+	BN_free(y);
+	BN_CTX_free(bn_ctx);
+	return ret;
+}
+# endif /* OPENSSL_NO_ECIES */
+#endif

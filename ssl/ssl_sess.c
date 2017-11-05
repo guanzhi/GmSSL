@@ -153,6 +153,11 @@ SSL_SESSION *ssl_session_dup(SSL_SESSION *src, int ticket)
     if (src->peer != NULL)
         X509_up_ref(src->peer);
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (src->peer_extra != NULL)
+        X509_up_ref(src->peer_extra);
+#endif
+
     if (src->peer_chain != NULL) {
         dest->peer_chain = X509_chain_up_ref(src->peer_chain);
         if (dest->peer_chain == NULL)
@@ -329,6 +334,11 @@ int ssl_get_new_session(SSL *s, int session)
         } else if (s->version == DTLS1_2_VERSION) {
             ss->ssl_version = DTLS1_2_VERSION;
             ss->session_id_length = SSL3_SSL_SESSION_ID_LENGTH;
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        } else if (s->version == GMTLS_VERSION) {
+            ss->ssl_version = GMTLS_VERSION;
+            ss->session_id_length = SSL3_SSL_SESSION_ID_LENGTH;
+#endif
         } else {
             SSLerr(SSL_F_SSL_GET_NEW_SESSION, SSL_R_UNSUPPORTED_SSL_VERSION);
             SSL_SESSION_free(ss);
@@ -754,6 +764,9 @@ void SSL_SESSION_free(SSL_SESSION *ss)
     OPENSSL_cleanse(ss->master_key, sizeof ss->master_key);
     OPENSSL_cleanse(ss->session_id, sizeof ss->session_id);
     X509_free(ss->peer);
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    X509_free(ss->peer_extra);
+#endif
     sk_X509_pop_free(ss->peer_chain, X509_free);
     sk_SSL_CIPHER_free(ss->ciphers);
     OPENSSL_free(ss->tlsext_hostname);
@@ -885,6 +898,13 @@ X509 *SSL_SESSION_get0_peer(SSL_SESSION *s)
 {
     return s->peer;
 }
+
+#ifndef OPENSSL_NO_GMTLS_METHOD
+X509 *SSL_SESSION_get0_peer_extra(SSL_SESSION *s)
+{
+    return s->peer_extra;
+}
+#endif
 
 int SSL_SESSION_set1_id_context(SSL_SESSION *s, const unsigned char *sid_ctx,
                                 unsigned int sid_ctx_len)

@@ -66,3 +66,8 @@ ASN1_SEQUENCE(SM2CiphertextValue) = {
 } ASN1_SEQUENCE_END(SM2CiphertextValue)
 IMPLEMENT_ASN1_FUNCTIONS(SM2CiphertextValue)
 IMPLEMENT_ASN1_DUP_FUNCTION(SM2CiphertextValue)
+
+int SM2CiphertextValue_size(const EC_GROUP *group, int inlen)
+{
+	return 1024;
+}

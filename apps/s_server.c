@@ -670,6 +670,9 @@ typedef enum OPTION_choice {
     OPT_SRPUSERSEED, OPT_REV, OPT_WWW, OPT_UPPER_WWW, OPT_HTTP, OPT_ASYNC,
     OPT_SSL_CONFIG, OPT_SPLIT_SEND_FRAG, OPT_MAX_PIPELINES, OPT_READ_BUF,
     OPT_SSL3, OPT_TLS1_2, OPT_TLS1_1, OPT_TLS1, OPT_DTLS, OPT_DTLS1,
+#ifndef OPENSSL_NO_GMTLS
+    OPT_GMTLS,
+#endif
     OPT_DTLS1_2, OPT_TIMEOUT, OPT_MTU, OPT_LISTEN,
     OPT_ID_PREFIX, OPT_RAND, OPT_SERVERNAME, OPT_SERVERNAME_FATAL,
     OPT_CERT2, OPT_KEY2, OPT_NEXTPROTONEG, OPT_ALPN,
@@ -847,6 +850,9 @@ OPTIONS s_server_options[] = {
 #ifndef OPENSSL_NO_DTLS1_2
     {"dtls1_2", OPT_DTLS1_2, '-', "Just talk DTLSv1.2"},
 #endif
+#ifndef OPENSSL_NO_GMTLS
+    {"gmtls", OPT_GMTLS, '-', "Just talk GMTLS"},
+#endif
 #ifndef OPENSSL_NO_DH
     {"no_dhe", OPT_NO_DHE, '-', "Disable ephemeral DH"},
 #endif
@@ -868,6 +874,7 @@ OPTIONS s_server_options[] = {
 
 #define IS_PROT_FLAG(o) \
  (o == OPT_SSL3 || o == OPT_TLS1 || o == OPT_TLS1_1 || o == OPT_TLS1_2 \
+  || o == OPT_GMTLS \
   || o == OPT_DTLS || o == OPT_DTLS1 || o == OPT_DTLS1_2)
 
 int s_server_main(int argc, char *argv[])
@@ -1333,6 +1340,13 @@ int s_server_main(int argc, char *argv[])
             min_version = TLS1_VERSION;
             max_version = TLS1_VERSION;
             break;
+#ifndef OPENSSL_NO_GMTLS
+        case OPT_GMTLS:
+            meth = GMTLS_server_method();
+            //min_version = GMTLS_VERSION;
+            //max_version = GMTLS_VERSION;
+            break;
+#endif
         case OPT_DTLS:
 #ifndef OPENSSL_NO_DTLS
             meth = DTLS_server_method();
@@ -1489,9 +1503,11 @@ int s_server_main(int argc, char *argv[])
 
         s_cert = load_cert(s_cert_file, s_cert_format,
                            "server certificate file");
+fprintf(stderr, "%s %d: load_cert: %s\n", __FILE__, __LINE__, s_cert_file);
 
         if (!s_cert) {
             ERR_print_errors(bio_err);
+fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             goto end;
         }
         if (s_chain_file) {

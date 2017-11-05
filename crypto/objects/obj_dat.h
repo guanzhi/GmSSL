@@ -10,7 +10,7 @@
  */
 
 /* Serialized OID's */
-static const unsigned char so[7733] = {
+static const unsigned char so[7761] = {
     0x2A,0x86,0x48,0x86,0xF7,0x0D,                 /* [    0] OBJ_rsadsi */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,            /* [    6] OBJ_pkcs */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,       /* [   13] OBJ_md2 */
@@ -1084,9 +1084,12 @@ static const unsigned char so[7733] = {
     0x2B,0x81,0x04,0x01,0x08,0x0F,                 /* [ 7714] OBJ_ecies_with_x9_63_sha512_aes256_cbc_cmac */
     0x2B,0x81,0x04,0x01,0x08,0x10,                 /* [ 7720] OBJ_ecies_with_x9_63_sha256_aes128_ctr_cmac */
     0x2B,0x81,0x04,0x01,0x08,0x11,                 /* [ 7726] OBJ_ecies_with_x9_63_sha512_aes256_ctr_cmac */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x01,  /* [ 7732] OBJ_zuc_128eea3 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x02,  /* [ 7741] OBJ_zuc_128eia3 */
+    0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x0C,0x01,0x64,  /* [ 7750] OBJ_pbe_WithSM3AndSMS4_CBC */
 };
 
-#define NUM_NID 1188
+#define NUM_NID 1196
 static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"UNDEF", "undefined", NID_undef},
     {"rsadsi", "RSA Data Security, Inc.", NID_rsadsi, 6, &so[0]},
@@ -2276,9 +2279,17 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"ecies-with-x9-63-sha512-aes256-ctr-cmac", "ecies-with-x9-63-sha512-aes256-ctr-cmac", NID_ecies_with_x9_63_sha512_aes256_ctr_cmac, 6, &so[7726]},
     {"KxSM2", "kx-sm2", NID_kx_sm2},
     {"AuthSM2", "auth-sm2", NID_auth_sm2},
+    {"KxSM9", "kx-sm9", NID_kx_sm9},
+    {"AuthSM9", "auth-sm9", NID_auth_sm9},
+    {"KxSM2DHE", "kx-sm2dhe", NID_kx_sm2dhe},
+    {"KxSM2-PSK", "kx-sm2-psk", NID_kx_sm2_psk},
+    {"KxSM9DHE", "kx-sm9dhe", NID_kx_sm9dhe},
+    {"zuc-128eea3", "zuc-128eea3", NID_zuc_128eea3, 9, &so[7732]},
+    {"zuc-128eia3", "zuc-128eia3", NID_zuc_128eia3, 9, &so[7741]},
+    {"PBE-SM3-SMS4", "pbeWithSM3AndSMS4-CBC", NID_pbe_WithSM3AndSMS4_CBC, 10, &so[7750]},
 };
 
-#define NUM_SN 1177
+#define NUM_SN 1185
 static const unsigned int sn_objs[NUM_SN] = {
      364,    /* "AD_DVCS" */
      419,    /* "AES-128-CBC" */
@@ -2321,6 +2332,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1048,    /* "AuthPSK" */
     1046,    /* "AuthRSA" */
     1187,    /* "AuthSM2" */
+    1189,    /* "AuthSM9" */
     1052,    /* "AuthSRP" */
       91,    /* "BF-CBC" */
       93,    /* "BF-CFB" */
@@ -2424,6 +2436,10 @@ static const unsigned int sn_objs[NUM_SN] = {
     1037,    /* "KxRSA" */
     1042,    /* "KxRSA_PSK" */
     1186,    /* "KxSM2" */
+    1191,    /* "KxSM2-PSK" */
+    1190,    /* "KxSM2DHE" */
+    1188,    /* "KxSM9" */
+    1192,    /* "KxSM9DHE" */
     1044,    /* "KxSRP" */
       15,    /* "L" */
      856,    /* "LocalKeySet" */
@@ -2458,6 +2474,7 @@ static const unsigned int sn_objs[NUM_SN] = {
       68,    /* "PBE-SHA1-RC2-64" */
      144,    /* "PBE-SHA1-RC4-128" */
      145,    /* "PBE-SHA1-RC4-40" */
+    1195,    /* "PBE-SM3-SMS4" */
      161,    /* "PBES2" */
       69,    /* "PBKDF2" */
      162,    /* "PBMAC1" */
@@ -3457,9 +3474,11 @@ static const unsigned int sn_objs[NUM_SN] = {
      160,    /* "x509Crl" */
     1065,    /* "x9-63-kdf" */
     1069,    /* "xor-in-ecies" */
+    1193,    /* "zuc-128eea3" */
+    1194,    /* "zuc-128eia3" */
 };
 
-#define NUM_LN 1177
+#define NUM_LN 1185
 static const unsigned int ln_objs[NUM_LN] = {
      363,    /* "AD Time Stamping" */
      405,    /* "ANSI X9.62" */
@@ -3698,6 +3717,7 @@ static const unsigned int ln_objs[NUM_LN] = {
     1048,    /* "auth-psk" */
     1046,    /* "auth-rsa" */
     1187,    /* "auth-sm2" */
+    1189,    /* "auth-sm9" */
     1052,    /* "auth-srp" */
      882,    /* "authorityRevocationList" */
     1138,    /* "bb1" */
@@ -4208,6 +4228,10 @@ static const unsigned int ln_objs[NUM_LN] = {
     1037,    /* "kx-rsa" */
     1042,    /* "kx-rsa-psk" */
     1186,    /* "kx-sm2" */
+    1191,    /* "kx-sm2-psk" */
+    1190,    /* "kx-sm2dhe" */
+    1188,    /* "kx-sm9" */
+    1192,    /* "kx-sm9dhe" */
     1044,    /* "kx-srp" */
      477,    /* "lastModifiedBy" */
      476,    /* "lastModifiedTime" */
@@ -4264,6 +4288,7 @@ static const unsigned int ln_objs[NUM_LN] = {
      145,    /* "pbeWithSHA1And40BitRC4" */
      170,    /* "pbeWithSHA1AndDES-CBC" */
       68,    /* "pbeWithSHA1AndRC2-CBC" */
+    1195,    /* "pbeWithSM3AndSMS4-CBC" */
      499,    /* "personalSignature" */
      487,    /* "personalTitle" */
      464,    /* "photo" */
@@ -4638,9 +4663,11 @@ static const unsigned int ln_objs[NUM_LN] = {
     1069,    /* "xor-in-ecies" */
      125,    /* "zlib compression" */
     1136,    /* "zuc" */
+    1193,    /* "zuc-128eea3" */
+    1194,    /* "zuc-128eia3" */
 };
 
-#define NUM_OBJ 1079
+#define NUM_OBJ 1082
 static const unsigned int obj_objs[NUM_OBJ] = {
        0,    /* OBJ_undef                        0 */
      181,    /* OBJ_iso                          1 */
@@ -5379,6 +5406,8 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1124,    /* OBJ_sm9keyagreement              1 2 156 10197 1 302 2 */
     1125,    /* OBJ_sm9encrypt                   1 2 156 10197 1 302 3 */
     1127,    /* OBJ_hmac_sm3                     1 2 156 10197 1 401 2 */
+    1193,    /* OBJ_zuc_128eea3                  1 2 156 10197 1 800 1 */
+    1194,    /* OBJ_zuc_128eia3                  1 2 156 10197 1 800 2 */
      997,    /* OBJ_id_tc26_gost_3410_2012_512_paramSetTest 1 2 643 7 1 2 1 2 0 */
      998,    /* OBJ_id_tc26_gost_3410_2012_512_paramSetA 1 2 643 7 1 2 1 2 1 */
      999,    /* OBJ_id_tc26_gost_3410_2012_512_paramSetB 1 2 643 7 1 2 1 2 2 */
@@ -5608,6 +5637,7 @@ static const unsigned int obj_objs[NUM_OBJ] = {
      147,    /* OBJ_pbe_WithSHA1And2_Key_TripleDES_CBC 1 2 840 113549 1 12 1 4 */
      148,    /* OBJ_pbe_WithSHA1And128BitRC2_CBC 1 2 840 113549 1 12 1 5 */
      149,    /* OBJ_pbe_WithSHA1And40BitRC2_CBC  1 2 840 113549 1 12 1 6 */
+    1195,    /* OBJ_pbe_WithSM3AndSMS4_CBC       1 2 840 113549 1 12 1 100 */
      171,    /* OBJ_ms_ext_req                   1 3 6 1 4 1 311 2 1 14 */
      134,    /* OBJ_ms_code_ind                  1 3 6 1 4 1 311 2 1 21 */
      135,    /* OBJ_ms_code_com                  1 3 6 1 4 1 311 2 1 22 */

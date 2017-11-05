@@ -122,7 +122,7 @@ static int sms4_cfb1_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
 const EVP_CIPHER sms4_cfb1 = {
 	NID_sms4_cfb1,
-	SMS4_BLOCK_SIZE,
+	1,
 	SMS4_KEY_LENGTH,
 	SMS4_IV_LENGTH,
 	EVP_CIPH_CTR_MODE,
@@ -151,7 +151,7 @@ static int sms4_cfb8_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
 const EVP_CIPHER sms4_cfb8 = {
 	NID_sms4_cfb8,
-	SMS4_BLOCK_SIZE,
+	1,
 	SMS4_KEY_LENGTH,
 	SMS4_IV_LENGTH,
 	EVP_CIPH_CTR_MODE,
@@ -182,7 +182,7 @@ static int sms4_ctr_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
 const EVP_CIPHER sms4_ctr = {
 	NID_sms4_ctr,
-	SMS4_BLOCK_SIZE,
+	1,
 	SMS4_KEY_LENGTH,
 	SMS4_IV_LENGTH,
 	EVP_CIPH_CTR_MODE,

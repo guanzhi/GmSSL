@@ -581,12 +581,15 @@ int SAF_Pkcs7_DecodeDigestedData(
 	p7dgst = p7->d.digest;
 
 	/* output digset algor */
+	//EVP_MD_sgd			
+#if 0
 	if ((*puiDigestAlgorithm = EVP_MD_sgd(
 		EVP_get_digestbyobj(p7dgst->md->algorithm))) <= 0) {
 		SAFerr(SAF_F_SAF_PKCS7_DECODEDIGESTEDDATA, SAF_R_UNSUPPORTED_DIGEST_ALGOR);
 		ret = SAR_IndataErr;
 		goto end;
 	}
+#endif
 
 	/* output digested data */
 	if (!PKCS7_type_is_data(p7dgst->contents)) {

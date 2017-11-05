@@ -64,6 +64,9 @@ typedef struct {
     ASN1_OCTET_STRING *srp_username;
 #endif
     long flags;
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    X509 *peer_extra;
+#endif
 } SSL_SESSION_ASN1;
 
 ASN1_SEQUENCE(SSL_SESSION_ASN1) = {
@@ -89,7 +92,10 @@ ASN1_SEQUENCE(SSL_SESSION_ASN1) = {
 #ifndef OPENSSL_NO_SRP
     ASN1_EXP_OPT(SSL_SESSION_ASN1, srp_username, ASN1_OCTET_STRING, 12),
 #endif
-    ASN1_EXP_OPT(SSL_SESSION_ASN1, flags, ZLONG, 13)
+    ASN1_EXP_OPT(SSL_SESSION_ASN1, flags, ZLONG, 13),
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    ASN1_EXP_OPT(SSL_SESSION_ASN1, peer_extra, X509, 14)
+#endif
 } static_ASN1_SEQUENCE_END(SSL_SESSION_ASN1)
 
 IMPLEMENT_STATIC_ASN1_ENCODE_FUNCTIONS(SSL_SESSION_ASN1)
@@ -201,6 +207,10 @@ int i2d_SSL_SESSION(SSL_SESSION *in, unsigned char **pp)
 
     as.flags = in->flags;
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    as.peer_extra = in->peer_extra;
+#endif
+
     return i2d_SSL_SESSION_ASN1(&as, pp);
 
 }
@@ -265,6 +275,9 @@ SSL_SESSION *d2i_SSL_SESSION(SSL_SESSION **a, const unsigned char **pp,
     }
 
     if ((as->ssl_version >> 8) != SSL3_VERSION_MAJOR
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        && as->ssl_version != GMTLS_VERSION
+#endif
         && (as->ssl_version >> 8) != DTLS1_VERSION_MAJOR
         && as->ssl_version != DTLS1_BAD_VER) {
         SSLerr(SSL_F_D2I_SSL_SESSION, SSL_R_UNSUPPORTED_SSL_VERSION);
@@ -351,6 +364,12 @@ SSL_SESSION *d2i_SSL_SESSION(SSL_SESSION **a, const unsigned char **pp,
 #endif                          /* OPENSSL_NO_SRP */
     /* Flags defaults to zero which is fine */
     ret->flags = as->flags;
+
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    X509_free(ret->peer_extra);
+    ret->peer_extra = as->peer_extra;
+    as->peer_extra = NULL;
+#endif
 
     M_ASN1_free_of(as, SSL_SESSION_ASN1);
 

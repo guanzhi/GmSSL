@@ -125,8 +125,9 @@ static int int_engine_configure(const char *name, const char *value, const CONF 
             } else if (strcmp(ctrlname, "default_algorithms") == 0) {
                 if (!ENGINE_set_default_string(e, ctrlvalue))
                     goto err;
-            } else if (!ENGINE_ctrl_cmd_string(e, ctrlname, ctrlvalue, 0))
+            } else if (!ENGINE_ctrl_cmd_string(e, ctrlname, ctrlvalue, 0)) {
                 goto err;
+            }
         }
 
     }

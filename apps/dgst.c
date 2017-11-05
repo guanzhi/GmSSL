@@ -33,7 +33,7 @@ typedef enum OPTION_choice {
     OPT_PRVERIFY, OPT_SIGNATURE, OPT_KEYFORM, OPT_ENGINE, OPT_ENGINE_IMPL,
     OPT_HEX, OPT_BINARY, OPT_DEBUG, OPT_FIPS_FINGERPRINT,
     OPT_HMAC, OPT_MAC, OPT_SIGOPT, OPT_MACOPT,
-    OPT_DIGEST
+    OPT_DIGEST, OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS dgst_options[] = {
@@ -69,6 +69,7 @@ OPTIONS dgst_options[] = {
     {"engine", OPT_ENGINE, 's', "Use engine e, possibly a hardware device"},
     {"engine_impl", OPT_ENGINE_IMPL, '-',
      "Also use engine given by -engine for digest operations"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 #endif
     {NULL}
 };
@@ -90,6 +91,8 @@ int dgst_main(int argc, char **argv)
     int i, ret = 1, out_bin = -1, want_pub = 0, do_verify = 0;
     unsigned char *buf = NULL, *sigbuf = NULL;
     int engine_impl = 0;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_progname(argv[0]);
     buf = app_malloc(BUFSIZE, "I/O buffer");
@@ -181,6 +184,9 @@ int dgst_main(int argc, char **argv)
                 goto opthelp;
             md = m;
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
@@ -222,6 +228,12 @@ int dgst_main(int argc, char **argv)
         else
             out_bin = 0;
     }
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     if (randfile)
         app_RAND_load_file(randfile, 0);
@@ -323,7 +335,7 @@ int dgst_main(int argc, char **argv)
             goto end;
         }
         if (md == NULL)
-            md = EVP_sha256();
+            md = EVP_get_digestbynid(NID_sha256);
         if (!EVP_DigestInit_ex(mctx, md, impl)) {
             BIO_printf(bio_err, "Error setting digest\n");
             ERR_print_errors(bio_err);
@@ -399,6 +411,7 @@ int dgst_main(int argc, char **argv)
     OPENSSL_free(sigbuf);
     BIO_free(bmd);
     release_engine(e);
+    NCONF_free(conf);
     return (ret);
 }
 

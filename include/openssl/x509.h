@@ -26,15 +26,25 @@
 # include <openssl/asn1.h>
 # include <openssl/safestack.h>
 # include <openssl/ec.h>
-# include <openssl/paillier.h>
-
-# if OPENSSL_API_COMPAT < 0x10100000L
-#  include <openssl/rsa.h>
-#  include <openssl/dsa.h>
-#  include <openssl/dh.h>
+# ifndef OPENSSL_NO_PAILLIER
+#  include <openssl/paillier.h>
 # endif
 
-# include <openssl/sha.h>
+# if OPENSSL_API_COMPAT < 0x10100000L
+#  ifndef OPENSSL_NO_RSA
+#   include <openssl/rsa.h>
+#  endif
+#  ifndef OPENSSL_NO_DSA
+#  include <openssl/dsa.h>
+#  endif
+#  ifndef OPENSSL_NO_DH
+#  include <openssl/dh.h>
+#  endif
+# endif
+
+# ifndef OPENSSL_NO_SHA
+#  include <openssl/sha.h>
+# endif
 
 #ifdef  __cplusplus
 extern "C" {

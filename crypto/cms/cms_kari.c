@@ -13,7 +13,9 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/cms.h>
-#include <openssl/aes.h>
+#ifndef OPENSSL_NO_AES
+# include <openssl/aes.h>
+#endif
 #include "cms_lcl.h"
 #include "internal/asn1_int.h"
 
@@ -331,7 +333,9 @@ static int cms_wrap_init(CMS_KeyAgreeRecipientInfo *kari,
 {
     EVP_CIPHER_CTX *ctx = kari->ctx;
     const EVP_CIPHER *kekcipher;
+#ifndef OPENSSL_NO_AES
     int keylen = EVP_CIPHER_key_length(cipher);
+#endif
     /* If a suitable wrap algorithm is already set nothing to do */
     kekcipher = EVP_CIPHER_CTX_cipher(ctx);
 
@@ -344,17 +348,30 @@ static int cms_wrap_init(CMS_KeyAgreeRecipientInfo *kari,
      * Pick a cipher based on content encryption cipher. If it is DES3 use
      * DES3 wrap otherwise use AES wrap similar to key size.
      */
-#ifndef OPENSSL_NO_DES
+#if !defined(OPENSSL_NO_DES) && !defined(OPENSSL_NO_SHA)
+    /* EVP_des_ede3_wrap() depends on EVP_sha1() */
     if (EVP_CIPHER_type(cipher) == NID_des_ede3_cbc)
         kekcipher = EVP_des_ede3_wrap();
     else
 #endif
+#ifndef OPENSSL_NO_SMS4
+    if (EVP_CIPHER_type(cipher) == NID_sms4_cbc
+        || EVP_CIPHER_type(cipher) == NID_sm1_cbc
+        || EVP_CIPHER_type(cipher) == NID_ssf33_cbc)
+        kekcipher = EVP_sms4_wrap();
+    else
+#endif
+#ifndef OPENSSL_NO_AES
     if (keylen <= 16)
         kekcipher = EVP_aes_128_wrap();
     else if (keylen <= 24)
         kekcipher = EVP_aes_192_wrap();
     else
         kekcipher = EVP_aes_256_wrap();
+#endif
+    if (kekcipher == NULL)
+        return 0;
+
     return EVP_EncryptInit_ex(ctx, kekcipher, NULL, NULL, NULL);
 }
 

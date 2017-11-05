@@ -14,7 +14,9 @@
 #include <openssl/err.h>
 #include <openssl/cms.h>
 #include <openssl/rand.h>
-#include <openssl/aes.h>
+#ifndef OPENSSL_NO_AES
+# include <openssl/aes.h>
+#endif
 #include "cms_lcl.h"
 #include "internal/asn1_int.h"
 

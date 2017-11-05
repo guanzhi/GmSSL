@@ -54,7 +54,10 @@
 #ifndef HEADER_SGD_H
 #define HEADER_SGD_H
 
-#include <stdint.h>
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_GMAPI
+
+#include <openssl/e_os2.h>
 
 /* block cipher modes */
 #define SGD_ECB			0x01
@@ -312,4 +315,114 @@ typedef int32_t			SGD_BOOL;
 #define SGD_STATUS_READY		0x00000202
 #define SGD_STATUS_EXCEPTION		0x00000203
 
+/* SKF */
+#ifndef WIN32
+typedef signed char		INT8;
+typedef signed short		INT16;
+typedef signed int		INT32;
+typedef unsigned char		UINT8;
+typedef unsigned short		UINT16;
+typedef unsigned int		UINT32;
+typedef long			BOOL;
+typedef UINT8			BYTE;
+typedef UINT8			CHAR;
+typedef INT16			SHORT;
+typedef UINT16			USHORT;
+typedef INT32			LONG;
+typedef UINT32			ULONG;
+typedef UINT32			UINT;
+typedef UINT16			WORD;
+typedef UINT32			DWORD;
+typedef UINT32			FLAGS;
+typedef CHAR *			LPSTR;
+typedef void *			HANDLE;
+#else
+#ifndef _WINDEF_H
+typedef signed char		INT8;
+typedef signed short		INT16;
+typedef signed int		INT32;
+typedef unsigned char		UINT8;
+typedef unsigned short		UINT16;
+typedef unsigned int		UINT32;
+typedef long			BOOL;
+typedef UINT8			BYTE;
+typedef UINT8			CHAR;
+typedef INT16			SHORT;
+typedef UINT16			USHORT;
+typedef INT32			LONG;
+typedef UINT32			ULONG;
+typedef UINT32			UINT;
+typedef UINT16			WORD;
+typedef UINT32			DWORD;
+typedef UINT32			FLAGS;
+typedef CHAR *			LPSTR;
+typedef void *			HANDLE;
+#endif
+#endif
+
+typedef HANDLE DEVHANDLE;
+typedef HANDLE HAPPLICATION;
+typedef HANDLE HSESSION;
+typedef HANDLE HCONTAINER;
+
+#ifndef FALSE
+#define FALSE			0x00000000
+#endif
+
+#ifndef TRUE
+#define TRUE			0x00000001
+#endif
+
+#ifdef WIN32
+#define DEVAPI __stdcall
+#else
+#define DEVAPI
+#endif
+
+#ifndef ADMIN_TYPE
+#define ADMIN_TYPE			0
+#endif
+
+#ifndef USER_TYPE
+#define USER_TYPE			1
+#endif
+
+#define MAX_RSA_MODULUS_LEN		256
+#define MAX_RSA_EXPONENT_LEN		4
+#define ECC_MAX_XCOORDINATE_BITS_LEN	512
+#define ECC_MAX_YCOORDINATE_BITS_LEN	512
+#define ECC_MAX_MODULUS_BITS_LEN	512
+
+#define MAX_IV_LEN			32
+
+#define MAX_FILE_NAME_SIZE		32
+#define MAX_FILE_CONTAINER_NAME_SIZE	64
+
+#define SECURE_NEVER_ACCOUNT		0x00000000
+#define SECURE_ADM_ACCOUNT		0x00000001
+#define SECURE_USER_ACCOUNT		0x00000010
+#define SECURE_ANYONE_ACCOUNT		0x000000FF
+
+
+/* SDF */
+
+#define RSAref_MAX_BITS    2048
+#define RSAref_MAX_LEN     ((RSAref_MAX_BITS + 7) / 8)
+#define RSAref_MAX_PBITS   ((RSAref_MAX_BITS + 1) / 2)
+#define RSAref_MAX_PLEN    ((RSAref_MAX_PBITS + 7)/ 8)
+
+#define ECCref_MAX_BITS		512
+#define ECCref_MAX_LEN		((ECCref_MAX_BITS+7) / 8)
+
+
+/* SAF */
+#define SGD_MAX_COUNT		64
+#define SGD_MAX_NAME_SIZE	256
+
+/* SOF */
+
+typedef char *BSTR;
+typedef long BOOL;
+
+#endif
 #endif

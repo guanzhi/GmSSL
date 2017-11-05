@@ -38,7 +38,7 @@ typedef enum OPTION_choice {
     OPT_E, OPT_IN, OPT_OUT, OPT_PASS, OPT_ENGINE, OPT_D, OPT_P, OPT_V,
     OPT_NOPAD, OPT_SALT, OPT_NOSALT, OPT_DEBUG, OPT_UPPER_P, OPT_UPPER_A,
     OPT_A, OPT_Z, OPT_BUFSIZE, OPT_K, OPT_KFILE, OPT_UPPER_K, OPT_NONE,
-    OPT_UPPER_S, OPT_IV, OPT_MD, OPT_CIPHER
+    OPT_UPPER_S, OPT_IV, OPT_MD, OPT_CIPHER, OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS enc_options[] = {
@@ -74,6 +74,7 @@ OPTIONS enc_options[] = {
 #endif
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 #endif
     {NULL}
 };
@@ -104,6 +105,8 @@ int enc_main(int argc, char **argv)
     int do_zlib = 0;
     BIO *bzl = NULL;
 #endif
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     /* first check the program name */
     prog = opt_progname(argv[0]);
@@ -246,8 +249,18 @@ int enc_main(int argc, char **argv)
         case OPT_NONE:
             cipher = NULL;
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     if (cipher && EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER) {
         BIO_printf(bio_err, "%s: AEAD ciphers not supported\n", prog);
@@ -260,7 +273,7 @@ int enc_main(int argc, char **argv)
     }
 
     if (dgst == NULL)
-        dgst = EVP_sha256();
+        dgst = EVP_get_digestbynid(NID_sha256);
 
     /* It must be large enough for a base64 encoded line */
     if (base64 && bsize < 80)
@@ -471,7 +484,7 @@ int enc_main(int argc, char **argv)
 
         BIO_get_cipher_ctx(benc, &ctx);
 
-        if (!EVP_CipherInit_ex(ctx, cipher, NULL, NULL, NULL, enc)) {
+        if (!EVP_CipherInit_ex(ctx, cipher, e, NULL, NULL, enc)) {
             BIO_printf(bio_err, "Error setting cipher %s\n",
                        EVP_CIPHER_name(cipher));
             ERR_print_errors(bio_err);
@@ -555,6 +568,7 @@ int enc_main(int argc, char **argv)
 #endif
     release_engine(e);
     OPENSSL_free(pass);
+    NCONF_free(conf);
     return (ret);
 }
 

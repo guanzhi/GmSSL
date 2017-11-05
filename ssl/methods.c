@@ -160,6 +160,27 @@ IMPLEMENT_dtls1_meth_func(DTLS_ANY_VERSION, 0, 0,
                           DTLS_client_method,
                           ssl_undefined_function,
                           ossl_statem_connect, DTLSv1_2_enc_data)
+
+/*-
+ * GMTLS methods
+ */
+#ifndef OPENSSL_NO_GMTLS_METHOD
+IMPLEMENT_gmtls_meth_func(0, SSL_OP_NO_GMTLS,
+                          gmtls_method,
+                          ossl_statem_accept,
+                          ossl_statem_connect, GMTLS_enc_data)
+
+IMPLEMENT_gmtls_meth_func(0, SSL_OP_NO_GMTLS,
+                          gmtls_server_method,
+                          ossl_statem_accept,
+                          ssl_undefined_function, GMTLS_enc_data)
+
+IMPLEMENT_gmtls_meth_func(0, SSL_OP_NO_GMTLS,
+                          gmtls_client_method,
+                          ssl_undefined_function,
+                          ossl_statem_connect, GMTLS_enc_data)
+#endif
+
 #if OPENSSL_API_COMPAT < 0x10100000L
 # ifndef OPENSSL_NO_TLS1_2_METHOD
 const SSL_METHOD *TLSv1_2_method(void)
@@ -260,6 +281,23 @@ const SSL_METHOD *DTLSv1_server_method(void)
 const SSL_METHOD *DTLSv1_client_method(void)
 {
     return dtlsv1_client_method();
+}
+# endif
+
+# ifndef OPENSSL_NO_GMTLS_METHOD
+const SSL_METHOD *GMTLS_method(void)
+{
+    return gmtls_method();
+}
+
+const SSL_METHOD *GMTLS_server_method(void)
+{
+    return gmtls_server_method();
+}
+
+const SSL_METHOD *GMTLS_client_method(void)
+{
+    return gmtls_client_method();
 }
 # endif
 

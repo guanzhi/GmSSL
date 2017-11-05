@@ -20,6 +20,12 @@
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 
+#ifndef OPENSSL_NO_MD5
+# define SPKAC_DEFAULT_MD EVP_md5()
+#else
+# define SPKAC_DEFAULT_MD EVP_sm3()
+#endif
+
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_NOOUT, OPT_PUBKEY, OPT_VERIFY, OPT_IN, OPT_OUT,
@@ -127,7 +133,7 @@ int spkac_main(int argc, char **argv)
             ASN1_STRING_set(spki->spkac->challenge,
                             challenge, (int)strlen(challenge));
         NETSCAPE_SPKI_set_pubkey(spki, pkey);
-        NETSCAPE_SPKI_sign(spki, pkey, EVP_md5());
+        NETSCAPE_SPKI_sign(spki, pkey, SPKAC_DEFAULT_MD);
         spkstr = NETSCAPE_SPKI_b64_encode(spki);
 
         out = bio_open_default(outfile, 'w', FORMAT_TEXT);

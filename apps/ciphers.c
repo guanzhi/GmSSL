@@ -21,6 +21,7 @@ typedef enum OPTION_choice {
     OPT_TLS1,
     OPT_TLS1_1,
     OPT_TLS1_2,
+    OPT_GMTLS,
     OPT_PSK,
     OPT_SRP,
     OPT_V, OPT_UPPER_V, OPT_S
@@ -42,6 +43,9 @@ OPTIONS ciphers_options[] = {
 #endif
 #ifndef OPENSSL_NO_TLS1_2
     {"tls1_2", OPT_TLS1_2, '-', "TLS1.2 mode"},
+#endif
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    {"gmtls", OPT_GMTLS, '-', "GMTLS1.1 mode"},
 #endif
 #ifndef OPENSSL_NO_SSL_TRACE
     {"stdname", OPT_STDNAME, '-', "Show standard cipher names"},
@@ -135,6 +139,12 @@ int ciphers_main(int argc, char **argv)
             min_version = TLS1_2_VERSION;
             max_version = TLS1_2_VERSION;
             break;
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        case OPT_GMTLS:
+            min_version = GMTLS_VERSION;
+            max_version = GMTLS_VERSION;
+            break;
+#endif
         case OPT_PSK:
 #ifndef OPENSSL_NO_PSK
             psk = 1;
@@ -222,7 +232,7 @@ int ciphers_main(int argc, char **argv)
                 const char *nm = SSL_CIPHER_standard_name(c);
                 if (nm == NULL)
                     nm = "UNKNOWN";
-                BIO_printf(bio_out, "%s - ", nm);
+                BIO_printf(bio_out, "%-40s - ", nm);
             }
 #endif
             BIO_puts(bio_out, SSL_CIPHER_description(c, buf, sizeof buf));

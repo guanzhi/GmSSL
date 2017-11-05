@@ -53,12 +53,11 @@
  * under the terms of the standard MIT license.  See COPYING for more details.
  */
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+
 #include <string.h>
 #include <sys/types.h>
 #include <openssl/err.h>
+#include <openssl/e_os2.h>
 #include <openssl/base58.h>
 
 static const int8_t b58digits_map[] = {
@@ -78,23 +77,28 @@ int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 	const unsigned char *b58u = (void*)b58;
 	unsigned char *binu = bin;
 	size_t outisz = (binsz + 3) / 4;
-	uint32_t outi[outisz];
+	//uint32_t outi[outisz];
+	uint32_t *outi = NULL;
 	uint64_t t;
 	uint32_t c;
 	size_t i, j;
 	uint8_t bytesleft = binsz % 4;
 	uint32_t zeromask = bytesleft ? (0xffffffff << (bytesleft * 8)) : 0;
 	unsigned zerocount = 0;
-	
+
 	if (!b58sz)
 		b58sz = strlen(b58);
-	
+
+	if (!(outi = OPENSSL_malloc(outisz))) {
+		return 0;
+	}
+
 	memset(outi, 0, outisz * sizeof(*outi));
-	
+
 	// Leading zeros, just count
 	for (i = 0; i < b58sz && b58u[i] == '1'; ++i)
 		++zerocount;
-	
+
 	for ( ; i < b58sz; ++i)
 	{
 		if (b58u[i] & 0x80) {
@@ -119,7 +123,7 @@ int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 			// Output number too big (last int32 filled too far)
 			return 0;
 	}
-	
+
 	j = 0;
 	switch (bytesleft) {
 		case 3:
@@ -132,7 +136,7 @@ int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 		default:
 			break;
 	}
-	
+
 	for (; j < outisz; ++j)
 	{
 		*(binu++) = (outi[j] >> 0x18) & 0xff;
@@ -140,7 +144,7 @@ int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 		*(binu++) = (outi[j] >>    8) & 0xff;
 		*(binu++) = (outi[j] >>    0) & 0xff;
 	}
-	
+
 	// Count canonical base58 byte count
 	binu = bin;
 	for (i = 0; i < binsz; ++i)
@@ -150,7 +154,8 @@ int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp)
 		--*binszp;
 	}
 	*binszp += zerocount;
-	
+
+	OPENSSL_free(outi);
 	return 1;
 }
 
@@ -162,14 +167,18 @@ int base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 	int carry;
 	ssize_t i, j, high, zcount = 0;
 	size_t size;
-	
+	//uint8_t buf[size];
+	uint8_t *buf = NULL;
+
 	while (zcount < binsz && !bin[zcount])
 		++zcount;
-	
+
 	size = (binsz - zcount) * 138 / 100 + 1;
-	uint8_t buf[size];
-	memset(buf, 0, size);
-	
+
+	if (!(buf = OPENSSL_zalloc(size))) {
+		return 0;
+	}
+
 	for (i = zcount, high = size - 1; i < binsz; ++i, high = j)
 	{
 		for (carry = bin[i], j = size - 1; (j > high) || carry; --j)
@@ -179,21 +188,23 @@ int base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 			carry /= 58;
 		}
 	}
-	
+
 	for (j = 0; j < size && !buf[j]; ++j);
-	
+
 	if (*b58sz <= zcount + size - j)
 	{
 		*b58sz = zcount + size - j + 1;
 		return 0;
 	}
-	
+
 	if (zcount)
 		memset(b58, '1', zcount);
 	for (i = zcount; j < size; ++i, ++j)
 		b58[i] = b58digits_ordered[buf[j]];
 	b58[i] = '\0';
 	*b58sz = i + 1;
-	
+
+end:
+	OPENSSL_free(buf);
 	return 1;
 }

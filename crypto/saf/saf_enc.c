@@ -78,7 +78,9 @@ int SAF_SymmEncryptUpdate(
 	if (!hkey->cipher_ctx) {
 		const EVP_CIPHER *cipher;
 
-		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID))) {
+				
+		// FIXME: get ulFeedBitLen from key handle
+		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID, 0))) {
 			SAFerr(SAF_F_SAF_SYMMENCRYPTUPDATE, SAF_R_INVALID_KEY_HANDLE);
 			ret = SAR_IndataErr;
 			goto end;
@@ -172,7 +174,8 @@ int SAF_SymmDecryptUpdate(
 	if (!hkey->cipher_ctx) {
 		const EVP_CIPHER *cipher;
 
-		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID))) {
+		//Get feedbitlen from keyhandle 			
+		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID, 0))) {
 			SAFerr(SAF_F_SAF_SYMMDECRYPTUPDATE, SAF_R_INVALID_KEY_HANDLE);
 			ret = SAR_IndataErr;
 			goto end;

@@ -48,6 +48,7 @@
  */
 
 #include <openssl/speck.h>
+#include "speck_lcl.h"
 
 void speck_set_encrypt_key16(SPECK_TYPE16 const K[SPECK_KEY_LEN16], SPECK_TYPE16 S[SPECK_ROUNDS16])
 {
@@ -63,6 +64,7 @@ void speck_set_encrypt_key16(SPECK_TYPE16 const K[SPECK_KEY_LEN16], SPECK_TYPE16
 		S[i + 1] = b;
 	}
 }
+
 void speck_set_decrypt_key16(SPECK_TYPE16 const K[SPECK_KEY_LEN16], SPECK_TYPE16 S[SPECK_ROUNDS16])
 {
 	SPECK_TYPE16 i, b = K[0];
@@ -77,6 +79,7 @@ void speck_set_decrypt_key16(SPECK_TYPE16 const K[SPECK_KEY_LEN16], SPECK_TYPE16
 		S[i + 1] = b;
 	}
 }
+
 void speck_encrypt16(SPECK_TYPE16 const pt[2], SPECK_TYPE16 ct[2], SPECK_TYPE16 const K[SPECK_ROUNDS16])
 {
 	SPECK_TYPE16 i;
@@ -96,8 +99,6 @@ void speck_decrypt16(SPECK_TYPE16 const ct[2], SPECK_TYPE16 pt[2], SPECK_TYPE16 
 	}
 }
 
-
-
 void speck_set_encrypt_key32(SPECK_TYPE32 const K[SPECK_KEY_LEN32], SPECK_TYPE32 S[SPECK_ROUNDS32])
 {
 	SPECK_TYPE32 i, b = K[0];
@@ -112,6 +113,7 @@ void speck_set_encrypt_key32(SPECK_TYPE32 const K[SPECK_KEY_LEN32], SPECK_TYPE32
 		S[i + 1] = b;
 	}
 }
+
 void speck_set_decrypt_key32(SPECK_TYPE32 const K[SPECK_KEY_LEN32], SPECK_TYPE32 S[SPECK_ROUNDS32])
 {
 	SPECK_TYPE32 i, b = K[0];
@@ -126,6 +128,7 @@ void speck_set_decrypt_key32(SPECK_TYPE32 const K[SPECK_KEY_LEN32], SPECK_TYPE32
 		S[i + 1] = b;
 	}
 }
+
 void speck_encrypt32(SPECK_TYPE32 const pt[2], SPECK_TYPE32 ct[2], SPECK_TYPE32 const K[SPECK_ROUNDS32])
 {
 	SPECK_TYPE32 i;
@@ -145,7 +148,6 @@ void speck_decrypt32(SPECK_TYPE32 const ct[2], SPECK_TYPE32 pt[2], SPECK_TYPE32 
 	}
 }
 
-
 void speck_set_encrypt_key64(SPECK_TYPE64 const K[SPECK_KEY_LEN64], SPECK_TYPE64 S[SPECK_ROUNDS64])
 {
 	SPECK_TYPE64 i, b = K[0];
@@ -160,6 +162,7 @@ void speck_set_encrypt_key64(SPECK_TYPE64 const K[SPECK_KEY_LEN64], SPECK_TYPE64
 		S[i + 1] = b;
 	}
 }
+
 void speck_set_decrypt_key64(SPECK_TYPE64 const K[SPECK_KEY_LEN64], SPECK_TYPE64 S[SPECK_ROUNDS64])
 {
 	SPECK_TYPE64 i, b = K[0];
@@ -174,6 +177,7 @@ void speck_set_decrypt_key64(SPECK_TYPE64 const K[SPECK_KEY_LEN64], SPECK_TYPE64
 		S[i + 1] = b;
 	}
 }
+
 void speck_encrypt64(SPECK_TYPE64 const pt[2], SPECK_TYPE64 ct[2], SPECK_TYPE64 const K[SPECK_ROUNDS64])
 {
 	SPECK_TYPE64 i;

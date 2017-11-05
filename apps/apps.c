@@ -1267,6 +1267,8 @@ ENGINE *setup_engine(const char *engine, int debug)
             return NULL;
         }
 
+	// GmSSL add here!
+	ENGINE_add_conf_module();
         BIO_printf(bio_err, "engine \"%s\" set.\n", ENGINE_get_id(e));
     }
 #endif

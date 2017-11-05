@@ -56,6 +56,9 @@
 #ifndef HEADER_BB1IBE_H
 #define HEADER_BB1IBE_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_BB1IBE
+
 #include <string.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -141,4 +144,5 @@ int ERR_load_BB1IBE_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

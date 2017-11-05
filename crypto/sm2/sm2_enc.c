@@ -246,9 +246,9 @@ int SM2_encrypt(int type, const unsigned char *in, size_t inlen,
 	}
 
 	if (!out) {
-		*outlen = i2d_SM2CiphertextValue(cv, NULL);
+		*outlen = i2d_SM2CiphertextValue(cv, NULL) + 96;
 		ret = 1;
-	} else if (*outlen < i2d_SM2CiphertextValue(cv, NULL)) {
+	} else if (*outlen < i2d_SM2CiphertextValue(cv, NULL) + 64) {
 		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_BUFFER_TOO_SMALL);
 		ret = 0;
 	} else {
@@ -266,48 +266,54 @@ int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
 	int ret = 0;
-	SM2CiphertextValue *cv = NULL;
 	const EVP_MD *md;
+	const unsigned char *p;
+	SM2CiphertextValue *cv = NULL;
 
+	/* check arguments */
+	if (!(md = EVP_get_digestbynid(type))) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_DIGEST_ALGOR);
+		return 0;
+	}
 	if (!in) {
 		SM2err(SM2_F_SM2_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
-
 	if (inlen <= 0 || inlen > INT_MAX) {
 		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_INPUT_LENGTH);
 		return 0;
 	}
 
-	if (!out) {
-		*outlen = inlen;
-		return 1;
-	} else if (*outlen < inlen) {
-		SM2err(SM2_F_SM2_DECRYPT, SM2_R_BUFFER_TOO_SMALL);
-		return 0;
-	}
-
-	if (!(md = EVP_get_digestbynid(type))) {
-		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_DIGEST_ALGOR);
-		return 0;
-	}
-
-	if (!(cv = d2i_SM2CiphertextValue(NULL, &in, (long)inlen))) {
+	/* decode asn.1 and check no data remaining */
+	p = in;
+	if (!(cv = d2i_SM2CiphertextValue(NULL, &p, (long)inlen))) {
 		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
 		return 0;
 	}
-
-	if (inlen != i2d_SM2CiphertextValue(cv, NULL)) {
+	if (p != in + inlen) {
 		SM2err(SM2_F_SM2_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
 		goto end;
 	}
 
+	/* return or check output length */
+	if (!out) {
+		*outlen = ASN1_STRING_length(cv->ciphertext);
+		ret = 1;
+		goto end;
+	} else if (*outlen < ASN1_STRING_length(cv->ciphertext)) {
+		SM2err(SM2_F_SM2_DECRYPT, SM2_R_BUFFER_TOO_SMALL);
+		ret = 0;
+		goto end;
+	}
+
+	/* do decrypt */
 	if (!SM2_do_decrypt(md, cv, out, outlen, ec_key)) {
 		SM2err(SM2_F_SM2_DECRYPT, SM2_R_DECRYPT_FAILURE);
 		goto end;
 	}
 
 	ret = 1;
+
 end:
 	SM2CiphertextValue_free(cv);
 	return ret;

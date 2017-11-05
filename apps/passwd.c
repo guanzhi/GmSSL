@@ -6,17 +6,18 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  */
+#include <openssl/opensslconf.h>
 
 #if defined OPENSSL_NO_MD5 || defined CHARSET_EBCDIC
 # define NO_MD5CRYPT_1
 #endif
 
-#if !defined(OPENSSL_NO_DES) || !defined(NO_MD5CRYPT_1)
 
 # include <string.h>
 
 # include "apps.h"
 
+#if !defined(OPENSSL_NO_DES) || !defined(NO_MD5CRYPT_1)
 # include <openssl/bio.h>
 # include <openssl/err.h>
 # include <openssl/evp.h>

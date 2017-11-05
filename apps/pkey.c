@@ -18,7 +18,8 @@ typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_INFORM, OPT_OUTFORM, OPT_PASSIN, OPT_PASSOUT, OPT_ENGINE,
     OPT_IN, OPT_OUT, OPT_PUBIN, OPT_PUBOUT, OPT_TEXT_PUB,
-    OPT_TEXT, OPT_NOOUT, OPT_MD, OPT_TRADITIONAL
+    OPT_TEXT, OPT_NOOUT, OPT_MD, OPT_TRADITIONAL,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS pkey_options[] = {
@@ -40,6 +41,7 @@ OPTIONS pkey_options[] = {
      "Use traditional format for private keys"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 #endif
     {NULL}
 };
@@ -56,6 +58,8 @@ int pkey_main(int argc, char **argv)
     int informat = FORMAT_PEM, outformat = FORMAT_PEM;
     int pubin = 0, pubout = 0, pubtext = 0, text = 0, noout = 0, ret = 1;
     int private = 0, traditional = 0;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, pkey_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -113,11 +117,21 @@ int pkey_main(int argc, char **argv)
         case OPT_MD:
             if (!opt_cipher(opt_unknown(), &cipher))
                 goto opthelp;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     private = !noout && !pubout ? 1 : 0;
     if (text && !pubtext)
@@ -185,6 +199,7 @@ int pkey_main(int argc, char **argv)
     BIO_free(in);
     OPENSSL_free(passin);
     OPENSSL_free(passout);
+    NCONF_free(conf);
 
     return ret;
 }

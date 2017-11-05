@@ -10,8 +10,12 @@
 #include "internal/constant_time_locl.h"
 #include "ssl_locl.h"
 
-#include <openssl/md5.h>
-#include <openssl/sha.h>
+#ifndef OPENSSL_NO_MD5
+# include <openssl/md5.h>
+#endif
+#ifndef OPENSSL_NO_SHA
+# include <openssl/sha.h>
+#endif
 
 /*
  * MAX_HASH_BIT_COUNT_BYTES is the maximum number of bytes in the hash's
@@ -41,6 +45,7 @@
  * standard "final" operation without adding the padding and length that such
  * a function typically does.
  */
+#ifndef OPENSSL_NO_MD5
 static void tls1_md5_final_raw(void *ctx, unsigned char *md_out)
 {
     MD5_CTX *md5 = ctx;
@@ -49,7 +54,9 @@ static void tls1_md5_final_raw(void *ctx, unsigned char *md_out)
     u32toLE(md5->C, md_out);
     u32toLE(md5->D, md_out);
 }
+#endif
 
+#ifndef OPENSSL_NO_SHA
 static void tls1_sha1_final_raw(void *ctx, unsigned char *md_out)
 {
     SHA_CTX *sha1 = ctx;
@@ -60,6 +67,7 @@ static void tls1_sha1_final_raw(void *ctx, unsigned char *md_out)
     l2n(sha1->h4, md_out);
 }
 
+# ifndef OPENSSL_NO_SHA256
 static void tls1_sha256_final_raw(void *ctx, unsigned char *md_out)
 {
     SHA256_CTX *sha256 = ctx;
@@ -69,7 +77,9 @@ static void tls1_sha256_final_raw(void *ctx, unsigned char *md_out)
         l2n(sha256->h[i], md_out);
     }
 }
+# endif
 
+# ifndef OPENSSL_NO_SHA512
 static void tls1_sha512_final_raw(void *ctx, unsigned char *md_out)
 {
     SHA512_CTX *sha512 = ctx;
@@ -80,8 +90,10 @@ static void tls1_sha512_final_raw(void *ctx, unsigned char *md_out)
     }
 }
 
-#undef  LARGEST_DIGEST_CTX
-#define LARGEST_DIGEST_CTX SHA512_CTX
+# undef  LARGEST_DIGEST_CTX
+# define LARGEST_DIGEST_CTX SHA512_CTX
+# endif
+#endif
 
 /*
  * ssl3_cbc_record_digest_supported returns 1 iff |ctx| uses a hash function
@@ -138,7 +150,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
 {
     union {
         double align;
-        unsigned char c[sizeof(LARGEST_DIGEST_CTX)];
+        unsigned char c[256 /*sizeof(LARGEST_DIGEST_CTX)*/];
     } md_state;
     void (*md_final_raw) (void *ctx, unsigned char *md_out);
     void (*md_transform) (void *ctx, const unsigned char *block);
@@ -169,6 +181,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
     OPENSSL_assert(data_plus_mac_plus_padding_size < 1024 * 1024);
 
     switch (EVP_MD_CTX_type(ctx)) {
+#ifndef OPENSSL_NO_MD5
     case NID_md5:
         if (MD5_Init((MD5_CTX *)md_state.c) <= 0)
             return 0;
@@ -179,6 +192,8 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
         sslv3_pad_length = 48;
         length_is_big_endian = 0;
         break;
+#endif
+#ifndef OPENSSL_NO_SHA
     case NID_sha1:
         if (SHA1_Init((SHA_CTX *)md_state.c) <= 0)
             return 0;
@@ -187,6 +202,7 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
             (void (*)(void *ctx, const unsigned char *block))SHA1_Transform;
         md_size = 20;
         break;
+# ifndef OPENSSL_NO_SHA256
     case NID_sha224:
         if (SHA224_Init((SHA256_CTX *)md_state.c) <= 0)
             return 0;
@@ -203,6 +219,8 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
             (void (*)(void *ctx, const unsigned char *block))SHA256_Transform;
         md_size = 32;
         break;
+# endif
+# ifndef OPENSSL_NO_SHA512
     case NID_sha384:
         if (SHA384_Init((SHA512_CTX *)md_state.c) <= 0)
             return 0;
@@ -223,6 +241,8 @@ int ssl3_cbc_digest_record(const EVP_MD_CTX *ctx,
         md_block_size = 128;
         md_length_size = 16;
         break;
+# endif
+#endif
     default:
         /*
          * ssl3_cbc_record_digest_supported should have been called first to

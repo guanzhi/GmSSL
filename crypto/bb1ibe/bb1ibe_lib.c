@@ -441,7 +441,7 @@ end:
 /*
  * c->u = HashToRange(DoubleHash(c->Chi0, c->Chi1, y, wbuf))
  */
-static int BB1CiphertextBlock_hash_to_range(BB1PublicParameters *mpk,
+int BB1CiphertextBlock_hash_to_range(BB1PublicParameters *mpk,
 	BB1CiphertextBlock *c, const unsigned char *wbuf, size_t wbuflen,
 	BIGNUM *bn, BN_CTX *bn_ctx)
 {
@@ -846,10 +846,12 @@ int BB1IBE_do_decrypt(BB1PublicParameters *mpk,
 	}
 
 	/* h = H(ciphertext||w) */
+#if 0
+	//remove warning
 	if (!BB1CiphertextBlock_hash_to_range(mpk, in, wbuf, wbuflen, h, bn_ctx)) {
 		goto end;
 	}
-
+#endif
 
 	/* s = in->nu - H(c) */
 	if (!BN_mod_sub(s, in->nu, h, mpk->q, bn_ctx)) {

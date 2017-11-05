@@ -47,7 +47,6 @@
 #include <openssl/x509v3.h>
 #include <openssl/rand.h>
 #include <openssl/ocsp.h>
-#include <openssl/dh.h>
 #include <openssl/engine.h>
 #include <openssl/async.h>
 #include <openssl/ct.h>
@@ -2637,6 +2636,9 @@ void ssl_set_masks(SSL *s)
     int have_ecc_cert, ecdsa_ok;
     X509 *x = NULL;
 #endif
+#ifndef OPENSSL_NO_GMTLS
+    int have_sm2_cert, sm2sign_ok;
+#endif
     if (c == NULL)
         return;
 
@@ -2651,6 +2653,9 @@ void ssl_set_masks(SSL *s)
     dsa_sign = pvalid[SSL_PKEY_DSA_SIGN] & CERT_PKEY_SIGN;
 #ifndef OPENSSL_NO_EC
     have_ecc_cert = pvalid[SSL_PKEY_ECC] & CERT_PKEY_VALID;
+#endif
+#ifndef OPENSSL_NO_GMTLS
+    have_sm2_cert = pvalid[SSL_PKEY_SM2_SIGN] & CERT_PKEY_VALID;
 #endif
     mask_k = 0;
     mask_a = 0;
@@ -2711,9 +2716,27 @@ void ssl_set_masks(SSL *s)
             mask_a |= SSL_aECDSA;
     }
 #endif
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (have_sm2_cert) {
+        uint32_t ex_kusage;
+        cpk = &c->pkeys[SSL_PKEY_SM2_SIGN];
+        x = cpk->x509;
+	OPENSSL_assert(x);
+        ex_kusage = X509_get_key_usage(x); //
+        sm2sign_ok = ex_kusage & X509v3_KU_DIGITAL_SIGNATURE;
+        if (!(pvalid[SSL_PKEY_SM2_SIGN] & CERT_PKEY_SIGN))
+            sm2sign_ok = 0;
+        if (sm2sign_ok)
+            mask_a |= SSL_aSM2;
+    }
+#endif
 
 #ifndef OPENSSL_NO_EC
     mask_k |= SSL_kECDHE;
+#endif
+#ifndef OPENSSL_NO_GMTLS
+    mask_k |= SSL_kSM2;
+    mask_k |= SSL_kSM2DHE;
 #endif
 
 #ifndef OPENSSL_NO_PSK
@@ -2725,6 +2748,10 @@ void ssl_set_masks(SSL *s)
         mask_k |= SSL_kDHEPSK;
     if (mask_k & SSL_kECDHE)
         mask_k |= SSL_kECDHEPSK;
+# ifndef OPENSSL_NO_GMTLS_METHOD
+    if (mask_k & SSL_kSM2DHE)
+        mask_k |= SSL_kSM2PSK;
+# endif
 #endif
 
     s->s3->tmp.mask_k = mask_k;
@@ -2743,6 +2770,18 @@ int ssl_check_srvr_ecc_cert_and_alg(X509 *x, SSL *s)
             return 0;
         }
     }
+# ifndef OPENSSL_NO_GMTLS
+# if 0
+    if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2) {
+        /* key usage, if present, must allow signing */
+        if (!(X509_get_key_usage(x) & X509v3_KU_DIGITAL_SIGNATURE)) {
+            SSLerr(SSL_F_SSL_CHECK_SRVR_ECC_CERT_AND_ALG,
+                   SSL_R_ECC_CERT_NOT_FOR_SIGNING);
+            return 0;
+        }
+    }
+# endif
+# endif
     return 1;                   /* all checks are ok */
 }
 
@@ -2789,6 +2828,32 @@ CERT_PKEY *ssl_get_server_send_pkey(SSL *s)
     return &c->pkeys[i];
 }
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+CERT_PKEY *ssl_get_server_send_pkey_ex(SSL *s)
+{
+    CERT *c;
+    int i;
+
+    c = s->cert;
+    if (!s->s3 || !s->s3->tmp.new_cipher)
+        return NULL;
+    ssl_set_masks(s);
+
+    i = ssl_get_server_cert_index(s);
+
+    /* This may or may not be an error. */
+    if (i < 0)
+        return NULL;
+
+    if (i == SSL_PKEY_SM2_SIGN) {
+        i = SSL_PKEY_SM2_ENC;
+    }
+
+    /* May be NULL. */
+    return &c->pkeys[i];
+}
+#endif
+
 EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
                             const EVP_MD **pmd)
 {
@@ -2809,6 +2874,11 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
     } else if ((alg_a & SSL_aECDSA) &&
                (c->pkeys[SSL_PKEY_ECC].privatekey != NULL))
         idx = SSL_PKEY_ECC;
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    else if ((alg_a & SSL_aSM2) &&
+              (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey != NULL))
+        idx = SSL_PKEY_SM2_SIGN;
+#endif
     if (idx == -1) {
         SSLerr(SSL_F_SSL_GET_SIGN_PKEY, ERR_R_INTERNAL_ERROR);
         return (NULL);
@@ -3086,6 +3156,10 @@ const char *ssl_protocol_to_string(int version)
         return "DTLSv1";
     else if (version == DTLS1_2_VERSION)
         return "DTLSv1.2";
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    else if (version == GMTLS_VERSION)
+        return "GMTLSv1.1";
+#endif
     else
         return ("unknown");
 }

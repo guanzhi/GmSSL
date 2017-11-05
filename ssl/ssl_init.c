@@ -28,6 +28,15 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_ssl_base)
     fprintf(stderr, "OPENSSL_INIT: ossl_init_ssl_base: "
             "Adding SSL ciphers and digests\n");
 #endif
+
+#ifndef OPENSSL_NO_SMS4
+    EVP_add_cipher(EVP_sms4_cbc());
+    EVP_add_cipher(EVP_sms4_gcm());
+    EVP_add_cipher(EVP_sms4_ccm());
+#endif
+#ifndef OPENSSL_NO_ZUC
+    EVP_add_cipher(EVP_zuc());
+#endif
 #ifndef OPENSSL_NO_DES
     EVP_add_cipher(EVP_des_cbc());
     EVP_add_cipher(EVP_des_ede3_cbc());
@@ -49,6 +58,7 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_ssl_base)
      */
     EVP_add_cipher(EVP_rc2_40_cbc());
 #endif
+#ifndef OPENSSL_NO_AES
     EVP_add_cipher(EVP_aes_128_cbc());
     EVP_add_cipher(EVP_aes_192_cbc());
     EVP_add_cipher(EVP_aes_256_cbc());
@@ -56,10 +66,15 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_ssl_base)
     EVP_add_cipher(EVP_aes_256_gcm());
     EVP_add_cipher(EVP_aes_128_ccm());
     EVP_add_cipher(EVP_aes_256_ccm());
+# ifndef OPENSSL_NO_SHA
     EVP_add_cipher(EVP_aes_128_cbc_hmac_sha1());
     EVP_add_cipher(EVP_aes_256_cbc_hmac_sha1());
+#  ifndef OPENSSL_NO_SHA256
     EVP_add_cipher(EVP_aes_128_cbc_hmac_sha256());
     EVP_add_cipher(EVP_aes_256_cbc_hmac_sha256());
+#  endif
+# endif
+#endif
 #ifndef OPENSSL_NO_CAMELLIA
     EVP_add_cipher(EVP_camellia_128_cbc());
     EVP_add_cipher(EVP_camellia_256_cbc());
@@ -72,18 +87,29 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_ssl_base)
     EVP_add_cipher(EVP_seed_cbc());
 #endif
 
+#ifndef OPENSSL_NO_SM3
+    EVP_add_digest(EVP_sm3());
+#endif
 #ifndef OPENSSL_NO_MD5
     EVP_add_digest(EVP_md5());
     EVP_add_digest_alias(SN_md5, "ssl3-md5");
+# ifndef OPENSSL_NO_SHA
     EVP_add_digest(EVP_md5_sha1());
+# endif
 #endif
+#ifndef OPENSSL_NO_SHA
     EVP_add_digest(EVP_sha1()); /* RSA with sha1 */
     EVP_add_digest_alias(SN_sha1, "ssl3-sha1");
     EVP_add_digest_alias(SN_sha1WithRSAEncryption, SN_sha1WithRSA);
+# ifndef OPENSSL_NO_SHA256
     EVP_add_digest(EVP_sha224());
     EVP_add_digest(EVP_sha256());
+# endif
+# ifndef OPENSSL_NO_SHA512
     EVP_add_digest(EVP_sha384());
     EVP_add_digest(EVP_sha512());
+# endif
+#endif
 #ifndef OPENSSL_NO_COMP
 # ifdef OPENSSL_INIT_DEBUG
     fprintf(stderr, "OPENSSL_INIT: ossl_init_ssl_base: "

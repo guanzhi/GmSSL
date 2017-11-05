@@ -6,8 +6,9 @@ package gmssl
 */
 import "C"
 
-func GetVersion() []string {
-	version := []string{
+func GetVersions() []string {
+	versions := []string{
+		"GmSSL-Go API/1.0",
 		C.GoString(C.OpenSSL_version(C.OPENSSL_VERSION)),
 		C.GoString(C.OpenSSL_version(C.OPENSSL_BUILT_ON)),
 		C.GoString(C.OpenSSL_version(C.OPENSSL_CFLAGS)),
@@ -15,5 +16,5 @@ func GetVersion() []string {
 		C.GoString(C.OpenSSL_version(C.OPENSSL_DIR)),
 		C.GoString(C.OpenSSL_version(C.OPENSSL_ENGINES_DIR)),
 	}
-	return version
+	return versions
 }

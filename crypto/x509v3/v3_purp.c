@@ -351,11 +351,19 @@ static void x509v3_cache_extensions(X509 *x)
     ASN1_BIT_STRING *ns;
     EXTENDED_KEY_USAGE *extusage;
     X509_EXTENSION *ex;
+    const EVP_MD *md;
+#ifndef OPENSSL_NO_SHA
+    md = EVP_sha1();
+#elif !defined(OPENSSL_NO_SM3)
+    md = EVP_sm3();
+#else
+   return;
+#endif
 
     int i;
     if (x->ex_flags & EXFLAG_SET)
         return;
-    X509_digest(x, EVP_sha1(), x->sha1_hash, NULL);
+    X509_digest(x, md, x->sha1_hash, NULL);
     /* V1 should mean no extensions ... */
     if (!X509_get_version(x))
         x->ex_flags |= EXFLAG_V1;

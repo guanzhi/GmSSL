@@ -57,9 +57,10 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/x509.h>
-#include <openssl/dh.h>
 #include <openssl/bn.h>
-#include <openssl/md5.h>
+#ifndef OPENSSL_NO_GMTLS
+# include <openssl/sm2.h>
+#endif
 
 static STACK_OF(SSL_CIPHER) *ssl_bytes_to_cipher_list(SSL *s,
                                                       PACKET *cipher_suites,
@@ -229,6 +230,11 @@ static int send_server_key_exchange(SSL *s)
 {
     unsigned long alg_k = s->s3->tmp.new_cipher->algorithm_mkey;
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (s->method->version == GMTLS_VERSION)
+        return 1;
+#endif
+
     /*
      * only send a ServerKeyExchange if DH or fortezza but we have a
      * sign only certificate PSK: may send PSK identity hints For
@@ -237,7 +243,7 @@ static int send_server_key_exchange(SSL *s)
      * the server certificate contains the server's public key for
      * key exchange.
      */
-    if (alg_k & (SSL_kDHE | SSL_kECDHE)
+    if (alg_k & (SSL_kDHE | SSL_kECDHE | SSL_kSM2DHE)
         /*
          * PSK: send ServerKeyExchange if PSK identity hint if
          * provided
@@ -247,7 +253,7 @@ static int send_server_key_exchange(SSL *s)
         || ((alg_k & (SSL_kPSK | SSL_kRSAPSK))
             && s->cert->psk_identity_hint)
         /* For other PSK always send SKE */
-        || (alg_k & (SSL_PSK & (SSL_kDHEPSK | SSL_kECDHEPSK)))
+        || (alg_k & (SSL_PSK & (SSL_kDHEPSK | SSL_kECDHEPSK | SSL_kSM2PSK)))
 #endif
 #ifndef OPENSSL_NO_SRP
         /* SRP: send ServerKeyExchange */
@@ -634,10 +640,14 @@ int ossl_statem_server_construct_message(SSL *s)
         return tls_construct_server_hello(s);
 
     case TLS_ST_SW_CERT:
-        return tls_construct_server_certificate(s);
+        return SSL_IS_GMTLS(s) ?
+		tls_construct_server_certificate(s)
+		: tls_construct_server_certificate(s);
 
     case TLS_ST_SW_KEY_EXCH:
-        return tls_construct_server_key_exchange(s);
+        return (s->version == GMTLS_VERSION) ?
+		gmtls_construct_server_key_exchange(s)
+		: tls_construct_server_key_exchange(s);
 
     case TLS_ST_SW_CERT_REQ:
         return tls_construct_certificate_request(s);
@@ -744,10 +754,16 @@ MSG_PROCESS_RETURN ossl_statem_server_process_message(SSL *s, PACKET *pkt)
         return tls_process_client_hello(s, pkt);
 
     case TLS_ST_SR_CERT:
-        return tls_process_client_certificate(s, pkt);
+        if (SSL_IS_GMTLS(s))
+            return tls_process_client_certificate(s, pkt);
+        else
+	    return tls_process_client_certificate(s, pkt);
 
     case TLS_ST_SR_KEY_EXCH:
-        return tls_process_client_key_exchange(s, pkt);
+        if (SSL_IS_GMTLS(s))
+            return gmtls_process_client_key_exchange(s, pkt);
+        else
+	    return tls_process_client_key_exchange(s, pkt);
 
     case TLS_ST_SR_CERT_VRFY:
         return tls_process_cert_verify(s, pkt);
@@ -958,6 +974,10 @@ MSG_PROCESS_RETURN tls_process_client_hello(SSL *s, PACKET *pkt)
         } else if ((version & 0xff00) == (SSL3_VERSION_MAJOR << 8)) {
             /* SSLv3/TLS */
             s->client_version = version;
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        } else if (version == GMTLS_VERSION) {
+            s->client_version = version;
+#endif
         } else {
             /* No idea what protocol this is */
             SSLerr(SSL_F_TLS_PROCESS_CLIENT_HELLO, SSL_R_UNKNOWN_PROTOCOL);
@@ -1243,7 +1263,12 @@ MSG_PROCESS_RETURN tls_process_client_hello(SSL *s, PACKET *pkt)
         }
     }
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (!s->hit && (s->version == GMTLS_VERSION || s->version >= TLS1_VERSION)
+	&& s->tls_session_secret_cb) {
+#else
     if (!s->hit && s->version >= TLS1_VERSION && s->tls_session_secret_cb) {
+#endif
         const SSL_CIPHER *pref_cipher = NULL;
 
         s->session->master_key_length = sizeof(s->session->master_key);
@@ -1414,6 +1439,7 @@ WORK_STATE tls_post_process_client_hello(SSL *s, WORK_STATE wst)
                 }
                 s->rwstate = SSL_NOTHING;
             }
+
             cipher =
                 ssl3_choose_cipher(s, s->session->ciphers, SSL_get_ciphers(s));
 
@@ -1426,7 +1452,7 @@ WORK_STATE tls_post_process_client_hello(SSL *s, WORK_STATE wst)
             /* check whether we should disable session resumption */
             if (s->not_resumable_session_cb != NULL)
                 s->session->not_resumable = s->not_resumable_session_cb(s,
-                                                                        ((cipher->algorithm_mkey & (SSL_kDHE | SSL_kECDHE)) != 0));
+                    ((cipher->algorithm_mkey & (SSL_kDHE | SSL_kECDHE | SSL_kSM2DHE)) != 0));
             if (s->session->not_resumable)
                 /* do not send a session ticket */
                 s->tlsext_ticket_expected = 0;
@@ -1572,7 +1598,8 @@ int tls_construct_server_hello(SSL *s)
         ossl_statem_set_error(s);
         return 0;
     }
-    if ((p =
+
+    if ((s->version != GMTLS_VERSION) && (p =
          ssl_add_serverhello_tlsext(s, p, buf + SSL3_RT_MAX_PLAIN_LENGTH,
                                     &al)) == NULL) {
         ssl3_send_alert(s, SSL3_AL_FATAL, al);
@@ -1629,9 +1656,9 @@ int tls_construct_server_key_exchange(SSL *s)
     const BIGNUM *r[4];
     int nr[4], kn;
     BUF_MEM *buf;
-    EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX *md_ctx = NULL;
 
-    if (md_ctx == NULL) {
+    if (!(md_ctx == EVP_MD_CTX_new())) {
         SSLerr(SSL_F_TLS_CONSTRUCT_SERVER_KEY_EXCHANGE, ERR_R_MALLOC_FAILURE);
         al = SSL_AD_INTERNAL_ERROR;
         goto f_err;
@@ -1725,7 +1752,7 @@ int tls_construct_server_key_exchange(SSL *s)
     } else
 #endif
 #ifndef OPENSSL_NO_EC
-    if (type & (SSL_kECDHE | SSL_kECDHEPSK)) {
+    if (type & (SSL_kECDHE | SSL_kECDHEPSK | SSL_kSM2DHE | SSL_kSM2PSK)) {
         int nid;
 
         if (s->s3->tmp.pkey != NULL) {
@@ -1890,7 +1917,7 @@ int tls_construct_server_key_exchange(SSL *s)
     }
 
 #ifndef OPENSSL_NO_EC
-    if (type & (SSL_kECDHE | SSL_kECDHEPSK)) {
+    if (type & (SSL_kECDHE | SSL_kECDHEPSK | SSL_kSM2DHE | SSL_kSM2PSK)) {
         /*
          * XXX: For now, we only support named (not generic) curves. In
          * this situation, the serverKeyExchange message has: [1 byte
@@ -1933,9 +1960,34 @@ int tls_construct_server_key_exchange(SSL *s)
 #ifdef SSL_DEBUG
             fprintf(stderr, "Using hash %s\n", EVP_MD_name(md));
 #endif
-            if (EVP_SignInit_ex(md_ctx, md, NULL) <= 0
-                || EVP_SignUpdate(md_ctx, &(s->s3->client_random[0]),
-                                  SSL3_RANDOM_SIZE) <= 0
+
+            if (EVP_SignInit_ex(md_ctx, md, NULL) <= 0) {
+                SSLerr(SSL_F_TLS_CONSTRUCT_SERVER_KEY_EXCHANGE, ERR_LIB_EVP);
+                al = SSL_AD_INTERNAL_ERROR;
+                goto f_err;
+            }
+
+#ifndef OPENSSL_NO_GMTLS
+            if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2) {
+                unsigned char z[EVP_MAX_MD_SIZE];
+                size_t zlen = sizeof(z);
+                char *id = SM2_DEFAULT_ID;
+                if (!SM2_compute_id_digest(md, id, strlen(id), z, &zlen,
+                    EVP_PKEY_get0_EC_KEY(pkey))) {
+                    SSLerr(SSL_F_TLS_CONSTRUCT_SERVER_KEY_EXCHANGE, ERR_LIB_SM2);
+                    al = SSL_AD_INTERNAL_ERROR;
+                    goto f_err;
+                }
+                if (EVP_SignUpdate(md_ctx, z, zlen) <= 0) {
+                    SSLerr(SSL_F_TLS_CONSTRUCT_SERVER_KEY_EXCHANGE, ERR_LIB_SM2);
+                    al = SSL_AD_INTERNAL_ERROR;
+                    goto f_err;
+                }
+            }
+#endif
+
+            if (EVP_SignUpdate(md_ctx, &(s->s3->client_random[0]),
+                               SSL3_RANDOM_SIZE) <= 0
                 || EVP_SignUpdate(md_ctx, &(s->s3->server_random[0]),
                                   SSL3_RANDOM_SIZE) <= 0
                 || EVP_SignUpdate(md_ctx, d, n) <= 0
@@ -1947,8 +1999,9 @@ int tls_construct_server_key_exchange(SSL *s)
             }
             s2n(i, p);
             n += i + 2;
-            if (SSL_USE_SIGALGS(s))
+            if (SSL_USE_SIGALGS(s)) {
                 n += 2;
+            }
         } else {
             /* Is this error check actually needed? */
             al = SSL_AD_HANDSHAKE_FAILURE;
@@ -2281,6 +2334,8 @@ static int tls_process_cke_rsa(SSL *s, PACKET *pkt, int *al)
 #endif
 }
 
+
+
 static int tls_process_cke_dhe(SSL *s, PACKET *pkt, int *al)
 {
 #ifndef OPENSSL_NO_DH
@@ -2366,6 +2421,8 @@ static int tls_process_cke_ecdhe(SSL *s, PACKET *pkt, int *al)
     } else {
         unsigned int i;
         const unsigned char *data;
+
+
 
         /*
          * Get client's public key from encoded point in the
@@ -2585,7 +2642,7 @@ MSG_PROCESS_RETURN tls_process_client_key_exchange(SSL *s, PACKET *pkt)
     } else if (alg_k & (SSL_kDHE | SSL_kDHEPSK)) {
         if (!tls_process_cke_dhe(s, pkt, &al))
             goto err;
-    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK)) {
+    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK | SSL_kSM2DHE | SSL_kSM2PSK)) {
         if (!tls_process_cke_ecdhe(s, pkt, &al))
             goto err;
     } else if (alg_k & SSL_kSRP) {
@@ -3084,7 +3141,13 @@ int tls_construct_new_session_ticket(SSL *s)
             goto err;
         iv_len = EVP_CIPHER_CTX_iv_length(ctx);
     } else {
-        const EVP_CIPHER *cipher = EVP_aes_256_cbc();
+        const EVP_CIPHER *cipher =
+#ifndef OPENSSL_NO_AES
+		EVP_aes_256_cbc();
+#else
+		EVP_sms4_cbc();
+#endif
+										
 
         iv_len = EVP_CIPHER_iv_length(cipher);
         if (RAND_bytes(iv, iv_len) <= 0)
@@ -3094,7 +3157,7 @@ int tls_construct_new_session_ticket(SSL *s)
             goto err;
         if (!HMAC_Init_ex(hctx, tctx->tlsext_tick_hmac_key,
                           sizeof(tctx->tlsext_tick_hmac_key),
-                          EVP_sha256(), NULL))
+                          EVP_get_digestbynid(NID_sha256), NULL))
             goto err;
         memcpy(key_name, tctx->tlsext_tick_key_name,
                sizeof(tctx->tlsext_tick_key_name));

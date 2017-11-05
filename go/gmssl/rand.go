@@ -18,7 +18,7 @@ func SeedRandom(seed []byte) error {
 
 func GenerateRandom(length int) ([]byte, error) {
 	outbuf := make([]byte, length)
-	if 1 != C.RAND_bytes((*C.uchar)(&outbuf[0]), C.int(length)) {
+	if C.RAND_bytes((*C.uchar)(&outbuf[0]), C.int(length)) <= 0 {
 		return nil, errors.New("GmSSL Failure")
 	}
 

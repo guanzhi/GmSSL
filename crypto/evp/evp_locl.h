@@ -9,6 +9,10 @@
 
 /* EVP_MD_CTX related stuff */
 
+#ifndef OPENSSL_NO_SM2
+# define EVP_MD_CTX_FLAG_UPDATED         0x0400
+#endif
+
 struct evp_md_ctx_st {
     const EVP_MD *digest;
     ENGINE *engine;             /* functional reference if 'digest' is
@@ -19,7 +23,6 @@ struct evp_md_ctx_st {
     EVP_PKEY_CTX *pctx;
     /* Update function: usually copied from EVP_MD */
     int (*update) (EVP_MD_CTX *ctx, const void *data, size_t count);
-    int is_updated;
 } /* EVP_MD_CTX */ ;
 
 struct evp_cipher_ctx_st {

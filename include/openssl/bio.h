@@ -450,11 +450,22 @@ int BIO_read_filename(BIO *b, const char *name);
 /* defined in evp.h */
 /* #define BIO_set_md(b,md)     BIO_ctrl(b,BIO_C_SET_MD,1,(char *)md) */
 
-# define BIO_get_mem_data(b,pp)  BIO_ctrl(b,BIO_CTRL_INFO,0,(char *)pp)
-# define BIO_set_mem_buf(b,bm,c) BIO_ctrl(b,BIO_C_SET_BUF_MEM,c,(char *)bm)
-# define BIO_get_mem_ptr(b,pp)   BIO_ctrl(b,BIO_C_GET_BUF_MEM_PTR,0,(char *)pp)
-# define BIO_set_mem_eof_return(b,v) \
+# ifndef OPENSSL_NO_MACRO
+#  define BIO_get_mem_data(b,pp)  BIO_ctrl(b,BIO_CTRL_INFO,0,(char *)pp)
+#  define BIO_set_mem_buf(b,bm,c) BIO_ctrl(b,BIO_C_SET_BUF_MEM,c,(char *)bm)
+#  define BIO_get_mem_ptr(b,pp)   BIO_ctrl(b,BIO_C_GET_BUF_MEM_PTR,0,(char *)pp)
+#  define BIO_set_mem_eof_return(b,v) \
                                 BIO_ctrl(b,BIO_C_SET_BUF_MEM_EOF_RETURN,v,NULL)
+# else
+		
+long BIO_get_mem_data(BIO *b, char **pp);
+long BIO_set_mem_buf(BIO *b, BUF_MEM *bm, int c);
+long BIO_get_mem_ptr(BIO *b, BUF_MEM **pp);
+long BIO_set_mem_eof_return(BIO *b, int v)
+
+BIO *BIO_new_mem_buf(const void *buf, int len);
+
+# endif
 
 /* For the BIO_f_buffer() type */
 # define BIO_get_buffer_num_lines(b)     BIO_ctrl(b,BIO_C_GET_BUFF_NUM_LINES,0,NULL)

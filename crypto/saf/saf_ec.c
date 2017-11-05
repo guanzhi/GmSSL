@@ -65,6 +65,8 @@ int SAF_GenEccKeyPair(
 {
 	int ret = -1;
 	SAF_APP *app = (SAF_APP *)hAppHandle;
+	EVP_PKEY_CTX *pctx = NULL;
+	EVP_PKEY *pkey = NULL;
 
 	/* check arguments */
 	if (!hAppHandle || !pucContainerName) {
@@ -91,8 +93,6 @@ int SAF_GenEccKeyPair(
 	}
 
 	/* process */
-	EVP_PKEY_CTX *pctx = NULL;
-	EVP_PKEY *pkey = NULL;
 
 	if (!(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, app->engine))
 		|| EVP_PKEY_keygen_init(pctx) <= 0
@@ -132,6 +132,9 @@ int SAF_GetEccPublicKey(
 {
 	int ret = SAR_UnknownErr;
 	SAF_APP *app = (SAF_APP *)hAppHandle;
+	EVP_PKEY *pkey = NULL;
+	char key_id[1024];
+	int len;
 
 	/* check arguments */
 	if (!hAppHandle || !pucContainerName || !pucPublicKey ||
@@ -160,9 +163,6 @@ int SAF_GetEccPublicKey(
 	}
 
 	/* process */
-	EVP_PKEY *pkey = NULL;
-	char key_id[1024];
-	int len;
 
 	/*
 			
@@ -202,6 +202,10 @@ int SAF_EccSign(
 {
 	int ret = SAR_UnknownErr;
 	SAF_APP *app = (SAF_APP *)hAppHandle;
+	char key_id[1024];
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pctx = NULL;
+	size_t siglen;
 
 	/* check arguments */
 	if (!hAppHandle || !pucContainerName || !pucInData ||
@@ -230,10 +234,6 @@ int SAF_EccSign(
 	}
 
 	/* process */
-	char key_id[1024];
-	EVP_PKEY *pkey = NULL;
-	EVP_PKEY_CTX *pctx = NULL;
-	size_t siglen;
 
 	/*		
 	snprintf(key_id, sizeof(key_id), "%s.sign", (char *)pucContainerName);
@@ -267,6 +267,8 @@ int SAF_EccVerifySign(
 	unsigned int uiSignDataLen)
 {
 	int ret = SAR_UnknownErr;
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pctx = NULL;
 
 	/* check arguments */
 	if (!pucPublicKey || !pucInData || !pucSignData) {
@@ -291,8 +293,6 @@ int SAF_EccVerifySign(
 	}
 
 	/* process */
-	EVP_PKEY *pkey = NULL;
-	EVP_PKEY_CTX *pctx = NULL;
 
 	if (!(pkey = d2i_PUBKEY(NULL, (const unsigned char **)&pucPublicKey, (long)uiPublicKeyLen))
 		|| !(pctx = EVP_PKEY_CTX_new(pkey, NULL))
@@ -320,6 +320,9 @@ int SAF_EccPublicKeyEnc(
 	unsigned int *puiOutDataLen)
 {
 	int ret = -1;
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *pctx = NULL;
+	size_t outlen = *puiOutDataLen;
 
 	/* check arguments */
 	if (!pucPublicKey || !pucInData || !pucOutData || !puiOutDataLen) {
@@ -337,7 +340,7 @@ int SAF_EccPublicKeyEnc(
 			SAF_R_INVALID_ALGOR);
 		return SAR_AlgoTypeErr;
 	}
-	if (uiInDataLen <= 0 || uiInDataLen > ECCref_MAX_CIPHER_LEN) {
+	if (uiInDataLen <= 0 || uiInDataLen > SAF_MAX_EC_CIPHERTEXT_LENGTH) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENC,
 			SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
@@ -349,9 +352,6 @@ int SAF_EccPublicKeyEnc(
 	}
 
 	/* precess */
-	EVP_PKEY *pkey = NULL;
-	EVP_PKEY_CTX *pctx = NULL;
-	size_t outlen = *puiOutDataLen;
 
 	if (!(pkey = d2i_PUBKEY(NULL, (const unsigned char **)&pucPublicKey, (long)uiPublicKeyLen))
 		|| !(pctx = EVP_PKEY_CTX_new(pkey, NULL))
@@ -381,6 +381,10 @@ int SAF_EccPublicKeyEncByCert(
 	unsigned int *puiOutDataLen)
 {
 	int ret = SAR_UnknownErr;
+	X509 *x509 = NULL;
+	unsigned char pubkey[1024];
+	unsigned char *p = pubkey;
+	int len;
 
 	/* check arguments */
 	if (!pucCertificate || !pucInData || !pucOutData || !puiOutDataLen) {
@@ -398,7 +402,7 @@ int SAF_EccPublicKeyEncByCert(
 			SAF_R_INVALID_ALGOR);
 		return SAR_AlgoTypeErr;
 	}
-	if (uiInDataLen <= 0 || uiInDataLen > ECCref_MAX_CIPHER_LEN) {
+	if (uiInDataLen <= 0 || uiInDataLen > SAF_MAX_EC_CIPHERTEXT_LENGTH) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT,
 			SAF_R_INVALID_INPUT_LENGTH);
 		return SAR_IndataLenErr;
@@ -410,10 +414,6 @@ int SAF_EccPublicKeyEncByCert(
 	}
 
 	/* process */
-	X509 *x509 = NULL;
-	unsigned char pubkey[1024];
-	unsigned char *p = pubkey;
-	int len;
 
 	if (!(x509 = d2i_X509(NULL, (const unsigned char **)&pucCertificate, (long)uiCertificateLen))) {
 		SAFerr(SAF_F_SAF_ECCPUBLICKEYENCBYCERT, ERR_R_X509_LIB);
@@ -453,6 +453,11 @@ int SAF_EccVerifySignByCert(
 	unsigned int uiSignDataLen)
 {
 	int ret = SAR_UnknownErr;
+	X509 *x509 = NULL;
+	unsigned char pucPublicKey[1024];
+	unsigned int uiPublicKeyLen;
+	unsigned char *p = pucPublicKey;
+	int len;
 
 	/* check arguments */
 	if (!pucCertificate || !pucInData || !pucSignData) {
@@ -482,11 +487,6 @@ int SAF_EccVerifySignByCert(
 	}
 
 	/* process */
-	X509 *x509 = NULL;
-	unsigned char pucPublicKey[1024];
-	unsigned int uiPublicKeyLen;
-	unsigned char *p = pucPublicKey;
-	int len;
 
 	if (!(x509 = d2i_X509(NULL, (const unsigned char **)&pucCertificate, (long)uiCertificateLen))) {
 		SAFerr(SAF_F_SAF_ECCVERIFYSIGNBYCERT, ERR_R_X509_LIB);

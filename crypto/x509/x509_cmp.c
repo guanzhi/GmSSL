@@ -29,18 +29,17 @@ int X509_issuer_and_serial_cmp(const X509 *a, const X509 *b)
     return (X509_NAME_cmp(ai->issuer, bi->issuer));
 }
 
-#ifndef OPENSSL_NO_MD5
 unsigned long X509_issuer_and_serial_hash(X509 *a)
 {
     unsigned long ret = 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    unsigned char md[16];
+    unsigned char md[EVP_MAX_MD_SIZE];
     char *f;
 
     if (ctx == NULL)
         goto err;
     f = X509_NAME_oneline(a->cert_info.issuer, NULL, 0);
-    if (!EVP_DigestInit_ex(ctx, EVP_md5(), NULL))
+    if (!EVP_DigestInit_ex(ctx, EVP_get_default_digest(), NULL))
         goto err;
     if (!EVP_DigestUpdate(ctx, (unsigned char *)f, strlen(f)))
         goto err;
@@ -58,7 +57,6 @@ unsigned long X509_issuer_and_serial_hash(X509 *a)
     EVP_MD_CTX_free(ctx);
     return (ret);
 }
-#endif
 
 int X509_issuer_name_cmp(const X509 *a, const X509 *b)
 {
@@ -77,7 +75,7 @@ int X509_CRL_cmp(const X509_CRL *a, const X509_CRL *b)
 
 int X509_CRL_match(const X509_CRL *a, const X509_CRL *b)
 {
-    return memcmp(a->sha1_hash, b->sha1_hash, 20);
+    return memcmp(a->sha1_hash, b->sha1_hash, sizeof(a->sha1_hash));
 }
 
 X509_NAME *X509_get_issuer_name(const X509 *a)
@@ -90,12 +88,10 @@ unsigned long X509_issuer_name_hash(X509 *x)
     return (X509_NAME_hash(x->cert_info.issuer));
 }
 
-#ifndef OPENSSL_NO_MD5
 unsigned long X509_issuer_name_hash_old(X509 *x)
 {
     return (X509_NAME_hash_old(x->cert_info.issuer));
 }
-#endif
 
 X509_NAME *X509_get_subject_name(const X509 *a)
 {
@@ -117,12 +113,10 @@ unsigned long X509_subject_name_hash(X509 *x)
     return (X509_NAME_hash(x->cert_info.subject));
 }
 
-#ifndef OPENSSL_NO_MD5
 unsigned long X509_subject_name_hash_old(X509 *x)
 {
     return (X509_NAME_hash_old(x->cert_info.subject));
 }
-#endif
 
 /*
  * Compare two certificates: they must be identical for this to work. NB:
@@ -139,7 +133,7 @@ int X509_cmp(const X509 *a, const X509 *b)
     X509_check_purpose((X509 *)a, -1, 0);
     X509_check_purpose((X509 *)b, -1, 0);
 
-    rv = memcmp(a->sha1_hash, b->sha1_hash, SHA_DIGEST_LENGTH);
+    rv = memcmp(a->sha1_hash, b->sha1_hash, sizeof(a->sha1_hash));
     if (rv)
         return rv;
     /* Check for match against stored encoding too */
@@ -184,21 +178,21 @@ int X509_NAME_cmp(const X509_NAME *a, const X509_NAME *b)
 unsigned long X509_NAME_hash(X509_NAME *x)
 {
     unsigned long ret = 0;
-    unsigned char md[SHA_DIGEST_LENGTH];
+    unsigned char md[EVP_MAX_MD_SIZE];
 
     /* Make sure X509_NAME structure contains valid cached encoding */
     i2d_X509_NAME(x, NULL);
-    if (!EVP_Digest(x->canon_enc, x->canon_enclen, md, NULL, EVP_sha1(),
-                    NULL))
+    if (!EVP_Digest(x->canon_enc, x->canon_enclen, md, NULL,
+                    EVP_get_default_digest(), NULL))
         return 0;
 
     ret = (((unsigned long)md[0]) | ((unsigned long)md[1] << 8L) |
            ((unsigned long)md[2] << 16L) | ((unsigned long)md[3] << 24L)
         ) & 0xffffffffL;
+
     return (ret);
 }
 
-#ifndef OPENSSL_NO_MD5
 /*
  * I now DER encode the name and hash it.  Since I cache the DER encoding,
  * this is reasonably efficient.
@@ -208,7 +202,7 @@ unsigned long X509_NAME_hash_old(X509_NAME *x)
 {
     EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
     unsigned long ret = 0;
-    unsigned char md[16];
+    unsigned char md[EVP_MAX_MD_SIZE];
 
     if (md_ctx == NULL)
         return ret;
@@ -216,7 +210,7 @@ unsigned long X509_NAME_hash_old(X509_NAME *x)
     /* Make sure X509_NAME structure contains valid cached encoding */
     i2d_X509_NAME(x, NULL);
     EVP_MD_CTX_set_flags(md_ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
-    if (EVP_DigestInit_ex(md_ctx, EVP_md5(), NULL)
+    if (EVP_DigestInit_ex(md_ctx, EVP_get_default_digest(), NULL)
         && EVP_DigestUpdate(md_ctx, x->bytes->data, x->bytes->length)
         && EVP_DigestFinal_ex(md_ctx, md, NULL))
         ret = (((unsigned long)md[0]) | ((unsigned long)md[1] << 8L) |
@@ -226,7 +220,6 @@ unsigned long X509_NAME_hash_old(X509_NAME *x)
 
     return (ret);
 }
-#endif
 
 /* Search a stack of X509 for a match */
 X509 *X509_find_by_issuer_and_serial(STACK_OF(X509) *sk, X509_NAME *name,

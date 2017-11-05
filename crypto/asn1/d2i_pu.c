@@ -13,8 +13,12 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/asn1.h>
-#include <openssl/rsa.h>
-#include <openssl/dsa.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
+#ifndef OPENSSL_NO_DSA
+# include <openssl/dsa.h>
+#endif
 #include <openssl/ec.h>
 
 #include "internal/evp_int.h"

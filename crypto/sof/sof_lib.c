@@ -73,10 +73,12 @@ static char *sof_encode(const unsigned char *bin, unsigned int binlen)
 	return NULL;
 }
 
+#if 0
 static int sof_decode(const char *b64, unsigned char **pdata, unsigned int *pdatalen)
 {
 	return 0;
 }
+#endif
 
 BSTR SOF_GetVersion(void)
 {
@@ -459,7 +461,6 @@ BSTR SOF_GenRandom(short RandomLen)
 	char *ret = NULL;
 	char *b64 = NULL;
 	unsigned char *bin = NULL;
-	unsigned int b64len = (RandomLen * 4)/3 + 128;
 	int rv;
 
 	if (!(bin = OPENSSL_malloc(RandomLen))

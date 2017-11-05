@@ -50,6 +50,9 @@
 #ifndef HEADER_ECIES_H
 #define HEADER_ECIES_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_ECIES
+
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -134,14 +137,15 @@ ECIES_PARAMS *d2i_ECIESParameters(ECIES_PARAMS **param,
 typedef struct ecies_ciphertext_value_st ECIES_CIPHERTEXT_VALUE;
 DECLARE_ASN1_FUNCTIONS(ECIES_CIPHERTEXT_VALUE)
 
+int ECIES_CIPHERTEXT_VALUE_ciphertext_length(const ECIES_CIPHERTEXT_VALUE *a);
 
 ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
 int ECIES_do_decrypt(const ECIES_PARAMS *param, const ECIES_CIPHERTEXT_VALUE *in,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int ECIES_encrypt(int type, const unsigned char *in, size_t inlen,
+int ECIES_encrypt(int param, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
-int ECIES_decrypt(int type, const unsigned char *in, size_t inlen,
+int ECIES_decrypt(int param, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
 #define ECIES_encrypt_with_recommended(in,inlen,out,outlen,ec_key) \
 	ECIES_encrypt(NID_ecies_with_x9_63_sha256_xor_hmac,in,inlen,out,outlen,ec_key)
@@ -151,5 +155,6 @@ int ECIES_decrypt(int type, const unsigned char *in, size_t inlen,
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

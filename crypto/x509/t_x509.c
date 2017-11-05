@@ -217,6 +217,7 @@ int X509_print_ex(BIO *bp, X509 *x, unsigned long nmflags,
 
 int X509_ocspid_print(BIO *bp, X509 *x)
 {
+#ifndef OPENSSL_NO_SHA
     unsigned char *der = NULL;
     unsigned char *dertmp;
     int derlen;
@@ -270,6 +271,10 @@ int X509_ocspid_print(BIO *bp, X509 *x)
  err:
     OPENSSL_free(der);
     return (0);
+#else
+    BIO_printf(bp, "(SHA1 disabled)\n");
+    return (1);
+#endif
 }
 
 int X509_signature_dump(BIO *bp, const ASN1_STRING *sig, int indent)

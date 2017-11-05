@@ -68,7 +68,7 @@ int crl_main(int argc, char **argv)
     X509_LOOKUP *lookup = NULL;
     X509_OBJECT *xobj = NULL;
     EVP_PKEY *pkey;
-    const EVP_MD *digest = EVP_sha1();
+    const EVP_MD *digest = EVP_get_digestbynid(NID_sha1);
     unsigned long nmflag = 0;
     char nmflag_set = 0;
     char *infile = NULL, *outfile = NULL, *crldiff = NULL, *keyfile = NULL;

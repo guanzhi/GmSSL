@@ -49,80 +49,168 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/sgd.h>
+#include <openssl/gmapi.h>
+#include "../../e_os.h"
 
-const EVP_MD *EVP_get_digestbysgd(int sgd)
+typedef struct {
+	int nid;
+	ULONG ulAlgId;
+	ULONG ulFeedBitLen;
+} GMAPI_CIPHER_ITEM;
+
+static GMAPI_CIPHER_ITEM gmapi_ciphers[] = {
+	{NID_sm1_ecb, SGD_SM1_ECB, 0},
+	{NID_sm1_cbc, SGD_SM1_CBC, 0},
+	{NID_sm1_cfb1, SGD_SM1_CFB, 1},
+	{NID_sm1_cfb8, SGD_SM1_CFB, 8},
+	{NID_sm1_cfb128, SGD_SM1_CFB, 128},
+	{NID_sm1_ofb128, SGD_SM1_OFB, 128},
+	{NID_sms4_ecb, SGD_SM4_ECB, 0},
+	{NID_sms4_cbc, SGD_SM4_CBC, 0},
+	{NID_sms4_cfb1, SGD_SM4_CFB, 1},
+	{NID_sms4_cfb8, SGD_SM4_CFB, 8},
+	{NID_sms4_cfb128, SGD_SM4_CFB, 128},
+	{NID_sms4_ofb128, SGD_SM4_OFB, 128},
+	{NID_ssf33_ecb, SGD_SSF33_ECB, 0},
+	{NID_ssf33_cbc, SGD_SSF33_CBC, 0},
+	{NID_ssf33_cfb1, SGD_SSF33_CFB, 1},
+	{NID_ssf33_cfb8, SGD_SSF33_CFB, 8},
+	{NID_ssf33_cfb128, SGD_SSF33_CFB, 128},
+	{NID_ssf33_ofb128, SGD_SSF33_OFB, 128},
+	{NID_zuc_128eea3, SGD_ZUC_EEA3, 0},
+};
+
+const EVP_CIPHER *EVP_get_cipherbysgd(ULONG ulAlgId, ULONG ulFeedBitLen)
 {
-	switch (sgd) {
-	case SGD_SM3:
-		return EVP_sm3();
-	case SGD_SHA1:
-		return EVP_sha1();
-	case SGD_SHA256:
-		return EVP_sha256();
+	size_t i;
+
+	for (i = 0; i < OSSL_NELEM(gmapi_ciphers); i++) {
+		if (gmapi_ciphers[i].ulAlgId == ulAlgId
+			&& gmapi_ciphers[i].ulFeedBitLen == ulFeedBitLen) {
+			return EVP_get_cipherbynid(gmapi_ciphers[i].nid);
+		}
 	}
-	return NULL;
+
+	return NULL;	
 }
 
-const EVP_CIPHER *EVP_get_cipherbysgd(int sgd)
+int EVP_CIPHER_get_sgd(const EVP_CIPHER *cipher, ULONG *pulAlgId, ULONG *pulFeedBits)
 {
-	switch (sgd) {
-	case SGD_SM4_ECB:
-		return EVP_sms4_ecb();
-	case SGD_SM4_CBC:
-		return EVP_sms4_cbc();
-	case SGD_SM4_CFB:
-		return EVP_sms4_cfb();
-	case SGD_SM4_OFB:
-		return EVP_sms4_ofb();
-#define OPENSSL_NO_ZUC
-#ifndef OPENSSL_NO_ZUC
-	case SGD_ZUC:
-		return EVP_zuc();
-	case SGD_ZUC_EEA3:
-		return EVP_zuc_eea3();
-#endif
+	size_t i;
+
+	if (!cipher || !pulAlgId || !pulFeedBits) {
+		GMAPIerr(GMAPI_F_EVP_CIPHER_GET_SGD, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
 	}
+
+	for (i = 0; i < OSSL_NELEM(gmapi_ciphers); i++) {
+		if (EVP_CIPHER_nid(cipher) == gmapi_ciphers[i].nid) {
+			*pulAlgId = gmapi_ciphers[i].ulAlgId;
+			*pulFeedBits = gmapi_ciphers[i].ulFeedBitLen;
+			return 1;
+		}
+	}
+
+	/* caller can clear this error */
+	GMAPIerr(GMAPI_F_EVP_CIPHER_GET_SGD, GMAPI_R_NOT_SUPPORTED_GMAPI_CIPHER);
+	*pulAlgId = 0;
+	*pulFeedBits = 0;
+	return 0;
+}
+
+int EVP_CIPHER_CTX_get_sgd(const EVP_CIPHER_CTX *ctx,
+	ULONG *pulAlgId, ULONG *pulFeedBits)
+{
+	if (!ctx || !pulAlgId || !pulFeedBits) {
+		GMAPIerr(GMAPI_F_EVP_CIPHER_CTX_GET_SGD,
+			ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+	return EVP_CIPHER_get_sgd(EVP_CIPHER_CTX_cipher(ctx), pulAlgId, pulFeedBits);
+}
+
+typedef struct {
+	int nid;
+	ULONG ulAlgId;
+} GMAPI_ALGOR_ITEM;
+
+
+static GMAPI_ALGOR_ITEM gmapi_digests[] = {
+	{NID_sm3, SGD_SM3},
+	{NID_sha1, SGD_SHA1},
+	{NID_sha256, SGD_SHA256},
+};
+
+const EVP_MD *EVP_get_digestbysgd(ULONG ulAlgId)
+{
+	size_t i;
+
+	for (i = 0; i < OSSL_NELEM(gmapi_digests); i++) {
+		if (gmapi_digests[i].ulAlgId == ulAlgId) {
+			return EVP_get_digestbynid(gmapi_digests[i].nid);
+		}
+	}
+
 	return NULL;
 }
 
-/*
-int load_engine(void)
+int EVP_MD_get_sgd(const EVP_MD *md, ULONG *ulAlgId)
 {
-	ENGINE *e;
+	size_t i;
 
-	ENGINE_load_builtin_engines(0);
+	if (!md || !ulAlgId) {
+		GMAPIerr(GMAPI_F_EVP_MD_GET_SGD, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
 
-	ENGINE_register_all_complete();
+	for (i = 0; i < OSSL_NELEM(gmapi_digests); i++) {
+		if (gmapi_digests[i].nid == EVP_MD_nid(md)) {
+			*ulAlgId = gmapi_digests[i].ulAlgId;
+			return 1;
+		}
+	}
 
-
-}
-*/
-
-
-const char *GMAPI_keyusage2str(int usage)
-{
-	return NULL;
-}
-
-int GMAPI_sgd2ciphernid(int sgd)
-{
+	*ulAlgId = 0;
 	return 0;
 }
 
-int GMAPI_sgd2mdnid(int sgd)
+int EVP_MD_CTX_get_sgd(const EVP_MD_CTX *ctx, ULONG *ulAlgId)
 {
+	return EVP_MD_get_sgd(EVP_MD_CTX_md(ctx), ulAlgId);
+}
+
+static GMAPI_ALGOR_ITEM gmapi_pkeys[] = {
+	{NID_rsa, SGD_RSA_SIGN},
+	{NID_rsaEncryption, SGD_RSA_ENC},
+	{NID_sm2sign, SGD_SM2_1},
+	{NID_sm2exchange, SGD_SM2_2},
+	{NID_sm2encrypt, SGD_SM2_3}
+};
+
+int EVP_PKEY_get_sgd(const EVP_PKEY *pkey, ULONG *ulAlgId)
+{
+	size_t i;
+
+	if (!pkey || !ulAlgId) {
+		GMAPIerr(GMAPI_F_EVP_PKEY_GET_SGD, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+
+	for (i = 0; i < OSSL_NELEM(gmapi_pkeys); i++) {
+		if (gmapi_pkeys[i].nid == EVP_PKEY_base_id(pkey)) {
+			*ulAlgId = gmapi_pkeys[i].ulAlgId;
+			return 1;
+		}
+	}
+
+	GMAPIerr(GMAPI_F_EVP_PKEY_GET_SGD, GMAPI_R_NOT_SUPPORTED_PKEY);
 	return 0;
 }
 
-
-int EVP_MD_sgd(const EVP_MD *md)
+int EVP_PKEY_CTX_get_sgd(const EVP_PKEY_CTX *ctx, ULONG *ulAlgId)
 {
-	return 0;
-}
-
-int EVP_CIPHER_sgd(const EVP_CIPHER *cipher)
-{
-	return 0;
+	return EVP_PKEY_get_sgd(EVP_PKEY_CTX_get0_pkey((EVP_PKEY_CTX *)ctx), ulAlgId);
 }

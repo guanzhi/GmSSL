@@ -464,7 +464,9 @@ int ERR_load_RSA_strings(void);
 # define RSA_F_CHECK_PADDING_MD                           140
 # define RSA_F_ENCODE_PKCS1                               146
 # define RSA_F_INT_RSA_VERIFY                             145
+# define RSA_F_MARSHAL_INTEGER                            150
 # define RSA_F_OLD_RSA_PRIV_DECODE                        147
+# define RSA_F_PARSE_PUBLIC_KEY                           151
 # define RSA_F_PKEY_RSA_CTRL                              143
 # define RSA_F_PKEY_RSA_CTRL_STR                          144
 # define RSA_F_PKEY_RSA_SIGN                              142
@@ -476,6 +478,8 @@ int ERR_load_RSA_strings(void);
 # define RSA_F_RSA_CHECK_KEY_EX                           160
 # define RSA_F_RSA_CMS_DECRYPT                            159
 # define RSA_F_RSA_ITEM_VERIFY                            148
+# define RSA_F_RSA_MARSHAL_PRIVATE_KEY                    158
+# define RSA_F_RSA_MARSHAL_PUBLIC_KEY                     164
 # define RSA_F_RSA_METH_DUP                               161
 # define RSA_F_RSA_METH_NEW                               162
 # define RSA_F_RSA_METH_SET1_NAME                         163
@@ -506,10 +510,15 @@ int ERR_load_RSA_strings(void);
 # define RSA_F_RSA_PADDING_CHECK_PKCS1_TYPE_2             113
 # define RSA_F_RSA_PADDING_CHECK_SSLV23                   114
 # define RSA_F_RSA_PADDING_CHECK_X931                     128
+# define RSA_F_RSA_PARSE_PRIVATE_KEY                      165
 # define RSA_F_RSA_PRINT                                  115
 # define RSA_F_RSA_PRINT_FP                               116
+# define RSA_F_RSA_PRIVATE_KEY_FROM_BYTES                 166
+# define RSA_F_RSA_PRIVATE_KEY_TO_BYTES                   167
 # define RSA_F_RSA_PRIV_ENCODE                            138
 # define RSA_F_RSA_PSS_TO_CTX                             155
+# define RSA_F_RSA_PUBLIC_KEY_FROM_BYTES                  168
+# define RSA_F_RSA_PUBLIC_KEY_TO_BYTES                    169
 # define RSA_F_RSA_PUB_DECODE                             139
 # define RSA_F_RSA_SETUP_BLINDING                         136
 # define RSA_F_RSA_SIGN                                   117
@@ -520,10 +529,13 @@ int ERR_load_RSA_strings(void);
 
 /* Reason codes. */
 # define RSA_R_ALGORITHM_MISMATCH                         100
+# define RSA_R_BAD_ENCODING                               145
 # define RSA_R_BAD_E_VALUE                                101
 # define RSA_R_BAD_FIXED_HEADER_DECRYPT                   102
 # define RSA_R_BAD_PAD_BYTE_COUNT                         103
+# define RSA_R_BAD_RSA_PARAMETERS                         152
 # define RSA_R_BAD_SIGNATURE                              104
+# define RSA_R_BAD_VERSION                                164
 # define RSA_R_BLOCK_TYPE_IS_NOT_01                       106
 # define RSA_R_BLOCK_TYPE_IS_NOT_02                       107
 # define RSA_R_DATA_GREATER_THAN_MOD_LEN                  108
@@ -537,6 +549,7 @@ int ERR_load_RSA_strings(void);
 # define RSA_R_DMP1_NOT_CONGRUENT_TO_D                    124
 # define RSA_R_DMQ1_NOT_CONGRUENT_TO_D                    125
 # define RSA_R_D_E_NOT_CONGRUENT_TO_1                     123
+# define RSA_R_ENCODE_ERROR                               165
 # define RSA_R_FIRST_OCTET_INVALID                        133
 # define RSA_R_ILLEGAL_OR_UNSUPPORTED_PADDING_MODE        144
 # define RSA_R_INVALID_DIGEST                             157

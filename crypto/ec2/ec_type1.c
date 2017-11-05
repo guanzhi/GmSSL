@@ -585,12 +585,14 @@ ERR_R_BN_LIB);
 		goto end;
 	}
 
-
+#if 0
+	//warning
 	if (!BN_GFP2_div(ret, num, den, p, bn_ctx)) {
 		ECerr(EC_F_TYPE1CURVE_EVAL_LINE_TEXTBOOK,
 ERR_R_BN_LIB);
 		goto end;
 	}
+#endif
 
 	ret = 1;
 
@@ -783,6 +785,7 @@ int EC_type1curve_tate_ratio(const EC_GROUP *group, BN_GFP2 *r,
 	return 0;
 }
 
+#if 0
 typedef struct {
 	int security_bits;
 	int n_bits;
@@ -798,6 +801,7 @@ static TYPE1CURVE_SEC sec_tbl[] = {
 	{192,  7680, 3840, 384},
 	{256, 15360, 7680, 512}
 };
+#endif
 
 const EVP_MD *TYPE1CURVE_nbits_to_md(int nbits)
 {

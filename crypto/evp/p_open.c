@@ -34,12 +34,12 @@ int EVP_OpenInit(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
     if (!priv)
         return 1;
 
-    if (EVP_PKEY_id(priv) != EVP_PKEY_RSA) {
-        EVPerr(EVP_F_EVP_OPENINIT, EVP_R_PUBLIC_KEY_NOT_RSA);
+    if (EVP_PKEY_id(priv) != EVP_PKEY_RSA && EVP_PKEY_id(priv) != EVP_PKEY_EC) {
+        EVPerr(EVP_F_EVP_OPENINIT, EVP_R_PUBLIC_KEY_NOT_RSA_OR_EC);
         goto err;
     }
 
-    size = EVP_PKEY_size(priv);
+    size = EVP_PKEY_size(priv) >= ekl ? EVP_PKEY_size(priv) : ekl;
     key = OPENSSL_malloc(size + 2);
     if (key == NULL) {
         /* ERROR */

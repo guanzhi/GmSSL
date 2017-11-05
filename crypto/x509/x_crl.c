@@ -156,6 +156,14 @@ static int crl_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
     STACK_OF(X509_EXTENSION) *exts;
     X509_EXTENSION *ext;
     int idx;
+    const EVP_MD *md;
+#ifndef OPENSSL_NO_SHA
+    md = EVP_sha1();
+#elif !defined(OPENSSL_NO_SM3)
+    md = EVP_sm3();
+#else
+    return 0;
+#endif
 
     switch (operation) {
     case ASN1_OP_NEW_POST:
@@ -172,7 +180,7 @@ static int crl_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
         break;
 
     case ASN1_OP_D2I_POST:
-        X509_CRL_digest(crl, EVP_sha1(), crl->sha1_hash, NULL);
+        X509_CRL_digest(crl, md, crl->sha1_hash, NULL);
         crl->idp = X509_CRL_get_ext_d2i(crl,
                                         NID_issuing_distribution_point, NULL,
                                         NULL);

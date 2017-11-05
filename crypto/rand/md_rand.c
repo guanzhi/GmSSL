@@ -397,10 +397,10 @@ static int rand_bytes(unsigned char *buf, int num, int pseudo)
 
         int n = STATE_SIZE;     /* so that the complete pool gets accessed */
         while (n > 0) {
-#if MD_DIGEST_LENGTH > 20
+#if MD_DIGEST_LENGTH > 32
 # error "Please adjust DUMMY_SEED."
 #endif
-#define DUMMY_SEED "...................." /* at least MD_DIGEST_LENGTH */
+#define DUMMY_SEED "................................" /* at least MD_DIGEST_LENGTH */
             /*
              * Note that the seed does not matter, it's just that
              * rand_add expects to have something to hash.

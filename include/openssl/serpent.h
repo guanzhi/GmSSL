@@ -76,8 +76,10 @@ POSSIBILITY OF SUCH DAMAGE. */
 #ifndef HEADER_SERPENT_H
 #define HEADER_SERPENT_H
 
-#include <stdint.h>
 #include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SERPENT
+
+#include <openssl/e_os2.h>
 
 #define SERPENT_ROUNDS  32
 #define SERPENT_BLOCK_SIZE 16
@@ -114,5 +116,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
+#endif
 #endif

@@ -47,25 +47,121 @@
  * ====================================================================
  */
 
+#include <string.h>
 #include <openssl/err.h>
 #include <openssl/gmsdf.h>
-#include "internal/sdf_meth.h"
+#include "internal/sdf_int.h"
+#include "../../e_os.h"
 
-static SDF_METHOD *sdf_method = NULL;
+SDF_METHOD *sdf_method = NULL;
+SDF_VENDOR *sdf_vendor = NULL;
+extern SDF_VENDOR sdf_sansec;
+
+
+int SDF_LoadLibrary(char *so_path, char *vendor)
+{
+	if (sdf_method) {
+		SDF_METHOD_free(sdf_method);
+		sdf_method = NULL;
+	}
+
+	if (!(sdf_method = SDF_METHOD_load_library(so_path))) {
+		SDFerr(SDF_F_SDF_LOADLIBRARY, SDF_R_LOAD_LIBRARY_FAILURE);
+		return SDR_BASE;
+	}
+
+	if (vendor) {
+		if (strcmp(vendor, sdf_sansec.name) == 0) {
+			sdf_vendor = &sdf_sansec;
+		}
+	}
+
+	return SDR_OK;
+}
+
+int SDF_UnloadLibrary(void)
+{
+	SDF_METHOD_free(sdf_method);
+	sdf_method = NULL;
+	sdf_vendor = NULL;
+	return SDR_OK;
+}
+
+static SDF_ERR_REASON sdf_errors[] = {
+	{ SDR_OK,		SDF_R_SUCCESS },
+	{ SDR_BASE,		SDF_R_ERROR },
+	{ SDR_UNKNOWERR,	SDF_R_UNNOWN_ERROR },
+	{ SDR_NOTSUPPORT,	SDF_R_OPERATION_NOT_SUPPORTED },
+	{ SDR_COMMFAIL,		SDF_R_COMMUNICATION_FAILURE },
+	{ SDR_HARDFAIL,		SDF_R_HARDWARE_ERROR },
+	{ SDR_OPENDEVICE,	SDF_R_OPEN_DEVICE_FAILURE },
+	{ SDR_OPENSESSION,	SDF_R_OPEN_SESSION_FAILURE },
+	{ SDR_PARDENY,		SDF_R_NO_PRIVATE_KEY_ACCESS_RIGHT },
+	{ SDR_KEYNOTEXIST,	SDF_R_KEY_NOT_EXIST },
+	{ SDR_ALGNOTSUPPORT,	SDF_R_ALGORITHM_NOT_SUPPORTED },
+	{ SDR_ALGMODNOTSUPPORT,	SDF_R_ALGORITHM_MODE_NOT_SUPPORTED },
+	{ SDR_PKOPERR,		SDF_R_PUBLIC_KEY_OPERATION_FAILURE },
+	{ SDR_SKOPERR,		SDF_R_PRIVATE_KEY_OPERATION_FAILURE },
+	{ SDR_SIGNERR,		SDF_R_SIGNING_FAILURE },
+	{ SDR_VERIFYERR,	SDF_R_VERIFICATION_FAILURE },
+	{ SDR_SYMOPERR,		SDF_R_SYMMETRIC_OPERATION_FAILURE },
+	{ SDR_STEPERR,		SDF_R_MULTI_STEP_OPERATION_ERROR },
+	{ SDR_FILESIZEERR,	SDF_R_INVALID_FILE_SIZE },
+	{ SDR_FILENOEXIST,	SDF_R_FILE_NOT_EXIST },
+	{ SDR_FILEOFSERR,	SDF_R_INVALID_FILE_OFFSET },
+	{ SDR_KEYTYPEERR,	SDF_R_INVALID_KEY_TYPE },
+	{ SDR_KEYERR,		SDF_R_INVALID_KEY },
+	{ SDR_ENCDATAERR,	SDF_R_ENCRYPT_DATA_ERROR },
+	{ SDR_RANDERR,		SDF_R_RANDOM_GENERATION_ERROR },
+	{ SDR_PRKRERR,		SDF_R_PRKERR },
+	{ SDR_MACERR,		SDF_R_MAC_ERROR },
+	{ SDR_FILEEXSITS,	SDF_R_FILE_ALREADY_EXIST },
+	{ SDR_FILEWERR,		SDF_R_WRITE_FILE_FAILURE },
+	{ SDR_NOBUFFER,		SDF_R_BUFFER_TOO_SMALL },
+	{ SDR_INARGERR,		SDF_R_INVALID_INPUT_ARGUMENT },
+	{ SDR_OUTARGERR,	SDF_R_INVALID_OUTPUT_ARGUMENT },
+};
+
+static unsigned long sdf_get_error_reason(int err)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(sdf_errors); i++) {
+		if (err == sdf_errors[i].err) {
+			return sdf_errors[i].reason;
+		}
+	}
+	if (sdf_vendor) {
+		return sdf_vendor->get_error_reason(err);
+	}
+	return 0;
+}
+
+int SDF_GetErrorString(int err, char **str)
+{
+	unsigned long reason;
+
+	if ((reason = sdf_get_error_reason(err)) != 0) {
+		*str = (char*)ERR_reason_error_string(reason);
+	} else {
+		*str = "(unknown)";
+	}
+
+	return SDR_OK;
+}
 
 int SDF_OpenDevice(
 	void **phDeviceHandle)
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->OpenDevice) {
+	if (!sdf_method  || !sdf_method->OpenDevice) {
 		SDFerr(SDF_F_SDF_OPENDEVICE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
 	if ((ret = sdf_method->OpenDevice(
 		phDeviceHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_OPENDEVICE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_OPENDEVICE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -84,13 +180,12 @@ int SDF_CloseDevice(
 
 	if ((ret = sdf_method->CloseDevice(
 		hDeviceHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_CLOSEDEVICE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_CLOSEDEVICE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_OpenSession(
 	void *hDeviceHandle,
@@ -106,13 +201,12 @@ int SDF_OpenSession(
 	if ((ret = sdf_method->OpenSession(
 		hDeviceHandle,
 		phSessionHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_OPENSESSION, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_OPENSESSION, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_CloseSession(
 	void *hSessionHandle)
@@ -126,13 +220,12 @@ int SDF_CloseSession(
 
 	if ((ret = sdf_method->CloseSession(
 		hSessionHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_CLOSESESSION, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_CLOSESESSION, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GetDeviceInfo(
 	void *hSessionHandle,
@@ -148,13 +241,12 @@ int SDF_GetDeviceInfo(
 	if ((ret = sdf_method->GetDeviceInfo(
 		hSessionHandle,
 		pstDeviceInfo)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_GETDEVICEINFO, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_GETDEVICEINFO, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateRandom(
 	void *hSessionHandle,
@@ -172,13 +264,12 @@ int SDF_GenerateRandom(
 		hSessionHandle,
 		uiLength,
 		pucRandom)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_GENERATERANDOM, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_GENERATERANDOM, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GetPrivateKeyAccessRight(
 	void *hSessionHandle,
@@ -198,13 +289,12 @@ int SDF_GetPrivateKeyAccessRight(
 		uiKeyIndex,
 		pucPassword,
 		uiPwdLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_GETPRIVATEKEYACCESSRIGHT, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_GETPRIVATEKEYACCESSRIGHT, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ReleasePrivateKeyAccessRight(
 	void *hSessionHandle,
@@ -222,13 +312,12 @@ int SDF_ReleasePrivateKeyAccessRight(
 		hSessionHandle,
 		uiKeyIndex)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_RELEASEPRIVATEKEYACCESSRIGHT,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ExportSignPublicKey_RSA(
 	void *hSessionHandle,
@@ -247,13 +336,12 @@ int SDF_ExportSignPublicKey_RSA(
 		uiKeyIndex,
 		pucPublicKey)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXPORTSIGNPUBLICKEY_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ExportEncPublicKey_RSA(
 	void *hSessionHandle,
@@ -272,13 +360,12 @@ int SDF_ExportEncPublicKey_RSA(
 		uiKeyIndex,
 		pucPublicKey)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXPORTENCPUBLICKEY_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyPair_RSA(
 	void *hSessionHandle,
@@ -299,13 +386,12 @@ int SDF_GenerateKeyPair_RSA(
 		pucPublicKey,
 		pucPrivateKey)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYPAIR_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyWithIPK_RSA(
 	void *hSessionHandle,
@@ -331,13 +417,12 @@ int SDF_GenerateKeyWithIPK_RSA(
 		puiKeyLength,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYWITHIPK_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyWithEPK_RSA(
 	void *hSessionHandle,
@@ -362,13 +447,12 @@ int SDF_GenerateKeyWithEPK_RSA(
 		puiKeyLength,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYWITHEPK_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ImportKeyWithISK_RSA(
 	void *hSessionHandle,
@@ -390,14 +474,12 @@ int SDF_ImportKeyWithISK_RSA(
 		pucKey,
 		uiKeyLength,
 		phKeyHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_IMPORTKEYWITHISK_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_IMPORTKEYWITHISK_RSA, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ExchangeDigitEnvelopeBaseOnRSA(
 	void *hSessionHandle,
@@ -425,13 +507,12 @@ int SDF_ExchangeDigitEnvelopeBaseOnRSA(
 		pucDEOutput,
 		puiDELength)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXCHANGEDIGITENVELOPEBASEONRSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ExportSignPublicKey_ECC(
 	void *hSessionHandle,
@@ -450,13 +531,12 @@ int SDF_ExportSignPublicKey_ECC(
 		uiKeyIndex,
 		pucPublicKey)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXPORTSIGNPUBLICKEY_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ExportEncPublicKey_ECC(
 	void *hSessionHandle,
@@ -475,13 +555,12 @@ int SDF_ExportEncPublicKey_ECC(
 		uiKeyIndex,
 		pucPublicKey)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXPORTENCPUBLICKEY_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyPair_ECC(
 	void *hSessionHandle,
@@ -497,20 +576,26 @@ int SDF_GenerateKeyPair_ECC(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_pkey_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_GENERATEKEYPAIR_ECC,
+				SDF_R_NOT_SUPPORTED_ECC_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->GenerateKeyPair_ECC(
 		hSessionHandle,
 		uiAlgID,
 		uiKeyBits,
 		pucPublicKey,
 		pucPrivateKey)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_GENERATEKEYPAIR_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_GENERATEKEYPAIR_ECC, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyWithIPK_ECC(
 	void *hSessionHandle,
@@ -533,13 +618,12 @@ int SDF_GenerateKeyWithIPK_ECC(
 		pucKey,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYWITHIPK_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyWithEPK_ECC(
 	void *hSessionHandle,
@@ -556,6 +640,14 @@ int SDF_GenerateKeyWithEPK_ECC(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_GENERATEKEYWITHEPK_ECC,
+				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->GenerateKeyWithEPK_ECC(
 		hSessionHandle,
 		uiKeyBits,
@@ -564,13 +656,12 @@ int SDF_GenerateKeyWithEPK_ECC(
 		pucKey,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYWITHEPK_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ImportKeyWithISK_ECC(
 	void *hSessionHandle,
@@ -591,13 +682,12 @@ int SDF_ImportKeyWithISK_ECC(
 		pucKey,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_IMPORTKEYWITHISK_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateAgreementDataWithECC(
 	void *hSessionHandle,
@@ -627,13 +717,12 @@ int SDF_GenerateAgreementDataWithECC(
 		pucSponsorTmpPublicKey,
 		phAgreementHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEAGREEMENTDATAWITHECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateKeyWithECC(
 	void *hSessionHandle,
@@ -660,13 +749,12 @@ int SDF_GenerateKeyWithECC(
 		hAgreementHandle,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYWITHECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_GenerateAgreementDataAndKeyWithECC(
 	void *hSessionHandle,
@@ -704,13 +792,12 @@ int SDF_GenerateAgreementDataAndKeyWithECC(
 		pucResponseTmpPublicKey,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEAGREEMENTDATAANDKEYWITHECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_ExchangeDigitEnvelopeBaseOnECC(
 	void *hSessionHandle,
@@ -728,6 +815,14 @@ int SDF_ExchangeDigitEnvelopeBaseOnECC(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_EXCHANGEDIGITENVELOPEBASEONECC,
+				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->ExchangeDigitEnvelopeBaseOnECC(
 		hSessionHandle,
 		uiKeyIndex,
@@ -736,7 +831,7 @@ int SDF_ExchangeDigitEnvelopeBaseOnECC(
 		pucEncDataIn,
 		pucEncDataOut)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXCHANGEDIGITENVELOPEBASEONECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -760,6 +855,14 @@ int SDF_GenerateKeyWithKEK(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_GENERATEKEYWITHKEK,
+				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->GenerateKeyWithKEK(
 		hSessionHandle,
 		uiKeyBits,
@@ -769,7 +872,7 @@ int SDF_GenerateKeyWithKEK(
 		puiKeyLength,
 		phKeyHandle)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_GENERATEKEYWITHKEK,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -792,6 +895,14 @@ int SDF_ImportKeyWithKEK(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_IMPORTKEYWITHKEK,
+				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->ImportKeyWithKEK(
 		hSessionHandle,
 		uiAlgID,
@@ -799,8 +910,7 @@ int SDF_ImportKeyWithKEK(
 		pucKey,
 		uiKeyLength,
 		phKeyHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_IMPORTKEYWITHKEK,
-			SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_IMPORTKEYWITHKEK, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -822,7 +932,7 @@ int SDF_DestroyKey(
 	if ((ret = sdf_method->DestroyKey(
 		hSessionHandle,
 		hKeyHandle)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_DESTROYKEY, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_DESTROYKEY, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -854,7 +964,7 @@ int SDF_ExternalPublicKeyOperation_RSA(
 		pucDataOutput,
 		puiOutputLength)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXTERNALPUBLICKEYOPERATION_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -886,7 +996,7 @@ int SDF_InternalPublicKeyOperation_RSA(
 		pucDataOutput,
 		puiOutputLength)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_INTERNALPUBLICKEYOPERATION_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -918,7 +1028,7 @@ int SDF_InternalPrivateKeyOperation_RSA(
 		pucDataOutput,
 		puiOutputLength)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_INTERNALPRIVATEKEYOPERATION_RSA,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -941,6 +1051,14 @@ int SDF_ExternalVerify_ECC(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_pkey_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_EXTERNALVERIFY_ECC,
+				SDF_R_NOT_SUPPORTED_PKEY_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->ExternalVerify_ECC(
 		hSessionHandle,
 		uiAlgID,
@@ -949,7 +1067,7 @@ int SDF_ExternalVerify_ECC(
 		uiInputLength,
 		pucSignature)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXTERNALVERIFY_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -978,7 +1096,7 @@ int SDF_InternalSign_ECC(
 		uiDataLength,
 		pucSignature)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_INTERNALSIGN_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1007,7 +1125,7 @@ int SDF_InternalVerify_ECC(
 		uiDataLength,
 		pucSignature)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_INTERNALVERIFY_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1030,6 +1148,14 @@ int SDF_ExternalEncrypt_ECC(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_pkey_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_EXTERNALENCRYPT_ECC,
+				SDF_R_NOT_SUPPORTED_PKEY_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->ExternalEncrypt_ECC(
 		hSessionHandle,
 		uiAlgID,
@@ -1038,7 +1164,7 @@ int SDF_ExternalEncrypt_ECC(
 		uiDataLength,
 		pucEncData)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_EXTERNALENCRYPT_ECC,
-			SDF_R_METHOD_OPERATION_FAILURE);
+			sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1063,6 +1189,14 @@ int SDF_Encrypt(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_ENCRYPT,
+				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->Encrypt(
 		hSessionHandle,
 		hKeyHandle,
@@ -1072,7 +1206,7 @@ int SDF_Encrypt(
 		uiDataLength,
 		pucEncData,
 		puiEncDataLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_ENCRYPT, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_ENCRYPT, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1097,6 +1231,13 @@ int SDF_Decrypt(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_DECRYPT, SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->Decrypt(
 		hSessionHandle,
 		hKeyHandle,
@@ -1106,7 +1247,7 @@ int SDF_Decrypt(
 		uiEncDataLength,
 		pucData,
 		puiDataLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_DECRYPT, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_DECRYPT, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1131,6 +1272,14 @@ int SDF_CalculateMAC(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_CALCULATEMAC,
+				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->CalculateMAC(
 		hSessionHandle,
 		hKeyHandle,
@@ -1140,13 +1289,12 @@ int SDF_CalculateMAC(
 		uiDataLength,
 		pucMAC,
 		puiMACLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_CALCULATEMAC, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_CALCULATEMAC, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
 
 int SDF_HashInit(
 	void *hSessionHandle,
@@ -1162,13 +1310,20 @@ int SDF_HashInit(
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor) {
+		if (!(uiAlgID = sdf_vendor->get_digest_algor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_HASHINIT, SDF_R_NOT_SUPPORTED_DIGEST_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
 	if ((ret = sdf_method->HashInit(
 		hSessionHandle,
 		uiAlgID,
 		pucPublicKey,
 		pucID,
 		uiIDLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_HASHINIT, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_HASHINIT, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1192,7 +1347,7 @@ int SDF_HashUpdate(
 		hSessionHandle,
 		pucData,
 		uiDataLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_HASHUPDATE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_HASHUPDATE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1216,7 +1371,7 @@ int SDF_HashFinal(
 		hSessionHandle,
 		pucHash,
 		puiHashLength)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_HASHFINAL, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_HASHFINAL, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1232,17 +1387,17 @@ int SDF_CreateFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->CreateFileObject) {
+	if (!sdf_method || !sdf_method->CreateObject) {
 		SDFerr(SDF_F_SDF_CREATEFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->CreateFileObject(
+	if ((ret = sdf_method->CreateObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen,
 		uiFileSize)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_CREATEFILE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_CREATEFILE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1259,19 +1414,19 @@ int SDF_ReadFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->ReadFileObject) {
+	if (!sdf_method || !sdf_method->ReadObject) {
 		SDFerr(SDF_F_SDF_READFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->ReadFileObject(
+	if ((ret = sdf_method->ReadObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen,
 		uiOffset,
 		puiReadLength,
 		pucBuffer)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_READFILE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_READFILE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1288,19 +1443,19 @@ int SDF_WriteFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->WriteFileObject) {
+	if (!sdf_method || !sdf_method->WriteObject) {
 		SDFerr(SDF_F_SDF_WRITEFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->WriteFileObject(
+	if ((ret = sdf_method->WriteObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen,
 		uiOffset,
 		uiWriteLength,
 		pucBuffer)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_WRITEFILE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_WRITEFILE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
@@ -1314,54 +1469,18 @@ int SDF_DeleteFile(
 {
 	int ret = SDR_UNKNOWERR;
 
-	if (!sdf_method || !sdf_method->DeleteFileObject) {
+	if (!sdf_method || !sdf_method->DeleteObject) {
 		SDFerr(SDF_F_SDF_DELETEFILE, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
-	if ((ret = sdf_method->DeleteFileObject(
+	if ((ret = sdf_method->DeleteObject(
 		hSessionHandle,
 		pucFileName,
 		uiNameLen)) != SDR_OK) {
-		SDFerr(SDF_F_SDF_DELETEFILE, SDF_R_METHOD_OPERATION_FAILURE);
+		SDFerr(SDF_F_SDF_DELETEFILE, sdf_get_error_reason(ret));
 		return ret;
 	}
 
 	return SDR_OK;
 }
-
-/* helpers */
-const char *SDF_GetErrorString(int err)
-{
-	return NULL;
-}
-
-int SDF_PrintDeviceInfo(FILE *fp, DEVICEINFO *devInfo)
-{
-	return 0;
-}
-
-int SDF_PrintECCPrivateKey(FILE *fp, ECCrefPrivateKey *privateKey)
-{
-	return 0;
-}
-
-int SDF_PrintECCPublicKey(FILE *fp, ECCrefPublicKey *publicKey)
-{
-	return 0;
-}
-
-int SDF_PrintRSAPrivateKey(FILE *fp, RSArefPrivateKey *privateKey)
-{
-	return 0;
-}
-
-int SDF_PrintRSAPublicKey(FILE *fp, RSArefPublicKey *publicKey)
-{
-	return 0;
-}
-
-
-
-
-

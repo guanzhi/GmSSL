@@ -50,8 +50,8 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include <stdint.h>
 #include <string.h>
+#include <openssl/e_os2.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/sm2.h>

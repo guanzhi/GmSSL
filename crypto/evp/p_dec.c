@@ -57,11 +57,15 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/rsa.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
-#include <openssl/sm2.h>
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 
 int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
                          EVP_PKEY *priv)
@@ -80,9 +84,11 @@ int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
 #endif
 
 #ifndef OPENSSL_NO_SM2
+	siz = ekl;
 	if (!(ctx = EVP_PKEY_CTX_new(priv, NULL))
 		|| !EVP_PKEY_decrypt_init(ctx)
-		|| !EVP_PKEY_CTX_set_ec_enc_type(ctx, NID_sm_scheme)
+		|| !EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme)
+		|| !EVP_PKEY_CTX_set_ec_encrypt_param(ctx, NID_sm3)
 		|| !EVP_PKEY_decrypt(ctx, key, &siz, ek, ekl)) {
 		EVPerr(EVP_F_EVP_PKEY_DECRYPT_OLD, ERR_R_EVP_LIB);
 		goto end;

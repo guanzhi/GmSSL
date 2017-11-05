@@ -73,6 +73,7 @@ static const nid_triple sigoid_srt[] = {
      NID_id_GostR3410_2012_256},
     {NID_id_tc26_signwithdigest_gost3410_2012_512, NID_id_GostR3411_2012_512,
      NID_id_GostR3410_2012_512},
+    {NID_sm2sign_with_sm3, NID_sm3, NID_X9_62_id_ecPublicKey},
 };
 
 static const nid_triple *const sigoid_srt_xref[] = {
@@ -115,4 +116,5 @@ static const nid_triple *const sigoid_srt_xref[] = {
     &sigoid_srt[28],
     &sigoid_srt[40],
     &sigoid_srt[41],
+    &sigoid_srt[42],
 };

@@ -269,6 +269,8 @@ int ERR_load_PKCS12_strings(void);
 # define PKCS12_R_MAC_SETUP_ERROR                         110
 # define PKCS12_R_MAC_STRING_SET_ERROR                    111
 # define PKCS12_R_MAC_VERIFY_FAILURE                      113
+# define PKCS12_R_NO_AVAIABLE_CIPHER                      112
+# define PKCS12_R_NO_AVAIABLE_DIGEST                      122
 # define PKCS12_R_PARSE_ERROR                             114
 # define PKCS12_R_PKCS12_ALGOR_CIPHERINIT_ERROR           115
 # define PKCS12_R_PKCS12_CIPHERFINAL_ERROR                116

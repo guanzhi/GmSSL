@@ -107,6 +107,13 @@ static int SM9PublicParameters_get_point_size(SM9PublicParameters *mpk,
 	return 1;
 }
 
+int SM9_wrap_key_ex(SM9PublicParameters *mpk, size_t keylen,
+	unsigned char *outkey, unsigned char *outcipher, size_t *outcipherlen,
+	SM9PublicKey *pk)
+{
+	return 0;
+}
+
 int SM9_wrap_key(SM9PublicParameters *mpk, size_t keylen,
 	unsigned char *outkey, unsigned char *outcipher, size_t *outcipherlen,
 	const char *id, size_t idlen)
@@ -306,6 +313,14 @@ end:
 	BN_GFP2_free(w);
 	OPENSSL_free(buf);
 	return ret;
+}
+
+int SM9_unwrap_key_ex(SM9PublicParameters *mpk, size_t keylen,
+	const unsigned char *incipher, size_t incipherlen,
+	unsigned char *outkey,
+	SM9PublicKey *pk, SM9PrivateKey *sk)
+{
+	return 0;
 }
 
 int SM9_unwrap_key(SM9PublicParameters *mpk, size_t keylen,
@@ -791,6 +806,14 @@ end:
 	return ret;
 }
 
+SM9Ciphertext *SM9_do_encrypt_ex(SM9PublicParameters *mpk,
+	const SM9EncParameters *encparams,
+	const unsigned char *in, size_t inlen,
+	SM9PublicKey *pk)
+{
+	return NULL;
+}
+
 SM9Ciphertext *SM9_do_encrypt(SM9PublicParameters *mpk,
 	const SM9EncParameters *encparams,
 	const unsigned char *in, size_t inlen,
@@ -1012,6 +1035,14 @@ static int SM9Ciphertext_size(SM9PublicParameters *mpk,
 	*outlen = inlen + 4096;
 }
 
+int SM9_encrypt_ex(SM9PublicParameters *mpk, const SM9EncParameters *encparams,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen,
+	SM9PublicKey *pk)
+{
+	return 0;
+}
+
 int SM9_encrypt(SM9PublicParameters *mpk, const SM9EncParameters *encparams,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen,
@@ -1095,6 +1126,14 @@ static int SM9EncParameters_init_with_recommended(SM9EncParameters *encparams)
 	return 1;
 }
 
+int SM9_encrypt_with_recommended_ex(SM9PublicParameters *mpk,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen,
+	SM9PublicKey *pk)
+{
+	return 0;
+}
+
 int SM9_encrypt_with_recommended(SM9PublicParameters *mpk,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen,
@@ -1114,4 +1153,3 @@ int SM9_decrypt_with_recommended(SM9PublicParameters *mpk,
 	SM9EncParameters_init_with_recommended(&encparams);
 	return SM9_decrypt(mpk, &encparams, in, inlen, out, outlen, sk, id, idlen);
 }
-

@@ -165,6 +165,16 @@ int EVP_PBE_scrypt(const char *pass, size_t passlen,
     uint32_t *X, *V, *T;
     uint64_t i, Blen, Vlen;
     size_t allocsize;
+    const EVP_MD *md;
+
+#ifndef OPENSSL_NO_SHA
+    md = EVP_sha256();
+#elif !defined(OPENSSL_NO_SM3)
+    md = EVP_sm3();
+#else
+    EVPerr(EVP_F_EVP_PBE_SCRYPT, EVP_R_NO_AVAIABLE_DIGEST);
+    return 0;
+#endif
 
     /* Sanity check parameters */
     /* initial check, r,p must be non zero, N >= 2 and a power of 2 */
@@ -230,14 +240,14 @@ int EVP_PBE_scrypt(const char *pass, size_t passlen,
     X = (uint32_t *)(B + Blen);
     T = X + 32 * r;
     V = T + 32 * r;
-    if (PKCS5_PBKDF2_HMAC(pass, passlen, salt, saltlen, 1, EVP_sha256(),
+    if (PKCS5_PBKDF2_HMAC(pass, passlen, salt, saltlen, 1, md,
                           Blen, B) == 0)
         goto err;
 
     for (i = 0; i < p; i++)
         scryptROMix(B + 128 * r * i, r, N, X, T, V);
 
-    if (PKCS5_PBKDF2_HMAC(pass, passlen, B, Blen, 1, EVP_sha256(),
+    if (PKCS5_PBKDF2_HMAC(pass, passlen, B, Blen, 1, md,
                           keylen, key) == 0)
         goto err;
     rv = 1;

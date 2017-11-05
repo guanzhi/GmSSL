@@ -188,6 +188,9 @@ static STRINT_PAIR cert_type_list[] = {
     {"RSA fixed ECDH", TLS_CT_RSA_FIXED_ECDH},
     {"ECDSA fixed ECDH", TLS_CT_ECDSA_FIXED_ECDH},
     {"GOST01 Sign", TLS_CT_GOST01_SIGN},
+#ifndef OPENSSL_NO_GMTLS
+    {"SM2 sign", TLS_CT_SM2_SIGN},
+#endif
     {NULL}
 };
 
@@ -678,7 +681,7 @@ int generate_cookie_callback(SSL *ssl, unsigned char *cookie,
     BIO_ADDR_rawaddress(peer, buffer + sizeof(port), NULL);
 
     /* Calculate HMAC of buffer using the secret */
-    HMAC(EVP_sha1(), cookie_secret, COOKIE_SECRET_LENGTH,
+    HMAC(EVP_get_digestbynid(NID_sha1), cookie_secret, COOKIE_SECRET_LENGTH,
          buffer, length, cookie, cookie_len);
 
     OPENSSL_free(buffer);

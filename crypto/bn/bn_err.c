@@ -85,12 +85,14 @@ static ERR_STRING_DATA BN_str_functs[] = {
 
 static ERR_STRING_DATA BN_str_reasons[] = {
     {ERR_REASON(BN_R_ARG2_LT_ARG3), "arg2 lt arg3"},
+    {ERR_REASON(BN_R_BAD_ENCODING), "bad encoding"},
     {ERR_REASON(BN_R_BAD_RECIPROCAL), "bad reciprocal"},
     {ERR_REASON(BN_R_BIGNUM_TOO_LONG), "bignum too long"},
     {ERR_REASON(BN_R_BITS_TOO_SMALL), "bits too small"},
     {ERR_REASON(BN_R_BUFFER_TOO_SMALL), "buffer too small"},
     {ERR_REASON(BN_R_CALLED_WITH_EVEN_MODULUS), "called with even modulus"},
     {ERR_REASON(BN_R_DIV_BY_ZERO), "div by zero"},
+    {ERR_REASON(BN_R_ENCODE_ERROR), "encode error"},
     {ERR_REASON(BN_R_ENCODING_ERROR), "encoding error"},
     {ERR_REASON(BN_R_EXPAND_ON_STATIC_BIGNUM_DATA),
      "expand on static bignum data"},
@@ -101,6 +103,7 @@ static ERR_STRING_DATA BN_str_reasons[] = {
     {ERR_REASON(BN_R_INVALID_SOLINAS), "invalid solinas"},
     {ERR_REASON(BN_R_INVALID_SOLINAS_PARAMETERS),
      "invalid solinas parameters"},
+    {ERR_REASON(BN_R_NEGATIVE_NUMBER), "negative number"},
     {ERR_REASON(BN_R_NOT_A_SQUARE), "not a square"},
     {ERR_REASON(BN_R_NOT_INITIALIZED), "not initialized"},
     {ERR_REASON(BN_R_NO_INVERSE), "no inverse"},

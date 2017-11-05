@@ -113,6 +113,7 @@ int SSL_use_RSAPrivateKey(SSL *ssl, RSA *rsa)
     }
 
     ret = ssl_set_pkey(ssl->cert, pkey);
+
     EVP_PKEY_free(pkey);
     return (ret);
 }
@@ -121,10 +122,23 @@ int SSL_use_RSAPrivateKey(SSL *ssl, RSA *rsa)
 static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
 {
     int i;
+
     i = ssl_cert_type(NULL, pkey);
     if (i < 0) {
         SSLerr(SSL_F_SSL_SET_PKEY, SSL_R_UNKNOWN_CERTIFICATE_TYPE);
         return (0);
+    }
+
+    /* set private key even without keyUsage in cert */
+    if (i == SSL_PKEY_SM2_SIGN) {
+        if (c->pkeys[SSL_PKEY_SM2_ENC].privatekey)
+            i = SSL_PKEY_SM2_SIGN;
+        else if (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey)
+            i = SSL_PKEY_SM2_ENC;
+        else if (c->pkeys[SSL_PKEY_SM2_ENC].x509)
+            i = SSL_PKEY_SM2_ENC;
+        else
+            i = SSL_PKEY_SM2_SIGN;
     }
 
     if (c->pkeys[i].x509 != NULL) {
@@ -145,6 +159,8 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
         /*
          * Don't check the public/private key, this is mostly for smart
          * cards.
+	 * SM2和EC也可能是智能卡！
+	 *					
          */
         if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA
             && RSA_flags(EVP_PKEY_get0_RSA(pkey)) & RSA_METHOD_FLAG_NO_CHECK) ;
@@ -324,6 +340,7 @@ static int ssl_set_cert(CERT *c, X509 *x)
         SSLerr(SSL_F_SSL_SET_CERT, SSL_R_UNKNOWN_CERTIFICATE_TYPE);
         return 0;
     }
+
 #ifndef OPENSSL_NO_EC
     if (i == SSL_PKEY_ECC && !EC_KEY_can_sign(EVP_PKEY_get0_EC_KEY(pkey))) {
         SSLerr(SSL_F_SSL_SET_CERT, SSL_R_ECC_CERT_NOT_FOR_SIGNING);
@@ -331,7 +348,7 @@ static int ssl_set_cert(CERT *c, X509 *x)
     }
 #endif
     if (c->pkeys[i].privatekey != NULL) {
-        /*
+       /*
          * The return code from EVP_PKEY_copy_parameters is deliberately
          * ignored. Some EVP_PKEY types cannot do this.
          */
@@ -449,6 +466,7 @@ int SSL_CTX_use_RSAPrivateKey(SSL_CTX *ctx, RSA *rsa)
     }
 
     ret = ssl_set_pkey(ctx->cert, pkey);
+
     EVP_PKEY_free(pkey);
     return (ret);
 }

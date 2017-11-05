@@ -53,6 +53,9 @@
 #ifndef HEADER_OTP_H
 #define HEADER_OTP_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_OTP
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -98,4 +101,5 @@ int ERR_load_OTP_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

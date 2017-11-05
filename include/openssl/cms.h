@@ -461,6 +461,7 @@ int ERR_load_CMS_strings(void);
 # define CMS_R_NOT_KEY_TRANSPORT                          124
 # define CMS_R_NOT_PWRI                                   177
 # define CMS_R_NOT_SUPPORTED_FOR_THIS_KEY_TYPE            125
+# define CMS_R_NO_AVAILABLE_CIPHER                        161
 # define CMS_R_NO_CIPHER                                  126
 # define CMS_R_NO_CONTENT                                 127
 # define CMS_R_NO_CONTENT_TYPE                            173

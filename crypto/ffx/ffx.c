@@ -50,10 +50,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <inttypes.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/ffx.h>
+#include <openssl/e_os2.h>
 #include "../modes/modes_lcl.h"
 
 

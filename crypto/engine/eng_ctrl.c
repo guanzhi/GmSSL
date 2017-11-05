@@ -245,6 +245,9 @@ int ENGINE_ctrl_cmd_string(ENGINE *e, const char *cmd_name, const char *arg,
         ENGINEerr(ENGINE_F_ENGINE_CTRL_CMD_STRING, ERR_R_PASSED_NULL_PARAMETER);
         return 0;
     }
+    if (arg && *arg == 0) {
+        arg = NULL;
+    }
     if (e->ctrl == NULL
         || (num = ENGINE_ctrl(e, ENGINE_CTRL_GET_CMD_FROM_NAME,
                               0, (void *)cmd_name, NULL)) <= 0) {

@@ -47,78 +47,95 @@
  * ====================================================================
  */
 
+#include <openssl/err.h>
+#include <openssl/gmsdf.h>
 #include <openssl/crypto.h>
 #include "internal/dso.h"
-#include "internal/sdf_meth.h"
+#include "internal/sdf_int.h"
+
+#define SDF_METHOD_BIND_FUNCTION_EX(func,name) \
+	sdf->func = (SDF_##func##_FuncPtr)DSO_bind_func(sdf->dso, "SDF_"#name)
+
+#define SDF_METHOD_BIND_FUNCTION(func) \
+	SDF_METHOD_BIND_FUNCTION_EX(func,func)
 
 SDF_METHOD *SDF_METHOD_load_library(const char *so_path)
 {
 	SDF_METHOD *ret = NULL;
 	SDF_METHOD *sdf = NULL;
-	DSO *dso = NULL;
 
-	if (!(dso = DSO_load(NULL, so_path, NULL, 0))) {
-		goto end;
-	}
 	if (!(sdf = OPENSSL_zalloc(sizeof(*sdf)))) {
+		SDFerr(SDF_F_SDF_METHOD_LOAD_LIBRARY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!(sdf->dso = DSO_load(NULL, so_path, NULL, 0))) {
+		SDFerr(SDF_F_SDF_METHOD_LOAD_LIBRARY, SDF_R_DSO_LOAD_FAILURE);
 		goto end;
 	}
 
-	sdf->OpenDevice = (SDF_OpenDevice_FuncPtr)DSO_bind_func(dso, "SDF_OpenDevice");
-	sdf->CloseDevice = (SDF_CloseDevice_FuncPtr)DSO_bind_func(dso, "SDF_CloseDevice");
-	sdf->OpenSession = (SDF_OpenSession_FuncPtr)DSO_bind_func(dso, "SDF_OpenSession");
-	sdf->CloseSession = (SDF_CloseSession_FuncPtr)DSO_bind_func(dso, "SDF_CloseSession");
-	sdf->GetDeviceInfo = (SDF_GetDeviceInfo_FuncPtr)DSO_bind_func(dso, "SDF_GetDeviceInfo");
-	sdf->GenerateRandom = (SDF_GenerateRandom_FuncPtr)DSO_bind_func(dso, "SDF_GenerateRandom");
-	sdf->GetPrivateKeyAccessRight = (SDF_GetPrivateKeyAccessRight_FuncPtr)DSO_bind_func(dso, "SDF_GetPrivateKeyAccessRight");
-	sdf->ReleasePrivateKeyAccessRight = (SDF_ReleasePrivateKeyAccessRight_FuncPtr)DSO_bind_func(dso, "SDF_ReleasePrivateKeyAccessRight");
-	sdf->ExportSignPublicKey_RSA = (SDF_ExportSignPublicKey_RSA_FuncPtr)DSO_bind_func(dso, "SDF_ExportSignPublicKey_RSA");
-	sdf->ExportEncPublicKey_RSA = (SDF_ExportEncPublicKey_RSA_FuncPtr)DSO_bind_func(dso, "SDF_ExportEncPublicKey_RSA");
-	sdf->GenerateKeyPair_RSA = (SDF_GenerateKeyPair_RSA_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyPair_RSA");
-	sdf->GenerateKeyWithIPK_RSA = (SDF_GenerateKeyWithIPK_RSA_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyWithIPK_RSA");
-	sdf->GenerateKeyWithEPK_RSA = (SDF_GenerateKeyWithEPK_RSA_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyWithEPK_RSA");
-	sdf->ImportKeyWithISK_RSA = (SDF_ImportKeyWithISK_RSA_FuncPtr)DSO_bind_func(dso, "SDF_ImportKeyWithISK_RSA");
-	sdf->ExchangeDigitEnvelopeBaseOnRSA = (SDF_ExchangeDigitEnvelopeBaseOnRSA_FuncPtr)DSO_bind_func(dso, "SDF_ExchangeDigitEnvelopeBaseOnRSA");
-	sdf->ExportSignPublicKey_ECC = (SDF_ExportSignPublicKey_ECC_FuncPtr)DSO_bind_func(dso, "SDF_ExportSignPublicKey_ECC");
-	sdf->ExportEncPublicKey_ECC = (SDF_ExportEncPublicKey_ECC_FuncPtr)DSO_bind_func(dso, "SDF_ExportEncPublicKey_ECC");
-	sdf->GenerateKeyPair_ECC = (SDF_GenerateKeyPair_ECC_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyPair_ECC");
-	sdf->GenerateKeyWithIPK_ECC = (SDF_GenerateKeyWithIPK_ECC_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyWithIPK_ECC");
-	sdf->GenerateKeyWithEPK_ECC = (SDF_GenerateKeyWithEPK_ECC_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyWithEPK_ECC");
-	sdf->ImportKeyWithISK_ECC = (SDF_ImportKeyWithISK_ECC_FuncPtr)DSO_bind_func(dso, "SDF_ImportKeyWithISK_ECC");
-	sdf->GenerateAgreementDataWithECC = (SDF_GenerateAgreementDataWithECC_FuncPtr)DSO_bind_func(dso, "SDF_GenerateAgreementDataWithECC");
-	sdf->GenerateKeyWithECC = (SDF_GenerateKeyWithECC_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyWithECC");
-	sdf->GenerateAgreementDataAndKeyWithECC = (SDF_GenerateAgreementDataAndKeyWithECC_FuncPtr)DSO_bind_func(dso, "SDF_GenerateAgreementDataAndKeyWithECC");
-	sdf->ExchangeDigitEnvelopeBaseOnECC = (SDF_ExchangeDigitEnvelopeBaseOnECC_FuncPtr)DSO_bind_func(dso, "SDF_ExchangeDigitEnvelopeBaseOnECC");
-	sdf->GenerateKeyWithKEK = (SDF_GenerateKeyWithKEK_FuncPtr)DSO_bind_func(dso, "SDF_GenerateKeyWithKEK");
-	sdf->ImportKeyWithKEK = (SDF_ImportKeyWithKEK_FuncPtr)DSO_bind_func(dso, "SDF_ImportKeyWithKEK");
-	sdf->DestroyKey = (SDF_DestroyKey_FuncPtr)DSO_bind_func(dso, "SDF_DestroyKey");
-	sdf->ExternalPublicKeyOperation_RSA = (SDF_ExternalPublicKeyOperation_RSA_FuncPtr)DSO_bind_func(dso, "SDF_ExternalPublicKeyOperation_RSA");
-	sdf->InternalPublicKeyOperation_RSA = (SDF_InternalPublicKeyOperation_RSA_FuncPtr)DSO_bind_func(dso, "SDF_InternalPublicKeyOperation_RSA");
-	sdf->InternalPrivateKeyOperation_RSA = (SDF_InternalPrivateKeyOperation_RSA_FuncPtr)DSO_bind_func(dso, "SDF_InternalPrivateKeyOperation_RSA");
-	sdf->ExternalVerify_ECC = (SDF_ExternalVerify_ECC_FuncPtr)DSO_bind_func(dso, "SDF_ExternalVerify_ECC");
-	sdf->InternalSign_ECC = (SDF_InternalSign_ECC_FuncPtr)DSO_bind_func(dso, "SDF_InternalSign_ECC");
-	sdf->InternalVerify_ECC = (SDF_InternalVerify_ECC_FuncPtr)DSO_bind_func(dso, "SDF_InternalVerify_ECC");
-	sdf->ExternalEncrypt_ECC = (SDF_ExternalEncrypt_ECC_FuncPtr)DSO_bind_func(dso, "SDF_ExternalEncrypt_ECC");
-	sdf->ExternalDecrypt_ECC = (SDF_ExternalDecrypt_ECC_FuncPtr)DSO_bind_func(dso, "SDF_ExternalDecrypt_ECC");
-	sdf->InternalEncrypt_ECC = (SDF_InternalEncrypt_ECC_FuncPtr)DSO_bind_func(dso, "SDF_InternalEncrypt_ECC");
-	sdf->InternalDecrypt_ECC = (SDF_InternalDecrypt_ECC_FuncPtr)DSO_bind_func(dso, "SDF_InternalDecrypt_ECC");
-	sdf->Encrypt = (SDF_Encrypt_FuncPtr)DSO_bind_func(dso, "SDF_Encrypt");
-	sdf->Decrypt = (SDF_Decrypt_FuncPtr)DSO_bind_func(dso, "SDF_Decrypt");
-	sdf->CalculateMAC = (SDF_CalculateMAC_FuncPtr)DSO_bind_func(dso, "SDF_CalculateMAC");
-	sdf->HashInit = (SDF_HashInit_FuncPtr)DSO_bind_func(dso, "SDF_HashInit");
-	sdf->HashUpdate = (SDF_HashUpdate_FuncPtr)DSO_bind_func(dso, "SDF_HashUpdate");
-	sdf->HashFinal = (SDF_HashFinal_FuncPtr)DSO_bind_func(dso, "SDF_HashFinal");
-	sdf->CreateFileObject = (SDF_CreateFile_FuncPtr)DSO_bind_func(dso, "SDF_CreateFile");
-	sdf->ReadFileObject = (SDF_ReadFile_FuncPtr)DSO_bind_func(dso, "SDF_ReadFile");
-	sdf->WriteFileObject = (SDF_WriteFile_FuncPtr)DSO_bind_func(dso, "SDF_WriteFile");
-	sdf->DeleteFileObject = (SDF_DeleteFile_FuncPtr)DSO_bind_func(dso, "SDF_DeleteFile");
-
+	SDF_METHOD_BIND_FUNCTION(OpenDevice);
+	SDF_METHOD_BIND_FUNCTION(CloseDevice);
+	SDF_METHOD_BIND_FUNCTION(OpenSession);
+	SDF_METHOD_BIND_FUNCTION(CloseSession);
+	SDF_METHOD_BIND_FUNCTION(GetDeviceInfo);
+	SDF_METHOD_BIND_FUNCTION(GenerateRandom);
+	SDF_METHOD_BIND_FUNCTION(GetPrivateKeyAccessRight);
+	SDF_METHOD_BIND_FUNCTION(ReleasePrivateKeyAccessRight);
+	SDF_METHOD_BIND_FUNCTION(ExportSignPublicKey_RSA);
+	SDF_METHOD_BIND_FUNCTION(ExportEncPublicKey_RSA);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyPair_RSA);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyWithIPK_RSA);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyWithEPK_RSA);
+	SDF_METHOD_BIND_FUNCTION(ImportKeyWithISK_RSA);
+	SDF_METHOD_BIND_FUNCTION(ExchangeDigitEnvelopeBaseOnRSA);
+	SDF_METHOD_BIND_FUNCTION(ExportSignPublicKey_ECC);
+	SDF_METHOD_BIND_FUNCTION(ExportEncPublicKey_ECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyPair_ECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyWithIPK_ECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyWithEPK_ECC);
+	SDF_METHOD_BIND_FUNCTION(ImportKeyWithISK_ECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateAgreementDataWithECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyWithECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateAgreementDataAndKeyWithECC);
+	SDF_METHOD_BIND_FUNCTION(ExchangeDigitEnvelopeBaseOnECC);
+	SDF_METHOD_BIND_FUNCTION(GenerateKeyWithKEK);
+	SDF_METHOD_BIND_FUNCTION(ImportKeyWithKEK);
+	SDF_METHOD_BIND_FUNCTION(DestroyKey);
+	SDF_METHOD_BIND_FUNCTION(ExternalPublicKeyOperation_RSA);
+	//SDF_METHOD_BIND_FUNCTION(InternalPublicKeyOperation_RSA);
+	SDF_METHOD_BIND_FUNCTION(InternalPrivateKeyOperation_RSA);
+	SDF_METHOD_BIND_FUNCTION(ExternalVerify_ECC);
+	SDF_METHOD_BIND_FUNCTION(InternalSign_ECC);
+	SDF_METHOD_BIND_FUNCTION(InternalVerify_ECC);
+	SDF_METHOD_BIND_FUNCTION(ExternalEncrypt_ECC);
+#if 0
+	SDF_METHOD_BIND_FUNCTION(ExternalDecrypt_ECC);
+	SDF_METHOD_BIND_FUNCTION(InternalEncrypt_ECC);
+	SDF_METHOD_BIND_FUNCTION(InternalDecrypt_ECC);
+#endif
+	SDF_METHOD_BIND_FUNCTION(Encrypt);
+	SDF_METHOD_BIND_FUNCTION(Decrypt);
+	SDF_METHOD_BIND_FUNCTION(CalculateMAC);
+	SDF_METHOD_BIND_FUNCTION(HashInit);
+	SDF_METHOD_BIND_FUNCTION(HashUpdate);
+	SDF_METHOD_BIND_FUNCTION(HashFinal);
+	SDF_METHOD_BIND_FUNCTION_EX(CreateObject,CreateFile);
+	SDF_METHOD_BIND_FUNCTION_EX(ReadObject,ReadFile);
+	SDF_METHOD_BIND_FUNCTION_EX(WriteObject,WriteFile);
+	SDF_METHOD_BIND_FUNCTION_EX(DeleteObject,DeleteFile);
 
 	ret = sdf;
 	sdf = NULL;
 
 end:
-	OPENSSL_free(sdf);
-	DSO_free(dso);
+	SDF_METHOD_free(sdf);
 	return ret;
 }
+
+void SDF_METHOD_free(SDF_METHOD *meth)
+{
+	if (meth) DSO_free(meth->dso);
+	OPENSSL_free(meth);
+}
+
+

@@ -158,7 +158,12 @@ CMS_ContentInfo *CMS_digest_create(BIO *in, const EVP_MD *md,
 {
     CMS_ContentInfo *cms;
     if (!md)
+#ifndef OPENSSL_NO_SHA
         md = EVP_sha1();
+#else
+        md = EVP_get_default_digest();
+#endif
+
     cms = cms_DigestedData_create(md);
     if (!cms)
         return NULL;

@@ -56,6 +56,9 @@
 #ifndef HEADER_BFIBE_H
 #define HEADER_BFIBE_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_BFIBE
+
 #include <string.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -139,4 +142,5 @@ int ERR_load_BFIBE_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

@@ -70,6 +70,8 @@
 #define BN_SOLINAS_1024V1	7
 #define BN_SOLINAS_1024V2	8
 
+#if 0
+//remove warnings
 static BN_SOLINAS BN_solinas_table[] = {
 	{ 192, 16, -1, -1 },
 	{ 192, 64, -1, -1 },
@@ -81,6 +83,7 @@ static BN_SOLINAS BN_solinas_table[] = {
 	{ 1024, 424, -1, -1 },
 	{ 1024, 856, -1, 1 },
 };
+#endif
 
 /*
  * solinas = 2^a + s * 2^b + c, where s, c in {1, -1}

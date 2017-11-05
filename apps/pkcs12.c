@@ -8,6 +8,8 @@
  */
 
 #include <openssl/opensslconf.h>
+/* 依赖DES是由PKCS12的标准要求的还是遗留问题？					
+ */
 #if defined(OPENSSL_NO_DES)
 NON_EMPTY_TRANSLATION_UNIT
 #else

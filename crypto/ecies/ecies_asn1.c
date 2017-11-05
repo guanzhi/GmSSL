@@ -196,8 +196,6 @@ ECIES_PARAMS *d2i_ECIESParameters(ECIES_PARAMS **param,
 		goto end;
 	}
 
-	OpenSSL_add_all_digests();
-
 	/* kdf */
 	ret->kdf_nid = OBJ_obj2nid(asn1->kdf->algorithm);
 	if (ret->kdf_nid != NID_x9_63_kdf) {

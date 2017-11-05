@@ -52,7 +52,9 @@
 #ifndef OPENSSL_NO_DES
 # include <openssl/des.h>
 #endif
-#include <openssl/aes.h>
+#ifndef OPENSSL_NO_AES
+# include <openssl/aes.h>
+#endif
 #ifndef OPENSSL_NO_CAMELLIA
 # include <openssl/camellia.h>
 #endif
@@ -205,6 +207,7 @@ static int RC4_loop(void *args);
 static int DES_ncbc_encrypt_loop(void *args);
 static int DES_ede3_cbc_encrypt_loop(void *args);
 #endif
+#ifndef OPENSSL_NO_AES
 static int AES_cbc_128_encrypt_loop(void *args);
 static int AES_cbc_192_encrypt_loop(void *args);
 static int AES_ige_128_encrypt_loop(void *args);
@@ -212,6 +215,7 @@ static int AES_cbc_256_encrypt_loop(void *args);
 static int AES_ige_192_encrypt_loop(void *args);
 static int AES_ige_256_encrypt_loop(void *args);
 static int CRYPTO_gcm128_aad_loop(void *args);
+#endif
 static int EVP_Update_loop(void *args);
 static int EVP_Digest_loop(void *args);
 #ifndef OPENSSL_NO_RSA
@@ -433,9 +437,11 @@ static OPT_PAIR doit_choices[] = {
     {"md5", D_MD5},
     {"hmac", D_HMAC},
 #endif
+#ifndef OPENSSL_NO_SHA
     {"sha1", D_SHA1},
     {"sha256", D_SHA256},
     {"sha512", D_SHA512},
+#endif
 #ifndef OPENSSL_NO_WHIRLPOOL
     {"whirlpool", D_WHIRLPOOL},
 #endif
@@ -451,12 +457,14 @@ static OPT_PAIR doit_choices[] = {
     {"des-cbc", D_CBC_DES},
     {"des-ede3", D_EDE3_DES},
 #endif
+#ifndef OPENSSL_NO_AES
     {"aes-128-cbc", D_CBC_128_AES},
     {"aes-192-cbc", D_CBC_192_AES},
     {"aes-256-cbc", D_CBC_256_AES},
     {"aes-128-ige", D_IGE_128_AES},
     {"aes-192-ige", D_IGE_192_AES},
     {"aes-256-ige", D_IGE_256_AES},
+#endif
 #ifndef OPENSSL_NO_RC2
     {"rc2-cbc", D_CBC_RC2},
     {"rc2", D_CBC_RC2},
@@ -499,6 +507,7 @@ static OPT_PAIR dsa_choices[] = {
 };
 #endif
 
+#ifndef OPENSSL_NO_RSA
 #define R_RSA_512       0
 #define R_RSA_1024      1
 #define R_RSA_2048      2
@@ -516,6 +525,7 @@ static OPT_PAIR rsa_choices[] = {
     {"rsa15360", R_RSA_15360},
     {NULL}
 };
+#endif
 
 #define R_EC_P160    0
 #define R_EC_P192    1
@@ -670,6 +680,7 @@ static int HMAC_loop(void *args)
 }
 #endif
 
+#ifndef OPENSSL_NO_SHA
 static int SHA1_loop(void *args)
 {
     loopargs_t *tempargs = *(loopargs_t **)args;
@@ -702,6 +713,7 @@ static int SHA512_loop(void *args)
         SHA512(buf, lengths[testnum], sha512);
     return count;
 }
+#endif
 
 #ifndef OPENSSL_NO_WHIRLPOOL
 static int WHIRLPOOL_loop(void *args)
@@ -777,6 +789,8 @@ static int DES_ede3_cbc_encrypt_loop(void *args)
 #define MAX_BLOCK_SIZE 128
 
 static unsigned char iv[2 * MAX_BLOCK_SIZE / 8];
+
+#ifndef OPENSSL_NO_AES
 static AES_KEY aes_ks1, aes_ks2, aes_ks3;
 static int AES_cbc_128_encrypt_loop(void *args)
 {
@@ -863,6 +877,7 @@ static int CRYPTO_gcm128_aad_loop(void *args)
         CRYPTO_gcm128_aad(gcm_ctx, buf, lengths[testnum]);
     return count;
 }
+#endif
 
 static long save_count = 0;
 static int decrypt = 0;
@@ -1065,7 +1080,9 @@ static void *KDF1_SHA1(const void *in, size_t inlen, void *out,
     if (*outlen < SHA_DIGEST_LENGTH)
         return NULL;
     *outlen = SHA_DIGEST_LENGTH;
+#ifndef OPENSSL_NO_SHA									
     return SHA1(in, inlen, out);
+#endif
 }
 #endif                          /* OPENSSL_NO_EC */
 
@@ -1264,6 +1281,7 @@ int speed_main(int argc, char **argv)
         0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
         0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12
     };
+#ifndef OPENSSL_NO_AES
     static const unsigned char key24[24] = {
         0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
         0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12,
@@ -1275,6 +1293,7 @@ int speed_main(int argc, char **argv)
         0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34,
         0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56
     };
+#endif
 #ifndef OPENSSL_NO_CAMELLIA
     static const unsigned char ckey24[24] = {
         0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0,
@@ -1454,10 +1473,12 @@ int speed_main(int argc, char **argv)
             continue;
         }
 #endif
+#ifndef OPENSSL_NO_SHA
         if (strcmp(*argv, "sha") == 0) {
             doit[D_SHA1] = doit[D_SHA256] = doit[D_SHA512] = 1;
             continue;
         }
+#endif
 #ifndef OPENSSL_NO_RSA
 # ifndef RSA_NULL
         if (strcmp(*argv, "openssl") == 0) {
@@ -1488,11 +1509,13 @@ int speed_main(int argc, char **argv)
             continue;
         }
 #endif
+#ifndef OPENSSL_NO_AES
         if (strcmp(*argv, "aes") == 0) {
             doit[D_CBC_128_AES] = doit[D_CBC_192_AES] =
                 doit[D_CBC_256_AES] = 1;
             continue;
         }
+#endif
 #ifndef OPENSSL_NO_CAMELLIA
         if (strcmp(*argv, "camellia") == 0) {
             doit[D_CBC_128_CML] = doit[D_CBC_192_CML] =
@@ -1621,9 +1644,11 @@ int speed_main(int argc, char **argv)
     DES_set_key_unchecked(&key2, &sch2);
     DES_set_key_unchecked(&key3, &sch3);
 #endif
+#ifndef OPENSSL_NO_AES
     AES_set_encrypt_key(key16, 128, &aes_ks1);
     AES_set_encrypt_key(key24, 192, &aes_ks2);
     AES_set_encrypt_key(key32, 256, &aes_ks3);
+#endif
 #ifndef OPENSSL_NO_CAMELLIA
     Camellia_set_key(key16, 128, &camellia_ks1);
     Camellia_set_key(ckey24, 192, &camellia_ks2);
@@ -1928,6 +1953,7 @@ int speed_main(int argc, char **argv)
         }
     }
 #endif
+#ifndef OPENSSL_NO_SHA
     if (doit[D_SHA1]) {
         for (testnum = 0; testnum < SIZE_NUM; testnum++) {
             print_message(names[D_SHA1], c[D_SHA1][testnum], lengths[testnum]);
@@ -1955,6 +1981,7 @@ int speed_main(int argc, char **argv)
             print_result(D_SHA512, testnum, count, d);
         }
     }
+#endif
 
 #ifndef OPENSSL_NO_WHIRLPOOL
     if (doit[D_WHIRLPOOL]) {
@@ -2012,6 +2039,7 @@ int speed_main(int argc, char **argv)
     }
 #endif
 
+#ifndef OPENSSL_NO_AES
     if (doit[D_CBC_128_AES]) {
         for (testnum = 0; testnum < SIZE_NUM; testnum++) {
             print_message(names[D_CBC_128_AES], c[D_CBC_128_AES][testnum],
@@ -2089,6 +2117,7 @@ int speed_main(int argc, char **argv)
         for (i = 0; i < loopargs_len; i++)
             CRYPTO_gcm128_release(loopargs[i].gcm_ctx);
     }
+#endif
 
 #ifndef OPENSSL_NO_CAMELLIA
     if (doit[D_CBC_128_CML]) {
@@ -2661,7 +2690,9 @@ int speed_main(int argc, char **argv)
 #ifndef OPENSSL_NO_DES
         printf("%s ", DES_options());
 #endif
+#ifndef OPENSSL_NO_AES
         printf("%s ", AES_options());
+#endif
 #ifndef OPENSSL_NO_IDEA
         printf("%s ", IDEA_options());
 #endif
@@ -2952,6 +2983,7 @@ static int do_multi(int multi)
                 sstrsep(&p, sep);
                 for (j = 0; j < SIZE_NUM; ++j)
                     results[alg][j] += atof(sstrsep(&p, sep));
+# ifndef OPENSSL_NO_RSA
             } else if (strncmp(buf, "+F2:", 4) == 0) {
                 int k;
                 double d;
@@ -2971,6 +3003,7 @@ static int do_multi(int multi)
                     rsa_results[k][1] = 1 / (1 / rsa_results[k][1] + 1 / d);
                 else
                     rsa_results[k][1] = d;
+# endif
             }
 # ifndef OPENSSL_NO_DSA
             else if (strncmp(buf, "+F3:", 4) == 0) {

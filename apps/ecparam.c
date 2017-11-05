@@ -42,7 +42,8 @@ typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_INFORM, OPT_OUTFORM, OPT_IN, OPT_OUT, OPT_TEXT, OPT_C,
     OPT_CHECK, OPT_LIST_CURVES, OPT_NO_SEED, OPT_NOOUT, OPT_NAME,
-    OPT_CONV_FORM, OPT_PARAM_ENC, OPT_GENKEY, OPT_RAND, OPT_ENGINE
+    OPT_CONV_FORM, OPT_PARAM_ENC, OPT_GENKEY, OPT_RAND, OPT_ENGINE,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS ecparam_options[] = {
@@ -68,6 +69,7 @@ OPTIONS ecparam_options[] = {
     {"rand", OPT_RAND, 's', "Files to use for random number input"},
 # ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 # endif
     {NULL}
 };
@@ -102,6 +104,8 @@ int ecparam_main(int argc, char **argv)
     int ret = 1, private = 0;
     int list_curves = 0, no_seed = 0, check = 0, new_form = 0;
     int text = 0, i, need_rand = 0, genkey = 0;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, ecparam_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -171,11 +175,21 @@ int ecparam_main(int argc, char **argv)
         case OPT_ENGINE:
             e = setup_engine(opt_arg(), 0);
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     private = genkey ? 1 : 0;
 
@@ -459,6 +473,7 @@ int ecparam_main(int argc, char **argv)
     release_engine(e);
     BIO_free(in);
     BIO_free_all(out);
+    NCONF_free(conf);
     return (ret);
 }
 

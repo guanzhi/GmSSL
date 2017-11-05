@@ -15,8 +15,30 @@ import (
 	"unsafe"
 )
 
-func GetMacs(aliases bool) []string {
-	return []string{"hello", "world"}
+func GetMacNames(aliases bool) []string {
+	return []string{
+		"HMAC-BLAKE2b512",
+		"HMAC-BLAKE2s256",
+		"HMAC-MD4",
+		"HMAC-MD5",
+		"HMAC-MD5-SHA1",
+		"HMAC-MDC2",
+		"HMAC-RIPEMD160",
+		"HMAC-rmd160",
+		"HMAC-SHA1",
+		"HMAC-SHA224",
+		"HMAC-SHA256",
+		"HMAC-SHA384",
+		"HMAC-SHA512",
+		"HMAC-SM3",
+		"HMAC-SHA1",
+		"HMAC-SHA224",
+		"HMAC-SHA256",
+		"HMAC-SHA384",
+		"HMAC-SHA512",
+		"HMAC-SM3",
+		"HMAC-whirlpool",
+	}
 }
 
 func GetMacKeyLength(name string) (int, error) {
@@ -31,7 +53,7 @@ type MACContext struct {
 	hctx *C.HMAC_CTX
 }
 
-func NewMACContext(name string, args map[string]string, key []byte) (*MACContext, error) {
+func NewMACContext(name string, eng *Engine, key []byte) (*MACContext, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)

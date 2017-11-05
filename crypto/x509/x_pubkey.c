@@ -14,9 +14,15 @@
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 #include "internal/x509_int.h"
-#include <openssl/rsa.h>
-#include <openssl/dsa.h>
-#include <openssl/paillier.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
+#ifndef OPENSSL_NO_DSA
+# include <openssl/dsa.h>
+#endif
+#ifndef OPENSSL_NO_PAILLIER
+# include <openssl/paillier.h>
+#endif
 
 struct X509_pubkey_st {
     X509_ALGOR *algor;

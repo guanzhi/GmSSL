@@ -23,7 +23,8 @@ static int genpkey_cb(EVP_PKEY_CTX *ctx);
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_ENGINE, OPT_OUTFORM, OPT_OUT, OPT_PASS, OPT_PARAMFILE,
-    OPT_ALGORITHM, OPT_PKEYOPT, OPT_GENPARAM, OPT_TEXT, OPT_CIPHER
+    OPT_ALGORITHM, OPT_PKEYOPT, OPT_GENPARAM, OPT_TEXT, OPT_CIPHER,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS genpkey_options[] = {
@@ -40,6 +41,7 @@ OPTIONS genpkey_options[] = {
     {"", OPT_CIPHER, '-', "Cipher to use to encrypt the key"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 #endif
     /* This is deliberately last. */
     {OPT_HELP_STR, 1, 1,
@@ -58,6 +60,8 @@ int genpkey_main(int argc, char **argv)
     OPTION_CHOICE o;
     int outformat = FORMAT_PEM, text = 0, ret = 1, rv, do_param = 0;
     int private = 0;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, genpkey_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -119,11 +123,21 @@ int genpkey_main(int argc, char **argv)
             if (!opt_cipher(opt_unknown(), &cipher)
                 || do_param == 1)
                 goto opthelp;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     private = do_param ? 0 : 1;
 
@@ -195,6 +209,7 @@ int genpkey_main(int argc, char **argv)
     BIO_free(in);
     release_engine(e);
     OPENSSL_free(pass);
+    NCONF_free(conf);
     return ret;
 }
 

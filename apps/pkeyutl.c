@@ -36,7 +36,8 @@ typedef enum OPTION_choice {
     OPT_PUBIN, OPT_CERTIN, OPT_ASN1PARSE, OPT_HEXDUMP, OPT_SIGN,
     OPT_VERIFY, OPT_VERIFYRECOVER, OPT_REV, OPT_ENCRYPT, OPT_DECRYPT,
     OPT_DERIVE, OPT_SIGFILE, OPT_INKEY, OPT_PEERKEY, OPT_PASSIN,
-    OPT_PEERFORM, OPT_KEYFORM, OPT_PKEYOPT, OPT_KDF, OPT_KDFLEN
+    OPT_PEERFORM, OPT_KEYFORM, OPT_PKEYOPT, OPT_KDF, OPT_KDFLEN,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS pkeyutl_options[] = {
@@ -68,6 +69,7 @@ OPTIONS pkeyutl_options[] = {
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
     {"engine_impl", OPT_ENGINE_IMPL, '-',
      "Also use engine given by -engine for crypto operations"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 #endif
     {NULL}
 };
@@ -92,6 +94,8 @@ int pkeyutl_main(int argc, char **argv)
     const char *kdfalg = NULL;
     int kdflen = 0;
     STACK_OF(OPENSSL_STRING) *pkeyopts = NULL;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, pkeyutl_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -186,11 +190,21 @@ int pkeyutl_main(int argc, char **argv)
                 goto end;
             }
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     if (kdfalg != NULL) {
         if (kdflen == 0)
@@ -322,6 +336,7 @@ int pkeyutl_main(int argc, char **argv)
         BIO_write(out, buf_out, buf_outlen);
 
  end:
+/*
     EVP_PKEY_CTX_free(ctx);
     release_engine(e);
     BIO_free(in);
@@ -330,6 +345,8 @@ int pkeyutl_main(int argc, char **argv)
     OPENSSL_free(buf_out);
     OPENSSL_free(sig);
     sk_OPENSSL_STRING_free(pkeyopts);
+    NCONF_free(conf);
+*/
     return ret;
 }
 
@@ -485,5 +502,6 @@ static int do_keyop(EVP_PKEY_CTX *ctx, int pkey_op,
         break;
 
     }
+	if (!rv) ERR_print_errors_fp(stderr);
     return rv;
 }

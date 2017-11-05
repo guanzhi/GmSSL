@@ -23,7 +23,8 @@ NON_EMPTY_TRANSLATION_UNIT
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_C, OPT_T, OPT_TT, OPT_PRE, OPT_POST,
-    OPT_V = 100, OPT_VV, OPT_VVV, OPT_VVVV
+    OPT_V = 100, OPT_VV, OPT_VVV, OPT_VVVV,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS engine_options[] = {
@@ -40,6 +41,7 @@ OPTIONS engine_options[] = {
     {"tt", OPT_TT, '-', "Display error trace for unavailable engines"},
     {"pre", OPT_PRE, 's', "Run command against the ENGINE before loading it"},
     {"post", OPT_POST, 's', "Run command against the ENGINE after loading it"},
+    {"config", OPT_CONFIG, 's', "A config file"},
     {OPT_MORE_STR, OPT_EOF, 1,
      "Commands are like \"SO_PATH:/lib/libdriver.so\""},
     {NULL}
@@ -271,6 +273,8 @@ int engine_main(int argc, char **argv)
     OPTION_CHOICE o;
     char *prog;
     char *argv1;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     out = dup_bio_out(FORMAT_TEXT);
     if (engines == NULL || pre_cmds == NULL || post_cmds == NULL)
@@ -320,6 +324,9 @@ int engine_main(int argc, char **argv)
         case OPT_POST:
             sk_OPENSSL_STRING_push(post_cmds, opt_arg());
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
 
@@ -335,6 +342,8 @@ int engine_main(int argc, char **argv)
         }
         sk_OPENSSL_CSTRING_push(engines, *argv);
     }
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
 
     if (sk_OPENSSL_CSTRING_num(engines) == 0) {
         for (e = ENGINE_get_first(); e != NULL; e = ENGINE_get_next(e)) {
@@ -365,8 +374,18 @@ int engine_main(int argc, char **argv)
                 ENGINE_DIGESTS_PTR fn_d;
                 ENGINE_PKEY_METHS_PTR fn_pk;
 
+#if 0
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
+#endif
+
                 if (ENGINE_get_RSA(e) != NULL
                     && !append_buf(&cap_buf, &cap_size, "RSA"))
+                    goto end;
+                if (ENGINE_get_EC(e) != NULL
+                    && !append_buf(&cap_buf, &cap_size, "EC"))
                     goto end;
                 if (ENGINE_get_DSA(e) != NULL
                     && !append_buf(&cap_buf, &cap_size, "DSA"))
@@ -440,6 +459,7 @@ int engine_main(int argc, char **argv)
     sk_OPENSSL_STRING_free(pre_cmds);
     sk_OPENSSL_STRING_free(post_cmds);
     BIO_free_all(out);
+    NCONF_free(conf);
     return (ret);
 }
 #endif

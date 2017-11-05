@@ -50,8 +50,11 @@
 #ifndef HEADER_ZUC_H
 #define HEADER_ZUC_H
 
-#include <stdint.h>
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_ZUC
+
 #include <stdlib.h>
+#include <openssl/e_os2.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,10 +65,8 @@ typedef struct {
 	uint32_t state[22];
 } zuc_key_t;
 
-/*
 void zuc_set_key(zuc_key_t *key, const unsigned char *user_key, const unsigned char *iv);
 void zuc_generate_keystream(zuc_key_t *key, size_t nwords, uint32_t *words);
-*/
 
 typedef struct {
 	zuc_key_t key;
@@ -73,16 +74,14 @@ typedef struct {
 	size_t buflen;
 } zuc_ctx_t;
 
-/*
 void zuc_ctx_init(zuc_ctx_t *ctx, const unsigned char *user_key, const unsigned char *iv);
 void zuc_encrypt(zuc_ctx_t *ctx, size_t len, const unsigned char *in, unsigned char *out);
 #define zuc_decrypt(ctx,len,in,out)  zuc_encrypt(ctx,len,in,out)
-*/
 
-#define EEA3_MIN_BITS	1
-#define EEA3_MAX_BITS	65504
-#define EEA3_MIN_BYTES	((EEA3_MIN_BITS + 7)/8)
-#define EEA3_MAX_BYTES	((EEA3_MAX_BITS + 7)/8)
+#define ZUC_128EEA3_MIN_BITS	1
+#define ZUC_128EEA3_MAX_BITS	65504
+#define ZUC_128EEA3_MIN_BYTES	((ZUC_128EEA3_MIN_BITS + 7)/8)
+#define ZUC_128EEA3_MAX_BYTES	((ZUC_128EEA3_MAX_BITS + 7)/8)
 
 typedef struct {
 	zuc_ctx_t zuc;
@@ -90,17 +89,17 @@ typedef struct {
 	/* maybe buffer */
 } eea3_ctx_t;
 
-/*
-void eea3_init(eea3_ctx_t *ctx, const unsigned char *user_key, uint32_t count, uint32_t bearer, int direction);
-void eea3_encrypt(eea3_ctx_t *ctx, size_t len, const unsigned char *in, unsigned char *out);
+void zuc_128eea3_init(zuc_128eea3_t *eea3, const unsigned char *user_key,
+	uint32_t count, uint32_t bearer, int direction);
+void zuc_128eea3_encrypt(zuc_128eea3_t *ctx, size_t len,
+	const unsigned char *in, unsigned char *out);
 #define eea3_decrypt(ctx,len,in,out) eea3_encrypt(ctx,len,in,out)
-void eea3(const unsigned char *key, uint32_t count, uint32_t bearer, int direction,
-	size_t len, const unsigned char *in, unsigned char *out);
-*/
+void eea3(const unsigned char *key, uint32_t count, uint32_t bearer,
+	int direction, size_t len, const unsigned char *in, unsigned char *out);
 
-#define EIA3_MIN_BYTES	EEA3_MIN_BYTES
-#define EIA3_MAX_BYTES	EEA3_MAX_BYTES
-#define EIA3_MAC_SIZE	4
+#define ZUC_128EIA3_MIN_BYTES	EEA3_MIN_BYTES
+#define ZUC_128EIA3_MAX_BYTES	EEA3_MAX_BYTES
+#define ZUC_128EIA3_MAC_SIZE	4
 
 typedef struct {
 	zuc_ctx_t zuc;
@@ -108,15 +107,17 @@ typedef struct {
 	/* maybe buffer */
 } eia3_ctx_t;
 
-/*
-void eia3_init(eia3_ctx_t *ctx, const unsigned char *user_key, uint32_t count, uint32_t bearer, int direction);
-void eia3_update(eia3_ctx_t *ctx, const unsigned char *data, size_t datalen);
-void eia3_final(eia3_ctx_t *ctx, uint32_t *mac);
-void eia3(const unsigned char *key, uint32_t count, uint32_t bearer, int direction,
-	const unsigned char *data, size_t len, uint32_t *mac);
-*/
+void zuc_128eia3_init(zuc_128eia3_t *eia3, const unsigned char *user_key,
+	uint32_t count, uint32_t bearer, int direction);
+void zuc_128eia3_update(zuc_128eia3_t *eia3, const unsigned char *data,
+	size_t datalen);
+void zuc_128eia3_final(zuc_128eia3_t *eia3, uint32_t *mac);
+void zuc_128eia3(const unsigned char *key, uint32_t count, uint32_t bearer,
+	int direction, const unsigned char *data, size_t len, uint32_t *mac);
+
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

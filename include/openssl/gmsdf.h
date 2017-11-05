@@ -50,41 +50,36 @@
 #ifndef HEADER_GMSDF_H
 #define HEADER_GMSDF_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SDF
+
 #include <stdio.h>
 #include <openssl/sgd.h>
 #include <openssl/sdf.h>
 
-#define SDF_MIN_KEY_INDEX	1 /* defined by GM/T 0018 */
-#define SDF_MAX_KEY_INDEX	32 /* defined by GmSSL as vendor */
-#define SDF_MIN_PASSWORD_LENGTH	8 /* defined by GM/T 0018 */
-#define SDF_MAX_PASSWORD_LENGTH	255 /* defined by GmSSL as vendor */
-
-#define ECCref_MAX_CIPHER_LEN 255
-
+#define SDF_MIN_KEY_INDEX	  1 /* defined by GM/T 0018 */
+#define SDF_MAX_KEY_INDEX	 32 /* defined by GmSSL */
+#define SDF_MIN_PASSWORD_LENGTH	  8 /* defined by GM/T 0018 */
+#define SDF_MAX_PASSWORD_LENGTH	255 /* defined by GmSSL */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int SDF_PrintDeviceInfo(FILE *fp, DEVICEINFO *devInfo);
-int SDF_PrintRSAPublicKey(FILE *fp, RSArefPublicKey *pk);
-int SDF_PrintRSAPrivateKey(FILE *fp, RSArefPrivateKey *pk);
-int SDF_PrintECCPublicKey(FILE *fp, ECCrefPublicKey *pk);
-int SDF_PrintECCPrivateKey(FILE *fp, ECCrefPrivateKey *pk);
-/*
-int SDF_PrintECCCipher(FILE *fp, ECCCipher *cipher);
-int SDF_PrintECCSignature(FILE *fp, ECCSignature *sig);
-*/
-const char *SDF_GetErrorString(int err);
+int SDF_LoadLibrary(char *so_path, char *vendor);
+int SDF_UnloadLibrary(void);
+int SDF_ImportKey(void *hSessionHandle, unsigned char *pucKey,
+	unsigned int uiKeyLength, void **phKeyHandle);
 
-//FIXME: implement this in a standalone file in sdf module
-/*
-int SDF_ImportKey(
-	void *hSessionHandle,
-	unsigned char *pucKey,
-	unsigned int uiKeyLength,
-	void **phKeyHandle);
-*/
+int SDF_PrintDeviceInfo(DEVICEINFO *devInfo);
+int SDF_PrintRSAPublicKey(RSArefPublicKey *ref);
+int SDF_PrintRSAPrivateKey(RSArefPrivateKey *ref);
+int SDF_PrintECCPublicKey(ECCrefPublicKey *ref);
+int SDF_PrintECCPrivateKey(ECCrefPrivateKey *ref);
+int SDF_PrintECCCipher(ECCCipher *cipher);
+int SDF_PrintECCSignature(ECCSignature *sig);
+int SDF_GetErrorString(int err, char **str);
+
 
 /* BEGIN ERROR CODES */
 /*
@@ -97,6 +92,8 @@ int ERR_load_SDF_strings(void);
 /* Error codes for the SDF functions. */
 
 /* Function codes. */
+# define SDF_F_SANSEC_DECODE_ECCCIPHER                    149
+# define SDF_F_SANSEC_ENCODE_ECCCIPHER                    150
 # define SDF_F_SDF_CALCULATEMAC                           100
 # define SDF_F_SDF_CLOSEDEVICE                            101
 # define SDF_F_SDF_CLOSESESSION                           102
@@ -139,6 +136,7 @@ int ERR_load_SDF_strings(void);
 # define SDF_F_SDF_INTERNALPUBLICKEYOPERATION_RSA         147
 # define SDF_F_SDF_INTERNALSIGN_ECC                       139
 # define SDF_F_SDF_INTERNALVERIFY_ECC                     140
+# define SDF_F_SDF_LOADLIBRARY                            148
 # define SDF_F_SDF_METHOD_LOAD_LIBRARY                    141
 # define SDF_F_SDF_OPENDEVICE                             142
 # define SDF_F_SDF_OPENSESSION                            143
@@ -147,18 +145,121 @@ int ERR_load_SDF_strings(void);
 # define SDF_F_SDF_WRITEFILE                              146
 
 /* Reason codes. */
+# define SDF_R_ALGORITHM_MODE_NOT_SUPPORTED               111
+# define SDF_R_ALGORITHM_NOT_SUPPORTED                    112
+# define SDF_R_BUFFER_TOO_SMALL                           113
+# define SDF_R_COMMUNICATION_FAILURE                      114
+# define SDF_R_DSO_LOAD_FAILURE                           110
+# define SDF_R_ENCRYPT_DATA_ERROR                         115
+# define SDF_R_ERROR                                      116
+# define SDF_R_FILE_ALREADY_EXIST                         117
+# define SDF_R_FILE_NOT_EXIST                             118
+# define SDF_R_HARDWARE_ERROR                             119
+# define SDF_R_INVALID_CIPHER_ALGOR                       143
+# define SDF_R_INVALID_DIGEST_ALGOR                       144
+# define SDF_R_INVALID_FILE_OFFSET                        120
+# define SDF_R_INVALID_FILE_SIZE                          121
+# define SDF_R_INVALID_INPUT_ARGUMENT                     122
+# define SDF_R_INVALID_KEY                                123
 # define SDF_R_INVALID_KEY_LENGTH                         100
+# define SDF_R_INVALID_KEY_TYPE                           124
+# define SDF_R_INVALID_OUTPUT_ARGUMENT                    125
+# define SDF_R_INVALID_SANSEC_ECCCIPHER_LENGTH            207
 # define SDF_R_INVALID_SDF_LIBRARY                        101
 # define SDF_R_INVALID_SESSION_HANDLE                     102
+# define SDF_R_KEY_NOT_EXIST                              126
 # define SDF_R_LOAD_LIBRARY_FAILURE                       107
+# define SDF_R_MAC_ERROR                                  127
 # define SDF_R_METHOD_OPERATION_FAILURE                   108
+# define SDF_R_MULTI_STEP_OPERATION_ERROR                 128
 # define SDF_R_NOT_INITIALIZED                            109
 # define SDF_R_NOT_SUPPORTED                              103
+# define SDF_R_NOT_SUPPORTED_CIPHER_ALGOR                 208
+# define SDF_R_NOT_SUPPORTED_DIGEST_ALGOR                 209
+# define SDF_R_NOT_SUPPORTED_ECC_ALGOR                    210
+# define SDF_R_NOT_SUPPORTED_PKEY_ALGOR                   211
+# define SDF_R_NO_PRIVATE_KEY_ACCESS_RIGHT                129
+# define SDF_R_OPEN_DEVICE_FAILURE                        130
+# define SDF_R_OPEN_SESSION_FAILURE                       131
 # define SDF_R_OPERATION_FAILED                           104
+# define SDF_R_OPERATION_NOT_SUPPORTED                    132
+# define SDF_R_PRIVATE_KEY_OPERATION_FAILURE              133
+# define SDF_R_PRKERR                                     134
+# define SDF_R_PUBLIC_KEY_OPERATION_FAILURE               135
+# define SDF_R_RANDOM_GENERATION_ERROR                    136
+# define SDF_R_SANSEC_BASE                                145
+# define SDF_R_SANSEC_CARD_ALGOR_NOT_SUPPORTED            146
+# define SDF_R_SANSEC_CARD_ALG_MODE_NOT_SUPPORTED         147
+# define SDF_R_SANSEC_CARD_BASE                           148
+# define SDF_R_SANSEC_CARD_BUFFER_TOO_SMALL               149
+# define SDF_R_SANSEC_CARD_COMMMUCATION_FAILED            150
+# define SDF_R_SANSEC_CARD_CRYPTO_NOT_INITED              151
+# define SDF_R_SANSEC_CARD_DATA_PADDING_ERROR             152
+# define SDF_R_SANSEC_CARD_DATA_SIZE                      153
+# define SDF_R_SANSEC_CARD_DEVICE_STATUS_ERROR            154
+# define SDF_R_SANSEC_CARD_DEVICE_STATUS_ERROR_05         155
+# define SDF_R_SANSEC_CARD_FILE_NOT_EXIST                 156
+# define SDF_R_SANSEC_CARD_FILE_OFFSET_ERROR              157
+# define SDF_R_SANSEC_CARD_FILE_SIZE_ERROR                158
+# define SDF_R_SANSEC_CARD_HARDWARE_FAILURE               159
+# define SDF_R_SANSEC_CARD_KEY_ERROR                      160
+# define SDF_R_SANSEC_CARD_KEY_NOT_EXIST                  161
+# define SDF_R_SANSEC_CARD_KEY_TYPE_ERROR                 162
+# define SDF_R_SANSEC_CARD_LOGIN_ERROR                    163
+# define SDF_R_SANSEC_CARD_LOGIN_ERROR_05                 164
+# define SDF_R_SANSEC_CARD_MANAGEMENT_DENYED              165
+# define SDF_R_SANSEC_CARD_MANAGEMENT_DENYED_05           166
+# define SDF_R_SANSEC_CARD_NOT_SUPPORTED                  167
+# define SDF_R_SANSEC_CARD_OPEN_DEVICE_FAILED             168
+# define SDF_R_SANSEC_CARD_OPEN_SESSION_FAILED            169
+# define SDF_R_SANSEC_CARD_OPERATION_DENYED               170
+# define SDF_R_SANSEC_CARD_OPERATION_DENYED_05            171
+# define SDF_R_SANSEC_CARD_PARAMENT_ERROR                 172
+# define SDF_R_SANSEC_CARD_PARAMENT_ERROR_05              173
+# define SDF_R_SANSEC_CARD_PRIVATE_KEY_ACCESS_DENYED      174
+# define SDF_R_SANSEC_CARD_PRIVATE_KEY_OPERATION_ERROR    175
+# define SDF_R_SANSEC_CARD_PUBLIC_KEY_OPERATION_ERROR     176
+# define SDF_R_SANSEC_CARD_READER_BASE                    177
+# define SDF_R_SANSEC_CARD_READER_CARD_INSERT             178
+# define SDF_R_SANSEC_CARD_READER_CARD_INSERT_TYPE        179
+# define SDF_R_SANSEC_CARD_READER_NO_CARD                 180
+# define SDF_R_SANSEC_CARD_READER_PIN_ERROR               181
+# define SDF_R_SANSEC_CARD_SIGN_ERROR                     182
+# define SDF_R_SANSEC_CARD_STEP_ERROR                     183
+# define SDF_R_SANSEC_CARD_SYMMETRIC_ALGOR_ERROR          184
+# define SDF_R_SANSEC_CARD_UNKNOW_ERROR                   185
+# define SDF_R_SANSEC_CARD_USERID_ERROR                   186
+# define SDF_R_SANSEC_CARD_USERID_ERROR_05                187
+# define SDF_R_SANSEC_CARD_VERIFY_ERROR                   188
+# define SDF_R_SANSEC_CONFIG_ERROR                        189
+# define SDF_R_SANSEC_CONNECT_ERROR                       190
+# define SDF_R_SANSEC_FILE_ALREADY_EXIST                  191
+# define SDF_R_SANSEC_INVALID_AUTHENCODE                  192
+# define SDF_R_SANSEC_INVALID_COMMAND                     193
+# define SDF_R_SANSEC_INVALID_PARAMETERS                  194
+# define SDF_R_SANSEC_INVALID_USER                        195
+# define SDF_R_SANSEC_NO_AVAILABLE_CSM                    196
+# define SDF_R_SANSEC_NO_AVAILABLE_HSM                    197
+# define SDF_R_SANSEC_PROTOCOL_VERSION_ERROR              198
+# define SDF_R_SANSEC_SEM_TIMEOUT                         199
+# define SDF_R_SANSEC_SET_SOCKET_OPTION_ERROR             200
+# define SDF_R_SANSEC_SOCKET_RECV_0                       201
+# define SDF_R_SANSEC_SOCKET_RECV_ERROR                   202
+# define SDF_R_SANSEC_SOCKET_SEND_ERROR                   203
+# define SDF_R_SANSEC_SOCKET_TIMEOUT                      204
+# define SDF_R_SANSEC_SYNC_ERROR                          205
+# define SDF_R_SANSEC_SYNC_LOGIN_ERROR                    206
 # define SDF_R_SDF_METHOD_RETURN_FAILURE                  105
 # define SDF_R_SDF_OPERATION_FAILED                       106
+# define SDF_R_SIGNING_FAILURE                            137
+# define SDF_R_SUCCESS                                    138
+# define SDF_R_SYMMETRIC_OPERATION_FAILURE                139
+# define SDF_R_UNNOWN_ERROR                               140
+# define SDF_R_VERIFICATION_FAILURE                       141
+# define SDF_R_WRITE_FILE_FAILURE                         142
 
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

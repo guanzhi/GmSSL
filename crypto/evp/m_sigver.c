@@ -150,20 +150,24 @@ int EVP_DigestVerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sig,
     if (ctx->flags & EVP_MD_CTX_FLAG_FINALISE) {
         if (vctx) {
             r = ctx->pctx->pmeth->verifyctx(ctx->pctx, sig, siglen, ctx);
-        } else
+        } else {
             r = EVP_DigestFinal_ex(ctx, md, &mdlen);
+        }
     } else {
         EVP_MD_CTX *tmp_ctx = EVP_MD_CTX_new();
-        if (tmp_ctx == NULL || !EVP_MD_CTX_copy_ex(tmp_ctx, ctx))
+        if (tmp_ctx == NULL || !EVP_MD_CTX_copy_ex(tmp_ctx, ctx)) {
             return -1;
+        }
         if (vctx) {
             r = tmp_ctx->pctx->pmeth->verifyctx(tmp_ctx->pctx,
                                                 sig, siglen, tmp_ctx);
-        } else
+        } else {
             r = EVP_DigestFinal_ex(tmp_ctx, md, &mdlen);
+        }
         EVP_MD_CTX_free(tmp_ctx);
     }
-    if (vctx || !r)
+    if (vctx || !r) {
         return r;
+    }
     return EVP_PKEY_verify(ctx->pctx, sig, siglen, md, mdlen);
 }

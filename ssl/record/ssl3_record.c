@@ -228,6 +228,11 @@ int ssl3_get_record(SSL *s)
                     goto f_err;
                 }
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+                if (version == GMTLS_VERSION) {
+                    /* do nothing */
+                } else
+#endif
                 if ((version >> 8) != SSL3_VERSION_MAJOR) {
                     if (RECORD_LAYER_is_first_record(&s->rlayer)) {
                         /* Go back to start of packet, look at the five bytes

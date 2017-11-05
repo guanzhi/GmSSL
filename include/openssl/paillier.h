@@ -52,7 +52,9 @@
 
 #ifndef HEADER_PAILLIER_H
 #define HEADER_PAILLIER_H
-#ifndef NO_GMSSL
+
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_PAILLIER
 
 #include <openssl/bn.h>
 #include <openssl/asn1.h>

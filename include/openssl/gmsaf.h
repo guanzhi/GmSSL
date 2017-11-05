@@ -50,9 +50,15 @@
 #ifndef HEADER_GMSAF_H
 #define HEADER_GMSAF_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SAF
+
 #include <stdio.h>
 #include <openssl/sgd.h>
 #include <openssl/saf.h>
+
+#define SAF_MAX_EC_CIPHERTEXT_LENGTH 136
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -187,4 +193,5 @@ int ERR_load_SAF_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

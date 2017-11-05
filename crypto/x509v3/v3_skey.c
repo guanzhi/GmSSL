@@ -61,6 +61,14 @@ static ASN1_OCTET_STRING *s2i_skey_id(X509V3_EXT_METHOD *method,
     int pklen;
     unsigned char pkey_dig[EVP_MAX_MD_SIZE];
     unsigned int diglen;
+    const EVP_MD *md;
+#ifndef OPENSSL_NO_SHA
+    md = EVP_sha1();
+#elif !defined(OPENSSL_NO_SM3)
+    md = EVP_sm3();
+#else
+    return NULL;
+#endif
 
     if (strcmp(str, "hash"))
         return s2i_ASN1_OCTET_STRING(method, ctx, str);
@@ -90,7 +98,7 @@ static ASN1_OCTET_STRING *s2i_skey_id(X509V3_EXT_METHOD *method,
 
     X509_PUBKEY_get0_param(NULL, &pk, &pklen, NULL, pubkey);
 
-    if (!EVP_Digest(pk, pklen, pkey_dig, &diglen, EVP_sha1(), NULL))
+    if (!EVP_Digest(pk, pklen, pkey_dig, &diglen, md, NULL))
         goto err;
 
     if (!ASN1_OCTET_STRING_set(oct, pkey_dig, diglen)) {

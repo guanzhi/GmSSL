@@ -32,7 +32,8 @@ typedef enum OPTION_choice {
     OPT_ENGINE, OPT_IN, OPT_OUT, OPT_ASN1PARSE, OPT_HEXDUMP,
     OPT_RAW, OPT_OAEP, OPT_SSL, OPT_PKCS, OPT_X931,
     OPT_SIGN, OPT_VERIFY, OPT_REV, OPT_ENCRYPT, OPT_DECRYPT,
-    OPT_PUBIN, OPT_CERTIN, OPT_INKEY, OPT_PASSIN, OPT_KEYFORM
+    OPT_PUBIN, OPT_CERTIN, OPT_INKEY, OPT_PASSIN, OPT_KEYFORM,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS rsautl_options[] = {
@@ -59,6 +60,7 @@ OPTIONS rsautl_options[] = {
     {"passin", OPT_PASSIN, 's', "Input file pass phrase source"},
 # ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 # endif
     {NULL}
 };
@@ -77,6 +79,8 @@ int rsautl_main(int argc, char **argv)
     int rsa_inlen, keyformat = FORMAT_PEM, keysize, ret = 1;
     int rsa_outlen = 0, hexdump = 0, asn1parse = 0, need_priv = 0, rev = 0;
     OPTION_CHOICE o;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, rsautl_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -153,11 +157,21 @@ int rsautl_main(int argc, char **argv)
         case OPT_PASSIN:
             passinarg = opt_arg();
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     if (need_priv && (key_type != KEY_PRIVKEY)) {
         BIO_printf(bio_err, "A private key is needed for this operation\n");
@@ -273,6 +287,7 @@ int rsautl_main(int argc, char **argv)
     OPENSSL_free(rsa_in);
     OPENSSL_free(rsa_out);
     OPENSSL_free(passin);
+    NCONF_free(conf);
     return ret;
 }
 #endif

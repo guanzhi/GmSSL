@@ -17,7 +17,7 @@ IF[{- !$disabled{tests} -}]
           dtlsv1listentest ct_test threadstest afalgtest d2i_test \
           ssl_test_ctx_test ssl_test x509aux cipherlist_test asynciotest \
           bioprinttest sslapitest dtlstest sslcorrupttest bio_enc_test \
-          sm3test sms4test kdf2test eciestest ffxtest sm2test sm2evptest \
+          sm3test sms4test kdf2test eciestest ffxtest sm2test \
           pailliertest cpktest otptest gmapitest ec2test \
           bfibetest bb1ibetest sm9test \
           saftest sdftest skftest softest zuctest \
@@ -311,10 +311,6 @@ IF[{- !$disabled{tests} -}]
   SOURCE[sm2test]=sm2test.c
   INCLUDE[sm2test]=../include
   DEPEND[sm2test]=../libcrypto
-
-  SOURCE[sm2evptest]=sm2evptest.c
-  INCLUDE[sm2evptest]=../include
-  DEPEND[sm2evptest]=../libcrypto
 
   SOURCE[pailliertest]=pailliertest.c
   INCLUDE[pailliertest]=../include

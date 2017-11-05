@@ -301,7 +301,7 @@ my $default_ranlib;
 $config{fips}=0;
 
 # Top level directories to build
-$config{dirs} = [ "crypto", "ssl", "engines", "apps", "test", "util", "tools", "fuzz" ];
+$config{dirs} = [ "crypto", "ssl", "engines", "apps", "util", "tools", "fuzz", "java" ];
 # crypto/ subdirectories to build
 $config{sdirs} = [
     "objects",
@@ -311,9 +311,9 @@ $config{sdirs} = [
     "buffer", "bio", "stack", "lhash", "rand", "err",
     "evp", "asn1", "pem", "x509", "x509v3", "conf", "txt_db", "pkcs7", "pkcs12", "comp", "ocsp", "ui",
     "cms", "ts", "srp", "cmac", "ct", "async", "kdf",
-    "sm3", "sms4", "kdf2", "ecies", "ffx", "sm2", "paillier", "cpk", "otp", "gmapi", "ec2",
-    "bfibe", "bb1ibe", "sm9", "saf", "sdf", "skf", "sof", "zuc",
-    "serpent", "speck", "base58"
+    "sm3", "base58", "sms4", "zuc", "serpent", "speck", "kdf2", "ffx", "otp",
+    "ecies", "sm2", "cpk", "paillier", "ec2", "sm9", "bfibe", "bb1ibe",
+    "gmapi", "skf", "sdf", "saf", "sof",
     ];
 
 # Known TLS and DTLS protocols
@@ -407,6 +407,9 @@ my @disablables = (
     "weak-ssl-ciphers",
     "zlib",
     "zlib-dynamic",
+    "skfeng",
+    "sdfeng",
+    "gmieng",
     "sm3",
     "sms4",
     "kdf2",
@@ -436,6 +439,8 @@ my @disablables = (
     "serpent",
     "speck",
     "base58",
+    "java",
+    "ca",
     );
 foreach my $proto ((@tls, @dtls))
 	{
@@ -473,6 +478,7 @@ our %disabled = ( # "what"         => "comment"
 		  "zlib"                => "default",
 		  "zlib-dynamic"        => "default",
 		  "zuc"                 => "default",
+		  #"engine"              => "default",
 		  #"sm9"                 => "default",
                   #"bfibe"               => "default",
                   #"bb1ibe"              => "default",
@@ -483,6 +489,7 @@ our %disabled = ( # "what"         => "comment"
 		  #"sof"                 => "default",
 		  #"serpent"             => "default",
 		  #"speck"               => "default",
+		  #"base58"               => "default",
 		);
 
 # Note: => pair form used for aesthetics, not to truly make a hash table
@@ -500,9 +507,15 @@ my @disable_cascades = (
     "sock"		=> [ "dgram" ],
     "dtls"		=> [ @dtls ],
 
+    "sm3"               => [ "sm2" ],
+    "saf"		=> [ "sof" ],
+
     # SSL 3.0, (D)TLS 1.0 and TLS 1.1 require MD5 and SHA
-    "md5"		=> [ "ssl", "tls1", "tls1_1", "dtls1" ],
-    "sha"		=> [ "ssl", "tls1", "tls1_1", "dtls1" ],
+    "md5"		=> [ "ssl", "tls1", "tls1_1", "dtls1", "engine" ],
+    # current pkcs12 rfc only define sha1/des bag
+    "sha"		=> [ "ssl", "tls1", "tls1_1", "dtls1", "engine", "rsa", "dh", "dsa", "ocsp", "ct", "srp", "ts", "ec2", "cpk" ],
+    "aes"               => [ "engine" ],
+    "ec2"		=> [ "sm9", "bfibe", "bb1ibe" ],
 
     # Additionally, SSL 3.0 requires either RSA or DSA+DH
     sub { $disabled{rsa}
@@ -531,7 +544,7 @@ my @disable_cascades = (
     # Without position independent code, there can be no shared libraries or DSOs
     "pic"               => [ "shared" ],
     "shared"            => [ "dynamic-engine" ],
-    "engine"            => [ "afalgeng" ],
+    "engine"            => [ "afalgeng", "saf" ],
 
     # no-autoalginit is only useful when building non-shared
     "autoalginit"       => [ "shared", "apps" ],
@@ -1237,6 +1250,9 @@ unless ($disabled{asm}) {
     }
     if ($target{padlock_asm_src} ne $table{DEFAULTS}->{padlock_asm_src}) {
 	push @{$config{defines}}, "PADLOCK_ASM";
+    }
+    if ($target{gmi_asm_src} ne $table{DEFAULTS}->{gmi_asm_src}) {
+	push @{$config{defines}}, "GMI_ASM";
     }
     if ($target{poly1305_asm_src} ne "") {
 	push @{$config{defines}}, "POLY1305_ASM";
@@ -2106,6 +2122,7 @@ print "RMD160_OBJ_ASM=$target{rmd160_obj}\n";
 print "CMLL_ENC      =$target{cmll_obj}\n";
 print "MODES_OBJ     =$target{modes_obj}\n";
 print "PADLOCK_OBJ   =$target{padlock_obj}\n";
+print "GMI_OBJ       =$target{gmi_obj}\n";
 print "CHACHA_ENC    =$target{chacha_obj}\n";
 print "POLY1305_OBJ  =$target{poly1305_obj}\n";
 print "BLAKE2_OBJ    =$target{blake2_obj}\n";
@@ -2560,6 +2577,7 @@ sub print_table_entry
 	"cmll_asm_src",
 	"modes_asm_src",
 	"padlock_asm_src",
+	"gmi_asm_src",
 	"chacha_asm_src",
 	"poly1035_asm_src",
 	"thread_scheme",

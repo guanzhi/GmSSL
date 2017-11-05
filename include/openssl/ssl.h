@@ -112,7 +112,10 @@ extern "C" {
 # define SSL_TXT_kGOST           "kGOST"
 # define SSL_TXT_kSRP            "kSRP"
 # define SSL_TXT_kSM2            "kSM2"
+# define SSL_TXT_kSM2DHE         "kSM2DHE"
 # define SSL_TXT_kSM2PSK         "kSM2PSK"
+# define SSL_TXT_kSM9            "kSM9"
+# define SSL_TXT_kSM9DHE         "kSM9DHE"
 
 # define SSL_TXT_aRSA            "aRSA"
 # define SSL_TXT_aDSS            "aDSS"
@@ -126,6 +129,7 @@ extern "C" {
 # define SSL_TXT_aGOST           "aGOST"
 # define SSL_TXT_aSRP            "aSRP"
 # define SSL_TXT_aSM2            "aSM2"
+# define SSL_TXT_aSM9            "aSM9"
 
 # define SSL_TXT_DSS             "DSS"
 # define SSL_TXT_DH              "DH"
@@ -140,6 +144,8 @@ extern "C" {
 # define SSL_TXT_ECDSA           "ECDSA"
 # define SSL_TXT_PSK             "PSK"
 # define SSL_TXT_SRP             "SRP"
+# define SSL_TXT_SM2             "SM2"
+# define SSL_TXT_SM9             "SM9"
 
 # define SSL_TXT_DES             "DES"
 # define SSL_TXT_3DES            "3DES"
@@ -181,6 +187,7 @@ extern "C" {
 # define SSL_TXT_TLSV1           "TLSv1"
 # define SSL_TXT_TLSV1_1         "TLSv1.1"
 # define SSL_TXT_TLSV1_2         "TLSv1.2"
+# define SSL_TXT_GMTLSV1         "GMTLSv1"
 # define SSL_TXT_GMTLSV1_1       "GMTLSv1.1"
 
 # define SSL_TXT_ALL             "ALL"
@@ -359,6 +366,10 @@ typedef int (*SSL_verify_cb)(int preverify_ok, X509_STORE_CTX *x509_ctx);
 
 # define SSL_OP_NO_DTLSv1                                0x04000000U
 # define SSL_OP_NO_DTLSv1_2                              0x08000000U
+
+# ifndef OPENSSL_NO_GMTLS_METHOD
+#  define SSL_OP_NO_GMTLS                                0x10000000U
+# endif
 
 # define SSL_OP_NO_SSL_MASK (SSL_OP_NO_SSLv3|\
         SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_NO_TLSv1_2)
@@ -1032,6 +1043,14 @@ DECLARE_PEM_rw(SSL_SESSION, SSL_SESSION)
 /* fatal */
 # define SSL_AD_INAPPROPRIATE_FALLBACK   TLS1_AD_INAPPROPRIATE_FALLBACK
 # define SSL_AD_NO_APPLICATION_PROTOCOL  TLS1_AD_NO_APPLICATION_PROTOCOL
+# ifndef OPENSSL_NO_GMTLS_METHOD
+#  define SSL_AD_UNSUPPORTED_SITE2SITE   GMTLS_AD_UNSUPPORTED_SITE2SITE
+#  define SSL_AD_NO_AREA                 GMTLS_AD_NO_AREA
+#  define SSL_AD_UNSUPPORTED_AREATYPE    GMTLS_AD_UNSUPPORTED_AREATYPE
+#  define SSL_AD_BAD_IBCPARAM            GMTLS_AD_BAD_IBCPARAM
+#  define SSL_AD_UNSUPPORTED_IBCPARAM    GMTLS_AD_UNSUPPORTED_IBCPARAM
+#  define SSL_AD_IDENTITY_NEED           GMTLS_AD_IDENTITY_NEED
+# endif
 # define SSL_ERROR_NONE                  0
 # define SSL_ERROR_SSL                   1
 # define SSL_ERROR_WANT_READ             2
@@ -1421,6 +1440,9 @@ void SSL_SESSION_get0_ticket(const SSL_SESSION *s, const unsigned char **tick,
                             size_t *len);
 __owur int SSL_copy_session_id(SSL *to, const SSL *from);
 __owur X509 *SSL_SESSION_get0_peer(SSL_SESSION *s);
+#ifndef OPENSSL_NO_GMTLS_METHOD
+__owur X509 *SSL_SESSION_get0_peer_extra(SSL_SESSION *s);
+#endif
 __owur int SSL_SESSION_set1_id_context(SSL_SESSION *s, const unsigned char *sid_ctx,
                                 unsigned int sid_ctx_len);
 __owur int SSL_SESSION_set1_id(SSL_SESSION *s, const unsigned char *sid,
@@ -1638,6 +1660,12 @@ DEPRECATEDIN_1_1_0(__owur const SSL_METHOD *DTLSv1_2_client_method(void)) /* DTL
 __owur const SSL_METHOD *DTLS_method(void); /* DTLS 1.0 and 1.2 */
 __owur const SSL_METHOD *DTLS_server_method(void); /* DTLS 1.0 and 1.2 */
 __owur const SSL_METHOD *DTLS_client_method(void); /* DTLS 1.0 and 1.2 */
+
+#ifndef OPENSSL_NO_GMTLS_METHOD
+__owur const SSL_METHOD *GMTLS_method(void); /* GMTLSv1.1 */
+__owur const SSL_METHOD *GMTLS_server_method(void); /* GMTLSv1.1 */
+__owur const SSL_METHOD *GMTLS_client_method(void); /* GMTLSv1.1 */
+#endif
 
 __owur STACK_OF(SSL_CIPHER) *SSL_get_ciphers(const SSL *s);
 __owur STACK_OF(SSL_CIPHER) *SSL_CTX_get_ciphers(const SSL_CTX *ctx);
@@ -2092,6 +2120,42 @@ int ERR_load_SSL_strings(void);
 # define SSL_F_DTLS_CONSTRUCT_HELLO_VERIFY_REQUEST        385
 # define SSL_F_DTLS_GET_REASSEMBLED_MESSAGE               370
 # define SSL_F_DTLS_PROCESS_HELLO_VERIFY                  386
+# define SSL_F_GMTLS_ADD_CERT_CHAIN                       435
+# define SSL_F_GMTLS_CONSTRUCT_CKE_RSA                    461
+# define SSL_F_GMTLS_CONSTRUCT_CKE_SM2                    430
+# define SSL_F_GMTLS_CONSTRUCT_CKE_SM2DHE                 438
+# define SSL_F_GMTLS_CONSTRUCT_CKE_SM9                    431
+# define SSL_F_GMTLS_CONSTRUCT_CKE_SM9DHE                 432
+# define SSL_F_GMTLS_CONSTRUCT_CLIENT_CERTIFICATE         439
+# define SSL_F_GMTLS_CONSTRUCT_CLIENT_KEY_EXCHANGE        440
+# define SSL_F_GMTLS_CONSTRUCT_SERVER_CERTIFICATE         436
+# define SSL_F_GMTLS_CONSTRUCT_SERVER_KEY_EXCHANGE        427
+# define SSL_F_GMTLS_CONSTRUCT_SKE_RSA                    447
+# define SSL_F_GMTLS_CONSTRUCT_SKE_SM2                    448
+# define SSL_F_GMTLS_CONSTRUCT_SKE_SM2DHE                 449
+# define SSL_F_GMTLS_CONSTRUCT_SKE_SM9                    450
+# define SSL_F_GMTLS_CONSTRUCT_SM2DHE_PARAMS              451
+# define SSL_F_GMTLS_CONSTRUCT_SM9_PARAMS                 452
+# define SSL_F_GMTLS_NEW_CERT_PACKET                      453
+# define SSL_F_GMTLS_OUTPUT_CERT_CHAIN                    437
+# define SSL_F_GMTLS_OUTPUT_IBCS_PARAM                    441
+# define SSL_F_GMTLS_PROCESS_CKE_RSA                      462
+# define SSL_F_GMTLS_PROCESS_CKE_SM2                      426
+# define SSL_F_GMTLS_PROCESS_CKE_SM2DHE                   442
+# define SSL_F_GMTLS_PROCESS_CKE_SM9                      433
+# define SSL_F_GMTLS_PROCESS_CKE_SM9DHE                   434
+# define SSL_F_GMTLS_PROCESS_CLIENT_CERTIFICATE           454
+# define SSL_F_GMTLS_PROCESS_CLIENT_KEY_EXCHANGE          443
+# define SSL_F_GMTLS_PROCESS_KEY_EXCHANGE                 429
+# define SSL_F_GMTLS_PROCESS_SERVER_CERTIFICATE           444
+# define SSL_F_GMTLS_PROCESS_SERVER_CERTS                 455
+# define SSL_F_GMTLS_PROCESS_SERVER_KEY_EXCHANGE          445
+# define SSL_F_GMTLS_PROCESS_SKE_RSA                      456
+# define SSL_F_GMTLS_PROCESS_SKE_SM2                      457
+# define SSL_F_GMTLS_PROCESS_SKE_SM2DHE                   458
+# define SSL_F_GMTLS_PROCESS_SKE_SM9                      459
+# define SSL_F_GMTLS_PROCESS_SM9_PARAMS                   460
+# define SSL_F_GMTLS_SM2_DERIVE                           463
 # define SSL_F_OPENSSL_INIT_SSL                           342
 # define SSL_F_OSSL_STATEM_CLIENT_READ_TRANSITION         417
 # define SSL_F_OSSL_STATEM_SERVER_READ_TRANSITION         418
@@ -2239,6 +2303,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_F_TLS_CONSTRUCT_CKE_GOST                     406
 # define SSL_F_TLS_CONSTRUCT_CKE_PSK_PREAMBLE             407
 # define SSL_F_TLS_CONSTRUCT_CKE_RSA                      409
+# define SSL_F_TLS_CONSTRUCT_CKE_SM2                      425
 # define SSL_F_TLS_CONSTRUCT_CKE_SRP                      410
 # define SSL_F_TLS_CONSTRUCT_CLIENT_CERTIFICATE           355
 # define SSL_F_TLS_CONSTRUCT_CLIENT_HELLO                 356
@@ -2276,6 +2341,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_F_TLS_PROCESS_SERVER_CERTIFICATE             367
 # define SSL_F_TLS_PROCESS_SERVER_DONE                    368
 # define SSL_F_TLS_PROCESS_SERVER_HELLO                   369
+# define SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE            446
 # define SSL_F_TLS_PROCESS_SKE_DHE                        419
 # define SSL_F_TLS_PROCESS_SKE_ECDHE                      420
 # define SSL_F_TLS_PROCESS_SKE_PSK_PREAMBLE               421
@@ -2294,6 +2360,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_R_BAD_DH_VALUE                               102
 # define SSL_R_BAD_DIGEST_LENGTH                          111
 # define SSL_R_BAD_ECC_CERT                               304
+# define SSL_R_BAD_ECPKPARAMETERS                         109
 # define SSL_R_BAD_ECPOINT                                306
 # define SSL_R_BAD_HANDSHAKE_LENGTH                       332
 # define SSL_R_BAD_HELLO_REQUEST                          105
@@ -2302,6 +2369,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_R_BAD_PROTOCOL_VERSION_NUMBER                116
 # define SSL_R_BAD_RSA_ENCRYPT                            119
 # define SSL_R_BAD_SIGNATURE                              123
+# define SSL_R_BAD_SM2_ENCRYPT                            101
 # define SSL_R_BAD_SRP_A_LENGTH                           347
 # define SSL_R_BAD_SRP_PARAMETERS                         371
 # define SSL_R_BAD_SRTP_MKI_VALUE                         352
@@ -2370,6 +2438,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_R_INAPPROPRIATE_FALLBACK                     373
 # define SSL_R_INCONSISTENT_COMPRESSION                   340
 # define SSL_R_INCONSISTENT_EXTMS                         104
+# define SSL_R_INVALID_CERT_CHAIN                         112
 # define SSL_R_INVALID_COMMAND                            280
 # define SSL_R_INVALID_COMPRESSION_ALGORITHM              341
 # define SSL_R_INVALID_CONFIGURATION_NAME                 113
@@ -2390,9 +2459,11 @@ int ERR_load_SSL_strings(void);
 # define SSL_R_MISSING_RSA_CERTIFICATE                    168
 # define SSL_R_MISSING_RSA_ENCRYPTING_CERT                169
 # define SSL_R_MISSING_RSA_SIGNING_CERT                   170
+# define SSL_R_MISSING_SM2_ENC_CERTIFICATE                108
 # define SSL_R_MISSING_SRP_PARAM                          358
 # define SSL_R_MISSING_TMP_DH_KEY                         171
 # define SSL_R_MISSING_TMP_ECDH_KEY                       311
+# define SSL_R_NOT_IMPLEMENTED                            110
 # define SSL_R_NO_CERTIFICATES_RETURNED                   176
 # define SSL_R_NO_CERTIFICATE_ASSIGNED                    177
 # define SSL_R_NO_CERTIFICATE_SET                         179
@@ -2428,6 +2499,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_R_PSK_IDENTITY_NOT_FOUND                     223
 # define SSL_R_PSK_NO_CLIENT_CB                           224
 # define SSL_R_PSK_NO_SERVER_CB                           225
+# define SSL_R_RANDOM_GENERATOR_ERROR                     114
 # define SSL_R_READ_BIO_NOT_SET                           211
 # define SSL_R_READ_TIMEOUT_EXPIRED                       312
 # define SSL_R_RECORD_LENGTH_MISMATCH                     213
@@ -2472,9 +2544,9 @@ int ERR_load_SSL_strings(void);
 # define SSL_R_SSL_SECTION_NOT_FOUND                      136
 # define SSL_R_SSL_SESSION_ID_CALLBACK_FAILED             301
 # define SSL_R_SSL_SESSION_ID_CONFLICT                    302
-# define SSL_R_SSL_SESSION_ID_TOO_LONG                    408
 # define SSL_R_SSL_SESSION_ID_CONTEXT_TOO_LONG            273
 # define SSL_R_SSL_SESSION_ID_HAS_BAD_LENGTH              303
+# define SSL_R_SSL_SESSION_ID_TOO_LONG                    408
 # define SSL_R_SSL_SESSION_VERSION_MISMATCH               210
 # define SSL_R_TLSV1_ALERT_ACCESS_DENIED                  1049
 # define SSL_R_TLSV1_ALERT_DECODE_ERROR                   1050

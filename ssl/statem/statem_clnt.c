@@ -54,10 +54,19 @@
 #include <openssl/rand.h>
 #include <openssl/objects.h>
 #include <openssl/evp.h>
-#include <openssl/md5.h>
-#include <openssl/dh.h>
+#ifndef OPENSSL_NO_MD5
+# include <openssl/md5.h>
+#endif
+#ifndef OPENSSL_NO_DH
+# include <openssl/dh.h>
+#endif
 #include <openssl/bn.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
+#ifndef OPENSSL_NO_GMTLS
+# include <openssl/sm2.h>
+#endif
 
 static ossl_inline int cert_req_allowed(SSL *s);
 static int key_exchange_expected(SSL *s);
@@ -80,6 +89,7 @@ static ossl_inline int cert_req_allowed(SSL *s)
         || (s->s3->tmp.new_cipher->algorithm_auth & (SSL_aSRP | SSL_aPSK)))
         return 0;
 
+    /* gmtls ciphers always allow req */
     return 1;
 }
 
@@ -94,12 +104,17 @@ static int key_exchange_expected(SSL *s)
 {
     long alg_k = s->s3->tmp.new_cipher->algorithm_mkey;
 
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (s->version == GMTLS_VERSION)
+        return 1;
+#endif
+
     /*
      * Can't skip server key exchange if this is an ephemeral
      * ciphersuite or for SRP
      */
-    if (alg_k & (SSL_kDHE | SSL_kECDHE | SSL_kDHEPSK | SSL_kECDHEPSK
-                 | SSL_kSRP)) {
+    if (alg_k & (SSL_kDHE | SSL_kECDHE | SSL_kDHEPSK | SSL_kECDHEPSK |
+                 SSL_kSM2DHE | SSL_kSM2PSK | SSL_kSRP)) {
         return 1;
     }
 
@@ -519,10 +534,16 @@ int ossl_statem_client_construct_message(SSL *s)
         return tls_construct_client_hello(s);
 
     case TLS_ST_CW_CERT:
-        return tls_construct_client_certificate(s);
+        if (SSL_IS_GMTLS(s))
+            return gmtls_construct_client_certificate(s);
+        else
+            return tls_construct_client_certificate(s);
 
     case TLS_ST_CW_KEY_EXCH:
-        return tls_construct_client_key_exchange(s);
+        if (SSL_IS_GMTLS(s))
+            return gmtls_construct_client_key_exchange(s);
+        else
+            return tls_construct_client_key_exchange(s);
 
     case TLS_ST_CW_CERT_VRFY:
         return tls_construct_client_verify(s);
@@ -621,13 +642,19 @@ MSG_PROCESS_RETURN ossl_statem_client_process_message(SSL *s, PACKET *pkt)
         return dtls_process_hello_verify(s, pkt);
 
     case TLS_ST_CR_CERT:
-        return tls_process_server_certificate(s, pkt);
+        if (SSL_IS_GMTLS(s))
+            return tls_process_server_certificate(s, pkt);
+        else
+            return tls_process_server_certificate(s, pkt);
 
     case TLS_ST_CR_CERT_STATUS:
         return tls_process_cert_status(s, pkt);
 
     case TLS_ST_CR_KEY_EXCH:
-        return tls_process_key_exchange(s, pkt);
+        if (SSL_IS_GMTLS(s))
+            return gmtls_process_server_key_exchange(s, pkt);
+        else
+            return tls_process_server_key_exchange(s, pkt);
 
     case TLS_ST_CR_CERT_REQ:
         return tls_process_certificate_request(s, pkt);
@@ -850,7 +877,7 @@ int tls_construct_client_hello(SSL *s)
         SSLerr(SSL_F_TLS_CONSTRUCT_CLIENT_HELLO, SSL_R_CLIENTHELLO_TLSEXT);
         goto err;
     }
-    if ((p =
+    if ((s->version != GMTLS_VERSION) && (p =
          ssl_add_clienthello_tlsext(s, p, buf + SSL3_RT_MAX_PLAIN_LENGTH,
                                     &al)) == NULL) {
         ssl3_send_alert(s, SSL3_AL_FATAL, al);
@@ -1509,6 +1536,11 @@ static int tls_process_ske_dhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
 #endif
 }
 
+//这个函数实际上就是从packet里面读取曲线参数，对方临时公钥
+//把这个临时公钥设置到s->s3->peer_tmp （在哪儿处理的？）
+//然后再根据认证算法(s->s3->tmp.new_cipher->algorithm_auth 确定对方的签名算法（应该是证书中拿到的）
+//最后从s->session->peer中取出对方的签名公钥，从pkey参数返回
+//这个函数并不去处理签名值，而是留给后续处理，因此sm2的话不提取任何数据，这个函数是无效的
 static int tls_process_ske_ecdhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
 {
 #ifndef OPENSSL_NO_EC
@@ -1579,6 +1611,7 @@ static int tls_process_ske_ecdhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
         return 0;
     }
 
+    /* parse remote ephem point */
     if (!EVP_PKEY_set1_tls_encodedpoint(s->s3->peer_tmp,
                                         PACKET_data(&encoded_pt),
                                         PACKET_remaining(&encoded_pt))) {
@@ -1592,8 +1625,13 @@ static int tls_process_ske_ecdhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
      * ECParameters in the server key exchange message. We do support RSA
      * and ECDSA.
      */
+    // 这里的s->session->peer 应该是在处理证书消息的时候设定的，要看看具体在哪儿
     if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aECDSA)
         *pkey = X509_get0_pubkey(s->session->peer);
+#ifndef OPENSSL_NO_GMTLS
+    else if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2)
+        *pkey = X509_get0_pubkey(s->session->peer);
+#endif
     else if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aRSA)
         *pkey = X509_get0_pubkey(s->session->peer);
     /* else anonymous ECDH, so no certificate or pkey. */
@@ -1606,7 +1644,7 @@ static int tls_process_ske_ecdhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
 #endif
 }
 
-MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
+MSG_PROCESS_RETURN tls_process_server_key_exchange(SSL *s, PACKET *pkt)
 {
     int al = -1;
     long alg_k;
@@ -1635,12 +1673,14 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
     } else if (alg_k & (SSL_kDHE | SSL_kDHEPSK)) {
         if (!tls_process_ske_dhe(s, pkt, &pkey, &al))
             goto err;
-    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK)) {
+    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK |
+                        SSL_kSM2DHE | SSL_kSM2PSK
+        )) {
         if (!tls_process_ske_ecdhe(s, pkt, &pkey, &al))
             goto err;
     } else if (alg_k) {
         al = SSL_AD_UNEXPECTED_MESSAGE;
-        SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, SSL_R_UNEXPECTED_MESSAGE);
+        SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, SSL_R_UNEXPECTED_MESSAGE);
         goto err;
     }
 
@@ -1659,7 +1699,7 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
                                    PACKET_remaining(&save_param_start) -
                                    PACKET_remaining(pkt))) {
             al = SSL_AD_INTERNAL_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, ERR_R_INTERNAL_ERROR);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_INTERNAL_ERROR);
             goto err;
         }
 
@@ -1668,7 +1708,7 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
             int rv;
             if (!PACKET_get_bytes(pkt, &sigalgs, 2)) {
                 al = SSL_AD_DECODE_ERROR;
-                SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, SSL_R_LENGTH_TOO_SHORT);
+                SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, SSL_R_LENGTH_TOO_SHORT);
                 goto err;
             }
             rv = tls12_check_peer_sigalg(&md, s, sigalgs, pkey);
@@ -1682,22 +1722,31 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
 #ifdef SSL_DEBUG
             fprintf(stderr, "USING TLSv1.2 HASH %s\n", EVP_MD_name(md));
 #endif
+#if !defined(OPENSSL_NO_RSA) && !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_SHA)		
         } else if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA) {
             md = EVP_md5_sha1();
+#endif
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        } else if (s->method->version == GMTLS_VERSION
+                   && s->s3->tmp.new_cipher->algorithm_mac & SSL_SM3) {
+            md = EVP_sm3();
+#endif
+#ifndef OPENSSL_NO_SHA
         } else {
-            md = EVP_sha1();
+            md = EVP_sha1();					
+#endif
         }
 
         if (!PACKET_get_length_prefixed_2(pkt, &signature)
             || PACKET_remaining(pkt) != 0) {
             al = SSL_AD_DECODE_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, SSL_R_LENGTH_MISMATCH);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, SSL_R_LENGTH_MISMATCH);
             goto err;
         }
         maxsig = EVP_PKEY_size(pkey);
         if (maxsig < 0) {
             al = SSL_AD_INTERNAL_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, ERR_R_INTERNAL_ERROR);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_INTERNAL_ERROR);
             goto err;
         }
 
@@ -1707,7 +1756,7 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
         if (PACKET_remaining(&signature) > (size_t)maxsig) {
             /* wrong packet length */
             al = SSL_AD_DECODE_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE,
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE,
                    SSL_R_WRONG_SIGNATURE_LENGTH);
             goto err;
         }
@@ -1715,20 +1764,45 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
         md_ctx = EVP_MD_CTX_new();
         if (md_ctx == NULL) {
             al = SSL_AD_INTERNAL_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, ERR_R_MALLOC_FAILURE);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_MALLOC_FAILURE);
             goto err;
         }
 
-        if (EVP_VerifyInit_ex(md_ctx, md, NULL) <= 0
-            || EVP_VerifyUpdate(md_ctx, &(s->s3->client_random[0]),
-                                SSL3_RANDOM_SIZE) <= 0
+        if (EVP_VerifyInit_ex(md_ctx, md, NULL) <= 0) {
+            EVP_MD_CTX_free(md_ctx);
+            al = SSL_AD_INTERNAL_ERROR;
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_EVP_LIB);
+            goto err;
+        }
+
+#ifndef OPENSSL_NO_SM2
+        if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2) {
+            unsigned char z[EVP_MAX_MD_SIZE];
+            size_t zlen = sizeof(z);
+            char *id = SM2_DEFAULT_ID;
+            if (!SM2_compute_id_digest(md, id, strlen(id), z, &zlen,
+                EVP_PKEY_get0_EC_KEY(pkey))) {
+                al = SSL_AD_INTERNAL_ERROR;
+                SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_SM2_LIB);
+                goto err;
+            }
+            if (EVP_VerifyUpdate(md_ctx, z, zlen) <= 0) {
+                al = SSL_AD_INTERNAL_ERROR;
+                SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_EVP_LIB);
+                goto err;
+            }
+        }
+#endif
+
+        if (EVP_VerifyUpdate(md_ctx, &(s->s3->client_random[0]),
+                             SSL3_RANDOM_SIZE) <= 0
             || EVP_VerifyUpdate(md_ctx, &(s->s3->server_random[0]),
                                 SSL3_RANDOM_SIZE) <= 0
             || EVP_VerifyUpdate(md_ctx, PACKET_data(&params),
                                 PACKET_remaining(&params)) <= 0) {
             EVP_MD_CTX_free(md_ctx);
             al = SSL_AD_INTERNAL_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, ERR_R_EVP_LIB);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_EVP_LIB);
             goto err;
         }
         if (EVP_VerifyFinal(md_ctx, PACKET_data(&signature),
@@ -1736,7 +1810,7 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
             /* bad signature */
             EVP_MD_CTX_free(md_ctx);
             al = SSL_AD_DECRYPT_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, SSL_R_BAD_SIGNATURE);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, SSL_R_BAD_SIGNATURE);
             goto err;
         }
         EVP_MD_CTX_free(md_ctx);
@@ -1748,7 +1822,7 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
             if (ssl3_check_cert_and_algorithm(s)) {
                 /* Otherwise this shouldn't happen */
                 al = SSL_AD_INTERNAL_ERROR;
-                SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, ERR_R_INTERNAL_ERROR);
+                SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, ERR_R_INTERNAL_ERROR);
             } else {
                 al = SSL_AD_DECODE_ERROR;
             }
@@ -1757,7 +1831,7 @@ MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt)
         /* still data left over */
         if (PACKET_remaining(pkt) != 0) {
             al = SSL_AD_DECODE_ERROR;
-            SSLerr(SSL_F_TLS_PROCESS_KEY_EXCHANGE, SSL_R_EXTRA_DATA_IN_MESSAGE);
+            SSLerr(SSL_F_TLS_PROCESS_SERVER_KEY_EXCHANGE, SSL_R_EXTRA_DATA_IN_MESSAGE);
             goto err;
         }
     }
@@ -1968,7 +2042,7 @@ MSG_PROCESS_RETURN tls_process_new_session_ticket(SSL *s, PACKET *pkt)
      */
     if (!EVP_Digest(s->session->tlsext_tick, ticklen,
                     s->session->session_id, &s->session->session_id_length,
-                    EVP_sha256(), NULL)) {
+                    EVP_get_digestbynid(NID_sha256), NULL)) {
         SSLerr(SSL_F_TLS_PROCESS_NEW_SESSION_TICKET, ERR_R_EVP_LIB);
         goto err;
     }
@@ -2213,6 +2287,10 @@ static int tls_construct_cke_rsa(SSL *s, unsigned char **p, int *len, int *al)
     /* Fix buf for TLS and beyond */
     if (s->version > SSL3_VERSION)
         *p += 2;
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (s->version == GMTLS_VERSION)
+        *p += 2;
+#endif
     pctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (pctx == NULL || EVP_PKEY_encrypt_init(pctx) <= 0
         || EVP_PKEY_encrypt(pctx, NULL, &enclen, pms, pmslen) <= 0) {
@@ -2231,6 +2309,8 @@ static int tls_construct_cke_rsa(SSL *s, unsigned char **p, int *len, int *al)
         (*p)[1]++;
     if (s->options & SSL_OP_PKCS1_CHECK_2)
         tmp_buf[0] = 0x70;
+				
+	// tmp_buf 没有定义，可能出现了编辑错误！
 # endif
 
     /* Fix buf for TLS and beyond */
@@ -2238,6 +2318,12 @@ static int tls_construct_cke_rsa(SSL *s, unsigned char **p, int *len, int *al)
         s2n(*len, q);
         *len += 2;
     }
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    if (s->version == GMTLS_VERSION) {
+        s2n(*len, q);
+        *len += 2;
+    }
+#endif
 
     s->s3->tmp.pms = pms;
     s->s3->tmp.pmslen = pmslen;
@@ -2254,6 +2340,8 @@ static int tls_construct_cke_rsa(SSL *s, unsigned char **p, int *len, int *al)
     return 0;
 #endif
 }
+
+
 
 static int tls_construct_cke_dhe(SSL *s, unsigned char **p, int *len, int *al)
 {
@@ -2525,7 +2613,8 @@ int tls_construct_client_key_exchange(SSL *s)
     } else if (alg_k & (SSL_kDHE | SSL_kDHEPSK)) {
         if (!tls_construct_cke_dhe(s, &p, &len, &al))
             goto err;
-    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK)) {
+    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK | SSL_kSM2DHE |
+                        SSL_kSM2PSK)) {
         if (!tls_construct_cke_ecdhe(s, &p, &len, &al))
             goto err;
     } else if (alg_k & SSL_kGOST) {
@@ -2834,7 +2923,7 @@ int ssl3_check_cert_and_algorithm(SSL *s)
 
 #ifndef OPENSSL_NO_EC
     idx = s->session->peer_type;
-    if (idx == SSL_PKEY_ECC) {
+    if ((idx == SSL_PKEY_ECC) || (idx == SSL_PKEY_SM2_SIGN)) { /* GMTLS */
         if (ssl_check_srvr_ecc_cert_and_alg(s->session->peer, s) == 0) {
             /* check failed */
             SSLerr(SSL_F_SSL3_CHECK_CERT_AND_ALGORITHM, SSL_R_BAD_ECC_CERT);
@@ -2842,7 +2931,7 @@ int ssl3_check_cert_and_algorithm(SSL *s)
         } else {
             return 1;
         }
-    } else if (alg_a & SSL_aECDSA) {
+    } else if ((alg_a & SSL_aECDSA) || (alg_a & SSL_aSM2)) { /* GMTLS */
         SSLerr(SSL_F_SSL3_CHECK_CERT_AND_ALGORITHM,
                SSL_R_MISSING_ECDSA_SIGNING_CERT);
         goto f_err;

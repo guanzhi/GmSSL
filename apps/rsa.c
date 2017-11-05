@@ -32,7 +32,8 @@ typedef enum OPTION_choice {
     OPT_RSAPUBKEY_IN, OPT_RSAPUBKEY_OUT,
     /* Do not change the order here; see case statements below */
     OPT_PVK_NONE, OPT_PVK_WEAK, OPT_PVK_STRONG,
-    OPT_NOOUT, OPT_TEXT, OPT_MODULUS, OPT_CHECK, OPT_CIPHER
+    OPT_NOOUT, OPT_TEXT, OPT_MODULUS, OPT_CHECK, OPT_CIPHER,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS rsa_options[] = {
@@ -59,6 +60,7 @@ OPTIONS rsa_options[] = {
 # endif
 # ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 # endif
     {NULL}
 };
@@ -78,6 +80,8 @@ int rsa_main(int argc, char **argv)
     int pvk_encr = 2;
 # endif
     OPTION_CHOICE o;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, rsa_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -149,11 +153,21 @@ int rsa_main(int argc, char **argv)
             if (!opt_cipher(opt_unknown(), &enc))
                 goto opthelp;
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     private = (text && !pubin) || (!pubout && !noout) ? 1 : 0;
 
@@ -305,6 +319,7 @@ int rsa_main(int argc, char **argv)
     RSA_free(rsa);
     OPENSSL_free(passin);
     OPENSSL_free(passout);
+    NCONF_free(conf);
     return (ret);
 }
 #endif

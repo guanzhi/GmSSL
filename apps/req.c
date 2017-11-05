@@ -113,8 +113,10 @@ OPTIONS req_options[] = {
     {"nameopt", OPT_NAMEOPT, 's', "Various certificate name options"},
     {"reqopt", OPT_REQOPT, 's', "Various request text options"},
     {"text", OPT_TEXT, '-', "Text form of request"},
-    {"x509", OPT_X509, '-',
+#ifndef OPENSSL_NO_CA
+   {"x509", OPT_X509, '-',
      "Output a x509 structure instead of a cert request"},
+#endif
     {OPT_MORE_STR, 1, 1, "(Required by some CA's)"},
     {"subj", OPT_SUBJ, 's', "Set or modify request subject"},
     {"subject", OPT_SUBJECT, '-', "Output the request's subject"},
@@ -287,10 +289,12 @@ int req_main(int argc, char **argv)
         case OPT_TEXT:
             text = 1;
             break;
+#ifndef OPENSSL_NO_CA
         case OPT_X509:
             x509 = 1;
             newreq = 1;
             break;
+#endif
         case OPT_DAYS:
             days = atoi(opt_arg());
             break;

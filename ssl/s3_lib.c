@@ -50,8 +50,12 @@
 #include <stdio.h>
 #include <openssl/objects.h>
 #include "ssl_locl.h"
-#include <openssl/md5.h>
-#include <openssl/dh.h>
+#ifndef OPENSSL_NO_MD5
+# include <openssl/md5.h>
+#endif
+#ifndef OPENSSL_NO_DH
+# include <openssl/dh.h>
+#endif
 #include <openssl/rand.h>
 
 #define SSL3_NUM_CIPHERS        OSSL_NELEM(ssl3_ciphers)
@@ -97,6 +101,284 @@ static SSL_CIPHER ssl3_ciphers[] = {
      0,
      0,
      },
+#ifndef OPENSSL_NO_GMTLS
+    /* GM/T 0024 ciphersuites
+     * SM2(ENC) and SM9(ENC) only allowed in GMTLS 1.1
+     */
+    {
+     1,
+     GMTLS_TXT_SM2DHE_WITH_SM1_SM3,
+     GMTLS_CK_SM2DHE_WITH_SM1_SM3,
+     SSL_kSM2DHE,
+     SSL_aSM2,
+     SSL_SM1,
+     SSL_SM3,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM2_WITH_SM1_SM3,
+     GMTLS_CK_SM2_WITH_SM1_SM3,
+     SSL_kSM2,
+     SSL_aSM2,
+     SSL_SM1,
+     SSL_SM3,
+     GMTLS_VERSION, GMTLS_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM9DHE_WITH_SM1_SM3,
+     GMTLS_CK_SM9DHE_WITH_SM1_SM3,
+     SSL_kSM9DHE,
+     SSL_aSM9,
+     SSL_SM1,
+     SSL_SM3,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM9_WITH_SM1_SM3,
+     GMTLS_CK_SM9_WITH_SM1_SM3,
+     SSL_kSM9,
+     SSL_aSM9,
+     SSL_SM1,
+     SSL_SM3,
+     GMTLS_VERSION, GMTLS_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_RSA_WITH_SM1_SM3,
+     GMTLS_CK_RSA_WITH_SM1_SM3,
+     SSL_kRSA,
+     SSL_aRSA,
+     SSL_SM1,
+     SSL_SM3,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_RSA_WITH_SM1_SHA1,
+     GMTLS_CK_RSA_WITH_SM1_SHA1,
+     SSL_kRSA,
+     SSL_aRSA,
+     SSL_SM1,
+     SSL_SHA1,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM2DHE_WITH_SMS4_SM3,
+     GMTLS_CK_SM2DHE_WITH_SMS4_SM3,
+     SSL_kSM2DHE,
+     SSL_aSM2,
+     SSL_SMS4,
+     SSL_SM3,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM2_WITH_SMS4_SM3,
+     GMTLS_CK_SM2_WITH_SMS4_SM3,
+     SSL_kSM2,
+     SSL_aSM2,
+     SSL_SMS4,
+     SSL_SM3,
+     GMTLS_VERSION, GMTLS_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM9DHE_WITH_SMS4_SM3,
+     GMTLS_CK_SM9DHE_WITH_SMS4_SM3,
+     SSL_kSM9DHE,
+     SSL_aSM9,
+     SSL_SMS4,
+     SSL_SM3,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_SM9_WITH_SMS4_SM3,
+     GMTLS_CK_SM9_WITH_SMS4_SM3,
+     SSL_kSM9,
+     SSL_aSM9,
+     SSL_SMS4,
+     SSL_SM3,
+     GMTLS_VERSION, GMTLS_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_RSA_WITH_SMS4_SM3,
+     GMTLS_CK_RSA_WITH_SMS4_SM3,
+     SSL_kRSA,
+     SSL_aRSA,
+     SSL_SMS4,
+     SSL_SM3,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_RSA_WITH_SMS4_SHA1,
+     GMTLS_CK_RSA_WITH_SMS4_SHA1,
+     SSL_kRSA,
+     SSL_aRSA,
+     SSL_SMS4,
+     SSL_SHA1,
+     GMTLS_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+
+    /* ECDHE-SM2-[SM1|SMS4|SSF33]-[SM3|SHA256] */
+    {
+     1,
+     GMTLS_TXT_ECDHE_SM2_WITH_SM1_SM3,
+     GMTLS_CK_ECDHE_SM2_WITH_SM1_SM3,
+     SSL_kECDHE,
+     SSL_aSM2,
+     SSL_SM1,
+     SSL_SM3,
+     TLS1_2_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_ECDHE_SM2_WITH_SMS4_SM3,
+     GMTLS_CK_ECDHE_SM2_WITH_SMS4_SM3,
+     SSL_kECDHE,
+     SSL_aSM2,
+     SSL_SMS4,
+     SSL_SM3,
+     TLS1_2_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_ECDHE_SM2_WITH_SSF33_SM3,
+     GMTLS_CK_ECDHE_SM2_WITH_SSF33_SM3,
+     SSL_kECDHE,
+     SSL_aSM2,
+     SSL_SSF33,
+     SSL_SM3,
+     TLS1_2_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_ECDHE_SM2_WITH_SM1_SHA256,
+     GMTLS_CK_ECDHE_SM2_WITH_SM1_SHA256,
+     SSL_kECDHE,
+     SSL_aSM2,
+     SSL_SM1,
+     SSL_SHA256,
+     TLS1_2_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_ECDHE_SM2_WITH_SMS4_SHA256,
+     GMTLS_CK_ECDHE_SM2_WITH_SMS4_SHA256,
+     SSL_kECDHE,
+     SSL_aSM2,
+     SSL_SMS4,
+     SSL_SHA256,
+     TLS1_2_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+    {
+     1,
+     GMTLS_TXT_ECDHE_SM2_WITH_SSF33_SHA256,
+     GMTLS_CK_ECDHE_SM2_WITH_SSF33_SHA256,
+     SSL_kECDHE,
+     SSL_aSM2,
+     SSL_SSF33,
+     SSL_SHA256,
+     TLS1_2_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
+     128,
+     128,
+     },
+
+#endif /* OPENSSL_NO_GMTLS */
 #ifndef OPENSSL_NO_WEAK_SSL_CIPHERS
     {
      1,
@@ -2734,6 +3016,7 @@ void ssl_sort_cipher_list(void)
           cipher_compare);
 }
 
+#ifndef OPENSSL_NO_SSL3_METHOD
 const SSL3_ENC_METHOD SSLv3_enc_data = {
     ssl3_enc,
     n_ssl3_mac,
@@ -2741,7 +3024,7 @@ const SSL3_ENC_METHOD SSLv3_enc_data = {
     ssl3_generate_master_secret,
     ssl3_change_cipher_state,
     ssl3_final_finish_mac,
-    MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH,
+    16+20,//MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH,
     SSL3_MD_CLIENT_FINISHED_CONST, 4,
     SSL3_MD_SERVER_FINISHED_CONST, 4,
     ssl3_alert_code,
@@ -2753,6 +3036,7 @@ const SSL3_ENC_METHOD SSLv3_enc_data = {
     ssl3_set_handshake_header,
     ssl3_handshake_write
 };
+#endif
 
 long ssl3_default_timeout(void)
 {
@@ -4073,6 +4357,10 @@ int ssl_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey)
         return 0;
 
     pctx = EVP_PKEY_CTX_new(privkey, NULL);
+
+#ifndef OPENSSL_NO_GMTLS
+	// if the cipher is kSM2DHE, we need to ctrl
+#endif
 
     if (EVP_PKEY_derive_init(pctx) <= 0
         || EVP_PKEY_derive_set_peer(pctx, pubkey) <= 0

@@ -14,6 +14,9 @@
 #include <openssl/engine.h>
 #include "internal/evp_int.h"
 #include "evp_locl.h"
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 
 /* This call frees resources associated with the context */
 int EVP_MD_CTX_reset(EVP_MD_CTX *ctx)
@@ -146,13 +149,13 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 {
 #ifndef OPENSSL_NO_SM2
-	if (!ctx->is_updated && ctx->pctx && ctx->pctx->pre_update) {
-		if (!ctx->update(ctx, ctx->pctx->pre_update,
-			ctx->pctx->pre_update_len)) {
-			return 0;
+	if (ctx->pctx && !EVP_MD_CTX_test_flags(ctx, EVP_MD_CTX_FLAG_UPDATED)) {
+		const unsigned char *zid;
+		if (1 == EVP_PKEY_CTX_get_signer_zid(ctx->pctx, &zid)) {
+			ctx->update(ctx, zid, 32);
 		}
+		EVP_MD_CTX_set_flags(ctx, EVP_MD_CTX_FLAG_UPDATED);
 	}
-	ctx->is_updated = 1;
 #endif
 	return ctx->update(ctx, data, count);
 }

@@ -692,3 +692,65 @@ int tls1_alert_code(int code)
         return (-1);
     }
 }
+
+int gmtls_alert_code(int code)
+{
+    switch (code) {
+    case SSL_AD_CLOSE_NOTIFY:
+        return (SSL3_AD_CLOSE_NOTIFY);
+    case SSL_AD_UNEXPECTED_MESSAGE:
+        return (SSL3_AD_UNEXPECTED_MESSAGE);
+    case SSL_AD_BAD_RECORD_MAC:
+        return (SSL3_AD_BAD_RECORD_MAC);
+    case SSL_AD_DECRYPTION_FAILED:
+        return (TLS1_AD_DECRYPTION_FAILED);
+    case SSL_AD_RECORD_OVERFLOW:
+        return (TLS1_AD_RECORD_OVERFLOW);
+    case SSL_AD_DECOMPRESSION_FAILURE:
+        return (SSL3_AD_DECOMPRESSION_FAILURE);
+    case SSL_AD_HANDSHAKE_FAILURE:
+        return (SSL3_AD_HANDSHAKE_FAILURE);
+    case SSL_AD_BAD_CERTIFICATE:
+        return (SSL3_AD_BAD_CERTIFICATE);
+    case SSL_AD_UNSUPPORTED_CERTIFICATE:
+        return (SSL3_AD_UNSUPPORTED_CERTIFICATE);
+    case SSL_AD_CERTIFICATE_REVOKED:
+        return (SSL3_AD_CERTIFICATE_REVOKED);
+    case SSL_AD_CERTIFICATE_EXPIRED:
+        return (SSL3_AD_CERTIFICATE_EXPIRED);
+    case SSL_AD_CERTIFICATE_UNKNOWN:
+        return (SSL3_AD_CERTIFICATE_UNKNOWN);
+    case SSL_AD_ILLEGAL_PARAMETER:
+        return (SSL3_AD_ILLEGAL_PARAMETER);
+    case SSL_AD_UNKNOWN_CA:
+        return (TLS1_AD_UNKNOWN_CA);
+    case SSL_AD_ACCESS_DENIED:
+        return (TLS1_AD_ACCESS_DENIED);
+    case SSL_AD_DECODE_ERROR:
+        return (TLS1_AD_DECODE_ERROR);
+    case SSL_AD_DECRYPT_ERROR:
+        return (TLS1_AD_DECRYPT_ERROR);
+    case SSL_AD_PROTOCOL_VERSION:
+        return (TLS1_AD_PROTOCOL_VERSION);
+    case SSL_AD_INSUFFICIENT_SECURITY:
+        return (TLS1_AD_INSUFFICIENT_SECURITY);
+    case SSL_AD_INTERNAL_ERROR:
+        return (TLS1_AD_INTERNAL_ERROR);
+    case SSL_AD_USER_CANCELLED:
+        return (TLS1_AD_USER_CANCELLED);
+    case SSL_AD_UNSUPPORTED_SITE2SITE:
+        return (GMTLS_AD_UNSUPPORTED_SITE2SITE);
+    case SSL_AD_NO_AREA:
+        return (GMTLS_AD_NO_AREA);
+    case SSL_AD_UNSUPPORTED_AREATYPE:
+        return (GMTLS_AD_UNSUPPORTED_AREATYPE);
+    case SSL_AD_BAD_IBCPARAM:
+        return (GMTLS_AD_BAD_IBCPARAM);
+    case SSL_AD_UNSUPPORTED_IBCPARAM:
+        return (GMTLS_AD_UNSUPPORTED_IBCPARAM);
+    case SSL_AD_IDENTITY_NEED:
+        return (GMTLS_AD_IDENTITY_NEED);
+    default:
+        return (-1);
+    }
+}

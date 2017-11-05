@@ -49,8 +49,10 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_des_ede3());
     EVP_add_cipher_alias(SN_des_ede3_ecb, "DES-EDE3-ECB");
     EVP_add_cipher_alias(SN_des_ede3_ecb, "des-ede3-ecb");
+# ifndef OPENSSL_NO_SHA
     EVP_add_cipher(EVP_des_ede3_wrap());
     EVP_add_cipher_alias(SN_id_smime_alg_CMS3DESwrap, "des3-wrap");
+# endif
 #endif
 
 #ifndef OPENSSL_NO_RC4
@@ -177,6 +179,8 @@ void openssl_add_all_ciphers_int(void)
     EVP_add_cipher(EVP_aes_256_wrap_pad());
     EVP_add_cipher_alias(SN_aes_256_cbc, "AES256");
     EVP_add_cipher_alias(SN_aes_256_cbc, "aes256");
+#endif
+#if !defined(OPENSSL_NO_AES) && !defined(OPENSSL_NO_SHA)
     EVP_add_cipher(EVP_aes_128_cbc_hmac_sha1());
     EVP_add_cipher(EVP_aes_256_cbc_hmac_sha1());
     EVP_add_cipher(EVP_aes_128_cbc_hmac_sha256());

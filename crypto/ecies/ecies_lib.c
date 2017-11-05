@@ -52,9 +52,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/aes.h>
+#include <openssl/opensslconf.h>
+
+#ifndef OPENSSL_NO_AES
+# include <openssl/aes.h>
+#endif
 #include <openssl/hmac.h>
-#include <openssl/cmac.h>
+#ifndef OPENSSL_NO_CMAC
+# include <openssl/cmac.h>
+#endif
 #include <openssl/rand.h>
 #include <openssl/ecdh.h>
 #include <openssl/kdf2.h>
@@ -72,6 +78,7 @@ int ECIES_PARAMS_init_with_type(ECIES_PARAMS *params, int type)
 	}
 
 	switch (type) {
+#ifndef OPENSSL_NO_SHA
 	case NID_ecies_with_x9_63_sha1_xor_hmac:
 		params->kdf_nid = NID_x9_63_kdf;
 		params->kdf_md = EVP_sha1();
@@ -79,6 +86,7 @@ int ECIES_PARAMS_init_with_type(ECIES_PARAMS *params, int type)
 		params->mac_nid = NID_hmac_full_ecies;
 		params->hmac_md = EVP_sha1();
 		break;
+# ifndef OPENSSL_NO_SHA256
 	case NID_ecies_with_x9_63_sha256_xor_hmac:
 		params->kdf_nid = NID_x9_63_kdf;
 		params->kdf_md = EVP_sha256();
@@ -86,6 +94,8 @@ int ECIES_PARAMS_init_with_type(ECIES_PARAMS *params, int type)
 		params->mac_nid = NID_hmac_full_ecies;
 		params->hmac_md = EVP_sha256();
 		break;
+# endif
+#endif
 	default:
 		ECerr(EC_F_ECIES_PARAMS_INIT_WITH_TYPE, EC_R_INVALID_ECIES_PARAMS);
 		return 0;
@@ -103,11 +113,14 @@ int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param)
 	}
 
 	memset(param, 0, sizeof(*param));
+#ifndef OPENSSL_NO_SHA
 	param->kdf_nid = NID_x9_63_kdf;
 	param->kdf_md = EVP_sha256();
 	param->enc_nid = NID_xor_in_ecies;
 	param->mac_nid = NID_hmac_full_ecies;
 	param->hmac_md = EVP_sha256();
+	// we should return error when sha256 disabled				
+#endif
 	return 1;
 }
 
@@ -149,9 +162,12 @@ int ECIES_PARAMS_get_enc(const ECIES_PARAMS *param, size_t inlen,
 		cipher = NULL;
 		keylen = inlen;
 		break;
+#ifndef OPENSSL_NO_DES
 	case NID_tdes_cbc_in_ecies:
 		cipher = EVP_des_ede_cbc();
 		break;
+#endif
+#ifndef OPENSSL_NO_AES
 	case NID_aes128_cbc_in_ecies:
 		cipher = EVP_aes_128_cbc();
 		break;
@@ -170,6 +186,7 @@ int ECIES_PARAMS_get_enc(const ECIES_PARAMS *param, size_t inlen,
 	case NID_aes256_ctr_in_ecies:
 		cipher = EVP_aes_256_ctr();
 		break;
+#endif
 	default:
 		ECerr(EC_F_ECIES_PARAMS_GET_ENC, EC_R_INVALID_ECIES_PARAMETERS);
 		return 0;
@@ -227,6 +244,7 @@ int ECIES_PARAMS_get_mac(const ECIES_PARAMS *param,
 		keylen = EVP_MD_size(md);
 		outlen = EVP_MD_size(md)/2;
 		break;
+#ifndef OPENSSL_NO_AES
 	case NID_cmac_aes128_ecies:
 		cipher = EVP_aes_128_ecb();
 		break;
@@ -236,6 +254,7 @@ int ECIES_PARAMS_get_mac(const ECIES_PARAMS *param,
 	case NID_cmac_aes256_ecies:
 		cipher = EVP_aes_256_ecb();
 		break;
+#endif
 	default:
 		ECerr(EC_F_ECIES_PARAMS_GET_MAC,
 			EC_R_INVALID_ECIES_PARAMETERS);
@@ -253,6 +272,11 @@ int ECIES_PARAMS_get_mac(const ECIES_PARAMS *param,
 	*maclen = outlen;
 
 	return 1;
+}
+
+int ECIES_CIPHERTEXT_VALUE_ciphertext_length(const ECIES_CIPHERTEXT_VALUE *a)
+{
+	return ASN1_STRING_length(a->ciphertext);
 }
 
 ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,

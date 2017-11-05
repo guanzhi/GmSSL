@@ -39,7 +39,7 @@ typedef enum OPTION_choice {
     OPT_INFORM, OPT_OUTFORM, OPT_ENGINE, OPT_IN, OPT_OUT,
     OPT_NOOUT, OPT_TEXT, OPT_PARAM_OUT, OPT_PUBIN, OPT_PUBOUT,
     OPT_PASSIN, OPT_PASSOUT, OPT_PARAM_ENC, OPT_CONV_FORM, OPT_CIPHER,
-    OPT_NO_PUBLIC, OPT_CHECK
+    OPT_NO_PUBLIC, OPT_CHECK, OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS ec_options[] = {
@@ -63,6 +63,7 @@ OPTIONS ec_options[] = {
     {"", OPT_CIPHER, '-', "Any supported cipher"},
 # ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 # endif
     {NULL}
 };
@@ -82,6 +83,8 @@ int ec_main(int argc, char **argv)
     int informat = FORMAT_PEM, outformat = FORMAT_PEM, text = 0, noout = 0;
     int pubin = 0, pubout = 0, param_out = 0, i, ret = 1, private = 0;
     int no_public = 0, check = 0;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     prog = opt_init(argc, argv, ec_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -155,11 +158,21 @@ int ec_main(int argc, char **argv)
         case OPT_CHECK:
             check = 1;
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     private = param_out || pubin || pubout ? 0 : 1;
     if (text && !pubin)
@@ -276,6 +289,7 @@ int ec_main(int argc, char **argv)
     release_engine(e);
     OPENSSL_free(passin);
     OPENSSL_free(passout);
+    NCONF_free(conf);
     return (ret);
 }
 #endif

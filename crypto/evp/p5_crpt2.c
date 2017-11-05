@@ -121,6 +121,7 @@ int PKCS5_PBKDF2_HMAC(const char *pass, int passlen,
     return 1;
 }
 
+# ifndef OPENSSL_NO_SHA
 int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
                            const unsigned char *salt, int saltlen, int iter,
                            int keylen, unsigned char *out)
@@ -128,15 +129,20 @@ int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
     return PKCS5_PBKDF2_HMAC(pass, passlen, salt, saltlen, iter, EVP_sha1(),
                              keylen, out);
 }
+# endif
 
 # ifdef DO_TEST
 main()
 {
     unsigned char out[4];
     unsigned char salt[] = { 0x12, 0x34, 0x56, 0x78 };
+#  ifndef OPENSSL_NO_SHA
     PKCS5_PBKDF2_HMAC_SHA1("password", -1, salt, 4, 5, 4, out);
     fprintf(stderr, "Out %02X %02X %02X %02X\n",
             out[0], out[1], out[2], out[3]);
+#  else
+    fprintf(stderr, "PKCS5_PBKDF2_HMAC_SHA1() disabled\n");
+#  endif
 }
 
 # endif

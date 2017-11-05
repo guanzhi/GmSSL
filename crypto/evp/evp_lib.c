@@ -525,6 +525,16 @@ void *EVP_MD_CTX_md_data(const EVP_MD_CTX *ctx)
     return ctx->md_data;
 }
 
+void *EVP_MD_CTX_set_md_data(EVP_MD_CTX *ctx, void *md_data)
+{
+    void *old_md_data;
+
+    old_md_data = ctx->md_data;
+    ctx->md_data = md_data;
+
+    return old_md_data;
+}
+
 int (*EVP_MD_CTX_update_fn(EVP_MD_CTX *ctx))(EVP_MD_CTX *ctx,
                                              const void *data, size_t count)
 {

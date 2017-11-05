@@ -37,7 +37,9 @@
 #include <stdio.h>
 #include "ssl_locl.h"
 #include <openssl/evp.h>
-#include <openssl/md5.h>
+
+#ifndef OPENSSL_NO_SSL3_METHOD
+# include <openssl/md5.h>
 
 static int ssl3_generate_key_block(SSL *s, unsigned char *km, int num)
 {
@@ -48,9 +50,9 @@ static int ssl3_generate_key_block(SSL *s, unsigned char *km, int num)
     unsigned int i, j, k;
     int ret = 0;
 
-#ifdef CHARSET_EBCDIC
+# ifdef CHARSET_EBCDIC
     c = os_toascii[c];          /* 'A' in ASCII */
-#endif
+# endif
     k = 0;
     m5 = EVP_MD_CTX_new();
     s1 = EVP_MD_CTX_new();
@@ -100,6 +102,7 @@ static int ssl3_generate_key_block(SSL *s, unsigned char *km, int num)
     EVP_MD_CTX_free(s1);
     return ret;
 }
+#endif
 
 int ssl3_change_cipher_state(SSL *s, int which)
 {
@@ -256,6 +259,7 @@ int ssl3_change_cipher_state(SSL *s, int which)
     return (0);
 }
 
+#ifndef OPENSSL_NO_SSL3_METHOD
 int ssl3_setup_key_block(SSL *s)
 {
     unsigned char *p;
@@ -275,11 +279,11 @@ int ssl3_setup_key_block(SSL *s)
 
     s->s3->tmp.new_sym_enc = c;
     s->s3->tmp.new_hash = hash;
-#ifdef OPENSSL_NO_COMP
+# ifdef OPENSSL_NO_COMP
     s->s3->tmp.new_compression = NULL;
-#else
+# else
     s->s3->tmp.new_compression = comp;
-#endif
+# endif
 
     num = EVP_MD_size(hash);
     if (num < 0)
@@ -309,10 +313,10 @@ int ssl3_setup_key_block(SSL *s)
             if (s->session->cipher->algorithm_enc == SSL_eNULL)
                 s->s3->need_empty_fragments = 0;
 
-#ifndef OPENSSL_NO_RC4
+# ifndef OPENSSL_NO_RC4
             if (s->session->cipher->algorithm_enc == SSL_RC4)
                 s->s3->need_empty_fragments = 0;
-#endif
+# endif
         }
     }
 
@@ -322,6 +326,7 @@ int ssl3_setup_key_block(SSL *s)
     SSLerr(SSL_F_SSL3_SETUP_KEY_BLOCK, ERR_R_MALLOC_FAILURE);
     return (0);
 }
+#endif
 
 void ssl3_cleanup_key_block(SSL *s)
 {
@@ -444,27 +449,28 @@ int ssl3_final_finish_mac(SSL *s, const char *sender, int len, unsigned char *p)
     return ret;
 }
 
+#ifndef OPENSSL_NO_SSL3_METHOD
 int ssl3_generate_master_secret(SSL *s, unsigned char *out, unsigned char *p,
                                 int len)
 {
     static const unsigned char *salt[3] = {
-#ifndef CHARSET_EBCDIC
+# ifndef CHARSET_EBCDIC
         (const unsigned char *)"A",
         (const unsigned char *)"BB",
         (const unsigned char *)"CCC",
-#else
+# else
         (const unsigned char *)"\x41",
         (const unsigned char *)"\x42\x42",
         (const unsigned char *)"\x43\x43\x43",
-#endif
+# endif
     };
     unsigned char buf[EVP_MAX_MD_SIZE];
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     int i, ret = 0;
     unsigned int n;
-#ifdef OPENSSL_SSL_TRACE_CRYPTO
+# ifdef OPENSSL_SSL_TRACE_CRYPTO
     unsigned char *tmpout = out;
-#endif
+# endif
 
     if (ctx == NULL) {
         SSLerr(SSL_F_SSL3_GENERATE_MASTER_SECRET, ERR_R_MALLOC_FAILURE);
@@ -493,7 +499,7 @@ int ssl3_generate_master_secret(SSL *s, unsigned char *out, unsigned char *p,
     }
     EVP_MD_CTX_free(ctx);
 
-#ifdef OPENSSL_SSL_TRACE_CRYPTO
+# ifdef OPENSSL_SSL_TRACE_CRYPTO
     if (ret > 0 && s->msg_callback) {
         s->msg_callback(2, s->version, TLS1_RT_CRYPTO_PREMASTER,
                         p, len, s, s->msg_callback_arg);
@@ -507,10 +513,11 @@ int ssl3_generate_master_secret(SSL *s, unsigned char *out, unsigned char *p,
                         tmpout, SSL3_MASTER_SECRET_SIZE,
                         s, s->msg_callback_arg);
     }
-#endif
+# endif
     OPENSSL_cleanse(buf, sizeof(buf));
     return (ret);
 }
+#endif
 
 int ssl3_alert_code(int code)
 {

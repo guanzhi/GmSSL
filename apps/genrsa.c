@@ -33,7 +33,8 @@ static int genrsa_cb(int p, int n, BN_GENCB *cb);
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_3, OPT_F4, OPT_ENGINE,
-    OPT_OUT, OPT_RAND, OPT_PASSOUT, OPT_CIPHER
+    OPT_OUT, OPT_RAND, OPT_PASSOUT, OPT_CIPHER,
+    OPT_CONFIG
 } OPTION_CHOICE;
 
 OPTIONS genrsa_options[] = {
@@ -48,6 +49,7 @@ OPTIONS genrsa_options[] = {
     {"", OPT_CIPHER, '-', "Encrypt the output with any supported cipher"},
 # ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+    {"config", OPT_CONFIG, 's', "A config file"},
 # endif
     {NULL}
 };
@@ -67,6 +69,8 @@ int genrsa_main(int argc, char **argv)
     char *outfile = NULL, *passoutarg = NULL, *passout = NULL;
     char *inrand = NULL, *prog, *hexe, *dece;
     OPTION_CHOICE o;
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
 
     if (bn == NULL || cb == NULL)
         goto end;
@@ -106,6 +110,9 @@ int genrsa_main(int argc, char **argv)
             if (!opt_cipher(opt_unknown(), &enc))
                 goto end;
             break;
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         }
     }
     argc = opt_num_rest();
@@ -113,6 +120,13 @@ int genrsa_main(int argc, char **argv)
     private = 1;
 
     if (argv[0] && (!opt_int(argv[0], &num) || num <= 0))
+        goto end;
+
+    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
         goto end;
 
     if (!app_passwd(NULL, passoutarg, NULL, &passout)) {
@@ -168,6 +182,7 @@ int genrsa_main(int argc, char **argv)
     BIO_free_all(out);
     release_engine(eng);
     OPENSSL_free(passout);
+    NCONF_free(conf);
     if (ret != 0)
         ERR_print_errors(bio_err);
     return (ret);

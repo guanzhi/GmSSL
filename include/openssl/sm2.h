@@ -50,6 +50,9 @@
 #ifndef HEADER_SM2_H
 #define HEADER_SM2_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SM2
+
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -68,7 +71,7 @@ extern "C" {
 #define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
 #define SM2_DEFAULT_ID_GMT09			"1234567812345678"
 #define SM2_DEFAULT_ID_GMSSL			"anonym@gmssl.org"
-#define SM2_DEFAULT_ID				SM2_DEFAULT_ID_GMSSL
+#define SM2_DEFAULT_ID				SM2_DEFAULT_ID_GMT09
 #define SM2_DEFAULT_ID_LENGTH			(sizeof(SM2_DEFAULT_ID) - 1)
 #define SM2_DEFAULT_ID_BITS			(SM2_DEFAULT_ID_LENGTH * 8)
 #define SM2_DEFAULT_ID_DIGEST_LENGTH		SM3_DIGEST_LENGTH
@@ -83,6 +86,9 @@ int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 
 
 /* SM2 digital signature */
+
+#define SM2_MAX_SIGNATURE_LENGTH	96
+
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
 ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgstlen,
 	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key);
@@ -102,6 +108,7 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 
 #define SM2_MIN_PLAINTEXT_LENGTH	0
 #define SM2_MAX_PLAINTEXT_LENGTH	1024
+#define SM2_CIPHERTEXT_LENGTH(len)	((len)+256)
 
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
@@ -124,8 +131,15 @@ int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
 #define SM2_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
 	SM2_decrypt(NID_sm3,in,inlen,out,outlen,ec_key)
 
+int SM2CiphertextValue_size(const EC_GROUP *group, int inlen);
 
 /* SM2 Key Exchange */
+
+int SM2_compute_share_key(unsigned char *out, size_t *outlen,
+	const EC_POINT *peer_ephem, EC_KEY *ephem,
+	const EC_POINT *peer_pk, const unsigned char *peer_z, size_t peer_zlen,
+	const unsigned char *z, size_t zlen, EC_KEY *sk, int initiator);
+
 typedef struct sm2_kap_ctx_st SM2_KAP_CTX;
 
 int SM2_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
@@ -143,6 +157,7 @@ int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_ephem_poin
 int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	size_t checksumlen);
 void SM2_KAP_CTX_cleanup(SM2_KAP_CTX *ctx);
+
 
 /* EC_KEY_METHOD */
 const EC_KEY_METHOD *EC_KEY_GmSSL(void);
@@ -176,52 +191,69 @@ void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
 		unsigned char *out, size_t *outlen, EC_KEY *ec_key));
 
 
-#define EVP_PKEY_CTX_set_ec_sign_type(ctx, type) \
-        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
-                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
-                                EVP_PKEY_CTRL_EC_SIGN_TYPE, type, NULL)
+#define EVP_PKEY_CTRL_EC_SCHEME	    	(EVP_PKEY_ALG_CTRL + 11)
+#define EVP_PKEY_CTRL_SIGNER_ID		(EVP_PKEY_ALG_CTRL + 12)
+#define EVP_PKEY_CTRL_GET_SIGNER_ID	(EVP_PKEY_ALG_CTRL + 13)
+#define EVP_PKEY_CTRL_GET_SIGNER_ZID    (EVP_PKEY_ALG_CTRL + 14)
+#define EVP_PKEY_CTRL_EC_ENCRYPT_PARAM  (EVP_PKEY_ALG_CTRL + 15)
 
-#define EVP_PKEY_CTX_get_ec_sign_type(ctx) \
-        EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                                EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
-                EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
-                                EVP_PKEY_CTRL_EC_SIGN_TYPE, -2, NULL)
-
-#define EVP_PKEY_CTX_set_ec_enc_type(ctx, type) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
-                                EVP_PKEY_CTRL_EC_ENC_TYPE, type, NULL)
-
-#define EVP_PKEY_CTX_get_ec_enc_type(ctx) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
-                EVP_PKEY_CTRL_EC_ENC_TYPE, -2, NULL)
-
-#define EVP_PKEY_CTX_set_ec_dh_type(ctx, type) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                EVP_PKEY_OP_DERIVE, \
-                EVP_PKEY_CTRL_EC_DH_TYPE, type, NULL)
-
-#define EVP_PKEY_CTX_get_ec_dh_type(ctx) \
-    EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
-                EVP_PKEY_OP_DERIVE, \
-                EVP_PKEY_CTRL_EC_DH_TYPE, -2, NULL);
-
-#define EVP_PKEY_CTX_set_sm2_id(ctx, type) \
+#ifndef OPENSSL_NO_MACRO
+#define EVP_PKEY_CTX_set_ec_scheme(ctx, scheme) \
 	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
 		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
 		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX| \
-		EVP_PKEY_OP_DERIVE, type, NULL)
+		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT| \
+		EVP_PKEY_OP_DERIVE, \
+		EVP_PKEY_CTRL_EC_SCHEME, scheme, NULL)
 
+#define EVP_PKEY_CTX_get_ec_scheme(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX| \
+		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT| \
+		EVP_PKEY_OP_DERIVE, \
+		EVP_PKEY_CTRL_EC_SCHEME, -2, NULL)
 
-#define EVP_PKEY_CTRL_EC_SIGN_TYPE		(EVP_PKEY_ALG_CTRL + 11)
-#define EVP_PKEY_CTRL_GET_EC_SIGN_TYPE		(EVP_PKEY_ALG_CTRL + 12)
-#define EVP_PKEY_CTRL_EC_ENC_TYPE		(EVP_PKEY_ALG_CTRL + 13)
-#define EVP_PKEY_CTRL_GET_EC_ENC_TYPE		(EVP_PKEY_ALG_CTRL + 14)
-#define EVP_PKEY_CTRL_EC_DH_TYPE		(EVP_PKEY_ALG_CTRL + 15)
-#define EVP_PKEY_CTRL_GET_EC_DH_TYPE		(EVP_PKEY_ALG_CTRL + 16)
+#define EVP_PKEY_CTX_set_signer_id(ctx, id) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX| \
+		EVP_PKEY_OP_DERIVE, \
+		EVP_PKEY_CTRL_SIGNER_ID, 0, (void *)id)
 
+#define EVP_PKEY_CTX_get_signer_id(ctx, pid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX| \
+		EVP_PKEY_OP_DERIVE, \
+		EVP_PKEY_CTRL_GET_SIGNER_ID, 0, (void *)pid)
+
+#define EVP_PKEY_CTX_get_signer_zid(ctx, pzid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX| \
+		EVP_PKEY_OP_DERIVE, \
+		EVP_PKEY_CTRL_GET_SIGNER_ZID, 0, (void *)pzid)
+
+#define EVP_PKEY_CTX_set_ec_encrypt_param(ctx, param) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+		EVP_PKEY_CTRL_EC_ENCRYPT_PARAM, param, NULL)
+
+#define EVP_PKEY_CTX_get_ec_encrypt_param(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
+		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
+		EVP_PKEY_CTRL_EC_ENCRYPT_PARAM, -2, NULL)
+
+#else
+int EVP_PKEY_CTX_set_ec_scheme(EVP_PKEY_CTX *ctx, int scheme);
+int EVP_PKEY_CTX_get_ec_scheme(EVP_PKEY_CTX *ctx, int scheme);
+int EVP_PKEY_CTX_set_signer_id(EVP_PKEY_CTX *ctx, const char *id);
+int EVP_PKEY_CTX_get_signer_id(EVP_PKEY_CTX *ctx, char **pid);
+int EVP_PKEY_CTX_get_signer_zid(EVP_PKEY_CTX *ctx, unsigned char **pzid);
+int EVP_PKEY_CTX_set_ec_encrypt_param(EVP_PKEY_CTX *ctx, int param);
+int EVP_PKEY_CTX_get_ec_encrypt_param(EVP_PKEY_CTX *ctx);
+#endif
 
 
 /* BEGIN ERROR CODES */
@@ -264,4 +296,5 @@ int ERR_load_SM2_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

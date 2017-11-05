@@ -75,7 +75,8 @@ int SAF_MacUpdate(
 	if (!hkey->cmac_ctx) {
 		const EVP_CIPHER *cipher;
 
-		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID))) {
+		//Fixme: feedbitlen			
+		if (!(cipher = EVP_get_cipherbysgd(hkey->hSymmKeyObj->uiCryptoAlgID, 0))) {
 			SAFerr(SAF_F_SAF_MACUPDATE, SAF_R_INVALID_KEY_HANDLE);
 			ret = SAR_IndataErr;
 			goto end;

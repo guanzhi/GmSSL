@@ -540,6 +540,9 @@ typedef enum OPTION_choice {
 #endif
     OPT_SSL3, OPT_SSL_CONFIG,
     OPT_TLS1_2, OPT_TLS1_1, OPT_TLS1, OPT_DTLS, OPT_DTLS1,
+#ifndef OPENSSL_NO_GMTLS
+    OPT_GMTLS,
+#endif
     OPT_DTLS1_2, OPT_TIMEOUT, OPT_MTU, OPT_KEYFORM, OPT_PASS,
     OPT_CERT_CHAIN, OPT_CAPATH, OPT_NOCAPATH, OPT_CHAINCAPATH,
         OPT_VERIFYCAPATH,
@@ -692,6 +695,9 @@ OPTIONS s_client_options[] = {
 #ifndef OPENSSL_NO_DTLS1_2
     {"dtls1_2", OPT_DTLS1_2, '-', "Just use DTLSv1.2"},
 #endif
+#ifndef OPENSSL_NO_GMTLS
+    {"gmtls", OPT_GMTLS, '-', "Just use GMTLS"},
+#endif
 #ifndef OPENSSL_NO_SSL_TRACE
     {"trace", OPT_TRACE, '-', "Show trace output of protocol messages"},
 #endif
@@ -760,6 +766,7 @@ static const OPT_PAIR services[] = {
 
 #define IS_PROT_FLAG(o) \
  (o == OPT_SSL3 || o == OPT_TLS1 || o == OPT_TLS1_1 || o == OPT_TLS1_2 \
+  || o == OPT_GMTLS \
   || o == OPT_DTLS || o == OPT_DTLS1 || o == OPT_DTLS1_2)
 
 /* Free |*dest| and optionally set it to a copy of |source|. */
@@ -1188,7 +1195,14 @@ int s_client_main(int argc, char **argv)
             socket_type = SOCK_DGRAM;
 #endif
             break;
-        case OPT_TIMEOUT:
+        case OPT_GMTLS:
+#ifndef OPENSSL_NO_GMTLS
+            meth = GMTLS_client_method();
+            //min_version = GMTLS_VERSION;
+            //max_version = GMTLS_VERSION;
+#endif
+            break;
+       case OPT_TIMEOUT:
 #ifndef OPENSSL_NO_DTLS
             enable_timeouts = 1;
 #endif

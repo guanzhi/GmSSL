@@ -57,9 +57,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include <ctype.h>
+#include <openssl/e_os2.h>
 
 #include "../e_os.h"
 

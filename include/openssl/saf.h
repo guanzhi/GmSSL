@@ -46,19 +46,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * SAF API is a crypto API with key and certificate management.
- * The API is defined in the GM standard GM/T 0019-2012:
- * Universal Cryptography Service Interface Specification
- */
 
 #ifndef HEADER_SAF_H
 #define HEADER_SAF_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SAF
 
-#define SGD_MAX_COUNT		64
-#define SGD_MAX_NAME_SIZE	256
-
+#include <openssl/sgd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,7 +65,7 @@ typedef struct SGD_USR_CERT_ENUMLIST_ {
 	unsigned char *certificate[SGD_MAX_COUNT];
 	unsigned int certificateLen[SGD_MAX_COUNT];
 	unsigned char *containerName[SGD_MAX_COUNT];
-	unsigned int containterNameLen[SGD_MAX_COUNT]; //correct?ß
+	unsigned int containterNameLen[SGD_MAX_COUNT];
 	unsigned int keyUsage[SGD_MAX_COUNT];
 } SGD_USR_CERT_ENUMLIST;
 
@@ -90,13 +85,13 @@ typedef struct {
 	unsigned char dn_l[SGD_MAX_NAME_SIZE];
 	unsigned char dn_l_len[1];
 	unsigned char dn_o[5][SGD_MAX_NAME_SIZE];
-	unsigned int dn_o_len[5];
+	unsigned int  dn_o_len[5];
 	unsigned char dn_ou[5][SGD_MAX_NAME_SIZE];
-	unsigned int dn_ou_len[5];
+	unsigned int  dn_ou_len[5];
 	unsigned char dn_cn[2][SGD_MAX_NAME_SIZE];
-	unsigned int dn_cn_len[2];
+	unsigned int  dn_cn_len[2];
 	unsigned char dn_email[2][SGD_MAX_NAME_SIZE];
-	unsigned int dn_email_len[2];
+	unsigned int  dn_email_len[2];
 } SGD_NAME_INFO;
 
 int SAF_Initialize(
@@ -779,5 +774,6 @@ int SAF_SM2_DecodeEnvelopedData(
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

@@ -286,6 +286,20 @@ const char *SSL_alert_desc_string(int value)
         return "BH";
     case TLS1_AD_UNKNOWN_PSK_IDENTITY:
         return "UP";
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    case GMTLS_AD_UNSUPPORTED_SITE2SITE:
+        return "U2";
+    case GMTLS_AD_NO_AREA:
+        return "NA";
+    case GMTLS_AD_UNSUPPORTED_AREATYPE:
+        return "AT";
+    case GMTLS_AD_BAD_IBCPARAM:
+        return "BI";
+    case GMTLS_AD_UNSUPPORTED_IBCPARAM:
+        return "UI";
+    case GMTLS_AD_IDENTITY_NEED:
+        return "IN";
+#endif
     default:
         return "UK";
     }
@@ -356,6 +370,20 @@ const char *SSL_alert_desc_string_long(int value)
         return "unknown PSK identity";
     case TLS1_AD_NO_APPLICATION_PROTOCOL:
         return "no application protocol";
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    case GMTLS_AD_UNSUPPORTED_SITE2SITE:
+        return "unsupported site2site";
+    case GMTLS_AD_NO_AREA:
+        return "no area";
+    case GMTLS_AD_UNSUPPORTED_AREATYPE:
+        return "unsupported areatype";
+    case GMTLS_AD_BAD_IBCPARAM:
+        return "bad ibc parameters";
+    case GMTLS_AD_UNSUPPORTED_IBCPARAM:
+        return "unsupported ibc parameters";
+    case GMTLS_AD_IDENTITY_NEED:
+        return "identity need";
+#endif
     default:
         return "unknown";
     }

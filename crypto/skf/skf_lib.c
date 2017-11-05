@@ -51,47 +51,186 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/err.h>
-#include <openssl/skf.h>
+#include <openssl/gmskf.h>
 #include "internal/dso.h"
-#include "internal/skf_meth.h"
+#include "internal/skf_int.h"
 #include "../../e_os.h"
 
-static SKF_METHOD *skf_method = NULL;
 
-ULONG SKF_LoadLibrary(const char *so_path)
+SKF_METHOD *skf_method = NULL;
+SKF_VENDOR *skf_vendor = NULL;
+extern SKF_VENDOR *skf_wisec;
+
+
+ULONG SKF_LoadLibrary(LPSTR so_path, LPSTR vendor)
 {
+	if (skf_method) {
+		SKF_METHOD_free(skf_method);
+		skf_method = NULL;
+	}
+
+	if (!(skf_method = SKF_METHOD_load_library((char *)so_path))) {
+		SKFerr(SKF_F_SKF_LOADLIBRARY, SKF_R_LOAD_LIBRARY_FAILURE);
+		return SAR_FAIL;
+	}
+
+	if (vendor) {
+		if (strcmp((char *)vendor, skf_wisec->name) == 0) {
+			skf_vendor = skf_wisec;
+		} else {
+			SKFerr(SKF_F_SKF_LOADLIBRARY, SKF_R_UNKNOWN_VENDOR);
+			return SAR_FAIL;
+		}
+	}
 
 	return SAR_OK;
 }
 
 ULONG SKF_UnloadLibrary(void)
 {
+	SKF_METHOD_free(skf_method);
 	skf_method = NULL;
+	skf_vendor = NULL;
+	return SAR_OK;
+}
+
+static SKF_ERR_REASON skf_errors[] = {
+	{ SAR_OK,			SKF_R_SUCCESS },
+	{ SAR_FAIL,			SKF_R_FAILURE },
+	{ SAR_UNKNOWNERR,		SKF_R_UNKNOWN_ERROR },
+	{ SAR_NOTSUPPORTYETERR,		SKF_R_OPERATION_NOT_SUPPORTED },
+	{ SAR_FILEERR,			SKF_R_FILE_ERROR },
+	{ SAR_INVALIDHANDLEERR,		SKF_R_INVALID_HANDLE },
+	{ SAR_INVALIDPARAMERR,		SKF_R_INVALID_PARAMETER },
+	{ SAR_READFILEERR,		SKF_R_READ_FILE_FAILURE },
+	{ SAR_WRITEFILEERR,		SKF_R_WRITE_FILE_FAILURE },
+	{ SAR_NAMELENERR,		SKF_R_INVALID_NAME_LENGTH },
+	{ SAR_KEYUSAGEERR,		SKF_R_INVALID_KEY_USAGE },
+	{ SAR_MODULUSLENERR,		SKF_R_INVALID_MODULUS_LENGTH },
+	{ SAR_NOTINITIALIZEERR,		SKF_R_NOT_INITIALIZED },
+	{ SAR_OBJERR,			SKF_R_INVALID_OBJECT },
+	{ SAR_MEMORYERR,		SKF_R_MEMORY_ERROR },
+	{ SAR_TIMEOUTERR,		SKF_R_TIMEOUT },
+	{ SAR_INDATALENERR,		SKF_R_INVALID_INPUT_LENGTH },
+	{ SAR_INDATAERR,		SKF_R_INVALID_INPUT_VALUE },
+	{ SAR_GENRANDERR,		SKF_R_RANDOM_GENERATION_FAILED },
+	{ SAR_HASHOBJERR,		SKF_R_INVALID_DIGEST_HANDLE },
+	{ SAR_HASHERR,			SKF_R_DIGEST_ERROR },
+	{ SAR_GENRSAKEYERR,		SKF_R_RSA_KEY_GENERATION_FAILURE },
+	{ SAR_RSAMODULUSLENERR,		SKF_R_INVALID_RSA_MODULUS_LENGTH },
+	{ SAR_CSPIMPRTPUBKEYERR,	SKF_R_CSP_IMPORT_PUBLIC_KEY_ERROR },
+	{ SAR_RSAENCERR,		SKF_R_RSA_ENCRYPTION_FAILURE },
+	{ SAR_RSADECERR,		SKF_R_RSA_DECRYPTION_FAILURE },
+	{ SAR_HASHNOTEQUALERR,		SKF_R_HASH_NOT_EQUAL },
+	{ SAR_KEYNOTFOUNTERR,		SKF_R_KEY_NOT_FOUND },
+	{ SAR_CERTNOTFOUNTERR,		SKF_R_CERTIFICATE_NOT_FOUND },
+	{ SAR_NOTEXPORTERR,		SKF_R_EXPORT_FAILED },
+	{ SAR_DECRYPTPADERR,		SKF_R_DECRYPT_INVALID_PADDING },
+	{ SAR_MACLENERR,		SKF_R_INVALID_MAC_LENGTH },
+	{ SAR_BUFFER_TOO_SMALL,		SKF_R_BUFFER_TOO_SMALL },
+	{ SAR_KEYINFOTYPEERR,		SKF_R_INVALID_KEY_INFO_TYPE },
+	{ SAR_NOT_EVENTERR,		SKF_R_NO_EVENT },
+	{ SAR_DEVICE_REMOVED,		SKF_R_DEVICE_REMOVED },
+	{ SAR_PIN_INCORRECT,		SKF_R_PIN_INCORRECT },
+	{ SAR_PIN_LOCKED,		SKF_R_PIN_LOCKED },
+	{ SAR_PIN_INVALID,		SKF_R_INVALID_PIN },
+	{ SAR_PIN_LEN_RANGE,		SKF_R_INVALID_PIN_LENGTH },
+	{ SAR_USER_ALREADY_LOGGED_IN,	SKF_R_USER_ALREADY_LOGGED_IN },
+	{ SAR_USER_PIN_NOT_INITIALIZED,	SKF_R_USER_PIN_NOT_INITIALIZED },
+	{ SAR_USER_TYPE_INVALID,	SKF_R_INVALID_USER_TYPE },
+	{ SAR_APPLICATION_NAME_INVALID, SKF_R_INVALID_APPLICATION_NAME },
+	{ SAR_APPLICATION_EXISTS,	SKF_R_APPLICATION_ALREADY_EXIST },
+	{ SAR_USER_NOT_LOGGED_IN,	SKF_R_USER_NOT_LOGGED_IN },
+	{ SAR_APPLICATION_NOT_EXISTS,	SKF_R_APPLICATION_NOT_EXIST },
+	{ SAR_FILE_ALREADY_EXIST,	SKF_R_FILE_ALREADY_EXIST },
+	{ SAR_NO_ROOM,			SKF_R_NO_SPACE },
+	{ SAR_FILE_NOT_EXIST,		SKF_R_FILE_NOT_EXIST },
+};
+
+static unsigned long skf_get_error_reason(ULONG ulError)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(skf_errors); i++) {
+		if (ulError == skf_errors[i].err) {
+			return skf_errors[i].reason;
+		}
+	}
+	if (skf_vendor) {
+		return skf_vendor->get_error_reason(ulError);
+	}
 	return 0;
 }
 
+ULONG SKF_GetErrorString(ULONG ulError, LPSTR *szErrorStr)
+{
+	unsigned long reason;
+
+	if ((reason = skf_get_error_reason(ulError)) != 0) {
+		*szErrorStr = (LPSTR)ERR_reason_error_string(reason);
+	} else {
+		*szErrorStr = (LPSTR)"(unknown)";
+	}
+
+	return SAR_OK;
+}
 
 ULONG DEVAPI SKF_WaitForDevEvent(
 	LPSTR szDevName,
 	ULONG *pulDevNameLen,
 	ULONG *pulEvent)
 {
-	if (skf_method->WaitForDevEvent) {
-		return skf_method->WaitForDevEvent(
-			szDevName,
-			pulDevNameLen,
-			pulEvent);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_WAITFORDEVEVENT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->WaitForDevEvent) {
+		SKFerr(SKF_F_SKF_WAITFORDEVEVENT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->WaitForDevEvent(
+		szDevName,
+		pulDevNameLen,
+		pulEvent)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_WAITFORDEVEVENT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CancelWaitForDevEvent(
 	void)
 {
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CANCELWAITFORDEVEVENT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
+	}
+
+	if (!skf_method->CancelWaitForDevEvent) {
+		SKFerr(SKF_F_SKF_CANCELWAITFORDEVEVENT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
 	if (skf_method->CancelWaitForDevEvent) {
 		return skf_method->CancelWaitForDevEvent();
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if ((rv = skf_method->CancelWaitForDevEvent()) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CANCELWAITFORDEVEVENT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EnumDev(
@@ -99,93 +238,238 @@ ULONG DEVAPI SKF_EnumDev(
 	LPSTR szNameList,
 	ULONG *pulSize)
 {
-	if (skf_method->EnumDev) {
-		return skf_method->EnumDev(
-			bPresent,
-			szNameList,
-			pulSize);
+	ULONG rv;
+
+				
+	// check output of all enum functions !!!!
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENUMDEV,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EnumDev) {
+		SKFerr(SKF_F_SKF_ENUMDEV,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (szNameList) {
+		memset(szNameList, 0, *pulSize);
+	}
+
+	if ((rv = skf_method->EnumDev(
+		bPresent,
+		szNameList,
+		pulSize)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENUMDEV, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ConnectDev(
 	LPSTR szName,
 	DEVHANDLE *phDev)
 {
-	if (skf_method->ConnectDev) {
-		return skf_method->ConnectDev(
-			szName,
-			phDev);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CONNECTDEV,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ConnectDev) {
+		SKFerr(SKF_F_SKF_CONNECTDEV,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ConnectDev(
+		szName,
+		phDev)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CONNECTDEV, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DisConnectDev(
 	DEVHANDLE hDev)
 {
-	if (skf_method->DisConnectDev) {
-		return skf_method->DisConnectDev(
-			hDev);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DISCONNECTDEV,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DisConnectDev) {
+		SKFerr(SKF_F_SKF_DISCONNECTDEV,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DisConnectDev(
+		hDev)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DISCONNECTDEV, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetDevState(
 	LPSTR szDevName,
 	ULONG *pulDevState)
 {
-	if (skf_method->GetDevState) {
-		return skf_method->GetDevState(
-			szDevName,
-			pulDevState);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GETDEVSTATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GetDevState) {
+		SKFerr(SKF_F_SKF_GETDEVSTATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->GetDevState(
+		szDevName,
+		pulDevState)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GETDEVSTATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_SetLabel(
 	DEVHANDLE hDev,
 	LPSTR szLabel)
 {
-	if (skf_method->SetLabel) {
-		return skf_method->SetLabel(
-			hDev,
-			szLabel);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_SETLABEL,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->SetLabel) {
+		SKFerr(SKF_F_SKF_SETLABEL,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->SetLabel(
+		hDev,
+		szLabel)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_SETLABEL, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetDevInfo(
 	DEVHANDLE hDev,
 	DEVINFO *pDevInfo)
 {
-	if (skf_method->GetDevInfo) {
-		return skf_method->GetDevInfo(
-			hDev,
-			pDevInfo);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GETDEVINFO,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GetDevInfo) {
+		SKFerr(SKF_F_SKF_GETDEVINFO,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	memset(pDevInfo, 0, sizeof(DEVINFO));
+
+	if ((rv = skf_method->GetDevInfo(
+		hDev,
+		pDevInfo)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GETDEVINFO, skf_get_error_reason(rv));
+		printf("rv = %8x\n", rv);
+		return rv;
+	}
+
+	if (skf_vendor) {
+		pDevInfo->AlgSymCap = skf_vendor->get_cipher_cap(pDevInfo->AlgSymCap);
+		pDevInfo->AlgAsymCap = skf_vendor->get_pkey_cap(pDevInfo->AlgAsymCap);
+		pDevInfo->AlgHashCap = skf_vendor->get_digest_cap(pDevInfo->AlgHashCap);
+		pDevInfo->DevAuthAlgId = skf_vendor->get_cipher_cap(pDevInfo->DevAuthAlgId);
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_LockDev(
 	DEVHANDLE hDev,
 	ULONG ulTimeOut)
 {
-	if (skf_method->LockDev) {
-		return skf_method->LockDev(
-			hDev,
-			ulTimeOut);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_LOCKDEV,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->LockDev) {
+		SKFerr(SKF_F_SKF_LOCKDEV,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->LockDev(
+		hDev,
+		ulTimeOut)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_LOCKDEV, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_UnlockDev(
 	DEVHANDLE hDev)
 {
-	if (skf_method->UnlockDev) {
-		return skf_method->UnlockDev(
-			hDev);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_UNLOCKDEV,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->UnlockDev) {
+		SKFerr(SKF_F_SKF_UNLOCKDEV,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->UnlockDev(
+		hDev)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_UNLOCKDEV, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Transmit(
@@ -195,15 +479,31 @@ ULONG DEVAPI SKF_Transmit(
 	BYTE *pbData,
 	ULONG *pulDataLen)
 {
-	if (skf_method->Transmit) {
-		return skf_method->Transmit(
-			hDev,
-			pbCommand,
-			ulCommandLen,
-			pbData,
-			pulDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_TRANSMIT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->Transmit) {
+		SKFerr(SKF_F_SKF_TRANSMIT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->Transmit(
+		hDev,
+		pbCommand,
+		ulCommandLen,
+		pbData,
+		pulDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_TRANSMIT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ChangeDevAuthKey(
@@ -211,13 +511,29 @@ ULONG DEVAPI SKF_ChangeDevAuthKey(
 	BYTE *pbKeyValue,
 	ULONG ulKeyLen)
 {
-	if (skf_method->ChangeDevAuthKey) {
-		return skf_method->ChangeDevAuthKey(
-			hDev,
-			pbKeyValue,
-			ulKeyLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CHANGEDEVAUTHKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ChangeDevAuthKey) {
+		SKFerr(SKF_F_SKF_CHANGEDEVAUTHKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ChangeDevAuthKey(
+		hDev,
+		pbKeyValue,
+		ulKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CHANGEDEVAUTHKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DevAuth(
@@ -225,13 +541,29 @@ ULONG DEVAPI SKF_DevAuth(
 	BYTE *pbAuthData,
 	ULONG ulLen)
 {
-	if (skf_method->DevAuth) {
-		return skf_method->DevAuth(
-			hDev,
-			pbAuthData,
-			ulLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DEVAUTH,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DevAuth) {
+		SKFerr(SKF_F_SKF_DEVAUTH,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DevAuth(
+		hDev,
+		pbAuthData,
+		ulLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DEVAUTH, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ChangePIN(
@@ -241,15 +573,31 @@ ULONG DEVAPI SKF_ChangePIN(
 	LPSTR szNewPin,
 	ULONG *pulRetryCount)
 {
-	if (skf_method->ChangePIN) {
-		return skf_method->ChangePIN(
-			hApplication,
-			ulPINType,
-			szOldPin,
-			szNewPin,
-			pulRetryCount);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CHANGEPIN,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ChangePIN) {
+		SKFerr(SKF_F_SKF_CHANGEPIN,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ChangePIN(
+		hApplication,
+		ulPINType,
+		szOldPin,
+		szNewPin,
+		pulRetryCount)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CHANGEPIN, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 LONG DEVAPI SKF_GetPINInfo(
@@ -259,15 +607,31 @@ LONG DEVAPI SKF_GetPINInfo(
 	ULONG *pulRemainRetryCount,
 	BOOL *pbDefaultPin)
 {
-	if (skf_method->GetPINInfo) {
-		return skf_method->GetPINInfo(
-			hApplication,
-			ulPINType,
-			pulMaxRetryCount,
-			pulRemainRetryCount,
-			pbDefaultPin);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GETPININFO,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GetPINInfo) {
+		SKFerr(SKF_F_SKF_GETPININFO,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->GetPINInfo(
+		hApplication,
+		ulPINType,
+		pulMaxRetryCount,
+		pulRemainRetryCount,
+		pbDefaultPin)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GETPININFO, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_VerifyPIN(
@@ -276,14 +640,30 @@ ULONG DEVAPI SKF_VerifyPIN(
 	LPSTR szPIN,
 	ULONG *pulRetryCount)
 {
-	if (skf_method->VerifyPIN) {
-		return skf_method->VerifyPIN(
-			hApplication,
-			ulPINType,
-			szPIN,
-			pulRetryCount);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_VERIFYPIN,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->VerifyPIN) {
+		SKFerr(SKF_F_SKF_VERIFYPIN,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->VerifyPIN(
+		hApplication,
+		ulPINType,
+		szPIN,
+		pulRetryCount)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_VERIFYPIN, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_UnblockPIN(
@@ -292,24 +672,56 @@ ULONG DEVAPI SKF_UnblockPIN(
 	LPSTR szNewUserPIN,
 	ULONG *pulRetryCount)
 {
-	if (skf_method->UnblockPIN) {
-		return skf_method->UnblockPIN(
-			hApplication,
-			szAdminPIN,
-			szNewUserPIN,
-			pulRetryCount);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_UNBLOCKPIN,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->UnblockPIN) {
+		SKFerr(SKF_F_SKF_UNBLOCKPIN,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->UnblockPIN(
+		hApplication,
+		szAdminPIN,
+		szNewUserPIN,
+		pulRetryCount)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_UNBLOCKPIN, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ClearSecureState(
 	HAPPLICATION hApplication)
 {
-	if (skf_method->ClearSecureState) {
-		return skf_method->ClearSecureState(
-			hApplication);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CLEARSECURESTATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ClearSecureState) {
+		SKFerr(SKF_F_SKF_CLEARSECURESTATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ClearSecureState(
+		hApplication)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CLEARSECURESTATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CreateApplication(
@@ -322,18 +734,34 @@ ULONG DEVAPI SKF_CreateApplication(
 	DWORD dwCreateFileRights,
 	HAPPLICATION *phApplication)
 {
-	if (skf_method->CreateApplication) {
-		return skf_method->CreateApplication(
-			hDev,
-			szAppName,
-			szAdminPin,
-			dwAdminPinRetryCount,
-			szUserPin,
-			dwUserPinRetryCount,
-			dwCreateFileRights,
-			phApplication);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CREATEAPPLICATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->CreateApplication) {
+		SKFerr(SKF_F_SKF_CREATEAPPLICATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->CreateApplication(
+		hDev,
+		szAppName,
+		szAdminPin,
+		dwAdminPinRetryCount,
+		szUserPin,
+		dwUserPinRetryCount,
+		dwCreateFileRights,
+		phApplication)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CREATEAPPLICATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EnumApplication(
@@ -341,25 +769,57 @@ ULONG DEVAPI SKF_EnumApplication(
 	LPSTR szAppName,
 	ULONG *pulSize)
 {
-	if (skf_method->EnumApplication) {
-		return skf_method->EnumApplication(
-			hDev,
-			szAppName,
-			pulSize);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENUMAPPLICATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EnumApplication) {
+		SKFerr(SKF_F_SKF_ENUMAPPLICATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->EnumApplication(
+		hDev,
+		szAppName,
+		pulSize)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENUMAPPLICATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DeleteApplication(
 	DEVHANDLE hDev,
 	LPSTR szAppName)
 {
-	if (skf_method->DeleteApplication) {
-		return skf_method->DeleteApplication(
-			hDev,
-			szAppName);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DELETEAPPLICATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DeleteApplication) {
+		SKFerr(SKF_F_SKF_DELETEAPPLICATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DeleteApplication(
+		hDev,
+		szAppName)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DELETEAPPLICATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_OpenApplication(
@@ -367,23 +827,55 @@ ULONG DEVAPI SKF_OpenApplication(
 	LPSTR szAppName,
 	HAPPLICATION *phApplication)
 {
-	if (skf_method->OpenApplication) {
-		return skf_method->OpenApplication(
-			hDev,
-			szAppName,
-			phApplication);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_OPENAPPLICATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->OpenApplication) {
+		SKFerr(SKF_F_SKF_OPENAPPLICATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->OpenApplication(
+		hDev,
+		szAppName,
+		phApplication)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_OPENAPPLICATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseApplication(
 	HAPPLICATION hApplication)
 {
-	if (skf_method->CloseApplication) {
-		return skf_method->CloseApplication(
-			hApplication);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CLOSEAPPLICATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->CloseApplication) {
+		SKFerr(SKF_F_SKF_CLOSEAPPLICATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->CloseApplication(
+		hApplication)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CLOSEAPPLICATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CreateFile(
@@ -393,27 +885,65 @@ ULONG DEVAPI SKF_CreateFile(
 	ULONG ulReadRights,
 	ULONG ulWriteRights)
 {
-	if (skf_method->CreateFileObject) {
-		return skf_method->CreateFileObject(
-			hApplication,
-			szFileName,
-			ulFileSize,
-			ulReadRights,
-			ulWriteRights);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CREATEFILE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->CreateObject) {
+		SKFerr(SKF_F_SKF_CREATEFILE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->CreateObject(
+		hApplication,
+		szFileName,
+		ulFileSize,
+		ulReadRights,
+		ulWriteRights)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CREATEFILE, skf_get_error_reason(rv));
+
+		//LPSTR str = NULL;
+		//printf("error = %08X\n", rv);
+		//SKF_GetErrorString(rv, &str);
+		//printf("error = %s\n", (char *)str);
+		
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DeleteFile(
 	HAPPLICATION hApplication,
 	LPSTR szFileName)
 {
-	if (skf_method->DeleteFileObject) {
-		return skf_method->DeleteFileObject(
-			hApplication,
-			szFileName);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DELETEFILE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DeleteObject) {
+		SKFerr(SKF_F_SKF_DELETEFILE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DeleteObject(
+		hApplication,
+		szFileName)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DELETEFILE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EnumFiles(
@@ -421,13 +951,29 @@ ULONG DEVAPI SKF_EnumFiles(
 	LPSTR szFileList,
 	ULONG *pulSize)
 {
-	if (skf_method->EnumFiles) {
-		return skf_method->EnumFiles(
-			hApplication,
-			szFileList,
-			pulSize);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENUMFILES,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EnumObjects) {
+		SKFerr(SKF_F_SKF_ENUMFILES,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->EnumObjects(
+		hApplication,
+		szFileList,
+		pulSize)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENUMFILES, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetFileInfo(
@@ -435,13 +981,31 @@ ULONG DEVAPI SKF_GetFileInfo(
 	LPSTR szFileName,
 	FILEATTRIBUTE *pFileInfo)
 {
-	if (skf_method->GetFileInfo) {
-		return skf_method->GetFileInfo(
-			hApplication,
-			szFileName,
-			pFileInfo);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GETFILEINFO,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GetObjectInfo) {
+		SKFerr(SKF_F_SKF_GETFILEINFO,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	memset(pFileInfo, 0, sizeof(FILEATTRIBUTE));
+
+	if ((rv = skf_method->GetObjectInfo(
+		hApplication,
+		szFileName,
+		pFileInfo)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GETFILEINFO, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ReadFile(
@@ -452,16 +1016,32 @@ ULONG DEVAPI SKF_ReadFile(
 	BYTE *pbOutData,
 	ULONG *pulOutLen)
 {
-	if (skf_method->ReadFileObject) {
-		return skf_method->ReadFileObject(
-			hApplication,
-			szFileName,
-			ulOffset,
-			ulSize,
-			pbOutData,
-			pulOutLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_READFILE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ReadObject) {
+		SKFerr(SKF_F_SKF_READFILE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ReadObject(
+		hApplication,
+		szFileName,
+		ulOffset,
+		ulSize,
+		pbOutData,
+		pulOutLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_READFILE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_WriteFile(
@@ -471,15 +1051,34 @@ ULONG DEVAPI SKF_WriteFile(
 	BYTE *pbData,
 	ULONG ulSize)
 {
-	if (skf_method->WriteFileObject) {
-		return skf_method->WriteFileObject(
-			hApplication,
-			szFileName,
-			ulOffset,
-			pbData,
-			ulSize);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_WRITEFILE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->WriteObject) {
+		SKFerr(SKF_F_SKF_WRITEFILE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->WriteObject(
+		hApplication,
+		szFileName,
+		ulOffset,
+		pbData,
+		ulSize)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_WRITEFILE, skf_get_error_reason(rv));
+
+		printf("error = %08X\n", rv);
+
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CreateContainer(
@@ -487,25 +1086,57 @@ ULONG DEVAPI SKF_CreateContainer(
 	LPSTR szContainerName,
 	HCONTAINER *phContainer)
 {
-	if (skf_method->CreateContainer) {
-		return skf_method->CreateContainer(
-			hApplication,
-			szContainerName,
-			phContainer);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CREATECONTAINER,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->CreateContainer) {
+		SKFerr(SKF_F_SKF_CREATECONTAINER,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->CreateContainer(
+		hApplication,
+		szContainerName,
+		phContainer)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CREATECONTAINER, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DeleteContainer(
 	HAPPLICATION hApplication,
 	LPSTR szContainerName)
 {
-	if (skf_method->DeleteContainer) {
-		return skf_method->DeleteContainer(
-			hApplication,
-			szContainerName);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DELETECONTAINER,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DeleteContainer) {
+		SKFerr(SKF_F_SKF_DELETECONTAINER,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DeleteContainer(
+		hApplication,
+		szContainerName)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DELETECONTAINER, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EnumContainer(
@@ -513,13 +1144,29 @@ ULONG DEVAPI SKF_EnumContainer(
 	LPSTR szContainerName,
 	ULONG *pulSize)
 {
-	if (skf_method->EnumContainer) {
-		return skf_method->EnumContainer(
-			hApplication,
-			szContainerName,
-			pulSize);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENUMCONTAINER,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EnumContainer) {
+		SKFerr(SKF_F_SKF_ENUMCONTAINER,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->EnumContainer(
+		hApplication,
+		szContainerName,
+		pulSize)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENUMCONTAINER, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_OpenContainer(
@@ -527,35 +1174,83 @@ ULONG DEVAPI SKF_OpenContainer(
 	LPSTR szContainerName,
 	HCONTAINER *phContainer)
 {
-	if (skf_method->OpenContainer) {
-		return skf_method->OpenContainer(
-			hApplication,
-			szContainerName,
-			phContainer);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_OPENCONTAINER,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->OpenContainer) {
+		SKFerr(SKF_F_SKF_OPENCONTAINER,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->OpenContainer(
+		hApplication,
+		szContainerName,
+		phContainer)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_OPENCONTAINER, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseContainer(
 	HCONTAINER hContainer)
 {
-	if (skf_method->CloseContainer) {
-		return skf_method->CloseContainer(
-			hContainer);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CLOSECONTAINER,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->CloseContainer) {
+		SKFerr(SKF_F_SKF_CLOSECONTAINER,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->CloseContainer(
+		hContainer)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CLOSECONTAINER, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GetContainerType(
 	HCONTAINER hContainer,
 	ULONG *pulContainerType)
 {
-	if (skf_method->GetContainerType) {
-		return skf_method->GetContainerType(
-			hContainer,
-			pulContainerType);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GETCONTAINERTYPE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GetContainerType) {
+		SKFerr(SKF_F_SKF_GETCONTAINERTYPE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->GetContainerType(
+		hContainer,
+		pulContainerType)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GETCONTAINERTYPE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ImportCertificate(
@@ -564,14 +1259,30 @@ ULONG DEVAPI SKF_ImportCertificate(
 	BYTE *pbCert,
 	ULONG ulCertLen)
 {
-	if (skf_method->ImportCertificate) {
-		return skf_method->ImportCertificate(
-			hContainer,
-			bExportSignKey,
-			pbCert,
-			ulCertLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_IMPORTCERTIFICATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ImportCertificate) {
+		SKFerr(SKF_F_SKF_IMPORTCERTIFICATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ImportCertificate(
+		hContainer,
+		bExportSignKey,
+		pbCert,
+		ulCertLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTCERTIFICATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExportCertificate(
@@ -580,14 +1291,30 @@ ULONG DEVAPI SKF_ExportCertificate(
 	BYTE *pbCert,
 	ULONG *pulCertLen)
 {
-	if (skf_method->ExportCertificate) {
-		return skf_method->ExportCertificate(
-			hContainer,
-			bSignFlag,
-			pbCert,
-			pulCertLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXPORTCERTIFICATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExportCertificate) {
+		SKFerr(SKF_F_SKF_EXPORTCERTIFICATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExportCertificate(
+		hContainer,
+		bSignFlag,
+		pbCert,
+		pulCertLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTCERTIFICATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExportPublicKey(
@@ -596,14 +1323,33 @@ ULONG DEVAPI SKF_ExportPublicKey(
 	BYTE *pbBlob,
 	ULONG *pulBlobLen)
 {
-	if (skf_method->ExportPublicKey) {
-		return skf_method->ExportPublicKey(
-			hContainer,
-			bSignFlag,
-			pbBlob,
-			pulBlobLen);
+	ULONG rv;
+
+	// TODO: check the output length, clear the memmory.
+	// if pbBlob is NULL, return the length
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXPORTPUBLICKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExportPublicKey) {
+		SKFerr(SKF_F_SKF_EXPORTPUBLICKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExportPublicKey(
+		hContainer,
+		bSignFlag,
+		pbBlob,
+		pulBlobLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTPUBLICKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenRandom(
@@ -611,13 +1357,29 @@ ULONG DEVAPI SKF_GenRandom(
 	BYTE *pbRandom,
 	ULONG ulRandomLen)
 {
-	if (skf_method->GenRandom) {
-		return skf_method->GenRandom(
-			hDev,
-			pbRandom,
-			ulRandomLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENRANDOM,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenRandom) {
+		SKFerr(SKF_F_SKF_GENRANDOM,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->GenRandom(
+		hDev,
+		pbRandom,
+		ulRandomLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENRANDOM, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenExtRSAKey(
@@ -625,13 +1387,29 @@ ULONG DEVAPI SKF_GenExtRSAKey(
 	ULONG ulBitsLen,
 	RSAPRIVATEKEYBLOB *pBlob)
 {
-	if (skf_method->GenExtRSAKey) {
-		return skf_method->GenExtRSAKey(
-			hDev,
-			ulBitsLen,
-			pBlob);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENEXTRSAKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenExtRSAKey) {
+		SKFerr(SKF_F_SKF_GENEXTRSAKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->GenExtRSAKey(
+		hDev,
+		ulBitsLen,
+		pBlob)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENEXTRSAKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenRSAKeyPair(
@@ -639,13 +1417,30 @@ ULONG DEVAPI SKF_GenRSAKeyPair(
 	ULONG ulBitsLen,
 	RSAPUBLICKEYBLOB *pBlob)
 {
-	if (skf_method->GenRSAKeyPair) {
-		return skf_method->GenRSAKeyPair(
-			hContainer,
-			ulBitsLen,
-			pBlob);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENRSAKEYPAIR,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenRSAKeyPair) {
+		SKFerr(SKF_F_SKF_GENRSAKEYPAIR,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	memset(pBlob, 0, sizeof(RSAPUBLICKEYBLOB));
+	if ((rv = skf_method->GenRSAKeyPair(
+		hContainer,
+		ulBitsLen,
+		pBlob)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENRSAKEYPAIR, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ImportRSAKeyPair(
@@ -656,16 +1451,40 @@ ULONG DEVAPI SKF_ImportRSAKeyPair(
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedDataLen)
 {
-	if (skf_method->ImportRSAKeyPair) {
-		return skf_method->ImportRSAKeyPair(
-			hContainer,
-			ulSymAlgId,
-			pbWrappedKey,
-			ulWrappedKeyLen,
-			pbEncryptedData,
-			ulEncryptedDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_IMPORTRSAKEYPAIR,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ImportRSAKeyPair) {
+		SKFerr(SKF_F_SKF_IMPORTRSAKEYPAIR,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulSymAlgId = skf_vendor->get_cipher_algor(ulSymAlgId))) {
+			SKFerr(SKF_F_SKF_IMPORTRSAKEYPAIR,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->ImportRSAKeyPair(
+		hContainer,
+		ulSymAlgId,
+		pbWrappedKey,
+		ulWrappedKeyLen,
+		pbEncryptedData,
+		ulEncryptedDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTRSAKEYPAIR, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_RSASignData(
@@ -675,15 +1494,31 @@ ULONG DEVAPI SKF_RSASignData(
 	BYTE *pbSignature,
 	ULONG *pulSignLen)
 {
-	if (skf_method->RSASignData) {
-		return skf_method->RSASignData(
-			hContainer,
-			pbData,
-			ulDataLen,
-			pbSignature,
-			pulSignLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_RSASIGNDATA,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->RSASignData) {
+		SKFerr(SKF_F_SKF_RSASIGNDATA,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->RSASignData(
+		hContainer,
+		pbData,
+		ulDataLen,
+		pbSignature,
+		pulSignLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_RSASIGNDATA, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_RSAVerify(
@@ -694,16 +1529,32 @@ ULONG DEVAPI SKF_RSAVerify(
 	BYTE *pbSignature,
 	ULONG ulSignLen)
 {
-	if (skf_method->RSAVerify) {
-		return skf_method->RSAVerify(
-			hDev,
-			pRSAPubKeyBlob,
-			pbData,
-			ulDataLen,
-			pbSignature,
-			ulSignLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_RSAVERIFY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->RSAVerify) {
+		SKFerr(SKF_F_SKF_RSAVERIFY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->RSAVerify(
+		hDev,
+		pRSAPubKeyBlob,
+		pbData,
+		ulDataLen,
+		pbSignature,
+		ulSignLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_RSAVERIFY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_RSAExportSessionKey(
@@ -714,16 +1565,40 @@ ULONG DEVAPI SKF_RSAExportSessionKey(
 	ULONG *pulDataLen,
 	HANDLE *phSessionKey)
 {
-	if (skf_method->RSAExportSessionKey) {
-		return skf_method->RSAExportSessionKey(
-			hContainer,
-			ulAlgId,
-			pPubKey,
-			pbData,
-			pulDataLen,
-			phSessionKey);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_RSAEXPORTSESSIONKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->RSAExportSessionKey) {
+		SKFerr(SKF_F_SKF_RSAEXPORTSESSIONKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgId = skf_vendor->get_cipher_algor(ulAlgId))) {
+			SKFerr(SKF_F_SKF_RSAEXPORTSESSIONKEY,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->RSAExportSessionKey(
+		hContainer,
+		ulAlgId,
+		pPubKey,
+		pbData,
+		pulDataLen,
+		phSessionKey)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_RSAEXPORTSESSIONKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtRSAPubKeyOperation(
@@ -734,16 +1609,32 @@ ULONG DEVAPI SKF_ExtRSAPubKeyOperation(
 	BYTE *pbOutput,
 	ULONG *pulOutputLen)
 {
-	if (skf_method->ExtRSAPubKeyOperation) {
-		return skf_method->ExtRSAPubKeyOperation(
-			hDev,
-			pRSAPubKeyBlob,
-			pbInput,
-			ulInputLen,
-			pbOutput,
-			pulOutputLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXTRSAPUBKEYOPERATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExtRSAPubKeyOperation) {
+		SKFerr(SKF_F_SKF_EXTRSAPUBKEYOPERATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExtRSAPubKeyOperation(
+		hDev,
+		pRSAPubKeyBlob,
+		pbInput,
+		ulInputLen,
+		pbOutput,
+		pulOutputLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXTRSAPUBKEYOPERATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtRSAPriKeyOperation(
@@ -754,16 +1645,32 @@ ULONG DEVAPI SKF_ExtRSAPriKeyOperation(
 	BYTE *pbOutput,
 	ULONG *pulOutputLen)
 {
-	if (skf_method->ExtRSAPriKeyOperation) {
-		return skf_method->ExtRSAPriKeyOperation(
-			hDev,
-			pRSAPriKeyBlob,
-			pbInput,
-			ulInputLen,
-			pbOutput,
-			pulOutputLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXTRSAPRIKEYOPERATION,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExtRSAPriKeyOperation) {
+		SKFerr(SKF_F_SKF_EXTRSAPRIKEYOPERATION,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExtRSAPriKeyOperation(
+		hDev,
+		pRSAPriKeyBlob,
+		pbInput,
+		ulInputLen,
+		pbOutput,
+		pulOutputLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXTRSAPRIKEYOPERATION, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenECCKeyPair(
@@ -771,25 +1678,67 @@ ULONG DEVAPI SKF_GenECCKeyPair(
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pBlob)
 {
-	if (skf_method->GenECCKeyPair) {
-		return skf_method->GenECCKeyPair(
-			hContainer,
-			ulAlgId,
-			pBlob);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENECCKEYPAIR,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenECCKeyPair) {
+		SKFerr(SKF_F_SKF_GENECCKEYPAIR,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgId = skf_vendor->get_pkey_algor(ulAlgId))) {
+			SKFerr(SKF_F_SKF_GENECCKEYPAIR,
+				SKF_R_NOT_SUPPORTED_PKEY_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	memset(pBlob, 0, sizeof(ECCPUBLICKEYBLOB));
+	if ((rv = skf_method->GenECCKeyPair(
+		hContainer,
+		ulAlgId,
+		pBlob)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENECCKEYPAIR, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ImportECCKeyPair(
 	HCONTAINER hContainer,
 	ENVELOPEDKEYBLOB *pEnvelopedKeyBlob)
 {
-	if (skf_method->ImportECCKeyPair) {
-		return skf_method->ImportECCKeyPair(
-			hContainer,
-			pEnvelopedKeyBlob);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_IMPORTECCKEYPAIR,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ImportECCKeyPair) {
+		SKFerr(SKF_F_SKF_IMPORTECCKEYPAIR,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ImportECCKeyPair(
+		hContainer,
+		pEnvelopedKeyBlob)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCKEYPAIR, skf_get_error_reason(rv));
+		printf("%s %d: error = %08X\n", __FILE__, __LINE__, rv);
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ECCSignData(
@@ -798,14 +1747,30 @@ ULONG DEVAPI SKF_ECCSignData(
 	ULONG ulDigestLen,
 	ECCSIGNATUREBLOB *pSignature)
 {
-	if (skf_method->ECCSignData) {
-		return skf_method->ECCSignData(
-			hContainer,
-			pbDigest,
-			ulDigestLen,
-			pSignature);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ECCSIGNDATA,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ECCSignData) {
+		SKFerr(SKF_F_SKF_ECCSIGNDATA,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ECCSignData(
+		hContainer,
+		pbDigest,
+		ulDigestLen,
+		pSignature)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ECCSIGNDATA, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ECCVerify(
@@ -815,15 +1780,31 @@ ULONG DEVAPI SKF_ECCVerify(
 	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature)
 {
-	if (skf_method->ECCVerify) {
-		return skf_method->ECCVerify(
-			hDev,
-			pECCPubKeyBlob,
-			pbData,
-			ulDataLen,
-			pSignature);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ECCVERIFY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ECCVerify) {
+		SKFerr(SKF_F_SKF_ECCVERIFY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ECCVerify(
+		hDev,
+		pECCPubKeyBlob,
+		pbData,
+		ulDataLen,
+		pSignature)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ECCVERIFY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ECCExportSessionKey(
@@ -833,15 +1814,71 @@ ULONG DEVAPI SKF_ECCExportSessionKey(
 	ECCCIPHERBLOB *pData,
 	HANDLE *phSessionKey)
 {
-	if (skf_method->ECCExportSessionKey) {
-		return skf_method->ECCExportSessionKey(
-			hContainer,
-			ulAlgId,
-			pPubKey,
-			pData,
-			phSessionKey);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ECCEXPORTSESSIONKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ECCExportSessionKey) {
+		SKFerr(SKF_F_SKF_ECCEXPORTSESSIONKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgId = skf_vendor->get_cipher_algor(ulAlgId))) {
+			SKFerr(SKF_F_SKF_ECCEXPORTSESSIONKEY,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->ECCExportSessionKey(
+		hContainer,
+		ulAlgId,
+		pPubKey,
+		pData,
+		phSessionKey)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ECCEXPORTSESSIONKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
+}
+
+ULONG DEVAPI SKF_ECCDecrypt(
+	HCONTAINER hContainer,
+	ECCCIPHERBLOB *pCipherText,
+	BYTE *pbPlainText,
+	ULONG *pulPlainTextLen)
+{
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ECCDECRYPT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
+	}
+
+	if (!skf_method->ECCDecrypt) {
+		SKFerr(SKF_F_SKF_ECCDECRYPT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ECCDecrypt(
+		hContainer,
+		pCipherText,
+		pbPlainText,
+		pulPlainTextLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ECCDECRYPT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtECCEncrypt(
@@ -851,15 +1888,31 @@ ULONG DEVAPI SKF_ExtECCEncrypt(
 	ULONG ulPlainTextLen,
 	ECCCIPHERBLOB *pCipherText)
 {
-	if (skf_method->ExtECCEncrypt) {
-		return skf_method->ExtECCEncrypt(
-			hDev,
-			pECCPubKeyBlob,
-			pbPlainText,
-			ulPlainTextLen,
-			pCipherText);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXTECCENCRYPT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExtECCEncrypt) {
+		SKFerr(SKF_F_SKF_EXTECCENCRYPT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExtECCEncrypt(
+		hDev,
+		pECCPubKeyBlob,
+		pbPlainText,
+		ulPlainTextLen,
+		pCipherText)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXTECCENCRYPT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtECCDecrypt(
@@ -869,15 +1922,31 @@ ULONG DEVAPI SKF_ExtECCDecrypt(
 	BYTE *pbPlainText,
 	ULONG *pulPlainTextLen)
 {
-	if (skf_method->ExtECCDecrypt) {
-		return skf_method->ExtECCDecrypt(
-			hDev,
-			pECCPriKeyBlob,
-			pCipherText,
-			pbPlainText,
-			pulPlainTextLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXTECCDECRYPT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExtECCDecrypt) {
+		SKFerr(SKF_F_SKF_EXTECCDECRYPT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExtECCDecrypt(
+		hDev,
+		pECCPriKeyBlob,
+		pCipherText,
+		pbPlainText,
+		pulPlainTextLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXTECCDECRYPT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtECCSign(
@@ -887,15 +1956,31 @@ ULONG DEVAPI SKF_ExtECCSign(
 	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature)
 {
-	if (skf_method->ExtECCSign) {
-		return skf_method->ExtECCSign(
-			hDev,
-			pECCPriKeyBlob,
-			pbData,
-			ulDataLen,
-			pSignature);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXTECCSIGN,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExtECCSign) {
+		SKFerr(SKF_F_SKF_EXTECCSIGN,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExtECCSign(
+		hDev,
+		pECCPriKeyBlob,
+		pbData,
+		ulDataLen,
+		pSignature)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXTECCSIGN, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ExtECCVerify(
@@ -905,15 +1990,31 @@ ULONG DEVAPI SKF_ExtECCVerify(
 	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature)
 {
-	if (skf_method->ExtECCVerify) {
-		return skf_method->ExtECCVerify(
-			hDev,
-			pECCPubKeyBlob,
-			pbData,
-			ulDataLen,
-			pSignature);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_EXTECCVERIFY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ExtECCVerify) {
+		SKFerr(SKF_F_SKF_EXTECCVERIFY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->ExtECCVerify(
+		hDev,
+		pECCPubKeyBlob,
+		pbData,
+		ulDataLen,
+		pSignature)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXTECCVERIFY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenerateAgreementDataWithECC(
@@ -924,16 +2025,40 @@ ULONG DEVAPI SKF_GenerateAgreementDataWithECC(
 	ULONG ulIDLen,
 	HANDLE *phAgreementHandle)
 {
-	if (skf_method->GenerateAgreementDataWithECC) {
-		return skf_method->GenerateAgreementDataWithECC(
-			hContainer,
-			ulAlgId,
-			pTempECCPubKeyBlob,
-			pbID,
-			ulIDLen,
-			phAgreementHandle);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAWITHECC,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenerateAgreementDataWithECC) {
+		SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAWITHECC,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgId = skf_vendor->get_cipher_algor(ulAlgId))) {
+			SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAWITHECC,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->GenerateAgreementDataWithECC(
+		hContainer,
+		ulAlgId,
+		pTempECCPubKeyBlob,
+		pbID,
+		ulIDLen,
+		phAgreementHandle)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAWITHECC, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(
@@ -948,20 +2073,44 @@ ULONG DEVAPI SKF_GenerateAgreementDataAndKeyWithECC(
 	ULONG ulSponsorIDLen,
 	HANDLE *phKeyHandle)
 {
-	if (skf_method->GenerateAgreementDataAndKeyWithECC) {
-		return skf_method->GenerateAgreementDataAndKeyWithECC(
-			hContainer,
-			ulAlgId,
-			pSponsorECCPubKeyBlob,
-			pSponsorTempECCPubKeyBlob,
-			pTempECCPubKeyBlob,
-			pbID,
-			ulIDLen,
-			pbSponsorID,
-			ulSponsorIDLen,
-			phKeyHandle);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAANDKEYWITHECC,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenerateAgreementDataAndKeyWithECC) {
+		SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAANDKEYWITHECC,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgId = skf_vendor->get_cipher_algor(ulAlgId))) {
+			SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAANDKEYWITHECC,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->GenerateAgreementDataAndKeyWithECC(
+		hContainer,
+		ulAlgId,
+		pSponsorECCPubKeyBlob,
+		pSponsorTempECCPubKeyBlob,
+		pTempECCPubKeyBlob,
+		pbID,
+		ulIDLen,
+		pbSponsorID,
+		ulSponsorIDLen,
+		phKeyHandle)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENERATEAGREEMENTDATAANDKEYWITHECC, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_GenerateKeyWithECC(
@@ -972,16 +2121,32 @@ ULONG DEVAPI SKF_GenerateKeyWithECC(
 	ULONG ulIDLen,
 	HANDLE *phKeyHandle)
 {
-	if (skf_method->GenerateKeyWithECC) {
-		return skf_method->GenerateKeyWithECC(
-			hAgreementHandle,
-			pECCPubKeyBlob,
-			pTempECCPubKeyBlob,
-			pbID,
-			ulIDLen,
-			phKeyHandle);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_GENERATEKEYWITHECC,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->GenerateKeyWithECC) {
+		SKFerr(SKF_F_SKF_GENERATEKEYWITHECC,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->GenerateKeyWithECC(
+		hAgreementHandle,
+		pECCPubKeyBlob,
+		pTempECCPubKeyBlob,
+		pbID,
+		ulIDLen,
+		phKeyHandle)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_GENERATEKEYWITHECC, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_ImportSessionKey(
@@ -991,15 +2156,39 @@ ULONG DEVAPI SKF_ImportSessionKey(
 	ULONG ulWrapedLen,
 	HANDLE *phKey)
 {
-	if (skf_method->ImportSessionKey) {
-		return skf_method->ImportSessionKey(
-			hContainer,
-			ulAlgId,
-			pbWrapedData,
-			ulWrapedLen,
-			phKey);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_IMPORTSESSIONKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->ImportSessionKey) {
+		SKFerr(SKF_F_SKF_IMPORTSESSIONKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgId = skf_vendor->get_cipher_algor(ulAlgId))) {
+			SKFerr(SKF_F_SKF_IMPORTSESSIONKEY,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->ImportSessionKey(
+		hContainer,
+		ulAlgId,
+		pbWrapedData,
+		ulWrapedLen,
+		phKey)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTSESSIONKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_SetSymmKey(
@@ -1008,26 +2197,66 @@ ULONG DEVAPI SKF_SetSymmKey(
 	ULONG ulAlgID,
 	HANDLE *phKey)
 {
-	if (skf_method->SetSymmKey) {
-		return skf_method->SetSymmKey(
-			hDev,
-			pbKey,
-			ulAlgID,
-			phKey);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_SETSYMMKEY,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->SetSymmKey) {
+		SKFerr(SKF_F_SKF_SETSYMMKEY,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgID = skf_vendor->get_cipher_algor(ulAlgID))) {
+			SKFerr(SKF_F_SKF_SETSYMMKEY,
+				SKF_R_NOT_SUPPORTED_CIPHER_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->SetSymmKey(
+		hDev,
+		pbKey,
+		ulAlgID,
+		phKey)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_SETSYMMKEY, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptInit(
 	HANDLE hKey,
 	BLOCKCIPHERPARAM EncryptParam)
 {
-	if (skf_method->EncryptInit) {
-		return skf_method->EncryptInit(
-			hKey,
-			EncryptParam);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENCRYPTINIT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EncryptInit) {
+		SKFerr(SKF_F_SKF_ENCRYPTINIT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->EncryptInit(
+		hKey,
+		EncryptParam)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENCRYPTINIT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Encrypt(
@@ -1037,15 +2266,31 @@ ULONG DEVAPI SKF_Encrypt(
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen)
 {
-	if (skf_method->Encrypt) {
-		return skf_method->Encrypt(
-			hKey,
-			pbData,
-			ulDataLen,
-			pbEncryptedData,
-			pulEncryptedLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENCRYPT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->Encrypt) {
+		SKFerr(SKF_F_SKF_ENCRYPT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->Encrypt(
+		hKey,
+		pbData,
+		ulDataLen,
+		pbEncryptedData,
+		pulEncryptedLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENCRYPT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptUpdate(
@@ -1055,15 +2300,31 @@ ULONG DEVAPI SKF_EncryptUpdate(
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen)
 {
-	if (skf_method->EncryptUpdate) {
-		return skf_method->EncryptUpdate(
-			hKey,
-			pbData,
-			ulDataLen,
-			pbEncryptedData,
-			pulEncryptedLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENCRYPTUPDATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EncryptUpdate) {
+		SKFerr(SKF_F_SKF_ENCRYPTUPDATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->EncryptUpdate(
+		hKey,
+		pbData,
+		ulDataLen,
+		pbEncryptedData,
+		pulEncryptedLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENCRYPTUPDATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_EncryptFinal(
@@ -1071,25 +2332,57 @@ ULONG DEVAPI SKF_EncryptFinal(
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedDataLen)
 {
-	if (skf_method->EncryptFinal) {
-		return skf_method->EncryptFinal(
-			hKey,
-			pbEncryptedData,
-			pulEncryptedDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_ENCRYPTFINAL,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->EncryptFinal) {
+		SKFerr(SKF_F_SKF_ENCRYPTFINAL,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->EncryptFinal(
+		hKey,
+		pbEncryptedData,
+		pulEncryptedDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_ENCRYPTFINAL, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DecryptInit(
 	HANDLE hKey,
 	BLOCKCIPHERPARAM DecryptParam)
 {
-	if (skf_method->DecryptInit) {
-		return skf_method->DecryptInit(
-			hKey,
-			DecryptParam);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DECRYPTINIT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DecryptInit) {
+		SKFerr(SKF_F_SKF_DECRYPTINIT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DecryptInit(
+		hKey,
+		DecryptParam)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DECRYPTINIT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Decrypt(
@@ -1099,15 +2392,31 @@ ULONG DEVAPI SKF_Decrypt(
 	BYTE *pbData,
 	ULONG *pulDataLen)
 {
-	if (skf_method->Decrypt) {
-		return skf_method->Decrypt(
-			hKey,
-			pbEncryptedData,
-			ulEncryptedLen,
-			pbData,
-			pulDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DECRYPT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->Decrypt) {
+		SKFerr(SKF_F_SKF_DECRYPT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->Decrypt(
+		hKey,
+		pbEncryptedData,
+		ulEncryptedLen,
+		pbData,
+		pulDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DECRYPT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DecryptUpdate(
@@ -1117,15 +2426,31 @@ ULONG DEVAPI SKF_DecryptUpdate(
 	BYTE *pbData,
 	ULONG *pulDataLen)
 {
-	if (skf_method->DecryptUpdate) {
-		return skf_method->DecryptUpdate(
-			hKey,
-			pbEncryptedData,
-			ulEncryptedLen,
-			pbData,
-			pulDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DECRYPTUPDATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DecryptUpdate) {
+		SKFerr(SKF_F_SKF_DECRYPTUPDATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DecryptUpdate(
+		hKey,
+		pbEncryptedData,
+		ulEncryptedLen,
+		pbData,
+		pulDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DECRYPTUPDATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DecryptFinal(
@@ -1133,13 +2458,29 @@ ULONG DEVAPI SKF_DecryptFinal(
 	BYTE *pbDecryptedData,
 	ULONG *pulDecryptedDataLen)
 {
-	if (skf_method->DecryptFinal) {
-		return skf_method->DecryptFinal(
-			hKey,
-			pbDecryptedData,
-			pulDecryptedDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DECRYPTFINAL,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DecryptFinal) {
+		SKFerr(SKF_F_SKF_DECRYPTFINAL,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DecryptFinal(
+		hKey,
+		pbDecryptedData,
+		pulDecryptedDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DECRYPTFINAL, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DigestInit(
@@ -1150,16 +2491,40 @@ ULONG DEVAPI SKF_DigestInit(
 	ULONG ulIDLen,
 	HANDLE *phHash)
 {
-	if (skf_method->DigestInit) {
-		return skf_method->DigestInit(
-			hDev,
-			ulAlgID,
-			pPubKey,
-			pbID,
-			ulIDLen,
-			phHash);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DIGESTINIT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DigestInit) {
+		SKFerr(SKF_F_SKF_DIGESTINIT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if (skf_vendor) {
+		if (!(ulAlgID = skf_vendor->get_digest_algor(ulAlgID))) {
+			SKFerr(SKF_F_SKF_DIGESTINIT,
+				SKF_R_NOT_SUPPORTED_DIGEST_ALGOR);
+			return SAR_NOTSUPPORTYETERR;
+		}
+	}
+
+	if ((rv = skf_method->DigestInit(
+		hDev,
+		ulAlgID,
+		pPubKey,
+		pbID,
+		ulIDLen,
+		phHash)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DIGESTINIT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Digest(
@@ -1169,15 +2534,31 @@ ULONG DEVAPI SKF_Digest(
 	BYTE *pbHashData,
 	ULONG *pulHashLen)
 {
-	if (skf_method->Digest) {
-		return skf_method->Digest(
-			hHash,
-			pbData,
-			ulDataLen,
-			pbHashData,
-			pulHashLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DIGEST,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->Digest) {
+		SKFerr(SKF_F_SKF_DIGEST,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->Digest(
+		hHash,
+		pbData,
+		ulDataLen,
+		pbHashData,
+		pulHashLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DIGEST, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DigestUpdate(
@@ -1185,13 +2566,29 @@ ULONG DEVAPI SKF_DigestUpdate(
 	BYTE *pbData,
 	ULONG ulDataLen)
 {
-	if (skf_method->DigestUpdate) {
-		return skf_method->DigestUpdate(
-			hHash,
-			pbData,
-			ulDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DIGESTUPDATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DigestUpdate) {
+		SKFerr(SKF_F_SKF_DIGESTUPDATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DigestUpdate(
+		hHash,
+		pbData,
+		ulDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DIGESTUPDATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_DigestFinal(
@@ -1199,13 +2596,29 @@ ULONG DEVAPI SKF_DigestFinal(
 	BYTE *pHashData,
 	ULONG *pulHashLen)
 {
-	if (skf_method->DigestFinal) {
-		return skf_method->DigestFinal(
-			hHash,
-			pHashData,
-			pulHashLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_DIGESTFINAL,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->DigestFinal) {
+		SKFerr(SKF_F_SKF_DIGESTFINAL,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->DigestFinal(
+		hHash,
+		pHashData,
+		pulHashLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_DIGESTFINAL, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_MacInit(
@@ -1213,13 +2626,29 @@ ULONG DEVAPI SKF_MacInit(
 	BLOCKCIPHERPARAM *pMacParam,
 	HANDLE *phMac)
 {
-	if (skf_method->MacInit) {
-		return skf_method->MacInit(
-			hKey,
-			pMacParam,
-			phMac);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_MACINIT,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->MacInit) {
+		SKFerr(SKF_F_SKF_MACINIT,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->MacInit(
+		hKey,
+		pMacParam,
+		phMac)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_MACINIT, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_Mac(
@@ -1229,15 +2658,31 @@ ULONG DEVAPI SKF_Mac(
 	BYTE *pbMacData,
 	ULONG *pulMacLen)
 {
-	if (skf_method->Mac) {
-		return skf_method->Mac(
-			hMac,
-			pbData,
-			ulDataLen,
-			pbMacData,
-			pulMacLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_MAC,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->Mac) {
+		SKFerr(SKF_F_SKF_MAC,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->Mac(
+		hMac,
+		pbData,
+		ulDataLen,
+		pbMacData,
+		pulMacLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_MAC, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_MacUpdate(
@@ -1245,13 +2690,29 @@ ULONG DEVAPI SKF_MacUpdate(
 	BYTE *pbData,
 	ULONG ulDataLen)
 {
-	if (skf_method->MacUpdate) {
-		return skf_method->MacUpdate(
-			hMac,
-			pbData,
-			ulDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_MACUPDATE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->MacUpdate) {
+		SKFerr(SKF_F_SKF_MACUPDATE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->MacUpdate(
+		hMac,
+		pbData,
+		ulDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_MACUPDATE, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_MacFinal(
@@ -1259,168 +2720,54 @@ ULONG DEVAPI SKF_MacFinal(
 	BYTE *pbMacData,
 	ULONG *pulMacDataLen)
 {
-	if (skf_method->MacFinal) {
-		return skf_method->MacFinal(
-			hMac,
-			pbMacData,
-			pulMacDataLen);
+	ULONG rv;
+
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_MACFINAL,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
+
+	if (!skf_method->MacFinal) {
+		SKFerr(SKF_F_SKF_MACFINAL,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
+	}
+
+	if ((rv = skf_method->MacFinal(
+		hMac,
+		pbMacData,
+		pulMacDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_MACFINAL, skf_get_error_reason(rv));
+		return rv;
+	}
+
+	return SAR_OK;
 }
 
 ULONG DEVAPI SKF_CloseHandle(
 	HANDLE hHandle)
 {
-	if (skf_method->CloseHandle) {
-		return skf_method->CloseHandle(
-			hHandle);
+	ULONG rv;
 
+	if (!skf_method) {
+		SKFerr(SKF_F_SKF_CLOSEHANDLE,
+			SKF_R_SKF_METHOD_NOT_INITIALIZED);
+		return SAR_NOTINITIALIZEERR;
 	}
-	return SAR_NOTSUPPORTYETERR;
-}
 
-
-static ERR_STRING_DATA skf_errstr[] = {
-	{ SAR_OK,			"Success" },
-	{ SAR_FAIL,			"Failure" },
-	{ SAR_UNKNOWNERR,		"Unknown error" },
-	{ SAR_NOTSUPPORTYETERR,		"Not supported" },
-	{ SAR_FILEERR,			"File error" },
-	{ SAR_INVALIDHANDLEERR,		"Invalid handle" },
-	{ SAR_INVALIDPARAMERR,		"Invalid parameter" },
-	{ SAR_READFILEERR,		"Read file error" },
-	{ SAR_WRITEFILEERR,		"Write file error" },
-	{ SAR_NAMELENERR,		"Name length error" },
-	{ SAR_KEYUSAGEERR,		"Key usage error" },
-	{ SAR_MODULUSLENERR,		"Modulus length error" },
-	{ SAR_NOTINITIALIZEERR,		"Not initialized" },
-	{ SAR_OBJERR,			"Object error" },
-	{ SAR_MEMORYERR,		"Memory error" },
-	{ SAR_TIMEOUTERR,		"Time out" },
-	{ SAR_INDATALENERR,		"Input data length error" },
-	{ SAR_INDATAERR,		"Input data error" },
-	{ SAR_GENRANDERR,		"Generate randomness error" },
-	{ SAR_HASHOBJERR,		"Hash object error" },
-	{ SAR_HASHERR,			"Hash error" },
-	{ SAR_GENRSAKEYERR,		"Genenerate RSA key error" },
-	{ SAR_RSAMODULUSLENERR,		"RSA modulus length error" },
-	{ SAR_CSPIMPRTPUBKEYERR,	"CSP import public key error" },
-	{ SAR_RSAENCERR,		"RSA encryption error" },
-	{ SAR_RSADECERR,		"RSA decryption error" },
-	{ SAR_HASHNOTEQUALERR,		"Hash not equal" },
-	{ SAR_KEYNOTFOUNTERR,		"Key not found" },
-	{ SAR_CERTNOTFOUNTERR,		"Certificate not found" },
-	{ SAR_NOTEXPORTERR,		"Not exported" },
-	{ SAR_DECRYPTPADERR,		"Decrypt pad error" },
-	{ SAR_MACLENERR,		"MAC length error" },
-	{ SAR_BUFFER_TOO_SMALL,		"Buffer too small" },
-	{ SAR_KEYINFOTYPEERR,		"Key info type error" },
-	{ SAR_NOT_EVENTERR,		"No event error" },
-	{ SAR_DEVICE_REMOVED,		"Device removed" },
-	{ SAR_PIN_INCORRECT,		"PIN incorrect" },
-	{ SAR_PIN_LOCKED,		"PIN locked" },
-	{ SAR_PIN_INVALID,		"PIN invalid" },
-	{ SAR_PIN_LEN_RANGE,		"PIN length error" },
-	{ SAR_USER_ALREADY_LOGGED_IN,	"User already logged in" },
-	{ SAR_USER_PIN_NOT_INITIALIZED,	"User PIN not initialized" },
-	{ SAR_USER_TYPE_INVALID,	"User type invalid" },
-	{ SAR_APPLICATION_NAME_INVALID, "Application name invalid" },
-	{ SAR_APPLICATION_EXISTS,	"Application already exist" },
-	{ SAR_USER_NOT_LOGGED_IN,	"User not logged in" },
-	{ SAR_APPLICATION_NOT_EXISTS,	"Application not exist" },
-	{ SAR_FILE_ALREADY_EXIST,	"File already exist" },
-	{ SAR_NO_ROOM,			"No file space" },
-	{ SAR_FILE_NOT_EXIST,		"File not exist" }
-};
-
-const char *SKF_GetErrorString(ULONG ulError)
-{
-	int i;
-	for (i = 0; i < OSSL_NELEM(skf_errstr); i++) {
-		if (ulError == skf_errstr[i].error) {
-			return skf_errstr[i].string;
-		}
+	if (!skf_method->CloseHandle) {
+		SKFerr(SKF_F_SKF_CLOSEHANDLE,
+			SKF_R_FUNCTION_NOT_SUPPORTED);
+		return SAR_NOTSUPPORTYETERR;
 	}
-	return "(undef)";
-}
 
-int SKF_PrintRSAPublicKey(FILE *fp, RSAPUBLICKEYBLOB *pk)
-{
-	return 0;
-}
-
-int SKF_PrintRSAPrivateKey(FILE *fp, RSAPRIVATEKEYBLOB *pk)
-{
-	return 0;
-}
-
-int SKF_PrintECCPublicKey(FILE *fp, ECCPUBLICKEYBLOB *pk)
-{
-	return 0;
-}
-
-int SKF_PrintECCPrivateKey(FILE *fp, ECCPRIVATEKEYBLOB *pk)
-{
-	return 0;
-}
-
-int SKF_PrintECCCipher(FILE *fp, ECCCIPHERBLOB *cipher)
-{
-	return 0;
-}
-
-int SKF_PrintECCSignature(FILE *fp, ECCSIGNATUREBLOB *sig)
-{
-	return 0;
-}
-
-int SKF_PrintDeviceInfo(FILE *fp, DEVINFO *devInfo)
-{
-	int ret = 0;
-	ret += fprintf(fp, "Device Info:\n");
-	ret += fprintf(fp, " Device Version   : %d.%d\n", devInfo->Version.major, devInfo->Version.minor);
-	ret += fprintf(fp, " Manufacturer     : %s\n", devInfo->Manufacturer);
-	ret += fprintf(fp, " Issuer           : %s\n", devInfo->Issuer);
-	ret += fprintf(fp, " Label            : %s\n", devInfo->Label);
-	ret += fprintf(fp, " Serial Number    : %s\n", devInfo->SerialNumber);
-	ret += fprintf(fp, " Hardware Version : %d.%d\n", devInfo->HWVersion.major, devInfo->HWVersion.minor);
-	ret += fprintf(fp, " Firmware Version : %d.%d\n", devInfo->FirmwareVersion.major, devInfo->FirmwareVersion.minor);
-	ret += fprintf(fp, " AlgSymCap        : 0x%08x\n", devInfo->AlgSymCap);
-	ret += fprintf(fp, " AlgAsymCap       : 0x%08x\n", devInfo->AlgAsymCap);
-	ret += fprintf(fp, " AlgHashCap       : 0x%08x\n", devInfo->AlgHashCap);
-	ret += fprintf(fp, " AlgHashCap       : 0x%08x\n", devInfo->DevAuthAlgId);
-	ret += fprintf(fp, " Total Space      : %u\n", devInfo->TotalSpace);
-	ret += fprintf(fp, " Free Space       : %u\n", devInfo->FreeSpace);
-	ret += fprintf(fp, " MaxECCBuffer     : %u\n", devInfo->MaxECCBufferSize);
-	ret += fprintf(fp, " MaxBuffer        : %u\n", devInfo->MaxBufferSize);
-	return ret;
-}
-
-const char *SKF_GetAlgorName(ULONG ulAlgID)
-{
-	switch (ulAlgID) {
-	case SGD_SM1_ECB: return "sm1-ecb";
-	case SGD_SM1_CBC: return "sm1-cbc";
-	case SGD_SM1_CFB: return "sm1-ocb";
-	case SGD_SM1_OFB: return "sm1-ofb";
-	case SGD_SM1_MAC: return "sm1-mac";
-	case SGD_SM4_ECB: return "sms4-ecb";
-	case SGD_SM4_CBC: return "sms4-cbc";
-	case SGD_SM4_CFB: return "sms4-cfb";
-	case SGD_SM4_OFB: return "sms4-ofb";
-	case SGD_SM4_MAC: return "sms4-mac";
-	case SGD_SSF33_ECB: return "ssf33-ecb";
-	case SGD_SSF33_CBC: return "ssf33-cbc";
-	case SGD_SSF33_CFB: return "ssf33-cfb";
-	case SGD_SSF33_OFB: return "ssf33-ofb";
-	case SGD_SSF33_MAC: return "ssf33-mac";
-	case SGD_RSA: return "rsa";
-	case SGD_SM2_1: return "sm2sign";
-	case SGD_SM2_2: return "sm2encrypt";
-	case SGD_SM2_3: return "sm2keyagreement";
-	case SGD_SM3: return "sm3";
-	case SGD_SHA1: return "sha1";
-	case SGD_SHA256: return "sha256";
+	if ((rv = skf_method->CloseHandle(
+		hHandle)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CLOSEHANDLE, skf_get_error_reason(rv));
+		return rv;
 	}
-	return NULL;
+
+	return SAR_OK;
 }
+

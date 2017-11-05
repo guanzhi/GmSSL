@@ -54,6 +54,9 @@
 #ifndef HEADER_CPK_H
 #define HEADER_CPK_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_CPK
+
 #include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/ossl_typ.h>
@@ -126,8 +129,7 @@ int ERR_load_CPK_strings(void);
 # define CPK_F_CPK_PUBLIC_PARAMS_COMPUTE_SHARE_KEY        105
 # define CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY       106
 # define CPK_F_CPK_PUBLIC_PARAMS_VALIDATE_PRIVATE_KEY     107
-# define CPK_F_X509_ALGOR_GET1_DSA                        108
-# define CPK_F_X509_ALGOR_GET1_EC_KEY                     109
+# define CPK_F_X509_ALGOR_GET1_EC_KEY                     108
 
 /* Reason codes. */
 # define CPK_R_BAD_ARGUMENT                               100
@@ -136,7 +138,8 @@ int ERR_load_CPK_strings(void);
 # define CPK_R_INVALID_MAP_ALGOR                          103
 # define CPK_R_INVALID_PKEY_TYPE                          104
 
-# ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
+#  endif
 # endif
 #endif

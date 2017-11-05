@@ -13,7 +13,12 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/cms.h>
-#include <openssl/aes.h>
+#ifndef OPENSSL_NO_AES
+# include <openssl/aes.h>
+#endif
+#ifndef OPENSSL_NO_SMS4
+# include <openssl/sms4.h>
+#endif
 #include "cms_lcl.h"
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
@@ -614,10 +619,17 @@ static int cms_RecipientInfo_kekri_encrypt(CMS_ContentInfo *cms,
 {
     CMS_EncryptedContentInfo *ec;
     CMS_KEKRecipientInfo *kekri;
-    AES_KEY actx;
     unsigned char *wkey = NULL;
     int wkeylen;
     int r = 0;
+#if !defined(OPENSSL_NO_AES)
+    AES_KEY actx;
+#elif !defined(OPENSSL_NO_SMS4)
+    sms4_key_t sctx;
+#else
+    CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_ENCRYPT, CMS_R_NO_AVAILABLE_CIPHER);
+    return 0;
+#endif
 
     ec = cms->d.envelopedData->encryptedContentInfo;
 
@@ -628,11 +640,15 @@ static int cms_RecipientInfo_kekri_encrypt(CMS_ContentInfo *cms,
         return 0;
     }
 
+#if !defined(OPENSSL_NO_AES)
     if (AES_set_encrypt_key(kekri->key, kekri->keylen << 3, &actx)) {
         CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_ENCRYPT,
                CMS_R_ERROR_SETTING_KEY);
         goto err;
     }
+#elif !defined(OPENSSL_NO_SMS4)
+    sms4_set_encrypt_key(&sctx, kekri->key);
+#endif
 
     wkey = OPENSSL_malloc(ec->keylen + 8);
 
@@ -641,7 +657,11 @@ static int cms_RecipientInfo_kekri_encrypt(CMS_ContentInfo *cms,
         goto err;
     }
 
+#ifndef OPENSSL_NO_AES
     wkeylen = AES_wrap_key(&actx, NULL, wkey, ec->key, ec->keylen);
+#elif !defined(OPENSSL_NO_SMS4)
+    wkeylen = sms4_wrap_key(&sctx, NULL, wkey, ec->key, ec->keylen);
+#endif
 
     if (wkeylen <= 0) {
         CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_ENCRYPT, CMS_R_WRAP_ERROR);
@@ -656,7 +676,11 @@ static int cms_RecipientInfo_kekri_encrypt(CMS_ContentInfo *cms,
 
     if (!r)
         OPENSSL_free(wkey);
+#ifndef OPENSSL_NO_AES
     OPENSSL_cleanse(&actx, sizeof(actx));
+#elif !defined(OPENSSL_NO_SMS4)
+    OPENSSL_cleanse(&sctx, sizeof(sctx));
+#endif
 
     return r;
 
@@ -669,10 +693,17 @@ static int cms_RecipientInfo_kekri_decrypt(CMS_ContentInfo *cms,
 {
     CMS_EncryptedContentInfo *ec;
     CMS_KEKRecipientInfo *kekri;
-    AES_KEY actx;
     unsigned char *ukey = NULL;
     int ukeylen;
     int r = 0, wrap_nid;
+#ifndef OPENSSL_NO_AES
+    AES_KEY actx;
+#elif !defined(OPENSSL_NO_SMS4)
+    sms4_key_t sctx;
+#else
+    CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_DECRYPT, CMS_R_NO_AVAILABLE_CIPHER);
+    return 0;
+#endif
 
     ec = cms->d.envelopedData->encryptedContentInfo;
 
@@ -684,11 +715,19 @@ static int cms_RecipientInfo_kekri_decrypt(CMS_ContentInfo *cms,
     }
 
     wrap_nid = OBJ_obj2nid(kekri->keyEncryptionAlgorithm->algorithm);
+#ifndef OPENSSL_NO_AES
     if (aes_wrap_keylen(wrap_nid) != kekri->keylen) {
         CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_DECRYPT,
                CMS_R_INVALID_KEY_LENGTH);
         return 0;
     }
+#elif !defined(OPENSSL_NO_SMS4)
+    if (SMS4_KEY_LENGTH != kekri->keylen) {
+        CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_DECRYPT,
+               CMS_R_INVALID_KEY_LENGTH);
+        return 0;
+    }
+#endif
 
     /* If encrypted key length is invalid don't bother */
 
@@ -698,11 +737,15 @@ static int cms_RecipientInfo_kekri_decrypt(CMS_ContentInfo *cms,
         goto err;
     }
 
+#ifndef OPENSSL_NO_AES
     if (AES_set_decrypt_key(kekri->key, kekri->keylen << 3, &actx)) {
         CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_DECRYPT,
                CMS_R_ERROR_SETTING_KEY);
         goto err;
     }
+#elif !defined(OPENSSL_NO_SMS4)
+    sms4_set_decrypt_key(&sctx, kekri->key);
+#endif
 
     ukey = OPENSSL_malloc(kekri->encryptedKey->length - 8);
 
@@ -711,9 +754,15 @@ static int cms_RecipientInfo_kekri_decrypt(CMS_ContentInfo *cms,
         goto err;
     }
 
+#ifndef OPENSSL_NO_AES
     ukeylen = AES_unwrap_key(&actx, NULL, ukey,
                              kekri->encryptedKey->data,
                              kekri->encryptedKey->length);
+#elif !defined(OPENSSL_NO_SMS4)
+    ukeylen = sms4_unwrap_key(&sctx, NULL, ukey,
+                              kekri->encryptedKey->data,
+                              kekri->encryptedKey->length);
+#endif
 
     if (ukeylen <= 0) {
         CMSerr(CMS_F_CMS_RECIPIENTINFO_KEKRI_DECRYPT, CMS_R_UNWRAP_ERROR);
@@ -729,7 +778,11 @@ static int cms_RecipientInfo_kekri_decrypt(CMS_ContentInfo *cms,
 
     if (!r)
         OPENSSL_free(ukey);
+#ifndef OPENSSL_NO_AES
     OPENSSL_cleanse(&actx, sizeof(actx));
+#elif !defined(OPENSSL_NO_SMS4)
+    OPENSSL_cleanse(&sctx, sizeof(sctx));
+#endif
 
     return r;
 

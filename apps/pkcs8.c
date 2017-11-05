@@ -16,6 +16,13 @@
 #include <openssl/evp.h>
 #include <openssl/pkcs12.h>
 
+/* pkcs8 command use aes-256-cbc as default cipher */
+#ifndef OPENSSL_NO_AES
+# define PKCS8_DEFAULT_EVP_CIPHER EVP_aes_256_cbc()
+#else
+# define PKCS8_DEFAULT_EVP_CIPHER EVP_sms4_cbc()
+#endif
+
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_INFORM, OPT_OUTFORM, OPT_ENGINE, OPT_IN, OPT_OUT,
@@ -135,7 +142,7 @@ int pkcs8_main(int argc, char **argv)
                 goto opthelp;
             }
             if (cipher == NULL)
-                cipher = EVP_aes_256_cbc();
+                cipher = PKCS8_DEFAULT_EVP_CIPHER;
             break;
         case OPT_ITER:
             if (!opt_int(opt_arg(), &iter))
@@ -156,7 +163,7 @@ int pkcs8_main(int argc, char **argv)
             scrypt_r = 8;
             scrypt_p = 1;
             if (cipher == NULL)
-                cipher = EVP_aes_256_cbc();
+                cipher = PKCS8_DEFAULT_EVP_CIPHER;
             break;
         case OPT_SCRYPT_N:
             if (!opt_long(opt_arg(), &scrypt_N) || scrypt_N <= 0)
@@ -185,7 +192,7 @@ int pkcs8_main(int argc, char **argv)
     }
 
     if ((pbe_nid == -1) && cipher == NULL)
-        cipher = EVP_aes_256_cbc();
+        cipher = PKCS8_DEFAULT_EVP_CIPHER;
 
     in = bio_open_default(infile, 'r', informat);
     if (in == NULL)

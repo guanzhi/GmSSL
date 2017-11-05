@@ -187,12 +187,19 @@ extern "C" {
 # define TLSEXT_signature_rsa                            1
 # define TLSEXT_signature_dsa                            2
 # define TLSEXT_signature_ecdsa                          3
+# ifndef OPENSSL_NO_GMTLS
+#  define TLSEXT_signature_sm2sign                       7
+# endif
 # define TLSEXT_signature_gostr34102001                  237
 # define TLSEXT_signature_gostr34102012_256              238
 # define TLSEXT_signature_gostr34102012_512              239
 
 /* Total number of different signature algorithms */
-# define TLSEXT_signature_num                            7
+# ifndef OPENSSL_NO_GMTLS
+#  define TLSEXT_signature_num                           8
+# else
+#  define TLSEXT_signature_num                           7
+# endif
 
 # define TLSEXT_hash_none                                0
 # define TLSEXT_hash_md5                                 1
@@ -201,13 +208,20 @@ extern "C" {
 # define TLSEXT_hash_sha256                              4
 # define TLSEXT_hash_sha384                              5
 # define TLSEXT_hash_sha512                              6
+# ifndef OPENSSL_NO_GMTLS
+#  define TLSEXT_hash_sm3                                7
+# endif
 # define TLSEXT_hash_gostr3411                           237
 # define TLSEXT_hash_gostr34112012_256                   238
 # define TLSEXT_hash_gostr34112012_512                   239
 
 /* Total number of different digest algorithms */
 
-# define TLSEXT_hash_num                                 10
+# ifndef OPENSSL_NO_GMTLS
+#  define TLSEXT_hash_num                                11
+# else
+#  define TLSEXT_hash_num                                10
+# endif
 
 /* Flag set for unrecognised algorithms */
 # define TLSEXT_nid_unknown                              0x1000000

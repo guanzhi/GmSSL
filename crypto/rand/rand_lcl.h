@@ -13,13 +13,18 @@
 # define ENTROPY_NEEDED 32      /* require 256 bits = 32 bytes of randomness */
 
 # if !defined(USE_MD5_RAND) && !defined(USE_SHA1_RAND) && !defined(USE_MDC2_RAND) && !defined(USE_MD2_RAND)
-#  define USE_SHA1_RAND
+#  define USE_SM3_RAND
 # endif
 
 # include <openssl/evp.h>
 # define MD_Update(a,b,c)        EVP_DigestUpdate(a,b,c)
 # define MD_Final(a,b)           EVP_DigestFinal_ex(a,b,NULL)
-# if defined(USE_MD5_RAND)
+# if defined(USE_SM3_RAND)
+#  include <openssl/sm3.h>
+#  define MD_DIGEST_LENGTH        SM3_DIGEST_LENGTH
+#  define MD_Init(a)              EVP_DigestInit_ex(a,EVP_sm3(), NULL)
+#  define MD(a,b,c)               EVP_Digest(a,b,c,NULL,EVP_sm3(), NULL)
+# elif defined(USE_MD5_RAND)
 #  include <openssl/md5.h>
 #  define MD_DIGEST_LENGTH        MD5_DIGEST_LENGTH
 #  define MD_Init(a)              EVP_DigestInit_ex(a,EVP_md5(), NULL)

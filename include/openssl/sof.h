@@ -46,15 +46,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/* This header file is from "GM/T 0020-2012 Certificate Application
- * Integrated Service Interface Specification"
- */
 
 #ifndef HEADER_SOF_H
 #define HEADER_SOF_H
 
-typedef char *BSTR;
-typedef long BOOL;
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SOF
+
+#include <openssl/sgd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -158,9 +157,8 @@ BSTR SOF_GetTimeStampInfo(BSTR tsResponseData, short type);
 #define SOR_CTLNotFound		0x0B000420
 #define SOR_AppNotFound		0x0B000421
 
-
-
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

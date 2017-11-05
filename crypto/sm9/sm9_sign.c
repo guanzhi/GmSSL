@@ -55,6 +55,11 @@
 #include <openssl/bn_gfp2.h>
 #include "sm9_lcl.h"
 
+int SM9_signature_size(SM9PublicParameters *mpk)
+{
+	return 0;
+}
+
 static SM9Signature *SM9_do_sign_type1curve(SM9PublicParameters *mpk,
 	const unsigned char *dgst, size_t dgstlen, SM9PrivateKey *sk)
 {
@@ -224,6 +229,13 @@ SM9Signature *SM9_do_sign(SM9PublicParameters *mpk,
 
 	SM9err(SM9_F_SM9_DO_SIGN, SM9_R_INVALID_CURVE);
 	return NULL;
+}
+
+int SM9_do_verify_type1curve_ex(SM9PublicParameters *mpk,
+	const unsigned char *dgst, size_t dgstlen,
+	const SM9Signature *sig, SM9PublicKey *pk)
+{
+	return -1;
 }
 
 int SM9_do_verify_type1curve(SM9PublicParameters *mpk,
@@ -397,6 +409,13 @@ end:
 	return ret;
 }
 
+int SM9_do_verify_ex(SM9PublicParameters *mpk,
+	const unsigned char *dgst, size_t dgstlen,
+	const SM9Signature *sig, SM9PublicKey *pk)
+{
+	return -1;
+}
+
 int SM9_do_verify(SM9PublicParameters *mpk,
 	const unsigned char *dgst, size_t dgstlen,
 	const SM9Signature *sig, const char *id, size_t idlen)
@@ -472,6 +491,12 @@ end:
 	return ret;
 }
 
+int SM9_verify_ex(SM9PublicParameters *mpk, const unsigned char *dgst,
+	size_t dgstlen, const unsigned char *sig, size_t siglen,
+	SM9PublicKey *pk)
+{
+	return -1;
+}
 
 int SM9_verify(SM9PublicParameters *mpk, const unsigned char *dgst,
 	size_t dgstlen, const unsigned char *sig, size_t siglen,

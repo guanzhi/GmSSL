@@ -352,10 +352,7 @@ int BN_GFP2_set_bn(BN_GFP2 *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx)
 		BNerr(BN_F_BN_GFP2_SET_BN, ERR_R_BN_LIB);
 		return 0;
 	}
-	if (!BN_zero(r->a1)) {
-		BNerr(BN_F_BN_GFP2_SET_BN, ERR_R_BN_LIB);
-		return 0;
-	}
+	BN_zero(r->a1);
 	return 1;
 }
 

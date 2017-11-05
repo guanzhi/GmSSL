@@ -49,7 +49,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
+#include <openssl/e_os2.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/kdf2.h>
@@ -120,11 +120,17 @@ IMPLEMENT_X963_KDF(md5)
 IMPLEMENT_X963_KDF(blake2b512)
 IMPLEMENT_X963_KDF(blake2s256)
 #endif
+#ifndef OPENSSL_NO_SHA
 IMPLEMENT_X963_KDF(sha1)
+# ifndef OPENSSL_NO_SHA256
 IMPLEMENT_X963_KDF(sha224)
 IMPLEMENT_X963_KDF(sha256)
+# endif
+# ifndef OPENSSL_NO_SHA512
 IMPLEMENT_X963_KDF(sha384)
 IMPLEMENT_X963_KDF(sha512)
+# endif
+#endif
 #ifndef OPENSSL_NO_MDC2
 IMPLEMENT_X963_KDF(mdc2)
 #endif
@@ -150,16 +156,22 @@ KDF_FUNC KDF_get_x9_63(const EVP_MD *md)
 	case NID_blake2s256:
 		return x963_blake2s256kdf;
 #endif
+#ifndef OPENSSL_NO_SHA
 	case NID_sha1:
 		return x963_sha1kdf;
+# ifndef OPENSSL_NO_SHA256
 	case NID_sha224:
 		return x963_sha224kdf;
 	case NID_sha256:
 		return x963_sha256kdf;
+# endif
+# ifndef OPENSSL_NO_SHA512
 	case NID_sha384:
 		return x963_sha384kdf;
 	case NID_sha512:
 		return x963_sha512kdf;
+# endif
+#endif
 #ifndef OPENSSL_NO_MDC2
 	case NID_mdc2:
 		return x963_mdc2kdf;

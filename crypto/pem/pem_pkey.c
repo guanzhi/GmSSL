@@ -16,7 +16,9 @@
 #include <openssl/pkcs12.h>
 #include <openssl/pem.h>
 #include <openssl/engine.h>
-#include <openssl/dh.h>
+#ifndef OPENSSL_NO_DH
+# include <openssl/dh.h>
+#endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 

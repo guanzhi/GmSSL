@@ -50,11 +50,17 @@
 #ifndef HEADER_SM9_H
 #define HEADER_SM9_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SM9
+
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/asn1.h>
 
+/* set the same value as sm2 */
+#define SM9_MAX_ID_BITS		65535
+#define SM9_MAX_ID_LENGTH	(SM9_MAX_ID_BITS/8)
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,6 +68,7 @@ extern "C" {
 
 typedef struct SM9PublicParameters_st SM9PublicParameters;
 typedef struct SM9MasterSecret_st SM9MasterSecret;
+typedef struct SM9PublicKey_st SM9PublicKey;
 typedef struct SM9PrivateKey_st SM9PrivateKey;
 typedef struct SM9Ciphertext_st SM9Ciphertext;
 typedef struct SM9Signature_st SM9Signature;
@@ -74,6 +81,24 @@ SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
 	SM9MasterSecret *msk,
 	const char *id, size_t idlen);
 
+SM9PublicKey *SM9_extract_sign_public_key(SM9PublicParameters *mpk,
+	const char *id, size_t idlen);
+
+SM9PublicKey *SM9_extract_exch_public_key(SM9PublicParameters *mpk,
+	const char *id, size_t idlen);
+
+SM9PublicKey *SM9_extract_enc_public_key(SM9PublicParameters *mpk,
+	const char *id, size_t idlen);
+
+SM9PublicKey *SM9PrivateKey_get_public_key(SM9PublicParameters *mpk,
+	SM9PrivateKey *sk);
+
+int SM9PrivateKey_get_gmtls_public_key(SM9PublicParameters *mpk,
+	SM9PrivateKey *sk, unsigned char pub_key[1024]);
+
+int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
+	SM9PublicKey *pk, unsigned char encoded[1024]);
+
 typedef struct {
 	const EVP_MD *kdf_md;
 	const EVP_CIPHER *enc_cipher;
@@ -81,6 +106,11 @@ typedef struct {
 	const EVP_CIPHER *cbcmac_cipher;
 	const EVP_MD *hmac_md;
 } SM9EncParameters;
+
+SM9Ciphertext *SM9_do_encrypt_ex(SM9PublicParameters *mpk,
+	const SM9EncParameters *encparams,
+	const unsigned char *in, size_t inlen,
+	SM9PublicKey *pk);
 
 SM9Ciphertext *SM9_do_encrypt(SM9PublicParameters *mpk,
 	const SM9EncParameters *encparams,
@@ -93,6 +123,12 @@ int SM9_do_decrypt(SM9PublicParameters *mpk,
 	unsigned char *out, size_t *outlen,
 	SM9PrivateKey *sk,
 	const char *id, size_t idlen);
+
+int SM9_encrypt_ex(SM9PublicParameters *mpk,
+	const SM9EncParameters *encparams,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen,
+	SM9PublicKey *pk);
 
 int SM9_encrypt(SM9PublicParameters *mpk,
 	const SM9EncParameters *encparams,
@@ -107,6 +143,11 @@ int SM9_decrypt(SM9PublicParameters *mpk,
 	SM9PrivateKey *sk,
 	const char *id, size_t idlen);
 
+int SM9_encrypt_with_recommended_ex(SM9PublicParameters *mpk,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen,
+	SM9PublicKey *pk);
+
 int SM9_encrypt_with_recommended(SM9PublicParameters *mpk,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen,
@@ -118,9 +159,16 @@ int SM9_decrypt_with_recommended(SM9PublicParameters *mpk,
 	SM9PrivateKey *sk,
 	const char *id, size_t idlen);
 
+int SM9_signature_size(SM9PublicParameters *mpk);
+
 SM9Signature *SM9_do_sign(SM9PublicParameters *mpk,
 	const unsigned char *dgst, size_t dgstlen,
 	SM9PrivateKey *sk);
+
+int SM9_do_verify_ex(SM9PublicParameters *mpk,
+	const unsigned char *dgst, size_t dgstlen,
+	const SM9Signature *sig,
+	SM9PublicKey *pk);
 
 int SM9_do_verify(SM9PublicParameters *mpk,
 	const unsigned char *dgst, size_t dgstlen,
@@ -132,14 +180,30 @@ int SM9_sign(SM9PublicParameters *mpk,
 	unsigned char *sig, size_t *siglen,
 	SM9PrivateKey *sk);
 
+int SM9_verify_ex(SM9PublicParameters *mpk,
+	const unsigned char *dgst, size_t dgstlen,
+	const unsigned char *sig, size_t siglen,
+	SM9PublicKey *pk);
+
 int SM9_verify(SM9PublicParameters *mpk,
 	const unsigned char *dgst, size_t dgstlen,
 	const unsigned char *sig, size_t siglen,
 	const char *id, size_t idlen);
 
+SM9PublicKey *SM9_generate_key_exchange(SM9PublicParameters *mpk,
+	const char *peer_id, size_t peer_idlen, BIGNUM **r);
+
+int SM9_compute_share_key(SM9PublicParameters *mpk,
+	unsigned char *out, size_t *outlen,
+	const char *peer_id, size_t peer_idlen, SM9PublicKey *peer_exch,
+	const char *id, size_t idlen, SM9PublicKey *exch,
+	SM9PrivateKey *sk, int initiator);
+
+
 DECLARE_ASN1_FUNCTIONS(SM9PublicParameters)
 DECLARE_ASN1_FUNCTIONS(SM9MasterSecret)
 DECLARE_ASN1_FUNCTIONS(SM9PrivateKey)
+DECLARE_ASN1_FUNCTIONS(SM9PublicKey)
 DECLARE_ASN1_FUNCTIONS(SM9Ciphertext)
 DECLARE_ASN1_FUNCTIONS(SM9Signature)
 
@@ -202,4 +266,5 @@ int ERR_load_SM9_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

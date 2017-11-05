@@ -53,17 +53,18 @@
 #include <stdlib.h>
 #include "zuc_spec.h"
 
-/* the state registers of LFSR */
+
 
 typedef struct {
-	uint32_t lfsr_state[16];
-	uint32_t f_reg[2];
-	uint32_t brc_x[4];
+    uint32_t lfsr_s[16];
+    uint32_t f_r[2];
+    uint32_t brc_x[4];
 } zuc_key_t;
 
 
-/* the s-boxes */
-const unsigned char ZUC_S0[256] = {
+
+
+static unsigned char S0[256] = {
 	0x3e,0x72,0x5b,0x47,0xca,0xe0,0x00,0x33,0x04,0xd1,0x54,0x98,0x09,0xb9,0x6d,0xcb,
 	0x7b,0x1b,0xf9,0x32,0xaf,0x9d,0x6a,0xa5,0xb8,0x2d,0xfc,0x1d,0x08,0x53,0x03,0x90,
 	0x4d,0x4e,0x84,0x99,0xe4,0xce,0xd9,0x91,0xdd,0xb6,0x85,0x48,0x8b,0x29,0x6e,0xac,
@@ -79,10 +80,10 @@ const unsigned char ZUC_S0[256] = {
 	0x0e,0x86,0xab,0xbe,0x2a,0x02,0xe7,0x67,0xe6,0x44,0xa2,0x6c,0xc2,0x93,0x9f,0xf1,
 	0xf6,0xfa,0x36,0xd2,0x50,0x68,0x9e,0x62,0x71,0x15,0x3d,0xd6,0x40,0xc4,0xe2,0x0f,
 	0x8e,0x83,0x77,0x6b,0x25,0x05,0x3f,0x0c,0x30,0xea,0x70,0xb7,0xa1,0xe8,0xa9,0x65,
-	0x8d,0x27,0x1a,0xdb,0x81,0xb3,0xa0,0xf4,0x45,0x7a,0x19,0xdf,0xee,0x78,0x34,0x60
+	0x8d,0x27,0x1a,0xdb,0x81,0xb3,0xa0,0xf4,0x45,0x7a,0x19,0xdf,0xee,0x78,0x34,0x60,
 };
 
-const unsigned char ZUC_S1[256] = {
+static unsigned char S1[256] = {
 	0x55,0xc2,0x63,0x71,0x3b,0xc8,0x47,0x86,0x9f,0x3c,0xda,0x5b,0x29,0xaa,0xfd,0x77,
 	0x8c,0xc5,0x94,0x0c,0xa6,0x1a,0x13,0x00,0xe3,0xa8,0x16,0x72,0x40,0xf9,0xf8,0x42,
 	0x44,0x26,0x68,0x96,0x81,0xd9,0x45,0x3e,0x10,0x76,0xc6,0xa7,0x8b,0x39,0x43,0xe1,
@@ -98,291 +99,205 @@ const unsigned char ZUC_S1[256] = {
 	0xa3,0xef,0xea,0x51,0xe6,0x6b,0x18,0xec,0x1b,0x2c,0x80,0xf7,0x74,0xe7,0xff,0x21,
 	0x5a,0x6a,0x54,0x1e,0x41,0x31,0x92,0x35,0xc4,0x33,0x07,0x0a,0xba,0x7e,0x0e,0x34,
 	0x88,0xb1,0x98,0x7c,0xf3,0x3d,0x60,0x6c,0x7b,0xca,0xd3,0x1f,0x32,0x65,0x04,0x28,
-	0x64,0xbe,0x85,0x9b,0x2f,0x59,0x8a,0xd7,0xb0,0x25,0xac,0xaf,0x12,0x03,0xe2,0xf2
+	0x64,0xbe,0x85,0x9b,0x2f,0x59,0x8a,0xd7,0xb0,0x25,0xac,0xaf,0x12,0x03,0xe2,0xf2,
 };
 
-/* the constants D */
-const uint32_t EK_d[16] = {
-	0x44D7, 0x26BC, 0x626B, 0x135E, 0x5789, 0x35E2, 0x7135, 0x09AF,
-	0x4D78, 0x2F13, 0x6BC4, 0x1AF1, 0x5E26, 0x3C4D, 0x789A, 0x47AC
+uint32_t EK_d[16] = {
+	0x44D7,0x26BC,0x626B,0x135E,0x5789,0x35E2,0x7135,0x09AF,
+	0x4D78,0x2F13,0x6BC4,0x1AF1,0x5E26,0x3C4D,0x789A,0x47AC,
 };
 
-/* c = a + b mod (2^31 – 1) */
-uint32_t AddM(uint32_t a, uint32_t b)
+
+inline uint32_t zuc_madd(uint32_t a, uint32_t b)
 {
-	uint32_t c = a + b;
+	u32 c = a + b;
 	return (c & 0x7FFFFFFF) + (c >> 31);
 }
+
 
 /* LFSR with initialization mode */
 #define MulByPow2(x, k) ((((x) << k) | ((x) >> (31 - k))) & 0x7FFFFFFF)
 
-void LFSRWithInitialisationMode(u32 u)
+void zuc_lfsr_init(zuc_key_t *key, uint32_t u)
 {
 	uint32_t f, v;
-	f = key->lfsr_state[0];
-	v = MulByPow2(key->lfsr_state[0], 8);
+	f = key->lfsr_s[0];
+
+	v = MulByPow2(key->lfsr_s[0], 8);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[4], 20);
+	v = MulByPow2(key->lfsr_s[4], 20);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[10], 21);
+	v = MulByPow2(key->lfsr_s[10], 21);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[13], 17);
+	v = MulByPow2(key->lfsr_s[13], 17);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[15], 15);
+	v = MulByPow2(key->lfsr_s[15], 15);
 	f = AddM(f, v);
 	f = AddM(f, u);
+
 	/* update the state */
-	key->lfsr_state[0] = key->lfsr_state[1];
-	key->lfsr_state[1] = key->lfsr_state[2];
-	key->lfsr_state[2] = key->lfsr_state[3];
-	key->lfsr_state[3] = key->lfsr_state[4];
-	key->lfsr_state[4] = key->lfsr_state[5];
-	key->lfsr_state[5] = key->lfsr_state[6];
-	key->lfsr_state[6] = key->lfsr_state[7];
-	key->lfsr_state[7] = key->lfsr_state[8];
-	key->lfsr_state[8] = key->lfsr_state[9];
-	key->lfsr_state[9] = key->lfsr_state[10];
-	key->lfsr_state[10] = key->lfsr_state[11];
-	key->lfsr_state[11] = key->lfsr_state[12];
-	key->lfsr_state[12] = key->lfsr_state[13];
-	key->lfsr_state[13] = key->lfsr_state[14];
-	key->lfsr_state[14] = key->lfsr_state[15];
-	key->lfsr_state[15] = f;
+	key->lfsr_s[0] = key->lfsr_s[1];
+	key->lfsr_s[1] = key->lfsr_s[2];
+	key->lfsr_s[2] = key->lfsr_s[3];
+	key->lfsr_s[3] = key->lfsr_s[4];
+	key->lfsr_s[4] = key->lfsr_s[5];
+	key->lfsr_s[5] = key->lfsr_s[6];
+	key->lfsr_s[6] = key->lfsr_s[7];
+	key->lfsr_s[7] = key->lfsr_s[8];
+	key->lfsr_s[8] = key->lfsr_s[9];
+	key->lfsr_s[9] = key->lfsr_s[10];
+	key->lfsr_s[10] = key->lfsr_s[11];
+	key->lfsr_s[11] = key->lfsr_s[12];
+	key->lfsr_s[12] = key->lfsr_s[13];
+	key->lfsr_s[13] = key->lfsr_s[14];
+	key->lfsr_s[14] = key->lfsr_s[15];
+	key->lfsr_s[15] = f;
 }
 
-/* LFSR with work mode */
-void LFSRWithWorkMode(void)
+void zuc_lfst_word(zuc_key_t *key)
 {
 	u32 f, v;
-	f = key->lfsr_state[0];
-	v = MulByPow2(key->lfsr_state[0], 8);
+	f = key->lfsr_s[0];
+	v = MulByPow2(key->lfsr_s[0], 8);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[4], 20);
+	v = MulByPow2(key->lfsr_s[4], 20);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[10], 21);
+	v = MulByPow2(key->lfsr_s[10], 21);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[13], 17);
+	v = MulByPow2(key->lfsr_s[13], 17);
 	f = AddM(f, v);
-	v = MulByPow2(key->lfsr_state[15], 15);
+	v = MulByPow2(key->lfsr_s[15], 15);
 	f = AddM(f, v);
-	/* update the state */
-	key->lfsr_state[0] = key->lfsr_state[1];
-	key->lfsr_state[1] = key->lfsr_state[2];
-	key->lfsr_state[2] = key->lfsr_state[3];
-	key->lfsr_state[3] = key->lfsr_state[4];
-	key->lfsr_state[4] = key->lfsr_state[5];
-	key->lfsr_state[5] = key->lfsr_state[6];
-	key->lfsr_state[6] = key->lfsr_state[7];
-	key->lfsr_state[7] = key->lfsr_state[8];
-	key->lfsr_state[8] = key->lfsr_state[9];
-	key->lfsr_state[9] = key->lfsr_state[10];
-	key->lfsr_state[10] = key->lfsr_state[11];
-	key->lfsr_state[11] = key->lfsr_state[12];
-	key->lfsr_state[12] = key->lfsr_state[13];
-	key->lfsr_state[13] = key->lfsr_state[14];
-	key->lfsr_state[14] = key->lfsr_state[15];
-	key->lfsr_state[15] = f;
+
+	key->lfsr_s[0] = key->lfsr_s[1];
+	key->lfsr_s[1] = key->lfsr_s[2];
+	key->lfsr_s[2] = key->lfsr_s[3];
+	key->lfsr_s[3] = key->lfsr_s[4];
+	key->lfsr_s[4] = key->lfsr_s[5];
+	key->lfsr_s[5] = key->lfsr_s[6];
+	key->lfsr_s[6] = key->lfsr_s[7];
+	key->lfsr_s[7] = key->lfsr_s[8];
+	key->lfsr_s[8] = key->lfsr_s[9];
+	key->lfsr_s[9] = key->lfsr_s[10];
+	key->lfsr_s[10] = key->lfsr_s[11];
+	key->lfsr_s[11] = key->lfsr_s[12];
+	key->lfsr_s[12] = key->lfsr_s[13];
+	key->lfsr_s[13] = key->lfsr_s[14];
+	key->lfsr_s[14] = key->lfsr_s[15];
+	key->lfsr_s[15] = f;
 }
 
-/* BitReorganization */
-void BitReorganization(void)
+void zuc_bit_reorganization(zuc_key_t *key)
 {
-	BRC_X0 = ((key->lfsr_state[15] & 0x7FFF8000) << 1) | (key->lfsr_state[14] & 0xFFFF);
-	BRC_X1 = ((key->lfsr_state[11] & 0xFFFF) << 16) | (key->lfsr_state[9] >> 15);
-	BRC_X2 = ((key->lfsr_state[7] & 0xFFFF) << 16) | (key->lfsr_state[5] >> 15);
-	BRC_X3 = ((key->lfsr_state[2] & 0xFFFF) << 16) | (key->lfsr_state[0] >> 15);
+	key->brc_x[0] = ((key->lfsr_s[15] & 0x7FFF8000) << 1) | (key->lfsr_s[14] & 0xFFFF);
+	key->brc_x[1] = ((key->lfsr_s[11] & 0xFFFF) << 16) | (key->lfsr_s[9] >> 15);
+	key->brc_x[2] = ((key->lfsr_s[7] & 0xFFFF) << 16) | (key->lfsr_s[5] >> 15);
+	key->brc_x[3] = ((key->lfsr_s[2] & 0xFFFF) << 16) | (key->lfsr_s[0] >> 15);
 }
 
-#define ROT(a, k) (((a) << k) | ((a) >> (32 - k)))
+#define ROT32(a, k) (((a) << k) | ((a) >> (32 - k)))
 
-/* L1 */
-u32 L1(u32 X)
+#define L1(x)						\
+	((x) ^						\
+	ROT32((x),  2) ^				\
+	ROT32((x), 10) ^				\
+	ROT32((x), 18) ^				\
+	ROT32((x), 24))
+
+#define L2(x)						\
+	((x) ^						\
+	ROT32((x),  8) ^				\
+	ROT32((x), 14) ^				\
+	ROT32((x), 22) ^				\
+	ROT32((x), 30))
+
+#define GET32(pc)  (					\
+	((uint32_t)(pc)[0] << 24) ^			\
+	((uint32_t)(pc)[1] << 16) ^			\
+	((uint32_t)(pc)[2] <<  8) ^			\
+	((uint32_t)(pc)[3]))
+
+#define PUT32(st, ct)					\
+	(ct)[0] = (uint8_t)((st) >> 24);		\
+	(ct)[1] = (uint8_t)((st) >> 16);		\
+	(ct)[2] = (uint8_t)((st) >>  8);		\
+
+#define MAKEU32(a, b, c, d)				\
+	(((uint32_t)(a) << 24) |			\
+	 ((uint32_t)(b) << 16) | 			\
+	 ((uint32_t)(c) <<  8) |			\
+	 ((uint32_t)(d)))
+
+#define MAKEU31(a, b, c) 				\
+	(((uint32_t)(a) << 23) |			\
+	 ((uint32_t)(b) <<  8) |			\
+	  (uint32_t)(c))
+
+
+uint32_t F(zuc_key_t *key)
 {
-	return (X ^ ROT(X, 2) ^ ROT(X, 10) ^ ROT(X, 18) ^ ROT(X, 24));
-}
+	uint32_t W, W1, W2, u, v;
 
-/* L2 */
-u32 L2(u32 X)
-{
-	return (X ^ ROT(X, 8) ^ ROT(X, 14) ^ ROT(X, 22) ^ ROT(X, 30));
-}
-
-#define MAKEU32(a, b, c, d) \
-	(((u32)(a) << 24) | ((u32)(b) << 16) | ((u32)(c) << 8) | ((u32)(d)))
-
-/* F */
-u32 F()
-{
-	u32 W, W1, W2, u, v;
-	W = (BRC_X0 ^ F_R1) + F_R2;
-	W1 = F_R1 + BRC_X1;
-	W2 = F_R2 ^ BRC_X2;
+	W = (key->brc_x[0] ^ key->f_r[1]) + key->f_r[2];
+	W1 = key->f_r[1] + key->brc_x[1];
+	W2 = key->f_r[2] ^ key->brc_x[2];
 	u = L1((W1 << 16) | (W2 >> 16));
 	v = L2((W2 << 16) | (W1 >> 16));
-	F_R1 = MAKEU32(S0[u >> 24], S1[(u >> 16) & 0xFF],
-			S0[(u >> 8) & 0xFF], S1[u & 0xFF]);
-	F_R2 = MAKEU32(S0[v >> 24], S1[(v >> 16) & 0xFF],
-			S0[(v >> 8) & 0xFF], S1[v & 0xFF]);
+
+	key->f_r[1] = MAKEU32(
+			S0[u >> 24],
+			S1[(u >> 16) & 0xFF],
+			S0[(u >> 8) & 0xFF],
+			S1[u & 0xFF]);
+
+	key->f_r[2] = MAKEU32(
+			S0[v >> 24],
+			S1[(v >> 16) & 0xFF],
+			S0[(v >> 8) & 0xFF],
+			S1[v & 0xFF]);
+
 	return W;
 }
 
-#define MAKEU31(a, b, c) (((u32)(a) << 23) | ((u32)(b) << 8) | (u32)(c))
-
-/* initialize */
-void Initialization(u8* k, u8* iv)
+void zuc_set_key(zuc_key_t *key, const unsigned char *user_key, const unsigned char *iv)
 {
-	u32 w, nCount;
+	uint32_t w;
 
-	/* expand key */
-	key->lfsr_state[0 = MAKEU31(k[0], EK_d[0], iv[0]);
-	key->lfsr_state[1 = MAKEU31(k[1], EK_d[1], iv[1]);
-	key->lfsr_state[2 = MAKEU31(k[2], EK_d[2], iv[2]);
-	key->lfsr_state[3 = MAKEU31(k[3], EK_d[3], iv[3]);
-	key->lfsr_state[4 = MAKEU31(k[4], EK_d[4], iv[4]);
-	key->lfsr_state[5 = MAKEU31(k[5], EK_d[5], iv[5]);
-	key->lfsr_state[6 = MAKEU31(k[6], EK_d[6], iv[6]);
-	key->lfsr_state[7 = MAKEU31(k[7], EK_d[7], iv[7]);
-	key->lfsr_state[8 = MAKEU31(k[8], EK_d[8], iv[8]);
-	key->lfsr_state[9 = MAKEU31(k[9], EK_d[9], iv[9]);
-	key->lfsr_state[10 = MAKEU31(k[10], EK_d[10], iv[10]);
-	key->lfsr_state[11 = MAKEU31(k[11], EK_d[11], iv[11]);
-	key->lfsr_state[12 = MAKEU31(k[12], EK_d[12], iv[12]);
-	key->lfsr_state[13 = MAKEU31(k[13], EK_d[13], iv[13]);
-	key->lfsr_state[14 = MAKEU31(k[14], EK_d[14], iv[14]);
-	key->lfsr_state[15 = MAKEU31(k[15], EK_d[15], iv[15]);
+	for (i = 0; i < 16; i++) {
+		key->lfsr_s[i] = MAKEU31(user_key[i], EK_d[i], iv[i]);
+	}
 
-	/* set F_R1 and F_R2 to zero */
-	F_R1 = 0;
-	F_R2 = 0;
-	nCount = 32;
-	while (nCount > 0)
-	{
-		BitReorganization();
-		w = F();
-		LFSRWithInitialisationMode(w >> 1);
-		nCount --;
+	key->f_r[1] = 0;
+	key->f_r[2] = 0;
+
+	for (i = 0; i < 32; i++) {
+		zuc_bit_reorganization(key);
+		w = F(key);
+		zuc_lfsr_init(w >> 1);
+	}
+
+}
+
+void zuc_generate_keystream(zuc_key_t *key, size_t num, uint32_t *keystream)
+{
+	size_t i;
+
+	zuc_bit_reorg(key);
+	(void)F(key);
+	zuc_lfsr_work(key);
+
+	for (i = 0; i < num; i ++) {
+		zuc_bit_reorg(key);
+		keystream[i] = F(key) ^ key->brc_x[3];
+		zuc_lfsr_work(key);
 	}
 }
 
-void GenerateKeystream(u32* pKeystream, int KeystreamLen)
+void ZUC(const unsigned char *key, const unsigned char *iv, uint32_t *keystream, int num)
 {
-	int i;
-
-	{
-		BitReorganization();
-		F(); /* discard the output of F */
-		LFSRWithWorkMode();
-	}
-
-	for (i = 0; i < KeystreamLen; i ++)
-	{
-		BitReorganization();
-		pKeystream[i] = F() ^ BRC_X3;
-		LFSRWithWorkMode();
-	}
+	zuc_key_t zuc;
+	zuc_key_init(&zuc, key, iv);
+	zuc_generate_keystream(&zuc, keystream, num);
 }
 
-/* The ZUC algorithm, see ref. [3]*/
-void ZUC(u8* k, u8* iv, u32* ks, int len)
-{
-	/* The initialization of ZUC, see page 17 of ref. [3]*/
-	Initialization(k, iv);
-	/* The procedure of generating keystream of ZUC, see page 18 of ref. [3]*/
-	GenerateKeystream(ks, len);
-}
-
-void EEA3(u8* CK, u32 COUNT, u32 BEARER, u32 DIRECTION, u32 LENGTH, u32* M, u32* C)
-{
-	u32 *z, L, i;
-	u8 IV[16];
-
-	L = (LENGTH+31)/32;
-	z = (u32 *) malloc(L*sizeof(u32));
-	IV[0] = (COUNT>>24) & 0xFF;
-	IV[1] = (COUNT>>16) & 0xFF;
-	IV[2] = (COUNT>>8) & 0xFF;
-	IV[3] = COUNT & 0xFF;
-
-	IV[4] = ((BEARER << 3) | ((DIRECTION&1)<<2)) & 0xFC;
-	IV[5] = 0;
-	IV[6] = 0;
-	IV[7] = 0;
-
-	IV[8] = IV[0];
-	IV[9] = IV[1];
-	IV[10] = IV[2];
-	IV[11] = IV[3];
-
-	IV[12] = IV[4];
-	IV[13] = IV[5];
-	IV[14] = IV[6];
-	IV[15] = IV[7];
-
-	ZUC(CK, IV, z, L);
-	for (i=0; i<L; i++) {
-		C[i] = M[i] ^ z[i];
-	}
-	free(z);
-}
-
-
-u32 GET_WORD(u32 * DATA, u32 i)
-{
-	u32 WORD, ti;
-	ti = i % 32;
-
-	if (ti == 0) {
-		WORD = DATA[i/32];
-	}
-	else {
-		WORD = (DATA[i/32]<<ti) | (DATA[i/32+1]>>(32-ti));
-	}
-	return WORD;
-}
-
-u8 GET_BIT(u32 * DATA, u32 i)
-{
-	return (DATA[i/32] & (1<<(31-(i%32)))) ? 1 : 0;
-}
-
-void EIA3(u8* IK, u32 COUNT, u32 DIRECTION, u32 BEARER, u32 LENGTH, u32* M, u32* MAC)
-{
-	u32 *z, N, L, T, i;
-	u8 IV[16];
-
-	IV[0] = (COUNT>>24) & 0xFF;
-	IV[1] = (COUNT>>16) & 0xFF;
-	IV[2] = (COUNT>>8) & 0xFF;
-	IV[3] = COUNT & 0xFF;
-
-	IV[4] = (BEARER << 3) & 0xF8;
-	IV[5] = IV[6] = IV[7] = 0;
-
-	IV[8] = ((COUNT>>24) & 0xFF) ^ ((DIRECTION&1)<<7);
-	IV[9] = (COUNT>>16) & 0xFF;
-	IV[10] = (COUNT>>8) & 0xFF;
-	IV[11] = COUNT & 0xFF;
-
-	IV[12] = IV[4];
-	IV[13] = IV[5];
-	IV[14] = IV[6] ^ ((DIRECTION&1)<<7);
-	IV[15] = IV[7];
-
-	N = LENGTH + 64;
-	L = (N + 31) / 32;
-	z = (u32 *) malloc(L*sizeof(u32));
-	ZUC(IK, IV, z, L);
-
-	T = 0;
-	for (i = 0; i < LENGTH; i++) {
-		if (GET_BIT(M,i)) {
-			T ^= GET_WORD(z,i);
-		}
-	}
-	T ^= GET_WORD(z,LENGTH);
-
-	*MAC = T ^ z[L-1];
-	free(z);
-}
 

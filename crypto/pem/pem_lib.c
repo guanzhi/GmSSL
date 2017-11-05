@@ -19,7 +19,9 @@
 #include <openssl/pem.h>
 #include <openssl/pkcs12.h>
 #include "internal/asn1_int.h"
-#include <openssl/des.h>
+#ifndef OPENSSL_NO_DES
+# include <openssl/des.h>
+#endif
 #include <openssl/engine.h>
 
 #define MIN_LENGTH      4
@@ -350,7 +352,7 @@ int PEM_ASN1_write_bio(i2d_of_void *i2d, const char *name, BIO *bp,
          * The 'iv' is used as the iv and as a salt.  It is NOT taken from
          * the BytesToKey function
          */
-        if (!EVP_BytesToKey(enc, EVP_md5(), iv, kstr, klen, 1, key, NULL))
+        if (!EVP_BytesToKey(enc, EVP_get_default_digest(), iv, kstr, klen, 1, key, NULL))
             goto err;
 
         if (kstr == (unsigned char *)buf)
@@ -423,7 +425,7 @@ int PEM_do_header(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
     ebcdic2ascii(buf, buf, keylen);
 #endif
 
-    if (!EVP_BytesToKey(cipher->cipher, EVP_md5(), &(cipher->iv[0]),
+    if (!EVP_BytesToKey(cipher->cipher, EVP_get_default_digest(), &(cipher->iv[0]),
                         (unsigned char *)buf, keylen, 1, key, NULL))
         return 0;
 

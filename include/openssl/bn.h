@@ -566,12 +566,14 @@ int ERR_load_BN_strings(void);
 
 /* Reason codes. */
 # define BN_R_ARG2_LT_ARG3                                100
+# define BN_R_BAD_ENCODING                                123
 # define BN_R_BAD_RECIPROCAL                              101
 # define BN_R_BIGNUM_TOO_LONG                             114
 # define BN_R_BITS_TOO_SMALL                              118
 # define BN_R_BUFFER_TOO_SMALL                            120
 # define BN_R_CALLED_WITH_EVEN_MODULUS                    102
 # define BN_R_DIV_BY_ZERO                                 103
+# define BN_R_ENCODE_ERROR                                124
 # define BN_R_ENCODING_ERROR                              104
 # define BN_R_EXPAND_ON_STATIC_BIGNUM_DATA                105
 # define BN_R_INPUT_NOT_REDUCED                           110
@@ -580,6 +582,7 @@ int ERR_load_BN_strings(void);
 # define BN_R_INVALID_SHIFT                               119
 # define BN_R_INVALID_SOLINAS                             121
 # define BN_R_INVALID_SOLINAS_PARAMETERS                  122
+# define BN_R_NEGATIVE_NUMBER                             125
 # define BN_R_NOT_A_SQUARE                                111
 # define BN_R_NOT_INITIALIZED                             107
 # define BN_R_NO_INVERSE                                  108

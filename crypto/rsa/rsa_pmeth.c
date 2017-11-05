@@ -164,6 +164,7 @@ static int pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig,
     } else
         ret = RSA_private_encrypt(tbslen, tbs, sig, ctx->pkey->pkey.rsa,
                                   rctx->pad_mode);
+
     if (ret < 0)
         return ret;
     *siglen = ret;
@@ -359,6 +360,9 @@ static int check_padding_md(const EVP_MD *md, int padding)
         case NID_md4:
         case NID_mdc2:
         case NID_ripemd160:
+#ifndef OPENSSL_NO_SM3
+        case NID_sm3:
+#endif
             return 1;
 
         default:

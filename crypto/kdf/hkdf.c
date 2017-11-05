@@ -17,18 +17,18 @@
 
 #define HKDF_MAXBUF 1024
 
-static unsigned char *HKDF(const EVP_MD *evp_md,
+/*static*/ unsigned char *HKDF(const EVP_MD *evp_md,
                            const unsigned char *salt, size_t salt_len,
                            const unsigned char *key, size_t key_len,
                            const unsigned char *info, size_t info_len,
                            unsigned char *okm, size_t okm_len);
 
-static unsigned char *HKDF_Extract(const EVP_MD *evp_md,
+/*static*/ unsigned char *HKDF_Extract(const EVP_MD *evp_md,
                                    const unsigned char *salt, size_t salt_len,
                                    const unsigned char *key, size_t key_len,
                                    unsigned char *prk, size_t *prk_len);
 
-static unsigned char *HKDF_Expand(const EVP_MD *evp_md,
+/*static*/ unsigned char *HKDF_Expand(const EVP_MD *evp_md,
                                   const unsigned char *prk, size_t prk_len,
                                   const unsigned char *info, size_t info_len,
                                   unsigned char *okm, size_t okm_len);
@@ -199,7 +199,7 @@ const EVP_PKEY_METHOD hkdf_pkey_meth = {
     pkey_hkdf_ctrl_str
 };
 
-static unsigned char *HKDF(const EVP_MD *evp_md,
+/*static*/ unsigned char *HKDF(const EVP_MD *evp_md,
                            const unsigned char *salt, size_t salt_len,
                            const unsigned char *key, size_t key_len,
                            const unsigned char *info, size_t info_len,
@@ -214,7 +214,7 @@ static unsigned char *HKDF(const EVP_MD *evp_md,
     return HKDF_Expand(evp_md, prk, prk_len, info, info_len, okm, okm_len);
 }
 
-static unsigned char *HKDF_Extract(const EVP_MD *evp_md,
+/*static*/ unsigned char *HKDF_Extract(const EVP_MD *evp_md,
                                    const unsigned char *salt, size_t salt_len,
                                    const unsigned char *key, size_t key_len,
                                    unsigned char *prk, size_t *prk_len)
@@ -228,7 +228,7 @@ static unsigned char *HKDF_Extract(const EVP_MD *evp_md,
     return prk;
 }
 
-static unsigned char *HKDF_Expand(const EVP_MD *evp_md,
+/*static*/ unsigned char *HKDF_Expand(const EVP_MD *evp_md,
                                   const unsigned char *prk, size_t prk_len,
                                   const unsigned char *info, size_t info_len,
                                   unsigned char *okm, size_t okm_len)

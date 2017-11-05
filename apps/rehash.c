@@ -253,8 +253,10 @@ static int do_file(const char *filename, const char *fullpath, enum Hash h)
     if (name) {
         if ((h == HASH_NEW) || (h == HASH_BOTH))
             errs += add_entry(type, X509_NAME_hash(name), filename, digest, 1, ~0);
+#ifndef OPENSSL_NO_MD5
         if ((h == HASH_OLD) || (h == HASH_BOTH))
             errs += add_entry(type, X509_NAME_hash_old(name), filename, digest, 1, ~0);
+#endif
     }
 
 end:
@@ -447,7 +449,7 @@ int rehash_main(int argc, char **argv)
     argc = opt_num_rest();
     argv = opt_rest();
 
-    evpmd = EVP_sha1();
+    evpmd = EVP_get_digestbynid(NID_sha1);
     evpmdsize = EVP_MD_size(evpmd);
 
     if (*argv) {

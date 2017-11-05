@@ -79,7 +79,7 @@ typedef enum OPTION_choice {
     OPT_RAND, OPT_PASSIN, OPT_TO, OPT_FROM, OPT_SUBJECT, OPT_SIGNER, OPT_RECIP,
     OPT_CERTSOUT, OPT_MD, OPT_INKEY, OPT_KEYFORM, OPT_KEYOPT, OPT_RR_FROM,
     OPT_RR_TO, OPT_AES128_WRAP, OPT_AES192_WRAP, OPT_AES256_WRAP,
-    OPT_3DES_WRAP, OPT_ENGINE,
+    OPT_SMS4_WRAP, OPT_3DES_WRAP, OPT_ENGINE,
     OPT_V_ENUM,
     OPT_CIPHER
 } OPTION_CHOICE;
@@ -146,7 +146,7 @@ OPTIONS cms_options[] = {
      "Do not load certificates from the default certificates directory"},
     {"content", OPT_CONTENT, '<',
      "Supply or override content for detached signature"},
-    {"print", OPT_PRINT, '-', 
+    {"print", OPT_PRINT, '-',
      "For the -cmsout operation print out all fields of the CMS structure"},
     {"secretkey", OPT_SECRETKEY, 's'},
     {"secretkeyid", OPT_SECRETKEYID, 's'},
@@ -170,9 +170,14 @@ OPTIONS cms_options[] = {
     {"receipt_request_to", OPT_RR_TO, 's'},
     {"", OPT_CIPHER, '-', "Any supported cipher"},
     OPT_V_OPTIONS,
+# ifndef OPENSSL_NO_AES
     {"aes128-wrap", OPT_AES128_WRAP, '-', "Use AES128 to wrap key"},
     {"aes192-wrap", OPT_AES192_WRAP, '-', "Use AES192 to wrap key"},
     {"aes256-wrap", OPT_AES256_WRAP, '-', "Use AES256 to wrap key"},
+# endif
+# ifndef OPENSSL_NO_SMS4
+    {"sms4-wrap", OPT_SMS4_WRAP, '-', "Use SMS4 to wrap key"},
+# endif
 # ifndef OPENSSL_NO_DES
     {"des3-wrap", OPT_3DES_WRAP, '-', "Use 3DES-EDE to wrap key"},
 # endif
@@ -567,11 +572,12 @@ int cms_main(int argc, char **argv)
                 goto end;
             vpmtouched++;
             break;
+# if !defined(OPENSSL_NO_DES) && !defined(OPENSSL_NO_SHA)
         case OPT_3DES_WRAP:
-# ifndef OPENSSL_NO_DES
             wrap_cipher = EVP_des_ede3_wrap();
-# endif
             break;
+# endif
+# ifndef OPENSSL_NO_AES
         case OPT_AES128_WRAP:
             wrap_cipher = EVP_aes_128_wrap();
             break;
@@ -581,6 +587,12 @@ int cms_main(int argc, char **argv)
         case OPT_AES256_WRAP:
             wrap_cipher = EVP_aes_256_wrap();
             break;
+# endif
+# ifndef OPENSSL_NO_SMS4
+        case OPT_SMS4_WRAP:
+            wrap_cipher = EVP_sms4_wrap();
+            break;
+# endif
         }
     }
     argc = opt_num_rest();

@@ -131,7 +131,9 @@ extern OPTIONS x509_options[];
 #ifdef INCLUDE_FUNCTION_TABLE
 static FUNCTION functions[] = {
     { FT_general, "asn1parse", asn1parse_main, asn1parse_options },
+#ifndef OPENSSL_NO_CA
     { FT_general, "ca", ca_main, ca_options },
+#endif
 #ifndef OPENSSL_NO_SOCK
     { FT_general, "ciphers", ciphers_main, ciphers_options },
 #endif

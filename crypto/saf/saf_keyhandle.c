@@ -85,7 +85,7 @@ int SAF_GenerateKeyWithEPK(
 	}
 
 	outlen = (size_t)*puiSymmKeyLen;
-	if (!(cipher = EVP_get_cipherbysgd(obj->uiCryptoAlgID))
+	if (!(cipher = EVP_get_cipherbysgd(obj->uiCryptoAlgID, 0)) //fixme: feedbitlen			
 		|| !RAND_bytes(keybuf, EVP_CIPHER_key_length(cipher))
 		|| !(pkey = d2i_PUBKEY(NULL, (const unsigned char **)&pucPublicKey, (long)uiPublicKeyLen))
 		|| !(pkctx = EVP_PKEY_CTX_new(pkey, NULL))

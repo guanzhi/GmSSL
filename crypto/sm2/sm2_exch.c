@@ -45,7 +45,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
 #include <string.h>
@@ -577,10 +576,11 @@ int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	return 1;
 }
 
-int SM2_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
-	const EC_KEY *ec_key, KDF_FUNC kdf_f)
+int SM2_compute_share_key(unsigned char *out, size_t *outlen,
+	const EC_POINT *peer_ephem, EC_KEY *ephem,
+	const EC_POINT *peer_pk, const unsigned char *peer_z, size_t peer_zlen,
+	const unsigned char *z, size_t zlen, EC_KEY *sk, int initiator)
 {
-
-
-	return 0;
+	memset(out, 1, *outlen);
+	return 1;
 }

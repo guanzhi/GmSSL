@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,15 +50,18 @@
 #ifndef HEADER_SM3_H
 #define HEADER_SM3_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SM3
+
 #define SM3_DIGEST_LENGTH	32
 #define SM3_BLOCK_SIZE		64
 #define SM3_CBLOCK		(SM3_BLOCK_SIZE)
 #define SM3_HMAC_SIZE		(SM3_DIGEST_LENGTH)
 
 
-#include <sys/types.h>
-#include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
+#include <openssl/e_os2.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,5 +96,6 @@ void sm3_hmac(const unsigned char *data, size_t data_len,
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

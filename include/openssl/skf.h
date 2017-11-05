@@ -53,111 +53,22 @@
 #ifndef HEADER_SKF_H
 #define HEADER_SKF_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SKF
+
 #include <openssl/sgd.h>
-
-//FIXME: all the WIN32 types
-#ifndef WIN32
-typedef signed char		INT8;
-typedef signed short		INT16;
-typedef signed int		INT32;
-typedef unsigned char		UINT8;
-typedef unsigned short		UINT16;
-typedef unsigned int		UINT32;
-typedef long			BOOL;
-typedef UINT8			BYTE;
-typedef UINT8			CHAR;
-typedef INT16			SHORT;
-typedef UINT16			USHORT;
-typedef INT32			LONG;
-typedef UINT32			ULONG;
-typedef UINT32			UINT;
-typedef UINT16			WORD;
-typedef UINT32			DWORD;
-typedef UINT32			FLAGS;
-typedef CHAR *			LPSTR;
-typedef void *			HANDLE;
-#else
-#ifndef _WINDEF_H
-typedef signed char		INT8;
-typedef signed short		INT16;
-typedef signed int		INT32;
-typedef unsigned char		UINT8;
-typedef unsigned short		UINT16;
-typedef unsigned int		UINT32;
-typedef long			BOOL;
-typedef UINT8			BYTE;
-typedef UINT8			CHAR;
-typedef INT16			SHORT;
-typedef UINT16			USHORT;
-typedef INT32			LONG;
-typedef UINT32			ULONG;
-typedef UINT32			UINT;
-typedef UINT16			WORD;
-typedef UINT32			DWORD;
-typedef UINT32			FLAGS;
-typedef CHAR *			LPSTR;
-typedef void *			HANDLE;
-#endif
-#endif
-
-typedef HANDLE DEVHANDLE;
-typedef HANDLE HAPPLICATION;
-typedef HANDLE HSESSION;
-typedef HANDLE HCONTAINER;
-
-
-#ifndef FALSE
-#define FALSE			0x00000000
-#endif
-
-#ifndef TRUE
-#define TRUE			0x00000001
-#endif
-
-#ifdef WIN32
-#define DEVAPI __stdcall
-#else
-#define DEVAPI
-#endif
-
-#ifndef ADMIN_TYPE
-#define ADMIN_TYPE			0
-#endif
-
-#ifndef USER_TYPE
-#define USER_TYPE			1
-#endif
-
-#define MAX_RSA_MODULUS_LEN		256
-#define MAX_RSA_EXPONENT_LEN		4
-#define ECC_MAX_XCOORDINATE_BITS_LEN	512
-#define ECC_MAX_YCOORDINATE_BITS_LEN	512
-#define ECC_MAX_MODULUS_BITS_LEN	512
-
-#define MAX_IV_LEN			32
-
-#define MAX_FILE_NAME_SIZE		32
-#define MAX_FILE_CONTAINER_NAME_SIZE	64
-
-#define SECURE_NEVER_ACCOUNT		0x00000000
-#define SECURE_ADM_ACCOUNT		0x00000001
-#define SECURE_USER_ACCOUNT		0x00000010
-#define SECURE_ANYONE_ACCOUNT		0x000000FF
-
-
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-typedef struct Struct_Version{
+#pragma pack(1)
+typedef struct /*__attribute__((packed))*/ Struct_Version{
 	BYTE major;
 	BYTE minor;
 } VERSION;
 
-typedef struct Struct_DEVINFO {
+typedef struct /*__attribute__((packed))*/ Struct_DEVINFO {
 	VERSION	Version;
 	CHAR	Manufacturer[64];
 	CHAR	Issuer[64];
@@ -176,14 +87,14 @@ typedef struct Struct_DEVINFO {
 	BYTE  	Reserved[64];
 } DEVINFO, *PDEVINFO;
 
-typedef struct Struct_RSAPUBLICKEYBLOB {
+typedef struct /*__attribute__((packed))*/ Struct_RSAPUBLICKEYBLOB {
 	ULONG	AlgID;
 	ULONG	BitLen;
 	BYTE	Modulus[MAX_RSA_MODULUS_LEN];
 	BYTE	PublicExponent[MAX_RSA_EXPONENT_LEN];
 } RSAPUBLICKEYBLOB, *PRSAPUBLICKEYBLOB;
 
-typedef struct Struct_RSAPRIVATEKEYBLOB {
+typedef struct /*__attribute__((packed))*/ Struct_RSAPRIVATEKEYBLOB {
 	ULONG	AlgID;
 	ULONG	BitLen;
 	BYTE	Modulus[MAX_RSA_MODULUS_LEN];
@@ -196,18 +107,18 @@ typedef struct Struct_RSAPRIVATEKEYBLOB {
 	BYTE	Coefficient[MAX_RSA_MODULUS_LEN/2];
 } RSAPRIVATEKEYBLOB, *PRSAPRIVATEKEYBLOB;
 
-typedef struct Struct_ECCPUBLICKEYBLOB {
+typedef struct /*__attribute__((packed))*/ Struct_ECCPUBLICKEYBLOB {
 	ULONG	BitLen;
 	BYTE	XCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	YCoordinate[ECC_MAX_YCOORDINATE_BITS_LEN/8];
 } ECCPUBLICKEYBLOB, *PECCPUBLICKEYBLOB;
 
-typedef struct Struct_ECCPRIVATEKEYBLOB {
+typedef struct /*__attribute__((packed))*/ Struct_ECCPRIVATEKEYBLOB {
 	ULONG	BitLen;
 	BYTE	PrivateKey[ECC_MAX_MODULUS_BITS_LEN/8];
 } ECCPRIVATEKEYBLOB, *PECCPRIVATEKEYBLOB;
 
-typedef struct Struct_ECCCIPHERBLOB {
+typedef struct /*__attribute__((packed))*/ Struct_ECCCIPHERBLOB {
 	BYTE	XCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	YCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	HASH[32];
@@ -215,19 +126,19 @@ typedef struct Struct_ECCCIPHERBLOB {
 	BYTE	Cipher[1];
 } ECCCIPHERBLOB, *PECCCIPHERBLOB;
 
-typedef struct Struct_ECCSIGNATUREBLOB {
+typedef struct /*__attribute__((packed))*/ Struct_ECCSIGNATUREBLOB {
 	BYTE	r[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	s[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 } ECCSIGNATUREBLOB, *PECCSIGNATUREBLOB;
 
-typedef struct Struct_BLOCKCIPHERPARAM {
+typedef struct /*__attribute__((packed))*/ Struct_BLOCKCIPHERPARAM {
 	BYTE	IV[MAX_IV_LEN];
 	ULONG	IVLen;
 	ULONG	PaddingType;
 	ULONG	FeedBitLen;
 } BLOCKCIPHERPARAM, *PBLOCKCIPHERPARAM;
 
-typedef struct SKF_ENVELOPEDKEYBLOB {
+typedef struct /*__attribute__((packed))*/ SKF_ENVELOPEDKEYBLOB {
 	ULONG	Version;
 	ULONG	ulSymmAlgID;
 	ULONG	ulBits;
@@ -236,13 +147,13 @@ typedef struct SKF_ENVELOPEDKEYBLOB {
 	ECCCIPHERBLOB		ECCCipherBlob;
 } ENVELOPEDKEYBLOB, *PENVELOPEDKEYBLOB;
 
-typedef struct Struct_FILEATTRIBUTE {
+typedef struct /*__attribute__((packed))*/ Struct_FILEATTRIBUTE {
 	CHAR	FileName[MAX_FILE_NAME_SIZE];
 	ULONG	FileSize;
 	ULONG	ReadRights;
 	ULONG	WriteRights;
 } FILEATTRIBUTE, *PFILEATTRIBUTE;
-
+#pragma pack()
 
 ULONG DEVAPI SKF_WaitForDevEvent(
 	LPSTR szDevName,
@@ -439,15 +350,15 @@ ULONG DEVAPI SKF_GenRandom(
 	BYTE *pbRandom,
 	ULONG ulRandomLen);
 
-ULONG DEVAPI SKF_GenExtRSAKey(
-	DEVHANDLE hDev,
-	ULONG ulBitsLen,
-	RSAPRIVATEKEYBLOB *pBlob);
-
 ULONG DEVAPI SKF_GenRSAKeyPair(
 	HCONTAINER hContainer,
 	ULONG ulBitsLen,
 	RSAPUBLICKEYBLOB *pBlob);
+
+ULONG DEVAPI SKF_GenExtRSAKey(
+	DEVHANDLE hDev,
+	ULONG ulBitsLen,
+	RSAPRIVATEKEYBLOB *pBlob);
 
 ULONG DEVAPI SKF_ImportRSAKeyPair(
 	HCONTAINER hContainer,
@@ -510,6 +421,13 @@ ULONG DEVAPI SKF_ECCSignData(
 	BYTE *pbDigest,
 	ULONG ulDigestLen,
 	ECCSIGNATUREBLOB *pSignature);
+
+/* Extension */
+ULONG DEVAPI SKF_ECCDecrypt(
+	HCONTAINER hContainer,
+	ECCCIPHERBLOB *pCipherBlob,
+	BYTE *pbPlainText,
+	ULONG *pulPlainTextLen);
 
 ULONG DEVAPI SKF_ECCVerify(
 	DEVHANDLE hDev,
@@ -741,9 +659,11 @@ ULONG DEVAPI SKF_CloseHandle(
 #define SAR_FILE_ALREADY_EXIST		0x0A00002F
 #define SAR_NO_ROOM			0x0A000030
 #define SAR_FILE_NOT_EXIST		0x0A000031
+#define SAR_REACH_MAX_CONTAINER_COUNT	0x0A000032
 
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

@@ -742,7 +742,7 @@ int SSL_add_dir_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
 
 /* Add a certificate to a BUF_MEM structure */
 
-static int ssl_add_cert_to_buf(BUF_MEM *buf, unsigned long *l, X509 *x)
+int ssl_add_cert_to_buf(BUF_MEM *buf, unsigned long *l, X509 *x)
 {
     int n;
     unsigned char *p;
@@ -764,6 +764,45 @@ static int ssl_add_cert_to_buf(BUF_MEM *buf, unsigned long *l, X509 *x)
 
     return 1;
 }
+
+/* 输出双证书及CA证书链 */
+/*
+static int ssl_add_sm2_certs(SSL *s, unsigned long *l)
+{
+    BUF_MEM *buf = s->init_buf;
+    CERT_PKEY *sign_cpk = &s->cert->pkeys[SSL_PKEY_SM2_SIGN];
+    CERT_PKEY *enc_cpk = &s->cert->pkeys[SSL_PKEY_SM2_ENC];
+    STACK_OF(X509) *extra_certs;
+    int i;
+
+    if (!BUF_MEM_grow_clean(buf, 10)) {
+        fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
+        return 0;
+    }
+    if (sign_cpk->chain)
+        extra_certs = sign_cpk->chain;
+    else
+        extra_certs = s->ctx->extra_certs;
+
+    if (!ssl_add_cert_to_buf(buf, l, sign_cpk->x509)) {
+        fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
+        return 0;
+    }
+    if (!ssl_add_cert_to_buf(buf, l, enc_cpk->x509)) {
+        fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
+        return 0;
+    }
+
+    for (i = 0; i < sk_X509_num(extra_certs); i++) {
+        if (!ssl_add_cert_to_buf(buf, 1, sk_X509_value(extra_certs, i))) {
+            fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
+            return 0;
+        }
+    }
+
+    return 1;
+}
+*/
 
 /* Add certificate chain to internal SSL BUF_MEM structure */
 int ssl_add_cert_chain(SSL *s, CERT_PKEY *cpk, unsigned long *l)
@@ -836,9 +875,23 @@ int ssl_add_cert_chain(SSL *s, CERT_PKEY *cpk, unsigned long *l)
             return 0;
         }
         chain_count = sk_X509_num(chain);
-        for (i = 0; i < chain_count; i++) {
+        /* output the first certificate, for GMTLS it is sign cert */
+        if (chain_count) {
+            x = sk_X509_value(chain, 0);
+            if (!ssl_add_cert_to_buf(buf, l, x)) {
+                return 0;
+            }
+        }
+        if (s->version == GMTLS_VERSION) {
+            /* 我们还应该检查cpk的类型 */
+            x = s->cert->pkeys[SSL_PKEY_SM2_ENC].x509;			
+            if (!ssl_add_cert_to_buf(buf, l, x)) {
+                return 0;
+            }
+        }
+        /* add the following chain */
+        for (i = 1; i < chain_count; i++) {
             x = sk_X509_value(chain, i);
-
             if (!ssl_add_cert_to_buf(buf, l, x)) {
                 X509_STORE_CTX_free(xs_ctx);
                 return 0;
@@ -1041,12 +1094,20 @@ static int ssl_security_default_callback(const SSL *s, const SSL_CTX *ctx,
             if (level >= 2 && c->algorithm_enc == SSL_RC4)
                 return 0;
             /* Level 3: forward secure ciphersuites only */
-            if (level >= 3 && !(c->algorithm_mkey & (SSL_kEDH | SSL_kEECDH)))
+            if (level >= 3 && !(c->algorithm_mkey & (SSL_kEDH | SSL_kEECDH
+#ifndef OPENSSL_NO_GMTLS
+                                                     | SSL_kSM2DHE | SSL_kSM9DHE
+#endif
+                                                    )))
                 return 0;
             break;
         }
     case SSL_SECOP_VERSION:
         if (!SSL_IS_DTLS(s)) {
+#ifndef OPENSSL_NO_GMTLS_METHOD
+            if (nid == GMTLS_VERSION && level >= 3)
+                return 0;
+#endif
             /* SSLv3 not allowed at level 2 */
             if (nid <= SSL3_VERSION && level >= 2)
                 return 0;

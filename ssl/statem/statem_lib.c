@@ -22,6 +22,9 @@
 #include <openssl/objects.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
+#ifndef OPENSSL_NO_GMTLS
+#include <openssl/x509v3.h>
+#endif
 
 /*
  * send s->init_buf in records of type 'type' (SSL3_RT_HANDSHAKE or
@@ -528,6 +531,26 @@ int ssl_cert_type(const X509 *x, const EVP_PKEY *pk)
         return SSL_PKEY_DSA_SIGN;
 #ifndef OPENSSL_NO_EC
     case EVP_PKEY_EC:
+#ifndef OPENSSL_NO_GMTLS
+/*			
+在use_cert时，调用方提供证书，因此可以根据keyUsage选择公钥类型
+但是use_key时，没有证书，因此这个函数只能做一个猜测
+如果这两者并不一致时，就出现错误了！
+*/
+        if (EC_GROUP_get_curve_name(EC_KEY_get0_group(
+            (EC_KEY *)EVP_PKEY_get0(pk))) == NID_sm2p256v1) {
+            if (x) {
+                if (X509_get_key_usage((X509 *)x) & X509v3_KU_DIGITAL_SIGNATURE) {
+                    return SSL_PKEY_SM2_SIGN;
+                } else {
+                    return SSL_PKEY_SM2_ENC;
+                }
+            } else
+            {
+                return SSL_PKEY_SM2_SIGN;
+            }
+        }
+#endif
         return SSL_PKEY_ECC;
 #endif
 #ifndef OPENSSL_NO_GOST
@@ -639,13 +662,6 @@ typedef struct {
 #endif
 
 static const version_info tls_version_table[] = {
-/*
-#ifndef OPENSSL_NO_GMTLS
-    {GMTLS_VERSION, gmtls_client_method, gmtls_server_method},
-#else
-    {GMTLS_VERSION, NULL, NULL},
-#endif
-*/
 #ifndef OPENSSL_NO_TLS1_2
     {TLS1_2_VERSION, tlsv1_2_client_method, tlsv1_2_server_method},
 #else
@@ -666,6 +682,11 @@ static const version_info tls_version_table[] = {
 #else
     {SSL3_VERSION, NULL, NULL},
 #endif
+#ifndef OPENSSL_NO_GMTLS
+    {GMTLS_VERSION, gmtls_client_method, gmtls_server_method},
+#else
+    {GMTLS_VERSION, NULL, NULL},
+#endif
     {0, NULL, NULL},
 };
 
@@ -674,13 +695,6 @@ static const version_info tls_version_table[] = {
 #endif
 
 static const version_info dtls_version_table[] = {
-/*
-#ifndef OPENSSL_NO_GMTLS
-    {GMTLS_VERSION, gmdtls_client_method, gmdtls_server_method},
-#else
-    {GMTLS_VERSION, NULL, NULL},
-#endif
-*/
 #ifndef OPENSSL_NO_DTLS1_2
     {DTLS1_2_VERSION, dtlsv1_2_client_method, dtlsv1_2_server_method},
 #else
@@ -849,7 +863,12 @@ int ssl_set_version_bound(int method_version, int version, int *bound)
         return 0;
 
     case TLS_ANY_VERSION:
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        if ((version < SSL3_VERSION || version > TLS_MAX_VERSION)
+            && (version != GMTLS_VERSION))
+#else
         if (version < SSL3_VERSION || version > TLS_MAX_VERSION)
+#endif
             return 0;
         break;
 

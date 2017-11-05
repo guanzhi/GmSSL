@@ -53,6 +53,18 @@
 #include <openssl/bn_hash.h>
 #include "sm9_lcl.h"
 
+int SM9PrivateKey_get_gmtls_public_key(SM9PublicParameters *mpk,
+	SM9PrivateKey *sk, unsigned char pub_key[1024])
+{
+	return 0;
+}
+
+int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
+	SM9PublicKey *pk, unsigned char encoded[1024])
+{
+	return 0;
+}
+
 int SM9_hash1(const EVP_MD *md, BIGNUM **r,
 	const char *id, size_t idlen,
 	unsigned char hid,

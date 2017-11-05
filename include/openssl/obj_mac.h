@@ -1070,6 +1070,11 @@
 #define NID_pbe_WithSHA1And40BitRC2_CBC         149
 #define OBJ_pbe_WithSHA1And40BitRC2_CBC         OBJ_pkcs12_pbeids,6L
 
+#define SN_pbe_WithSM3AndSMS4_CBC               "PBE-SM3-SMS4"
+#define LN_pbe_WithSM3AndSMS4_CBC               "pbeWithSM3AndSMS4-CBC"
+#define NID_pbe_WithSM3AndSMS4_CBC              1195
+#define OBJ_pbe_WithSM3AndSMS4_CBC              OBJ_pkcs12_pbeids,100L
+
 #define OBJ_pkcs12_Version1             OBJ_pkcs12,10L
 
 #define OBJ_pkcs12_BagIds               OBJ_pkcs12_Version1,1L
@@ -4552,6 +4557,22 @@
 #define LN_kx_sm2               "kx-sm2"
 #define NID_kx_sm2              1186
 
+#define SN_kx_sm2dhe            "KxSM2DHE"
+#define LN_kx_sm2dhe            "kx-sm2dhe"
+#define NID_kx_sm2dhe           1190
+
+#define SN_kx_sm2_psk           "KxSM2-PSK"
+#define LN_kx_sm2_psk           "kx-sm2-psk"
+#define NID_kx_sm2_psk          1191
+
+#define SN_kx_sm9               "KxSM9"
+#define LN_kx_sm9               "kx-sm9"
+#define NID_kx_sm9              1188
+
+#define SN_kx_sm9dhe            "KxSM9DHE"
+#define LN_kx_sm9dhe            "kx-sm9dhe"
+#define NID_kx_sm9dhe           1192
+
 #define SN_auth_rsa             "AuthRSA"
 #define LN_auth_rsa             "auth-rsa"
 #define NID_auth_rsa            1046
@@ -4587,6 +4608,10 @@
 #define SN_auth_sm2             "AuthSM2"
 #define LN_auth_sm2             "auth-sm2"
 #define NID_auth_sm2            1187
+
+#define SN_auth_sm9             "AuthSM9"
+#define LN_auth_sm9             "auth-sm9"
+#define NID_auth_sm9            1189
 
 #define SN_ecies_recommendedParameters          "ecies-recommendedParameters"
 #define NID_ecies_recommendedParameters         1063
@@ -5051,6 +5076,14 @@
 #define LN_zuc          "zuc"
 #define NID_zuc         1136
 #define OBJ_zuc         OBJ_sm_scheme,800L
+
+#define SN_zuc_128eea3          "zuc-128eea3"
+#define NID_zuc_128eea3         1193
+#define OBJ_zuc_128eea3         OBJ_zuc,1L
+
+#define SN_zuc_128eia3          "zuc-128eia3"
+#define NID_zuc_128eia3         1194
+#define OBJ_zuc_128eia3         OBJ_zuc,2L
 
 #define OBJ_ibcs1               OBJ_ISO_US,1L,114334L,1L
 

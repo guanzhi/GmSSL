@@ -6,6 +6,8 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  */
+#ifndef HEADER_MODES_LCL_H
+#define HEADER_MODES_LCL_H
 
 #include <openssl/modes.h>
 
@@ -183,3 +185,5 @@ struct ocb128_context {
     OCB_BLOCK checksum;
 };
 #endif                          /* OPENSSL_NO_OCB */
+#endif
+

@@ -77,7 +77,6 @@
 #define SSL_ENC_SSF33_IDX       26
 #define SSL_ENC_NUM_IDX         27
 
-
 /* NB: make sure indices in these tables match values above */
 
 typedef struct {
@@ -117,8 +116,9 @@ static const ssl_cipher_table ssl_cipher_table_cipher[SSL_ENC_NUM_IDX] = {
 };
 
 static const EVP_CIPHER *ssl_cipher_methods[SSL_ENC_NUM_IDX] = {
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
 
 #define SSL_COMP_NULL_IDX       0
@@ -172,18 +172,23 @@ static const ssl_cipher_table ssl_cipher_table_kx[] = {
     {SSL_kSRP,      NID_kx_srp},
     {SSL_kGOST,     NID_kx_gost},
     {SSL_kSM2,      NID_kx_sm2},
+    {SSL_kSM2DHE,   NID_kx_sm2dhe},
+    {SSL_kSM2PSK,   NID_kx_sm2_psk},
+    {SSL_kSM9,      NID_kx_sm9},
+    {SSL_kSM9DHE,   NID_kx_sm9dhe},
 };
 
 static const ssl_cipher_table ssl_cipher_table_auth[] = {
-    {SSL_aRSA,    NID_auth_rsa},
-    {SSL_aECDSA,  NID_auth_ecdsa},
-    {SSL_aPSK,    NID_auth_psk},
-    {SSL_aDSS,    NID_auth_dss},
-    {SSL_aGOST01, NID_auth_gost01},
-    {SSL_aGOST12, NID_auth_gost12},
-    {SSL_aSRP,    NID_auth_srp},
-    {SSL_aNULL,   NID_auth_null},
-    {SSL_aSM2,    NID_auth_sm2},
+    {SSL_aRSA,     NID_auth_rsa},
+    {SSL_aECDSA,   NID_auth_ecdsa},
+    {SSL_aPSK,     NID_auth_psk},
+    {SSL_aDSS,     NID_auth_dss},
+    {SSL_aGOST01,  NID_auth_gost01},
+    {SSL_aGOST12,  NID_auth_gost12},
+    {SSL_aSRP,     NID_auth_srp},
+    {SSL_aNULL,    NID_auth_null},
+    {SSL_aSM2,     NID_auth_sm2},
+    {SSL_aSM9,     NID_auth_sm9},
 };
 /* *INDENT-ON* */
 
@@ -214,8 +219,10 @@ static int ssl_mac_pkey_id[SSL_MD_NUM_IDX] = {
     EVP_PKEY_HMAC, EVP_PKEY_HMAC, EVP_PKEY_HMAC, NID_undef,
     /* GOST2012_512 */
     EVP_PKEY_HMAC,
-    /* SM3 */
-    EVP_PKEY_HMAC,        
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    /* MD5_SHA1, SHA224, SHA512, SM3 */
+    NID_undef, NID_undef, NID_undef, EVP_PKEY_HMAC
+#endif
 };
 
 static int ssl_mac_secret_size[SSL_MD_NUM_IDX];
@@ -271,6 +278,11 @@ static const SSL_CIPHER cipher_aliases[] = {
     {0, SSL_TXT_kDHEPSK, 0, SSL_kDHEPSK},
     {0, SSL_TXT_kSRP, 0, SSL_kSRP},
     {0, SSL_TXT_kGOST, 0, SSL_kGOST},
+    {0, SSL_TXT_kSM2, 0, SSL_kSM2},
+    {0, SSL_TXT_kSM2DHE, 0, SSL_kSM2DHE},
+    {0, SSL_TXT_kSM2PSK, 0, SSL_kSM2PSK},
+    {0, SSL_TXT_kSM9, 0, SSL_kSM9},
+    {0, SSL_TXT_kSM9DHE, 0, SSL_kSM9DHE},
 
     /* server authentication aliases */
     {0, SSL_TXT_aRSA, 0, 0, SSL_aRSA},
@@ -284,6 +296,8 @@ static const SSL_CIPHER cipher_aliases[] = {
     {0, SSL_TXT_aGOST12, 0, 0, SSL_aGOST12},
     {0, SSL_TXT_aGOST, 0, 0, SSL_aGOST01 | SSL_aGOST12},
     {0, SSL_TXT_aSRP, 0, 0, SSL_aSRP},
+    {0, SSL_TXT_aSM2, 0, 0, SSL_aSM2},
+    {0, SSL_TXT_aSM9, 0, 0, SSL_aSM9},
 
     /* aliases combining key exchange and server authentication */
     {0, SSL_TXT_EDH, 0, SSL_kDHE, ~SSL_aNULL},
@@ -296,6 +310,8 @@ static const SSL_CIPHER cipher_aliases[] = {
     {0, SSL_TXT_AECDH, 0, SSL_kECDHE, SSL_aNULL},
     {0, SSL_TXT_PSK, 0, SSL_PSK},
     {0, SSL_TXT_SRP, 0, SSL_kSRP},
+    {0, SSL_TXT_SM2, 0, 0, SSL_aSM2},//ciphers SM2 is not correct!			
+    {0, SSL_TXT_SM9, 0, SSL_kSM9|SSL_kSM9DHE, SSL_aSM9},
 
     /* symmetric encryption aliases */
     {0, SSL_TXT_3DES, 0, 0, 0, SSL_3DES},
@@ -318,6 +334,7 @@ static const SSL_CIPHER cipher_aliases[] = {
     {0, SSL_TXT_CAMELLIA256, 0, 0, 0, SSL_CAMELLIA256},
     {0, SSL_TXT_CAMELLIA, 0, 0, 0, SSL_CAMELLIA},
     {0, SSL_TXT_CHACHA20, 0, 0, 0, SSL_CHACHA20},
+    {0, SSL_TXT_SMS4, 0, 0, 0, SSL_SMS4 | SSL_SMS4GCM | SSL_SMS4CCM | SSL_SMS4CCM8},
 
     /* MAC aliases */
     {0, SSL_TXT_MD5, 0, 0, 0, 0, SSL_MD5},
@@ -328,12 +345,16 @@ static const SSL_CIPHER cipher_aliases[] = {
     {0, SSL_TXT_SHA256, 0, 0, 0, 0, SSL_SHA256},
     {0, SSL_TXT_SHA384, 0, 0, 0, 0, SSL_SHA384},
     {0, SSL_TXT_GOST12, 0, 0, 0, 0, SSL_GOST12_256},
+    {0, SSL_TXT_SM3, 0, 0, 0, 0, SSL_SM3},
 
     /* protocol version aliases */
     {0, SSL_TXT_SSLV3, 0, 0, 0, 0, 0, SSL3_VERSION},
     {0, SSL_TXT_TLSV1, 0, 0, 0, 0, 0, TLS1_VERSION},
     {0, "TLSv1.0", 0, 0, 0, 0, 0, TLS1_VERSION},
     {0, SSL_TXT_TLSV1_2, 0, 0, 0, 0, 0, TLS1_2_VERSION},
+    {0, SSL_TXT_GMTLSV1, 0, 0, 0, 0, 0, GMTLS1_VERSION},
+    {0, "GMTLSv1.0", 0, 0, 0, 0, 0, GMTLS1_VERSION},
+    {0, SSL_TXT_GMTLSV1_1, 0, 0, 0, 0, 0, GMTLS1_1_VERSION},
 
     /* strength classes */
     {0, SSL_TXT_LOW, 0, 0, 0, 0, 0, 0, 0, 0, 0, SSL_LOW},
@@ -445,8 +466,8 @@ void ssl_load_ciphers(void)
 #ifdef OPENSSL_NO_EC
     disabled_mkey_mask |= SSL_kECDHEPSK;
     disabled_auth_mask |= SSL_aECDSA;
-# ifdef OPENSSL_NO_GMTLS
-   /* do something */
+# ifdef OPENSSL_NO_GMTLS_METHOD
+   /* do something */                            
 # endif
 #endif
 #ifdef OPENSSL_NO_PSK
@@ -584,8 +605,9 @@ int ssl_cipher_get_evp(const SSL_SESSION *s, const EVP_CIPHER **enc,
             mac_pkey_type = NULL;
     } else {
         *md = ssl_digest_methods[i];
-        if (mac_pkey_type != NULL)
+        if (mac_pkey_type != NULL) {
             *mac_pkey_type = ssl_mac_pkey_id[i];
+        }
         if (mac_secret_size != NULL)
             *mac_secret_size = ssl_mac_secret_size[i];
     }
@@ -645,6 +667,11 @@ const EVP_MD *ssl_handshake_md(SSL *s)
 
 const EVP_MD *ssl_prf_md(SSL *s)
 {
+#ifndef OPENSSL_NO_GMTLS_METHOD
+    /* In GM/T 0024, PRF always use SM3 */
+    if (s->version == GMTLS_VERSION)
+        return EVP_sm3();
+#endif
     return ssl_md(ssl_get_algorithm2(s) >> TLS1_PRF_DGST_SHIFT);
 }
 
@@ -1553,7 +1580,11 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     const char *ver;
     const char *kx, *au, *enc, *mac;
     uint32_t alg_mkey, alg_auth, alg_enc, alg_mac;
-    static const char *format = "%-23s %s Kx=%-8s Au=%-4s Enc=%-9s Mac=%-4s\n";
+#ifndef OPENSSL_NO_GMTLS
+    static const char *format = "%-30s %-10s Kx=%-8s Au=%-6s Enc=%-23s Mac=%-4s\n";
+#else
+    static const char *format = "%-23s %s Kx=%-4s Au=%-4s Enc=%-8s Mac=%-4s\n";
+#endif
 
     if (buf == NULL) {
         len = 128;
@@ -1598,9 +1629,23 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_kGOST:
         kx = "GOST";
         break;
+#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_kSM2:
         kx = "SM2";
         break;
+    case SSL_kSM2DHE:
+        kx = "SM2DHE";
+        break;
+    case SSL_kSM2PSK:
+        kx = "SM2PSK";
+        break;
+    case SSL_kSM9:
+        kx = "SM9";
+        break;
+    case SSL_kSM9DHE:
+        kx = "SM9DHE";
+        break;
+#endif
     default:
         kx = "unknown";
     }
@@ -1631,9 +1676,14 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case (SSL_aGOST12 | SSL_aGOST01):
         au = "GOST12";
         break;
+#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_aSM2:
         au = "SM2";
         break;
+    case SSL_aSM9:
+        au = "SM9";
+        break;
+#endif
     default:
         au = "unknown";
         break;
@@ -1698,6 +1748,7 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_CHACHA20POLY1305:
         enc = "CHACHA20/POLY1305(256)";
         break;
+#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_SMS4:
         enc = "SMS4(128)";
         break;
@@ -1719,6 +1770,7 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_SSF33:
         enc = "SSF33(128)";
         break;
+#endif
     default:
         enc = "unknown";
         break;
@@ -1751,9 +1803,11 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_GOST12_512:
         mac = "GOST2012";
         break;
+#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_SM3:
         mac = "SM3";
         break;
+#endif
     default:
         mac = "unknown";
         break;
@@ -1958,9 +2012,12 @@ int ssl_cipher_get_cert_index(const SSL_CIPHER *c)
         return SSL_PKEY_GOST_EC;
     else if (alg_a & SSL_aGOST01)
         return SSL_PKEY_GOST01;
+#ifndef OPENSSL_NO_GMTLS_METHOD
     else if (alg_a & SSL_aSM2)
-        return SSL_PKEY_ECC;
-
+        return SSL_PKEY_SM2_SIGN;
+    else if (alg_a & SSL_aSM9)
+        return -1;
+#endif
     return -1;
 }
 

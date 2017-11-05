@@ -104,10 +104,7 @@ int SM9_setup_type1curve(const EC_GROUP *group, const EVP_MD *md,
 	}
 
 	/* mpk->beta = 0 */
-	if (!BN_zero(mpk->beta)) {
-		SM9err(SM9_F_SM9_SETUP_TYPE1CURVE, ERR_R_BN_LIB);
-		goto end;
-	}
+	BN_zero(mpk->beta);
 
 	/* mpk->order = group->order */
 	if (!EC_GROUP_get_order(group, mpk->order, bn_ctx)) {

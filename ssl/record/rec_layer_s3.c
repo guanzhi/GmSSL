@@ -1314,7 +1314,7 @@ int ssl3_read_bytes(SSL *s, int type, int *recvd_type, unsigned char *buf,
     if (s->server &&
         SSL_is_init_finished(s) &&
         !s->s3->send_connection_binding &&
-        (s->version > SSL3_VERSION) &&
+        (s->version > SSL3_VERSION) &&                
         (s->rlayer.handshake_fragment_len >= 4) &&
         (s->rlayer.handshake_fragment[0] == SSL3_MT_CLIENT_HELLO) &&
         (s->session != NULL) && (s->session->cipher != NULL) &&

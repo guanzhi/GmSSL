@@ -16,8 +16,12 @@
 #include <openssl/x509.h>
 #include "internal/x509_int.h"
 #include <openssl/ocsp.h>
-#include <openssl/rsa.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
+#ifndef OPENSSL_NO_DSA
 #include <openssl/dsa.h>
+#endif
 #include <openssl/x509v3.h>
 
 int X509_verify(X509 *a, EVP_PKEY *r)
@@ -363,6 +367,7 @@ int X509_pubkey_digest(const X509 *data, const EVP_MD *type,
 int X509_digest(const X509 *data, const EVP_MD *type, unsigned char *md,
                 unsigned int *len)
 {
+#ifndef OPENSSL_NO_SHA
     if (type == EVP_sha1() && (data->ex_flags & EXFLAG_SET) != 0) {
         /* Asking for SHA1 and we already computed it. */
         if (len != NULL)
@@ -370,6 +375,7 @@ int X509_digest(const X509 *data, const EVP_MD *type, unsigned char *md,
         memcpy(md, data->sha1_hash, sizeof(data->sha1_hash));
         return 1;
     }
+#endif
     return (ASN1_item_digest
             (ASN1_ITEM_rptr(X509), type, (char *)data, md, len));
 }
@@ -377,6 +383,7 @@ int X509_digest(const X509 *data, const EVP_MD *type, unsigned char *md,
 int X509_CRL_digest(const X509_CRL *data, const EVP_MD *type,
                     unsigned char *md, unsigned int *len)
 {
+#ifndef OPENSSL_NO_SHA
     if (type == EVP_sha1()) {
         /* Asking for SHA1; always computed in CRL d2i. */
         if (len != NULL)
@@ -384,6 +391,7 @@ int X509_CRL_digest(const X509_CRL *data, const EVP_MD *type,
         memcpy(md, data->sha1_hash, sizeof(data->sha1_hash));
         return 1;
     }
+#endif
     return (ASN1_item_digest
             (ASN1_ITEM_rptr(X509_CRL), type, (char *)data, md, len));
 }

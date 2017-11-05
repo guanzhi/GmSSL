@@ -16,7 +16,6 @@
 # include <openssl/objects.h>
 # include <openssl/x509.h>
 # include <openssl/md4.h>
-# include <openssl/rsa.h>
 # include "internal/evp_int.h"
 
 static int init(EVP_MD_CTX *ctx)

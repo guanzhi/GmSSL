@@ -14,8 +14,30 @@ import (
 	"unsafe"
 )
 
-func GetDigests(aliases bool) []string {
-	return []string{"sm3", "sha1", "sha256"}
+func GetDigestNames() []string {
+	return []string{
+		"BLAKE2b512",
+		"BLAKE2s256",
+		"MD4",
+		"MD5",
+		"MD5-SHA1",
+		"MDC2",
+		"RIPEMD160",
+		"rmd160",
+		"SHA1",
+		"SHA224",
+		"SHA256",
+		"SHA384",
+		"SHA512",
+		"SM3",
+		"SHA1",
+		"SHA224",
+		"SHA256",
+		"SHA384",
+		"SHA512",
+		"SM3",
+		"whirlpool",
+	}
 }
 
 func GetDigestLength(name string) (int, error) {
@@ -32,7 +54,7 @@ type DigestContext struct {
 	ctx *C.EVP_MD_CTX
 }
 
-func NewDigestContext(name string, args map[string]string) (*DigestContext, error) {
+func NewDigestContext(name string, eng *Engine) (*DigestContext, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)

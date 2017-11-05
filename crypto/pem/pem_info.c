@@ -14,8 +14,12 @@
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
-#include <openssl/rsa.h>
-#include <openssl/dsa.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
+#ifndef OPENSSL_NO_DSA
+# include <openssl/dsa.h>
+#endif
 
 #ifndef OPENSSL_NO_STDIO
 STACK_OF(X509_INFO) *PEM_X509_INFO_read(FILE *fp, STACK_OF(X509_INFO) *sk,

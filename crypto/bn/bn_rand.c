@@ -12,7 +12,9 @@
 #include "internal/cryptlib.h"
 #include "bn_lcl.h"
 #include <openssl/rand.h>
-#include <openssl/sha.h>
+#ifndef OPENSSL_NO_SHA
+# include <openssl/sha.h>
+#endif
 
 static int bnrand(int pseudorand, BIGNUM *rnd, int bits, int top, int bottom)
 {
@@ -196,6 +198,8 @@ int BN_generate_dsa_nonce(BIGNUM *out, const BIGNUM *range,
                           const BIGNUM *priv, const unsigned char *message,
                           size_t message_len, BN_CTX *ctx)
 {
+    int ret = 0;
+#ifndef OPENSSL_NO_DSA
     SHA512_CTX sha;
     /*
      * We use 512 bits of random data per iteration to ensure that we have at
@@ -208,7 +212,6 @@ int BN_generate_dsa_nonce(BIGNUM *out, const BIGNUM *range,
     const unsigned num_k_bytes = BN_num_bytes(range) + 8;
     unsigned char private_bytes[96];
     unsigned char *k_bytes;
-    int ret = 0;
 
     k_bytes = OPENSSL_malloc(num_k_bytes);
     if (k_bytes == NULL)
@@ -254,5 +257,6 @@ int BN_generate_dsa_nonce(BIGNUM *out, const BIGNUM *range,
  err:
     OPENSSL_free(k_bytes);
     OPENSSL_cleanse(private_bytes, sizeof(private_bytes));
+#endif
     return ret;
 }

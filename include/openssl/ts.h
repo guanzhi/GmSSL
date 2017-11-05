@@ -20,9 +20,15 @@
 # include <openssl/stack.h>
 # include <openssl/asn1.h>
 # include <openssl/safestack.h>
-# include <openssl/rsa.h>
-# include <openssl/dsa.h>
-# include <openssl/dh.h>
+# ifndef OPENSSL_NO_RSA
+#  include <openssl/rsa.h>
+# endif
+# ifndef OPENSSL_NO_DSA
+#  include <openssl/dsa.h>
+# endif
+# ifndef OPENSSL_NO_DH
+#  include <openssl/dh.h>
+# endif
 # ifdef  __cplusplus
 extern "C" {
 # endif

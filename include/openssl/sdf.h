@@ -64,6 +64,9 @@
 #ifndef HEADER_SDF_H
 #define HEADER_SDF_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SDF
+
 #include <stdio.h>
 #include <openssl/sgd.h>
 
@@ -71,8 +74,8 @@
 extern "C" {
 #endif
 
-
-typedef struct DeviceInfo_st{
+#pragma pack(1)
+typedef struct /*__attribute__((packed))*/ DeviceInfo_st {
 	unsigned char IssuerName[40];
 	unsigned char DeviceName[16];
 	unsigned char DeviceSerial[16];	/* 8-char date +
@@ -89,18 +92,13 @@ typedef struct DeviceInfo_st{
 	unsigned int BufferSize;
 } DEVICEINFO;
 
-#define RSAref_MAX_BITS    2048
-#define RSAref_MAX_LEN     ((RSAref_MAX_BITS + 7) / 8)
-#define RSAref_MAX_PBITS   ((RSAref_MAX_BITS + 1) / 2)
-#define RSAref_MAX_PLEN    ((RSAref_MAX_PBITS + 7)/ 8)
-
-typedef struct RSArefPublicKey_st {
+typedef struct /*__attribute__((packed))*/ RSArefPublicKey_st {
 	unsigned int bits;
 	unsigned char m[RSAref_MAX_LEN];
 	unsigned char e[RSAref_MAX_LEN];
 } RSArefPublicKey;
 
-typedef struct RSArefPrivateKey_st {
+typedef struct /*__attribute__((packed))*/ RSArefPrivateKey_st {
 	unsigned int bits;
 	unsigned char m[RSAref_MAX_LEN];
 	unsigned char e[RSAref_MAX_LEN];
@@ -110,53 +108,38 @@ typedef struct RSArefPrivateKey_st {
 	unsigned char coef[RSAref_MAX_PLEN];
 } RSArefPrivateKey;
 
-#define ECCref_MAX_BITS		512
-#define ECCref_MAX_LEN		((ECCref_MAX_BITS+7) / 8)
-
-typedef struct ECCrefPublicKey_st {
+typedef struct /*__attribute__((packed))*/ ECCrefPublicKey_st {
 	unsigned int bits;
 	unsigned char x[ECCref_MAX_LEN];
 	unsigned char y[ECCref_MAX_LEN];
 } ECCrefPublicKey;
 
-typedef struct ECCrefPrivateKey_st {
+typedef struct /*__attribute__((packed))*/ ECCrefPrivateKey_st {
     unsigned int  bits;
     unsigned char K[ECCref_MAX_LEN];
 } ECCrefPrivateKey;
 
-typedef struct ECCCipher_st {
+typedef struct /*__attribute__((packed))*/ ECCCipher_st {
 	unsigned char x[ECCref_MAX_LEN];
 	unsigned char y[ECCref_MAX_LEN];
-	/*
-	 * In SM2 ciphertext the `M` is the hash result of the plaintext
-	 * with generated Diffie-Hellman keys, so the length should be the
-	 * digest length, for SM3 it is 256-bit which is equal to the max
-	 * elliptic curve key length (256-bit).
-	 */
 	unsigned char M[32];
-
-	/* length of ciphertext `C` */
 	unsigned int L;
 	unsigned char C[1];
 } ECCCipher;
 
-typedef struct ECCSignature_st {
+typedef struct /*__attribute__((packed))*/ ECCSignature_st {
 	unsigned char r[ECCref_MAX_LEN];
 	unsigned char s[ECCref_MAX_LEN];
 } ECCSignature;
 
-/* ENVELOPEDKEYBLOB is not used in this API, and it requires the
- * ECCCIPHERBLOB and ECCPUBLICKEYBLOB defined in SKF API
- */
-#if 0
-typedef struct SDF_ENVELOPEDKEYBLOB {
+typedef struct /*__attribute__((packed))*/ SDF_ENVELOPEDKEYBLOB {
 	unsigned long Version;
 	unsigned long ulSymmAlgID;
-	ECCCIPHERBLOB ECCCipehrBlob;
-	ECCPUBLICKEYBLOB PubKey;
+	ECCCipher ECCCipehrBlob;
+	ECCrefPublicKey PubKey;
 	unsigned char cbEncryptedPrivKey[64];
-} ENVELOPEDKEYBLOB, *PENVELOPEDKEYBLOB;
-#endif
+} EnvelopedKeyBlob, *PEnvelopedKeyBlob;
+#pragma pack()
 
 int SDF_OpenDevice(
 	void **phDeviceHandle);
@@ -475,7 +458,7 @@ int SDF_DeleteFile(
 #define SDR_OPENSESSION		(SDR_BASE + 0x00000006)
 #define SDR_PARDENY		(SDR_BASE + 0x00000007)
 #define SDR_KEYNOTEXIST		(SDR_BASE + 0x00000008)
-#define SDR_ALGNOTSUPPOT	(SDR_BASE + 0x00000009)
+#define SDR_ALGNOTSUPPORT	(SDR_BASE + 0x00000009)
 #define SDR_ALGMODNOTSUPPORT	(SDR_BASE + 0x0000000A)
 #define SDR_PKOPERR		(SDR_BASE + 0x0000000B)
 #define SDR_SKOPERR		(SDR_BASE + 0x0000000C)
@@ -501,5 +484,6 @@ int SDF_DeleteFile(
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

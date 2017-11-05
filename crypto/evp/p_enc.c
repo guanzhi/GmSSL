@@ -57,11 +57,15 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/rsa.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
-#include <openssl/sm2.h>
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 
 int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 	int inlen, EVP_PKEY *pkey)
@@ -82,23 +86,14 @@ int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 # endif
 
 # ifndef OPENSSL_NO_SM2
-	if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_MALLOC_FAILURE);
-		return 0;
-	}
-
-	if (!EVP_PKEY_encrypt_init(ctx)) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
-		return 0;
-	}
-
-	if (!EVP_PKEY_CTX_set_ec_enc_type(ctx, NID_sm_scheme)) {
-		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
-		goto end;
-	}
-
-	size = inlen + EVP_PKEY_size(pkey);
-	if (!EVP_PKEY_encrypt(ctx, out, &size, in, inlen)) {
+	/* hope the caller has prepared enough buffer for `out`
+	 * because this function has no idea of the out length */
+	if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))
+		|| !EVP_PKEY_encrypt_init(ctx)
+		|| !EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme)
+		|| !EVP_PKEY_CTX_set_ec_encrypt_param(ctx, NID_sm3)
+		|| !EVP_PKEY_encrypt(ctx, NULL, &size, in, inlen)
+		|| !EVP_PKEY_encrypt(ctx, out, &size, in, inlen)) {
 		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
 		goto end;
 	}

@@ -50,6 +50,9 @@
 #ifndef HEADER_GMSOF_H
 #define HEADER_GMSOF_H
 
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_SOF
+
 #include <stdio.h>
 #include <openssl/sgd.h>
 #include <openssl/sof.h>
@@ -144,4 +147,5 @@ int ERR_load_SOF_strings(void);
 # ifdef  __cplusplus
 }
 # endif
+#endif
 #endif

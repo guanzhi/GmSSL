@@ -39,16 +39,39 @@ PKCS12 *PKCS12_create(const char *pass, const char *name, EVP_PKEY *pkey, X509 *
     int i;
     unsigned char keyid[EVP_MAX_MD_SIZE];
     unsigned int keyidlen = 0;
+    const EVP_MD *md;
+
+#ifndef OPENSSL_NO_SHA
+    md = EVP_sha1();
+#elif !defined(OPENSSL_NO_SM3)
+    md = EVP_sm3();
+#else
+    PKCS12err(PKCS12_F_PKCS12_CREATE, PKCS12_R_NO_AVAIABLE_DIGEST);
+    return 0;
+#endif
 
     /* Set defaults */
-    if (!nid_cert)
-#ifdef OPENSSL_NO_RC2
+    if (!nid_cert) {
+#if !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_DES)
         nid_cert = NID_pbe_WithSHA1And3_Key_TripleDES_CBC;
-#else
+#elif !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_RC2)
         nid_cert = NID_pbe_WithSHA1And40BitRC2_CBC;
+#elif !defined(OPENSSL_NO_SM3) && !defined(OPENSSL_NO_SMS4)
+        nid_cert = NID_pbe_WithSM3AndSMS4_CBC;
+#else
+        PKCS12err(PKCS12_F_PKCS12_CREATE, PKCS12_R_NO_AVAIABLE_CIPHER);
+        return 0;
 #endif
-    if (!nid_key)
+}
+
+    if (!nid_key) {
+#if !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_DES)
         nid_key = NID_pbe_WithSHA1And3_Key_TripleDES_CBC;
+#elif !defined(OPENSSL_NO_SM3) && !defined(OPENSSL_NO_SMS4)
+        nid_key = NID_pbe_WithSM3AndSMS4_CBC;
+#endif
+    }
+
     if (!iter)
         iter = PKCS12_DEFAULT_ITER;
     if (!mac_iter)
@@ -62,7 +85,7 @@ PKCS12 *PKCS12_create(const char *pass, const char *name, EVP_PKEY *pkey, X509 *
     if (pkey && cert) {
         if (!X509_check_private_key(cert, pkey))
             return NULL;
-        X509_digest(cert, EVP_sha1(), keyid, &keyidlen);
+        X509_digest(cert, md, keyid, &keyidlen);
     }
 
     if (cert) {

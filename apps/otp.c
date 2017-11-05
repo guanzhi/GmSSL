@@ -47,29 +47,22 @@
  * ====================================================================
  */
 /*
- * gmssl otp -setup
- * gmssl otp -genkey
+ * gmssl otp -genkey -seed data
  */
 
-#include <openssl/opensslconf.h>
-#ifdef OPENSSL_NO_OTP
-NON_EMPTY_TRANSLATION_UNIT
-#else
+#include "apps.h"
 
-# include <stdio.h>
-# include <stdlib.h>
-# include <string.h>
-# include "apps.h"
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/pem.h>
-# include <openssl/otp.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/otp.h>
 
 typedef enum OPTION_choice {
-	OPT_ERR = -1,
-	OPT_EOF = 0,
-	OPT_HELP
+	OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
+	OPT_SETUP, OPT_GENKEY
 } OPTION_CHOICE;
 
 OPTIONS otp_options[] = {
@@ -82,4 +75,3 @@ int otp_main(int argc, char **argv)
 	printf("otp not implemented\n");
 	return 0;
 }
-#endif

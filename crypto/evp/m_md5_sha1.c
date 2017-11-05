@@ -7,7 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#if !defined(OPENSSL_NO_MD5)
+#include <openssl/opensslconf.h>
+
+#if !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_SHA)
 
 # include <openssl/evp.h>
 # include <openssl/objects.h>
@@ -16,7 +18,8 @@
 # include <openssl/sha.h>
 # include "internal/cryptlib.h"
 # include "internal/evp_int.h"
-# include <openssl/rsa.h>
+//# include <openssl/rsa.h>
+// try no rsa if md5_sha1 ok?			
 
 struct md5_sha1_ctx {
     MD5_CTX md5;

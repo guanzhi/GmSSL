@@ -294,6 +294,30 @@ DEFINE_RUN_ONCE_STATIC(ossl_init_engine_capi)
     return 1;
 }
 #  endif
+#  if !defined(OPENSSL_NO_SKF) && !defined(OPENSSL_NO_SKFENG)
+static CRYPTO_ONCE engine_skf = CRYPTO_ONCE_STATIC_INIT;
+DEFINE_RUN_ONCE_STATIC(ossl_init_engine_skf)
+{
+#   ifdef OPENSSL_INIT_DEBUG
+    fprintf(stderr, "OPENSSL_INIT: ossl_init_engine_skf: "
+                    "engine_load_skf_int()\n");
+#   endif
+    engine_load_skf_int();
+    return 1;
+}
+#  endif
+#  if !defined(OPENSSL_NO_SDF) && !defined(OPENSSL_NO_SDFENG)
+static CRYPTO_ONCE engine_sdf = CRYPTO_ONCE_STATIC_INIT;
+DEFINE_RUN_ONCE_STATIC(ossl_init_engine_sdf)
+{
+#   ifdef OPENSSL_INIT_DEBUG
+    fprintf(stderr, "OPENSSL_INIT: ossl_init_engine_sdf: "
+                    "engine_load_sdf_int()\n");
+#   endif
+    engine_load_sdf_int();
+    return 1;
+}
+#  endif
 #  if !defined(OPENSSL_NO_AFALGENG)
 static CRYPTO_ONCE engine_afalg = CRYPTO_ONCE_STATIC_INIT;
 DEFINE_RUN_ONCE_STATIC(ossl_init_engine_afalg)
@@ -583,6 +607,16 @@ int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings)
 #  if defined(OPENSSL_SYS_WIN32) && !defined(OPENSSL_NO_CAPIENG)
     if ((opts & OPENSSL_INIT_ENGINE_CAPI)
             && !RUN_ONCE(&engine_capi, ossl_init_engine_capi))
+        return 0;
+#  endif
+#  if !defined(OPENSSL_NO_SKF) && !defined(OPENSSL_NO_SKFENG)
+    if ((opts & OPENSSL_INIT_ENGINE_SKF)
+            && !RUN_ONCE(&engine_skf, ossl_init_engine_skf))
+        return 0;
+#  endif
+#  if !defined(OPENSSL_NO_SDF) && !defined(OPENSSL_NO_SDFENG)
+    if ((opts & OPENSSL_INIT_ENGINE_SDF)
+            && !RUN_ONCE(&engine_sdf, ossl_init_engine_sdf))
         return 0;
 #  endif
 #  if !defined(OPENSSL_NO_AFALGENG)

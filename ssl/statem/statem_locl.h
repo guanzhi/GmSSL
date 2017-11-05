@@ -96,7 +96,7 @@ __owur int ssl_do_client_cert_cb(SSL *s, X509 **px509, EVP_PKEY **ppkey);
 __owur int tls_construct_client_key_exchange(SSL *s);
 __owur int tls_client_key_exchange_post_work(SSL *s);
 __owur int tls_construct_cert_status(SSL *s);
-__owur MSG_PROCESS_RETURN tls_process_key_exchange(SSL *s, PACKET *pkt);
+__owur MSG_PROCESS_RETURN tls_process_server_key_exchange(SSL *s, PACKET *pkt);
 __owur MSG_PROCESS_RETURN tls_process_server_certificate(SSL *s, PACKET *pkt);
 __owur int ssl3_check_cert_and_algorithm(SSL *s);
 #ifndef OPENSSL_NO_NEXTPROTONEG
@@ -122,3 +122,14 @@ __owur MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt);
 __owur MSG_PROCESS_RETURN tls_process_next_proto(SSL *s, PACKET *pkt);
 #endif
 __owur int tls_construct_new_session_ticket(SSL *s);
+
+#ifndef OPENSSL_NO_GMTLS_METHOD
+__owur int gmtls_construct_server_certificate(SSL *s);
+__owur int gmtls_construct_server_key_exchange(SSL *s);
+__owur int gmtls_construct_client_certificate(SSL *s);
+__owur int gmtls_construct_client_key_exchange(SSL *s);
+__owur MSG_PROCESS_RETURN gmtls_process_server_certificate(SSL *s, PACKET *pkt);
+__owur MSG_PROCESS_RETURN gmtls_process_server_key_exchange(SSL *s, PACKET *pkt);
+__owur MSG_PROCESS_RETURN gmtls_process_client_certificate(SSL *s, PACKET *pkt);
+__owur MSG_PROCESS_RETURN gmtls_process_client_key_exchange(SSL *s, PACKET *pkt);
+#endif

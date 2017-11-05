@@ -49,9 +49,10 @@
 #ifndef HEADER_BASE58_H
 #define HEADER_BASE58_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <openssl/opensslconf.h>
+#ifndef OPENSSL_NO_BASE58
+
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,7 +78,8 @@ int ERR_load_BASE58_strings(void);
 /* Reason codes. */
 # define BASE58_R_HIGHBIT_SET_ON_INVALID_DIGIT            100
 
-# ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
+#  endif
 # endif
 #endif

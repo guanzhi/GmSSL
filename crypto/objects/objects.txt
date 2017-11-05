@@ -353,6 +353,10 @@ pkcs12-pbeids 5		: PBE-SHA1-RC2-128	: pbeWithSHA1And128BitRC2-CBC
 !Cname pbe-WithSHA1And40BitRC2-CBC
 pkcs12-pbeids 6		: PBE-SHA1-RC2-40	: pbeWithSHA1And40BitRC2-CBC
 
+# GmSSL Append
+!Cname pbe-WithSM3AndSMS4-CBC
+pkcs12-pbeids 100	: PBE-SM3-SMS4		: pbeWithSM3AndSMS4-CBC
+
 !Alias pkcs12-Version1 pkcs12 10
 !Alias pkcs12-BagIds pkcs12-Version1 1
 pkcs12-BagIds 1		:			: keyBag
@@ -1477,6 +1481,10 @@ id-pkinit 5                     : pkInitKDC             : Signing KDC Response
                             : KxSRP        : kx-srp
                             : KxGOST       : kx-gost
                             : KxSM2        : kx-sm2
+                            : KxSM2DHE     : kx-sm2dhe
+                            : KxSM2-PSK    : kx-sm2-psk
+                            : KxSM9        : kx-sm9
+                            : KxSM9DHE     : kx-sm9dhe
 
 # NIDs for cipher authentication
                             : AuthRSA      : auth-rsa
@@ -1488,6 +1496,7 @@ id-pkinit 5                     : pkInitKDC             : Signing KDC Response
                             : AuthSRP      : auth-srp
                             : AuthNULL     : auth-null
                             : AuthSM2      : auth-sm2
+                            : AuthSM9      : auth-sm9
 
 # GmSSL SECG ECIES OID
 secg-scheme 7		: ecies-recommendedParameters
@@ -1624,6 +1633,8 @@ sm-scheme 522		: SM2Sign-with-Blake2s256 : sm2sign-with-blake2s256
 
 # GmSSL ZUC OID
 sm-scheme 800		: ZUC			: zuc
+zuc 1			: zuc-128eea3
+zuc 2			: zuc-128eia3
 
 # IBCS1
 !Alias ibcs1 ISO-US 1 114334 1

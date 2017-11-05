@@ -288,6 +288,10 @@ static int state_machine(SSL *s, int server)
                 SSLerr(SSL_F_STATE_MACHINE, ERR_R_INTERNAL_ERROR);
                 goto end;
             }
+#ifndef OPENSSL_NO_GMTLS_METHOD
+        } else if (s->version == GMTLS_VERSION) {
+            /* do nothing */
+#endif
         } else {
             if ((s->version >> 8) != SSL3_VERSION_MAJOR) {
                 SSLerr(SSL_F_STATE_MACHINE, ERR_R_INTERNAL_ERROR);

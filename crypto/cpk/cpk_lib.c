@@ -59,7 +59,6 @@
 #include <openssl/ecdsa.h>
 #include <openssl/objects.h>
 #include <openssl/cpk.h>
-#include "../dsa/dsa_locl.h"
 #include "../x509/x509_lcl.h"
 #include "cpk_lcl.h"
 
@@ -95,12 +94,7 @@ CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id,
 	}
 
 	pkey_type = EVP_PKEY_id(pkey);
-	if (pkey_type == EVP_PKEY_DSA) {
-		if (!(order = ((DSA *)EVP_PKEY_get0(pkey))->q)) {
-			CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, CPK_R_BAD_ARGUMENT);
-			goto err;
-		}
-	} else if (pkey_type == EVP_PKEY_EC) {
+	if (pkey_type == EVP_PKEY_EC) {
 		const EC_GROUP *ec_group;
 		if (!(order = BN_new())) {
 			CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, ERR_R_MALLOC_FAILURE);

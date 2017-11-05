@@ -17,12 +17,20 @@
 #include <string.h>
 
 #include <openssl/engine.h>
-#include <openssl/sha.h>
-#include <openssl/md5.h>
-#include <openssl/rsa.h>
+#ifndef OPENSSL_NO_SHA
+# include <openssl/sha.h>
+#endif
+#ifndef OPENSSL_NO_MD5
+# include <openssl/md5.h>
+#endif
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
 #include <openssl/evp.h>
 #include <openssl/modes.h>
+#ifndef OPENSSL_NO_AES
 #include <openssl/aes.h>
+#endif
 #include <openssl/crypto.h>
 
 #define OSSLTEST_LIB_NAME "OSSLTEST"
@@ -226,11 +234,14 @@ static int ossltest_ciphers(ENGINE *, const EVP_CIPHER **,
                             const int **, int);
 
 static int ossltest_cipher_nids[] = {
-    NID_aes_128_cbc, 0
+#ifndef OPENSSL_NO_AES
+    NID_aes_128_cbc,
+#endif
+    0
 };
 
+#ifndef OPENSSL_NO_AES
 /* AES128 */
-
 int ossltest_aes128_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                              const unsigned char *iv, int enc);
 int ossltest_aes128_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
@@ -258,10 +269,14 @@ static const EVP_CIPHER *ossltest_aes_128_cbc(void)
     }
     return _hidden_aes_128_cbc;
 }
+#endif
+
 static void destroy_ciphers(void)
 {
+#ifndef OPENSSL_NO_AES
     EVP_CIPHER_meth_free(_hidden_aes_128_cbc);
     _hidden_aes_128_cbc = NULL;
+#endif
 }
 
 static int bind_ossltest(ENGINE *e)
@@ -386,9 +401,11 @@ static int ossltest_ciphers(ENGINE *e, const EVP_CIPHER **cipher,
     }
     /* We are being asked for a specific cipher */
     switch (nid) {
+#ifndef OPENSSL_NO_AES
     case NID_aes_128_cbc:
         *cipher = ossltest_aes_128_cbc();
         break;
+#endif
     default:
         ok = 0;
         *cipher = NULL;
@@ -537,7 +554,7 @@ static int digest_sha512_final(EVP_MD_CTX *ctx, unsigned char *md)
 /*
  * AES128 Implementation
  */
-
+#ifndef OPENSSL_NO_AES
 int ossltest_aes128_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                              const unsigned char *iv, int enc)
 {
@@ -566,3 +583,4 @@ int ossltest_aes128_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
     return ret;
 }
+#endif

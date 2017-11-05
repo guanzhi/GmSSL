@@ -30,7 +30,7 @@
 #include <openssl/ecies.h>
 #endif
 
-#include "e_os.h"
+#include "../../e_os.h"
 
 #if defined(__SUNPRO_C)
 # if __SUNPRO_C >= 0x520

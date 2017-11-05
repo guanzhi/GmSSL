@@ -57,7 +57,7 @@ X509 *X509_REQ_to_X509(X509_REQ *r, int days, EVP_PKEY *pkey)
     if (pubkey == NULL || !X509_set_pubkey(ret, pubkey))
         goto err;
 
-    if (!X509_sign(ret, pkey, EVP_md5()))
+    if (!X509_sign(ret, pkey, EVP_get_default_digest()))
         goto err;
     return ret;
 
