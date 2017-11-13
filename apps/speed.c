@@ -22,12 +22,12 @@
  */
 
 #undef SECONDS
-#define SECONDS                 3
-#define PRIME_SECONDS   10
+#define SECONDS                  3
+#define PRIME_SECONDS           10
 #define RSA_SECONDS             10
 #define DSA_SECONDS             10
-#define ECDSA_SECONDS   10
-#define ECDH_SECONDS    10
+#define ECDSA_SECONDS           10
+#define ECDH_SECONDS            10
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +70,9 @@
 #ifndef OPENSSL_NO_MD5
 # include <openssl/md5.h>
 #endif
+#ifndef OPENSSL_NO_SM3
+# include <openssl/sm3.h>
+#endif
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #ifndef OPENSSL_NO_RMD160
@@ -93,6 +96,9 @@
 #ifndef OPENSSL_NO_SEED
 # include <openssl/seed.h>
 #endif
+#ifndef OPENSSL_NO_SMS4
+# include <openssl/sms4.h>
+#endif
 #ifndef OPENSSL_NO_BF
 # include <openssl/blowfish.h>
 #endif
@@ -110,6 +116,9 @@
 #endif
 #ifndef OPENSSL_NO_EC
 # include <openssl/ec.h>
+#endif
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
 #endif
 #include <openssl/modes.h>
 
@@ -131,13 +140,14 @@
 #define BUFSIZE (1024*16+1)
 #define MAX_MISALIGNMENT 63
 
-#define ALGOR_NUM       30
+#define ALGOR_NUM       32
 #define SIZE_NUM        6
 #define PRIME_NUM       3
 #define RSA_NUM         7
 #define DSA_NUM         3
 
-#define EC_NUM          17
+#define EC_NUM          18
+#define SM2_NUM         1
 #define MAX_ECDH_SIZE   256
 #define MISALIGN        64
 
@@ -172,6 +182,9 @@ typedef struct loopargs_st {
     size_t      outlen;
     kdf_fn      kdf;
 #endif
+#ifndef OPENSSL_NO_SM2
+    EC_KEY *sm2[SM2_NUM];
+#endif
     EVP_CIPHER_CTX *ctx;
     HMAC_CTX *hctx;
     GCM128_CONTEXT *gcm_ctx;
@@ -190,6 +203,9 @@ static int EVP_Digest_MD4_loop(void *args);
 #ifndef OPENSSL_NO_MD5
 static int MD5_loop(void *args);
 static int HMAC_loop(void *args);
+#endif
+#ifndef OPENSSL_NO_SM3
+static int SM3_loop(void *args);
 #endif
 static int SHA1_loop(void *args);
 static int SHA256_loop(void *args);
@@ -231,6 +247,12 @@ static int ECDSA_sign_loop(void *args);
 static int ECDSA_verify_loop(void *args);
 static int ECDH_compute_key_loop(void *args);
 #endif
+#ifndef OPENSSL_NO_SM2
+static int SM2_sign_loop(void *args);
+static int SM2_verify_loop(void *args);
+static int SM2_encrypt_loop(void *args);
+static int SM2_decrypt_loop(void *args);
+#endif
 static int run_benchmark(int async_jobs, int (*loop_function)(void *), loopargs_t *loopargs);
 
 static double Time_F(int s);
@@ -249,7 +271,7 @@ static const char *names[ALGOR_NUM] = {
     "aes-128 cbc", "aes-192 cbc", "aes-256 cbc",
     "camellia-128 cbc", "camellia-192 cbc", "camellia-256 cbc",
     "evp", "sha256", "sha512", "whirlpool",
-    "aes-128 ige", "aes-192 ige", "aes-256 ige", "ghash"
+    "aes-128 ige", "aes-192 ige", "aes-256 ige", "ghash", "sm3", "sms4 cbc"
 };
 
 static double results[ALGOR_NUM][SIZE_NUM];
@@ -267,6 +289,10 @@ static double dsa_results[DSA_NUM][2];
 #ifndef OPENSSL_NO_EC
 static double ecdsa_results[EC_NUM][2];
 static double ecdh_results[EC_NUM][1];
+#endif
+#ifndef OPENSSL_NO_SM2
+static double sm2sign_results[SM2_NUM][2];
+static double sm2enc_results[SM2_NUM][2];
 #endif
 
 #if !defined(OPENSSL_NO_DSA) || !defined(OPENSSL_NO_EC)
@@ -423,6 +449,8 @@ OPTIONS speed_options[] = {
 #define D_IGE_192_AES   27
 #define D_IGE_256_AES   28
 #define D_GHASH         29
+#define D_SM3           30
+#define D_CBC_SMS4      31
 static OPT_PAIR doit_choices[] = {
 #ifndef OPENSSL_NO_MD2
     {"md2", D_MD2},
@@ -481,6 +509,10 @@ static OPT_PAIR doit_choices[] = {
     {"seed-cbc", D_CBC_SEED},
     {"seed", D_CBC_SEED},
 #endif
+#ifndef OPENSSL_NO_SMS4
+    {"sms4-cbc", D_CBC_SMS4},
+    {"sms4", D_CBC_SMS4},
+#endif
 #ifndef OPENSSL_NO_BF
     {"bf-cbc", D_CBC_BF},
     {"blowfish", D_CBC_BF},
@@ -492,6 +524,9 @@ static OPT_PAIR doit_choices[] = {
     {"cast5", D_CBC_CAST},
 #endif
     {"ghash", D_GHASH},
+#ifndef OPENSSL_NO_SM3
+    {"sm3", D_SM3},
+#endif
     {NULL}
 };
 
@@ -544,6 +579,7 @@ static OPT_PAIR rsa_choices[] = {
 #define R_EC_B409    14
 #define R_EC_B571    15
 #define R_EC_X25519  16
+#define R_EC_PSM2    17
 #ifndef OPENSSL_NO_EC
 static OPT_PAIR ecdsa_choices[] = {
     {"ecdsap160", R_EC_P160},
@@ -562,6 +598,7 @@ static OPT_PAIR ecdsa_choices[] = {
     {"ecdsab283", R_EC_B283},
     {"ecdsab409", R_EC_B409},
     {"ecdsab571", R_EC_B571},
+    {"ecdsapsm2", R_EC_PSM2},
     {NULL}
 };
 
@@ -582,7 +619,19 @@ static OPT_PAIR ecdh_choices[] = {
     {"ecdhb283", R_EC_B283},
     {"ecdhb409", R_EC_B409},
     {"ecdhb571", R_EC_B571},
+    {"ecdhpsm2", R_EC_PSM2},
     {"ecdhx25519", R_EC_X25519},
+    {NULL}
+};
+#endif
+#ifndef OPENSSL_NO_SM2
+static OPT_PAIR sm2sign_choices[] = {
+    {"sm2sign", R_EC_PSM2},
+    {NULL}
+};
+
+static OPT_PAIR sm2enc_choices[] = {
+    {"sm2enc", R_EC_PSM2},
     {NULL}
 };
 #endif
@@ -676,6 +725,19 @@ static int HMAC_loop(void *args)
         HMAC_Update(hctx, buf, lengths[testnum]);
         HMAC_Final(hctx, hmac, NULL);
     }
+    return count;
+}
+#endif
+
+#ifndef OPENSSL_NO_SM3
+static int SM3_loop(void *args)
+{
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    unsigned char sm3md[SM3_DIGEST_LENGTH];
+    int count;
+    for (count = 0; COND(c[D_SM3][testnum]); count++)
+        sm3(buf, lengths[testnum], sm3md);
     return count;
 }
 #endif
@@ -1008,6 +1070,62 @@ static int DSA_verify_loop(void *args)
 }
 #endif
 
+#ifndef OPENSSL_NO_SM2
+static long sm2sign_c[SM2_NUM][2];
+static int SM2_sign_loop(void *args)
+{
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    EC_KEY **ecdsa = tempargs->ecdsa;
+    unsigned char *ecdsasig = tempargs->buf2;
+    unsigned int *ecdsasiglen = &tempargs->siglen;
+    int ret, count;
+    for (count = 0; COND(sm2sign_c[testnum][0]); count++) {
+        ret = SM2_sign(0, buf, 20,
+                ecdsasig, ecdsasiglen, ecdsa[testnum]);
+        if (ret == 0) {
+            BIO_printf(bio_err, "SM2 sign failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
+}
+
+static int SM2_verify_loop(void *args)
+{
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    EC_KEY **ecdsa = tempargs->ecdsa;
+    unsigned char *ecdsasig = tempargs->buf2;
+    unsigned int ecdsasiglen = tempargs->siglen;
+    int ret, count;
+    for (count = 0; COND(sm2sign_c[testnum][1]); count++) {
+        ret = SM2_verify(0, buf, 20, ecdsasig, ecdsasiglen,
+                ecdsa[testnum]);
+        if (ret != 1) {
+            BIO_printf(bio_err, "SM2 verify failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
+}
+
+static int SM2_encrypt_loop(void *args)
+{
+	return 0;
+}
+
+static int SM2_decrypt_loop(void *args)
+{
+	return 0;
+}
+
+#endif
+
 #ifndef OPENSSL_NO_EC
 static long ecdsa_c[EC_NUM][2];
 static int ECDSA_sign_loop(void *args)
@@ -1080,9 +1198,9 @@ static void *KDF1_SHA1(const void *in, size_t inlen, void *out,
     if (*outlen < SHA_DIGEST_LENGTH)
         return NULL;
     *outlen = SHA_DIGEST_LENGTH;
-#ifndef OPENSSL_NO_SHA									
+# ifndef OPENSSL_NO_SHA									
     return SHA1(in, inlen, out);
-#endif
+# endif
 }
 #endif                          /* OPENSSL_NO_EC */
 
@@ -1271,6 +1389,9 @@ int speed_main(int argc, char **argv)
 #ifndef OPENSSL_NO_SEED
     SEED_KEY_SCHEDULE seed_ks;
 #endif
+#ifndef OPENSSL_NO_SMS4
+    sms4_key_t sms4_ks;
+#endif
 #ifndef OPENSSL_NO_BF
     BF_KEY bf_ks;
 #endif
@@ -1338,6 +1459,16 @@ int speed_main(int argc, char **argv)
     static const unsigned int dsa_bits[DSA_NUM] = { 512, 1024, 2048 };
     int dsa_doit[DSA_NUM] = { 0 };
 #endif
+#ifndef OPENSSL_NO_SM2
+    static const unsigned int test_sm2_curves[SM2_NUM] = {
+        NID_sm2p256v1,
+    };
+    static const char *test_sm2_curves_names[SM2_NUM] = {
+        "sm2p256v1",
+    };
+    int sm2sign_doit[EC_NUM] = { 0 };
+    int sm2enc_doit[EC_NUM] = { 0 };
+#endif
 #ifndef OPENSSL_NO_EC
     /*
      * We only test over the following curves as they are representative, To
@@ -1354,6 +1485,7 @@ int speed_main(int argc, char **argv)
         NID_sect233r1, NID_sect283r1, NID_sect409r1,
         NID_sect571r1,
         /* Other */
+        NID_sm2p256v1,
         NID_X25519
     };
     static const char *test_curves_names[EC_NUM] = {
@@ -1366,6 +1498,7 @@ int speed_main(int argc, char **argv)
         "nistb233", "nistb283", "nistb409",
         "nistb571",
         /* Other */
+        "sm2p256v1",
         "X25519"
     };
     static const int test_curves_bits[EC_NUM] = {
@@ -1374,7 +1507,7 @@ int speed_main(int argc, char **argv)
         163, 233, 283,
         409, 571, 163,
         233, 283, 409,
-        571, 253 /* X25519 */
+        571, 256, 253 /* X25519 */
     };
 
     int ecdsa_doit[EC_NUM] = { 0 };
@@ -1543,6 +1676,28 @@ int speed_main(int argc, char **argv)
             continue;
         }
 #endif
+#ifndef OPENSSL_NO_SM2
+        if (strcmp(*argv, "sm2sign") == 0) {
+            for (i = 0; i < EC_NUM; i++)
+                sm2sign_doit[i] = 1;
+            continue;
+        }
+        if (found(*argv, sm2sign_choices, &i)) {
+            sm2sign_doit[i] = 2;
+            continue;
+        }
+	/*
+        if (strcmp(*argv, "ecdh") == 0) {
+            for (i = 0; i < EC_NUM; i++)
+                ecdh_doit[i] = 1;
+            continue;
+        }
+        if (found(*argv, ecdh_choices, &i)) {
+            ecdh_doit[i] = 2;
+            continue;
+        }
+	*/
+#endif
         BIO_printf(bio_err, "%s: Unknown algorithm %s\n", prog, *argv);
         goto end;
     }
@@ -1578,6 +1733,12 @@ int speed_main(int argc, char **argv)
         loopargs[i].secret_a = app_malloc(MAX_ECDH_SIZE, "ECDH secret a");
         loopargs[i].secret_b = app_malloc(MAX_ECDH_SIZE, "ECDH secret b");
 #endif
+/*
+#ifndef OPENSSL_NO_SM2
+        loopargs[i].secret_a = app_malloc(MAX_ECDH_SIZE, "ECDH secret a");
+        loopargs[i].secret_b = app_malloc(MAX_ECDH_SIZE, "ECDH secret b");
+#endif
+*/
     }
 
 #ifndef NO_FORK
@@ -1606,6 +1767,12 @@ int speed_main(int argc, char **argv)
             ecdsa_doit[i] = 1;
         for (i = 0; i < EC_NUM; i++)
             ecdh_doit[i] = 1;
+#endif
+#ifndef OPENSSL_NO_SM2
+        for (i = 0; i < SM2_NUM; i++)
+            sm2sign_doit[i] = 1;
+        for (i = 0; i < SM2_NUM; i++)
+            sm2enc_doit[i] = 1;
 #endif
     }
     for (i = 0; i < ALGOR_NUM; i++)
@@ -1659,6 +1826,9 @@ int speed_main(int argc, char **argv)
 #endif
 #ifndef OPENSSL_NO_SEED
     SEED_set_key(key16, &seed_ks);
+#endif
+#ifndef OPENSSL_NO_SMS4
+    sms4_set_encrypt_key(&sms4_ks, key16);
 #endif
 #ifndef OPENSSL_NO_RC4
     RC4_set_key(&rc4_ks, 16, key16);
@@ -1718,6 +1888,8 @@ int speed_main(int argc, char **argv)
     c[D_IGE_192_AES][0] = count;
     c[D_IGE_256_AES][0] = count;
     c[D_GHASH][0] = count;
+    c[D_SM3][0] = count;
+    c[D_CBC_SMS4][0] = count;
 
     for (i = 1; i < SIZE_NUM; i++) {
         long l0, l1;
@@ -1736,6 +1908,7 @@ int speed_main(int argc, char **argv)
         c[D_SHA512][i] = c[D_SHA512][0] * 4 * l0 / l1;
         c[D_WHIRLPOOL][i] = c[D_WHIRLPOOL][0] * 4 * l0 / l1;
         c[D_GHASH][i] = c[D_GHASH][0] * 4 * l0 / l1;
+        c[D_SM3][i] = c[D_SM3][0] * 4 * l0 / l1;
 
         l0 = (long)lengths[i - 1];
 
@@ -1757,6 +1930,7 @@ int speed_main(int argc, char **argv)
         c[D_IGE_128_AES][i] = c[D_IGE_128_AES][i - 1] * l0 / l1;
         c[D_IGE_192_AES][i] = c[D_IGE_192_AES][i - 1] * l0 / l1;
         c[D_IGE_256_AES][i] = c[D_IGE_256_AES][i - 1] * l0 / l1;
+        c[D_CBC_SMS4][i] = c[D_CBC_SMS4][i - 1] * l0 / l1;
     }
 
 #  ifndef OPENSSL_NO_RSA
@@ -1950,6 +2124,17 @@ int speed_main(int argc, char **argv)
         }
         for (i = 0; i < loopargs_len; i++) {
             HMAC_CTX_free(loopargs[i].hctx);
+        }
+    }
+#endif
+#ifndef OPENSSL_NO_SM3
+    if (doit[D_SM3]) {
+        for (testnum = 0; testnum < SIZE_NUM; testnum++) {
+            print_message(names[D_SM3], c[D_SM3][testnum], lengths[testnum]);
+            Time_F(START);
+            count = run_benchmark(async_jobs, SM3_loop, loopargs);
+            d = Time_F(STOP);
+            print_result(D_SM3, testnum, count, d);
         }
     }
 #endif
@@ -2213,6 +2398,24 @@ int speed_main(int argc, char **argv)
                                  (size_t)lengths[testnum], &seed_ks, iv, 1);
             d = Time_F(STOP);
             print_result(D_CBC_SEED, testnum, count, d);
+        }
+    }
+#endif
+#ifndef OPENSSL_NO_SMS4
+    if (doit[D_CBC_SMS4]) {
+        if (async_jobs > 0) {
+            BIO_printf(bio_err, "Async mode is not supported with %s\n",
+                       names[D_CBC_SMS4]);
+            doit[D_CBC_SMS4] = 0;
+        }
+        for (testnum = 0; testnum < SIZE_NUM && async_init == 0; testnum++) {
+            print_message(names[D_CBC_SMS4], c[D_CBC_SMS4][testnum], lengths[testnum]);
+            Time_F(START);
+            for (count = 0, run = 1; COND(c[D_CBC_SMS4][testnum]); count++)
+                sms4_cbc_encrypt(loopargs[0].buf, loopargs[0].buf,
+                                 (size_t)lengths[testnum], &sms4_ks, iv, 1);
+            d = Time_F(STOP);
+            print_result(D_CBC_SMS4, testnum, count, d);
         }
     }
 #endif
@@ -2833,6 +3036,11 @@ int speed_main(int argc, char **argv)
         }
         OPENSSL_free(loopargs[i].secret_a);
         OPENSSL_free(loopargs[i].secret_b);
+#endif
+#ifndef OPENSSL_NO_SM2
+        for (k = 0; k < SM2_NUM; k++) {
+            EC_KEY_free(loopargs[i].sm2[k]);
+        }
 #endif
     }
 

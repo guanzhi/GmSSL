@@ -15,6 +15,13 @@ GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM
 
 The secret algorithm is the abbreviation of the national commercial cryptographic algorithm. Since 2012, the National Password Authority to the "People's Republic of China password industry standard" approach, have announced the SM2 / SM3 / SM4 and other cryptographic algorithm standards and application specifications. Which "SM" on behalf of "business secret", that is used for commercial, not involving state secrets of the password technology. SM2 is a public key cryptography algorithm based on elliptic curve cryptography, including digital signature, key exchange and public key encryption. It is used to replace international algorithms such as RSA / Diffie-Hellman / ECDSA / ECDH. SM3 is password hash algorithm, SM4 is a block cipher used to replace DES / AES and other international algorithms. SM9 is an identity-based cryptographic algorithm that can replace PKI / CA based on digital certificate. By deploying the secret algorithm, you can reduce the security risks caused by weak passwords and bug implementations and the overhead of deploying PKI / CA.
 
+## 2.0 New Features
+
+ * Based on OpenSSL 1.1.x
+ * SM2 signature generation with Z values
+ * Frameworks and engines to support SKF/SDF HSMs
+ * TLS with SM2/SM3/SMS4 cipher suites
+
 ## Quick Start
 
 Quick Start Guide describes the basic instructions for compiling, installing, and `gmssl` command line tools for GmSSL.

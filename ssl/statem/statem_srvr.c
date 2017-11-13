@@ -640,14 +640,20 @@ int ossl_statem_server_construct_message(SSL *s)
         return tls_construct_server_hello(s);
 
     case TLS_ST_SW_CERT:
-        return SSL_IS_GMTLS(s) ?
-		tls_construct_server_certificate(s)
-		: tls_construct_server_certificate(s);
+#ifndef OPENSSL_NO_GMTLS
+        if (SSL_IS_GMTLS(s))
+            return tls_construct_server_certificate(s)
+        else
+#endif
+            return tls_construct_server_certificate(s);
 
     case TLS_ST_SW_KEY_EXCH:
-        return (s->version == GMTLS_VERSION) ?
-		gmtls_construct_server_key_exchange(s)
-		: tls_construct_server_key_exchange(s);
+#ifndef OPENSSL_NO_GMTLS
+        if (SSL_IS_GMTLS(s))
+            return gmtls_construct_server_key_exchange(s)
+        else
+#endif
+            return tls_construct_server_key_exchange(s);
 
     case TLS_ST_SW_CERT_REQ:
         return tls_construct_certificate_request(s);
@@ -754,15 +760,19 @@ MSG_PROCESS_RETURN ossl_statem_server_process_message(SSL *s, PACKET *pkt)
         return tls_process_client_hello(s, pkt);
 
     case TLS_ST_SR_CERT:
+#ifndef OPENSSL_NO_GMTLS_METHOD
         if (SSL_IS_GMTLS(s))
             return tls_process_client_certificate(s, pkt);
         else
+#endif
 	    return tls_process_client_certificate(s, pkt);
 
     case TLS_ST_SR_KEY_EXCH:
+#ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_process_client_key_exchange(s, pkt);
         else
+#endif
 	    return tls_process_client_key_exchange(s, pkt);
 
     case TLS_ST_SR_CERT_VRFY:

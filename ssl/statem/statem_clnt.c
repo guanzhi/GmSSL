@@ -64,7 +64,7 @@
 #ifndef OPENSSL_NO_ENGINE
 # include <openssl/engine.h>
 #endif
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
 # include <openssl/sm2.h>
 #endif
 
@@ -534,15 +534,19 @@ int ossl_statem_client_construct_message(SSL *s)
         return tls_construct_client_hello(s);
 
     case TLS_ST_CW_CERT:
+#ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_construct_client_certificate(s);
         else
+#endif
             return tls_construct_client_certificate(s);
 
     case TLS_ST_CW_KEY_EXCH:
+#ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_construct_client_key_exchange(s);
         else
+#endif
             return tls_construct_client_key_exchange(s);
 
     case TLS_ST_CW_CERT_VRFY:
@@ -642,18 +646,22 @@ MSG_PROCESS_RETURN ossl_statem_client_process_message(SSL *s, PACKET *pkt)
         return dtls_process_hello_verify(s, pkt);
 
     case TLS_ST_CR_CERT:
+#ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return tls_process_server_certificate(s, pkt);
         else
+#endif
             return tls_process_server_certificate(s, pkt);
 
     case TLS_ST_CR_CERT_STATUS:
         return tls_process_cert_status(s, pkt);
 
     case TLS_ST_CR_KEY_EXCH:
+#ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_process_server_key_exchange(s, pkt);
         else
+#endif
             return tls_process_server_key_exchange(s, pkt);
 
     case TLS_ST_CR_CERT_REQ:

@@ -441,6 +441,7 @@ my @disablables = (
     "base58",
     "java",
     "ca",
+    "gmtls",
     );
 foreach my $proto ((@tls, @dtls))
 	{
@@ -478,6 +479,9 @@ our %disabled = ( # "what"         => "comment"
 		  "zlib"                => "default",
 		  "zlib-dynamic"        => "default",
 		  "zuc"                 => "default",
+		  "skfeng"              => "default",
+		  "sdfeng"              => "default",
+		  "gmtls"               => "default",
 		  #"engine"              => "default",
 		  #"sm9"                 => "default",
                   #"bfibe"               => "default",

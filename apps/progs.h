@@ -262,6 +262,9 @@ static FUNCTION functions[] = {
     { FT_md, "blake2s256", dgst_main},
 #endif
 #ifndef OPENSSL_NO_SMS4
+    { FT_cipher, "sms4", enc_main, enc_options },
+#endif
+#ifndef OPENSSL_NO_SMS4
     { FT_cipher, "sms4-cbc", enc_main, enc_options },
 #endif
 #ifndef OPENSSL_NO_SMS4

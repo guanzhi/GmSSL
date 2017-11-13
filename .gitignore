@@ -18,6 +18,9 @@
 # *all* Makefiles
 Makefile
 
+# Java
+/java/*.class
+
 # Links under apps
 /apps/CA.pl
 /apps/tsget
@@ -177,5 +180,13 @@ crypto/opensslconf.h
 tool/c_rehash
 # exec file
 apps/gmssl
+
+# gmtls
+/ssl/statem/statem_gmtls*
+
+# engines
+/engines/e_skf*
+/engines/e_sdf*
+/engines/e_gmi*
 
 include/openssl/srp.h

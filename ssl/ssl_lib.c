@@ -2636,7 +2636,7 @@ void ssl_set_masks(SSL *s)
     int have_ecc_cert, ecdsa_ok;
     X509 *x = NULL;
 #endif
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
     int have_sm2_cert, sm2sign_ok;
 #endif
     if (c == NULL)
@@ -2654,7 +2654,7 @@ void ssl_set_masks(SSL *s)
 #ifndef OPENSSL_NO_EC
     have_ecc_cert = pvalid[SSL_PKEY_ECC] & CERT_PKEY_VALID;
 #endif
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
     have_sm2_cert = pvalid[SSL_PKEY_SM2_SIGN] & CERT_PKEY_VALID;
 #endif
     mask_k = 0;
@@ -2716,7 +2716,7 @@ void ssl_set_masks(SSL *s)
             mask_a |= SSL_aECDSA;
     }
 #endif
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_SM2
     if (have_sm2_cert) {
         uint32_t ex_kusage;
         cpk = &c->pkeys[SSL_PKEY_SM2_SIGN];
@@ -2734,7 +2734,7 @@ void ssl_set_masks(SSL *s)
 #ifndef OPENSSL_NO_EC
     mask_k |= SSL_kECDHE;
 #endif
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
     mask_k |= SSL_kSM2;
     mask_k |= SSL_kSM2DHE;
 #endif
@@ -2748,7 +2748,7 @@ void ssl_set_masks(SSL *s)
         mask_k |= SSL_kDHEPSK;
     if (mask_k & SSL_kECDHE)
         mask_k |= SSL_kECDHEPSK;
-# ifndef OPENSSL_NO_GMTLS_METHOD
+# ifndef OPENSSL_NO_SM2
     if (mask_k & SSL_kSM2DHE)
         mask_k |= SSL_kSM2PSK;
 # endif
@@ -2828,7 +2828,7 @@ CERT_PKEY *ssl_get_server_send_pkey(SSL *s)
     return &c->pkeys[i];
 }
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
 CERT_PKEY *ssl_get_server_send_pkey_ex(SSL *s)
 {
     CERT *c;
@@ -2874,7 +2874,7 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
     } else if ((alg_a & SSL_aECDSA) &&
                (c->pkeys[SSL_PKEY_ECC].privatekey != NULL))
         idx = SSL_PKEY_ECC;
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS_SM2
     else if ((alg_a & SSL_aSM2) &&
               (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey != NULL))
         idx = SSL_PKEY_SM2_SIGN;
