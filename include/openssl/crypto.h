@@ -166,7 +166,6 @@ const char *OpenSSL_version(int type);
 # define OPENSSL_PLATFORM         3
 # define OPENSSL_DIR              4
 # define OPENSSL_ENGINES_DIR      5
-char *GmSSL_version(void);
 
 int OPENSSL_issetugid(void);
 

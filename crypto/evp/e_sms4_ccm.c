@@ -312,7 +312,7 @@ static int sms4_ccm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     }
 }
 
-#define SMS4_CCM_BLOCK_SIZE	1
+#define SMS4_CCM_BLOCK_SIZE	16
 #define SMS4_CCM_IV_LENGTH	12
 
 #define SMS4_CCM_FLAGS (EVP_CIPH_FLAG_DEFAULT_ASN1 \
@@ -335,6 +335,7 @@ static const EVP_CIPHER sms4_ccm = {
 };
 
 const EVP_CIPHER *EVP_sms4_ccm(void) {
+	return NULL;
 	return &sms4_ccm;
 }
 #endif /* OPENSSL_NO_SMS4 */

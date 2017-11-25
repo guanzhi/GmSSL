@@ -561,7 +561,7 @@ static ERR_STRING_DATA sof_errstr[] = {
 	{ SOR_LoadProviderErr,	"Load provider error" },
 };
 
-char *SOF_GetErrorString(int err)
+const char *SOF_GetErrorString(int err)
 {
 	int i;
 	for (i = 0; i < OSSL_NELEM(sof_errstr); i++) {

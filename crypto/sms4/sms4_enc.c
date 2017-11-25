@@ -47,6 +47,7 @@
  * ====================================================================
  */
 
+#include <stdio.h>
 #include <openssl/sms4.h>
 #include "sms4_lcl.h"
 

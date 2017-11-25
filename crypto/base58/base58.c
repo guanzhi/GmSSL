@@ -204,7 +204,6 @@ int base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz)
 	b58[i] = '\0';
 	*b58sz = i + 1;
 
-end:
 	OPENSSL_free(buf);
 	return 1;
 }

@@ -80,7 +80,7 @@
 extern "C" {
 #endif
 
-
+const char *SOF_GetErrorString(int err);
 
 /* BEGIN ERROR CODES */
 /*

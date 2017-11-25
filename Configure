@@ -301,7 +301,7 @@ my $default_ranlib;
 $config{fips}=0;
 
 # Top level directories to build
-$config{dirs} = [ "crypto", "ssl", "engines", "apps", "util", "tools", "fuzz", "java" ];
+$config{dirs} = [ "crypto", "ssl", "engines", "apps", "util", "tools", "fuzz" ];
 # crypto/ subdirectories to build
 $config{sdirs} = [
     "objects",
@@ -481,8 +481,8 @@ our %disabled = ( # "what"         => "comment"
 		  "zuc"                 => "default",
 		  "skfeng"              => "default",
 		  "sdfeng"              => "default",
+		  "gmieng"              => "default",
 		  "gmtls"               => "default",
-		  "java"               => "default",
 		  #"engine"              => "default",
 		  #"sm9"                 => "default",
                   #"bfibe"               => "default",

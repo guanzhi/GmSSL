@@ -1532,7 +1532,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_deriveKey(
 	int ecdh_kdf_type;
 	int ecdh_kdf_md;
 	int ecdh_kdf_outlen;
-	unsigned char *ecdh_kdf_ukm;
+	char *ecdh_kdf_ukm;
 	int ecdh_kdf_ukm_len;
 
 

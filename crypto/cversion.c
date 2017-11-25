@@ -63,34 +63,3 @@ const char *OpenSSL_version(int t)
     }
     return ("not available");
 }
-
-char *GmSSL_version(void)
-{
-	char *ret = NULL;
-	int len = 0;
-
-	/*
-	// use BIO_snprintf, not snprintf, VC does not support this!!
-	len = snprintf(NULL, 0, "%s\n%s\n%s\n%s\n%s\n%s\n",
-		OpenSSL_version(0),
-		OpenSSL_version(1),
-		OpenSSL_version(2),
-		OpenSSL_version(3),
-		OpenSSL_version(4),
-		OpenSSL_version(5));
-
-	if (!(ret = OPENSSL_malloc(len))) {
-		return NULL;
-	}
-
-	snprintf(ret, len, "%s\n%s\n%s\n%s\n%s\n%s\n",
-		OpenSSL_version(0),
-		OpenSSL_version(1),
-		OpenSSL_version(2),
-		OpenSSL_version(3),
-		OpenSSL_version(4),
-		OpenSSL_version(5));
-	*/
-
-	return ret;
-}

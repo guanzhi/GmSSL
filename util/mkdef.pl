@@ -24,7 +24,7 @@
 #	existence:platform:kind:algorithms
 #
 # - "existence" can be "EXIST" or "NOEXIST" depending on if the symbol is
-#   found somewhere in the source, 
+#   found somewhere in the source,
 # - "platforms" is empty if it exists on all platforms, otherwise it contains
 #   comma-separated list of the platform, just as they are if the symbol exists
 #   for those platforms, or prepended with a "!" if not.  This helps resolve
