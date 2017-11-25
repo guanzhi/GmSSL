@@ -84,7 +84,6 @@ SSL3_ENC_METHOD const TLSv1_2_enc_data = {
     ssl3_handshake_write
 };
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
 SSL3_ENC_METHOD const GMTLS_enc_data = {
     tls1_enc,
     tls1_mac,
@@ -102,7 +101,6 @@ SSL3_ENC_METHOD const GMTLS_enc_data = {
     ssl3_set_handshake_header,
     ssl3_handshake_write
 };
-#endif
 
 long tls1_default_timeout(void)
 {
@@ -179,9 +177,7 @@ static const tls_curve_info nid_list[] = {
     {NID_brainpoolP384r1, 192, TLS_CURVE_PRIME}, /* brainpoolP384r1 (27) */
     {NID_brainpoolP512r1, 256, TLS_CURVE_PRIME}, /* brainpool512r1 (28) */
     {NID_X25519, 128, TLS_CURVE_CUSTOM}, /* X25519 (29) */
-#ifndef OPENSSL_NO_GMTLS
     {NID_sm2p256v1, 128, TLS_CURVE_PRIME}, /* sm2p256v1 (30) */
-#endif
 };
 
 static const unsigned char ecformats_default[] = {
@@ -192,9 +188,7 @@ static const unsigned char ecformats_default[] = {
 
 /* The default curves */
 static const unsigned char eccurves_default[] = {
-#ifndef OPENSSL_NO_GMTLS
-    0, 30,                      /* sm2p256v1 (30) */
-#endif
+    0, 30,                      /* sm2p256v1 (30) */			
     0, 29,                      /* X25519 (29) */
     0, 23,                      /* secp256r1 (23) */
     0, 25,                      /* secp521r1 (25) */
@@ -345,8 +339,8 @@ int tls1_shared_curve(SSL *s, int nmatch)
     size_t num_pref, num_supp, i, j;
     int k;
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    if (s->method->version == GMTLS_VERSION)
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s))
         return NID_sm2p256v1;
 #endif
 
@@ -3005,13 +2999,8 @@ int tls_check_serverhello_tlsext_early(SSL *s, const PACKET *ext,
      * If tickets disabled behave as if no ticket present to permit stateful
      * resumption.
      */
-#ifndef OPENSSL_NO_GMTLS_METHOD
     if ((s->version <= SSL3_VERSION) && (s->version != GMTLS_VERSION))
         return 0;
-#else
-    if ((s->version <= SSL3_VERSION))
-        return 0;
-#endif
 
     if (!PACKET_get_net_2(&local_ext, &i)) {
         retv = 0;

@@ -482,6 +482,7 @@ our %disabled = ( # "what"         => "comment"
 		  "skfeng"              => "default",
 		  "sdfeng"              => "default",
 		  "gmtls"               => "default",
+		  "java"               => "default",
 		  #"engine"              => "default",
 		  #"sm9"                 => "default",
                   #"bfibe"               => "default",

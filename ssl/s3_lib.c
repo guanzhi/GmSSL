@@ -285,7 +285,9 @@ static SSL_CIPHER ssl3_ciphers[] = {
      128,
      128,
      },
+#endif /* OPENSSL_NO_GMTLS */
 
+#ifndef OPENSSL_NO_SM2
     /* ECDHE-SM2-[SM1|SMS4|SSF33]-[SM3|SHA256] */
     {
      1,
@@ -377,8 +379,8 @@ static SSL_CIPHER ssl3_ciphers[] = {
      128,
      128,
      },
+#endif /* OPENSSL_NO_SM2 */
 
-#endif /* OPENSSL_NO_GMTLS */
 #ifndef OPENSSL_NO_WEAK_SSL_CIPHERS
     {
      1,
@@ -3934,11 +3936,11 @@ const SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
         /* with PSK there must be server callback set */
         if ((alg_k & SSL_PSK) && s->psk_server_callback == NULL)
             continue;
-#endif                          /* OPENSSL_NO_PSK */
+#endif /* OPENSSL_NO_PSK */
 
         ok = (alg_k & mask_k) && (alg_a & mask_a);
 #ifdef CIPHER_DEBUG
-        fprintf(stderr, "%d:[%08lX:%08lX:%08lX:%08lX]%p:%s\n", ok, alg_k,
+        fprintf(stderr, "%d:[alg_k=%08lX:alg_a=%08lX:mask_k=%08lX:mask_a=%08lX]%p:%s\n", ok, alg_k,
                 alg_a, mask_k, mask_a, (void *)c, c->name);
 #endif
 

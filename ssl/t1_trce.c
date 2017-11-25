@@ -61,12 +61,10 @@ static ssl_trace_tbl ssl_version_tbl[] = {
     {TLS1_VERSION, "TLS 1.0"},
     {TLS1_1_VERSION, "TLS 1.1"},
     {TLS1_2_VERSION, "TLS 1.2"},
-#ifndef OPENSSL_NO_GMTLS_VERSION
-    {GMTLS_VERSION, "GMTLS 1.1"},
-#endif
     {DTLS1_VERSION, "DTLS 1.0"},
     {DTLS1_2_VERSION, "DTLS 1.2"},
-    {DTLS1_BAD_VER, "DTLS 1.0 (bad)"}
+    {DTLS1_BAD_VER, "DTLS 1.0 (bad)"},
+    {GMTLS_VERSION, "GMTLS 1.1"}
 };
 
 static ssl_trace_tbl ssl_content_tbl[] = {
@@ -425,8 +423,7 @@ static ssl_trace_tbl ssl_ciphers_tbl[] = {
     {0xCCAC, "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305"},
     {0xCCAD, "TLS_DHE_PSK_WITH_CHACHA20_POLY1305"},
     {0xCCAE, "TLS_RSA_PSK_WITH_CHACHA20_POLY1305"},
-#ifndef OPENSSL_NO_GMTLS_METHOD
-# if 1 /* GM/T 0024 official names */
+# if 0 /* GM/T 0024 official names */
     {0xE001, "GMT_ECDHE_SM1_SM3"},
     {0xE003, "GMT_ECC_SM1_SM3"},
     {0xE005, "GMT_IBSDH_SM1_SM3"},
@@ -468,7 +465,6 @@ static ssl_trace_tbl ssl_ciphers_tbl[] = {
     {0xE10A, "GMTLS_ECDHE_SM2_WITH_SMS4_GCM_SHA256"},
     {0xE10B, "GMTLS_ECDHE_SM2_WITH_SMS4_CCM_SHA256"},
     {0xE10C, "GMTLS_ECDHE_SM2_WITH_SMS4_CCM_8_SHA256"},
-#endif
     {0xFEFE, "SSL_RSA_FIPS_WITH_DES_CBC_SHA"},
     {0xFEFF, "SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA"},
 
@@ -539,9 +535,7 @@ static ssl_trace_tbl ssl_curve_tbl[] = {
     {27, "brainpoolP384r1"},
     {28, "brainpoolP512r1"},
     {29, "ecdh_x25519"},
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    {30, "sm2p256v1"},
-#endif
+    {30, "sm2p256v1"},			
     {0xFF01, "arbitrary_explicit_prime_curves"},
     {0xFF02, "arbitrary_explicit_char2_curves"}
 };
@@ -560,9 +554,7 @@ static ssl_trace_tbl ssl_md_tbl[] = {
     {TLSEXT_hash_sha256, "sha256"},
     {TLSEXT_hash_sha384, "sha384"},
     {TLSEXT_hash_sha512, "sha512"},
-#ifndef OPENSSL_NO_GMTLS_METHOD
     {TLSEXT_hash_sm3, "sm3"},
-#endif
     {TLSEXT_hash_gostr3411, "md_gost94"},
     {TLSEXT_hash_gostr34112012_256, "md_gost2012_256"},
     {TLSEXT_hash_gostr34112012_512, "md_gost2012_512"}
@@ -573,9 +565,7 @@ static ssl_trace_tbl ssl_sig_tbl[] = {
     {TLSEXT_signature_rsa, "rsa"},
     {TLSEXT_signature_dsa, "dsa"},
     {TLSEXT_signature_ecdsa, "ecdsa"},
-#ifndef OPENSSL_NO_GMTLS_METHOD
     {TLSEXT_signature_sm2sign, "sm2sign"},
-#endif
     {TLSEXT_signature_gostr34102001, "gost2001"},
     {TLSEXT_signature_gostr34102012_256, "gost2012_256"},
     {TLSEXT_signature_gostr34102012_512, "gost2012_512"}
@@ -599,9 +589,7 @@ static ssl_trace_tbl ssl_ctype_tbl[] = {
     {5, "rsa_ephemeral_dh"},
     {6, "dss_ephemeral_dh"},
     {20, "fortezza_dms"},
-#ifndef OPENSSL_NO_GMTLS_METHOD
     {7,  "sm2_sign"},
-#endif
     {64, "ecdsa_sign"},
     {65, "rsa_fixed_ecdh"},
     {66, "ecdsa_fixed_ecdh"}
@@ -958,7 +946,6 @@ static int ssl_get_keyex(const char **pname, SSL *ssl)
         *pname = "GOST";
         return SSL_kGOST;
     }
-#ifndef OPENSSL_NO_GMTLS
     if (alg_k & SSL_kSM2) {
         *pname = "SM2";
         return SSL_kSM2;
@@ -979,7 +966,6 @@ static int ssl_get_keyex(const char **pname, SSL *ssl)
         *pname = "SM9DHE";
         return SSL_kSM9DHE;
     }
-#endif
     *pname = "UNKNOWN";
     return 0;
 }
@@ -1023,7 +1009,6 @@ static int ssl_print_client_keyex(BIO *bio, int indent, SSL *ssl,
             return 0;
         break;
 
-#ifndef OPENSSL_NO_GMTLS
     case SSL_kSM2:
     case SSL_kSM9:
         if (!ssl_print_hexbuf(bio, indent + 2,
@@ -1041,7 +1026,6 @@ static int ssl_print_client_keyex(BIO *bio, int indent, SSL *ssl,
         if (!ssl_print_hexbuf(bio, indent + 2, "sm9_Yc", 1, &msg, &msglen))
             return 0;
         break;
-#endif
     }
 
     return !msglen;
@@ -1083,10 +1067,8 @@ static int ssl_print_server_keyex(BIO *bio, int indent, SSL *ssl,
 # ifndef OPENSSL_NO_EC
     case SSL_kECDHE:
     case SSL_kECDHEPSK:
-#  ifndef OPENSSL_NO_GMTLS
     case SSL_kSM2DHE:
     case SSL_kSM2PSK:
-#  endif
         if (msglen < 1)
             return 0;
         BIO_indent(bio, indent + 2, 80);

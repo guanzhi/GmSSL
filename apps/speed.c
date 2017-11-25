@@ -70,11 +70,10 @@
 #ifndef OPENSSL_NO_MD5
 # include <openssl/md5.h>
 #endif
-#ifndef OPENSSL_NO_SM3
-# include <openssl/sm3.h>
-#endif
 #include <openssl/hmac.h>
-#include <openssl/sha.h>
+#ifndef OPENSSL_NO_SHA
+# include <openssl/sha.h>
+#endif
 #ifndef OPENSSL_NO_RMD160
 # include <openssl/ripemd.h>
 #endif
@@ -96,9 +95,6 @@
 #ifndef OPENSSL_NO_SEED
 # include <openssl/seed.h>
 #endif
-#ifndef OPENSSL_NO_SMS4
-# include <openssl/sms4.h>
-#endif
 #ifndef OPENSSL_NO_BF
 # include <openssl/blowfish.h>
 #endif
@@ -119,6 +115,12 @@
 #endif
 #ifndef OPENSSL_NO_SM2
 # include <openssl/sm2.h>
+#endif
+#ifndef OPENSSL_NO_SM3
+# include <openssl/sm3.h>
+#endif
+#ifndef OPENSSL_NO_SMS4
+# include <openssl/sms4.h>
 #endif
 #include <openssl/modes.h>
 
@@ -146,7 +148,7 @@
 #define RSA_NUM         7
 #define DSA_NUM         3
 
-#define EC_NUM          18
+#define EC_NUM          17
 #define SM2_NUM         1
 #define MAX_ECDH_SIZE   256
 #define MISALIGN        64
@@ -184,6 +186,11 @@ typedef struct loopargs_st {
 #endif
 #ifndef OPENSSL_NO_SM2
     EC_KEY *sm2[SM2_NUM];
+    size_t cipherlen;
+# if 0
+    unsigned char *sm2dh_a;
+    unsigned char *sm2dh_b;
+# endif
 #endif
     EVP_CIPHER_CTX *ctx;
     HMAC_CTX *hctx;
@@ -193,7 +200,6 @@ typedef struct loopargs_st {
 #ifndef OPENSSL_NO_MD2
 static int EVP_Digest_MD2_loop(void *args);
 #endif
-
 #ifndef OPENSSL_NO_MDC2
 static int EVP_Digest_MDC2_loop(void *args);
 #endif
@@ -207,9 +213,11 @@ static int HMAC_loop(void *args);
 #ifndef OPENSSL_NO_SM3
 static int SM3_loop(void *args);
 #endif
+#ifndef OPENSSL_NO_SHA
 static int SHA1_loop(void *args);
 static int SHA256_loop(void *args);
 static int SHA512_loop(void *args);
+#endif
 #ifndef OPENSSL_NO_WHIRLPOOL
 static int WHIRLPOOL_loop(void *args);
 #endif
@@ -271,7 +279,8 @@ static const char *names[ALGOR_NUM] = {
     "aes-128 cbc", "aes-192 cbc", "aes-256 cbc",
     "camellia-128 cbc", "camellia-192 cbc", "camellia-256 cbc",
     "evp", "sha256", "sha512", "whirlpool",
-    "aes-128 ige", "aes-192 ige", "aes-256 ige", "ghash", "sm3", "sms4 cbc"
+    "aes-128 ige", "aes-192 ige", "aes-256 ige", "ghash",
+    "sm3", "sms4 cbc"
 };
 
 static double results[ALGOR_NUM][SIZE_NUM];
@@ -509,10 +518,6 @@ static OPT_PAIR doit_choices[] = {
     {"seed-cbc", D_CBC_SEED},
     {"seed", D_CBC_SEED},
 #endif
-#ifndef OPENSSL_NO_SMS4
-    {"sms4-cbc", D_CBC_SMS4},
-    {"sms4", D_CBC_SMS4},
-#endif
 #ifndef OPENSSL_NO_BF
     {"bf-cbc", D_CBC_BF},
     {"blowfish", D_CBC_BF},
@@ -526,6 +531,10 @@ static OPT_PAIR doit_choices[] = {
     {"ghash", D_GHASH},
 #ifndef OPENSSL_NO_SM3
     {"sm3", D_SM3},
+#endif
+#ifndef OPENSSL_NO_SMS4
+    {"sms4-cbc", D_CBC_SMS4},
+    {"sms4", D_CBC_SMS4},
 #endif
     {NULL}
 };
@@ -579,7 +588,6 @@ static OPT_PAIR rsa_choices[] = {
 #define R_EC_B409    14
 #define R_EC_B571    15
 #define R_EC_X25519  16
-#define R_EC_PSM2    17
 #ifndef OPENSSL_NO_EC
 static OPT_PAIR ecdsa_choices[] = {
     {"ecdsap160", R_EC_P160},
@@ -598,7 +606,6 @@ static OPT_PAIR ecdsa_choices[] = {
     {"ecdsab283", R_EC_B283},
     {"ecdsab409", R_EC_B409},
     {"ecdsab571", R_EC_B571},
-    {"ecdsapsm2", R_EC_PSM2},
     {NULL}
 };
 
@@ -619,19 +626,20 @@ static OPT_PAIR ecdh_choices[] = {
     {"ecdhb283", R_EC_B283},
     {"ecdhb409", R_EC_B409},
     {"ecdhb571", R_EC_B571},
-    {"ecdhpsm2", R_EC_PSM2},
     {"ecdhx25519", R_EC_X25519},
     {NULL}
 };
 #endif
+
+#define R_SM2_P256   0
 #ifndef OPENSSL_NO_SM2
 static OPT_PAIR sm2sign_choices[] = {
-    {"sm2sign", R_EC_PSM2},
+    {"sm2sign", R_SM2_P256},
     {NULL}
 };
 
 static OPT_PAIR sm2enc_choices[] = {
-    {"sm2enc", R_EC_PSM2},
+    {"sm2enc", R_SM2_P256},
     {NULL}
 };
 #endif
@@ -1072,17 +1080,17 @@ static int DSA_verify_loop(void *args)
 
 #ifndef OPENSSL_NO_SM2
 static long sm2sign_c[SM2_NUM][2];
+
 static int SM2_sign_loop(void *args)
 {
     loopargs_t *tempargs = *(loopargs_t **)args;
     unsigned char *buf = tempargs->buf;
-    EC_KEY **ecdsa = tempargs->ecdsa;
-    unsigned char *ecdsasig = tempargs->buf2;
-    unsigned int *ecdsasiglen = &tempargs->siglen;
+    EC_KEY **sm2 = tempargs->sm2;
+    unsigned char *sm2sig = tempargs->buf2;
+    unsigned int *sm2siglen = &tempargs->siglen;
     int ret, count;
     for (count = 0; COND(sm2sign_c[testnum][0]); count++) {
-        ret = SM2_sign(0, buf, 20,
-                ecdsasig, ecdsasiglen, ecdsa[testnum]);
+        ret = SM2_sign(0, buf, 32, sm2sig, sm2siglen, sm2[testnum]);
         if (ret == 0) {
             BIO_printf(bio_err, "SM2 sign failure\n");
             ERR_print_errors(bio_err);
@@ -1097,13 +1105,12 @@ static int SM2_verify_loop(void *args)
 {
     loopargs_t *tempargs = *(loopargs_t **)args;
     unsigned char *buf = tempargs->buf;
-    EC_KEY **ecdsa = tempargs->ecdsa;
-    unsigned char *ecdsasig = tempargs->buf2;
-    unsigned int ecdsasiglen = tempargs->siglen;
+    EC_KEY **sm2 = tempargs->sm2;
+    unsigned char *sm2sig = tempargs->buf2;
+    unsigned int sm2siglen = tempargs->siglen;
     int ret, count;
     for (count = 0; COND(sm2sign_c[testnum][1]); count++) {
-        ret = SM2_verify(0, buf, 20, ecdsasig, ecdsasiglen,
-                ecdsa[testnum]);
+        ret = SM2_verify(0, buf, 32, sm2sig, sm2siglen, sm2[testnum]);
         if (ret != 1) {
             BIO_printf(bio_err, "SM2 verify failure\n");
             ERR_print_errors(bio_err);
@@ -1114,16 +1121,49 @@ static int SM2_verify_loop(void *args)
     return count;
 }
 
+static long sm2enc_c[SM2_NUM][2];
 static int SM2_encrypt_loop(void *args)
 {
-	return 0;
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    EC_KEY **sm2 = tempargs->sm2;
+    unsigned char *sm2cipher = tempargs->buf2;
+    size_t *sm2cipherlen = &tempargs->cipherlen;
+    int ret, count;
+    for (count = 0; COND(sm2enc_c[testnum][0]); count++) {
+	ret = SM2_encrypt(NID_sm3, buf, 32, sm2cipher,
+                          sm2cipherlen, sm2[testnum]);
+        if (ret == 0) {
+            BIO_printf(bio_err, "SM2 sign failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
 }
 
 static int SM2_decrypt_loop(void *args)
 {
-	return 0;
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    EC_KEY **sm2 = tempargs->sm2;
+    unsigned char *sm2cipher = tempargs->buf2;
+    size_t sm2cipherlen = tempargs->cipherlen;
+    int ret, count;
+    for (count = 0; COND(sm2enc_c[testnum][0]); count++) {
+        size_t len = sm2cipherlen;				
+	ret = SM2_decrypt(NID_sm3, sm2cipher, sm2cipherlen,
+                          buf, &len, sm2[testnum]);
+        if (ret == 0) {
+            BIO_printf(bio_err, "SM2 decrypt failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
 }
-
 #endif
 
 #ifndef OPENSSL_NO_EC
@@ -1165,7 +1205,7 @@ static int ECDSA_verify_loop(void *args)
             ERR_print_errors(bio_err);
             count = -1;
             break;
-        }
+          }
     }
     return count;
 }
@@ -1195,11 +1235,15 @@ static const size_t KDF1_SHA1_len = 20;
 static void *KDF1_SHA1(const void *in, size_t inlen, void *out,
                        size_t *outlen)
 {
+# ifndef OPENSSL_NO_SHA
     if (*outlen < SHA_DIGEST_LENGTH)
         return NULL;
     *outlen = SHA_DIGEST_LENGTH;
-# ifndef OPENSSL_NO_SHA									
     return SHA1(in, inlen, out);
+# else
+    *outlen = 20;
+    memcpy(out, in, 20);
+    return in;
 # endif
 }
 #endif                          /* OPENSSL_NO_EC */
@@ -1322,8 +1366,8 @@ static int run_benchmark(int async_jobs,
                 continue;
 #endif
 
-            ret = ASYNC_start_job(&loopargs[i].inprogress_job, 
-                    loopargs[i].wait_ctx, &job_op_count, loop_function, 
+            ret = ASYNC_start_job(&loopargs[i].inprogress_job,
+                    loopargs[i].wait_ctx, &job_op_count, loop_function,
                     (void *)(loopargs + i), sizeof(loopargs_t));
             switch (ret) {
             case ASYNC_PAUSE:
@@ -1459,16 +1503,6 @@ int speed_main(int argc, char **argv)
     static const unsigned int dsa_bits[DSA_NUM] = { 512, 1024, 2048 };
     int dsa_doit[DSA_NUM] = { 0 };
 #endif
-#ifndef OPENSSL_NO_SM2
-    static const unsigned int test_sm2_curves[SM2_NUM] = {
-        NID_sm2p256v1,
-    };
-    static const char *test_sm2_curves_names[SM2_NUM] = {
-        "sm2p256v1",
-    };
-    int sm2sign_doit[EC_NUM] = { 0 };
-    int sm2enc_doit[EC_NUM] = { 0 };
-#endif
 #ifndef OPENSSL_NO_EC
     /*
      * We only test over the following curves as they are representative, To
@@ -1485,8 +1519,7 @@ int speed_main(int argc, char **argv)
         NID_sect233r1, NID_sect283r1, NID_sect409r1,
         NID_sect571r1,
         /* Other */
-        NID_sm2p256v1,
-        NID_X25519
+        NID_X25519,
     };
     static const char *test_curves_names[EC_NUM] = {
         /* Prime Curves */
@@ -1498,8 +1531,7 @@ int speed_main(int argc, char **argv)
         "nistb233", "nistb283", "nistb409",
         "nistb571",
         /* Other */
-        "sm2p256v1",
-        "X25519"
+        "X25519",
     };
     static const int test_curves_bits[EC_NUM] = {
         160, 192, 224,
@@ -1507,12 +1539,25 @@ int speed_main(int argc, char **argv)
         163, 233, 283,
         409, 571, 163,
         233, 283, 409,
-        571, 256, 253 /* X25519 */
+        571, 253 /* X25519 */,
     };
 
     int ecdsa_doit[EC_NUM] = { 0 };
     int ecdh_doit[EC_NUM] = { 0 };
-#endif                          /* ndef OPENSSL_NO_EC */
+#endif /* OPENSSL_NO_EC */
+#ifndef OPENSSL_NO_SM2
+    static const unsigned int test_sm2_curves[SM2_NUM] = {
+        NID_sm2p256v1,
+    };
+    static const char *test_sm2_curves_names[SM2_NUM] = {
+        "sm2p256v1",
+    };
+    static const int test_sm2_curves_bits[SM2_NUM] = {
+        256,
+    };
+    int sm2sign_doit[SM2_NUM] = { 0 };
+    int sm2enc_doit[SM2_NUM] = { 0 };
+#endif
 
     prog = opt_init(argc, argv, speed_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -1677,8 +1722,13 @@ int speed_main(int argc, char **argv)
         }
 #endif
 #ifndef OPENSSL_NO_SM2
+        if (strcmp(*argv, "sm2") == 0) {
+            for (i = 0; i < SM2_NUM; i++)
+                sm2sign_doit[i] = sm2enc_doit[i] = 1;
+            continue;
+        }
         if (strcmp(*argv, "sm2sign") == 0) {
-            for (i = 0; i < EC_NUM; i++)
+            for (i = 0; i < SM2_NUM; i++)
                 sm2sign_doit[i] = 1;
             continue;
         }
@@ -1686,17 +1736,15 @@ int speed_main(int argc, char **argv)
             sm2sign_doit[i] = 2;
             continue;
         }
-	/*
-        if (strcmp(*argv, "ecdh") == 0) {
-            for (i = 0; i < EC_NUM; i++)
-                ecdh_doit[i] = 1;
+        if (strcmp(*argv, "sm2enc") == 0) {
+            for (i = 0; i < SM2_NUM; i++)
+                sm2enc_doit[i] = 1;
             continue;
         }
-        if (found(*argv, ecdh_choices, &i)) {
-            ecdh_doit[i] = 2;
+        if (found(*argv, sm2enc_choices, &i)) {
+            sm2enc_doit[i] = 2;
             continue;
         }
-	*/
 #endif
         BIO_printf(bio_err, "%s: Unknown algorithm %s\n", prog, *argv);
         goto end;
@@ -1733,12 +1781,12 @@ int speed_main(int argc, char **argv)
         loopargs[i].secret_a = app_malloc(MAX_ECDH_SIZE, "ECDH secret a");
         loopargs[i].secret_b = app_malloc(MAX_ECDH_SIZE, "ECDH secret b");
 #endif
-/*
 #ifndef OPENSSL_NO_SM2
-        loopargs[i].secret_a = app_malloc(MAX_ECDH_SIZE, "ECDH secret a");
-        loopargs[i].secret_b = app_malloc(MAX_ECDH_SIZE, "ECDH secret b");
-#endif
+/*
+        loopargs[i].sm2dh_a = app_malloc(MAX_ECDH_SIZE, "SM2DH secret a");
+        loopargs[i].sm2dh_b = app_malloc(MAX_ECDH_SIZE, "SM2DH secret b");
 */
+#endif
     }
 
 #ifndef NO_FORK
@@ -1967,6 +2015,12 @@ int speed_main(int argc, char **argv)
     }
 #  endif
 
+#  ifndef OPENSSL_NO_SM2
+    sm2sign_c[R_SM2_P256][0] = count / 1000 / 8;
+    sm2sign_c[R_SM2_P256][1] = count / 1000 / 8 / 2;
+    sm2enc_c[R_SM2_P256][0] = count / 1000 / 8;
+    sm2enc_c[R_SM2_P256][1] = count / 1000 / 8;
+#  endif
 #  ifndef OPENSSL_NO_EC
     ecdsa_c[R_EC_P160][0] = count / 1000;
     ecdsa_c[R_EC_P160][1] = count / 1000 / 2;
@@ -2876,6 +2930,180 @@ int speed_main(int argc, char **argv)
         }
     }
 #endif                          /* OPENSSL_NO_EC */
+#ifndef OPENSSL_NO_SM2
+
+    if (RAND_status() != 1) {
+        RAND_seed(rnd_seed, sizeof rnd_seed);
+    }
+    for (testnum = 0; testnum < SM2_NUM; testnum++) {
+        int st = 1;
+
+        if (!sm2sign_doit[testnum])
+            continue;           /* Ignore Curve */
+        for (i = 0; i < loopargs_len; i++) {
+            loopargs[i].sm2[testnum] = EC_KEY_new_by_curve_name(test_sm2_curves[testnum]);
+            if (loopargs[i].sm2[testnum] == NULL) {
+                st = 0;
+                break;
+            }
+        }
+        if (st == 0) {
+            BIO_printf(bio_err, "SM2 failure.\n");
+            ERR_print_errors(bio_err);
+            rsa_count = 1;
+        } else {
+            for (i = 0; i < loopargs_len; i++) {
+                EC_KEY_precompute_mult(loopargs[i].sm2[testnum], NULL);
+                /* Perform SM2 signature test */
+                EC_KEY_generate_key(loopargs[i].sm2[testnum]);
+                st = SM2_sign(0, loopargs[i].buf, 32, loopargs[i].buf2,
+                              &loopargs[i].siglen, loopargs[i].sm2[testnum]);
+                if (st == 0)
+                    break;
+            }
+            if (st == 0) {
+                BIO_printf(bio_err,
+                           "SM2 sign failure.  No SM2 sign will be done.\n");
+                ERR_print_errors(bio_err);
+                rsa_count = 1;
+            } else {
+                pkey_print_message("sign", "sm2",
+                                   sm2sign_c[testnum][0],
+                                   test_sm2_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM2_sign_loop, loopargs);
+                d = Time_F(STOP);
+
+                BIO_printf(bio_err,
+                           mr ? "+R7:%ld:%d:%.2f\n" :
+                           "%ld %d bit SM2 signs in %.2fs \n",
+                           count, test_sm2_curves_bits[testnum], d);
+                sm2sign_results[testnum][0] = d / (double)count;
+                rsa_count = count;
+            }
+
+            /* Perform SM2 verification test */
+            for (i = 0; i < loopargs_len; i++) {
+                st = SM2_verify(0, loopargs[i].buf, 32, loopargs[i].buf2,
+                                loopargs[i].siglen, loopargs[i].sm2[testnum]);
+                if (st != 1)
+                    break;
+            }
+            if (st != 1) {
+                BIO_printf(bio_err,
+                           "SM2 verify failure.  No SM2 verify will be done.\n");
+                ERR_print_errors(bio_err);
+                sm2sign_doit[testnum] = 0;
+            } else {
+                pkey_print_message("verify", "sm2",
+                                   sm2sign_c[testnum][1],
+                                   test_sm2_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM2_verify_loop, loopargs);
+                d = Time_F(STOP);
+                BIO_printf(bio_err,
+                           mr ? "+R8:%ld:%d:%.2f\n"
+                           : "%ld %d bit SM2 verify in %.2fs\n",
+                           count, test_sm2_curves_bits[testnum], d);
+                sm2sign_results[testnum][1] = d / (double)count;
+            }
+
+            if (rsa_count <= 1) {
+                /* if longer than 10s, don't do any more */
+                for (testnum++; testnum < SM2_NUM; testnum++)
+                    sm2sign_doit[testnum] = 0;
+            }
+        }
+    }
+
+
+    if (RAND_status() != 1) {
+        RAND_seed(rnd_seed, sizeof rnd_seed);
+    }
+    for (testnum = 0; testnum < SM2_NUM; testnum++) {
+        int st = 1;
+
+        if (!sm2enc_doit[testnum])
+            continue;
+        for (i = 0; i < loopargs_len; i++) {
+            loopargs[i].sm2[testnum] = EC_KEY_new_by_curve_name(
+                                        test_sm2_curves[testnum]);
+            if (loopargs[i].sm2[testnum] == NULL) {
+                st = 0;
+                break;
+            }
+        }
+        if (st == 0) {
+            BIO_printf(bio_err, "SM2 failure.\n");
+            ERR_print_errors(bio_err);
+            rsa_count = 1;
+        } else {
+            for (i = 0; i < loopargs_len; i++) {
+                EC_KEY_precompute_mult(loopargs[i].sm2[testnum], NULL);
+                /* Perform SM2 encryption test */
+                EC_KEY_generate_key(loopargs[i].sm2[testnum]);
+                st = SM2_encrypt(NID_sm3, loopargs[i].buf, 32, loopargs[i].buf2,
+                                 &loopargs[i].cipherlen, loopargs[i].sm2[testnum]);
+                if (st == 0)
+                    break;
+            }
+            if (st == 0) {
+                BIO_printf(bio_err,
+                           "SM2 encryption failure.  No SM2 encryption will be done.\n");
+                ERR_print_errors(bio_err);
+                rsa_count = 1;
+            } else {
+                pkey_print_message("encrypt", "sm2",
+                                   sm2enc_c[testnum][0],
+                                   test_sm2_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM2_encrypt_loop, loopargs);
+                d = Time_F(STOP);
+
+                BIO_printf(bio_err,
+                           mr ? "+R7:%ld:%d:%.2f\n" :
+                           "%ld %d bit SM2 encrypt in %.2fs \n",
+                           count, test_sm2_curves_bits[testnum], d);
+                sm2enc_results[testnum][0] = d / (double)count;
+                rsa_count = count;
+            }
+
+            /* Perform SM2 verification test */
+            for (i = 0; i < loopargs_len; i++) {
+                size_t len = loopargs[i].cipherlen;
+                st = SM2_decrypt(NID_sm3, loopargs[i].buf2, loopargs[i].cipherlen,
+                                 loopargs[i].buf, &len, loopargs[i].sm2[testnum]);
+                if (st == 0)
+                    break;
+            }
+            if (st != 1) {
+                BIO_printf(bio_err,
+                           "SM2 decrypt failure.  No SM2 decrypt will be done.\n");
+                ERR_print_errors(bio_err);
+                sm2enc_doit[testnum] = 0;
+            } else {
+                pkey_print_message("decrypt", "sm2",
+                                   sm2enc_c[testnum][1],
+                                   test_sm2_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM2_decrypt_loop, loopargs);
+                d = Time_F(STOP);
+                BIO_printf(bio_err,
+                           mr ? "+R8:%ld:%d:%.2f\n"
+                           : "%ld %d bit SM2 decrypt in %.2fs\n",
+                           count, test_sm2_curves_bits[testnum], d);
+                sm2enc_results[testnum][1] = d / (double)count;
+            }
+
+            if (rsa_count <= 1) {
+                /* if longer than 10s, don't do any more */
+                for (testnum++; testnum < SM2_NUM; testnum++)
+                    sm2sign_doit[testnum] = 0;
+            }
+        }
+    }
+
+#endif /* OPENSSL_NO_SM2 */
 #ifndef NO_FORK
  show_res:
 #endif
@@ -2901,6 +3129,12 @@ int speed_main(int argc, char **argv)
 #endif
 #ifndef OPENSSL_NO_BF
         printf("%s ", BF_options());
+#endif
+#ifndef OPENSSL_NO_SM3
+        //printf("%s ", SM3_options());
+#endif
+#ifndef OPENSSL_NO_SMS4
+        //printf("%s ", SMS4_options());
 #endif
         printf("\n%s\n", OpenSSL_version(OPENSSL_CFLAGS));
     }
@@ -3011,6 +3245,50 @@ int speed_main(int argc, char **argv)
                    ecdh_results[k][0], 1.0 / ecdh_results[k][0]);
     }
 #endif
+#ifndef OPENSSL_NO_SM2
+    testnum = 1;
+    for (k = 0; k < SM2_NUM; k++) {
+        if (!sm2sign_doit[k])
+            continue;
+        if (testnum && !mr) {
+            printf("%30ssign    verify    sign/s verify/s\n", " ");
+            testnum = 0;
+        }
+
+        if (mr)
+            printf("+F6:%u:%u:%f:%f\n",
+                   k, test_sm2_curves_bits[k],
+                   sm2sign_results[k][0], sm2sign_results[k][1]);
+        else
+            printf("%4u bit sm2 (%s) %8.4fs %8.4fs %8.1f %8.1f\n",
+                   test_sm2_curves_bits[k],
+                   test_sm2_curves_names[k],
+                   sm2sign_results[k][0], sm2sign_results[k][1],
+                   1.0 / sm2sign_results[k][0], 1.0 / sm2sign_results[k][1]);
+    }
+
+    testnum = 1;
+    for (k = 0; k < SM2_NUM; k++) {
+        if (!sm2enc_doit[k])
+            continue;
+        if (testnum && !mr) {
+            printf("%30sencrypt decrypt   enc/s  dec/s\n", " ");
+            testnum = 0;
+        }
+
+        if (mr)
+            printf("+F6:%u:%u:%f:%f\n",
+                   k, test_sm2_curves_bits[k],
+                   sm2enc_results[k][0], sm2enc_results[k][1]);
+        else
+            printf("%4u bit sm2 (%s) %8.4fs %8.4fs %8.1f %8.1f\n",
+                   test_sm2_curves_bits[k],
+                   test_sm2_curves_names[k],
+                   sm2enc_results[k][0], sm2enc_results[k][1],
+                   1.0 / sm2enc_results[k][0], 1.0 / sm2enc_results[k][1]);
+    }
+
+#endif
 
     ret = 0;
 
@@ -3041,6 +3319,10 @@ int speed_main(int argc, char **argv)
         for (k = 0; k < SM2_NUM; k++) {
             EC_KEY_free(loopargs[i].sm2[k]);
         }
+# if 0
+        OPENSSL_free(loopargs[i].sm2dh_a);
+        OPENSSL_free(loopargs[i].sm2dh_b);
+# endif
 #endif
     }
 
@@ -3273,7 +3555,51 @@ static int do_multi(int multi)
 
             }
 # endif
+# ifndef OPENSSL_NO_SM2
+            else if (strncmp(buf, "+F6:", 4) == 0) {
+                int k;
+                double d;
 
+                p = buf + 4;
+                k = atoi(sstrsep(&p, sep));
+                sstrsep(&p, sep);
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm2sign_results[k][0] =
+                        1 / (1 / sm2sign_results[k][0] + 1 / d);
+                else
+                    sm2sign_results[k][0] = d;
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm2sign_results[k][1] =
+                        1 / (1 / sm2sign_results[k][1] + 1 / d);
+                else
+                    sm2sign_results[k][1] = d;
+            } else if (strncmp(buf, "+F7:", 4) == 0) {
+                int k;
+                double d;
+
+                p = buf + 4;
+                k = atoi(sstrsep(&p, sep));
+                sstrsep(&p, sep);
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm2enc_results[k][0] =
+                        1 / (1 / sm2enc_results[k][0] + 1 / d);
+                else
+                    sm2enc_results[k][0] = d;
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm2enc_results[k][1] =
+                        1 / (1 / sm2enc_results[k][1] + 1 / d);
+                else
+                    sm2enc_results[k][1] = d;
+            }
+# endif
             else if (strncmp(buf, "+H:", 3) == 0) {
                 ;
             } else

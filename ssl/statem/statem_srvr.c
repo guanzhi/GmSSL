@@ -1,3 +1,51 @@
+/* ====================================================================
+ * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ */
 /*
  * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
  *
@@ -230,8 +278,8 @@ static int send_server_key_exchange(SSL *s)
 {
     unsigned long alg_k = s->s3->tmp.new_cipher->algorithm_mkey;
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    if (s->method->version == GMTLS_VERSION)
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s))
         return 1;
 #endif
 
@@ -643,17 +691,15 @@ int ossl_statem_server_construct_message(SSL *s)
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return tls_construct_server_certificate(s)
-        else
 #endif
-            return tls_construct_server_certificate(s);
+        return tls_construct_server_certificate(s);
 
     case TLS_ST_SW_KEY_EXCH:
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_construct_server_key_exchange(s)
-        else
 #endif
-            return tls_construct_server_key_exchange(s);
+        return tls_construct_server_key_exchange(s);
 
     case TLS_ST_SW_CERT_REQ:
         return tls_construct_certificate_request(s);
@@ -760,20 +806,18 @@ MSG_PROCESS_RETURN ossl_statem_server_process_message(SSL *s, PACKET *pkt)
         return tls_process_client_hello(s, pkt);
 
     case TLS_ST_SR_CERT:
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return tls_process_client_certificate(s, pkt);
-        else
 #endif
-	    return tls_process_client_certificate(s, pkt);
+        return tls_process_client_certificate(s, pkt);
 
     case TLS_ST_SR_KEY_EXCH:
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_process_client_key_exchange(s, pkt);
-        else
 #endif
-	    return tls_process_client_key_exchange(s, pkt);
+        return tls_process_client_key_exchange(s, pkt);
 
     case TLS_ST_SR_CERT_VRFY:
         return tls_process_cert_verify(s, pkt);
@@ -984,7 +1028,7 @@ MSG_PROCESS_RETURN tls_process_client_hello(SSL *s, PACKET *pkt)
         } else if ((version & 0xff00) == (SSL3_VERSION_MAJOR << 8)) {
             /* SSLv3/TLS */
             s->client_version = version;
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
         } else if (version == GMTLS_VERSION) {
             s->client_version = version;
 #endif
@@ -1273,7 +1317,7 @@ MSG_PROCESS_RETURN tls_process_client_hello(SSL *s, PACKET *pkt)
         }
     }
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
     if (!s->hit && (s->version == GMTLS_VERSION || s->version >= TLS1_VERSION)
 	&& s->tls_session_secret_cb) {
 #else
@@ -1668,7 +1712,7 @@ int tls_construct_server_key_exchange(SSL *s)
     BUF_MEM *buf;
     EVP_MD_CTX *md_ctx = NULL;
 
-    if (!(md_ctx == EVP_MD_CTX_new())) {
+    if (!(md_ctx = EVP_MD_CTX_new())) {
         SSLerr(SSL_F_TLS_CONSTRUCT_SERVER_KEY_EXCHANGE, ERR_R_MALLOC_FAILURE);
         al = SSL_AD_INTERNAL_ERROR;
         goto f_err;

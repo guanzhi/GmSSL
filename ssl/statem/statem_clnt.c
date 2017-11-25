@@ -1,3 +1,51 @@
+/* ====================================================================
+ * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ */
 /*
  * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
  *
@@ -60,12 +108,12 @@
 #ifndef OPENSSL_NO_DH
 # include <openssl/dh.h>
 #endif
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 #include <openssl/bn.h>
 #ifndef OPENSSL_NO_ENGINE
 # include <openssl/engine.h>
-#endif
-#ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
 #endif
 
 static ossl_inline int cert_req_allowed(SSL *s);
@@ -89,7 +137,6 @@ static ossl_inline int cert_req_allowed(SSL *s)
         || (s->s3->tmp.new_cipher->algorithm_auth & (SSL_aSRP | SSL_aPSK)))
         return 0;
 
-    /* gmtls ciphers always allow req */
     return 1;
 }
 
@@ -104,11 +151,10 @@ static int key_exchange_expected(SSL *s)
 {
     long alg_k = s->s3->tmp.new_cipher->algorithm_mkey;
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    if (s->version == GMTLS_VERSION)
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s))
         return 1;
 #endif
-
     /*
      * Can't skip server key exchange if this is an ephemeral
      * ciphersuite or for SRP
@@ -649,9 +695,8 @@ MSG_PROCESS_RETURN ossl_statem_client_process_message(SSL *s, PACKET *pkt)
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return tls_process_server_certificate(s, pkt);
-        else
 #endif
-            return tls_process_server_certificate(s, pkt);
+        return tls_process_server_certificate(s, pkt);
 
     case TLS_ST_CR_CERT_STATUS:
         return tls_process_cert_status(s, pkt);
@@ -660,9 +705,8 @@ MSG_PROCESS_RETURN ossl_statem_client_process_message(SSL *s, PACKET *pkt)
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
             return gmtls_process_server_key_exchange(s, pkt);
-        else
 #endif
-            return tls_process_server_key_exchange(s, pkt);
+        return tls_process_server_key_exchange(s, pkt);
 
     case TLS_ST_CR_CERT_REQ:
         return tls_process_certificate_request(s, pkt);
@@ -1544,11 +1588,6 @@ static int tls_process_ske_dhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
 #endif
 }
 
-//这个函数实际上就是从packet里面读取曲线参数，对方临时公钥
-//把这个临时公钥设置到s->s3->peer_tmp （在哪儿处理的？）
-//然后再根据认证算法(s->s3->tmp.new_cipher->algorithm_auth 确定对方的签名算法（应该是证书中拿到的）
-//最后从s->session->peer中取出对方的签名公钥，从pkey参数返回
-//这个函数并不去处理签名值，而是留给后续处理，因此sm2的话不提取任何数据，这个函数是无效的
 static int tls_process_ske_ecdhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
 {
 #ifndef OPENSSL_NO_EC
@@ -1633,10 +1672,9 @@ static int tls_process_ske_ecdhe(SSL *s, PACKET *pkt, EVP_PKEY **pkey, int *al)
      * ECParameters in the server key exchange message. We do support RSA
      * and ECDSA.
      */
-    // 这里的s->session->peer 应该是在处理证书消息的时候设定的，要看看具体在哪儿
     if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aECDSA)
         *pkey = X509_get0_pubkey(s->session->peer);
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
     else if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2)
         *pkey = X509_get0_pubkey(s->session->peer);
 #endif
@@ -2292,13 +2330,9 @@ static int tls_construct_cke_rsa(SSL *s, unsigned char **p, int *len, int *al)
     }
 
     q = *p;
-    /* Fix buf for TLS and beyond */
-    if (s->version > SSL3_VERSION)
+    /* Fix buf for TLS, GMTLS and beyond */
+    if (s->version > SSL3_VERSION || SSL_IS_GMTLS(s))
         *p += 2;
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    if (s->version == GMTLS_VERSION)
-        *p += 2;
-#endif
     pctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (pctx == NULL || EVP_PKEY_encrypt_init(pctx) <= 0
         || EVP_PKEY_encrypt(pctx, NULL, &enclen, pms, pmslen) <= 0) {
@@ -2317,21 +2351,13 @@ static int tls_construct_cke_rsa(SSL *s, unsigned char **p, int *len, int *al)
         (*p)[1]++;
     if (s->options & SSL_OP_PKCS1_CHECK_2)
         tmp_buf[0] = 0x70;
-				
-	// tmp_buf 没有定义，可能出现了编辑错误！
 # endif
 
     /* Fix buf for TLS and beyond */
-    if (s->version > SSL3_VERSION) {
+    if (s->version > SSL3_VERSION || SSL_IS_GMTLS(s)) {
         s2n(*len, q);
         *len += 2;
     }
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    if (s->version == GMTLS_VERSION) {
-        s2n(*len, q);
-        *len += 2;
-    }
-#endif
 
     s->s3->tmp.pms = pms;
     s->s3->tmp.pmslen = pmslen;

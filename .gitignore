@@ -189,4 +189,12 @@ apps/gmssl
 /engines/e_sdf*
 /engines/e_gmi*
 
+# apps
+/apps/sm2.c
+/apps/sdf.c
+/apps/skf.c
+
 include/openssl/srp.h
+
+/build.sh
+

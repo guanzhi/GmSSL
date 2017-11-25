@@ -214,6 +214,12 @@ int opt_format(const char *s, unsigned long flags, int *result)
             return opt_format_error(s, flags);
         *result = FORMAT_TEXT;
         break;
+    case 'B':
+    case 'b':
+        if ((flags & OPT_FMT_BINARY) == 0)
+            return opt_format_error(s, flags);
+        *result = FORMAT_BINARY;
+        break;
     case 'N':
     case 'n':
         if ((flags & OPT_FMT_NSS) == 0)

@@ -231,13 +231,11 @@
 # define SSL_kECDHEPSK           0x00000080U
 # define SSL_kDHEPSK             0x00000100U
 
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_kSM2               0x00000200U
-#  define SSL_kSM2DHE            0x00000400U
-#  define SSL_kSM2PSK            0x00000800U
-#  define SSL_kSM9               0x00001000U
-#  define SSL_kSM9DHE            0x00002000U
-# endif
+# define SSL_kSM2               0x00000200U
+# define SSL_kSM2DHE            0x00000400U
+# define SSL_kSM2PSK            0x00000800U
+# define SSL_kSM9               0x00001000U
+# define SSL_kSM9DHE            0x00002000U
 
 /* all PSK */
 
@@ -260,11 +258,9 @@
 # define SSL_aSRP                0x00000040U
 /* GOST R 34.10-2012 signature auth */
 # define SSL_aGOST12             0x00000080U
-# ifndef OPENSSL_NO_GMTLS_METHOD
-/* SM2 */
+/* GMTLS */
 #  define SSL_aSM2               0x00000100U
 #  define SSL_aSM9               0x00000200U
-# endif
 
 /* Bits for algorithm_enc (symmetric encryption) */
 # define SSL_DES                 0x00000001U
@@ -287,24 +283,20 @@
 # define SSL_AES256CCM8          0x00020000U
 # define SSL_eGOST2814789CNT12   0x00040000U
 # define SSL_CHACHA20POLY1305    0x00080000U
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_SMS4               0x00100000U
-#  define SSL_SMS4GCM            0x00200000U
-#  define SSL_SMS4CCM            0x00400000U
-#  define SSL_SMS4CCM8           0x00800000U
-#  define SSL_ZUC                0x01000000U
-#  define SSL_SM1                0x02000000U
-#  define SSL_SSF33              0x04000000U
-# endif
+# define SSL_SMS4                0x00100000U
+# define SSL_SMS4GCM             0x00200000U
+# define SSL_SMS4CCM             0x00400000U
+# define SSL_SMS4CCM8            0x00800000U
+# define SSL_ZUC                 0x01000000U
+# define SSL_SM1                 0x02000000U
+# define SSL_SSF33               0x04000000U
 
 # define SSL_AESGCM              (SSL_AES128GCM | SSL_AES256GCM)
 # define SSL_AESCCM              (SSL_AES128CCM | SSL_AES256CCM | SSL_AES128CCM8 | SSL_AES256CCM8)
 # define SSL_AES                 (SSL_AES128|SSL_AES256|SSL_AESGCM|SSL_AESCCM)
 # define SSL_CAMELLIA            (SSL_CAMELLIA128|SSL_CAMELLIA256)
 # define SSL_CHACHA20            (SSL_CHACHA20POLY1305)
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_SMS4ALL            (SSL_SMS4 | SSL_SMS4GCM | SSL_SMS4CCM | SSL_SMS4CCM8)
-# endif
+# define SSL_SMS4ALL             (SSL_SMS4 | SSL_SMS4GCM | SSL_SMS4CCM | SSL_SMS4CCM8)
 
 /* Bits for algorithm_mac (symmetric authentication) */
 
@@ -319,9 +311,7 @@
 # define SSL_GOST12_256          0x00000080U
 # define SSL_GOST89MAC12         0x00000100U
 # define SSL_GOST12_512          0x00000200U
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_SM3                0x00000400U
-# endif
+# define SSL_SM3                 0x00000400U
 
 /*
  * When adding new digest in the ssl_ciph.c and increment SSL_MD_NUM_IDX make
@@ -340,12 +330,8 @@
 # define SSL_MD_MD5_SHA1_IDX 9
 # define SSL_MD_SHA224_IDX 10
 # define SSL_MD_SHA512_IDX 11
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_MD_SM3_IDX 12
-#  define SSL_MAX_DIGEST 13
-# else
-#  define SSL_MAX_DIGEST 12
-# endif
+# define SSL_MD_SM3_IDX 12
+# define SSL_MAX_DIGEST 13
 
 /* Bits for algorithm2 (handshake digests and other extra flags) */
 
@@ -358,9 +344,7 @@
 # define SSL_HANDSHAKE_MAC_GOST12_256 SSL_MD_GOST12_256_IDX
 # define SSL_HANDSHAKE_MAC_GOST12_512 SSL_MD_GOST12_512_IDX
 # define SSL_HANDSHAKE_MAC_DEFAULT  SSL_HANDSHAKE_MAC_MD5_SHA1
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_HANDSHAKE_MAC_SM3     SSL_MD_SM3_IDX
-# endif
+# define SSL_HANDSHAKE_MAC_SM3      SSL_MD_SM3_IDX
 
 /* Bits 8-15 bits are PRF */
 # define TLS1_PRF_DGST_SHIFT 8
@@ -370,10 +354,8 @@
 # define TLS1_PRF_GOST94 (SSL_MD_GOST94_IDX << TLS1_PRF_DGST_SHIFT)
 # define TLS1_PRF_GOST12_256 (SSL_MD_GOST12_256_IDX << TLS1_PRF_DGST_SHIFT)
 # define TLS1_PRF_GOST12_512 (SSL_MD_GOST12_512_IDX << TLS1_PRF_DGST_SHIFT)
-# define TLS1_PRF            (SSL_MD_MD5_SHA1_IDX << TLS1_PRF_DGST_SHIFT)
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define TLS1_PRF_SM3 (SSL_MD_SM3_IDX << TLS1_PRF_DGST_SHIFT)
-# endif
+# define TLS1_PRF        (SSL_MD_MD5_SHA1_IDX << TLS1_PRF_DGST_SHIFT)
+# define TLS1_PRF_SM3    (SSL_MD_SM3_IDX << TLS1_PRF_DGST_SHIFT)
 
 /*
  * Stream MAC for GOST ciphersuites from cryptopro draft (currently this also
@@ -443,14 +425,10 @@
 # define SSL_PKEY_GOST01         4
 # define SSL_PKEY_GOST12_256     5
 # define SSL_PKEY_GOST12_512     6
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define SSL_PKEY_SM2_ENC       7
-#  define SSL_PKEY_SM2_SIGN      8
-#  define SSL_PKEY_SM9           9
-#  define SSL_PKEY_NUM          10
-# else
-#  define SSL_PKEY_NUM           7
-# endif
+# define SSL_PKEY_SM2_ENC        7
+# define SSL_PKEY_SM2_SIGN       8
+# define SSL_PKEY_SM9_SIGN       9
+# define SSL_PKEY_NUM           10
 
 /*
  * Pseudo-constant. GOST cipher suites can use different certs for 1
@@ -591,7 +569,7 @@ struct ssl_session_st {
     int not_resumable;
     /* This is the cert and type for the other end. */
     X509 *peer;
-# ifndef OPENSSL_NO_GMTLS_METHOD
+# ifndef OPENSSL_NO_GMTLS
     X509 *peer_extra;
     char *peer_identity;
     CERT_SM9 ibe;
@@ -1726,12 +1704,9 @@ __owur const SSL_METHOD *dtls_bad_ver_client_method(void);
 __owur const SSL_METHOD *dtlsv1_2_method(void);
 __owur const SSL_METHOD *dtlsv1_2_server_method(void);
 __owur const SSL_METHOD *dtlsv1_2_client_method(void);
-#ifndef OPENSSL_NO_GMTLS_METHOD
 __owur const SSL_METHOD *gmtls_method(void);
 __owur const SSL_METHOD *gmtls_server_method(void);
 __owur const SSL_METHOD *gmtls_client_method(void);
-#endif
-
 
 extern const SSL3_ENC_METHOD TLSv1_enc_data;
 extern const SSL3_ENC_METHOD TLSv1_1_enc_data;
@@ -1739,9 +1714,7 @@ extern const SSL3_ENC_METHOD TLSv1_2_enc_data;
 extern const SSL3_ENC_METHOD SSLv3_enc_data;
 extern const SSL3_ENC_METHOD DTLSv1_enc_data;
 extern const SSL3_ENC_METHOD DTLSv1_2_enc_data;
-# ifndef OPENSSL_NO_GMTLS_METHOD
 extern const SSL3_ENC_METHOD GMTLS_enc_data;
-# endif
 
 /*
  * Flags for SSL methods
@@ -1750,9 +1723,8 @@ extern const SSL3_ENC_METHOD GMTLS_enc_data;
 # define SSL_METHOD_NO_SUITEB    (1U<<1)
 
 
-# ifndef OPENSSL_NO_GMTLS_METHOD
-#  define IMPLEMENT_gmtls_meth_func(flags, mask, func_name, s_accept, \
-                                    s_connect, enc_data) \
+# define IMPLEMENT_gmtls_meth_func(flags, mask, func_name, s_accept, \
+                                   s_connect, enc_data) \
 const SSL_METHOD *func_name(void)  \
         { \
         static const SSL_METHOD func_name##_data= { \
@@ -1788,7 +1760,6 @@ const SSL_METHOD *func_name(void)  \
         }; \
         return &func_name##_data; \
         }
-# endif /* OPENSSL_NO_GMTLS_METHOD */
 
 # define IMPLEMENT_tls_meth_func(version, flags, mask, func_name, s_accept, \
                                  s_connect, enc_data) \
@@ -1827,15 +1798,6 @@ const SSL_METHOD *func_name(void)  \
         }; \
         return &func_name##_data; \
         }
-
-
-
-
-
-
-
-
-
 
 # define IMPLEMENT_ssl3_meth_func(func_name, s_accept, s_connect) \
 const SSL_METHOD *func_name(void)  \
@@ -2114,9 +2076,7 @@ __owur int tls1_export_keying_material(SSL *s, unsigned char *out, size_t olen,
                                        int use_context);
 __owur int tls1_alert_code(int code);
 __owur int ssl3_alert_code(int code);
-#  ifndef OPENSSL_NO_GMTLS_METHOD
 __owur int gmtls_alert_code(int code);
-#  endif
 __owur int ssl_ok(SSL *s);
 
 #  ifndef OPENSSL_NO_EC

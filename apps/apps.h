@@ -320,6 +320,7 @@ typedef struct string_int_pair_st {
 # define OPT_FMT_TEXT            (1L <<  8)
 # define OPT_FMT_HTTP            (1L <<  9)
 # define OPT_FMT_PVK             (1L << 10)
+# define OPT_FMT_BINARY          (1L << 11)
 # define OPT_FMT_PDE     (OPT_FMT_PEMDER | OPT_FMT_ENGINE)
 # define OPT_FMT_PDS     (OPT_FMT_PEMDER | OPT_FMT_SMIME)
 # define OPT_FMT_ANY     ( \

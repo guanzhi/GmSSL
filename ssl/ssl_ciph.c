@@ -219,10 +219,8 @@ static int ssl_mac_pkey_id[SSL_MD_NUM_IDX] = {
     EVP_PKEY_HMAC, EVP_PKEY_HMAC, EVP_PKEY_HMAC, NID_undef,
     /* GOST2012_512 */
     EVP_PKEY_HMAC,
-#ifndef OPENSSL_NO_GMTLS_METHOD
     /* MD5_SHA1, SHA224, SHA512, SM3 */
     NID_undef, NID_undef, NID_undef, EVP_PKEY_HMAC
-#endif
 };
 
 static int ssl_mac_secret_size[SSL_MD_NUM_IDX];
@@ -466,9 +464,10 @@ void ssl_load_ciphers(void)
 #ifdef OPENSSL_NO_EC
     disabled_mkey_mask |= SSL_kECDHEPSK;
     disabled_auth_mask |= SSL_aECDSA;
-# ifdef OPENSSL_NO_GMTLS_METHOD
-   /* do something */                            
-# endif
+#endif
+#ifdef OPENSSL_NO_SM2
+    disabled_mkey_mask |= SSL_kSM2DHEPSK;
+    disabled_auth_mask |= SSL_aSM2;
 #endif
 #ifdef OPENSSL_NO_PSK
     disabled_mkey_mask |= SSL_PSK;
@@ -667,9 +666,8 @@ const EVP_MD *ssl_handshake_md(SSL *s)
 
 const EVP_MD *ssl_prf_md(SSL *s)
 {
-#ifndef OPENSSL_NO_GMTLS_METHOD
-    /* In GM/T 0024, PRF always use SM3 */
-    if (s->version == GMTLS_VERSION)
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s))
         return EVP_sm3();
 #endif
     return ssl_md(ssl_get_algorithm2(s) >> TLS1_PRF_DGST_SHIFT);
@@ -1580,11 +1578,7 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     const char *ver;
     const char *kx, *au, *enc, *mac;
     uint32_t alg_mkey, alg_auth, alg_enc, alg_mac;
-#ifndef OPENSSL_NO_GMTLS
     static const char *format = "%-30s %-10s Kx=%-8s Au=%-6s Enc=%-23s Mac=%-4s\n";
-#else
-    static const char *format = "%-23s %s Kx=%-4s Au=%-4s Enc=%-8s Mac=%-4s\n";
-#endif
 
     if (buf == NULL) {
         len = 128;
@@ -1629,7 +1623,6 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_kGOST:
         kx = "GOST";
         break;
-#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_kSM2:
         kx = "SM2";
         break;
@@ -1645,7 +1638,6 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_kSM9DHE:
         kx = "SM9DHE";
         break;
-#endif
     default:
         kx = "unknown";
     }
@@ -1676,14 +1668,12 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case (SSL_aGOST12 | SSL_aGOST01):
         au = "GOST12";
         break;
-#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_aSM2:
         au = "SM2";
         break;
     case SSL_aSM9:
         au = "SM9";
         break;
-#endif
     default:
         au = "unknown";
         break;
@@ -1748,7 +1738,6 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_CHACHA20POLY1305:
         enc = "CHACHA20/POLY1305(256)";
         break;
-#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_SMS4:
         enc = "SMS4(128)";
         break;
@@ -1770,7 +1759,6 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_SSF33:
         enc = "SSF33(128)";
         break;
-#endif
     default:
         enc = "unknown";
         break;
@@ -1803,11 +1791,9 @@ char *SSL_CIPHER_description(const SSL_CIPHER *cipher, char *buf, int len)
     case SSL_GOST12_512:
         mac = "GOST2012";
         break;
-#ifndef OPENSSL_NO_GMTLS_METHOD
     case SSL_SM3:
         mac = "SM3";
         break;
-#endif
     default:
         mac = "unknown";
         break;
@@ -2012,12 +1998,10 @@ int ssl_cipher_get_cert_index(const SSL_CIPHER *c)
         return SSL_PKEY_GOST_EC;
     else if (alg_a & SSL_aGOST01)
         return SSL_PKEY_GOST01;
-#ifndef OPENSSL_NO_GMTLS_METHOD
     else if (alg_a & SSL_aSM2)
         return SSL_PKEY_SM2_SIGN;
     else if (alg_a & SSL_aSM9)
-        return -1;
-#endif
+        return SSL_PKEY_SM9_SIGN;
     return -1;
 }
 

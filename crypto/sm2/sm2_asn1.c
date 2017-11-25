@@ -71,3 +71,4 @@ int SM2CiphertextValue_size(const EC_GROUP *group, int inlen)
 {
 	return 1024;
 }
+

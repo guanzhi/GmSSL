@@ -153,7 +153,7 @@ SSL_SESSION *ssl_session_dup(SSL_SESSION *src, int ticket)
     if (src->peer != NULL)
         X509_up_ref(src->peer);
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
     if (src->peer_extra != NULL)
         X509_up_ref(src->peer_extra);
 #endif
@@ -764,7 +764,7 @@ void SSL_SESSION_free(SSL_SESSION *ss)
     OPENSSL_cleanse(ss->master_key, sizeof ss->master_key);
     OPENSSL_cleanse(ss->session_id, sizeof ss->session_id);
     X509_free(ss->peer);
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
     X509_free(ss->peer_extra);
 #endif
     sk_X509_pop_free(ss->peer_chain, X509_free);
@@ -899,7 +899,7 @@ X509 *SSL_SESSION_get0_peer(SSL_SESSION *s)
     return s->peer;
 }
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
 X509 *SSL_SESSION_get0_peer_extra(SSL_SESSION *s)
 {
     return s->peer_extra;

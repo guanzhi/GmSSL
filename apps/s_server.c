@@ -1338,13 +1338,13 @@ int s_server_main(int argc, char *argv[])
             min_version = TLS1_VERSION;
             max_version = TLS1_VERSION;
             break;
-#ifndef OPENSSL_NO_GMTLS
         case OPT_GMTLS:
+#ifndef OPENSSL_NO_GMTLS
             meth = GMTLS_server_method();
             //min_version = GMTLS_VERSION;
             //max_version = GMTLS_VERSION;
-            break;
 #endif
+            break;
         case OPT_DTLS:
 #ifndef OPENSSL_NO_DTLS
             meth = DTLS_server_method();
@@ -1501,11 +1501,8 @@ int s_server_main(int argc, char *argv[])
 
         s_cert = load_cert(s_cert_file, s_cert_format,
                            "server certificate file");
-fprintf(stderr, "%s %d: load_cert: %s\n", __FILE__, __LINE__, s_cert_file);
-
         if (!s_cert) {
             ERR_print_errors(bio_err);
-fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             goto end;
         }
         if (s_chain_file) {

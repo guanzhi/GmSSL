@@ -286,7 +286,7 @@ const char *SSL_alert_desc_string(int value)
         return "BH";
     case TLS1_AD_UNKNOWN_PSK_IDENTITY:
         return "UP";
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
     case GMTLS_AD_UNSUPPORTED_SITE2SITE:
         return "U2";
     case GMTLS_AD_NO_AREA:
@@ -370,7 +370,7 @@ const char *SSL_alert_desc_string_long(int value)
         return "unknown PSK identity";
     case TLS1_AD_NO_APPLICATION_PROTOCOL:
         return "no application protocol";
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
     case GMTLS_AD_UNSUPPORTED_SITE2SITE:
         return "unsupported site2site";
     case GMTLS_AD_NO_AREA:

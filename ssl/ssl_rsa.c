@@ -129,6 +129,7 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
         return (0);
     }
 
+#ifndef OPENSSL_NO_SM2
     /* set private key even without keyUsage in cert */
     if (i == SSL_PKEY_SM2_SIGN) {
         if (c->pkeys[SSL_PKEY_SM2_ENC].privatekey)
@@ -140,6 +141,7 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
         else
             i = SSL_PKEY_SM2_SIGN;
     }
+#endif
 
     if (c->pkeys[i].x509 != NULL) {
         EVP_PKEY *pktmp;
@@ -159,8 +161,6 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
         /*
          * Don't check the public/private key, this is mostly for smart
          * cards.
-	 * SM2和EC也可能是智能卡！
-	 *					
          */
         if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA
             && RSA_flags(EVP_PKEY_get0_RSA(pkey)) & RSA_METHOD_FLAG_NO_CHECK) ;

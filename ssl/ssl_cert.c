@@ -504,7 +504,8 @@ STACK_OF(X509_NAME) *SSL_CTX_get_client_CA_list(const SSL_CTX *ctx)
 STACK_OF(X509_NAME) *SSL_get_client_CA_list(const SSL *s)
 {
     if (!s->server) {           /* we are in the client */
-        if (((s->version >> 8) == SSL3_VERSION_MAJOR) && (s->s3 != NULL))
+        if (((s->version >> 8) == SSL3_VERSION_MAJOR || SSL_IS_GMTLS(s))
+            && (s->s3 != NULL))
             return (s->s3->tmp.ca_names);
         else
             return (NULL);
@@ -764,45 +765,6 @@ int ssl_add_cert_to_buf(BUF_MEM *buf, unsigned long *l, X509 *x)
 
     return 1;
 }
-
-/* 输出双证书及CA证书链 */
-/*
-static int ssl_add_sm2_certs(SSL *s, unsigned long *l)
-{
-    BUF_MEM *buf = s->init_buf;
-    CERT_PKEY *sign_cpk = &s->cert->pkeys[SSL_PKEY_SM2_SIGN];
-    CERT_PKEY *enc_cpk = &s->cert->pkeys[SSL_PKEY_SM2_ENC];
-    STACK_OF(X509) *extra_certs;
-    int i;
-
-    if (!BUF_MEM_grow_clean(buf, 10)) {
-        fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
-        return 0;
-    }
-    if (sign_cpk->chain)
-        extra_certs = sign_cpk->chain;
-    else
-        extra_certs = s->ctx->extra_certs;
-
-    if (!ssl_add_cert_to_buf(buf, l, sign_cpk->x509)) {
-        fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
-        return 0;
-    }
-    if (!ssl_add_cert_to_buf(buf, l, enc_cpk->x509)) {
-        fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
-        return 0;
-    }
-
-    for (i = 0; i < sk_X509_num(extra_certs); i++) {
-        if (!ssl_add_cert_to_buf(buf, 1, sk_X509_value(extra_certs, i))) {
-            fprintf(stderr, "-----<error> %s() %s %d\n", __func__, __FILE__, __LINE__);
-            return 0;
-        }
-    }
-
-    return 1;
-}
-*/
 
 /* Add certificate chain to internal SSL BUF_MEM structure */
 int ssl_add_cert_chain(SSL *s, CERT_PKEY *cpk, unsigned long *l)

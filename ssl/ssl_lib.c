@@ -678,6 +678,11 @@ int SSL_is_dtls(const SSL *s)
     return SSL_IS_DTLS(s) ? 1 : 0;
 }
 
+int SSL_is_gmtls(const SSL *s)
+{
+    return SSL_IS_GMTLS(s) ? 1 : 0;
+}
+
 int SSL_up_ref(SSL *s)
 {
     int i;
@@ -2655,7 +2660,7 @@ void ssl_set_masks(SSL *s)
     have_ecc_cert = pvalid[SSL_PKEY_ECC] & CERT_PKEY_VALID;
 #endif
 #ifndef OPENSSL_NO_SM2
-    have_sm2_cert = pvalid[SSL_PKEY_SM2_SIGN] & CERT_PKEY_VALID;
+    have_sm2_cert = pvalid[SSL_PKEY_SM2_ENC] & CERT_PKEY_VALID;
 #endif
     mask_k = 0;
     mask_a = 0;
@@ -2712,13 +2717,18 @@ void ssl_set_masks(SSL *s)
         ecdsa_ok = ex_kusage & X509v3_KU_DIGITAL_SIGNATURE;
         if (!(pvalid[SSL_PKEY_ECC] & CERT_PKEY_SIGN))
             ecdsa_ok = 0;
-        if (ecdsa_ok)
+        if (ecdsa_ok) {
+fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             mask_a |= SSL_aECDSA;
+            mask_a |= SSL_aSM2;//先将就一下
+        }
     }
 #endif
 #ifndef OPENSSL_NO_SM2
+    //这个现在不好用啊！
     if (have_sm2_cert) {
         uint32_t ex_kusage;
+fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
         cpk = &c->pkeys[SSL_PKEY_SM2_SIGN];
         x = cpk->x509;
 	OPENSSL_assert(x);
@@ -2874,7 +2884,7 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
     } else if ((alg_a & SSL_aECDSA) &&
                (c->pkeys[SSL_PKEY_ECC].privatekey != NULL))
         idx = SSL_PKEY_ECC;
-#ifndef OPENSSL_NO_GMTLS_SM2
+#ifndef OPENSSL_NO_SM2
     else if ((alg_a & SSL_aSM2) &&
               (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey != NULL))
         idx = SSL_PKEY_SM2_SIGN;
@@ -3156,10 +3166,8 @@ const char *ssl_protocol_to_string(int version)
         return "DTLSv1";
     else if (version == DTLS1_2_VERSION)
         return "DTLSv1.2";
-#ifndef OPENSSL_NO_GMTLS_METHOD
     else if (version == GMTLS_VERSION)
         return "GMTLSv1.1";
-#endif
     else
         return ("unknown");
 }
