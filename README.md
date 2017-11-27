@@ -2,54 +2,61 @@
 
 [![Build Status](https://travis-ci.org/guanzhi/GmSSL.svg?branch=master)](https://travis-ci.org/guanzhi/GmSSL)
 
-GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM9 and other national secret (national commercial password) algorithm, SM2 digital certificate and SM2 certificate based on SSL / TLS secure communication protocol to support the national security hardware password device , To provide in line with the national standard programming interface and command line tools, can be used to build PKI / CA, secure communication, data encryption and other standards in line with national security applications. The GmSSL project is a branch of the [OpenSSL](https://www.openssl.org)project and is compatible with OpenSSL. So GmSSL can replace the application of OpenSSL components, and make the application automatically with national security capabilities. The GmSSL project utilizes a business-friendly BSD open source license, open source and can be used for closed source commercial applications. GmSSL project by the Peking University [Guan Zhi](http://infosec.pku.edu.cn/~guanzhi/)deputy researcher of the cryptography research group development and maintenance, the project source code hosted in [GitHub](https://github.com /guanzhi/GmSSL). Since its release in 2014, GmSSL has been deployed and applied in multiple projects and products, and has won the second prize of the "One Cup" China Linux Software Contest in 2015 (the highest award) and [Open Source China](https://www.oschina.net/p/GmSSL) password class recommended items. The core goal of the GmSSL project is to promote the construction of cyberspace security through open source cryptography.
-
-In 2014, the GmSSL (http://gmssl.org) project is released to provide open source implementations of Chinese GM cryptography standards.
-Now, GmSSL is the most popular open source GM cryptography toolkit in China.
-GmSSL team are helping big companies to transfer from International standards to national standards
-
-
-
-## Latest News
-
-- February 15, 2017  rename master to gmssl-v1，current master branch migrate to OpenSSL-1.1.0。
-- February 12, 2017 Java wrapper support for full crypto library  [GmSSL-Java-Wrapper](http://gmssl.org/docs/java-api.html)
-- January 18, 2017 Updated the project home page
-- [More ...](http://gmssl.org/docs/changelog.html)
-
-## Algorithm
-
- - ZUC stream cipher, defined in GM/T 0001-2012
- - SM4 block cipher with 128-bit key length and 128-bit block size, defined in GM/T 0002-2012
- - SM3 Digest Algorithm with 256-bit digest length and 512-bit block size, defined in GM/T 0004-2012
- - SM2 ellptic curve cryptography and 256-bit prime field recommended domain parameters, defined in GM/T 0003-2012
- - SM9 pairing-based cryptography and recommended BN-curve, defined in GM/T 0046-2016
- - SM1 block cipher with 128-bit key length and 128-bit block size, only provided with chip
- - SSF33 block cipher with 128-bit key length and 128-bit block size, only provided by chip
-
-## Programming Interfaces
-
- - SKF C API (GM/T 0016-2012) Smart token cryptography application interface specification.
- - SDF C API (GM/T 0018-2012) Interface specifications of cryptography device application.
- - SAF C API (GM/T 0019-2012) Universal cryptography service interface specification.
- - SOF C/Java API (GM/T 0020-2012) Certificate application integrated service interface specification.
-
-## Protocols
-
- - One-time password scheme based on SM3 and SM4
- - SSL VPN protocol with RSA/SM2/SM9-SM4-SM3 cipher suites
- - IPSec VPN protocol
+GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
 ## Features
 
- - Support Chinese
- - Full support of Chinese GM Cryptography Standards
- - Support Chinese cryptographic hardwares (HSMs).
- - Commercial friendly BSD-style open source license.
- - Support SSL protocols
- - Compatible with OpenSSL, all OpenSSL functionalities preserved.
+* Support Chinese
+* BSD-style license
+* Full support of Chinese GM Cryptography Standards
+* Support Chinese cryptographic hardwares (HSMs).
+* Commercial friendly BSD-style open source license.
 
-The secret algorithm is the abbreviation of the national commercial cryptographic algorithm. Since 2012, the National Password Authority to the "People's Republic of China password industry standard" approach, have announced the SM2 / SM3 / SM4 and other cryptographic algorithm standards and application specifications. Which "SM" on behalf of "business secret", that is used for commercial, not involving state secrets of the password technology. SM2 is a public key cryptography algorithm based on elliptic curve cryptography, including digital signature, key exchange and public key encryption. It is used to replace international algorithms such as RSA / Diffie-Hellman / ECDSA / ECDH. SM3 is password hash algorithm, SM4 is a block cipher used to replace DES / AES and other international algorithms. SM9 is an identity-based cryptographic algorithm that can replace PKI / CA based on digital certificate. By deploying the secret algorithm, you can reduce the security risks caused by weak passwords and bug implementations and the overhead of deploying PKI / CA.
+## Supported Algorithms
+
+ - **SM3** cryptographic hash function with 256-bit digest length specified in GM/T 0004-2012.
+ - **SM4** block cipher with 128-bit key length and 128-bit block size specified in GM/T 0002-2012.
+ - **SM2** elliptic curve cryptographic schemes including digital signature scheme, public key encryption, (authenticated) key exchange protocol and one recommended 256-bit prime field curve specified in GM/T 0003-2012.
+ - **SM9** pairing-based cryptographic schemes including identity-based digital signature, encryption, (authenticated) key exchange protocol and one 256-bit recommended BN curve, defined in GM/T 0046-2016.
+ - **ZUC** stream cipher, **128-EEA3** encryption algorithm and **128-EIA3** integrity algorithm specified in GM/T 0001-2012.
+ - **SM1** and **SSF33** block ciphers with 128-bit key length and 128-bit block size without public specification, only provided with chip.
+
+## GM/T SSL Protocol
+
+| #    | GM/T Name       | GmSSL Name                     |             |
+| ---- | --------------- | ------------------------------ | ----------- |
+| 1    | `ECDHE_SM1_SM3` | `SM2DHE_SM2SIGN_WITH_SM1_SM3`  | {0xe0,0x01} |
+| 2    | `ECC_SM1_SM3`   | `SM2ENC_WITH_SM1_SM3`          | {0xe0,0x03} |
+| 3    | `IBSDH_SM1_SM3` | `SM9DHE_SM9SIGN_WITH_SM1_SM3`  | {0xe0,0x05} |
+| 4    | `IBC_SM1_SM3`   | `SM9ENC_WITH_SM1_SM3`          | {0xe0,0x07} |
+| 5    | `RSA_SM1_SM3`   | `RSA_WITH_SM1_SM3`             | {0xe0,0x09} |
+| 6    | `RSA_SM1_SHA1`  | `RSA_WITH_SM1_SHA1`            | {0xe0,0x0a} |
+| 7    | `ECDHE_SM4_SM3` | `SM2DHE_SM2SIGN_WITH_SMS4_SM3` | {0xe0,0x11} |
+| 8    | `ECC_SM4_SM3`   | `SM2ENC_WITH_SMS4_SM3`         | {0xe0,0x13} |
+| 9    | `IBSDH_SM4_SM3` | `SM3DHE_SM9SIGN_WITH_SMS4_SM3` | {0xe0,0x15} |
+| 10   | `IBC_SM4_SM3`   | `SM9ENC_WITH_SMS4_SM3`         | {0xe0,0x17} |
+| 11   | `RSA_SM4_SM3`   | `RSA_WITH_SMS4_SM3`            | {0xe0,0x19} |
+| 12   | `RSA_SM4_SHA1`  | `RSA_WITH_SMS4_SM3`            | {0xe0,0x1a} |
+
+TLS 1.2 cipher suites:
+
+
+## Programming Interfaces
+
+Except for the native C interface and the `gmssl` command line, GmSSL also provide the following interfaces:
+
+ - **SKF** C API GM/T 0016-2012 Smart token cryptography application interface specification.
+ - **SDF** C API GM/T 0018-2012 Interface specifications of cryptography device application.
+ - **SAF** C API GM/T 0019-2012 Universal cryptography service interface specification.
+ - **SOF** C/Java API GM/T 0020-2012 Certificate application integrated service interface specification.
+ - **Java** crypto, X.509 and SSL API through JNI (Java Native Interface).
+ - **Go** crypto, X.509 and SSL API through CGO.
+
+## Supported Cryptographic Hardwares
+
+ - USB-Key through **SKF ENGINE** and the SKF API.
+ - PCI-E card through **SDF ENGINE** and the SDF API.
+ - GM Instruction sets (SM3/SM4) through **GMI ENGINE**.
 
 ## Quick Start
 
