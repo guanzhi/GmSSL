@@ -399,7 +399,7 @@ static int found(const char *name, const OPT_PAIR *pairs, int *result)
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
     OPT_ELAPSED, OPT_EVP, OPT_DECRYPT, OPT_ENGINE, OPT_MULTI,
-    OPT_MR, OPT_MB, OPT_MISALIGN, OPT_ASYNCJOBS
+    OPT_MR, OPT_MB, OPT_MISALIGN, OPT_ASYNCJOBS, OPT_NOPRE
 } OPTION_CHOICE;
 
 OPTIONS speed_options[] = {
@@ -409,6 +409,7 @@ OPTIONS speed_options[] = {
     {"evp", OPT_EVP, 's', "Use specified EVP cipher"},
     {"decrypt", OPT_DECRYPT, '-',
      "Time decryption instead of encryption (only EVP)"},
+    {"nopre", OPT_NOPRE, '-', "Disable pre-compute"},
     {"mr", OPT_MR, '-', "Produce machine readable output"},
     {"mb", OPT_MB, '-',
      "Enable (tls1.1) multi-block mode on evp_cipher requested with -evp"},
@@ -1408,6 +1409,7 @@ int speed_main(int argc, char **argv)
     double d = 0.0;
     OPTION_CHOICE o;
     int multiblock = 0, pr_header = 0;
+    int nopre = 0;
     int doit[ALGOR_NUM] = { 0 };
     int ret = 1, i, k, misalign = 0;
     long count = 0;
@@ -1633,6 +1635,9 @@ int speed_main(int argc, char **argv)
                        prog);
             goto end;
 #endif
+            break;
+        case OPT_NOPRE:
+            nopre = 1;
             break;
         }
     }
@@ -2771,7 +2776,8 @@ int speed_main(int argc, char **argv)
             rsa_count = 1;
         } else {
             for (i = 0; i < loopargs_len; i++) {
-                EC_KEY_precompute_mult(loopargs[i].ecdsa[testnum], NULL);
+                if (!nopre)
+                    EC_KEY_precompute_mult(loopargs[i].ecdsa[testnum], NULL);
                 /* Perform ECDSA signature test */
                 EC_KEY_generate_key(loopargs[i].ecdsa[testnum]);
                 st = ECDSA_sign(0, loopargs[i].buf, 20, loopargs[i].buf2,
@@ -2953,7 +2959,8 @@ int speed_main(int argc, char **argv)
             rsa_count = 1;
         } else {
             for (i = 0; i < loopargs_len; i++) {
-                EC_KEY_precompute_mult(loopargs[i].sm2[testnum], NULL);
+                if (!nopre)
+                    EC_KEY_precompute_mult(loopargs[i].sm2[testnum], NULL);
                 /* Perform SM2 signature test */
                 EC_KEY_generate_key(loopargs[i].sm2[testnum]);
                 st = SM2_sign(0, loopargs[i].buf, 32, loopargs[i].buf2,
@@ -3039,7 +3046,8 @@ int speed_main(int argc, char **argv)
             rsa_count = 1;
         } else {
             for (i = 0; i < loopargs_len; i++) {
-                EC_KEY_precompute_mult(loopargs[i].sm2[testnum], NULL);
+                if (!nopre)
+                    EC_KEY_precompute_mult(loopargs[i].sm2[testnum], NULL);
                 /* Perform SM2 encryption test */
                 EC_KEY_generate_key(loopargs[i].sm2[testnum]);
                 st = SM2_encrypt(NID_sm3, loopargs[i].buf, 32, loopargs[i].buf2,

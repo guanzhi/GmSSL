@@ -1193,3 +1193,7 @@ kx_sm9dhe		1192
 zuc_128eea3		1193
 zuc_128eia3		1194
 pbe_WithSM3AndSMS4_CBC		1195
+bwips		1196
+wapi_crypto		1197
+wapi_ec		1198
+wapi_ecdsa192_sha256		1199

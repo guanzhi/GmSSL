@@ -4,6 +4,12 @@
 
 GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM9 and other national secret (national commercial password) algorithm, SM2 digital certificate and SM2 certificate based on SSL / TLS secure communication protocol to support the national security hardware password device , To provide in line with the national standard programming interface and command line tools, can be used to build PKI / CA, secure communication, data encryption and other standards in line with national security applications. The GmSSL project is a branch of the [OpenSSL](https://www.openssl.org)project and is compatible with OpenSSL. So GmSSL can replace the application of OpenSSL components, and make the application automatically with national security capabilities. The GmSSL project utilizes a business-friendly BSD open source license, open source and can be used for closed source commercial applications. GmSSL project by the Peking University [Guan Zhi](http://infosec.pku.edu.cn/~guanzhi/)deputy researcher of the cryptography research group development and maintenance, the project source code hosted in [GitHub](https://github.com /guanzhi/GmSSL). Since its release in 2014, GmSSL has been deployed and applied in multiple projects and products, and has won the second prize of the "One Cup" China Linux Software Contest in 2015 (the highest award) and [Open Source China](https://www.oschina.net/p/GmSSL) password class recommended items. The core goal of the GmSSL project is to promote the construction of cyberspace security through open source cryptography.
 
+In 2014, the GmSSL (http://gmssl.org) project is released to provide open source implementations of Chinese GM cryptography standards.
+Now, GmSSL is the most popular open source GM cryptography toolkit in China.
+GmSSL team are helping big companies to transfer from International standards to national standards
+
+
+
 ## Latest News
 
 - February 15, 2017  rename master to gmssl-v1，current master branch migrate to OpenSSL-1.1.0。
@@ -11,154 +17,100 @@ GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM
 - January 18, 2017 Updated the project home page
 - [More ...](http://gmssl.org/docs/changelog.html)
 
-## SM Crypto Algorithm
+## Algorithm
+
+ - ZUC stream cipher, defined in GM/T 0001-2012
+ - SM4 block cipher with 128-bit key length and 128-bit block size, defined in GM/T 0002-2012
+ - SM3 Digest Algorithm with 256-bit digest length and 512-bit block size, defined in GM/T 0004-2012
+ - SM2 ellptic curve cryptography and 256-bit prime field recommended domain parameters, defined in GM/T 0003-2012
+ - SM9 pairing-based cryptography and recommended BN-curve, defined in GM/T 0046-2016
+ - SM1 block cipher with 128-bit key length and 128-bit block size, only provided with chip
+ - SSF33 block cipher with 128-bit key length and 128-bit block size, only provided by chip
+
+## Programming Interfaces
+
+ - SKF C API (GM/T 0016-2012) Smart token cryptography application interface specification.
+ - SDF C API (GM/T 0018-2012) Interface specifications of cryptography device application.
+ - SAF C API (GM/T 0019-2012) Universal cryptography service interface specification.
+ - SOF C/Java API (GM/T 0020-2012) Certificate application integrated service interface specification.
+
+## Protocols
+
+ - One-time password scheme based on SM3 and SM4
+ - SSL VPN protocol with RSA/SM2/SM9-SM4-SM3 cipher suites
+ - IPSec VPN protocol
+
+## Features
+
+ - Support Chinese
+ - Full support of Chinese GM Cryptography Standards
+ - Support Chinese cryptographic hardwares (HSMs).
+ - Commercial friendly BSD-style open source license.
+ - Support SSL protocols
+ - Compatible with OpenSSL, all OpenSSL functionalities preserved.
 
 The secret algorithm is the abbreviation of the national commercial cryptographic algorithm. Since 2012, the National Password Authority to the "People's Republic of China password industry standard" approach, have announced the SM2 / SM3 / SM4 and other cryptographic algorithm standards and application specifications. Which "SM" on behalf of "business secret", that is used for commercial, not involving state secrets of the password technology. SM2 is a public key cryptography algorithm based on elliptic curve cryptography, including digital signature, key exchange and public key encryption. It is used to replace international algorithms such as RSA / Diffie-Hellman / ECDSA / ECDH. SM3 is password hash algorithm, SM4 is a block cipher used to replace DES / AES and other international algorithms. SM9 is an identity-based cryptographic algorithm that can replace PKI / CA based on digital certificate. By deploying the secret algorithm, you can reduce the security risks caused by weak passwords and bug implementations and the overhead of deploying PKI / CA.
 
-## 2.0 New Features
-
- * Based on OpenSSL 1.1.x
- * SM2 signature generation with Z values
- * Frameworks and engines to support SKF/SDF HSMs
- * TLS with SM2/SM3/SMS4 cipher suites
-
 ## Quick Start
 
-Quick Start Guide describes the basic instructions for compiling, installing, and `gmssl` command line tools for GmSSL.
+This short guide describes the build, install and typical usage of the `gmssl` command line tool. Visit http://gmssl.org for more documents.
 
-1. Download the source code ([zip](https://github.com/guanzhi/GmSSL/archive/master.zip))，unzip it to current directory.
+1. Download the source code ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip)) and uncompress the ZIP file.
+2. Compile and install on Linux and Mac OS X
 
+```sh
+$ ./config
+$ make
+$ sudo make install
+```
+   Compile and install on Windows
 
-   ```sh
-   $ tar xzvf gmssl-<version>.tar.gz
-   ```
+```bash
+> perl Configure VC-WIN32
+> nmake
+> nmake install
+```
 
-2. Compile and install
+​	After installation, you can run `gmssl version -a` to print the detailed information of gmssl.
 
-   Linux (Other platform see [Compile and instal](http://gmssl.org))
+3. Encrypt and decrypt with SM4 and password
 
-   ```sh
-   $ ./config
-   $ make
-   $ sudo make install
-   ```
-
-   After installation, you can execute the `gmssl` command line tool to check for success
-
-   ```sh
-   $ gmssl version
-   GmSSL 1.3.0 - OpenSSL 1.0.2d
-   ```
-
-3. SM4 encrypt file
-
-   ```sh
-   $ gmssl sms4 -e -in <yourfile> -out <yourfile>.sms4
-   enter sms4-cbc encryption password: <your-password>
-   Verifying - enter sms4-cbc encryption password: <your-password>
-   ```
-
-   decrypt
-
-   ```sh
-   $ gmssl sms4 -d -in <yourfile>.sms4
-   enter sms4-cbc decryption password: <your-password>
-   ```
+```sh
+$ echo -n abc | gmssl sms4 -out ciphertext.bin
+$ gmssl sms4 -d -in ciphertext.sms4
+```
 
 4. Generate SM3 digest
 
-   ```
-   $ gmssl sm3 <yourfile>
-   SM3(yourfile)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
-   ```
+```
+$ echo -n abc | gmssl sm3
+(stdin)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
+```
 
-5. Generate SM2 key and sign
+5. Generate SM2 keypair
 
-   ```sh
-   $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 \
-                   -pkeyopt ec_param_enc:named_curve  -out signkey.pem
-   $ gmssl pkeyutl -sign -pkeyopt ec_sign_algor:sm2 -inkey signkey.pem \
-                   -in <yourfile> -out <yourfile>.sig
-   ```
+```sh
+$ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out skey.pem
+$ gmssl pkey -pubout -in skey.pem -out pkey.pem
+```
 
-   You can export the public key from `signkey.pem` to the party that issued the signature
+6. Generate SM2 signature (in DER format) and verify
 
-   ```sh
-   $ gmssl pkey -pubout -in signkey.pem -out vrfykey.pem
-   $ gmssl pkeyutl -verify -pkeyopt ec_sign_algor:sm2 -pubin -inkey vrfykey.pem \
-                   -in <yourfile> -sigfile <yourfile>.sig
-   ```
+```sh
+$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in msg.txt -out msg.sig
+$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm_scheme -pubin -inkey vrfykey.pem -in <yourfile> -sigfile <yourfile>.sig
+```
 
-6. Generate self-signed certificate 
+7. Do public key encryption and decryption
 
-   ```sh
-   $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 \
-                   -pkeyopt ec_param_enc:named_curve -out ca.key
-   $ gmssl req -sm3 -new -x509 -days 365 -key ca.key -out ca.crt
-   ```
+```sh
+$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in msg.txt -out msg.sig
+$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm_scheme -pubin -inkey vrfykey.pem -in <yourfile> -sigfile <yourfile>.sig
+```
 
-## Project documentation
+8. Generate a self-signed certificate from private key
 
-   - User manual
+```sh
+$ gmssl req -new -x509 -key skey.pem -out cert.pem
+```
 
-      * [Compile and install](http://gmssl.org/docs/install.html)
-
-      * [Command line tool manual](http://gmssl.org/docs/commands.html)
-
-      * [GmSSL EVP API](http://gmssl.org/docs/evp-api.html)
-
-      * [GmSSL Java API](http://gmssl.org/docs/java-api.html)
-
-   - Password algorithm
-
-      * [SM1 group password](http://gmssl.org/docs/sm1.html)
-
-      * [SSF33 group password](http://gmssl.org/docs/ssf33.html)
-
-      * [SM2 elliptic curve public key password](http://gmssl.org/docs/sm2.html)
-
-      * [SM3 password hash algorithm](http://gmssl.org/docs/sm3.html)
-
-      * [SM4 / SMS4 group password](http://gmssl.org/docs/sm4.html)
-
-      * [SM9 identity-based password](http://gmssl.org/docs/sm9.html)
-
-      * [ZUC sequence password](http://gmssl.org/docs/zuc.html)
-
-      * [CPK combination public key password](http://gmssl.org/docs/cpk.html)
-
-      * [BF-IBE (Boneh-Franklin Identity-Based Encryption)](http://gmssl.org/docs/bfibe.html)
-
-      * [BB-IBE (Boneh-Boyen Identity-Based Encryption)](http://gmssl.org/docs/bb1ibe.html)
-
-   - password hardware
-
-      * [Password hardware support](http://gmssl.org/docs/crypto-devices.html)
-
-      * [Country density SKF password hardware](http://gmssl.org/docs/skf.html)
-
-      * [National secret SDF password hardware](http://gmssl.org/docs/sdf.html)
-
-      * [Key management service](http://gmssl.org/docs/keyservice.html)
-
-   - Security protocol
-
-      * [SSL / TLS protocol](http://gmssl.org/docs/ssl.html)
-
-      * [National secret SSL VPN protocol](http://gmssl.org/docs/sslvpn.html)
-
-      * [National secret IPSec VPN protocol](http://gmssl.org/docs/ipsecvpn.html)
-
-   - Developer
-
-      * [GmSSL Coding Style](http://gmssl.org/docs/gmssl-coding-style.html)
-
-      * [Roadmap](http://gmssl.org/docs/roadmap.html)
-
-      * [Open source license (GmSSL Licenses)](http://gmssl.org/docs/licenses.html)
-
-   - Standards and norms
-
-      * [People's Republic of China password industry standard](http://gmssl.org/docs/standards.html)
-
-      * [National secret algorithm identification OID](http://gmssl.org/docs/oid.html)

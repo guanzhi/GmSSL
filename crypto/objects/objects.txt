@@ -1595,7 +1595,7 @@ sm-scheme 301		: sm2p256v1
 sm-scheme 301 1		: sm2sign
 sm-scheme 301 2		: sm2exchange
 sm-scheme 301 3		: sm2encrypt
-sm-scheme 301 101	: wapip192v1
+#sm-scheme 301 101	: wapip192v1
 
 sm2encrypt 1		: sm2encrypt-recommendedParameters
 sm2encrypt 2		: sm2encrypt-specifiedParameters
@@ -1662,4 +1662,11 @@ cpk-map 2		: cpk-sha256-map
 cpk-map 3		: cpk-sm3-map
 
 GmSSL 21		: paillier
+
+# WAPI (GB 15629.11-2003-XG1-2006)
+ISO-CN 11235		: bwips
+bwips 1			: wapi-crypto
+wapi-crypto 1		: wapi-ec
+wapi-ec 1		: wapi-ecdsa192-sha256
+wapi-ec 2 1		: wapip192v1
 

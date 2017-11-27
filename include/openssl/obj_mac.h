@@ -4940,10 +4940,6 @@
 #define NID_sm2encrypt          1119
 #define OBJ_sm2encrypt          OBJ_sm_scheme,301L,3L
 
-#define SN_wapip192v1           "wapip192v1"
-#define NID_wapip192v1          1135
-#define OBJ_wapip192v1          OBJ_sm_scheme,301L,101L
-
 #define SN_sm2encrypt_recommendedParameters             "sm2encrypt-recommendedParameters"
 #define NID_sm2encrypt_recommendedParameters            1120
 #define OBJ_sm2encrypt_recommendedParameters            OBJ_sm2encrypt,1L
@@ -5156,3 +5152,23 @@
 #define SN_paillier             "paillier"
 #define NID_paillier            1148
 #define OBJ_paillier            OBJ_GmSSL,21L
+
+#define SN_bwips                "bwips"
+#define NID_bwips               1196
+#define OBJ_bwips               OBJ_ISO_CN,11235L
+
+#define SN_wapi_crypto          "wapi-crypto"
+#define NID_wapi_crypto         1197
+#define OBJ_wapi_crypto         OBJ_bwips,1L
+
+#define SN_wapi_ec              "wapi-ec"
+#define NID_wapi_ec             1198
+#define OBJ_wapi_ec             OBJ_wapi_crypto,1L
+
+#define SN_wapi_ecdsa192_sha256         "wapi-ecdsa192-sha256"
+#define NID_wapi_ecdsa192_sha256                1199
+#define OBJ_wapi_ecdsa192_sha256                OBJ_wapi_ec,1L
+
+#define SN_wapip192v1           "wapip192v1"
+#define NID_wapip192v1          1135
+#define OBJ_wapip192v1          OBJ_wapi_ec,2L,1L
