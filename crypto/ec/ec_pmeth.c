@@ -118,11 +118,11 @@ static void pkey_ec_cleanup(EVP_PKEY_CTX *ctx)
         EC_GROUP_free(dctx->gen_group);
         EC_KEY_free(dctx->co_key);
         OPENSSL_free(dctx->kdf_ukm);
-        OPENSSL_free(dctx);
 #ifndef OPENSSL_NO_SM2
         OPENSSL_free(dctx->signer_id);
         OPENSSL_free(dctx->signer_zid);
 #endif
+        OPENSSL_free(dctx);
     }
 }
 
