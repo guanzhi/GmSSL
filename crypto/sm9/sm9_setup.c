@@ -51,6 +51,7 @@
 #include <openssl/sm9.h>
 #include "sm9_lcl.h"
 
+//TODO: `hid` should be add to arguments
 int SM9_setup_type1curve(const EC_GROUP *group, const EVP_MD *md,
 	SM9PublicParameters **pmpk, SM9MasterSecret **pmsk)
 {
@@ -214,7 +215,7 @@ end:
 	return ret;
 }
 
-int SM9_setup_by_pairing_name(int nid,
+int SM9_setup_by_pairing_name(int nid, int hid,
 	SM9PublicParameters **mpk, SM9MasterSecret **msk)
 {
 	EC_GROUP *group = EC_GROUP_new_sm9s256t1();

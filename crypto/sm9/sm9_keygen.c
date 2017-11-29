@@ -53,6 +53,11 @@
 #include <openssl/ec_type1.h>
 #include "sm9_lcl.h"
 
+static int SM9PublicParameters_get_usage(SM9PublicParameters *mpk)
+{
+	//FIXME
+	return SM9_HID_SIGN;
+}
 
 SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
 	SM9MasterSecret *msk, const char *id, size_t idlen)
@@ -66,6 +71,8 @@ SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
 	const EVP_MD *md;
 	int point_form = POINT_CONVERSION_UNCOMPRESSED;
 	size_t size;
+
+	int hid = SM9PublicParameters_get_usage(mpk);
 
 	if (!mpk || !msk || !id) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY,
@@ -111,7 +118,7 @@ SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
 	}
 
 	/* h = H1(ID||HID) in [0, mpk->order] */
-	if (!SM9_hash1(md, &h, id, idlen, SM9_HID, mpk->order, bn_ctx)) {
+	if (!SM9_hash1(md, &h, id, idlen, hid, mpk->order, bn_ctx)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_SM9_LIB);
 		goto end;
 	}

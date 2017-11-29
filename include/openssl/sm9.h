@@ -62,6 +62,11 @@
 #define SM9_MAX_ID_BITS		65535
 #define SM9_MAX_ID_LENGTH	(SM9_MAX_ID_BITS/8)
 
+/* private key extract algorithms */
+#define SM9_HID_SIGN		0x01
+#define SM9_HID_EXCH		0x02
+#define SM9_HID_ENC		0x03
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -73,21 +78,13 @@ typedef struct SM9PrivateKey_st SM9PrivateKey;
 typedef struct SM9Ciphertext_st SM9Ciphertext;
 typedef struct SM9Signature_st SM9Signature;
 
-int SM9_setup_by_pairing_name(int nid,
-	SM9PublicParameters **mpk,
-	SM9MasterSecret **msk);
+int SM9_setup_by_pairing_name(int nid, int hid,
+	SM9PublicParameters **mpk, SM9MasterSecret **msk);
 
 SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
-	SM9MasterSecret *msk,
-	const char *id, size_t idlen);
+	SM9MasterSecret *msk, const char *id, size_t idlen);
 
-SM9PublicKey *SM9_extract_sign_public_key(SM9PublicParameters *mpk,
-	const char *id, size_t idlen);
-
-SM9PublicKey *SM9_extract_exch_public_key(SM9PublicParameters *mpk,
-	const char *id, size_t idlen);
-
-SM9PublicKey *SM9_extract_enc_public_key(SM9PublicParameters *mpk,
+SM9PublicKey *SM9_extract_public_key(SM9PublicParameters *mpk,
 	const char *id, size_t idlen);
 
 SM9PublicKey *SM9PrivateKey_get_public_key(SM9PublicParameters *mpk,

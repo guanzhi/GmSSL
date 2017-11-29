@@ -54,21 +54,23 @@
 #include <openssl/sm9.h>
 
 /* Curve ID */
-/* 一个字节表示的曲线类型 */
-#define SM9_CID_TYPE0CURVE	0x10 /* Fp上的常曲线 */
-#define SM9_CID_TYPE1CURVE	0x11 /* Fp上的超奇异曲线 */
-#define SM9_CID_TYPE2CURVE	0x12 /* Fp上常曲线及其扭曲线 */
+/* non-supersingular curve over Fp */
+#define SM9_CID_TYPE0CURVE	0x10
+/* supersingular curve over Fp */
+#define SM9_CID_TYPE1CURVE	0x11
+/* twist curve over Fp */
+#define SM9_CID_TYPE2CURVE	0x12
 
-/* Pairing ID */
-/* 一个字节表示的双线性对类型 */
+/* Pairing Type */
 #define SM9_EID_TATE		0x01
 #define SM9_EID_WEIL		0x02
 #define SM9_EID_ATE		0x03
-#define SM9_EID_RATE		0x04
+#define SM9_EID_R_ATE		0x04
 
-/* not clear what it is */
-/* 一个字节的签名私钥生成函数标识符 */
-#define SM9_HID			0xc9
+/* phi() with different embedded degree */
+#define SM9_PHI_D2		0x02
+#define SM9_PHI_D4		0x04
+#define SM9_PHI_D6		0x06
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,9 +98,6 @@ struct SM9MasterSecret_st {
 	BIGNUM *masterSecret;
 };
 
-/* 签名算法中公钥为G2上的点
- * 密钥交换和加密中为G1上的点
- */
 struct SM9PublicKey_st {
 	ASN1_OCTET_STRING *publicPoint;
 };
@@ -117,7 +116,6 @@ struct SM9Signature_st {
 	BIGNUM *h;
 	ASN1_OCTET_STRING *pointS;
 };
-
 
 int SM9_hash1(const EVP_MD *md, BIGNUM **r,
 	const char *id, size_t idlen, unsigned char hid,

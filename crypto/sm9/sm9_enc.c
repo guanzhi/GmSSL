@@ -199,7 +199,7 @@ int SM9_wrap_key(SM9PublicParameters *mpk, size_t keylen,
 	}
 
 	/* h = H1(ID||hid) in range [0, mpk->order] */
-	if (!SM9_hash1(md, &h, id, idlen, SM9_HID, mpk->order, bn_ctx)) {
+	if (!SM9_hash1(md, &h, id, idlen, SM9_HID_ENC, mpk->order, bn_ctx)) {
 		SM9err(SM9_F_SM9_WRAP_KEY, SM9_R_HASH_FAILURE);
 		goto end;
 	}
@@ -1061,8 +1061,10 @@ int SM9_encrypt(SM9PublicParameters *mpk, const SM9EncParameters *encparams,
 		goto end;
 	}
 
+	//TODO: ret!!
+
 end:
-	return 0;
+	return ret;
 }
 
 int SM9_decrypt(SM9PublicParameters *mpk, const SM9EncParameters *encparams,

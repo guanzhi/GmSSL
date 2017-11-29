@@ -333,7 +333,7 @@ int SM9_do_verify_type1curve(SM9PublicParameters *mpk,
 	}
 
 	/* h1 = H1(ID||hid) to range [0, mpk->order) */
-	if (!SM9_hash1(md, &h1, id, idlen, SM9_HID, mpk->order, bn_ctx)) {
+	if (!SM9_hash1(md, &h1, id, idlen, SM9_HID_SIGN, mpk->order, bn_ctx)) {
 		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_SM9_LIB);
 		goto end;
 	}
