@@ -2642,7 +2642,7 @@ void ssl_set_masks(SSL *s)
     X509 *x = NULL;
 #endif
 #ifndef OPENSSL_NO_SM2
-    int have_sm2_cert, sm2sign_ok;
+    int sm2_enc, sm2_sign;
 #endif
     if (c == NULL)
         return;
@@ -2660,7 +2660,8 @@ void ssl_set_masks(SSL *s)
     have_ecc_cert = pvalid[SSL_PKEY_ECC] & CERT_PKEY_VALID;
 #endif
 #ifndef OPENSSL_NO_SM2
-    have_sm2_cert = pvalid[SSL_PKEY_SM2_ENC] & CERT_PKEY_VALID;
+    sm2_enc = pvalid[SSL_PKEY_SM2_ENC] & CERT_PKEY_VALID;
+    sm2_sign = pvalid[SSL_PKEY_SM2_SIGN] & CERT_PKEY_SIGN;
 #endif
     mask_k = 0;
     mask_a = 0;
@@ -2725,10 +2726,15 @@ fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     }
 #endif
 #ifndef OPENSSL_NO_SM2
-    //这个现在不好用啊！
-    if (have_sm2_cert) {
+    if (sm2_enc) {
+        mask_k |= SSL_kSM2;
+    }
+    if (sm2_sign) {
+        mask_a |= SSL_aSM2;
+    }
+/*
+    {
         uint32_t ex_kusage;
-fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
         cpk = &c->pkeys[SSL_PKEY_SM2_SIGN];
         x = cpk->x509;
 	OPENSSL_assert(x);
@@ -2739,6 +2745,7 @@ fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
         if (sm2sign_ok)
             mask_a |= SSL_aSM2;
     }
+*/
 #endif
 
 #ifndef OPENSSL_NO_EC
@@ -2886,8 +2893,10 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
         idx = SSL_PKEY_ECC;
 #ifndef OPENSSL_NO_SM2
     else if ((alg_a & SSL_aSM2) &&
-              (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey != NULL))
+              (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey != NULL)) {
         idx = SSL_PKEY_SM2_SIGN;
+fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+    }
 #endif
     if (idx == -1) {
         SSLerr(SSL_F_SSL_GET_SIGN_PKEY, ERR_R_INTERNAL_ERROR);

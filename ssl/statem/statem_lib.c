@@ -22,9 +22,7 @@
 #include <openssl/objects.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
-#ifndef OPENSSL_NO_GMTLS
 #include <openssl/x509v3.h>
-#endif
 
 /*
  * send s->init_buf in records of type 'type' (SSL3_RT_HANDSHAKE or
@@ -517,6 +515,23 @@ int tls_get_message_body(SSL *s, unsigned long *len)
     return 1;
 }
 
+#ifndef OPENSSL_NO_SM2
+static int ssl_cert_type_ecc(const X509 *x, const EVP_PKEY *pk)
+{
+    if (x && X509_get_signature_nid(x) == NID_sm2sign) {
+        if (X509_get_key_usage((X509 *)x) & X509v3_KU_DIGITAL_SIGNATURE)
+            return SSL_PKEY_SM2;
+        else
+            return SSL_PKEY_SM2_ENC;
+    }
+    if (EC_GROUP_get_curve_name(EC_KEY_get0_group(
+        (EC_KEY *)EVP_PKEY_get0(pk))) == NID_sm2p256v1) {
+        return SSL_PKEY_SM2;
+    }
+    return SSL_PKEY_ECC;
+}
+#endif
+
 int ssl_cert_type(const X509 *x, const EVP_PKEY *pk)
 {
     if (pk == NULL && (pk = X509_get0_pubkey(x)) == NULL)
@@ -531,27 +546,11 @@ int ssl_cert_type(const X509 *x, const EVP_PKEY *pk)
         return SSL_PKEY_DSA_SIGN;
 #ifndef OPENSSL_NO_EC
     case EVP_PKEY_EC:
-#ifndef OPENSSL_NO_GMTLS
-/*			
-在use_cert时，调用方提供证书，因此可以根据keyUsage选择公钥类型
-但是use_key时，没有证书，因此这个函数只能做一个猜测
-如果这两者并不一致时，就出现错误了！
-*/
-        if (EC_GROUP_get_curve_name(EC_KEY_get0_group(
-            (EC_KEY *)EVP_PKEY_get0(pk))) == NID_sm2p256v1) {
-            if (x) {
-                if (X509_get_key_usage((X509 *)x) & X509v3_KU_DIGITAL_SIGNATURE) {
-                    return SSL_PKEY_SM2_SIGN;
-                } else {
-                    return SSL_PKEY_SM2_ENC;
-                }
-            } else
-            {
-                return SSL_PKEY_SM2_SIGN;
-            }
-        }
-#endif
+# ifndef OPENSSL_NO_SM2
+        return ssl_cert_type_ecc(x, pk);
+# else
         return SSL_PKEY_ECC;
+# endif
 #endif
 #ifndef OPENSSL_NO_GOST
     case NID_id_GostR3410_2001:

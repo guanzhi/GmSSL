@@ -840,13 +840,19 @@ int ssl_add_cert_chain(SSL *s, CERT_PKEY *cpk, unsigned long *l)
         /* output the first certificate, for GMTLS it is sign cert */
         if (chain_count) {
             x = sk_X509_value(chain, 0);
+            if (SSL_IS_GMTLS(s)) {
+                if (!(X509_get_key_usage(x) & X509v3_KU_DIGITAL_SIGNATURE)) {
+                    X509_STORE_CTX_free(xs_ctx);
+                    return 0;
+                }
+            }
             if (!ssl_add_cert_to_buf(buf, l, x)) {
+                X509_STORE_CTX_free(xs_ctx);
                 return 0;
             }
         }
-        if (s->version == GMTLS_VERSION) {
-            /* 我们还应该检查cpk的类型 */
-            x = s->cert->pkeys[SSL_PKEY_SM2_ENC].x509;			
+        if (SSL_IS_GMTLS(s)) {
+            x = s->cert->pkeys[SSL_PKEY_SM2_ENC].x509;
             if (!ssl_add_cert_to_buf(buf, l, x)) {
                 return 0;
             }
