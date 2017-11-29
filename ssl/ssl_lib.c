@@ -2660,8 +2660,9 @@ void ssl_set_masks(SSL *s)
     have_ecc_cert = pvalid[SSL_PKEY_ECC] & CERT_PKEY_VALID;
 #endif
 #ifndef OPENSSL_NO_SM2
+					
     sm2_enc = pvalid[SSL_PKEY_SM2_ENC] & CERT_PKEY_VALID;
-    sm2_sign = pvalid[SSL_PKEY_SM2_SIGN] & CERT_PKEY_SIGN;
+    sm2_sign = pvalid[SSL_PKEY_SM2] & CERT_PKEY_SIGN;
 #endif
     mask_k = 0;
     mask_a = 0;
@@ -2893,8 +2894,8 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
         idx = SSL_PKEY_ECC;
 #ifndef OPENSSL_NO_SM2
     else if ((alg_a & SSL_aSM2) &&
-              (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey != NULL)) {
-        idx = SSL_PKEY_SM2_SIGN;
+              (c->pkeys[SSL_PKEY_SM2].privatekey != NULL)) {
+        idx = SSL_PKEY_SM2;
 fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     }
 #endif

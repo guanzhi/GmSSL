@@ -2957,7 +2957,7 @@ int ssl3_check_cert_and_algorithm(SSL *s)
 
 #ifndef OPENSSL_NO_EC
     idx = s->session->peer_type;
-    if ((idx == SSL_PKEY_ECC) || (idx == SSL_PKEY_SM2_SIGN)) { /* GMTLS */
+    if ((idx == SSL_PKEY_ECC) || (idx == SSL_PKEY_SM2)) { /* GMTLS */
         if (ssl_check_srvr_ecc_cert_and_alg(s->session->peer, s) == 0) {
             /* check failed */
             SSLerr(SSL_F_SSL3_CHECK_CERT_AND_ALGORITHM, SSL_R_BAD_ECC_CERT);

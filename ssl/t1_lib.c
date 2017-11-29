@@ -716,18 +716,20 @@ static int tls1_check_cert_param(SSL *s, X509 *x, int set_ee_md)
                 tlsext_sigalg_ecdsa(md)
 
 static const unsigned char tls12_sigalgs[] = {
-#ifndef OPENSSL_NO_SM2
-    TLSEXT_hash_sm3, TLSEXT_signature_sm2sign,
-#endif
+#ifndef OPENSSL_NO_SHA
     tlsext_sigalg(TLSEXT_hash_sha512)
     tlsext_sigalg(TLSEXT_hash_sha384)
     tlsext_sigalg(TLSEXT_hash_sha256)
     tlsext_sigalg(TLSEXT_hash_sha224)
     tlsext_sigalg(TLSEXT_hash_sha1)
+#endif
 #ifndef OPENSSL_NO_GOST
     TLSEXT_hash_gostr3411, TLSEXT_signature_gostr34102001,
     TLSEXT_hash_gostr34112012_256, TLSEXT_signature_gostr34102012_256,
-    TLSEXT_hash_gostr34112012_512, TLSEXT_signature_gostr34102012_512
+    TLSEXT_hash_gostr34112012_512, TLSEXT_signature_gostr34102012_512,
+#endif
+#ifndef OPENSSL_NO_SM2
+    TLSEXT_hash_sm3, TLSEXT_signature_sm2sign,
 #endif
 };
 
@@ -2750,8 +2752,8 @@ void ssl_set_default_md(SSL *s)
 #ifndef OPENSSL_NO_EC
     pmd[SSL_PKEY_ECC] = ssl_md(SSL_MD_SHA1_IDX);
 #endif
-#ifndef OPENSSL_NO_GMTSL
-    pmd[SSL_PKEY_SM2_SIGN] = ssl_md(SSL_MD_SM3_IDX);
+#ifndef OPENSSL_NO_SM2
+    pmd[SSL_PKEY_SM2] = ssl_md(SSL_MD_SM3_IDX);
     pmd[SSL_PKEY_SM2_ENC] = ssl_md(SSL_MD_SM3_IDX);
 #endif
 #ifndef OPENSSL_NO_GOST
@@ -3253,19 +3255,14 @@ static const tls12_lookup tls12_md[] = {
     {NID_id_GostR3411_94, TLSEXT_hash_gostr3411},
     {NID_id_GostR3411_2012_256, TLSEXT_hash_gostr34112012_256},
     {NID_id_GostR3411_2012_512, TLSEXT_hash_gostr34112012_512},
-#ifndef OPENSSL_NO_SM3
     {NID_sm3, TLSEXT_hash_sm3},
-#endif
 };
 
 static const tls12_lookup tls12_sig[] = {
     {EVP_PKEY_RSA, TLSEXT_signature_rsa},
     {EVP_PKEY_DSA, TLSEXT_signature_dsa},
-#ifndef OPENSSL_NO_SM2
-    {EVP_PKEY_EC, TLSEXT_signature_sm2sign},                             
-#else
     {EVP_PKEY_EC, TLSEXT_signature_ecdsa},
-#endif
+    {EVP_PKEY_EC, TLSEXT_signature_sm2sign},
     {NID_id_GostR3410_2001, TLSEXT_signature_gostr34102001},
     {NID_id_GostR3410_2012_256, TLSEXT_signature_gostr34102012_256},
     {NID_id_GostR3410_2012_512, TLSEXT_signature_gostr34102012_512}
@@ -3302,7 +3299,6 @@ int tls12_get_sigandhash(unsigned char *p, const EVP_PKEY *pk, const EVP_MD *md)
     sig_id = tls12_get_sigid(pk);
     if (sig_id == -1)
         return 0;
-printf("%s %d: md_id = %d, sig_id = %d\n", __FILE__, __LINE__, md_id, sig_id);
     p[0] = (unsigned char)md_id;
     p[1] = (unsigned char)sig_id;
     return 1;
@@ -3310,6 +3306,12 @@ printf("%s %d: md_id = %d, sig_id = %d\n", __FILE__, __LINE__, md_id, sig_id);
 
 int tls12_get_sigid(const EVP_PKEY *pk)
 {
+#ifndef OPENSSL_NO_SM2
+    /* tls12_find_id() can not find TLSEXT_signature_sm2sign with EVP_PKEY_EC */
+    if (EVP_PKEY_id(pk) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+        EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY((EVP_PKEY *)pk))) == NID_sm2p256v1)
+        return TLSEXT_signature_sm2sign;
+#endif
     return tls12_find_id(EVP_PKEY_id(pk), tls12_sig, OSSL_NELEM(tls12_sig));
 }
 
@@ -3332,9 +3334,7 @@ static const tls12_hash_info tls12_md_info[] = {
      TLSEXT_hash_gostr34112012_256},
     {NID_id_GostR3411_2012_512, 256, SSL_MD_GOST12_512_IDX,
      TLSEXT_hash_gostr34112012_512},
-#ifndef OPENSSL_NO_SM3
     {NID_sm3, 128, SSL_MD_SM3_IDX, TLSEXT_hash_sm3},
-#endif
 };
 
 static const tls12_hash_info *tls12_get_hash_info(unsigned char hash_alg)
@@ -3379,7 +3379,7 @@ static int tls12_get_pkey_idx(unsigned char sig_alg)
 #endif
 # ifndef OPENSSL_NO_SM2
     case TLSEXT_signature_sm2sign:
-        return SSL_PKEY_SM2_SIGN;
+        return SSL_PKEY_SM2;
 # endif
 #ifndef OPENSSL_NO_GOST
     case TLSEXT_signature_gostr34102001:
@@ -3444,9 +3444,8 @@ void ssl_set_sig_mask(uint32_t *pmask_a, SSL *s, int op)
     const unsigned char *sigalgs;
     size_t i, sigalgslen;
     int have_rsa = 0, have_dsa = 0, have_ecdsa = 0;
-#ifndef OPENSSL_NO_SM2
     int have_sm2sign = 0;
-#endif
+
     /*
      * Now go through all signature algorithms seeing if we support any for
      * RSA, DSA, ECDSA. Do this for all versions not just TLS 1.2. To keep
@@ -3478,7 +3477,6 @@ void ssl_set_sig_mask(uint32_t *pmask_a, SSL *s, int op)
             if (!have_sm2sign && tls12_sigalg_allowed(s, op, sigalgs))
                 have_sm2sign = 1;
             break;
-	// SM9                    
 #endif
         }
     }
@@ -3488,10 +3486,8 @@ void ssl_set_sig_mask(uint32_t *pmask_a, SSL *s, int op)
         *pmask_a |= SSL_aDSS;
     if (!have_ecdsa)
         *pmask_a |= SSL_aECDSA;
-#ifndef OPENSSL_NO_SM2
     if (!have_sm2sign)
         *pmask_a |= SSL_aSM2;
-#endif
 }
 
 size_t tls12_copy_sigalgs(SSL *s, unsigned char *out,
@@ -3642,7 +3638,6 @@ int tls1_process_sigalgs(SSL *s)
          */
 #ifndef OPENSSL_NO_DSA
         if (pmd[SSL_PKEY_DSA_SIGN] == NULL)
-            //pmd[SSL_PKEY_DSA_SIGN] = EVP_sha1();
             pmd[SSL_PKEY_DSA_SIGN] = EVP_get_digestbynid(NID_sha1);
 #endif
 #ifndef OPENSSL_NO_RSA
@@ -3656,8 +3651,8 @@ int tls1_process_sigalgs(SSL *s)
             pmd[SSL_PKEY_ECC] = EVP_get_digestbynid(NID_sha1);
 #endif
 #ifndef OPENSSL_NO_SM2
-        if (pmd[SSL_PKEY_SM2_SIGN] == NULL)
-            pmd[SSL_PKEY_SM2_SIGN] = EVP_get_digestbynid(NID_sm3);
+        if (pmd[SSL_PKEY_SM2] == NULL)
+            pmd[SSL_PKEY_SM2] = EVP_get_digestbynid(NID_sm3);
 #endif
 #ifndef OPENSSL_NO_GOST
         if (pmd[SSL_PKEY_GOST01] == NULL)
@@ -3951,13 +3946,11 @@ int tls1_check_chain(SSL *s, X509 *x, EVP_PKEY *pk, STACK_OF(X509) *chain,
                 break;
 
 #ifndef OPENSSL_NO_SM2
-            case SSL_PKEY_SM2_ENC:             
+            case SSL_PKEY_SM2_ENC:
                 rsign = TLSEXT_signature_sm2sign;
                 default_nid = NID_sm2sign_with_sm3;
                 break;
-#endif
-#ifndef OPENSSL_NO_SM2
-            case SSL_PKEY_SM2_SIGN:
+            case SSL_PKEY_SM2:
                 rsign = TLSEXT_signature_sm2sign;
                 default_nid = NID_sm2sign_with_sm3;
                 break;
@@ -4139,9 +4132,7 @@ void tls1_set_cert_validity(SSL *s)
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_GOST01);
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_GOST12_256);
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_GOST12_512);
-#ifndef OPENSSL_NO_SM2
-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SM2_SIGN);
-#endif
+    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SM2);
 }
 
 /* User level utiity function to check a chain is suitable */

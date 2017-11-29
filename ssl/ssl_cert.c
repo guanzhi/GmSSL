@@ -842,6 +842,7 @@ int ssl_add_cert_chain(SSL *s, CERT_PKEY *cpk, unsigned long *l)
             x = sk_X509_value(chain, 0);
             if (SSL_IS_GMTLS(s)) {
                 if (!(X509_get_key_usage(x) & X509v3_KU_DIGITAL_SIGNATURE)) {
+                    /* FIXME: should we return some errors ? */
                     X509_STORE_CTX_free(xs_ctx);
                     return 0;
                 }
@@ -1062,20 +1063,16 @@ static int ssl_security_default_callback(const SSL *s, const SSL_CTX *ctx,
             if (level >= 2 && c->algorithm_enc == SSL_RC4)
                 return 0;
             /* Level 3: forward secure ciphersuites only */
-            if (level >= 3 && !(c->algorithm_mkey & (SSL_kEDH | SSL_kEECDH
-#ifndef OPENSSL_NO_GMTLS
-                                                     | SSL_kSM2DHE | SSL_kSM9DHE
-#endif
-                                                    )))
+            if (level >= 3 && !(c->algorithm_mkey &
+                (SSL_kEDH | SSL_kEECDH | SSL_kSM2DHE | SSL_kSM9DHE)))
                 return 0;
             break;
         }
     case SSL_SECOP_VERSION:
         if (!SSL_IS_DTLS(s)) {
-#ifndef OPENSSL_NO_GMTLS_METHOD
+            /* GMTLSv1.1 not allowed at level 3 */
             if (nid == GMTLS_VERSION && level >= 3)
                 return 0;
-#endif
             /* SSLv3 not allowed at level 2 */
             if (nid <= SSL3_VERSION && level >= 2)
                 return 0;

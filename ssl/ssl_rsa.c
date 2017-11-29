@@ -129,18 +129,9 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
         return (0);
     }
 
-#ifndef OPENSSL_NO_SM2
-    /* set private key even without keyUsage in cert */
-    if (i == SSL_PKEY_SM2_SIGN) {
-        if (c->pkeys[SSL_PKEY_SM2_ENC].privatekey)
-            i = SSL_PKEY_SM2_SIGN;
-        else if (c->pkeys[SSL_PKEY_SM2_SIGN].privatekey)
-            i = SSL_PKEY_SM2_ENC;
-        else if (c->pkeys[SSL_PKEY_SM2_ENC].x509)
-            i = SSL_PKEY_SM2_ENC;
-        else
-            i = SSL_PKEY_SM2_SIGN;
-    }
+#ifndef OPENSSL_NO_GMTLS
+    if (i == SSL_PKEY_SM2 && c->pkeys[SSL_PKEY_SM2_ENC].x509)
+        i = SSL_PKEY_SM2_ENC;
 #endif
 
     if (c->pkeys[i].x509 != NULL) {

@@ -444,10 +444,14 @@ void ssl_load_ciphers(void)
         }
     }
     /* Make sure we can access MD5 and SHA1 */
-						
+#ifndef OPENSSL_NO_MD5
+    /* If we disable TLS 1, MD5 and SHA1 */
     OPENSSL_assert(ssl_digest_methods[SSL_MD_MD5_IDX] != NULL);
+#endif
+#ifndef OPENSSL_NO_SHA
+    /* If we disable TLS 1, MD5 and SHA1 */
     OPENSSL_assert(ssl_digest_methods[SSL_MD_SHA1_IDX] != NULL);
-						
+#endif
     disabled_mkey_mask = 0;
     disabled_auth_mask = 0;
 
@@ -1999,9 +2003,9 @@ int ssl_cipher_get_cert_index(const SSL_CIPHER *c)
     else if (alg_a & SSL_aGOST01)
         return SSL_PKEY_GOST01;
     else if (alg_a & SSL_aSM2)
-        return SSL_PKEY_SM2_SIGN;
+        return SSL_PKEY_SM2;
     else if (alg_a & SSL_aSM9)
-        return SSL_PKEY_SM9_SIGN;
+        return SSL_PKEY_SM9;
     return -1;
 }
 

@@ -427,7 +427,7 @@
 # define SSL_PKEY_GOST12_512     6
 # define SSL_PKEY_SM2            7
 # define SSL_PKEY_SM2_ENC        8
-# define SSL_PKEY_SM9_SIGN       9
+# define SSL_PKEY_SM9            9
 # define SSL_PKEY_NUM           10
 
 /*
