@@ -6,22 +6,32 @@ GmSSL is an open source cryptographic toolkit that provide first level support o
 
 ## Features
 
-* Support Chinese
-* BSD-style license
-* Full support of Chinese GM Cryptography Standards
-* Support Chinese cryptographic hardwares (HSMs).
-* Commercial friendly BSD-style open source license.
+ - Support [Chinese GM/T cryptographic standards](http://gmssl.org/docs/standards.html).
+ - Support [hardware cryptographic modules from Chinese vendors](http://www.sca.gov.cn/sca/zxfw/cpxx.shtml).
+ - With commercial friendly open source [license](http://gmssl.org/docs/licenses.html).
 
-## Supported Algorithms
+## GM/T Algorithms
 
- - **SM3** cryptographic hash function with 256-bit digest length specified in GM/T 0004-2012.
- - **SM4** block cipher with 128-bit key length and 128-bit block size specified in GM/T 0002-2012.
- - **SM2** elliptic curve cryptographic schemes including digital signature scheme, public key encryption, (authenticated) key exchange protocol and one recommended 256-bit prime field curve specified in GM/T 0003-2012.
- - **SM9** pairing-based cryptographic schemes including identity-based digital signature, encryption, (authenticated) key exchange protocol and one 256-bit recommended BN curve, defined in GM/T 0046-2016.
- - **ZUC** stream cipher, **128-EEA3** encryption algorithm and **128-EIA3** integrity algorithm specified in GM/T 0001-2012.
- - **SM1** and **SSF33** block ciphers with 128-bit key length and 128-bit block size without public specification, only provided with chip.
+GmSSL will support all the following GM/T cryptographic algorithms:
 
-## GM/T SSL Protocol
+ - SM3 (GM/T 0004-2012): cryptographic hash function with 256-bit digest length.
+ - SM4 (GM/T 0002-2012): block cipher with 128-bit key length and 128-bit block size, also named SMS4.
+ - SM2 (GM/T 0003-2012): elliptic curve cryptographic schemes including digital signature scheme, public key encryption, (authenticated) key exchange protocol and one recommended 256-bit prime field curve `sm2p256v1`.
+ - SM9 (GM/T 0044-2016): pairing-based cryptographic schemes including identity-based digital signature, encryption, (authenticated) key exchange protocol and one 256-bit recommended BN curve.
+ - ZUC (GM/T 0001-2012): stream cipher, with 128-EEA3 encryption algorithm and 128-EIA3 integrity algorithm.
+ - SM1 and SSF33: block ciphers with 128-bit key length and 128-bit block size without public specification, only provided with chip.
+ 
+GmSSL supports many useful cryptographic algorithms and schemes:
+
+ - Public-key schemes: Paillier, ECIES (Elliptic Curve Integrated Encryption Scheme)
+ - Pairing-based cryptography: BF-IBE, BB1-IBE
+ - Block ciphers and modes: Serpent, Speck
+ - Block cipher modes: FPE (Format-Preserver Encryption)
+ - Encoding: Base58
+
+OpenSSL algorithms such as ECDSA, RSA, AES, SHA-1 are all remained in GmSSL.
+
+## GM/T Protocols
 
 | #    | GM/T Name       | GmSSL Name                     |             |
 | ---- | --------------- | ------------------------------ | ----------- |
@@ -40,8 +50,7 @@ GmSSL is an open source cryptographic toolkit that provide first level support o
 
 TLS 1.2 cipher suites:
 
-
-## Programming Interfaces
+## APIs
 
 Except for the native C interface and the `gmssl` command line, GmSSL also provide the following interfaces:
 
