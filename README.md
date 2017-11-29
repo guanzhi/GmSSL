@@ -9,6 +9,7 @@ GmSSL is an open source cryptographic toolkit that provide first level support o
  - Support [Chinese GM/T cryptographic standards](http://gmssl.org/docs/standards.html).
  - Support [hardware cryptographic modules from Chinese vendors](http://www.sca.gov.cn/sca/zxfw/cpxx.shtml).
  - With commercial friendly open source [license](http://gmssl.org/docs/licenses.html).
+ - Maintained by the [crypto research group of Peking University](http://infosec.pku.edu.cn).
 
 ## GM/T Algorithms
 
@@ -27,45 +28,58 @@ GmSSL supports many useful cryptographic algorithms and schemes:
  - Pairing-based cryptography: BF-IBE, BB1-IBE
  - Block ciphers and modes: Serpent, Speck
  - Block cipher modes: FPE (Format-Preserver Encryption)
+ - OTP (One-Time Password) based on SM3/SM4 (GM/T 0021-2012)
  - Encoding: Base58
 
 OpenSSL algorithms such as ECDSA, RSA, AES, SHA-1 are all remained in GmSSL.
 
 ## GM/T Protocols
 
-| #    | GM/T Name       | GmSSL Name                     |             |
-| ---- | --------------- | ------------------------------ | ----------- |
-| 1    | `ECDHE_SM1_SM3` | `SM2DHE_SM2SIGN_WITH_SM1_SM3`  | {0xe0,0x01} |
-| 2    | `ECC_SM1_SM3`   | `SM2ENC_WITH_SM1_SM3`          | {0xe0,0x03} |
-| 3    | `IBSDH_SM1_SM3` | `SM9DHE_SM9SIGN_WITH_SM1_SM3`  | {0xe0,0x05} |
-| 4    | `IBC_SM1_SM3`   | `SM9ENC_WITH_SM1_SM3`          | {0xe0,0x07} |
-| 5    | `RSA_SM1_SM3`   | `RSA_WITH_SM1_SM3`             | {0xe0,0x09} |
-| 6    | `RSA_SM1_SHA1`  | `RSA_WITH_SM1_SHA1`            | {0xe0,0x0a} |
-| 7    | `ECDHE_SM4_SM3` | `SM2DHE_SM2SIGN_WITH_SMS4_SM3` | {0xe0,0x11} |
-| 8    | `ECC_SM4_SM3`   | `SM2ENC_WITH_SMS4_SM3`         | {0xe0,0x13} |
-| 9    | `IBSDH_SM4_SM3` | `SM3DHE_SM9SIGN_WITH_SMS4_SM3` | {0xe0,0x15} |
-| 10   | `IBC_SM4_SM3`   | `SM9ENC_WITH_SMS4_SM3`         | {0xe0,0x17} |
-| 11   | `RSA_SM4_SM3`   | `RSA_WITH_SMS4_SM3`            | {0xe0,0x19} |
-| 12   | `RSA_SM4_SHA1`  | `RSA_WITH_SMS4_SM3`            | {0xe0,0x1a} |
+The GM/T standards cover 2 protocls:
 
-TLS 1.2 cipher suites:
+ - SSL VPN Protocol  (GM/T 0024-2014)
+ - IPSec VPN Protocol (GM/T 0022-2014)
+ 
+The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS from the follows aspects:
+
+ - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101)
+ - The handshake protocol of GM/T SSL is diffenet from TLS handshake.
+ - There is an optional different record protocol in GM/T SSL designed for VPN applications.
+ - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
+ 
+GM/T 0024-2014 Ciphersuites: 
+
+ 1. `GMTLS_SM2DHE_SM2SIGN_WITH_SM1_SM3` {0xe0,0x01}
+ 2. `GMTLS_SM2ENC_WITH_SM1_SM3`         {0xe0,0x03}
+ 3. `GMTLS_SM9DHE_SM9SIGN_WITH_SM1_SM3` {0xe0,0x05}
+ 4. `GMTLS_SM9ENC_WITH_SM1_SM3`         {0xe0,0x07}
+ 5. `GMTLS_RSA_WITH_SM1_SM3`            {0xe0,0x09}
+ 6. `GMTLS_RSA_WITH_SM1_SHA1`           {0xe0,0x0a}
+ 7. `GMTLS_SM2DHE_SM2SIGN_WITH_SMS4_SM3`{0xe0,0x11}
+ 8. `GMTLS_SM2ENC_WITH_SMS4_SM3`        {0xe0,0x13}
+ 9. `GMTLS_SM9DHE_SM9SIGN_WITH_SMS4_SM3`{0xe0,0x15}
+10. `GMTLS_SM9ENC_WITH_SMS4_SM3`        {0xe0,0x17}
+11. `GMTLS_RSA_WITH_SMS4_SM3`           {0xe0,0x19}
+12. `GMTLS_RSA_WITH_SMS4_SM3`           {0xe0,0x1a}
+
+GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites.
 
 ## APIs
 
 Except for the native C interface and the `gmssl` command line, GmSSL also provide the following interfaces:
 
- - **SKF** C API GM/T 0016-2012 Smart token cryptography application interface specification.
- - **SDF** C API GM/T 0018-2012 Interface specifications of cryptography device application.
- - **SAF** C API GM/T 0019-2012 Universal cryptography service interface specification.
- - **SOF** C/Java API GM/T 0020-2012 Certificate application integrated service interface specification.
- - **Java** crypto, X.509 and SSL API through JNI (Java Native Interface).
- - **Go** crypto, X.509 and SSL API through CGO.
+ - Java: crypto, X.509 and SSL API through JNI (Java Native Interface).
+ - Go: crypto, X.509 and SSL API through CGO.
+ - SKF C API: GM/T 0016-2012 Smart token cryptography application interface specification.
+ - SDF C API: GM/T 0018-2012 Interface specifications of cryptography device application.
+ - SAF C API: GM/T 0019-2012 Universal cryptography service interface specification.
+ - SOF C/Java API: GM/T 0020-2012 Certificate application integrated service interface specification.
 
 ## Supported Cryptographic Hardwares
 
- - USB-Key through **SKF ENGINE** and the SKF API.
- - PCI-E card through **SDF ENGINE** and the SDF API.
- - GM Instruction sets (SM3/SM4) through **GMI ENGINE**.
+ - USB-Key through the SKF ENGINE and the SKF API.
+ - PCI-E card through the SDF ENGINE and the SDF API.
+ - GM Instruction sets (SM3/SM4) through the GMI ENGINE.
 
 ## Quick Start
 
