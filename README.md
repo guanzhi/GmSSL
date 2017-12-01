@@ -96,7 +96,9 @@ Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip
  ```
  
 After installation you can run `gmssl version -a` to print detailed information.
+
 The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, support SM2 signing and encryption through `pkeyutl` option, support SM3 through `sm3` or `dgst` option, support SM4 through `sms4` or `enc` option.
+
 The following are some examples.
 
 SM3 digest generation:
