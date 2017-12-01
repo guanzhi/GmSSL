@@ -85,60 +85,54 @@ Except for the native C interface and the `gmssl` command line, GmSSL also provi
 
 This short guide describes the build, install and typical usage of the `gmssl` command line tool. Visit http://gmssl.org for more documents.
 
-1. Download the source code ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip)) and uncompress the ZIP file.
-2. Compile and install on Linux and Mac OS X
+Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip)), uncompress it and go to the source code folder. On Linux and OS X, run the following commands:
 
-```sh
-$ ./config
-$ make
-$ sudo make install
-```
-   Compile and install on Windows
+ ```sh
+ $ ./config
+ $ make
+ $ sudo make install
+ ```
+ 
+After installation you can run `gmssl version -a` to print detailed information. The `gmssl` command line tool supports SM2 key generation and conversion through the `ec`, `ecparam` or `pkey`, `genpkey`options, SM2 signing and encryption through the `pkeyutl` option, SM3 digest through `sm3` or `dgst` option, and SM4 encryption through `sms4` or `enc` option. Here are the examples:
 
-```bash
-> perl Configure VC-WIN32
-> nmake
-> nmake install
-```
-
-​	After installation, you can run `gmssl version -a` to print the detailed information of gmssl.
-
-3. Encrypt and decrypt with SM4 and password
-
-```sh
-$ echo -n abc | gmssl sms4 -out ciphertext.bin
-$ gmssl sms4 -d -in ciphertext.sms4
-```
-
-4. Generate SM3 digest
+Generate SM3 digest
 
 ```
-$ echo -n abc | gmssl sm3
+$ echo -n "abc" | gmssl sm3
 (stdin)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
 ```
 
-5. Generate SM2 keypair
+Encrypt/decrypt with SM4 and password
+
+```sh
+$ gmssl sms4 -e -in README.md -out README.sms4
+$ gmssl sms4 -d -in README.sms4 -out README-2.md
+```
+
+Generate SM2 private key `skey.pem` and export the corresponding public key `vkey.pem`:
 
 ```sh
 $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out skey.pem
-$ gmssl pkey -pubout -in skey.pem -out pkey.pem
+$ gmssl pkey -pubout -in skey.pem -out vkey.pem
 ```
 
-6. Generate SM2 signature (in DER format) and verify
+Sign a message with private key `skey.pem` and verify the signature with public key `vkey.pem`:
 
 ```sh
-$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in msg.txt -out msg.sig
-$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm_scheme -pubin -inkey vrfykey.pem -in <yourfile> -sigfile <yourfile>.sig
+$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in README.md -out README.md.sig
+$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm_scheme -pubin -inkey pkey.pem -in README.md -sigfile README.md.sig
 ```
 
-7. Do public key encryption and decryption
+Generate SM2 encryption key pair and do SM2 public key encyption/decryption. It should be noted `pkeyutl -encrypt` should only be used to encrypt short messages such as session key and passphrase.
 
 ```sh
-$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in msg.txt -out msg.sig
-$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm_scheme -pubin -inkey vrfykey.pem -in <yourfile> -sigfile <yourfile>.sig
+$ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out dkey.pem
+$ gmssl pkey -pubout -in dkey.pem -out ekey.pem
+$ gmssl pkeyutl -encrypt -pkeyopt ec_scheme:sm_scheme -inkey ekey.pem -in README.md -out README.md.sm2
+$ gmssl pkeyutl -decrypt -pkeyopt ec_scheme:sm_scheme -pubin -inkey dkey.pem -in README.md.sm2 -out README-3.md
 ```
 
-8. Generate a self-signed certificate from private key
+Generate a self-signed certificate from private key
 
 ```sh
 $ gmssl req -new -x509 -key skey.pem -out cert.pem
