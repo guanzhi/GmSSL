@@ -109,8 +109,8 @@ $ echo -n "abc" | gmssl sm3
 SM4 encryptiona and decryption:
 
 ```sh
-$ gmssl sms4 -e -in README.md -out README.sms4
-$ gmssl sms4 -d -in README.sms4 -out README-2.md
+$ gmssl sms4 -in README.md -out README.sms4
+$ gmssl sms4 -d -in README.sms4
 ```
 
 SM2 private key generation:
@@ -128,8 +128,8 @@ $ gmssl pkey -pubout -in skey.pem -out vkey.pem
 SM2 signature generation and verification:
 
 ```sh
-$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in README.md -out README.md.sig
-$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm_scheme -pubin -inkey pkey.pem -in README.md -sigfile README.md.sig
+$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm2 -inkey skey.pem -in README.md -out README.md.sig
+$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm2 -pubin -inkey vkey.pem -in README.md -sigfile README.md.sig
 ```
 
 Generate SM2 encryption key pair and do SM2 public key encyption/decryption. It should be noted `pkeyutl -encrypt` should only be used to encrypt short messages such as session key and passphrase.
@@ -137,8 +137,8 @@ Generate SM2 encryption key pair and do SM2 public key encyption/decryption. It 
 ```sh
 $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out dkey.pem
 $ gmssl pkey -pubout -in dkey.pem -out ekey.pem
-$ gmssl pkeyutl -encrypt -pkeyopt ec_scheme:sm_scheme -inkey ekey.pem -in README.md -out README.md.sm2
-$ gmssl pkeyutl -decrypt -pkeyopt ec_scheme:sm_scheme -pubin -inkey dkey.pem -in README.md.sm2 -out README-3.md
+$ echo "Top Secret" | gmssl pkeyutl -encrypt -pkeyopt ec_scheme:sm2 -pubin -inkey ekey.pem -out ciphertext.sm2
+$ gmssl pkeyutl -decrypt -pkeyopt ec_scheme:sm2 -inkey dkey.pem -in ciphertext.sm2
 ```
 
 Self-signed SM2 certificate generation:
