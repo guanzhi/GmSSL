@@ -49,18 +49,20 @@ The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS from the follows 
  
 GM/T 0024-2014 Ciphersuites: 
 
- 1. `GMTLS_SM2DHE_SM2SIGN_WITH_SM1_SM3` {0xe0,0x01}
- 2. `GMTLS_SM2ENC_WITH_SM1_SM3`         {0xe0,0x03}
- 3. `GMTLS_SM9DHE_SM9SIGN_WITH_SM1_SM3` {0xe0,0x05}
- 4. `GMTLS_SM9ENC_WITH_SM1_SM3`         {0xe0,0x07}
- 5. `GMTLS_RSA_WITH_SM1_SM3`            {0xe0,0x09}
- 6. `GMTLS_RSA_WITH_SM1_SHA1`           {0xe0,0x0a}
- 7. `GMTLS_SM2DHE_SM2SIGN_WITH_SMS4_SM3`{0xe0,0x11}
- 8. `GMTLS_SM2ENC_WITH_SMS4_SM3`        {0xe0,0x13}
- 9. `GMTLS_SM9DHE_SM9SIGN_WITH_SMS4_SM3`{0xe0,0x15}
-10. `GMTLS_SM9ENC_WITH_SMS4_SM3`        {0xe0,0x17}
-11. `GMTLS_RSA_WITH_SMS4_SM3`           {0xe0,0x19}
-12. `GMTLS_RSA_WITH_SMS4_SM3`           {0xe0,0x1a}
+```
+ 1. GMTLS_SM2DHE_SM2SIGN_WITH_SM1_SM3  {0xe0,0x01}
+ 2. GMTLS_SM2ENC_WITH_SM1_SM3          {0xe0,0x03}
+ 3. GMTLS_SM9DHE_SM9SIGN_WITH_SM1_SM3  {0xe0,0x05}
+ 4. GMTLS_SM9ENC_WITH_SM1_SM3          {0xe0,0x07}
+ 5. GMTLS_RSA_WITH_SM1_SM3             {0xe0,0x09}
+ 6. GMTLS_RSA_WITH_SM1_SHA1            {0xe0,0x0a}
+ 7. GMTLS_SM2DHE_SM2SIGN_WITH_SMS4_SM3 {0xe0,0x11}
+ 8. GMTLS_SM2ENC_WITH_SMS4_SM3         {0xe0,0x13}
+ 9. GMTLS_SM9DHE_SM9SIGN_WITH_SMS4_SM3 {0xe0,0x15}
+10. GMTLS_SM9ENC_WITH_SMS4_SM3         {0xe0,0x17}
+11. GMTLS_RSA_WITH_SMS4_SM3            {0xe0,0x19}
+12. GMTLS_RSA_WITH_SMS4_SM3            {0xe0,0x1a}
+```
 
 GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites.
 
@@ -93,30 +95,37 @@ Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip
  $ sudo make install
  ```
  
-After installation you can run `gmssl version -a` to print detailed information. The `gmssl` command line tool supports SM2 key generation and conversion through the `ec`, `ecparam` or `pkey`, `genpkey`options, SM2 signing and encryption through the `pkeyutl` option, SM3 digest through `sm3` or `dgst` option, and SM4 encryption through `sms4` or `enc` option. Here are the examples:
+After installation you can run `gmssl version -a` to print detailed information.
+The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, support SM2 signing and encryption through `pkeyutl` option, support SM3 through `sm3` or `dgst` option, support SM4 through `sms4` or `enc` option.
+The following are some examples.
 
-Generate SM3 digest
+SM3 digest generation:
 
 ```
 $ echo -n "abc" | gmssl sm3
 (stdin)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
 ```
 
-Encrypt/decrypt with SM4 and password
+SM4 encryptiona and decryption:
 
 ```sh
 $ gmssl sms4 -e -in README.md -out README.sms4
 $ gmssl sms4 -d -in README.sms4 -out README-2.md
 ```
 
-Generate SM2 private key `skey.pem` and export the corresponding public key `vkey.pem`:
+SM2 private key generation:
 
 ```sh
 $ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out skey.pem
+```
+
+Derive the public key from the generated SM2 private key:
+
+```sh
 $ gmssl pkey -pubout -in skey.pem -out vkey.pem
 ```
 
-Sign a message with private key `skey.pem` and verify the signature with public key `vkey.pem`:
+SM2 signature generation and verification:
 
 ```sh
 $ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm_scheme -inkey skey.pem -in README.md -out README.md.sig
@@ -132,7 +141,7 @@ $ gmssl pkeyutl -encrypt -pkeyopt ec_scheme:sm_scheme -inkey ekey.pem -in README
 $ gmssl pkeyutl -decrypt -pkeyopt ec_scheme:sm_scheme -pubin -inkey dkey.pem -in README.md.sm2 -out README-3.md
 ```
 
-Generate a self-signed certificate from private key
+Self-signed SM2 certificate generation:
 
 ```sh
 $ gmssl req -new -x509 -key skey.pem -out cert.pem
