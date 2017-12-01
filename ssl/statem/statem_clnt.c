@@ -1719,9 +1719,7 @@ MSG_PROCESS_RETURN tls_process_server_key_exchange(SSL *s, PACKET *pkt)
     } else if (alg_k & (SSL_kDHE | SSL_kDHEPSK)) {
         if (!tls_process_ske_dhe(s, pkt, &pkey, &al))
             goto err;
-    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK |
-                        SSL_kSM2DHE | SSL_kSM2PSK
-        )) {
+    } else if (alg_k & (SSL_kECDHE | SSL_kECDHEPSK | SSL_kSM2DHE | SSL_kSM2PSK)) {
         if (!tls_process_ske_ecdhe(s, pkt, &pkey, &al))
             goto err;
     } else if (alg_k) {
@@ -1768,18 +1766,24 @@ MSG_PROCESS_RETURN tls_process_server_key_exchange(SSL *s, PACKET *pkt)
 #ifdef SSL_DEBUG
             fprintf(stderr, "USING TLSv1.2 HASH %s\n", EVP_MD_name(md));
 #endif
-#if !defined(OPENSSL_NO_RSA) && !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_SHA)		
+#ifndef OPENSSL_NO_RSA
         } else if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA) {
+# if !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_SHA)
             md = EVP_md5_sha1();
+# elif !defined(OPENSSL_NO_SM3)
+            md = EVP_sm3();
+# else
+            should_not_happen!!			
+# endif
 #endif
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
         } else if (s->method->version == GMTLS_VERSION
                    && s->s3->tmp.new_cipher->algorithm_mac & SSL_SM3) {
             md = EVP_sm3();
 #endif
 #ifndef OPENSSL_NO_SHA
         } else {
-            md = EVP_sha1();					
+            md = EVP_sha1();
 #endif
         }
 

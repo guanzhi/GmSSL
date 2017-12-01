@@ -188,9 +188,9 @@ static STRINT_PAIR cert_type_list[] = {
     {"RSA fixed ECDH", TLS_CT_RSA_FIXED_ECDH},
     {"ECDSA fixed ECDH", TLS_CT_ECDSA_FIXED_ECDH},
     {"GOST01 Sign", TLS_CT_GOST01_SIGN},
-#ifndef OPENSSL_NO_GMTLS
     {"SM2 sign", TLS_CT_SM2_SIGN},
-#endif
+    {"SM2 fixed key exchange", TLS_CT_SM2_FIXED_EXCH},
+    {"SM2 encrypt", TLS_CT_SM2_ENC},
     {NULL}
 };
 
@@ -250,6 +250,8 @@ static int do_print_sigalgs(BIO *out, SSL *s, int shared)
             sstr = "DSA";
         else if (sign_nid == EVP_PKEY_EC)
             sstr = "ECDSA";
+        else if (sign_nid == NID_sm2sign)
+            sstr = "SM2";
         if (sstr)
             BIO_printf(out, "%s+", sstr);
         else
@@ -458,6 +460,7 @@ static STRINT_PAIR ssl_versions[] = {
     {"TLS 1.2", TLS1_2_VERSION},
     {"DTLS 1.0", DTLS1_VERSION},
     {"DTLS 1.0 (bad)", DTLS1_BAD_VER},
+    {"GMTLS 1.1", GMTLS_VERSION},
     {NULL}
 };
 static STRINT_PAIR alert_types[] = {
@@ -490,6 +493,14 @@ static STRINT_PAIR alert_types[] = {
     {" bad_certificate_status_response", 113},
     {" bad_certificate_hash_value", 114},
     {" unknown_psk_identity", 115},
+#ifndef OPENSSL_NO_GMTLS
+    {" unsupported_site2site", 200},
+    {" no_area", 201},
+    {" unsupported_areatype", 202},
+    {" bad_ibcparam", 203},
+    {" unsupported_ibcparam", 204},
+    {"identity_need", 205},
+#endif
     {NULL}
 };
 
@@ -1306,6 +1317,9 @@ static int security_callback_debug(const SSL *s, const SSL_CTX *ctx,
                 break;
             case TLSEXT_signature_ecdsa:
                 sname = "ECDSA";
+                break;
+            case TLSEXT_signature_sm2sign:
+                sname = "SM2";
                 break;
             }
 

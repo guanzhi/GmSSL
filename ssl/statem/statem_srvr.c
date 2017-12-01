@@ -106,7 +106,7 @@
 #include <openssl/hmac.h>
 #include <openssl/x509.h>
 #include <openssl/bn.h>
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
 # include <openssl/sm2.h>
 #endif
 
@@ -2021,7 +2021,7 @@ int tls_construct_server_key_exchange(SSL *s)
                 goto f_err;
             }
 
-#ifndef OPENSSL_NO_GMTLS
+#ifndef OPENSSL_NO_SM2
             if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2) {
                 unsigned char z[EVP_MAX_MD_SIZE];
                 size_t zlen = sizeof(z);

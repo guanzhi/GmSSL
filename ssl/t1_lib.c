@@ -3262,12 +3262,14 @@ static const tls12_lookup tls12_sig[] = {
     {EVP_PKEY_RSA, TLSEXT_signature_rsa},
     {EVP_PKEY_DSA, TLSEXT_signature_dsa},
     {EVP_PKEY_EC, TLSEXT_signature_ecdsa},
-    {EVP_PKEY_EC, TLSEXT_signature_sm2sign},
+    {NID_sm2sign, TLSEXT_signature_sm2sign},		
+    //{EVP_PKEY_EC, TLSEXT_signature_sm2sign},
     {NID_id_GostR3410_2001, TLSEXT_signature_gostr34102001},
     {NID_id_GostR3410_2012_256, TLSEXT_signature_gostr34102012_256},
     {NID_id_GostR3410_2012_512, TLSEXT_signature_gostr34102012_512}
 };
 
+/* tls12_find_id() not find sm2sign */
 static int tls12_find_id(int nid, const tls12_lookup *table, size_t tlen)
 {
     size_t i;
@@ -3651,8 +3653,10 @@ int tls1_process_sigalgs(SSL *s)
             pmd[SSL_PKEY_ECC] = EVP_get_digestbynid(NID_sha1);
 #endif
 #ifndef OPENSSL_NO_SM2
-        if (pmd[SSL_PKEY_SM2] == NULL)
+        if (pmd[SSL_PKEY_SM2] == NULL) {
             pmd[SSL_PKEY_SM2] = EVP_get_digestbynid(NID_sm3);
+	    pmd[SSL_PKEY_SM2_ENC] = EVP_get_digestbynid(NID_sm3);
+	}
 #endif
 #ifndef OPENSSL_NO_GOST
         if (pmd[SSL_PKEY_GOST01] == NULL)
@@ -3797,6 +3801,10 @@ int tls1_set_sigalgs(CERT *c, const int *psig_nids, size_t salglen, int client)
     for (i = 0, sptr = sigalgs; i < salglen; i += 2) {
         rhash = tls12_find_id(*psig_nids++, tls12_md, OSSL_NELEM(tls12_md));
         rsign = tls12_find_id(*psig_nids++, tls12_sig, OSSL_NELEM(tls12_sig));
+#ifndef OPENSSL_NO_SM2
+	if (rsign == TLSEXT_signature_ecdsa && rhash == TLSEXT_hash_sm3)
+            rsign = TLSEXT_signature_sm2sign;
+#endif
 
         if (rhash == -1 || rsign == -1)
             goto err;
@@ -3945,16 +3953,16 @@ int tls1_check_chain(SSL *s, X509 *x, EVP_PKEY *pk, STACK_OF(X509) *chain,
                 default_nid = NID_ecdsa_with_SHA1;
                 break;
 
-#ifndef OPENSSL_NO_SM2
             case SSL_PKEY_SM2_ENC:
                 rsign = TLSEXT_signature_sm2sign;
                 default_nid = NID_sm2sign_with_sm3;
                 break;
+
             case SSL_PKEY_SM2:
                 rsign = TLSEXT_signature_sm2sign;
                 default_nid = NID_sm2sign_with_sm3;
                 break;
-#endif
+
             case SSL_PKEY_GOST01:
                 rsign = TLSEXT_signature_gostr34102001;
                 default_nid = NID_id_GostR3411_94_with_GostR3410_2001;
@@ -4047,6 +4055,7 @@ int tls1_check_chain(SSL *s, X509 *x, EVP_PKEY *pk, STACK_OF(X509) *chain,
             break;
         case EVP_PKEY_EC:
             check_type = TLS_CT_ECDSA_SIGN;
+//FIXME: do we need to do sth?				
             break;
         }
         if (check_type) {
@@ -4133,6 +4142,8 @@ void tls1_set_cert_validity(SSL *s)
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_GOST12_256);
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_GOST12_512);
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SM2);
+    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SM2_ENC);
+			
 }
 
 /* User level utiity function to check a chain is suitable */

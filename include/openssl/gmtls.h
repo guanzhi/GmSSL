@@ -223,7 +223,8 @@ extern "C" {
 
 
 # define TLS_CT_SM2_SIGN	240
-# define TLS_CT_SM2_FIXED_ECDH	241
+# define TLS_CT_SM2_FIXED_EXCH	241
+# define TLS_CT_SM2_ENC		242
 
 
 /* from GM/T 0024-2014 Table 1 */

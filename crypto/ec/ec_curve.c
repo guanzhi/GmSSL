@@ -3267,7 +3267,8 @@ static EC_NIST_NAME nist_curves[] = {
     {"P-224", NID_secp224r1},
     {"P-256", NID_X9_62_prime256v1},
     {"P-384", NID_secp384r1},
-    {"P-521", NID_secp521r1}
+    {"P-521", NID_secp521r1},
+    {"SM2",   NID_sm2p256v1}
 };
 
 const char *EC_curve_nid2nist(int nid)
