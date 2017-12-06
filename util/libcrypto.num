@@ -232,7 +232,7 @@ EVP_aes_128_wrap_pad                    223	1_1_0d	EXIST::FUNCTION:
 i2d_CRL_DIST_POINTS                     224	1_1_0d	EXIST::FUNCTION:
 ASN1_STRING_new                         225	1_1_0d	EXIST::FUNCTION:
 BIO_ptr_ctrl                            226	1_1_0d	EXIST::FUNCTION:
-SM9_extract_exch_public_key             227	1_1_0d	EXIST::FUNCTION:SM9
+SM9_extract_exch_public_key             227	1_1_0d	NOEXIST::FUNCTION:
 i2d_PKCS8_PRIV_KEY_INFO_bio             228	1_1_0d	EXIST::FUNCTION:
 BN_GFP2_sub                             229	1_1_0d	EXIST::FUNCTION:
 d2i_RSAPrivateKey                       230	1_1_0d	EXIST::FUNCTION:RSA
@@ -2708,7 +2708,7 @@ OPENSSL_cleanup                         2623	1_1_0d	EXIST::FUNCTION:
 SRP_VBASE_get_by_user                   2624	1_1_0d	EXIST::FUNCTION:DEPRECATEDIN_1_1_0,SRP
 i2d_DSA_PUBKEY_bio                      2625	1_1_0d	EXIST::FUNCTION:DSA
 RC2_encrypt                             2626	1_1_0d	EXIST::FUNCTION:RC2
-SM9_extract_sign_public_key             2627	1_1_0d	EXIST::FUNCTION:SM9
+SM9_extract_sign_public_key             2627	1_1_0d	NOEXIST::FUNCTION:
 X509v3_asid_add_id_or_range             2628	1_1_0d	EXIST::FUNCTION:RFC3779
 PKCS8_PRIV_KEY_INFO_free                2629	1_1_0d	EXIST::FUNCTION:
 NETSCAPE_SPKI_set_pubkey                2630	1_1_0d	EXIST::FUNCTION:
@@ -4718,7 +4718,7 @@ SDF_ExternalVerify_ECC                  4566	1_1_0d	EXIST::FUNCTION:
 X509_STORE_CTX_set0_verified_chain      4567	1_1_0d	EXIST::FUNCTION:
 RAND_pseudo_bytes                       4568	1_1_0d	EXIST::FUNCTION:DEPRECATEDIN_1_1_0
 PKCS7_SIGNER_INFO_new                   4569	1_1_0d	EXIST::FUNCTION:
-SM9_extract_enc_public_key              4570	1_1_0d	EXIST::FUNCTION:SM9
+SM9_extract_enc_public_key              4570	1_1_0d	NOEXIST::FUNCTION:
 UI_method_set_writer                    4571	1_1_0d	EXIST::FUNCTION:UI
 PEM_read_NETSCAPE_CERT_SEQUENCE         4572	1_1_0d	EXIST::FUNCTION:STDIO
 CONF_imodule_set_usr_data               4573	1_1_0d	EXIST::FUNCTION:
@@ -5011,3 +5011,4 @@ X509_ocspid_print                       4851	1_1_0d	EXIST::FUNCTION:
 SKF_PrintDevInfo                        4852	1_1_0d	EXIST::FUNCTION:SKF
 speck_set_encrypt_key32                 4853	1_1_0d	EXIST::FUNCTION:SPECK
 BIO_nread0                              4854	1_1_0d	EXIST::FUNCTION:
+SM9_extract_public_key                  4855	1_1_0d	EXIST::FUNCTION:SM9
