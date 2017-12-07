@@ -879,7 +879,6 @@ int SDF_GenerateKeyWithKEK(
 	return SDR_OK;
 }
 
-
 int SDF_ImportKeyWithKEK(
 	void *hSessionHandle,
 	unsigned int uiAlgID,
@@ -917,7 +916,6 @@ int SDF_ImportKeyWithKEK(
 	return SDR_OK;
 }
 
-
 int SDF_DestroyKey(
 	void *hSessionHandle,
 	void *hKeyHandle)
@@ -938,7 +936,6 @@ int SDF_DestroyKey(
 
 	return SDR_OK;
 }
-
 
 int SDF_ExternalPublicKeyOperation_RSA(
 	void *hSessionHandle,
@@ -971,7 +968,6 @@ int SDF_ExternalPublicKeyOperation_RSA(
 	return SDR_OK;
 }
 
-
 int SDF_InternalPublicKeyOperation_RSA(
 	void *hSessionHandle,
 	unsigned int uiKeyIndex,
@@ -1003,7 +999,6 @@ int SDF_InternalPublicKeyOperation_RSA(
 	return SDR_OK;
 }
 
-
 int SDF_InternalPrivateKeyOperation_RSA(
 	void *hSessionHandle,
 	unsigned int uiKeyIndex,
@@ -1034,7 +1029,6 @@ int SDF_InternalPrivateKeyOperation_RSA(
 
 	return SDR_OK;
 }
-
 
 int SDF_ExternalVerify_ECC(
 	void *hSessionHandle,
@@ -1074,7 +1068,6 @@ int SDF_ExternalVerify_ECC(
 	return SDR_OK;
 }
 
-
 int SDF_InternalSign_ECC(
 	void *hSessionHandle,
 	unsigned int uiISKIndex,
@@ -1103,7 +1096,6 @@ int SDF_InternalSign_ECC(
 	return SDR_OK;
 }
 
-
 int SDF_InternalVerify_ECC(
 	void *hSessionHandle,
 	unsigned int uiIPKIndex,
@@ -1131,7 +1123,6 @@ int SDF_InternalVerify_ECC(
 
 	return SDR_OK;
 }
-
 
 int SDF_ExternalEncrypt_ECC(
 	void *hSessionHandle,
@@ -1171,6 +1162,35 @@ int SDF_ExternalEncrypt_ECC(
 	return SDR_OK;
 }
 
+int SDF_InternalDecrypt_ECC(
+	void *hSessionHandle,
+	unsigned int uiISKIndex,
+	unsigned int uiAlgID,
+	ECCCipher *pucEncData,
+	unsigned char *pucData,
+	unsigned int *uiDataLength)
+{
+	int ret = SDR_UNKNOWERR;
+
+	if (!sdf_method || !sdf_method->InternalDecrypt_ECC) {
+		SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC, SDF_R_NOT_INITIALIZED);
+		return SDR_NOTSUPPORT;
+	}
+
+	if ((ret = sdf_method->InternalDecrypt_ECC(
+		hSessionHandle,
+		uiISKIndex,
+		uiAlgID,
+		pucEncData,
+		pucData,
+		uiDataLength)) != SDR_OK) {
+		SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC,
+			sdf_get_error_reason(ret));
+		return ret;
+	}
+
+	return SDR_OK;
+}
 
 int SDF_Encrypt(
 	void *hSessionHandle,
@@ -1213,7 +1233,6 @@ int SDF_Encrypt(
 	return SDR_OK;
 }
 
-
 int SDF_Decrypt(
 	void *hSessionHandle,
 	void *hKeyHandle,
@@ -1253,7 +1272,6 @@ int SDF_Decrypt(
 
 	return SDR_OK;
 }
-
 
 int SDF_CalculateMAC(
 	void *hSessionHandle,
@@ -1330,7 +1348,6 @@ int SDF_HashInit(
 	return SDR_OK;
 }
 
-
 int SDF_HashUpdate(
 	void *hSessionHandle,
 	unsigned char *pucData,
@@ -1354,7 +1371,6 @@ int SDF_HashUpdate(
 	return SDR_OK;
 }
 
-
 int SDF_HashFinal(
 	void *hSessionHandle,
 	unsigned char *pucHash,
@@ -1377,7 +1393,6 @@ int SDF_HashFinal(
 
 	return SDR_OK;
 }
-
 
 int SDF_CreateFile(
 	void *hSessionHandle,

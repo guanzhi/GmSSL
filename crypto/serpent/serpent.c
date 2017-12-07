@@ -73,6 +73,7 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE. */
 
+#include <stdio.h>
 #include <string.h>
 #include <openssl/crypto.h>
 #include <openssl/serpent.h>
@@ -267,8 +268,8 @@ void serpent_set_decrypt_key(serpent_key_t *key, const unsigned char *user_key)
 void serpent_encrypt(const void *in, void *out, serpent_key_t *key)
 {
 	int8_t i;
-    	memcpy(out, in, SERPENT_BLOCK_SIZE);
 	serpent_blk *_out = out;
+    	memcpy(out, in, SERPENT_BLOCK_SIZE);
 
 	i = 0;
 	for (;;) {
@@ -287,9 +288,9 @@ void serpent_encrypt(const void *in, void *out, serpent_key_t *key)
 void serpent_decrypt(const void *in, void *out, serpent_key_t *key)
 {
 	int8_t i;
+	serpent_blk *_out = out;
     	memcpy(out, in, SERPENT_BLOCK_SIZE);
 
-	serpent_blk *_out = out;
 
 	i = SERPENT_ROUNDS;
 	serpent_whiten(_out, key, i);

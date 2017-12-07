@@ -75,7 +75,7 @@ extern "C" {
 #endif
 
 #pragma pack(1)
-typedef struct /*__attribute__((packed))*/ DeviceInfo_st {
+typedef struct DeviceInfo_st {
 	unsigned char IssuerName[40];
 	unsigned char DeviceName[16];
 	unsigned char DeviceSerial[16];	/* 8-char date +
@@ -92,13 +92,13 @@ typedef struct /*__attribute__((packed))*/ DeviceInfo_st {
 	unsigned int BufferSize;
 } DEVICEINFO;
 
-typedef struct /*__attribute__((packed))*/ RSArefPublicKey_st {
+typedef struct RSArefPublicKey_st {
 	unsigned int bits;
 	unsigned char m[RSAref_MAX_LEN];
 	unsigned char e[RSAref_MAX_LEN];
 } RSArefPublicKey;
 
-typedef struct /*__attribute__((packed))*/ RSArefPrivateKey_st {
+typedef struct RSArefPrivateKey_st {
 	unsigned int bits;
 	unsigned char m[RSAref_MAX_LEN];
 	unsigned char e[RSAref_MAX_LEN];
@@ -108,18 +108,18 @@ typedef struct /*__attribute__((packed))*/ RSArefPrivateKey_st {
 	unsigned char coef[RSAref_MAX_PLEN];
 } RSArefPrivateKey;
 
-typedef struct /*__attribute__((packed))*/ ECCrefPublicKey_st {
+typedef struct ECCrefPublicKey_st {
 	unsigned int bits;
 	unsigned char x[ECCref_MAX_LEN];
 	unsigned char y[ECCref_MAX_LEN];
 } ECCrefPublicKey;
 
-typedef struct /*__attribute__((packed))*/ ECCrefPrivateKey_st {
+typedef struct ECCrefPrivateKey_st {
     unsigned int  bits;
     unsigned char K[ECCref_MAX_LEN];
 } ECCrefPrivateKey;
 
-typedef struct /*__attribute__((packed))*/ ECCCipher_st {
+typedef struct ECCCipher_st {
 	unsigned char x[ECCref_MAX_LEN];
 	unsigned char y[ECCref_MAX_LEN];
 	unsigned char M[32];
@@ -127,12 +127,12 @@ typedef struct /*__attribute__((packed))*/ ECCCipher_st {
 	unsigned char C[1];
 } ECCCipher;
 
-typedef struct /*__attribute__((packed))*/ ECCSignature_st {
+typedef struct ECCSignature_st {
 	unsigned char r[ECCref_MAX_LEN];
 	unsigned char s[ECCref_MAX_LEN];
 } ECCSignature;
 
-typedef struct /*__attribute__((packed))*/ SDF_ENVELOPEDKEYBLOB {
+typedef struct SDF_ENVELOPEDKEYBLOB {
 	unsigned long Version;
 	unsigned long ulSymmAlgID;
 	ECCCipher ECCCipehrBlob;
@@ -374,6 +374,14 @@ int SDF_ExternalEncrypt_ECC(
 	unsigned char *pucData,
 	unsigned int uiDataLength,
 	ECCCipher *pucEncData);
+
+int SDF_InternalDecrypt_ECC(
+	void *hSessionHandle,
+	unsigned int uiISKIndex,
+	unsigned int uiAlgID,
+	ECCCipher *pucEncData,
+	unsigned char *pucData,
+	unsigned int *uiDataLength);
 
 int SDF_Encrypt(
 	void *hSessionHandle,

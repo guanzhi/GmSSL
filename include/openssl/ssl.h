@@ -1440,9 +1440,6 @@ void SSL_SESSION_get0_ticket(const SSL_SESSION *s, const unsigned char **tick,
                             size_t *len);
 __owur int SSL_copy_session_id(SSL *to, const SSL *from);
 __owur X509 *SSL_SESSION_get0_peer(SSL_SESSION *s);
-#ifndef OPENSSL_NO_GMTLS_METHOD
-__owur X509 *SSL_SESSION_get0_peer_extra(SSL_SESSION *s);
-#endif
 __owur int SSL_SESSION_set1_id_context(SSL_SESSION *s, const unsigned char *sid_ctx,
                                 unsigned int sid_ctx_len);
 __owur int SSL_SESSION_set1_id(SSL_SESSION *s, const unsigned char *sid,

@@ -255,7 +255,7 @@ int enc_main(int argc, char **argv)
         }
     }
 
-    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+    //BIO_printf(bio_err, "Using configuration from %s\n", configfile);
 
     if ((conf = app_load_config(configfile)) == NULL)
         goto end;

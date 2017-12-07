@@ -63,12 +63,12 @@ extern "C" {
 #endif
 
 #pragma pack(1)
-typedef struct /*__attribute__((packed))*/ Struct_Version{
+typedef struct Struct_Version{
 	BYTE major;
 	BYTE minor;
 } VERSION;
 
-typedef struct /*__attribute__((packed))*/ Struct_DEVINFO {
+typedef struct Struct_DEVINFO {
 	VERSION	Version;
 	CHAR	Manufacturer[64];
 	CHAR	Issuer[64];
@@ -87,14 +87,14 @@ typedef struct /*__attribute__((packed))*/ Struct_DEVINFO {
 	BYTE  	Reserved[64];
 } DEVINFO, *PDEVINFO;
 
-typedef struct /*__attribute__((packed))*/ Struct_RSAPUBLICKEYBLOB {
+typedef struct Struct_RSAPUBLICKEYBLOB {
 	ULONG	AlgID;
 	ULONG	BitLen;
 	BYTE	Modulus[MAX_RSA_MODULUS_LEN];
 	BYTE	PublicExponent[MAX_RSA_EXPONENT_LEN];
 } RSAPUBLICKEYBLOB, *PRSAPUBLICKEYBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_RSAPRIVATEKEYBLOB {
+typedef struct Struct_RSAPRIVATEKEYBLOB {
 	ULONG	AlgID;
 	ULONG	BitLen;
 	BYTE	Modulus[MAX_RSA_MODULUS_LEN];
@@ -107,18 +107,18 @@ typedef struct /*__attribute__((packed))*/ Struct_RSAPRIVATEKEYBLOB {
 	BYTE	Coefficient[MAX_RSA_MODULUS_LEN/2];
 } RSAPRIVATEKEYBLOB, *PRSAPRIVATEKEYBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_ECCPUBLICKEYBLOB {
+typedef struct Struct_ECCPUBLICKEYBLOB {
 	ULONG	BitLen;
 	BYTE	XCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	YCoordinate[ECC_MAX_YCOORDINATE_BITS_LEN/8];
 } ECCPUBLICKEYBLOB, *PECCPUBLICKEYBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_ECCPRIVATEKEYBLOB {
+typedef struct Struct_ECCPRIVATEKEYBLOB {
 	ULONG	BitLen;
 	BYTE	PrivateKey[ECC_MAX_MODULUS_BITS_LEN/8];
 } ECCPRIVATEKEYBLOB, *PECCPRIVATEKEYBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_ECCCIPHERBLOB {
+typedef struct Struct_ECCCIPHERBLOB {
 	BYTE	XCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	YCoordinate[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	HASH[32];
@@ -126,19 +126,19 @@ typedef struct /*__attribute__((packed))*/ Struct_ECCCIPHERBLOB {
 	BYTE	Cipher[1];
 } ECCCIPHERBLOB, *PECCCIPHERBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_ECCSIGNATUREBLOB {
+typedef struct Struct_ECCSIGNATUREBLOB {
 	BYTE	r[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 	BYTE	s[ECC_MAX_XCOORDINATE_BITS_LEN/8];
 } ECCSIGNATUREBLOB, *PECCSIGNATUREBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_BLOCKCIPHERPARAM {
+typedef struct Struct_BLOCKCIPHERPARAM {
 	BYTE	IV[MAX_IV_LEN];
 	ULONG	IVLen;
 	ULONG	PaddingType;
 	ULONG	FeedBitLen;
 } BLOCKCIPHERPARAM, *PBLOCKCIPHERPARAM;
 
-typedef struct /*__attribute__((packed))*/ SKF_ENVELOPEDKEYBLOB {
+typedef struct SKF_ENVELOPEDKEYBLOB {
 	ULONG	Version;
 	ULONG	ulSymmAlgID;
 	ULONG	ulBits;
@@ -147,7 +147,7 @@ typedef struct /*__attribute__((packed))*/ SKF_ENVELOPEDKEYBLOB {
 	ECCCIPHERBLOB		ECCCipherBlob;
 } ENVELOPEDKEYBLOB, *PENVELOPEDKEYBLOB;
 
-typedef struct /*__attribute__((packed))*/ Struct_FILEATTRIBUTE {
+typedef struct Struct_FILEATTRIBUTE {
 	CHAR	FileName[MAX_FILE_NAME_SIZE];
 	ULONG	FileSize;
 	ULONG	ReadRights;

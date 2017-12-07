@@ -107,11 +107,10 @@ typedef struct  {
 extern "C" {
 #endif
 
-	/* C code */
-	void serpent_set_encrypt_key(serpent_key_t *key, const unsigned char *user_key);
-    	void serpent_set_decrypt_key(serpent_key_t *key, const unsigned char *user_key);
-	void serpent_encrypt(const void *in, void *out, serpent_key_t *key);
-	void serpent_decrypt(const void *in, void *out, serpent_key_t *key);
+void serpent_set_encrypt_key(serpent_key_t *key, const unsigned char *user_key);
+void serpent_set_decrypt_key(serpent_key_t *key, const unsigned char *user_key);
+void serpent_encrypt(const void *in, void *out, serpent_key_t *key);
+void serpent_decrypt(const void *in, void *out, serpent_key_t *key);
 
 #ifdef __cplusplus
 }

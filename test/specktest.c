@@ -50,8 +50,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/e_os2.h>
-#include <openssl/speck.h>
+
+#include "../e_os.h"
+
+#ifdef OPENSSL_NO_SPECK
+int main(int argc, char **argv)
+{
+	printf("No SPECK support\n");
+	return 0;
+}
+#else
+# include <openssl/e_os2.h>
+# include <openssl/speck.h>
+# include <openssl/evp.h>
 
 int main(int argc, char** argv)
 {
@@ -70,46 +81,50 @@ int main(int argc, char** argv)
 
 	uint16_t buffer[2] = { 0 };
 	uint16_t exp[SPECK_ROUNDS16];
-	speck_set_encrypt_key16(key16, exp);
-	speck_encrypt16(plain16, buffer, exp);
-	if (memcmp(buffer, enc16, sizeof(enc16)))
-	{
-		sum++;
-	}
-	speck_decrypt16(enc16, buffer, exp);
-	if (memcmp(buffer, plain16, sizeof(enc16)))
-	{
-		sum++;
-	}
 
 	uint32_t exp32[SPECK_ROUNDS32];
 	uint32_t buffer32[2] = { 0 };
-	speck_set_encrypt_key32(key32, exp32);
-	speck_encrypt32(plain32, buffer32, exp32);
-	if (memcmp(buffer, enc32, sizeof(enc32)))
-	{
-		sum++;
-	}
-	speck_decrypt32(enc32, buffer32, exp32);
-	if (memcmp(buffer32, plain32, sizeof(enc32)))
-	{
-		sum++;
-	}
 
 	uint64_t exp64[SPECK_ROUNDS64];
 	uint64_t buffer64[2] = { 0 };
+
+
+	speck_set_encrypt_key16(key16, exp);
+	speck_encrypt16(plain16, buffer, exp);
+	if (memcmp(buffer, enc16, sizeof(enc16))) {
+		fprintf(stderr, "%s %d: speck error\n", __FILE__, __LINE__);
+		sum++;
+	}
+	speck_decrypt16(enc16, buffer, exp);
+	if (memcmp(buffer, plain16, sizeof(enc16))) {
+		fprintf(stderr, "%s %d: speck error\n", __FILE__, __LINE__);
+		sum++;
+	}
+
+	speck_set_encrypt_key32(key32, exp32);
+	speck_encrypt32(plain32, buffer32, exp32);
+	if (memcmp(buffer, enc32, sizeof(enc32))) {
+		fprintf(stderr, "%s %d: speck error\n", __FILE__, __LINE__);
+		sum++;
+	}
+	speck_decrypt32(enc32, buffer32, exp32);
+	if (memcmp(buffer32, plain32, sizeof(enc32))) {
+		fprintf(stderr, "%s %d: speck error\n", __FILE__, __LINE__);
+		sum++;
+	}
+
 	speck_set_encrypt_key64(key64, exp64);
 	speck_encrypt64(plain64, buffer64, exp64);
-	if (memcmp(buffer64, enc64, sizeof(enc64)))
-	{
+	if (memcmp(buffer64, enc64, sizeof(enc64))) {
+		fprintf(stderr, "%s %d: speck error\n", __FILE__, __LINE__);
 		sum++;
-		system("pause");
 	}
 	speck_decrypt64(enc64, buffer64, exp64);
-	if (memcmp(buffer64, plain64, sizeof(enc64)))
-	{
+	if (memcmp(buffer64, plain64, sizeof(enc64))) {
+		fprintf(stderr, "%s %d: speck error\n", __FILE__, __LINE__);
 		sum++;
-		system("pause");
 	}
+
 	return sum;
 }
+#endif

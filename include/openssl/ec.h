@@ -1282,81 +1282,65 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
 #  endif
 # endif
 
-// 把两者顺序调换一下				
-# ifdef OPENSSL_NO_MACRO
-int EVP_PKEY_CTX_set_ec_paramgen_curve_nid(EVP_PKEY_CTX *ctx, int nid);
-int EVP_PKEY_CTX_set_ec_param_enc(EVP_PKEY_CTX *ctx, int param_enc);
-int EVP_PKEY_CTX_set_ecdh_cofactor_mode(EVP_PKEY_CTX *ctx, int co_mode);
-int EVP_PKEY_CTX_get_ecdh_cofactor_mode(EVP_PKEY_CTX *ctx);
-int EVP_PKEY_CTX_set_ecdh_kdf_type(EVP_PKEY_CTX *ctx, int kdf);
-int EVP_PKEY_CTX_get_ecdh_kdf_type(EVP_PKEY_CTX *ctx);
-int EVP_PKEY_CTX_set_ecdh_kdf_md(EVP_PKEY_CTX *ctx, const EVP_MD *md);
-int EVP_PKEY_CTX_get_ecdh_kdf_md(EVP_PKEY_CTX *ctx, const EVP_MD **pmd);
-int EVP_PKEY_CTX_set_ecdh_kdf_outlen(EVP_PKEY_CTX *ctx, int len);
-int EVP_PKEY_CTX_get_ecdh_kdf_outlen(EVP_PKEY_CTX *ctx, int *plen);
-int EVP_PKEY_CTX_set0_ecdh_kdf_ukm(EVP_PKEY_CTX *ctx, unsigned char *der, int len);
-int EVP_PKEY_CTX_get0_ecdh_kdf_ukm(EVP_PKEY_CTX *ctx, unsigned char **pder);
-# else
-#  define EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid) \
+# define EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_PARAMGEN|EVP_PKEY_OP_KEYGEN, \
                                 EVP_PKEY_CTRL_EC_PARAMGEN_CURVE_NID, nid, NULL)
 
-#  define EVP_PKEY_CTX_set_ec_param_enc(ctx, flag) \
+# define EVP_PKEY_CTX_set_ec_param_enc(ctx, flag) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_PARAMGEN|EVP_PKEY_OP_KEYGEN, \
                                 EVP_PKEY_CTRL_EC_PARAM_ENC, flag, NULL)
 
-#  define EVP_PKEY_CTX_set_ecdh_cofactor_mode(ctx, flag) \
+# define EVP_PKEY_CTX_set_ecdh_cofactor_mode(ctx, flag) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_ECDH_COFACTOR, flag, NULL)
 
-#  define EVP_PKEY_CTX_get_ecdh_cofactor_mode(ctx) \
+# define EVP_PKEY_CTX_get_ecdh_cofactor_mode(ctx) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_ECDH_COFACTOR, -2, NULL)
 
-#  define EVP_PKEY_CTX_set_ecdh_kdf_type(ctx, kdf) \
+# define EVP_PKEY_CTX_set_ecdh_kdf_type(ctx, kdf) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_KDF_TYPE, kdf, NULL)
 
-#  define EVP_PKEY_CTX_get_ecdh_kdf_type(ctx) \
+# define EVP_PKEY_CTX_get_ecdh_kdf_type(ctx) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_KDF_TYPE, -2, NULL)
 
-#  define EVP_PKEY_CTX_set_ecdh_kdf_md(ctx, md) \
+# define EVP_PKEY_CTX_set_ecdh_kdf_md(ctx, md) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_KDF_MD, 0, (void *)md)
 
-#  define EVP_PKEY_CTX_get_ecdh_kdf_md(ctx, pmd) \
+# define EVP_PKEY_CTX_get_ecdh_kdf_md(ctx, pmd) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_GET_EC_KDF_MD, 0, (void *)pmd)
 
-#  define EVP_PKEY_CTX_set_ecdh_kdf_outlen(ctx, len) \
+# define EVP_PKEY_CTX_set_ecdh_kdf_outlen(ctx, len) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_KDF_OUTLEN, len, NULL)
 
-#  define EVP_PKEY_CTX_get_ecdh_kdf_outlen(ctx, plen) \
+# define EVP_PKEY_CTX_get_ecdh_kdf_outlen(ctx, plen) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                         EVP_PKEY_CTRL_GET_EC_KDF_OUTLEN, 0, (void *)plen)
 
-#  define EVP_PKEY_CTX_set0_ecdh_kdf_ukm(ctx, p, plen) \
+# define EVP_PKEY_CTX_set0_ecdh_kdf_ukm(ctx, p, plen) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_EC_KDF_UKM, plen, (void *)p)
 
-#  define EVP_PKEY_CTX_get0_ecdh_kdf_ukm(ctx, p) \
+# define EVP_PKEY_CTX_get0_ecdh_kdf_ukm(ctx, p) \
         EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
                                 EVP_PKEY_OP_DERIVE, \
                                 EVP_PKEY_CTRL_GET_EC_KDF_UKM, 0, (void *)p)
-# endif /* OPENSSL_NO_MACRO */
 
 # define EVP_PKEY_CTRL_EC_PARAMGEN_CURVE_NID             (EVP_PKEY_ALG_CTRL + 1)
 # define EVP_PKEY_CTRL_EC_PARAM_ENC                      (EVP_PKEY_ALG_CTRL + 2)

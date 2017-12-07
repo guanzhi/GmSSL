@@ -50,6 +50,7 @@ extern "C" {
             EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, \
                               EVP_PKEY_CTRL_HKDF_INFO, infolen, (void *)info)
 
+#if 0
 /*static*/ unsigned char *HKDF(const EVP_MD *evp_md,
                            const unsigned char *salt, size_t salt_len,
                            const unsigned char *key, size_t key_len,
@@ -65,6 +66,7 @@ extern "C" {
                                   const unsigned char *prk, size_t prk_len,
                                   const unsigned char *info, size_t info_len,
                                   unsigned char *okm, size_t okm_len);
+#endif
 
 /* BEGIN ERROR CODES */
 /*

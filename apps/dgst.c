@@ -229,7 +229,7 @@ int dgst_main(int argc, char **argv)
             out_bin = 0;
     }
 
-    BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+    //BIO_printf(bio_err, "Using configuration from %s\n", configfile);
     if ((conf = app_load_config(configfile)) == NULL)
         goto end;
     if (configfile != default_config_file && !app_load_modules(conf))

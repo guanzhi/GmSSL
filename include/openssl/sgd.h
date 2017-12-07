@@ -406,13 +406,13 @@ typedef HANDLE HCONTAINER;
 
 /* SDF */
 
-#define RSAref_MAX_BITS    2048
-#define RSAref_MAX_LEN     ((RSAref_MAX_BITS + 7) / 8)
-#define RSAref_MAX_PBITS   ((RSAref_MAX_BITS + 1) / 2)
-#define RSAref_MAX_PLEN    ((RSAref_MAX_PBITS + 7)/ 8)
+#define RSAref_MAX_BITS			2048
+#define RSAref_MAX_LEN			((RSAref_MAX_BITS + 7) / 8)
+#define RSAref_MAX_PBITS		((RSAref_MAX_BITS + 1) / 2)
+#define RSAref_MAX_PLEN			((RSAref_MAX_PBITS + 7)/ 8)
 
-#define ECCref_MAX_BITS		512
-#define ECCref_MAX_LEN		((ECCref_MAX_BITS+7) / 8)
+#define ECCref_MAX_BITS			512
+#define ECCref_MAX_LEN			((ECCref_MAX_BITS+7) / 8)
 
 
 /* SAF */

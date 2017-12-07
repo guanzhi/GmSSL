@@ -14,7 +14,6 @@
 #include <openssl/x509.h>
 #include "internal/evp_int.h"
 
-// 不同的cipher属性不同，似乎不能像MD那样简单处理
 const EVP_CIPHER *EVP_get_default_cipher(void)
 {
 	return NULL;

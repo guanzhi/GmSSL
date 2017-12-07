@@ -301,7 +301,7 @@ my $default_ranlib;
 $config{fips}=0;
 
 # Top level directories to build
-$config{dirs} = [ "crypto", "ssl", "engines", "apps", "util", "tools", "fuzz" ];
+$config{dirs} = [ "crypto", "ssl", "engines", "apps", "util", "tools", "fuzz", "test" ];
 # crypto/ subdirectories to build
 $config{sdirs} = [
     "objects",
@@ -474,7 +474,7 @@ our %disabled = ( # "what"         => "comment"
 		  "ssl3"                => "default",
 		  "ssl3-method"         => "default",
                   "ubsan"		=> "default",
-		  "unit-test"           => "default",
+		  #"unit-test"           => "default",
 		  "weak-ssl-ciphers"    => "default",
 		  "zlib"                => "default",
 		  "zlib-dynamic"        => "default",

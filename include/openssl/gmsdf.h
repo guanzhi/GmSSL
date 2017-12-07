@@ -132,6 +132,7 @@ int ERR_load_SDF_strings(void);
 # define SDF_F_SDF_IMPORTKEYWITHISK_ECC                   135
 # define SDF_F_SDF_IMPORTKEYWITHISK_RSA                   136
 # define SDF_F_SDF_IMPORTKEYWITHKEK                       137
+# define SDF_F_SDF_INTERNALDECRYPT_ECC                    151
 # define SDF_F_SDF_INTERNALPRIVATEKEYOPERATION_RSA        138
 # define SDF_F_SDF_INTERNALPUBLICKEYOPERATION_RSA         147
 # define SDF_F_SDF_INTERNALSIGN_ECC                       139
@@ -258,8 +259,8 @@ int ERR_load_SDF_strings(void);
 # define SDF_R_VERIFICATION_FAILURE                       141
 # define SDF_R_WRITE_FILE_FAILURE                         142
 
-# ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
+#  endif
 # endif
-#endif
 #endif

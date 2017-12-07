@@ -59,8 +59,8 @@ extern "C" {
 #endif
 
 
-int base58_decode(const char *b58, size_t b58sz, void *bin, size_t *binszp);
-int base58_encode(const void *data, size_t binsz, char *b58, size_t *b58sz);
+int base58_encode(const void *in, size_t inlen, char *out, size_t *outlen);
+int base58_decode(const char *in, size_t inlen, void *out, size_t *outlen);
 
 /* BEGIN ERROR CODES */
 /*

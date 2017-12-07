@@ -181,19 +181,7 @@ end:
 	return NULL;
 }
 
-SM9PublicKey *SM9_extract_sign_public_key(SM9PublicParameters *mpk,
-	const char *id, size_t idlen)
-{
-	return NULL;
-}
-
-SM9PublicKey *SM9_extract_exch_public_key(SM9PublicParameters *mpk,
-	const char *id, size_t idlen)
-{
-	return NULL;
-}
-
-SM9PublicKey *SM9_extract_enc_public_key(SM9PublicParameters *mpk,
+SM9PublicKey *SM9_extract_public_key(SM9PublicParameters *mpk,
 	const char *id, size_t idlen)
 {
 	return NULL;

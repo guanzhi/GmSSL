@@ -2722,7 +2722,7 @@ void ssl_set_masks(SSL *s)
         if (ecdsa_ok) {
 fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             mask_a |= SSL_aECDSA;
-            mask_a |= SSL_aSM2;//先将就一下
+            mask_a |= SSL_aSM2;
         }
     }
 #endif
@@ -2777,7 +2777,6 @@ fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
 }
 
 #ifndef OPENSSL_NO_EC
-
 int ssl_check_srvr_ecc_cert_and_alg(X509 *x, SSL *s)
 {
     if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aECDSA) {
@@ -2788,18 +2787,6 @@ int ssl_check_srvr_ecc_cert_and_alg(X509 *x, SSL *s)
             return 0;
         }
     }
-# ifndef OPENSSL_NO_GMTLS
-# if 0
-    if (s->s3->tmp.new_cipher->algorithm_auth & SSL_aSM2) {
-        /* key usage, if present, must allow signing */
-        if (!(X509_get_key_usage(x) & X509v3_KU_DIGITAL_SIGNATURE)) {
-            SSLerr(SSL_F_SSL_CHECK_SRVR_ECC_CERT_AND_ALG,
-                   SSL_R_ECC_CERT_NOT_FOR_SIGNING);
-            return 0;
-        }
-    }
-# endif
-# endif
     return 1;                   /* all checks are ok */
 }
 
@@ -2896,7 +2883,6 @@ EVP_PKEY *ssl_get_sign_pkey(SSL *s, const SSL_CIPHER *cipher,
     else if ((alg_a & SSL_aSM2) &&
               (c->pkeys[SSL_PKEY_SM2].privatekey != NULL)) {
         idx = SSL_PKEY_SM2;
-fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
     }
 #endif
     if (idx == -1) {

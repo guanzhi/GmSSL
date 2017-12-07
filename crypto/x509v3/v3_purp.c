@@ -352,6 +352,7 @@ static void x509v3_cache_extensions(X509 *x)
     EXTENDED_KEY_USAGE *extusage;
     X509_EXTENSION *ex;
     const EVP_MD *md;
+    int i;
 #ifndef OPENSSL_NO_SHA
     md = EVP_sha1();
 #elif !defined(OPENSSL_NO_SM3)
@@ -360,7 +361,6 @@ static void x509v3_cache_extensions(X509 *x)
    return;
 #endif
 
-    int i;
     if (x->ex_flags & EXFLAG_SET)
         return;
     X509_digest(x, md, x->sha1_hash, NULL);

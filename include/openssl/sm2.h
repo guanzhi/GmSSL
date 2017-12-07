@@ -142,9 +142,6 @@ int SM2_compute_share_key(unsigned char *out, size_t *outlen,
 
 typedef struct sm2_kap_ctx_st SM2_KAP_CTX;
 
-int SM2_compute_key(void *out, size_t outlen, const EC_POINT *pub_key,
-	const EC_KEY *ec_key, void *(*KDF) (const void *in, size_t inlen, void *out, size_t *outlen));
-
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 	EC_KEY *ec_key, const char *id, size_t idlen,
 	EC_KEY *remote_pubkey, const char *rid, size_t ridlen,
@@ -197,7 +194,6 @@ void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
 #define EVP_PKEY_CTRL_GET_SIGNER_ZID    (EVP_PKEY_ALG_CTRL + 14)
 #define EVP_PKEY_CTRL_EC_ENCRYPT_PARAM  (EVP_PKEY_ALG_CTRL + 15)
 
-#ifndef OPENSSL_NO_MACRO
 #define EVP_PKEY_CTX_set_ec_scheme(ctx, scheme) \
 	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
 		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
@@ -244,16 +240,6 @@ void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
 	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
 		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
 		EVP_PKEY_CTRL_EC_ENCRYPT_PARAM, -2, NULL)
-
-#else
-int EVP_PKEY_CTX_set_ec_scheme(EVP_PKEY_CTX *ctx, int scheme);
-int EVP_PKEY_CTX_get_ec_scheme(EVP_PKEY_CTX *ctx, int scheme);
-int EVP_PKEY_CTX_set_signer_id(EVP_PKEY_CTX *ctx, const char *id);
-int EVP_PKEY_CTX_get_signer_id(EVP_PKEY_CTX *ctx, char **pid);
-int EVP_PKEY_CTX_get_signer_zid(EVP_PKEY_CTX *ctx, unsigned char **pzid);
-int EVP_PKEY_CTX_set_ec_encrypt_param(EVP_PKEY_CTX *ctx, int param);
-int EVP_PKEY_CTX_get_ec_encrypt_param(EVP_PKEY_CTX *ctx);
-#endif
 
 
 /* BEGIN ERROR CODES */
