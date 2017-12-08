@@ -61,6 +61,13 @@ Makefile
 /test/newkey.pem
 /test/*.log
 /test/buildtest_*
+/test/*.p
+/test/*.dd
+/test/*.dp
+/test/*.pd
+/test/*.p
+
+/util/shlib_wrap.sh
 
 # Fuzz stuff.
 # Anything without an extension is an executable on Unix, so we keep files
@@ -197,4 +204,5 @@ apps/gmssl
 include/openssl/srp.h
 
 /build.sh
+
 
