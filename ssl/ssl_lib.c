@@ -2898,7 +2898,7 @@ CERT_PKEY *ssl_get_server_send_pkey_ex(SSL *s)
     if (i < 0)
         return NULL;
 
-    if (i == SSL_PKEY_SM2_SIGN) {
+    if (i == SSL_PKEY_SM2) {
         i = SSL_PKEY_SM2_ENC;
     }
 
