@@ -1,5 +1,5 @@
 ##
-## Makefile for OpenSSL
+## Makefile for GmSSL
 ##
 ## {- join("\n## ", @autowarntext) -}
 {-
@@ -65,6 +65,7 @@ SHLIBS={- join(" ", map { shlib($_) } @{$unified_info{libraries}}) -}
 SHLIBPDBS={- join(" ", map { local $shlibext = ".pdb"; shlib($_) } @{$unified_info{libraries}}) -}
 ENGINES={- join(" ", map { dso($_) } @{$unified_info{engines}}) -}
 ENGINEPDBS={- join(" ", map { local $dsoext = ".pdb"; dso($_) } @{$unified_info{engines}}) -}
+## FIXME: PROGRAMS might be too long, seperate it into 2 strings
 PROGRAMS={- join(" ", map { $_.$exeext } @{$unified_info{programs}}) -}
 PROGRAMPDBS={- join(" ", map { $_.".pdb" } @{$unified_info{programs}}) -}
 SCRIPTS={- join(" ", @{$unified_info{scripts}}) -}

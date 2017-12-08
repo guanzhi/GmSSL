@@ -1,5 +1,6 @@
 #! /usr/bin/env perl
 # -*- mode: perl; -*-
+# Copyright 2016 - 2017 The GmSSL Project. All Rights Reserved.
 # Copyright 2016 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
@@ -474,7 +475,7 @@ our %disabled = ( # "what"         => "comment"
 		  "ssl3"                => "default",
 		  "ssl3-method"         => "default",
                   "ubsan"		=> "default",
-		  #"unit-test"           => "default",
+		  "unit-test"           => "default",
 		  "weak-ssl-ciphers"    => "default",
 		  "zlib"                => "default",
 		  "zlib-dynamic"        => "default",
@@ -483,18 +484,6 @@ our %disabled = ( # "what"         => "comment"
 		  "sdfeng"              => "default",
 		  "gmieng"              => "default",
 		  "gmtls"               => "default",
-		  #"engine"              => "default",
-		  #"sm9"                 => "default",
-                  #"bfibe"               => "default",
-                  #"bb1ibe"              => "default",
-		  #"gmapi"               => "default",
-		  #"saf"                 => "default",
-		  #"sdf"                 => "default",
-		  #"skf"                 => "default",
-		  #"sof"                 => "default",
-		  #"serpent"             => "default",
-		  #"speck"               => "default",
-		  #"base58"               => "default",
 		);
 
 # Note: => pair form used for aesthetics, not to truly make a hash table

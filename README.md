@@ -21,7 +21,7 @@ GmSSL will support all the following GM/T cryptographic algorithms:
  - SM9 (GM/T 0044-2016): pairing-based cryptographic schemes including identity-based digital signature, encryption, (authenticated) key exchange protocol and one 256-bit recommended BN curve.
  - ZUC (GM/T 0001-2012): stream cipher, with 128-EEA3 encryption algorithm and 128-EIA3 integrity algorithm.
  - SM1 and SSF33: block ciphers with 128-bit key length and 128-bit block size without public specification, only provided with chip.
- 
+
 GmSSL supports many useful cryptographic algorithms and schemes:
 
  - Public-key schemes: Paillier, ECIES (Elliptic Curve Integrated Encryption Scheme)
@@ -35,19 +35,20 @@ OpenSSL algorithms such as ECDSA, RSA, AES, SHA-1 are all remained in GmSSL.
 
 ## GM/T Protocols
 
+
 The GM/T standards cover 2 protocls:
 
  - SSL VPN Protocol  (GM/T 0024-2014)
  - IPSec VPN Protocol (GM/T 0022-2014)
- 
+
 The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS from the follows aspects:
 
  - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101)
  - The handshake protocol of GM/T SSL is diffenet from TLS handshake.
  - There is an optional different record protocol in GM/T SSL designed for VPN applications.
  - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
- 
-GM/T 0024-2014 Ciphersuites: 
+
+GM/T 0024-2014 Ciphersuites:
 
 ```
  1. {0xe0,0x01} GMTLS_SM2DHE_SM2SIGN_WITH_SM1_SM3
@@ -64,7 +65,12 @@ GM/T 0024-2014 Ciphersuites:
 12. {0xe0,0x1a} GMTLS_RSA_WITH_SMS4_SM3
 ```
 
-GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites.
+GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites. Currently the following ciphersuites are supported:
+
+```
+ECDHE-SM2-WITH-SMS4-SM3
+ECDHE-SM2-WITH-SMS4-SHA256
+```
 
 ## APIs
 
