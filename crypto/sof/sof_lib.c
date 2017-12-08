@@ -56,9 +56,9 @@
 #include <openssl/crypto.h>
 #include "../../e_os.h"
 
-static long sof_sign_method = SGD_SM2;
-static long sof_enc_method = SGD_SM4_CBC;
-static long sof_last_error = SOR_OK;
+static SOF_LONG sof_sign_method = SGD_SM2;
+static SOF_LONG sof_enc_method = SGD_SM4_CBC;
+static SOF_LONG sof_last_error = SOR_OK;
 static void *sof_app = NULL;
 static int sof_user_type = SGD_ROLE_USER;
 
@@ -80,48 +80,48 @@ static int sof_decode(const char *b64, unsigned char **pdata, unsigned int *pdat
 }
 #endif
 
-BSTR SOF_GetVersion(void)
+SOF_BSTR SOF_GetVersion(void)
 {
 	return OPENSSL_strdup(OpenSSL_version(0));
 }
 
-long SOF_SetSignMethod(long SignMethod)
+SOF_LONG SOF_SetSignMethod(SOF_LONG SignMethod)
 {
 	sof_sign_method = SignMethod;
 	return SOR_OK;
 }
 
-long SOF_GetSignMethod(void)
+SOF_LONG SOF_GetSignMethod(void)
 {
 	return sof_sign_method;
 }
 
-long SOF_SetEncryptMethod(long EncryptMethod)
+SOF_LONG SOF_SetEncryptMethod(SOF_LONG EncryptMethod)
 {
 	sof_enc_method = EncryptMethod;
 	return SOR_OK;
 }
 
-long SOF_GetEncryptMethod(void)
+SOF_LONG SOF_GetEncryptMethod(void)
 {
 	return sof_enc_method;
 }
 
 /* list installed client's certificates */
-BSTR SOF_GetUserList(void)
+SOF_BSTR SOF_GetUserList(void)
 {
 	SOFerr(SOF_F_SOF_GETUSERLIST, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
 /* we need an reference to engine */
-BSTR SOF_ExportUserCert(BSTR ContainerName)
+SOF_BSTR SOF_ExportUserCert(SOF_BSTR ContainerName)
 {
 	SOFerr(SOF_F_SOF_EXPORTUSERCERT, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
+SOF_BOOL SOF_Login(SOF_BSTR ContainerName, SOF_BSTR PassWd)
 {
 	unsigned int uiRemainCount;
 	int rv;
@@ -141,13 +141,13 @@ BOOL SOF_Login(BSTR ContainerName, BSTR PassWd)
 	return SGD_TRUE;
 }
 
-long SOF_GetPinRetryCount(BSTR ContainerName)
+SOF_LONG SOF_GetPinRetryCount(SOF_BSTR ContainerName)
 {
 	SOFerr(SOF_F_SOF_GETPINRETRYCOUNT, SOF_R_NOT_IMPLEMENTED);
 	return SOR_NotSupportYetErr;
 }
 
-BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd)
+SOF_BOOL SOF_ChangePassWd(SOF_BSTR ContainerName, SOF_BSTR OldPassWd, SOF_BSTR NewPassWd)
 {
 	int rv;
 	unsigned int uiRemainCount;
@@ -169,14 +169,14 @@ BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd)
 	return SGD_TRUE;
 }
 
-BSTR SOF_ExportExchangeUserCert(BSTR ContainerName)
+SOF_BSTR SOF_ExportExchangeUserCert(SOF_BSTR ContainerName)
 {
 	SOFerr(SOF_F_SOF_EXPORTEXCHANGEUSERCERT, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
 /* `type` defined as SGD_CERT_XXX, SGD_EXT_XXX in sgd.h */
-BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type)
+SOF_BSTR SOF_GetCertInfo(SOF_BSTR Base64EncodeCert, SOF_SHORT Type)
 {
 	char *ret = NULL;
 
@@ -221,25 +221,25 @@ end:
 	return ret;
 }
 
-BSTR SOF_GetCertInfoByOid(BSTR Base64EncodeCert, BSTR Oid)
+SOF_BSTR SOF_GetCertInfoByOid(SOF_BSTR Base64EncodeCert, SOF_BSTR Oid)
 {
 	SOFerr(SOF_F_SOF_GETCERTINFOBYOID, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BSTR SOF_GetDeviceInfo(BSTR ContainerName, long Type)
+SOF_BSTR SOF_GetDeviceInfo(SOF_BSTR ContainerName, SOF_LONG Type)
 {
 	SOFerr(SOF_F_SOF_GETDEVICEINFO, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-long SOF_ValidateCert(BSTR Base64EncodeCert)
+SOF_LONG SOF_ValidateCert(SOF_BSTR Base64EncodeCert)
 {
 	SOFerr(SOF_F_SOF_VALIDATECERT, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_SignData(BSTR ContainerName, BSTR InData)
+SOF_BSTR SOF_SignData(SOF_BSTR ContainerName, SOF_BSTR InData)
 {
 	char *ret = NULL;
 	char *b64 = NULL;
@@ -296,16 +296,16 @@ end:
 	return ret;
 }
 
-BOOL SOF_VerifySignedData(BSTR Base64EncodeCert, BSTR InData, BSTR SignValue)
+SOF_BOOL SOF_VerifySignedData(SOF_BSTR Base64EncodeCert, SOF_BSTR InData, SOF_BSTR SignValue)
 {
 	SOFerr(SOF_F_SOF_VERIFYSIGNEDDATA, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
 
-BSTR SOF_SignFile(BSTR ContainerName, BSTR InFile)
+SOF_BSTR SOF_SignFile(SOF_BSTR ContainerName, SOF_BSTR InFile)
 {
-	BSTR ret = NULL;
+	SOF_BSTR ret = NULL;
 	char *b64 = NULL;
 	unsigned int uiHashAlgoType = SGD_SM3;
 	unsigned char *pucInData = NULL;
@@ -346,12 +346,12 @@ end:
 	return ret;
 }
 
-BOOL SOF_VerifySignedFile(BSTR Base64EncodeCert, BSTR InFile, BSTR SignValue)
+SOF_BOOL SOF_VerifySignedFile(SOF_BSTR Base64EncodeCert, SOF_BSTR InFile, SOF_BSTR SignValue)
 {
 	return SGD_FALSE;
 }
 
-BSTR SOF_EncryptData(BSTR Base64EncodeCert, BSTR InData)
+SOF_BSTR SOF_EncryptData(SOF_BSTR Base64EncodeCert, SOF_BSTR InData)
 {
 #if 0
 	char *ret = NULL;
@@ -376,13 +376,13 @@ BSTR SOF_EncryptData(BSTR Base64EncodeCert, BSTR InData)
 	return NULL;
 }
 
-BSTR SOF_DecryptData(BSTR ContainerName, BSTR InData)
+SOF_BSTR SOF_DecryptData(SOF_BSTR ContainerName, SOF_BSTR InData)
 {
 	SOFerr(SOF_F_SOF_DECRYPTDATA, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BOOL SOF_EncryptFile(BSTR Base64EncodeCert, BSTR InFile, BSTR OutFile)
+SOF_BOOL SOF_EncryptFile(SOF_BSTR Base64EncodeCert, SOF_BSTR InFile, SOF_BSTR OutFile)
 {
 	int ret = SGD_FALSE;
 #if 0
@@ -415,48 +415,48 @@ end:
 	return ret;
 }
 
-BOOL SOF_DecryptFile(BSTR ContainerName, BSTR InFile, BSTR OutFile)
+SOF_BOOL SOF_DecryptFile(SOF_BSTR ContainerName, SOF_BSTR InFile, SOF_BSTR OutFile)
 {
 	int ret = SGD_FALSE;
 	return ret;
 }
 
-BSTR SOF_SignMessage(short flag, BSTR ContainerName, BSTR InData)
+SOF_BSTR SOF_SignMessage(SOF_SHORT flag, SOF_BSTR ContainerName, SOF_BSTR InData)
 {
 	SOFerr(SOF_F_SOF_SIGNMESSAGE, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BOOL SOF_VerifySignedMessage(BSTR MessageData, BSTR InData)
+SOF_BOOL SOF_VerifySignedMessage(SOF_BSTR MessageData, SOF_BSTR InData)
 {
 	SOFerr(SOF_F_SOF_VERIFYSIGNEDMESSAGE, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_GetInfoFromSignedMessage(BSTR SignedMessage, short Type)
+SOF_BSTR SOF_GetInfoFromSignedMessage(SOF_BSTR SignedMessage, SOF_SHORT Type)
 {
 	SOFerr(SOF_F_SOF_GETINFOFROMSIGNEDMESSAGE, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BSTR SOF_SignDataXML(BSTR ContainerName, BSTR InData)
+SOF_BSTR SOF_SignDataXML(SOF_BSTR ContainerName, SOF_BSTR InData)
 {
 	return NULL;
 }
 
-BOOL SOF_VerifySignedDataXML(BSTR InData)
+SOF_BOOL SOF_VerifySignedDataXML(SOF_BSTR InData)
 {
 	SOFerr(SOF_F_SOF_VERIFYSIGNEDDATAXML, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_GetXMLSignatureInfo(BSTR XMLSignedData, short Type)
+SOF_BSTR SOF_GetXMLSignatureInfo(SOF_BSTR XMLSignedData, SOF_SHORT Type)
 {
 	SOFerr(SOF_F_SOF_GETXMLSIGNATUREINFO, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BSTR SOF_GenRandom(short RandomLen)
+SOF_BSTR SOF_GenRandom(SOF_SHORT RandomLen)
 {
 	char *ret = NULL;
 	char *b64 = NULL;
@@ -476,78 +476,78 @@ end:
 	return ret;
 }
 
-long SOF_GetLastError(void)
+SOF_LONG SOF_GetLastError(void)
 {
 	return sof_last_error;
 }
 
-long SOF_SetCertTrustList(BSTR CTLAltName, BSTR CTLContent, short CTLContentLen)
+SOF_LONG SOF_SetCertTrustList(SOF_BSTR CTLAltName, SOF_BSTR CTLContent, SOF_SHORT CTLContentLen)
 {
 	SOFerr(SOF_F_SOF_SETCERTTRUSTLIST, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_GetCertTrustListAltNames(void)
+SOF_BSTR SOF_GetCertTrustListAltNames(void)
 {
 	SOFerr(SOF_F_SOF_GETCERTTRUSTLISTALTNAMES, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BSTR SOF_GetCertTrustList(BSTR CTLAltName)
+SOF_BSTR SOF_GetCertTrustList(SOF_BSTR CTLAltName)
 {
 	SOFerr(SOF_F_SOF_GETCERTTRUSTLIST, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-long SOF_DelCertTrustList(BSTR CTLAltName)
+SOF_LONG SOF_DelCertTrustList(SOF_BSTR CTLAltName)
 {
 	SOFerr(SOF_F_SOF_DELCERTTRUSTLIST, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-long SOF_InitCertAppPolicy(BSTR PolicyName)
+SOF_LONG SOF_InitCertAppPolicy(SOF_BSTR PolicyName)
 {
 	SOFerr(SOF_F_SOF_INITCERTAPPPOLICY, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_GetServerCertificate(short CertUsage)
+SOF_BSTR SOF_GetServerCertificate(SOF_SHORT CertUsage)
 {
 	SOFerr(SOF_F_SOF_GETSERVERCERTIFICATE, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BSTR SOF_SignMessageDetach(BSTR InData)
+SOF_BSTR SOF_SignMessageDetach(SOF_BSTR InData)
 {
 	SOFerr(SOF_F_SOF_SIGNMESSAGEDETACH, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-long SOF_VerifySignedMessageDetach(BSTR InData, BSTR SignedMessage)
+SOF_LONG SOF_VerifySignedMessageDetach(SOF_BSTR InData, SOF_BSTR SignedMessage)
 {
 	SOFerr(SOF_F_SOF_VERIFYSIGNEDMESSAGEDETACH, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_CreateTimeStampRequest(BSTR InData)
+SOF_BSTR SOF_CreateTimeStampRequest(SOF_BSTR InData)
 {
 	SOFerr(SOF_F_SOF_CREATETIMESTAMPREQUEST, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-BSTR SOF_CreateTimeStampResponse(BSTR TimeStampRequest)
+SOF_BSTR SOF_CreateTimeStampResponse(SOF_BSTR TimeStampRequest)
 {
 	SOFerr(SOF_F_SOF_CREATETIMESTAMPRESPONSE, SOF_R_NOT_IMPLEMENTED);
 	return NULL;
 }
 
-long SOF_VerifyTimeStamp(BSTR InData, BSTR tsResponseData)
+SOF_LONG SOF_VerifyTimeStamp(SOF_BSTR InData, SOF_BSTR tsResponseData)
 {
 	SOFerr(SOF_F_SOF_VERIFYTIMESTAMP, SOF_R_NOT_IMPLEMENTED);
 	return 0;
 }
 
-BSTR SOF_GetTimeStampInfo(BSTR tsResponseData, short type)
+SOF_BSTR SOF_GetTimeStampInfo(SOF_BSTR tsResponseData, SOF_SHORT type)
 {
 	SOFerr(SOF_F_SOF_GETTIMESTAMPINFO, SOF_R_NOT_IMPLEMENTED);
 	return NULL;

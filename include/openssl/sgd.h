@@ -419,10 +419,6 @@ typedef HANDLE HCONTAINER;
 #define SGD_MAX_COUNT		64
 #define SGD_MAX_NAME_SIZE	256
 
-/* SOF */
-
-typedef char *BSTR;
-typedef long BOOL;
 
 #endif
 #endif

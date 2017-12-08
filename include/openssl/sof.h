@@ -55,54 +55,60 @@
 
 #include <openssl/sgd.h>
 
+typedef char *			SOF_BSTR;
+typedef long			SOF_LONG;
+typedef short			SOF_SHORT;
+typedef SOF_LONG		SOF_BOOL;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-BSTR SOF_GetVersion(void);
-long SOF_SetSignMethod(long SignMethod);
-long SOF_GetSignMethod(void);
-long SOF_SetEncryptMethod(long EncryptMethod);
-long SOF_GetEncryptMethod(void);
-BSTR SOF_GetUserList(void);
-BSTR SOF_ExportUserCert(BSTR ContainerName);
-BOOL SOF_Login(BSTR ContainerName, BSTR PassWd);
-long SOF_GetPinRetryCount(BSTR ContainerName);
-BOOL SOF_ChangePassWd(BSTR ContainerName, BSTR OldPassWd, BSTR NewPassWd);
-BSTR SOF_ExportExchangeUserCert(BSTR ContainerName);
-BSTR SOF_GetCertInfo(BSTR Base64EncodeCert, short Type);
-BSTR SOF_GetCertInfoByOid(BSTR Base64EncodeCert, BSTR Oid);
-BSTR SOF_GetDeviceInfo(BSTR ContainerName, long Type);
-long SOF_ValidateCert(BSTR Base64EncodeCert);
-BSTR SOF_SignData(BSTR ContainerName, BSTR InData);
-BOOL SOF_VerifySignedData(BSTR Base64EncodeCert, BSTR InData, BSTR SignValue);
-BSTR SOF_SignFile(BSTR ContainerName, BSTR InFile);
-BOOL SOF_VerifySignedFile(BSTR Base64EncodeCert, BSTR InFile, BSTR SignValue);
-BSTR SOF_EncryptData(BSTR Base64EncodeCert, BSTR InData);
-BSTR SOF_DecryptData(BSTR ContainerName, BSTR InData);
-BOOL SOF_EncryptFile(BSTR Base64EncodeCert, BSTR InFile, BSTR OutFile);
-BOOL SOF_DecryptFile(BSTR ContainerName, BSTR InFile, BSTR OutFile);
-BSTR SOF_SignMessage(short flag, BSTR ContainerName, BSTR InData);
-BOOL SOF_VerifySignedMessage(BSTR MessageData, BSTR InData);
-BSTR SOF_GetInfoFromSignedMessage(BSTR SignedMessage, short Type);
-BSTR SOF_SignDataXML(BSTR ContainerName, BSTR InData);
-BOOL SOF_VerifySignedDataXML(BSTR InData);
-BSTR SOF_GetXMLSignatureInfo(BSTR XMLSignedData, short Type);
-BSTR SOF_GenRandom(short RandomLen);
-long SOF_GetLastError(void);
 
-long SOF_SetCertTrustList(BSTR CTLAltName, BSTR CTLContent, short CTLContentLen);
-BSTR SOF_GetCertTrustListAltNames(void);
-BSTR SOF_GetCertTrustList(BSTR CTLAltName);
-long SOF_DelCertTrustList(BSTR CTLAltName);
-long SOF_InitCertAppPolicy(BSTR PolicyName);
-BSTR SOF_GetServerCertificate(short CertUsage);
-BSTR SOF_SignMessageDetach(BSTR InData);
-long SOF_VerifySignedMessageDetach(BSTR InData, BSTR SignedMessage);
-BSTR SOF_CreateTimeStampRequest(BSTR InData);
-BSTR SOF_CreateTimeStampResponse(BSTR TimeStampRequest);
-long SOF_VerifyTimeStamp(BSTR InData, BSTR tsResponseData);
-BSTR SOF_GetTimeStampInfo(BSTR tsResponseData, short type);
+SOF_BSTR SOF_GetVersion(void);
+SOF_LONG SOF_SetSignMethod(SOF_LONG SignMethod);
+SOF_LONG SOF_GetSignMethod(void);
+SOF_LONG SOF_SetEncryptMethod(SOF_LONG EncryptMethod);
+SOF_LONG SOF_GetEncryptMethod(void);
+SOF_BSTR SOF_GetUserList(void);
+SOF_BSTR SOF_ExportUserCert(SOF_BSTR ContainerName);
+SOF_BOOL SOF_Login(SOF_BSTR ContainerName, SOF_BSTR PassWd);
+SOF_LONG SOF_GetPinRetryCount(SOF_BSTR ContainerName);
+SOF_BOOL SOF_ChangePassWd(SOF_BSTR ContainerName, SOF_BSTR OldPassWd, SOF_BSTR NewPassWd);
+SOF_BSTR SOF_ExportExchangeUserCert(SOF_BSTR ContainerName);
+SOF_BSTR SOF_GetCertInfo(SOF_BSTR Base64EncodeCert, SOF_SHORT Type);
+SOF_BSTR SOF_GetCertInfoByOid(SOF_BSTR Base64EncodeCert, SOF_BSTR Oid);
+SOF_BSTR SOF_GetDeviceInfo(SOF_BSTR ContainerName, SOF_LONG Type);
+SOF_LONG SOF_ValidateCert(SOF_BSTR Base64EncodeCert);
+SOF_BSTR SOF_SignData(SOF_BSTR ContainerName, SOF_BSTR InData);
+SOF_BOOL SOF_VerifySignedData(SOF_BSTR Base64EncodeCert, SOF_BSTR InData, SOF_BSTR SignValue);
+SOF_BSTR SOF_SignFile(SOF_BSTR ContainerName, SOF_BSTR InFile);
+SOF_BOOL SOF_VerifySignedFile(SOF_BSTR Base64EncodeCert, SOF_BSTR InFile, SOF_BSTR SignValue);
+SOF_BSTR SOF_EncryptData(SOF_BSTR Base64EncodeCert, SOF_BSTR InData);
+SOF_BSTR SOF_DecryptData(SOF_BSTR ContainerName, SOF_BSTR InData);
+SOF_BOOL SOF_EncryptFile(SOF_BSTR Base64EncodeCert, SOF_BSTR InFile, SOF_BSTR OutFile);
+SOF_BOOL SOF_DecryptFile(SOF_BSTR ContainerName, SOF_BSTR InFile, SOF_BSTR OutFile);
+SOF_BSTR SOF_SignMessage(SOF_SHORT flag, SOF_BSTR ContainerName, SOF_BSTR InData);
+SOF_BOOL SOF_VerifySignedMessage(SOF_BSTR MessageData, SOF_BSTR InData);
+SOF_BSTR SOF_GetInfoFromSignedMessage(SOF_BSTR SignedMessage, SOF_SHORT Type);
+SOF_BSTR SOF_SignDataXML(SOF_BSTR ContainerName, SOF_BSTR InData);
+SOF_BOOL SOF_VerifySignedDataXML(SOF_BSTR InData);
+SOF_BSTR SOF_GetXMLSignatureInfo(SOF_BSTR XMLSignedData, SOF_SHORT Type);
+SOF_BSTR SOF_GenRandom(SOF_SHORT RandomLen);
+SOF_LONG SOF_GetLastError(void);
+
+SOF_LONG SOF_SetCertTrustList(SOF_BSTR CTLAltName, SOF_BSTR CTLContent, SOF_SHORT CTLContentLen);
+SOF_BSTR SOF_GetCertTrustListAltNames(void);
+SOF_BSTR SOF_GetCertTrustList(SOF_BSTR CTLAltName);
+SOF_LONG SOF_DelCertTrustList(SOF_BSTR CTLAltName);
+SOF_LONG SOF_InitCertAppPolicy(SOF_BSTR PolicyName);
+SOF_BSTR SOF_GetServerCertificate(SOF_SHORT CertUsage);
+SOF_BSTR SOF_SignMessageDetach(SOF_BSTR InData);
+SOF_LONG SOF_VerifySignedMessageDetach(SOF_BSTR InData, SOF_BSTR SignedMessage);
+SOF_BSTR SOF_CreateTimeStampRequest(SOF_BSTR InData);
+SOF_BSTR SOF_CreateTimeStampResponse(SOF_BSTR TimeStampRequest);
+SOF_LONG SOF_VerifyTimeStamp(SOF_BSTR InData, SOF_BSTR tsResponseData);
+SOF_BSTR SOF_GetTimeStampInfo(SOF_BSTR tsResponseData, SOF_SHORT type);
 
 #define SOR_OK			0x00000000
 #define SOR_UnknownErr		0x0B000001
