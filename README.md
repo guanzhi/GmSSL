@@ -136,8 +136,8 @@ $ gmssl pkey -pubout -in skey.pem -out vkey.pem
 SM2 signature generation and verification:
 
 ```sh
-$ gmssl pkeyutl -sign -pkeyopt ec_scheme:sm2 -inkey skey.pem -in README.md -out README.md.sig
-$ gmssl pkeyutl -verify -pkeyopt ec_scheme:sm2 -pubin -inkey vkey.pem -in README.md -sigfile README.md.sig
+$ gmssl sm3 -binary README.md | gmssl pkeyutl -sign -pkeyopt ec_scheme:sm2 -inkey skey.pem -out README.md.sig
+$ gmssl sm3 -binary README.md | gmssl pkeyutl -verify -pkeyopt ec_scheme:sm2 -pubin -inkey vkey.pem -sigfile README.md.sig
 ```
 
 Generate SM2 encryption key pair and do SM2 public key encyption/decryption. It should be noted `pkeyutl -encrypt` should only be used to encrypt short messages such as session key and passphrase.
