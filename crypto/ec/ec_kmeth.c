@@ -9,7 +9,9 @@
 
 #include <string.h>
 #include <openssl/ec.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 #include <openssl/err.h>
 #include "ec_lcl.h"
 #ifndef OPENSSL_NO_SM2

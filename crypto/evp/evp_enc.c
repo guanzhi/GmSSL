@@ -13,7 +13,9 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 #include "internal/evp_int.h"
 #include "evp_locl.h"
 

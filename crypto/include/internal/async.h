@@ -7,7 +7,11 @@
  * https://www.openssl.org/source/license.html
  */
 
+//FIXME:
+
+#ifndef OPENSSL_NO_ASYNC
 #include <openssl/async.h>
+#endif
 
 int async_init(void);
 void async_deinit(void);

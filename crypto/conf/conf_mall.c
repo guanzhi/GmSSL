@@ -13,7 +13,9 @@
 #include <openssl/conf.h>
 #include <openssl/x509.h>
 #include <openssl/asn1.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 
 /* Load all OpenSSL builtin modules */
 

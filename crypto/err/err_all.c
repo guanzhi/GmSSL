@@ -18,7 +18,9 @@
 #endif
 #include <openssl/buffer.h>
 #include <openssl/bio.h>
-#include <openssl/comp.h>
+#ifndef OPENSSL_NO_COMP
+# include <openssl/comp.h>
+#endif
 #ifndef OPENSSL_NO_RSA
 # include <openssl/rsa.h>
 #endif
@@ -37,14 +39,22 @@
 #include <openssl/pkcs12.h>
 #include <openssl/rand.h>
 #include "internal/dso.h"
-#include <openssl/engine.h>
-#include <openssl/ui.h>
-#include <openssl/ocsp.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
+#ifndef OPENSSL_NO_UI
+# include <openssl/ui.h>
+#endif
+#ifndef OPENSSL_NO_OCSP
+# include <openssl/ocsp.h>
+#endif
 #include <openssl/err.h>
 #ifdef OPENSSL_FIPS
 # include <openssl/fips.h>
 #endif
-#include <openssl/ts.h>
+#ifndef OPENSSL_NO_TS
+# include <openssl/ts.h>
+#endif
 #ifndef OPENSSL_NO_CMS
 # include <openssl/cms.h>
 #endif

@@ -17,7 +17,9 @@
 #include <string.h>
 #include "ec_lcl.h"
 #include <openssl/err.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 
 EC_KEY *EC_KEY_new(void)
 {

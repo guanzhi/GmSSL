@@ -13,7 +13,9 @@
 #include <openssl/opensslconf.h>
 #include "internal/rand.h"
 
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 
 #ifdef OPENSSL_FIPS
 # include <openssl/fips.h>

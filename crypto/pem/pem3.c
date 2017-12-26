@@ -52,10 +52,14 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
-#include <openssl/pkcs7.h>
+#ifndef OPENSSL_NO_PKCS7
+# include <openssl/pkcs7.h>
+#endif
 #include <openssl/pem.h>
 #include <openssl/pem3.h>
-#include <openssl/paillier.h>
+#ifndef OPENSSL_NO_PAILLIER
+# include <openssl/paillier.h>
+#endif
 
 /*
 extern PAILLIER *EVP_PKEY_get1_PAILLIER(EVP_PKEY *key);

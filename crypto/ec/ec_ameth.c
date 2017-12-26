@@ -12,7 +12,9 @@
 #include <openssl/x509.h>
 #include <openssl/ec.h>
 #include <openssl/bn.h>
-#include <openssl/cms.h>
+#ifndef OPENSSL_NO_CMS
+# include <openssl/cms.h>
+#endif
 #include <openssl/asn1t.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"

@@ -8,11 +8,9 @@
  */
 
 #include <openssl/opensslconf.h>
-/* 依赖DES是由PKCS12的标准要求的还是遗留问题？					
- */
-#if defined(OPENSSL_NO_DES)
-NON_EMPTY_TRANSLATION_UNIT
-#else
+//#if defined(OPENSSL_NO_DES)
+//NON_EMPTY_TRANSLATION_UNIT
+//#else
 
 # include <stdio.h>
 # include <stdlib.h>
@@ -124,10 +122,14 @@ int pkcs12_main(int argc, char **argv)
     char pass[2048] = "", macpass[2048] = "";
     int export_cert = 0, options = 0, chain = 0, twopass = 0, keytype = 0;
     int iter = PKCS12_DEFAULT_ITER, maciter = PKCS12_DEFAULT_ITER;
-# ifndef OPENSSL_NO_RC2
+# if !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_RC2)
     int cert_pbe = NID_pbe_WithSHA1And40BitRC2_CBC;
-# else
+# elif !defined(OPENSSL_NO_SHA) && !defined(OPENSSL_NO_DES)
     int cert_pbe = NID_pbe_WithSHA1And3_Key_TripleDES_CBC;
+# elif !defined(OPENSSL_NO_SM3) && !defined(OPENSSL_NO_SMS4)
+    int cert_pbe = NID_pbe_WithSM3AndSMS4_CBC;
+# else
+#  error "no avaiable cipher"
 # endif
     int key_pbe = NID_pbe_WithSHA1And3_Key_TripleDES_CBC;
     int ret = 1, macver = 1, add_lmk = 0, private = 0;
@@ -141,7 +143,14 @@ int pkcs12_main(int argc, char **argv)
     BIO *in = NULL, *out = NULL;
     PKCS12 *p12 = NULL;
     STACK_OF(OPENSSL_STRING) *canames = NULL;
+#if !defined(OPENSSL_NO_DES)
     const EVP_CIPHER *enc = EVP_des_ede3_cbc();
+#elif !defined(OPENSSL_NO_SMS4)
+    const EVP_CIPHER *enc = EVP_sms4_cbc();
+#else
+#   error "no avaible cipher"
+#endif
+
     OPTION_CHOICE o;
 
     prog = opt_init(argc, argv, pkcs12_options);
@@ -934,4 +943,4 @@ static int set_pbe(int *ppbe, const char *str)
     return 1;
 }
 
-#endif
+//#endif

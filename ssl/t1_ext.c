@@ -9,7 +9,12 @@
 
 /* Custom extension utility functions */
 
-#include <openssl/ct.h>
+#include <stdio.h>
+#include <openssl/opensslconf.h>
+
+#ifndef OPENSSL_NO_CT
+# include <openssl/ct.h>
+#endif
 #include "ssl_locl.h"
 
 /* Find a custom extension from the list. */

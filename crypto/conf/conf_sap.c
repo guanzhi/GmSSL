@@ -13,7 +13,9 @@
 #include <internal/conf.h>
 #include <openssl/x509.h>
 #include <openssl/asn1.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 
 /*
  * This is the automatic configuration loader: it is called automatically by

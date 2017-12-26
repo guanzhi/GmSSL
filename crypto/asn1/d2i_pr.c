@@ -12,7 +12,9 @@
 #include <openssl/bn.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 #include <openssl/x509.h>
 #include <openssl/asn1.h>
 #include "internal/asn1_int.h"

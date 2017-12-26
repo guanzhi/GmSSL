@@ -94,10 +94,18 @@
 #include <openssl/lhash.h>
 #include <openssl/x509v3.h>
 #include <openssl/rand.h>
-#include <openssl/ocsp.h>
-#include <openssl/engine.h>
-#include <openssl/async.h>
+#ifndef OPENSSL_NO_OCSP
+# include <openssl/ocsp.h>
+#endif
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
+#ifndef OPENSSL_NO_ASYNC
+# include <openssl/async.h>
+#endif
+#ifndef OPENSSL_NO_CT
 #include <openssl/ct.h>
+#endif
 
 const char SSL_version_str[] = OPENSSL_VERSION_TEXT;
 
@@ -706,7 +714,9 @@ SSL *SSL_new(SSL_CTX *ctx)
     s->psk_server_callback = ctx->psk_server_callback;
 #endif
 
+#ifndef OPENSSL_NO_ASYNC
     s->job = NULL;
+#endif
 
 #ifndef OPENSSL_NO_CT
     if (!SSL_set_ct_validation_callback(s, ctx->ct_validation_callback,

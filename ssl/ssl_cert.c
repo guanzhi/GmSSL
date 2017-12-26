@@ -73,7 +73,9 @@
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/x509v3.h>
-#include <openssl/dh.h>
+#ifndef OPENSSL_NO_DH
+# include <openssl/dh.h>
+#endif
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 #include "ssl_locl.h"

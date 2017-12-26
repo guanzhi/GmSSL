@@ -57,16 +57,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <openssl/opensslconf.h>
 #include <openssl/objects.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
-#include <openssl/ocsp.h>
+#ifndef OPENSSL_NO_OCSP
+# include <openssl/ocsp.h>
+#endif
 #include <openssl/conf.h>
 #include <openssl/x509v3.h>
 #include <openssl/bn.h>
 #include "ssl_locl.h"
-#include <openssl/ct.h>
-
+#ifndef OPENSSL_NO_CT
+# include <openssl/ct.h>
+#endif
 
 #define CHECKLEN(curr, val, limit) \
     (((curr) >= (limit)) || (size_t)((limit) - (curr)) < (size_t)(val))

@@ -22,7 +22,9 @@
 #include <openssl/opensslconf.h>
 #include <openssl/crypto.h>
 #include <openssl/rand.h>
-#include <openssl/async.h>
+#ifndef OPENSSL_NO_ASYNC
+# include <openssl/async.h>
+#endif
 #include "rand_lcl.h"
 
 #include <openssl/err.h>

@@ -26,7 +26,9 @@
 #ifndef OPENSSL_NO_PAILLIER
 # include <openssl/paillier.h>
 #endif
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"

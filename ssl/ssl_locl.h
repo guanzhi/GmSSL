@@ -100,7 +100,9 @@
 # endif
 
 # include <openssl/buffer.h>
-# include <openssl/comp.h>
+# ifndef OPENSSL_NO_COMP
+#  include <openssl/comp.h>
+# endif
 # include <openssl/bio.h>
 # include <openssl/stack.h>
 # ifndef OPENSSL_NO_RSA
@@ -114,9 +116,14 @@
 # endif
 # include <openssl/err.h>
 # include <openssl/ssl.h>
-# include <openssl/async.h>
+# include <openssl/gmtls.h>
+# ifndef OPENSSL_NO_ASYNC
+#  include <openssl/async.h>
+# endif
 # include <openssl/symhacks.h>
-# include <openssl/ct.h>
+# ifndef OPENSSL_NO_CT
+#  include <openssl/ct.h>
+# endif
 # include "record/record.h"
 # include "statem/statem.h"
 # include "packet_locl.h"
@@ -557,12 +564,14 @@ struct ssl_method_st {
     long (*ssl_ctx_callback_ctrl) (SSL_CTX *s, int cb_id, void (*fp) (void));
 };
 
+#ifndef OPENSSL_NO_SM9
 typedef struct cert_sm9_st {
 	SM9PublicParameters *params;
 	SM9PrivateKey *privatekey;
 	SM9PublicKey *publickey;
 	char *id;
 } CERT_SM9;
+#endif
 
 /*-
  * Lets make this into an ASN.1 type structure as follows
@@ -1234,8 +1243,10 @@ struct ssl_st {
     /* Default password callback user data. */
     void *default_passwd_callback_userdata;
     /* Async Job info */
+# ifndef OPENSSL_NO_ASYNC
     ASYNC_JOB *job;
     ASYNC_WAIT_CTX *waitctx;
+# endif
     CRYPTO_RWLOCK *lock;
 };
 

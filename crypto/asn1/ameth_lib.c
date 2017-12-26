@@ -11,7 +11,9 @@
 #include "internal/cryptlib.h"
 #include <openssl/asn1t.h>
 #include <openssl/x509.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 

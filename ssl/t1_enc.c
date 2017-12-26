@@ -84,7 +84,9 @@
 
 #include <stdio.h>
 #include "ssl_locl.h"
-#include <openssl/comp.h>
+#ifndef OPENSSL_NO_COMP
+# include <openssl/comp.h>
+#endif
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>

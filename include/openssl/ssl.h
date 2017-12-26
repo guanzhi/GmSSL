@@ -92,7 +92,9 @@
 
 # include <openssl/e_os2.h>
 # include <openssl/opensslconf.h>
-# include <openssl/comp.h>
+# ifndef OPENSSL_NO_COMP
+#  include <openssl/comp.h>
+# endif
 # include <openssl/bio.h>
 # if OPENSSL_API_COMPAT < 0x10100000L
 #  include <openssl/x509.h>
@@ -102,11 +104,15 @@
 # endif
 # include <openssl/pem.h>
 # include <openssl/hmac.h>
-# include <openssl/async.h>
+# ifndef OPENSSL_NO_ASYNC
+#  include <openssl/async.h>
+# endif
 
 # include <openssl/safestack.h>
 # include <openssl/symhacks.h>
-# include <openssl/ct.h>
+# ifndef OPENSSL_NO_CT
+#  include <openssl/ct.h>
+# endif
 
 #ifdef  __cplusplus
 extern "C" {
@@ -1707,7 +1713,7 @@ __owur const SSL_METHOD *DTLS_method(void); /* DTLS 1.0 and 1.2 */
 __owur const SSL_METHOD *DTLS_server_method(void); /* DTLS 1.0 and 1.2 */
 __owur const SSL_METHOD *DTLS_client_method(void); /* DTLS 1.0 and 1.2 */
 
-#ifndef OPENSSL_NO_GMTLS_METHOD
+#ifndef OPENSSL_NO_GMTLS
 __owur const SSL_METHOD *GMTLS_method(void); /* GMTLSv1.1 */
 __owur const SSL_METHOD *GMTLS_server_method(void); /* GMTLSv1.1 */
 __owur const SSL_METHOD *GMTLS_client_method(void); /* GMTLSv1.1 */

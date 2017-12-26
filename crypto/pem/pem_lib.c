@@ -22,7 +22,9 @@
 #ifndef OPENSSL_NO_DES
 # include <openssl/des.h>
 #endif
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 
 #define MIN_LENGTH      4
 

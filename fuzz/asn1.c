@@ -19,14 +19,22 @@
 #include <string.h>
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
-#include <openssl/dh.h>
+#ifndef OPENSSL_NO_DH
+# include <openssl/dh.h>
+#endif
 #include <openssl/ec.h>
 #include <openssl/ocsp.h>
 #include <openssl/pkcs12.h>
-#include <openssl/rsa.h>
-#include <openssl/ts.h>
+#ifndef OPENSSL_NO_RSA
+# include <openssl/rsa.h>
+#endif
+#ifndef OPENSSL_NO_TS
+# include <openssl/ts.h>
+#endif
 #include <openssl/x509v3.h>
-#include <openssl/cms.h>
+#ifndef OPENSSL_NO_CMS
+# include <openssl/cms.h>
+#endif
 #include "fuzzer.h"
 
 static ASN1_ITEM_EXP *item_type[] = {
@@ -153,10 +161,12 @@ static ASN1_ITEM_EXP *item_type[] = {
     ASN1_ITEM_ref(POLICYQUALINFO),
     ASN1_ITEM_ref(PROXY_CERT_INFO_EXTENSION),
     ASN1_ITEM_ref(PROXY_POLICY),
+#ifndef OPENSSL_NO_RSA
     ASN1_ITEM_ref(RSA_OAEP_PARAMS),
     ASN1_ITEM_ref(RSAPrivateKey),
     ASN1_ITEM_ref(RSA_PSS_PARAMS),
     ASN1_ITEM_ref(RSAPublicKey),
+#endif
     ASN1_ITEM_ref(SXNET),
     ASN1_ITEM_ref(SXNETID),
     /*ASN1_ITEM_ref(TS_RESP),  want to do this, but type is hidden, however d2i exists... */

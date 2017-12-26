@@ -50,11 +50,21 @@
 #ifndef HEADER_PEM3_H
 #define HEADER_PEM3_H
 
-#include <openssl/cpk.h>
-#include <openssl/sm9.h>
-#include <openssl/bfibe.h>
-#include <openssl/bb1ibe.h>
-#include <openssl/paillier.h>
+#ifndef OPENSSL_NO_CPK
+# include <openssl/cpk.h>
+#endif
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
+#endif
+#ifndef OPENSSL_NO_BFIBE
+# include <openssl/bfibe.h>
+#endif
+#ifndef OPENSSL_NO_BB1IBE
+# include <openssl/bb1ibe.h>
+#endif
+#ifndef OPENSSL_NO_PAILLIER
+# include <openssl/paillier.h>
+#endif
 
 
 #ifdef __cplusplus

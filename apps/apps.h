@@ -23,8 +23,12 @@
 # include <openssl/lhash.h>
 # include <openssl/conf.h>
 # include <openssl/txt_db.h>
-# include <openssl/engine.h>
-# include <openssl/ocsp.h>
+# ifndef OPENSSL_NO_ENGINE
+#  include <openssl/engine.h>
+# endif
+# ifndef OPENSSL_NO_OCSP
+#  include <openssl/ocsp.h>
+# endif
 # include <signal.h>
 
 # if defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINCE)

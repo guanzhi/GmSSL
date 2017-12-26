@@ -11,7 +11,9 @@
 #include "internal/cryptlib.h"
 #include <openssl/objects.h>
 #include <openssl/evp.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 #include "internal/evp_int.h"
 #include "evp_locl.h"
 #ifndef OPENSSL_NO_SM2

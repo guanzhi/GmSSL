@@ -42,8 +42,12 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <openssl/objects.h>
-#include <openssl/comp.h>
-#include <openssl/engine.h>
+#ifndef OPENSSL_NO_COMP
+# include <openssl/comp.h>
+#endif
+#ifndef OPENSSL_NO_ENGINE
+# include <openssl/engine.h>
+#endif
 #include <openssl/crypto.h>
 #include "ssl_locl.h"
 #include "internal/thread_once.h"
