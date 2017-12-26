@@ -48,7 +48,6 @@
 
 #include <string.h>
 #include <openssl/ec.h>
-#include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/sm2.h>
 #include <openssl/ecies.h>

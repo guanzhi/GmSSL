@@ -12,7 +12,6 @@
 # define NO_MD5CRYPT_1
 #endif
 
-
 # include <string.h>
 
 # include "apps.h"

@@ -70,7 +70,13 @@ static int do_PRF(const void *seed1, int seed1_len,
 
     /* No error handling. If it all screws up, the test will fail anyway */
     EVP_PKEY_derive_init(pctx);
+#if !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_SHA1)
     EVP_PKEY_CTX_set_tls1_prf_md(pctx, EVP_md5_sha1());
+#elif !defined(OPENSSL_NO_SM3)
+    EVP_PKEY_CTX_set_tls1_prf_md(pctx, EVP_sm3());
+#else
+# error "no avaiable digest"
+#endif
     EVP_PKEY_CTX_set1_tls1_prf_secret(pctx, master_secret, sizeof(master_secret));
     EVP_PKEY_CTX_add1_tls1_prf_seed(pctx, seed1, seed1_len);
     EVP_PKEY_CTX_add1_tls1_prf_seed(pctx, seed2, seed2_len);
