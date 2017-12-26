@@ -60,6 +60,8 @@ typedef unsigned int u32;
 extern "C" {
 #endif
 
+void Initialization(u8* k, u8* iv);
+void GenerateKeystream(u32* pKeystream, int KeystreamLen);
 void ZUC(u8* k, u8* iv, u32* ks, int len);
 void EEA3(u8* CK, u32 COUNT, u32 BEARER, u32 DIRECTION, u32 LENGTH, u32* M, u32* C);
 void EIA3(u8* IK, u32 COUNT, u32 DIRECTION, u32 BEARER, u32 LENGTH, u32* M, u32* MAC);
@@ -68,4 +70,3 @@ void EIA3(u8* IK, u32 COUNT, u32 DIRECTION, u32 BEARER, u32 LENGTH, u32* M, u32*
 }
 #endif
 #endif
-

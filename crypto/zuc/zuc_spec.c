@@ -50,6 +50,7 @@
 /* code from ZUC 3GPP Specifications, version 1.6
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include "zuc_spec.h"
 
@@ -345,7 +346,6 @@ void EEA3(u8* CK, u32 COUNT, u32 BEARER, u32 DIRECTION, u32 LENGTH, u32* M, u32*
 	free(z);
 }
 
-
 u32 GET_WORD(u32 * DATA, u32 i)
 {
 	u32 WORD, ti;
@@ -405,3 +405,15 @@ void EIA3(u8* IK, u32 COUNT, u32 DIRECTION, u32 BEARER, u32 LENGTH, u32* M, u32*
 	free(z);
 }
 
+int main(int argc, char **argv)
+{
+	unsigned char key[16] = {0};
+	unsigned char iv[16] = {0};
+	u32 z[3];
+
+	Initialization(key, iv);
+	GenerateKeystream(z, 3);
+	printf("%08x, %08x, %08x\n", z[0], z[1], z[2]);
+
+	return 0;
+}
