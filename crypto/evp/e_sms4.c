@@ -56,7 +56,6 @@
  */
 
 #include <stdio.h>
-
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
 #include <openssl/objects.h>
@@ -69,22 +68,29 @@
 # include <openssl/sms4.h>
 
 typedef struct {
+	block128_f block;
+	union {
+		cbc128_f cbc;
+		ctr128_f ctr;
+	} stream;
 	sms4_key_t ks;
 } EVP_SMS4_KEY;
+
 
 static int sms4_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	const unsigned char *iv, int enc)
 {
-	if (!enc) {
-		if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_OFB_MODE)
-			enc = 1;
-		else if (EVP_CIPHER_CTX_mode(ctx) == EVP_CIPH_CFB_MODE)
-			enc = 1;  //encrypt key == decrypt key
-	}
+	int mode;
+	EVP_SMS4_KEY *dat = EVP_C_DATA(EVP_SMS4_KEY, ctx);
+	mode = EVP_CIPHER_CTX_mode(ctx);
 
-	if (enc)
-                sms4_set_encrypt_key(ctx->cipher_data, key);
-	else	sms4_set_decrypt_key(ctx->cipher_data, key);
+	if ((mode == EVP_CIPH_ECB_MODE || mode == EVP_CIPH_CBC_MODE) && !enc) {
+		sms4_set_decrypt_key(&dat->ks, key);
+	} else {
+		sms4_set_decrypt_key(&dat->ks, key);
+	}
+	dat->block = (block128_f)sms4_encrypt;
+	dat->stream.cbc = mode == EVP_CIPH_CBC_MODE ? (cbc128_f) sms4_cbc_encrypt : NULL;
 
 	return 1;
 }
@@ -170,13 +176,15 @@ const EVP_CIPHER *EVP_sms4_cfb8(void)
 static int sms4_ctr_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	const unsigned char *in, size_t len)
 {
-	unsigned int num = ctx->num;
+	unsigned int num = EVP_CIPHER_CTX_num(ctx);
 	EVP_SMS4_KEY *sms4 = (EVP_SMS4_KEY *)ctx->cipher_data;
 
-	CRYPTO_ctr128_encrypt_ctr32(in, out, len, &sms4->ks, ctx->iv, ctx->buf,
-		&num, (ctr128_f)sms4_encrypt);
+	CRYPTO_ctr128_encrypt(in, out, len, &sms4->ks,
+		EVP_CIPHER_CTX_iv_noconst(ctx),
+		EVP_CIPHER_CTX_buf_noconst(ctx), &num,
+		sms4->block);
 
-	ctx->num = (size_t)num;
+	EVP_CIPHER_CTX_set_num(ctx, num);
 	return 1;
 }
 

@@ -335,7 +335,6 @@ static const EVP_CIPHER sms4_ccm = {
 };
 
 const EVP_CIPHER *EVP_sms4_ccm(void) {
-	return NULL;
 	return &sms4_ccm;
 }
 #endif /* OPENSSL_NO_SMS4 */
