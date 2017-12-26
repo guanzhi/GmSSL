@@ -17,9 +17,11 @@
 
 # *all* Makefiles
 Makefile
+*.tmp
 
 # Java
 /java/*.class
+/java/Makefile*
 
 # Links under apps
 /apps/CA.pl
@@ -203,6 +205,6 @@ apps/gmssl
 
 include/openssl/srp.h
 
-/build.sh
+/*.sh
 
 

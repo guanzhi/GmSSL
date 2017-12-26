@@ -61,7 +61,11 @@ IF[{- !$disabled{"fuzz-afl"} || !$disabled{"fuzz-libfuzzer"} -}]
 ENDIF
 
 IF[{- !$disabled{tests} -}]
-  PROGRAMS_NO_INST=asn1-test asn1parse-test bignum-test bndiv-test conf-test crl-test server-test x509-test
+  PROGRAMS_NO_INST=asn1-test asn1parse-test bignum-test bndiv-test conf-test crl-test x509-test
+
+  IF[{- !$disabled{"rsa"} -}]
+    PROGRAMS_NO_INST=server-test
+  ENDIF
 
   IF[{- !$disabled{"cms"} -}]
     PROGRAMS_NO_INST=cms-test

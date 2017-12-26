@@ -436,13 +436,14 @@ my @disablables = (
     "rsa",
     "pem",
     "pkcs7",
-    "pkcs12",
     "serpent",
     "speck",
     "base58",
     "java",
     "ca",
     "gmtls",
+    "fuzz",
+    "test",
     );
 foreach my $proto ((@tls, @dtls))
 	{
@@ -931,6 +932,20 @@ foreach (sort (keys %disabled))
 		@{$config{sdirs}} = grep !/^engine$/, @{$config{sdirs}};
 		push @{$config{openssl_other_defines}}, "OPENSSL_NO_ENGINE";
 		print " OPENSSL_NO_ENGINE (skip engines)";
+		}
+	elsif (/^test$/)
+		{
+		@{$config{dirs}} = grep !/^test$/, @{$config{dirs}};
+		#@{$config{sdirs}} = grep !/^engine$/, @{$config{sdirs}};
+		#push @{$config{openssl_other_defines}}, "OPENSSL_NO_ENGINE";
+		print " OPENSSL_NO_TEST (skip test)";
+		}
+	elsif (/^fuzz$/)
+		{
+		@{$config{dirs}} = grep !/^fuzz$/, @{$config{dirs}};
+		#@{$config{sdirs}} = grep !/^engine$/, @{$config{sdirs}};
+		#push @{$config{openssl_other_defines}}, "OPENSSL_NO_ENGINE";
+		print " OPENSSL_NO_FUZZ (skip fuzz)";
 		}
 	else
 		{
