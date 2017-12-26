@@ -71,10 +71,10 @@ static uint32_t modulo[] = {
 		1000000000,
 };
 
-typedef struct FFX_CTX_st {
+struct FFX_CTX_st {
 	EVP_CIPHER_CTX *cctx;
 	int flag;
-} FFX_CTX;
+};
 
 FFX_CTX *FFX_CTX_new(void)
 {
