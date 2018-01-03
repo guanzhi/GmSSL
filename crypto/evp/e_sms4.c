@@ -87,7 +87,7 @@ static int sms4_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	if ((mode == EVP_CIPH_ECB_MODE || mode == EVP_CIPH_CBC_MODE) && !enc) {
 		sms4_set_decrypt_key(&dat->ks, key);
 	} else {
-		sms4_set_decrypt_key(&dat->ks, key);
+		sms4_set_encrypt_key(&dat->ks, key);
 	}
 	dat->block = (block128_f)sms4_encrypt;
 	dat->stream.cbc = mode == EVP_CIPH_CBC_MODE ? (cbc128_f) sms4_cbc_encrypt : NULL;
