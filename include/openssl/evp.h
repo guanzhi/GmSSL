@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -918,6 +918,10 @@ const EVP_CIPHER *EVP_sms4_wrap_pad(void);
 #  define EVP_sm4_cbc EVP_sms4_cbc
 #  define EVP_sm4_cfb EVP_sms4_cfb
 #  define EVP_sm4_ofb EVP_sms4_ofb
+# endif
+
+# ifndef OPENSSL_NO_ZUC
+const EVP_CIPHER *EVP_zuc(void);
 # endif
 
 # if OPENSSL_API_COMPAT < 0x10100000L

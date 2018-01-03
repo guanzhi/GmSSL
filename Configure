@@ -480,7 +480,6 @@ our %disabled = ( # "what"         => "comment"
 		  "weak-ssl-ciphers"    => "default",
 		  "zlib"                => "default",
 		  "zlib-dynamic"        => "default",
-		  "zuc"                 => "default",
 		  "skfeng"              => "default",
 		  "sdfeng"              => "default",
 		  "gmieng"              => "default",

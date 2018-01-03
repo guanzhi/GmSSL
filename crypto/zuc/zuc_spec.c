@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -403,17 +403,4 @@ void EIA3(u8* IK, u32 COUNT, u32 DIRECTION, u32 BEARER, u32 LENGTH, u32* M, u32*
 
 	*MAC = T ^ z[L-1];
 	free(z);
-}
-
-int main(int argc, char **argv)
-{
-	unsigned char key[16] = {0};
-	unsigned char iv[16] = {0};
-	u32 z[3];
-
-	Initialization(key, iv);
-	GenerateKeystream(z, 3);
-	printf("%08x, %08x, %08x\n", z[0], z[1], z[2]);
-
-	return 0;
 }

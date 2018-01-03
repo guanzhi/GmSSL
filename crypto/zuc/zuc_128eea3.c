@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,28 +48,22 @@
  */
 
 #include <openssl/zuc.h>
-#include "zuc_lcl.h"
 
-void zuc_128eea3_init(zuc_128eea3_t *ctx, const unsigned char *user_key,
-	uint32_t count, uint32_t bearer, int direction)
+void ZUC_128eea3_set_key(ZUC_128EEA3 *ctx, const unsigned char user_key[16],
+	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction)
 {
-	unsigned char iv[16] = {0};
-	iv[0] = iv[8]  = (count >> 24) & 0xff;
-	iv[1] = iv[9]  = (count >> 16) & 0xff;
-	iv[2] = iv[10] = (count >>  8) & 0xff;
-	iv[3] = iv[11] =  count        & 0xff;
-	iv[4] = iv[12] = ((bearer << 3) | ((direction & 1) << 2)) & 0xfc;
-
-	zuc_ctx_init(ctx->zuc_ctx, user_key, iv);
+	//TODO
 }
 
-void zuc_128eea3_encrypt(zuc_128eea3_t *eea3, size_t len,
+void ZUC_128eea3_encrypt(ZUC_128EEA3 *ctx, size_t len,
 	const unsigned char *in, unsigned char *out)
 {
-	return zuc_encrypt();
+	//TODO
 }
 
-void zuc_128eea3(const unsigned char *key, uint32_t count, uint32_t bearer, int direction,
+void ZUC_128eea3(const unsigned char key[ZUC_KEY_LENGTH],
+	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction,
 	size_t len, const unsigned char *in, unsigned char *out)
 {
+	//TODO
 }

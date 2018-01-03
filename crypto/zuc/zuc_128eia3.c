@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,85 +48,27 @@
  */
 
 #include <openssl/zuc.h>
-#include "zuc_lcl.h"
 
-void eea3_init(eea3_ctx_t *ctx, const unsigned char *user_key,
-	uint32_t count, uint32_t bearer, int direction)
+void ZUC_128eia3_set_key(ZUC_128EIA3 *ctx, const unsigned char *user_key,
+	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction)
 {
-	unsigned char iv[16] = {0};
-	iv[0] = iv[8]  = (count >> 24) & 0xff;
-	iv[1] = iv[9]  = (count >> 16) & 0xff;
-	iv[2] = iv[10] = (count >>  8) & 0xff;
-	iv[3] = iv[11] =  count        & 0xff;
-	iv[4] = iv[12] = ((bearer << 3) | ((direction & 1) << 2)) & 0xfc;
-
-	zuc_ctx_init(ctx->zuc_ctx, user_key, iv);
+	//TODO
 }
 
-void eea3_encrypt(eea3_ctx_t *ctx, size_t len, const unsigned char *in, unsigned char *out);
-
-
-
-void eea3(const unsigned char *key, uint32_t count, uint32_t bearer, int direction,
-	size_t len, const unsigned char *in, unsigned char *out);
-
-
-
-u32 GET_WORD(u32 * DATA, u32 i)
+void ZUC_128eia3_update(ZUC_128EIA3 *ctx, const unsigned char *data,
+	size_t datalen)
 {
-	u32 WORD, ti;
-	ti = i % 32;
-
-	if (ti == 0) {
-		WORD = DATA[i/32];
-	}
-	else {
-		WORD = (DATA[i/32]<<ti) | (DATA[i/32+1]>>(32-ti));
-	}
-	return WORD;
+	//TODO
 }
 
-u8 GET_BIT(u32 * DATA, u32 i)
+void ZUC_128eia3_final(ZUC_128EIA3 *ctx, uint32_t *mac)
 {
-	return (DATA[i/32] & (1<<(31-(i%32)))) ? 1 : 0;
+	//TODO
 }
 
-void EIA3(u8* IK, u32 count, u32 DIRECTION, u32 BEARER, u32 LENGTH, u32* M, u32* MAC)
+void ZUC_128eia3(const unsigned char key[ZUC_KEY_LENGTH],
+	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction,
+	const unsigned char *data, size_t dlen, uint32_t *mac)
 {
-	u32 *z, N, L, T, i;
-	u8 iv[16];
-
-	iv[0] = (count>>24) & 0xFF;
-	iv[1] = (count>>16) & 0xFF;
-	iv[2] = (count>>8) & 0xFF;
-	iv[3] = count & 0xFF;
-
-	iv[4] = (BEARER << 3) & 0xF8;
-	iv[5] = iv[6] = iv[7] = 0;
-
-	iv[8] = ((count>>24) & 0xFF) ^ ((DIRECTION&1)<<7);
-	iv[9] = (count>>16) & 0xFF;
-	iv[10] = (count>>8) & 0xFF;
-	iv[11] = count & 0xFF;
-
-	iv[12] = iv[4];
-	iv[13] = iv[5];
-	iv[14] = iv[6] ^ ((DIRECTION&1)<<7);
-	iv[15] = iv[7];
-
-	N = LENGTH + 64;
-	L = (N + 31) / 32;
-	z = (u32 *) malloc(L*sizeof(u32));
-	ZUC(IK, iv, z, L);
-
-	T = 0;
-	for (i = 0; i < LENGTH; i++) {
-		if (GET_BIT(M,i)) {
-			T ^= GET_WORD(z,i);
-		}
-	}
-	T ^= GET_WORD(z,LENGTH);
-
-	*MAC = T ^ z[L-1];
-	free(z);
+	//TODO
 }
