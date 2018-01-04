@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2005-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 #
 # ====================================================================
 # Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
@@ -55,9 +48,6 @@
 $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
 push(@INC,"${dir}","${dir}../../perlasm");
 require "x86asm.pl";
-
-$output=pop;
-open STDOUT,">$output";
 
 &asm_init($ARGV[0],"wp-mmx.pl");
 
@@ -503,5 +493,3 @@ for($i=0;$i<8;$i++) {
 
 &function_end_B("whirlpool_block_mmx");
 &asm_finish(); 
-
-close STDOUT;

@@ -1,25 +1,70 @@
 /*
- * Copyright 2006-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Written by Dr Stephen N Henson (steve@openssl.org) for the OpenSSL project
+ * 2006.
+ */
+/* ====================================================================
+ * Copyright (c) 2006 The OpenSSL Project.  All rights reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * in the file LICENSE in the source distribution or at
- * https://www.openssl.org/source/license.html
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the OpenSSL Project
+ *    for use in the OpenSSL Toolkit. (http://www.OpenSSL.org/)"
+ *
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
+ *    endorse or promote products derived from this software without
+ *    prior written permission. For written permission, please contact
+ *    licensing@OpenSSL.org.
+ *
+ * 5. Products derived from this software may not be called "OpenSSL"
+ *    nor may "OpenSSL" appear in their names without prior written
+ *    permission of the OpenSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the OpenSSL Project
+ *    for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ *
+ * This product includes cryptographic software written by Eric Young
+ * (eay@cryptsoft.com).  This product includes software written by Tim
+ * Hudson (tjh@cryptsoft.com).
+ *
  */
 
 #include <stdio.h>
-#include <openssl/crypto.h>
-#include "internal/cryptlib.h"
+#include "cryptlib.h"
 #include <openssl/asn1t.h>
 #include <openssl/x509.h>
 #include <openssl/ec.h>
 #include "ec_lcl.h"
+#include <openssl/ecdsa.h>
 #include <openssl/evp.h>
-#include "internal/evp_int.h"
-#ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
-# include <openssl/sm3.h>
-#endif
+#include "evp_locl.h"
 
 /* EC pkey context structure */
 
@@ -41,31 +86,27 @@ typedef struct {
     size_t kdf_ukmlen;
     /* KDF output length */
     size_t kdf_outlen;
-#ifndef OPENSSL_NO_SM2
-    int ec_scheme;
-    char *signer_id;
-    unsigned char *signer_zid;
-    int ec_encrypt_param;
-#endif
 } EC_PKEY_CTX;
 
 static int pkey_ec_init(EVP_PKEY_CTX *ctx)
 {
     EC_PKEY_CTX *dctx;
-
-    dctx = OPENSSL_zalloc(sizeof(*dctx));
-    if (dctx == NULL)
+    dctx = OPENSSL_malloc(sizeof(EC_PKEY_CTX));
+    if (!dctx)
         return 0;
+    dctx->gen_group = NULL;
+    dctx->md = NULL;
 
     dctx->cofactor_mode = -1;
+    dctx->co_key = NULL;
     dctx->kdf_type = EVP_PKEY_ECDH_KDF_NONE;
-#ifndef OPENSSL_NO_SM2
-    dctx->ec_scheme = NID_sm_scheme;
-    dctx->signer_id = NULL;
-    dctx->signer_zid = NULL;
-    dctx->ec_encrypt_param = NID_sm3;
-#endif
+    dctx->kdf_md = NULL;
+    dctx->kdf_outlen = 0;
+    dctx->kdf_ukm = NULL;
+    dctx->kdf_ukmlen = 0;
+
     ctx->data = dctx;
+
     return 1;
 }
 
@@ -92,22 +133,12 @@ static int pkey_ec_copy(EVP_PKEY_CTX *dst, EVP_PKEY_CTX *src)
     dctx->kdf_md = sctx->kdf_md;
     dctx->kdf_outlen = sctx->kdf_outlen;
     if (sctx->kdf_ukm) {
-        dctx->kdf_ukm = OPENSSL_memdup(sctx->kdf_ukm, sctx->kdf_ukmlen);
+        dctx->kdf_ukm = BUF_memdup(sctx->kdf_ukm, sctx->kdf_ukmlen);
         if (!dctx->kdf_ukm)
             return 0;
     } else
         dctx->kdf_ukm = NULL;
     dctx->kdf_ukmlen = sctx->kdf_ukmlen;
-#ifndef OPENSSL_NO_SM2
-    dctx->ec_scheme = sctx->ec_scheme;
-    if (sctx->signer_id) {
-        dctx->signer_id = OPENSSL_strdup(sctx->signer_id);
-        if (!dctx->signer_id)
-            return 0;
-    }
-    dctx->signer_zid = NULL;
-    dctx->ec_encrypt_param = sctx->ec_encrypt_param;
-#endif
     return 1;
 }
 
@@ -115,13 +146,12 @@ static void pkey_ec_cleanup(EVP_PKEY_CTX *ctx)
 {
     EC_PKEY_CTX *dctx = ctx->data;
     if (dctx) {
-        EC_GROUP_free(dctx->gen_group);
-        EC_KEY_free(dctx->co_key);
-        OPENSSL_free(dctx->kdf_ukm);
-#ifndef OPENSSL_NO_SM2
-        OPENSSL_free(dctx->signer_id);
-        OPENSSL_free(dctx->signer_zid);
-#endif
+        if (dctx->gen_group)
+            EC_GROUP_free(dctx->gen_group);
+        if (dctx->co_key)
+            EC_KEY_free(dctx->co_key);
+        if (dctx->kdf_ukm)
+            OPENSSL_free(dctx->kdf_ukm);
         OPENSSL_free(dctx);
     }
 }
@@ -147,12 +177,6 @@ static int pkey_ec_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
     else
         type = NID_sha1;
 
-#ifndef OPENSSL_NO_SM2
-    if (dctx->ec_scheme == NID_sm_scheme)
-        ret = SM2_sign(NID_undef, tbs, tbslen, sig, &sltmp, ec);
-    else
-#endif
-
     ret = ECDSA_sign(type, tbs, tbslen, sig, &sltmp, ec);
 
     if (ret <= 0)
@@ -174,75 +198,12 @@ static int pkey_ec_verify(EVP_PKEY_CTX *ctx,
     else
         type = NID_sha1;
 
-#ifndef OPENSSL_NO_SM2
-    if (dctx->ec_scheme == NID_sm_scheme)
-        ret = SM2_verify(NID_undef, tbs, tbslen, sig, siglen, ec);
-    else
-#endif
-
     ret = ECDSA_verify(type, tbs, tbslen, sig, siglen, ec);
 
     return ret;
 }
 
-#ifndef OPENSSL_NO_SM2
-static int pkey_ec_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
-    const unsigned char *in, size_t inlen)
-{
-    EC_PKEY_CTX *dctx = ctx->data;
-    EC_KEY *ec_key = ctx->pkey->pkey.ec;
-
-    switch (dctx->ec_scheme) {
-    case NID_sm_scheme:
-        if (!SM2_encrypt(dctx->ec_encrypt_param, in, inlen, out, outlen, ec_key)) {
-            ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_SM2_ENCRYPT_FAILED);
-            return 0;
-        }
-        break;
-    case NID_secg_scheme:
-        if (!ECIES_encrypt(dctx->ec_encrypt_param, in, inlen, out, outlen, ec_key)) {
-            ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_ECIES_ENCRYPT_FAILED);
-            return 0;
-        }
-        break;
-    default:
-        ECerr(EC_F_PKEY_EC_ENCRYPT, EC_R_INVALID_ENC_TYPE);
-        return 0;
-    }
-
-    return 1;
-}
-
-static int pkey_ec_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
-    const unsigned char *in, size_t inlen)
-{
-    EC_PKEY_CTX *dctx = ctx->data;
-    EC_KEY *ec_key = ctx->pkey->pkey.ec;
-
-    switch (dctx->ec_scheme) {
-    case  NID_sm_scheme:
-        if (!SM2_decrypt(dctx->ec_encrypt_param, in, inlen, out, outlen, ec_key)) {
-            ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_SM2_DECRYPT_FAILED);
-            return 0;
-        }
-        break;
-    case NID_secg_scheme:
-        if (!ECIES_decrypt(dctx->ec_encrypt_param, in, inlen, out, outlen, ec_key)) {
-            ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_ECIES_DECRYPT_FAILED);
-            return 0;
-        }
-        break;
-
-    default:
-        ECerr(EC_F_PKEY_EC_DECRYPT, EC_R_INVALID_ENC_TYPE);
-        return 0;
-    }
-
-    return 1;
-}
-#endif
-
-#ifndef OPENSSL_NO_EC
+#ifndef OPENSSL_NO_ECDH
 static int pkey_ec_derive(EVP_PKEY_CTX *ctx, unsigned char *key,
                           size_t *keylen)
 {
@@ -273,15 +234,6 @@ static int pkey_ec_derive(EVP_PKEY_CTX *ctx, unsigned char *key,
 
     outlen = *keylen;
 
-#ifndef OPENSSL_NO_SM2
-                      
-/*
-    if (dctx->ec_scheme == NID_sm_scheme)
-        ret = SM2_compute_key(key, outlen, pubkey, eckey, 0);
-    else
-*/
-#endif
-
     ret = ECDH_compute_key(key, outlen, pubkey, eckey, 0);
     if (ret <= 0)
         return 0;
@@ -307,7 +259,7 @@ static int pkey_ec_kdf_derive(EVP_PKEY_CTX *ctx,
     if (!pkey_ec_derive(ctx, NULL, &ktmplen))
         return 0;
     ktmp = OPENSSL_malloc(ktmplen);
-    if (ktmp == NULL)
+    if (!ktmp)
         return 0;
     if (!pkey_ec_derive(ctx, ktmp, &ktmplen))
         goto err;
@@ -318,7 +270,10 @@ static int pkey_ec_kdf_derive(EVP_PKEY_CTX *ctx,
     rv = 1;
 
  err:
-    OPENSSL_clear_free(ktmp, ktmplen);
+    if (ktmp) {
+        OPENSSL_cleanse(ktmp, ktmplen);
+        OPENSSL_free(ktmp);
+    }
     return rv;
 }
 #endif
@@ -334,7 +289,8 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             ECerr(EC_F_PKEY_EC_CTRL, EC_R_INVALID_CURVE);
             return 0;
         }
-        EC_GROUP_free(dctx->gen_group);
+        if (dctx->gen_group)
+            EC_GROUP_free(dctx->gen_group);
         dctx->gen_group = group;
         return 1;
 
@@ -346,7 +302,7 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
         EC_GROUP_set_asn1_flag(dctx->gen_group, p1);
         return 1;
 
-#ifndef OPENSSL_NO_EC
+#ifndef OPENSSL_NO_ECDH
     case EVP_PKEY_CTRL_EC_ECDH_COFACTOR:
         if (p1 == -2) {
             if (dctx->cofactor_mode != -1)
@@ -364,7 +320,7 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             if (!ec_key->group)
                 return -2;
             /* If cofactor is 1 cofactor mode does nothing */
-            if (BN_is_one(ec_key->group->cofactor))
+            if (BN_is_one(&ec_key->group->cofactor))
                 return 1;
             if (!dctx->co_key) {
                 dctx->co_key = EC_KEY_dup(ec_key);
@@ -375,7 +331,7 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
                 EC_KEY_set_flags(dctx->co_key, EC_FLAG_COFACTOR_ECDH);
             else
                 EC_KEY_clear_flags(dctx->co_key, EC_FLAG_COFACTOR_ECDH);
-        } else {
+        } else if (dctx->co_key) {
             EC_KEY_free(dctx->co_key);
             dctx->co_key = NULL;
         }
@@ -389,87 +345,6 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             return -2;
         dctx->kdf_type = p1;
         return 1;
-
-#ifndef OPENSSL_NO_SM2
-    case EVP_PKEY_CTRL_EC_SCHEME:
-        if (p1 == -2) {
-            return dctx->ec_scheme;
-        }
-        if (p1 != NID_secg_scheme && p1 != NID_sm_scheme) {
-            ECerr(EC_F_PKEY_EC_CTRL, EC_R_INVALID_EC_SCHEME);
-            return 0;
-        }
-        dctx->ec_scheme = p1;
-        return 1;
-
-    case EVP_PKEY_CTRL_SIGNER_ID:
-        if (!p2 || !strlen((char *)p2) || strlen((char *)p2) > SM2_MAX_ID_LENGTH) {
-            ECerr(EC_F_PKEY_EC_CTRL, EC_R_INVALID_SIGNER_ID);
-            return 0;
-        } else {
-            char *id = NULL;
-            if (!(id = OPENSSL_strdup((char *)p2))) {
-                ECerr(EC_F_PKEY_EC_CTRL, ERR_R_MALLOC_FAILURE);
-                return 0;
-            }
-            if (dctx->signer_id)
-                OPENSSL_free(dctx->signer_id);
-            dctx->signer_id = id;
-            if (dctx->ec_scheme == NID_sm_scheme) {
-                EC_KEY *ec_key = ctx->pkey->pkey.ec;
-                unsigned char zid[SM3_DIGEST_LENGTH];
-                size_t zidlen = SM3_DIGEST_LENGTH;
-                if (!SM2_compute_id_digest(EVP_sm3(), dctx->signer_id,
-                    strlen(dctx->signer_id), zid, &zidlen, ec_key)) {
-                    ECerr(EC_F_PKEY_EC_CTRL, ERR_R_SM2_LIB);
-                    return 0;
-                }
-                if (!dctx->signer_zid) {
-                    if (!(dctx->signer_zid = OPENSSL_malloc(zidlen))) {
-                        ECerr(EC_F_PKEY_EC_CTRL, ERR_R_MALLOC_FAILURE);
-                        return 0;
-                    }
-                }
-                memcpy(dctx->signer_zid, zid, zidlen);
-            }
-        }
-        return 1;
-
-    case EVP_PKEY_CTRL_GET_SIGNER_ID:
-        *(const char **)p2 = dctx->signer_id;
-        return 1;
-
-    case EVP_PKEY_CTRL_GET_SIGNER_ZID:
-        if (dctx->ec_scheme != NID_sm_scheme) {
-            *(const unsigned char **)p2 = NULL;
-            return -2;
-        }
-        if (!dctx->signer_zid) {
-            EC_KEY *ec_key = ctx->pkey->pkey.ec;
-            unsigned char *zid;
-            size_t zidlen = SM3_DIGEST_LENGTH;
-            if (!(zid = OPENSSL_malloc(zidlen))) {
-                ECerr(EC_F_PKEY_EC_CTRL, ERR_R_MALLOC_FAILURE);
-                return 0;
-            }
-            if (!SM2_compute_id_digest(EVP_sm3(), SM2_DEFAULT_ID,
-                SM2_DEFAULT_ID_LENGTH, zid, &zidlen, ec_key)) {
-                ECerr(EC_F_PKEY_EC_CTRL, ERR_R_SM2_LIB);
-                OPENSSL_free(zid);
-                return 0;
-            }
-            dctx->signer_zid = zid;
-        }
-        *(const unsigned char **)p2 = dctx->signer_zid;
-        return 1;
-
-    case EVP_PKEY_CTRL_EC_ENCRYPT_PARAM:
-        if (p1 == -2) {
-            return dctx->ec_encrypt_param;
-        }
-        dctx->ec_encrypt_param = p1;
-        return 1;
-#endif
 
     case EVP_PKEY_CTRL_EC_KDF_MD:
         dctx->kdf_md = p2;
@@ -490,7 +365,8 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
         return 1;
 
     case EVP_PKEY_CTRL_EC_KDF_UKM:
-        OPENSSL_free(dctx->kdf_ukm);
+        if (dctx->kdf_ukm)
+            OPENSSL_free(dctx->kdf_ukm);
         dctx->kdf_ukm = p2;
         if (p2)
             dctx->kdf_ukmlen = p1;
@@ -504,9 +380,6 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
 
     case EVP_PKEY_CTRL_MD:
         if (EVP_MD_type((const EVP_MD *)p2) != NID_sha1 &&
-#ifndef OPENSSL_NO_SM3
-            EVP_MD_type((const EVP_MD *)p2) != NID_sm3 &&
-#endif
             EVP_MD_type((const EVP_MD *)p2) != NID_ecdsa_with_SHA1 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha224 &&
             EVP_MD_type((const EVP_MD *)p2) != NID_sha256 &&
@@ -538,7 +411,7 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
 static int pkey_ec_ctrl_str(EVP_PKEY_CTX *ctx,
                             const char *type, const char *value)
 {
-    if (strcmp(type, "ec_paramgen_curve") == 0) {
+    if (!strcmp(type, "ec_paramgen_curve")) {
         int nid;
         nid = EC_curve_nist2nid(value);
         if (nid == NID_undef)
@@ -550,43 +423,23 @@ static int pkey_ec_ctrl_str(EVP_PKEY_CTX *ctx,
             return 0;
         }
         return EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
-#ifndef OPENSSL_NO_SM2
-    } else if (!strcmp(type, "ec_scheme")) {
-        int scheme;
-        if (!strcmp(value, "secg"))
-            scheme = NID_secg_scheme;
-        else if (!strcmp(value, "sm2"))
-            scheme = NID_sm_scheme;
-        else
-            return -2;
-        return EVP_PKEY_CTX_set_ec_scheme(ctx, scheme);
-    } else if (!strcmp(type, "signer_id")) {
-        return EVP_PKEY_CTX_set_signer_id(ctx, value);
-    } else if (!strcmp(type, "ec_encrypt_param")) {
-        int encrypt_param;
-        if (!(encrypt_param = OBJ_txt2nid(value))) {
-            ECerr(EC_F_PKEY_EC_CTRL_STR, EC_R_INVALID_EC_ENCRYPT_PARAM);
-            return 0;
-        }
-        return EVP_PKEY_CTX_set_ec_encrypt_param(ctx, encrypt_param);
-#endif
-    } else if (strcmp(type, "ec_param_enc") == 0) {
+    } else if (!strcmp(type, "ec_param_enc")) {
         int param_enc;
-        if (strcmp(value, "explicit") == 0)
+        if (!strcmp(value, "explicit"))
             param_enc = 0;
-        else if (strcmp(value, "named_curve") == 0)
+        else if (!strcmp(value, "named_curve"))
             param_enc = OPENSSL_EC_NAMED_CURVE;
         else
             return -2;
         return EVP_PKEY_CTX_set_ec_param_enc(ctx, param_enc);
-    } else if (strcmp(type, "ecdh_kdf_md") == 0) {
+    } else if (!strcmp(type, "ecdh_kdf_md")) {
         const EVP_MD *md;
-        if ((md = EVP_get_digestbyname(value)) == NULL) {
+        if (!(md = EVP_get_digestbyname(value))) {
             ECerr(EC_F_PKEY_EC_CTRL_STR, EC_R_INVALID_DIGEST);
             return 0;
         }
         return EVP_PKEY_CTX_set_ecdh_kdf_md(ctx, md);
-    } else if (strcmp(type, "ecdh_cofactor_mode") == 0) {
+    } else if (!strcmp(type, "ecdh_cofactor_mode")) {
         int co_mode;
         co_mode = atoi(value);
         return EVP_PKEY_CTX_set_ecdh_cofactor_mode(ctx, co_mode);
@@ -605,7 +458,7 @@ static int pkey_ec_paramgen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
         return 0;
     }
     ec = EC_KEY_new();
-    if (ec == NULL)
+    if (!ec)
         return 0;
     ret = EC_KEY_set_group(ec, dctx->gen_group);
     if (ret)
@@ -661,24 +514,17 @@ const EVP_PKEY_METHOD ec_pkey_meth = {
 
     0, 0, 0, 0,
 
-#ifndef OPENSSL_NO_SM2
-    0,
-    pkey_ec_encrypt,
-
-    0,
-    pkey_ec_decrypt,
-#else
     0, 0,
 
     0, 0,
-#endif
 
     0,
-#ifndef OPENSSL_NO_EC
+#ifndef OPENSSL_NO_ECDH
     pkey_ec_kdf_derive,
 #else
     0,
 #endif
+
     pkey_ec_ctrl,
     pkey_ec_ctrl_str
 };

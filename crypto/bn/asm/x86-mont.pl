@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2005-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 
 # ====================================================================
 # Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
@@ -37,9 +30,6 @@ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
 push(@INC,"${dir}","${dir}../../perlasm");
 require "x86asm.pl";
 
-$output = pop;
-open STDOUT,">$output";
- 
 &asm_init($ARGV[0],$0);
 
 $sse2=0;
@@ -94,9 +84,7 @@ $frame=32;				# size of above frame rounded up to 16n
 
 	&and	("ebp",-64);		# align to cache line
 
-	# An OS-agnostic version of __chkstk.
-	#
-	# Some OSes (Windows) insist on stack being "wired" to
+	# Some OSes, *cough*-dows, insist on stack being "wired" to
 	# physical memory in strictly sequential manner, i.e. if stack
 	# allocation spans two pages, then reference to farmost one can
 	# be punishable by SEGV. But page walking can do good even on
@@ -301,7 +289,7 @@ if (0) {
 	&xor	("eax","eax");	# signal "not fast enough [yet]"
 	&jmp	(&label("just_leave"));
 	# While the below code provides competitive performance for
-	# all key lengths on modern Intel cores, it's still more
+	# all key lengthes on modern Intel cores, it's still more
 	# than 10% slower for 4096-bit key elsewhere:-( "Competitive"
 	# means compared to the original integer-only assembler.
 	# 512-bit RSA sign is better by ~40%, but that's about all
@@ -625,5 +613,3 @@ $sbit=$num;
 &asciz("Montgomery Multiplication for x86, CRYPTOGAMS by <appro\@openssl.org>");
 
 &asm_finish();
-
-close STDOUT;

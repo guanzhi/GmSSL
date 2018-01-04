@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2013-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 
 ######################################################################
 ## Constant-time SSSE3 AES core implementation.
@@ -21,8 +14,7 @@
 # 128-bit key.
 #
 #		aes-ppc.pl		this
-# PPC74x0/G4e	35.5/52.1/(23.8)	11.9(*)/15.4
-# PPC970/G5	37.9/55.0/(28.5)	22.2/28.5
+# G4e		35.5/52.1/(23.8)	11.9(*)/15.4
 # POWER6	42.7/54.3/(28.2)	63.0/92.8(**)
 # POWER7	32.3/42.9/(18.4)	18.5/23.3
 #
