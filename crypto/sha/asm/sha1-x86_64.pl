@@ -1,4 +1,11 @@
-#!/usr/bin/env perl
+#! /usr/bin/env perl
+# Copyright 2006-2016 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the OpenSSL license (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+
 #
 # ====================================================================
 # Written by Andy Polyakov <appro@openssl.org> for the OpenSSL
@@ -73,13 +80,16 @@
 # Sandy Bridge	7.70		6.10/+26%	4.99/+54%
 # Ivy Bridge	6.06		4.67/+30%	4.60/+32%
 # Haswell	5.45		4.15/+31%	3.57/+53%
+# Skylake	5.18		4.06/+28%	3.54/+46%
 # Bulldozer	9.11		5.95/+53%
 # VIA Nano	9.32		7.15/+30%
 # Atom		10.3		9.17/+12%
 # Silvermont	13.1(*)		9.37/+40%
+# Goldmont	8.13		6.42/+27%	1.70/+380%(**)
 #
 # (*)	obviously suboptimal result, nothing was done about it,
 #	because SSSE3 code is compiled unconditionally;
+# (**)	SHAEXT result
 
 $flavour = shift;
 $output  = shift;
@@ -114,7 +124,7 @@ if (!$avx && `$ENV{CC} -v 2>&1` =~ /((?:^clang|LLVM) version|.*based on LLVM) ([
 $shaext=1;	### set to zero if compiling for 1.0.1
 $avx=1		if (!$shaext && $avx);
 
-open OUT,"| \"$^X\" $xlate $flavour $output";
+open OUT,"| \"$^X\" \"$xlate\" $flavour \"$output\"";
 *STDOUT=*OUT;
 
 $ctx="%rdi";	# 1st arg

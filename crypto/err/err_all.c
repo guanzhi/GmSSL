@@ -1,62 +1,16 @@
-/* crypto/err/err_all.c */
-/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
- * All rights reserved.
+/*
+ * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
  *
- * This package is an SSL implementation written
- * by Eric Young (eay@cryptsoft.com).
- * The implementation was written so as to conform with Netscapes SSL.
- *
- * This library is free for commercial and non-commercial use as long as
- * the following conditions are aheared to.  The following conditions
- * apply to all code found in this distribution, be it the RC4, RSA,
- * lhash, DES, etc., code; not just the SSL code.  The SSL documentation
- * included with this distribution is covered by the same copyright terms
- * except that the holder is Tim Hudson (tjh@cryptsoft.com).
- *
- * Copyright remains Eric Young's, and as such any Copyright notices in
- * the code are not to be removed.
- * If this package is used in a product, Eric Young should be given attribution
- * as the author of the parts of the library used.
- * This can be in the form of a textual message at program startup or
- * in documentation (online or textual) provided with the package.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *    "This product includes cryptographic software written by
- *     Eric Young (eay@cryptsoft.com)"
- *    The word 'cryptographic' can be left out if the rouines from the library
- *    being used are not cryptographic related :-).
- * 4. If you include any Windows specific code (or a derivative thereof) from
- *    the apps directory (application code) you must include an acknowledgement:
- *    "This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
- *
- * THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * The licence and distribution terms for any publically available version or
- * derivative of this code cannot be changed.  i.e. this code cannot simply be
- * copied and put under another distribution licence
- * [including the GNU Public Licence.]
+ * Licensed under the OpenSSL license (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
  */
 
 #include <stdio.h>
+#include <openssl/opensslconf.h>
+
+#include "internal/err_int.h"
 #include <openssl/asn1.h>
 #include <openssl/bn.h>
 #ifndef OPENSSL_NO_EC
@@ -76,12 +30,6 @@
 #ifndef OPENSSL_NO_DSA
 # include <openssl/dsa.h>
 #endif
-#ifndef OPENSSL_NO_ECDSA
-# include <openssl/ecdsa.h>
-#endif
-#ifndef OPENSSL_NO_ECDH
-# include <openssl/ecdh.h>
-#endif
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/pem2.h>
@@ -90,79 +38,189 @@
 #include <openssl/conf.h>
 #include <openssl/pkcs12.h>
 #include <openssl/rand.h>
-#include <openssl/dso.h>
+#include "internal/dso.h"
 #ifndef OPENSSL_NO_ENGINE
 # include <openssl/engine.h>
 #endif
-#include <openssl/ui.h>
-#include <openssl/ocsp.h>
+#ifndef OPENSSL_NO_UI
+# include <openssl/ui.h>
+#endif
+#ifndef OPENSSL_NO_OCSP
+# include <openssl/ocsp.h>
+#endif
 #include <openssl/err.h>
 #ifdef OPENSSL_FIPS
 # include <openssl/fips.h>
 #endif
-#include <openssl/ts.h>
+#ifndef OPENSSL_NO_TS
+# include <openssl/ts.h>
+#endif
 #ifndef OPENSSL_NO_CMS
 # include <openssl/cms.h>
 #endif
-#ifndef OPENSSL_NO_JPAKE
-# include <openssl/jpake.h>
+#ifndef OPENSSL_NO_CT
+# include <openssl/ct.h>
+#endif
+#ifndef OPENSSL_NO_ASYNC
+# include <openssl/async.h>
+#endif
+#include <openssl/kdf.h>
+#include <openssl/kdf2.h>
+#ifndef OPENSSL_NO_FFX
+# include <openssl/ffx.h>
+#endif
+#ifndef OPENSSL_NO_PAILLIER
+# include <openssl/paillier.h>
+#endif
+#ifndef OPENSSL_NO_CPK
+# include <openssl/cpk.h>
+#endif
+#ifndef OPENSSL_NO_OTP
+# include <openssl/otp.h>
+#endif
+#ifndef OPENSSL_NO_GMAPI
+# include <openssl/gmapi.h>
+#endif
+#ifndef OPENSSL_NO_BFIBE
+# include <openssl/bfibe.h>
+#endif
+#ifndef OPENSSL_NO_BB1IBE
+# include <openssl/bb1ibe.h>
+#endif
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
+#endif
+#ifndef OPENSSL_NO_SAF
+# include <openssl/gmsaf.h>
+#endif
+#ifndef OPENSSL_NO_SDF
+# include <openssl/gmsdf.h>
+#endif
+#ifndef OPENSSL_NO_SKF
+# include <openssl/gmskf.h>
+#endif
+#ifndef OPENSSL_NO_SOF
+# include <openssl/gmsof.h>
+#endif
+#ifndef OPENSSL_NO_BASE58
+# include <openssl/base58.h>
 #endif
 
-void ERR_load_crypto_strings(void)
+
+int err_load_crypto_strings_int(void)
 {
+    if (
+#ifdef OPENSSL_FIPS
+        FIPS_set_error_callbacks(ERR_put_error, ERR_add_error_vdata) == 0 ||
+#endif
 #ifndef OPENSSL_NO_ERR
-    ERR_load_ERR_strings();     /* include error strings for SYSerr */
-    ERR_load_BN_strings();
+        ERR_load_ERR_strings() == 0 ||    /* include error strings for SYSerr */
+        ERR_load_BN_strings() == 0 ||
 # ifndef OPENSSL_NO_RSA
-    ERR_load_RSA_strings();
+        ERR_load_RSA_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_DH
-    ERR_load_DH_strings();
+        ERR_load_DH_strings() == 0 ||
 # endif
-    ERR_load_EVP_strings();
-    ERR_load_BUF_strings();
-    ERR_load_OBJ_strings();
-    ERR_load_PEM_strings();
+        ERR_load_EVP_strings() == 0 ||
+        ERR_load_BUF_strings() == 0 ||
+        ERR_load_OBJ_strings() == 0 ||
+        ERR_load_PEM_strings() == 0 ||
 # ifndef OPENSSL_NO_DSA
-    ERR_load_DSA_strings();
+        ERR_load_DSA_strings() == 0 ||
 # endif
-    ERR_load_X509_strings();
-    ERR_load_ASN1_strings();
-    ERR_load_CONF_strings();
-    ERR_load_CRYPTO_strings();
+        ERR_load_X509_strings() == 0 ||
+        ERR_load_ASN1_strings() == 0 ||
+        ERR_load_CONF_strings() == 0 ||
+        ERR_load_CRYPTO_strings() == 0 ||
 # ifndef OPENSSL_NO_COMP
-    ERR_load_COMP_strings();
+        ERR_load_COMP_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_EC
-    ERR_load_EC_strings();
+        ERR_load_EC_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_ECDSA
-    ERR_load_ECDSA_strings();
+        /* skip ERR_load_SSL_strings() because it is not in this library */
+        ERR_load_BIO_strings() == 0 ||
+        ERR_load_PKCS7_strings() == 0 ||
+        ERR_load_X509V3_strings() == 0 ||
+# ifndef OPENSSL_NO_PKCS12
+        ERR_load_PKCS12_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_ECDH
-    ERR_load_ECDH_strings();
+        ERR_load_RAND_strings() == 0 ||
+        ERR_load_DSO_strings() == 0 ||
+# ifndef OPENSSL_NO_TS
+        ERR_load_TS_strings() == 0 ||
 # endif
-    /* skip ERR_load_SSL_strings() because it is not in this library */
-    ERR_load_BIO_strings();
-    ERR_load_PKCS7_strings();
-    ERR_load_X509V3_strings();
-    ERR_load_PKCS12_strings();
-    ERR_load_RAND_strings();
-    ERR_load_DSO_strings();
-    ERR_load_TS_strings();
 # ifndef OPENSSL_NO_ENGINE
-    ERR_load_ENGINE_strings();
+        ERR_load_ENGINE_strings() == 0 ||
 # endif
-    ERR_load_OCSP_strings();
-    ERR_load_UI_strings();
+# ifndef OPENSSL_NO_OCSP
+        ERR_load_OCSP_strings() == 0 ||
+# endif
+#ifndef OPENSSL_NO_UI
+        ERR_load_UI_strings() == 0 ||
+#endif
 # ifdef OPENSSL_FIPS
-    ERR_load_FIPS_strings();
+        ERR_load_FIPS_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_CMS
-    ERR_load_CMS_strings();
+        ERR_load_CMS_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_JPAKE
-    ERR_load_JPAKE_strings();
+# ifndef OPENSSL_NO_CT
+        ERR_load_CT_strings() == 0 ||
+# endif
+        ERR_load_ASYNC_strings() == 0 ||
+# ifndef OPENSSL_NO_KDF2
+        ERR_load_KDF2_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_FFX
+        ERR_load_FFX_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_PAILLIER
+        ERR_load_PAILLIER_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_CPK
+        ERR_load_CPK_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_OTP
+        ERR_load_OTP_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_GMAPI
+        ERR_load_GMAPI_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_BFIBE
+        ERR_load_BFIBE_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_BB1IBE
+        ERR_load_BB1IBE_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SM2
+        ERR_load_SM2_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SM9
+        ERR_load_SM9_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SAF
+        ERR_load_SAF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SDF
+        ERR_load_SDF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SKF
+        ERR_load_SKF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_SOF
+        ERR_load_SOF_strings() == 0 ||
+# endif
+# ifndef OPENSSL_NO_BASE58
+        ERR_load_BASE58_strings() == 0 ||
 # endif
 #endif
+        ERR_load_KDF_strings() == 0)
+        return 0;
+
+    return 1;
 }
