@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/guanzhi/GmSSL.svg?branch=master)](https://travis-ci.org/guanzhi/GmSSL)
 
-GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
+GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
 ## Features
 
@@ -31,19 +31,18 @@ GmSSL supports many useful cryptographic algorithms and schemes:
  - OTP (One-Time Password) based on SM3/SM4 (GM/T 0021-2012)
  - Encoding: Base58
 
-OpenSSL algorithms such as ECDSA, RSA, AES, SHA-1 are all remained in GmSSL.
+OpenSSL algorithms such as ECDSA, RSA, AES, SHA-1 are all still available in GmSSL.
 
 ## GM/T Protocols
 
-
-The GM/T standards cover 2 protocls:
+The GM/T standards cover 2 protocols:
 
  - SSL VPN Protocol  (GM/T 0024-2014)
  - IPSec VPN Protocol (GM/T 0022-2014)
 
-The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS from the follows aspects:
+The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS in the follows aspects:
 
- - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101)
+ - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101).
  - The handshake protocol of GM/T SSL is diffenet from TLS handshake.
  - There is an optional different record protocol in GM/T SSL designed for VPN applications.
  - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
@@ -103,7 +102,7 @@ Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip
  
 After installation you can run `gmssl version -a` to print detailed information.
 
-The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, support SM2 signing and encryption through `pkeyutl` option, support SM3 through `sm3` or `dgst` option, support SM4 through `sms4` or `enc` option.
+The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, supports SM2 signing and encryption through `pkeyutl` option, supports SM3 through `sm3` or `dgst` option, and supports SM4 through `sms4` or `enc` option.
 
 The following are some examples.
 
@@ -114,7 +113,7 @@ $ echo -n "abc" | gmssl sm3
 (stdin)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
 ```
 
-SM4 encryptiona and decryption:
+SM4 encryption and decryption:
 
 ```sh
 $ gmssl sms4 -in README.md -out README.sms4
