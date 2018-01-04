@@ -1,9 +1,18 @@
+/*
+ * Copyright 2011-2016 The OpenSSL Project Authors. All Rights Reserved.
+ *
+ * Licensed under the OpenSSL license (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
 #include <signal.h>
-#include <crypto.h>
+#include <openssl/crypto.h>
 
 #include "arm_arch.h"
 
@@ -46,12 +55,14 @@ unsigned long OPENSSL_rdtsc(void)
         return 0;
 }
 
+# if defined(__GNUC__) && __GNUC__>=2
+void OPENSSL_cpuid_setup(void) __attribute__ ((constructor));
+# endif
 /*
  * Use a weak reference to getauxval() so we can use it if it is available but
  * don't break the build if it is not.
  */
-# if defined(__GNUC__) && __GNUC__>=2
-void OPENSSL_cpuid_setup(void) __attribute__ ((constructor));
+# if defined(__GNUC__) && __GNUC__>=2 && defined(__ELF__)
 extern unsigned long getauxval(unsigned long type) __attribute__ ((weak));
 # else
 static unsigned long (*getauxval) (unsigned long) = NULL;

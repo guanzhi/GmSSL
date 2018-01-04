@@ -1,179 +1,157 @@
-open-quantum-safe/openssl
-=========================
+## About GmSSL
 
-OpenSSL is an open-source TLS/SSL and crypto library [https://openssl.org/](https://openssl.org/).  ([View the original README file for OpenSSL](https://github.com/open-quantum-safe/openssl/blob/OpenSSL_1_0_2-stable/README).)
+[![Build Status](https://travis-ci.org/guanzhi/GmSSL.svg?branch=master)](https://travis-ci.org/guanzhi/GmSSL)
 
-This repository contains a fork of OpenSSL that adds quantum-safe cryptographic algorithms and ciphersuites.
+GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
-Overview
---------
+## Features
 
-The **Open Quantum Safe (OQS) project** has the goal of developing and prototyping quantum-resistant cryptography.  
+ - Support [Chinese GM/T cryptographic standards](http://gmssl.org/docs/standards.html).
+ - Support [hardware cryptographic modules from Chinese vendors](http://www.sca.gov.cn/sca/zxfw/cpxx.shtml).
+ - With commercial friendly open source [license](http://gmssl.org/docs/licenses.html).
+ - Maintained by the [crypto research group of Peking University](http://infosec.pku.edu.cn).
 
-**liboqs** is an open source C library for quantum-safe cryptographic algorithms.  liboqs initially focuses on key exchange algorithms.  See more about liboqs at [https://github.com/open-quantum-safe/liboqs/](https://github.com/open-quantum-safe/liboqs/), including a list of supported algorithms.
+## GM/T Algorithms
 
-**open-quantum-safe/openssl** is an integration of liboqs into OpenSSL 1.0.2.  The goal of this integration is to provide easy prototyping of quantum-resistant cryptography.  The integration should not be considered "production quality".
+GmSSL will support all the following GM/T cryptographic algorithms:
 
-More information on OQS can be found on our website: [https://openquantumsafe.org/](https://openquantumsafe.org/).
+ - SM3 (GM/T 0004-2012): cryptographic hash function with 256-bit digest length.
+ - SM4 (GM/T 0002-2012): block cipher with 128-bit key length and 128-bit block size, also named SMS4.
+ - SM2 (GM/T 0003-2012): elliptic curve cryptographic schemes including digital signature scheme, public key encryption, (authenticated) key exchange protocol and one recommended 256-bit prime field curve `sm2p256v1`.
+ - SM9 (GM/T 0044-2016): pairing-based cryptographic schemes including identity-based digital signature, encryption, (authenticated) key exchange protocol and one 256-bit recommended BN curve.
+ - ZUC (GM/T 0001-2012): stream cipher, with 128-EEA3 encryption algorithm and 128-EIA3 integrity algorithm.
+ - SM1 and SSF33: block ciphers with 128-bit key length and 128-bit block size without public specification, only provided with chip.
 
-Contents
---------
+GmSSL supports many useful cryptographic algorithms and schemes:
 
-open-quantum-safe/openssl currently contains:
+ - Public-key schemes: Paillier, ECIES (Elliptic Curve Integrated Encryption Scheme)
+ - Pairing-based cryptography: BF-IBE, BB1-IBE
+ - Block ciphers and modes: Serpent, Speck
+ - Block cipher modes: FPE (Format-Preserver Encryption)
+ - OTP (One-Time Password) based on SM3/SM4 (GM/T 0021-2012)
+ - Encoding: Base58
 
-- Integration of post-quantum key exchange primitives from liboqs into OpenSSL's `speed` command
-- Ciphersuites using post-quantum key exchange based on primitives from liboqs, including hybrid ciphersuites which also use ECDHE key exchange
+OpenSSL algorithms such as ECDSA, RSA, AES, SHA-1 are all remained in GmSSL.
 
-Our modifications are **only** for OpenSSL v1.0.2, and appear only on the [OpenSSL\_1\_0\_2-stable branch](https://github.com/open-quantum-safe/openssl/tree/OpenSSL_1_0_2-stable).
+## GM/T Protocols
 
-### Key exchange mechanisms
 
-liboqs currently supports the following key exchange mechanisms:
+The GM/T standards cover 2 protocls:
 
-- `RLWE-BCNS15`: key exchange from the ring learning with errors problem (Bos, Costello, Naehrig, Stebila, *IEEE Symposium on Security & Privacy 2015*, [https://eprint.iacr.org/2014/599](https://eprint.iacr.org/2014/599))
-- `RLWE-NEWHOPE`: "NewHope": key exchange from the ring learning with errors problem (Alkim, Ducas, Pöppelmann, Schwabe, *USENIX Security 2016*, [https://eprint.iacr.org/2015/1092](https://eprint.iacr.org/2015/1092)) (using the reference C implementation of NewHope from [https://github.com/tpoeppelmann/newhope](https://github.com/tpoeppelmann/newhope))
-- `RLWE-MSRLN16`: "MSR CLN16": Longa and Naehrig NTT improvements on NewHope, [https://www.microsoft.com/en-us/research/wp-content/uploads/2016/05/RLWE-1.pdf](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/05/RLWE-1.pdf)) (using the reference C implementation from [https://www.microsoft.com/en-us/research/project/lattice-cryptography-library/](https://www.microsoft.com/en-us/research/project/lattice-cryptography-library/))
-- `LWE-FRODO-RECOMMENDED`: "Frodo": key exchange from the learning with errors problem (Bos, Costello, Ducas, Mironov, Naehrig, Nikolaenko, Raghunathan, Stebila, *ACM Conference on Computer and Communications Security 2016*, [http://eprint.iacr.org/2016/659](http://eprint.iacr.org/2016/659)); using the "recommended" parameter set
-- `SIDH-CLN16`: "SIDH": key exchange from the supersingular isogeny Diffie-Hellman problem (Costello, Longa, Naehrig, *Crypto 2016*, [https://eprint.iacr.org/2016/413](https://eprint.iacr.org/2016/413)) (using the reference C implementation from [https://www.microsoft.com/en-us/research/project/sidh-library/](https://www.microsoft.com/en-us/research/project/sidh-library/))
-- `SIDH-IQC-REF`: key exchange from the supersingular isogeny Diffie-Hellman problem (De Feo, Jao, Plût, *J. Math. Cryptol.* 8(3):209, 2014, [https://eprint.iacr.org/2011/506](https://eprint.iacr.org/2011/506)), using a reference implementation by Javad Doliskani
-- `CODE-MCBITS`: "McBits": key exchange from the error correcting codes, specifically Niederreiter's form of McEliece public key encryption using hidden Goppa codes (Bernstein, Chou, Schwabe, *CHES 2013*, [https://eprint.iacr.org/2015/610](https://eprint.iacr.org/2015/610)), using the implementation of McBits from [https://www.win.tue.nl/~tchou/mcbits/](https://www.win.tue.nl/~tchou/mcbits/))
-- `NTRU`: NTRU: key transport using NTRU public key encryption (Hoffstein, Pipher, Silverman, *ANTS 1998*) with the EES743EP1 parameter set, wrapper around the implementation from the NTRU Open Source project [https://github.com/NTRUOpenSourceProject/NTRUEncrypt](https://github.com/NTRUOpenSourceProject/NTRUEncrypt))
-- `MLWE-KYBER`: Kyber: a CCA-secure module-lattice-based key exchange mechanism (Bos, Ducas, Kiltz, Lepoint, Lyubashevsky, Schwabe, Shanck, Stehlé, *Real World Crypto 2017*, [https://eprint.iacr.org/2017/634](https://eprint.iacr.org/2017/634)), using the reference C implementation of Kyber from [pq-crystals/kyber](https://github.com/pq-crystals/kyber)
+ - SSL VPN Protocol  (GM/T 0024-2014)
+ - IPSec VPN Protocol (GM/T 0022-2014)
 
+The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS from the follows aspects:
 
-### Ciphersuites
+ - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101)
+ - The handshake protocol of GM/T SSL is diffenet from TLS handshake.
+ - There is an optional different record protocol in GM/T SSL designed for VPN applications.
+ - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
 
-For each post-quantum key exchange primitive `X`, there are the following ciphersuites:
+GM/T 0024-2014 Ciphersuites:
 
-- `X-RSA-AES128-GCM-SHA256`
-- `X-ECDSA-AES128-GCM-SHA256`
-- `X-RSA-AES256-GCM-SHA384`
-- `X-ECDSA-AES256-GCM-SHA384`
-- `X-ECDHE-RSA-AES128-GCM-SHA256`
-- `X-ECDHE-ECDSA-AES128-GCM-SHA256`
-- `X-ECDHE-RSA-AES256-GCM-SHA384`
-- `X-ECDHE-ECDSA-AES256-GCM-SHA384`
+```
+ 1. {0xe0,0x01} GMTLS_SM2DHE_SM2SIGN_WITH_SM1_SM3
+ 2. {0xe0,0x03} GMTLS_SM2ENC_WITH_SM1_SM3
+ 3. {0xe0,0x05} GMTLS_SM9DHE_SM9SIGN_WITH_SM1_SM3
+ 4. {0xe0,0x07} GMTLS_SM9ENC_WITH_SM1_SM3
+ 5. {0xe0,0x09} GMTLS_RSA_WITH_SM1_SM3
+ 6. {0xe0,0x0a} GMTLS_RSA_WITH_SM1_SHA1
+ 7. {0xe0,0x11} GMTLS_SM2DHE_SM2SIGN_WITH_SMS4_SM3
+ 8. {0xe0,0x13} GMTLS_SM2ENC_WITH_SMS4_SM3
+ 9. {0xe0,0x15} GMTLS_SM9DHE_SM9SIGN_WITH_SMS4_SM3
+10. {0xe0,0x17} GMTLS_SM9ENC_WITH_SMS4_SM3
+11. {0xe0,0x19} GMTLS_RSA_WITH_SMS4_SM3
+12. {0xe0,0x1a} GMTLS_RSA_WITH_SMS4_SM3
+```
 
-There is also a "generic" ciphersuite (`X` = `GENERIC`) which uses whichever key exchange primitive is configured as the default key exchange primitive in liboqs.  It is set to `GENERIC` = `RLWE-BCNS15`, but this can be changed.
+GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites. Currently the following ciphersuites are supported:
 
+```
+ECDHE-SM2-WITH-SMS4-SM3
+ECDHE-SM2-WITH-SMS4-SHA256
+```
 
-Building
---------
+## APIs
 
-Builds have been tested on Mac OS X 10.11.6, macOS 10.12, Ubuntu 16.04.1, and Windows 10.
+Except for the native C interface and the `gmssl` command line, GmSSL also provide the following interfaces:
 
-### Linux and macOS
+ - Java: crypto, X.509 and SSL API through JNI (Java Native Interface).
+ - Go: crypto, X.509 and SSL API through CGO.
+ - SKF C API: GM/T 0016-2012 Smart token cryptography application interface specification.
+ - SDF C API: GM/T 0018-2012 Interface specifications of cryptography device application.
+ - SAF C API: GM/T 0019-2012 Universal cryptography service interface specification.
+ - SOF C/Java API: GM/T 0020-2012 Certificate application integrated service interface specification.
 
-To build, clone or download the source from Github:
+## Supported Cryptographic Hardwares
 
-	git clone --branch OpenSSL_1_0_2-stable https://github.com/open-quantum-safe/openssl.git
-	cd openssl
+ - USB-Key through the SKF ENGINE and the SKF API.
+ - PCI-E card through the SDF ENGINE and the SDF API.
+ - GM Instruction sets (SM3/SM4) through the GMI ENGINE.
 
-To configure OpenSSL, on Linux type:
+## Quick Start
 
-	./config
-	
-and on Mac OS X type:
+This short guide describes the build, install and typical usage of the `gmssl` command line tool. Visit http://gmssl.org for more documents.
 
-	./Configure darwin64-x86_64-cc
-	
-Then type:
+Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip)), uncompress it and go to the source code folder. On Linux and OS X, run the following commands:
 
-	make depend
-	make
-	
-This will build both liboqs and OpenSSL.  
+ ```sh
+ $ ./config
+ $ make
+ $ sudo make install
+ ```
+ 
+After installation you can run `gmssl version -a` to print detailed information.
 
-### Windows
+The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, support SM2 signing and encryption through `pkeyutl` option, support SM3 through `sm3` or `dgst` option, support SM4 through `sms4` or `enc` option.
 
-Windows binaries can be generated using the standard build process for OpenSSL on Windows.
+The following are some examples.
 
-Running
--------
+SM3 digest generation:
 
-See the [liboqs Github site](https://github.com/open-quantum-safe/liboqs/) for information on test programs in liboqs.
+```
+$ echo -n "abc" | gmssl sm3
+(stdin)= 66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0
+```
 
-### openssl speed
+SM4 encryptiona and decryption:
 
-OpenSSL's `speed` command performs basic benchmarking of cryptographic primitives.  You can see results for primitives from liboqs by typing
+```sh
+$ gmssl sms4 -in README.md -out README.sms4
+$ gmssl sms4 -d -in README.sms4
+```
 
-	apps/openssl speed oqskex
+SM2 private key generation:
 
-### TLS demo
+```sh
+$ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out skey.pem
+```
 
-OpenSSL contains a basic TLS server (`s_server`) and TLS client (`s_client`) which can be used to demonstrate and test SSL/TLS connections.
+Derive the public key from the generated SM2 private key:
 
-To see the list of supported ciphersuites from OQS, type:
+```sh
+$ gmssl pkey -pubout -in skey.pem -out vkey.pem
+```
 
-	apps/openssl ciphers OQSKEX-GENERIC:OQSKEX-GENERIC-ECDHE:OQSKEX-RLWE-BCNS15:OQSKEX-RLWE-BCNS15-ECDHE:OQSKEX-RLWE-NEWHOPE:OQSKEX-RLWE-NEWHOPE-ECDHE:OQSKEX-RLWE-MSRLN16:OQSKEX-RLWE-MSRLN16-ECDHE:OQSKEX-LWE-FRODO-RECOMMENDED:OQSKEX-LWE-FRODO-RECOMMENDED-ECDHE:OQSKEX-SIDH-CLN16:OQSKEX-SIDH-CLN16-ECDHE:OQSKEX-SIDH-IQC-REF:OQSKEX-SIDH-IQC-REF-ECDHE:OQSKEX-CODE_MCBITS:OQSKEX-CODE-MCBITS-ECDHE:OQSKEX-NTRU:OQSKEX-NTRU-ECDHE:OQSKEX-MLWE-KYBER:OQSKEX-MLWE-KYBER-ECDHE
+SM2 signature generation and verification:
 
+```sh
+$ gmssl sm3 -binary README.md | gmssl pkeyutl -sign -pkeyopt ec_scheme:sm2 -inkey skey.pem -out README.md.sig
+$ gmssl sm3 -binary README.md | gmssl pkeyutl -verify -pkeyopt ec_scheme:sm2 -pubin -inkey vkey.pem -sigfile README.md.sig
+```
 
-To run a server, we first need to generate a self-signed X.509 certificate.  Run the following command:
+Generate SM2 encryption key pair and do SM2 public key encyption/decryption. It should be noted `pkeyutl -encrypt` should only be used to encrypt short messages such as session key and passphrase.
 
-	apps/openssl req -x509 -new -newkey rsa:2048 -keyout server.key -nodes -out server.cer -sha256 -days 365 -config apps/openssl.cnf
+```sh
+$ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out dkey.pem
+$ gmssl pkey -pubout -in dkey.pem -out ekey.pem
+$ echo "Top Secret" | gmssl pkeyutl -encrypt -pkeyopt ec_scheme:sm2 -pubin -inkey ekey.pem -out ciphertext.sm2
+$ gmssl pkeyutl -decrypt -pkeyopt ec_scheme:sm2 -inkey dkey.pem -in ciphertext.sm2
+```
 
-Hit enter in response to all the prompts to accept the defaults.  
+Self-signed SM2 certificate generation:
 
-When done, type to combine the key and certificate (as required by `s_server`):
+```sh
+$ gmssl req -new -x509 -key skey.pem -out cert.pem
+```
 
-	cat server.key server.cer > server.pem
-
-To run a basic TLS server with all OQS ciphersuites enabled:
-
-	apps/openssl s_server -cipher OQSKEX-GENERIC:OQSKEX-GENERIC-ECDHE:OQSKEX-RLWE-BCNS15:OQSKEX-RLWE-BCNS15-ECDHE:OQSKEX-RLWE-NEWHOPE:OQSKEX-RLWE-NEWHOPE-ECDHE:OQSKEX-RLWE-MSRLN16:OQSKEX-RLWE-MSRLN16-ECDHE:OQSKEX-LWE-FRODO-RECOMMENDED:OQSKEX-LWE-FRODO-RECOMMENDED-ECDHE:OQSKEX-SIDH-CLN16:OQSKEX-SIDH-CLN16-ECDHE
-
-In another terminal window, you can run a TLS client for any or all of the supported ciphersuites, for example:
-
-	apps/openssl s_client -cipher OQSKEX-GENERIC
-	apps/openssl s_client -cipher OQSKEX-GENERIC-ECDHE
-	apps/openssl s_client -cipher OQSKEX-RLWE-BCNS15
-	apps/openssl s_client -cipher OQSKEX-RLWE-BCNS15-ECDHE
-	apps/openssl s_client -cipher OQSKEX-RLWE-NEWHOPE
-	apps/openssl s_client -cipher OQSKEX-RLWE-NEWHOPE-ECDHE
-	apps/openssl s_client -cipher OQSKEX-RLWE-MSRLN16
-	apps/openssl s_client -cipher OQSKEX-RLWE-MSRLN16-ECDHE
-	apps/openssl s_client -cipher OQSKEX-LWE-FRODO-RECOMMENDED
-	apps/openssl s_client -cipher OQSKEX-LWE-FRODO-RECOMMENDED-ECDHE
-	apps/openssl s_client -cipher OQSKEX-SIDH-CLN16
-	apps/openssl s_client -cipher OQSKEX-SIDH-CLN16-ECDHE
-	apps/openssl s_client -cipher OQSKEX-SIDH-IQC-REF
-	apps/openssl s_client -cipher OQSKEX-SIDH-IQC-REF-ECDHE
-	apps/openssl s_client -cipher OQSKEX-CODE-MCBITS
-	apps/openssl s_client -cipher OQSKEX-CODE-MCBITS-ECDHE
-	apps/openssl s_client -cipher OQSKEX-NTRU
-	apps/openssl s_client -cipher OQSKEX-NTRU-ECDHE
-	apps/openssl s_client -cipher OQSKEX-MLWE-KYBER
-	apps/openssl s_client -cipher OQSKEX-MLWE-KYBER-ECDHE
-
-Current status and plans
-------------------------
-
-Our initial launch of the liboqs integration into OpenSSL was on August 25, 2016.  
-
-At this point, there are no plans to add further functionality to the OpenSSL integration, beyond supporting additional algorithms added by liboqs.  See the [liboqs](https://github.com/open-quantum-safe/liboqs/#current-status-and-plans) page for more information about liboqs plans.  Update: we realize there is interest in quantum-safe signature integration in OpenSSL, and will consider this when we begin to add signature schemes to liboqs; volunteers welcome!
-
-We will endeavour to regularly sync our branch with commits in the original openssl/openssl repository.
-
-For future reference, adding new algorithms/ciphersuites can easily be done by following these diffs:
-
-- apps/speed: [commit cb91c708b8bec35284054562295d6b9adff76d2a](https://github.com/open-quantum-safe/openssl/commit/cb91c708b8bec35284054562295d6b9adff76d2a)
-- ssl: [commit 3a04b822b317ac548933c10974bea638086cf29e](https://github.com/open-quantum-safe/openssl/commit/3a04b822b317ac548933c10974bea638086cf29e)
-
-Note
-----
-
-Proofs of TLS such as [[JKSS12]](https://eprint.iacr.org/2011/219) and [[KPW13]](https://eprint.iacr.org/2013/339) require a key exchange mechanism that has a form of active security, either in the form of the PRF-ODH assumption, or an IND-CCA KEM.  Most basic post-quantum key exchange mechanisms do not achieve active security, and would need to have an IND-CPA to IND-CCA KEM transform applied [[Pei14]](https://eprint.iacr.org/2014/070) or be protected from active attacks using a signature scheme [[BCNS15]](https://eprint.iacr.org/2014/599).  Neither countermeasure is currently applied in this prototype OpenSSL integration, so existing proofs of security of TLS against active attackers do not apply to this software.  Improving this is an active research goal.
-
-License
--------
-
-All modifications in the open-quantum-safe/openssl repository are released under the same terms as OpenSSL, namely as described in the file [LICENSE](https://github.com/open-quantum-safe/openssl/blob/OpenSSL_1_0_2-stable/LICENSE).  
-
-Team
-----
-
-The Open Quantum Safe project is lead by [Michele Mosca](http://faculty.iqc.uwaterloo.ca/mmosca/) (University of Waterloo) and [Douglas Stebila](https://www.douglas.stebila.ca/research/) (McMaster University).
-
-### Support
-
-Development of Open Quantum Safe has been supported in part by the Tutte Institute for Mathematics and Computing.  Research projects which developed specific components of Open Quantum Safe have been supported by various research grants; see the source papers for funding acknowledgements.

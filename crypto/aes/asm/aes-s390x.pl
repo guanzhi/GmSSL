@@ -1,4 +1,11 @@
-#!/usr/bin/env perl
+#! /usr/bin/env perl
+# Copyright 2007-2016 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the OpenSSL license (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+
 
 # ====================================================================
 # Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
@@ -92,7 +99,7 @@ if ($flavour =~ /3[12]/) {
 	$g="g";
 }
 
-while (($output=shift) && ($output!~/^\w[\w\-]*\.\w+$/)) {}
+while (($output=shift) && ($output!~/\w[\w\-]*\.\w+$/)) {}
 open STDOUT,">$output";
 
 $softonly=0;	# allow hardware support
@@ -779,10 +786,10 @@ ___
 $code.=<<___;
 # void AES_set_encrypt_key(const unsigned char *in, int bits,
 # 		 AES_KEY *key) {
-.globl	private_AES_set_encrypt_key
-.type	private_AES_set_encrypt_key,\@function
+.globl	AES_set_encrypt_key
+.type	AES_set_encrypt_key,\@function
 .align	16
-private_AES_set_encrypt_key:
+AES_set_encrypt_key:
 _s390x_AES_set_encrypt_key:
 	lghi	$t0,0
 	cl${g}r	$inp,$t0
@@ -1059,14 +1066,14 @@ $code.=<<___;
 .Lminus1:
 	lghi	%r2,-1
 	br	$ra
-.size	private_AES_set_encrypt_key,.-private_AES_set_encrypt_key
+.size	AES_set_encrypt_key,.-AES_set_encrypt_key
 
 # void AES_set_decrypt_key(const unsigned char *in, int bits,
 # 		 AES_KEY *key) {
-.globl	private_AES_set_decrypt_key
-.type	private_AES_set_decrypt_key,\@function
+.globl	AES_set_decrypt_key
+.type	AES_set_decrypt_key,\@function
 .align	16
-private_AES_set_decrypt_key:
+AES_set_decrypt_key:
 	#st${g}	$key,4*$SIZE_T($sp)	# I rely on AES_set_encrypt_key to
 	st${g}	$ra,14*$SIZE_T($sp)	# save non-volatile registers and $key!
 	bras	$ra,_s390x_AES_set_encrypt_key
@@ -1166,7 +1173,7 @@ $code.=<<___;
 	lm${g}	%r6,%r13,6*$SIZE_T($sp)# as was saved by AES_set_encrypt_key!
 	lghi	%r2,0
 	br	$ra
-.size	private_AES_set_decrypt_key,.-private_AES_set_decrypt_key
+.size	AES_set_decrypt_key,.-AES_set_decrypt_key
 ___
 
 ########################################################################
@@ -1568,8 +1575,8 @@ ___
 }
 
 ########################################################################
-# void AES_xts_encrypt(const unsigned char *inp, unsigned char *out,
-#	size_t len, const AES_KEY *key1, const AES_KEY *key2,
+# void AES_xts_encrypt(const char *inp,char *out,size_t len,
+#	const AES_KEY *key1, const AES_KEY *key2,
 #	const unsigned char iv[16]);
 #
 {
@@ -1937,8 +1944,8 @@ $code.=<<___;
 	br	$ra
 .size	AES_xts_encrypt,.-AES_xts_encrypt
 ___
-# void AES_xts_decrypt(const unsigned char *inp, unsigned char *out,
-#	size_t len, const AES_KEY *key1, const AES_KEY *key2,
+# void AES_xts_decrypt(const char *inp,char *out,size_t len,
+#	const AES_KEY *key1, const AES_KEY *key2,
 #	const unsigned char iv[16]);
 #
 $code.=<<___;
