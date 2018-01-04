@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2010-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 #
 # ====================================================================
 # Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
@@ -66,8 +59,6 @@
 # As it can be seen, RSA sign performance improves by 130-30%,
 # hereafter less for longer keys, while verify - by 74-13%.
 # DSA performance improves by 115-30%.
-
-$output=pop;
 
 if ($^O eq "hpux") {
     $ADDP="addp4";
@@ -855,6 +846,6 @@ copyright:
 stringz	"Montgomery multiplication for IA-64, CRYPTOGAMS by <appro\@openssl.org>"
 ___
 
-open STDOUT,">$output" if $output;
+$output=shift and open STDOUT,">$output";
 print $code;
 close STDOUT;

@@ -1,12 +1,7 @@
+/* crypto/ec/ecp_nistp256.c */
 /*
- * Copyright 2011-2016 The OpenSSL Project Authors. All Rights Reserved.
- *
- * Licensed under the OpenSSL license (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * in the file LICENSE in the source distribution or at
- * https://www.openssl.org/source/license.html
+ * Written by Adam Langley (Google) for the OpenSSL project
  */
-
 /* Copyright 2011 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,11 +27,14 @@
  */
 
 #include <openssl/opensslconf.h>
-#ifdef OPENSSL_NO_EC_NISTP_64_GCC_128
-NON_EMPTY_TRANSLATION_UNIT
-#else
+#ifndef OPENSSL_NO_EC_NISTP_64_GCC_128
 
-# include <stdint.h>
+# ifndef OPENSSL_SYS_VMS
+#  include <stdint.h>
+# else
+#  include <inttypes.h>
+# endif
+
 # include <string.h>
 # include <openssl/err.h>
 # include "ec_lcl.h"
@@ -163,7 +161,7 @@ static int BN_to_felem(felem out, const BIGNUM *bn)
     unsigned num_bytes;
 
     /* BN_bn2bin eats leading zeroes */
-    memset(b_out, 0, sizeof(b_out));
+    memset(b_out, 0, sizeof b_out);
     num_bytes = BN_num_bytes(bn);
     if (num_bytes > sizeof b_out) {
         ECerr(EC_F_BN_TO_FELEM, EC_R_BIGNUM_OUT_OF_RANGE);
@@ -1234,7 +1232,7 @@ static void copy_small_conditional(felem out, const smallfelem in, limb mask)
 }
 
 /*-
- * point_add calculates (x1, y1, z1) + (x2, y2, z2)
+ * point_add calcuates (x1, y1, z1) + (x2, y2, z2)
  *
  * The method is taken from:
  *   http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl,
@@ -1631,8 +1629,7 @@ static void select_point(const u64 idx, unsigned int size,
 {
     unsigned i, j;
     u64 *outlimbs = &out[0][0];
-
-    memset(out, 0, sizeof(*out) * 3);
+    memset(outlimbs, 0, 3 * sizeof(smallfelem));
 
     for (i = 0; i < size; i++) {
         const u64 *inlimbs = (u64 *)&pre_comp[i][0][0];
@@ -1676,7 +1673,7 @@ static void batch_mul(felem x_out, felem y_out, felem z_out,
     u8 sign, digit;
 
     /* set nq to the point at infinity */
-    memset(nq, 0, sizeof(nq));
+    memset(nq, 0, 3 * sizeof(felem));
 
     /*
      * Loop over all scalars msb-to-lsb, interleaving additions of multiples
@@ -1763,11 +1760,10 @@ static void batch_mul(felem x_out, felem y_out, felem z_out,
 }
 
 /* Precomputation for the group generator. */
-struct nistp256_pre_comp_st {
+typedef struct {
     smallfelem g_pre_comp[2][16][3];
     int references;
-    CRYPTO_RWLOCK *lock;
-};
+} NISTP256_PRE_COMP;
 
 const EC_METHOD *EC_GFp_nistp256_method(void)
 {
@@ -1781,7 +1777,6 @@ const EC_METHOD *EC_GFp_nistp256_method(void)
         ec_GFp_nistp256_group_set_curve,
         ec_GFp_simple_group_get_curve,
         ec_GFp_simple_group_get_degree,
-        ec_group_simple_order_bits,
         ec_GFp_simple_group_check_discriminant,
         ec_GFp_simple_point_init,
         ec_GFp_simple_point_finish,
@@ -1811,16 +1806,7 @@ const EC_METHOD *EC_GFp_nistp256_method(void)
         0 /* field_div */ ,
         0 /* field_encode */ ,
         0 /* field_decode */ ,
-        0,                      /* field_set_to_one */
-        ec_key_simple_priv2oct,
-        ec_key_simple_oct2priv,
-        0, /* set private */
-        ec_key_simple_generate_key,
-        ec_key_simple_check_key,
-        ec_key_simple_generate_public_key,
-        0, /* keycopy */
-        0, /* keyfinish */
-        ecdh_simple_compute_key
+        0                       /* field_set_to_one */
     };
 
     return &ret;
@@ -1833,46 +1819,55 @@ const EC_METHOD *EC_GFp_nistp256_method(void)
 
 static NISTP256_PRE_COMP *nistp256_pre_comp_new()
 {
-    NISTP256_PRE_COMP *ret = OPENSSL_zalloc(sizeof(*ret));
-
-    if (ret == NULL) {
+    NISTP256_PRE_COMP *ret = NULL;
+    ret = (NISTP256_PRE_COMP *) OPENSSL_malloc(sizeof *ret);
+    if (!ret) {
         ECerr(EC_F_NISTP256_PRE_COMP_NEW, ERR_R_MALLOC_FAILURE);
         return ret;
     }
-
+    memset(ret->g_pre_comp, 0, sizeof(ret->g_pre_comp));
     ret->references = 1;
-
-    ret->lock = CRYPTO_THREAD_lock_new();
-    if (ret->lock == NULL) {
-        ECerr(EC_F_NISTP256_PRE_COMP_NEW, ERR_R_MALLOC_FAILURE);
-        OPENSSL_free(ret);
-        return NULL;
-    }
     return ret;
 }
 
-NISTP256_PRE_COMP *EC_nistp256_pre_comp_dup(NISTP256_PRE_COMP *p)
+static void *nistp256_pre_comp_dup(void *src_)
 {
-    int i;
-    if (p != NULL)
-        CRYPTO_atomic_add(&p->references, 1, &i, p->lock);
-    return p;
+    NISTP256_PRE_COMP *src = src_;
+
+    /* no need to actually copy, these objects never change! */
+    CRYPTO_add(&src->references, 1, CRYPTO_LOCK_EC_PRE_COMP);
+
+    return src_;
 }
 
-void EC_nistp256_pre_comp_free(NISTP256_PRE_COMP *pre)
+static void nistp256_pre_comp_free(void *pre_)
 {
     int i;
+    NISTP256_PRE_COMP *pre = pre_;
 
-    if (pre == NULL)
+    if (!pre)
         return;
 
-    CRYPTO_atomic_add(&pre->references, -1, &i, pre->lock);
-    REF_PRINT_COUNT("EC_nistp256", x);
+    i = CRYPTO_add(&pre->references, -1, CRYPTO_LOCK_EC_PRE_COMP);
     if (i > 0)
         return;
-    REF_ASSERT_ISNT(i < 0);
 
-    CRYPTO_THREAD_lock_free(pre->lock);
+    OPENSSL_free(pre);
+}
+
+static void nistp256_pre_comp_clear_free(void *pre_)
+{
+    int i;
+    NISTP256_PRE_COMP *pre = pre_;
+
+    if (!pre)
+        return;
+
+    i = CRYPTO_add(&pre->references, -1, CRYPTO_LOCK_EC_PRE_COMP);
+    if (i > 0)
+        return;
+
+    OPENSSL_cleanse(pre, sizeof *pre);
     OPENSSL_free(pre);
 }
 
@@ -1917,7 +1912,8 @@ int ec_GFp_nistp256_group_set_curve(EC_GROUP *group, const BIGNUM *p,
     ret = ec_GFp_simple_group_set_curve(group, p, a, b, ctx);
  err:
     BN_CTX_end(ctx);
-    BN_CTX_free(new_ctx);
+    if (new_ctx != NULL)
+        BN_CTX_free(new_ctx);
     return ret;
 }
 
@@ -1939,8 +1935,8 @@ int ec_GFp_nistp256_point_get_affine_coordinates(const EC_GROUP *group,
               EC_R_POINT_AT_INFINITY);
         return 0;
     }
-    if ((!BN_to_felem(x_in, point->X)) || (!BN_to_felem(y_in, point->Y)) ||
-        (!BN_to_felem(z1, point->Z)))
+    if ((!BN_to_felem(x_in, &point->X)) || (!BN_to_felem(y_in, &point->Y)) ||
+        (!BN_to_felem(z1, &point->Z)))
         return 0;
     felem_inv(z2, z1);
     felem_square(tmp, z2);
@@ -2016,7 +2012,7 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
     BIGNUM *x, *y, *z, *tmp_scalar;
     felem_bytearray g_secret;
     felem_bytearray *secrets = NULL;
-    smallfelem (*pre_comp)[17][3] = NULL;
+    smallfelem(*pre_comp)[17][3] = NULL;
     smallfelem *tmp_smallfelems = NULL;
     felem_bytearray tmp;
     unsigned i, num_bytes;
@@ -2041,7 +2037,10 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
         goto err;
 
     if (scalar != NULL) {
-        pre = group->pre_comp.nistp256;
+        pre = EC_EX_DATA_get_data(group->extra_data,
+                                  nistp256_pre_comp_dup,
+                                  nistp256_pre_comp_free,
+                                  nistp256_pre_comp_clear_free);
         if (pre)
             /* we have precomputation, try to use it */
             g_pre_comp = (const smallfelem(*)[16][3])pre->g_pre_comp;
@@ -2080,11 +2079,11 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
              */
             mixed = 1;
         }
-        secrets = OPENSSL_malloc(sizeof(*secrets) * num_points);
-        pre_comp = OPENSSL_malloc(sizeof(*pre_comp) * num_points);
+        secrets = OPENSSL_malloc(num_points * sizeof(felem_bytearray));
+        pre_comp = OPENSSL_malloc(num_points * 17 * 3 * sizeof(smallfelem));
         if (mixed)
             tmp_smallfelems =
-              OPENSSL_malloc(sizeof(*tmp_smallfelems) * (num_points * 17 + 1));
+                OPENSSL_malloc((num_points * 17 + 1) * sizeof(smallfelem));
         if ((secrets == NULL) || (pre_comp == NULL)
             || (mixed && (tmp_smallfelems == NULL))) {
             ECerr(EC_F_EC_GFP_NISTP256_POINTS_MUL, ERR_R_MALLOC_FAILURE);
@@ -2095,8 +2094,8 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
          * we treat NULL scalars as 0, and NULL points as points at infinity,
          * i.e., they contribute nothing to the linear combination
          */
-        memset(secrets, 0, sizeof(*secrets) * num_points);
-        memset(pre_comp, 0, sizeof(*pre_comp) * num_points);
+        memset(secrets, 0, num_points * sizeof(felem_bytearray));
+        memset(pre_comp, 0, num_points * 17 * 3 * sizeof(smallfelem));
         for (i = 0; i < num_points; ++i) {
             if (i == num)
                 /*
@@ -2120,7 +2119,7 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
                      * this is an unusual input, and we don't guarantee
                      * constant-timeness
                      */
-                    if (!BN_nnmod(tmp_scalar, p_scalar, group->order, ctx)) {
+                    if (!BN_nnmod(tmp_scalar, p_scalar, &group->order, ctx)) {
                         ECerr(EC_F_EC_GFP_NISTP256_POINTS_MUL, ERR_R_BN_LIB);
                         goto err;
                     }
@@ -2129,9 +2128,9 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
                     num_bytes = BN_bn2bin(p_scalar, tmp);
                 flip_endian(secrets[i], tmp, num_bytes);
                 /* precompute multiples */
-                if ((!BN_to_felem(x_out, p->X)) ||
-                    (!BN_to_felem(y_out, p->Y)) ||
-                    (!BN_to_felem(z_out, p->Z)))
+                if ((!BN_to_felem(x_out, &p->X)) ||
+                    (!BN_to_felem(y_out, &p->Y)) ||
+                    (!BN_to_felem(z_out, &p->Z)))
                     goto err;
                 felem_shrink(pre_comp[i][1][0], x_out);
                 felem_shrink(pre_comp[i][1][1], y_out);
@@ -2168,7 +2167,7 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
              * this is an unusual input, and we don't guarantee
              * constant-timeness
              */
-            if (!BN_nnmod(tmp_scalar, scalar, group->order, ctx)) {
+            if (!BN_nnmod(tmp_scalar, scalar, &group->order, ctx)) {
                 ECerr(EC_F_EC_GFP_NISTP256_POINTS_MUL, ERR_R_BN_LIB);
                 goto err;
             }
@@ -2199,11 +2198,16 @@ int ec_GFp_nistp256_points_mul(const EC_GROUP *group, EC_POINT *r,
 
  err:
     BN_CTX_end(ctx);
-    EC_POINT_free(generator);
-    BN_CTX_free(new_ctx);
-    OPENSSL_free(secrets);
-    OPENSSL_free(pre_comp);
-    OPENSSL_free(tmp_smallfelems);
+    if (generator != NULL)
+        EC_POINT_free(generator);
+    if (new_ctx != NULL)
+        BN_CTX_free(new_ctx);
+    if (secrets != NULL)
+        OPENSSL_free(secrets);
+    if (pre_comp != NULL)
+        OPENSSL_free(pre_comp);
+    if (tmp_smallfelems != NULL)
+        OPENSSL_free(tmp_smallfelems);
     return ret;
 }
 
@@ -2219,7 +2223,9 @@ int ec_GFp_nistp256_precompute_mult(EC_GROUP *group, BN_CTX *ctx)
     felem x_tmp, y_tmp, z_tmp;
 
     /* throw away old precomputation */
-    EC_pre_comp_free(group);
+    EC_EX_DATA_free_data(&group->extra_data, nistp256_pre_comp_dup,
+                         nistp256_pre_comp_free,
+                         nistp256_pre_comp_clear_free);
     if (ctx == NULL)
         if ((ctx = new_ctx = BN_CTX_new()) == NULL)
             return 0;
@@ -2245,9 +2251,9 @@ int ec_GFp_nistp256_precompute_mult(EC_GROUP *group, BN_CTX *ctx)
         memcpy(pre->g_pre_comp, gmul, sizeof(pre->g_pre_comp));
         goto done;
     }
-    if ((!BN_to_felem(x_tmp, group->generator->X)) ||
-        (!BN_to_felem(y_tmp, group->generator->Y)) ||
-        (!BN_to_felem(z_tmp, group->generator->Z)))
+    if ((!BN_to_felem(x_tmp, &group->generator->X)) ||
+        (!BN_to_felem(y_tmp, &group->generator->Y)) ||
+        (!BN_to_felem(z_tmp, &group->generator->Z)))
         goto err;
     felem_shrink(pre->g_pre_comp[0][1][0], x_tmp);
     felem_shrink(pre->g_pre_comp[0][1][1], y_tmp);
@@ -2331,20 +2337,33 @@ int ec_GFp_nistp256_precompute_mult(EC_GROUP *group, BN_CTX *ctx)
     make_points_affine(31, &(pre->g_pre_comp[0][1]), tmp_smallfelems);
 
  done:
-    SETPRECOMP(group, nistp256, pre);
-    pre = NULL;
+    if (!EC_EX_DATA_set_data(&group->extra_data, pre, nistp256_pre_comp_dup,
+                             nistp256_pre_comp_free,
+                             nistp256_pre_comp_clear_free))
+        goto err;
     ret = 1;
-
+    pre = NULL;
  err:
     BN_CTX_end(ctx);
-    EC_POINT_free(generator);
-    BN_CTX_free(new_ctx);
-    EC_nistp256_pre_comp_free(pre);
+    if (generator != NULL)
+        EC_POINT_free(generator);
+    if (new_ctx != NULL)
+        BN_CTX_free(new_ctx);
+    if (pre)
+        nistp256_pre_comp_free(pre);
     return ret;
 }
 
 int ec_GFp_nistp256_have_precompute_mult(const EC_GROUP *group)
 {
-    return HAVEPRECOMP(group, nistp256);
+    if (EC_EX_DATA_get_data(group->extra_data, nistp256_pre_comp_dup,
+                            nistp256_pre_comp_free,
+                            nistp256_pre_comp_clear_free)
+        != NULL)
+        return 1;
+    else
+        return 0;
 }
+#else
+static void *dummy = &dummy;
 #endif

@@ -1,10 +1,60 @@
+/* dso_dlfcn.c */
 /*
- * Copyright 2000-2016 The OpenSSL Project Authors. All Rights Reserved.
+ * Written by Geoff Thorpe (geoff@geoffthorpe.net) for the OpenSSL project
+ * 2000.
+ */
+/* ====================================================================
+ * Copyright (c) 2000 The OpenSSL Project.  All rights reserved.
  *
- * Licensed under the OpenSSL license (the "License").  You may not use
- * this file except in compliance with the License.  You can obtain a copy
- * in the file LICENSE in the source distribution or at
- * https://www.openssl.org/source/license.html
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the OpenSSL Project
+ *    for use in the OpenSSL Toolkit. (http://www.OpenSSL.org/)"
+ *
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
+ *    endorse or promote products derived from this software without
+ *    prior written permission. For written permission, please contact
+ *    licensing@OpenSSL.org.
+ *
+ * 5. Products derived from this software may not be called "OpenSSL"
+ *    nor may "OpenSSL" appear in their names without prior written
+ *    permission of the OpenSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the OpenSSL Project
+ *    for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ *
+ * This product includes cryptographic software written by Eric Young
+ * (eay@cryptsoft.com).  This product includes software written by Tim
+ * Hudson (tjh@cryptsoft.com).
+ *
  */
 
 /*
@@ -16,9 +66,16 @@
 # define _GNU_SOURCE            /* make sure dladdr is declared */
 #endif
 
-#include "dso_locl.h"
+#include <stdio.h>
+#include "cryptlib.h"
+#include <openssl/dso.h>
 
-#ifdef DSO_DLFCN
+#ifndef DSO_DLFCN
+DSO_METHOD *DSO_METHOD_dlfcn(void)
+{
+    return NULL;
+}
+#else
 
 # ifdef HAVE_DLFCN_H
 #  ifdef __osf__
@@ -40,7 +97,14 @@
 
 static int dlfcn_load(DSO *dso);
 static int dlfcn_unload(DSO *dso);
+static void *dlfcn_bind_var(DSO *dso, const char *symname);
 static DSO_FUNC_TYPE dlfcn_bind_func(DSO *dso, const char *symname);
+# if 0
+static int dlfcn_unbind(DSO *dso, char *symname, void *symptr);
+static int dlfcn_init(DSO *dso);
+static int dlfcn_finish(DSO *dso);
+static long dlfcn_ctrl(DSO *dso, int cmd, long larg, void *parg);
+# endif
 static char *dlfcn_name_converter(DSO *dso, const char *filename);
 static char *dlfcn_merger(DSO *dso, const char *filespec1,
                           const char *filespec2);
@@ -51,7 +115,13 @@ static DSO_METHOD dso_meth_dlfcn = {
     "OpenSSL 'dlfcn' shared library method",
     dlfcn_load,
     dlfcn_unload,
+    dlfcn_bind_var,
     dlfcn_bind_func,
+/* For now, "unbind" doesn't exist */
+# if 0
+    NULL,                       /* unbind_var */
+    NULL,                       /* unbind_func */
+# endif
     NULL,                       /* ctrl */
     dlfcn_name_converter,
     dlfcn_merger,
@@ -61,9 +131,9 @@ static DSO_METHOD dso_meth_dlfcn = {
     dlfcn_globallookup
 };
 
-DSO_METHOD *DSO_METHOD_openssl(void)
+DSO_METHOD *DSO_METHOD_dlfcn(void)
 {
-    return &dso_meth_dlfcn;
+    return (&dso_meth_dlfcn);
 }
 
 /*
@@ -85,7 +155,11 @@ DSO_METHOD *DSO_METHOD_openssl(void)
 #   endif
 #  endif
 # else
-#  define DLOPEN_FLAG RTLD_NOW  /* Hope this works everywhere else */
+#  ifdef OPENSSL_SYS_SUNOS
+#   define DLOPEN_FLAG 1
+#  else
+#   define DLOPEN_FLAG RTLD_NOW /* Hope this works everywhere else */
+#  endif
 # endif
 
 /*
@@ -123,7 +197,8 @@ static int dlfcn_load(DSO *dso)
     return (1);
  err:
     /* Cleanup! */
-    OPENSSL_free(filename);
+    if (filename != NULL)
+        OPENSSL_free(filename);
     if (ptr != NULL)
         dlclose(ptr);
     return (0);
@@ -150,6 +225,32 @@ static int dlfcn_unload(DSO *dso)
     /* For now I'm not aware of any errors associated with dlclose() */
     dlclose(ptr);
     return (1);
+}
+
+static void *dlfcn_bind_var(DSO *dso, const char *symname)
+{
+    void *ptr, *sym;
+
+    if ((dso == NULL) || (symname == NULL)) {
+        DSOerr(DSO_F_DLFCN_BIND_VAR, ERR_R_PASSED_NULL_PARAMETER);
+        return (NULL);
+    }
+    if (sk_void_num(dso->meth_data) < 1) {
+        DSOerr(DSO_F_DLFCN_BIND_VAR, DSO_R_STACK_ERROR);
+        return (NULL);
+    }
+    ptr = sk_void_value(dso->meth_data, sk_void_num(dso->meth_data) - 1);
+    if (ptr == NULL) {
+        DSOerr(DSO_F_DLFCN_BIND_VAR, DSO_R_NULL_HANDLE);
+        return (NULL);
+    }
+    sym = dlsym(ptr, symname);
+    if (sym == NULL) {
+        DSOerr(DSO_F_DLFCN_BIND_VAR, DSO_R_SYM_FAILURE);
+        ERR_add_error_data(4, "symname(", symname, "): ", dlerror());
+        return (NULL);
+    }
+    return (sym);
 }
 
 static DSO_FUNC_TYPE dlfcn_bind_func(DSO *dso, const char *symname)
@@ -196,21 +297,23 @@ static char *dlfcn_merger(DSO *dso, const char *filespec1,
      * if the second file specification is missing.
      */
     if (!filespec2 || (filespec1 != NULL && filespec1[0] == '/')) {
-        merged = OPENSSL_strdup(filespec1);
-        if (merged == NULL) {
+        merged = OPENSSL_malloc(strlen(filespec1) + 1);
+        if (!merged) {
             DSOerr(DSO_F_DLFCN_MERGER, ERR_R_MALLOC_FAILURE);
             return (NULL);
         }
+        strcpy(merged, filespec1);
     }
     /*
      * If the first file specification is missing, the second one rules.
      */
     else if (!filespec1) {
-        merged = OPENSSL_strdup(filespec2);
-        if (merged == NULL) {
+        merged = OPENSSL_malloc(strlen(filespec2) + 1);
+        if (!merged) {
             DSOerr(DSO_F_DLFCN_MERGER, ERR_R_MALLOC_FAILURE);
             return (NULL);
         }
+        strcpy(merged, filespec2);
     } else {
         /*
          * This part isn't as trivial as it looks.  It assumes that the
@@ -229,7 +332,7 @@ static char *dlfcn_merger(DSO *dso, const char *filespec1,
             len--;
         }
         merged = OPENSSL_malloc(len + 2);
-        if (merged == NULL) {
+        if (!merged) {
             DSOerr(DSO_F_DLFCN_MERGER, ERR_R_MALLOC_FAILURE);
             return (NULL);
         }
@@ -239,6 +342,14 @@ static char *dlfcn_merger(DSO *dso, const char *filespec1,
     }
     return (merged);
 }
+
+# ifdef OPENSSL_SYS_MACOSX
+#  define DSO_ext ".dylib"
+#  define DSO_extlen 6
+# else
+#  define DSO_ext ".so"
+#  define DSO_extlen 3
+# endif
 
 static char *dlfcn_name_converter(DSO *dso, const char *filename)
 {
@@ -250,7 +361,7 @@ static char *dlfcn_name_converter(DSO *dso, const char *filename)
     transform = (strstr(filename, "/") == NULL);
     if (transform) {
         /* We will convert this to "%s.so" or "lib%s.so" etc */
-        rsize += strlen(DSO_EXTENSION);    /* The length of ".so" */
+        rsize += DSO_extlen;    /* The length of ".so" */
         if ((DSO_flags(dso) & DSO_FLAG_NAME_TRANSLATION_EXT_ONLY) == 0)
             rsize += 3;         /* The length of "lib" */
     }
@@ -261,9 +372,9 @@ static char *dlfcn_name_converter(DSO *dso, const char *filename)
     }
     if (transform) {
         if ((DSO_flags(dso) & DSO_FLAG_NAME_TRANSLATION_EXT_ONLY) == 0)
-            sprintf(translated, "lib%s" DSO_EXTENSION, filename);
+            sprintf(translated, "lib%s" DSO_ext, filename);
         else
-            sprintf(translated, "%s" DSO_EXTENSION, filename);
+            sprintf(translated, "%s" DSO_ext, filename);
     } else
         sprintf(translated, "%s", filename);
     return (translated);
