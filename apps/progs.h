@@ -183,10 +183,10 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_OTP
     { FT_general, "otp", otp_main, otp_options },
 #endif
-#if !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_DES)
     { FT_general, "passwd", passwd_main, passwd_options },
-#endif
+#ifndef OPENSSL_NO_DES
     { FT_general, "pkcs12", pkcs12_main, pkcs12_options },
+#endif
 #ifndef OPENSSL_NO_PKCS7
     { FT_general, "pkcs7", pkcs7_main, pkcs7_options },
 #endif
