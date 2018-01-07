@@ -105,10 +105,6 @@ int main(int argc, char **argv)
 
 	return 0;
 
-	/* init openssl global functions */
-	ERR_load_crypto_strings();
-	OpenSSL_add_all_algorithms();
-
 	/* prepare cpk setup parameters */
 	if (!(ec_key = EC_KEY_new_by_curve_name(OBJ_sn2nid("prime192v1")))) {
 		goto end;

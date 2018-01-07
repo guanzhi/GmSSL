@@ -77,8 +77,6 @@ int main(int argc, char **argv)
 	params.option_size = 0;
 	params.otp_digits = 6;
 
-	OpenSSL_add_all_algorithms();
-
 	if (!OTP_generate(&params, event, sizeof(event), &otp, key, sizeof(key))) {
 		printf("OTP_generate() failed\n");
 		return -1;

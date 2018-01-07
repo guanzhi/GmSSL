@@ -70,6 +70,7 @@ int main(int argc, char **argv)
 }
 #else
 
+#include <ctype.h>
 #include <openssl/serpent.h>
 
 char *plain[] =

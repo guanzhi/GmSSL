@@ -52,6 +52,7 @@
 #include <openssl/gmsdf.h>
 #include <openssl/gmsaf.h>
 #include <openssl/engine.h>
+#include <openssl/err.h>
 
 typedef struct saf_app_st {
 	ENGINE *engine;
