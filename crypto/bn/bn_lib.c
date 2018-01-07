@@ -220,6 +220,13 @@ void bn_init(BIGNUM *a)
     bn_check_top(a);
 }
 
+#if OPENSSL_API_COMPAT < 0x10100000L
+void BN_init(BIGNUM *a)
+{
+    bn_init(a);
+}
+#endif
+
 BIGNUM *BN_new(void)
 {
     BIGNUM *ret;

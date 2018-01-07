@@ -215,7 +215,11 @@ void *CRYPTO_get_ex_data(const CRYPTO_EX_DATA *ad, int idx);
  * On the other hand, the locking callbacks are no longer used.  Consequently,
  * the callback management functions can be safely replaced with no-op macros.
  */
-#  define CRYPTO_num_locks()                     1
+#  if OPENSSL_API_COMPAT < 0x10100000L
+int CRYPTO_num_locks(void);
+#  else
+#   define CRYPTO_num_locks()                    (1)
+#  endif
 #  define CRYPTO_set_locking_callback(func)
 #  define CRYPTO_get_locking_callback()         (NULL)
 #  define CRYPTO_set_add_lock_callback(func)

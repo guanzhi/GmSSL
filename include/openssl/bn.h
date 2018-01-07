@@ -173,6 +173,9 @@ int BN_num_bits(const BIGNUM *a);
 int BN_num_bits_word(BN_ULONG l);
 int BN_security_bits(int L, int N);
 BIGNUM *BN_new(void);
+# if OPENSSL_API_COMPAT < 0x10100000L
+void BN_init(BIGNUM *a);
+# endif
 BIGNUM *BN_secure_new(void);
 void BN_clear_free(BIGNUM *a);
 BIGNUM *BN_copy(BIGNUM *a, const BIGNUM *b);

@@ -339,3 +339,10 @@ int CRYPTO_memcmp(const volatile void * volatile in_a,
     return x;
 }
 #endif
+
+#if OPENSSL_API_COMPAT < 0x10100000L
+int CRYPTO_num_locks(void)
+{
+    return 1;
+}
+#endif
