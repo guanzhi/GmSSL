@@ -1593,7 +1593,7 @@ typedef struct cert_st {
     uint32_t cert_flags;
     CERT_PKEY pkeys[SSL_PKEY_NUM];
 
-# if !defined(OPENSSL_NO_GMTLS_METHOD) && !defined(OPENSSL_NO_SM9)
+# if !defined(OPENSSL_NO_GMTLS) && !defined(OPENSSL_NO_SM9)
     CERT_SM9 ibe;
     CERT_SM9 ibs;
 # endif

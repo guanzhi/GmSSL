@@ -213,7 +213,6 @@ IMPLEMENT_dtls1_meth_func(DTLS_ANY_VERSION, 0, 0,
  * GMTLS methods
  */
 #ifndef OPENSSL_NO_GMTLS
-#ifndef OPENSSL_NO_GMTLS_METHOD
 IMPLEMENT_gmtls_meth_func(0, SSL_OP_NO_GMTLS,
                           gmtls_method,
                           ossl_statem_accept,
@@ -228,7 +227,6 @@ IMPLEMENT_gmtls_meth_func(0, SSL_OP_NO_GMTLS,
                           gmtls_client_method,
                           ssl_undefined_function,
                           ossl_statem_connect, GMTLS_enc_data)
-#endif
 #endif
 
 #if OPENSSL_API_COMPAT < 0x10100000L
@@ -335,7 +333,6 @@ const SSL_METHOD *DTLSv1_client_method(void)
 # endif
 
 # ifndef OPENSSL_NO_GMTLS
-# ifndef OPENSSL_NO_GMTLS_METHOD
 const SSL_METHOD *GMTLS_method(void)
 {
     return gmtls_method();
@@ -350,7 +347,6 @@ const SSL_METHOD *GMTLS_client_method(void)
 {
     return gmtls_client_method();
 }
-# endif
 # endif
 
 #endif

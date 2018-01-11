@@ -60,10 +60,10 @@ static int pkey_ec_init(EVP_PKEY_CTX *ctx)
     dctx->cofactor_mode = -1;
     dctx->kdf_type = EVP_PKEY_ECDH_KDF_NONE;
 #ifndef OPENSSL_NO_SM2
-    dctx->ec_scheme = NID_sm_scheme;
+    dctx->ec_scheme = NID_secg_scheme;
     dctx->signer_id = NULL;
     dctx->signer_zid = NULL;
-    dctx->ec_encrypt_param = NID_sm3;
+    dctx->ec_encrypt_param = NID_undef;
 #endif
     ctx->data = dctx;
     return 1;

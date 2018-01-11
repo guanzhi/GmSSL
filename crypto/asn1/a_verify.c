@@ -21,8 +21,12 @@
 #include <openssl/objects.h>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+#ifndef OPENSSL_NO_SM2
+#include <openssl/sm2.h>
+#endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
+
 
 #ifndef NO_ASN1_OLD
 
@@ -131,6 +135,7 @@ int ASN1_item_verify(const ASN1_ITEM *it, X509_ALGOR *a,
         ret = -1;
     } else {
         const EVP_MD *type;
+        EVP_PKEY_CTX *pctx;
         type = EVP_get_digestbynid(mdnid);
         if (type == NULL) {
             ASN1err(ASN1_F_ASN1_ITEM_VERIFY,
@@ -144,12 +149,21 @@ int ASN1_item_verify(const ASN1_ITEM *it, X509_ALGOR *a,
             goto err;
         }
 
-        if (!EVP_DigestVerifyInit(ctx, NULL, type, NULL, pkey)) {
+        if (!EVP_DigestVerifyInit(ctx, &pctx, type, NULL, pkey)) {
             ASN1err(ASN1_F_ASN1_ITEM_VERIFY, ERR_R_EVP_LIB);
             ret = 0;
             goto err;
         }
 
+#ifndef OPENSSL_NO_SM2
+        if (OBJ_obj2nid(a->algorithm) == NID_sm2sign_with_sm3) {
+            if (!EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme)) {
+                ASN1err(ASN1_F_ASN1_ITEM_VERIFY, ERR_R_EC_LIB);
+                ret = 0;
+                goto err;
+            }
+        }
+#endif
     }
 
     inl = ASN1_item_i2d(asn, &buf_in, it);
