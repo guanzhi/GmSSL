@@ -12,6 +12,9 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 #include "internal/evp_int.h"
 
 int EVP_VerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sigbuf,
@@ -48,6 +51,19 @@ int EVP_VerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sigbuf,
         goto err;
     if (EVP_PKEY_CTX_set_signature_md(pkctx, EVP_MD_CTX_md(ctx)) <= 0)
         goto err;
+#ifndef OPENSSL_NO_SM2
+    if (EVP_PKEY_id(pkey) == EVP_PKEY_EC) {
+        if (EC_GROUP_get_curve_name(EC_KEY_get0_group(
+            EVP_PKEY_get0_EC_KEY(pkey))) == NID_sm2p256v1) {
+# ifdef CIPHER_DEBUG
+            fprintf(stderr, "%s() set sm scheme\n", __FUNCTION__);
+# endif
+            if (EVP_PKEY_CTX_set_ec_scheme(pkctx, NID_sm_scheme) <= 0) {
+                goto err;
+            }
+        }
+    }
+#endif
     i = EVP_PKEY_verify(pkctx, sigbuf, siglen, m, m_len);
  err:
     EVP_PKEY_CTX_free(pkctx);

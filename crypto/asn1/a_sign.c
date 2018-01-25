@@ -21,6 +21,9 @@
 #include <openssl/x509.h>
 #include <openssl/objects.h>
 #include <openssl/buffer.h>
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 
@@ -204,6 +207,15 @@ int ASN1_item_sign_ctx(const ASN1_ITEM *it,
         ASN1err(ASN1_F_ASN1_ITEM_SIGN_CTX, ERR_R_MALLOC_FAILURE);
         goto err;
     }
+
+#ifndef OPENSSL_NO_SM2
+    if (OBJ_obj2nid(algor1->algorithm) == NID_sm2sign_with_sm3) {
+        if (!EVP_PKEY_CTX_set_ec_scheme(EVP_MD_CTX_pkey_ctx(ctx), NID_sm_scheme)) {
+            ASN1err(ASN1_F_ASN1_ITEM_SIGN_CTX, ERR_R_EC_LIB);
+            return 0;
+        }
+    }
+#endif
 
     if (!EVP_DigestSignUpdate(ctx, buf_in, inl)
         || !EVP_DigestSignFinal(ctx, buf_out, &outl)) {
