@@ -184,7 +184,8 @@ int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *size)
         ctx->digest->cleanup(ctx);
         EVP_MD_CTX_set_flags(ctx, EVP_MD_CTX_FLAG_CLEANED);
     }
-    OPENSSL_cleanse(ctx->md_data, ctx->digest->ctx_size);
+    if (ctx->md_data)
+        OPENSSL_cleanse(ctx->md_data, ctx->digest->ctx_size);
     return ret;
 }
 
