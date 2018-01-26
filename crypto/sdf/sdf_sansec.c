@@ -97,7 +97,7 @@ static SDF_ALGOR_PAIR sansec_ciphers[] = {
 	{ 0, SANSEC_3DES_MAC },
 };
 
-static unsigned int sansec_get_cipher_algor(unsigned int vendor_id)
+static unsigned int sansec_cipher_vendor2std(unsigned int vendor_id)
 {
 	int i;
 	for (i = 0; i < OSSL_NELEM(sansec_ciphers); i++) {
@@ -108,7 +108,18 @@ static unsigned int sansec_get_cipher_algor(unsigned int vendor_id)
 	return 0;
 }
 
-static unsigned int sansec_get_cipher_cap(unsigned int vendor_cap)
+static unsigned int sansec_cipher_std2vendor(unsigned int std_id)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(sansec_ciphers); i++) {
+		if (std_id == sansec_ciphers[i].std_id) {
+			return sansec_ciphers[i].vendor_id;
+		}
+	}
+	return 0;
+}
+
+static unsigned int sansec_cipher_cap(unsigned int vendor_cap)
 {
 	unsigned int std_cap = 0;
 	int i;
@@ -132,7 +143,7 @@ static SDF_ALGOR_PAIR sansec_digests[] = {
 	{ 0, SANSEC_MD5 },
 };
 
-static unsigned int sansec_get_digest_algor(unsigned int vendor_id)
+static unsigned int sansec_digest_vendor2std(unsigned int vendor_id)
 {
 	int i;
 	for (i = 0; i < OSSL_NELEM(sansec_digests); i++) {
@@ -143,7 +154,18 @@ static unsigned int sansec_get_digest_algor(unsigned int vendor_id)
 	return 0;
 }
 
-static unsigned int sansec_get_digest_cap(unsigned int vendor_cap)
+static unsigned int sansec_digest_std2vendor(unsigned int std_id)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(sansec_digests); i++) {
+		if (std_id == sansec_digests[i].std_id) {
+			return sansec_digests[i].vendor_id;
+		}
+	}
+	return 0;
+}
+
+static unsigned int sansec_digest_cap(unsigned int vendor_cap)
 {
 	unsigned int std_cap = 0;
 	int i;
@@ -167,7 +189,7 @@ static SDF_ALGOR_PAIR sansec_pkeys[] = {
 	{ SGD_SM2_3,SANSEC_SM2_3 },
 };
 
-static unsigned int sansec_get_pkey_algor(unsigned int vendor_id)
+static unsigned int sansec_pkey_vendor2std(unsigned int vendor_id)
 {
 	int i;
 	for (i = 0; i < OSSL_NELEM(sansec_pkeys); i++) {
@@ -178,7 +200,18 @@ static unsigned int sansec_get_pkey_algor(unsigned int vendor_id)
 	return 0;
 }
 
-static unsigned int sansec_get_pkey_cap(unsigned int vendor_cap)
+static unsigned int sansec_pkey_std2vendor(unsigned int std_id)
+{
+	int i;
+	for (i = 0; i < OSSL_NELEM(sansec_pkeys); i++) {
+		if (std_id == sansec_pkeys[i].std_id) {
+			return sansec_pkeys[i].vendor_id;
+		}
+	}
+	return 0;
+}
+
+static unsigned int sansec_pkey_cap(unsigned int vendor_cap)
 {
 	unsigned int std_cap = 0;
 	int i;
@@ -318,12 +351,15 @@ static unsigned long sansec_get_error_reason(int err)
 
 SDF_VENDOR sdf_sansec = {
 	"sansec",
-	sansec_get_cipher_algor,
-	sansec_get_cipher_cap,
-	sansec_get_digest_algor,
-	sansec_get_digest_cap,
-	sansec_get_pkey_algor,
-	sansec_get_pkey_cap,
+	sansec_cipher_vendor2std,
+	sansec_cipher_std2vendor,
+	sansec_cipher_cap,
+	sansec_digest_vendor2std,
+	sansec_digest_std2vendor,
+	sansec_digest_cap,
+	sansec_pkey_vendor2std,
+	sansec_pkey_std2vendor,
+	sansec_pkey_cap,
 	sansec_encode_ecccipher,
 	sansec_decode_ecccipher,
 	sansec_get_error_reason,

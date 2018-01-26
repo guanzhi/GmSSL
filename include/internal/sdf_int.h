@@ -445,12 +445,15 @@ void SDF_METHOD_free(SDF_METHOD *meth);
 
 typedef struct sdf_vendor_st {
 	char *name;
-	unsigned int (*get_cipher_algor)(unsigned int vendor_id);
-	unsigned int (*get_digest_algor)(unsigned int vendor_id);
-	unsigned int (*get_pkey_algor)(unsigned int vendor_id);
-	unsigned int (*get_cipher_cap)(unsigned int vendor_cap);
-	unsigned int (*get_digest_cap)(unsigned int vendor_cap);
-	unsigned int (*get_pkey_cap)(unsigned int vendor_cap);
+	unsigned int (*cipher_vendor2std)(unsigned int vendor_id);
+	unsigned int (*cipher_std2vendor)(unsigned int std_id);
+	unsigned int (*cipher_cap)(unsigned int vendor_cap);
+	unsigned int (*digest_vendor2std)(unsigned int vendor_id);
+	unsigned int (*digest_std2vendor)(unsigned int std_id);
+	unsigned int (*digest_cap)(unsigned int vendor_cap);
+	unsigned int (*pkey_vendor2std)(unsigned int vendor_id);
+	unsigned int (*pkey_std2vendor)(unsigned int std_id);
+	unsigned int (*pkey_cap)(unsigned int vendor_cap);
 	int (*encode_ecccipher)(const ECCCipher *a, void *buf);
 	int (*decode_ecccipher)(ECCCipher *a, const void *buf);
 	unsigned long (*get_error_reason)(int err);

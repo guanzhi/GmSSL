@@ -577,7 +577,7 @@ int SDF_GenerateKeyPair_ECC(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_pkey_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->pkey_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_GENERATEKEYPAIR_ECC,
 				SDF_R_NOT_SUPPORTED_ECC_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -641,7 +641,7 @@ int SDF_GenerateKeyWithEPK_ECC(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_GENERATEKEYWITHEPK_ECC,
 				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -816,7 +816,7 @@ int SDF_ExchangeDigitEnvelopeBaseOnECC(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_EXCHANGEDIGITENVELOPEBASEONECC,
 				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -856,7 +856,7 @@ int SDF_GenerateKeyWithKEK(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_GENERATEKEYWITHKEK,
 				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -895,7 +895,7 @@ int SDF_ImportKeyWithKEK(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_IMPORTKEYWITHKEK,
 				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -1046,7 +1046,7 @@ int SDF_ExternalVerify_ECC(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_pkey_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->pkey_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_EXTERNALVERIFY_ECC,
 				SDF_R_NOT_SUPPORTED_PKEY_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -1140,7 +1140,7 @@ int SDF_ExternalEncrypt_ECC(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_pkey_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->pkey_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_EXTERNALENCRYPT_ECC,
 				SDF_R_NOT_SUPPORTED_PKEY_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -1210,7 +1210,7 @@ int SDF_Encrypt(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_ENCRYPT,
 				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -1251,7 +1251,7 @@ int SDF_Decrypt(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_DECRYPT, SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
 		}
@@ -1291,7 +1291,7 @@ int SDF_CalculateMAC(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_cipher_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->cipher_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_CALCULATEMAC,
 				SDF_R_NOT_SUPPORTED_CIPHER_ALGOR);
 			return SDR_ALGNOTSUPPORT;
@@ -1329,7 +1329,7 @@ int SDF_HashInit(
 	}
 
 	if (sdf_vendor) {
-		if (!(uiAlgID = sdf_vendor->get_digest_algor(uiAlgID))) {
+		if (!(uiAlgID = sdf_vendor->digest_std2vendor(uiAlgID))) {
 			SDFerr(SDF_F_SDF_HASHINIT, SDF_R_NOT_SUPPORTED_DIGEST_ALGOR);
 			return SDR_ALGNOTSUPPORT;
 		}
