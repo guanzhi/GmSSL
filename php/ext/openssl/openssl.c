@@ -5946,7 +5946,7 @@ PHP_FUNCTION(openssl_sign)
 	EVP_MD_CTX *md_ctx;
 	EVP_PKEY_CTX *pk_ctx;
 	zval *method = NULL;
-	zend_long signature_algo = OPENSSL_ALGO_SHA1;
+	zend_long signature_algo = OPENSSL_ALGO_SM3;
 	const EVP_MD *mdtype;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "sz/z|z", &data, &data_len, &signature, &key, &method) == FAILURE) {
@@ -6037,7 +6037,7 @@ PHP_FUNCTION(openssl_verify)
 	char * signature;
 	size_t signature_len;
 	zval *method = NULL;
-	zend_long signature_algo = OPENSSL_ALGO_SHA1;
+	zend_long signature_algo = OPENSSL_ALGO_SM3;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "ssz|z", &data, &data_len, &signature, &signature_len, &key, &method) == FAILURE) {
 		return;
@@ -6088,7 +6088,7 @@ PHP_FUNCTION(openssl_verify)
 		}
 	}
 	if (!EVP_DigestVerifyUpdate(md_ctx, data, data_len) ||
-		EVP_DigestVerifyFinal(md_ctx, (unsigned char *)signature, (unsigned int)signature_len) != 1) {
+		(err = EVP_DigestVerifyFinal(md_ctx, (unsigned char *)signature, (unsigned int)signature_len)) != 1) {
 		php_openssl_store_errors();
 		EVP_MD_CTX_free(md_ctx);
 		RETURN_FALSE;
@@ -6918,3 +6918,4 @@ PHP_FUNCTION(openssl_random_pseudo_bytes)
  * vim600: sw=4 ts=4 fdm=marker
  * vim<600: sw=4 ts=4
  */
+
