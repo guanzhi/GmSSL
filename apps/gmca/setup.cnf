@@ -1,0 +1,26 @@
+
+[ req ]
+prompt			= no
+distinguished_name	= req_distinguished_name
+attributes		= req_attributes
+req_extensions		= v3_ca
+dirstring_type		= nobmp
+
+[ req_distinguished_name ]
+C=CN
+ST=BJ
+L=BJ
+O=PKU
+OU=CA
+CN=PKUCA
+
+[ req_attributes ]
+challengePassword	= A challenge password
+challengePassword_min	= 4
+challengePassword_max	= 20
+
+[ v3_ca ]
+
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = critical, CA:true

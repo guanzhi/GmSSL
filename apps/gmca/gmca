@@ -1,0 +1,498 @@
+#!/bin/bash
+#
+# Copyright (c) 2018 The GmSSL Project.  All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+#
+# 3. All advertising materials mentioning features or use of this
+#    software must display the following acknowledgment:
+#    "This product includes software developed by the GmSSL Project.
+#    (http://gmssl.org/)"
+#
+# 4. The name "GmSSL Project" must not be used to endorse or promote
+#    products derived from this software without prior written
+#    permission. For written permission, please contact
+#    guanzhi1980@gmail.com.
+#
+# 5. Products derived from this software may not be called "GmSSL"
+#    nor may "GmSSL" appear in their names without prior written
+#    permission of the GmSSL Project.
+#
+# 6. Redistributions of any form whatsoever must retain the following
+#    acknowledgment:
+#    "This product includes software developed by the GmSSL Project
+#    (http://gmssl.org/)"
+#
+# THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+# EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+# ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+# OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+curve=sm2p256v1
+md=sm3
+
+function set_std {
+	curve=secp256k1
+	md=sha256
+	ca_engine=""
+	user_engine=""
+}
+
+# CA ajustable parameters
+ca_dn_prefix="/C=CN/ST=BJ/L=BJ/O=PKU"
+ca_rootcert_days=3650
+ca_usercert_days=365
+#ca_engine="skf"
+#ca_engine="sdf"
+#user_engine="skf"
+#user_engine="sdf"
+user_dn_prefix="$ca_dn_prefix/OU=Sign"
+user_dn_enc_prefix="$ca_dn_prefix/OU=Enc"
+
+# The following values should not be changed.
+ca_dn="$ca_dn_prefix/OU=CA/CN=PKUCA"
+ca_dir=".ca"
+ca_rootcert_file="$ca_dir/cacert.pem"
+ca_private_dir="$ca_dir/private"
+ca_rootcertkey_file="$ca_private_dir/cakey.pem"
+ca_rand_file="$ca_private_dir/.rand"
+ca_serial_file="$ca_dir/serial"
+ca_csr_dir="$ca_dir/csr"
+ca_signed_csr_dir="$ca_csr_dir/signed"
+ca_rejected_csr_dir="$ca_csr_dir/rejected"
+ca_cert_dir="$ca_dir/certs"
+ca_newcert_dir="$ca_dir/newcerts"
+ca_index_file="$ca_dir/index.txt"
+ca_crl_dir="$ca_dir/crl"
+ca_crl_file="$ca_crl_dir/crl.pem"
+ca_crl_number_file="$ca_dir/crlnumber"
+ca_crl_days=60
+user_key_dir="$ca_dir/keys"
+
+function setup {
+	if [[ -n $1 ]]; then
+		ca_dn=$1
+	fi
+
+	rm -fr $ca_dir
+	mkdir $ca_dir
+	mkdir $ca_private_dir
+	mkdir $ca_crl_dir
+	mkdir $ca_csr_dir
+	mkdir $ca_signed_csr_dir
+	mkdir $ca_rejected_csr_dir
+	mkdir $ca_cert_dir
+	mkdir $ca_newcert_dir
+	mkdir $user_key_dir
+	touch $ca_index_file
+	touch $ca_rand_file
+	echo 01 > $ca_serial_file
+	echo 01 > $ca_crl_number_file
+
+	case $ca_engine in
+		"")
+		gmssl ecparam -genkey -name $curve -noout -out $ca_rootcertkey_file
+		key="-key $ca_rootcertkey_file"
+		;;
+
+		-skf)
+		key="-engine skf -keyform engine -key sm2.sign"
+		;;
+
+		-sdf)
+		# admin has to use sdf management tools to manually init device
+		key="-engine sdf -keyform engine -key ecc_1.sign"
+		;;
+
+		*)
+		echo "usage: gmca -setup <DN>"
+		exit
+		;;
+	esac
+
+	gmssl req -new -x509 -subj=$ca_dn -days $ca_rootcert_days -$md $key -out $ca_rootcert_file
+	gmssl x509 -text -noout -in $ca_rootcert_file
+}
+
+function showstatus {
+	echo "Valid certificates                  : "
+	echo "Valid Distinct Subjects             : "
+	echo "In Validity but Revoked Certificaes : "
+	echo "Certificates near Expiration        : "
+	echo "Certificates recently expired       : "
+	echo "Overall Certificate Count	          : "
+	echo "Overall Distinct Subjects           : "
+	echo "Overall Revoked Certificates	  : "
+	echo "Expired Certificates	          : "
+}
+
+function showcacert {
+	gmssl x509 -text -noout -in $ca_rootcert_file
+}
+
+function getcacert {
+	if [[ -n "$1" ]]; then
+		out="-out $1"
+	fi
+	gmssl x509 -in $ca_rootcert_file $out
+}
+
+#FIXME: if common_name already exist in csr_dir or in certs_dir?
+function gencsr {
+	local common_name=$1
+	if [[ -z $common_name ]]; then
+		echo "No Common Name given"
+		exit
+	fi
+	local subject="$user_dn_prefix/CN=$common_name"
+	local csrfile="$ca_csr_dir/$common_name.csr"
+
+	case $user_engine in
+		"")
+		local keyfile="$user_key_dir/$common_name.key"
+		gmssl ecparam -genkey -name $curve -out "$keyfile"
+		local key="-key $keyfile"
+		;;
+
+		skf)
+		;;
+
+		sdf)
+		;;
+
+		*)
+		;;
+	esac
+
+	gmssl req -new -$md -subj="$subject" $key -out "$csrfile"
+	gmssl req -text -in "$csrfile"
+}
+
+function listcsrs {
+	for csrfile in $ca_csr_dir/*.csr; do
+		if [[ -f $csrfile ]]; then
+			basename $csrfile .csr
+		fi
+	done
+}
+
+function showcsr {
+	if [[ -z "$1" ]]; then
+		echo "usage: gmca -showcsr <common-name>"
+		exit
+	fi
+	local common_name=$1
+	local csrfile="$ca_csr_dir/$common_name.csr"
+	#FIXME: check if $csrfile exist
+	gmssl req -text -noout -in "$csrfile"
+}
+
+function getcsr {
+	if [[ -z "$1" ]]; then
+		echo "usage: gmca -getcsr <common-name>"
+		exit
+	fi
+	local common_name=$1
+	local csrfile="$ca_csr_dir/$common_name.csr"
+	#FIXME: check if $csrfile exist
+	gmssl req -in "$csrfile"
+}
+
+function signcsr {
+	if [[ -z "$1" ]]; then
+		echo "usage: gmca -signcsr <common-name>"
+		exit
+	fi
+	common_name=$1
+	csrfile="$ca_csr_dir/$common_name.csr"
+	#FIXME: check if $csrfile exist
+	#FIXME: use -subj to change csrname
+	subject="$user_dn_prefix/CN=$common_name"
+	gmssl ca -config ./signcsr.cnf -batch -subj=$subject -md $md -days $ca_usercert_days -outdir $ca_cert_dir -infiles "$csrfile"
+}
+
+function signenccsr {
+	common_name=$1
+	csrfile="$ca_csr_dir/$common_name.csr"
+	subject="$user_dn_enc_prefix/CN=$common_name"
+	gmssl ca -config ./signenccsr.cnf -batch -subj=$subject -md $md -days 365 -outdir $ca_usercert_dir -infiles "$csrfile"
+}
+
+function gencert {
+	common_name=$1
+	gencsr $common_name
+	signcsr $common_name
+}
+
+#FIXME: how to handle double certs?
+function genenccert {
+	common_name=$1
+	gencsr $common_name
+	signenccsr $common_name
+}
+
+function rejectcsr {
+	#FIXME: check argument exist
+	common_name=$1
+	csrfile="$ca_csr_dir/$common_name.csr"
+	#FIXME: check if $csrfile exist
+	mv $csrfile $ca_rejected_csr_dir/
+}
+
+function listcerts {
+	# the ca txt_db is a tab seperated text file
+	# 1. Certificate validity, "V" for valid, "R" for revoked or E for expired
+	# 2. Expiration datetime,
+	# 3. Revokation datetime, will be null if not revoked
+	# 4. Serial number
+	# 5. File name of the certificate, always be "unknown"
+	# 6. Certificate subject name, in oneline format
+	awk -F'\t' '{print $2,$4,$6}' $ca_index_file
+}
+
+function listcertsbyname {
+	#FIXME: check argument exist
+	awk -F'\t' '{print $2,$4,$6}' $ca_index_file | grep $1
+}
+
+function getcertbyserial {
+	#FIXME: check argument exist
+	local serial=$1
+	local cerfile=$ca_cert_dir/$serial.pem
+	gmssl x509 -in $certfile
+}
+
+function getcertbyname {
+	local common_name=$1
+	#FIXME: need better method than just grep
+	serial=`awk -F'\t' '{print $2,$4,$6}' $ca_index_file | grep $common_name | awk '{print $2}'`
+	getcertbyserial $serial
+}
+
+function listrevokereasons {
+	echo " unspecified"
+	echo " keyCompromise"
+	echo " CACompromise"
+	echo " affiliationChanged"
+	echo " superseded"
+	echo " cessationOfOperation"
+	echo " certificateHold"
+	echo " removeFromCRL (should not be used)"
+}
+
+function _revokecertfile {
+	certfile=$1
+	if [[ -z "$certfile" ]]; then
+		echo "Usage: $0 <certfile>"
+		echo ""
+		exit -1
+	fi
+	time=`date +"%Y%m%d%H%M%S"`Z
+	#reason=unspecified
+	reason="keyCompromise -crl_compromise $time"
+	#reason="CACompromise -crl_CA_compromise $time"
+	#reason=affiliationChanged
+	#reason=superseded,
+	#reason=cessationOfOperation
+	#reason=certificateHold
+	#reason=removeFromCRL.
+	#gmssl ca -config ./ca.cnf -valid $certfile
+	gmssl ca -config ./ca.cnf -revoke $certfile -crl_reason $reason
+	#gmssl ca -config ./ca.cnf -valid $certfile
+}
+
+function revokecertbyserial {
+	serial=$1
+	_revokecertfile "$ca_cert_dir/$serial.pem"
+}
+
+function gencrl {
+	time=`date +"%Y%m%d%H%M%S"`
+	crlfile="$ca_crl_dir/$time.crl"
+	gmssl ca -config ./ca.cnf -gencrl -md $md -crldays $ca_crl_days -out $crlfile
+	cp $crlfile $ca_crl_file
+	gmssl crl -text -noout -in $ca_crl_file -CAfile $ca_rootcert_file
+}
+
+function showcrl {
+	# when use `-CAfile` option, verification result will be printed
+	gmssl crl -text -noout -in $ca_crl_file #-CAfile $ca_rootcert_file
+}
+
+function getcrl {
+	gmssl crl -in $ca_crl_file #-CAfile $ca_rootcert_file
+}
+
+function backup {
+	time=`date +"%Y%m%d%H%M%S"`
+	tar cvzf ca-$time.tar.gz $ca_dir
+}
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+opt="$1"
+
+
+#FIXME: show help info, get more options
+case $opt in
+	-verbose)
+		verbose=yes
+		shift
+		shift
+		;;
+	-setup)
+		dn="$2"
+		setup $dn
+		shift
+		shift
+		;;
+	-showcacert)
+		showcacert
+		shift
+		;;
+	-getcacert)
+		file="$2"
+		getcacert $file
+		shift
+		shift
+		;;
+	-showstatus)
+		showstatus
+		shift
+		;;
+	-gencsr)
+		common_name="$2"
+		gencsr "$common_name"
+		shift
+		shift
+		;;
+	-listcsrs)
+		listcsrs
+		shift
+		;;
+	-showcsr)
+		common_name="$2"
+		showcsr "$common_name"
+		shift
+		shift
+		;;
+	-getcsr)
+		common_name="$2"
+		getcsr "$common_name"
+		shift
+		shift
+		;;
+	-signcsr)
+		common_name="$2"
+		signcsr "$common_name"
+		shift
+		shift
+		;;
+	-rejectcsr)
+		common_name="$2"
+		rejectcsr "$common_name"
+		shift
+		shift
+		;;
+	-gencert)
+		common_name="$2"
+		gencert $common_name
+		shift
+		shift
+		;;
+	-listcerts)
+		listcerts
+		shift
+		;;
+	-listcertsbyname)
+		name="$2"
+		listcertsbyname $name
+		shift
+		shift
+		;;
+	-getcertbyserial)
+		serial="$2"
+		getcertbyserial $serial
+		shift
+		shift
+		;;
+	-getcertbyname)
+		name="$2"
+		getcertbyname $name
+		shift
+		shift
+		;;
+	-showcert)
+		cert="$2"
+		showcert "$cert"
+		shift
+		shift
+		;;
+	-revokereasons)
+		revokereasons
+		shift
+		;;
+	-revokecert)
+		certfile="$2"
+		revokebycert "$certfile"
+		shift
+		shift
+		;;
+	-revokecertbyserial)
+		serial="$2"
+		revokecertbyserial $serial
+		shift
+		shift
+		;;
+	-gencrl)
+		gencrl
+		shift
+		;;
+	-crl)
+		getcrl
+		shift
+		;;
+	-showcrl)
+		showcrl
+		shift
+		;;
+	-getcrl)
+		getcrl
+		shift
+		;;
+	-backup)
+		backup
+		shift
+		;;
+	*)
+		echo "usage: ...."
+		POSITIONAL+=("$1")
+		shift
+		;;
+esac
+done
+set -- "${POSITIONAL[@]}"
+
+if [[ -n $1 ]]; then
+	echo "Last line of file specified as non-opt/last argument:"
+fi
