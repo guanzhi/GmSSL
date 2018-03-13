@@ -328,8 +328,13 @@ typedef UINT8			BYTE;
 typedef UINT8			CHAR;
 typedef INT16			SHORT;
 typedef UINT16			USHORT;
+# ifndef SGD_NATIVE_LONG
 typedef INT32			LONG;
 typedef UINT32			ULONG;
+# else
+typedef long			LONG;
+typedef unsigned long		ULONG;
+# endif
 typedef UINT32			UINT;
 typedef UINT16			WORD;
 typedef UINT32			DWORD;
@@ -349,8 +354,13 @@ typedef UINT8			BYTE;
 typedef UINT8			CHAR;
 typedef INT16			SHORT;
 typedef UINT16			USHORT;
+# ifndef SGD_NATIVE_LONG
 typedef INT32			LONG;
 typedef UINT32			ULONG;
+# else
+typedef long			LONG;
+typedef unsigned long		ULONG;
+# endif
 typedef UINT32			UINT;
 typedef UINT16			WORD;
 typedef UINT32			DWORD;
@@ -411,7 +421,11 @@ typedef HANDLE HCONTAINER;
 #define RSAref_MAX_PBITS		((RSAref_MAX_BITS + 1) / 2)
 #define RSAref_MAX_PLEN			((RSAref_MAX_PBITS + 7)/ 8)
 
+#ifdef SGD_MAX_ECC_BITS_256
+#define ECCref_MAX_BITS			256
+#else
 #define ECCref_MAX_BITS			512
+#endif
 #define ECCref_MAX_LEN			((ECCref_MAX_BITS+7) / 8)
 
 
