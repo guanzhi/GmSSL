@@ -86,10 +86,23 @@ int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
 #ifndef OPENSSL_NO_SM2
 	siz = ekl;
 	if (!(ctx = EVP_PKEY_CTX_new(priv, NULL))
-		|| !EVP_PKEY_decrypt_init(ctx)
-		|| !EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme)
-		|| !EVP_PKEY_CTX_set_ec_encrypt_param(ctx, NID_sm3)
-		|| !EVP_PKEY_decrypt(ctx, key, &siz, ek, ekl)) {
+		|| !EVP_PKEY_decrypt_init(ctx)) {
+		EVPerr(EVP_F_EVP_PKEY_DECRYPT_OLD, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	if (EVP_PKEY_id(pkey) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(pkey))) == NID_sm2p256v1) {
+#  ifdef SM2_DEBUG
+		fprintf(stderr, "[SM2_DEBUG] %s->EVP_PKEY_CTX_set_ec_scheme\n", __FUNCTION__);
+#  endif
+		if (EVP_PKEY_CTX_set_ec_scheme(pkctx, NID_sm_scheme) <= 0
+			|| EVP_PKEY_CTX_set_ec_encrypt_param(pkctx, NID_sm3) <= 0) {
+			goto end;
+		}
+	}
+
+	if (!EVP_PKEY_decrypt(ctx, key, &siz, ek, ekl)) {
 		EVPerr(EVP_F_EVP_PKEY_DECRYPT_OLD, ERR_R_EVP_LIB);
 		goto end;
 	}

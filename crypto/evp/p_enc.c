@@ -89,10 +89,23 @@ int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 	/* hope the caller has prepared enough buffer for `out`
 	 * because this function has no idea of the out length */
 	if (!(ctx = EVP_PKEY_CTX_new(pkey, NULL))
-		|| !EVP_PKEY_encrypt_init(ctx)
-		|| !EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme)
-		|| !EVP_PKEY_CTX_set_ec_encrypt_param(ctx, NID_sm3)
-		|| !EVP_PKEY_encrypt(ctx, NULL, &size, in, inlen)
+		|| !EVP_PKEY_encrypt_init(ctx)) {
+		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	if (EVP_PKEY_id(pkey) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(pkey))) == NID_sm2p256v1) {
+#  ifdef SM2_DEBUG
+		fprintf(stderr, "[SM2_DEBUG] %s->EVP_PKEY_CTX_set_ec_scheme\n", __FUNCTION__);
+#  endif
+		if (EVP_PKEY_CTX_set_ec_scheme(pkctx, NID_sm_scheme) <= 0
+			|| EVP_PKEY_CTX_set_ec_encrypt_param(pkctx, NID_sm3) <= 0) {
+			goto end;
+		}
+	}
+
+	if (!EVP_PKEY_encrypt(ctx, NULL, &size, in, inlen)
 		|| !EVP_PKEY_encrypt(ctx, out, &size, in, inlen)) {
 		EVPerr(EVP_F_EVP_PKEY_ENCRYPT_OLD, ERR_R_EVP_LIB);
 		goto end;
@@ -105,4 +118,3 @@ end:
 	EVP_PKEY_CTX_free(ctx);
 	return ret;
 }
-
