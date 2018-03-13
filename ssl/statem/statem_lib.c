@@ -566,7 +566,7 @@ int tls_get_message_body(SSL *s, unsigned long *len)
 #ifndef OPENSSL_NO_SM2
 static int ssl_cert_type_ecc(const X509 *x, const EVP_PKEY *pk)
 {
-    if (x && X509_get_signature_nid(x) == NID_sm2sign) {
+    if (x && X509_get_signature_nid(x) == NID_sm2sign_with_sm3) {
         if (X509_get_key_usage((X509 *)x) & X509v3_KU_DIGITAL_SIGNATURE)
             return SSL_PKEY_SM2;
         else

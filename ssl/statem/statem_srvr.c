@@ -690,7 +690,7 @@ int ossl_statem_server_construct_message(SSL *s)
     case TLS_ST_SW_CERT:
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
-            return tls_construct_server_certificate(s);
+            return gmtls_construct_server_certificate(s);
 #endif
         return tls_construct_server_certificate(s);
 
