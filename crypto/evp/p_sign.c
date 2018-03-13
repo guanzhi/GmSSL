@@ -58,8 +58,9 @@ int EVP_SignFinal(EVP_MD_CTX *ctx, unsigned char *sigret,
     if (EVP_PKEY_id(pkey) == EVP_PKEY_EC) {
         if (EC_GROUP_get_curve_name(EC_KEY_get0_group(
             EVP_PKEY_get0_EC_KEY(pkey))) == NID_sm2p256v1) {
-# ifdef CIPHER_DEBUG
-            fprintf(stderr, "%s() set sm scheme\n", __FUNCTION__);
+# ifdef SM2_DEBUG
+            fprintf(stderr, "[SM2_DEBUG] %s->EVP_PKEY_CTX_set_ec_scheme\n",
+                __FUNCTION__);
 # endif
             if (EVP_PKEY_CTX_set_ec_scheme(pkctx, NID_sm_scheme) <= 0) {
                 goto err;

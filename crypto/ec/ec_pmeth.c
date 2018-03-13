@@ -400,6 +400,10 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
             return 0;
         }
         dctx->ec_scheme = p1;
+# ifdef SM2_DEBUG
+        fprintf(stderr, "[SM2_DEBUG] EVP_PKEY_CTX_set_ec_scheme(%s)\n",
+            p1 == NID_secg_scheme ? "NID_secg_scheme" : "NID_sm_scheme");
+# endif
         return 1;
 
     case EVP_PKEY_CTRL_SIGNER_ID:
@@ -431,6 +435,9 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
                     }
                 }
                 memcpy(dctx->signer_zid, zid, zidlen);
+# ifdef SM2_DEBUG
+                fprintf(stderr, "[SM2_DEBUG] EVP_PKEY_CTX_set_signer_id(\"%s\")\n", id);
+# endif
             }
         }
         return 1;
@@ -459,6 +466,10 @@ static int pkey_ec_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
                 return 0;
             }
             dctx->signer_zid = zid;
+# ifdef SM2_DEBUG
+            fprintf(stderr, "[SM2_DEBUG] EVP_PKEY_CTX_get_signer_zid() "
+                "init zid with default id\n");
+# endif
         }
         *(const unsigned char **)p2 = dctx->signer_zid;
         return 1;

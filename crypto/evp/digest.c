@@ -155,6 +155,10 @@ int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 		const unsigned char *zid;
 		if (1 == EVP_PKEY_CTX_get_signer_zid(ctx->pctx, &zid)) {
 			ctx->update(ctx, zid, 32);
+# ifdef SM2_DEBUG
+			fprintf(stderr, " %s() first update with SM2 ZID\n",
+				__FUNCTION__);
+# endif
 		}
 		EVP_MD_CTX_set_flags(ctx, EVP_MD_CTX_FLAG_UPDATED);
 	}
