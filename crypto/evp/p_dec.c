@@ -91,13 +91,13 @@ int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,
 		goto end;
 	}
 
-	if (EVP_PKEY_id(pkey) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
-		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(pkey))) == NID_sm2p256v1) {
+	if (EVP_PKEY_id(priv) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(priv))) == NID_sm2p256v1) {
 #  ifdef SM2_DEBUG
 		fprintf(stderr, "[SM2_DEBUG] %s->EVP_PKEY_CTX_set_ec_scheme\n", __FUNCTION__);
 #  endif
-		if (EVP_PKEY_CTX_set_ec_scheme(pkctx, NID_sm_scheme) <= 0
-			|| EVP_PKEY_CTX_set_ec_encrypt_param(pkctx, NID_sm3) <= 0) {
+		if (EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme) <= 0
+			|| EVP_PKEY_CTX_set_ec_encrypt_param(ctx, NID_sm3) <= 0) {
 			goto end;
 		}
 	}

@@ -579,7 +579,6 @@ my $no_sse2=0;
 
 my $user_cflags="";
 my @user_defines=();
-$config{api}="1.1.0";
 $config{openssl_api_defines}=[];
 $config{openssl_algorithm_defines}=[];
 $config{openssl_thread_defines}=[];

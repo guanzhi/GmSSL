@@ -99,8 +99,8 @@ int EVP_PKEY_encrypt_old(unsigned char *out, const unsigned char *in,
 #  ifdef SM2_DEBUG
 		fprintf(stderr, "[SM2_DEBUG] %s->EVP_PKEY_CTX_set_ec_scheme\n", __FUNCTION__);
 #  endif
-		if (EVP_PKEY_CTX_set_ec_scheme(pkctx, NID_sm_scheme) <= 0
-			|| EVP_PKEY_CTX_set_ec_encrypt_param(pkctx, NID_sm3) <= 0) {
+		if (EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme) <= 0
+			|| EVP_PKEY_CTX_set_ec_encrypt_param(ctx, NID_sm3) <= 0) {
 			goto end;
 		}
 	}
