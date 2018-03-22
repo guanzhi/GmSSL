@@ -191,7 +191,6 @@ tool/c_rehash
 apps/gmssl
 
 # gmtls
-/ssl/statem/statem_gmtls*
 /ssl/ssl_load.c
 
 # engines

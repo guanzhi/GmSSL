@@ -13,5 +13,5 @@ SOURCE[../libssl]=\
         record/ssl3_buffer.c record/ssl3_record.c record/dtls1_bitmap.c \
         statem/statem.c
 IF[{- !$disabled{gmtls} -}]
-	SOURCE[../libssl]=statem/statem_gmtls11.c
+	SOURCE[../libssl]=statem/statem_gmtls.c
 ENDIF

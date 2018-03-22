@@ -45,7 +45,7 @@ IF[{- !$disabled{"engine"} -}]
       INCLUDE[gmi]=../include
     ENDIF
 
-    ENGINES_NO_INST=ossltest
+    ENGINES_NO_INST=ossltest skf_dummy sdf_dummy
     SOURCE[dasync]=e_dasync.c
     DEPEND[dasync]=../libcrypto
     INCLUDE[dasync]=../include
