@@ -76,6 +76,8 @@ int SDF_PrintRSAPublicKey(RSArefPublicKey *ref);
 int SDF_PrintRSAPrivateKey(RSArefPrivateKey *ref);
 int SDF_PrintECCPublicKey(ECCrefPublicKey *ref);
 int SDF_PrintECCPrivateKey(ECCrefPrivateKey *ref);
+int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen);
+int SDF_FreeECCCipher(ECCCipher *cipher);
 int SDF_PrintECCCipher(ECCCipher *cipher);
 int SDF_PrintECCSignature(ECCSignature *sig);
 int SDF_GetErrorString(int err, char **str);
@@ -133,12 +135,14 @@ int ERR_load_SDF_strings(void);
 # define SDF_F_SDF_IMPORTKEYWITHISK_RSA                   136
 # define SDF_F_SDF_IMPORTKEYWITHKEK                       137
 # define SDF_F_SDF_INTERNALDECRYPT_ECC                    151
+# define SDF_F_SDF_INTERNALENCRYPT_ECC                    152
 # define SDF_F_SDF_INTERNALPRIVATEKEYOPERATION_RSA        138
 # define SDF_F_SDF_INTERNALPUBLICKEYOPERATION_RSA         147
 # define SDF_F_SDF_INTERNALSIGN_ECC                       139
 # define SDF_F_SDF_INTERNALVERIFY_ECC                     140
 # define SDF_F_SDF_LOADLIBRARY                            148
 # define SDF_F_SDF_METHOD_LOAD_LIBRARY                    141
+# define SDF_F_SDF_NEWECCCIPHER                           153
 # define SDF_F_SDF_OPENDEVICE                             142
 # define SDF_F_SDF_OPENSESSION                            143
 # define SDF_F_SDF_READFILE                               144
@@ -168,6 +172,7 @@ int ERR_load_SDF_strings(void);
 # define SDF_R_INVALID_SANSEC_ECCCIPHER_LENGTH            207
 # define SDF_R_INVALID_SDF_LIBRARY                        101
 # define SDF_R_INVALID_SESSION_HANDLE                     102
+# define SDF_R_INVALID_SM2_CIPHERTEXT_LENGTH              212
 # define SDF_R_KEY_NOT_EXIST                              126
 # define SDF_R_LOAD_LIBRARY_FAILURE                       107
 # define SDF_R_MAC_ERROR                                  127

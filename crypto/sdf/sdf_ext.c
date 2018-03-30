@@ -52,7 +52,7 @@
 #include <openssl/gmsdf.h>
 #include "internal/sdf_int.h"
 #include "../../e_os.h"
-
+#include "sdf_sansec.h"
 
 
 static void print_str(const char *name, const void *value)
@@ -301,4 +301,42 @@ int SDF_ImportKey(
 	void **phKeyHandle)
 {
 	return 0;
+}
+
+int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen)
+{
+	ECCCipher *ecc_cipher = NULL;
+	size_t len;
+
+	if (!cipher) {
+		SDFerr(SDF_F_SDF_NEWECCCIPHER, ERR_R_PASSED_NULL_PARAMETER);
+		return SDR_INARGERR;
+	}
+
+	if (!ulDataLen || ulDataLen > INT_MAX) {
+		SDFerr(SDF_F_SDF_NEWECCCIPHER,
+			SDF_R_INVALID_SM2_CIPHERTEXT_LENGTH);
+		return SDR_INARGERR;
+	}
+
+	len = sizeof(ECCCipher) - 1 + ulDataLen;
+	if (len < sizeof(SANSEC_ECCCipher)) {
+		len = sizeof(SANSEC_ECCCipher);
+	}
+
+	if (!(ecc_cipher = OPENSSL_zalloc(len))) {
+		SDFerr(SDF_F_SDF_NEWECCCIPHER, ERR_R_MALLOC_FAILURE);
+		return SDR_NOBUFFER;
+	}
+
+	ecc_cipher->L = (unsigned int)ulDataLen;
+
+	*cipher = ecc_cipher;
+	return SDR_OK;
+}
+
+int SDF_FreeECCCipher(ECCCipher *cipher)
+{
+	OPENSSL_free(cipher);
+	return SDR_OK;
 }

@@ -197,6 +197,7 @@ apps/gmssl
 /engines/e_skf*
 /engines/e_sdf*
 /engines/e_gmi*
+/engines/sdf
 
 # apps
 /apps/sm2.c

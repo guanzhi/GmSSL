@@ -1162,6 +1162,83 @@ int SDF_ExternalEncrypt_ECC(
 	return SDR_OK;
 }
 
+int SDF_InternalEncrypt_ECC(
+	void *hSessionHandle,
+	unsigned int uiIPKIndex,
+	unsigned int uiAlgID,
+	unsigned char *pucData,
+	unsigned int uiDataLength,
+	ECCCipher *pucEncData)
+{
+	int ret = SDR_UNKNOWERR;
+	ECCCipher *buf = pucEncData;
+
+	if (!sdf_method || !sdf_method->InternalEncrypt_ECC) {
+		SDFerr(SDF_F_SDF_INTERNALENCRYPT_ECC, SDF_R_NOT_INITIALIZED);
+		return SDR_NOTSUPPORT;
+	}
+
+	if (pucEncData->L < uiDataLength) {
+		SDFerr(SDF_F_SDF_INTERNALENCRYPT_ECC, SDF_R_BUFFER_TOO_SMALL);
+		return SDR_NOBUFFER;
+	}
+
+	if (sdf_vendor && sdf_vendor->decode_ecccipher) {
+		if (SDF_NewECCCipher(&buf, uiDataLength) != SDR_OK) {
+			SDFerr(SDF_F_SDF_INTERNALENCRYPT_ECC, ERR_R_SDF_LIB);
+			return SDR_UNKNOWERR;
+		}
+	}
+
+	if (sdf_vendor && sdf_vendor->pkey_std2vendor) {
+		if (!(uiAlgID = sdf_vendor->pkey_std2vendor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_INTERNALENCRYPT_ECC,
+				SDF_R_NOT_SUPPORTED_PKEY_ALGOR);
+			ret = SDR_ALGNOTSUPPORT;
+			goto end;
+		}
+	}
+
+	if ((ret = sdf_method->InternalEncrypt_ECC(
+		hSessionHandle,
+		uiIPKIndex,
+		uiAlgID,
+		pucData,
+		uiDataLength,
+		buf)) != SDR_OK) {
+		SDFerr(SDF_F_SDF_INTERNALENCRYPT_ECC,
+			sdf_get_error_reason(ret));
+		goto end;
+	}
+
+	if (sdf_vendor && sdf_vendor->decode_ecccipher) {
+		if (!sdf_vendor->decode_ecccipher(pucEncData, buf)) {
+			SDFerr(SDF_F_SDF_INTERNALENCRYPT_ECC, ERR_R_SDF_LIB);
+			ret = SDR_UNKNOWERR;
+			goto end;
+		}
+	}
+
+	/*
+	{
+		int i;
+		unsigned char *p = (unsigned char *)pucEncData;
+		for (i = 0; i < sizeof(ECCCipher) -1 + uiDataLength; i++) {
+			printf("%02x", p[i]);
+		}
+		printf("\n");
+	}
+	*/
+
+	ret = SDR_OK;
+
+end:
+	if (sdf_vendor && sdf_vendor->decode_ecccipher && buf) {
+		SDF_FreeECCCipher(buf);
+	}
+	return ret;
+}
+
 int SDF_InternalDecrypt_ECC(
 	void *hSessionHandle,
 	unsigned int uiISKIndex,
@@ -1171,25 +1248,51 @@ int SDF_InternalDecrypt_ECC(
 	unsigned int *uiDataLength)
 {
 	int ret = SDR_UNKNOWERR;
+	ECCCipher *buf = pucEncData;
 
 	if (!sdf_method || !sdf_method->InternalDecrypt_ECC) {
 		SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC, SDF_R_NOT_INITIALIZED);
 		return SDR_NOTSUPPORT;
 	}
 
+	if (sdf_vendor && sdf_vendor->pkey_std2vendor) {
+		if (!(uiAlgID = sdf_vendor->pkey_std2vendor(uiAlgID))) {
+			SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC,
+				SDF_R_NOT_SUPPORTED_PKEY_ALGOR);
+			return SDR_ALGNOTSUPPORT;
+		}
+	}
+
+	if (sdf_vendor && sdf_vendor->encode_ecccipher) {
+		if (SDF_NewECCCipher(&buf, pucEncData->L) != SDR_OK) {
+			SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC, ERR_R_SDF_LIB);
+			return SDR_UNKNOWERR;
+		}
+
+		if (!sdf_vendor->encode_ecccipher(pucEncData, buf)) {
+			SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC, ERR_R_SDF_LIB);
+			ret = SDR_UNKNOWERR;
+			goto end;
+		}
+	}
+
 	if ((ret = sdf_method->InternalDecrypt_ECC(
 		hSessionHandle,
 		uiISKIndex,
 		uiAlgID,
-		pucEncData,
+		buf,
 		pucData,
 		uiDataLength)) != SDR_OK) {
 		SDFerr(SDF_F_SDF_INTERNALDECRYPT_ECC,
 			sdf_get_error_reason(ret));
-		return ret;
+		goto end;
 	}
 
-	return SDR_OK;
+end:
+	if (sdf_vendor && sdf_vendor->encode_ecccipher && buf) {
+		SDF_FreeECCCipher(buf);
+	}
+	return ret;
 }
 
 int SDF_Encrypt(

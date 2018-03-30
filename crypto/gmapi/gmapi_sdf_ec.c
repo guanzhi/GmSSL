@@ -65,7 +65,7 @@
 # include <openssl/ec.h>
 # include <openssl/sm2.h>
 # include <openssl/err.h>
-# include <openssl/sdf.h>
+# include <openssl/gmsdf.h>
 # include <openssl/gmapi.h>
 # include <openssl/objects.h>
 # include "../sm2/sm2_lcl.h"
@@ -610,16 +610,16 @@ ECCCipher *d2i_ECCCipher(ECCCipher **a, const unsigned char **pp, long length)
 		goto end;
 	}
 
-	if (*a) {
+						
+	if (a && *a) {
 		if (!SM2CiphertextValue_get_ECCCipher(cv, *a)) {
 			GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_GMAPI_LIB);
 			goto end;
 		}
 		ret = *a;
 	} else {
-		if (!(sdf = OPENSSL_malloc(sizeof(ECCCipher) - 1 +
-			ASN1_STRING_length(cv->ciphertext)))) {
-			GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_MALLOC_FAILURE);
+		if (SDF_NewECCCipher(&sdf, ASN1_STRING_length(cv->ciphertext)) != SDR_OK) {
+			GMAPIerr(GMAPI_F_D2I_ECCCIPHER, ERR_R_SDF_LIB);
 			goto end;
 		}
 		sdf->L = ASN1_STRING_length(cv->ciphertext);

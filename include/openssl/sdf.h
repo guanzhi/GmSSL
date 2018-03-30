@@ -375,6 +375,14 @@ int SDF_ExternalEncrypt_ECC(
 	unsigned int uiDataLength,
 	ECCCipher *pucEncData);
 
+int SDF_InternalEncrypt_ECC(
+	void *hSessionHandle,
+	unsigned int uiIPKIndex,
+	unsigned int uiAlgID,
+	unsigned char *pucData,
+	unsigned int uiDataLength,
+	ECCCipher *pucEncData);
+
 int SDF_InternalDecrypt_ECC(
 	void *hSessionHandle,
 	unsigned int uiISKIndex,
