@@ -10,19 +10,32 @@ package gmssl
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <openssl/engine.h>
 #include <openssl/objects.h>
 #include <openssl/opensslconf.h>
 
 extern long bio_get_mem_data(BIO *bio, char **pp);
 
-
-
-EVP_PKEY_CTX *new_pkey_keygen_ctx(const char *alg, ENGINE *e)
-{
+EVP_PKEY_CTX *new_pkey_keygen_ctx(const char *alg, ENGINE *e) {
+	EVP_PKEY_CTX *ret = NULL;
+	EVP_PKEY_CTX *ctx = NULL;
+	const EVP_PKEY_ASN1_METHOD *ameth;
+	ENGINE *eng = NULL;
 	int pkey_id;
 
-
-	return NULL;
+	if (!(ameth = EVP_PKEY_asn1_find_str(&eng, alg, -1))) {
+		return NULL;
+	}
+	EVP_PKEY_asn1_get0_info(&pkey_id, NULL, NULL, NULL, NULL, ameth);
+	ENGINE_finish(eng);
+	if (!(ctx = EVP_PKEY_CTX_new_id(pkey_id, e))) {
+		goto end;
+	}
+	ret = ctx;
+	ctx = NULL;
+end:
+	EVP_PKEY_CTX_free(ctx);
+	return ret;
 }
 
 EVP_PKEY *pem_read_bio_pubkey(BIO *bio) {
@@ -339,39 +352,149 @@ static int get_exch_info(const char *alg, int *ppkey_type, int *pec_scheme,
 
 unsigned char *pk_encrypt(EVP_PKEY *pk, const char *alg, const unsigned char *in,
 	size_t inlen, size_t *outlen, ENGINE *e) {
+	unsigned char *ret = NULL;
 	int pkey_id, ec_scheme, ec_encrypt_param;
-	if (!get_pke_info(alg, &pkey_id, ec_scheme, &ec_encrypt_param)) {
+	EVP_PKEY_CTX *ctx = NULL;
+	unsigned char *buf = NULL;
+
+	if (!get_pke_info(alg, &pkey_id, &ec_scheme, &ec_encrypt_param)) {
 		return NULL;
 	}
 	if (pkey_id != EVP_PKEY_id(pk)) {
 		return NULL;
 	}
 	if (!(ctx = EVP_PKEY_CTX_new(pk, e))) {
+		return NULL;
 	}
-	if (!EVP_PKEY_encrypt_init(ctx)) {
+	if (EVP_PKEY_encrypt_init(ctx) <= 0) {
+		goto end;
 	}
-	if (!EVP_PKEY_CTX_set_ec_scheme(ctx, ec_scheme)) {
+	if (EVP_PKEY_id(pk) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(pk))) == NID_sm2p256v1) {
+		if (EVP_PKEY_CTX_set_ec_scheme(ctx, ec_scheme) <= 0
+			|| EVP_PKEY_CTX_set_ec_encrypt_param(ctx, ec_encrypt_param) <= 0) {
+			goto end;
+		}
 	}
-	if (!EVP_PKEY_CTX_set_ec_encrypt_param(ctx, ec_encrypt_param)) {
+	if (EVP_PKEY_encrypt(ctx, NULL, outlen, in, inlen) <= 0) {
+		goto end;
 	}
-	if (!EVP_PKEY_CTX_encrypt(ctx, outbuf, outlen, in, inlen)) {
+	if (!(buf = OPENSSL_zalloc(*outlen))) {
+		goto end;
 	}
-	return NULL;
+	if (EVP_PKEY_encrypt(ctx, buf, outlen, in, inlen) <= 0) {
+		goto end;
+	}
+	ret = buf;
+	buf = NULL;
+
+end:
+	EVP_PKEY_CTX_free(ctx);
+	OPENSSL_free(buf);
+	return ret;
 }
 
 unsigned char *sk_decrypt(EVP_PKEY *sk, const char *alg, const unsigned char *in,
 	size_t inlen, size_t *outlen, ENGINE *e) {
-	return NULL;
+	unsigned char *ret = NULL;
+	int pkey_id, ec_scheme, ec_encrypt_param;
+	EVP_PKEY_CTX *ctx = NULL;
+	unsigned char *buf = NULL;
+
+	if (!get_pke_info(alg, &pkey_id, &ec_scheme, &ec_encrypt_param)) {
+		return NULL;
+	}
+	if (pkey_id != EVP_PKEY_id(sk)) {
+		return NULL;
+	}
+	if (!(ctx = EVP_PKEY_CTX_new(sk, e))) {
+		return NULL;
+	}
+	if (EVP_PKEY_decrypt_init(ctx) <= 0) {
+		goto end;
+	}
+	if (EVP_PKEY_id(sk) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(sk))) == NID_sm2p256v1) {
+		if (EVP_PKEY_CTX_set_ec_scheme(ctx, ec_scheme) <= 0
+			|| EVP_PKEY_CTX_set_ec_encrypt_param(ctx, ec_encrypt_param) <= 0) {
+			goto end;
+		}
+	}
+	if (EVP_PKEY_decrypt(ctx, NULL, outlen, in, inlen) <= 0) {
+		goto end;
+	}
+	if (!(buf = OPENSSL_zalloc(*outlen))) {
+		goto end;
+	}
+	if (EVP_PKEY_decrypt(ctx, buf, outlen, in, inlen) <= 0) {
+		goto end;
+	}
+	ret = buf;
+	buf = NULL;
+end:
+	EVP_PKEY_CTX_free(ctx);
+	OPENSSL_free(buf);
+	return ret;
 }
 
 unsigned char *sk_sign(EVP_PKEY *sk, const char *alg, const unsigned char *dgst,
 	size_t dgstlen, size_t *siglen, ENGINE *e) {
-	return NULL;
+	unsigned char *ret = NULL;
+	EVP_PKEY_CTX *ctx = NULL;
+	unsigned char *sig = NULL;
+
+	if (!(ctx = EVP_PKEY_CTX_new(sk, e))) {
+		return NULL;
+	}
+	if (EVP_PKEY_sign_init(ctx) <= 0) {
+		goto end;
+	}
+	if (EVP_PKEY_id(sk) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(sk))) == NID_sm2p256v1) {
+		if (EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme) <= 0) {
+			goto end;
+		}
+	}
+	if (EVP_PKEY_size(sk) <= 0) {
+		goto end;
+	}
+	if (!(sig = OPENSSL_zalloc(EVP_PKEY_size(sk)))) {
+		goto end;
+	}
+	if (EVP_PKEY_sign(ctx, sig, siglen, dgst, dgstlen) <= 0) {
+		goto end;
+	}
+	ret = sig;
+	sig = NULL;
+end:
+	EVP_PKEY_CTX_free(ctx);
+	OPENSSL_free(sig);
+	return ret;
 }
 
 int pk_verify(EVP_PKEY *pk, const char *alg, const unsigned char *dgst,
 	size_t dgstlen, const unsigned char *sig, size_t siglen, ENGINE *e) {
-	return 0;
+	int ret = -1;
+	EVP_PKEY_CTX *ctx = NULL;
+
+	if (!(ctx = EVP_PKEY_CTX_new(pk, e))) {
+		goto end;
+	}
+	if (!EVP_PKEY_verify_init(ctx)) {
+		goto end;
+	}
+	if (EVP_PKEY_id(pk) == EVP_PKEY_EC && EC_GROUP_get_curve_name(
+		EC_KEY_get0_group(EVP_PKEY_get0_EC_KEY(pk))) == NID_sm2p256v1) {
+		if (EVP_PKEY_CTX_set_ec_scheme(ctx, NID_sm_scheme) <= 0) {
+			goto end;
+		}
+	}
+	if ((ret = EVP_PKEY_verify(ctx, sig, siglen, dgst, dgstlen)) <= 0) {
+		goto end;
+	}
+end:
+	EVP_PKEY_CTX_free(ctx);
+	return ret;
 }
 
 unsigned char *sk_derive(EVP_PKEY *sk, const char *alg, EVP_PKEY *peer,
@@ -391,9 +514,8 @@ func GetPublicKeyAlgorithmNames() []string {
 	return []string{
 		"DH",
 		"DSA",
-		"EC",
 		"RSA",
-		"SM2",
+		"EC",
 		"X25519",
 	}
 }
@@ -409,7 +531,7 @@ func GetSignAlgorithmNames(pkey string) ([]string, error) {
 		"RSA-SHA256",
 		"RSA-SHA512",
 		"DSA-SHA1",
-	}
+	}, nil
 }
 
 func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
@@ -438,7 +560,7 @@ func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
 		"sm2encrypt-with-sha1",
 		"sm2encrypt-with-sha256",
 		"sm2encrypt-with-sha512",
-	}
+	}, nil
 }
 
 func GetDeriveKeyAlgorithmNames(pkey string) ([]string, error) {
@@ -455,7 +577,7 @@ func GetDeriveKeyAlgorithmNames(pkey string) ([]string, error) {
 		"dhSinglePass-cofactorDH-sha384kdf-scheme",
 		"dhSinglePass-cofactorDH-sha512kdf-scheme",
 		"dhKeyAgreement",
-	}
+	}, nil
 }
 
 type PublicKey struct {

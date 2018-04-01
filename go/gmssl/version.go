@@ -8,7 +8,7 @@ import "C"
 
 func GetVersions() []string {
 	versions := []string{
-		"GmSSL-Go API/1.0",
+		"GmSSL Go API 1.1  Mar 31 2018",
 		C.GoString(C.OpenSSL_version(C.OPENSSL_VERSION)),
 		C.GoString(C.OpenSSL_version(C.OPENSSL_BUILT_ON)),
 		C.GoString(C.OpenSSL_version(C.OPENSSL_CFLAGS)),

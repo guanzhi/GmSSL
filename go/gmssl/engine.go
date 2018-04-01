@@ -5,6 +5,7 @@ package gmssl
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/ui.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/engine.h>
@@ -24,11 +25,14 @@ char *get_errors() {
 	return ret;
 }
 
-EVP_PKEY *load_private_key_from_engine(ENGINE *e, const char *key_id,
-	const char *pass)
-{
-	return (EVP_PKEY *)NULL;
+EVP_PKEY *load_public_key(ENGINE *e, const char *id, char *pass) {
+	return ENGINE_load_public_key(e, id, NULL, pass);
 }
+
+EVP_PKEY *load_private_key(ENGINE *e, const char *id, char *pass) {
+	return ENGINE_load_private_key(e, id, NULL, pass);
+}
+
 */
 import "C"
 
@@ -98,7 +102,7 @@ func (e *Engine) GetPrivateKey(id string, pass string) (*PrivateKey, error) {
 	defer C.free(unsafe.Pointer(cid))
 	cpass := C.CString(pass)
 	defer C.free(unsafe.Pointer(cpass))
-	sk := C.load_private_key_from_engine(e.engine, cid, cpass)
+	sk := C.load_private_key(e.engine, cid, cpass)
 	if sk == nil {
 		cerrors := C.get_errors()
 		return nil, errors.New(C.GoString(cerrors))
@@ -106,15 +110,15 @@ func (e *Engine) GetPrivateKey(id string, pass string) (*PrivateKey, error) {
 	return &PrivateKey{sk}, nil
 }
 
-func (e *Engine) GetPublicKey(id string) (
-	*PublicKey, error) {
+func (e *Engine) GetPublicKey(id string, pass string) (*PublicKey, error) {
 	cid := C.CString(id)
 	defer C.free(unsafe.Pointer(cid))
-	//pk := C.ENGINE_load_public_key(e.engine, cid, C.NULL, C.NULL)
-	//if pk == nil {
-	//	cerrors := C.get_errors()
-	//	return nil, errors.New(C.GoString(cerrors))
-	//}
-	//return &PublicKey{pk}, nil
-	return nil, nil
+	cpass := C.CString(pass)
+	defer C.free(unsafe.Pointer(cpass))
+	pk := C.load_public_key(e.engine, cid, cpass)
+	if pk == nil {
+		cerrors := C.get_errors()
+		return nil, errors.New(C.GoString(cerrors))
+	}
+	return &PublicKey{pk}, nil
 }
