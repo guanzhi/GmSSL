@@ -629,7 +629,7 @@ static const u32 rcon[] = {
 /**
  * Expand the cipher key into the encryption key schedule.
  */
-int AES_set_encrypt_key(const unsigned char *userKey, int bits,   
+int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
                         AES_KEY *key)
 {
 

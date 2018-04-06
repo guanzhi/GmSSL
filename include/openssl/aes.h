@@ -40,7 +40,7 @@ typedef struct aes_key_st AES_KEY;
 
 const char *AES_options(void);
 
-int AES_set_encrypt_key(const unsigned char *userKey, const unsigned int bits,
+int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
                         AES_KEY *key);
 int AES_set_decrypt_key(const unsigned char *userKey, const int bits,
                         AES_KEY *key);
