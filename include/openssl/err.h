@@ -101,13 +101,13 @@ typedef struct err_state_st {
 # define ERR_LIB_GMAPI           58
 # define ERR_LIB_BFIBE           59
 # define ERR_LIB_BB1IBE          60
-# define ERR_LIB_SM2             66
 # define ERR_LIB_SM9             61
 # define ERR_LIB_SAF             62
 # define ERR_LIB_SDF             63
 # define ERR_LIB_SKF             64
 # define ERR_LIB_SOF             65
-# define ERR_LIB_BASE58          66
+# define ERR_LIB_SM2             66
+# define ERR_LIB_BASE58          67
 
 # define ERR_LIB_USER            128
 
