@@ -173,7 +173,7 @@ int EVP_MD_get_sgd(const EVP_MD *md, ULONG *ulAlgId)
 		}
 	}
 
-	*ulAlgId = 0;
+	GMAPIerr(GMAPI_F_EVP_MD_GET_SGD, GMAPI_R_NOT_SUPPORTED_MD);
 	return 0;
 }
 

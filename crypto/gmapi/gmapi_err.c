@@ -163,6 +163,7 @@ static ERR_STRING_DATA GMAPI_str_reasons[] = {
     {ERR_REASON(GMAPI_R_NOT_SUPPORTED_GMAPI_CIPHER),
      "not supported gmapi cipher"},
     {ERR_REASON(GMAPI_R_NOT_SUPPORTED_PKEY), "not supported pkey"},
+    {ERR_REASON(GMAPI_R_NOT_SUPPORTED_MD), "not supported md"},
     {0, NULL}
 };
 
