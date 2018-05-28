@@ -290,6 +290,7 @@ int ERR_load_GMAPI_strings(void);
 # define GMAPI_R_NOT_IMPLEMENTED                          130
 # define GMAPI_R_NOT_SUPPORTED_GMAPI_CIPHER               125
 # define GMAPI_R_NOT_SUPPORTED_PKEY                       126
+# define GMAPI_R_NOT_SUPPORTED_MD                         131
 
 # ifdef  __cplusplus
 }
