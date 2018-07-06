@@ -124,15 +124,21 @@ static const uint8_t S1[256] = {
 	{int j; for (j=0; j<15;j++) LFSR[j]=LFSR[j+1];}	\
 	LFSR[15] = V
 
-#define LFSRWithWorkMode()				\
-	V = LFSR[0];					\
-	ADD31(V, ROT31(LFSR[0], 8));			\
-	ADD31(V, ROT31(LFSR[4], 20));			\
-	ADD31(V, ROT31(LFSR[10], 21));			\
-	ADD31(V, ROT31(LFSR[13], 17));			\
-	ADD31(V, ROT31(LFSR[15], 15));			\
-	{int j; for (j=0; j<15;j++) LFSR[j]=LFSR[j+1];}	\
-	LFSR[15] = V
+#define LFSRWithWorkMode()			\
+	{					\
+	int j;					\
+	uint64_t a = LFSR[0];			\
+	a += ((uint64_t)LFSR[0]) << 8;		\
+	a += ((uint64_t)LFSR[4]) << 20;		\
+	a += ((uint64_t)LFSR[10]) << 21;	\
+	a += ((uint64_t)LFSR[13]) << 17;	\
+	a += ((uint64_t)LFSR[15]) << 15;	\
+	a = (a & 0x7fffffff) + (a >> 31);	\
+	V = (a & 0x7fffffff) + (a >> 31);	\
+	for (j = 0; j < 15; j++)		\
+		LFSR[j] = LFSR[j+1];		\
+	LFSR[15] = V;				\
+	}
 
 #define BitReconstruction2(X1,X2)					\
 	X1 = ((LFSR[11] & 0xFFFF) << 16) | (LFSR[9] >> 15);		\
