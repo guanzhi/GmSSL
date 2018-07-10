@@ -119,11 +119,11 @@ int EC_KEY_set_ECCrefPublicKey(EC_KEY *ec_key, const ECCrefPublicKey *ref)
 	/* ECCrefPublicKey ==> EC_KEY */
 	nbytes = (ref->bits + 7)/8;
 
-	if (!(x = BN_bin2bn(ref->x, nbytes, NULL))) {
+	if (!(x = BN_bin2bn(ref->x + ECCref_MAX_LEN - nbytes, nbytes, NULL))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCREFPUBLICKEY, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!(y = BN_bin2bn(ref->y, nbytes, NULL))) {
+	if (!(y = BN_bin2bn(ref->y + ECCref_MAX_LEN - nbytes, nbytes, NULL))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCREFPUBLICKEY, ERR_R_BN_LIB);
 		goto end;
 	}
