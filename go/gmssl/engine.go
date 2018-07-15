@@ -66,8 +66,7 @@ func GetEngineByName(name string) (*Engine, error) {
 	defer C.free(unsafe.Pointer(cname))
 	eng := C.ENGINE_by_id(cname)
 	if eng == nil {
-		cerrors := C.get_errors()
-		return nil, errors.New(C.GoString(cerrors))
+		return nil, GetErrors()
 	}
 	ret := &Engine{eng}
 	runtime.SetFinalizer(ret, func(ret *Engine) {
@@ -75,8 +74,7 @@ func GetEngineByName(name string) (*Engine, error) {
 		C.ENGINE_free(ret.engine)
 	})
 	if 1 != C.ENGINE_init(eng) {
-		cerrors := C.get_errors()
-		return nil, errors.New(C.GoString(cerrors))
+		return nil, GetErrors()
 	}
 	return ret, nil
 }
@@ -87,8 +85,7 @@ func (e *Engine) RunCommand(name, arg string) error {
 	carg := C.CString(arg)
 	defer C.free(unsafe.Pointer(carg))
 	if 1 != C.ENGINE_ctrl_cmd_string(e.engine, cname, carg, 0) {
-		cerrors := C.get_errors()
-		return errors.New(C.GoString(cerrors))
+		return GetErrors()
 	}
 	return nil
 }
@@ -104,8 +101,7 @@ func (e *Engine) GetPrivateKey(id string, pass string) (*PrivateKey, error) {
 	defer C.free(unsafe.Pointer(cpass))
 	sk := C.load_private_key(e.engine, cid, cpass)
 	if sk == nil {
-		cerrors := C.get_errors()
-		return nil, errors.New(C.GoString(cerrors))
+		return nil, GetErrors()
 	}
 	return &PrivateKey{sk}, nil
 }
@@ -117,8 +113,7 @@ func (e *Engine) GetPublicKey(id string, pass string) (*PublicKey, error) {
 	defer C.free(unsafe.Pointer(cpass))
 	pk := C.load_public_key(e.engine, cid, cpass)
 	if pk == nil {
-		cerrors := C.get_errors()
-		return nil, errors.New(C.GoString(cerrors))
+		return nil, GetErrors()
 	}
 	return &PublicKey{pk}, nil
 }

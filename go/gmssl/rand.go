@@ -7,7 +7,6 @@ package gmssl
 import "C"
 
 import (
-	"errors"
 	"unsafe"
 )
 
@@ -19,7 +18,7 @@ func SeedRandom(seed []byte) error {
 func GenerateRandom(length int) ([]byte, error) {
 	outbuf := make([]byte, length)
 	if C.RAND_bytes((*C.uchar)(&outbuf[0]), C.int(length)) <= 0 {
-		return nil, errors.New("GmSSL Failure")
+		return nil, GetErrors()
 	}
 
 	return outbuf[:length], nil

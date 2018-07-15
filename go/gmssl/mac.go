@@ -9,10 +9,8 @@ package gmssl
 import "C"
 
 import (
-	"errors"
-	"fmt"
-	"runtime"
 	"unsafe"
+	"runtime"
 )
 
 func GetMacNames(aliases bool) []string {
@@ -53,17 +51,19 @@ type MACContext struct {
 	hctx *C.HMAC_CTX
 }
 
-func NewMACContext(name string, eng *Engine, key []byte) (*MACContext, error) {
+func NewMACContext(name string, eng *Engine, key []byte) (
+	*MACContext, error) {
+
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)
 	if md == nil {
-		return nil, fmt.Errorf("shit")
+		return nil, GetErrors()
 	}
 
 	ctx := C.HMAC_CTX_new()
 	if ctx == nil {
-		return nil, fmt.Errorf("shit")
+		return nil, GetErrors()
 	}
 
 	ret := &MACContext{ctx}
@@ -71,8 +71,9 @@ func NewMACContext(name string, eng *Engine, key []byte) (*MACContext, error) {
 		C.HMAC_CTX_free(ret.hctx)
 	})
 
-	if 1 != C.HMAC_Init_ex(ctx, unsafe.Pointer(&key[0]), C.int(len(key)), md, nil) {
-		return nil, fmt.Errorf("shit")
+	if 1 != C.HMAC_Init_ex(ctx,
+		unsafe.Pointer(&key[0]), C.int(len(key)), md, nil) {
+		return nil, GetErrors()
 	}
 
 	return ret, nil
@@ -82,8 +83,9 @@ func (ctx *MACContext) Update(data []byte) error {
 	if len(data) == 0 {
 		return nil
 	}
-	if 1 != C.HMAC_Update(ctx.hctx, (*C.uchar)(unsafe.Pointer(&data[0])), C.size_t(len(data))) {
-		return errors.New("hello")
+	if 1 != C.HMAC_Update(ctx.hctx,
+		(*C.uchar)(unsafe.Pointer(&data[0])), C.size_t(len(data))) {
+		return GetErrors()
 	}
 	return nil
 }
@@ -91,8 +93,9 @@ func (ctx *MACContext) Update(data []byte) error {
 func (ctx *MACContext) Final() ([]byte, error) {
 	outbuf := make([]byte, 64)
 	outlen := C.uint(len(outbuf))
-	if 1 != C.HMAC_Final(ctx.hctx, (*C.uchar)(unsafe.Pointer(&outbuf[0])), &outlen) {
-		return nil, errors.New("error")
+	if 1 != C.HMAC_Final(ctx.hctx,
+		(*C.uchar)(unsafe.Pointer(&outbuf[0])), &outlen) {
+		return nil, GetErrors()
 	}
 	return outbuf[:outlen], nil
 }

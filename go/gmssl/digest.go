@@ -8,10 +8,8 @@ package gmssl
 import "C"
 
 import (
-	"errors"
-	"fmt"
-	"runtime"
 	"unsafe"
+	"runtime"
 )
 
 func GetDigestNames() []string {
@@ -45,7 +43,7 @@ func GetDigestLength(name string) (int, error) {
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)
 	if md == nil {
-		return 0, errors.New("Invalid digest name")
+		return 0, GetErrors()
 	}
 	return int(C.EVP_MD_size(md)), nil
 }
@@ -59,12 +57,12 @@ func NewDigestContext(name string, eng *Engine) (*DigestContext, error) {
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)
 	if md == nil {
-		return nil, fmt.Errorf("shit")
+		return nil, GetErrors()
 	}
 
 	ctx := C.EVP_MD_CTX_new()
 	if ctx == nil {
-		return nil, fmt.Errorf("shit")
+		return nil, GetErrors()
 	}
 
 	ret := &DigestContext{ctx}
@@ -73,7 +71,7 @@ func NewDigestContext(name string, eng *Engine) (*DigestContext, error) {
 	})
 
 	if 1 != C.EVP_DigestInit(ctx, md) {
-		return nil, fmt.Errorf("shit")
+		return nil, GetErrors()
 	}
 
 	return ret, nil
@@ -84,16 +82,19 @@ func (ctx *DigestContext) Update(data []byte) error {
 		return nil
 	}
 	if 1 != C.EVP_DigestUpdate(ctx.ctx, unsafe.Pointer(&data[0]), C.size_t(len(data))) {
-		errors.New("hello")
+		return GetErrors()
 	}
 	return nil
 }
+
+
+
 
 func (ctx *DigestContext) Final() ([]byte, error) {
 	outbuf := make([]byte, 64)
 	outlen := C.uint(len(outbuf))
 	if 1 != C.EVP_DigestFinal(ctx.ctx, (*C.uchar)(unsafe.Pointer(&outbuf[0])), &outlen) {
-		return nil, errors.New("error")
+		return nil, GetErrors()
 	}
 	return outbuf[:outlen], nil
 }
