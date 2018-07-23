@@ -68,7 +68,7 @@ static int init(EVP_MD_CTX *ctx)
 
 static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
 {
-	if (!ctx || !EVP_MD_CTX_md_data(ctx) || !in) {
+	if (!ctx || !EVP_MD_CTX_md_data(ctx) || (!in && inlen != 0)) {
 		return 0;
 	}
 	sm3_update(EVP_MD_CTX_md_data(ctx), in, inlen);
