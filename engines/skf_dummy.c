@@ -53,6 +53,7 @@
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/gmskf.h>
+#include <openssl/engine.h>
 
 static char *hDeviceHandle	= "hDeviceHandle";
 static char *hApplication	= "hApplication";
@@ -962,3 +963,10 @@ ULONG DEVAPI SKF_CloseHandle(
 {
 	return SAR_OK;
 }
+
+static int bind(ENGINE *e, const char *id)
+{
+	return 1;
+}
+IMPLEMENT_DYNAMIC_BIND_FN(bind)
+IMPLEMENT_DYNAMIC_CHECK_FN()
