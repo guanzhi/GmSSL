@@ -2,6 +2,7 @@ package main
 
 import (
 	"gmssl"
+	"gmssl/sm3"
 	"fmt"
 )
 
@@ -29,25 +30,29 @@ func main() {
 	fmt.Println("");
 
 	/* sm3 digest */
-	sm3, err := gmssl.NewDigestContext("SM3", nil)
+	sm3ctx, err := gmssl.NewDigestContext("SM3", nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	if err := sm3.Update([]byte("a")); err != nil {
+	if err := sm3ctx.Update([]byte("a")); err != nil {
 		fmt.Println(err)
 		return
 	}
-	if err := sm3.Update([]byte("bc")); err != nil {
+	if err := sm3ctx.Update([]byte("bc")); err != nil {
 		fmt.Println(err)
 		return
 	}
-	sm3digest, err := sm3.Final()
+	sm3digest, err := sm3ctx.Final()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Printf("sm3(\"abc\") = %x\n", sm3digest)
+
+	sm3hash := sm3.New()
+	sm3hash.Write([]byte("abc"))
+	fmt.Printf("sm3(\"abc\") = %x\n", sm3hash.Sum(nil))
 
 	/* hmac-sm3 */
 	hmac_sm3, err := gmssl.NewHMACContext("SM3", nil, []byte("this is the key"))
@@ -55,11 +60,11 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	if err := hmac_sm3.Update([]byte("hello")); err != nil {
+	if err := hmac_sm3.Update([]byte("ab")); err != nil {
 		fmt.Println(err)
 		return
 	}
-	if err := hmac_sm3.Update([]byte("world")); err != nil {
+	if err := hmac_sm3.Update([]byte("c")); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -68,7 +73,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("hmac-sm3() = %x\n", mactag)
+	fmt.Printf("hmac-sm3(\"abc\") = %x\n", mactag)
 
 	/* generate random key */
 	keylen, err := gmssl.GetCipherKeyLength("SMS4")
@@ -113,7 +118,6 @@ func main() {
 	ciphertext := make([]byte, 0, len(ciphertext1) + len(ciphertext2))
 	ciphertext = append(ciphertext, ciphertext1...)
 	ciphertext = append(ciphertext, ciphertext2...)
-	fmt.Printf("sms4(\"hello\") = %x\n", ciphertext)
 
 	/* decrypt */
 	decryptor, err := gmssl.NewCipherContext("SMS4", nil, key, iv, false)
@@ -134,7 +138,8 @@ func main() {
 	plaintext := make([]byte, 0, len(plaintext1) + len(plaintext2))
 	plaintext = append(plaintext, plaintext1...)
 	plaintext = append(plaintext, plaintext2...)
-	fmt.Println(string(plaintext))
+
+	fmt.Printf("sms4(\"%s\") = %x\n", plaintext, ciphertext)
 
 }
 
