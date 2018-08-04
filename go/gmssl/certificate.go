@@ -14,11 +14,11 @@ package gmssl
 #include <openssl/objects.h>
 #include <openssl/opensslconf.h>
 
-void _OPENSSL_free(void *p) {
+static void _OPENSSL_free(void *p) {
 	OPENSSL_free(p);
 }
 
-long _BIO_get_mem_data(BIO *b, char **pp) {
+static long _BIO_get_mem_data(BIO *b, char **pp) {
 	return BIO_get_mem_data(b, pp);
 }
 

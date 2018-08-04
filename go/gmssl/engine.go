@@ -10,7 +10,7 @@ package gmssl
 #include <openssl/evp.h>
 #include <openssl/engine.h>
 
-char *get_errors() {
+static char *get_errors() {
 	char *ret;
 	BIO *bio;
 	char *data;
@@ -25,11 +25,11 @@ char *get_errors() {
 	return ret;
 }
 
-EVP_PKEY *load_public_key(ENGINE *e, const char *id, char *pass) {
+static EVP_PKEY *load_public_key(ENGINE *e, const char *id, char *pass) {
 	return ENGINE_load_public_key(e, id, NULL, pass);
 }
 
-EVP_PKEY *load_private_key(ENGINE *e, const char *id, char *pass) {
+static EVP_PKEY *load_private_key(ENGINE *e, const char *id, char *pass) {
 	return ENGINE_load_private_key(e, id, NULL, pass);
 }
 

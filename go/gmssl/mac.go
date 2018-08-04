@@ -13,47 +13,22 @@ import (
 	"runtime"
 )
 
-func GetMacNames(aliases bool) []string {
-	return []string{
-		"HMAC-BLAKE2b512",
-		"HMAC-BLAKE2s256",
-		"HMAC-MD4",
-		"HMAC-MD5",
-		"HMAC-MD5-SHA1",
-		"HMAC-MDC2",
-		"HMAC-RIPEMD160",
-		"HMAC-rmd160",
-		"HMAC-SHA1",
-		"HMAC-SHA224",
-		"HMAC-SHA256",
-		"HMAC-SHA384",
-		"HMAC-SHA512",
-		"HMAC-SM3",
-		"HMAC-SHA1",
-		"HMAC-SHA224",
-		"HMAC-SHA256",
-		"HMAC-SHA384",
-		"HMAC-SHA512",
-		"HMAC-SM3",
-		"HMAC-whirlpool",
-	}
-}
-
-func GetMacKeyLength(name string) (int, error) {
-	return 0, nil
-}
-
 func GetMacLength(name string) (int, error) {
-	return 0, nil
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	md := C.EVP_get_digestbyname(cname)
+	if md == nil {
+		return 0, GetErrors()
+	}
+	return int(C.EVP_MD_size(md)), nil
 }
 
-type MACContext struct {
+type HMACContext struct {
 	hctx *C.HMAC_CTX
 }
 
-func NewMACContext(name string, eng *Engine, key []byte) (
-	*MACContext, error) {
-
+func NewHMACContext(name string, eng *Engine, key []byte) (
+	*HMACContext, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)
@@ -66,8 +41,8 @@ func NewMACContext(name string, eng *Engine, key []byte) (
 		return nil, GetErrors()
 	}
 
-	ret := &MACContext{ctx}
-	runtime.SetFinalizer(ret, func(ret *MACContext) {
+	ret := &HMACContext{ctx}
+	runtime.SetFinalizer(ret, func(ret *HMACContext) {
 		C.HMAC_CTX_free(ret.hctx)
 	})
 
@@ -75,11 +50,10 @@ func NewMACContext(name string, eng *Engine, key []byte) (
 		unsafe.Pointer(&key[0]), C.int(len(key)), md, nil) {
 		return nil, GetErrors()
 	}
-
 	return ret, nil
 }
 
-func (ctx *MACContext) Update(data []byte) error {
+func (ctx *HMACContext) Update(data []byte) error {
 	if len(data) == 0 {
 		return nil
 	}
@@ -90,7 +64,7 @@ func (ctx *MACContext) Update(data []byte) error {
 	return nil
 }
 
-func (ctx *MACContext) Final() ([]byte, error) {
+func (ctx *HMACContext) Final() ([]byte, error) {
 	outbuf := make([]byte, 64)
 	outlen := C.uint(len(outbuf))
 	if 1 != C.HMAC_Final(ctx.hctx,

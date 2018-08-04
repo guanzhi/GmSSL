@@ -3,39 +3,55 @@
 package gmssl
 
 /*
+#include <string.h>
 #include <openssl/evp.h>
+#include <openssl/crypto.h>
+
+static void cb_digest_names_len(const EVP_MD *md, const char *from,
+	const char *to,
+	void *x) {
+	if (md) {
+		*((int *)x) += strlen(EVP_MD_name(md)) + 1;
+	}
+}
+
+static void cb_digest_names(const EVP_MD *md, const char *from,
+	const char *to, void *x) {
+	if (md) {
+		if (strlen((char *)x) > 0) {
+			strcat((char *)x, ":");
+		}
+		strcat((char *)x, EVP_MD_name(md));
+	}
+}
+
+static char *get_digest_names() {
+	char *ret = NULL;
+	int len = 0;
+	EVP_MD_do_all_sorted(cb_digest_names_len, &len);
+	if (!(ret = OPENSSL_zalloc(len))) {
+		return NULL;
+	}
+	EVP_MD_do_all_sorted(cb_digest_names, ret);
+	return ret;
+}
+
+static void _OPENSSL_free(void *addr) {
+	OPENSSL_free(addr);
+}
 */
 import "C"
 
 import (
 	"unsafe"
 	"runtime"
+	"strings"
 )
 
 func GetDigestNames() []string {
-	return []string{
-		"BLAKE2b512",
-		"BLAKE2s256",
-		"MD4",
-		"MD5",
-		"MD5-SHA1",
-		"MDC2",
-		"RIPEMD160",
-		"rmd160",
-		"SHA1",
-		"SHA224",
-		"SHA256",
-		"SHA384",
-		"SHA512",
-		"SM3",
-		"SHA1",
-		"SHA224",
-		"SHA256",
-		"SHA384",
-		"SHA512",
-		"SM3",
-		"whirlpool",
-	}
+	cnames := C.get_digest_names()
+	defer C._OPENSSL_free(unsafe.Pointer(cnames))
+	return strings.Split(C.GoString(cnames), ":")
 }
 
 func GetDigestLength(name string) (int, error) {
@@ -86,9 +102,6 @@ func (ctx *DigestContext) Update(data []byte) error {
 	}
 	return nil
 }
-
-
-
 
 func (ctx *DigestContext) Final() ([]byte, error) {
 	outbuf := make([]byte, 64)
