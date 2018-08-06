@@ -9,30 +9,6 @@ package gmssl
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/engine.h>
-
-static char *get_errors() {
-	char *ret;
-	BIO *bio;
-	char *data;
-	long len;
-	if (!(bio = BIO_new(BIO_s_mem()))) {
-		return (char *)NULL;
-	}
-	ERR_print_errors(bio);
-	len = BIO_get_mem_data(bio, &data);
-	ret = OPENSSL_strdup(data);
-	BIO_free(bio);
-	return ret;
-}
-
-static EVP_PKEY *load_public_key(ENGINE *e, const char *id, char *pass) {
-	return ENGINE_load_public_key(e, id, NULL, pass);
-}
-
-static EVP_PKEY *load_private_key(ENGINE *e, const char *id, char *pass) {
-	return ENGINE_load_private_key(e, id, NULL, pass);
-}
-
 */
 import "C"
 
@@ -61,7 +37,7 @@ type Engine struct {
 	engine *C.ENGINE;
 }
 
-func GetEngineByName(name string) (*Engine, error) {
+func NewEngineByName(name string) (*Engine, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	eng := C.ENGINE_by_id(cname)
@@ -77,6 +53,10 @@ func GetEngineByName(name string) (*Engine, error) {
 		return nil, GetErrors()
 	}
 	return ret, nil
+}
+
+func (e *Engine) GetCommands() ([]string, error) {
+	return []string{"SO_PATH"}, nil
 }
 
 func (e *Engine) RunCommand(name, arg string) error {
@@ -99,7 +79,8 @@ func (e *Engine) GetPrivateKey(id string, pass string) (*PrivateKey, error) {
 	defer C.free(unsafe.Pointer(cid))
 	cpass := C.CString(pass)
 	defer C.free(unsafe.Pointer(cpass))
-	sk := C.load_private_key(e.engine, cid, cpass)
+	sk := C.ENGINE_load_private_key(e.engine, cid, nil,
+		unsafe.Pointer(cpass))
 	if sk == nil {
 		return nil, GetErrors()
 	}
@@ -111,7 +92,9 @@ func (e *Engine) GetPublicKey(id string, pass string) (*PublicKey, error) {
 	defer C.free(unsafe.Pointer(cid))
 	cpass := C.CString(pass)
 	defer C.free(unsafe.Pointer(cpass))
-	pk := C.load_public_key(e.engine, cid, cpass)
+
+	pk := C.ENGINE_load_public_key(e.engine, cid, nil,
+		unsafe.Pointer(cpass))
 	if pk == nil {
 		return nil, GetErrors()
 	}

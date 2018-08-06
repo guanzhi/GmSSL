@@ -5,6 +5,7 @@ package gmssl
 /*
 #include <string.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <openssl/crypto.h>
 
 static void cb_digest_names_len(const EVP_MD *md, const char *from,
@@ -36,9 +37,7 @@ static char *get_digest_names() {
 	return ret;
 }
 
-static void _OPENSSL_free(void *addr) {
-	OPENSSL_free(addr);
-}
+extern void _OPENSSL_free(void *addr);
 */
 import "C"
 
@@ -64,32 +63,38 @@ func GetDigestLength(name string) (int, error) {
 	return int(C.EVP_MD_size(md)), nil
 }
 
+func GetDigestBlockSize(name string) (int, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	md := C.EVP_get_digestbyname(cname)
+	if md == nil {
+		return 0, GetErrors()
+	}
+	return int(C.EVP_MD_block_size(md)), nil
+}
+
 type DigestContext struct {
 	ctx *C.EVP_MD_CTX
 }
 
-func NewDigestContext(name string, eng *Engine) (*DigestContext, error) {
+func NewDigestContext(name string) (*DigestContext, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	md := C.EVP_get_digestbyname(cname)
 	if md == nil {
 		return nil, GetErrors()
 	}
-
 	ctx := C.EVP_MD_CTX_new()
 	if ctx == nil {
 		return nil, GetErrors()
 	}
-
 	ret := &DigestContext{ctx}
 	runtime.SetFinalizer(ret, func(ret *DigestContext) {
 		C.EVP_MD_CTX_free(ret.ctx)
 	})
-
-	if 1 != C.EVP_DigestInit(ctx, md) {
+	if 1 != C.EVP_DigestInit_ex(ctx, md, nil) {
 		return nil, GetErrors()
 	}
-
 	return ret, nil
 }
 
@@ -106,8 +111,19 @@ func (ctx *DigestContext) Update(data []byte) error {
 func (ctx *DigestContext) Final() ([]byte, error) {
 	outbuf := make([]byte, 64)
 	outlen := C.uint(len(outbuf))
-	if 1 != C.EVP_DigestFinal(ctx.ctx, (*C.uchar)(unsafe.Pointer(&outbuf[0])), &outlen) {
+	if 1 != C.EVP_DigestFinal_ex(ctx.ctx, (*C.uchar)(unsafe.Pointer(&outbuf[0])), &outlen) {
 		return nil, GetErrors()
 	}
 	return outbuf[:outlen], nil
+}
+
+func (ctx *DigestContext) Reset() error {
+	md := C.EVP_MD_CTX_md(ctx.ctx)
+	if md == nil {
+		return GetErrors()
+	}
+	if 1 != C.EVP_DigestInit_ex(ctx.ctx, md, nil) {
+		return GetErrors()
+	}
+	return nil
 }

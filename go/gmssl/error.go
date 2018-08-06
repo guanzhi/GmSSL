@@ -5,10 +5,8 @@ package gmssl
 #include <openssl/err.h>
 #include <openssl/bio.h>
 
-long bio_get_mem_data(BIO *bio, char **pp) {
-	return BIO_get_mem_data(bio, pp);
-}
 
+extern long _BIO_get_mem_data(BIO *b, char **pp);
 */
 import "C"
 
@@ -24,7 +22,7 @@ func GetErrors() error {
 	defer C.BIO_free(bio)
 	C.ERR_print_errors(bio)
 	var p *C.char
-	len := C.bio_get_mem_data(bio, &p)
+	len := C._BIO_get_mem_data(bio, &p)
 	if len <= 0 {
 		return errors.New("GetErrors function failure 2")
 	}

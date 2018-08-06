@@ -11,135 +11,164 @@ func main() {
 	versions := gmssl.GetVersions()
 	fmt.Println("GmSSL Versions:")
 	for _, version := range versions {
-		fmt.Println("    " + version)
+		fmt.Println(" " + version)
 	}
-	fmt.Println("");
+	fmt.Println("")
 
-	fmt.Println("Supported Digest Algorithms:")
+	fmt.Print("Digest Algorithms:")
 	digests := gmssl.GetDigestNames()
 	for _, digest := range digests {
-		fmt.Println("    " + digest)
+		fmt.Print(" " + digest)
 	}
-	fmt.Println("");
+	fmt.Println("\n")
 
-	fmt.Println("Supported Ciphers:")
+	fmt.Print("Ciphers:")
 	ciphers := gmssl.GetCipherNames()
 	for _, cipher := range ciphers {
-		fmt.Println("    " + cipher)
+		fmt.Print(" " + cipher)
 	}
-	fmt.Println("");
+	fmt.Println("\n")
 
-	/* sm3 digest */
-	sm3ctx, err := gmssl.NewDigestContext("SM3", nil)
-	if err != nil {
-		fmt.Println(err)
-		return
+	fmt.Println("Public Key Algorithms:")
+	pkey_algs := gmssl.GetPublicKeyAlgorithmNames()
+	for _, pkey_alg := range pkey_algs {
+		fmt.Print(" " + pkey_alg + ":")
+		sign_algs, _ := gmssl.GetSignAlgorithmNames(pkey_alg)
+		for _, sign_alg := range sign_algs {
+			fmt.Print(" " + sign_alg)
+		}
+		pkey_encs, _ := gmssl.GetPublicKeyEncryptionNames(pkey_alg)
+		for _, pkey_enc := range pkey_encs {
+			fmt.Print(" " + pkey_enc)
+		}
+		derive_algs, _ := gmssl.GetDeriveKeyAlgorithmNames(pkey_alg)
+		for _, derive_alg := range derive_algs {
+			fmt.Print(" " + derive_alg)
+		}
+		fmt.Println("")
 	}
-	if err := sm3ctx.Update([]byte("a")); err != nil {
-		fmt.Println(err)
-		return
+	fmt.Println("")
+
+	/* Engines */
+	fmt.Print("Engines:")
+	engines := gmssl.GetEngineNames()
+	for _, engine := range engines {
+		fmt.Print(" " + engine)
 	}
-	if err := sm3ctx.Update([]byte("bc")); err != nil {
-		fmt.Println(err)
-		return
-	}
-	sm3digest, err := sm3ctx.Final()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	fmt.Println("\n");
+
+	/* SM3 digest with GmSSL-Go API */
+	sm3ctx, _ := gmssl.NewDigestContext("SM3")
+	sm3ctx.Update([]byte("a"))
+	sm3ctx.Update([]byte("bc"))
+	sm3digest, _ := sm3ctx.Final()
 	fmt.Printf("sm3(\"abc\") = %x\n", sm3digest)
 
+	/* SM3 digest with Go hash.Hash API */
 	sm3hash := sm3.New()
 	sm3hash.Write([]byte("abc"))
 	fmt.Printf("sm3(\"abc\") = %x\n", sm3hash.Sum(nil))
 
-	/* hmac-sm3 */
-	hmac_sm3, err := gmssl.NewHMACContext("SM3", nil, []byte("this is the key"))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if err := hmac_sm3.Update([]byte("ab")); err != nil {
-		fmt.Println(err)
-		return
-	}
-	if err := hmac_sm3.Update([]byte("c")); err != nil {
-		fmt.Println(err)
-		return
-	}
-	mactag, err := hmac_sm3.Final()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	/* HMAC-SM3 */
+	hmac_sm3, _ := gmssl.NewHMACContext("SM3", []byte("this is the key"))
+	hmac_sm3.Update([]byte("ab"))
+	hmac_sm3.Update([]byte("c"))
+	mactag, _ := hmac_sm3.Final()
 	fmt.Printf("hmac-sm3(\"abc\") = %x\n", mactag)
 
-	/* generate random key */
-	keylen, err := gmssl.GetCipherKeyLength("SMS4")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	key, err := gmssl.GenerateRandom(keylen)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	/* Generate random key and IV */
+	keylen, _ := gmssl.GetCipherKeyLength("SMS4")
+	key, _ := gmssl.GenerateRandom(keylen)
+	ivlen, _ := gmssl.GetCipherIVLength("SMS4")
+	iv, _ := gmssl.GenerateRandom(ivlen)
 
-	/* generate random iv */
-	ivlen, err := gmssl.GetCipherIVLength("SMS4")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	iv, err := gmssl.GenerateRandom(ivlen)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	/* encrypt */
-	encryptor, err := gmssl.NewCipherContext("SMS4", nil, key, iv, true)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	ciphertext1, err := encryptor.Update([]byte("hello"))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	ciphertext2, err := encryptor.Final()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	/* SMS4-CBC Encrypt/Decrypt */
+	encryptor, _ := gmssl.NewCipherContext("SMS4", key, iv, true)
+	ciphertext1, _ := encryptor.Update([]byte("hello"))
+	ciphertext2, _ := encryptor.Final()
 	ciphertext := make([]byte, 0, len(ciphertext1) + len(ciphertext2))
 	ciphertext = append(ciphertext, ciphertext1...)
 	ciphertext = append(ciphertext, ciphertext2...)
 
-	/* decrypt */
-	decryptor, err := gmssl.NewCipherContext("SMS4", nil, key, iv, false)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	plaintext1, err := decryptor.Update(ciphertext)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	plaintext2, err := decryptor.Final()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	decryptor, _ := gmssl.NewCipherContext("SMS4", key, iv, false)
+	plaintext1, _ := decryptor.Update(ciphertext)
+	plaintext2, _ := decryptor.Final()
 	plaintext := make([]byte, 0, len(plaintext1) + len(plaintext2))
 	plaintext = append(plaintext, plaintext1...)
 	plaintext = append(plaintext, plaintext2...)
 
 	fmt.Printf("sms4(\"%s\") = %x\n", plaintext, ciphertext)
+	fmt.Println()
+
+	/* private key */
+	rsa_args := map[string]string {
+		"rsa_keygen_bits": "2048",
+		"rsa_keygen_pubexp" : "65537",
+	}
+
+	rsa, err := gmssl.GeneratePrivateKey("RSA", rsa_args, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	rsa_pem, err := rsa.GetPublicKeyPEM()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(rsa_pem)
+
+	/* Engine */
+	eng, _ := gmssl.NewEngineByName(engines[1])
+	cmds, _ := eng.GetCommands()
+	for _, cmd := range cmds {
+		fmt.Print(" " + cmd)
+	}
+	fmt.Println()
+
+	/* SM2 key pair operations */
+	sm2keygenargs := map[string]string {
+		"ec_paramgen_curve": "sm2p256v1",
+		"ec_param_enc": "named_curve",
+	}
+	sm2sk, _ := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
+	sm2sktxt, _ := sm2sk.GetText()
+	sm2skpem, _ := sm2sk.GetPEM("SMS4", "password")
+	sm2pkpem, _ := sm2sk.GetPublicKeyPEM()
+
+	fmt.Println(sm2sktxt)
+	fmt.Println(sm2skpem)
+	fmt.Println(sm2pkpem)
+
+	sm2pk, _ := gmssl.NewPublicKeyFromPEM(sm2pkpem)
+	sm2pktxt, _ := sm2pk.GetText()
+	sm2pkpem_, _ := sm2pk.GetPEM()
+
+	fmt.Println(sm2pktxt)
+	fmt.Println(sm2pkpem_)
+
+	/* SM2 sign/verification */
+	sm3ctx.Reset()
+	sm3ctx.Update([]byte("message"))
+	tbs, _ := sm3ctx.Final()
+
+	sig, _ := sm2sk.Sign("sm2sign", tbs, nil)
+	fmt.Printf("sm2sign(sm3(\"message\")) = %x\n", sig)
+
+	if ret := sm2pk.Verify("sm2sign", tbs, sig, nil); ret != nil {
+		fmt.Printf("sm2 verify failure\n")
+	} else {
+		fmt.Printf("sm2 verify success\n")
+	}
+
+	/* SM2 encrypt */
+	sm2msg := "01234567891123456789212345678931234567894123456789512345678961234567897123"
+	sm2encalg := "sm2encrypt-with-sm3"
+	sm2ciphertext, _ := sm2pk.Encrypt(sm2encalg, []byte(sm2msg), nil)
+	sm2plaintext, _ := sm2sk.Decrypt(sm2encalg, sm2ciphertext, nil)
+	fmt.Printf("sm2enc(\"%s\") = %x\n", sm2plaintext, sm2ciphertext)
+	if sm2msg != string(sm2plaintext) {
+		fmt.Println("SM2 encryption/decryption failure")
+	}
 
 }
-

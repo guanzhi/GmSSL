@@ -34,9 +34,7 @@ static char *get_cipher_names(void) {
 	return ret;
 }
 
-static void _OPENSSL_free(void *addr) {
-	OPENSSL_free(addr);
-}
+extern void _OPENSSL_free(void *addr);
 */
 import "C"
 
@@ -87,7 +85,7 @@ type CipherContext struct {
 	ctx *C.EVP_CIPHER_CTX
 }
 
-func NewCipherContext(name string, eng *Engine, key, iv []byte, encrypt bool) (
+func NewCipherContext(name string, key, iv []byte, encrypt bool) (
 	*CipherContext, error) {
 
 	cname := C.CString(name)

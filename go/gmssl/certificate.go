@@ -14,14 +14,8 @@ package gmssl
 #include <openssl/objects.h>
 #include <openssl/opensslconf.h>
 
-static void _OPENSSL_free(void *p) {
-	OPENSSL_free(p);
-}
-
-static long _BIO_get_mem_data(BIO *b, char **pp) {
-	return BIO_get_mem_data(b, pp);
-}
-
+extern long _BIO_get_mem_data(BIO *b, char **pp);
+extern void _OPENSSL_free(void *addr);
 */
 import "C"
 
@@ -35,7 +29,7 @@ type Certificate struct {
 	x509 *C.X509
 }
 
-func ReadCertificateFromPEM(pem string, pass string) (*Certificate, error) {
+func NewCertificateFromPEM(pem string, pass string) (*Certificate, error) {
 	cpem := C.CString(pem)
 	defer C.free(unsafe.Pointer(cpem))
 	cpass := C.CString(pass)
@@ -114,6 +108,11 @@ func (cert *Certificate) GetPublicKey() (*PublicKey, error) {
 	})
 	return ret, nil
 }
+
+func (cert *Certificate) GetText() (string, error) {
+	return "", nil
+}
+
 func (cert *Certificate) CheckPrivateKey(skey *PrivateKey) error {
 	if 1 != C.X509_check_private_key(cert.x509, skey.pkey) {
 		err := GetErrors()
@@ -124,4 +123,3 @@ func (cert *Certificate) CheckPrivateKey(skey *PrivateKey) error {
 	}
 	return nil
 }
-

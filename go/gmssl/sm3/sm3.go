@@ -11,7 +11,7 @@ type digest struct {
 
 func New() hash.Hash {
 	d := new(digest)
-	ctx, err := gmssl.NewDigestContext("SM3", nil)
+	ctx, err := gmssl.NewDigestContext("SM3")
 	if err != nil {
 		return nil
 	}
@@ -36,10 +36,7 @@ func (d *digest) Size() int {
 }
 
 func (d *digest) Reset() {
-	err := d.ctx.Reset()
-	if err != nil {
-		// do something?
-	}
+	_ = d.ctx.Reset()
 }
 
 func (d *digest) Write(p []byte) (int, error) {

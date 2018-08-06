@@ -20,6 +20,5 @@ func GenerateRandom(length int) ([]byte, error) {
 	if C.RAND_bytes((*C.uchar)(&outbuf[0]), C.int(length)) <= 0 {
 		return nil, GetErrors()
 	}
-
 	return outbuf[:length], nil
 }
