@@ -51,7 +51,7 @@ package gmssl
 
 /*
 #cgo darwin CFLAGS: -I/usr/local/include
-#cgo darwin LDFLAGS: -L/usr/local/lib -lcrypto
+#cgo darwin LDFLAGS: -L/usr/local/lib -lcrypto -lssl
 
 #include <openssl/bio.h>
 #include <openssl/crypto.h>
