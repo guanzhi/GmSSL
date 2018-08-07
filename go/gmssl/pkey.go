@@ -936,3 +936,33 @@ func (sk *PrivateKey) DeriveKey(alg string, peer PublicKey, eng *Engine) ([]byte
 	}
 	return C.GoBytes(unsafe.Pointer(key), C.int(keylen)), nil
 }
+
+func (pk *PublicKey) ComputeSM2IDDigest(id string) ([]byte, error) {
+	if C.EVP_PKEY_EC != C.EVP_PKEY_id(pk.pkey) {
+		return nil, errors.New("Invalid public key type")
+	}
+	cid := C.CString(id)
+	defer C.free(unsafe.Pointer(cid))
+	outbuf := make([]byte, 64)
+	outlen := C.size_t(len(outbuf))
+	if 1 != C.SM2_compute_id_digest(C.EVP_sm3(), cid, C.size_t(len(id)),
+		(*C.uchar)(&outbuf[0]), &outlen, C.EVP_PKEY_get0_EC_KEY(pk.pkey)) {
+		return nil, GetErrors()
+	}
+	return outbuf[:32], nil
+}
+
+func (sk *PrivateKey) ComputeSM2IDDigest(id string) ([]byte, error) {
+	if C.EVP_PKEY_EC != C.EVP_PKEY_id(sk.pkey) {
+		return nil, errors.New("Invalid public key type")
+	}
+	cid := C.CString(id)
+	defer C.free(unsafe.Pointer(cid))
+	outbuf := make([]byte, 64)
+	outlen := C.size_t(len(outbuf))
+	if 1 != C.SM2_compute_id_digest(C.EVP_sm3(), cid, C.size_t(len(id)),
+		(*C.uchar)(&outbuf[0]), &outlen, C.EVP_PKEY_get0_EC_KEY(sk.pkey)) {
+		return nil, GetErrors()
+	}
+	return outbuf[:32], nil
+}

@@ -196,7 +196,9 @@ func main() {
 	fmt.Println(sm2pkpem_)
 
 	/* SM2 sign/verification */
+	sm2zid, _ := sm2pk.ComputeSM2IDDigest("1234567812345678")
 	sm3ctx.Reset()
+	sm3ctx.Update(sm2zid)
 	sm3ctx.Update([]byte("message"))
 	tbs, _ := sm3ctx.Final()
 
