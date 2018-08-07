@@ -248,4 +248,18 @@ MAoGCCqBHM9VAYN1A0gAMEUCIQCjrQ2nyiPqod/gZdj5X1+WW4fGtyqXvXLL3lOF
 	fmt.Printf("  Serial Number = %s\n", serial)
 	fmt.Println(certpktxt)
 	fmt.Println(certtxt)
+
+	/* SSL */
+	hostname := "its.pku.edu.cn"
+	ssl, _ := gmssl.NewSSLContext("3.3", "mozilla-cacerts.pem", "")
+	conn, _ := ssl.Connect(hostname, "443", "ALL")
+	result, _ := conn.GetVerifyResult()
+	if result != 0 {
+		fmt.Printf("http://%s certificate verify failure\n", hostname)
+		return
+	}
+	peercert, _ := conn.GetPeerCertificate()
+	fmt.Println(result)
+	peercerttxt, _ := peercert.GetText()
+	fmt.Println(peercerttxt)
 }
