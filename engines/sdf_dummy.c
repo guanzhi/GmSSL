@@ -52,6 +52,7 @@
 #include <string.h>
 #include <openssl/sgd.h>
 #include <openssl/sdf.h>
+#include <openssl/engine.h>
 
 static char *deviceHandle = "SDF Device Handle";
 static char *sessionHandle = "SDF Session Handle";
@@ -471,7 +472,7 @@ int SDF_GenerateAgreementDataWithECC(
 	ECCrefPublicKey *pucSponsorTmpPublicKey,
 	void **phAgreementHandle)
 {
-	// any output public key ? 			
+	// any output public key ?
 	if (!phAgreementHandle || !(*phAgreementHandle))
 		return SDR_INARGERR;
 	*phAgreementHandle = agreementHandle;
@@ -509,7 +510,7 @@ int SDF_GenerateAgreementDataAndKeyWithECC(
 	ECCrefPublicKey *pucResponseTmpPublicKey,
 	void **phKeyHandle)
 {
-	// any output 				
+	// any output
 	if (!phKeyHandle || !(*phKeyHandle))
 		return SDR_INARGERR;
 	*phKeyHandle = keyHandle;
@@ -766,3 +767,10 @@ int SDF_DeleteFile(
 {
 	return SDR_OK;
 }
+
+static int bind(ENGINE *e, const char *id)
+{
+	return 1;
+}
+IMPLEMENT_DYNAMIC_BIND_FN(bind)
+IMPLEMENT_DYNAMIC_CHECK_FN()
