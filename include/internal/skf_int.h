@@ -55,92 +55,92 @@
 #include "internal/dso.h"
 
 
-typedef ULONG (*SKF_WaitForDevEvent_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_WaitForDevEvent_FuncPtr)(
 	LPSTR szDevName,
 	ULONG *pulDevNameLen,
 	ULONG *pulEvent);
 
-typedef ULONG (*SKF_CancelWaitForDevEvent_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CancelWaitForDevEvent_FuncPtr)(
 	void);
 
-typedef ULONG (*SKF_EnumDev_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EnumDev_FuncPtr)(
 	BOOL bPresent,
 	LPSTR szNameList,
 	ULONG *pulSize);
 
-typedef ULONG (*SKF_ConnectDev_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ConnectDev_FuncPtr)(
 	LPSTR szName,
 	DEVHANDLE *phDev);
 
-typedef ULONG (*SKF_DisConnectDev_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DisConnectDev_FuncPtr)(
 	DEVHANDLE hDev);
 
-typedef ULONG (*SKF_GetDevState_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GetDevState_FuncPtr)(
 	LPSTR szDevName,
 	ULONG *pulDevState);
 
-typedef ULONG (*SKF_SetLabel_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_SetLabel_FuncPtr)(
 	DEVHANDLE hDev,
 	LPSTR szLabel);
 
-typedef ULONG (*SKF_GetDevInfo_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GetDevInfo_FuncPtr)(
 	DEVHANDLE hDev,
 	DEVINFO *pDevInfo);
 
-typedef ULONG (*SKF_LockDev_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_LockDev_FuncPtr)(
 	DEVHANDLE hDev,
 	ULONG ulTimeOut);
 
-typedef ULONG (*SKF_UnlockDev_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_UnlockDev_FuncPtr)(
 	DEVHANDLE hDev);
 
-typedef ULONG (*SKF_Transmit_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_Transmit_FuncPtr)(
 	DEVHANDLE hDev,
 	BYTE *pbCommand,
 	ULONG ulCommandLen,
 	BYTE *pbData,
 	ULONG *pulDataLen);
 
-typedef ULONG (*SKF_ChangeDevAuthKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ChangeDevAuthKey_FuncPtr)(
 	DEVHANDLE hDev,
 	BYTE *pbKeyValue,
 	ULONG ulKeyLen);
 
-typedef ULONG (*SKF_DevAuth_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DevAuth_FuncPtr)(
 	DEVHANDLE hDev,
 	BYTE *pbAuthData,
 	ULONG ulLen);
 
-typedef ULONG (*SKF_ChangePIN_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ChangePIN_FuncPtr)(
 	HAPPLICATION hApplication,
 	ULONG ulPINType,
 	LPSTR szOldPin,
 	LPSTR szNewPin,
 	ULONG *pulRetryCount);
 
-typedef LONG (*SKF_GetPINInfo_FuncPtr)(
+typedef LONG (DEVAPI *SKF_GetPINInfo_FuncPtr)(
 	HAPPLICATION hApplication,
 	ULONG ulPINType,
 	ULONG *pulMaxRetryCount,
 	ULONG *pulRemainRetryCount,
 	BOOL *pbDefaultPin);
 
-typedef ULONG (*SKF_VerifyPIN_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_VerifyPIN_FuncPtr)(
 	HAPPLICATION hApplication,
 	ULONG ulPINType,
 	LPSTR szPIN,
 	ULONG *pulRetryCount);
 
-typedef ULONG (*SKF_UnblockPIN_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_UnblockPIN_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szAdminPIN,
 	LPSTR szNewUserPIN,
 	ULONG *pulRetryCount);
 
-typedef ULONG (*SKF_ClearSecureState_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ClearSecureState_FuncPtr)(
 	HAPPLICATION hApplication);
 
-typedef ULONG (*SKF_CreateApplication_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CreateApplication_FuncPtr)(
 	DEVHANDLE hDev,
 	LPSTR szAppName,
 	LPSTR szAdminPin,
@@ -150,45 +150,45 @@ typedef ULONG (*SKF_CreateApplication_FuncPtr)(
 	DWORD dwCreateFileRights,
 	HAPPLICATION *phApplication);
 
-typedef ULONG (*SKF_EnumApplication_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EnumApplication_FuncPtr)(
 	DEVHANDLE hDev,
 	LPSTR szAppName,
 	ULONG *pulSize);
 
-typedef ULONG (*SKF_DeleteApplication_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DeleteApplication_FuncPtr)(
 	DEVHANDLE hDev,
 	LPSTR szAppName);
 
-typedef ULONG (*SKF_OpenApplication_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_OpenApplication_FuncPtr)(
 	DEVHANDLE hDev,
 	LPSTR szAppName,
 	HAPPLICATION *phApplication);
 
-typedef ULONG (*SKF_CloseApplication_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CloseApplication_FuncPtr)(
 	HAPPLICATION hApplication);
 
-typedef ULONG (*SKF_CreateObject_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CreateObject_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szFileName,
 	ULONG ulFileSize,
 	ULONG ulReadRights,
 	ULONG ulWriteRights);
 
-typedef ULONG (*SKF_DeleteObject_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DeleteObject_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szFileName);
 
-typedef ULONG (*SKF_EnumObjects_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EnumObjects_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szFileList,
 	ULONG *pulSize);
 
-typedef ULONG (*SKF_GetObjectInfo_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GetObjectInfo_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szFileName,
 	FILEATTRIBUTE *pFileInfo);
 
-typedef ULONG (*SKF_ReadObject_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ReadObject_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szFileName,
 	ULONG ulOffset,
@@ -196,73 +196,73 @@ typedef ULONG (*SKF_ReadObject_FuncPtr)(
 	BYTE *pbOutData,
 	ULONG *pulOutLen);
 
-typedef ULONG (*SKF_WriteObject_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_WriteObject_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szFileName,
 	ULONG ulOffset,
 	BYTE *pbData,
 	ULONG ulSize);
 
-typedef ULONG (*SKF_CreateContainer_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CreateContainer_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer);
 
-typedef ULONG (*SKF_DeleteContainer_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DeleteContainer_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szContainerName);
 
-typedef ULONG (*SKF_EnumContainer_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EnumContainer_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	ULONG *pulSize);
 
-typedef ULONG (*SKF_OpenContainer_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_OpenContainer_FuncPtr)(
 	HAPPLICATION hApplication,
 	LPSTR szContainerName,
 	HCONTAINER *phContainer);
 
-typedef ULONG (*SKF_CloseContainer_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CloseContainer_FuncPtr)(
 	HCONTAINER hContainer);
 
-typedef ULONG (*SKF_GetContainerType_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GetContainerType_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG *pulContainerType);
 
-typedef ULONG (*SKF_ImportCertificate_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ImportCertificate_FuncPtr)(
 	HCONTAINER hContainer,
 	BOOL bExportSignKey,
 	BYTE *pbCert,
 	ULONG ulCertLen);
 
-typedef ULONG (*SKF_ExportCertificate_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExportCertificate_FuncPtr)(
 	HCONTAINER hContainer,
 	BOOL bSignFlag,
 	BYTE *pbCert,
 	ULONG *pulCertLen);
 
-typedef ULONG (*SKF_ExportPublicKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExportPublicKey_FuncPtr)(
 	HCONTAINER hContainer,
 	BOOL bSignFlag,
 	BYTE *pbBlob,
 	ULONG *pulBlobLen);
 
-typedef ULONG (*SKF_GenRandom_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenRandom_FuncPtr)(
 	DEVHANDLE hDev,
 	BYTE *pbRandom,
 	ULONG ulRandomLen);
 
-typedef ULONG (*SKF_GenExtRSAKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenExtRSAKey_FuncPtr)(
 	DEVHANDLE hDev,
 	ULONG ulBitsLen,
 	RSAPRIVATEKEYBLOB *pBlob);
 
-typedef ULONG (*SKF_GenRSAKeyPair_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenRSAKeyPair_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulBitsLen,
 	RSAPUBLICKEYBLOB *pBlob);
 
-typedef ULONG (*SKF_ImportRSAKeyPair_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ImportRSAKeyPair_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulSymAlgId,
 	BYTE *pbWrappedKey,
@@ -270,14 +270,14 @@ typedef ULONG (*SKF_ImportRSAKeyPair_FuncPtr)(
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedDataLen);
 
-typedef ULONG (*SKF_RSASignData_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_RSASignData_FuncPtr)(
 	HCONTAINER hContainer,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbSignature,
 	ULONG *pulSignLen);
 
-typedef ULONG (*SKF_RSAVerify_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_RSAVerify_FuncPtr)(
 	DEVHANDLE hDev,
 	RSAPUBLICKEYBLOB *pRSAPubKeyBlob,
 	BYTE *pbData,
@@ -285,7 +285,7 @@ typedef ULONG (*SKF_RSAVerify_FuncPtr)(
 	BYTE *pbSignature,
 	ULONG ulSignLen);
 
-typedef ULONG (*SKF_RSAExportSessionKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_RSAExportSessionKey_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulAlgId,
 	RSAPUBLICKEYBLOB *pPubKey,
@@ -293,7 +293,7 @@ typedef ULONG (*SKF_RSAExportSessionKey_FuncPtr)(
 	ULONG *pulDataLen,
 	HANDLE *phSessionKey);
 
-typedef ULONG (*SKF_ExtRSAPubKeyOperation_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExtRSAPubKeyOperation_FuncPtr)(
 	DEVHANDLE hDev,
 	RSAPUBLICKEYBLOB *pRSAPubKeyBlob,
 	BYTE *pbInput,
@@ -301,7 +301,7 @@ typedef ULONG (*SKF_ExtRSAPubKeyOperation_FuncPtr)(
 	BYTE *pbOutput,
 	ULONG *pulOutputLen);
 
-typedef ULONG (*SKF_ExtRSAPriKeyOperation_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExtRSAPriKeyOperation_FuncPtr)(
 	DEVHANDLE hDev,
 	RSAPRIVATEKEYBLOB *pRSAPriKeyBlob,
 	BYTE *pbInput,
@@ -309,70 +309,70 @@ typedef ULONG (*SKF_ExtRSAPriKeyOperation_FuncPtr)(
 	BYTE *pbOutput,
 	ULONG *pulOutputLen);
 
-typedef ULONG (*SKF_GenECCKeyPair_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenECCKeyPair_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pBlob);
 
-typedef ULONG (*SKF_ImportECCKeyPair_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ImportECCKeyPair_FuncPtr)(
 	HCONTAINER hContainer,
 	ENVELOPEDKEYBLOB *pEnvelopedKeyBlob);
 
-typedef ULONG (*SKF_ECCSignData_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ECCSignData_FuncPtr)(
 	HCONTAINER hContainer,
 	BYTE *pbDigest,
 	ULONG ulDigestLen,
 	ECCSIGNATUREBLOB *pSignature);
 
-typedef ULONG (*SKF_ECCVerify_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ECCVerify_FuncPtr)(
 	DEVHANDLE hDev,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature);
 
-typedef ULONG (*SKF_ECCExportSessionKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ECCExportSessionKey_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pPubKey,
 	ECCCIPHERBLOB *pData,
 	HANDLE *phSessionKey);
 
-typedef ULONG (*SKF_ExtECCEncrypt_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExtECCEncrypt_FuncPtr)(
 	DEVHANDLE hDev,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbPlainText,
 	ULONG ulPlainTextLen,
 	ECCCIPHERBLOB *pCipherText);
 
-typedef ULONG (*SKF_ECCDecrypt_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ECCDecrypt_FuncPtr)(
 	HCONTAINER hContainer,
 	ECCCIPHERBLOB *pCipherText,
 	BYTE *pbPlainText,
 	ULONG *pulPlainTextLen);
 
-typedef ULONG (*SKF_ExtECCDecrypt_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExtECCDecrypt_FuncPtr)(
 	DEVHANDLE hDev,
 	ECCPRIVATEKEYBLOB *pECCPriKeyBlob,
 	ECCCIPHERBLOB *pCipherText,
 	BYTE *pbPlainText,
 	ULONG *pulPlainTextLen);
 
-typedef ULONG (*SKF_ExtECCSign_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExtECCSign_FuncPtr)(
 	DEVHANDLE hDev,
 	ECCPRIVATEKEYBLOB *pECCPriKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature);
 
-typedef ULONG (*SKF_ExtECCVerify_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ExtECCVerify_FuncPtr)(
 	DEVHANDLE hDev,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	ECCSIGNATUREBLOB *pSignature);
 
-typedef ULONG (*SKF_GenerateAgreementDataWithECC_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenerateAgreementDataWithECC_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pTempECCPubKeyBlob,
@@ -380,7 +380,7 @@ typedef ULONG (*SKF_GenerateAgreementDataWithECC_FuncPtr)(
 	ULONG ulIDLen,
 	HANDLE *phAgreementHandle);
 
-typedef ULONG (*SKF_GenerateAgreementDataAndKeyWithECC_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenerateAgreementDataAndKeyWithECC_FuncPtr)(
 	HANDLE hContainer,
 	ULONG ulAlgId,
 	ECCPUBLICKEYBLOB *pSponsorECCPubKeyBlob,
@@ -392,7 +392,7 @@ typedef ULONG (*SKF_GenerateAgreementDataAndKeyWithECC_FuncPtr)(
 	ULONG ulSponsorIDLen,
 	HANDLE *phKeyHandle);
 
-typedef ULONG (*SKF_GenerateKeyWithECC_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_GenerateKeyWithECC_FuncPtr)(
 	HANDLE hAgreementHandle,
 	ECCPUBLICKEYBLOB *pECCPubKeyBlob,
 	ECCPUBLICKEYBLOB *pTempECCPubKeyBlob,
@@ -400,66 +400,66 @@ typedef ULONG (*SKF_GenerateKeyWithECC_FuncPtr)(
 	ULONG ulIDLen,
 	HANDLE *phKeyHandle);
 
-typedef ULONG (*SKF_ImportSessionKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_ImportSessionKey_FuncPtr)(
 	HCONTAINER hContainer,
 	ULONG ulAlgId,
 	BYTE *pbWrapedData,
 	ULONG ulWrapedLen,
 	HANDLE *phKey);
 
-typedef ULONG (*SKF_SetSymmKey_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_SetSymmKey_FuncPtr)(
 	DEVHANDLE hDev,
 	BYTE *pbKey,
 	ULONG ulAlgID,
 	HANDLE *phKey);
 
-typedef ULONG (*SKF_EncryptInit_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EncryptInit_FuncPtr)(
 	HANDLE hKey,
 	BLOCKCIPHERPARAM EncryptParam);
 
-typedef ULONG (*SKF_Encrypt_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_Encrypt_FuncPtr)(
 	HANDLE hKey,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen);
 
-typedef ULONG (*SKF_EncryptUpdate_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EncryptUpdate_FuncPtr)(
 	HANDLE hKey,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedLen);
 
-typedef ULONG (*SKF_EncryptFinal_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_EncryptFinal_FuncPtr)(
 	HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG *pulEncryptedDataLen);
 
-typedef ULONG (*SKF_DecryptInit_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DecryptInit_FuncPtr)(
 	HANDLE hKey,
 	BLOCKCIPHERPARAM DecryptParam);
 
-typedef ULONG (*SKF_Decrypt_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_Decrypt_FuncPtr)(
 	HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedLen,
 	BYTE *pbData,
 	ULONG *pulDataLen);
 
-typedef ULONG (*SKF_DecryptUpdate_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DecryptUpdate_FuncPtr)(
 	HANDLE hKey,
 	BYTE *pbEncryptedData,
 	ULONG ulEncryptedLen,
 	BYTE *pbData,
 	ULONG *pulDataLen);
 
-typedef ULONG (*SKF_DecryptFinal_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DecryptFinal_FuncPtr)(
 	HANDLE hKey,
 	BYTE *pbDecryptedData,
 	ULONG *pulDecryptedDataLen);
 
-typedef ULONG (*SKF_DigestInit_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DigestInit_FuncPtr)(
 	DEVHANDLE hDev,
 	ULONG ulAlgID,
 	ECCPUBLICKEYBLOB *pPubKey,
@@ -467,46 +467,46 @@ typedef ULONG (*SKF_DigestInit_FuncPtr)(
 	ULONG ulIDLen,
 	HANDLE *phHash);
 
-typedef ULONG (*SKF_Digest_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_Digest_FuncPtr)(
 	HANDLE hHash,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbHashData,
 	ULONG *pulHashLen);
 
-typedef ULONG (*SKF_DigestUpdate_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DigestUpdate_FuncPtr)(
 	HANDLE hHash,
 	BYTE *pbData,
 	ULONG ulDataLen);
 
-typedef ULONG (*SKF_DigestFinal_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_DigestFinal_FuncPtr)(
 	HANDLE hHash,
 	BYTE *pHashData,
 	ULONG *pulHashLen);
 
-typedef ULONG (*SKF_MacInit_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_MacInit_FuncPtr)(
 	HANDLE hKey,
 	BLOCKCIPHERPARAM *pMacParam,
 	HANDLE *phMac);
 
-typedef ULONG (*SKF_Mac_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_Mac_FuncPtr)(
 	HANDLE hMac,
 	BYTE *pbData,
 	ULONG ulDataLen,
 	BYTE *pbMacData,
 	ULONG *pulMacLen);
 
-typedef ULONG (*SKF_MacUpdate_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_MacUpdate_FuncPtr)(
 	HANDLE hMac,
 	BYTE *pbData,
 	ULONG ulDataLen);
 
-typedef ULONG (*SKF_MacFinal_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_MacFinal_FuncPtr)(
 	HANDLE hMac,
 	BYTE *pbMacData,
 	ULONG *pulMacDataLen);
 
-typedef ULONG (*SKF_CloseHandle_FuncPtr)(
+typedef ULONG (DEVAPI *SKF_CloseHandle_FuncPtr)(
 	HANDLE hHandle);
 
 
