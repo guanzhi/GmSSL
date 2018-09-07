@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -3090,7 +3090,14 @@ static const ec_list_element curve_list[] = {
     {NID_brainpoolP512t1, &_EC_brainpoolP512t1.h, 0,
      "RFC 5639 curve over a 512 bit prime field"},
 #ifndef OPENSSL_NO_SM2
-    {NID_sm2p256v1, &_EC_SM2_PRIME_256V1.h, 0,
+    {NID_sm2p256v1, &_EC_SM2_PRIME_256V1.h,
+# if defined(ECP_NISTZ256_ASM)
+     EC_GFp_sm2z256_method,
+# elif !defined(OPENSSL_NO_EC_NISTP_64_GCC_128)
+     EC_GFp_sm2p256_method,
+# else
+     0,
+# endif
      "SM2 curve over a 256 bit prime field"},
     {NID_wapip192v1, &_EC_WAPI_PRIME_192V1.h, 0,
      "WAPI curve over a 192 bit prime field"},

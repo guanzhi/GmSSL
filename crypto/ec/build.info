@@ -22,7 +22,11 @@ INCLUDE[ecp_nistz256-armv4.o]=..
 GENERATE[ecp_nistz256-armv8.S]=asm/ecp_nistz256-armv8.pl $(PERLASM_SCHEME)
 INCLUDE[ecp_nistz256-armv8.o]=..
 
+GENERATE[ecp_sm2z256-x86_64.s]=asm/ecp_sm2z256-x86_64.pl $(PERLASM_SCHEME)
+
 BEGINRAW[Makefile]
 {- $builddir -}/ecp_nistz256-%.S:	{- $sourcedir -}/asm/ecp_nistz256-%.pl
+	CC="$(CC)" $(PERL) $< $(PERLASM_SCHEME) $@
+{- $builddir -}/ecp_sm2z256-%.S:	{- $sourcedir -}/asm/ecp_sm2z256-%.pl
 	CC="$(CC)" $(PERL) $< $(PERLASM_SCHEME) $@
 ENDRAW[Makefile]

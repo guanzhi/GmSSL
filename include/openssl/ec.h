@@ -94,6 +94,10 @@ const EC_METHOD *EC_GFp_nistp256_method(void);
  *  \return  EC_METHOD object
  */
 const EC_METHOD *EC_GFp_nistp521_method(void);
+
+#  ifndef OPENSSL_NO_SM2
+const EC_METHOD *EC_GFp_sm2p256_method(void);
+#  endif
 # endif
 
 # ifndef OPENSSL_NO_EC2M
@@ -1408,6 +1412,11 @@ int ERR_load_EC_strings(void);
 # define EC_F_ECP_NISTZ256_POINTS_MUL                     137
 # define EC_F_ECP_NISTZ256_PRE_COMP_NEW                   138
 # define EC_F_ECP_NISTZ256_WINDOWED_MUL                   139
+# define EC_F_ECP_SM2Z256_GET_AFFINE                      278
+# define EC_F_ECP_SM2Z256_MULT_PRECOMPUTE                 279
+# define EC_F_ECP_SM2Z256_POINTS_MUL                      280
+# define EC_F_ECP_SM2Z256_PRE_COMP_NEW                    281
+# define EC_F_ECP_SM2Z256_WINDOWED_MUL                    282
 # define EC_F_ECX_KEY_OP                                  140
 # define EC_F_ECX_PRIV_ENCODE                             141
 # define EC_F_ECX_PUB_ENCODE                              142
@@ -1448,6 +1457,9 @@ int ERR_load_EC_strings(void);
 # define EC_F_EC_GFP_SIMPLE_POINT_GET_AFFINE_COORDINATES  177
 # define EC_F_EC_GFP_SIMPLE_POINT_SET_AFFINE_COORDINATES  178
 # define EC_F_EC_GFP_SIMPLE_SET_COMPRESSED_COORDINATES    179
+# define EC_F_EC_GFP_SM2P256_GROUP_SET_CURVE              274
+# define EC_F_EC_GFP_SM2P256_POINTS_MUL                   275
+# define EC_F_EC_GFP_SM2P256_POINT_GET_AFFINE_COORDINATES 276
 # define EC_F_EC_GROUP_CHECK                              180
 # define EC_F_EC_GROUP_CHECK_DISCRIMINANT                 181
 # define EC_F_EC_GROUP_COPY                               182
@@ -1531,6 +1543,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_PKEY_EC_KEYGEN                              260
 # define EC_F_PKEY_EC_PARAMGEN                            261
 # define EC_F_PKEY_EC_SIGN                                262
+# define EC_F_SM2P256_PRE_COMP_NEW                        277
 # define EC_F_SM2_COMPUTE_ID_DIGEST                       263
 # define EC_F_SM2_COMPUTE_MESSAGE_DIGEST                  264
 # define EC_F_SM2_DO_ENCRYPT                              265
