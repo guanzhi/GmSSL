@@ -96,8 +96,8 @@ static int sms4_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 }
 
 IMPLEMENT_BLOCK_CIPHER(sms4, ks, sms4, EVP_SMS4_KEY, NID_sms4,
-	SMS4_BLOCK_SIZE, SMS4_KEY_LENGTH, SMS4_IV_LENGTH, 128, 0,
-	sms4_init_key, NULL, NULL, NULL, NULL)
+	SMS4_BLOCK_SIZE, SMS4_KEY_LENGTH, SMS4_IV_LENGTH, 128,
+	EVP_CIPH_FLAG_DEFAULT_ASN1, sms4_init_key, NULL, NULL, NULL, NULL)
 
 # define MAXBITCHUNK     ((size_t)1<<(sizeof(size_t)*8-4))
 
