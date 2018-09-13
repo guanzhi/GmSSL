@@ -84,7 +84,11 @@ static const int abits = {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,
 	1,1,1,0,1,1,0,0,1,0,0,1,1,1,1,1,
+	0, };
 
+static const int ebits = {
+	0, 0, 1, 0,
+};
 
 static int fp_is_zero(const fp_t a)
 {
@@ -196,6 +200,12 @@ static void fp2_neg(fp2_t r, const fp2_t a)
 {
 	fp_neg(r[0], a[0]);
 	fp_neg(r[1], a[1]);
+}
+
+static void fp2_conjugate(fp2_t r, const fp2_t a)
+{
+	fp2_copy(r[0], a[0]);
+	fp2_neg(r[1], a[1]);
 }
 
 static void fp2_mul(fp2_t r, const fp2_t a, const fp2_t b)
@@ -632,12 +642,84 @@ static void point_set_infinity(point_t P)
 	fp2_set_zero(P.Z);
 }
 
-static void point_add(point_t R, const point_t P, const point_t Q)
+static void point_set_affine_coordinates(point_t P, const fp2_t x, const fp2_t y)
 {
+	fp2_copy(P.X, x);
+	fp2_copy(P.Y, y);
+	fp2_set_one(P.Z);
+}
+
+static void point_get_affine_coordinates(const point_t P, fp2_t x, fp2_t y)
+{
+	fp2_copy(x, P.X);
+	fp2_copy(y, P.y);
 }
 
 static void point_dbl(point_t R, const point_t P)
 {
+	fp2_t x3, y3, x1, y1, lambda, t0, t1;
+
+	if (point_is_at_infinity(P)) {
+		point_set_infinity(R);
+		return;
+	}
+
+	point_get_affine_coorindates(P, x1, y1);
+
+	fp12_sqr(t0, x1);
+	fp12_tri(t1, t0);
+	fp12_dbl(t0, y1);
+	fp12_div(lambda, t1, t0);
+
+	fp12_sqr(t0, lambda);
+	fp12_dbl(t1, x1);
+	fp12_sub(x3, t0, t1);
+
+	fp12_sub(t0, x1, x3);
+	fp12_mul(t1, lambda, t0);
+	fp12_sub(y3, t1, y1);
+
+	point_set_affine_coordinates(R, x3, y3);	
+}
+
+static void point_add(point_t R, const point_t P, const point_t Q)
+{
+	if (point_is_at_infinity(P)) {
+		point_copy(R, Q);
+		return;
+	}
+
+	if (point_is_at_infinity(Q)) {
+		point_copy(R, P);
+		return;
+	}
+
+	point_get_affine_coordinates(P, x1, y1);
+	point_get_affine_coordinates(Q, x2, y2);
+
+	fp2_add(t0, y1, y2);
+	if (fp2_equ(x1, x2) && fp2_is_zero(t0)) {
+		point_set_infinity(R);
+	}
+
+	if (point_equ(P, Q)) {
+		point_dbl(R, P);
+		return;
+	}
+
+	fp2_sub(t0, y2, y1);
+	fp2_sub(t1, x2, x1);
+	fp2_div(lambda, t0, t1);
+
+	fp2_sqr(t0, lambda);
+	fp2_sub(t1, x1, x2);
+	fp2_sub(x3, t0, t1);
+
+	fp2_sub(t0, x1, x3);
+	fp2_mul(t1, lambda, t0);
+	fp2_sub(y3, t1, y1);
+
+	point_set_affine_coordinates(R, x3, y3);
 }
 
 static void point_neg(point_t R, const point_t P)
@@ -701,6 +783,7 @@ static void frob(fp12_t xR, fp12_t yR, const point_t P)
 	fp12_t t0, t1;
 
 	point_get_affine_coordinates(x, y, R);
+
 	fp2_conjugate(x);
 	fp2_conjugate(y);
 	fp12_set_fp(t0, x);
@@ -720,9 +803,63 @@ static void frob_twice(fp12_t xR, fp12_t yR, const point_t P)
 
 }
 
-static void sm9_rate(fp12_t r, const fp2_t xQ, const fp2_t yQ,
-	const fp_t xP, const fp_t yP)
-{	
+static void final_expo(fp12_t r, const fp12_t a)
+{
+	fp12_copy(r, a);
+	for (i = 0; i < sizeof(ebits); i++) {
+		fp12_sqr_to(r);
+		if (ebits[i]) {
+			fp12_mul_to(r, a);
+		}
+	}
+}
+
+static void rate(fp12_t r, const point_t Q,  const fp_t xP, const fp_t yP)
+{
+	int i;
+
+	fp12_t f, g;
+
+	point_copy(T, Q);
+	fp12_set_one(f);
+
+	for (i = 0; i < sizeof(abits); i++) {
+		eval(g, T, T, xP, yP);
+
+		fp12_sqr(t0, f);
+		fp12_mul(t1, t0, g);
+		fp12_copy(f, t1);
+
+		point_dbl(R, T);
+		point_copy(T, R);
+
+		if (abits[i]) {
+			eval(g, T, Q, xP, yP);
+
+			fp12_mul(t0, f, g);
+			fp12_copy(f, t0);
+
+			point_add(R, T, Q);
+			point_copy(T, R);
+		}
+	}
+
+	frob(Q, Q1);
+	frob_twice(Q, Q2);
+
+	eval(g, T, Q1, xP, yP);
+	fp12_mul(t, f, g);
+	fp12_copy(f, t);
+
+	point_add(R, T, Q1);
+	point_copy(T, R);
+
+	point_neg(R, Q2);
+	eval(g, T, R, xP, yP);
+	fp12_mul(t, f, g);
+	fp12_copy(f, t);
+
+	final_expo(r, f);
 }
 
 int test()
