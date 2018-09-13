@@ -1670,3 +1670,7 @@ wapi-crypto 1		: wapi-ec
 wapi-ec 1		: wapi-ecdsa192-sha256
 wapi-ec 2 1		: wapip192v1
 
+# SM9 curve
+GmSSL 9 1		: sm9bn256v1
+
+

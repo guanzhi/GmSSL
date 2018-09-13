@@ -10,7 +10,7 @@
  */
 
 /* Serialized OID's */
-static const unsigned char so[7787] = {
+static const unsigned char so[7797] = {
     0x2A,0x86,0x48,0x86,0xF7,0x0D,                 /* [    0] OBJ_rsadsi */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,            /* [    6] OBJ_pkcs */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,       /* [   13] OBJ_md2 */
@@ -1091,9 +1091,10 @@ static const unsigned char so[7787] = {
     0x2A,0x81,0x1C,0xD7,0x63,0x01,                 /* [ 7765] OBJ_wapi_crypto */
     0x2A,0x81,0x1C,0xD7,0x63,0x01,0x01,            /* [ 7771] OBJ_wapi_ec */
     0x2A,0x81,0x1C,0xD7,0x63,0x01,0x01,0x01,       /* [ 7778] OBJ_wapi_ecdsa192_sha256 */
+    0x2B,0x06,0x01,0x04,0x01,0x83,0x83,0x0D,0x09,0x01,  /* [ 7786] OBJ_sm9bn256v1 */
 };
 
-#define NUM_NID 1200
+#define NUM_NID 1201
 static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"UNDEF", "undefined", NID_undef},
     {"rsadsi", "RSA Data Security, Inc.", NID_rsadsi, 6, &so[0]},
@@ -2295,9 +2296,10 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"wapi-crypto", "wapi-crypto", NID_wapi_crypto, 6, &so[7765]},
     {"wapi-ec", "wapi-ec", NID_wapi_ec, 7, &so[7771]},
     {"wapi-ecdsa192-sha256", "wapi-ecdsa192-sha256", NID_wapi_ecdsa192_sha256, 8, &so[7778]},
+    {"sm9bn256v1", "sm9bn256v1", NID_sm9bn256v1, 10, &so[7786]},
 };
 
-#define NUM_SN 1189
+#define NUM_SN 1190
 static const unsigned int sn_objs[NUM_SN] = {
      364,    /* "AD_DVCS" */
      419,    /* "AES-128-CBC" */
@@ -3420,6 +3422,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1149,    /* "sm2exchange" */
     1116,    /* "sm2p256v1" */
     1117,    /* "sm2sign" */
+    1200,    /* "sm9bn256v1" */
     1125,    /* "sm9encrypt" */
     1124,    /* "sm9keyagreement" */
     1123,    /* "sm9sign" */
@@ -3490,7 +3493,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1194,    /* "zuc-128eia3" */
 };
 
-#define NUM_LN 1189
+#define NUM_LN 1190
 static const unsigned int ln_objs[NUM_LN] = {
      363,    /* "AD Time Stamping" */
      405,    /* "ANSI X9.62" */
@@ -4597,6 +4600,7 @@ static const unsigned int ln_objs[NUM_LN] = {
     1089,    /* "sm6-cfb" */
     1086,    /* "sm6-ecb" */
     1088,    /* "sm6-ofb" */
+    1200,    /* "sm9bn256v1" */
     1125,    /* "sm9encrypt" */
     1124,    /* "sm9keyagreement" */
     1123,    /* "sm9sign" */
@@ -4683,7 +4687,7 @@ static const unsigned int ln_objs[NUM_LN] = {
     1194,    /* "zuc-128eia3" */
 };
 
-#define NUM_OBJ 1086
+#define NUM_OBJ 1087
 static const unsigned int obj_objs[NUM_OBJ] = {
        0,    /* OBJ_undef                        0 */
      181,    /* OBJ_iso                          1 */
@@ -5667,6 +5671,7 @@ static const unsigned int obj_objs[NUM_OBJ] = {
      648,    /* OBJ_ms_smartcard_login           1 3 6 1 4 1 311 20 2 2 */
      649,    /* OBJ_ms_upn                       1 3 6 1 4 1 311 20 2 3 */
     1151,    /* OBJ_cpk_map                      1 3 6 1 4 1 49549 1 1 */
+    1200,    /* OBJ_sm9bn256v1                   1 3 6 1 4 1 49549 9 1 */
      951,    /* OBJ_ct_precert_scts              1 3 6 1 4 1 11129 2 4 2 */
      952,    /* OBJ_ct_precert_poison            1 3 6 1 4 1 11129 2 4 3 */
      953,    /* OBJ_ct_precert_signer            1 3 6 1 4 1 11129 2 4 4 */

@@ -5172,3 +5172,7 @@
 #define SN_wapip192v1           "wapip192v1"
 #define NID_wapip192v1          1135
 #define OBJ_wapip192v1          OBJ_wapi_ec,2L,1L
+
+#define SN_sm9bn256v1           "sm9bn256v1"
+#define NID_sm9bn256v1          1200
+#define OBJ_sm9bn256v1          OBJ_GmSSL,9L,1L

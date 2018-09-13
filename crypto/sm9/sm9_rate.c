@@ -50,7 +50,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-
+#include <openssl/bn.h>
+#include <openssl/ec.h>
+#include <openssl/err.h>
 
 typedef uint64_t fp_t[4];
 typedef fp_t fp2_t[2];
@@ -87,8 +89,11 @@ static const int abits = {
 	0, };
 
 static const int ebits = {
-	0, 0, 1, 0,
+
 };
+
+
+
 
 static int fp_is_zero(const fp_t a)
 {
@@ -825,22 +830,14 @@ static void rate(fp12_t r, const point_t Q,  const fp_t xP, const fp_t yP)
 
 	for (i = 0; i < sizeof(abits); i++) {
 		eval(g, T, T, xP, yP);
-
-		fp12_sqr(t0, f);
-		fp12_mul(t1, t0, g);
-		fp12_copy(f, t1);
-
-		point_dbl(R, T);
-		point_copy(T, R);
+		fp12_sqr_to(f);
+		fp12_mul_to(f, g);
+		point_dbl_to(T);
 
 		if (abits[i]) {
 			eval(g, T, Q, xP, yP);
-
-			fp12_mul(t0, f, g);
-			fp12_copy(f, t0);
-
-			point_add(R, T, Q);
-			point_copy(T, R);
+			fp12_mul_to(f, g);
+			point_add_to(T, Q);
 		}
 	}
 
@@ -848,16 +845,13 @@ static void rate(fp12_t r, const point_t Q,  const fp_t xP, const fp_t yP)
 	frob_twice(Q, Q2);
 
 	eval(g, T, Q1, xP, yP);
-	fp12_mul(t, f, g);
-	fp12_copy(f, t);
+	fp12_mul_to(f, g);
+	point_add_to(T, Q1);
 
-	point_add(R, T, Q1);
-	point_copy(T, R);
-
-	point_neg(R, Q2);
-	eval(g, T, R, xP, yP);
-	fp12_mul(t, f, g);
-	fp12_copy(f, t);
+	point_neg_to(Q2);
+	eval(g, T, Q, xP, yP);
+	fp12_mul_to(f, g);
+	//point_add_to(T, Q2); 
 
 	final_expo(r, f);
 }
