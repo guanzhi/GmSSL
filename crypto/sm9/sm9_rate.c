@@ -54,256 +54,309 @@
 #include <openssl/ec.h>
 #include <openssl/err.h>
 
-typedef uint64_t fp_t[4];
-typedef fp_t fp2_t[2];
+typedef BIGNUM *fp2_t[2];
 typedef fp2_t fp4_t[2];
 typedef fp4_t fp12_t[3];
-
 typedef struct {
 	fp2_t X;
 	fp2_t Y;
 	fp2_t Z;
 } point_t;
 
-static const uint64_t sm9_prime[4] = {
-	0xe56f9b27e351457dul, 0x21f2934b1a7aeedbul,
-	0xd603ab4ff58ec745ul, 0xb640000002a3a6f1ul
-};
-
-static const uint64_t sm9_order[4] = {
-	0xe56ee19cd69ecf25ul, 0x49f2934b18ea8beeul,
-	0xd603ab4ff58ec744ul, 0xb640000002a3a6f1ul,
-};
-
 static const uint64_t sm9_a[2] = {
 	0x400000000215d93eul, 0x02ul
 };
 
-static const fp2_t sm9_b = {{0, 0, 0, 0}, {5, 0, 0, 0}};
-
-static const int abits = {
-	0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,
-	1,1,1,0,1,1,0,0,1,0,0,1,1,1,1,1,
-	0, };
-
-static const int ebits = {
-
-};
-
-
-
-
-static int fp_is_zero(const fp_t a)
+static int fp2_init(fp2_t a, BN_CTX *ctx)
 {
-	return a[0] == 0 && a[1] == 0 && a[2] == 0 && a[3] == 0;
+	a[0] = NULL;
+	a[1] = NULL;
+	a[0] = BN_CTX_get(ctx);
+	a[1] = BN_CTX_get(ctx);
+	if (!a[1]) {
+		BN_free(a[0]);
+		a[0] = NULL;
+		return 0;
+	}
+	return 1;
 }
 
-static int fp_is_one(const fp_t a)
+static void fp2_cleanup(fp2_t a)
 {
-	return a[0] == 1 && a[1] == 0 && a[2] == 0 && a[3] == 0;
+	BN_free(a[0]);
+	BN_free(a[1]);
+	a[0] = NULL;
+	a[1] = NULL;
 }
 
-static void fp_set_zero(fp_t r)
+static void fp2_clear_cleanup(fp2_t a)
 {
-	r[0] = 0;
-	r[1] = 0;
-	r[2] = 0;
-	r[3] = 0;
+	BN_clear_free(a[0]);
+	BN_clear_free(a[1]);
+	a[0] = NULL;
+	a[1] = NULL;
 }
 
-static void fp_set_one(fp_t r)
+static int fp2_is_zero(fp2_t a)
 {
-	r[0] = 1;
-	r[1] = 0;
-	r[2] = 0;
-	r[3] = 0;
+	return BN_is_zero(a[0])
+		&& BN_is_zero(a[1]);
 }
 
-static void fp_add(fp_t r, const fp_t a)
+static int fp2_is_one(fp2_t a)
 {
-	r[0] += a[0];
-	r[1] += a[1];
-	r[2] += a[2];
-	r[3] += a[3];
-}
-
-static void fp_sub(fp_t r, const fp_t a)
-{
-}
-
-static void fp_neg(fp_t r)
-{
-}
-
-static int fp2_is_zero(const fp2_t a)
-{
-	return fp_is_zero(a[0]) && fp_is_zero(a[1]);
-}
-
-static int fp2_is_one(const fp2_t a)
-{
-	return fp_is_one(a[0]) && fp_is_zero(a[1]);
+	return BN_is_one(a[0])
+		&& BN_is_zero(a[1]);
 }
 
 static void fp2_set_zero(fp2_t r)
 {
-	fp_set_zero(r[0]);
-	fp_set_zero(r[1]);
+	BN_zero(r[0]);
+	BN_zero(r[1]);
 }
 
-static void fp2_set_one(fp2_t r)
+static int fp2_set_one(fp2_t r)
 {
-	fp_set_one(r[0]);
-	fp_set_zero(r[1]);
+	BN_zero(r[1]);
+	return BN_one(r[0]);
 }
 
-static void fp2_copy(fp2_t r, const fp2_t a)
+static int fp2_copy(fp2_t r, const fp2_t a)
 {
-	fp_copy(r[0], a[0]);
-	fp_copy(r[1], a[1]);
+	return BN_copy(r[0], a[0])
+		&& BN_copy(r[1], a[1]);
 }
 
-static void fp2_set(fp2_t r, const fp_t a0, const fp_t a1)
+static int fp2_set(fp2_t r, const BIGNUM *a0, const BIGNUM *a1)
 {
-	fp_copy(r[0], a0);
-	fp_copy(r[1], a1);
+	return BN_copy(r[0], a0)
+		&& BN_copy(r[1], a1);
 }
 
-static void fp2_set_fp(fp2_t r, const fp_t a)
+static int fp2_set_u(fp2_t r)
 {
-	fp_copy(r[0], a);
-	fp_set_zero(r[1]);
+	BN_zero(r[0]);
+	return BN_one(r[1]);
 }
 
-static void fp2_set_u(fp2_t r)
+static int fp2_set_bn(fp2_t r, const BIGNUM *a)
 {
-	fp_set_zero(r[0]);
-	fp_set_one(r[1]);
+	BN_zero(r[1]);
+	return BN_copy(r[0], a);
 }
 
-static void fp2_add(fp2_t r, const fp2_t a, const fp2_t b)
+static int fp2_set_word(fp2_t r, unsigned long a)
 {
-	fp_add(r[0], a[0], b[0]);
-	fp_add(r[1], a[1], b[1]);
+	BN_zero(r[1]);
+	return BN_set_word(r[0], a);
 }
 
-static void fp2_dbl(fp2_t r, const fp2_t a)
+static int fp2_equ(const fp2_t a, const fp2_t b)
 {
-	fp_dbl(r[0], a[0]);
-	fp_dbl(r[1], a[1]);
+	return !BN_cmp(a[0], b[0]) && !BN_cmp(a[1], b[1]);
 }
 
-static void fp2_sub(fp2_t r, const fp2_t a, const fp2_t b)
+static int fp2_add(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp_sub(r[0], a[0], b[0]);
-	fp_sub(r[1], a[1], b[1]);
+	return BN_mod_add(r[0], a[0], b[0], p, ctx)
+		&& BN_mod_add(r[1], a[1], b[1], p, ctx);
 }
 
-static void fp2_neg(fp2_t r, const fp2_t a)
+static int fp2_dbl(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp_neg(r[0], a[0]);
-	fp_neg(r[1], a[1]);
+	return BN_mod_add(r[0], a[0], a[0], p, ctx)
+		&& BN_mod_add(r[1], a[1], a[1], p, ctx);
 }
 
-static void fp2_conjugate(fp2_t r, const fp2_t a)
+static int fp2_sub(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_copy(r[0], a[0]);
-	fp2_neg(r[1], a[1]);
+	return BN_mod_sub(r[0], a[0], b[0], p, ctx)
+		&& BN_mod_sub(r[1], a[1], b[1], p, ctx);
 }
 
-static void fp2_mul(fp2_t r, const fp2_t a, const fp2_t b)
+static int fp2_neg(fp2_t r, const fp2_t a, const BIGNUM *p)
 {
-	fp_t t0, t1, t2;
-
-	fp_mul(t0, a[0], b[0]);
-	fp_sqr(t1, a[1], b[1]);
-	fp_dbl(t2, t1);
-	fp_sub(r[0], t0, t2);
-
-	fp_mul(t0, a[1], b[0]);
-	fp_mul(t1, a[0], b[1]);
-	fp_add(r[1], t0, t1);
+	return BN_sub(r[0], p, a[0])
+		&& BN_sub(r[1], p, a[1]);
 }
 
-static void fp2_mul_u(fp2_t r, const fp2_t a, const fp2_t b)
+static void fp2_conjugate(fp2_t r, const fp2_t a, const BIGNUM *p)
 {
-	fp_t t0, t1, t2;
-
-	fp_mul(t0, a[1], b[0]);
-	fp_mul(t1, a[0], b[1]);
-	fp_add(r[0], t0, t1);
-	fp_dbl(t0, r[0]);
-	fp_neg(r[0], t0);
-
-	fp_mul(t0, a[0], b[0]);
-	fp_mul(t1, a[1], b[1]);
-	fp_dbl(t2, t1);
-	fp_sub(r[1], t0, t2);
+	return fp2_copy(r[0], a[0])
+		&& fp2_neg(r[1], a[1], p);
 }
 
-static void fp2_sqr(fp2_t r, const fp2_t a)
+static int fp2_mul(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp_t t0, t1, t2;
+	BIGNUM *t = NULL;
+	if (!(t = BN_CTX_get(ctx))
+		/* r0 = a0 * b0 - 2 * a1 * b1 */
+		|| !BN_mod_mul(r[0], a[0], b[0], p, ctx)
+		|| !BN_mod_sqr(t, a[1], b[1], p, ctx)
+		|| !BN_mod_add(t, t, t, p, ctx)
+		|| !BN_mod_sub(r[0], r[0], t, p, ctx)
 
-	fp_sqr(t0, a[0]);
-	fp_sqr(t1, a[1]);
-	fp_dbl(t2, t1);
-	fp_sub(r[0], t0, t2);
-
-	fp_mul(t0, a[0], a[1]);
-	fp_dbl(r[1], t0);
-}
-
-static void fp2_sqr_u(fp2_t r, const fp2_t a)
-{
-	fp_t t0, t1, t2;
-
-	fp_mul(t0, a[0], a[1]);
-	fp_dbl(t1, t0);
-	fp_dbl(t2, t1);
-	fp_neg(r[0], t2);
-
-	fp_sqr(t0, a[0]);
-	fp_sqr(t1, a[1]);
-	fp_dbl(t2, t1);
-	fp_sub(r[1], t0, t2);
-}
-
-static void fp2_inv(fp2_t r, const fp2_t a)
-{
-	fp_t k, t0, t1, t2;
-
-	if (fp_is_zero(a[1])) {
-		fp_inv(r[0], a[0]);
-		fp_set_zero(r[1])
-	} else if (fp_is_zero(a[0])) {
-		fp_set_zero(r[0]);
-		fp_dbl(t0, a[1]);
-		fp_inv(t1, t0);
-		fp_neg(r[1], t1);
-	} else {
-		fp_sqr(t0, a[1]);
-		fp_dbl(t1, t0);
-		fp_sqr(t0, a[0]);
-		fp_add(t2, t0, t1);
-		fp_inv(k, t2);
-	
-		fp_mul(r[0], a[0], k);
-		fp_mul(t0, a[1], k);
-		fp_neg(r[1], t0);
+		/* r1 = a0 * b1 + a1 * b0 */
+		|| !BN_mod_mul(r[1], a[0], b[1], p, ctx)
+		|| !BN_mod_mul(t, a[1], b[0], p, ctx)
+		|| !BN_mod_add(r[1], r[1], t, p, ctx)) {
+		BN_free(t);
+		return 0;
 	}
+	BN_free(t);
+	return 1;
+}
+
+static int fp2_mul_u(fp2_t r, fp2_t a, fp2_t b, const BIGNUM *p, BN_CTX *ctx)
+{
+	BIGNUM *t = NULL;
+	if (!(t = BN_CTX_get(ctx))
+		/* r0 = -2 * (a0 * b1 + a1 * b0) */
+		|| !BN_mod_mul(r[0], a[0], b[1], p, ctx)
+		|| !BN_mod_mul(t, a[1], b[0], p, ctx)
+		|| !BN_mod_add(r[0], r[0], t, p, ctx)
+		|| !BN_mod_add(r[0], r[0], r[0], p, ctx)
+		|| !BN_mod_sub(r[0], p, r[0], p, ctx)
+
+		/* r1 = a0 * b0 - 2 * a1 * b1 */
+		|| !BN_mod_mul(r[1], a[0], b[0], p, ctx)
+		|| !BN_mod_mul(t, a[1], b[1], p, ctx)
+		|| !BN_mod_add(t, t, t, p, ctx)
+		|| !BN_mod_sub(r[1], r[1], t, p, ctx)) {
+		BN_free(t);
+		return 0;
+	}
+	BN_free(t);
+	return 1;
+}
+
+static int fp2_sqr(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	BIGNUM *t = NULL;
+	if (!(t = BN_CTX_get(ctx))
+		/* r0 = a0^2 - 2 * a1^2 */
+		|| !BN_mod_sqr(r[0], a[0], p, ctx)
+		|| !BN_mod_sqr(t, a[1], p, ctx)
+		|| !BN_mod_add(t, t, t, p, ctx)
+		|| !BN_mod_sub(r[0], r[0], t, p, ctx)
+
+		/* r1 = 2 * a0 * a1 */
+		|| !BN_mod_mul(r[1], a[0], a[1], p, ctx)
+		|| !BN_mod_add(r[1], r[1], r[1], p, ctx)) {
+		BN_free(t);
+		return 0;
+	}
+	BN_free(t);
+	return 1;
+}
+
+static int fp2_sqr_u(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	BIGNUM *t = NULL;
+	if (!(t = BN_CTX_get(ctx))
+		/* r0 = -4 * a0 * a1 */
+		|| !BN_mod_mul(r[0], a[0], a[1], p, ctx)
+		|| !BN_mod_add(r[0], r[0], r[0], p, ctx)
+		|| !BN_mod_add(r[0], r[0], r[0], p, ctx)
+		|| !BN_mod_sub(r[0], p, r[0], p, ctx)
+
+		/* r1 = a0^2 - 2 * a1^2 */
+		|| !BN_mod_sqr(r[1], a[0], p, ctx)
+		|| !BN_mod_sqr(t, a[1], p, ctx)
+		|| !BN_mod_add(t, t, t, p, ctx)
+		|| !BN_mod_sub(r[1], r[1], t, p, ctx)) {
+		BN_free(t);
+		return 0;
+	}
+	BN_free(t);
+	return 1;
+}
+
+static int fp2_inv(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	if (BN_is_zero(a[0])) {
+		/* r0 = 0 */
+		BN_zero(r[0]);
+		/* r1 = -(2 * a1)^-1 */
+		if (!BN_mod_add(r[0], a[1], a[1], p, ctx)
+			|| !BN_mod_inverse(r[0], r[0], p, ctx)
+			|| !BN_mod_sub(r[0], p, r[0], p, ctx)) {
+			return 0;
+		}
+
+	} else if (BN_is_zero(a[1])) {
+		/* r1 = 0 */
+		BN_zero(r[1]);
+		/* r0 = a0^-1 */
+		if (!BN_mod_inverse(r[0], a[0], p, ctx)) {
+			return 0;
+		}
+
+	} else {
+		if (!(k = BN_CTX_get(ctx))
+			|| !(t = BN_CTX_get(ctx))
+
+			/* k = (a[0]^2 + 2 * a[1]^2)^-1 */
+			|| !BN_mod_sqr(k, a[0], p, ctx)
+			|| !BN_mod_sqr(t, a[1], p, ctx)
+			|| !BN_mod_add(t, t, t, p, ctx)
+			|| !BN_mod_add(k, k, t, p, ctx)
+			|| !BN_mod_inverse(k, k, p, ctx)
+
+			/* r[0] = a[0] * k, r[1] = -a[1] * k */
+			|| !BN_mod_mul(r[0], a[0], k, p, ctx)
+			|| !BN_mod_mul(r[1], a[1], k, p, ctx)
+			|| !BN_mod_sub(r[1], p, r[1], p, ctx)) {
+			BN_free(k);
+			BN_free(t);
+			return 0;
+		}
+		BN_free(k);
+		BN_free(t);
+	}
+
+	return 1;
+}
+
+static int fp2_div(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp2_inv(r, b, p, ctx)
+		&& fp2_mul(r, a, r, p, ctx);
+}
+
+static int fp4_init(fp4_t a, BN_CTX *ctx)
+{
+	int r;
+	r = fp2_init(a[0], ctx);
+	r &&= fp2_init(a[1], ctx);
+	if (!r) {
+		fp2_cleanup(a[0]);
+		fp2_cleanup(a[1]);
+	}
+}
+
+static void fp4_cleanup(fp4_t a)
+{
+	fp2_cleanup(a[0]);
+	fp2_cleanup(a[1]);
+}
+
+static void fp4_clear_cleanup(fp4_t a)
+{
+	fp2_clear_cleanup(a[0]);
+	fp2_clear_cleanup(a[1]);
 }
 
 static int fp4_is_zero(const fp4_t a)
 {
-	return fp2_is_zero(a[0]) && fp2_is_zero(a[1]);
+	return fp2_is_zero(a[0])
+		&& fp2_is_zero(a[1]);
 }
 
 static int fp4_is_one(const fp4_t a)
 {
-	return fp2_is_one(a[0]) && fp2_is_zero(a[1]);
+	return fp2_is_one(a[0])
+		&& fp2_is_zero(a[1]);
 }
 
 static void fp4_set_zero(fp4_t r)
@@ -312,144 +365,223 @@ static void fp4_set_zero(fp4_t r)
 	fp2_set_zero(r[1]);
 }
 
-static void fp4_set_one(fp4_t r)
+static int fp4_set_one(fp4_t r)
 {
-	fp2_set_one(r[0]);
 	fp2_set_zero(r[1]);
+	return fd2_set_one(r[0]);
 }
 
-static void fp4_set_fp(fp4_t r, const fp_t a)
+static int fp4_set_bn(fp4_t r, const BIGNUM *a)
 {
-	fp2_set_fp(r[0], a);
 	fp2_set_zero(r[1]);
+	return fp2_set_bn(r[0], a);
 }
 
-static void fp4_set_fp2(fp4_t r, const fp2_t 0)
+static int fp4_set_word(fp4_t r, unsigned long a)
 {
-	fp2_copy(r[0], a);
 	fp2_set_zero(r[1]);
+	return fp2_set_word(r[0], a);
 }
 
-static void fp4_set(fp4_t r, const fp2_t a0, const fp2_t a1)
+static int fp4_set_fp2(fp4_t r, const fp2_t a)
 {
-	fp2_copy(r[0], a0);
-	fp2_copy(r[1], a1);
-}
-
-static void fp4_copy(fp4_t r, const fp4_t a)
-{
-	fp2_copy(r[0], a[0]);
-	fp2_copy(r[1], a[1]);
-}
-
-static void fp4_set_u(fp4_t r)
-{
-	fp2_set_u(r[0]);
 	fp2_set_zero(r[1]);
+	return fp2_copy(r[0], a);
 }
 
-static void fp4_set_v(fp4_t r)
+static int fp4_set(fp4_t r, const fp2_t a0, const fp2_t a1)
+{
+	return fp2_copy(r[0], a0)
+		&& fp2_copy(r[1], a1);
+}
+
+static int fp4_copy(fp4_t r, const fp4_t a)
+{
+	return fp2_copy(r[0], a[0])
+		&& fp2_copy(r[1], a[1]);
+}
+
+static int fp4_set_u(fp4_t r)
+{
+	fp2_set_zero(r[1]);
+	return fp2_set_u(r[0]);
+}
+
+static int fp4_set_v(fp4_t r)
 {
 	fp2_set_zero(r[0]);
-	fp2_set_one(r[1]);
+	return fp2_set_one(r[1]);
 }
 
-static void fp4_add(fp4_t r, const fp4_t a, const fp4_t b)
+static int fp4_equ(const fp4_t a, const fp4_t b)
 {
-	fp2_add(r[0], a[0], b[0]);
-	fp2_add(r[1], a[1], b[1]);
+	return fp2_equ(a[0], b[0])
+		&& fp2_equ(a[1], b[1]);
+
+static int fp4_add(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp2_add(r[0], a[0], b[0], p, ctx)
+		&& fp2_add(r[1], a[1], b[1], p, ctx);
 }
 
-static void fp4_dbl(fp4_t r, const fp4_t a)
+static int fp4_dbl(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_dbl(r[0], a[0]);
-	fp2_dbl(r[1], a[1]);
+	return fp2_dbl(r[0], a[0], p, ctx)
+		&& fp2_dbl(r[1], a[1], p, ctx);
 }
 
-static void fp4_sub(fp4_t r, const fp4_t a, const fp4_t b)
+static int fp4_sub(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_sub(r[0], a[0], b[0]);
-	fp2_sub(r[1], a[1], b[1]);
+	return fp2_sub(r[0], a[0], b[0], p, ctx)
+		&& fp2_sub(r[1], a[1], b[1], p, ctx);
 }
 
-static void fp4_neg(fp4_t r, const fp4_t a)
+static int fp4_neg(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_neg(r[0], a[0]);
-	fp2_neg(r[1], a[1]);
+	return fp2_neg(r[0], a[0], p, ctx)
+		&&fp2_neg(r[1], a[1], p, ctx);
 }
 
-static void fp4_mul(fp4_t r, const fp4_t a, const fp4_t b)
+static int fp4_mul(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp4_t t0, t1;
+	fp2_t t;
+	if (!fp2_init(t, ctx)
+		/* r[0] = a[0] * b[0] + a[1] * b[1] * u */
+		|| !fp2_mul(r[0], a[0], b[0], p, ctx)
+		|| !fp2_mul_u(t, a[1], b[1], p, ctx)
+		|| !fp2_add(r[0], r[0], t, p, ctx)
 
-	fp2_mul_u(t0, a[1], b[1]);
-	fp2_mul(t1, a[0], b[0]);
-	fp2_add(r[0], t0, t1);
-
-	fp2_mul(t0, a[1], b[0]);
-	fp2_mul(t1, a[0], b[1]);
-	fp2_add(r[1], t0, t1);	
+		/* r[1] = a[0] * b[1] + a[1] * b[0] */
+		|| !fp2_mul(r[1], a[0], b[1], p, ctx)
+		|| !fp2_mul(t, a[1], b[0], p, ctx)
+		|| !fp2_add(r[1], r[1], t, p, ctx)) {
+		fp2_cleanup(t);
+		return 0;
+	}
+	fp2_cleanup(t);
+	return 1;
 }
 
-static void fp4_mul_v(fp4_t r, const fp4_t a, const fp4_t b)
+static int fp4_mul_v(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t t0, t1;
+	fp2_t t;
+	if (!fp2_init(t, ctx)
+		/* r[0] = a[0] * b[1] * u + a[1] * b[0] * u */
+		|| !fp2_mul_u(r[0], a[0], b[1], p, ctx)
+		|| !fp2_mul_u(t, a[1], b[0], p, ctx)
+		|| !fp2_add(r[0], r[0], t, p, ctx)
 
-	fp2_mul_u(t0, a[0], b[1]);
-	fp2_mul_u(t1, a[1], b[0]);
-	fp2_add(r[0], t0, t1);
-
-	fp2_mul(t0, a[0], b[0]);
-	fp2_mul_u(t1, a[1], b[1]);
-	fp2_add(r[1], t0, t1);
+		/* r[1] = a[0] * b[0] + a[1] * b[1] * u */
+		|| !fp2_mul(r[1], a[0], b[0], p, ctx)
+		|| !fp2_mul_u(t, a[1], b[1], p, ctx)
+		|| !fp2_add(r[1], r[1], t, p, ctx)) {
+		fp2_cleanup(t);
+		return 0;
+	}
+	fp2_cleanup(t);
+	return 1;
 }
 
-static void fp4_sqr(fp4_t r, const fp4_t a)
+static int fp4_sqr(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t t0, t1;
-
-	fp2_sqr_u(t0, a[1]);
-	fp2_sqr(t1, a[0]);
-	fp2_add(r[0], t0, t1);
-
-	fp2_mul(t0, a[0], a[1]);
-	fp2_dbl(r[1], t0);
+	fp2_t t;
+	if (!fp2_init(t, ctx)
+		/* r[0] = a[0]^2 + a[1]^2 * u */
+		|| !fp2_sqr(r[0], a[0], p, ctx)
+		|| !fp2_sqr_u(t, a[1], p, ctx)
+		|| !fp2_add(r[0], r[0], t, p, ctx)
+		/* r[1] = 2 * (a[0] * a[1]) */
+		|| !fp2_mul(r[1], a[0], a[1], p, ctx)
+		|| !fp2_dbl(r[1], r[1], p, ctx)) {
+		fp2_cleanup(t);
+		return 0;
+	}
+	fp2_cleanup(t);
+	return 1;
 }
 
-static void fp4_sqr_v(fp4_t r, const fp4_t a)
+static int fp4_sqr_v(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t t0, t1;
+	fp2_t t;
+	if (!fp2_init(t, ctx)
+		/* r[0] = 2 * (a[0] * a[1]) */
+		|| !fp2_mul_u(t0, a[0], a[1], p, ctx)
+		|| !fp2_dbl(r[0], t0, p, ctx)
 
-	fp2_mul_u(t0, a[0], a[1]);
-	fp2_dbl(r[0], t0);
-
-	fp2_sqr(t0, a[0]);
-	fp2_sqr_u(t1, a[1]);
-	fp2_add(r[1], t0, t1);
+		/* r[1] = a[0]^2 + a[1]^2 * u */
+		|| !fp2_sqr(r[1], a[0], p, ctx)
+		|| !fp2_sqr_u(t, a[1], p, ctx)
+		|| !fp2_add(r[1], r[1], t, p, ctx)) {
+		fp_cleanup(t);
+		return 0;
+	}
+	fp_cleanup(t);
+	return 1;
 }
 
-static void fp4_inv(fp4_t r, const fp4_t a)
+static int fp4_inv(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t t0, t1, t2;
+	fp2_t k;
+	if (!fp2_init(k, ctx)
+		/* k = (a[1]^2 * u - a[0]^2)^-1 */
+		|| !fp2_sqr_u(k, a[1], p, ctx)
+		|| !fp2_sqr(r[0], a[0], p, ctx)
+		|| !fp2_sub(k, k, r[0], p, ctx)
+		|| !fp2_inv(k, k, p, ctx)
 
-	fp2_sqr_u(t0, a[1]);
-	fp2_sqr(t1, a[0]);
-	fp2_sub(t2, t0, t1);
-	fp2_inv(t0, t2);
+		/* r[0] = -(a[0] * k) */
+		|| !fp2_mul(r[0], a[0], k, p, ctx)
+		|| !fp2_neg(r[0], r[0], p, ctx)
 
-	fp2_mul(t1, a[0], t0);
-	fp2_neg(r[0], t1);
-	fp2_mul(r[1], a[1], t0);
+		/* r[1] = a[1] * k */
+		|| !fp2_mul(r[1], a[1], k, p, ctx)) {
+		fp2_cleanup(k);
+		return 0;
+	}
+	fp2_cleanup(k);
+	return 1;
+}
+
+static int fp12_init(fp12_t a, BN_CTX *ctx)
+{
+	int r;
+	r = fp4_init(a[0], ctx);
+	r &&= fp4_init(a[1], ctx);
+	r &&= fp4_init(a[2], ctx);
+	if (!r) {
+		fp4_cleanup(a[0]);
+		fp4_cleanup(a[1]);
+		fp4_cleanup(a[2]);
+	}
+	return r;
+}
+
+static void fp12_cleanup(fp12_t a)
+{
+	fp4_cleanup(a[0]);
+	fp4_cleanup(a[1]);
+	fp4_cleanup(a[2]);
+}
+
+static void fp12_clear_cleanup(fp12_t a)
+{
+	fp4_clear_cleanup(a[0]);
+	fp4_clear_cleanup(a[1]);
+	fp4_clear_cleanup(a[2]);
 }
 
 static int fp12_is_zero(const fp12_t a)
 {
-	return fp12_is_zero(a[0]) && fp12_is_zero(a[1]) && fp12_is_zero(a[2]);
+	return fp12_is_zero(a[0])
+		&& fp12_is_zero(a[1])
+		&& fp12_is_zero(a[2]);
 }
 
 static int fp12_is_one(const fp12_t a)
 {
-	return fp12_is_one(a[0]) && fp12_is_zero(a[1]) && fp12_is_zero(a[2]);
+	return fp12_is_one(a[0])
+		&& fp12_is_zero(a[1])
+		&& fp12_is_zero(a[2]);
 }
 
 static void fp12_set_zero(fp12_t r)
@@ -459,330 +591,662 @@ static void fp12_set_zero(fp12_t r)
 	fp4_set_zero(r[2]);
 }
 
-static void fp12_set_one(fp12_t r)
+static int fp12_set_one(fp12_t r)
 {
-	fp4_set_one(r[0]);
 	fp4_set_zero(r[1]);
 	fp4_set_zero(r[2]);
+	return fp4_set_one(r[0]);
 }
 
-static void fp12_copy(fp12_t r, const fp12_t a)
+static int fp12_copy(fp12_t r, const fp12_t a)
 {
-	fp4_copy(r[0], a[0]);
-	fp4_copy(r[1], a[1]);
-	fp4_copy(r[2], a[2]);
+	return fp4_copy(r[0], a[0])
+		&& fp4_copy(r[1], a[1])
+		&& fp4_copy(r[2], a[2]);
 }
 
-static void fp12_set(fp12_t r, const fp4_t a0, const fp4_t a1, const fp4_t a2)
+static int fp12_set(fp12_t r, const fp4_t a0, const fp4_t a1, const fp4_t a2)
 {
-	fp4_copy(r[0], a0);
-	fp4_copy(r[1], a1);
-	fp4_copy(r[2], a2);
+	return fp4_copy(r[0], a0)
+		&& fp4_copy(r[1], a1)
+		&& fp4_copy(r[2], a2);
 }
 
-static void fp12_set_fp4(fp12_t r, const fp4_t a)
+static int fp12_set_fp4(fp12_t r, const fp4_t a)
 {
-	fp4_copy(r[0], a);
 	fp4_set_zero(r[1]);
 	fp4_set_zero(r[2]);
+	return fp4_copy(r[0], a);
 }
 
-static void fp12_set_fp2(fp12_t r, const fp2_t a)
+static int fp12_set_fp2(fp12_t r, const fp2_t a)
 {
-	fp4_set_fp2(r[0], a);
 	fp4_set_zero(r[1]);
 	fp4_set_zero(r[2]);
+	return fp4_set_fp2(r[0], a);
 }
 
-static void fp12_set_fp(fp12_t r, const fp_t a)
+static int fp12_set_bn(fp12_t r, const BIGNUM *a)
 {
-	fp4_set_fp(r[0], a);
 	fp4_set_zero(r[1]);
 	fp4_set_zero(r[2]);
+	return fp4_set_bn(r[0], a);
 }
 
-static void fp12_add(fp12_t r, fp12_t a, const fp12_t b)
+static int fp12_set_word(fp12_t r, unsigned long a)
 {
-	fp4_add(r[0], a[0], b[0]);
-	fp4_add(r[1], a[1], b[1]);
-	fp4_add(r[2], a[2], b[2]);	
+	fp4_set_zero(r[1]);
+	fp4_set_zero(r[2]);
+	return fp4_set_word(r[0], a);
 }
 
-static void fp12_dbl(fp12_t r, fp12_t a)
+static int fp12_set_u(fp12_t r)
 {
-	fp4_dbl(r[0], a[0]);
-	fp4_dbl(r[1], a[1]);
-	fp4_dbl(r[2], a[2]);
+	fp4_set_zero(r[1]);
+	fp4_set_zero(r[2]);
+	return fp4_set_u(r[0]);
 }
 
-static void fp12_tri(fp12_t r, fp12_t a)
+static int fp12_set_v(fp12_t r)
 {
-	fp12_t t;
-	fp12_dbl(t, a);
-	fp12_add(r, t, a);
+	fp4_set_zero(r[1]);
+	fp4_set_zero(r[2]);
+	return fp4_set_v(r[0]);
 }
 
-static void fp12_sub(fp12_t r, const fp12_t a, const fp12_t b)
+static int fp12_set_w(fp12_t r)
 {
-	fp4_sub(r[0], a[0], b[0]);
-	fp4_sub(r[1], a[1], b[1]);
-	fp4_sub(r[2], a[2], b[2]);
+	fp4_set_zero(r[0]);
+	fp4_set_zero(r[2]);
+	return fp4_set_one(r[1]);
 }
 
-static void fp12_neg(fp12_t r, const fp12_t a)
+static int fp12_set_w_sqr(fp12_t r)
 {
-	fp4_neg(r[0], a[0]);
-	fp4_neg(r[1], a[1]);
-	fp4_neg(r[2], a[2]);
+	fp4_set_zero(r[0]);
+	fp4_set_zero(r[1]);
+	return fp4_set_one(r[2]);
 }
 
-static void fp12_mul(fp12_t r, const fp12_t a, const fp12_t b)
+static int fp12_equ(const fp12_t a, const fp12_t b)
 {
-	fp4_mul(r[0], a[0], b[0]);
-	fp4_mul_v(t, a[1], b[2]);
-	fp4_add_to(r[0], t);
-	fp4_mul_v(t, a[2], b[1]);
-	fp4_add_to(r[0], t);
-
-	fp4_mul(r[1], a[0], b[1]);
-	fp4_mul(t, a[1], b[0]);
-	fp4_add_to(r[1], t);	
-	fp4_mul_v(t, a[2], b[2]);
-	fp4_add_to(r[1], t);
-
-	fp4_mul(r[2], a[0], b[2]);
-	fp4_mul(t, a[1], b[1]);
-	fp4_add_to(r[2], t);
-	fp4_mul(t, a[2], b[0]);
-	fp4_add_to(r[2], t);
+	return fp4_equ(a[0], b[0])
+		&& fp4_equ(a[1], b[1])
+		&& fp4_equ(a[2], b[2]);
 }
 
-static void fp12_sqr(fp12_t r, const fp12_t a)
+static int fp12_add(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp4_sqr(r[0], a[0]);
-	fp4_mul_v(t, a[1], a[2]);
-	fp4_dbl_to(t, t);
-	fp4_add(r[0], t);
-
-	fp4_mul(t, a[0], a[1]);
-	fp4_dbl(r[0], t);
-	fp4_sqr_v(t, a[2]);
-	fp4_add(r[0], t);
-
-	fp4_mul(t, a[0], a[2]);
-	fp4_dbl(r[2], t);
-	fp4_sqr(t, a[1]);
-	fp4_add(r[2], t);
+	
+	return fp4_add(r[0], a[0], b[0], p, ctx)
+		&& fp4_add(r[1], a[1], b[1], p, ctx)
+		&& fp4_add(r[2], a[2], b[2], p, ctx);
 }
 
-static void fp12_inv(fp12_t r, const fp12_t a)
+static int fp12_dbl(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp4_dbl(r[0], a[0], p, ctx)
+		&& fp4_dbl(r[1], a[1], p, ctx)
+		&& fp4_dbl(r[2], a[2], p, ctx);
+}
+
+static int fp12_tri(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp12_dbl(r, a, p, ctx)
+		&& fp12_add(r, r, a, p, ctx);
+}
+
+static int fp12_sub(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp4_sub(r[0], a[0], b[0], p, ctx)
+		&& fp4_sub(r[1], a[1], b[1], p, ctx)
+		&& fp4_sub(r[2], a[2], b[2], p, ctx);
+}
+
+static int fp12_neg(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp4_neg(r[0], a[0], p, ctx)
+		&& fp4_neg(r[1], a[1], p, ctx)
+		&& fp4_neg(r[2], a[2], p, ctx);
+}
+
+static int fp12_mul(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
+{
+	fp4_t t;
+	if (!fp4_init(t, ctx)
+		/* r0 = a0 * b0 + a1 * b2 * v + a2 * b1 * v */
+		|| !fp4_mul(r[0], a[0], b[0], p, ctx)
+		|| !fp4_mul_v(t, a[1], b[2], p, ctx)
+		|| !fp4_add(r[0], r[0], t, p, ctx)
+		|| !fp4_mul_v(t, a[2], b[1], p, ctx)
+		|| !fp4_add(r[0], r[0], t, p, ctx)
+
+		/* r1 = a0*b1 + a1*b0 + a2*b2*v */
+		|| !fp4_mul(r[1], a[0], b[1], p, ctx)
+		|| !fp4_mul(t, a[1], b[0], p, ctx)
+		|| !fp4_add(r[1], r[1], t, p, ctx)
+		|| !fp4_mul_v(t, a[2], b[2], p, ctx)
+		|| !fp4_add(r[1], r[1], t, p, ctx)
+
+		/* r2 = a0*b2 + a1*b1 + a2*b0 */
+		|| !fp4_mul(r[2], a[0], b[2], p, ctx)
+		|| !fp4_mul(t, a[1], b[1], p, ctx)
+		|| !fp4_add(r[2], r[2], t, p, ctx)
+		|| !fp4_mul(t, a[2], b[0], p, ctx)
+		|| !fp4_add(r[2], r[2], t, p, ctx)) {
+
+		fp4_cleanup(t);
+		return 0;
+	}
+	fp4_cleanup(t);
+	return 1;
+}
+
+static int fp12_sqr(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	fp4_t t;
+	if (!(fp4_init(t, ctx))
+		/* r0 = a0^2 + 2*a1*a2*v */
+		|| !fp4_sqr(r[0], a[0], p, ctx)
+		|| ! fp4_mul_v(t, a[1], a[2], p, ctx)
+		|| ! fp4_dbl(t, t, p, ctx)
+		|| ! fp4_add(r[0], t, p, ctx)
+
+		/* r1 = 2*a0*a1 + a^2 * v */
+		|| ! fp4_mul(r[1], a[0], a[1], p, ctx)
+		|| ! fp4_dbl(r[1], r[1], p, ctx)
+		|| ! fp4_sqr_v(t, a[2], p, ctx)
+		|| ! fp4_add(r[1], r[1], t, p, ctx)
+
+		/* r2 = 2*a0*a2 + a1^2*/
+		|| ! fp4_mul(r[2], a[0], a[2], p, ctx)
+		|| ! fp4_dbl(r[2], r[2], p, ctx)
+		|| ! fp4_sqr(t, a[1], p, ctx)
+		|| ! fp4_add(r[2], t, p, ctx)) {
+
+		fp4_cleanup(t);
+		return 0;
+	}
+	fp4_cleanup(t);
+	return 1;
+}
+
+static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 {
 	if (fp4_is_zero(a[2])) {
-		fp4_sqr(t, a[0]);
-		fp4_mul(k, t, a[0]);
-		fp4_sqr_v(t, a[1]);
-		fp4_mul_to(t, a[1]);
-		fp4_add_to(k, t);
-		fp4_inv_to(k);
+		fp4_t k;
+		if (!(fp4_init(k, ctx))
+			/* k = (a0^3 + a1^3 * v)^-1 */
+			|| !fp4_sqr(k, a[0], p, ctx)
+			|| !fp4_mul(k, k, a[0], p, ctx)
+			|| !fp4_sqr_v(t, a[1], p, ctx)
+			|| !fp4_mul(t, t, a[1], p, ctx)
+			|| !fp4_add(k, k, t, p, ctx)
+			|| !fp4_inv(k, k, p, ctx)
 
-		fp4_sqr(r[0], a[0]);
-		fp4_mul(r[0], r[0], k);
+			/* r0 = a0^2 * k */
+			|| !fp4_sqr(r[0], a[0], p, ctx)
+			|| !fp4_mul(r[0], r[0], k, p, ctx)
 
-		fp4_mul(r[0], a[0], a[1]);
-		fp4_mul(r[0], r[0], k);
-		fp4_neg(r[0], r[0]);
+			/* r1 = -(a0 * a1 * k) */
+			|| !fp4_mul(r[0], a[0], a[1], p, ctx)
+			|| !fp4_mul(r[0], r[0], k, p, ctx)
+			|| fp4_neg(r[0], r[0], p, ctx)
 
-		fp4_sqr(r[2], a[1]);
-		fp4_mul(r[2], r[2], k);
+			/* r2 = a1^2 * k */
+			|| !fp4_sqr(r[2], a[1], p, ctx)
+			|| !fp4_mul(r[2], r[2], k, p, ctx)) {
+
+			fp4_cleanup(k);
+			return 0;
+		}
+		fp4_cleanup(k);
+		return 1;
+
 	} else {
-		fp4_sqr(t0, a[1]);
-		fp4_mul(t1, a[0], a[2]);
-		fp4_sub(t0, t0, t1);
-
-		fp4_mul(t1, a[0], a[1]);
-		fp4_sqr_v(t2, a[2]);
-		fp4_sub(t1, t1, t2);
-
-		fp4_sqr(t2, a[0]);
-		fp4_mul_v(t3, a[1], a[2]);
-		fp4_sub(t2, t2, t3);
-
-		fp4_sqr(t1, t1);
-		fp4_mul(t4, t0, t2);
-		fp4_sub(t1, t1, t5);
-		fp4_mul(t3, a[2], t3)
-		fp4_inv(t3, t3);
 	
-		fp4_mul(r[0], t2, t3);
-		fp4_mul(r[1], t1, t3);
-		fp4_inv(r[1], r[1]);
-		fp4_mul(r[2], t0, t3);
+		fp4_t t0, t1, t2, t3;
+
+		if (!(fp4_init(t0, ctx))
+			|| !(fp4_init(t1, ctx))
+			|| !(fp4_init(t2, ctx))
+			|| !(fp4_init(t3, ctx))
+
+			/* t0 = a1^2 - a0 * a1 */
+			|| !fp4_sqr(t0, a[1], p, ctx)
+			|| !fp4_mul(t1, a[0], a[2], p, ctx)
+			|| !fp4_sub(t0, t0, t1, p, ctx)
+
+			/* t1 = a0 * a1 - a2^2 * v */
+			|| !fp4_mul(t1, a[0], a[1], p, ctx)
+			|| !fp4_sqr_v(t2, a[2], p, ctx)
+			|| !fp4_sub(t1, t1, t2, p, ctx)
+
+			/* t2 = a0^2 - a1 * a2 * v */
+			|| !fp4_sqr(t2, a[0], p, ctx)
+			|| !fp4_mul_v(t3, a[1], a[2], p, ctx)
+			|| !fp4_sub(t2, t2, t3, p, ctx)
+
+			/* t3 = a2 * (t1^2 - t0 * t2)^-1 */
+			|| !fp4_sqr(t1, t1, p, ctx)
+			|| !fp4_mul(t4, t0, t2, p, ctx)
+			|| !fp4_sub(t1, t1, t5, p, ctx)
+			|| !fp4_mul(t3, a[2], t3, p, ctx)
+			|| !fp4_inv(t3, t3, p, ctx)
+	
+			/* r0 = t2 * t3 */
+			|| !fp4_mul(r[0], t2, t3, p, ctx)
+
+			/* r1 = -(t1 * t3) */
+			|| !fp4_mul(r[1], t1, t3, p, ctx)
+			|| !fp4_inv(r[1], r[1], p, ctx)
+
+			/* r2 = t0 * t3 */
+			|| !fp4_mul(r[2], t0, t3, p, ctx)) {
+
+			fp4_cleanup(t0);
+			fp4_cleanup(t1);
+			fp4_cleanup(t2);
+			fp4_cleanup(t3);
+			return 0;
+		}
+
+		fp4_cleanup(t0);
+		fp4_cleanup(t1);
+		fp4_cleanup(t2);
+		fp4_cleanup(t3);
+		return 1;
 	}
+
+	return 1;
 }
 
-static void fp12_pow(fp12_t r, const fp12_t a, const fp_t k)
+static int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
+	int n;
+
+	if (BN_is_zero(k)) {
+		return fp12_set_one(r);
+	}
+
+	n = BN_num_bits(k);
+	if (n < 1 || n > 256 * 12) {
+		return 0;
+	}
+
+	if (!fp12_copy(r, a)) {
+		return 0;
+	}
+	for (i = n - 2; i >= 0; i--) {
+		if (!fp12_sqr(r, r, p, ctx)) {
+			return 0;
+		}
+		if (BN_is_bit_set(k, i)) {
+			if (!fp12_mul(r, r, a, p, ctx)) {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+static int point_init(point_t P, BN_CTX *ctx)
+{
+	int r;
+	r = fp2_init(P.X, ctx);
+	r &&= fp2_init(P.Y, ctx);
+	r &&= fp2_init(P.Z, ctx);
+	r &&= fp2_set_one(P.Y, ctx);
+	if (!r) {
+		fp2_cleanup(P.X);
+		fp2_cleanup(P.Y);
+		fp2_cleanup(P.Z);
+		return 0;
+	}
+	fp2_set_zero(P.X);
+	fp2_set_zero(P.Z);
+	return 1;
+}
+
+static void point_cleanup(point_t P)
+{
+	fp2_cleanup(P.X);
+	fp2_cleanup(P.Y);
+	fp2_cleanup(P.Z);
+}
+
+static int point_set_infinity(point_t P)
+{
+	fp2_set_zero(P.X);
+	fp2_set_zero(P.Z);
+	return fp2_set_one(P.Y);
 }
 
 static int point_is_at_infinity(point_t P)
 {
-	return 0;
+	return fp2_is_zero(P.X)
+		&& fp2_is_one(P.Y)
+		&& fp2_is_zero(P.Z);
 }
 
-static int point_is_on_curve(point_t P)
+static int point_equ(const point_t P, const point_t Q)
 {
-	fp2_t x, y;
-	point_get_affine_coordinates(P, x, y);
-	fp2_sqr(t0, x);
-	fp2_mul(t1, t0, x);
-	fp2_add(t0, sm9_b);
-	fp2_sqr(t1, y);
-	return fp2_equ(t0, t1);
+	return fp2_equ(P.X, Q.X)
+		&& fp2_equ(P.Y, Q.Y)
+		&& fp2_equ(P.Z, Q.Z);
 }
 
-static void point_set_infinity(point_t P)
+static int point_is_on_curve(point_t P, BN_CTX *ctx)
 {
-	fp2_set_zero(P.X);
-	fp2_set_one(P.Y);
-	fp2_set_zero(P.Z);
+	int r;
+	fp2_t x, y, t;
+
+	r = fp2_init(x, ctx);
+	r &&= fp2_init(y, ctx);
+	r &&= fp2_init(t, ctx);
+	if (!r) {
+		goto end;
+	}	
+
+	if (!point_get_affine_coordinates(P, x, y, p, ctx)
+		|| !fp2_sqr(t, x, p, ctx)
+		|| !fp2_mul(x, x, t, p, ctx)
+		|| !fp2_add_word(x, x, 5, p, ctx)
+		|| !fp2_sqr(y, y, p, ctx)) {
+		r = 0;
+		goto end;
+	}
+	r = fp2_equ(x, y);
+
+end:
+	fp2_cleanup(x);
+	fp2_cleanup(y);
+	fp2_cleanup(t);
+	return r;
 }
 
-static void point_set_affine_coordinates(point_t P, const fp2_t x, const fp2_t y)
+static int point_set_affine_coordinates(point_t P, const fp2_t x, const fp2_t y)
 {
-	fp2_copy(P.X, x);
-	fp2_copy(P.Y, y);
-	fp2_set_one(P.Z);
+	return fp2_copy(P.X, x)
+		&& fp2_copy(P.Y, y)
+		&& fp2_set_one(P.Z);
 }
 
-static void point_get_affine_coordinates(const point_t P, fp2_t x, fp2_t y)
+static int point_get_affine_coordinates(const point_t P, fp2_t x, fp2_t y)
 {
-	fp2_copy(x, P.X);
-	fp2_copy(y, P.y);
+	return fp2_copy(x, P.X)
+		&& fp2_copy(y, P.y)
+		&& fp2_is_one(P.Z);
 }
 
-static void point_dbl(point_t R, const point_t P)
+static int point_dbl(point_t R, const point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t x3, y3, x1, y1, lambda, t0, t1;
+	int r;
+	fp2_t x3, y3, x1, y1, lambda, t;
 
-	if (point_is_at_infinity(P)) {
-		point_set_infinity(R);
-		return;
+	r = 1;
+	r &&= fp2_init(x1, ctx);
+	r &&= fp2_init(y1, ctx);
+	r &&= fp2_init(x3, ctx);
+	r &&= fp2_init(y3, ctx);
+	r &&= fp2_init(t0, ctx);
+	r &&= fp2_init(t1, ctx);
+	r &&= fp2_init(lambda, ctx);
+	if (!r) {
+		goto end;
 	}
 
-	point_get_affine_coorindates(P, x1, y1);
+	if (point_is_at_infinity(P)) {
+		r = point_set_infinity(R);
+		goto end;
+	}
 
-	fp12_sqr(t0, x1);
-	fp12_tri(t1, t0);
-	fp12_dbl(t0, y1);
-	fp12_div(lambda, t1, t0);
+	if (!point_get_affine_coordinates(P, x1, y1)
+		/* lambda = 3 * x1^2 / 2 * y1 */
+		|| !fp2_sqr(lambda, x1, p, ctx)
+		|| !fp2_tri(lambda, lambda, p, ctx)
+		|| !fp2_dbl(t, y1, p, ctx)
+		|| !fp2_div(lambda, lambda, t, p, ctx)
 
-	fp12_sqr(t0, lambda);
-	fp12_dbl(t1, x1);
-	fp12_sub(x3, t0, t1);
+		/* x3 = lambda^2 - 2 * x1 */
+		|| !fp2_sqr(x3, lambda, p, ctx)
+		|| !fp2_dbl(t, x1, p, ctx)
+		|| !fp2_sub(x3, x3, t, p, ctx)
 
-	fp12_sub(t0, x1, x3);
-	fp12_mul(t1, lambda, t0);
-	fp12_sub(y3, t1, y1);
+		/* y3 = lambda * (x1 - x3) - y1 */
+		|| !fp2_sub(y3, x1, x3, p, ctx)
+		|| !fp2_mul(y3, lambda, y3, p, ctx)
+		|| !fp2_sub(y3, y3, y1, p, ctx)) {
+		r = 0;
+		goto end;
+	}
 
-	point_set_affine_coordinates(R, x3, y3);	
+	r = point_set_affine_coordinates(R, x3, y3);
+
+end:
+	fp2_cleanup(x1);
+	fp2_cleanup(y1);
+	fp2_cleanup(x3);
+	fp2_clenaup(y3);
+	fp2_cleanup(lambda);
+	fp2_cleanup(t);
+	return r;
 }
 
-static void point_add(point_t R, const point_t P, const point_t Q)
+static int point_add(point_t R, const point_t P, const point_t Q, const BIGNUM *p, BN_CTX *ctx)
 {
+	int r;
+	fp2_t x1;
+	fp2_t y1;
+	fp2_t x2;
+	fp2_t y2;
+	fp2_t x3;
+	fp2_t y3;
+	fp2_t lambda;
+	fp2_t t0;
+	fp2_t t1;
+
 	if (point_is_at_infinity(P)) {
-		point_copy(R, Q);
-		return;
+		return point_copy(R, Q);
+
 	}
 
 	if (point_is_at_infinity(Q)) {
-		point_copy(R, P);
-		return;
-	}
-
-	point_get_affine_coordinates(P, x1, y1);
-	point_get_affine_coordinates(Q, x2, y2);
-
-	fp2_add(t0, y1, y2);
-	if (fp2_equ(x1, x2) && fp2_is_zero(t0)) {
-		point_set_infinity(R);
+		return point_copy(R, P);
 	}
 
 	if (point_equ(P, Q)) {
-		point_dbl(R, P);
-		return;
+		return point_dbl(R, P, p, ctx);
 	}
 
-	fp2_sub(t0, y2, y1);
-	fp2_sub(t1, x2, x1);
-	fp2_div(lambda, t0, t1);
+	r = 1;
+	r &&= fp2_init(x1, ctx);
+	r &&= fp2_init(y1, ctx);
+	r &&= fp2_init(x2, ctx);
+	r &&= fp2_init(y2, ctx);
+	r &&= fp2_init(x3, ctx);
+	r &&= fp2_init(y3, ctx);
+	r &&= fp2_init(lambda, ctx);
+	r &&= fp2_init(t, ctx);
+	if (!r) {
+		goto end;
+	}
 
-	fp2_sqr(t0, lambda);
-	fp2_sub(t1, x1, x2);
-	fp2_sub(x3, t0, t1);
+	r = 0;
 
-	fp2_sub(t0, x1, x3);
-	fp2_mul(t1, lambda, t0);
-	fp2_sub(y3, t1, y1);
+	if (!point_get_affine_coordinates(P, x1, y1)
+		|| !point_get_affine_coordinates(Q, x2, y2)
+		|| !fp2_add(t, y1, y2, p, ctx)) {	
+		goto end;
+	}
 
-	point_set_affine_coordinates(R, x3, y3);
+	if (fp2_equ(x1, x2) && fp2_is_zero(t)) {
+		r = point_set_infinity(R);
+		goto end;
+	}
+
+	/* lambda = (y2 - y1)/(x2 - x1) */
+	if (!fp2_sub(lambda, y2, y1, p, ctx)
+		|| !fp2_sub(t, x2, x1, p, ctx)
+		|| !fp2_div(lambda, lambda, t, p, ctx)
+
+		/* x3 = lambda^2 - x1 - x2 */
+		|| !fp2_sqr(x3, lambda, p, ctx)
+		|| !fp2_sub(x3, x3, x1, p, ctx)
+		|| !fp2_sub(x3, x3, x2, p, ctx)
+
+		/* y3 = lambda * (x1 - x3) - y1 */
+		|| !fp2_sub(y3, x1, x3, p, ctx)
+		|| !fp2_mul(y3, lambda, y3, p, ctx)
+		|| !fp2_sub(y3, y3, y1, p, ctx)) {
+		goto end;
+	}
+
+	r = point_set_affine_coordinates(R, x3, y3);
+
+end:
+	fp2_cleanup(x1);
+	fp2_cleanup(y1);
+	fp2_cleanup(x2);
+	fp2_cleanup(y2);
+	fp2_cleanup(x3);
+	fp2_cleanup(y3);
+	fp2_cleanup(lambda);
+	fp2_cleanup(t);
+	return r;
 }
 
-static void point_neg(point_t R, const point_t P)
+static int point_neg(point_t R, const point_t P)
 {
-	fp2_copy(R.X, P.X);
-	fp2_neg(R.y, P.y);
-	fp2_copy(R.Z, P.Z);
+	return fp2_copy(R.X, P.X)
+		&& fp2_neg(R.y, P.y)
+		&& fp2_copy(R.Z, P.Z);
 }
 
-static void point_sub(point_t R, const point_t P, const point_t Q)
+static int point_sub(point_t R, const point_t P, const point_t Q, const BIGNUM *p, BN_CTX *ctx)
 {
 	point_t T;
-	point_neg(T, Q);
-	point_add(R, P, T);
+	if (!point_init(T, ctx)
+		|| !point_neg(T, Q)
+		|| !point_add(R, P, T, p, ctx)) {
+		point_cleanup(T);
+		return 0;
+	}
+	point_cleanup(T);
+	return 1;
 }
 
-static void point_mul(point_t R, const fp_t k, const point_t P)
+static void point_mul_generator(point_t R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
 }
 
-static void eval_tangent(fp12_t r, const fp12_t xP, const fp12_t yP, const fp_t xQ, const fp_t yQ)
+static int point_mul(point_t R, const BIGNUM *k, const point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp12_t x, y, lambda, t0, t1;
+	if (BN_is_zero(k)) {
+		return point_set_infinity(R);
+	}
 
-	fp12_set_fp(x, xQ);
-	fp12_set_fp(y, yQ);
+	if (!point_copy(R, P)) {
+		return 0;
+	}
+	n = BN_num_bits(k);
+	for (i = n - 2; i >= 0; i--) {
+		if (!point_dbl(R, R, p, ctx)) {
+			return 0;
+		}
+		if (BN_is_bit_set(k, i)) {
+			if (!point_add(R, R, P, p, ctx)) {
+				return 0;
+			}
+		}
+	}
 
-	fp12_sqr(t0, xP);
-	fp12_tri(t1, t0);
-	fp12_dbl(t0, yP);
-	fp12_inv(t2, t0);
-	fp12_mul(lambda, t1, t2);
-
-	fp12_sub(t0, x, xP);
-	fp12_mul(t1, lambda, t0);
-	fp12_sub(t0, y, yP);
-	fp12_sub(r, t1, t0);
+	return 1;
 }
 
-static void eval_line(fp12_t r, const fp12_t xT, const fp12_t yT,
-	const fp12_t xP, const fp12_t yP, const fp_t xQ, const fp_t yQ)
+static int eval_tangent(fp12_t r, const fp12_t xP, const fp12_t yP,
+	const BIGNUM *xQ, const BIGNUM *yQ,
+	const BIGNUM *p, BN_CTX *ctx)
 {
-	fp12_t x, y, lambda, t0, t1;
+	int ret;
+	fp12_t x, y, lambda, t;
 
-	fp12_set_fp(x, xQ);
-	fp12_set_fp(y, yQ);
+	ret = 1;
+	ret &&= fp12_init(x, ctx);
+	ret &&= fp12_init(y, ctx);
+	ret &&= fp12_init(lambda, ctx);
+	ret &&= fp12_init(t, ctx);
+	if (!ret) {
+		goto end;
+	}
 
-	fp12_sub(t0, yT, yP);
-	fp12_sub(t1, xT, xP);
-	fp12_div(lambda, t0, t1);
+	ret = 0;
+	if (!fp12_set_bn(x, xQ)
+		|| !fp12_set_bn(y, yQ)
+		/* lambda = (3 * xP^2)/(2 * yP) */
+		|| !fp12_sqr(lambda, xP, p, ctx)
+		|| !fp12_tri(lambda, lambda, p, ctx)
+		|| !fp12_dbl(t, yP, p, ctx)
+		/* r = lambda * (x - xP) - y + yP */
+		|| !fp12_div(lambda, lambda, t, p, ctx)
+		|| !fp12_sub(r, x, xP, p, ctx)
+		|| !fp12_mul(r, lambda, r, p, ctx)
+		|| !fp12_sub(r, r, y, p, ctx)
+		|| !fp12_add(r, r, yP, p, ctx)) {
+		goto end;
+	}
+	ret = 1
 
-	fp12_sub(t0, x, xP);
-	fp12_mul(t1, lambda, t0);
-	fp12_sub(t0, y, yP);
-	fp12_sub(r, t1, t0);
+end:
+	fp12_cleanup(x);
+	fp12_cleanup(y);
+	fp12_cleanup(lambda);
+	fp12_cleanup(t);
+	return ret;
 }
 
-static void frob(fp12_t xR, fp12_t yR, const point_t P)
+static int eval_line(fp12_t r, const fp12_t xT, const fp12_t yT,
+	const fp12_t xP, const fp12_t yP,
+	const BIGNUM *xQ, const BIGNUM *yQ,
+	const BIGNUM *p, BN_CTX *ctx)
+{
+	int ret;
+	fp12_t x, y, lambda, t;
+
+	ret = 1;
+	ret &&= fp12_init(x, ctx);
+	ret &&= fp12_init(y, ctx);
+	ret &&= fp12_init(lambda, ctx);
+	ret &&= fp12_init(t, ctx);
+	if (!ret) {
+		goto end;
+	}
+
+	ret = 0;
+	if (!fp12_set_bn(x, xQ)
+		|| !fp12_set_bn(y, yQ)
+		/* lambda = (yT - yP)/(xT - xP) */
+		|| !fp12_sub(lambda, yT, yP, p, ctx)
+		|| !fp12_sub(t, xT, xP, p, ctx)
+		|| !fp12_div(lambda, lambda, t, p, ctx)
+		/* r = lambda * (x - xP) - y + yP */
+		|| !fp12_sub(r, x, xP, p, ctx)
+		|| !fp12_mul(r, lambda, r, p, ctx)
+		|| !fp12_sub(r, r, y, p, ctx)
+		|| !fp12_add(r, r, yP, p, ctx)) {
+		goto end;
+	}
+	ret = 1;
+
+end:
+	fp12_cleanup(x);
+	fp12_cleanup(y);
+	fp12_cleanup(lambda);
+	fp12_cleanup(t);
+	return ret;
+}
+
+static void frob(fp12_t xR, fp12_t yR, const point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
 	fp2_t x, y;
 	fp12_t t0, t1;
@@ -797,7 +1261,7 @@ static void frob(fp12_t xR, fp12_t yR, const point_t P)
 	fp12_mul(yR, t1, w3p);
 }
 
-static void frob_twice(fp12_t xR, fp12_t yR, const point_t P)
+static void frob_twice(fp12_t xR, fp12_t yR, const point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
 	fp2_t x, y;
 	fp12_t t0, t1;
@@ -808,7 +1272,7 @@ static void frob_twice(fp12_t xR, fp12_t yR, const point_t P)
 
 }
 
-static void final_expo(fp12_t r, const fp12_t a)
+static void final_expo(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 {
 	fp12_copy(r, a);
 	for (i = 0; i < sizeof(ebits); i++) {
@@ -856,19 +1320,42 @@ static void rate(fp12_t r, const point_t Q,  const fp_t xP, const fp_t yP)
 	final_expo(r, f);
 }
 
+/*
+ * the following API should be exported:
+ * 1. mul generator P2/or G2, over E'(F_p^2),
+ * 2. e(P, G1) where G1 is a fixed generator over E(Fp)
+ * 3. fp12_pow(), g^k, where g in Fp12, k is in Fp
+ * 4. k * G2 same as 1
+ *  
+ *
+ */
+
 int test()
 {
-	char *x_P1_str = "0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD";
-	char *y_P1_str = "0x21FE8DDA4F21E607631065125C395BBC1C1C00CBFA6024350C464CD70A3EA616";
 	char *x_P2_1_str = "85AEF3D078640C98597B6027B441A01FF1DD2C190F5E93C454806C11D8806141";
 	char *x_P2_0_str = "3722755292130B08D2AAB97FD34EC120EE265948D19C17ABF9B7213BAF82D65B";
 	char *y_P2_1_str = "17509B092E845C1266BA0D262CBEE6ED0736A96FA347C8BD856DC76B84EBEB96";
 	char *y_P2_0_str = "A7CF28D519BE3DA65F3170153D278FF247EFBA98A71A08116215BBA5C999A7C7";
+
+
+	if (!BN_hex2bn(&x_P2_1, x_P2_1_str)
+		|| !BN_hex2bn(&x_P2_0, x_P2_0_str)
+		|| !BN_hex2bn(&y1, y_P2_1_str)
+		|| !BN_hex2bn(&y0, y_P2_0_str)
+		|| !BN_hex2bn(ks, ks_str)) {
+
+	}
+
+	if (!fp2_set(x_P2, x0, x1)
+		|| !fp2_set(y_P2, y0, y1)) {
+	}
+
 	char *ks_str = "0130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4";	
 	char *x_Ppubs_1_str = "9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408";
 	char *x_Ppubs_0_str = "29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32";
 	char *y_Ppubs_1_str = "69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25";
 	char *y_Ppubs_0_str = "41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D";	
+
 	char *g_str[] =  {
 		"4E378FB5561CD0668F906B731AC58FEE25738EDF09CADC7A29C0ABC0177AEA6D",
 		"28B3404A61908F5D6198815C99AF1990C8AF38655930058C28C21BB539CE0000",
@@ -882,7 +1369,9 @@ int test()
 		"4C744E69C4A2E1C8ED72F796D151A17CE2325B943260FC460B9F73CB57C9014B",
 		"84B87422330D7936EABA1109FA5A7A7181EE16F2438B0AEB2F38FD5F7554E57A",
 		"AAB9F06A4EEBA4323A7833DB202E4E35639D93FA3305AF73F0F071D7D284FCFB"};
+
 	char *r_str = "033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE";
+
 	char *w_str[] = {
 		"81377B8FDBC2839B4FA2D0E0F8AA6853BBBE9E9C4099608F8612C6078ACD7563",
 		"815AEBA217AD502DA0F48704CC73CABB3C06209BD87142E14CBD99E8BCA1680F",
@@ -899,15 +1388,19 @@ int test()
 
 	EC_POINT *P1 = NULL;
 
-	EC_GROUP *group = NULL;
+	const EC_GROUP *group;
+	const EC_POINT *P1;
+	
+	group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1);
 
+	EC_GROUP_get_order();
+
+	P1 = EC_GROUP_get0_generator(G1);
 
 	if (!EC_POINT_set_affine_coordinates_GFp(group, P1, xP1, yP1, bn_ctx)) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-
-
 
 	fp2_set(x_P2, x0, x1);
 	fp2_set(y_P2, y0, y1);
@@ -915,7 +1408,6 @@ int test()
 
 	point_mul(R, k, P2);
 	point_is_at_infinity(R);
-
 	
 	point_mul(Ppubs, ks, P2);
 

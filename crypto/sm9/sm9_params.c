@@ -55,127 +55,103 @@
 #include <openssl/err.h>
 
 
-#define P_HEX \
-	"ab64be0955a39254a6cfe231531c02ebc0cd4c307800c7eb49fabcc179174e04" \
-	"00365f7280d166bf67839bba4047bab1212f2966d3045dcfc08d83d57fb7d01b" \
-	"6f958e077caeba969057287a8ea75c93660747c68c32af9c874bfd87d1a40c9a" \
-	"a709813930f3e7d7d794874146eceb73a14cfc41cfad0007fc30ead26f938349" \
-	"a017115a506c49dfb78002ccffaed045b39bc8970756c275d484f60dc7ba609f" \
-	"8dfe7142f8dfac81cc53a6bd67e1dcc18f35aad88a94ee40dd90934a282203cb"
-#define A_HEX "0"
-#define B_HEX "1"
-#define X_HEX \
-	"6613bde4d70b02a29a1700d2063420e408b0c23c85fdfca2b37df38b872492f1" \
-	"91dda03d4c520be9dced93d8678c5a898a9e81ddddb6afc9fa882e808fb48e33" \
-	"bd3e08756db0db2b271e82c48139d6b048edffd7736b0aca63f8733c2134ab7e" \
-	"0b33f11a0e61b89bd7259b752b24ada949b958f95d2c914b34e29a6ee888acc6" \
-	"04ab0d0818fc2ab09546db9eab4a452909ce88298abc644678f8b9ecbee7eb33" \
-	"4ffe4c25a8d5fcd7dd4b74d0362033acacd3cd363f22ab2a76605fdc8868654b"
-#define Y_HEX \
-	"117ff162e1e4a92fc920677f84a2b9ab151f3545f5094f6471d8d02d47bd8b7e" \
-	"b09e4ef771710be64809442ee66965406f6a55d317a8dde231d257f5fc2e84bf" \
-	"99e3077e9f53cb49e8c6d792437cb1b525ea7e83594b2928e72db64349619fb4" \
-	"7392759c9909f7ccd9d7d54b2605969ed59875a39a99e6914404d17d4f5a8ba2" \
-	"d7486aa36ee235dcdc4385a292348c4de9373d4cae3fcb07297aef083dc04f10" \
-	"d25efb6b60d116d0b95151a3ff96a2eaee556bbac0ad6b6633dfd1c1d5c896e2"
-#define N_HEX \
-	"ffffffffffffffffffffff000000000000000000000000000000000000000001"
-#define H_HEX \
-	"ab64be0955a39254a6cfe2dcb7da0c41645fa0d747e3a4a32406fe25d8b8254b" \
-	"3876448d322bfa4378d90415feb23ba1e8c9cc086424cf2b4ec2279870cbb334" \
-	"5bee74c90caa58c3e33158c07e69e9fe27963fa15966a0efa273d416f717fabf" \
-	"b1bbfc12981da60b0c5dee32847f140d975cc7acd434919cd8d12452d543355e" \
-	"22ecb2208972f6a9ee5772bd67e1dcc18f35aad88a94ee40dd90934a282203cc"
+#include "bn_lcl.h"
+#include "internal/cryptlib.h"
 
-static EC_GROUP *EC_GROUP_new_hexstrs(int is_prime_field,
-	const char *p_hex, const char *a_hex, const char *b_hex,
-	const char *x_hex, const char *y_hex, const char *n_hex, const char *h_hex)
-{
-	int ok = 0;
-	EC_GROUP *group = NULL;
-	BN_CTX *ctx = NULL;
-	BIGNUM *p = NULL;
-	BIGNUM *a = NULL;
-	BIGNUM *b = NULL;
-	BIGNUM *x = NULL;
-	BIGNUM *y = NULL;
-	BIGNUM *n = NULL;
-	BIGNUM *h = NULL;
-	EC_POINT *G = NULL;
-	point_conversion_form_t form = POINT_CONVERSION_COMPRESSED;
-	int flag = 0;
 
-	if (!(ctx = BN_CTX_new())) {
-		ERR_print_errors_fp(stderr);
-		goto err;
-	}
+#define BN_SM9_BN256_TOP (256+BN_BITS2-1)/BN_BITS2
+#define BN_SM9_TRACE_TOP (66+BN_BITS2-1)/BN_BITS2
 
-	if (!BN_hex2bn(&p, p_hex) ||
-	    !BN_hex2bn(&a, a_hex) ||
-	    !BN_hex2bn(&b, b_hex) ||
-	    !BN_hex2bn(&x, x_hex) ||
-	    !BN_hex2bn(&y, y_hex) ||
-	    !BN_hex2bn(&n, n_hex) ||
-	    !BN_hex2bn(&h, h_hex)) {
-		ERR_print_errors_fp(stderr);
-		goto err;
-	}
+#if BN_BITS == 64
+static const BN_ULONG _sm9bn256v1_x2[][BN_SM9_BN256_TOP] = {
+	{0xF9B7213BAF82D65BULL, 0xEE265948D19C17ABULL,
+	 0xD2AAB97FD34EC120ULL, 0x3722755292130B08ULL},
+	{0x54806C11D8806141ULL, 0xF1DD2C190F5E93C4ULL,
+	 0x597B6027B441A01FULL, 0x85AEF3D078640C98ULL}
+};
 
-	if (is_prime_field) {
-		if (!(group = EC_GROUP_new_curve_GFp(p, a, b, ctx))) {
-			ERR_print_errors_fp(stderr);
-			goto err;
-		}
-		if (!(G = EC_POINT_new(group))) {
-			ERR_print_errors_fp(stderr);
-			goto err;
-		}
-		if (!EC_POINT_set_affine_coordinates_GFp(group, G, x, y, ctx)) {
-			ERR_print_errors_fp(stderr);
-			goto err;
-		}
-	} else {
-		if (!(group = EC_GROUP_new_curve_GF2m(p, a, b, ctx))) {
-			goto err;
-		}
-		if (!(G = EC_POINT_new(group))) {
-			goto err;
-		}
-		if (!EC_POINT_set_affine_coordinates_GF2m(group, G, x, y, ctx)) {
-			goto err;
-		}
-	}
+static const BN_ULONG _sm9bn256v1_y2[][BN_SM9_BN256_TOP] = {
+	{0x6215BBA5C999A7C7ULL, 0x47EFBA98A71A0811ULL,
+	 0x5F3170153D278FF2ULL, 0xA7CF28D519BE3DA6ULL},
+	{0x856DC76B84EBEB96ULL, 0x0736A96FA347C8BDULL,
+	 0x66BA0D262CBEE6EDULL, 0x17509B092E845C12ULL}
+};
 
-	if (!EC_GROUP_set_generator(group, G, n, h)) {
-		ERR_print_errors_fp(stderr);
-		goto err;
-	}
+static const BN_ULONG _sm9bn256v1_trace[BN_SM9_TRACE_TOP] = {
+	0x400000000215D93EULL, 0x02ULL,
+};
 
-	EC_GROUP_set_asn1_flag(group, flag);
-	EC_GROUP_set_point_conversion_form(group, form);
+#elif BN_BITS2 == 32
+static const BN_ULONG _sm9bn256v1_x2[][BN_SM9_BN256_TOP] = {
+	{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948,
+	 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
+	{0xD8806141, 0x54806C11, 0x0F5E93C4, 0xF1DD2C19,
+	 0xB441A01F, 0x597B6027, 0x78640C98, 0x85AEF3D0}
+};
 
-	ok = 1;
-err:
-	BN_CTX_free(ctx);
-	BN_free(p);
-	BN_free(a);
-	BN_free(b);
-	BN_free(x);
-	BN_free(y);
-	BN_free(n);
-	BN_free(h);
-	EC_POINT_free(G);
-	if (!ok && group) {
-		ERR_print_errors_fp(stderr);
-		EC_GROUP_free(group);
-		group = NULL;
-	}
+static const BN_ULONG _sm9bn256v1_y2[][BN_SM9_BN256_TOP] = {
+	{0xC999A7C7, 0x6215BBA5, 0xA71A0811, 0x47EFBA98,
+	 0x3D278FF2, 0x5F317015, 0x19BE3DA6, 0xA7CF28D5},
+	{0x84EBEB96, 0x856DC76B, 0xA347C8BD, 0x0736A96F,
+	 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}
+};
 
-	return group;
-}
+static const BN_ULONG _sm9bn256v1_trace[BN_SM9_TRACE_TOP] = {
+	0x0215D93E, 0x40000000, 0x02,
+};
 
-EC_GROUP *EC_GROUP_new_sm9s256t1(void)
-{
-	return EC_GROUP_new_hexstrs(1, P_HEX, A_HEX, B_HEX, X_HEX, Y_HEX, N_HEX, H_HEX);
-}
+#else
+# error "unsupported BN_BITS2"
+#endif
+
+static const BIGNUM _bignum_sm9bn256v1_x20 = {
+	(BN_ULONG *)_sm9bn256v1_x2[0],
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_x21 = {
+	(BN_ULONG *)_sm9bn256v1_x2[1],
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_y20 = {
+	(BN_ULONG *)_sm9bn256v1_y2[0],
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_y21 = {
+	(BN_ULONG *)_sm9bn256v1_y2[1],
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_trace = {
+	(BN_ULONG *)_sm9bn256v1_trace, // IS THIS CORRECT??
+	BN_SM9_TRACE_TOP,
+	BN_SM9_TRACE_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+// we should not put it here
+const point_t _sm9bn256v1_g2 = {
+	{&_bignum_sm9bn256v1_x20, &_bignum_sm9bn256v1_x21},
+	{&_bignum_sm9bn256v1_y20, &_bignum_sm9bn256v1_y21},
+	{&_bignum_one, &_bignum_zero}
+};
+
+
+
+
 
