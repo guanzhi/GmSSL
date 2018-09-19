@@ -53,6 +53,7 @@
 #include <openssl/bn.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>
+#include "sm9_lcl.h"
 
 typedef BIGNUM *fp2_t[2];
 typedef fp2_t fp4_t[2];
@@ -97,13 +98,13 @@ static void fp2_clear_cleanup(fp2_t a)
 	a[1] = NULL;
 }
 
-static int fp2_is_zero(fp2_t a)
+static int fp2_is_zero(const fp2_t a)
 {
 	return BN_is_zero(a[0])
 		&& BN_is_zero(a[1]);
 }
 
-static int fp2_is_one(fp2_t a)
+static int fp2_is_one(const fp2_t a)
 {
 	return BN_is_one(a[0])
 		&& BN_is_zero(a[1]);
@@ -142,7 +143,7 @@ static int fp2_set_u(fp2_t r)
 static int fp2_set_bn(fp2_t r, const BIGNUM *a)
 {
 	BN_zero(r[1]);
-	return BN_copy(r[0], a);
+	return BN_copy(r[0], a) != NULL;
 }
 
 static int fp2_set_word(fp2_t r, unsigned long a)
@@ -154,6 +155,20 @@ static int fp2_set_word(fp2_t r, unsigned long a)
 static int fp2_equ(const fp2_t a, const fp2_t b)
 {
 	return !BN_cmp(a[0], b[0]) && !BN_cmp(a[1], b[1]);
+}
+
+static int fp2_add_word(fp2_t r, const fp2_t a, unsigned long b, const BIGNUM *p, BN_CTX *ctx)
+{
+	BIGNUM *w = NULL;
+	if (!(w = BN_CTX_get(ctx))
+		|| !BN_set_word(w, b)
+		|| !BN_mod_add(r[0], a[0], w, p, ctx)
+		|| !BN_copy(r[1], a[1])) {
+		BN_free(w);
+		return 0;
+	}
+	BN_free(w);
+	return 1;
 }
 
 static int fp2_add(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
@@ -168,6 +183,14 @@ static int fp2_dbl(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
 		&& BN_mod_add(r[1], a[1], a[1], p, ctx);
 }
 
+static int fp2_tri(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	return BN_mod_add(r[0], a[0], a[0], p, ctx)
+		&& BN_mod_add(r[0], r[0], a[0], p, ctx)
+		&& BN_mod_add(r[1], a[1], a[1], p, ctx)
+		&& BN_mod_add(r[1], r[1], a[1], p, ctx);
+}
+
 static int fp2_sub(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
 	return BN_mod_sub(r[0], a[0], b[0], p, ctx)
@@ -180,19 +203,13 @@ static int fp2_neg(fp2_t r, const fp2_t a, const BIGNUM *p)
 		&& BN_sub(r[1], p, a[1]);
 }
 
-static void fp2_conjugate(fp2_t r, const fp2_t a, const BIGNUM *p)
-{
-	return fp2_copy(r[0], a[0])
-		&& fp2_neg(r[1], a[1], p);
-}
-
 static int fp2_mul(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
 	BIGNUM *t = NULL;
 	if (!(t = BN_CTX_get(ctx))
 		/* r0 = a0 * b0 - 2 * a1 * b1 */
 		|| !BN_mod_mul(r[0], a[0], b[0], p, ctx)
-		|| !BN_mod_sqr(t, a[1], b[1], p, ctx)
+		|| !BN_mod_mul(t, a[1], b[1], p, ctx)
 		|| !BN_mod_add(t, t, t, p, ctx)
 		|| !BN_mod_sub(r[0], r[0], t, p, ctx)
 
@@ -207,7 +224,7 @@ static int fp2_mul(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CT
 	return 1;
 }
 
-static int fp2_mul_u(fp2_t r, fp2_t a, fp2_t b, const BIGNUM *p, BN_CTX *ctx)
+static int fp2_mul_u(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
 	BIGNUM *t = NULL;
 	if (!(t = BN_CTX_get(ctx))
@@ -293,6 +310,8 @@ static int fp2_inv(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
 		}
 
 	} else {
+		BIGNUM *k = NULL;
+		BIGNUM *t = NULL;
 		if (!(k = BN_CTX_get(ctx))
 			|| !(t = BN_CTX_get(ctx))
 
@@ -328,11 +347,12 @@ static int fp4_init(fp4_t a, BN_CTX *ctx)
 {
 	int r;
 	r = fp2_init(a[0], ctx);
-	r &&= fp2_init(a[1], ctx);
+	r &= fp2_init(a[1], ctx);
 	if (!r) {
 		fp2_cleanup(a[0]);
 		fp2_cleanup(a[1]);
 	}
+	return r;
 }
 
 static void fp4_cleanup(fp4_t a)
@@ -368,7 +388,7 @@ static void fp4_set_zero(fp4_t r)
 static int fp4_set_one(fp4_t r)
 {
 	fp2_set_zero(r[1]);
-	return fd2_set_one(r[0]);
+	return fp2_set_one(r[0]);
 }
 
 static int fp4_set_bn(fp4_t r, const BIGNUM *a)
@@ -417,6 +437,7 @@ static int fp4_equ(const fp4_t a, const fp4_t b)
 {
 	return fp2_equ(a[0], b[0])
 		&& fp2_equ(a[1], b[1]);
+}
 
 static int fp4_add(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
 {
@@ -436,10 +457,10 @@ static int fp4_sub(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CT
 		&& fp2_sub(r[1], a[1], b[1], p, ctx);
 }
 
-static int fp4_neg(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
+static int fp4_neg(fp4_t r, const fp4_t a, const BIGNUM *p)
 {
-	return fp2_neg(r[0], a[0], p, ctx)
-		&&fp2_neg(r[1], a[1], p, ctx);
+	return fp2_neg(r[0], a[0], p)
+		&&fp2_neg(r[1], a[1], p);
 }
 
 static int fp4_mul(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
@@ -505,17 +526,17 @@ static int fp4_sqr_v(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 	fp2_t t;
 	if (!fp2_init(t, ctx)
 		/* r[0] = 2 * (a[0] * a[1]) */
-		|| !fp2_mul_u(t0, a[0], a[1], p, ctx)
-		|| !fp2_dbl(r[0], t0, p, ctx)
+		|| !fp2_mul_u(t, a[0], a[1], p, ctx)
+		|| !fp2_dbl(r[0], t, p, ctx)
 
 		/* r[1] = a[0]^2 + a[1]^2 * u */
 		|| !fp2_sqr(r[1], a[0], p, ctx)
 		|| !fp2_sqr_u(t, a[1], p, ctx)
 		|| !fp2_add(r[1], r[1], t, p, ctx)) {
-		fp_cleanup(t);
+		fp2_cleanup(t);
 		return 0;
 	}
-	fp_cleanup(t);
+	fp2_cleanup(t);
 	return 1;
 }
 
@@ -531,7 +552,7 @@ static int fp4_inv(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 
 		/* r[0] = -(a[0] * k) */
 		|| !fp2_mul(r[0], a[0], k, p, ctx)
-		|| !fp2_neg(r[0], r[0], p, ctx)
+		|| !fp2_neg(r[0], r[0], p)
 
 		/* r[1] = a[1] * k */
 		|| !fp2_mul(r[1], a[1], k, p, ctx)) {
@@ -546,8 +567,8 @@ static int fp12_init(fp12_t a, BN_CTX *ctx)
 {
 	int r;
 	r = fp4_init(a[0], ctx);
-	r &&= fp4_init(a[1], ctx);
-	r &&= fp4_init(a[2], ctx);
+	r &= fp4_init(a[1], ctx);
+	r &= fp4_init(a[2], ctx);
 	if (!r) {
 		fp4_cleanup(a[0]);
 		fp4_cleanup(a[1]);
@@ -572,16 +593,16 @@ static void fp12_clear_cleanup(fp12_t a)
 
 static int fp12_is_zero(const fp12_t a)
 {
-	return fp12_is_zero(a[0])
-		&& fp12_is_zero(a[1])
-		&& fp12_is_zero(a[2]);
+	return fp4_is_zero(a[0])
+		&& fp4_is_zero(a[1])
+		&& fp4_is_zero(a[2]);
 }
 
 static int fp12_is_one(const fp12_t a)
 {
-	return fp12_is_one(a[0])
-		&& fp12_is_zero(a[1])
-		&& fp12_is_zero(a[2]);
+	return fp4_is_one(a[0])
+		&& fp4_is_zero(a[1])
+		&& fp4_is_zero(a[2]);
 }
 
 static void fp12_set_zero(fp12_t r)
@@ -703,11 +724,11 @@ static int fp12_sub(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, B
 		&& fp4_sub(r[2], a[2], b[2], p, ctx);
 }
 
-static int fp12_neg(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+static int fp12_neg(fp12_t r, const fp12_t a, const BIGNUM *p)
 {
-	return fp4_neg(r[0], a[0], p, ctx)
-		&& fp4_neg(r[1], a[1], p, ctx)
-		&& fp4_neg(r[2], a[2], p, ctx);
+	return fp4_neg(r[0], a[0], p)
+		&& fp4_neg(r[1], a[1], p)
+		&& fp4_neg(r[2], a[2], p);
 }
 
 static int fp12_mul(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
@@ -748,21 +769,21 @@ static int fp12_sqr(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 	if (!(fp4_init(t, ctx))
 		/* r0 = a0^2 + 2*a1*a2*v */
 		|| !fp4_sqr(r[0], a[0], p, ctx)
-		|| ! fp4_mul_v(t, a[1], a[2], p, ctx)
-		|| ! fp4_dbl(t, t, p, ctx)
-		|| ! fp4_add(r[0], t, p, ctx)
+		|| !fp4_mul_v(t, a[1], a[2], p, ctx)
+		|| !fp4_dbl(t, t, p, ctx)
+		|| !fp4_add(r[0], r[0], t, p, ctx)
 
 		/* r1 = 2*a0*a1 + a^2 * v */
-		|| ! fp4_mul(r[1], a[0], a[1], p, ctx)
-		|| ! fp4_dbl(r[1], r[1], p, ctx)
-		|| ! fp4_sqr_v(t, a[2], p, ctx)
-		|| ! fp4_add(r[1], r[1], t, p, ctx)
+		|| !fp4_mul(r[1], a[0], a[1], p, ctx)
+		|| !fp4_dbl(r[1], r[1], p, ctx)
+		|| !fp4_sqr_v(t, a[2], p, ctx)
+		|| !fp4_add(r[1], r[1], t, p, ctx)
 
 		/* r2 = 2*a0*a2 + a1^2*/
-		|| ! fp4_mul(r[2], a[0], a[2], p, ctx)
-		|| ! fp4_dbl(r[2], r[2], p, ctx)
-		|| ! fp4_sqr(t, a[1], p, ctx)
-		|| ! fp4_add(r[2], t, p, ctx)) {
+		|| !fp4_mul(r[2], a[0], a[2], p, ctx)
+		|| !fp4_dbl(r[2], r[2], p, ctx)
+		|| !fp4_sqr(t, a[1], p, ctx)
+		|| !fp4_add(r[2], r[2], t, p, ctx)) {
 
 		fp4_cleanup(t);
 		return 0;
@@ -775,6 +796,10 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 {
 	if (fp4_is_zero(a[2])) {
 		fp4_t k;
+		fp4_t t;
+		if (!fp4_init(t, ctx)) {
+			return 0;
+		}
 		if (!(fp4_init(k, ctx))
 			/* k = (a0^3 + a1^3 * v)^-1 */
 			|| !fp4_sqr(k, a[0], p, ctx)
@@ -791,16 +816,18 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 			/* r1 = -(a0 * a1 * k) */
 			|| !fp4_mul(r[0], a[0], a[1], p, ctx)
 			|| !fp4_mul(r[0], r[0], k, p, ctx)
-			|| fp4_neg(r[0], r[0], p, ctx)
+			|| fp4_neg(r[0], r[0], p)
 
 			/* r2 = a1^2 * k */
 			|| !fp4_sqr(r[2], a[1], p, ctx)
 			|| !fp4_mul(r[2], r[2], k, p, ctx)) {
 
 			fp4_cleanup(k);
+			fp4_cleanup(t);
 			return 0;
 		}
 		fp4_cleanup(k);
+		fp4_cleanup(t);
 		return 1;
 
 	} else {
@@ -811,6 +838,8 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 			|| !(fp4_init(t1, ctx))
 			|| !(fp4_init(t2, ctx))
 			|| !(fp4_init(t3, ctx))
+
+			// CHECK THIS!!!!!
 
 			/* t0 = a1^2 - a0 * a1 */
 			|| !fp4_sqr(t0, a[1], p, ctx)
@@ -829,8 +858,8 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 
 			/* t3 = a2 * (t1^2 - t0 * t2)^-1 */
 			|| !fp4_sqr(t1, t1, p, ctx)
-			|| !fp4_mul(t4, t0, t2, p, ctx)
-			|| !fp4_sub(t1, t1, t5, p, ctx)
+			|| !fp4_mul(r[0], t0, t2, p, ctx)
+			|| !fp4_sub(t1, t1, r[0], p, ctx)
 			|| !fp4_mul(t3, a[2], t3, p, ctx)
 			|| !fp4_inv(t3, t3, p, ctx)
 	
@@ -861,9 +890,15 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 	return 1;
 }
 
+static int fp12_div(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp12_inv(r, b, p, ctx)
+		&& fp12_mul(r, a, r, p, ctx);
+}
+
 static int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
-	int n;
+	int n, i;
 
 	if (BN_is_zero(k)) {
 		return fp12_set_one(r);
@@ -894,9 +929,9 @@ static int point_init(point_t P, BN_CTX *ctx)
 {
 	int r;
 	r = fp2_init(P.X, ctx);
-	r &&= fp2_init(P.Y, ctx);
-	r &&= fp2_init(P.Z, ctx);
-	r &&= fp2_set_one(P.Y, ctx);
+	r &= fp2_init(P.Y, ctx);
+	r &= fp2_init(P.Z, ctx);
+	r &= fp2_set_one(P.Y);
 	if (!r) {
 		fp2_cleanup(P.X);
 		fp2_cleanup(P.Y);
@@ -913,6 +948,13 @@ static void point_cleanup(point_t P)
 	fp2_cleanup(P.X);
 	fp2_cleanup(P.Y);
 	fp2_cleanup(P.Z);
+}
+
+static int point_copy(point_t R, const point_t P)
+{
+	return fp2_copy(R.X, P.X)
+		&& fp2_copy(R.Y, P.Y)
+		&& fp2_copy(R.Z, P.Z);
 }
 
 static int point_set_infinity(point_t P)
@@ -936,19 +978,41 @@ static int point_equ(const point_t P, const point_t Q)
 		&& fp2_equ(P.Z, Q.Z);
 }
 
-static int point_is_on_curve(point_t P, BN_CTX *ctx)
+static int point_set_affine_coordinates(point_t P, const fp2_t x, const fp2_t y)
+{
+	return fp2_copy(P.X, x)
+		&& fp2_copy(P.Y, y)
+		&& fp2_set_one(P.Z);
+}
+
+static int point_set_affine_coordinates_bignums(point_t P,
+	const BIGNUM *x0, const BIGNUM *x1, const BIGNUM *y0, const BIGNUM *y1)
+{
+	return fp2_set(P.X, x0, x1)
+		&& fp2_set(P.Y, y0, y1)
+		&& fp2_set_one(P.Z);
+}
+
+static int point_get_affine_coordinates(const point_t P, fp2_t x, fp2_t y)
+{
+	return fp2_copy(x, P.X)
+		&& fp2_copy(y, P.Y)
+		&& fp2_is_one(P.Z);
+}
+
+static int point_is_on_curve(point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
 	int r;
 	fp2_t x, y, t;
 
 	r = fp2_init(x, ctx);
-	r &&= fp2_init(y, ctx);
-	r &&= fp2_init(t, ctx);
+	r &= fp2_init(y, ctx);
+	r &= fp2_init(t, ctx);
 	if (!r) {
 		goto end;
 	}	
 
-	if (!point_get_affine_coordinates(P, x, y, p, ctx)
+	if (!point_get_affine_coordinates(P, x, y)
 		|| !fp2_sqr(t, x, p, ctx)
 		|| !fp2_mul(x, x, t, p, ctx)
 		|| !fp2_add_word(x, x, 5, p, ctx)
@@ -965,33 +1029,18 @@ end:
 	return r;
 }
 
-static int point_set_affine_coordinates(point_t P, const fp2_t x, const fp2_t y)
-{
-	return fp2_copy(P.X, x)
-		&& fp2_copy(P.Y, y)
-		&& fp2_set_one(P.Z);
-}
-
-static int point_get_affine_coordinates(const point_t P, fp2_t x, fp2_t y)
-{
-	return fp2_copy(x, P.X)
-		&& fp2_copy(y, P.y)
-		&& fp2_is_one(P.Z);
-}
-
 static int point_dbl(point_t R, const point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
 	int r;
 	fp2_t x3, y3, x1, y1, lambda, t;
 
 	r = 1;
-	r &&= fp2_init(x1, ctx);
-	r &&= fp2_init(y1, ctx);
-	r &&= fp2_init(x3, ctx);
-	r &&= fp2_init(y3, ctx);
-	r &&= fp2_init(t0, ctx);
-	r &&= fp2_init(t1, ctx);
-	r &&= fp2_init(lambda, ctx);
+	r &= fp2_init(x1, ctx);
+	r &= fp2_init(y1, ctx);
+	r &= fp2_init(x3, ctx);
+	r &= fp2_init(y3, ctx);
+	r &= fp2_init(lambda, ctx);
+	r &= fp2_init(t, ctx);
 	if (!r) {
 		goto end;
 	}
@@ -1027,7 +1076,7 @@ end:
 	fp2_cleanup(x1);
 	fp2_cleanup(y1);
 	fp2_cleanup(x3);
-	fp2_clenaup(y3);
+	fp2_cleanup(y3);
 	fp2_cleanup(lambda);
 	fp2_cleanup(t);
 	return r;
@@ -1043,8 +1092,7 @@ static int point_add(point_t R, const point_t P, const point_t Q, const BIGNUM *
 	fp2_t x3;
 	fp2_t y3;
 	fp2_t lambda;
-	fp2_t t0;
-	fp2_t t1;
+	fp2_t t;
 
 	if (point_is_at_infinity(P)) {
 		return point_copy(R, Q);
@@ -1060,14 +1108,14 @@ static int point_add(point_t R, const point_t P, const point_t Q, const BIGNUM *
 	}
 
 	r = 1;
-	r &&= fp2_init(x1, ctx);
-	r &&= fp2_init(y1, ctx);
-	r &&= fp2_init(x2, ctx);
-	r &&= fp2_init(y2, ctx);
-	r &&= fp2_init(x3, ctx);
-	r &&= fp2_init(y3, ctx);
-	r &&= fp2_init(lambda, ctx);
-	r &&= fp2_init(t, ctx);
+	r &= fp2_init(x1, ctx);
+	r &= fp2_init(y1, ctx);
+	r &= fp2_init(x2, ctx);
+	r &= fp2_init(y2, ctx);
+	r &= fp2_init(x3, ctx);
+	r &= fp2_init(y3, ctx);
+	r &= fp2_init(lambda, ctx);
+	r &= fp2_init(t, ctx);
 	if (!r) {
 		goto end;
 	}
@@ -1116,10 +1164,10 @@ end:
 	return r;
 }
 
-static int point_neg(point_t R, const point_t P)
+static int point_neg(point_t R, const point_t P, const BIGNUM *p)
 {
 	return fp2_copy(R.X, P.X)
-		&& fp2_neg(R.y, P.y)
+		&& fp2_neg(R.Y, P.Y, p)
 		&& fp2_copy(R.Z, P.Z);
 }
 
@@ -1127,7 +1175,7 @@ static int point_sub(point_t R, const point_t P, const point_t Q, const BIGNUM *
 {
 	point_t T;
 	if (!point_init(T, ctx)
-		|| !point_neg(T, Q)
+		|| !point_neg(T, Q, p)
 		|| !point_add(R, P, T, p, ctx)) {
 		point_cleanup(T);
 		return 0;
@@ -1136,12 +1184,10 @@ static int point_sub(point_t R, const point_t P, const point_t Q, const BIGNUM *
 	return 1;
 }
 
-static void point_mul_generator(point_t R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
-{
-}
-
 static int point_mul(point_t R, const BIGNUM *k, const point_t P, const BIGNUM *p, BN_CTX *ctx)
 {
+	int i, n;
+
 	if (BN_is_zero(k)) {
 		return point_set_infinity(R);
 	}
@@ -1164,6 +1210,20 @@ static int point_mul(point_t R, const BIGNUM *k, const point_t P, const BIGNUM *
 	return 1;
 }
 
+static int point_mul_generator(point_t R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
+{
+	point_t G;
+
+	point_init(G, ctx);
+	point_set_affine_coordinates_bignums(G,
+		SM9_get0_generator2_x0,
+		SM9_get0_generator2_x1,
+		SM9_get0_generator2_y0,
+		SM9_get0_generator2_y1);
+	
+	return point_mul(R, k, G, p, ctx);
+}
+
 static int eval_tangent(fp12_t r, const fp12_t xP, const fp12_t yP,
 	const BIGNUM *xQ, const BIGNUM *yQ,
 	const BIGNUM *p, BN_CTX *ctx)
@@ -1172,10 +1232,10 @@ static int eval_tangent(fp12_t r, const fp12_t xP, const fp12_t yP,
 	fp12_t x, y, lambda, t;
 
 	ret = 1;
-	ret &&= fp12_init(x, ctx);
-	ret &&= fp12_init(y, ctx);
-	ret &&= fp12_init(lambda, ctx);
-	ret &&= fp12_init(t, ctx);
+	ret &= fp12_init(x, ctx);
+	ret &= fp12_init(y, ctx);
+	ret &= fp12_init(lambda, ctx);
+	ret &= fp12_init(t, ctx);
 	if (!ret) {
 		goto end;
 	}
@@ -1195,7 +1255,7 @@ static int eval_tangent(fp12_t r, const fp12_t xP, const fp12_t yP,
 		|| !fp12_add(r, r, yP, p, ctx)) {
 		goto end;
 	}
-	ret = 1
+	ret = 1;
 
 end:
 	fp12_cleanup(x);
@@ -1214,10 +1274,10 @@ static int eval_line(fp12_t r, const fp12_t xT, const fp12_t yT,
 	fp12_t x, y, lambda, t;
 
 	ret = 1;
-	ret &&= fp12_init(x, ctx);
-	ret &&= fp12_init(y, ctx);
-	ret &&= fp12_init(lambda, ctx);
-	ret &&= fp12_init(t, ctx);
+	ret &= fp12_init(x, ctx);
+	ret &= fp12_init(y, ctx);
+	ret &= fp12_init(lambda, ctx);
+	ret &= fp12_init(t, ctx);
 	if (!ret) {
 		goto end;
 	}
@@ -1246,53 +1306,101 @@ end:
 	return ret;
 }
 
-static void frob(fp12_t xR, fp12_t yR, const point_t P, const BIGNUM *p, BN_CTX *ctx)
+static int point_get_ext_affine_coordinates(const point_t *P, fp12_t x, fp12_t y, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t x, y;
-	fp12_t t0, t1;
+	int r;
+	fp2_t xP;
+	fp2_t yP;
+	fp12_t wem2;
+	fp12_t wem3;
 
-	point_get_affine_coordinates(x, y, R);
+	r = 1;
+	r &= fp2_init(xP, ctx);
+	r &= fp2_init(yP, ctx);
+	r &= fp12_init(wem2, ctx);
+	r &= fp12_init(wem2, ctx);
+	if (!r) {
+		goto end;
+	}
 
-	fp2_conjugate(x);
-	fp2_conjugate(y);
-	fp12_set_fp(t0, x);
-	fp12_set_fp(t1, y);
-	fp12_mul(xR, t0, w2p);
-	fp12_mul(yR, t1, w3p);
+	r = 0;
+	if (!point_get_affine_coordinates(P, xP, yP)
+		|| !fp12_set_fp2(x, xP)
+		|| !fp12_set_fp2(y, yP)
+
+		/* x = x * w^-2 */
+		|| !fp12_set_w2(wem2)
+		|| !fp12_inv(wem2, wem2, p, ctx)
+		|| !fp12_mul(x, x, wem2, p, ctx)
+
+		/* y = y * w^-3 */
+		|| !fp12_set_v(wem3)
+		|| !fp12_inv(wem3, wem3, p, ctx)
+		|| !fp12_mul(y, y, wem3, p, ctx)) {
+		goto end;
+	}
+	r = 1;
+
+end:
+	fp2_cleanup(xP);
+	fp2_cleanup(yP);
+	fp12_cleanup(wem2);
+	fp12_cleanup(wem3);
+	return r;
 }
 
-static void frob_twice(fp12_t xR, fp12_t yR, const point_t P, const BIGNUM *p, BN_CTX *ctx)
+static int point_frob(const point_t P, fp12_t x, fp12_t y, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp2_t x, y;
-	fp12_t t0, t1;
-
-	
-	point_get_affine_coordinates(x, y, R);
-
-
+	return point_get_ext_affine_coordinates(P, x, y, p, ctx)
+		&& fp12_pow(x, x, p, p, ctx)
+		&& fp12_pow(y, y, p, p, ctx);
 }
 
-static void final_expo(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+static int point_frob_twice(const point_t P, fp12_t x, fp12_t y, const BIGNUM *p, BN_CTX *ctx)
 {
-	fp12_copy(r, a);
-	for (i = 0; i < sizeof(ebits); i++) {
-		fp12_sqr_to(r);
-		if (ebits[i]) {
-			fp12_mul_to(r, a);
+	return point_frob(P, x, y, p, ctx)
+		&& fp12_pow(x, x, p, p, ctx)
+		&& fp12_pow(y, y, p, p, ctx);
+}
+
+static int final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
+{
+	int i, n;
+
+	if (!fp12_copy(r, a)) {
+		return 0;
+	}
+
+	n = BN_num_bits(k);
+	for (i = n - 2; i >= 0; i--) {
+		if (!fp12_sqr(r, r, p, ctx)) {
+			return 0;
+		}
+
+		if (BN_is_bit_set(k, i)) {
+			if (!fp12_mul(r, r, a, p, ctx)) {
+				return 0;
+			}
 		}
 	}
+
+	return 1;
 }
 
-static void rate(fp12_t r, const point_t Q,  const fp_t xP, const fp_t yP)
+static int rate(fp12_t r, const point_t Q, const BIGNUM *xP, const BIGNUM *yP,
+	const BIGNUM *p, BN_CTX *ctx)
 {
 	int i;
-
+	point_t T;
 	fp12_t f, g;
+
+	point_init(T, ctx);
 
 	point_copy(T, Q);
 	fp12_set_one(f);
 
-	for (i = 0; i < sizeof(abits); i++) {
+
+	for (i = n - 2; i >= 0; i++) {
 		eval(g, T, T, xP, yP);
 		fp12_sqr_to(f);
 		fp12_mul_to(f, g);
@@ -1318,44 +1426,32 @@ static void rate(fp12_t r, const point_t Q,  const fp_t xP, const fp_t yP)
 	//point_add_to(T, Q2); 
 
 	final_expo(r, f);
+	return 0;
 }
-
-/*
- * the following API should be exported:
- * 1. mul generator P2/or G2, over E'(F_p^2),
- * 2. e(P, G1) where G1 is a fixed generator over E(Fp)
- * 3. fp12_pow(), g^k, where g in Fp12, k is in Fp
- * 4. k * G2 same as 1
- *  
- *
- */
 
 int test()
 {
-	char *x_P2_1_str = "85AEF3D078640C98597B6027B441A01FF1DD2C190F5E93C454806C11D8806141";
-	char *x_P2_0_str = "3722755292130B08D2AAB97FD34EC120EE265948D19C17ABF9B7213BAF82D65B";
-	char *y_P2_1_str = "17509B092E845C1266BA0D262CBEE6ED0736A96FA347C8BD856DC76B84EBEB96";
-	char *y_P2_0_str = "A7CF28D519BE3DA65F3170153D278FF247EFBA98A71A08116215BBA5C999A7C7";
+	/* P2 generator of the twist curve */
+	char *x_P2_str[] = {
+		"85AEF3D078640C98597B6027B441A01FF1DD2C190F5E93C454806C11D8806141",
+		"3722755292130B08D2AAB97FD34EC120EE265948D19C17ABF9B7213BAF82D65B"};
+	char *y_P2_str[] = {
+		"17509B092E845C1266BA0D262CBEE6ED0736A96FA347C8BD856DC76B84EBEB96",
+		"A7CF28D519BE3DA65F3170153D278FF247EFBA98A71A08116215BBA5C999A7C7"};
 
+	/* ks signing master secret */
+	char *ks_str =
+		"0130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4";	
 
-	if (!BN_hex2bn(&x_P2_1, x_P2_1_str)
-		|| !BN_hex2bn(&x_P2_0, x_P2_0_str)
-		|| !BN_hex2bn(&y1, y_P2_1_str)
-		|| !BN_hex2bn(&y0, y_P2_0_str)
-		|| !BN_hex2bn(ks, ks_str)) {
+	/* Ppubs = ks * P2 */
+	char *x_Ppubs_str[] = {
+		"9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408",
+		"29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32"};
+	char *y_Ppubs_str[] = {
+		"69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25",
+		"41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D"};
 
-	}
-
-	if (!fp2_set(x_P2, x0, x1)
-		|| !fp2_set(y_P2, y0, y1)) {
-	}
-
-	char *ks_str = "0130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4";	
-	char *x_Ppubs_1_str = "9F64080B3084F733E48AFF4B41B565011CE0711C5E392CFB0AB1B6791B94C408";
-	char *x_Ppubs_0_str = "29DBA116152D1F786CE843ED24A3B573414D2177386A92DD8F14D65696EA5E32";
-	char *y_Ppubs_1_str = "69850938ABEA0112B57329F447E3A0CBAD3E2FDB1A77F335E89E1408D0EF1C25";
-	char *y_Ppubs_0_str = "41E00A53DDA532DA1A7CE027B7A46F741006E85F5CDFF0730E75C05FB4E3216D";	
-
+	/* g = e(P1, Ppubs) */
 	char *g_str[] =  {
 		"4E378FB5561CD0668F906B731AC58FEE25738EDF09CADC7A29C0ABC0177AEA6D",
 		"28B3404A61908F5D6198815C99AF1990C8AF38655930058C28C21BB539CE0000",
@@ -1370,7 +1466,9 @@ int test()
 		"84B87422330D7936EABA1109FA5A7A7181EE16F2438B0AEB2F38FD5F7554E57A",
 		"AAB9F06A4EEBA4323A7833DB202E4E35639D93FA3305AF73F0F071D7D284FCFB"};
 
-	char *r_str = "033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE";
+	/* r = rand(1, n-1) */
+	char *r_str =
+		"033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE";
 
 	char *w_str[] = {
 		"81377B8FDBC2839B4FA2D0E0F8AA6853BBBE9E9C4099608F8612C6078ACD7563",
@@ -1386,31 +1484,36 @@ int test()
 		"6A814AAF475F128AEF43A128E37F80154AE6CB92CAD7D1501BAE30F750B3A9BD",
 		"1F96B08E97997363911314705BFB9A9DBB97F75553EC90FBB2DDAE53C8F68E42"};
 
-	EC_POINT *P1 = NULL;
-
 	const EC_GROUP *group;
 	const EC_POINT *P1;
-	
-	group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1);
+	const BIGNUM *n;
+	BIGNUM *p = NULL;
+	BIGNUM *a = NULL;
+	BIGNUM *b = NULL;
 
-	EC_GROUP_get_order();
+	BIGNUM *ks = NULL;
+	point_t P2;
+	point_t Ppubs;
 
-	P1 = EC_GROUP_get0_generator(G1);
 
-	if (!EC_POINT_set_affine_coordinates_GFp(group, P1, xP1, yP1, bn_ctx)) {
+	p = BN_new();
+	a = BN_new();
+	b = BN_new();
+
+	/* check curve is correct */
+	if (!(group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1))
+		|| !EC_GROUP_get_curve_GFp(group, p, a, b, ctx)
+		|| !(P1 = EC_GROUP_get0_generator(group))
+		|| !(n = EC_GROUP_get0_order(group))
+		|| !POINT_is_on_curve(group, P1, ctx)) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
 
-	fp2_set(x_P2, x0, x1);
-	fp2_set(y_P2, y0, y1);
-	point_set_affine_coordinates(P2, x_P2, y_P2);
+	EC_POINT_mul(group, Q, n, NULL, NULL, ctx)
+	if (!POINT_is_at_infinity(Q)) {
+	}
 
-	point_mul(R, k, P2);
-	point_is_at_infinity(R);
-	
-	point_mul(Ppubs, ks, P2);
-
-	sm9_rate(g, Ppubs, P1);
-
+	point_mul_generator(Ppubs, ks, P2, p, ctx);
+	return 0;
 }

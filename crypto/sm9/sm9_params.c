@@ -55,14 +55,29 @@
 #include <openssl/err.h>
 
 
-#include "bn_lcl.h"
+#include "../bn/bn_lcl.h"
 #include "internal/cryptlib.h"
 
 
 #define BN_SM9_BN256_TOP (256+BN_BITS2-1)/BN_BITS2
 #define BN_SM9_TRACE_TOP (66+BN_BITS2-1)/BN_BITS2
+#define BN_SM9_FINAL_EXPO_TOP (66+BN_BITS2-1)/BN_BITS2
 
-#if BN_BITS == 64
+#if BN_BITS2 == 64
+static const BN_ULONG _sm9bn256v1_prime[BN_SM9_BN256_TOP] = {
+	0xE56F9B27E351457DULL, 0x21F2934B1A7AEEDBULL,
+	0xD603AB4FF58EC745ULL, 0xB640000002A3A6F1ULL,
+};
+
+static const BN_ULONG _sm9bn256v1_order[BN_SM9_BN256_TOP] = {
+	0xE56EE19CD69ECF25ULL, 0x49F2934B18EA8BEEULL,
+	0xD603AB4FF58EC744ULL, 0xB640000002A3A6F1ULL,
+};
+
+static const BN_ULONG _sm9bn256v1_trace[BN_SM9_TRACE_TOP] = {
+	0x400000000215D93EULL, 0x02ULL,
+};
+
 static const BN_ULONG _sm9bn256v1_x2[][BN_SM9_BN256_TOP] = {
 	{0xF9B7213BAF82D65BULL, 0xEE265948D19C17ABULL,
 	 0xD2AAB97FD34EC120ULL, 0x3722755292130B08ULL},
@@ -77,11 +92,25 @@ static const BN_ULONG _sm9bn256v1_y2[][BN_SM9_BN256_TOP] = {
 	 0x66BA0D262CBEE6EDULL, 0x17509B092E845C12ULL}
 };
 
-static const BN_ULONG _sm9bn256v1_trace[BN_SM9_TRACE_TOP] = {
+static const BN_ULONG _sm9bn256v1_final_expo[BN_SM9_FINAL_EXPO_TOP] = {
 	0x400000000215D93EULL, 0x02ULL,
 };
 
 #elif BN_BITS2 == 32
+static const BN_ULONG _sm9bn256v1_prime[BN_SM9_BN256_TOP] = {
+	0xE351457D, 0xE56F9B27, 0x1A7AEEDB, 0x21F2934B,
+	0xF58EC745, 0xD603AB4F, 0x02A3A6F1, 0xB6400000,
+};
+
+static const BN_ULONG _sm9bn256v1_order[BN_SM9_BN256_TOP] = {
+	0xD69ECF25, 0xE56EE19C, 0x18EA8BEE, 0x49F2934B,
+	0xF58EC744, 0xD603AB4F, 0x02A3A6F1, 0xB6400000,
+};
+
+static const BN_ULONG _sm9bn256v1_trace[BN_SM9_TRACE_TOP] = {
+	0x0215D93E, 0x40000000, 0x02,
+};
+
 static const BN_ULONG _sm9bn256v1_x2[][BN_SM9_BN256_TOP] = {
 	{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948,
 	 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
@@ -96,13 +125,45 @@ static const BN_ULONG _sm9bn256v1_y2[][BN_SM9_BN256_TOP] = {
 	 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}
 };
 
-static const BN_ULONG _sm9bn256v1_trace[BN_SM9_TRACE_TOP] = {
-	0x0215D93E, 0x40000000, 0x02,
+static const BN_ULONG _sm9bn256v1_final_expo[BN_SM9_FINAL_EXPO_TOP] = {
+	0, 0, 0
 };
 
 #else
 # error "unsupported BN_BITS2"
 #endif
+
+static const BIGNUM _bignum_sm9bn256v1_prime = {
+	(BN_ULONG *)_sm9bn256v1_prime,
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_order = {
+	(BN_ULONG *)_sm9bn256v1_order,
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_trace = {
+	(BN_ULONG *)_sm9bn256v1_trace,
+	BN_SM9_TRACE_TOP,
+	BN_SM9_TRACE_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_final_expo = {
+	(BN_ULONG *)_sm9bn256v1_final_expo,
+	BN_SM9_FINAL_EXPO_TOP,
+	BN_SM9_FINAL_EXPO_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
 
 static const BIGNUM _bignum_sm9bn256v1_x20 = {
 	(BN_ULONG *)_sm9bn256v1_x2[0],
@@ -136,22 +197,42 @@ static const BIGNUM _bignum_sm9bn256v1_y21 = {
 	BN_FLG_STATIC_DATA
 };
 
-static const BIGNUM _bignum_sm9bn256v1_trace = {
-	(BN_ULONG *)_sm9bn256v1_trace, // IS THIS CORRECT??
-	BN_SM9_TRACE_TOP,
-	BN_SM9_TRACE_TOP,
-	0,
-	BN_FLG_STATIC_DATA
-};
+const BIGNUM *SM9_get0_generator2_x0(void)
+{
+	return &_bignum_sm9bn256v1_x20;
+}
 
-// we should not put it here
-const point_t _sm9bn256v1_g2 = {
-	{&_bignum_sm9bn256v1_x20, &_bignum_sm9bn256v1_x21},
-	{&_bignum_sm9bn256v1_y20, &_bignum_sm9bn256v1_y21},
-	{&_bignum_one, &_bignum_zero}
-};
+const BIGNUM *SM9_get0_generator2_x1(void)
+{
+	return &_bignum_sm9bn256v1_x21;
+}
 
+const BIGNUM *SM9_get0_generator2_y0(void)
+{
+	return &_bignum_sm9bn256v1_y20;
+}
 
+const BIGNUM *SM9_get0_generator2_y1(void)
+{
+	return &_bignum_sm9bn256v1_y21;
+}
 
+const BIGNUM *SM9_get0_prime(void)
+{
+	return &_bignum_sm9bn256v1_prime;
+}
 
+const BIGNUM *SM9_get0_order(void)
+{
+	return &_bignum_sm9bn256v1_order;
+}
 
+const BIGNUM *SM9_get0_trace(void)
+{
+	return &_bignum_sm9bn256v1_trace;
+}
+
+const BIGNUM *SM9_get0_final_exponent(void)
+{
+	return &_bignum_sm9bn256v1_final_expo;
+}

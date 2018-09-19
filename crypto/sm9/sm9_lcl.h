@@ -76,6 +76,16 @@
 extern "C" {
 #endif
 
+
+const BIGNUM *SM9_get0_prime(void);
+const BIGNUM *SM9_get0_order(void);
+const BIGNUM *SM9_get0_trace(void);
+const BIGNUM *SM9_get0_generator2_x0(void);
+const BIGNUM *SM9_get0_generator2_x1(void);
+const BIGNUM *SM9_get0_generator2_y0(void);
+const BIGNUM *SM9_get0_generator2_y1(void);
+
+
 struct SM9PublicParameters_st {
 	ASN1_OBJECT *curve;
 	BIGNUM *p;
