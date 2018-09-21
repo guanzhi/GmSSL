@@ -218,7 +218,5 @@ end:
 int SM9_setup_by_pairing_name(int nid, int hid,
 	SM9PublicParameters **mpk, SM9MasterSecret **msk)
 {
-	EC_GROUP *group = EC_GROUP_new_sm9s256t1();
-	return SM9_setup_type1curve(group, EVP_sm3(), mpk, msk);
+	return 0;
 }
-

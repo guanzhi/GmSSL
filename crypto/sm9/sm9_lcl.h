@@ -76,15 +76,8 @@
 extern "C" {
 #endif
 
-
-const BIGNUM *SM9_get0_prime(void);
-const BIGNUM *SM9_get0_order(void);
-const BIGNUM *SM9_get0_trace(void);
-const BIGNUM *SM9_get0_generator2_x0(void);
-const BIGNUM *SM9_get0_generator2_x1(void);
-const BIGNUM *SM9_get0_generator2_y0(void);
-const BIGNUM *SM9_get0_generator2_y1(void);
-
+int SM9_rate_pairing(BIGNUM *r[12], const BIGNUM *xQ[2], const BIGNUM *yQ[2],
+	const BIGNUM *xP, const BIGNUM *yP, BN_CTX *ctx);
 
 struct SM9PublicParameters_st {
 	ASN1_OBJECT *curve;
@@ -136,7 +129,14 @@ int SM9_hash2(const EVP_MD *md, BIGNUM **r,
 	const unsigned char *elem, size_t elemlen,
 	const BIGNUM *range, BN_CTX *ctx);
 
-EC_GROUP *EC_GROUP_new_sm9s256t1(void);
+const BIGNUM *SM9_get0_prime(void);
+const BIGNUM *SM9_get0_order(void);
+const BIGNUM *SM9_get0_loop_count(void);
+const BIGNUM *SM9_get0_final_exponent(void);
+const BIGNUM *SM9_get0_generator2_x0(void);
+const BIGNUM *SM9_get0_generator2_x1(void);
+const BIGNUM *SM9_get0_generator2_y0(void);
+const BIGNUM *SM9_get0_generator2_y1(void);
 
 
 #ifdef __cplusplus
