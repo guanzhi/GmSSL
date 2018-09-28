@@ -55,480 +55,387 @@
 #include <openssl/bn_gfp2.h>
 #include "sm9_lcl.h"
 
+
 int SM9_signature_size(SM9PublicParameters *mpk)
 {
-	return 0;
+	return 105;
 }
 
-static SM9Signature *SM9_do_sign_type1curve(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen, SM9PrivateKey *sk)
+int SM9_SignInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *eng)
 {
-	int e = 1;
+	unsigned char prefix = 0x02;
+
+	if (!EVP_DigestInit_ex(ctx, md, eng)) {
+		SM9err(SM9_F_SM9_SIGNINIT, ERR_R_EVP_LIB);
+		return 0;
+	}
+	if (!EVP_DigestUpdate(ctx, &prefix, 1)) {
+		SM9err(SM9_F_SM9_SIGNINIT, ERR_R_EVP_LIB);
+		return 0;
+	}
+
+	return 1;
+}
+
+SM9Signature *SM9_SignFinal(EVP_MD_CTX *ctx1, SM9PrivateKey *sk)
+{
 	SM9Signature *ret = NULL;
-	BN_CTX *bn_ctx = NULL;
+	SM9Signature *sig = NULL;
+	const BIGNUM *p = SM9_get0_prime();
+	const BIGNUM *n = SM9_get0_order();
+	int point_form = POINT_CONVERSION_COMPRESSED;
+	/* buf for w and prefix zeros of ct1/2 */
+	unsigned char buf[387] = {0};
+	unsigned int len;
+	const unsigned char ct1 = 0x01;
+	const unsigned char ct2 = 0x02;
+	EVP_MD_CTX *ctx2 = NULL;
 	EC_GROUP *group = NULL;
-	EC_POINT *point = NULL;
-	BN_GFP2 *w = NULL;
-	unsigned char *buf = NULL;
-	BIGNUM *r;
-	BIGNUM *l;
-	const EVP_MD *md;
-	int point_form = POINT_CONVERSION_UNCOMPRESSED;
-	size_t size;
+	EC_POINT *S = NULL;
+	BN_CTX *bn_ctx = NULL;
+	BIGNUM *r = NULL;
+	point_t Ppubs;
+	fp12_t w;
 
-	if (!mpk || !dgst || dgstlen <= 0 || !sk) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE,
-			ERR_R_PASSED_NULL_PARAMETER);
-		return NULL;
-	}
-	if (dgstlen > EVP_MAX_MD_SIZE) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE,
-			SM9_R_INVALID_DIGEST);
-		return NULL;
-	}
-
-	/* BN_CTX */
-	if (!(bn_ctx = BN_CTX_new())) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE,
-			ERR_R_MALLOC_FAILURE);
+	if (!(sig = SM9Signature_new())
+		|| !(ctx2 = EVP_MD_CTX_new())
+		|| !(group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1))
+		|| !(S = EC_POINT_new(group))
+		|| !(bn_ctx = BN_CTX_new())) {
+		SM9err(SM9_F_SM9_SIGNFINAL, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	BN_CTX_start(bn_ctx);
-
-	/* EC_GROUP */
-	if (!(group = EC_GROUP_new_type1curve_ex(mpk->p,
-		mpk->a, mpk->b, mpk->pointP1->data, mpk->pointP1->length,
-		mpk->order, mpk->cofactor, bn_ctx))) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, SM9_R_INVALID_TYPE1CURVE);
+	if (!(r = BN_CTX_get(bn_ctx))
+		|| !fp12_init(w, bn_ctx)
+		|| !point_init(&Ppubs, bn_ctx)) {
+		SM9err(SM9_F_SM9_SIGNFINAL, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	/* malloc */
-	ret = SM9Signature_new();
-	point = EC_POINT_new(group);
-	r = BN_CTX_get(bn_ctx);
-	l = BN_CTX_get(bn_ctx);
 
-	if (!ret || !point || !r || !l) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_MALLOC_FAILURE);
+	/* get Ppubs */
+	if (ASN1_STRING_length(sk->pointPpub) != 129
+		|| !point_from_octets(&Ppubs, ASN1_STRING_get0_data(sk->pointPpub), p, bn_ctx)) {
+		SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_INVALID_POINTPPUB);
 		goto end;
 	}
-
-	/* md = mpk->hashfcn */
-	if (!(md = EVP_get_digestbyobj(mpk->hashfcn))) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, SM9_R_INVALID_MD);
+	/* g = e(P1, Ppubs) */
+	if (!rate_pairing(w, &Ppubs, EC_GROUP_get0_generator(group), bn_ctx)) {
+		SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_PAIRING_ERROR);
 		goto end;
 	}
 
 	do {
-		/* rand r in [1, mpk->order - 1] */
+		/* r = rand(1, n - 1) */
 		do {
-			if (!BN_rand_range(r, mpk->order)) {
-				SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_BN_LIB);
+			if (!BN_rand_range(r, n)) {
+				SM9err(SM9_F_SM9_SIGNFINAL, ERR_R_BN_LIB);
 				goto end;
 			}
 		} while (BN_is_zero(r));
 
-		/* get w = mpk->g = e(mpk->pointP1, mpk->pointPpub) */
-		if (!BN_bn2gfp2(mpk->g1, w, mpk->p, bn_ctx)) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_BN_LIB);
+		/* w = g^r */
+		if (!fp12_pow(w, w, r, p, bn_ctx)
+			|| !fp12_to_bin(w, buf)) {
+			SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_EXTENSION_FIELD_ERROR);
 			goto end;
 		}
 
-		/* w = w^r = (mpk->g)^r in F_p^2 */
-		if (!BN_GFP2_exp(w, w, r, mpk->p, bn_ctx)) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_BN_LIB);
+		if (!EVP_DigestUpdate(ctx1, buf, sizeof(buf))
+			|| !EVP_MD_CTX_copy(ctx2, ctx1)
+			/* Ha1 = Hv(0x02||M||w||0x00000001) */
+			|| !EVP_DigestUpdate(ctx1, &ct1, 1)
+			|| !EVP_DigestFinal_ex(ctx1, buf, &len)
+		 	/* Ha2 = Hv(0x02||M||w||0x00000002) */
+			|| !EVP_DigestUpdate(ctx2, &ct2, 1)
+			|| !EVP_DigestFinal_ex(ctx2, buf + len, &len)) {
+			SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_DIGEST_FAILURE);
 			goto end;
 		}
 
-		/* prepare w buf and canonical(w, order=0) */
-		if (!BN_GFP2_canonical(w, NULL, &size, 0, mpk->p, bn_ctx)) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_BN_LIB);
+		/* Ha = Ha1||Ha2[0..7] */
+		if (!BN_bin2bn(buf, 40, sig->h)
+			/* h = (Ha mod (n - 1)) + 1 */
+			|| !BN_mod(sig->h, sig->h, SM9_get0_order_minus_one(), bn_ctx)
+			|| !BN_add_word(sig->h, 1)
+			/* l = r - h */
+			|| !BN_mod_sub(r, r, sig->h, p, bn_ctx)) {
+			SM9err(SM9_F_SM9_SIGNFINAL, ERR_R_BN_LIB);
 			goto end;
 		}
-		if (!(buf = OPENSSL_malloc(size))) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_MALLOC_FAILURE);
-			goto end;
-		}
-		if (!BN_GFP2_canonical(w, buf, &size, 0, mpk->p, bn_ctx)) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_BN_LIB);
-			goto end;
-		}
+	} while (BN_is_zero(r));
 
-		/* ret->h = H2(H(m)||w) in range defined by mpk->order */
-		if (!SM9_hash2(md, &ret->h, dgst, dgstlen, buf, size, mpk->order, bn_ctx)) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_SM9_LIB);
-			goto end;
-		}
-
-		/* l = (r - ret->h) (mod mpk->order) */
-		if (!BN_mod_sub(l, r, ret->h, mpk->order, bn_ctx)) {
-			SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_BN_LIB);
-			goto end;
-		}
-
-		/* if l == 0, re-generate r */
-	} while (BN_is_zero(l));
-
-	/* point = sk->prointPoint */
-	if (!EC_POINT_oct2point(group, point,
-		sk->privatePoint->data, sk->privatePoint->length, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_EC_LIB);
+	/* get sk */
+	if (!EC_POINT_oct2point(group, S, ASN1_STRING_get0_data(sk->privatePoint),
+		ASN1_STRING_length(sk->privatePoint), bn_ctx)) {
+		SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_INVALID_PRIVATE_POINT);
+		goto end;
+	}	
+	/* S = l * sk */
+	len = sizeof(buf);
+	if (!EC_POINT_mul(group, S, NULL, S, r, bn_ctx)
+		|| !(len = EC_POINT_point2oct(group, S, point_form, buf, len, bn_ctx))
+		|| !ASN1_OCTET_STRING_set(sig->pointS, buf, len)) {
+		SM9err(SM9_F_SM9_SIGNFINAL, ERR_R_EC_LIB);
 		goto end;
 	}
 
-	/* sig->pointS = sk->privatePoint * l */
-	if (!EC_POINT_mul(group, point, NULL, point, l, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!(size = EC_POINT_point2oct(group, point, point_form,
-		NULL, 0, bn_ctx))) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!ASN1_OCTET_STRING_set(ret->pointS, NULL, size)) {
-		SM9err(SM9_F_SM9_DO_SIGN_TYPE1CURVE, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!EC_POINT_point2oct(group, point, point_form,
-		ret->pointS->data, ret->pointS->length, bn_ctx)) {
-		goto end;
-	}
-
-	e = 0;
+	ret = sig;
+	sig = NULL;
 
 end:
-	if (e && ret) {
-		SM9Signature_free(ret);
-		ret = NULL;
-	}
-	if (bn_ctx) {
-		BN_CTX_end(bn_ctx);
-	}
-	BN_CTX_free(bn_ctx);
+	SM9Signature_free(sig);
+	EVP_MD_CTX_free(ctx2);
 	EC_GROUP_free(group);
-	EC_POINT_free(point);
-	BN_GFP2_free(w);
-	OPENSSL_free(buf);
+	EC_POINT_free(S);
+	BN_free(r);
+	point_cleanup(&Ppubs);
+	fp12_cleanup(w);
+	return ret;
+}
+
+int SM9_VerifyInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *eng)
+{
+	unsigned char prefix = 0x02;
+
+	if (!EVP_DigestInit_ex(ctx, md, eng)) {
+		SM9err(SM9_F_SM9_VERIFYINIT, ERR_R_EVP_LIB);
+		return 0;
+	}
+	if (!EVP_DigestUpdate(ctx, &prefix, 1)) {
+		SM9err(SM9_F_SM9_VERIFYINIT, ERR_R_EVP_LIB);
+		return 0;
+	}
+
+	return 1;
+}
+
+static const EVP_MD *sm9hash1_to_md(const ASN1_OBJECT *hash1obj)
+{
+	switch (OBJ_obj2nid(hash1obj)) {
+	case NID_sm9hash1_with_sm3:
+		return EVP_sm3();
+	case NID_sm9hash1_with_sha256:
+		return EVP_sha256();
+	}
 	return NULL;
 }
 
-SM9Signature *SM9_do_sign(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	SM9PrivateKey *sk)
+int SM9_VerifyFinal(EVP_MD_CTX *ctx1, const SM9Signature *sig, SM9PublicKey *pk)
 {
-	if (!mpk || !dgst || dgstlen <= 0 || !sk) {
-		SM9err(SM9_F_SM9_DO_SIGN, ERR_R_PASSED_NULL_PARAMETER);
-		return NULL;
-	}
-
-	if (OBJ_obj2nid(mpk->curve) == NID_type1curve) {
-		return SM9_do_sign_type1curve(mpk, dgst, dgstlen, sk);
-	}
-
-	SM9err(SM9_F_SM9_DO_SIGN, SM9_R_INVALID_CURVE);
-	return NULL;
-}
-
-int SM9_do_verify_type1curve_ex(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const SM9Signature *sig, SM9PublicKey *pk)
-{
-	return -1;
-}
-
-int SM9_do_verify_type1curve(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const SM9Signature *sig, const char *id, size_t idlen)
-{
-	int ret = 0;
-	BN_CTX *bn_ctx = NULL;
-	EC_GROUP *group = NULL;
-	EC_POINT *point = NULL;
-	EC_POINT *pointS = NULL;
-	EC_POINT *Ppub = NULL;
-	BN_GFP2 *t = NULL;
-	BN_GFP2 *u = NULL;
-	BN_GFP2 *w = NULL;
-	unsigned char *buf = NULL;
-	BIGNUM *h1;
-	BIGNUM *h2;
-	size_t size;
+	int ret = -1;
+	const BIGNUM *p = SM9_get0_prime();
+	const BIGNUM *n = SM9_get0_order();
 	const EVP_MD *md;
+	unsigned char buf[387] = {0};
+	unsigned int len;
+	const unsigned char ct1 = 0x01;
+	const unsigned char ct2 = 0x02;
+	EVP_MD_CTX *ctx2 = NULL;
+	EC_GROUP *group = NULL;
+	EC_POINT *S = NULL;
+	BN_CTX *bn_ctx = NULL;
+	BIGNUM *h = NULL;
+	point_t Ppubs;
+	point_t P;
+	fp12_t w;
+	fp12_t u;
 
-	if (!mpk || !dgst || dgstlen <= 0 || !sig || !id || idlen <= 0) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_PASSED_NULL_PARAMETER);
-		return 0;
-	}
-	if (dgstlen > EVP_MAX_MD_SIZE) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_DIGEST);
-		return 0;
-	}
-	if (idlen > SM9_MAX_ID_LENGTH) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_ID);
-		return 0;
-	}
-
-	/* BN_CTX */
-	if (!(bn_ctx = BN_CTX_new())) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_MALLOC_FAILURE);
+	if (!(ctx2 = EVP_MD_CTX_new())
+		|| !(group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1))
+		|| !(S = EC_POINT_new(group))
+		|| !(bn_ctx = BN_CTX_new())) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	BN_CTX_start(bn_ctx);
-
-	/* EC_GROUP */
-	if (!(group = EC_GROUP_new_type1curve_ex(mpk->p,
-		mpk->a, mpk->b, mpk->pointP1->data, mpk->pointP1->length,
-		mpk->order, mpk->cofactor, bn_ctx))) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_TYPE1CURVE);
+	if (!(h = BN_CTX_get(bn_ctx))
+		|| !point_init(&Ppubs, bn_ctx)
+		|| !point_init(&P, bn_ctx)
+		|| !fp12_init(w, bn_ctx)
+		|| !fp12_init(u, bn_ctx)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
-	/* malloc */
-	point = EC_POINT_new(group);
-	pointS = EC_POINT_new(group);
-	Ppub = EC_POINT_new(group);
-	t = BN_GFP2_new();
-	u = BN_GFP2_new();
-	w = BN_GFP2_new();
-	h1 = BN_CTX_get(bn_ctx);
-	h2 = BN_CTX_get(bn_ctx);
-
-	if (!point || !pointS || !Ppub || !t || !u || !w || !h1 || !h2) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_MALLOC_FAILURE);
+	/* check signature (h, S) */
+	if (BN_is_zero(sig->h) || BN_cmp(sig->h, SM9_get0_order()) >= 0) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_INVALID_SIGNATURE);
+		goto end;
+	}
+	if (!EC_POINT_oct2point(group, S, ASN1_STRING_get0_data(sig->pointS),
+		ASN1_STRING_length(sig->pointS), bn_ctx)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_INVALID_SIGNATURE);
 		goto end;
 	}
 
-	/* md = mpk->hashfcn */
-	if (!(md = EVP_get_digestbyobj(mpk->hashfcn))) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_MD);
+	/* g = e(P1, Ppubs) */
+	if (ASN1_STRING_length(pk->pointPpub) != 129
+		|| !point_from_octets(&Ppubs, ASN1_STRING_get0_data(pk->pointPpub), p, bn_ctx)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_INVALID_POINTPPUB);
+		goto end;
+	}
+	if (!rate_pairing(w, &Ppubs, EC_GROUP_get0_generator(group), bn_ctx)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_PAIRING_ERROR);
 		goto end;
 	}
 
-	/* check sig->h in [1, mpk->order - 1] */
-	//FIXME: do we need to check sig->h > 0 ?
-	if (BN_is_zero(sig->h) || BN_cmp(sig->h, mpk->order) >= 0) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_SIGNATURE);
+	/* t = g^(sig->h) */
+	if (!fp12_pow(w, w, sig->h, p, bn_ctx)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_EXTENSION_FIELD_ERROR);
 		goto end;
 	}
 
-	/* pointS = sig->pointS */
-	if (!EC_POINT_oct2point(group, pointS,
-		sig->pointS->data, sig->pointS->length, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_SIGNATURE);
+	/* h1 = H1(ID||hid, N) */
+	if (!(md = sm9hash1_to_md(pk->hash1))) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_INVALID_HASH1);
+		goto end;
+	}
+	if (!SM9_hash1(md, &h, (const char *)ASN1_STRING_get0_data(pk->identity),
+		ASN1_STRING_length(pk->identity), SM9_HID_SIGN, n, bn_ctx)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, ERR_R_SM9_LIB);
 		goto end;
 	}
 
-	/* decode t from mpk->g in F_p^2 */
-	if (!BN_bn2gfp2(mpk->g1, t, mpk->p, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_BN_LIB);
+	/* P = h1 * P2 + Ppubs */
+	if (!point_mul_generator(&P, h, p, bn_ctx)
+		|| !point_add(&P, &P, &Ppubs, p, bn_ctx)
+		/* u = e(sig->S, P) */
+		|| !rate_pairing(u, &P, S, bn_ctx)
+		/* w = u * t */
+		|| !fp12_mul(w, u, w, p, bn_ctx)
+		|| !fp12_to_bin(w, buf)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_EXTENSION_FIELD_ERROR);
 		goto end;
 	}
 
-	/* t = t^(sig->h) = (mpk->g)^(sig->h) in F_p^2 */
-	if (!BN_GFP2_exp(t, t, sig->h, mpk->p, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_BN_LIB);
+	/* h2 = H2(M||w) mod n */
+	if (!EVP_DigestUpdate(ctx1, buf, sizeof(buf))
+		|| !EVP_MD_CTX_copy(ctx2, ctx1)
+		/* Ha1 = Hv(0x02||M||w||0x00000001) */
+		|| !EVP_DigestUpdate(ctx1, &ct1, 1)
+	 	/* Ha2 = Hv(0x02||M||w||0x00000002) */
+		|| !EVP_DigestUpdate(ctx2, &ct2, 1)
+		|| !EVP_DigestFinal_ex(ctx1, buf, &len)
+		|| !EVP_DigestFinal_ex(ctx2, buf + len, &len)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_DIGEST_FAILURE);
 		goto end;
 	}
-
-	/* h1 = H1(ID||hid) to range [0, mpk->order) */
-	if (!SM9_hash1(md, &h1, id, idlen, SM9_HID_SIGN, mpk->order, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_SM9_LIB);
-		goto end;
-	}
-
-	/* point = mpk->pointP2 * h1 + mpk->pointPpub */
-	if (!EC_POINT_mul(group, point, h1, NULL, NULL, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!EC_POINT_oct2point(group, Ppub,
-		mpk->pointPpub->data, mpk->pointPpub->length, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_TYPE1CURVE);
-		goto end;
-	}
-	if (!EC_POINT_add(group, point, point, Ppub, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_EC_LIB);
-		goto end;
-	}
-
-	/* u = e(sig->pointS, point) in F_p^2 */
-	if (!EC_type1curve_tate(group, u, pointS, point, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_COMPUTE_PAIRING_FAILURE);
-		goto end;
-	}
-
-	/* w = u * t in F_p^2 */
-	if (!BN_GFP2_mul(w, u, t, mpk->p, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_BN_LIB);
-		goto end;
-	}
-
-	/* buf = canonical(w) */
-	if (!BN_GFP2_canonical(w, NULL, &size, 0, mpk->p, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_BN_LIB);
-		goto end;
-	}
-	if (!(buf = OPENSSL_malloc(size))) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-	if (!BN_GFP2_canonical(w, buf, &size, 0, mpk->p, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, ERR_R_BN_LIB);
-		goto end;
-	}
-
-	/* h2 = H2(M||w) in [0, mpk->order - 1] */
-	if (!SM9_hash2(md, &h2, dgst, dgstlen, buf, size, mpk->order, bn_ctx)) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_HASH_FAILURE);
+	/* Ha = Ha1||Ha2[0..7] */
+	if (!BN_bin2bn(buf, 40, h)
+		/* h2 = (Ha mod (n - 1)) + 1 */
+		|| !BN_mod(h, h, SM9_get0_order_minus_one(), bn_ctx)
+		|| !BN_add_word(h, 1)) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, ERR_R_BN_LIB);
 		goto end;
 	}
 
 	/* check if h2 == sig->h */
-	if (BN_cmp(h2, sig->h) != 0) {
-		SM9err(SM9_F_SM9_DO_VERIFY_TYPE1CURVE, SM9_R_INVALID_SIGNATURE);
-		goto end;
+	if (BN_cmp(h, sig->h) != 0) {
+		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_VERIFY_FAILURE);
+		ret = 0;
 	}
 
-	//FIXME: return value of sig verify
 	ret = 1;
+
 end:
+	EVP_MD_CTX_free(ctx2);
+	EC_GROUP_free(group);
+	EC_POINT_free(S);
+	BN_free(h);
+	point_cleanup(&Ppubs);
+	point_cleanup(&P);
+	fp12_cleanup(w);
+	fp12_cleanup(u);
 	if (bn_ctx) {
 		BN_CTX_end(bn_ctx);
 	}
-	BN_CTX_free(bn_ctx);
-	EC_GROUP_free(group);
-	EC_POINT_free(point);
-	EC_POINT_free(pointS);
-	EC_POINT_free(Ppub);
-	BN_GFP2_free(t);
-	BN_GFP2_free(u);
-	BN_GFP2_free(w);
-	OPENSSL_free(buf);
-	return ret;
+	BN_CTX_free(bn_ctx);		
+	return ret;	
 }
 
-int SM9_do_verify_ex(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const SM9Signature *sig, SM9PublicKey *pk)
-{
-	return -1;
-}
-
-int SM9_do_verify(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const SM9Signature *sig, const char *id, size_t idlen)
-{
-	if (!mpk || !dgst || dgstlen <= 0 || !sig || !id || idlen <= 0) {
-		SM9err(SM9_F_SM9_DO_VERIFY, ERR_R_PASSED_NULL_PARAMETER);
-		return 0;
-	}
-
-	if (OBJ_obj2nid(mpk->curve) == NID_type1curve) {
-		return SM9_do_verify_type1curve(mpk, dgst, dgstlen, sig, id, idlen);
-	}
-
-	SM9err(SM9_F_SM9_DO_VERIFY, SM9_R_INVALID_CURVE);
-	return 0;
-}
-
-int SM9PublicParmeters_get_signature_size(void *a, void *b)
-{
-	return 0;
-}
-
-int SM9_sign(SM9PublicParameters *mpk, const unsigned char *dgst,
-	size_t dgstlen, unsigned char *sig, size_t *siglen,
+int SM9_sign(int type, /* NID_[sm3 | sha256] */
+	const unsigned char *data, size_t datalen,
+	unsigned char *sig, size_t *siglen,
 	SM9PrivateKey *sk)
 {
 	int ret = 0;
-	SM9Signature *sigobj = NULL;
-	unsigned char *p;
-	size_t sigsiz;
+	EVP_MD_CTX *ctx = NULL;
+	SM9Signature *sm9sig = NULL;
+	const EVP_MD *md;
+	int len;
 
-	if (!mpk || !dgst || !siglen || !sk) {
-		SM9err(SM9_F_SM9_SIGN, ERR_R_PASSED_NULL_PARAMETER);
-		return 0;
-	}
-	if (dgstlen <= 0 || dgstlen > EVP_MAX_MD_SIZE) {
-		SM9err(SM9_F_SM9_SIGN, SM9_R_INVALID_DIGEST_LENGTH);
-		return 0;
-	}
-
-	/* compute output signature size */
-	if (!SM9PublicParmeters_get_signature_size(mpk, &sigsiz)) {
-		SM9err(SM9_F_SM9_SIGN, ERR_R_SM9_LIB);
+	if (!(md = EVP_get_digestbynid(type))
+		|| EVP_MD_size(md) != EVP_MD_size(EVP_sm3())) {
+		SM9err(SM9_F_SM9_SIGN, SM9_R_INVALID_HASH2_DIGEST);
 		return 0;
 	}
 
-	if (!sig) {
-		*siglen = sigsiz;
-		return 1;
-	}
-	if (*siglen < sigsiz) {
-		SM9err(SM9_F_SM9_SIGN, SM9_R_BUFFER_TOO_SMALL);
+	if (!(ctx = EVP_MD_CTX_new())) {
+		SM9err(SM9_F_SM9_SIGN, ERR_R_MALLOC_FAILURE);
 		return 0;
 	}
 
-	/* do_sign */
-	if (!(sigobj = SM9_do_sign(mpk, dgst, dgstlen, sk))) {
-		SM9err(SM9_F_SM9_SIGN, ERR_R_SM9_LIB);
-		return 0;
-	}
-
-	p = sig;
-	if (i2d_SM9Signature(sigobj, &p) < 0) {
+	if (!SM9_SignInit(ctx, md, NULL)
+		|| !SM9_SignUpdate(ctx, data, datalen)
+		|| !(sm9sig = SM9_SignFinal(ctx, sk))) {
 		SM9err(SM9_F_SM9_SIGN, ERR_R_SM9_LIB);
 		goto end;
 	}
 
-	*siglen = p - sig;
+	if ((len = i2d_SM9Signature(sm9sig, &sig)) <= 0) {
+		SM9err(SM9_F_SM9_SIGN, ERR_R_SM9_LIB);
+		goto end;
+	}
+
+	*siglen = len;
 	ret = 1;
 
-end:
-	SM9Signature_free(sigobj);
+end:	
+	EVP_MD_CTX_free(ctx);
+	SM9Signature_free(sm9sig);
 	return ret;
 }
 
-int SM9_verify_ex(SM9PublicParameters *mpk, const unsigned char *dgst,
-	size_t dgstlen, const unsigned char *sig, size_t siglen,
-	SM9PublicKey *pk)
-{
-	return -1;
-}
-
-int SM9_verify(SM9PublicParameters *mpk, const unsigned char *dgst,
-	size_t dgstlen, const unsigned char *sig, size_t siglen,
-	const char *id, size_t idlen)
+int SM9_verify(int type, /* NID_[sm3 | sha256] */
+	const unsigned char *data, size_t datalen,
+	const unsigned char *sig, size_t siglen,
+	SM9PublicParameters *mpk, const char *id, size_t idlen)
 {
 	int ret = -1;
-	SM9Signature *sigobj = NULL;
-	const unsigned char *p;
+	EVP_MD_CTX *ctx = NULL;
+	SM9Signature *sm9sig = NULL;
+	SM9PublicKey *pk = NULL;
+	const EVP_MD *md;
 
-	if (!mpk || !dgst || !sig || !id) {
-		SM9err(SM9_F_SM9_VERIFY, ERR_R_PASSED_NULL_PARAMETER);
-		return 0;
-	}
-	if (dgstlen <= 0 || dgstlen > EVP_MAX_MD_SIZE) {
-		SM9err(SM9_F_SM9_VERIFY, SM9_R_INVALID_DIGEST_LENGTH);
-		return 0;
-	}
-	if (idlen <= 0 || idlen > SM9_MAX_ID_LENGTH || strlen(id) != idlen) {
-		SM9err(SM9_F_SM9_VERIFY, SM9_R_INVALID_ID_LENGTH);
-		return 0;
+	if (!(md = EVP_get_digestbynid(type))
+		|| EVP_MD_size(md) != EVP_MD_size(EVP_sm3())) {
+		SM9err(SM9_F_SM9_VERIFY, SM9_R_INVALID_HASH2_DIGEST);
+		return -1;
 	}
 
-	p = sig;
-	if (!(sigobj = d2i_SM9Signature(NULL, &p, siglen))) {
+	if (!(sm9sig = d2i_SM9Signature(NULL, &sig, siglen))
+		|| i2d_SM9Signature(sm9sig, NULL) != siglen) {
+		SM9err(SM9_F_SM9_VERIFY, SM9_R_INVALID_SIGNATURE_FORMAT);
+		goto end;
+	}
+
+	if (!(pk = SM9_extract_public_key(mpk, id, idlen))) {
 		SM9err(SM9_F_SM9_VERIFY, ERR_R_SM9_LIB);
 		goto end;
 	}
 
-	ret = SM9_do_verify(mpk, dgst, dgstlen, sigobj, id, idlen);
-
+	if (!SM9_VerifyInit(ctx, md, NULL)
+		|| !SM9_VerifyUpdate(ctx, data, datalen)
+		|| (ret = SM9_VerifyFinal(ctx, sm9sig, pk)) < 0) {
+		SM9err(SM9_F_SM9_VERIFY, ERR_R_SM9_LIB);
+		goto end;
+	}
 
 end:
-	SM9Signature_free(sigobj);
+	EVP_MD_CTX_free(ctx);
+	SM9Signature_free(sm9sig);
+	SM9PublicKey_free(pk);
 	return ret;
 }

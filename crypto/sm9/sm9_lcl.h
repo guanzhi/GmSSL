@@ -76,48 +76,50 @@
 extern "C" {
 #endif
 
-int SM9_rate_pairing(BIGNUM *r[12], const BIGNUM *xQ[2], const BIGNUM *yQ[2],
-	const BIGNUM *xP, const BIGNUM *yP, BN_CTX *ctx);
-
-struct SM9PublicParameters_st {
-	ASN1_OBJECT *curve;
-	BIGNUM *p;
-	BIGNUM *a;
-	BIGNUM *b;
-	BIGNUM *beta;
-	BIGNUM *order;
-	BIGNUM *cofactor;
-	BIGNUM *k;
-	ASN1_OCTET_STRING *pointP1;
-	ASN1_OCTET_STRING *pointP2;
-	ASN1_OBJECT *pairing;
-	ASN1_OCTET_STRING *pointPpub;
-	BIGNUM *g1; /* g1 = e(P1, Ppub) */
-	BIGNUM *g2; /* g2 = e(Ppub, P2) */
-	ASN1_OBJECT *hashfcn;
-};
 
 struct SM9MasterSecret_st {
+	ASN1_OBJECT *pairing;
+	ASN1_OBJECT *scheme;
+	ASN1_OBJECT *hash1;
+	ASN1_OCTET_STRING *pointPpub;
 	BIGNUM *masterSecret;
 };
 
-struct SM9PublicKey_st {
-	ASN1_OCTET_STRING *publicPoint;
+struct SM9PublicParameters_st {
+	ASN1_OBJECT *pairing;
+	ASN1_OBJECT *scheme;
+	ASN1_OBJECT *hash1;
+	ASN1_OCTET_STRING *pointPpub;
 };
 
 struct SM9PrivateKey_st {
+	ASN1_OBJECT *pairing;
+	ASN1_OBJECT *scheme;
+	ASN1_OBJECT *hash1;
+	ASN1_OCTET_STRING *pointPpub;
+	ASN1_OCTET_STRING *identity;
+	ASN1_OCTET_STRING *publicPoint;
 	ASN1_OCTET_STRING *privatePoint;
 };
 
+struct SM9PublicKey_st {
+	ASN1_OBJECT *pairing;
+	ASN1_OBJECT *scheme;
+	ASN1_OBJECT *hash1;
+	ASN1_OCTET_STRING *pointPpub;
+	ASN1_OCTET_STRING *identity;
+	ASN1_OCTET_STRING *publicPoint;
+};
+
 struct SM9Ciphertext_st {
-	ASN1_OCTET_STRING *pointC1;
-	ASN1_OCTET_STRING *c2;
-	ASN1_OCTET_STRING *c3;
+	ASN1_OCTET_STRING *pointC1; /* point over E(F_p) */
+	ASN1_OCTET_STRING *c2; /* ciphertext */
+	ASN1_OCTET_STRING *c3; /* mac-tag */
 };
 
 struct SM9Signature_st {
-	BIGNUM *h;
-	ASN1_OCTET_STRING *pointS;
+	BIGNUM *h; /* hash */
+	ASN1_OCTET_STRING *pointS; /* point over E'(F_p^2) */
 };
 
 int SM9_hash1(const EVP_MD *md, BIGNUM **r,
@@ -131,12 +133,41 @@ int SM9_hash2(const EVP_MD *md, BIGNUM **r,
 
 const BIGNUM *SM9_get0_prime(void);
 const BIGNUM *SM9_get0_order(void);
+const BIGNUM *SM9_get0_order_minus_one(void);
 const BIGNUM *SM9_get0_loop_count(void);
 const BIGNUM *SM9_get0_final_exponent(void);
 const BIGNUM *SM9_get0_generator2_x0(void);
 const BIGNUM *SM9_get0_generator2_x1(void);
 const BIGNUM *SM9_get0_generator2_y0(void);
 const BIGNUM *SM9_get0_generator2_y1(void);
+
+typedef BIGNUM *fp2_t[2];
+typedef fp2_t fp4_t[2];
+typedef fp4_t fp12_t[3];
+typedef struct point_t {
+	fp2_t X;
+	fp2_t Y;
+	fp2_t Z;
+} point_t;
+
+int fp12_init(fp12_t a, BN_CTX *ctx);
+int fp12_mul(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx);
+int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx);
+int fp12_to_bin(const fp12_t a, unsigned char to[384]);
+void fp12_cleanup(fp12_t a);
+
+int point_init(point_t *P, BN_CTX *ctx);
+int point_copy(point_t *R, const point_t *P);
+int point_equ(const point_t *P, const point_t *Q);
+int point_is_on_curve(point_t *P, const BIGNUM *p, BN_CTX *ctx);
+int point_to_octets(const point_t *P, unsigned char to[129], BN_CTX *ctx);
+int point_from_octets(point_t *P, const unsigned char from[129], const BIGNUM *p, BN_CTX *ctx);
+int point_add(point_t *R, const point_t *A, const point_t *B, const BIGNUM *p, BN_CTX *ctx);
+int point_mul(point_t *R, const BIGNUM *k, const point_t *P, const BIGNUM *p, BN_CTX *ctx);
+int point_mul_generator(point_t *R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx);
+void point_cleanup(point_t *P);
+
+int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx);
 
 
 #ifdef __cplusplus

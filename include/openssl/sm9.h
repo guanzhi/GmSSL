@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2016 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,34 +67,64 @@
 #define SM9_HID_EXCH		0x02
 #define SM9_HID_ENC		0x03
 
+#define SM9_HASH1		0x01
+#define SM9_HASH2		0x02
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct SM9PublicParameters_st SM9PublicParameters;
 typedef struct SM9MasterSecret_st SM9MasterSecret;
-typedef struct SM9PublicKey_st SM9PublicKey;
+typedef struct SM9PublicParameters_st SM9PublicParameters;
 typedef struct SM9PrivateKey_st SM9PrivateKey;
-typedef struct SM9Ciphertext_st SM9Ciphertext;
+typedef struct SM9PublicKey_st SM9PublicKey;
 typedef struct SM9Signature_st SM9Signature;
+typedef struct SM9Ciphertext_st SM9Ciphertext;
 
-int SM9_setup_by_pairing_name(int nid, int hid,
-	SM9PublicParameters **mpk, SM9MasterSecret **msk);
 
-SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
-	SM9MasterSecret *msk, const char *id, size_t idlen);
+int SM9_setup(int pairing, /* NID_sm9bn256v1 */
+	int scheme, /* NID_[sm9sign | sm9encrypt | sm9keyagreement] */
+	int hash1, /* NID_sm9hash1_with_[sm3 | sha256] */
+	SM9PublicParameters **mpk,
+	SM9MasterSecret **msk);
+
+SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
+	const char *id, size_t idlen);
+
+SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1);
+
+SM9PublicParameters *SM9_extract_public_parameters(SM9MasterSecret *msk);
 
 SM9PublicKey *SM9_extract_public_key(SM9PublicParameters *mpk,
 	const char *id, size_t idlen);
 
-SM9PublicKey *SM9PrivateKey_get_public_key(SM9PublicParameters *mpk,
-	SM9PrivateKey *sk);
+SM9PublicKey *SM9PrivateKey_get_public_key(SM9PrivateKey *sk);
 
 int SM9PrivateKey_get_gmtls_public_key(SM9PublicParameters *mpk,
 	SM9PrivateKey *sk, unsigned char pub_key[1024]);
 
 int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 	SM9PublicKey *pk, unsigned char encoded[1024]);
+
+int SM9_signature_size(SM9PublicParameters *mpk);
+
+int SM9_sign(int type,
+	const unsigned char *data, size_t datalen,
+	unsigned char *sig, size_t *siglen,
+	SM9PrivateKey *sk);
+
+int SM9_verify(int type,
+	const unsigned char *data, size_t datalen,
+	const unsigned char *sig, size_t siglen,
+	SM9PublicParameters *mpk, const char *id, size_t idlen);
+
+int SM9_SignInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *engine);
+#define SM9_SignUpdate(ctx,d,l) EVP_DigestUpdate(ctx,d,l)
+SM9Signature *SM9_SignFinal(EVP_MD_CTX *ctx, SM9PrivateKey *sk);
+
+int SM9_VerifyInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *engine);
+#define SM9_VerifyUpdate(ctx,d,l) EVP_DigestUpdate(ctx,d,l)
+int SM9_VerifyFinal(EVP_MD_CTX *ctx, const SM9Signature *sig, SM9PublicKey *pk);
 
 typedef struct {
 	const EVP_MD *kdf_md;
@@ -104,105 +134,31 @@ typedef struct {
 	const EVP_MD *hmac_md;
 } SM9EncParameters;
 
-SM9Ciphertext *SM9_do_encrypt_ex(SM9PublicParameters *mpk,
-	const SM9EncParameters *encparams,
+int SM9_encrypt(int type,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen,
+	SM9PublicParameters *mpk, const char *id, size_t idlen);
+
+int SM9_decrypt(int type,
+	const unsigned char *in, size_t inlen,
+	unsigned char *out, size_t *outlen,
+	SM9PrivateKey *sk);
+
+SM9Ciphertext *SM9_do_encrypt(const SM9EncParameters *encparams,
 	const unsigned char *in, size_t inlen,
 	SM9PublicKey *pk);
 
-SM9Ciphertext *SM9_do_encrypt(SM9PublicParameters *mpk,
-	const SM9EncParameters *encparams,
-	const unsigned char *in, size_t inlen,
-	const char *id, size_t idlen);
-
-int SM9_do_decrypt(SM9PublicParameters *mpk,
-	const SM9EncParameters *encparams,
+int SM9_do_decrypt(const SM9EncParameters *encparams,
 	const SM9Ciphertext *in,
 	unsigned char *out, size_t *outlen,
-	SM9PrivateKey *sk,
-	const char *id, size_t idlen);
-
-int SM9_encrypt_ex(SM9PublicParameters *mpk,
-	const SM9EncParameters *encparams,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	SM9PublicKey *pk);
-
-int SM9_encrypt(SM9PublicParameters *mpk,
-	const SM9EncParameters *encparams,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	const char *id, size_t idlen);
-
-int SM9_decrypt(SM9PublicParameters *mpk,
-	const SM9EncParameters *encparams,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	SM9PrivateKey *sk,
-	const char *id, size_t idlen);
-
-int SM9_encrypt_with_recommended_ex(SM9PublicParameters *mpk,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	SM9PublicKey *pk);
-
-int SM9_encrypt_with_recommended(SM9PublicParameters *mpk,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	const char *id, size_t idlen);
-
-int SM9_decrypt_with_recommended(SM9PublicParameters *mpk,
-	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	SM9PrivateKey *sk,
-	const char *id, size_t idlen);
-
-int SM9_signature_size(SM9PublicParameters *mpk);
-
-SM9Signature *SM9_do_sign(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
 	SM9PrivateKey *sk);
 
-int SM9_do_verify_ex(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const SM9Signature *sig,
-	SM9PublicKey *pk);
-
-int SM9_do_verify(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const SM9Signature *sig,
-	const char *id, size_t idlen);
-
-int SM9_sign(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	unsigned char *sig, size_t *siglen,
-	SM9PrivateKey *sk);
-
-int SM9_verify_ex(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const unsigned char *sig, size_t siglen,
-	SM9PublicKey *pk);
-
-int SM9_verify(SM9PublicParameters *mpk,
-	const unsigned char *dgst, size_t dgstlen,
-	const unsigned char *sig, size_t siglen,
-	const char *id, size_t idlen);
-
-SM9PublicKey *SM9_generate_key_exchange(SM9PublicParameters *mpk,
-	const char *peer_id, size_t peer_idlen, BIGNUM **r);
-
-int SM9_compute_share_key(SM9PublicParameters *mpk,
-	unsigned char *out, size_t *outlen,
-	const char *peer_id, size_t peer_idlen, SM9PublicKey *peer_exch,
-	const char *id, size_t idlen, SM9PublicKey *exch,
-	SM9PrivateKey *sk, int initiator);
-
-
-DECLARE_ASN1_FUNCTIONS(SM9PublicParameters)
 DECLARE_ASN1_FUNCTIONS(SM9MasterSecret)
+DECLARE_ASN1_FUNCTIONS(SM9PublicParameters)
 DECLARE_ASN1_FUNCTIONS(SM9PrivateKey)
 DECLARE_ASN1_FUNCTIONS(SM9PublicKey)
-DECLARE_ASN1_FUNCTIONS(SM9Ciphertext)
 DECLARE_ASN1_FUNCTIONS(SM9Signature)
+DECLARE_ASN1_FUNCTIONS(SM9Ciphertext)
 
 
 /* BEGIN ERROR CODES */
@@ -225,43 +181,51 @@ int ERR_load_SM9_strings(void);
 # define SM9_F_SM9_DECRYPT                                106
 # define SM9_F_SM9_DO_DECRYPT                             107
 # define SM9_F_SM9_DO_ENCRYPT                             108
-# define SM9_F_SM9_DO_SIGN                                109
-# define SM9_F_SM9_DO_SIGN_TYPE1CURVE                     110
-# define SM9_F_SM9_DO_VERIFY                              111
-# define SM9_F_SM9_DO_VERIFY_TYPE1CURVE                   112
-# define SM9_F_SM9_ENCRYPT                                113
-# define SM9_F_SM9_EXTRACT_PRIVATE_KEY                    114
-# define SM9_F_SM9_SETUP_TYPE1CURVE                       115
-# define SM9_F_SM9_SIGN                                   116
-# define SM9_F_SM9_UNWRAP_KEY                             117
-# define SM9_F_SM9_VERIFY                                 118
-# define SM9_F_SM9_WRAP_KEY                               119
+# define SM9_F_SM9_ENCRYPT                                109
+# define SM9_F_SM9_EXTRACT_PRIVATE_KEY                    110
+# define SM9_F_SM9_EXTRACT_PUBLIC_PARAMETERS              111
+# define SM9_F_SM9_GENERATE_MASTER_SECRET                 112
+# define SM9_F_SM9_SIGN                                   119
+# define SM9_F_SM9_SIGNFINAL                              115
+# define SM9_F_SM9_SIGNINIT                               116
+# define SM9_F_SM9_UNWRAP_KEY                             113
+# define SM9_F_SM9_VERIFY                                 120
+# define SM9_F_SM9_VERIFYFINAL                            117
+# define SM9_F_SM9_VERIFYINIT                             118
+# define SM9_F_SM9_WRAP_KEY                               114
 
 /* Reason codes. */
 # define SM9_R_BUFFER_TOO_SMALL                           100
-# define SM9_R_COMPUTE_PAIRING_FAILURE                    101
+# define SM9_R_DIGEST_FAILURE                             119
+# define SM9_R_EC_LIB                                     101
+# define SM9_R_EXTENSION_FIELD_ERROR                      120
 # define SM9_R_GENERATE_MAC_FAILURE                       102
 # define SM9_R_HASH_FAILURE                               103
 # define SM9_R_INVALID_CIPHERTEXT                         104
-# define SM9_R_INVALID_CURVE                              105
-# define SM9_R_INVALID_DIGEST                             106
-# define SM9_R_INVALID_DIGEST_LENGTH                      107
-# define SM9_R_INVALID_ENCPARAMETERS                      108
-# define SM9_R_INVALID_ID                                 109
-# define SM9_R_INVALID_ID_LENGTH                          110
-# define SM9_R_INVALID_INPUT                              111
-# define SM9_R_INVALID_KEY_LENGTH                         112
-# define SM9_R_INVALID_MD                                 113
-# define SM9_R_INVALID_PARAMETER                          114
-# define SM9_R_INVALID_SIGNATURE                          115
-# define SM9_R_INVALID_TYPE1CURVE                         116
-# define SM9_R_KDF_FAILURE                                117
-# define SM9_R_NOT_NAMED_CURVE                            118
-# define SM9_R_PARSE_PAIRING                              119
-# define SM9_R_ZERO_ID                                    120
+# define SM9_R_INVALID_ENCPARAMETERS                      105
+# define SM9_R_INVALID_HASH1                              106
+# define SM9_R_INVALID_HASH2_DIGEST                       126
+# define SM9_R_INVALID_ID                                 107
+# define SM9_R_INVALID_ID_LENGTH                          108
+# define SM9_R_INVALID_INPUT                              109
+# define SM9_R_INVALID_KEY_LENGTH                         110
+# define SM9_R_INVALID_MD                                 111
+# define SM9_R_INVALID_PAIRING_TYPE                       112
+# define SM9_R_INVALID_PARAMETER                          113
+# define SM9_R_INVALID_POINTPPUB                          121
+# define SM9_R_INVALID_PRIVATE_POINT                      122
+# define SM9_R_INVALID_SCHEME                             114
+# define SM9_R_INVALID_SIGNATURE                          123
+# define SM9_R_INVALID_SIGNATURE_FORMAT                   127
+# define SM9_R_INVALID_TYPE1CURVE                         115
+# define SM9_R_KDF_FAILURE                                116
+# define SM9_R_PAIRING_ERROR                              124
+# define SM9_R_TWIST_CURVE_ERROR                          117
+# define SM9_R_VERIFY_FAILURE                             125
+# define SM9_R_ZERO_ID                                    118
 
-# ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
+#  endif
 # endif
-#endif
 #endif

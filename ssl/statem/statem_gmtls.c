@@ -970,11 +970,13 @@ static int gmtls_construct_ske_sm9(SSL *s, unsigned char **p, int *l, int *al, i
 	/* sign digest and output signature */
 	d = *p;
 	siglen = SM9_signature_size(s->cert->ibs.params);
+#if 0
 	if (!SM9_sign(s->cert->ibs.params, dgst, dgstlen, &(d[2]), &siglen,
 		s->cert->ibs.privatekey)) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM9, ERR_R_SM9_LIB);
 		goto end;
 	}
+#endif
 	s2n(siglen, d);
 
 	*l += 2 + siglen;
@@ -1071,6 +1073,7 @@ static int gmtls_process_ske_sm9(SSL *s, PACKET *pkt, int *al, int dhe)
 	}
 
 	/* verify signature */
+#if 0
 	if (1 != SM9_verify(s->session->ibs.params, dgst, dgstlen,
 		PACKET_data(&signature), PACKET_remaining(&signature),
 		s->session->ibs.id, strlen(s->session->ibs.id))) {
@@ -1078,6 +1081,7 @@ static int gmtls_process_ske_sm9(SSL *s, PACKET *pkt, int *al, int dhe)
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM9, SSL_R_BAD_SIGNATURE);
 		goto end;
 	}
+#endif
 
 	ret = 1;
 
@@ -1802,6 +1806,7 @@ static int gmtls_construct_cke_sm9(SSL *s, unsigned char **p, int *l, int *al)
 	encparam.cbcmac_cipher = NULL;
 	encparam.hmac_md = EVP_sm3();
 
+#if 0
 	if (!SM9_encrypt(sm9->params, &encparam, pms, pmslen,
 		NULL, &enclen, sm9->id, strlen(sm9->id))) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_CKE_SM9, ERR_R_INTERNAL_ERROR);
@@ -1813,6 +1818,7 @@ static int gmtls_construct_cke_sm9(SSL *s, unsigned char **p, int *l, int *al)
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_CKE_SM9, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
+#endif
 
 	/* save pre_master_secret */
 	s->s3->tmp.pms = pms;
@@ -1863,6 +1869,7 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 	encparam.cbcmac_cipher = NULL;
 	encparam.hmac_md = EVP_sm3();
 
+#if 0
 	if (!SM9_decrypt(sm9->params, &encparam,
 		PACKET_data(&enced_pms), PACKET_remaining(&enced_pms), pms, &pms_len,
 		sm9->privatekey, sm9->id, strlen(sm9->id))) {
@@ -1876,6 +1883,7 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 		SSLerr(SSL_F_GMTLS_PROCESS_CKE_SM9, SSL_R_DECRYPTION_FAILED);
 		goto end;
 	}
+#endif
 
 	/* generate master_secret */
 	if (!ssl_generate_master_secret(s, pms, pms_len, 0)) {

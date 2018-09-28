@@ -1198,3 +1198,11 @@ wapi_crypto		1197
 wapi_ec		1198
 wapi_ecdsa192_sha256		1199
 sm9bn256v1		1200
+sm9hash1		1201
+sm9hash1_with_sm3		1202
+sm9hash1_with_sha256		1203
+sm9sign_with_sm3		1204
+sm9sign_with_sha256		1205
+sm9encrypt_with_sm3_xor		1206
+sm9encrypt_with_sm3_sms4_cbc		1207
+sm9encrypt_with_sm3_sms4_ctr		1208

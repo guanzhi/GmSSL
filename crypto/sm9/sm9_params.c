@@ -74,6 +74,11 @@ static const BN_ULONG _sm9bn256v1_order[BN_SM9_BN256_TOP] = {
 	0xD603AB4FF58EC744ULL, 0xB640000002A3A6F1ULL,
 };
 
+static const BN_ULONG _sm9bn256v1_order_minus_one[BN_SM9_BN256_TOP] = {
+	0xE56EE19CD69ECF24ULL, 0x49F2934B18EA8BEEULL,
+	0xD603AB4FF58EC744ULL, 0xB640000002A3A6F1ULL,
+};
+
 static const BN_ULONG _sm9bn256v1_loop[BN_SM9_LOOP_TOP] = {
 	0x400000000215D93EULL, 0x02ULL,
 };
@@ -125,6 +130,11 @@ static const BN_ULONG _sm9bn256v1_prime[BN_SM9_BN256_TOP] = {
 
 static const BN_ULONG _sm9bn256v1_order[BN_SM9_BN256_TOP] = {
 	0xD69ECF25, 0xE56EE19C, 0x18EA8BEE, 0x49F2934B,
+	0xF58EC744, 0xD603AB4F, 0x02A3A6F1, 0xB6400000,
+};
+
+static const BN_ULONG _sm9bn256v1_order_minus_one[BN_SM9_BN256_TOP] = {
+	0xD69ECF24, 0xE56EE19C, 0x18EA8BEE, 0x49F2934B,
 	0xF58EC744, 0xD603AB4F, 0x02A3A6F1, 0xB6400000,
 };
 
@@ -185,6 +195,14 @@ static const BIGNUM _bignum_sm9bn256v1_prime = {
 
 static const BIGNUM _bignum_sm9bn256v1_order = {
 	(BN_ULONG *)_sm9bn256v1_order,
+	BN_SM9_BN256_TOP,
+	BN_SM9_BN256_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_order_minus_one = {
+	(BN_ULONG *)_sm9bn256v1_order_minus_one,
 	BN_SM9_BN256_TOP,
 	BN_SM9_BN256_TOP,
 	0,
@@ -267,6 +285,11 @@ const BIGNUM *SM9_get0_prime(void)
 const BIGNUM *SM9_get0_order(void)
 {
 	return &_bignum_sm9bn256v1_order;
+}
+
+const BIGNUM *SM9_get0_order_minus_one(void)
+{
+	return &_bignum_sm9bn256v1_order_minus_one;
 }
 
 const BIGNUM *SM9_get0_loop_count(void)

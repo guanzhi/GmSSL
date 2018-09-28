@@ -55,39 +55,43 @@
 #include <openssl/sm9.h>
 #include "sm9_lcl.h"
 
-ASN1_SEQUENCE(SM9PublicParameters) = {
-	ASN1_SIMPLE(SM9PublicParameters, curve, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicParameters, p, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, a, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, b, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, beta, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, order, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, cofactor, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, k, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, pointP1, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PublicParameters, pointP2, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PublicParameters, pairing, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicParameters, pointPpub, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PublicParameters, g1, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, g2, BIGNUM),
-	ASN1_SIMPLE(SM9PublicParameters, hashfcn, ASN1_OBJECT)
-} ASN1_SEQUENCE_END(SM9PublicParameters)
-IMPLEMENT_ASN1_FUNCTIONS(SM9PublicParameters)
-IMPLEMENT_ASN1_DUP_FUNCTION(SM9PublicParameters)
-
 ASN1_SEQUENCE(SM9MasterSecret) = {
+	ASN1_SIMPLE(SM9MasterSecret, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9MasterSecret, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9MasterSecret, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9MasterSecret, pointPpub, ASN1_OCTET_STRING),
 	ASN1_SIMPLE(SM9MasterSecret, masterSecret, BIGNUM)
 } ASN1_SEQUENCE_END(SM9MasterSecret)
 IMPLEMENT_ASN1_FUNCTIONS(SM9MasterSecret)
 IMPLEMENT_ASN1_DUP_FUNCTION(SM9MasterSecret)
 
+ASN1_SEQUENCE(SM9PublicParameters) = {
+	ASN1_SIMPLE(SM9PublicParameters, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PublicParameters, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PublicParameters, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PublicParameters, pointPpub, ASN1_OCTET_STRING)
+} ASN1_SEQUENCE_END(SM9PublicParameters)
+IMPLEMENT_ASN1_FUNCTIONS(SM9PublicParameters)
+IMPLEMENT_ASN1_DUP_FUNCTION(SM9PublicParameters)
+
 ASN1_SEQUENCE(SM9PrivateKey) = {
+	ASN1_SIMPLE(SM9PrivateKey, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PrivateKey, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PrivateKey, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PrivateKey, pointPpub, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9PrivateKey, identity, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9PrivateKey, publicPoint, ASN1_OCTET_STRING),
 	ASN1_SIMPLE(SM9PrivateKey, privatePoint, ASN1_OCTET_STRING)
 } ASN1_SEQUENCE_END(SM9PrivateKey)
 IMPLEMENT_ASN1_FUNCTIONS(SM9PrivateKey)
 IMPLEMENT_ASN1_DUP_FUNCTION(SM9PrivateKey)
 
 ASN1_SEQUENCE(SM9PublicKey) = {
+	ASN1_SIMPLE(SM9PublicKey, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PublicKey, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PublicKey, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9PublicKey, pointPpub, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9PublicKey, identity, ASN1_OCTET_STRING),
 	ASN1_SIMPLE(SM9PublicKey, publicPoint, ASN1_OCTET_STRING)
 } ASN1_SEQUENCE_END(SM9PublicKey)
 IMPLEMENT_ASN1_FUNCTIONS(SM9PublicKey)

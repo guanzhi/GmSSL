@@ -55,16 +55,6 @@
 #include <openssl/err.h>
 #include "sm9_lcl.h"
 
-typedef BIGNUM *fp2_t[2];
-typedef fp2_t fp4_t[2];
-typedef fp4_t fp12_t[3];
-typedef struct point_t {
-	fp2_t X;
-	fp2_t Y;
-	fp2_t Z;
-} point_t;
-
-
 
 static int fp2_init(fp2_t a, BN_CTX *ctx)
 {
@@ -421,6 +411,20 @@ static int fp2_div(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CT
 		&& fp2_mul(r, a, r, p, ctx);
 }
 
+static int fp2_to_bin(const fp2_t a, unsigned char to[64])
+{
+	memset(to, 0, 64);
+	BN_bn2bin(a[0], to + 32 - BN_num_bytes(a[0]));
+	BN_bn2bin(a[1], to + 64 - BN_num_bytes(a[1]));
+	return 1;
+}
+
+static int fp2_from_bin(fp2_t a, const unsigned char from[64])
+{
+	return BN_bin2bn(from, 32, a[0])
+		&& BN_bin2bn(from + 32, 32, a[1]);	
+}
+
 static int fp2_test(const BIGNUM *p, BN_CTX *ctx)
 {
 	const char *_a[] = {
@@ -653,6 +657,18 @@ static int fp4_equ_hex(const fp4_t a, const char *str[4], BN_CTX *ctx)
 	fp4_init(t, ctx);
 	fp4_set_hex(t, str);
 	return fp4_equ(a, t);
+}
+
+static int fp4_to_bin(const fp4_t a, unsigned char to[128])
+{
+	return fp2_to_bin(a[1], to)
+		&& fp2_to_bin(a[0], to + 64);
+}
+
+static int fp4_from_bin(fp4_t a, const unsigned char from[128])
+{
+	return fp2_from_bin(a[1], from)
+		&& fp2_from_bin(a[0], from + 64);
 }
 
 static int fp4_add(fp4_t r, const fp4_t a, const fp4_t b, const BIGNUM *p, BN_CTX *ctx)
@@ -963,8 +979,7 @@ static int fp4_test(const BIGNUM *p, BN_CTX *ctx)
 	return 0;
 }
 
-
-static int fp12_init(fp12_t a, BN_CTX *ctx)
+int fp12_init(fp12_t a, BN_CTX *ctx)
 {
 	int r;
 	r = fp4_init(a[0], ctx);
@@ -978,7 +993,7 @@ static int fp12_init(fp12_t a, BN_CTX *ctx)
 	return r;
 }
 
-static void fp12_cleanup(fp12_t a)
+void fp12_cleanup(fp12_t a)
 {
 	fp4_cleanup(a[0]);
 	fp4_cleanup(a[1]);
@@ -1120,6 +1135,20 @@ static int fp12_equ_hex(const fp12_t a, const char *str[12], BN_CTX *ctx)
 	return fp12_equ(a, t);
 }
 
+int fp12_to_bin(const fp12_t a, unsigned char to[384])
+{
+	return fp4_to_bin(a[2], to)
+		&& fp4_to_bin(a[1], to + 128)
+		&& fp4_to_bin(a[0], to + 256);
+}
+
+static int fp12_from_bin(fp4_t a, const unsigned char from[384])
+{
+	return fp4_from_bin(a[2], from)
+		&& fp4_from_bin(a[1], from + 128)
+		&& fp4_from_bin(a[0], from + 256);
+}
+
 static int fp12_add(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
 {
 	
@@ -1163,7 +1192,7 @@ static int fp12_neg(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 		&& fp4_neg(r[2], a[2], p, ctx);
 }
 
-static int fp12_mul(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
+int fp12_mul(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
 {
 	fp4_t r0, r1, r2, t;
 	fp4_init(r0, ctx);
@@ -1362,7 +1391,7 @@ static int fp12_div(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, B
 		&& fp12_mul(r, a, r, p, ctx);
 }
 
-static int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
+int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
 	int n, i;
 	fp12_t t;
@@ -1680,7 +1709,7 @@ static int fp12_test(const BIGNUM *p, BN_CTX *ctx)
 	return 0;
 }
 
-static int point_init(point_t *P, BN_CTX *ctx)
+int point_init(point_t *P, BN_CTX *ctx)
 {
 	int r;
 	r = fp2_init(P->X, ctx);
@@ -1698,7 +1727,7 @@ static int point_init(point_t *P, BN_CTX *ctx)
 	return 1;
 }
 
-static void point_cleanup(point_t *P)
+void point_cleanup(point_t *P)
 {
 	fp2_cleanup(P->X);
 	fp2_cleanup(P->Y);
@@ -1716,42 +1745,42 @@ static void point_print(const point_t *P)
 	printf("\n");
 }
 
-static int point_copy(point_t *R, const point_t *P)
+int point_copy(point_t *R, const point_t *P)
 {
 	return fp2_copy(R->X, P->X)
 		&& fp2_copy(R->Y, P->Y)
 		&& fp2_copy(R->Z, P->Z);
 }
 
-static int point_set_to_infinity(point_t *P)
+int point_set_to_infinity(point_t *P)
 {
 	fp2_set_zero(P->X);
 	fp2_set_zero(P->Z);
 	return fp2_set_one(P->Y);
 }
 
-static int point_is_at_infinity(const point_t *P)
+int point_is_at_infinity(const point_t *P)
 {
 	return fp2_is_zero(P->X)
 		&& fp2_is_one(P->Y)
 		&& fp2_is_zero(P->Z);
 }
 
-static int point_equ(const point_t *P, const point_t *Q)
+int point_equ(const point_t *P, const point_t *Q)
 {
 	return fp2_equ(P->X, Q->X)
 		&& fp2_equ(P->Y, Q->Y)
 		&& fp2_equ(P->Z, Q->Z);
 }
 
-static int point_set_affine_coordinates(point_t *P, const fp2_t x, const fp2_t y)
+int point_set_affine_coordinates(point_t *P, const fp2_t x, const fp2_t y)
 {
 	return fp2_copy(P->X, x)
 		&& fp2_copy(P->Y, y)
 		&& fp2_set_one(P->Z);
 }
 
-static int point_set_affine_coordinates_hex(point_t *P, const char *str[4])
+int point_set_affine_coordinates_hex(point_t *P, const char *str[4])
 {
 	fp2_set_hex(P->X, str);
 	fp2_set_hex(P->Y, str + 2);
@@ -1767,7 +1796,7 @@ static int point_equ_hex(const point_t *P, const char *str[4], BN_CTX *ctx)
 	return point_equ(P, &T);
 }
 
-static int point_set_affine_coordinates_bignums(point_t *P,
+int point_set_affine_coordinates_bignums(point_t *P,
 	const BIGNUM *x0, const BIGNUM *x1, const BIGNUM *y0, const BIGNUM *y1)
 {
 	return fp2_set(P->X, x0, x1)
@@ -1775,14 +1804,14 @@ static int point_set_affine_coordinates_bignums(point_t *P,
 		&& fp2_set_one(P->Z);
 }
 
-static int point_get_affine_coordinates(const point_t *P, fp2_t x, fp2_t y)
+int point_get_affine_coordinates(const point_t *P, fp2_t x, fp2_t y)
 {
 	return fp2_copy(x, P->X)
 		&& fp2_copy(y, P->Y)
 		&& fp2_is_one(P->Z);
 }
 
-static int point_get_ext_affine_coordinates(const point_t *P, fp12_t x, fp12_t y, const BIGNUM *p, BN_CTX *ctx)
+int point_get_ext_affine_coordinates(const point_t *P, fp12_t x, fp12_t y, const BIGNUM *p, BN_CTX *ctx)
 {
 	int r;
 	fp2_t xP;
@@ -1825,7 +1854,7 @@ end:
 	return r;
 }
 
-static int point_set_ext_affine_coordinates(point_t *P, const fp12_t x, const fp12_t y, const BIGNUM *p, BN_CTX *ctx)
+int point_set_ext_affine_coordinates(point_t *P, const fp12_t x, const fp12_t y, const BIGNUM *p, BN_CTX *ctx)
 {
 	fp12_t tx;
 	fp12_t ty;
@@ -1845,7 +1874,7 @@ static int point_set_ext_affine_coordinates(point_t *P, const fp12_t x, const fp
 	return 1;
 }
 
-static int point_is_on_curve(point_t *P, const BIGNUM *p, BN_CTX *ctx)
+int point_is_on_curve(point_t *P, const BIGNUM *p, BN_CTX *ctx)
 {
 	int r;
 	fp2_t x, y, b, t;
@@ -1879,7 +1908,39 @@ end:
 	return r;
 }
 
-static int point_dbl(point_t *R, const point_t *P, const BIGNUM *p, BN_CTX *ctx)
+int point_to_octets(const point_t *P, unsigned char to[129], BN_CTX *ctx)
+{
+	to[0] = 0x04;
+
+	if (fp2_is_one(P->Z)) {
+		fp2_to_bin(P->X, to + 1);
+		fp2_to_bin(P->Y, to + 65);
+	} else {
+		fp2_t x, y;
+		fp2_init(x, ctx);
+		fp2_init(y, ctx);
+		point_get_affine_coordinates(P, x, y);
+
+		fp2_to_bin(x, to + 1);
+		fp2_to_bin(y, to + 65);
+		fp2_cleanup(x);
+		fp2_cleanup(y);
+	}	
+	return 1;
+}
+
+int point_from_octets(point_t *P, const unsigned char from[129], const BIGNUM *p, BN_CTX *ctx)
+{
+	if (from[0] != 0x04) {
+		return 0;
+	}
+	fp2_from_bin(P->X, from + 1);
+	fp2_from_bin(P->Y, from + 65);
+	fp2_set_one(P->Z);
+	return point_is_on_curve(P, p, ctx);
+}
+
+int point_dbl(point_t *R, const point_t *P, const BIGNUM *p, BN_CTX *ctx)
 {
 	int r;
 	fp2_t x3, y3, x1, y1, lambda, t;
@@ -1933,7 +1994,7 @@ end:
 	return r;
 }
 
-static int point_add(point_t *R, const point_t *P, const point_t *Q, const BIGNUM *p, BN_CTX *ctx)
+int point_add(point_t *R, const point_t *P, const point_t *Q, const BIGNUM *p, BN_CTX *ctx)
 {
 	int r;
 	fp2_t x1;
@@ -2016,14 +2077,14 @@ end:
 	return r;
 }
 
-static int point_neg(point_t *R, const point_t *P, const BIGNUM *p, BN_CTX *ctx)
+int point_neg(point_t *R, const point_t *P, const BIGNUM *p, BN_CTX *ctx)
 {
 	return fp2_copy(R->X, P->X)
 		&& fp2_neg(R->Y, P->Y, p, ctx)
 		&& fp2_copy(R->Z, P->Z);
 }
 
-static int point_sub(point_t *R, const point_t *P, const point_t *Q, const BIGNUM *p, BN_CTX *ctx)
+int point_sub(point_t *R, const point_t *P, const point_t *Q, const BIGNUM *p, BN_CTX *ctx)
 {
 	point_t T;
 
@@ -2038,7 +2099,7 @@ static int point_sub(point_t *R, const point_t *P, const point_t *Q, const BIGNU
 	return 1;
 }
 
-static int point_mul(point_t *R, const BIGNUM *k, const point_t *P, const BIGNUM *p, BN_CTX *ctx)
+int point_mul(point_t *R, const BIGNUM *k, const point_t *P, const BIGNUM *p, BN_CTX *ctx)
 {
 	int i, n;
 
@@ -2065,7 +2126,7 @@ static int point_mul(point_t *R, const BIGNUM *k, const point_t *P, const BIGNUM
 	return 1;
 }
 
-static int point_mul_generator(point_t *R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
+int point_mul_generator(point_t *R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
 	point_t G;
 
@@ -2435,7 +2496,7 @@ static int params_test(void)
 	return 1;
 }
 
-static int sm9_rate(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx)
+int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx)
 {
 	int ret = 1;
 	const EC_GROUP *group;
@@ -2499,7 +2560,7 @@ static int rate_test(void)
 	point_set_affine_coordinates_hex(&Ppubs, Ppubs_str);
 
 	fp12_init(g, ctx);
-	sm9_rate(g, &Ppubs, P1, ctx); 
+	rate_pairing(g, &Ppubs, P1, ctx); 
 
 	ok = fp12_equ_hex(g, g_str, ctx);
 	printf("rate %d: %s\n", __LINE__, ok ? "ok" : "error");
@@ -2512,9 +2573,10 @@ static int rate_test(void)
 	return 1;
 }
 
+/* for SM9 sign, the (xP, yP) is the fixed generator of E(Fp)
+ */
 int SM9_rate_pairing(BIGNUM *r[12], const BIGNUM *xQ[2], const BIGNUM *yQ[2],
 	const BIGNUM *xP, const BIGNUM *yP, BN_CTX *ctx)
 {
 	return 0;
 }
-

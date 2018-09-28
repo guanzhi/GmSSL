@@ -5000,6 +5000,14 @@
 #define NID_sm9sign             1123
 #define OBJ_sm9sign             OBJ_sm_scheme,302L,1L
 
+#define SN_sm9sign_with_sm3             "sm9sign-with-sm3"
+#define NID_sm9sign_with_sm3            1204
+#define OBJ_sm9sign_with_sm3            OBJ_sm9sign,1L
+
+#define SN_sm9sign_with_sha256          "sm9sign-with-sha256"
+#define NID_sm9sign_with_sha256         1205
+#define OBJ_sm9sign_with_sha256         OBJ_sm9sign,2L
+
 #define SN_sm9keyagreement              "sm9keyagreement"
 #define NID_sm9keyagreement             1124
 #define OBJ_sm9keyagreement             OBJ_sm_scheme,302L,2L
@@ -5007,6 +5015,30 @@
 #define SN_sm9encrypt           "sm9encrypt"
 #define NID_sm9encrypt          1125
 #define OBJ_sm9encrypt          OBJ_sm_scheme,302L,3L
+
+#define SN_sm9encrypt_with_sm3_xor              "sm9encrypt-with-sm3-xor"
+#define NID_sm9encrypt_with_sm3_xor             1206
+#define OBJ_sm9encrypt_with_sm3_xor             OBJ_sm9encrypt,1L
+
+#define SN_sm9encrypt_with_sm3_sms4_cbc         "sm9encrypt-with-sm3-sms4-cbc"
+#define NID_sm9encrypt_with_sm3_sms4_cbc                1207
+#define OBJ_sm9encrypt_with_sm3_sms4_cbc                OBJ_sm9encrypt,2L
+
+#define SN_sm9encrypt_with_sm3_sms4_ctr         "sm9encrypt-with-sm3-sms4-ctr"
+#define NID_sm9encrypt_with_sm3_sms4_ctr                1208
+#define OBJ_sm9encrypt_with_sm3_sms4_ctr                OBJ_sm9encrypt,3L
+
+#define SN_sm9hash1             "sm9hash1"
+#define NID_sm9hash1            1201
+#define OBJ_sm9hash1            OBJ_sm_scheme,302L,4L
+
+#define SN_sm9hash1_with_sm3            "sm9hash1-with-sm3"
+#define NID_sm9hash1_with_sm3           1202
+#define OBJ_sm9hash1_with_sm3           OBJ_sm9hash1,1L
+
+#define SN_sm9hash1_with_sha256         "sm9hash1-with-sha256"
+#define NID_sm9hash1_with_sha256                1203
+#define OBJ_sm9hash1_with_sha256                OBJ_sm9hash1,2L
 
 #define SN_sm3          "SM3"
 #define LN_sm3          "sm3"

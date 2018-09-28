@@ -65,28 +65,6 @@ int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 	return 0;
 }
 
-int SM9_hash1(const EVP_MD *md, BIGNUM **r,
-	const char *id, size_t idlen,
-	unsigned char hid,
-	const BIGNUM *range,
-	BN_CTX *ctx)
-{
-	unsigned char *buf;
-
-	if (!(buf = OPENSSL_malloc(idlen + 1))) {
-		return 0;
-	}
-	memcpy(buf, id, idlen);
-	buf[idlen] = hid;
-
-	if (!BN_hash_to_range(md, r, buf, idlen + 1, range, ctx)) {
-		OPENSSL_free(buf);
-		return 0;
-	}
-
-	OPENSSL_free(buf);
-	return 1;
-}
 
 int SM9_hash2(const EVP_MD *md, BIGNUM **r,
 	const unsigned char *data, size_t datalen,
@@ -110,3 +88,43 @@ int SM9_hash2(const EVP_MD *md, BIGNUM **r,
 	return 1;
 }
 
+int SM9_DigestInit(EVP_MD_CTX *ctx, unsigned char prefix,
+	const EVP_MD *md, ENGINE *impl)
+{
+	if (!EVP_DigestInit_ex(ctx, md, impl)
+		|| !EVP_DigestUpdate(ctx, &prefix, 1)) {
+		ERR_print_errors_fp(stderr);
+		return 0;
+	}
+	return 1;
+}
+
+#if 0
+int SM9_DigestFinal(EVP_MD_CTX *ctx1, BIGNUM *h, const BIGNUM *n_1)
+{
+	int ret = 0;
+	EVP_MD_CTX *ctx2 = NULL;
+	const unsigned char ct1[4] = {0x00, 0x00, 0x00, 0x01};
+	const unsigned char ct2[4] = {0x00, 0x00, 0x00, 0x02};
+	unsigned char Ha[EVP_MAX_MD_SIZE * 2];
+	unsigned int len = 0;
+
+	if (!(ctx2 = EVP_MD_CTX_new())
+		|| !EVP_MD_CTX_copy(ctx2, ctx1)
+		|| !EVP_DigestUpdate(ctx1, ct1, sizeof(ct))
+		|| !EVP_DigestUpdate(ctx2, ct2, sizeof(ct2))
+		|| !EVP_DigestFinal_ex(ctx1, Ha, &len)
+		|| !EVP_DigestFinal_ex(ctx2, Ha + len, &len)
+		|| !BN_bin2bn(Ha, 40, h)
+		|| !BN_mod(h, h, n_1, bn_ctx)
+		|| !BN_add_word(h, 1)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	ret = 1;
+end:
+	EVP_MD_CTX_free(ctx2);
+	return ret;
+}
+#endif

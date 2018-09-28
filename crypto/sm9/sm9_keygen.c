@@ -51,30 +51,51 @@
 #include <openssl/err.h>
 #include <openssl/sm9.h>
 #include <openssl/ec_type1.h>
+#include <openssl/bn_hash.h>
 #include "sm9_lcl.h"
 
-static int SM9PublicParameters_get_usage(SM9PublicParameters *mpk)
+
+int SM9_hash1(const EVP_MD *md, BIGNUM **r,
+	const char *id, size_t idlen,
+	unsigned char hid,
+	const BIGNUM *range,
+	BN_CTX *ctx)
 {
-	//FIXME
-	return SM9_HID_SIGN;
+	unsigned char *buf;
+
+	if (!(buf = OPENSSL_malloc(idlen + 1))) {
+		return 0;
+	}
+	memcpy(buf, id, idlen);
+	buf[idlen] = hid;
+
+	if (!BN_hash_to_range(md, r, buf, idlen + 1, range, ctx)) {
+		OPENSSL_free(buf);
+		return 0;
+	}
+
+	OPENSSL_free(buf);
+	return 1;
 }
 
-SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
-	SM9MasterSecret *msk, const char *id, size_t idlen)
+SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
+	const char *id, size_t idlen)
 {
-	int e = 1;
 	SM9PrivateKey *ret = NULL;
-	BN_CTX *bn_ctx = NULL;
-	EC_GROUP *group = NULL;
-	EC_POINT *point = NULL;
-	BIGNUM *h;
+	SM9PrivateKey *sk = NULL;
+	const BIGNUM *p = SM9_get0_prime();
+	const BIGNUM *n = SM9_get0_order();
+	int scheme;
+	unsigned char hid;
 	const EVP_MD *md;
+	BN_CTX *ctx = NULL;
+	BIGNUM *t = NULL;
 	int point_form = POINT_CONVERSION_UNCOMPRESSED;
-	size_t size;
+	unsigned char buf[129];
+	size_t len = sizeof(buf);
 
-	int hid = SM9PublicParameters_get_usage(mpk);
-
-	if (!mpk || !msk || !id) {
+	/* check args */
+	if (!msk || !id) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY,
 			ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
@@ -85,110 +106,299 @@ SM9PrivateKey *SM9_extract_private_key(SM9PublicParameters *mpk,
 		return NULL;
 	}
 
-	/* BN_CTX */
-	if (!(bn_ctx = BN_CTX_new())) {
+	/* check pairing */
+	if (OBJ_obj2nid(msk->pairing) != NID_sm9bn256v1) {
+		return NULL;
+	}
+
+	/* check scheme */
+	scheme = OBJ_obj2nid(msk->scheme);
+	switch (scheme) {
+	case NID_sm9sign:
+		hid = SM9_HID_SIGN;
+		break;
+	case NID_sm9keyagreement:
+		hid = SM9_HID_EXCH;
+		break;
+	case NID_sm9encrypt:
+		hid = SM9_HID_ENC;
+		break;
+	default:
+		return NULL;
+	}
+
+
+	/* check hash1 and set hash1 md */
+	switch (OBJ_obj2nid(msk->hash1)) {
+	case NID_sm9hash1_with_sm3:
+		md = EVP_sm3();
+		break;
+	case NID_sm9hash1_with_sha256:
+		md = EVP_sha256();
+		break;
+	default:
+		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, SM9_R_INVALID_HASH1);
+		return NULL;
+	}
+
+	/* malloc */
+	if (!(sk = SM9PrivateKey_new())
+		|| !(ctx = BN_CTX_new())) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY,
 			ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
-	BN_CTX_start(bn_ctx);
+	BN_CTX_start(ctx);
 
-	/* EC_GROUP */
-	if (!(group = EC_GROUP_new_type1curve_ex(mpk->p,
-		mpk->a, mpk->b, mpk->pointP1->data, mpk->pointP1->length,
-		mpk->order, mpk->cofactor, bn_ctx))) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, SM9_R_INVALID_TYPE1CURVE);
-		goto end;
-	}
-
-	/* malloc */
-	ret = SM9PrivateKey_new();
-	point = EC_POINT_new(group);
-	h = BN_CTX_get(bn_ctx);
-
-	if (!ret || !point || !h) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-
-	/* md = mpk->hashfcn */
-	if (!(md = EVP_get_digestbyobj(mpk->hashfcn))) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, SM9_R_INVALID_MD);
-		goto end;
-	}
-
-	/* h = H1(ID||HID) in [0, mpk->order] */
-	if (!SM9_hash1(md, &h, id, idlen, hid, mpk->order, bn_ctx)) {
+	/* t1 = H1(ID||hid) + msk (mod n) */
+	if (!SM9_hash1(md, &t, id, idlen, hid, n, ctx)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_SM9_LIB);
 		goto end;
 	}
-
-	/* h = h + msk->masterSecret (mod mpk->order) */
-	if (!BN_mod_add(h, h, msk->masterSecret, mpk->order, bn_ctx)) {
+	if (!BN_mod_add(t, t, msk->masterSecret, n, ctx)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 		goto end;
 	}
 
-	/* if h is zero, return failed */
-	if (BN_is_zero(h)) {
+	/* if t1 is zero, return failed */
+	if (BN_is_zero(t)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, SM9_R_ZERO_ID);
 		goto end;
 	}
 
-	/* h = msk->masterSecret * h^-1 (mod mpk->order) */
-	if (!BN_mod_inverse(h, h, mpk->order, bn_ctx)) {
+	/* t2 = msk * t1^-1 (mod n) */
+	if (!BN_mod_inverse(t, t, n, ctx)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!BN_mod_mul(h, msk->masterSecret, h, mpk->order, bn_ctx)) {
+	if (!BN_mod_mul(t, msk->masterSecret, t, n, ctx)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 		goto end;
 	}
 
-	/* sk->privatePoint = mpk->pointP1 * h */
-	if (!EC_POINT_mul(group, point, h, NULL, NULL, bn_ctx)) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_EC_LIB);
-		goto end;
+	/* generate ds or de */
+	if (scheme == NID_sm9sign) {
+
+		EC_GROUP *group = NULL;
+		EC_POINT *ds = NULL;
+
+		/* ds = t2 * P1 */
+		if (!(group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1))
+			|| !(ds = EC_POINT_new(group))
+			|| !EC_POINT_mul(group, ds, t, NULL, NULL, ctx)
+			|| !(len = EC_POINT_point2oct(group, ds, point_form, buf, len, ctx))) {
+			EC_GROUP_free(group);
+			EC_POINT_free(ds);
+			goto end;
+		}
+
+		EC_GROUP_free(group);
+		EC_POINT_free(ds);
+
+	} else if (scheme == NID_sm9encrypt) {
+
+		point_t de;
+		
+		/* de = t2 * P2 */
+		if (!point_init(&de, ctx)
+			|| !point_mul_generator(&de, t, p, ctx)
+			|| !point_to_octets(&de, buf, ctx)) {
+			point_cleanup(&de);
+			goto end;
+		}
+
+		point_cleanup(&de);
 	}
-	if (!(size = EC_POINT_point2oct(group, point, point_form,
-		NULL, 0, bn_ctx))) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_EC_LIB);
-		goto end;
-	}
-	if (!ASN1_OCTET_STRING_set(ret->privatePoint, NULL, size)) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
-	if (!EC_POINT_point2oct(group, point, point_form,
-		ret->privatePoint->data, ret->privatePoint->length, bn_ctx)) {
-		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_EC_LIB);
+
+	ASN1_OBJECT_free(sk->pairing);
+	ASN1_OBJECT_free(sk->scheme);
+	ASN1_OBJECT_free(sk->hash1);
+	sk->pairing = NULL;
+	sk->scheme = NULL;
+	sk->hash1 = NULL;
+
+	if (!(sk->pairing = msk->pairing)
+		|| !(sk->scheme = msk->scheme)
+		|| !(sk->hash1 = msk->hash1)
+		|| !ASN1_STRING_copy(sk->pointPpub, msk->pointPpub)
+		|| !ASN1_STRING_set(sk->identity, id, idlen)
+		/* FIXME: create publicPoint */
+		|| !ASN1_STRING_set(sk->privatePoint, buf, len)) {
+		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_ASN1_LIB);
 		goto end;
 	}
 
-	e = 0;
-
+	ret = sk;
+	sk = NULL;
+	
 end:
-	if (e && ret) {
-		SM9PrivateKey_free(ret);
-		ret = NULL;
+	if (ctx) {
+		BN_CTX_end(ctx);
 	}
-	if (bn_ctx) {
-		BN_CTX_end(bn_ctx);
-	}
-	BN_CTX_free(bn_ctx);
-	EC_GROUP_free(group);
-	EC_POINT_free(point);
-	return NULL;
+	BN_CTX_free(ctx);
+	BN_clear_free(t);
+	OPENSSL_cleanse(buf, sizeof(buf));
+	return ret;
 }
 
 SM9PublicKey *SM9_extract_public_key(SM9PublicParameters *mpk,
 	const char *id, size_t idlen)
 {
-	return NULL;
+	SM9PublicKey *ret = NULL;
+	SM9PublicKey *pk = NULL;
+	BN_CTX *ctx = NULL;
+	BIGNUM *h1 = NULL;
+	int scheme;
+	unsigned char hid;
+	const EVP_MD *md;
+	const BIGNUM *p = SM9_get0_prime();
+	const BIGNUM *n = SM9_get0_order();
+	int point_form = POINT_CONVERSION_UNCOMPRESSED;
+	unsigned char buf[129];
+	size_t len = sizeof(buf);
+
+	if (!(pk = SM9PublicKey_new())
+		|| !(ctx = BN_CTX_new())) {
+		goto end;
+	}
+
+	/* check pairing */
+	if (OBJ_obj2nid(mpk->pairing) != NID_sm9bn256v1) {
+		goto end;
+	}
+
+	/* check scheme and set hash1 hid */
+	scheme = OBJ_obj2nid(mpk->scheme);
+	switch (scheme) {
+	case NID_sm9sign:
+		hid = SM9_HID_SIGN;
+		break;
+	case NID_sm9encrypt:
+		hid = SM9_HID_ENC;
+		break;
+	case NID_sm9keyagreement:
+		hid = SM9_HID_EXCH;
+		break;
+	default:
+		goto end;
+	}
+
+	/* check hash1 and set hash1 md */
+	switch (OBJ_obj2nid(mpk->hash1)) {
+	case NID_sm9hash1_with_sm3:
+		md = EVP_sm3();
+		break;
+	case NID_sm9hash1_with_sha256:
+		md = EVP_sha256();
+		break;
+	default:
+		goto end;
+	}
+
+	/* h1 = H1(ID || hid) in [1, n-1] */
+	if (!SM9_hash1(md, &h1, id, idlen, hid, n, ctx)) {
+		goto end;
+	}
+
+	if (scheme == NID_sm9sign) {
+		/* publicPoint = h1 * P2 + Ppubs */
+		point_t point;
+		point_t Ppubs;
+
+
+		if (!point_init(&point, ctx)
+			|| !point_init(&Ppubs, ctx)
+			|| ASN1_STRING_length(mpk->pointPpub) != sizeof(buf)
+			|| !point_from_octets(&Ppubs, ASN1_STRING_get0_data(mpk->pointPpub), p, ctx)
+			|| !point_mul_generator(&point, h1, p, ctx)
+			|| !point_add(&point, &point, &Ppubs, p, ctx)
+			|| !point_to_octets(&point, buf, ctx)) {
+			point_cleanup(&point);
+			point_cleanup(&Ppubs);
+			goto end;
+		}
+		point_cleanup(&point);
+		point_cleanup(&Ppubs);
+
+	} else if (OBJ_obj2nid(mpk->scheme) == NID_sm9encrypt) {
+		/* publicPoint = h1 * P1 + Ppube */
+		EC_GROUP *group = NULL;
+		EC_POINT *point = NULL;
+		EC_POINT *Ppube = NULL;
+
+		if (!(group = EC_GROUP_new_by_curve_name(NID_sm9bn256v1))
+			|| !(point = EC_POINT_new(group))
+			|| !(Ppube = EC_POINT_new(group))
+			|| !EC_POINT_oct2point(group, Ppube,
+				ASN1_STRING_get0_data(mpk->pointPpub),
+				ASN1_STRING_length(mpk->pointPpub), ctx)
+			|| !EC_POINT_mul(group, point, h1, NULL, NULL, ctx)
+			|| !EC_POINT_add(group, point, point, Ppube, ctx)
+			|| !(len = EC_POINT_point2oct(group, point, point_form, buf, len, ctx))) {
+			EC_GROUP_free(group);
+			EC_POINT_free(point);
+			EC_POINT_free(Ppube);
+			goto end;
+		}
+		EC_GROUP_free(group);
+		EC_POINT_free(point);
+		EC_POINT_free(Ppube);
+	}
+
+	/* init object */
+	ASN1_OBJECT_free(pk->pairing);
+	ASN1_OBJECT_free(pk->scheme);
+	ASN1_OBJECT_free(pk->hash1);
+	pk->pairing = NULL;
+	pk->scheme = NULL;
+	pk->hash1 = NULL;
+
+	if (!(pk->pairing = OBJ_dup(mpk->pairing))
+		|| !(pk->scheme = OBJ_dup(mpk->scheme))
+		|| !(pk->hash1 = OBJ_dup(mpk->hash1))
+		|| !ASN1_STRING_copy(pk->pointPpub, mpk->pointPpub)
+		|| !ASN1_STRING_set(pk->publicPoint, buf, len)
+		|| !ASN1_STRING_set(pk->identity, id, idlen)) {
+		goto end;
+	}
+
+	ret = pk;
+	pk = NULL;
+
+end:
+	SM9PublicKey_free(pk);
+	return ret;
 }
 
-SM9PublicKey *SM9PrivateKey_get_public_key(SM9PublicParameters *mpk,
-	SM9PrivateKey *sk)
+SM9PublicKey *SM9PrivateKey_get_public_key(SM9PrivateKey *sk)
 {
-	return NULL;
+	SM9PublicKey *ret = NULL;
+	SM9PublicKey *pk = NULL;
+
+	if (!(pk = SM9PublicKey_new())) {
+		return NULL;
+	}
+
+	ASN1_OBJECT_free(pk->pairing);
+	ASN1_OBJECT_free(pk->scheme);
+	ASN1_OBJECT_free(pk->hash1);
+	pk->pairing = NULL;
+	pk->scheme = NULL;
+	pk->hash1 = NULL;
+
+	if (!(pk->pairing = OBJ_dup(sk->pairing))
+		|| !(pk->scheme = OBJ_dup(sk->scheme))
+		|| !(pk->hash1 = OBJ_dup(sk->hash1))
+		|| !ASN1_STRING_copy(pk->pointPpub, sk->pointPpub)
+		|| !ASN1_STRING_copy(pk->publicPoint, sk->publicPoint)
+		|| !ASN1_STRING_copy(pk->identity, sk->identity)) {
+		goto end;
+	}
+
+	ret = pk;
+	pk = NULL;
+
+end:
+	SM9PublicKey_free(pk);
+	return ret;
 }

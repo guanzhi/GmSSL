@@ -1613,8 +1613,16 @@ sm2encrypt 2 11		: sm2encrypt-with-md5
 
 sm-scheme 302		: id-sm9PublicKey
 sm-scheme 302 1		: sm9sign
+sm9sign 1		: sm9sign-with-sm3
+sm9sign 2		: sm9sign-with-sha256
 sm-scheme 302 2		: sm9keyagreement
 sm-scheme 302 3		: sm9encrypt
+sm9encrypt 1		: sm9encrypt-with-sm3-xor
+sm9encrypt 2		: sm9encrypt-with-sm3-sms4-cbc
+sm9encrypt 3		: sm9encrypt-with-sm3-sms4-ctr
+sm-scheme 302 4		: sm9hash1
+sm9hash1 1		: sm9hash1-with-sm3
+sm9hash1 2		: sm9hash1-with-sha256
 
 sm-scheme 401		: SM3			: sm3
 sm-scheme 401 2		: HMAC-SM3		: hmac-sm3
@@ -1629,7 +1637,6 @@ sm-scheme 507		: SM2Sign-with-RMD160	: sm2sign-with-rmd160
 sm-scheme 520		: SM2Sign-with-Whirlpool : sm2sign-with-whirlpool
 sm-scheme 521		: SM2Sign-with-Blake2b512 : sm2sign-with-blake2b512
 sm-scheme 522		: SM2Sign-with-Blake2s256 : sm2sign-with-blake2s256
-
 
 # GmSSL ZUC OID
 sm-scheme 800		: ZUC			: zuc
@@ -1672,5 +1679,3 @@ wapi-ec 2 1		: wapip192v1
 
 # SM9 curve
 GmSSL 9 1		: sm9bn256v1
-
-
