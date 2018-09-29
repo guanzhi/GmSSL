@@ -414,15 +414,15 @@ static int fp2_div(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CT
 static int fp2_to_bin(const fp2_t a, unsigned char to[64])
 {
 	memset(to, 0, 64);
-	BN_bn2bin(a[0], to + 32 - BN_num_bytes(a[0]));
-	BN_bn2bin(a[1], to + 64 - BN_num_bytes(a[1]));
+	BN_bn2bin(a[1], to + 32 - BN_num_bytes(a[1]));
+	BN_bn2bin(a[0], to + 64 - BN_num_bytes(a[0]));
 	return 1;
 }
 
 static int fp2_from_bin(fp2_t a, const unsigned char from[64])
 {
-	return BN_bin2bn(from, 32, a[0])
-		&& BN_bin2bn(from + 32, 32, a[1]);	
+	return BN_bin2bn(from, 32, a[1])
+		&& BN_bin2bn(from + 32, 32, a[0]);	
 }
 
 static int fp2_test(const BIGNUM *p, BN_CTX *ctx)
@@ -1007,7 +1007,7 @@ static void fp12_clear_cleanup(fp12_t a)
 	fp4_clear_cleanup(a[2]);
 }
 
-static int fp12_print(const fp12_t a)
+int fp12_print(const fp12_t a)
 {
 	fp4_print(a[0]);
 	fp4_print(a[1]);
@@ -1734,7 +1734,7 @@ void point_cleanup(point_t *P)
 	fp2_cleanup(P->Z);
 }
 
-static void point_print(const point_t *P)
+void point_print(const point_t *P)
 {
 	printf(" X1: %s\n", BN_bn2hex((P->X)[1]));
 	printf(" X0: %s\n", BN_bn2hex((P->X)[0]));

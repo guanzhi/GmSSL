@@ -118,7 +118,8 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 	/* generate master secret k = rand(1, n - 1) */
 	do {
 		if (!BN_rand_range(msk->masterSecret, n)) {
-			return 0;
+			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_BN_LIB);
+			goto end;
 		}
 	} while (BN_is_zero(msk->masterSecret));
 

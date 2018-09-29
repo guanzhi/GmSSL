@@ -80,15 +80,16 @@ static int sm9test_sign(const char *id, const unsigned char *msg, size_t msglen)
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-	if (!SM9_sign(NID_sm3, msg, sizeof(msg), sig, &siglen, sk)) {
+	if (!SM9_sign(NID_sm3, msg, msglen, sig, &siglen, sk)) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-	if (1 != SM9_verify(NID_sm3, msg, sizeof(msg), sig, siglen, mpk, id, strlen(id))) {
+	if (1 != SM9_verify(NID_sm3, msg, msglen, sig, siglen, mpk, id, strlen(id))) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-	
+
+	printf("sm9test_sign() success\n");	
 	ret = 1;
 end:
 	SM9PublicParameters_free(mpk);
@@ -143,10 +144,10 @@ int main(int argc, char **argv)
 	char *id = "guanzhi1980@gmail.com";
 	unsigned char in[] = "message to be signed or encrypted";
 
-	if (!sm9test_sign(id, in, sizeof(in))) {
+	if (!sm9test_sign(id, in, sizeof(in)-1)) {
 		err++;
 	}
-	if (!sm9test_enc(id, in, sizeof(in))) {
+	if (!sm9test_enc(id, in, sizeof(in)-1)) {
 		err++;
 	}
 

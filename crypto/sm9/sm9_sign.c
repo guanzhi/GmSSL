@@ -63,13 +63,13 @@ int SM9_signature_size(SM9PublicParameters *mpk)
 
 int SM9_SignInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *eng)
 {
-	unsigned char prefix = 0x02;
+	unsigned char prefix[1] = {0x02};
 
 	if (!EVP_DigestInit_ex(ctx, md, eng)) {
 		SM9err(SM9_F_SM9_SIGNINIT, ERR_R_EVP_LIB);
 		return 0;
 	}
-	if (!EVP_DigestUpdate(ctx, &prefix, 1)) {
+	if (!EVP_DigestUpdate(ctx, prefix, sizeof(prefix))) {
 		SM9err(SM9_F_SM9_SIGNINIT, ERR_R_EVP_LIB);
 		return 0;
 	}
@@ -85,10 +85,10 @@ SM9Signature *SM9_SignFinal(EVP_MD_CTX *ctx1, SM9PrivateKey *sk)
 	const BIGNUM *n = SM9_get0_order();
 	int point_form = POINT_CONVERSION_COMPRESSED;
 	/* buf for w and prefix zeros of ct1/2 */
-	unsigned char buf[387] = {0};
+	unsigned char buf[384] = {0};
 	unsigned int len;
-	const unsigned char ct1 = 0x01;
-	const unsigned char ct2 = 0x02;
+	const unsigned char ct1[4] = {0x00, 0x00, 0x00, 0x01};
+	const unsigned char ct2[4] = {0x00, 0x00, 0x00, 0x02};
 	EVP_MD_CTX *ctx2 = NULL;
 	EC_GROUP *group = NULL;
 	EC_POINT *S = NULL;
@@ -145,10 +145,10 @@ SM9Signature *SM9_SignFinal(EVP_MD_CTX *ctx1, SM9PrivateKey *sk)
 		if (!EVP_DigestUpdate(ctx1, buf, sizeof(buf))
 			|| !EVP_MD_CTX_copy(ctx2, ctx1)
 			/* Ha1 = Hv(0x02||M||w||0x00000001) */
-			|| !EVP_DigestUpdate(ctx1, &ct1, 1)
-			|| !EVP_DigestFinal_ex(ctx1, buf, &len)
+			|| !EVP_DigestUpdate(ctx1, ct1, sizeof(ct1))
 		 	/* Ha2 = Hv(0x02||M||w||0x00000002) */
-			|| !EVP_DigestUpdate(ctx2, &ct2, 1)
+			|| !EVP_DigestUpdate(ctx2, ct2, sizeof(ct2))
+			|| !EVP_DigestFinal_ex(ctx1, buf, &len)
 			|| !EVP_DigestFinal_ex(ctx2, buf + len, &len)) {
 			SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_DIGEST_FAILURE);
 			goto end;
@@ -159,8 +159,8 @@ SM9Signature *SM9_SignFinal(EVP_MD_CTX *ctx1, SM9PrivateKey *sk)
 			/* h = (Ha mod (n - 1)) + 1 */
 			|| !BN_mod(sig->h, sig->h, SM9_get0_order_minus_one(), bn_ctx)
 			|| !BN_add_word(sig->h, 1)
-			/* l = r - h */
-			|| !BN_mod_sub(r, r, sig->h, p, bn_ctx)) {
+			/* l = r - h (mod n) */
+			|| !BN_mod_sub(r, r, sig->h, n, bn_ctx)) {
 			SM9err(SM9_F_SM9_SIGNFINAL, ERR_R_BN_LIB);
 			goto end;
 		}
@@ -197,13 +197,13 @@ end:
 
 int SM9_VerifyInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *eng)
 {
-	unsigned char prefix = 0x02;
+	unsigned char prefix[1] = {0x02};
 
 	if (!EVP_DigestInit_ex(ctx, md, eng)) {
 		SM9err(SM9_F_SM9_VERIFYINIT, ERR_R_EVP_LIB);
 		return 0;
 	}
-	if (!EVP_DigestUpdate(ctx, &prefix, 1)) {
+	if (!EVP_DigestUpdate(ctx, prefix, sizeof(prefix))) {
 		SM9err(SM9_F_SM9_VERIFYINIT, ERR_R_EVP_LIB);
 		return 0;
 	}
@@ -228,10 +228,10 @@ int SM9_VerifyFinal(EVP_MD_CTX *ctx1, const SM9Signature *sig, SM9PublicKey *pk)
 	const BIGNUM *p = SM9_get0_prime();
 	const BIGNUM *n = SM9_get0_order();
 	const EVP_MD *md;
-	unsigned char buf[387] = {0};
+	unsigned char buf[384] = {0};
 	unsigned int len;
-	const unsigned char ct1 = 0x01;
-	const unsigned char ct2 = 0x02;
+	const unsigned char ct1[4] = {0x00, 0x00, 0x00, 0x01};
+	const unsigned char ct2[4] = {0x00, 0x00, 0x00, 0x02};
 	EVP_MD_CTX *ctx2 = NULL;
 	EC_GROUP *group = NULL;
 	EC_POINT *S = NULL;
@@ -314,9 +314,9 @@ int SM9_VerifyFinal(EVP_MD_CTX *ctx1, const SM9Signature *sig, SM9PublicKey *pk)
 	if (!EVP_DigestUpdate(ctx1, buf, sizeof(buf))
 		|| !EVP_MD_CTX_copy(ctx2, ctx1)
 		/* Ha1 = Hv(0x02||M||w||0x00000001) */
-		|| !EVP_DigestUpdate(ctx1, &ct1, 1)
+		|| !EVP_DigestUpdate(ctx1, ct1, sizeof(ct1))
 	 	/* Ha2 = Hv(0x02||M||w||0x00000002) */
-		|| !EVP_DigestUpdate(ctx2, &ct2, 1)
+		|| !EVP_DigestUpdate(ctx2, ct2, sizeof(ct2))
 		|| !EVP_DigestFinal_ex(ctx1, buf, &len)
 		|| !EVP_DigestFinal_ex(ctx2, buf + len, &len)) {
 		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_DIGEST_FAILURE);
@@ -336,6 +336,7 @@ int SM9_VerifyFinal(EVP_MD_CTX *ctx1, const SM9Signature *sig, SM9PublicKey *pk)
 		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_VERIFY_FAILURE);
 		ret = 0;
 	}
+
 
 	ret = 1;
 
@@ -426,6 +427,10 @@ int SM9_verify(int type, /* NID_[sm3 | sha256] */
 		goto end;
 	}
 
+	if (!(ctx = EVP_MD_CTX_new())) {
+		SM9err(SM9_F_SM9_VERIFY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
 	if (!SM9_VerifyInit(ctx, md, NULL)
 		|| !SM9_VerifyUpdate(ctx, data, datalen)
 		|| (ret = SM9_VerifyFinal(ctx, sm9sig, pk)) < 0) {

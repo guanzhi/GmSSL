@@ -54,7 +54,7 @@
 #include <openssl/bn_hash.h>
 #include "sm9_lcl.h"
 
-
+#if 0
 int SM9_hash1(const EVP_MD *md, BIGNUM **r,
 	const char *id, size_t idlen,
 	unsigned char hid,
@@ -77,6 +77,59 @@ int SM9_hash1(const EVP_MD *md, BIGNUM **r,
 	OPENSSL_free(buf);
 	return 1;
 }
+#endif
+
+int SM9_hash1(const EVP_MD *md, BIGNUM **r, const char *id, size_t idlen,
+	unsigned char hid, const BIGNUM *n, BN_CTX *ctx)
+{
+	int ret = 0;
+	BIGNUM *h = NULL;
+	BN_CTX *bn_ctx = NULL;
+	EVP_MD_CTX *ctx1 = NULL;
+	EVP_MD_CTX *ctx2 = NULL;
+	unsigned char prefix[1] = {0x01};
+	unsigned char ct1[4] = {0x00, 0x00, 0x00, 0x01};
+	unsigned char ct2[4] = {0x00, 0x00, 0x00, 0x02};
+	unsigned char buf[128];
+	unsigned int len;
+
+	if (!(ctx1 = EVP_MD_CTX_new())
+		|| !(ctx2 = EVP_MD_CTX_new())
+		|| !(bn_ctx = BN_CTX_new())
+		|| !(h = BN_new())) {
+		goto end;
+	}
+
+	if (!EVP_DigestInit_ex(ctx1, md, NULL)
+		|| !EVP_DigestUpdate(ctx1, prefix, sizeof(prefix))	
+		|| !EVP_DigestUpdate(ctx1, id, idlen)
+		|| !EVP_DigestUpdate(ctx1, &hid, 1)
+		|| !EVP_MD_CTX_copy(ctx2, ctx1)
+		|| !EVP_DigestUpdate(ctx1, ct1, sizeof(ct1))
+		|| !EVP_DigestUpdate(ctx2, ct2, sizeof(ct2))
+		|| !EVP_DigestFinal_ex(ctx1, buf, &len)
+		|| !EVP_DigestFinal_ex(ctx2, buf + len, &len)) {
+		goto end;
+	}
+
+	if (!BN_bin2bn(buf, 40, h)
+		|| !BN_mod(h, h, SM9_get0_order_minus_one(), bn_ctx)
+		|| !BN_add_word(h, 1)) {
+		goto end;
+	}
+
+	*r = h;
+	h = NULL;
+	ret = 1;
+
+end:
+	BN_free(h);
+	BN_CTX_free(bn_ctx);
+	EVP_MD_CTX_free(ctx1);
+	EVP_MD_CTX_free(ctx2);
+	return ret;
+}
+
 
 SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
 	const char *id, size_t idlen)
@@ -155,6 +208,7 @@ SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_SM9_LIB);
 		goto end;
 	}
+
 	if (!BN_mod_add(t, t, msk->masterSecret, n, ctx)) {
 		SM9err(SM9_F_SM9_EXTRACT_PRIVATE_KEY, ERR_R_BN_LIB);
 		goto end;

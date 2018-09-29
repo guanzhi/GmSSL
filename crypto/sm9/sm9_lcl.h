@@ -154,10 +154,12 @@ int fp12_init(fp12_t a, BN_CTX *ctx);
 int fp12_mul(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx);
 int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx);
 int fp12_to_bin(const fp12_t a, unsigned char to[384]);
+int fp12_print(const fp12_t a);
 void fp12_cleanup(fp12_t a);
 
 int point_init(point_t *P, BN_CTX *ctx);
 int point_copy(point_t *R, const point_t *P);
+void point_print(const point_t *P);
 int point_equ(const point_t *P, const point_t *Q);
 int point_is_on_curve(point_t *P, const BIGNUM *p, BN_CTX *ctx);
 int point_to_octets(const point_t *P, unsigned char to[129], BN_CTX *ctx);
