@@ -10,7 +10,7 @@
  */
 
 /* Serialized OID's */
-static const unsigned char so[7876] = {
+static const unsigned char so[7905] = {
     0x2A,0x86,0x48,0x86,0xF7,0x0D,                 /* [    0] OBJ_rsadsi */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,            /* [    6] OBJ_pkcs */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,       /* [   13] OBJ_md2 */
@@ -1100,9 +1100,12 @@ static const unsigned char so[7876] = {
     0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x03,0x01,  /* [ 7845] OBJ_sm9encrypt_with_sm3_xor */
     0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x03,0x02,  /* [ 7855] OBJ_sm9encrypt_with_sm3_sms4_cbc */
     0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x03,0x03,  /* [ 7865] OBJ_sm9encrypt_with_sm3_sms4_ctr */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x05,  /* [ 7875] OBJ_sm9kdf */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x05,0x01,  /* [ 7884] OBJ_sm9kdf_with_sm3 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2E,0x05,0x02,  /* [ 7894] OBJ_sm9kdf_with_sha256 */
 };
 
-#define NUM_NID 1209
+#define NUM_NID 1212
 static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"UNDEF", "undefined", NID_undef},
     {"rsadsi", "RSA Data Security, Inc.", NID_rsadsi, 6, &so[0]},
@@ -2313,9 +2316,12 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"sm9encrypt-with-sm3-xor", "sm9encrypt-with-sm3-xor", NID_sm9encrypt_with_sm3_xor, 10, &so[7845]},
     {"sm9encrypt-with-sm3-sms4-cbc", "sm9encrypt-with-sm3-sms4-cbc", NID_sm9encrypt_with_sm3_sms4_cbc, 10, &so[7855]},
     {"sm9encrypt-with-sm3-sms4-ctr", "sm9encrypt-with-sm3-sms4-ctr", NID_sm9encrypt_with_sm3_sms4_ctr, 10, &so[7865]},
+    {"sm9kdf", "sm9kdf", NID_sm9kdf, 9, &so[7875]},
+    {"sm9kdf-with-sm3", "sm9kdf-with-sm3", NID_sm9kdf_with_sm3, 10, &so[7884]},
+    {"sm9kdf-with-sha256", "sm9kdf-with-sha256", NID_sm9kdf_with_sha256, 10, &so[7894]},
 };
 
-#define NUM_SN 1198
+#define NUM_SN 1201
 static const unsigned int sn_objs[NUM_SN] = {
      364,    /* "AD_DVCS" */
      419,    /* "AES-128-CBC" */
@@ -3446,6 +3452,9 @@ static const unsigned int sn_objs[NUM_SN] = {
     1201,    /* "sm9hash1" */
     1203,    /* "sm9hash1-with-sha256" */
     1202,    /* "sm9hash1-with-sm3" */
+    1209,    /* "sm9kdf" */
+    1211,    /* "sm9kdf-with-sha256" */
+    1210,    /* "sm9kdf-with-sm3" */
     1124,    /* "sm9keyagreement" */
     1123,    /* "sm9sign" */
     1205,    /* "sm9sign-with-sha256" */
@@ -3517,7 +3526,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1194,    /* "zuc-128eia3" */
 };
 
-#define NUM_LN 1198
+#define NUM_LN 1201
 static const unsigned int ln_objs[NUM_LN] = {
      363,    /* "AD Time Stamping" */
      405,    /* "ANSI X9.62" */
@@ -4632,6 +4641,9 @@ static const unsigned int ln_objs[NUM_LN] = {
     1201,    /* "sm9hash1" */
     1203,    /* "sm9hash1-with-sha256" */
     1202,    /* "sm9hash1-with-sm3" */
+    1209,    /* "sm9kdf" */
+    1211,    /* "sm9kdf-with-sha256" */
+    1210,    /* "sm9kdf-with-sm3" */
     1124,    /* "sm9keyagreement" */
     1123,    /* "sm9sign" */
     1205,    /* "sm9sign-with-sha256" */
@@ -4719,7 +4731,7 @@ static const unsigned int ln_objs[NUM_LN] = {
     1194,    /* "zuc-128eia3" */
 };
 
-#define NUM_OBJ 1095
+#define NUM_OBJ 1098
 static const unsigned int obj_objs[NUM_OBJ] = {
        0,    /* OBJ_undef                        0 */
      181,    /* OBJ_iso                          1 */
@@ -5461,6 +5473,7 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1124,    /* OBJ_sm9keyagreement              1 2 156 10197 1 302 2 */
     1125,    /* OBJ_sm9encrypt                   1 2 156 10197 1 302 3 */
     1201,    /* OBJ_sm9hash1                     1 2 156 10197 1 302 4 */
+    1209,    /* OBJ_sm9kdf                       1 2 156 10197 1 302 5 */
     1127,    /* OBJ_hmac_sm3                     1 2 156 10197 1 401 2 */
     1193,    /* OBJ_zuc_128eea3                  1 2 156 10197 1 800 1 */
     1194,    /* OBJ_zuc_128eia3                  1 2 156 10197 1 800 2 */
@@ -5675,6 +5688,8 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1208,    /* OBJ_sm9encrypt_with_sm3_sms4_ctr 1 2 156 10197 1 302 3 3 */
     1202,    /* OBJ_sm9hash1_with_sm3            1 2 156 10197 1 302 4 1 */
     1203,    /* OBJ_sm9hash1_with_sha256         1 2 156 10197 1 302 4 2 */
+    1210,    /* OBJ_sm9kdf_with_sm3              1 2 156 10197 1 302 5 1 */
+    1211,    /* OBJ_sm9kdf_with_sha256           1 2 156 10197 1 302 5 2 */
     1139,    /* OBJ_type1curve                   1 2 840 1 114334 1 1 1 */
     1140,    /* OBJ_type2curve                   1 2 840 1 114334 1 1 2 */
     1141,    /* OBJ_type3curve                   1 2 840 1 114334 1 1 3 */

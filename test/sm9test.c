@@ -84,18 +84,57 @@ static int sm9test_sign(const char *id, const unsigned char *msg, size_t msglen)
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-	if (1 != SM9_verify(NID_sm3, msg, msglen, sig, siglen, mpk, id, strlen(id))) {
+	ret = SM9_verify(NID_sm3, msg, msglen, sig, siglen, mpk, id, strlen(id));
+	printf("%s %s\n", __FUNCTION__, ret == 1 ? "ok" : "failed");
+	if (ret < 0) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
 
-	printf("sm9test_sign() success\n");	
+end:
+	SM9PublicParameters_free(mpk);
+	SM9MasterSecret_free(msk);
+	SM9PrivateKey_free(sk);
+	return ret;
+}
+
+static int sm9test_wrap(const char *id)
+{
+	int ret = 0;
+	SM9PublicParameters *mpk = NULL;
+	SM9MasterSecret *msk = NULL;
+	SM9PrivateKey *sk = NULL;
+	unsigned char key[56] = {0};
+	unsigned char key2[56] = {0};
+	unsigned char C[65];
+	size_t Clen;
+
+	if (!SM9_setup(NID_sm9bn256v1, NID_sm9encrypt, NID_sm9hash1_with_sm3, &mpk, &msk)) {
+		goto end;
+	}
+	if (!(sk = SM9_extract_private_key(msk, id, strlen(id)))) {
+		goto end;
+	}
+	if (!SM9_wrap_key(NID_sm9kdf_with_sm3, key, sizeof(key), C, &Clen, mpk, id, strlen(id))) {
+		goto end;
+	}
+	if (!SM9_unwrap_key(NID_sm9kdf_with_sm3, key2, sizeof(key2), C, sizeof(C), sk)) {
+		goto end;
+	}
+	if (memcmp(key, key2, sizeof(key2)) != 0) {
+		printf("%s failed\n", __FUNCTION__);
+		goto end;
+	} else {
+		printf("%s ok\n", __FUNCTION__);
+	}
+	
 	ret = 1;
 end:
 	SM9PublicParameters_free(mpk);
 	SM9MasterSecret_free(msk);
 	SM9PrivateKey_free(sk);
 	return ret;
+	
 }
 
 static int sm9test_enc(const char *id, const unsigned char *data, size_t datalen)
@@ -143,13 +182,18 @@ int main(int argc, char **argv)
 	int err = 0;
 	char *id = "guanzhi1980@gmail.com";
 	unsigned char in[] = "message to be signed or encrypted";
-
+	
 	if (!sm9test_sign(id, in, sizeof(in)-1)) {
 		err++;
 	}
+	if (!sm9test_wrap(id)) {
+		err++;
+	}
+	/*
 	if (!sm9test_enc(id, in, sizeof(in)-1)) {
 		err++;
 	}
+	*/
 
 	return err;
 }

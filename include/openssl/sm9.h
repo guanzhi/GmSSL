@@ -126,6 +126,19 @@ int SM9_VerifyInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *engine);
 #define SM9_VerifyUpdate(ctx,d,l) EVP_DigestUpdate(ctx,d,l)
 int SM9_VerifyFinal(EVP_MD_CTX *ctx, const SM9Signature *sig, SM9PublicKey *pk);
 
+
+int SM9_wrap_key(int type, /* NID_sm9kdf_with_sm3 */
+	unsigned char *key, size_t keylen,
+	unsigned char *enced_key, size_t *enced_len,
+	SM9PublicParameters *mpk, const char *id, size_t idlen);
+
+int SM9_unwrap_key(int type,
+	unsigned char *key, size_t keylen,
+	const unsigned char *enced_key, size_t enced_len,
+	SM9PrivateKey *sk);
+
+
+
 typedef struct {
 	const EVP_MD *kdf_md;
 	const EVP_CIPHER *enc_cipher;
@@ -202,12 +215,14 @@ int ERR_load_SM9_strings(void);
 # define SM9_R_GENERATE_MAC_FAILURE                       102
 # define SM9_R_HASH_FAILURE                               103
 # define SM9_R_INVALID_CIPHERTEXT                         104
+# define SM9_R_INVALID_DIGEST_TYPE                        130
 # define SM9_R_INVALID_ENCPARAMETERS                      105
 # define SM9_R_INVALID_HASH1                              106
 # define SM9_R_INVALID_HASH2_DIGEST                       126
 # define SM9_R_INVALID_ID                                 107
 # define SM9_R_INVALID_ID_LENGTH                          108
 # define SM9_R_INVALID_INPUT                              109
+# define SM9_R_INVALID_KEM_KEY_LENGTH                     128
 # define SM9_R_INVALID_KEY_LENGTH                         110
 # define SM9_R_INVALID_MD                                 111
 # define SM9_R_INVALID_PAIRING_TYPE                       112
@@ -220,6 +235,7 @@ int ERR_load_SM9_strings(void);
 # define SM9_R_INVALID_TYPE1CURVE                         115
 # define SM9_R_KDF_FAILURE                                116
 # define SM9_R_PAIRING_ERROR                              124
+# define SM9_R_RATE_PAIRING_ERROR                         129
 # define SM9_R_TWIST_CURVE_ERROR                          117
 # define SM9_R_VERIFY_FAILURE                             125
 # define SM9_R_ZERO_ID                                    118

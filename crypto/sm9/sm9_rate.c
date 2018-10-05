@@ -2514,10 +2514,29 @@ int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx)
 	xP = BN_CTX_get(ctx);
 	yP = BN_CTX_get(ctx);
 
-	EC_POINT_get_affine_coordinates_GFp(group, P, xP, yP, ctx);
+	if (!P) {
+		EC_POINT_get_affine_coordinates_GFp(group,
+			EC_GROUP_get0_generator(group), xP, yP, ctx);
+	} else {
+		EC_POINT_get_affine_coordinates_GFp(group, P, xP, yP, ctx);
+	}
 
-	rate(r, Q, xP, yP, a, k, p, ctx);
-	
+	if (!Q) {
+		point_t P2;
+		point_init(&P2, ctx);
+		point_set_affine_coordinates_bignums(&P2,
+			SM9_get0_generator2_x0(),
+			SM9_get0_generator2_x1(),
+			SM9_get0_generator2_y0(),
+			SM9_get0_generator2_y1());
+
+		rate(r, &P2, xP, yP, a, k, p, ctx);
+
+		point_cleanup(&P2);
+	} else {
+		rate(r, Q, xP, yP, a, k, p, ctx);
+	}
+
 	BN_free(xP);
 	BN_free(yP);
 	return ret;

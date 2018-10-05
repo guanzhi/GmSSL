@@ -5032,6 +5032,10 @@
 #define NID_sm9hash1            1201
 #define OBJ_sm9hash1            OBJ_sm_scheme,302L,4L
 
+#define SN_sm9kdf               "sm9kdf"
+#define NID_sm9kdf              1209
+#define OBJ_sm9kdf              OBJ_sm_scheme,302L,5L
+
 #define SN_sm9hash1_with_sm3            "sm9hash1-with-sm3"
 #define NID_sm9hash1_with_sm3           1202
 #define OBJ_sm9hash1_with_sm3           OBJ_sm9hash1,1L
@@ -5039,6 +5043,14 @@
 #define SN_sm9hash1_with_sha256         "sm9hash1-with-sha256"
 #define NID_sm9hash1_with_sha256                1203
 #define OBJ_sm9hash1_with_sha256                OBJ_sm9hash1,2L
+
+#define SN_sm9kdf_with_sm3              "sm9kdf-with-sm3"
+#define NID_sm9kdf_with_sm3             1210
+#define OBJ_sm9kdf_with_sm3             OBJ_sm9kdf,1L
+
+#define SN_sm9kdf_with_sha256           "sm9kdf-with-sha256"
+#define NID_sm9kdf_with_sha256          1211
+#define OBJ_sm9kdf_with_sha256          OBJ_sm9kdf,2L
 
 #define SN_sm3          "SM3"
 #define LN_sm3          "sm3"
