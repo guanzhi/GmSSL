@@ -1772,7 +1772,6 @@ static int gmtls_construct_cke_sm9(SSL *s, unsigned char **p, int *l, int *al)
 {
 	int ret = 0;
 	CERT_SM9 *sm9;
-	SM9EncParameters encparam;
 	unsigned char *pms = NULL;
 	size_t pmslen;
 	size_t enclen;
@@ -1799,12 +1798,6 @@ static int gmtls_construct_cke_sm9(SSL *s, unsigned char **p, int *l, int *al)
 		goto end;
 	}
 
-	encparam.kdf_md = EVP_sm3();
-	encparam.enc_cipher = EVP_get_cipherbynid(
-		SSL_CIPHER_get_cipher_nid(s->s3->tmp.new_cipher));
-	encparam.cmac_cipher = NULL;
-	encparam.cbcmac_cipher = NULL;
-	encparam.hmac_md = EVP_sm3();
 
 #if 0
 	if (!SM9_encrypt(sm9->params, &encparam, pms, pmslen,
@@ -1842,7 +1835,6 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 	int ret = 0;
 	PACKET enced_pms;
 	CERT_SM9 *sm9;
-	SM9EncParameters encparam;
 	unsigned char *pms = NULL;
 	size_t pms_len;
 
@@ -1862,12 +1854,6 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 		return 0;
 	}
 
-	encparam.kdf_md = EVP_sm3();
-	encparam.enc_cipher = EVP_get_cipherbynid(
-		SSL_CIPHER_get_cipher_nid(s->s3->tmp.new_cipher));
-	encparam.cmac_cipher = NULL;
-	encparam.cbcmac_cipher = NULL;
-	encparam.hmac_md = EVP_sm3();
 
 #if 0
 	if (!SM9_decrypt(sm9->params, &encparam,

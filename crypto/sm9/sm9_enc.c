@@ -53,6 +53,7 @@
 #include <openssl/sm2.h>
 #include <openssl/sm9.h>
 #include <openssl/hmac.h>
+#include <openssl/crypto.h>
 #include "sm9_lcl.h"
 
 /*
@@ -392,7 +393,10 @@ int SM9_encrypt(int type,
 	}
 
 	/* C3 = MAC(K2, C2) */
-	HMAC(md, key + inlen, EVP_MD_size(md), key, inlen, mac, &maclen);
+	if (!HMAC(md, key + inlen, EVP_MD_size(md), key, inlen, mac, &maclen)) {
+		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
 
 	/* compose SM9Ciphertext */
 	if (!ASN1_STRING_set(sm9cipher->pointC1, C1, C1_len)
@@ -422,5 +426,84 @@ int SM9_decrypt(int type,
 	unsigned char *out, size_t *outlen,
 	SM9PrivateKey *sk)
 {
-	return 0;
+	int ret = 0;
+	SM9Ciphertext *sm9cipher = NULL;
+	unsigned char *key = NULL;
+	size_t keylen;
+	int kdf;
+	const EVP_MD *md;
+	const unsigned char *C2;
+	int C2_len;
+	unsigned char mac[EVP_MAX_MD_SIZE];
+	unsigned int maclen = sizeof(mac);
+	int len, i;
+
+	/* parse type */
+	switch (type) {
+	case NID_sm9encrypt_with_sm3_xor:
+		kdf = NID_sm9kdf_with_sm3;
+		md = EVP_sm3();
+		break;
+	/*
+	case NID_sm9encrypt_with_sha256_xor:
+		kdf = NID_sm9kdf_with_sha256;
+		md = EVP_sha256();
+		break;
+	*/
+	case NID_sm9encrypt_with_sm3_sms4_cbc:
+	case NID_sm9encrypt_with_sm3_sms4_ctr:
+	default:
+		return 0;
+	}
+
+	/* decode sm9 ciphertext */
+	if (!(sm9cipher = d2i_SM9Ciphertext(NULL, &in, inlen))) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
+	C2 = ASN1_STRING_get0_data(sm9cipher->c2);
+	C2_len = ASN1_STRING_length(sm9cipher->c2);
+
+	/* check mac length */
+	if (ASN1_STRING_length(sm9cipher->c3) != EVP_MD_size(md)) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
+
+	/* unwrap key */
+	keylen = C2_len + EVP_MD_size(md);
+	if (!(key = OPENSSL_malloc(keylen))) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!SM9_unwrap_key(kdf, key, keylen,
+		ASN1_STRING_get0_data(sm9cipher->pointC1),
+		ASN1_STRING_length(sm9cipher->pointC1), sk)) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
+
+	/* M = C2 xor key */
+	for (i = 0; i < C2_len; i++) {
+		out[i] = C2[i] ^ key[i];
+	}
+	*outlen = C2_len;
+
+	/* check C3 == MAC(K2, C2) */
+	if (!HMAC(md, key + C2_len, EVP_MD_size(md), key, C2_len, mac, &maclen)) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	if (CRYPTO_memcmp(ASN1_STRING_get0_data(sm9cipher->c3), mac, maclen) != 0) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	ret = 1;
+
+end:
+	SM9Ciphertext_free(sm9cipher);
+	OPENSSL_clear_free(key, keylen);
+	return ret;
 }
