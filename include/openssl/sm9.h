@@ -126,7 +126,6 @@ int SM9_VerifyInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *engine);
 #define SM9_VerifyUpdate(ctx,d,l) EVP_DigestUpdate(ctx,d,l)
 int SM9_VerifyFinal(EVP_MD_CTX *ctx, const SM9Signature *sig, SM9PublicKey *pk);
 
-
 int SM9_wrap_key(int type, /* NID_sm9kdf_with_sm3 */
 	unsigned char *key, size_t keylen,
 	unsigned char *enced_key, size_t *enced_len,
@@ -137,32 +136,13 @@ int SM9_unwrap_key(int type,
 	const unsigned char *enced_key, size_t enced_len,
 	SM9PrivateKey *sk);
 
-
-
-typedef struct {
-	const EVP_MD *kdf_md;
-	const EVP_CIPHER *enc_cipher;
-	const EVP_CIPHER *cmac_cipher;
-	const EVP_CIPHER *cbcmac_cipher;
-	const EVP_MD *hmac_md;
-} SM9EncParameters;
-
-int SM9_encrypt(int type,
+int SM9_encrypt(int type, /* NID_sm9encrypt_with_sm3_xor */
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen,
 	SM9PublicParameters *mpk, const char *id, size_t idlen);
 
 int SM9_decrypt(int type,
 	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	SM9PrivateKey *sk);
-
-SM9Ciphertext *SM9_do_encrypt(const SM9EncParameters *encparams,
-	const unsigned char *in, size_t inlen,
-	SM9PublicKey *pk);
-
-int SM9_do_decrypt(const SM9EncParameters *encparams,
-	const SM9Ciphertext *in,
 	unsigned char *out, size_t *outlen,
 	SM9PrivateKey *sk);
 

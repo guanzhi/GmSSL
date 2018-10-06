@@ -52,7 +52,18 @@
 #include <openssl/err.h>
 #include <openssl/sm2.h>
 #include <openssl/sm9.h>
+#include <openssl/hmac.h>
 #include "sm9_lcl.h"
+
+/*
+int SM9_do_wrap_key(const EVP_MD *kdf_md
+	unsigned char *key, size_t keylen, EC_POINT *C,
+	SM9PublicKey *pk);
+
+int SM9_do_unwrap_key(const EVP_MD *kdf_md,
+	unsigned char *key, size_t keylen, const EC_POINT *C,
+	SM9PublicKey *pk);
+*/
 
 int SM9_unwrap_key(int type,
 	unsigned char *key, size_t keylen,
@@ -330,26 +341,84 @@ int SM9_encrypt(int type,
 	unsigned char *out, size_t *outlen,
 	SM9PublicParameters *mpk, const char *id, size_t idlen)
 {
-	return 0;
+	int ret = 0;
+	SM9Ciphertext *sm9cipher = NULL;
+	int kdf;
+	const EVP_MD *md;
+	unsigned char *key = NULL;
+	size_t keylen;
+	unsigned char C1[1 + 64];
+	size_t C1_len;
+	unsigned char mac[EVP_MAX_MD_SIZE];
+	unsigned int maclen = sizeof(mac);
+	int len, i;
+
+	/* parse type */
+	switch (type) {
+	case NID_sm9encrypt_with_sm3_xor:
+		kdf = NID_sm9kdf_with_sm3;
+		md = EVP_sm3();
+		break;
+	/*
+	case NID_sm9encrypt_with_sha256_xor:
+		kdf = NID_sm9kdf_with_sha256;
+		md = EVP_sha256();
+		break;
+	*/
+	case NID_sm9encrypt_with_sm3_sms4_cbc:
+	case NID_sm9encrypt_with_sm3_sms4_ctr:
+	default:
+		return 0;
+	}
+
+	keylen = inlen + EVP_MD_size(md);
+
+	/* malloc */
+	if (!(sm9cipher = SM9Ciphertext_new())
+		|| !(key = OPENSSL_malloc(keylen))) {
+		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	/* C1 */
+	if (!SM9_wrap_key(kdf, key, keylen, C1, &C1_len, mpk, id, idlen)) {
+		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
+
+	/* C2 = M xor K1 */
+	for (i = 0; i < inlen; i++) {
+		key[i] ^= in[i];
+	}
+
+	/* C3 = MAC(K2, C2) */
+	HMAC(md, key + inlen, EVP_MD_size(md), key, inlen, mac, &maclen);
+
+	/* compose SM9Ciphertext */
+	if (!ASN1_STRING_set(sm9cipher->pointC1, C1, C1_len)
+		|| !ASN1_STRING_set(sm9cipher->c2, key, inlen)
+		|| !ASN1_STRING_set(sm9cipher->c3, mac, maclen)) {
+		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
+
+	/* encode sm9 ciphertext */
+	if ((len = i2d_SM9Ciphertext(sm9cipher, &out)) <= 0) {
+		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
+	*outlen = len;
+
+	ret = 1;
+
+end:
+	OPENSSL_free(sm9cipher);
+	OPENSSL_clear_free(key, keylen);
+	return ret;
 }
 
 int SM9_decrypt(int type,
 	const unsigned char *in, size_t inlen,
-	unsigned char *out, size_t *outlen,
-	SM9PrivateKey *sk)
-{
-	return 0;
-}
-
-SM9Ciphertext *SM9_do_encrypt(const SM9EncParameters *encparams,
-	const unsigned char *in, size_t inlen,
-	SM9PublicKey *pk)
-{
-	return 0;
-}
-
-int SM9_do_decrypt(const SM9EncParameters *encparams,
-	const SM9Ciphertext *in,
 	unsigned char *out, size_t *outlen,
 	SM9PrivateKey *sk)
 {
