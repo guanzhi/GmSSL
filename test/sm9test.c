@@ -85,7 +85,6 @@ static int sm9test_sign(const char *id, const unsigned char *msg, size_t msglen)
 		goto end;
 	}
 	ret = SM9_verify(NID_sm3, msg, msglen, sig, siglen, mpk, id, strlen(id));
-	printf("%s %s\n", __FUNCTION__, ret == 1 ? "ok" : "failed");
 	if (ret < 0) {
 		ERR_print_errors_fp(stderr);
 		goto end;
@@ -122,10 +121,7 @@ static int sm9test_wrap(const char *id)
 		goto end;
 	}
 	if (memcmp(key, key2, sizeof(key2)) != 0) {
-		printf("%s failed\n", __FUNCTION__);
 		goto end;
-	} else {
-		printf("%s ok\n", __FUNCTION__);
 	}
 	
 	ret = 1;
@@ -182,18 +178,24 @@ int main(int argc, char **argv)
 	int err = 0;
 	char *id = "guanzhi1980@gmail.com";
 	unsigned char in[] = "message to be signed or encrypted";
-	
+
 	if (!sm9test_sign(id, in, sizeof(in)-1)) {
+		printf("sm9 sign tests failed\n");
 		err++;
 	}
+	printf("sm9 sign tests passed\n");
+	
 	if (!sm9test_wrap(id)) {
+		printf("sm9 key wrap tests failed\n");
 		err++;
 	}
-	/*
+	printf("sm9 key wrap tests passed\n");
+
 	if (!sm9test_enc(id, in, sizeof(in)-1)) {
+		printf("sm9 encrypt tests failed\n");
 		err++;
 	}
-	*/
+	printf("sm9 encrypt tests passed\n");
 
 	return err;
 }

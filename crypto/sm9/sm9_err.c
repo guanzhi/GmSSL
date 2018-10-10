@@ -35,6 +35,7 @@ static ERR_STRING_DATA SM9_str_functs[] = {
     {ERR_FUNC(SM9_F_SM9_EXTRACT_PRIVATE_KEY), "SM9_extract_private_key"},
     {ERR_FUNC(SM9_F_SM9_EXTRACT_PUBLIC_PARAMETERS),
      "SM9_extract_public_parameters"},
+    {ERR_FUNC(SM9_F_SM9_GENERATE_KEY_EXCHANGE), "SM9_generate_key_exchange"},
     {ERR_FUNC(SM9_F_SM9_GENERATE_MASTER_SECRET),
      "SM9_generate_master_secret"},
     {ERR_FUNC(SM9_F_SM9_SIGN), "SM9_sign"},

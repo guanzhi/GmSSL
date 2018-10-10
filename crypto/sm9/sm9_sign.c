@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2016 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -171,7 +171,7 @@ SM9Signature *SM9_SignFinal(EVP_MD_CTX *ctx1, SM9PrivateKey *sk)
 		ASN1_STRING_length(sk->privatePoint), bn_ctx)) {
 		SM9err(SM9_F_SM9_SIGNFINAL, SM9_R_INVALID_PRIVATE_POINT);
 		goto end;
-	}	
+	}
 	/* S = l * sk */
 	len = sizeof(buf);
 	if (!EC_POINT_mul(group, S, NULL, S, r, bn_ctx)
@@ -335,8 +335,8 @@ int SM9_VerifyFinal(EVP_MD_CTX *ctx1, const SM9Signature *sig, SM9PublicKey *pk)
 	if (BN_cmp(h, sig->h) != 0) {
 		SM9err(SM9_F_SM9_VERIFYFINAL, SM9_R_VERIFY_FAILURE);
 		ret = 0;
+		goto end;
 	}
-
 
 	ret = 1;
 
@@ -352,8 +352,8 @@ end:
 	if (bn_ctx) {
 		BN_CTX_end(bn_ctx);
 	}
-	BN_CTX_free(bn_ctx);		
-	return ret;	
+	BN_CTX_free(bn_ctx);
+	return ret;
 }
 
 int SM9_sign(int type, /* NID_[sm3 | sha256] */
@@ -393,7 +393,7 @@ int SM9_sign(int type, /* NID_[sm3 | sha256] */
 	*siglen = len;
 	ret = 1;
 
-end:	
+end:
 	EVP_MD_CTX_free(ctx);
 	SM9Signature_free(sm9sig);
 	return ret;

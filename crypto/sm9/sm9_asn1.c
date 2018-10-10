@@ -116,3 +116,55 @@ int SM9PublicKey_gmtls_encode(SM9PublicKey *pk, unsigned char key[1024])
 {
 	return 0;
 }
+
+#ifndef OPENSSL_NO_STDIO
+SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **msk)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(SM9MasterSecret), fp, msk);
+}
+
+int i2d_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret *msk)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM9MasterSecret), fp, msk);
+}
+
+SM9PublicParameters *d2i_SM9PublicParameters_fp(FILE *fp, SM9PublicParameters **mpk)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(SM9PublicParameters), fp, mpk);
+}
+
+int i2d_SM9PublicParameters_fp(FILE *fp, SM9PublicParameters *mpk)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM9PublicParameters), fp, mpk);
+}
+
+SM9PrivateKey *d2i_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey **sk)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(SM9PrivateKey), fp, sk);
+}
+
+int i2d_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey *sk)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM9PrivateKey), fp, sk);
+}
+
+SM9Signature *d2i_SM9Signature_fp(FILE *fp, SM9Signature **sig)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(SM9Signature), fp, sig);
+}
+
+int i2d_SM9Signature_fp(FILE *fp, SM9Signature *sig)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM9Signature), fp, sig);
+}
+
+SM9Ciphertext *d2i_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext **c)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(SM9Ciphertext), fp, c);
+}
+
+int i2d_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext *c)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM9Ciphertext), fp, c);
+}
+#endif

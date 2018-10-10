@@ -122,6 +122,9 @@
 #ifndef OPENSSL_NO_SMS4
 # include <openssl/sms4.h>
 #endif
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
+#endif
 #include <openssl/modes.h>
 
 #ifndef HAVE_FORK
@@ -150,6 +153,7 @@
 
 #define EC_NUM          17
 #define SM2_NUM         1
+#define SM9_NUM	        1
 #define MAX_ECDH_SIZE   256
 #define MISALIGN        64
 
@@ -191,6 +195,10 @@ typedef struct loopargs_st {
     unsigned char *sm2dh_a;
     unsigned char *sm2dh_b;
 # endif
+#endif
+#ifndef OPENSSL_NO_SM9
+    SM9PublicParameters *sm9mpk[SM9_NUM];
+    SM9PrivateKey *sm9sk[SM9_NUM];
 #endif
     EVP_CIPHER_CTX *ctx;
     HMAC_CTX *hctx;
@@ -261,6 +269,12 @@ static int SM2_verify_loop(void *args);
 static int SM2_encrypt_loop(void *args);
 static int SM2_decrypt_loop(void *args);
 #endif
+#ifndef OPENSSL_NO_SM9
+static int SM9_sign_loop(void *args);
+static int SM9_verify_loop(void *args);
+static int SM9_encrypt_loop(void *args);
+static int SM9_decrypt_loop(void *args);
+#endif
 static int run_benchmark(int async_jobs, int (*loop_function)(void *), loopargs_t *loopargs);
 
 static double Time_F(int s);
@@ -302,6 +316,10 @@ static double ecdh_results[EC_NUM][1];
 #ifndef OPENSSL_NO_SM2
 static double sm2sign_results[SM2_NUM][2];
 static double sm2enc_results[SM2_NUM][2];
+#endif
+#ifndef OPENSSL_NO_SM9
+static double sm9sign_results[SM9_NUM][2];
+static double sm9enc_results[SM9_NUM][2];
 #endif
 
 #if !defined(OPENSSL_NO_DSA) || !defined(OPENSSL_NO_EC)
@@ -641,6 +659,19 @@ static OPT_PAIR sm2sign_choices[] = {
 
 static OPT_PAIR sm2enc_choices[] = {
     {"sm2enc", R_SM2_P256},
+    {NULL}
+};
+#endif
+
+#define R_SM9_BN256  0
+#ifndef OPENSSL_NO_SM9
+static OPT_PAIR sm9sign_choices[] = {
+    {"sm9sign", R_SM9_BN256},
+    {NULL}
+};
+
+static OPT_PAIR sm9enc_choices[] = {
+    {"sm9enc", R_SM9_BN256},
     {NULL}
 };
 #endif
@@ -1076,6 +1107,31 @@ static int DSA_verify_loop(void *args)
         }
     }
     return count;
+}
+#endif
+
+#ifndef OPENSSL_NO_SM9
+static long sm9sign_c[SM9_NUM][2];
+
+static int SM9_sign_loop(void *args)
+{
+    return 1;
+}
+
+static int SM9_verify_loop(void *args)
+{
+    return 1;
+}
+
+static long sm9enc_c[SM9_NUM][2];
+static int SM9_encrypt_loop(void *args)
+{
+	return 1;
+}
+
+static int SM9_decrypt_loop(void *args)
+{
+	return 1;
 }
 #endif
 
@@ -1560,6 +1616,21 @@ int speed_main(int argc, char **argv)
     int sm2sign_doit[SM2_NUM] = { 0 };
     int sm2enc_doit[SM2_NUM] = { 0 };
 #endif
+#ifndef OPENSSL_NO_SM9
+
+//do we need this ?			
+    static const unsigned int test_sm9_curves[SM9_NUM] = {
+        NID_sm9bn256v1,
+    };
+    static const char *test_sm9_curves_names[SM9_NUM] = {
+        "sm9bn256v1",
+    };
+    static const int test_sm9_curves_bits[SM9_NUM] = {
+        256,
+    };
+    int sm9sign_doit[SM9_NUM] = { 0 };
+    int sm9enc_doit[SM9_NUM] = { 0 };
+#endif
 
     prog = opt_init(argc, argv, speed_options);
     while ((o = opt_next()) != OPT_EOF) {
@@ -1751,6 +1822,31 @@ int speed_main(int argc, char **argv)
             continue;
         }
 #endif
+#ifndef OPENSSL_NO_SM9
+        if (strcmp(*argv, "sm9") == 0) {
+            for (i = 0; i < SM9_NUM; i++)
+                sm9sign_doit[i] = sm9enc_doit[i] = 1;
+            continue;
+        }
+        if (strcmp(*argv, "sm9sign") == 0) {
+            for (i = 0; i < SM9_NUM; i++)
+                sm9sign_doit[i] = 1;
+            continue;
+        }
+        if (found(*argv, sm9sign_choices, &i)) {
+            sm9sign_doit[i] = 2;
+            continue;
+        }
+        if (strcmp(*argv, "sm9encrypt") == 0) {
+            for (i = 0; i < SM9_NUM; i++)
+                sm9enc_doit[i] = 1;
+            continue;
+        }
+        if (found(*argv, sm9enc_choices, &i)) {
+            sm9enc_doit[i] = 2;
+            continue;
+        }
+#endif
         BIO_printf(bio_err, "%s: Unknown algorithm %s\n", prog, *argv);
         goto end;
     }
@@ -1826,6 +1922,12 @@ int speed_main(int argc, char **argv)
             sm2sign_doit[i] = 1;
         for (i = 0; i < SM2_NUM; i++)
             sm2enc_doit[i] = 1;
+#endif
+#ifndef OPENSSL_NO_SM9
+        for (i = 0; i < SM9_NUM; i++)
+            sm9sign_doit[i] = 1;
+        for (i = 0; i < SM9_NUM; i++)
+            sm9enc_doit[i] = 1;
 #endif
     }
     for (i = 0; i < ALGOR_NUM; i++)
@@ -2026,6 +2128,14 @@ int speed_main(int argc, char **argv)
     sm2enc_c[R_SM2_P256][0] = count / 1000 / 8;
     sm2enc_c[R_SM2_P256][1] = count / 1000 / 8;
 #  endif
+
+#  ifndef OPENSSL_NO_SM9
+    sm9sign_c[R_SM9_BN256][0] = count / 1000 / 8;
+    sm9sign_c[R_SM9_BN256][1] = count / 1000 / 8 / 2;
+    sm9enc_c[R_SM9_BN256][0] = count / 1000 / 8;
+    sm9enc_c[R_SM9_BN256][1] = count / 1000 / 8;
+#  endif
+
 #  ifndef OPENSSL_NO_EC
     ecdsa_c[R_EC_P160][0] = count / 1000;
     ecdsa_c[R_EC_P160][1] = count / 1000 / 2;
@@ -3112,6 +3222,11 @@ int speed_main(int argc, char **argv)
     }
 
 #endif /* OPENSSL_NO_SM2 */
+#ifndef OPENSSL_NO_SM9
+
+//FIXME: this is the core code, 
+
+#endif /* OPENSSL_NO_SM9 */
 #ifndef NO_FORK
  show_res:
 #endif
@@ -3297,6 +3412,50 @@ int speed_main(int argc, char **argv)
     }
 
 #endif
+#ifndef OPENSSL_NO_SM9
+    testnum = 1;
+    for (k = 0; k < SM9_NUM; k++) {
+        if (!sm9sign_doit[k])
+            continue;
+        if (testnum && !mr) {
+            printf("%30ssign    verify    sign/s verify/s\n", " ");
+            testnum = 0;
+        }
+
+        if (mr)
+            printf("+F6:%u:%u:%f:%f\n",
+                   k, test_sm9_curves_bits[k],
+                   sm9sign_results[k][0], sm9sign_results[k][1]);
+        else
+            printf("%4u bit sm9 (%s) %8.4fs %8.4fs %8.1f %8.1f\n",
+                   test_sm9_curves_bits[k],
+                   test_sm9_curves_names[k],
+                   sm9sign_results[k][0], sm9sign_results[k][1],
+                   1.0 / sm9sign_results[k][0], 1.0 / sm9sign_results[k][1]);
+    }
+
+    testnum = 1;
+    for (k = 0; k < SM9_NUM; k++) {
+        if (!sm9enc_doit[k])
+            continue;
+        if (testnum && !mr) {
+            printf("%30sencrypt decrypt   enc/s  dec/s\n", " ");
+            testnum = 0;
+        }
+
+        if (mr)
+            printf("+F6:%u:%u:%f:%f\n",
+                   k, test_sm9_curves_bits[k],
+                   sm9enc_results[k][0], sm9enc_results[k][1]);
+        else
+            printf("%4u bit sm9 (%s) %8.4fs %8.4fs %8.1f %8.1f\n",
+                   test_sm9_curves_bits[k],
+                   test_sm9_curves_names[k],
+                   sm9enc_results[k][0], sm9enc_results[k][1],
+                   1.0 / sm9enc_results[k][0], 1.0 / sm9enc_results[k][1]);
+    }
+
+#endif
 
     ret = 0;
 
@@ -3331,6 +3490,12 @@ int speed_main(int argc, char **argv)
         OPENSSL_free(loopargs[i].sm2dh_a);
         OPENSSL_free(loopargs[i].sm2dh_b);
 # endif
+#endif
+#ifndef OPENSSL_NO_SM9
+        for (k = 0; k < SM9_NUM; k++) {
+            SM9PublicParameters_free(loopargs[i].sm9mpk[k]);
+            SM9PrivateKey_free(loopargs[i].sm9sk[k]);
+        }
 #endif
     }
 
@@ -3606,6 +3771,51 @@ static int do_multi(int multi)
                         1 / (1 / sm2enc_results[k][1] + 1 / d);
                 else
                     sm2enc_results[k][1] = d;
+            }
+# endif
+# ifndef OPENSSL_NO_SM9
+            else if (strncmp(buf, "+F6:", 4) == 0) {
+                int k;
+                double d;
+
+                p = buf + 4;
+                k = atoi(sstrsep(&p, sep));
+                sstrsep(&p, sep);
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm9sign_results[k][0] =
+                        1 / (1 / sm9sign_results[k][0] + 1 / d);
+                else
+                    sm9sign_results[k][0] = d;
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm9sign_results[k][1] =
+                        1 / (1 / sm9sign_results[k][1] + 1 / d);
+                else
+                    sm9sign_results[k][1] = d;
+            } else if (strncmp(buf, "+F7:", 4) == 0) {
+                int k;
+                double d;
+
+                p = buf + 4;
+                k = atoi(sstrsep(&p, sep));
+                sstrsep(&p, sep);
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm9enc_results[k][0] =
+                        1 / (1 / sm9enc_results[k][0] + 1 / d);
+                else
+                    sm9enc_results[k][0] = d;
+
+                d = atof(sstrsep(&p, sep));
+                if (n)
+                    sm9enc_results[k][1] =
+                        1 / (1 / sm9enc_results[k][1] + 1 / d);
+                else
+                    sm9enc_results[k][1] = d;
             }
 # endif
             else if (strncmp(buf, "+H:", 3) == 0) {

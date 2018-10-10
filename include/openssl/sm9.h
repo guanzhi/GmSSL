@@ -146,6 +146,33 @@ int SM9_decrypt(int type,
 	unsigned char *out, size_t *outlen,
 	SM9PrivateKey *sk);
 
+int SM9_generate_key_exchange(unsigned char *R, size_t *Rlen, /* R = r * Q_ID */
+	BIGNUM *r, unsigned char *gr, size_t *grlen, /* gr = e(Ppube, P2)^r */
+	const char *peer_id, size_t peer_idlen, /* peer's identity */
+	SM9PrivateKey *sk, int initiator);
+
+int SM9_compute_share_key(unsigned char *key, size_t keylen, /* generated shared key */
+	unsigned char *peer_mac, size_t *peer_maclen, /* to be compared with recved peer's mac */
+	unsigned char *mac, size_t *maclen, int compute_mac, /* send to peer */
+	const unsigned char *peer_R, size_t peer_Rlen, /* recved from peer */
+	const unsigned char *R, size_t Rlen, /* from generate_key_exchange */
+	const BIGNUM *r, /* from generate_key_exchange */
+	const char *peer_id, size_t peer_idlen,
+	SM9PrivateKey *sk, int initiator);
+
+#ifndef OPENSSL_NO_STDIO
+SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **msk);
+SM9PublicParameters *d2i_SM9PublicParameters_fp(FILE *fp, SM9PublicParameters **mpk);
+SM9PrivateKey *d2i_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey **sk);
+SM9Signature *d2i_SM9Signature_fp(FILE *fp, SM9Signature **sk);
+SM9Ciphertext *d2i_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext **sk);
+int i2d_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret *msk);
+int i2d_SM9PublicParameters_fp(FILE *fp, SM9PublicParameters *mpk);
+int i2d_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey *sk);
+int i2d_SM9Signature_fp(FILE *fp, SM9Signature *sk);
+int i2d_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext *sk);
+#endif
+
 DECLARE_ASN1_FUNCTIONS(SM9MasterSecret)
 DECLARE_ASN1_FUNCTIONS(SM9PublicParameters)
 DECLARE_ASN1_FUNCTIONS(SM9PrivateKey)
@@ -177,6 +204,7 @@ int ERR_load_SM9_strings(void);
 # define SM9_F_SM9_ENCRYPT                                109
 # define SM9_F_SM9_EXTRACT_PRIVATE_KEY                    110
 # define SM9_F_SM9_EXTRACT_PUBLIC_PARAMETERS              111
+# define SM9_F_SM9_GENERATE_KEY_EXCHANGE                  121
 # define SM9_F_SM9_GENERATE_MASTER_SECRET                 112
 # define SM9_F_SM9_SIGN                                   119
 # define SM9_F_SM9_SIGNFINAL                              115

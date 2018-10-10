@@ -392,8 +392,8 @@ int SM9_encrypt(int type,
 		key[i] ^= in[i];
 	}
 
-	/* C3 = MAC(K2, C2) */
-	if (!HMAC(md, key + inlen, EVP_MD_size(md), key, inlen, mac, &maclen)) {
+	/* C3 = Hv(C2||K2) */
+	if (!EVP_Digest(key, keylen, mac, &maclen, md, NULL)) {
 		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -489,8 +489,9 @@ int SM9_decrypt(int type,
 	}
 	*outlen = C2_len;
 
-	/* check C3 == MAC(K2, C2) */
-	if (!HMAC(md, key + C2_len, EVP_MD_size(md), key, C2_len, mac, &maclen)) {
+	/* C3 = Hv(C2||K2) */
+	memcpy(key, C2, C2_len);
+	if (!EVP_Digest(key, keylen, mac, &maclen, md, NULL)) {
 		SM9err(SM9_F_SM9_DECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
