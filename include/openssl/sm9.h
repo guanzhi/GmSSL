@@ -146,19 +146,34 @@ int SM9_decrypt(int type,
 	unsigned char *out, size_t *outlen,
 	SM9PrivateKey *sk);
 
+/* the key agreement API might be changed */
 int SM9_generate_key_exchange(unsigned char *R, size_t *Rlen, /* R = r * Q_ID */
 	BIGNUM *r, unsigned char *gr, size_t *grlen, /* gr = e(Ppube, P2)^r */
 	const char *peer_id, size_t peer_idlen, /* peer's identity */
 	SM9PrivateKey *sk, int initiator);
 
-int SM9_compute_share_key(unsigned char *key, size_t keylen, /* generated shared key */
-	unsigned char *peer_mac, size_t *peer_maclen, /* to be compared with recved peer's mac */
-	unsigned char *mac, size_t *maclen, int compute_mac, /* send to peer */
-	const unsigned char *peer_R, size_t peer_Rlen, /* recved from peer */
-	const unsigned char *R, size_t Rlen, /* from generate_key_exchange */
-	const BIGNUM *r, /* from generate_key_exchange */
-	const char *peer_id, size_t peer_idlen,
-	SM9PrivateKey *sk, int initiator);
+int SM9_compute_share_key_A(int type,
+	unsigned char *SKA, size_t SKAlen,
+	unsigned char SA[32], /* optional, send to B */
+	const unsigned char SB[32], /* optional, recv from B */
+	const BIGNUM *rA,
+	const unsigned char RA[65],
+	const unsigned char RB[65],
+	const unsigned char g1[384],
+	const char *IDB, size_t IDBlen,
+	SM9PrivateKey *skA);
+
+int SM9_compute_share_key_B(int type,
+	unsigned char *SKB, size_t SKBlen,
+	unsigned char SB[32], /* optional, send to A */
+	unsigned char S2[32], /* optional, to be compared with recved SA */
+	const BIGNUM *rB,
+	const unsigned char RB[65],
+	const unsigned char RA[65],
+	const unsigned char g2[384],
+	const char *IDA, size_t IDAlen,
+	SM9PrivateKey *skB);
+
 
 #ifndef OPENSSL_NO_STDIO
 SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **msk);
@@ -198,6 +213,8 @@ int ERR_load_SM9_strings(void);
 # define SM9_F_SM9ENCPARAMETERS_GENERATE_MAC              103
 # define SM9_F_SM9ENCPARAMETERS_GET_KEY_LENGTH            104
 # define SM9_F_SM9PUBLICPARAMETERS_GET_POINT_SIZE         105
+# define SM9_F_SM9_COMPUTE_SHARE_KEY_A                    122
+# define SM9_F_SM9_COMPUTE_SHARE_KEY_B                    123
 # define SM9_F_SM9_DECRYPT                                106
 # define SM9_F_SM9_DO_DECRYPT                             107
 # define SM9_F_SM9_DO_ENCRYPT                             108
@@ -231,6 +248,7 @@ int ERR_load_SM9_strings(void);
 # define SM9_R_INVALID_ID_LENGTH                          108
 # define SM9_R_INVALID_INPUT                              109
 # define SM9_R_INVALID_KEM_KEY_LENGTH                     128
+# define SM9_R_INVALID_KEY_AGREEMENT_CHECKSUM             131
 # define SM9_R_INVALID_KEY_LENGTH                         110
 # define SM9_R_INVALID_MD                                 111
 # define SM9_R_INVALID_PAIRING_TYPE                       112

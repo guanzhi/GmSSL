@@ -464,11 +464,6 @@ int SM9_decrypt(int type,
 	C2 = ASN1_STRING_get0_data(sm9cipher->c2);
 	C2_len = ASN1_STRING_length(sm9cipher->c2);
 
-	/* check mac length */
-	if (ASN1_STRING_length(sm9cipher->c3) != EVP_MD_size(md)) {
-		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
-		goto end;
-	}
 
 	/* unwrap key */
 	keylen = C2_len + EVP_MD_size(md);
@@ -488,6 +483,12 @@ int SM9_decrypt(int type,
 		out[i] = C2[i] ^ key[i];
 	}
 	*outlen = C2_len;
+
+	/* check mac length */
+	if (ASN1_STRING_length(sm9cipher->c3) != EVP_MD_size(md)) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
+		goto end;
+	}
 
 	/* C3 = Hv(C2||K2) */
 	memcpy(key, C2, C2_len);
