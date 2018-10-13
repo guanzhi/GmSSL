@@ -74,7 +74,7 @@ int SM9_generate_key_exchange(unsigned char *R, size_t *Rlen,
 	BN_CTX *bn_ctx = NULL;
 	BIGNUM *h = NULL;
 	const EVP_MD *md;
-	int point_form = POINT_CONVERSION_COMPRESSED;
+	int point_form = POINT_CONVERSION_UNCOMPRESSED;
 	const BIGNUM *p = SM9_get0_prime();
 	const BIGNUM *n = SM9_get0_order();
 	fp12_t g;
@@ -155,12 +155,12 @@ end:
 	EC_GROUP_free(group);
 	EC_POINT_free(Ppube);
 	EC_POINT_free(Q);
+	BN_free(h);
+	fp12_cleanup(g);
 	if (bn_ctx) {
 		BN_CTX_end(bn_ctx);
 	}
 	BN_CTX_free(bn_ctx);
-	BN_free(h);
-	fp12_cleanup(g);
 	return ret;
 }
 
@@ -192,6 +192,17 @@ int SM9_compute_share_key_A(int type,
 	unsigned char counter[4] = {0, 0, 0, 1};
 	unsigned char dgst[EVP_MAX_MD_SIZE];
 	unsigned int dgstlen;
+
+	switch (type) {
+	case NID_sm9kdf_with_sm3:
+		md = EVP_sm3();
+		break;
+	case NID_sm9kdf_with_sha256:
+		md = EVP_sha256();
+		break;
+	default:
+		goto end;
+	}
 
 	/* get IDA */
 	IDA = ASN1_STRING_get0_data(skA->identity);
@@ -232,7 +243,7 @@ int SM9_compute_share_key_A(int type,
 	}
 
 	/* g3' = (g2')^r_A */
-	if (!fp12_pow(g, g, rA, p, bn_ctx) || fp12_to_bin(g, buf + 384)) {
+	if (!fp12_pow(g, g, rA, p, bn_ctx) || !fp12_to_bin(g, buf + 384)) {
 		SM9err(SM9_F_SM9_COMPUTE_SHARE_KEY_A, ERR_R_SM9_LIB);
 		goto end;
 	}
@@ -284,6 +295,7 @@ int SM9_compute_share_key_A(int type,
 			|| !EVP_DigestUpdate(md_ctx, RB + 1, 64)
 			|| !EVP_DigestUpdate(md_ctx, g1, 384)
 			|| !EVP_DigestUpdate(md_ctx, buf, sizeof(buf))
+			|| !EVP_DigestUpdate(md_ctx, counter, 4)
 			|| !EVP_DigestFinal_ex(md_ctx, key, &len)) {
 			SM9err(SM9_F_SM9_COMPUTE_SHARE_KEY_A, ERR_R_EVP_LIB);
 			goto end;
@@ -355,6 +367,17 @@ int SM9_compute_share_key_B(int type,
 	unsigned char key[EVP_MAX_MD_SIZE];
 	unsigned int len;
 
+	switch (type) {
+	case NID_sm9kdf_with_sm3:
+		md = EVP_sm3();
+		break;
+	case NID_sm9kdf_with_sha256:
+		md = EVP_sha256();
+		break;
+	default:
+		goto end;
+	}
+
 	/* get IDB */
 	IDB = ASN1_STRING_get0_data(skB->identity);
 	IDBlen = ASN1_STRING_length(skB->identity);
@@ -394,7 +417,7 @@ int SM9_compute_share_key_B(int type,
 	}
 
 	/* g3 = (g1)^r_B */
-	if (!fp12_pow(g, g, rB, p, bn_ctx) || fp12_to_bin(g, g3)) {
+	if (!fp12_pow(g, g, rB, p, bn_ctx) || !fp12_to_bin(g, g3)) {
 		SM9err(SM9_F_SM9_COMPUTE_SHARE_KEY_B, ERR_R_SM9_LIB);
 		goto end;
 	}
@@ -409,6 +432,7 @@ int SM9_compute_share_key_B(int type,
 			|| !EVP_DigestUpdate(md_ctx, g1, 384)
 			|| !EVP_DigestUpdate(md_ctx, g2, 384)
 			|| !EVP_DigestUpdate(md_ctx, g3, 384)
+			|| !EVP_DigestUpdate(md_ctx, counter, 4)
 			|| !EVP_DigestFinal_ex(md_ctx, key, &len)) {
 			SM9err(SM9_F_SM9_COMPUTE_SHARE_KEY_B, ERR_R_EVP_LIB);
 			goto end;

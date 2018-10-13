@@ -62,13 +62,6 @@
 #define SM9_MAX_ID_BITS		65535
 #define SM9_MAX_ID_LENGTH	(SM9_MAX_ID_BITS/8)
 
-/* private key extract algorithms */
-#define SM9_HID_SIGN		0x01
-#define SM9_HID_EXCH		0x02
-#define SM9_HID_ENC		0x03
-
-#define SM9_HASH1		0x01
-#define SM9_HASH2		0x02
 
 #ifdef __cplusplus
 extern "C" {

@@ -133,7 +133,7 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 			|| !point_mul_generator(&Ppubs, msk->masterSecret, p, ctx)
 			|| !point_to_octets(&Ppubs, buf, ctx)) {
 			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, SM9_R_TWIST_CURVE_ERROR);
-			point_cleanup(&Ppubs);	
+			point_cleanup(&Ppubs);
 			goto end;
 		}
 

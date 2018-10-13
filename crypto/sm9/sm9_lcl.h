@@ -53,6 +53,15 @@
 #include <openssl/err.h>
 #include <openssl/sm9.h>
 
+/* private key extract algorithms */
+#define SM9_HID_SIGN		0x01
+#define SM9_HID_EXCH		0x02
+#define SM9_HID_ENC		0x03
+
+#define SM9_HASH1		0x01
+#define SM9_HASH2		0x02
+
+
 /* Curve ID */
 /* non-supersingular curve over Fp */
 #define SM9_CID_TYPE0CURVE	0x10

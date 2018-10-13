@@ -123,14 +123,64 @@ static int sm9test_wrap(const char *id)
 	if (memcmp(key, key2, sizeof(key2)) != 0) {
 		goto end;
 	}
-	
+
 	ret = 1;
 end:
 	SM9PublicParameters_free(mpk);
 	SM9MasterSecret_free(msk);
 	SM9PrivateKey_free(sk);
 	return ret;
-	
+
+}
+
+static int sm9test_exch(const char *idA, const char *idB)
+{
+	int ret = 0;
+	SM9PublicParameters *mpk = NULL;
+	SM9MasterSecret *msk = NULL;
+	SM9PrivateKey *skA = NULL;
+	SM9PrivateKey *skB = NULL;
+	BIGNUM *rA = BN_new();
+	BIGNUM *rB = BN_new();
+	unsigned char RA[65];
+	unsigned char RB[65];
+	unsigned char gA[384];
+	unsigned char gB[384];
+	size_t RAlen = sizeof(RA);
+	size_t RBlen = sizeof(RB);
+	size_t gAlen = sizeof(gA);
+	size_t gBlen = sizeof(gB);
+	int type = NID_sm9kdf_with_sm3;
+	unsigned char SKA[16];
+	unsigned char SKB[16];
+	unsigned char SA[32];
+	unsigned char SB[32];
+	unsigned char S2[32];
+
+	if (!SM9_setup(NID_sm9bn256v1, NID_sm9keyagreement, NID_sm9hash1_with_sm3, &mpk, &msk)
+		|| !(skA = SM9_extract_private_key(msk, idA, strlen(idA)))
+		|| !(skB = SM9_extract_private_key(msk, idB, strlen(idB)))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	if (!SM9_generate_key_exchange(RA, &RAlen, rA, gA, &gAlen, idB, strlen(idB), skA, 1)
+		|| !SM9_generate_key_exchange(RB, &RBlen, rB, gB, &gBlen, idA, strlen(idA), skB, 0)
+		|| !SM9_compute_share_key_B(type, SKB, sizeof(SKB), SB, S2, rB, RB, RA, gB, idA, strlen(idA), skB)
+		|| !SM9_compute_share_key_A(type, SKA, sizeof(SKA), SA, SB, rA, RA, RB, gA, idB, strlen(idB), skA)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	if (memcmp(SKA, SKA, sizeof(SKA)) != 0 || memcmp(SA, S2, sizeof(SA)) != 0) {
+		goto end;
+	}
+
+	ret = 1;
+end:
+	BN_free(rA);
+	BN_free(rB);
+	return ret;
 }
 
 static int sm9test_enc(const char *id, const unsigned char *data, size_t datalen)
@@ -184,7 +234,13 @@ int main(int argc, char **argv)
 		err++;
 	}
 	printf("sm9 sign tests passed\n");
-	
+
+	if (!sm9test_exch(id, "guan@pku.edu.cn")) {
+		printf("sm9 exch tests failed\n");
+		err++;
+	}
+	printf("sm9 exch tests passed\n");
+
 	if (!sm9test_wrap(id)) {
 		printf("sm9 key wrap tests failed\n");
 		err++;

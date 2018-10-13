@@ -101,7 +101,7 @@ int SM9_hash1(const EVP_MD *md, BIGNUM **r, const char *id, size_t idlen,
 	}
 
 	if (!EVP_DigestInit_ex(ctx1, md, NULL)
-		|| !EVP_DigestUpdate(ctx1, prefix, sizeof(prefix))	
+		|| !EVP_DigestUpdate(ctx1, prefix, sizeof(prefix))
 		|| !EVP_DigestUpdate(ctx1, id, idlen)
 		|| !EVP_DigestUpdate(ctx1, &hid, 1)
 		|| !EVP_MD_CTX_copy(ctx2, ctx1)
@@ -249,10 +249,9 @@ SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
 		EC_GROUP_free(group);
 		EC_POINT_free(ds);
 
-	} else if (scheme == NID_sm9encrypt) {
-
+	} else {
 		point_t de;
-		
+
 		/* de = t2 * P2 */
 		if (!point_init(&de, ctx)
 			|| !point_mul_generator(&de, t, p, ctx)
@@ -262,6 +261,7 @@ SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
 		}
 
 		point_cleanup(&de);
+
 	}
 
 	ASN1_OBJECT_free(sk->pairing);
