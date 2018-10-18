@@ -80,6 +80,7 @@ CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id,
 	BIGNUM *bn = NULL;
 	BIGNUM *order = NULL;
 	X509_PUBKEY *pubkey = NULL;
+	const X509_ALGOR *pkey_algor;
 	int pkey_type;
 	int i, bn_size, num_factors;
 	unsigned char *bn_ptr;
@@ -132,16 +133,13 @@ CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id,
 		CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, ERR_R_X509_LIB);
 		goto err;
 	}
+
+	X509_PUBKEY_get0_param(NULL, NULL, NULL, &pkey_algor, pubkey);
 	X509_ALGOR_free(master->pkey_algor);
-
-	X509_ALGOR_set0(master->pkey_algor, OBJ_nid2obj(EVP_PKEY_id(pkey)), 0, NULL);
-
-	/*
-	if (!(master->pkey_algor = X509_ALGOR_dup(pubkey->algor))) {
+	if (!(master->pkey_algor = X509_ALGOR_dup(pkey_algor))) {
 		CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, ERR_R_X509_LIB);
 		goto err;
 	}
-	*/
 
 	//FIXME: check the validity of CPK_MAP
 	X509_ALGOR_free(master->map_algor);
@@ -202,6 +200,9 @@ CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *ma
 {
 	CPK_PUBLIC_PARAMS *param = NULL;
 	int pkey_type;
+
+	OPENSSL_assert(master->pkey_algor->algorithm);
+
 	pkey_type = OBJ_obj2nid(master->pkey_algor->algorithm);
 
 
@@ -233,6 +234,7 @@ CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *ma
 			ERR_R_MALLOC_FAILURE);
 		goto err;
 	}
+
 
 	switch (pkey_type) {
 	case EVP_PKEY_EC:
