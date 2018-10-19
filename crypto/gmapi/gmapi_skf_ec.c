@@ -360,8 +360,8 @@ ECDSA_SIG *ECDSA_SIG_new_from_ECCSIGNATUREBLOB(const ECCSIGNATUREBLOB *blob)
 
 int ECDSA_SIG_set_ECCSIGNATUREBLOB(ECDSA_SIG *sig, const ECCSIGNATUREBLOB *blob)
 {
-	OPENSSL_assert(sig->r);
-	OPENSSL_assert(sig->s);
+//	OPENSSL_assert(sig->r);
+//	OPENSSL_assert(sig->s);
 
 	if (!(sig->r = BN_bin2bn(blob->r, sizeof(blob->r), sig->r))) {
 		GMAPIerr(GMAPI_F_ECDSA_SIG_SET_ECCSIGNATUREBLOB, ERR_R_BN_LIB);
