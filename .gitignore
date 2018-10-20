@@ -183,21 +183,30 @@ Makefile.save
 cscope.*
 *.d
 
+# macOS
+.DS_Store
+*.tar.gz
+
 # add by LiTianjue for GmSSL
 # auto create by Configure
 crypto/opensslconf.h
 tool/c_rehash
 # exec file
 apps/gmssl
+apps/gmca/.ca
 
 # gmtls
 /ssl/ssl_load.c
+
+# demos
+/demos/kdf
 
 # engines
 /engines/e_skf*
 /engines/e_sdf*
 /engines/e_gmi*
 /engines/sdf
+/engines/skf
 
 # apps
 /apps/sm2.c
@@ -207,5 +216,3 @@ apps/gmssl
 include/openssl/srp.h
 
 /*.sh
-
-
