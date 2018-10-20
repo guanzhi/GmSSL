@@ -14,9 +14,10 @@
 /tmp.*
 /configdata.pm
 /build
+/Makefile
 
 # *all* Makefiles
-Makefile
+#Makefile
 *.tmp
 
 # Java
@@ -200,6 +201,7 @@ apps/gmca/.ca
 
 # demos
 /demos/kdf
+/demos/ssl
 
 # engines
 /engines/e_skf*
