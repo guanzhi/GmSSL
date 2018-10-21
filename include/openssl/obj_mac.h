@@ -5181,17 +5181,25 @@
 #define NID_cpk_map             1151
 #define OBJ_cpk_map             OBJ_cpk,1L
 
-#define SN_cpk_sha1_map         "cpk-sha1-map"
-#define NID_cpk_sha1_map                1152
-#define OBJ_cpk_sha1_map                OBJ_cpk_map,1L
+#define SN_cpk_map_sha1         "cpk-map-sha1"
+#define NID_cpk_map_sha1                1218
+#define OBJ_cpk_map_sha1                OBJ_cpk_map,1L
 
-#define SN_cpk_sha256_map               "cpk-sha256-map"
-#define NID_cpk_sha256_map              1153
-#define OBJ_cpk_sha256_map              OBJ_cpk_map,2L
+#define SN_cpk_map_sha256               "cpk-map-sha256"
+#define NID_cpk_map_sha256              1219
+#define OBJ_cpk_map_sha256              OBJ_cpk_map,2L
 
-#define SN_cpk_sm3_map          "cpk-sm3-map"
-#define NID_cpk_sm3_map         1154
-#define OBJ_cpk_sm3_map         OBJ_cpk_map,3L
+#define SN_cpk_map_sm3          "cpk-map-sm3"
+#define NID_cpk_map_sm3         1220
+#define OBJ_cpk_map_sm3         OBJ_cpk_map,3L
+
+#define SN_cpk_map_sha384               "cpk-map-sha384"
+#define NID_cpk_map_sha384              1221
+#define OBJ_cpk_map_sha384              OBJ_cpk_map,4L
+
+#define SN_cpk_map_sha512               "cpk-map-sha512"
+#define NID_cpk_map_sha512              1222
+#define OBJ_cpk_map_sha512              OBJ_cpk_map,5L
 
 #define SN_paillier             "paillier"
 #define NID_paillier            1148

@@ -68,37 +68,19 @@ extern "C" {
 
 #define CPK_MAX_ID_LENGTH	64
 
-
-X509_ALGOR *CPK_MAP_new_default(void);
-int CPK_MAP_is_valid(const X509_ALGOR *algor);
-int CPK_MAP_num_factors(const X509_ALGOR *algor);
-int CPK_MAP_num_indexes(const X509_ALGOR *algor);
-int CPK_MAP_str2index(const X509_ALGOR *algor, const char *str, int *index);
-
-
 typedef struct cpk_master_secret_st CPK_MASTER_SECRET;
 DECLARE_ASN1_FUNCTIONS(CPK_MASTER_SECRET)
 
 typedef struct cpk_public_params_st CPK_PUBLIC_PARAMS;
 DECLARE_ASN1_FUNCTIONS(CPK_PUBLIC_PARAMS)
 
-//CPK_MASTER_SECERT *CPK_MASTER_SECRET_new(const char *domain, const EC_GROUP *group, int map_algor);
-
-
-CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id, EVP_PKEY *pkey, X509_ALGOR *map_algor);
+CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id, int pkey_type, int map_algor);
 CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *master);
 EVP_PKEY *CPK_MASTER_SECRET_extract_private_key(CPK_MASTER_SECRET *master, const char *id);
 EVP_PKEY *CPK_PUBLIC_PARAMS_extract_public_key(CPK_PUBLIC_PARAMS *params, const char *id);
 
-
-int CPK_PUBLIC_PARAMS_compute_share_key(CPK_PUBLIC_PARAMS *params,
-	void *out, size_t outlen, const char *id, EVP_PKEY *priv_key,
-	void *(*kdf)(const void *in, size_t inlen, void *out, size_t *outlen));
-
 char *CPK_MASTER_SECRET_get_name(CPK_MASTER_SECRET *master, char *buf, int size);
 char *CPK_PUBLIC_PARAMS_get_name(CPK_PUBLIC_PARAMS *params, char *buf, int size);
-int CPK_MASTER_SECRET_digest(CPK_MASTER_SECRET *master, const EVP_MD *type, unsigned char *md, unsigned int *len);
-int CPK_PUBLIC_PARAMS_digest(CPK_PUBLIC_PARAMS *params, const EVP_MD *type, unsigned char *md, unsigned int *len);
 int CPK_MASTER_SECRET_print(BIO *out, CPK_MASTER_SECRET *master, int indent, unsigned long flags);
 int CPK_PUBLIC_PARAMS_print(BIO *out, CPK_PUBLIC_PARAMS *params, int indent, unsigned long flags);
 int CPK_MASTER_SECRET_validate_public_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *params);
@@ -121,19 +103,34 @@ int ERR_load_CPK_strings(void);
 /* Error codes for the CPK functions. */
 
 /* Function codes. */
+# define CPK_F_CPK_MAP_GET_MD                             116
+# define CPK_F_CPK_MAP_IS_VALID                           114
+# define CPK_F_CPK_MAP_NEW                                111
 # define CPK_F_CPK_MAP_NEW_DEFAULT                        100
+# define CPK_F_CPK_MAP_NUM_FACTORS                        112
+# define CPK_F_CPK_MAP_NUM_INDEXES                        113
+# define CPK_F_CPK_MAP_NUM_SUBSET                         115
 # define CPK_F_CPK_MAP_STR2INDEX                          101
 # define CPK_F_CPK_MASTER_SECRET_CREATE                   102
 # define CPK_F_CPK_MASTER_SECRET_EXTRACT_PRIVATE_KEY      103
 # define CPK_F_CPK_MASTER_SECRET_EXTRACT_PUBLIC_PARAMS    104
+# define CPK_F_CPK_MASTER_SECRET_PRINT                    109
+# define CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS   117
 # define CPK_F_CPK_PUBLIC_PARAMS_COMPUTE_SHARE_KEY        105
 # define CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY       106
+# define CPK_F_CPK_PUBLIC_PARAMS_PRINT                    110
 # define CPK_F_CPK_PUBLIC_PARAMS_VALIDATE_PRIVATE_KEY     107
+# define CPK_F_EXTRACT_EC_PARAMS                          118
+# define CPK_F_EXTRACT_EC_PRIV_KEY                        119
+# define CPK_F_EXTRACT_EC_PUB_KEY                         120
 # define CPK_F_X509_ALGOR_GET1_EC_KEY                     108
 
 /* Reason codes. */
 # define CPK_R_BAD_ARGUMENT                               100
+# define CPK_R_BAD_ARGUMENTS                              105
 # define CPK_R_BAD_DATA                                   101
+# define CPK_R_INVALID_ALGORITHM                          106
+# define CPK_R_INVALID_ARGUMENT                           107
 # define CPK_R_INVALID_ID_LENGTH                          102
 # define CPK_R_INVALID_MAP_ALGOR                          103
 # define CPK_R_INVALID_PKEY_TYPE                          104

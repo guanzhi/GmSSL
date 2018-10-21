@@ -1209,3 +1209,14 @@ sm9encrypt_with_sm3_sms4_ctr		1208
 sm9kdf		1209
 sm9kdf_with_sm3		1210
 sm9kdf_with_sha256		1211
+cpk_map32x32_sha1		1212
+cpk_map32x256_sha256		1213
+cpk_map32x256_sm3		1214
+cpk_map_with_sha1		1215
+cpk_map_with_sha256		1216
+cpk_map_with_sm3		1217
+cpk_map_sha1		1218
+cpk_map_sha256		1219
+cpk_map_sm3		1220
+cpk_map_sha384		1221
+cpk_map_sha512		1222

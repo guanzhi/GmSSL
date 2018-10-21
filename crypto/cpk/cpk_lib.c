@@ -62,30 +62,27 @@
 #include "../x509/x509_lcl.h"
 #include "cpk_lcl.h"
 
-#define ASN1_STRING_data(a) ((a)->data)
-
-
 static EC_KEY *X509_ALGOR_get1_EC_KEY(X509_ALGOR *algor);
 static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param);
 static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id);
 static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id);
 
 
-
-CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id,
-	EVP_PKEY *pkey, X509_ALGOR *map_algor)
+CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id, int pkey_nid, int map_nid)
 {
 	int e = 1;
 	CPK_MASTER_SECRET *master = NULL;
 	BIGNUM *bn = NULL;
 	BIGNUM *order = NULL;
 	X509_PUBKEY *pubkey = NULL;
-	const X509_ALGOR *pkey_algor;
+	X509_ALGOR *pkey_algor;
 	int pkey_type;
 	int i, bn_size, num_factors;
 	unsigned char *bn_ptr;
+	EVP_PKEY *pkey = NULL;
+	X509_ALGOR *map_algor = NULL;
 
-	if (!domain_id || !pkey || !map_algor) {
+	if (!domain_id) {
 		CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, ERR_R_PASSED_NULL_PARAMETER);
 		return NULL;
 	}
@@ -93,6 +90,21 @@ CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id,
 		CPKerr(CPK_F_CPK_MASTER_SECRET_CREATE, CPK_R_INVALID_ID_LENGTH);
 		return NULL;
 	}
+
+	/* pkey type and domain parameters is required
+	 * EC:curve
+	 * SM9:curve ...
+	 *
+	 * so we do not check pkey_nid
+	 */
+
+	//FIXME: merge into ec routine
+	EC_KEY *ec = EC_KEY_new_by_curve_name(NID_sm2p256v1);
+	EC_KEY_generate_key(ec);
+	pkey = EVP_PKEY_new();
+	EVP_PKEY_set1_EC_KEY(pkey, ec);
+	//FIXME: free ec
+	map_algor = CPK_MAP_new(map_nid);
 
 	pkey_type = EVP_PKEY_id(pkey);
 	if (pkey_type == EVP_PKEY_EC) {
@@ -190,7 +202,7 @@ err:
 		CPK_MASTER_SECRET_free(master);
 		master = NULL;
 	}
-	if (pubkey) X509_PUBKEY_free(pubkey);
+	X509_PUBKEY_free(pubkey);
 	if (order && pkey_type == EVP_PKEY_EC) BN_free(order);
 	if (bn) BN_free(bn);
 	return master;
@@ -302,7 +314,6 @@ EVP_PKEY *CPK_PUBLIC_PARAMS_extract_public_key(CPK_PUBLIC_PARAMS *param,
 {
 	EVP_PKEY *pkey = NULL;
 	int pkey_type;
-	//char domain_id[CPK_MAX_ID_LENGTH + 1];
 
 	if (!(pkey = EVP_PKEY_new())) {
 		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_EXTRACT_PUBLIC_KEY,
@@ -340,28 +351,6 @@ err:
 	return NULL;
 }
 
-int CPK_MASTER_SECRET_digest(CPK_MASTER_SECRET *master, const EVP_MD *md,
-	unsigned char *dgst, unsigned int *dgstlen)
-{
-	if (!EVP_Digest(ASN1_STRING_data(master->secret_factors),
-		ASN1_STRING_length(master->secret_factors),
-		dgst, dgstlen, md, NULL)) {
-		return 0;
-	}
-	return 1;
-}
-
-int CPK_PUBLIC_PARAMS_digest(CPK_PUBLIC_PARAMS *params, const EVP_MD *md,
-	unsigned char *dgst, unsigned int *dgstlen)
-{
-	if (!EVP_Digest(ASN1_STRING_data(params->public_factors),
-		ASN1_STRING_length(params->public_factors),
-		dgst, dgstlen, md, NULL)) {
-		return 0;
-	}
-	return 1;
-}
-
 char *CPK_MASTER_SECRET_get_name(CPK_MASTER_SECRET *master, char *buf, int size)
 {
 	return X509_NAME_oneline(master->id, buf, size);
@@ -379,15 +368,15 @@ int CPK_MASTER_SECRET_validate_public_params(CPK_MASTER_SECRET *master,
 	CPK_PUBLIC_PARAMS *tmp = NULL;
 
 	if (!(tmp = CPK_MASTER_SECRET_extract_public_params(master))) {
-		fprintf(stderr, "shit1\n");
+		CPKerr(CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (tmp->version != params->version) {
-		fprintf(stderr, "shit2\n");
+		CPKerr(CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (X509_NAME_cmp(tmp->id, params->id)) {
-		fprintf(stderr, "shit3\n");
+		CPKerr(CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 
@@ -398,23 +387,23 @@ int CPK_MASTER_SECRET_validate_public_params(CPK_MASTER_SECRET *master,
 	 */
 	if (OBJ_obj2nid(tmp->pkey_algor->algorithm) !=
 	    OBJ_obj2nid(params->pkey_algor->algorithm)) {
-		fprintf(stderr, "shit4\n");
+		CPKerr(CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	// FIXME: pkey_algor->parameters
 	if (OBJ_obj2nid(tmp->map_algor->algorithm) !=
 	    OBJ_obj2nid(params->map_algor->algorithm)) {
-		fprintf(stderr, "shit5\n");
+		CPKerr(CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (ASN1_STRING_cmp(tmp->public_factors, params->public_factors)) {
-		fprintf(stderr, "shit6\n");
+		CPKerr(CPK_F_CPK_MASTER_SECRET_VALIDATE_PUBLIC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	ret = 1;
 err:
-	if (tmp) CPK_PUBLIC_PARAMS_free(tmp);
+	CPK_PUBLIC_PARAMS_free(tmp);
 	return ret;
 }
 
@@ -495,49 +484,60 @@ static int extract_ec_params(CPK_MASTER_SECRET *master, CPK_PUBLIC_PARAMS *param
 	unsigned char *pt_ptr;
 
 	if (!bn || !order || !ctx) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(master->pkey_algor))) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
 	if (!(EC_GROUP_get_order(ec_group, order, ctx))) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
 	pt_size = bn_size + 1;
 
 	if ((num_factors = CPK_MAP_num_factors(master->map_algor)) <= 0) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (ASN1_STRING_length(master->secret_factors) != bn_size * num_factors) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!ASN1_STRING_set(param->public_factors, NULL, pt_size * num_factors)) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 
-	bn_ptr = ASN1_STRING_data(master->secret_factors);
-	pt_ptr = ASN1_STRING_data(param->public_factors);
+	bn_ptr = ASN1_STRING_get0_data(master->secret_factors);
+	pt_ptr = ASN1_STRING_get0_data(param->public_factors);
 	memset(pt_ptr, 0, ASN1_STRING_length(param->public_factors));
 
 	if (!(pt = EC_POINT_new(ec_group))) {
+		CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 		goto err;
 	}
 	for (i = 0; i < num_factors; i++) {
 		if (!BN_bin2bn(bn_ptr, bn_size, bn)) {
+			CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 			goto err;
 		}
 		if (BN_is_zero(bn) || BN_cmp(bn, order) >= 0) {
+			CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 			goto err;
 		}
 		if (!EC_POINT_mul(ec_group, pt, bn, NULL, NULL, ctx)) {
+			CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 			goto err;
 		}
 
 		if (!EC_POINT_point2oct(ec_group, pt,
 			POINT_CONVERSION_COMPRESSED, pt_ptr, pt_size, ctx)) {
+			CPKerr(CPK_F_EXTRACT_EC_PARAMS, ERR_R_CPK_LIB);
 			goto err;
 		}
 		bn_ptr += bn_size;
@@ -569,56 +569,69 @@ static EC_KEY *extract_ec_priv_key(CPK_MASTER_SECRET *master, const char *id)
 
 
 	if (!priv_key || !bn || !order || !ctx) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(master->pkey_algor))) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
 	if (!(pub_key = EC_POINT_new(ec_group))) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	if ((num_indexes = CPK_MAP_num_indexes(master->map_algor)) <= 0) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!CPK_MAP_str2index(master->map_algor, id, index)) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	BN_zero(priv_key);
 	if (!(EC_GROUP_get_order(EC_KEY_get0_group(ec_key), order, ctx))) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
 
 	for (i = 0; i < num_indexes; i++) {
-		const unsigned char *p = 
-			ASN1_STRING_data(master->secret_factors) + 
+		const unsigned char *p =
+			ASN1_STRING_get0_data(master->secret_factors) +
 			bn_size * index[i];
-		
+
 		if (!BN_bin2bn(p, bn_size, bn)) {
+			CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 			goto err;
 		}
 		if (BN_is_zero(bn) || BN_cmp(bn, order) >= 0) {
+			CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 			goto err;
-		}		
+		}
 		if (!BN_mod_add(priv_key, priv_key, bn, order, ctx)) {
+			CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 			goto err;
 		}
 	}
 	if (!EC_KEY_set_private_key(ec_key, priv_key)) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	if (!EC_POINT_mul(ec_group, pub_key, priv_key, NULL, NULL, ctx)) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!EC_KEY_set_public_key(ec_key, pub_key)) {
+		CPKerr(CPK_F_EXTRACT_EC_PRIV_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	e = 0;
@@ -651,55 +664,70 @@ static EC_KEY *extract_ec_pub_key(CPK_PUBLIC_PARAMS *param, const char *id)
 	int i, bn_size, pt_size, num_indexes, num_factors;
 
 	if (!(ec_key = X509_ALGOR_get1_EC_KEY(param->pkey_algor))) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	ec_group = EC_KEY_get0_group(ec_key);
 
 	if (!(pub_key = EC_POINT_new(ec_group))) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!(pt = EC_POINT_new(ec_group))) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!EC_GROUP_get_order(ec_group, order, ctx)) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	bn_size = BN_num_bytes(order);
 	pt_size = bn_size + 1;
+
 	if ((num_factors = CPK_MAP_num_factors(param->map_algor)) <= 0) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (ASN1_STRING_length(param->public_factors) != pt_size * num_factors) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	if ((num_indexes = CPK_MAP_num_indexes(param->map_algor)) <= 0) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!(index = OPENSSL_malloc(sizeof(int) * num_indexes))) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	if (!CPK_MAP_str2index(param->map_algor, id, index)) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 
 	if (!EC_POINT_set_to_infinity(ec_group, pub_key)) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	for (i = 0; i < num_indexes; i++) {
 		const unsigned char *p =
-			ASN1_STRING_data(param->public_factors) +
+			ASN1_STRING_get0_data(param->public_factors) +
 			pt_size * index[i];
 
 		if (!EC_POINT_oct2point(ec_group, pt, p, pt_size, ctx)) {
+			CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 			goto err;
 		}
+
 		if (!EC_POINT_add(ec_group, pub_key, pub_key, pt, ctx)) {
+			CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 			goto err;
 		}
 	}
 
 	if (!EC_KEY_set_public_key(ec_key, pub_key)) {
+		CPKerr(CPK_F_EXTRACT_EC_PUB_KEY, ERR_R_CPK_LIB);
 		goto err;
 	}
 	e = 0;

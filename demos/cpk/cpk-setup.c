@@ -71,12 +71,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	if (!(map = CPK_MAP_new_default())
-		|| !(ec_key = EC_KEY_new_by_curve_name(NID_sm2p256v1))
-		|| !EC_KEY_generate_key(ec_key)
-		|| !(pkey = EVP_PKEY_new())
-		|| !EVP_PKEY_set1_EC_KEY(pkey, ec_key)
-		|| !(msk = CPK_MASTER_SECRET_create("codesign", pkey, map))
+	if (!(msk = CPK_MASTER_SECRET_create("codesign", 0, NID_cpk_map_sha1))
 		|| !(mpk = CPK_MASTER_SECRET_extract_public_params(msk))) {
 		ERR_print_errors_fp(stderr);
 		goto end;

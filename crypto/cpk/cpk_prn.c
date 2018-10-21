@@ -50,13 +50,50 @@
 #include <string.h>
 #include <openssl/bio.h>
 #include <openssl/cpk.h>
+#include <openssl/objects.h>
 #include "cpk_lcl.h"
 
 int CPK_MASTER_SECRET_print(BIO *out, CPK_MASTER_SECRET *master,
 	int indent, unsigned long flags)
 {
+	char name[1024] = {0};
+	int num_factors;
+	const unsigned char *p;
+	int i, len;
 
-	BIO_printf(out, "%s() not implemented\n", __FUNCTION__);
+	if (!X509_NAME_oneline(master->id, name, sizeof(name))) {
+		CPKerr(CPK_F_CPK_MASTER_SECRET_PRINT, ERR_R_CPK_LIB);
+		return 0;
+	}
+
+	BIO_printf(out, "CPK_MASTER_SECRET\n");
+	BIO_printf(out, "  Version          : %ld\n", master->version);
+	BIO_printf(out, "  Domain-ID        : %s\n", name);
+	BIO_printf(out, "  Public-Key-Algor : %s\n", OBJ_nid2sn(OBJ_obj2nid(master->pkey_algor->algorithm)));
+	BIO_printf(out, "  Map-Algor        : %s\n", OBJ_nid2sn(OBJ_obj2nid(master->map_algor->algorithm)));
+	BIO_printf(out, "  Secret-Factors   :\n");
+
+	if ((num_factors = CPK_MAP_num_factors(master->map_algor)) <= 0) {
+		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+		return 0;
+	}
+	p = ASN1_STRING_get0_data(master->secret_factors);
+
+	len = ASN1_STRING_length(master->secret_factors)/num_factors;
+	if (ASN1_STRING_length(master->secret_factors) % num_factors) {
+		CPKerr(CPK_F_CPK_MASTER_SECRET_PRINT, ERR_R_CPK_LIB);
+		return 0;
+	}
+
+	for (i = 0; i < num_factors; i++) {
+		int j;
+		printf("    %-8d ", i);
+		for (j = 0; j < len; j++) {
+			BIO_printf(out, "%02X", p[j]);
+		}
+		printf("\n");
+		p += len;
+	}
 
 	return 1;
 }
@@ -64,7 +101,44 @@ int CPK_MASTER_SECRET_print(BIO *out, CPK_MASTER_SECRET *master,
 int CPK_PUBLIC_PARAMS_print(BIO *out, CPK_PUBLIC_PARAMS *params,
 	int indent, unsigned long flags)
 {
-	BIO_printf(out, "%s() not implemented\n", __FUNCTION__);
+	char name[1024] = {0};
+	int num_factors;
+	const unsigned char *p;
+	int len, i;
+
+	if (!X509_NAME_oneline(params->id, name, sizeof(name))) {
+		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_PRINT, ERR_R_CPK_LIB);
+		return 0;
+	}
+
+	BIO_printf(out, "CPK_PUBLIC_PARAMS\n");
+	BIO_printf(out, "  Version          : %ld\n", params->version);
+	BIO_printf(out, "  Domain-ID        : %s\n", name);
+	BIO_printf(out, "  Public-Key-Algor : %s\n", OBJ_nid2sn(OBJ_obj2nid(params->pkey_algor->algorithm)));
+	BIO_printf(out, "  Map-Algor        : %s\n", OBJ_nid2sn(OBJ_obj2nid(params->map_algor->algorithm)));
+	BIO_printf(out, "  Secret-Factors   :\n");
+
+	if ((num_factors = CPK_MAP_num_factors(params->map_algor)) <= 0) {
+		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
+		return 0;
+	}
+	p = ASN1_STRING_get0_data(params->public_factors);
+
+	len = ASN1_STRING_length(params->public_factors)/num_factors;
+	if (ASN1_STRING_length(params->public_factors) % num_factors) {
+		CPKerr(CPK_F_CPK_PUBLIC_PARAMS_PRINT, ERR_R_CPK_LIB);
+		return 0;
+	}
+
+	for (i = 0; i < num_factors; i++) {
+		int j;
+		printf("    %-8d ", i);
+		for (j = 0; j < len; j++) {
+			BIO_printf(out, "%02X", p[j]);
+		}
+		printf("\n");
+		p += len;
+	}
+
 	return 1;
 }
-

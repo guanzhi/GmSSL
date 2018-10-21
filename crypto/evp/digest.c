@@ -151,12 +151,13 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl)
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *data, size_t count)
 {
 #ifndef OPENSSL_NO_SM2
-	if (ctx->pctx && !EVP_MD_CTX_test_flags(ctx, EVP_MD_CTX_FLAG_UPDATED)) {
+	if (ctx->pctx && !EVP_MD_CTX_test_flags(ctx, EVP_MD_CTX_FLAG_UPDATED)
+		&& EVP_PKEY_id(EVP_PKEY_CTX_get0_pkey(ctx->pctx)) == EVP_PKEY_EC) {
 		const unsigned char *zid;
 		if (1 == EVP_PKEY_CTX_get_signer_zid(ctx->pctx, &zid)) {
 			ctx->update(ctx, zid, 32);
 # ifdef SM2_DEBUG
-			fprintf(stderr, " %s() first update with SM2 ZID\n",
+			fprintf(stderr, "[SM2_DEBUG] %s() first update with SM2 ZID\n",
 				__FUNCTION__);
 # endif
 		}

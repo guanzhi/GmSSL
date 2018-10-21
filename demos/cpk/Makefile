@@ -1,8 +1,8 @@
 all:
-	gcc cpk-setup.c -lcrypto -o cpk-setup
-	gcc cpk-keygen.c -lcrypto -o cpk-keygen
-	gcc cpk-sign.c -lcrypto -o cpk-sign
-	gcc cpk-verify.c -lcrypto -o cpk-verify
+	gcc cpk-setup.c -L/usr/local/lib -lcrypto -o cpk-setup
+	gcc cpk-keygen.c -L/usr/local/lib -lcrypto -o cpk-keygen
+	gcc cpk-sign.c -L/usr/local/lib -lcrypto -o cpk-sign
+	gcc cpk-verify.c -L/usr/local/lib -lcrypto -o cpk-verify
 
 test:
 	./cpk-setup sign.mpk sign.msk

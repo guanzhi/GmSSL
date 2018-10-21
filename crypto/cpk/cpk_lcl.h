@@ -68,3 +68,11 @@ struct cpk_public_params_st {
 	X509_ALGOR *map_algor;
 	ASN1_OCTET_STRING *public_factors;
 };
+
+X509_ALGOR *CPK_MAP_new(int type);
+X509_ALGOR * CPK_MAP_new_default(void);
+int CPK_MAP_is_valid(const X509_ALGOR *algor);
+int CPK_MAP_num_factors(const X509_ALGOR *algor);
+int CPK_MAP_num_indexes(const X509_ALGOR *algor);
+int CPK_MAP_str2index(const X509_ALGOR *algor, const char *str, int *index);
+

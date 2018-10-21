@@ -51,6 +51,9 @@
 #include <stdlib.h>
 #include <libgen.h>
 #include <openssl/cpk.h>
+#include <openssl/pem.h>
+#include <openssl/sm2.h>
+#include <openssl/is_gmssl.h>
 
 int main(int argc, char **argv)
 {
@@ -65,7 +68,7 @@ int main(int argc, char **argv)
 	EVP_PKEY_CTX *pctx;
 	unsigned char magicstr[] = "~CPK signature appended~";
 	unsigned char magic[sizeof(magicstr)] = {0};
-	unsigned char id[128];
+	unsigned char id[128] = {0};
 	unsigned char sig[128];
 	unsigned int idlen, siglen, totallen;
 	int datalen;
@@ -155,6 +158,10 @@ int main(int argc, char **argv)
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
+	if (!EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
 	while (datalen > 0) {
 		unsigned char buf[1024];
@@ -181,7 +188,6 @@ int main(int argc, char **argv)
 			goto end;
 	}
 	printf("%s: success\n", argv[1]);
-
 
 	ret = 0;
 end:

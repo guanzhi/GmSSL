@@ -52,6 +52,8 @@
 #include <libgen.h>
 #include <openssl/cpk.h>
 #include <openssl/pem.h>
+#include <openssl/sm2.h>
+#include <openssl/is_gmssl.h>
 
 int main(int argc, char **argv)
 {
@@ -97,6 +99,10 @@ int main(int argc, char **argv)
 		goto end;
 	}
 	if (!EVP_DigestSignInit(md_ctx, &pctx, EVP_sm3(), NULL, sk)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	if (!EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme)) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
