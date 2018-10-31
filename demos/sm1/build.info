@@ -1,0 +1,2 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=sm1.c sm1_ecb.c sm1_cbc.c sm1_cfb.c sm1_ofb.c

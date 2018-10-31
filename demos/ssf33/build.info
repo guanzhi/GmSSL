@@ -1,0 +1,2 @@
+LIBS=../../libcrypto
+SOURCE[../../libcrypto]=ssf33.c ssf33_ecb.c ssf33_cbc.c ssf33_cfb.c ssf33_ofb.c

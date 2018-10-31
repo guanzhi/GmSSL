@@ -52,6 +52,7 @@
 #include <openssl/x509.h>
 #include <openssl/ossl_typ.h>
 
+#define CPK_VERSION 2
 
 struct cpk_master_secret_st {
 	long version;

@@ -74,7 +74,15 @@ DECLARE_ASN1_FUNCTIONS(CPK_MASTER_SECRET)
 typedef struct cpk_public_params_st CPK_PUBLIC_PARAMS;
 DECLARE_ASN1_FUNCTIONS(CPK_PUBLIC_PARAMS)
 
-CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id, int pkey_type, int map_algor);
+/*
+ *                     rows    cols   factors
+ * NID_cpk_map_sha1      32      32      1024
+ * NID_cpk_map_sm3       32     256      8192
+ * NID_cpk_map_sha256    32     256      8192
+ * NID_cpk_map_sha384    32    4096    131072
+ * NID_cpk_map_sha512    32   65536   2097152
+ */
+CPK_MASTER_SECRET *CPK_MASTER_SECRET_create(const char *domain_id, int curve, int map);
 CPK_PUBLIC_PARAMS *CPK_MASTER_SECRET_extract_public_params(CPK_MASTER_SECRET *master);
 EVP_PKEY *CPK_MASTER_SECRET_extract_private_key(CPK_MASTER_SECRET *master, const char *id);
 EVP_PKEY *CPK_PUBLIC_PARAMS_extract_public_key(CPK_PUBLIC_PARAMS *params, const char *id);

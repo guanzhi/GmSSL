@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2018 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,54 +46,71 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
+/*
+ * This sm4 demo use the native sm3_init/update/final APIs
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <libgen.h>
-#include <openssl/cpk.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/sms4.h>
+#include <openssl/is_gmssl.h>
 
 
 int main(int argc, char **argv)
 {
-	int ret = -1;
-	char *prog = basename(argv[0]);
-	X509_ALGOR *map = NULL;
-	EC_KEY *ec_key = NULL;
-	EVP_PKEY *pkey = NULL;
-	CPK_MASTER_SECRET *msk = NULL;
-	CPK_PUBLIC_PARAMS *mpk = NULL;
-	BIO *mpk_bio = NULL;
-	BIO *msk_bio = NULL;
+	sms4_key_t sms4;
+	unsigned char key[SMS4_KEY_LENGTH] = {0};
+	unsigned char block[SMS4_BLOCK_SIZE] = {0};
+	int i;
 
-	if (argc != 3) {
-		printf("usage: %s <mpk-file> <msk-file>\n", prog);
-		return 0;
-	}
-
-	if (!(msk = CPK_MASTER_SECRET_create("codesign", NID_sm2p256v1, NID_cpk_map_sha1))
-		|| !(mpk = CPK_MASTER_SECRET_extract_public_params(msk))) {
+#if USE_RANDOM
+	if (!RAND_bytes(key, sizeof(key))
+		|| !RAND_bytes(block, sizeof(block))) {
 		ERR_print_errors_fp(stderr);
-		goto end;
+		return -1;
 	}
+#endif
 
-	if (!(mpk_bio = BIO_new_file(argv[1], "w"))
-		|| !(msk_bio = BIO_new_file(argv[2], "w"))
-		|| !i2d_CPK_MASTER_SECRET_bio(msk_bio, msk)
-		|| !i2d_CPK_PUBLIC_PARAMS_bio(mpk_bio, mpk)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
+	printf("key              = ");
+	for (i = 0; i < sizeof(key); i++) {
+		printf("%02X", key[i]);
 	}
+	printf("\n");
 
-	ret = 0;
+	printf("plaintext block  = ");
+	for (i = 0; i < sizeof(block); i++) {
+		printf("%02X", block[i]);
+	}
+	printf("\n");
 
-end:
-	X509_ALGOR_free(map);
-	//EC_KEY_free(ec_key);
-	EVP_PKEY_free(pkey);
-	CPK_MASTER_SECRET_free(msk);
-	CPK_PUBLIC_PARAMS_free(mpk);
-	BIO_free(msk_bio);
-	BIO_free(mpk_bio);
-	return ret;
+	/* expand key for encryption */
+	sms4_set_encrypt_key(&sms4, key);
+
+	/* encrypt a block */
+	sms4_encrypt(block, block, &sms4);
+
+	printf("ciphertext block = ");
+	for (i = 0; i < sizeof(block); i++) {
+		printf("%02X", block[i]);
+	}
+	printf("\n");
+
+	/* expand key for decryption */
+	sms4_set_decrypt_key(&sms4, key);
+
+	/* decrypt a block */
+	sms4_decrypt(block, block, &sms4);
+
+	printf("decrypted block  = ");
+	for (i = 0; i < sizeof(block); i++) {
+		printf("%02X", block[i]);
+	}
+	printf("\n");
+
+	return 0;
 }

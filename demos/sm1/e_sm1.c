@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2018 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,54 +46,44 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
+ /*
+ * Copyright 2001-2016 The OpenSSL Project Authors. All Rights Reserved.
+ *
+ * Licensed under the OpenSSL license (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
+ */
+
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <libgen.h>
-#include <openssl/cpk.h>
-#include <openssl/err.h>
+
+#include <openssl/evp.h>
+#include <openssl/sm1.h>
+#include <openssl/crypto.h>
+#include <openssl/objects.h>
+#include "evp_locl.h"
+# include "internal/evp_int.h"
+#include "../modes/modes_lcl.h"
 
 
-int main(int argc, char **argv)
+typedef struct {
+	SM1_KEY ks;
+} EVP_SM1_KEY;
+
+static int sm1_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+	const unsigned char *iv, int enc)
 {
-	int ret = -1;
-	char *prog = basename(argv[0]);
-	X509_ALGOR *map = NULL;
-	EC_KEY *ec_key = NULL;
-	EVP_PKEY *pkey = NULL;
-	CPK_MASTER_SECRET *msk = NULL;
-	CPK_PUBLIC_PARAMS *mpk = NULL;
-	BIO *mpk_bio = NULL;
-	BIO *msk_bio = NULL;
-
-	if (argc != 3) {
-		printf("usage: %s <mpk-file> <msk-file>\n", prog);
-		return 0;
+	if (enc) {
+		ret = SM1_set_encrypt_key(
+			&EVP_C_DATA(EVP_SM1_KEY, ctx)->ks, key);
+	} else {
+		ret = SM1_set_decrypt_key(
+			&EVP_C_DATA(EVP_SM1_KEY, ctx)->ks, key);
 	}
-
-	if (!(msk = CPK_MASTER_SECRET_create("codesign", NID_sm2p256v1, NID_cpk_map_sha1))
-		|| !(mpk = CPK_MASTER_SECRET_extract_public_params(msk))) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	if (!(mpk_bio = BIO_new_file(argv[1], "w"))
-		|| !(msk_bio = BIO_new_file(argv[2], "w"))
-		|| !i2d_CPK_MASTER_SECRET_bio(msk_bio, msk)
-		|| !i2d_CPK_PUBLIC_PARAMS_bio(mpk_bio, mpk)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	ret = 0;
-
-end:
-	X509_ALGOR_free(map);
-	//EC_KEY_free(ec_key);
-	EVP_PKEY_free(pkey);
-	CPK_MASTER_SECRET_free(msk);
-	CPK_PUBLIC_PARAMS_free(mpk);
-	BIO_free(msk_bio);
-	BIO_free(mpk_bio);
 	return ret;
 }
+
+IMPLEMENT_BLOCK_CIPHER(sm1, ks, SM1, EVP_SM1_KEY, NID_sm1,
+	16, 16, 16, 128, EVP_CIPH_FLAG_DEFAULT_ASN1,
+	sm1_init_key, 0, 0, 0, 0)
+

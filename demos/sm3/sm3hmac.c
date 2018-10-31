@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2018 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,54 +46,81 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <libgen.h>
-#include <openssl/cpk.h>
-#include <openssl/err.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
+#include <openssl/is_gmssl.h>
 
 int main(int argc, char **argv)
 {
 	int ret = -1;
-	char *prog = basename(argv[0]);
-	X509_ALGOR *map = NULL;
-	EC_KEY *ec_key = NULL;
-	EVP_PKEY *pkey = NULL;
-	CPK_MASTER_SECRET *msk = NULL;
-	CPK_PUBLIC_PARAMS *mpk = NULL;
-	BIO *mpk_bio = NULL;
-	BIO *msk_bio = NULL;
+	FILE *fp = stdin;
+	unsigned char key[32];
+	unsigned char buf[1024];
+	int len;
+	const EVP_MD *md;
+	HMAC_CTX *hmctx;
+	unsigned char mac[EVP_MAX_MD_SIZE];
+	unsigned int maclen, i;
 
-	if (argc != 3) {
-		printf("usage: %s <mpk-file> <msk-file>\n", prog);
-		return 0;
+	if (argc == 2) {
+		if (!(fp = fopen(argv[1], "r"))) {
+			fprintf(stderr, "open file %s failed\n", argv[1]);
+			return -1;
+		}
 	}
 
-	if (!(msk = CPK_MASTER_SECRET_create("codesign", NID_sm2p256v1, NID_cpk_map_sha1))
-		|| !(mpk = CPK_MASTER_SECRET_extract_public_params(msk))) {
+	/* random generate HMAC key */
+	if (!RAND_bytes(key, sizeof(key))) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
 
-	if (!(mpk_bio = BIO_new_file(argv[1], "w"))
-		|| !(msk_bio = BIO_new_file(argv[2], "w"))
-		|| !i2d_CPK_MASTER_SECRET_bio(msk_bio, msk)
-		|| !i2d_CPK_PUBLIC_PARAMS_bio(mpk_bio, mpk)) {
+	/* create HMAC context */
+	if (!(hmctx = HMAC_CTX_new())) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
 
+	/* get the sm3 EVP object */
+	if (!(md = EVP_get_digestbyname("sm3"))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	/* init HMAC hash algorithm (sm3) and key */
+	if (!HMAC_Init_ex(hmctx, key, sizeof(key), md, NULL)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	/* update data to be MACed */
+	while ((len = fread(buf, 1, sizeof(buf), fp))) {
+		if (!HMAC_Update(hmctx, buf, len)) {
+			ERR_print_errors_fp(stderr);
+			goto end;
+		}
+	}
+
+	/* get the final HMAC tag */
+	if (!HMAC_Final(hmctx, mac, &maclen)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	for (i = 0; i < maclen; i++) {
+		printf("%02x", mac[i]);
+	}
+	printf("\n");
 	ret = 0;
 
 end:
-	X509_ALGOR_free(map);
-	//EC_KEY_free(ec_key);
-	EVP_PKEY_free(pkey);
-	CPK_MASTER_SECRET_free(msk);
-	CPK_PUBLIC_PARAMS_free(mpk);
-	BIO_free(msk_bio);
-	BIO_free(mpk_bio);
+	fclose(fp);
+	HMAC_CTX_free(hmctx);
 	return ret;
 }
+
