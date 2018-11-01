@@ -47,7 +47,7 @@
  * ====================================================================
  */
 /*
- * This sm4 demo use the native sm3_init/update/final APIs
+ * This sm4 demo use the EVP API.
  */
 
 #include <stdio.h>
@@ -56,10 +56,10 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/sms4.h>
 #include <openssl/is_gmssl.h>
-
 
 static void print_buf(const char *s, const unsigned char *buf, size_t buflen)
 {
@@ -73,37 +73,83 @@ static void print_buf(const char *s, const unsigned char *buf, size_t buflen)
 
 int main(int argc, char **argv)
 {
-	sms4_key_t sms4;
+	int ret = -1;
+	EVP_CIPHER_CTX *ctx = NULL;
+	const EVP_CIPHER *cipher = EVP_sms4_cbc();
 	unsigned char key[SMS4_KEY_LENGTH] = {0};
-	unsigned char block[SMS4_BLOCK_SIZE] = {0};
-	int i;
+	unsigned char iv[SMS4_IV_LENGTH] = {0};
+	unsigned char msg[MSG_LEN];
+	unsigned char cbuf[sizeof(msg) + SMS4_BLOCK_SIZE];
+	unsigned char pbuf[sizeof(cbuf)];
+	unsigned int clen, plen;
+	int len;
 
-#if USE_RANDOM
+	/* generate random key/iv/msg */
 	if (!RAND_bytes(key, sizeof(key))
-		|| !RAND_bytes(block, sizeof(block))) {
+		|| !RAND_bytes(iv, sizeof(iv))
+		|| !RAND_bytes(msg, sizeof(msg))) {
 		ERR_print_errors_fp(stderr);
 		return -1;
 	}
-#endif
 
 	print_buf("key", key, sizeof(key));
-	print_buf("plaintext block", block, sizeof(block));
+	print_buf("iv", iv, sizeof(iv));
+	print_buf("msg", msg, sizeof(msg));
 
-	/* expand key for encryption */
-	sms4_set_encrypt_key(&sms4, key);
+	/* create encrypt/decrypt context */
+	if (!(ctx = EVP_CIPHER_CTX_new())) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
-	/* encrypt a block */
-	sms4_encrypt(block, block, &sms4);
 
-	print_buf("ciphertext block", block, sizeof(block));
+	/* encrypt */
+	if (!EVP_EncryptInit(ctx, cipher, key, iv)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
-	/* expand key for decryption */
-	sms4_set_decrypt_key(&sms4, key);
+	clen = 0;
 
-	/* decrypt a block */
-	sms4_decrypt(block, block, &sms4);
+	if (!EVP_EncryptUpdate(ctx, cbuf, &len, msg, sizeof(msg))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	clen += len;
 
-	print_buf("decrypted block", block, sizeof(block));
+	if (!EVP_EncryptFinal(ctx, cbuf + len, &len)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	clen += len;
 
-	return 0;
+	print_buf("ciphertext", cbuf, clen);
+
+	/* decrypt */
+	if (!EVP_DecryptInit(ctx, cipher, key, iv)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	plen = 0;
+
+	if (!EVP_DecryptUpdate(ctx, pbuf, &len, cbuf, clen)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	plen += len;
+
+	if (!EVP_DecryptFinal(ctx, pbuf + len, &len)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+	plen += len;
+
+	print_buf("decrypted", pbuf, plen);
+
+	ret = 0;
+
+end:
+	EVP_CIPHER_CTX_free(ctx);
+	return ret;
 }
