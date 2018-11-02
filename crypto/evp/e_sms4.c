@@ -95,9 +95,20 @@ static int sms4_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	return 1;
 }
 
+static int sms4_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
+{
+	switch (type) {
+	case EVP_CTRL_PBE_PRF_NID:
+		*(int *)ptr = NID_hmac_sm3;
+		return 1;
+	default:
+		return -1;
+	}
+}
+
 IMPLEMENT_BLOCK_CIPHER(sms4, ks, sms4, EVP_SMS4_KEY, NID_sms4,
 	SMS4_BLOCK_SIZE, SMS4_KEY_LENGTH, SMS4_IV_LENGTH, 128,
-	EVP_CIPH_FLAG_DEFAULT_ASN1, sms4_init_key, NULL, NULL, NULL, NULL)
+	EVP_CIPH_FLAG_DEFAULT_ASN1, sms4_init_key, NULL, NULL, NULL, sms4_ctrl)
 
 # define MAXBITCHUNK     ((size_t)1<<(sizeof(size_t)*8-4))
 
@@ -136,7 +147,7 @@ const EVP_CIPHER sms4_cfb1 = {
 	sms4_cfb1_cipher,
 	NULL,
 	sizeof(EVP_SMS4_KEY),
-	NULL,NULL,NULL,NULL,
+	NULL,NULL,sms4_ctrl,NULL,
 };
 
 const EVP_CIPHER *EVP_sms4_cfb1(void)
@@ -165,7 +176,7 @@ const EVP_CIPHER sms4_cfb8 = {
 	sms4_cfb8_cipher,
 	NULL,
 	sizeof(EVP_SMS4_KEY),
-	NULL,NULL,NULL,NULL,
+	NULL,NULL,sms4_ctrl,NULL,
 };
 
 const EVP_CIPHER *EVP_sms4_cfb8(void)
@@ -198,7 +209,7 @@ const EVP_CIPHER sms4_ctr = {
 	sms4_ctr_cipher,
 	NULL, /* cleanup() */
 	sizeof(EVP_SMS4_KEY),
-	NULL,NULL,NULL,NULL,
+	NULL,NULL,sms4_ctrl,NULL,
 };
 
 const EVP_CIPHER *EVP_sms4_ctr(void)
