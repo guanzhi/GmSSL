@@ -45,19 +45,25 @@ IF[{- !$disabled{"engine"} -}]
       INCLUDE[gmi]=../include
     ENDIF
 
-    ENGINES_NO_INST=ossltest skf_dummy sdf_dummy
+    ENGINES_NO_INST=ossltest
     SOURCE[dasync]=e_dasync.c
     DEPEND[dasync]=../libcrypto
     INCLUDE[dasync]=../include
     SOURCE[ossltest]=e_ossltest.c
     DEPEND[ossltest]=../libcrypto
     INCLUDE[ossltest]=../include
-    SOURCE[skf_dummy]=skf_dummy.c
-    DEPEND[skf_dummy]=../libcrypto
-    INCLUDE[skf_dummy]=../include
-    SOURCE[sdf_dummy]=sdf_dummy.c
-    DEPEND[sdf_dummy]=../libcrypto
-    INCLUDE[sdf_dummy]=../include
+    IF[{- !$disabled{skfeng} -}]
+      ENGINES_NO_INST=skf_dummy
+      SOURCE[skf_dummy]=skf_dummy.c
+      DEPEND[skf_dummy]=../libcrypto
+      INCLUDE[skf_dummy]=../include
+    ENDIF
+    IF[{- !$disabled{skfeng} -}]
+      ENGINES_NO_INST=sdf_dummy
+      SOURCE[sdf_dummy]=sdf_dummy.c
+      DEPEND[sdf_dummy]=../libcrypto
+      INCLUDE[sdf_dummy]=../include
+    ENDIF
   ENDIF
 
   GENERATE[e_padlock-x86.s]=asm/e_padlock-x86.pl $(PERLASM_SCHEME) $(CFLAGS) $(LIB_CFLAGS) $(PROCESSOR)
