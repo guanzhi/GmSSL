@@ -70,7 +70,7 @@ extern "C" {
 
 typedef struct {
 	uint32_t digest[8];
-	int nblocks;
+	uint64_t nblocks;
 	unsigned char block[64];
 	int num;
 } sm3_ctx_t;
