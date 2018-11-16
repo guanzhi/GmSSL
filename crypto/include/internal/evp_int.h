@@ -370,8 +370,15 @@ struct evp_pkey_st {
 # ifndef OPENSSL_NO_EC
         struct ec_key_st *ec;   /* ECC */
 # endif
-# ifndef OPENSSL_NO_PAILLIER
+# ifndef OPENSSL_NO_PAILLIER	/* PAILLIER */
         struct paillier_st *paillier;
+# endif
+# ifndef OPENSSL_NO_SM9         /* SM9 */
+        struct SM9_MASTER_KEY_st *sm9_master;
+        struct SM9_KEY_st *sm9;
+# endif
+# ifndef OPENSSL_NO_CPK         /* CPK */
+        struct CPK_MASTER_SECERT *cpk;
 # endif
     } pkey;
     int save_parameters;

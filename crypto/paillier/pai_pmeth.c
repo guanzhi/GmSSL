@@ -70,9 +70,6 @@ static void pkey_paillier_cleanup(EVP_PKEY_CTX *ctx)
 {
 }
 
-//FIXME keygen
-
-
 static int pkey_paillier_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {

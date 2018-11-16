@@ -139,6 +139,7 @@ int ERR_load_CPK_strings(void);
 # define CPK_R_BAD_DATA                                   101
 # define CPK_R_INVALID_ALGORITHM                          106
 # define CPK_R_INVALID_ARGUMENT                           107
+# define CPK_R_INVALID_CURVE                              108
 # define CPK_R_INVALID_ID_LENGTH                          102
 # define CPK_R_INVALID_MAP_ALGOR                          103
 # define CPK_R_INVALID_PKEY_TYPE                          104

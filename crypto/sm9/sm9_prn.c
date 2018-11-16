@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2016 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,59 +47,105 @@
  * ====================================================================
  */
 
-#ifndef HEADER_PEM3_H
-#define HEADER_PEM3_H
+#include <string.h>
+#include <openssl/err.h>
+#include <openssl/sm9.h>
+#include <openssl/bn_hash.h>
+#include "sm9_lcl.h"
 
-#ifndef OPENSSL_NO_CPK
-# include <openssl/cpk.h>
-#endif
-#ifndef OPENSSL_NO_SM9
-# include <openssl/sm9.h>
-#endif
-#ifndef OPENSSL_NO_BFIBE
-# include <openssl/bfibe.h>
-#endif
-#ifndef OPENSSL_NO_BB1IBE
-# include <openssl/bb1ibe.h>
-#endif
-#ifndef OPENSSL_NO_PAILLIER
-# include <openssl/paillier.h>
-#endif
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-#include <openssl/pem.h>
-
-
-#define PEM_STRING_PAILLIER		"PAILLIER PRIVATE KEY"
-#define PEM_STRING_PAILLIER_PUBLIC	"PAILLIER PUBLIC KEY"
-#define PEM_STRING_CPK_PARAMS		"CPK PUBLIC PARAMETERS"
-#define PEM_STRING_CPK_MASTER		"CPK MASTER SECRET"
-#define PEM_STRING_SM9_PARAMS		"SM9 PUBLIC PARAMETERS"
-#define PEM_STRING_SM9_MASTER		"SM9 MASTER SECRET"
-#define PEM_STRING_SM9_PRIVATE		"SM9 PRIVATE KEY"
-#define PEM_STRING_BFIBE_PARAMS		"BFIBE PUBLIC PARAMETERS"
-#define PEM_STRING_BFIBE_MASTER		"BFIBE MASTER SECRET"
-#define PEM_STRING_BFIBE_PRIVATE	"BFIBE PRIVATE KEY"
-#define PEM_STRING_BB1IBE_PARAMS	"BB1IBE PUBLIC PARAMETERS"
-#define PEM_STRING_BB1IBE_MASTER	"BB1IBE MASTER SECRET"
-#define PEM_STRING_BB1IBE_PRIVATE	"BB1IBE PRIVATE KEY"
-
-
-# ifndef OPENSSL_NO_PAILLIER
-/*
-DECLARE_PEM_rw_cb(PAILLIERPrivateKey, PAILLIER)
-DECLARE_PEM_rw_const(PAILLIERPublicKey, PAILLIER)
-DECLARE_PEM_rw(PAILLIER_PUBKEY, PAILLIER)
-*/
-# endif
-
-
-#ifdef __cplusplus
+int SM9PrivateKey_get_gmtls_public_key(SM9PublicParameters *mpk,
+	SM9PrivateKey *sk, unsigned char pub_key[1024])
+{
+	return 0;
 }
-#endif
+
+int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
+	SM9PublicKey *pk, unsigned char encoded[1024])
+{
+	return 0;
+}
+
+
+int SM9_hash2(const EVP_MD *md, BIGNUM **r,
+	const unsigned char *data, size_t datalen,
+	const unsigned char *elem, size_t elemlen,
+	const BIGNUM *range, BN_CTX *ctx)
+{
+	unsigned char *buf;
+
+	if (!(buf = OPENSSL_malloc(datalen + elemlen))) {
+		return 0;
+	}
+	memcpy(buf, data, datalen);
+	memcpy(buf + datalen, elem, elemlen);
+
+	if (!BN_hash_to_range(md, r, buf, datalen + elemlen, range, ctx)) {
+		OPENSSL_free(buf);
+		return 0;
+	}
+
+	OPENSSL_free(buf);
+	return 1;
+}
+
+int SM9_DigestInit(EVP_MD_CTX *ctx, unsigned char prefix,
+	const EVP_MD *md, ENGINE *impl)
+{
+	if (!EVP_DigestInit_ex(ctx, md, impl)
+		|| !EVP_DigestUpdate(ctx, &prefix, 1)) {
+		ERR_print_errors_fp(stderr);
+		return 0;
+	}
+	return 1;
+}
+
+//FIXME: implement this !!!
+int SM9MasterSecret_up_ref(SM9MasterSecret *msk)
+{
+	return 1;
+}
+
+int SM9PublicParameters_up_ref(SM9PublicParameters *mpk)
+{
+	return 1;
+}
+
+int SM9PrivateKey_up_ref(SM9PrivateKey *sk)
+{
+	return 1;
+}
+
+int SM9PublicKey_up_ref(SM9PublicKey *pk)
+{
+	return 1;
+}
+
+#if 0
+int SM9_DigestFinal(EVP_MD_CTX *ctx1, BIGNUM *h, const BIGNUM *n_1)
+{
+	int ret = 0;
+	EVP_MD_CTX *ctx2 = NULL;
+	const unsigned char ct1[4] = {0x00, 0x00, 0x00, 0x01};
+	const unsigned char ct2[4] = {0x00, 0x00, 0x00, 0x02};
+	unsigned char Ha[EVP_MAX_MD_SIZE * 2];
+	unsigned int len = 0;
+
+	if (!(ctx2 = EVP_MD_CTX_new())
+		|| !EVP_MD_CTX_copy(ctx2, ctx1)
+		|| !EVP_DigestUpdate(ctx1, ct1, sizeof(ct))
+		|| !EVP_DigestUpdate(ctx2, ct2, sizeof(ct2))
+		|| !EVP_DigestFinal_ex(ctx1, Ha, &len)
+		|| !EVP_DigestFinal_ex(ctx2, Ha + len, &len)
+		|| !BN_bin2bn(Ha, 40, h)
+		|| !BN_mod(h, h, n_1, bn_ctx)
+		|| !BN_add_word(h, 1)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
+
+	ret = 1;
+end:
+	EVP_MD_CTX_free(ctx2);
+	return ret;
+}
 #endif

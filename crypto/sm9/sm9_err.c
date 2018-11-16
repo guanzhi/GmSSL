@@ -19,6 +19,8 @@
 # define ERR_REASON(reason) ERR_PACK(ERR_LIB_SM9,0,reason)
 
 static ERR_STRING_DATA SM9_str_functs[] = {
+    {ERR_FUNC(SM9_F_OLD_SM9_MASTER_DECODE), "old_sm9_master_decode"},
+    {ERR_FUNC(SM9_F_OLD_SM9_PRIV_DECODE), "old_sm9_priv_decode"},
     {ERR_FUNC(SM9_F_SM9CIPHERTEXT_CHECK), "SM9Ciphertext_check"},
     {ERR_FUNC(SM9_F_SM9ENCPARAMETERS_DECRYPT), "SM9EncParameters_decrypt"},
     {ERR_FUNC(SM9_F_SM9ENCPARAMETERS_ENCRYPT), "SM9EncParameters_encrypt"},
@@ -40,6 +42,16 @@ static ERR_STRING_DATA SM9_str_functs[] = {
     {ERR_FUNC(SM9_F_SM9_GENERATE_KEY_EXCHANGE), "SM9_generate_key_exchange"},
     {ERR_FUNC(SM9_F_SM9_GENERATE_MASTER_SECRET),
      "SM9_generate_master_secret"},
+    {ERR_FUNC(SM9_F_SM9_KEY_NEW), "SM9_KEY_new"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_DECODE), "sm9_master_decode"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_ENCODE), "sm9_master_encode"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_KEY_EXTRACT_KEY),
+     "SM9_MASTER_KEY_extract_key"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_KEY_NEW), "SM9_MASTER_KEY_new"},
+    {ERR_FUNC(SM9_F_SM9_PARAMS_DECODE), "sm9_params_decode"},
+    {ERR_FUNC(SM9_F_SM9_PRIV_DECODE), "sm9_priv_decode"},
+    {ERR_FUNC(SM9_F_SM9_PRIV_ENCODE), "sm9_priv_encode"},
+    {ERR_FUNC(SM9_F_SM9_PUB_DECODE), "sm9_pub_decode"},
     {ERR_FUNC(SM9_F_SM9_SIGN), "SM9_sign"},
     {ERR_FUNC(SM9_F_SM9_SIGNFINAL), "SM9_SignFinal"},
     {ERR_FUNC(SM9_F_SM9_SIGNINIT), "SM9_SignInit"},
@@ -53,6 +65,7 @@ static ERR_STRING_DATA SM9_str_functs[] = {
 
 static ERR_STRING_DATA SM9_str_reasons[] = {
     {ERR_REASON(SM9_R_BUFFER_TOO_SMALL), "buffer too small"},
+    {ERR_REASON(SM9_R_DECODE_ERROR), "decode error"},
     {ERR_REASON(SM9_R_DIGEST_FAILURE), "digest failure"},
     {ERR_REASON(SM9_R_EC_LIB), "ec lib"},
     {ERR_REASON(SM9_R_EXTENSION_FIELD_ERROR), "extension field error"},
@@ -80,6 +93,7 @@ static ERR_STRING_DATA SM9_str_reasons[] = {
     {ERR_REASON(SM9_R_INVALID_SIGNATURE_FORMAT), "invalid signature format"},
     {ERR_REASON(SM9_R_INVALID_TYPE1CURVE), "invalid type1curve"},
     {ERR_REASON(SM9_R_KDF_FAILURE), "kdf failure"},
+    {ERR_REASON(SM9_R_NO_MASTER_SECRET), "no master secret"},
     {ERR_REASON(SM9_R_PAIRING_ERROR), "pairing error"},
     {ERR_REASON(SM9_R_RATE_PAIRING_ERROR), "rate pairing error"},
     {ERR_REASON(SM9_R_TWIST_CURVE_ERROR), "twist curve error"},

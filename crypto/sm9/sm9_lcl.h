@@ -52,6 +52,7 @@
 
 #include <openssl/err.h>
 #include <openssl/sm9.h>
+#include "e_os.h"
 
 /* private key extract algorithms */
 #define SM9_HID_SIGN		0x01
@@ -86,38 +87,38 @@ extern "C" {
 #endif
 
 
-struct SM9MasterSecret_st {
+struct SM9_MASTER_KEY_st {
+	/* public */
 	ASN1_OBJECT *pairing;
 	ASN1_OBJECT *scheme;
 	ASN1_OBJECT *hash1;
 	ASN1_OCTET_STRING *pointPpub;
+
+	/* private */
 	BIGNUM *masterSecret;
+
+	int references;
+	int flags;
+	CRYPTO_EX_DATA ex_data;
+	CRYPTO_RWLOCK *lock;
 };
 
-struct SM9PublicParameters_st {
-	ASN1_OBJECT *pairing;
-	ASN1_OBJECT *scheme;
-	ASN1_OBJECT *hash1;
-	ASN1_OCTET_STRING *pointPpub;
-};
-
-struct SM9PrivateKey_st {
+struct SM9_KEY_st {
+	/* public */
 	ASN1_OBJECT *pairing;
 	ASN1_OBJECT *scheme;
 	ASN1_OBJECT *hash1;
 	ASN1_OCTET_STRING *pointPpub;
 	ASN1_OCTET_STRING *identity;
 	ASN1_OCTET_STRING *publicPoint;
+
+	/* private */
 	ASN1_OCTET_STRING *privatePoint;
-};
 
-struct SM9PublicKey_st {
-	ASN1_OBJECT *pairing;
-	ASN1_OBJECT *scheme;
-	ASN1_OBJECT *hash1;
-	ASN1_OCTET_STRING *pointPpub;
-	ASN1_OCTET_STRING *identity;
-	ASN1_OCTET_STRING *publicPoint;
+	int references;
+	int flags;
+	CRYPTO_EX_DATA ex_data;
+	CRYPTO_RWLOCK *lock;
 };
 
 struct SM9Ciphertext_st {

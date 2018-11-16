@@ -69,6 +69,9 @@ typedef struct paillier_st PAILLIER;
 PAILLIER *PAILLIER_new(void);
 void PAILLIER_free(PAILLIER *key);
 
+int PAILLIER_size(const PAILLIER *key);
+int PAILLIER_security_bits(const PAILLIER *key);
+
 int PAILLIER_generate_key(PAILLIER *key, int bits);
 int PAILLIER_check_key(PAILLIER *key);
 int PAILLIER_encrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *key);
@@ -92,6 +95,7 @@ int ERR_load_PAILLIER_strings(void);
 /* Error codes for the PAILLIER functions. */
 
 /* Function codes. */
+# define PAILLIER_F_OLD_PAILLIER_PRIV_DECODE              110
 # define PAILLIER_F_PAILLIER_CHECK_KEY                    100
 # define PAILLIER_F_PAILLIER_CIPHERTEXT_ADD               101
 # define PAILLIER_F_PAILLIER_CIPHERTEXT_SCALAR_MUL        102
@@ -99,12 +103,15 @@ int ERR_load_PAILLIER_strings(void);
 # define PAILLIER_F_PAILLIER_ENCRYPT                      104
 # define PAILLIER_F_PAILLIER_GENERATE_KEY                 105
 # define PAILLIER_F_PAILLIER_NEW                          106
+# define PAILLIER_F_PAILLIER_PRIV_DECODE                  111
+# define PAILLIER_F_PAILLIER_PRIV_ENCODE                  112
 # define PAILLIER_F_PAILLIER_PUB_DECODE                   107
 # define PAILLIER_F_PKEY_PAILLIER_DECRYPT                 108
 # define PAILLIER_F_PKEY_PAILLIER_ENCRYPT                 109
 
 /* Reason codes. */
 # define PAILLIER_R_BUFFER_TOO_SMALL                      104
+# define PAILLIER_R_DECODE_ERROR                          105
 # define PAILLIER_R_GENERATE_PRIME_FAILED                 100
 # define PAILLIER_R_INVALID_PLAINTEXT                     101
 # define PAILLIER_R_MALLOC_FAILED                         102

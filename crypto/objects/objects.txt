@@ -1480,11 +1480,6 @@ id-pkinit 5                     : pkInitKDC             : Signing KDC Response
                             : KxPSK        : kx-psk
                             : KxSRP        : kx-srp
                             : KxGOST       : kx-gost
-                            : KxSM2        : kx-sm2
-                            : KxSM2DHE     : kx-sm2dhe
-                            : KxSM2-PSK    : kx-sm2-psk
-                            : KxSM9        : kx-sm9
-                            : KxSM9DHE     : kx-sm9dhe
 
 # NIDs for cipher authentication
                             : AuthRSA      : auth-rsa
@@ -1495,10 +1490,8 @@ id-pkinit 5                     : pkInitKDC             : Signing KDC Response
                             : AuthGOST12   : auth-gost12
                             : AuthSRP      : auth-srp
                             : AuthNULL     : auth-null
-                            : AuthSM2      : auth-sm2
-                            : AuthSM9      : auth-sm9
 
-# GmSSL SECG ECIES OID
+# SECG ECIES OID
 secg-scheme 7		: ecies-recommendedParameters
 secg-scheme 8		: ecies-specifiedParameters
 secg-scheme 17 0	: x9-63-kdf
@@ -1518,8 +1511,6 @@ secg-scheme 23		: hmac-half-ecies
 secg-scheme 24 0	: cmac-aes128-ecies
 secg-scheme 24 1	: cmac-aes192-ecies
 secg-scheme 24 2	: cmac-aes256-ecies
-
-
 ecies-specifiedParameters 1	: ecies-with-x9-63-sha1-xor-hmac
 ecies-specifiedParameters 2	: ecies-with-x9-63-sha256-xor-hmac
 ecies-specifiedParameters 3	: ecies-with-x9-63-sha512-xor-hmac
@@ -1538,18 +1529,27 @@ ecies-specifiedParameters 15	: ecies-with-x9-63-sha512-aes256-cbc-cmac
 ecies-specifiedParameters 16	: ecies-with-x9-63-sha256-aes128-ctr-cmac
 ecies-specifiedParameters 17	: ecies-with-x9-63-sha512-aes256-ctr-cmac
 
+# RFC 5091 IBCS #1
+!Alias ibcs ISO-US 1 114334 1
+ibcs 1		: ibcs1
+ibcs1 1 1	: type1curve
+ibcs1 2 1	: bfibe
+ibcs1 2 2	: bb1ibe
 
-# GmSSL SM OID
-member-body 156		: ISO-CN	: ISO CN Member Body
+# GM/T
+member-body 156		: ISO-CN		: ISO CN Member Body
 ISO-CN 10197		: oscca
 oscca 1			: sm-scheme
 
-sm-scheme 101 1		: SM6-ECB		: sm6-ecb
-sm-scheme 101 2		: SM6-CBC		: sm6-cbc
-!Cname sm6-ofb128
-sm-scheme 101 3		: SM6-OFB		: sm6-ofb
-!Cname sm6-cfb128
-sm-scheme 101 4		: SM6-CFB		: sm6-cfb
+sm-scheme 103 1		: SSF33-ECB		: ssf33-ecb
+sm-scheme 103 2		: SSF33-CBC		: ssf33-cbc
+!Cname ssf33-ofb128
+sm-scheme 103 3		: SSF33-OFB		: ssf33-ofb
+!Cname ssf33-cfb128
+sm-scheme 103 4		: SSF33-CFB		: ssf33-cfb
+sm-scheme 103 5		: SSF33-CFB1		: ssf33-cfb1
+sm-scheme 103 6		: SSF33-CFB8		: ssf33-cfb8
+sm-scheme 103 7		: SSF33-CBC-MAC		: ssf33-cbc-mac
 
 sm-scheme 102 1		: SM1-ECB		: sm1-ecb
 sm-scheme 102 2		: SM1-CBC		: sm1-cbc
@@ -1560,15 +1560,43 @@ sm-scheme 102 4		: SM1-CFB		: sm1-cfb
 sm-scheme 102 5		: SM1-CFB1		: sm1-cfb1
 sm-scheme 102 6		: SM1-CFB8		: sm1-cfb8
 
-sm-scheme 103 1		: SSF33-ECB		: ssf33-ecb
-sm-scheme 103 2		: SSF33-CBC		: ssf33-cbc
-!Cname ssf33-ofb128
-sm-scheme 103 3		: SSF33-OFB		: ssf33-ofb
-!Cname ssf33-cfb128
-sm-scheme 103 4		: SSF33-CFB		: ssf33-cfb
-sm-scheme 103 5		: SSF33-CFB1		: ssf33-cfb1
-sm-scheme 103 6		: SSF33-CFB8		: ssf33-cfb8
 
+# SM2 OIDs
+sm-scheme 301		: sm2p256v1
+sm-scheme 301 1		: sm2sign
+sm-scheme 301 2		: sm2exchange
+sm-scheme 301 3		: sm2encrypt
+
+sm-scheme 501		: SM2Sign-with-SM3	: sm2sign-with-sm3
+sm-scheme 502		: SM2Sign-with-SHA1 	: sm2sign-with-sha1
+sm-scheme 503		: SM2Sign-with-SHA256	: sm2sign-with-sha256
+sm-scheme 504		: SM2Sign-with-SHA511	: sm2sign-with-sha512
+sm-scheme 505		: SM2Sign-with-SHA224	: sm2sign-with-sha224
+sm-scheme 506		: SM2Sign-with-SHA384	: sm2sign-with-sha384
+sm-scheme 507		: SM2Sign-with-RMD160	: sm2sign-with-rmd160
+sm-scheme 520		: SM2Sign-with-Whirlpool : sm2sign-with-whirlpool
+sm-scheme 521		: SM2Sign-with-Blake2b512 : sm2sign-with-blake2b512
+sm-scheme 522		: SM2Sign-with-Blake2s256 : sm2sign-with-blake2s256
+
+sm2encrypt 1		: sm2encrypt-recommendedParameters
+sm2encrypt 2		: sm2encrypt-specifiedParameters
+sm2encrypt 2 1		: sm2encrypt-with-sm3
+sm2encrypt 2 2		: sm2encrypt-with-sha1
+sm2encrypt 2 3		: sm2encrypt-with-sha224
+sm2encrypt 2 4		: sm2encrypt-with-sha256
+sm2encrypt 2 5		: sm2encrypt-with-sha384
+sm2encrypt 2 6		: sm2encrypt-with-sha512
+sm2encrypt 2 7		: sm2encrypt-with-rmd160
+sm2encrypt 2 8		: sm2encrypt-with-whirlpool
+sm2encrypt 2 9		: sm2encrypt-with-blake2b512
+sm2encrypt 2 10		: sm2encrypt-with-blake2s256
+sm2encrypt 2 11		: sm2encrypt-with-md5
+
+# SM3
+sm-scheme 401		: SM3			: sm3
+sm-scheme 401 2		: HMAC-SM3		: hmac-sm3
+
+# SM4
 sm-scheme 104 1		: SMS4-ECB		: sms4-ecb
 sm-scheme 104 2		: SMS4-CBC		: sms4-cbc
 !Cname sms4-ofb128
@@ -1585,89 +1613,65 @@ sm-scheme 104 11	: SMS4-WRAP		: sms4-wrap
 sm-scheme 104 12	: SMS4-WRAP-PAD		: sms4-wrap-pad
 sm-scheme 104 100	: SMS4-OCB		: sms4-ocb
 
+# SM5/6/7/8
+sm-scheme 201		: SM5			: sm5
+sm-scheme 101 1		: SM6-ECB		: sm6-ecb
+sm-scheme 101 2		: SM6-CBC		: sm6-cbc
+!Cname sm6-ofb128
+sm-scheme 101 3		: SM6-OFB		: sm6-ofb
+!Cname sm6-cfb128
+sm-scheme 101 4		: SM6-CFB		: sm6-cfb
 !Alias sm7 sm-scheme 105
-
 !Alias sm8 sm-scheme 106
 
-sm-scheme 201		: SM5			: sm5
-
-sm-scheme 301		: sm2p256v1
-sm-scheme 301 1		: sm2sign
-sm-scheme 301 2		: sm2exchange
-sm-scheme 301 3		: sm2encrypt
-#sm-scheme 301 101	: wapip192v1
-
-sm2encrypt 1		: sm2encrypt-recommendedParameters
-sm2encrypt 2		: sm2encrypt-specifiedParameters
-sm2encrypt 2 1		: sm2encrypt-with-sm3
-sm2encrypt 2 2		: sm2encrypt-with-sha1
-sm2encrypt 2 3		: sm2encrypt-with-sha224
-sm2encrypt 2 4		: sm2encrypt-with-sha256
-sm2encrypt 2 5		: sm2encrypt-with-sha384
-sm2encrypt 2 6		: sm2encrypt-with-sha512
-sm2encrypt 2 7		: sm2encrypt-with-rmd160
-sm2encrypt 2 8		: sm2encrypt-with-whirlpool
-sm2encrypt 2 9		: sm2encrypt-with-blake2b512
-sm2encrypt 2 10		: sm2encrypt-with-blake2s256
-sm2encrypt 2 11		: sm2encrypt-with-md5
-
+# SM9
 sm-scheme 302		: id-sm9PublicKey
 sm-scheme 302 1		: sm9sign
-sm9sign 1		: sm9sign-with-sm3
-sm9sign 2		: sm9sign-with-sha256
 sm-scheme 302 2		: sm9keyagreement
 sm-scheme 302 3		: sm9encrypt
+sm-scheme 302 4		: sm9hash1
+sm-scheme 302 5		: sm9kdf
+sm-scheme 302 6		: id-sm9MasterSecret
+sm-scheme 302 6	1 	: sm9bn256v1
+sm9sign 1		: sm9sign-with-sm3
+sm9sign 2		: sm9sign-with-sha256
 sm9encrypt 1		: sm9encrypt-with-sm3-xor
 sm9encrypt 2		: sm9encrypt-with-sm3-sms4-cbc
 sm9encrypt 3		: sm9encrypt-with-sm3-sms4-ctr
-sm-scheme 302 4		: sm9hash1
-sm-scheme 302 5		: sm9kdf
 sm9hash1 1		: sm9hash1-with-sm3
 sm9hash1 2		: sm9hash1-with-sha256
 sm9kdf 1		: sm9kdf-with-sm3
 sm9kdf 2		: sm9kdf-with-sha256
 
-sm-scheme 401		: SM3			: sm3
-sm-scheme 401 2		: HMAC-SM3		: hmac-sm3
+# ZUC
+sm-scheme 800	: ZUC	: zuc
+zuc 1		: zuc-128eea3
+zuc 2		: zuc-128eia3
 
-sm-scheme 501		: SM2Sign-with-SM3	: sm2sign-with-sm3
-sm-scheme 502		: SM2Sign-with-SHA1 	: sm2sign-with-sha1
-sm-scheme 503		: SM2Sign-with-SHA256	: sm2sign-with-sha256
-sm-scheme 504		: SM2Sign-with-SHA511	: sm2sign-with-sha512
-sm-scheme 505		: SM2Sign-with-SHA224	: sm2sign-with-sha224
-sm-scheme 506		: SM2Sign-with-SHA384	: sm2sign-with-sha384
-sm-scheme 507		: SM2Sign-with-RMD160	: sm2sign-with-rmd160
-sm-scheme 520		: SM2Sign-with-Whirlpool : sm2sign-with-whirlpool
-sm-scheme 521		: SM2Sign-with-Blake2b512 : sm2sign-with-blake2b512
-sm-scheme 522		: SM2Sign-with-Blake2s256 : sm2sign-with-blake2s256
+# WAPI (GB 15629.11-2003-XG1-2006)
+ISO-CN 11235	: bwips
+bwips 1		: wapi-crypto
+wapi-crypto 1	: wapi-ec
+wapi-ec 1	: wapi-ecdsa192-sha256
+wapi-ec 2 1	: wapip192v1
 
-# GmSSL ZUC OID
-sm-scheme 800		: ZUC			: zuc
-zuc 1			: zuc-128eea3
-zuc 2			: zuc-128eia3
+# NIDs for cipher key exchange
+                            : KxSM2        : kx-sm2
+                            : KxSM2DHE     : kx-sm2dhe
+                            : KxSM2-PSK    : kx-sm2-psk
+                            : KxSM9        : kx-sm9
+                            : KxSM9DHE     : kx-sm9dhe
 
-# IBCS1
-!Alias ibcs1 ISO-US 1 114334 1
-ibcs1 2 1		: bfibe
-ibcs1 2 2		: bb1
-# 1 tate, 2 weil, 3 ate, 4 r-ate
-ibcs1 1 1		: type1curve
-ibcs1 1 2		: type2curve
-ibcs1 1 3		: type3curve
-ibcs1 1 4		: type4curve
+# NIDs for cipher authentication
+                            : AuthSM2      : auth-sm2
+                            : AuthSM9      : auth-sm9
 
-ibcs1 3 1		: tate-pairing
-ibcs1 3 2		: weil-pairing
-ibcs1 3 3		: ate-pairing
-ibcs1 3 4		: r-ate-pairing
 
-# GmSSL
-
+# gmssl.org
 Enterprises 49549	: gmssl		: GmSSL
 
+# CPK
 GmSSL 1			: CPK		: cpk
-
-# map algorithms
 cpk 1			: cpk-map
 cpk-map 1		: cpk-map-sha1
 cpk-map 2		: cpk-map-sha256
@@ -1675,14 +1679,6 @@ cpk-map 3		: cpk-map-sm3
 cpk-map 4		: cpk-map-sha384
 cpk-map 5		: cpk-map-sha512
 
+# paillier
 GmSSL 21		: paillier
 
-# WAPI (GB 15629.11-2003-XG1-2006)
-ISO-CN 11235		: bwips
-bwips 1			: wapi-crypto
-wapi-crypto 1		: wapi-ec
-wapi-ec 1		: wapi-ecdsa192-sha256
-wapi-ec 2 1		: wapip192v1
-
-# SM9 curve
-GmSSL 9 1		: sm9bn256v1

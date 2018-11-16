@@ -370,6 +370,60 @@ PAILLIER *EVP_PKEY_get1_PAILLIER(EVP_PKEY *pkey)
 }
 #endif
 
+#ifndef OPENSSL_NO_SM9
+
+int EVP_PKEY_set1_SM9_MASTER(EVP_PKEY *pkey, SM9_MASTER_KEY *key)
+{
+    int ret = EVP_PKEY_assign_SM9_MASTER(pkey, key);
+    if (ret)
+        SM9_MASTER_KEY_up_ref(key);
+    return ret;
+}
+
+SM9_MASTER_KEY *EVP_PKEY_get0_SM9_MASTER(EVP_PKEY *pkey)
+{
+    if (pkey->type != EVP_PKEY_SM9_MASTER) {
+        EVPerr(EVP_F_EVP_PKEY_GET0_SM9_MASTER, EVP_R_EXPECTING_A_SM9_MASTER_KEY);
+        return NULL;
+    }
+    return pkey->pkey.sm9_master;
+}
+
+SM9_MASTER_KEY *EVP_PKEY_get1_SM9_MASTER(EVP_PKEY *pkey)
+{
+    SM9_MASTER_KEY *ret = EVP_PKEY_get0_SM9_MASTER(pkey);
+    if (ret != NULL)
+        SM9_MASTER_KEY_up_ref(ret);
+    return ret;
+}
+
+int EVP_PKEY_set1_SM9(EVP_PKEY *pkey, SM9_KEY *key)
+{
+	int ret = EVP_PKEY_assign_SM9(pkey, key);
+	if (ret)
+		SM9_KEY_up_ref(key);
+	return ret;
+}
+
+SM9_KEY *EVP_PKEY_get0_SM9(EVP_PKEY *pkey)
+{
+	if (pkey->type != EVP_PKEY_SM9) {
+		EVPerr(EVP_F_EVP_PKEY_GET0_SM9, EVP_R_EXPECTING_A_SM9_KEY);
+		return NULL;
+	}
+	return pkey->pkey.sm9;
+}
+
+SM9_KEY *EVP_PKEY_get1_SM9(EVP_PKEY *pkey)
+{
+	SM9_KEY *ret = EVP_PKEY_get0_SM9(pkey);
+	if (ret != NULL)
+		SM9_KEY_up_ref(ret);
+	return ret;
+}
+
+#endif
+
 #ifndef OPENSSL_NO_DH
 
 int EVP_PKEY_set1_DH(EVP_PKEY *pkey, DH *key)

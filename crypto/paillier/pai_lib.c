@@ -45,7 +45,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
 #include <stdio.h>
@@ -70,7 +69,6 @@ PAILLIER *PAILLIER_new(void)
 
 void PAILLIER_free(PAILLIER *key)
 {
-
 	if (key) {
 		BN_free(key->n);
 		BN_free(key->lambda);
@@ -79,6 +77,16 @@ void PAILLIER_free(PAILLIER *key)
 		BN_free(key->x);
 	}
 	OPENSSL_clear_free(key, sizeof(*key));
+}
+
+int PAILLIER_size(const PAILLIER *key)
+{
+	return BN_num_bits(key->n)/8;
+}
+
+int PAILLIER_security_bits(const PAILLIER *key)
+{
+	return BN_security_bits(BN_num_bits(key->n)/2, -1);
 }
 
 int PAILLIER_generate_key(PAILLIER *key, int bits)

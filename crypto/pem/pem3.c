@@ -56,16 +56,13 @@
 # include <openssl/pkcs7.h>
 #endif
 #include <openssl/pem.h>
-#include <openssl/pem3.h>
 #ifndef OPENSSL_NO_PAILLIER
 # include <openssl/paillier.h>
 #endif
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
+#endif
 
-/*
-extern PAILLIER *EVP_PKEY_get1_PAILLIER(EVP_PKEY *key);
-extern int i2d_PAILLIER_PUBKEY(PAILLIER *a, unsigned char **p);
-extern PAILLIER *d2i_PAILLIER_PUBKEY(PAILLIER **a, const unsigned char **p, long len);
-*/
 
 #ifndef OPENSSL_NO_PAILLIER
 static PAILLIER *pkey_get_paillier(EVP_PKEY *key, PAILLIER **paillier)
@@ -109,4 +106,87 @@ IMPLEMENT_PEM_rw_const(PaillierPublicKey, PAILLIER, PEM_STRING_PAILLIER_PUBLIC,
 	PaillierPublicKey)
 IMPLEMENT_PEM_rw(PAILLIER_PUBKEY, PAILLIER, PEM_STRING_PUBLIC, PAILLIER_PUBKEY)
 
-#endif
+#endif /* OPENSSL_NO_PAILLIER */
+
+#ifndef OPENSSL_NO_SM9
+static SM9_MASTER_KEY *pkey_get_sm9_master(EVP_PKEY *key, SM9_MASTER_KEY **sm9_master)
+{
+	SM9_MASTER_KEY *rtmp;
+	if (!key)
+		return NULL;
+	rtmp = EVP_PKEY_get1_SM9_MASTER(key);
+	EVP_PKEY_free(key);
+	if (!rtmp)
+		return NULL;
+	if (sm9_master) {
+		SM9_MASTER_KEY_free(*sm9_master);
+		*sm9_master = rtmp;
+	}
+	return rtmp;
+}
+
+SM9_MASTER_KEY *PEM_read_bio_SM9MasterSecret(BIO *bp, SM9_MASTER_KEY **sm9_master,
+	pem_password_cb *cb, void *u)
+{
+	EVP_PKEY *pktmp;
+	pktmp = PEM_read_bio_PrivateKey(bp, NULL, cb, u);
+	return pkey_get_sm9_master(pktmp, sm9_master);
+}
+
+static SM9_KEY *pkey_get_sm9(EVP_PKEY *key, SM9_KEY **sm9)
+{
+	SM9_KEY *rtmp;
+	if (!key)
+		return NULL;
+	rtmp = EVP_PKEY_get1_SM9(key);
+	EVP_PKEY_free(key);
+	if (!rtmp)
+		return NULL;
+	if (sm9) {
+		SM9_KEY_free(*sm9);
+		*sm9 = rtmp;
+	}
+	return rtmp;
+}
+
+SM9_KEY *PEM_read_bio_SM9PrivateKey(BIO *bp, SM9_KEY **sm9,
+	pem_password_cb *cb, void *u)
+{
+	EVP_PKEY *pktmp;
+	pktmp = PEM_read_bio_PrivateKey(bp, NULL, cb, u);
+	return pkey_get_sm9(pktmp, sm9);
+}
+
+# ifndef OPENSSL_NO_STDIO
+SM9_MASTER_KEY *PEM_read_SM9MasterSecret(FILE *fp, SM9_MASTER_KEY **sm9_master,
+	pem_password_cb *cb, void *u)
+{
+	EVP_PKEY *pktmp;
+	pktmp = PEM_read_PrivateKey(fp, NULL, cb, u);
+	return pkey_get_sm9_master(pktmp, sm9_master);
+}
+
+SM9_KEY *PEM_read_SM9PrivateKey(FILE *fp, SM9_KEY **sm9,
+	pem_password_cb *cb, void *u)
+{
+	EVP_PKEY *pktmp;
+	pktmp = PEM_read_PrivateKey(fp, NULL, cb, u);
+	return pkey_get_sm9(pktmp, sm9);
+}
+# endif
+
+IMPLEMENT_PEM_write_cb_const(SM9MasterSecret, SM9_MASTER_KEY,
+	PEM_STRING_SM9_MASTER, SM9MasterSecret)
+IMPLEMENT_PEM_rw_const(SM9PublicParameters, SM9_MASTER_KEY,
+	PEM_STRING_SM9_MASTER_PUBLIC, SM9PublicParameters)
+IMPLEMENT_PEM_rw(SM9_MASTER_PUBKEY, SM9_MASTER_KEY,
+	PEM_STRING_PUBLIC, SM9_MASTER_PUBKEY)
+
+IMPLEMENT_PEM_write_cb_const(SM9PrivateKey, SM9_KEY,
+	PEM_STRING_SM9, SM9PrivateKey)
+IMPLEMENT_PEM_rw_const(SM9PublicKey, SM9_KEY,
+	PEM_STRING_SM9_PUBLIC, SM9PublicKey)
+IMPLEMENT_PEM_rw(SM9_PUBKEY, SM9_KEY,
+	PEM_STRING_PUBLIC, SM9_PUBKEY)
+
+#endif /* OPENSSL_NO_SM9 */

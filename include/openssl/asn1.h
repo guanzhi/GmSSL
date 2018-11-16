@@ -963,6 +963,8 @@ int ERR_load_ASN1_strings(void);
 # define ASN1_F_I2D_PRIVATEKEY                            163
 # define ASN1_F_I2D_PUBLICKEY                             164
 # define ASN1_F_I2D_RSA_PUBKEY                            165
+# define ASN1_F_I2D_SM9_MASTER_PUBKEY                     105
+# define ASN1_F_I2D_SM9_PUBKEY                            112
 # define ASN1_F_LONG_C2I                                  166
 # define ASN1_F_OID_MODULE_INIT                           174
 # define ASN1_F_PARSE_TAGGING                             182

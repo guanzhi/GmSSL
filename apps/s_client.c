@@ -538,7 +538,7 @@ typedef enum OPTION_choice {
     OPT_SRPUSER, OPT_SRPPASS, OPT_SRP_STRENGTH, OPT_SRP_LATEUSER,
     OPT_SRP_MOREGROUPS,
 #endif
-    OPT_SSL3, OPT_SSL_CONFIG,
+    OPT_SSL3, OPT_CONFIG, OPT_SSL_CONFIG,
     OPT_TLS1_2, OPT_TLS1_1, OPT_TLS1, OPT_DTLS, OPT_DTLS1,
     OPT_GMTLS,
     OPT_DTLS1_2, OPT_TIMEOUT, OPT_MTU, OPT_KEYFORM, OPT_PASS,
@@ -659,7 +659,8 @@ OPTIONS s_client_options[] = {
     {"alpn", OPT_ALPN, 's',
      "Enable ALPN extension, considering named protocols supported (comma-separated list)"},
     {"async", OPT_ASYNC, '-', "Support asynchronous operation"},
-    {"ssl_config", OPT_SSL_CONFIG, 's', "Use specified configuration file"},
+    {"config", OPT_CONFIG, 's', "Use configuration file"},
+    {"ssl_config", OPT_SSL_CONFIG, 's', "Use specified configuration section"},
     {"split_send_frag", OPT_SPLIT_SEND_FRAG, 'n',
      "Size used to split data for encrypt pipelines"},
     {"max_pipelines", OPT_MAX_PIPELINES, 'n',
@@ -726,7 +727,7 @@ OPTIONS s_client_options[] = {
      "Specify engine to be used for client certificate operations"},
 #endif
 #ifndef OPENSSL_NO_CT
-    {"ct", OPT_CT, '-', "Request and parse SCTs (also enables OCSP stapling)"},
+    {"ct", OPT_CT, '-', "Request and parse SCTs (also enables OCSP stapsection)"},
     {"noct", OPT_NOCT, '-', "Do not request or parse SCTs (default)"},
     {"ctlogfile", OPT_CTLOG_FILE, '<', "CT log list CONF file"},
 #endif
@@ -838,6 +839,8 @@ int s_client_main(int argc, char **argv)
     char *servername = NULL;
     const char *alpn_in = NULL;
     tlsextctx tlsextcbp = { NULL, 0 };
+    CONF *conf = NULL;
+    const char *configfile = default_config_file;
     const char *ssl_config = NULL;
 #define MAX_SI_TYPES 100
     unsigned short serverinfo_types[MAX_SI_TYPES];
@@ -1152,6 +1155,9 @@ int s_client_main(int argc, char **argv)
                 min_version = TLS1_VERSION;
             break;
 #endif
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
         case OPT_SSL_CONFIG:
             ssl_config = opt_arg();
             break;
@@ -1346,6 +1352,13 @@ int s_client_main(int argc, char **argv)
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
+
+    if (e)
+        BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
 
     if (proxystr) {
         int res;
@@ -2522,6 +2535,7 @@ int s_client_main(int argc, char **argv)
     bio_c_out = NULL;
     BIO_free(bio_c_msg);
     bio_c_msg = NULL;
+    NCONF_free(conf);
     return (ret);
 }
 
