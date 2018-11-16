@@ -110,8 +110,8 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 		memset(ctx->block, 0, SM3_BLOCK_SIZE - 8);
 	}
 
-	count[0] = cpu_to_be32((ctx->nblocks) >> 23);
-	count[1] = cpu_to_be32((ctx->nblocks << 9) + (ctx->num << 3));
+	count[0] = cpu_to_be32((uint32_t)(ctx->nblocks >> 23));
+	count[1] = cpu_to_be32((uint32_t)(ctx->nblocks << 9) + (ctx->num << 3));
 
 	sm3_compress(ctx->digest, ctx->block);
 	for (i = 0; i < sizeof(ctx->digest)/sizeof(ctx->digest[0]); i++) {
