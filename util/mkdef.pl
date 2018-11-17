@@ -331,7 +331,6 @@ $crypto.=" include/openssl/gmsof.h";
 $crypto.=" include/openssl/kdf2.h";
 $crypto.=" include/openssl/otp.h";
 $crypto.=" include/openssl/paillier.h";
-$crypto.=" include/openssl/pem3.h";
 $crypto.=" include/openssl/saf.h";
 $crypto.=" include/openssl/sdf.h";
 $crypto.=" include/openssl/sgd.h";
