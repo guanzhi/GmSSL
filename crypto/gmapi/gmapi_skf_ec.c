@@ -621,6 +621,8 @@ int i2d_ECCCIPHERBLOB(ECCCIPHERBLOB *a, unsigned char **pp)
 	}
 
 	if ((ret = i2d_SM2CiphertextValue(cv, pp)) <= 0) {
+		GMAPIerr(GMAPI_F_I2D_SM2CIPHERTEXTVALUE, GMAPI_R_INVALID_SKF_CIPHERTEXT);
+		return 0;
 	}
 
 	SM2CiphertextValue_free(cv);
