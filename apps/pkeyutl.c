@@ -336,7 +336,6 @@ int pkeyutl_main(int argc, char **argv)
         BIO_write(out, buf_out, buf_outlen);
 
  end:
-/*
     EVP_PKEY_CTX_free(ctx);
     release_engine(e);
     BIO_free(in);
@@ -346,7 +345,6 @@ int pkeyutl_main(int argc, char **argv)
     OPENSSL_free(sig);
     sk_OPENSSL_STRING_free(pkeyopts);
     NCONF_free(conf);
-*/
     return ret;
 }
 

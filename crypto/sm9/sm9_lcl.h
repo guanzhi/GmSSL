@@ -181,6 +181,11 @@ void point_cleanup(point_t *P);
 
 int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx);
 
+int sm9_check_pairing(int nid);
+int sm9_check_scheme(int nid);
+int sm9_check_hash1(int nid);
+int sm9_check_encrypt_scheme(int nid);
+int sm9_check_sign_scheme(int nid);
 
 #ifdef __cplusplus
 }

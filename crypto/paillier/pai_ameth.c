@@ -225,31 +225,32 @@ static int old_paillier_priv_encode(const EVP_PKEY *pkey, unsigned char **pder)
 }
 
 const EVP_PKEY_ASN1_METHOD paillier_asn1_meth = {
-	EVP_PKEY_PAILLIER,
-	EVP_PKEY_PAILLIER,
-	0, //FIXME
-
-	"PAILLIER",
-	"OpenSSL PAILLIER algorithm",
-
-	paillier_pub_decode,
-	paillier_pub_encode,
-	paillier_pub_cmp,
-	paillier_pub_print,
-
-	paillier_priv_decode,
-	paillier_priv_encode,
-	paillier_priv_print,
-
-	int_paillier_size,
-	paillier_bits,
-	paillier_security_bits,
-
-	0, 0, 0, 0, 0, 0,
-	0,
-
-	int_paillier_free,
-	paillier_pkey_ctrl,
-	old_paillier_priv_decode,
-	old_paillier_priv_encode
+	EVP_PKEY_PAILLIER,		/* pkey_id */
+	EVP_PKEY_PAILLIER,		/* pkey_base_id */
+	0,				/* pkey_flags */
+	"PAILLIER",			/* pem_str */
+	"GmSSL Paillier algorithm",	/* info */
+	paillier_pub_decode,		/* pub_decode */
+	paillier_pub_encode,		/* pub_encode */
+	paillier_pub_cmp,		/* pub_cmp */
+	paillier_pub_print,		/* pub_print */
+	paillier_priv_decode,		/* priv_decode */
+	paillier_priv_encode,		/* priv_encode */
+	paillier_priv_print,		/* priv_print */
+	int_paillier_size,		/* pkey_size */
+	paillier_bits,			/* pkey_bits */
+	paillier_security_bits,		/* pkey_security_bits */
+	NULL,				/* param_decode */
+	NULL,				/* param_encode */
+	NULL,				/* param_missing */
+	NULL,				/* param_copy */
+	NULL,				/* param_cmp */
+	NULL,				/* param_print */
+	NULL,				/* sig_print */
+	int_paillier_free,		/* pkey_free */
+	paillier_pkey_ctrl,		/* pkey_ctrl */
+	old_paillier_priv_decode,	/* old_priv_decode */
+	old_paillier_priv_encode,	/* old_priv_encode */
+	NULL,				/* item_verify */
+	NULL,				/* item_sign */
 };

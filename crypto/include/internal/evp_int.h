@@ -84,6 +84,13 @@ extern const EVP_PKEY_METHOD hmac_pkey_meth;
 extern const EVP_PKEY_METHOD rsa_pkey_meth;
 extern const EVP_PKEY_METHOD tls1_prf_pkey_meth;
 extern const EVP_PKEY_METHOD hkdf_pkey_meth;
+#ifndef OPENSSL_NO_SM9
+extern const EVP_PKEY_METHOD sm9_pkey_meth;
+extern const EVP_PKEY_METHOD sm9_master_pkey_meth;
+#endif
+#ifndef OPENSSL_NO_PAILLIER
+extern const EVP_PKEY_METHOD paillier_pkey_meth;
+#endif
 
 struct evp_md_st {
     int type;

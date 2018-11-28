@@ -620,7 +620,7 @@ int i2d_ECCCIPHERBLOB(ECCCIPHERBLOB *a, unsigned char **pp)
 		return 0;
 	}
 
-	ret = i2d_SM2CiphertextValue(cv, pp));
+	ret = i2d_SM2CiphertextValue(cv, pp);
 	SM2CiphertextValue_free(cv);
 	return ret;
 }

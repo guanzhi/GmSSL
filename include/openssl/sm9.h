@@ -106,6 +106,10 @@ int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 
 int SM9_signature_size(SM9PublicParameters *mpk);
 
+SM9Signature *SM9_do_sign(const unsigned char *dgst, int dgstlen, SM9_KEY *sm9);
+int SM9_do_verify(const unsigned char *dgst, int dgstlen,
+	const SM9Signature *sig, SM9_KEY *sm9);
+
 int SM9_sign(int type,
 	const unsigned char *data, size_t datalen,
 	unsigned char *sig, size_t *siglen,
@@ -174,18 +178,15 @@ int SM9_compute_share_key_B(int type,
 
 
 #ifndef OPENSSL_NO_STDIO
-
 SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **pp);
 SM9PublicParameters *d2i_SM9PublicParameters_fp(FILE *fp, SM9PublicParameters **pp);
 SM9PrivateKey *d2i_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey **pp);
-SM9PublicKey *d2i_SM9PublicKey_fp(FILE *fp, SM9PublicKey **pp);
 SM9Signature *d2i_SM9Signature_fp(FILE *fp, SM9Signature **pp);
 SM9Ciphertext *d2i_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext **pp);
 
 int i2d_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret *a);
-int i2d_PublicParameters_fp(FILE *fp, SM9PublicParameters *a);
+int i2d_SM9PublicParameters_fp(FILE *fp, SM9PublicParameters *a);
 int i2d_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey *a);
-int i2d_SM9PublicKey_fp(FILE *fp, SM9PublicKey *a);
 int i2d_SM9Signature_fp(FILE *fp, SM9Signature *a);
 int i2d_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext *a);
 #endif
@@ -209,7 +210,72 @@ DECLARE_ASN1_FUNCTIONS(SM9Ciphertext)
 #define SM9PublicKey_new() SM9_KEY_new()
 #define SM9PublicKey_free(a) SM9_KEY_free(a)
 
+# define EVP_PKEY_CTRL_SM9_PAIRING		(EVP_PKEY_ALG_CTRL + 1)
+# define EVP_PKEY_CTRL_SM9_SCHEME		(EVP_PKEY_ALG_CTRL + 2)
+# define EVP_PKEY_CTRL_SM9_HASH1		(EVP_PKEY_ALG_CTRL + 3)
+# define EVP_PKEY_CTRL_SM9_SIGN_SCHEME		(EVP_PKEY_ALG_CTRL + 4)
+# define EVP_PKEY_CTRL_SM9_ENCRYPT_SCHEME	(EVP_PKEY_ALG_CTRL + 5)
+# define EVP_PKEY_CTRL_SM9_ID			(EVP_PKEY_ALG_CTRL + 6)
+# define EVP_PKEY_CTRL_GET_SM9_ID		(EVP_PKEY_ALG_CTRL + 7)
 
+# define EVP_PKEY_CTX_set_sm9_pairing(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_SM9_PAIRING, nid, NULL)
+
+# define EVP_PKEY_CTX_get_sm9_pairing(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_SM9_PAIRING, -2, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_scheme(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_SM9_SCHEME, nid, NULL)
+
+# define EVP_PKEY_CTX_get_sm9_scheme(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_SM9_SCHEME, -2, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_hash1(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, EVP_PKEY_CTRL_SM9_HASH1, nid, NULL)
+
+# define EVP_PKEY_CTX_get_sm9_hash1(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, EVP_PKEY_CTRL_SM9_HASH1, -2, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_encrypt_scheme(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_ENCRYPT, \
+		EVP_PKEY_CTRL_SM9_ENCRYPT_SCHEME, nid, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_decrypt_scheme(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9, \
+		EVP_PKEY_OP_DECRYPT|EVP_PKEY_OP_ENCRYPT, \
+		EVP_PKEY_CTRL_SM9_ENCRYPT_SCHEME, nid, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_sign_scheme(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9, \
+		EVP_PKEY_OP_SIGN|EVP_PKEY_OP_SIGNCTX| \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+		EVP_PKEY_CTRL_SM9_SIGN_SCHEME, nid, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_verify_scheme(ctx, nid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_VERIFY|EVP_PKEY_OP_VERIFYCTX, \
+		EVP_PKEY_CTRL_SM9_SIGN_SCHEME, nid, NULL)
+
+# define EVP_PKEY_CTX_set_sm9_id(ctx, id) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_SM9_ID, 0, (void *)id)
+
+# define EVP_PKEY_CTX_get_sm9_id(ctx, pid) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_SM9_MASTER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_GET_SM9_ID, 0, (void *)pid)
 
 /* BEGIN ERROR CODES */
 /*
@@ -222,77 +288,81 @@ int ERR_load_SM9_strings(void);
 /* Error codes for the SM9 functions. */
 
 /* Function codes. */
-# define SM9_F_OLD_SM9_MASTER_DECODE                      124
-# define SM9_F_OLD_SM9_PRIV_DECODE                        125
-# define SM9_F_SM9CIPHERTEXT_CHECK                        100
-# define SM9_F_SM9ENCPARAMETERS_DECRYPT                   101
-# define SM9_F_SM9ENCPARAMETERS_ENCRYPT                   102
-# define SM9_F_SM9ENCPARAMETERS_GENERATE_MAC              103
-# define SM9_F_SM9ENCPARAMETERS_GET_KEY_LENGTH            104
-# define SM9_F_SM9PUBLICPARAMETERS_GET_POINT_SIZE         105
-# define SM9_F_SM9_COMPUTE_SHARE_KEY_A                    122
-# define SM9_F_SM9_COMPUTE_SHARE_KEY_B                    123
-# define SM9_F_SM9_DECRYPT                                106
-# define SM9_F_SM9_DO_DECRYPT                             107
-# define SM9_F_SM9_DO_ENCRYPT                             108
-# define SM9_F_SM9_ENCRYPT                                109
-# define SM9_F_SM9_EXTRACT_PRIVATE_KEY                    110
-# define SM9_F_SM9_EXTRACT_PUBLIC_PARAMETERS              111
-# define SM9_F_SM9_GENERATE_KEY_EXCHANGE                  121
-# define SM9_F_SM9_GENERATE_MASTER_SECRET                 112
-# define SM9_F_SM9_KEY_NEW                                132
+# define SM9_F_OLD_SM9_MASTER_DECODE                      100
+# define SM9_F_OLD_SM9_PRIV_DECODE                        101
+# define SM9_F_PKEY_SM9_COPY                              102
+# define SM9_F_PKEY_SM9_CTRL                              103
+# define SM9_F_PKEY_SM9_CTRL_STR                          104
+# define SM9_F_PKEY_SM9_DECRYPT                           105
+# define SM9_F_PKEY_SM9_ENCRYPT                           106
+# define SM9_F_PKEY_SM9_INIT                              107
+# define SM9_F_PKEY_SM9_KEYGEN                            108
+# define SM9_F_PKEY_SM9_MASTER_COPY                       109
+# define SM9_F_PKEY_SM9_MASTER_CTRL                       110
+# define SM9_F_PKEY_SM9_MASTER_CTRL_STR                   111
+# define SM9_F_PKEY_SM9_MASTER_ENCRYPT                    112
+# define SM9_F_PKEY_SM9_MASTER_INIT                       113
+# define SM9_F_PKEY_SM9_MASTER_KEYGEN                     114
+# define SM9_F_PKEY_SM9_MASTER_VERIFY                     115
+# define SM9_F_PKEY_SM9_SIGN                              116
+# define SM9_F_PKEY_SM9_VERIFY                            117
+# define SM9_F_SM9_COMPUTE_SHARE_KEY_A                    118
+# define SM9_F_SM9_COMPUTE_SHARE_KEY_B                    119
+# define SM9_F_SM9_DECRYPT                                120
+# define SM9_F_SM9_ENCRYPT                                121
+# define SM9_F_SM9_EXTRACT_PUBLIC_PARAMETERS              122
+# define SM9_F_SM9_GENERATE_KEY_EXCHANGE                  123
+# define SM9_F_SM9_GENERATE_MASTER_SECRET                 124
+# define SM9_F_SM9_KEY_NEW                                125
 # define SM9_F_SM9_MASTER_DECODE                          126
 # define SM9_F_SM9_MASTER_ENCODE                          127
-# define SM9_F_SM9_MASTER_KEY_EXTRACT_KEY                 134
-# define SM9_F_SM9_MASTER_KEY_NEW                         133
-# define SM9_F_SM9_PARAMS_DECODE                          128
-# define SM9_F_SM9_PRIV_DECODE                            129
-# define SM9_F_SM9_PRIV_ENCODE                            130
-# define SM9_F_SM9_PUB_DECODE                             131
-# define SM9_F_SM9_SIGN                                   119
-# define SM9_F_SM9_SIGNFINAL                              115
-# define SM9_F_SM9_SIGNINIT                               116
-# define SM9_F_SM9_UNWRAP_KEY                             113
-# define SM9_F_SM9_VERIFY                                 120
-# define SM9_F_SM9_VERIFYFINAL                            117
-# define SM9_F_SM9_VERIFYINIT                             118
-# define SM9_F_SM9_WRAP_KEY                               114
+# define SM9_F_SM9_MASTER_KEY_EXTRACT_KEY                 128
+# define SM9_F_SM9_MASTER_KEY_NEW                         129
+# define SM9_F_SM9_PARAMS_DECODE                          130
+# define SM9_F_SM9_PRIV_DECODE                            131
+# define SM9_F_SM9_PRIV_ENCODE                            132
+# define SM9_F_SM9_PUB_DECODE                             133
+# define SM9_F_SM9_SIGN                                   134
+# define SM9_F_SM9_SIGNFINAL                              135
+# define SM9_F_SM9_SIGNINIT                               136
+# define SM9_F_SM9_UNWRAP_KEY                             137
+# define SM9_F_SM9_VERIFY                                 138
+# define SM9_F_SM9_VERIFYFINAL                            139
+# define SM9_F_SM9_VERIFYINIT                             140
+# define SM9_F_SM9_WRAP_KEY                               141
 
 /* Reason codes. */
-# define SM9_R_BUFFER_TOO_SMALL                           100
-# define SM9_R_DECODE_ERROR                               132
-# define SM9_R_DIGEST_FAILURE                             119
-# define SM9_R_EC_LIB                                     101
-# define SM9_R_EXTENSION_FIELD_ERROR                      120
-# define SM9_R_GENERATE_MAC_FAILURE                       102
-# define SM9_R_HASH_FAILURE                               103
-# define SM9_R_INVALID_CIPHERTEXT                         104
-# define SM9_R_INVALID_DIGEST_TYPE                        130
-# define SM9_R_INVALID_ENCPARAMETERS                      105
-# define SM9_R_INVALID_HASH1                              106
-# define SM9_R_INVALID_HASH2_DIGEST                       126
-# define SM9_R_INVALID_ID                                 107
-# define SM9_R_INVALID_ID_LENGTH                          108
-# define SM9_R_INVALID_INPUT                              109
-# define SM9_R_INVALID_KEM_KEY_LENGTH                     128
-# define SM9_R_INVALID_KEY_AGREEMENT_CHECKSUM             131
-# define SM9_R_INVALID_KEY_LENGTH                         110
-# define SM9_R_INVALID_MD                                 111
-# define SM9_R_INVALID_PAIRING_TYPE                       112
-# define SM9_R_INVALID_PARAMETER                          113
-# define SM9_R_INVALID_POINTPPUB                          121
-# define SM9_R_INVALID_PRIVATE_POINT                      122
-# define SM9_R_INVALID_SCHEME                             114
-# define SM9_R_INVALID_SIGNATURE                          123
-# define SM9_R_INVALID_SIGNATURE_FORMAT                   127
-# define SM9_R_INVALID_TYPE1CURVE                         115
-# define SM9_R_KDF_FAILURE                                116
-# define SM9_R_NO_MASTER_SECRET                           133
-# define SM9_R_PAIRING_ERROR                              124
-# define SM9_R_RATE_PAIRING_ERROR                         129
-# define SM9_R_TWIST_CURVE_ERROR                          117
-# define SM9_R_VERIFY_FAILURE                             125
-# define SM9_R_ZERO_ID                                    118
+# define SM9_R_DECODE_ERROR                               100
+# define SM9_R_DIGEST_FAILURE                             101
+# define SM9_R_EC_LIB                                     102
+# define SM9_R_EXTENSION_FIELD_ERROR                      103
+# define SM9_R_IDENTITY_REQUIRED                          104
+# define SM9_R_ID_OR_MASTER_SECRET_REQUIRED               105
+# define SM9_R_INVALID_DIGEST_TYPE                        106
+# define SM9_R_INVALID_ENCRYPT_SCHEME                     107
+# define SM9_R_INVALID_HASH1                              108
+# define SM9_R_INVALID_HASH2_DIGEST                       109
+# define SM9_R_INVALID_ID                                 110
+# define SM9_R_INVALID_KEM_KEY_LENGTH                     111
+# define SM9_R_INVALID_KEY_AGREEMENT_CHECKSUM             112
+# define SM9_R_INVALID_KEY_USAGE                          113
+# define SM9_R_INVALID_PAIRING                            114
+# define SM9_R_INVALID_PAIRING_TYPE                       115
+# define SM9_R_INVALID_POINTPPUB                          116
+# define SM9_R_INVALID_PRIVATE_POINT                      117
+# define SM9_R_INVALID_SCHEME                             118
+# define SM9_R_INVALID_SIGNATURE                          119
+# define SM9_R_INVALID_SIGNATURE_FORMAT                   120
+# define SM9_R_INVALID_SIGN_MD                            121
+# define SM9_R_INVALID_SIGN_SCHEME                        122
+# define SM9_R_INVALID_SM9_SCHEME                         123
+# define SM9_R_NO_MASTER_SECRET                           124
+# define SM9_R_PAIRING_ERROR                              125
+# define SM9_R_RATE_PAIRING_ERROR                         126
+# define SM9_R_SIGNER_ID_REQUIRED                         127
+# define SM9_R_TWIST_CURVE_ERROR                          128
+# define SM9_R_VERIFY_FAILURE                             129
+# define SM9_R_ZERO_ID                                    130
 
 #  ifdef  __cplusplus
 }

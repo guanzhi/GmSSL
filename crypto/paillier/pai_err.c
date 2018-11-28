@@ -32,8 +32,12 @@ static ERR_STRING_DATA PAILLIER_str_functs[] = {
     {ERR_FUNC(PAILLIER_F_PAILLIER_PRIV_DECODE), "paillier_priv_decode"},
     {ERR_FUNC(PAILLIER_F_PAILLIER_PRIV_ENCODE), "paillier_priv_encode"},
     {ERR_FUNC(PAILLIER_F_PAILLIER_PUB_DECODE), "paillier_pub_decode"},
+    {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_CTRL), "pkey_paillier_ctrl"},
+    {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_CTRL_STR), "pkey_paillier_ctrl_str"},
     {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_DECRYPT), "pkey_paillier_decrypt"},
     {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_ENCRYPT), "pkey_paillier_encrypt"},
+    {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_INIT), "pkey_paillier_init"},
+    {ERR_FUNC(PAILLIER_F_PKEY_PAILLIER_KEYGEN), "pkey_paillier_keygen"},
     {0, NULL}
 };
 
@@ -42,8 +46,10 @@ static ERR_STRING_DATA PAILLIER_str_reasons[] = {
     {ERR_REASON(PAILLIER_R_DECODE_ERROR), "decode error"},
     {ERR_REASON(PAILLIER_R_GENERATE_PRIME_FAILED), "generate prime failed"},
     {ERR_REASON(PAILLIER_R_INVALID_PLAINTEXT), "invalid plaintext"},
+    {ERR_REASON(PAILLIER_R_KEY_SIZE_TOO_SMALL), "key size too small"},
     {ERR_REASON(PAILLIER_R_MALLOC_FAILED), "malloc failed"},
     {ERR_REASON(PAILLIER_R_NOT_IMPLEMENTED), "not implemented"},
+    {ERR_REASON(PAILLIER_R_VALUE_MISSING), "value missing"},
     {0, NULL}
 };
 

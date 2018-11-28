@@ -173,3 +173,28 @@ int SM9_KEY_up_ref(SM9_KEY *sk)
 	REF_ASSERT_ISNT(i < 2);
 	return ((i > 1) ? 1 : 0);
 }
+
+int sm9_check_pairing(int nid)
+{
+	return 1;
+}
+
+int sm9_check_scheme(int nid)
+{
+	return 1;
+}
+
+int sm9_check_hash1(int nid)
+{
+	return 1;
+}
+
+int sm9_check_encrypt_scheme(int nid)
+{
+	return 1;
+}
+
+int sm9_check_sign_scheme(int nid)
+{
+	return 1;
+}

@@ -68,10 +68,6 @@ static int sm9_params_encode(X509_PUBKEY *pubkey, const EVP_PKEY *pkey)
 	if ((penclen = i2d_SM9PublicParameters(pkey->pkey.sm9_master, &penc)) <= 0) {
 		return 0;
 	}
-	printf("penclen = %d\n", penclen);
-	printf("penc == NULL: %d\n", penc == NULL);
-	printf("%lu\n", OBJ_nid2obj(EVP_PKEY_SM9_MASTER));
-
 	OPENSSL_assert(pubkey);
 
 	if (X509_PUBKEY_set0_param(pubkey, OBJ_nid2obj(EVP_PKEY_SM9_MASTER),
@@ -152,7 +148,6 @@ static int sm9_master_encode(PKCS8_PRIV_KEY_INFO *p8, const EVP_PKEY *pkey)
 {
 	unsigned char *rk = NULL;
 	int rklen;
-fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 	if ((rklen = i2d_SM9MasterSecret(pkey->pkey.sm9_master, &rk)) <= 0) {
 		SM9err(SM9_F_SM9_MASTER_ENCODE, ERR_R_MALLOC_FAILURE);
@@ -207,7 +202,6 @@ static int old_sm9_master_decode(EVP_PKEY *pkey,
 
 static int old_sm9_master_encode(const EVP_PKEY *pkey, unsigned char **pder)
 {
-fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return i2d_SM9MasterSecret(pkey->pkey.sm9_master, pder);
 }
 
@@ -216,7 +210,7 @@ const EVP_PKEY_ASN1_METHOD sm9_master_asn1_meth = {
 	EVP_PKEY_SM9_MASTER,	/* pkey_base_id */
 	0,			/* pkey_flags */
 	"SM9 MASTER",		/* pem_str */
-	"GmSSL SM9 algorithm",	/* info */
+	"GmSSL SM9 system algorithm", /* info */
 	sm9_params_decode,	/* pub_decode */
 	sm9_params_encode,	/* pub_encode */
 	sm9_params_cmp,		/* pub_cmp */
@@ -241,7 +235,6 @@ const EVP_PKEY_ASN1_METHOD sm9_master_asn1_meth = {
 	NULL,			/* item_verify */
 	NULL,			/* item_sign */
 };
-
 
 static int sm9_pub_encode(X509_PUBKEY *pubkey, const EVP_PKEY *pkey)
 {
@@ -332,11 +325,6 @@ static int sm9_priv_encode(PKCS8_PRIV_KEY_INFO *p8, const EVP_PKEY *pkey)
 	unsigned char *rk = NULL;
 	int rklen;
 
-/*
-fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-fprintf(stderr, "%s %s: %d\n", __FILE__, __LINE__, pkey->pkey.sm9->privatePoint != NULL);
-*/
-
 	if ((rklen = i2d_SM9PrivateKey(pkey->pkey.sm9, &rk)) <= 0) {
 		SM9err(SM9_F_SM9_PRIV_ENCODE, ERR_R_MALLOC_FAILURE);
 		return 0;
@@ -375,7 +363,6 @@ static int old_sm9_priv_decode(EVP_PKEY *pkey,
 
 static int old_sm9_priv_encode(const EVP_PKEY *pkey, unsigned char **pder)
 {
-fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return i2d_SM9PrivateKey(pkey->pkey.sm9, pder);
 }
 
