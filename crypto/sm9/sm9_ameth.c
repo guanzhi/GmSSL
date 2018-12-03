@@ -60,7 +60,7 @@
 #include "sm9_lcl.h"
 
 
-static int sm9_params_encode(X509_PUBKEY *pubkey, const EVP_PKEY *pkey)
+static int sm9_master_pub_encode(X509_PUBKEY *pubkey, const EVP_PKEY *pkey)
 {
 	unsigned char *penc = NULL;
 	int penclen;
@@ -79,7 +79,7 @@ static int sm9_params_encode(X509_PUBKEY *pubkey, const EVP_PKEY *pkey)
 	return 0;
 }
 
-static int sm9_params_decode(EVP_PKEY *pkey, X509_PUBKEY *pubkey)
+static int sm9_master_pub_decode(EVP_PKEY *pkey, X509_PUBKEY *pubkey)
 {
 	const unsigned char *cp;
 	int len;
@@ -89,7 +89,7 @@ static int sm9_params_decode(EVP_PKEY *pkey, X509_PUBKEY *pubkey)
 		return 0;
 	}
 	if (!(sm9_params = d2i_SM9PublicParameters(NULL, &cp, len))) {
-		SM9err(SM9_F_SM9_PARAMS_DECODE, ERR_R_SM9_LIB);
+		SM9err(SM9_F_SM9_MASTER_PUB_DECODE, ERR_R_SM9_LIB);
 		return 0;
 	}
 
@@ -97,7 +97,7 @@ static int sm9_params_decode(EVP_PKEY *pkey, X509_PUBKEY *pubkey)
 	return 1;
 }
 
-static int sm9_params_cmp(const EVP_PKEY *a, const EVP_PKEY *b)
+static int sm9_master_pub_cmp(const EVP_PKEY *a, const EVP_PKEY *b)
 {
 	/*
 	if (OBJ_cmp(a->pkey.sm9_master->pairing, b->pkey.sm9_master->pairing) != 0
@@ -111,24 +111,91 @@ static int sm9_params_cmp(const EVP_PKEY *a, const EVP_PKEY *b)
 	return 1;
 }
 
-static int do_sm9_master_print(BIO *bp, const SM9MasterSecret *x, int off, int priv)
+static int do_sm9_master_key_print(BIO *bp, const SM9_MASTER_KEY *x, int off, int priv)
 {
-	return -2;
+	int pairing;
+	int scheme;
+	int hash1;
+
+	if (!x) {
+		SM9err(SM9_F_DO_SM9_MASTER_KEY_PRINT, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+
+	if (BIO_printf(bp, "%s: (256 bit)\n", priv ? "Master-Private-Key"
+		: "Master-Public-Key") <= 0)
+		return 0;
+
+	if (!BIO_indent(bp, off, 128))
+		return 0;
+
+	/* pairing */
+	pairing = OBJ_obj2nid(x->pairing);
+	if (!sm9_check_pairing(pairing)) {
+		SM9err(SM9_F_DO_SM9_MASTER_KEY_PRINT, SM9_R_INVALID_PAIRING);
+		return 0;
+	}
+	if (BIO_printf(bp, "pairing: %s\n", OBJ_nid2sn(pairing)) <= 0)
+		return 0;
+
+	/* scheme */
+	scheme = OBJ_obj2nid(x->scheme);
+	if (!sm9_check_scheme(scheme)) {
+		SM9err(SM9_F_DO_SM9_MASTER_KEY_PRINT, SM9_R_INVALID_SCHEME);
+		return 0;
+	}
+	if (BIO_printf(bp, "scheme: %s\n", OBJ_nid2sn(scheme)) <= 0)
+		return 0;
+
+	/* hash1 */
+	hash1 = OBJ_obj2nid(x->hash1);
+	if (!sm9_check_hash1(hash1)) {
+		SM9err(SM9_F_DO_SM9_MASTER_KEY_PRINT, SM9_R_INVALID_HASH1);
+		return 0;
+	}
+	if (BIO_printf(bp, "hash1: %s\n", OBJ_nid2sn(hash1)) <= 0)
+		return 0;
+
+	/* pointPpub */
+	if (BIO_printf(bp, "%*spointPpub:\n", off, "") <= 0)
+		return 0;
+	if (ASN1_buf_print(bp, ASN1_STRING_get0_data(x->pointPpub),
+		ASN1_STRING_length(x->pointPpub), off + 4) == 0)
+		return 0;
+
+	/* masterSecret */
+	if (priv) {
+		unsigned char master[32];
+		if (BIO_printf(bp, "%*smasterSecret:\n", off, "") <= 0)
+			return 0;
+		if (BN_bn2binpad(x->masterSecret, master, sizeof(master)) <= 0) {
+			SM9err(SM9_F_DO_SM9_MASTER_KEY_PRINT, ERR_R_BN_LIB);
+			OPENSSL_cleanse(master, sizeof(master));
+			return 0;
+		}
+		if (ASN1_buf_print(bp, master, sizeof(master), off + 4) == 0) {
+			OPENSSL_cleanse(master, sizeof(master));
+			return 0;
+		}
+		OPENSSL_cleanse(master, sizeof(master));
+	}
+
+	return 1;
 }
 
-static int sm9_params_print(BIO *bp, const EVP_PKEY *pkey, int indent,
+static int sm9_master_pub_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
-	return do_sm9_master_print(bp, pkey->pkey.sm9_master, indent, 0);
+	return do_sm9_master_key_print(bp, pkey->pkey.sm9_master, indent, 0);
 }
 
-static int sm9_master_print(BIO *bp, const EVP_PKEY *pkey, int indent,
+static int sm9_master_priv_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
-	return do_sm9_master_print(bp, pkey->pkey.sm9_master, indent, 1);
+	return do_sm9_master_key_print(bp, pkey->pkey.sm9_master, indent, 1);
 }
 
-static int sm9_master_decode(EVP_PKEY *pkey, const PKCS8_PRIV_KEY_INFO *p8)
+static int sm9_master_priv_decode(EVP_PKEY *pkey, const PKCS8_PRIV_KEY_INFO *p8)
 {
 	const unsigned char *p;
 	int pklen;
@@ -137,48 +204,48 @@ static int sm9_master_decode(EVP_PKEY *pkey, const PKCS8_PRIV_KEY_INFO *p8)
 	if (!PKCS8_pkey_get0(NULL, &p, &pklen, NULL, p8))
 		return 0;
 	if (!(sm9_master = d2i_SM9MasterSecret(NULL, &p, pklen))) {
-		SM9err(SM9_F_SM9_MASTER_DECODE, ERR_R_SM9_LIB);
+		SM9err(SM9_F_SM9_MASTER_PRIV_DECODE, ERR_R_SM9_LIB);
 		return 0;
 	}
 	EVP_PKEY_assign_SM9MasterSecret(pkey, sm9_master);
 	return 1;
 }
 
-static int sm9_master_encode(PKCS8_PRIV_KEY_INFO *p8, const EVP_PKEY *pkey)
+static int sm9_master_priv_encode(PKCS8_PRIV_KEY_INFO *p8, const EVP_PKEY *pkey)
 {
 	unsigned char *rk = NULL;
 	int rklen;
 
 	if ((rklen = i2d_SM9MasterSecret(pkey->pkey.sm9_master, &rk)) <= 0) {
-		SM9err(SM9_F_SM9_MASTER_ENCODE, ERR_R_MALLOC_FAILURE);
+		SM9err(SM9_F_SM9_MASTER_PRIV_ENCODE, ERR_R_MALLOC_FAILURE);
 		return 0;
 	}
 
 	if (!PKCS8_pkey_set0(p8, OBJ_nid2obj(EVP_PKEY_SM9_MASTER), 0,
 		V_ASN1_NULL, NULL, rk, rklen)) {
-		SM9err(SM9_F_SM9_MASTER_ENCODE, ERR_R_MALLOC_FAILURE);
+		SM9err(SM9_F_SM9_MASTER_PRIV_ENCODE, ERR_R_MALLOC_FAILURE);
 		return 0;
 	}
 
 	return 1;
 }
 
-static int int_sm9_size(const EVP_PKEY *pkey)
+static int sm9_pkey_size(const EVP_PKEY *pkey)
 {
 	return 32 * 12;
 }
 
-static int sm9_bits(const EVP_PKEY *pkey)
+static int sm9_pkey_bits(const EVP_PKEY *pkey)
 {
 	return 256 * 12;
 }
 
-static int sm9_security_bits(const EVP_PKEY *pkey)
+static int sm9_pkey_security_bits(const EVP_PKEY *pkey)
 {
 	return 256/2;
 }
 
-static void int_sm9_master_free(EVP_PKEY *pkey)
+static void sm9_master_pkey_free(EVP_PKEY *pkey)
 {
 	SM9MasterSecret_free(pkey->pkey.sm9_master);
 }
@@ -188,52 +255,52 @@ static int sm9_master_pkey_ctrl(EVP_PKEY *pkey, int op, long arg1, void *arg2)
 	return -2;
 }
 
-static int old_sm9_master_decode(EVP_PKEY *pkey,
+static int sm9_master_old_priv_decode(EVP_PKEY *pkey,
 	const unsigned char **pder, int derlen)
 {
-	SM9MasterSecret *sm9_master;
+	SM9_MASTER_KEY *sm9_master;
 	if ((sm9_master = d2i_SM9MasterSecret(NULL, pder, derlen)) == NULL) {
-		SM9err(SM9_F_OLD_SM9_MASTER_DECODE, SM9_R_DECODE_ERROR);
+		SM9err(SM9_F_SM9_MASTER_OLD_PRIV_DECODE, SM9_R_DECODE_ERROR);
 		return 0;
 	}
-	EVP_PKEY_assign_SM9MasterSecret(pkey, sm9_master);
+	EVP_PKEY_assign_SM9_MASTER(pkey, sm9_master);
 	return 1;
 }
 
-static int old_sm9_master_encode(const EVP_PKEY *pkey, unsigned char **pder)
+static int sm9_master_old_priv_encode(const EVP_PKEY *pkey, unsigned char **pder)
 {
 	return i2d_SM9MasterSecret(pkey->pkey.sm9_master, pder);
 }
 
 const EVP_PKEY_ASN1_METHOD sm9_master_asn1_meth = {
-	EVP_PKEY_SM9_MASTER,	/* pkey_id */
-	EVP_PKEY_SM9_MASTER,	/* pkey_base_id */
-	0,			/* pkey_flags */
-	"SM9 MASTER",		/* pem_str */
-	"GmSSL SM9 system algorithm", /* info */
-	sm9_params_decode,	/* pub_decode */
-	sm9_params_encode,	/* pub_encode */
-	sm9_params_cmp,		/* pub_cmp */
-	sm9_params_print,	/* pub_print */
-	sm9_master_decode,	/* priv_decode */
-	sm9_master_encode,	/* priv_encode */
-	sm9_master_print,	/* priv_print */
-	int_sm9_size,		/* pkey_size */
-	sm9_bits,		/* pkey_bits */
-	sm9_security_bits,	/* pkey_security_bits */
-	NULL,			/* param_decode */
-	NULL,			/* param_encode */
-	NULL,			/* param_missing */
-	NULL,			/* param_copy */
-	NULL,			/* param_cmp */
-	NULL,			/* param_print */
-	NULL,			/* sig_print */
-	int_sm9_master_free,	/* pkey_free */
-	sm9_master_pkey_ctrl,	/* pkey_ctrl */
-	old_sm9_master_decode,	/* old_priv_decode */
-	old_sm9_master_encode,	/* old_priv_encode */
-	NULL,			/* item_verify */
-	NULL,			/* item_sign */
+	EVP_PKEY_SM9_MASTER,		/* pkey_id */
+	EVP_PKEY_SM9_MASTER,		/* pkey_base_id */
+	0,				/* pkey_flags */
+	"SM9 MASTER",			/* pem_str */
+	"GmSSL SM9 system algorithm",	/* info */
+	sm9_master_pub_decode,		/* pub_decode */
+	sm9_master_pub_encode,		/* pub_encode */
+	sm9_master_pub_cmp,		/* pub_cmp */
+	sm9_master_pub_print,		/* pub_print */
+	sm9_master_priv_decode,		/* priv_decode */
+	sm9_master_priv_encode,		/* priv_encode */
+	sm9_master_priv_print,		/* priv_print */
+	sm9_pkey_size,			/* pkey_size */
+	sm9_pkey_bits,			/* pkey_bits */
+	sm9_pkey_security_bits,		/* pkey_security_bits */
+	NULL,				/* param_decode */
+	NULL,				/* param_encode */
+	NULL,				/* param_missing */
+	NULL,				/* param_copy */
+	NULL,				/* param_cmp */
+	NULL,				/* param_print */
+	NULL,				/* sig_print */
+	sm9_master_pkey_free,		/* pkey_free */
+	sm9_master_pkey_ctrl,		/* pkey_ctrl */
+	sm9_master_old_priv_decode,	/* old_priv_decode */
+	sm9_master_old_priv_encode,	/* old_priv_encode */
+	NULL,				/* item_verify */
+	NULL,				/* item_sign */
 };
 
 static int sm9_pub_encode(X509_PUBKEY *pubkey, const EVP_PKEY *pkey)
@@ -287,21 +354,93 @@ static int sm9_pub_cmp(const EVP_PKEY *a, const EVP_PKEY *b)
 	return 1;
 }
 
-static int do_sm9_print(BIO *bp, const SM9PrivateKey *x, int off, int priv)
+static int do_sm9_key_print(BIO *bp, const SM9PrivateKey *x, int off, int priv)
 {
-	return -2;
+	int pairing;
+	int scheme;
+	int hash1;
+
+	if (!x) {
+		SM9err(SM9_F_DO_SM9_KEY_PRINT, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+
+	if (BIO_printf(bp, "%s: (256 bit)\n", priv ? "Private-Key" : "Public-Key") <= 0)
+		return 0;
+
+	if (!BIO_indent(bp, off, 128))
+		return 0;
+
+	/* pairing */
+	pairing = OBJ_obj2nid(x->pairing);
+	if (!sm9_check_pairing(pairing)) {
+		SM9err(SM9_F_DO_SM9_KEY_PRINT, SM9_R_INVALID_PAIRING);
+		return 0;
+	}
+	if (BIO_printf(bp, "pairing: %s\n", OBJ_nid2sn(pairing)) <= 0)
+		return 0;
+
+	/* scheme */
+	scheme = OBJ_obj2nid(x->scheme);
+	if (!sm9_check_scheme(scheme)) {
+		SM9err(SM9_F_DO_SM9_KEY_PRINT, SM9_R_INVALID_SCHEME);
+		return 0;
+	}
+	if (BIO_printf(bp, "scheme: %s\n", OBJ_nid2sn(scheme)) <= 0)
+		return 0;
+
+	/* hash1 */
+	hash1 = OBJ_obj2nid(x->hash1);
+	if (!sm9_check_hash1(hash1)) {
+		SM9err(SM9_F_DO_SM9_KEY_PRINT, SM9_R_INVALID_HASH1);
+		return 0;
+	}
+	if (BIO_printf(bp, "hash1: %s\n", OBJ_nid2sn(hash1)) <= 0)
+		return 0;
+
+	/* pointPpub */
+	if (BIO_printf(bp, "%*spointPpub:\n", off, "") <= 0)
+		return 0;
+	if (ASN1_buf_print(bp, ASN1_STRING_get0_data(x->pointPpub),
+		ASN1_STRING_length(x->pointPpub), off + 4) == 0)
+		return 0;
+
+	/* identity */
+	if (BIO_printf(bp, "%*sidentity:\n", off, "") <= 0)
+		return 0;
+	if (ASN1_buf_print(bp, ASN1_STRING_get0_data(x->identity),
+		ASN1_STRING_length(x->identity), off + 4) == 0)
+		return 0;
+
+	/* publicPoint */
+	if (BIO_printf(bp, "%*spublicPoint:\n", off, "") <= 0)
+		return 0;
+	if (ASN1_buf_print(bp, ASN1_STRING_get0_data(x->publicPoint),
+		ASN1_STRING_length(x->publicPoint), off + 4) == 0)
+		return 0;
+
+	/* privatePoint */
+	if (priv) {
+		if (BIO_printf(bp, "%*sprivatePoint:\n", off + 4, "") <= 0)
+			return 0;
+		if (ASN1_buf_print(bp, ASN1_STRING_get0_data(x->privatePoint),
+			ASN1_STRING_length(x->privatePoint), off + 4) == 0)
+			return 0;
+	}
+
+	return 1;
 }
 
 static int sm9_pub_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
-	return do_sm9_print(bp, pkey->pkey.sm9, indent, 0);
+	return do_sm9_key_print(bp, pkey->pkey.sm9, indent, 0);
 }
 
 static int sm9_priv_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
-	return do_sm9_print(bp, pkey->pkey.sm9, indent, 1);
+	return do_sm9_key_print(bp, pkey->pkey.sm9, indent, 1);
 }
 
 static int sm9_priv_decode(EVP_PKEY *pkey, const PKCS8_PRIV_KEY_INFO *p8)
@@ -339,7 +478,7 @@ static int sm9_priv_encode(PKCS8_PRIV_KEY_INFO *p8, const EVP_PKEY *pkey)
 	return 1;
 }
 
-static void int_sm9_free(EVP_PKEY *pkey)
+static void sm9_pkey_free(EVP_PKEY *pkey)
 {
 	SM9PrivateKey_free(pkey->pkey.sm9);
 }
@@ -349,19 +488,19 @@ static int sm9_pkey_ctrl(EVP_PKEY *pkey, int op, long arg1, void *arg2)
 	return -2;
 }
 
-static int old_sm9_priv_decode(EVP_PKEY *pkey,
+static int sm9_old_priv_decode(EVP_PKEY *pkey,
 	const unsigned char **pder, int derlen)
 {
 	SM9PrivateKey *sm9;
 	if ((sm9 = d2i_SM9PrivateKey(NULL, pder, derlen)) == NULL) {
-		SM9err(SM9_F_OLD_SM9_PRIV_DECODE, SM9_R_DECODE_ERROR);
+		SM9err(SM9_F_SM9_OLD_PRIV_DECODE, SM9_R_DECODE_ERROR);
 		return 0;
 	}
 	EVP_PKEY_assign_SM9PrivateKey(pkey, sm9);
 	return 1;
 }
 
-static int old_sm9_priv_encode(const EVP_PKEY *pkey, unsigned char **pder)
+static int sm9_old_priv_encode(const EVP_PKEY *pkey, unsigned char **pder)
 {
 	return i2d_SM9PrivateKey(pkey->pkey.sm9, pder);
 }
@@ -379,9 +518,9 @@ const EVP_PKEY_ASN1_METHOD sm9_asn1_meth = {
 	sm9_priv_decode,	/* priv_decode */
 	sm9_priv_encode,	/* priv_encode */
 	sm9_priv_print,		/* priv_print */
-	int_sm9_size,		/* pkey_size */
-	sm9_bits,		/* pkey_bits */
-	sm9_security_bits,	/* pkey_security_bits */
+	sm9_pkey_size,		/* pkey_size */
+	sm9_pkey_bits,		/* pkey_bits */
+	sm9_pkey_security_bits,	/* pkey_security_bits */
 	NULL,			/* param_decode */
 	NULL,			/* param_encode */
 	NULL,			/* param_missing */
@@ -389,10 +528,22 @@ const EVP_PKEY_ASN1_METHOD sm9_asn1_meth = {
 	NULL,			/* param_cmp */
 	NULL,			/* param_print */
 	NULL,			/* sig_print */
-	int_sm9_free,		/* pkey_free */
+	sm9_pkey_free,		/* pkey_free */
 	sm9_pkey_ctrl,		/* pkey_ctrl */
-	old_sm9_priv_decode,	/* old_priv_decode */
-	old_sm9_priv_encode,	/* old_priv_encode */
+	sm9_old_priv_decode,	/* old_priv_decode */
+	sm9_old_priv_encode,	/* old_priv_encode */
 	NULL,			/* item_verify */
 	NULL,			/* item_sign */
 };
+
+int SM9_MASTER_KEY_print(BIO *bp, const SM9_MASTER_KEY *x, int off)
+{
+	int priv = (x->masterSecret != NULL);
+	return do_sm9_master_key_print(bp, x, off, priv);
+}
+
+int SM9_KEY_print(BIO *bp, const SM9_KEY *x, int off)
+{
+	int priv = (x->privatePoint != NULL);
+	return do_sm9_key_print(bp, x, off, priv);
+}

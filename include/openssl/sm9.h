@@ -176,6 +176,9 @@ int SM9_compute_share_key_B(int type,
 	const char *IDA, size_t IDAlen,
 	SM9PrivateKey *skB);
 
+int SM9_MASTER_KEY_print(BIO *bp, const SM9_MASTER_KEY *x, int off);
+int SM9_KEY_print(BIO *bp, const SM9_KEY *x, int off);
+
 
 #ifndef OPENSSL_NO_STDIO
 SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **pp);
@@ -288,6 +291,9 @@ int ERR_load_SM9_strings(void);
 /* Error codes for the SM9 functions. */
 
 /* Function codes. */
+# define SM9_F_DO_SM9_KEY_PRINT                           143
+# define SM9_F_DO_SM9_MASTER_KEY_PRINT                    144
+# define SM9_F_DO_SM9_MASTER_PRINT                        142
 # define SM9_F_OLD_SM9_MASTER_DECODE                      100
 # define SM9_F_OLD_SM9_PRIV_DECODE                        101
 # define SM9_F_PKEY_SM9_COPY                              102
@@ -318,6 +324,11 @@ int ERR_load_SM9_strings(void);
 # define SM9_F_SM9_MASTER_ENCODE                          127
 # define SM9_F_SM9_MASTER_KEY_EXTRACT_KEY                 128
 # define SM9_F_SM9_MASTER_KEY_NEW                         129
+# define SM9_F_SM9_MASTER_OLD_PRIV_DECODE                 145
+# define SM9_F_SM9_MASTER_PRIV_DECODE                     146
+# define SM9_F_SM9_MASTER_PRIV_ENCODE                     147
+# define SM9_F_SM9_MASTER_PUB_DECODE                      148
+# define SM9_F_SM9_OLD_PRIV_DECODE                        149
 # define SM9_F_SM9_PARAMS_DECODE                          130
 # define SM9_F_SM9_PRIV_DECODE                            131
 # define SM9_F_SM9_PRIV_ENCODE                            132

@@ -19,6 +19,9 @@
 # define ERR_REASON(reason) ERR_PACK(ERR_LIB_SM9,0,reason)
 
 static ERR_STRING_DATA SM9_str_functs[] = {
+    {ERR_FUNC(SM9_F_DO_SM9_KEY_PRINT), "do_sm9_key_print"},
+    {ERR_FUNC(SM9_F_DO_SM9_MASTER_KEY_PRINT), "do_sm9_master_key_print"},
+    {ERR_FUNC(SM9_F_DO_SM9_MASTER_PRINT), "do_sm9_master_print"},
     {ERR_FUNC(SM9_F_OLD_SM9_MASTER_DECODE), "old_sm9_master_decode"},
     {ERR_FUNC(SM9_F_OLD_SM9_PRIV_DECODE), "old_sm9_priv_decode"},
     {ERR_FUNC(SM9_F_PKEY_SM9_COPY), "pkey_sm9_copy"},
@@ -52,6 +55,12 @@ static ERR_STRING_DATA SM9_str_functs[] = {
     {ERR_FUNC(SM9_F_SM9_MASTER_KEY_EXTRACT_KEY),
      "SM9_MASTER_KEY_extract_key"},
     {ERR_FUNC(SM9_F_SM9_MASTER_KEY_NEW), "SM9_MASTER_KEY_new"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_OLD_PRIV_DECODE),
+     "sm9_master_old_priv_decode"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_PRIV_DECODE), "sm9_master_priv_decode"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_PRIV_ENCODE), "sm9_master_priv_encode"},
+    {ERR_FUNC(SM9_F_SM9_MASTER_PUB_DECODE), "sm9_master_pub_decode"},
+    {ERR_FUNC(SM9_F_SM9_OLD_PRIV_DECODE), "sm9_old_priv_decode"},
     {ERR_FUNC(SM9_F_SM9_PARAMS_DECODE), "sm9_params_decode"},
     {ERR_FUNC(SM9_F_SM9_PRIV_DECODE), "sm9_priv_decode"},
     {ERR_FUNC(SM9_F_SM9_PRIV_ENCODE), "sm9_priv_encode"},
