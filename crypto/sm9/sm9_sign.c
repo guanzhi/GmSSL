@@ -56,11 +56,6 @@
 #include "sm9_lcl.h"
 
 
-int SM9_signature_size(SM9PublicParameters *mpk)
-{
-	return 105;
-}
-
 SM9Signature *SM9_do_sign(const unsigned char *dgst, int dgstlen, SM9_KEY *sm9)
 {
 	return NULL;

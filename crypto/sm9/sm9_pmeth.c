@@ -281,33 +281,33 @@ static int pkey_sm9_master_ctrl_str(EVP_PKEY_CTX *ctx, const char *type, const c
 }
 
 const EVP_PKEY_METHOD sm9_master_pkey_meth = {
-	EVP_PKEY_SM9_MASTER,	/* pkey_id */
-	0,			/* flags */
-	pkey_sm9_master_init,	/* init */
-	pkey_sm9_master_copy,	/* copy */
-	pkey_sm9_master_cleanup,/* cleanup */
-	NULL,			/* paramgen_init */
-	NULL,			/* paramgen */
-	NULL,			/* keygen_init */
-	pkey_sm9_master_keygen,	/* keygen */
-	NULL,			/* sign_init */
-	NULL,			/* sign */
-	NULL,			/* verify_init */
-	pkey_sm9_master_verify,	/* verify */
-	NULL,			/* verify_recover_init */
-	NULL,			/* verify_recover */
-	NULL,			/* signctx_init */
-	NULL,			/* signctx */
-	NULL,			/* verifyctx_init */
-	NULL,			/* verifyctx */
-	NULL,			/* encrypt_init */
-	pkey_sm9_master_encrypt,/* encrypt */
-	NULL,			/* decrypt_init */
-	NULL,			/* decrypt */
-	NULL,			/* derive_init */
-	pkey_sm9_master_derive,	/* derive */
-	pkey_sm9_master_ctrl,	/* ctrl */
-	pkey_sm9_master_ctrl_str,/* ctrl_str */
+	EVP_PKEY_SM9_MASTER,		/* pkey_id */
+	0,				/* flags */
+	pkey_sm9_master_init,		/* init */
+	pkey_sm9_master_copy,		/* copy */
+	pkey_sm9_master_cleanup,	/* cleanup */
+	NULL,				/* paramgen_init */
+	NULL,				/* paramgen */
+	NULL,				/* keygen_init */
+	pkey_sm9_master_keygen,		/* keygen */
+	NULL,				/* sign_init */
+	NULL,				/* sign */
+	NULL,				/* verify_init */
+	pkey_sm9_master_verify,		/* verify */
+	NULL,				/* verify_recover_init */
+	NULL,				/* verify_recover */
+	NULL,				/* signctx_init */
+	NULL,				/* signctx */
+	NULL,				/* verifyctx_init */
+	NULL,				/* verifyctx */
+	NULL,				/* encrypt_init */
+	pkey_sm9_master_encrypt,	/* encrypt */
+	NULL,				/* decrypt_init */
+	NULL,				/* decrypt */
+	NULL,				/* derive_init */
+	pkey_sm9_master_derive,		/* derive */
+	pkey_sm9_master_ctrl,		/* ctrl */
+	pkey_sm9_master_ctrl_str,	/* ctrl_str */
 };
 
 typedef struct {
@@ -354,29 +354,6 @@ static void pkey_sm9_cleanup(EVP_PKEY_CTX *ctx)
 		OPENSSL_free(dctx->id);
 		OPENSSL_free(dctx);
 	}
-}
-
-static int pkey_sm9_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
-{
-	/*
-	SM9_PKEY_CTX *dctx = EVP_PKEY_CTX_get_data(ctx);
-	SM9_KEY *sm9;
-	if (!dctx->master_secret || !dctx->id) {
-		SM9err(SM9_F_PKEY_SM9_KEYGEN, SM9_R_ID_OR_MASTER_SECRET_REQUIRED);
-		return 0;
-	}
-	if (!(sm9 = SM9_extract_private_key(dctx->master,
-		dctx->id, strlen(dctx->id)))) {
-		SM9err(SM9_F_PKEY_SM9_KEYGEN, ERR_R_SM9_LIB);
-		return 0;
-	}
-	if (EVP_PKEY_assign_SM9(pkey, sm9) <= 0) {
-		SM9err(SM9_F_PKEY_SM9_KEYGEN, ERR_R_EVP_LIB);
-		SM9_KEY_free(sm9);
-		return 0;
-	}
-	*/
-	return 1;
 }
 
 static int pkey_sm9_sign(EVP_PKEY_CTX *ctx,
@@ -488,7 +465,7 @@ const EVP_PKEY_METHOD sm9_pkey_meth = {
 	NULL,			/* paramgen_init */
 	NULL,			/* paramgen */
 	NULL,			/* keygen_init */
-	pkey_sm9_keygen,	/* keygen */
+	NULL,			/* keygen */
 	NULL,			/* sign_init */
 	pkey_sm9_sign,		/* sign */
 	NULL, 			/* verify_init */

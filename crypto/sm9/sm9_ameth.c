@@ -421,7 +421,7 @@ static int do_sm9_key_print(BIO *bp, const SM9PrivateKey *x, int off, int priv)
 
 	/* privatePoint */
 	if (priv) {
-		if (BIO_printf(bp, "%*sprivatePoint:\n", off + 4, "") <= 0)
+		if (BIO_printf(bp, "%*sprivatePoint:\n", off, "") <= 0)
 			return 0;
 		if (ASN1_buf_print(bp, ASN1_STRING_get0_data(x->privatePoint),
 			ASN1_STRING_length(x->privatePoint), off + 4) == 0)
