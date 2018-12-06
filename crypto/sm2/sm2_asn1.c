@@ -67,15 +67,20 @@ ASN1_SEQUENCE(SM2CiphertextValue) = {
 IMPLEMENT_ASN1_FUNCTIONS(SM2CiphertextValue)
 IMPLEMENT_ASN1_DUP_FUNCTION(SM2CiphertextValue)
 
-int SM2CiphertextValue_size(const EC_GROUP *group, size_t inlen)
+int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen)
 {
 	int ret;
+	const EC_GROUP *group = NULL;
 	ASN1_OCTET_STRING s;
 	int len = 0, i;
 
 	if (inlen > SM2_MAX_PLAINTEXT_LENGTH) {
 		SM2err(SM2_F_SM2CIPHERTEXTVALUE_SIZE, SM2_R_PLAINTEXT_TOO_LONG);
 		return 0;
+	}
+
+	if (ec_key) {
+		group = EC_KEY_get0_group(ec_key);
 	}
 
 	if (group) {

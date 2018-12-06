@@ -1206,3 +1206,6 @@ cpk_map_sm3		1205
 cpk_map_sha384		1206
 cpk_map_sha512		1207
 paillier		1208
+sm9hash2		1209
+sm9hash2_with_sm3		1210
+sm9hash2_with_sha256		1211

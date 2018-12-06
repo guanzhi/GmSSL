@@ -52,6 +52,10 @@
 
 #define SM2_MAX_PKEY_DATA_LENGTH		((EC_MAX_NBYTES + 1) * 6)
 
+#define SM2_MAX_PLAINTEXT_LENGTH		65535
+#define SM2_MAX_CIPHERTEXT_LENGTH		(SM2_MAX_PLAINTEXT_LENGTH + 2048)
+
+
 int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
 
 struct SM2CiphertextValue_st {
@@ -92,5 +96,5 @@ struct sm2_kap_ctx_st {
 
 };
 
-
+int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen);
 

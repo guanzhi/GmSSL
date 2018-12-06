@@ -483,6 +483,8 @@ our %disabled = ( # "what"         => "comment"
 		  "skfeng"              => "default",
 		  "sdfeng"              => "default",
 		  "gmieng"              => "default",
+		  "cpk"                 => "default",
+		  "speck"               => "default",
 		);
 
 # Note: => pair form used for aesthetics, not to truly make a hash table

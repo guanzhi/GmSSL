@@ -106,10 +106,6 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 
 /* SM2 Public Key Encryption */
 
-#define SM2_MIN_PLAINTEXT_LENGTH	0
-#define SM2_MAX_PLAINTEXT_LENGTH	1024
-#define SM2_CIPHERTEXT_LENGTH(len)	((len)+256)
-
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
 
@@ -131,7 +127,6 @@ int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
 #define SM2_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
 	SM2_decrypt(NID_sm3,in,inlen,out,outlen,ec_key)
 
-int SM2CiphertextValue_size(const EC_GROUP *group, size_t inlen);
 
 /* SM2 Key Exchange */
 

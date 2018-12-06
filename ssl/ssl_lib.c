@@ -1088,7 +1088,9 @@ void SSL_free(SSL *s)
 
     SSL_CTX_free(s->ctx);
 
+#ifndef OPENSSL_NO_ASYNC
     ASYNC_WAIT_CTX_free(s->waitctx);
+#endif
 
 #if !defined(OPENSSL_NO_NEXTPROTONEG)
     OPENSSL_free(s->next_proto_negotiated);
@@ -1481,6 +1483,7 @@ int SSL_check_private_key(const SSL *ssl)
                                    ssl->cert->key->privatekey));
 }
 
+#ifndef OPENSSL_NO_ASYNC
 int SSL_waiting_for_async(SSL *s)
 {
     if (s->job)
@@ -1508,6 +1511,7 @@ int SSL_get_changed_async_fds(SSL *s, OSSL_ASYNC_FD *addfd, size_t *numaddfds,
     return ASYNC_WAIT_CTX_get_changed_fds(ctx, addfd, numaddfds, delfd,
                                           numdelfds);
 }
+#endif
 
 int SSL_accept(SSL *s)
 {
@@ -1534,6 +1538,7 @@ long SSL_get_default_timeout(const SSL *s)
     return (s->method->get_timeout());
 }
 
+#ifndef OPENSSL_NO_ASYNC
 static int ssl_start_async_job(SSL *s, struct ssl_async_args *args,
                                int (*func) (void *))
 {
@@ -1565,6 +1570,7 @@ static int ssl_start_async_job(SSL *s, struct ssl_async_args *args,
         return -1;
     }
 }
+#endif
 
 static int ssl_io_intern(void *vargs)
 {
@@ -1600,6 +1606,7 @@ int SSL_read(SSL *s, void *buf, int num)
         return (0);
     }
 
+#ifndef OPENSSL_NO_ASYNC
     if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
         struct ssl_async_args args;
 
@@ -1610,9 +1617,9 @@ int SSL_read(SSL *s, void *buf, int num)
         args.f.func_read = s->method->ssl_read;
 
         return ssl_start_async_job(s, &args, ssl_io_intern);
-    } else {
+    } else
+#endif
         return s->method->ssl_read(s, buf, num);
-    }
 }
 
 int SSL_peek(SSL *s, void *buf, int num)
@@ -1625,6 +1632,7 @@ int SSL_peek(SSL *s, void *buf, int num)
     if (s->shutdown & SSL_RECEIVED_SHUTDOWN) {
         return (0);
     }
+#ifndef OPENSSL_NO_ASYNC
     if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
         struct ssl_async_args args;
 
@@ -1635,9 +1643,9 @@ int SSL_peek(SSL *s, void *buf, int num)
         args.f.func_read = s->method->ssl_peek;
 
         return ssl_start_async_job(s, &args, ssl_io_intern);
-    } else {
+    } else
+#endif
         return s->method->ssl_peek(s, buf, num);
-    }
 }
 
 int SSL_write(SSL *s, const void *buf, int num)
@@ -1653,6 +1661,7 @@ int SSL_write(SSL *s, const void *buf, int num)
         return (-1);
     }
 
+#ifndef OPENSSL_NO_ASYNC
     if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
         struct ssl_async_args args;
 
@@ -1663,9 +1672,9 @@ int SSL_write(SSL *s, const void *buf, int num)
         args.f.func_write = s->method->ssl_write;
 
         return ssl_start_async_job(s, &args, ssl_io_intern);
-    } else {
+    } else
+#endif
         return s->method->ssl_write(s, buf, num);
-    }
 }
 
 int SSL_shutdown(SSL *s)
@@ -1683,6 +1692,7 @@ int SSL_shutdown(SSL *s)
     }
 
     if (!SSL_in_init(s)) {
+#ifndef OPENSSL_NO_ASYNC
         if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
             struct ssl_async_args args;
 
@@ -1691,9 +1701,10 @@ int SSL_shutdown(SSL *s)
             args.f.func_other = s->method->ssl_shutdown;
 
             return ssl_start_async_job(s, &args, ssl_io_intern);
-        } else {
+        } else
+#endif
             return s->method->ssl_shutdown(s);
-        }
+
     } else {
         SSLerr(SSL_F_SSL_SHUTDOWN, SSL_R_SHUTDOWN_WHILE_IN_INIT);
         return -1;
@@ -2778,7 +2789,6 @@ void ssl_set_masks(SSL *s)
         if (!(pvalid[SSL_PKEY_ECC] & CERT_PKEY_SIGN))
             ecdsa_ok = 0;
         if (ecdsa_ok) {
-fprintf(stderr, "%s %d\n", __FILE__, __LINE__);
             mask_a |= SSL_aECDSA;
             mask_a |= SSL_aSM2;
         }
@@ -3149,15 +3159,16 @@ int SSL_do_handshake(SSL *s)
     s->method->ssl_renegotiate_check(s);
 
     if (SSL_in_init(s) || SSL_in_before(s)) {
+#ifndef OPENSSL_NO_ASYNC
         if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
             struct ssl_async_args args;
 
             args.s = s;
 
             ret = ssl_start_async_job(s, &args, ssl_do_handshake_intern);
-        } else {
+        } else
+#endif
             ret = s->handshake_func(s);
-        }
     }
     return ret;
 }

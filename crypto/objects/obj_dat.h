@@ -10,7 +10,7 @@
  */
 
 /* Serialized OID's */
-static const unsigned char so[7886] = {
+static const unsigned char so[7915] = {
     0x2A,0x86,0x48,0x86,0xF7,0x0D,                 /* [    0] OBJ_rsadsi */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,            /* [    6] OBJ_pkcs */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,       /* [   13] OBJ_md2 */
@@ -1101,9 +1101,12 @@ static const unsigned char so[7886] = {
     0x2B,0x06,0x01,0x04,0x01,0x83,0x83,0x0D,0x01,0x01,0x04,  /* [ 7854] OBJ_cpk_map_sha384 */
     0x2B,0x06,0x01,0x04,0x01,0x83,0x83,0x0D,0x01,0x01,0x05,  /* [ 7865] OBJ_cpk_map_sha512 */
     0x2B,0x06,0x01,0x04,0x01,0x83,0x83,0x0D,0x15,  /* [ 7876] OBJ_paillier */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2F,0x07,  /* [ 7885] OBJ_sm9hash2 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2F,0x07,0x01,  /* [ 7894] OBJ_sm9hash2_with_sm3 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2F,0x07,0x02,  /* [ 7904] OBJ_sm9hash2_with_sha256 */
 };
 
-#define NUM_NID 1209
+#define NUM_NID 1212
 static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"UNDEF", "undefined", NID_undef},
     {"rsadsi", "RSA Data Security, Inc.", NID_rsadsi, 6, &so[0]},
@@ -2314,9 +2317,12 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"cpk-map-sha384", "cpk-map-sha384", NID_cpk_map_sha384, 11, &so[7854]},
     {"cpk-map-sha512", "cpk-map-sha512", NID_cpk_map_sha512, 11, &so[7865]},
     {"paillier", "paillier", NID_paillier, 9, &so[7876]},
+    {"sm9hash2", "sm9hash2", NID_sm9hash2, 9, &so[7885]},
+    {"sm9hash2-with-sm3", "sm9hash2-with-sm3", NID_sm9hash2_with_sm3, 10, &so[7894]},
+    {"sm9hash2-with-sha256", "sm9hash2-with-sha256", NID_sm9hash2_with_sha256, 10, &so[7904]},
 };
 
-#define NUM_SN 1199
+#define NUM_SN 1202
 static const unsigned int sn_objs[NUM_SN] = {
      364,    /* "AD_DVCS" */
      419,    /* "AES-128-CBC" */
@@ -3450,6 +3456,9 @@ static const unsigned int sn_objs[NUM_SN] = {
     1172,    /* "sm9hash1" */
     1182,    /* "sm9hash1-with-sha256" */
     1181,    /* "sm9hash1-with-sm3" */
+    1209,    /* "sm9hash2" */
+    1211,    /* "sm9hash2-with-sha256" */
+    1210,    /* "sm9hash2-with-sm3" */
     1173,    /* "sm9kdf" */
     1184,    /* "sm9kdf-with-sha256" */
     1183,    /* "sm9kdf-with-sm3" */
@@ -3519,7 +3528,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1187,    /* "zuc-128eia3" */
 };
 
-#define NUM_LN 1199
+#define NUM_LN 1202
 static const unsigned int ln_objs[NUM_LN] = {
      363,    /* "AD Time Stamping" */
      405,    /* "ANSI X9.62" */
@@ -4636,6 +4645,9 @@ static const unsigned int ln_objs[NUM_LN] = {
     1172,    /* "sm9hash1" */
     1182,    /* "sm9hash1-with-sha256" */
     1181,    /* "sm9hash1-with-sm3" */
+    1209,    /* "sm9hash2" */
+    1211,    /* "sm9hash2-with-sha256" */
+    1210,    /* "sm9hash2-with-sm3" */
     1173,    /* "sm9kdf" */
     1184,    /* "sm9kdf-with-sha256" */
     1183,    /* "sm9kdf-with-sm3" */
@@ -4722,7 +4734,7 @@ static const unsigned int ln_objs[NUM_LN] = {
     1187,    /* "zuc-128eia3" */
 };
 
-#define NUM_OBJ 1096
+#define NUM_OBJ 1099
 static const unsigned int obj_objs[NUM_OBJ] = {
        0,    /* OBJ_undef                        0 */
      181,    /* OBJ_iso                          1 */
@@ -5467,6 +5479,7 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1172,    /* OBJ_sm9hash1                     1 2 156 10197 1 302 4 */
     1173,    /* OBJ_sm9kdf                       1 2 156 10197 1 302 5 */
     1174,    /* OBJ_id_sm9MasterSecret           1 2 156 10197 1 302 6 */
+    1209,    /* OBJ_sm9hash2                     1 2 156 10197 1 303 7 */
     1149,    /* OBJ_hmac_sm3                     1 2 156 10197 1 401 2 */
     1186,    /* OBJ_zuc_128eea3                  1 2 156 10197 1 800 1 */
     1187,    /* OBJ_zuc_128eia3                  1 2 156 10197 1 800 2 */
@@ -5685,6 +5698,8 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1183,    /* OBJ_sm9kdf_with_sm3              1 2 156 10197 1 302 5 1 */
     1184,    /* OBJ_sm9kdf_with_sha256           1 2 156 10197 1 302 5 2 */
     1175,    /* OBJ_sm9bn256v1                   1 2 156 10197 1 302 6 1 */
+    1210,    /* OBJ_sm9hash2_with_sm3            1 2 156 10197 1 303 7 1 */
+    1211,    /* OBJ_sm9hash2_with_sha256         1 2 156 10197 1 303 7 2 */
      189,    /* OBJ_id_smime_mod                 1 2 840 113549 1 9 16 0 */
      190,    /* OBJ_id_smime_ct                  1 2 840 113549 1 9 16 1 */
      191,    /* OBJ_id_smime_aa                  1 2 840 113549 1 9 16 2 */

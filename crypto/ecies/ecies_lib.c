@@ -703,10 +703,8 @@ int ECIES_encrypt(int type, const unsigned char *in, size_t inlen,
 		*outlen = (size_t)len;
 		ret = 1;
 		goto end;
-	}
-
-	if (*outlen < len) {
-		ECerr(EC_F_ECIES_ENCRYPT, EC_R_ENCRYPT_FAILED);
+	} else if (*outlen < len) {
+		ECerr(EC_F_ECIES_ENCRYPT, EC_R_BUFFER_TOO_SMALL);
 		*outlen = (size_t)len;
 		goto end;
 	}
