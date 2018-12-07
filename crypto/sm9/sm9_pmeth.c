@@ -456,6 +456,9 @@ static int pkey_sm9_ctrl_str(EVP_PKEY_CTX *ctx, const char *type, const char *va
 	return -2;
 }
 
+/* TODO: currently data instead of dgst is signed.
+ * we need to support to ctrl which to sign.
+ */
 const EVP_PKEY_METHOD sm9_pkey_meth = {
 	EVP_PKEY_SM9,		/* pkey_id */
 	0,			/* flags */

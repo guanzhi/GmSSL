@@ -54,6 +54,39 @@
 #include <openssl/bn_hash.h>
 #include "sm9_lcl.h"
 
+
+#if 0
+typedef struct {
+	int nid;
+	int nid;
+} sm9_algor_table;
+
+
+static const sm9_algor_table sm9encrypt_scheme_table[] = {
+	{NID_sm9encrypt_with_sm3, NID_sm3},
+	{NID_sm9encrypt_with_sha256, NID_sha256},
+};
+
+static const sm9_algoro_table sm9sign_scheme_table[] = {
+	{NID_sm9sign_with_sm3, NID_sm3},
+	{NID_sm9sign_with_sha256, NID_sha256},
+};
+
+static const sm9_algor_table sm9_encrypt_table[] = {
+	{sm9encrypt-with-sm3-xor, NID_sm3, NID_undef},
+	{sm9encrypt-with-sm3-sms4-cbc, NID_sm3, NID_sms4_cbc},
+	{sm9encrypt-with-sm3-sms4-ctr, NID_sm3, NID_sms4_ctr},
+};
+
+static const sm9_algor sm9_hash1[] = {
+	{NID_sm9hash1_with_sm3, NID_sm3},
+	{NID_sm9hash1_with_sha256, NID_sha256},
+	{NID_sm9kdf_with_sm3, NID_sm3},
+	{NID_sm9kdf_with_sha256, NID_sha256},
+};
+#endif
+
+
 SM9_MASTER_KEY *SM9_MASTER_KEY_new(void)
 {
 	SM9_MASTER_KEY *ret = NULL;

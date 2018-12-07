@@ -744,6 +744,9 @@ const EVP_MD *EVP_whirlpool(void);
 # endif
 # ifndef OPENSSL_NO_SM3
 const EVP_MD *EVP_sm3(void);
+#  ifndef OPENSSL_NO_SM9
+const EVP_MD *EVP_sm9hash2_sm3(void);
+#  endif
 # endif
 const EVP_CIPHER *EVP_enc_null(void); /* does nothing :-) */
 # ifndef OPENSSL_NO_DES

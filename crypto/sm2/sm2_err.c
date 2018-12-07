@@ -22,6 +22,7 @@ static ERR_STRING_DATA SM2_str_functs[] = {
     {ERR_FUNC(SM2_F_I2O_SM2CIPHERTEXTVALUE), "i2o_SM2CiphertextValue"},
     {ERR_FUNC(SM2_F_O2I_SM2CIPHERTEXTVALUE), "o2i_SM2CiphertextValue"},
     {ERR_FUNC(SM2_F_SM2CIPHERTEXTVALUE_SIZE), "SM2CiphertextValue_size"},
+    {ERR_FUNC(SM2_F_SM2_CIPHERTEXT_SIZE), "SM2_ciphertext_size"},
     {ERR_FUNC(SM2_F_SM2_DECRYPT), "SM2_decrypt"},
     {ERR_FUNC(SM2_F_SM2_DO_DECRYPT), "SM2_do_decrypt"},
     {ERR_FUNC(SM2_F_SM2_DO_ENCRYPT), "SM2_do_encrypt"},

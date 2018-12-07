@@ -75,7 +75,7 @@ int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen)
 	int len = 0, i;
 
 	if (inlen > SM2_MAX_PLAINTEXT_LENGTH) {
-		SM2err(SM2_F_SM2CIPHERTEXTVALUE_SIZE, SM2_R_PLAINTEXT_TOO_LONG);
+		SM2err(SM2_F_SM2_CIPHERTEXT_SIZE, SM2_R_PLAINTEXT_TOO_LONG);
 		return 0;
 	}
 
@@ -89,7 +89,7 @@ int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen)
 
 		/* ASN1_INTEGER xCoordinate, yCoordinate */
 		if (!(i = EC_GROUP_order_bits(group))) {
-			SM2err(SM2_F_SM2CIPHERTEXTVALUE_SIZE, ERR_R_EC_LIB);
+			SM2err(SM2_F_SM2_CIPHERTEXT_SIZE, ERR_R_EC_LIB);
 			return 0;
 		}
 		a.length = (i + 7)/8;

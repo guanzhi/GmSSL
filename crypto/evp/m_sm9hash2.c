@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,57 +50,104 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 
-#ifndef OPENSSL_NO_SM3
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
 # include <openssl/evp.h>
 # include <openssl/x509.h>
 # include <openssl/objects.h>
-# include <openssl/sm3.h>
 # include "internal/evp_int.h"
 
-static int init(EVP_MD_CTX *ctx)
+# ifndef OPENSSL_NO_SM3
+#  include <openssl/sm3.h>
+
+static int sm9hash2_sm3_init(EVP_MD_CTX *ctx)
 {
-	if (!ctx || !EVP_MD_CTX_md_data(ctx)) {
-		return 0;
-	}
-	sm3_init(EVP_MD_CTX_md_data(ctx));
-	return 1;
+	return 0;
 }
 
-static int update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+static int sm9hash2_sm3_update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
 {
-	if (!ctx || !EVP_MD_CTX_md_data(ctx) || (!in && inlen != 0)) {
-		return 0;
-	}
-	sm3_update(EVP_MD_CTX_md_data(ctx), in, inlen);
-	return 1;
+	return 0;
 }
 
-static int final(EVP_MD_CTX *ctx, unsigned char *md)
+static int sm9hash2_sm3_final(EVP_MD_CTX *ctx, unsigned char *md)
 {
-	if (!ctx || !EVP_MD_CTX_md_data(ctx) || !md) {
-		return 0;
-	}
-	sm3_final(EVP_MD_CTX_md_data(ctx), md);
-	return 1;
+	return 0;
 }
 
-static const EVP_MD sm3_md = {
-	NID_sm3,		/* type */
-	NID_sm2sign_with_sm3,	/* pkey_type */
+int sm9hash2_sm3_ctrl(EVP_MD_CTX *ctx, int cmd, int p1, void *p2)
+{
+	return 0;
+}
+
+# define SM9HASH2_SM3_CTX_SIZE (sizeof(EVP_MD *) + sizeof(sm3_ctx_t))
+
+static const EVP_MD sm9hash2_sm3 = {
+	NID_sm9hash2_with_sm3,	/* type */
+	NID_sm9sign_with_sm3,	/* pkey_type */
 	SM3_DIGEST_LENGTH,	/* md_size */
 	0,			/* flags */
-	init,			/* init */
-	update,			/* update */
-	final,			/* final */
+	sm9hash2_sm3_init,	/* init */
+	sm9hash2_sm3_update,	/* update */
+	sm9hash2_sm3_final,	/* final */
 	NULL,			/* copy */
 	NULL,			/* cleanup */
 	SM3_BLOCK_SIZE,		/* block_size */
-	sizeof(EVP_MD *) + sizeof(sm3_ctx_t), /* ctx_size */
-	NULL,			/* md_ctrl */
+	SM9HASH2_SM3_CTX_SIZE,	/* ctx_size */
+	sm9hash2_sm3_ctrl,	/* md_ctrl */
 };
 
-const EVP_MD *EVP_sm3(void)
+const EVP_MD *EVP_sm9hash2_sm3(void)
 {
-        return &sm3_md;
+        return &sm9hash2_sm3;
 }
-#endif /* OPENSSL_NO_SM3 */
+
+# endif /* OPENSSL_NO_SM3 */
+
+# ifndef OPENSSL_NO_SHA256
+#  include <openssl/sha.h>
+
+static int sm9hash2_sha256_init(EVP_MD_CTX *ctx)
+{
+	return 0;
+}
+
+static int sm9hash2_sha256_update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+{
+	return 0;
+}
+
+static int sm9hash2_sha256_final(EVP_MD_CTX *ctx, unsigned char *md)
+{
+	return 0;
+}
+
+int sm9hash2_sha256_ctrl(EVP_MD_CTX *ctx, int cmd, int p1, void *p2)
+{
+	return 0;
+}
+
+#define SM9HASH2_SHA256_CTX_SIZE (sizeof(EVP_MD *) + sizeof(SHA256_CTX))
+
+static const EVP_MD sm9hash2_sha256 = {
+	NID_sm9hash2_with_sha256,	/* type */
+	NID_sm9sign_with_sha256,	/* pkey_type */
+	SHA256_DIGEST_LENGTH,		/* md_size */
+	0,				/* flags */
+	sm9hash2_sha256_init,		/* init */
+	sm9hash2_sha256_update,		/* update */
+	sm9hash2_sha256_final,		/* final */
+	NULL,				/* copy */
+	NULL,				/* cleanup */
+	SHA256_CBLOCK,			/* block_size */
+	SM9HASH2_SHA256_CTX_SIZE,	/* ctx_size */
+	sm9hash2_sha256_ctrl,		/* md_ctrl */
+};
+
+const EVP_MD *EVP_sm9hash2_sha256(void)
+{
+        return &sm9hash2_sha256;
+}
+# endif /* OPENSSL_NO_SHA256 */
+
+#endif /* OPENSSL_NO_SM9 */

@@ -251,6 +251,7 @@ int ERR_load_SM2_strings(void);
 # define SM2_F_I2O_SM2CIPHERTEXTVALUE                     107
 # define SM2_F_O2I_SM2CIPHERTEXTVALUE                     108
 # define SM2_F_SM2CIPHERTEXTVALUE_SIZE                    109
+# define SM2_F_SM2_CIPHERTEXT_SIZE                        110
 # define SM2_F_SM2_DECRYPT                                100
 # define SM2_F_SM2_DO_DECRYPT                             101
 # define SM2_F_SM2_DO_ENCRYPT                             102
