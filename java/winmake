@@ -1,0 +1,42 @@
+##WINDOWS gmssljni.dll生成
+LIBCRYPTOS=../libcrypto.lib
+JAVADLL=gmssljni.dll
+CC=cl
+CFLAGS=-DNDEBUG -W3 -wd4090 -Gs0 -GF -Gy -nologo -DOPENSSL_SYS_WIN32  -DWIN32_LEAN_AND_MEAN -DUNICODE -D_UNICODE /O2 
+LD=link
+LDFLAGS=/nologo /dll
+EX_LIBS=ws2_32.lib gdi32.lib advapi32.lib crypt32.lib user32.lib
+LIB_CFLAGS=
+
+!IF DEFINED(STATIC)
+CFLAGS = $(CFLAGS) /MT
+!ELSE
+CFLAGS = $(CFLAGS) /MD
+!ENDIF
+
+#java_home
+!IF DEFINED(JAVA_HOME) && "$(JAVA_HOME)" != ""
+JAVAC="$(JAVA_HOME)/bin/javac"
+JAVAINCLUDE=-I "$(JAVA_HOME)\include" -I "$(JAVA_HOME)\include\win32"
+!ENDIF
+JAVADLLPATH=-Djava.library.path=.
+JAVA=java
+all: $(JAVADLL)
+GmSSL.obj:
+	$(CC)  /I "." /I "..\include" $(JAVAINCLUDE) $(CFLAGS) $(LIB_CFLAGS) -c "GmSSL.c"
+gmssl_err.obj:
+	$(CC)  /I "." /I "..\include" $(JAVAINCLUDE) $(CFLAGS) $(LIB_CFLAGS) -c "gmssl_err.c"
+$(JAVADLL): GmSSL.obj gmssl_err.obj
+	$(LD) $(LIBCRYPTOS) $(EX_LIBS) $(LDFLAGS) /out:$@ $**
+javatest:
+	$(JAVAC) GmSSL.java
+test:javatest $(JAVADLL)
+	IF EXIST ..\libcrypto-1_1-x64.dll copy /Y ..\libcrypto-1_1-x64.dll .
+	$(JAVA) $(JAVADLLPATH) GmSSL
+clean:
+	del *.obj
+	del *.class
+	del *.dll
+	del *.pdb
+	del *.exp
+	del *.lib
