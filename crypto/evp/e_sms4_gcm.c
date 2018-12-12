@@ -440,7 +440,7 @@ static int sms4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 #define SMS4_GCM_FLAGS (EVP_CIPH_FLAG_DEFAULT_ASN1 \
                 | EVP_CIPH_CUSTOM_IV | EVP_CIPH_FLAG_CUSTOM_CIPHER \
                 | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CTRL_INIT \
-                | EVP_CIPH_CUSTOM_COPY \
+                | EVP_CIPH_CUSTOM_COPY | EVP_CIPH_GCM_MODE \
 		| EVP_CIPH_FLAG_AEAD_CIPHER)
 
 static const EVP_CIPHER sms4_gcm = {
