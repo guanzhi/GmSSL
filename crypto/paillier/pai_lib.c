@@ -45,7 +45,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
- *
  */
 
 #include <stdio.h>
@@ -70,7 +69,6 @@ PAILLIER *PAILLIER_new(void)
 
 void PAILLIER_free(PAILLIER *key)
 {
-
 	if (key) {
 		BN_free(key->n);
 		BN_free(key->lambda);
@@ -79,6 +77,16 @@ void PAILLIER_free(PAILLIER *key)
 		BN_free(key->x);
 	}
 	OPENSSL_clear_free(key, sizeof(*key));
+}
+
+int PAILLIER_size(const PAILLIER *key)
+{
+	return (BN_num_bits(key->n) * 2)/8;
+}
+
+int PAILLIER_security_bits(const PAILLIER *key)
+{
+	return BN_security_bits(BN_num_bits(key->n)/2, -1);
 }
 
 int PAILLIER_generate_key(PAILLIER *key, int bits)
@@ -92,56 +100,59 @@ int PAILLIER_generate_key(PAILLIER *key, int bits)
 	q = BN_new();
 	bn_ctx = BN_CTX_new();
 
-	if (!key->n) key->n = BN_new();
-	if (!key->lambda) key->lambda = BN_new();
-	if (!key->n_squared) key->n_squared = BN_new();
-	if (!key->n_plusone) key->n_plusone = BN_new();
-	if (!key->x) key->x = BN_new();
+	if (!key->n)
+		key->n = BN_new();
+	if (!key->lambda)
+		key->lambda = BN_new();
+	if (!key->n_squared)
+		key->n_squared = BN_new();
+	if (!key->n_plusone)
+		key->n_plusone = BN_new();
+	if (!key->x)
+		key->x = BN_new();
+
 	if (!p || !q || !bn_ctx || !key->n || !key->lambda ||
 		!key->n_squared || !key->n_plusone || !key->x) {
+		PAILLIERerr(PAILLIER_F_PAILLIER_GENERATE_KEY, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	key->bits = bits;
 
 	do {
-		if (!BN_generate_prime_ex(p, bits, 0, NULL, NULL, NULL)) {
+		if (!BN_generate_prime_ex(p, bits/2, 0, NULL, NULL, NULL)) {
 			PAILLIERerr(PAILLIER_F_PAILLIER_GENERATE_KEY,
 				PAILLIER_R_GENERATE_PRIME_FAILED);
 			goto end;
 		}
 
-		if (!BN_generate_prime_ex(q, bits, 0, NULL, NULL, NULL)) {
+		if (!BN_generate_prime_ex(q, bits/2, 0, NULL, NULL, NULL)) {
 			PAILLIERerr(PAILLIER_F_PAILLIER_GENERATE_KEY,
 				PAILLIER_R_GENERATE_PRIME_FAILED);
 			goto end;
 		}
 
-		if (!BN_mul(key->n, p, q, bn_ctx)) {
+		if (!BN_mul(key->n, p, q, bn_ctx)
+			|| !BN_sub_word(p, 1)
+			|| !BN_sub_word(q, 1)
+			/* lambda = (p - 1)*(q - 1) */
+			|| !BN_mul(key->lambda, p, q, bn_ctx)
+			/* n_squared = n^2 */
+			|| !BN_sqr(key->n_squared, key->n, bn_ctx)
+			/* n_plusone = n + 1 */
+			|| !BN_copy(key->n_plusone, key->n)
+			|| !BN_add_word(key->n_plusone, 1)
+#if 0
+			/* x = (((g^lambda mod n^2) - 1)/n)^-1 mod n */
+			|| !BN_mod_exp(key->x, key->n_plusone, key->lambda, key->n_squared, bn_ctx)
+			|| !BN_sub_word(key->x, 1)
+			|| !BN_div(key->x, key->x, key->n)
+			|| !BN_mod_inverse(key->x, key->x, key->n, bn_ctx)
+#endif
+			) {
 			PAILLIERerr(PAILLIER_F_PAILLIER_GENERATE_KEY, ERR_R_BN_LIB);
 			goto end;
 		}
-
-		if (!BN_sub_word(p, 1)) {
-			goto end;
-		}
-		if (!BN_sub_word(q, 1)) {
-			goto end;
-		}
-		if (!BN_mul(key->lambda, p, q, bn_ctx)) {
-			goto end;
-		}
-
-		BN_sqr(key->n_squared, key->n, bn_ctx);
-		BN_copy(key->n_plusone, key->n);
-		BN_add_word(key->n_plusone, 1);
-
-		/*
-		BN_mod_exp(key->x, key->n_plusone, key->lambda, key->n_squared, bn_ctx);
-		BN_sub_word(key->x, 1);
-		BN_div(key->x, key->x, key->n);
-		BN_mod_inverse(key->x, key->x, key->n, bn_ctx);
-		*/
 
 	} while (0);
 
@@ -164,6 +175,9 @@ int PAILLIER_encrypt(BIGNUM *c, const BIGNUM *m, PAILLIER *pub_key)
 	int ret = 0;
 	BIGNUM *r = NULL;
 	BN_CTX *bn_ctx = NULL;
+
+
+fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 
 	if (BN_cmp(m, pub_key->n) >= 0) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_ENCRYPT, PAILLIER_R_INVALID_PLAINTEXT);
@@ -241,22 +255,54 @@ int PAILLIER_decrypt(BIGNUM *m, const BIGNUM *c, PAILLIER *key)
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
+
+/*
+printf("m      = %s\n", BN_bn2hex(m));
+printf("c      = %s\n", BN_bn2hex(c));
+printf("lambda = %s\n", BN_bn2hex(key->lambda));
+printf("n^2    = %s\n", BN_bn2hex(key->n_squared));
+*/
+
+	if (!key->n_squared) {
+		if (!(key->n_squared = BN_new())) {
+			PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+		if (!BN_sqr(key->n_squared, key->n, bn_ctx)) {
+			PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
+			goto end;
+		}
+	}
+
+
+
+fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
+
 	if (!BN_mod_exp(m, c, key->lambda, key->n_squared, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
+
+fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 	if (!BN_sub_word(m, 1)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
+
+fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 	if (!BN_div(m, NULL, m, key->n, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
+
+fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 	if (!BN_mod_mul(m, m, key->x, key->n, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
+
+printf("m = %s\n", BN_bn2hex(m));
+
 	ret = 1;
 end:
 	BN_CTX_free(bn_ctx);

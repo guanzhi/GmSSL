@@ -96,7 +96,7 @@ static int test_paillier(int verbose)
 	m3 = BN_new();
 	c1 = BN_new();
 	c2 = BN_new();
-	c2 = BN_new();
+	c3 = BN_new();
 
 	if (!mx || !m1 || !m2 || !m3 || !c1 || !c2 || !c3) {
 		fprintf(stderr, "%s %d\n", __FILE__, __LINE__);

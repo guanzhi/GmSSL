@@ -202,7 +202,7 @@ ULONG SKF_PrintDevInfo(DEVINFO *devInfo)
 	printf("  Manufacturer     : %s\n", devInfo->Manufacturer);
 	printf("  Issuer           : %s\n", devInfo->Issuer);
 	printf("  Label            : %s\n", devInfo->Label);
-	print_buf("  Serial Number", devInfo->SerialNumber, strlen((char *)devInfo->SerialNumber));
+	print_buf("  Serial Number ", devInfo->SerialNumber, strlen((char *)devInfo->SerialNumber));
 	printf("  Hardware Version : %d.%d\n", devInfo->HWVersion.major,
 						devInfo->HWVersion.minor);
 	printf("  Firmware Version : %d.%d\n", devInfo->FirmwareVersion.major,
@@ -244,10 +244,10 @@ ULONG SKF_PrintDevInfo(DEVINFO *devInfo)
 	if (i == OSSL_NELEM(skf_cipher_caps)) {
 		printf("(unknown)\n");
 	}
-	print_int("  Total Sapce  ", devInfo->TotalSpace);
-	print_int("  Free Space  ", devInfo->FreeSpace);
-	print_int("  MAX ECC Input", devInfo->MaxECCBufferSize);
-	print_int("  MAX Cipher Input", devInfo->MaxBufferSize);
+	print_int("  Total Sapce    ", devInfo->TotalSpace);
+	print_int("  Free Space    ", devInfo->FreeSpace);
+	print_int("  MAX ECC Input  ", devInfo->MaxECCBufferSize);
+	print_int("  MAX Cipher Input ", devInfo->MaxBufferSize);
 
 	return SAR_OK;
 }

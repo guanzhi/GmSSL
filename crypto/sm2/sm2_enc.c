@@ -84,7 +84,7 @@ SM2CiphertextValue *SM2_do_encrypt(const EVP_MD *md,
 		return 0;
 	}
 
-	if (inlen < SM2_MIN_PLAINTEXT_LENGTH || inlen > SM2_MAX_PLAINTEXT_LENGTH) {
+	if (inlen <= 0 || inlen > SM2_MAX_PLAINTEXT_LENGTH) {
 		SM2err(SM2_F_SM2_DO_ENCRYPT, SM2_R_INVALID_PLAINTEXT_LENGTH);
 		return 0;
 	}
@@ -230,24 +230,47 @@ end:
 int SM2_encrypt(int type, const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key)
 {
+	int ret = 0;
 	const EVP_MD *md;
-	SM2CiphertextValue *cv;
+	SM2CiphertextValue *cv = NULL;
+	int clen;
 
+	// check type 					
 	if (!(md = EVP_get_digestbynid(type))) {
 		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_INVALID_DIGEST_ALGOR);
-		*outlen = 0;
+		return 0;
+	}
+
+	if (!(clen = SM2_ciphertext_size(ec_key, inlen))) {
+		SM2err(SM2_F_SM2_ENCRYPT, ERR_R_SM2_LIB);
+		return 0;
+	}
+	if (!out) {
+		*outlen = clen;
+		return 1;
+	} else if (*outlen < clen) {
+		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
 	RAND_seed(in, inlen);
 	if (!(cv = SM2_do_encrypt(md, in, inlen, ec_key))) {
+		SM2err(SM2_F_SM2_ENCRYPT, ERR_R_SM2_LIB);
 		*outlen = 0;
 		return 0;
 	}
 
-	*outlen = i2d_SM2CiphertextValue(cv, &out);
+	if ((clen = i2d_SM2CiphertextValue(cv, &out)) <= 0) {
+		SM2err(SM2_F_SM2_ENCRYPT, ERR_R_SM2_LIB);
+		goto end;
+	}
+
+	*outlen = clen;
+	ret = 1;
+
+end:
 	SM2CiphertextValue_free(cv);
-	return 1;
+	return ret;
 }
 
 int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
@@ -353,7 +376,7 @@ int SM2_do_decrypt(const EVP_MD *md, const SM2CiphertextValue *cv,
 		return 0;
 	}
 
-	if (cv->ciphertext->length < SM2_MIN_PLAINTEXT_LENGTH
+	if (cv->ciphertext->length <= 0
 		|| cv->ciphertext->length > SM2_MAX_PLAINTEXT_LENGTH) {
 		SM2err(SM2_F_SM2_DO_DECRYPT, SM2_R_INVALID_CIPHERTEXT);
 		return 0;

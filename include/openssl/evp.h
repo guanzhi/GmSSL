@@ -98,9 +98,11 @@
 # define EVP_PKEY_EC     NID_X9_62_id_ecPublicKey
 # define EVP_PKEY_HMAC   NID_hmac
 # define EVP_PKEY_CMAC   NID_cmac
-# define EVP_PKEY_TLS1_PRF NID_tls1_prf
-# define EVP_PKEY_HKDF   NID_hkdf
-# define EVP_PKEY_PAILLIER NID_paillier
+# define EVP_PKEY_TLS1_PRF   NID_tls1_prf
+# define EVP_PKEY_HKDF       NID_hkdf
+# define EVP_PKEY_PAILLIER   NID_paillier
+# define EVP_PKEY_SM9_MASTER NID_id_sm9MasterSecret
+# define EVP_PKEY_SM9        NID_id_sm9PublicKey
 
 #ifdef  __cplusplus
 extern "C" {
@@ -454,6 +456,17 @@ typedef int (EVP_PBE_KEYGEN) (EVP_CIPHER_CTX *ctx, const char *pass,
                                         (char *)(paillier))
 # endif
 
+# ifndef OPENSSL_NO_SM9
+#  define EVP_PKEY_assign_SM9_MASTER(pkey,sm9) EVP_PKEY_assign((pkey),EVP_PKEY_SM9_MASTER,\
+                                        (char *)(sm9))
+#  define EVP_PKEY_assign_SM9(pkey,sm9) EVP_PKEY_assign((pkey),EVP_PKEY_SM9,\
+                                        (char *)(sm9))
+#  define EVP_PKEY_assign_SM9MasterSecret(pkey,sm9) EVP_PKEY_assign_SM9_MASTER(pkey,sm9)
+#  define EVP_PKEY_assign_SM9PublicParameters(pkey,sm9) EVP_PKEY_assign_SM9_MASTER(pkey,sm9)
+#  define EVP_PKEY_assign_SM9PrivateKey(pkey,sm9) EVP_PKEY_assign_SM9(pkey,sm9)
+#  define EVP_PKEY_assign_SM9PublicKey(pkey,sm9) EVP_PKEY_assign_SM9(pkey,sm9)
+# endif
+
 /* Add some extra combinations */
 # define EVP_get_digestbynid(a) EVP_get_digestbyname(OBJ_nid2sn(a))
 # define EVP_get_digestbyobj(a) EVP_get_digestbynid(OBJ_obj2nid(a))
@@ -731,6 +744,9 @@ const EVP_MD *EVP_whirlpool(void);
 # endif
 # ifndef OPENSSL_NO_SM3
 const EVP_MD *EVP_sm3(void);
+#  ifndef OPENSSL_NO_SM9
+const EVP_MD *EVP_sm9hash2_sm3(void);
+#  endif
 # endif
 const EVP_CIPHER *EVP_enc_null(void); /* does nothing :-) */
 # ifndef OPENSSL_NO_DES
@@ -1022,6 +1038,28 @@ struct paillier_st;
 int EVP_PKEY_set1_PAILLIER(EVP_PKEY *pkey, struct paillier_st *key);
 struct paillier_st *EVP_PKEY_get0_PAILLIER(EVP_PKEY *pkey);
 struct paillier_st *EVP_PKEY_get1_PAILLIER(EVP_PKEY *pkey);
+# endif
+# ifndef OPENSSL_NO_SM9
+struct SM9_MASTER_KEY_st;
+int EVP_PKEY_set1_SM9_MASTER(EVP_PKEY *pkey, struct SM9_MASTER_KEY_st *key);
+struct SM9_MASTER_KEY_st *EVP_PKEY_get0_SM9_MASTER(EVP_PKEY *pkey);
+struct SM9_MASTER_KEY_st *EVP_PKEY_get1_SM9_MASTER(EVP_PKEY *pkey);
+#define EVP_PKEY_set1_SM9MasterSecret(pk,k) EVP_PKEY_set1_SM9_MASTER(pk,k)
+#define EVP_PKEY_get0_SM9MasterSecret(pk) EVP_PKEY_get0_SM9_MASTER(pk)
+#define EVP_PKEY_get1_SM9MasterSecret(pk) EVP_PKEY_get1_SM9_MASTER(pk)
+#define EVP_PKEY_set1_SM9PublicParameters(pk,k) EVP_PKEY_set1_SM9_MASTER(pk,k)
+#define EVP_PKEY_get0_SM9PublicParameters(pk) EVP_PKEY_get0_SM9_MASTER(pk)
+#define EVP_PKEY_get1_SM9PublicParameters(pk) EVP_PKEY_get1_SM9_MASTER(pk)
+struct SM9_KEY_st;
+int EVP_PKEY_set1_SM9(EVP_PKEY *pkey, struct SM9_KEY_st *key);
+struct SM9_KEY_st *EVP_PKEY_get0_SM9(EVP_PKEY *pkey);
+struct SM9_KEY_st *EVP_PKEY_get1_SM9(EVP_PKEY *pkey);
+#define EVP_PKEY_set1_SM9PrivateKey(pk,k) EVP_PKEY_set1_SM9(pk,k)
+#define EVP_PKEY_get0_SM9PrivateKey(pk,k) EVP_PKEY_get0_SM9(pk)
+#define EVP_PKEY_get1_SM9PrivateKey(pk,k) EVP_PKEY_get1_SM9(pk)
+#define EVP_PKEY_set1_SM9PublicKey(pk,k) EVP_PKEY_set1_SM9(pk,k)
+#define EVP_PKEY_get0_SM9PublicKey(pk,k) EVP_PKEY_get0_SM9(pk)
+#define EVP_PKEY_get1_SM9PublicKey(pk,k) EVP_PKEY_get1_SM9(pk)
 # endif
 
 EVP_PKEY *EVP_PKEY_new(void);
@@ -1600,6 +1638,10 @@ int ERR_load_EVP_strings(void);
 # define EVP_F_EVP_PKEY_GET0_HMAC                         183
 # define EVP_F_EVP_PKEY_GET0_PAILLIER                     172
 # define EVP_F_EVP_PKEY_GET0_RSA                          121
+# define EVP_F_EVP_PKEY_GET0_SM9                          176
+# define EVP_F_EVP_PKEY_GET0_SM9MASTERSECRET              173
+# define EVP_F_EVP_PKEY_GET0_SM9PUBLICPARAMETERS          174
+# define EVP_F_EVP_PKEY_GET0_SM9_MASTER                   175
 # define EVP_F_EVP_PKEY_KEYGEN                            146
 # define EVP_F_EVP_PKEY_KEYGEN_INIT                       147
 # define EVP_F_EVP_PKEY_NEW                               106
@@ -1644,6 +1686,9 @@ int ERR_load_EVP_strings(void);
 # define EVP_R_EXPECTING_A_DSA_KEY                        129
 # define EVP_R_EXPECTING_A_EC_KEY                         142
 # define EVP_R_EXPECTING_A_PAILLIER                       176
+# define EVP_R_EXPECTING_A_SM9_KEY                        180
+# define EVP_R_EXPECTING_A_SM9_MASTER_KEY                 181
+# define EVP_R_EXPECTING_A_SM9_MASTER_SECRET              179
 # define EVP_R_FIPS_MODE_NOT_SUPPORTED                    167
 # define EVP_R_ILLEGAL_SCRYPT_PARAMETERS                  171
 # define EVP_R_INITIALIZATION_ERROR                       134

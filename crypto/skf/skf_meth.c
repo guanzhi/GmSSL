@@ -128,7 +128,6 @@ SKF_METHOD *SKF_METHOD_load_library(const char *so_path)
 	SKF_METHOD_BIND_FUNCTION(ECCExportSessionKey);
 	SKF_METHOD_BIND_FUNCTION(ExtECCEncrypt);
 	SKF_METHOD_BIND_FUNCTION(ExtECCDecrypt);
-	SKF_METHOD_BIND_FUNCTION(ECCDecrypt);
 	SKF_METHOD_BIND_FUNCTION(ExtECCSign);
 	SKF_METHOD_BIND_FUNCTION(ExtECCVerify);
 	SKF_METHOD_BIND_FUNCTION(GenerateAgreementDataWithECC);
@@ -153,6 +152,11 @@ SKF_METHOD *SKF_METHOD_load_library(const char *so_path)
 	SKF_METHOD_BIND_FUNCTION(MacUpdate);
 	SKF_METHOD_BIND_FUNCTION(MacFinal);
 	SKF_METHOD_BIND_FUNCTION(CloseHandle);
+
+#ifdef SKF_SUPPORT_ECCDECRYPT
+	/* wisectech usb-key support ECCDecrypt */
+	SKF_METHOD_BIND_FUNCTION(ECCDecrypt);
+#endif
 
 	ret = skf;
 	skf = NULL;

@@ -337,6 +337,11 @@ end:
 	return ret;
 }
 
+int SM9_MASTER_KEY_ciphertext_size(const SM9_MASTER_KEY *master, size_t len)
+{
+
+}
+
 int SM9_encrypt(int type,
 	const unsigned char *in, size_t inlen,
 	unsigned char *out, size_t *outlen,
@@ -456,6 +461,11 @@ int SM9_decrypt(int type,
 		return 0;
 	}
 
+	if (!in || !outlen || !sk) {
+		SM9err(SM9_F_SM9_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
+		goto end;
+	}
+
 	/* decode sm9 ciphertext */
 	if (!(sm9cipher = d2i_SM9Ciphertext(NULL, &in, inlen))) {
 		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
@@ -464,6 +474,15 @@ int SM9_decrypt(int type,
 	C2 = ASN1_STRING_get0_data(sm9cipher->c2);
 	C2_len = ASN1_STRING_length(sm9cipher->c2);
 
+	/* check/return output length */
+	if (!out) {
+		*outlen = C2_len;
+		ret = 1;
+		goto end;
+	} else if (*outlen < C2_len) {
+		SM9err(SM9_F_SM9_DECRYPT, SM9_R_BUFFER_TOO_SMALL);
+		goto end;
+	}
 
 	/* unwrap key */
 	keylen = C2_len + EVP_MD_size(md);

@@ -55,6 +55,7 @@ static ERR_STRING_DATA CPK_str_reasons[] = {
     {ERR_REASON(CPK_R_BAD_DATA), "bad data"},
     {ERR_REASON(CPK_R_INVALID_ALGORITHM), "invalid algorithm"},
     {ERR_REASON(CPK_R_INVALID_ARGUMENT), "invalid argument"},
+    {ERR_REASON(CPK_R_INVALID_CURVE), "invalid curve"},
     {ERR_REASON(CPK_R_INVALID_ID_LENGTH), "invalid id length"},
     {ERR_REASON(CPK_R_INVALID_MAP_ALGOR), "invalid map algor"},
     {ERR_REASON(CPK_R_INVALID_PKEY_TYPE), "invalid pkey type"},

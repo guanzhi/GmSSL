@@ -119,21 +119,21 @@ int genpkey_main(int argc, char **argv)
         case OPT_TEXT:
             text = 1;
             break;
-        case OPT_CIPHER:
-            if (!opt_cipher(opt_unknown(), &cipher)
-                || do_param == 1)
-                goto opthelp;
         case OPT_CONFIG:
             configfile = opt_arg();
             break;
+        case OPT_CIPHER: /* this should be the last */
+            if (!opt_cipher(opt_unknown(), &cipher)
+                || do_param == 1)
+                goto opthelp;
         }
     }
     argc = opt_num_rest();
     if (argc != 0)
         goto opthelp;
 
-    //BIO_printf(bio_err, "Using configuration from %s\n", configfile);
-
+    if (e)
+        BIO_printf(bio_err, "Using configuration from %s\n", configfile);
     if ((conf = app_load_config(configfile)) == NULL)
         goto end;
     if (configfile != default_config_file && !app_load_modules(conf))

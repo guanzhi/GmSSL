@@ -67,8 +67,55 @@ ASN1_SEQUENCE(SM2CiphertextValue) = {
 IMPLEMENT_ASN1_FUNCTIONS(SM2CiphertextValue)
 IMPLEMENT_ASN1_DUP_FUNCTION(SM2CiphertextValue)
 
-int SM2CiphertextValue_size(const EC_GROUP *group, int inlen)
+int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen)
 {
-	return 1024;
-}
+	int ret;
+	const EC_GROUP *group = NULL;
+	ASN1_OCTET_STRING s;
+	int len = 0, i;
 
+	if (inlen > SM2_MAX_PLAINTEXT_LENGTH) {
+		SM2err(SM2_F_SM2_CIPHERTEXT_SIZE, SM2_R_PLAINTEXT_TOO_LONG);
+		return 0;
+	}
+
+	if (ec_key) {
+		group = EC_KEY_get0_group(ec_key);
+	}
+
+	if (group) {
+		ASN1_INTEGER a;
+		unsigned char buf[4] = {0xff};
+
+		/* ASN1_INTEGER xCoordinate, yCoordinate */
+		if (!(i = EC_GROUP_order_bits(group))) {
+			SM2err(SM2_F_SM2_CIPHERTEXT_SIZE, ERR_R_EC_LIB);
+			return 0;
+		}
+		a.length = (i + 7)/8;
+		a.data = buf;
+		a.type = V_ASN1_INTEGER;
+		i = i2d_ASN1_INTEGER(&a, NULL);
+		len = i + i;
+
+		/* ASN1_OCTET_STRING hash 32 */
+		s.length = SM3_DIGEST_LENGTH;
+		s.data = NULL;
+		s.type = V_ASN1_OCTET_STRING;
+		i = i2d_ASN1_OCTET_STRING(&s, NULL);
+		len += i;
+
+	} else {
+		len += 104;
+	}
+
+	/* ASN1_OCTET_STRING ciphertext inlen */
+	s.length = inlen;
+	s.data = NULL;
+	s.type = V_ASN1_OCTET_STRING;
+	i = i2d_ASN1_OCTET_STRING(&s, NULL);
+	len += i;
+
+	ret = ASN1_object_size(1, len, V_ASN1_SEQUENCE);
+	return ret;
+}

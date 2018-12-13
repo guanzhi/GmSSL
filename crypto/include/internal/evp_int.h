@@ -84,6 +84,13 @@ extern const EVP_PKEY_METHOD hmac_pkey_meth;
 extern const EVP_PKEY_METHOD rsa_pkey_meth;
 extern const EVP_PKEY_METHOD tls1_prf_pkey_meth;
 extern const EVP_PKEY_METHOD hkdf_pkey_meth;
+#ifndef OPENSSL_NO_SM9
+extern const EVP_PKEY_METHOD sm9_pkey_meth;
+extern const EVP_PKEY_METHOD sm9_master_pkey_meth;
+#endif
+#ifndef OPENSSL_NO_PAILLIER
+extern const EVP_PKEY_METHOD paillier_pkey_meth;
+#endif
 
 struct evp_md_st {
     int type;
@@ -370,8 +377,15 @@ struct evp_pkey_st {
 # ifndef OPENSSL_NO_EC
         struct ec_key_st *ec;   /* ECC */
 # endif
-# ifndef OPENSSL_NO_PAILLIER
+# ifndef OPENSSL_NO_PAILLIER	/* PAILLIER */
         struct paillier_st *paillier;
+# endif
+# ifndef OPENSSL_NO_SM9         /* SM9 */
+        struct SM9_MASTER_KEY_st *sm9_master;
+        struct SM9_KEY_st *sm9;
+# endif
+# ifndef OPENSSL_NO_CPK         /* CPK */
+        struct CPK_MASTER_SECERT *cpk;
 # endif
     } pkey;
     int save_parameters;

@@ -73,7 +73,6 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 	/* set pairing type */
 	switch (pairing) {
 	case NID_sm9bn256v1:
-		ASN1_OBJECT_free(msk->pairing);
 		if (!(msk->pairing = OBJ_nid2obj(pairing))) {
 			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_OBJ_LIB);
 			goto end;
@@ -89,7 +88,6 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 	case NID_sm9sign:
 	case NID_sm9encrypt:
 	case NID_sm9keyagreement:
-		ASN1_OBJECT_free(msk->scheme);
 		if (!(msk->scheme = OBJ_nid2obj(scheme))) {
 			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_OBJ_LIB);
 			goto end;
@@ -104,7 +102,6 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 	switch (hash1) {
 	case NID_sm9hash1_with_sm3:
 	case NID_sm9hash1_with_sha256:
-		ASN1_OBJECT_free(msk->hash1);
 		if (!(msk->hash1 = OBJ_nid2obj(hash1))) {
 			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_OBJ_LIB);
 			goto end;
@@ -117,6 +114,11 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 
 	/* generate master secret k = rand(1, n - 1) */
 	do {
+
+		if (!(msk->masterSecret = BN_new())) {
+			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
 		if (!BN_rand_range(msk->masterSecret, n)) {
 			SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_BN_LIB);
 			goto end;
@@ -165,6 +167,10 @@ SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)
 		goto end;
 	}
 
+	if (!(msk->pointPpub = ASN1_OCTET_STRING_new())) {
+		SM9err(SM9_F_SM9_GENERATE_MASTER_SECRET, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
 	if (!ASN1_OCTET_STRING_set(msk->pointPpub, buf, (int)len)) {
 		ERR_print_errors_fp(stderr);
 		goto end;
@@ -193,17 +199,10 @@ SM9PublicParameters *SM9_extract_public_parameters(SM9MasterSecret *msk)
 		return NULL;
 	}
 
-	ASN1_OBJECT_free(mpk->pairing);
-	ASN1_OBJECT_free(mpk->scheme);
-	ASN1_OBJECT_free(mpk->hash1);
-	mpk->pairing = NULL;
-	mpk->scheme = NULL;
-	mpk->hash1 = NULL;
-
 	if (!(mpk->pairing = OBJ_dup(msk->pairing))
 		|| !(mpk->scheme = OBJ_dup(msk->scheme))
 		|| !(mpk->hash1 = OBJ_dup(msk->hash1))
-		|| !ASN1_STRING_copy(mpk->pointPpub, msk->pointPpub)) {
+		|| !(mpk->pointPpub = ASN1_OCTET_STRING_dup(msk->pointPpub))) {
 		SM9err(SM9_F_SM9_EXTRACT_PUBLIC_PARAMETERS, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
@@ -211,7 +210,7 @@ SM9PublicParameters *SM9_extract_public_parameters(SM9MasterSecret *msk)
 	ret = mpk;
 	mpk = NULL;
 
-end:	
+end:
 	SM9PublicParameters_free(mpk);
 	return ret;
 }

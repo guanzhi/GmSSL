@@ -95,7 +95,6 @@ func NewEngineByName(name string) (*Engine, error) {
 	ret := &Engine{eng}
 	runtime.SetFinalizer(ret, func(ret *Engine) {
 		C.ENGINE_finish(ret.engine)
-		C.ENGINE_free(ret.engine)
 	})
 	if 1 != C.ENGINE_init(eng) {
 		return nil, GetErrors()

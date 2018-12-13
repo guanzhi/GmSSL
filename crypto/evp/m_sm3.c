@@ -85,17 +85,18 @@ static int final(EVP_MD_CTX *ctx, unsigned char *md)
 }
 
 static const EVP_MD sm3_md = {
-	NID_sm3,
-	NID_sm2sign_with_sm3,
-	SM3_DIGEST_LENGTH,
-	0, /* flags */
-	init,
-	update,
-	final,
-	NULL,
-	NULL,
-	SM3_BLOCK_SIZE,
-	sizeof(EVP_MD *) + sizeof(sm3_ctx_t),
+	NID_sm3,		/* type */
+	NID_sm2sign_with_sm3,	/* pkey_type */
+	SM3_DIGEST_LENGTH,	/* md_size */
+	0,			/* flags */
+	init,			/* init */
+	update,			/* update */
+	final,			/* final */
+	NULL,			/* copy */
+	NULL,			/* cleanup */
+	SM3_BLOCK_SIZE,		/* block_size */
+	sizeof(EVP_MD *) + sizeof(sm3_ctx_t), /* ctx_size */
+	NULL,			/* md_ctrl */
 };
 
 const EVP_MD *EVP_sm3(void)

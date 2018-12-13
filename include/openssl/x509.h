@@ -30,6 +30,9 @@
 # ifndef OPENSSL_NO_PAILLIER
 #  include <openssl/paillier.h>
 # endif
+# ifndef OPENSSL_NO_SM9
+#  include <openssl/sm9.h>
+# endif
 
 # if OPENSSL_API_COMPAT < 0x10100000L
 #  ifndef OPENSSL_NO_RSA
@@ -548,6 +551,12 @@ EC_KEY *d2i_EC_PUBKEY(EC_KEY **a, const unsigned char **pp, long length);
 # ifndef OPENSSL_NO_PAILLIER
 int i2d_PAILLIER_PUBKEY(PAILLIER *a, unsigned char **pp);
 PAILLIER *d2i_PAILLIER_PUBKEY(PAILLIER **a, const unsigned char **pp, long length);
+# endif
+# ifndef OPENSSL_NO_SM9
+int i2d_SM9_MASTER_PUBKEY(SM9_MASTER_KEY *a, unsigned char **pp);
+SM9_MASTER_KEY *d2i_SM9_MASTER_PUBKEY(SM9_MASTER_KEY **a, const unsigned char **pp, long length);
+int i2d_SM9_PUBKEY(SM9_KEY *a, unsigned char **pp);
+SM9_KEY *d2i_SM9_PUBKEY(SM9_KEY **a, const unsigned char **pp, long length);
 # endif
 
 

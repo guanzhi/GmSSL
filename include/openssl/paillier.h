@@ -59,6 +59,9 @@
 #include <openssl/bn.h>
 #include <openssl/asn1.h>
 
+
+#define PAILLIER_MIN_KEY_BITS 2048
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,7 +72,10 @@ typedef struct paillier_st PAILLIER;
 PAILLIER *PAILLIER_new(void);
 void PAILLIER_free(PAILLIER *key);
 
-int PAILLIER_generate_key(PAILLIER *key, int bits);
+int PAILLIER_size(const PAILLIER *key);
+int PAILLIER_security_bits(const PAILLIER *key);
+
+int PAILLIER_generate_key(PAILLIER *key, int bits/* as RSA N */);
 int PAILLIER_check_key(PAILLIER *key);
 int PAILLIER_encrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *key);
 int PAILLIER_decrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *key);
@@ -80,6 +86,19 @@ int PAILLIER_up_ref(PAILLIER *key);
 
 DECLARE_ASN1_ENCODE_FUNCTIONS_const(PAILLIER, PaillierPrivateKey)
 DECLARE_ASN1_ENCODE_FUNCTIONS_const(PAILLIER, PaillierPublicKey)
+
+
+# define EVP_PKEY_CTRL_PAILLIER_KEYGEN_BITS	(EVP_PKEY_ALG_CTRL + 1)
+
+# define EVP_PKEY_CTX_set_paillier_keygen_bits(ctx, nbits) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_PAILLIER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_PAILLIER_KEYGEN_BITS, nbits, NULL)
+
+# define EVP_PKEY_CTX_get_paillier_keygen_bits(ctx) \
+	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_PAILLIER, \
+		EVP_PKEY_OP_KEYGEN, \
+		EVP_PKEY_CTRL_PAILLIER_KEYGEN_BITS, -2, NULL)
 
 /* BEGIN ERROR CODES */
 /*
@@ -92,6 +111,7 @@ int ERR_load_PAILLIER_strings(void);
 /* Error codes for the PAILLIER functions. */
 
 /* Function codes. */
+# define PAILLIER_F_OLD_PAILLIER_PRIV_DECODE              110
 # define PAILLIER_F_PAILLIER_CHECK_KEY                    100
 # define PAILLIER_F_PAILLIER_CIPHERTEXT_ADD               101
 # define PAILLIER_F_PAILLIER_CIPHERTEXT_SCALAR_MUL        102
@@ -99,16 +119,25 @@ int ERR_load_PAILLIER_strings(void);
 # define PAILLIER_F_PAILLIER_ENCRYPT                      104
 # define PAILLIER_F_PAILLIER_GENERATE_KEY                 105
 # define PAILLIER_F_PAILLIER_NEW                          106
+# define PAILLIER_F_PAILLIER_PRIV_DECODE                  111
+# define PAILLIER_F_PAILLIER_PRIV_ENCODE                  112
 # define PAILLIER_F_PAILLIER_PUB_DECODE                   107
+# define PAILLIER_F_PKEY_PAILLIER_CTRL                    113
+# define PAILLIER_F_PKEY_PAILLIER_CTRL_STR                114
 # define PAILLIER_F_PKEY_PAILLIER_DECRYPT                 108
 # define PAILLIER_F_PKEY_PAILLIER_ENCRYPT                 109
+# define PAILLIER_F_PKEY_PAILLIER_INIT                    115
+# define PAILLIER_F_PKEY_PAILLIER_KEYGEN                  116
 
 /* Reason codes. */
 # define PAILLIER_R_BUFFER_TOO_SMALL                      104
+# define PAILLIER_R_DECODE_ERROR                          105
 # define PAILLIER_R_GENERATE_PRIME_FAILED                 100
 # define PAILLIER_R_INVALID_PLAINTEXT                     101
+# define PAILLIER_R_KEY_SIZE_TOO_SMALL                    106
 # define PAILLIER_R_MALLOC_FAILED                         102
 # define PAILLIER_R_NOT_IMPLEMENTED                       103
+# define PAILLIER_R_VALUE_MISSING                         107
 
 #  ifdef  __cplusplus
 }

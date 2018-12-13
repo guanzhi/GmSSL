@@ -49,53 +49,83 @@
 
 #include <openssl/bn.h>
 #include <openssl/err.h>
+#include <openssl/sm3.h>
 #include <openssl/asn1.h>
 #include <openssl/asn1t.h>
 #include <openssl/objects.h>
 #include <openssl/sm9.h>
 #include "sm9_lcl.h"
 
-ASN1_SEQUENCE(SM9MasterSecret) = {
-	ASN1_SIMPLE(SM9MasterSecret, pairing, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9MasterSecret, scheme, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9MasterSecret, hash1, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9MasterSecret, pointPpub, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9MasterSecret, masterSecret, BIGNUM)
-} ASN1_SEQUENCE_END(SM9MasterSecret)
-IMPLEMENT_ASN1_FUNCTIONS(SM9MasterSecret)
-IMPLEMENT_ASN1_DUP_FUNCTION(SM9MasterSecret)
+static int sm9_master_key_cb(int operation, ASN1_VALUE **pval,
+	const ASN1_ITEM *it, void *exarg)
+{
+	if (operation == ASN1_OP_NEW_PRE) {
+		*pval = (ASN1_VALUE *)SM9_MASTER_KEY_new();
+		if (*pval)
+			return 2;
+		return 0;
+	} else if (operation == ASN1_OP_FREE_PRE) {
+		SM9_MASTER_KEY_free((SM9_MASTER_KEY *)*pval);
+		*pval = NULL;
+		return 2;
+	}
+	return 1;
+}
 
-ASN1_SEQUENCE(SM9PublicParameters) = {
-	ASN1_SIMPLE(SM9PublicParameters, pairing, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicParameters, scheme, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicParameters, hash1, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicParameters, pointPpub, ASN1_OCTET_STRING)
-} ASN1_SEQUENCE_END(SM9PublicParameters)
-IMPLEMENT_ASN1_FUNCTIONS(SM9PublicParameters)
-IMPLEMENT_ASN1_DUP_FUNCTION(SM9PublicParameters)
+ASN1_SEQUENCE_cb(SM9MasterSecret, sm9_master_key_cb) = {
+	ASN1_SIMPLE(SM9_MASTER_KEY, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_MASTER_KEY, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_MASTER_KEY, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_MASTER_KEY, pointPpub, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9_MASTER_KEY, masterSecret, BIGNUM)
+} ASN1_SEQUENCE_END_cb(SM9_MASTER_KEY, SM9MasterSecret)
+IMPLEMENT_ASN1_ENCODE_FUNCTIONS_const_fname(SM9_MASTER_KEY,SM9MasterSecret,SM9MasterSecret)
 
-ASN1_SEQUENCE(SM9PrivateKey) = {
-	ASN1_SIMPLE(SM9PrivateKey, pairing, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PrivateKey, scheme, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PrivateKey, hash1, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PrivateKey, pointPpub, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PrivateKey, identity, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PrivateKey, publicPoint, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PrivateKey, privatePoint, ASN1_OCTET_STRING)
-} ASN1_SEQUENCE_END(SM9PrivateKey)
-IMPLEMENT_ASN1_FUNCTIONS(SM9PrivateKey)
-IMPLEMENT_ASN1_DUP_FUNCTION(SM9PrivateKey)
+ASN1_SEQUENCE_cb(SM9PublicParameters, sm9_master_key_cb) = {
+	ASN1_SIMPLE(SM9_MASTER_KEY, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_MASTER_KEY, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_MASTER_KEY, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_MASTER_KEY, pointPpub, ASN1_OCTET_STRING)
+} ASN1_SEQUENCE_END_cb(SM9_MASTER_KEY, SM9PublicParameters)
+IMPLEMENT_ASN1_ENCODE_FUNCTIONS_const_fname(SM9_MASTER_KEY,SM9PublicParameters,SM9PublicParameters)
 
-ASN1_SEQUENCE(SM9PublicKey) = {
-	ASN1_SIMPLE(SM9PublicKey, pairing, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicKey, scheme, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicKey, hash1, ASN1_OBJECT),
-	ASN1_SIMPLE(SM9PublicKey, pointPpub, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PublicKey, identity, ASN1_OCTET_STRING),
-	ASN1_SIMPLE(SM9PublicKey, publicPoint, ASN1_OCTET_STRING)
-} ASN1_SEQUENCE_END(SM9PublicKey)
-IMPLEMENT_ASN1_FUNCTIONS(SM9PublicKey)
-IMPLEMENT_ASN1_DUP_FUNCTION(SM9PublicKey)
+
+static int sm9_key_cb(int operation, ASN1_VALUE **pval,
+	const ASN1_ITEM *it, void *exarg)
+{
+	if (operation == ASN1_OP_NEW_PRE) {
+		*pval = (ASN1_VALUE *)SM9_KEY_new();
+		if (*pval)
+			return 2;
+		return 0;
+	} else if (operation == ASN1_OP_FREE_PRE) {
+		SM9_KEY_free((SM9_KEY *)*pval);
+		*pval = NULL;
+		return 2;
+	}
+	return 1;
+}
+
+ASN1_SEQUENCE_cb(SM9PrivateKey, sm9_key_cb) = {
+	ASN1_SIMPLE(SM9_KEY, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_KEY, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_KEY, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_KEY, pointPpub, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9_KEY, identity, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9_KEY, publicPoint, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9_KEY, privatePoint, ASN1_OCTET_STRING)
+} ASN1_SEQUENCE_END_cb(SM9_KEY, SM9PrivateKey)
+IMPLEMENT_ASN1_ENCODE_FUNCTIONS_const_fname(SM9_KEY,SM9PrivateKey,SM9PrivateKey)
+
+ASN1_SEQUENCE_cb(SM9PublicKey, sm9_key_cb) = {
+	ASN1_SIMPLE(SM9_KEY, pairing, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_KEY, scheme, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_KEY, hash1, ASN1_OBJECT),
+	ASN1_SIMPLE(SM9_KEY, pointPpub, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9_KEY, identity, ASN1_OCTET_STRING),
+	ASN1_SIMPLE(SM9_KEY, publicPoint, ASN1_OCTET_STRING)
+} ASN1_SEQUENCE_END_cb(SM9_KEY, SM9PublicKey)
+IMPLEMENT_ASN1_ENCODE_FUNCTIONS_const_fname(SM9_KEY,SM9PublicKey,SM9PublicKey)
 
 ASN1_SEQUENCE(SM9Ciphertext) = {
 	ASN1_SIMPLE(SM9Ciphertext, pointC1, ASN1_OCTET_STRING),
@@ -168,3 +198,66 @@ int i2d_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext *c)
 	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM9Ciphertext), fp, c);
 }
 #endif
+
+int SM9_signature_size(const SM9_MASTER_KEY *params)
+{
+	if (params) {
+		int ret;
+		ASN1_INTEGER h;
+		ASN1_OCTET_STRING s;
+		unsigned char buf[4] = {0xff};
+		int len = 0;
+
+		/* ASN1_INTEGER h convert from hash */
+		h.length = SM3_DIGEST_LENGTH;
+		h.data = buf;
+		h.type = V_ASN1_INTEGER;
+		len += i2d_ASN1_INTEGER(&h, NULL);
+
+		/* ASN1_OCTET_STRING pointS over E'(F_p^2) */
+		s.length = 129;
+		s.data = buf;
+		s.type = V_ASN1_OCTET_STRING;
+		len += i2d_ASN1_OCTET_STRING(&s, NULL);
+
+		ret = ASN1_object_size(1, len, V_ASN1_SEQUENCE);
+		return ret;
+	} else {
+		return 170;
+	}
+}
+
+int SM9_ciphertext_size(const SM9_MASTER_KEY *params, size_t inlen)
+{
+	int ret;
+	ASN1_OCTET_STRING s;
+	s.type = V_ASN1_OCTET_STRING;
+	s.data = NULL;
+	int len = 0;
+
+	if (inlen > SM9_MAX_PLAINTEXT_LENGTH) {
+		SM9err(SM9_F_SM9_CIPHERTEXT_SIZE, SM9_R_PLAINTEXT_TOO_LONG);
+		return 0;
+	}
+
+	if (params) {
+		/* ASN1_OCTET_STRING pointC1 over E(F_p) */
+		s.length = 65;
+		len += i2d_ASN1_OCTET_STRING(&s, NULL);
+
+		/* ASN1_OCTET_STRING c3 SM3-MAC */
+		s.length = SM3_DIGEST_LENGTH;
+		len += i2d_ASN1_OCTET_STRING(&s, NULL);
+	} else {
+		/* when no params given, if use point compression is unknown,
+		 * so the maximum uncompressed point length is used */
+		len += 101;
+	}
+
+	/* ASN1_OCTET_STRING c2 ciphertext */
+	s.length = inlen;
+	len += i2d_ASN1_OCTET_STRING(&s, NULL);
+
+	ret = ASN1_object_size(1, len, V_ASN1_SEQUENCE);
+	return ret;
+}

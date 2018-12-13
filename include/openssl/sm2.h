@@ -106,10 +106,6 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 
 /* SM2 Public Key Encryption */
 
-#define SM2_MIN_PLAINTEXT_LENGTH	0
-#define SM2_MAX_PLAINTEXT_LENGTH	1024
-#define SM2_CIPHERTEXT_LENGTH(len)	((len)+256)
-
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
 
@@ -131,7 +127,6 @@ int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
 #define SM2_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
 	SM2_decrypt(NID_sm3,in,inlen,out,outlen,ec_key)
 
-int SM2CiphertextValue_size(const EC_GROUP *group, int inlen);
 
 /* SM2 Key Exchange */
 
@@ -255,6 +250,8 @@ int ERR_load_SM2_strings(void);
 /* Function codes. */
 # define SM2_F_I2O_SM2CIPHERTEXTVALUE                     107
 # define SM2_F_O2I_SM2CIPHERTEXTVALUE                     108
+# define SM2_F_SM2CIPHERTEXTVALUE_SIZE                    109
+# define SM2_F_SM2_CIPHERTEXT_SIZE                        110
 # define SM2_F_SM2_DECRYPT                                100
 # define SM2_F_SM2_DO_DECRYPT                             101
 # define SM2_F_SM2_DO_ENCRYPT                             102
@@ -277,10 +274,11 @@ int ERR_load_SM2_strings(void);
 # define SM2_R_KDF_FAILURE                                109
 # define SM2_R_MISSING_PARAMETERS                         111
 # define SM2_R_NEED_NEW_SETUP_VALUES                      112
+# define SM2_R_PLAINTEXT_TOO_LONG                         114
 # define SM2_R_RANDOM_NUMBER_GENERATION_FAILED            113
 
-# ifdef  __cplusplus
+#  ifdef  __cplusplus
 }
+#  endif
 # endif
-#endif
 #endif

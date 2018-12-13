@@ -67,4 +67,3 @@ struct paillier_st {
 };
 
 #endif
-

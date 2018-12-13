@@ -302,6 +302,84 @@ int i2d_PAILLIER_PUBKEY(PAILLIER *a, unsigned char **pp)
 }
 #endif
 
+#ifndef OPENSSL_NO_SM9
+SM9_MASTER_KEY *d2i_SM9_MASTER_PUBKEY(SM9_MASTER_KEY **a, const unsigned char **pp, long length)
+{
+    EVP_PKEY *pkey;
+    SM9_MASTER_KEY *key;
+    const unsigned char *q;
+    q = *pp;
+    pkey = d2i_PUBKEY(NULL, &q, length);
+    if (!pkey)
+        return NULL;
+    key = EVP_PKEY_get1_SM9_MASTER(pkey);
+    EVP_PKEY_free(pkey);
+    if (!key)
+        return NULL;
+    *pp = q;
+    if (a) {
+        SM9_MASTER_KEY_free(*a);
+        *a = key;
+    }
+    return key;
+}
+
+int i2d_SM9_MASTER_PUBKEY(SM9_MASTER_KEY *a, unsigned char **pp)
+{
+    EVP_PKEY *pktmp;
+    int ret;
+    if (!a)
+        return 0;
+    pktmp = EVP_PKEY_new();
+    if (pktmp == NULL) {
+        ASN1err(ASN1_F_I2D_SM9_MASTER_PUBKEY, ERR_R_MALLOC_FAILURE);
+        return 0;
+    }
+    EVP_PKEY_set1_SM9_MASTER(pktmp, a);
+    ret = i2d_PUBKEY(pktmp, pp);
+    EVP_PKEY_free(pktmp);
+    return ret;
+}
+
+SM9_KEY *d2i_SM9_PUBKEY(SM9_KEY **a, const unsigned char **pp, long length)
+{
+    EVP_PKEY *pkey;
+    SM9_KEY *key;
+    const unsigned char *q;
+    q = *pp;
+    pkey = d2i_PUBKEY(NULL, &q, length);
+    if (!pkey)
+        return NULL;
+    key = EVP_PKEY_get1_SM9(pkey);
+    EVP_PKEY_free(pkey);
+    if (!key)
+        return NULL;
+    *pp = q;
+    if (a) {
+        SM9_KEY_free(*a);
+        *a = key;
+    }
+    return key;
+}
+
+int i2d_SM9_PUBKEY(SM9_KEY *a, unsigned char **pp)
+{
+    EVP_PKEY *pktmp;
+    int ret;
+    if (!a)
+        return 0;
+    pktmp = EVP_PKEY_new();
+    if (pktmp == NULL) {
+        //ASN1err(ASN1_F_I2D_SM9_PUBKEY, ERR_R_MALLOC_FAILURE);
+        return 0;
+    }
+    EVP_PKEY_set1_SM9(pktmp, a);
+    ret = i2d_PUBKEY(pktmp, pp);
+    EVP_PKEY_free(pktmp);
+    return ret;
+}
+#endif
+
 #ifndef OPENSSL_NO_DSA
 DSA *d2i_DSA_PUBKEY(DSA **a, const unsigned char **pp, long length)
 {

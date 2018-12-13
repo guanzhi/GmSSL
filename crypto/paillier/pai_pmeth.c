@@ -49,39 +49,75 @@
 
 #include <stdio.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <openssl/paillier.h>
 #include "internal/evp_int.h"
+#include "pai_lcl.h"
 
 typedef struct {
-	int flags;
+	int bits;
 } PAILLIER_PKEY_CTX;
 
 static int pkey_paillier_init(EVP_PKEY_CTX *ctx)
 {
+	PAILLIER_PKEY_CTX *dctx;
+	if (!(dctx = OPENSSL_zalloc(sizeof(*dctx)))) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_INIT, ERR_R_MALLOC_FAILURE);
+		return 0;
+	}
+	dctx->bits = 4096;
+	(void)EVP_PKEY_CTX_set_data(ctx, dctx);
 	return 1;
 }
 
 static int pkey_paillier_copy(EVP_PKEY_CTX *dst, EVP_PKEY_CTX *src)
 {
+	PAILLIER_PKEY_CTX *dctx;
+	PAILLIER_PKEY_CTX *sctx;
+	if (!pkey_paillier_init(dst))
+		return 0;
+	dctx = EVP_PKEY_CTX_get_data(dst);
+	sctx = EVP_PKEY_CTX_get_data(src);
+	OPENSSL_assert(sctx);
+	*dctx = *sctx;
 	return 1;
 }
 
 static void pkey_paillier_cleanup(EVP_PKEY_CTX *ctx)
 {
+	PAILLIER_PKEY_CTX *dctx = EVP_PKEY_CTX_get_data(ctx);
+	if (dctx) {
+		OPENSSL_free(dctx);
+	}
 }
 
-//FIXME keygen
-
+static int pkey_paillier_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
+{
+	PAILLIER_PKEY_CTX *dctx = EVP_PKEY_CTX_get_data(ctx);
+	PAILLIER *pai = NULL;
+	if (!(pai = PAILLIER_new())) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_KEYGEN, ERR_R_MALLOC_FAILURE);
+		return 0;
+	}
+	if (!EVP_PKEY_assign_PAILLIER(pkey, pai)) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_KEYGEN, ERR_R_EVP_LIB);
+		PAILLIER_free(pai);
+		return 0;
+	}
+	if (!PAILLIER_generate_key(EVP_PKEY_get0_PAILLIER(pkey), dctx->bits)) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_KEYGEN, ERR_R_PAILLIER_LIB);
+		return 0;
+	}
+	return 1;
+}
 
 static int pkey_paillier_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen,
 	const unsigned char *in, size_t inlen)
 {
 	int ret = 0;
-	PAILLIER *key = ctx->pkey->pkey.paillier;
+	PAILLIER *key = EVP_PKEY_get0_PAILLIER(EVP_PKEY_CTX_get0_pkey(ctx));
 	BIGNUM *m = NULL;
 	BIGNUM *c = NULL;
-
-	//FIXME: check inlen
 
 	if (!out) {
 		*outlen = PAILLIER_size(key);
@@ -95,20 +131,21 @@ static int pkey_paillier_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
-
 	if (!BN_bin2bn(in, (int)inlen, m)) {
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!PAILLIER_encrypt(c, m, key)) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_PAILLIER_LIB);
 		goto end;
 	}
 
+	/* the ciphertext has no prefix zeros */
 	*outlen = BN_bn2bin(c, out);
 	ret = 1;
 
 end:
-	BN_free(m);
+	BN_clear_free(m);
 	BN_free(c);
 	return ret;
 }
@@ -117,7 +154,7 @@ static int pkey_paillier_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 	const unsigned char *in, size_t inlen)
 {
 	int ret = 0;
-	PAILLIER *key = ctx->pkey->pkey.paillier;
+	PAILLIER *key = EVP_PKEY_get0_PAILLIER(EVP_PKEY_CTX_get0_pkey(ctx));
 	BIGNUM *m = NULL;
 	BIGNUM *c = NULL;
 
@@ -133,15 +170,16 @@ static int pkey_paillier_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
-
 	if (!BN_bin2bn(in, (int)inlen, c)) {
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
 	if (!PAILLIER_decrypt(m, c, key)) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_PAILLIER_LIB);
 		goto end;
 	}
 
+	/* the plaintext has no prefix zeros */
 	*outlen = BN_bn2bin(m, out);
 	ret = 1;
 end:
@@ -152,43 +190,61 @@ end:
 
 static int pkey_paillier_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
 {
-	return 0;
+	PAILLIER_PKEY_CTX *dctx = EVP_PKEY_CTX_get_data(ctx);
+	switch (type) {
+	case EVP_PKEY_CTRL_PAILLIER_KEYGEN_BITS:
+		if (p1 < PAILLIER_MIN_KEY_BITS) {
+			PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_CTRL, PAILLIER_R_KEY_SIZE_TOO_SMALL);
+			return -2;
+		}
+		dctx->bits = p1;
+		return 1;
+	}
+	return -2;
 }
 
-static int pkey_paillier_ctrl_str(EVP_PKEY_CTX *ctx,
-                            const char *type, const char *value)
+static int pkey_paillier_ctrl_str(EVP_PKEY_CTX *ctx, const char *type, const char *value)
 {
-	return 0;
+	if (!value) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_CTRL_STR, PAILLIER_R_VALUE_MISSING);
+		return 0;
+	}
+	if (!strcmp(type, "bits")) {
+		int nbits = atoi(value);
+		return EVP_PKEY_CTX_set_paillier_keygen_bits(ctx, nbits);
+	}
+	return -2;
 }
 
 #define EVP_PKEY_PAILLIER NID_paillier
 
 
-const EVP_PKEY_METHOD paillier_pmeth = {
-	EVP_PKEY_PAILLIER,
-	0,
-	pkey_paillier_init,
-	pkey_paillier_copy,
-	pkey_paillier_cleanup,
-
-	0, 0,
-
-	0,
-	pkey_paillier_keygen,
-
-	0, 0,
-	0, 0,
-	0, 0,
-	0, 0, 0, 0,
-
-	0,
-	pkey_paillier_encrypt,
-	0,
-	pkey_paillier_decrypt,
-
-	0, 0,
-
-	pkey_paillier_ctrl,
-	pkey_paillier_ctrl_str
+const EVP_PKEY_METHOD paillier_pkey_meth = {
+	EVP_PKEY_PAILLIER,	/* pkey_id */
+	0,			/* flags */
+	pkey_paillier_init,	/* init */
+	pkey_paillier_copy,	/* copy */
+	pkey_paillier_cleanup,	/* cleanup */
+	NULL,			/* paramgen_init */
+	NULL,			/* paramgen */
+	NULL,			/* keygen_init */
+	pkey_paillier_keygen,	/* keygen */
+	NULL,			/* sign_init */
+	NULL,			/* sign */
+	NULL,			/* verify_init */
+	NULL,			/* verify */
+	NULL,			/* verify_recover_init */
+	NULL,			/* verify_recover */
+	NULL,			/* signctx_init */
+	NULL,			/* signctx */
+	NULL,			/* verifyctx_init */
+	NULL,			/* verifyctx */
+	NULL,			/* encrypt_init */
+	pkey_paillier_encrypt,	/* encrypt */
+	NULL,			/* decrypt_init */
+	pkey_paillier_decrypt,	/* decrypt */
+	NULL,			/* derive_init */
+	NULL,			/* derive */
+	pkey_paillier_ctrl,	/* ctrl */
+	pkey_paillier_ctrl_str	/* ctrl_str */
 };
-

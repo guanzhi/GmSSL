@@ -119,11 +119,11 @@ int EC_KEY_set_ECCrefPublicKey(EC_KEY *ec_key, const ECCrefPublicKey *ref)
 	/* ECCrefPublicKey ==> EC_KEY */
 	nbytes = (ref->bits + 7)/8;
 
-	if (!(x = BN_bin2bn(ref->x, nbytes, NULL))) {
+	if (!(x = BN_bin2bn(ref->x + ECCref_MAX_LEN - nbytes, nbytes, NULL))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCREFPUBLICKEY, ERR_R_BN_LIB);
 		goto end;
 	}
-	if (!(y = BN_bin2bn(ref->y, nbytes, NULL))) {
+	if (!(y = BN_bin2bn(ref->y + ECCref_MAX_LEN - nbytes, nbytes, NULL))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCREFPUBLICKEY, ERR_R_BN_LIB);
 		goto end;
 	}
@@ -305,7 +305,6 @@ SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref)
 {
 	SM2CiphertextValue *ret = NULL;
 	SM2CiphertextValue *cv = NULL;
-	EC_GROUP *group = NULL;
 
 	/* check arguments */
 	if (!ref) {
@@ -320,12 +319,6 @@ SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref)
 	}
 
 	/* ECCCipher => SM2CiphertextValue */
-	if (!(group = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
-		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
-			ERR_R_EC_LIB);
-		goto end;
-	}
-
 	if (!(cv = SM2CiphertextValue_new())) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_NEW_FROM_ECCCIPHER,
 			GMAPI_R_MALLOC_FAILED);
@@ -342,7 +335,6 @@ SM2CiphertextValue *SM2CiphertextValue_new_from_ECCCipher(const ECCCipher *ref)
 	cv = NULL;
 
 end:
-	EC_GROUP_free(group);
 	SM2CiphertextValue_free(cv);
 	return ret;
 }

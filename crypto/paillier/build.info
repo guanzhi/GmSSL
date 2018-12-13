@@ -1,2 +1,3 @@
 LIBS=../../libcrypto
-SOURCE[../../libcrypto]=pai_lib.c pai_err.c pai_asn1.c
+SOURCE[../../libcrypto]=pai_lib.c pai_err.c pai_asn1.c pai_ameth.c \
+	pai_pmeth.c

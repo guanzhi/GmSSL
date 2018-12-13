@@ -724,15 +724,15 @@ static const version_info tls_version_table[] = {
 #else
     {TLS1_VERSION, NULL, NULL},
 #endif
-#ifndef OPENSSL_NO_SSL3
-    {SSL3_VERSION, sslv3_client_method, sslv3_server_method},
-#else
-    {SSL3_VERSION, NULL, NULL},
-#endif
 #ifndef OPENSSL_NO_GMTLS
     {GMTLS_VERSION, gmtls_client_method, gmtls_server_method},
 #else
     {GMTLS_VERSION, NULL, NULL},
+#endif
+#ifndef OPENSSL_NO_SSL3
+    {SSL3_VERSION, sslv3_client_method, sslv3_server_method},
+#else
+    {SSL3_VERSION, NULL, NULL},
 #endif
     {0, NULL, NULL},
 };

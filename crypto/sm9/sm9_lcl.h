@@ -52,6 +52,7 @@
 
 #include <openssl/err.h>
 #include <openssl/sm9.h>
+#include "e_os.h"
 
 /* private key extract algorithms */
 #define SM9_HID_SIGN		0x01
@@ -81,43 +82,47 @@
 #define SM9_PHI_D4		0x04
 #define SM9_PHI_D6		0x06
 
+
+#define SM9_MAX_PLAINTEXT_LENGTH 65535
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-struct SM9MasterSecret_st {
+struct SM9_MASTER_KEY_st {
+	/* public */
 	ASN1_OBJECT *pairing;
 	ASN1_OBJECT *scheme;
 	ASN1_OBJECT *hash1;
 	ASN1_OCTET_STRING *pointPpub;
+
+	/* private */
 	BIGNUM *masterSecret;
+
+	int references;
+	int flags;
+	CRYPTO_EX_DATA ex_data;
+	CRYPTO_RWLOCK *lock;
 };
 
-struct SM9PublicParameters_st {
-	ASN1_OBJECT *pairing;
-	ASN1_OBJECT *scheme;
-	ASN1_OBJECT *hash1;
-	ASN1_OCTET_STRING *pointPpub;
-};
-
-struct SM9PrivateKey_st {
+struct SM9_KEY_st {
+	/* public */
 	ASN1_OBJECT *pairing;
 	ASN1_OBJECT *scheme;
 	ASN1_OBJECT *hash1;
 	ASN1_OCTET_STRING *pointPpub;
 	ASN1_OCTET_STRING *identity;
 	ASN1_OCTET_STRING *publicPoint;
+
+	/* private */
 	ASN1_OCTET_STRING *privatePoint;
-};
 
-struct SM9PublicKey_st {
-	ASN1_OBJECT *pairing;
-	ASN1_OBJECT *scheme;
-	ASN1_OBJECT *hash1;
-	ASN1_OCTET_STRING *pointPpub;
-	ASN1_OCTET_STRING *identity;
-	ASN1_OCTET_STRING *publicPoint;
+	int references;
+	int flags;
+	CRYPTO_EX_DATA ex_data;
+	CRYPTO_RWLOCK *lock;
 };
 
 struct SM9Ciphertext_st {
@@ -180,6 +185,11 @@ void point_cleanup(point_t *P);
 
 int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx);
 
+int sm9_check_pairing(int nid);
+int sm9_check_scheme(int nid);
+int sm9_check_hash1(int nid);
+int sm9_check_encrypt_scheme(int nid);
+int sm9_check_sign_scheme(int nid);
 
 #ifdef __cplusplus
 }

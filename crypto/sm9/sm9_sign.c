@@ -56,9 +56,15 @@
 #include "sm9_lcl.h"
 
 
-int SM9_signature_size(SM9PublicParameters *mpk)
+SM9Signature *SM9_do_sign(const unsigned char *dgst, int dgstlen, SM9_KEY *sm9)
 {
-	return 105;
+	return NULL;
+}
+
+int SM9_do_verify(const unsigned char *dgst, int dgstlen,
+	const SM9Signature *sig, SM9_KEY *sm9)
+{
+	return -1;
 }
 
 int SM9_SignInit(EVP_MD_CTX *ctx, const EVP_MD *md, ENGINE *eng)

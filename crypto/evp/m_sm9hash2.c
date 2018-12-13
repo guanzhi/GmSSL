@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2016 - 2018 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,84 +46,108 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <libgen.h>
-#include <openssl/sm9.h>
-#include <openssl/err.h>
-#include <openssl/objects.h>
+#include "internal/cryptlib.h"
 
-int main(int argc, char **argv)
+#ifndef OPENSSL_NO_SM9
+# include <openssl/sm9.h>
+# include <openssl/evp.h>
+# include <openssl/x509.h>
+# include <openssl/objects.h>
+# include "internal/evp_int.h"
+
+# ifndef OPENSSL_NO_SM3
+#  include <openssl/sm3.h>
+
+static int sm9hash2_sm3_init(EVP_MD_CTX *ctx)
 {
-	int ret = -1;
-	char *prog = basename(argv[0]);
-	EVP_MD_CTX *ctx = NULL;
-	FILE *msg_fp = NULL;
-	FILE *sk_fp = NULL;
-	FILE *sig_fp = NULL;
-	SM9PrivateKey *sk = NULL;
-	SM9Signature *sig = NULL;
-	unsigned char buf[2048];
-	int len;
-
-	if (argc != 4) {
-		printf("usage: %s <msg-file> <sk-file> <sig-file>\n", prog);
-		return 0;
-	}
-
-	if (!(ctx = EVP_MD_CTX_new())) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-	if (!SM9_SignInit(ctx, EVP_sm3(), NULL)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	if (!(msg_fp = fopen(argv[1], "r"))) {
-		fprintf(stderr, "%s: can not open file '%s'\n", prog, argv[1]);
-		goto end;
-	}
-	while ((len = fread(buf, 1, sizeof(buf), msg_fp)) > 0) {
-		if (!SM9_SignUpdate(ctx, buf, len)) {
-			ERR_print_errors_fp(stderr);
-			goto end;
-		}
-	}
-
-	if (!(sk_fp = fopen(argv[2], "r"))) {
-		fprintf(stderr, "%s: can not open file '%s'\n", prog, argv[2]);
-		goto end;
-	}
-	if (!(sk = d2i_SM9PrivateKey_fp(sk_fp, NULL))) {
-		ERR_print_errors_fp(stderr);
-		fprintf(stderr, "%s: parse private key failed\n", prog);
-		goto end;
-	}
-
-	if (!(sig = SM9_SignFinal(ctx, sk))) {
-		ERR_print_errors_fp(stderr);
-		fprintf(stderr, "%s: failed to generate siganture\n", prog);
-		goto end;
-	}
-	if (!(sig_fp = fopen(argv[3], "w"))) {
-		fprintf(stderr, "%s: can not open file '%s'\n", prog, argv[3]);
-		goto end;
-	}
-	if (!i2d_SM9Signature_fp(sig_fp, sig)) {
-		ERR_print_errors_fp(stderr);
-		goto end;
-	}
-
-	ret = 0;
-
-end:
-	EVP_MD_CTX_free(ctx);
-	fclose(msg_fp);
-	fclose(sk_fp);
-	fclose(sig_fp);
-	SM9PrivateKey_free(sk);
-	SM9Signature_free(sig);
-	return ret;
+	return 0;
 }
+
+static int sm9hash2_sm3_update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+{
+	return 0;
+}
+
+static int sm9hash2_sm3_final(EVP_MD_CTX *ctx, unsigned char *md)
+{
+	return 0;
+}
+
+int sm9hash2_sm3_ctrl(EVP_MD_CTX *ctx, int cmd, int p1, void *p2)
+{
+	return 0;
+}
+
+# define SM9HASH2_SM3_CTX_SIZE (sizeof(EVP_MD *) + sizeof(sm3_ctx_t))
+
+static const EVP_MD sm9hash2_sm3 = {
+	NID_sm9hash2_with_sm3,	/* type */
+	NID_sm9sign_with_sm3,	/* pkey_type */
+	SM3_DIGEST_LENGTH,	/* md_size */
+	0,			/* flags */
+	sm9hash2_sm3_init,	/* init */
+	sm9hash2_sm3_update,	/* update */
+	sm9hash2_sm3_final,	/* final */
+	NULL,			/* copy */
+	NULL,			/* cleanup */
+	SM3_BLOCK_SIZE,		/* block_size */
+	SM9HASH2_SM3_CTX_SIZE,	/* ctx_size */
+	sm9hash2_sm3_ctrl,	/* md_ctrl */
+};
+
+const EVP_MD *EVP_sm9hash2_sm3(void)
+{
+        return &sm9hash2_sm3;
+}
+
+# endif /* OPENSSL_NO_SM3 */
+
+# ifndef OPENSSL_NO_SHA256
+#  include <openssl/sha.h>
+
+static int sm9hash2_sha256_init(EVP_MD_CTX *ctx)
+{
+	return 0;
+}
+
+static int sm9hash2_sha256_update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
+{
+	return 0;
+}
+
+static int sm9hash2_sha256_final(EVP_MD_CTX *ctx, unsigned char *md)
+{
+	return 0;
+}
+
+int sm9hash2_sha256_ctrl(EVP_MD_CTX *ctx, int cmd, int p1, void *p2)
+{
+	return 0;
+}
+
+#define SM9HASH2_SHA256_CTX_SIZE (sizeof(EVP_MD *) + sizeof(SHA256_CTX))
+
+static const EVP_MD sm9hash2_sha256 = {
+	NID_sm9hash2_with_sha256,	/* type */
+	NID_sm9sign_with_sha256,	/* pkey_type */
+	SHA256_DIGEST_LENGTH,		/* md_size */
+	0,				/* flags */
+	sm9hash2_sha256_init,		/* init */
+	sm9hash2_sha256_update,		/* update */
+	sm9hash2_sha256_final,		/* final */
+	NULL,				/* copy */
+	NULL,				/* cleanup */
+	SHA256_CBLOCK,			/* block_size */
+	SM9HASH2_SHA256_CTX_SIZE,	/* ctx_size */
+	sm9hash2_sha256_ctrl,		/* md_ctrl */
+};
+
+const EVP_MD *EVP_sm9hash2_sha256(void)
+{
+        return &sm9hash2_sha256;
+}
+# endif /* OPENSSL_NO_SHA256 */
+
+#endif /* OPENSSL_NO_SM9 */
