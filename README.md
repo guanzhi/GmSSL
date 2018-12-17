@@ -1,6 +1,8 @@
 ## About GmSSL
 
 [![Build Status](https://travis-ci.org/guanzhi/GmSSL.svg?branch=master)](https://travis-ci.org/guanzhi/GmSSL)
+[![Build status](https://ci.appveyor.com/api/projects/status/8frwxuwaj4695grq/branch/master?svg=true)](https://ci.appveyor.com/project/zhaoxiaomeng/gmssl/branch/master)
+
 
 GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
