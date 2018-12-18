@@ -46,3 +46,11 @@ build_script:
         }
     - cd ..
 
+test_script:
+    - cd _build
+    - ps: >-
+        if ($env:EXTENDED_TESTS) {
+            mkdir ..\_install
+            cmd /c "nmake install DESTDIR=..\_install 2>&1"
+        }
+    - cd ..
