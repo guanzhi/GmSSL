@@ -44,7 +44,7 @@ The GM/T standards cover 2 protocols:
 
 The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS in the follows aspects:
 
- - Current version of TLS is 1.3 (0x0304) while GM/T SSL version is 1.1 (0x0101).
+ - Current version of TLS is 1.3 (0x0304) while GM/T SSL version is 1.1 (0x0102).
  - The handshake protocol of GM/T SSL is different from TLS handshake.
  - There is an optional different record protocol in GM/T SSL designed for VPN applications.
  - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
