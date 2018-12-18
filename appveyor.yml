@@ -46,19 +46,3 @@ build_script:
         }
     - cd ..
 
-test_script:
-    - cd _build
-    - ps: >-
-        If ($env:Configuration -Match "shared" -or $env:EXTENDED_TESTS) {
-            if ($env:EXTENDED_TESTS) {
-                cmd /c "nmake test V=1 2>&1"
-            } Else {
-                cmd /c "nmake test V=1 TESTS=-test_fuzz 2>&1"
-            }
-        }
-    - ps: >-
-        if ($env:EXTENDED_TESTS) {
-            mkdir ..\_install
-            cmd /c "nmake install DESTDIR=..\_install 2>&1"
-        }
-    - cd ..
