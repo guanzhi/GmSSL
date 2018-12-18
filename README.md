@@ -4,7 +4,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/8frwxuwaj4695grq/branch/master?svg=true)](https://ci.appveyor.com/project/zhaoxiaomeng/gmssl/branch/master)
 
 
-GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
+GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which are specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
 ## Features
 
@@ -44,7 +44,7 @@ The GM/T standards cover 2 protocols:
 
 The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS in the follows aspects:
 
- - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101).
+ - Current version of TLS is 1.3 (0x0304) while GM/T SSL version is 1.1 (0x0101).
  - The handshake protocol of GM/T SSL is different from TLS handshake.
  - There is an optional different record protocol in GM/T SSL designed for VPN applications.
  - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
