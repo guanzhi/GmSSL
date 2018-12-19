@@ -109,6 +109,11 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
 
+#ifndef OPENSSL_NO_STDIO
+SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a);
+int i2d_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue *a);
+#endif
+
 int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
 	unsigned char **pout);
 SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
@@ -126,7 +131,6 @@ int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
 	SM2_encrypt(NID_sm3,in,inlen,out,outlen,ec_key)
 #define SM2_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
 	SM2_decrypt(NID_sm3,in,inlen,out,outlen,ec_key)
-
 
 /* SM2 Key Exchange */
 

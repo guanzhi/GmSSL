@@ -1074,6 +1074,11 @@ int i2d_ECDSA_SIG(const ECDSA_SIG *sig, unsigned char **pp);
  */
 ECDSA_SIG *d2i_ECDSA_SIG(ECDSA_SIG **sig, const unsigned char **pp, long len);
 
+#ifndef OPENSSL_NO_STDIO
+int i2d_ECDSA_SIG_fp(FILE *fp, ECDSA_SIG *a);
+ECDSA_SIG *d2i_ECDSA_SIG_fp(FILE *fp, ECDSA_SIG **a);
+#endif
+
 /** Accessor for r and s fields of ECDSA_SIG
  *  \param  sig  pointer to ECDSA_SIG pointer
  *  \param  pr   pointer to BIGNUM pointer for r (may be NULL)
@@ -1515,6 +1520,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_EC_POINT_SET_JPROJECTIVE_COORDINATES_GFP    240
 # define EC_F_EC_POINT_SET_TO_INFINITY                    241
 # define EC_F_EC_PRE_COMP_NEW                             242
+# define EC_F_EC_SCHNORR_SIGN                             279
 # define EC_F_EC_TYPE1CURVE_TATE                          243
 # define EC_F_EC_WNAF_MUL                                 244
 # define EC_F_EC_WNAF_PRECOMPUTE_MULT                     245

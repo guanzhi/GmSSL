@@ -1232,3 +1232,15 @@ int ECDSA_size(const EC_KEY *r)
     ret = ASN1_object_size(1, i, V_ASN1_SEQUENCE);
     return (ret);
 }
+
+#ifndef OPENSSL_NO_STDIO
+ECDSA_SIG *d2i_ECDSA_SIG_fp(FILE *fp, ECDSA_SIG **a)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(ECDSA_SIG), fp, a);
+}
+
+int i2d_ECDSA_SIG_fp(FILE *fp, ECDSA_SIG *sig)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(ECDSA_SIG), fp, sig);
+}
+#endif

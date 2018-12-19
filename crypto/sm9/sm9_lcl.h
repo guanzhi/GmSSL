@@ -52,7 +52,7 @@
 
 #include <openssl/err.h>
 #include <openssl/sm9.h>
-#include "e_os.h"
+#include "../../e_os.h"
 
 /* private key extract algorithms */
 #define SM9_HID_SIGN		0x01

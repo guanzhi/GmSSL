@@ -3339,3 +3339,13 @@ int EC_curve_nist2nid(const char *name)
     }
     return NID_undef;
 }
+
+#ifndef OPENSSL_NO_SM2
+int EC_KEY_is_sm2p256v1(const EC_KEY *ec_key)
+{
+	const EC_GROUP *group = EC_KEY_get0_group(ec_key);
+	if (group)
+		return EC_GROUP_get_curve_name(group) == NID_sm2p256v1;
+	return 0;
+}
+#endif

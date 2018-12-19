@@ -59,20 +59,25 @@
 
 
 static const EC_KEY_METHOD gmssl_ec_key_method = {
-	"GmSSL EC_KEY method",
-	EC_KEY_METHOD_SM2,
-	0,0,0,0,0,0,
-	ossl_ec_key_gen,
-	NULL,
-	SM2_sign_ex,
-	SM2_sign_setup,
-	SM2_do_sign_ex,
-	SM2_verify,
-	SM2_do_verify,
-	SM2_encrypt,
-	NULL,
-	SM2_decrypt,
-	NULL,
+	"SM2 method",		/* name */
+	EC_KEY_METHOD_SM2,	/* flags */
+	NULL,			/* init */
+	NULL,			/* finish */
+	0,			/* copy */
+	0,			/* set_group */
+	0,			/* set_private */
+	0,			/* set_public */
+	ossl_ec_key_gen,	/* keygen */
+	NULL,			/* compute_key */
+	SM2_sign_ex,		/* sign */
+	SM2_sign_setup,		/* sign_setup */
+	SM2_do_sign_ex,		/* sign_sig */
+	SM2_verify,		/* verify */
+	SM2_do_verify,		/* verify_sig */
+	SM2_encrypt,		/* encrypt */
+	NULL,			/* do_encrypt */
+	SM2_decrypt,		/* decrypt */
+	NULL,			/* do_decrypt */
 };
 
 const EC_KEY_METHOD *EC_KEY_GmSSL(void)
