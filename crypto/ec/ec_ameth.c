@@ -499,6 +499,12 @@ static int ec_pkey_ctrl(EVP_PKEY *pkey, int op, long arg1, void *arg2)
 #endif
 
     case ASN1_PKEY_CTRL_DEFAULT_MD_NID:
+#if !defined(OPENSSL_NO_SM2) && !defined(OPENSSL_NO_SM3)
+        if (EC_KEY_is_sm2p256v1(EVP_PKEY_get0_EC_KEY(pkey))) {
+            *(int *)arg2 = NID_sm3;
+            return 2;
+        }
+#endif
         *(int *)arg2 = NID_sha256;
         return 2;
 
