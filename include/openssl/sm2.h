@@ -76,6 +76,9 @@ extern "C" {
 #define SM2_DEFAULT_ID_BITS			(SM2_DEFAULT_ID_LENGTH * 8)
 #define SM2_DEFAULT_ID_DIGEST_LENGTH		SM3_DIGEST_LENGTH
 
+
+int EC_KEY_is_sm2p256v1(const EC_KEY *ec_key);
+
 /* compute identity digest Z */
 int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);

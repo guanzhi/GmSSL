@@ -69,7 +69,6 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <openssl/pem.h>
 # include <openssl/sm2.h>
 # include <openssl/objects.h>
-# include "../crypto/ec/ec_lcl.h"
 # include "apps.h"
 
 static OPT_PAIR conv_forms[] = {

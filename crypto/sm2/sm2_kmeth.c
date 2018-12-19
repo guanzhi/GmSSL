@@ -57,6 +57,13 @@
 #define SM2_KMETH_FLAGS		0
 
 
+int EC_KEY_is_sm2p256v1(const EC_KEY *ec_key)
+{
+	const EC_GROUP *group = EC_KEY_get0_group(ec_key);
+	if (group)
+		return EC_GROUP_get_curve_name(group) == NID_sm2p256v1;
+	return 0;
+}
 
 static const EC_KEY_METHOD gmssl_ec_key_method = {
 	"SM2 method",		/* name */

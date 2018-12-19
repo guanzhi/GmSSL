@@ -654,7 +654,3 @@ int X25519(uint8_t out_shared_key[32], const uint8_t private_key[32],
            const uint8_t peer_public_value[32]);
 void X25519_public_from_private(uint8_t out_public_value[32],
                                 const uint8_t private_key[32]);
-
-#ifndef OPENSSL_NO_SM2
-int EC_KEY_is_sm2p256v1(const EC_KEY *ec_key);
-#endif
