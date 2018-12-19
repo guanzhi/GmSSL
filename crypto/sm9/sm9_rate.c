@@ -2367,6 +2367,7 @@ static int frobenius_twice(point_t *R, const point_t *P, const BIGNUM *p, BN_CTX
 	return 1;
 }
 
+
 static int final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
 	int i, n;
@@ -2389,6 +2390,103 @@ static int final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p
 			}
 		}
 	}
+	fp12_copy(r, t);
+	return 1;
+}
+
+
+static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
+{
+	// (p^4-p^2+1)/n will be directly used to finish the 3rd step with k unused here.
+	int i, n;
+	fp12_t t;
+	fp12_t t0;
+
+	fp12_init(t, ctx);
+	fp12_init(t0, ctx);
+
+	if (!fp12_copy(t, a)) {
+		return 0;
+	}
+	if (!fp12_copy(t0, a)) {
+		return 0;
+	}
+
+	// first step: a1 = a ^ (p^6-1)
+	if (!fp12_inv(t0, t, p, ctx)) { // t0 = a ^ (-1)
+		return 0;
+	}
+	if (!BN_sub(t[0][1][0], p, t[0][1][0])
+		|| !BN_sub(t[0][1][1], p, t[0][1][1])
+		|| !BN_sub(t[1][0][0], p, t[1][0][0])
+		|| !BN_sub(t[1][0][1], p, t[1][0][1])
+		|| !BN_sub(t[2][1][0], p, t[2][1][0])
+		|| !BN_sub(t[2][1][1], p, t[2][1][1])) { // t = a ^ (p^6)
+		return 0;
+	}
+	if (!fp12_mul(t, t0, t, p, ctx)) { // t = t0 * t = a ^ (p^6-1) = a1
+		return 0;
+	}
+	
+	// second step: a = a ^ (p^2+1)
+	if (!fp12_copy(t0, t)) { // t0 = t = a1
+		return 0;
+	}
+	const char *power_p2[] = {
+		"5958342662901643427453578939755302545063035311436308304692", 
+        "82434016654578246438872420442344325702149582327179867092849556861979152020041", 
+        "5958342662901643427453578939755302545063035311436308304691", 
+        "82434016654578246438872420442344325702149582327179867092849556861979152020042"};
+    BIGNUM *par[4];
+	for(int i=0;i<4;++i) {
+		par[i] = BN_new();
+		BN_init(par[i]);
+		if(!BN_dec2bn(&par[i], power_p2[i])){
+			return 0;
+		}
+	}
+	
+	if (!BN_sub(t[0][1][0], p, t[0][1][0])
+		|| !BN_sub(t[0][1][1], p, t[0][1][1])
+		|| !BN_mod_mul(t[1][0][0], t[1][0][0], par[0], p, ctx)
+		|| !BN_mod_mul(t[1][0][1], t[1][0][1], par[0], p, ctx)
+		|| !BN_mod_mul(t[1][1][0], t[1][1][0], par[1], p, ctx)
+		|| !BN_mod_mul(t[1][1][1], t[1][1][1], par[1], p, ctx)
+		|| !BN_mod_mul(t[2][0][0], t[2][0][0], par[2], p, ctx)
+		|| !BN_mod_mul(t[2][0][1], t[2][0][1], par[2], p, ctx)
+		|| !BN_mod_mul(t[2][1][0], t[2][1][0], par[3], p, ctx)
+		|| !BN_mod_mul(t[2][1][1], t[2][1][1], par[3], p, ctx)) { // t = a1 ^ (p^2)
+		return 0;
+	}
+	if (!fp12_mul(t, t0, t, p, ctx)) { // t = t0 * t = a ^ (p^2+1) = a2
+		return 0;
+	}
+	
+	// third step: a = a ^ [(p^4-p^2+1)/n]
+	BIGNUM *x = BN_new();
+	BN_init(x);
+	
+	// this is (p^4-p^2+1)/n
+	const char *power_p3 = 	"56016940484435473570363458812714626596371"
+							"56263396225483794771796879929232299116963"
+							"85989797265808925975765890463898744492959"
+							"90589989684454491684765426953541105430217"
+							"12895268418170653274635803649243300415902"
+							"97941432449745271567755349";
+	if (!BN_dec2bn(&x, power_p3)){
+		return 0;
+	}
+	n = BN_num_bits(x);
+	for (i = n - 2; i >= 0; i--) {
+		if (!fp12_sqr(t, t, p, ctx)) {
+			return 0;
+		}
+		if (BN_is_bit_set(x, i)) {
+			if (!fp12_mul(t, t, a, p, ctx)) {
+				return 0;
+			}
+		}
+	}	
 	fp12_copy(r, t);
 	return 1;
 }
@@ -2473,8 +2571,11 @@ static int rate(fp12_t f, const point_t *Q, const BIGNUM *xP, const BIGNUM *yP,
 	point_add(&T, &T, &Q2, p, ctx);
 
 	/* f = f^((p^12 - 1)/n) */
+#ifndef SM9_FAST
 	final_expo(f, f, k, p, ctx);
-
+#else
+	fast_final_expo(f, f, k, p, ctx); // (p^6-1) * (p^2+1) * [(p^4-p^2+1)/n]
+#endif
 
 	point_cleanup(&T);
 	point_cleanup(&Q1);
