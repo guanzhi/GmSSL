@@ -41,6 +41,7 @@ extern int enc_main(int argc, char *argv[]);
 extern int engine_main(int argc, char *argv[]);
 extern int errstr_main(int argc, char *argv[]);
 extern int exit_main(int argc, char *argv[]);
+extern int fpe_main(int argc, char *argv[]);
 extern int gendsa_main(int argc, char *argv[]);
 extern int genpkey_main(int argc, char *argv[]);
 extern int genrsa_main(int argc, char *argv[]);
@@ -94,6 +95,7 @@ extern OPTIONS enc_options[];
 extern OPTIONS engine_options[];
 extern OPTIONS errstr_options[];
 extern OPTIONS exit_options[];
+extern OPTIONS fpe_options[];
 extern OPTIONS gendsa_options[];
 extern OPTIONS genpkey_options[];
 extern OPTIONS genrsa_options[];
@@ -169,6 +171,7 @@ static FUNCTION functions[] = {
 #endif
     { FT_general, "errstr", errstr_main, errstr_options },
     { FT_general, "exit", exit_main, exit_options },
+    { FT_general, "fpe", fpe_main, fpe_options },
 #ifndef OPENSSL_NO_DSA
     { FT_general, "gendsa", gendsa_main, gendsa_options },
 #endif

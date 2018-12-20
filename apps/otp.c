@@ -121,7 +121,7 @@ opthelp:
 		unsigned char key[32];
 
 		if (!RAND_bytes(key, sizeof(key))) {
-			ERR_print_errors_fp(stderr);
+			ERR_print_errors(bio_err);
 			goto end;
 		}
 
@@ -133,7 +133,7 @@ opthelp:
 			goto end;
 		}
 
-		printf("generate OTP seed in '%s'\n", outfile);
+		BIO_printf(bio_err, "generate OTP seed in '%s'\n", outfile);
 
 	} else if (genkey) {
 
@@ -152,12 +152,12 @@ opthelp:
 			goto end;
 
 		if (BIO_read(bio, key, sizeof(key)) != sizeof(key)) {
-			ERR_print_errors_fp(stderr);
+			ERR_print_errors(bio_err);
 			goto end;
 		}
 
 		if (!OTP_generate(&params, event, sizeof(event), &otp, key, sizeof(key))) {
-			ERR_print_errors_fp(stderr);
+			ERR_print_errors(bio_err);
 			goto end;
 		}
 
