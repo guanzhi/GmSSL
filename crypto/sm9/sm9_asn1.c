@@ -147,6 +147,27 @@ int SM9PublicKey_gmtls_encode(SM9PublicKey *pk, unsigned char key[1024])
 	return 0;
 }
 
+int i2d_SM9Signature_bio(BIO *bp, SM9Signature *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM9Signature), bp, a);
+}
+
+SM9Signature *d2i_SM9Signature_bio(BIO *bp, SM9Signature **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM9Signature), bp, a);
+}
+
+int i2d_SM9Ciphertext_bio(BIO *bp, SM9Ciphertext *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM9Ciphertext), bp, a);
+}
+
+SM9Ciphertext *d2i_SM9Ciphertext_bio(BIO *bp, SM9Ciphertext **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM9Ciphertext), bp, a);
+}
+
+
 #ifndef OPENSSL_NO_STDIO
 SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **msk)
 {

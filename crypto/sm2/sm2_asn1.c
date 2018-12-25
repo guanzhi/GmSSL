@@ -121,6 +121,16 @@ int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen)
 	return ret;
 }
 
+int i2d_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM2CiphertextValue), bp, a);
+}
+
+SM2CiphertextValue *d2i_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM2CiphertextValue), bp, a);
+}
+
 #ifndef OPENSSL_NO_STDIO
 SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a)
 {

@@ -68,13 +68,12 @@ typedef enum OPTION_choice {
 	OPT_HELP
 } OPTION_CHOICE;
 
-OPTIONS sm9_options[] = {
+OPTIONS gensm9_options[] = {
 	{"help", OPT_HELP, '-', "Display this summary"},
-	{"in", OPT_IN, 's', "Input key"},
 	{NULL}
 };
 
-int sm9_main(int argc, char **argv)
+int gensm9_main(int argc, char **argv)
 {
 	printf("sm9 not implemented\n");
 	return 0;

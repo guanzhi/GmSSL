@@ -83,7 +83,8 @@
 #define SM9_PHI_D6		0x06
 
 
-#define SM9_MAX_PLAINTEXT_LENGTH 65535
+#define SM9_MAX_PLAINTEXT_LENGTH	12800
+#define SM9_MAX_CIPHERTEXT_LENGTH 	25600
 
 
 #ifdef __cplusplus

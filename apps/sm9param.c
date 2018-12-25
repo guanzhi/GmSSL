@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,15 +68,14 @@ typedef enum OPTION_choice {
 	OPT_HELP
 } OPTION_CHOICE;
 
-OPTIONS sm9_options[] = {
+OPTIONS sm9param_options[] = {
 	{"help", OPT_HELP, '-', "Display this summary"},
-	{"in", OPT_IN, 's', "Input key"},
 	{NULL}
 };
 
-int sm9_main(int argc, char **argv)
+int sm9param_main(int argc, char **argv)
 {
-	printf("sm9 not implemented\n");
+	printf("sm9param not implemented\n");
 	return 0;
 }
 #endif
