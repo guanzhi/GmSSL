@@ -70,7 +70,6 @@ typedef enum OPTION_choice {
 
 OPTIONS sm9_options[] = {
 	{"help", OPT_HELP, '-', "Display this summary"},
-	{"in", OPT_IN, 's', "Input key"},
 	{NULL}
 };
 

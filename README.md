@@ -13,7 +13,7 @@ GmSSL is an open source cryptographic toolkit that provide first level support o
  - With commercial friendly open source [license](http://gmssl.org/docs/licenses.html).
  - Maintained by the [crypto research group of Peking University](http://infosec.pku.edu.cn).
 
-## GM/T Algorithms
+## Supported Algorithms
 
 GmSSL will support all the following GM/T cryptographic algorithms:
 
@@ -101,7 +101,7 @@ Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip
  $ make
  $ sudo make install
  ```
- 
+
 After installation you can run `gmssl version -a` to print detailed information.
 
 The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, supports SM2 signing and encryption through `pkeyutl` option, supports SM3 through `sm3` or `dgst` option, and supports SM4 through `sms4` or `enc` option.

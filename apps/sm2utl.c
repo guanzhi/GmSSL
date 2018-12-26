@@ -101,7 +101,7 @@ OPTIONS sm2utl_options[] = {
 	{"help", OPT_HELP, '-', "Display this summary"},
 	{"in", OPT_IN, '<', "Input file - default stdin"},
 	{"out", OPT_OUT, '>', "Output file - default stdout"},
-	{"dgst", OPT_SIGN, '-', "Generate input data digest with Z value"},
+	{"dgst", OPT_DGST, '-', "Generate input data digest with Z value"},
 	{"sign", OPT_SIGN, '-', "Sign input data with private key and public parameters"},
 	{"verify", OPT_VERIFY, '-', "Verify with signer's ID and public parameters"},
 	{"encrypt", OPT_ENCRYPT, '-', "Encrypt input data with recipient's ID"},
@@ -134,14 +134,10 @@ int sm2utl_main(int argc, char **argv)
 	int ret = 1;
 	OPTION_CHOICE o;
 	char *prog;
-	char *infile = NULL;
-	char *outfile = NULL;
-	BIO *in = NULL;
-	BIO *out = NULL;
+	char *infile = NULL, *outfile = NULL, *sigfile = NULL;
+	BIO *in = NULL, *out = NULL, *sig = NULL;
 	int op = OP_UNDEF;
 	char *id = NULL;
-	char *sigfile = NULL;
-	BIO *sig = NULL;
 	char *keyfile = NULL;
 	int key_type = KEY_PRIVKEY;
 	char *passinarg = NULL;
@@ -157,7 +153,7 @@ int sm2utl_main(int argc, char **argv)
 	EVP_PKEY *pkey = NULL;
 	EC_KEY *ec_key;
 
-	prog = opt_init(argc, argv, sm9utl_options);
+	prog = opt_init(argc, argv, sm2utl_options);
 	while ((o = opt_next()) != OPT_EOF) {
 		switch (o) {
 		case OPT_EOF:
@@ -166,7 +162,7 @@ opthelp:
 			BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
 			goto end;
 		case OPT_HELP:
-			opt_help(sm9utl_options);
+			opt_help(sm2utl_options);
 			ret = 0;
 			goto end;
 		case OPT_IN:
@@ -232,7 +228,7 @@ opthelp:
 	if (argc != 0)
 		goto opthelp;
 
-
+# ifndef OPENSSL_NO_ENGINE
 	if (e)
 		BIO_printf(bio_err, "Using configuration from %s\n", configfile);
 
@@ -240,6 +236,7 @@ opthelp:
 		goto end;
 	if (configfile != default_config_file && !app_load_modules(conf))
 		goto end;
+# endif
 
 	in = bio_open_default(infile, 'r', FORMAT_BINARY);
 	if (!in)
@@ -261,11 +258,17 @@ opthelp:
 
 	switch (key_type) {
 	case KEY_PRIVKEY:
-		pkey = load_key(keyfile, keyform, 0, passin, e, "Private Key");
+		if (!(pkey = load_key(keyfile, keyform, 0, passin, e, "Private Key"))) {
+			ERR_print_errors(bio_err);
+			goto end;
+		}
 		break;
 
 	case KEY_PUBKEY:
-		pkey = load_pubkey(keyfile, keyform, 0, NULL, e, "Public Key");
+		if (!(pkey = load_pubkey(keyfile, keyform, 0, NULL, e, "Public Key"))) {
+			ERR_print_errors(bio_err);
+			goto end;
+		}
 		break;
 
 	case KEY_CERT:
@@ -279,7 +282,11 @@ opthelp:
 		break;
 	}
 
-	ec_key = EVP_PKEY_get0_EC_KEY(pkey);
+	if (!(ec_key = EVP_PKEY_get0_EC_KEY(pkey))
+		|| !EC_KEY_is_sm2p256v1(ec_key)) {
+		BIO_printf(bio_err, "Invalid key type\n");
+		goto end;
+	}
 
 	switch (op) {
 	case OP_DGST:
@@ -293,11 +300,15 @@ opthelp:
 	case OP_DECRYPT:
 		return sm2utl_decrypt(md, in, out, ec_key);
 	default:
+		BIO_printf(bio_err, "Cryptographic operation not specified\n");
 		goto end;
 	}
 
 
 end:
+	BIO_free(in);
+	BIO_free(out);
+	BIO_free(sig);
 	OPENSSL_free(passin);
 	return ret;
 }
