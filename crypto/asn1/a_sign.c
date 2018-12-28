@@ -211,8 +211,9 @@ int ASN1_item_sign_ctx(const ASN1_ITEM *it,
 #ifndef OPENSSL_NO_SM2
     if (OBJ_obj2nid(algor1->algorithm) == NID_sm2sign_with_sm3) {
         if (!EVP_PKEY_CTX_set_ec_scheme(EVP_MD_CTX_pkey_ctx(ctx), NID_sm_scheme)) {
+            outl = 0;
             ASN1err(ASN1_F_ASN1_ITEM_SIGN_CTX, ERR_R_EC_LIB);
-            return 0;
+            goto err;
         }
     }
 #endif
