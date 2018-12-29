@@ -205,6 +205,7 @@ static ERR_STRING_DATA EC_str_functs[] = {
      "EC_POINT_set_Jprojective_coordinates_GFp"},
     {ERR_FUNC(EC_F_EC_POINT_SET_TO_INFINITY), "EC_POINT_set_to_infinity"},
     {ERR_FUNC(EC_F_EC_PRE_COMP_NEW), "ec_pre_comp_new"},
+    {ERR_FUNC(EC_F_EC_SCHNORR_SIGN), "ec_schnorr_sign"},
     {ERR_FUNC(EC_F_EC_TYPE1CURVE_TATE), "EC_type1curve_tate"},
     {ERR_FUNC(EC_F_EC_WNAF_MUL), "ec_wNAF_mul"},
     {ERR_FUNC(EC_F_EC_WNAF_PRECOMPUTE_MULT), "ec_wNAF_precompute_mult"},

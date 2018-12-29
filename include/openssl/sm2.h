@@ -76,6 +76,9 @@ extern "C" {
 #define SM2_DEFAULT_ID_BITS			(SM2_DEFAULT_ID_LENGTH * 8)
 #define SM2_DEFAULT_ID_DIGEST_LENGTH		SM3_DIGEST_LENGTH
 
+
+int EC_KEY_is_sm2p256v1(const EC_KEY *ec_key);
+
 /* compute identity digest Z */
 int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 	unsigned char *out, size_t *outlen, EC_KEY *ec_key);
@@ -109,6 +112,13 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
 
+int i2d_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue *a);
+SM2CiphertextValue *d2i_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue **a);
+#ifndef OPENSSL_NO_STDIO
+SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a);
+int i2d_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue *a);
+#endif
+
 int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
 	unsigned char **pout);
 SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
@@ -126,7 +136,6 @@ int SM2_decrypt(int type, const unsigned char *in, size_t inlen,
 	SM2_encrypt(NID_sm3,in,inlen,out,outlen,ec_key)
 #define SM2_decrypt_with_recommended(in,inlen,out,outlen,ec_key) \
 	SM2_decrypt(NID_sm3,in,inlen,out,outlen,ec_key)
-
 
 /* SM2 Key Exchange */
 

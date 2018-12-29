@@ -52,7 +52,7 @@
 
 #include <openssl/err.h>
 #include <openssl/sm9.h>
-#include "e_os.h"
+#include "../../e_os.h"
 
 /* private key extract algorithms */
 #define SM9_HID_SIGN		0x01
@@ -83,7 +83,8 @@
 #define SM9_PHI_D6		0x06
 
 
-#define SM9_MAX_PLAINTEXT_LENGTH 65535
+#define SM9_MAX_PLAINTEXT_LENGTH	12800
+#define SM9_MAX_CIPHERTEXT_LENGTH 	25600
 
 
 #ifdef __cplusplus

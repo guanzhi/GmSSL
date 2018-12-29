@@ -180,6 +180,10 @@ int SM9_compute_share_key_B(int type,
 int SM9_MASTER_KEY_print(BIO *bp, const SM9_MASTER_KEY *x, int off);
 int SM9_KEY_print(BIO *bp, const SM9_KEY *x, int off);
 
+int i2d_SM9Signature_bio(BIO *bp, SM9Signature *a);
+SM9Signature *d2i_SM9Signature_bio(BIO *bp, SM9Signature **a);
+int i2d_SM9Ciphertext_bio(BIO *bp, SM9Ciphertext *a);
+SM9Ciphertext *d2i_SM9Ciphertext_bio(BIO *bp, SM9Ciphertext **a);
 
 #ifndef OPENSSL_NO_STDIO
 SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **pp);

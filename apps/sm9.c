@@ -46,13 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * gmssl sm9 -setup
- * gmssl sm9 -genkey
- * gmssl sm9 -encrypt
- * gmssl sm9 -sign
- * gmssl sm9 -verify
- */
 
 #include <openssl/opensslconf.h>
 #ifdef OPENSSL_NO_SM9
@@ -62,12 +55,12 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include "apps.h"
 # include <openssl/bio.h>
 # include <openssl/err.h>
 # include <openssl/evp.h>
 # include <openssl/pem.h>
-# include <openssl/cpk.h>
+# include <openssl/sm9.h>
+# include "apps.h"
 
 typedef enum OPTION_choice {
 	OPT_ERR = -1,

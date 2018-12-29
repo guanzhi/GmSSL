@@ -11,7 +11,9 @@ IF[{- !$disabled{apps} -}]
           s_client.c s_server.c s_time.c sess_id.c smime.c speed.c spkac.c \
           srp.c ts.c verify.c version.c x509.c rehash.c \
           apps.c opt.c s_cb.c s_socket.c \
-          app_rand.c cpk.c sm9.c otp.c \
+          app_rand.c cpk.c otp.c fpe.c \
+          sm2.c sm2utl.c \
+          sm9param.c gensm9.c sm9.c sm9utl.c \
           {- $target{apps_aux_src} -}
   INCLUDE[gmssl]=.. ../include
   DEPEND[gmssl]=../libssl

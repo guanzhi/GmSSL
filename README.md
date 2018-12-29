@@ -1,8 +1,10 @@
 ## About GmSSL
 
 [![Build Status](https://travis-ci.org/guanzhi/GmSSL.svg?branch=master)](https://travis-ci.org/guanzhi/GmSSL)
+[![Build status](https://ci.appveyor.com/api/projects/status/8frwxuwaj4695grq/branch/master?svg=true)](https://ci.appveyor.com/project/zhaoxiaomeng/gmssl/branch/master)
 
-GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
+
+GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which are specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
 ## Features
 
@@ -11,7 +13,7 @@ GmSSL is an open source cryptographic toolkit that provide first level support o
  - With commercial friendly open source [license](http://gmssl.org/docs/licenses.html).
  - Maintained by the [crypto research group of Peking University](http://infosec.pku.edu.cn).
 
-## GM/T Algorithms
+## Supported Algorithms
 
 GmSSL will support all the following GM/T cryptographic algorithms:
 
@@ -42,8 +44,8 @@ The GM/T standards cover 2 protocols:
 
 The GM/T 0024-2014 SSL VPN protocol is different from IETF TLS in the follows aspects:
 
- - Current version of TLS is 1.2 (0x0303) while GM/T SSL version is 1.1 (0x0101).
- - The handshake protocol of GM/T SSL is diffenet from TLS handshake.
+ - Current version of TLS is 1.3 (0x0304) while GM/T SSL version is 1.1 (0x0102).
+ - The handshake protocol of GM/T SSL is different from TLS handshake.
  - There is an optional different record protocol in GM/T SSL designed for VPN applications.
  - GM/T SSL has 12 ciphersuites, some of these ciphers do not provide forward secrecy.
 
@@ -99,7 +101,7 @@ Download ([GmSSL-master.zip](https://github.com/guanzhi/GmSSL/archive/master.zip
  $ make
  $ sudo make install
  ```
- 
+
 After installation you can run `gmssl version -a` to print detailed information.
 
 The `gmssl` command line tool supports SM2 key generation through `ecparam` or `genpkey` option, supports SM2 signing and encryption through `pkeyutl` option, supports SM3 through `sm3` or `dgst` option, and supports SM4 through `sms4` or `enc` option.
@@ -123,29 +125,29 @@ $ gmssl sms4 -d -in README.sms4
 SM2 private key generation:
 
 ```sh
-$ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out skey.pem
+$ gmssl sm2 -genkey -out skey.pem
 ```
 
 Derive the public key from the generated SM2 private key:
 
 ```sh
-$ gmssl pkey -pubout -in skey.pem -out vkey.pem
+$ gmssl sm2 -pubout -in skey.pem -out vkey.pem
 ```
 
 SM2 signature generation and verification:
 
 ```sh
-$ gmssl sm3 -binary README.md | gmssl pkeyutl -sign -pkeyopt ec_scheme:sm2 -inkey skey.pem -out README.md.sig
-$ gmssl sm3 -binary README.md | gmssl pkeyutl -verify -pkeyopt ec_scheme:sm2 -pubin -inkey vkey.pem -sigfile README.md.sig
+$ gmssl sm2utl -sign -in README.md -inkey skey.pem -out README.md.sig
+$ gmssl sm2utl -verify -in README.md -pubin -inkey vkey.pem -sigfile README.md.sig
 ```
 
 Generate SM2 encryption key pair and do SM2 public key encyption/decryption. It should be noted `pkeyutl -encrypt` should only be used to encrypt short messages such as session key and passphrase.
 
 ```sh
-$ gmssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:sm2p256v1 -pkeyopt ec_param_enc:named_curve -out dkey.pem
-$ gmssl pkey -pubout -in dkey.pem -out ekey.pem
-$ echo "Top Secret" | gmssl pkeyutl -encrypt -pkeyopt ec_scheme:sm2 -pubin -inkey ekey.pem -out ciphertext.sm2
-$ gmssl pkeyutl -decrypt -pkeyopt ec_scheme:sm2 -inkey dkey.pem -in ciphertext.sm2
+$ gmssl sm2 -genkey -out dkey.pem
+$ gmssl sm2 -pubout -in dkey.pem -out ekey.pem
+$ echo "Top Secret" | gmssl sm2utl -encrypt -pubin -inkey ekey.pem -out ciphertext.sm2
+$ gmssl sm2utl -decrypt -inkey dkey.pem -in ciphertext.sm2
 ```
 
 Self-signed SM2 certificate generation:

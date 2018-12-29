@@ -55,6 +55,7 @@
 #include <openssl/asn1t.h>
 #include <openssl/objects.h>
 #include <openssl/obj_mac.h>
+#include "../ec/ec_lcl.h"
 #include "sm2_lcl.h"
 
 
@@ -119,3 +120,25 @@ int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen)
 	ret = ASN1_object_size(1, len, V_ASN1_SEQUENCE);
 	return ret;
 }
+
+int i2d_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM2CiphertextValue), bp, a);
+}
+
+SM2CiphertextValue *d2i_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM2CiphertextValue), bp, a);
+}
+
+#ifndef OPENSSL_NO_STDIO
+SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a)
+{
+	return ASN1_item_d2i_fp(ASN1_ITEM_rptr(SM2CiphertextValue), fp, a);
+}
+
+int i2d_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue *a)
+{
+	return ASN1_item_i2d_fp(ASN1_ITEM_rptr(SM2CiphertextValue), fp, a);
+}
+#endif
