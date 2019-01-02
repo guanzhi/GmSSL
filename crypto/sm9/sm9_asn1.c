@@ -147,6 +147,39 @@ int SM9PublicKey_gmtls_encode(SM9PublicKey *pk, unsigned char key[1024])
 	return 0;
 }
 
+int i2d_SM9MasterSecret_bio(BIO *bp, SM9MasterSecret *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM9MasterSecret), bp, a);
+}
+
+SM9MasterSecret *d2i_SM9MasterSecret_bio(BIO *bp, SM9MasterSecret **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM9MasterSecret), bp, a);
+}
+
+int i2d_SM9PublicParameters_bio(BIO *bp, SM9PublicParameters *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM9PublicParameters), bp, a);
+}
+
+SM9PublicParameters *d2i_SM9PublicParameters_bio(BIO *bp, SM9PublicParameters **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM9PublicParameters), bp, a);
+}
+
+int i2d_SM9PrivateKey_bio(BIO *bp, SM9PrivateKey *a)
+{
+	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM9PrivateKey), bp, a);
+}
+
+SM9PrivateKey *d2i_SM9PrivateKey_bio(BIO *bp, SM9PrivateKey **a)
+{
+	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM9PrivateKey), bp, a);
+}
+
+			
+
+
 int i2d_SM9Signature_bio(BIO *bp, SM9Signature *a)
 {
 	return ASN1_item_i2d_bio(ASN1_ITEM_rptr(SM9Signature), bp, a);

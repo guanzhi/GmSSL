@@ -19,6 +19,9 @@
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 #include "ec_lcl.h"
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 
 #ifndef OPENSSL_NO_CMS
 static int ecdh_cms_decrypt(CMS_RecipientInfo *ri);

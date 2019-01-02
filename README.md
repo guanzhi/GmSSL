@@ -122,6 +122,13 @@ $ gmssl sms4 -in README.md -out README.sms4
 $ gmssl sms4 -d -in README.sms4
 ```
 
+ZUC encryption and decryption:
+
+```sh
+$ gmssl zuc -in README.md -out README.sms4
+$ gmssl zuc -d -in README.sms4
+```
+
 SM2 private key generation:
 
 ```sh
@@ -155,4 +162,5 @@ Self-signed SM2 certificate generation:
 ```sh
 $ gmssl req -new -x509 -key skey.pem -out cert.pem
 ```
+
 

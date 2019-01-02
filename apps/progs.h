@@ -67,7 +67,9 @@ extern int rsautl_main(int argc, char *argv[]);
 extern int s_client_main(int argc, char *argv[]);
 extern int s_server_main(int argc, char *argv[]);
 extern int s_time_main(int argc, char *argv[]);
+extern int sdf_main(int argc, char *argv[]);
 extern int sess_id_main(int argc, char *argv[]);
+extern int skf_main(int argc, char *argv[]);
 extern int sm2_main(int argc, char *argv[]);
 extern int sm2utl_main(int argc, char *argv[]);
 extern int sm9_main(int argc, char *argv[]);
@@ -125,7 +127,9 @@ extern OPTIONS rsautl_options[];
 extern OPTIONS s_client_options[];
 extern OPTIONS s_server_options[];
 extern OPTIONS s_time_options[];
+extern OPTIONS sdf_options[];
 extern OPTIONS sess_id_options[];
+extern OPTIONS skf_options[];
 extern OPTIONS sm2_options[];
 extern OPTIONS sm2utl_options[];
 extern OPTIONS sm9_options[];
@@ -227,7 +231,13 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_SOCK
     { FT_general, "s_time", s_time_main, s_time_options },
 #endif
+#ifndef OPENSSL_NO_SDF
+    { FT_general, "sdf", sdf_main, sdf_options },
+#endif
     { FT_general, "sess_id", sess_id_main, sess_id_options },
+#ifndef OPENSSL_NO_SKF
+    { FT_general, "skf", skf_main, skf_options },
+#endif
 #ifndef OPENSSL_NO_SM2
     { FT_general, "sm2", sm2_main, sm2_options },
 #endif
