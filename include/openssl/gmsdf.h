@@ -61,6 +61,7 @@
 #define SDF_MAX_KEY_INDEX	 32 /* defined by GmSSL */
 #define SDF_MIN_PASSWORD_LENGTH	  8 /* defined by GM/T 0018 */
 #define SDF_MAX_PASSWORD_LENGTH	255 /* defined by GmSSL */
+#define SDF_MAX_FILE_SIZE	(256 * 1024)
 
 #ifdef __cplusplus
 extern "C" {

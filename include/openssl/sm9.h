@@ -87,7 +87,6 @@ int SM9_setup(int pairing, /* NID_sm9bn256v1 */
 	SM9PublicParameters **mpk,
 	SM9MasterSecret **msk);
 
-
 SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1);
 SM9PublicParameters *SM9_extract_public_parameters(SM9MasterSecret *msk);
 SM9PrivateKey *SM9_extract_private_key(SM9MasterSecret *msk,
@@ -180,6 +179,16 @@ int SM9_compute_share_key_B(int type,
 int SM9_MASTER_KEY_print(BIO *bp, const SM9_MASTER_KEY *x, int off);
 int SM9_KEY_print(BIO *bp, const SM9_KEY *x, int off);
 
+SM9Ciphertext *d2i_SM9Ciphertext_bio(BIO *bp, SM9Ciphertext **a);
+int i2d_SM9MasterSecret_bio(BIO *bp, SM9MasterSecret *a);
+SM9MasterSecret *d2i_SM9MasterSecret_bio(BIO *bp, SM9MasterSecret **a);
+int i2d_SM9PublicParameters_bio(BIO *bp, SM9PublicParameters *a);
+SM9PublicParameters *d2i_SM9PublicParameters_bio(BIO *bp, SM9PublicParameters **a);
+int i2d_SM9PrivateKey_bio(BIO *bp, SM9PrivateKey *a);
+SM9PrivateKey *d2i_SM9PrivateKey_bio(BIO *bp, SM9PrivateKey **a);
+int i2d_SM9Signature_bio(BIO *bp, SM9Signature *a);
+SM9Signature *d2i_SM9Signature_bio(BIO *bp, SM9Signature **a);
+int i2d_SM9Ciphertext_bio(BIO *bp, SM9Ciphertext *a);
 
 #ifndef OPENSSL_NO_STDIO
 SM9MasterSecret *d2i_SM9MasterSecret_fp(FILE *fp, SM9MasterSecret **pp);

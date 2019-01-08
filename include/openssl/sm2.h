@@ -112,6 +112,8 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 typedef struct SM2CiphertextValue_st SM2CiphertextValue;
 DECLARE_ASN1_FUNCTIONS(SM2CiphertextValue)
 
+int i2d_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue *a);
+SM2CiphertextValue *d2i_SM2CiphertextValue_bio(BIO *bp, SM2CiphertextValue **a);
 #ifndef OPENSSL_NO_STDIO
 SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a);
 int i2d_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue *a);

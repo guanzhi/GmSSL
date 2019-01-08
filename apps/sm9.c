@@ -46,13 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/*
- * gmssl sm9 -setup
- * gmssl sm9 -genkey
- * gmssl sm9 -encrypt
- * gmssl sm9 -sign
- * gmssl sm9 -verify
- */
 
 #include <openssl/opensslconf.h>
 #ifdef OPENSSL_NO_SM9
@@ -62,27 +55,157 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include "apps.h"
 # include <openssl/bio.h>
 # include <openssl/err.h>
 # include <openssl/evp.h>
 # include <openssl/pem.h>
-# include <openssl/cpk.h>
+# include <openssl/sm9.h>
+# include "apps.h"
 
 typedef enum OPTION_choice {
-	OPT_ERR = -1,
-	OPT_EOF = 0,
-	OPT_HELP
+	OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
+	OPT_IN, OPT_OUT, OPT_INFORM, OPT_OUTFORM,
+	OPT_PASSIN, OPT_PASSOUT, OPT_TEXT, OPT_NOOUT
 } OPTION_CHOICE;
 
 OPTIONS sm9_options[] = {
 	{"help", OPT_HELP, '-', "Display this summary"},
+	{"in", OPT_IN, 's', "Input key"},
+	{"out", OPT_OUT, '>', "Output file"},
+	{"inform", OPT_INFORM, 'f', "Input format (DER or PEM)"},
+	{"outform", OPT_OUTFORM, 'F', "Output format (DER or PEM)"},
+	{"passin", OPT_PASSIN, 's', "Input file pass phrase source"},
+	{"passout", OPT_PASSOUT, 's', "Output file pass phrase source"},
+	{"text", OPT_TEXT, '-', "Output in plaintext as well"},
+	{"noout", OPT_NOOUT, '-', "Don't output the key"},
 	{NULL}
 };
 
 int sm9_main(int argc, char **argv)
 {
-	printf("sm9 not implemented\n");
-	return 0;
+	int ret = 1;
+	SM9_KEY *key = NULL;
+	BIO *in = NULL, *out = NULL;
+	char *infile = NULL, *outfile = NULL, *prog;
+	char *passin = NULL, *passout = NULL;
+	char *passinarg = NULL, *passoutarg = NULL;
+	OPTION_CHOICE o;
+	int informat = FORMAT_PEM, outformat = FORMAT_PEM;
+	int text = 0, noout = 0;
+
+	prog = opt_init(argc, argv, sm9_options);
+	while ((o = opt_next()) != OPT_EOF) {
+		switch (o) {
+		case OPT_EOF:
+		case OPT_ERR:
+opthelp:
+			BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+			goto end;
+		case OPT_HELP:
+			opt_help(sm9_options);
+			ret = 0;
+			goto end;
+		case OPT_IN:
+			infile = opt_arg();
+			break;
+		case OPT_OUT:
+			outfile = opt_arg();
+			break;
+		case OPT_INFORM:
+			if (!opt_format(opt_arg(), OPT_FMT_ANY, &informat))
+				goto opthelp;
+			break;
+		case OPT_OUTFORM:
+			if (!opt_format(opt_arg(), OPT_FMT_PEMDER, &outformat))
+				goto opthelp;
+			break;
+		case OPT_PASSIN:
+			passinarg = opt_arg();
+			break;
+		case OPT_PASSOUT:
+			passoutarg = opt_arg();
+			break;
+		case OPT_TEXT:
+			text = 1;
+			break;
+		case OPT_NOOUT:
+			noout = 1;
+			break;
+		}
+	}
+	argc = opt_num_rest();
+	if (argc != 0)
+		goto opthelp;
+
+	if (!app_passwd(passinarg, passoutarg, &passin, &passout)) {
+		BIO_printf(bio_err, "Error getting passwords\n");
+		goto end;
+	}
+
+	if (informat != FORMAT_ENGINE) {
+		if (!(in = bio_open_default(infile, 'r', informat)))
+			goto end;
+	}
+
+	BIO_printf(bio_err, "read SM9 key\n");
+	if (informat == FORMAT_ASN1) {
+		if (!(key = d2i_SM9PrivateKey_bio(in, NULL))) {
+			BIO_printf(bio_err, "unable to load Key\n");
+			ERR_print_errors(bio_err);
+			goto end;
+		}
+	} else if (informat == FORMAT_PEM) {
+		if (!(key = PEM_read_bio_SM9PrivateKey(in, NULL, NULL, passin))) {
+			BIO_printf(bio_err, "unable to load Key\n");
+			ERR_print_errors(bio_err);
+			goto end;
+		}
+	} else {
+		BIO_printf(bio_err, "supported key format\n");
+		goto end;
+	}
+
+	if (!(out = bio_open_owner(outfile, outformat, 1))) {
+		goto end;
+	}
+
+	if (!noout) {
+		BIO_printf(bio_err, "writing SM9 key\n");
+		if (outformat == FORMAT_ASN1) {
+			if (!i2d_SM9PrivateKey_bio(out, key)) {
+				BIO_printf(bio_err, "unable to write private key\n");
+				ERR_print_errors(bio_err);
+				goto end;
+			}
+		} else if (outformat == FORMAT_PEM) {
+			if (!PEM_write_bio_SM9PrivateKey(out, key, EVP_sms4_cbc(), NULL, 0, NULL, passout)) {
+				BIO_printf(bio_err, "unable to write private key\n");
+				ERR_print_errors(bio_err);
+				goto end;
+			}
+		} else {
+			BIO_printf(bio_err, "unsupported key format\n");
+			goto end;
+		}
+	}
+
+	/* sm9 api does not support public key print, do it with evp api */
+	if (text) {
+		if (!SM9_KEY_print(out, key, 0)) {
+			perror(outfile);
+			ERR_print_errors(bio_err);
+			goto end;
+		}
+	}
+
+	ret = 0;
+
+end:
+	SM9_KEY_free(key);
+	BIO_free(in);
+	BIO_free_all(out);
+	OPENSSL_free(passin);
+	OPENSSL_free(passout);
+	return ret;
 }
 #endif

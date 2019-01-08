@@ -2438,7 +2438,7 @@ static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGN
         "5958342662901643427453578939755302545063035311436308304691", 
         "82434016654578246438872420442344325702149582327179867092849556861979152020042"};
     BIGNUM *par[4];
-	for(int i=0;i<4;++i) {
+	for(i=0;i<4;++i) {
 		par[i] = BN_new();
 		BN_init(par[i]);
 		if(!BN_dec2bn(&par[i], power_p2[i])){

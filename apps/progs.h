@@ -45,6 +45,7 @@ extern int fpe_main(int argc, char *argv[]);
 extern int gendsa_main(int argc, char *argv[]);
 extern int genpkey_main(int argc, char *argv[]);
 extern int genrsa_main(int argc, char *argv[]);
+extern int gensm9_main(int argc, char *argv[]);
 extern int help_main(int argc, char *argv[]);
 extern int list_main(int argc, char *argv[]);
 extern int nseq_main(int argc, char *argv[]);
@@ -66,9 +67,14 @@ extern int rsautl_main(int argc, char *argv[]);
 extern int s_client_main(int argc, char *argv[]);
 extern int s_server_main(int argc, char *argv[]);
 extern int s_time_main(int argc, char *argv[]);
+extern int sdf_main(int argc, char *argv[]);
 extern int sess_id_main(int argc, char *argv[]);
+extern int skf_main(int argc, char *argv[]);
 extern int sm2_main(int argc, char *argv[]);
+extern int sm2utl_main(int argc, char *argv[]);
 extern int sm9_main(int argc, char *argv[]);
+extern int sm9param_main(int argc, char *argv[]);
+extern int sm9utl_main(int argc, char *argv[]);
 extern int smime_main(int argc, char *argv[]);
 extern int speed_main(int argc, char *argv[]);
 extern int spkac_main(int argc, char *argv[]);
@@ -99,6 +105,7 @@ extern OPTIONS fpe_options[];
 extern OPTIONS gendsa_options[];
 extern OPTIONS genpkey_options[];
 extern OPTIONS genrsa_options[];
+extern OPTIONS gensm9_options[];
 extern OPTIONS help_options[];
 extern OPTIONS list_options[];
 extern OPTIONS nseq_options[];
@@ -120,9 +127,14 @@ extern OPTIONS rsautl_options[];
 extern OPTIONS s_client_options[];
 extern OPTIONS s_server_options[];
 extern OPTIONS s_time_options[];
+extern OPTIONS sdf_options[];
 extern OPTIONS sess_id_options[];
+extern OPTIONS skf_options[];
 extern OPTIONS sm2_options[];
+extern OPTIONS sm2utl_options[];
 extern OPTIONS sm9_options[];
+extern OPTIONS sm9param_options[];
+extern OPTIONS sm9utl_options[];
 extern OPTIONS smime_options[];
 extern OPTIONS speed_options[];
 extern OPTIONS spkac_options[];
@@ -179,6 +191,7 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_RSA
     { FT_general, "genrsa", genrsa_main, genrsa_options },
 #endif
+    { FT_general, "gensm9", gensm9_main, gensm9_options },
     { FT_general, "help", help_main, help_options },
     { FT_general, "list", list_main, list_options },
     { FT_general, "nseq", nseq_main, nseq_options },
@@ -218,13 +231,22 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_SOCK
     { FT_general, "s_time", s_time_main, s_time_options },
 #endif
+#ifndef OPENSSL_NO_SDF
+    { FT_general, "sdf", sdf_main, sdf_options },
+#endif
     { FT_general, "sess_id", sess_id_main, sess_id_options },
+#ifndef OPENSSL_NO_SKF
+    { FT_general, "skf", skf_main, skf_options },
+#endif
 #ifndef OPENSSL_NO_SM2
     { FT_general, "sm2", sm2_main, sm2_options },
 #endif
+    { FT_general, "sm2utl", sm2utl_main, sm2utl_options },
 #ifndef OPENSSL_NO_SM9
     { FT_general, "sm9", sm9_main, sm9_options },
 #endif
+    { FT_general, "sm9param", sm9param_main, sm9param_options },
+    { FT_general, "sm9utl", sm9utl_main, sm9utl_options },
     { FT_general, "smime", smime_main, smime_options },
     { FT_general, "speed", speed_main, speed_options },
     { FT_general, "spkac", spkac_main, spkac_options },
