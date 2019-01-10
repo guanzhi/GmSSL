@@ -56,6 +56,7 @@
 #include <stdio.h>
 #include <openssl/sgd.h>
 #include <openssl/sdf.h>
+#include <openssl/bio.h>
 
 #define SDF_MIN_KEY_INDEX	  1 /* defined by GM/T 0018 */
 #define SDF_MAX_KEY_INDEX	 32 /* defined by GmSSL */
@@ -72,15 +73,15 @@ int SDF_UnloadLibrary(void);
 int SDF_ImportKey(void *hSessionHandle, unsigned char *pucKey,
 	unsigned int uiKeyLength, void **phKeyHandle);
 
-int SDF_PrintDeviceInfo(DEVICEINFO *devInfo);
-int SDF_PrintRSAPublicKey(RSArefPublicKey *ref);
-int SDF_PrintRSAPrivateKey(RSArefPrivateKey *ref);
-int SDF_PrintECCPublicKey(ECCrefPublicKey *ref);
-int SDF_PrintECCPrivateKey(ECCrefPrivateKey *ref);
+int SDF_PrintDeviceInfo(BIO *out, DEVICEINFO *devInfo);
+int SDF_PrintRSAPublicKey(BIO *out, RSArefPublicKey *ref);
+int SDF_PrintRSAPrivateKey(BIO *out, RSArefPrivateKey *ref);
+int SDF_PrintECCPublicKey(BIO *out, ECCrefPublicKey *ref);
+int SDF_PrintECCPrivateKey(BIO *out, ECCrefPrivateKey *ref);
 int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen);
 int SDF_FreeECCCipher(ECCCipher *cipher);
-int SDF_PrintECCCipher(ECCCipher *cipher);
-int SDF_PrintECCSignature(ECCSignature *sig);
+int SDF_PrintECCCipher(BIO *out, ECCCipher *cipher);
+int SDF_PrintECCSignature(BIO *out, ECCSignature *sig);
 int SDF_GetErrorString(int err, char **str);
 
 

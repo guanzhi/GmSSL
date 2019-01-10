@@ -59,8 +59,7 @@
 
 SKF_METHOD *skf_method = NULL;
 SKF_VENDOR *skf_vendor = NULL;
-extern SKF_VENDOR *skf_wisec;
-
+extern SKF_VENDOR skf_wisec;
 
 ULONG SKF_LoadLibrary(LPSTR so_path, LPSTR vendor)
 {
@@ -75,8 +74,8 @@ ULONG SKF_LoadLibrary(LPSTR so_path, LPSTR vendor)
 	}
 
 	if (vendor) {
-		if (strcmp((char *)vendor, skf_wisec->name) == 0) {
-			skf_vendor = skf_wisec;
+		if (strcmp((char *)vendor, skf_wisec.name) == 0) {
+			skf_vendor = &skf_wisec;
 		} else {
 			SKFerr(SKF_F_SKF_LOADLIBRARY, SKF_R_UNKNOWN_VENDOR);
 			return SAR_FAIL;

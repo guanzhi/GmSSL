@@ -629,6 +629,7 @@ end:
 	return ret;
 }
 
+/*
 ECCCipher *d2i_ECCCipher_bio(BIO *bp, ECCCipher **a)
 {
 	return NULL;
@@ -638,6 +639,7 @@ ECCCipher *d2i_ECCCipher_fp(FILE *fp, ECCCipher **a)
 {
 	return NULL;
 }
+*/
 
 int i2d_ECCCipher(ECCCipher *a, unsigned char **pp)
 {
@@ -654,6 +656,7 @@ int i2d_ECCCipher(ECCCipher *a, unsigned char **pp)
 	return ret;
 }
 
+/*
 int i2d_ECCCipher_bio(BIO *bp, ECCCipher *a)
 {
 	return 0;
@@ -663,6 +666,7 @@ int i2d_ECCCipher_fp(FILE *fp, ECCCipher *a)
 {
 	return 0;
 }
+*/
 
 ECCSignature *d2i_ECCSignature(ECCSignature **a, const unsigned char **pp, long length)
 {
@@ -694,6 +698,7 @@ end:
 	return ret;
 }
 
+/*
 ECCSignature *d2i_ECCSignature_bio(BIO *bp, ECCSignature **a)
 {
 	return NULL;
@@ -703,6 +708,7 @@ ECCSignature *d2i_ECCSignature_fp(FILE *fp, ECCSignature **a)
 {
 	return NULL;
 }
+*/
 
 int i2d_ECCSignature(ECCSignature *a, unsigned char **pp)
 {
@@ -719,6 +725,7 @@ int i2d_ECCSignature(ECCSignature *a, unsigned char **pp)
 	return ret;
 }
 
+/*
 int i2d_ECCSignature_bio(BIO *bp, ECCSignature *a)
 {
 	return 0;
@@ -728,6 +735,7 @@ int i2d_ECCSignature_fp(FILE *fp, ECCSignature *a)
 {
 	return 0;
 }
+*/
 
 # ifndef OPENSSL_NO_ECIES
 ECIES_CIPHERTEXT_VALUE *ECIES_CIPHERTEXT_VALUE_new_from_ECCCipher(

@@ -119,18 +119,8 @@ int ECDSA_SIG_set_ECCSignature(ECDSA_SIG *sig, const ECCSignature *ref);
 int ECDSA_SIG_get_ECCSignature(const ECDSA_SIG *sig, ECCSignature *ref);
 ECCCipher *d2i_ECCCipher(ECCCipher **a, const unsigned char **pp, long length);
 int i2d_ECCCipher(ECCCipher *a, unsigned char **pp);
-ECCCipher *d2i_ECCCipher_bio(BIO *bp, ECCCipher **a);
-int i2d_ECCCipher_bio(BIO *bp, ECCCipher *a);
 ECCSignature *d2i_ECCSignature(ECCSignature **a, const unsigned char **pp, long length);
 int i2d_ECCSignature(ECCSignature *a, unsigned char **pp);
-ECCSignature *d2i_ECCSignature_bio(BIO *bp, ECCSignature **a);
-int i2d_ECCSignature_bio(BIO *bp, ECCSignature *a);
-#  ifndef OPENSSL_NO_STDIO
-ECCCipher *d2i_ECCCipher_fp(FILE *fp, ECCCipher **a);
-int i2d_ECCCipher_fp(FILE *fp, ECCCipher *a);
-ECCSignature *d2i_ECCSignature_fp(FILE *fp, ECCSignature **a);
-int i2d_ECCSignature_fp(FILE *fp, ECCSignature *a);
-#  endif
 # endif
 #endif
 
@@ -168,18 +158,8 @@ int ECDSA_SIG_set_ECCSIGNATUREBLOB(ECDSA_SIG *sig, const ECCSIGNATUREBLOB *blob)
 int ECCPRIVATEKEYBLOB_set_private_key(ECCPRIVATEKEYBLOB *blob, const BIGNUM *priv_key);
 ECCCIPHERBLOB *d2i_ECCCIPHERBLOB(ECCCIPHERBLOB **a, const unsigned char **pp, long length);
 int i2d_ECCCIPHERBLOB(ECCCIPHERBLOB *a, unsigned char **pp);
-ECCCIPHERBLOB *d2i_ECCCIPHERBLOB_bio(BIO *bp, ECCCIPHERBLOB **a);
-int i2d_ECCCIPHERBLOB_bio(BIO *bp, ECCCIPHERBLOB *a);
 ECCSIGNATUREBLOB *d2i_ECCSIGNATUREBLOB(ECCSIGNATUREBLOB **a, const unsigned char **pp, long length);
 int i2d_ECCSIGNATUREBLOB(ECCSIGNATUREBLOB *a, unsigned char **pp);
-ECCSIGNATUREBLOB *d2i_ECCSIGNATUREBLOB_bio(BIO *bp, ECCSIGNATUREBLOB **a);
-int i2d_ECCSIGNATUREBLOB_bio(BIO *fp, ECCSIGNATUREBLOB *a);
-#  ifndef OPENSSL_NO_STDIO
-ECCCIPHERBLOB *d2i_ECCCIPHERBLOB_fp(FILE *fp, ECCCIPHERBLOB **a);
-int i2d_ECCCIPHERBLOB_fp(FILE *fp, ECCCIPHERBLOB *a);
-ECCSIGNATUREBLOB *d2i_ECCSIGNATUREBLOB_fp(FILE *fp, ECCSIGNATUREBLOB **a);
-int i2d_ECCSIGNATUREBLOB_fp(FILE *fp, ECCSIGNATUREBLOB *a);
-#  endif
 # endif
 #endif
 
