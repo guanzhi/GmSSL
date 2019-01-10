@@ -191,7 +191,7 @@ ULONG SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo)
 	BIO_puts(out, "\n");
 
 	BIO_printf(out, "  %-16s : ", "Public Keys");
-	for (size_t i = n = 0; i < OSSL_NELEM(skf_pkey_caps); i++) {
+	for (i = n = 0; i < OSSL_NELEM(skf_pkey_caps); i++) {
 		if ((devInfo->AlgAsymCap & skf_pkey_caps[i].id) ==
 			skf_pkey_caps[i].id) {
 			BIO_printf(out, "%s%s", n ? "," : "", skf_pkey_caps[i].name);
