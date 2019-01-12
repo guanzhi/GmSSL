@@ -209,7 +209,6 @@ apps/gmca/.ca
 # engines
 /engines/e_skf*
 /engines/e_sdf*
-/engines/e_gmi*
 /engines/sdf
 /engines/skf
 

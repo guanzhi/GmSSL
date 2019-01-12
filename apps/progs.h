@@ -306,6 +306,9 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_SMS4
     { FT_cipher, "sms4-cfb", enc_main, enc_options },
 #endif
+#ifndef OPENSSL_NO_ZUC
+    { FT_cipher, "zuc", enc_main, enc_options },
+#endif
 #ifndef OPENSSL_NO_AES
     { FT_cipher, "aes-128-cbc", enc_main, enc_options },
 #endif
