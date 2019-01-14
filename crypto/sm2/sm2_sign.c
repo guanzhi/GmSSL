@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2016 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2018 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,17 @@
 #include <openssl/obj_mac.h>
 #include "../ec/ec_lcl.h"
 
+static int sm2_sign_idx = -1;
+
+static void sm2_sign_free(void *parent, void *ptr, CRYPTO_EX_DATA *ad,
+	int idx, long argl, void *argp)
+{
+	BIGNUM *bn = (BIGNUM *)CRYPTO_get_ex_data(ad, sm2_sign_idx);
+	if (bn) {
+		BN_clear_free(bn);
+		CRYPTO_set_ex_data(ad, sm2_sign_idx, NULL);
+	}
+}
 
 static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **xp)
 {
@@ -83,6 +94,7 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 		ctx = ctx_in;
 	}
 
+
 	k = BN_new();
 	x = BN_new();
 	order = BN_new();
@@ -99,6 +111,37 @@ static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **
 	if ((point = EC_POINT_new(ec_group)) == NULL) {
 		SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
 		goto end;
+	}
+
+	/* do pre compute (1 + d)^-1 */
+	if (sm2_sign_idx < 0) {
+		if ((sm2_sign_idx = EC_KEY_get_ex_new_index(0, NULL, NULL, NULL,
+			sm2_sign_free)) < 0) {
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
+			goto end;
+		}
+	}
+
+	if (!EC_KEY_get_ex_data(ec_key, sm2_sign_idx)) {
+		BIGNUM *d = NULL;
+		if (!(d = BN_dup(EC_KEY_get0_private_key(ec_key)))) {
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+		if (!BN_add_word(d, 1)) {
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_BN_LIB);
+			BN_clear_free(d);
+			goto end;
+		}
+		if (!BN_mod_inverse(d, d, order, ctx)) {
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_BN_LIB);
+			BN_clear_free(d);
+			goto end;
+		}
+		if (!EC_KEY_set_ex_data(ec_key, sm2_sign_idx, d)) {
+			SM2err(SM2_F_SM2_SIGN_SETUP, ERR_R_EC_LIB);
+			goto end;
+		}
 	}
 
 	do {
@@ -156,7 +199,6 @@ end:
 	}
 	BN_free(order);
 	EC_POINT_free(point);
-
 	return(ret);
 }
 
@@ -257,6 +299,7 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 		}
 
 		/* s = ((1 + d)^-1 * (k - rd)) mod n */
+#if 0
 		if (!BN_one(bn)) {
 			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
@@ -283,6 +326,18 @@ static ECDSA_SIG *sm2_do_sign(const unsigned char *dgst, int dgstlen,
 			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
 			goto end;
 		}
+#else
+		/* s = d'(k + r) - r mod n */
+		if (!BN_mod_mul(ret->s, EC_KEY_get_ex_data(ec_key, sm2_sign_idx),
+			bn, order, ctx)) {
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			goto end;
+		}
+		if (!BN_mod_sub(ret->s, ret->s, ret->r, order, ctx)) {
+			SM2err(SM2_F_SM2_DO_SIGN, ERR_R_BN_LIB);
+			goto end;
+		}
+#endif
 
 		/* check s != 0 */
 		if (BN_is_zero(ret->s)) {
@@ -446,6 +501,7 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	if (BN_ucmp(t, sig->r) == 0) {
 		ret = 1;
 	} else {
+		printf("%s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 		ret = 0;
 	}
 

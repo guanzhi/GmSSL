@@ -199,7 +199,8 @@ int pkeyutl_main(int argc, char **argv)
     if (argc != 0)
         goto opthelp;
 
-    //BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+    if (e)
+        BIO_printf(bio_err, "Using configuration from %s\n", configfile);
 
     if ((conf = app_load_config(configfile)) == NULL)
         goto end;

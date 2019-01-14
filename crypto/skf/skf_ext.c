@@ -57,31 +57,6 @@
 #include "../../e_os.h"
 
 
-static void print_str(const char *name, const char *value)
-{
-	(void)printf("%-17s: %s\n", name, value);
-}
-
-static void print_int(const char *name, ULONG value)
-{
-	(void)printf("%-17s: ", name);
-	if (value == UINT_MAX) {
-		puts("(unlimited)");
-	} else {
-		printf("%u\n", value);
-	}
-}
-
-static void print_buf(const char *name, BYTE *value, size_t len)
-{
-	size_t i;
-	(void)printf("%-17s : ", name);
-	for (i = 0; i < len; i++) {
-		(void)printf("%02X", value[i]);
-	}
-	putchar('\n');
-}
-
 static char *skf_algor_name(ULONG ulAlgID)
 {
 	switch (ulAlgID) {
@@ -193,118 +168,189 @@ static table_item_t skf_pkey_caps[] = {
 	{ SGD_SM2_3, "sm2encrypt" }
 };
 
-ULONG SKF_PrintDevInfo(DEVINFO *devInfo)
+ULONG SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo)
 {
-	int i, n;
+	size_t i, n;
+	char *serial = OPENSSL_buf2hexstr(devInfo->SerialNumber, strlen((char *)devInfo->SerialNumber));
 
-	printf("  Version          : %d.%d\n", devInfo->Version.major,
-						devInfo->Version.minor);
-	printf("  Manufacturer     : %s\n", devInfo->Manufacturer);
-	printf("  Issuer           : %s\n", devInfo->Issuer);
-	printf("  Label            : %s\n", devInfo->Label);
-	print_buf("  Serial Number ", devInfo->SerialNumber, strlen((char *)devInfo->SerialNumber));
-	printf("  Hardware Version : %d.%d\n", devInfo->HWVersion.major,
-						devInfo->HWVersion.minor);
-	printf("  Firmware Version : %d.%d\n", devInfo->FirmwareVersion.major,
-						devInfo->FirmwareVersion.minor);
-	printf("  Ciphers          : ");
+	BIO_printf(out, "  %-16s : %d.%d\n", "Version", devInfo->Version.major, devInfo->Version.minor);
+	BIO_printf(out, "  %-16s : %s\n", "Manufacturer", devInfo->Manufacturer);
+	BIO_printf(out, "  %-16s : %s\n", "Issuer", devInfo->Issuer);
+	BIO_printf(out, "  %-16s : %s\n", "Label", devInfo->Label);
+	BIO_printf(out, "  %-16s : %s\n", "Serial Number", serial);
+	BIO_printf(out, "  %-16s : %d.%d\n", "Firmware Version", devInfo->HWVersion.major, devInfo->HWVersion.minor);
+
+	BIO_printf(out, "  %-16s : ", "Ciphers");
 	for (i = n = 0; i < OSSL_NELEM(skf_cipher_caps); i++) {
 		if ((devInfo->AlgSymCap & skf_cipher_caps[i].id) ==
 			skf_cipher_caps[i].id) {
-			printf("%s%s", n ? ", " : "", skf_cipher_caps[i].name);
+			BIO_printf(out, "%s%s", n ? "," : "", skf_cipher_caps[i].name);
 			n++;
 		}
 	}
-	printf("\n");
-	printf("  Public Keys      : ");
+	BIO_puts(out, "\n");
+
+	BIO_printf(out, "  %-16s : ", "Public Keys");
 	for (i = n = 0; i < OSSL_NELEM(skf_pkey_caps); i++) {
 		if ((devInfo->AlgAsymCap & skf_pkey_caps[i].id) ==
 			skf_pkey_caps[i].id) {
-			printf("%s%s", n ? ", " : "", skf_pkey_caps[i].name);
+			BIO_printf(out, "%s%s", n ? "," : "", skf_pkey_caps[i].name);
 			n++;
 		}
 	}
-	printf("\n");
-	printf("  Digests          : ");
+	BIO_puts(out, "\n");
+
+	BIO_printf(out, "  %-16s : ", "Digests");
 	for (i = n = 0; i < OSSL_NELEM(skf_digest_caps); i++) {
 		if ((devInfo->AlgHashCap & skf_digest_caps[i].id) ==
 			skf_digest_caps[i].id) {
-			printf("%s%s", n ? ", " : "", skf_digest_caps[i].name);
+			BIO_printf(out, "%s%s", n ? "," : "", skf_digest_caps[i].name);
 			n++;
 		}
 	}
-	printf("\n");
-	printf("  Auth Cipher      : ");
+	BIO_puts(out, "\n");
+
+	BIO_printf(out, "  %-16s : ", "Auth Cipher");
 	for (i = 0; i < OSSL_NELEM(skf_cipher_caps); i++) {
 		if (devInfo->DevAuthAlgId == skf_cipher_caps[i].id) {
-			printf("%s\n", skf_cipher_caps[i].name);
+			BIO_printf(out, "%s\n", skf_cipher_caps[i].name);
 			break;
 		}
 	}
 	if (i == OSSL_NELEM(skf_cipher_caps)) {
-		printf("(unknown)\n");
+		BIO_puts(out, "(unknown)\n");
 	}
-	print_int("  Total Sapce    ", devInfo->TotalSpace);
-	print_int("  Free Space    ", devInfo->FreeSpace);
-	print_int("  MAX ECC Input  ", devInfo->MaxECCBufferSize);
-	print_int("  MAX Cipher Input ", devInfo->MaxBufferSize);
 
+	if (devInfo->TotalSpace == UINT_MAX)
+		BIO_printf(out, "  %-16s : %s\n", "Total Sapce", "(unlimited)");
+	else	BIO_printf(out, "  %-16s : %u\n", "Total Sapce", devInfo->TotalSpace);
+
+	if (devInfo->FreeSpace == UINT_MAX)
+		BIO_printf(out, "  %-16s : %s\n", "Free Space", "(unlimited)");
+	else	BIO_printf(out, "  %-16s : %u\n", "Free Space", devInfo->FreeSpace);
+
+	if (devInfo->MaxECCBufferSize == UINT_MAX)
+		BIO_printf(out, "  %-16s : %s\n", "MAX ECC Input", "(unlimited)");
+	else	BIO_printf(out, "  %-16s : %u\n", "MAX ECC Input", devInfo->MaxECCBufferSize);
+
+	if (devInfo->MaxBufferSize == UINT_MAX)
+		BIO_printf(out, "  %-16s : %s\n", "MAX Cipher Input", "(unlimited)");
+	else	BIO_printf(out, "  %-16s : %u\n", "MAX Cipher Input", devInfo->MaxBufferSize);
+
+	OPENSSL_free(serial);
 	return SAR_OK;
 }
 
-ULONG SKF_PrintRSAPublicKey(RSAPUBLICKEYBLOB *blob)
+ULONG SKF_PrintRSAPublicKey(BIO *out, RSAPUBLICKEYBLOB *blob)
 {
-	print_str("AlgID", skf_algor_name(blob->AlgID));
-	print_int("BitLen", blob->BitLen);
-	print_buf("Modulus", blob->Modulus, MAX_RSA_MODULUS_LEN);
-	print_buf("PublicExponent", blob->PublicExponent, MAX_RSA_EXPONENT_LEN);
+	BIO_printf(out, "AlgID : %s\n", skf_algor_name(blob->AlgID));
+	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
+	BIO_puts(out, "Modulus:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Modulus, MAX_RSA_MODULUS_LEN);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "PublicExponent:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->PublicExponent, MAX_RSA_EXPONENT_LEN);
+	BIO_puts(out, "\n");
 	return SAR_OK;
 }
 
-ULONG SKF_PrintRSAPrivateKey(RSAPRIVATEKEYBLOB *blob)
+ULONG SKF_PrintRSAPrivateKey(BIO *out, RSAPRIVATEKEYBLOB *blob)
 {
-	print_str("AlgID", skf_algor_name(blob->AlgID));
-	print_int("BitLen", blob->BitLen);
-	print_buf("Modulus", blob->Modulus, MAX_RSA_MODULUS_LEN);
-	print_buf("PublicExponent", blob->PublicExponent, MAX_RSA_EXPONENT_LEN);
-	print_buf("PrivateExponent", blob->PrivateExponent, MAX_RSA_MODULUS_LEN);
-	print_buf("Prime1", blob->Prime1, MAX_RSA_MODULUS_LEN/2);
-	print_buf("Prime2", blob->Prime2, MAX_RSA_MODULUS_LEN/2);
-	print_buf("Prime1Exponent", blob->Prime1Exponent, MAX_RSA_MODULUS_LEN/2);
-	print_buf("Prime2Exponent", blob->Prime2Exponent, MAX_RSA_MODULUS_LEN/2);
-	print_buf("Coefficient", blob->Coefficient, MAX_RSA_MODULUS_LEN/2);
+	BIO_printf(out, "AlgID : %s\n", skf_algor_name(blob->AlgID));
+	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
+	BIO_puts(out, "Modulus:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Modulus, MAX_RSA_MODULUS_LEN);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "PublicExponent:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->PublicExponent, MAX_RSA_EXPONENT_LEN);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "PrivateExponent:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->PrivateExponent, MAX_RSA_MODULUS_LEN);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "Prime1:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Prime1, MAX_RSA_MODULUS_LEN/2);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "Prime2:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Prime2, MAX_RSA_MODULUS_LEN/2);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "Prime1Exponent:\n");
+	BIO_hex_string(out, 4, 16, blob->Prime1Exponent, MAX_RSA_MODULUS_LEN/2);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "    ");
+	BIO_puts(out, "Prime2Exponent:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Prime2Exponent, MAX_RSA_MODULUS_LEN/2);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "Coefficient:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Coefficient, MAX_RSA_MODULUS_LEN/2);
+	BIO_puts(out, "\n");
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCPublicKey(ECCPUBLICKEYBLOB *blob)
+ULONG SKF_PrintECCPublicKey(BIO *out, ECCPUBLICKEYBLOB *blob)
 {
-	print_int("BitLen", blob->BitLen);
-	print_buf("XCoordinate", blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	print_buf("YCoordinate", blob->YCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
+	BIO_puts(out, "XCoordinate:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "YCoordinate:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->YCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "\n");
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCPrivateKey(ECCPRIVATEKEYBLOB *blob)
+ULONG SKF_PrintECCPrivateKey(BIO *out, ECCPRIVATEKEYBLOB *blob)
 {
-	print_int("BitLen", blob->BitLen);
-	print_buf("PrivateKey", blob->PrivateKey, ECC_MAX_MODULUS_BITS_LEN/8);
+	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
+	BIO_puts(out, "PrivateKey:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->PrivateKey, ECC_MAX_MODULUS_BITS_LEN/8);
+	BIO_puts(out, "\n");
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCCipher(ECCCIPHERBLOB *blob)
+ULONG SKF_PrintECCCipher(BIO *out, ECCCIPHERBLOB *blob)
 {
-	print_buf("XCoordinate", blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	print_buf("YCoordinate", blob->YCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	print_buf("HASH", blob->HASH, 32);
-	print_int("CipherLen", blob->CipherLen);
-	print_buf("Cipher", blob->Cipher, blob->CipherLen);
+	BIO_puts(out, "XCoordinate:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "YCoordinate:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->YCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "HASH:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->HASH, 32);
+	BIO_puts(out, "\n");
+	BIO_printf(out, "CipherLen: %u\n", blob->CipherLen);
+	BIO_puts(out, "Cipher:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->Cipher, blob->CipherLen);
+	BIO_puts(out, "\n");
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCSignature(ECCSIGNATUREBLOB *blob)
+ULONG SKF_PrintECCSignature(BIO *out, ECCSIGNATUREBLOB *blob)
 {
-	print_buf("r", blob->r, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	print_buf("s", blob->s, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "r:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->r, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "\n");
+	BIO_puts(out, "s:\n");
+	BIO_puts(out, "    ");
+	BIO_hex_string(out, 4, 16, blob->s, ECC_MAX_XCOORDINATE_BITS_LEN/8);
+	BIO_puts(out, "\n");
 	return SAR_OK;
 }
 
@@ -336,11 +382,11 @@ ULONG DEVAPI SKF_NewEnvelopedKey(ULONG ulCipherLen, ENVELOPEDKEYBLOB **enveloped
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_PrintErrorString(ULONG ulError)
+ULONG DEVAPI SKF_PrintErrorString(BIO *out, ULONG ulError)
 {
 	LPSTR str = NULL;
 	SKF_GetErrorString(ulError, &str);
-	printf("SKF Error: %s\n", (char *)str);
+	BIO_printf(out, "SKF Error: %s\n", (char *)str);
 	return SAR_OK;
 }
 

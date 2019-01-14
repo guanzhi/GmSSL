@@ -209,13 +209,8 @@ apps/gmca/.ca
 # engines
 /engines/e_skf*
 /engines/e_sdf*
-/engines/e_gmi*
 /engines/sdf
 /engines/skf
-
-# apps
-/apps/sdf.c
-/apps/skf.c
 
 include/openssl/srp.h
 

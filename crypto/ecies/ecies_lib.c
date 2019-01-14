@@ -412,7 +412,7 @@ ECIES_CIPHERTEXT_VALUE *ECIES_do_encrypt(const ECIES_PARAMS *param,
 		OPENSSL_assert(pout - ret->ciphertext->data == ciphertextlen);
 
 	} else {
-		unsigned int i;
+		int i;
 		for (i = 0; i < ret->ciphertext->length; i++) {
 			ret->ciphertext->data[i] = in[i] ^ enckey[i];
 		}

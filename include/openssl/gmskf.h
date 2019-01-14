@@ -54,6 +54,7 @@
 #ifndef OPENSSL_NO_SKF
 
 #include <stdio.h>
+#include <openssl/bio.h>
 #include <openssl/sgd.h>
 #include <openssl/skf.h>
 
@@ -98,13 +99,13 @@ ULONG DEVAPI SKF_UnloadLibrary(void);
 ULONG DEVAPI SKF_GetDevStateName(ULONG ulDevState, LPSTR *szName);
 ULONG DEVAPI SKF_GetContainerTypeName(ULONG ulContainerType, LPSTR *szName);
 ULONG DEVAPI SKF_GetAlgorName(ULONG ulAlgID, LPSTR *szName);
-ULONG DEVAPI SKF_PrintDevInfo(DEVINFO *devInfo);
-ULONG DEVAPI SKF_PrintRSAPublicKey(RSAPUBLICKEYBLOB *blob);
-ULONG DEVAPI SKF_PrintRSAPrivateKey(RSAPRIVATEKEYBLOB *blob);
-ULONG DEVAPI SKF_PrintECCPublicKey(ECCPUBLICKEYBLOB *blob);
-ULONG DEVAPI SKF_PrintECCPrivateKey(ECCPRIVATEKEYBLOB *blob);
-ULONG DEVAPI SKF_PrintECCCipher(ECCCIPHERBLOB *blob);
-ULONG DEVAPI SKF_PrintECCSignature(ECCSIGNATUREBLOB *blob);
+ULONG DEVAPI SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo);
+ULONG DEVAPI SKF_PrintRSAPublicKey(BIO *out, RSAPUBLICKEYBLOB *blob);
+ULONG DEVAPI SKF_PrintRSAPrivateKey(BIO *out, RSAPRIVATEKEYBLOB *blob);
+ULONG DEVAPI SKF_PrintECCPublicKey(BIO *out, ECCPUBLICKEYBLOB *blob);
+ULONG DEVAPI SKF_PrintECCPrivateKey(BIO *out, ECCPRIVATEKEYBLOB *blob);
+ULONG DEVAPI SKF_PrintECCCipher(BIO *out, ECCCIPHERBLOB *blob);
+ULONG DEVAPI SKF_PrintECCSignature(BIO *out, ECCSIGNATUREBLOB *blob);
 ULONG DEVAPI SKF_GetErrorString(ULONG ulError, LPSTR *szErrorStr);
 ULONG DEVAPI SKF_NewECCCipher(ULONG ulCipherLen, ECCCIPHERBLOB **cipherBlob);
 ULONG DEVAPI SKF_NewEnvelopedKey(ULONG ulCipherLen, ENVELOPEDKEYBLOB **envelopedKeyBlob);
