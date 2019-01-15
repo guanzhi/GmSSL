@@ -420,10 +420,6 @@ int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv,
 		goto end;
 	}
 
-	if (ASN1_STRING_length(cv->hash) != 32) {
-		goto end;
-	}
-
 	/* SM2CiphertextValue ==> ECCCipher */
 	memset(ref, 0, sizeof(*ref));
 
