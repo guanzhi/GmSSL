@@ -125,8 +125,8 @@ $ gmssl sms4 -d -in README.sms4
 ZUC encryption and decryption:
 
 ```sh
-$ gmssl zuc -in README.md -out README.sms4
-$ gmssl zuc -d -in README.sms4
+$ gmssl zuc -in README.md -out README.zuc
+$ gmssl zuc -d -in README.zuc
 ```
 
 SM2 private key generation:
@@ -155,6 +155,13 @@ $ gmssl sm2 -genkey -out dkey.pem
 $ gmssl sm2 -pubout -in dkey.pem -out ekey.pem
 $ echo "Top Secret" | gmssl sm2utl -encrypt -pubin -inkey ekey.pem -out ciphertext.sm2
 $ gmssl sm2utl -decrypt -inkey dkey.pem -in ciphertext.sm2
+```
+
+Identity-based encryption with SM9
+
+```
+$ echo "Message" | gmssl pkeyutl -encrypt -pubin -inkey params.pem -pkeyopt id:Alice -out ciphertext.der
+$ gmssl pkeyutl -decrypt -inkey sm9key.pem -in ciphertext.der
 ```
 
 Self-signed SM2 certificate generation:

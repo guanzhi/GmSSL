@@ -281,7 +281,7 @@ static int gmtls_process_sm9_params(SSL *s, PACKET *pkt, int *al, int ibe)
 	if (!(sm9->params = d2i_SM9PublicParameters(NULL, &p,
 		PACKET_remaining(&params)))) {
 		*al = SSL_AD_DECODE_ERROR;
-		SSLerr(SSL_F_GMTLS_PROCESS_SM9_PARAMS, ERR_R_INTERNAL_ERROR);//这个错误似乎不对
+		SSLerr(SSL_F_GMTLS_PROCESS_SM9_PARAMS, ERR_R_INTERNAL_ERROR);// rename this error		
 		return 0;
 	}
 	/* check there is no remaining data */
@@ -597,7 +597,8 @@ static int gmtls_process_ske_sm2dhe(SSL *s, PACKET *pkt, int *al)
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, SSL_R_BAD_ECPOINT);
 		goto end;
 	}
-	// s->s3->peer_tmp 需要free吗？出错的话
+
+	// s->s3->peer_tmp need to be free-ed when error happed?
 			
 
 	/* get ECDHEParams length */
@@ -1386,8 +1387,6 @@ MSG_PROCESS_RETURN gmtls_process_client_certificate(SSL *s, PACKET *pkt)
 	return ret;
 }
 
-// SM2密钥交换实际上不仅仅
-// 实际上还需要知道我是客户端还是服务器
 static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int initiator)
 {
 	int ret = 0;
@@ -1461,7 +1460,7 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 		goto end;
 	}
 
-	// 如何设定pmslen ??
+	// how to set pmslen ??
 	pmslen = 48;
 
 	/* sm2 key exchange */

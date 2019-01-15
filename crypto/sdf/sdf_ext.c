@@ -55,28 +55,6 @@
 #include "sdf_sansec.h"
 
 
-static void print_str(const char *name, const void *value)
-{
-	(void)printf("%-20s: %s\n", name, (char *)value);
-}
-
-static void print_int(const char *name, unsigned int value)
-{
-	(void)printf("%-20s: %u\n", name, value);
-}
-
-/*
-static void print_buf(const char *name, const unsigned char *buf, size_t buflen)
-{
-	size_t i;
-	(void)printf("%-20s: ", name);
-	for (i = 0; i < buflen; i++) {
-		(void)printf("%02x", buf[i]);
-	}
-	(void)puts("\n");
-}
-*/
-
 typedef struct {
 	ULONG id;
 	char *name;
@@ -116,9 +94,9 @@ static table_item_t sdf_pkey_caps[] = {
 	{ SGD_SM2_3, "sm2encrypt" }
 };
 
-int SDF_PrintDeviceInfo(DEVICEINFO *pstDeviceInfo)
+int SDF_PrintDeviceInfo(BIO *out, DEVICEINFO *pstDeviceInfo)
 {
-	int i, n;
+	size_t i, n;
 	DEVICEINFO buf;
 	DEVICEINFO *devInfo = &buf;
 
@@ -127,73 +105,59 @@ int SDF_PrintDeviceInfo(DEVICEINFO *pstDeviceInfo)
 	devInfo->DeviceName[15] = 0;
 	devInfo->DeviceSerial[15] = 0;
 
-	print_str("  Issuer", devInfo->IssuerName);
-	print_str("  Device Name", devInfo->DeviceName);
-	print_str("  Serial Number", devInfo->DeviceSerial);
-	print_int("  Hardware Version", devInfo->DeviceVersion);
-	print_int("  Standard Version", devInfo->StandardVersion);
-	printf("%-20s: ", "  Public Key Algors");
+	BIO_printf(out, "  %-18s : %s\n", "Device Name", devInfo->DeviceName);
+	BIO_printf(out, "  %-18s : %s\n", "Serial Number", devInfo->DeviceSerial);
+	BIO_printf(out, "  %-18s : %s\n", "Issuer", devInfo->IssuerName);
+	BIO_printf(out, "  %-18s : %u\n", "Hardware Version", devInfo->DeviceVersion);
+	BIO_printf(out, "  %-18s : %u\n", "Standard Version", devInfo->StandardVersion);
+	BIO_printf(out, "  %-18s : ", "Public Key Algors");
 	for (i = n = 0; i < OSSL_NELEM(sdf_pkey_caps); i++) {
 		if ((devInfo->AsymAlgAbility[0] & sdf_pkey_caps[i].id) ==
 			sdf_pkey_caps[i].id) {
-			printf("%s%s", n ? ", " : "", sdf_pkey_caps[i].name);
+			BIO_printf(out, "%s%s", n ? "," : "", sdf_pkey_caps[i].name);
 			n++;
 		}
 	}
-	printf("\n");
+	BIO_puts(out, "\n");
 
-	printf("%-20s: ", "  Ciphers");
+	BIO_printf(out, "  %-18s : ", "Ciphers");
 	for (i = n = 0; i < OSSL_NELEM(sdf_cipher_caps); i++) {
 		if ((devInfo->SymAlgAbility & sdf_cipher_caps[i].id) ==
 			sdf_cipher_caps[i].id) {
-			printf("%s%s", n ? ", " : "", sdf_cipher_caps[i].name);
+			BIO_printf(out, "%s%s", n ? "," : "", sdf_cipher_caps[i].name);
 			n++;
 		}
 	}
-	printf("\n");
+	BIO_puts(out, "\n");
 
-	printf("%-20s: ", "  Digests");
+	BIO_printf(out, "  %-18s : ", "Digests");
 	for (i = n = 0; i < OSSL_NELEM(sdf_digest_caps); i++) {
 		if ((devInfo->HashAlgAbility & sdf_digest_caps[i].id) ==
 			sdf_digest_caps[i].id) {
-			printf("%s%s", n ? ", " : "", sdf_digest_caps[i].name);
+			BIO_printf(out, "%s%s", n ? "," : "", sdf_digest_caps[i].name);
 			n++;
 		}
 	}
-	printf("\n");
-
+	BIO_puts(out, "\n");
+	BIO_puts(out, "\n");
 
 	return SDR_OK;
 }
 
-int SDF_PrintRSAPublicKey(RSArefPublicKey *blob)
+int SDF_PrintRSAPublicKey(BIO *out, RSArefPublicKey *blob)
 {
-	BIO *bio = NULL;
-
-	if (!(bio = BIO_new_fp(stdout, BIO_NOCLOSE))) {
-		return SDR_UNKNOWERR;
-	}
-
-	(void)BIO_printf(bio, "bits: %d\n", blob->bits);
-	(void)BIO_printf(bio, "m:\n    ");
-	(void)BIO_hex_string(bio, 4, 16, blob->m, sizeof(blob->m));
-	(void)BIO_printf(bio, "\n");
-	(void)BIO_printf(bio, "e:\n    ");
-	(void)BIO_hex_string(bio, 4, 16, blob->e, sizeof(blob->e));
-	(void)BIO_printf(bio, "\n");
-
-	BIO_free(bio);
+	(void)BIO_printf(out, "bits: %d\n", blob->bits);
+	(void)BIO_printf(out, "m:\n    ");
+	(void)BIO_hex_string(out, 4, 16, blob->m, sizeof(blob->m));
+	(void)BIO_printf(out, "\n");
+	(void)BIO_printf(out, "e:\n    ");
+	(void)BIO_hex_string(out, 4, 16, blob->e, sizeof(blob->e));
+	(void)BIO_printf(out, "\n");
 	return SDR_OK;
 }
 
-int SDF_PrintRSAPrivateKey(RSArefPrivateKey *blob)
+int SDF_PrintRSAPrivateKey(BIO *bio, RSArefPrivateKey *blob)
 {
-	BIO *bio = NULL;
-
-	if (!(bio = BIO_new_fp(stdout, BIO_NOCLOSE))) {
-		return SDR_UNKNOWERR;
-	}
-
 	(void)BIO_printf(bio, "bits: %d", blob->bits);
 	(void)BIO_printf(bio, "\n%s:\n    ", "m");
 	(void)BIO_hex_string(bio, 4, 16, blob->m, sizeof(blob->m));
@@ -213,18 +177,11 @@ int SDF_PrintRSAPrivateKey(RSArefPrivateKey *blob)
 	(void)BIO_hex_string(bio, 4, 16, blob->coef, sizeof(blob->coef));
 	(void)BIO_printf(bio, "\n");
 
-	BIO_free(bio);
 	return SDR_OK;
 }
 
-int SDF_PrintECCPublicKey(ECCrefPublicKey *blob)
+int SDF_PrintECCPublicKey(BIO *bio, ECCrefPublicKey *blob)
 {
-	BIO *bio = NULL;
-
-	if (!(bio = BIO_new_fp(stdout, BIO_NOCLOSE))) {
-		return SDR_UNKNOWERR;
-	}
-
 	(void)BIO_printf(bio, "bits: %d", blob->bits);
 	(void)BIO_printf(bio, "\n%s:\n    ", "x");
 	(void)BIO_hex_string(bio, 4, 16, blob->x, sizeof(blob->x));
@@ -232,35 +189,21 @@ int SDF_PrintECCPublicKey(ECCrefPublicKey *blob)
 	(void)BIO_hex_string(bio, 4, 16, blob->y, sizeof(blob->y));
 	(void)BIO_printf(bio, "\n");
 
-	BIO_free(bio);
 	return SDR_OK;
 }
 
-int SDF_PrintECCPrivateKey(ECCrefPrivateKey *blob)
+int SDF_PrintECCPrivateKey(BIO *bio, ECCrefPrivateKey *blob)
 {
-	BIO *bio = NULL;
-
-	if (!(bio = BIO_new_fp(stdout, BIO_NOCLOSE))) {
-		return SDR_UNKNOWERR;
-	}
-
 	(void)BIO_printf(bio, "bits: %d", blob->bits);
 	(void)BIO_printf(bio, "\n%s:\n    ", "K");
 	(void)BIO_hex_string(bio, 4, 16, blob->K, sizeof(blob->K));
 	(void)BIO_printf(bio, "\n");
 
-	BIO_free(bio);
 	return SDR_OK;
 }
 
-int SDF_PrintECCCipher(ECCCipher *blob)
+int SDF_PrintECCCipher(BIO *bio, ECCCipher *blob)
 {
-	BIO *bio = NULL;
-
-	if (!(bio = BIO_new_fp(stdout, BIO_NOCLOSE))) {
-		return SDR_UNKNOWERR;
-	}
-
 	(void)BIO_printf(bio, "%s:\n    ", "x");
 	(void)BIO_hex_string(bio, 4, 16, blob->x, sizeof(blob->x));
 	(void)BIO_printf(bio, "\n%s:\n    ", "y");
@@ -272,25 +215,17 @@ int SDF_PrintECCCipher(ECCCipher *blob)
 	(void)BIO_hex_string(bio, 4, 16, blob->C, sizeof(blob->C));
 	(void)BIO_printf(bio, "\n");
 
-	BIO_free(bio);
 	return SDR_OK;
 }
 
-int SDF_PrintECCSignature(ECCSignature *blob)
+int SDF_PrintECCSignature(BIO *bio, ECCSignature *blob)
 {
-	BIO *bio = NULL;
-
-	if (!(bio = BIO_new_fp(stdout, BIO_NOCLOSE))) {
-		return SDR_UNKNOWERR;
-	}
-
 	(void)BIO_printf(bio, "%s:\n    ", "r");
 	(void)BIO_hex_string(bio, 4, 16, blob->r, sizeof(blob->r));
 	(void)BIO_printf(bio, "\n%s:\n    ", "s");
 	(void)BIO_hex_string(bio, 4, 16, blob->s, sizeof(blob->s));
 	(void)BIO_printf(bio, "\n");
 
-	BIO_free(bio);
 	return SDR_OK;
 }
 

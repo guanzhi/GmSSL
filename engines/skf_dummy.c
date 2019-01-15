@@ -387,6 +387,7 @@ ULONG DEVAPI SKF_ReadFile(
 {
 	if (!pbOutData || !pulOutLen)
 		return SAR_INVALIDPARAMERR;
+	memset(pbOutData, 'x', ulSize);
 	*pulOutLen = ulSize;
 	return SAR_OK;
 }

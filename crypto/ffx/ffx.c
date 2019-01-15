@@ -142,7 +142,7 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, char *out, size_t iolen,
 	unsigned char qblock[16];
 	char lbuf[FFX_MAX_DIGITS/2 + 2];
 	uint64_t yval;
-	int i;
+	size_t i;
 
 	if (!ctx || !in || !out || !tweak) {
 		FFXerr(FFX_F_FFX_ENCRYPT, ERR_R_PASSED_NULL_PARAMETER);
@@ -189,7 +189,7 @@ int FFX_encrypt(FFX_CTX *ctx, const char *in, char *out, size_t iolen,
 	for (i = 0; i < FFX_NUM_ROUNDS; i += 2) {
 
 		unsigned char rblock[16];
-		int j;
+		size_t j;
 
 		qblock[11] = i & 0xff;
 		memcpy(qblock + 12, &rval, sizeof(rval));
@@ -239,7 +239,7 @@ int FFX_decrypt(FFX_CTX *ctx, const char *in, char *out, size_t iolen,
 	unsigned char qblock[16];
 	char lbuf[FFX_MAX_DIGITS/2 + 2];
 	uint64_t yval;
-	int i;
+	size_t i;
 
 	if (!ctx || !in || !out || !tweak) {
 		FFXerr(FFX_F_FFX_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
@@ -287,7 +287,7 @@ int FFX_decrypt(FFX_CTX *ctx, const char *in, char *out, size_t iolen,
 	for (i = FFX_NUM_ROUNDS - 1; i > 0; i -= 2) {
 
 		unsigned char rblock[16];
-		int j;
+		size_t j;
 
 		qblock[11] = i & 0xff;
 		memcpy(qblock + 12, &rval, sizeof(rval));

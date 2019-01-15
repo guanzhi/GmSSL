@@ -1462,6 +1462,9 @@ int ERR_load_EC_strings(void);
 # define EC_F_EC_GFP_SIMPLE_POINT_GET_AFFINE_COORDINATES  182
 # define EC_F_EC_GFP_SIMPLE_POINT_SET_AFFINE_COORDINATES  183
 # define EC_F_EC_GFP_SIMPLE_SET_COMPRESSED_COORDINATES    184
+# define EC_F_EC_GFP_SM2P256_GROUP_SET_CURVE              280
+# define EC_F_EC_GFP_SM2P256_POINTS_MUL                   281
+# define EC_F_EC_GFP_SM2P256_POINT_GET_AFFINE_COORDINATES 282
 # define EC_F_EC_GROUP_CHECK                              185
 # define EC_F_EC_GROUP_CHECK_DISCRIMINANT                 186
 # define EC_F_EC_GROUP_COPY                               187
@@ -1546,6 +1549,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_PKEY_EC_KEYGEN                              265
 # define EC_F_PKEY_EC_PARAMGEN                            266
 # define EC_F_PKEY_EC_SIGN                                267
+# define EC_F_SM2P256_PRE_COMP_NEW                        283
 # define EC_F_SM2_COMPUTE_ID_DIGEST                       268
 # define EC_F_SM2_COMPUTE_MESSAGE_DIGEST                  269
 # define EC_F_SM2_DO_ENCRYPT                              270
