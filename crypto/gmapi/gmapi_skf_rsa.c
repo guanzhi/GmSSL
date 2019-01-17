@@ -267,23 +267,24 @@ int RSA_set_RSAPRIVATEKEYBLOB(RSA *rsa, const RSAPRIVATEKEYBLOB *blob)
 			GMAPI_R_INVALID_RSA_PRIVATE_KEY);
 		goto end;
 	}
-	n = NULL;
-	e = NULL;
-	d = NULL;
 
 	if (!RSA_set0_factors(rsa, p, q)) {
 		GMAPIerr(GMAPI_F_RSA_SET_RSAPRIVATEKEYBLOB,
 			GMAPI_R_INVALID_RSA_PRIVATE_KEY);
 		goto end;
 	}
-	p = NULL;
-	q = NULL;
 
 	if (!RSA_set0_crt_params(rsa, dmp1, dmq1, iqmp)) {
 		GMAPIerr(GMAPI_F_RSA_SET_RSAPRIVATEKEYBLOB,
 			GMAPI_R_INVALID_RSA_PRIVATE_KEY);
 		goto end;
 	}
+	
+	n = NULL;
+	e = NULL;
+	d = NULL;
+	p = NULL;
+	q = NULL;
 	dmp1 = NULL;
 	dmq1 = NULL;
 	iqmp = NULL;
