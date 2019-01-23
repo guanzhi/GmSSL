@@ -20,8 +20,13 @@
 
 static const EC_KEY_METHOD openssl_ec_key_method = {
     "OpenSSL EC_KEY method",
-    0,
-    0,0,0,0,0,0,
+    0, /* flags */
+    0, /* init */
+    0, /* finish */
+    0, /* copy */
+    0, /* set_group */
+    0, /* set_private */
+    0, /* set_public */
     ossl_ec_key_gen,
     ossl_ecdh_compute_key,
     ossl_ecdsa_sign,

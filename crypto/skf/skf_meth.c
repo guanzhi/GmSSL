@@ -152,9 +152,7 @@ SKF_METHOD *SKF_METHOD_load_library(const char *so_path)
 	SKF_METHOD_BIND_FUNCTION(MacUpdate);
 	SKF_METHOD_BIND_FUNCTION(MacFinal);
 	SKF_METHOD_BIND_FUNCTION(CloseHandle);
-
-#ifdef SKF_SUPPORT_ECCDECRYPT
-	/* wisectech usb-key support ECCDecrypt */
+#ifdef SKF_HAS_ECCDECRYPT
 	SKF_METHOD_BIND_FUNCTION(ECCDecrypt);
 #endif
 
