@@ -206,7 +206,7 @@ RSA *RSA_new_from_RSArefPrivateKey(const RSArefPrivateKey *ref)
 	rsa = NULL;
 
 end:
-	RSA_free(ret);
+	RSA_free(rsa);
 	return ret;
 }
 
