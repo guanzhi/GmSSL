@@ -549,38 +549,6 @@ end:
 	return ret;
 }
 
-					
-/*
-ULONG DEVAPI SKF_LoginApplication(DEVHANDLE hDev, LPSTR appName,
-	ULONG userType, LPSTR szPin, HAPPLICATION *phApp)
-{
-	int ret = 0;
-	HAPPLICATION hApp = NULL;
-	ULONG numRetry;
-
-	if (SKF_OpenApplication(hDev, (LPSTR)name, &hApp) != SAR_OK) {
-		ERR_print_errors(bio_err);
-		return 0;
-	}
-	if (SKF_VerifyPIN(hApp, userType, szPin, &numRetry) != SAR_OK) {
-		BIO_printf(bio_err, "Invalid %s PIN, retry count = %u\n",
-			admin ? "admin" :  "user", numRetry);
-		ERR_print_errors(bio_err);
-		goto end;
-	}
-	*phApp = hApp;
-	hApp = NULL;
-	ret = 1;
-
-end:
-	if (hApp && SKF_CloseApplication(hApp) != SAR_OK) {
-		ERR_print_errors(bio_err);
-		ret = 0;
-	}
-	return ret;
-}
-*/
-
 static int skf_openapp(DEVHANDLE hDev, const char *name, int admin,
 	const char *passarg, HAPPLICATION *phApp)
 {
