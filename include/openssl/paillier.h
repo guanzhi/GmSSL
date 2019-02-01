@@ -60,7 +60,12 @@
 #include <openssl/asn1.h>
 
 
-#define PAILLIER_MIN_KEY_BITS 2048
+#define PAILLIER_MIN_KEY_BITS	2048
+
+#define PAILLIER_OP_UNDEF	0
+#define PAILLIER_OP_ADD		1
+#define PAILLIER_OP_SCALAR_MUL	2
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,9 +124,11 @@ int ERR_load_PAILLIER_strings(void);
 # define PAILLIER_F_PAILLIER_ENCRYPT                      104
 # define PAILLIER_F_PAILLIER_GENERATE_KEY                 105
 # define PAILLIER_F_PAILLIER_NEW                          106
+# define PAILLIER_F_PAILLIER_PLAINTEXT_SIZE               117
 # define PAILLIER_F_PAILLIER_PRIV_DECODE                  111
 # define PAILLIER_F_PAILLIER_PRIV_ENCODE                  112
 # define PAILLIER_F_PAILLIER_PUB_DECODE                   107
+# define PAILLIER_F_PAILLIER_SIZE                         118
 # define PAILLIER_F_PKEY_PAILLIER_CTRL                    113
 # define PAILLIER_F_PKEY_PAILLIER_CTRL_STR                114
 # define PAILLIER_F_PKEY_PAILLIER_DECRYPT                 108

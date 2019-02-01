@@ -116,8 +116,11 @@ static int pkey_paillier_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 {
 	int ret = 0;
 	PAILLIER *key = EVP_PKEY_get0_PAILLIER(EVP_PKEY_CTX_get0_pkey(ctx));
+	char *buf = NULL;
 	BIGNUM *m = NULL;
 	BIGNUM *c = NULL;
+	ASN1_INTEGER *ai = NULL;
+	int len;
 
 	if (!out) {
 		*outlen = PAILLIER_size(key);
@@ -127,26 +130,66 @@ static int pkey_paillier_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 		return 0;
 	}
 
-	if (!(m = BN_new()) || !(c = BN_new())) {
+	/* parse plaintext in decimal string format */
+	if (!(buf = OPENSSL_malloc(inlen + 1))) {
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_MALLOC_FAILURE);
+		return 0;
+	}
+	memcpy(buf, in, inlen);
+	buf[inlen] = 0;
+	if (!BN_dec2bn(&m, buf)) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, PAILLIER_R_INVALID_PLAINTEXT);
 		goto end;
 	}
-	if (!BN_bin2bn(in, (int)inlen, m)) {
-		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_BN_LIB);
+
+	/* encrypt and encode in asn1 integer format */
+	if (!(c = BN_new())) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!PAILLIER_encrypt(c, m, key)) {
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_PAILLIER_LIB);
 		goto end;
 	}
-
-	/* the ciphertext has no prefix zeros */
-	*outlen = BN_bn2bin(c, out);
+	if (!(ai = BN_to_ASN1_INTEGER(c, NULL))) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_ASN1_LIB);
+		goto end;
+	}
+	if ((len = i2d_ASN1_INTEGER(ai, &out)) <= 0) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_ENCRYPT, ERR_R_ASN1_LIB);
+		goto end;
+	}
+	*outlen = len;
 	ret = 1;
 
 end:
+	OPENSSL_clear_free(buf, inlen);
 	BN_clear_free(m);
 	BN_free(c);
+	ASN1_INTEGER_free(ai);
+	return ret;
+}
+
+static size_t paillier_plaintext_size(PAILLIER *key)
+{
+	size_t ret = 0;
+	BIGNUM *m = NULL;
+	char *dec = NULL;
+	int i;
+
+	if (!(i = BN_num_bits(key->n))
+		|| !(m = BN_new())
+		|| !BN_one(m)
+		|| !BN_lshift(m, m, i * 2)
+		|| !(dec = BN_bn2dec(m))) {
+		PAILLIERerr(PAILLIER_F_PAILLIER_PLAINTEXT_SIZE, ERR_R_BN_LIB);
+		goto end;
+	}
+	ret = strlen(dec) + 1;
+
+end:
+	BN_free(m);
+	OPENSSL_free(dec);
 	return ret;
 }
 
@@ -155,34 +198,57 @@ static int pkey_paillier_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *
 {
 	int ret = 0;
 	PAILLIER *key = EVP_PKEY_get0_PAILLIER(EVP_PKEY_CTX_get0_pkey(ctx));
+	const unsigned char *p = in;
+	ASN1_INTEGER *ai = NULL;
 	BIGNUM *m = NULL;
 	BIGNUM *c = NULL;
+	char *str = NULL;
+	size_t maxlen;
+
+	if (!(maxlen = paillier_plaintext_size(key))) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_PAILLIER_LIB);
+		return 0;
+	}
 
 	if (!out) {
-		*outlen = PAILLIER_size(key);
+		*outlen = maxlen;
 		return 1;
-	} else if (*outlen < (size_t)PAILLIER_size(key)) {
+	} else if (*outlen < maxlen) {
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, PAILLIER_R_BUFFER_TOO_SMALL);
 		return 0;
 	}
 
-	if (!(m = BN_new()) || !(c = BN_new())) {
-		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_MALLOC_FAILURE);
+	/* decode ciphertext from asn1 integer */
+	if (!(ai = d2i_ASN1_INTEGER(NULL, &p, inlen))) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_ASN1_LIB);
+		return 0;
+	}
+	if (!(c = ASN1_INTEGER_to_BN(ai, NULL))) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_ASN1_LIB);
 		goto end;
 	}
-	if (!BN_bin2bn(in, (int)inlen, c)) {
-		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_BN_LIB);
+
+	/* decrypt and convert to decimal string */
+	if (!(m = BN_new())) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!PAILLIER_decrypt(m, c, key)) {
 		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_PAILLIER_LIB);
 		goto end;
 	}
+	if (!(str = BN_bn2dec(m))) {
+		PAILLIERerr(PAILLIER_F_PKEY_PAILLIER_DECRYPT, ERR_R_BN_LIB);
+		goto end;
+	}
 
-	/* the plaintext has no prefix zeros */
-	*outlen = BN_bn2bin(m, out);
+	strcpy((char *)out, str);
+	*outlen = strlen(str) + 1;
 	ret = 1;
+
 end:
+	ASN1_INTEGER_free(ai);
+	OPENSSL_free(str);
 	BN_free(m);
 	BN_free(c);
 	return ret;

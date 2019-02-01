@@ -51,6 +51,7 @@ extern int list_main(int argc, char *argv[]);
 extern int nseq_main(int argc, char *argv[]);
 extern int ocsp_main(int argc, char *argv[]);
 extern int otp_main(int argc, char *argv[]);
+extern int paiutl_main(int argc, char *argv[]);
 extern int passwd_main(int argc, char *argv[]);
 extern int pkcs12_main(int argc, char *argv[]);
 extern int pkcs7_main(int argc, char *argv[]);
@@ -111,6 +112,7 @@ extern OPTIONS list_options[];
 extern OPTIONS nseq_options[];
 extern OPTIONS ocsp_options[];
 extern OPTIONS otp_options[];
+extern OPTIONS paiutl_options[];
 extern OPTIONS passwd_options[];
 extern OPTIONS pkcs12_options[];
 extern OPTIONS pkcs7_options[];
@@ -201,6 +203,7 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_OTP
     { FT_general, "otp", otp_main, otp_options },
 #endif
+    { FT_general, "paiutl", paiutl_main, paiutl_options },
     { FT_general, "passwd", passwd_main, passwd_options },
 #ifndef OPENSSL_NO_DES
     { FT_general, "pkcs12", pkcs12_main, pkcs12_options },

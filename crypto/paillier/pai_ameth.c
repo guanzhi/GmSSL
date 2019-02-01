@@ -107,15 +107,21 @@ static int do_paillier_print(BIO *bp, const PAILLIER *x, int off, int priv)
 {
 	char *str;
 	int ret = 0;
+	int bits;
+
 	if (!BIO_indent(bp, off, 128))
 		goto end;
 
+	bits = x->bits;
+	if (bits == 0)
+		bits = BN_num_bytes(x->n) * 8;
+
 	if (priv && x->lambda) {
-		if (BIO_printf(bp, "Private-Key: (%d bit)\n", x->bits) <= 0)
+		if (BIO_printf(bp, "Private-Key: (%d bit)\n", bits) <= 0)
 			goto end;
 		str = "modulus";
 	} else {
-		if (BIO_printf(bp, "Public-Key: (%d bit)\n", x->bits) <= 0)
+		if (BIO_printf(bp, "Public-Key: (%d bit)\n", bits) <= 0)
 			goto end;
 		str = "Modulus";
 	}
@@ -125,7 +131,7 @@ static int do_paillier_print(BIO *bp, const PAILLIER *x, int off, int priv)
 	if (priv) {
 		if (!ASN1_bn_print(bp, "lambda:", x->lambda, NULL, off))
 			goto end;
-		if (!ASN1_bn_print(bp, "x:", x->x, NULL, off))
+		if (x->x && !ASN1_bn_print(bp, "x:", x->x, NULL, off))
 			goto end;
 	}
 	ret = 1;
@@ -158,6 +164,7 @@ static int paillier_priv_decode(EVP_PKEY *pkey, const PKCS8_PRIV_KEY_INFO *p8)
 		PAILLIERerr(PAILLIER_F_PAILLIER_PRIV_DECODE, ERR_R_PAILLIER_LIB);
 		return 0;
 	}
+	paillier->bits = BN_num_bytes(paillier->n) * 8;
 	EVP_PKEY_assign_PAILLIER(pkey, paillier);
 	return 1;
 }
