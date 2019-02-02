@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,307 +52,13 @@
 #include <string.h>
 #include <limits.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 #include <openssl/gmskf.h>
+#include <openssl/gmapi.h>
+#include <openssl/x509v3.h>
 #include "internal/skf_int.h"
 #include "../../e_os.h"
 
-
-static char *skf_algor_name(ULONG ulAlgID)
-{
-	switch (ulAlgID) {
-	case SGD_SM1_ECB: return "sm1-ecb";
-	case SGD_SM1_CBC: return "sm1-cbc";
-	case SGD_SM1_CFB: return "sm1-cfb";
-	case SGD_SM1_OFB: return "sm1-ofb128";
-	case SGD_SM1_MAC: return "sm1-mac";
-	case SGD_SM4_ECB: return "sms4-ecb";
-	case SGD_SM4_CBC: return "sms4-cbc";
-	case SGD_SM4_CFB: return "sms4-cfb";
-	case SGD_SM4_OFB: return "sms4-ofb128";
-	case SGD_SM4_MAC: return "sms4-mac";
-	case SGD_SSF33_ECB: return "ssf33-ecb";
-	case SGD_SSF33_CBC: return "ssf33-cbc";
-	case SGD_SSF33_CFB: return "ssf33-cfb";
-	case SGD_SSF33_OFB: return "ssf33-ofb128";
-	case SGD_SSF33_MAC: return "ssf33-mac";
-	case SGD_RSA: return "rsa";
-	case SGD_SM2_1: return "sm2sign";
-	case SGD_SM2_2: return "sm2encrypt";
-	case SGD_SM2_3: return "sm2keyagreement";
-	case SGD_SM3: return "sm3";
-	case SGD_SHA1: return "sha1";
-	case SGD_SHA256: return "sha256";
-	}
-	return NULL;
-}
-
-ULONG SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
-{
-	if (!szDevStateName) {
-		return SAR_INDATALENERR;
-	}
-
-	switch (ulDevState) {
-	case SKF_DEV_STATE_ABSENT:
-		*szDevStateName = (LPSTR)"Absent";
-		break;
-	case SKF_DEV_STATE_PRESENT:
-		*szDevStateName = (LPSTR)"Present";
-		break;
-	case SKF_DEV_STATE_UNKNOW:
-		*szDevStateName = (LPSTR)"Unknown";
-		break;
-	default:
-		*szDevStateName = (LPSTR)"(Error)";
-		return SAR_INDATALENERR;
-	}
-
-	return SAR_OK;
-}
-
-ULONG SKF_GetContainerTypeName(ULONG ulContainerType, LPSTR *szName)
-{
-	switch (ulContainerType) {
-	case SKF_CONTAINER_TYPE_UNDEF:
-		*szName = (LPSTR)"(undef)";
-		break;
-	case SKF_CONTAINER_TYPE_RSA:
-		*szName = (LPSTR)"RSA";
-		break;
-	case SKF_CONTAINER_TYPE_ECC:
-		*szName = (LPSTR)"EC";
-		break;
-	default:
-		*szName = (LPSTR)"(unknown)";
-	}
-	/* always success for help functions */
-	return SAR_OK;
-}
-
-typedef struct {
-	ULONG id;
-	char *name;
-} table_item_t;
-
-static table_item_t skf_cipher_caps[] = {
-	{ SGD_SM1_ECB, "sm1-ecb" },
-	{ SGD_SM1_CBC, "sm1-cbc" },
-	{ SGD_SM1_CFB, "sm1-cfb" },
-	{ SGD_SM1_OFB, "sm1-ofb128" },
-	{ SGD_SM1_MAC, "cbcmac-sm1" },
-	{ SGD_SSF33_ECB, "ssf33-ecb" },
-	{ SGD_SSF33_CBC, "ssf33-cbc" },
-	{ SGD_SSF33_CFB, "ssf33-cfb" },
-	{ SGD_SSF33_OFB, "ssf33-ofb128" },
-	{ SGD_SSF33_MAC, "cbcmac-ssf33" },
-	{ SGD_SM4_ECB, "sms4-ecb" },
-	{ SGD_SM4_CBC, "sms4-cbc" },
-	{ SGD_SM4_CFB, "sms4-cfb" },
-	{ SGD_SM4_OFB, "sms4-ofb128" },
-	{ SGD_SM4_MAC, "cbcmac-sms4" },
-	{ SGD_ZUC_EEA3, "zuc_128eea3" },
-	{ SGD_ZUC_EIA3, "zuc_128eia3" }
-};
-
-static table_item_t skf_digest_caps[] = {
-	{ SGD_SM3,  "sm3" },
-	{ SGD_SHA1, "sha1" },
-	{ SGD_SHA256, "sha256" },
-};
-
-static table_item_t skf_pkey_caps[] = {
-	{ SGD_RSA_SIGN, "rsa" },
-	{ SGD_RSA_ENC, "rsaEncryption" },
-	{ SGD_SM2_1, "sm2sign" },
-	{ SGD_SM2_2, "sm2exchange" },
-	{ SGD_SM2_3, "sm2encrypt" }
-};
-
-ULONG SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo)
-{
-	size_t i, n;
-	char *serial = OPENSSL_buf2hexstr(devInfo->SerialNumber, strlen((char *)devInfo->SerialNumber));
-
-	BIO_printf(out, "  %-16s : %d.%d\n", "Version", devInfo->Version.major, devInfo->Version.minor);
-	BIO_printf(out, "  %-16s : %s\n", "Manufacturer", devInfo->Manufacturer);
-	BIO_printf(out, "  %-16s : %s\n", "Issuer", devInfo->Issuer);
-	BIO_printf(out, "  %-16s : %s\n", "Label", devInfo->Label);
-	BIO_printf(out, "  %-16s : %s\n", "Serial Number", serial);
-	BIO_printf(out, "  %-16s : %d.%d\n", "Firmware Version", devInfo->HWVersion.major, devInfo->HWVersion.minor);
-
-	BIO_printf(out, "  %-16s : ", "Ciphers");
-	for (i = n = 0; i < OSSL_NELEM(skf_cipher_caps); i++) {
-		if ((devInfo->AlgSymCap & skf_cipher_caps[i].id) ==
-			skf_cipher_caps[i].id) {
-			BIO_printf(out, "%s%s", n ? "," : "", skf_cipher_caps[i].name);
-			n++;
-		}
-	}
-	BIO_puts(out, "\n");
-
-	BIO_printf(out, "  %-16s : ", "Public Keys");
-	for (i = n = 0; i < OSSL_NELEM(skf_pkey_caps); i++) {
-		if ((devInfo->AlgAsymCap & skf_pkey_caps[i].id) ==
-			skf_pkey_caps[i].id) {
-			BIO_printf(out, "%s%s", n ? "," : "", skf_pkey_caps[i].name);
-			n++;
-		}
-	}
-	BIO_puts(out, "\n");
-
-	BIO_printf(out, "  %-16s : ", "Digests");
-	for (i = n = 0; i < OSSL_NELEM(skf_digest_caps); i++) {
-		if ((devInfo->AlgHashCap & skf_digest_caps[i].id) ==
-			skf_digest_caps[i].id) {
-			BIO_printf(out, "%s%s", n ? "," : "", skf_digest_caps[i].name);
-			n++;
-		}
-	}
-	BIO_puts(out, "\n");
-
-	BIO_printf(out, "  %-16s : ", "Auth Cipher");
-	for (i = 0; i < OSSL_NELEM(skf_cipher_caps); i++) {
-		if (devInfo->DevAuthAlgId == skf_cipher_caps[i].id) {
-			BIO_printf(out, "%s\n", skf_cipher_caps[i].name);
-			break;
-		}
-	}
-	if (i == OSSL_NELEM(skf_cipher_caps)) {
-		BIO_puts(out, "(unknown)\n");
-	}
-
-	if (devInfo->TotalSpace == UINT_MAX)
-		BIO_printf(out, "  %-16s : %s\n", "Total Sapce", "(unlimited)");
-	else	BIO_printf(out, "  %-16s : %u\n", "Total Sapce", devInfo->TotalSpace);
-
-	if (devInfo->FreeSpace == UINT_MAX)
-		BIO_printf(out, "  %-16s : %s\n", "Free Space", "(unlimited)");
-	else	BIO_printf(out, "  %-16s : %u\n", "Free Space", devInfo->FreeSpace);
-
-	if (devInfo->MaxECCBufferSize == UINT_MAX)
-		BIO_printf(out, "  %-16s : %s\n", "MAX ECC Input", "(unlimited)");
-	else	BIO_printf(out, "  %-16s : %u\n", "MAX ECC Input", devInfo->MaxECCBufferSize);
-
-	if (devInfo->MaxBufferSize == UINT_MAX)
-		BIO_printf(out, "  %-16s : %s\n", "MAX Cipher Input", "(unlimited)");
-	else	BIO_printf(out, "  %-16s : %u\n", "MAX Cipher Input", devInfo->MaxBufferSize);
-
-	OPENSSL_free(serial);
-	return SAR_OK;
-}
-
-ULONG SKF_PrintRSAPublicKey(BIO *out, RSAPUBLICKEYBLOB *blob)
-{
-	BIO_printf(out, "AlgID : %s\n", skf_algor_name(blob->AlgID));
-	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
-	BIO_puts(out, "Modulus:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Modulus, MAX_RSA_MODULUS_LEN);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "PublicExponent:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->PublicExponent, MAX_RSA_EXPONENT_LEN);
-	BIO_puts(out, "\n");
-	return SAR_OK;
-}
-
-ULONG SKF_PrintRSAPrivateKey(BIO *out, RSAPRIVATEKEYBLOB *blob)
-{
-	BIO_printf(out, "AlgID : %s\n", skf_algor_name(blob->AlgID));
-	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
-	BIO_puts(out, "Modulus:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Modulus, MAX_RSA_MODULUS_LEN);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "PublicExponent:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->PublicExponent, MAX_RSA_EXPONENT_LEN);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "PrivateExponent:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->PrivateExponent, MAX_RSA_MODULUS_LEN);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "Prime1:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Prime1, MAX_RSA_MODULUS_LEN/2);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "Prime2:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Prime2, MAX_RSA_MODULUS_LEN/2);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "Prime1Exponent:\n");
-	BIO_hex_string(out, 4, 16, blob->Prime1Exponent, MAX_RSA_MODULUS_LEN/2);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "    ");
-	BIO_puts(out, "Prime2Exponent:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Prime2Exponent, MAX_RSA_MODULUS_LEN/2);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "Coefficient:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Coefficient, MAX_RSA_MODULUS_LEN/2);
-	BIO_puts(out, "\n");
-	return SAR_OK;
-}
-
-ULONG SKF_PrintECCPublicKey(BIO *out, ECCPUBLICKEYBLOB *blob)
-{
-	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
-	BIO_puts(out, "XCoordinate:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "YCoordinate:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->YCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	return SAR_OK;
-}
-
-ULONG SKF_PrintECCPrivateKey(BIO *out, ECCPRIVATEKEYBLOB *blob)
-{
-	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
-	BIO_puts(out, "PrivateKey:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->PrivateKey, ECC_MAX_MODULUS_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	return SAR_OK;
-}
-
-ULONG SKF_PrintECCCipher(BIO *out, ECCCIPHERBLOB *blob)
-{
-	BIO_puts(out, "XCoordinate:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "YCoordinate:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->YCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "HASH:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->HASH, 32);
-	BIO_puts(out, "\n");
-	BIO_printf(out, "CipherLen: %u\n", blob->CipherLen);
-	BIO_puts(out, "Cipher:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->Cipher, blob->CipherLen);
-	BIO_puts(out, "\n");
-	return SAR_OK;
-}
-
-ULONG SKF_PrintECCSignature(BIO *out, ECCSIGNATUREBLOB *blob)
-{
-	BIO_puts(out, "r:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->r, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	BIO_puts(out, "s:\n");
-	BIO_puts(out, "    ");
-	BIO_hex_string(out, 4, 16, blob->s, ECC_MAX_XCOORDINATE_BITS_LEN/8);
-	BIO_puts(out, "\n");
-	return SAR_OK;
-}
 
 ULONG DEVAPI SKF_NewECCCipher(ULONG ulCipherLen, ECCCIPHERBLOB **cipherBlob)
 {
@@ -382,15 +88,519 @@ ULONG DEVAPI SKF_NewEnvelopedKey(ULONG ulCipherLen, ENVELOPEDKEYBLOB **enveloped
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_PrintErrorString(BIO *out, ULONG ulError)
+ULONG DEVAPI SKF_OpenDevice(LPSTR devName, BYTE authKey[16], DEVINFO *devInfo, DEVHANDLE *phDev)
 {
-	LPSTR str = NULL;
-	SKF_GetErrorString(ulError, &str);
-	BIO_printf(out, "SKF Error: %s\n", (char *)str);
+	ULONG rv;
+	DEVHANDLE hDev = NULL;
+	HANDLE hKey = NULL;
+	ULONG ulTimeOut = 0xffffffff;
+	BYTE authRand[16] = {0};
+	BYTE authData[16] = {0};
+	ULONG authRandLen = SKF_AUTHRAND_LENGTH;
+	ULONG authDataLen = sizeof(authData);
+	BLOCKCIPHERPARAM encParam = {{0}, 0, 0, 0};
+
+	if ((rv = SKF_ConnectDev((LPSTR)devName, &hDev)) != SAR_OK
+		|| (rv = SKF_GetDevInfo(hDev, devInfo)) != SAR_OK
+		|| (rv = SKF_LockDev(hDev, ulTimeOut)) != SAR_OK
+		|| (rv = SKF_GenRandom(hDev, authRand, authRandLen)) != SAR_OK
+		|| (rv = SKF_SetSymmKey(hDev, authKey, devInfo->DevAuthAlgId, &hKey)) != SAR_OK
+		|| (rv = SKF_EncryptInit(hKey, encParam)) != SAR_OK
+		|| (rv = SKF_Encrypt(hKey, authRand, sizeof(authRand), authData, &authDataLen)) != SAR_OK
+		|| (rv =SKF_DevAuth(hDev, authData, authDataLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_OPENDEVICE, ERR_R_SKF_LIB);
+		goto end;
+	}
+	*phDev = hDev;
+	hDev = NULL;
+
+end:
+	OPENSSL_cleanse(authRand, sizeof(authRand));
+	OPENSSL_cleanse(authData, sizeof(authData));
+	if (hKey && (rv = SKF_CloseHandle(hKey)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_OPENDEVICE, ERR_R_SKF_LIB);
+	}
+	if (hDev  && (rv = SKF_DisConnectDev(hDev)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_OPENDEVICE, ERR_R_SKF_LIB);
+	}
+	return rv;
+}
+
+ULONG DEVAPI SKF_CloseDevice(DEVHANDLE hDev)
+{
+	ULONG rv;
+	if ((rv = SKF_UnlockDev(hDev)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CLOSEDEVICE, ERR_R_SKF_LIB);
+	}
+	if ((rv = SKF_DisConnectDev(hDev)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_CLOSEDEVICE, ERR_R_SKF_LIB);
+	}
+	return rv;
+}
+
+
+ULONG DEVAPI SKF_ImportECCPrivateKey(DEVHANDLE hDev, HCONTAINER hContainer,
+	EC_KEY *ec_key, ULONG symmAlgId)
+{
+	int ret = 0;
+	ULONG rv;
+	ULONG containerType;
+	ECCPRIVATEKEYBLOB eccPriKeyBlob;
+	BYTE symmKey[16];
+	HANDLE hSymmKey = NULL;
+	BLOCKCIPHERPARAM encParam;
+	ULONG encedPriKeyLen;
+	SKF_PUBLICKEYBLOB signPubKeyBlob;
+	ULONG signPubKeyLen = sizeof(signPubKeyBlob);
+	ENVELOPEDKEYBLOB envelopedKeyBlob;
+
+	/* check container type */
+	if ((rv = SKF_GetContainerType(hContainer, &containerType)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+	if (containerType != SKF_CONTAINER_TYPE_ECC) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, SKF_R_CONTAINER_TYPE_NOT_MATCH);
+		return SAR_FAIL;
+	}
+
+	/* get private key and public key */
+	if (!EC_KEY_get_ECCPRIVATEKEYBLOB(ec_key, &eccPriKeyBlob)
+		|| !EC_KEY_get_ECCPUBLICKEYBLOB(ec_key, &(envelopedKeyBlob.PubKey))) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_GMAPI_LIB);
+		rv = SAR_FAIL;
+		goto end;
+	}
+
+	/* set Version, ulSymmAlgID, ulBits */
+	envelopedKeyBlob.Version = SKF_ENVELOPEDKEYBLOB_VERSION;
+	envelopedKeyBlob.ulSymmAlgID = symmAlgId;
+	envelopedKeyBlob.ulBits = eccPriKeyBlob.BitLen;
+
+	/* encrypt private key with random generated symmkey */
+	if (!RAND_bytes(symmKey, sizeof(symmKey))) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		rv = SAR_FAIL;
+		goto end;
+	}
+	if ((rv = SKF_SetSymmKey(hDev, symmKey, symmAlgId, &hSymmKey)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	encParam.IVLen = 0;
+	encParam.PaddingType = SKF_NO_PADDING;
+	if ((rv = SKF_EncryptInit(hSymmKey, encParam)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	encedPriKeyLen = sizeof(envelopedKeyBlob.cbEncryptedPriKey);
+	if ((rv = SKF_Encrypt(hSymmKey,
+		eccPriKeyBlob.PrivateKey, sizeof(eccPriKeyBlob.PrivateKey),
+		(BYTE *)&(envelopedKeyBlob.cbEncryptedPriKey), &encedPriKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	if (encedPriKeyLen != sizeof(eccPriKeyBlob.PrivateKey)) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		rv = SAR_FAIL;
+		goto end;
+	}
+
+	/* encrypt symmKey */
+	if ((rv = SKF_ExportPublicKey(hContainer, TRUE,
+		(BYTE *)&signPubKeyBlob, &signPubKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	if (signPubKeyLen != sizeof(ECCPUBLICKEYBLOB)) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		rv = SAR_FAIL;
+		goto end;
+	}
+	if ((rv = SKF_ExtECCEncrypt(hDev, (ECCPUBLICKEYBLOB *)&signPubKeyBlob,
+		symmKey, sizeof(symmKey), &(envelopedKeyBlob.ECCCipherBlob))) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+
+	ret = 1;
+end:
+	OPENSSL_cleanse(&eccPriKeyBlob, sizeof(eccPriKeyBlob));
+	OPENSSL_cleanse(symmKey, sizeof(symmKey));
+	if (hSymmKey && SKF_CloseHandle(hSymmKey) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTECCPRIVATEKEY, ERR_R_SKF_LIB);
+		ret = 0;
+	}
+	return ret;
+}
+
+ULONG DEVAPI SKF_ImportRSAPrivateKey(DEVHANDLE hDev, HCONTAINER hContainer,
+	RSA *rsa, ULONG symmAlgId)
+{
+	ULONG rv;
+	ULONG containerType;
+	RSAPRIVATEKEYBLOB rsaPriKeyBlob;
+	unsigned char symmKey[16];
+	RSAPUBLICKEYBLOB rsaPubKeyBlob;
+	ULONG rsaPubKeyLen = sizeof(rsaPubKeyBlob);
+	BYTE wrappedKey[MAX_RSA_MODULUS_LEN];
+	ULONG wrappedKeyLen = sizeof(wrappedKey);
+	EVP_CIPHER_CTX *cctx = NULL;
+	unsigned char *p;
+	int len;
+	BYTE encedPriKey[sizeof(RSAPRIVATEKEYBLOB) + 16*2];
+	ULONG encedPriKeyLen = sizeof(encedPriKey);
+
+
+	if ((rv = SKF_GetContainerType(hContainer, &containerType)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+	if (containerType != SKF_CONTAINER_TYPE_RSA) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		return SAR_FAIL;
+	}
+
+	if (!RSA_get_RSAPRIVATEKEYBLOB(rsa, &rsaPriKeyBlob)) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+
+	/* generate symmkey */
+	/* wrap symmkey with signing public key */
+	if (!RAND_bytes(symmKey, sizeof(symmKey))) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	if ((rv = SKF_ExportPublicKey(hContainer, SGD_TRUE,
+		(BYTE *)&rsaPubKeyBlob, &rsaPubKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	if (!(rsa = RSA_new_from_RSAPUBLICKEYBLOB(&rsaPubKeyBlob))) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+	if ((len = RSA_public_encrypt(sizeof(symmKey), symmKey, wrappedKey,
+		rsa, RSA_PKCS1_PADDING)) != rsaPriKeyBlob.BitLen / 8) {
+		goto end;
+	}
+	wrappedKeyLen = (ULONG)len;
+
+	/* encrypt private key with symmkey in ECB mode */
+	if (!(cctx = EVP_CIPHER_CTX_new())) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EVP_EncryptInit_ex(cctx, EVP_sms4_ecb(), NULL, symmKey, NULL)) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_EVP_LIB);
+		goto end;
+	}
+	p = encedPriKey;
+	if (!EVP_EncryptUpdate(cctx, p, &len, (unsigned char *)&rsaPriKeyBlob,
+		sizeof(RSAPRIVATEKEYBLOB))) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_EVP_LIB);
+		goto end;
+	}
+	p += len;
+	if (!EVP_EncryptFinal_ex(cctx, p, &len)) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_EVP_LIB);
+		goto end;
+	}
+	p += len;
+	encedPriKeyLen = p - encedPriKey;
+
+	/* import */
+	if ((rv = SKF_ImportRSAKeyPair(hContainer, symmAlgId, wrappedKey, wrappedKeyLen,
+		encedPriKey, encedPriKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTRSAPRIVATEKEY, ERR_R_SKF_LIB);
+		goto end;
+	}
+
+end:
+	OPENSSL_cleanse(&rsaPriKeyBlob, sizeof(rsaPriKeyBlob));
+	OPENSSL_cleanse(symmKey, sizeof(symmKey));
+	OPENSSL_cleanse(wrappedKey, sizeof(wrappedKey));
+	EVP_CIPHER_CTX_free(cctx);
+	return rv;
+}
+
+ULONG DEVAPI SKF_ImportPrivateKey(DEVHANDLE hDev, HCONTAINER hContainer,
+	EVP_PKEY *pkey, ULONG symmAlgId)
+{
+	ULONG rv;
+	switch (EVP_PKEY_id(pkey)) {
+	case EVP_PKEY_EC:
+		if ((rv = SKF_ImportECCPrivateKey(hDev, hContainer,
+			EVP_PKEY_get0_EC_KEY(pkey), symmAlgId)) != SAR_OK) {
+			SKFerr(SKF_F_SKF_IMPORTPRIVATEKEY, ERR_R_SKF_LIB);
+			return rv;
+		}
+		break;
+	case EVP_PKEY_RSA:
+		if ((rv = SKF_ImportRSAPrivateKey(hDev, hContainer,
+			EVP_PKEY_get0_RSA(pkey), symmAlgId)) != SAR_OK) {
+			SKFerr(SKF_F_SKF_IMPORTPRIVATEKEY, ERR_R_SKF_LIB);
+			return rv;
+		}
+		break;
+	default:
+		SKFerr(SKF_F_SKF_IMPORTPRIVATEKEY,
+			SKF_R_UNSUPPORTED_PRIVATE_KEY_TYPE);
+		return SAR_FAIL;
+	}
 	return SAR_OK;
 }
 
-ULONG DEVAPI SKF_GetAlgorName(ULONG ulAlgID, LPSTR *szName)
+ULONG DEVAPI SKF_ExportECCPublicKey(HCONTAINER hContainer, BOOL bSign, EC_KEY **ec_key)
 {
+	ULONG rv;
+	ULONG containerType;
+	BYTE pubKeyBlob[sizeof(SKF_PUBLICKEYBLOB)];
+	ECCPUBLICKEYBLOB *pubKey = (ECCPUBLICKEYBLOB *)pubKeyBlob;
+	ULONG pubKeyLen = sizeof(SKF_PUBLICKEYBLOB);
+
+	if ((rv = SKF_GetContainerType(hContainer, &containerType)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTECCPUBLICKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+	if (containerType != SKF_CONTAINER_TYPE_ECC) {
+		SKFerr(SKF_F_SKF_EXPORTECCPUBLICKEY, SKF_R_CONTAINER_TYPE_NOT_MATCH);
+		return SAR_FAIL;
+	}
+
+	if ((rv = SKF_ExportPublicKey(hContainer, bSign,
+		pubKeyBlob, &pubKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTECCPUBLICKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+	if (pubKeyLen != sizeof(ECCPUBLICKEYBLOB)) {
+		SKFerr(SKF_F_SKF_EXPORTECCPUBLICKEY, ERR_R_SKF_LIB);
+		return SAR_FAIL;
+	}
+
+	if (!(*ec_key = EC_KEY_new_from_ECCPUBLICKEYBLOB(pubKey))) {
+		SKFerr(SKF_F_SKF_EXPORTECCPUBLICKEY, SKF_R_INVALID_ECC_PUBLIC_KEY);
+		return SAR_FAIL;
+	}
 	return SAR_OK;
+}
+
+ULONG DEVAPI SKF_ExportRSAPublicKey(HCONTAINER hContainer, BOOL bSign, RSA **rsa)
+{
+	ULONG rv;
+	ULONG containerType;
+	BYTE pubKeyBlob[sizeof(SKF_PUBLICKEYBLOB)];
+	RSAPUBLICKEYBLOB *pubKey = (RSAPUBLICKEYBLOB *)pubKeyBlob;
+	ULONG pubKeyLen = sizeof(SKF_PUBLICKEYBLOB);
+
+	if ((rv = SKF_GetContainerType(hContainer, &containerType)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTRSAPUBLICKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+	if (containerType != SKF_CONTAINER_TYPE_RSA) {
+		SKFerr(SKF_F_SKF_EXPORTRSAPUBLICKEY, SKF_R_CONTAINER_TYPE_NOT_MATCH);
+		return SAR_FAIL;
+	}
+
+	if ((rv = SKF_ExportPublicKey(hContainer, bSign,
+		pubKeyBlob, &pubKeyLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTRSAPUBLICKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+	if (pubKeyLen != sizeof(RSAPUBLICKEYBLOB)) {
+		SKFerr(SKF_F_SKF_EXPORTRSAPUBLICKEY, ERR_R_SKF_LIB);
+		return SAR_FAIL;
+	}
+
+	if (!(*rsa = RSA_new_from_RSAPUBLICKEYBLOB(pubKey))) {
+		SKFerr(SKF_F_SKF_EXPORTRSAPUBLICKEY, SKF_R_INVALID_RSA_PUBLIC_KEY);
+		return SAR_FAIL;
+	}
+	return SAR_OK;
+}
+
+ULONG DEVAPI SKF_ExportEVPPublicKey(HCONTAINER hContainer, BOOL bSign, EVP_PKEY **pp)
+{
+	ULONG rv;
+	ULONG containerType;
+	EVP_PKEY *pkey = NULL;
+
+	if ((rv = SKF_GetContainerType(hContainer, &containerType)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTEVPPUBLICKEY, ERR_R_SKF_LIB);
+		return rv;
+	}
+
+	if (!(pkey = EVP_PKEY_new())) {
+		SKFerr(SKF_F_SKF_EXPORTEVPPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		return SAR_MEMORYERR;
+	}
+
+	if (containerType == SKF_CONTAINER_TYPE_ECC) {
+		EC_KEY *ec_key = NULL;
+		if ((rv = SKF_ExportECCPublicKey(hContainer, bSign,
+			&ec_key)) != SAR_OK) {
+			SKFerr(SKF_F_SKF_EXPORTEVPPUBLICKEY, ERR_R_SKF_LIB);
+			goto end;
+		}
+		if (!EVP_PKEY_assign_EC_KEY(pkey, ec_key)) {
+			EC_KEY_free(ec_key);
+			rv = SAR_FAIL;
+			goto end;
+		}
+
+	} else if (containerType == SKF_CONTAINER_TYPE_RSA) {
+		RSA *rsa = NULL;
+		if ((rv = SKF_ExportRSAPublicKey(hContainer, bSign,
+			&rsa)) != SAR_OK) {
+			SKFerr(SKF_F_SKF_EXPORTEVPPUBLICKEY, ERR_R_SKF_LIB);
+			goto end;
+		}
+		if (!EVP_PKEY_assign_RSA(pkey, rsa)) {
+			RSA_free(rsa);
+			rv = SAR_FAIL;
+			goto end;
+		}
+
+	} else {
+		SKFerr(SKF_F_SKF_EXPORTEVPPUBLICKEY, SKF_R_INVALID_CONTAINER_TYPE);
+		rv = SAR_FAIL;
+		goto end;
+	}
+
+	*pp = pkey;
+	pkey = NULL;
+	rv = SAR_OK;
+
+end:
+	EVP_PKEY_free(pkey);
+	return rv;
+}
+
+ULONG DEVAPI SKF_ImportX509Certificate(HCONTAINER hContainer, BOOL bSign, X509 *x509)
+{
+	int ret = 0;
+	ULONG containerType;
+	unsigned char *cert = NULL;
+	unsigned char *p;
+	int len;
+
+	if (SKF_GetContainerType(hContainer, &containerType) != SAR_OK) {
+		return 0;
+	}
+	if (containerType == SKF_CONTAINER_TYPE_UNDEF) {
+		return 0;
+	}
+
+	switch (EVP_PKEY_id(X509_get0_pubkey(x509))) {
+	case  EVP_PKEY_EC:
+		if (containerType != SKF_CONTAINER_TYPE_ECC) {
+			goto end;
+		}
+		if (!EC_KEY_is_sm2p256v1(EVP_PKEY_get0_EC_KEY(X509_get0_pubkey(x509)))) {
+			goto end;
+		}
+		break;
+
+	case EVP_PKEY_RSA:
+		if (containerType != SKF_CONTAINER_TYPE_RSA) {
+			goto end;
+		}
+		break;
+	default:
+		goto end;
+	}
+
+	if (X509_get_key_usage(x509) & (KU_DIGITAL_SIGNATURE|
+		KU_NON_REPUDIATION|KU_KEY_CERT_SIGN|KU_CRL_SIGN)) {
+		bSign = SGD_TRUE;
+	} else if (X509_get_key_usage(x509) & (KU_KEY_ENCIPHERMENT|
+		KU_DATA_ENCIPHERMENT|KU_KEY_AGREEMENT|KU_ENCIPHER_ONLY)) {
+		bSign = SGD_FALSE;
+	} else {
+		goto end;
+	}
+
+	if ((len = i2d_X509(x509, NULL)) <= 0
+		|| !(p = cert = OPENSSL_malloc(len))
+		|| (len = i2d_X509(x509, &p)) <= 0) {
+		goto end;
+	}
+
+	if (SKF_ImportCertificate(hContainer, bSign, cert, (ULONG)len) != SAR_OK) {
+		goto end;
+	}
+
+	ret = 1;
+end:
+	X509_free(x509);
+	OPENSSL_free(cert);
+	return ret;
+}
+
+ULONG DEVAPI SKF_ImportX509CertificateByKeyUsage(HCONTAINER hContainer, X509 *x509)
+{
+	ULONG rv;
+	BOOL bSign;
+
+	if (X509_get_key_usage(x509) & (KU_DIGITAL_SIGNATURE|
+		KU_NON_REPUDIATION|KU_KEY_CERT_SIGN|KU_CRL_SIGN)) {
+		bSign = SGD_TRUE;
+	} else if (X509_get_key_usage(x509) & (KU_KEY_ENCIPHERMENT|
+		KU_DATA_ENCIPHERMENT|KU_KEY_AGREEMENT|KU_ENCIPHER_ONLY)) {
+		bSign = SGD_FALSE;
+	} else {
+		SKFerr(SKF_F_SKF_IMPORTX509CERTIFICATEBYKEYUSAGE,
+			SKF_R_UNKNOWN_CERTIFICATE_KEYUSAGE);
+		return SAR_FAIL;
+	}
+
+	if ((rv = SKF_ImportX509Certificate(hContainer, bSign, x509)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_IMPORTX509CERTIFICATEBYKEYUSAGE, ERR_R_SKF_LIB);
+		return rv;
+	}
+
+	return SAR_OK;
+}
+
+ULONG DEVAPI SKF_ExportX509Certificate(HCONTAINER hContainer, BOOL bSign, X509 **px509)
+{
+	ULONG rv = SAR_FAIL;
+	BYTE *pbCert = NULL;
+	ULONG ulCertLen;
+	const unsigned char *p;
+	X509 *x509 = NULL;
+
+	ulCertLen = SKF_MAX_CERTIFICATE_SIZE;
+	if (!(pbCert = OPENSSL_zalloc(ulCertLen))) {
+		SKFerr(SKF_F_SKF_EXPORTX509CERTIFICATE, ERR_R_MALLOC_FAILURE);
+		rv = SAR_MEMORYERR;
+		goto end;
+	}
+	if ((rv = SKF_ExportCertificate(hContainer, bSign,
+		pbCert, &ulCertLen)) != SAR_OK) {
+		SKFerr(SKF_F_SKF_EXPORTX509CERTIFICATE, ERR_R_SKF_LIB);
+		goto end;
+	}
+
+	p = pbCert;
+	if (!(x509 = d2i_X509(NULL, &p, (long)ulCertLen))) {
+		SKFerr(SKF_F_SKF_EXPORTX509CERTIFICATE,
+			SKF_R_PARSE_CERTIFICATE_FAILURE);
+		goto end;
+	}
+	if (p - pbCert != ulCertLen) {
+		SKFerr(SKF_F_SKF_EXPORTX509CERTIFICATE,
+			SKF_R_PARSE_CERTIFICATE_FAILURE);
+		goto end;
+	}
+
+	*px509 = x509;
+	x509 = NULL;
+	rv = SAR_OK;
+
+end:
+	OPENSSL_free(pbCert);
+	X509_free(x509);
+	return rv;
 }

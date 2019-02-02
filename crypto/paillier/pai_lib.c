@@ -81,7 +81,20 @@ void PAILLIER_free(PAILLIER *key)
 
 int PAILLIER_size(const PAILLIER *key)
 {
-	return (BN_num_bits(key->n) * 2)/8;
+	ASN1_INTEGER a;
+	unsigned char buf[4] = {0xff};
+	int i;
+
+	if (!(i = BN_num_bytes(key->n))) {
+		PAILLIERerr(PAILLIER_F_PAILLIER_SIZE, ERR_R_BN_LIB);
+		return 0;
+	}
+
+	a.length = i * 2;
+	a.data = buf;
+	a.type = V_ASN1_INTEGER;
+
+	return i2d_ASN1_INTEGER(&a, NULL);
 }
 
 int PAILLIER_security_bits(const PAILLIER *key)
@@ -142,13 +155,11 @@ int PAILLIER_generate_key(PAILLIER *key, int bits)
 			/* n_plusone = n + 1 */
 			|| !BN_copy(key->n_plusone, key->n)
 			|| !BN_add_word(key->n_plusone, 1)
-#if 0
 			/* x = (((g^lambda mod n^2) - 1)/n)^-1 mod n */
 			|| !BN_mod_exp(key->x, key->n_plusone, key->lambda, key->n_squared, bn_ctx)
 			|| !BN_sub_word(key->x, 1)
-			|| !BN_div(key->x, key->x, key->n)
+			|| !BN_div(key->x, NULL, key->x, key->n, bn_ctx)
 			|| !BN_mod_inverse(key->x, key->x, key->n, bn_ctx)
-#endif
 			) {
 			PAILLIERerr(PAILLIER_F_PAILLIER_GENERATE_KEY, ERR_R_BN_LIB);
 			goto end;
@@ -175,9 +186,6 @@ int PAILLIER_encrypt(BIGNUM *c, const BIGNUM *m, PAILLIER *pub_key)
 	int ret = 0;
 	BIGNUM *r = NULL;
 	BN_CTX *bn_ctx = NULL;
-
-
-fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 
 	if (BN_cmp(m, pub_key->n) >= 0) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_ENCRYPT, PAILLIER_R_INVALID_PLAINTEXT);
@@ -256,13 +264,6 @@ int PAILLIER_decrypt(BIGNUM *m, const BIGNUM *c, PAILLIER *key)
 		goto end;
 	}
 
-/*
-printf("m      = %s\n", BN_bn2hex(m));
-printf("c      = %s\n", BN_bn2hex(c));
-printf("lambda = %s\n", BN_bn2hex(key->lambda));
-printf("n^2    = %s\n", BN_bn2hex(key->n_squared));
-*/
-
 	if (!key->n_squared) {
 		if (!(key->n_squared = BN_new())) {
 			PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_MALLOC_FAILURE);
@@ -274,34 +275,25 @@ printf("n^2    = %s\n", BN_bn2hex(key->n_squared));
 		}
 	}
 
-
-
-fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
-
 	if (!BN_mod_exp(m, c, key->lambda, key->n_squared, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
 
-fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 	if (!BN_sub_word(m, 1)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
 
-fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 	if (!BN_div(m, NULL, m, key->n, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
 
-fprintf(stderr, "%s %d: m = %s\n", __FILE__, __LINE__, BN_bn2hex(m));
 	if (!BN_mod_mul(m, m, key->x, key->n, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_DECRYPT, ERR_R_BN_LIB);
 		goto end;
 	}
-
-printf("m = %s\n", BN_bn2hex(m));
 
 	ret = 1;
 end:
@@ -328,6 +320,17 @@ int PAILLIER_ciphertext_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, PAILLIE
 			goto end;
 		}
 	} while (BN_is_zero(k));
+
+	if (!key->n_squared) {
+		if (!(key->n_squared = BN_new())) {
+			PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_ADD, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+		if (!BN_sqr(key->n_squared, key->n, bn_ctx)) {
+			PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_ADD, ERR_R_BN_LIB);
+			goto end;
+		}
+	}
 
 	if (!BN_mod_exp(k, k, key->n, key->n_squared, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_ADD, ERR_R_BN_LIB);
@@ -371,6 +374,17 @@ int PAILLIER_ciphertext_scalar_mul(BIGNUM *r, const BIGNUM *scalar, const BIGNUM
 		}
 	} while (BN_is_zero(k));
 
+	if (!key->n_squared) {
+		if (!(key->n_squared = BN_new())) {
+			PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_SCALAR_MUL, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+		if (!BN_sqr(key->n_squared, key->n, bn_ctx)) {
+			PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_SCALAR_MUL, ERR_R_BN_LIB);
+			goto end;
+		}
+	}
+
 	if (!BN_mod_exp(k, k, key->n, key->n_squared, bn_ctx)) {
 		PAILLIERerr(PAILLIER_F_PAILLIER_CIPHERTEXT_SCALAR_MUL, ERR_R_BN_LIB);
 		goto end;
@@ -390,7 +404,7 @@ int PAILLIER_ciphertext_scalar_mul(BIGNUM *r, const BIGNUM *scalar, const BIGNUM
 end:
 	BN_clear_free(k);
 	BN_CTX_free(bn_ctx);
-	return 0;
+	return ret;
 }
 
 int PAILLIER_up_ref(PAILLIER *r)

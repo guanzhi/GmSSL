@@ -653,6 +653,9 @@ static char *srtp_profiles = NULL;
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP, OPT_ENGINE,
+#ifndef OPENSSL_NO_SKF
+    OPT_CONFIG,
+#endif
     OPT_4, OPT_6, OPT_ACCEPT, OPT_PORT, OPT_UNIX, OPT_UNLINK, OPT_NACCEPT,
     OPT_VERIFY, OPT_UPPER_V_VERIFY, OPT_CONTEXT, OPT_CERT, OPT_CRL,
     OPT_CRL_DOWNLOAD, OPT_SERVERINFO, OPT_CERTFORM, OPT_KEY, OPT_KEYFORM,
@@ -866,6 +869,9 @@ OPTIONS s_server_options[] = {
      "Set the advertised protocols for the ALPN extension (comma-separated list)"},
 #ifndef OPENSSL_NO_ENGINE
     {"engine", OPT_ENGINE, 's', "Use engine, possibly a hardware device"},
+# ifndef OPENSSL_NO_SKF
+    {"config", OPT_CONFIG, 's', "Engine config file"},
+# endif
 #endif
     {NULL, OPT_EOF, 0, NULL}
 };
@@ -943,6 +949,10 @@ int s_server_main(int argc, char *argv[])
     int no_resume_ephemeral = 0;
     unsigned int split_send_fragment = 0, max_pipelines = 0;
     const char *s_serverinfo_file = NULL;
+#ifndef OPENSSL_NO_SKF
+    CONF *conf = NULL;
+    char *configfile = default_config_file;
+#endif
 
     /* Init of few remaining global variables */
     local_argc = argc;
@@ -1388,6 +1398,11 @@ int s_server_main(int argc, char *argv[])
         case OPT_ENGINE:
             engine = setup_engine(opt_arg(), 1);
             break;
+#ifndef OPENSSL_NO_SKF
+        case OPT_CONFIG:
+            configfile = opt_arg();
+            break;
+#endif
         case OPT_RAND:
             inrand = opt_arg();
             break;
@@ -1446,6 +1461,16 @@ int s_server_main(int argc, char *argv[])
     }
     argc = opt_num_rest();
     argv = opt_rest();
+
+#ifndef OPENSSL_NO_SKF
+    if (engine)
+        BIO_printf(bio_err, "Using configuration from %s\n", configfile);
+
+    if ((conf = app_load_config(configfile)) == NULL)
+        goto end;
+    if (configfile != default_config_file && !app_load_modules(conf))
+        goto end;
+#endif
 
 #ifndef OPENSSL_NO_DTLS
     if (www && socket_type == SOCK_DGRAM) {
@@ -1981,6 +2006,9 @@ int s_server_main(int argc, char *argv[])
     bio_s_msg = NULL;
 #ifdef CHARSET_EBCDIC
     BIO_meth_free(methods_ebcdic);
+#endif
+#ifndef OPENSSL_NO_SKF
+    NCONF_free(conf);
 #endif
     return (ret);
 }

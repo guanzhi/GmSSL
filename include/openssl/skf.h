@@ -467,12 +467,13 @@ ULONG DEVAPI SKF_ECCSignData(
 	ULONG ulDigestLen,
 	ECCSIGNATUREBLOB *pSignature);
 
-/* Extension */				
+#ifdef SKF_HAS_ECCDECRYPT
 ULONG DEVAPI SKF_ECCDecrypt(
 	HCONTAINER hContainer,
 	ECCCIPHERBLOB *pCipherBlob,
 	BYTE *pbPlainText,
 	ULONG *pulPlainTextLen);
+#endif
 
 /* 7.6.14 */
 ULONG DEVAPI SKF_ECCVerify(

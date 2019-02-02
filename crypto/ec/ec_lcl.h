@@ -241,7 +241,7 @@ struct ec_group_st {
     enum {
         PCT_none,
         PCT_nistp224, PCT_nistp256, PCT_nistp521, PCT_nistz256,
-        //PCT_sm2p256,
+        PCT_sm2p256,
 	PCT_sm2z256,
         PCT_ec
     } pre_comp_type;
@@ -575,7 +575,12 @@ int ec_group_simple_order_bits(const EC_GROUP *group);
  *  \return  EC_METHOD object
  */
 const EC_METHOD *EC_GFp_nistz256_method(void);
+#endif
+
+#ifndef OPENSSL_NO_SM2
+# if defined(ECP_NISTZ256_ASM) && BN_BITS2 == 64 && !defined(GMSSL_NO_TURBO)
 const EC_METHOD *EC_GFp_sm2z256_method(void);
+# endif
 #endif
 
 size_t ec_key_simple_priv2oct(const EC_KEY *eckey,

@@ -94,7 +94,7 @@ int SM2_compute_message_digest(const EVP_MD *id_md, const EVP_MD *msg_md,
 
 int SM2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx, BIGNUM **a, BIGNUM **b);
 ECDSA_SIG *SM2_do_sign_ex(const unsigned char *dgst, int dgstlen,
-	const BIGNUM *a, const BIGNUM *b, EC_KEY *ec_key);
+	const BIGNUM *k, const BIGNUM *x, EC_KEY *ec_key);
 ECDSA_SIG *SM2_do_sign(const unsigned char *dgst, int dgst_len,
 	EC_KEY *ec_key);
 int SM2_do_verify(const unsigned char *dgst, int dgstlen,

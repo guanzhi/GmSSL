@@ -455,12 +455,18 @@ int BN_nist_mod_224(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
 int BN_nist_mod_256(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
 int BN_nist_mod_384(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
 int BN_nist_mod_521(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+# ifndef OPENSSL_NO_SM2
+int BN_sm2_mod_256(BIGNUM *r, const BIGNUM *a, const BIGNUM *p, BN_CTX *ctx);
+# endif
 
 const BIGNUM *BN_get0_nist_prime_192(void);
 const BIGNUM *BN_get0_nist_prime_224(void);
 const BIGNUM *BN_get0_nist_prime_256(void);
 const BIGNUM *BN_get0_nist_prime_384(void);
 const BIGNUM *BN_get0_nist_prime_521(void);
+# ifndef OPENSSL_NO_SM2
+const BIGNUM *BN_get0_sm2_prime_256(void);
+# endif
 
 int (*BN_nist_mod_func(const BIGNUM *p)) (BIGNUM *r, const BIGNUM *a,
                                           const BIGNUM *field, BN_CTX *ctx);

@@ -206,7 +206,7 @@ RSA *RSA_new_from_RSArefPrivateKey(const RSArefPrivateKey *ref)
 	rsa = NULL;
 
 end:
-	RSA_free(ret);
+	RSA_free(rsa);
 	return ret;
 }
 
@@ -244,7 +244,7 @@ int RSA_set_RSArefPrivateKey(RSA *rsa, const RSArefPrivateKey *ref)
 		|| !(p = BN_bin2bn(ref->prime[0], sizeof(ref->prime[0]), NULL))
 		|| !(q = BN_bin2bn(ref->prime[1], sizeof(ref->prime[1]), NULL))
 		|| !(dmp1 = BN_bin2bn(ref->pexp[0], sizeof(ref->pexp[0]), NULL))
-		|| !(dmq1 = BN_bin2bn(ref->pexp[0], sizeof(ref->pexp[1]), NULL))
+		|| !(dmq1 = BN_bin2bn(ref->pexp[1], sizeof(ref->pexp[1]), NULL))
 		|| !(iqmp = BN_bin2bn(ref->coef, sizeof(ref->coef), NULL))) {
 		GMAPIerr(GMAPI_F_RSA_SET_RSAREFPRIVATEKEY, ERR_R_BN_LIB);
 		goto end;

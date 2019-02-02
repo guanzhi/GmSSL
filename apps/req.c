@@ -846,6 +846,9 @@ static int make_REQ(X509_REQ *req, EVP_PKEY *pkey, char *subj, int multirdn,
     if ((tmp != NULL) && strcmp(tmp, "no") == 0)
         no_prompt = 1;
 
+#if !defined(OPENSSL_NO_SKF) || !defined(OPENSSL_NO_SDF)
+    if (!subj) {
+#endif
     dn_sect = NCONF_get_string(req_conf, SECTION, DISTINGUISHED_NAME);
     if (dn_sect == NULL) {
         BIO_printf(bio_err, "unable to find '%s' in config\n",
@@ -857,6 +860,9 @@ static int make_REQ(X509_REQ *req, EVP_PKEY *pkey, char *subj, int multirdn,
         BIO_printf(bio_err, "unable to get '%s' section\n", dn_sect);
         goto err;
     }
+#if !defined(OPENSSL_NO_SKF) || !defined(OPENSSL_NO_SDF)
+    }
+#endif
 
     attr_sect = NCONF_get_string(req_conf, SECTION, ATTRIBUTES);
     if (attr_sect == NULL) {

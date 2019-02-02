@@ -501,6 +501,6 @@ static int do_keyop(EVP_PKEY_CTX *ctx, int pkey_op,
         break;
 
     }
-	if (!rv) ERR_print_errors_fp(stderr);
+    if (!rv) ERR_print_errors_fp(stderr);
     return rv;
 }
