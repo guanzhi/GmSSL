@@ -250,6 +250,8 @@ int ec_key_simple_generate_key(EC_KEY *eckey)
 
 int ec_key_simple_generate_public_key(EC_KEY *eckey)
 {
+    if (eckey->pub_key == NULL)
+        eckey->pub_key = EC_POINT_new(eckey->group);
     return EC_POINT_mul(eckey->group, eckey->pub_key, eckey->priv_key, NULL,
                         NULL, NULL);
 }
