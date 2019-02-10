@@ -293,6 +293,27 @@ static int fp2_mul_u(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_
 	return 1;
 }
 
+static int fp2_mul_num(fp2_t r, const fp2_t a, const BIGNUM *n, const BIGNUM *p, BN_CTX *ctx)
+{
+	BIGNUM *r0 = NULL;
+	BIGNUM *r1 = NULL;
+	if (!(r0 = BN_CTX_get(ctx))
+		|| !(r1 = BN_CTX_get(ctx))
+		
+		|| !BN_mod_mul(r0, a[0], n, p, ctx)
+		|| !BN_mod_mul(r1, a[1], n, p, ctx)
+
+		|| !BN_copy(r[0], r0)
+		|| !BN_copy(r[1], r1)) {
+		BN_free(r0);
+		BN_free(r1);
+		return 0;
+	}
+	BN_free(r0);
+	BN_free(r1);
+	return 1;
+}
+
 static int fp2_sqr(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
 {
 	BIGNUM *r0 = NULL;
@@ -1425,6 +1446,39 @@ int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX 
 	return 1;
 }
 
+static int fp12_fast_expo_p1(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	return fp2_copy(r[0][0], a[0][0])
+		&& fp2_neg (r[0][1], a[0][1], p, ctx)
+		&& fp2_neg (r[1][0], a[1][0], p, ctx)
+		&& fp2_copy(r[1][1], a[1][1])
+		&& fp2_copy(r[2][0], a[2][0])
+		&& fp2_neg (r[2][1], a[2][1], p, ctx);
+}
+
+static int fp12_fast_expo_p2(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
+{
+	const BIGNUM *pw20;
+	const BIGNUM *pw21;
+	const BIGNUM *pw22;
+	const BIGNUM *pw23;
+	pw20 = SM9_get0_fast_final_exponent_p20();
+	pw21 = SM9_get0_fast_final_exponent_p21();
+	pw22 = SM9_get0_fast_final_exponent_p22();
+	pw23 = SM9_get0_fast_final_exponent_p23();
+	
+	if(!fp2_copy(r[0][0], a[0][0])
+		|| !fp2_neg (r[0][1], a[0][1], p, ctx)
+		|| !fp2_mul_num(r[1][0], a[1][0], pw20, p, ctx)
+		|| !fp2_mul_num(r[1][1], a[1][1], pw21, p, ctx)
+		|| !fp2_mul_num(r[2][0], a[2][0], pw22, p, ctx)
+		|| !fp2_mul_num(r[2][1], a[2][1], pw23, p, ctx)) {
+			
+		return 0;
+	}
+	return 1;
+}
+
 static int fp12_test(const BIGNUM *p, BN_CTX *ctx)
 {
 	const char *_a[] = {
@@ -2397,7 +2451,6 @@ static int final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p
 
 static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX *ctx)
 {
-	// (p^4-p^2+1)/n is k
 	int i, n;
 	fp12_t t;
 	fp12_t t0;
@@ -2412,57 +2465,27 @@ static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGN
 		return 0;
 	}
 
-	// first step: a1 = a ^ (p^6-1)
-	if (!fp12_inv(t0, t, p, ctx)) { // t0 = a ^ (-1)
+	if (!fp12_inv(t0, t, p, ctx)) {
 		return 0;
 	}
-	if (!BN_sub(t[0][1][0], p, t[0][1][0])
-		|| !BN_sub(t[0][1][1], p, t[0][1][1])
-		|| !BN_sub(t[1][0][0], p, t[1][0][0])
-		|| !BN_sub(t[1][0][1], p, t[1][0][1])
-		|| !BN_sub(t[2][1][0], p, t[2][1][0])
-		|| !BN_sub(t[2][1][1], p, t[2][1][1])) { // t = a ^ (p^6)
+	if (!fp12_fast_expo_p1(t, t, p, ctx)) {
 		return 0;
 	}
-	if (!fp12_mul(t, t0, t, p, ctx)) { // t = t0 * t = a ^ (p^6-1) = a1
+	if (!fp12_mul(t, t0, t, p, ctx)) {
 		return 0;
 	}
 
-	// second step: a = a ^ (p^2+1)
-	if (!fp12_copy(t0, t)) { // t0 = t = a1
+	if (!fp12_copy(t0, t)) {
 		return 0;
 	}
-	const char *power_p2[] = {
-		"5958342662901643427453578939755302545063035311436308304692", 
-        "82434016654578246438872420442344325702149582327179867092849556861979152020041", 
-        "5958342662901643427453578939755302545063035311436308304691", 
-        "82434016654578246438872420442344325702149582327179867092849556861979152020042"};
-    BIGNUM *par[4];
-	for(i=0;i<4;++i) {
-		par[i] = BN_new();
-		BN_init(par[i]);
-		if(!BN_dec2bn(&par[i], power_p2[i])){
-			return 0;
-		}
+		
+	if(!fp12_fast_expo_p2(t, t, p, ctx)){
+		return 0;
 	}
 	
-	if (!BN_sub(t[0][1][0], p, t[0][1][0])
-		|| !BN_sub(t[0][1][1], p, t[0][1][1])
-		|| !BN_mod_mul(t[1][0][0], t[1][0][0], par[0], p, ctx)
-		|| !BN_mod_mul(t[1][0][1], t[1][0][1], par[0], p, ctx)
-		|| !BN_mod_mul(t[1][1][0], t[1][1][0], par[1], p, ctx)
-		|| !BN_mod_mul(t[1][1][1], t[1][1][1], par[1], p, ctx)
-		|| !BN_mod_mul(t[2][0][0], t[2][0][0], par[2], p, ctx)
-		|| !BN_mod_mul(t[2][0][1], t[2][0][1], par[2], p, ctx)
-		|| !BN_mod_mul(t[2][1][0], t[2][1][0], par[3], p, ctx)
-		|| !BN_mod_mul(t[2][1][1], t[2][1][1], par[3], p, ctx)) { // t = a1 ^ (p^2)
+	if (!fp12_mul(t, t0, t, p, ctx)) {
 		return 0;
 	}
-	if (!fp12_mul(t, t0, t, p, ctx)) { // t = t0 * t = a ^ (p^2+1) = a2
-		return 0;
-	}
-
-	// third step: a = a ^ [(p^4-p^2+1)/n]
 
 	if (!fp12_copy(t0, t)) {
 		return 0;
@@ -2562,11 +2585,12 @@ static int rate(fp12_t f, const point_t *Q, const BIGNUM *xP, const BIGNUM *yP,
 	/* T = T - Q2 */	
 	point_add(&T, &T, &Q2, p, ctx);
 
-	/* f = f^((p^12 - 1)/n) */
 #ifdef NOSM9_FAST
+	/* f = f^((p^12 - 1)/n) */
 	final_expo(f, f, k, p, ctx);
 #else
-	fast_final_expo(f, f, k, p, ctx); // (p^6-1) * (p^2+1) * [(p^4-p^2+1)/n]
+	/* f = ((f ^ (p^6-1)) ^ (p^2+1)) ^ [(p^4-p^2+1)/n] */
+	fast_final_expo(f, f, k, p, ctx);
 #endif
 
 	point_cleanup(&T);
@@ -2605,7 +2629,7 @@ int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx)
 #ifdef NOSM9_FAST
 	k = SM9_get0_final_exponent();
 #else
-	k = SM9_get0_fast_final_exponent();
+	k = SM9_get0_fast_final_exponent_p3();
 #endif
 	xP = BN_CTX_get(ctx);
 	yP = BN_CTX_get(ctx);

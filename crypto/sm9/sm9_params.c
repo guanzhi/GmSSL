@@ -62,6 +62,7 @@
 #define BN_SM9_BN256_TOP (256+BN_BITS2-1)/BN_BITS2
 #define BN_SM9_LOOP_TOP (66+BN_BITS2-1)/BN_BITS2
 #define BN_SM9_FINAL_EXPO_TOP (2816+BN_BITS2-1)/BN_BITS2
+#define BN_SM9_FAST_FINAL_EXPO_P2_TOP (256+BN_BITS2-1)/BN_BITS2
 #define BN_SM9_FAST_FINAL_EXPO_P3_TOP (768+BN_BITS2-1)/BN_BITS2
 
 #if BN_BITS2 == 64
@@ -121,6 +122,17 @@ static const BN_ULONG _sm9bn256v1_final_expo[BN_SM9_FINAL_EXPO_TOP] = {
 	0x9BF41BCB4067AA64ULL, 0xDD9D1D3019DBA153ULL,
 	0xC16BE7FBACA54D38ULL, 0xACEF6F4E86411255ULL,
 	0x1A09A6AE43ADE454ULL, 0x061835E8B1259499ULL,
+};
+
+static const BN_ULONG _sm9bn256v1_fast_final_expo_p2[][BN_SM9_FAST_FINAL_EXPO_P2_TOP] = {
+	{0xD5FC11967BE65334ULL, 0x780272354F8B78F4ULL,
+	 0xF300000002A3A6F2ULL},
+	{0x0F738991676AF249ULL, 0xA9F02115CAEF75E7ULL,
+	 0xE303AB4FF2EB2052ULL, 0xB640000002A3A6F0ULL},
+	{0xD5FC11967BE65333ULL, 0x780272354F8B78F4ULL,
+	 0xF300000002A3A6F2ULL},
+	{0x0F738991676AF24AULL, 0xA9F02115CAEF75E7ULL,
+	 0xE303AB4FF2EB2052ULL, 0xB640000002A3A6F0ULL}
 };
 
 static const BN_ULONG _sm9bn256v1_fast_final_expo_p3[BN_SM9_FAST_FINAL_EXPO_P3_TOP] = {
@@ -191,6 +203,17 @@ static const BN_ULONG _sm9bn256v1_final_expo[BN_SM9_FINAL_EXPO_TOP] = {
 	0x43ADE454, 0x1A09A6AE, 0xB1259499, 0x061835E8,
 };
 
+static const BN_ULONG _sm9bn256v1_fast_final_expo_p2[][BN_SM9_FAST_FINAL_EXPO_P2_TOP] = {
+	{0x7BE65334, 0xD5FC1196, 0x4F8B78F4, 0x78027235,
+	 0x02A3A6F2, 0xF3000000},
+	{0x676AF249, 0x0F738991, 0xCAEF75E7, 0xA9F02115,
+	 0xF2EB2052, 0xE303AB4F, 0x02A3A6F0, 0xB6400000},
+	{0x7BE65333, 0xD5FC1196, 0x4F8B78F4, 0x78027235,
+	 0x02A3A6F2, 0xF3000000},
+	{0x676AF24A, 0x0F738991, 0xCAEF75E7, 0xA9F02115,
+	 0xF2EB2052, 0xE303AB4F, 0x02A3A6F0, 0xB6400000}
+};
+
 static const BN_ULONG _sm9bn256v1_fast_final_expo_p3[BN_SM9_FAST_FINAL_EXPO_P3_TOP] = {
 	0x93152855, 0xA9B2ADA5, 0xA74DDFB7, 0x44BF9D0F,
 	0xC6D9188C, 0x83687EE0, 0xAA8A4748, 0xE0D49DE3,
@@ -240,6 +263,38 @@ static const BIGNUM _bignum_sm9bn256v1_final_expo = {
 	(BN_ULONG *)_sm9bn256v1_final_expo,
 	BN_SM9_FINAL_EXPO_TOP,
 	BN_SM9_FINAL_EXPO_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_fast_final_expo_p20 = {
+	(BN_ULONG *)_sm9bn256v1_fast_final_expo_p2[0],
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_fast_final_expo_p21 = {
+	(BN_ULONG *)_sm9bn256v1_fast_final_expo_p2[1],
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_fast_final_expo_p22 = {
+	(BN_ULONG *)_sm9bn256v1_fast_final_expo_p2[2],
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	0,
+	BN_FLG_STATIC_DATA
+};
+
+static const BIGNUM _bignum_sm9bn256v1_fast_final_expo_p23 = {
+	(BN_ULONG *)_sm9bn256v1_fast_final_expo_p2[3],
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
+	BN_SM9_FAST_FINAL_EXPO_P2_TOP,
 	0,
 	BN_FLG_STATIC_DATA
 };
@@ -329,7 +384,27 @@ const BIGNUM *SM9_get0_final_exponent(void)
 	return &_bignum_sm9bn256v1_final_expo;
 }
 
-const BIGNUM *SM9_get0_fast_final_exponent(void)
+const BIGNUM *SM9_get0_fast_final_exponent_p20(void)
+{
+	return &_bignum_sm9bn256v1_fast_final_expo_p20;
+}
+
+const BIGNUM *SM9_get0_fast_final_exponent_p21(void)
+{
+	return &_bignum_sm9bn256v1_fast_final_expo_p21;
+}
+
+const BIGNUM *SM9_get0_fast_final_exponent_p22(void)
+{
+	return &_bignum_sm9bn256v1_fast_final_expo_p22;
+}
+
+const BIGNUM *SM9_get0_fast_final_exponent_p23(void)
+{
+	return &_bignum_sm9bn256v1_fast_final_expo_p23;
+}
+
+const BIGNUM *SM9_get0_fast_final_exponent_p3(void)
 {
 	return &_bignum_sm9bn256v1_fast_final_expo_p3;
 }
