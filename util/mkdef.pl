@@ -135,7 +135,7 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
                          # GmSSL
                          "SM3", "SMS4", "KDF2", "ECIES", "FFX", "SM2", "PAILLIER", "CPK", "OTP", "GMAPI", "EC2",
                          "BFIBE", "BB1IBE", "SM9", "SAF", "SDF", "SKF", "SOF", "ZUC", "SERPENT", "SPECK", "BASE58",
-			 "GMTLS", "GMTLS_METHOD", "CA", "MACRO", "ASYNC"
+			 "GMTLS", "GMTLS_METHOD", "CA", "MACRO", "ASYNC", "ECRS"
                      );
 
 my %disabled_algorithms;
@@ -345,6 +345,7 @@ $crypto.=" include/openssl/ssf33.h";
 $crypto.=" include/openssl/zuc.h";
 $crypto.=" include/openssl/serpent.h";
 $crypto.=" include/openssl/speck.h";
+$crypto.=" include/openssl/ecrs.h";
 
 
 my $symhacks="include/openssl/symhacks.h";

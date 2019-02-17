@@ -314,7 +314,7 @@ $config{sdirs} = [
     "cms", "ts", "srp", "cmac", "ct", "async", "kdf",
     "sm3", "base58", "sms4", "zuc", "serpent", "speck", "kdf2", "ffx", "otp",
     "ecies", "sm2", "cpk", "paillier", "ec2", "sm9", "bfibe", "bb1ibe",
-    "gmapi", "skf", "sdf", "saf", "sof",
+    "gmapi", "skf", "sdf", "saf", "sof", "ecrs"
     ];
 
 # Known TLS and DTLS protocols
@@ -417,6 +417,7 @@ my @disablables = (
     "ecies",
     "ffx",
     "sm2",
+    "ecrs",
     "paillier",
     "cpk",
     "otp",
