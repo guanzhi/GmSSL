@@ -66,9 +66,6 @@ extern "C" {
 typedef struct ECRS_SIG_st ECRS_SIG;
 DECLARE_ASN1_FUNCTIONS(ECRS_SIG)
 
-DEFINE_STACK_OF(BIGNUM)
-DEFINE_STACK_OF(EC_KEY)
-
 int ECRS_size(const EC_KEY *ec_key, int n);
 
 ECRS_SIG *ECRS_do_sign(const EVP_MD *md, const unsigned char *dgst,
