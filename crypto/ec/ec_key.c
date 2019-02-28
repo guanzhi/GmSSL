@@ -737,3 +737,9 @@ end:
 	BN_CTX_free(bn_ctx);
 	return ret;
 }
+
+EC_KEY *EC_KEY_merge(STACK_OF(EC_KEY) *ec_keys)
+{
+	ECerr(EC_F_EC_KEY_MERGE, EC_R_NOT_IMPLEMENTED);
+	return NULL;
+}
