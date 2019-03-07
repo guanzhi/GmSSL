@@ -51,7 +51,7 @@
 #define HEADER_BYTEORDER_H
 
 
-#ifdef CPU_BIGENDIAN
+#ifdef B_ENDIAN
 
 #define cpu_to_be16(v) (v)
 #define cpu_to_be32(v) (v)
