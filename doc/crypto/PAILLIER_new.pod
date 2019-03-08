@@ -1,0 +1,90 @@
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+PAILLIER_new, PAILLIER_free,
+i2d_PaillierPrivateKey, d2i_PaillierPrivateKey,
+i2d_PaillierPublicKey, d2i_PaillierPublicKey,
+PAILLIER_size, PAILLIER_security_bits
+PAILLIER_generate_key, PAILLIER_check_key,
+PAILLIER_encrypt, PAILLIER_decrypt,
+PAILLIER_ciphertext_add, PAILLIER_ciphertext_scalar_mul,
+PAILLIER_up_ref - Paillier Additive Homomorphic Encryption
+
+
+=head1 SYNOPSIS
+
+ #include <openssl/paillier.h>
+
+ PAILLIER *PAILLIER_new(void);
+ void PAILLIER_free(PAILLIER *key);
+
+
+ int i2d_PaillierPrivateKey(const PaillierPrivateKey *sk, unsigned char **pp);
+ PaillierPrivateKey *d2i_PaillierPrivateKey(PaillierPrivateKey **sk,
+                                            const unsigned char **pp, long len);
+ int i2d_PaillierPublicKey(const PaillierPublicKey *pk, unsigned char **pp);
+ PaillierPublicKey *d2i_PaillierPublicKey(PaillierPublicKey **pk,
+                                           const unsigned char **pp, long len);
+
+ int PAILLIER_size(const PAILLIER *key);
+ int PAILLIER_security_bits(const PAILLIER *key);
+
+ int PAILLIER_generate_key(PAILLIER *key, int bits/* as RSA N */);
+ int PAILLIER_check_key(PAILLIER *key);
+ int PAILLIER_encrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *key);
+ int PAILLIER_decrypt(BIGNUM *out, const BIGNUM *in, PAILLIER *key);
+ int PAILLIER_ciphertext_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b, PAILLIER *key);
+ int PAILLIER_ciphertext_scalar_mul(BIGNUM *r, const BIGNUM *scalar, const BIGNUM *a, PAILLIER *key);
+
+ int PAILLIER_up_ref(PAILLIER *key);
+
+=head1 DESCRIPTION
+
+Applications should use the higher level functions
+L<EVP_DigestInit(3)> etc. instead of calling the hash
+functions directly.
+
+SM3 (ShangMi#3 Hash Algorithm) is a cryptographic hash function with a
+256 bit output.
+
+sm3() computes the SM3 message digest of the B<n>
+bytes at B<d> and places it in B<md> (which must have space for
+SHA_DIGEST_LENGTH == 20 bytes of output). If B<md> is NULL, the digest
+is placed in a static array. Note: setting B<md> to NULL is B<not thread safe>.
+
+The following functions may be used if the message is not completely
+stored in memory:
+
+sm3_nit() initializes a B<sm3_ctx_t> structure.
+
+sm3_update() can be called repeatedly with chunks of the message to
+be hashed (B<len> bytes at B<data>).
+
+sm3_final() places the message digest in B<md>, which must have space
+for SM3_DIGEST_LENGTH == 32 bytes of output, and erases the B<sm3_ctx_t>.
+
+=head1 RETURN VALUES
+
+sm3_init(), sm3_update(), sm3_final(), sm3_compress() and sm3() return void.
+
+=head1 CONFORMING TO
+
+GM/T 0004-2012 SM3 Cryptogrpahic Hash Algorithm.
+
+=head1 SEE ALSO
+
+L<EVP_DigestInit(3)>
+
+=head1 COPYRIGHT
+
+Copyright 2014-2019 The GmSSL Project. All Rights Reserved.
+
+Licensed under the GmSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<http://gmssl.org/license.html>.
+
+=cut

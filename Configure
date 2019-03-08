@@ -504,6 +504,7 @@ my @disable_cascades = (
     "dtls"		=> [ @dtls ],
 
     "sm3"               => [ "sm2" ],
+    "sdf"               => [ "saf" ],
     "saf"		=> [ "sof" ],
 
     # SSL 3.0, (D)TLS 1.0 and TLS 1.1 require MD5 and SHA
