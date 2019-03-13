@@ -16,32 +16,27 @@ ZUC_set_key, ZUC_generate_keystream, ZUC_generate_keyword - ZUC Stream Cipher
 
 =head1 DESCRIPTION
 
-Applications should use the higher level functions
-L<EVP_DigestInit(3)> etc. instead of calling the hash
-functions directly.
+ZUC_set_key() sets up the B<ZUC_KEY> key using the B<user_key> and initial vector B<iv>.
 
-SM3 (ShangMi#3 Hash Algorithm) is a cryptographic hash function with a
-256 bit output.
+ZUC_set_key()通过用户的密钥B<user_key>以及初始向量B<iv>来设置密钥结构B<ZUC_KEY>。
 
-sm3() computes the SM3 message digest of the B<n>
-bytes at B<d> and places it in B<md> (which must have space for
-SHA_DIGEST_LENGTH == 20 bytes of output). If B<md> is NULL, the digest
-is placed in a static array. Note: setting B<md> to NULL is B<not thread safe>.
+ZUC_generate_keystream() computes 32-bit keywords for B<nwords> times by a B<ZUC_KEY> structure, and stores them in the given B<words> array(pointer).
 
-The following functions may be used if the message is not completely
-stored in memory:
+ZUC_generate_keystream()通过函数参数中的B<ZUC_KEY>结构计算B<nwords>个32-bit的密钥字，并装入给定的B<words>数组中。
 
-sm3_nit() initializes a B<sm3_ctx_t> structure.
+ZUC_generate_keyword() is simliar to ZUC_generate_keystream(), but computes keyword only once and return this value.
 
-sm3_update() can be called repeatedly with chunks of the message to
-be hashed (B<len> bytes at B<data>).
-
-sm3_final() places the message digest in B<md>, which must have space
-for SM3_DIGEST_LENGTH == 32 bytes of output, and erases the B<sm3_ctx_t>.
+ZUC_generate_keyword()与ZUC_generate_keystream()相似，但只计算一次并直接返回该密钥字的值。
 
 =head1 RETURN VALUES
 
-sm3_init(), sm3_update(), sm3_final(), sm3_compress() and sm3() return void.
+ZUC_set_key() and ZUC_generate_keystream() have no return value.
+
+ZUC_set_key()和ZUC_generate_keystream()无返回值。
+
+ZUC_generate_keyword() returns a 32-bit unsigned integer.
+
+ZUC_generate_keyword()返回一个32位无符号整数。
 
 =head1 CONFORMING TO
 

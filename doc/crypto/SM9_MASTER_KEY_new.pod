@@ -18,9 +18,35 @@ SM9_MASTER_KEY_new, SM9_MASTER_KEY_free, SM9_KEY_new, SM9_KEY_free - SM9 Algorit
 
 =head1 DESCRIPTION
 
+SM9_MASTER_KEY_new() allocates an empty B<SM9_MASTER_KEY> structure.
+
+SM9_MASTER_KEY_new()分配一个新的B<SM9_MASTER_KEY>结构。
+
+SM9_MASTER_KEY_free() frees the given B<SM9_MASTER_KEY> structure.
+
+SM9_MASTER_KEY_free()将给定的B<SM9_MASTER_KEY>结构释放。
+
+SM9_KEY_new() allocates an empty B<SM9_KEY> structure.
+
+SM9_KEY_new()分配一个新的B<SM9_KEY>结构。
+
+SM9_KEY_free() frees the given B<SM9_KEY> structure.
+
+SM9_KEY_free()将给定的B<SM9_KEY>结构释放。
 
 =head1 RETURN VALUES
 
+SM9_MASTER_KEY_new() returns a pointer to an allocated B<SM9_MASTER_KEY> structure or NULL on error.
+
+SM9_MASTER_KEY_new()返回一个指向已分配的B<SM9_MASTER_KEY>结构的指针。如果发生错误则返回NULL。
+
+SM9_KEY_new() returns a pointer to an allocated B<SM9_KEY> structure or NULL on error.
+
+SM9_KEY_new()返回一个指向已分配的B<SM9_KEY>结构的指针。如果发生错误则返回NULL。
+
+SM9_MASTER_KEY_free() and SM9_KEY_free() have no return value.
+
+SM9_MASTER_KEY_free()和SM9_KEY_free()无返回值。
 
 =head1 CONFORMING TO
 
