@@ -290,6 +290,17 @@ opthelp:
 
 	switch (op) {
 	case OP_DGST:
+	case OP_SIGN:
+	case OP_VERIFY:
+		if (!id) {
+			BIO_printf(bio_err, "Option '-id' required\n");
+			goto end;
+		}
+		break;
+	}
+
+	switch (op) {
+	case OP_DGST:
 		return sm2utl_sign(md, in, out, id, e, ec_key, 0);
 	case OP_SIGN:
 		return sm2utl_sign(md, in, out, id, e, ec_key, 1);
@@ -330,7 +341,7 @@ static int sm2utl_sign(const EVP_MD *md, BIO *in, BIO *out, const char *id,
 		ERR_print_errors(bio_err);
 		goto end;
 	}
-	while ((len = BIO_read(in, buf, sizeof(buf))) <= 0) {
+	while ((len = BIO_read(in, buf, sizeof(buf))) > 0) {
 		if (!EVP_DigestUpdate(md_ctx, buf, len)) {
 			ERR_print_errors(bio_err);
 			goto end;
@@ -386,7 +397,7 @@ static int sm2utl_verify(const EVP_MD *md, BIO *in, BIO *out, BIO *sig,
 		ERR_print_errors(bio_err);
 		goto end;
 	}
-	while ((len = BIO_read(in, buf, sizeof(buf))) <= 0) {
+	while ((len = BIO_read(in, buf, sizeof(buf))) > 0) {
 		if (!EVP_DigestUpdate(md_ctx, buf, len)) {
 			ERR_print_errors(bio_err);
 			goto end;
@@ -420,6 +431,9 @@ static int sm2utl_encrypt(const EVP_MD *md, BIO *in, BIO *out, EC_KEY *ec_key)
 	int len;
 
 	if (!(len = bio_to_mem(&buf, SM2_MAX_PLAINTEXT_LENGTH, in))) {
+		ERR_print_errors(bio_err);
+		BIO_printf(bio_err, "Error reading plaintext\n");
+		goto end;
 	}
 	if (!(cval = SM2_do_encrypt(md, buf, len, ec_key))
 		|| i2d_SM2CiphertextValue_bio(out, cval) <= 0) {

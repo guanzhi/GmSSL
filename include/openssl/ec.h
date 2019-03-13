@@ -1365,6 +1365,9 @@ void EC_KEY_METHOD_get_verify(EC_KEY_METHOD *meth,
 # define EVP_PKEY_ECDH_KDF_NONE                          1
 # define EVP_PKEY_ECDH_KDF_X9_62                         2
 
+DEFINE_STACK_OF(EC_KEY)
+STACK_OF(EC_KEY) *EC_KEY_split(EC_KEY *ec_key, int k, int n);
+EC_KEY *EC_KEY_merge(STACK_OF(EC_KEY) *ec_keys);
 
 /* BEGIN ERROR CODES */
 /*
@@ -1383,6 +1386,9 @@ int ERR_load_EC_strings(void);
 # define EC_F_D2I_ECPKPARAMETERS                          103
 # define EC_F_D2I_ECPRIVATEKEY                            104
 # define EC_F_DO_EC_KEY_PRINT                             105
+# define EC_F_ECAHE_CIPHERTEXT_SIZE                       286
+# define EC_F_ECAHE_DECRYPT                               287
+# define EC_F_ECAHE_ENCRYPT                               288
 # define EC_F_ECDH_CMS_DECRYPT                            106
 # define EC_F_ECDH_CMS_SET_SHARED_INFO                    107
 # define EC_F_ECDH_COMPUTE_KEY                            108
@@ -1491,6 +1497,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_EC_KEY_CHECK_KEY                            208
 # define EC_F_EC_KEY_COPY                                 209
 # define EC_F_EC_KEY_GENERATE_KEY                         210
+# define EC_F_EC_KEY_MERGE                                285
 # define EC_F_EC_KEY_NEW_METHOD                           211
 # define EC_F_EC_KEY_OCT2PRIV                             212
 # define EC_F_EC_KEY_PRINT_FP                             213
@@ -1499,6 +1506,7 @@ int ERR_load_EC_strings(void);
 # define EC_F_EC_KEY_SIMPLE_CHECK_KEY                     216
 # define EC_F_EC_KEY_SIMPLE_OCT2PRIV                      217
 # define EC_F_EC_KEY_SIMPLE_PRIV2OCT                      218
+# define EC_F_EC_KEY_SPLIT                                284
 # define EC_F_EC_POINTS_MAKE_AFFINE                       219
 # define EC_F_EC_POINT_ADD                                220
 # define EC_F_EC_POINT_CMP                                221
@@ -1627,6 +1635,7 @@ int ERR_load_EC_strings(void);
 # define EC_R_INVALID_SM2_ID                              161
 # define EC_R_INVALID_SM2_KAP_CHECKSUM_LENGTH             162
 # define EC_R_INVALID_SM2_KAP_CHECKSUM_VALUE              163
+# define EC_R_INVALID_SPLIT_PARAMETER                     198
 # define EC_R_INVALID_TRINOMIAL_BASIS                     164
 # define EC_R_INVALID_TYPE1CURVE                          165
 # define EC_R_INVALID_TYPE1_CURVE                         166

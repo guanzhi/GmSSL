@@ -1,0 +1,62 @@
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+sm3_hmac_init, sm3_hmac_update, sm3_hmac_final, sm3_hmac - SM3 Hash Algorithm
+
+=head1 SYNOPSIS
+
+ #include <openssl/sm3.h>
+
+ void sm3_hmac_init(sm3_hmac_ctx_t *ctx, const unsigned char *key, size_t key_len);
+ void sm3_hmac_update(sm3_hmac_ctx_t *ctx, const unsigned char *data, size_t data_len);
+ void sm3_hmac_final(sm3_hmac_ctx_t *ctx, unsigned char mac[SM3_HMAC_SIZE]);
+ void sm3_hmac(const unsigned char *data, size_t data_len,
+	const unsigned char *key, size_t key_len, unsigned char mac[SM3_HMAC_SIZE]);
+
+=head1 DESCRIPTION
+
+Applications should use the higher level functions
+L<HMAC_Init(3)> etc. instead of calling the hash
+functions directly.
+
+sm3_hmac() computes the SM3 message digest of the B<n>
+bytes at B<d> and places it in B<md> (which must have space for
+SHA_DIGEST_LENGTH == 20 bytes of output). If B<md> is NULL, the digest
+is placed in a static array. Note: setting B<md> to NULL is B<not thread safe>.
+
+The following functions may be used if the message is not completely
+stored in memory:
+
+sm3_hmac_init() initializes a B<sm3_ctx_t> structure.
+
+sm3_hmac_update() can be called repeatedly with chunks of the message to
+be hashed (B<len> bytes at B<data>).
+
+sm3_hmac_final() places the message digest in B<md>, which must have space
+for SM3_DIGEST_LENGTH == 32 bytes of output, and erases the B<sm3_hmac_ctx_t>.
+
+=head1 RETURN VALUES
+
+sm3_init(), sm3_update(), sm3_final(), sm3_compress() and sm3() return void.
+
+=head1 CONFORMING TO
+
+GM/T 0004-2012 SM3 Cryptogrpahic Hash Algorithm.
+
+=head1 SEE ALSO
+
+L<HMAC_Init(3)>
+
+=head1 COPYRIGHT
+
+Copyright 2014-2019 The GmSSL Project. All Rights Reserved.
+
+Licensed under the GmSSL license (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<http://gmssl.org/license.html>.
+
+=cut

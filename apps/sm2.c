@@ -69,6 +69,7 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <openssl/pem.h>
 # include <openssl/sm2.h>
 # include <openssl/objects.h>
+# include "../crypto/ec/ec_lcl.h"
 # include "apps.h"
 
 static OPT_PAIR conv_forms[] = {
@@ -129,7 +130,7 @@ int sm2_main(int argc, char **argv)
     ENGINE *e = NULL;
     EC_KEY *eckey = NULL;
     const EC_GROUP *group;
-    const EVP_CIPHER *enc = NULL;
+    const EVP_CIPHER *enc = EVP_sms4_cbc();
     point_conversion_form_t form = POINT_CONVERSION_UNCOMPRESSED;
     char *infile = NULL, *outfile = NULL, *prog;
     char *passin = NULL, *passout = NULL, *passinarg = NULL, *passoutarg = NULL;
@@ -292,6 +293,10 @@ int sm2_main(int argc, char **argv)
             unsigned char buf[256] = {0};
             unsigned char *key = NULL;
             long keylen;
+            if (!(eckey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+                ERR_print_errors(bio_err);
+                goto end;
+            }
             if (BIO_read(in, buf, sizeof(buf) - 1) <= 0) {
                 ERR_print_errors(bio_err);
                 OPENSSL_cleanse(buf, sizeof(buf));
@@ -304,16 +309,25 @@ int sm2_main(int argc, char **argv)
             }
             OPENSSL_cleanse(buf, sizeof(buf));
             if (keylen != 32) {
-                BIO_printf(bio_err, "invalid private key in hex format\n");
+                BIO_printf(bio_err, "Invalid private key in hex format\n");
+		BIO_printf(bio_err, "Key length is %ld, not 32 byte\n", keylen);
                 OPENSSL_cleanse(key, keylen);
                 goto end;
             }
-            if (!EC_KEY_oct2key(eckey, key, sizeof(key), NULL)) {
+            if (!EC_KEY_oct2priv(eckey, key, keylen)) {
                 ERR_print_errors(bio_err);
                 OPENSSL_cleanse(key, keylen);
                 goto end;
             }
             OPENSSL_cleanse(key, keylen);
+
+            if (eckey->group->meth->keygenpub == NULL
+                || eckey->group->meth->keygenpub(eckey) == 0) {
+                BIO_printf(bio_err, "Generate public key from private key failed\n");
+                ERR_print_errors(bio_err);
+                goto end;
+            }
+
         } else if (informat == FORMAT_ENGINE) {
             EVP_PKEY *pkey;
             if (pubin)
@@ -378,6 +392,24 @@ int sm2_main(int argc, char **argv)
         }
     }
 
+    if (genzid) {
+        unsigned char z[64];
+        size_t zlen = sizeof(z);
+        if (!id) {
+            id = SM2_DEFAULT_ID;
+            BIO_printf(bio_err, "use default identity '%s'\n", id);
+        }
+        if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen, eckey)) {
+            goto end;
+        }
+        BIO_printf(out, "id: %s\n", id);
+        BIO_puts(out, "Z:\n");
+	ASN1_buf_print(out, z, zlen, 4);
+
+
+        BIO_printf(out, "\n");
+    }
+
     if (noout) {
         ret = 0;
         goto end;
@@ -400,25 +432,11 @@ int sm2_main(int argc, char **argv)
             i = PEM_write_bio_EC_PUBKEY(out, eckey);
         else {
             assert(private);
+            //FIXME: use PKCS#8				
             i = PEM_write_bio_ECPrivateKey(out, eckey, enc,
                                            NULL, 0, NULL, passout);
+
         }
-    }
-    if (genzid) {
-        unsigned char z[64];
-        size_t zlen = sizeof(z);
-        if (!id) {
-            id = SM2_DEFAULT_ID;
-            BIO_printf(bio_err, "use default identity '%s'\n", id);
-        }
-        if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen, eckey)) {
-            goto end;
-        }
-        BIO_printf(out, "Z = ");
-        for (i = 0; i < zlen; i++) {
-            BIO_printf(out, "%02X", z[i]);
-        }
-        BIO_printf(out, "\n");
     }
 
     if (!i) {

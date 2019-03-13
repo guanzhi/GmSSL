@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
+/* ====================================================================
+ * Copyright (c) 2016 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,78 +44,29 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
  */
 
-#define EC_KEY_METHOD_SM2	0x02
 
-#define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
+#ifndef NPAPI_PLUGINOBJECT_H
+#define NPAPI_PLUGINOBJECT_H
 
-#define SM2_MAX_PKEY_DATA_LENGTH		((EC_MAX_NBYTES + 1) * 6)
+#include "GmSSLObject.h"
 
-#define SM2_MAX_PLAINTEXT_LENGTH		65535
-#define SM2_MAX_CIPHERTEXT_LENGTH		(SM2_MAX_PLAINTEXT_LENGTH + 2048)
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+typedef struct PluginObject {
+	NPObject header;
+	NPP npp;
+	GmSSLObject *gmsslObject;
+} PluginObject;
 
-int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
+NPClass *getPluginClass(void);
 
-struct SM2CiphertextValue_st {
-	BIGNUM *xCoordinate;
-	BIGNUM *yCoordinate;
-	ASN1_OCTET_STRING *hash;
-	ASN1_OCTET_STRING *ciphertext;
-};
-
-struct sm2_kap_ctx_st {
-
-	const EVP_MD *id_dgst_md;
-	const EVP_MD *kdf_md;
-	const EVP_MD *checksum_md;
-	point_conversion_form_t point_form;
-	KDF_FUNC kdf;
-
-	int is_initiator;
-	int do_checksum;
-
-	EC_KEY *ec_key;
-	unsigned char id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int id_dgstlen;
-
-	EC_KEY *remote_pubkey;
-	unsigned char remote_id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int remote_id_dgstlen;
-
-	const EC_GROUP *group;
-	BN_CTX *bn_ctx;
-	BIGNUM *order;
-	BIGNUM *two_pow_w;
-
-	BIGNUM *t;
-	EC_POINT *point;
-	unsigned char pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
-	unsigned char checksum[EVP_MAX_MD_SIZE];
-
-};
-
-int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen);
-
-
-struct SM2_COSIGNER1_SHARE_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER2_SHARE_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER1_PROOF_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER2_PROOF_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
+#ifdef __cplusplus
+}
+#endif
+#endif
 

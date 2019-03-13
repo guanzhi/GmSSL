@@ -245,6 +245,22 @@ void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
 		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
 		EVP_PKEY_CTRL_EC_ENCRYPT_PARAM, -2, NULL)
 
+typedef struct SM2_COSIGNER1_SHARE_st SM2_COSIGNER1_SHARE;
+typedef struct SM2_COSIGNER2_SHARE_st SM2_COSIGNER2_SHARE;
+typedef struct SM2_COSIGNER1_PROOF_st SM2_COSIGNER1_PROOF;
+typedef struct SM2_COSIGNER2_PROOF_st SM2_COSIGNER2_PROOF;
+DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER1_SHARE)
+DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER2_SHARE)
+DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER1_PROOF)
+DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER2_PROOF)
+
+/* the following API not finished */
+SM2_COSIGNER1_SHARE *SM2_cosigner1_setup(BIGNUM **k1, EC_KEY *ec_key, PAILLIER *pk);
+SM2_COSIGNER2_SHARE *SM2_cosigner2_setup(const SM2_COSIGNER1_SHARE *s1, BIGNUM **k2, EC_KEY *ec_key, PAILLIER *pk);
+SM2_COSIGNER1_PROOF *SM2_cosigner1_generate_proof(EC_KEY *ec_key, PAILLIER *pk);
+SM2_COSIGNER2_PROOF *SM2_cosigner2_generate_proof(EC_KEY *ec_key, PAILLIER *pk);
+ECDSA_SIG *SM2_cosigner1_generate_signature(EC_KEY *ec_key, PAILLIER *pk);
+
 
 /* BEGIN ERROR CODES */
 /*
@@ -261,6 +277,11 @@ int ERR_load_SM2_strings(void);
 # define SM2_F_O2I_SM2CIPHERTEXTVALUE                     108
 # define SM2_F_SM2CIPHERTEXTVALUE_SIZE                    109
 # define SM2_F_SM2_CIPHERTEXT_SIZE                        110
+# define SM2_F_SM2_COSIGNER1_GENERATE_PROOF               111
+# define SM2_F_SM2_COSIGNER1_GENERATE_SIGNATURE           112
+# define SM2_F_SM2_COSIGNER1_SETUP                        113
+# define SM2_F_SM2_COSIGNER2_GENERATE_PROOF               114
+# define SM2_F_SM2_COSIGNER2_SETUP                        115
 # define SM2_F_SM2_DECRYPT                                100
 # define SM2_F_SM2_DO_DECRYPT                             101
 # define SM2_F_SM2_DO_ENCRYPT                             102
@@ -283,6 +304,7 @@ int ERR_load_SM2_strings(void);
 # define SM2_R_KDF_FAILURE                                109
 # define SM2_R_MISSING_PARAMETERS                         111
 # define SM2_R_NEED_NEW_SETUP_VALUES                      112
+# define SM2_R_NOT_IMPLEMENTED                            115
 # define SM2_R_PLAINTEXT_TOO_LONG                         114
 # define SM2_R_RANDOM_NUMBER_GENERATION_FAILED            113
 

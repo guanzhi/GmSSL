@@ -250,6 +250,8 @@ int ec_key_simple_generate_key(EC_KEY *eckey)
 
 int ec_key_simple_generate_public_key(EC_KEY *eckey)
 {
+    if (eckey->pub_key == NULL)
+        eckey->pub_key = EC_POINT_new(eckey->group);
     return EC_POINT_mul(eckey->group, eckey->pub_key, eckey->priv_key, NULL,
                         NULL, NULL);
 }
@@ -636,4 +638,108 @@ int EC_KEY_can_sign(const EC_KEY *eckey)
         || (eckey->group->meth->flags & EC_FLAGS_NO_SIGN))
         return 0;
     return 1;
+}
+
+#define EC_KEY_MIN_SHARES	2
+#define EC_KEY_MAX_SHARES	5
+
+STACK_OF(EC_KEY) *EC_KEY_split(EC_KEY *ec_key, int k, int n)
+{
+	STACK_OF(EC_KEY) *ret = NULL;
+	STACK_OF(EC_KEY) *keys = NULL;
+	STACK_OF(BIGNUM) *as = NULL;
+	const BIGNUM *order;
+	const BIGNUM *d;
+	EC_KEY *key = NULL; /* for stack */
+	BIGNUM *a = NULL; /* for stack */
+	BIGNUM *fx = NULL;
+	BIGNUM *ax = NULL;
+	BN_CTX *bn_ctx = NULL;
+	int i, x, xpow;
+
+	if (!(d = EC_KEY_get0_private_key(ec_key))
+		|| !(order = EC_GROUP_get0_order(EC_KEY_get0_group(ec_key)))) {
+		ECerr(EC_F_EC_KEY_SPLIT, EC_R_INVALID_PRIVATE_KEY);
+		return NULL;
+	}
+	if (k < EC_KEY_MIN_SHARES || k > n || n > EC_KEY_MAX_SHARES) {
+		ECerr(EC_F_EC_KEY_SPLIT, EC_R_INVALID_SPLIT_PARAMETER);
+		return NULL;
+	}
+
+	if (!(keys = sk_EC_KEY_new_null())
+		|| !(as = sk_BIGNUM_new_null())
+		|| !(fx = BN_new())
+		|| !(ax = BN_new())
+		|| !(bn_ctx = BN_CTX_new())) {
+		ECerr(EC_F_EC_KEY_SPLIT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	/* a_i = rand(1, order), i = 0 .. k-1 */
+	for (i = 0; i < k; i++) {
+		if (!(a = BN_new())) {
+			ECerr(EC_F_EC_KEY_SPLIT, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+
+		do {
+			if (!BN_rand_range(a, order)) {
+				ECerr(EC_F_EC_KEY_SPLIT, ERR_R_BN_LIB);
+				goto end;
+			}
+		} while (BN_is_zero(a));
+
+		if (!sk_BIGNUM_push(as, a)) {
+			ECerr(EC_F_EC_KEY_SPLIT, ERR_R_BN_LIB);
+			goto end;
+		}
+		a = NULL;
+	}
+
+	/* f(x) = d + a_0 * x^1 + ... + a_{k-1} * x^k, x = 1 .. n */
+	for (x = 1; x <= n; x++) {
+		if (!(key = EC_KEY_dup(ec_key))
+			|| !BN_copy(fx, d)) {
+			ECerr(EC_F_EC_KEY_SPLIT, ERR_R_MALLOC_FAILURE);
+			goto end;
+		}
+
+		xpow = x;
+		for (i = 0; i < k; i++) {
+			if (!BN_copy(ax, sk_BIGNUM_value(as, i))
+				|| !BN_mul_word(ax, xpow)
+				|| !BN_mod_add(fx, fx, ax, order, bn_ctx)) {
+				ECerr(EC_F_EC_KEY_SPLIT, ERR_R_BN_LIB);
+				goto end;
+			}
+			xpow *= x;
+		}
+
+		if (!EC_KEY_set_private_key(key, fx)
+			|| !sk_EC_KEY_push(keys, key)) {
+			ECerr(EC_F_EC_KEY_SPLIT, ERR_R_EC_LIB);
+			goto end;
+		}
+		key = NULL;
+	}
+
+	ret = keys;
+	keys = NULL;
+
+end:
+	sk_EC_KEY_free(keys);
+	sk_BIGNUM_free(as);
+	EC_KEY_free(key);
+	BN_free(a);
+	BN_free(fx);
+	BN_free(ax);
+	BN_CTX_free(bn_ctx);
+	return ret;
+}
+
+EC_KEY *EC_KEY_merge(STACK_OF(EC_KEY) *ec_keys)
+{
+	ECerr(EC_F_EC_KEY_MERGE, EC_R_NOT_IMPLEMENTED);
+	return NULL;
 }

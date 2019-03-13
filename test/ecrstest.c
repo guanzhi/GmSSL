@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
+/* ====================================================================
+ * Copyright (c) 2014 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,78 +44,74 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
  */
 
-#define EC_KEY_METHOD_SM2	0x02
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-#define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
+#include "../e_os.h"
 
-#define SM2_MAX_PKEY_DATA_LENGTH		((EC_MAX_NBYTES + 1) * 6)
+#ifdef OPENSSL_NO_ECRS
+int main(int argc, char **argv)
+{
+	printf("No ECRS support\n");
+	return 0;
+}
+#else
+# include <openssl/evp.h>
+# include <openssl/err.h>
+# include <openssl/ecrs.h>
+# include <openssl/objects.h>
 
-#define SM2_MAX_PLAINTEXT_LENGTH		65535
-#define SM2_MAX_CIPHERTEXT_LENGTH		(SM2_MAX_PLAINTEXT_LENGTH + 2048)
+# define NUM_KEYS 5
 
+int main(int argc, char **argv)
+{
+	int err = 1;
+	STACK_OF(EC_KEY) *keys = NULL;
+	EC_KEY *ec_key = NULL;
+	int type = NID_sm3;
+	unsigned char dgst[32];
+	unsigned char sig[(NUM_KEYS + 1) * 80];
+	unsigned int siglen = sizeof(sig);
+	int i;
 
-int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
+	if (!(keys = sk_EC_KEY_new(NULL))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
-struct SM2CiphertextValue_st {
-	BIGNUM *xCoordinate;
-	BIGNUM *yCoordinate;
-	ASN1_OCTET_STRING *hash;
-	ASN1_OCTET_STRING *ciphertext;
-};
+	for (i = 0; i < NUM_KEYS; i++) {
+		if (!(ec_key = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+			ERR_print_errors_fp(stderr);
+			goto end;
+		}
+		if (!EC_KEY_generate_key(ec_key)) {
+			ERR_print_errors_fp(stderr);
+			goto end;
+		}
+		sk_EC_KEY_push(keys, ec_key);
+		ec_key = NULL;
+	}
 
-struct sm2_kap_ctx_st {
+	if (!ECRS_sign(type, dgst, sizeof(dgst), sig, &siglen, keys,
+		sk_EC_KEY_value(keys, 0))) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
-	const EVP_MD *id_dgst_md;
-	const EVP_MD *kdf_md;
-	const EVP_MD *checksum_md;
-	point_conversion_form_t point_form;
-	KDF_FUNC kdf;
+	if (1 != ECRS_verify(type, dgst, sizeof(dgst), sig, siglen, keys)) {
+		ERR_print_errors_fp(stderr);
+		goto end;
+	}
 
-	int is_initiator;
-	int do_checksum;
+	err = 0;
 
-	EC_KEY *ec_key;
-	unsigned char id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int id_dgstlen;
-
-	EC_KEY *remote_pubkey;
-	unsigned char remote_id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int remote_id_dgstlen;
-
-	const EC_GROUP *group;
-	BN_CTX *bn_ctx;
-	BIGNUM *order;
-	BIGNUM *two_pow_w;
-
-	BIGNUM *t;
-	EC_POINT *point;
-	unsigned char pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
-	unsigned char checksum[EVP_MAX_MD_SIZE];
-
-};
-
-int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen);
-
-
-struct SM2_COSIGNER1_SHARE_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER2_SHARE_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER1_PROOF_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER2_PROOF_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
+end:
+	sk_EC_KEY_free(keys);
+	EC_KEY_free(ec_key);
+	EXIT(err);
+}
+#endif

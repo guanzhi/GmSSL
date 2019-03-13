@@ -1,3 +1,51 @@
+/* ====================================================================
+ * Copyright (c) 2016 - 2019 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ */
 /*
  * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
  *
@@ -14,6 +62,9 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
+#ifndef OPENSSL_NO_SM2
+# include <openssl/sm2.h>
+#endif
 
 static int add_attribute(STACK_OF(X509_ATTRIBUTE) **sk, int nid, int atrtype,
                          void *value);
@@ -105,6 +156,13 @@ static int pkcs7_encode_rinfo(PKCS7_RECIP_INFO *ri,
     if (EVP_PKEY_encrypt_init(pctx) <= 0)
         goto err;
 
+#ifndef OPENSSL_NO_SM2
+    if (OBJ_obj2nid(ri->key_enc_algor->algorithm) == NID_sm2encrypt_with_sm3) {
+        EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme);
+        EVP_PKEY_CTX_set_ec_encrypt_param(pctx, NID_sm3);
+    }
+#endif
+
     if (EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_ENCRYPT,
                           EVP_PKEY_CTRL_PKCS7_ENCRYPT, 0, ri) <= 0) {
         PKCS7err(PKCS7_F_PKCS7_ENCODE_RINFO, PKCS7_R_CTRL_ERROR);
@@ -151,6 +209,13 @@ static int pkcs7_decrypt_rinfo(unsigned char **pek, int *peklen,
 
     if (EVP_PKEY_decrypt_init(pctx) <= 0)
         goto err;
+
+#ifndef OPENSSL_NO_SM2
+    if (OBJ_obj2nid(ri->key_enc_algor->algorithm) == NID_sm2encrypt_with_sm3) {
+        EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme);
+        EVP_PKEY_CTX_set_ec_encrypt_param(pctx, NID_sm3);
+    }
+#endif
 
     if (EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DECRYPT,
                           EVP_PKEY_CTRL_PKCS7_DECRYPT, 0, ri) <= 0) {
@@ -832,6 +897,12 @@ int PKCS7_SIGNER_INFO_sign(PKCS7_SIGNER_INFO *si)
     if (EVP_DigestSignInit(mctx, &pctx, md, NULL, si->pkey) <= 0)
         goto err;
 
+#ifndef OPENSSL_NO_SM2
+    if (OBJ_obj2nid(si->digest_enc_alg->algorithm) == NID_sm2sign_with_sm3) {
+        EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme);
+    }
+#endif
+
     if (EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_SIGN,
                           EVP_PKEY_CTRL_PKCS7_SIGN, 0, si) <= 0) {
         PKCS7err(PKCS7_F_PKCS7_SIGNER_INFO_SIGN, PKCS7_R_CTRL_ERROR);
@@ -940,6 +1011,9 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
     STACK_OF(X509_ATTRIBUTE) *sk;
     BIO *btmp;
     EVP_PKEY *pkey;
+#ifndef OPENSSL_NO_SM2
+    EVP_PKEY_CTX *pctx;
+#endif
 
     mdc_tmp = EVP_MD_CTX_new();
     if (mdc_tmp == NULL) {
@@ -985,6 +1059,13 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
     if (!EVP_MD_CTX_copy_ex(mdc_tmp, mdc))
         goto err;
 
+    os = si->enc_digest;
+    pkey = X509_get0_pubkey(x509);
+    if (!pkey) {
+        ret = -1;
+        goto err;
+    }
+
     sk = si->auth_attr;
     if ((sk != NULL) && (sk_X509_ATTRIBUTE_num(sk) != 0)) {
         unsigned char md_dat[EVP_MAX_MD_SIZE], *abuf = NULL;
@@ -1007,9 +1088,15 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
             goto err;
         }
 
-        if (!EVP_VerifyInit_ex(mdc_tmp, EVP_get_digestbynid(md_type), NULL))
+        if (!EVP_DigestVerifyInit(mdc_tmp, &pctx,
+                                  EVP_get_digestbynid(md_type), NULL, pkey)) {
             goto err;
-
+        }
+#ifndef OPENSSL_NO_SM2
+        if (OBJ_obj2nid(si->digest_enc_alg->algorithm) == NID_sm2sign_with_sm3) {
+            EVP_PKEY_CTX_set_ec_scheme(pctx, NID_sm_scheme);
+        }
+#endif
         alen = ASN1_item_i2d((ASN1_VALUE *)sk, &abuf,
                              ASN1_ITEM_rptr(PKCS7_ATTR_VERIFY));
         if (alen <= 0) {
@@ -1017,20 +1104,13 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
             ret = -1;
             goto err;
         }
-        if (!EVP_VerifyUpdate(mdc_tmp, abuf, alen))
+        if (!EVP_DigestVerifyUpdate(mdc_tmp, abuf, alen))
             goto err;
 
         OPENSSL_free(abuf);
     }
 
-    os = si->enc_digest;
-    pkey = X509_get0_pubkey(x509);
-    if (!pkey) {
-        ret = -1;
-        goto err;
-    }
-
-    i = EVP_VerifyFinal(mdc_tmp, os->data, os->length, pkey);
+    i = EVP_DigestVerifyFinal(mdc_tmp, os->data, os->length);
     if (i <= 0) {
         PKCS7err(PKCS7_F_PKCS7_SIGNATUREVERIFY, PKCS7_R_SIGNATURE_FAILURE);
         ret = -1;

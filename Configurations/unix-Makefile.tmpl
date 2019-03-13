@@ -632,7 +632,7 @@ install_man_docs:
 	@\
 	OUTSUFFIX='.$${SEC}$(MANSUFFIX)'; \
 	OUTTOP="$(DESTDIR)$(MANDIR)"; \
-	GENERATE='pod2man --name=$$NAME --section=$$SEC --center=OpenSSL --release=$(VERSION)'; \
+	GENERATE='pod2man --name=$$NAME --section=$$SEC --center=GmSSL --release=$(VERSION)'; \
 	$(PROCESS_PODS)
 
 uninstall_man_docs:
