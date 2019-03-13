@@ -2455,16 +2455,42 @@ static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGN
 	fp12_t t;
 	fp12_t t0;
 
-	if (!fp12_inv(t0, a, p, ctx)
-		||  !fp12_fast_expo_p1(t, a, p, ctx)
-		||  !fp12_mul(t, t0, t, p, ctx)
-		||  !fp12_copy(t0, t)
-		||  !fp12_fast_expo_p2(t, t, p, ctx)
-		||  !fp12_mul(t, t0, t, p, ctx)
-		||  !fp12_copy(t0, t)) {
+	fp12_init(t, ctx);
+	fp12_init(t0, ctx);
 
+	if (!fp12_copy(t, a)) {
 		return 0;
 	}
+	if (!fp12_copy(t0, a)) {
+		return 0;
+	}
+
+	if (!fp12_inv(t0, t, p, ctx)) {
+		return 0;
+	}
+	if (!fp12_fast_expo_p1(t, t, p, ctx)) {
+		return 0;
+	}
+	if (!fp12_mul(t, t0, t, p, ctx)) {
+		return 0;
+	}
+
+	if (!fp12_copy(t0, t)) {
+		return 0;
+	}
+		
+	if(!fp12_fast_expo_p2(t, t, p, ctx)){
+		return 0;
+	}
+	
+	if (!fp12_mul(t, t0, t, p, ctx)) {
+		return 0;
+	}
+
+	if (!fp12_copy(t0, t)) {
+		return 0;
+	}
+
 	n = BN_num_bits(k);
 	for (i = n - 2; i >= 0; i--) {
 		if (!fp12_sqr(t, t, p, ctx)) {
