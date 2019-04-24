@@ -101,7 +101,7 @@ int doSM3(EC_KEY* sm2Key,const char *oridata,int dlen,char *zValue,int zValueLen
 
 void setNByte(const char *src,char *dst,int NN)
 {
-    int dlen = strlen(src);
+    int dlen = (int)strlen(src);
     int off = NN - dlen;
     if (off < 0)
     {
@@ -258,7 +258,7 @@ char *Sign_hex(const char *hexpriv,const char *oridata,int dlen)
 {
     char* ret = NULL;
     unsigned char zValue[SM3_DIGEST_LENGTH] = {0};
-    size_t zValueLen = SM3_DIGEST_LENGTH;
+    int zValueLen = SM3_DIGEST_LENGTH;
 
     BN_CTX* ctx = NULL;
     EC_KEY* sm2Key = NULL;
@@ -323,7 +323,7 @@ int Verify_hex(const char *hexpub,const char *hexsig,const char *oridata,int dle
     char buf[64] = {0};
     int lresult = 0; 
     unsigned char zValue[SM3_DIGEST_LENGTH] = {0};
-    size_t zValueLen = SM3_DIGEST_LENGTH;
+    int zValueLen = SM3_DIGEST_LENGTH;
     //
     sm2Key = EC_KEY_new_by_curve_name(NID_sm2p256v1);
     if (!sm2Key)
@@ -387,7 +387,7 @@ err:
 
 #ifdef _KTEST_
 static  unsigned char zValue[SM3_DIGEST_LENGTH] = {0};
-static  size_t zValueLen = SM3_DIGEST_LENGTH;
+static  int zValueLen = SM3_DIGEST_LENGTH;
 static char testdata[] = {"test data for test!!!!!!!!!!"};
 EC_KEY* sm2Key = NULL;
 int initPrivKey()
