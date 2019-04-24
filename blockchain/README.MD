@@ -73,6 +73,20 @@ gmssl/blockchain
   - 3、用benchmark测试，发现bin和hex性能相差不大，相对c的测试代码有100us的差距。
   - 4、特别注意： 仅仅linux编译、测试通过；windows未进行测试.
     - 这个是因为我本地go配置有问题，go的编译器用的是gcc的。这个暂时没研究过怎么配置。后续有机会研究.
+### java
+#### 使用
+1. 编译完本项目得到libcrypto-1_1-x64.so 和 gmssljni.so（windows下为.dll文件)
+2. 将.so文件拷贝到项目目录
+3. 初始化SM2ForBlockChain类时指定SM2ForBlockChain.LoadLibrary($$LIBPATH)
+4. 通过API调用SM2ForBlockChain的方法
+#### API
+```java
+    public native String GenPrivateKey();
+    public native String GetPublicKeyByPriv(String privKeyHex);
+    public native String GetPublicKeyByPriv_bin(byte[] privKeyBytes);
+    public native String Sign(String privKeyHex, byte[] src, int srcLen);
+    public native int Verify(String pubKeyHex, String signatureHex, byte[] src, int srcLen);
+```
 ```
 goos: linux
 goarch: amd64
