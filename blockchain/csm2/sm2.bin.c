@@ -73,10 +73,10 @@ EC_KEY* bin2PrivateKey(const unsigned char *bindata,int len)
     return sm2Key;
 }
 
-void setBinByte(const unsigned char *src,int slen,char *dst,int NN)
+void setBinByte(const unsigned char *src,size_t slen,char *dst,int NN)
 {
-    int dlen = slen;
-    int off = NN - slen;
+    int dlen = (int)slen;
+    int off = NN - (int)slen;
     if (off < 0)
     {
         off = 0;
@@ -204,7 +204,7 @@ char *Sign_bin(const unsigned char *binpriv,int len,const unsigned char *oridata
 {
     char* ret = NULL;
     unsigned char zValue[SM3_DIGEST_LENGTH] = {0};
-    size_t zValueLen = SM3_DIGEST_LENGTH;
+    int zValueLen = SM3_DIGEST_LENGTH;
 
     BN_CTX* ctx = NULL;
     EC_KEY* sm2Key = NULL;
@@ -269,7 +269,7 @@ int Verify_bin(const unsigned char *binpub,const unsigned char *binsig,const uns
     char buf[64] = {0};
     int lresult = 0; 
     unsigned char zValue[SM3_DIGEST_LENGTH] = {0};
-    size_t zValueLen = SM3_DIGEST_LENGTH;
+    int zValueLen = SM3_DIGEST_LENGTH;
     //
     sm2Key = EC_KEY_new_by_curve_name(NID_sm2p256v1);
     if (!sm2Key)

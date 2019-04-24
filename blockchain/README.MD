@@ -9,27 +9,30 @@
 # 项目说明
 ## 一、 目录结构
 ```
-gmssl/blockchain  
-  ├── csm2  
-  │   ├── sm2.h  
-  │   ├── sm2.bin.c  
-  │   └── sm2.hex.c  
-  │   
-  ├── gosm2    
-  |   ├── sm2.h      //用到的头文件;
-  |   ├── build.go   //c库相关配置;
-  |   ├── sm2bin.go
-  |   ├── sm2bin.go 
-  │   └── sm2_test.go //单位测试、性能测试代码;
-  │   
-  ├── javasm2   
-  │                                    
-  └── test    
-      ├── c  
-      |   ├── mian_win.c  //windows测试代码。
-      │   └── main.c      //linux测试代码。
-      │   
-      ├── java   
+.
+├── csm2
+│   ├── sm2.bin.c
+│   ├── sm2.err.c
+│   ├── sm2.h
+│   └── sm2.hex.c
+├── gosm2
+│   ├── build.go      //c库相关配置;
+│   ├── sm2bin.go
+│   ├── sm2hex.go
+│   └── sm2_test.go //单位测试、性能测试代码;
+├── javasm2
+│   ├── linuxmake
+│   ├── SM2ForBlockChain.c
+│   ├── SM2ForBlockChain.h
+│   ├── SM2ForBlockChain.java
+│   └── winmake
+├── README.MD
+└── test
+    └── c
+        ├── linuxmake
+        ├── main.c
+        ├── main_win.c
+        └── winmake  
 ```
 ## 二、 说明
 ### 1、csm2
