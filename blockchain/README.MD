@@ -71,6 +71,8 @@ gmssl/blockchain
     - 就是说，完全不依赖csm2.
   - 2、build.go用于放置一些编译相关的参数设置，比如lib目录，比如openssl头文件目录。
   - 3、用benchmark测试，发现bin和hex性能相差不大，相对c的测试代码有100us的差距。
+  - 4、特别注意： 仅仅linux编译、测试通过；windows未进行测试.
+    - 这个是因为我本地go配置有问题，go的编译器用的是gcc的。这个暂时没研究过怎么配置。后续有机会研究.
 ```
 goos: linux
 goarch: amd64
@@ -98,9 +100,6 @@ BenchmarkSM2_Binary-4               2000            634790 ns/op
 PASS
 ok      _/alidata1/knull/gmssl/test/gosm2       27.838s
 ```
-#### 2.2 后续计划
-- 当c函数失败，返回是null，需要错误处理；
-- 代码结构调整；
 
 # 其他
 ## gmssl编译说明

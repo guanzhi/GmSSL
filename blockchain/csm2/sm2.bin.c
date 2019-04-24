@@ -58,22 +58,22 @@ EC_GROUP* getGroup();
 
 void GroupFree(EC_GROUP* gp);
 
-int doSM3(EC_KEY* sm2Key,const char *oridata,int dlen,char *zValue,int zValueLen);
+int doSM3(EC_KEY* sm2Key,const unsigned char *oridata,int dlen,char *zValue,int zValueLen);
 
-EC_KEY* bin2PrivateKey(const char *bindata,int len)
+EC_KEY* bin2PrivateKey(const unsigned char *bindata,int len)
 {
     EC_KEY* sm2Key = EC_KEY_new_by_curve_name(NID_sm2p256v1);
     if (!sm2Key)
     {
         return NULL;
     }
-    BIGNUM* privNum = BN_bin2bn((unsigned const char *)bindata,len, NULL);
+    BIGNUM* privNum = BN_bin2bn((const unsigned char *)bindata,len, NULL);
     EC_KEY_set_private_key(sm2Key, privNum);
     BN_clear_free(privNum);
     return sm2Key;
 }
 
-void setBinByte(const char *src,int slen,char *dst,int NN)
+void setBinByte(const unsigned char *src,int slen,char *dst,int NN)
 {
     int dlen = slen;
     int off = NN - slen;
@@ -102,7 +102,7 @@ char *makeSigBin(ECDSA_SIG* signData)
     return buf;
 }
 
-ECDSA_SIG *makeSignData_bin(const char *bindata)
+ECDSA_SIG *makeSignData_bin(const unsigned char *bindata)
 {
     //BN_bin2bn
 	char buf[32] = { 0 };
@@ -153,7 +153,7 @@ char *GeneratePrivateKey_bin()
     return pri;
 }
 
-char *GetPublicKeyByPriv_bin(const char *bindata,int len)
+char *GetPublicKeyByPriv_bin(const unsigned char *bindata,int len)
 {
     EC_POINT * pubkey = NULL;
     BIGNUM *privNum = NULL;    
@@ -165,7 +165,7 @@ char *GetPublicKeyByPriv_bin(const char *bindata,int len)
     char buf[Size_PubKey] = {0};
 
     //
-    privNum = BN_bin2bn((unsigned const char *)bindata,len, NULL);
+    privNum = BN_bin2bn((const unsigned char *)bindata,len, NULL);
     //LOGDEBUG("in_bin=%s",BN_bn2hex(privNum));
     ctx = BN_CTX_new();
     //
@@ -200,7 +200,7 @@ err:
     return pub;
 }
 //char *makeSigHex(ECDSA_SIG* signData);
-char *Sign_bin(const char *binpriv,int len,const char *oridata,int dlen)
+char *Sign_bin(const unsigned char *binpriv,int len,const unsigned char *oridata,int dlen)
 {
     char* ret = NULL;
     unsigned char zValue[SM3_DIGEST_LENGTH] = {0};
@@ -259,7 +259,7 @@ err:
     return ret;
 }
 
-int Verify_bin(const char *binpub,const char *binsig,const char *oridata,int dlen)
+int Verify_bin(const unsigned char *binpub,const unsigned char *binsig,const unsigned char *oridata,int dlen)
 {
     EC_KEY* sm2Key = NULL;
     EC_POINT* pubPoint = NULL;

@@ -69,6 +69,9 @@ inline void testSameSM2(){}
 #endif
 
 //-----------------------------------------------------------------------
+//return errno;0-->success;errors for others and errinfo set to errbuf;
+unsigned long SM2Error(unsigned char *errbuf, int max);
+
 void SM2Free(char *d);
 
 char *GetPublicKeyByPriv_hex(const char *hexstr);
@@ -91,11 +94,11 @@ enum SM2Size
     Size_PubKey = 65,
 };
 
-char *GetPublicKeyByPriv_bin(const char *bindata,int len);
+char *GetPublicKeyByPriv_bin(const unsigned char *bindata,int len);
 char *GeneratePrivateKey_bin();
-char *Sign_bin(const char *binpriv,int len,const char *oridata,int dlen);
+char *Sign_bin(const unsigned char *binpriv,int len,const unsigned char *oridata,int dlen);
 //returns: 1-success;0-failed;
-int Verify_bin(const char *binpub,const char *binsig,const char *oridata,int dlen);
+int Verify_bin(const unsigned char *binpub,const unsigned char *binsig,const unsigned char *oridata,int dlen);
 
 
 #ifdef  __cplusplus

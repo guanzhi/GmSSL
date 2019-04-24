@@ -33,8 +33,9 @@ func sm2run_hex() bool {
 		fmt.Println("pub err:", err)
 		return false
 	}
-	if !VerifyData_hex(pub, sig, str) {
-		fmt.Println("VerifyData err:")
+	ok, err := VerifyData_hex(pub, sig, str)
+	if !ok {
+		fmt.Println("VerifyData err:", err)
 		return false
 	}
 	return true
@@ -61,8 +62,9 @@ func sm2run_bin() bool {
 		fmt.Println("pub err:", err)
 		return false
 	}
-	if !VerifyData_bin(pub, sig, bytes) {
-		fmt.Println("VerifyData err:")
+	ok, err := VerifyData_bin(pub, sig, bytes)
+	if !ok {
+		fmt.Println("VerifyData err:", err)
 		return false
 	}
 	return true

@@ -7,9 +7,7 @@
 
 #include "sm2.h"
 
-
-
-#define _PPROF_
+//依赖于gperftools;做性能测试，需要打开该开关；并且加上-lprofiler;
 #ifdef _PPROF_
 
 #include <gperftools/profiler.h>

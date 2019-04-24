@@ -1,0 +1,24 @@
+##LINUX 
+EXE=test
+CC=gcc
+CFLAGS=-D_KTEST_ -g
+LD=gcc
+LDFLAGS=-L../../libs/ -lcrypto -lpthread -ldl
+INC= -I"../../../include" -I"../../csm2" 
+
+all:prepare $(EXE)
+prepare:
+	mkdir -p .output
+sm2.hex.o:
+	$(CC)  $(INC) $(CFLAGS) -c "../../csm2/sm2.hex.c" -o .output/sm2.hex.o
+sm2.bin.o:
+	$(CC)  $(INC) $(CFLAGS) -c "../../csm2/sm2.bin.c" -o .output/sm2.bin.o
+sm2.err.o:
+	$(CC) $(INC)  $(CFLAGS) -c "../../csm2/sm2.err.c" -o .output/sm2.err.o
+main.o:
+	$(CC) $(INC)  $(CFLAGS) -c "main.c" -o .output/main.o
+$(EXE): main.o sm2.hex.o sm2.err.o sm2.bin.o 
+	$(LD) .output/*.o $(LDFLAGS) -o $@ 
+clean:
+	rm .output/*.o
+	rm $(EXE)

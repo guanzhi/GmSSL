@@ -1,0 +1,29 @@
+##WINDOWS sm2jni.dll生成
+LIBCRYPTOS=..\../libs/libcrypto.lib
+DLLCRYPTOS=..\..\libs\libcrypto-1_1-x64.dll
+EXE=test.exe
+CC=cl
+CFLAGS=-D_KTEST_ -DDEBUG 
+LD=link
+LDFLAGS=
+EX_LIBS= ws2_32.lib gdi32.lib advapi32.lib crypt32.lib user32.lib
+LIB_CFLAGS=
+INC=/I "." /I "..\..\..\include" /I "..\..\csm2" 
+
+
+all: $(EXE)
+sm2.hex.obj:
+	$(CC)  $(INC) $(CFLAGS) -c "..\..\csm2\sm2.hex.c"
+sm2.bin.obj:
+	$(CC)  $(INC) $(CFLAGS) -c "..\..\csm2\sm2.bin.c"
+sm2.err.obj:
+	$(CC) $(INC)  $(CFLAGS) -c "..\..\csm2\sm2.err.c"
+main_win.obj:
+	$(CC) $(INC)  $(CFLAGS) -c "main_win.c"
+$(EXE): main_win.obj sm2.hex.obj sm2.err.obj sm2.bin.obj 
+	IF EXIST  $(DLLCRYPTOS) copy /Y $(DLLCRYPTOS) .
+	IF EXIST $(EXE) del $(EXE)
+	$(LD) $(LIBCRYPTOS) $(EX_LIBS) $(LDFLAGS) /out:$@ $**
+clean:
+	del *.obj
+	del $(EXE)
