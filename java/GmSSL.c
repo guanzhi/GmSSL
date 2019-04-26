@@ -425,6 +425,7 @@ end:
 	if (inbuf) (*env)->ReleaseByteArrayElements(env, in, (jbyte *)inbuf, JNI_ABORT);
 	if (ivbuf) (*env)->ReleaseByteArrayElements(env, iv, (jbyte *)ivbuf, JNI_ABORT);
 	EVP_CIPHER_CTX_free(cctx);
+	OPENSSL_free(outbuf);
 	return ret;
 }
 
