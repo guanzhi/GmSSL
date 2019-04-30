@@ -234,7 +234,7 @@ function signenccsr {
 	common_name=$1
 	csrfile="$ca_csr_dir/$common_name.csr"
 	subject="$user_dn_enc_prefix/CN=$common_name"
-	gmssl ca -config ./signenccsr.cnf -batch -subj=$subject -md $md -days 365 -outdir $ca_usercert_dir -infiles "$csrfile"
+	gmssl ca -config ./signenccsr.cnf -batch -subj=$subject -md $md -days 365 -outdir $ca_cert_dir -infiles "$csrfile"
 }
 
 function gencert {
@@ -277,7 +277,7 @@ function listcertsbyname {
 function getcertbyserial {
 	#FIXME: check argument exist
 	local serial=$1
-	local cerfile=$ca_cert_dir/$serial.pem
+	local certfile=$ca_cert_dir/$serial.pem
 	gmssl x509 -in $certfile
 }
 
@@ -318,6 +318,12 @@ function _revokecertfile {
 	#gmssl ca -config ./ca.cnf -valid $certfile
 	gmssl ca -config ./ca.cnf -revoke $certfile -crl_reason $reason
 	#gmssl ca -config ./ca.cnf -valid $certfile
+}
+
+function revokecertbyname {
+	common_name=$1
+	serial=`awk -F'\t' '{print $2,$4,$6}' $ca_index_file | grep -E "CN=$common_name$" | awk '{print $2}'`
+	_revokecertfile "$ca_cert_dir/$serial.pem"
 }
 
 function revokecertbyserial {
@@ -408,6 +414,12 @@ case $opt in
 		shift
 		shift
 		;;
+	-signenccsr)
+		common_name="$2"
+		signenccsr "$common_name"
+		shift
+		shift
+		;;
 	-rejectcsr)
 		common_name="$2"
 		rejectcsr "$common_name"
@@ -417,6 +429,12 @@ case $opt in
 	-gencert)
 		common_name="$2"
 		gencert $common_name
+		shift
+		shift
+		;;
+	-genenccert)
+		common_name="$2"
+		genenccert $common_name
 		shift
 		shift
 		;;
@@ -450,6 +468,12 @@ case $opt in
 		;;
 	-revokereasons)
 		revokereasons
+		shift
+		;;
+	-revokecertbyname)
+		name="$2"
+		revokecertbyname "$name"
+		shift
 		shift
 		;;
 	-revokecert)
