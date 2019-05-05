@@ -84,6 +84,16 @@ static int gmtls_output_cert_chain(SSL *s, int *len, int a_idx, int k_idx)
 
 	a_cpk = &s->cert->pkeys[a_idx];
 	k_cpk = &s->cert->pkeys[k_idx];
+	
+	// if sign cert is null, return error, otherwise casue decode error in SSL bidirectional authentication handshake.
+	if(!a_cpk->x509){
+                return 0;
+        }
+	// if enc cert is null, use sign cert
+	if(!k_cpk->x509){
+                k_cpk = &s->cert->pkeys[a_idx];
+        }
+
 
 	if (a_cpk->chain)
 		extra_certs = a_cpk->chain;
@@ -136,12 +146,12 @@ static int gmtls_output_cert_chain(SSL *s, int *len, int a_idx, int k_idx)
         X509_print_fp(stderr, s->cert->pkeys[k_idx].x509);
 #endif
 
-		/* add signing certificate */
-		if (!ssl_add_cert_to_buf(buf, &l, s->cert->pkeys[a_idx].x509)) {
+		/* add signing certificate */		
+		if (!ssl_add_cert_to_buf(buf, &l, a_cpk->x509)) {
 			return 0;
 		}
 		/* add key exchange certificate */
-		if (!ssl_add_cert_to_buf(buf, &l, s->cert->pkeys[k_idx].x509)) {
+		if (!ssl_add_cert_to_buf(buf, &l, k_cpk->x509)) {
 			return 0;
 		}
 		/* add the following chain */
@@ -163,10 +173,10 @@ static int gmtls_output_cert_chain(SSL *s, int *len, int a_idx, int k_idx)
 		}
 
 		/* output sign cert and exch cert */
-		if (!ssl_add_cert_to_buf(buf, &l, s->cert->pkeys[a_idx].x509)) {
+		if (!ssl_add_cert_to_buf(buf, &l, a_cpk->x509)) {
 			return 0;
 		}
-		if (!ssl_add_cert_to_buf(buf, &l, s->cert->pkeys[k_idx].x509)) {
+		if (!ssl_add_cert_to_buf(buf, &l, k_cpk->x509)) {
 			return 0;
 		}
 		/* output the following chain */
@@ -497,7 +507,8 @@ static int gmtls_construct_ske_sm2dhe(SSL *s, unsigned char **p, int *l, int *al
 		goto end;
 	}
 	zlen = sizeof(z);
-	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
+	if (!SM2_compute_id_digest(EVP_sm3(), "1234567812345678", 16, z, &zlen,
+	//if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2DHE, ERR_R_SM2_LIB);
 		goto end;
@@ -632,7 +643,8 @@ static int gmtls_process_ske_sm2dhe(SSL *s, PACKET *pkt, int *al)
 		goto end;
 	}
 	zlen = sizeof(z);
-	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
+	if (!SM2_compute_id_digest(EVP_sm3(), "1234567812345678", 16, z, &zlen,
+	//if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_SM2_LIB);
 		goto end;
@@ -696,7 +708,8 @@ static unsigned char *gmtls_new_cert_packet(X509 *x, int *l)
 
 	p = ret;
 	l2n3(n, p);
-	*l = n;
+	// count error cause decode err in ServerKeyExchange
+	*l = n+3;
 
 end:
 	return ret;
@@ -750,7 +763,8 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
 		goto end;
 	}
 	zlen = sizeof(z);
-	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
+	if (!SM2_compute_id_digest(EVP_sm3(), "1234567812345678", 16, z, &zlen,
+	//if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_SM2_LIB);
 		goto end;
@@ -870,7 +884,8 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 		goto end;
 	}
 	zlen = sizeof(z);
-	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
+	if (!SM2_compute_id_digest(EVP_sm3(), "1234567812345678", 16, z, &zlen,
+	//if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2, ERR_R_SM2_LIB);
 		goto end;
@@ -1341,6 +1356,9 @@ int gmtls_construct_client_certificate(SSL *s)
 	unsigned char *p;
 	int l;
 
+	// miss line which cause decode err in keyexchange
+	l = 3 + SSL_HM_HEADER_LENGTH(s);
+
 	if (alg_a & SSL_aSM2) {
 		if (!gmtls_construct_sm2_certs(s, &l)) {
 			SSLerr(SSL_F_GMTLS_CONSTRUCT_CLIENT_CERTIFICATE,
@@ -1445,7 +1463,8 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		return 0;
 	}
-	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen, sk)) {
+	if (!SM2_compute_id_digest(EVP_sm3(), "1234567812345678", 16, z, &zlen, sk)) {
+	//if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen, sk)) {
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
@@ -1454,7 +1473,8 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
-	if (!SM2_compute_id_digest(EVP_sm3(), peer_id, strlen(peer_id),
+	if (!SM2_compute_id_digest(EVP_sm3(), "1234567812345678", 16,
+	//if (!SM2_compute_id_digest(EVP_sm3(), peer_id, strlen(peer_id),
 		peer_z, &peer_zlen, peer_pk)) {
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		goto end;
