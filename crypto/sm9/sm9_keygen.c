@@ -304,7 +304,8 @@ SM9_KEY *SM9_MASTER_KEY_extract_key(SM9_MASTER_KEY *master,
 	sk = NULL;
 
 end:
-	EC_GROUP_free(group);
+	SM9PrivateKey_free(sk);
+	EC_GROUP_clear_free(group);
 	if (ctx) {
 		BN_CTX_end(ctx);
 	}
