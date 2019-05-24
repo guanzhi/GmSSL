@@ -58,7 +58,6 @@ package gmssl
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
-#include <openssl/x509.h>
 #include <openssl/engine.h>
 #include <openssl/objects.h>
 #include <openssl/opensslconf.h>
@@ -70,8 +69,8 @@ import "C"
 
 import (
 	"fmt"
-	"runtime"
 	"unsafe"
+	"runtime"
 )
 
 type Certificate struct {

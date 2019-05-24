@@ -198,8 +198,6 @@ end:
 	BN_free(r);
 	point_cleanup(&Ppubs);
 	fp12_cleanup(w);
-	BN_CTX_end(bn_ctx);
-	BN_CTX_free(bn_ctx);
 	return ret;
 }
 
@@ -357,7 +355,9 @@ end:
 	point_cleanup(&P);
 	fp12_cleanup(w);
 	fp12_cleanup(u);
-	BN_CTX_end(bn_ctx);
+	if (bn_ctx) {
+		BN_CTX_end(bn_ctx);
+	}
 	BN_CTX_free(bn_ctx);
 	return ret;
 }
