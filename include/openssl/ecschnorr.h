@@ -78,5 +78,10 @@ int ECSCHNORR_sign(int type, const unsigned char *dgst, int dgstlen,
 int ECSCHNORR_verify(int type, const unsigned char *dgst, int dgstlen,
 	const unsigned char *sig, int siglen, EC_KEY *ec_key);
 
+#ifdef __cplusplus
+}
+#endif
 
+#endif  /* OPENSSL_NO_ECSCHNORR */
+#endif  /* HEADER_ECSCHNORR_H */
 /* BEGIN ERROR CODES */
