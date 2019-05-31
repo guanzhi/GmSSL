@@ -58,7 +58,7 @@ EC_GROUP* getGroup();
 
 void GroupFree(EC_GROUP* gp);
 
-int doSM3(EC_KEY* sm2Key,const unsigned char *oridata,int dlen,char *zValue,int zValueLen);
+extern int doSM3(EC_KEY* sm2Key,const char *oridata,int dlen,unsigned char *zValue,int zValueLen);
 
 EC_KEY* bin2PrivateKey(const unsigned char *bindata,int len)
 {
@@ -73,7 +73,7 @@ EC_KEY* bin2PrivateKey(const unsigned char *bindata,int len)
     return sm2Key;
 }
 
-void setBinByte(const unsigned char *src,size_t slen,char *dst,int NN)
+void setBinByte(char *src,size_t slen,char *dst,int NN)
 {
     int dlen = (int)slen;
     int off = NN - (int)slen;
@@ -90,14 +90,14 @@ char *makeSigBin(ECDSA_SIG* signData)
     const BIGNUM *sig_r;
 	const BIGNUM *sig_s;
     ECDSA_SIG_get0(signData, &sig_r, &sig_s);
-    char *buf = OPENSSL_malloc(Size_Signure);
+    char *buf = (char*)OPENSSL_malloc(Size_Signure);
     memset(buf,0,Size_Signure);
     //
     char temp[32] = {0};
-    int len = BN_bn2bin(sig_r,temp);
+    int len = BN_bn2bin(sig_r,(unsigned char*)temp);
     setBinByte(temp,len,buf,32); 
 
-    len = BN_bn2bin(sig_s,temp);
+    len = BN_bn2bin(sig_s,(unsigned char*)temp);
     setBinByte(temp,len,buf+32,32); 
     return buf;
 }
@@ -105,12 +105,12 @@ char *makeSigBin(ECDSA_SIG* signData)
 ECDSA_SIG *makeSignData_bin(const unsigned char *bindata)
 {
     //BN_bin2bn
-	char buf[32] = { 0 };
+	unsigned char buf[32] = { 0 };
     memcpy(buf,bindata,32);
 	BIGNUM *sig_r = BN_new();
     if (!BN_bin2bn(buf,32,sig_r))
     {
-        LOGDEBUG("[SM2::veify] ERROR of BN_hex2bn R:" );
+        SM2DEBUG("[SM2::veify] ERROR of BN_hex2bn R:" );
         BN_free(sig_r);
         return NULL;
     }
@@ -118,7 +118,7 @@ ECDSA_SIG *makeSignData_bin(const unsigned char *bindata)
     memcpy(buf,bindata+32,32);
     if (!BN_bin2bn(buf,32,sig_s))
     {
-        LOGDEBUG("[SM2::veify] ERROR BN_hex2bn S:" );
+        SM2DEBUG("[SM2::veify] ERROR BN_hex2bn S:" );
         BN_free(sig_r);
         BN_free(sig_s);
         return NULL;
@@ -134,19 +134,19 @@ char *GeneratePrivateKey_bin()
     EC_KEY* sm2Key = EC_KEY_new_by_curve_name(NID_sm2p256v1);
     if (!sm2Key)
     {
-        LOGDEBUG("Error Of Alloc Memory for SM2 Key");
+        SM2DEBUG("Error Of Alloc Memory for SM2 Key");
         return pri;
     }
 
     if (EC_KEY_generate_key(sm2Key) == 0)
     {
-        LOGDEBUG("Error Of Generate SM2 Key");
+        SM2DEBUG("Error Of Generate SM2 Key");
         EC_KEY_free(sm2Key);
         return pri;
     }
     char buf[Size_PriKey] = {0};
-    size_t sz = BN_bn2bin(EC_KEY_get0_private_key(sm2Key),buf);
-    pri = OPENSSL_malloc(Size_PriKey);
+    size_t sz = BN_bn2bin(EC_KEY_get0_private_key(sm2Key),(unsigned char *)buf);
+    pri = (char*)OPENSSL_malloc(Size_PriKey);
     setBinByte(buf,sz,pri,Size_PriKey);
     //
     EC_KEY_free(sm2Key);
@@ -166,30 +166,30 @@ char *GetPublicKeyByPriv_bin(const unsigned char *bindata,int len)
 
     //
     privNum = BN_bin2bn((const unsigned char *)bindata,len, NULL);
-    //LOGDEBUG("in_bin=%s",BN_bn2hex(privNum));
+    //SM2DEBUG("in_bin=%s",BN_bn2hex(privNum));
     ctx = BN_CTX_new();
     //
     sm2Group = getGroup();
     if (!sm2Group)
     {
-        LOGDEBUG("Error Of Gain SM2 Group Object");
+        SM2DEBUG("Error Of Gain SM2 Group Object");
         goto err;
     }
     
 	pubkey = EC_POINT_new(sm2Group);
     if (pubkey == NULL)
     {
-        LOGDEBUG("Error Of Gain SM2 EC_POINT Object");
+        SM2DEBUG("Error Of Gain SM2 EC_POINT Object");
         goto err;
     }
     if (!EC_POINT_mul(sm2Group, pubkey,privNum,NULL,NULL,ctx))
     {
-        LOGDEBUG("Error Of Set SM2 EC_POINT Object");
+        SM2DEBUG("Error Of Set SM2 EC_POINT Object");
         goto err;
     }
-    sz = EC_POINT_point2oct(sm2Group, pubkey, POINT_CONVERSION_UNCOMPRESSED, buf,Size_PubKey, NULL);
+    sz = EC_POINT_point2oct(sm2Group, pubkey, POINT_CONVERSION_UNCOMPRESSED, (unsigned char *)buf,Size_PubKey, NULL);
 	//pub = EC_POINT_point2hex(sm2Group, pubkey, POINT_CONVERSION_UNCOMPRESSED, NULL);
-    pub = OPENSSL_malloc(Size_PubKey);
+    pub = (char*)OPENSSL_malloc(Size_PubKey);
     setBinByte(buf,sz,pub,Size_PubKey);
 err: 
     if (pubkey)  EC_POINT_free(pubkey);
@@ -216,28 +216,28 @@ char *Sign_bin(const unsigned char *binpriv,int len,const unsigned char *oridata
     sm2Key = bin2PrivateKey(binpriv,len);
     if (!sm2Key)
     {
-        LOGDEBUG("Error Of Gain SM2 Group Object");
+        SM2DEBUG("Error Of Gain SM2 Group Object");
         goto err;
     }
     
 	pubPoint = EC_POINT_new(EC_KEY_get0_group(sm2Key));
     if (pubPoint == NULL)
     {
-        LOGDEBUG("Error Of Gain SM2 EC_POINT Object");
+        SM2DEBUG("Error Of Gain SM2 EC_POINT Object");
         goto err;
     }
     if (!EC_POINT_mul(EC_KEY_get0_group(sm2Key), pubPoint,EC_KEY_get0_private_key(sm2Key),NULL,NULL,ctx))
     {
-        LOGDEBUG("Error Of Set SM2 EC_POINT Object");
+        SM2DEBUG("Error Of Set SM2 EC_POINT Object");
         goto err;
     }
     if (!EC_KEY_set_public_key(sm2Key, pubPoint))
     {
-        LOGDEBUG("[SM2::veify] ERROR of Sign EC_KEY_set_public_key");
+        SM2DEBUG("[SM2::veify] ERROR of Sign EC_KEY_set_public_key");
         goto err;
     }
     //
-    zValueLen = doSM3(sm2Key,oridata,dlen,zValue,sizeof(zValue));
+    zValueLen = doSM3(sm2Key,(char*)oridata,dlen,zValue,sizeof(zValue));
     if (zValueLen < 0)
     {
         goto err;
@@ -245,11 +245,11 @@ char *Sign_bin(const unsigned char *binpriv,int len,const unsigned char *oridata
     signData = ECDSA_do_sign_ex(zValue, zValueLen, NULL, NULL, sm2Key);
     if (signData == NULL)
     {
-        LOGDEBUG("[SM2::sign] Error Of SM2 Signature");
+        SM2DEBUG("[SM2::sign] Error Of SM2 Signature");
         goto err;
     }
     // ret = makeSigHex(signData);
-    // LOGDEBUG("Signure=%s",ret);
+    // SM2DEBUG("Signure=%s",ret);
     ret = makeSigBin(signData);
 err:
     if (ctx)BN_CTX_free(ctx);
@@ -274,7 +274,7 @@ int Verify_bin(const unsigned char *binpub,const unsigned char *binsig,const uns
     sm2Key = EC_KEY_new_by_curve_name(NID_sm2p256v1);
     if (!sm2Key)
     {
-        LOGDEBUG("Error Of Alloc Memory for SM2 Key");
+        SM2DEBUG("Error Of Alloc Memory for SM2 Key");
         goto err;
     }
 
@@ -282,24 +282,24 @@ int Verify_bin(const unsigned char *binpub,const unsigned char *binsig,const uns
 
     if ((pubPoint = EC_POINT_new(sm2Group)) == NULL)
     {
-        LOGDEBUG("[SM2::veify] ERROR of Verify EC_POINT_new");
+        SM2DEBUG("[SM2::veify] ERROR of Verify EC_POINT_new");
         goto err;
     }
     
     //if (!EC_POINT_hex2point(sm2Group, hexpub, pubPoint, NULL))
     if (!EC_POINT_oct2point(sm2Group,pubPoint,binpub,Size_PubKey,NULL))
     {
-        LOGDEBUG("[SM2::veify] ERROR of Verify EC_POINT_hex2point");
+        SM2DEBUG("[SM2::veify] ERROR of Verify EC_POINT_hex2point");
         goto err;
     }
 
     if (!EC_KEY_set_public_key(sm2Key, pubPoint))
     {
-        LOGDEBUG("[SM2::veify] ERROR of Verify EC_KEY_set_public_key");
+        SM2DEBUG("[SM2::veify] ERROR of Verify EC_KEY_set_public_key");
         goto err;
     }
     //
-    zValueLen = doSM3(sm2Key,oridata,dlen,zValue,sizeof(zValue));
+    zValueLen = doSM3(sm2Key,(char*)oridata,dlen,zValue,zValueLen);
     if (zValueLen < 0)
     {
         goto err;
@@ -311,14 +311,14 @@ int Verify_bin(const unsigned char *binpub,const unsigned char *binsig,const uns
     }
     if (ECDSA_do_verify(zValue, zValueLen, signData, sm2Key) != 1)
     {
-        //LOGDEBUG("[SM2::veify] Error Of SM2 Verify:\n\tpubkey=%s;\n\tsigdat=%s",hexpub,hexsig);
+        //SM2DEBUG("[SM2::veify] Error Of SM2 Verify:\n\tpubkey=%s;\n\tsigdat=%s",hexpub,hexsig);
         if (ECDSA_do_verify(zValue, zValueLen, signData, sm2Key)==1)
         {
-            LOGDEBUG("verify ok");
+            SM2DEBUG("verify ok");
         }
         else
         {
-            LOGDEBUG("verify failed");
+            SM2DEBUG("verify failed");
         }        
         goto err;
     }

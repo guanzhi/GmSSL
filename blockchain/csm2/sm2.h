@@ -57,16 +57,18 @@ extern "C" {
 #ifdef _KTEST_
 
 #include <stdio.h>
-#define LOGDEBUG(fmt,...) printf("%s(%d):"fmt"\n",__FILE__,__LINE__,##__VA_ARGS__);
+#define SM2DEBUG(fmt,...) printf("%s(%d):"fmt"\n",__FILE__,__LINE__,##__VA_ARGS__);
 
 int initPrivKey();
 void testSameSM2();
 #else
-#define LOGDEBUG(fmt,...)
+#define SM2DEBUG(fmt,...)
 
 inline int initPrivKey() { return 0; }
 inline void testSameSM2(){}
 #endif
+
+//void SSLInit();
 
 //-----------------------------------------------------------------------
 //return errno;0-->success;errors for others and errinfo set to errbuf;
