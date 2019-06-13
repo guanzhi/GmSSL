@@ -66,9 +66,6 @@
 #endif
 #include <openssl/kdf.h>
 #include <openssl/kdf2.h>
-#ifndef OPENSSL_NO_FFX
-# include <openssl/ffx.h>
-#endif
 #ifndef OPENSSL_NO_PAILLIER
 # include <openssl/paillier.h>
 #endif
@@ -77,12 +74,6 @@
 #endif
 #ifndef OPENSSL_NO_GMAPI
 # include <openssl/gmapi.h>
-#endif
-#ifndef OPENSSL_NO_BFIBE
-# include <openssl/bfibe.h>
-#endif
-#ifndef OPENSSL_NO_BB1IBE
-# include <openssl/bb1ibe.h>
 #endif
 #ifndef OPENSSL_NO_SM2
 # include <openssl/sm2.h>
@@ -167,9 +158,6 @@ int err_load_crypto_strings_int(void)
 # ifndef OPENSSL_NO_KDF2
         ERR_load_KDF2_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_FFX
-        ERR_load_FFX_strings() == 0 ||
-# endif
 # ifndef OPENSSL_NO_PAILLIER
         ERR_load_PAILLIER_strings() == 0 ||
 # endif
@@ -178,12 +166,6 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_GMAPI
         ERR_load_GMAPI_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_BFIBE
-        ERR_load_BFIBE_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_BB1IBE
-        ERR_load_BB1IBE_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_SM2
         ERR_load_SM2_strings() == 0 ||

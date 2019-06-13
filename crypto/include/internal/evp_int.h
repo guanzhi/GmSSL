@@ -384,9 +384,6 @@ struct evp_pkey_st {
         struct SM9_MASTER_KEY_st *sm9_master;
         struct SM9_KEY_st *sm9;
 # endif
-# ifndef OPENSSL_NO_CPK         /* CPK */
-        struct CPK_MASTER_SECERT *cpk;
-# endif
     } pkey;
     int save_parameters;
     STACK_OF(X509_ATTRIBUTE) *attributes; /* [ 0 ] */

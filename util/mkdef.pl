@@ -133,8 +133,8 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
                          # APPLINK (win build feature?)
                          "APPLINK",
                          # GmSSL
-                         "SM3", "SMS4", "KDF2", "ECIES", "FFX", "SM2", "PAILLIER", "OTP", "GMAPI", "EC2",
-                         "BFIBE", "BB1IBE", "SM9", "SDF", "SKF", "ZUC", "SERPENT", "SPECK", "BASE58",
+                         "SM3", "SMS4", "KDF2", "ECIES", "SM2", "PAILLIER", "OTP", "GMAPI",
+			 "SM9", "SDF", "SKF", "ZUC", "BASE58",
 			 "GMTLS", "GMTLS_METHOD", "CA", "MACRO", "ASYNC"
                      );
 
@@ -312,23 +312,13 @@ $crypto.=" include/openssl/async.h";
 $crypto.=" include/openssl/ct.h";
 $crypto.=" include/openssl/kdf.h";
 # GmSSL
-$crypto.=" include/openssl/bb1ibe.h";
-$crypto.=" include/openssl/bfibe.h";
-$crypto.=" include/openssl/bn_gfp2.h";
-$crypto.=" include/openssl/bn_hash.h";
-$crypto.=" include/openssl/bn_solinas.h";
-$crypto.=" include/openssl/ec_hash.h";
-$crypto.=" include/openssl/ec_type1.h";
 $crypto.=" include/openssl/ecies.h";
-$crypto.=" include/openssl/ffx.h";
-$crypto.=" include/openssl/fppoint.h";
 $crypto.=" include/openssl/gmapi.h";
 $crypto.=" include/openssl/gmsdf.h";
 $crypto.=" include/openssl/gmskf.h";
 $crypto.=" include/openssl/kdf2.h";
 $crypto.=" include/openssl/otp.h";
 $crypto.=" include/openssl/paillier.h";
-$crypto.=" include/openssl/saf.h";
 $crypto.=" include/openssl/sdf.h";
 $crypto.=" include/openssl/sgd.h";
 $crypto.=" include/openssl/skf.h";
@@ -339,8 +329,6 @@ $crypto.=" include/openssl/sm9.h";
 $crypto.=" include/openssl/sms4.h";
 $crypto.=" include/openssl/ssf33.h";
 $crypto.=" include/openssl/zuc.h";
-$crypto.=" include/openssl/serpent.h";
-$crypto.=" include/openssl/speck.h";
 
 
 my $symhacks="include/openssl/symhacks.h";
