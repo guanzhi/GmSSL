@@ -93,17 +93,11 @@
 #ifndef OPENSSL_NO_SM9
 # include <openssl/sm9.h>
 #endif
-#ifndef OPENSSL_NO_SAF
-# include <openssl/gmsaf.h>
-#endif
 #ifndef OPENSSL_NO_SDF
 # include <openssl/gmsdf.h>
 #endif
 #ifndef OPENSSL_NO_SKF
 # include <openssl/gmskf.h>
-#endif
-#ifndef OPENSSL_NO_SOF
-# include <openssl/gmsof.h>
 #endif
 #ifndef OPENSSL_NO_BASE58
 # include <openssl/base58.h>
@@ -203,17 +197,11 @@ int err_load_crypto_strings_int(void)
 # ifndef OPENSSL_NO_SM9
         ERR_load_SM9_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_SAF
-        ERR_load_SAF_strings() == 0 ||
-# endif
 # ifndef OPENSSL_NO_SDF
         ERR_load_SDF_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_SKF
         ERR_load_SKF_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_SOF
-        ERR_load_SOF_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_BASE58
         ERR_load_BASE58_strings() == 0 ||
