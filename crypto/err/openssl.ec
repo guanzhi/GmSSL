@@ -38,7 +38,6 @@ L KDF		include/openssl/kdf.h		crypto/kdf/kdf_err.c
 L KDF2		include/openssl/kdf2.h		crypto/kdf2/kdf2_err.c
 L FFX		include/openssl/ffx.h		crypto/ffx/ffx_err.c
 L PAILLIER	include/openssl/paillier.h	crypto/paillier/pai_err.c
-L CPK		include/openssl/cpk.h		crypto/cpk/cpk_err.c
 L OTP		include/openssl/otp.h		crypto/otp/otp_err.c
 L GMAPI		include/openssl/gmapi.h		crypto/gmapi/gmapi_err.c
 L BFIBE		include/openssl/bfibe.h		crypto/bfibe/bfibe_err.c

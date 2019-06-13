@@ -313,7 +313,7 @@ $config{sdirs} = [
     "evp", "asn1", "pem", "x509", "x509v3", "conf", "txt_db", "pkcs7", "pkcs12", "comp", "ocsp", "ui",
     "cms", "ts", "srp", "cmac", "ct", "async", "kdf",
     "sm3", "base58", "sms4", "zuc", "serpent", "speck", "kdf2", "ffx", "otp",
-    "ecies", "sm2", "cpk", "paillier", "ec2", "sm9", "bfibe", "bb1ibe",
+    "ecies", "sm2", "paillier", "ec2", "sm9", "bfibe", "bb1ibe",
     "gmapi", "skf", "sdf", "saf", "sof"
     ];
 
@@ -418,7 +418,6 @@ my @disablables = (
     "ffx",
     "sm2",
     "paillier",
-    "cpk",
     "otp",
     "gmapi",
     "ec2",
@@ -481,7 +480,6 @@ our %disabled = ( # "what"         => "comment"
 		  "skfeng"              => "default",
 		  "sdfeng"              => "default",
 		  "gmieng"              => "default",
-		  "cpk"                 => "default",
 		  "speck"               => "default",
 		);
 
@@ -507,7 +505,7 @@ my @disable_cascades = (
     # SSL 3.0, (D)TLS 1.0 and TLS 1.1 require MD5 and SHA
     "md5"		=> [ "ssl", "tls1", "tls1_1", "dtls1", "engine" ],
     # current pkcs12 rfc only define sha1/des bag
-    "sha"		=> [ "ssl", "tls1", "tls1_1", "dtls1", "engine", "rsa", "dh", "dsa", "ocsp", "ct", "srp", "ts", "ec2", "cpk" ],
+    "sha"		=> [ "ssl", "tls1", "tls1_1", "dtls1", "engine", "rsa", "dh", "dsa", "ocsp", "ct", "srp", "ts", "ec2"],
     "aes"               => [ "engine" ],
     "ec2"		=> [ "sm9", "bfibe", "bb1ibe" ],
 

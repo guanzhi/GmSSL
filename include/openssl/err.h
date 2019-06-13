@@ -96,7 +96,6 @@ typedef struct err_state_st {
 # define ERR_LIB_KDF2            53
 # define ERR_LIB_FFX             54
 # define ERR_LIB_PAILLIER        55
-# define ERR_LIB_CPK             56
 # define ERR_LIB_OTP             57
 # define ERR_LIB_GMAPI           58
 # define ERR_LIB_BFIBE           59
@@ -147,7 +146,6 @@ typedef struct err_state_st {
 # define KDF2err(f,r) ERR_PUT_error(ERR_LIB_KDF2,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define FFXerr(f,r) ERR_PUT_error(ERR_LIB_FFX,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define PAILLIERerr(f,r) ERR_PUT_error(ERR_LIB_PAILLIER,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define CPKerr(f,r) ERR_PUT_error(ERR_LIB_CPK,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define OTPerr(f,r) ERR_PUT_error(ERR_LIB_OTP,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define GMAPIerr(f,r) ERR_PUT_error(ERR_LIB_GMAPI,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define BFIBEerr(f,r) ERR_PUT_error(ERR_LIB_BFIBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
@@ -207,7 +205,6 @@ typedef struct err_state_st {
 # define ERR_R_KDF2_LIB  ERR_LIB_KDF2/* 53 */
 # define ERR_R_FFX_LIB  ERR_LIB_FFX/* 54 */
 # define ERR_R_PAILLIER_LIB ERR_LIB_PAILLIER/* 55 */
-# define ERR_R_CPK_LIB  ERR_LIB_CPK/* 56 */
 # define ERR_R_OTP_LIB  ERR_LIB_OTP/* 57 */
 # define ERR_R_GMAPI_LIB  ERR_LIB_GMAPI/* 58 */
 # define ERR_R_BFIBE_LIB  ERR_LIB_BFIBE/* 59 */

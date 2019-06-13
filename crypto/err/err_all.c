@@ -72,9 +72,6 @@
 #ifndef OPENSSL_NO_PAILLIER
 # include <openssl/paillier.h>
 #endif
-#ifndef OPENSSL_NO_CPK
-# include <openssl/cpk.h>
-#endif
 #ifndef OPENSSL_NO_OTP
 # include <openssl/otp.h>
 #endif
@@ -175,9 +172,6 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_PAILLIER
         ERR_load_PAILLIER_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_CPK
-        ERR_load_CPK_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_OTP
         ERR_load_OTP_strings() == 0 ||

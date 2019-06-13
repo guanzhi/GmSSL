@@ -133,7 +133,7 @@ my @known_algorithms = ( "RC2", "RC4", "RC5", "IDEA", "DES", "BF",
                          # APPLINK (win build feature?)
                          "APPLINK",
                          # GmSSL
-                         "SM3", "SMS4", "KDF2", "ECIES", "FFX", "SM2", "PAILLIER", "CPK", "OTP", "GMAPI", "EC2",
+                         "SM3", "SMS4", "KDF2", "ECIES", "FFX", "SM2", "PAILLIER", "OTP", "GMAPI", "EC2",
                          "BFIBE", "BB1IBE", "SM9", "SDF", "SKF", "ZUC", "SERPENT", "SPECK", "BASE58",
 			 "GMTLS", "GMTLS_METHOD", "CA", "MACRO", "ASYNC"
                      );
@@ -317,7 +317,6 @@ $crypto.=" include/openssl/bfibe.h";
 $crypto.=" include/openssl/bn_gfp2.h";
 $crypto.=" include/openssl/bn_hash.h";
 $crypto.=" include/openssl/bn_solinas.h";
-$crypto.=" include/openssl/cpk.h";
 $crypto.=" include/openssl/ec_hash.h";
 $crypto.=" include/openssl/ec_type1.h";
 $crypto.=" include/openssl/ecies.h";
