@@ -19,8 +19,7 @@ IF[{- !$disabled{tests} -}]
           bioprinttest sslapitest dtlstest sslcorrupttest bio_enc_test \
           sm2test sm3test sms4test kdf2test eciestest  \
           pailliertest otptest gmapitest sm9test \
-          sdftest skftest zuctest \
-          base58test
+          sdftest skftest zuctest
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include
@@ -334,10 +333,6 @@ IF[{- !$disabled{tests} -}]
   SOURCE[zuctest]=zuctest.c
   INCLUDE[zuctest]=../include
   DEPEND[zuctest]=../libcrypto
-
-  SOURCE[base58test]=base58test.c
-  INCLUDE[base58test]=../include
-  DEPEND[base58test]=../libcrypto
 
   IF[{- !$disabled{shared} -}]
     PROGRAMS_NO_INST=shlibloadtest

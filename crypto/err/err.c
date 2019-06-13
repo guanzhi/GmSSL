@@ -67,7 +67,6 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_SM9, 0, 0), "SM9 routines"},
     {ERR_PACK(ERR_LIB_SDF, 0, 0), "SDF routines"},
     {ERR_PACK(ERR_LIB_SKF, 0, 0), "SKF routines"},
-    {ERR_PACK(ERR_LIB_BASE58, 0, 0), "BASE58 routines"},
     {0, NULL},
 };
 
@@ -120,7 +119,6 @@ static ERR_STRING_DATA ERR_str_reasons[] = {
     {ERR_R_SM9_LIB, "SM9 lib"},
     {ERR_R_SDF_LIB, "SDF lib"},
     {ERR_R_SKF_LIB, "SKF lib"},
-    {ERR_R_BASE58_LIB, "BASE58 lib"},
 
     {ERR_R_NESTED_ASN1_ERROR, "nested asn1 error"},
     {ERR_R_MISSING_ASN1_EOS, "missing asn1 eos"},

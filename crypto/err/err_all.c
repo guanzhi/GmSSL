@@ -87,9 +87,6 @@
 #ifndef OPENSSL_NO_SKF
 # include <openssl/gmskf.h>
 #endif
-#ifndef OPENSSL_NO_BASE58
-# include <openssl/base58.h>
-#endif
 
 
 int err_load_crypto_strings_int(void)
@@ -178,9 +175,6 @@ int err_load_crypto_strings_int(void)
 # endif
 # ifndef OPENSSL_NO_SKF
         ERR_load_SKF_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_BASE58
-        ERR_load_BASE58_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

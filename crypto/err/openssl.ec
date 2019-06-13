@@ -43,7 +43,6 @@ L SM2		include/openssl/sm2.h		crypto/sm2/sm2_err.c
 L SM9		include/openssl/sm9.h		crypto/sm9/sm9_err.c
 L SDF		include/openssl/gmsdf.h		crypto/sdf/sdf_err.c
 L SKF		include/openssl/gmskf.h		crypto/skf/skf_err.c
-L BASE58	include/openssl/base58.h	crypto/base58/base58_err.c
 
 # additional header files to be scanned for function names
 L NONE		crypto/x509/x509_vfy.h		NONE
