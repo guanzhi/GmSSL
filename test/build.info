@@ -21,7 +21,7 @@ IF[{- !$disabled{tests} -}]
           pailliertest cpktest otptest gmapitest ec2test \
           bfibetest bb1ibetest sm9test \
           saftest sdftest skftest softest zuctest \
-          serpenttest specktest base58test ecrstest
+          serpenttest specktest base58test
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include

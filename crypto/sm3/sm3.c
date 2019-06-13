@@ -46,6 +46,10 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
+/* This implementation is a very straitforward implementaton of the SM3
+ * specification without any optimization tricks. It is also designed
+ * as a standalone module that can be ported.
+ */
 
 #include <string.h>
 #include <openssl/sm3.h>
@@ -53,6 +57,7 @@
 
 void sm3_init(sm3_ctx_t *ctx)
 {
+	memset(ctx, 0, sizeof(*ctx));
 	ctx->digest[0] = 0x7380166F;
 	ctx->digest[1] = 0x4914B2B9;
 	ctx->digest[2] = 0x172442D7;
@@ -61,12 +66,9 @@ void sm3_init(sm3_ctx_t *ctx)
 	ctx->digest[5] = 0x163138AA;
 	ctx->digest[6] = 0xE38DEE4D;
 	ctx->digest[7] = 0xB0FB0E4E;
-
-	ctx->nblocks = 0;
-	ctx->num = 0;
 }
 
-void sm3_update(sm3_ctx_t *ctx, const unsigned char* data, size_t data_len)
+void sm3_update(sm3_ctx_t *ctx, const unsigned char *data, size_t data_len)
 {
 	if (ctx->num) {
 		unsigned int left = SM3_BLOCK_SIZE - ctx->num;
@@ -119,24 +121,20 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 	}
 }
 
-#define ROTATELEFT(X,n)  (((X)<<(n)) | ((X)>>(32-(n))))
+#define ROTL(x,n)  (((x)<<(n)) | ((x)>>(32-(n))))
+#define P0(x) ((x) ^ ROTL((x), 9) ^ ROTL((x),17))
+#define P1(x) ((x) ^ ROTL((x),15) ^ ROTL((x),23))
 
-#define P0(x) ((x) ^  ROTATELEFT((x),9)  ^ ROTATELEFT((x),17))
-#define P1(x) ((x) ^  ROTATELEFT((x),15) ^ ROTATELEFT((x),23))
+#define FF00(x,y,z)  ((x) ^ (y) ^ (z))
+#define FF16(x,y,z)  (((x)&(y)) | ((x)&(z)) | ((y)&(z)))
+#define GG00(x,y,z)  ((x) ^ (y) ^ (z))
+#define GG16(x,y,z)  (((x)&(y)) | ((~(x))&(z)))
 
-#define FF0(x,y,z) ( (x) ^ (y) ^ (z))
-#define FF1(x,y,z) (((x) & (y)) | ( (x) & (z)) | ( (y) & (z)))
-
-#define GG0(x,y,z) ( (x) ^ (y) ^ (z))
-#define GG1(x,y,z) (((x) & (y)) | ( (~(x)) & (z)) )
-
+#define T00 0x79CC4519
+#define T16 0x7A879D8A
 
 void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 {
-	int j;
-	uint32_t W[68], W1[64];
-	const uint32_t *pblock = (const uint32_t *)block;
-
 	uint32_t A = digest[0];
 	uint32_t B = digest[1];
 	uint32_t C = digest[2];
@@ -145,48 +143,48 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 	uint32_t F = digest[5];
 	uint32_t G = digest[6];
 	uint32_t H = digest[7];
-	uint32_t SS1,SS2,TT1,TT2,T[64];
+	const uint32_t *pblock = (const uint32_t *)block;
+	uint32_t W[68], W1[64];
+	uint32_t SS1, SS2, TT1, TT2;
+	int j;
+
+
+	for (j = 0; j < 16; j++)
+		W[j] = cpu_to_be32(pblock[j]);
+
+	for (; j < 68; j++)
+		W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROTL(W[j - 3], 15))
+			^ ROTL(W[j - 13], 7) ^ W[j - 6];
+
+	for(j = 0; j < 64; j++)
+		W1[j] = W[j] ^ W[j + 4];
 
 	for (j = 0; j < 16; j++) {
-		W[j] = cpu_to_be32(pblock[j]);
-	}
-	for (j = 16; j < 68; j++) {
-		W[j] = P1( W[j-16] ^ W[j-9] ^ ROTATELEFT(W[j-3],15)) ^ ROTATELEFT(W[j - 13],7 ) ^ W[j-6];;
-	}
-	for( j = 0; j < 64; j++) {
-		W1[j] = W[j] ^ W[j+4];
-	}
-
-	for(j =0; j < 16; j++) {
-
-		T[j] = 0x79CC4519;
-		SS1 = ROTATELEFT((ROTATELEFT(A,12) + E + ROTATELEFT(T[j],j)), 7);
-		SS2 = SS1 ^ ROTATELEFT(A,12);
-		TT1 = FF0(A,B,C) + D + SS2 + W1[j];
-		TT2 = GG0(E,F,G) + H + SS1 + W[j];
+		SS1 = ROTL((ROTL(A, 12) + E + ROTL(T00, j)), 7);
+		SS2 = SS1 ^ ROTL(A, 12);
+		TT1 = FF00(A, B, C) + D + SS2 + W1[j];
+		TT2 = GG00(E, F, G) + H + SS1 + W[j];
 		D = C;
-		C = ROTATELEFT(B,9);
+		C = ROTL(B, 9);
 		B = A;
 		A = TT1;
 		H = G;
-		G = ROTATELEFT(F,19);
+		G = ROTL(F, 19);
 		F = E;
 		E = P0(TT2);
 	}
 
-	for(j =16; j < 64; j++) {
-
-		T[j] = 0x7A879D8A;
-		SS1 = ROTATELEFT((ROTATELEFT(A,12) + E + ROTATELEFT(T[j],j%32)), 7);
-		SS2 = SS1 ^ ROTATELEFT(A,12);
-		TT1 = FF1(A,B,C) + D + SS2 + W1[j];
-		TT2 = GG1(E,F,G) + H + SS1 + W[j];
+	for (; j < 64; j++) {
+		SS1 = ROTL((ROTL(A, 12) + E + ROTL(T16, j % 32)), 7);
+		SS2 = SS1 ^ ROTL(A, 12);
+		TT1 = FF16(A, B, C) + D + SS2 + W1[j];
+		TT2 = GG16(E, F, G) + H + SS1 + W[j];
 		D = C;
-		C = ROTATELEFT(B,9);
+		C = ROTL(B, 9);
 		B = A;
 		A = TT1;
 		H = G;
-		G = ROTATELEFT(F,19);
+		G = ROTL(F, 19);
 		F = E;
 		E = P0(TT2);
 	}
@@ -212,3 +210,18 @@ void sm3(const unsigned char *msg, size_t msglen,
 
 	memset(&ctx, 0, sizeof(sm3_ctx_t));
 }
+
+#define DATA_ORDER_IS_BIG_ENDIAN
+
+#define HASH_LONG	SM3_LONG
+#define HASH_CTX	SM3_CTX
+#define HASH_CBLOCK	SM3_CBLOCK
+
+
+
+
+
+
+
+
+

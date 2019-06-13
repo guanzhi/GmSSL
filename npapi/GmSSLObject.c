@@ -67,7 +67,7 @@
 const char *prog = "gmssl";
 static bool identifiersInitialized = false;
 
-#define GMSSL_VERSION			"1.0"
+#define GMSSL_VERSION			"GmSSL JavaScript API 1.0  Feb 3 2019"
 
 #define GMSSL_PROPERTY_VERSION		0
 #define GMSSL_NUM_PROPERTIES		1
@@ -84,9 +84,9 @@ static const NPUTF8 *gmsslPropertyNames[GMSSL_NUM_PROPERTIES] = {
 
 static NPIdentifier gmsslMethodIdentifiers[GMSSL_NUM_METHODS];
 static const NPUTF8 *gmsslMethodNames[GMSSL_NUM_METHODS] = {
-	"keygen",
-	"encrypt",
-	"decrypt",
+	"sm3",
+	"sm4cbcencrypt",
+	"sm4cbcdecrypt",
 };
 
 static bool do_keygen(const NPVariant algor, NPVariant *result);
@@ -190,7 +190,7 @@ static bool gmsslGetProperty(NPObject *obj, NPIdentifier name, NPVariant *varian
 	return false;
 }
 
-static bool gmsslSetProperty(NPObject *obj, NPIdentifier name, 
+static bool gmsslSetProperty(NPObject *obj, NPIdentifier name,
 	const NPVariant *variant)
 {
 	return false;
@@ -217,7 +217,46 @@ NPClass *getGmSSLClass(void)
 static bool do_keygen(const NPVariant algor, NPVariant *result)
 {
 	bool ret = false;
+
+	/* set the default return value */
+	NULL_TO_NPVARIANT(*result);
+
+	if (!NPVARIANT_IS_STRING(algor)) {
+		goto end;
+	}
+
+	if (!(alg_str = NPVARIANT_TO_STRING(algor).UTF8Characters)
+		|| strlen(alg_str) <= 0
+		|| !(alg = 
+
+
 	return ret;
+}
+
+static bool sms4_cbc_encrypt(const NPVariant plaintext, const NPVariant key, NPVariant *result)
+{
+	
+
+}
+
+static bool sms4_cbc_decrypt(const NPVariant plaintext, const NPVariant key, NPVariant *result)
+{
+}
+
+static bool sm2_sign(const NPVariant dgst, const NPVariant key, NPVariant *result)
+{
+}
+
+static bool sm2_sign(const NPVariant dgst, const NPVariant sig, const NPVariant key, NPVariant *result)
+{
+}
+
+static bool sm2_encrypt(const NPVariant plaintext, const NPVariant key, NPVariant *result)
+{
+}
+
+static bool sm2_decrypt(const NPVariant plaintext, const NPVariant key, NPVariant *result)
+{
 }
 
 static bool do_encrypt(const NPVariant algor, const NPVariant plaintext,
