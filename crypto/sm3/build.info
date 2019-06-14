@@ -1,13 +1,2 @@
 LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
-        sm3.c {- $target{sm3_asm_src} -}
-
-GENERATE[sm3-x86_64.s]=asm/sm3-x86_64.pl $(PERLASM_SCHEME)
-
-BEGINRAW[Makefile(unix)]
-##### SM3 assembler implementations
-
-# GNU make "catch all"
-{- $builddir -}/sm3-%.S:	{- $sourcedir -}/asm/sm3-%.pl
-	CC="$(CC)" $(PERL) $< $(PERLASM_SCHEME) $@
-ENDRAW[Makefile(unix)]
+SOURCE[../../libcrypto]=sm3.c sm3_hmac.c
