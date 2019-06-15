@@ -46,10 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
-/* This implementation is a very straitforward implementaton of the SM3
- * specification without any optimization tricks. It is also designed
- * as a standalone module that can be ported.
- */
 
 #include <string.h>
 #include <openssl/sm3.h>
@@ -148,7 +144,6 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 	uint32_t SS1, SS2, TT1, TT2;
 	int j;
 
-
 	for (j = 0; j < 16; j++)
 		W[j] = cpu_to_be32(pblock[j]);
 
@@ -210,18 +205,3 @@ void sm3(const unsigned char *msg, size_t msglen,
 
 	memset(&ctx, 0, sizeof(sm3_ctx_t));
 }
-
-#define DATA_ORDER_IS_BIG_ENDIAN
-
-#define HASH_LONG	SM3_LONG
-#define HASH_CTX	SM3_CTX
-#define HASH_CBLOCK	SM3_CBLOCK
-
-
-
-
-
-
-
-
-
