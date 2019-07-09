@@ -51,9 +51,11 @@
 #include <openssl/err.h>
 #include <openssl/sm9.h>
 #include <openssl/crypto.h>
-#include <openssl/bn_hash.h>
+#include "../bn/bn_lcl.h"
 #include "sm9_lcl.h"
 
+static int BN_hash_to_range(const EVP_MD *md, BIGNUM **bn,
+	const void *s, size_t slen, const BIGNUM *range, BN_CTX *bn_ctx);
 
 #if 0
 typedef struct {
@@ -230,4 +232,86 @@ int sm9_check_encrypt_scheme(int nid)
 int sm9_check_sign_scheme(int nid)
 {
 	return 1;
+}
+
+int BN_hash_to_range(const EVP_MD *md, BIGNUM **bn,
+	const void *s, size_t slen, const BIGNUM *range, BN_CTX *bn_ctx)
+{
+	int ret = 0;
+	BIGNUM *r = NULL;
+	BIGNUM *a = NULL;
+	unsigned char *buf = NULL;
+	size_t buflen, mdlen;
+	int nbytes, rounds, i;
+
+	if (!s || slen <= 0 || !md || !range) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+
+	if (!(*bn)) {
+		if (!(r = BN_new())) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_MALLOC_FAILURE);
+			return 0;
+		}
+	} else {
+		r = *bn;
+		BN_zero(r);
+	}
+
+	mdlen = EVP_MD_size(md);
+	buflen = mdlen + slen;
+	if (!(buf = OPENSSL_malloc(buflen))) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	memset(buf, 0, mdlen);
+	memcpy(buf + mdlen, s, slen);
+
+	a = BN_new();
+	if (!a) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	nbytes = BN_num_bytes(range);
+	rounds = (nbytes + mdlen - 1)/mdlen;
+
+	if (!bn_expand(r, rounds * mdlen * 8)) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	for (i = 0; i < rounds; i++) {
+		if (!EVP_Digest(buf, buflen, buf, (unsigned int *)&mdlen, md, NULL)) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_EVP_LIB);
+			goto end;
+		}
+		if (!BN_bin2bn(buf, mdlen, a)) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+			goto end;
+		}
+		if (!BN_lshift(r, r, mdlen * 8)) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+			goto end;
+		}
+		if (!BN_uadd(r, r, a)) {
+			goto end;
+		}
+	}
+
+	if (!BN_mod(r, r, range, bn_ctx)) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	*bn = r;
+	ret = 1;
+end:
+	if (!ret && !(*bn)) {
+		BN_free(r);
+	}
+	BN_free(a);
+	OPENSSL_free(buf);
+	return ret;
 }

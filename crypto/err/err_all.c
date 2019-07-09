@@ -66,14 +66,8 @@
 #endif
 #include <openssl/kdf.h>
 #include <openssl/kdf2.h>
-#ifndef OPENSSL_NO_FFX
-# include <openssl/ffx.h>
-#endif
 #ifndef OPENSSL_NO_PAILLIER
 # include <openssl/paillier.h>
-#endif
-#ifndef OPENSSL_NO_CPK
-# include <openssl/cpk.h>
 #endif
 #ifndef OPENSSL_NO_OTP
 # include <openssl/otp.h>
@@ -81,35 +75,17 @@
 #ifndef OPENSSL_NO_GMAPI
 # include <openssl/gmapi.h>
 #endif
-#ifndef OPENSSL_NO_BFIBE
-# include <openssl/bfibe.h>
-#endif
-#ifndef OPENSSL_NO_BB1IBE
-# include <openssl/bb1ibe.h>
-#endif
 #ifndef OPENSSL_NO_SM2
 # include <openssl/sm2.h>
 #endif
 #ifndef OPENSSL_NO_SM9
 # include <openssl/sm9.h>
 #endif
-#ifndef OPENSSL_NO_SAF
-# include <openssl/gmsaf.h>
-#endif
 #ifndef OPENSSL_NO_SDF
 # include <openssl/gmsdf.h>
 #endif
 #ifndef OPENSSL_NO_SKF
 # include <openssl/gmskf.h>
-#endif
-#ifndef OPENSSL_NO_SOF
-# include <openssl/gmsof.h>
-#endif
-#ifndef OPENSSL_NO_BASE58
-# include <openssl/base58.h>
-#endif
-#ifndef OPENSSL_NO_ECRS
-# include <openssl/ecrs.h>
 #endif
 
 
@@ -179,14 +155,8 @@ int err_load_crypto_strings_int(void)
 # ifndef OPENSSL_NO_KDF2
         ERR_load_KDF2_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_FFX
-        ERR_load_FFX_strings() == 0 ||
-# endif
 # ifndef OPENSSL_NO_PAILLIER
         ERR_load_PAILLIER_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_CPK
-        ERR_load_CPK_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_OTP
         ERR_load_OTP_strings() == 0 ||
@@ -194,35 +164,17 @@ int err_load_crypto_strings_int(void)
 # ifndef OPENSSL_NO_GMAPI
         ERR_load_GMAPI_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_BFIBE
-        ERR_load_BFIBE_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_BB1IBE
-        ERR_load_BB1IBE_strings() == 0 ||
-# endif
 # ifndef OPENSSL_NO_SM2
         ERR_load_SM2_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_SM9
         ERR_load_SM9_strings() == 0 ||
 # endif
-# ifndef OPENSSL_NO_SAF
-        ERR_load_SAF_strings() == 0 ||
-# endif
 # ifndef OPENSSL_NO_SDF
         ERR_load_SDF_strings() == 0 ||
 # endif
 # ifndef OPENSSL_NO_SKF
         ERR_load_SKF_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_SOF
-        ERR_load_SOF_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_BASE58
-        ERR_load_BASE58_strings() == 0 ||
-# endif
-# ifndef OPENSSL_NO_ECRS
-        ERR_load_ECRS_strings() == 0 ||
 # endif
 #endif
         ERR_load_KDF_strings() == 0)

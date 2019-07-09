@@ -1,2 +1,0 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=ecrs_err.c ecrs_asn1.c ecrs_lib.c

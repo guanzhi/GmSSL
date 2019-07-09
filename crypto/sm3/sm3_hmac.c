@@ -122,4 +122,3 @@ void sm3_hmac(const unsigned char *data, size_t data_len,
 	sm3_hmac_final(&ctx, mac);
 	memset(&ctx, 0, sizeof(ctx));
 }
-

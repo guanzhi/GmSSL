@@ -49,7 +49,6 @@
 
 #include <stdlib.h>
 #include <openssl/zuc.h>
-#include "zuc_spec.h"
 
 static const ZUC_UINT15 KD[16] = {
 	0x44D7,0x26BC,0x626B,0x135E,0x5789,0x35E2,0x7135,0x09AF,

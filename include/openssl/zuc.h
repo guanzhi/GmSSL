@@ -70,59 +70,16 @@ extern "C" {
 # endif
 
 
-/* ZUC stream cipher */
-
 typedef struct zuc_key_st {
 	ZUC_UINT31 LFSR[16];
 	uint32_t R1;
 	uint32_t R2;
 } ZUC_KEY;
 
+
 void ZUC_set_key(ZUC_KEY *key, const unsigned char *user_key, const unsigned char *iv);
 void ZUC_generate_keystream(ZUC_KEY *key, size_t nwords, uint32_t *words);
 uint32_t ZUC_generate_keyword(ZUC_KEY *key);
-
-# define ZUC_128EEA3_MIN_BITS	1
-# define ZUC_128EEA3_MAX_BITS	65504
-# define ZUC_128EEA3_MIN_BYTES	((ZUC_128EEA3_MIN_BITS + 7)/8)
-# define ZUC_128EEA3_MAX_BYTES	((ZUC_128EEA3_MAX_BITS + 7)/8)
-
-/* ZUC 128-EEA3 */
-
-typedef struct zuc_128eea3_st {
-	ZUC_KEY ks;
-} ZUC_128EEA3;
-
-void ZUC_128eea3_set_key(ZUC_128EEA3 *ctx, const unsigned char user_key[16],
-	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction);
-void ZUC_128eea3_encrypt(ZUC_128EEA3 *ctx, size_t len,
-	const unsigned char *in, unsigned char *out);
-# define ZUC_128eea3_decrypt(ctx,len,in,out) \
-	ZUC_128eea3_encrypt(ctx,len,in,out)
-void ZUC_128eea3(const unsigned char key[ZUC_KEY_LENGTH],
-	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction,
-	size_t len, const unsigned char *in, unsigned char *out);
-
-/* ZUC 128-EIA3 */
-
-# define ZUC_128EIA3_MIN_BYTES	EEA3_MIN_BYTES
-# define ZUC_128EIA3_MAX_BYTES	EEA3_MAX_BYTES
-# define ZUC_128EIA3_MAC_SIZE	4
-
-typedef struct zuc_128eia3_st {
-	ZUC_KEY ks;
-	unsigned char buf[4];
-	size_t num;
-} ZUC_128EIA3;
-
-void ZUC_128eia3_set_key(ZUC_128EIA3 *ctx, const unsigned char *user_key,
-	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction);
-void ZUC_128eia3_update(ZUC_128EIA3 *ctx, const unsigned char *data,
-	size_t datalen);
-void ZUC_128eia3_final(ZUC_128EIA3 *ctx, uint32_t *mac);
-void ZUC_128eia3(const unsigned char key[ZUC_KEY_LENGTH],
-	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_UINT1 direction,
-	const unsigned char *data, size_t dlen, uint32_t *mac);
 
 
 # ifdef __cplusplus

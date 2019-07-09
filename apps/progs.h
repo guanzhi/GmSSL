@@ -28,7 +28,6 @@ extern int asn1parse_main(int argc, char *argv[]);
 extern int ca_main(int argc, char *argv[]);
 extern int ciphers_main(int argc, char *argv[]);
 extern int cms_main(int argc, char *argv[]);
-extern int cpk_main(int argc, char *argv[]);
 extern int crl_main(int argc, char *argv[]);
 extern int crl2pkcs7_main(int argc, char *argv[]);
 extern int dgst_main(int argc, char *argv[]);
@@ -41,7 +40,6 @@ extern int enc_main(int argc, char *argv[]);
 extern int engine_main(int argc, char *argv[]);
 extern int errstr_main(int argc, char *argv[]);
 extern int exit_main(int argc, char *argv[]);
-extern int fpe_main(int argc, char *argv[]);
 extern int gendsa_main(int argc, char *argv[]);
 extern int genpkey_main(int argc, char *argv[]);
 extern int genrsa_main(int argc, char *argv[]);
@@ -89,7 +87,6 @@ extern OPTIONS asn1parse_options[];
 extern OPTIONS ca_options[];
 extern OPTIONS ciphers_options[];
 extern OPTIONS cms_options[];
-extern OPTIONS cpk_options[];
 extern OPTIONS crl_options[];
 extern OPTIONS crl2pkcs7_options[];
 extern OPTIONS dgst_options[];
@@ -102,7 +99,6 @@ extern OPTIONS enc_options[];
 extern OPTIONS engine_options[];
 extern OPTIONS errstr_options[];
 extern OPTIONS exit_options[];
-extern OPTIONS fpe_options[];
 extern OPTIONS gendsa_options[];
 extern OPTIONS genpkey_options[];
 extern OPTIONS genrsa_options[];
@@ -158,9 +154,6 @@ static FUNCTION functions[] = {
 #ifndef OPENSSL_NO_CMS
     { FT_general, "cms", cms_main, cms_options },
 #endif
-#ifndef OPENSSL_NO_CPK
-    { FT_general, "cpk", cpk_main, cpk_options },
-#endif
     { FT_general, "crl", crl_main, crl_options },
     { FT_general, "crl2pkcs7", crl2pkcs7_main, crl2pkcs7_options },
     { FT_general, "dgst", dgst_main, dgst_options },
@@ -185,7 +178,6 @@ static FUNCTION functions[] = {
 #endif
     { FT_general, "errstr", errstr_main, errstr_options },
     { FT_general, "exit", exit_main, exit_options },
-    { FT_general, "fpe", fpe_main, fpe_options },
 #ifndef OPENSSL_NO_DSA
     { FT_general, "gendsa", gendsa_main, gendsa_options },
 #endif

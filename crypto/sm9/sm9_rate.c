@@ -2659,7 +2659,6 @@ int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx)
 
 	BN_free(xP);
 	BN_free(yP);
-	EC_GROUP_clear_free(group);
 	return ret;
 }
 

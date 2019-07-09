@@ -67,10 +67,8 @@
 #endif
 #include <openssl/evp.h>
 #include <openssl/sgd.h>
-#include <openssl/saf.h>
 #include <openssl/sdf.h>
 #include <openssl/skf.h>
-#include <openssl/sof.h>
 
 #ifdef __cplusplus
 extern "C" {

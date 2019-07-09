@@ -17,11 +17,9 @@ IF[{- !$disabled{tests} -}]
           dtlsv1listentest ct_test threadstest afalgtest d2i_test \
           ssl_test_ctx_test ssl_test x509aux cipherlist_test asynciotest \
           bioprinttest sslapitest dtlstest sslcorrupttest bio_enc_test \
-          sm3test sms4test kdf2test eciestest ffxtest sm2test \
-          pailliertest cpktest otptest gmapitest ec2test \
-          bfibetest bb1ibetest sm9test \
-          saftest sdftest skftest softest zuctest \
-          serpenttest specktest base58test ecrstest
+          sm2test sm3test sms4test kdf2test eciestest  \
+          pailliertest otptest gmapitest sm9test \
+          sdftest skftest zuctest
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include
@@ -304,10 +302,6 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[eciestest]=../include
   DEPEND[eciestest]=../libcrypto
 
-  SOURCE[ffxtest]=ffxtest.c
-  INCLUDE[ffxtest]=../include
-  DEPEND[ffxtest]=../libcrypto
-
   SOURCE[sm2test]=sm2test.c
   INCLUDE[sm2test]=../include
   DEPEND[sm2test]=../libcrypto
@@ -315,10 +309,6 @@ IF[{- !$disabled{tests} -}]
   SOURCE[pailliertest]=pailliertest.c
   INCLUDE[pailliertest]=../include
   DEPEND[pailliertest]=../libcrypto
-
-  SOURCE[cpktest]=cpktest.c
-  INCLUDE[cpktest]=../include
-  DEPEND[cpktest]=../libcrypto
 
   SOURCE[otptest]=otptest.c
   INCLUDE[otptest]=../include
@@ -328,25 +318,9 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[gmapitest]=../include
   DEPEND[gmapitest]=../libcrypto
 
-  SOURCE[ec2test]=ec2test.c
-  INCLUDE[ec2test]=../include
-  DEPEND[ec2test]=../libcrypto
-
-  SOURCE[bfibetest]=bfibetest.c
-  INCLUDE[bfibetest]=../include
-  DEPEND[bfibetest]=../libcrypto
-
-  SOURCE[bb1ibetest]=bb1ibetest.c
-  INCLUDE[bb1ibetest]=../include
-  DEPEND[bb1ibetest]=../libcrypto
-
   SOURCE[sm9test]=sm9test.c
   INCLUDE[sm9test]=../include
   DEPEND[sm9test]=../libcrypto
-
-  SOURCE[saftest]=saftest.c
-  INCLUDE[saftest]=../include
-  DEPEND[saftest]=../libcrypto
 
   SOURCE[sdftest]=sdftest.c
   INCLUDE[sdftest]=../include
@@ -356,29 +330,9 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[skftest]=../include
   DEPEND[skftest]=../libcrypto
 
-  SOURCE[softest]=softest.c
-  INCLUDE[softest]=../include
-  DEPEND[softest]=../libcrypto
-
   SOURCE[zuctest]=zuctest.c
   INCLUDE[zuctest]=../include
   DEPEND[zuctest]=../libcrypto
-
-  SOURCE[serpenttest]=serpenttest.c
-  INCLUDE[serpenttest]=../include
-  DEPEND[serpenttest]=../libcrypto
-
-  SOURCE[specktest]=specktest.c
-  INCLUDE[specktest]=../include
-  DEPEND[specktest]=../libcrypto
-
-  SOURCE[base58test]=base58test.c
-  INCLUDE[base58test]=../include
-  DEPEND[base58test]=../libcrypto
-
-  SOURCE[ecrstest]=ecrstest.c
-  INCLUDE[ecrstest]=../include
-  DEPEND[ecrstest]=../libcrypto
 
   IF[{- !$disabled{shared} -}]
     PROGRAMS_NO_INST=shlibloadtest
