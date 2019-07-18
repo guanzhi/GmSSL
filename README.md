@@ -159,7 +159,7 @@ $ gmssl sm2utl -decrypt -inkey dkey.pem -in ciphertext.sm2
 
 Identity-based encryption with SM9
 
-```
+```sh
 $ echo "Message" | gmssl pkeyutl -encrypt -pubin -inkey params.pem -pkeyopt id:Alice -out ciphertext.der
 $ gmssl pkeyutl -decrypt -inkey sm9key.pem -in ciphertext.der
 ```
@@ -170,4 +170,10 @@ Self-signed SM2 certificate generation:
 $ gmssl req -new -x509 -key skey.pem -out cert.pem
 ```
 
+TLS/DTLS with SM2 ciphersuites:
+
+```sh
+$ gmssl s_server [-tls1_2|-dtls1_2] -port 443 -cipher SM2 -key sm2key.pem -cert sm2cert.pem &
+$ gmssl s_client [-tls1_2|-dtls1_2] -connect localhost:443 -cipher SM2 -CAfile cacert.pem
+```
 
