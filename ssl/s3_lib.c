@@ -2026,6 +2026,23 @@ static SSL_CIPHER ssl3_ciphers[] = {
      256,
      256,
      },
+#ifndef OPENSSL_NO_GMTLS
+    {
+     1,
+     GMTLS_TXT_ECDHE_PSK_WITH_SMS4_CBC_SM3,
+     GMTLS_CK_ECDHE_PSK_WITH_SMS4_CBC_SM3,
+     SSL_kECDHEPSK,
+     SSL_aPSK,
+     SSL_SMS4,
+     SSL_SM3,
+     TLS1_VERSION, TLS1_2_VERSION,
+     DTLS1_BAD_VER, DTLS1_2_VERSION,
+     SSL_HIGH,
+     SSL_HANDSHAKE_MAC_SM3 | TLS1_PRF,
+     128,
+     128,
+     },
+#endif
     {
      1,
      TLS1_TXT_ECDHE_PSK_WITH_NULL_SHA,

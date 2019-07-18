@@ -516,6 +516,9 @@ static ssl_trace_tbl ssl_ciphers_tbl[] = {
     {0xFEFE, "SSL_RSA_FIPS_WITH_DES_CBC_SHA"},
     {0xFEFF, "SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA"},
 
+#ifndef OPENSSL_NO_GMTLS
+    {0xF10E, "GMTLS_ECDHE_PSK_WITH_SMS4_CBC_SM3"},
+#endif
 };
 
 /* Compression methods */
