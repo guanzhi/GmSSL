@@ -53,6 +53,7 @@
 #include <openssl/sm2.h>
 #include <openssl/sm9.h>
 #include <openssl/hmac.h>
+#include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include "sm9_lcl.h"
 
@@ -351,10 +352,13 @@ int SM9_encrypt(int type,
 	SM9Ciphertext *sm9cipher = NULL;
 	int kdf;
 	const EVP_MD *md;
+    const EVP_CIPHER *cipher = NULL;
 	unsigned char *key = NULL;
 	size_t keylen;
 	unsigned char C1[1 + 64];
 	size_t C1_len;
+    unsigned char *C2 = NULL;
+    size_t C2_len;
 	unsigned char mac[EVP_MAX_MD_SIZE];
 	unsigned int maclen = sizeof(mac);
 	int len, i;
@@ -364,6 +368,9 @@ int SM9_encrypt(int type,
 	case NID_sm9encrypt_with_sm3_xor:
 		kdf = NID_sm9kdf_with_sm3;
 		md = EVP_sm3();
+		// xor key + hmac key
+		keylen = inlen + EVP_MD_size(md);
+		C2_len = inlen;
 		break;
 	/*
 	case NID_sm9encrypt_with_sha256_xor:
@@ -372,12 +379,24 @@ int SM9_encrypt(int type,
 		break;
 	*/
 	case NID_sm9encrypt_with_sm3_sms4_cbc:
+		kdf = NID_sm9kdf_with_sm3;
+		md = EVP_sm3();
+		cipher = EVP_sms4_cbc();
+		keylen = EVP_CIPHER_key_length(cipher) + EVP_MD_size(md);
+		C2_len = EVP_CIPHER_iv_length(cipher) + inlen +
+					EVP_CIPHER_block_size(cipher) -
+					inlen % EVP_CIPHER_block_size(cipher);
+		break;
 	case NID_sm9encrypt_with_sm3_sms4_ctr:
+		kdf = NID_sm9kdf_with_sm3;
+		md = EVP_sm3();
+		cipher = EVP_sms4_ctr();
+		keylen = EVP_CIPHER_key_length(cipher) + EVP_MD_size(md);
+		C2_len = EVP_CIPHER_iv_length(cipher) + inlen;
+		break;
 	default:
 		return 0;
 	}
-
-	keylen = inlen + EVP_MD_size(md);
 
 	/* malloc */
 	if (!(sm9cipher = SM9Ciphertext_new())
@@ -385,6 +404,10 @@ int SM9_encrypt(int type,
 		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
+    if (!(C2 = OPENSSL_malloc(C2_len + EVP_MD_size(md)))) {
+        SM9err(SM9_F_SM9_ENCRYPT, ERR_R_MALLOC_FAILURE);
+        goto end;
+    }
 
 	/* C1 */
 	if (!SM9_wrap_key(kdf, key, keylen, C1, &C1_len, mpk, id, idlen)) {
@@ -392,20 +415,57 @@ int SM9_encrypt(int type,
 		goto end;
 	}
 
-	/* C2 = M xor K1 */
-	for (i = 0; i < inlen; i++) {
-		key[i] ^= in[i];
+	/* C2 */
+    if (cipher) {
+        EVP_CIPHER_CTX *cipher_ctx = NULL;
+        unsigned char *iv, *pout;
+        unsigned int ivlen;
+
+        // generate IV
+        ivlen = EVP_CIPHER_iv_length(cipher);
+        iv = C2;
+        pout = C2 + ivlen;
+        RAND_bytes(iv, ivlen);
+
+        if (!(cipher_ctx = EVP_CIPHER_CTX_new())) {
+            SM9err(SM9_F_SM9_ENCRYPT, ERR_R_MALLOC_FAILURE);
+            goto end;
+        }
+        if (!EVP_EncryptInit(cipher_ctx, cipher, key, iv)) {
+            SM9err(SM9_F_SM9_ENCRYPT, SM9_R_ENCRYPT_FAILED);
+            EVP_CIPHER_CTX_free(cipher_ctx);
+            goto end;
+        }
+        if (!EVP_EncryptUpdate(cipher_ctx, pout, (int *)&len, in, inlen)) {
+            SM9err(SM9_F_SM9_ENCRYPT, SM9_R_ENCRYPT_FAILED);
+            EVP_CIPHER_CTX_free(cipher_ctx);
+            goto end;
+        }
+        pout += len;
+        if (!EVP_EncryptFinal(cipher_ctx, pout, (int *)&len)) {
+            SM9err(SM9_F_SM9_ENCRYPT, SM9_R_ENCRYPT_FAILED);
+            EVP_CIPHER_CTX_free(cipher_ctx);
+            goto end;
+        }
+        pout += len;
+        EVP_CIPHER_CTX_free(cipher_ctx);
+
+	} else if (type == NID_sm9encrypt_with_sm3_xor) {
+		for (i = 0; i < inlen; i++) {
+            C2[i] = key[i] ^ in[i];
+		}
 	}
+    memcpy(C2 + C2_len, key + keylen - EVP_MD_size(md), EVP_MD_size(md));
 
 	/* C3 = Hv(C2||K2) */
-	if (!EVP_Digest(key, keylen, mac, &maclen, md, NULL)) {
+	if (!EVP_Digest(C2, C2_len + EVP_MD_size(md), mac, &maclen, md, NULL)) {
 		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	/* compose SM9Ciphertext */
 	if (!ASN1_STRING_set(sm9cipher->pointC1, C1, C1_len)
-		|| !ASN1_STRING_set(sm9cipher->c2, key, inlen)
+		|| !ASN1_STRING_set(sm9cipher->c2, C2, C2_len)
 		|| !ASN1_STRING_set(sm9cipher->c3, mac, maclen)) {
 		SM9err(SM9_F_SM9_ENCRYPT, ERR_R_SM9_LIB);
 		goto end;
@@ -423,6 +483,7 @@ int SM9_encrypt(int type,
 end:
 	OPENSSL_free(sm9cipher);
 	OPENSSL_clear_free(key, keylen);
+    OPENSSL_clear_free(C2, C2_len + EVP_MD_size(md));
 	return ret;
 }
 
@@ -437,59 +498,77 @@ int SM9_decrypt(int type,
 	size_t keylen;
 	int kdf;
 	const EVP_MD *md;
+    const EVP_CIPHER *cipher = NULL;
 	const unsigned char *C2;
 	int C2_len;
+    unsigned char *mac_in = NULL;
 	unsigned char mac[EVP_MAX_MD_SIZE];
 	unsigned int maclen = sizeof(mac);
 	int len, i;
 
-	/* parse type */
-	switch (type) {
+    if (!in || !outlen || !sk) {
+        SM9err(SM9_F_SM9_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
+        goto end;
+    }
+
+    /* decode sm9 ciphertext */
+    if (!(sm9cipher = d2i_SM9Ciphertext(NULL, &in, inlen))) {
+        SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
+        goto end;
+    }
+    C2 = ASN1_STRING_get0_data(sm9cipher->c2);
+    C2_len = ASN1_STRING_length(sm9cipher->c2);
+
+    /* check/return output length */
+    if (!out) {
+        *outlen = C2_len;
+        ret = 1;
+        goto end;
+    } else if (*outlen < C2_len) {
+        SM9err(SM9_F_SM9_DECRYPT, SM9_R_BUFFER_TOO_SMALL);
+        goto end;
+    }
+
+    /* parse type */
+    switch (type) {
 	case NID_sm9encrypt_with_sm3_xor:
 		kdf = NID_sm9kdf_with_sm3;
 		md = EVP_sm3();
+		keylen = C2_len + EVP_MD_size(md);
 		break;
 	/*
 	case NID_sm9encrypt_with_sha256_xor:
-		kdf = NID_sm9kdf_with_sha256;
-		md = EVP_sha256();
-		break;
+			kdf = NID_sm9kdf_with_sha256;
+			md = EVP_sha256();
+			break;
 	*/
 	case NID_sm9encrypt_with_sm3_sms4_cbc:
+		kdf = NID_sm9kdf_with_sm3;
+		md = EVP_sm3();
+		cipher = EVP_sms4_cbc();
+		keylen = EVP_CIPHER_key_length(cipher) + EVP_MD_size(md);
+		break;
 	case NID_sm9encrypt_with_sm3_sms4_ctr:
+		kdf = NID_sm9kdf_with_sm3;
+		md = EVP_sm3();
+		cipher = EVP_sms4_ctr();
+		keylen = EVP_CIPHER_key_length(cipher) + EVP_MD_size(md);
+		break;
 	default:
 		return 0;
-	}
+    }
 
-	if (!in || !outlen || !sk) {
-		SM9err(SM9_F_SM9_DECRYPT, ERR_R_PASSED_NULL_PARAMETER);
-		goto end;
-	}
-
-	/* decode sm9 ciphertext */
-	if (!(sm9cipher = d2i_SM9Ciphertext(NULL, &in, inlen))) {
-		SM9err(SM9_F_SM9_DECRYPT, ERR_R_SM9_LIB);
-		goto end;
-	}
-	C2 = ASN1_STRING_get0_data(sm9cipher->c2);
-	C2_len = ASN1_STRING_length(sm9cipher->c2);
-
-	/* check/return output length */
-	if (!out) {
-		*outlen = C2_len;
-		ret = 1;
-		goto end;
-	} else if (*outlen < C2_len) {
-		SM9err(SM9_F_SM9_DECRYPT, SM9_R_BUFFER_TOO_SMALL);
-		goto end;
-	}
+    /* malloc */
+    if (!(key = OPENSSL_malloc(keylen))) {
+        SM9err(SM9_F_SM9_DECRYPT, ERR_R_MALLOC_FAILURE);
+        goto end;
+    }
+    if (!(mac_in = OPENSSL_malloc(C2_len + EVP_MD_size(md)))) {
+        SM9err(SM9_F_SM9_DECRYPT, ERR_R_MALLOC_FAILURE);
+        goto end;
+    }
 
 	/* unwrap key */
-	keylen = C2_len + EVP_MD_size(md);
-	if (!(key = OPENSSL_malloc(keylen))) {
-		SM9err(SM9_F_SM9_DECRYPT, ERR_R_MALLOC_FAILURE);
-		goto end;
-	}
 	if (!SM9_unwrap_key(kdf, key, keylen,
 		ASN1_STRING_get0_data(sm9cipher->pointC1),
 		ASN1_STRING_length(sm9cipher->pointC1), sk)) {
@@ -497,11 +576,52 @@ int SM9_decrypt(int type,
 		goto end;
 	}
 
-	/* M = C2 xor key */
-	for (i = 0; i < C2_len; i++) {
-		out[i] = C2[i] ^ key[i];
-	}
-	*outlen = C2_len;
+	/* M */
+    if (cipher) {
+        EVP_CIPHER_CTX *cipher_ctx = NULL;
+        const unsigned char *iv, *pin;
+        unsigned char *pout;
+        unsigned int ivlen;
+        int msglen;
+
+        // iv
+        ivlen = EVP_CIPHER_iv_length(cipher);
+        iv = C2;
+        pin = C2 + ivlen;
+
+        // decrypt
+        if (!(cipher_ctx = EVP_CIPHER_CTX_new())) {
+            SM9err(SM9_F_SM9_DECRYPT, ERR_R_MALLOC_FAILURE);
+            goto end;
+        }
+        pout = out;
+        if (!(EVP_DecryptInit(cipher_ctx, cipher, key, iv))) {
+            SM9err(SM9_F_SM9_DECRYPT, SM9_R_DECRYPT_FAILED);
+            EVP_CIPHER_CTX_free(cipher_ctx);
+            goto end;
+        }
+        if (!(EVP_DecryptUpdate(cipher_ctx, pout, &msglen, pin,
+                                C2_len - ivlen))) {
+            SM9err(SM9_F_SM9_DECRYPT, SM9_R_DECRYPT_FAILED);
+            EVP_CIPHER_CTX_free(cipher_ctx);
+            goto end;
+        }
+        pout += msglen;
+        if (!(EVP_DecryptFinal(cipher_ctx, pout, &msglen))) {
+            SM9err(SM9_F_SM9_DECRYPT, SM9_R_DECRYPT_FAILED);
+            EVP_CIPHER_CTX_free(cipher_ctx);
+            goto end;
+        }
+        pout += msglen;
+        *outlen = pout - out;
+        EVP_CIPHER_CTX_free(cipher_ctx);
+
+    } else if (type == NID_sm9encrypt_with_sm3_xor) {
+        for (i = 0; i < C2_len; i++) {
+            out[i] = C2[i] ^ key[i];
+        }
+        *outlen = C2_len;
+    }
 
 	/* check mac length */
 	if (ASN1_STRING_length(sm9cipher->c3) != EVP_MD_size(md)) {
@@ -510,8 +630,10 @@ int SM9_decrypt(int type,
 	}
 
 	/* C3 = Hv(C2||K2) */
-	memcpy(key, C2, C2_len);
-	if (!EVP_Digest(key, keylen, mac, &maclen, md, NULL)) {
+    memcpy(mac_in, C2, C2_len);
+    memcpy(mac_in + C2_len, key + keylen - EVP_MD_size(md), EVP_MD_size(md));
+	if (!EVP_Digest(mac_in, C2_len + EVP_MD_size(md), mac, &maclen, md,
+					NULL)) {
 		SM9err(SM9_F_SM9_DECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -526,5 +648,6 @@ int SM9_decrypt(int type,
 end:
 	SM9Ciphertext_free(sm9cipher);
 	OPENSSL_clear_free(key, keylen);
+    OPENSSL_clear_free(mac_in, C2_len + EVP_MD_size(md));
 	return ret;
 }

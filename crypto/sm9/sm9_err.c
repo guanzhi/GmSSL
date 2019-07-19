@@ -102,6 +102,8 @@ static ERR_STRING_DATA SM9_str_reasons[] = {
     {ERR_REASON(SM9_R_TWIST_CURVE_ERROR), "twist curve error"},
     {ERR_REASON(SM9_R_VERIFY_FAILURE), "verify failure"},
     {ERR_REASON(SM9_R_ZERO_ID), "zero id"},
+    {ERR_REASON(SM9_R_ENCRYPT_FAILED), "block cipher encrypt failed"},
+    {ERR_REASON(SM9_R_DECRYPT_FAILED), "block cipher decrypt failed"},
     {0, NULL}
 };
 

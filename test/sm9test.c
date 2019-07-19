@@ -365,7 +365,7 @@ end:
 	return ret;
 }
 
-static int sm9test_enc(const char *id, const unsigned char *data, size_t datalen)
+static int sm9test_enc(const char *id, const unsigned char *data, size_t datalen, int type)
 {
 	int ret = 0;
 	SM9PublicParameters *mpk = NULL;
@@ -373,7 +373,7 @@ static int sm9test_enc(const char *id, const unsigned char *data, size_t datalen
 	SM9PrivateKey *sk = NULL;
 	unsigned char mbuf[1024] = {0};
 	unsigned char cbuf[1024] = {0};
-	size_t clen, mlen;
+	size_t clen, mlen = 1024;
 
 	if (!SM9_setup(NID_sm9bn256v1, NID_sm9encrypt, NID_sm9hash1_with_sm3, &mpk, &msk)) {
 		ERR_print_errors_fp(stderr);
@@ -383,13 +383,11 @@ static int sm9test_enc(const char *id, const unsigned char *data, size_t datalen
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-	if (!SM9_encrypt(NID_sm9encrypt_with_sm3_xor, data, datalen,
-		cbuf, &clen, mpk, id, strlen(id))) {
+	if (!SM9_encrypt(type, data, datalen, cbuf, &clen, mpk, id, strlen(id))) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
-	if (!SM9_decrypt(NID_sm9encrypt_with_sm3_xor, cbuf, clen,
-		mbuf, &mlen, sk)) {
+	if (!SM9_decrypt(type, cbuf, clen, mbuf, &mlen, sk)) {
 		ERR_print_errors_fp(stderr);
 		goto end;
 	}
@@ -430,11 +428,19 @@ int main(int argc, char **argv)
 	}
 	printf("sm9 key wrap tests passed\n");
 
-	if (!sm9test_enc(id, in, sizeof(in)-1)) {
-		printf("sm9 encrypt tests failed\n");
+	if (!sm9test_enc(id, in, sizeof(in)-1, NID_sm9encrypt_with_sm3_xor)) {
+		printf("sm9 encrypt tests (sm9_encrypt_with_sm3_xor) failed\n");
 		err++;
 	}
-	printf("sm9 encrypt tests passed\n");
+	if (!sm9test_enc(id, in, sizeof(in)-1, NID_sm9encrypt_with_sm3_sms4_cbc)) {
+		printf("sm9 encrypt tests (sm9_encrypt_with_sm3_sms4_cbc) failed\n");
+		err++;
+	}
+	if (!sm9test_enc(id, in, sizeof(in)-1, NID_sm9encrypt_with_sm3_sms4_ctr)) {
+		printf("sm9 encrypt tests (sm9_encrypt_with_sm3_sms4_ctr) failed\n");
+		err++;
+	}
+	printf("sm9 encrypt tests finished\n");
 
 	return err;
 }

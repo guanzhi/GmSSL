@@ -379,6 +379,8 @@ int ERR_load_SM9_strings(void);
 # define SM9_R_TWIST_CURVE_ERROR                          128
 # define SM9_R_VERIFY_FAILURE                             129
 # define SM9_R_ZERO_ID                                    130
+# define SM9_R_ENCRYPT_FAILED							  132
+# define SM9_R_DECRYPT_FAILED							  133
 
 #  ifdef  __cplusplus
 }
