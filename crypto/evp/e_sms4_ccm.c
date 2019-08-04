@@ -312,8 +312,8 @@ static int sms4_ccm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     }
 }
 
-#define SMS4_CCM_BLOCK_SIZE	16
-#define SMS4_CCM_IV_LENGTH	12
+#define SMS4_CCM_BLOCK_SIZE	1
+#define SMS4_CCM_IV_LENGTH	7
 
 #define SMS4_CCM_FLAGS (EVP_CIPH_FLAG_DEFAULT_ASN1 \
                 | EVP_CIPH_CUSTOM_IV | EVP_CIPH_FLAG_CUSTOM_CIPHER \
