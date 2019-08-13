@@ -166,6 +166,7 @@ static int fp2_equ(const fp2_t a, const fp2_t b)
 	return !BN_cmp(a[0], b[0]) && !BN_cmp(a[1], b[1]);
 }
 
+#if SM9_TEST
 static int fp2_equ_hex(const fp2_t a, const char *str[2], BN_CTX *ctx)
 {
 	fp2_t t;
@@ -173,7 +174,9 @@ static int fp2_equ_hex(const fp2_t a, const char *str[2], BN_CTX *ctx)
 	fp2_set_hex(t, str);
 	return fp2_equ(a, t);
 }
+#endif
 
+#if SM9_TEST
 static int fp2_add_word(fp2_t r, const fp2_t a, unsigned long b, const BIGNUM *p, BN_CTX *ctx)
 {
 	BIGNUM *w = NULL;
@@ -187,6 +190,7 @@ static int fp2_add_word(fp2_t r, const fp2_t a, unsigned long b, const BIGNUM *p
 	BN_free(w);
 	return 1;
 }
+#endif
 
 static int fp2_add(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
@@ -299,7 +303,7 @@ static int fp2_mul_num(fp2_t r, const fp2_t a, const BIGNUM *n, const BIGNUM *p,
 	BIGNUM *r1 = NULL;
 	if (!(r0 = BN_CTX_get(ctx))
 		|| !(r1 = BN_CTX_get(ctx))
-		
+
 		|| !BN_mod_mul(r0, a[0], n, p, ctx)
 		|| !BN_mod_mul(r1, a[1], n, p, ctx)
 
@@ -426,11 +430,13 @@ static int fp2_inv(fp2_t r, const fp2_t a, const BIGNUM *p, BN_CTX *ctx)
 	return 1;
 }
 
+#if SM9_TEST
 static int fp2_div(fp2_t r, const fp2_t a, const fp2_t b, const BIGNUM *p, BN_CTX *ctx)
 {
 	return fp2_inv(r, b, p, ctx)
 		&& fp2_mul(r, a, r, p, ctx);
 }
+#endif
 
 static int fp2_to_bin(const fp2_t a, unsigned char to[64])
 {
@@ -443,9 +449,10 @@ static int fp2_to_bin(const fp2_t a, unsigned char to[64])
 static int fp2_from_bin(fp2_t a, const unsigned char from[64])
 {
 	return BN_bin2bn(from, 32, a[1])
-		&& BN_bin2bn(from + 32, 32, a[0]);	
+		&& BN_bin2bn(from + 32, 32, a[0]);
 }
 
+#if SM9_TEST
 static int fp2_test(const BIGNUM *p, BN_CTX *ctx)
 {
 	const char *_a[] = {
@@ -540,7 +547,7 @@ static int fp2_test(const BIGNUM *p, BN_CTX *ctx)
 	fp2_sqr_u(r, a, p, ctx);
 	ok = fp2_equ_hex(r, sqru_a, ctx);
 	printf("fp2 test %d: %s\n", __LINE__, ok ? "ok" : "error");
-	
+
 	fp2_inv(r, a, p, ctx);
 	ok = fp2_equ_hex(r, inv_a, ctx);
 	printf("fp2 test %d: %s\n", __LINE__, ok ? "ok" : "error");
@@ -561,6 +568,7 @@ static int fp2_test(const BIGNUM *p, BN_CTX *ctx)
 
 	return 1;
 }
+#endif
 
 static int fp4_init(fp4_t a, BN_CTX *ctx)
 {
@@ -580,11 +588,13 @@ static void fp4_cleanup(fp4_t a)
 	fp2_cleanup(a[1]);
 }
 
+#if SM9_TEST
 static void fp4_clear_cleanup(fp4_t a)
 {
 	fp2_clear_cleanup(a[0]);
 	fp2_clear_cleanup(a[1]);
 }
+#endif
 
 static int fp4_print(const fp4_t a)
 {
@@ -672,6 +682,7 @@ static int fp4_equ(const fp4_t a, const fp4_t b)
 		&& fp2_equ(a[1], b[1]);
 }
 
+#if SM9_TEST
 static int fp4_equ_hex(const fp4_t a, const char *str[4], BN_CTX *ctx)
 {
 	fp4_t t;
@@ -679,6 +690,7 @@ static int fp4_equ_hex(const fp4_t a, const char *str[4], BN_CTX *ctx)
 	fp4_set_hex(t, str);
 	return fp4_equ(a, t);
 }
+#endif
 
 static int fp4_to_bin(const fp4_t a, unsigned char to[128])
 {
@@ -863,6 +875,7 @@ static int fp4_inv(fp4_t r, const fp4_t a, const BIGNUM *p, BN_CTX *ctx)
 	return 1;
 }
 
+#if SM9_TEST
 static int fp4_test(const BIGNUM *p, BN_CTX *ctx)
 {
 	const char *_a[] = {
@@ -999,6 +1012,7 @@ static int fp4_test(const BIGNUM *p, BN_CTX *ctx)
 
 	return 0;
 }
+#endif
 
 int fp12_init(fp12_t a, BN_CTX *ctx)
 {
@@ -1021,12 +1035,14 @@ void fp12_cleanup(fp12_t a)
 	fp4_cleanup(a[2]);
 }
 
+#if SM9_TEST
 static void fp12_clear_cleanup(fp12_t a)
 {
 	fp4_clear_cleanup(a[0]);
 	fp4_clear_cleanup(a[1]);
 	fp4_clear_cleanup(a[2]);
 }
+#endif
 
 int fp12_print(const fp12_t a)
 {
@@ -1036,6 +1052,7 @@ int fp12_print(const fp12_t a)
 	return 1;
 }
 
+#if SM9_TEST
 static int fp12_is_zero(const fp12_t a)
 {
 	return fp4_is_zero(a[0])
@@ -1056,6 +1073,7 @@ static void fp12_set_zero(fp12_t r)
 	fp4_set_zero(r[1]);
 	fp4_set_zero(r[2]);
 }
+#endif
 
 static int fp12_set_one(fp12_t r)
 {
@@ -1071,12 +1089,14 @@ static int fp12_copy(fp12_t r, const fp12_t a)
 		&& fp4_copy(r[2], a[2]);
 }
 
+#if SM9_TEST
 static int fp12_set(fp12_t r, const fp4_t a0, const fp4_t a1, const fp4_t a2)
 {
 	return fp4_copy(r[0], a0)
 		&& fp4_copy(r[1], a1)
 		&& fp4_copy(r[2], a2);
 }
+#endif
 
 static int fp12_set_hex(fp12_t r, const char *str[12])
 {
@@ -1085,12 +1105,14 @@ static int fp12_set_hex(fp12_t r, const char *str[12])
 		&& fp4_set_hex(r[2], str + 8);
 }
 
+#if SM9_TEST
 static int fp12_set_fp4(fp12_t r, const fp4_t a)
 {
 	fp4_set_zero(r[1]);
 	fp4_set_zero(r[2]);
 	return fp4_copy(r[0], a);
 }
+#endif
 
 static int fp12_set_fp2(fp12_t r, const fp2_t a)
 {
@@ -1106,6 +1128,7 @@ static int fp12_set_bn(fp12_t r, const BIGNUM *a)
 	return fp4_set_bn(r[0], a);
 }
 
+#if SM9_TEST
 static int fp12_set_word(fp12_t r, unsigned long a)
 {
 	fp4_set_zero(r[1]);
@@ -1119,6 +1142,7 @@ static int fp12_set_u(fp12_t r)
 	fp4_set_zero(r[2]);
 	return fp4_set_u(r[0]);
 }
+#endif
 
 static int fp12_set_v(fp12_t r)
 {
@@ -1127,12 +1151,14 @@ static int fp12_set_v(fp12_t r)
 	return fp4_set_v(r[0]);
 }
 
+#if SM9_TEST
 static int fp12_set_w(fp12_t r)
 {
 	fp4_set_zero(r[0]);
 	fp4_set_zero(r[2]);
 	return fp4_set_one(r[1]);
 }
+#endif
 
 static int fp12_set_w_sqr(fp12_t r)
 {
@@ -1148,6 +1174,7 @@ static int fp12_equ(const fp12_t a, const fp12_t b)
 		&& fp4_equ(a[2], b[2]);
 }
 
+#if SM9_TEST
 static int fp12_equ_hex(const fp12_t a, const char *str[12], BN_CTX *ctx)
 {
 	fp12_t t;
@@ -1155,6 +1182,7 @@ static int fp12_equ_hex(const fp12_t a, const char *str[12], BN_CTX *ctx)
 	fp12_set_hex(t, str);
 	return fp12_equ(a, t);
 }
+#endif
 
 int fp12_to_bin(const fp12_t a, unsigned char to[384])
 {
@@ -1165,14 +1193,13 @@ int fp12_to_bin(const fp12_t a, unsigned char to[384])
 
 static int fp12_from_bin(fp4_t a, const unsigned char from[384])
 {
-	return fp4_from_bin(a[2], from)
-		&& fp4_from_bin(a[1], from + 128)
-		&& fp4_from_bin(a[0], from + 256);
+	return fp4_from_bin(&a[2], from)
+		&& fp4_from_bin(&a[1], from + 128)
+		&& fp4_from_bin(&a[0], from + 256);
 }
 
 static int fp12_add(fp12_t r, const fp12_t a, const fp12_t b, const BIGNUM *p, BN_CTX *ctx)
 {
-	
 	return fp4_add(r[0], a[0], b[0], p, ctx)
 		&& fp4_add(r[1], a[1], b[1], p, ctx)
 		&& fp4_add(r[2], a[2], b[2], p, ctx);
@@ -1189,7 +1216,7 @@ static int fp12_tri(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 {
 	fp12_t t;
 	fp12_init(t, ctx);
-	
+
 	if (!fp12_dbl(t, a, p, ctx)
 		|| !fp12_add(r, t, a, p, ctx)) {
 		fp12_cleanup(t);
@@ -1323,7 +1350,7 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 			|| !fp4_mul(t, t, a[1], p, ctx)
 			|| !fp4_add(k, k, t, p, ctx)
 			|| !fp4_inv(k, k, p, ctx)
-		
+
 			/* r2 = a1^2 * k */
 			|| !fp4_sqr(r[2], a[1], p, ctx)
 			|| !fp4_mul(r[2], r[2], k, p, ctx)
@@ -1348,12 +1375,12 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 		return 1;
 
 	} else {
-	
+
 		fp4_t t0, t1, t2, t3;
 
 		if (!(fp4_init(t0, ctx))
 			|| !(fp4_init(t1, ctx)) //FIXME
-			|| !(fp4_init(t2, ctx)) 
+			|| !(fp4_init(t2, ctx))
 			|| !(fp4_init(t3, ctx))
 
 			/* t0 = a1^2 - a0 * a2 */
@@ -1377,7 +1404,7 @@ static int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 			|| !fp4_sub(t3, t3, r[0], p, ctx)
 			|| !fp4_inv(t3, t3, p, ctx)
 			|| !fp4_mul(t3, a[2], t3, p, ctx)
-	
+
 			/* r0 = t2 * t3 */
 			|| !fp4_mul(r[0], t2, t3, p, ctx)
 
@@ -1443,6 +1470,8 @@ int fp12_pow(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p, BN_CTX 
 	}
 
 	fp12_copy(r, t);
+
+	fp12_cleanup(t);
 	return 1;
 }
 
@@ -1466,19 +1495,20 @@ static int fp12_fast_expo_p2(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *
 	pw21 = SM9_get0_fast_final_exponent_p21();
 	pw22 = SM9_get0_fast_final_exponent_p22();
 	pw23 = SM9_get0_fast_final_exponent_p23();
-	
+
 	if(!fp2_copy(r[0][0], a[0][0])
 		|| !fp2_neg (r[0][1], a[0][1], p, ctx)
 		|| !fp2_mul_num(r[1][0], a[1][0], pw20, p, ctx)
 		|| !fp2_mul_num(r[1][1], a[1][1], pw21, p, ctx)
 		|| !fp2_mul_num(r[2][0], a[2][0], pw22, p, ctx)
 		|| !fp2_mul_num(r[2][1], a[2][1], pw23, p, ctx)) {
-			
+
 		return 0;
 	}
 	return 1;
 }
 
+#if SM9_TEST
 static int fp12_test(const BIGNUM *p, BN_CTX *ctx)
 {
 	const char *_a[] = {
@@ -1762,6 +1792,7 @@ static int fp12_test(const BIGNUM *p, BN_CTX *ctx)
 
 	return 0;
 }
+#endif
 
 int point_init(point_t *P, BN_CTX *ctx)
 {
@@ -1940,7 +1971,7 @@ int point_is_on_curve(point_t *P, const BIGNUM *p, BN_CTX *ctx)
 	if (!r) {
 		goto end;
 	}
-	
+
 	fp2_set_5u(b);
 
 	if (!point_get_affine_coordinates(P, x, y)
@@ -1979,7 +2010,7 @@ int point_to_octets(const point_t *P, unsigned char to[129], BN_CTX *ctx)
 		fp2_to_bin(y, to + 65);
 		fp2_cleanup(x);
 		fp2_cleanup(y);
-	}	
+	}
 	return 1;
 }
 
@@ -2090,7 +2121,7 @@ int point_add(point_t *R, const point_t *P, const point_t *Q, const BIGNUM *p, B
 
 	if (!point_get_affine_coordinates(P, x1, y1)
 		|| !point_get_affine_coordinates(Q, x2, y2)
-		|| !fp2_add(t, y1, y2, p, ctx)) {	
+		|| !fp2_add(t, y1, y2, p, ctx)) {
 		goto end;
 	}
 
@@ -2195,6 +2226,7 @@ int point_mul_generator(point_t *R, const BIGNUM *k, const BIGNUM *p, BN_CTX *ct
 	return point_mul(R, k, &G, p, ctx);
 }
 
+#if SM9_TEST
 static int point_test(const BIGNUM *p, BN_CTX *ctx)
 {
 	const char *_G[] = {
@@ -2263,7 +2295,7 @@ static int point_test(const BIGNUM *p, BN_CTX *ctx)
 	printf("point test %d: %s\n", __LINE__, ok ? "ok" : "error");
 
 	point_sub(&P, &P, &G, p, ctx);
-	ok = point_equ_hex(&P, sub_3G_G, ctx);	
+	ok = point_equ_hex(&P, sub_3G_G, ctx);
 	printf("point test %d: %s\n", __LINE__, ok ? "ok" : "error");
 
 	point_neg(&P, &G, p, ctx);
@@ -2290,11 +2322,12 @@ static int point_test(const BIGNUM *p, BN_CTX *ctx)
 
 	ok = point_equ(&P, &G);
 	printf("point test %d: %s\n", __LINE__, ok ? "ok" : "error");
-	
+
 	//fp12_cleanup(x);
 	//fp12_cleanup(y);
-	return 1;	
+	return 1;
 }
+#endif
 
 static int eval_tangent(fp12_t r, const point_t *T, const BIGNUM *xP, const BIGNUM *yP,
 	const BIGNUM *p, BN_CTX *ctx)
@@ -2315,7 +2348,7 @@ static int eval_tangent(fp12_t r, const point_t *T, const BIGNUM *xP, const BIGN
 	}
 
 	point_get_ext_affine_coordinates(T, xT, yT, p, ctx);
-	
+
 	ret = 0;
 	if (!fp12_set_bn(x, xP)
 		|| !fp12_set_bn(y, yP)
@@ -2343,14 +2376,14 @@ end:
 	return ret;
 }
 
-static int eval_line(fp12_t r,  const point_t *T, const point_t *Q, 
+static int eval_line(fp12_t r,  const point_t *T, const point_t *Q,
 	const BIGNUM *xP, const BIGNUM *yP,
 	const BIGNUM *p, BN_CTX *ctx)
 {
 	int ret;
 	fp12_t x, y, lambda, t;
 	fp12_t xT, yT, xQ, yQ;
-	
+
 	ret = 1;
 	ret &= fp12_init(x, ctx);
 	ret &= fp12_init(y, ctx);
@@ -2445,6 +2478,8 @@ static int final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGNUM *p
 		}
 	}
 	fp12_copy(r, t);
+
+	fp12_cleanup(t);
 	return 1;
 }
 
@@ -2478,11 +2513,11 @@ static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGN
 	if (!fp12_copy(t0, t)) {
 		return 0;
 	}
-		
+
 	if(!fp12_fast_expo_p2(t, t, p, ctx)){
 		return 0;
 	}
-	
+
 	if (!fp12_mul(t, t0, t, p, ctx)) {
 		return 0;
 	}
@@ -2503,6 +2538,9 @@ static int fast_final_expo(fp12_t r, const fp12_t a, const BIGNUM *k, const BIGN
 		}
 	}
 	fp12_copy(r, t);
+
+	fp12_cleanup(t);
+	fp12_cleanup(t0);
 	return 1;
 }
 
@@ -2517,7 +2555,7 @@ static int rate(fp12_t f, const point_t *Q, const BIGNUM *xP, const BIGNUM *yP,
 	memset(&T, 0, sizeof(T));
 	memset(&Q1, 0, sizeof(Q1));
 	memset(&Q2, 0, sizeof(Q2));
-	
+
 	point_init(&T, ctx);
 	point_init(&Q1, ctx);
 	point_init(&Q2, ctx);
@@ -2582,7 +2620,7 @@ static int rate(fp12_t f, const point_t *Q, const BIGNUM *xP, const BIGNUM *yP,
 	eval_line(g, &T, &Q2, xP, yP, p, ctx);
 	fp12_mul(f, f, g, p, ctx);
 
-	/* T = T - Q2 */	
+	/* T = T - Q2 */
 	point_add(&T, &T, &Q2, p, ctx);
 
 #ifdef NOSM9_FAST
@@ -2662,6 +2700,7 @@ int rate_pairing(fp12_t r, const point_t *Q, const EC_POINT *P, BN_CTX *ctx)
 	return ret;
 }
 
+#if SM9_TEST
 static int rate_test(void)
 {
 	const char *Ppubs_str[] = {
@@ -2699,7 +2738,7 @@ static int rate_test(void)
 	point_set_affine_coordinates_hex(&Ppubs, Ppubs_str);
 
 	fp12_init(g, ctx);
-	rate_pairing(g, &Ppubs, P1, ctx); 
+	rate_pairing(g, &Ppubs, P1, ctx);
 
 	ok = fp12_equ_hex(g, g_str, ctx);
 	printf("rate %d: %s\n", __LINE__, ok ? "ok" : "error");
@@ -2711,6 +2750,7 @@ static int rate_test(void)
 
 	return 1;
 }
+#endif
 
 /* for SM9 sign, the (xP, yP) is the fixed generator of E(Fp)
  */

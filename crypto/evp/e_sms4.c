@@ -60,12 +60,13 @@
 #include <openssl/crypto.h>
 #include <openssl/objects.h>
 #include "evp_locl.h"
-# include "internal/evp_int.h"
-#include "../modes/modes_lcl.h"
+#include "internal/evp_int.h"
+#include "modes_lcl.h"
 
 #ifndef OPENSSL_NO_SMS4
 
 # include <openssl/sms4.h>
+# include "sms4_lcl.h"
 
 typedef struct {
 	block128_f block;
@@ -73,7 +74,10 @@ typedef struct {
 		cbc128_f cbc;
 		ctr128_f ctr;
 	} stream;
-	sms4_key_t ks;
+	union {
+		double align;
+		sms4_key_t ks;
+	} ks;
 } EVP_SMS4_KEY;
 
 
@@ -85,12 +89,19 @@ static int sms4_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 	mode = EVP_CIPHER_CTX_mode(ctx);
 
 	if ((mode == EVP_CIPH_ECB_MODE || mode == EVP_CIPH_CBC_MODE) && !enc) {
-		sms4_set_decrypt_key(&dat->ks, key);
+		sms4_set_decrypt_key(&dat->ks.ks, key);
 	} else {
-		sms4_set_encrypt_key(&dat->ks, key);
+		sms4_set_encrypt_key(&dat->ks.ks, key);
 	}
 	dat->block = (block128_f)sms4_encrypt;
-	dat->stream.cbc = mode == EVP_CIPH_CBC_MODE ? (cbc128_f) sms4_cbc_encrypt : NULL;
+
+	if (mode == EVP_CIPH_CTR_MODE) {
+# ifdef SMS4_AVX2
+		dat->stream.ctr = (ctr128_f) sms4_avx2_ctr32_encrypt_blocks;
+# else
+		dat->stream.ctr = (ctr128_f) sms4_ctr32_encrypt_blocks;
+# endif
+	}
 
 	return 1;
 }
@@ -106,7 +117,7 @@ static int sms4_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
 	}
 }
 
-IMPLEMENT_BLOCK_CIPHER(sms4, ks, sms4, EVP_SMS4_KEY, NID_sms4,
+IMPLEMENT_BLOCK_CIPHER(sms4, ks.ks, sms4, EVP_SMS4_KEY, NID_sms4,
 	SMS4_BLOCK_SIZE, SMS4_KEY_LENGTH, SMS4_IV_LENGTH, 128,
 	EVP_CIPH_FLAG_DEFAULT_ASN1, sms4_init_key, NULL, NULL, NULL, sms4_ctrl)
 
@@ -118,19 +129,19 @@ static int sms4_cfb1_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	EVP_SMS4_KEY *sms4_key = (EVP_SMS4_KEY *)ctx->cipher_data;
 
 	if (ctx->flags & EVP_CIPH_FLAG_LENGTH_BITS) {
-		CRYPTO_cfb128_1_encrypt(in, out, len, &sms4_key->ks,
+		CRYPTO_cfb128_1_encrypt(in, out, len, &sms4_key->ks.ks,
 			ctx->iv, &ctx->num, ctx->encrypt, (block128_f)sms4_encrypt);
 		return 1;
 	}
 
 	while (len >= MAXBITCHUNK) {
-		CRYPTO_cfb128_1_encrypt(in, out, MAXBITCHUNK * 8, &sms4_key->ks,
+		CRYPTO_cfb128_1_encrypt(in, out, MAXBITCHUNK * 8, &sms4_key->ks.ks,
 			ctx->iv, &ctx->num, ctx->encrypt, (block128_f)sms4_encrypt);
 		len -= MAXBITCHUNK;
 	}
 
 	if (len) {
-		CRYPTO_cfb128_1_encrypt(in, out, len * 8, &sms4_key->ks,
+		CRYPTO_cfb128_1_encrypt(in, out, len * 8, &sms4_key->ks.ks,
 			ctx->iv, &ctx->num, ctx->encrypt, (block128_f)sms4_encrypt);
 	}
 
@@ -160,7 +171,7 @@ static int sms4_cfb8_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 {
 	EVP_SMS4_KEY *sms4_key = (EVP_SMS4_KEY *)ctx->cipher_data;
 
-	CRYPTO_cfb128_8_encrypt(in, out, len, &sms4_key->ks,
+	CRYPTO_cfb128_8_encrypt(in, out, len, &sms4_key->ks.ks,
 		ctx->iv, &ctx->num, ctx->encrypt, (block128_f)sms4_encrypt);
 
 	return 1;
@@ -190,10 +201,16 @@ static int sms4_ctr_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 	unsigned int num = EVP_CIPHER_CTX_num(ctx);
 	EVP_SMS4_KEY *sms4 = (EVP_SMS4_KEY *)ctx->cipher_data;
 
-	CRYPTO_ctr128_encrypt(in, out, len, &sms4->ks,
-		EVP_CIPHER_CTX_iv_noconst(ctx),
-		EVP_CIPHER_CTX_buf_noconst(ctx), &num,
-		sms4->block);
+	if (sms4->stream.ctr)
+		CRYPTO_ctr128_encrypt_ctr32(in, out, len, &sms4->ks.ks,
+			EVP_CIPHER_CTX_iv_noconst(ctx),
+			EVP_CIPHER_CTX_buf_noconst(ctx),
+			&num, sms4->stream.ctr);
+	else
+		CRYPTO_ctr128_encrypt(in, out, len, &sms4->ks.ks,
+			EVP_CIPHER_CTX_iv_noconst(ctx),
+			EVP_CIPHER_CTX_buf_noconst(ctx), &num,
+			sms4->block);
 
 	EVP_CIPHER_CTX_set_num(ctx, num);
 	return 1;

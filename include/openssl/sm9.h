@@ -81,6 +81,9 @@ void SM9_MASTER_KEY_free(SM9_MASTER_KEY *a);
 SM9_KEY *SM9_KEY_new(void);
 void SM9_KEY_free(SM9_KEY *a);
 
+int SM9_MASTER_KEY_up_ref(SM9_MASTER_KEY *msk);
+int SM9_KEY_up_ref(SM9_KEY *sk);
+
 int SM9_setup(int pairing, /* NID_sm9bn256v1 */
 	int scheme, /* NID_[sm9sign | sm9encrypt | sm9keyagreement] */
 	int hash1, /* NID_sm9hash1_with_[sm3 | sha256] */
@@ -203,9 +206,6 @@ int i2d_SM9PrivateKey_fp(FILE *fp, SM9PrivateKey *a);
 int i2d_SM9Signature_fp(FILE *fp, SM9Signature *a);
 int i2d_SM9Ciphertext_fp(FILE *fp, SM9Ciphertext *a);
 #endif
-
-int SM9_MASTER_KEY_up_ref(SM9_MASTER_KEY *msk);
-int SM9_KEY_up_ref(SM9_KEY *sk);
 
 DECLARE_ASN1_ENCODE_FUNCTIONS_const(SM9_MASTER_KEY,SM9MasterSecret)
 DECLARE_ASN1_ENCODE_FUNCTIONS_const(SM9_MASTER_KEY,SM9PublicParameters)

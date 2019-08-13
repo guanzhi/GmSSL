@@ -58,6 +58,7 @@
 
 # define ZUC_IV_LENGTH	16
 # define ZUC_KEY_LENGTH	16
+# define ZUC256_KEY_LENGTH 32
 
 typedef uint32_t ZUC_UINT1;
 typedef uint32_t ZUC_UINT5;
@@ -81,6 +82,9 @@ void ZUC_set_key(ZUC_KEY *key, const unsigned char *user_key, const unsigned cha
 void ZUC_generate_keystream(ZUC_KEY *key, size_t nwords, uint32_t *words);
 uint32_t ZUC_generate_keyword(ZUC_KEY *key);
 
+void ZUC256_set_key(ZUC_KEY *key, const unsigned char *K, const unsigned char *IV);
+int ZUC256_set_mac_key(ZUC_KEY *key, const unsigned char *K, const unsigned char *IV,
+	int macbits /* macbits in {32, 64, 128} */);
 
 # ifdef __cplusplus
 }
