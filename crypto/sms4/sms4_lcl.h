@@ -97,14 +97,4 @@ extern const uint32_t SMS4_D[65536];
 	ROUND(x0, x1, x2, x3, x4, 30);		\
 	ROUND(x1, x2, x3, x4, x0, 31)
 
-void sms4_ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
-	size_t blocks, const sms4_key_t *key, const unsigned char iv[16]);
-
-# ifdef SMS4_AVX2
-void sms4_avx2_ecb_encrypt_blocks(const unsigned char *in, unsigned char *out,
-	size_t blocks, const sms4_key_t *key);
-void sms4_avx2_ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
-	size_t blocks, const sms4_key_t *key, const unsigned char iv[16]);
-# endif
-
 #endif

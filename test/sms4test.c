@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 # include <openssl/evp.h>
 # include <openssl/sms4.h>
 # include <openssl/rand.h>
-# include "../crypto/sms4/sms4_lcl.h"
+
 
 static int test_ecb(int avx)
 {
