@@ -49,7 +49,9 @@
 
 #include <string.h>
 #include <openssl/sm3.h>
+#include "internal/rotate.h"
 #include "internal/byteorder.h"
+#include "modes_lcl.h"
 
 void sm3_init(sm3_ctx_t *ctx)
 {
@@ -95,8 +97,6 @@ void sm3_update(sm3_ctx_t *ctx, const unsigned char *data, size_t data_len)
 void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 {
 	int i;
-	uint32_t *pdigest = (uint32_t *)digest;
-	uint32_t *count = (uint32_t *)(ctx->block + SM3_BLOCK_SIZE - 8);
 
 	ctx->block[ctx->num] = 0x80;
 
@@ -107,27 +107,27 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 		sm3_compress(ctx->digest, ctx->block);
 		memset(ctx->block, 0, SM3_BLOCK_SIZE - 8);
 	}
-
-	count[0] = cpu_to_be32((uint32_t)(ctx->nblocks >> 23));
-	count[1] = cpu_to_be32((uint32_t)(ctx->nblocks << 9) + (ctx->num << 3));
+	PUTU32(ctx->block + 56, ctx->nblocks >> 23);
+	PUTU32(ctx->block + 60, (ctx->nblocks << 9) + (ctx->num << 3));
 
 	sm3_compress(ctx->digest, ctx->block);
-	for (i = 0; i < sizeof(ctx->digest)/sizeof(ctx->digest[0]); i++) {
-		pdigest[i] = cpu_to_be32(ctx->digest[i]);
+	for (i = 0; i < 8; i++) {
+		PUTU32(digest + i*4, ctx->digest[i]);
 	}
 }
 
 #define ROTL(x,n)  (((x)<<(n)) | ((x)>>(32-(n))))
-#define P0(x) ((x) ^ ROTL((x), 9) ^ ROTL((x),17))
-#define P1(x) ((x) ^ ROTL((x),15) ^ ROTL((x),23))
+#define P0(x) ((x) ^ ROL32((x), 9) ^ ROL32((x),17))
+#define P1(x) ((x) ^ ROL32((x),15) ^ ROL32((x),23))
 
 #define FF00(x,y,z)  ((x) ^ (y) ^ (z))
 #define FF16(x,y,z)  (((x)&(y)) | ((x)&(z)) | ((y)&(z)))
 #define GG00(x,y,z)  ((x) ^ (y) ^ (z))
-#define GG16(x,y,z)  (((x)&(y)) | ((~(x))&(z)))
+#define GG16(x,y,z)  ((((y)^(z)) & (x)) ^ (z))
 
-#define T00 0x79CC4519
-#define T16 0x7A879D8A
+#define T00 0x79cc4519U
+#define T16 0x7a879d8aU
+#define K16 0x9d8a7a87U
 
 void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 {
@@ -139,49 +139,52 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 	uint32_t F = digest[5];
 	uint32_t G = digest[6];
 	uint32_t H = digest[7];
-	const uint32_t *pblock = (const uint32_t *)block;
 	uint32_t W[68], W1[64];
 	uint32_t SS1, SS2, TT1, TT2;
+	uint32_t K = T00;
 	int j;
 
 	for (j = 0; j < 16; j++)
-		W[j] = cpu_to_be32(pblock[j]);
+		W[j] = GETU32(block + j*4);
 
 	for (; j < 68; j++)
-		W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROTL(W[j - 3], 15))
-			^ ROTL(W[j - 13], 7) ^ W[j - 6];
+		W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
+			^ ROL32(W[j - 13], 7) ^ W[j - 6];
 
 	for(j = 0; j < 64; j++)
 		W1[j] = W[j] ^ W[j + 4];
 
 	for (j = 0; j < 16; j++) {
-		SS1 = ROTL((ROTL(A, 12) + E + ROTL(T00, j)), 7);
-		SS2 = SS1 ^ ROTL(A, 12);
+		SS1 = ROL32((ROL32(A, 12) + E + K), 7);
+		SS2 = SS1 ^ ROL32(A, 12);
 		TT1 = FF00(A, B, C) + D + SS2 + W1[j];
 		TT2 = GG00(E, F, G) + H + SS1 + W[j];
 		D = C;
-		C = ROTL(B, 9);
+		C = ROL32(B, 9);
 		B = A;
 		A = TT1;
 		H = G;
-		G = ROTL(F, 19);
+		G = ROL32(F, 19);
 		F = E;
 		E = P0(TT2);
+		K = ROL32(K, 1);
 	}
 
+	K = K16;
 	for (; j < 64; j++) {
-		SS1 = ROTL((ROTL(A, 12) + E + ROTL(T16, j % 32)), 7);
-		SS2 = SS1 ^ ROTL(A, 12);
+		SS1 = ROL32((ROL32(A, 12) + E + K), 7);
+		SS2 = SS1 ^ ROL32(A, 12);
 		TT1 = FF16(A, B, C) + D + SS2 + W1[j];
 		TT2 = GG16(E, F, G) + H + SS1 + W[j];
 		D = C;
-		C = ROTL(B, 9);
+		C = ROL32(B, 9);
 		B = A;
 		A = TT1;
 		H = G;
-		G = ROTL(F, 19);
+		G = ROL32(F, 19);
 		F = E;
 		E = P0(TT2);
+		K = ROL32(K, 1);
 	}
 
 	digest[0] ^= A;

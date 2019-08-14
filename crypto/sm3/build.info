@@ -1,2 +1,3 @@
 LIBS=../../libcrypto
 SOURCE[../../libcrypto]=sm3.c sm3_hmac.c
+INCLUDE[sm3.o]=../modes
