@@ -53,6 +53,9 @@
 #include "internal/byteorder.h"
 #include "modes_lcl.h"
 
+static void sm3_compress_blocks(uint32_t digest[8],
+	const unsigned char *data, size_t blocks);
+
 void sm3_init(sm3_ctx_t *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
@@ -68,6 +71,8 @@ void sm3_init(sm3_ctx_t *ctx)
 
 void sm3_update(sm3_ctx_t *ctx, const unsigned char *data, size_t data_len)
 {
+	size_t blocks = data_len / SM3_BLOCK_SIZE;
+
 	if (ctx->num) {
 		unsigned int left = SM3_BLOCK_SIZE - ctx->num;
 		if (data_len < left) {
@@ -82,12 +87,12 @@ void sm3_update(sm3_ctx_t *ctx, const unsigned char *data, size_t data_len)
 			data_len -= left;
 		}
 	}
-	while (data_len >= SM3_BLOCK_SIZE) {
-		sm3_compress(ctx->digest, data);
-		ctx->nblocks++;
-		data += SM3_BLOCK_SIZE;
-		data_len -= SM3_BLOCK_SIZE;
-	}
+
+	sm3_compress_blocks(ctx->digest, data, blocks);
+	ctx->nblocks += blocks;
+	data += SM3_BLOCK_SIZE * blocks;
+	data_len -= SM3_BLOCK_SIZE * blocks;
+
 	ctx->num = data_len;
 	if (data_len) {
 		memcpy(ctx->block, data, data_len);
@@ -125,6 +130,27 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 #define GG00(x,y,z)  ((x) ^ (y) ^ (z))
 #define GG16(x,y,z)  ((((y)^(z)) & (x)) ^ (z))
 
+#define R(A, B, C, D, E, F, G, H, xx)				\
+	SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);		\
+	SS2 = SS1 ^ ROL32(A, 12);				\
+	TT1 = FF##xx(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);	\
+	TT2 = GG##xx(E, F, G) + H + SS1 + W[j];			\
+	B = ROL32(B, 9);					\
+	H = TT1;						\
+	F = ROL32(F, 19);					\
+	D = P0(TT2);						\
+	j++
+
+#define R8(A, B, C, D, E, F, G, H, xx)				\
+	R(A, B, C, D, E, F, G, H, xx);				\
+	R(H, A, B, C, D, E, F, G, xx);				\
+	R(G, H, A, B, C, D, E, F, xx);				\
+	R(F, G, H, A, B, C, D, E, xx);				\
+	R(E, F, G, H, A, B, C, D, xx);				\
+	R(D, E, F, G, H, A, B, C, xx);				\
+	R(C, D, E, F, G, H, A, B, xx);				\
+	R(B, C, D, E, F, G, H, A, xx)
+
 #define T00 0x79cc4519U
 #define T16 0x7a879d8aU
 
@@ -147,100 +173,99 @@ uint32_t K[64] = {
 	0xa7a879d8U, 0x4f50f3b1U, 0x9ea1e762U, 0x3d43cec5U,
 };
 
-void sm3_compress(uint32_t digest[8], const unsigned char block[64])
+static void sm3_compress_blocks(uint32_t digest[8],
+	const unsigned char *data, size_t blocks)
 {
-	uint32_t A = digest[0];
-	uint32_t B = digest[1];
-	uint32_t C = digest[2];
-	uint32_t D = digest[3];
-	uint32_t E = digest[4];
-	uint32_t F = digest[5];
-	uint32_t G = digest[6];
-	uint32_t H = digest[7];
+	uint32_t A;
+	uint32_t B;
+	uint32_t C;
+	uint32_t D;
+	uint32_t E;
+	uint32_t F;
+	uint32_t G;
+	uint32_t H;
 	uint32_t W[68];
 	uint32_t SS1, SS2, TT1, TT2;
 	int j;
 
-	for (j = 0; j < 16; j++)
-		W[j] = GETU32(block + j*4);
+	while (blocks--) {
 
-	for (; j < 68; j++)
-		W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
-			^ ROL32(W[j - 13], 7) ^ W[j - 6];
+		A = digest[0];
+		B = digest[1];
+		C = digest[2];
+		D = digest[3];
+		E = digest[4];
+		F = digest[5];
+		G = digest[6];
+		H = digest[7];
 
-	j = 0;
+		for (j = 0; j < 16; j++)
+			W[j] = GETU32(data + j*4);
+
+		for (; j < 68; j++)
+			W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
+				^ ROL32(W[j - 13], 7) ^ W[j - 6];
+
+		j = 0;
 
 #define FULL_UNROLL
-#ifndef FULL_UNROLL
-	for (; j < 16; j++) {
-		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
-		SS2 = SS1 ^ ROL32(A, 12);
-		TT1 = FF00(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
-		TT2 = GG00(E, F, G) + H + SS1 + W[j];
-		D = C;
-		C = ROL32(B, 9);
-		B = A;
-		A = TT1;
-		H = G;
-		G = ROL32(F, 19);
-		F = E;
-		E = P0(TT2);
-	}
-
-	for (; j < 64; j++) {
-		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
-		SS2 = SS1 ^ ROL32(A, 12);
-		TT1 = FF16(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
-		TT2 = GG16(E, F, G) + H + SS1 + W[j];
-		D = C;
-		C = ROL32(B, 9);
-		B = A;
-		A = TT1;
-		H = G;
-		G = ROL32(F, 19);
-		F = E;
-		E = P0(TT2);
-	}
+#ifdef FULL_UNROLL
+		R8(A, B, C, D, E, F, G, H, 00);
+		R8(A, B, C, D, E, F, G, H, 00);
+		R8(A, B, C, D, E, F, G, H, 16);
+		R8(A, B, C, D, E, F, G, H, 16);
+		R8(A, B, C, D, E, F, G, H, 16);
+		R8(A, B, C, D, E, F, G, H, 16);
+		R8(A, B, C, D, E, F, G, H, 16);
+		R8(A, B, C, D, E, F, G, H, 16);
 #else
-# define R(A, B, C, D, E, F, G, H, xx)				\
-	SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);		\
-	SS2 = SS1 ^ ROL32(A, 12);				\
-	TT1 = FF##xx(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);	\
-	TT2 = GG##xx(E, F, G) + H + SS1 + W[j];			\
-	B = ROL32(B, 9);					\
-	H = TT1;						\
-	F = ROL32(F, 19);					\
-	D = P0(TT2);						\
-	j++
+		for (; j < 16; j++) {
+			SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
+			SS2 = SS1 ^ ROL32(A, 12);
+			TT1 = FF00(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
+			TT2 = GG00(E, F, G) + H + SS1 + W[j];
+			D = C;
+			C = ROL32(B, 9);
+			B = A;
+			A = TT1;
+			H = G;
+			G = ROL32(F, 19);
+			F = E;
+			E = P0(TT2);
+		}
 
-# define R8(A, B, C, D, E, F, G, H, xx)				\
-	R(A, B, C, D, E, F, G, H, xx);				\
-	R(H, A, B, C, D, E, F, G, xx);				\
-	R(G, H, A, B, C, D, E, F, xx);				\
-	R(F, G, H, A, B, C, D, E, xx);				\
-	R(E, F, G, H, A, B, C, D, xx);				\
-	R(D, E, F, G, H, A, B, C, xx);				\
-	R(C, D, E, F, G, H, A, B, xx);				\
-	R(B, C, D, E, F, G, H, A, xx)
-
-	R8(A, B, C, D, E, F, G, H, 00);
-	R8(A, B, C, D, E, F, G, H, 00);
-	R8(A, B, C, D, E, F, G, H, 16);
-	R8(A, B, C, D, E, F, G, H, 16);
-	R8(A, B, C, D, E, F, G, H, 16);
-	R8(A, B, C, D, E, F, G, H, 16);
-	R8(A, B, C, D, E, F, G, H, 16);
-	R8(A, B, C, D, E, F, G, H, 16);
+		for (; j < 64; j++) {
+			SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
+			SS2 = SS1 ^ ROL32(A, 12);
+			TT1 = FF16(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
+			TT2 = GG16(E, F, G) + H + SS1 + W[j];
+			D = C;
+			C = ROL32(B, 9);
+			B = A;
+			A = TT1;
+			H = G;
+			G = ROL32(F, 19);
+			F = E;
+			E = P0(TT2);
+		}
 #endif
 
-	digest[0] ^= A;
-	digest[1] ^= B;
-	digest[2] ^= C;
-	digest[3] ^= D;
-	digest[4] ^= E;
-	digest[5] ^= F;
-	digest[6] ^= G;
-	digest[7] ^= H;
+		digest[0] ^= A;
+		digest[1] ^= B;
+		digest[2] ^= C;
+		digest[3] ^= D;
+		digest[4] ^= E;
+		digest[5] ^= F;
+		digest[6] ^= G;
+		digest[7] ^= H;
+
+		data += 64;
+	}
+}
+
+void sm3_compress(uint32_t digest[8], const unsigned char block[64])
+{
+	return sm3_compress_blocks(digest, block, 1);
 }
 
 void sm3(const unsigned char *msg, size_t msglen,
