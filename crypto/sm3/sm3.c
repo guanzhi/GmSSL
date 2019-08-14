@@ -157,7 +157,7 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 	uint32_t F = digest[5];
 	uint32_t G = digest[6];
 	uint32_t H = digest[7];
-	uint32_t W[68], W1[64];
+	uint32_t W[68];
 	uint32_t SS1, SS2, TT1, TT2;
 	int j;
 
@@ -168,13 +168,10 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 		W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
 			^ ROL32(W[j - 13], 7) ^ W[j - 6];
 
-	for(j = 0; j < 64; j++)
-		W1[j] = W[j] ^ W[j + 4];
-
 	for (j = 0; j < 16; j++) {
 		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
 		SS2 = SS1 ^ ROL32(A, 12);
-		TT1 = FF00(A, B, C) + D + SS2 + W1[j];
+		TT1 = FF00(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
 		TT2 = GG00(E, F, G) + H + SS1 + W[j];
 		D = C;
 		C = ROL32(B, 9);
@@ -189,7 +186,7 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 	for (; j < 64; j++) {
 		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
 		SS2 = SS1 ^ ROL32(A, 12);
-		TT1 = FF16(A, B, C) + D + SS2 + W1[j];
+		TT1 = FF16(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
 		TT2 = GG16(E, F, G) + H + SS1 + W[j];
 		D = C;
 		C = ROL32(B, 9);
