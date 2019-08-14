@@ -168,7 +168,11 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 		W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
 			^ ROL32(W[j - 13], 7) ^ W[j - 6];
 
-	for (j = 0; j < 16; j++) {
+	j = 0;
+
+#define FULL_UNROLL
+#ifndef FULL_UNROLL
+	for (; j < 16; j++) {
 		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
 		SS2 = SS1 ^ ROL32(A, 12);
 		TT1 = FF00(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
@@ -197,6 +201,37 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 		F = E;
 		E = P0(TT2);
 	}
+#else
+# define R(A, B, C, D, E, F, G, H, xx)				\
+	SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);		\
+	SS2 = SS1 ^ ROL32(A, 12);				\
+	TT1 = FF##xx(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);	\
+	TT2 = GG##xx(E, F, G) + H + SS1 + W[j];			\
+	B = ROL32(B, 9);					\
+	H = TT1;						\
+	F = ROL32(F, 19);					\
+	D = P0(TT2);						\
+	j++
+
+# define R8(A, B, C, D, E, F, G, H, xx)				\
+	R(A, B, C, D, E, F, G, H, xx);				\
+	R(H, A, B, C, D, E, F, G, xx);				\
+	R(G, H, A, B, C, D, E, F, xx);				\
+	R(F, G, H, A, B, C, D, E, xx);				\
+	R(E, F, G, H, A, B, C, D, xx);				\
+	R(D, E, F, G, H, A, B, C, xx);				\
+	R(C, D, E, F, G, H, A, B, xx);				\
+	R(B, C, D, E, F, G, H, A, xx)
+
+	R8(A, B, C, D, E, F, G, H, 00);
+	R8(A, B, C, D, E, F, G, H, 00);
+	R8(A, B, C, D, E, F, G, H, 16);
+	R8(A, B, C, D, E, F, G, H, 16);
+	R8(A, B, C, D, E, F, G, H, 16);
+	R8(A, B, C, D, E, F, G, H, 16);
+	R8(A, B, C, D, E, F, G, H, 16);
+	R8(A, B, C, D, E, F, G, H, 16);
+#endif
 
 	digest[0] ^= A;
 	digest[1] ^= B;
