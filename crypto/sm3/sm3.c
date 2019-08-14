@@ -127,7 +127,25 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 
 #define T00 0x79cc4519U
 #define T16 0x7a879d8aU
-#define K16 0x9d8a7a87U
+
+uint32_t K[64] = {
+	0x79cc4519U, 0xf3988a32U, 0xe7311465U, 0xce6228cbU,
+	0x9cc45197U, 0x3988a32fU, 0x7311465eU, 0xe6228cbcU,
+	0xcc451979U, 0x988a32f3U, 0x311465e7U, 0x6228cbceU,
+	0xc451979cU, 0x88a32f39U, 0x11465e73U, 0x228cbce6U,
+	0x9d8a7a87U, 0x3b14f50fU, 0x7629ea1eU, 0xec53d43cU,
+	0xd8a7a879U, 0xb14f50f3U, 0x629ea1e7U, 0xc53d43ceU,
+	0x8a7a879dU, 0x14f50f3bU, 0x29ea1e76U, 0x53d43cecU,
+	0xa7a879d8U, 0x4f50f3b1U, 0x9ea1e762U, 0x3d43cec5U,
+	0x7a879d8aU, 0xf50f3b14U, 0xea1e7629U, 0xd43cec53U,
+	0xa879d8a7U, 0x50f3b14fU, 0xa1e7629eU, 0x43cec53dU,
+	0x879d8a7aU, 0x0f3b14f5U, 0x1e7629eaU, 0x3cec53d4U,
+	0x79d8a7a8U, 0xf3b14f50U, 0xe7629ea1U, 0xcec53d43U,
+	0x9d8a7a87U, 0x3b14f50fU, 0x7629ea1eU, 0xec53d43cU,
+	0xd8a7a879U, 0xb14f50f3U, 0x629ea1e7U, 0xc53d43ceU,
+	0x8a7a879dU, 0x14f50f3bU, 0x29ea1e76U, 0x53d43cecU,
+	0xa7a879d8U, 0x4f50f3b1U, 0x9ea1e762U, 0x3d43cec5U,
+};
 
 void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 {
@@ -141,7 +159,6 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 	uint32_t H = digest[7];
 	uint32_t W[68], W1[64];
 	uint32_t SS1, SS2, TT1, TT2;
-	uint32_t K = T00;
 	int j;
 
 	for (j = 0; j < 16; j++)
@@ -155,7 +172,7 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 		W1[j] = W[j] ^ W[j + 4];
 
 	for (j = 0; j < 16; j++) {
-		SS1 = ROL32((ROL32(A, 12) + E + K), 7);
+		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
 		SS2 = SS1 ^ ROL32(A, 12);
 		TT1 = FF00(A, B, C) + D + SS2 + W1[j];
 		TT2 = GG00(E, F, G) + H + SS1 + W[j];
@@ -167,12 +184,10 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 		G = ROL32(F, 19);
 		F = E;
 		E = P0(TT2);
-		K = ROL32(K, 1);
 	}
 
-	K = K16;
 	for (; j < 64; j++) {
-		SS1 = ROL32((ROL32(A, 12) + E + K), 7);
+		SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
 		SS2 = SS1 ^ ROL32(A, 12);
 		TT1 = FF16(A, B, C) + D + SS2 + W1[j];
 		TT2 = GG16(E, F, G) + H + SS1 + W[j];
@@ -184,7 +199,6 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 		G = ROL32(F, 19);
 		F = E;
 		E = P0(TT2);
-		K = ROL32(K, 1);
 	}
 
 	digest[0] ^= A;
