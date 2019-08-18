@@ -110,7 +110,7 @@ int EC_KEY_set_ECCrefPublicKey(EC_KEY *ec_key, const ECCrefPublicKey *ref)
 			ERR_R_PASSED_NULL_PARAMETER);
 		return 0;
 	}
-	if (ref->bits != EC_GROUP_get_degree(EC_KEY_get0_group(ec_key))) {
+	if ((int)ref->bits != EC_GROUP_get_degree(EC_KEY_get0_group(ec_key))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCREFPUBLICKEY,
 			GMAPI_R_INVALID_KEY_LENGTH);
 		return 0;
@@ -238,7 +238,7 @@ int EC_KEY_set_ECCrefPrivateKey(EC_KEY *ec_key, const ECCrefPrivateKey *ref)
 		return 0;
 	}
 
-	if (ref->bits != EC_GROUP_get_degree(EC_KEY_get0_group(ec_key))) {
+	if ((int)ref->bits != EC_GROUP_get_degree(EC_KEY_get0_group(ec_key))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCREFPRIVATEKEY,
 			GMAPI_R_INVALID_KEY_LENGTH);
 		goto end;
