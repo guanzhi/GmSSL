@@ -163,11 +163,12 @@ int sm3_sm2_init(sm3_ctx_t *ctx, const char *id,
 	sm3_compute_id_digest(z, id, x, y);
 	sm3_init(ctx);
 	sm3_update(ctx, z, 32);
+	return 1;
 }
 
 void sm3_update(sm3_ctx_t *ctx, const unsigned char *data, size_t data_len)
 {
-	size_t blocks = data_len / SM3_BLOCK_SIZE;
+	size_t blocks;
 
 	if (ctx->num) {
 		unsigned int left = SM3_BLOCK_SIZE - ctx->num;
@@ -177,13 +178,14 @@ void sm3_update(sm3_ctx_t *ctx, const unsigned char *data, size_t data_len)
 			return;
 		} else {
 			memcpy(ctx->block + ctx->num, data, left);
-			sm3_compress(ctx->digest, ctx->block);
+			sm3_compress_blocks(ctx->digest, ctx->block, 1);
 			ctx->nblocks++;
 			data += left;
 			data_len -= left;
 		}
 	}
 
+	blocks = data_len / SM3_BLOCK_SIZE;
 	sm3_compress_blocks(ctx->digest, data, blocks);
 	ctx->nblocks += blocks;
 	data += SM3_BLOCK_SIZE * blocks;
