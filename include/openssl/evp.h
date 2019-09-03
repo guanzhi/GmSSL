@@ -938,6 +938,7 @@ const EVP_CIPHER *EVP_sms4_wrap_pad(void);
 
 # ifndef OPENSSL_NO_ZUC
 const EVP_CIPHER *EVP_zuc(void);
+const EVP_CIPHER *EVP_zuc256(void);
 # endif
 
 # if OPENSSL_API_COMPAT < 0x10100000L

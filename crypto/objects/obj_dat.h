@@ -10,7 +10,7 @@
  */
 
 /* Serialized OID's */
-static const unsigned char so[7915] = {
+static const unsigned char so[7972] = {
     0x2A,0x86,0x48,0x86,0xF7,0x0D,                 /* [    0] OBJ_rsadsi */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,            /* [    6] OBJ_pkcs */
     0x2A,0x86,0x48,0x86,0xF7,0x0D,0x02,0x02,       /* [   13] OBJ_md2 */
@@ -1104,9 +1104,15 @@ static const unsigned char so[7915] = {
     0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2F,0x07,  /* [ 7885] OBJ_sm9hash2 */
     0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2F,0x07,0x01,  /* [ 7894] OBJ_sm9hash2_with_sm3 */
     0x2A,0x81,0x1C,0xCF,0x55,0x01,0x82,0x2F,0x07,0x02,  /* [ 7904] OBJ_sm9hash2_with_sha256 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x04,  /* [ 7914] OBJ_zuc256 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x03,  /* [ 7923] OBJ_zuc_mac */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x05,  /* [ 7932] OBJ_zuc256_mac */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x05,0x01,  /* [ 7941] OBJ_zuc256_mac32 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x05,0x02,  /* [ 7951] OBJ_zuc256_mac64 */
+    0x2A,0x81,0x1C,0xCF,0x55,0x01,0x86,0x20,0x05,0x03,  /* [ 7961] OBJ_zuc256_mac128 */
 };
 
-#define NUM_NID 1212
+#define NUM_NID 1218
 static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"UNDEF", "undefined", NID_undef},
     {"rsadsi", "RSA Data Security, Inc.", NID_rsadsi, 6, &so[0]},
@@ -2320,9 +2326,15 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"sm9hash2", "sm9hash2", NID_sm9hash2, 9, &so[7885]},
     {"sm9hash2-with-sm3", "sm9hash2-with-sm3", NID_sm9hash2_with_sm3, 10, &so[7894]},
     {"sm9hash2-with-sha256", "sm9hash2-with-sha256", NID_sm9hash2_with_sha256, 10, &so[7904]},
+    {"ZUC256", "zuc256", NID_zuc256, 9, &so[7914]},
+    {"ZUC-MAC", "zuc-mac", NID_zuc_mac, 9, &so[7923]},
+    {"ZUC256-MAC", "zuc256-mac", NID_zuc256_mac, 9, &so[7932]},
+    {"ZUC256-MAC32", "zuc256-mac32", NID_zuc256_mac32, 10, &so[7941]},
+    {"ZUC256-MAC64", "zuc256-mac64", NID_zuc256_mac64, 10, &so[7951]},
+    {"ZUC256-MAC128", "zuc256-mac128", NID_zuc256_mac128, 10, &so[7961]},
 };
 
-#define NUM_SN 1202
+#define NUM_SN 1208
 static const unsigned int sn_objs[NUM_SN] = {
      364,    /* "AD_DVCS" */
      419,    /* "AES-128-CBC" */
@@ -2613,6 +2625,12 @@ static const unsigned int sn_objs[NUM_SN] = {
      185,    /* "X9cm" */
      125,    /* "ZLIB" */
     1185,    /* "ZUC" */
+    1213,    /* "ZUC-MAC" */
+    1212,    /* "ZUC256" */
+    1214,    /* "ZUC256-MAC" */
+    1217,    /* "ZUC256-MAC128" */
+    1215,    /* "ZUC256-MAC32" */
+    1216,    /* "ZUC256-MAC64" */
      478,    /* "aRecord" */
      289,    /* "aaControls" */
      287,    /* "ac-auditEntity" */
@@ -3528,7 +3546,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1187,    /* "zuc-128eia3" */
 };
 
-#define NUM_LN 1202
+#define NUM_LN 1208
 static const unsigned int ln_objs[NUM_LN] = {
      363,    /* "AD Time Stamping" */
      405,    /* "ANSI X9.62" */
@@ -4732,9 +4750,15 @@ static const unsigned int ln_objs[NUM_LN] = {
     1185,    /* "zuc" */
     1186,    /* "zuc-128eea3" */
     1187,    /* "zuc-128eia3" */
+    1213,    /* "zuc-mac" */
+    1212,    /* "zuc256" */
+    1214,    /* "zuc256-mac" */
+    1217,    /* "zuc256-mac128" */
+    1215,    /* "zuc256-mac32" */
+    1216,    /* "zuc256-mac64" */
 };
 
-#define NUM_OBJ 1099
+#define NUM_OBJ 1105
 static const unsigned int obj_objs[NUM_OBJ] = {
        0,    /* OBJ_undef                        0 */
      181,    /* OBJ_iso                          1 */
@@ -5483,6 +5507,9 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1149,    /* OBJ_hmac_sm3                     1 2 156 10197 1 401 2 */
     1186,    /* OBJ_zuc_128eea3                  1 2 156 10197 1 800 1 */
     1187,    /* OBJ_zuc_128eia3                  1 2 156 10197 1 800 2 */
+    1213,    /* OBJ_zuc_mac                      1 2 156 10197 1 800 3 */
+    1212,    /* OBJ_zuc256                       1 2 156 10197 1 800 4 */
+    1214,    /* OBJ_zuc256_mac                   1 2 156 10197 1 800 5 */
     1192,    /* OBJ_wapip192v1                   1 2 156 11235 1 1 2 1 */
      997,    /* OBJ_id_tc26_gost_3410_2012_512_paramSetTest 1 2 643 7 1 2 1 2 0 */
      998,    /* OBJ_id_tc26_gost_3410_2012_512_paramSetA 1 2 643 7 1 2 1 2 1 */
@@ -5700,6 +5727,9 @@ static const unsigned int obj_objs[NUM_OBJ] = {
     1175,    /* OBJ_sm9bn256v1                   1 2 156 10197 1 302 6 1 */
     1210,    /* OBJ_sm9hash2_with_sm3            1 2 156 10197 1 303 7 1 */
     1211,    /* OBJ_sm9hash2_with_sha256         1 2 156 10197 1 303 7 2 */
+    1215,    /* OBJ_zuc256_mac32                 1 2 156 10197 1 800 5 1 */
+    1216,    /* OBJ_zuc256_mac64                 1 2 156 10197 1 800 5 2 */
+    1217,    /* OBJ_zuc256_mac128                1 2 156 10197 1 800 5 3 */
      189,    /* OBJ_id_smime_mod                 1 2 840 113549 1 9 16 0 */
      190,    /* OBJ_id_smime_ct                  1 2 840 113549 1 9 16 1 */
      191,    /* OBJ_id_smime_aa                  1 2 840 113549 1 9 16 2 */
