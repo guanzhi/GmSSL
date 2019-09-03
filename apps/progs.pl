@@ -118,7 +118,7 @@ my %cipher_disabler = (
     cast5 => "cast",
     );
 foreach my $cmd (
-	"sms4", "sms4-cbc", "sms4-ecb", "sms4-ofb", "sms4-cfb", "zuc",
+	"sms4", "sms4-cbc", "sms4-ecb", "sms4-ofb", "sms4-cfb", "zuc", "zuc256",
 	"aes-128-cbc", "aes-128-ecb",
 	"aes-192-cbc", "aes-192-ecb",
 	"aes-256-cbc", "aes-256-ecb",

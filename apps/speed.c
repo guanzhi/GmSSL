@@ -148,7 +148,7 @@
 #define BUFSIZE (1024*16+1)
 #define MAX_MISALIGNMENT 63
 
-#define ALGOR_NUM       33
+#define ALGOR_NUM       34
 #define SIZE_NUM        6
 #define PRIME_NUM       3
 #define RSA_NUM         7
@@ -297,7 +297,7 @@ static const char *names[ALGOR_NUM] = {
     "camellia-128 cbc", "camellia-192 cbc", "camellia-256 cbc",
     "evp", "sha256", "sha512", "whirlpool",
     "aes-128 ige", "aes-192 ige", "aes-256 ige", "ghash",
-    "sm3", "sms4 cbc", "zuc"
+    "sm3", "sms4 cbc", "zuc", "zuc256"
 };
 
 static double results[ALGOR_NUM][SIZE_NUM];
@@ -483,6 +483,7 @@ OPTIONS speed_options[] = {
 #define D_SM3           30
 #define D_CBC_SMS4      31
 #define D_ZUC           32
+#define D_ZUC256        33
 static OPT_PAIR doit_choices[] = {
 #ifndef OPENSSL_NO_MD2
     {"md2", D_MD2},
@@ -561,6 +562,7 @@ static OPT_PAIR doit_choices[] = {
 #endif
 #ifndef OPENSSL_NO_ZUC
     {"zuc", D_ZUC},
+    {"zuc256", D_ZUC256},
 #endif
     {NULL}
 };
@@ -1504,6 +1506,7 @@ int speed_main(int argc, char **argv)
 #endif
 #ifndef OPENSSL_NO_ZUC
     ZUC_KEY zuc_ks;
+    ZUC256_KEY zuc256_ks;
 #endif
 #ifndef OPENSSL_NO_BF
     BF_KEY bf_ks;
@@ -1998,6 +2001,7 @@ int speed_main(int argc, char **argv)
 #endif
 #ifndef OPENSSL_NO_ZUC
     ZUC_set_key(&zuc_ks, key16, iv);
+    ZUC256_set_key(&zuc256_ks, key32, iv);
 #endif
 #ifndef OPENSSL_NO_RC4
     RC4_set_key(&rc4_ks, 16, key16);
@@ -2060,6 +2064,7 @@ int speed_main(int argc, char **argv)
     c[D_SM3][0] = count;
     c[D_CBC_SMS4][0] = count;
     c[D_ZUC][0] = count;
+    c[D_ZUC256][0] = count;
 
     for (i = 1; i < SIZE_NUM; i++) {
         long l0, l1;
@@ -2102,6 +2107,7 @@ int speed_main(int argc, char **argv)
         c[D_IGE_256_AES][i] = c[D_IGE_256_AES][i - 1] * l0 / l1;
         c[D_CBC_SMS4][i] = c[D_CBC_SMS4][i - 1] * l0 / l1;
         c[D_ZUC][i] = c[D_ZUC][i - 1] * l0 / l1;
+        c[D_ZUC256][i] = c[D_ZUC256][i - 1] * l0 / l1;
     }
 
 #  ifndef OPENSSL_NO_RSA
@@ -2619,6 +2625,22 @@ int speed_main(int argc, char **argv)
                                        (unsigned int *)loopargs[0].buf);
             d = Time_F(STOP);
             print_result(D_ZUC, testnum, count, d);
+        }
+    }
+    if (doit[D_ZUC256]) {
+        if (async_jobs > 0) {
+            BIO_printf(bio_err, "Async mode is not supported with %s\n",
+                       names[D_ZUC256]);
+            doit[D_ZUC256] = 0;
+        }
+        for (testnum = 0; testnum < SIZE_NUM && async_init == 0; testnum++) {
+            print_message(names[D_ZUC256], c[D_ZUC256][testnum], lengths[testnum]);
+            Time_F(START);
+            for (count = 0, run = 1; COND(c[D_ZUC256][testnum]); count++)
+                ZUC256_generate_keystream(&zuc256_ks, lengths[testnum]/4,
+                                       (unsigned int *)loopargs[0].buf);
+            d = Time_F(STOP);
+            print_result(D_ZUC256, testnum, count, d);
         }
     }
 #endif

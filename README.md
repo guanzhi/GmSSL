@@ -122,11 +122,13 @@ $ gmssl sms4 -in README.md -out README.sms4
 $ gmssl sms4 -d -in README.sms4
 ```
 
-ZUC encryption and decryption:
+ZUC/ZUC256 encryption and decryption:
 
 ```sh
 $ gmssl zuc -in README.md -out README.zuc
 $ gmssl zuc -d -in README.zuc
+$ gmssl zuc256 -in README.md -out README.zuc256
+$ gmssl zuc256 -d -in README.zuc256
 ```
 
 SM2 private key generation:
