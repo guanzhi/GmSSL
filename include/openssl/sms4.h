@@ -97,13 +97,6 @@ int sms4_unwrap_key(sms4_key_t *key, const unsigned char *iv,
 void sms4_ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
 	size_t blocks, const sms4_key_t *key, const unsigned char iv[16]);
 
-# ifdef SMS4_AVX2
-void sms4_avx2_ecb_encrypt_blocks(const unsigned char *in,
-	unsigned char *out, size_t blocks, const sms4_key_t *key);
-void sms4_avx2_ctr32_encrypt_blocks(const unsigned char *in,
-	unsigned char *out, size_t blocks, const sms4_key_t *key,
-	const unsigned char iv[16]);
-# endif
 
 # define SMS4_EDE_KEY_LENGTH	(SMS4_KEY_LENGTH * 3)
 

@@ -63,6 +63,13 @@ int main(int argc, char **argv)
 # include <openssl/sms4.h>
 # include <openssl/rand.h>
 
+# ifdef SMS4_AVX2
+void sms4_avx2_ecb_encrypt_blocks(const unsigned char *in,
+	unsigned char *out, size_t blocks, const sms4_key_t *key);
+void sms4_avx2_ctr32_encrypt_blocks(const unsigned char *in,
+	unsigned char *out, size_t blocks, const sms4_key_t *key,
+	const unsigned char iv[16]);
+# endif
 
 static int test_ecb(int avx)
 {
