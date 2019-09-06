@@ -148,7 +148,7 @@
 #define BUFSIZE (1024*16+1)
 #define MAX_MISALIGNMENT 63
 
-#define ALGOR_NUM       34
+#define ALGOR_NUM       33
 #define SIZE_NUM        6
 #define PRIME_NUM       3
 #define RSA_NUM         7
@@ -202,6 +202,7 @@ typedef struct loopargs_st {
 #ifndef OPENSSL_NO_SM9
     SM9PublicParameters *sm9mpk[SM9_NUM];
     SM9PrivateKey *sm9sk[SM9_NUM];
+    SM9MasterSecret *sm9mst[SM9_NUM];
 #endif
     EVP_CIPHER_CTX *ctx;
     HMAC_CTX *hctx;
@@ -297,7 +298,7 @@ static const char *names[ALGOR_NUM] = {
     "camellia-128 cbc", "camellia-192 cbc", "camellia-256 cbc",
     "evp", "sha256", "sha512", "whirlpool",
     "aes-128 ige", "aes-192 ige", "aes-256 ige", "ghash",
-    "sm3", "sms4 cbc", "zuc", "zuc256"
+    "sm3", "sms4 cbc", "zuc"
 };
 
 static double results[ALGOR_NUM][SIZE_NUM];
@@ -483,7 +484,6 @@ OPTIONS speed_options[] = {
 #define D_SM3           30
 #define D_CBC_SMS4      31
 #define D_ZUC           32
-#define D_ZUC256        33
 static OPT_PAIR doit_choices[] = {
 #ifndef OPENSSL_NO_MD2
     {"md2", D_MD2},
@@ -562,7 +562,6 @@ static OPT_PAIR doit_choices[] = {
 #endif
 #ifndef OPENSSL_NO_ZUC
     {"zuc", D_ZUC},
-    {"zuc256", D_ZUC256},
 #endif
     {NULL}
 };
@@ -1124,23 +1123,91 @@ static long sm9sign_c[SM9_NUM][2];
 
 static int SM9_sign_loop(void *args)
 {
-    return 1;
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    SM9PrivateKey **sm9 = tempargs->sm9sk;
+    unsigned char *sm9sig = tempargs->buf2;
+    unsigned int *sm9siglen = &tempargs->siglen;
+    int ret, count;
+    for (count = 0; COND(sm9sign_c[testnum][0]); count++) {
+        ret = SM9_sign(NID_sm3, buf, 32, sm9sig, sm9siglen, sm9[testnum]);
+        if (ret == 0) {
+            BIO_printf(bio_err, "SM9 sign failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
 }
 
+static char* sm9verify_id = "sm9_verify";
+static size_t sm9verify_idlen = 10;
 static int SM9_verify_loop(void *args)
 {
-    return 1;
+    loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    SM9PublicParameters **sm9 = tempargs->sm9mpk;
+    unsigned char *sm9sig = tempargs->buf2;
+    unsigned int sm9siglen = tempargs->siglen;
+    int ret, count;
+    for (count = 0; COND(sm9sign_c[testnum][1]); count++) {
+        ret = SM9_verify(NID_sm3, buf, 32, sm9sig, sm9siglen, sm9[testnum], sm9verify_id, sm9verify_idlen);
+        if (ret != 1) {
+            BIO_printf(bio_err, "SM9 verify failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
 }
 
 static long sm9enc_c[SM9_NUM][2];
+static char* sm9enc_id = "sm9_enc";
+static size_t sm9enc_idlen = 7;
 static int SM9_encrypt_loop(void *args)
 {
-	return 1;
+	loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    SM9PublicParameters **sm9 = tempargs->sm9mpk;
+    unsigned char *sm9cipher = tempargs->buf2;
+    size_t *sm9cipherlen = &tempargs->cipherlen;
+    int ret, count;
+    for (count = 0; COND(sm9enc_c[testnum][0]); count++) {
+        *sm9cipherlen = BUFSIZE;
+        ret = SM9_encrypt(NID_sm3, buf, 32, sm9cipher,
+                          sm9cipherlen, sm9[testnum], sm9enc_id, sm9enc_idlen);
+        if (ret == 0) {
+            BIO_printf(bio_err, "SM9 encrypt failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
 }
 
 static int SM9_decrypt_loop(void *args)
 {
-	return 1;
+	loopargs_t *tempargs = *(loopargs_t **)args;
+    unsigned char *buf = tempargs->buf;
+    SM9PrivateKey **sm9 = tempargs->sm9sk;
+    unsigned char *sm9cipher = tempargs->buf2;
+    size_t sm9cipherlen = tempargs->cipherlen;
+    int ret, count;
+    for (count = 0; COND(sm9enc_c[testnum][0]); count++) {
+        size_t len = sm9cipherlen;				
+	ret = SM9_decrypt(NID_sm3, sm9cipher, sm9cipherlen,
+                          buf, &len, sm9[testnum]);
+        if (ret == 0) {
+            BIO_printf(bio_err, "SM9 decrypt failure\n");
+            ERR_print_errors(bio_err);
+            count = -1;
+            break;
+        }
+    }
+    return count;
 }
 #endif
 
@@ -1506,7 +1573,6 @@ int speed_main(int argc, char **argv)
 #endif
 #ifndef OPENSSL_NO_ZUC
     ZUC_KEY zuc_ks;
-    ZUC256_KEY zuc256_ks;
 #endif
 #ifndef OPENSSL_NO_BF
     BF_KEY bf_ks;
@@ -1641,6 +1707,12 @@ int speed_main(int argc, char **argv)
     };
     static const int test_sm9_curves_bits[SM9_NUM] = {
         256,
+    };
+    static const int test_sm9_scheme[SM9_NUM] = {
+        NID_sm9sign,
+    };
+    static const int test_sm9_hash1[SM9_NUM] = {
+        NID_sm9hash1_with_sm3,
     };
     int sm9sign_doit[SM9_NUM] = { 0 };
     int sm9enc_doit[SM9_NUM] = { 0 };
@@ -2001,7 +2073,6 @@ int speed_main(int argc, char **argv)
 #endif
 #ifndef OPENSSL_NO_ZUC
     ZUC_set_key(&zuc_ks, key16, iv);
-    ZUC256_set_key(&zuc256_ks, key32, iv);
 #endif
 #ifndef OPENSSL_NO_RC4
     RC4_set_key(&rc4_ks, 16, key16);
@@ -2064,7 +2135,6 @@ int speed_main(int argc, char **argv)
     c[D_SM3][0] = count;
     c[D_CBC_SMS4][0] = count;
     c[D_ZUC][0] = count;
-    c[D_ZUC256][0] = count;
 
     for (i = 1; i < SIZE_NUM; i++) {
         long l0, l1;
@@ -2107,7 +2177,6 @@ int speed_main(int argc, char **argv)
         c[D_IGE_256_AES][i] = c[D_IGE_256_AES][i - 1] * l0 / l1;
         c[D_CBC_SMS4][i] = c[D_CBC_SMS4][i - 1] * l0 / l1;
         c[D_ZUC][i] = c[D_ZUC][i - 1] * l0 / l1;
-        c[D_ZUC256][i] = c[D_ZUC256][i - 1] * l0 / l1;
     }
 
 #  ifndef OPENSSL_NO_RSA
@@ -2625,22 +2694,6 @@ int speed_main(int argc, char **argv)
                                        (unsigned int *)loopargs[0].buf);
             d = Time_F(STOP);
             print_result(D_ZUC, testnum, count, d);
-        }
-    }
-    if (doit[D_ZUC256]) {
-        if (async_jobs > 0) {
-            BIO_printf(bio_err, "Async mode is not supported with %s\n",
-                       names[D_ZUC256]);
-            doit[D_ZUC256] = 0;
-        }
-        for (testnum = 0; testnum < SIZE_NUM && async_init == 0; testnum++) {
-            print_message(names[D_ZUC256], c[D_ZUC256][testnum], lengths[testnum]);
-            Time_F(START);
-            for (count = 0, run = 1; COND(c[D_ZUC256][testnum]); count++)
-                ZUC256_generate_keystream(&zuc256_ks, lengths[testnum]/4,
-                                       (unsigned int *)loopargs[0].buf);
-            d = Time_F(STOP);
-            print_result(D_ZUC256, testnum, count, d);
         }
     }
 #endif
@@ -3281,7 +3334,181 @@ int speed_main(int argc, char **argv)
 #endif /* OPENSSL_NO_SM2 */
 #ifndef OPENSSL_NO_SM9
 
-//FIXME: this is the core code, 
+	if (RAND_status() != 1) {
+        RAND_seed(rnd_seed, sizeof rnd_seed);
+    }
+    for (testnum = 0; testnum < SM9_NUM; testnum++) {
+        int st = 1;
+
+        if (!sm9sign_doit[testnum])
+            continue;           /* Ignore Curve */
+        for (i = 0; i < loopargs_len; i++) {
+        	loopargs[i].sm9mst[testnum] = SM9_generate_master_secret(test_sm9_curves[testnum],
+                                                test_sm9_scheme[testnum], test_sm9_hash1[testnum]);
+            if (loopargs[i].sm9mst[testnum] == NULL) {
+                st = 0;
+                break;
+            }
+        }
+        if (st == 0) {
+            BIO_printf(bio_err, "SM9 failure.\n");
+            ERR_print_errors(bio_err);
+            rsa_count = 1;
+        } else {
+            for (i = 0; i < loopargs_len; i++) {
+                /* Perform SM9 signature test */
+                loopargs[i].sm9sk[testnum] = SM9_extract_private_key(loopargs[i].sm9mst[testnum], sm9verify_id, sm9verify_idlen);
+                st = SM9_sign(NID_sm3, loopargs[i].buf, 32, loopargs[i].buf2,
+                              &loopargs[i].siglen, loopargs[i].sm9sk[testnum]);
+                if (st == 0)
+                    break;
+            }
+            if (st == 0) {
+                BIO_printf(bio_err,
+                           "SM9 sign failure.  No SM9 sign will be done.\n");
+                ERR_print_errors(bio_err);
+                rsa_count = 1;
+            } else {
+                pkey_print_message("sign", "sm9",
+                                   sm9sign_c[testnum][0],
+                                   test_sm9_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM9_sign_loop, loopargs);
+                d = Time_F(STOP);
+
+                BIO_printf(bio_err,
+                           mr ? "+R7:%ld:%d:%.2f\n" :
+                           "%ld %d bit SM9 signs in %.2fs \n",
+                           count, test_sm9_curves_bits[testnum], d);
+                sm9sign_results[testnum][0] = d / (double)count;
+                rsa_count = count;
+            }
+
+            /* Perform SM9 verification test */
+            for (i = 0; i < loopargs_len; i++) {
+                loopargs[i].sm9mpk[testnum] = SM9_extract_public_parameters(loopargs[i].sm9mst[testnum]);
+                st = SM9_verify(NID_sm3, loopargs[i].buf, 32, loopargs[i].buf2,
+                                loopargs[i].siglen, loopargs[i].sm9mpk[testnum], sm9verify_id, sm9verify_idlen);
+                if (st != 1)
+                    break;
+            }
+            if (st != 1) {
+                BIO_printf(bio_err,
+                           "SM9 verify failure.  No SM9 verify will be done.\n");
+                ERR_print_errors(bio_err);
+                sm9sign_doit[testnum] = 0;
+            } else {
+                pkey_print_message("verify", "sm9",
+                                   sm9sign_c[testnum][1],
+                                   test_sm9_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM9_verify_loop, loopargs);
+                d = Time_F(STOP);
+                BIO_printf(bio_err,
+                           mr ? "+R8:%ld:%d:%.2f\n"
+                           : "%ld %d bit SM9 verify in %.2fs\n",
+                           count, test_sm9_curves_bits[testnum], d);
+                sm9sign_results[testnum][1] = d / (double)count;
+            }
+
+            if (rsa_count <= 1) {
+                /* if longer than 10s, don't do any more */
+                for (testnum++; testnum < SM9_NUM; testnum++)
+                    sm9sign_doit[testnum] = 0;
+            }
+        }
+    }
+
+
+    if (RAND_status() != 1) {
+        RAND_seed(rnd_seed, sizeof rnd_seed);
+    }
+    for (testnum = 0; testnum < SM9_NUM; testnum++) {
+        int st = 1;
+
+        if (!sm9enc_doit[testnum])
+            continue;
+        for (i = 0; i < loopargs_len; i++) {
+            loopargs[i].sm9mst[testnum] = SM9_generate_master_secret(test_sm9_curves[testnum],
+                                                test_sm9_scheme[testnum], test_sm9_hash1[testnum]);
+            if (loopargs[i].sm9mst[testnum] == NULL) {
+                st = 0;
+                break;
+            }
+        }
+        if (st == 0) {
+            BIO_printf(bio_err, "SM9 failure.\n");
+            ERR_print_errors(bio_err);
+            rsa_count = 1;
+        } else {
+            for (i = 0; i < loopargs_len; i++) {
+            	/* these 2 lines should be modified ? */
+                /*if (!nopre)
+                    EC_KEY_precompute_mult(loopargs[i].sm9[testnum], NULL);*/ 
+                /* Perform SM9 encryption test */
+                loopargs[i].sm9mpk[testnum] = SM9_extract_public_parameters(loopargs[i].sm9mst[testnum]);
+				loopargs[i].cipherlen = BUFSIZE;
+                st = SM9_encrypt(NID_sm3, loopargs[i].buf, 32, loopargs[i].buf2,
+                                 &loopargs[i].cipherlen, loopargs[i].sm9mpk[testnum], sm9enc_id, sm9enc_idlen);
+                if (st == 0)
+                    break;
+            }
+            if (st == 0) {
+                BIO_printf(bio_err,
+                           "SM9 encryption failure.  No SM9 encryption will be done.\n");
+                ERR_print_errors(bio_err);
+                rsa_count = 1;
+            } else {
+                pkey_print_message("encrypt", "sm9",
+                                   sm9enc_c[testnum][0],
+                                   test_sm9_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM9_encrypt_loop, loopargs);
+                d = Time_F(STOP);
+
+                BIO_printf(bio_err,
+                           mr ? "+R7:%ld:%d:%.2f\n" :
+                           "%ld %d bit SM9 encrypt in %.2fs \n",
+                           count, test_sm9_curves_bits[testnum], d);
+                sm9enc_results[testnum][0] = d / (double)count;
+                rsa_count = count;
+            }
+
+            /* Perform SM9 verification test */
+            for (i = 0; i < loopargs_len; i++) {
+            	loopargs[i].sm9sk[testnum] = SM9_extract_private_key(loopargs[i].sm9mst[testnum], sm9enc_id, sm9enc_idlen);
+                size_t len = loopargs[i].cipherlen;
+                st = SM9_decrypt(NID_sm3, loopargs[i].buf2, loopargs[i].cipherlen,
+                                 loopargs[i].buf, &len, loopargs[i].sm9sk[testnum]);
+                if (st == 0)
+                    break;
+            }
+            if (st != 1) {
+                BIO_printf(bio_err,
+                           "SM9 decrypt failure.  No SM9 decrypt will be done.\n");
+                ERR_print_errors(bio_err);
+                sm9enc_doit[testnum] = 0;
+            } else {
+                pkey_print_message("decrypt", "sm9",
+                                   sm9enc_c[testnum][1],
+                                   test_sm9_curves_bits[testnum], ECDSA_SECONDS);
+                Time_F(START);
+                count = run_benchmark(async_jobs, SM9_decrypt_loop, loopargs);
+                d = Time_F(STOP);
+                BIO_printf(bio_err,
+                           mr ? "+R8:%ld:%d:%.2f\n"
+                           : "%ld %d bit SM9 decrypt in %.2fs\n",
+                           count, test_sm9_curves_bits[testnum], d);
+                sm9enc_results[testnum][1] = d / (double)count;
+            }
+
+            if (rsa_count <= 1) {
+                /* if longer than 10s, don't do any more */
+                for (testnum++; testnum < SM9_NUM; testnum++)
+                    sm9sign_doit[testnum] = 0;
+            }
+        }
+    }
 
 #endif /* OPENSSL_NO_SM9 */
 #ifndef NO_FORK
@@ -3552,6 +3779,7 @@ int speed_main(int argc, char **argv)
         for (k = 0; k < SM9_NUM; k++) {
             SM9PublicParameters_free(loopargs[i].sm9mpk[k]);
             SM9PrivateKey_free(loopargs[i].sm9sk[k]);
+            SM9MasterSecret_free(loopargs[i].sm9mst[k]);
         }
 #endif
     }
