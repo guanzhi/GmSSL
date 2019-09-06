@@ -65,7 +65,7 @@
 
 # define EVP_MAX_MD_SIZE                 64/* longest known is SHA512 */
 # define EVP_MAX_KEY_LENGTH              64
-# define EVP_MAX_IV_LENGTH               16
+# define EVP_MAX_IV_LENGTH               32/* longest is ZUC256 (23) */
 # define EVP_MAX_BLOCK_LENGTH            32
 
 # define PKCS5_SALT_LEN                  8
@@ -938,6 +938,7 @@ const EVP_CIPHER *EVP_sms4_wrap_pad(void);
 
 # ifndef OPENSSL_NO_ZUC
 const EVP_CIPHER *EVP_zuc(void);
+const EVP_CIPHER *EVP_zuc256(void);
 # endif
 
 # if OPENSSL_API_COMPAT < 0x10100000L

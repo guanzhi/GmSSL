@@ -5140,6 +5140,36 @@
 #define NID_zuc_128eia3         1187
 #define OBJ_zuc_128eia3         OBJ_zuc,2L
 
+#define SN_zuc_mac              "ZUC-MAC"
+#define LN_zuc_mac              "zuc-mac"
+#define NID_zuc_mac             1213
+#define OBJ_zuc_mac             OBJ_zuc,3L
+
+#define SN_zuc256               "ZUC256"
+#define LN_zuc256               "zuc256"
+#define NID_zuc256              1212
+#define OBJ_zuc256              OBJ_zuc,4L
+
+#define SN_zuc256_mac           "ZUC256-MAC"
+#define LN_zuc256_mac           "zuc256-mac"
+#define NID_zuc256_mac          1214
+#define OBJ_zuc256_mac          OBJ_zuc,5L
+
+#define SN_zuc256_mac32         "ZUC256-MAC32"
+#define LN_zuc256_mac32         "zuc256-mac32"
+#define NID_zuc256_mac32                1215
+#define OBJ_zuc256_mac32                OBJ_zuc256_mac,1L
+
+#define SN_zuc256_mac64         "ZUC256-MAC64"
+#define LN_zuc256_mac64         "zuc256-mac64"
+#define NID_zuc256_mac64                1216
+#define OBJ_zuc256_mac64                OBJ_zuc256_mac,2L
+
+#define SN_zuc256_mac128                "ZUC256-MAC128"
+#define LN_zuc256_mac128                "zuc256-mac128"
+#define NID_zuc256_mac128               1217
+#define OBJ_zuc256_mac128               OBJ_zuc256_mac,3L
+
 #define SN_bwips                "bwips"
 #define NID_bwips               1188
 #define OBJ_bwips               OBJ_ISO_CN,11235L

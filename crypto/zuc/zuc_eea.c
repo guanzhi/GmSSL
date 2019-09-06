@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,27 +47,36 @@
  * ====================================================================
  */
 
+#include <stdlib.h>
+#include <openssl/zuc.h>
 
-#include <openssl/sms4.h>
-
-void sms4_encrypt_init(sms4_key_t *key)
+static void ZUC_set_eea_key(ZUC_KEY *key, const unsigned char user_key[16],
+	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_BIT direction)
 {
+	unsigned char iv[16] = {0};
+	iv[0] = iv[8] = count >> 24;
+	iv[1] = iv[9] = count >> 16;
+	iv[2] = iv[10] = count >> 8;
+	iv[3] = iv[11] = count;
+	iv[4] = iv[12] = ((bearer << 1) | (direction & 1)) << 2;
+	ZUC_set_key(key, user_key, iv);
 }
 
-void sms4_encrypt_8blocks(const unsigned char *in, unsigned char *out, const sms4_key_t *key)
+void ZUC_eea_encrypt(const ZUC_UINT32 *in, ZUC_UINT32 *out, size_t nbits,
+	const unsigned char key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+	ZUC_BIT direction)
 {
-	sms4_encrypt(in, out, key);
-	sms4_encrypt(in + 16, out + 16, key);
-	sms4_encrypt(in + 16 * 2, out + 16 * 2, key);
-	sms4_encrypt(in + 16 * 3, out + 16 * 3, key);
-	sms4_encrypt(in + 16 * 4, out + 16 * 4, key);
-	sms4_encrypt(in + 16 * 5, out + 16 * 5, key);
-	sms4_encrypt(in + 16 * 6, out + 16 * 6, key);
-	sms4_encrypt(in + 16 * 7, out + 16 * 7, key);
-}
+	ZUC_KEY zuc_key;
+	size_t nwords = (nbits + 31)/32;
+	size_t i;
 
-void sms4_encrypt_16blocks(const unsigned char *in, unsigned char *out, const sms4_key_t *key)
-{
-	sms4_encrypt_8blocks(in, out, key);
-	sms4_encrypt_8blocks(in + 16 * 8, out + 16 * 8, key);
+	ZUC_set_eea_key(&zuc_key, key, count, bearer, direction);
+	ZUC_generate_keystream(&zuc_key, nwords, out);
+	for (i = 0; i < nwords; i++) {
+		out[i] ^= in[i];
+	}
+
+	if (nbits % 32 != 0) {
+		out[nwords - 1] |= (0xffffffff << (32 - (nbits%32)));
+	}
 }

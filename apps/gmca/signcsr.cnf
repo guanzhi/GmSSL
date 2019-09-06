@@ -186,6 +186,7 @@ basicConstraints=CA:FALSE
 
 # This is typical in keyUsage for a client certificate.
 # keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+keyUsage = digitalSignature
 
 # This will be displayed in Netscape's comment listbox.
 nsComment			= "OpenSSL Generated Certificate"

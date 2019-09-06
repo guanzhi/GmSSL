@@ -126,7 +126,7 @@ static int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 {
 	int ret = 0;
 	char *buf = NULL;
-	int i = 0;
+	size_t i = 0;
 	size_t buflen = binlen * 2 + 1;
 
 
@@ -172,9 +172,11 @@ static int sm9test_sign(const char *id, const unsigned char *msg, size_t msglen,
 	char *M =	"Chinese IBS standard";
 	char *r =	"033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE";
 	char *h =	"823C4B21E4BD2DFE1ED92C606653E996668563152FC33F55D7BFBB9BD9705ADB";
+	/*
 	char *S =	"04"
 			"73BF96923CE58B6AD0E13E9643A406D8EB98417C50EF1B29CEF9ADB48B6D598C"
 			"856712F1C2E0968AB7769F42A99586AED139D5B8B3E15891827CC2ACED9BAA05";
+	*/
 	char *S_comp =	"03"
 			"73BF96923CE58B6AD0E13E9643A406D8EB98417C50EF1B29CEF9ADB48B6D598C";
 

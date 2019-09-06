@@ -47,96 +47,114 @@
  * ====================================================================
  */
 
-#ifndef HEADER_ZUC_H
-#define HEADER_ZUC_H
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/zuc.h>
+#include <openssl/crypto.h>
+#include "modes_lcl.h"
 
-#include <openssl/opensslconf.h>
-# ifndef OPENSSL_NO_ZUC
+static void zuc_set_eia_iv(unsigned char iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+	ZUC_BIT direction)
+{
+	memset(iv, 0, 16);
+	iv[0] = count >> 24;
+	iv[1] = iv[9] = count >> 16;
+	iv[2] = iv[10] = count >> 8;
+	iv[3] = iv[11] = count;
+	iv[4] = iv[12] = bearer << 3;
+	iv[8] = iv[0] ^ (direction << 7);
+	iv[14] = (direction << 7);
+}
 
-# include <stdlib.h>
-# include <openssl/e_os2.h>
-
-typedef uint32_t ZUC_BIT;
-typedef uint32_t ZUC_UINT5;
-typedef uint8_t  ZUC_UINT6;
-typedef uint32_t ZUC_UINT15;
-typedef uint32_t ZUC_UINT31;
-typedef uint32_t ZUC_UINT32;
-
-# ifdef __cplusplus
-extern "C" {
-# endif
-
-
-# define ZUC_KEY_LENGTH	16
-# define ZUC_IV_LENGTH	16
-# define ZUC_MAC_LENGTH 4
-
-
-typedef struct ZUC_KEY_st {
-	ZUC_UINT31 LFSR[16];
-	ZUC_UINT32 R1;
-	ZUC_UINT32 R2;
-} ZUC_KEY;
-
-void ZUC_set_key(ZUC_KEY *key, const unsigned char user_key[16], const unsigned char iv[16]);
-void ZUC_generate_keystream(ZUC_KEY *key, size_t nwords, ZUC_UINT32 *words);
-ZUC_UINT32 ZUC_generate_keyword(ZUC_KEY *key);
-
-typedef struct ZUC_MAC_CTX_st {
-	ZUC_UINT31 LFSR[16];
-	ZUC_UINT32 R1;
-	ZUC_UINT32 R2;
-	ZUC_UINT32 T;
-	ZUC_UINT32 K0;
-	unsigned char buf[4];
-	int buflen;
-} ZUC_MAC_CTX;
-
-void ZUC_MAC_init(ZUC_MAC_CTX *ctx, const unsigned char key[16], const unsigned char iv[16]);
-void ZUC_MAC_update(ZUC_MAC_CTX *ctx, const unsigned char *data, size_t len);
-void ZUC_MAC_final(ZUC_MAC_CTX *ctx, const unsigned char *data, size_t nbits, unsigned char mac[4]);
-
-void ZUC_eea_encrypt(const ZUC_UINT32 *in, ZUC_UINT32 *out, size_t nbits,
+#if 1
+ZUC_UINT32 ZUC_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
 	const unsigned char key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
-	ZUC_BIT direction);
+	ZUC_BIT direction)
+{
+	ZUC_MAC_CTX ctx;
+	unsigned char iv[16];
+	unsigned char mac[4];
+	zuc_set_eia_iv(iv, count, bearer, direction);
+	ZUC_MAC_init(&ctx, key, iv);
+	ZUC_MAC_final(&ctx, (unsigned char *)data, nbits, mac);
+	return GETU32(mac);
+}
+#else
+
+#define ZUC_MAC_BUF_WORDS 64
+
+#define GET_WORD(p, i)	((i) % 32) \
+		? ((*((ZUC_UINT32 *)(p) + (i)/32) << ((i) % 32)) \
+			 | (*((ZUC_UINT32 *)(p) + (i)/32 + 1) >> (32 - ((i) % 32)))) \
+		: *((ZUC_UINT32 *)(p) + (i)/32)
+
+#define GET_BIT(p, i) \
+	(((*((ZUC_UINT32 *)(p) + (i)/32)) & (1 << (31 - ((i) % 32)))) ? 1 : 0)
+
 ZUC_UINT32 ZUC_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
 	const unsigned char user_key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
-	ZUC_BIT direction);
-
-# define ZUC256_KEY_LENGTH	32
-# define ZUC256_IV_LENGTH	23
-# define ZUC256_MAC32_LENGTH	4
-# define ZUC256_MAC64_LENGTH	8
-# define ZUC256_MAC128_LENGTH	16
-# define ZUC256_MIN_MAC_LENGTH	ZUC256_MAC32_LENGTH
-# define ZUC256_MAX_MAC_LENGTH	ZUC256_MAC128_LENGTH
-
-typedef ZUC_KEY ZUC256_KEY;
-
-void ZUC256_set_key(ZUC256_KEY *key, const unsigned char user_key[32],
-	const unsigned char iv[23]);
-#define ZUC256_generate_keystream(k,n,out)	ZUC_generate_keystream(k,n,out)
-#define ZUC256_generate_keyword(k)		ZUC_generate_keyword(k)
-
-typedef struct ZUC256_MAC_CTX_st {
-	ZUC_UINT31 LFSR[16];
-	ZUC_UINT32 R1;
-	ZUC_UINT32 R2;
-	ZUC_UINT32 T[4];
-	ZUC_UINT32 K0[4];
-	unsigned char buf[4];
-	int buflen;
-	int macbits;
-} ZUC256_MAC_CTX;
-
-void ZUC256_MAC_init(ZUC256_MAC_CTX *ctx, const unsigned char key[32], const unsigned char iv[23], int macbits);
-void ZUC256_MAC_update(ZUC256_MAC_CTX *ctx, const unsigned char *data, size_t len);
-void ZUC256_MAC_final(ZUC256_MAC_CTX *ctx, const unsigned char *data, size_t nbits, unsigned char *mac);
+	ZUC_BIT direction)
+{
+	ZUC_UINT32 T = 0;
+	ZUC_KEY key;
+	unsigned char iv[16];
+	ZUC_UINT32 buf[ZUC_MAC_BUF_WORDS + 2];
+	size_t nwords = (nbits + 31)/32;
+	size_t i;
+	size_t num = ZUC_MAC_BUF_WORDS;
 
 
-# ifdef __cplusplus
+	ZUC_set_eia_iv(iv, count, bearer, direction);
+	ZUC_set_key(&key, user_key, iv);
+
+	if (nwords <= ZUC_MAC_BUF_WORDS) {
+		ZUC_generate_keystream(&key, nwords + 2, buf);
+		for (i = 0; i < nbits; i++) {
+			if (GET_BIT(data, i)) {
+				T ^= GET_WORD(buf, i);
+			}
+		}
+		T ^= GET_WORD(buf, i);
+		T ^= buf[nwords + 1];
+		return T;
+
+	} else {
+
+		ZUC_generate_keystream(&key, ZUC_MAC_BUF_WORDS + 1, buf);
+		for (i = 0; i < ZUC_MAC_BUF_WORDS * 32; i++) {
+			if (GET_BIT(data, i)) {
+				T ^= GET_WORD(buf, i);
+			}
+		}
+		data += ZUC_MAC_BUF_WORDS;
+		nwords -= ZUC_MAC_BUF_WORDS;
+		nbits -= ZUC_MAC_BUF_WORDS * 32;
+	}
+
+	while (nwords > ZUC_MAC_BUF_WORDS) {
+		buf[0] = buf[ZUC_MAC_BUF_WORDS];
+		ZUC_generate_keystream(&key, ZUC_MAC_BUF_WORDS, buf + 1);
+		for (i = 0; i < ZUC_MAC_BUF_WORDS * 32; i ++) {
+			if (GET_BIT(data, i)) {
+				T ^= GET_WORD(buf, i);
+			}
+		}
+		data += num;
+		nwords -= num;
+		nbits -= ZUC_MAC_BUF_WORDS * 32;
+	}
+
+	buf[0] = buf[ZUC_MAC_BUF_WORDS];
+	ZUC_generate_keystream(&key, nwords + 1, buf + 1);
+	for (i = 0; i < nbits; i++) {
+		if (GET_BIT(data, i)) {
+			T ^= GET_WORD(buf, i);
+		}
+	}
+
+	T ^= GET_WORD(buf, i);
+	T ^= buf[nwords + 1];
+
+	return T;
 }
-# endif
-# endif
 #endif

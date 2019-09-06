@@ -82,6 +82,10 @@ void sm3_compress(uint32_t digest[8], const unsigned char block[SM3_BLOCK_SIZE])
 void sm3(const unsigned char *data, size_t datalen,
 	unsigned char digest[SM3_DIGEST_LENGTH]);
 
+int  sm3_sm2_init(sm3_ctx_t *ctx, const char *id,
+	const unsigned char x[32], const unsigned char y[32]);
+void sm3_compute_id_digest(unsigned char z[32], const char *id,
+	const unsigned char x[32], const unsigned char y[32]);
 
 typedef struct {
 	sm3_ctx_t sm3_ctx;

@@ -61,12 +61,6 @@ extern "C" {
 typedef void *(*KDF_FUNC)(const void *in, size_t inlen, void *out, size_t *outlen);
 
 KDF_FUNC KDF_get_x9_63(const EVP_MD *md);
-KDF_FUNC KDF_get_ibcs(const EVP_MD *md);
-/*
-KDF_FUNC KDF_get_nist_concatenation(void);
-KDF_FUNC KDF_get_tls_kdf(void);
-KDF_FUNC KDF_get_ikev2_kdf(void);
-*/
 
 /* BEGIN ERROR CODES */
 /*

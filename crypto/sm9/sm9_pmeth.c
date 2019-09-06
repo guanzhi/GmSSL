@@ -183,9 +183,11 @@ static int pkey_sm9_master_encrypt(EVP_PKEY_CTX *ctx,
 
 static int pkey_sm9_master_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen)
 {
+	/*
 	SM9_MASTER_PKEY_CTX *dctx = EVP_PKEY_CTX_get_data(ctx);
 	SM9_MASTER_KEY *sm9_master = EVP_PKEY_get0_SM9_MASTER(
 		EVP_PKEY_CTX_get0_pkey(ctx));
+	*/
 
 	return -2;
 }

@@ -62,17 +62,29 @@
 
 static int sm9hash2_sm3_init(EVP_MD_CTX *ctx)
 {
-	return 0;
+	if (!ctx || !EVP_MD_CTX_md_data(ctx)) {
+		return 0;
+	}
+	sm3_init(EVP_MD_CTX_md_data(ctx));
+	return 1;
 }
 
 static int sm9hash2_sm3_update(EVP_MD_CTX *ctx, const void *in, size_t inlen)
 {
-	return 0;
+	if (!ctx || !EVP_MD_CTX_md_data(ctx) || (!in && inlen != 0)) {
+		return 0;
+	}
+	sm3_update(EVP_MD_CTX_md_data(ctx), in, inlen);
+	return 1;
 }
 
 static int sm9hash2_sm3_final(EVP_MD_CTX *ctx, unsigned char *md)
 {
-	return 0;
+	if (!ctx || !EVP_MD_CTX_md_data(ctx) || !md) {
+		return 0;
+	}
+	sm3_final(EVP_MD_CTX_md_data(ctx), md);
+	return 1;
 }
 
 int sm9hash2_sm3_ctrl(EVP_MD_CTX *ctx, int cmd, int p1, void *p2)

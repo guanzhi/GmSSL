@@ -56,15 +56,6 @@
 #include <openssl/crypto.h>
 #include "sm9_lcl.h"
 
-/*
-int SM9_do_wrap_key(const EVP_MD *kdf_md
-	unsigned char *key, size_t keylen, EC_POINT *C,
-	SM9PublicKey *pk);
-
-int SM9_do_unwrap_key(const EVP_MD *kdf_md,
-	unsigned char *key, size_t keylen, const EC_POINT *C,
-	SM9PublicKey *pk);
-*/
 
 int SM9_unwrap_key(int type,
 	unsigned char *key, size_t keylen,
@@ -82,7 +73,7 @@ int SM9_unwrap_key(int type,
 	const EVP_MD *kdf_md;
 	unsigned char wbuf[384];
 	unsigned char *out = key;
-	size_t outlen = keylen;	
+	size_t outlen = keylen;
 	unsigned char counter[4] = {0, 0, 0, 1};
 	unsigned char dgst[64];
 	unsigned int len;
@@ -132,7 +123,7 @@ int SM9_unwrap_key(int type,
 	if (!fp12_to_bin(w, wbuf)) {
 		SM9err(SM9_F_SM9_UNWRAP_KEY, ERR_R_MALLOC_FAILURE);
 		goto end;
-	}	
+	}
 
 	/* K = KDF(C||w||ID_B, klen) */
 	while (outlen > 0) {
@@ -261,7 +252,7 @@ int SM9_wrap_key(int type, /* NID_sm9kdf_with_sm3 */
 
 	do {
 		unsigned char *out = key;
-		size_t outlen = keylen;	
+		size_t outlen = keylen;
 		unsigned char counter[4] = {0, 0, 0, 1};
 		unsigned int len;
 
@@ -335,11 +326,6 @@ end:
 	OPENSSL_cleanse(wbuf, sizeof(wbuf));
 	OPENSSL_cleanse(dgst, sizeof(dgst));
 	return ret;
-}
-
-int SM9_MASTER_KEY_ciphertext_size(const SM9_MASTER_KEY *master, size_t len)
-{
-
 }
 
 int SM9_encrypt(int type,
@@ -441,7 +427,7 @@ int SM9_decrypt(int type,
 	int C2_len;
 	unsigned char mac[EVP_MAX_MD_SIZE];
 	unsigned int maclen = sizeof(mac);
-	int len, i;
+	int i;
 
 	/* parse type */
 	switch (type) {
@@ -525,6 +511,7 @@ int SM9_decrypt(int type,
 
 end:
 	SM9Ciphertext_free(sm9cipher);
-	OPENSSL_clear_free(key, keylen);
+	if (key)
+		OPENSSL_clear_free(key, keylen);
 	return ret;
 }

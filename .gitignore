@@ -215,3 +215,6 @@ apps/gmca/.ca
 include/openssl/srp.h
 
 /*.sh
+
+/rust
+/python

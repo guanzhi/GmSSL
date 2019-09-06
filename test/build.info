@@ -19,7 +19,7 @@ IF[{- !$disabled{tests} -}]
           bioprinttest sslapitest dtlstest sslcorrupttest bio_enc_test \
           sm2test sm3test sms4test kdf2test eciestest  \
           pailliertest otptest gmapitest sm9test \
-          sdftest skftest zuctest
+          zuctest
 
   SOURCE[aborttest]=aborttest.c
   INCLUDE[aborttest]=../include
@@ -291,7 +291,7 @@ IF[{- !$disabled{tests} -}]
   DEPEND[sm3test]=../libcrypto
 
   SOURCE[sms4test]=sms4test.c
-  INCLUDE[sms4test]=../include
+  INCLUDE[sms4test]=.. ../include
   DEPEND[sms4test]=../libcrypto
 
   SOURCE[kdf2test]=kdf2test.c
@@ -321,14 +321,6 @@ IF[{- !$disabled{tests} -}]
   SOURCE[sm9test]=sm9test.c
   INCLUDE[sm9test]=../include
   DEPEND[sm9test]=../libcrypto
-
-  SOURCE[sdftest]=sdftest.c
-  INCLUDE[sdftest]=../include
-  DEPEND[sdftest]=../libcrypto
-
-  SOURCE[skftest]=skftest.c
-  INCLUDE[skftest]=../include
-  DEPEND[skftest]=../libcrypto
 
   SOURCE[zuctest]=zuctest.c
   INCLUDE[zuctest]=../include

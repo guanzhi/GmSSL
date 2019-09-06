@@ -1650,6 +1650,13 @@ sm9kdf 2		: sm9kdf-with-sha256
 sm-scheme 800	: ZUC	: zuc
 zuc 1		: zuc-128eea3
 zuc 2		: zuc-128eia3
+zuc 3		: ZUC-MAC	: zuc-mac
+zuc 4		: ZUC256	: zuc256
+zuc 5		: ZUC256-MAC	: zuc256-mac
+zuc256-mac 1	: ZUC256-MAC32	: zuc256-mac32
+zuc256-mac 2	: ZUC256-MAC64	: zuc256-mac64
+zuc256-mac 3	: ZUC256-MAC128	: zuc256-mac128
+
 
 # WAPI (GB 15629.11-2003-XG1-2006)
 ISO-CN 11235	: bwips

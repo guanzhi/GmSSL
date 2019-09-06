@@ -131,8 +131,8 @@ static int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 {
 	int ret = 0;
 	char *buf = NULL;
-	int i = 0;
 	size_t buflen = binlen * 2 + 1;
+	size_t i = 0;
 
 
 	if (binlen * 2 != strlen(hex)) {
@@ -236,8 +236,7 @@ err:
 }
 
 static EC_KEY *new_ec_key(const EC_GROUP *group,
-	const char *sk, const char *xP, const char *yP,
-	const char *id, const EVP_MD *id_md)
+	const char *sk, const char *xP, const char *yP)
 {
 	int ok = 0;
 	EC_KEY *ec_key = NULL;
@@ -276,14 +275,6 @@ static EC_KEY *new_ec_key(const EC_GROUP *group,
 			goto end;
 		}
 	}
-
-	/*
-	if (id) {
-		if (!SM2_set_id(ec_key, id, id_md)) {
-			goto end;
-		}
-	}
-	*/
 
 	ok = 1;
 end:
@@ -324,7 +315,7 @@ static int test_sm2_sign(const EC_GROUP *group,
 
 	change_rand(k);
 
-	if (!(ec_key = new_ec_key(group, sk, xP, yP, id, id_md))) {
+	if (!(ec_key = new_ec_key(group, sk, xP, yP))) {
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
 	}
@@ -340,7 +331,7 @@ static int test_sm2_sign(const EC_GROUP *group,
 	}
 
 	if (verbose > 1) {
-		int j;
+		size_t j;
 		printf("id=%s\n", id);
 		printf("zid(xx):");
 		for (j = 0; j < dgstlen; j++) { printf("%02x", dgst[j]); } printf("\n");
@@ -359,7 +350,7 @@ static int test_sm2_sign(const EC_GROUP *group,
 		goto err;
 	}
 	if (!hexequbin(e, dgst, dgstlen)) {
-		int i;
+		size_t i;
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 
 		printf("%s\n", e);
@@ -395,7 +386,7 @@ static int test_sm2_sign(const EC_GROUP *group,
 
 
 	/* verify */
-	if (!(pubkey = new_ec_key(group, NULL, xP, yP, id, id_md))) {
+	if (!(pubkey = new_ec_key(group, NULL, xP, yP))) {
 		fprintf(stderr, "error: %s %d\n", __FUNCTION__, __LINE__);
 		goto err;
 	}
@@ -432,7 +423,7 @@ static int test_sm2_enc(const EC_GROUP *group, const EVP_MD *md,
 	unsigned char *p;
 
 	/* test encrypt */
-	if (!(pub_key = new_ec_key(group, NULL, xP, yP, NULL, NULL))) {
+	if (!(pub_key = new_ec_key(group, NULL, xP, yP))) {
 		goto end;
 	}
 
@@ -450,12 +441,12 @@ static int test_sm2_enc(const EC_GROUP *group, const EVP_MD *md,
 		EXIT(1);
 	}
 
-	if (tlen != clen || memcmp(tbuf, cbuf, clen) != 0) {
+	if ((size_t)tlen != clen || memcmp(tbuf, cbuf, clen) != 0) {
 		goto end;
 	}
 
 	/* test decrypt */
-	if (!(pri_key = new_ec_key(group, d, xP, yP, NULL, NULL))) {
+	if (!(pri_key = new_ec_key(group, d, xP, yP))) {
 		goto end;
 	}
 
@@ -486,7 +477,6 @@ static int test_sm2_kap(const EC_GROUP *group,
 	const char *rA, const char *rB, const char *KAB, const char *S1, const char *S2)
 {
 	int ret = 0;
-	const EVP_MD *id_md = EVP_sm3();
 	EC_KEY *eckeyA = NULL;
 	EC_KEY *eckeyB = NULL;
 	EC_KEY *pubkeyA = NULL;
@@ -508,10 +498,10 @@ static int test_sm2_kap(const EC_GROUP *group,
 	memset(&ctxA, 0, sizeof(ctxA));
 	memset(&ctxB, 0, sizeof(ctxB));
 
-	eckeyA = new_ec_key(group, dA, xA, yA, A, id_md);
-	eckeyB = new_ec_key(group, dB, xB, yB, B, id_md);
-	pubkeyA = new_ec_key(group, NULL, xA, yA, A, id_md);
-	pubkeyB = new_ec_key(group, NULL, xB, yB, B, id_md);
+	eckeyA = new_ec_key(group, dA, xA, yA);
+	eckeyB = new_ec_key(group, dB, xB, yB);
+	pubkeyA = new_ec_key(group, NULL, xA, yA);
+	pubkeyB = new_ec_key(group, NULL, xB, yB);
 	if (!eckeyA || !eckeyB || !pubkeyA || !pubkeyB) {
 		fprintf(stderr, "error: %s %d\n", __FILE__, __LINE__);
 		goto end;

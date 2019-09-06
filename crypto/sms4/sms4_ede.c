@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,90 +47,83 @@
  * ====================================================================
  */
 
-#ifndef HEADER_SMS4_H
-#define HEADER_SMS4_H
-
-#include <openssl/opensslconf.h>
-#ifndef OPENSSL_NO_SMS4
-
-# define SMS4_KEY_LENGTH		16
-# define SMS4_BLOCK_SIZE		16
-# define SMS4_IV_LENGTH		(SMS4_BLOCK_SIZE)
-# define SMS4_NUM_ROUNDS		32
-
-# include <sys/types.h>
-# include <openssl/e_os2.h>
-# include <string.h>
+#include <openssl/sms4.h>
+#include <openssl/modes.h>
 
 
-# ifdef __cplusplus
-extern "C" {
-# endif
+void sms4_ede_set_encrypt_key(sms4_ede_key_t *key,
+	const unsigned char user_key[48])
+{
+	sms4_set_encrypt_key(&key->k1, user_key);
+	sms4_set_decrypt_key(&key->k2, user_key + 16);
+	sms4_set_encrypt_key(&key->k3, user_key + 32);
+}
 
-typedef struct {
-	uint32_t rk[SMS4_NUM_ROUNDS];
-} sms4_key_t;
+void sms4_ede_set_decrypt_key(sms4_ede_key_t *key,
+	const unsigned char user_key[48])
+{
+	sms4_set_decrypt_key(&key->k1, user_key + 32);
+	sms4_set_encrypt_key(&key->k2, user_key + 16);
+	sms4_set_decrypt_key(&key->k3, user_key);
+}
 
-void sms4_set_encrypt_key(sms4_key_t *key, const unsigned char user_key[16]);
-void sms4_set_decrypt_key(sms4_key_t *key, const unsigned char user_key[16]);
-void sms4_encrypt(const unsigned char in[16], unsigned char out[16],
-	const sms4_key_t *key);
-# define sms4_decrypt(in,out,key)  sms4_encrypt(in,out,key)
-
-void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out,
-	const sms4_key_t *key, int enc);
-void sms4_cbc_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv, int enc);
-void sms4_cfb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv, int *num, int enc);
-void sms4_ofb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv, int *num);
-void sms4_ctr128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_key_t *key, unsigned char *iv,
-	unsigned char ecount_buf[SMS4_BLOCK_SIZE], unsigned int *num);
-
-int sms4_wrap_key(sms4_key_t *key, const unsigned char *iv,
-	unsigned char *out, const unsigned char *in, unsigned int inlen);
-int sms4_unwrap_key(sms4_key_t *key, const unsigned char *iv,
-	unsigned char *out, const unsigned char *in, unsigned int inlen);
-
-void sms4_ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
-	size_t blocks, const sms4_key_t *key, const unsigned char iv[16]);
-
-
-# define SMS4_EDE_KEY_LENGTH	(SMS4_KEY_LENGTH * 3)
-
-typedef struct {
-	sms4_key_t k1;
-	sms4_key_t k2;
-	sms4_key_t k3;
-} sms4_ede_key_t;
-
-void sms4_ede_set_encrypt_key(sms4_ede_key_t *key, const unsigned char user_key[48]);
-void sms4_ede_set_decrypt_key(sms4_ede_key_t *key, const unsigned char user_key[48]);
 void sms4_ede_encrypt(const unsigned char in[16], unsigned char out[16],
-	const sms4_ede_key_t *key);
-# define sms4_ede_decrypt(in,out,key)  sms4_ede_encrypt(in,out,key)
+	const sms4_ede_key_t *key)
+{
+	sms4_encrypt(in, out, &key->k1);
+	sms4_encrypt(out, out, &key->k2);
+	sms4_encrypt(out, out, &key->k3);
+}
 
 void sms4_ede_ecb_encrypt(const unsigned char *in, unsigned char *out,
-	const sms4_ede_key_t *key, int enc);
+	const sms4_ede_key_t *key, int enc)
+{
+	sms4_ede_encrypt(in, out, key);
+}
+
 void sms4_ede_cbc_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_ede_key_t *key, unsigned char *iv, int enc);
+	size_t len, const sms4_ede_key_t *key, unsigned char *iv, int enc)
+{
+	if (enc)
+		CRYPTO_cbc128_encrypt(in, out, len, key, iv,
+			(block128_f)sms4_ede_encrypt);
+	else	CRYPTO_cbc128_decrypt(in, out, len, key, iv,
+			(block128_f)sms4_ede_encrypt);
+}
+
 void sms4_ede_cfb128_encrypt(const unsigned char *in, unsigned char *out,
 	size_t len, const sms4_ede_key_t *key, unsigned char *iv, int *num,
-	int enc);
+	int enc)
+{
+	CRYPTO_cfb128_encrypt(in, out, len, key, iv, num, enc,
+		(block128_f)sms4_ede_encrypt);
+}
+
 void sms4_ede_ofb128_encrypt(const unsigned char *in, unsigned char *out,
-	size_t len, const sms4_ede_key_t *key, unsigned char *iv, int *num);
+	size_t len, const sms4_ede_key_t *key, unsigned char *iv, int *num)
+{
+	CRYPTO_ofb128_encrypt(in, out, len, key, iv, num,
+		(block128_f)sms4_ede_encrypt);
+}
+
 void sms4_ede_ctr128_encrypt(const unsigned char *in, unsigned char *out,
 	size_t len, const sms4_ede_key_t *key, unsigned char *iv,
-	unsigned char ecount_buf[SMS4_BLOCK_SIZE], unsigned int *num);
-int sms4_ede_wrap_key(sms4_ede_key_t *key, const unsigned char *iv,
-	unsigned char *out, const unsigned char *in, unsigned int inlen);
-int sms4_ede_unwrap_key(sms4_ede_key_t *key, const unsigned char *iv,
-	unsigned char *out, const unsigned char *in, unsigned int inlen);
-
-# ifdef __cplusplus
+	unsigned char ecount_buf[SMS4_BLOCK_SIZE], unsigned int *num)
+{
+	CRYPTO_ctr128_encrypt(in, out, len, key, iv, ecount_buf, num,
+		(block128_f)sms4_ede_encrypt);
 }
-# endif
-#endif
-#endif
+
+int sms4_ede_wrap_key(sms4_ede_key_t *key, const unsigned char *iv,
+	unsigned char *out, const unsigned char *in, unsigned int inlen)
+{
+	return CRYPTO_128_wrap(key, iv, out, in, inlen,
+		(block128_f)sms4_ede_encrypt);
+}
+
+int sms4_ede_unwrap_key(sms4_ede_key_t *key, const unsigned char *iv,
+	unsigned char *out, const unsigned char *in, unsigned int inlen)
+{
+	return CRYPTO_128_unwrap(key, iv, out, in, inlen,
+		(block128_f)sms4_ede_encrypt);
+}

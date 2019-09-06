@@ -54,9 +54,6 @@
 #include "../bn/bn_lcl.h"
 #include "sm9_lcl.h"
 
-static int BN_hash_to_range(const EVP_MD *md, BIGNUM **bn,
-	const void *s, size_t slen, const BIGNUM *range, BN_CTX *bn_ctx);
-
 #if 0
 typedef struct {
 	int nid;
@@ -152,28 +149,6 @@ int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 }
 
 
-int SM9_hash2(const EVP_MD *md, BIGNUM **r,
-	const unsigned char *data, size_t datalen,
-	const unsigned char *elem, size_t elemlen,
-	const BIGNUM *range, BN_CTX *ctx)
-{
-	unsigned char *buf;
-
-	if (!(buf = OPENSSL_malloc(datalen + elemlen))) {
-		return 0;
-	}
-	memcpy(buf, data, datalen);
-	memcpy(buf + datalen, elem, elemlen);
-
-	if (!BN_hash_to_range(md, r, buf, datalen + elemlen, range, ctx)) {
-		OPENSSL_free(buf);
-		return 0;
-	}
-
-	OPENSSL_free(buf);
-	return 1;
-}
-
 int SM9_DigestInit(EVP_MD_CTX *ctx, unsigned char prefix,
 	const EVP_MD *md, ENGINE *impl)
 {
@@ -234,6 +209,10 @@ int sm9_check_sign_scheme(int nid)
 	return 1;
 }
 
+/* SM9_hash2() should be implemented as an EVP_MD module
+ * and refactor the SM9_SignInit/Update/Final API
+ */
+#if 0
 int BN_hash_to_range(const EVP_MD *md, BIGNUM **bn,
 	const void *s, size_t slen, const BIGNUM *range, BN_CTX *bn_ctx)
 {
@@ -315,3 +294,25 @@ end:
 	OPENSSL_free(buf);
 	return ret;
 }
+
+int SM9_hash2(const EVP_MD *md, BIGNUM **r,
+	const unsigned char *data, size_t datalen,
+	const unsigned char *elem, size_t elemlen,
+	const BIGNUM *range, BN_CTX *ctx)
+{
+	EVP_MD_CTX *mctx = NULL;
+
+	if (!(mctx = EVP_MD_CTX_new())) {
+	}
+
+	if (!EVP_DigestInit_ex(mctx, md, NULL)
+		|| !EVP_DigestUpdate(mctx, data, datalen)
+		|| !EVP_DigestUpdate(mctx, elem, elemlen)
+		|| !EVP_DigestFinal_ex(mctx, buf, &buflen)) {
+	}
+
+	
+
+}
+
+#endif
