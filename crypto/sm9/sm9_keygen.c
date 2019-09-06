@@ -50,8 +50,6 @@
 #include <string.h>
 #include <openssl/err.h>
 #include <openssl/sm9.h>
-#include <openssl/ec_type1.h>
-#include <openssl/bn_hash.h>
 #include "sm9_lcl.h"
 
 
