@@ -1773,7 +1773,7 @@ MSG_PROCESS_RETURN tls_process_server_key_exchange(SSL *s, PACKET *pkt)
 # elif !defined(OPENSSL_NO_SM3)
             md = EVP_sm3();
 # else
-            should_not_happen!!			
+            should_not_happen!!
 # endif
 #endif
 #ifndef OPENSSL_NO_GMTLS
@@ -2772,6 +2772,11 @@ int tls_construct_client_verify(SSL *s)
     }
 
     p = ssl_handshake_start(s);
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s))
+        pkey = ssl_get_sign_pkey(s, s->s3->tmp.new_cipher, NULL);
+    else
+#endif
     pkey = s->cert->key->privatekey;
 
     hdatalen = BIO_get_mem_data(s->s3->handshake_buffer, &hdata);
