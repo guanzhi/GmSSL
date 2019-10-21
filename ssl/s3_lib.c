@@ -4080,7 +4080,7 @@ int ssl3_get_req_cert_type(SSL *s, unsigned char *p)
         p[ret++] = SSL3_CT_RSA_SIGN;
 #endif
 #ifndef OPENSSL_NO_DSA
-    if (!(alg_a & SSL_aDSS))
+    if ((s->version != GMTLS_VERSION) && !(alg_a & SSL_aDSS))
         p[ret++] = SSL3_CT_DSS_SIGN;
 #endif
 #ifndef OPENSSL_NO_EC
@@ -4088,7 +4088,7 @@ int ssl3_get_req_cert_type(SSL *s, unsigned char *p)
      * ECDSA certs can be used with RSA cipher suites too so we don't
      * need to check for SSL_kECDH or SSL_kECDHE
      */
-    if (s->version >= TLS1_VERSION) {
+    if (s->version >= TLS1_VERSION || s->version == GMTLS_VERSION) {
         if (!(alg_a & SSL_aECDSA))
             p[ret++] = TLS_CT_ECDSA_SIGN;
     }
