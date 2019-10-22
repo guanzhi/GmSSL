@@ -309,6 +309,7 @@ int gmtls_construct_server_certificate(SSL *s)
     int al = -1;
 
 	l = 3 + SSL_HM_HEADER_LENGTH(s);
+	p = ssl_handshake_start(s);
 
 	if (alg_a & SSL_aSM2) {
 		if (!gmtls_construct_sm2_certs(s, &l)) {
@@ -1340,6 +1341,9 @@ int gmtls_construct_client_certificate(SSL *s)
 	unsigned long alg_a = s->s3->tmp.new_cipher->algorithm_auth;
 	unsigned char *p;
 	int l;
+	
+	l = 3 + SSL_HM_HEADER_LENGTH(s);
+	p = ssl_handshake_start(s);
 
 	if (alg_a & SSL_aSM2) {
 		if (!gmtls_construct_sm2_certs(s, &l)) {
