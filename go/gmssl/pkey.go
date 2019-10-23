@@ -672,6 +672,8 @@ func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey,
 	defer C.free(unsafe.Pointer(calg))
 
 	ctx := C.new_pkey_keygen_ctx(calg, nil)
+	defer C.EVP_PKEY_CTX_free(ctx)
+
 	/*
 	if eng != nil {
 		ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
@@ -890,6 +892,7 @@ func (pk *PublicKey) Encrypt(alg string, in []byte, eng *Engine) ([]byte, error)
 	if out == nil {
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(out))
 	return C.GoBytes(unsafe.Pointer(out), C.int(outlen)), nil
 }
 
@@ -902,6 +905,7 @@ func (sk *PrivateKey) Decrypt(alg string, in []byte, eng *Engine) ([]byte, error
 	if out == nil {
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(out))
 	return C.GoBytes(unsafe.Pointer(out), C.int(outlen)), nil
 }
 
@@ -915,6 +919,7 @@ func (sk *PrivateKey) Sign(alg string, dgst []byte, eng *Engine) ([]byte, error)
 		C.ERR_print_errors_fp(C.stderr)
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(sig))
 	return C.GoBytes(unsafe.Pointer(sig), C.int(siglen)), nil
 }
 
@@ -938,6 +943,7 @@ func (sk *PrivateKey) DeriveKey(alg string, peer PublicKey, eng *Engine) ([]byte
 	if key == nil {
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(key))
 	return C.GoBytes(unsafe.Pointer(key), C.int(keylen)), nil
 }
 
