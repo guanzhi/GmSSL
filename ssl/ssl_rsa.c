@@ -227,7 +227,8 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
     EVP_PKEY_free(c->pkeys[i].privatekey);
     EVP_PKEY_up_ref(pkey);
     c->pkeys[i].privatekey = pkey;
-    c->key = &(c->pkeys[i]);
+    if (!c->key || !c->key->privatekey)
+        c->key = &(c->pkeys[i]);
     return (1);
 }
 
@@ -443,7 +444,8 @@ static int ssl_set_cert(CERT *c, X509 *x)
     X509_free(c->pkeys[i].x509);
     X509_up_ref(x);
     c->pkeys[i].x509 = x;
-    c->key = &(c->pkeys[i]);
+    if (!c->key || !c->key->x509)
+        c->key = &(c->pkeys[i]);
 
     return 1;
 }
