@@ -63,7 +63,7 @@ GM/T 0024-2014 Ciphersuites:
  9. {0xe0,0x15} GMTLS_SM9DHE_SM9SIGN_WITH_SMS4_SM3
 10. {0xe0,0x17} GMTLS_SM9ENC_WITH_SMS4_SM3
 11. {0xe0,0x19} GMTLS_RSA_WITH_SMS4_SM3
-12. {0xe0,0x1a} GMTLS_RSA_WITH_SMS4_SM3
+12. {0xe0,0x1a} GMTLS_RSA_WITH_SMS4_SHA1
 ```
 
 GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites. Currently the following ciphersuites are supported:
