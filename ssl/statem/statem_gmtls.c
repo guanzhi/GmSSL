@@ -587,7 +587,7 @@ static int gmtls_process_ske_sm2dhe(SSL *s, PACKET *pkt, int *al)
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (s->s3->peer_tmp) {
+	if (!s->s3->peer_tmp) {
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
