@@ -1434,8 +1434,8 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		return 0;
 	}
-	peer_pkey = X509_get0_pubkey(x509);
-	if (!(peer_pk = EVP_PKEY_get0_EC_KEY(pkey))) {
+	peer_pkey = X509_get0_pubkey(peer_x509);
+	if (!(peer_pk = EVP_PKEY_get0_EC_KEY(peer_pkey))) {
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		return 0;
 	}
@@ -1445,15 +1445,17 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		return 0;
 	}
+	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen, sk)) {
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
 
-	if (!(peer_id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
+	if (!(peer_id = X509_NAME_oneline(X509_get_subject_name(peer_x509), NULL, 0))) {
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
+	peer_zlen = sizeof(peer_z);
 	if (!SM2_compute_id_digest(EVP_sm3(), peer_id, strlen(peer_id),
 		peer_z, &peer_zlen, peer_pk)) {
 		SSLerr(SSL_F_GMTLS_SM2_DERIVE, ERR_R_INTERNAL_ERROR);
@@ -1462,6 +1464,7 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 
 	// how to set pmslen ??
 	pmslen = 48;
+	pms = OPENSSL_malloc(pmslen);
 
 	/* sm2 key exchange */
 	if (!SM2_compute_share_key(pms, &pmslen,
