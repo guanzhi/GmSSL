@@ -309,6 +309,7 @@ int gmtls_construct_server_certificate(SSL *s)
     int al = -1;
 
 	l = 3 + SSL_HM_HEADER_LENGTH(s);
+	p = ssl_handshake_start(s);
 
 	if (alg_a & SSL_aSM2) {
 		if (!gmtls_construct_sm2_certs(s, &l)) {
@@ -587,7 +588,7 @@ static int gmtls_process_ske_sm2dhe(SSL *s, PACKET *pkt, int *al)
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (s->s3->peer_tmp) {
+	if (!s->s3->peer_tmp) {
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
@@ -1341,6 +1342,9 @@ int gmtls_construct_client_certificate(SSL *s)
 	unsigned char *p;
 	int l;
 
+	l = 3 + SSL_HM_HEADER_LENGTH(s);
+	p = ssl_handshake_start(s);
+
 	if (alg_a & SSL_aSM2) {
 		if (!gmtls_construct_sm2_certs(s, &l)) {
 			SSLerr(SSL_F_GMTLS_CONSTRUCT_CLIENT_CERTIFICATE,
@@ -1464,6 +1468,7 @@ static int gmtls_sm2_derive(SSL *s, EVP_PKEY *privkey, EVP_PKEY *pubkey, int ini
 
 	// how to set pmslen ??
 	pmslen = 48;
+	pms = OPENSSL_malloc(pmslen);
 
 	/* sm2 key exchange */
 	if (!SM2_compute_share_key(pms, &pmslen,
