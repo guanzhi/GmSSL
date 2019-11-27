@@ -581,6 +581,133 @@ int SM2_compute_share_key(unsigned char *out, size_t *outlen,
 	const EC_POINT *peer_pk, const unsigned char *peer_z, size_t peer_zlen,
 	const unsigned char *z, size_t zlen, EC_KEY *sk, int initiator)
 {
-	memset(out, 1, *outlen);
-	return 1;
+	unsigned char share_pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4 + EVP_MAX_MD_SIZE * 2 + 100];
+	size_t len;
+	const EVP_MD *kdf_md;
+	KDF_FUNC kdf;
+	const EC_GROUP *group;
+	const BIGNUM *prikey, *r, *order;
+	const EC_POINT *pubkey;
+	EC_POINT *point = NULL;
+	BN_CTX *bn_ctx = NULL;
+	BIGNUM *two_pow_w = NULL, *t = NULL, *h = NULL, *x = NULL;
+	int ret = 0, w;
+
+	kdf_md = EVP_sm3();
+
+	if (!(kdf = KDF_get_x9_63(kdf_md)))
+		goto end;
+
+	prikey = EC_KEY_get0_private_key(sk);
+	group = EC_KEY_get0_group(sk);
+	order = EC_GROUP_get0_order(group);
+	r = EC_KEY_get0_private_key(ephem);
+	pubkey = EC_KEY_get0_public_key(ephem);
+	point = EC_POINT_new(group);
+	bn_ctx = BN_CTX_new();
+	two_pow_w = BN_new();
+	t = BN_new();
+	h = BN_new();
+	x = BN_new();
+
+	if (!prikey || !group || !order || !r || !pubkey || !point || !bn_ctx
+			|| !two_pow_w || !t || !h || !x)
+		goto end;
+
+	if (!EC_GROUP_get_order(group, order, bn_ctx))
+		goto end;
+
+	w = (BN_num_bits(order) + 1)/2 - 1;
+
+	if (!BN_one(two_pow_w))
+		goto end;
+
+	if (!BN_lshift(two_pow_w, two_pow_w, w))
+		goto end;
+
+	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
+		if (!EC_POINT_get_affine_coordinates_GFp(group, pubkey, x, NULL, bn_ctx))
+			goto end;
+	} else {
+		if (!EC_POINT_get_affine_coordinates_GF2m(group, pubkey, x, NULL, bn_ctx))
+			goto end;
+	}
+
+	if (!BN_nnmod(x, x, two_pow_w, bn_ctx))
+		goto end;
+
+	if (!BN_add(x, x, two_pow_w))
+		goto end;
+
+	if (!BN_mod_mul(t, x, r, order, bn_ctx))
+		goto end;
+
+	if (!BN_mod_add(t, t, prikey, order, bn_ctx))
+        goto end;
+
+	if (!EC_GROUP_get_cofactor(group, h, bn_ctx))
+		goto end;
+
+	if (!BN_mul(t, t, h, bn_ctx))
+		goto end;
+
+	BN_free(x);
+	x = BN_new();
+	if (!x)
+		goto end;
+
+	if (EC_METHOD_get_field_type(EC_GROUP_method_of(group)) == NID_X9_62_prime_field) {
+		if (!EC_POINT_get_affine_coordinates_GFp(group, peer_ephem, x, NULL, bn_ctx))
+			goto end;
+	} else {
+		if (!EC_POINT_get_affine_coordinates_GF2m(group, peer_ephem, x, NULL, bn_ctx))
+			goto end;
+	}
+
+	if (!BN_nnmod(x, x, two_pow_w, bn_ctx))
+		goto end;
+
+	if (!BN_add(x, x, two_pow_w))
+		goto end;
+
+	if (!EC_POINT_mul(group, point, NULL, peer_ephem, x, bn_ctx))
+		goto end;
+
+	if (!EC_POINT_add(group, point, point, peer_pk, bn_ctx))
+		goto end;
+
+	if (!EC_POINT_mul(group, point, NULL, point, t, bn_ctx))
+		goto end;
+
+	if (EC_POINT_is_at_infinity(group, point))
+		goto end;
+
+	if (!(len = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED,
+								   share_pt_buf, sizeof(share_pt_buf), bn_ctx)))
+		goto end;
+
+	if (initiator) {
+		memcpy(share_pt_buf + len, z, zlen);
+		len += zlen;
+		memcpy(share_pt_buf + len, peer_z, peer_zlen);
+		len += peer_zlen;
+	} else {
+		memcpy(share_pt_buf + len, peer_z, peer_zlen);
+		len += peer_zlen;
+		memcpy(share_pt_buf + len, z, zlen);
+		len += zlen;
+	}
+
+	if (!kdf(share_pt_buf + 1, len - 1, out, outlen))
+		goto end;
+
+	ret = 1;
+end:
+	EC_POINT_free(point);
+	BN_CTX_free(bn_ctx);
+	BN_free(two_pow_w);
+	BN_free(t);
+	BN_free(h);
+	BN_free(x);
+	return ret;
 }
