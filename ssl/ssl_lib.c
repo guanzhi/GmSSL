@@ -2788,10 +2788,8 @@ void ssl_set_masks(SSL *s)
         ecdsa_ok = ex_kusage & X509v3_KU_DIGITAL_SIGNATURE;
         if (!(pvalid[SSL_PKEY_ECC] & CERT_PKEY_SIGN))
             ecdsa_ok = 0;
-        if (ecdsa_ok) {
+        if (ecdsa_ok)
             mask_a |= SSL_aECDSA;
-            mask_a |= SSL_aSM2;
-        }
     }
 #endif
 #ifndef OPENSSL_NO_SM2
@@ -2821,8 +2819,8 @@ void ssl_set_masks(SSL *s)
     mask_k |= SSL_kECDHE;
 #endif
 #ifndef OPENSSL_NO_SM2
-    mask_k |= SSL_kSM2;
-    mask_k |= SSL_kSM2DHE;
+    if（mask_k & SSL_kSM2）
+    	mask_k |= SSL_kSM2DHE;
 #endif
 
 #ifndef OPENSSL_NO_PSK
