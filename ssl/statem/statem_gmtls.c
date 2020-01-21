@@ -745,10 +745,8 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
-		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_EVP_LIB);
-		goto end;
-	}
+
+	id = SM2_DEFAULT_ID;
 	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
@@ -765,7 +763,7 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
         printf("\n");
 
         printf("C=");
-        for (i = 0; i < n; i++)
+        for (i = 0; i < n+3; i++)
             printf("%02X",buf[i]);
         printf("\n");
     }
@@ -776,7 +774,7 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
 			SSL3_RANDOM_SIZE) <= 0
 		|| EVP_SignUpdate(md_ctx, &(s->s3->server_random[0]),
 			SSL3_RANDOM_SIZE) <= 0
-		|| EVP_SignUpdate(md_ctx, buf, n) <= 0) {
+		|| EVP_SignUpdate(md_ctx, buf, n+3) <= 0) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -802,7 +800,6 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
 end:
 	OPENSSL_free(buf);
 	EVP_MD_CTX_free(md_ctx);
-	OPENSSL_free(id);
 	return ret;
 }
 
@@ -865,10 +862,7 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 	}
 
 	/* prepare sm2 z value */
-	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
-		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2, ERR_R_EVP_LIB);
-		goto end;
-	}
+	id = SM2_DEFAULT_ID;
 	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
@@ -877,7 +871,7 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 	}
 
 	{ int i; printf("Z="); for (i=0;i<zlen;i++) printf("%02X",z[i]); printf("\n"); }
-	{ int i; printf("C="); for (i=0;i<n;i++) printf("%02X",buf[i]); printf("\n"); }
+	{ int i; printf("C="); for (i=0;i<n+3;i++) printf("%02X",buf[i]); printf("\n"); }
 
 
 	if (EVP_VerifyUpdate(md_ctx, z, zlen) <= 0
@@ -885,7 +879,7 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 			SSL3_RANDOM_SIZE) <= 0
 		|| EVP_VerifyUpdate(md_ctx, &(s->s3->server_random[0]),
 			SSL3_RANDOM_SIZE) <= 0
-		|| EVP_VerifyUpdate(md_ctx, buf, n) <= 0) {
+		|| EVP_VerifyUpdate(md_ctx, buf, n+3) <= 0) {
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -903,7 +897,6 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 end:
 	OPENSSL_free(buf);
 	EVP_MD_CTX_free(md_ctx);
-	OPENSSL_free(id);
 	return ret;
 }
 
