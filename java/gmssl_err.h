@@ -43,6 +43,9 @@ static void ERR_JNI_error(int function, int reason, char *file, int line);
 # define JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT                121
 # define JNI_F_JAVA_GMSSL_VERIFY                          122
 # define JNI_F_PRINT_ERRORS_CB                            123
+# define JNI_F_JAVA_GMSSL_GENERATEKEYPAIR                 124
+# define JNI_F_JAVA_GMSSL_GETPUBLICKEY                    125
+# define JNI_F_JAVA_GMSSL_CACULATESHAREDKEY               126
 
 /* Reason codes. */
 # define JNI_R_BAD_ARGUMENT                               100

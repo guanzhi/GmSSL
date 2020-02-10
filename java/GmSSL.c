@@ -59,6 +59,7 @@
 #endif
 #ifndef OPENSSL_NO_SM2
 #include <openssl/sm2.h>
+#include "../crypto/sm2/sm2_lcl.h"
 #endif
 #include <openssl/x509.h>
 #include <openssl/stack.h>
@@ -71,6 +72,10 @@
 
 #define GMSSL_JNI_VERSION	"GmSSL-JNI API/1.1 2017-09-01"
 
+extern int ec_key_simple_generate_public_key(EC_KEY *ekey);
+
+
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 {
 	(void)ERR_load_JNI_strings();
@@ -81,8 +86,155 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
 {
 	ERR_unload_JNI_strings();
 }
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_getPublicKey(JNIEnv *env, jobject this, jbyteArray privkey, jboolean compressed)
+{
+    jbyteArray ret = NULL;
+	EC_GROUP *egp = NULL;
+	EC_KEY *ekey = NULL;
+	BIGNUM *priv = NULL;
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getVersions(JNIEnv *env, jobject this)
+	EC_POINT *ecp = NULL;
+	unsigned char *pointbuf = NULL;
+	unsigned char *outbuf = NULL;
+	unsigned char *keybuf = NULL;
+	int is_compressed = compressed;
+	int keylen;
+	int pubkeylen = is_compressed?33:65;
+
+	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, privkey, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if ((keylen = (*env)->GetArrayLength(env, privkey)) <= 0) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if(!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(ekey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!EC_KEY_set_group(ekey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	priv = BN_bin2bn(keybuf, keylen, priv);
+	if (priv == NULL) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if(!EC_KEY_set_private_key(ekey, priv)) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!ec_key_simple_generate_public_key(ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	if (!(ret = (*env)->NewByteArray(env, pubkeylen))) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, JNI_R_JNI_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (!(outbuf = OPENSSL_malloc(pubkeylen))) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if ((ecp = EC_KEY_get0_public_key(ekey)) == NULL) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	int point_form = is_compressed ? POINT_CONVERSION_COMPRESSED : POINT_CONVERSION_UNCOMPRESSED;
+
+	if (!EC_POINT_point2buf(egp, ecp, point_form, &pointbuf, BN_CTX_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	memcpy(outbuf, pointbuf, pubkeylen);
+	(*env)->SetByteArrayRegion(env, ret, 0, pubkeylen, (jbyte *)outbuf);
+
+    end:
+	if (keybuf) (*env)->ReleaseByteArrayElements(env, privkey, (jbyte *)keybuf, JNI_ABORT);
+	OPENSSL_free(pointbuf);
+	OPENSSL_free(outbuf);
+	BN_free(priv);
+
+	return ret;
+}
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_generateKeyPair(JNIEnv *env, jobject this, jboolean compressed)
+{
+	jbyteArray ret = NULL;
+	EC_GROUP *egp = NULL;
+	EC_KEY *ekey = NULL;
+	BIGNUM *priv = NULL;
+	EC_POINT *ecp = NULL;
+	unsigned char *pointbuf = NULL;
+	unsigned char *outbuf = NULL;
+	int is_compressed = compressed;
+	int pubkeylen = is_compressed?33:65;
+	if(!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(ekey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!EC_KEY_set_group(ekey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_EC_LIB);
+		goto end;
+	}
+	if (!(ret = (*env)->NewByteArray(env, 32+pubkeylen))) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, JNI_R_JNI_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EC_KEY_generate_key(ekey)) {
+        JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if (!(outbuf = OPENSSL_malloc(65))) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if ((priv = EC_KEY_get0_private_key(ekey)) == NULL) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!BN_bn2bin(priv, outbuf)) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if ((ecp = EC_KEY_get0_public_key(ekey)) == NULL) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+    int point_form = is_compressed?POINT_CONVERSION_COMPRESSED:POINT_CONVERSION_UNCOMPRESSED;
+
+	if (!EC_POINT_point2buf(egp, ecp, point_form, &pointbuf, BN_CTX_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_GENERATEKEYPAIR, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	memcpy(&outbuf[32], pointbuf, pubkeylen);
+	(*env)->SetByteArrayRegion(env, ret, 0, 32+pubkeylen, (jbyte *)outbuf);
+
+    end:
+	OPENSSL_free(pointbuf);
+	OPENSSL_free(outbuf);
+	BN_free(priv);
+	return ret;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getVersions(JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
 	int i;
@@ -105,7 +257,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getVersions(JNIEnv *env, jobject this)
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_generateRandom(
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_generateRandom(
 	JNIEnv *env, jobject this, jint outlen)
 {
 	jbyteArray ret = NULL;
@@ -148,7 +300,7 @@ static void list_cipher_fn(const EVP_CIPHER *c,
 	}
 }
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getCiphers(
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getCiphers(
 	JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
@@ -180,7 +332,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jint JNICALL Java_GmSSL_getCipherIVLength(
+JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getCipherIVLength(
 	JNIEnv *env, jobject this, jstring algor)
 {
 	jint ret = -1;
@@ -204,7 +356,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jint JNICALL Java_GmSSL_getCipherKeyLength(
+JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getCipherKeyLength(
 	JNIEnv *env, jobject this, jstring algor)
 {
 	jint ret = -1;
@@ -228,7 +380,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jint JNICALL Java_GmSSL_getCipherBlockSize(
+JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getCipherBlockSize(
 	JNIEnv *env, jobject this, jstring algor)
 {
 	jint ret = -1;
@@ -252,7 +404,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_symmetricEncrypt(
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_symmetricEncrypt(
 	JNIEnv *env, jobject this, jstring algor,
 	jbyteArray in, jbyteArray key, jbyteArray iv)
 {
@@ -341,7 +493,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_symmetricDecrypt(
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_symmetricDecrypt(
 	JNIEnv *env, jobject this, jstring algor,
 	jbyteArray in, jbyteArray key, jbyteArray iv)
 {
@@ -439,7 +591,7 @@ static void list_md_fn(const EVP_MD *md,
 	}
 }
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDigests(
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getDigests(
 	JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
@@ -471,7 +623,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jint JNICALL Java_GmSSL_getDigestLength(
+JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getDigestLength(
 	JNIEnv *env, jobject this, jstring algor)
 {
 	jint ret = -1;
@@ -495,7 +647,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jint JNICALL Java_GmSSL_getDigestBlockSize(
+JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getDigestBlockSize(
 	JNIEnv *env, jobject this, jstring algor)
 {
 	jint ret = -1;
@@ -519,7 +671,7 @@ end:
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_digest(JNIEnv *env, jobject this,
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_digest(JNIEnv *env, jobject this,
 	jstring algor, jbyteArray in)
 {
 	jbyteArray ret = NULL;
@@ -573,7 +725,7 @@ char *mac_algors[] = {
 	"HMAC-SHA512",
 };
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getMacs(
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getMacs(
 	JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
@@ -595,7 +747,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getMacs(
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_mac(JNIEnv *env, jobject this,
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_mac(JNIEnv *env, jobject this,
 	jstring algor, jbyteArray in, jbyteArray key)
 {
 	jbyteArray ret = NULL;
@@ -780,7 +932,7 @@ static int get_sign_info(const char *alg, int *ppkey_type,
 	return 1;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getSignAlgorithms(
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getSignAlgorithms(
 	JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
@@ -803,21 +955,24 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getSignAlgorithms(
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_sign(JNIEnv *env, jobject this,
-	jstring algor, jbyteArray in, jbyteArray key)
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_sign(JNIEnv *env, jobject this,
+	jstring algor, jbyteArray in, jbyteArray key, jstring uid)
 {
 	jbyteArray ret = NULL;
 	const char *alg = NULL;
 	const unsigned char *inbuf = NULL;
 	const unsigned char *keybuf = NULL;
+	const char *idbuf = NULL;
 	unsigned char outbuf[1024];
-	int inlen, keylen;
+	int inlen, keylen, idlen;
 	size_t outlen = sizeof(outbuf);
 	int pkey_type = 0;
 	const EVP_MD *md = NULL;
 	int ec_scheme = -1;
 	const unsigned char *cp;
 	EVP_PKEY *pkey = NULL;
+	EC_KEY *ekey = NULL;
+	EC_GROUP *egp = NULL;
 	EVP_PKEY_CTX *pkctx = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
@@ -825,6 +980,10 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_sign(JNIEnv *env, jobject this,
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if (!(idbuf = (unsigned char *)(*env)->GetStringUTFChars(env, uid, 0))) {
 		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
@@ -847,19 +1006,62 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_sign(JNIEnv *env, jobject this,
 	}
 
 	cp = keybuf;
-	if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cp, keylen))) {
+
+	/*if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cp, keylen))) {
 		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_INVALID_PRIVATE_KEY);
 		goto end;
+	}*/
+
+	if (!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
+		goto end;
 	}
+	if (!(pkey = EVP_PKEY_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EVP_PKEY_set_type(pkey, pkey_type)) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EVP_LIB);
+		goto end;
+	}
+	if (!(ekey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EC_KEY_set_group(ekey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EC_LIB);
+		goto end;
+	}
+	if(!EVP_PKEY_set1_EC_KEY(pkey, ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	BIGNUM *privkey = NULL;
+	privkey = BN_bin2bn(keybuf, keylen, privkey);
+	if (privkey == NULL) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if(!EC_KEY_set_private_key(ekey, privkey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!ec_key_simple_generate_public_key(ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EC_LIB);
+		goto end;
+	}
+
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
 		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
+
 	if (EVP_PKEY_sign_init(pkctx) <= 0) {
 		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EVP_LIB);
 		goto end;
 	}
-
 	if (md) {
 		if (!EVP_PKEY_CTX_set_signature_md(pkctx, md)) {
 			JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EVP_LIB);
@@ -882,8 +1084,21 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_sign(JNIEnv *env, jobject this,
 		}
 #endif
 	}
+	const EVP_MD *id_md = EVP_sm3();
+	const EVP_MD *msg_md = EVP_sm3();
 
-	if (EVP_PKEY_sign(pkctx, outbuf, &outlen, inbuf, inlen) <= 0) {
+	unsigned char dgst[1024];
+	int dgstlen;
+	idlen = strlen(idbuf);
+
+	if (!SM2_compute_message_digest(id_md, msg_md,
+			(const unsigned char *)inbuf, inlen, idbuf, idlen,
+				dgst, &dgstlen, ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (EVP_PKEY_sign(pkctx, outbuf, &outlen, dgst, dgstlen) <= 0) {
 		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -899,25 +1114,34 @@ end:
 	if (alg) (*env)->ReleaseStringUTFChars(env, algor, alg);
 	if (inbuf) (*env)->ReleaseByteArrayElements(env, in, (jbyte *)inbuf, JNI_ABORT);
 	if (keybuf) (*env)->ReleaseByteArrayElements(env, key, (jbyte *)keybuf, JNI_ABORT);
+	if (idbuf) (*env)->ReleaseStringUTFChars(env, uid, idbuf);
+	EC_GROUP_free(egp);
+	EC_KEY_free(ekey);
 	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(pkctx);
+	BN_free(privkey);
+
 	return ret;
 }
 
-JNIEXPORT jint JNICALL Java_GmSSL_verify(JNIEnv *env, jobject this,
-	jstring algor, jbyteArray in, jbyteArray sig, jbyteArray key)
+JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_verify(JNIEnv *env, jobject this,
+	jstring algor, jbyteArray in, jbyteArray sig, jbyteArray key, jstring uid)
 {
 	jint ret = 0;
 	const char *alg = NULL;
 	const unsigned char *inbuf = NULL;
 	const unsigned char *sigbuf = NULL;
 	const unsigned char *keybuf = NULL;
-	int inlen, siglen, keylen;
+	const char *idbuf = NULL;
+	int inlen, siglen, keylen, idlen;
 	const unsigned char *cp;
 	int pkey_type = 0;
 	const EVP_MD *md = NULL;
 	int ec_scheme = -1;
 	EVP_PKEY *pkey = NULL;
+	EC_KEY *ekey = NULL;
+	EC_GROUP *egp = NULL;
+	EC_POINT *ecp = NULL;
 	EVP_PKEY_CTX *pkctx = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
@@ -948,18 +1172,63 @@ JNIEXPORT jint JNICALL Java_GmSSL_verify(JNIEnv *env, jobject this,
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
-
+	if (!(idbuf = (unsigned char *)(*env)->GetStringUTFChars(env, uid, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
 	if (!get_sign_info(alg, &pkey_type, &md, &ec_scheme)) {
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_INVALID_SIGN_ALGOR);
 		goto end;
 	}
-
 	cp = keybuf;
-	if (!(pkey = d2i_PUBKEY(NULL, &cp, (long)keylen))) {
+	/*if (!(pkey = d2i_PUBKEY(NULL, &cp, (long)keylen))) {
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_INVALID_PUBLIC_KEY);
+		goto end;
+	}*/
+	if(!(pkey = EVP_PKEY_new())) {
+        JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EVP_PKEY_set_type(pkey, pkey_type)) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
+		goto end;
+	}
+	if(!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(ekey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!EC_KEY_set_group(ekey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EC_LIB);
+		goto end;
+	}
+	BIGNUM *x = BN_new();
+	BIGNUM *y = BN_new();
+
+	if (!(ecp = EC_POINT_new(egp))) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EC_LIB);
+		goto end;
+	}
+    EC_POINT_set_compressed_coordinates_GFp(egp, ecp, BN_bin2bn(&keybuf[1], 32, x), keybuf[0]&1, BN_CTX_new());
+	//BN_bin2bn(&keybuf[0], 32, x);
+	//BN_bin2bn(&keybuf[32], 32, y);
+
+	/*if (!EC_POINT_set_affine_coordinates_GFp(egp, ecp, x, y, BN_CTX_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EC_LIB);
+		goto end;
+	}*/
+	if (!EC_KEY_set_public_key(ekey, ecp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EC_LIB);
 		goto end;
 	}
 
+	if(!EVP_PKEY_set1_EC_KEY(pkey, ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
 	if (EVP_PKEY_id(pkey) != pkey_type) {
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_INVALID_PUBLIC_KEY);
 		goto end;
@@ -973,7 +1242,6 @@ JNIEXPORT jint JNICALL Java_GmSSL_verify(JNIEnv *env, jobject this,
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
 		goto end;
 	}
-
 	if (md && !EVP_PKEY_CTX_set_signature_md(pkctx, md)) {
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
 		goto end;
@@ -989,6 +1257,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_verify(JNIEnv *env, jobject this,
 #endif
 	} else if (pkey_type == EVP_PKEY_EC) {
 #ifndef OPENSSL_NO_SM2
+
 		if (!EVP_PKEY_CTX_set_ec_scheme(pkctx, OBJ_txt2nid(alg) == NID_sm2sign ?
 			NID_sm_scheme : NID_secg_scheme)) {
 			JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EC_LIB);
@@ -996,8 +1265,20 @@ JNIEXPORT jint JNICALL Java_GmSSL_verify(JNIEnv *env, jobject this,
 		}
 #endif
 	}
+	const EVP_MD *id_md =  EVP_sm3();
+	const EVP_MD *msg_md = EVP_sm3();
+	unsigned char dgst[1024];
+	int dgstlen = sizeof(dgst);
+	idlen = strlen(idbuf);
 
-	if (EVP_PKEY_verify(pkctx, sigbuf, siglen, inbuf, inlen) <= 0) {
+	if (!SM2_compute_message_digest(id_md, msg_md,
+			(const unsigned char *)inbuf, inlen, idbuf, idlen,
+				dgst, &dgstlen, ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	if (EVP_PKEY_verify(pkctx, sigbuf, siglen, dgst, dgstlen) <= 0) {
 		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
 		goto end;
 	}
@@ -1008,10 +1289,189 @@ end:
 	if (inbuf) (*env)->ReleaseByteArrayElements(env, in, (jbyte *)inbuf, JNI_ABORT);
 	if (sigbuf) (*env)->ReleaseByteArrayElements(env, sig, (jbyte *)sigbuf, JNI_ABORT);
 	if (keybuf) (*env)->ReleaseByteArrayElements(env, key, (jbyte *)keybuf, JNI_ABORT);
+	if (idbuf) (*env)->ReleaseStringUTFChars(env, uid, idbuf);
+	EC_GROUP_free(egp);
+	EC_KEY_free(ekey);
 	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(pkctx);
+	BN_free(x);
+	BN_free(y);
+	EC_POINT_free(ecp);
 	return ret;
 }
+
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_calculateSharedKey(JNIEnv *env, jobject this,
+    jbyteArray privateKey, jbyteArray ephemeralPrivKey, jstring uid, jbyteArray remotePubkey, jbyteArray remoteEphemeralPubkey, jstring ruid, jint keylen, jint initiator)
+{
+	jbyteArray ret = NULL;
+	const char* uidbuf = NULL;
+	const char* ruidbuf = NULL;
+	unsigned char *privkeybuf = NULL;
+	unsigned char *rpubkeybuf = NULL;
+	unsigned char *emprikeybuf = NULL;
+	unsigned char *repubkeybuf = NULL;
+	EC_GROUP *egp = NULL;
+	EC_KEY *privKey = NULL;
+	EC_KEY *remoteKey = NULL;
+	EC_KEY *remoteEmpheralKey = NULL;
+	EC_POINT *ecp = NULL;
+	EC_POINT *ecpempheral = NULL;
+	int privlen, rpubkeylen, emprivlen, republen;
+	int is_initiator = initiator;
+	int klen = keylen;
+	if (!(uidbuf = (*env)->GetStringUTFChars(env, uid, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if (!(ruidbuf = (*env)->GetStringUTFChars(env, ruid, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if (!(privkeybuf = (unsigned char *)(*env)->GetByteArrayElements(env, privateKey, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if ((privlen = (*env)->GetArrayLength(env, privateKey)) <= 0) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if (!(rpubkeybuf = (unsigned char *)(*env)->GetByteArrayElements(env, remotePubkey, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if ((rpubkeylen = (*env)->GetArrayLength(env, remotePubkey)) <= 0) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if (!(emprikeybuf = (unsigned char *)(*env)->GetByteArrayElements(env, ephemeralPrivKey, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if ((emprivlen = (*env)->GetArrayLength(env, ephemeralPrivKey)) <= 0) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if (!(repubkeybuf = (unsigned char *)(*env)->GetByteArrayElements(env, remoteEphemeralPubkey, 0))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}
+	if ((republen = (*env)->GetArrayLength(env, remoteEphemeralPubkey)) <= 0) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_BAD_ARGUMENT);
+		goto end;
+	}	
+	if(!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(privKey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(remoteKey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(remoteEmpheralKey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+        JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	if(!EC_KEY_set_group(privKey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	if(!EC_KEY_set_group(remoteKey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	if(!EC_KEY_set_group(remoteEmpheralKey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	SM2_KAP_CTX *ctx = NULL;
+
+	ctx = (SM2_KAP_CTX*)OPENSSL_malloc(sizeof(*ctx));
+
+	BIGNUM *priv = NULL;
+	if (!(priv = BN_bin2bn(privkeybuf, 32, priv))) {
+        JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	
+	if (!EC_KEY_set_private_key(privKey, priv)) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	if (!ec_key_simple_generate_public_key(privKey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+    BIGNUM *x = NULL;
+	BIGNUM *y = NULL;
+
+	if (!(ecp = EC_POINT_new(egp))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	if (!(ecpempheral = EC_POINT_new(egp))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	if (rpubkeylen == 65) {
+        if (!EC_POINT_set_affine_coordinates_GFp(egp, ecp, BN_bin2bn(&rpubkeybuf[1], 32, x), BN_bin2bn(&rpubkeybuf[33], 32, y), BN_CTX_new())) {
+		    JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		    goto end;
+		}
+	} else {
+        if (!EC_POINT_set_compressed_coordinates_GFp(egp, ecp, BN_bin2bn(&rpubkeybuf[1], 32, x), rpubkeybuf[0]&1, BN_CTX_new())) {
+		    JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		    goto end;
+		}
+	}
+	if (!EC_KEY_set_public_key(remoteKey, ecp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		goto end;
+	}
+	BIGNUM *dA = NULL;
+	if (!(dA = BN_bin2bn(emprikeybuf, 32, dA))) {
+        JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	SM2_KAP_CTX_init(ctx, privKey, uidbuf, strlen(uidbuf), remoteKey, ruidbuf, strlen(ruidbuf), is_initiator, 0);
+
+	SM2_KAP_prepare_no_rand(ctx, dA);
+	//SM2_KAP_prepare(ctx, RA, &RAlen);
+
+    unsigned char *sharekey = (unsigned char*)OPENSSL_malloc(klen*2);
+	char checksum[256];
+	int checksumlen;
+	SM2_KAP_compute_key(ctx, repubkeybuf, republen, sharekey, klen, checksum, &checksumlen);
+
+	/*(if (!SM2_KAP_final_check(ctx, checksum, checksumlen)) {
+		printf("check fail\n");
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, ERR_R_EC_LIB);
+		//goto end;
+	}*/
+
+	if (!(ret = (*env)->NewByteArray(env, klen))) {
+		JNIerr(JNI_F_JAVA_GMSSL_CACULATESHAREDKEY, JNI_R_JNI_MALLOC_FAILURE);
+		goto end;
+	}
+
+	(*env)->SetByteArrayRegion(env, ret, 0, klen, (jbyte *)sharekey);
+
+	end:
+	if (uid) (*env)->ReleaseStringUTFChars(env, uid, uidbuf);
+	if (ruid) (*env)->ReleaseStringUTFChars(env, uid, ruidbuf);
+	if (privkeybuf) (*env)->ReleaseByteArrayElements(env, privateKey, (jbyte *)privkeybuf, JNI_ABORT);
+	if (rpubkeybuf) (*env)->ReleaseByteArrayElements(env, remotePubkey, (jbyte *)rpubkeybuf, JNI_ABORT);
+	if (emprikeybuf) (*env)->ReleaseByteArrayElements(env, ephemeralPrivKey, (jbyte *)emprikeybuf, JNI_ABORT);
+	if (repubkeybuf) (*env)->ReleaseByteArrayElements(env, remoteEphemeralPubkey, (jbyte *)repubkeybuf, JNI_ABORT);
+	OPENSSL_free(sharekey);
+	return ret;
+}
+
 
 int pke_nids[] = {
 #ifndef OPENSSL_NO_RSA
@@ -1125,7 +1585,7 @@ static int get_pke_info(const char *alg, int *ppkey_type,
 	return 1;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getPublicKeyEncryptions(
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getPublicKeyEncryptions(
 	JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
@@ -1147,7 +1607,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getPublicKeyEncryptions(
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyEncrypt(
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_publicKeyEncrypt(
 	JNIEnv *env, jobject this, jstring algor,
 	jbyteArray in, jbyteArray key)
 {
@@ -1163,6 +1623,9 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyEncrypt(
 	int ec_encrypt_param = NID_undef;
 	const unsigned char *cp;
 	EVP_PKEY *pkey = NULL;
+	EC_KEY *ekey = NULL;
+	EC_GROUP *egp = NULL;
+	EC_POINT *ecp = NULL;
 	EVP_PKEY_CTX *pkctx = NULL;
 
 
@@ -1202,8 +1665,52 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyEncrypt(
 		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
-	if (!(pkey = d2i_PUBKEY(NULL, &cp, (long)keylen))) {
+	/*if (!(pkey = d2i_PUBKEY(NULL, &cp, (long)keylen))) {
 		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_INVALID_PUBLIC_KEY);
+		goto end;
+	}*/
+	if(!(pkey = EVP_PKEY_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EVP_PKEY_set_type(pkey, pkey_type)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
+	if(!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!(ekey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if(!EC_KEY_set_group(ekey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+	BIGNUM *x = BN_new();
+	BIGNUM *y = BN_new();
+
+	if (!(ecp = EC_POINT_new(egp))) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+    EC_POINT_set_compressed_coordinates_GFp(egp, ecp, BN_bin2bn(&keybuf[1], 32, x), keybuf[0]&1, BN_CTX_new());
+	//BN_bin2bn(&keybuf[0], 32, x);
+	//BN_bin2bn(&keybuf[32], 32, y);
+
+	/*if (!EC_POINT_set_affine_coordinates_GFp(egp, ecp, x, y, BN_CTX_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
+		goto end;
+	}*/
+	if (!EC_KEY_set_public_key(ekey, ecp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if(!EVP_PKEY_set1_EC_KEY(pkey, ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (EVP_PKEY_id(pkey) != pkey_type) {
@@ -1250,10 +1757,14 @@ end:
 	if (inbuf) (*env)->ReleaseByteArrayElements(env, in, (jbyte *)inbuf, JNI_ABORT);
 	if (keybuf) (*env)->ReleaseByteArrayElements(env, key, (jbyte *)keybuf, JNI_ABORT);
 	OPENSSL_free(outbuf);
+	EC_GROUP_free(egp);
+	EC_KEY_free(ekey);
+	EC_POINT_free(ecp);
+	//BN_free(x);
+	//BN_free(y);
 	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(pkctx);
 	return ret;
-
 }
 
 /*
@@ -1263,7 +1774,7 @@ static int gmssl_pkey_encrypt(const char *algor, const unsigned char *in, size_t
 }
 */
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_publicKeyDecrypt(
 	JNIEnv *env, jobject this, jstring algor,
 	jbyteArray in, jbyteArray key)
 {
@@ -1279,6 +1790,8 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(
 	int ec_encrypt_param = NID_undef;
 	const unsigned char *cp;
 	EVP_PKEY *pkey = NULL;
+	EC_KEY *ekey = NULL;
+	EC_GROUP *egp = NULL;
 	EVP_PKEY_CTX *pkctx = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
@@ -1314,10 +1827,48 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(
 		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
-	if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cp, (long)keylen))) {
+	/*if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cp, (long)keylen))) {
 		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_INVALID_PRIVATE_KEY);
 		goto end;
+	}*/
+	if(!(egp = EC_GROUP_new_by_curve_name(NID_sm2p256v1))) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
 	}
+
+	if (!(pkey = EVP_PKEY_new())) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EVP_PKEY_set_type(pkey, pkey_type)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
+	if (!(ekey = EC_KEY_new_by_curve_name(NID_sm2p256v1))) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	if (!EC_KEY_set_group(ekey, egp)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+	if(!EVP_PKEY_set1_EC_KEY(pkey, ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
+		goto end;
+	}
+
+	BIGNUM *privkey = NULL;
+	privkey = BN_bin2bn(keybuf, keylen, privkey);
+
+	if (!EC_KEY_set_private_key(ekey, privkey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+	if (!ec_key_simple_generate_public_key(ekey)) {
+		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
+		goto end;
+	}
+
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
 		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
@@ -1340,7 +1891,6 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt(
 		}
 #endif
 	}
-
 	if (EVP_PKEY_decrypt(pkctx, outbuf, &outlen, inbuf, inlen) <= 0) {
 		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
 		goto end;
@@ -1358,6 +1908,9 @@ end:
 	if (inbuf) (*env)->ReleaseByteArrayElements(env, in, (jbyte *)inbuf, JNI_ABORT);
 	if (keybuf) (*env)->ReleaseByteArrayElements(env, key, (jbyte *)keybuf, JNI_ABORT);
 	OPENSSL_free(outbuf);
+	EC_GROUP_free(egp);
+	EC_KEY_free(ekey);
+	BN_free(privkey);
 	EVP_PKEY_free(pkey);
 	EVP_PKEY_CTX_free(pkctx);
 	return ret;
@@ -1488,7 +2041,7 @@ static int get_exch_info(const char *alg, int *ppkey_type, int *pec_scheme,
 	return 1;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDeriveKeyAlgorithms(
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getDeriveKeyAlgorithms(
 	JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
@@ -1510,7 +2063,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDeriveKeyAlgorithms(
 	return ret;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_deriveKey(
+JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_deriveKey(
 	JNIEnv *env, jobject this, jstring algor,
 	jint outkeylen, jbyteArray peerkey, jbyteArray key)
 {
@@ -1670,7 +2223,7 @@ static void free_errstr(char *s)
 	OPENSSL_free(s);
 }
 
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getErrorStrings(JNIEnv *env, jobject this)
+JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getErrorStrings(JNIEnv *env, jobject this)
 {
 	jobjectArray ret = NULL;
 	STACK_OF(OPENSSL_STRING) *sk = NULL;

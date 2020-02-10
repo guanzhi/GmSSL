@@ -52,7 +52,6 @@
 #include <openssl/sm2.h>
 #include <openssl/kdf.h>
 #include "sm2_lcl.h"
-
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 	EC_KEY *ec_key, const char *id, size_t idlen,
 	EC_KEY *remote_pubkey, const char *rid, size_t ridlen,
@@ -80,7 +79,6 @@ int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 		ECerr(EC_F_SM2_KAP_CTX_INIT, EC_R_INVALID_KDF_MD);
 		goto end;
 	}
-
 	ctx->is_initiator = is_initiator;
 	ctx->do_checksum = do_checksum;
 
@@ -102,7 +100,6 @@ int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,
 		ECerr(EC_F_SM2_KAP_CTX_INIT, ERR_R_EC_LIB);
 		goto end;
 	}
-
 	len = ctx->remote_id_dgstlen;
 	if (!SM2_compute_id_digest(ctx->id_dgst_md, rid, ridlen,
 		ctx->remote_id_dgst, &len, remote_pubkey)) {
@@ -285,7 +282,120 @@ end:
 
 	return ret;
 }
+int SM2_KAP_prepare_no_rand(SM2_KAP_CTX *ctx, BIGNUM *r)
+{
+	int ret = 0;
+	const BIGNUM *prikey;
+	BIGNUM *h = NULL;
+	//BIGNUM *r = NULL;
+	BIGNUM *x = NULL;
 
+	if (!(prikey = EC_KEY_get0_private_key(ctx->ec_key))) {
+		ECerr(EC_F_SM2_KAP_PREPARE, EC_R_SM2_KAP_NOT_INITED);
+		return 0;
+	}
+	h = BN_new();
+	//r = BN_new();
+	x = BN_new();
+
+	if (!h || !r || !x) {
+		ECerr(EC_F_SM2_KAP_PREPARE, 0);
+		goto end;
+	}
+
+	/*
+	 * r = rand(1, n)
+	 * R = rG = (x, y)
+	 */
+
+	/*do {
+		if (!BN_rand_range(r, ctx->order)) {
+			ECerr(EC_F_SM2_KAP_PREPARE, EC_R_RANDOM_NUMBER_GENERATION_FAILED);
+			goto end;
+		}
+
+	} while (BN_is_zero(r));*/
+
+
+	if (!EC_POINT_mul(ctx->group, ctx->point, r, NULL, NULL, ctx->bn_ctx)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
+		goto end;
+	}
+
+
+	if (EC_METHOD_get_field_type(EC_GROUP_method_of(ctx->group)) == NID_X9_62_prime_field) {
+		if (!EC_POINT_get_affine_coordinates_GFp(ctx->group, ctx->point, x, NULL, ctx->bn_ctx)) {
+			ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
+			goto end;
+		}
+	} else {
+		if (!EC_POINT_get_affine_coordinates_GF2m(ctx->group, ctx->point, x, NULL, ctx->bn_ctx)) {
+			ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
+			goto end;
+		}
+	}
+
+	/*
+	 * w = ceil(keybits / 2) - 1
+	 * x = 2^w + (x and (2^w - 1)) = 2^w + (x mod 2^w)
+	 * t = (d + x * r) mod n
+	 * t = (h * t) mod n
+	 */
+
+	if (!ctx->t) {
+		ECerr(EC_F_SM2_KAP_PREPARE, EC_R_SM2_KAP_NOT_INITED);
+		goto end;
+	}
+
+	if (!BN_nnmod(x, x, ctx->two_pow_w, ctx->bn_ctx)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!BN_add(x, x, ctx->two_pow_w)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!BN_mod_mul(ctx->t, x, r, ctx->order, ctx->bn_ctx)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!BN_mod_add(ctx->t, ctx->t, prikey, ctx->order, ctx->bn_ctx)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	if (!EC_GROUP_get_cofactor(ctx->group, h, ctx->bn_ctx)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_EC_LIB);
+		goto end;
+	}
+
+	if (!BN_mul(ctx->t, ctx->t, h, ctx->bn_ctx)) {
+		ECerr(EC_F_SM2_KAP_PREPARE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	/* encode R = (x, y) for output and local buffer */
+
+	// FIXME: ret is size_t and ret is the output length
+	char ephem_point[65];
+	int len = 65;
+	int *ephem_point_len = &len;
+	ret = EC_POINT_point2oct(ctx->group, ctx->point, ctx->point_form,
+		ephem_point, *ephem_point_len, ctx->bn_ctx);
+	memcpy(ctx->pt_buf, ephem_point, ret);
+	*ephem_point_len = ret;
+	ret = 1;
+
+end:
+	if (h) BN_free(h);
+	if (r) BN_free(r);
+	if (x) BN_free(x);
+
+	return ret;
+}
 int SM2_KAP_compute_key(SM2_KAP_CTX *ctx, const unsigned char *remote_point,
 	size_t remote_point_len, unsigned char *key, size_t keylen,
 	unsigned char *checksum, size_t *checksumlen)
