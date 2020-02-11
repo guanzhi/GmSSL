@@ -1,0 +1,5 @@
+SET(LIBGMSSLJNI_SRC GmSSL.c )
+ADD_LIBRARY(gmssljni SHARED ${LIBGMSSLJNI_SRC})
+include_directories(./jni/)
+include_directories(../include/)
+target_link_libraries(gmssljni -L../ -lssl -lcrypto)
