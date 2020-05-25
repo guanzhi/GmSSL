@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 # include "../crypto/sm9/sm9_lcl.h"
 
 RAND_METHOD fake_rand;
-const RAND_METHOD *old_rand;
+const RAND_METHOD *old_rand = NULL;
 
 static const char rnd_seed[] =
 	"string to make the random number generator think it has entropy";
@@ -414,30 +414,40 @@ int main(int argc, char **argv)
 	unsigned char in[] = "message to be signed or encrypted";
 	int use_test_vector = 1;
 
+	RAND_seed(rnd_seed, sizeof(rnd_seed));
+
+	if (!rate_test()) {
+		printf("sm9 rate pairing test failed\n");
+		err++;
+	} else
+		printf("sm9 rate pairing test passed\n");
+
 	if (!sm9test_sign(id, in, sizeof(in)-1, use_test_vector)) {
 		printf("sm9 sign tests failed\n");
 		err++;
-	}
-	printf("sm9 sign tests passed\n");
+	} else
+		printf("sm9 sign tests passed\n");
 
 	if (!sm9test_exch(id, "guan@pku.edu.cn")) {
 		printf("sm9 exch tests failed\n");
 		err++;
-	}
-	printf("sm9 exch tests passed\n");
+	} else
+		printf("sm9 exch tests passed\n");
 
 	if (!sm9test_wrap(id)) {
 		printf("sm9 key wrap tests failed\n");
 		err++;
-	}
-	printf("sm9 key wrap tests passed\n");
+	} else
+		printf("sm9 key wrap tests passed\n");
 
 	if (!sm9test_enc(id, in, sizeof(in)-1)) {
 		printf("sm9 encrypt tests failed\n");
 		err++;
-	}
-	printf("sm9 encrypt tests passed\n");
+	} else
+		printf("sm9 encrypt tests passed\n");
 
+	if (old_rand)
+		restore_rand();
 	return err;
 }
 #endif
