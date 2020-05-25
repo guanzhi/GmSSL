@@ -356,7 +356,7 @@ static int sm9test_exch(const char *idA, const char *idB)
 		goto end;
 	}
 
-	if (memcmp(SKA, SKA, sizeof(SKA)) != 0 || memcmp(SA, S2, sizeof(SA)) != 0) {
+	if (memcmp(SKA, SKB, sizeof(SKA)) != 0 || memcmp(SA, S2, sizeof(SA)) != 0) {
 		goto end;
 	}
 
