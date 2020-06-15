@@ -86,6 +86,7 @@ function sm3_ctx_new() {
 		nblocks: 0,
 		num: 0
 	};
+	sm3_ctx_init(ctx);
 	return ctx;
 }
 
@@ -393,6 +394,48 @@ function sm3_test() {
 	return 1;
 }
 
+const SM3_HMAC_IPAD = 0x36;
+const SM3_HMAC_OPAD = 0x5C;
+
+function sm3_hmac_ctx_new() {
+	var ctx = {
+		sm3_ctx: sm3_ctx_new(),
+		key : new Array(SM3_BLOCK_SIZE),
+	};
+	return ctx;
+}
+
+function sm3_hmac_ctx_free(ctx) {
+	sm3_ctx_free(ctx.sm3_ctx);
+	for (var i = 0; i < SM3_BLOCK_SIZE; i++) {
+		ctx.key[i] = 0;
+	}
+	delete ctx;
+}
+
+function sm3_hmac_init(ctx, key)
+{
+	var i;
+	var key_len = key.length;
+
+	if (key_len <= SM3_BLOCK_SIZE) {
+		sm3_memcpy(ctx.key, 0, key, 0, key_len);
+		sm3_memset(ctx.key, key_len, 0, SM3_BLOCK_SIZE - key_len);
+	} else {
+		sm3_init(ctx.sm3_ctx);
+		sm3_update(ctx.sm3_ctx, key);
+		sm3_final(ctx.sm3_ctx, ctx.key);
+		sm3_memset(ctx.key, SM3_DIGEST_LENGTH, 0,
+			SM3_BLOCK_SIZE - SM3_DIGEST_LENGTH);
+	}
+	for (i = 0; i < SM3_BLOCK_SIZE; i++) {
+		ctx.key[i] ^= SM3_HMAC_IPAD;
+	}
+
+	sm3_init(ctx.sm3_ctx);
+	sm3_update(ctx.sm3_ctx, ctx.key);
+}
+
 function sm3_speed() {
 	var data = new Array(1000 * 1000);
 	for (var i = 0; i < data.length; i++) {
@@ -400,4 +443,46 @@ function sm3_speed() {
 	}
 	var dgst = sm3(data);
 	console.log(dgst);
+}
+
+function sm3_hmac_update(ctx, data) {
+	sm3_update(ctx.sm3_ctx, data);
+}
+
+function sm3_hmac_final(ctx, mac)
+{
+	for (var i = 0; i < SM3_BLOCK_SIZE; i++) {
+		ctx.key[i] ^= (SM3_HMAC_IPAD ^ SM3_HMAC_OPAD);
+	}
+	sm3_final(ctx.sm3_ctx, mac);
+	sm3_init(ctx.sm3_ctx);
+	sm3_update(ctx.sm3_ctx, ctx.key);
+	sm3_update(ctx.sm3_ctx, mac);
+	sm3_final(ctx.sm3_ctx, mac);
+}
+
+function sm3_hmac(data, key, mac) {
+	ctx = sm3_hmac_ctx_new();
+	sm3_hmac_init(ctx, key);
+	sm3_hmac_update(ctx, data);
+	sm3_hmac_final(ctx, mac);
+	sm3_hmac_ctx_free(ctx);
+}
+
+function sm3_kdf(Z, klen) {
+	var key = [];
+	var ct = 1;
+	var buf = new Array(4);
+	var ctx = sm3_ctx_new();
+
+	for (var i = 0; i < Math.ceil(klen / SM3_DIGEST_LENGTH); i++) {
+		sm3_ctx_init(ctx);
+		sm3_update(ctx, Z);
+		SM3_PUTU32(buf, 0, ct);
+		sm3_update(ctx, buf);
+		sm3_final(ctx, dgst);
+		key.concat(dgst);
+		ct++;
+	}
+	return key.slice(0, klen);
 }
