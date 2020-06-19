@@ -4728,3 +4728,5 @@ TS_REQ_get_ext                          4579	1_1_0d	EXIST::FUNCTION:TS
 PKCS12_MAC_DATA_new                     4580	1_1_0d	EXIST::FUNCTION:
 ENGINE_get_cmd_defns                    4581	1_1_0d	EXIST::FUNCTION:ENGINE
 ECIES_CIPHERTEXT_VALUE_set_ECCCipher    4582	1_1_0d	EXIST::FUNCTION:EC,ECIES,GMAPI,SDF
+i2o_SM2CiphertextValue                  4583	1_1_0d	EXIST::FUNCTION:SM2
+o2i_SM2CiphertextValue                  4584	1_1_0d	EXIST::FUNCTION:SM2
