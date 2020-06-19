@@ -119,6 +119,10 @@ SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a);
 int i2d_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue *a);
 #endif
 
+int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
+	unsigned char **pout);
+SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
+	SM2CiphertextValue **cv, const unsigned char **pin, long len);
 
 int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen);
 
