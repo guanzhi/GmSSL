@@ -1,0 +1,39 @@
+##WINDOWS libsm2jni.a
+JAVADLL=sm2jni
+CC=gcc
+CFLAGS=-D_KTEST_  -fPIC -m64  -O3
+AR=ar r
+LDFLAGS=-L../libs/ -lcrypto -ldl -Wall -O3 -pthread -m64 -DL_ENDIAN -Wa,--noexecstack -fPIC -DOPENSSL_USE_NODELETE -Wl,-znodelete -m64 -shared 
+JAVAINCLUDE=-I "$(JAVA_HOME)/include" -I "$(JAVA_HOME)/include/linux"
+INC=-I "." -I "../../include" -I "../csm2" $(JAVAINCLUDE) 
+
+#java 
+JAVADLLPATH=-Djava.library.path=.
+JAVA=java
+JAVAC=javac
+
+#
+all: prepare $(JAVADLL)
+prepare:
+	mkdir -p .output
+	javah SM2ForBlockChain
+sm2.hex.o:
+	$(CC)  $(INC) $(CFLAGS) -c "../csm2/sm2.hex.c" -o .output/sm2.hex.o
+sm2.bin.o:
+	$(CC)  $(INC) $(CFLAGS) -c "../csm2/sm2.bin.c" -o .output/sm2.bin.o
+sm2.err.o:
+	$(CC)  $(INC) $(CFLAGS) -c "../csm2/sm2.err.c" -o .output/sm2.err.o
+SM2ForBlockChain.o:
+	$(CC) $(INC)  $(CFLAGS) -c "SM2ForBlockChain.c"  -o .output/SM2ForBlockChain.o
+$(JAVADLL): SM2ForBlockChain.o sm2.hex.o sm2.bin.o  sm2.err.o
+	$(AR) libsm2jni.a .output/SM2ForBlockChain.o .output/sm2.hex.o .output/sm2.bin.o  .output/sm2.err.o
+	LD_LIBRARY_PATH=.: $(CC) $(LDFLAGS) -Wl,-Bsymbolic -Wl,-soname=libsm2jni.so -o ./libsm2jni.so -Wl,--whole-archive ./libsm2jni.a  ../libs/libcrypto.a -Wl,--no-whole-archive
+javatest:
+	$(JAVAC) SM2ForBlockChain.java
+
+test: javatest $(JAVADLL)
+	$(JAVA) $(JAVADLLPATH) SM2ForBlockChain
+clean: 
+	rm -f .output/*.o
+	rm -f *.class
+	rm -f libsm2jni.a libsm2jni.so
