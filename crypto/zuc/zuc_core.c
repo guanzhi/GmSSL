@@ -439,7 +439,7 @@ static void zuc256_set_mac_key(ZUC_KEY *key, const unsigned char K[32],
 	LFSR[5] = ZUC256_MAKEU31(IV[0], (D[5] | IV17), K[5], K[26]);
 	LFSR[6] = ZUC256_MAKEU31(IV[1], (D[6] | IV18), K[6], K[27]);
 	LFSR[7] = ZUC256_MAKEU31(IV[10], (D[7] | IV19), K[7], IV[2]);
-	LFSR[8] = ZUC256_MAKEU31(K[8], (D[8] | IV20), IV[13], IV[11]);
+	LFSR[8] = ZUC256_MAKEU31(K[8], (D[8] | IV20), IV[3], IV[11]);
 	LFSR[9] = ZUC256_MAKEU31(K[9], (D[9] | IV21), IV[12], IV[4]);
 	LFSR[10] = ZUC256_MAKEU31(IV[5], (D[10] | IV22), K[10], K[28]);
 	LFSR[11] = ZUC256_MAKEU31(K[11], (D[11] | IV23), IV[6], IV[13]);
