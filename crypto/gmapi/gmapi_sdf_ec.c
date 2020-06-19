@@ -401,7 +401,7 @@ int SM2CiphertextValue_get_ECCCipher(const SM2CiphertextValue *cv,
 	 * structure and prepared enough buffer to hold variable length
 	 * ciphertext
 	 */
-	if (ref->L < ASN1_STRING_length(cv->ciphertext)) {
+	if (ref->L < (unsigned int)ASN1_STRING_length(cv->ciphertext)) {
 		GMAPIerr(GMAPI_F_SM2CIPHERTEXTVALUE_GET_ECCCIPHER,
 			GMAPI_R_BUFFER_TOO_SMALL);
 		return 0;
@@ -625,18 +625,6 @@ end:
 	return ret;
 }
 
-/*
-ECCCipher *d2i_ECCCipher_bio(BIO *bp, ECCCipher **a)
-{
-	return NULL;
-}
-
-ECCCipher *d2i_ECCCipher_fp(FILE *fp, ECCCipher **a)
-{
-	return NULL;
-}
-*/
-
 int i2d_ECCCipher(ECCCipher *a, unsigned char **pp)
 {
 	int ret;
@@ -652,23 +640,17 @@ int i2d_ECCCipher(ECCCipher *a, unsigned char **pp)
 	return ret;
 }
 
-/*
-int i2d_ECCCipher_bio(BIO *bp, ECCCipher *a)
-{
-	return 0;
-}
-
-int i2d_ECCCipher_fp(FILE *fp, ECCCipher *a)
-{
-	return 0;
-}
-*/
-
 ECCSignature *d2i_ECCSignature(ECCSignature **a, const unsigned char **pp, long length)
 {
 	ECCSignature *ret = NULL;
 	ECCSignature *sdf_sig = NULL;
 	ECDSA_SIG *sig = NULL;
+
+				
+	/* FIXME: `a` not set */
+	(void)a;
+				
+
 
 	if (!(sig = d2i_ECDSA_SIG(NULL, pp, length))) {
 		GMAPIerr(GMAPI_F_D2I_ECCSIGNATURE, ERR_R_EC_LIB);
@@ -694,18 +676,6 @@ end:
 	return ret;
 }
 
-/*
-ECCSignature *d2i_ECCSignature_bio(BIO *bp, ECCSignature **a)
-{
-	return NULL;
-}
-
-ECCSignature *d2i_ECCSignature_fp(FILE *fp, ECCSignature **a)
-{
-	return NULL;
-}
-*/
-
 int i2d_ECCSignature(ECCSignature *a, unsigned char **pp)
 {
 	int ret;
@@ -720,18 +690,6 @@ int i2d_ECCSignature(ECCSignature *a, unsigned char **pp)
 	ECDSA_SIG_free(sig);
 	return ret;
 }
-
-/*
-int i2d_ECCSignature_bio(BIO *bp, ECCSignature *a)
-{
-	return 0;
-}
-
-int i2d_ECCSignature_fp(FILE *fp, ECCSignature *a)
-{
-	return 0;
-}
-*/
 
 # ifndef OPENSSL_NO_ECIES
 ECIES_CIPHERTEXT_VALUE *ECIES_CIPHERTEXT_VALUE_new_from_ECCCipher(

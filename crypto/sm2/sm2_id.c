@@ -231,7 +231,7 @@ int SM2_compute_id_digest(const EVP_MD *md, const char *id, size_t idlen,
 		*outlen = EVP_MD_size(md);
 		return 1;
 	}
-	if (*outlen < EVP_MD_size(md)) {
+	if (*outlen < (size_t)EVP_MD_size(md)) {
 		ECerr(EC_F_SM2_COMPUTE_ID_DIGEST, EC_R_BUFFER_TOO_SMALL);
 		return 0;
 	}

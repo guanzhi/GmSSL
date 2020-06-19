@@ -77,7 +77,7 @@ my %cmd_disabler = (
     gendh    => "dh",
     dhparam  => "dh",
     ecparam  => "ec",
-    pkcs12   => "des",
+    pkcs12   => "pkcs12",
     );
 foreach my $cmd (@ARGV) {
 	my $str="    { FT_general, \"$cmd\", ${cmd}_main, ${cmd}_options },\n";

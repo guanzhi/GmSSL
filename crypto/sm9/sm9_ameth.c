@@ -99,6 +99,10 @@ static int sm9_master_pub_decode(EVP_PKEY *pkey, X509_PUBKEY *pubkey)
 
 static int sm9_master_pub_cmp(const EVP_PKEY *a, const EVP_PKEY *b)
 {
+	/* FIXME: implement this! */
+	(void)a;
+	(void)b;
+
 	/*
 	if (OBJ_cmp(a->pkey.sm9_master->pairing, b->pkey.sm9_master->pairing) != 0
 		|| OBJ_cmp(a->pkey.sm9_master->scheme, b->pkey.sm9_master->scheme) != 0
@@ -186,12 +190,14 @@ static int do_sm9_master_key_print(BIO *bp, const SM9_MASTER_KEY *x, int off, in
 static int sm9_master_pub_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
+	(void)ctx; /* FIXME: how to use ASN1_PCTX? */
 	return do_sm9_master_key_print(bp, pkey->pkey.sm9_master, indent, 0);
 }
 
 static int sm9_master_priv_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
+	(void)ctx; /* FIXME: how to use ASN1_PCTX? */
 	return do_sm9_master_key_print(bp, pkey->pkey.sm9_master, indent, 1);
 }
 
@@ -232,16 +238,25 @@ static int sm9_master_priv_encode(PKCS8_PRIV_KEY_INFO *p8, const EVP_PKEY *pkey)
 
 static int sm9_pkey_size(const EVP_PKEY *pkey)
 {
+	/* FIXME: wrap a SM9_xxx() */
+	(void)pkey;
+
 	return 32 * 12;
 }
 
 static int sm9_pkey_bits(const EVP_PKEY *pkey)
 {
+	/* FIXME: wrap a SM9_xxx() */
+	(void)pkey;
+
 	return 256 * 12;
 }
 
 static int sm9_pkey_security_bits(const EVP_PKEY *pkey)
 {
+	/* FIXME: wrap a SM9_xxx() */
+	(void)pkey;
+
 	return 256/2;
 }
 
@@ -252,6 +267,11 @@ static void sm9_master_pkey_free(EVP_PKEY *pkey)
 
 static int sm9_master_pkey_ctrl(EVP_PKEY *pkey, int op, long arg1, void *arg2)
 {
+	(void)pkey;
+	(void)op;
+	(void)arg1;
+	(void)arg2;
+
 	return -2;
 }
 
@@ -434,12 +454,14 @@ static int do_sm9_key_print(BIO *bp, const SM9PrivateKey *x, int off, int priv)
 static int sm9_pub_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
+	(void)ctx; /* FIXME: how to use ASN1_PCTX? */
 	return do_sm9_key_print(bp, pkey->pkey.sm9, indent, 0);
 }
 
 static int sm9_priv_print(BIO *bp, const EVP_PKEY *pkey, int indent,
 	ASN1_PCTX *ctx)
 {
+	(void)ctx; /* FIXME: how to use ASN1_PCTX? */
 	return do_sm9_key_print(bp, pkey->pkey.sm9, indent, 1);
 }
 
@@ -485,6 +507,12 @@ static void sm9_pkey_free(EVP_PKEY *pkey)
 
 static int sm9_pkey_ctrl(EVP_PKEY *pkey, int op, long arg1, void *arg2)
 {
+	/* FIXME */
+	(void)pkey;
+	(void)op;
+	(void)arg1;
+	(void)arg2;
+
 	return -2;
 }
 

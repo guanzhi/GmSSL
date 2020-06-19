@@ -67,6 +67,12 @@ static void sm2_sign_free(void *parent, void *ptr, CRYPTO_EX_DATA *ad,
 		BN_clear_free(bn);
 		CRYPTO_set_ex_data(ad, sm2_sign_idx, NULL);
 	}
+
+	(void)parent;
+	(void)ptr;
+	(void)idx;
+	(void)argl;
+	(void)argp;
 }
 
 static int sm2_sign_setup(EC_KEY *ec_key, BN_CTX *ctx_in, BIGNUM **kp, BIGNUM **xp)
@@ -542,6 +548,10 @@ int SM2_sign_ex(int type, const unsigned char *dgst, int dgstlen,
 {
 	ECDSA_SIG *s;
 
+	if (type != NID_undef) {
+		return 0;
+	}
+
 	RAND_seed(dgst, dgstlen);
 
 	if (!(s = SM2_do_sign_ex(dgst, dgstlen, k, x, ec_key))) {
@@ -569,6 +579,10 @@ int SM2_verify(int type, const unsigned char *dgst, int dgstlen,
 	unsigned char *der = NULL;
 	int derlen = -1;
 	int ret = -1;
+
+	if (type != NID_undef) {
+		return ret;
+	}
 
 	if (!(s = ECDSA_SIG_new())) {
 		return ret;

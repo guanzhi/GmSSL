@@ -14,11 +14,6 @@
 #include <openssl/x509.h>
 #include "internal/evp_int.h"
 
-const EVP_CIPHER *EVP_get_default_cipher(void)
-{
-	return NULL;
-}
-
 /*
  * use MD5 as default:
  *	X509_REQ_to_X509		x509_r2x.c
@@ -39,36 +34,4 @@ const EVP_MD *EVP_get_default_digest(void)
 #else
 	return NULL;
 #endif
-}
-
-static void cipher_name_len(const EVP_CIPHER *cipher, const char *from,
-	const char *to, void *x)
-{
-	*((int *)x) += strlen(EVP_CIPHER_name(cipher));
-}
-
-static void cipher_name(const EVP_CIPHER *cipher, const char *from,
-	const char *to, void *x)
-{
-	strcat((char *)x, EVP_CIPHER_name(cipher));
-}
-
-char *EVP_get_ciphernames(int aliases)
-{
-	char *ret = NULL;
-	int len = 0;
-	EVP_CIPHER_do_all_sorted(cipher_name_len, &len);
-
-	ret = OPENSSL_zalloc(len);
-	if (!ret) {
-		return NULL;
-	}
-
-	EVP_CIPHER_do_all_sorted(cipher_name, ret);
-	return ret;
-}
-
-char *EVP_get_digestnames(int aliases)
-{
-	return "sm3:sha1:sha256";
 }

@@ -67,6 +67,10 @@ int main(int argc, char **argv)
 # include <openssl/sm2.h>
 # include "../crypto/sm2/sm2_lcl.h"
 
+int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
+	unsigned char **pout);
+SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
+	SM2CiphertextValue **cv, const unsigned char **pin, long len);
 
 # define VERBOSE 1
 
