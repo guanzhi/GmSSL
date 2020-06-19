@@ -2982,8 +2982,11 @@ int ssl_parse_serverhello_tlsext(SSL *s, PACKET *pkt)
 {
     int al = -1;
 
-    if (s->version < SSL3_VERSION)
+    if (s->version < SSL2_VERSION){
+        /* jump over the ext block */
+        packet_forward(pkt, pkt->remaining);
         return 1;
+    }
 
     if (ssl_scan_serverhello_tlsext(s, pkt, &al) <= 0) {
         ssl3_send_alert(s, SSL3_AL_FATAL, al);

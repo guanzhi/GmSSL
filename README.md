@@ -63,7 +63,7 @@ GM/T 0024-2014 Ciphersuites:
  9. {0xe0,0x15} GMTLS_SM9DHE_SM9SIGN_WITH_SMS4_SM3
 10. {0xe0,0x17} GMTLS_SM9ENC_WITH_SMS4_SM3
 11. {0xe0,0x19} GMTLS_RSA_WITH_SMS4_SM3
-12. {0xe0,0x1a} GMTLS_RSA_WITH_SMS4_SM3
+12. {0xe0,0x1a} GMTLS_RSA_WITH_SMS4_SHA1
 ```
 
 GmSSL supports the standard TLS 1.2 protocol with SM2/SM3/SM4 ciphersuites and the GM/T SSL VPN protocol and ciphersuites. Currently the following ciphersuites are supported:
@@ -122,11 +122,13 @@ $ gmssl sms4 -in README.md -out README.sms4
 $ gmssl sms4 -d -in README.sms4
 ```
 
-ZUC encryption and decryption:
+ZUC/ZUC256 encryption and decryption:
 
 ```sh
 $ gmssl zuc -in README.md -out README.zuc
 $ gmssl zuc -d -in README.zuc
+$ gmssl zuc256 -in README.md -out README.zuc256
+$ gmssl zuc256 -d -in README.zuc256
 ```
 
 SM2 private key generation:
@@ -159,7 +161,7 @@ $ gmssl sm2utl -decrypt -inkey dkey.pem -in ciphertext.sm2
 
 Identity-based encryption with SM9
 
-```
+```sh
 $ echo "Message" | gmssl pkeyutl -encrypt -pubin -inkey params.pem -pkeyopt id:Alice -out ciphertext.der
 $ gmssl pkeyutl -decrypt -inkey sm9key.pem -in ciphertext.der
 ```
@@ -170,4 +172,10 @@ Self-signed SM2 certificate generation:
 $ gmssl req -new -x509 -key skey.pem -out cert.pem
 ```
 
+TLS/DTLS with SM2 ciphersuites:
+
+```sh
+$ gmssl s_server [-tls1_2|-dtls1_2] -port 443 -cipher SM2 -key sm2key.pem -cert sm2cert.pem &
+$ gmssl s_client [-tls1_2|-dtls1_2] -connect localhost:443 -cipher SM2 -CAfile cacert.pem
+```
 

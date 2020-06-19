@@ -77,7 +77,7 @@ my %cmd_disabler = (
     gendh    => "dh",
     dhparam  => "dh",
     ecparam  => "ec",
-    pkcs12   => "des",
+    pkcs12   => "pkcs12",
     );
 foreach my $cmd (@ARGV) {
 	my $str="    { FT_general, \"$cmd\", ${cmd}_main, ${cmd}_options },\n";
@@ -118,7 +118,7 @@ my %cipher_disabler = (
     cast5 => "cast",
     );
 foreach my $cmd (
-	"sms4", "sms4-cbc", "sms4-ecb", "sms4-ofb", "sms4-cfb", "zuc",
+	"sms4", "sms4-cbc", "sms4-ecb", "sms4-ofb", "sms4-cfb", "zuc", "zuc256",
 	"aes-128-cbc", "aes-128-ecb",
 	"aes-192-cbc", "aes-192-ecb",
 	"aes-256-cbc", "aes-256-ecb",

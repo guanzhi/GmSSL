@@ -59,6 +59,10 @@
 static int sm9_master_key_cb(int operation, ASN1_VALUE **pval,
 	const ASN1_ITEM *it, void *exarg)
 {
+	/* FIXME: usage of it and exarg? */
+	(void)it;
+	(void)exarg;
+
 	if (operation == ASN1_OP_NEW_PRE) {
 		*pval = (ASN1_VALUE *)SM9_MASTER_KEY_new();
 		if (*pval)
@@ -93,6 +97,10 @@ IMPLEMENT_ASN1_ENCODE_FUNCTIONS_const_fname(SM9_MASTER_KEY,SM9PublicParameters,S
 static int sm9_key_cb(int operation, ASN1_VALUE **pval,
 	const ASN1_ITEM *it, void *exarg)
 {
+	/* FIXME: usage of it and exarg? */
+	(void)it;
+	(void)exarg;
+
 	if (operation == ASN1_OP_NEW_PRE) {
 		*pval = (ASN1_VALUE *)SM9_KEY_new();
 		if (*pval)
@@ -144,6 +152,10 @@ IMPLEMENT_ASN1_DUP_FUNCTION(SM9Signature)
 
 int SM9PublicKey_gmtls_encode(SM9PublicKey *pk, unsigned char key[1024])
 {
+	/* FIMXE: implement this */
+	(void)pk;
+	(void)key;
+
 	return 0;
 }
 
@@ -176,9 +188,6 @@ SM9PrivateKey *d2i_SM9PrivateKey_bio(BIO *bp, SM9PrivateKey **a)
 {
 	return ASN1_item_d2i_bio(ASN1_ITEM_rptr(SM9PrivateKey), bp, a);
 }
-
-			
-
 
 int i2d_SM9Signature_bio(BIO *bp, SM9Signature *a)
 {

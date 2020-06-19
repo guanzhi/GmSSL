@@ -51,9 +51,8 @@
 #include <openssl/err.h>
 #include <openssl/sm9.h>
 #include <openssl/crypto.h>
-#include <openssl/bn_hash.h>
+#include "../bn/bn_lcl.h"
 #include "sm9_lcl.h"
-
 
 #if 0
 typedef struct {
@@ -140,37 +139,25 @@ void SM9_KEY_free(SM9_KEY *key)
 int SM9PrivateKey_get_gmtls_public_key(SM9PublicParameters *mpk,
 	SM9PrivateKey *sk, unsigned char pub_key[1024])
 {
+	/* FIXME */
+	(void)mpk;
+	(void)sk;
+	(void)pub_key;
+
 	return 0;
 }
 
 int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 	SM9PublicKey *pk, unsigned char encoded[1024])
 {
+	/* FIXME */
+	(void)mpk;
+	(void)pk;
+	(void)encoded;
+
 	return 0;
 }
 
-
-int SM9_hash2(const EVP_MD *md, BIGNUM **r,
-	const unsigned char *data, size_t datalen,
-	const unsigned char *elem, size_t elemlen,
-	const BIGNUM *range, BN_CTX *ctx)
-{
-	unsigned char *buf;
-
-	if (!(buf = OPENSSL_malloc(datalen + elemlen))) {
-		return 0;
-	}
-	memcpy(buf, data, datalen);
-	memcpy(buf + datalen, elem, elemlen);
-
-	if (!BN_hash_to_range(md, r, buf, datalen + elemlen, range, ctx)) {
-		OPENSSL_free(buf);
-		return 0;
-	}
-
-	OPENSSL_free(buf);
-	return 1;
-}
 
 int SM9_DigestInit(EVP_MD_CTX *ctx, unsigned char prefix,
 	const EVP_MD *md, ENGINE *impl)
@@ -209,25 +196,147 @@ int SM9_KEY_up_ref(SM9_KEY *sk)
 
 int sm9_check_pairing(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_scheme(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_hash1(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_encrypt_scheme(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_sign_scheme(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
+
+/* SM9_hash2() should be implemented as an EVP_MD module
+ * and refactor the SM9_SignInit/Update/Final API
+ */
+#if 0
+int BN_hash_to_range(const EVP_MD *md, BIGNUM **bn,
+	const void *s, size_t slen, const BIGNUM *range, BN_CTX *bn_ctx)
+{
+	int ret = 0;
+	BIGNUM *r = NULL;
+	BIGNUM *a = NULL;
+	unsigned char *buf = NULL;
+	size_t buflen, mdlen;
+	int nbytes, rounds, i;
+
+	if (!s || slen <= 0 || !md || !range) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_PASSED_NULL_PARAMETER);
+		return 0;
+	}
+
+	if (!(*bn)) {
+		if (!(r = BN_new())) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_MALLOC_FAILURE);
+			return 0;
+		}
+	} else {
+		r = *bn;
+		BN_zero(r);
+	}
+
+	mdlen = EVP_MD_size(md);
+	buflen = mdlen + slen;
+	if (!(buf = OPENSSL_malloc(buflen))) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+	memset(buf, 0, mdlen);
+	memcpy(buf + mdlen, s, slen);
+
+	a = BN_new();
+	if (!a) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_MALLOC_FAILURE);
+		goto end;
+	}
+
+	nbytes = BN_num_bytes(range);
+	rounds = (nbytes + mdlen - 1)/mdlen;
+
+	if (!bn_expand(r, rounds * mdlen * 8)) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	for (i = 0; i < rounds; i++) {
+		if (!EVP_Digest(buf, buflen, buf, (unsigned int *)&mdlen, md, NULL)) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_EVP_LIB);
+			goto end;
+		}
+		if (!BN_bin2bn(buf, mdlen, a)) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+			goto end;
+		}
+		if (!BN_lshift(r, r, mdlen * 8)) {
+			//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+			goto end;
+		}
+		if (!BN_uadd(r, r, a)) {
+			goto end;
+		}
+	}
+
+	if (!BN_mod(r, r, range, bn_ctx)) {
+		//BNerr(BN_F_BN_HASH_TO_RANGE, ERR_R_BN_LIB);
+		goto end;
+	}
+
+	*bn = r;
+	ret = 1;
+end:
+	if (!ret && !(*bn)) {
+		BN_free(r);
+	}
+	BN_free(a);
+	OPENSSL_free(buf);
+	return ret;
+}
+
+int SM9_hash2(const EVP_MD *md, BIGNUM **r,
+	const unsigned char *data, size_t datalen,
+	const unsigned char *elem, size_t elemlen,
+	const BIGNUM *range, BN_CTX *ctx)
+{
+	EVP_MD_CTX *mctx = NULL;
+
+	if (!(mctx = EVP_MD_CTX_new())) {
+	}
+
+	if (!EVP_DigestInit_ex(mctx, md, NULL)
+		|| !EVP_DigestUpdate(mctx, data, datalen)
+		|| !EVP_DigestUpdate(mctx, elem, elemlen)
+		|| !EVP_DigestFinal_ex(mctx, buf, &buflen)) {
+	}
+
+	
+
+}
+#endif

@@ -1,5 +1,5 @@
 /* ====================================================================
- * Copyright (c) 2015 - 2018 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2015 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,8 +48,9 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <openssl/zuc.h>
-#include "zuc_spec.h"
+#include "modes_lcl.h"
 
 static const ZUC_UINT15 KD[16] = {
 	0x44D7,0x26BC,0x626B,0x135E,0x5789,0x35E2,0x7135,0x09AF,
@@ -193,6 +194,7 @@ void ZUC_set_key(ZUC_KEY *key, const unsigned char *user_key, const unsigned cha
 	for (i = 0; i < 16; i++) {
 		LFSR[i] = MAKEU31(user_key[i], KD[i], iv[i]);
 	}
+
 	R1 = 0;
 	R2 = 0;
 
@@ -246,4 +248,355 @@ void ZUC_generate_keystream(ZUC_KEY *key, size_t nwords, uint32_t *keystream)
 
 	key->R1 = R1;
 	key->R2 = R2;
+}
+
+void ZUC_MAC_init(ZUC_MAC_CTX *ctx, const unsigned char key[16], const unsigned char iv[16])
+{
+	memset(ctx, 0, sizeof(*ctx));
+	ZUC_set_key((ZUC_KEY *)ctx, key, iv);
+	ctx->K0 = ZUC_generate_keyword((ZUC_KEY *)ctx);
+}
+
+void ZUC_MAC_update(ZUC_MAC_CTX *ctx, const unsigned char *data, size_t len)
+{
+	ZUC_UINT32 T = ctx->T;
+	ZUC_UINT32 K0 = ctx->K0;
+	ZUC_UINT32 K1, M;
+	ZUC_UINT31 *LFSR = ctx->LFSR;
+	ZUC_UINT32 R1 = ctx->R1;
+	ZUC_UINT32 R2 = ctx->R2;
+	ZUC_UINT32 X0, X1, X2, X3;
+	ZUC_UINT32 W1, W2, U, V;
+	size_t i;
+
+	if (!data || !len) {
+		return;
+	}
+
+	if (ctx->buflen) {
+		size_t num = sizeof(ctx->buf) - ctx->buflen;
+		if (len < num) {
+			memcpy(ctx->buf + ctx->buflen, data, len);
+			ctx->buflen += len;
+			return;
+		}
+
+		memcpy(ctx->buf + ctx->buflen, data, num);
+		M = GETU32(ctx->buf);
+		ctx->buflen = 0;
+
+		BitReconstruction4(X0, X1, X2, X3);
+		K1 = X3 ^ F(X0, X1, X2);
+		LFSRWithWorkMode();
+
+		for (i = 0; i < 32; i++) {
+			if (M & 0x80000000) {
+				T ^= K0;
+			}
+			M <<= 1;
+			K0 = (K0 << 1) | (K1 >> 31);
+			K1 <<= 1;
+		}
+
+		data += num;
+		len -= num;
+	}
+
+	while (len >= 4) {
+		M = GETU32(data);
+
+		BitReconstruction4(X0, X1, X2, X3);
+		K1 = X3 ^ F(X0, X1, X2);
+		LFSRWithWorkMode();
+
+		for (i = 0; i < 32; i++) {
+			if (M & 0x80000000) {
+				T ^= K0;
+			}
+			M <<= 1;
+			K0 = (K0 << 1) | (K1 >> 31);
+			K1 <<= 1;
+		}
+
+		data += 4;
+		len -= 4;
+	}
+
+	if (len) {
+		memcpy(ctx->buf, data, len);
+		ctx->buflen = len;
+	}
+	ctx->R1 = R1;
+	ctx->R2 = R2;
+	ctx->K0 = K0;
+	ctx->T = T;
+}
+
+void ZUC_MAC_final(ZUC_MAC_CTX *ctx, const unsigned char *data, size_t nbits, unsigned char mac[4])
+{
+	ZUC_UINT32 T = ctx->T;
+	ZUC_UINT32 K0 = ctx->K0;
+	ZUC_UINT32 K1, M;
+	ZUC_UINT31 *LFSR = ctx->LFSR;
+	ZUC_UINT32 R1 = ctx->R1;
+	ZUC_UINT32 R2 = ctx->R2;
+	ZUC_UINT32 X0, X1, X2, X3;
+	ZUC_UINT32 W1, W2, U, V;
+	size_t i;
+
+
+	if (!data)
+		nbits = 0;
+
+	if (nbits >= 8) {
+		ZUC_MAC_update(ctx, data, nbits/8);
+		data += nbits/8;
+		nbits %= 8;
+	}
+
+	T = ctx->T;
+	K0 = ctx->K0;
+	LFSR = ctx->LFSR;
+	R1 = ctx->R1;
+	R2 = ctx->R2;
+
+
+	if (nbits)
+		ctx->buf[ctx->buflen] = *data;
+
+	if (ctx->buflen || nbits) {
+		M = GETU32(ctx->buf);
+		BitReconstruction4(X0, X1, X2, X3);
+		K1 = X3 ^ F(X0, X1, X2);
+		LFSRWithWorkMode();
+
+		for (i = 0; i < ctx->buflen * 8 + nbits; i++) {
+			if (M & 0x80000000) {
+				T ^= K0;
+			}
+			M <<= 1;
+			K0 = (K0 << 1) | (K1 >> 31);
+			K1 <<= 1;
+		}
+	}
+
+	T ^= K0;
+
+	BitReconstruction4(X0, X1, X2, X3);
+	K1 = X3 ^ F(X0, X1, X2);
+	LFSRWithWorkMode();
+	T ^= K1;
+
+	ctx->T = T;
+	PUTU32(mac, T);
+}
+
+typedef unsigned char ZUC_UINT7;
+
+static const ZUC_UINT7 ZUC256_D[][16] = {
+	{0x22,0x2F,0x24,0x2A,0x6D,0x40,0x40,0x40,
+	 0x40,0x40,0x40,0x40,0x40,0x52,0x10,0x30},
+	{0x22,0x2F,0x25,0x2A,0x6D,0x40,0x40,0x40,
+	 0x40,0x40,0x40,0x40,0x40,0x52,0x10,0x30},
+	{0x23,0x2F,0x24,0x2A,0x6D,0x40,0x40,0x40,
+	 0x40,0x40,0x40,0x40,0x40,0x52,0x10,0x30},
+	{0x23,0x2F,0x25,0x2A,0x6D,0x40,0x40,0x40,
+	 0x40,0x40,0x40,0x40,0x40,0x52,0x10,0x30},
+};
+
+#define ZUC256_MAKEU31(a,b,c,d)				\
+	(((uint32_t)(a) << 23) |			\
+	 ((uint32_t)(b) << 16) |			\
+	 ((uint32_t)(c) <<  8) |			\
+	  (uint32_t)(d))
+
+
+static void zuc256_set_mac_key(ZUC_KEY *key, const unsigned char K[32],
+	const unsigned char IV[23], int macbits)
+{
+	ZUC_UINT31 *LFSR = key->LFSR;
+	uint32_t R1, R2;
+	uint32_t X0, X1, X2;
+	uint32_t W, W1, W2, U, V;
+	const ZUC_UINT7 *D;
+	int i;
+
+	ZUC_UINT6 IV17 = IV[17] >> 2;
+	ZUC_UINT6 IV18 = ((IV[17] & 0x3) << 4) | (IV[18] >> 4);
+	ZUC_UINT6 IV19 = ((IV[18] & 0xf) << 2) | (IV[19] >> 6);
+	ZUC_UINT6 IV20 = IV[19] & 0x3f;
+	ZUC_UINT6 IV21 = IV[20] >> 2;
+	ZUC_UINT6 IV22 = ((IV[20] & 0x3) << 4) | (IV[21] >> 4);
+	ZUC_UINT6 IV23 = ((IV[21] & 0xf) << 2) | (IV[22] >> 6);
+	ZUC_UINT6 IV24 = IV[22] & 0x3f;
+
+	D = macbits/32 < 3 ? ZUC256_D[macbits/32] : ZUC256_D[3];
+	LFSR[0] = ZUC256_MAKEU31(K[0], D[0], K[21], K[16]);
+	LFSR[1] = ZUC256_MAKEU31(K[1], D[1], K[22], K[17]);
+	LFSR[2] = ZUC256_MAKEU31(K[2], D[2], K[23], K[18]);
+	LFSR[3] = ZUC256_MAKEU31(K[3], D[3], K[24], K[19]);
+	LFSR[4] = ZUC256_MAKEU31(K[4], D[4], K[25], K[20]);
+	LFSR[5] = ZUC256_MAKEU31(IV[0], (D[5] | IV17), K[5], K[26]);
+	LFSR[6] = ZUC256_MAKEU31(IV[1], (D[6] | IV18), K[6], K[27]);
+	LFSR[7] = ZUC256_MAKEU31(IV[10], (D[7] | IV19), K[7], IV[2]);
+	LFSR[8] = ZUC256_MAKEU31(K[8], (D[8] | IV20), IV[3], IV[11]);
+	LFSR[9] = ZUC256_MAKEU31(K[9], (D[9] | IV21), IV[12], IV[4]);
+	LFSR[10] = ZUC256_MAKEU31(IV[5], (D[10] | IV22), K[10], K[28]);
+	LFSR[11] = ZUC256_MAKEU31(K[11], (D[11] | IV23), IV[6], IV[13]);
+	LFSR[12] = ZUC256_MAKEU31(K[12], (D[12] | IV24), IV[7], IV[14]);
+	LFSR[13] = ZUC256_MAKEU31(K[13], D[13], IV[15], IV[8]);
+	LFSR[14] = ZUC256_MAKEU31(K[14], (D[14] | (K[31] >> 4)), IV[16], IV[9]);
+	LFSR[15] = ZUC256_MAKEU31(K[15], (D[15] | (K[31] & 0x0F)), K[30], K[29]);
+
+	R1 = 0;
+	R2 = 0;
+
+	for (i = 0; i < 32; i++) {
+		BitReconstruction3(X0, X1, X2);
+		W = F(X0, X1, X2);
+		LFSRWithInitialisationMode(W >> 1);
+	}
+
+	BitReconstruction2(X1, X2);
+	F_(X1, X2);
+	LFSRWithWorkMode();
+
+	key->R1 = R1;
+	key->R2 = R2;
+}
+
+void ZUC256_set_key(ZUC_KEY *key, const unsigned char K[32],
+	const unsigned char IV[23])
+{
+	zuc256_set_mac_key(key, K, IV, 0);
+}
+
+void ZUC256_MAC_init(ZUC256_MAC_CTX *ctx, const unsigned char key[32],
+	const unsigned char iv[23], int macbits)
+{
+	if (macbits < 32)
+		macbits = 32;
+	else if (macbits > 64)
+		macbits = 128;
+	memset(ctx, 0, sizeof(*ctx));
+	zuc256_set_mac_key((ZUC256_KEY *)ctx, key, iv, macbits);
+	ZUC256_generate_keystream((ZUC256_KEY *)ctx, macbits/32, ctx->T);
+	ZUC256_generate_keystream((ZUC256_KEY *)ctx, macbits/32, ctx->K0);
+	ctx->macbits = (macbits/32) * 32;
+}
+
+void ZUC256_MAC_update(ZUC256_MAC_CTX *ctx, const unsigned char *data, size_t len)
+{
+	ZUC_UINT32 K1, M;
+	size_t n = ctx->macbits / 32;
+	size_t i, j;
+
+	if (!data || !len) {
+		return;
+	}
+
+	if (ctx->buflen) {
+		size_t num = sizeof(ctx->buf) - ctx->buflen;
+		if (len < num) {
+			memcpy(ctx->buf + ctx->buflen, data, len);
+			ctx->buflen += len;
+			return;
+		}
+
+		memcpy(ctx->buf + ctx->buflen, data, num);
+		M = GETU32(ctx->buf);
+		ctx->buflen = 0;
+
+		K1 = ZUC256_generate_keyword((ZUC256_KEY *)ctx);
+
+		for (i = 0; i < 32; i++) {
+			if (M & 0x80000000) {
+				for (j = 0; j < n; j++) {
+					ctx->T[j] ^= ctx->K0[j];
+				}
+			}
+			M <<= 1;
+			for (j = 0; j < n - 1; j++) {
+				ctx->K0[j] = (ctx->K0[j] << 1) | (ctx->K0[j + 1] >> 31);
+			}
+			ctx->K0[j] = (ctx->K0[j] << 1) | (K1 >> 31);
+			K1 <<= 1;
+		}
+
+		data += num;
+		len -= num;
+	}
+
+	while (len >= 4) {
+		M = GETU32(data);
+		K1 = ZUC256_generate_keyword((ZUC256_KEY *)ctx);
+
+		for (i = 0; i < 32; i++) {
+			if (M & 0x80000000) {
+				for (j = 0; j < n; j++) {
+					ctx->T[j] ^= ctx->K0[j];
+				}
+			}
+			M <<= 1;
+			for (j = 0; j < n - 1; j++) {
+				ctx->K0[j] = (ctx->K0[j] << 1) | (ctx->K0[j + 1] >> 31);
+			}
+			ctx->K0[j] = (ctx->K0[j] << 1) | (K1 >> 31);
+			K1 <<= 1;
+		}
+
+		data += 4;
+		len -= 4;
+	}
+
+	if (len) {
+		memcpy(ctx->buf, data, len);
+		ctx->buflen = len;
+	}
+}
+
+void ZUC256_MAC_final(ZUC256_MAC_CTX *ctx, const unsigned char *data, size_t nbits, unsigned char *mac)
+{
+	ZUC_UINT32 K1, M;
+	size_t n = ctx->macbits/32;
+	size_t i, j;
+
+
+	if (!data)
+		nbits = 0;
+
+	if (nbits >= 8) {
+		ZUC256_MAC_update(ctx, data, nbits/8);
+		data += nbits/8;
+		nbits %= 8;
+	}
+
+	if (nbits)
+		ctx->buf[ctx->buflen] = *data;
+
+	if (ctx->buflen || nbits) {
+		M = GETU32(ctx->buf);
+		K1 = ZUC256_generate_keyword((ZUC256_KEY *)ctx);
+
+
+		for (i = 0; i < ctx->buflen * 8 + nbits; i++) {
+			if (M & 0x80000000) {
+				for (j = 0; j < n; j++) {
+					ctx->T[j] ^= ctx->K0[j];
+				}
+			}
+			M <<= 1;
+			for (j = 0; j < n - 1; j++) {
+				ctx->K0[j] = (ctx->K0[j] << 1) | (ctx->K0[j + 1] >> 31);
+			}
+			ctx->K0[j] = (ctx->K0[j] << 1) | (K1 >> 31);
+			K1 <<= 1;
+		}
+	}
+
+	for (j = 0; j < n; j++) {
+		ctx->T[j] ^= ctx->K0[j];
+		PUTU32(mac, ctx->T[j]);
+		mac += 4;
+	}
 }

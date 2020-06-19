@@ -113,15 +113,19 @@ int ECIES_PARAMS_init_with_recommended(ECIES_PARAMS *param)
 	}
 
 	memset(param, 0, sizeof(*param));
-#ifndef OPENSSL_NO_SHA
+
+#ifndef OPENSSL_NO_SHA256
 	param->kdf_nid = NID_x9_63_kdf;
 	param->kdf_md = EVP_sha256();
 	param->enc_nid = NID_xor_in_ecies;
 	param->mac_nid = NID_hmac_full_ecies;
 	param->hmac_md = EVP_sha256();
-	// we should return error when sha256 disabled				
-#endif
 	return 1;
+#else
+	ECerr(EC_F_ECIES_PARAMS_INIT_WITH_RECOMMENDED,
+		EC_R_INVALID_ECIES_PARAMS);
+	return 0;
+#endif
 }
 
 KDF_FUNC ECIES_PARAMS_get_kdf(const ECIES_PARAMS *param)
@@ -162,11 +166,6 @@ int ECIES_PARAMS_get_enc(const ECIES_PARAMS *param, size_t inlen,
 		cipher = NULL;
 		keylen = inlen;
 		break;
-#ifndef OPENSSL_NO_DES
-	case NID_tdes_cbc_in_ecies:
-		cipher = EVP_des_ede_cbc();
-		break;
-#endif
 #ifndef OPENSSL_NO_AES
 	case NID_aes128_cbc_in_ecies:
 		cipher = EVP_aes_128_cbc();

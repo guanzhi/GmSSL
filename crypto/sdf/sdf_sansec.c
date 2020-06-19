@@ -47,6 +47,7 @@
  * ====================================================================
  */
 
+#include <string.h>
 #include <openssl/err.h>
 #include <openssl/gmsdf.h>
 #include "internal/sdf_int.h"
@@ -99,7 +100,7 @@ static SDF_ALGOR_PAIR sansec_ciphers[] = {
 
 static unsigned int sansec_cipher_vendor2std(unsigned int vendor_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sansec_ciphers); i++) {
 		if (vendor_id == sansec_ciphers[i].vendor_id) {
 			return sansec_ciphers[i].std_id;
@@ -110,7 +111,7 @@ static unsigned int sansec_cipher_vendor2std(unsigned int vendor_id)
 
 static unsigned int sansec_cipher_std2vendor(unsigned int std_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sansec_ciphers); i++) {
 		if (std_id == sansec_ciphers[i].std_id) {
 			return sansec_ciphers[i].vendor_id;
@@ -122,7 +123,7 @@ static unsigned int sansec_cipher_std2vendor(unsigned int std_id)
 static unsigned int sansec_cipher_cap(unsigned int vendor_cap)
 {
 	unsigned int std_cap = 0;
-	int i;
+	size_t i;
 
 	for (i = 0; i < OSSL_NELEM(sansec_ciphers); i++) {
 		if (vendor_cap & sansec_ciphers[i].vendor_id) {
@@ -145,7 +146,7 @@ static SDF_ALGOR_PAIR sansec_digests[] = {
 
 static unsigned int sansec_digest_vendor2std(unsigned int vendor_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sansec_digests); i++) {
 		if (vendor_id == sansec_digests[i].vendor_id) {
 			return sansec_digests[i].std_id;
@@ -156,7 +157,7 @@ static unsigned int sansec_digest_vendor2std(unsigned int vendor_id)
 
 static unsigned int sansec_digest_std2vendor(unsigned int std_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sansec_digests); i++) {
 		if (std_id == sansec_digests[i].std_id) {
 			return sansec_digests[i].vendor_id;
@@ -168,7 +169,7 @@ static unsigned int sansec_digest_std2vendor(unsigned int std_id)
 static unsigned int sansec_digest_cap(unsigned int vendor_cap)
 {
 	unsigned int std_cap = 0;
-	int i;
+	size_t i;
 
 	for (i = 0; i < OSSL_NELEM(sansec_digests); i++) {
 		if (vendor_cap & sansec_digests[i].vendor_id) {
@@ -191,7 +192,7 @@ static SDF_ALGOR_PAIR sansec_pkeys[] = {
 
 static unsigned int sansec_pkey_vendor2std(unsigned int vendor_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sansec_pkeys); i++) {
 		if (vendor_id == sansec_pkeys[i].vendor_id) {
 			return sansec_pkeys[i].std_id;
@@ -202,7 +203,7 @@ static unsigned int sansec_pkey_vendor2std(unsigned int vendor_id)
 
 static unsigned int sansec_pkey_std2vendor(unsigned int std_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sansec_pkeys); i++) {
 		if (std_id == sansec_pkeys[i].std_id) {
 			return sansec_pkeys[i].vendor_id;
@@ -214,7 +215,7 @@ static unsigned int sansec_pkey_std2vendor(unsigned int std_id)
 static unsigned int sansec_pkey_cap(unsigned int vendor_cap)
 {
 	unsigned int std_cap = 0;
-	int i;
+	size_t i;
 
 	for (i = 0; i < OSSL_NELEM(sansec_pkeys); i++) {
 		if (vendor_cap & sansec_pkeys[i].vendor_id) {
@@ -340,7 +341,7 @@ static SDF_ERR_REASON sansec_errors[] = {
 
 static unsigned long sansec_get_error_reason(int err)
 {
-	int i = 0;
+	size_t i = 0;
 	for (i = 0; i < OSSL_NELEM(sansec_errors); i++) {
 		if (err == sansec_errors[i].err) {
 			return sansec_errors[i].reason;

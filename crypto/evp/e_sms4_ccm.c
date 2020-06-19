@@ -61,12 +61,12 @@
 #include <openssl/crypto.h>
 #include <openssl/objects.h>
 #include "evp_locl.h"
-# include "internal/evp_int.h"
-#include "../modes/modes_lcl.h"
+#include "internal/evp_int.h"
+#include "modes_lcl.h"
 
 #ifndef OPENSSL_NO_SMS4
 
-#include <openssl/sms4.h>
+# include <openssl/sms4.h>
 
 typedef struct {
     union {
@@ -312,10 +312,10 @@ static int sms4_ccm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     }
 }
 
-#define SMS4_CCM_BLOCK_SIZE	16
-#define SMS4_CCM_IV_LENGTH	12
+# define SMS4_CCM_BLOCK_SIZE	1
+# define SMS4_CCM_IV_LENGTH	7
 
-#define SMS4_CCM_FLAGS (EVP_CIPH_FLAG_DEFAULT_ASN1 \
+# define SMS4_CCM_FLAGS (EVP_CIPH_FLAG_DEFAULT_ASN1 \
                 | EVP_CIPH_CUSTOM_IV | EVP_CIPH_FLAG_CUSTOM_CIPHER \
                 | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CTRL_INIT \
                 | EVP_CIPH_CUSTOM_COPY \

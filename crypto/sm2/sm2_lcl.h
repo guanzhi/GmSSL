@@ -96,26 +96,3 @@ struct sm2_kap_ctx_st {
 
 };
 
-int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen);
-
-
-struct SM2_COSIGNER1_SHARE_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER2_SHARE_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER1_PROOF_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-
-struct SM2_COSIGNER2_PROOF_st {
-	BIGNUM *a;
-	BIGNUM *b;
-};
-

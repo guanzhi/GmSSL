@@ -1,0 +1,38 @@
+<html>
+<script src="sm3.js"></script>
+<script src="sm4.js"></script>
+<body>
+<h1>GmSSL JavaScript</h1>
+<script>
+var m = [0x61, 0x62, 0x63];
+var dgst = sm3(m);
+console.log("sm3(\"abc\") = " + dgst);
+
+var user_key = [
+	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10,
+];
+
+var plaintext = [
+	0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+	0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10,
+];
+
+var key = sm4_key_new();
+var ciphertext = new Array(SM4_BLOCK_SIZE);
+
+sm4_set_encrypt_key(key, user_key);
+sm4_encrypt(plaintext, 0, ciphertext, 0, key);
+
+console.log("sm4 ciphertext = " + ciphertext);
+
+sm4_set_decrypt_key(key, user_key);
+sm4_decrypt(ciphertext, 0, plaintext, 0, key);
+console.log("sm4 plaintext = " + plaintext);
+
+
+sm4_key_free(key);
+
+</script>
+</body>
+</html>

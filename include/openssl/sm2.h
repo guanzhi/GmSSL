@@ -119,10 +119,8 @@ SM2CiphertextValue *d2i_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue **a);
 int i2d_SM2CiphertextValue_fp(FILE *fp, SM2CiphertextValue *a);
 #endif
 
-int i2o_SM2CiphertextValue(const EC_GROUP *group, const SM2CiphertextValue *cv,
-	unsigned char **pout);
-SM2CiphertextValue *o2i_SM2CiphertextValue(const EC_GROUP *group, const EVP_MD *md,
-	SM2CiphertextValue **cv, const unsigned char **pin, long len);
+
+int SM2_ciphertext_size(const EC_KEY *ec_key, size_t inlen);
 
 SM2CiphertextValue *SM2_do_encrypt(const EVP_MD *md,
 	const unsigned char *in, size_t inlen, EC_KEY *ec_key);
@@ -244,22 +242,6 @@ void EC_KEY_METHOD_get_decrypt(EC_KEY_METHOD *meth,
 	EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_EC, \
 		EVP_PKEY_OP_ENCRYPT|EVP_PKEY_OP_DECRYPT, \
 		EVP_PKEY_CTRL_EC_ENCRYPT_PARAM, -2, NULL)
-
-typedef struct SM2_COSIGNER1_SHARE_st SM2_COSIGNER1_SHARE;
-typedef struct SM2_COSIGNER2_SHARE_st SM2_COSIGNER2_SHARE;
-typedef struct SM2_COSIGNER1_PROOF_st SM2_COSIGNER1_PROOF;
-typedef struct SM2_COSIGNER2_PROOF_st SM2_COSIGNER2_PROOF;
-DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER1_SHARE)
-DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER2_SHARE)
-DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER1_PROOF)
-DECLARE_ASN1_FUNCTIONS(SM2_COSIGNER2_PROOF)
-
-/* the following API not finished */
-SM2_COSIGNER1_SHARE *SM2_cosigner1_setup(BIGNUM **k1, EC_KEY *ec_key, PAILLIER *pk);
-SM2_COSIGNER2_SHARE *SM2_cosigner2_setup(const SM2_COSIGNER1_SHARE *s1, BIGNUM **k2, EC_KEY *ec_key, PAILLIER *pk);
-SM2_COSIGNER1_PROOF *SM2_cosigner1_generate_proof(EC_KEY *ec_key, PAILLIER *pk);
-SM2_COSIGNER2_PROOF *SM2_cosigner2_generate_proof(EC_KEY *ec_key, PAILLIER *pk);
-ECDSA_SIG *SM2_cosigner1_generate_signature(EC_KEY *ec_key, PAILLIER *pk);
 
 
 /* BEGIN ERROR CODES */

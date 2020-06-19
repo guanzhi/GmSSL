@@ -61,8 +61,8 @@
 #include <openssl/crypto.h>
 #include <openssl/objects.h>
 #include "evp_locl.h"
-# include "internal/evp_int.h"
-#include "../modes/modes_lcl.h"
+#include "internal/evp_int.h"
+#include "modes_lcl.h"
 
 #ifndef OPENSSL_NO_SMS4
 # include <openssl/sms4.h>
@@ -107,29 +107,22 @@ static int sms4_xts_ctrl(EVP_CIPHER_CTX *c, int type, int arg, void *ptr)
 static int sms4_xts_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                              const unsigned char *iv, int enc)
 {
-    EVP_SMS4_XTS_CTX *xctx = EVP_C_DATA(EVP_SMS4_XTS_CTX,ctx);
+    EVP_SMS4_XTS_CTX *xctx = EVP_C_DATA(EVP_SMS4_XTS_CTX, ctx);
     if (!iv && !key)
         return 1;
 
-    if (key)
-        do {
-            xctx->stream = NULL;
-            /* key_len is two SMS4 keys */
-            (void)0;        /* terminate potentially open 'else' */
-
-            if (enc) {
-                sms4_set_encrypt_key(&xctx->ks1.ks, key);
-                xctx->xts.block1 = (block128_f)sms4_encrypt;
-            } else {
-                sms4_set_decrypt_key(&xctx->ks1.ks, key);
-                xctx->xts.block1 = (block128_f)sms4_encrypt;
-            }
-
-            sms4_set_encrypt_key(&xctx->ks2.ks, key + EVP_CIPHER_CTX_key_length(ctx)/2);
-            xctx->xts.block2 = (block128_f)sms4_encrypt;
-
-            xctx->xts.key1 = &xctx->ks1;
-        } while (0);
+    if (key) {
+        xctx->stream = NULL;
+        if (enc) {
+            sms4_set_encrypt_key(&xctx->ks1.ks, key);
+        } else {
+            sms4_set_decrypt_key(&xctx->ks1.ks, key);
+        }
+        sms4_set_encrypt_key(&xctx->ks2.ks, key + SMS4_KEY_LENGTH);
+        xctx->xts.block1 = (block128_f)sms4_encrypt;
+        xctx->xts.block2 = (block128_f)sms4_encrypt;
+        xctx->xts.key1 = &xctx->ks1;
+    }
 
     if (iv) {
         xctx->xts.key2 = &xctx->ks2;
@@ -158,16 +151,16 @@ static int sms4_xts_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     return 1;
 }
 
-#define SMS4_XTS_BLOCK_SIZE	1
+# define SMS4_XTS_BLOCK_SIZE	1
 
-#define SMS4_XTS_FLAGS   (EVP_CIPH_FLAG_DEFAULT_ASN1 | EVP_CIPH_CUSTOM_IV \
+# define SMS4_XTS_FLAGS   (EVP_CIPH_FLAG_DEFAULT_ASN1 | EVP_CIPH_CUSTOM_IV \
                          | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CTRL_INIT \
                          | EVP_CIPH_CUSTOM_COPY)
 
 static const EVP_CIPHER sms4_xts = {
 	NID_sms4_xts,
 	SMS4_XTS_BLOCK_SIZE,
-	SMS4_KEY_LENGTH,
+	SMS4_KEY_LENGTH * 2,
 	SMS4_IV_LENGTH,
 	SMS4_XTS_FLAGS,
 	sms4_xts_init_key,

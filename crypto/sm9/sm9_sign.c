@@ -51,8 +51,6 @@
 #include <openssl/err.h>
 #include <openssl/sm9.h>
 #include <openssl/ec.h>
-#include <openssl/ec_type1.h>
-#include <openssl/bn_gfp2.h>
 #include "sm9_lcl.h"
 
 
@@ -198,6 +196,8 @@ end:
 	BN_free(r);
 	point_cleanup(&Ppubs);
 	fp12_cleanup(w);
+	BN_CTX_end(bn_ctx);
+	BN_CTX_free(bn_ctx);
 	return ret;
 }
 
@@ -355,9 +355,7 @@ end:
 	point_cleanup(&P);
 	fp12_cleanup(w);
 	fp12_cleanup(u);
-	if (bn_ctx) {
-		BN_CTX_end(bn_ctx);
-	}
+	BN_CTX_end(bn_ctx);
 	BN_CTX_free(bn_ctx);
 	return ret;
 }

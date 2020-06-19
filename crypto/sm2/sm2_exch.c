@@ -563,7 +563,7 @@ int SM2_KAP_final_check(SM2_KAP_CTX *ctx, const unsigned char *checksum,
 	size_t checksumlen)
 {
 	if (ctx->do_checksum) {
-		if (checksumlen != EVP_MD_size(ctx->checksum_md)) {
+		if (checksumlen != (size_t)EVP_MD_size(ctx->checksum_md)) {
 			ECerr(EC_F_SM2_KAP_FINAL_CHECK, EC_R_INVALID_SM2_KAP_CHECKSUM_LENGTH);
 			return 0;
 		}
@@ -581,6 +581,18 @@ int SM2_compute_share_key(unsigned char *out, size_t *outlen,
 	const EC_POINT *peer_pk, const unsigned char *peer_z, size_t peer_zlen,
 	const unsigned char *z, size_t zlen, EC_KEY *sk, int initiator)
 {
-	memset(out, 1, *outlen);
-	return 1;
+	(void)out;
+	(void)outlen;
+	(void)peer_ephem;
+	(void)ephem;
+	(void)peer_pk;
+	(void)peer_z;
+	(void)peer_zlen;
+	(void)z;
+	(void)zlen;
+	(void)sk;
+	(void)initiator;
+
+	ECerr(EC_F_SM2_COMPUTE_SHARE_KEY, EC_R_NOT_IMPLEMENTED);
+	return 0;
 }

@@ -235,7 +235,12 @@ int SDF_ImportKey(
 	unsigned int uiKeyLength,
 	void **phKeyHandle)
 {
-	return 0;
+	(void)hSessionHandle;
+	(void)pucKey;
+	(void)uiKeyLength;
+	(void)phKeyHandle;
+	SDFerr(SDF_F_SDF_IMPORTKEY, SDF_R_NOT_IMPLEMENTED);
+	return SDR_NOTSUPPORT;
 }
 
 int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen)

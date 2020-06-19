@@ -48,6 +48,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/paillier.h>

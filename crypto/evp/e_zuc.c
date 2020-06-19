@@ -109,4 +109,31 @@ const EVP_CIPHER *EVP_zuc(void)
 {
 	return &zuc_cipher;
 }
+
+static int zuc256_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+	const unsigned char *iv, int enc)
+{
+	EVP_ZUC_KEY *dctx = EVP_C_DATA(EVP_ZUC_KEY, ctx);
+	ZUC256_set_key(&dctx->ks, key, iv);
+	return 1;
+}
+
+const EVP_CIPHER zuc256_cipher = {
+	NID_zuc256,
+	1,
+	ZUC256_KEY_LENGTH,
+	ZUC256_IV_LENGTH,
+	0,
+	zuc256_init_key,
+	zuc_do_cipher,
+	NULL,
+	sizeof(EVP_ZUC_KEY),
+	NULL,NULL,NULL,NULL,
+};
+
+const EVP_CIPHER *EVP_zuc256(void)
+{
+	return &zuc256_cipher;
+}
+
 #endif /* OPENSSL_NO_ZUC */

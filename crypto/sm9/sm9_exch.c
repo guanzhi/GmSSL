@@ -205,7 +205,7 @@ int SM9_compute_share_key_A(int type,
 	}
 
 	/* get IDA */
-	IDA = ASN1_STRING_get0_data(skA->identity);
+	IDA = (char *)ASN1_STRING_get0_data(skA->identity);
 	IDAlen = ASN1_STRING_length(skA->identity);
 
 	/* malloc */
@@ -379,7 +379,7 @@ int SM9_compute_share_key_B(int type,
 	}
 
 	/* get IDB */
-	IDB = ASN1_STRING_get0_data(skB->identity);
+	IDB = (char *)ASN1_STRING_get0_data(skB->identity);
 	IDBlen = ASN1_STRING_length(skB->identity);
 
 	/* malloc */

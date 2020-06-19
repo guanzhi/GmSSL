@@ -667,11 +667,13 @@ type PrivateKey struct {
 	pkey *C.EVP_PKEY
 }
 
-func GeneratePrivateKey(alg string, args map[string]string, eng *Engine) (*PrivateKey, error) {
+func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey, error) {
 	calg := C.CString(alg)
 	defer C.free(unsafe.Pointer(calg))
 
 	ctx := C.new_pkey_keygen_ctx(calg, nil)
+	defer C.EVP_PKEY_CTX_free(ctx)
+
 	/*
 	if eng != nil {
 		ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
@@ -688,7 +690,9 @@ func GeneratePrivateKey(alg string, args map[string]string, eng *Engine) (*Priva
 		if 1 != C.EVP_PKEY_paramgen_init(ctx) {
 			return nil, GetErrors()
 		}
-		for name, value := range args {
+		for _, arg := range args {
+			name := arg[0]
+			value := arg[1]
 			cname := C.CString(name)
 			defer C.free(unsafe.Pointer(cname))
 			cvalue := C.CString(value)
@@ -712,7 +716,9 @@ func GeneratePrivateKey(alg string, args map[string]string, eng *Engine) (*Priva
 			return nil, GetErrors()
 		}
 
-		for name, value := range args {
+		for _, arg := range args {
+			name := arg[0]
+			value := arg[1]
 			cname := C.CString(name)
 			defer C.free(unsafe.Pointer(cname))
 			cvalue := C.CString(value)
@@ -886,6 +892,7 @@ func (pk *PublicKey) Encrypt(alg string, in []byte, eng *Engine) ([]byte, error)
 	if out == nil {
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(out))
 	return C.GoBytes(unsafe.Pointer(out), C.int(outlen)), nil
 }
 
@@ -898,6 +905,7 @@ func (sk *PrivateKey) Decrypt(alg string, in []byte, eng *Engine) ([]byte, error
 	if out == nil {
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(out))
 	return C.GoBytes(unsafe.Pointer(out), C.int(outlen)), nil
 }
 
@@ -911,6 +919,7 @@ func (sk *PrivateKey) Sign(alg string, dgst []byte, eng *Engine) ([]byte, error)
 		C.ERR_print_errors_fp(C.stderr)
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(sig))
 	return C.GoBytes(unsafe.Pointer(sig), C.int(siglen)), nil
 }
 
@@ -934,6 +943,7 @@ func (sk *PrivateKey) DeriveKey(alg string, peer PublicKey, eng *Engine) ([]byte
 	if key == nil {
 		return nil, GetErrors()
 	}
+	defer C.free(unsafe.Pointer(key))
 	return C.GoBytes(unsafe.Pointer(key), C.int(keylen)), nil
 }
 

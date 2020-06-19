@@ -1209,3 +1209,9 @@ paillier		1208
 sm9hash2		1209
 sm9hash2_with_sm3		1210
 sm9hash2_with_sha256		1211
+zuc256		1212
+zuc_mac		1213
+zuc256_mac		1214
+zuc256_mac32		1215
+zuc256_mac64		1216
+zuc256_mac128		1217

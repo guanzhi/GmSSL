@@ -61,6 +61,140 @@ int main(int argc, char **argv)
 #else
 # include <openssl/evp.h>
 # include <openssl/sms4.h>
+# include <openssl/rand.h>
+
+# ifdef SMS4_AVX2
+void sms4_avx2_ecb_encrypt_blocks(const unsigned char *in,
+	unsigned char *out, size_t blocks, const sms4_key_t *key);
+void sms4_avx2_ctr32_encrypt_blocks(const unsigned char *in,
+	unsigned char *out, size_t blocks, const sms4_key_t *key,
+	const unsigned char iv[16]);
+# endif
+
+static int test_ecb(int avx)
+{
+	sms4_key_t key;
+	unsigned char user_key[16] = {0};
+	/* 2 rounds avx-512 and 2 rounds x86 */
+	unsigned char in[(16 * 2 + 2) * 16] = {0};
+	unsigned char out1[sizeof(in)] = {0};
+	unsigned char out2[sizeof(in)] = {0};
+	int i;
+
+	RAND_bytes(user_key, sizeof(user_key));
+	RAND_bytes(in, sizeof(in));
+
+	sms4_set_encrypt_key(&key, user_key);
+	for (i = 0; i < sizeof(in)/SMS4_BLOCK_SIZE; i++) {
+		sms4_encrypt(in + 16*i, out1 + 16*i, &key);
+	}
+
+	switch (avx) {
+# ifdef SMS4_AVX2
+	case 2:
+		sms4_avx2_ecb_encrypt_blocks(in, out2, sizeof(in)/SMS4_BLOCK_SIZE, &key);
+		break;
+# endif
+	default:
+		printf("avx shuold be in {2}\n");
+		return 0;
+	}
+
+	if (memcmp(out1, out2, sizeof(out1)) != 0) {
+		return 0;
+	}
+	return 1;
+}
+
+static void xor_block(unsigned char *out, const unsigned char *in)
+{
+	int i;
+	for (i = 0; i < 16; i++) {
+		out[i] ^= in[i];
+	}
+}
+
+static int test_ctr32(int avx)
+{
+	sms4_key_t key;
+	unsigned char user_key[16] = {0};
+	unsigned char iv[16] = {0};
+	unsigned char ctr1[16];
+	unsigned char ctr2[16];
+	/* 2 rounds avx-512 and 2 rounds x86 */
+	unsigned char in[(16 * 2 + 2) * 16] = {0};
+	unsigned char out1[sizeof(in)];
+	unsigned char out2[sizeof(in)];
+	int i;
+
+	RAND_bytes(user_key, sizeof(user_key));
+	RAND_bytes(iv, sizeof(iv) - 1);
+	RAND_bytes(in, sizeof(in));
+
+	sms4_set_encrypt_key(&key, user_key);
+	memcpy(ctr1, iv, sizeof(iv));
+	memcpy(ctr2, iv, sizeof(iv));
+
+	for (i = 0; i < sizeof(in)/16; i++) {
+		sms4_encrypt(ctr1, out1 + 16 * i, &key);
+		xor_block(out1 + 16 * i, in + 16 * i);
+		ctr1[15]++;
+	}
+
+	switch (avx) {
+# ifdef SMS4_AVX2
+	case 2:
+		sms4_avx2_ctr32_encrypt_blocks(in, out2, sizeof(in)/16, &key, ctr2);
+		break;
+# endif
+	case 0:
+		sms4_ctr32_encrypt_blocks(in, out2, sizeof(in)/16, &key, ctr2);
+		break;
+	default:
+		printf("avx should be in {0, 2}\n");
+		return 0;
+	}
+
+	if (memcmp(out1, out2, sizeof(out1)) != 0) {
+		return 0;
+	}
+	return 1;
+}
+
+static int test_ede(void)
+{
+	sms4_key_t key;
+	sms4_ede_key_t ede_key;
+	unsigned char user_key[48];
+	unsigned char in[16];
+	unsigned char out1[16];
+	unsigned char out2[16];
+
+	RAND_bytes(in, sizeof(in));
+
+	RAND_bytes(user_key, 16);
+	memcpy(user_key + 16, user_key, 16);
+	memcpy(user_key + 32, user_key, 16);
+	sms4_set_encrypt_key(&key, user_key);
+	sms4_encrypt(in, out1, &key);
+	sms4_ede_set_encrypt_key(&ede_key, user_key);
+	sms4_ede_encrypt(in, out2, &ede_key);
+	if (memcmp(out1, out2, 16) != 0) {
+		return 0;
+	}
+
+	RAND_bytes(user_key, sizeof(user_key));
+	sms4_ede_set_encrypt_key(&ede_key, user_key);
+	sms4_ede_encrypt(in, out1, &ede_key);
+	sms4_ede_set_decrypt_key(&ede_key, user_key);
+	sms4_ede_decrypt(out1, out2, &ede_key);
+	if (memcmp(in, out2, 16) != 0) {
+		return 0;
+	}
+
+	return 1;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -105,6 +239,7 @@ int main(int argc, char **argv)
 
 	if (memcmp(key.rk, rk, sizeof(rk)) != 0) {
 		printf("sms4 key scheduling not passed!\n");
+		err++;
 		goto end;
 	}
 	printf("sms4 key scheduling passed!\n");
@@ -114,6 +249,7 @@ int main(int argc, char **argv)
 
 	if (memcmp(buf, ciphertext1, sizeof(ciphertext1)) != 0) {
 		printf("sms4 encrypt not pass!\n");
+		err++;
 		goto end;
 	}
 	printf("sms4 encrypt pass!\n");
@@ -126,14 +262,48 @@ int main(int argc, char **argv)
 
 	if (memcmp(buf, ciphertext2, sizeof(ciphertext2)) != 0) {
 		printf("sms4 encrypt 1000000 times not pass!\n");
+		err++;
 		goto end;
 	}
 	printf("sms4 encrypt 1000000 times pass!\n");
-	printf("sms4 all test vectors pass!\n");
+
+	/* test ctr32 */
+	if (!test_ctr32(0)) {
+		printf("sms4 ctr32 not pass!\n");
+		err++;
+	} else
+		printf("sms4 ctr32 pass!\n");
+
+	/* test ede */
+	if (!test_ede()) {
+		printf("sms4 ede not pass!\n");
+		err++;
+	} else
+		printf("sms4 ede pass!\n");
+
+
+# ifdef SMS4_AVX2
+	/* test ecb in avx2 */
+	if (!test_ecb(2)) {
+		printf("sms4 ecb in avx2 not pass!\n");
+		err++;
+	} else
+		printf("sms4 ecb in avx2 pass!\n");
+
+	/* test ctr32 in avx2 */
+	if (!test_ctr32(2)) {
+		printf("sms4 ctr32 in avx2 not pass!\n");
+		err++;
+	} else
+		printf("sms4 ctr32 in avx2 pass!\n");
+# endif
+
+	if (err == 0)
+		printf("sms4 all test vectors pass!\n");
+	else
+end:
+		printf("some test vector failed\n");
 
 	return err;
-end:
-	printf("some test vector failed\n");
-	return -1;
 }
 #endif

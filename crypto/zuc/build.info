@@ -1,2 +1,4 @@
 LIBS=../../libcrypto
-SOURCE[../../libcrypto]=zuc_core.c zuc_128eea3.c zuc_128eia3.c zuc_spec.c
+SOURCE[../../libcrypto]=zuc_core.c zuc_eea.c zuc_eia.c
+INCLUDE[zuc_core.o]=../modes
+INCLUDE[zuc_eia.o]=../modes

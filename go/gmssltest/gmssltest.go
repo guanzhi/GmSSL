@@ -149,9 +149,9 @@ func main() {
 	fmt.Println()
 
 	/* private key */
-	rsa_args := map[string]string {
-		"rsa_keygen_bits": "2048",
-		"rsa_keygen_pubexp" : "65537",
+	rsa_args := [][2]string{
+		{"rsa_keygen_bits", "2048"},
+		{"rsa_keygen_pubexp", "65537"},
 	}
 
 	rsa, err := gmssl.GeneratePrivateKey("RSA", rsa_args, nil)
@@ -175,9 +175,9 @@ func main() {
 	fmt.Println()
 
 	/* SM2 key pair operations */
-	sm2keygenargs := map[string]string {
-		"ec_paramgen_curve": "sm2p256v1",
-		"ec_param_enc": "named_curve",
+	sm2keygenargs := [][2]string{
+		{"ec_paramgen_curve", "sm2p256v1"},
+		{"ec_param_enc", "named_curve"},
 	}
 	sm2sk, _ := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
 	sm2sktxt, _ := sm2sk.GetText()

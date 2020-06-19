@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 # include "../crypto/sm9/sm9_lcl.h"
 
 RAND_METHOD fake_rand;
-const RAND_METHOD *old_rand;
+const RAND_METHOD *old_rand = NULL;
 
 static const char rnd_seed[] =
 	"string to make the random number generator think it has entropy";
@@ -126,7 +126,7 @@ static int hexequbin(const char *hex, const unsigned char *bin, size_t binlen)
 {
 	int ret = 0;
 	char *buf = NULL;
-	int i = 0;
+	size_t i = 0;
 	size_t buflen = binlen * 2 + 1;
 
 
@@ -172,9 +172,11 @@ static int sm9test_sign(const char *id, const unsigned char *msg, size_t msglen,
 	char *M =	"Chinese IBS standard";
 	char *r =	"033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE";
 	char *h =	"823C4B21E4BD2DFE1ED92C606653E996668563152FC33F55D7BFBB9BD9705ADB";
+	/*
 	char *S =	"04"
 			"73BF96923CE58B6AD0E13E9643A406D8EB98417C50EF1B29CEF9ADB48B6D598C"
 			"856712F1C2E0968AB7769F42A99586AED139D5B8B3E15891827CC2ACED9BAA05";
+	*/
 	char *S_comp =	"03"
 			"73BF96923CE58B6AD0E13E9643A406D8EB98417C50EF1B29CEF9ADB48B6D598C";
 
@@ -354,7 +356,7 @@ static int sm9test_exch(const char *idA, const char *idB)
 		goto end;
 	}
 
-	if (memcmp(SKA, SKA, sizeof(SKA)) != 0 || memcmp(SA, S2, sizeof(SA)) != 0) {
+	if (memcmp(SKA, SKB, sizeof(SKA)) != 0 || memcmp(SA, S2, sizeof(SA)) != 0) {
 		goto end;
 	}
 
@@ -412,30 +414,42 @@ int main(int argc, char **argv)
 	unsigned char in[] = "message to be signed or encrypted";
 	int use_test_vector = 1;
 
+	RAND_seed(rnd_seed, sizeof(rnd_seed));
+
+	/*
+	if (!rate_test()) {
+		printf("sm9 rate pairing test failed\n");
+		err++;
+	} else
+		printf("sm9 rate pairing test passed\n");
+	*/
+
 	if (!sm9test_sign(id, in, sizeof(in)-1, use_test_vector)) {
 		printf("sm9 sign tests failed\n");
 		err++;
-	}
-	printf("sm9 sign tests passed\n");
+	} else
+		printf("sm9 sign tests passed\n");
 
 	if (!sm9test_exch(id, "guan@pku.edu.cn")) {
 		printf("sm9 exch tests failed\n");
 		err++;
-	}
-	printf("sm9 exch tests passed\n");
+	} else
+		printf("sm9 exch tests passed\n");
 
 	if (!sm9test_wrap(id)) {
 		printf("sm9 key wrap tests failed\n");
 		err++;
-	}
-	printf("sm9 key wrap tests passed\n");
+	} else
+		printf("sm9 key wrap tests passed\n");
 
 	if (!sm9test_enc(id, in, sizeof(in)-1)) {
 		printf("sm9 encrypt tests failed\n");
 		err++;
-	}
-	printf("sm9 encrypt tests passed\n");
+	} else
+		printf("sm9 encrypt tests passed\n");
 
+	if (old_rand)
+		restore_rand();
 	return err;
 }
 #endif

@@ -94,21 +94,13 @@ typedef struct err_state_st {
 # define ERR_LIB_ASYNC           51
 # define ERR_LIB_KDF             52
 # define ERR_LIB_KDF2            53
-# define ERR_LIB_FFX             54
 # define ERR_LIB_PAILLIER        55
-# define ERR_LIB_CPK             56
 # define ERR_LIB_OTP             57
 # define ERR_LIB_GMAPI           58
-# define ERR_LIB_BFIBE           59
-# define ERR_LIB_BB1IBE          60
 # define ERR_LIB_SM9             61
-# define ERR_LIB_SAF             62
 # define ERR_LIB_SDF             63
 # define ERR_LIB_SKF             64
-# define ERR_LIB_SOF             65
 # define ERR_LIB_SM2             66
-# define ERR_LIB_BASE58          67
-# define ERR_LIB_ECRS            68
 
 # define ERR_LIB_USER            128
 
@@ -148,21 +140,13 @@ typedef struct err_state_st {
 # define ASYNCerr(f,r) ERR_PUT_error(ERR_LIB_ASYNC,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define KDFerr(f,r) ERR_PUT_error(ERR_LIB_KDF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define KDF2err(f,r) ERR_PUT_error(ERR_LIB_KDF2,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define FFXerr(f,r) ERR_PUT_error(ERR_LIB_FFX,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define PAILLIERerr(f,r) ERR_PUT_error(ERR_LIB_PAILLIER,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define CPKerr(f,r) ERR_PUT_error(ERR_LIB_CPK,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define OTPerr(f,r) ERR_PUT_error(ERR_LIB_OTP,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define GMAPIerr(f,r) ERR_PUT_error(ERR_LIB_GMAPI,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define BFIBEerr(f,r) ERR_PUT_error(ERR_LIB_BFIBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define BB1IBEerr(f,r) ERR_PUT_error(ERR_LIB_BB1IBE,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SM2err(f,r) ERR_PUT_error(ERR_LIB_SM2,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SM9err(f,r) ERR_PUT_error(ERR_LIB_SM9,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define SAFerr(f,r) ERR_PUT_error(ERR_LIB_SAF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SDFerr(f,r) ERR_PUT_error(ERR_LIB_SDF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 # define SKFerr(f,r) ERR_PUT_error(ERR_LIB_SKF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define SOFerr(f,r) ERR_PUT_error(ERR_LIB_SOF,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define BASE58err(f,r) ERR_PUT_error(ERR_LIB_BASE58,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
-# define ECRSerr(f,r) ERR_PUT_error(ERR_LIB_ECRS,(f),(r),OPENSSL_FILE,OPENSSL_LINE)
 
 # define ERR_PACK(l,f,r) ( \
         (((unsigned int)(l) & 0x0FF) << 24L) | \
@@ -211,21 +195,13 @@ typedef struct err_state_st {
 # define ERR_R_ENGINE_LIB ERR_LIB_ENGINE/* 38 */
 # define ERR_R_ECDSA_LIB ERR_LIB_ECDSA/* 42 */
 # define ERR_R_KDF2_LIB  ERR_LIB_KDF2/* 53 */
-# define ERR_R_FFX_LIB  ERR_LIB_FFX/* 54 */
 # define ERR_R_PAILLIER_LIB ERR_LIB_PAILLIER/* 55 */
-# define ERR_R_CPK_LIB  ERR_LIB_CPK/* 56 */
 # define ERR_R_OTP_LIB  ERR_LIB_OTP/* 57 */
 # define ERR_R_GMAPI_LIB  ERR_LIB_GMAPI/* 58 */
-# define ERR_R_BFIBE_LIB  ERR_LIB_BFIBE/* 59 */
-# define ERR_R_BB1IBE_LIB  ERR_LIB_BB1IBE/* 60 */
 # define ERR_R_SM2_LIB  ERR_LIB_SM2/* 66 */
 # define ERR_R_SM9_LIB  ERR_LIB_SM9/* 61 */
-# define ERR_R_SAF_LIB  ERR_LIB_SAF/* 62 */
 # define ERR_R_SDF_LIB  ERR_LIB_SDF/* 63 */
 # define ERR_R_SKF_LIB  ERR_LIB_SKF/* 64 */
-# define ERR_R_SOF_LIB  ERR_LIB_SOF/* 65 */
-# define ERR_R_BASE58_LIB  ERR_LIB_BASE58/* 67 */
-# define ERR_R_ECRS_LIB  ERR_LIB_ECRS/* 68 */
 
 # define ERR_R_NESTED_ASN1_ERROR                 58
 

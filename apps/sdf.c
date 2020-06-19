@@ -113,7 +113,7 @@ int sdf_main(int argc, char **argv)
 	char *lib = NULL, *vendor = NULL;
 	unsigned char *buf = NULL;
 	unsigned int ulen;
-	int len, key_idx;
+	int len, key_idx = -1;
 	OPTION_CHOICE o;
 	int op = OP_NONE;
 	void *hDev = NULL;
