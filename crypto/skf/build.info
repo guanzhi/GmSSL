@@ -1,2 +1,0 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=skf_err.c skf_lib.c skf_meth.c skf_ext.c skf_prn.c skf_wisec.c

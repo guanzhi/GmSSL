@@ -1,4 +1,0 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=sm9_lib.c sm9_err.c sm9_asn1.c sm9_params.c \
-	sm9_setup.c sm9_keygen.c sm9_sign.c sm9_enc.c sm9_exch.c sm9_rate.c \
-	sm9_pmeth.c sm9_ameth.c

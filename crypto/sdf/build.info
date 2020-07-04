@@ -1,2 +1,0 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=sdf_err.c sdf_lib.c sdf_ext.c sdf_meth.c sdf_sansec.c

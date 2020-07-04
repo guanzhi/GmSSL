@@ -1,2 +1,0 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=ecies_asn1.c ecies_lib.c
