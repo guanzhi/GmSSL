@@ -1,7 +1,10 @@
-language: golang
+language: go
 dist: bionic
+go:
+  - "1.14"
+  - master
 install:
-  - cd $HOME; git clone https://github.com/guanzhi/GmSSL.git; cd GMSSL
+  - cd $HOME; git clone https://github.com/guanzhi/GmSSL.git; cd GmSSL
   - ./config
   - make
   - sudo make install
