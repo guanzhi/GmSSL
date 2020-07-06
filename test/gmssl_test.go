@@ -6,7 +6,6 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  */
-
 package main
 
 import (
@@ -17,55 +16,7 @@ import (
 
 func main() {
 
-	versions := gmssl.GetVersions()
-	fmt.Println("GmSSL Versions:")
-	for _, version := range versions {
-		fmt.Println(" " + version)
-	}
-	fmt.Println("")
-
-	fmt.Print("Digest Algorithms:")
-	digests := gmssl.GetDigestNames()
-	for _, digest := range digests {
-		fmt.Print(" " + digest)
-	}
-	fmt.Println("\n")
-
-	fmt.Print("Ciphers:")
-	ciphers := gmssl.GetCipherNames()
-	for _, cipher := range ciphers {
-		fmt.Print(" " + cipher)
-	}
-	fmt.Println("\n")
-
-	fmt.Println("Public Key Algorithms:")
-	pkey_algs := gmssl.GetPublicKeyAlgorithmNames()
-	for _, pkey_alg := range pkey_algs {
-		fmt.Print(" " + pkey_alg + ":")
-		sign_algs, _ := gmssl.GetSignAlgorithmNames(pkey_alg)
-		for _, sign_alg := range sign_algs {
-			fmt.Print(" " + sign_alg)
-		}
-		pkey_encs, _ := gmssl.GetPublicKeyEncryptionNames(pkey_alg)
-		for _, pkey_enc := range pkey_encs {
-			fmt.Print(" " + pkey_enc)
-		}
-		derive_algs, _ := gmssl.GetDeriveKeyAlgorithmNames(pkey_alg)
-		for _, derive_alg := range derive_algs {
-			fmt.Print(" " + derive_alg)
-		}
-		fmt.Println("")
-	}
-	fmt.Println("")
-
-	/* Engines */
-	fmt.Print("Engines:")
 	engines := gmssl.GetEngineNames()
-	for _, engine := range engines {
-		fmt.Print(" " + engine)
-	}
-	fmt.Println("\n")
-
 	/* SM3 digest with GmSSL-Go API */
 	sm3ctx, _ := gmssl.NewDigestContext("SM3")
 	sm3ctx.Update([]byte("a"))
