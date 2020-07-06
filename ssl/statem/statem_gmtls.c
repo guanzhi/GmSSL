@@ -281,7 +281,7 @@ static int gmtls_process_sm9_params(SSL *s, PACKET *pkt, int *al, int ibe)
 	if (!(sm9->params = d2i_SM9PublicParameters(NULL, &p,
 		PACKET_remaining(&params)))) {
 		*al = SSL_AD_DECODE_ERROR;
-		SSLerr(SSL_F_GMTLS_PROCESS_SM9_PARAMS, ERR_R_INTERNAL_ERROR);// rename this error		
+		SSLerr(SSL_F_GMTLS_PROCESS_SM9_PARAMS, ERR_R_INTERNAL_ERROR);// rename this error
 		return 0;
 	}
 	/* check there is no remaining data */
@@ -525,8 +525,8 @@ static int gmtls_construct_ske_sm2dhe(SSL *s, unsigned char **p, int *l, int *al
         s2n(siglen, d);
 	d += siglen;
 
-	*l += d - *p;		
-	*p = d;			
+	*l += d - *p;
+	*p = d;
 	*al = -1;
 	ret = 1;
 
@@ -599,7 +599,7 @@ static int gmtls_process_ske_sm2dhe(SSL *s, PACKET *pkt, int *al)
 	}
 
 	// s->s3->peer_tmp need to be free-ed when error happed?
-			
+
 
 	/* get ECDHEParams length */
 	paramslen = PACKET_data(pkt) - ecparams;
@@ -1339,7 +1339,7 @@ int gmtls_construct_client_certificate(SSL *s)
 	int al = -1;
 	unsigned long alg_a = s->s3->tmp.new_cipher->algorithm_auth;
 	unsigned char *p;
-	int l;
+	int l = 3 + SSL_HM_HEADER_LENGTH(s);
 
 	if (alg_a & SSL_aSM2) {
 		if (!gmtls_construct_sm2_certs(s, &l)) {
@@ -2185,8 +2185,8 @@ int gmtls_construct_client_key_exchange(SSL *s)
 err:
 	if (al != -1)
 		ssl3_send_alert(s, SSL3_AL_FATAL, al);
-	OPENSSL_clear_free(s->s3->tmp.pms, s->s3->tmp.pmslen);				
-	s->s3->tmp.pms = NULL;				
+	OPENSSL_clear_free(s->s3->tmp.pms, s->s3->tmp.pmslen);
+	s->s3->tmp.pms = NULL;
 	ossl_statem_set_error(s);
 	return 0;
 }
