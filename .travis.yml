@@ -1,0 +1,11 @@
+language: golang
+dist: bionic
+install:
+  - cd $HOME; git clone https://github.com/guanzhi/GmSSL.git; cd GMSSL
+  - ./config
+  - make
+  - sudo make install
+  - cd $TRAVIS_BUILD_DIR
+  - cd gmssl; go build; cd -
+script:
+  - cd test; go test;
