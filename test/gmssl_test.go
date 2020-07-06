@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2020 The Hyperledger-TWGC Project Authors. All Rights Reserved.
+ * Copyright 2020 The Hyperledger-TWGC Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -10,9 +10,9 @@
 package main
 
 import (
-	"gmssl"
-	"gmssl/sm3"
 	"fmt"
+	"github.com/Hyperledger-TWGC/Gm-Go/gmssl"
+	"github.com/Hyperledger-TWGC/Gm-Go/gmssl/sm3"
 )
 
 func main() {
@@ -64,7 +64,7 @@ func main() {
 	for _, engine := range engines {
 		fmt.Print(" " + engine)
 	}
-	fmt.Println("\n");
+	fmt.Println("\n")
 
 	/* SM3 digest with GmSSL-Go API */
 	sm3ctx, _ := gmssl.NewDigestContext("SM3")
@@ -95,14 +95,14 @@ func main() {
 	encryptor, _ := gmssl.NewCipherContext("SMS4", key, iv, true)
 	ciphertext1, _ := encryptor.Update([]byte("hello"))
 	ciphertext2, _ := encryptor.Final()
-	ciphertext := make([]byte, 0, len(ciphertext1) + len(ciphertext2))
+	ciphertext := make([]byte, 0, len(ciphertext1)+len(ciphertext2))
 	ciphertext = append(ciphertext, ciphertext1...)
 	ciphertext = append(ciphertext, ciphertext2...)
 
 	decryptor, _ := gmssl.NewCipherContext("SMS4", key, iv, false)
 	plaintext1, _ := decryptor.Update(ciphertext)
 	plaintext2, _ := decryptor.Final()
-	plaintext := make([]byte, 0, len(plaintext1) + len(plaintext2))
+	plaintext := make([]byte, 0, len(plaintext1)+len(plaintext2))
 	plaintext = append(plaintext, plaintext1...)
 	plaintext = append(plaintext, plaintext2...)
 

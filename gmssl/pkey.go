@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2020 The Hyperledger-TWGC Project Authors. All Rights Reserved.
+ * Copyright 2020 The Hyperledger-TWGC Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -521,9 +521,9 @@ unsigned char *sk_derive(EVP_PKEY *sk, const char *alg, EVP_PKEY *peer,
 import "C"
 
 import (
-	"unsafe"
 	"errors"
 	"runtime"
+	"unsafe"
 )
 
 func GetPublicKeyAlgorithmNames() []string {
@@ -566,7 +566,7 @@ func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
 			"RSAES-OAEP",
 		}, nil
 	} else if pkey == "EC" {
-		return []string {
+		return []string{
 			"ecies-recommendedParameters",
 			"ecies-specifiedParameters",
 			"ecies-with-x9-63-sha1-xor-hmac",
@@ -636,9 +636,9 @@ func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey,
 	defer C.EVP_PKEY_CTX_free(ctx)
 
 	/*
-	if eng != nil {
-		ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
-	}
+		if eng != nil {
+			ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
+		}
 	*/
 
 	if ctx == nil {
@@ -791,7 +791,7 @@ func (sk *PrivateKey) GetText() (string, error) {
 	return C.GoString(p)[:len], nil
 }
 
-func NewPublicKeyFromPEM(pem string)(*PublicKey, error) {
+func NewPublicKeyFromPEM(pem string) (*PublicKey, error) {
 	cpem := C.CString(pem)
 	defer C.free(unsafe.Pointer(cpem))
 	bio := C.BIO_new_mem_buf(unsafe.Pointer(cpem), -1)

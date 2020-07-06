@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2020 The Hyperledger-TWGC Project Authors. All Rights Reserved.
+ * Copyright 2020 The Hyperledger-TWGC Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -45,8 +45,8 @@ static int _SSL_set_tlsext_host_name(SSL *ssl, char *name) {
 import "C"
 
 import (
-	"unsafe"
 	"runtime"
+	"unsafe"
 )
 
 type SSLContext struct {
@@ -69,7 +69,7 @@ func NewSSLContext(protocol_version, ca_certs, client_certs string) (*SSLContext
 	C.SSL_CTX_set_verify(ctx, C.SSL_VERIFY_PEER, nil)
 	C.SSL_CTX_set_verify_depth(ctx, 4)
 	C.SSL_CTX_set_options(ctx, C.SSL_OP_NO_SSLv2|C.SSL_OP_NO_SSLv3|C.SSL_OP_NO_COMPRESSION)
-	cca_certs := C.CString(ca_certs);
+	cca_certs := C.CString(ca_certs)
 	defer C.free(unsafe.Pointer(cca_certs))
 	if 1 != C.SSL_CTX_load_verify_locations(ctx, cca_certs, nil) {
 		return nil, GetErrors()
