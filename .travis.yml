@@ -1,5 +1,8 @@
 language: go
 dist: bionic
+os:
+  - osx
+  - linux
 go:
   - "1.14"
   - "1.12"
@@ -14,4 +17,5 @@ install:
   - cd $TRAVIS_BUILD_DIR
   - cd gmssl; go build; cd -
 script:
+  - curl --version # test curl affection
   - cd test; go test;
