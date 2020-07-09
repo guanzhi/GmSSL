@@ -41,17 +41,20 @@ func TestPublicKeyAlgorithms(t *testing.T) {
 	pkeyAlgs := gmssl.GetPublicKeyAlgorithmNames()
 	for _, pkeyAlg := range pkeyAlgs {
 		fmt.Print(" " + pkeyAlg + ":")
-		sign_algs, _ := gmssl.GetSignAlgorithmNames(pkeyAlg)
-		for _, sign_alg := range sign_algs {
+		signAlgs, error := gmssl.GetSignAlgorithmNames(pkeyAlg)
+		PanicError(error)
+		for _, sign_alg := range signAlgs {
 			fmt.Print(" " + sign_alg)
 		}
-		pkey_encs, _ := gmssl.GetPublicKeyEncryptionNames(pkeyAlg)
-		for _, pkey_enc := range pkey_encs {
-			fmt.Print(" " + pkey_enc)
+		pkeyEncs, error := gmssl.GetPublicKeyEncryptionNames(pkeyAlg)
+		PanicError(error)
+		for _, pkeyEnc := range pkeyEncs {
+			fmt.Print(" " + pkeyEnc)
 		}
-		derive_algs, _ := gmssl.GetDeriveKeyAlgorithmNames(pkeyAlg)
-		for _, derive_alg := range derive_algs {
-			fmt.Print(" " + derive_alg)
+		deriveAlgs, error := gmssl.GetDeriveKeyAlgorithmNames(pkeyAlg)
+		PanicError(error)
+		for _, deriveAlg := range deriveAlgs {
+			fmt.Print(" " + deriveAlg)
 		}
 		fmt.Println("")
 	}

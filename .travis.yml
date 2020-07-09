@@ -6,7 +6,6 @@ os:
 go:
   - "1.14"
   - "1.12"
-  - master
 install:
   - cd $HOME; git clone https://github.com/guanzhi/GmSSL.git; cd GmSSL
   - ./config

@@ -12,127 +12,197 @@ import (
 	"fmt"
 	"github.com/Hyperledger-TWGC/Gm-Go/gmssl"
 	"github.com/Hyperledger-TWGC/Gm-Go/gmssl/sm3"
+	"testing"
 )
 
-func main() {
-
-	engines := gmssl.GetEngineNames()
+func newSM3DigestContext() *gmssl.DigestContext {
+	sm3ctx, err := gmssl.NewDigestContext("SM3")
+	PanicError(err)
+	return sm3ctx
+}
+func TestDigest(t *testing.T) {
 	/* SM3 digest with GmSSL-Go API */
-	sm3ctx, _ := gmssl.NewDigestContext("SM3")
-	sm3ctx.Update([]byte("a"))
-	sm3ctx.Update([]byte("bc"))
-	sm3digest, _ := sm3ctx.Final()
-	fmt.Printf("sm3(\"abc\") = %x\n", sm3digest)
-
+	sm3ctx := newSM3DigestContext()
+	s1 := []byte("a")
+	s2 := []byte("bc")
+	err := sm3ctx.Update(s1)
+	PanicError(err)
+	err = sm3ctx.Update(s2)
+	PanicError(err)
+	sm3digest, err := sm3ctx.Final()
+	PanicError(err)
+	fmt.Printf("sm3(%s) = %x\n", append(s1[:], s2[:]...), sm3digest)
+}
+func TestDigestHash(t *testing.T) {
 	/* SM3 digest with Go hash.Hash API */
 	sm3hash := sm3.New()
-	sm3hash.Write([]byte("abc"))
-	fmt.Printf("sm3(\"abc\") = %x\n", sm3hash.Sum(nil))
-
+	s1 := []byte("abc")
+	sm3hash.Write(s1)
+	fmt.Printf("sm3(%s) = %x\n", s1, sm3hash.Sum(nil))
+}
+func TestHMAC(t *testing.T) {
 	/* HMAC-SM3 */
-	hmac_sm3, _ := gmssl.NewHMACContext("SM3", []byte("this is the key"))
-	hmac_sm3.Update([]byte("ab"))
-	hmac_sm3.Update([]byte("c"))
-	mactag, _ := hmac_sm3.Final()
-	fmt.Printf("hmac-sm3(\"abc\") = %x\n", mactag)
+	hmacSm3, err := gmssl.NewHMACContext("SM3", []byte("this is the key"))
+	PanicError(err)
+	s1 := []byte("ab")
+	s2 := []byte("c")
+	err = hmacSm3.Update(s1)
+	err = hmacSm3.Update(s2)
+	PanicError(err)
+	macTag, err := hmacSm3.Final()
+	PanicError(err)
+	fmt.Printf("hmac-sm3(%s) = %x\n", append(s1[:], s2[:]...), macTag)
+}
+func randomKey() []byte {
+	keyLen, err := gmssl.GetCipherKeyLength("SMS4")
+	PanicError(err)
+	key, err := gmssl.GenerateRandom(keyLen)
+	PanicError(err)
+	return key
+}
+func randomIV() []byte {
+	ivlen, err := gmssl.GetCipherIVLength("SMS4")
+	PanicError(err)
+	iv, err := gmssl.GenerateRandom(ivlen)
+	PanicError(err)
+	return iv
+}
 
+// SMS4-CBC Encrypt/Decrypt
+func TestSMS4CBC(t *testing.T) {
 	/* Generate random key and IV */
-	keylen, _ := gmssl.GetCipherKeyLength("SMS4")
-	key, _ := gmssl.GenerateRandom(keylen)
-	ivlen, _ := gmssl.GetCipherIVLength("SMS4")
-	iv, _ := gmssl.GenerateRandom(ivlen)
-
-	/* SMS4-CBC Encrypt/Decrypt */
-	encryptor, _ := gmssl.NewCipherContext("SMS4", key, iv, true)
-	ciphertext1, _ := encryptor.Update([]byte("hello"))
-	ciphertext2, _ := encryptor.Final()
+	key := randomKey()
+	iv := randomIV()
+	rawContent := []byte("hello")
+	encrypt, err := gmssl.NewCipherContext("SMS4", key, iv, true)
+	PanicError(err)
+	ciphertext1, err := encrypt.Update(rawContent)
+	PanicError(err)
+	ciphertext2, err := encrypt.Final()
+	PanicError(err)
 	ciphertext := make([]byte, 0, len(ciphertext1)+len(ciphertext2))
 	ciphertext = append(ciphertext, ciphertext1...)
 	ciphertext = append(ciphertext, ciphertext2...)
 
-	decryptor, _ := gmssl.NewCipherContext("SMS4", key, iv, false)
-	plaintext1, _ := decryptor.Update(ciphertext)
-	plaintext2, _ := decryptor.Final()
+	decryptor, err := gmssl.NewCipherContext("SMS4", key, iv, false)
+	PanicError(err)
+	plaintext1, err := decryptor.Update(ciphertext)
+	PanicError(err)
+	plaintext2, err := decryptor.Final()
+	PanicError(err)
 	plaintext := make([]byte, 0, len(plaintext1)+len(plaintext2))
 	plaintext = append(plaintext, plaintext1...)
 	plaintext = append(plaintext, plaintext2...)
 
-	fmt.Printf("sms4(\"%s\") = %x\n", plaintext, ciphertext)
-	fmt.Println()
+	if string(plaintext) != string(rawContent) {
+		t.Fatalf("decrypt result should be %s, but got %s", rawContent, plaintext)
+	}
 
+	fmt.Printf("sms4(%s) = %x\n", plaintext, ciphertext)
+}
+func TestRSA(t *testing.T) {
 	/* private key */
-	rsa_args := [][2]string{
+	rsaArgs := [][2]string{
 		{"rsa_keygen_bits", "2048"},
 		{"rsa_keygen_pubexp", "65537"},
 	}
 
-	rsa, err := gmssl.GeneratePrivateKey("RSA", rsa_args, nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	rsa_pem, err := rsa.GetPublicKeyPEM()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(rsa_pem)
+	rsa, err := gmssl.GeneratePrivateKey("RSA", rsaArgs, nil)
+	PanicError(err)
+	rsaPem, err := rsa.GetPublicKeyPEM()
+	PanicError(err)
+	fmt.Println(rsaPem)
+}
+func TestEngineCommands(t *testing.T) {
+	engines := gmssl.GetEngineNames()
 
-	/* Engine */
-	eng, _ := gmssl.NewEngineByName(engines[1])
-	cmds, _ := eng.GetCommands()
-	for _, cmd := range cmds {
-		fmt.Print(" " + cmd)
+	for _, engine := range engines {
+		eng, err := gmssl.NewEngineByName(engine)
+		fmt.Printf("\n testing on engine=[%s] \n", engine)
+		// FIXME: it fails when engine==dynamic
+		PanicError(err)
+		cmds, err := eng.GetCommands()
+		PanicError(err)
+		for _, cmd := range cmds {
+			fmt.Printf("engine[%s].cmd[%s] \n", engine, cmd)
+		}
 	}
-	fmt.Println()
 
+}
+
+var sm2pkpem string // global variable
+func TestKeyPair(t *testing.T) {
 	/* SM2 key pair operations */
 	sm2keygenargs := [][2]string{
 		{"ec_paramgen_curve", "sm2p256v1"},
 		{"ec_param_enc", "named_curve"},
 	}
-	sm2sk, _ := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
-	sm2sktxt, _ := sm2sk.GetText()
-	sm2skpem, _ := sm2sk.GetPEM("SMS4", "password")
-	sm2pkpem, _ := sm2sk.GetPublicKeyPEM()
+	sm2sk, err := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
+	PanicError(err)
+	sm2sktxt, err := sm2sk.GetText()
+	PanicError(err)
+	sm2skpem, err := sm2sk.GetPEM("SMS4", "password")
 
-	fmt.Println(sm2sktxt)
-	fmt.Println(sm2skpem)
-	fmt.Println(sm2pkpem)
+	PanicError(err)
+	sm2pkpem, err = sm2sk.GetPublicKeyPEM()
+	PanicError(err)
 
-	sm2pk, _ := gmssl.NewPublicKeyFromPEM(sm2pkpem)
-	sm2pktxt, _ := sm2pk.GetText()
-	sm2pkpem_, _ := sm2pk.GetPEM()
+	fmt.Printf("private key as text = %s", sm2sktxt)
+	fmt.Printf("private key as pem = %s", sm2skpem)
+	fmt.Printf("public key as pem = %s", sm2pkpem)
 
-	fmt.Println(sm2pktxt)
-	fmt.Println(sm2pkpem_)
-
+	sm2pk, err := gmssl.NewPublicKeyFromPEM(sm2pkpem)
+	PanicError(err)
+	sm3ctx := newSM3DigestContext()
 	/* SM2 sign/verification */
-	sm2zid, _ := sm2pk.ComputeSM2IDDigest("1234567812345678")
-	sm3ctx.Reset()
-	sm3ctx.Update(sm2zid)
-	sm3ctx.Update([]byte("message"))
-	tbs, _ := sm3ctx.Final()
+	sm2zid, err := sm2pk.ComputeSM2IDDigest("1234567812345678")
+	PanicError(err)
 
-	sig, _ := sm2sk.Sign("sm2sign", tbs, nil)
-	fmt.Printf("sm2sign(sm3(\"message\")) = %x\n", sig)
+	err = sm3ctx.Reset()
+	PanicError(err)
+	err = sm3ctx.Update(sm2zid)
+	PanicError(err)
+	err = sm3ctx.Update([]byte("message"))
+	PanicError(err)
+	digest, err := sm3ctx.Final()
+	PanicError(err)
 
-	if ret := sm2pk.Verify("sm2sign", tbs, sig, nil); ret != nil {
-		fmt.Printf("sm2 verify failure\n")
-	} else {
+	signature, err := sm2sk.Sign("sm2sign", digest, nil)
+	PanicError(err)
+
+	fmt.Printf("sm2sign(sm3(\"message\")) = %x\n", signature)
+
+	err = sm2pk.Verify("sm2sign", digest, signature, nil)
+	if err == nil {
 		fmt.Printf("sm2 verify success\n")
+	} else {
+		t.Fatalf("sm2 verify failure")
 	}
-
 	/* SM2 encrypt */
 	sm2msg := "01234567891123456789212345678931234567894123456789512345678961234567897123"
 	sm2encalg := "sm2encrypt-with-sm3"
-	sm2ciphertext, _ := sm2pk.Encrypt(sm2encalg, []byte(sm2msg), nil)
-	sm2plaintext, _ := sm2sk.Decrypt(sm2encalg, sm2ciphertext, nil)
+	sm2ciphertext, err := sm2pk.Encrypt(sm2encalg, []byte(sm2msg), nil)
+	PanicError(err)
+	sm2plaintext, err := sm2sk.Decrypt(sm2encalg, sm2ciphertext, nil)
+	PanicError(err)
 	fmt.Printf("sm2enc(\"%s\") = %x\n", sm2plaintext, sm2ciphertext)
 	if sm2msg != string(sm2plaintext) {
-		fmt.Println("SM2 encryption/decryption failure")
+		t.Fatalf("SM2 encryption/decryption failure")
 	}
+}
+func TestLoadPubKeyFromPem(t *testing.T) {
+	// Note This test reply on variable Context
+	sm2pk, err := gmssl.NewPublicKeyFromPEM(sm2pkpem)
+	PanicError(err)
+	sm2pktxt, err := sm2pk.GetText()
+	PanicError(err)
+	sm2pkpem_, err := sm2pk.GetPEM()
+	PanicError(err)
 
+	fmt.Printf("public key as text --> %s \n", sm2pktxt)
+	fmt.Printf("public key as pem --> %s", sm2pkpem_)
+}
+func TestCertificate(t *testing.T) {
 	/* Certificate */
 	certpem := `-----BEGIN CERTIFICATE-----
 MIICAjCCAaigAwIBAgIBATAKBggqgRzPVQGDdTBSMQswCQYDVQQGEwJDTjELMAkG
@@ -148,13 +218,20 @@ MAoGCCqBHM9VAYN1A0gAMEUCIQCjrQ2nyiPqod/gZdj5X1+WW4fGtyqXvXLL3lOF
 31nA/gIgZOpHLnvkyggY9VFfEQVp+8t6kewSfxb4eOImSu+dZcE=
 -----END CERTIFICATE-----`
 
-	cert, _ := gmssl.NewCertificateFromPEM(certpem, "")
-	subject, _ := cert.GetSubject()
-	issuer, _ := cert.GetIssuer()
-	serial, _ := cert.GetSerialNumber()
-	certpk, _ := cert.GetPublicKey()
-	certpktxt, _ := certpk.GetText()
-	certtxt, _ := cert.GetText()
+	cert, err := gmssl.NewCertificateFromPEM(certpem, "")
+	PanicError(err)
+	subject, err := cert.GetSubject()
+	PanicError(err)
+	issuer, err := cert.GetIssuer()
+	PanicError(err)
+	serial, err := cert.GetSerialNumber()
+	PanicError(err)
+	certpk, err := cert.GetPublicKey()
+	PanicError(err)
+	certpktxt, err := certpk.GetText()
+	PanicError(err)
+	certtxt, err := cert.GetText()
+	PanicError(err)
 
 	fmt.Println("Certificate:")
 	fmt.Printf("  Subject = %s\n", subject)
@@ -162,18 +239,23 @@ MAoGCCqBHM9VAYN1A0gAMEUCIQCjrQ2nyiPqod/gZdj5X1+WW4fGtyqXvXLL3lOF
 	fmt.Printf("  Serial Number = %s\n", serial)
 	fmt.Println(certpktxt)
 	fmt.Println(certtxt)
-
+}
+func TestSSL(t *testing.T) {
 	/* SSL */
 	hostname := "its.pku.edu.cn"
-	ssl, _ := gmssl.NewSSLContext("3.3", "mozilla-cacerts.pem", "")
-	conn, _ := ssl.Connect(hostname, "443", "ALL")
-	result, _ := conn.GetVerifyResult()
+	ssl, err := gmssl.NewSSLContext("3.3", "mozilla-cacerts.pem", "")
+	PanicError(err)
+	conn, err := ssl.Connect(hostname, "443", "ALL")
+	PanicError(err)
+	result, err := conn.GetVerifyResult()
+	PanicError(err)
 	if result != 0 {
-		fmt.Printf("http://%s certificate verify failure\n", hostname)
-		return
+		t.Fatalf("http://%s certificate verify failure\n", hostname)
 	}
-	peercert, _ := conn.GetPeerCertificate()
+	peercert, err := conn.GetPeerCertificate()
+	PanicError(err)
 	fmt.Println(result)
-	peercerttxt, _ := peercert.GetText()
+	peercerttxt, err := peercert.GetText()
+	PanicError(err)
 	fmt.Println(peercerttxt)
 }
