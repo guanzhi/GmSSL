@@ -11,8 +11,8 @@
 package gmssl
 
 /*
-#cgo CFLAGS: -I/usr/local/include
-#cgo LDFLAGS: -L/usr/local/lib -lcrypto -lssl
+#cgo CFLAGS: -I/usr/local/gmssl/include
+#cgo LDFLAGS: -L/usr/local/gmssl/lib -lcrypto -lssl
 
 #include <openssl/bio.h>
 #include <openssl/crypto.h>

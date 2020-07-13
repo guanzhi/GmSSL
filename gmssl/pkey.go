@@ -555,6 +555,8 @@ func GetSignAlgorithmNames(pkey string) ([]string, error) {
 		return []string{
 			"DSA-SHA1",
 		}, nil
+	} else if (pkey == "DH") ||  (pkey == "X25519"){
+		return []string, nil
 	} else {
 		return nil, errors.New("Invalid public key algorithm")
 	}
@@ -591,6 +593,8 @@ func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
 			"sm2encrypt-with-sha256",
 			"sm2encrypt-with-sha512",
 		}, nil
+	} else if (pkey == "DH") ||  (pkey == "X25519")  ||  (pkey == "DSA"){
+		return []string, nil
 	} else {
 		return nil, errors.New("Invalid public key algorithm")
 	}
@@ -615,6 +619,8 @@ func GetDeriveKeyAlgorithmNames(pkey string) ([]string, error) {
 			"dhSinglePass-cofactorDH-sha512kdf-scheme",
 			"dhKeyAgreement",
 		}, nil
+	} else if (pkey == "RSA") ||  (pkey == "X25519")  ||  (pkey == "DSA"){
+		return []string, nil
 	} else {
 		return nil, errors.New("No algorithm supported")
 	}

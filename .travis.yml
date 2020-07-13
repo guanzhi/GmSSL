@@ -6,15 +6,14 @@ os:
 go:
   - "1.14"
   - "1.12"
+  
 install:
   - cd $HOME; git clone https://github.com/guanzhi/GmSSL.git; cd GmSSL
-  - ./config
+  - ./config --prefix=/usr/local/gmssl
   - make
   - sudo make install_sw
-  - export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-  - sudo ldconfig
   - cd $TRAVIS_BUILD_DIR
   - cd gmssl; go build; cd -
 script:
   - curl --version # test curl affection
-  - cd test; go test;
+  - cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test;
