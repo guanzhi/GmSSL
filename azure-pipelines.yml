@@ -1,0 +1,24 @@
+trigger: 
+ - master
+
+pool:
+   vmImage: 'ubuntu-18.04'
+
+jobs:
+  - job: GmSSL_go
+    steps:
+      - script: cd $(Pipeline.Workspace); git clone https://github.com/guanzhi/GmSSL.git
+        displayName: Clone GMSSL
+      - script: cd $(Pipeline.Workspace)/GmSSL; SYSTEM=`uname -s` ./config --prefix=/usr/local/gmssl;
+      - script: cd $(Pipeline.Workspace)/GmSSL; make
+      - script: cd $(Pipeline.Workspace)/GmSSL; sudo make install_sw
+      - checkout: self
+      - task: GoTool@0
+        inputs:
+          version: '1.14'
+      - script: cd gmssl; go build
+        displayName: go build
+      - script: curl --version
+        displayName: test curl affection
+      - script: cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test;
+        displayName: go test
