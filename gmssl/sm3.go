@@ -7,20 +7,19 @@
  * https://www.openssl.org/source/license.html
  */
 
-package sm3
+package gmssl
 
 import (
-	"github.com/Hyperledger-TWGC/Gm-Go/gmssl"
 	"hash"
 )
 
-type digest struct {
-	ctx *gmssl.DigestContext
+type sm3 struct {
+	ctx *DigestContext
 }
 
 func New() hash.Hash {
-	d := new(digest)
-	ctx, err := gmssl.NewDigestContext("SM3")
+	d := new(sm3)
+	ctx, err := NewDigestContext("SM3")
 	if err != nil {
 		return nil
 	}
@@ -28,33 +27,37 @@ func New() hash.Hash {
 	return d
 }
 
-func (d *digest) BlockSize() int {
-	ret, err := gmssl.GetDigestBlockSize("SM3")
+func (d *sm3) BlockSize() int {
+	ret, err := GetDigestBlockSize("SM3")
 	if err != nil {
 		return 0
 	}
 	return ret
 }
 
-func (d *digest) Size() int {
-	ret, err := gmssl.GetDigestLength("SM3")
+func (d *sm3) Size() int {
+	ret, err := GetDigestLength("SM3")
 	if err != nil {
 		return 0
 	}
 	return ret
 }
 
-func (d *digest) Reset() {
-	_ = d.ctx.Reset()
+func (d *sm3) Reset() {
+	err := d.ctx.Reset()
+	PanicError(err)
 }
 
-func (d *digest) Write(p []byte) (int, error) {
+func (d *sm3) Write(p []byte) (int, error) {
 	err := d.ctx.Update(p)
 	return len(p), err
 }
 
-func (d *digest) Sum(in []byte) []byte {
-	d.ctx.Update(in)
+func (d *sm3) Sum(in []byte) []byte {
+	err := d.ctx.Update(in)
+	if err != nil {
+		return nil
+	}
 	ret, err := d.ctx.Final()
 	if err != nil {
 		return nil

@@ -11,7 +11,6 @@ package main
 import (
 	"fmt"
 	"github.com/Hyperledger-TWGC/Gm-Go/gmssl"
-	"github.com/Hyperledger-TWGC/Gm-Go/gmssl/sm3"
 	"testing"
 )
 
@@ -35,7 +34,7 @@ func TestDigest(t *testing.T) {
 }
 func TestDigestHash(t *testing.T) {
 	/* SM3 digest with Go hash.Hash API */
-	sm3hash := sm3.New()
+	sm3hash := gmssl.New()
 	s1 := []byte("abc")
 	sm3hash.Write(s1)
 	fmt.Printf("sm3(%s) = %x\n", s1, sm3hash.Sum(nil))

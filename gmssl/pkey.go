@@ -754,12 +754,12 @@ func (sk *PrivateKey) GetPEM(cipher string, pass string) (string, error) {
 	}
 
 	var p *C.char
-	len := C._BIO_get_mem_data(bio, &p)
-	if len <= 0 {
+	l := C._BIO_get_mem_data(bio, &p)
+	if l <= 0 {
 		return "", GetErrors()
 	}
 
-	return C.GoString(p)[:len], nil
+	return C.GoString(p)[:l], nil
 }
 
 func (sk *PrivateKey) GetPublicKeyPEM() (string, error) {
@@ -772,11 +772,11 @@ func (sk *PrivateKey) GetPublicKeyPEM() (string, error) {
 		return "", GetErrors()
 	}
 	var p *C.char
-	len := C._BIO_get_mem_data(bio, &p)
-	if len <= 0 {
+	l := C._BIO_get_mem_data(bio, &p)
+	if l <= 0 {
 		return "", GetErrors()
 	}
-	return C.GoString(p)[:len], nil
+	return C.GoString(p)[:l], nil
 }
 
 func (sk *PrivateKey) GetText() (string, error) {
@@ -785,16 +785,16 @@ func (sk *PrivateKey) GetText() (string, error) {
 		return "", GetErrors()
 	}
 	defer C.BIO_free(bio)
-	/* FIMME: some times this will failed */
+	/* FIXME: some times this will failed */
 	if 1 != C.EVP_PKEY_print_private(bio, sk.pkey, 0, nil) {
 		return "", GetErrors()
 	}
 	var p *C.char
-	len := C._BIO_get_mem_data(bio, &p)
-	if len <= 0 {
+	l := C._BIO_get_mem_data(bio, &p)
+	if l <= 0 {
 		return "", GetErrors()
 	}
-	return C.GoString(p)[:len], nil
+	return C.GoString(p)[:l], nil
 }
 
 func NewPublicKeyFromPEM(pem string) (*PublicKey, error) {
