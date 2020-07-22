@@ -19,7 +19,7 @@ type sm3 struct {
 
 func New() hash.Hash {
 	d := new(sm3)
-	ctx, err := NewDigestContext("SM3")
+	ctx, err := NewDigestContext(SM3)
 	if err != nil {
 		return nil
 	}
@@ -28,7 +28,7 @@ func New() hash.Hash {
 }
 
 func (d *sm3) BlockSize() int {
-	ret, err := GetDigestBlockSize("SM3")
+	ret, err := GetDigestBlockSize(SM3)
 	if err != nil {
 		return 0
 	}
@@ -36,7 +36,7 @@ func (d *sm3) BlockSize() int {
 }
 
 func (d *sm3) Size() int {
-	ret, err := GetDigestLength("SM3")
+	ret, err := GetDigestLength(SM3)
 	if err != nil {
 		return 0
 	}

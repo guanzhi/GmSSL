@@ -15,7 +15,7 @@ import (
 )
 
 func newSM3DigestContext() *gmssl.DigestContext {
-	sm3ctx, err := gmssl.NewDigestContext("SM3")
+	sm3ctx, err := gmssl.NewDigestContext(gmssl.SM3)
 	PanicError(err)
 	return sm3ctx
 }
@@ -41,7 +41,7 @@ func TestDigestHash(t *testing.T) {
 }
 func TestHMAC(t *testing.T) {
 	/* HMAC-SM3 */
-	hmacSm3, err := gmssl.NewHMACContext("SM3", []byte("this is the key"))
+	hmacSm3, err := gmssl.NewHMACContext(gmssl.SM3, []byte("this is the key"))
 	PanicError(err)
 	s1 := []byte("ab")
 	s2 := []byte("c")
@@ -53,14 +53,14 @@ func TestHMAC(t *testing.T) {
 	fmt.Printf("hmac-sm3(%s) = %x\n", append(s1[:], s2[:]...), macTag)
 }
 func randomKey() []byte {
-	keyLen, err := gmssl.GetCipherKeyLength("SMS4")
+	keyLen, err := gmssl.GetCipherKeyLength(gmssl.SMS4)
 	PanicError(err)
 	key, err := gmssl.GenerateRandom(keyLen)
 	PanicError(err)
 	return key
 }
 func randomIV() []byte {
-	ivlen, err := gmssl.GetCipherIVLength("SMS4")
+	ivlen, err := gmssl.GetCipherIVLength(gmssl.SMS4)
 	PanicError(err)
 	iv, err := gmssl.GenerateRandom(ivlen)
 	PanicError(err)
@@ -73,7 +73,7 @@ func TestSMS4CBC(t *testing.T) {
 	key := randomKey()
 	iv := randomIV()
 	rawContent := []byte("hello")
-	encrypt, err := gmssl.NewCipherContext("SMS4", key, iv, true)
+	encrypt, err := gmssl.NewCipherContext(gmssl.SMS4, key, iv, true)
 	PanicError(err)
 	ciphertext1, err := encrypt.Update(rawContent)
 	PanicError(err)
@@ -83,7 +83,7 @@ func TestSMS4CBC(t *testing.T) {
 	ciphertext = append(ciphertext, ciphertext1...)
 	ciphertext = append(ciphertext, ciphertext2...)
 
-	decryptor, err := gmssl.NewCipherContext("SMS4", key, iv, false)
+	decryptor, err := gmssl.NewCipherContext(gmssl.SMS4, key, iv, false)
 	PanicError(err)
 	plaintext1, err := decryptor.Update(ciphertext)
 	PanicError(err)
@@ -140,7 +140,7 @@ func TestKeyPair(t *testing.T) {
 	PanicError(err)
 	sm2sktxt, err := sm2sk.GetText()
 	PanicError(err)
-	sm2skpem, err := sm2sk.GetPEM("SMS4", "password")
+	sm2skpem, err := sm2sk.GetPEM(gmssl.SMS4, "password")
 
 	PanicError(err)
 	sm2pkpem, err = sm2sk.GetPublicKeyPEM()
