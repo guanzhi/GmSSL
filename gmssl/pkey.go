@@ -536,7 +536,7 @@ func GetPublicKeyAlgorithmNames() []string {
 	}
 }
 
-func GetSignAlgorithmNames(pkey string) ([]string, error) {
+func GetSignAlgorithmNames(pkey string) []string {
 	if pkey == "EC" {
 		return []string{
 			"sm2sign",
@@ -544,29 +544,29 @@ func GetSignAlgorithmNames(pkey string) ([]string, error) {
 			"ecdsa-with-SHA1",
 			"ecdsa-with-SHA256",
 			"ecdsa-with-SHA512",
-		}, nil
+		}
 	} else if pkey == "RSA" {
 		return []string{
 			"RSA-SHA1",
 			"RSA-SHA256",
 			"RSA-SHA512",
-		}, nil
+		}
 	} else if pkey == "DSA" {
 		return []string{
 			"DSA-SHA1",
-		}, nil
+		}
 	} else if pkey == "DH" || pkey == "X25519" {
-		return []string{}, nil
+		return []string{}
 	} else {
-		return nil, errors.New("invalid public key algorithm")
+		return nil
 	}
 }
 
-func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
+func GetPublicKeyEncryptionNames(pkey string) []string {
 	if pkey == "RSA" {
 		return []string{
 			"RSAES-OAEP",
-		}, nil
+		}
 	} else if pkey == "EC" {
 		return []string{
 			"ecies-recommendedParameters",
@@ -592,19 +592,19 @@ func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
 			"sm2encrypt-with-sha1",
 			"sm2encrypt-with-sha256",
 			"sm2encrypt-with-sha512",
-		}, nil
+		}
 	} else if pkey == "DH" || pkey == "X25519" || pkey == "DSA" {
-		return []string{}, nil
+		return []string{}
 	} else {
-		return nil, errors.New("Invalid public key algorithm")
+		return nil
 	}
 }
 
-func GetDeriveKeyAlgorithmNames(pkey string) ([]string, error) {
+func GetDeriveKeyAlgorithmNames(pkey string) []string {
 	if pkey == "EC" {
 		return []string{
 			"sm2exchange",
-		}, nil
+		}
 	} else if pkey == "DH" {
 		return []string{
 			"dhSinglePass-stdDH-sha1kdf-scheme",
@@ -618,11 +618,11 @@ func GetDeriveKeyAlgorithmNames(pkey string) ([]string, error) {
 			"dhSinglePass-cofactorDH-sha384kdf-scheme",
 			"dhSinglePass-cofactorDH-sha512kdf-scheme",
 			"dhKeyAgreement",
-		}, nil
+		}
 	} else if pkey == "RSA" || pkey == "X25519" || pkey == "DSA" {
-		return []string{}, nil
+		return []string{}
 	} else {
-		return nil, errors.New("No algorithm supported")
+		return nil
 	}
 }
 
@@ -826,11 +826,11 @@ func (pk *PublicKey) GetPEM() (string, error) {
 		return "", GetErrors()
 	}
 	var p *C.char
-	len := C._BIO_get_mem_data(bio, &p)
-	if len <= 0 {
+	l := C._BIO_get_mem_data(bio, &p)
+	if l <= 0 {
 		return "", GetErrors()
 	}
-	return C.GoString(p)[:len], nil
+	return C.GoString(p)[:l], nil
 }
 
 func (pk *PublicKey) GetText() (string, error) {
@@ -843,11 +843,11 @@ func (pk *PublicKey) GetText() (string, error) {
 		return "", GetErrors()
 	}
 	var p *C.char
-	len := C._BIO_get_mem_data(bio, &p)
-	if len <= 0 {
+	l := C._BIO_get_mem_data(bio, &p)
+	if l <= 0 {
 		return "", GetErrors()
 	}
-	return C.GoString(p)[:len], nil
+	return C.GoString(p)[:l], nil
 }
 
 func (pk *PublicKey) Encrypt(alg string, in []byte, eng *Engine) ([]byte, error) {

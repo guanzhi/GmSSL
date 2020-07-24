@@ -128,11 +128,11 @@ func (cert *Certificate) GetText() (string, error) {
 		return "", GetErrors()
 	}
 	var p *C.char
-	len := C._BIO_get_mem_data(bio, &p)
-	if len <= 0 {
+	l := C._BIO_get_mem_data(bio, &p)
+	if l <= 0 {
 		return "", GetErrors()
 	}
-	return C.GoString(p)[:len], nil
+	return C.GoString(p)[:l], nil
 }
 
 func (cert *Certificate) CheckPrivateKey(skey *PrivateKey) error {
