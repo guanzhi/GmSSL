@@ -641,11 +641,9 @@ func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey,
 	ctx := C.new_pkey_keygen_ctx(calg, nil)
 	defer C.EVP_PKEY_CTX_free(ctx)
 
-	/*
-		if eng != nil {
-			ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
-		}
-	*/
+	if eng != nil {
+		ctx = C.new_pkey_keygen_ctx(calg, eng.engine)
+	}
 
 	if ctx == nil {
 		return nil, GetErrors()
