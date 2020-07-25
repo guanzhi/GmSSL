@@ -22,6 +22,7 @@ import "C"
 import (
 	"errors"
 )
+
 func PanicError(err error) {
 	if err != nil {
 		panic(err)

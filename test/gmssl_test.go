@@ -141,7 +141,6 @@ func TestKeyPair(t *testing.T) {
 	sm2sktxt, err := sm2sk.GetText()
 	PanicError(err)
 	sm2skpem, err := sm2sk.GetPEM(gmssl.SMS4, "password")
-
 	PanicError(err)
 	sm2pkpem, err = sm2sk.GetPublicKeyPEM()
 	PanicError(err)
@@ -188,6 +187,32 @@ func TestKeyPair(t *testing.T) {
 	if sm2msg != string(sm2plaintext) {
 		t.Fatalf("SM2 encryption/decryption failure")
 	}
+}
+
+func TestPubKeyGenerate(t *testing.T) {
+
+	/* SM2 key pair operations */
+	sm2keygenargs := [][2]string{
+		{"ec_paramgen_curve", "sm2p256v1"},
+		{"ec_param_enc", "named_curve"},
+	}
+	sm2sk, err := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
+	PanicError(err)
+	sm2pk_1, err := sm2sk.GetPublicKey()
+	PanicError(err)
+	sm2pktxt_1, err := sm2pk_1.GetText()
+	PanicError(err)
+
+	sm2pkpem, err = sm2sk.GetPublicKeyPEM()
+	PanicError(err)
+	sm2pk_2, err := gmssl.NewPublicKeyFromPEM(sm2pkpem)
+	PanicError(err)
+	sm2pktxt_2, err := sm2pk_2.GetText()
+	PanicError(err)
+	if sm2pktxt_1 != sm2pktxt_2 {
+		t.Fatalf("SM2 generate public key checkfailure")
+	}
+
 }
 func TestLoadPubKeyFromPem(t *testing.T) {
 	// Note This test reply on variable Context

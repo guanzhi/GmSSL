@@ -777,6 +777,20 @@ func (sk *PrivateKey) GetPublicKeyPEM() (string, error) {
 	return C.GoString(p)[:l], nil
 }
 
+func (sk *PrivateKey) GetPublicKey() (*PublicKey, error) {
+
+	pkey := sk.pkey
+	if pkey == nil {
+		return nil, GetErrors()
+	}
+	pk := &PublicKey{pkey}
+	runtime.SetFinalizer(pk, func(pk *PublicKey) {
+		C.EVP_PKEY_free(pk.pkey)
+	})
+	return pk, nil
+
+}
+
 func (sk *PrivateKey) GetText() (string, error) {
 	bio := C.BIO_new(C.BIO_s_mem())
 	if bio == nil {
