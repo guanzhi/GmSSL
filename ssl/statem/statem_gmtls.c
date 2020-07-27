@@ -492,10 +492,11 @@ static int gmtls_construct_ske_sm2dhe(SSL *s, unsigned char **p, int *l, int *al
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2DHE, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
-		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2DHE, ERR_R_EVP_LIB);
-		goto end;
-	}
+//	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
+//		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2DHE, ERR_R_EVP_LIB);
+//		goto end;
+//	}
+    id = SM2_DEFAULT_ID;
 	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
@@ -626,11 +627,12 @@ static int gmtls_process_ske_sm2dhe(SSL *s, PACKET *pkt, int *al)
 	}
 
 	/* prepare sm2 z value */
-	if (!(id = X509_NAME_oneline(
-		X509_get_subject_name(s->session->peer), NULL, 0))) {
-		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_EVP_LIB);
-		goto end;
-	}
+//	if (!(id = X509_NAME_oneline(
+//		X509_get_subject_name(s->session->peer), NULL, 0))) {
+//		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2DHE, ERR_R_EVP_LIB);
+//		goto end;
+//	}
+    id = SM2_DEFAULT_ID;
 	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
@@ -696,7 +698,7 @@ static unsigned char *gmtls_new_cert_packet(X509 *x, int *l)
 
 	p = ret;
 	l2n3(n, p);
-	*l = n;
+	*l = n+3;
 
 end:
 	return ret;
@@ -745,10 +747,11 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
-		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_EVP_LIB);
-		goto end;
-	}
+//	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
+//		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM2, ERR_R_EVP_LIB);
+//		goto end;
+//	}
+    id = SM2_DEFAULT_ID;
 	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
@@ -802,7 +805,7 @@ static int gmtls_construct_ske_sm2(SSL *s, unsigned char **p, int *l, int *al)
 end:
 	OPENSSL_free(buf);
 	EVP_MD_CTX_free(md_ctx);
-	OPENSSL_free(id);
+	// OPENSSL_free(id);
 	return ret;
 }
 
@@ -865,10 +868,11 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 	}
 
 	/* prepare sm2 z value */
-	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
-		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2, ERR_R_EVP_LIB);
-		goto end;
-	}
+//	if (!(id = X509_NAME_oneline(X509_get_subject_name(x509), NULL, 0))) {
+//		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM2, ERR_R_EVP_LIB);
+//		goto end;
+//	}
+    id = SM2_DEFAULT_ID;
 	zlen = sizeof(z);
 	if (!SM2_compute_id_digest(EVP_sm3(), id, strlen(id), z, &zlen,
 		EVP_PKEY_get0_EC_KEY(pkey))) {
@@ -903,7 +907,7 @@ static int gmtls_process_ske_sm2(SSL *s, PACKET *pkt, int *al)
 end:
 	OPENSSL_free(buf);
 	EVP_MD_CTX_free(md_ctx);
-	OPENSSL_free(id);
+	// OPENSSL_free(id);
 	return ret;
 }
 
