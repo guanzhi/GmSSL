@@ -67,7 +67,6 @@ int main(int argc, char **argv)
 # include <openssl/sm2.h>
 # include "../crypto/sm2/sm2_lcl.h"
 
-
 # define VERBOSE 1
 
 RAND_METHOD fake_rand;

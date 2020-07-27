@@ -78,6 +78,7 @@ void sms4_ede_encrypt(const unsigned char in[16], unsigned char out[16],
 void sms4_ede_ecb_encrypt(const unsigned char *in, unsigned char *out,
 	const sms4_ede_key_t *key, int enc)
 {
+	(void)enc;
 	sms4_ede_encrypt(in, out, key);
 }
 

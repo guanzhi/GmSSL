@@ -66,23 +66,71 @@ int main(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	OTP_PARAMS params;
-	unsigned char key[] = {1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8};
-	unsigned char event[] = "this is a fixed value";
-	unsigned int otp;
+	/*
+	int Tc = 1;
+	char *K_str[10] = {
+		"1234567890abcdcf1234567890abcdef",
+		"1234567890abcdefabcdef1234567890",
+		"1234567890abcdef0987654321abcdef",
+		"1234567890abcdefabcdcf0987654321",
+		"87524138025adcfe2584376195abfedc",
+		"87524138025adcfeabfcdc2584376195",
+		"adcfc87524138025abfcdc2584376195",
+		"58adc3698fe280cb6925010dd236caef",
+		"58ade365201d80cbdd236cacf6925010",
+		"65201d80cb58ade3dd236caef6925010",
+	};
+	unsigned char key[10][16] = {{0}};
+	int T[10] = {
+		1313998979,
+		1313998995,
+		1313999014,
+		1313999047,
+		1313999067,
+		1313999098,
+		1313999131,
+		1313999155,
+		1313999174,
+		1313999189,
+	};
+	int C[10] = {
+		1234,
+		5621,
+		5621,
+		2053,
+		2058,
+		2056,
+		2358,
+		2547,
+		6031,
+		6580,
+	};
+	int Q[10] = {
+		5678,
+		3698,
+		3698,
+		6984,
+		3024,
+		2018,
+		1036,
+		2058,
+		2058,
+		1047,
+	};
+	int P[10] = {
+		814095,
+		959691,
+		063014,
+		302593,
+		657337,
+		345821,
+		629660,
+		479821,
+		893826,
+		607614,
+	};
+	*/
 
-	params.type = NID_sm3;
-	params.te = 60;
-	params.option = NULL;
-	params.option_size = 0;
-	params.otp_digits = 6;
-
-	if (!OTP_generate(&params, event, sizeof(event), &otp, key, sizeof(key))) {
-		printf("OTP_generate() failed\n");
-		return -1;
-	}
-
-	printf("OTP = %06u\n", otp);
 	return 0;
 }
 #endif

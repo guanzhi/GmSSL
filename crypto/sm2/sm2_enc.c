@@ -248,7 +248,7 @@ int SM2_encrypt(int type, const unsigned char *in, size_t inlen,
 	if (!out) {
 		*outlen = clen;
 		return 1;
-	} else if (*outlen < clen) {
+	} else if (*outlen < (size_t)clen) {
 		SM2err(SM2_F_SM2_ENCRYPT, SM2_R_BUFFER_TOO_SMALL);
 		return 0;
 	}

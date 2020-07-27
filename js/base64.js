@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,53 +46,66 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define EC_KEY_METHOD_SM2	0x02
 
-#define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
+const BASE64_MAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-#define SM2_MAX_PKEY_DATA_LENGTH		((EC_MAX_NBYTES + 1) * 6)
+function base64_encode(bytes) {
+	var i = 0; j = 0;
+	var append = bytes.length % 3 > 0 ? 3 - bytes.length % 3 : 0;
+	for (i = 0; i < append; i++) {
+		bytes[bytes.length] = 0;
+	}
+	var b64 = "";
+	for (i = 0; j < bytes.length; j += 3) {
+		if (j > 0 && j % 57 == 0) {
+			b64 += '\n';
+		}
+		b64 += BASE64_MAP[bytes[j] >> 2]
+			+ BASE64_MAP[(bytes[j] & 3) << 4 | bytes[j+1] >> 4]
+			+ BASE64_MAP[(bytes[j+1] & 15) << 2 | bytes[j+2] >> 6]
+			+ BASE64_MAP[bytes[j+2] & 63];
+	}
+	for (i = 0; i < append; i++) {
+		b64 += '=';
+	}
+	return b64;
+}
 
-#define SM2_MAX_PLAINTEXT_LENGTH		65535
-#define SM2_MAX_CIPHERTEXT_LENGTH		(SM2_MAX_PLAINTEXT_LENGTH + 2048)
+function base64_decode(input) {
+	var i = 0, j = 0;
+	input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+	var append = input.length % 4;
+	if (append > 2) {
+		return null;
+	}
+	for (i = 0; i < append; i++) {
+		if (input.charAt(input.length - i - 1) != '=') {
+			return null;
+		}
+	}
+	var output = new Array((input.length - append) * 3 / 4);
+	var enc1, enc2, enc3, enc4;
+	for (i = 0, j = 0; j < output.length;) {
+		enc1 = BASE64_MAP.indexOf(input.charAt(i++));
+		enc2 = BASE64_MAP.indexOf(input.charAt(i++));
+		enc3 = BASE64_MAP.indexOf(input.charAt(i++));
+		enc4 = BASE64_MAP.indexOf(input.charAt(i++));
+		output[j++] = (enc1 << 2) | (enc2 >> 4);
+		output[j++] = ((enc2 & 15) << 4) | (enc3 >> 2);
+		output[j++] = ((enc3 & 3) << 6) | enc4;
+	}
+	for (i = 0; i < append; i++) {
+		if (output.pop() != 0) {
+			return null;
+		}
+	}
+	return output;
+}
 
-
-int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
-
-struct SM2CiphertextValue_st {
-	BIGNUM *xCoordinate;
-	BIGNUM *yCoordinate;
-	ASN1_OCTET_STRING *hash;
-	ASN1_OCTET_STRING *ciphertext;
-};
-
-struct sm2_kap_ctx_st {
-
-	const EVP_MD *id_dgst_md;
-	const EVP_MD *kdf_md;
-	const EVP_MD *checksum_md;
-	point_conversion_form_t point_form;
-	KDF_FUNC kdf;
-
-	int is_initiator;
-	int do_checksum;
-
-	EC_KEY *ec_key;
-	unsigned char id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int id_dgstlen;
-
-	EC_KEY *remote_pubkey;
-	unsigned char remote_id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int remote_id_dgstlen;
-
-	const EC_GROUP *group;
-	BN_CTX *bn_ctx;
-	BIGNUM *order;
-	BIGNUM *two_pow_w;
-
-	BIGNUM *t;
-	EC_POINT *point;
-	unsigned char pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
-	unsigned char checksum[EVP_MAX_MD_SIZE];
-
-};
-
+function base64_test() {
+	var bin = [1, 2, 3, 4, 5];
+	var b64 = base64_encode(bin);
+	var buf = base64_decode(b64);
+	console.log(b64);
+	console.log(buf);
+}

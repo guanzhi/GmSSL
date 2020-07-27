@@ -46,6 +46,7 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  */
+package org.gmssl;
 
 public class GmSSL {
 

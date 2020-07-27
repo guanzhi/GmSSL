@@ -356,7 +356,12 @@ ULONG SKF_PrintECCSignature(BIO *out, ECCSIGNATUREBLOB *blob)
 
 ULONG DEVAPI SKF_GetAlgorName(ULONG ulAlgID, LPSTR *szName)
 {
-	return SAR_OK;
+	char *name;
+	if ((name = skf_algor_name(ulAlgID)) != NULL) {
+		*szName = (LPSTR)&name;
+		return SAR_OK;
+	}
+	return SAR_FAIL;
 }
 
 ULONG DEVAPI SKF_PrintErrorString(BIO *out, ULONG ulError)

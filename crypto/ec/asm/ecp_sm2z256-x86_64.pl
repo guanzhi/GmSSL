@@ -1267,6 +1267,9 @@ __ecp_sm2z256_sqr_montx:
 	 shrx	$a_ptr, $acc0, $t4
 	 mov	.Lpoly+8*3(%rip), $t1
 
+    # set of = 0
+    add \$0, $acc2
+
 	# reduction step 1
 	xor	$t1, $t1
 	adox	$acc0, $acc1
@@ -1281,6 +1284,9 @@ __ecp_sm2z256_sqr_montx:
 	shlx	$a_ptr, $acc1, $t0
 	shrx	$a_ptr, $acc1, $t4
 
+    # set of = 0
+    add \$0, $acc2
+
 	# reduction step 2
 	adox	$acc1, $acc2
 	adox	$t1, $acc3
@@ -1294,6 +1300,9 @@ __ecp_sm2z256_sqr_montx:
 	shlx	$a_ptr, $acc2, $t0
 	shrx	$a_ptr, $acc2, $t4
 
+    # set of = 0
+    add \$0, $acc2
+
 	# reduction step 3
 	adox	$acc2, $acc3
 	adox	$t1, $acc0
@@ -1306,6 +1315,9 @@ __ecp_sm2z256_sqr_montx:
 
 	shlx	$a_ptr, $acc3, $t0
 	shrx	$a_ptr, $acc3, $t4
+
+    # set of = 0
+    add \$0, $acc2
 
 	# reduction step 4
 	adox	$acc3, $acc0

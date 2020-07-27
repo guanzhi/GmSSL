@@ -81,7 +81,7 @@ static SKF_ALGOR_PAIR wisec_ciphers[] = {
 
 static ULONG wisec_get_cipher_algor(ULONG vendor_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(wisec_ciphers); i++) {
 		if (vendor_id == wisec_ciphers[i].vendor_id) {
 			return wisec_ciphers[i].std_id;
@@ -93,7 +93,7 @@ static ULONG wisec_get_cipher_algor(ULONG vendor_id)
 static ULONG wisec_get_cipher_cap(ULONG vendor_cap)
 {
 	ULONG std_cap = 0;
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(wisec_ciphers); i++) {
 		if (vendor_cap & wisec_ciphers[i].vendor_id) {
 			std_cap |= wisec_ciphers[i].std_id;
@@ -110,7 +110,7 @@ static SKF_ALGOR_PAIR wisec_digests[] = {
 
 static ULONG wisec_get_digest_algor(ULONG vendor_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(wisec_digests); i++) {
 		if (vendor_id == wisec_digests[i].vendor_id) {
 			return wisec_digests[i].std_id;
@@ -122,7 +122,7 @@ static ULONG wisec_get_digest_algor(ULONG vendor_id)
 static ULONG wisec_get_digest_cap(ULONG vendor_cap)
 {
 	ULONG std_cap = 0;
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(wisec_digests); i++) {
 		if (vendor_cap & wisec_digests[i].vendor_id) {
 			std_cap |= wisec_digests[i].std_id;
@@ -143,7 +143,7 @@ static SKF_ALGOR_PAIR wisec_pkeys[] = {
 
 static ULONG wisec_get_pkey_algor(ULONG vendor_id)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(wisec_pkeys); i++) {
 		if (vendor_id == wisec_pkeys[i].vendor_id) {
 			return wisec_pkeys[i].std_id;
@@ -155,7 +155,7 @@ static ULONG wisec_get_pkey_algor(ULONG vendor_id)
 static ULONG wisec_get_pkey_cap(ULONG vendor_cap)
 {
 	ULONG std_cap = 0;
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(wisec_pkeys); i++) {
 		if (vendor_cap & wisec_pkeys[i].vendor_id) {
 			std_cap |= wisec_pkeys[i].std_id;
@@ -178,7 +178,7 @@ static SKF_ERR_REASON wisec_errors[] = {
 
 static unsigned long wisec_get_error_reason(ULONG err)
 {
-	int i = 0;
+	size_t i = 0;
 	for (i = 0; i < OSSL_NELEM(wisec_errors); i++) {
 		if (err == wisec_errors[i].err) {
 			return wisec_errors[i].reason;

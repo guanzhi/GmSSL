@@ -139,12 +139,22 @@ void SM9_KEY_free(SM9_KEY *key)
 int SM9PrivateKey_get_gmtls_public_key(SM9PublicParameters *mpk,
 	SM9PrivateKey *sk, unsigned char pub_key[1024])
 {
+	/* FIXME */
+	(void)mpk;
+	(void)sk;
+	(void)pub_key;
+
 	return 0;
 }
 
 int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 	SM9PublicKey *pk, unsigned char encoded[1024])
 {
+	/* FIXME */
+	(void)mpk;
+	(void)pk;
+	(void)encoded;
+
 	return 0;
 }
 
@@ -186,26 +196,41 @@ int SM9_KEY_up_ref(SM9_KEY *sk)
 
 int sm9_check_pairing(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_scheme(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_hash1(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_encrypt_scheme(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
 int sm9_check_sign_scheme(int nid)
 {
+	/* FIXME */
+	(void)nid;
+
 	return 1;
 }
 
@@ -314,5 +339,4 @@ int SM9_hash2(const EVP_MD *md, BIGNUM **r,
 	
 
 }
-
 #endif

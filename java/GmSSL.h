@@ -12,7 +12,7 @@ extern "C" {
  * Method:    getVersions
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getVersions
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getVersions
   (JNIEnv *, jobject);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getVersions
  * Method:    getCiphers
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getCiphers
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getCiphers
   (JNIEnv *, jobject);
 
 /*
@@ -28,7 +28,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getCiphers
  * Method:    getDigests
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDigests
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getDigests
   (JNIEnv *, jobject);
 
 /*
@@ -36,7 +36,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDigests
  * Method:    getMacs
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getMacs
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getMacs
   (JNIEnv *, jobject);
 
 /*
@@ -44,7 +44,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getMacs
  * Method:    getSignAlgorithms
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getSignAlgorithms
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getSignAlgorithms
   (JNIEnv *, jobject);
 
 /*
@@ -52,7 +52,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getSignAlgorithms
  * Method:    getPublicKeyEncryptions
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getPublicKeyEncryptions
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getPublicKeyEncryptions
   (JNIEnv *, jobject);
 
 /*
@@ -60,7 +60,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getPublicKeyEncryptions
  * Method:    getDeriveKeyAlgorithms
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDeriveKeyAlgorithms
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getDeriveKeyAlgorithms
   (JNIEnv *, jobject);
 
 /*
@@ -68,7 +68,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getDeriveKeyAlgorithms
  * Method:    generateRandom
  * Signature: (I)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_generateRandom
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_generateRandom
   (JNIEnv *, jobject, jint);
 
 /*
@@ -76,7 +76,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_generateRandom
  * Method:    getCipherIVLength
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_GmSSL_getCipherIVLength
+JNIEXPORT jint JNICALL Java_org_gmssl_GmSSL_getCipherIVLength
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -84,7 +84,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_getCipherIVLength
  * Method:    getCipherKeyLength
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_GmSSL_getCipherKeyLength
+JNIEXPORT jint JNICALL Java_org_gmssl_GmSSL_getCipherKeyLength
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -92,7 +92,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_getCipherKeyLength
  * Method:    getCipherBlockSize
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_GmSSL_getCipherBlockSize
+JNIEXPORT jint JNICALL Java_org_gmssl_GmSSL_getCipherBlockSize
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -100,7 +100,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_getCipherBlockSize
  * Method:    symmetricEncrypt
  * Signature: (Ljava/lang/String;[B[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_symmetricEncrypt
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_symmetricEncrypt
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray, jbyteArray);
 
 /*
@@ -108,7 +108,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_symmetricEncrypt
  * Method:    symmetricDecrypt
  * Signature: (Ljava/lang/String;[B[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_symmetricDecrypt
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_symmetricDecrypt
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray, jbyteArray);
 
 /*
@@ -116,7 +116,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_symmetricDecrypt
  * Method:    getDigestLength
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_GmSSL_getDigestLength
+JNIEXPORT jint JNICALL Java_org_gmssl_GmSSL_getDigestLength
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -124,7 +124,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_getDigestLength
  * Method:    getDigestBlockSize
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_GmSSL_getDigestBlockSize
+JNIEXPORT jint JNICALL Java_org_gmssl_GmSSL_getDigestBlockSize
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -132,7 +132,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_getDigestBlockSize
  * Method:    digest
  * Signature: (Ljava/lang/String;[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_digest
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_digest
   (JNIEnv *, jobject, jstring, jbyteArray);
 
 /*
@@ -140,7 +140,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_digest
  * Method:    getMacLength
  * Signature: (Ljava/lang/String;)[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getMacLength
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getMacLength
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -148,7 +148,7 @@ JNIEXPORT jobjectArray JNICALL Java_GmSSL_getMacLength
  * Method:    mac
  * Signature: (Ljava/lang/String;[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_mac
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_mac
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray);
 
 /*
@@ -156,7 +156,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_mac
  * Method:    sign
  * Signature: (Ljava/lang/String;[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_sign
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_sign
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray);
 
 /*
@@ -164,7 +164,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_sign
  * Method:    verify
  * Signature: (Ljava/lang/String;[B[B[B)I
  */
-JNIEXPORT jint JNICALL Java_GmSSL_verify
+JNIEXPORT jint JNICALL Java_org_gmssl_GmSSL_verify
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray, jbyteArray);
 
 /*
@@ -172,7 +172,7 @@ JNIEXPORT jint JNICALL Java_GmSSL_verify
  * Method:    publicKeyEncrypt
  * Signature: (Ljava/lang/String;[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyEncrypt
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_publicKeyEncrypt
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray);
 
 /*
@@ -180,7 +180,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyEncrypt
  * Method:    publicKeyDecrypt
  * Signature: (Ljava/lang/String;[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_publicKeyDecrypt
   (JNIEnv *, jobject, jstring, jbyteArray, jbyteArray);
 
 /*
@@ -188,7 +188,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_publicKeyDecrypt
  * Method:    deriveKey
  * Signature: (Ljava/lang/String;I[B[B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_GmSSL_deriveKey
+JNIEXPORT jbyteArray JNICALL Java_org_gmssl_GmSSL_deriveKey
   (JNIEnv *, jobject, jstring, jint, jbyteArray, jbyteArray);
 
 /*
@@ -196,7 +196,7 @@ JNIEXPORT jbyteArray JNICALL Java_GmSSL_deriveKey
  * Method:    getErrorStrings
  * Signature: ()[Ljava/lang/String;
  */
-JNIEXPORT jobjectArray JNICALL Java_GmSSL_getErrorStrings
+JNIEXPORT jobjectArray JNICALL Java_org_gmssl_GmSSL_getErrorStrings
   (JNIEnv *, jobject);
 
 #ifdef __cplusplus

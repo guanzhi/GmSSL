@@ -236,7 +236,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getVersions(JNIEnv *env,
 	if (!(ret = (jobjectArray)(*env)->NewObjectArray(env, 7,
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETVERSIONS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETVERSIONS, JNI_R_JNI_MALLOC_FAILURE);
 		return NULL;
 	}
 
@@ -258,21 +258,21 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_generateRandom(
 	jbyte *outbuf = NULL;
 
 	if (outlen <= 0 || outlen >= INT_MAX) {
-		JNIerr(JNI_F_JAVA_GMSSL_GENERATERANDOM, JNI_R_INVALID_LENGTH);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GENERATERANDOM, JNI_R_INVALID_LENGTH);
 		return NULL;
 	}
 
 	if (!(outbuf = OPENSSL_malloc(outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GENERATERANDOM, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GENERATERANDOM, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	if (!RAND_bytes((unsigned char *)outbuf, outlen)) {
-		JNIerr(JNI_F_JAVA_GMSSL_GENERATERANDOM, JNI_R_GMSSL_RNG_ERROR);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GENERATERANDOM, JNI_R_GMSSL_RNG_ERROR);
 		goto end;
 	}
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GENERATERANDOM, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GENERATERANDOM, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -302,7 +302,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getCiphers(
 	int i;
 
 	if (!(sk = sk_OPENSSL_CSTRING_new_null())) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERS, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERS, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -312,7 +312,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getCiphers(
 		sk_OPENSSL_CSTRING_num(sk),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERS, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -334,12 +334,12 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getCipherIVLength(
 	const EVP_CIPHER *cipher;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERIVLENGTH, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERIVLENGTH, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!(cipher = EVP_get_cipherbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERIVLENGTH, JNI_R_INVALID_CIPHER);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERIVLENGTH, JNI_R_INVALID_CIPHER);
 		goto end;
 	}
 
@@ -358,12 +358,12 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getCipherKeyLength(
 	const EVP_CIPHER *cipher;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERKEYLENGTH, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERKEYLENGTH, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!(cipher = EVP_get_cipherbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERKEYLENGTH, JNI_R_INVALID_CIPHER);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERKEYLENGTH, JNI_R_INVALID_CIPHER);
 		goto end;
 	}
 
@@ -382,12 +382,12 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getCipherBlockSize(
 	const EVP_CIPHER *cipher;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERBLOCKSIZE, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERBLOCKSIZE, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!(cipher = EVP_get_cipherbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETCIPHERBLOCKSIZE, JNI_R_NONSUPPORTED_CIPHER);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETCIPHERBLOCKSIZE, JNI_R_NONSUPPORTED_CIPHER);
 		goto end;
 	}
 
@@ -413,23 +413,23 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_symmetricEncrypt(
 	EVP_CIPHER_CTX *cctx = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	/* null IV can be valid input for some ciphers */
@@ -437,41 +437,41 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_symmetricEncrypt(
 	ivlen = (*env)->GetArrayLength(env, iv);
 
 	if (!(cipher = EVP_get_cipherbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_INVALID_CIPHER);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_INVALID_CIPHER);
 		goto end;
 	}
 	if (keylen != EVP_CIPHER_key_length(cipher)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_INVALID_KEY_LENGTH);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_INVALID_KEY_LENGTH);
 		goto end;
 	}
 	if (ivlen != EVP_CIPHER_iv_length(cipher)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_INVALID_IV_LENGTH);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_INVALID_IV_LENGTH);
 		goto end;
 	}
 	if (!(outbuf = OPENSSL_malloc(inlen + 2 * EVP_CIPHER_block_size(cipher)))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!(cctx = EVP_CIPHER_CTX_new())) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!EVP_EncryptInit_ex(cctx, cipher, NULL, keybuf, ivbuf)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (!EVP_EncryptUpdate(cctx, outbuf, &outlen, inbuf, inlen)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (!EVP_EncryptFinal_ex(cctx, outbuf + outlen, &lastlen)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 	outlen += lastlen;
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICENCRYPT, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICENCRYPT, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -502,23 +502,23 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_symmetricDecrypt(
 	EVP_CIPHER_CTX *cctx = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	ivbuf = (unsigned char *)(*env)->GetByteArrayElements(env, iv, 0);
@@ -526,41 +526,41 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_symmetricDecrypt(
 
 
 	if (!(cipher = EVP_get_cipherbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_INVALID_CIPHER);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_INVALID_CIPHER);
 		goto end;
 	}
 	if (keylen != EVP_CIPHER_key_length(cipher)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_KEY_LENGTH);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_KEY_LENGTH);
 		goto end;
 	}
 	if (ivlen != EVP_CIPHER_iv_length(cipher)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_IV_LENGTH);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_IV_LENGTH);
 		goto end;
 	}
 	if (!(outbuf = OPENSSL_malloc(inlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!(cctx = EVP_CIPHER_CTX_new())) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (!EVP_DecryptInit_ex(cctx, cipher, NULL, keybuf, ivbuf)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (!EVP_DecryptUpdate(cctx, outbuf, &outlen, inbuf, inlen)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (!EVP_DecryptFinal_ex(cctx, outbuf + outlen, &lastlen)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 	outlen += lastlen;
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SYMMETRICDECRYPT, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SYMMETRICDECRYPT, JNI_R_JNI_MALLOC_FAILURE);
 	}
 
 	(*env)->SetByteArrayRegion(env, ret, 0, outlen, (jbyte *)outbuf);
@@ -593,7 +593,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getDigests(
 	int i;
 
 	if (!(sk = sk_OPENSSL_CSTRING_new_null())) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDIGESTS, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDIGESTS, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -603,7 +603,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getDigests(
 		sk_OPENSSL_CSTRING_num(sk),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDIGESTS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDIGESTS, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -625,12 +625,12 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getDigestLength(
 	const EVP_MD *md;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDIGESTLENGTH, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDIGESTLENGTH, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!(md = EVP_get_digestbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDIGESTLENGTH, JNI_R_INVALID_DIGEST);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDIGESTLENGTH, JNI_R_INVALID_DIGEST);
 		goto end;
 	}
 
@@ -649,12 +649,12 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_getDigestBlockSize(
 	const EVP_MD *md;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDIGESTBLOCKSIZE, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDIGESTBLOCKSIZE, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!(md = EVP_get_digestbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDIGESTBLOCKSIZE, JNI_R_INVALID_DIGEST);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDIGESTBLOCKSIZE, JNI_R_INVALID_DIGEST);
 		goto end;
 	}
 
@@ -677,29 +677,29 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_digest(JNIEnv *env, jobjec
 	const EVP_MD *md;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DIGEST, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DIGEST, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DIGEST, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DIGEST, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (size_t)(*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_DIGEST, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DIGEST, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!(md = EVP_get_digestbyname(alg))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DIGEST, JNI_R_INVALID_DIGEST);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DIGEST, JNI_R_INVALID_DIGEST);
 		goto end;
 	}
 	if (!EVP_Digest(inbuf, inlen, outbuf, &outlen, md, NULL)) {
-		JNIerr(JNI_F_JAVA_GMSSL_DIGEST, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DIGEST, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DIGEST, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DIGEST, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -729,7 +729,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getMacs(
 		OSSL_NELEM(mac_algors),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETMACS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETMACS, JNI_R_JNI_MALLOC_FAILURE);
 		return NULL;
 	}
 
@@ -755,23 +755,23 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_mac(JNIEnv *env, jobject t
 #endif
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
@@ -780,12 +780,12 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_mac(JNIEnv *env, jobject t
 		unsigned int len = sizeof(outbuf);
 
 		if (!(md = EVP_get_digestbyname(alg + strlen("HMAC-")))) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_INVALID_DIGEST);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_INVALID_DIGEST);
 			goto end;
 		}
 
 		if (!HMAC(md, keybuf, keylen, inbuf, inlen, outbuf, &len)) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_HMAC_ERROR);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_HMAC_ERROR);
 			goto end;
 		}
 
@@ -797,23 +797,23 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_mac(JNIEnv *env, jobject t
 		size_t len = sizeof(outbuf);
 
 		if (!(cipher = EVP_get_cipherbyname(alg + strlen("CMAC-")))) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_INVALID_CIPHER);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_INVALID_CIPHER);
 			goto end;
 		}
 		if (!(cctx = CMAC_CTX_new())) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, ERR_R_MALLOC_FAILURE);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, ERR_R_MALLOC_FAILURE);
 			goto end;
 		}
 		if (!CMAC_Init(cctx, keybuf, keylen, cipher, NULL)) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_CMAC_ERROR);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_CMAC_ERROR);
 			goto end;
 		}
 		if (!CMAC_Update(cctx, inbuf, inlen)) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_CMAC_ERROR);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_CMAC_ERROR);
 			goto end;
 		}
 		if (!CMAC_Final(cctx, outbuf, &len)) {
-			JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_CMAC_ERROR);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_CMAC_ERROR);
 			goto end;
 		}
 
@@ -824,7 +824,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_mac(JNIEnv *env, jobject t
 	}
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_MAC, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_MAC, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -937,7 +937,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getSignAlgorithms(
 		OSSL_NELEM(sign_nids),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETSIGNALGORITHMS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETSIGNALGORITHMS, JNI_R_JNI_MALLOC_FAILURE);
 		return NULL;
 	}
 
@@ -971,11 +971,11 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_sign(JNIEnv *env, jobject 
 	BIGNUM *privkey = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(idbuf = (*env)->GetStringUTFChars(env, uid, 0))) {
@@ -983,25 +983,25 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_sign(JNIEnv *env, jobject 
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 
 	if (!get_sign_info(alg, &pkey_type, &md, &ec_scheme)) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_INVALID_SIGN_ALGOR);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_INVALID_SIGN_ALGOR);
 		goto end;
 	}
 
 	cp = keybuf;
-
+  
 	/*if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cp, keylen))) {
 		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_INVALID_PRIVATE_KEY);
 		goto end;
@@ -1049,24 +1049,24 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_sign(JNIEnv *env, jobject 
 	}
 
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	if (EVP_PKEY_sign_init(pkctx) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (md) {
 		if (!EVP_PKEY_CTX_set_signature_md(pkctx, md)) {
-			JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EVP_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, ERR_R_EVP_LIB);
 			goto end;
 		}
 	}
 	if (pkey_type == EVP_PKEY_RSA) {
 #ifndef OPENSSL_NO_RSA
 		if (!EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_PKCS1_PSS_PADDING)) {
-			JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_RSA_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, ERR_R_RSA_LIB);
 			goto end;
 		}
 #endif
@@ -1074,7 +1074,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_sign(JNIEnv *env, jobject 
 #ifndef OPENSSL_NO_SM2
 		if (!EVP_PKEY_CTX_set_ec_scheme(pkctx, OBJ_txt2nid(alg) == NID_sm2sign ?
 			NID_sm_scheme : NID_secg_scheme)) {
-			JNIerr(JNI_F_JAVA_GMSSL_SIGN, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, ERR_R_EC_LIB);
 			goto end;
 		}
 #endif
@@ -1099,7 +1099,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_sign(JNIEnv *env, jobject 
 	}
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_SIGN, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_SIGN, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -1141,31 +1141,31 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_verify(JNIEnv *env, jobject this
 	BIGNUM *y = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(sigbuf = (unsigned char *)(*env)->GetByteArrayElements(env, sig, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((siglen = (*env)->GetArrayLength(env, sig)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(idbuf = (*env)->GetStringUTFChars(env, uid, 0))) {
@@ -1173,7 +1173,7 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_verify(JNIEnv *env, jobject this
 		goto end;
 	}
 	if (!get_sign_info(alg, &pkey_type, &md, &ec_scheme)) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_INVALID_SIGN_ALGOR);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_INVALID_SIGN_ALGOR);
 		goto end;
 	}
 	cp = keybuf;
@@ -1221,27 +1221,27 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_verify(JNIEnv *env, jobject this
 		goto end;
 	}
 	if (EVP_PKEY_id(pkey) != pkey_type) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, JNI_R_INVALID_PUBLIC_KEY);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, JNI_R_INVALID_PUBLIC_KEY);
 		goto end;
 	}
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	if (EVP_PKEY_verify_init(pkctx) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (md && !EVP_PKEY_CTX_set_signature_md(pkctx, md)) {
-		JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (pkey_type == EVP_PKEY_RSA) {
 #ifndef OPENSSL_NO_RSA
 		if (!EVP_PKEY_CTX_set_rsa_padding(pkctx, RSA_PKCS1_PSS_PADDING)) {
-			JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_RSA_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, ERR_R_RSA_LIB);
 			goto end;
 		}
 #endif
@@ -1250,7 +1250,7 @@ JNIEXPORT jint JNICALL Java_com_yzz_gmssl_GmSSL_verify(JNIEnv *env, jobject this
 
 		if (!EVP_PKEY_CTX_set_ec_scheme(pkctx, OBJ_txt2nid(alg) == NID_sm2sign ?
 			NID_sm_scheme : NID_secg_scheme)) {
-			JNIerr(JNI_F_JAVA_GMSSL_VERIFY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_VERIFY, ERR_R_EC_LIB);
 			goto end;
 		}
 #endif
@@ -1615,7 +1615,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getPublicKeyEncryptions(
 		OSSL_NELEM(pke_nids),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETPUBLICKEYENCRYPTIONS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETPUBLICKEYENCRYPTIONS, JNI_R_JNI_MALLOC_FAILURE);
 		return NULL;
 	}
 
@@ -1651,39 +1651,39 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_publicKeyEncrypt(
 	BIGNUM *y = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) > 256) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	cp = keybuf;
 	outlen = inlen + 1024;
 
 	if (!get_pke_info(alg, &pkey_type, &ec_scheme, &ec_encrypt_param)) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_INVALID_PUBLIC_KEY_ENCRYPTION_ALGOR);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_INVALID_PUBLIC_KEY_ENCRYPTION_ALGOR);
 		goto end;
 	}
 
 	if (!(outbuf = OPENSSL_malloc(outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	/*if (!(pkey = d2i_PUBKEY(NULL, &cp, (long)keylen))) {
@@ -1730,39 +1730,39 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_publicKeyEncrypt(
 		goto end;
 	}
 	if (EVP_PKEY_id(pkey) != pkey_type) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_INVALID_PUBLIC_KEY);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_INVALID_PUBLIC_KEY);
 		goto end;
 	}
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
 	if (EVP_PKEY_encrypt_init(pkctx) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (pkey_type == EVP_PKEY_EC) {
 #if !defined(OPENSSL_NO_ECIES) || !defined(OPENSSL_NO_SM2)
 		if (!EVP_PKEY_CTX_set_ec_scheme(pkctx, ec_scheme)) {
-			JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
 		if (!EVP_PKEY_CTX_set_ec_encrypt_param(pkctx, ec_encrypt_param)) {
-			JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
 #endif
 	}
 
 	if (EVP_PKEY_encrypt(pkctx, outbuf, &outlen, inbuf, inlen) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYENCRYPT, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYENCRYPT, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -1812,35 +1812,35 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_publicKeyDecrypt(
 	BIGNUM *privkey = NULL;
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, in, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, in)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	cp = keybuf;
 	outlen = inlen;
 
 	if(!get_pke_info(alg, &pkey_type, &ec_scheme, &ec_encrypt_param)) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_INVALID_PUBLIC_KEY_ENCRYPTION_ALGOR);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_INVALID_PUBLIC_KEY_ENCRYPTION_ALGOR);
 		goto end;
 	}
 
 	if (!(outbuf = OPENSSL_malloc(outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	/*if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cp, (long)keylen))) {
@@ -1889,34 +1889,34 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_publicKeyDecrypt(
 	}
 
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (EVP_PKEY_decrypt_init(pkctx) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (pkey_type == EVP_PKEY_EC) {
 #if !defined(OPENSSL_NO_ECIES) || !defined(OPENSSL_NO_SM2)
 		if (!EVP_PKEY_CTX_set_ec_scheme(pkctx, ec_scheme)) {
-			JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
 
 		if (!EVP_PKEY_CTX_set_ec_encrypt_param(pkctx, ec_encrypt_param)) {
-			JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, ERR_R_EC_LIB);
 			goto end;
 		}
 #endif
 	}
 	if (EVP_PKEY_decrypt(pkctx, outbuf, &outlen, inbuf, inlen) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_PUBLICKEYDECRYPT, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_PUBLICKEYDECRYPT, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -2070,7 +2070,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getDeriveKeyAlgorithms(
 		OSSL_NELEM(exch_nids),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETDERIVEKEYALGORITHMS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETDERIVEKEYALGORITHMS, JNI_R_JNI_MALLOC_FAILURE);
 		return NULL;
 	}
 
@@ -2109,27 +2109,27 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_deriveKey(
 
 
 	if (!(alg = (*env)->GetStringUTFChars(env, algor, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((outkeylen <= 0 || outkeylen > sizeof(outbuf))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(inbuf = (unsigned char *)(*env)->GetByteArrayElements(env, peerkey, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((inlen = (*env)->GetArrayLength(env, peerkey)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if (!(keybuf = (unsigned char *)(*env)->GetByteArrayElements(env, key, 0))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	if ((keylen = (*env)->GetArrayLength(env, key)) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_BAD_ARGUMENT);
 		goto end;
 	}
 	cpin = inbuf;
@@ -2137,73 +2137,73 @@ JNIEXPORT jbyteArray JNICALL Java_com_yzz_gmssl_GmSSL_deriveKey(
 
 	if (!get_exch_info(alg, &pkey_type, &ec_scheme,
 		&ecdh_cofactor_mode, &ecdh_kdf_type, &ecdh_kdf_md, &ecdh_kdf_outlen, &ecdh_kdf_ukm, &ecdh_kdf_ukm_len)) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_INVALID_DERIVE_KEY_ALGOR);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_INVALID_DERIVE_KEY_ALGOR);
 		goto end;
 	}
 
 
 	if (!(peerpkey = d2i_PUBKEY(NULL, &cpin, (long)inlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_INVALID_PUBLIC_KEY);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_INVALID_PUBLIC_KEY);
 		goto end;
 	}
 	if (EVP_PKEY_id(peerpkey) != pkey_type) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_INVALID_PUBLIC_KEY);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_INVALID_PUBLIC_KEY);
 		goto end;
 	}
 	if (!(pkey = d2i_PrivateKey(pkey_type, NULL, &cpkey, (long)keylen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_INVALID_PRIVATE_KEY);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_INVALID_PRIVATE_KEY);
 		goto end;
 	}
 	if (!(pkctx = EVP_PKEY_CTX_new(pkey, NULL))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 	if (EVP_PKEY_derive_init(pkctx) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (pkey_type == EVP_PKEY_EC) {
 		if (!EVP_PKEY_CTX_set_ec_scheme(pkctx, ec_scheme)) {
-			JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
 			goto end;
 		}
 	}
 	if (ec_scheme == NID_secg_scheme) {
 		if (!EVP_PKEY_CTX_set_ecdh_cofactor_mode(pkctx, ecdh_cofactor_mode)) {
-			JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
 			goto end;
 		}
 		if (!EVP_PKEY_CTX_set_ecdh_kdf_type(pkctx, ecdh_kdf_type)) {
-			JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
 			goto end;
 		}
 		if (!EVP_PKEY_CTX_set_ecdh_kdf_md(pkctx, EVP_get_digestbynid(ecdh_kdf_md))) {
-			JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
 			goto end;
 		}
 		if (!EVP_PKEY_CTX_set_ecdh_kdf_outlen(pkctx, ecdh_kdf_outlen)) {
-			JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
 			goto end;
 		}
 		if (!EVP_PKEY_CTX_set0_ecdh_kdf_ukm(pkctx, ecdh_kdf_ukm, ecdh_kdf_ukm_len)) {
-			JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
+			JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EC_LIB);
 			goto end;
 		}
 	} else if (ec_scheme == NID_sm_scheme) {
 	}
 
 	if (EVP_PKEY_derive_set_peer(pkctx, peerpkey) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EVP_LIB);
 		goto end;
 	}
 	if (EVP_PKEY_derive(pkctx, outbuf, &outlen) <= 0) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, ERR_R_EVP_LIB);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, ERR_R_EVP_LIB);
 		goto end;
 	}
 
 	if (!(ret = (*env)->NewByteArray(env, outlen))) {
-		JNIerr(JNI_F_JAVA_GMSSL_DERIVEKEY, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_DERIVEKEY, JNI_R_JNI_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -2249,7 +2249,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getErrorStrings(JNIEnv *
 	int i;
 
 	if (!(sk = sk_OPENSSL_STRING_new_null())) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETERRORSTRINGS, ERR_R_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETERRORSTRINGS, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
 
@@ -2259,7 +2259,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_yzz_gmssl_GmSSL_getErrorStrings(JNIEnv *
 		sk_OPENSSL_STRING_num(sk),
 		(*env)->FindClass(env, "java/lang/String"),
 		(*env)->NewStringUTF(env, "")))) {
-		JNIerr(JNI_F_JAVA_GMSSL_GETERRORSTRINGS, JNI_R_JNI_MALLOC_FAILURE);
+		JNIerr(JNI_F_JAVA_ORG_GMSSL_GMSSL_GETERRORSTRINGS, JNI_R_JNI_MALLOC_FAILURE);
 		return NULL;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 - 2017 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,53 +46,21 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define EC_KEY_METHOD_SM2	0x02
+function rand_bytes(data, len) {
+	var buf = new Uint8Array(len);
+	window.crypto.getRandomValues(buf);
+	for (var i = 0; i < len; i++) {
+		data[i] = buf[i];
+		buf[i] = 0;
+	}
+	delete buf;
+}
 
-#define SM2_DEFAULT_POINT_CONVERSION_FORM	POINT_CONVERSION_UNCOMPRESSED
-
-#define SM2_MAX_PKEY_DATA_LENGTH		((EC_MAX_NBYTES + 1) * 6)
-
-#define SM2_MAX_PLAINTEXT_LENGTH		65535
-#define SM2_MAX_CIPHERTEXT_LENGTH		(SM2_MAX_PLAINTEXT_LENGTH + 2048)
-
-
-int SM2_get_public_key_data(EC_KEY *ec_key, unsigned char *out, size_t *outlen);
-
-struct SM2CiphertextValue_st {
-	BIGNUM *xCoordinate;
-	BIGNUM *yCoordinate;
-	ASN1_OCTET_STRING *hash;
-	ASN1_OCTET_STRING *ciphertext;
-};
-
-struct sm2_kap_ctx_st {
-
-	const EVP_MD *id_dgst_md;
-	const EVP_MD *kdf_md;
-	const EVP_MD *checksum_md;
-	point_conversion_form_t point_form;
-	KDF_FUNC kdf;
-
-	int is_initiator;
-	int do_checksum;
-
-	EC_KEY *ec_key;
-	unsigned char id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int id_dgstlen;
-
-	EC_KEY *remote_pubkey;
-	unsigned char remote_id_dgst[EVP_MAX_MD_SIZE];
-	unsigned int remote_id_dgstlen;
-
-	const EC_GROUP *group;
-	BN_CTX *bn_ctx;
-	BIGNUM *order;
-	BIGNUM *two_pow_w;
-
-	BIGNUM *t;
-	EC_POINT *point;
-	unsigned char pt_buf[1 + (OPENSSL_ECC_MAX_FIELD_BITS+7)/4];
-	unsigned char checksum[EVP_MAX_MD_SIZE];
-
-};
-
+function bn_rand_range(a, n) {
+	var t = new Uint16Array(16);
+	do {
+		window.crypto.getRandomValues(t);
+	} while (bn_cmp(t, n) >= 0);
+	bn_copy(a, t);
+	bn_free(t);
+}

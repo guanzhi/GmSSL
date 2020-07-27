@@ -124,7 +124,7 @@ static SDF_ERR_REASON sdf_errors[] = {
 
 static unsigned long sdf_get_error_reason(int err)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < OSSL_NELEM(sdf_errors); i++) {
 		if (err == sdf_errors[i].err) {
 			return sdf_errors[i].reason;

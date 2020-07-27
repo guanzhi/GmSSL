@@ -107,10 +107,6 @@ int SM9PublicKey_get_gmtls_encoded(SM9PublicParameters *mpk,
 
 int SM9_signature_size(const SM9PublicParameters *mpk);
 
-SM9Signature *SM9_do_sign(const unsigned char *dgst, int dgstlen, SM9_KEY *sm9);
-int SM9_do_verify(const unsigned char *dgst, int dgstlen,
-	const SM9Signature *sig, SM9_KEY *sm9);
-
 int SM9_sign(int type,
 	const unsigned char *data, size_t datalen,
 	unsigned char *sig, size_t *siglen,

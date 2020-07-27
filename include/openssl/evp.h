@@ -972,7 +972,7 @@ const EVP_CIPHER *EVP_zuc256(void);
 int EVP_add_cipher(const EVP_CIPHER *cipher);
 int EVP_add_digest(const EVP_MD *digest);
 
-const EVP_CIPHER *EVP_get_default_cipher(void);
+/* original OpenSSL use MD5 or SHA1 as default hash algor */
 const EVP_MD *EVP_get_default_digest(void);
 
 const EVP_CIPHER *EVP_get_cipherbyname(const char *name);

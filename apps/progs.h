@@ -197,7 +197,7 @@ static FUNCTION functions[] = {
 #endif
     { FT_general, "paiutl", paiutl_main, paiutl_options },
     { FT_general, "passwd", passwd_main, passwd_options },
-#ifndef OPENSSL_NO_DES
+#ifndef OPENSSL_NO_PKCS12
     { FT_general, "pkcs12", pkcs12_main, pkcs12_options },
 #endif
 #ifndef OPENSSL_NO_PKCS7

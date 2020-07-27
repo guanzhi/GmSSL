@@ -196,7 +196,7 @@ int SM9_wrap_key(int type, /* NID_sm9kdf_with_sm3 */
 		return 0;
 	}
 
-	if (keylen > EVP_MD_size(kdf_md) * 255) {
+	if (keylen > (size_t)EVP_MD_size(kdf_md) * 255) {
 		SM9err(SM9_F_SM9_WRAP_KEY, SM9_R_INVALID_KEM_KEY_LENGTH);
 		return 0;
 	}
@@ -343,7 +343,8 @@ int SM9_encrypt(int type,
 	size_t C1_len;
 	unsigned char mac[EVP_MAX_MD_SIZE];
 	unsigned int maclen = sizeof(mac);
-	int len, i;
+	int len;
+	size_t i;
 
 	/* parse type */
 	switch (type) {
@@ -465,7 +466,7 @@ int SM9_decrypt(int type,
 		*outlen = C2_len;
 		ret = 1;
 		goto end;
-	} else if (*outlen < C2_len) {
+	} else if (*outlen < (size_t)C2_len) {
 		SM9err(SM9_F_SM9_DECRYPT, SM9_R_BUFFER_TOO_SMALL);
 		goto end;
 	}
