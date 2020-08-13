@@ -11,7 +11,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Hyperledger-TWGC/Gm-Go/gmssl"
+	"github.com/Hyperledger-TWGC/pku-gm/gmssl"
 	"testing"
 )
 
