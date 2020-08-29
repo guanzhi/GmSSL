@@ -14,6 +14,7 @@ package gmssl
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/crypto.h>
+#include <openssl/sms4.h>
 
 static void cb_cipher_names_len(const EVP_CIPHER *cipher, const char *from,
 	const char *to, void *x) {
@@ -94,6 +95,21 @@ type CipherContext struct {
 	ctx *C.EVP_CIPHER_CTX
 }
 
+func CipherECBenc(input []byte, key []byte) ([]byte, error) {
+	output := make([]byte, 16)
+
+	var sms4_key C.sms4_key_t
+	C.sms4_set_encrypt_key(&sms4_key, (*C.uchar)(&key[0]))
+	C.sms4_encrypt((*C.uchar)(&input[0]), (*C.uchar)(&output[0]), &sms4_key)
+	return output[:16], nil
+}
+func CipherECBdec(input []byte, key []byte) ([]byte, error) {
+	output := make([]byte, 16)
+	var sms4_key C.sms4_key_t
+	C.sms4_set_decrypt_key(&sms4_key, (*C.uchar)(&key[0]))
+	C.sms4_encrypt((*C.uchar)(&input[0]), (*C.uchar)(&output[0]), &sms4_key)
+	return output[:16], nil
+}
 func NewCipherContext(name string, key, iv []byte, encrypt bool) (
 	*CipherContext, error) {
 	cname := C.CString(name)

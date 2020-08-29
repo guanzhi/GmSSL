@@ -97,8 +97,32 @@ func TestSMS4CBC(t *testing.T) {
 		t.Fatalf("decrypt result should be %s, but got %s", rawContent, plaintext)
 	}
 
-	fmt.Printf("sms4(%s) = %x\n", plaintext, ciphertext)
+	fmt.Printf("sms4_cbc(%s) = %x\n", plaintext, ciphertext)
 }
+
+func TestSMS4ECB(t *testing.T) {
+
+	key := randomKey()
+	rawContent := []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}
+
+	ciphertext, err := gmssl.CipherECBenc(rawContent, key)
+
+	PanicError(err)
+	fmt.Printf("ciphertext = %x\n", ciphertext)
+	plaintext, err := gmssl.CipherECBdec(ciphertext, key)
+
+	PanicError(err)
+
+	fmt.Printf("plaintext = %x\n", plaintext)
+
+	if string(plaintext) != string(rawContent) {
+
+		t.Fatalf("decrypt result should be %x, but got %x", rawContent, plaintext)
+	}
+
+	fmt.Printf("sms4_ecb(%x) = %x\n", plaintext, rawContent)
+}
+
 func TestRSA(t *testing.T) {
 	/* private key */
 	rsaArgs := [][2]string{
