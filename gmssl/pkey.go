@@ -738,7 +738,7 @@ func (sk *PrivateKey) GetPEM(cipher string, pass string) (string, error) {
 	}
 	defer C.BIO_free(bio)
 
-	if (cipher == "") && (pass == "") {
+	if cipher == "" && pass == "" {
 		/* FIXME: PKCS #5 can not use SM4 */
 		if 1 != C.PEM_write_bio_PrivateKey(bio, sk.pkey,
 			nil, nil, C.int(0), nil, nil) {
