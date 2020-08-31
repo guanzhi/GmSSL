@@ -634,6 +634,7 @@ type PrivateKey struct {
 	pkey *C.EVP_PKEY
 }
 
+// 生成私钥，并返回私钥对象
 func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey, error) {
 	calg := C.CString(alg)
 	defer C.free(unsafe.Pointer(calg))
@@ -706,6 +707,7 @@ func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey,
 	return sk, nil
 }
 
+//通过 PEM 格式的字符串读取私钥
 func NewPrivateKeyFromPEM(pem string, pass string) (*PrivateKey, error) {
 	cpem := C.CString(pem)
 	defer C.free(unsafe.Pointer(cpem))
@@ -727,11 +729,8 @@ func NewPrivateKeyFromPEM(pem string, pass string) (*PrivateKey, error) {
 	return sk, nil
 }
 
+//将私钥导出为 PEM 字符串
 func (sk *PrivateKey) GetPEM(cipher string, pass string) (string, error) {
-	ccipher := C.CString(cipher)
-	defer C.free(unsafe.Pointer(ccipher))
-	cpass := C.CString(pass)
-	defer C.free(unsafe.Pointer(cpass))
 
 	bio := C.BIO_new(C.BIO_s_mem())
 	if bio == nil {
@@ -739,18 +738,32 @@ func (sk *PrivateKey) GetPEM(cipher string, pass string) (string, error) {
 	}
 	defer C.BIO_free(bio)
 
-	enc := C.EVP_get_cipherbyname(ccipher)
-	if enc == nil {
-		return "", GetErrors()
-	}
+	if (cipher == "") && (pass == "") {
+		/* FIXME: PKCS #5 can not use SM4 */
+		if 1 != C.PEM_write_bio_PrivateKey(bio, sk.pkey,
+			nil, nil, C.int(0), nil, nil) {
+			C.ERR_print_errors_fp(C.stderr)
+			return "", GetErrors()
+		}
 
-	/* FIXME: PKCS #5 can not use SM4 */
-	if 1 != C.PEM_write_bio_PrivateKey(bio, sk.pkey,
-		C.EVP_des_ede3_cbc(), nil, C.int(0), nil, unsafe.Pointer(cpass)) {
-		C.ERR_print_errors_fp(C.stderr)
-		return "", GetErrors()
-	}
+	} else {
+		ccipher := C.CString(cipher)
+		defer C.free(unsafe.Pointer(ccipher))
+		cpass := C.CString(pass)
+		defer C.free(unsafe.Pointer(cpass))
 
+		enc := C.EVP_get_cipherbyname(ccipher)
+		if enc == nil {
+			return "", GetErrors()
+		}
+
+		/* FIXME: PKCS #5 can not use SM4 */
+		if 1 != C.PEM_write_bio_PrivateKey(bio, sk.pkey,
+			C.EVP_des_ede3_cbc(), nil, C.int(0), nil, unsafe.Pointer(cpass)) {
+			C.ERR_print_errors_fp(C.stderr)
+			return "", GetErrors()
+		}
+	}
 	var p *C.char
 	l := C._BIO_get_mem_data(bio, &p)
 	if l <= 0 {
@@ -760,6 +773,7 @@ func (sk *PrivateKey) GetPEM(cipher string, pass string) (string, error) {
 	return C.GoString(p)[:l], nil
 }
 
+//将私钥对象转换为公钥对象，返回公钥对象的 PEM 字符串
 func (sk *PrivateKey) GetPublicKeyPEM() (string, error) {
 	bio := C.BIO_new(C.BIO_s_mem())
 	if bio == nil {
@@ -777,6 +791,7 @@ func (sk *PrivateKey) GetPublicKeyPEM() (string, error) {
 	return C.GoString(p)[:l], nil
 }
 
+//将私钥对象转换为公钥对象
 func (sk *PrivateKey) GetPublicKey() (*PublicKey, error) {
 
 	pkey := sk.pkey
@@ -809,6 +824,7 @@ func (sk *PrivateKey) GetText() (string, error) {
 	return C.GoString(p)[:l], nil
 }
 
+// 导入 PEM 格式编码的公钥对象
 func NewPublicKeyFromPEM(pem string) (*PublicKey, error) {
 	cpem := C.CString(pem)
 	defer C.free(unsafe.Pointer(cpem))
@@ -828,6 +844,7 @@ func NewPublicKeyFromPEM(pem string) (*PublicKey, error) {
 	return pk, nil
 }
 
+// 获取公钥对象的 PEM 编码
 func (pk *PublicKey) GetPEM() (string, error) {
 	bio := C.BIO_new(C.BIO_s_mem())
 	if bio == nil {
