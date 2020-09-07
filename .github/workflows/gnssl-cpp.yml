@@ -13,10 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: autogen.sh
-      run: ./autogen.sh 
-    - name: configure
-      run: ./configure
+    - name: config
+      run: ./config
     - name: make
       run: make
     - name: make check
