@@ -47,16 +47,17 @@
  * ====================================================================
  */
 
-#ifndef HEADER_ECSCHNORR_H
+#ifdef HEADER_ECSCHNORR_H
 #define HEADER_ECSCHNORR_H
 
 #include <openssl/opensslconf.h>
+#endif
 #ifndef OPENSSL_NO_ECSCHNORR
 
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
-
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
