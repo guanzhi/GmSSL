@@ -2810,11 +2810,13 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
 #endif
     int al, ret = MSG_PROCESS_ERROR;
     int type = 0, j;
-    unsigned int len;
+    unsigned int len, dgstlen;
     X509 *peer;
     const EVP_MD *md = NULL;
     long hdatalen = 0;
     void *hdata;
+    unsigned char z[EVP_MAX_MD_SIZE],dgst[SM3_DIGEST_LENGTH];
+    size_t zlen;
 
     EVP_MD_CTX *mctx = EVP_MD_CTX_new();
 
@@ -2904,12 +2906,48 @@ MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt)
 #ifdef SSL_DEBUG
     fprintf(stderr, "Using client verify alg %s\n", EVP_MD_name(md));
 #endif
-    if (!EVP_VerifyInit_ex(mctx, md, NULL)
-        || !EVP_VerifyUpdate(mctx, hdata, hdatalen)) {
+
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s)){
+		dgstlen = sizeof(dgst);
+		zlen = SM3_DIGEST_LENGTH;
+        if (!SM2_compute_id_digest(EVP_sm3(), SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH, z, &zlen,
+	    	EVP_PKEY_get0_EC_KEY(pkey))) {
+			SSLerr(SSL_F_TLS_PROCESS_CERT_VERIFY, ERR_R_INTERNAL_ERROR);
+	    	goto f_err;
+		}
+		if(!EVP_Digest(hdata, hdatalen, dgst, &dgstlen, EVP_sm3(), NULL)) {
+	    	SSLerr(SSL_F_TLS_PROCESS_CERT_VERIFY, ERR_R_INTERNAL_ERROR);
+	    	goto f_err;
+		}
+    }
+#endif
+
+    if (!EVP_VerifyInit_ex(mctx, md, NULL)){
         SSLerr(SSL_F_TLS_PROCESS_CERT_VERIFY, ERR_R_EVP_LIB);
         al = SSL_AD_INTERNAL_ERROR;
         goto f_err;
     }
+
+#ifndef OPENSSL_NO_GMTLS
+    if (SSL_IS_GMTLS(s)){
+		if(!EVP_VerifyUpdate(mctx, z, zlen)
+		  ||!EVP_VerifyUpdate(mctx, dgst, dgstlen)) {
+	            SSLerr(SSL_F_TLS_PROCESS_CERT_VERIFY, ERR_R_EVP_LIB);
+		    	al = SSL_AD_INTERNAL_ERROR;
+	            goto f_err;
+		}
+    }
+    else
+#endif
+    {
+        if(!EVP_VerifyUpdate(mctx, hdata, hdatalen)) {
+            SSLerr(SSL_F_TLS_PROCESS_CERT_VERIFY, ERR_R_EVP_LIB);
+            al = SSL_AD_INTERNAL_ERROR;
+            goto f_err;
+        }
+    } 
+
 #ifndef OPENSSL_NO_GOST
     {
         int pktype = EVP_PKEY_id(pkey);
