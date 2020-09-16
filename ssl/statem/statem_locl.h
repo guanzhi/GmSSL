@@ -166,7 +166,7 @@ __owur MSG_PROCESS_RETURN tls_process_client_certificate(SSL *s, PACKET *pkt);
 __owur MSG_PROCESS_RETURN tls_process_client_key_exchange(SSL *s, PACKET *pkt);
 __owur WORK_STATE tls_post_process_client_key_exchange(SSL *s, WORK_STATE wst);
 __owur MSG_PROCESS_RETURN tls_process_cert_verify(SSL *s, PACKET *pkt);
-__owur MSG_PROCESS_RETURN tls_process_cert_verify_no_s(SSL *s, PACKET *pkt);
+__owur MSG_PROCESS_RETURN tls_process_cert_verify_no_z(SSL *s, PACKET *pkt);
 
 #ifndef OPENSSL_NO_NEXTPROTONEG
 __owur MSG_PROCESS_RETURN tls_process_next_proto(SSL *s, PACKET *pkt);
