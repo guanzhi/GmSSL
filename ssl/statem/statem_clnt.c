@@ -2772,6 +2772,15 @@ int tls_construct_client_verify(SSL *s)
     }
 
     p = ssl_handshake_start(s);
+
+/*这是新添加的*/
+#ifndef OPENSSL_NO_GMTLS
+	if (SSL_IS_GMTLS(s) && s->cert->pkeys[SSL_PKEY_SM2].privatekey)
+		pkey = s->cert->pkeys[SSL_PKEY_SM2].privatekey;
+	else
+#endif
+/*新添加的结束*/
+	
     pkey = s->cert->key->privatekey;
 
     hdatalen = BIO_get_mem_data(s->s3->handshake_buffer, &hdata);
