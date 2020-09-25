@@ -19,7 +19,7 @@ jobs:
         stale-pr-label: 'no-pr-activity'
         # The labels to apply when an issue is exempt from being marked stale. Separate multiple labels with commas (eg. "label1,label2")
         exempt-issue-labels: ''
-        
+        operations-per-run: 500
         # The labels to apply when a pull request is exempt from being marked stale. Separate multiple labels with commas (eg. "label1,label2")
         exempt-pr-labels: ''
         
