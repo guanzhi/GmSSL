@@ -538,7 +538,7 @@ end:
 	}
 	OPENSSL_free(encodedPoint);
 	EVP_MD_CTX_free(md_ctx);
-	OPENSSL_free(id);
+	//OPENSSL_free(id);
 	return ret;
 }
 
