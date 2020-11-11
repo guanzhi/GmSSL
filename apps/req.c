@@ -22,6 +22,8 @@
 #include <openssl/objects.h>
 #include <openssl/pem.h>
 #include <openssl/bn.h>
+#include "../crypto/include/internal/evp_int.h"
+#include "../crypto/include/internal/x509_int.h"
 #ifndef OPENSSL_NO_RSA
 # include <openssl/rsa.h>
 #endif
@@ -29,6 +31,8 @@
 # include <openssl/dsa.h>
 #endif
 
+# include <openssl/gmskf.h>
+# include <openssl/gmapi.h>
 #define SECTION         "req"
 
 #define BITS            "default_bits"
@@ -45,7 +49,7 @@
 #define MIN_KEY_LENGTH          512
 
 static int make_REQ(X509_REQ *req, EVP_PKEY *pkey, char *dn, int mutlirdn,
-                    int attribs, unsigned long chtype);
+                    int attribs, unsigned long chtype,HCONTAINER ch);
 static int build_subject(X509_REQ *req, const char *subj, unsigned long chtype,
                          int multirdn);
 static int prompt_info(X509_REQ *req,
@@ -67,11 +71,13 @@ static int check_end(const char *str, const char *end);
 static EVP_PKEY_CTX *set_keygen_ctx(const char *gstr,
                                     int *pkey_type, long *pkeylen,
                                     char **palgnam, ENGINE *keygen_engine);
+static int do_X509_REQ_sign_key(X509_REQ *x, DEVHANDLE dh,HCONTAINER ch, const EVP_MD *md,
+                     STACK_OF(OPENSSL_STRING) *sigopts);
 static CONF *req_conf = NULL;
 static int batch = 0;
 
 typedef enum OPTION_choice {
-    OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,
+    OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,OPT_LIB,OPT_DEV,OPT_APP,OPT_CONTAINER,OPT_PASS,
     OPT_INFORM, OPT_OUTFORM, OPT_ENGINE, OPT_KEYGEN_ENGINE, OPT_KEY,
     OPT_PUBKEY, OPT_NEW, OPT_CONFIG, OPT_KEYFORM, OPT_IN, OPT_OUT,
     OPT_KEYOUT, OPT_PASSIN, OPT_PASSOUT, OPT_RAND, OPT_NEWKEY,
@@ -84,6 +90,11 @@ typedef enum OPTION_choice {
 
 OPTIONS req_options[] = {
     {"help", OPT_HELP, '-', "Display this summary"},
+	{"lib", OPT_LIB, 's', "Vendor's SKF dynamic library"},
+	{"dev", OPT_DEV, 's', "Device name"},
+	{"app", OPT_APP, 's', "Application name"},
+	{"container", OPT_CONTAINER, 's', "Container name"},
+	{"pass", OPT_PASS, 's', "Application user or admin pass-phrase source"},
     {"inform", OPT_INFORM, 'F', "Input format - DER or PEM"},
     {"outform", OPT_OUTFORM, 'F', "Output format - DER or PEM"},
     {"in", OPT_IN, '<', "Input file"},
@@ -139,6 +150,10 @@ OPTIONS req_options[] = {
 
 int req_main(int argc, char **argv)
 {
+    const char* devname=NULL;
+    const char* appname=NULL;
+    const char* containername=NULL;
+    const char* passarg=NULL;
     ASN1_INTEGER *serial = NULL;
     BIO *in = NULL, *out = NULL;
     ENGINE *e = NULL, *gen_eng = NULL;
@@ -156,6 +171,7 @@ int req_main(int argc, char **argv)
     char *nofree_passin = NULL, *nofree_passout = NULL;
     char *req_exts = NULL, *subj = NULL;
     char *template = default_config_file, *keyout = NULL;
+    const char* lib=NULL;
     const char *keyalg = NULL;
     OPTION_CHOICE o;
     int ret = 1, x509 = 0, days = 30, i = 0, newreq = 0, verbose = 0;
@@ -203,6 +219,9 @@ int req_main(int argc, char **argv)
             }
 #endif
             break;
+        case OPT_LIB:
+            lib = opt_arg();
+        break;
         case OPT_KEY:
             keyfile = opt_arg();
             break;
@@ -225,6 +244,18 @@ int req_main(int argc, char **argv)
         case OPT_OUT:
             outfile = opt_arg();
             break;
+        case OPT_DEV:
+			devname = opt_arg();
+			break;
+        case OPT_APP:
+			appname = opt_arg();
+			break;
+        case OPT_CONTAINER:
+			containername = opt_arg();
+			break;
+        case OPT_PASS:
+			passarg = opt_arg();
+			break;
         case OPT_KEYOUT:
             keyout = opt_arg();
             break;
@@ -343,7 +374,12 @@ int req_main(int argc, char **argv)
         BIO_printf(bio_err, "Error getting passwords\n");
         goto end;
     }
-
+    if(lib!=NULL){
+	    if (SKF_LoadLibrary((LPSTR)lib, (LPSTR)NULL) != SAR_OK) {
+		    ERR_print_errors(bio_err);
+		    goto end;
+	    }
+    }
     if (verbose)
         BIO_printf(bio_err, "Using configuration from %s\n", template);
     req_conf = app_load_config(template);
@@ -461,8 +497,8 @@ int req_main(int argc, char **argv)
             app_RAND_load_file(randfile, 0);
         }
     }
-
-    if (newreq && (pkey == NULL)) {
+    
+    if (!lib && newreq && (pkey == NULL)) {
         char *randfile = NCONF_get_string(req_conf, SECTION, "RANDFILE");
         if (randfile == NULL)
             ERR_clear_error();
@@ -586,9 +622,36 @@ int req_main(int argc, char **argv)
             goto end;
         }
     }
+        DEVHANDLE dh;
+        HAPPLICATION ah;
+        HCONTAINER ch;
+        unsigned int re;
+        if(devname!=NULL&&appname!=NULL&&containername!=NULL)
+        {
+            if(SKF_ConnectDev((LPSTR)devname,&dh)!=SAR_OK)
+            {
+                BIO_printf(bio_err, "unable to connect ukey\n");
+                goto end;
+            }
+            if(SKF_OpenApplication(dh,(LPSTR)appname,&ah)!=SAR_OK)
+            {
+                BIO_printf(bio_err, "unable to open application\n");
+                goto end;
+            }
+            if(SKF_VerifyPIN(ah,USER_TYPE,(LPSTR)passarg,&re)!=SAR_OK)
+            {
+                BIO_printf(bio_err, "unable to verify PIN\n");
+                goto end;
+            }
+            if(SKF_OpenContainer(ah,(LPSTR)containername,&ch)!=SAR_OK)
+            {
+                BIO_printf(bio_err, "unable to open container\n");
+                goto end;
+            }
+        }
 
     if (newreq) {
-        if (pkey == NULL) {
+        if (pkey == NULL&&containername==NULL) {
             BIO_printf(bio_err, "you need to specify a private key\n");
             goto end;
         }
@@ -599,7 +662,7 @@ int req_main(int argc, char **argv)
                 goto end;
             }
 
-            i = make_REQ(req, pkey, subj, multirdn, !x509, chtype);
+            i = make_REQ(req, pkey, subj, multirdn, !x509, chtype,ch);
             subj = NULL;        /* done processing '-subj' option */
             if (!i) {
                 BIO_printf(bio_err, "problems making Certificate Request\n");
@@ -669,7 +732,13 @@ int req_main(int argc, char **argv)
                            req_exts);
                 goto end;
             }
-            i = do_X509_REQ_sign(req, pkey, digest, sigopts);
+            if(pkey!=NULL)
+                i = do_X509_REQ_sign(req, pkey, digest, sigopts);
+            else
+            {
+                i = do_X509_REQ_sign_key(req,dh, ch, digest, sigopts);
+            }
+            
             if (!i) {
                 ERR_print_errors(bio_err);
                 goto end;
@@ -833,7 +902,7 @@ int req_main(int argc, char **argv)
 }
 
 static int make_REQ(X509_REQ *req, EVP_PKEY *pkey, char *subj, int multirdn,
-                    int attribs, unsigned long chtype)
+                    int attribs, unsigned long chtype,HCONTAINER ch)
 {
     int ret = 0, i;
     char no_prompt = 0;
@@ -889,7 +958,10 @@ static int make_REQ(X509_REQ *req, EVP_PKEY *pkey, char *subj, int multirdn,
                         chtype);
     if (!i)
         goto err;
-
+    if(pkey==NULL&&SKF_ExportEVPPublicKey(ch,TRUE,&pkey)!=SAR_OK)
+    {
+        goto err;
+    }
     if (!X509_REQ_set_pubkey(req, pkey))
         goto err;
 
@@ -1479,6 +1551,133 @@ static int do_sign_init(EVP_MD_CTX *ctx, EVP_PKEY *pkey,
     }
     return 1;
 }
+/*Compute SM2 sign extra data: Z = HASH256(ENTL + ID + a + b + Gx + Gy + Xa + Ya)*/
+int ECDSA_sm2_get_Z(const EC_KEY *ec_key, const EVP_MD *md, const char *uid, int uid_len, unsigned char *z_buf, size_t *z_len)
+{
+    EVP_MD_CTX *ctx;
+    const EC_GROUP *group = NULL;
+    BIGNUM *a = NULL, *b = NULL;
+    const EC_POINT *point = NULL;
+    unsigned char *z_source = NULL;
+    int retval = 0;
+    int deep, z_s_len;
+
+    EC_POINT *pub_key = NULL;
+    const BIGNUM *priv_key = NULL;
+
+    if (md == NULL) md = EVP_sm3();
+    if (*z_len < (size_t)(md->md_size))
+    {
+        OPENSSL_PUT_ERROR(SM2, SM2_R_INVALID_ARGUMENT);
+        return 0;
+    }
+
+    group = EC_KEY_get0_group(ec_key);
+    if (group == NULL)
+    {
+        OPENSSL_PUT_ERROR(SM2, SM2_R_INVALID_ARGUMENT);
+        goto err;
+    }
+
+    a = BN_new(), b = BN_new();
+    if ((a == NULL) || (b == NULL))
+    {
+        OPENSSL_PUT_ERROR(SM2, ERR_R_MALLOC_FAILURE);
+        goto err;
+    }
+    
+    if (!EC_GROUP_get_curve_GFp(group, NULL, a, b, NULL))
+    {
+        OPENSSL_PUT_ERROR(SM2, ERR_R_EC_LIB);
+        goto err;
+    }
+    
+    if ((point = EC_GROUP_get0_generator(group)) == NULL)
+    {
+        OPENSSL_PUT_ERROR(SM2, ERR_R_EC_LIB);
+        goto err;
+    }
+    
+    deep = (EC_GROUP_get_degree(group) + 7) / 8;
+    if ((uid == NULL) || (uid_len <= 0))
+    {
+        uid = (const char *)"1234567812345678";
+        uid_len = 16;
+    }
+   
+    /*alloc z_source buffer*/
+    while (!(z_source = (unsigned char *)OPENSSL_malloc(1 + 4 * deep)));
+
+    /*ready to digest*/
+    ctx = EVP_MD_CTX_create();
+    EVP_DigestInit(ctx, md);
+
+    z_s_len = 0;
+    /*first: set the two bytes of uid bits + uid*/
+    uid_len = uid_len * 8;
+    
+    z_source[z_s_len++] = (unsigned char)((uid_len >> 8) & 0xFF);
+    z_source[z_s_len++] = (unsigned char)(uid_len & 0xFF);
+    uid_len /= 8;
+    EVP_DigestUpdate(ctx, z_source, z_s_len);
+    EVP_DigestUpdate(ctx, uid, uid_len);
+
+    /*second: add a and b*/
+    BN_bn2bin(a, z_source + deep - BN_num_bytes(a));
+    EVP_DigestUpdate(ctx, z_source, deep);
+    BN_bn2bin(b, z_source + deep - BN_num_bytes(a));
+    EVP_DigestUpdate(ctx, z_source, deep);
+    
+    /*third: add Gx and Gy*/
+    z_s_len = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, z_source, (1 + 4 * deep), NULL);
+    /*must exclude PC*/
+    EVP_DigestUpdate(ctx, z_source + 1, z_s_len - 1);
+    
+    /*forth: add public key*/
+    point = EC_KEY_get0_public_key(ec_key);
+    if (!point)
+    {
+        priv_key = EC_KEY_get0_private_key(ec_key);
+        if (!priv_key)
+        {
+            OPENSSL_PUT_ERROR(SM2, SM2_R_INVALID_PRIVATE_KEY);
+            goto err;
+        }
+
+        pub_key = EC_POINT_new(group);
+        if (!pub_key)
+        {
+            OPENSSL_PUT_ERROR(SM2, ERR_R_EC_LIB);
+            goto err;
+        }
+
+        if (!EC_POINT_mul(group, pub_key, priv_key, NULL, NULL, NULL))
+        {
+            OPENSSL_PUT_ERROR(SM2, ERR_R_EC_LIB);
+            goto err;
+        }
+
+        point = (const EC_POINT *)pub_key;
+    }
+
+    z_s_len = EC_POINT_point2oct(group, /*EC_KEY_get0_public_key(ec_key)*/point, POINT_CONVERSION_UNCOMPRESSED, z_source, (1 + 4 * deep), NULL);
+    /*must exclude PC*/
+    EVP_DigestUpdate(ctx, z_source + 1, z_s_len - 1);
+    
+    /*fifth: output digest*/
+    EVP_DigestFinal(ctx, z_buf, (unsigned *)z_len);
+    EVP_MD_CTX_destroy(ctx);
+    
+    retval = (int)(*z_len);
+
+err:
+    if (z_source) OPENSSL_free(z_source);
+    if (pub_key) EC_POINT_free(pub_key);
+    if (a) BN_free(a);
+    if (b) BN_free(b);
+    
+    return retval;
+}
 
 int do_X509_sign(X509 *x, EVP_PKEY *pkey, const EVP_MD *md,
                  STACK_OF(OPENSSL_STRING) *sigopts)
@@ -1504,7 +1703,63 @@ int do_X509_REQ_sign(X509_REQ *x, EVP_PKEY *pkey, const EVP_MD *md,
     EVP_MD_CTX_free(mctx);
     return rv > 0 ? 1 : 0;
 }
+static int do_X509_REQ_sign_key(X509_REQ *x, DEVHANDLE dh,HCONTAINER ch, const EVP_MD *md,
+                     STACK_OF(OPENSSL_STRING) *sigopts)
+{
 
+    HANDLE hhash;
+    if(SKF_DigestInit(dh,SGD_SM3,NULL,NULL,0,&hhash)!=SAR_OK)
+        return 0;
+    EVP_PKEY* pkey=NULL;
+    if(SKF_ExportEVPPublicKey(ch,TRUE,&pkey)!=SAR_OK)
+        return 0;
+    uint8_t *psm2Z = NULL;
+    psm2Z = (uint8_t *)OPENSSL_malloc(128);
+    size_t z_len = 128;
+    if(ECDSA_sm2_get_Z(pkey->pkey.ec, EVP_sm3(), "1234567812345678", 16, psm2Z, &z_len )){};
+    ULONG res=SKF_DigestUpdate(hhash,psm2Z,z_len);
+    if(res!=SAR_OK)
+    {
+        printf("%x\n",res);
+        OPENSSL_free(psm2Z);
+        return 0;
+    }
+    OPENSSL_free(psm2Z);
+    unsigned char* buf_in=NULL;
+    int inl = ASN1_item_i2d((ASN1_VALUE*)&(x->req_info), &buf_in, ASN1_ITEM_rptr(X509_REQ_INFO));
+    res=SKF_DigestUpdate(hhash,(BYTE*)buf_in,inl);
+    if(res!=SAR_OK)
+    {
+        printf("%x\n",res);
+        return 0;
+    }
+    ULONG hashlen=EVP_MAX_MD_SIZE;
+    uint8_t md2[EVP_MAX_MD_SIZE]={0};
+    res=SKF_DigestFinal(hhash,md2,&hashlen);
+    if(res!=SAR_OK)
+    {
+        printf("%x\n",res);
+        return 0;
+    }
+    ECCSIGNATUREBLOB blob;
+    res=SKF_ECCSignData(ch,(BYTE*)md2,hashlen,&blob);
+    if(res!=SAR_OK)
+    {
+        printf("%x\n",res);
+    }
+    uint8_t sig[512]={0};
+    uint8_t* sigptr=sig;
+    int siglen=i2d_ECCSIGNATUREBLOB(&blob,&sigptr);
+    unsigned char* out=OPENSSL_malloc(EVP_PKEY_size(pkey));
+    memcpy(out,sig,siglen);
+    x->signature->data=out;
+    x->signature->length=siglen;
+    x->signature->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
+    x->signature->flags |= ASN1_STRING_FLAG_BITS_LEFT;
+    X509_ALGOR_set0(&(x->sig_alg), OBJ_nid2obj(1125), -1, NULL);
+    
+    return 1;
+}
 int do_X509_CRL_sign(X509_CRL *x, EVP_PKEY *pkey, const EVP_MD *md,
                      STACK_OF(OPENSSL_STRING) *sigopts)
 {

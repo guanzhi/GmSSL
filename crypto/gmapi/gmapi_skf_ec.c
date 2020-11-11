@@ -83,12 +83,12 @@ int EC_KEY_set_ECCPUBLICKEYBLOB(EC_KEY *ec_key, const ECCPUBLICKEYBLOB *blob)
 	int ret = 0;
 	BIGNUM *x = NULL;
 	BIGNUM *y = NULL;
-
+	/*
 	if ((int)blob->BitLen != EC_GROUP_get_degree(EC_KEY_get0_group(ec_key))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCPUBLICKEYBLOB, GMAPI_R_INVALID_KEY_LENGTH);
 		return 0;
 	}
-
+	*/
 	if (!(x = BN_bin2bn(blob->XCoordinate, sizeof(blob->XCoordinate), NULL))) {
 		GMAPIerr(GMAPI_F_EC_KEY_SET_ECCPUBLICKEYBLOB, ERR_R_BN_LIB);
 		goto end;
