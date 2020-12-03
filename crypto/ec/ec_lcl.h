@@ -578,7 +578,7 @@ const EC_METHOD *EC_GFp_nistz256_method(void);
 #endif
 
 #ifndef OPENSSL_NO_SM2
-# if defined(ECP_NISTZ256_ASM) && BN_BITS2 == 64 && !defined(GMSSL_NO_TURBO)
+# if ECP_SM2Z256_ASM
 const EC_METHOD *EC_GFp_sm2z256_method(void);
 # endif
 #endif
