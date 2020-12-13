@@ -1120,18 +1120,35 @@ static int ssl_security_default_callback(const SSL *s, const SSL_CTX *ctx,
         }
     case SSL_SECOP_VERSION:
         if (!SSL_IS_DTLS(s)) {
-            /* GMTLSv1.1 not allowed at level 3 */
-            if (nid == GMTLS_VERSION && level >= 3)
-                return 0;
-            /* SSLv3 not allowed at level 2 */
-            if (nid <= SSL3_VERSION && level >= 2)
-                return 0;
-            /* TLS v1.1 and above only for level 3 */
-            if (nid <= TLS1_VERSION && level >= 3)
-                return 0;
-            /* TLS v1.2 only for level 4 and above */
-            if (nid <= TLS1_1_VERSION && level >= 4)
-                return 0;
+            /*  GMTLS and TLS are different protocols, so their versions should
+                use different rules. It could make fault during comparing the
+                nid value according to the same version rule.
+                e.g. if level == 2 and nid == 0x0101, GMTLS could not be
+                supported. the reason is that GMTLS1_1_VERSION IS LESS THEN
+                SSL3_VERSION, etc. The return value is always 0 (false). */
+            switch(nid) {
+#ifndef OPENSSL_NO_SM2
+            case GMTLS_VERSION:
+                {
+                    /* GMTLSv1.1 and TLS v1.1 is the same level standard */
+                    if (level >= 3)
+                        return 0;
+                    break;
+                }
+#endif // OPENSSL_NO_SM2
+            default:
+                {
+                    /* SSLv3 not allowed at level 2 */
+                    if (nid <= SSL3_VERSION && level >= 2)
+                        return 0;
+                    /* TLS v1.1 and above only for level 3 */
+                    if (nid <= TLS1_VERSION && level >= 3)
+                        return 0;
+                    /* TLS v1.2 only for level 4 and above */
+                    if (nid <= TLS1_1_VERSION && level >= 4)
+                        return 0;
+                }
+            }
         } else {
             /* DTLS v1.2 only for level 4 and above */
             if (DTLS_VERSION_LT(nid, DTLS1_2_VERSION) && level >= 4)
