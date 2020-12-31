@@ -9,9 +9,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -312,6 +309,7 @@ func TestSSL(t *testing.T) {
 	fmt.Println(peercerttxt)
 }
 
+/*
 func BenchmarkEcdsaSign(t *testing.B) {
 	t.ReportAllocs()
 	msg := []byte("test")
@@ -344,7 +342,7 @@ func BenchmarkEcdsaVerify(t *testing.B) {
 		ecdsa.Verify(&priv.PublicKey, msg, r, s)
 	}
 }
-
+*/
 func BenchmarkSM2Sign(t *testing.B) {
 	t.ReportAllocs()
 	sm2keygenargs := [][2]string{
