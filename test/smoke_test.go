@@ -11,8 +11,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/Hyperledger-TWGC/pku-gm/gmssl"
 	"testing"
+
+	"github.com/Hyperledger-TWGC/pku-gm/gmssl"
 )
 
 func TestVersion(t *testing.T) {
@@ -56,11 +57,12 @@ func TestPublicKeyAlgorithms(t *testing.T) {
 		fmt.Println("")
 	}
 }
-func TestEngines(t *testing.T) {
-	/* Engines */
+
+/*func TestEngines(t *testing.T) {
+	/* Engines
 	fmt.Print("Engines:")
 	engines := gmssl.GetEngineNames()
 	for _, engine := range engines {
 		fmt.Print(" " + engine)
 	}
-}
+}*/
