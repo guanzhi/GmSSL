@@ -312,6 +312,39 @@ func TestSSL(t *testing.T) {
 	fmt.Println(peercerttxt)
 }
 
+func BenchmarkEcdsaSign(t *testing.B) {
+	t.ReportAllocs()
+	msg := []byte("test")
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		_, _, err := ecdsa.Sign(rand.Reader, priv, msg)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkEcdsaVerify(t *testing.B) {
+	t.ReportAllocs()
+	msg := []byte("test")
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, s, err := ecdsa.Sign(rand.Reader, priv, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		ecdsa.Verify(&priv.PublicKey, msg, r, s)
+	}
+}
+
 func BenchmarkSM2Sign(t *testing.B) {
 	t.ReportAllocs()
 	sm2keygenargs := [][2]string{
@@ -410,38 +443,5 @@ func BenchmarkSM2Verify(t *testing.B) {
 		if err != nil {
 			t.Fatal(err)
 		}
-	}
-}
-
-func BenchmarkEcdsaSign(t *testing.B) {
-	t.ReportAllocs()
-	msg := []byte("test")
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		_, _, err := ecdsa.Sign(rand.Reader, priv, msg)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkEcdsaVerify(t *testing.B) {
-	t.ReportAllocs()
-	msg := []byte("test")
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	r, s, err := ecdsa.Sign(rand.Reader, priv, msg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		ecdsa.Verify(&priv.PublicKey, msg, r, s)
 	}
 }
