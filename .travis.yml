@@ -16,4 +16,4 @@ install:
   - cd gmssl; go build; cd -
 script:
   - curl --version # test curl affection
-  - cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test;
+  - cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test; go test -bench=. -run=none -cover

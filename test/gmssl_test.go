@@ -309,137 +309,76 @@ func TestSSL(t *testing.T) {
 	fmt.Println(peercerttxt)
 }
 
-/*
-func BenchmarkEcdsaSign(t *testing.B) {
-	t.ReportAllocs()
-	msg := []byte("test")
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		_, _, err := ecdsa.Sign(rand.Reader, priv, msg)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkEcdsaVerify(t *testing.B) {
-	t.ReportAllocs()
-	msg := []byte("test")
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	r, s, err := ecdsa.Sign(rand.Reader, priv, msg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
-		ecdsa.Verify(&priv.PublicKey, msg, r, s)
-	}
-}
-*/
-func BenchmarkSM2Sign(t *testing.B) {
-	t.ReportAllocs()
+func BenchmarkSM2Sign(b *testing.B) {
+	b.ReportAllocs()
+	/* SM2 key pair operations */
 	sm2keygenargs := [][2]string{
 		{"ec_paramgen_curve", "sm2p256v1"},
 		{"ec_param_enc", "named_curve"},
 	}
 	sm2sk, err := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	sm2pkpem, err = sm2sk.GetPublicKeyPEM()
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	sm2pk, err := gmssl.NewPublicKeyFromPEM(sm2pkpem)
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	sm3ctx := newSM3DigestContext()
-	t.ResetTimer()
 	/* SM2 sign/verification */
-	for i := 0; i < t.N; i++ {
-		sm2zid, err := sm2pk.ComputeSM2IDDigest("1234567812345678")
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = sm3ctx.Reset()
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = sm3ctx.Update(sm2zid)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = sm3ctx.Update([]byte("message"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		digest, err := sm3ctx.Final()
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = sm2sk.Sign("sm2sign", digest, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+
+	sm2zid, err := sm2pk.ComputeSM2IDDigest("1234567812345678")
+	PanicError(err)
+	err = sm3ctx.Reset()
+	PanicError(err)
+	err = sm3ctx.Update(sm2zid)
+	PanicError(err)
+	err = sm3ctx.Update([]byte("message"))
+	PanicError(err)
+	digest, err := sm3ctx.Final()
+	PanicError(err)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sm2sk.Sign("sm2sign", digest, nil)
 	}
 }
 
-func BenchmarkSM2Verify(t *testing.B) {
-	t.ReportAllocs()
+func BenchmarkSM2Verify(b *testing.B) {
+	b.ReportAllocs()
+	/* SM2 key pair operations */
 	sm2keygenargs := [][2]string{
 		{"ec_paramgen_curve", "sm2p256v1"},
 		{"ec_param_enc", "named_curve"},
 	}
 	sm2sk, err := gmssl.GeneratePrivateKey("EC", sm2keygenargs, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	sm2pkpem, err = sm2sk.GetPublicKeyPEM()
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	sm2pk, err := gmssl.NewPublicKeyFromPEM(sm2pkpem)
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	sm3ctx := newSM3DigestContext()
+	/* SM2 sign/verification */
+
 	sm2zid, err := sm2pk.ComputeSM2IDDigest("1234567812345678")
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
 	err = sm3ctx.Reset()
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
 	err = sm3ctx.Update(sm2zid)
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
 	err = sm3ctx.Update([]byte("message"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
 	digest, err := sm3ctx.Final()
-	if err != nil {
-		t.Fatal(err)
-	}
+	PanicError(err)
+
 	signature, err := sm2sk.Sign("sm2sign", digest, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.ResetTimer()
-	for i := 0; i < t.N; i++ {
+	PanicError(err)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		err = sm2pk.Verify("sm2sign", digest, signature, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
 }
