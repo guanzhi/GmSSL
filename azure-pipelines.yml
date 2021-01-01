@@ -30,7 +30,5 @@ steps:
     displayName: go build
   - script: curl --version
     displayName: test curl affection
-  - script: cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -v ./...;
+  - script: cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -v ./...; go test -bench=. -run=none -cover
     displayName: go test
-  - script: go test -bench -run=none -cover;
-    displayName: go benchmark
