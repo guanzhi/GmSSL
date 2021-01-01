@@ -32,5 +32,5 @@ steps:
     displayName: test curl affection
   - script: cd test; env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -v ./...
     displayName: go test
-  - script:  cd test;env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -bench -run=none -cover
+  - script:  cd test;env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -bench=. -run=none -cover
     displayName: go bench
