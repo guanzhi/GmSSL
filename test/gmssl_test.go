@@ -9,6 +9,9 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"fmt"
 	"testing"
 
@@ -380,5 +383,38 @@ func BenchmarkSM2Verify(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err = sm2pk.Verify("sm2sign", digest, signature, nil)
+	}
+}
+
+func BenchmarkEcdsaSign(t *testing.B) {
+	t.ReportAllocs()
+	msg := []byte("test")
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		_, _, err := ecdsa.Sign(rand.Reader, priv, msg)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkEcdsaVerify(t *testing.B) {
+	t.ReportAllocs()
+	msg := []byte("test")
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, s, err := ecdsa.Sign(rand.Reader, priv, msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.ResetTimer()
+	for i := 0; i < t.N; i++ {
+		ecdsa.Verify(&priv.PublicKey, msg, r, s)
 	}
 }
