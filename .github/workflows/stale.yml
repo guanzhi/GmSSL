@@ -18,10 +18,10 @@ jobs:
         stale-issue-label: 'no-issue-activity'
         stale-pr-label: 'no-pr-activity'
         # The labels to apply when an issue is exempt from being marked stale. Separate multiple labels with commas (eg. "label1,label2")
-        exempt-issue-labels: ''
+        exempt-issue-labels: 'official'
         operations-per-run: 500
         # The labels to apply when a pull request is exempt from being marked stale. Separate multiple labels with commas (eg. "label1,label2")
-        exempt-pr-labels: ''
+        exempt-pr-labels: 'official'
         
         # The number of days old an issue can be before marking it stale. Set to -1 to never mark issues or pull requests as stale automatically.
         days-before-stale: 90
