@@ -1209,6 +1209,9 @@ unless ($disabled{asm}) {
 	push @{$config{defines}}, "SHA256_ASM" if ($target{sha1_asm_src} =~ /sha256/);
 	push @{$config{defines}}, "SHA512_ASM" if ($target{sha1_asm_src} =~ /sha512/);
     }
+    if ($target{sm3_asm_src}) {
+	push @{$config{defines}}, "SM3_ASM" if ($target{sm3_asm_src} =~ /sm3/);
+    }
     if ($target{rc4_asm_src} ne $table{DEFAULTS}->{rc4_asm_src}) {
 	push @{$config{defines}}, "RC4_ASM";
     }
@@ -2113,6 +2116,7 @@ print "RC4_ENC       =$target{rc4_obj}\n";
 print "RC5_ENC       =$target{rc5_obj}\n";
 print "MD5_OBJ_ASM   =$target{md5_obj}\n";
 print "SHA1_OBJ_ASM  =$target{sha1_obj}\n";
+print "SM3_OBJ_ASM   =$target{sm3_obj}\n";
 print "RMD160_OBJ_ASM=$target{rmd160_obj}\n";
 print "CMLL_ENC      =$target{cmll_obj}\n";
 print "MODES_OBJ     =$target{modes_obj}\n";
@@ -2565,6 +2569,7 @@ sub print_table_entry
 	"md5_asm_src",
 	"cast_asm_src",
 	"sha1_asm_src",
+    "sm3_asm_src",
 	"rc4_asm_src",
 	"rmd160_asm_src",
 	"rc5_asm_src",

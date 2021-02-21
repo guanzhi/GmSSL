@@ -167,6 +167,8 @@ In each table entry, the following keys are significant:
         sha1_asm_src    => Assembler implementation of core SHA1,
                            functions, and also possibly SHA256 and
                            SHA512 ones.
+        sm3_asm_src     => Assembler implementation of core SM3
+                           functions.
         cast_asm_src    => Assembler implementation of core CAST
                            functions.
                            Defaults to 'c_enc.c'

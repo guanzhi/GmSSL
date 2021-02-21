@@ -61,9 +61,11 @@
 	_mm_xor_si128(_mm_slli_epi32((X),(i)), _mm_srli_epi32((X),32-(i)))
 #endif
 
-static void sm3_compress_blocks(uint32_t digest[8],
+#ifndef SM3_ASM
+static 
+#endif
+void sm3_compress_blocks(uint32_t digest[8],
 	const unsigned char *data, size_t blocks);
-
 
 void sm3_init(sm3_ctx_t *ctx)
 {
@@ -219,16 +221,17 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 	}
 }
 
-#define ROTL(x,n)  (((x)<<(n)) | ((x)>>(32-(n))))
-#define P0(x) ((x) ^ ROL32((x), 9) ^ ROL32((x),17))
-#define P1(x) ((x) ^ ROL32((x),15) ^ ROL32((x),23))
+#ifndef SM3_ASM
+# define ROTL(x,n)  (((x)<<(n)) | ((x)>>(32-(n))))
+# define P0(x) ((x) ^ ROL32((x), 9) ^ ROL32((x),17))
+# define P1(x) ((x) ^ ROL32((x),15) ^ ROL32((x),23))
 
-#define FF00(x,y,z)  ((x) ^ (y) ^ (z))
-#define FF16(x,y,z)  (((x)&(y)) | ((x)&(z)) | ((y)&(z)))
-#define GG00(x,y,z)  ((x) ^ (y) ^ (z))
-#define GG16(x,y,z)  ((((y)^(z)) & (x)) ^ (z))
+# define FF00(x,y,z)  ((x) ^ (y) ^ (z))
+# define FF16(x,y,z)  (((x)&(y)) | ((x)&(z)) | ((y)&(z)))
+# define GG00(x,y,z)  ((x) ^ (y) ^ (z))
+# define GG16(x,y,z)  ((((y)^(z)) & (x)) ^ (z))
 
-#define R(A, B, C, D, E, F, G, H, xx)				\
+# define R(A, B, C, D, E, F, G, H, xx)				\
 	SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);		\
 	SS2 = SS1 ^ ROL32(A, 12);				\
 	TT1 = FF##xx(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);	\
@@ -239,7 +242,7 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 	D = P0(TT2);						\
 	j++
 
-#define R8(A, B, C, D, E, F, G, H, xx)				\
+# define R8(A, B, C, D, E, F, G, H, xx)				\
 	R(A, B, C, D, E, F, G, H, xx);				\
 	R(H, A, B, C, D, E, F, G, xx);				\
 	R(G, H, A, B, C, D, E, F, xx);				\
@@ -249,75 +252,73 @@ void sm3_final(sm3_ctx_t *ctx, unsigned char *digest)
 	R(C, D, E, F, G, H, A, B, xx);				\
 	R(B, C, D, E, F, G, H, A, xx)
 
+# define T00 0x79cc4519U
+# define T16 0x7a879d8aU
 
-
-#define T00 0x79cc4519U
-#define T16 0x7a879d8aU
-
-#define K0	0x79cc4519U
-#define K1	0xf3988a32U
-#define K2	0xe7311465U
-#define K3	0xce6228cbU
-#define K4	0x9cc45197U
-#define K5	0x3988a32fU
-#define K6	0x7311465eU
-#define K7	0xe6228cbcU
-#define K8	0xcc451979U
-#define K9	0x988a32f3U
-#define K10	0x311465e7U
-#define K11	0x6228cbceU
-#define K12	0xc451979cU
-#define K13	0x88a32f39U
-#define K14	0x11465e73U
-#define K15	0x228cbce6U
-#define K16	0x9d8a7a87U
-#define K17	0x3b14f50fU
-#define K18	0x7629ea1eU
-#define K19	0xec53d43cU
-#define K20	0xd8a7a879U
-#define K21	0xb14f50f3U
-#define K22	0x629ea1e7U
-#define K23	0xc53d43ceU
-#define K24	0x8a7a879dU
-#define K25	0x14f50f3bU
-#define K26	0x29ea1e76U
-#define K27	0x53d43cecU
-#define K28	0xa7a879d8U
-#define K29	0x4f50f3b1U
-#define K30	0x9ea1e762U
-#define K31	0x3d43cec5U
-#define K32	0x7a879d8aU
-#define K33	0xf50f3b14U
-#define K34	0xea1e7629U
-#define K35	0xd43cec53U
-#define K36	0xa879d8a7U
-#define K37	0x50f3b14fU
-#define K38	0xa1e7629eU
-#define K39	0x43cec53dU
-#define K40	0x879d8a7aU
-#define K41	0x0f3b14f5U
-#define K42	0x1e7629eaU
-#define K43	0x3cec53d4U
-#define K44	0x79d8a7a8U
-#define K45	0xf3b14f50U
-#define K46	0xe7629ea1U
-#define K47	0xcec53d43U
-#define K48	0x9d8a7a87U
-#define K49	0x3b14f50fU
-#define K50	0x7629ea1eU
-#define K51	0xec53d43cU
-#define K52	0xd8a7a879U
-#define K53	0xb14f50f3U
-#define K54	0x629ea1e7U
-#define K55	0xc53d43ceU
-#define K56	0x8a7a879dU
-#define K57	0x14f50f3bU
-#define K58	0x29ea1e76U
-#define K59	0x53d43cecU
-#define K60	0xa7a879d8U
-#define K61	0x4f50f3b1U
-#define K62	0x9ea1e762U
-#define K63	0x3d43cec5U
+# define K0	0x79cc4519U
+# define K1	0xf3988a32U
+# define K2	0xe7311465U
+# define K3	0xce6228cbU
+# define K4	0x9cc45197U
+# define K5	0x3988a32fU
+# define K6	0x7311465eU
+# define K7	0xe6228cbcU
+# define K8	0xcc451979U
+# define K9	0x988a32f3U
+# define K10	0x311465e7U
+# define K11	0x6228cbceU
+# define K12	0xc451979cU
+# define K13	0x88a32f39U
+# define K14	0x11465e73U
+# define K15	0x228cbce6U
+# define K16	0x9d8a7a87U
+# define K17	0x3b14f50fU
+# define K18	0x7629ea1eU
+# define K19	0xec53d43cU
+# define K20	0xd8a7a879U
+# define K21	0xb14f50f3U
+# define K22	0x629ea1e7U
+# define K23	0xc53d43ceU
+# define K24	0x8a7a879dU
+# define K25	0x14f50f3bU
+# define K26	0x29ea1e76U
+# define K27	0x53d43cecU
+# define K28	0xa7a879d8U
+# define K29	0x4f50f3b1U
+# define K30	0x9ea1e762U
+# define K31	0x3d43cec5U
+# define K32	0x7a879d8aU
+# define K33	0xf50f3b14U
+# define K34	0xea1e7629U
+# define K35	0xd43cec53U
+# define K36	0xa879d8a7U
+# define K37	0x50f3b14fU
+# define K38	0xa1e7629eU
+# define K39	0x43cec53dU
+# define K40	0x879d8a7aU
+# define K41	0x0f3b14f5U
+# define K42	0x1e7629eaU
+# define K43	0x3cec53d4U
+# define K44	0x79d8a7a8U
+# define K45	0xf3b14f50U
+# define K46	0xe7629ea1U
+# define K47	0xcec53d43U
+# define K48	0x9d8a7a87U
+# define K49	0x3b14f50fU
+# define K50	0x7629ea1eU
+# define K51	0xec53d43cU
+# define K52	0xd8a7a879U
+# define K53	0xb14f50f3U
+# define K54	0x629ea1e7U
+# define K55	0xc53d43ceU
+# define K56	0x8a7a879dU
+# define K57	0x14f50f3bU
+# define K58	0x29ea1e76U
+# define K59	0x53d43cecU
+# define K60	0xa7a879d8U
+# define K61	0x4f50f3b1U
+# define K62	0x9ea1e762U
+# define K63	0x3d43cec5U
 
 uint32_t K[64] = {
 	K0,  K1,  K2,  K3,  K4,  K5,  K6,  K7,
@@ -363,11 +364,11 @@ static void sm3_compress_blocks(uint32_t digest[8],
 	uint32_t SS1, SS2, TT1, TT2;
 	int j;
 
-#ifdef SM3_SSE3
+# ifdef SM3_SSE3
 	__m128i X, T, R;
 	__m128i M = _mm_setr_epi32(0, 0, 0, 0xffffffff);
 	__m128i V = _mm_setr_epi8(3,2,1,0,7,6,5,4,11,10,9,8,15,14,13,12);
-#endif
+# endif
 
 	while (blocks--) {
 
@@ -381,7 +382,7 @@ static void sm3_compress_blocks(uint32_t digest[8],
 		H = digest[7];
 
 
-#ifdef SM3_SSE3
+# ifdef SM3_SSE3
 
 		for (j = 0; j < 16; j += 4) {
 			X = _mm_loadu_si128((__m128i *)(data + j * 4));
@@ -424,20 +425,20 @@ static void sm3_compress_blocks(uint32_t digest[8],
 
 			_mm_storeu_si128((__m128i *)(W + j), X);
 		}
-#else
+# else
 		for (j = 0; j < 16; j++)
 			W[j] = GETU32(data + j*4);
 
 		for (; j < 68; j++)
 			W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
 				^ ROL32(W[j - 13], 7) ^ W[j - 6];
-#endif
+# endif
 
 
 		j = 0;
 
-#define FULL_UNROLL
-#ifdef FULL_UNROLL
+# define FULL_UNROLL
+# ifdef FULL_UNROLL
 		R8(A, B, C, D, E, F, G, H, 00);
 		R8(A, B, C, D, E, F, G, H, 00);
 		R8(A, B, C, D, E, F, G, H, 16);
@@ -446,7 +447,7 @@ static void sm3_compress_blocks(uint32_t digest[8],
 		R8(A, B, C, D, E, F, G, H, 16);
 		R8(A, B, C, D, E, F, G, H, 16);
 		R8(A, B, C, D, E, F, G, H, 16);
-#else
+# else
 		for (; j < 16; j++) {
 			SS1 = ROL32((ROL32(A, 12) + E + K(j)), 7);
 			SS2 = SS1 ^ ROL32(A, 12);
@@ -476,7 +477,7 @@ static void sm3_compress_blocks(uint32_t digest[8],
 			F = E;
 			E = P0(TT2);
 		}
-#endif
+# endif
 
 		digest[0] ^= A;
 		digest[1] ^= B;
@@ -490,6 +491,7 @@ static void sm3_compress_blocks(uint32_t digest[8],
 		data += 64;
 	}
 }
+#endif     /* SM3_ASM */
 
 void sm3_compress(uint32_t digest[8], const unsigned char block[64])
 {
