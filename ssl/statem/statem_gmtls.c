@@ -141,8 +141,10 @@ static int gmtls_output_cert_chain(SSL *s, int *len, int a_idx, int k_idx)
 			return 0;
 		}
 		/* add key exchange certificate */
-		if (!ssl_add_cert_to_buf(buf, &l, s->cert->pkeys[k_idx].x509)) {
-			return 0;
+		if(s->cert->pkeys[k_idx].x509 != NULL){
+			if (!ssl_add_cert_to_buf(buf, &l, s->cert->pkeys[k_idx].x509)) {
+				return 0;
+			}
 		}
 		/* add the following chain */
 		for (i = 1; i < sk_X509_num(chain); i++) {
