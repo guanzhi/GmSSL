@@ -86,7 +86,7 @@ static char *skf_algor_name(ULONG ulAlgID)
 	return NULL;
 }
 
-ULONG SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
+ULONG DEVAPI SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
 {
 	if (!szDevStateName) {
 		return SAR_INDATALENERR;
@@ -110,7 +110,7 @@ ULONG SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
 	return SAR_OK;
 }
 
-ULONG SKF_GetContainerTypeName(ULONG ulContainerType, LPSTR *szName)
+ULONG DEVAPI SKF_GetContainerTypeName(ULONG ulContainerType, LPSTR *szName)
 {
 	switch (ulContainerType) {
 	case SKF_CONTAINER_TYPE_UNDEF:
@@ -168,7 +168,7 @@ static table_item_t skf_pkey_caps[] = {
 	{ SGD_SM2_3, "sm2encrypt" }
 };
 
-ULONG SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo)
+ULONG DEVAPI SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo)
 {
 	size_t i, n;
 	char *serial = OPENSSL_buf2hexstr(devInfo->SerialNumber, strlen((char *)devInfo->SerialNumber));
@@ -241,7 +241,7 @@ ULONG SKF_PrintDevInfo(BIO *out, DEVINFO *devInfo)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintRSAPublicKey(BIO *out, RSAPUBLICKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintRSAPublicKey(BIO *out, RSAPUBLICKEYBLOB *blob)
 {
 	BIO_printf(out, "AlgID : %s\n", skf_algor_name(blob->AlgID));
 	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
@@ -256,7 +256,7 @@ ULONG SKF_PrintRSAPublicKey(BIO *out, RSAPUBLICKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintRSAPrivateKey(BIO *out, RSAPRIVATEKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintRSAPrivateKey(BIO *out, RSAPRIVATEKEYBLOB *blob)
 {
 	BIO_printf(out, "AlgID : %s\n", skf_algor_name(blob->AlgID));
 	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
@@ -295,7 +295,7 @@ ULONG SKF_PrintRSAPrivateKey(BIO *out, RSAPRIVATEKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCPublicKey(BIO *out, ECCPUBLICKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintECCPublicKey(BIO *out, ECCPUBLICKEYBLOB *blob)
 {
 	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
 	BIO_puts(out, "XCoordinate:\n");
@@ -309,7 +309,7 @@ ULONG SKF_PrintECCPublicKey(BIO *out, ECCPUBLICKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCPrivateKey(BIO *out, ECCPRIVATEKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintECCPrivateKey(BIO *out, ECCPRIVATEKEYBLOB *blob)
 {
 	BIO_printf(out, "BitLen : %u\n", blob->BitLen);
 	BIO_puts(out, "PrivateKey:\n");
@@ -319,7 +319,7 @@ ULONG SKF_PrintECCPrivateKey(BIO *out, ECCPRIVATEKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCCipher(BIO *out, ECCCIPHERBLOB *blob)
+ULONG DEVAPI SKF_PrintECCCipher(BIO *out, ECCCIPHERBLOB *blob)
 {
 	BIO_puts(out, "XCoordinate:\n");
 	BIO_puts(out, "    ");
@@ -341,7 +341,7 @@ ULONG SKF_PrintECCCipher(BIO *out, ECCCIPHERBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCSignature(BIO *out, ECCSIGNATUREBLOB *blob)
+ULONG DEVAPI SKF_PrintECCSignature(BIO *out, ECCSIGNATUREBLOB *blob)
 {
 	BIO_puts(out, "r:\n");
 	BIO_puts(out, "    ");
