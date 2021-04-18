@@ -87,7 +87,7 @@ int BIO_connect(int sock, const BIO_ADDR *addr, int options)
         return 0;
 
     if (options & BIO_SOCK_KEEPALIVE) {
-        if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) != 0) {
+        if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (const char *)&on, sizeof(on)) != 0) {
             SYSerr(SYS_F_SETSOCKOPT, get_last_socket_error());
             BIOerr(BIO_F_BIO_CONNECT, BIO_R_UNABLE_TO_KEEPALIVE);
             return 0;
@@ -95,7 +95,7 @@ int BIO_connect(int sock, const BIO_ADDR *addr, int options)
     }
 
     if (options & BIO_SOCK_NODELAY) {
-        if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) != 0) {
+        if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char *)&on, sizeof(on)) != 0) {
             SYSerr(SYS_F_SETSOCKOPT, get_last_socket_error());
             BIOerr(BIO_F_BIO_CONNECT, BIO_R_UNABLE_TO_NODELAY);
             return 0;
@@ -161,7 +161,7 @@ int BIO_listen(int sock, const BIO_ADDR *addr, int options)
         return 0;
     }
 
-    if (getsockopt(sock, SOL_SOCKET, SO_TYPE, &socktype, &socktype_len) != 0
+    if (getsockopt(sock, SOL_SOCKET, SO_TYPE, (char *)&socktype, &socktype_len) != 0
         || socktype_len != sizeof(socktype)) {
         SYSerr(SYS_F_GETSOCKOPT, get_last_socket_error());
         BIOerr(BIO_F_BIO_LISTEN, BIO_R_GETTING_SOCKTYPE);
@@ -175,7 +175,7 @@ int BIO_listen(int sock, const BIO_ADDR *addr, int options)
     /* SO_REUSEADDR has different behavior on Windows than on
      * other operating systems, don't set it there. */
     if (options & BIO_SOCK_REUSEADDR) {
-        if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0) {
+        if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof(on)) != 0) {
             SYSerr(SYS_F_SETSOCKOPT, get_last_socket_error());
             BIOerr(BIO_F_BIO_LISTEN, BIO_R_UNABLE_TO_REUSEADDR);
             return 0;
@@ -184,7 +184,7 @@ int BIO_listen(int sock, const BIO_ADDR *addr, int options)
 # endif
 
     if (options & BIO_SOCK_KEEPALIVE) {
-        if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) != 0) {
+        if (setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (const char *)&on, sizeof(on)) != 0) {
             SYSerr(SYS_F_SETSOCKOPT, get_last_socket_error());
             BIOerr(BIO_F_BIO_LISTEN, BIO_R_UNABLE_TO_KEEPALIVE);
             return 0;
@@ -192,7 +192,7 @@ int BIO_listen(int sock, const BIO_ADDR *addr, int options)
     }
 
     if (options & BIO_SOCK_NODELAY) {
-        if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) != 0) {
+        if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char *)&on, sizeof(on)) != 0) {
             SYSerr(SYS_F_SETSOCKOPT, get_last_socket_error());
             BIOerr(BIO_F_BIO_LISTEN, BIO_R_UNABLE_TO_NODELAY);
             return 0;
@@ -201,7 +201,7 @@ int BIO_listen(int sock, const BIO_ADDR *addr, int options)
 
 # ifdef IPV6_V6ONLY
     if ((options & BIO_SOCK_V6_ONLY) && BIO_ADDR_family(addr) == AF_INET6) {
-        if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
+        if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char *)&on, sizeof(on)) != 0) {
             SYSerr(SYS_F_SETSOCKOPT, get_last_socket_error());
             BIOerr(BIO_F_BIO_LISTEN, BIO_R_LISTEN_V6_ONLY);
             return 0;
