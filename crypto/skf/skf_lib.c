@@ -61,7 +61,7 @@ SKF_METHOD *skf_method = NULL;
 SKF_VENDOR *skf_vendor = NULL;
 extern SKF_VENDOR skf_wisec;
 
-ULONG SKF_LoadLibrary(LPSTR so_path, LPSTR vendor)
+ULONG DEVAPI SKF_LoadLibrary(LPSTR so_path, LPSTR vendor)
 {
 	if (skf_method) {
 		SKF_METHOD_free(skf_method);
@@ -85,7 +85,7 @@ ULONG SKF_LoadLibrary(LPSTR so_path, LPSTR vendor)
 	return SAR_OK;
 }
 
-ULONG SKF_UnloadLibrary(void)
+ULONG DEVAPI SKF_UnloadLibrary(void)
 {
 	SKF_METHOD_free(skf_method);
 	skf_method = NULL;
@@ -160,7 +160,7 @@ static unsigned long skf_get_error_reason(ULONG ulError)
 	return 0;
 }
 
-ULONG SKF_GetErrorString(ULONG ulError, LPSTR *szErrorStr)
+ULONG DEVAPI SKF_GetErrorString(ULONG ulError, LPSTR *szErrorStr)
 {
 	unsigned long reason;
 
