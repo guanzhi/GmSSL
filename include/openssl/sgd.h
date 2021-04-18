@@ -342,32 +342,7 @@ typedef UINT32			FLAGS;
 typedef CHAR *			LPSTR;
 typedef void *			HANDLE;
 #else
-#ifndef _WINDEF_H
-typedef signed char		INT8;
-typedef signed short		INT16;
-typedef signed int		INT32;
-typedef unsigned char		UINT8;
-typedef unsigned short		UINT16;
-typedef unsigned int		UINT32;
-typedef long			BOOL;
-typedef UINT8			BYTE;
-typedef UINT8			CHAR;
-typedef INT16			SHORT;
-typedef UINT16			USHORT;
-# ifndef SGD_NATIVE_LONG
-typedef INT32			LONG;
-typedef UINT32			ULONG;
-# else
-typedef long			LONG;
-typedef unsigned long		ULONG;
-# endif
-typedef UINT32			UINT;
-typedef UINT16			WORD;
-typedef UINT32			DWORD;
-typedef UINT32			FLAGS;
-typedef CHAR *			LPSTR;
-typedef void *			HANDLE;
-#endif
+#include <windef.h>
 #endif
 
 typedef HANDLE DEVHANDLE;
