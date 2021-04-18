@@ -403,7 +403,7 @@ ULONG DEVAPI SKF_GetDevInfo(
 		hDev,
 		pDevInfo)) != SAR_OK) {
 		SKFerr(SKF_F_SKF_GETDEVINFO, skf_get_error_reason(rv));
-		printf("rv = %8x\n", rv);
+		printf("rv = %8x\n", (unsigned)rv);
 		return rv;
 	}
 
@@ -1072,7 +1072,7 @@ ULONG DEVAPI SKF_WriteFile(
 		ulSize)) != SAR_OK) {
 		SKFerr(SKF_F_SKF_WRITEFILE, skf_get_error_reason(rv));
 
-		printf("error = %08X\n", rv);
+		printf("error = %08X\n", (unsigned)rv);
 
 		return rv;
 	}
@@ -1733,7 +1733,7 @@ ULONG DEVAPI SKF_ImportECCKeyPair(
 		hContainer,
 		pEnvelopedKeyBlob)) != SAR_OK) {
 		SKFerr(SKF_F_SKF_IMPORTECCKEYPAIR, skf_get_error_reason(rv));
-		printf("%s %d: error = %08X\n", __FILE__, __LINE__, rv);
+		printf("%s %d: error = %08X\n", __FILE__, __LINE__, (unsigned)rv);
 		return rv;
 	}
 
