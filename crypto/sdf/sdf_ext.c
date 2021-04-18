@@ -47,11 +47,11 @@
  * ====================================================================
  */
 
+#include "../../e_os.h"
 #include <string.h>
 #include <openssl/err.h>
 #include <openssl/gmsdf.h>
 #include "internal/sdf_int.h"
-#include "../../e_os.h"
 #include "sdf_sansec.h"
 
 

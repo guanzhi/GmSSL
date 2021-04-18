@@ -47,6 +47,7 @@
  * ====================================================================
  */
 
+#include "../../e_os.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,7 +58,6 @@
 #include <openssl/gmapi.h>
 #include <openssl/x509v3.h>
 #include "internal/skf_int.h"
-#include "../../e_os.h"
 
 
 ULONG DEVAPI SKF_NewECCCipher(ULONG ulCipherLen, ECCCIPHERBLOB **cipherBlob)

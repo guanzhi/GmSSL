@@ -47,10 +47,10 @@
  * ====================================================================
  */
 
+#include "../../e_os.h"
 #include <openssl/err.h>
 #include <openssl/gmskf.h>
 #include "internal/skf_int.h"
-#include "../../e_os.h"
 #include "skf_wisec.h"
 
 typedef struct {

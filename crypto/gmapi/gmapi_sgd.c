@@ -47,13 +47,13 @@
  * ====================================================================
  */
 
+#include "../../e_os.h"
 #include <stdio.h>
 #include <string.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/sgd.h>
 #include <openssl/gmapi.h>
-#include "../../e_os.h"
 
 typedef struct {
 	int nid;
