@@ -117,9 +117,7 @@
 # include <openssl/err.h>
 # include <openssl/ssl.h>
 # include <openssl/gmtls.h>
-# ifndef OPENSSL_NO_ASYNC
-#  include <openssl/async.h>
-# endif
+# include <openssl/async.h>
 # include <openssl/symhacks.h>
 # ifndef OPENSSL_NO_CT
 #  include <openssl/ct.h>
@@ -1244,10 +1242,8 @@ struct ssl_st {
     /* Default password callback user data. */
     void *default_passwd_callback_userdata;
     /* Async Job info */
-# ifndef OPENSSL_NO_ASYNC
     ASYNC_JOB *job;
     ASYNC_WAIT_CTX *waitctx;
-# endif
     CRYPTO_RWLOCK *lock;
 };
 
