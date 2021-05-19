@@ -9,16 +9,16 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/bn.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/buffer.h>
+#include <gmssl/bn.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
 
 #ifndef OPENSSL_NO_STDIO

@@ -12,10 +12,10 @@
 
 #ifndef OPENSSL_NO_DES
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
 # include "internal/evp_int.h"
-# include <openssl/des.h>
+# include <gmssl/des.h>
 
 static int desx_cbc_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                              const unsigned char *iv, int enc);

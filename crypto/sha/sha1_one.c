@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/crypto.h>
-#include <openssl/sha.h>
+#include <gmssl/crypto.h>
+#include <gmssl/sha.h>
 
 unsigned char *SHA1(const unsigned char *d, size_t n, unsigned char *md)
 {

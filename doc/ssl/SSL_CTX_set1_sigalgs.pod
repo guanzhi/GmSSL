@@ -11,7 +11,7 @@ SSL_set1_client_sigalgs_list - set supported signature algorithms
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_set1_sigalgs(SSL_CTX *ctx, const int *slist, long slistlen);
  long SSL_set1_sigalgs(SSL *ssl, const int *slist, long slistlen);

@@ -60,9 +60,9 @@ int main(int argc, char **argv)
 }
 #else
 # include <assert.h>
-# include <openssl/evp.h>
-# include <openssl/err.h>
-# include <openssl/ecies.h>
+# include <gmssl/evp.h>
+# include <gmssl/err.h>
+# include <gmssl/ecies.h>
 
 static int ECIES_test(int verbose)
 {

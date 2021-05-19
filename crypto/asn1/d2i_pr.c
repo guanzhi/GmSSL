@@ -9,14 +9,14 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/objects.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 

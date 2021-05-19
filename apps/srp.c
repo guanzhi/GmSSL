@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_SRP
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -15,12 +15,12 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include <openssl/conf.h>
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/txt_db.h>
-# include <openssl/buffer.h>
-# include <openssl/srp.h>
+# include <gmssl/conf.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/txt_db.h>
+# include <gmssl/buffer.h>
+# include <gmssl/srp.h>
 # include "apps.h"
 
 # define BASE_SECTION    "srp"

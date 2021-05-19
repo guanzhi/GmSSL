@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "rsa_locl.h"
 
 /*

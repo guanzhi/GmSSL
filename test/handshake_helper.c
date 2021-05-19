@@ -9,9 +9,9 @@
 
 #include <string.h>
 
-#include <openssl/bio.h>
-#include <openssl/x509_vfy.h>
-#include <openssl/ssl.h>
+#include <gmssl/bio.h>
+#include <gmssl/x509_vfy.h>
+#include <gmssl/ssl.h>
 
 #include "handshake_helper.h"
 #include "testutil.h"

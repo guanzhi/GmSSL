@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "apps.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,

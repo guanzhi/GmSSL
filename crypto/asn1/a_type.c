@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
 #include "asn1_locl.h"
 
 int ASN1_TYPE_get(const ASN1_TYPE *a)

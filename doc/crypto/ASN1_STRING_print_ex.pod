@@ -8,7 +8,7 @@ ASN1_STRING_print_ex, ASN1_STRING_print_ex_fp, ASN1_STRING_print - ASN1_STRING o
 
 =head1 SYNOPSIS
 
- #include <openssl/asn1.h>
+ #include <gmssl/asn1.h>
 
  int ASN1_STRING_print_ex(BIO *out, const ASN1_STRING *str, unsigned long flags);
  int ASN1_STRING_print_ex_fp(FILE *fp, const ASN1_STRING *str, unsigned long flags);

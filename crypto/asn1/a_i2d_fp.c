@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/asn1.h>
+#include <gmssl/buffer.h>
+#include <gmssl/asn1.h>
 
 #ifndef NO_OLD_ASN1
 

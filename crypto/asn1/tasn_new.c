@@ -8,10 +8,10 @@
  */
 
 #include <stddef.h>
-#include <openssl/asn1.h>
-#include <openssl/objects.h>
-#include <openssl/err.h>
-#include <openssl/asn1t.h>
+#include <gmssl/asn1.h>
+#include <gmssl/objects.h>
+#include <gmssl/err.h>
+#include <gmssl/asn1t.h>
 #include <string.h>
 #include "asn1_locl.h"
 

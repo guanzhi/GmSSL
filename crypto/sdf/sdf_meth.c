@@ -47,9 +47,9 @@
  * ====================================================================
  */
 
-#include <openssl/err.h>
-#include <openssl/gmsdf.h>
-#include <openssl/crypto.h>
+#include <gmssl/err.h>
+#include <gmssl/gmsdf.h>
+#include <gmssl/crypto.h>
 #include "internal/dso.h"
 #include "internal/sdf_int.h"
 

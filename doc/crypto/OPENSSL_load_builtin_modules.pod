@@ -8,7 +8,7 @@ OPENSSL_load_builtin_modules, ASN1_add_oid_module, ENGINE_add_conf_module - add 
 
 =head1 SYNOPSIS
 
- #include <openssl/conf.h>
+ #include <gmssl/conf.h>
 
  void OPENSSL_load_builtin_modules(void);
  void ASN1_add_oid_module(void);

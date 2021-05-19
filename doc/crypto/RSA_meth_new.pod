@@ -19,7 +19,7 @@ RSA_meth_set_verify, RSA_meth_get_keygen, RSA_meth_set_keygen
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  RSA_METHOD *RSA_meth_new(const char *name, int flags);
  void RSA_meth_free(RSA_METHOD *meth);

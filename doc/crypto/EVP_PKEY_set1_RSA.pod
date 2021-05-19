@@ -14,7 +14,7 @@ EVP_PKEY_type, EVP_PKEY_id, EVP_PKEY_base_id
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_set1_RSA(EVP_PKEY *pkey, RSA *key);
  int EVP_PKEY_set1_DSA(EVP_PKEY *pkey, DSA *key);

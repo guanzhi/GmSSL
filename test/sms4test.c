@@ -59,9 +59,9 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/sms4.h>
-# include <openssl/rand.h>
+# include <gmssl/evp.h>
+# include <gmssl/sms4.h>
+# include <gmssl/rand.h>
 
 # ifdef SMS4_AVX2
 void sms4_avx2_ecb_encrypt_blocks(const unsigned char *in,

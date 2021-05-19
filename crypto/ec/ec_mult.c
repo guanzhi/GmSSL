@@ -14,7 +14,7 @@
  */
 
 #include <string.h>
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 #include "internal/cryptlib.h"
 #include "internal/bn_int.h"

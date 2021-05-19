@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
-#include <openssl/evp.h>
-#include <openssl/bn.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
+#include <gmssl/evp.h>
+#include <gmssl/bn.h>
 #include "internal/evp_int.h"
 #include "dsa_locl.h"
 

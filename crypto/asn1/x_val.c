@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
 
 ASN1_SEQUENCE(X509_VAL) = {
         ASN1_SIMPLE(X509_VAL, notBefore, ASN1_TIME),

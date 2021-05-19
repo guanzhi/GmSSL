@@ -10,7 +10,7 @@
 #ifndef HEADER_BN_INT_H
 # define HEADER_BN_INT_H
 
-# include <openssl/bn.h>
+# include <gmssl/bn.h>
 # include <limits.h>
 
 #ifdef  __cplusplus

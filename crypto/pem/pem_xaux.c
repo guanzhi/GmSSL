@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/pkcs7.h>
-#include <openssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/pkcs7.h>
+#include <gmssl/pem.h>
 
 IMPLEMENT_PEM_rw(X509_AUX, X509, PEM_STRING_X509_TRUSTED, X509_AUX)

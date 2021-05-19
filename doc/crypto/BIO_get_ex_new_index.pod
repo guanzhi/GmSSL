@@ -21,7 +21,7 @@ RSA_get_ex_new_index, RSA_set_ex_data, RSA_get_ex_data
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int TYPE_get_ex_new_index(long argl, void *argp,
                 CRYPTO_EX_new *new_func,

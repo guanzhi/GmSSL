@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 #include "internal/x509_int.h"
 
 int X509_issuer_and_serial_cmp(const X509 *a, const X509 *b)

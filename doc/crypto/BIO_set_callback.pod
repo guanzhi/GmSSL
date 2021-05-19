@@ -11,7 +11,7 @@ BIO_callback_fn_ex, BIO_callback_fn
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  typedef long (*BIO_callback_fn_ex)(BIO *b, int oper, const char *argp,
                                     size_t len, int argi,

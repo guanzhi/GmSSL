@@ -11,9 +11,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <openssl/sha.h>
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
+#include <gmssl/sha.h>
+#include <gmssl/evp.h>
+#include <gmssl/crypto.h>
 
 static const unsigned char app_c1[SHA512_DIGEST_LENGTH] = {
     0xdd, 0xaf, 0x35, 0xa1, 0x93, 0x61, 0x7a, 0xba,

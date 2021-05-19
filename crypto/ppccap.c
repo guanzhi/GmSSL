@@ -22,8 +22,8 @@
 #  define __power_set(a) (_system_configuration.implementation & (a))
 # endif
 #endif
-#include <openssl/crypto.h>
-#include <openssl/bn.h>
+#include <gmssl/crypto.h>
+#include <gmssl/bn.h>
 
 #include "ppc_arch.h"
 

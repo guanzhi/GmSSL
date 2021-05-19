@@ -83,10 +83,10 @@
  */
 
 #include <stdio.h>
-#include <openssl/lhash.h>
-#include <openssl/rand.h>
+#include <gmssl/lhash.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #include "ssl_locl.h"
 

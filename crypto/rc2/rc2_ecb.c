@@ -7,9 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/rc2.h>
+#include <gmssl/rc2.h>
 #include "rc2_locl.h"
-#include <openssl/opensslv.h>
+#include <gmssl/opensslv.h>
 
 /*-
  * RC2 as implemented frm a posting from

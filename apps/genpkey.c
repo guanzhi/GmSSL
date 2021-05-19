@@ -10,11 +10,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "apps.h"
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
+#include <gmssl/pem.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 
 static int init_keygen_file(EVP_PKEY_CTX **pctx, const char *file, ENGINE *e);

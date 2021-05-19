@@ -14,10 +14,10 @@
 
 #include "e_os.h"
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/bn.h>
+#include <gmssl/crypto.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
+#include <gmssl/bn.h>
 #ifdef OPENSSL_NO_RSA
 int main(int argc, char *argv[])
 {
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 
 # define SetKey \
     RSA_set0_key(key,                                           \

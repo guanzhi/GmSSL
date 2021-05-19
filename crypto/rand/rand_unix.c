@@ -12,7 +12,7 @@
 #define USE_SOCKETS
 #include "e_os.h"
 #include "internal/cryptlib.h"
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #include "rand_lcl.h"
 
 #if !(defined(OPENSSL_SYS_WINDOWS) || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_VMS) || defined(OPENSSL_SYS_VXWORKS) || defined(OPENSSL_SYS_UEFI))

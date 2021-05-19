@@ -12,7 +12,7 @@
  * Test configuration parsing.
  */
 
-#include <openssl/conf.h>
+#include <gmssl/conf.h>
 #include "fuzzer.h"
 
 int FuzzerInitialize(int *argc, char ***argv) {

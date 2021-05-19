@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/pkcs7.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/pkcs7.h>

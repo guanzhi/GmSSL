@@ -8,8 +8,8 @@
  */
 
 #include "apps.h"
-#include <openssl/bio.h>
-#include <openssl/rand.h>
+#include <gmssl/bio.h>
+#include <gmssl/rand.h>
 
 static int seeded = 0;
 static int egdsocket = 0;

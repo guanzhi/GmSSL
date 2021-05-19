@@ -22,7 +22,7 @@
  *
  */
 
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 #include "internal/bn_int.h"
 #include "ec_lcl.h"

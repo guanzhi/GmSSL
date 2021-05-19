@@ -11,8 +11,8 @@
 #include <limits.h>
 #include "internal/cryptlib.h"
 #include "internal/numbers.h"
-#include <openssl/buffer.h>
-#include <openssl/asn1.h>
+#include <gmssl/buffer.h>
+#include <gmssl/asn1.h>
 
 static int asn1_d2i_read_bio(BIO *in, BUF_MEM **pb);
 

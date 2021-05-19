@@ -14,7 +14,7 @@
  */
 
 #include "eng_int.h"
-#include <openssl/conf.h>
+#include <gmssl/conf.h>
 
 int ENGINE_set_default(ENGINE *e, unsigned int flags)
 {

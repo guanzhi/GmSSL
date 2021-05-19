@@ -66,11 +66,11 @@
 #include <stdio.h>
 #include "../ssl_locl.h"
 #include "statem_locl.h"
-#include <openssl/buffer.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/buffer.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 
 /*
  * send s->init_buf in records of type 'type' (SSL3_RT_HANDSHAKE or

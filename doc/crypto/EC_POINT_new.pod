@@ -19,7 +19,7 @@ EC_POINT_hex2point
 
 =head1 SYNOPSIS
 
- #include <openssl/ec.h>
+ #include <gmssl/ec.h>
 
  EC_POINT *EC_POINT_new(const EC_GROUP *group);
  void EC_POINT_free(EC_POINT *point);

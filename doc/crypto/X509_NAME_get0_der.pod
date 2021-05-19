@@ -8,7 +8,7 @@ X509_NAME_get0_der - get X509_NAME DER encoding
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_NAME_get0_der(X509_NAME *nm, const unsigned char **pder,
                         size_t *pderlen)

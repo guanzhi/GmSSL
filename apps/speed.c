@@ -34,12 +34,12 @@
 #include <string.h>
 #include <math.h>
 #include "apps.h"
-#include <openssl/crypto.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/async.h>
+#include <gmssl/crypto.h>
+#include <gmssl/rand.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/async.h>
 #if !defined(OPENSSL_SYS_MSDOS)
 # include OPENSSL_UNISTD
 #endif
@@ -48,87 +48,87 @@
 # include <windows.h>
 #endif
 
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_DES
-# include <openssl/des.h>
+# include <gmssl/des.h>
 #endif
 #ifndef OPENSSL_NO_AES
-# include <openssl/aes.h>
+# include <gmssl/aes.h>
 #endif
 #ifndef OPENSSL_NO_CAMELLIA
-# include <openssl/camellia.h>
+# include <gmssl/camellia.h>
 #endif
 #ifndef OPENSSL_NO_MD2
-# include <openssl/md2.h>
+# include <gmssl/md2.h>
 #endif
 #ifndef OPENSSL_NO_MDC2
-# include <openssl/mdc2.h>
+# include <gmssl/mdc2.h>
 #endif
 #ifndef OPENSSL_NO_MD4
-# include <openssl/md4.h>
+# include <gmssl/md4.h>
 #endif
 #ifndef OPENSSL_NO_MD5
-# include <openssl/md5.h>
+# include <gmssl/md5.h>
 #endif
-#include <openssl/hmac.h>
+#include <gmssl/hmac.h>
 #ifndef OPENSSL_NO_SHA
-# include <openssl/sha.h>
+# include <gmssl/sha.h>
 #endif
 #ifndef OPENSSL_NO_RMD160
-# include <openssl/ripemd.h>
+# include <gmssl/ripemd.h>
 #endif
 #ifndef OPENSSL_NO_WHIRLPOOL
-# include <openssl/whrlpool.h>
+# include <gmssl/whrlpool.h>
 #endif
 #ifndef OPENSSL_NO_RC4
-# include <openssl/rc4.h>
+# include <gmssl/rc4.h>
 #endif
 #ifndef OPENSSL_NO_RC5
-# include <openssl/rc5.h>
+# include <gmssl/rc5.h>
 #endif
 #ifndef OPENSSL_NO_RC2
-# include <openssl/rc2.h>
+# include <gmssl/rc2.h>
 #endif
 #ifndef OPENSSL_NO_IDEA
-# include <openssl/idea.h>
+# include <gmssl/idea.h>
 #endif
 #ifndef OPENSSL_NO_SEED
-# include <openssl/seed.h>
+# include <gmssl/seed.h>
 #endif
 #ifndef OPENSSL_NO_BF
-# include <openssl/blowfish.h>
+# include <gmssl/blowfish.h>
 #endif
 #ifndef OPENSSL_NO_CAST
-# include <openssl/cast.h>
+# include <gmssl/cast.h>
 #endif
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 # include "./testrsa.h"
 #endif
-#include <openssl/x509.h>
+#include <gmssl/x509.h>
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 # include "./testdsa.h"
 #endif
 #ifndef OPENSSL_NO_EC
-# include <openssl/ec.h>
+# include <gmssl/ec.h>
 #endif
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 #ifndef OPENSSL_NO_SM3
-# include <openssl/sm3.h>
+# include <gmssl/sm3.h>
 #endif
 #ifndef OPENSSL_NO_SMS4
-# include <openssl/sms4.h>
+# include <gmssl/sms4.h>
 #endif
 #ifndef OPENSSL_NO_ZUC
-# include <openssl/zuc.h>
+# include <gmssl/zuc.h>
 #endif
 #ifndef OPENSSL_NO_SM9
-# include <openssl/sm9.h>
+# include <gmssl/sm9.h>
 #endif
-#include <openssl/modes.h>
+#include <gmssl/modes.h>
 
 #ifndef HAVE_FORK
 # if defined(OPENSSL_SYS_VMS) || defined(OPENSSL_SYS_WINDOWS)

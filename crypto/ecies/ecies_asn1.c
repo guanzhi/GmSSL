@@ -48,15 +48,15 @@
  */
 
 #include <string.h>
-#include <openssl/ec.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/obj_mac.h>
-#include <openssl/kdf2.h>
-#include <openssl/ecies.h>
+#include <gmssl/ec.h>
+#include <gmssl/err.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/obj_mac.h>
+#include <gmssl/kdf2.h>
+#include <gmssl/ecies.h>
 #include "ecies_lcl.h"
 
 /*

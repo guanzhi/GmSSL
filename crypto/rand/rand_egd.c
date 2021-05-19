@@ -7,14 +7,14 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_EGD
 NON_EMPTY_TRANSLATION_UNIT
 #else
 
-# include <openssl/crypto.h>
-# include <openssl/e_os2.h>
-# include <openssl/rand.h>
+# include <gmssl/crypto.h>
+# include <gmssl/e_os2.h>
+# include <gmssl/rand.h>
 
 /*-
  * Query the EGD <URL: http://www.lothar.com/tech/crypto/>.
@@ -69,7 +69,7 @@ int RAND_egd_bytes(const char *path, int bytes)
     return (-1);
 }
 # else
-#  include <openssl/opensslconf.h>
+#  include <gmssl/opensslconf.h>
 #  include OPENSSL_UNISTD
 #  include <stddef.h>
 #  include <sys/types.h>

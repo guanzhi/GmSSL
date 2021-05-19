@@ -48,9 +48,9 @@
  */
 
 #include <string.h>
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/kdf.h>
+#include <gmssl/ec.h>
+#include <gmssl/sm2.h>
+#include <gmssl/kdf.h>
 #include "sm2_lcl.h"
 
 int SM2_KAP_CTX_init(SM2_KAP_CTX *ctx,

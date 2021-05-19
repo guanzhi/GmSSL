@@ -8,7 +8,7 @@ CMS_verify_receipt - verify a CMS signed receipt
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  int CMS_verify_receipt(CMS_ContentInfo *rcms, CMS_ContentInfo *ocms, STACK_OF(X509) *certs, X509_STORE *store, unsigned int flags);
 

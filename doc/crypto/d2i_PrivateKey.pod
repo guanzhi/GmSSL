@@ -10,7 +10,7 @@ d2i_PrivateKey_bio, d2i_PrivateKey_fp
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  EVP_PKEY *d2i_PrivateKey(int type, EVP_PKEY **a, const unsigned char **pp,
                           long length);

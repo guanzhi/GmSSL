@@ -9,13 +9,13 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/x509v3.h>
-#include <openssl/ocsp.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/ocsp.h>
 #include "ocsp_lcl.h"
-#include <openssl/asn1t.h>
+#include <gmssl/asn1t.h>
 
 /* Convert a certificate and its issuer to an OCSP_CERTID */
 

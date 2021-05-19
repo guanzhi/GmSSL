@@ -12,7 +12,7 @@ BIO_set_nbio, BIO_do_connect - connect BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  const BIO_METHOD * BIO_s_connect(void);
 

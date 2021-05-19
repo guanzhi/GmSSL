@@ -50,9 +50,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/sgd.h>
-#include <openssl/sdf.h>
-#include <openssl/engine.h>
+#include <gmssl/sgd.h>
+#include <gmssl/sdf.h>
+#include <gmssl/engine.h>
 
 static char *deviceHandle = "SDF Device Handle";
 static char *sessionHandle = "SDF Session Handle";

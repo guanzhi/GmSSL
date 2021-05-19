@@ -10,7 +10,7 @@ x509 - X.509 certificate handling
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
 =head1 DESCRIPTION
 

@@ -69,15 +69,15 @@
 #endif
 
 #include "internal/o_dir.h"
-#include <openssl/lhash.h>
-#include <openssl/bio.h>
-#include <openssl/pem.h>
-#include <openssl/x509v3.h>
+#include <gmssl/lhash.h>
+#include <gmssl/bio.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509v3.h>
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
-#include <openssl/bn.h>
-#include <openssl/crypto.h>
+#include <gmssl/bn.h>
+#include <gmssl/crypto.h>
 #include "ssl_locl.h"
 #include "internal/thread_once.h"
 

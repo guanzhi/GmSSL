@@ -53,14 +53,14 @@ package gmssl
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/engine.h>
-#include <openssl/objects.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/ec.h>
+#include <gmssl/sm2.h>
+#include <gmssl/bio.h>
+#include <gmssl/evp.h>
+#include <gmssl/pem.h>
+#include <gmssl/engine.h>
+#include <gmssl/objects.h>
+#include <gmssl/opensslconf.h>
 
 extern long _BIO_get_mem_data(BIO *b, char **pp);
 extern void _OPENSSL_free(void *addr);
@@ -69,8 +69,8 @@ import "C"
 
 import (
 	"fmt"
-	"unsafe"
 	"runtime"
+	"unsafe"
 )
 
 type Certificate struct {

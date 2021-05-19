@@ -51,7 +51,7 @@
 #define HEADER_SDF_INT_H
 
 
-#include <openssl/gmsdf.h>
+#include <gmssl/gmsdf.h>
 #include "internal/dso.h"
 
 

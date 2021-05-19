@@ -50,8 +50,8 @@
 #ifndef HEADER_SMS4_LCL_H
 #define HEADER_SMS4_LCL_H
 
-#include <openssl/sms4.h>
-#include <openssl/e_os2.h>
+#include <gmssl/sms4.h>
+#include <gmssl/e_os2.h>
 
 extern const uint8_t SMS4_S[256];
 extern const uint32_t SMS4_T[256];

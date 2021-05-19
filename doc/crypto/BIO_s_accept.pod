@@ -10,7 +10,7 @@ BIO_set_bind_mode, BIO_get_bind_mode, BIO_do_accept - accept BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  const BIO_METHOD *BIO_s_accept(void);
 

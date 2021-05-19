@@ -23,7 +23,7 @@ stack container
 
 =head1 SYNOPSIS
 
- #include <openssl/safestack.h>
+ #include <gmssl/safestack.h>
 
  STACK_OF(TYPE)
  DEFINE_STACK_OF(TYPE)

@@ -10,7 +10,7 @@ encapsulates information about a Certificate Transparency log
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
  CTLOG *CTLOG_new(EVP_PKEY *public_key, const char *name);
  int CTLOG_new_from_base64(CTLOG ** ct_log,

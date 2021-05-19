@@ -12,10 +12,10 @@
 
 #include "../e_os.h"
 
-#include <openssl/opensslconf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/conf.h>
 
 typedef struct {
     const char *pass;

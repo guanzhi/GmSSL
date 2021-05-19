@@ -13,7 +13,7 @@ BIO_lookup
 =head1 SYNOPSIS
 
  #include <sys/types.h>
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  typedef union bio_addrinfo_st BIO_ADDRINFO;
 

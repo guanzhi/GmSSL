@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
 #include "internal/bn_int.h"
 #include "internal/evp_int.h"
 

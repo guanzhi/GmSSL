@@ -12,11 +12,11 @@
 
 #ifndef OPENSSL_NO_RC5
 
-# include <openssl/evp.h>
+# include <gmssl/evp.h>
 # include <internal/evp_int.h>
-# include <openssl/objects.h>
+# include <gmssl/objects.h>
 # include "evp_locl.h"
-# include <openssl/rc5.h>
+# include <gmssl/rc5.h>
 
 static int r_32_12_16_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                                const unsigned char *iv, int enc);

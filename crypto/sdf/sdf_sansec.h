@@ -49,7 +49,7 @@
 #ifndef HEADER_SDF_SANSEC_H
 #define HEADER_SDF_SANSEC_H
 
-#include <openssl/sgd.h>
+#include <gmssl/sgd.h>
 
 #define SANSEC_SM1		(SGD_SM1)
 #define SANSEC_SM1_ECB		(SANSEC_SM1|SGD_ECB)

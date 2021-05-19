@@ -9,25 +9,25 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/err.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
+#include <gmssl/bn.h>
+#include <gmssl/err.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #ifndef OPENSSL_NO_PAILLIER
-# include <openssl/paillier.h>
+# include <gmssl/paillier.h>
 #endif
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 
 #include "internal/asn1_int.h"

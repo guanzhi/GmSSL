@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/rsa.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
+#include <gmssl/bn.h>
+#include <gmssl/rsa.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
 
 int RSA_sign_ASN1_OCTET_STRING(int type,
                                const unsigned char *m, unsigned int m_len,

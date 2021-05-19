@@ -51,7 +51,7 @@
 #define HEADER_SKF_INT_H
 
 
-#include <openssl/skf.h>
+#include <gmssl/skf.h>
 #include "internal/dso.h"
 
 

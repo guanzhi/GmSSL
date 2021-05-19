@@ -8,7 +8,7 @@ DSA_dup_DH - create a DH structure out of DSA structure
 
 =head1 SYNOPSIS
 
- #include <openssl/dsa.h>
+ #include <gmssl/dsa.h>
 
  DH * DSA_dup_DH(const DSA *r);
 

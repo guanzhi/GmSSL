@@ -8,7 +8,7 @@ CMS_final - finalise a CMS_ContentInfo structure
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  int CMS_final(CMS_ContentInfo *cms, BIO *data, BIO *dcont, unsigned int flags);
 

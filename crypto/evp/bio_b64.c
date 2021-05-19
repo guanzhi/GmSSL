@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
+#include <gmssl/buffer.h>
+#include <gmssl/evp.h>
 #include "internal/bio.h"
 
 static int b64_write(BIO *h, const char *buf, int num);

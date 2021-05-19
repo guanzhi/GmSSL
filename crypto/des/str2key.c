@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "des_locl.h"
 
 void DES_string_to_key(const char *str, DES_cblock *key)

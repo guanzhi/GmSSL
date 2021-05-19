@@ -90,21 +90,21 @@
 #endif
 
 /* OpenSSL includes */
-#include <openssl/evp.h>
-#include <openssl/bn.h>
-#include <openssl/sm2.h>
-#include <openssl/rsa.h>
-#include <openssl/dsa.h>
-#include <openssl/dh.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/crypto.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
-#include <openssl/rand.h>
-#include <openssl/ssl.h>
-#include <openssl/pkcs12.h>
+#include <gmssl/evp.h>
+#include <gmssl/bn.h>
+#include <gmssl/sm2.h>
+#include <gmssl/rsa.h>
+#include <gmssl/dsa.h>
+#include <gmssl/dh.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/crypto.h>
+#include <gmssl/pem.h>
+#include <gmssl/err.h>
+#include <gmssl/conf.h>
+#include <gmssl/rand.h>
+#include <gmssl/ssl.h>
+#include <gmssl/pkcs12.h>
 
 /* Common */
 #include <time.h>

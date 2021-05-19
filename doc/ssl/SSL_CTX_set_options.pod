@@ -10,7 +10,7 @@ SSL_get_secure_renegotiation_support - manipulate SSL options
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_set_options(SSL_CTX *ctx, long options);
  long SSL_set_options(SSL *ssl, long options);

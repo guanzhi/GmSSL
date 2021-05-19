@@ -7,9 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/idea.h>
+#include <gmssl/idea.h>
 #include "idea_lcl.h"
-#include <openssl/opensslv.h>
+#include <gmssl/opensslv.h>
 
 const char *IDEA_options(void)
 {

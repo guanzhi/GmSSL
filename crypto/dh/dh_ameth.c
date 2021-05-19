@@ -9,13 +9,13 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
 #include "dh_locl.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
-#include <openssl/cms.h>
+#include <gmssl/cms.h>
 
 /*
  * i2d/d2i like DH parameter functions which use the appropriate routine for

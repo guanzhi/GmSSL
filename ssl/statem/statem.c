@@ -55,7 +55,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #include "../ssl_locl.h"
 #include "statem_locl.h"
 

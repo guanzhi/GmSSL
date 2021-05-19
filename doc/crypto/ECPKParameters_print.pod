@@ -9,7 +9,7 @@ encoding ASN1 representations of elliptic curve entities
 
 =head1 SYNOPSIS
 
- #include <openssl/ec.h>
+ #include <gmssl/ec.h>
 
  int ECPKParameters_print(BIO *bp, const EC_GROUP *x, int off);
  int ECPKParameters_print_fp(FILE *fp, const EC_GROUP *x, int off);

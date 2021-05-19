@@ -8,7 +8,7 @@ PKCS12_create - create a PKCS#12 structure
 
 =head1 SYNOPSIS
 
- #include <openssl/pkcs12.h>
+ #include <gmssl/pkcs12.h>
 
  PKCS12 *PKCS12_create(const char *pass, const char *name, EVP_PKEY *pkey,
                        X509 *cert, STACK_OF(X509) *ca,

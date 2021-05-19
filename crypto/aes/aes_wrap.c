@@ -8,8 +8,8 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/aes.h>
-#include <openssl/modes.h>
+#include <gmssl/aes.h>
+#include <gmssl/modes.h>
 
 int AES_wrap_key(AES_KEY *key, const unsigned char *iv,
                  unsigned char *out,

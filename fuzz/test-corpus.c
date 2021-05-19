@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "fuzzer.h"
 
 int main(int argc, char **argv) {

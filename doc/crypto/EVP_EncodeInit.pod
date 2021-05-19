@@ -11,7 +11,7 @@ EVP_DecodeBlock - EVP base 64 encode/decode routines
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  EVP_ENCODE_CTX *EVP_ENCODE_CTX_new(void);
  void EVP_ENCODE_CTX_free(EVP_ENCODE_CTX *ctx);

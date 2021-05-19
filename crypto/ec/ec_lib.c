@@ -15,8 +15,8 @@
 
 #include <string.h>
 
-#include <openssl/err.h>
-#include <openssl/opensslv.h>
+#include <gmssl/err.h>
+#include <gmssl/opensslv.h>
 
 #include "ec_lcl.h"
 

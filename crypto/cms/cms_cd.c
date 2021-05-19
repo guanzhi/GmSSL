@@ -8,13 +8,13 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/pem.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
-#include <openssl/cms.h>
-#include <openssl/bio.h>
-#include <openssl/comp.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/err.h>
+#include <gmssl/cms.h>
+#include <gmssl/bio.h>
+#include <gmssl/comp.h>
 #include "cms_lcl.h"
 
 #ifdef ZLIB

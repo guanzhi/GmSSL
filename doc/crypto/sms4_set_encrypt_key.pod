@@ -15,7 +15,7 @@ sms4_wrap_key, sms4_unwrap_key - SM4 Block Cipher
 
 =head1 SYNOPSIS
 
- #include <openssl/sms4.h>
+ #include <gmssl/sms4.h>
 
  void sms4_set_encrypt_key(sms4_key_t *key, const unsigned char *user_key);
  void sms4_set_decrypt_key(sms4_key_t *key, const unsigned char *user_key);

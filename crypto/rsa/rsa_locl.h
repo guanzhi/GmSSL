@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/rsa.h>
+#include <gmssl/rsa.h>
 
 struct rsa_st {
     /*

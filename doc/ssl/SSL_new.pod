@@ -8,7 +8,7 @@ SSL_new, SSL_up_ref - create a new SSL structure for a connection
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  SSL *SSL_new(SSL_CTX *ctx);
  int SSL_up_ref(SSL *s);

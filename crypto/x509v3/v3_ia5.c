@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
-#include <openssl/conf.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509v3.h>
 #include "ext_dat.h"
 
 const X509V3_EXT_METHOD v3_ns_ia5_list[8] = {

@@ -13,14 +13,14 @@
 #include <limits.h>
 
 #include "internal/cryptlib.h"
-#include <openssl/crypto.h>
-#include <openssl/lhash.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
-#include <openssl/asn1.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/objects.h>
+#include <gmssl/crypto.h>
+#include <gmssl/lhash.h>
+#include <gmssl/buffer.h>
+#include <gmssl/evp.h>
+#include <gmssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/objects.h>
 #include <internal/dane.h>
 #include <internal/x509_int.h>
 #include "x509_lcl.h"

@@ -8,8 +8,8 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/ts.h>
+#include <gmssl/objects.h>
+#include <gmssl/ts.h>
 #include "ts_lcl.h"
 
 TS_VERIFY_CTX *TS_VERIFY_CTX_new(void)

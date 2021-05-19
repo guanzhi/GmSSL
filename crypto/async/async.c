@@ -18,7 +18,7 @@
 /* This must be the first #include file */
 #include "async_locl.h"
 
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include <internal/cryptlib_int.h>
 #include <string.h>
 

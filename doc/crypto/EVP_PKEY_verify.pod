@@ -8,7 +8,7 @@ EVP_PKEY_verify_init, EVP_PKEY_verify - signature verification using a public ke
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_verify_init(EVP_PKEY_CTX *ctx);
  int EVP_PKEY_verify(EVP_PKEY_CTX *ctx,
@@ -50,8 +50,8 @@ the public key algorithm.
 
 Verify signature using PKCS#1 and SHA256 digest:
 
- #include <openssl/evp.h>
- #include <openssl/rsa.h>
+ #include <gmssl/evp.h>
+ #include <gmssl/rsa.h>
 
  EVP_PKEY_CTX *ctx;
  unsigned char *md, *sig;

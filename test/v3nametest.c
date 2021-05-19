@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 #include "../e_os.h"
 #include <string.h>
 

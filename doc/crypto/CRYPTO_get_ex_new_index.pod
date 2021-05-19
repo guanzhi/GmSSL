@@ -11,7 +11,7 @@ CRYPTO_get_ex_data, CRYPTO_free_ex_data, CRYPTO_new_ex_data
 
 =head1 SYNOPSIS
 
- #include <openssl/crypto.h>
+ #include <gmssl/crypto.h>
 
  int CRYPTO_get_ex_new_index(int class_index,
                 long argl, void *argp,

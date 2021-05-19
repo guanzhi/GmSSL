@@ -26,9 +26,9 @@
 # include <sys/stat.h>
 
 # include "internal/o_dir.h"
-# include <openssl/evp.h>
-# include <openssl/pem.h>
-# include <openssl/x509.h>
+# include <gmssl/evp.h>
+# include <gmssl/pem.h>
+# include <gmssl/x509.h>
 
 
 # ifndef PATH_MAX

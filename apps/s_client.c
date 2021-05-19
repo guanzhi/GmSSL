@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <openssl/e_os2.h>
+#include <gmssl/e_os2.h>
 
 #ifndef OPENSSL_NO_SOCK
 
@@ -56,19 +56,19 @@ typedef unsigned int u_int;
 
 #define USE_SOCKETS
 #include "apps.h"
-#include <openssl/x509.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <openssl/ocsp.h>
-#include <openssl/bn.h>
-#include <openssl/async.h>
+#include <gmssl/x509.h>
+#include <gmssl/ssl.h>
+#include <gmssl/err.h>
+#include <gmssl/pem.h>
+#include <gmssl/rand.h>
+#include <gmssl/ocsp.h>
+#include <gmssl/bn.h>
+#include <gmssl/async.h>
 #ifndef OPENSSL_NO_SRP
-# include <openssl/srp.h>
+# include <gmssl/srp.h>
 #endif
 #ifndef OPENSSL_NO_CT
-# include <openssl/ct.h>
+# include <gmssl/ct.h>
 #endif
 #include "s_apps.h"
 #include "timeouts.h"

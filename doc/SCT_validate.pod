@@ -9,7 +9,7 @@ checks Signed Certificate Timestamps (SCTs) are valid
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
  typedef enum {
   SCT_VALIDATION_STATUS_NOT_SET,

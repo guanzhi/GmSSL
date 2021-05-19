@@ -86,7 +86,7 @@ anyway.
 Set a time structure to one hour after the current time and print it out:
 
  #include <time.h>
- #include <openssl/asn1.h>
+ #include <gmssl/asn1.h>
  ASN1_TIME *tm;
  time_t t;
  BIO *b;

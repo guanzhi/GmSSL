@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 /*-
  * IMPLEMENTATION NOTES.
  *
@@ -46,9 +46,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/crypto.h>
-#include <openssl/sha.h>
-#include <openssl/opensslv.h>
+#include <gmssl/crypto.h>
+#include <gmssl/sha.h>
+#include <gmssl/opensslv.h>
 
 #include "internal/cryptlib.h"
 

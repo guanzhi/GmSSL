@@ -11,7 +11,7 @@
 #include "e_os.h"
 
 #ifndef OPENSSL_NO_DH
-#include <openssl/dh.h>
+#include <gmssl/dh.h>
 #include "internal/bn_dh.h"
 /* DH parameters from RFC5114 */
 

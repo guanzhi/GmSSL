@@ -8,7 +8,7 @@ EVP_PKEY_decrypt_init, EVP_PKEY_decrypt - decrypt using a public key algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_decrypt_init(EVP_PKEY_CTX *ctx);
  int EVP_PKEY_decrypt(EVP_PKEY_CTX *ctx,
@@ -47,8 +47,8 @@ indicates the operation is not supported by the public key algorithm.
 
 Decrypt data using OAEP (for RSA keys):
 
- #include <openssl/evp.h>
- #include <openssl/rsa.h>
+ #include <gmssl/evp.h>
+ #include <gmssl/rsa.h>
 
  EVP_PKEY_CTX *ctx;
  unsigned char *out, *in;

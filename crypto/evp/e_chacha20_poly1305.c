@@ -12,8 +12,8 @@
 
 #ifndef OPENSSL_NO_CHACHA
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
 # include "evp_locl.h"
 # include "internal/evp_int.h"
 # include "internal/chacha.h"

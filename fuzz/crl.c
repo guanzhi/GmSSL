@@ -8,8 +8,8 @@
  * or in the file LICENSE in the source distribution.
  */
 
-#include <openssl/x509.h>
-#include <openssl/bio.h>
+#include <gmssl/x509.h>
+#include <gmssl/bio.h>
 #include "fuzzer.h"
 
 int FuzzerInitialize(int *argc, char ***argv) {

@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/rand.h>
+#include <gmssl/x509.h>
+#include <gmssl/rand.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 #include "internal/x509_int.h"

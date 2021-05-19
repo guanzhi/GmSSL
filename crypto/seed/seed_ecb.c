@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/seed.h>
+#include <gmssl/seed.h>
 
 void SEED_ecb_encrypt(const unsigned char *in, unsigned char *out,
                       const SEED_KEY_SCHEDULE *ks, int enc)

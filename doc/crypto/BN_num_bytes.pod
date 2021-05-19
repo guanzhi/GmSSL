@@ -8,7 +8,7 @@ BN_num_bits, BN_num_bytes, BN_num_bits_word - get BIGNUM size
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_num_bytes(const BIGNUM *a);
 

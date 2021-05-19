@@ -1,67 +1,67 @@
 IF[{- !$disabled{"engine"} -}]
   IF[{- $disabled{"dynamic-engine"} -}]
-    LIBS=../libcrypto
-    SOURCE[../libcrypto]=\
+    LIBS=../libgmcrypto
+    SOURCE[../libgmcrypto]=\
             e_padlock.c {- $target{padlock_asm_src} -}
     IF[{- !$disabled{capieng} -}]
-      SOURCE[../libcrypto]=e_capi.c
+      SOURCE[../libgmcrypto]=e_capi.c
     ENDIF
     IF[{- !$disabled{skfeng} -}]
-      SOURCE[../libcrypto]=e_skf.c
+      SOURCE[../libgmcrypto]=e_skf.c
     ENDIF
     IF[{- !$disabled{sdfeng} -}]
-      SOURCE[../libcrypto]=e_sdf.c
+      SOURCE[../libgmcrypto]=e_sdf.c
     ENDIF
     IF[{- !$disabled{gmieng} -}]
-      SOURCE[../libcrypto]=e_gmi.c {- $target{gmi_asm_src} -}
+      SOURCE[../libgmcrypto]=e_gmi.c {- $target{gmi_asm_src} -}
     ENDIF
   ELSE
     ENGINES=padlock
     SOURCE[padlock]=e_padlock.c {- $target{padlock_asm_src} -}
-    DEPEND[padlock]=../libcrypto
+    DEPEND[padlock]=../libgmcrypto
     INCLUDE[padlock]=../include
     IF[{- !$disabled{capieng} -}]
       ENGINES=capi
       SOURCE[capi]=e_capi.c
-      DEPEND[capi]=../libcrypto
+      DEPEND[capi]=../libgmcrypto
       INCLUDE[capi]=../include
     ENDIF
     IF[{- !$disabled{skfeng} -}]
       ENGINES=skf
       SOURCE[skf]=e_skf.c
-      DEPEND[skf]=../libcrypto
+      DEPEND[skf]=../libgmcrypto
       INCLUDE[skf]=../include
     ENDIF
     IF[{- !$disabled{sdfeng} -}]
       ENGINES=sdf
       SOURCE[sdf]=e_sdf.c
-      DEPEND[sdf]=../libcrypto
+      DEPEND[sdf]=../libgmcrypto
       INCLUDE[sdf]=../include
     ENDIF
     IF[{- !$disabled{gmieng} -}]
       ENGINES=gmi
       SOURCE[gmi]=e_gmi.c {- $target{gmi_asm_src} -}
-      DEPEND[gmi]=../libcrypto
+      DEPEND[gmi]=../libgmcrypto
       INCLUDE[gmi]=../include
     ENDIF
 
     ENGINES_NO_INST=ossltest
     SOURCE[dasync]=e_dasync.c
-    DEPEND[dasync]=../libcrypto
+    DEPEND[dasync]=../libgmcrypto
     INCLUDE[dasync]=../include
     SOURCE[ossltest]=e_ossltest.c
-    DEPEND[ossltest]=../libcrypto
+    DEPEND[ossltest]=../libgmcrypto
     INCLUDE[ossltest]=../include
     IF[{- !$disabled{skfeng} -}]
       ENGINES_NO_INST=skf_dummy
       SOURCE[skf_dummy]=skf_dummy.c
-      DEPEND[skf_dummy]=../libcrypto
+      DEPEND[skf_dummy]=../libgmcrypto
       INCLUDE[skf_dummy]=../include
     ENDIF
     IF[{- !$disabled{skfeng} -}]
       ENGINES_NO_INST=sdf_dummy
       SOURCE[sdf_dummy]=sdf_dummy.c
-      DEPEND[sdf_dummy]=../libcrypto
+      DEPEND[sdf_dummy]=../libgmcrypto
       INCLUDE[sdf_dummy]=../include
     ENDIF
   ENDIF

@@ -12,10 +12,10 @@
 #include <time.h>
 #include "internal/cryptlib.h"
 #include "internal/thread_once.h"
-#include <openssl/crypto.h>
-#include <openssl/buffer.h>
+#include <gmssl/crypto.h>
+#include <gmssl/buffer.h>
 #include "internal/bio.h"
-#include <openssl/lhash.h>
+#include <gmssl/lhash.h>
 
 #ifndef OPENSSL_NO_CRYPTO_MDEBUG_BACKTRACE
 # include <execinfo.h>

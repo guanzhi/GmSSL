@@ -85,8 +85,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ssl_locl.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
 
 typedef struct {
     long version;

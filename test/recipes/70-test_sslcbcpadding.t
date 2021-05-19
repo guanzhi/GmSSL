@@ -35,7 +35,7 @@ my $proxy = TLSProxy::Proxy->new(
 );
 
 # TODO: We could test all 256 values, but then the log file gets too large for
-# CI. See https://github.com/openssl/openssl/issues/1440.
+# CI. See https://github.com/gmssl/gmssl/issues/1440.
 my @test_offsets = (0, 128, 254, 255);
 
 # Test that maximally-padded records are accepted.

@@ -9,17 +9,17 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/pkcs12.h>
-#include <openssl/pem.h>
+#include <gmssl/buffer.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/pkcs12.h>
+#include <gmssl/pem.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"

@@ -12,11 +12,11 @@
 
 #ifndef OPENSSL_NO_SHA
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
-# include <openssl/sha.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
+# include <gmssl/sha.h>
 # ifndef OPENSSL_NO_RSA
-#  include <openssl/rsa.h>
+#  include <gmssl/rsa.h>
 # endif
 # include "internal/evp_int.h"
 

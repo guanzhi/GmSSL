@@ -62,8 +62,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/gmapi.h>
+# include <gmssl/evp.h>
+# include <gmssl/gmapi.h>
 
 /*
 static int test_sgd(int verbose)

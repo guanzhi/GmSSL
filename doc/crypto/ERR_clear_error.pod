@@ -8,7 +8,7 @@ ERR_clear_error - clear the error queue
 
 =head1 SYNOPSIS
 
- #include <openssl/err.h>
+ #include <gmssl/err.h>
 
  void ERR_clear_error(void);
 

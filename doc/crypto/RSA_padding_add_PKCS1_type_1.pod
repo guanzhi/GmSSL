@@ -13,7 +13,7 @@ padding
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_padding_add_PKCS1_type_1(unsigned char *to, int tlen,
     unsigned char *f, int fl);

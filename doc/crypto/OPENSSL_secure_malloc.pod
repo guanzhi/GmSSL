@@ -12,7 +12,7 @@ CRYPTO_secure_used - secure heap storage
 
 =head1 SYNOPSIS
 
- #include <openssl/crypto.h>
+ #include <gmssl/crypto.h>
 
  int CRYPTO_secure_malloc_init(size_t size, int minsize);
 

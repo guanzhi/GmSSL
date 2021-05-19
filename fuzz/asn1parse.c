@@ -13,9 +13,9 @@
  */
 
 #include <stdio.h>
-#include <openssl/asn1.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 #include "fuzzer.h"
 
 int FuzzerInitialize(int *argc, char ***argv) {

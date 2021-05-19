@@ -12,10 +12,10 @@
 #include <errno.h>
 
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
-#include <openssl/buffer.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
+#include <gmssl/lhash.h>
+#include <gmssl/buffer.h>
+#include <gmssl/x509.h>
+#include <gmssl/pem.h>
 #include "x509_lcl.h"
 
 static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argc,

@@ -8,11 +8,11 @@
  */
 
 #include <string.h>
-#include <openssl/ec.h>
+#include <gmssl/ec.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include "ec_lcl.h"
 #ifndef OPENSSL_NO_SM2
 # include "../ecies/ecies_lcl.h"

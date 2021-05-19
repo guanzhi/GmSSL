@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/bio.h>
+#include <gmssl/bio.h>
 
 struct bio_method_st {
     int type;

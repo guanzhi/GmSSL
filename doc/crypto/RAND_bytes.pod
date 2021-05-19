@@ -8,7 +8,7 @@ RAND_bytes, RAND_pseudo_bytes - generate random data
 
 =head1 SYNOPSIS
 
- #include <openssl/rand.h>
+ #include <gmssl/rand.h>
 
  int RAND_bytes(unsigned char *buf, int num);
 

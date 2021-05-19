@@ -11,8 +11,8 @@
 # error "CT is disabled"
 #endif
 
-#include <openssl/asn1.h>
-#include <openssl/bio.h>
+#include <gmssl/asn1.h>
+#include <gmssl/bio.h>
 
 #include "ct_locl.h"
 

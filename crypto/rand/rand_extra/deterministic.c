@@ -12,13 +12,13 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 
 #if defined(BORINGSSL_UNSAFE_DETERMINISTIC_MODE)
 
 #include <string.h>
 
-#include <openssl/chacha.h>
+#include <gmssl/chacha.h>
 
 #include "../internal.h"
 #include "../fipsmodule/rand/internal.h"

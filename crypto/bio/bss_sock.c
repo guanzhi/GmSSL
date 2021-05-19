@@ -15,7 +15,7 @@
 
 #ifndef OPENSSL_NO_SOCK
 
-# include <openssl/bio.h>
+# include <gmssl/bio.h>
 
 # ifdef WATT32
 /* Watt-32 uses same names */

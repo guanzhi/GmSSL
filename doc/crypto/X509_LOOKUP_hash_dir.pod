@@ -12,7 +12,7 @@ lookup methods
 
 =head1 SYNOPSIS
 
-  #include <openssl/x509_vfy.h>
+  #include <gmssl/x509_vfy.h>
 
   X509_LOOKUP_METHOD *X509_LOOKUP_hash_dir(void);
   X509_LOOKUP_METHOD *X509_LOOKUP_file(void);

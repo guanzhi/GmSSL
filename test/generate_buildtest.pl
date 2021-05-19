@@ -19,12 +19,12 @@ print <<"_____";
  * Generated with test/generate_buildtest.pl, to check that such a simple
  * program builds.
  */
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifndef OPENSSL_NO_STDIO
 # include <stdio.h>
 #endif
 #ifndef OPENSSL_NO_${name_uc}
-# include <openssl/$name.h>
+# include <gmssl/$name.h>
 #endif
 
 int main()

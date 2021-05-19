@@ -51,13 +51,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/crypto.h>
-#include <openssl/cmac.h>
-#include <openssl/kdf2.h>
-#include <openssl/e_os2.h>
-#include <openssl/otp.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/crypto.h>
+#include <gmssl/cmac.h>
+#include <gmssl/kdf2.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/otp.h>
 #include "../modes/modes_lcl.h"
 
 static int pow_table[] = {

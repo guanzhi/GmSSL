@@ -48,9 +48,9 @@
  */
 
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/sm9.h>
-#include <openssl/ec.h>
+#include <gmssl/err.h>
+#include <gmssl/sm9.h>
+#include <gmssl/ec.h>
 #include "sm9_lcl.h"
 
 

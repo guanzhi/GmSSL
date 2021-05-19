@@ -9,7 +9,7 @@
 #ifndef HEADER_MODES_LCL_H
 #define HEADER_MODES_LCL_H
 
-#include <openssl/modes.h>
+#include <gmssl/modes.h>
 
 #if (defined(_WIN32) || defined(_WIN64)) && !defined(__MINGW32__)
 typedef __int64 i64;

@@ -50,7 +50,7 @@
 package gmssl
 
 /*
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 */
 import "C"
 

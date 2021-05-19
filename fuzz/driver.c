@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #include "fuzzer.h"
 
 #ifndef OPENSSL_NO_FUZZ_LIBFUZZER

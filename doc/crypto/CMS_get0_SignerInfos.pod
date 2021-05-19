@@ -11,7 +11,7 @@ CMS_SignerInfo_get0_signature, CMS_SignerInfo_cert_cmp,
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  STACK_OF(CMS_SignerInfo) *CMS_get0_SignerInfos(CMS_ContentInfo *cms);
 

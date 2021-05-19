@@ -8,7 +8,7 @@ RSA_public_encrypt, RSA_private_decrypt - RSA public key cryptography
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_public_encrypt(int flen, unsigned char *from,
     unsigned char *to, RSA *rsa, int padding);

@@ -9,15 +9,15 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/pkcs12.h>
-#include <openssl/bn.h>
+#include <gmssl/pkcs12.h>
+#include <gmssl/bn.h>
 
 /* Uncomment out this line to get debugging info about key generation */
 /*
  * #define OPENSSL_DEBUG_KEYGEN
  */
 #ifdef OPENSSL_DEBUG_KEYGEN
-# include <openssl/bio.h>
+# include <gmssl/bio.h>
 extern BIO *bio_err;
 void h__dump(unsigned char *p, int len);
 #endif

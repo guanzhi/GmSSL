@@ -12,7 +12,7 @@ get passwd callback for encrypted PEM file handling
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_default_passwd_cb(SSL_CTX *ctx, pem_password_cb *cb);
  void SSL_CTX_set_default_passwd_cb_userdata(SSL_CTX *ctx, void *u);

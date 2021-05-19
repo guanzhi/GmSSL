@@ -10,7 +10,7 @@ i2d_re_X509_tbs, i2d_re_X509_CRL_tbs, i2d_re_X509_REQ_tbs
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  X509 *d2i_X509_AUX(X509 **px, const unsigned char **in, long len);
  int i2d_X509_AUX(X509 *x, unsigned char **out);

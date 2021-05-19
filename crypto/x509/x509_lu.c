@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
-#include <openssl/x509.h>
+#include <gmssl/lhash.h>
+#include <gmssl/x509.h>
 #include "internal/x509_int.h"
-#include <openssl/x509v3.h>
+#include <gmssl/x509v3.h>
 #include "x509_lcl.h"
 
 X509_LOOKUP *X509_LOOKUP_new(X509_LOOKUP_METHOD *method)

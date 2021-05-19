@@ -44,7 +44,7 @@ PEM_write_bio_SSL_SESSION
 
 =head1 SYNOPSIS
 
- #include <openssl/pem.h>
+ #include <gmssl/pem.h>
 
  DECLARE_PEM_rw(name, TYPE)
 

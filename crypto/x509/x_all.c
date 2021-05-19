@@ -8,21 +8,21 @@
  */
 
 #include <stdio.h>
-#include <openssl/stack.h>
+#include <gmssl/stack.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/asn1.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
+#include <gmssl/buffer.h>
+#include <gmssl/asn1.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
 #include "internal/x509_int.h"
-#include <openssl/ocsp.h>
+#include <gmssl/ocsp.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-#include <openssl/dsa.h>
+#include <gmssl/dsa.h>
 #endif
-#include <openssl/x509v3.h>
+#include <gmssl/x509v3.h>
 
 int X509_verify(X509 *a, EVP_PKEY *r)
 {

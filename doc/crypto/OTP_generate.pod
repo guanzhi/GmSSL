@@ -8,7 +8,7 @@ OTP_generate - One-Time Password Algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/otp.h>
+ #include <gmssl/otp.h>
 
  typedef struct OTP_PARAMS_st {
 	int type;

@@ -49,8 +49,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/zuc.h>
-#include <openssl/crypto.h>
+#include <gmssl/zuc.h>
+#include <gmssl/crypto.h>
 #include "modes_lcl.h"
 
 static void zuc_set_eia_iv(unsigned char iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,

@@ -10,7 +10,7 @@ operation
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_want(const SSL *ssl);
  int SSL_want_nothing(const SSL *ssl);

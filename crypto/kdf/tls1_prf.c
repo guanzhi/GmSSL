@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/kdf.h>
-#include <openssl/evp.h>
+#include <gmssl/kdf.h>
+#include <gmssl/evp.h>
 #include "internal/evp_int.h"
 
 static int tls1_prf_alg(const EVP_MD *md,

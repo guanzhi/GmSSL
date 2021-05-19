@@ -8,7 +8,7 @@ ERR_put_error, ERR_add_error_data - record an error
 
 =head1 SYNOPSIS
 
- #include <openssl/err.h>
+ #include <gmssl/err.h>
 
  void ERR_put_error(int lib, int func, int reason, const char *file,
          int line);

@@ -10,7 +10,7 @@ ECAHE_ciphertext_add, ECAHE_ciphertext_sub, ECAHE_ciphertext_neg - ECAHE Algorit
 
 =head1 SYNOPSIS
 
- #include <openssl/ecahe.h>
+ #include <gmssl/ecahe.h>
 
  ECAHE_CIPHERTEXT *ECAHE_CIPHERTEXT_new(void);
  void ECAHE_CIPHERTEXT_free(ECAHE_CIPHERTEXT *c);

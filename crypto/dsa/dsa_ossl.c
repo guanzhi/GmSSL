@@ -11,10 +11,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/sha.h>
+#include <gmssl/bn.h>
+#include <gmssl/sha.h>
 #include "dsa_locl.h"
-#include <openssl/asn1.h>
+#include <gmssl/asn1.h>
 
 static DSA_SIG *dsa_do_sign(const unsigned char *dgst, int dlen, DSA *dsa);
 static int dsa_sign_setup_no_digest(DSA *dsa, BN_CTX *ctx_in, BIGNUM **kinvp,

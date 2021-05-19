@@ -1,5 +1,5 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=\
         aes_misc.c aes_ecb.c aes_cfb.c aes_ofb.c \
         aes_ige.c aes_wrap.c {- $target{aes_asm_src} -}
 

@@ -65,7 +65,7 @@
  *                                      <appro@fy.chalmers.se>
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 #if !defined(DATA_ORDER_IS_BIG_ENDIAN) && !defined(DATA_ORDER_IS_LITTLE_ENDIAN)
 # error "DATA_ORDER must be defined!"

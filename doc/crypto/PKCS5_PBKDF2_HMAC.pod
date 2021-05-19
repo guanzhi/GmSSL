@@ -8,7 +8,7 @@ PKCS5_PBKDF2_HMAC, PKCS5_PBKDF2_HMAC_SHA1 - password based derivation routines w
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int PKCS5_PBKDF2_HMAC(const char *pass, int passlen,
                        const unsigned char *salt, int saltlen, int iter,

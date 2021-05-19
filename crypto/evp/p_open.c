@@ -13,10 +13,10 @@ NON_EMPTY_TRANSLATION_UNIT
 #else
 
 # include <stdio.h>
-# include <openssl/evp.h>
-# include <openssl/objects.h>
-# include <openssl/x509.h>
-# include <openssl/rsa.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
+# include <gmssl/x509.h>
+# include <gmssl/rsa.h>
 
 int EVP_OpenInit(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
                  const unsigned char *ek, int ekl, const unsigned char *iv,

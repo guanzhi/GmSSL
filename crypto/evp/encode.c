@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 #include "evp_locl.h"
 
 static unsigned char conv_ascii2bin(unsigned char a);

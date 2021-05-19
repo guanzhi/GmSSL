@@ -8,7 +8,7 @@ SSL_CTX_config, SSL_config - configure SSL_CTX or SSL structure
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CTX_config(SSL_CTX *ctx, const char *name);
  int SSL_config(SSL *s, const char *name);

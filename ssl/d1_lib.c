@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #define USE_SOCKETS
-#include <openssl/objects.h>
-#include <openssl/rand.h>
+#include <gmssl/objects.h>
+#include <gmssl/rand.h>
 #include "ssl_locl.h"
 
 #if defined(OPENSSL_SYS_VMS)

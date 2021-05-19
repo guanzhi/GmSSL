@@ -12,10 +12,10 @@
 #include <ctype.h>
 #include <string.h>
 #include "e_os.h"
-#include <openssl/asn1.h>
-#include <openssl/ocsp.h>
-#include <openssl/err.h>
-#include <openssl/buffer.h>
+#include <gmssl/asn1.h>
+#include <gmssl/ocsp.h>
+#include <gmssl/err.h>
+#include <gmssl/buffer.h>
 
 /* Stateful OCSP request code, supporting non-blocking I/O */
 

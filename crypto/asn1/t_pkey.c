@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/buffer.h>
+#include <gmssl/objects.h>
+#include <gmssl/buffer.h>
 #include "internal/bn_int.h"
 
 /* Number of octets per line */

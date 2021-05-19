@@ -16,13 +16,13 @@
 # include <sys/types.h>
 #endif
 
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/objects.h>
-#include <openssl/buffer.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/objects.h>
+#include <gmssl/buffer.h>
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"

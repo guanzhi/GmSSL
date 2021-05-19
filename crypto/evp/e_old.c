@@ -7,12 +7,12 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #if OPENSSL_API_COMPAT >= 0x00908000L
 NON_EMPTY_TRANSLATION_UNIT
 #else
 
-# include <openssl/evp.h>
+# include <gmssl/evp.h>
 
 /*
  * Define some deprecated functions, so older programs don't crash and burn

@@ -9,7 +9,7 @@
 
 #include "eng_int.h"
 #include "internal/dso.h"
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 /*
  * Shared libraries implementing ENGINEs for use by the "dynamic" ENGINE

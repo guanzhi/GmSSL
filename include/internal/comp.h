@@ -8,7 +8,7 @@
  */
 
 #ifndef OPENSSL_NO_COMP
-# include <openssl/comp.h>
+# include <gmssl/comp.h>
 #endif
 
 void comp_zlib_cleanup_int(void);

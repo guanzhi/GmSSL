@@ -8,7 +8,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/opensslv.h>
+#include <gmssl/opensslv.h>
 #include "md4_locl.h"
 
 /*

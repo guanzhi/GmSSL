@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 #include <stdio.h>
 #include <string.h>
 

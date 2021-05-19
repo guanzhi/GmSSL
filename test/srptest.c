@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_SRP
 
 # include <stdio.h>
@@ -20,9 +20,9 @@ int main(int argc, char *argv[])
 
 #else
 
-# include <openssl/srp.h>
-# include <openssl/rand.h>
-# include <openssl/err.h>
+# include <gmssl/srp.h>
+# include <gmssl/rand.h>
+# include <gmssl/err.h>
 
 static void showbn(const char *name, const BIGNUM *bn)
 {

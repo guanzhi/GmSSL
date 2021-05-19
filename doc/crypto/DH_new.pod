@@ -8,7 +8,7 @@ DH_new, DH_free - allocate and free DH objects
 
 =head1 SYNOPSIS
 
- #include <openssl/dh.h>
+ #include <gmssl/dh.h>
 
  DH* DH_new(void);
 

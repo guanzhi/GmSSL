@@ -8,7 +8,7 @@ RSA_sign_ASN1_OCTET_STRING, RSA_verify_ASN1_OCTET_STRING - RSA signatures
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_sign_ASN1_OCTET_STRING(int dummy, unsigned char *m,
     unsigned int m_len, unsigned char *sigret, unsigned int *siglen,

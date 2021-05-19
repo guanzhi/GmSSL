@@ -8,7 +8,7 @@ SSL_CTX_set_security_level, SSL_set_security_level, SSL_CTX_get_security_level, 
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_security_level(SSL_CTX *ctx, int level);
  void SSL_set_security_level(SSL *s, int level);

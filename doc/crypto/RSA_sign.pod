@@ -8,7 +8,7 @@ RSA_sign, RSA_verify - RSA signatures
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_sign(int type, const unsigned char *m, unsigned int m_len,
     unsigned char *sigret, unsigned int *siglen, RSA *rsa);

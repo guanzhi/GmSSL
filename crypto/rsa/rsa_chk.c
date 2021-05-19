@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/bn.h>
-#include <openssl/err.h>
+#include <gmssl/bn.h>
+#include <gmssl/err.h>
 #include "rsa_locl.h"
 
 int RSA_check_key(const RSA *key)

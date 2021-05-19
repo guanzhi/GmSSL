@@ -8,7 +8,7 @@ SSL_get_extms_support - extended master secret support
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_get_extms_support(SSL *ssl);
 

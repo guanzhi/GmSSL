@@ -8,7 +8,7 @@ sm3_hmac_init, sm3_hmac_update, sm3_hmac_final, sm3_hmac - SM3 Hash Algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/sm3.h>
+ #include <gmssl/sm3.h>
 
  void sm3_hmac_init(sm3_hmac_ctx_t *ctx, const unsigned char *key, size_t key_len);
  void sm3_hmac_update(sm3_hmac_ctx_t *ctx, const unsigned char *data, size_t data_len);

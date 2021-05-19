@@ -9,7 +9,7 @@ SSL_CONF_cmd - send configuration command
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CONF_cmd(SSL_CONF_CTX *cctx, const char *cmd, const char *value);
  int SSL_CONF_cmd_value_type(SSL_CONF_CTX *cctx, const char *cmd);

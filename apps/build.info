@@ -16,7 +16,7 @@ IF[{- !$disabled{apps} -}]
           sm9param.c gensm9.c sm9.c sm9utl.c \
           {- $target{apps_aux_src} -}
   INCLUDE[gmssl]=.. ../include
-  DEPEND[gmssl]=../libssl
+  DEPEND[gmssl]=../libgmssl
 
   SCRIPTS=CA.pl {- $tsget_name -}
   SOURCE[CA.pl]=CA.pl.in

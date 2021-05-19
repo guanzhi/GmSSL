@@ -8,7 +8,7 @@ SSL_CTX_set_session_id_context, SSL_set_session_id_context - set context within 
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CTX_set_session_id_context(SSL_CTX *ctx, const unsigned char *sid_ctx,
                                     unsigned int sid_ctx_len);

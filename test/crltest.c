@@ -10,11 +10,11 @@
 #include <stdio.h>
 #include "../e_os.h"
 #include <string.h>
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/x509.h>
+#include <gmssl/bio.h>
+#include <gmssl/crypto.h>
+#include <gmssl/err.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509.h>
 
 #include "testutil.h"
 

@@ -49,10 +49,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/e_os2.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/kdf2.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/kdf2.h>
 #include "internal/byteorder.h"
 
 

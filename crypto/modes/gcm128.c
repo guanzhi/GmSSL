@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "modes_lcl.h"
 #include <string.h>
 
@@ -1667,7 +1667,7 @@ void CRYPTO_gcm128_release(GCM128_CONTEXT *ctx)
 
 #if defined(SELFTEST)
 # include <stdio.h>
-# include <openssl/aes.h>
+# include <gmssl/aes.h>
 
 /* Test Case 1 */
 static const u8 K1[16], *P1 = NULL, *A1 = NULL, IV1[12], *C1 = NULL;

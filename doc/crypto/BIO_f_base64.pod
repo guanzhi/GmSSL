@@ -10,8 +10,8 @@ BIO_f_base64 - base64 BIO filter
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
- #include <openssl/evp.h>
+ #include <gmssl/bio.h>
+ #include <gmssl/evp.h>
 
  const BIO_METHOD *BIO_f_base64(void);
 

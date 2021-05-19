@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/idea.h>
+#include <gmssl/idea.h>
 #include "idea_lcl.h"
 
 void IDEA_cbc_encrypt(const unsigned char *in, unsigned char *out,

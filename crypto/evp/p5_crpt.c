@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/evp.h>
 
 /*
  * Doesn't do anything now: Builtin PBE algorithms in static table.

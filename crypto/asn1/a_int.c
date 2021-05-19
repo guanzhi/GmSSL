@@ -11,8 +11,8 @@
 #include "internal/cryptlib.h"
 #include "internal/numbers.h"
 #include <limits.h>
-#include <openssl/asn1.h>
-#include <openssl/bn.h>
+#include <gmssl/asn1.h>
+#include <gmssl/bn.h>
 #include "asn1_locl.h"
 
 ASN1_INTEGER *ASN1_INTEGER_dup(const ASN1_INTEGER *x)

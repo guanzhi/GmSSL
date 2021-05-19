@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/opensslconf.h> /* To see if OPENSSL_NO_CAST is defined */
+#include <gmssl/opensslconf.h> /* To see if OPENSSL_NO_CAST is defined */
 
 #include "../e_os.h"
 
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/cast.h>
+# include <gmssl/cast.h>
 
 # define FULL_TEST
 

@@ -14,18 +14,18 @@
  */
 
 #include <stdio.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
 #include <internal/engine.h>
-#include <openssl/pem.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
-#include <openssl/dsa.h>
-#include <openssl/dh.h>
+#include <gmssl/pem.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
+#include <gmssl/rsa.h>
+#include <gmssl/dsa.h>
+#include <gmssl/dh.h>
 
-#include <openssl/hmac.h>
-#include <openssl/x509v3.h>
+#include <gmssl/hmac.h>
+#include <gmssl/x509v3.h>
 
 /*
  * This testing gunk is implemented (and explained) lower down. It also
@@ -184,7 +184,7 @@ IMPLEMENT_DYNAMIC_CHECK_FN()
  *        the "init_key" handler is called.
  *    TEST_ENG_OPENSSL_RC4_P_CIPHER - ditto for the "cipher" handler.
  */
-# include <openssl/rc4.h>
+# include <gmssl/rc4.h>
 # define TEST_RC4_KEY_SIZE               16
 typedef struct {
     unsigned char key[TEST_RC4_KEY_SIZE];
@@ -307,7 +307,7 @@ static int openssl_ciphers(ENGINE *e, const EVP_CIPHER **cipher,
 
 #ifdef TEST_ENG_OPENSSL_SHA
 /* Much the same sort of comment as for TEST_ENG_OPENSSL_RC4 */
-# include <openssl/sha.h>
+# include <gmssl/sha.h>
 
 static int test_sha1_init(EVP_MD_CTX *ctx)
 {

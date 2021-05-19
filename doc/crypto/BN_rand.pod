@@ -8,7 +8,7 @@ BN_rand, BN_pseudo_rand, BN_rand_range, BN_pseudo_rand_range - generate pseudo-r
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_rand(BIGNUM *rnd, int bits, int top, int bottom);
 

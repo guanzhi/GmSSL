@@ -53,8 +53,8 @@ package gmssl
 #cgo darwin CFLAGS: -I/usr/local/include
 #cgo darwin LDFLAGS: -L/usr/local/lib -lcrypto -lssl
 
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
+#include <gmssl/bio.h>
+#include <gmssl/crypto.h>
 
 long _BIO_get_mem_data(BIO *b, char **pp) {
 	return BIO_get_mem_data(b, pp);

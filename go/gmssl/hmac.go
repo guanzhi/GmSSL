@@ -51,14 +51,14 @@
 package gmssl
 
 /*
-#include <openssl/hmac.h>
-#include <openssl/cmac.h>
+#include <gmssl/hmac.h>
+#include <gmssl/cmac.h>
 */
 import "C"
 
 import (
-	"unsafe"
 	"runtime"
+	"unsafe"
 )
 
 func GetMacLength(name string) (int, error) {

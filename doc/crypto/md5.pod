@@ -9,7 +9,7 @@ MD4_Final, MD5_Init, MD5_Update, MD5_Final - MD2, MD4, and MD5 hash functions
 
 =head1 SYNOPSIS
 
- #include <openssl/md2.h>
+ #include <gmssl/md2.h>
 
  unsigned char *MD2(const unsigned char *d, unsigned long n,
                   unsigned char *md);
@@ -20,7 +20,7 @@ MD4_Final, MD5_Init, MD5_Update, MD5_Final - MD2, MD4, and MD5 hash functions
  int MD2_Final(unsigned char *md, MD2_CTX *c);
 
 
- #include <openssl/md4.h>
+ #include <gmssl/md4.h>
 
  unsigned char *MD4(const unsigned char *d, unsigned long n,
                   unsigned char *md);
@@ -31,7 +31,7 @@ MD4_Final, MD5_Init, MD5_Update, MD5_Final - MD2, MD4, and MD5 hash functions
  int MD4_Final(unsigned char *md, MD4_CTX *c);
 
 
- #include <openssl/md5.h>
+ #include <gmssl/md5.h>
 
  unsigned char *MD5(const unsigned char *d, unsigned long n,
                   unsigned char *md);

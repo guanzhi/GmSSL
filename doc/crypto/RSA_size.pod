@@ -8,7 +8,7 @@ RSA_size, RSA_bits - get RSA modulus size
 
 =head1 SYNOPSIS
 
-#include <openssl/rsa.h>
+#include <gmssl/rsa.h>
 
 int RSA_size(const RSA *rsa);
 

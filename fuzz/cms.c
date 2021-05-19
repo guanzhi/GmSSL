@@ -12,8 +12,8 @@
  * Test CMS DER parsing.
  */
 
-#include <openssl/bio.h>
-#include <openssl/cms.h>
+#include <gmssl/bio.h>
+#include <gmssl/cms.h>
 #include "fuzzer.h"
 
 int FuzzerInitialize(int *argc, char ***argv) {

@@ -4,7 +4,7 @@
 # files in current folder (normally doc/apps/).
 
 mv openssl.pod gmssl.pod
-sed -i "" 's/openssl/gmssl/g' *.pod
+sed -i "" 's/gmssl/gmssl/g' *.pod
 sed -i "" 's/gmssl.cnf/openssl.cnf/g' *.pod
 sed -i "" 's/www.gmssl.org/www.openssl.org/g' *.pod
 sed -i "" 's/OpenSSL/GmSSL/g' *.pod

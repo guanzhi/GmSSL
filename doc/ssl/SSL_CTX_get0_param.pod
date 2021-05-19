@@ -9,7 +9,7 @@ get and set verification parameters
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  X509_VERIFY_PARAM *SSL_CTX_get0_param(SSL_CTX *ctx)
  X509_VERIFY_PARAM *SSL_get0_param(SSL *ssl)

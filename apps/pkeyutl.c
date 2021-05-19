@@ -9,9 +9,9 @@
 
 #include "apps.h"
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/pem.h>
+#include <gmssl/evp.h>
 
 #define KEY_NONE        0
 #define KEY_PRIVKEY     1

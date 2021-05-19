@@ -14,13 +14,13 @@
 #define USE_SOCKETS
 #include "apps.h"
 #undef USE_SOCKETS
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/x509.h>
-#include <openssl/ssl.h>
-#include <openssl/bn.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
+#include <gmssl/x509.h>
+#include <gmssl/ssl.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #include "s_apps.h"
 

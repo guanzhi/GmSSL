@@ -9,7 +9,7 @@ SM9_extract_private_key, SM9_extract_public_key - SM9 Algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/sm9.h>
+ #include <gmssl/sm9.h>
 
  int SM9_setup(int pairing, int scheme, int hash1,
 	SM9PublicParameters **mpk, SM9MasterSecret **msk);

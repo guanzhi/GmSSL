@@ -8,7 +8,7 @@ SSL_CONF_CTX_set_flags, SSL_CONF_CTX_clear_flags - Set of clear SSL configuratio
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  unsigned int SSL_CONF_CTX_set_flags(SSL_CONF_CTX *cctx, unsigned int flags);
  unsigned int SSL_CONF_CTX_clear_flags(SSL_CONF_CTX *cctx, unsigned int flags);

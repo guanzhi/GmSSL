@@ -10,19 +10,19 @@ DHparams_print, DHparams_print_fp - print cryptographic parameters
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_print(BIO *bp, RSA *x, int offset);
  int RSA_print_fp(FILE *fp, RSA *x, int offset);
 
- #include <openssl/dsa.h>
+ #include <gmssl/dsa.h>
 
  int DSAparams_print(BIO *bp, DSA *x);
  int DSAparams_print_fp(FILE *fp, DSA *x);
  int DSA_print(BIO *bp, DSA *x, int offset);
  int DSA_print_fp(FILE *fp, DSA *x, int offset);
 
- #include <openssl/dh.h>
+ #include <gmssl/dh.h>
 
  int DHparams_print(BIO *bp, DH *x);
  int DHparams_print_fp(FILE *fp, DH *x);

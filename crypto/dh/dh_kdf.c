@@ -11,10 +11,10 @@
 
 #ifndef OPENSSL_NO_CMS
 #include <string.h>
-#include <openssl/dh.h>
-#include <openssl/evp.h>
-#include <openssl/asn1.h>
-#include <openssl/cms.h>
+#include <gmssl/dh.h>
+#include <gmssl/evp.h>
+#include <gmssl/asn1.h>
+#include <gmssl/cms.h>
 
 
 /* Key derivation from X9.42/RFC2631 */

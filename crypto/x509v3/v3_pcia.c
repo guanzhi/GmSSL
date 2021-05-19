@@ -39,9 +39,9 @@
  * SUCH DAMAGE.
  */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509v3.h>
 
 ASN1_SEQUENCE(PROXY_POLICY) =
         {

@@ -11,9 +11,9 @@
 #include <time.h>
 #include "internal/cryptlib.h"
 #include "bn_lcl.h"
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_SHA
-# include <openssl/sha.h>
+# include <gmssl/sha.h>
 #endif
 
 static int bnrand(int pseudorand, BIGNUM *rnd, int bits, int top, int bottom)

@@ -99,30 +99,30 @@
 #  include <sys/time.h>         /* struct timeval for DTLS */
 # endif
 
-# include <openssl/buffer.h>
+# include <gmssl/buffer.h>
 # ifndef OPENSSL_NO_COMP
-#  include <openssl/comp.h>
+#  include <gmssl/comp.h>
 # endif
-# include <openssl/bio.h>
-# include <openssl/stack.h>
+# include <gmssl/bio.h>
+# include <gmssl/stack.h>
 # ifndef OPENSSL_NO_RSA
-#  include <openssl/rsa.h>
+#  include <gmssl/rsa.h>
 # endif
 # ifndef OPENSSL_NO_DSA
-#  include <openssl/dsa.h>
+#  include <gmssl/dsa.h>
 # endif
 # ifndef OPENSSL_NO_SM9
-#  include <openssl/sm9.h>
+#  include <gmssl/sm9.h>
 # endif
-# include <openssl/err.h>
-# include <openssl/ssl.h>
-# include <openssl/gmtls.h>
+# include <gmssl/err.h>
+# include <gmssl/ssl.h>
+# include <gmssl/gmtls.h>
 # ifndef OPENSSL_NO_ASYNC
-#  include <openssl/async.h>
+#  include <gmssl/async.h>
 # endif
-# include <openssl/symhacks.h>
+# include <gmssl/symhacks.h>
 # ifndef OPENSSL_NO_CT
-#  include <openssl/ct.h>
+#  include <gmssl/ct.h>
 # endif
 # include "record/record.h"
 # include "statem/statem.h"

@@ -9,7 +9,7 @@ DSA_SIG_new, DSA_SIG_free - allocate and free DSA signature objects
 
 =head1 SYNOPSIS
 
- #include <openssl/dsa.h>
+ #include <gmssl/dsa.h>
 
  DSA_SIG *DSA_SIG_new(void);
  void DSA_SIG_free(DSA_SIG *a);

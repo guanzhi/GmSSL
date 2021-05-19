@@ -8,7 +8,7 @@ DH_size, DH_bits - get Diffie-Hellman prime size
 
 =head1 SYNOPSIS
 
-#include <openssl/dh.h>
+#include <gmssl/dh.h>
 
 int DH_size(const DH *dh);
 

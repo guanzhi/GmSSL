@@ -9,11 +9,11 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
-#include <openssl/conf.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 
 /* Algorithm configuration module. */
 

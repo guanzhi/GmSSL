@@ -9,15 +9,15 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
 #include "internal/x509_int.h"
-#include <openssl/objects.h>
-#include <openssl/buffer.h>
-#include <openssl/pem.h>
+#include <gmssl/objects.h>
+#include <gmssl/buffer.h>
+#include <gmssl/pem.h>
 
 X509_REQ *X509_to_X509_REQ(X509 *x, EVP_PKEY *pkey, const EVP_MD *md)
 {

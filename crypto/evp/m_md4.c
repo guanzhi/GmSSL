@@ -12,10 +12,10 @@
 
 #ifndef OPENSSL_NO_MD4
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
-# include <openssl/x509.h>
-# include <openssl/md4.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
+# include <gmssl/x509.h>
+# include <gmssl/md4.h>
 # include "internal/evp_int.h"
 
 static int init(EVP_MD_CTX *ctx)

@@ -9,7 +9,7 @@
 
 #ifndef HEADER_BF_LOCL_H
 # define HEADER_BF_LOCL_H
-# include <openssl/opensslconf.h>
+# include <gmssl/opensslconf.h>
 
 /* NOTE - c is not incremented as per n2l */
 # define n2ln(c,l1,l2,n) { \

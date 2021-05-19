@@ -10,7 +10,7 @@ SSL_SESSION_has_ticket, SSL_SESSION_get_ticket_lifetime_hint,
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_SESSION_has_ticket(const SSL_SESSION *s);
  unsigned long SSL_SESSION_get_ticket_lifetime_hint(const SSL_SESSION *s);

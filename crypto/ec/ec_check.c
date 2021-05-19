@@ -8,7 +8,7 @@
  */
 
 #include "ec_lcl.h"
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 int EC_GROUP_check(const EC_GROUP *group, BN_CTX *ctx)
 {

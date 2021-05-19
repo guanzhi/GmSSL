@@ -18,7 +18,7 @@ SSL_set_tlsext_status_ocsp_resp
 
 =head1 SYNOPSIS
 
- #include <openssl/tls1.h>
+ #include <gmssl/tls1.h>
 
  long SSL_CTX_set_tlsext_status_cb(SSL_CTX *ctx,
                                    int (*callback)(SSL *, void *));

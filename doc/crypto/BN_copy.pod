@@ -8,7 +8,7 @@ BN_copy, BN_dup, BN_with_flags - copy BIGNUMs
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  BIGNUM *BN_copy(BIGNUM *to, const BIGNUM *from);
 

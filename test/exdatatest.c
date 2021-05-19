@@ -11,7 +11,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 static long sargl;
 static void *sargp;

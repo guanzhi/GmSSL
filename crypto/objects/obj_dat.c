@@ -11,10 +11,10 @@
 #include <ctype.h>
 #include <limits.h>
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
-#include <openssl/asn1.h>
+#include <gmssl/lhash.h>
+#include <gmssl/asn1.h>
 #include "internal/objects.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "internal/asn1_int.h"
 #include "obj_lcl.h"
 

@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/camellia.h>
+#include <gmssl/camellia.h>
 #include "cmll_locl.h"
 
 void Camellia_ecb_encrypt(const unsigned char *in, unsigned char *out,

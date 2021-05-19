@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/idea.h>
+# include <gmssl/idea.h>
 
 static const unsigned char k[16] = {
     0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04,

@@ -8,10 +8,10 @@
  */
 
 #include <internal/cryptlib_int.h>
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include <internal/rand.h>
 #include <internal/bio.h>
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 #include <internal/evp_int.h>
 #include <internal/conf.h>
 #include <internal/async.h>

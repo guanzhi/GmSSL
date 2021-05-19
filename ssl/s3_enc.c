@@ -84,10 +84,10 @@
 
 #include <stdio.h>
 #include "ssl_locl.h"
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 
 #ifndef OPENSSL_NO_SSL3_METHOD
-# include <openssl/md5.h>
+# include <gmssl/md5.h>
 
 static int ssl3_generate_key_block(SSL *s, unsigned char *km, int num)
 {

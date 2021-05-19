@@ -27,10 +27,10 @@
 
 #include "internal/cryptlib.h"
 
-#include <openssl/err.h>
-#include <openssl/bn.h>
-#include <openssl/objects.h>
-#include <openssl/ec.h>
+#include <gmssl/err.h>
+#include <gmssl/bn.h>
+#include <gmssl/objects.h>
+#include <gmssl/ec.h>
 #include "ec_lcl.h"
 
 int ossl_ecdh_compute_key(unsigned char **psec, size_t *pseclen,

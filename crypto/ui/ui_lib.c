@@ -9,10 +9,10 @@
 
 #include <string.h>
 #include "internal/cryptlib.h"
-#include <openssl/e_os2.h>
-#include <openssl/buffer.h>
-#include <openssl/ui.h>
-#include <openssl/err.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/buffer.h>
+#include <gmssl/ui.h>
+#include <gmssl/err.h>
 #include "ui_locl.h"
 
 static const UI_METHOD *default_UI_meth = NULL;

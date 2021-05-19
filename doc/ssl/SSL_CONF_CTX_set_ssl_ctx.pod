@@ -8,7 +8,7 @@ SSL_CONF_CTX_set_ssl_ctx, SSL_CONF_CTX_set_ssl - set context to configure
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CONF_CTX_set_ssl_ctx(SSL_CONF_CTX *cctx, SSL_CTX *ctx);
  void SSL_CONF_CTX_set_ssl(SSL_CONF_CTX *cctx, SSL *ssl);

@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/buffer.h>
+#include <gmssl/lhash.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/buffer.h>
 #include "internal/x509_int.h"
 
 /*

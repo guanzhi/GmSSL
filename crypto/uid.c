@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/crypto.h>
+#include <gmssl/opensslconf.h>
 
 #if defined(__OpenBSD__) || (defined(__FreeBSD__) && __FreeBSD__ > 2)
 

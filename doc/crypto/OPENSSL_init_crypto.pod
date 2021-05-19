@@ -11,7 +11,7 @@ initialisation and deinitialisation functions
 
 =head1 SYNOPSIS
 
- #include <openssl/crypto.h>
+ #include <gmssl/crypto.h>
 
  void OPENSSL_cleanup(void);
  int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings);
@@ -25,7 +25,7 @@ initialisation and deinitialisation functions
 
 =head1 DESCRIPTION
 
-During normal operation OpenSSL (libcrypto) will allocate various resources at
+During normal operation OpenSSL (libgmcrypto) will allocate various resources at
 start up that must, subsequently, be freed on close down of the library.
 Additionally some resources are allocated on a per thread basis (if the
 application is multi-threaded), and these resources must be freed prior to the
@@ -38,7 +38,7 @@ automatically deinitialise as required.
 However, there way be situations when explicit initialisation is desirable or
 needed, for example when some non-default initialisation is required. The
 function OPENSSL_init_crypto() can be used for this purpose for
-libcrypto (see also L<OPENSSL_init_ssl(3)> for the libssl
+libgmcrypto (see also L<OPENSSL_init_ssl(3)> for the libgmssl
 equivalent).
 
 Numerous internal OpenSSL functions call OPENSSL_init_crypto().
@@ -46,22 +46,22 @@ Therefore, in order to perform non-default initialisation,
 OPENSSL_init_crypto() MUST be called by application code prior to
 any other OpenSSL function calls.
 
-The B<opts> parameter specifies which aspects of libcrypto should be
+The B<opts> parameter specifies which aspects of libgmcrypto should be
 initialised. Valid options are:
 
 =over 4
 
 =item OPENSSL_INIT_NO_LOAD_CRYPTO_STRINGS
 
-Suppress automatic loading of the libcrypto error strings. This option is
+Suppress automatic loading of the libgmcrypto error strings. This option is
 not a default option. Once selected subsequent calls to
 OPENSSL_init_crypto() with the option
 B<OPENSSL_INIT_LOAD_CRYPTO_STRINGS> will be ignored.
 
 =item OPENSSL_INIT_LOAD_CRYPTO_STRINGS
 
-Automatic loading of the libcrypto error strings. With this option the
-library will automatically load the libcrypto error strings.
+Automatic loading of the libgmcrypto error strings. With this option the
+library will automatically load the libgmcrypto error strings.
 This option is a default option. Once selected subsequent calls to
 OPENSSL_init_crypto() with the option
 B<OPENSSL_INIT_NO_LOAD_CRYPTO_STRINGS> will be ignored.
@@ -69,27 +69,27 @@ B<OPENSSL_INIT_NO_LOAD_CRYPTO_STRINGS> will be ignored.
 =item OPENSSL_INIT_ADD_ALL_CIPHERS
 
 With this option the library will automatically load and make available all
-libcrypto ciphers. This option is a default option. Once selected subsequent
+libgmcrypto ciphers. This option is a default option. Once selected subsequent
 calls to OPENSSL_init_crypto() with the option
 B<OPENSSL_INIT_NO_ADD_ALL_CIPHERS> will be ignored.
 
 =item OPENSSL_INIT_ADD_ALL_DIGESTS
 
 With this option the library will automatically load and make available all
-libcrypto digests. This option is a default option. Once selected subsequent
+libgmcrypto digests. This option is a default option. Once selected subsequent
 calls to OPENSSL_init_crypto() with the option
 B<OPENSSL_INIT_NO_ADD_ALL_CIPHERS> will be ignored.
 
 =item OPENSSL_INIT_NO_ADD_ALL_CIPHERS
 
-With this option the library will suppress automatic loading of libcrypto
+With this option the library will suppress automatic loading of libgmcrypto
 ciphers. This option is not a default option. Once selected subsequent
 calls to OPENSSL_init_crypto() with the option
 B<OPENSSL_INIT_ADD_ALL_CIPHERS> will be ignored.
 
 =item OPENSSL_INIT_NO_ADD_ALL_DIGESTS
 
-With this option the library will suppress automatic loading of libcrypto
+With this option the library will suppress automatic loading of libgmcrypto
 digests. This option is not a default option. Once selected subsequent
 calls to OPENSSL_init_crypto() with the option
 B<OPENSSL_INIT_ADD_ALL_DIGESTS> will be ignored.
@@ -108,7 +108,7 @@ option.
 
 =item OPENSSL_INIT_ASYNC
 
-With this option the library with automatically initialise the libcrypto async
+With this option the library with automatically initialise the libgmcrypto async
 sub-library (see L<ASYNC_start_job(3)>). This is a default option.
 
 =item OPENSSL_INIT_ENGINE_RDRAND
@@ -160,8 +160,8 @@ OPENSSL_init_crypto(). For example:
  OPENSSL_init_crypto(OPENSSL_INIT_NO_ADD_ALL_CIPHERS
                      | OPENSSL_INIT_NO_ADD_ALL_DIGESTS, NULL);
 
-The OPENSSL_cleanup() function deinitialises OpenSSL (both libcrypto
-and libssl). All resources allocated by OpenSSL are freed. Typically there
+The OPENSSL_cleanup() function deinitialises OpenSSL (both libgmcrypto
+and libgmssl). All resources allocated by OpenSSL are freed. Typically there
 should be no need to call this function directly as it is initiated
 automatically on application exit. This is done via the standard C library
 L<atexit(3)> function. In the event that the application will close in a manner
@@ -203,7 +203,7 @@ object can be released with OPENSSL_INIT_free() when done.
 Resources local to a thread are deallocated automatically when the thread exits
 (e.g. in a pthreads environment, when pthread_exit() is called). On Windows
 platforms this is done in response to a DLL_THREAD_DETACH message being sent to
-the libcrypto32.dll entry point. Some windows functions may cause threads to exit
+the libgmcrypto32.dll entry point. Some windows functions may cause threads to exit
 without sending this message (for example ExitProcess()). If the application
 uses such functions, then the application must free up OpenSSL resources
 directly via a call to OPENSSL_thread_stop() on each thread. Similarly this

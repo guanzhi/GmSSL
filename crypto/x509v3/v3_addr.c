@@ -15,11 +15,11 @@
 #include <stdlib.h>
 
 #include "internal/cryptlib.h"
-#include <openssl/conf.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/buffer.h>
-#include <openssl/x509v3.h>
+#include <gmssl/conf.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/buffer.h>
+#include <gmssl/x509v3.h>
 #include "internal/x509_int.h"
 #include "ext_dat.h"
 

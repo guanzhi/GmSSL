@@ -12,7 +12,7 @@ SSL_CIPHER_get_version, SSL_CIPHER_description
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  const char *SSL_CIPHER_get_name(const SSL_CIPHER *cipher);
  int SSL_CIPHER_get_bits(const SSL_CIPHER *cipher, int *alg_bits);

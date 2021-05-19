@@ -8,7 +8,7 @@ SSL_CTX_set_max_cert_list, SSL_CTX_get_max_cert_list, SSL_set_max_cert_list, SSL
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_set_max_cert_list(SSL_CTX *ctx, long size);
  long SSL_CTX_get_max_cert_list(SSL_CTX *ctx);

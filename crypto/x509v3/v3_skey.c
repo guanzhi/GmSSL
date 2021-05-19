@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509v3.h>
+#include <gmssl/x509v3.h>
 #include "internal/x509_int.h"
 #include "ext_dat.h"
 

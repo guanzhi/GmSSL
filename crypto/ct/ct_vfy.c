@@ -9,10 +9,10 @@
 
 #include <string.h>
 
-#include <openssl/ct.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
+#include <gmssl/ct.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
 
 #include "ct_locl.h"
 

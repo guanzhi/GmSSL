@@ -1,3 +1,3 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=\
         md4_dgst.c md4_one.c

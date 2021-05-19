@@ -9,7 +9,7 @@ Prints Signed Certificate Timestamps in a human-readable way
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
  void SCT_print(const SCT *sct, BIO *out, int indent, const CTLOG_STORE *logs);
  void SCT_LIST_print(const STACK_OF(SCT) *sct_list, BIO *out, int indent,

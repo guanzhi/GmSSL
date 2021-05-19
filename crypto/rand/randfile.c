@@ -14,9 +14,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/crypto.h>
-#include <openssl/rand.h>
-#include <openssl/buffer.h>
+#include <gmssl/crypto.h>
+#include <gmssl/rand.h>
+#include <gmssl/buffer.h>
 
 #ifdef OPENSSL_SYS_VMS
 # include <unixio.h>
@@ -235,7 +235,7 @@ int RAND_write_file(const char *file)
      * existing versions named ;-1, and finally renamed the current version
      * as ';1'. Under concurrent usage, this resulted in an RMS race
      * condition in rename() which could orphan files (see vms message help
-     * for RMS$_REENT). With the fopen() calls below, openssl/VMS now shares
+     * for RMS$_REENT). With the fopen() calls below, gmssl/VMS now shares
      * the top-level version of the rand file. Note that there may still be
      * conditions where the top-level rand file is locked. If so, this code
      * will then create a new version of the rand file. Without the delete

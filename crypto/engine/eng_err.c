@@ -9,8 +9,8 @@
  */
 
 #include <stdio.h>
-#include <openssl/err.h>
-#include <openssl/engine.h>
+#include <gmssl/err.h>
+#include <gmssl/engine.h>
 
 /* BEGIN ERROR CODES */
 #ifndef OPENSSL_NO_ERR

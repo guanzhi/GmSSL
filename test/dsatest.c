@@ -15,11 +15,11 @@
 
 #include "../e_os.h"
 
-#include <openssl/crypto.h>
-#include <openssl/rand.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/bn.h>
+#include <gmssl/crypto.h>
+#include <gmssl/rand.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/bn.h>
 
 #ifdef OPENSSL_NO_DSA
 int main(int argc, char *argv[])
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 
 static int dsa_cb(int p, int n, BN_GENCB *arg);
 

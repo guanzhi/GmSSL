@@ -16,7 +16,7 @@ lh_TYPE_doall, lh_TYPE_doall_arg, lh_TYPE_error - dynamic hash table
 
 =head1 SYNOPSIS
 
- #include <openssl/lhash.h>
+ #include <gmssl/lhash.h>
 
  DECLARE_LHASH_OF(TYPE);
 

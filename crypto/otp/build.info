@@ -1,2 +1,2 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=otp_err.c otp_lib.c
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=otp_err.c otp_lib.c

@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 //#if defined(OPENSSL_NO_DES)
 //NON_EMPTY_TRANSLATION_UNIT
 //#else
@@ -16,10 +16,10 @@
 # include <stdlib.h>
 # include <string.h>
 # include "apps.h"
-# include <openssl/crypto.h>
-# include <openssl/err.h>
-# include <openssl/pem.h>
-# include <openssl/pkcs12.h>
+# include <gmssl/crypto.h>
+# include <gmssl/err.h>
+# include <gmssl/pem.h>
+# include <gmssl/pkcs12.h>
 
 # define NOKEYS          0x1
 # define NOCERTS         0x2

@@ -9,11 +9,11 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
 #include "internal/conf.h"
 #include "internal/dso.h"
-#include <openssl/x509.h>
+#include <gmssl/x509.h>
 
 #define DSO_mod_init_name "OPENSSL_init"
 #define DSO_mod_finish_name "OPENSSL_finish"

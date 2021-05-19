@@ -9,7 +9,7 @@ X509_NAME_oneline - X509_NAME printing routines
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_NAME_print_ex(BIO *out, const X509_NAME *nm, int indent, unsigned long flags);
  int X509_NAME_print_ex_fp(FILE *fp, const X509_NAME *nm, int indent, unsigned long flags);

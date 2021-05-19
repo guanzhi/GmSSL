@@ -10,7 +10,7 @@ BIO_get_mem_ptr, BIO_new_mem_buf - memory BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  const BIO_METHOD *     BIO_s_mem(void);
  const BIO_METHOD *     BIO_s_secmem(void);

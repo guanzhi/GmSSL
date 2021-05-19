@@ -1,3 +1,3 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=\
         blake2b.c blake2s.c m_blake2b.c m_blake2s.c

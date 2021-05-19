@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #include "internal/asn1_int.h"
-#include <openssl/asn1t.h>
-#include <openssl/conf.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509v3.h>
 
 #include "internal/x509_int.h"
 #include "ext_dat.h"

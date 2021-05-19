@@ -148,7 +148,7 @@ sub check()
         if ( $contents =~ /=head1 SYNOPSIS(.*)=head1 DESCRIPTION/ms ) {
             my $count = 0;
             foreach my $line ( split /\n+/, $1 ) {
-                if ( $line =~ m@include <openssl/@ ) {
+                if ( $line =~ m@include <gmssl/@ ) {
                     if ( ++$count == 2 ) {
                         print "$id has multiple includes\n";
                     }

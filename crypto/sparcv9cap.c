@@ -14,7 +14,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 
 #include "sparc_arch.h"
 

@@ -1,2 +1,2 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=kdf2_err.c kdf_x9_63.c
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=kdf2_err.c kdf_x9_63.c

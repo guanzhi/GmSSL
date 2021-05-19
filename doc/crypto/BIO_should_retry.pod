@@ -11,7 +11,7 @@ functions
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  int BIO_should_read(BIO *b);
  int BIO_should_write(BIO *b);

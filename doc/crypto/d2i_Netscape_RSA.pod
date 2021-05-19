@@ -10,7 +10,7 @@ d2i_Netscape_RSA
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int i2d_Netscape_RSA(RSA *a, unsigned char **pp, int (*cb)());
  RSA * d2i_Netscape_RSA(RSA **a, const unsigned char **pp, long length, int (*cb)());

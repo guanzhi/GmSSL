@@ -8,7 +8,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #ifndef OPENSSL_NO_AFALGENG
 # include <linux/version.h>
@@ -28,9 +28,9 @@
 
 #ifndef OPENSSL_NO_AFALGENG
 #include <string.h>
-#include <openssl/engine.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
+#include <gmssl/engine.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
 
 /* Use a buffer size which is not aligned to block size */
 #define BUFFER_SIZE     (8 * 1024) - 13

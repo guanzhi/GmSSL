@@ -10,7 +10,7 @@
 #ifndef HEADER_SSLTESTLIB_H
 # define HEADER_SSLTESTLIB_H
 
-# include <openssl/ssl.h>
+# include <gmssl/ssl.h>
 
 int create_ssl_ctx_pair(const SSL_METHOD *sm, const SSL_METHOD *cm,
                         SSL_CTX **sctx, SSL_CTX **cctx, char *certfile,

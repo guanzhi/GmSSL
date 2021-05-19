@@ -10,7 +10,7 @@ PEM_read, PEM_read_bio, PEM_do_header, PEM_get_EVP_CIPHER_INFO
 
 =head1 SYNOPSIS
 
- #include <openssl/pem.h>
+ #include <gmssl/pem.h>
 
  int PEM_write(FILE *fp, const char *name, const char *header,
                const unsigned char *data, long len)

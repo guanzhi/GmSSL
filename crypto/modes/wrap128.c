@@ -14,7 +14,7 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/modes.h>
+#include <gmssl/modes.h>
 
 /** RFC 3394 section 2.2.3.1 Default Initial Value */
 static const unsigned char default_iv[] = {

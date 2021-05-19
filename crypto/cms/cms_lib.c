@@ -7,13 +7,13 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/asn1t.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/bio.h>
-#include <openssl/asn1.h>
-#include <openssl/cms.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/err.h>
+#include <gmssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/asn1.h>
+#include <gmssl/cms.h>
 #include "cms_lcl.h"
 
 IMPLEMENT_ASN1_FUNCTIONS(CMS_ContentInfo)

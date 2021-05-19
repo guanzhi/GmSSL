@@ -1,2 +1,2 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=txt_db.c
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=txt_db.c

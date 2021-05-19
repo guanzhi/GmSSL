@@ -8,7 +8,7 @@ RSA_blinding_on, RSA_blinding_off - protect the RSA operation from timing attack
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_blinding_on(RSA *rsa, BN_CTX *ctx);
 

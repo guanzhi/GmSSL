@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/md2.h>
+#include <gmssl/md2.h>
 
 /*
  * This is a separate file so that #defines in cryptlib.h can map my MD

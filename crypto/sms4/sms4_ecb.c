@@ -47,8 +47,8 @@
  * ====================================================================
  */
 
-#include <openssl/sms4.h>
-#include <openssl/modes.h>
+#include <gmssl/sms4.h>
+#include <gmssl/modes.h>
 
 void sms4_ecb_encrypt(const unsigned char *in, unsigned char *out,
 	const sms4_key_t *key, int enc)

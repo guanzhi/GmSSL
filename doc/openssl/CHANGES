@@ -357,7 +357,7 @@
      encryptions/decryptions simultaneously. There are currently no built-in
      ciphers with this property but the expectation is that engines will be able
      to offer it to significantly improve throughput. Support has been extended
-     into libssl so that multiple records for a single connection can be
+     into libgmssl so that multiple records for a single connection can be
      processed in one go (for >=TLS 1.1).
      [Matt Caswell]
 
@@ -394,7 +394,7 @@
      secp256r1, secp521r1, secp384r1.
      [Rich Salz]
 
-  *) RC4 based libssl ciphersuites are now classed as "weak" ciphers and are
+  *) RC4 based libgmssl ciphersuites are now classed as "weak" ciphers and are
      disabled by default. They can be re-enabled using the
      enable-weak-ssl-ciphers option to Configure.
      [Matt Caswell]
@@ -433,7 +433,7 @@
   *) Configuration change; it's now possible to build dynamic engines
      without having to build shared libraries and vice versa.  This
      only applies to the engines in engines/, those in crypto/engine/
-     will always be built into libcrypto (i.e. "static").
+     will always be built into libgmcrypto (i.e. "static").
 
      Building dynamic engines is enabled by default; to disable, use
      the configuration option "disable-dynamic-engine".
@@ -444,15 +444,15 @@
      with "disable-dso" or "disable-pic".
 
      The macros OPENSSL_NO_STATIC_ENGINE and OPENSSL_NO_DYNAMIC_ENGINE
-     are also taken away from openssl/opensslconf.h, as they are
+     are also taken away from gmssl/opensslconf.h, as they are
      irrelevant.
      [Richard Levitte]
 
   *) Configuration change; if there is a known flag to compile
      position independent code, it will always be applied on the
-     libcrypto and libssl object files, and never on the application
+     libgmcrypto and libgmssl object files, and never on the application
      object files.  This means other libraries that use routines from
-     libcrypto / libssl can be made into shared libraries regardless
+     libgmcrypto / libgmssl can be made into shared libraries regardless
      of how OpenSSL was configured.
 
      If this isn't desirable, the configuration options "disable-pic"
@@ -552,7 +552,7 @@
      [Rich Salz with help from Andy Polyakov]
 
   *) Configuration and writing out the results from it has changed.
-     Files such as Makefile include/openssl/opensslconf.h and are now
+     Files such as Makefile include/gmssl/opensslconf.h and are now
      produced through general templates, such as Makefile.in and
      crypto/opensslconf.h.in and some help from the perl module
      Text::Template.
@@ -659,7 +659,7 @@
      client at compile time by defining OPENSSL_NO_TLS1_2_CLIENT.
      [Kurt Roeckx]
 
-  *) Support for ChaCha20 and Poly1305 added to libcrypto and libssl.
+  *) Support for ChaCha20 and Poly1305 added to libgmcrypto and libgmssl.
      [Andy Polyakov]
 
   *) New EC_KEY_METHOD, this replaces the older ECDSA_METHOD and ECDH_METHOD
@@ -885,7 +885,7 @@
      initial patch which was a great help during development.
      [Steve Henson]
 
-  *) All libssl internal structures have been removed from the public header
+  *) All libgmssl internal structures have been removed from the public header
      files, and the OPENSSL_NO_SSL_INTERN option has been removed (since it is
      now redundant). Users should not attempt to access internal structures
      directly. Instead they should use the provided API functions.
@@ -1242,7 +1242,7 @@
      multi-process servers.
      [Steve Henson]
 
-  *) Extensive audit of libcrypto with DEBUG_UNUSED. Fix many cases where
+  *) Extensive audit of libgmcrypto with DEBUG_UNUSED. Fix many cases where
      return value is ignored. NB. The functions RAND_add(), RAND_seed(),
      BIO_set_cipher() and some obscure PEM functions were changed so they
      can now return an error. The RAND changes required a change to the
@@ -1461,8 +1461,8 @@
      as command line arguments.
 
      Libssl is not considered directly vulnerable. Additionally certificates etc
-     received via remote connections via libssl are also unlikely to be able to
-     trigger these issues because of message size limits enforced within libssl.
+     received via remote connections via libgmssl are also unlikely to be able to
+     trigger these issues because of message size limits enforced within libgmssl.
 
      This issue was reported to OpenSSL Guido Vranken.
      (CVE-2016-0799)
@@ -2847,7 +2847,7 @@
   *) New build option no-ec2m to disable characteristic 2 code.
      [Steve Henson]
 
-  *) Backport libcrypto audit of return value checking from 1.1.0-dev; not
+  *) Backport libgmcrypto audit of return value checking from 1.1.0-dev; not
      all cases can be covered as some introduce binary incompatibilities.
      [Steve Henson]
 
@@ -3989,7 +3989,7 @@
      CVE-2009-4355.
      [Steve Henson]
 
-  *) Constify crypto/cast (i.e., <openssl/cast.h>): a CAST_KEY doesn't
+  *) Constify crypto/cast (i.e., <gmssl/cast.h>): a CAST_KEY doesn't
      change when encrypting or decrypting.
      [Bodo Moeller]
 
@@ -4797,7 +4797,7 @@
   [NB: OpenSSL 0.9.7i and later 0.9.7 patch levels were released after
   OpenSSL 0.9.8.]
 
-  *) Add libcrypto.pc and libssl.pc for those who feel they need them.
+  *) Add libgmcrypto.pc and libgmssl.pc for those who feel they need them.
      [Richard Levitte]
 
   *) Change CA.sh and CA.pl so they don't bundle the CSR and the private
@@ -5323,7 +5323,7 @@
      directory engines/.
      The engines in engines/ are built as shared libraries if
      the "shared" options was given to ./Configure or ./config.
-     Otherwise, they are inserted in libcrypto.a.
+     Otherwise, they are inserted in libgmcrypto.a.
      /usr/local/ssl/engines is the default directory for dynamic
      engines, but that can be overridden at configure time through
      the usual use of --prefix and/or --openssldir, and at run
@@ -5728,8 +5728,8 @@
 
   *) Wrapped the definition of EVP_MAX_MD_SIZE in a #ifdef OPENSSL_FIPS.
      The value now differs depending on if you build for FIPS or not.
-     BEWARE!  A program linked with a shared FIPSed libcrypto can't be
-     safely run with a non-FIPSed libcrypto, as it may crash because of
+     BEWARE!  A program linked with a shared FIPSed libgmcrypto can't be
+     safely run with a non-FIPSed libgmcrypto, as it may crash because of
      the difference induced by this change.
      [Andy Polyakov]
 
@@ -6046,7 +6046,7 @@
 
   *) Make the no-err option work as intended.  The intention with no-err
      is not to have the whole error stack handling routines removed from
-     libcrypto, it's only intended to remove all the function name and
+     libgmcrypto, it's only intended to remove all the function name and
      reason texts, thereby removing some of the footprint that may not
      be interesting if those errors aren't displayed anyway.
 
@@ -6138,11 +6138,11 @@
      means that this particular engine will not work properly anywhere.
      This is a very unfortunate situation which forces us, in the name
      of usability, to give the hw_ncipher.c a static lock, which is part
-     of libcrypto.
+     of libgmcrypto.
      NOTE: This is for the 0.9.7 series ONLY.  This hack will never
      appear in 0.9.8 or later.  We EXPECT application authors to have
      dealt properly with this when 0.9.8 is released (unless we actually
-     make such changes in the libcrypto locking code that changes will
+     make such changes in the libgmcrypto locking code that changes will
      have to be made anyway).
      [Richard Levitte]
 
@@ -6554,8 +6554,8 @@
      and OPENSSL_DISABLE_OLD_DES_SUPPORT.  If none or both of those
      are defined, the default will apply: to support the old des routines.
 
-     In either case, one must include openssl/des.h to get the correct
-     definitions.  Do not try to just include openssl/des_old.h, that
+     In either case, one must include gmssl/des.h to get the correct
+     definitions.  Do not try to just include gmssl/des_old.h, that
      won't work.
 
      NOTE: This is a major break of an old API into a new one.  Software
@@ -7134,7 +7134,7 @@ des-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
      [Steve Henson]
 
   *) Hide BN_CTX structure details in bn_lcl.h instead of publishing them
-     in <openssl/bn.h>.  Also further increase BN_CTX_NUM to 32.
+     in <gmssl/bn.h>.  Also further increase BN_CTX_NUM to 32.
      [Bodo Moeller]
 
   *) Modify EVP_Digest*() routines so they now return values. Although the
@@ -8888,8 +8888,8 @@ des-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
   *) Rework the system to generate shared libraries:
 
      - Make note of the expected extension for the shared libraries and
-       if there is a need for symbolic links from for example libcrypto.so.0
-       to libcrypto.so.0.9.7.  There is extended info in Configure for
+       if there is a need for symbolic links from for example libgmcrypto.so.0
+       to libgmcrypto.so.0.9.7.  There is extended info in Configure for
        that.
 
      - Make as few rebuilds of the shared libraries as possible.
@@ -9583,7 +9583,7 @@ des-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
      experimental TLS 1.0 ciphers are currently treated as SSL 3.0 ciphers.)
      [Bodo Moeller]
 
-  *) Initial DSO code added into libcrypto for letting OpenSSL (and
+  *) Initial DSO code added into libgmcrypto for letting OpenSSL (and
      OpenSSL-based applications) load shared libraries and bind to
      them in a portable way.
      [Geoff Thorpe, with contributions from Richard Levitte]
@@ -9794,13 +9794,13 @@ des-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
      should work without changes.
      [Richard Levitte]
 
-  *) <openssl/opensslconf.h> (which is created by Configure) now contains
+  *) <gmssl/opensslconf.h> (which is created by Configure) now contains
      sections with information on -D... compiler switches used for
      compiling the library so that applications can see them.  To enable
      one of these sections, a pre-processor symbol OPENSSL_..._DEFINES
      must be defined.  E.g.,
         #define OPENSSL_ALGORITHM_DEFINES
-        #include <openssl/opensslconf.h>
+        #include <gmssl/opensslconf.h>
      defines all pertinent NO_<algo> symbols, such as NO_IDEA, NO_RSA, etc.
      [Richard Levitte, Ulf and Bodo Möller]
 
@@ -10031,7 +10031,7 @@ des-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
      because they handle more complex structures.)
      [Steve Henson]
 
-  *) Add missing #ifndefs that caused missing symbols when building libssl
+  *) Add missing #ifndefs that caused missing symbols when building libgmssl
      as a shared library without RSA.  Use #ifndef NO_SSL2 instead of
      NO_RSA in ssl/s2*.c. 
      [Kris Kennaway <kris@hub.freebsd.org>, modified by Ulf Möller]
@@ -11422,7 +11422,7 @@ des-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
      on one line (which resulted in some large lines...).
      [Steve Henson]
 
-  *) Change #include filenames from <foo.h> to <openssl/foo.h>.
+  *) Change #include filenames from <foo.h> to <gmssl/foo.h>.
      [Bodo Moeller]
 
   *) Change behaviour of ssl2_read when facing length-0 packets: Don't return

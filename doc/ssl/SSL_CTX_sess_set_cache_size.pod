@@ -8,7 +8,7 @@ SSL_CTX_sess_set_cache_size, SSL_CTX_sess_get_cache_size - manipulate session ca
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_sess_set_cache_size(SSL_CTX *ctx, long t);
  long SSL_CTX_sess_get_cache_size(SSL_CTX *ctx);

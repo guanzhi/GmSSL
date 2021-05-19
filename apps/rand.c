@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,

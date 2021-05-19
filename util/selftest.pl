@@ -101,7 +101,7 @@ if (open(TEST,">cctest.c")) {
     print OUT "Can't create cctest.c\n";
 }
 if (open(TEST,">cctest.c")) {
-    print TEST "#include <stdio.h>\n#include <stdlib.h>\n#include <openssl/opensslv.h>\nmain(){printf(OPENSSL_VERSION_TEXT);}\n";
+    print TEST "#include <stdio.h>\n#include <stdlib.h>\n#include <gmssl/opensslv.h>\nmain(){printf(OPENSSL_VERSION_TEXT);}\n";
     close(TEST);
     system("$cc -o cctest -Iinclude cctest.c");
     $cctest = `./cctest`;

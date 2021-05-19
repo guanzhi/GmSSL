@@ -8,7 +8,7 @@ SSL_set_verify_result - override result of peer certificate verification
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_set_verify_result(SSL *ssl, long verify_result);
 

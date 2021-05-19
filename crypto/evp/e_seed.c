@@ -7,15 +7,15 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_SEED
 NON_EMPTY_TRANSLATION_UNIT
 #else
-# include <openssl/evp.h>
-# include <openssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/err.h>
 # include <string.h>
 # include <assert.h>
-# include <openssl/seed.h>
+# include <gmssl/seed.h>
 # include "internal/evp_int.h"
 
 static int seed_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,

@@ -12,7 +12,7 @@ OBJ_dup, OBJ_txt2obj, OBJ_obj2txt, OBJ_create, OBJ_cleanup
 
 =head1 SYNOPSIS
 
- #include <openssl/objects.h>
+ #include <gmssl/objects.h>
 
  ASN1_OBJECT *OBJ_nid2obj(int n);
  const char *OBJ_nid2ln(int n);

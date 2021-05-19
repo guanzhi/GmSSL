@@ -8,7 +8,7 @@ SM9_MASTER_KEY_new, SM9_MASTER_KEY_free, SM9_KEY_new, SM9_KEY_free - SM9 Algorit
 
 =head1 SYNOPSIS
 
- #include <openssl/sm9.h>
+ #include <gmssl/sm9.h>
 
  SM9_MASTER_KEY *SM9_MASTER_KEY_new(void);
  void SM9_MASTER_KEY_free(SM9_MASTER_KEY *a);

@@ -10,7 +10,7 @@
 #ifndef HEADER_CONSTANT_TIME_LOCL_H
 # define HEADER_CONSTANT_TIME_LOCL_H
 
-# include <openssl/e_os2.h>              /* For 'ossl_inline' */
+# include <gmssl/e_os2.h>              /* For 'ossl_inline' */
 
 #ifdef __cplusplus
 extern "C" {

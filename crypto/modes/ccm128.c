@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "modes_lcl.h"
 #include <string.h>
 

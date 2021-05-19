@@ -51,10 +51,10 @@
 #include "internal/cryptlib.h"
 
 #if !defined(OPENSSL_NO_SDF) && !defined(OPENSSL_NO_RSA)
-# include <openssl/err.h>
-# include <openssl/rsa.h>
-# include <openssl/sdf.h>
-# include <openssl/gmapi.h>
+# include <gmssl/err.h>
+# include <gmssl/rsa.h>
+# include <gmssl/sdf.h>
+# include <gmssl/gmapi.h>
 
 RSA *RSA_new_from_RSArefPublicKey(const RSArefPublicKey *ref)
 {

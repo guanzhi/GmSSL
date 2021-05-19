@@ -8,7 +8,7 @@ SSL_CTX_set_cert_store, SSL_CTX_get_cert_store - manipulate X509 certificate ver
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_cert_store(SSL_CTX *ctx, X509_STORE *store);
  X509_STORE *SSL_CTX_get_cert_store(const SSL_CTX *ctx);

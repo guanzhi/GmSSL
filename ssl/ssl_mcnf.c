@@ -8,8 +8,8 @@
  */
 
 #include <stdio.h>
-#include <openssl/conf.h>
-#include <openssl/ssl.h>
+#include <gmssl/conf.h>
+#include <gmssl/ssl.h>
 #include "ssl_locl.h"
 
 /* SSL library configuration module. */

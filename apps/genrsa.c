@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_RSA
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -17,14 +17,14 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <sys/types.h>
 # include <sys/stat.h>
 # include "apps.h"
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/bn.h>
-# include <openssl/rsa.h>
-# include <openssl/evp.h>
-# include <openssl/x509.h>
-# include <openssl/pem.h>
-# include <openssl/rand.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/bn.h>
+# include <gmssl/rsa.h>
+# include <gmssl/evp.h>
+# include <gmssl/x509.h>
+# include <gmssl/pem.h>
+# include <gmssl/rand.h>
 
 # define DEFBITS 2048
 

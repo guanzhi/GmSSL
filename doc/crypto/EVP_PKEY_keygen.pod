@@ -13,7 +13,7 @@ EVP_PKEY_gen_cb
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_keygen_init(EVP_PKEY_CTX *ctx);
  int EVP_PKEY_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY **ppkey);
@@ -95,8 +95,8 @@ the public key algorithm.
 
 Generate a 2048 bit RSA key:
 
- #include <openssl/evp.h>
- #include <openssl/rsa.h>
+ #include <gmssl/evp.h>
+ #include <gmssl/rsa.h>
 
  EVP_PKEY_CTX *ctx;
  EVP_PKEY *pkey = NULL;
@@ -114,8 +114,8 @@ Generate a 2048 bit RSA key:
 
 Generate a key from a set of parameters:
 
- #include <openssl/evp.h>
- #include <openssl/rsa.h>
+ #include <gmssl/evp.h>
+ #include <gmssl/rsa.h>
 
  EVP_PKEY_CTX *ctx;
  EVP_PKEY *pkey = NULL, *param;

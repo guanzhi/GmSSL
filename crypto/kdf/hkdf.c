@@ -9,9 +9,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/hmac.h>
-#include <openssl/kdf.h>
-#include <openssl/evp.h>
+#include <gmssl/hmac.h>
+#include <gmssl/kdf.h>
+#include <gmssl/evp.h>
 #include "internal/cryptlib.h"
 #include "internal/evp_int.h"
 

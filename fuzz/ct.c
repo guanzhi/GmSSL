@@ -13,7 +13,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/ct.h>
+#include <gmssl/ct.h>
 #include "fuzzer.h"
 
 int FuzzerInitialize(int *argc, char ***argv) {

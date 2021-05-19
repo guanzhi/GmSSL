@@ -14,14 +14,14 @@
 
 #include "testutil.h"
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 #ifndef OPENSSL_NO_CMS
-# include <openssl/cms.h>
+# include <gmssl/cms.h>
 #endif
 #include "e_os.h"
 

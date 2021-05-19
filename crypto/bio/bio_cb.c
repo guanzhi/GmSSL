@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include "bio_lcl.h"
 #include "internal/cryptlib.h"
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 long BIO_debug_callback(BIO *bio, int cmd, const char *argp,
                         int argi, long argl, long ret)

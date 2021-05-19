@@ -60,8 +60,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/bn.h>
-# include <openssl/err.h>
+# include <gmssl/bn.h>
+# include <gmssl/err.h>
 
 char *p_hex =
 	"fffffffeffffffffffffffffffffffffffffffff00000000ffffffffffffffff";

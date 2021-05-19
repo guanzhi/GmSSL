@@ -8,7 +8,7 @@ X509_verify_cert - discover and verify X509 certificate chain
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_verify_cert(X509_STORE_CTX *ctx);
 

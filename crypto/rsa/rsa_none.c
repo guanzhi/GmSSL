@@ -8,8 +8,8 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/rsa.h>
+#include <gmssl/bn.h>
+#include <gmssl/rsa.h>
 
 int RSA_padding_add_none(unsigned char *to, int tlen,
                          const unsigned char *from, int flen)

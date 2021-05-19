@@ -16,8 +16,8 @@
  */
 #include "internal/cryptlib.h"
 
-#include <openssl/bio.h>
-#include <openssl/lhash.h>
+#include <gmssl/bio.h>
+#include <gmssl/lhash.h>
 #include "lhash_lcl.h"
 
 # ifndef OPENSSL_NO_STDIO

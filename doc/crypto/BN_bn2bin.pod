@@ -11,7 +11,7 @@ BN_mpi2bn - format conversions
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_bn2bin(const BIGNUM *a, unsigned char *to);
  int BN_bn2binpad(const BIGNUM *a, unsigned char *to, int tolen);

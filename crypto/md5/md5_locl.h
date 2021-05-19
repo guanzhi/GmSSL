@@ -9,8 +9,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/e_os2.h>
-#include <openssl/md5.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/md5.h>
 
 #ifdef MD5_ASM
 # if defined(__i386) || defined(__i386__) || defined(_M_IX86) || \

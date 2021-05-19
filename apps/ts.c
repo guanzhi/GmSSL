@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_TS
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -15,12 +15,12 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdlib.h>
 # include <string.h>
 # include "apps.h"
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/pem.h>
-# include <openssl/rand.h>
-# include <openssl/ts.h>
-# include <openssl/bn.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/pem.h>
+# include <gmssl/rand.h>
+# include <gmssl/ts.h>
+# include <gmssl/bn.h>
 
 /* Request nonce length, in bits (must be a multiple of 8). */
 # define NONCE_LENGTH            64

@@ -15,12 +15,12 @@
 
 #ifndef OPENSSL_NO_CMS
 
-# include <openssl/crypto.h>
-# include <openssl/pem.h>
-# include <openssl/err.h>
-# include <openssl/x509_vfy.h>
-# include <openssl/x509v3.h>
-# include <openssl/cms.h>
+# include <gmssl/crypto.h>
+# include <gmssl/pem.h>
+# include <gmssl/err.h>
+# include <gmssl/x509_vfy.h>
+# include <gmssl/x509v3.h>
+# include <gmssl/cms.h>
 
 static int save_certs(char *signerfile, STACK_OF(X509) *signers);
 static int cms_cb(int ok, X509_STORE_CTX *ctx);

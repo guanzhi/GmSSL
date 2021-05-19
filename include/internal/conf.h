@@ -10,7 +10,7 @@
 #ifndef HEADER_INTERNAL_CONF_H
 # define HEADER_INTERNAL_CONF_H
 
-#include <openssl/conf.h>
+#include <gmssl/conf.h>
 
 #ifdef __cplusplus
 extern "C" {

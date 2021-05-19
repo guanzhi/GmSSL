@@ -16,22 +16,22 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/engine.h>
+#include <gmssl/engine.h>
 #ifndef OPENSSL_NO_SHA
-# include <openssl/sha.h>
+# include <gmssl/sha.h>
 #endif
 #ifndef OPENSSL_NO_MD5
-# include <openssl/md5.h>
+# include <gmssl/md5.h>
 #endif
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
-#include <openssl/evp.h>
-#include <openssl/modes.h>
+#include <gmssl/evp.h>
+#include <gmssl/modes.h>
 #ifndef OPENSSL_NO_AES
-#include <openssl/aes.h>
+#include <gmssl/aes.h>
 #endif
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 #define OSSLTEST_LIB_NAME "OSSLTEST"
 #include "e_ossltest_err.c"

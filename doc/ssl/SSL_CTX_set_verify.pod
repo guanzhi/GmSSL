@@ -11,7 +11,7 @@ SSL_verify_cb
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_verify(SSL_CTX *ctx, int mode, SSL_verify_cb verify_callback);
  void SSL_set_verify(SSL *s, int mode, SSL_verify_cb verify_callback);

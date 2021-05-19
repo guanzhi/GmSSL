@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 
 /*-
  * "First Oakley Default Group" from RFC2409, section 6.1.

@@ -48,7 +48,7 @@
  */
 
 #include <stdlib.h>
-#include <openssl/zuc.h>
+#include <gmssl/zuc.h>
 
 static void ZUC_set_eea_key(ZUC_KEY *key, const unsigned char user_key[16],
 	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_BIT direction)

@@ -47,7 +47,7 @@
  * ====================================================================
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_SM9
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -55,11 +55,11 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/pem.h>
-# include <openssl/sm9.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/pem.h>
+# include <gmssl/sm9.h>
 # include "apps.h"
 
 typedef enum OPTION_choice {

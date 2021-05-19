@@ -8,7 +8,7 @@ SSL_load_client_CA_file - load certificate names from file
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  STACK_OF(X509_NAME) *SSL_load_client_CA_file(const char *file);
 

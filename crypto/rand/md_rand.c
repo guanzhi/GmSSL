@@ -19,20 +19,20 @@
 # include <time.h>
 #endif
 
-#include <openssl/opensslconf.h>
-#include <openssl/crypto.h>
-#include <openssl/rand.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/crypto.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_ASYNC
-# include <openssl/async.h>
+# include <gmssl/async.h>
 #endif
 #include "rand_lcl.h"
 
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 #include <internal/thread_once.h>
 
 #ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
+# include <gmssl/fips.h>
 #endif
 
 #ifdef BN_DEBUG

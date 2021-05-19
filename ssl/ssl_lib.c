@@ -90,21 +90,21 @@
 #include <assert.h>
 #include <stdio.h>
 #include "ssl_locl.h"
-#include <openssl/objects.h>
-#include <openssl/lhash.h>
-#include <openssl/x509v3.h>
-#include <openssl/rand.h>
+#include <gmssl/objects.h>
+#include <gmssl/lhash.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_OCSP
-# include <openssl/ocsp.h>
+# include <gmssl/ocsp.h>
 #endif
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #ifndef OPENSSL_NO_ASYNC
-# include <openssl/async.h>
+# include <gmssl/async.h>
 #endif
 #ifndef OPENSSL_NO_CT
-#include <openssl/ct.h>
+#include <gmssl/ct.h>
 #endif
 
 const char SSL_version_str[] = OPENSSL_VERSION_TEXT;

@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/ui.h>
+#include <gmssl/x509.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/ui.h>
 
 #ifndef OPENSSL_NO_UI
 /* should be init to zeros. */

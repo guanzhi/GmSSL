@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 #include "internal/asn1_int.h"
 
 #define HMAC_TEST_PRIVATE_KEY_FORMAT

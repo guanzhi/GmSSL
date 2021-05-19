@@ -59,12 +59,12 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/bn.h>
-# include <openssl/ec.h>
-# include <openssl/evp.h>
-# include <openssl/rand.h>
-# include <openssl/engine.h>
-# include <openssl/sm2.h>
+# include <gmssl/bn.h>
+# include <gmssl/ec.h>
+# include <gmssl/evp.h>
+# include <gmssl/rand.h>
+# include <gmssl/engine.h>
+# include <gmssl/sm2.h>
 # include "../crypto/sm2/sm2_lcl.h"
 
 # define VERBOSE 1

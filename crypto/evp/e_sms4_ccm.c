@@ -57,16 +57,16 @@
 
 #include <stdio.h>
 
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
-#include <openssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/crypto.h>
+#include <gmssl/objects.h>
 #include "evp_locl.h"
 #include "internal/evp_int.h"
 #include "modes_lcl.h"
 
 #ifndef OPENSSL_NO_SMS4
 
-# include <openssl/sms4.h>
+# include <gmssl/sms4.h>
 
 typedef struct {
     union {

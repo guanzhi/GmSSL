@@ -12,10 +12,10 @@
 #include <string.h>
 #include <errno.h>
 
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/conf.h>
-#include <openssl/err.h>
+#include <gmssl/x509.h>
+#include <gmssl/pem.h>
+#include <gmssl/conf.h>
+#include <gmssl/err.h>
 
 #include "../e_os.h"
 

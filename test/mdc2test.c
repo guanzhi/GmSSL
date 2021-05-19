@@ -24,11 +24,11 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/mdc2.h>
+# include <gmssl/evp.h>
+# include <gmssl/mdc2.h>
 
 # ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
+#  include <gmssl/ebcdic.h>
 # endif
 
 static unsigned char pad1[16] = {

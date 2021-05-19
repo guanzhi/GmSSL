@@ -9,7 +9,7 @@ SSL object
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_pending(const SSL *ssl);
  int SSL_has_pending(const SSL *s);

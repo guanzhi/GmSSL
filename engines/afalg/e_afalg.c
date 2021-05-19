@@ -15,9 +15,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <openssl/engine.h>
-#include <openssl/async.h>
-#include <openssl/err.h>
+#include <gmssl/engine.h>
+#include <gmssl/async.h>
+#include <gmssl/err.h>
 
 #include <sys/socket.h>
 #include <linux/version.h>

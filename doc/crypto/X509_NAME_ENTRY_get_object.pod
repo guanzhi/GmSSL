@@ -11,7 +11,7 @@ X509_NAME_ENTRY_create_by_OBJ - X509_NAME_ENTRY utility functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  ASN1_OBJECT * X509_NAME_ENTRY_get_object(const X509_NAME_ENTRY *ne);
  ASN1_STRING * X509_NAME_ENTRY_get_data(const X509_NAME_ENTRY *ne);

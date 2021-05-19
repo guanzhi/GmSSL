@@ -35,7 +35,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/buffer.h>
+#include <gmssl/buffer.h>
 #include "ssl_locl.h"
 
 #ifndef OPENSSL_NO_STDIO

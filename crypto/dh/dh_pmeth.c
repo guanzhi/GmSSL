@@ -9,13 +9,13 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
-#include <openssl/evp.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
+#include <gmssl/evp.h>
 #include "dh_locl.h"
-#include <openssl/bn.h>
-#include <openssl/dsa.h>
-#include <openssl/objects.h>
+#include <gmssl/bn.h>
+#include <gmssl/dsa.h>
+#include <gmssl/objects.h>
 #include "internal/evp_int.h"
 
 /* DH pkey context structure */

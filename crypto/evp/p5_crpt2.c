@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "internal/cryptlib.h"
-# include <openssl/x509.h>
-# include <openssl/evp.h>
-# include <openssl/hmac.h>
+# include <gmssl/x509.h>
+# include <gmssl/evp.h>
+# include <gmssl/hmac.h>
 # include "evp_locl.h"
 
 /* set this to print out info about the keygen algorithm */

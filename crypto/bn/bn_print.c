@@ -11,7 +11,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
+#include <gmssl/buffer.h>
 #include "bn_lcl.h"
 
 static const char Hex[] = "0123456789ABCDEF";

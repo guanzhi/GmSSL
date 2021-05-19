@@ -8,7 +8,7 @@
  */
 
 #include <assert.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
 #include "bn_lcl.h"
 

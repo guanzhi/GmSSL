@@ -8,7 +8,7 @@ SSL_get_psk_identity, SSL_get_psk_identity_hint - get PSK client identity and hi
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  const char *SSL_get_psk_identity_hint(const SSL *ssl);
  const char *SSL_get_psk_identity(const SSL *ssl);

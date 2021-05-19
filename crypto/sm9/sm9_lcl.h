@@ -50,8 +50,8 @@
 #ifndef HEADER_SM9_LCL_H
 #define HEADER_SM9_LCL_H
 
-#include <openssl/err.h>
-#include <openssl/sm9.h>
+#include <gmssl/err.h>
+#include <gmssl/sm9.h>
 #include "../../e_os.h"
 
 /* private key extract algorithms */

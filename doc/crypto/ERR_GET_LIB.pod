@@ -9,7 +9,7 @@ ERR_GET_LIB, ERR_GET_FUNC, ERR_GET_REASON, ERR_FATAL_ERROR
 
 =head1 SYNOPSIS
 
- #include <openssl/err.h>
+ #include <gmssl/err.h>
 
  int ERR_GET_LIB(unsigned long e);
 

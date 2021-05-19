@@ -14,7 +14,7 @@ BIO_meth_set_callback_ctrl  - Routines to build up BIO methods
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  int BIO_get_new_index(void);
  BIO_METHOD *BIO_meth_new(int type, const char *name);

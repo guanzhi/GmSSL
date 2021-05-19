@@ -7,10 +7,10 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/crypto.h>
+#include <gmssl/opensslconf.h>
 
-# include <openssl/opensslv.h>
+# include <gmssl/opensslv.h>
 
 /* The implementation is in ../md32_common.h */
 

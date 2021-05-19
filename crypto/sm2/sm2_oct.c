@@ -48,13 +48,13 @@
  */
 
 #include <string.h>
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/err.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/obj_mac.h>
+#include <gmssl/ec.h>
+#include <gmssl/sm2.h>
+#include <gmssl/err.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/obj_mac.h>
 #include "sm2_lcl.h"
 
 

@@ -48,9 +48,9 @@
  */
 
 #include <stdio.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/objects.h>
 #include "internal/cryptlib.h"
 #include "internal/evp_int.h"
 

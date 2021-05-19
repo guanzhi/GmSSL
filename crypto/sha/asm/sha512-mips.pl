@@ -299,7 +299,7 @@ $SAVED_REGS_MASK = ($flavour =~ /nubi/i) ? "0xc0fff008" : "0xc0ff0000";
 
 $code.=<<___;
 #ifdef OPENSSL_FIPSCANISTER
-# include <openssl/fipssyms.h>
+# include <gmssl/fipssyms.h>
 #endif
 
 #if defined(__mips_smartmips) && !defined(_MIPS_ARCH_MIPS32R2)

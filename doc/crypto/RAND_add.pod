@@ -9,7 +9,7 @@ entropy to the PRNG
 
 =head1 SYNOPSIS
 
- #include <openssl/rand.h>
+ #include <gmssl/rand.h>
 
  void RAND_seed(const void *buf, int num);
 

@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "internal/cryptlib.h"
 #include "bn_lcl.h"
 

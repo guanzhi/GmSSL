@@ -12,7 +12,7 @@
 # pragma message disable DOLLARID
 
 
-# include <openssl/opensslconf.h>
+# include <gmssl/opensslconf.h>
 
 # if !defined(_POSIX_C_SOURCE) && defined(OPENSSL_SYS_VMS)
 /*

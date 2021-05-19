@@ -1,0 +1,25 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+charset = utf-8
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[*.json]
+indent_size = 2
+
+[*.yaml]
+indent_size = 2
+
+[*.yml]
+indent_size = 2
+
+[*.xml]
+indent_size = 2
+max_line_length = 1000
+
+# https://github.com/Dreamscapes/makefiles/blob/master/.editorconfig
+[{Makefile, **.mk}]
+indent_style = tab

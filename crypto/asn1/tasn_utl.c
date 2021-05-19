@@ -10,10 +10,10 @@
 #include <stddef.h>
 #include <string.h>
 #include <internal/cryptlib.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/err.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/err.h>
 #include "asn1_locl.h"
 
 /* Utility functions for manipulating fields and offsets */

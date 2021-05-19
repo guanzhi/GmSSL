@@ -48,7 +48,7 @@
  *
  */
 #include <string.h>
-#include <openssl/sm3.h>
+#include <gmssl/sm3.h>
 
 /**
  * HMAC_k(m) = H((k ^ opad), H((k ^ ipad), m))

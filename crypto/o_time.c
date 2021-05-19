@@ -7,9 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/e_os2.h>
+#include <gmssl/e_os2.h>
 #include <string.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 #ifdef OPENSSL_SYS_VMS
 # if __CRTL_VER >= 70000000 && \

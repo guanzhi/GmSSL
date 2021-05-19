@@ -30,7 +30,7 @@ detailed description of the various states and transitions possible.
 
 Conceptually the state machine component is designed as follows:
 
-                        libssl
+                        libgmssl
                            |
 ---------------------------|-----statem.h--------------------------------------
                            |

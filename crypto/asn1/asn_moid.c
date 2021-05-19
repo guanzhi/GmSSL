@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
-#include <openssl/conf.h>
-#include <openssl/x509.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509.h>
 #include "internal/asn1_int.h"
 #include "internal/objects.h"
 

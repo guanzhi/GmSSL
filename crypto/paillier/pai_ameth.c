@@ -48,12 +48,12 @@
  */
 
 #include <stdio.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/paillier.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/paillier.h>
 #include "internal/cryptlib.h"
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"

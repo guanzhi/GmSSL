@@ -47,8 +47,8 @@
  * ====================================================================
  */
 
-#include <openssl/sms4.h>
-#include <openssl/modes.h>
+#include <gmssl/sms4.h>
+#include <gmssl/modes.h>
 
 
 int sms4_wrap_key(sms4_key_t *key, const unsigned char *iv,

@@ -11,7 +11,7 @@ ERR_peek_last_error_line_data - obtain error code and data
 
 =head1 SYNOPSIS
 
- #include <openssl/err.h>
+ #include <gmssl/err.h>
 
  unsigned long ERR_get_error(void);
  unsigned long ERR_peek_error(void);

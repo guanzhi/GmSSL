@@ -19,7 +19,7 @@
  */
 #define xxxHASH    EVP_sha1()
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #if OPENSSL_API_COMPAT >= 0x00908000L
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -27,10 +27,10 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdio.h>
 # include <time.h>
 # include "internal/cryptlib.h"
-# include <openssl/evp.h>
-# include <openssl/bn.h>
-# include <openssl/dsa.h>
-# include <openssl/sha.h>
+# include <gmssl/evp.h>
+# include <gmssl/bn.h>
+# include <gmssl/dsa.h>
+# include <gmssl/sha.h>
 
 DSA *DSA_generate_parameters(int bits,
                              unsigned char *seed_in, int seed_len,

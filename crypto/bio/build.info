@@ -1,5 +1,5 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=\
         bio_lib.c bio_cb.c bio_err.c \
         bss_mem.c bss_null.c bss_fd.c \
         bss_file.c bss_sock.c bss_conn.c \

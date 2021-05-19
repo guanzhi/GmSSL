@@ -12,7 +12,7 @@ BN_BLINDING_set_flags, BN_BLINDING_create_param - blinding related BIGNUM functi
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  BN_BLINDING *BN_BLINDING_new(const BIGNUM *A, const BIGNUM *Ai,
         BIGNUM *mod);

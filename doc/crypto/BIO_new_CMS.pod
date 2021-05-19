@@ -8,7 +8,7 @@ BIO_new_CMS - CMS streaming filter BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  BIO *BIO_new_CMS(BIO *out, CMS_ContentInfo *cms);
 

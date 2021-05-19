@@ -59,8 +59,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/kdf2.h>
+# include <gmssl/evp.h>
+# include <gmssl/kdf2.h>
 
 int main(int argc, char **argv)
 {

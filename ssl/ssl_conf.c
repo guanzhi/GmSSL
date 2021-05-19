@@ -57,8 +57,8 @@
 
 #include <stdio.h>
 #include "ssl_locl.h"
-#include <openssl/conf.h>
-#include <openssl/objects.h>
+#include <gmssl/conf.h>
+#include <gmssl/objects.h>
 
 /*
  * structure holding name tables. This is used for permitted elements in lists

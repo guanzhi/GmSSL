@@ -12,7 +12,7 @@ functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_CRL_get0_by_serial(X509_CRL *crl,
                              X509_REVOKED **ret, ASN1_INTEGER *serial);

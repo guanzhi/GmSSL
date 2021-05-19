@@ -29,14 +29,14 @@
  */
 #include <string.h>
 
-#include <openssl/opensslconf.h>
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/kdf.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/bio.h>
+#include <gmssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/ssl.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
+#include <gmssl/kdf.h>
 
 #include "../ssl/packet_locl.h"
 #include "../e_os.h" /* for OSSL_NELEM() */

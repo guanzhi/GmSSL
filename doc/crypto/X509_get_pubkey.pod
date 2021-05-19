@@ -11,7 +11,7 @@ public key
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  EVP_PKEY *X509_get_pubkey(X509 *x);
  EVP_PKEY *X509_get0_pubkey(const X509 *x);

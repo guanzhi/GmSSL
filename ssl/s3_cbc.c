@@ -59,10 +59,10 @@
 #include "ssl_locl.h"
 
 #ifndef OPENSSL_NO_MD5
-# include <openssl/md5.h>
+# include <gmssl/md5.h>
 #endif
 #ifndef OPENSSL_NO_SHA
-# include <openssl/sha.h>
+# include <gmssl/sha.h>
 #endif
 
 /*

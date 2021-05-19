@@ -8,7 +8,7 @@ BIO_push, BIO_pop, BIO_set_next - add and remove BIOs from a chain
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  BIO *BIO_push(BIO *b, BIO *append);
  BIO *BIO_pop(BIO *b);

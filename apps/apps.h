@@ -16,18 +16,18 @@
 # endif
 # include <assert.h>
 
-# include <openssl/e_os2.h>
-# include <openssl/ossl_typ.h>
-# include <openssl/bio.h>
-# include <openssl/x509.h>
-# include <openssl/lhash.h>
-# include <openssl/conf.h>
-# include <openssl/txt_db.h>
+# include <gmssl/e_os2.h>
+# include <gmssl/ossl_typ.h>
+# include <gmssl/bio.h>
+# include <gmssl/x509.h>
+# include <gmssl/lhash.h>
+# include <gmssl/conf.h>
+# include <gmssl/txt_db.h>
 # ifndef OPENSSL_NO_ENGINE
-#  include <openssl/engine.h>
+#  include <gmssl/engine.h>
 # endif
 # ifndef OPENSSL_NO_OCSP
-#  include <openssl/ocsp.h>
+#  include <gmssl/ocsp.h>
 # endif
 # include <signal.h>
 

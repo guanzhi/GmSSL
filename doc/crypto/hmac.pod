@@ -19,7 +19,7 @@ HMAC_CTX_get_md
 
 =head1 SYNOPSIS
 
- #include <openssl/hmac.h>
+ #include <gmssl/hmac.h>
 
  unsigned char *HMAC(const EVP_MD *evp_md, const void *key,
                int key_len, const unsigned char *d, int n,

@@ -8,7 +8,7 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #include "rand_lcl.h"
 
 #if defined(OPENSSL_SYS_WINDOWS) || defined(OPENSSL_SYS_WIN32)

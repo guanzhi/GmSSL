@@ -241,7 +241,7 @@ X509_dup,
 
 =head1 SYNOPSIS
 
- #include <openssl/asn1t.h>
+ #include <gmssl/asn1t.h>
 
  DECLARE_ASN1_FUNCTIONS(type)
  IMPLEMENT_ASN1_FUNCTIONS(stname)

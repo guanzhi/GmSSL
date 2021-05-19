@@ -9,12 +9,12 @@
 
 #include <stddef.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/buffer.h>
-#include <openssl/err.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/buffer.h>
+#include <gmssl/err.h>
+#include <gmssl/x509v3.h>
 #include "internal/asn1_int.h"
 #include "asn1_locl.h"
 

@@ -6,7 +6,7 @@
  * in the file LICENSE in the source distribution or at
  * https://www.openssl.org/source/license.html
  */
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #if defined OPENSSL_NO_MD5 || defined CHARSET_EBCDIC
 # define NO_MD5CRYPT_1
@@ -17,15 +17,15 @@
 # include "apps.h"
 
 #if !defined(OPENSSL_NO_DES) || !defined(NO_MD5CRYPT_1)
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/rand.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/rand.h>
 # ifndef OPENSSL_NO_DES
-#  include <openssl/des.h>
+#  include <gmssl/des.h>
 # endif
 # ifndef NO_MD5CRYPT_1
-#  include <openssl/md5.h>
+#  include <gmssl/md5.h>
 # endif
 
 static unsigned const char cov_2char[64] = {

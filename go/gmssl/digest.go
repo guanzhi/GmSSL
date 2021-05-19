@@ -52,9 +52,9 @@ package gmssl
 
 /*
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/crypto.h>
 
 static void cb_digest_names_len(const EVP_MD *md, const char *from,
 	const char *to,
@@ -90,9 +90,9 @@ extern void _OPENSSL_free(void *addr);
 import "C"
 
 import (
-	"unsafe"
 	"runtime"
 	"strings"
+	"unsafe"
 )
 
 func GetDigestNames() []string {

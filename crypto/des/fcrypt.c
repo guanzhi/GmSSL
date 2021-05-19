@@ -15,10 +15,10 @@
 # endif
 #endif
 #ifdef CHARSET_EBCDIC
-# include <openssl/ebcdic.h>
+# include <gmssl/ebcdic.h>
 #endif
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "des_locl.h"
 
 /*

@@ -13,11 +13,11 @@
 #include <internal/cryptlib_int.h>
 #include <internal/err.h>
 #include <internal/err_int.h>
-#include <openssl/lhash.h>
-#include <openssl/crypto.h>
-#include <openssl/buffer.h>
-#include <openssl/bio.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/lhash.h>
+#include <gmssl/crypto.h>
+#include <gmssl/buffer.h>
+#include <gmssl/bio.h>
+#include <gmssl/opensslconf.h>
 #include <internal/thread_once.h>
 
 static void err_load_strings(int lib, ERR_STRING_DATA *str);
@@ -38,7 +38,7 @@ static ERR_STRING_DATA ERR_str_libraries[] = {
     {ERR_PACK(ERR_LIB_X509, 0, 0), "x509 certificate routines"},
     {ERR_PACK(ERR_LIB_ASN1, 0, 0), "asn1 encoding routines"},
     {ERR_PACK(ERR_LIB_CONF, 0, 0), "configuration file routines"},
-    {ERR_PACK(ERR_LIB_CRYPTO, 0, 0), "common libcrypto routines"},
+    {ERR_PACK(ERR_LIB_CRYPTO, 0, 0), "common libgmcrypto routines"},
     {ERR_PACK(ERR_LIB_EC, 0, 0), "elliptic curve routines"},
     {ERR_PACK(ERR_LIB_ECDSA, 0, 0), "ECDSA routines"},
     {ERR_PACK(ERR_LIB_ECDH, 0, 0), "ECDH routines"},

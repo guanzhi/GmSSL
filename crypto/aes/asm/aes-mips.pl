@@ -104,7 +104,7 @@ my ($MSB,$LSB)=(0,3);	# automatically converted to little-endian
 $code.=<<___;
 .text
 #ifdef OPENSSL_FIPSCANISTER
-# include <openssl/fipssyms.h>
+# include <gmssl/fipssyms.h>
 #endif
 
 #if defined(__mips_smartmips) && !defined(_MIPS_ARCH_MIPS32R2)

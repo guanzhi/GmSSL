@@ -62,12 +62,12 @@
 #include "internal/cryptlib.h"
 
 #if !defined(OPENSSL_NO_SDF) && !defined(OPENSSL_NO_EC)
-# include <openssl/ec.h>
-# include <openssl/sm2.h>
-# include <openssl/err.h>
-# include <openssl/gmsdf.h>
-# include <openssl/gmapi.h>
-# include <openssl/objects.h>
+# include <gmssl/ec.h>
+# include <gmssl/sm2.h>
+# include <gmssl/err.h>
+# include <gmssl/gmsdf.h>
+# include <gmssl/gmapi.h>
+# include <gmssl/objects.h>
 # include "../sm2/sm2_lcl.h"
 # include "../ecies/ecies_lcl.h"
 

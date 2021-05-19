@@ -18,10 +18,10 @@
 #include "e_os.h"
 #include "ssl_test_ctx.h"
 #include "testutil.h"
-#include <openssl/e_os2.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
-#include <openssl/ssl.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/err.h>
+#include <gmssl/conf.h>
+#include <gmssl/ssl.h>
 
 static CONF *conf = NULL;
 

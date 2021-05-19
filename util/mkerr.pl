@@ -67,7 +67,7 @@ Options:
                   crypto/err/openssl.ec
 
   -hprefix P    Prepend the filenames in generated #include <header>
-                statements with prefix P. Default: 'openssl/' (without
+                statements with prefix P. Default: 'gmssl/' (without
                 the quotes, naturally)
                 NOTE: not used any more because our include directory
                 structure has changed.
@@ -558,7 +558,7 @@ EOF
 	if($static) {
 		$hincf = $hfile;
 		$hincf =~ s|.*include/||;
-		if ($hincf =~ m|^openssl/|) {
+		if ($hincf =~ m|^gmssl/|) {
 			$hincf = "<${hincf}>";
 		} else {
 			$hincf = "\"${hincf}\"";
@@ -596,7 +596,7 @@ EOF
  */
 
 #include <stdio.h>
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include $hincf
 
 /* BEGIN ERROR CODES */

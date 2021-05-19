@@ -10,7 +10,7 @@ ASN1_STRING_to_UTF8 - ASN1_STRING utility functions
 
 =head1 SYNOPSIS
 
- #include <openssl/asn1.h>
+ #include <gmssl/asn1.h>
 
  int ASN1_STRING_length(ASN1_STRING *x);
  const unsigned char * ASN1_STRING_get0_data(const ASN1_STRING *x);

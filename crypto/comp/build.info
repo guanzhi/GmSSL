@@ -1,4 +1,4 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]= \
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]= \
         comp_lib.c comp_err.c \
         c_zlib.c

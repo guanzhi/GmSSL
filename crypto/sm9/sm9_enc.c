@@ -48,12 +48,12 @@
  */
 
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/sm2.h>
-#include <openssl/sm9.h>
-#include <openssl/hmac.h>
-#include <openssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/sm2.h>
+#include <gmssl/sm9.h>
+#include <gmssl/hmac.h>
+#include <gmssl/crypto.h>
 #include "sm9_lcl.h"
 
 

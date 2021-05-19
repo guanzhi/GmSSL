@@ -11,8 +11,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <openssl/sha.h>
-#include <openssl/evp.h>
+#include <gmssl/sha.h>
+#include <gmssl/evp.h>
 
 static const unsigned char app_b1[SHA256_DIGEST_LENGTH] = {
     0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,

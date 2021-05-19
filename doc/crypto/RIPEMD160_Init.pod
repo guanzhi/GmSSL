@@ -9,7 +9,7 @@ RIPEMD-160 hash function
 
 =head1 SYNOPSIS
 
- #include <openssl/ripemd.h>
+ #include <gmssl/ripemd.h>
 
  unsigned char *RIPEMD160(const unsigned char *d, unsigned long n,
                   unsigned char *md);

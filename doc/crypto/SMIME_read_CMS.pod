@@ -8,7 +8,7 @@ SMIME_read_CMS - parse S/MIME message
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  CMS_ContentInfo *SMIME_read_CMS(BIO *in, BIO **bcont);
 

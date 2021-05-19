@@ -9,16 +9,16 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/objects.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
-#include <openssl/ec.h>
+#include <gmssl/ec.h>
 
 int i2d_PublicKey(EVP_PKEY *a, unsigned char **pp)
 {

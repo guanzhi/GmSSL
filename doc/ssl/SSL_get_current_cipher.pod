@@ -9,7 +9,7 @@ SSL_get_cipher_bits, SSL_get_cipher_version - get SSL_CIPHER of a connection
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  SSL_CIPHER *SSL_get_current_cipher(const SSL *ssl);
 

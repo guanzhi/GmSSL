@@ -50,8 +50,8 @@
 #ifndef HEADER_SKF_WISEC_H
 #define HEADER_SKF_WISEC_H
 
-#include <openssl/err.h>
-#include <openssl/gmskf.h>
+#include <gmssl/err.h>
+#include <gmssl/gmskf.h>
 
 
 #define WISEC_SM1		(SGD_SM1)

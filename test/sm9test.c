@@ -59,10 +59,10 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/err.h>
-# include <openssl/sm9.h>
-# include <openssl/rand.h>
+# include <gmssl/evp.h>
+# include <gmssl/err.h>
+# include <gmssl/sm9.h>
+# include <gmssl/rand.h>
 # include "../crypto/sm9/sm9_lcl.h"
 
 RAND_METHOD fake_rand;

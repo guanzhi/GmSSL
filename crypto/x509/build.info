@@ -1,5 +1,5 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=\
         x509_def.c x509_d2.c x509_r2x.c x509_cmp.c \
         x509_obj.c x509_req.c x509spki.c x509_vfy.c \
         x509_set.c x509cset.c x509rset.c x509_err.c \

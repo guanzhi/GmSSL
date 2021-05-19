@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <openssl/e_os2.h>
+#include <gmssl/e_os2.h>
 #if defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WINDOWS)
 # ifndef OPENSSL_SYS_MSDOS
 #  define OPENSSL_SYS_MSDOS
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/des.h>
+# include <gmssl/des.h>
 
 /* tisk tisk - the test keys don't all have odd parity :-( */
 /* test data */

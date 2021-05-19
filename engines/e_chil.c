@@ -9,19 +9,19 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/crypto.h>
-#include <openssl/pem.h>
+#include <gmssl/crypto.h>
+#include <gmssl/pem.h>
 #include "internal/dso.h"
-#include <openssl/engine.h>
-#include <openssl/ui.h>
-#include <openssl/rand.h>
+#include <gmssl/engine.h>
+#include <gmssl/ui.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 
 #ifndef OPENSSL_NO_HW
 # ifndef OPENSSL_NO_HW_CHIL

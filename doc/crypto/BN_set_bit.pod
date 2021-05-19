@@ -9,7 +9,7 @@ BN_lshift1, BN_rshift, BN_rshift1 - bit operations on BIGNUMs
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_set_bit(BIGNUM *a, int n);
  int BN_clear_bit(BIGNUM *a, int n);

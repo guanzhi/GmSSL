@@ -7,16 +7,16 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_RSA
 NON_EMPTY_TRANSLATION_UNIT
 #else
 
 # include "apps.h"
 # include <string.h>
-# include <openssl/err.h>
-# include <openssl/pem.h>
-# include <openssl/rsa.h>
+# include <gmssl/err.h>
+# include <gmssl/pem.h>
+# include <gmssl/rsa.h>
 
 # define RSA_SIGN        1
 # define RSA_VERIFY      2

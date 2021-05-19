@@ -8,7 +8,7 @@ SSL_set_fd, SSL_set_rfd, SSL_set_wfd - connect the SSL object with a file descri
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_set_fd(SSL *ssl, int fd);
  int SSL_set_rfd(SSL *ssl, int fd);

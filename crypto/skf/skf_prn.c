@@ -51,8 +51,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include <openssl/err.h>
-#include <openssl/gmskf.h>
+#include <gmssl/err.h>
+#include <gmssl/gmskf.h>
 #include "internal/skf_int.h"
 #include "../../e_os.h"
 

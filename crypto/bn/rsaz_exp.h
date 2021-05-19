@@ -58,7 +58,7 @@
          defined(_M_AMD64) || defined(_M_X64))
 #  define RSAZ_ENABLED
 
-#  include <openssl/bn.h>
+#  include <gmssl/bn.h>
 
 void RSAZ_1024_mod_exp_avx2(BN_ULONG result[16],
                             const BN_ULONG base_norm[16],

@@ -9,11 +9,11 @@
 
 # include <stdio.h>
 # include "internal/cryptlib.h"
-# include <openssl/conf.h>
-# include <openssl/asn1.h>
-# include <openssl/ocsp.h>
+# include <gmssl/conf.h>
+# include <gmssl/asn1.h>
+# include <gmssl/ocsp.h>
 # include "ocsp_lcl.h"
-# include <openssl/x509v3.h>
+# include <gmssl/x509v3.h>
 # include "../x509v3/ext_dat.h"
 
 /*

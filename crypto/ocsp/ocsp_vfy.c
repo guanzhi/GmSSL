@@ -7,9 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/ocsp.h>
+#include <gmssl/ocsp.h>
 #include "ocsp_lcl.h"
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include <string.h>
 
 static int ocsp_find_signer(X509 **psigner, OCSP_BASICRESP *bs,

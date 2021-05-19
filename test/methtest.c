@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <openssl/rsa.h>
-#include <openssl/x509.h>
+#include <gmssl/rsa.h>
+#include <gmssl/x509.h>
 #include "meth.h"
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 int main(argc, argv)
 int argc;

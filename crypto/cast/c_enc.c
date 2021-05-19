@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/cast.h>
+#include <gmssl/cast.h>
 #include "cast_lcl.h"
 
 void CAST_encrypt(CAST_LONG *data, const CAST_KEY *key)

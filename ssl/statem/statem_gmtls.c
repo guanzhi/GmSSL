@@ -48,21 +48,21 @@
  */
 
 #include <stdio.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 # include "../ssl_locl.h"
 # include "statem_locl.h"
 # include "internal/constant_time_locl.h"
-# include <openssl/buffer.h>
-# include <openssl/rand.h>
-# include <openssl/objects.h>
-# include <openssl/evp.h>
-# include <openssl/hmac.h>
-# include <openssl/x509.h>
-# include <openssl/x509v3.h>
-# include <openssl/bn.h>
-# include <openssl/sm2.h>
-# include <openssl/crypto.h>
+# include <gmssl/buffer.h>
+# include <gmssl/rand.h>
+# include <gmssl/objects.h>
+# include <gmssl/evp.h>
+# include <gmssl/hmac.h>
+# include <gmssl/x509.h>
+# include <gmssl/x509v3.h>
+# include <gmssl/bn.h>
+# include <gmssl/sm2.h>
+# include <gmssl/crypto.h>
 
 
 static int gmtls_output_cert_chain(SSL *s, int *len, int a_idx, int k_idx)

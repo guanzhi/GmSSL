@@ -23,11 +23,11 @@
 
 #include <stdlib.h>
 
-#include <openssl/obj_mac.h>
-#include <openssl/ec.h>
-#include <openssl/bn.h>
+#include <gmssl/obj_mac.h>
+#include <gmssl/ec.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_SM2
-#include <openssl/ecies.h>
+#include <gmssl/ecies.h>
 #endif
 
 #include "../../e_os.h"

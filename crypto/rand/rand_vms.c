@@ -13,7 +13,7 @@
  *    Add additional randomizations using rand() function
  */
 
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #include "rand_lcl.h"
 
 #if defined(OPENSSL_SYS_VMS)

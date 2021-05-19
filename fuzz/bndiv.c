@@ -14,7 +14,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "fuzzer.h"
 
 int FuzzerInitialize(int *argc, char ***argv) {

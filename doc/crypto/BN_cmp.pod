@@ -8,7 +8,7 @@ BN_cmp, BN_ucmp, BN_is_zero, BN_is_one, BN_is_word, BN_is_odd - BIGNUM compariso
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_cmp(BIGNUM *a, BIGNUM *b);
  int BN_ucmp(BIGNUM *a, BIGNUM *b);

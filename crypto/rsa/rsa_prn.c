@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/rsa.h>
-#include <openssl/evp.h>
+#include <gmssl/rsa.h>
+#include <gmssl/evp.h>
 
 #ifndef OPENSSL_NO_STDIO
 int RSA_print_fp(FILE *fp, const RSA *x, int off)

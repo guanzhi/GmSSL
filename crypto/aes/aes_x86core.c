@@ -46,7 +46,7 @@
 #include <assert.h>
 
 #include <stdlib.h>
-#include <openssl/aes.h>
+#include <gmssl/aes.h>
 #include "aes_locl.h"
 
 /*

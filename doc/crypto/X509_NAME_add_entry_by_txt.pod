@@ -9,7 +9,7 @@ X509_NAME_add_entry, X509_NAME_delete_entry - X509_NAME modification functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_NAME_add_entry_by_txt(X509_NAME *name, const char *field, int type, const unsigned char *bytes, int len, int loc, int set);
 

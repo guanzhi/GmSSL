@@ -8,8 +8,8 @@
  */
 
 #include "des_locl.h"
-#include <openssl/opensslv.h>
-#include <openssl/bio.h>
+#include <gmssl/opensslv.h>
+#include <gmssl/bio.h>
 
 
 const char *DES_options(void)

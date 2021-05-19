@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/opensslconf.h> /* To see if OPENSSL_NO_BF is defined */
+#include <gmssl/opensslconf.h> /* To see if OPENSSL_NO_BF is defined */
 
 #include "../e_os.h"
 
@@ -26,10 +26,10 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/blowfish.h>
+# include <gmssl/blowfish.h>
 
 # ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
+#  include <gmssl/ebcdic.h>
 # endif
 
 static char bf_key[2][30] = {

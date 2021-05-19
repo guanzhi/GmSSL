@@ -12,10 +12,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "internal/cryptlib.h"
-#include <openssl/conf.h>
-#include <openssl/x509.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509.h>
 #include "internal/x509_int.h"
-#include <openssl/x509v3.h>
+#include <gmssl/x509v3.h>
 
 static int v3_check_critical(const char **value);
 static int v3_check_generic(const char **value);

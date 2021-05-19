@@ -56,17 +56,17 @@
  */
 
 #include <stdio.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
-#include <openssl/ec.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
+#include <gmssl/ec.h>
 #include "ec_lcl.h"
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 #include "internal/evp_int.h"
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
-# include <openssl/sm3.h>
+# include <gmssl/sm2.h>
+# include <gmssl/sm3.h>
 #endif
 
 /* EC pkey context structure */

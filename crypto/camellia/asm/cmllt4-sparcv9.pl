@@ -58,7 +58,7 @@ open STDOUT,">$output";
 
 $::evp=1;	# if $evp is set to 0, script generates module with
 # Camellia_[en|de]crypt, Camellia_set_key and Camellia_cbc_encrypt
-# entry points. These are fully compatible with openssl/camellia.h.
+# entry points. These are fully compatible with gmssl/camellia.h.
 
 ######################################################################
 # single-round subroutines

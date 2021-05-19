@@ -7,18 +7,18 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include "openssl/opensslconf.h"
+#include "gmssl/opensslconf.h"
 #ifdef OPENSSL_NO_RSA
 NON_EMPTY_TRANSLATION_UNIT
 #else
 
 # include "internal/cryptlib.h"
 # include <stdio.h>
-# include <openssl/rsa.h>
-# include <openssl/objects.h>
-# include <openssl/asn1t.h>
-# include <openssl/evp.h>
-# include <openssl/x509.h>
+# include <gmssl/rsa.h>
+# include <gmssl/objects.h>
+# include <gmssl/asn1t.h>
+# include <gmssl/evp.h>
+# include <gmssl/x509.h>
 
 # ifndef OPENSSL_NO_RC4
 

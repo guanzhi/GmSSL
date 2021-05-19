@@ -1,5 +1,5 @@
-LIBS=../../libcrypto
-SOURCE[../../libcrypto]=\
+LIBS=../../libgmcrypto
+SOURCE[../../libgmcrypto]=\
         cmll_ecb.c cmll_ofb.c cmll_cfb.c cmll_ctr.c \
         {- $target{cmll_asm_src} -}
 

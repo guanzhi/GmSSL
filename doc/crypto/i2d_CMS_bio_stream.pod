@@ -8,7 +8,7 @@ i2d_CMS_bio_stream - output CMS_ContentInfo structure in BER format
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  int i2d_CMS_bio_stream(BIO *out, CMS_ContentInfo *cms, BIO *data, int flags);
 

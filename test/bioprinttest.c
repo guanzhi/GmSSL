@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/bio.h>
+#include <gmssl/bio.h>
 
 static int justprint = 0;
 

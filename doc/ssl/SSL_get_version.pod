@@ -8,7 +8,7 @@ SSL_get_version, SSL_is_dtls - get the protocol information of a connection
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  const char *SSL_get_version(const SSL *ssl);
 

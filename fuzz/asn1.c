@@ -17,23 +17,23 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
-#include <openssl/ec.h>
-#include <openssl/ocsp.h>
-#include <openssl/pkcs12.h>
+#include <gmssl/ec.h>
+#include <gmssl/ocsp.h>
+#include <gmssl/pkcs12.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_TS
-# include <openssl/ts.h>
+# include <gmssl/ts.h>
 #endif
-#include <openssl/x509v3.h>
+#include <gmssl/x509v3.h>
 #ifndef OPENSSL_NO_CMS
-# include <openssl/cms.h>
+# include <gmssl/cms.h>
 #endif
 #include "fuzzer.h"
 

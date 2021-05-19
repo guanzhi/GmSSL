@@ -47,9 +47,9 @@
  * ====================================================================
  */
 
-#include <openssl/err.h>
-#include <openssl/objects.h>
-#include <openssl/sm9.h>
+#include <gmssl/err.h>
+#include <gmssl/objects.h>
+#include <gmssl/sm9.h>
 #include "sm9_lcl.h"
 
 SM9MasterSecret *SM9_generate_master_secret(int pairing, int scheme, int hash1)

@@ -12,12 +12,12 @@
 #include <string.h>
 #include <time.h>
 #include "apps.h"
-#include <openssl/err.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/pkcs7.h>
-#include <openssl/pem.h>
+#include <gmssl/err.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/pkcs7.h>
+#include <gmssl/pem.h>
 
 typedef enum OPTION_choice {
     OPT_ERR = -1, OPT_EOF = 0, OPT_HELP,

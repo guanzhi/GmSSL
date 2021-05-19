@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"

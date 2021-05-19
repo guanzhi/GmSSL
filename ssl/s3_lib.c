@@ -96,15 +96,15 @@
  */
 
 #include <stdio.h>
-#include <openssl/objects.h>
+#include <gmssl/objects.h>
 #include "ssl_locl.h"
 #ifndef OPENSSL_NO_MD5
-# include <openssl/md5.h>
+# include <gmssl/md5.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 
 #define SSL3_NUM_CIPHERS        OSSL_NELEM(ssl3_ciphers)
 

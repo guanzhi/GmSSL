@@ -20,8 +20,8 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/md5.h>
+# include <gmssl/evp.h>
+# include <gmssl/md5.h>
 
 static char *test[] = {
     "",

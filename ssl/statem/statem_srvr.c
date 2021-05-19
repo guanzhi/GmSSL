@@ -99,15 +99,15 @@
 #include "../ssl_locl.h"
 #include "statem_locl.h"
 #include "internal/constant_time_locl.h"
-#include <openssl/buffer.h>
-#include <openssl/rand.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/x509.h>
-#include <openssl/bn.h>
+#include <gmssl/buffer.h>
+#include <gmssl/rand.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/hmac.h>
+#include <gmssl/x509.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 
 static STACK_OF(SSL_CIPHER) *ssl_bytes_to_cipher_list(SSL *s,

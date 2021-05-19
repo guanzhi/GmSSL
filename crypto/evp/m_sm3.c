@@ -51,10 +51,10 @@
 #include "internal/cryptlib.h"
 
 #ifndef OPENSSL_NO_SM3
-# include <openssl/evp.h>
-# include <openssl/x509.h>
-# include <openssl/objects.h>
-# include <openssl/sm3.h>
+# include <gmssl/evp.h>
+# include <gmssl/x509.h>
+# include <gmssl/objects.h>
+# include <gmssl/sm3.h>
 # include "internal/evp_int.h"
 
 static int init(EVP_MD_CTX *ctx)

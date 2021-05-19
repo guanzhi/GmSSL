@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/ts.h>
-#include <openssl/pkcs7.h>
+#include <gmssl/objects.h>
+#include <gmssl/ts.h>
+#include <gmssl/pkcs7.h>
 #include "ts_lcl.h"
 
 static int ts_verify_cert(X509_STORE *store, STACK_OF(X509) *untrusted,

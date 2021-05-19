@@ -8,7 +8,7 @@ CMS_compress - create a CMS CompressedData structure
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  CMS_ContentInfo *CMS_compress(BIO *in, int comp_nid, unsigned int flags);
 

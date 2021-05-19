@@ -8,9 +8,9 @@
  */
 
 #include <stddef.h>
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
 #include "internal/evp_int.h"
 
 ASN1_SEQUENCE(X509_ALGOR) = {

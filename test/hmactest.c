@@ -13,14 +13,14 @@
 
 #include "../e_os.h"
 
-# include <openssl/hmac.h>
-# include <openssl/sha.h>
+# include <gmssl/hmac.h>
+# include <gmssl/sha.h>
 # ifndef OPENSSL_NO_MD5
-#  include <openssl/md5.h>
+#  include <gmssl/md5.h>
 # endif
 
 # ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
+#  include <gmssl/ebcdic.h>
 # endif
 
 # ifndef OPENSSL_NO_MD5

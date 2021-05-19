@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
+#include <gmssl/asn1.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
 #include "internal/x509_int.h"
 
 int X509_CRL_set_version(X509_CRL *x, long version)

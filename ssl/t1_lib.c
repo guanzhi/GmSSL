@@ -57,19 +57,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <openssl/opensslconf.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/hmac.h>
 #ifndef OPENSSL_NO_OCSP
-# include <openssl/ocsp.h>
+# include <gmssl/ocsp.h>
 #endif
-#include <openssl/conf.h>
-#include <openssl/x509v3.h>
-#include <openssl/bn.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/bn.h>
 #include "ssl_locl.h"
 #ifndef OPENSSL_NO_CT
-# include <openssl/ct.h>
+# include <gmssl/ct.h>
 #endif
 
 #define CHECKLEN(curr, val, limit) \

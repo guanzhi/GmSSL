@@ -14,7 +14,7 @@ of these components is defined by:
 All struct definitions are in record.h. The functions and macros are either
 defined in record.h or record_locl.h dependent on whether they are intended to
 be private to the record layer, or whether they form part of the API to the rest
-of libssl.
+of libgmssl.
 
 The source files map to components as follows:
 
@@ -24,9 +24,9 @@ ssl3_record.c                                    -> SSL3_RECORD component
 rec_layer_s3.c, rec_layer_d1.c                   -> RECORD_LAYER component
 
 The RECORD_LAYER component is a facade pattern, i.e. it provides a simplified
-interface to the record layer for the rest of libssl. The other 3 components are
+interface to the record layer for the rest of libgmssl. The other 3 components are
 entirely private to the record layer and therefore should never be accessed
-directly by libssl.
+directly by libgmssl.
 
 Any component can directly access its own members - they are private to that
 component, e.g. ssl3_buffer.c can access members of the SSL3_BUFFER struct
@@ -38,7 +38,7 @@ RECORD_LAYER_* macros.
 
 Conceptually it looks like this:
 
-                        libssl
+                        libgmssl
                            |
 ---------------------------|-----record.h--------------------------------------
                            |

@@ -8,7 +8,7 @@ RSA_new, RSA_free - allocate and free RSA objects
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  RSA * RSA_new(void);
 

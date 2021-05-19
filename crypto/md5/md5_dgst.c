@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "md5_locl.h"
-#include <openssl/opensslv.h>
+#include <gmssl/opensslv.h>
 
 /*
  * Implemented from RFC1321 The MD5 Message-Digest Algorithm

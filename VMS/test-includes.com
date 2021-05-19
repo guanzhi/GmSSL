@@ -15,7 +15,7 @@ $	write sys$output "Checking ",f
 $	open/write foo foo.c
 $	write foo "#undef VMS"
 $	write foo "#include <stdio.h>"
-$	write foo "#include <openssl/",f$parse(f,,,"NAME"),".h>"
+$	write foo "#include <gmssl/",f$parse(f,,,"NAME"),".h>"
 $	write foo "main()"
 $	write foo "{printf(""foo\n"");}"
 $	close foo

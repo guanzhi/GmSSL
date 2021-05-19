@@ -49,10 +49,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/rand.h>
-#include <openssl/kdf.h>
+#include <gmssl/ec.h>
+#include <gmssl/sm2.h>
+#include <gmssl/rand.h>
+#include <gmssl/kdf.h>
 #include "internal/o_str.h"
 #include "sm2_lcl.h"
 

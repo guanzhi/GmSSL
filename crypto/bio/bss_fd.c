@@ -44,7 +44,7 @@ const BIO_METHOD *BIO_s_fd(void)
  * in a user-land, non-global table. Well, in fact they are indexes
  * in stdio _iob[], and recall that _iob[] was the very reason why
  * "UPLINK" interface was introduced in first place. But one way on
- * another. Neither libcrypto or libssl use this BIO meaning that
+ * another. Neither libgmcrypto or libgmssl use this BIO meaning that
  * file descriptors can only be provided by application. Therefore
  * "UPLINK" calls are due...
  */

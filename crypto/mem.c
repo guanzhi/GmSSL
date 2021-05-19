@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
 
 /*

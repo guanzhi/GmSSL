@@ -10,7 +10,7 @@ X509_CRL_get_signature_nid - signature information
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  void X509_get0_signature(const ASN1_BIT_STRING **psig,
                           const X509_ALGOR **palg,

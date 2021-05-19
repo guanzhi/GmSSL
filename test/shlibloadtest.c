@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/opensslv.h>
+#include <gmssl/opensslv.h>
 
 /* The test is only currently implemented for DSO_DLFCN and DSO_WIN32 */
 #if defined(DSO_DLFCN) || defined(DSO_WIN32)
@@ -148,14 +148,14 @@ int main(int argc, char **argv)
                        || test_type == JUST_CRYPTO))
                || (i == 1 && test_type == SSL_FIRST)) {
             if (!shlib_load(argv[2], &cryptolib)) {
-                printf("Unable to load libcrypto\n");
+                printf("Unable to load libgmcrypto\n");
                 return 1;
             }
         }
         if ((i == 0 && test_type == SSL_FIRST)
                 || (i == 1 && test_type == CRYPTO_FIRST)) {
             if (!shlib_load(argv[3], &ssllib)) {
-                printf("Unable to load libssl\n");
+                printf("Unable to load libgmssl\n");
                 return 1;
             }
         }
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
         if ((i == 0 && test_type == CRYPTO_FIRST)
                 || (i == 1 && test_type == SSL_FIRST)) {
             if (!shlib_close(ssllib)) {
-                printf("Unable to close libssl\n");
+                printf("Unable to close libgmssl\n");
                 return 1;
             }
         }
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
                        || test_type == JUST_CRYPTO))
                 || (i == 1 && test_type == CRYPTO_FIRST)) {
             if (!shlib_close(cryptolib)) {
-                printf("Unable to close libcrypto\n");
+                printf("Unable to close libgmcrypto\n");
                 return 1;
             }
         }

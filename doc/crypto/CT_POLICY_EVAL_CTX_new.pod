@@ -12,7 +12,7 @@ Encapsulates the data required to evaluate whether SCTs meet a Certificate Trans
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
  CT_POLICY_EVAL_CTX *CT_POLICY_EVAL_CTX_new(void);
  void CT_POLICY_EVAL_CTX_free(CT_POLICY_EVAL_CTX *ctx);

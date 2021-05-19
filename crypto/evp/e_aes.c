@@ -7,19 +7,19 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_AES
 NON_EMPTY_TRANSLATION_UNIT
 #else
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
+#include <gmssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
 #include <string.h>
 #include <assert.h>
-#include <openssl/aes.h>
+#include <gmssl/aes.h>
 #include "internal/evp_int.h"
 #include "modes_lcl.h"
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #include "evp_locl.h"
 
 typedef struct {

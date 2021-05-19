@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/x509.h>
-#include <openssl/asn1t.h>
+#include <gmssl/bn.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1t.h>
 #include "rsa_locl.h"
 
 /* Override the default free and new methods */

@@ -51,11 +51,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/gmskf.h>
-#include <openssl/gmapi.h>
-#include <openssl/x509v3.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
+#include <gmssl/gmskf.h>
+#include <gmssl/gmapi.h>
+#include <gmssl/x509v3.h>
 #include "internal/skf_int.h"
 #include "../../e_os.h"
 

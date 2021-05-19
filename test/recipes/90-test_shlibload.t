@@ -22,15 +22,15 @@ plan skip_all => "Test only supported in a shared build" if disabled("shared");
 
 plan tests => 3;
 
-my $libcrypto =
-    $unified_info{sharednames}->{libcrypto}.$target{shared_extension_simple};
-my $libssl =
-    $unified_info{sharednames}->{libssl}.$target{shared_extension_simple};
+my $libgmcrypto =
+    $unified_info{sharednames}->{libgmcrypto}.$target{shared_extension_simple};
+my $libgmssl =
+    $unified_info{sharednames}->{libgmssl}.$target{shared_extension_simple};
 
-ok(run(test(["shlibloadtest", "-crypto_first", $libcrypto, $libssl])),
+ok(run(test(["shlibloadtest", "-crypto_first", $libgmcrypto, $libgmssl])),
    "running shlibloadtest -crypto_first");
-ok(run(test(["shlibloadtest", "-ssl_first", $libcrypto, $libssl])),
+ok(run(test(["shlibloadtest", "-ssl_first", $libgmcrypto, $libgmssl])),
    "running shlibloadtest -ssl_first");
-ok(run(test(["shlibloadtest", "-just_crypto", $libcrypto, $libssl])),
+ok(run(test(["shlibloadtest", "-just_crypto", $libgmcrypto, $libgmssl])),
    "running shlibloadtest -just_crypto");
 

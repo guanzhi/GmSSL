@@ -12,7 +12,7 @@
  * slurp this code if applications are using them directly.
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #if OPENSSL_API_COMPAT >= 0x00908000L
 NON_EMPTY_TRANSLATION_UNIT
 #else

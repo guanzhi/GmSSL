@@ -48,9 +48,9 @@
 # include <windows.h>
 #endif
 
-#include <openssl/e_os2.h>
-#include <openssl/async.h>
-#include <openssl/ssl.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/async.h>
+#include <gmssl/ssl.h>
 
 #ifndef OPENSSL_NO_SOCK
 
@@ -65,29 +65,29 @@
 typedef unsigned int u_int;
 #endif
 
-#include <openssl/lhash.h>
-#include <openssl/bn.h>
+#include <gmssl/lhash.h>
+#include <gmssl/bn.h>
 #define USE_SOCKETS
 #include "apps.h"
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/x509.h>
-#include <openssl/ssl.h>
-#include <openssl/rand.h>
-#include <openssl/ocsp.h>
+#include <gmssl/err.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509.h>
+#include <gmssl/ssl.h>
+#include <gmssl/rand.h>
+#include <gmssl/ocsp.h>
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_SRP
-# include <openssl/srp.h>
+# include <gmssl/srp.h>
 #endif
 #include "s_apps.h"
 #include "timeouts.h"
 #ifdef CHARSET_EBCDIC
-#include <openssl/ebcdic.h>
+#include <gmssl/ebcdic.h>
 #endif
 
 static int not_resumable_sess_cb(SSL *s, int is_forward_secure);

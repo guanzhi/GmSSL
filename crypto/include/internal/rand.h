@@ -15,6 +15,6 @@
  * or in the file LICENSE in the source distribution.
  */
 
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 
 void rand_cleanup_int(void);

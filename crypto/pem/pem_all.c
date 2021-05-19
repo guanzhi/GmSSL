@@ -9,19 +9,19 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/pkcs7.h>
-#include <openssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/pkcs7.h>
+#include <gmssl/pem.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 
 #ifndef OPENSSL_NO_RSA

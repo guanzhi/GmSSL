@@ -8,7 +8,7 @@ RSA_generate_key_ex, RSA_generate_key - generate RSA key pair
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e, BN_GENCB *cb);
 

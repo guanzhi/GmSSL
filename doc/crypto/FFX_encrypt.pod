@@ -9,7 +9,7 @@ FFX_encrypt, FFX_decrypt, FFX_compute_luhn - Format-Preserving Encryption
 
 =head1 SYNOPSIS
 
- #include <openssl/ffx.h>
+ #include <gmssl/ffx.h>
 
  FFX_CTX *FFX_CTX_new(void);
  void FFX_CTX_free(FFX_CTX *ctx);

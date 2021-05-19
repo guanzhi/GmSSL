@@ -12,9 +12,9 @@
 #include <errno.h>
 #define USE_SOCKETS
 #include "../ssl_locl.h"
-#include <openssl/evp.h>
-#include <openssl/buffer.h>
-#include <openssl/rand.h>
+#include <gmssl/evp.h>
+#include <gmssl/buffer.h>
+#include <gmssl/rand.h>
 #include "record_locl.h"
 
 #if     defined(OPENSSL_SMALL_FOOTPRINT) || \

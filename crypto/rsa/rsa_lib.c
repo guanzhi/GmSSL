@@ -8,11 +8,11 @@
  */
 
 #include <stdio.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
+#include <gmssl/lhash.h>
 #include "internal/bn_int.h"
-#include <openssl/engine.h>
+#include <gmssl/engine.h>
 #include "rsa_locl.h"
 
 static const RSA_METHOD *default_RSA_meth = NULL;

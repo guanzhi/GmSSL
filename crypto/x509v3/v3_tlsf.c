@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #include "internal/o_str.h"
-#include <openssl/asn1t.h>
-#include <openssl/conf.h>
-#include <openssl/x509v3.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509v3.h>
 #include "ext_dat.h"
 
 static STACK_OF(CONF_VALUE) *i2v_TLS_FEATURE(const X509V3_EXT_METHOD *method,

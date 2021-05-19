@@ -8,7 +8,7 @@ SSL_connect - initiate the TLS/SSL handshake with an TLS/SSL server
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_connect(SSL *ssl);
 

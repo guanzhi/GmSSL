@@ -48,15 +48,15 @@
  */
 
 #include <stdio.h>
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
-#include <openssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/crypto.h>
+#include <gmssl/objects.h>
 #include "evp_locl.h"
 # include "internal/evp_int.h"
 
 #ifndef OPENSSL_NO_ZUC
 
-# include <openssl/zuc.h>
+# include <gmssl/zuc.h>
 
 typedef struct {
 	ZUC_KEY ks;

@@ -12,9 +12,9 @@
 
 #ifndef OPENSSL_NO_RC4
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
-# include <openssl/rc4.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
+# include <gmssl/rc4.h>
 
 # include "internal/evp_int.h"
 

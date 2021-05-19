@@ -9,7 +9,7 @@ SSL_library_init, OpenSSL_add_ssl_algorithms,
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_library_init(void);
 

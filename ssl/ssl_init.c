@@ -58,8 +58,8 @@
 #include "e_os.h"
 
 #include "internal/err.h"
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
+#include <gmssl/crypto.h>
+#include <gmssl/evp.h>
 #include <assert.h>
 #include "ssl_locl.h"
 #include "internal/thread_once.h"

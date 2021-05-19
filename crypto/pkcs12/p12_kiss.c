@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/pkcs12.h>
+#include <gmssl/pkcs12.h>
 
 /* Simplified PKCS#12 routines */
 

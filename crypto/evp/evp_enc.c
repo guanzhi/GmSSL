@@ -10,11 +10,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #include "internal/evp_int.h"
 #include "evp_locl.h"

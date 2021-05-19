@@ -8,7 +8,7 @@ MDC2, MDC2_Init, MDC2_Update, MDC2_Final - MDC2 hash function
 
 =head1 SYNOPSIS
 
- #include <openssl/mdc2.h>
+ #include <gmssl/mdc2.h>
 
  unsigned char *MDC2(const unsigned char *d, unsigned long n,
                   unsigned char *md);

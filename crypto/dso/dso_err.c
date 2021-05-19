@@ -9,7 +9,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include "internal/dso.h"
 
 /* BEGIN ERROR CODES */

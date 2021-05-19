@@ -12,10 +12,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "internal/cryptlib.h"
-#include <openssl/conf.h>
-#include <openssl/x509v3.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509v3.h>
 #include "internal/x509_int.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "ext_dat.h"
 
 static char *strip_spaces(char *name);

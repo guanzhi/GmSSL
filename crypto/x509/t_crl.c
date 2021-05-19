@@ -9,11 +9,11 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/bn.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/buffer.h>
+#include <gmssl/bn.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 
 #ifndef OPENSSL_NO_STDIO
 int X509_CRL_print_fp(FILE *fp, X509_CRL *x)

@@ -10,7 +10,7 @@ sign or verify certificate, certificate request or CRL signature
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_sign(X509 *x, EVP_PKEY *pkey, const EVP_MD *md);
  int X509_sign_ctx(X509 *x, EVP_MD_CTX *ctx);

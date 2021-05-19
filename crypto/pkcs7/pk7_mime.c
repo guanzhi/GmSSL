@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
 
 /* PKCS#7 wrappers round generalised stream and MIME routines */
 

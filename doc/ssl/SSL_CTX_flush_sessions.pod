@@ -8,7 +8,7 @@ SSL_CTX_flush_sessions, SSL_flush_sessions - remove expired sessions
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_flush_sessions(SSL_CTX *ctx, long tm);
  void SSL_flush_sessions(SSL_CTX *ctx, long tm);

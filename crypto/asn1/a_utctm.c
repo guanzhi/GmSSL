@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
+#include <gmssl/asn1.h>
 #include "asn1_locl.h"
 
 int asn1_utctime_to_tm(struct tm *tm, const ASN1_UTCTIME *d)

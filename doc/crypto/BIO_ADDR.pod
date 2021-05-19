@@ -12,7 +12,7 @@ BIO_ADDR_path_string - BIO_ADDR routines
 =head1 SYNOPSIS
 
  #include <sys/types.h>
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  typedef union bio_addr_st BIO_ADDR;
 

@@ -10,7 +10,7 @@ X509_NAME lookup and enumeration functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_NAME_get_index_by_NID(X509_NAME *name, int nid, int lastpos);
  int X509_NAME_get_index_by_OBJ(X509_NAME *name, const ASN1_OBJECT *obj, int lastpos);
@@ -63,8 +63,8 @@ X509_NAME_get_entry() on any matching indices and then the
 various B<X509_NAME_ENTRY> utility functions on the result.
 
 The list of all relevant B<NID_*> and B<OBJ_* codes> can be found in
-the source code header files E<lt>openssl/obj_mac.hE<gt> and/or
-E<lt>openssl/objects.hE<gt>.
+the source code header files E<lt>gmssl/obj_mac.hE<gt> and/or
+E<lt>gmssl/objects.hE<gt>.
 
 Applications which could pass invalid NIDs to X509_NAME_get_index_by_NID()
 should check for the return value of -2. Alternatively the NID validity

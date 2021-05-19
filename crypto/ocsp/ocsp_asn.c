@@ -7,9 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/ocsp.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/ocsp.h>
 #include "ocsp_lcl.h"
 
 ASN1_SEQUENCE(OCSP_SIGNATURE) = {

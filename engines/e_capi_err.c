@@ -14,7 +14,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #include "e_capi_err.h"
 
 /* BEGIN ERROR CODES */

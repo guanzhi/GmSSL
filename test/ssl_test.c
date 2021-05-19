@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
+#include <gmssl/conf.h>
+#include <gmssl/err.h>
+#include <gmssl/ssl.h>
 
 #include "handshake_helper.h"
 #include "ssl_test_ctx.h"

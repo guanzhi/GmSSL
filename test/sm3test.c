@@ -60,8 +60,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/sm3.h>
+# include <gmssl/evp.h>
+# include <gmssl/sm3.h>
 
 static char *testhex[] = {
 	/* 0 "abc" */

@@ -10,7 +10,7 @@ ct - Certificate Transparency
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
 =head1 DESCRIPTION
 

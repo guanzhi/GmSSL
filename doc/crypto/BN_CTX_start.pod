@@ -8,7 +8,7 @@ BN_CTX_start, BN_CTX_get, BN_CTX_end - use temporary BIGNUM variables
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  void BN_CTX_start(BN_CTX *ctx);
 

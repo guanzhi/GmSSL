@@ -21,7 +21,7 @@
  */
 
 /*
- * It's imperative that these macros get defined before openssl/bio.h gets
+ * It's imperative that these macros get defined before gmssl/bio.h gets
  * included.  Otherwise, the AI_PASSIVE hack will not work properly.
  * For clarity, we check for internal/cryptlib.h since it's a common header
  * that also includes bio.h.
@@ -30,7 +30,7 @@
 #  error internal/cryptlib.h included before bio_lcl.h
 # endif
 # ifdef HEADER_BIO_H
-#  error openssl/bio.h included before bio_lcl.h
+#  error gmssl/bio.h included before bio_lcl.h
 # endif
 
 /*

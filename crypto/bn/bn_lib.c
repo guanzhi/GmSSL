@@ -11,7 +11,7 @@
 #include <limits.h>
 #include "internal/cryptlib.h"
 #include "bn_lcl.h"
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 /* This stuff appears to be completely unused, so is deprecated */
 #if OPENSSL_API_COMPAT < 0x00908000L

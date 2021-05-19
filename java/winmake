@@ -1,5 +1,5 @@
 ##WINDOWS gmssljni.dll生成
-LIBCRYPTOS=../libcrypto.lib
+LIBCRYPTOS=../libgmcrypto.lib
 JAVADLL=gmssljni.dll
 CC=cl
 CFLAGS=-DNDEBUG -W3 -wd4090 -Gs0 -GF -Gy -nologo -DOPENSSL_SYS_WIN32  -DWIN32_LEAN_AND_MEAN -DUNICODE -D_UNICODE /O2 
@@ -31,7 +31,7 @@ $(JAVADLL): GmSSL.obj gmssl_err.obj
 javatest:
 	$(JAVAC) GmSSL.java
 test:javatest $(JAVADLL)
-	IF EXIST ..\libcrypto-1_1-x64.dll copy /Y ..\libcrypto-1_1-x64.dll .
+	IF EXIST ..\libgmcrypto-1_1-x64.dll copy /Y ..\libgmcrypto-1_1-x64.dll .
 	$(JAVA) $(JAVADLLPATH) GmSSL
 clean:
 	del *.obj

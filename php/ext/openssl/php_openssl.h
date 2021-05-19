@@ -95,7 +95,7 @@ extern zend_module_entry openssl_module_entry;
 	"DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:" \
 	"AES256-GCM-SHA384:AES128:AES256:HIGH:!SSLv2:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!RC4:!ADH"
 
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 struct php_openssl_errors {
 	int buffer[ERR_NUM_ERRORS];

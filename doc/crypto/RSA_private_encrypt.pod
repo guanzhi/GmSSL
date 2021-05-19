@@ -8,7 +8,7 @@ RSA_private_encrypt, RSA_public_decrypt - low level signature operations
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_private_encrypt(int flen, unsigned char *from,
     unsigned char *to, RSA *rsa, int padding);

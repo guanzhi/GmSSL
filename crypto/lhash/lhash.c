@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/crypto.h>
-#include <openssl/lhash.h>
+#include <gmssl/crypto.h>
+#include <gmssl/lhash.h>
 #include "lhash_lcl.h"
 
 

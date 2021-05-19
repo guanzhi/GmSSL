@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
 
 int ASN1_TYPE_set_octetstring(ASN1_TYPE *a, unsigned char *data, int len)
 {

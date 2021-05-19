@@ -10,11 +10,11 @@
 #include <string.h>
 
 #include "bio_lcl.h"
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 #ifndef OPENSSL_NO_SOCK
-#include <openssl/err.h>
-#include <openssl/buffer.h>
+#include <gmssl/err.h>
+#include <gmssl/buffer.h>
 #include <internal/thread_once.h>
 #include <ctype.h>
 

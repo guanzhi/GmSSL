@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/cmac.h>
+#include <gmssl/evp.h>
+#include <gmssl/cmac.h>
 #include "internal/asn1_int.h"
 
 /*

@@ -8,7 +8,7 @@ DSA_sign, DSA_sign_setup, DSA_verify - DSA signatures
 
 =head1 SYNOPSIS
 
- #include <openssl/dsa.h>
+ #include <gmssl/dsa.h>
 
  int    DSA_sign(int type, const unsigned char *dgst, int len,
                 unsigned char *sigret, unsigned int *siglen, DSA *dsa);

@@ -8,7 +8,7 @@ SSL_write - write bytes to a TLS/SSL connection
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_write(SSL *ssl, const void *buf, int num);
 

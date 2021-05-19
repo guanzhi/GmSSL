@@ -35,11 +35,11 @@
  *
  */
 
-#include <openssl/objects.h>
+#include <gmssl/objects.h>
 #include <internal/engine.h>
-#include <openssl/evp.h>
-#include <openssl/bn.h>
-#include <openssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/bn.h>
+#include <gmssl/crypto.h>
 
 #if (defined(__unix__) || defined(unix)) && !defined(USG) && \
         (defined(OpenBSD) || defined(__FreeBSD__))
@@ -65,10 +65,10 @@
 # include <errno.h>
 # include <string.h>
 #endif
-#include <openssl/dh.h>
-#include <openssl/dsa.h>
-#include <openssl/err.h>
-#include <openssl/rsa.h>
+#include <gmssl/dh.h>
+#include <gmssl/dsa.h>
+#include <gmssl/err.h>
+#include <gmssl/rsa.h>
 
 #ifndef HAVE_CRYPTODEV
 
@@ -555,8 +555,8 @@ static int cryptodev_cleanup(EVP_CIPHER_CTX *ctx)
 }
 
 /*
- * libcrypto EVP stuff - this is how we get wired to EVP so the engine
- * gets called when libcrypto requests a cipher NID.
+ * libgmcrypto EVP stuff - this is how we get wired to EVP so the engine
+ * gets called when libgmcrypto requests a cipher NID.
  */
 
 /* RC4 */

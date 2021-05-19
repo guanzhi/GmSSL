@@ -9,11 +9,11 @@
 
 #include <stddef.h>
 #include <string.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/buffer.h>
-#include <openssl/err.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/buffer.h>
+#include <gmssl/err.h>
 #include "internal/numbers.h"
 #include "asn1_locl.h"
 

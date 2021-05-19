@@ -10,11 +10,11 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #ifndef OPENSSL_NO_DES
-# include <openssl/evp.h>
-# include <openssl/objects.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
 # include "internal/evp_int.h"
-# include <openssl/des.h>
-# include <openssl/rand.h>
+# include <gmssl/des.h>
+# include <gmssl/rand.h>
 
 typedef struct {
     union {

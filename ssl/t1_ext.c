@@ -10,10 +10,10 @@
 /* Custom extension utility functions */
 
 #include <stdio.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #ifndef OPENSSL_NO_CT
-# include <openssl/ct.h>
+# include <gmssl/ct.h>
 #endif
 #include "ssl_locl.h"
 

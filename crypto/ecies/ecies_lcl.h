@@ -48,7 +48,7 @@
  */
 
 #include <string.h>
-#include <openssl/ecies.h>
+#include <gmssl/ecies.h>
 
 struct ecies_ciphertext_value_st {
 	ASN1_OCTET_STRING *ephem_point;

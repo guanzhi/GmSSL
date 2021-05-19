@@ -6,7 +6,7 @@
 ! https://www.openssl.org/source/license.html
 
 #ifdef OPENSSL_FIPSCANISTER
-#include <openssl/fipssyms.h>
+#include <gmssl/fipssyms.h>
 #endif
 
 #if defined(__SUNPRO_C) && defined(__sparcv9)

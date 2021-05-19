@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/dsa.h>
+#include <gmssl/dsa.h>
 
 struct dsa_st {
     /*

@@ -57,18 +57,18 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/ec.h>
-#include <openssl/bn.h>
+#include <gmssl/x509.h>
+#include <gmssl/ec.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_CMS
-# include <openssl/cms.h>
+# include <gmssl/cms.h>
 #endif
-#include <openssl/asn1t.h>
+#include <gmssl/asn1t.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 #include "ec_lcl.h"
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 
 #ifndef OPENSSL_NO_CMS

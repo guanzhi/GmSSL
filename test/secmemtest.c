@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 #define perror_line()    perror_line1(__LINE__)
 #define perror_line1(l)  perror_line2(l)

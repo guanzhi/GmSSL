@@ -53,10 +53,10 @@ package gmssl
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/ui.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/engine.h>
+#include <gmssl/ui.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/engine.h>
 */
 import "C"
 
@@ -82,7 +82,7 @@ func GetEngineNames() []string {
 }
 
 type Engine struct {
-	engine *C.ENGINE;
+	engine *C.ENGINE
 }
 
 func NewEngineByName(name string) (*Engine, error) {

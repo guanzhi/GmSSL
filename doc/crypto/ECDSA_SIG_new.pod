@@ -12,7 +12,7 @@ algorithm (ECDSA) functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ecdsa.h>
+ #include <gmssl/ecdsa.h>
 
  ECDSA_SIG *ECDSA_SIG_new(void);
  void ECDSA_SIG_free(ECDSA_SIG *sig);

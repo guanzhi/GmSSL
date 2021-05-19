@@ -8,10 +8,10 @@
  */
 
 #include <e_os.h>
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
-# include <openssl/rand.h>
+# include <gmssl/fips.h>
+# include <gmssl/rand.h>
 #endif
 
 /*

@@ -10,7 +10,7 @@ DH_set_length - Routines for getting and setting data in a DH object
 
 =head1 SYNOPSIS
 
- #include <openssl/dh.h>
+ #include <gmssl/dh.h>
 
  void DH_get0_pqg(const DH *dh,
                   const BIGNUM **p, const BIGNUM **q, const BIGNUM **g);

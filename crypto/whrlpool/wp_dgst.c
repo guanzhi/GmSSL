@@ -60,7 +60,7 @@
  * input. This is done for performance.
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "wp_locl.h"
 #include <string.h>
 

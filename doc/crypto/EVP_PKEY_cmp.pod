@@ -9,7 +9,7 @@ EVP_PKEY_cmp - public key parameter and comparison functions
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_missing_parameters(const EVP_PKEY *pkey);
  int EVP_PKEY_copy_parameters(EVP_PKEY *to, const EVP_PKEY *from);

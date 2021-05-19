@@ -51,30 +51,30 @@ collected together and form a set of programs, libraries, engines and
 scripts to be produced, source files, dependencies, etc etc etc.
 
 Let's have a pretend example, a very limited contraption of OpenSSL,
-composed of the program 'apps/openssl', the libraries 'libssl' and
-'libcrypto', an engine 'engines/ossltest' and their sources and
+composed of the program 'apps/openssl', the libraries 'libgmssl' and
+'libgmcrypto', an engine 'engines/ossltest' and their sources and
 dependencies.
 
     # build.info
-    LIBS=libcrypto libssl
-    ORDINALS[libcrypto]=crypto
-    ORDINALS[libssl]=ssl
-    INCLUDE[libcrypto]=include
-    INCLUDE[libssl]=include
-    DEPEND[libssl]=libcrypto
+    LIBS=libgmcrypto libgmssl
+    ORDINALS[libgmcrypto]=crypto
+    ORDINALS[libgmssl]=ssl
+    INCLUDE[libgmcrypto]=include
+    INCLUDE[libgmssl]=include
+    DEPEND[libgmssl]=libgmcrypto
 
 This is the top directory build.info file, and it tells us that two
 libraries are to be built, there are some ordinals to be used to
 declare what symbols in those libraries are seen as public, the
 include directory 'include/' shall be used throughout when building
 anything that will end up in each library, and that the library
-'libssl' depend on the library 'libcrypto' to function properly.
+'libgmssl' depend on the library 'libgmcrypto' to function properly.
 
     # apps/build.info
     PROGRAMS=openssl
     SOURCE[openssl]=openssl.c
     INCLUDE[openssl]=.. ../include
-    DEPEND[openssl]=../libssl
+    DEPEND[openssl]=../libgmssl
 
 This is the build.info file in 'apps/', one may notice that all file
 paths mentioned are relative to the directory the build.info file is
@@ -84,11 +84,11 @@ platform and is therefore not mentioned in the build.info file).  It's
 built from one source file, 'apps/openssl.c', and building it requires
 the use of '.' and 'include' include directories (both are declared
 from the point of view of the 'apps/' directory), and that the program
-depends on the library 'libssl' to function properly.
+depends on the library 'libgmssl' to function properly.
 
     # crypto/build.info
-    LIBS=../libcrypto
-    SOURCE[../libcrypto]=aes.c evp.c cversion.c
+    LIBS=../libgmcrypto
+    SOURCE[../libgmcrypto]=aes.c evp.c cversion.c
     DEPEND[cversion.o]=buildinf.h
     
     GENERATE[buildinf.h]=../util/mkbuildinf.pl "$(CC) $(CFLAGS)" "$(PLATFORM)"
@@ -96,13 +96,13 @@ depends on the library 'libssl' to function properly.
     DEPEND[../util/mkbuildinf.pl]=../util/Foo.pm
 
 This is the build.info file in 'crypto', and it tells us a little more
-about what's needed to produce 'libcrypto'.  LIBS is used again to
-declare that 'libcrypto' is to be produced.  This declaration is
+about what's needed to produce 'libgmcrypto'.  LIBS is used again to
+declare that 'libgmcrypto' is to be produced.  This declaration is
 really unnecessary as it's already mentioned in the top build.info
 file, but can make the info file easier to understand.  This is to
 show that duplicate information isn't an issue.
 
-This build.info file informs us that 'libcrypto' is built from a few
+This build.info file informs us that 'libgmcrypto' is built from a few
 source files, 'crypto/aes.c', 'crypto/evp.c' and 'crypto/cversion.c'.
 It also shows us that building the object file inferred from
 'crypto/cversion.c' depends on 'crypto/buildinf.h'.  Finally, it 
@@ -119,21 +119,21 @@ Lines in 'BEGINRAW'..'ENDRAW' sections must always mention files as
 seen from the top directory, no exception.
 
     # ssl/build.info
-    LIBS=../libssl
-    SOURCE[../libssl]=tls.c
+    LIBS=../libgmssl
+    SOURCE[../libgmssl]=tls.c
 
 This is the build.info file in 'ssl/', and it tells us that the
-library 'libssl' is built from the source file 'ssl/tls.c'.
+library 'libgmssl' is built from the source file 'ssl/tls.c'.
 
     # engines/build.info
     ENGINES=dasync
     SOURCE[dasync]=e_dasync.c
-    DEPEND[dasync]=../libcrypto
+    DEPEND[dasync]=../libgmcrypto
     INCLUDE[dasync]=../include
 
     ENGINES_NO_INST=ossltest
     SOURCE[ossltest]=e_ossltest.c
-    DEPEND[ossltest]=../libcrypto
+    DEPEND[ossltest]=../libgmcrypto
     INCLUDE[ossltest]=../include
 
 This is the build.info file in 'engines/', telling us that two engines
@@ -141,36 +141,36 @@ called 'engines/dasync' and 'engines/ossltest' shall be built, that
 dasync's source is 'engines/e_dasync.c' and ossltest's source is
 'engines/e_ossltest.c' and that the include directory 'include/' may
 be used when building anything that will be part of these engines.
-Also, both engines depend on the library 'libcrypto' to function
+Also, both engines depend on the library 'libgmcrypto' to function
 properly.  Finally, only dasync is being installed, as ossltest is
 only for internal testing.
 
 When Configure digests these build.info files, the accumulated
 information comes down to this:
 
-    LIBS=libcrypto libssl
-    ORDINALS[libcrypto]=crypto
-    SOURCE[libcrypto]=crypto/aes.c crypto/evp.c crypto/cversion.c
+    LIBS=libgmcrypto libgmssl
+    ORDINALS[libgmcrypto]=crypto
+    SOURCE[libgmcrypto]=crypto/aes.c crypto/evp.c crypto/cversion.c
     DEPEND[crypto/cversion.o]=crypto/buildinf.h
-    INCLUDE[libcrypto]=include
-    ORDINALS[libssl]=ssl
-    SOURCE[libssl]=ssl/tls.c
-    INCLUDE[libssl]=include
-    DEPEND[libssl]=libcrypto
+    INCLUDE[libgmcrypto]=include
+    ORDINALS[libgmssl]=ssl
+    SOURCE[libgmssl]=ssl/tls.c
+    INCLUDE[libgmssl]=include
+    DEPEND[libgmssl]=libgmcrypto
     
     PROGRAMS=apps/openssl
     SOURCE[apps/openssl]=apps/openssl.c
     INCLUDE[apps/openssl]=. include
-    DEPEND[apps/openssl]=libssl
+    DEPEND[apps/openssl]=libgmssl
 
     ENGINES=engines/dasync
     SOURCE[engines/dasync]=engines/e_dasync.c
-    DEPEND[engines/dasync]=libcrypto
+    DEPEND[engines/dasync]=libgmcrypto
     INCLUDE[engines/dasync]=include
 
     ENGINES_NO_INST=engines/ossltest
     SOURCE[engines/ossltest]=engines/e_ossltest.c
-    DEPEND[engines/ossltest]=libcrypto
+    DEPEND[engines/ossltest]=libgmcrypto
     INCLUDE[engines/ossltest]=include
     
     GENERATE[crypto/buildinf.h]=util/mkbuildinf.pl "$(CC) $(CFLAGS)" "$(PLATFORM)"
@@ -271,7 +271,7 @@ section above would be digested into a %unified_info table:
             {
                 "apps/openssl" =>
                     [
-                        "libssl",
+                        "libgmssl",
                     ],
                 "crypto/buildinf.h" =>
                     [
@@ -283,11 +283,11 @@ section above would be digested into a %unified_info table:
                     ],
                 "engines/ossltest" =>
                     [
-                        "libcrypto",
+                        "libgmcrypto",
                     ],
-                "libssl" =>
+                "libgmssl" =>
                     [
-                        "libcrypto",
+                        "libgmcrypto",
                     ],
                 "util/mkbuildinf.pl" =>
                     [
@@ -320,11 +320,11 @@ section above would be digested into a %unified_info table:
                     [
                         "include"
                     ],
-                "libcrypto" =>
+                "libgmcrypto" =>
                     [
                         "include",
                     ],
-                "libssl" =>
+                "libgmssl" =>
                     [
                         "include",
                     ],
@@ -341,8 +341,8 @@ section above would be digested into a %unified_info table:
                     ],
                 "libraries" =>
                     [
-                        "libcrypto",
-                        "libssl",
+                        "libgmcrypto",
+                        "libgmssl",
                     ],
                 "programs" =>
                     [
@@ -351,17 +351,17 @@ section above would be digested into a %unified_info table:
            },
         "libraries" =>
             [
-                "libcrypto",
-                "libssl",
+                "libgmcrypto",
+                "libgmssl",
             ],
         "ordinals" =>
             {
-                "libcrypto" =>
+                "libgmcrypto" =>
                     [
                         "crypto",
                         "util/libcrypto.num",
                     ],
-                "libssl" =>
+                "libgmssl" =>
                     [
                         "ssl",
                         "util/libssl.num",
@@ -404,13 +404,13 @@ section above would be digested into a %unified_info table:
                     [
                         "engines/e_ossltest.o",
                     ],
-                "libcrypto" =>
+                "libgmcrypto" =>
                     [
                         "crypto/aes.c",
                         "crypto/cversion.c",
                         "crypto/evp.c",
                     ],
-                "libssl" =>
+                "libgmssl" =>
                     [
                         "ssl/tls.c",
                     ],
@@ -425,9 +425,9 @@ As can be seen, everything in %unified_info is fairly simple suggest
 of information.  Still, it tells us that to build all programs, we
 must build 'apps/openssl', and to build the latter, we will need to
 build all its sources ('apps/openssl.o' in this case) and all the
-other things it depends on (such as 'libssl').  All those dependencies
-need to be built as well, using the same logic, so to build 'libssl',
-we need to build 'ssl/tls.o' as well as 'libcrypto', and to build the
+other things it depends on (such as 'libgmssl').  All those dependencies
+need to be built as well, using the same logic, so to build 'libgmssl',
+we need to build 'ssl/tls.o' as well as 'libgmcrypto', and to build the
 latter...
 
 
@@ -591,7 +591,7 @@ programs and all intermediate files, using the rule generating
 functions defined in the build-file template.
 
 As an example with the smaller build.info set we've seen as an
-example, producing the rules to build 'libcrypto' would result in the
+example, producing the rules to build 'libgmcrypto' would result in the
 following calls:
 
     # Note: libobj2shlib will only be called if shared libraries are
@@ -601,13 +601,13 @@ following calls:
     # to the implementation to decide which to use as input.
     # Note 3: common.tmpl peals off the ".o" extension from all object
     # files, as the platform at hand may have a different one.
-    libobj2shlib(shlib => "libcrypto",
-                 lib => "libcrypto",
+    libobj2shlib(shlib => "libgmcrypto",
+                 lib => "libgmcrypto",
                  objs => [ "crypto/aes", "crypto/evp", "crypto/cversion" ],
                  deps => [  ]
                  ordinals => [ "crypto", "util/libcrypto.num" ]);
 
-    obj2lib(lib => "libcrypto"
+    obj2lib(lib => "libgmcrypto"
             objs => [ "crypto/aes", "crypto/evp", "crypto/cversion" ]);
 
     src2obj(obj => "crypto/aes"

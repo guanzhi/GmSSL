@@ -9,7 +9,7 @@ ASN1_STRING allocation functions
 
 =head1 SYNOPSIS
 
- #include <openssl/asn1.h>
+ #include <gmssl/asn1.h>
 
  ASN1_STRING * ASN1_STRING_new(void);
  ASN1_STRING * ASN1_STRING_type_new(int type);

@@ -16,7 +16,7 @@ PAILLIER_up_ref - Paillier Additive Homomorphic Encryption
 
 =head1 SYNOPSIS
 
- #include <openssl/paillier.h>
+ #include <gmssl/paillier.h>
 
  PAILLIER *PAILLIER_new(void);
  void PAILLIER_free(PAILLIER *key);

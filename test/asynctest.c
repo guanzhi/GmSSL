@@ -13,8 +13,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/async.h>
-#include <openssl/crypto.h>
+#include <gmssl/async.h>
+#include <gmssl/crypto.h>
 #include <../apps/apps.h>
 
 static int ctr = 0;

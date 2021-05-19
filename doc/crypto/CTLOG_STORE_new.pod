@@ -10,7 +10,7 @@ Create and populate a Certificate Transparency log list
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
  CTLOG_STORE *CTLOG_STORE_new(void);
  void CTLOG_STORE_free(CTLOG_STORE *store);

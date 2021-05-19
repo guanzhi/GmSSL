@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #include "internal/numbers.h"
-#include <openssl/x509v3.h>
-#include <openssl/x509_vfy.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/x509_vfy.h>
 #include "internal/x509_int.h"
 
 static void x509v3_cache_extensions(X509 *x);

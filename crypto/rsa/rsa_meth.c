@@ -9,7 +9,7 @@
 
 #include <string.h>
 #include "rsa_locl.h"
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 RSA_METHOD *RSA_meth_new(const char *name, int flags)
 {

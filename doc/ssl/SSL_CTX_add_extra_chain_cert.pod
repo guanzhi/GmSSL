@@ -9,7 +9,7 @@ extra chain certificates
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_add_extra_chain_cert(SSL_CTX *ctx, X509 *x509);
  long SSL_CTX_clear_extra_chain_certs(SSL_CTX *ctx);

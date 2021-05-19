@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
+#include <gmssl/bio.h>
+#include <gmssl/crypto.h>
 
 int main(int argc, char **argv)
 {

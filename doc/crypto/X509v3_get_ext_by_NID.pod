@@ -17,7 +17,7 @@ X509_REVOKED_add_ext - extension stack utility functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509v3_get_ext_count(const STACK_OF(X509_EXTENSION) *x);
  X509_EXTENSION *X509v3_get_ext(const STACK_OF(X509_EXTENSION) *x, int loc);

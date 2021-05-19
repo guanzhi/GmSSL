@@ -8,7 +8,7 @@ OCSP_request_add1_nonce, OCSP_basic_add1_nonce, OCSP_check_nonce, OCSP_copy_nonc
 
 =head1 SYNOPSIS
 
- #include <openssl/ocsp.h>
+ #include <gmssl/ocsp.h>
 
  int OCSP_request_add1_nonce(OCSP_REQUEST *req, unsigned char *val, int len);
  int OCSP_basic_add1_nonce(OCSP_BASICRESP *resp, unsigned char *val, int len);

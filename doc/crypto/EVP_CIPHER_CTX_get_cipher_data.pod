@@ -9,7 +9,7 @@ inspect and modify EVP_CIPHER_CTX objects
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  void *EVP_CIPHER_CTX_get_cipher_data(const EVP_CIPHER_CTX *ctx);
  void *EVP_CIPHER_CTX_set_cipher_data(EVP_CIPHER_CTX *ctx, void *cipher_data);

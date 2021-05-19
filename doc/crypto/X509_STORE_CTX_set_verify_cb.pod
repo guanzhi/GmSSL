@@ -21,7 +21,7 @@ X509_STORE_CTX_verify_cb
 
 =head1 SYNOPSIS
 
- #include <openssl/x509_vfy.h>
+ #include <gmssl/x509_vfy.h>
 
  typedef int (*X509_STORE_CTX_verify_cb)(int, X509_STORE_CTX *);
 

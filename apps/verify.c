@@ -11,11 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "apps.h"
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/pem.h>
 
 static int cb(int ok, X509_STORE_CTX *ctx);
 static int check(X509_STORE *ctx, const char *file,

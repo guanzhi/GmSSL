@@ -9,8 +9,8 @@
 
 #include <string.h>
 
-#include <openssl/e_os2.h>
-#include <openssl/crypto.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/crypto.h>
 
 #include "e_os.h"
 #include "ssl_test_ctx.h"

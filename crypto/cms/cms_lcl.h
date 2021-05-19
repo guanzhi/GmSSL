@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-# include <openssl/x509.h>
+# include <gmssl/x509.h>
 
 /*
  * Cryptographic message syntax (CMS) structures: taken from RFC3852

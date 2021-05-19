@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/x509v3.h>
-#include <openssl/ts.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/ts.h>
 #include "ts_lcl.h"
 
 int TS_REQ_set_version(TS_REQ *a, long version)

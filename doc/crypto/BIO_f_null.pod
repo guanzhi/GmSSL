@@ -8,7 +8,7 @@ BIO_f_null - null filter
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  const BIO_METHOD *     BIO_f_null(void);
 

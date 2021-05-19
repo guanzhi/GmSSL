@@ -21,7 +21,7 @@ CRYPTO_mem_leaks, CRYPTO_mem_leaks_fp - Memory allocation functions
 
 =head1 SYNOPSIS
 
- #include <openssl/crypto.h>
+ #include <gmssl/crypto.h>
 
  int OPENSSL_malloc_init(void)
 

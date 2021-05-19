@@ -51,10 +51,10 @@
 #include "internal/cryptlib.h"
 
 #if !defined(OPENSSL_NO_SKF) && !defined(OPENSSL_NO_EC)
-# include <openssl/sm2.h>
-# include <openssl/ec.h>
-# include <openssl/gmapi.h>
-# include <openssl/skf.h>
+# include <gmssl/sm2.h>
+# include <gmssl/ec.h>
+# include <gmssl/gmapi.h>
+# include <gmssl/skf.h>
 # include "../ec/ec_lcl.h"
 # include "../sm2/sm2_lcl.h"
 # include "../ecies/ecies_lcl.h"

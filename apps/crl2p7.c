@@ -11,12 +11,12 @@
 #include <string.h>
 #include <sys/types.h>
 #include "apps.h"
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/pkcs7.h>
-#include <openssl/pem.h>
-#include <openssl/objects.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/pkcs7.h>
+#include <gmssl/pem.h>
+#include <gmssl/objects.h>
 
 static int add_certs_from_file(STACK_OF(X509) *stack, char *certfile);
 

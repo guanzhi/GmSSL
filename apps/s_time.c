@@ -13,17 +13,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #ifndef OPENSSL_NO_SOCK
 
 #define USE_SOCKETS
 #include "apps.h"
-#include <openssl/x509.h>
-#include <openssl/ssl.h>
-#include <openssl/pem.h>
+#include <gmssl/x509.h>
+#include <gmssl/ssl.h>
+#include <gmssl/pem.h>
 #include "s_apps.h"
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #if !defined(OPENSSL_SYS_MSDOS)
 # include OPENSSL_UNISTD
 #endif

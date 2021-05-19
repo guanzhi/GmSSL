@@ -40,7 +40,7 @@ X509_STORE_CTX_verify_cb, X509_STORE_CTX_verify_fn,
 
 =head1 SYNOPSIS
 
- #include <openssl/x509_vfy.h>
+ #include <gmssl/x509_vfy.h>
 
  typedef int (*X509_STORE_CTX_verify_cb)(int ok, X509_STORE_CTX *ctx);
  typedef int (*X509_STORE_CTX_verify_fn)(X509_STORE_CTX *ctx);

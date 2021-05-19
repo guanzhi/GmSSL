@@ -9,7 +9,7 @@
 
 #include <string.h>
 
-#include <openssl/evp.h>
+#include <gmssl/evp.h>
 #include "internal/evp_int.h"
 #include "evp_locl.h"
 

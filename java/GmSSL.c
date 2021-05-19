@@ -50,20 +50,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/hmac.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
+#include <gmssl/hmac.h>
 #ifndef OPENSSL_NO_CMAC
-# include <openssl/cmac.h>
+# include <gmssl/cmac.h>
 #endif
 #ifndef OPENSSL_NO_SM2
-#include <openssl/sm2.h>
+#include <gmssl/sm2.h>
 #endif
-#include <openssl/x509.h>
-#include <openssl/stack.h>
-#include <openssl/crypto.h>
-#include <openssl/safestack.h>
+#include <gmssl/x509.h>
+#include <gmssl/stack.h>
+#include <gmssl/crypto.h>
+#include <gmssl/safestack.h>
 #include "../e_os.h"
 #include "gmssl_err.h"
 #include "gmssl_err.c"

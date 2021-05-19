@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include <limits.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/asn1.h>
-#include <openssl/objects.h>
-#include <openssl/bn.h>
+#include <gmssl/buffer.h>
+#include <gmssl/asn1.h>
+#include <gmssl/objects.h>
+#include <gmssl/bn.h>
 #include "internal/asn1_int.h"
 #include "asn1_locl.h"
 

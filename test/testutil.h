@@ -10,7 +10,7 @@
 #ifndef HEADER_TESTUTIL_H
 # define HEADER_TESTUTIL_H
 
-#include <openssl/err.h>
+#include <gmssl/err.h>
 
 /*-
  * SETUP_TEST_FIXTURE and EXECUTE_TEST macros for test case functions.

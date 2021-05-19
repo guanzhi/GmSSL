@@ -1,4 +1,4 @@
 LIBS=../libgmssljni
 SOURCE[../libgmssljni]=GmSSL.c
-DEPEND[../libgmssljni]=../libcrypto
+DEPEND[../libgmssljni]=../libgmcrypto
 INCLUDE[../libgmssljni]=../include ./jni

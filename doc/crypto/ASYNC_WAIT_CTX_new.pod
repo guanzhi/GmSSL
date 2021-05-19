@@ -11,7 +11,7 @@ waiting for asynchronous jobs to complete
 
 =head1 SYNOPSIS
 
- #include <openssl/async.h>
+ #include <gmssl/async.h>
 
  ASYNC_WAIT_CTX *ASYNC_WAIT_CTX_new(void);
  void ASYNC_WAIT_CTX_free(ASYNC_WAIT_CTX *ctx);
@@ -116,7 +116,7 @@ success or 0 on error.
 
 =head1 NOTES
 
-On Windows platforms the openssl/async.h header is dependent on some
+On Windows platforms the gmssl/async.h header is dependent on some
 of the types customarily made available by including windows.h. The
 application developer is likely to require control over when the latter
 is included, commonly as one of the first included headers. Therefore

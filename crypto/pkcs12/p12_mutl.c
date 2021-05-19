@@ -9,10 +9,10 @@
 
 # include <stdio.h>
 # include "internal/cryptlib.h"
-# include <openssl/crypto.h>
-# include <openssl/hmac.h>
-# include <openssl/rand.h>
-# include <openssl/pkcs12.h>
+# include <gmssl/crypto.h>
+# include <gmssl/hmac.h>
+# include <gmssl/rand.h>
+# include <gmssl/pkcs12.h>
 # include "p12_lcl.h"
 
 int PKCS12_mac_present(const PKCS12 *p12)

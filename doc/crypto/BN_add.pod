@@ -10,7 +10,7 @@ arithmetic operations on BIGNUMs
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_add(BIGNUM *r, const BIGNUM *a, const BIGNUM *b);
 

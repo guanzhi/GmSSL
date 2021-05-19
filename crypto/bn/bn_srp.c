@@ -12,7 +12,7 @@
 
 #ifndef OPENSSL_NO_SRP
 
-#include <openssl/srp.h>
+#include <gmssl/srp.h>
 #include <internal/bn_srp.h>
 
 # if (BN_BYTES == 8)

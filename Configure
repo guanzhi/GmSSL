@@ -15,7 +15,7 @@ use strict;
 use File::Basename;
 use File::Spec::Functions qw/:DEFAULT abs2rel rel2abs/;
 use File::Path qw/mkpath/;
-use if $^O ne "VMS", 'File::Glob' => qw/glob/;
+use if $^O ne "VMS", 'File::Glob' => qw/:glob/;
 
 # see INSTALL for instructions.
 
@@ -75,7 +75,7 @@ my $usage="Usage: Configure [no-<cipher> ...] [enable-<cipher> ...] [-Dxxx] [-lx
 #               argued that the only reason to produce statically linked
 #               binaries (and in context it means executables linked with
 #               -static flag, and not just executables linked with static
-#               libcrypto.a) is to eliminate dependency on specific run-time,
+#               libgmcrypto.a) is to eliminate dependency on specific run-time,
 #               a.k.a. libc version. The mentioned config options are meant
 #               to achieve just that. Unfortunately on Linux it's impossible
 #               to eliminate the dependency completely for openssl executable
@@ -248,7 +248,7 @@ $config{shlib_version_number} = "unknown";
 $config{shlib_version_history} = "unknown";
 
 collect_information(
-    collect_from_file(catfile($srcdir,'include/openssl/opensslv.h')),
+    collect_from_file(catfile($srcdir,'include/gmssl/opensslv.h')),
     qr/OPENSSL.VERSION.TEXT.*GmSSL (\S+) / => sub { $config{version} = $1; },
     qr/OPENSSL.VERSION.NUMBER.*(0x\S+)/	     => sub { $config{version_num}=$1 },
     qr/SHLIB_VERSION_NUMBER *"([^"]+)"/	     => sub { $config{shlib_version_number}=$1 },

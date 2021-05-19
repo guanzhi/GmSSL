@@ -12,7 +12,7 @@
  * "new" versions).
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #if OPENSSL_API_COMPAT >= 0x00908000L
 NON_EMPTY_TRANSLATION_UNIT
 
@@ -21,8 +21,8 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <stdio.h>
 # include <time.h>
 # include "internal/cryptlib.h"
-# include <openssl/bn.h>
-# include <openssl/rsa.h>
+# include <gmssl/bn.h>
+# include <gmssl/rsa.h>
 
 RSA *RSA_generate_key(int bits, unsigned long e_value,
                       void (*callback) (int, int, void *), void *cb_arg)

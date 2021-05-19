@@ -8,7 +8,7 @@ BN_swap - exchange BIGNUMs
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  void BN_swap(BIGNUM *a, BIGNUM *b);
 

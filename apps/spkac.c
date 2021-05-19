@@ -12,13 +12,13 @@
 #include <string.h>
 #include <time.h>
 #include "apps.h"
-#include <openssl/bio.h>
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/lhash.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/conf.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/lhash.h>
+#include <gmssl/x509.h>
+#include <gmssl/pem.h>
 
 #ifndef OPENSSL_NO_MD5
 # define SPKAC_DEFAULT_MD EVP_md5()

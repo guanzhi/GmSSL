@@ -72,10 +72,10 @@
 #include <errno.h>
 #include <assert.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
+#include <gmssl/buffer.h>
 #include "internal/bio.h"
-#include <openssl/evp.h>
-#include <openssl/rand.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
 #include "internal/evp_int.h"
 
 static int ok_write(BIO *h, const char *buf, int num);

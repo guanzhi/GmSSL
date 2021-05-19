@@ -9,7 +9,7 @@ SSL server verification parameters
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_set1_host(SSL *s, const char *hostname);
  int SSL_add1_host(SSL *s, const char *hostname);

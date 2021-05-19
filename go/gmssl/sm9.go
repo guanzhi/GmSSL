@@ -53,26 +53,10 @@ package gmssl
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/sm9.h>
-#include <openssl/is_gmssl.h>
+#include <gmssl/sm9.h>
+#include <gmssl/is_gmssl.h>
 */
 import "C"
-
-import (
-	"unsafe"
-	"errors"
-	"runtime"
-)
-
-func GetPublicKeyAlgorithmNames() []string {
-	return []string{
-		"DH",
-		"DSA",
-		"RSA",
-		"EC",
-		"X25519",
-	}
-}
 
 func GetPairingNames() []string {
 	return []string{
@@ -92,12 +76,6 @@ func GetHash1Names() []string {
 	return []string{
 		"sm9hash1_with_sm3",
 		"sm9hash1_with_sha256",
-	}
-}
-
-func GetSignAlgorithmNames() []string {
-	return []string{
-		"sm3",
 	}
 }
 
@@ -123,9 +101,8 @@ type SM9PublicKey struct {
 	pk *C.SM9PublicKey
 }
 
-
 func SM9Setup(pairing string, scheme string, hash1 string) (*SM9PublicParameters, *SM9MasterSecret, error) {
-	return nil, nil, nil;
+	return nil, nil, nil
 }
 
 func NewSM9MasterSecretFromPEM(pem string, pass string) (*SM9MasterSecret, error) {
@@ -133,15 +110,15 @@ func NewSM9MasterSecretFromPEM(pem string, pass string) (*SM9MasterSecret, error
 }
 
 func (msk *SM9MasterSecret) GetPEM(cipher string, pass string) (string, error) {
-	return nil, nil;
+	return "", nil
 }
 
 func (msk *SM9MasterSecret) GetPublicParametersPEM() (string, error) {
-	return nil, nil;
+	return "", nil
 }
 
 func (msk *SM9MasterSecret) GetText() (string, error) {
-	return nil, nil;
+	return "", nil
 }
 
 func NewSM9PublicParametersFromPEM(pem string) (*SM9PublicParameters, error) {
@@ -149,11 +126,11 @@ func NewSM9PublicParametersFromPEM(pem string) (*SM9PublicParameters, error) {
 }
 
 func (mpk *SM9PublicParameters) GetPEM() (string, error) {
-	return nil, nil;
+	return "", nil
 }
 
 func (mpk *SM9PublicParameters) GetText() (string, error) {
-	return nil, nil;
+	return "", nil
 }
 
 func (msk *SM9MasterSecret) ExtractPrivateKey(id string) (*SM9PrivateKey, error) {
@@ -169,15 +146,15 @@ func NewSM9PrivateKeyFromPEM(pem string, pass string) (*SM9PrivateKey, error) {
 }
 
 func (sk *SM9PrivateKey) GetPEM(cipher string, pass string) (string, error) {
-	return nil, nil
+	return "", nil
 }
 
 func (sk *SM9PrivateKey) GetPublicKeyPEM() (string, error) {
-	return nil, nil
+	return "", nil
 }
 
 func (sk *SM9PrivateKey) GetText() (string, error) {
-	return nil, nil
+	return "", nil
 }
 
 func NewSM9PublicKeyFromPEM(pem string) (*SM9PublicKey, error) {
@@ -185,18 +162,18 @@ func NewSM9PublicKeyFromPEM(pem string) (*SM9PublicKey, error) {
 }
 
 func (pk *SM9PublicKey) GetPEM() (string, error) {
-	return nil, nil
+	return "", nil
 }
 
 func (pk *SM9PublicKey) GetText() (string, error) {
-	return nil, nil
+	return "", nil
 }
 
 func (sk *SM9PrivateKey) Sign(alg string, data []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (mpk *SM9PublicParameters) Verify(alg string, data []byte, sig []byte, id string) (error) {
+func (mpk *SM9PublicParameters) Verify(alg string, data []byte, sig []byte, id string) error {
 	return nil
 }
 
@@ -207,4 +184,3 @@ func (mpk *SM9PublicParameters) Encrypt(alg string, in []byte, id string) ([]byt
 func (sk *SM9PrivateKey) Decrypt(alg string, in []byte) ([]byte, error) {
 	return nil, nil
 }
-

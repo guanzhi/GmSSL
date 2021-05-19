@@ -12,12 +12,12 @@
 #include <errno.h>
 
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
-#include <openssl/asn1.h>
-#include <openssl/x509.h>
-#include <openssl/objects.h>
+#include <gmssl/lhash.h>
+#include <gmssl/buffer.h>
+#include <gmssl/evp.h>
+#include <gmssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/objects.h>
 
 const char *X509_verify_cert_error_string(long n)
 {

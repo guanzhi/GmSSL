@@ -64,15 +64,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/opensslconf.h>
-#include <openssl/crypto.h>
-#include <openssl/engine.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/aes.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
-#include <openssl/modes.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/crypto.h>
+#include <gmssl/engine.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/aes.h>
+#include <gmssl/rand.h>
+#include <gmssl/err.h>
+#include <gmssl/modes.h>
 #include "../crypto/evp/evp_locl.h"
 
 /* gmi sm3 header */

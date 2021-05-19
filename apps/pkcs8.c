@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "apps.h"
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/pkcs12.h>
+#include <gmssl/pem.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/pkcs12.h>
 
 /* pkcs8 command use aes-256-cbc as default cipher */
 #ifndef OPENSSL_NO_AES

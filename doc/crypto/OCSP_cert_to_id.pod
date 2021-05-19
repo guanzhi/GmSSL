@@ -9,7 +9,7 @@ OCSP_id_cmp, OCSP_id_get0_info - OCSP certificate ID utility functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ocsp.h>
+ #include <gmssl/ocsp.h>
 
  OCSP_CERTID *OCSP_cert_to_id(const EVP_MD *dgst,
                               X509 *subject, X509 *issuer);

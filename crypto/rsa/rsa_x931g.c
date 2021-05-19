@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <openssl/err.h>
-#include <openssl/bn.h>
+#include <gmssl/err.h>
+#include <gmssl/bn.h>
 #include "rsa_locl.h"
 
 /* X9.31 RSA key derivation and generation */

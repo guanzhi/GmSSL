@@ -9,10 +9,10 @@ OpenSSL_version_num - get OpenSSL version number
 
 =head1 SYNOPSIS
 
- #include <openssl/opensslv.h>
+ #include <gmssl/opensslv.h>
  #define OPENSSL_VERSION_NUMBER 0xnnnnnnnnnL
 
- #include <openssl/crypto.h>
+ #include <gmssl/crypto.h>
 
  unsigned long OpenSSL_version_num();
  const char *OpenSSL_version(int t);

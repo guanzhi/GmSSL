@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/rc2.h>
+#include <gmssl/rc2.h>
 #include "rc2_locl.h"
 
 /*

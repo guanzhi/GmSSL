@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #ifdef OPENSSL_NO_OCSP
 NON_EMPTY_TRANSLATION_UNIT
@@ -27,13 +27,13 @@ NON_EMPTY_TRANSLATION_UNIT
 
 /* Needs to be included before the openssl headers */
 # include "apps.h"
-# include <openssl/e_os2.h>
-# include <openssl/crypto.h>
-# include <openssl/err.h>
-# include <openssl/ssl.h>
-# include <openssl/evp.h>
-# include <openssl/bn.h>
-# include <openssl/x509v3.h>
+# include <gmssl/e_os2.h>
+# include <gmssl/crypto.h>
+# include <gmssl/err.h>
+# include <gmssl/ssl.h>
+# include <gmssl/evp.h>
+# include <gmssl/bn.h>
+# include <gmssl/x509v3.h>
 
 # if defined(NETWARE_CLIB)
 #  ifdef NETWARE_BSDSOCK

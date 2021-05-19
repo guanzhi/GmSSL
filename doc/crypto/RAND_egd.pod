@@ -8,7 +8,7 @@ RAND_egd, RAND_egd_bytes, RAND_query_egd_bytes - query entropy gathering daemon
 
 =head1 SYNOPSIS
 
- #include <openssl/rand.h>
+ #include <gmssl/rand.h>
 
  int RAND_egd(const char *path);
  int RAND_egd_bytes(const char *path, int bytes);

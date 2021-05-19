@@ -11,23 +11,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include "apps.h"
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
-#include <openssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/crypto.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_MD2
-# include <openssl/md2.h>
+# include <gmssl/md2.h>
 #endif
 #ifndef OPENSSL_NO_RC4
-# include <openssl/rc4.h>
+# include <gmssl/rc4.h>
 #endif
 #ifndef OPENSSL_NO_DES
-# include <openssl/des.h>
+# include <gmssl/des.h>
 #endif
 #ifndef OPENSSL_NO_IDEA
-# include <openssl/idea.h>
+# include <gmssl/idea.h>
 #endif
 #ifndef OPENSSL_NO_BF
-# include <openssl/blowfish.h>
+# include <gmssl/blowfish.h>
 #endif
 
 typedef enum OPTION_choice {

@@ -8,7 +8,7 @@
  */
 
 #include "eng_int.h"
-#include <openssl/conf.h>
+#include <gmssl/conf.h>
 
 /* #define ENGINE_CONF_DEBUG */
 

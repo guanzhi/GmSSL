@@ -11,7 +11,7 @@ and setting data in an RSA object
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d);
  int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q);

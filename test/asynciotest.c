@@ -9,9 +9,9 @@
  */
 
 #include <string.h>
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
+#include <gmssl/ssl.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
 
 #include "../ssl/packet_locl.h"
 

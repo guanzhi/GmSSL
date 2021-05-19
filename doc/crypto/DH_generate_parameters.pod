@@ -10,7 +10,7 @@ parameters
 
 =head1 SYNOPSIS
 
- #include <openssl/dh.h>
+ #include <gmssl/dh.h>
 
  int DH_generate_parameters_ex(DH *dh, int prime_len, int generator, BN_GENCB *cb);
 

@@ -8,7 +8,7 @@ SSL_CTX_set_quiet_shutdown, SSL_CTX_get_quiet_shutdown, SSL_set_quiet_shutdown, 
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_quiet_shutdown(SSL_CTX *ctx, int mode);
  int SSL_CTX_get_quiet_shutdown(const SSL_CTX *ctx);

@@ -9,7 +9,7 @@ add algorithms to internal table
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
 Deprecated:
 

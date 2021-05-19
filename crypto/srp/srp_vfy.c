@@ -9,12 +9,12 @@
 
 #ifndef OPENSSL_NO_SRP
 # include "internal/cryptlib.h"
-# include <openssl/sha.h>
-# include <openssl/srp.h>
-# include <openssl/evp.h>
-# include <openssl/buffer.h>
-# include <openssl/rand.h>
-# include <openssl/txt_db.h>
+# include <gmssl/sha.h>
+# include <gmssl/srp.h>
+# include <gmssl/evp.h>
+# include <gmssl/buffer.h>
+# include <gmssl/rand.h>
+# include <gmssl/txt_db.h>
 
 # define SRP_RANDOM_SALT_LEN 20
 # define MAX_LEN 2500

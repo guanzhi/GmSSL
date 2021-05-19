@@ -24,7 +24,7 @@ BN_get_rfc3526_prime_8192
 
 =head1 SYNOPSIS
 
- #include <openssl/dh.h>
+ #include <gmssl/dh.h>
  DH *DH_get_1024_160(void)
  DH *DH_get_2048_224(void)
  DH *DH_get_2048_256(void)

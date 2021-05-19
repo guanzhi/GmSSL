@@ -185,8 +185,8 @@ typedef struct record_layer_st {
 
 /*****************************************************************************
  *                                                                           *
- * The following macros/functions represent the libssl internal API to the   *
- * record layer. Any libssl code may call these functions/macros             *
+ * The following macros/functions represent the libgmssl internal API to the   *
+ * record layer. Any libgmssl code may call these functions/macros             *
  *                                                                           *
  *****************************************************************************/
 

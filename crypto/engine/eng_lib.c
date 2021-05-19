@@ -8,7 +8,7 @@
  */
 
 #include "eng_int.h"
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 
 CRYPTO_RWLOCK *global_engine_lock;
 

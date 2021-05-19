@@ -53,15 +53,15 @@ package gmssl
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/engine.h>
-#include <openssl/objects.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/ec.h>
+#include <gmssl/sm2.h>
+#include <gmssl/bio.h>
+#include <gmssl/evp.h>
+#include <gmssl/pem.h>
+#include <gmssl/err.h>
+#include <gmssl/engine.h>
+#include <gmssl/objects.h>
+#include <gmssl/opensslconf.h>
 
 extern long _BIO_get_mem_data(BIO *bio, char **pp);
 
@@ -560,9 +560,9 @@ unsigned char *sk_derive(EVP_PKEY *sk, const char *alg, EVP_PKEY *peer,
 import "C"
 
 import (
-	"unsafe"
 	"errors"
 	"runtime"
+	"unsafe"
 )
 
 func GetPublicKeyAlgorithmNames() []string {
@@ -605,7 +605,7 @@ func GetPublicKeyEncryptionNames(pkey string) ([]string, error) {
 			"RSAES-OAEP",
 		}, nil
 	} else if pkey == "EC" {
-		return []string {
+		return []string{
 			"ecies-recommendedParameters",
 			"ecies-specifiedParameters",
 			"ecies-with-x9-63-sha1-xor-hmac",
@@ -675,9 +675,9 @@ func GeneratePrivateKey(alg string, args [][2]string, eng *Engine) (*PrivateKey,
 	defer C.EVP_PKEY_CTX_free(ctx)
 
 	/*
-	if eng != nil {
-		ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
-	}
+		if eng != nil {
+			ctx := C.new_pkey_keygen_ctx(calg, eng.engine)
+		}
 	*/
 
 	if ctx == nil {
@@ -830,7 +830,7 @@ func (sk *PrivateKey) GetText() (string, error) {
 	return C.GoString(p)[:len], nil
 }
 
-func NewPublicKeyFromPEM(pem string)(*PublicKey, error) {
+func NewPublicKeyFromPEM(pem string) (*PublicKey, error) {
 	cpem := C.CString(pem)
 	defer C.free(unsafe.Pointer(cpem))
 	bio := C.BIO_new_mem_buf(unsafe.Pointer(cpem), -1)

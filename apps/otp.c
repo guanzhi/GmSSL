@@ -47,7 +47,7 @@
  * ====================================================================
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_OTP
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -55,10 +55,10 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <ctype.h>
 # include <stdio.h>
 # include <string.h>
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/otp.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/otp.h>
 # include "apps.h"
 
 typedef enum OPTION_choice {

@@ -9,7 +9,7 @@
 
 #ifndef OPENSSL_ASYNC_ARCH_ASYNC_POSIX_H
 #define OPENSSL_ASYNC_ARCH_ASYNC_POSIX_H
-#include <openssl/e_os2.h>
+#include <gmssl/e_os2.h>
 
 #if (defined(OPENSSL_SYS_UNIX) || defined(OPENSSL_SYS_CYGWIN)) \
     && defined(OPENSSL_THREADS) && !defined(OPENSSL_NO_ASYNC) \

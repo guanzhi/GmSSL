@@ -12,7 +12,7 @@ X509_REVOKED_add1_ext_i2d - X509 extension decode and encode functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509v3.h>
+ #include <gmssl/x509v3.h>
 
  void *X509V3_get_d2i(const STACK_OF(X509_EXTENSION) *x, int nid, int *crit,
                       int *idx);

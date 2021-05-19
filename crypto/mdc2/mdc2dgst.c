@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/crypto.h>
-#include <openssl/des.h>
-#include <openssl/mdc2.h>
+#include <gmssl/crypto.h>
+#include <gmssl/des.h>
+#include <gmssl/mdc2.h>
 
 #undef c2l
 #define c2l(c,l)        (l =((DES_LONG)(*((c)++)))    , \

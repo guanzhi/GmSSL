@@ -11,10 +11,10 @@
 #include <stdlib.h>
 #include "internal/cryptlib.h"
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
-#include <openssl/evp.h>
-#include <openssl/x509v3.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509v3.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 #include "internal/numbers.h"

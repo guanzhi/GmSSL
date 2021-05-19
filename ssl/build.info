@@ -1,5 +1,5 @@
-LIBS=../libssl
-SOURCE[../libssl]=\
+LIBS=../libgmssl
+SOURCE[../libgmssl]=\
         pqueue.c \
         statem/statem_srvr.c statem/statem_clnt.c  s3_lib.c  s3_enc.c record/rec_layer_s3.c \
         statem/statem_lib.c s3_cbc.c s3_msg.c \
@@ -13,5 +13,5 @@ SOURCE[../libssl]=\
         record/ssl3_buffer.c record/ssl3_record.c record/dtls1_bitmap.c \
         statem/statem.c
 IF[{- !$disabled{gmtls} -}]
-	SOURCE[../libssl]=statem/statem_gmtls.c
+	SOURCE[../libgmssl]=statem/statem_gmtls.c
 ENDIF

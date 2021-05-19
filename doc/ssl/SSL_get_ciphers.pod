@@ -10,7 +10,7 @@ SSL_get_ciphers, SSL_CTX_get_ciphers, SSL_get_cipher_list
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  STACK_OF(SSL_CIPHER) *SSL_get_ciphers(const SSL *ssl);
  STACK_OF(SSL_CIPHER) *SSL_CTX_get_ciphers(const SSL_CTX *ctx);

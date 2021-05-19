@@ -11,7 +11,7 @@ X509_set_serialNumber
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  ASN1_INTEGER *X509_get_serialNumber(X509 *x);
  const ASN1_INTEGER *X509_get0_serialNumber(const X509 *x);

@@ -85,11 +85,11 @@
 #include <stdio.h>
 #include "ssl_locl.h"
 #ifndef OPENSSL_NO_COMP
-# include <openssl/comp.h>
+# include <gmssl/comp.h>
 #endif
-#include <openssl/evp.h>
-#include <openssl/kdf.h>
-#include <openssl/rand.h>
+#include <gmssl/evp.h>
+#include <gmssl/kdf.h>
+#include <gmssl/rand.h>
 
 /* seed1 through seed5 are concatenated */
 static int tls1_PRF(SSL *s,

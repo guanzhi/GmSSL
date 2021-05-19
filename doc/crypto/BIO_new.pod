@@ -9,7 +9,7 @@ BIO_set - BIO allocation and freeing functions
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  BIO *  BIO_new(const BIO_METHOD *type);
  int    BIO_set(BIO *a, const BIO_METHOD *type);

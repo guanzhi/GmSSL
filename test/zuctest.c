@@ -59,8 +59,8 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/zuc.h>
+# include <gmssl/evp.h>
+# include <gmssl/zuc.h>
 
 static void bswap_buf(uint32_t *buf, size_t nwords)
 {

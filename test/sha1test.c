@@ -12,11 +12,11 @@
 #include <stdlib.h>
 
 #include "../e_os.h"
-#include <openssl/evp.h>
-#include <openssl/sha.h>
+#include <gmssl/evp.h>
+#include <gmssl/sha.h>
 
 #ifdef CHARSET_EBCDIC
-# include <openssl/ebcdic.h>
+# include <gmssl/ebcdic.h>
 #endif
 
 static char test[][80] = {

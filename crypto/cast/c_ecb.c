@@ -7,9 +7,9 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/cast.h>
+#include <gmssl/cast.h>
 #include "cast_lcl.h"
-#include <openssl/opensslv.h>
+#include <gmssl/opensslv.h>
 
 void CAST_ecb_encrypt(const unsigned char *in, unsigned char *out,
                       const CAST_KEY *ks, int enc)

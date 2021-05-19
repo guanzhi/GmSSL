@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/ec.h>
-#include <openssl/rand.h>
+#include <gmssl/x509.h>
+#include <gmssl/ec.h>
+#include <gmssl/rand.h>
 #include "internal/asn1_int.h"
 #include "internal/evp_int.h"
 #include "ec_lcl.h"

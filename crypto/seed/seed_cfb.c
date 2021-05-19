@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/seed.h>
-#include <openssl/modes.h>
+#include <gmssl/seed.h>
+#include <gmssl/modes.h>
 
 void SEED_cfb128_encrypt(const unsigned char *in, unsigned char *out,
                          size_t len, const SEED_KEY_SCHEDULE *ks,

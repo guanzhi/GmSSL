@@ -9,7 +9,7 @@ BF_cfb64_encrypt, BF_ofb64_encrypt, BF_options - Blowfish encryption
 
 =head1 SYNOPSIS
 
- #include <openssl/blowfish.h>
+ #include <gmssl/blowfish.h>
 
  void BF_set_key(BF_KEY *key, int len, const unsigned char *data);
 

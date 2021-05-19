@@ -11,20 +11,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include "apps.h"
-#include <openssl/bio.h>
-#include <openssl/asn1.h>
-#include <openssl/err.h>
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/objects.h>
-#include <openssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/asn1.h>
+#include <gmssl/err.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/objects.h>
+#include <gmssl/pem.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
 
 #undef POSTFIX

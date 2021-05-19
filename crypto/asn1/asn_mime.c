@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "internal/cryptlib.h"
-#include <openssl/rand.h>
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
+#include <gmssl/rand.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
 #include "internal/evp_int.h"
 #include "internal/bio.h"
 #include "asn1_locl.h"

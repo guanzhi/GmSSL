@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/lhash.h>
-#include <openssl/crypto.h>
-#include <openssl/buffer.h>
-#include <openssl/err.h>
+#include <gmssl/lhash.h>
+#include <gmssl/crypto.h>
+#include <gmssl/buffer.h>
+#include <gmssl/err.h>
 
 void ERR_print_errors_cb(int (*cb) (const char *str, size_t len, void *u),
                          void *u)

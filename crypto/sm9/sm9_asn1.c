@@ -47,13 +47,13 @@
  * ====================================================================
  */
 
-#include <openssl/bn.h>
-#include <openssl/err.h>
-#include <openssl/sm3.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/objects.h>
-#include <openssl/sm9.h>
+#include <gmssl/bn.h>
+#include <gmssl/err.h>
+#include <gmssl/sm3.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/objects.h>
+#include <gmssl/sm9.h>
 #include "sm9_lcl.h"
 
 static int sm9_master_key_cb(int operation, ASN1_VALUE **pval,

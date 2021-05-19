@@ -8,7 +8,7 @@ BIO_s_socket, BIO_new_socket - socket BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  const BIO_METHOD *BIO_s_socket(void);
 

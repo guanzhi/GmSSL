@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #include "dh_locl.h"
-#include <openssl/engine.h>
+#include <gmssl/engine.h>
 
 static const DH_METHOD *default_DH_method = NULL;
 

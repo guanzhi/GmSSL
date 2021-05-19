@@ -79,15 +79,15 @@
 #include "zend_smart_str.h"
 #include "php_openssl.h"
 #include "php_network.h"
-#include <openssl/ssl.h>
-#include <openssl/rsa.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
+#include <gmssl/ssl.h>
+#include <gmssl/rsa.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/err.h>
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-#include <openssl/bn.h>
-#include <openssl/dh.h>
+#include <gmssl/bn.h>
+#include <gmssl/dh.h>
 #endif
 
 #ifdef PHP_WIN32

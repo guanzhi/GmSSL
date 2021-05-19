@@ -9,7 +9,7 @@ ERR_print_errors, ERR_print_errors_fp, ERR_print_errors_cb
 
 =head1 SYNOPSIS
 
- #include <openssl/err.h>
+ #include <gmssl/err.h>
 
  void ERR_print_errors(BIO *bp);
  void ERR_print_errors_fp(FILE *fp);

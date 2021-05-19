@@ -15,7 +15,7 @@
 
 #include <string.h>
 #include <internal/bio.h>
-#include <openssl/asn1.h>
+#include <gmssl/asn1.h>
 
 /* Must be large enough for biggest tag+length */
 #define DEFAULT_ASN1_BUF_SIZE 20

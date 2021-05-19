@@ -8,7 +8,7 @@ BIO_read, BIO_write, BIO_gets, BIO_puts - BIO I/O functions
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  int    BIO_read(BIO *b, void *buf, int len);
  int    BIO_gets(BIO *b, char *buf, int size);

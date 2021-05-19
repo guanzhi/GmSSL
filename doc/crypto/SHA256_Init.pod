@@ -11,7 +11,7 @@ SHA512_Final - Secure Hash Algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/sha.h>
+ #include <gmssl/sha.h>
 
  int SHA1_Init(SHA_CTX *c);
  int SHA1_Update(SHA_CTX *c, const void *data, size_t len);

@@ -49,9 +49,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/paillier.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
+#include <gmssl/paillier.h>
 #include "internal/evp_int.h"
 #include "pai_lcl.h"
 

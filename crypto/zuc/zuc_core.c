@@ -49,7 +49,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/zuc.h>
+#include <gmssl/zuc.h>
 #include "modes_lcl.h"
 
 static const ZUC_UINT15 KD[16] = {

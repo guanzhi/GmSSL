@@ -11,7 +11,7 @@ custom_ext_add_cb, custom_ext_free_cb, custom_ext_parse_cb
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CTX_add_client_custom_ext(SSL_CTX *ctx, unsigned int ext_type,
                                    custom_ext_add_cb add_cb,

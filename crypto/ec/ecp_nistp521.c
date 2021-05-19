@@ -31,7 +31,7 @@
  * work which got its smarts from Daniel J. Bernstein's work on the same.
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_EC_NISTP_64_GCC_128
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -43,7 +43,7 @@ NON_EMPTY_TRANSLATION_UNIT
 # endif
 
 # include <string.h>
-# include <openssl/err.h>
+# include <gmssl/err.h>
 # include "ec_lcl.h"
 
 # if defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))

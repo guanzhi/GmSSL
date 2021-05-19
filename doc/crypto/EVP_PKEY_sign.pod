@@ -8,7 +8,7 @@ EVP_PKEY_sign_init, EVP_PKEY_sign - sign using a public key algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_sign_init(EVP_PKEY_CTX *ctx);
  int EVP_PKEY_sign(EVP_PKEY_CTX *ctx,
@@ -52,8 +52,8 @@ indicates the operation is not supported by the public key algorithm.
 
 Sign data using RSA with PKCS#1 padding and SHA256 digest:
 
- #include <openssl/evp.h>
- #include <openssl/rsa.h>
+ #include <gmssl/evp.h>
+ #include <gmssl/rsa.h>
 
  EVP_PKEY_CTX *ctx;
  /* md is a SHA-256 digest in this example. */

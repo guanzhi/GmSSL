@@ -15,8 +15,8 @@
 #ifndef NO_SYS_TYPES_H
 # include <sys/types.h>
 #endif
-#include <openssl/bn.h>         /* To get BN_LLONG properly defined */
-#include <openssl/bio.h>
+#include <gmssl/bn.h>         /* To get BN_LLONG properly defined */
+#include <gmssl/bio.h>
 
 #if defined(BN_LLONG) || defined(SIXTY_FOUR_BIT)
 # ifndef HAVE_LONG_LONG

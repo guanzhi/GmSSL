@@ -12,7 +12,7 @@ verification or chain store
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CTX_set0_verify_cert_store(SSL_CTX *ctx, X509_STORE *st);
  int SSL_CTX_set1_verify_cert_store(SSL_CTX *ctx, X509_STORE *st);

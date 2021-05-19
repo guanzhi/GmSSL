@@ -18,7 +18,7 @@ EC_GROUP_get_pentanomial_basis
 
 =head1 SYNOPSIS
 
- #include <openssl/ec.h>
+ #include <gmssl/ec.h>
 
  int EC_GROUP_copy(EC_GROUP *dst, const EC_GROUP *src);
  EC_GROUP *EC_GROUP_dup(const EC_GROUP *src);
@@ -187,7 +187,7 @@ EC_GROUP_set_seed returns the length of the seed that has been set. If the suppl
 
 EC_GROUP_cmp returns 0 if the curves are equal, 1 if they are not equal, or -1 on error.
 
-EC_GROUP_get_basis_type returns the values NID_X9_62_tpBasis or NID_X9_62_ppBasis (as defined in <openssl/obj_mac.h>) for a
+EC_GROUP_get_basis_type returns the values NID_X9_62_tpBasis or NID_X9_62_ppBasis (as defined in <gmssl/obj_mac.h>) for a
 trinomial or pentanomial respectively. Alternatively in the event of an error a 0 is returned.
 
 =head1 SEE ALSO

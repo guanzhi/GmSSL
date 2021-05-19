@@ -20,11 +20,11 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/evp.h>
-# include <openssl/md2.h>
+# include <gmssl/evp.h>
+# include <gmssl/md2.h>
 
 # ifdef CHARSET_EBCDIC
-#  include <openssl/ebcdic.h>
+#  include <gmssl/ebcdic.h>
 # endif
 
 static char *test[] = {

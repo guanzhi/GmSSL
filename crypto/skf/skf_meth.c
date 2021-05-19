@@ -47,8 +47,8 @@
  * ====================================================================
  */
 
-#include <openssl/err.h>
-#include <openssl/gmskf.h>
+#include <gmssl/err.h>
+#include <gmssl/gmskf.h>
 #include "internal/dso.h"
 #include "internal/skf_int.h"
 

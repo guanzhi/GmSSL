@@ -47,10 +47,10 @@
  */
 
 #include <string.h>
-#include <openssl/ec.h>
-#include <openssl/err.h>
-#include <openssl/sm2.h>
-#include <openssl/ecies.h>
+#include <gmssl/ec.h>
+#include <gmssl/err.h>
+#include <gmssl/sm2.h>
+#include <gmssl/ecies.h>
 #include "../ec/ec_lcl.h"
 #include "sm2_lcl.h"
 

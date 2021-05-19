@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_DSA
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -17,12 +17,12 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <time.h>
 # include <string.h>
 # include "apps.h"
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/bn.h>
-# include <openssl/dsa.h>
-# include <openssl/x509.h>
-# include <openssl/pem.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/bn.h>
+# include <gmssl/dsa.h>
+# include <gmssl/x509.h>
+# include <gmssl/pem.h>
 
 # ifdef GENCB_TEST
 

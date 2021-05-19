@@ -11,7 +11,7 @@ SSL_CTX_get_default_read_ahead
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_set_read_ahead(SSL *s, int yes);
  int SSL_get_read_ahead(const SSL *s);

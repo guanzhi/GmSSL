@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
+#include <gmssl/buffer.h>
+#include <gmssl/evp.h>
 #include "internal/evp_int.h"
 #include "evp_locl.h"
 #include "internal/bio.h"

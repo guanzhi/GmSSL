@@ -50,9 +50,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/err.h>
+#include <gmssl/bn.h>
+#include <gmssl/ec.h>
+#include <gmssl/err.h>
 
 
 #include "../bn/bn_lcl.h"

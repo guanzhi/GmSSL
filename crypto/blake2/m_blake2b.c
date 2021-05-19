@@ -18,8 +18,8 @@
 
 #ifndef OPENSSL_NO_BLAKE2
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
 # include "blake2_locl.h"
 # include "internal/evp_int.h"
 

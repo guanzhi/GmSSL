@@ -8,7 +8,7 @@
  */
 
 #include <string.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "modes_lcl.h"
 
 #ifndef OPENSSL_NO_OCB

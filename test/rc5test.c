@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     return (0);
 }
 #else
-# include <openssl/rc5.h>
+# include <gmssl/rc5.h>
 
 static unsigned char RC5key[5][16] = {
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

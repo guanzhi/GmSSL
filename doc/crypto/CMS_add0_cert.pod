@@ -8,7 +8,7 @@ CMS_add0_cert, CMS_add1_cert, CMS_get1_certs, CMS_add0_crl, CMS_add1_crl, CMS_ge
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  int CMS_add0_cert(CMS_ContentInfo *cms, X509 *cert);
  int CMS_add1_cert(CMS_ContentInfo *cms, X509 *cert);

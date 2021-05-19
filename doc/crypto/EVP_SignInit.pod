@@ -10,7 +10,7 @@ functions
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_SignInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl);
  int EVP_SignUpdate(EVP_MD_CTX *ctx, const void *d, unsigned int cnt);

@@ -8,7 +8,7 @@ BN_CTX_new, BN_CTX_secure_new, BN_CTX_free - allocate and free BN_CTX structures
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  BN_CTX *BN_CTX_new(void);
 

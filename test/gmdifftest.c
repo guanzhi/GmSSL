@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include <stdio.h>
 
 #define SECS_PER_DAY (24 * 60 * 60)

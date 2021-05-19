@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/objects.h>
+#include <gmssl/objects.h>
 #include "obj_xref.h"
 #include "e_os.h"
 

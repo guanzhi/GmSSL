@@ -8,11 +8,11 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/pem.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
-#include <openssl/cms.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/err.h>
+#include <gmssl/cms.h>
 #include "cms_lcl.h"
 
 /* CMS DigestedData Utilities */

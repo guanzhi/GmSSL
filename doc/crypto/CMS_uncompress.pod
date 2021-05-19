@@ -8,7 +8,7 @@ CMS_uncompress - uncompress a CMS CompressedData structure
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  int CMS_uncompress(CMS_ContentInfo *cms, BIO *dcont, BIO *out, unsigned int flags);
 

@@ -10,14 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/opensslconf.h>
-#include <openssl/crypto.h>
-#include <openssl/engine.h>
-#include <openssl/evp.h>
-#include <openssl/aes.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
-#include <openssl/modes.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/crypto.h>
+#include <gmssl/engine.h>
+#include <gmssl/evp.h>
+#include <gmssl/aes.h>
+#include <gmssl/rand.h>
+#include <gmssl/err.h>
+#include <gmssl/modes.h>
 
 #ifndef OPENSSL_NO_HW
 # ifndef OPENSSL_NO_HW_PADLOCK

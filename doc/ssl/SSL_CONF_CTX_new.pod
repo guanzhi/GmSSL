@@ -8,7 +8,7 @@ SSL_CONF_CTX_new, SSL_CONF_CTX_free - SSL configuration allocation functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  SSL_CONF_CTX *SSL_CONF_CTX_new(void);
  void SSL_CONF_CTX_free(SSL_CONF_CTX *cctx);

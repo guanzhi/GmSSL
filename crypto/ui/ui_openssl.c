@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/e_os2.h>
-#include <openssl/err.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/err.h>
 
 /*
  * need for #define _POSIX_C_SOURCE arises whenever you pass -ansi to gcc

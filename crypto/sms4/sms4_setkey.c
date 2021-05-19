@@ -47,7 +47,7 @@
  * ====================================================================
  */
 
-#include <openssl/sms4.h>
+#include <gmssl/sms4.h>
 #include "internal/rotate.h"
 #include "modes_lcl.h"
 #include "sms4_lcl.h"

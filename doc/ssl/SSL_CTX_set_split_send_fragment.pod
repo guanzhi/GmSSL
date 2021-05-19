@@ -12,7 +12,7 @@ fragment sizes and pipelining operations
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_set_max_send_fragment(SSL_CTX *ctx, long);
  long SSL_set_max_send_fragment(SSL *ssl, long m);

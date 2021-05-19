@@ -47,8 +47,8 @@
  * ====================================================================
  */
 
-#include <openssl/sms4.h>
-#include <openssl/modes.h>
+#include <gmssl/sms4.h>
+#include <gmssl/modes.h>
 
 void sms4_cfb128_encrypt(const unsigned char *in, unsigned char *out,
 	size_t len, const sms4_key_t *key, unsigned char *iv, int *num, int enc)

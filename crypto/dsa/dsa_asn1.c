@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #include "dsa_locl.h"
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/rand.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/rand.h>
 
 ASN1_SEQUENCE(DSA_SIG) = {
         ASN1_SIMPLE(DSA_SIG, r, CBIGNUM),

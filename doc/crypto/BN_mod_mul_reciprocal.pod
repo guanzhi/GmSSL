@@ -10,7 +10,7 @@ reciprocal
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  BN_RECP_CTX *BN_RECP_CTX_new(void);
  void BN_RECP_CTX_free(BN_RECP_CTX *recp);

@@ -21,8 +21,8 @@
 #include <string.h>
 
 #include "bio_lcl.h"
-#include <openssl/err.h>
-#include <openssl/crypto.h>
+#include <gmssl/err.h>
+#include <gmssl/crypto.h>
 
 #include "e_os.h"
 

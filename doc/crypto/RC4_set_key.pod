@@ -8,7 +8,7 @@ RC4_set_key, RC4 - RC4 encryption
 
 =head1 SYNOPSIS
 
- #include <openssl/rc4.h>
+ #include <gmssl/rc4.h>
 
  void RC4_set_key(RC4_KEY *key, int len, const unsigned char *data);
 

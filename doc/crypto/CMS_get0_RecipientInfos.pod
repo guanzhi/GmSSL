@@ -13,7 +13,7 @@ CMS_RecipientInfo_decrypt, CMS_RecipientInfo_encrypt
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  STACK_OF(CMS_RecipientInfo) *CMS_get0_RecipientInfos(CMS_ContentInfo *cms);
  int CMS_RecipientInfo_type(CMS_RecipientInfo *ri);

@@ -57,7 +57,7 @@
 
 #include "../ssl_locl.h"
 #include "internal/constant_time_locl.h"
-#include <openssl/rand.h>
+#include <gmssl/rand.h>
 #include "record_locl.h"
 
 static const unsigned char ssl3_pad_1[48] = {

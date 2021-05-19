@@ -21,7 +21,7 @@ X509_VERIFY_PARAM_set1_ip_asc
 
 =head1 SYNOPSIS
 
- #include <openssl/x509_vfy.h>
+ #include <gmssl/x509_vfy.h>
 
  int X509_VERIFY_PARAM_set_flags(X509_VERIFY_PARAM *param,
                                  unsigned long flags);

@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #ifndef OPENSSL_NO_BF
-# include <openssl/evp.h>
+# include <gmssl/evp.h>
 # include "internal/evp_int.h"
-# include <openssl/objects.h>
-# include <openssl/blowfish.h>
+# include <gmssl/objects.h>
+# include <gmssl/blowfish.h>
 
 static int bf_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
                        const unsigned char *iv, int enc);

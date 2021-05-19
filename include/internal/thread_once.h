@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 
 #define DEFINE_RUN_ONCE(init)                   \
     static int init(void);                     \

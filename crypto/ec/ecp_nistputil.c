@@ -23,7 +23,7 @@
  *  limitations under the License.
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_EC_NISTP_64_GCC_128
 NON_EMPTY_TRANSLATION_UNIT
 #else

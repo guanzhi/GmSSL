@@ -8,7 +8,7 @@ SSL_get_session, SSL_get0_session, SSL_get1_session - retrieve TLS/SSL session d
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  SSL_SESSION *SSL_get_session(const SSL *ssl);
  SSL_SESSION *SSL_get0_session(const SSL *ssl);

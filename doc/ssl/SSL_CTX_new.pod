@@ -17,7 +17,7 @@ functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  SSL_CTX *SSL_CTX_new(const SSL_METHOD *method);
  int SSL_CTX_up_ref(SSL_CTX *ctx);

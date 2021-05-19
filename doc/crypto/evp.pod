@@ -10,7 +10,7 @@ evp - high-level cryptographic functions
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
 =head1 DESCRIPTION
 

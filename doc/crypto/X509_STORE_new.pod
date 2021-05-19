@@ -9,7 +9,7 @@ X509_STORE_unlock - X509_STORE allocation, freeing and locking functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509_vfy.h>
+ #include <gmssl/x509_vfy.h>
 
  X509_STORE *X509_STORE_new(void);
  void X509_STORE_free(X509_STORE *v);

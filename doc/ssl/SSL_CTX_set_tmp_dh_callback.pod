@@ -8,7 +8,7 @@ SSL_CTX_set_tmp_dh_callback, SSL_CTX_set_tmp_dh, SSL_set_tmp_dh_callback, SSL_se
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_tmp_dh_callback(SSL_CTX *ctx,
             DH *(*tmp_dh_callback)(SSL *ssl, int is_export, int keylength));

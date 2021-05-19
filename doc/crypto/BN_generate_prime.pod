@@ -11,7 +11,7 @@ for primality
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  int BN_generate_prime_ex(BIGNUM *ret, int bits, int safe, const BIGNUM *add,
      const BIGNUM *rem, BN_GENCB *cb);

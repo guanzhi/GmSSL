@@ -10,7 +10,7 @@ OCSP_RESPID_set_by_key, OCSP_RESPID_match - OCSP response functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ocsp.h>
+ #include <gmssl/ocsp.h>
 
  int OCSP_response_status(OCSP_RESPONSE *resp);
  OCSP_BASICRESP *OCSP_response_get1_basic(OCSP_RESPONSE *resp);

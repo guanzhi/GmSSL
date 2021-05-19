@@ -7,16 +7,16 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_CAMELLIA
 NON_EMPTY_TRANSLATION_UNIT
 #else
 
-# include <openssl/evp.h>
-# include <openssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/err.h>
 # include <string.h>
 # include <assert.h>
-# include <openssl/camellia.h>
+# include <gmssl/camellia.h>
 # include "internal/evp_int.h"
 # include "modes_lcl.h"
 

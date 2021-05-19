@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/asn1.h>
+#include <gmssl/buffer.h>
+#include <gmssl/asn1.h>
 
 int i2a_ASN1_INTEGER(BIO *bp, const ASN1_INTEGER *a)
 {

@@ -252,7 +252,7 @@ In each table entry, the following keys are significant:
 [3] OpenSSL has three types of things to link from object files or
     static libraries:
 
-    - shared libraries; that would be libcrypto and libssl.
+    - shared libraries; that would be libgmcrypto and libgmssl.
     - shared objects (sometimes called dynamic libraries);  that would
       be the engines.
     - applications; those are apps/openssl and all the test apps.
@@ -335,7 +335,7 @@ For some libraries, we maintain files with public symbols and their
 slot in a transfer vector (important on some platforms).  It can be
 declared like this:
 
-    ORDINALS[libcrypto]=crypto
+    ORDINALS[libgmcrypto]=crypto
 
 The value is not the name of the file in question, but rather the
 argument to util/mkdef.pl that indicates which file to use.
@@ -454,8 +454,8 @@ Together with the use of Text::Template, this can be used as
 conditions based on something in the passed variables, for example:
 
     IF[{- $disabled{shared} -}]
-      LIBS=libcrypto
-      SOURCE[libcrypto]=...
+      LIBS=libgmcrypto
+      SOURCE[libgmcrypto]=...
     ELSE
       LIBS=libfoo
       SOURCE[libfoo]=...
@@ -466,8 +466,8 @@ or:
     # VMS has a cultural standard where all libraries are prefixed.
     # For OpenSSL, the choice is 'ossl_'
     IF[{- $config{target} =~ /^vms/ -}]
-     RENAME[libcrypto]=ossl_libcrypto
-     RENAME[libssl]=ossl_libssl
+     RENAME[libgmcrypto]=ossl_libgmcrypto
+     RENAME[libgmssl]=ossl_libgmssl
     ENDIF
 
 

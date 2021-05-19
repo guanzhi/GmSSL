@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1.h>
+#include <gmssl/asn1.h>
 
 /* UTF8 utilities */
 

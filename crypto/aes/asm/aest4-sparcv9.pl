@@ -80,7 +80,7 @@ open STDOUT,">$output";
 
 $::evp=1;	# if $evp is set to 0, script generates module with
 # AES_[en|de]crypt, AES_set_[en|de]crypt_key and AES_cbc_encrypt entry
-# points. These however are not fully compatible with openssl/aes.h,
+# points. These however are not fully compatible with gmssl/aes.h,
 # because they expect AES_KEY to be aligned at 64-bit boundary. When
 # used through EVP, alignment is arranged at EVP layer. Second thing
 # that is arranged by EVP is at least 32-bit alignment of IV.

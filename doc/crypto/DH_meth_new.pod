@@ -14,7 +14,7 @@ DH_meth_set_generate_params - Routines to build up DH methods
 
 =head1 SYNOPSIS
 
- #include <openssl/dh.h>
+ #include <gmssl/dh.h>
 
  DH_METHOD *DH_meth_new(const char *name, int flags);
  void DH_meth_free(DH_METHOD *dhm);

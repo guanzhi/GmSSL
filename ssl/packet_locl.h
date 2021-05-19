@@ -11,10 +11,10 @@
 # define HEADER_PACKET_LOCL_H
 
 # include <string.h>
-# include <openssl/bn.h>
-# include <openssl/buffer.h>
-# include <openssl/crypto.h>
-# include <openssl/e_os2.h>
+# include <gmssl/bn.h>
+# include <gmssl/buffer.h>
+# include <gmssl/crypto.h>
+# include <gmssl/e_os2.h>
 
 # include "internal/numbers.h"
 

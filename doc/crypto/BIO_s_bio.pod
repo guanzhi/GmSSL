@@ -11,7 +11,7 @@ BIO_ctrl_get_read_request, BIO_ctrl_reset_read_request - BIO pair BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  const BIO_METHOD *BIO_s_bio(void);
 

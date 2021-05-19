@@ -8,8 +8,8 @@
  */
 
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/lhash.h>
+#include <gmssl/evp.h>
+#include <gmssl/lhash.h>
 #include "eng_int.h"
 
 /* The type of the items in the table */

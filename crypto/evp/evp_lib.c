@@ -57,8 +57,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
 #include "internal/evp_int.h"
 #include "evp_locl.h"
 

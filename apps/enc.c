@@ -12,15 +12,15 @@
 #include <string.h>
 #include <limits.h>
 #include "apps.h"
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/rand.h>
-#include <openssl/pem.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/rand.h>
+#include <gmssl/pem.h>
 #ifndef OPENSSL_NO_COMP
-# include <openssl/comp.h>
+# include <gmssl/comp.h>
 #endif
 #include <ctype.h>
 

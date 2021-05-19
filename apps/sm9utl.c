@@ -47,7 +47,7 @@
  * ====================================================================
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_SM9
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -55,10 +55,10 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <ctype.h>
 # include <stdio.h>
 # include <string.h>
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/sm9.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/sm9.h>
 # include "../crypto/sm9/sm9_lcl.h"
 # include "apps.h"
 

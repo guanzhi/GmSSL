@@ -14,7 +14,7 @@
  */
 
 #include <stdio.h>
-#include <openssl/objects.h>
+#include <gmssl/objects.h>
 #include "ssl_locl.h"
 
 #ifndef OPENSSL_NO_SRTP

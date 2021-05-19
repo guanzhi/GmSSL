@@ -8,7 +8,7 @@ SSL_CTX_set_timeout, SSL_CTX_get_timeout - manipulate timeout values for session
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_set_timeout(SSL_CTX *ctx, long t);
  long SSL_CTX_get_timeout(SSL_CTX *ctx);

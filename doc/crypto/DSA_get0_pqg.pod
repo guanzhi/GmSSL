@@ -10,7 +10,7 @@ setting data in a DSA object
 
 =head1 SYNOPSIS
 
- #include <openssl/dsa.h>
+ #include <gmssl/dsa.h>
 
  void DSA_get0_pqg(const DSA *d,
                    const BIGNUM **p, const BIGNUM **q, const BIGNUM **g);

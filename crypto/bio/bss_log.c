@@ -45,8 +45,8 @@ void *_malloc32(__size_t);
 # include <syslog.h>
 #endif
 
-#include <openssl/buffer.h>
-#include <openssl/err.h>
+#include <gmssl/buffer.h>
+#include <gmssl/err.h>
 
 #ifndef NO_SYSLOG
 

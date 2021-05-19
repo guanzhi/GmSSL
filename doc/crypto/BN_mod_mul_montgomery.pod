@@ -10,7 +10,7 @@ BN_from_montgomery, BN_to_montgomery - Montgomery multiplication
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  BN_MONT_CTX *BN_MONT_CTX_new(void);
  void BN_MONT_CTX_free(BN_MONT_CTX *mont);

@@ -10,12 +10,12 @@
 
 #include <stdio.h>
 
-#include <openssl/opensslconf.h>
-#include <openssl/err.h>
-#include <openssl/e_os2.h>
-#include <openssl/ssl.h>
-#include <openssl/ssl3.h>
-#include <openssl/tls1.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/err.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/ssl.h>
+#include <gmssl/ssl3.h>
+#include <gmssl/tls1.h>
 
 #include "e_os.h"
 #include "testutil.h"
@@ -44,7 +44,7 @@ static CIPHERLIST_TEST_FIXTURE set_up(const char *const test_case_name)
  *
  * Supported ciphers also exclude TLSv1.2 ciphers if TLSv1.2 is disabled,
  * and individual disabled algorithms. However, NO_RSA, NO_AES and NO_SHA
- * are currently broken and should be considered mission impossible in libssl.
+ * are currently broken and should be considered mission impossible in libgmssl.
  */
 static const uint32_t default_ciphers_in_order[] = {
 #ifndef OPENSSL_NO_TLS1_2

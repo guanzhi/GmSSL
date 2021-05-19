@@ -57,13 +57,13 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/rand.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
+#include <gmssl/rand.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/err.h>
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 
 static int add_attribute(STACK_OF(X509_ATTRIBUTE) **sk, int nid, int atrtype,

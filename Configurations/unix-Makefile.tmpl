@@ -230,7 +230,7 @@ LANG=C
 {- dependmagic('build_programs'); -}: build_programs_nodep
 
 build_generated: $(GENERATED_MANDATORY)
-build_libs_nodep: libcrypto.pc libssl.pc openssl.pc
+build_libs_nodep: libgmcrypto.pc libgmssl.pc openssl.pc
 build_engines_nodep: $(ENGINES)
 build_programs_nodep: $(PROGRAMS) $(SCRIPTS)
 
@@ -285,7 +285,7 @@ clean: libclean
 	-$(RM) `find . -name '*{- $objext -}' -a \! -path "./.git/*"`
 	$(RM) core
 	$(RM) tags TAGS
-	$(RM) openssl.pc libcrypto.pc libssl.pc
+	$(RM) openssl.pc libgmcrypto.pc libgmssl.pc
 	-$(RM) `find . -type l -a \! -path "./.git/*"`
 	$(RM) $(TARFILE)
 
@@ -349,18 +349,18 @@ install_ssldirs:
 install_dev:
 	@[ -n "$(INSTALLTOP)" ] || (echo INSTALLTOP should not be empty; exit 1)
 	@echo "*** Installing development files"
-	@$(PERL) $(SRCDIR)/util/mkdir-p.pl $(DESTDIR)$(INSTALLTOP)/include/openssl
+	@$(PERL) $(SRCDIR)/util/mkdir-p.pl $(DESTDIR)$(INSTALLTOP)/include/gmssl
 	@ : {- output_off() unless grep { $_ eq "OPENSSL_USE_APPLINK" } @{$target{defines}}; "" -}
-	@echo "install $(SRCDIR)/ms/applink.c -> $(DESTDIR)$(INSTALLTOP)/include/openssl/applink.c"
-	@cp $(SRCDIR)/ms/applink.c $(DESTDIR)$(INSTALLTOP)/include/openssl/applink.c
-	@chmod 644 $(DESTDIR)$(INSTALLTOP)/include/openssl/applink.c
+	@echo "install $(SRCDIR)/ms/applink.c -> $(DESTDIR)$(INSTALLTOP)/include/gmssl/applink.c"
+	@cp $(SRCDIR)/ms/applink.c $(DESTDIR)$(INSTALLTOP)/include/gmssl/applink.c
+	@chmod 644 $(DESTDIR)$(INSTALLTOP)/include/gmssl/applink.c
 	@ : {- output_on() unless grep { $_ eq "OPENSSL_USE_APPLINK" } @{$target{defines}}; "" -}
-	@set -e; for i in $(SRCDIR)/include/openssl/*.h \
-			  $(BLDDIR)/include/openssl/*.h; do \
+	@set -e; for i in $(SRCDIR)/include/gmssl/*.h \
+			  $(BLDDIR)/include/gmssl/*.h; do \
 		fn=`basename $$i`; \
-		echo "install $$i -> $(DESTDIR)$(INSTALLTOP)/include/openssl/$$fn"; \
-		cp $$i $(DESTDIR)$(INSTALLTOP)/include/openssl/$$fn; \
-		chmod 644 $(DESTDIR)$(INSTALLTOP)/include/openssl/$$fn; \
+		echo "install $$i -> $(DESTDIR)$(INSTALLTOP)/include/gmssl/$$fn"; \
+		cp $$i $(DESTDIR)$(INSTALLTOP)/include/gmssl/$$fn; \
+		chmod 644 $(DESTDIR)$(INSTALLTOP)/include/gmssl/$$fn; \
 	done
 	@$(PERL) $(SRCDIR)/util/mkdir-p.pl $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)
 	@set -e; for l in $(INSTALL_LIBS); do \
@@ -398,12 +398,12 @@ install_dev:
 	done
 	@ : {- output_on() if $disabled{shared}; "" -}
 	@$(PERL) $(SRCDIR)/util/mkdir-p.pl $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
-	@echo "install libcrypto.pc -> $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libcrypto.pc"
-	@cp libcrypto.pc $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
-	@chmod 644 $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libcrypto.pc
-	@echo "install libssl.pc -> $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libssl.pc"
-	@cp libssl.pc $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
-	@chmod 644 $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libssl.pc
+	@echo "install libgmcrypto.pc -> $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libgmcrypto.pc"
+	@cp libgmcrypto.pc $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
+	@chmod 644 $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libgmcrypto.pc
+	@echo "install libgmssl.pc -> $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libgmssl.pc"
+	@cp libgmssl.pc $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
+	@chmod 644 $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libgmssl.pc
 	@echo "install openssl.pc -> $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/openssl.pc"
 	@cp openssl.pc $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
 	@chmod 644 $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/openssl.pc
@@ -411,16 +411,16 @@ install_dev:
 uninstall_dev:
 	@echo "*** Uninstalling development files"
 	@ : {- output_off() unless grep { $_ eq "OPENSSL_USE_APPLINK" } @{$target{defines}}; "" -}
-	@echo "$(RM) $(DESTDIR)$(INSTALLTOP)/include/openssl/applink.c"
-	@$(RM) $(DESTDIR)$(INSTALLTOP)/include/openssl/applink.c
+	@echo "$(RM) $(DESTDIR)$(INSTALLTOP)/include/gmssl/applink.c"
+	@$(RM) $(DESTDIR)$(INSTALLTOP)/include/gmssl/applink.c
 	@ : {- output_on() unless grep { $_ eq "OPENSSL_USE_APPLINK" } @{$target{defines}}; "" -}
-	@set -e; for i in $(SRCDIR)/include/openssl/*.h \
-			  $(BLDDIR)/include/openssl/*.h; do \
+	@set -e; for i in $(SRCDIR)/include/gmssl/*.h \
+			  $(BLDDIR)/include/gmssl/*.h; do \
 		fn=`basename $$i`; \
-		echo "$(RM) $(DESTDIR)$(INSTALLTOP)/include/openssl/$$fn"; \
-		$(RM) $(DESTDIR)$(INSTALLTOP)/include/openssl/$$fn; \
+		echo "$(RM) $(DESTDIR)$(INSTALLTOP)/include/gmssl/$$fn"; \
+		$(RM) $(DESTDIR)$(INSTALLTOP)/include/gmssl/$$fn; \
 	done
-	-$(RMDIR) $(DESTDIR)$(INSTALLTOP)/include/openssl
+	-$(RMDIR) $(DESTDIR)$(INSTALLTOP)/include/gmssl
 	-$(RMDIR) $(DESTDIR)$(INSTALLTOP)/include
 	@set -e; for l in $(INSTALL_LIBS); do \
 		fn=`basename $$l`; \
@@ -446,8 +446,8 @@ uninstall_dev:
 		: {- output_on() unless windowsdll(); "" -}; \
 	done
 	@ : {- output_on() if $disabled{shared}; "" -}
-	$(RM) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libcrypto.pc
-	$(RM) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libssl.pc
+	$(RM) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libgmcrypto.pc
+	$(RM) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/libgmssl.pc
 	$(RM) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig/openssl.pc
 	-$(RMDIR) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)/pkgconfig
 	-$(RMDIR) $(DESTDIR)$(INSTALLTOP)/$(LIBDIR)
@@ -696,9 +696,9 @@ generate_crypto_objects:
 	( cd $(SRCDIR); $(PERL) crypto/objects/objects.pl \
 				crypto/objects/objects.txt \
 				crypto/objects/obj_mac.num \
-				include/openssl/obj_mac.h )
+				include/gmssl/obj_mac.h )
 	( cd $(SRCDIR); $(PERL) crypto/objects/obj_dat.pl \
-				include/openssl/obj_mac.h \
+				include/gmssl/obj_mac.h \
 				crypto/objects/obj_dat.h )
 	( cd $(SRCDIR); $(PERL) crypto/objects/objxref.pl \
 				crypto/objects/obj_mac.num \
@@ -779,34 +779,34 @@ FORCE:
 
 # Building targets ###################################################
 
-libcrypto.pc libssl.pc openssl.pc: configdata.pm $(LIBS) {- join(" ",map { shlib_simple($_) } @{$unified_info{libraries}}) -}
-libcrypto.pc:
+libgmcrypto.pc libgmssl.pc openssl.pc: configdata.pm $(LIBS) {- join(" ",map { shlib_simple($_) } @{$unified_info{libraries}}) -}
+libgmcrypto.pc:
 	@ ( echo 'prefix=$(INSTALLTOP)'; \
 	    echo 'exec_prefix=$${prefix}'; \
 	    echo 'libdir=$${exec_prefix}/$(LIBDIR)'; \
 	    echo 'includedir=$${prefix}/include'; \
 	    echo 'enginesdir=$${libdir}/engines-{- $sover -}'; \
 	    echo ''; \
-	    echo 'Name: GmSSL-libcrypto'; \
+	    echo 'Name: GmSSL-libgmcrypto'; \
 	    echo 'Description: GmSSL cryptography library'; \
 	    echo 'Version: '$(VERSION); \
 	    echo 'Libs: -L$${libdir} -lcrypto'; \
 	    echo 'Libs.private: $(EX_LIBS)'; \
-	    echo 'Cflags: -I$${includedir}' ) > libcrypto.pc
+	    echo 'Cflags: -I$${includedir}' ) > libgmcrypto.pc
 
-libssl.pc:
+libgmssl.pc:
 	@ ( echo 'prefix=$(INSTALLTOP)'; \
 	    echo 'exec_prefix=$${prefix}'; \
 	    echo 'libdir=$${exec_prefix}/$(LIBDIR)'; \
 	    echo 'includedir=$${prefix}/include'; \
 	    echo ''; \
-	    echo 'Name: GmSSL-libssl'; \
+	    echo 'Name: GmSSL-libgmssl'; \
 	    echo 'Description: Secure Sockets Layer and cryptography libraries'; \
 	    echo 'Version: '$(VERSION); \
-	    echo 'Requires.private: libcrypto'; \
+	    echo 'Requires.private: libgmcrypto'; \
 	    echo 'Libs: -L$${libdir} -lssl'; \
 	    echo 'Libs.private: $(EX_LIBS)'; \
-	    echo 'Cflags: -I$${includedir}' ) > libssl.pc
+	    echo 'Cflags: -I$${includedir}' ) > libgmssl.pc
 
 openssl.pc:
 	@ ( echo 'prefix=$(INSTALLTOP)'; \
@@ -817,7 +817,7 @@ openssl.pc:
 	    echo 'Name: GmSSL'; \
 	    echo 'Description: Secure Sockets Layer and cryptography libraries and tools'; \
 	    echo 'Version: '$(VERSION); \
-	    echo 'Requires: libssl libcrypto' ) > openssl.pc
+	    echo 'Requires: libgmssl libgmcrypto' ) > openssl.pc
 
 configdata.pm: $(SRCDIR)/Configure $(SRCDIR)/config {- join(" ", @{$config{build_file_templates}}, @{$config{build_infos}}, @{$config{conf_files}}) -}
 	@echo "Detected changed: $?"

@@ -7,12 +7,12 @@
  * https://www.openssl.org/source/license.html
  */
 
-# include <openssl/e_os2.h>
+# include <gmssl/e_os2.h>
 #ifndef CHARSET_EBCDIC
 NON_EMPTY_TRANSLATION_UNIT
 #else
 
-# include <openssl/ebcdic.h>
+# include <gmssl/ebcdic.h>
 
 /*-
  *      Initial Port for  Apache-1.3     by <Martin.Kraemer@Mch.SNI.De>

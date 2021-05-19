@@ -48,10 +48,10 @@
  *
  */
 
-#include <openssl/err.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/paillier.h>
+#include <gmssl/err.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/paillier.h>
 #include "pai_lcl.h"
 
 static int paillier_cb(int operation, ASN1_VALUE **pval,

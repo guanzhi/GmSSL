@@ -11,11 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/err.h>
-#include <openssl/lhash.h>
-#include <openssl/objects.h>
-#include <openssl/safestack.h>
-#include <openssl/e_os2.h>
+#include <gmssl/err.h>
+#include <gmssl/lhash.h>
+#include <gmssl/objects.h>
+#include <gmssl/safestack.h>
+#include <gmssl/e_os2.h>
 #include "obj_lcl.h"
 
 /*

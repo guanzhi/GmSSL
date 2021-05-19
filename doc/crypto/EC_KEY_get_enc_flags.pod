@@ -9,7 +9,7 @@ EC_KEY_get_enc_flags, EC_KEY_set_enc_flags
 
 =head1 SYNOPSIS
 
- #include <openssl/ec.h>
+ #include <gmssl/ec.h>
 
  unsigned int EC_KEY_get_enc_flags(const EC_KEY *key);
  void EC_KEY_set_enc_flags(EC_KEY *eckey, unsigned int flags);

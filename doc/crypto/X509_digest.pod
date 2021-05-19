@@ -13,7 +13,7 @@ PKCS7_ISSUER_AND_SERIAL_digest,
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  int X509_digest(const X509 *data, const EVP_MD *type, unsigned char *md,
                  unsigned int *len);

@@ -231,13 +231,13 @@
                    Typically OpenSSL will make available all of its supported
                    ciphers and digests. For a statically linked application this
                    may be undesirable if small executable size is an objective.
-                   This only affects libcrypto. Ciphers and digests will have to
+                   This only affects libgmcrypto. Ciphers and digests will have to
                    be loaded manually using EVP_add_cipher() and
                    EVP_add_digest() if this option is used. This option will
                    force a non-shared build.
 
   no-autoerrinit
-                   Don't automatically load all libcrypto/libssl error strings.
+                   Don't automatically load all libgmcrypto/libgmssl error strings.
                    Typically OpenSSL will automatically load human readable
                    error strings. For a statically linked application this may
                    be undesirable if small executable size is an objective.
@@ -337,7 +337,7 @@
 
   no-multiblock
                    Don't build support for writing multiple records in one
-                   go in libssl (Note: this is a different capability to the
+                   go in libgmssl (Note: this is a different capability to the
                    pipelining functionality).
 
   no-nextprotoneg
@@ -402,7 +402,7 @@
                    has an impact when not built "shared".
 
   no-stdio
-                   Don't use any C "stdio" features. Only libcrypto and libssl
+                   Don't use any C "stdio" features. Only libgmcrypto and libgmssl
                    can be built in this way. Using this option will suppress
                    building the command line applications. Additionally since
                    the OpenSSL tests also use the command line applications the
@@ -555,8 +555,8 @@
 
      Configure creates a build file ("Makefile" on Unix, "makefile" on Windows
      and "descrip.mms" on OpenVMS) from a suitable template in Configurations,
-     and defines various macros in include/openssl/opensslconf.h (generated from
-     include/openssl/opensslconf.h.in).
+     and defines various macros in include/gmssl/opensslconf.h (generated from
+     include/gmssl/opensslconf.h.in).
 
  1c. Configure OpenSSL for building outside of the source tree.
 
@@ -602,7 +602,7 @@
        $ mms                                            ! (or mmk) OpenVMS
        $ nmake                                          # Windows
 
-     This will build the OpenSSL libraries (libcrypto.a and libssl.a on
+     This will build the OpenSSL libraries (libgmcrypto.a and libgmssl.a on
      Unix, corresponding on other platforms) and the OpenSSL binary
      ("openssl"). The libraries will be built in the top-level directory,
      and the binary will be in the "apps" subdirectory.
@@ -613,7 +613,7 @@
      get help by sending an email to the openssl-users email list (see
      https://www.openssl.org/community/mailinglists.html for details). If
      it is a bug with OpenSSL itself, please open an issue on GitHub, at
-     https://github.com/openssl/openssl/issues. Please review the existing
+     https://github.com/gmssl/gmssl/issues. Please review the existing
      ones first; maybe the bug was already reported or has already been
      fixed.
 
@@ -683,10 +683,10 @@
 
          bin/           Contains the openssl binary and a few other
                         utility scripts.
-         include/openssl
+         include/gmssl
                         Contains the header files needed if you want
-                        to build your own programs that use libcrypto
-                        or libssl.
+                        to build your own programs that use libgmcrypto
+                        or libgmssl.
          lib            Contains the OpenSSL library files.
          lib/engines    Contains the OpenSSL dynamically loadable engines.
 
@@ -695,10 +695,10 @@
          share/man/man5 Contains the OpenSSL configuration format man-pages.
          share/man/man7 Contains the OpenSSL other misc man-pages.
 
-         share/doc/openssl/html/man1
-         share/doc/openssl/html/man3
-         share/doc/openssl/html/man5
-         share/doc/openssl/html/man7
+         share/doc/gmssl/html/man1
+         share/doc/gmssl/html/man3
+         share/doc/gmssl/html/man5
+         share/doc/gmssl/html/man7
                         Contains the HTML rendition of the man-pages.
 
        OpenVMS ('arch' is replaced with the architecture name, "Alpha"
@@ -710,8 +710,8 @@
          [.EXE]         Contains a few utility scripts.
          [.include.openssl]
                         Contains the header files needed if you want
-                        to build your own programs that use libcrypto
-                        or libssl.
+                        to build your own programs that use libgmcrypto
+                        or libgmssl.
          [.LIB.'arch']  Contains the OpenSSL library files.
          [.ENGINES'sover''pz'.'arch']
                         Contains the OpenSSL dynamically loadable engines.
@@ -747,7 +747,7 @@
   *  COMPILING existing applications
 
      OpenSSL 1.1.0 hides a number of structures that were previously
-     open.  This includes all internal libssl structures and a number
+     open.  This includes all internal libgmssl structures and a number
      of EVP types.  Accessor functions have been added to allow
      controlled access to the structures' data.
 
@@ -906,7 +906,7 @@
  -------------------------
 
  For most systems the OpenSSL Configure script knows what is needed to
- build shared libraries for libcrypto and libssl. On these systems
+ build shared libraries for libgmcrypto and libgmssl. On these systems
  the shared libraries will be created by default. This can be suppressed and
  only static libraries created by using the "no-shared" option. On systems
  where OpenSSL does not know how to build shared libraries the "no-shared"
@@ -917,25 +917,25 @@
  part of the file name, i.e. for OpenSSL 1.1.x, 1.1 is somehow part of
  the name.
 
- On most POSIXly platforms, shared libraries are named libcrypto.so.1.1
- and libssl.so.1.1.
+ On most POSIXly platforms, shared libraries are named libgmcrypto.so.1.1
+ and libgmssl.so.1.1.
 
  on Cygwin, shared libraries are named cygcrypto-1.1.dll and cygssl-1.1.dll
- with import libraries libcrypto.dll.a and libssl.dll.a.
+ with import libraries libgmcrypto.dll.a and libgmssl.dll.a.
 
  On Windows build with MSVC or using MingW, shared libraries are named
- libcrypto-1_1.dll and libssl-1_1.dll for 32-bit Windows, libcrypto-1_1-x64.dll
- and libssl-1_1-x64.dll for 64-bit x86_64 Windows, and libcrypto-1_1-ia64.dll
- and libssl-1_1-ia64.dll for IA64 Windows.  With MSVC, the import libraries
- are named libcrypto.lib and libssl.lib, while with MingW, they are named
- libcrypto.dll.a and libssl.dll.a.
+ libgmcrypto-1_1.dll and libgmssl-1_1.dll for 32-bit Windows, libgmcrypto-1_1-x64.dll
+ and libgmssl-1_1-x64.dll for 64-bit x86_64 Windows, and libgmcrypto-1_1-ia64.dll
+ and libgmssl-1_1-ia64.dll for IA64 Windows.  With MSVC, the import libraries
+ are named libgmcrypto.lib and libgmssl.lib, while with MingW, they are named
+ libgmcrypto.dll.a and libgmssl.dll.a.
 
  On VMS, shareable images (VMS speak for shared libraries) are named
- ossl$libcrypto0101_shr.exe and ossl$libssl0101_shr.exe.  However, when
+ ossl$libgmcrypto0101_shr.exe and ossl$libgmssl0101_shr.exe.  However, when
  OpenSSL is specifically built for 32-bit pointers, the shareable images
- are named ossl$libcrypto0101_shr32.exe and ossl$libssl0101_shr32.exe
+ are named ossl$libgmcrypto0101_shr32.exe and ossl$libgmssl0101_shr32.exe
  instead, and when built for 64-bit pointers, they are named
- ossl$libcrypto0101_shr64.exe and ossl$libssl0101_shr64.exe.
+ ossl$libgmcrypto0101_shr64.exe and ossl$libgmssl0101_shr64.exe.
 
  Note on random number generation
  --------------------------------

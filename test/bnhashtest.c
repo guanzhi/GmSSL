@@ -49,9 +49,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/bn.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/bn.h>
 
 int main(void)
 {

@@ -10,7 +10,7 @@ OPENSSL_LH_node_stats_bio, OPENSSL_LH_node_usage_stats_bio - LHASH statistics
 
 =head1 SYNOPSIS
 
- #include <openssl/lhash.h>
+ #include <gmssl/lhash.h>
 
  void OPENSSL_LH_stats(LHASH *table, FILE *out);
  void OPENSSL_LH_node_stats(LHASH *table, FILE *out);

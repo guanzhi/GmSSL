@@ -10,8 +10,8 @@
 #ifndef HEADER_UI_LOCL_H
 # define HEADER_UI_LOCL_H
 
-# include <openssl/ui.h>
-# include <openssl/crypto.h>
+# include <gmssl/ui.h>
+# include <gmssl/crypto.h>
 
 # ifdef _
 #  undef _

@@ -12,7 +12,7 @@ BIO_get_info_callback, BIO_set_info_callback, bio_info_cb
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
  typedef void (*bio_info_cb)(BIO *b, int oper, const char *ptr, int arg1, long arg2, long arg3);
 

@@ -8,7 +8,7 @@ EVP_SealInit, EVP_SealUpdate, EVP_SealFinal - EVP envelope encryption
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_SealInit(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
                   unsigned char **ek, int *ekl, unsigned char *iv,

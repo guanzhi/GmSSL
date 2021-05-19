@@ -11,12 +11,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/x509v3.h>
-#include <openssl/pkcs12.h>
-#include <openssl/kdf.h>
+#include <gmssl/evp.h>
+#include <gmssl/pem.h>
+#include <gmssl/err.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/pkcs12.h>
+#include <gmssl/kdf.h>
 #include "internal/numbers.h"
 
 /* Remove spaces from beginning and end of a string */

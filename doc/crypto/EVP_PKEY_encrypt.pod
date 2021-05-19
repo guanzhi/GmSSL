@@ -8,7 +8,7 @@ EVP_PKEY_encrypt_init, EVP_PKEY_encrypt - encrypt using a public key algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  int EVP_PKEY_encrypt_init(EVP_PKEY_CTX *ctx);
  int EVP_PKEY_encrypt(EVP_PKEY_CTX *ctx,
@@ -49,9 +49,9 @@ Encrypt data using OAEP (for RSA keys). See also L<PEM_read_PUBKEY(3)> or
 L<d2i_X509(3)> for means to load a public key. You may also simply
 set 'eng = NULL;' to start with the default OpenSSL RSA implementation:
 
- #include <openssl/evp.h>
- #include <openssl/rsa.h>
- #include <openssl/engine.h>
+ #include <gmssl/evp.h>
+ #include <gmssl/rsa.h>
+ #include <gmssl/engine.h>
 
  EVP_PKEY_CTX *ctx;
  ENGINE *eng;

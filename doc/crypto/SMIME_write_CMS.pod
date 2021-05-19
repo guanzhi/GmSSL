@@ -8,7 +8,7 @@ SMIME_write_CMS - convert CMS structure to S/MIME format
 
 =head1 SYNOPSIS
 
- #include <openssl/cms.h>
+ #include <gmssl/cms.h>
 
  int SMIME_write_CMS(BIO *out, CMS_ContentInfo *cms, BIO *data, int flags);
 

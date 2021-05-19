@@ -9,7 +9,7 @@ operations
 
 =head1 SYNOPSIS
 
- #include <openssl/bn.h>
+ #include <gmssl/bn.h>
 
  void BN_zero(BIGNUM *a);
  int BN_one(BIGNUM *a);

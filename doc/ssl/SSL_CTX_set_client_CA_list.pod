@@ -10,7 +10,7 @@ client certificate
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_CTX_set_client_CA_list(SSL_CTX *ctx, STACK_OF(X509_NAME) *list);
  void SSL_set_client_CA_list(SSL *s, STACK_OF(X509_NAME) *list);

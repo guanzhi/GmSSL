@@ -10,7 +10,7 @@ HMAC-based Extract-and-Expand key derivation algorithm
 
 =head1 SYNOPSIS
 
- #include <openssl/kdf.h>
+ #include <gmssl/kdf.h>
 
  int EVP_PKEY_CTX_set_hkdf_md(EVP_PKEY_CTX *pctx, const EVP_MD *md);
 

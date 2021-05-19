@@ -10,16 +10,16 @@
 #include <stdio.h>
 #include <time.h>
 #include "internal/cryptlib.h"
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #include "internal/rand.h"
 
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 
 #ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
-# include <openssl/fips_rand.h>
+# include <gmssl/fips.h>
+# include <gmssl/fips_rand.h>
 #endif
 
 #ifndef OPENSSL_NO_ENGINE

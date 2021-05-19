@@ -8,13 +8,13 @@
  */
 
 #include <stdio.h>
-#include <openssl/crypto.h>
+#include <gmssl/crypto.h>
 #include "internal/cryptlib.h"
 #include <internal/conf.h>
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 
 /*

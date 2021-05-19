@@ -59,9 +59,9 @@ int main(int argc, char **argv)
 	return 0;
 }
 #else
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/paillier.h>
+# include <gmssl/err.h>
+# include <gmssl/evp.h>
+# include <gmssl/paillier.h>
 
 static int test_paillier(int verbose)
 {

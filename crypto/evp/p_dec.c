@@ -58,13 +58,13 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/x509.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 
 int EVP_PKEY_decrypt_old(unsigned char *key, const unsigned char *ek, int ekl,

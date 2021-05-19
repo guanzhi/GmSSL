@@ -8,10 +8,10 @@
  */
 
 #include <stdio.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/pem.h>
+#include <gmssl/err.h>
 
 int main(int ac, char **av)
 {

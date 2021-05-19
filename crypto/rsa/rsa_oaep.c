@@ -24,10 +24,10 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
+#include <gmssl/sha.h>
 #include "rsa_locl.h"
 
 int RSA_padding_add_PKCS1_OAEP(unsigned char *to, int tlen,

@@ -8,7 +8,7 @@ DSA_new, DSA_free - allocate and free DSA objects
 
 =head1 SYNOPSIS
 
- #include <openssl/dsa.h>
+ #include <gmssl/dsa.h>
 
  DSA* DSA_new(void);
 

@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
+#include <gmssl/objects.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
 #include "x509_lcl.h"
 
 /*-

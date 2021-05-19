@@ -25,8 +25,8 @@ Typically it will initially look like this:
 
     /* Include files */
 
-    #include <openssl/bio.h>
-    #include <openssl/x509.h>
+    #include <gmssl/bio.h>
+    #include <gmssl/x509.h>
 
     /* Macros, structures and function prototypes */
 
@@ -39,6 +39,6 @@ after this point will be overwritten when make errors is run.
 The closing #endif etc will be automatically added by the script.
 
 The generated C error code file xxx_err.c will load the header
-files stdio.h, openssl/err.h and openssl/xxx.h so the
+files stdio.h, gmssl/err.h and gmssl/xxx.h so the
 header file must load any additional header files containing any
 definitions it uses.

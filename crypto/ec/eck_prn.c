@@ -15,9 +15,9 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/ec.h>
-#include <openssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/ec.h>
+#include <gmssl/bn.h>
 
 #ifndef OPENSSL_NO_STDIO
 int ECPKParameters_print_fp(FILE *fp, const EC_GROUP *x, int off)

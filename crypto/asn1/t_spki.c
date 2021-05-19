@@ -9,15 +9,15 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 
 /* Print out an SPKI */
 

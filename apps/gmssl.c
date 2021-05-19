@@ -10,19 +10,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
-#include <openssl/lhash.h>
-#include <openssl/conf.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/ssl.h>
+#include <gmssl/bio.h>
+#include <gmssl/crypto.h>
+#include <gmssl/lhash.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509.h>
+#include <gmssl/pem.h>
+#include <gmssl/ssl.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
+# include <gmssl/fips.h>
 #endif
 #define USE_SOCKETS /* needed for the _O_BINARY defs in the MS world */
 #include "s_apps.h"

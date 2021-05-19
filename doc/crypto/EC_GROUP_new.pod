@@ -15,7 +15,7 @@ objects
 
 =head1 SYNOPSIS
 
- #include <openssl/ec.h>
+ #include <gmssl/ec.h>
 
  EC_GROUP *EC_GROUP_new(const EC_METHOD *meth);
  EC_GROUP *EC_GROUP_new_from_ecparameters(const ECPARAMETERS *params)

@@ -51,14 +51,14 @@
 #include "internal/cryptlib.h"
 
 #ifndef OPENSSL_NO_SM9
-# include <openssl/sm9.h>
-# include <openssl/evp.h>
-# include <openssl/x509.h>
-# include <openssl/objects.h>
+# include <gmssl/sm9.h>
+# include <gmssl/evp.h>
+# include <gmssl/x509.h>
+# include <gmssl/objects.h>
 # include "internal/evp_int.h"
 
 # ifndef OPENSSL_NO_SM3
-#  include <openssl/sm3.h>
+#  include <gmssl/sm3.h>
 
 static int sm9hash2_sm3_init(EVP_MD_CTX *ctx)
 {
@@ -117,7 +117,7 @@ const EVP_MD *EVP_sm9hash2_sm3(void)
 # endif /* OPENSSL_NO_SM3 */
 
 # ifndef OPENSSL_NO_SHA256
-#  include <openssl/sha.h>
+#  include <gmssl/sha.h>
 
 static int sm9hash2_sha256_init(EVP_MD_CTX *ctx)
 {

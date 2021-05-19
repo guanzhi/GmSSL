@@ -49,18 +49,18 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
+#include <gmssl/bio.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
 #ifndef OPENSSL_NO_PKCS7
-# include <openssl/pkcs7.h>
+# include <gmssl/pkcs7.h>
 #endif
-#include <openssl/pem.h>
+#include <gmssl/pem.h>
 #ifndef OPENSSL_NO_PAILLIER
-# include <openssl/paillier.h>
+# include <gmssl/paillier.h>
 #endif
 #ifndef OPENSSL_NO_SM9
-# include <openssl/sm9.h>
+# include <gmssl/sm9.h>
 #endif
 
 

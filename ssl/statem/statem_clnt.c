@@ -98,22 +98,22 @@
 #include <stdio.h>
 #include "../ssl_locl.h"
 #include "statem_locl.h"
-#include <openssl/buffer.h>
-#include <openssl/rand.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
+#include <gmssl/buffer.h>
+#include <gmssl/rand.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
 #ifndef OPENSSL_NO_MD5
-# include <openssl/md5.h>
+# include <gmssl/md5.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 
 static ossl_inline int cert_req_allowed(SSL *s);

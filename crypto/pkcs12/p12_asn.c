@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/pkcs12.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/pkcs12.h>
 #include "p12_lcl.h"
 
 /* PKCS#12 ASN1 module */

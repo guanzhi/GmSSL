@@ -9,8 +9,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/opensslconf.h>
-#include <openssl/ripemd.h>
+#include <gmssl/opensslconf.h>
+#include <gmssl/ripemd.h>
 
 /*
  * DO EXAMINE COMMENTS IN crypto/md5/md5_locl.h & crypto/md5/md5_dgst.c

@@ -14,16 +14,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/engine.h>
-#include <openssl/sha.h>
-#include <openssl/aes.h>
-#include <openssl/rsa.h>
-#include <openssl/evp.h>
-#include <openssl/async.h>
-#include <openssl/bn.h>
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-#include <openssl/modes.h>
+#include <gmssl/engine.h>
+#include <gmssl/sha.h>
+#include <gmssl/aes.h>
+#include <gmssl/rsa.h>
+#include <gmssl/evp.h>
+#include <gmssl/async.h>
+#include <gmssl/bn.h>
+#include <gmssl/crypto.h>
+#include <gmssl/ssl.h>
+#include <gmssl/modes.h>
 
 #if (defined(OPENSSL_SYS_UNIX) || defined(OPENSSL_SYS_CYGWIN)) && defined(OPENSSL_THREADS)
 # undef ASYNC_POSIX

@@ -8,7 +8,7 @@
  */
 
 #include "ssl_locl.h"
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 
 struct pqueue_st {
     pitem *items;

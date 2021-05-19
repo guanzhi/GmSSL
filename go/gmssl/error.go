@@ -50,8 +50,8 @@
 package gmssl
 
 /*
-#include <openssl/err.h>
-#include <openssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/bio.h>
 
 
 extern long _BIO_get_mem_data(BIO *b, char **pp);

@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/opensslconf.h> /* To see if OPENSSL_NO_EC is defined */
+#include <gmssl/opensslconf.h> /* To see if OPENSSL_NO_EC is defined */
 
 #ifdef OPENSSL_NO_EC
 int main(int argc, char *argv[])
@@ -35,16 +35,16 @@ int main(int argc, char *argv[])
 }
 #else
 
-# include <openssl/crypto.h>
-# include <openssl/bio.h>
-# include <openssl/evp.h>
-# include <openssl/bn.h>
-# include <openssl/ec.h>
+# include <gmssl/crypto.h>
+# include <gmssl/bio.h>
+# include <gmssl/evp.h>
+# include <gmssl/bn.h>
+# include <gmssl/ec.h>
 # ifndef OPENSSL_NO_ENGINE
-#  include <openssl/engine.h>
+#  include <gmssl/engine.h>
 # endif
-# include <openssl/err.h>
-# include <openssl/rand.h>
+# include <gmssl/err.h>
+# include <gmssl/rand.h>
 
 static const char rnd_seed[] = "string to make the random number generator "
     "think it has entropy";

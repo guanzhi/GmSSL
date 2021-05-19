@@ -15,7 +15,7 @@ EVP_get_digestbynid, EVP_get_digestbyobj - EVP digest routines
 
 =head1 SYNOPSIS
 
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  EVP_MD_CTX *EVP_MD_CTX_new(void);
  int EVP_MD_CTX_reset(EVP_MD_CTX *ctx);
@@ -194,7 +194,7 @@ This example digests the data "Test Message\n" and "Hello World\n", using the
 digest name passed on the command line.
 
  #include <stdio.h>
- #include <openssl/evp.h>
+ #include <gmssl/evp.h>
 
  main(int argc, char *argv[])
  {

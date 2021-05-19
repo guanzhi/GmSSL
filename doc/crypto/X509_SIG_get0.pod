@@ -8,7 +8,7 @@ X509_SIG_get0, X509_SIG_getm - DigestInfo functions
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  void X509_SIG_get0(const X509_SIG *sig, const X509_ALGOR **palg,
                     const ASN1_OCTET_STRING **pdigest);

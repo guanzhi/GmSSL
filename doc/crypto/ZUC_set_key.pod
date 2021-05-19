@@ -8,7 +8,7 @@ ZUC_set_key, ZUC_generate_keystream, ZUC_generate_keyword - ZUC Stream Cipher
 
 =head1 SYNOPSIS
 
- #include <openssl/zuc.h>
+ #include <gmssl/zuc.h>
 
  void ZUC_set_key(ZUC_KEY *key, const unsigned char *user_key, const unsigned char *iv);
  void ZUC_generate_keystream(ZUC_KEY *key, size_t nwords, uint32_t *words);

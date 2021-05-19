@@ -27,21 +27,21 @@
 #endif
 #include <ctype.h>
 #include <errno.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/pem.h>
-#include <openssl/pkcs12.h>
-#include <openssl/ui.h>
-#include <openssl/safestack.h>
+#include <gmssl/err.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/pem.h>
+#include <gmssl/pkcs12.h>
+#include <gmssl/ui.h>
+#include <gmssl/safestack.h>
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
-#include <openssl/bn.h>
-#include <openssl/ssl.h>
+#include <gmssl/bn.h>
+#include <gmssl/ssl.h>
 #include "s_apps.h"
 #include "apps.h"
 

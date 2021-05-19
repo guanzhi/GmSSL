@@ -47,8 +47,8 @@
  * ====================================================================
  */
 
-#include <openssl/sms4.h>
-#include <openssl/modes.h>
+#include <gmssl/sms4.h>
+#include <gmssl/modes.h>
 
 
 void sms4_ede_set_encrypt_key(sms4_ede_key_t *key,

@@ -11,7 +11,7 @@ X509_CRL_set1_nextUpdate - get or set certificate or CRL dates
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  const ASN1_TIME *X509_get0_notBefore(const X509 *x);
  const ASN1_TIME *X509_get0_notAfter(const X509 *x);

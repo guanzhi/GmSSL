@@ -13,14 +13,14 @@
 #include <limits.h>
 #include <errno.h>
 
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
+#include <gmssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/ssl.h>
+#include <gmssl/err.h>
+#include <gmssl/conf.h>
 #ifndef OPENSSL_NO_ENGINE
-#include <openssl/engine.h>
+#include <gmssl/engine.h>
 #endif
 
 #include "../e_os.h"

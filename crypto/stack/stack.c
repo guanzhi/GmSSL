@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include "internal/cryptlib.h"
 #include "internal/numbers.h"
-#include <openssl/stack.h>
-#include <openssl/objects.h>
+#include <gmssl/stack.h>
+#include <gmssl/objects.h>
 
 struct stack_st {
     int num;

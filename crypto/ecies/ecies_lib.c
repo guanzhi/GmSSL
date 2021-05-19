@@ -52,19 +52,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #ifndef OPENSSL_NO_AES
-# include <openssl/aes.h>
+# include <gmssl/aes.h>
 #endif
-#include <openssl/hmac.h>
+#include <gmssl/hmac.h>
 #ifndef OPENSSL_NO_CMAC
-# include <openssl/cmac.h>
+# include <gmssl/cmac.h>
 #endif
-#include <openssl/rand.h>
-#include <openssl/ecdh.h>
-#include <openssl/kdf2.h>
-#include <openssl/ecies.h>
+#include <gmssl/rand.h>
+#include <gmssl/ecdh.h>
+#include <gmssl/kdf2.h>
+#include <gmssl/ecies.h>
 #include "internal/o_str.h"
 #include "ecies_lcl.h"
 

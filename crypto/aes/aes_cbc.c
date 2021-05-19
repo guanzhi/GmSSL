@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/aes.h>
-#include <openssl/modes.h>
+#include <gmssl/aes.h>
+#include <gmssl/modes.h>
 
 void AES_cbc_encrypt(const unsigned char *in, unsigned char *out,
                      size_t len, const AES_KEY *key,

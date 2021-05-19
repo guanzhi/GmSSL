@@ -15,8 +15,8 @@ BIO_ssl_shutdown - SSL BIO
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
- #include <openssl/ssl.h>
+ #include <gmssl/bio.h>
+ #include <gmssl/ssl.h>
 
  const BIO_METHOD *BIO_f_ssl(void);
 

@@ -8,7 +8,7 @@ SSL_CTX_sess_number, SSL_CTX_sess_connect, SSL_CTX_sess_connect_good, SSL_CTX_se
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  long SSL_CTX_sess_number(SSL_CTX *ctx);
  long SSL_CTX_sess_connect(SSL_CTX *ctx);

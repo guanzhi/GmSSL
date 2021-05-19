@@ -174,13 +174,13 @@ foreach (@ARGV, split(/ /, $config{options}))
 		$zlib = 1;
 	}
 
-	$do_ssl=1 if $_ eq "libssl";
-	if ($_ eq "ssl") {
+	$do_ssl=1 if $_ eq "libgmssl";
+	if ($_ eq "gmssl") {
 		$do_ssl=1; 
 		$libname=$_
 	}
-	$do_crypto=1 if $_ eq "libcrypto";
-	if ($_ eq "crypto") {
+	$do_crypto=1 if $_ eq "libgmcrypto";
+	if ($_ eq "gmcrypto") {
 		$do_crypto=1;
 		$libname=$_;
 	}
@@ -242,96 +242,96 @@ $max_ssl = $max_num;
 %crypto_list=&load_numbers($crypto_num);
 $max_crypto = $max_num;
 
-my $ssl="include/openssl/ssl.h";
-$ssl.=" include/openssl/tls1.h";
-$ssl.=" include/openssl/srtp.h";
+my $ssl="include/gmssl/ssl.h";
+$ssl.=" include/gmssl/tls1.h";
+$ssl.=" include/gmssl/srtp.h";
 
-# We use headers found in include/openssl and include/internal only.
-# The latter is needed so libssl.so/.dll/.exe can link properly.
-my $crypto ="include/openssl/crypto.h";
+# We use headers found in include/gmssl and include/internal only.
+# The latter is needed so libgmssl.so/.dll/.exe can link properly.
+my $crypto ="include/gmssl/crypto.h";
 $crypto.=" include/internal/o_dir.h";
 $crypto.=" include/internal/o_str.h";
 $crypto.=" include/internal/err.h";
-$crypto.=" include/openssl/des.h" ; # unless $no_des;
-$crypto.=" include/openssl/idea.h" ; # unless $no_idea;
-$crypto.=" include/openssl/rc4.h" ; # unless $no_rc4;
-$crypto.=" include/openssl/rc5.h" ; # unless $no_rc5;
-$crypto.=" include/openssl/rc2.h" ; # unless $no_rc2;
-$crypto.=" include/openssl/blowfish.h" ; # unless $no_bf;
-$crypto.=" include/openssl/cast.h" ; # unless $no_cast;
-$crypto.=" include/openssl/whrlpool.h" ;
-$crypto.=" include/openssl/md2.h" ; # unless $no_md2;
-$crypto.=" include/openssl/md4.h" ; # unless $no_md4;
-$crypto.=" include/openssl/md5.h" ; # unless $no_md5;
-$crypto.=" include/openssl/mdc2.h" ; # unless $no_mdc2;
-$crypto.=" include/openssl/sha.h" ; # unless $no_sha;
-$crypto.=" include/openssl/ripemd.h" ; # unless $no_ripemd;
-$crypto.=" include/openssl/aes.h" ; # unless $no_aes;
-$crypto.=" include/openssl/camellia.h" ; # unless $no_camellia;
-$crypto.=" include/openssl/seed.h"; # unless $no_seed;
+$crypto.=" include/gmssl/des.h" ; # unless $no_des;
+$crypto.=" include/gmssl/idea.h" ; # unless $no_idea;
+$crypto.=" include/gmssl/rc4.h" ; # unless $no_rc4;
+$crypto.=" include/gmssl/rc5.h" ; # unless $no_rc5;
+$crypto.=" include/gmssl/rc2.h" ; # unless $no_rc2;
+$crypto.=" include/gmssl/blowfish.h" ; # unless $no_bf;
+$crypto.=" include/gmssl/cast.h" ; # unless $no_cast;
+$crypto.=" include/gmssl/whrlpool.h" ;
+$crypto.=" include/gmssl/md2.h" ; # unless $no_md2;
+$crypto.=" include/gmssl/md4.h" ; # unless $no_md4;
+$crypto.=" include/gmssl/md5.h" ; # unless $no_md5;
+$crypto.=" include/gmssl/mdc2.h" ; # unless $no_mdc2;
+$crypto.=" include/gmssl/sha.h" ; # unless $no_sha;
+$crypto.=" include/gmssl/ripemd.h" ; # unless $no_ripemd;
+$crypto.=" include/gmssl/aes.h" ; # unless $no_aes;
+$crypto.=" include/gmssl/camellia.h" ; # unless $no_camellia;
+$crypto.=" include/gmssl/seed.h"; # unless $no_seed;
 
-$crypto.=" include/openssl/bn.h";
-$crypto.=" include/openssl/rsa.h" ; # unless $no_rsa;
-$crypto.=" include/openssl/dsa.h" ; # unless $no_dsa;
-$crypto.=" include/openssl/dh.h" ; # unless $no_dh;
-$crypto.=" include/openssl/ec.h" ; # unless $no_ec;
-$crypto.=" include/openssl/hmac.h" ; # unless $no_hmac;
-$crypto.=" include/openssl/cmac.h" ;
+$crypto.=" include/gmssl/bn.h";
+$crypto.=" include/gmssl/rsa.h" ; # unless $no_rsa;
+$crypto.=" include/gmssl/dsa.h" ; # unless $no_dsa;
+$crypto.=" include/gmssl/dh.h" ; # unless $no_dh;
+$crypto.=" include/gmssl/ec.h" ; # unless $no_ec;
+$crypto.=" include/gmssl/hmac.h" ; # unless $no_hmac;
+$crypto.=" include/gmssl/cmac.h" ;
 
-$crypto.=" include/openssl/engine.h"; # unless $no_engine;
-$crypto.=" include/openssl/stack.h" ; # unless $no_stack;
-$crypto.=" include/openssl/buffer.h" ; # unless $no_buffer;
-$crypto.=" include/openssl/bio.h" ; # unless $no_bio;
+$crypto.=" include/gmssl/engine.h"; # unless $no_engine;
+$crypto.=" include/gmssl/stack.h" ; # unless $no_stack;
+$crypto.=" include/gmssl/buffer.h" ; # unless $no_buffer;
+$crypto.=" include/gmssl/bio.h" ; # unless $no_bio;
 $crypto.=" include/internal/dso.h" ; # unless $no_dso;
-$crypto.=" include/openssl/lhash.h" ; # unless $no_lhash;
-$crypto.=" include/openssl/conf.h";
-$crypto.=" include/openssl/txt_db.h";
+$crypto.=" include/gmssl/lhash.h" ; # unless $no_lhash;
+$crypto.=" include/gmssl/conf.h";
+$crypto.=" include/gmssl/txt_db.h";
 
-$crypto.=" include/openssl/evp.h" ; # unless $no_evp;
-$crypto.=" include/openssl/objects.h";
-$crypto.=" include/openssl/pem.h";
-#$crypto.=" include/openssl/meth.h";
-$crypto.=" include/openssl/asn1.h";
-$crypto.=" include/openssl/asn1t.h";
-$crypto.=" include/openssl/err.h" ; # unless $no_err;
-$crypto.=" include/openssl/pkcs7.h";
-$crypto.=" include/openssl/pkcs12.h";
-$crypto.=" include/openssl/x509.h";
-$crypto.=" include/openssl/x509_vfy.h";
-$crypto.=" include/openssl/x509v3.h";
-$crypto.=" include/openssl/ts.h";
-$crypto.=" include/openssl/rand.h";
-$crypto.=" include/openssl/comp.h" ; # unless $no_comp;
-$crypto.=" include/openssl/ocsp.h";
-$crypto.=" include/openssl/ui.h";
-#$crypto.=" include/openssl/store.h";
-$crypto.=" include/openssl/cms.h";
-$crypto.=" include/openssl/srp.h";
-$crypto.=" include/openssl/modes.h";
-$crypto.=" include/openssl/async.h";
-$crypto.=" include/openssl/ct.h";
-$crypto.=" include/openssl/kdf.h";
+$crypto.=" include/gmssl/evp.h" ; # unless $no_evp;
+$crypto.=" include/gmssl/objects.h";
+$crypto.=" include/gmssl/pem.h";
+#$crypto.=" include/gmssl/meth.h";
+$crypto.=" include/gmssl/asn1.h";
+$crypto.=" include/gmssl/asn1t.h";
+$crypto.=" include/gmssl/err.h" ; # unless $no_err;
+$crypto.=" include/gmssl/pkcs7.h";
+$crypto.=" include/gmssl/pkcs12.h";
+$crypto.=" include/gmssl/x509.h";
+$crypto.=" include/gmssl/x509_vfy.h";
+$crypto.=" include/gmssl/x509v3.h";
+$crypto.=" include/gmssl/ts.h";
+$crypto.=" include/gmssl/rand.h";
+$crypto.=" include/gmssl/comp.h" ; # unless $no_comp;
+$crypto.=" include/gmssl/ocsp.h";
+$crypto.=" include/gmssl/ui.h";
+#$crypto.=" include/gmssl/store.h";
+$crypto.=" include/gmssl/cms.h";
+$crypto.=" include/gmssl/srp.h";
+$crypto.=" include/gmssl/modes.h";
+$crypto.=" include/gmssl/async.h";
+$crypto.=" include/gmssl/ct.h";
+$crypto.=" include/gmssl/kdf.h";
 # GmSSL
-$crypto.=" include/openssl/ecies.h";
-$crypto.=" include/openssl/gmapi.h";
-$crypto.=" include/openssl/gmsdf.h";
-$crypto.=" include/openssl/gmskf.h";
-$crypto.=" include/openssl/kdf2.h";
-$crypto.=" include/openssl/otp.h";
-$crypto.=" include/openssl/paillier.h";
-$crypto.=" include/openssl/sdf.h";
-$crypto.=" include/openssl/sgd.h";
-$crypto.=" include/openssl/skf.h";
-$crypto.=" include/openssl/sm1.h";
-$crypto.=" include/openssl/sm2.h";
-$crypto.=" include/openssl/sm3.h";
-$crypto.=" include/openssl/sm9.h";
-$crypto.=" include/openssl/sms4.h";
-$crypto.=" include/openssl/ssf33.h";
-$crypto.=" include/openssl/zuc.h";
+$crypto.=" include/gmssl/ecies.h";
+$crypto.=" include/gmssl/gmapi.h";
+$crypto.=" include/gmssl/gmsdf.h";
+$crypto.=" include/gmssl/gmskf.h";
+$crypto.=" include/gmssl/kdf2.h";
+$crypto.=" include/gmssl/otp.h";
+$crypto.=" include/gmssl/paillier.h";
+$crypto.=" include/gmssl/sdf.h";
+$crypto.=" include/gmssl/sgd.h";
+$crypto.=" include/gmssl/skf.h";
+$crypto.=" include/gmssl/sm1.h";
+$crypto.=" include/gmssl/sm2.h";
+$crypto.=" include/gmssl/sm3.h";
+$crypto.=" include/gmssl/sm9.h";
+$crypto.=" include/gmssl/sms4.h";
+$crypto.=" include/gmssl/ssf33.h";
+$crypto.=" include/gmssl/zuc.h";
 
 
-my $symhacks="include/openssl/symhacks.h";
+my $symhacks="include/gmssl/symhacks.h";
 
 my @ssl_symbols = &do_defs("LIBSSL", $ssl, $symhacks);
 my @crypto_symbols = &do_defs("LIBCRYPTO", $crypto, $symhacks);
@@ -1576,7 +1576,7 @@ sub count_parens
 #version
 sub get_openssl_version()
 {
-	my $fn = catfile($config{sourcedir},"include","openssl","opensslv.h");
+	my $fn = catfile($config{sourcedir},"include","gmssl","opensslv.h");
 	open (IN, "$fn") || die "Can't open opensslv.h";
 
 	while(<IN>) {

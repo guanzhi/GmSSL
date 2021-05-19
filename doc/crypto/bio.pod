@@ -12,7 +12,7 @@ bio - Basic I/O abstraction
 
 =head1 SYNOPSIS
 
- #include <openssl/bio.h>
+ #include <gmssl/bio.h>
 
 =head1 DESCRIPTION
 

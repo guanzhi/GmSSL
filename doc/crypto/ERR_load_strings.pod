@@ -9,7 +9,7 @@ arbitrary error strings
 
 =head1 SYNOPSIS
 
- #include <openssl/err.h>
+ #include <gmssl/err.h>
 
  void ERR_load_strings(int lib, ERR_STRING_DATA str[]);
 

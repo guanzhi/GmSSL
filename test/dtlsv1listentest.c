@@ -8,12 +8,12 @@
  */
 
 #include <string.h>
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/conf.h>
+#include <gmssl/ssl.h>
+#include <gmssl/bio.h>
+#include <gmssl/err.h>
+#include <gmssl/conf.h>
 #ifndef OPENSSL_NO_ENGINE
- #include <openssl/engine.h>
+ #include <gmssl/engine.h>
 #endif
 #include "e_os.h"
 

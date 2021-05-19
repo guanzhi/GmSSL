@@ -16,7 +16,7 @@ DES_fcrypt, DES_crypt - DES encryption
 
 =head1 SYNOPSIS
 
- #include <openssl/des.h>
+ #include <gmssl/des.h>
 
  void DES_random_key(DES_cblock *ret);
 

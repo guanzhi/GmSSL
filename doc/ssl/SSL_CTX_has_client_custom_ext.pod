@@ -9,7 +9,7 @@ client extension type
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CTX_has_client_custom_ext(const SSL_CTX *ctx, unsigned int ext_type);
 

@@ -50,9 +50,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/crypto.h>
-#include <openssl/paillier.h>
+#include <gmssl/err.h>
+#include <gmssl/crypto.h>
+#include <gmssl/paillier.h>
 #include "pai_lcl.h"
 
 PAILLIER *PAILLIER_new(void)

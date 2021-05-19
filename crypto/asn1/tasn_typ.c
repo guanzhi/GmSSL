@@ -8,8 +8,8 @@
  */
 
 #include <stdio.h>
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
+#include <gmssl/asn1.h>
+#include <gmssl/asn1t.h>
 
 /* Declarations for string types */
 

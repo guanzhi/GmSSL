@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #ifdef OPENSSL_NO_DH
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -17,15 +17,15 @@ NON_EMPTY_TRANSLATION_UNIT
 # include <time.h>
 # include <string.h>
 # include "apps.h"
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/bn.h>
-# include <openssl/dh.h>
-# include <openssl/x509.h>
-# include <openssl/pem.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
+# include <gmssl/bn.h>
+# include <gmssl/dh.h>
+# include <gmssl/x509.h>
+# include <gmssl/pem.h>
 
 # ifndef OPENSSL_NO_DSA
-#  include <openssl/dsa.h>
+#  include <gmssl/dsa.h>
 # endif
 
 # define DEFBITS 2048
@@ -306,7 +306,7 @@ int dhparam_main(int argc, char **argv)
         DH_get0_pqg(dh, &pbn, NULL, &gbn);
         data = app_malloc(len, "print a BN");
         BIO_printf(out, "#ifndef HEADER_DH_H\n"
-                        "# include <openssl/dh.h>\n"
+                        "# include <gmssl/dh.h>\n"
                         "#endif\n"
                         "\n");
         BIO_printf(out, "DH *get_dh%d()\n{\n", bits);

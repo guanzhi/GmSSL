@@ -9,13 +9,13 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/asn1t.h>
-#include <openssl/x509.h>
-#include <openssl/rsa.h>
-#include <openssl/bn.h>
-#include <openssl/evp.h>
-#include <openssl/x509v3.h>
-#include <openssl/cms.h>
+#include <gmssl/asn1t.h>
+#include <gmssl/x509.h>
+#include <gmssl/rsa.h>
+#include <gmssl/bn.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/cms.h>
 #include "internal/evp_int.h"
 #include "rsa_locl.h"
 

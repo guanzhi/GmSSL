@@ -8,7 +8,7 @@ SSL_CTX_get_verify_mode, SSL_get_verify_mode, SSL_CTX_get_verify_depth, SSL_get_
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  int SSL_CTX_get_verify_mode(const SSL_CTX *ctx);
  int SSL_get_verify_mode(const SSL *ssl);

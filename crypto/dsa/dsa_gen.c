@@ -14,13 +14,13 @@
  */
 #define xxxHASH    EVP_sha1()
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/evp.h>
-#include <openssl/bn.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
+#include <gmssl/evp.h>
+#include <gmssl/bn.h>
+#include <gmssl/rand.h>
+#include <gmssl/sha.h>
 #include "dsa_locl.h"
 
 int DSA_generate_parameters_ex(DSA *ret, int bits,

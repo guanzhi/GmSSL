@@ -11,7 +11,7 @@ subject names
 
 =head1 SYNOPSIS
 
- #include <openssl/x509.h>
+ #include <gmssl/x509.h>
 
  X509_NAME *X509_get_subject_name(const X509 *x);
  int X509_set_subject_name(X509 *x, X509_NAME *name);

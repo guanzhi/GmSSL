@@ -20,7 +20,7 @@ by this library are used by the OpenSSL implementations of SSL, TLS
 and S/MIME, and they have also been used to implement SSH, OpenPGP, and
 other cryptographic standards.
 
-B<libcrypto> consists of a number of sub-libraries that implement the
+B<libgmcrypto> consists of a number of sub-libraries that implement the
 individual algorithms.
 
 The functionality includes symmetric encryption, public key

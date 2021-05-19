@@ -10,8 +10,8 @@
 #ifndef HEADER_SSL_TEST_CTX_H
 #define HEADER_SSL_TEST_CTX_H
 
-#include <openssl/conf.h>
-#include <openssl/ssl.h>
+#include <gmssl/conf.h>
+#include <gmssl/ssl.h>
 
 typedef enum {
     SSL_TEST_SUCCESS = 0,  /* Default */

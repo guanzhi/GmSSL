@@ -9,7 +9,7 @@
 
 #include "internal/cryptlib.h"
 #ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
+# include <gmssl/fips.h>
 #endif
 
 int FIPS_mode(void)

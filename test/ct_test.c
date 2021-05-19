@@ -13,11 +13,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/ct.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <gmssl/ct.h>
+#include <gmssl/err.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
 #include "testutil.h"
 
 #ifndef OPENSSL_NO_CT

@@ -51,14 +51,14 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include <openssl/e_os2.h>
-#include <openssl/bn.h>
-#include <openssl/ec.h>
-#include <openssl/sm2.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/x509.h>
+#include <gmssl/e_os2.h>
+#include <gmssl/bn.h>
+#include <gmssl/ec.h>
+#include <gmssl/sm2.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
+#include <gmssl/x509.h>
 #include "sm2_lcl.h"
 
 #define EC_MAX_NBYTES  ((OPENSSL_ECC_MAX_FIELD_BITS + 7)/8)

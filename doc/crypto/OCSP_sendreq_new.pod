@@ -10,7 +10,7 @@ OCSP_REQ_CTX_set1_req, OCSP_sendreq_bio - OCSP responder query functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ocsp.h>
+ #include <gmssl/ocsp.h>
 
  OCSP_REQ_CTX *OCSP_sendreq_new(BIO *io, const char *path, OCSP_REQUEST *req,
                                 int maxline);

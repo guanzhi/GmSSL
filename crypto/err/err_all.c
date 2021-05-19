@@ -8,84 +8,84 @@
  */
 
 #include <stdio.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 #include "internal/err_int.h"
-#include <openssl/asn1.h>
-#include <openssl/bn.h>
+#include <gmssl/asn1.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_EC
-# include <openssl/ec.h>
+# include <gmssl/ec.h>
 #endif
-#include <openssl/buffer.h>
-#include <openssl/bio.h>
+#include <gmssl/buffer.h>
+#include <gmssl/bio.h>
 #ifndef OPENSSL_NO_COMP
-# include <openssl/comp.h>
+# include <gmssl/comp.h>
 #endif
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/pem2.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/conf.h>
-#include <openssl/pkcs12.h>
-#include <openssl/rand.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/pem2.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/conf.h>
+#include <gmssl/pkcs12.h>
+#include <gmssl/rand.h>
 #include "internal/dso.h"
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 #ifndef OPENSSL_NO_UI
-# include <openssl/ui.h>
+# include <gmssl/ui.h>
 #endif
 #ifndef OPENSSL_NO_OCSP
-# include <openssl/ocsp.h>
+# include <gmssl/ocsp.h>
 #endif
-#include <openssl/err.h>
+#include <gmssl/err.h>
 #ifdef OPENSSL_FIPS
-# include <openssl/fips.h>
+# include <gmssl/fips.h>
 #endif
 #ifndef OPENSSL_NO_TS
-# include <openssl/ts.h>
+# include <gmssl/ts.h>
 #endif
 #ifndef OPENSSL_NO_CMS
-# include <openssl/cms.h>
+# include <gmssl/cms.h>
 #endif
 #ifndef OPENSSL_NO_CT
-# include <openssl/ct.h>
+# include <gmssl/ct.h>
 #endif
 #ifndef OPENSSL_NO_ASYNC
-# include <openssl/async.h>
+# include <gmssl/async.h>
 #endif
-#include <openssl/kdf.h>
-#include <openssl/kdf2.h>
+#include <gmssl/kdf.h>
+#include <gmssl/kdf2.h>
 #ifndef OPENSSL_NO_PAILLIER
-# include <openssl/paillier.h>
+# include <gmssl/paillier.h>
 #endif
 #ifndef OPENSSL_NO_OTP
-# include <openssl/otp.h>
+# include <gmssl/otp.h>
 #endif
 #ifndef OPENSSL_NO_GMAPI
-# include <openssl/gmapi.h>
+# include <gmssl/gmapi.h>
 #endif
 #ifndef OPENSSL_NO_SM2
-# include <openssl/sm2.h>
+# include <gmssl/sm2.h>
 #endif
 #ifndef OPENSSL_NO_SM9
-# include <openssl/sm9.h>
+# include <gmssl/sm9.h>
 #endif
 #ifndef OPENSSL_NO_SDF
-# include <openssl/gmsdf.h>
+# include <gmssl/gmsdf.h>
 #endif
 #ifndef OPENSSL_NO_SKF
-# include <openssl/gmskf.h>
+# include <gmssl/gmskf.h>
 #endif
 
 

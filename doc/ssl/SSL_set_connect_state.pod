@@ -8,7 +8,7 @@ SSL_set_connect_state, SSL_set_accept_state - prepare SSL object to work in clie
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  void SSL_set_connect_state(SSL *ssl);
 

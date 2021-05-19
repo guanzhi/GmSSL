@@ -46,7 +46,7 @@ ENGINE_unregister_digests
 
 =head1 SYNOPSIS
 
- #include <openssl/engine.h>
+ #include <gmssl/engine.h>
 
  ENGINE *ENGINE_get_first(void);
  ENGINE *ENGINE_get_last(void);
@@ -256,7 +256,7 @@ released on behalf of the caller.
 
 To clarify a particular function's handling of references, one should
 always consult that function's documentation "man" page, or failing that
-the openssl/engine.h header file includes some hints.
+the gmssl/engine.h header file includes some hints.
 
 I<Functional references>
 
@@ -521,7 +521,7 @@ and input parameters of the control commands supported by an ENGINE using a
 structural reference. Note that some control commands are defined by OpenSSL
 itself and it will intercept and handle these control commands on behalf of the
 ENGINE, ie. the ENGINE's ctrl() handler is not used for the control command.
-openssl/engine.h defines an index, ENGINE_CMD_BASE, that all control commands
+gmssl/engine.h defines an index, ENGINE_CMD_BASE, that all control commands
 implemented by ENGINEs should be numbered from. Any command value lower than
 this symbol is considered a "generic" command is handled directly by the
 OpenSSL core routines.

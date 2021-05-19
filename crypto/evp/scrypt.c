@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/err.h>
 #include <internal/numbers.h>
 
 #ifndef OPENSSL_NO_SCRYPT

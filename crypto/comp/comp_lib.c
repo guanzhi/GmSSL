@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/objects.h>
-#include <openssl/comp.h>
+#include <gmssl/objects.h>
+#include <gmssl/comp.h>
 #include "comp_lcl.h"
 
 COMP_CTX *COMP_CTX_new(COMP_METHOD *meth)

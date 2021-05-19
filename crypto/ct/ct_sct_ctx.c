@@ -14,9 +14,9 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <openssl/err.h>
-#include <openssl/obj_mac.h>
-#include <openssl/x509.h>
+#include <gmssl/err.h>
+#include <gmssl/obj_mac.h>
+#include <gmssl/x509.h>
 
 #include "ct_locl.h"
 

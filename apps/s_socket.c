@@ -13,7 +13,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 
 /*
  * With IPv6, it looks like Digital has mixed up the proper order of
@@ -33,8 +33,8 @@ typedef unsigned int u_int;
 # undef USE_SOCKETS
 # include "s_apps.h"
 
-# include <openssl/bio.h>
-# include <openssl/err.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
 
 /*
  * init_client - helper routine to set up socket communication

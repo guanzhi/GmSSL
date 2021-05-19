@@ -50,10 +50,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/bio.h>
-#include <openssl/pem.h>
-#include <openssl/gmskf.h>
-#include <openssl/engine.h>
+#include <gmssl/bio.h>
+#include <gmssl/pem.h>
+#include <gmssl/gmskf.h>
+#include <gmssl/engine.h>
 
 static char *hDeviceHandle	= "hDeviceHandle";
 static char *hApplication	= "hApplication";

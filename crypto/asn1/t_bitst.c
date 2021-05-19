@@ -9,8 +9,8 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/conf.h>
-#include <openssl/x509v3.h>
+#include <gmssl/conf.h>
+#include <gmssl/x509v3.h>
 
 int ASN1_BIT_STRING_name_print(BIO *out, ASN1_BIT_STRING *bs,
                                BIT_STRING_BITNAME *tbl, int indent)

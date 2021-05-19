@@ -48,7 +48,7 @@
  */
 
 #include <string.h>
-#include <openssl/sm3.h>
+#include <gmssl/sm3.h>
 #include "internal/rotate.h"
 #include "internal/byteorder.h"
 #include "modes_lcl.h"

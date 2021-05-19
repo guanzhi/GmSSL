@@ -12,11 +12,11 @@
 
 #ifndef OPENSSL_NO_MD2
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
-# include <openssl/x509.h>
-# include <openssl/md2.h>
-# include <openssl/rsa.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
+# include <gmssl/x509.h>
+# include <gmssl/md2.h>
+# include <gmssl/rsa.h>
 
 #include "internal/evp_int.h"
 

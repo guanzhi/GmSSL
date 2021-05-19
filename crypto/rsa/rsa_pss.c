@@ -9,11 +9,11 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/bn.h>
-#include <openssl/rsa.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
+#include <gmssl/bn.h>
+#include <gmssl/rsa.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
+#include <gmssl/sha.h>
 #include "rsa_locl.h"
 
 static const unsigned char zeroes[] = { 0, 0, 0, 0, 0, 0, 0, 0 };

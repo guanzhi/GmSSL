@@ -11,19 +11,19 @@
 #include <ctype.h>
 #include <string.h>
 #include "internal/cryptlib.h"
-#include <openssl/buffer.h>
-#include <openssl/objects.h>
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/pkcs12.h>
+#include <gmssl/buffer.h>
+#include <gmssl/objects.h>
+#include <gmssl/evp.h>
+#include <gmssl/rand.h>
+#include <gmssl/x509.h>
+#include <gmssl/pem.h>
+#include <gmssl/pkcs12.h>
 #include "internal/asn1_int.h"
 #ifndef OPENSSL_NO_DES
-# include <openssl/des.h>
+# include <gmssl/des.h>
 #endif
 #ifndef OPENSSL_NO_ENGINE
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 #endif
 
 #define MIN_LENGTH      4

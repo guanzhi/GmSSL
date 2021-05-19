@@ -21,10 +21,10 @@
 #  include "ms/uplink.h"
 # endif
 
-# include <openssl/crypto.h>
-# include <openssl/buffer.h>
-# include <openssl/bio.h>
-# include <openssl/err.h>
+# include <gmssl/crypto.h>
+# include <gmssl/buffer.h>
+# include <gmssl/bio.h>
+# include <gmssl/err.h>
 
 #ifdef  __cplusplus
 extern "C" {

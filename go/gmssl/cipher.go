@@ -51,8 +51,8 @@ package gmssl
 
 /*
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/crypto.h>
 
 static void cb_cipher_names_len(const EVP_CIPHER *cipher, const char *from,
 	const char *to, void *x) {
@@ -88,9 +88,9 @@ import "C"
 
 import (
 	"errors"
-	"unsafe"
 	"runtime"
 	"strings"
+	"unsafe"
 )
 
 func GetCipherNames() []string {

@@ -10,7 +10,7 @@ OCSP_request_onereq_get0 - OCSP request functions
 
 =head1 SYNOPSIS
 
- #include <openssl/ocsp.h>
+ #include <gmssl/ocsp.h>
 
  OCSP_REQUEST *OCSP_REQUEST_new(void);
  void OCSP_REQUEST_free(OCSP_REQUEST *req);

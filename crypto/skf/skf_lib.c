@@ -50,8 +50,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/gmskf.h>
+#include <gmssl/err.h>
+#include <gmssl/gmskf.h>
 #include "internal/dso.h"
 #include "internal/skf_int.h"
 #include "../../e_os.h"

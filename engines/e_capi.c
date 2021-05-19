@@ -22,14 +22,14 @@
 #  define alloca _alloca
 # endif
 
-# include <openssl/crypto.h>
+# include <gmssl/crypto.h>
 
 # ifndef OPENSSL_NO_CAPIENG
 
-#  include <openssl/buffer.h>
-#  include <openssl/bn.h>
-#  include <openssl/rsa.h>
-#  include <openssl/dsa.h>
+#  include <gmssl/buffer.h>
+#  include <gmssl/bn.h>
+#  include <gmssl/rsa.h>
+#  include <gmssl/dsa.h>
 
 /*
  * This module uses several "new" interfaces, among which is
@@ -92,9 +92,9 @@
 #  define PROV_RSA_AES 24
 # endif
 
-# include <openssl/engine.h>
-# include <openssl/pem.h>
-# include <openssl/x509v3.h>
+# include <gmssl/engine.h>
+# include <gmssl/pem.h>
+# include <gmssl/x509v3.h>
 
 # include "e_capi_err.h"
 # include "e_capi_err.c"
@@ -1896,7 +1896,7 @@ static int cert_select_dialog(ENGINE *e, SSL *ssl, STACK_OF(X509) *certs)
 # endif
 
 #else                           /* !__COMPILE_CAPIENG */
-# include <openssl/engine.h>
+# include <gmssl/engine.h>
 # ifndef OPENSSL_NO_DYNAMIC_ENGINE
 OPENSSL_EXPORT
     int bind_engine(ENGINE *e, const char *id, const dynamic_fns *fns);

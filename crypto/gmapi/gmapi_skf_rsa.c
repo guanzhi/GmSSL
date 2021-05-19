@@ -52,10 +52,10 @@
 #include "internal/cryptlib.h"
 
 #if !defined(OPENSSL_NO_SKF) && !defined(OPENSSL_NO_RSA)
-# include <openssl/err.h>
-# include <openssl/rsa.h>
-# include <openssl/skf.h>
-# include <openssl/gmapi.h>
+# include <gmssl/err.h>
+# include <gmssl/rsa.h>
+# include <gmssl/skf.h>
+# include <gmssl/gmapi.h>
 
 /* Wrapper functions */
 

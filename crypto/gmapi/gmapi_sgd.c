@@ -49,10 +49,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/sgd.h>
-#include <openssl/gmapi.h>
+#include <gmssl/err.h>
+#include <gmssl/evp.h>
+#include <gmssl/sgd.h>
+#include <gmssl/gmapi.h>
 #include "../../e_os.h"
 
 typedef struct {

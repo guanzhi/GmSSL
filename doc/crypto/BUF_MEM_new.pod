@@ -12,7 +12,7 @@ standard C library equivalents
 
 =head1 SYNOPSIS
 
- #include <openssl/buffer.h>
+ #include <gmssl/buffer.h>
 
  BUF_MEM *BUF_MEM_new(void);
 

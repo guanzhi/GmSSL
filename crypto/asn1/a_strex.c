@@ -11,9 +11,9 @@
 #include <string.h>
 #include "internal/cryptlib.h"
 #include "internal/asn1_int.h"
-#include <openssl/crypto.h>
-#include <openssl/x509.h>
-#include <openssl/asn1.h>
+#include <gmssl/crypto.h>
+#include <gmssl/x509.h>
+#include <gmssl/asn1.h>
 
 #include "charmap.h"
 

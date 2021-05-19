@@ -8,7 +8,7 @@
  */
 
 #ifndef OPENSSL_NO_ENGINE
-#include <openssl/engine.h>
+#include <gmssl/engine.h>
 #endif
 
 void engine_load_openssl_int(void);

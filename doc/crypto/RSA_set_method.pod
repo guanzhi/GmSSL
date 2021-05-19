@@ -10,7 +10,7 @@ RSA_new_method - select RSA method
 
 =head1 SYNOPSIS
 
- #include <openssl/rsa.h>
+ #include <gmssl/rsa.h>
 
  void RSA_set_default_method(const RSA_METHOD *meth);
 

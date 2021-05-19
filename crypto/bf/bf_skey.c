@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <openssl/blowfish.h>
+#include <gmssl/blowfish.h>
 #include "bf_locl.h"
 #include "bf_pi.h"
 

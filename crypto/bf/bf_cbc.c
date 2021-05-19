@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/blowfish.h>
+#include <gmssl/blowfish.h>
 #include "bf_locl.h"
 
 void BF_cbc_encrypt(const unsigned char *in, unsigned char *out, long length,

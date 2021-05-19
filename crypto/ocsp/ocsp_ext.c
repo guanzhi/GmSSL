@@ -9,12 +9,12 @@
 
 #include <stdio.h>
 #include "internal/cryptlib.h"
-#include <openssl/objects.h>
-#include <openssl/x509.h>
-#include <openssl/ocsp.h>
+#include <gmssl/objects.h>
+#include <gmssl/x509.h>
+#include <gmssl/ocsp.h>
 #include "ocsp_lcl.h"
-#include <openssl/rand.h>
-#include <openssl/x509v3.h>
+#include <gmssl/rand.h>
+#include <gmssl/x509v3.h>
 
 /* Standard wrapper functions for extensions */
 

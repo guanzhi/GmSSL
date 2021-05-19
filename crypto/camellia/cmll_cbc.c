@@ -7,8 +7,8 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/camellia.h>
-#include <openssl/modes.h>
+#include <gmssl/camellia.h>
+#include <gmssl/modes.h>
 
 void Camellia_cbc_encrypt(const unsigned char *in, unsigned char *out,
                           size_t len, const CAMELLIA_KEY *key,

@@ -101,8 +101,8 @@ typedef struct ossl_statem_st OSSL_STATEM;
 
 /*****************************************************************************
  *                                                                           *
- * The following macros/functions represent the libssl internal API to the   *
- * state machine. Any libssl code may call these functions/macros            *
+ * The following macros/functions represent the libgmssl internal API to the   *
+ * state machine. Any libgmssl code may call these functions/macros            *
  *                                                                           *
  *****************************************************************************/
 

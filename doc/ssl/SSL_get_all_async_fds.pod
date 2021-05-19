@@ -13,8 +13,8 @@ SSL_get_changed_async_fds
 
 =head1 SYNOPSIS
 
- #include <openssl/async.h>
- #include <openssl/ssl.h>
+ #include <gmssl/async.h>
+ #include <gmssl/ssl.h>
 
  int SSL_waiting_for_async(SSL *s);
  int SSL_get_all_async_fds(SSL *s, OSSL_ASYNC_FD *fd, size_t *numfds);
@@ -62,7 +62,7 @@ SSL_get_all_async_fds() and SSL_get_changed_async_fds() return 1 on success or
 
 =head1 NOTES
 
-On Windows platforms the openssl/async.h header is dependent on some
+On Windows platforms the gmssl/async.h header is dependent on some
 of the types customarily made available by including windows.h. The
 application developer is likely to require control over when the latter
 is included, commonly as one of the first included headers. Therefore

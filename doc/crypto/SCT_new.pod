@@ -17,7 +17,7 @@ SCT_get_source, SCT_set_source
 
 =head1 SYNOPSIS
 
- #include <openssl/ct.h>
+ #include <gmssl/ct.h>
 
  typedef enum {
   CT_LOG_ENTRY_TYPE_NOT_SET = -1,

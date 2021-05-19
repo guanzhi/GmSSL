@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "internal/cryptlib.h"
-#include <openssl/hmac.h>
-#include <openssl/opensslconf.h>
+#include <gmssl/hmac.h>
+#include <gmssl/opensslconf.h>
 #include "hmac_lcl.h"
 
 int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,

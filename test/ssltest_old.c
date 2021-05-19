@@ -67,29 +67,29 @@
 
 #include <ctype.h>
 
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
+#include <gmssl/bio.h>
+#include <gmssl/crypto.h>
+#include <gmssl/evp.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509v3.h>
+#include <gmssl/ssl.h>
+#include <gmssl/err.h>
+#include <gmssl/rand.h>
 #ifndef OPENSSL_NO_RSA
-# include <openssl/rsa.h>
+# include <gmssl/rsa.h>
 #endif
 #ifndef OPENSSL_NO_DSA
-# include <openssl/dsa.h>
+# include <gmssl/dsa.h>
 #endif
 #ifndef OPENSSL_NO_DH
-# include <openssl/dh.h>
+# include <gmssl/dh.h>
 #endif
 #ifndef OPENSSL_NO_SRP
-# include <openssl/srp.h>
+# include <gmssl/srp.h>
 #endif
-#include <openssl/bn.h>
+#include <gmssl/bn.h>
 #ifndef OPENSSL_NO_CT
-# include <openssl/ct.h>
+# include <gmssl/ct.h>
 #endif
 
 /*

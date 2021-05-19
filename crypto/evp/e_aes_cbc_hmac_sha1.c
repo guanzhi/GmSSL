@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include <openssl/opensslconf.h>
+#include <gmssl/opensslconf.h>
 #if defined(OPENSSL_NO_AES) || defined(OPENSSL_NO_SHA)
 NON_EMPTY_TRANSLATION_UNIT
 #else
@@ -15,11 +15,11 @@ NON_EMPTY_TRANSLATION_UNIT
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/evp.h>
-#include <openssl/objects.h>
-#include <openssl/aes.h>
-#include <openssl/sha.h>
-#include <openssl/rand.h>
+#include <gmssl/evp.h>
+#include <gmssl/objects.h>
+#include <gmssl/aes.h>
+#include <gmssl/sha.h>
+#include <gmssl/rand.h>
 #include "modes_lcl.h"
 #include "internal/evp_int.h"
 #include "internal/constant_time_locl.h"

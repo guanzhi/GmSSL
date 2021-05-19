@@ -12,12 +12,12 @@
 
 #ifndef OPENSSL_NO_MD5
 
-# include <openssl/evp.h>
-# include <openssl/objects.h>
-# include <openssl/x509.h>
-# include <openssl/md5.h>
+# include <gmssl/evp.h>
+# include <gmssl/objects.h>
+# include <gmssl/x509.h>
+# include <gmssl/md5.h>
 # ifndef OPENSSL_NO_RSA
-#  include <openssl/rsa.h>
+#  include <gmssl/rsa.h>
 # endif
 # include "internal/evp_int.h"
 

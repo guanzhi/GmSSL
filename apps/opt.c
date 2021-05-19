@@ -18,8 +18,8 @@
 #include <errno.h>
 #include <ctype.h>
 #include <limits.h>
-#include <openssl/bio.h>
-#include <openssl/x509v3.h>
+#include <gmssl/bio.h>
+#include <gmssl/x509v3.h>
 
 #define MAX_OPT_HELP_WIDTH 30
 const char OPT_HELP_STR[] = "--";

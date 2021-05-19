@@ -21,43 +21,43 @@ IF[{- !$disabled{"fuzz-afl"} || !$disabled{"fuzz-libfuzzer"} -}]
 
   SOURCE[asn1]=asn1.c driver.c
   INCLUDE[asn1]=../include {- $ex_inc -}
-  DEPEND[asn1]=../libcrypto {- $ex_lib -}
+  DEPEND[asn1]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[asn1parse]=asn1parse.c driver.c
   INCLUDE[asn1parse]=../include {- $ex_inc -}
-  DEPEND[asn1parse]=../libcrypto {- $ex_lib -}
+  DEPEND[asn1parse]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[bignum]=bignum.c driver.c
   INCLUDE[bignum]=../include {- $ex_inc -}
-  DEPEND[bignum]=../libcrypto {- $ex_lib -}
+  DEPEND[bignum]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[bndiv]=bndiv.c driver.c
   INCLUDE[bndiv]=../include {- $ex_inc -}
-  DEPEND[bndiv]=../libcrypto {- $ex_lib -}
+  DEPEND[bndiv]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[cms]=cms.c driver.c
   INCLUDE[cms]=../include {- $ex_inc -}
-  DEPEND[cms]=../libcrypto {- $ex_lib -}
+  DEPEND[cms]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[conf]=conf.c driver.c
   INCLUDE[conf]=../include {- $ex_inc -}
-  DEPEND[conf]=../libcrypto {- $ex_lib -}
+  DEPEND[conf]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[crl]=crl.c driver.c
   INCLUDE[crl]=../include {- $ex_inc -}
-  DEPEND[crl]=../libcrypto {- $ex_lib -}
+  DEPEND[crl]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[ct]=ct.c driver.c
   INCLUDE[ct]=../include {- $ex_inc -}
-  DEPEND[ct]=../libcrypto {- $ex_lib -}
+  DEPEND[ct]=../libgmcrypto {- $ex_lib -}
 
   SOURCE[server]=server.c driver.c
   INCLUDE[server]=../include {- $ex_inc -}
-  DEPEND[server]=../libcrypto ../libssl {- $ex_lib -}
+  DEPEND[server]=../libgmcrypto ../libgmssl {- $ex_lib -}
 
   SOURCE[x509]=x509.c driver.c
   INCLUDE[x509]=../include {- $ex_inc -}
-  DEPEND[x509]=../libcrypto {- $ex_lib -}
+  DEPEND[x509]=../libgmcrypto {- $ex_lib -}
 ENDIF
 
 IF[{- !$disabled{tests} -}]
@@ -77,41 +77,41 @@ IF[{- !$disabled{tests} -}]
 
   SOURCE[asn1-test]=asn1.c test-corpus.c
   INCLUDE[asn1-test]=../include
-  DEPEND[asn1-test]=../libcrypto
+  DEPEND[asn1-test]=../libgmcrypto
 
   SOURCE[asn1parse-test]=asn1parse.c test-corpus.c
   INCLUDE[asn1parse-test]=../include
-  DEPEND[asn1parse-test]=../libcrypto
+  DEPEND[asn1parse-test]=../libgmcrypto
 
   SOURCE[bignum-test]=bignum.c test-corpus.c
   INCLUDE[bignum-test]=../include
-  DEPEND[bignum-test]=../libcrypto
+  DEPEND[bignum-test]=../libgmcrypto
 
   SOURCE[bndiv-test]=bndiv.c test-corpus.c
   INCLUDE[bndiv-test]=../include
-  DEPEND[bndiv-test]=../libcrypto
+  DEPEND[bndiv-test]=../libgmcrypto
 
   SOURCE[cms-test]=cms.c test-corpus.c
   INCLUDE[cms-test]=../include
-  DEPEND[cms-test]=../libcrypto
+  DEPEND[cms-test]=../libgmcrypto
 
   SOURCE[conf-test]=conf.c test-corpus.c
   INCLUDE[conf-test]=../include
-  DEPEND[conf-test]=../libcrypto
+  DEPEND[conf-test]=../libgmcrypto
 
   SOURCE[crl-test]=crl.c test-corpus.c
   INCLUDE[crl-test]=../include
-  DEPEND[crl-test]=../libcrypto
+  DEPEND[crl-test]=../libgmcrypto
 
   SOURCE[ct-test]=ct.c test-corpus.c
   INCLUDE[ct-test]=../include
-  DEPEND[ct-test]=../libcrypto
+  DEPEND[ct-test]=../libgmcrypto
 
   SOURCE[server-test]=server.c test-corpus.c
   INCLUDE[server-test]=../include
-  DEPEND[server-test]=../libcrypto ../libssl
+  DEPEND[server-test]=../libgmcrypto ../libgmssl
 
   SOURCE[x509-test]=x509.c test-corpus.c
   INCLUDE[x509-test]=../include
-  DEPEND[x509-test]=../libcrypto
+  DEPEND[x509-test]=../libgmcrypto
 ENDIF

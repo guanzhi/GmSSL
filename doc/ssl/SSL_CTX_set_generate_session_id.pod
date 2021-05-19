@@ -10,7 +10,7 @@ SSL_has_matching_session_id, GEN_SESSION_CB
 
 =head1 SYNOPSIS
 
- #include <openssl/ssl.h>
+ #include <gmssl/ssl.h>
 
  typedef int (*GEN_SESSION_CB)(const SSL *ssl, unsigned char *id,
                                unsigned int *id_len);
