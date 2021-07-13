@@ -1,0 +1,201 @@
+
+cmake_minimum_required(VERSION 2.8.11)
+project(GmSSL)
+
+include_directories(include)
+
+add_library(
+  gmssl
+
+  src/hex.c
+  src/debug.c
+  src/rand.c
+
+  src/sm2_lib.c
+  src/sm2_prn.c
+  src/sm2_algo.c
+  src/sm2_asn1.c
+  src/sm3.c
+  src/sm3_hmac.c
+  src/sm4_common.c
+  src/sm4_setkey.c
+  src/sm4_enc.c
+  src/sm4_cbc.c
+  src/sm9_math.c
+  src/zuc_core.c
+  src/zuc_eea.c
+  src/zuc_eia.c
+
+  src/hash_drbg.c
+  src/hmac.c
+  src/hkdf.c
+  #src/cmac.c
+  src/pbkdf2.c
+  src/pkcs8.c
+
+  src/oid.c
+  src/asn1.c
+
+  src/rc4.c
+  src/md5.c
+  src/des.c
+  src/aes.c
+  src/chacha20.c
+  src/sha1.c
+  src/sha256.c
+  src/sha512.c
+
+  src/digest.c
+  #src/digest_asn1.c
+  src/x509_lib.c
+  src/x509_asn1.c
+  src/x509_ext.c
+  src/x509_algor.c
+
+  src/base64.c
+  src/pem.c
+
+  src/tls.c
+  src/tls_cipher.c
+  src/tls_trace.c
+  src/tls12.c
+  src/tlcp.c
+
+  src/cms.c
+
+)
+
+target_include_directories (gmssl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# tools
+add_executable (digest tools/digest.c)
+target_link_libraries (digest LINK_PUBLIC gmssl)
+
+add_executable (certview tools/certview.c)
+target_link_libraries (certview LINK_PUBLIC gmssl)
+
+add_executable (certgen tools/certgen.c)
+target_link_libraries (certgen LINK_PUBLIC gmssl)
+
+add_executable (certverify tools/certverify.c)
+target_link_libraries (certverify LINK_PUBLIC gmssl)
+
+add_executable (reqgen tools/reqgen.c)
+target_link_libraries (reqgen LINK_PUBLIC gmssl)
+
+add_executable (sm3sum tools/sm3sum.c)
+target_link_libraries (sm3sum LINK_PUBLIC gmssl)
+
+add_executable (sm2gen tools/sm2gen.c)
+target_link_libraries (sm2gen LINK_PUBLIC gmssl)
+
+add_executable (sm2sign tools/sm2sign.c)
+target_link_libraries (sm2sign LINK_PUBLIC gmssl)
+add_executable (sm2verify tools/sm2verify.c)
+target_link_libraries (sm2verify LINK_PUBLIC gmssl)
+add_executable (sm2encrypt tools/sm2encrypt.c)
+target_link_libraries (sm2encrypt LINK_PUBLIC gmssl)
+add_executable (sm2decrypt tools/sm2decrypt.c)
+target_link_libraries (sm2decrypt LINK_PUBLIC gmssl)
+
+add_executable (pkcs8gen tools/pkcs8gen.c)
+target_link_libraries (pkcs8gen LINK_PUBLIC gmssl)
+
+add_executable (sm2view tools/sm2view.c)
+target_link_libraries (sm2view LINK_PUBLIC gmssl)
+
+add_executable (pkcs8view tools/pkcs8view.c)
+target_link_libraries (pkcs8view LINK_PUBLIC gmssl)
+
+add_executable (tlcp_client tools/tlcp_client.c)
+target_link_libraries (tlcp_client LINK_PUBLIC gmssl)
+
+add_executable (tlcp_server tools/tlcp_server.c)
+target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
+
+add_executable (tls12_client tools/tls12_client.c)
+target_link_libraries (tls12_client LINK_PUBLIC gmssl)
+add_executable (tls12_server tools/tls12_server.c)
+target_link_libraries (tls12_server LINK_PUBLIC gmssl)
+
+
+# tests
+add_executable(sm2test tests/sm2test.c)
+target_link_libraries (sm2test LINK_PUBLIC gmssl)
+add_executable(sm2asn1test tests/sm2asn1test.c)
+target_link_libraries (sm2asn1test LINK_PUBLIC gmssl)
+
+add_executable(sm3test tests/sm3test.c)
+target_link_libraries (sm3test LINK_PUBLIC gmssl)
+
+add_executable(md5test tests/md5test.c)
+target_link_libraries (md5test LINK_PUBLIC gmssl)
+
+add_executable(sha1test tests/sha1test.c)
+target_link_libraries (sha1test LINK_PUBLIC gmssl)
+
+add_executable(sha224test tests/sha224test.c)
+target_link_libraries (sha224test LINK_PUBLIC gmssl)
+
+add_executable(sha256test tests/sha256test.c)
+target_link_libraries (sha256test LINK_PUBLIC gmssl)
+
+add_executable(sha384test tests/sha384test.c)
+target_link_libraries (sha384test LINK_PUBLIC gmssl)
+
+add_executable(sha512test tests/sha512test.c)
+target_link_libraries (sha512test LINK_PUBLIC gmssl)
+
+add_executable(hmactest tests/hmactest.c)
+target_link_libraries (hmactest LINK_PUBLIC gmssl)
+
+add_executable(hkdftest tests/hkdftest.c)
+target_link_libraries (hkdftest LINK_PUBLIC gmssl)
+
+add_executable(digesttest tests/digesttest.c)
+target_link_libraries (digesttest LINK_PUBLIC gmssl)
+
+add_executable(sm4test tests/sm4test.c)
+target_link_libraries (sm4test LINK_PUBLIC gmssl)
+add_executable(sm4cbctest tests/sm4cbctest.c)
+target_link_libraries (sm4cbctest LINK_PUBLIC gmssl)
+
+add_executable(zuctest tests/zuctest.c)
+target_link_libraries (zuctest LINK_PUBLIC gmssl)
+
+add_executable(aestest tests/aestest.c)
+target_link_libraries (aestest LINK_PUBLIC gmssl)
+
+add_executable(rc4test tests/rc4test.c)
+target_link_libraries (rc4test LINK_PUBLIC gmssl)
+
+add_executable(chacha20test tests/chacha20test.c)
+target_link_libraries (chacha20test LINK_PUBLIC gmssl)
+
+add_executable(hash_drbgtest tests/hash_drbgtest.c)
+target_link_libraries (hash_drbgtest LINK_PUBLIC gmssl)
+
+add_executable(pbkdf2test tests/pbkdf2test.c)
+target_link_libraries (pbkdf2test LINK_PUBLIC gmssl)
+
+add_executable(pkcs8test tests/pkcs8test.c)
+target_link_libraries (pkcs8test LINK_PUBLIC gmssl)
+
+add_executable(oidtest tests/oidtest.c)
+target_link_libraries (oidtest LINK_PUBLIC gmssl)
+
+add_executable(asn1test tests/asn1test.c)
+target_link_libraries (asn1test LINK_PUBLIC gmssl)
+
+add_executable(base64test tests/base64test.c)
+target_link_libraries (base64test LINK_PUBLIC gmssl)
+
+add_executable(x509test tests/x509test.c)
+target_link_libraries (x509test LINK_PUBLIC gmssl)
+
+add_executable(cmstest tests/cmstest.c)
+target_link_libraries (cmstest LINK_PUBLIC gmssl)
+
+#add_executable(tlstest tests/tlstest.c)
+#target_link_libraries (tlstest LINK_PUBLIC gmssl)
+
