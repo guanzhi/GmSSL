@@ -564,18 +564,14 @@ void ERR_error_string_n(unsigned long e, char *buf, size_t len)
 }
 
 /*
- * ERR_error_string_n should be used instead for ret != NULL as
  * ERR_error_string cannot know how large the buffer is
  */
-char *ERR_error_string(unsigned long e, char *ret)
+char *ERR_error_string(unsigned long e)
 {
     static char buf[256];
+    ERR_error_string_n(e, buf, sizeof(buf));
 
-    if (ret == NULL)
-        ret = buf;
-    ERR_error_string_n(e, ret, 256);
-
-    return ret;
+    return buf;
 }
 
 const char *ERR_lib_error_string(unsigned long e)
