@@ -1,12 +1,17 @@
-
 cmake_minimum_required(VERSION 2.8.11)
 project(GmSSL)
 
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+
 include_directories(include)
+
 
 add_library(
   gmssl
 
+  SHARED 
+  
   src/hex.c
   src/debug.c
   src/rand.c
@@ -64,8 +69,7 @@ add_library(
   src/cms.c
 
 )
-
-target_include_directories (gmssl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 # tools
 add_executable (digest tools/digest.c)
@@ -198,4 +202,20 @@ target_link_libraries (cmstest LINK_PUBLIC gmssl)
 
 #add_executable(tlstest tests/tlstest.c)
 #target_link_libraries (tlstest LINK_PUBLIC gmssl)
+
+# 安装可执行文件
+INSTALL(TARGETS  digest  certview certgen certverify reqgen sm3sum sm2gen sm2sign sm2verify sm2encrypt sm2decrypt pkcs8gen sm2view pkcs8view tlcp_client tlcp_server tls12_client tls12_server 
+        RUNTIME DESTINATION bin  
+        )
+# 安装动态库
+INSTALL(TARGETS gmssl 
+        LIBRARY DESTINATION lib  
+        )
+#安装头文件
+INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl
+		DESTINATION include
+        PATTERN "gmssl/*"
+        PERMISSIONS OWNER_WRITE OWNER_READ
+                    GROUP_READ WORLD_READ
+		)
 

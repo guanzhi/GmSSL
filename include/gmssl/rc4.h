@@ -54,6 +54,7 @@
 #define RC4_MIN_KEY_BITS	40
 #define RC4_STATE_NUM_WORDS	256
 
+#include <stdint.h>
 #include <string.h>
 
 #ifdef __cplusplus
