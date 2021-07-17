@@ -47,6 +47,7 @@
  */
 
 
+#ifndef NO_AES
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -478,3 +479,4 @@ void aes_decrypt(const AES_KEY *aes_key, const uint8_t in[16], uint8_t out[16])
 
 	memset(state, 0, sizeof(state));
 }
+#endif

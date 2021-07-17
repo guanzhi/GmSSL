@@ -46,6 +46,7 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef NO_CHACHA20
 
 #include <stdio.h>
 #include <string.h>
@@ -121,3 +122,4 @@ void chacha20_generate_keystream(CHACHA20_STATE *state, unsigned int counts, uns
 		state->d[12]++;
 	}
 }
+#endif

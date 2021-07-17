@@ -46,6 +46,7 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef NO_AES
 
 #ifndef GMSSL_AES_H
 #define GMSSL_AES_H
@@ -87,5 +88,6 @@ void aes_decrypt(const AES_KEY *aes_key, const uint8_t in[AES_BLOCK_SIZE], uint8
 
 #ifdef  __cplusplus
 }
+#endif
 #endif
 #endif

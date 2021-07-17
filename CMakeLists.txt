@@ -4,8 +4,43 @@ project(GmSSL)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
-include_directories(include)
+option(NO_RC4 "Option For Not Compile RC4" OFF)
+option(NO_MD5 "Option For Not Compile RC4" OFF)
+option(NO_AES "Option For Not Compile RC4" OFF)
+option(NO_DES "Option For Not Compile RC4" OFF)
+option(NO_CHACHA20 "Option For Not Compile RC4" OFF)
+option(NO_SHA1 "Option For Not Compile RC4" OFF)
+option(NO_SHA2 "Option For Not Compile RC4" OFF)
 
+if (NO_RC4)
+add_definitions(-DNO_RC4)
+endif()
+
+if (NO_MD5)
+add_definitions(-DNO_MD5)
+endif()
+
+if (NO_AES)
+add_definitions(-DNO_AES)
+endif()
+
+if (NO_DES)
+add_definitions(-DNO_DES)
+endif()
+
+if (NO_CHACHA20)
+add_definitions(-DNO_CHACHA20)
+endif()
+
+if (NO_SHA1)
+add_definitions(-DNO_SHA1)
+endif()
+
+if (NO_SHA2)
+add_definitions(-DNO_SHA2)
+endif()
+
+include_directories(include)
 
 add_library(
   gmssl
@@ -119,6 +154,7 @@ target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
 
 add_executable (tls12_client tools/tls12_client.c)
 target_link_libraries (tls12_client LINK_PUBLIC gmssl)
+
 add_executable (tls12_server tools/tls12_server.c)
 target_link_libraries (tls12_server LINK_PUBLIC gmssl)
 
@@ -126,18 +162,25 @@ target_link_libraries (tls12_server LINK_PUBLIC gmssl)
 # tests
 add_executable(sm2test tests/sm2test.c)
 target_link_libraries (sm2test LINK_PUBLIC gmssl)
+
 add_executable(sm2asn1test tests/sm2asn1test.c)
 target_link_libraries (sm2asn1test LINK_PUBLIC gmssl)
 
 add_executable(sm3test tests/sm3test.c)
 target_link_libraries (sm3test LINK_PUBLIC gmssl)
 
+if (!NO_MD5)
 add_executable(md5test tests/md5test.c)
 target_link_libraries (md5test LINK_PUBLIC gmssl)
+endif()
 
+if (!NO_SHA1)
 add_executable(sha1test tests/sha1test.c)
 target_link_libraries (sha1test LINK_PUBLIC gmssl)
+endif()
 
+
+if (!NO_SHA2)
 add_executable(sha224test tests/sha224test.c)
 target_link_libraries (sha224test LINK_PUBLIC gmssl)
 
@@ -149,6 +192,8 @@ target_link_libraries (sha384test LINK_PUBLIC gmssl)
 
 add_executable(sha512test tests/sha512test.c)
 target_link_libraries (sha512test LINK_PUBLIC gmssl)
+endif()
+
 
 add_executable(hmactest tests/hmactest.c)
 target_link_libraries (hmactest LINK_PUBLIC gmssl)
@@ -167,23 +212,32 @@ target_link_libraries (sm4cbctest LINK_PUBLIC gmssl)
 add_executable(zuctest tests/zuctest.c)
 target_link_libraries (zuctest LINK_PUBLIC gmssl)
 
+if (!NO_AES)
 add_executable(aestest tests/aestest.c)
 target_link_libraries (aestest LINK_PUBLIC gmssl)
+endif()
 
+if (!NO_RC4)
 add_executable(rc4test tests/rc4test.c)
 target_link_libraries (rc4test LINK_PUBLIC gmssl)
+endif()
 
+if (!NO_CHACHA20)
 add_executable(chacha20test tests/chacha20test.c)
 target_link_libraries (chacha20test LINK_PUBLIC gmssl)
+endif()
 
 add_executable(hash_drbgtest tests/hash_drbgtest.c)
 target_link_libraries (hash_drbgtest LINK_PUBLIC gmssl)
 
+if (!NO_SHA1)
 add_executable(pbkdf2test tests/pbkdf2test.c)
 target_link_libraries (pbkdf2test LINK_PUBLIC gmssl)
 
 add_executable(pkcs8test tests/pkcs8test.c)
 target_link_libraries (pkcs8test LINK_PUBLIC gmssl)
+endif()
+
 
 add_executable(oidtest tests/oidtest.c)
 target_link_libraries (oidtest LINK_PUBLIC gmssl)
@@ -214,8 +268,5 @@ INSTALL(TARGETS gmssl
 #安装头文件
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl
 		DESTINATION include
-        PATTERN "gmssl/*"
-        PERMISSIONS OWNER_WRITE OWNER_READ
-                    GROUP_READ WORLD_READ
 		)
 
