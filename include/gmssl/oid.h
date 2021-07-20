@@ -55,6 +55,8 @@ extern "C" {
 #endif
 
 
+#include <stdint.h>
+
 enum {
 	OID_undef = 0,
 	//OID_aes,

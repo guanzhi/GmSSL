@@ -45,10 +45,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef NO_RC4
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+
 #include <gmssl/rc4.h>
 
 void rc4_set_key(RC4_STATE *state, const unsigned char *key, size_t keylen)
@@ -115,3 +118,5 @@ unsigned char rc4_generate_keybyte(RC4_STATE *state)
 	rc4_generate_keystream(state, 1, out);
 	return out[0];
 }
+
+#endif

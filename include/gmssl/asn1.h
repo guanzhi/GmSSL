@@ -49,6 +49,7 @@
 #ifndef GMSSL_ASN1_H
 #define GMSSL_ASN1_H
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 

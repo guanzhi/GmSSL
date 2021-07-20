@@ -46,6 +46,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef NO_DES
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -265,3 +267,4 @@ void des_encrypt(DES_KEY *key, const unsigned char in[DES_BLOCK_SIZE],
 
 	PUTU64(out, T);
 }
+#endif
