@@ -71,16 +71,6 @@ typedef enum X509_CRLReason {
 	X509_cr_aACompromise,
 } CRL_REASON;
 
-
-
-
-
-
-
-
-
-
-
 typedef struct {
 	uint8_t serial_number[20];
 	size_t serial_number_len;

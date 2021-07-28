@@ -49,7 +49,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <libgen.h>
 #include <unistd.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
@@ -73,7 +72,7 @@ void print_usage(const char *prog)
 int main(int argc , char *argv[])
 {
 	int ret = -1;
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	char *host = NULL;
 	int port = 443;
 	TLS_CONNECT conn;

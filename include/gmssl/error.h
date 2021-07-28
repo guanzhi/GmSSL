@@ -53,10 +53,9 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <libgen.h>
 
 #define error_print(fmt, args...) \
-	fprintf(stderr, "error: %s %d: %s: " fmt "\n", basename(__FILE__), __LINE__, __FUNCTION__, ##args)
+	fprintf(stderr, "error: %s %d: %s: " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##args)
 
 
 

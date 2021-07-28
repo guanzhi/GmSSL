@@ -51,8 +51,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gmssl/sha2.h>
-#include "bswap.h"
-#include "rotate.h"
+#include "endian.h"
 
 
 static void sha512_compress_blocks(uint64_t state[8],

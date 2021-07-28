@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,88 +47,127 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <gmssl/cmac.h>
-#include "internal/gf128.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <gmssl/sm2.h>
+#include <gmssl/tls.h>
+#include <gmssl/error.h>
 
-/*
-CMAC的主体是CBC-MAC，或者说是CBC模式
-CMAC初始化的时候需要初始化E_K()中分组密码中的密钥编排
-用GSK算法通过密钥K生成K1, K2，这两个密钥最后是用来和最后一个分组做异或的
-*/
 
-int cmac_init(CMAC_CTX *ctx, const BLOCK_CIPHER *cipher, const uint8_t *key, size_t keylen)
+void print_usage(const char *prog)
 {
-	gf128_t L;
-
-	ctx->cipher = cipher;
-	cipher->set_encrypt_key(&ctx->cipher_key, key, keylen);
-
-	/* L = E_K(0^128) */
-	memset(ctx->temp_block, 0, 16);
-	cipher->encrypt(&ctx->cipher_key, ctx->temp_block, ctx->temp_block);
-	L = gf128_from_bytes(ctx->temp_block);
-
-
-	/* K1 = L * 2 over GF(2^128) */
-	L = gf128_mul2(L);
-	gf128_to_bytes(L, ctx->k1);
-
-
-	/* K2 = K1 * 2 over GF(2^128) */
-	L = gf128_mul2(L);
-	gf128_to_bytes(L, ctx->k2);
-
-	memset(&L, 0, sizeof(gf128_t));
-	return 0;
+	printf("Usage: %s [options]\n", prog);
+	printf("  -port <num>\n");
+	printf("  -cert <file>\n");
+	printf("  -signkey <file>\n");
 }
 
-int cmac_update(CMAC_CTX *ctx, const uint8_t *in, size_t inlen)
+int main(int argc , char *argv[])
 {
-	if (ctx->last_block_nbytes) {
-		unsigned int left = BLOCK_CIPHER_BLOCK_SIZE - ctx->num;
-		if (inlen < left) {
-			memcpy(ctx->block + ctx->last_block_nbytes, in, inlen);
-			ctx->last_block_nbytes += inlen;
-			return 1;
-		} else {
-			memcpy(ctx->block + ctx->last_block_nbytes, in, inlen);
-		}
+	int ret = -1;
+	char *prog = argv[0];
+	int port = 443;
+	char *certfile = NULL;
+	char *signkeyfile = NULL;
+	FILE *certfp = NULL;
+	FILE *signkeyfp = NULL;
+	SM2_KEY signkey;
 
-	}
+	uint8_t verify_buf[4096];
 
-	while (inlen > 16) {
-		XOR128(block, in);
-		ctx->cipher->encrypt(ctx->cipher_key, block, block);
-	}
 
-	return 0;
-}
+	TLS_CONNECT conn;
+	char buf[1600] = {0};
+	size_t len = sizeof(buf);
 
-// 在Finish的时候我们不应该清空密钥的内容
-int cmac_finish(CMAC_CTX *ctx, size_t maclen, uint8_t *mac)
-{
-	if (ctx->last_block_nbytes == 16) {
-		xor128(ctx->data, ctx->k1);
-	} else {
-		ctx->data[ctx->last_block_nbytes] = 0x01;
-		memset(ctx->data + ctx->last_block_nbytes, 0, 16 - ctx->last_block_nbytes);
-		xor128(ctx->data, ctx->k2);
-	}
-	xor128(cipher, data);
-
-	ctx->cipher->encrypt(ctx->cipher_key, ctx->block, ctx->block);
-	memcpy(out, block, outlen);
-	return 0;
-}
-
-int cmac_finish_and_verify(CMAC_CTX *ctx, const uint8_t *mac, size_t maclen)
-{
-	uint8_t buf[16];
-	cmac_finish(ctx, maclen, buf);
-	if (memcmp(buf, mac, maclen) != 0) {
+	if (argc < 2) {
+		print_usage(prog);
 		return 0;
 	}
+
+	argc--;
+	argv++;
+	while (argc >= 1) {
+		if (!strcmp(*argv, "-help")) {
+			print_usage(prog);
+			return 0;
+
+		} else if (!strcmp(*argv, "-port")) {
+			if (--argc < 1) goto bad;
+			port = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-cert")) {
+			if (--argc < 1) goto bad;
+			certfile = *(++argv);
+
+		} else if (!strcmp(*argv, "-signkey")) {
+			if (--argc < 1) goto bad;
+			signkeyfile = *(++argv);
+
+		} else {
+			print_usage(prog);
+			return 0;
+		}
+		argc--;
+		argv++;
+	}
+
+	if (!certfile || !signkeyfile) {
+		print_usage(prog);
+		return -1;
+	}
+
+	if (!(certfp = fopen(certfile, "r"))) {
+		error_print();
+		return -1;
+	}
+
+
+	if (!(signkeyfp = fopen(signkeyfile, "r"))) {
+		error_print();
+		return -1;
+	}
+	if (sm2_private_key_from_pem(&signkey, signkeyfp) != 1) {
+		error_print();
+		return -1;
+	}
+
+	memset(&conn, 0, sizeof(conn));
+	if (tls13_accept(&conn, port, certfp, &signkey, certfp) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// 我要做一个反射的服务器，接收到用户的输入之后，再反射回去
+	for (;;) {
+
+		// 接收一个消息
+		// 按道理说第二次执行的时候是不可能成功的了，因此客户端没有数据发过来
+		do {
+			len = sizeof(buf);
+			if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
+				error_print();
+				return -1;
+			}
+		} while (!len);
+
+
+		// 把这个消息再发回去
+		if (tls_send(&conn, (uint8_t *)buf, len) != 1) {
+			error_print();
+			return -1;
+		}
+
+		fprintf(stderr, "-----------------\n\n\n\n\n\n");
+
+	}
+
+
+
 	return 1;
+bad:
+	fprintf(stderr, "%s: command error\n", prog);
+
+	return 0;
 }

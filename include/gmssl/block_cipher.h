@@ -58,9 +58,11 @@
 #include <gmssl/aes.h>
 #include <gmssl/sm4.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 typedef struct BLOCK_CIPHER BLOCK_CIPHER;
 typedef struct BLOCK_CIPHER_KEY BLOCK_CIPHER_KEY;
@@ -73,15 +75,13 @@ struct BLOCK_CIPHER_KEY {
 	const BLOCK_CIPHER *cipher;
 };
 
-typedef int (*block_cipher_set_encrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *user_key, size_t keylen);
-typedef int (*block_cipher_set_decrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *user_key, size_t keylen);
+typedef void (*block_cipher_set_encrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *raw_key);
+typedef void (*block_cipher_set_decrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *raw_key);
 typedef void (*block_cipher_encrypt_func)(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
 typedef void (*block_cipher_decrypt_func)(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
 
 struct BLOCK_CIPHER {
-	int oid;
-	size_t key_min_size;
-	size_t key_max_size;
+	size_t key_size;
 	size_t block_size;
 	block_cipher_set_encrypt_key_func set_encrypt_key;
 	block_cipher_set_decrypt_key_func set_decrypt_key;
@@ -89,23 +89,13 @@ struct BLOCK_CIPHER {
 	block_cipher_decrypt_func decrypt;
 };
 
-int block_cipher_set_encrypt_key(BLOCK_CIPHER_KEY *key, const uint8_t *user_key, size_t keylen);
-int block_cipher_set_decrypt_key(BLOCK_CIPHER_KEY *key, const uint8_t *user_key, size_t keylen);
-void block_cipher_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
-void block_cipher_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
+int block_cipher_set_encrypt_key(BLOCK_CIPHER_KEY *key, const BLOCK_CIPHER *cipher, const uint8_t *raw_key);
+int block_cipher_set_decrypt_key(BLOCK_CIPHER_KEY *key, const BLOCK_CIPHER *cipher, const uint8_t *raw_key);
+int block_cipher_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
+int block_cipher_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
 
-const BLOCK_CIPHER *BLOCK_CIPHER_aes(void);
 const BLOCK_CIPHER *BLOCK_CIPHER_sm4(void);
-const BLOCK_CIPHER *block_cipher_from_name(const char *name);
-
-void block_cipher_ecb_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
-void block_cipher_ecb_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
-void block_cipher_cbc_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv,
-	const uint8_t *in, size_t nblocks, uint8_t *out);
-void block_cipher_cbc_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv,
-	const uint8_t *in, size_t nblocks, uint8_t *out);
-void block_cipher_ctr_encrypt(const BLOCK_CIPHER_KEY *key, uint8_t *counter,
-	const uint8_t *in, size_t nblocks, uint8_t *out);
+const BLOCK_CIPHER *BLOCK_CIPHER_aes128(void);
 
 
 

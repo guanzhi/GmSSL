@@ -48,8 +48,7 @@
  */
 
 #include <gmssl/sm4.h>
-#include "bswap.h"
-#include "rotate.h"
+#include "endian.h"
 #include "sm4_lcl.h"
 
 static uint32_t FK[4] = {

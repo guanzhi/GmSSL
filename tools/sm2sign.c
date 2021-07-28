@@ -63,7 +63,7 @@
 
 int main(int argc, char **argv)
 {
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	const char *id = SM2_DEFAULT_ID;
 	const char *keyfile = NULL;
 	FILE *keyfp = NULL;

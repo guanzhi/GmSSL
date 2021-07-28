@@ -50,12 +50,14 @@ OCSPSigning * Redistribution and use in source and binary forms, with or without
 #ifndef GMSSL_OID_H
 #define GMSSL_OID_H
 
+
+#include <stdint.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-#include <stdint.h>
 
 enum {
 	OID_undef = 0,
@@ -257,6 +259,9 @@ enum {
 
 	OID_sm4_ecb, // 1 2 156 10197 1 104 1
 	OID_sm4_cbc, // 1 2 156 10197 1 104 2
+
+
+	OID_aes,
 
 };
 

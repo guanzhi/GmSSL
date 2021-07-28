@@ -49,8 +49,7 @@
 
 #include <string.h>
 #include <gmssl/sha1.h>
-#include "bswap.h"
-#include "rotate.h"
+#include "endian.h"
 
 
 static void sha1_compress_blocks(uint32_t dgst[5],

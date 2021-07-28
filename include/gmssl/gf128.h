@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,41 +46,47 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* NIST SP 800-38B "Recommendation for Block Cipher Modes of Operation:
- * The CMAC Mode for Authentication"
+/* GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
+ * A + B mod f(x) = a xor b
+ * A * 2 mod f(x)
  */
 
-#ifndef GMSSL_CMAC_H
-#define GMSSL_CMAC_H
+#ifndef GMSSL_GF128_H
+#define GMSSL_GF128_H
 
 
 #include <stdint.h>
-#include <stdlib.h>
-#include <gmssl/block_cipher.h>
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
+#define GMSSL_HAVE_UINT128
+#ifdef GMSSL_HAVE_UINT128
+typedef unsigned __int128 gf128_t;
+#else
 typedef struct {
-	const BLOCK_CIPHER *cipher;
-	BLOCK_CIPHER_KEY cipher_key;
-	uint8_t k1[16];
-	uint8_t k2[16];
-	uint8_t temp_block[16];
-	uint8_t last_block[16];
-	int last_block_nbytes; /* -1 means context not initialised */
-} CMAC_CTX;
+	uint64_t hi;
+	uint64_t lo;
+} gf128_t;
+#endif
 
-int cmac_init(CMAC_CTX *ctx, const BLOCK_CIPHER *cipher, const uint8_t *key, size_t keylen);
-int cmac_update(CMAC_CTX *ctx, const uint8_t *in, size_t inlen);
-int cmac_finish(CMAC_CTX *ctx, uint8_t *out, size_t *outlen);
-int cmac_finish_and_verify(CMAC_CTX *ctx, const uint8_t *mac, size_t maclen);
+gf128_t gf128_from_hex(const char *s);
+int gf128_equ_hex(gf128_t a, const char *s);
+
+gf128_t gf128_zero(void);
+
+gf128_t gf128_add(gf128_t a, gf128_t b);
+gf128_t gf128_mul(gf128_t a, gf128_t b);
+gf128_t gf128_mul2(gf128_t a);
+gf128_t gf128_from_bytes(const uint8_t p[16]);
+void gf128_to_bytes(gf128_t a, uint8_t p[16]);
+
+void gf128_print(const char *s, gf128_t a);
 
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

@@ -46,8 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NO_DES
-
 /* FIPS PUB 46-3 "Data Encryption Standard (DES)" */
 
 #ifndef GMSSL_DES_H
@@ -93,6 +91,5 @@ void des_ede_encrypt(DES_EDE_KEY *key, const unsigned char in[8], unsigned char 
 
 #ifdef __cplusplus
 }
-#endif
 #endif
 #endif

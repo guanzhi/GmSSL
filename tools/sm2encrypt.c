@@ -61,7 +61,7 @@
 int main(int argc, char **argv)
 {
 	int ret;
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	const char *keyfile = NULL;
 	const char *certfile = NULL;
 	FILE *keyfp = NULL;

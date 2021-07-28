@@ -103,7 +103,7 @@ int oid_vec_to_der(const unsigned int *oid, size_t oidlen, uint8_t *out, size_t 
 int main(int argc, char **argv)
 {
 	int ret = -1;
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	int help = 0;
 
 	argc--;

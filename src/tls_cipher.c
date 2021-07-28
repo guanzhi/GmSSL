@@ -55,6 +55,10 @@
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+#include <gmssl/digest.h>
+#include <gmssl/hkdf.h>
+#include "mem.h"
+
 
 
 int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
@@ -110,6 +114,65 @@ int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
 		memcpy(out, hmac, len);
 		out += len;
 		outlen -= len;
+	}
+	return 1;
+}
+
+/*
+HKDF-Expand-Label(Secret, Label, Context, Length) =
+	HKDF-Expand(Secret, HkdfLabel, Length);
+
+	HkdfLabel = struct {
+		uint16 length = Length;
+		opaque label<7..255> = "tls13 " + Label;
+		opaque context<0..255> = Context; }
+
+Derive-Secret(Secret, Label, Messages) =
+	HKDF-Expand-Label(Secret, Label, Hash(Messages), Hash.length)
+
+*/
+
+int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32])
+{
+	size_t dgstlen;
+	if (hkdf_extract(digest, salt, 32, in, 32, out, &dgstlen) != 1
+		|| dgstlen != 32) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
+	const char *label, const uint8_t *context, size_t context_len,
+	size_t outlen, uint8_t *out)
+{
+	uint8_t label_len;
+	uint8_t hkdf_label[2 + 256 + 256];
+	uint8_t *p = hkdf_label;
+	size_t hkdf_label_len = 0;
+
+	label_len = strlen("tls13") + strlen(label);
+	tls_uint16_to_bytes((uint16_t)outlen, &p, &hkdf_label_len);
+	tls_uint8_to_bytes(label_len, &p, &hkdf_label_len);
+	tls_array_to_bytes((uint8_t *)"tls13", strlen("tls13"), &p, &hkdf_label_len);
+	tls_array_to_bytes((uint8_t *)label, strlen(label), &p, &hkdf_label_len);
+	tls_uint8array_to_bytes(context, context_len, &p, &hkdf_label_len);
+
+	hkdf_expand(digest, secret, 32, hkdf_label, hkdf_label_len, outlen, out);
+	return 1;
+}
+
+int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32])
+{
+	DIGEST_CTX ctx = *dgst_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	if (digest_finish(&ctx, dgst, &dgstlen) != 1
+		|| tls13_hkdf_expand_label(dgst_ctx->digest, secret, label, dgst, 32, dgstlen, out) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -250,6 +313,7 @@ int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	sm2_sign_update(&sign_ctx, server_random, 32);
 	sm2_sign_update(&sign_ctx, server_ecdh_params, 69);
 	sm2_sign_finish(&sign_ctx, sig, siglen);
+
 	return 1;
 }
 

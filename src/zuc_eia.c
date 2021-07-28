@@ -50,7 +50,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gmssl/zuc.h>
-#include "bswap.h"
+#include "endian.h"
 
 static void zuc_set_eia_iv(unsigned char iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)

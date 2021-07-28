@@ -50,6 +50,13 @@
 #define GMSSL_GCM_H
 
 
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <gmssl/gf128.h>
+#include <gmssl/block_cipher.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -72,27 +79,20 @@ extern "C" {
 #define GCM_IS_LITTLE_ENDIAN 1
 
 
-typedef struct {
-	__uint128_t H;
-	__uint128_t X;
-	size_t aadlen;
-	size_t cipherlen;
-	uint8_t block[16];
-	unsigned int num;
-} GHASH_CTX;
-
-void ghash_init(GHASH_CTX *ctx, const uint8_t h[16], const uint8_t *aad, size_t aadlen);
-void ghash_update(GHASH_CTX *ctx, const uint8_t *c, size_t clen);
-void ghash_finish(GHASH_CTX *ctx, uint8_t out[16]);
+void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen,
+	const uint8_t *c, size_t clen, uint8_t out[16]);
 
 
-typedef struct {
-	BLOCK_CIPHER *cipher;
-	BLOCK_CIPHER_KEY key;
-	uint8_t counter[16];
-	uint8_t enced_iv[16];
-	GHASH_CTX ghash_ctx;
-} GCM_CTX;
+int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t taglen, uint8_t *tag);
+
+int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out);
+
+
+
 
 #ifdef __cplusplus
 }

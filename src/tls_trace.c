@@ -292,6 +292,8 @@ const char *tls_curve_type_name(int type)
 	return NULL;
 }
 
+
+// FIXME: 是否应该将函数名改为 tls_curve_name() 这样和 TLS_curve_xxx 保持一致
 const char *tls_named_curve_name(int curve)
 {
 	switch (curve) {
@@ -417,6 +419,27 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 				tls_signature_scheme_name(sig_alg), sig_alg);
 		}
 		break;
+	case TLS_extension_key_share:
+		if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1
+			|| datalen) {
+			error_print();
+			return -1;
+		}
+		while (len) {
+			uint16_t group;
+			const uint8_t *key_exch;
+			size_t key_exch_len;
+
+			if (tls_uint16_from_bytes(&group, &p, &len) != 1
+				|| tls_uint16array_from_bytes(&key_exch, &key_exch_len, &p, &len) != 1) {
+				error_print();
+				return -1;
+			}
+			format_print(fp, format, indent, "group : %s\n", tls_named_curve_name(group));
+			format_bytes(fp, format, indent, "key_exchange : ", key_exch, key_exch_len);
+		}
+		break;
+
 	default:
 		format_bytes(fp, format, indent, "raw_data : ", data, datalen);
 	}
@@ -524,7 +547,8 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 		tls_compression_method_name(comp_meth), comp_meth);
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto bad;
-		format_bytes(fp, format, indent, "Extensions : ", exts, exts_len); // FIXME: extensions_print		
+		//format_bytes(fp, format, indent, "Extensions : ", exts, exts_len); // FIXME: extensions_print		
+		tls_extensions_print(fp, exts, exts_len, format, indent);
 	}
 	return 1;
 bad:

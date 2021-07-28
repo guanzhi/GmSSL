@@ -46,21 +46,22 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NO_RC4
 
 #ifndef GMSSL_RC4_H
 #define GMSSL_RC4_H
 
 
-#define RC4_MIN_KEY_BITS	40
-#define RC4_STATE_NUM_WORDS	256
-
-#include <stdint.h>
 #include <string.h>
+#include <stdint.h>
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+#define RC4_MIN_KEY_BITS	40
+#define RC4_STATE_NUM_WORDS	256
 
 
 typedef struct {
@@ -74,6 +75,4 @@ void rc4_generate_keystream(RC4_STATE *state, size_t outlen, uint8_t *out);
 #ifdef __cplusplus
 }
 #endif
-#endif
-
 #endif

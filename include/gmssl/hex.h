@@ -50,14 +50,19 @@
 #ifndef GMSSL_HEX_H
 #define GMSSL_HEX_H
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+int hex_to_bytes(const char *in, size_t inlen, uint8_t *out, size_t *outlen);
+
 
 int hex2bin(const char *in, size_t inlen, uint8_t *out);
 int OPENSSL_hexchar2int(unsigned char c);

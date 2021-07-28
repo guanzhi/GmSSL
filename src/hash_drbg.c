@@ -51,7 +51,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/hash_drbg.h>
-#include "bswap.h"
+#include "endian.h"
 
 static int hash_df(const DIGEST *digest, const uint8_t *in, size_t inlen,
 	size_t outlen, uint8_t *out)

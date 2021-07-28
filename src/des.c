@@ -46,13 +46,11 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NO_DES
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/des.h>
-#include "bswap.h"
+#include "endian.h"
 
 
 /* permuted choice 1 for key schedule, 64 bits to 56 bits */
@@ -205,7 +203,7 @@ static uint32_t substitution(const uint64_t A)
 		(((uint32_t)S8[(A      ) & 0x3f])      );
 }
 
-#define ROL32(A,Si)	(((A)<<(Si))|((A)>>(32-(Si))))
+//#define ROL32(A,Si)	(((A)<<(Si))|((A)>>(32-(Si))))
 
 void des_set_encrypt_key(DES_KEY *key, const unsigned char user_key[8])
 {
@@ -267,4 +265,3 @@ void des_encrypt(DES_KEY *key, const unsigned char in[DES_BLOCK_SIZE],
 
 	PUTU64(out, T);
 }
-#endif

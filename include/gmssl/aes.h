@@ -46,7 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NO_AES
 
 #ifndef GMSSL_AES_H
 #define GMSSL_AES_H
@@ -83,11 +82,33 @@ typedef struct {
 int aes_set_encrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen);
 int aes_set_decrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen);
 void aes_encrypt(const AES_KEY *aes_key, const uint8_t in[AES_BLOCK_SIZE], uint8_t out[AES_BLOCK_SIZE]);
+
 void aes_decrypt(const AES_KEY *aes_key, const uint8_t in[AES_BLOCK_SIZE], uint8_t out[AES_BLOCK_SIZE]);
+
+void aes_cbc_encrypt(const AES_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
+void aes_cbc_decrypt(const AES_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
+
+int aes_cbc_padding_encrypt(const AES_KEY *key, const uint8_t iv[16],
+	const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
+
+int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
+	const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
+
+void aes_ctr_encrypt(const AES_KEY *key, uint8_t ctr[16],
+	const uint8_t *in, size_t inlen, uint8_t *out);
+
+int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, const size_t taglen, uint8_t *tag);
+
+int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out);
 
 
 #ifdef  __cplusplus
 }
-#endif
 #endif
 #endif

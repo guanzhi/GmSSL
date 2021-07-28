@@ -49,8 +49,9 @@
 
 #include <string.h>
 #include <gmssl/sm3.h>
-#include "bswap.h"
-#include "rotate.h"
+//#include "bswap.h"
+//#include "rotate.h"
+#include "endian.h"
 
 #ifdef SM3_SSE3
 # include <x86intrin.h>

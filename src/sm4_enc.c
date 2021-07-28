@@ -48,8 +48,7 @@
  */
 
 #include <gmssl/sm4.h>
-#include "bswap.h"
-#include "rotate.h"
+#include "endian.h"
 #include "sm4_lcl.h"
 
 
@@ -78,11 +77,6 @@
 	x0 ^= t0;						\
 	t1 = SM4_T[x4];					\
 	x4 = x0 ^ t1
-
-#define ROUND_DBOX(x0, x1, x2, x3, x4, i)			\
-	x4 = x1 ^ x2 ^ x3 ^ *(rk + i);				\
-	x4 = x0 ^ SM4_D[(uint16_t)(x4 >> 16)] ^		\
-		ROL32(SM4_D[(uint16_t)x4], 16)
 
 #define ROUND ROUND_TBOX
 

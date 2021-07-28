@@ -46,8 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NO_CHACHA20
-
 /* RFC 8439 "ChaCha20 and Poly1305 for IETF Protocols" */
 
 #ifndef GMSSL_CHACHA20_H
@@ -95,6 +93,5 @@ void chacha20_generate_keystream(CHACHA20_STATE *state,
 
 #ifdef __cplusplus
 }
-#endif
 #endif
 #endif

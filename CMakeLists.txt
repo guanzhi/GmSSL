@@ -60,7 +60,7 @@ add_library(
   src/sm4_common.c
   src/sm4_setkey.c
   src/sm4_enc.c
-  src/sm4_cbc.c
+  src/sm4_modes.c
   src/sm9_math.c
   src/zuc_core.c
   src/zuc_eea.c
@@ -69,7 +69,6 @@ add_library(
   src/hash_drbg.c
   src/hmac.c
   src/hkdf.c
-  #src/cmac.c
   src/pbkdf2.c
   src/pkcs8.c
 
@@ -80,13 +79,17 @@ add_library(
   src/md5.c
   src/des.c
   src/aes.c
+  src/aes_modes.c
   src/chacha20.c
   src/sha1.c
   src/sha256.c
   src/sha512.c
 
   src/digest.c
-  #src/digest_asn1.c
+  src/block_cipher.c
+  src/gf128.c
+  src/gcm.c
+
   src/x509_lib.c
   src/x509_asn1.c
   src/x509_ext.c
@@ -100,6 +103,7 @@ add_library(
   src/tls_trace.c
   src/tls12.c
   src/tlcp.c
+  src/tls13.c
 
   src/cms.c
 
@@ -158,6 +162,10 @@ target_link_libraries (tls12_client LINK_PUBLIC gmssl)
 add_executable (tls12_server tools/tls12_server.c)
 target_link_libraries (tls12_server LINK_PUBLIC gmssl)
 
+add_executable (tls13_client tools/tls13_client.c)
+target_link_libraries (tls13_client LINK_PUBLIC gmssl)
+add_executable (tls13_server tools/tls13_server.c)
+target_link_libraries (tls13_server LINK_PUBLIC gmssl)
 
 # tests
 add_executable(sm2test tests/sm2test.c)
@@ -258,7 +266,7 @@ target_link_libraries (cmstest LINK_PUBLIC gmssl)
 #target_link_libraries (tlstest LINK_PUBLIC gmssl)
 
 # 安装可执行文件
-INSTALL(TARGETS  digest  certview certgen certverify reqgen sm3sum sm2gen sm2sign sm2verify sm2encrypt sm2decrypt pkcs8gen sm2view pkcs8view tlcp_client tlcp_server tls12_client tls12_server 
+INSTALL(TARGETS  digest  certview certgen certverify reqgen sm3sum sm2gen sm2sign sm2verify sm2encrypt sm2decrypt pkcs8gen sm2view pkcs8view tlcp_client tlcp_server tls12_client tls12_server tls13_client tls13_server
         RUNTIME DESTINATION bin  
         )
 # 安装动态库

@@ -55,6 +55,8 @@
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
+#include <gmssl/digest.h>
+#include <gmssl/block_cipher.h>
 
 
 #ifdef __cplusplus
@@ -105,7 +107,7 @@ typedef enum {
 	TLS_cipher_null_with_null_null		= 0x0000,
 	TLS_cipher_sm4_gcm_sm3			= 0x00c6,
 	TLS_cipher_sm4_ccm_sm3			= 0x00c7,
-	TLCP_cipher_ecdhe_sm4_cbc_sm3		= 0xe011,
+	TLCP_cipher_ecdhe_sm4_cbc_sm3		= 0xe011, // TLCP, TLS 1.2
 	TLCP_cipher_ecdhe_sm4_gcm_sm3		= 0xe051,
 	TLCP_cipher_ecc_sm4_cbc_sm3		= 0xe013,
 	TLCP_cipher_ecc_sm4_gcm_sm3		= 0xe053,
@@ -122,9 +124,18 @@ typedef enum {
 	GMSSL_cipher_ecdhe_sm2_with_sm4_ccm_sm3	= 0xe108,
 	GMSSL_cipher_ecdhe_sm2_with_zuc_sm3	= 0xe10d,
 	TLS_cipher_empty_renegotiation_info_scsv = 0x00ff,
+
+	// TLS 1.3 ciphers (rfc 8446 p.133)
+	TLS_cipher_aes_128_gcm_sha256		= 0x1301, // mandatory-to-implement
+	TLS_cipher_aes_256_gcm_sha384		= 0x1302, // SHOULD implement
+	TLS_cipher_chacha20_poly1305_sha256	= 0x1303, // SHOULD implement
+	TLS_cipher_aes_128_ccm_sha256		= 0x1304,
+	TLS_cipher_aes_128_ccm_8_sha256		= 0x1305,
+
 } TLS_CIPHER_SUITE;
 
 typedef enum {
+	TLS_record_invalid		= 0, // TLS 1.3
 	TLS_record_change_cipher_spec	= 20,
 	TLS_record_alert		= 21,
 	TLS_record_handshake		= 22,
@@ -180,7 +191,7 @@ typedef enum {
 } TLS_CERTIFICATE_TYPE;
 
 typedef enum {
-	TLS_extension_server_name		= 0,
+	TLS_extension_server_name		= 0, // tls 1.3 mandatory-to-implement
 	TLS_extension_max_fragment_length	= 1,
 	TLS_extension_client_certificate_url	= 2,
 	TLS_extension_trusted_ca_keys		= 3,
@@ -193,7 +204,7 @@ typedef enum {
 	TLS_extension_supported_groups		= 10, // 必须支持
 	TLS_extension_ec_point_formats		= 11, // 必须支持
 	TLS_extension_srp			= 12,
-	TLS_extension_signature_algorithms	= 13, // 必须支持
+	TLS_extension_signature_algorithms	= 13, // // tls 1.3 mandatory-to-implement
 	TLS_extension_use_srtp			= 14,
 	TLS_extension_heartbeat			= 15,
 	TLS_extension_application_layer_protocol_negotiation= 16,
@@ -222,13 +233,13 @@ typedef enum {
 	TLS_extension_supported_ekt_ciphers	= 39,
 	TLS_extension_pre_shared_key		= 41,
 	TLS_extension_early_data		= 42,
-	TLS_extension_supported_versions	= 43,
-	TLS_extension_cookie			= 44,
+	TLS_extension_supported_versions	= 43, // tls 1.3 mandatory-to-implement
+	TLS_extension_cookie			= 44, // tls 1.3 mandatory-to-implement
 	TLS_extension_psk_key_exchange_modes	= 46,
 	TLS_extension_certificate_authorities	= 47,
 	TLS_extension_oid_filters		= 48,
 	TLS_extension_post_handshake_auth	= 49,
-	TLS_extension_signature_algorithms_cert	= 50,
+	TLS_extension_signature_algorithms_cert	= 50, // tls 1.3 mandatory-to-implement
 	TLS_extension_key_share			= 51,
 	TLS_extension_transparency_info		= 52,
 	TLS_extension_connection_id		= 53,
@@ -400,7 +411,29 @@ typedef struct {
 	uint8_t handshakes[TLS_MAX_HANDSHAKES_SIZE];
 	size_t handshakes_len;
 
+	uint8_t client_write_iv[12];
+	uint8_t server_write_iv[12];
+
+
+
+	BLOCK_CIPHER_KEY client_write_key;
+	BLOCK_CIPHER_KEY server_write_key;
+
 } TLS_CONNECT;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // 有可能在连接建立之后，客户端还是想获得一些这个连接的有关信息呢？比如random中有时间信息？
@@ -617,11 +650,30 @@ int tls_record_set_handshake_client_key_exchange_ecdhe(uint8_t *record, size_t *
 int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_POINT *point);
 int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
+
+
+int tls12_record_recv(uint8_t *record, size_t *recordlen, int sock);
+
+
 int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
+
 int tls12_accept(TLS_CONNECT *conn, int port,
 	FILE *certs_fp, const SM2_KEY *server_sign_key,
 	FILE *client_cacerts_fp, uint8_t *handshakes_buf, size_t handshakes_buflen);
+
+
+
+
+
+int tls13_connect(TLS_CONNECT *conn, const char *hostname, int port,
+	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
+
+
+int tls13_accept(TLS_CONNECT *conn, int port,
+	FILE *certs_fp, const SM2_KEY *server_sign_key,
+	FILE *client_cacerts_fp);
+
 
 int tls_secrets_print(FILE *fp,
 	const uint8_t *pre_master_secret, size_t pre_master_secret_len,
@@ -629,6 +681,22 @@ int tls_secrets_print(FILE *fp,
 	const uint8_t master_secret[48],
 	const uint8_t *key_block, size_t key_block_len,
 	int format, int indent);
+
+
+
+int tls_ext_signature_algors_to_bytes(const int *algors, size_t algors_count,
+	uint8_t **out, size_t *outlen);
+
+int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t padding_len);
+int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen);
+
+
+int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
+int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
+	const char *label, const uint8_t *context, size_t context_len,
+	size_t outlen, uint8_t *out);
+int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32]);
+
 
 
 #define tls_trace printf

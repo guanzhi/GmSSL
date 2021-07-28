@@ -50,13 +50,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <libgen.h>
 #include <gmssl/sm3.h>
 
 
 int main(int argc, char **argv)
 {
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	SM3_CTX ctx;
 	uint8_t dgst[32];
 	uint8_t buf[4096];

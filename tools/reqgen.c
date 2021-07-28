@@ -76,7 +76,7 @@ void print_usage(const char *prog)
 int main(int argc, char **argv)
 {
 	int ret = -1;
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	char *country = NULL;
 	char *state = NULL;
 	char *org = NULL;
@@ -88,7 +88,6 @@ int main(int argc, char **argv)
 	FILE *keyfp = NULL;
 
 	X509_CERT_REQUEST req;
-
 
 	char *pass;
 

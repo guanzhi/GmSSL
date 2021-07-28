@@ -322,6 +322,8 @@ int tls_record_length(const uint8_t *record)
 }
 
 
+
+
 // 这个函数应该是处理的，这个函数是不应该用的，通常我们在加密的时候，header ，明文数据是分离的，但是输出的record是一个
 int tls_record_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
@@ -683,6 +685,9 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 
 
 
+
+
+
 int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 	const uint8_t *data, size_t datalen)
 {
@@ -1024,7 +1029,6 @@ int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
 	return 1;
 }
 
-
 int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
 	const uint8_t *sig, size_t siglen)
 {
@@ -1050,6 +1054,8 @@ int tls_record_get_handshake_certificate_verify(const uint8_t *record,
 	return 1;
 }
 
+//FIXME: TLS 1.3 中的verify_data长度和hashLen一样,并且长度是不单独编码的，
+// 因此这个函数应该改一下了
 int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
 	const uint8_t verify_data[12])
 {

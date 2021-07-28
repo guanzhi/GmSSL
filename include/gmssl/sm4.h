@@ -49,12 +49,6 @@
 #ifndef GMSSL_SM4_H
 #define GMSSL_SM4_H
 
-#define SM4_KEY_SIZE		16
-
-#define SM4_KEY_LENGTH		16
-#define SM4_BLOCK_SIZE		16
-#define SM4_IV_LENGTH		(SM4_BLOCK_SIZE)
-#define SM4_NUM_ROUNDS		32
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -65,9 +59,18 @@
 extern "C" {
 #endif
 
+
+#define SM4_KEY_SIZE		16
+#define SM4_KEY_LENGTH		16
+#define SM4_BLOCK_SIZE		16
+#define SM4_IV_LENGTH		(SM4_BLOCK_SIZE)
+#define SM4_NUM_ROUNDS		32
+
+
 typedef struct {
 	uint32_t rk[SM4_NUM_ROUNDS];
 } SM4_KEY;
+
 
 void sm4_set_encrypt_key(SM4_KEY *key, const unsigned char user_key[16]);
 void sm4_set_decrypt_key(SM4_KEY *key, const unsigned char user_key[16]);
@@ -75,28 +78,30 @@ void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char o
 #define sm4_decrypt(key,in,out)  sm4_encrypt(key,in,out)
 
 
-# define SM4_EDE_KEY_LENGTH	(SM4_KEY_LENGTH * 3)
+void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out);
 
-typedef struct {
-	SM4_KEY k1;
-	SM4_KEY k2;
-	SM4_KEY k3;
-} SM4_EDE_KEY;
-
-void sm4_ede_set_encrypt_key(SM4_EDE_KEY *key, const unsigned char user_key[48]);
-void sm4_ede_set_decrypt_key(SM4_EDE_KEY *key, const unsigned char user_key[48]);
-void sm4_ede_encrypt(const SM4_EDE_KEY *key, const unsigned char in[16], unsigned char out[16]);
-# define sm4_ede_decrypt(key,in,out)  sm4_ede_encrypt(key,in,out)
-
-void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
-void sm4_cbc_decrypt(const SM4_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
+void sm4_cbc_decrypt(const SM4_KEY *key, const uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out);
 
 int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
+
 int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
+
+void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16],
+	const uint8_t *in, size_t inlen, uint8_t *out);
+
+int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, const size_t taglen, uint8_t *tag);
+
+int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out);
 
 
 #ifdef __cplusplus

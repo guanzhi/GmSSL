@@ -49,12 +49,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <gmssl/gf128.h>
+#include <gmssl/gcm.h>
+#include <gmssl/oid.h>
+#include <gmssl/error.h>
+#include <gmssl/aes.h>
+#include "endian.h"
 
 /*
  * GHASH(H, A, C) = X_{m + n + 1}
- *   A additional authenticated data, A = A_1, ..., A_{m-1}, A_m^*, nbits(A_m^*) = v
- *   C ciphertext, C = C_1, ..., C_{n-1}, C_n^*, nbits(C_n^*) = u
+ *   A additional authenticated data, A = A_1, ..., A_{m-1}, A_{m^*}, nbits(A_{m^*}) = v
+ *   C ciphertext, C = C_1, ..., C_{n-1}, C_{n^*}, nbits(C_{n^*}) = u
  *   H = E_K(0^128)
  *
  * X_i = 0                                         for i = 0
@@ -62,189 +67,74 @@
  *     = (X_{m-1}   xor (A_m^* || 0^{128-v})) * H  for i = m
  *     = (X_{i-1}   xor  C_i                ) * H  for i = m+1, ..., m + n − 1
  *     = (X_{m+n-1} xor (C_m^* || 0^{128-u})) * H  for i = m + n
- *     = (X_{m+n}   xor (nbits(A)||nbits(A))) * H  for i = m + n + 1
+ *     = (X_{m+n}   xor (nbits(A)||nbits(C))) * H  for i = m + n + 1
  */
-void ghash_init(GHASH_CTX *ctx, const uint8_t h[16], const uint8_t *aad, size_t aadlen)
+void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t *c, size_t clen, uint8_t out[16])
 {
-	__uint128_t H;
-	__uint128_t X;
-	__uint128_t A;
+	gf128_t H = gf128_from_bytes(h);
+	gf128_t X = gf128_zero();
+	gf128_t L;
 
-	memset(ctx, 0, sizeof(GHASH_CTX));
+	PUTU64(out, (uint64_t)aadlen << 3);
+	PUTU64(out + 8, (uint64_t)clen << 3);
+	L = gf128_from_bytes(out);
 
-	/* get H in GF(2^128) as little endian */
-	ctx->H = H = GETU128_LE(h);
-	ctx->aadlen = aadlen;
-
-	/* process AAD */
-	X = 0;
-	while (aadlen >= 16) {
-		A = GETU128_LE(aad);
-		X = gf128_add(X, A);
-		X = gf128_mul(X, H);
-		aad += 16;
-		aadlen -= 16;
-	}
-	if (aadlen) {
-		memcpy(ctx->buf, aad, aadlen);
-		A = GETU128_LE(ctx->block);
-		X = gf128_add(X, A);
-		X = gf128_mul(X, H);
-	}
-
-	ctx->H = H;
-	ctx->X = X;
-
-	/* this clean ok? */
-	H = X = A = 0;
-}
-
-void ghash_update(GHASH_CTX *ctx, const uint8_t *c, size_t clen)
-{
-	__uint128_t X;
-	__uint128_t H;
-	__uint128_t C;
-
-	if (!c && clen) {
-		return 0;
-	}
-
-	ctx->cipherlen += clen;
-
-	X = ctx->X;
-	H = ctx->H;
-
-	if (ctx->num) {
-		unsigned int left = 16 - ctx->num;
-		if (clen < left) {
-			memcpy(ctx->block + ctx->num, c, clen);
-			ctx->num += clen;
-			return 1;
+	while (aadlen) {
+		gf128_t A;
+		if (aadlen >= 16) {
+			A = gf128_from_bytes(aad);
+			aad += 16;
+			aadlen -= 16;
 		} else {
-			memcpy(ctx->block + ctx->num, c, left);
-			C = GETU128_LE(ctx->block);
-			X = GF128_ADD(X, C);
-			X = GF128_MUL(X, H);
-			c += left;
-			clen -= left;
+			memset(out, 0, 16);
+			memcpy(out, aad, aadlen);
+			A = gf128_from_bytes(out);
+			aadlen = 0;
 		}
+		X = gf128_add(X, A);
+		X = gf128_mul(X, H);
 	}
 
-	while (clen >= 16) {
-		C = GETU128_LE(c);
+	while (clen) {
+		gf128_t C;
+		if (clen >= 16) {
+			C = gf128_from_bytes(c);
+			c += 16;
+			clen -= 16;
+		} else {
+			memset(out, 0, 16);
+			memcpy(out, c, clen);
+			C = gf128_from_bytes(out);
+			clen = 0;
+		}
 		X = gf128_add(X, C);
 		X = gf128_mul(X, H);
-		c += 16;
-		clen -= 16;
 	}
 
-	ctx->num = clen;
-	if (clen) {
-		memcpy(ctx->block, c, clen);
-	}
-
-	ctx->X = X;
-	X = H = C = 0;
+	X = gf128_add(X, L);
+	H = gf128_mul(X, H);
+	gf128_to_bytes(H, out);
 }
 
-void ghash_finish(GHASH_CTX *ctx, uint8_t out[16])
+int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t taglen, uint8_t *tag)
 {
-	__uint128_t X = ctx->X;
-	__uint128_t H = ctx->H;
-	__uint128_t C;
-
-	if (ctx->num < 0) {
-		return 0;
+	if (key->cipher == BLOCK_CIPHER_sm4()) {
+		sm4_gcm_encrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag);
+		return 1;
+	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
+		aes_gcm_encrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag);
+		return 1;
 	}
-
-	if (ctx->num) {
-		memset(ctx->block + ctx->num, 0, 16 - ctx->num);
-		C = GETU128_LE(ctx->block);
-		X = GF128_ADD(X, C);
-		X = GF128_MUL(X, H);
-	}
-
-	PUTU64_LE(ctx->block, (uint64_t)ctx->aadlen << 3);
-	PUTU64_LE(ctx->block + sizeof(uint64_t), (uint64_t)ctx->cipherlen << 3);
-	C = GETU128_LE(ctx->block);
-	X = GF128_ADD(X, C);
-	X = GF128_MUL(X, H);
-
-	PUTU128_LE(out, X);
-
-	memset(ctx, 0, sizeof(GHASH_CTX));
-	X = H = C = 0;
+	error_print();
+	return -1;
 }
 
-/*
- * GCM(K, IV, A, P)
- *
- *  H     = E_K(0^128)
- *  Y_0   = IV || 0^{31}1          if nbits(IV) == 96
- *        = GHASH(H, {}, IV)       otherwise
- *  Y_i   = Y_{i-1} + 1            for i = 1, ..., n
- *  C_i   = P_i xor E_K(Y_i)       for i = 1, ..., n
- *  C_n^* = P_n^* xor MSB_u(E_K(Y_n))
- *  T     = MSB_t(GHASH(H, A, C) xor E_K(Y_0))
- */
-int gcm_init(GCM_CTX *ctx, const BLOCK_CIPEHR *cipher,
-	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
-	const uint8_t *aad, size_t aadlen)
+int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out)
 {
-	memset(ctx, 0, sizeof(GCM_CTX));
-	ctx->cipher = cipher;
-
-	/* H = E_K(0^128) */
-	if (!cipher->set_encrypt_key(ctx->key, key, keylen)) {
-		return 0;
-	}
-	cipher->encrypt(ctx->key, ctx->block, ctx->block);
-
-	/* init counter as Y_0 */
-	if (ivlen == GCM_DEFAULT_IV_SIZE) {
-		memcpy(ctx->counter, iv, ivlen);
-		PUTU32(ctx->counter + 12, 1);
-	} else {
-		ghash_init(&ctx->ghash_ctx, ctx->block, NULL, 0);
-		ghash_update(&ctx->ghash_ctx, iv, ivlen);
-		ghash_finish(&ctx->ghash_ctx, ctx->counter);
-	}
-
-	ghash_init(&ctx->ghash-ctx, ctx->block, aad, aadlen);
-	return 1;
+	return -1;
 }
 
-int gcm_encrypt_update(GCM_CTX *ctx, const uint8_t *in, size_t iolen, uint8_t *out)
-{
-	ctr_update(&ctx->ctr_ctx, in, iolen, out);
-	ghash_update(&ctx->ghash_ctx, out, iolen);
-}
-
-int gcm_decrypt_update(GCM_CTX *ctx, const uint8_t *in, size_t iolen, uint8_t *out)
-{
-	ghash_update(&ctx->ghash_ctx, in, iolen);
-
-}
-
-int gcm_encrypt_finish(GCM_CTX *ctx, size_t taglen, uint8_t *tag)
-{
-	int i;
-	ghash_finish(ctx->ghash_ctx, ctx->block);
-	for (i = 0; i < ctx->taglen; i++) {
-		tag[i] = ctx->block[i] ^ ctx->enced_iv[i];
-	}
-	memset(ctx, 0, sizeof(GCM_CTX));
-}
-
-int gcm_decrypt_finish(GCM_CTX *ctx, const uint8_t *tag, size_t taglen)
-{
-	uint8_t buf[16];
-	if (taglen != ctx->taglen) {
-		return 0;
-	}
-	gcm_finish(ctx, buf);
-	if (memcmp(buf, tag, taglen) != 0) {
-		return 0;
-	}
-	return 1;
-}

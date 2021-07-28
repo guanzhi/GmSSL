@@ -129,7 +129,7 @@ int main(int argc , char *argv[])
 		argv++;
 	}
 
-	if (!host || !certfile || !keyfile) {
+	if (!host /*|| !certfile || !keyfile */) {
 		print_usage(prog);
 		return -1;
 	}
@@ -159,7 +159,7 @@ int main(int argc , char *argv[])
 
 	memset(&conn, 0, sizeof(conn));
 
-	if (tls12_connect(&conn, host, port, cacertsfp, certfp, &sign_key) != 1) {
+	if (tls13_connect(&conn, host, port, cacertsfp, certfp, &sign_key) != 1) {
 		error_print();
 		return -1;
 	}

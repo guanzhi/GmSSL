@@ -46,14 +46,12 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NO_CHACHA20
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/chacha20.h>
-#include "bswap.h"
-#include "rotate.h"
+#include "endian.h"
 
 void chacha20_set_key(CHACHA20_STATE *state,
 	const unsigned char key[CHACHA20_KEY_SIZE],
@@ -122,4 +120,3 @@ void chacha20_generate_keystream(CHACHA20_STATE *state, unsigned int counts, uns
 		state->d[12]++;
 	}
 }
-#endif

@@ -50,7 +50,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libgen.h>
 #include <gmssl/digest.h>
 
 #define FORMAT_HEX	1
@@ -78,7 +77,7 @@ void print_usage(FILE *out, const char *prog)
 int main(int argc, char **argv)
 {
 	int ret = -1;
-	char *prog = basename(argv[0]);
+	char *prog = argv[0];
 	int help = 0;
 	const DIGEST *digest = NULL;
 	int format = FORMAT_HEX;
