@@ -99,7 +99,6 @@ add_library(
   src/pem.c
 
   src/tls.c
-  src/tls_cipher.c
   src/tls_trace.c
   src/tls12.c
   src/tlcp.c
@@ -110,7 +109,8 @@ add_library(
 )
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
-# tools
+
+
 add_executable (digest tools/digest.c)
 target_link_libraries (digest LINK_PUBLIC gmssl)
 
@@ -261,6 +261,47 @@ target_link_libraries (x509test LINK_PUBLIC gmssl)
 
 add_executable(cmstest tests/cmstest.c)
 target_link_libraries (cmstest LINK_PUBLIC gmssl)
+
+
+enable_testing()
+add_test(NAME aes		COMMAND aestest)
+add_test(NAME asn1		COMMAND asn1test)
+add_test(NAME base64		COMMAND base64test)
+add_test(NAME block_cipher	COMMAND block_ciphertext)
+add_test(NAME chacha20		COMMAND chacha20test)
+add_test(NAME cms		COMMAND cmstest)
+add_test(NAME ctr		COMMAND ctrtest)
+add_test(NAME des		COMMAND destest)
+add_test(NAME digest		COMMAND digesttest)
+add_test(NAME gcm		COMMAND gcmtest)
+add_test(NAME gf128		COMMAND gf128test)
+add_test(NAME hash_drbg		COMMAND hash_drbgtest)
+add_test(NAME hkdf		COMMAND hkdftest)
+add_test(NAME hmac		COMMAND hmactest)
+add_test(NAME md5		COMMAND md5test)
+add_test(NAME oid		COMMAND oidtest)
+add_test(NAME pbkdf2		COMMAND pbkdf2test)
+add_test(NAME pkcs8		COMMAND pkcs8test)
+add_test(NAME rc4		COMMAND rc4test)
+add_test(NAME sha1		COMMAND sha1test)
+add_test(NAME sha224		COMMAND sha224test)
+add_test(NAME sha256		COMMAND sha256test)
+add_test(NAME sha384		COMMAND sha384test)
+add_test(NAME sha512		COMMAND sha512test)
+add_test(NAME sm2asn1		COMMAND sm2asn1test)
+add_test(NAME sm2		COMMAND sm2test)
+add_test(NAME sm3		COMMAND sm3test)
+add_test(NAME sm4cbc		COMMAND sm4cbctest)
+add_test(NAME sm4		COMMAND sm4test)
+add_test(NAME tls		COMMAND tlstest)
+add_test(NAME u128		COMMAND u128test)
+add_test(NAME x509		COMMAND x509test)
+add_test(NAME zuc		COMMAND zuctest)
+
+
+
+
+
 
 #add_executable(tlstest tests/tlstest.c)
 #target_link_libraries (tlstest LINK_PUBLIC gmssl)

@@ -85,7 +85,7 @@ void gf128_print_bits(gf128_t a)
 {
 	int i;
 	for (i = 0; i < 128; i++) {
-		printf("%d", a % 2);
+		printf("%d", (int)(a % 2));
 		a >>= 1;
 	}
 	printf("\n");
