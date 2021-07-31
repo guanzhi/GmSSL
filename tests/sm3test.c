@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/sm3.h>
 #include <gmssl/hex.h>
 
@@ -178,17 +179,15 @@ int main(int argc, char **argv)
 {
 	int err = 0;
 	char *p;
-	unsigned char *testbuf = NULL;
-	unsigned char *dgstbuf = NULL;
+	uint8_t testbuf[sizeof(testhex)/2];
+	uint8_t dgstbuf[32];
 	size_t testbuflen, dgstbuflen;
-	unsigned char dgst[32];
+	uint8_t dgst[32];
 	size_t i;
 
 	for (i = 0; i < sizeof(testhex)/sizeof(testhex[0]); i++) {
-		if (!(testbuf = OPENSSL_hexstr2buf(testhex[i], &testbuflen))
-			|| !(dgstbuf = OPENSSL_hexstr2buf(dgsthex[i], &dgstbuflen))) {
-			goto end;
-		}
+		hex_to_bytes(testhex[i], strlen(testhex[i]), testbuf, &testbuflen);
+		hex_to_bytes(dgsthex[i], strlen(dgsthex[i]), dgstbuf, &dgstbuflen);
 
 		sm3_digest(testbuf, testbuflen, dgst);
 
@@ -205,15 +204,7 @@ int main(int argc, char **argv)
 		} else {
 			printf("sm3 test %lu ok\n", i+1);
 		}
-
-		free(testbuf);
-		free(dgstbuf);
-		testbuf = NULL;
-		dgstbuf = NULL;
 	}
 
-end:
-	if (testbuf) free(testbuf);
-	if (dgstbuf) free(dgstbuf);
 	return err;
 }

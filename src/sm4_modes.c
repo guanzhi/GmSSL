@@ -67,7 +67,7 @@ void sm4_cbc_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	while (nblocks--) {
-		sm4_decrypt(key, in, out);
+		sm4_encrypt(key, in, out);
 		memxor(out, iv, 16);
 		iv = in;
 		in += 16;

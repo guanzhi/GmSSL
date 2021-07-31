@@ -60,11 +60,9 @@ extern "C" {
 #endif
 
 
-#define SM4_KEY_SIZE		16
-#define SM4_KEY_LENGTH		16
-#define SM4_BLOCK_SIZE		16
-#define SM4_IV_LENGTH		(SM4_BLOCK_SIZE)
-#define SM4_NUM_ROUNDS		32
+#define SM4_KEY_SIZE		(16)
+#define SM4_BLOCK_SIZE		(16)
+#define SM4_NUM_ROUNDS		(32)
 
 
 typedef struct {
@@ -72,10 +70,9 @@ typedef struct {
 } SM4_KEY;
 
 
-void sm4_set_encrypt_key(SM4_KEY *key, const unsigned char user_key[16]);
-void sm4_set_decrypt_key(SM4_KEY *key, const unsigned char user_key[16]);
-void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char out[16]);
-#define sm4_decrypt(key,in,out)  sm4_encrypt(key,in,out)
+void sm4_set_encrypt_key(SM4_KEY *sm4_key, const uint8_t key[16]);
+void sm4_set_decrypt_key(SM4_KEY *sm4_key, const uint8_t key[16]);
+void sm4_encrypt(const SM4_KEY *sm4_key, const uint8_t in[16], uint8_t out[16]);
 
 
 void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16],

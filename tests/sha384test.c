@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/hex.h>
 #include <gmssl/sha2.h>
 
@@ -105,19 +106,17 @@ int main(void)
 {
 	int err = 0;
 	SHA384_CTX ctx;
-	unsigned char dgst[SHA384_DIGEST_SIZE];
-	unsigned char *dgstbuf = NULL;
+	uint8_t dgst[SHA384_DIGEST_SIZE];
+	uint8_t dgstbuf[SHA384_DIGEST_SIZE];
+	size_t dgstlen;
 	size_t i, j;
 
 	for (i = 0; i < 7; i++) {
-
-		if (!(dgstbuf = OPENSSL_hexstr2buf(tests[i].dgsthex, NULL))) {
-			goto end;
-		}
+		hex_to_bytes(tests[i].dgsthex, strlen(tests[i].dgsthex), dgstbuf, &dgstlen);
 
 		sha384_init(&ctx);
 		for (j = 0; j < tests[i].count; j++) {
-			sha384_update(&ctx, (unsigned char *)tests[i].data, tests[i].length);
+			sha384_update(&ctx, (uint8_t *)tests[i].data, tests[i].length);
 		}
 		sha384_finish(&ctx, dgst);
 
@@ -132,12 +131,7 @@ int main(void)
 		} else {
 			printf("sha384 test %lu ok\n", i+1);
 		}
-
-		free(dgstbuf);
-		dgstbuf = NULL;
 	}
 
-end:
-	if (dgstbuf) free(dgstbuf);
 	return err;
 }

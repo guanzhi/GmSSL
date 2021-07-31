@@ -135,6 +135,11 @@ int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
 	const uint8_t *tag, size_t taglen, uint8_t *out)
 {
+	if (key->cipher == BLOCK_CIPHER_sm4()) {
+		sm4_gcm_decrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out);
+	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
+		aes_gcm_decrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out);
+	}
+	error_print();
 	return -1;
 }
-

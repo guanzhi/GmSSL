@@ -48,22 +48,12 @@
 
 #include <string.h>
 #include <gmssl/hmac.h>
+#include <gmssl/error.h>
 
 
 #define IPAD	0x36
 #define OPAD	0x5C
 
-
-int hmac_ctx_init(HMAC_CTX *ctx)
-{
-	memset(ctx, 0, sizeof(HMAC_CTX));
-	return 1;
-}
-
-void hmac_ctx_cleanup(HMAC_CTX *ctx)
-{
-	memset(ctx, 0, sizeof(HMAC_CTX));
-}
 
 int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, size_t keylen)
 {
@@ -73,7 +63,8 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, siz
 	int i;
 
 	if (!ctx || !digest || !key || !keylen) {
-		return 0;
+		error_print();
+		return -1;
 	}
 
 	ctx->digest = digest;
@@ -107,34 +98,45 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, siz
 int hmac_update(HMAC_CTX *ctx, const unsigned char *data, size_t datalen)
 {
 	if (!ctx || (!data &&  datalen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
-	return digest_update(&ctx->digest_ctx, data, datalen);
+	if (digest_update(&ctx->digest_ctx, data, datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int hmac_finish(HMAC_CTX *ctx, unsigned char *mac, size_t *maclen)
 {
-	int ret = 0;
-	size_t i;
-	size_t blocksize;
-
-	if (!digest_finish(&ctx->digest_ctx, mac, maclen)) {
+	if (digest_finish(&ctx->digest_ctx, mac, maclen) != 1) {
+		error_print();
 		return -1;
 	}
 	memcpy(&ctx->digest_ctx, &ctx->o_ctx, sizeof(DIGEST_CTX));
-	if (!digest_update(&ctx->digest_ctx, mac, *maclen)
-		|| !digest_finish(&ctx->digest_ctx, mac, maclen)) {
-		goto end;
+	if (digest_update(&ctx->digest_ctx, mac, *maclen) != 1
+		|| digest_finish(&ctx->digest_ctx, mac, maclen) != 1) {
+		error_print();
+		return -1;
 	}
-
-	ret = 1;
-end:
-	return ret;
+	return 1;
 }
 
-int hmac_reset(HMAC_CTX *ctx)
+int hmac_finish_and_verify(HMAC_CTX *ctx, const uint8_t *mac, size_t maclen)
 {
-	memcpy(&ctx->digest_ctx, &ctx->i_ctx, sizeof(DIGEST_CTX));
+	uint8_t hmac[64];
+	size_t hmaclen;
+
+	if (hmac_finish(ctx, hmac, &hmaclen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (maclen != hmaclen
+		|| memcmp(hmac, mac, maclen) != 0) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -145,14 +147,14 @@ int hmac(const DIGEST *digest, const unsigned char *key, size_t keylen,
 	int ret = 0;
 	HMAC_CTX ctx;
 
-	if (!hmac_ctx_init(&ctx)
-		|| !hmac_init(&ctx, digest, key, keylen)
-		|| !hmac_update(&ctx, data, datalen)
-		|| !hmac_finish(&ctx, mac, maclen)) {
+	if (hmac_init(&ctx, digest, key, keylen) != 1
+		|| hmac_update(&ctx, data, datalen) != 1
+		|| hmac_finish(&ctx, mac, maclen) != 1) {
 		goto end;
 	}
 	ret = 1;
+
 end:
-	hmac_ctx_cleanup(&ctx);
+	memset(&ctx, 0, sizeof(ctx));
 	return ret;
 }

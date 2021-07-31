@@ -75,6 +75,8 @@ extern "C" {
 #define GCM_MAX_PLAINTEXT_SIZE	((((uint64_t)1 << 39) - 256) >> 3)
 
 
+#define GHASH_SIZE		(16)
+
 
 #define GCM_IS_LITTLE_ENDIAN 1
 

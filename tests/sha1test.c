@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/sha1.h>
 #include <gmssl/hex.h>
 
@@ -78,19 +79,17 @@ int main(void)
 {
 	int err = 0;
 	SHA1_CTX ctx;
-	unsigned char dgst[20];
-	unsigned char *dgstbuf = NULL;
+	uint8_t dgst[20];
+	uint8_t dgstbuf[20];
+	size_t dgstlen;
 	size_t i, j;
 
 	for (i = 0; i < sizeof(teststr)/sizeof(teststr[0]); i++) {
-
-		if (!(dgstbuf = OPENSSL_hexstr2buf(dgsthex[i], NULL))) {
-			goto end;
-		}
+		hex_to_bytes(dgsthex[i], strlen(dgsthex[i]), dgstbuf, &dgstlen);
 
 		sha1_init(&ctx);
 		for (j = 0; j < testcnt[i]; j++) {
-			sha1_update(&ctx, (unsigned char *)teststr[i], strlen(teststr[i]));
+			sha1_update(&ctx, (uint8_t *)teststr[i], strlen(teststr[i]));
 		}
 		sha1_finish(&ctx, dgst);
 
@@ -105,12 +104,7 @@ int main(void)
 		} else {
 			printf("sha1 test %lu ok\n", i+1);
 		}
-
-		free(dgstbuf);
-		dgstbuf = NULL;
 	}
 
-end:
-	if (dgstbuf) free(dgstbuf);
 	return err;
 }

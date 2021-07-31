@@ -83,7 +83,7 @@ static uint32_t CK[32] = {
 	x4 = x0 ^ L32_(x4);			\
 	*(rk + 31 - i) = x4
 
-void sm4_set_encrypt_key(SM4_KEY *key, const unsigned char user_key[16])
+void sm4_set_encrypt_key(SM4_KEY *key, const uint8_t user_key[16])
 {
 	uint32_t *rk = key->rk;
 	uint32_t x0, x1, x2, x3, x4;
@@ -100,7 +100,7 @@ void sm4_set_encrypt_key(SM4_KEY *key, const unsigned char user_key[16])
 	x0 = x1 = x2 = x3 = x4 = 0;
 }
 
-void sm4_set_decrypt_key(SM4_KEY *key, const unsigned char user_key[16])
+void sm4_set_decrypt_key(SM4_KEY *key, const uint8_t user_key[16])
 {
 	uint32_t *rk = key->rk;
 	uint32_t x0, x1, x2, x3, x4;

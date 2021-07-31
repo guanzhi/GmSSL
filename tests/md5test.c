@@ -50,8 +50,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/md5.h>
 #include <gmssl/hex.h>
+
 
 static char *teststr[] = {
 	"",
@@ -77,17 +79,14 @@ int main(int argc, char **argv)
 {
 	int err = 0;
 	char *p;
-	unsigned char *dgstbuf = NULL;
+	uint8_t dgst[16];
+	uint8_t dgstbuf[16];
 	size_t dgstbuflen;
-	unsigned char dgst[16];
 	size_t i;
 
 	for (i = 0; i < sizeof(teststr)/sizeof(teststr[0]); i++) {
-		if (!(dgstbuf = OPENSSL_hexstr2buf(dgsthex[i], &dgstbuflen))) {
-			goto end;
-		}
-
-		md5_digest((unsigned char *)teststr[i], strlen(teststr[i]), dgst);
+		hex_to_bytes(dgsthex[i], strlen(dgsthex[i]), dgstbuf, &dgstbuflen);
+		md5_digest((uint8_t *)teststr[i], strlen(teststr[i]), dgst);
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
 			int n;
@@ -102,12 +101,7 @@ int main(int argc, char **argv)
 		} else {
 			printf("md5 test %lu ok\n", i+1);
 		}
-
-		free(dgstbuf);
-		dgstbuf = NULL;
 	}
 
-end:
-	if (dgstbuf) free(dgstbuf);
 	return err;
 }

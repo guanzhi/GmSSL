@@ -73,7 +73,6 @@ size_t hmac_size(const HMAC_CTX *ctx);
 int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, size_t keylen);
 int hmac_update(HMAC_CTX *ctx, const unsigned char *data, size_t datalen);
 int hmac_finish(HMAC_CTX *ctx, unsigned char *mac, size_t *maclen);
-int hmac_reset(HMAC_CTX *ctx);
 
 int hmac(const DIGEST *md, const unsigned char *key, size_t keylen,
 	const unsigned char *data, size_t dlen,

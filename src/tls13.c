@@ -65,45 +65,66 @@
 #include <gmssl/pem.h>
 #include <gmssl/tls.h>
 #include <gmssl/digest.h>
-#include <gmssl/block_cipher.h>
 #include <gmssl/gcm.h>
 #include <gmssl/hmac.h>
+#include <gmssl/hkdf.h>
 #include "mem.h"
 
 
-int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *enc_key,
-	const uint8_t iv[12], size_t padding_len,
+
+/*
+struct {
+	opaque content[TLSPlaintext.length];
+	ContentType type;
+	uint8 zeros[length_of_padding];
+} TLSInnerPlaintext;
+
+struct {
+	ContentType opaque_type = application_data; // 23
+	ProtocolVersion legacy_record_version = 0x0303; // TLS v1.2
+	uint16 length;
+	opaque encrypted_record[TLSCiphertext.length];
+} TLSCiphertext;
+*/
+int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	const uint8_t seq_num[8], int record_type,
-	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+	const uint8_t *in, size_t inlen, size_t padding_len, // TLSInnerPlaintext.content
+	uint8_t *out, size_t *outlen) // TLSCiphertext.encrypted_record
 {
 	uint8_t nonce[12];
-	uint8_t *mbuf = malloc(inlen + 256);
 	uint8_t aad[5];
 	uint8_t *gmac;
+	uint8_t *mbuf = malloc(inlen + 256); // FIXME: update gcm_encrypt API		
 	size_t mlen, clen;
 
+	// nonce = (zeros|seq_num) xor (iv)
 	nonce[0] = nonce[1] = nonce[2] = 0;
 	memcpy(nonce + 3, seq_num, 8);
 	gmssl_memxor(nonce, nonce, iv, 12);
 
+	// TLSInnerPlaintext
 	memcpy(mbuf, in, inlen);
 	mbuf[inlen] = record_type;
 	memset(mbuf + inlen + 1, 0, padding_len);
 	mlen = inlen + 1 + padding_len;
-	clen = mlen + 16;
+	clen = mlen + GHASH_SIZE;
 
+	// aad = TLSCiphertext header
 	aad[0] = TLS_record_application_data;
-	aad[1] = 3;
-	aad[2] = 3;
+	aad[1] = TLS_version_tls12_major;
+	aad[2] = TLS_version_tls12_minor;
 	aad[3] = clen >> 8;
 	aad[4] = clen;
 
 	gmac = out + mlen;
-	gcm_encrypt(enc_key, nonce, sizeof(nonce), aad, sizeof(aad), mbuf, mlen, out, 16, gmac);
+	if (gcm_encrypt(key, nonce, sizeof(nonce), aad, sizeof(aad), mbuf, mlen, out, 16, gmac) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
-int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *sm4_key, const uint8_t iv[12],
+int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	int *record_type, uint8_t *out, size_t *outlen)
 {
@@ -113,61 +134,334 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *sm4_key, const uint8_t iv[12],
 	const uint8_t *gmac;
 	size_t i;
 
+	// nonce = (zeros|seq_num) xor (iv)
 	nonce[0] = nonce[1] = nonce[2] = 0;
 	memcpy(nonce + 3, seq_num, 8);
 	gmssl_memxor(nonce, nonce, iv, 12);
 
+	// aad = TLSCiphertext header
 	aad[0] = TLS_record_application_data;
-	aad[1] = 3;
-	aad[2] = 3;
+	aad[1] = TLS_version_tls12_major;
+	aad[2] = TLS_version_tls12_minor;
 	aad[3] = inlen >> 8;
+	aad[4] = inlen;
 
-	mlen = inlen - 16;
-				
+	if (inlen < GHASH_SIZE) {
+		error_print();
+		return -1;
+	}
+	mlen = inlen - GHASH_SIZE;
+	gmac = in + mlen;
 
-	return -1;
-}
-
-int tls13_record_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen, size_t padding_len,
-	uint8_t *out, size_t *outlen)
-{
-	if (tls13_gcm_encrypt(key, iv, padding_len,
-		seq_num, in[0], in + 5, inlen - 5, out + 5, outlen) != 1) {
+	if (gcm_decrypt(key, iv, 12, aad, 5, in, mlen, gmac, GHASH_SIZE, out) != 1) {
 		error_print();
 		return -1;
 	}
 
-	out[0] = TLS_record_application_data;
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (*outlen) >> 8;
-	out[4] = (*outlen);
-	(*outlen) += 5;
+	// remove padding, get record_type
+	*record_type = 0;
+	while (mlen--) {
+		if (out[mlen] != 0) {
+			*record_type = out[mlen];
+			break;
+		}
+	}
+	if (!tls_record_type_name(*record_type)) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+int tls13_record_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+	const uint8_t seq_num[8], const uint8_t *record, size_t recordlen, size_t padding_len,
+	uint8_t *enced_record, size_t *enced_recordlen)
+{
+	if (tls13_gcm_encrypt(key, iv,
+		seq_num, record[0], record + 5, recordlen - 5, padding_len,
+		enced_record + 5, enced_recordlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	enced_record[0] = TLS_record_application_data;
+	enced_record[1] = TLS_version_tls12_major;
+	enced_record[2] = TLS_version_tls12_minor;
+	enced_record[3] = (*enced_recordlen) >> 8;
+	enced_record[4] = (*enced_recordlen);
+
+	(*enced_recordlen) += 5;
 	return 1;
 }
 
 int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen)
+	const uint8_t seq_num[8], const uint8_t *enced_record, size_t enced_recordlen,
+	uint8_t *record, size_t *recordlen)
 {
 	int record_type;
 
-	if (tls13_gcm_decrypt(key, iv, seq_num, in + 5, inlen - 5,
-		&record_type, out + 5, outlen) != 1) {
+	if (tls13_gcm_decrypt(key, iv,
+		seq_num, enced_record + 5, enced_recordlen - 5,
+		&record_type, record + 5, recordlen) != 1) {
+		error_print();
+		return -1;
+	}
+	record[0] = record_type;
+	record[1] = TLS_version_tls12_major;
+	record[2] = TLS_version_tls12_minor;
+	record[3] = (*recordlen) >> 8;
+	record[4] = (*recordlen);
+
+	(*recordlen) += 5;
+	return 1;
+}
+
+int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t padding_len)
+{
+	const BLOCK_CIPHER_KEY *key;
+	const uint8_t *iv;
+	uint8_t *seq_num;
+	uint8_t *record = conn->record;
+	size_t recordlen;
+
+	tls_trace("<<<< [ApplicationData]\n");
+
+	if (conn->is_client) {
+		key = &conn->client_write_key;
+		iv = conn->client_write_iv;
+		seq_num = conn->client_seq_num;
+	} else {
+		key = &conn->server_write_key;
+		iv = conn->server_write_iv;
+		seq_num = conn->server_seq_num;
+	}
+
+	if (tls13_gcm_encrypt(key, iv,
+		seq_num, TLS_record_application_data, data, datalen, padding_len,
+		record + 5, &recordlen) != 1) {
 		error_print();
 		return -1;
 	}
 
-	out[0] = record_type;
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (*outlen) >> 8;
-	out[4] = (*outlen);
+	record[0] = TLS_record_application_data;
+	record[1] = TLS_version_tls12 >> 8;
+	record[2] = TLS_version_tls12 & 0xff;
+	record[3] = recordlen >> 8;
+	record[4] = recordlen;
+	recordlen += 5;
+
+	tls_record_send(record, recordlen, conn->sock);
+	tls_seq_num_incr(seq_num);
 
 	return 1;
 }
+
+int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
+{
+	int record_type;
+	uint8_t *record = conn->record;
+	size_t recordlen;
+	const BLOCK_CIPHER_KEY *key;
+	const uint8_t *iv;
+	uint8_t *seq_num;
+
+
+	tls_trace(">>>> [ApplicationData]\n");
+
+	if (conn->is_client) {
+		key = &conn->client_write_key;
+		iv = conn->client_write_iv;
+		seq_num = conn->client_seq_num;
+	} else {
+		key = &conn->server_write_key;
+		iv = conn->server_write_iv;
+		seq_num = conn->server_seq_num;
+	}
+
+	if (tls12_record_recv(record, &recordlen, conn->sock) != 1) {
+		error_print();
+		return -1;
+	}
+	if (record[0] != TLS_record_application_data) {
+		error_print();
+		return -1;
+	}
+
+	if (tls13_gcm_decrypt(key, iv,
+		seq_num, record + 5, recordlen - 5,
+		&record_type, data, datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_seq_num_incr(seq_num);
+
+	if (record_type != TLS_record_application_data) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+/*
+HKDF-Expand-Label(Secret, Label, Context, Length) =
+	HKDF-Expand(Secret, HkdfLabel, Length);
+
+	HkdfLabel = struct {
+		uint16 length = Length;
+		opaque label<7..255> = "tls13 " + Label;
+		opaque context<0..255> = Context; }
+
+Derive-Secret(Secret, Label, Messages) =
+	HKDF-Expand-Label(Secret, Label, Hash(Messages), Hash.length)
+
+*/
+
+int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32])
+{
+	size_t dgstlen;
+	if (hkdf_extract(digest, salt, 32, in, 32, out, &dgstlen) != 1
+		|| dgstlen != 32) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
+	const char *label, const uint8_t *context, size_t context_len,
+	size_t outlen, uint8_t *out)
+{
+	uint8_t label_len;
+	uint8_t hkdf_label[2 + 256 + 256];
+	uint8_t *p = hkdf_label;
+	size_t hkdf_label_len = 0;
+
+	label_len = strlen("tls13") + strlen(label);
+	tls_uint16_to_bytes((uint16_t)outlen, &p, &hkdf_label_len);
+	tls_uint8_to_bytes(label_len, &p, &hkdf_label_len);
+	tls_array_to_bytes((uint8_t *)"tls13", strlen("tls13"), &p, &hkdf_label_len);
+	tls_array_to_bytes((uint8_t *)label, strlen(label), &p, &hkdf_label_len);
+	tls_uint8array_to_bytes(context, context_len, &p, &hkdf_label_len);
+
+	hkdf_expand(digest, secret, 32, hkdf_label, hkdf_label_len, outlen, out);
+	return 1;
+}
+
+int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32])
+{
+	DIGEST_CTX ctx = *dgst_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	if (digest_finish(&ctx, dgst, &dgstlen) != 1
+		|| tls13_hkdf_expand_label(dgst_ctx->digest, secret, label, dgst, 32, dgstlen, out) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+/*
+data to be signed in certificate_verify:
+   -  A string that consists of octet 32 (0x20) repeated 64 times
+   -  The context string
+   -  A single 0 byte which serves as the separator
+   -  The content to be signed
+*/
+int tls13_sign(const SM2_KEY *key, const DIGEST_CTX *dgst_ctx, uint8_t *sig, size_t *siglen, int is_server)
+{
+	uint8_t client_context_str[] = "TLS 1.3, client CertificateVerify";
+	uint8_t server_context_str[] = "TLS 1.3, server CertificateVerify";
+
+	SM2_SIGN_CTX sm2_ctx;
+	DIGEST_CTX temp_dgst_ctx;
+	uint8_t prefix[64];
+	uint8_t *context_str = is_server ? server_context_str : client_context_str;
+	size_t context_str_len = sizeof(client_context_str);
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	memset(prefix, 0x20, 64);
+	temp_dgst_ctx = *dgst_ctx;
+	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
+
+	sm2_sign_init(&sm2_ctx, key, SM2_DEFAULT_ID);
+	sm2_sign_update(&sm2_ctx, prefix, 64);
+	sm2_sign_update(&sm2_ctx, context_str, context_str_len);
+	sm2_sign_update(&sm2_ctx, dgst, dgstlen);
+	sm2_sign_finish(&sm2_ctx, sig, siglen);
+
+	return 1;
+}
+
+int tls13_verify(const SM2_KEY *key, const DIGEST_CTX *dgst_ctx, const uint8_t *sig, size_t siglen, int is_server)
+{
+	uint8_t client_context_str[] = "TLS 1.3, client CertificateVerify";
+	uint8_t server_context_str[] = "TLS 1.3, server CertificateVerify";
+
+	int ret;
+	SM2_SIGN_CTX sm2_ctx;
+	DIGEST_CTX temp_dgst_ctx;
+	uint8_t prefix[64];
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	memset(prefix, 0x20, 64);
+	temp_dgst_ctx = *dgst_ctx;
+	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
+
+	sm2_verify_init(&sm2_ctx, key, SM2_DEFAULT_ID);
+	sm2_verify_update(&sm2_ctx, prefix, 64);
+	sm2_verify_update(&sm2_ctx, is_server ? server_context_str : client_context_str, sizeof(server_context_str));
+	sm2_verify_update(&sm2_ctx, dgst, dgstlen);
+	ret = sm2_verify_finish(&sm2_ctx, sig, siglen);
+
+	return ret;
+}
+
+/*
+ verify_data in Finished
+
+   finished_key =
+       HKDF-Expand-Label(BaseKey, "finished", "", Hash.length)
+   Structure of this message:
+      struct {
+          opaque verify_data[Hash.length];
+      } Finished;
+   The verify_data value is computed as follows:
+      verify_data =
+          HMAC(finished_key,
+               Transcript-Hash(Handshake Context,
+                               Certificate*, CertificateVerify*))
+*/
+
+int tls13_compute_verify_data(const uint8_t *handshake_traffic_secret,
+	const DIGEST_CTX *dgst_ctx, uint8_t *verify_data, size_t *verify_data_len)
+{
+	DIGEST_CTX temp_dgst_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+	uint8_t finished_key[64];
+	size_t finished_key_len;
+
+	temp_dgst_ctx = *dgst_ctx;
+	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
+	finished_key_len = dgstlen;
+
+	tls13_hkdf_expand_label(dgst_ctx->digest, handshake_traffic_secret,
+		"finished", NULL, 0, finished_key_len, finished_key);
+
+	hmac(dgst_ctx->digest, finished_key, finished_key_len, dgst, dgstlen, verify_data, verify_data_len);
+
+	return 1;
+}
+
+/*
+Handshakes
+
+*/
 
 int tls_ext_supported_versions_to_bytes(const int *versions, size_t versions_count,
 	uint8_t **out, size_t *outlen)
@@ -597,56 +891,6 @@ int tls13_record_get_handshake_encrypted_extensions(const uint8_t *record)
 	return 1;
 }
 
-int tls13_sign(const SM2_KEY *key, const DIGEST_CTX *dgst_ctx, uint8_t *sig, size_t *siglen, int is_server)
-{
-	uint8_t client_context_str[] = "TLS 1.3, client CertificateVerify";
-	uint8_t server_context_str[] = "TLS 1.3, server CertificateVerify";
-
-	SM2_SIGN_CTX sm2_ctx;
-	DIGEST_CTX temp_dgst_ctx;
-	uint8_t prefix[64];
-	uint8_t *context_str = is_server ? server_context_str : client_context_str;
-	size_t context_str_len = sizeof(client_context_str);
-	uint8_t dgst[64];
-	size_t dgstlen;
-
-	memset(prefix, 0x20, 64);
-	temp_dgst_ctx = *dgst_ctx;
-	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
-
-	sm2_sign_init(&sm2_ctx, key, SM2_DEFAULT_ID);
-	sm2_sign_update(&sm2_ctx, prefix, 64);
-	sm2_sign_update(&sm2_ctx, context_str, context_str_len);
-	sm2_sign_update(&sm2_ctx, dgst, dgstlen);
-	sm2_sign_finish(&sm2_ctx, sig, siglen);
-
-	return 1;
-}
-
-int tls13_verify(const SM2_KEY *key, const DIGEST_CTX *dgst_ctx, const uint8_t *sig, size_t siglen, int is_server)
-{
-	uint8_t client_context_str[] = "TLS 1.3, client CertificateVerify";
-	uint8_t server_context_str[] = "TLS 1.3, server CertificateVerify";
-
-	int ret;
-	SM2_SIGN_CTX sm2_ctx;
-	DIGEST_CTX temp_dgst_ctx;
-	uint8_t prefix[64];
-	uint8_t dgst[64];
-	size_t dgstlen;
-
-	memset(prefix, 0x20, 64);
-	temp_dgst_ctx = *dgst_ctx;
-	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
-
-	sm2_verify_init(&sm2_ctx, key, SM2_DEFAULT_ID);
-	sm2_verify_update(&sm2_ctx, prefix, 64);
-	sm2_verify_update(&sm2_ctx, is_server ? server_context_str : client_context_str, sizeof(server_context_str));
-	sm2_verify_update(&sm2_ctx, dgst, dgstlen);
-	ret = sm2_verify_finish(&sm2_ctx, sig, siglen);
-
-	return ret;
-}
 
 /*
 	ClientHello.Extensions.signature_algorithms 列出客户端支持的签名+哈希算法
@@ -814,26 +1058,6 @@ int tls13_record_get_handshake_certificate(const uint8_t *record, uint8_t *data,
 }
 
 
-int tls13_compute_verify_data(const uint8_t *handshake_traffic_secret,
-	const DIGEST_CTX *dgst_ctx, uint8_t *verify_data, size_t *verify_data_len)
-{
-	DIGEST_CTX temp_dgst_ctx;
-	uint8_t dgst[64];
-	size_t dgstlen;
-	uint8_t finished_key[64];
-	size_t finished_key_len;
-
-	temp_dgst_ctx = *dgst_ctx;
-	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
-	finished_key_len = dgstlen;
-
-	tls13_hkdf_expand_label(dgst_ctx->digest, handshake_traffic_secret,
-		"finished", NULL, 0, finished_key_len, finished_key);
-
-	hmac(dgst_ctx->digest, finished_key, finished_key_len, dgst, dgstlen, verify_data, verify_data_len);
-
-	return 1;
-}
 
 
 
@@ -1839,95 +2063,3 @@ int tls13_accept(TLS_CONNECT *conn, int port,
 	tls_trace("Connection Established!\n\n");
 	return 1;
 }
-
-
-int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t padding_len)
-{
-	const BLOCK_CIPHER_KEY *key;
-	const uint8_t *iv;
-	uint8_t *seq_num;
-	uint8_t *record = conn->record;
-	size_t recordlen;
-
-	tls_trace("<<<< [ApplicationData]\n");
-
-	if (conn->is_client) {
-		key = &conn->client_write_key;
-		iv = conn->client_write_iv;
-		seq_num = conn->client_seq_num;
-	} else {
-		key = &conn->server_write_key;
-		iv = conn->server_write_iv;
-		seq_num = conn->server_seq_num;
-	}
-
-	if (tls13_gcm_encrypt(key, iv, padding_len,
-		seq_num, TLS_record_application_data, data, datalen,
-		record + 5, &recordlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	record[0] = TLS_record_application_data;
-	record[1] = TLS_version_tls12 >> 8;
-	record[2] = TLS_version_tls12 & 0xff;
-	record[3] = recordlen >> 8;
-	record[4] = recordlen;
-	recordlen += 5;
-
-	tls_record_send(record, recordlen, conn->sock);
-	tls_seq_num_incr(seq_num);
-
-	return 1;
-}
-
-int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
-{
-	int record_type;
-	uint8_t *record = conn->record;
-	size_t recordlen;
-	const BLOCK_CIPHER_KEY *key;
-	const uint8_t *iv;
-	uint8_t *seq_num;
-
-
-	tls_trace(">>>> [ApplicationData]\n");
-
-	if (conn->is_client) {
-		key = &conn->client_write_key;
-		iv = conn->client_write_iv;
-		seq_num = conn->client_seq_num;
-	} else {
-		key = &conn->server_write_key;
-		iv = conn->server_write_iv;
-		seq_num = conn->server_seq_num;
-	}
-
-	if (tls12_record_recv(record, &recordlen, conn->sock) != 1) {
-		error_print();
-		return -1;
-	}
-	if (record[0] != TLS_record_application_data) {
-		error_print();
-		return -1;
-	}
-
-	if (tls13_gcm_decrypt(key, iv,
-		seq_num, record + 5, recordlen - 5,
-		&record_type, data, datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	tls_seq_num_incr(seq_num);
-
-
-	if (record_type != TLS_record_application_data) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-
-
-

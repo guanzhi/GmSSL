@@ -51,26 +51,16 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <gmssl/hex.h>
-#include "internal/gf128.h"
+#include <gmssl/gf128.h>
 
-
-static gf128_t gf128_from_hex(const char *s)
-{
-	uint8_t bin[16];
-	assert(strlen(s) == 32);
-	hex2bin(s, strlen(s), bin);
-	return gf128_from_bytes(bin);
-}
-
-static int gf128_equ_hex(gf128_t a, const char *s)
-{
-	uint8_t bin1[16];
-	uint8_t bin2[16];
-	assert(strlen(s) == 32);
-	hex2bin(s, strlen(s), bin1);
-	gf128_to_bytes(a, bin2);
-	return memcmp(bin1, bin2, sizeof(bin1)) == 0;
-}
+/*
+a = de300f9301a499a965f8bf677e99e80d
+b = 14b267838ec9ef1bb7b5ce8c19e34bc6
+a + b = ca8268108f6d76b2d24d71eb677aa3cb
+a - b = ca8268108f6d76b2d24d71eb677aa3cb
+a * b = 28e63413cd53b01a3b469375781942c6
+a * 2 = bc601f2603493352cbf17ecefd33d09d
+*/
 
 int main(void)
 {
@@ -81,9 +71,25 @@ int main(void)
 	gf128_t b    = gf128_from_hex("14b267838ec9ef1bb7b5ce8c19e34bc6");
 	gf128_t r;
 
+	/*
+	r = gf128_add(a, b);
+	gf128_print("a + b = ", r);
+
+	r = gf128_mul(a, b);
+	gf128_print("a * b = ", r);
+
+	r = gf128_mul2(a);
+	gf128_print("a * 2 = ", r);
+	*/
+
+	gf128_t H = gf128_from_hex("66e94bd4ef8a2c3b884cfa59ca342b2e");
+	gf128_t C = gf128_from_hex("0388dace60b6a392f328c2b971b2fe78");
+	gf128_t T = gf128_mul(C, H);
 
 
-
+	gf128_print("C = ", C);
+	gf128_print("H = ", H);
+	gf128_print("C * H = ", T);
 
 
 

@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/hex.h>
 #include <gmssl/digest.h>
 #include <gmssl/hash_drbg.h>
@@ -66,31 +67,36 @@
 #define V1 "f9afadfbbf2c3d1004f9baca38be247342e5fbb83281915d5de18beb963712a344e89bb0e6b925a7bbc32eadb8b441efc1fa0c649df42a"
 #define C1 "1d41cbbd634909e4761c232fcfd6a6c2edf0a7f4d3d3c164f74a88955f355efce2d86c1e9fa897b7005ef9d4d3a51bf4fc0b805ab896c9"
 
+#define PR1 "2edb396eeb8960f77943c2a59075a786"
+#define PR2 "30b565b63a5012676940d3ef17d9e996"
+
 
 int main(void)
 {
 	HASH_DRBG drbg;
 
-	unsigned char *entropy = NULL;
-	unsigned char *nonce = NULL;
-	unsigned char *personalstr = NULL;
-	unsigned char *v = NULL;
-	unsigned char *c = NULL;
+	uint8_t entropy[sizeof(EntropyInput)/2];
+	uint8_t nonce[sizeof(Nonce)/2];
+	uint8_t personalstr[sizeof(PersonalizationString)/2];
+	uint8_t v[sizeof(V0)/2];
+	uint8_t c[sizeof(C0)/2];
+	uint8_t entropy_pr1[sizeof(EntropyInputPR1)/2];
+	uint8_t pr1[sizeof(PR1)/2];
+	uint8_t pr2[sizeof(PR2)/2];
 	size_t entropy_len, nonce_len, personalstr_len, vlen, clen;
-
-
-	unsigned char *entropy_pr1 = NULL;
 	size_t entropy_pr1len;
-
+	size_t pr1_len, pr2_len;
 	unsigned char out[640/8];
+	int i;
 
-	entropy = OPENSSL_hexstr2buf(EntropyInput, &entropy_len);
-	nonce = OPENSSL_hexstr2buf(Nonce, &nonce_len);
-	personalstr = OPENSSL_hexstr2buf(PersonalizationString, &personalstr_len);
-	v = OPENSSL_hexstr2buf(V0, &vlen);
-	c = OPENSSL_hexstr2buf(C0, &clen);
-
-	entropy_pr1 = OPENSSL_hexstr2buf(EntropyInputPR1, &entropy_pr1len);
+	hex_to_bytes(EntropyInput, strlen(EntropyInput), entropy, &entropy_len);
+	hex_to_bytes(Nonce, strlen(Nonce), nonce, &nonce_len);
+	hex_to_bytes(PersonalizationString, strlen(PersonalizationString), personalstr, &personalstr_len);
+	hex_to_bytes(V0, strlen(V0), v, &vlen);
+	hex_to_bytes(C0, strlen(C0), c, &clen);
+	hex_to_bytes(EntropyInputPR1, strlen(EntropyInputPR1), entropy_pr1, &entropy_pr1len);
+	hex_to_bytes(PR1, strlen(PR1), pr1, &pr1_len);
+	hex_to_bytes(PR2, strlen(PR2), pr2, &pr2_len);
 
 
 	hash_drbg_init(&drbg, DIGEST_sha1(),
@@ -108,12 +114,6 @@ int main(void)
 		printf("ok\n");
 	}
 
-	unsigned char *pr1 = NULL;
-	unsigned char *pr2 = NULL;
-	size_t pr1_len, pr2_len;
-
-	pr1 = OPENSSL_hexstr2buf("2edb396eeb8960f77943c2a59075a786", &pr1_len);
-	pr2 = OPENSSL_hexstr2buf("30b565b63a5012676940d3ef17d9e996", &pr2_len);
 
 	hash_drbg_reseed(&drbg, pr1, pr1_len, NULL, 0);
 	hash_drbg_generate(&drbg, NULL, 0, 640/8, out);
@@ -121,7 +121,6 @@ int main(void)
 	hash_drbg_reseed(&drbg, pr2, pr2_len, NULL, 0);
 	hash_drbg_generate(&drbg, NULL, 0, 640/8, out);
 
-	int i;
 	for (i = 0; i < sizeof(out); i++) {
 		printf("%02x", out[i]);
 	}

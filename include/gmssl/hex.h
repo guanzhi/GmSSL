@@ -65,8 +65,8 @@ int hex_to_bytes(const char *in, size_t inlen, uint8_t *out, size_t *outlen);
 
 
 int hex2bin(const char *in, size_t inlen, uint8_t *out);
-int OPENSSL_hexchar2int(unsigned char c);
-unsigned char *OPENSSL_hexstr2buf(const char *str, size_t *len);
+//int OPENSSL_hexchar2int(unsigned char c);
+//unsigned char *OPENSSL_hexstr2buf(const char *str, size_t *len);
 
 #ifdef __cplusplus
 }

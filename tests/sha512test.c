@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/hex.h>
 #include <gmssl/sha2.h>
 
@@ -106,19 +107,17 @@ int main(void)
 {
 	int err = 0;
 	SHA512_CTX ctx;
-	unsigned char dgst[SHA512_DIGEST_SIZE];
-	unsigned char *dgstbuf = NULL;
+	uint8_t dgst[SHA512_DIGEST_SIZE];
+	uint8_t dgstbuf[SHA512_DIGEST_SIZE];
+	size_t dgstlen;
 	size_t i, j;
 
 	for (i = 0; i < 7; i++) {
-
-		if (!(dgstbuf = OPENSSL_hexstr2buf(tests[i].dgsthex, NULL))) {
-			goto end;
-		}
+		hex_to_bytes(tests[i].dgsthex, strlen(tests[i].dgsthex), dgstbuf, &dgstlen);
 
 		sha512_init(&ctx);
 		for (j = 0; j < tests[i].count; j++) {
-			sha512_update(&ctx, (unsigned char *)tests[i].data, tests[i].length);
+			sha512_update(&ctx, (uint8_t *)tests[i].data, tests[i].length);
 		}
 		sha512_finish(&ctx, dgst);
 
@@ -133,12 +132,7 @@ int main(void)
 		} else {
 			printf("sha512 test %lu ok\n", i+1);
 		}
-
-		free(dgstbuf);
-		dgstbuf = NULL;
 	}
 
-end:
-	if (dgstbuf) free(dgstbuf);
 	return err;
 }

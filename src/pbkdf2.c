@@ -129,13 +129,14 @@ int pbkdf2_genkey(const DIGEST *digest,
 	size_t outlen, uint8_t *out)
 {
 	HMAC_CTX ctx;
+	HMAC_CTX ctx_tmpl;
 	uint32_t iter = 1;
 	uint8_t iter_be[4];
 	uint8_t tmp_block[64];
 	uint8_t key_block[64];
 	size_t len;
 
-	hmac_init(&ctx, digest, (uint8_t *)pass, passlen);
+	hmac_init(&ctx_tmpl, digest, (uint8_t *)pass, passlen);
 
 	while (outlen > 0) {
 		int i;
@@ -143,16 +144,16 @@ int pbkdf2_genkey(const DIGEST *digest,
 		PUTU32(iter_be, iter);
 		iter++;
 
+		ctx = ctx_tmpl;
 		hmac_update(&ctx, salt, saltlen);
 		hmac_update(&ctx, iter_be, sizeof(iter_be));
 		hmac_finish(&ctx, tmp_block, &len);
-		hmac_reset(&ctx);
 		memcpy(key_block, tmp_block, len);
 
 		for (i = 1; i < count; i++) {
+			ctx = ctx_tmpl;
 			hmac_update(&ctx, tmp_block, len);
 			hmac_finish(&ctx, tmp_block, &len);
-			hmac_reset(&ctx);
 			memxor(key_block, tmp_block, len);
 		}
 

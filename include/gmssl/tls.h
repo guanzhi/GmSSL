@@ -92,6 +92,8 @@ int tls_uint24array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxle
 
 
 typedef enum {
+	TLS_version_tls12_major = 3,
+	TLS_version_tls12_minor = 3,
 	TLS_version_tlcp	= 0x0101,
 	TLS_version_ssl2	= 0x0200,
 	TLS_version_ssl3	= 0x0300,

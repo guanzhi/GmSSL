@@ -85,6 +85,7 @@ int main(void)
 
 	if (memcmp(buf, testdata, sizeof(testdata)) != 0) {
 		printf("chacha20 test 1 failed\n");
+		return -1;
 	} else {
 		printf("chacha20 test 1 ok\n");
 	}
