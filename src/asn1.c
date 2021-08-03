@@ -89,7 +89,7 @@ static char *asn1_tag_index[] = {
 const char *asn1_tag_name(int tag)
 {
 	if (tag < 0 || tag > 0xff) {
-		error_print("invalid tag value\n");
+		error_print();
 		return NULL;
 	}
 
@@ -127,7 +127,7 @@ const char *asn1_tag_name(int tag)
 	case ASN1_TAG_SET: return "SET";
 	}
 
-	error_print("unknown universal tag %d\n", tag);
+	error_print();
 	return NULL;
 }
 
@@ -252,7 +252,7 @@ int asn1_length_from_der(size_t *plen, const uint8_t **pin, size_t *pinlen)
 	}
 
 	if (inlen < len) {
-		error_print("inlen (%zu) < length(%zu)", inlen, len);
+		error_print();
 		return -1;
 	}
 
@@ -573,6 +573,7 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 		return -1;
 	}
 
+	// 注意，这个函数可能在Windows上是没有的！
 	gmtime_r(&a, &tm_val);
 	strftime(buf, sizeof(buf), "%y%m%d%H%M%SZ", &tm_val);
 
@@ -886,6 +887,21 @@ int asn1_ia5_string_from_der_ex(int tag, const char **a, size_t *alen, const uin
 	return asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen);
 }
 
+/*
+int hh, mm, ss;
+struct tm when = {0};
+
+sscanf_s(date, "%d:%d:%d", &hh, &mm, &ss);
+
+
+when.tm_hour = hh;
+when.tm_min = mm;
+when.tm_sec = ss;
+
+time_t converted;
+converted = mktime(&when);
+*/
+
 int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *pinlen)
 {
 	const uint8_t *in = *pin;
@@ -920,13 +936,14 @@ int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *p
 		buf[1] = '0';
 	}
 	if (len == sizeof("YYMMDDHHMMSSZ")-1) {
-		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
+		//  这里应该自己写一个函数来解析
+		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) { // 注意：这个函数在Windows上没有！！		
 			return -1;
 		}
 	} else {
 		return -1;
 	}
-	*t = timegm(&tm_val);
+	*t = timegm(&tm_val); // FIXME: Windows !				
 
 	*pin = in + len;
 	*pinlen = inlen - len;

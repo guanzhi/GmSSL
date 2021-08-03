@@ -1,5 +1,5 @@
-/* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+/*
+ * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,86 +44,12 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <gmssl/sha2.h>
 #include "endian.h"
 
-
-static void sha256_compress_blocks(uint32_t state[8],
-	const unsigned char *data, size_t blocks);
-
-void sha256_init(SHA256_CTX *ctx)
-{
-	memset(ctx, 0, sizeof(*ctx));
-	ctx->state[0] = 0x6a09e667;
-	ctx->state[1] = 0xbb67ae85;
-	ctx->state[2] = 0x3c6ef372;
-	ctx->state[3] = 0xa54ff53a;
-	ctx->state[4] = 0x510e527f;
-	ctx->state[5] = 0x9b05688c;
-	ctx->state[6] = 0x1f83d9ab;
-	ctx->state[7] = 0x5be0cd19;
-}
-
-void sha256_update(SHA256_CTX *ctx, const unsigned char *data, size_t datalen)
-{
-	size_t blocks;
-
-	if (ctx->num) {
-		unsigned int left = SHA256_BLOCK_SIZE - ctx->num;
-		if (datalen < left) {
-			memcpy(ctx->block + ctx->num, data, datalen);
-			ctx->num += datalen;
-			return;
-		} else {
-			memcpy(ctx->block + ctx->num, data, left);
-			sha256_compress_blocks(ctx->state, ctx->block, 1);
-			ctx->nblocks++;
-			data += left;
-			datalen -= left;
-		}
-	}
-
-	blocks = datalen / SHA256_BLOCK_SIZE;
-	sha256_compress_blocks(ctx->state, data, blocks);
-	ctx->nblocks += blocks;
-	data += SHA256_BLOCK_SIZE * blocks;
-	datalen -= SHA256_BLOCK_SIZE * blocks;
-
-	ctx->num = datalen;
-	if (datalen) {
-		memcpy(ctx->block, data, datalen);
-	}
-}
-
-void sha256_finish(SHA256_CTX *ctx, unsigned char dgst[SHA256_DIGEST_SIZE])
-{
-	int i;
-
-	ctx->block[ctx->num] = 0x80;
-
-	if (ctx->num + 9 <= SHA256_BLOCK_SIZE) {
-		memset(ctx->block + ctx->num + 1, 0, SHA256_BLOCK_SIZE - ctx->num - 9);
-	} else {
-		memset(ctx->block + ctx->num + 1, 0, SHA256_BLOCK_SIZE - ctx->num - 1);
-		sha256_compress_blocks(ctx->state, ctx->block, 1);
-		memset(ctx->block, 0, SHA256_BLOCK_SIZE - 8);
-	}
-	PUTU32(ctx->block + 56, ctx->nblocks >> 23);
-	PUTU32(ctx->block + 60, (ctx->nblocks << 9) + (ctx->num << 3));
-
-	sha256_compress_blocks(ctx->state, ctx->block, 1);
-	for (i = 0; i < 8; i++) {
-		PUTU32(dgst, ctx->state[i]);
-		dgst += sizeof(uint32_t);
-	}
-	memset(ctx, 0, sizeof(SHA256_CTX));
-}
 
 #define Ch(X, Y, Z)	(((X) & (Y)) ^ ((~(X)) & (Z)))
 #define Maj(X, Y, Z)	(((X) & (Y)) ^ ((X) & (Z)) ^ ((Y) & (Z)))
@@ -209,9 +135,75 @@ static void sha256_compress_blocks(uint32_t state[8],
 	}
 }
 
-void sha256_compress(uint32_t state[8], const unsigned char block[64])
+
+void sha256_init(SHA256_CTX *ctx)
 {
-	sha256_compress_blocks(state, block, 1);
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->state[0] = 0x6a09e667;
+	ctx->state[1] = 0xbb67ae85;
+	ctx->state[2] = 0x3c6ef372;
+	ctx->state[3] = 0xa54ff53a;
+	ctx->state[4] = 0x510e527f;
+	ctx->state[5] = 0x9b05688c;
+	ctx->state[6] = 0x1f83d9ab;
+	ctx->state[7] = 0x5be0cd19;
+}
+
+void sha256_update(SHA256_CTX *ctx, const unsigned char *data, size_t datalen)
+{
+	size_t blocks;
+
+	ctx->num &= 0x3f;
+	if (ctx->num) {
+		unsigned int left = SHA256_BLOCK_SIZE - ctx->num;
+		if (datalen < left) {
+			memcpy(ctx->block + ctx->num, data, datalen);
+			ctx->num += datalen;
+			return;
+		} else {
+			memcpy(ctx->block + ctx->num, data, left);
+			sha256_compress_blocks(ctx->state, ctx->block, 1);
+			ctx->nblocks++;
+			data += left;
+			datalen -= left;
+		}
+	}
+
+	blocks = datalen / SHA256_BLOCK_SIZE;
+	sha256_compress_blocks(ctx->state, data, blocks);
+	ctx->nblocks += blocks;
+	data += SHA256_BLOCK_SIZE * blocks;
+	datalen -= SHA256_BLOCK_SIZE * blocks;
+
+	ctx->num = datalen;
+	if (datalen) {
+		memcpy(ctx->block, data, datalen);
+	}
+}
+
+void sha256_finish(SHA256_CTX *ctx, unsigned char dgst[SHA256_DIGEST_SIZE])
+{
+	int i;
+
+	ctx->num &= 0x3f;
+	ctx->block[ctx->num] = 0x80;
+
+	if (ctx->num <= SHA256_BLOCK_SIZE - 9) {
+		memset(ctx->block + ctx->num + 1, 0, SHA256_BLOCK_SIZE - ctx->num - 9);
+	} else {
+		memset(ctx->block + ctx->num + 1, 0, SHA256_BLOCK_SIZE - ctx->num - 1);
+		sha256_compress_blocks(ctx->state, ctx->block, 1);
+		memset(ctx->block, 0, SHA256_BLOCK_SIZE - 8);
+	}
+	PUTU32(ctx->block + 56, ctx->nblocks >> 23);
+	PUTU32(ctx->block + 60, (ctx->nblocks << 9) + (ctx->num << 3));
+
+	sha256_compress_blocks(ctx->state, ctx->block, 1);
+	for (i = 0; i < 8; i++) {
+		PUTU32(dgst, ctx->state[i]);
+		dgst += sizeof(uint32_t);
+	}
+	memset(ctx, 0, sizeof(*ctx));
 }
 
 void sha256_digest(const unsigned char *data, size_t datalen,
@@ -244,15 +236,10 @@ void sha224_update(SHA224_CTX *ctx, const unsigned char *data, size_t datalen)
 
 void sha224_finish(SHA224_CTX *ctx, unsigned char dgst[SHA224_DIGEST_SIZE])
 {
-	unsigned char buf[SHA256_DIGEST_SIZE];
+	uint8_t buf[SHA256_DIGEST_SIZE];
 	sha256_finish((SHA256_CTX *)ctx, buf);
 	memcpy(dgst, buf, SHA224_DIGEST_SIZE);
 	memset(buf, 0, sizeof(buf));
-}
-
-void sha224_compress(uint32_t state[8], const unsigned char block[64])
-{
-	sha256_compress_blocks(state, block, 1);
 }
 
 void sha224_digest(const unsigned char *data, size_t datalen,

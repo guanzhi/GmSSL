@@ -355,7 +355,7 @@ int x509_key_purpose_to_der(int oid, uint8_t **out, size_t *outlen)
 			return 1;
 		}
 	}
-	error_print("unknown key purpose oid %d", oid);
+	error_print_msg("unknown key purpose oid %d", oid);
 	return -1;
 
 }
@@ -382,7 +382,7 @@ int x509_key_purpose_from_der(int *oid, const uint8_t **in, size_t *inlen)
 		}
 	}
 	// 这种情况下应该把这个值打印出来
-	error_print("unknown ExtKeyUsage OID");
+	error_puts("unknown ExtKeyUsage OID");
 	return -1;
 }
 

@@ -49,7 +49,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <gmssl/digest.h>
 
 #define FORMAT_HEX	1

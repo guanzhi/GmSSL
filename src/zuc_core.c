@@ -388,7 +388,10 @@ void zuc_mac_finish(ZUC_MAC_CTX *ctx, const unsigned char *data, size_t nbits, u
 
 	ctx->T = T;
 	PUTU32(mac, T);
+
+	memset(ctx, 0, sizeof(*ctx));
 }
+
 
 typedef unsigned char ZUC_UINT7;
 
@@ -598,4 +601,6 @@ void zuc256_mac_finish(ZUC256_MAC_CTX *ctx, const unsigned char *data, size_t nb
 		PUTU32(mac, ctx->T[j]);
 		mac += 4;
 	}
+
+	memset(ctx, 0, sizeof(*ctx));
 }

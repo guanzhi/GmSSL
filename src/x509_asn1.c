@@ -79,7 +79,7 @@ int x509_version_to_der(int version, uint8_t **out, size_t *outlen)
 	case X509_version_v3:
 		break;
 	default:
-		error_print("invalid version");
+		error_puts("invalid version");
 		return -1;
 	}
 	if (asn1_int_to_der(version, NULL, &len) != 1
@@ -112,7 +112,7 @@ int x509_version_from_der(int *version, const uint8_t **in, size_t *inlen)
 	}
 	switch (*version) {
 	case X509_version_v1:
-		error_print("warning: version v1 should not be encoded");
+		error_puts("warning: version v1 should not be encoded");
 		break;
 	case X509_version_v2:
 	case X509_version_v3:
@@ -260,10 +260,10 @@ int x509_directory_string_to_der(int tag, const char *a, size_t alen, uint8_t **
 	case ASN1_TAG_TeletexString:
 	case ASN1_TAG_UniversalString:
 	case ASN1_TAG_BMPString:
-		error_print("not implemented");
+		error_print();
 		return -1;
 	default:
-		error_print("invalid tag");
+		error_print();
 		return -1;
 	}
 
@@ -293,7 +293,7 @@ int x509_directory_string_from_der(int *tag, const char **a, size_t *alen, const
 	case ASN1_TAG_BMPString:
 		break;
 	default:
-		error_print("DirectoryString tag = %d\n", *tag);
+		error_print();
 		return -1;
 	}
 	return 1;
@@ -335,7 +335,7 @@ static int x509_rdn_check(int oid, int tag, const char *str, int len)
 			case ASN1_TAG_BMPString:
 				break;
 			default:
-				error_print("tag = %d\n", tag);
+				error_print();
 				return -1;
 			}
 			if (x509_rdns[i].is_printable_string_only && tag != ASN1_TAG_PrintableString) {
@@ -511,7 +511,7 @@ const char *x509_name_rdn(const X509_NAME *name, int oid)
 	case OID_at_dnQualifier:
 		return name->dn_qualifier;
 	}
-	error_print("unsupported X509 NAME OID %d\n", oid);
+	error_print();
 	return NULL;
 }
 
@@ -1015,7 +1015,7 @@ int x509_tbs_certificate_from_der(X509_TBS_CERTIFICATE *a, const uint8_t **in, s
 		|| (is_ext = x509_extensions_from_der(&a->extensions, &data, &datalen)) < 0
 		|| datalen > 0) {
 		error_print();
-		if (datalen > 0) error_print("datalen = %zu\n", datalen);
+		if (datalen > 0) error_print();
 		return -1;
 	}
 

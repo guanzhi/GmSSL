@@ -76,7 +76,7 @@ extern "C" {
 
 typedef struct {
 	uint32_t rk[4 * (AES_MAX_ROUNDS + 1)];
-	int rounds;
+	size_t rounds;
 } AES_KEY;
 
 int aes_set_encrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen);

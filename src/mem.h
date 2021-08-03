@@ -54,5 +54,7 @@
 
 void memxor(void *r, const void *a, size_t len);
 void gmssl_memxor(void *r, const void *a, const void *b, size_t len);
+int gmssl_memcmp(const void *s1, const void *s2, size_t n);
+
 
 #endif

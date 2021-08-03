@@ -90,7 +90,7 @@ int sm2_point_from_der(SM2_POINT *a, const uint8_t **in, size_t *inlen)
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	error_print("inlen = %zu\n", *inlen);
+	error_print_msg("inlen = %zu\n", *inlen);
 
 	if ((ret = asn1_octet_string_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
@@ -101,7 +101,7 @@ int sm2_point_from_der(SM2_POINT *a, const uint8_t **in, size_t *inlen)
 		error_print();
 		return -1;
 	}
-	error_print("inlen = %zu\n", *inlen);
+	error_print_msg("inlen = %zu\n", *inlen);
 	return 1;
 }
 

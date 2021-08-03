@@ -54,14 +54,23 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define error_print(fmt, args...) \
-	fprintf(stderr, "error: %s %d: %s: " fmt "\n", __FILE__, __LINE__, __FUNCTION__, ##args)
-
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+#define DEBUG 1
+
+#define error_print() \
+	do { if (DEBUG) fprintf(stderr, "%s:%d:%s():\n",__FILE__, __LINE__, __func__); } while (0)
+
+#define error_print_msg(fmt, ...) \
+	do { if (DEBUG) fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__); } while (0)
+
+#define error_puts(str) \
+            do { if (DEBUG) fprintf(stderr, "%s: %d: %s: %s", __FILE__, __LINE__, __func__, str); } while (0)
+
 
 void print_der(const uint8_t *in, size_t inlen);
 void print_bytes(const uint8_t *in, size_t inlen);

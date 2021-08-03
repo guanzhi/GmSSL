@@ -1709,7 +1709,7 @@ int tls13_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	error_print("start listen ...");
+	error_puts("start listen ...");
 	listen(sock, 5);
 
 	memset(conn, 0, sizeof(*conn));
@@ -1722,7 +1722,7 @@ int tls13_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	error_print("connected\n");
+	error_puts("connected\n");
 
 
 	// 1. Recv ClientHello
@@ -1753,7 +1753,7 @@ int tls13_accept(TLS_CONNECT *conn, int port,
 		}
 	}
 	if (conn->cipher_suite == 0) {
-		error_print("no common cipher_suite");
+		error_puts("no common cipher_suite");
 		return -1;
 	}
 	if (tls13_client_hello_extensions_get(exts, extslen, &client_ecdhe_public) != 1) {

@@ -182,7 +182,7 @@ int x509_encryption_algor_from_der(int *cipher,
 			*cipher = OID_sm4_cbc;
 		} else {
 			size_t i;
-			error_print("unknown cipher oid :");
+			error_puts("unknown cipher oid :");
 			for (i = 0; i < nodes_count; i++) {
 				fprintf(stderr, " %d", nodes[i]);
 			}
@@ -273,7 +273,7 @@ int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen)
 		return -1;
 	}
 	if (datalen > 0) {
-		error_print("datalen = %zu", datalen);
+		error_print_msg("datalen = %zu", datalen);
 		error_print();
 		return -1;
 	}

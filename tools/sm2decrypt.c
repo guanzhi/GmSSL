@@ -102,7 +102,7 @@ help:
 	}
 	pass = getpass("Encryption Password : ");
 	if (sm2_enced_private_key_info_from_pem(&key, pass, keyfp) != 1) {
-		error_print("private key decryption failure");
+		error_puts("private key decryption failure");
 		return -1;
 	}
 	if ((hexlen = fread(hexbuf, 1, sizeof(hexbuf), stdin)) <= 0) {

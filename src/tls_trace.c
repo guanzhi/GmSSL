@@ -222,7 +222,7 @@ const char *tls_alert_level_name(int level)
 	case TLS_alert_level_warning: return "warning";
 	case TLS_alert_level_fatal: return "fatal";
 	}
-	error_print("unknown alert level %d", level);
+	error_print_msg("unknown alert level %d", level);
 	return NULL;
 }
 
@@ -260,7 +260,7 @@ const char *tls_alert_description_text(int description)
 	case TLS_alert_unsupported_ibcparam: return "unsupported_ibcparam";
 	case TLS_alert_identity_need: return "identity_need";
 	}
-	error_print("unknown alert description %d", description);
+	error_print_msg("unknown alert description %d", description);
 	return NULL;
 }
 

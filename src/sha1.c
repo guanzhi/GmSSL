@@ -1,5 +1,5 @@
-/* ====================================================================
- * Copyright (c) 2014 - 2017 The GmSSL Project.  All rights reserved.
+/*
+ * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,80 +44,12 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
  */
 
 #include <string.h>
 #include <gmssl/sha1.h>
 #include "endian.h"
 
-
-static void sha1_compress_blocks(uint32_t dgst[5],
-	const unsigned char *data, size_t blocks);
-
-
-void sha1_init(SHA1_CTX *ctx)
-{
-	memset(ctx, 0, sizeof(*ctx));
-	ctx->state[0] = 0x67452301;
-	ctx->state[1] = 0xEFCDAB89;
-	ctx->state[2] = 0x98BADCFE;
-	ctx->state[3] = 0x10325476;
-	ctx->state[4] = 0xC3D2E1F0;
-}
-
-void sha1_update(SHA1_CTX *ctx, const unsigned char *data, size_t datalen)
-{
-	size_t blocks;
-
-	if (ctx->num) {
-		unsigned int left = SHA1_BLOCK_SIZE - ctx->num;
-		if (datalen < left) {
-			memcpy(ctx->block + ctx->num, data, datalen);
-			ctx->num += datalen;
-			return;
-		} else {
-			memcpy(ctx->block + ctx->num, data, left);
-			sha1_compress_blocks(ctx->state, ctx->block, 1);
-			ctx->nblocks++;
-			data += left;
-			datalen -= left;
-		}
-	}
-
-	blocks = datalen / SHA1_BLOCK_SIZE;
-	sha1_compress_blocks(ctx->state, data, blocks);
-	ctx->nblocks += blocks;
-	data += SHA1_BLOCK_SIZE * blocks;
-	datalen -= SHA1_BLOCK_SIZE * blocks;
-
-	ctx->num = datalen;
-	if (datalen) {
-		memcpy(ctx->block, data, datalen);
-	}
-}
-
-void sha1_finish(SHA1_CTX *ctx, unsigned char *dgst)
-{
-	int i;
-
-	ctx->block[ctx->num] = 0x80;
-
-	if (ctx->num + 9 <= SHA1_BLOCK_SIZE) {
-		memset(ctx->block + ctx->num + 1, 0, SHA1_BLOCK_SIZE - ctx->num - 9);
-	} else {
-		memset(ctx->block + ctx->num + 1, 0, SHA1_BLOCK_SIZE - ctx->num - 1);
-		sha1_compress_blocks(ctx->state, ctx->block, 1);
-		memset(ctx->block, 0, SHA1_BLOCK_SIZE - 8);
-	}
-	PUTU32(ctx->block + 56, ctx->nblocks >> 23);
-	PUTU32(ctx->block + 60, (ctx->nblocks << 9) + (ctx->num << 3));
-
-	sha1_compress_blocks(ctx->state, ctx->block, 1);
-	for (i = 0; i < 5; i++) {
-		PUTU32(dgst + i*4, ctx->state[i]);
-	}
-}
 
 #define F0(B, C, D)	(((B) & (C)) | ((~(B)) & (D)))
 #define F1(B, C, D)	((B) ^ (C) ^ (D))
@@ -156,7 +88,6 @@ static void sha1_compress_blocks(uint32_t state[5],
 		for (; i < 80; i++) {
 			W[i] = ROL32(W[i-3] ^ W[i-8] ^ W[i-14] ^ W[i-16], 1);
 		}
-
 
 		/* see https://en.wikipedia.org/wiki/SHA-1#/media/File:SHA-1.svg */
 		for (i = 0; i < 20; i++) {
@@ -200,19 +131,77 @@ static void sha1_compress_blocks(uint32_t state[5],
 	}
 }
 
-void sha1_compress(uint32_t state[5], const unsigned char block[64])
+void sha1_init(SHA1_CTX *ctx)
 {
-	return sha1_compress_blocks(state, block, 1);
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->state[0] = 0x67452301;
+	ctx->state[1] = 0xEFCDAB89;
+	ctx->state[2] = 0x98BADCFE;
+	ctx->state[3] = 0x10325476;
+	ctx->state[4] = 0xC3D2E1F0;
+}
+
+void sha1_update(SHA1_CTX *ctx, const unsigned char *data, size_t datalen)
+{
+	size_t blocks;
+
+	ctx->num &= 0x3f;
+	if (ctx->num) {
+		unsigned int left = SHA1_BLOCK_SIZE - ctx->num;
+		if (datalen < left) {
+			memcpy(ctx->block + ctx->num, data, datalen);
+			ctx->num += datalen;
+			return;
+		} else {
+			memcpy(ctx->block + ctx->num, data, left);
+			sha1_compress_blocks(ctx->state, ctx->block, 1);
+			ctx->nblocks++;
+			data += left;
+			datalen -= left;
+		}
+	}
+
+	blocks = datalen / SHA1_BLOCK_SIZE;
+	sha1_compress_blocks(ctx->state, data, blocks);
+	ctx->nblocks += blocks;
+	data += SHA1_BLOCK_SIZE * blocks;
+	datalen -= SHA1_BLOCK_SIZE * blocks;
+
+	ctx->num = datalen;
+	if (datalen) {
+		memcpy(ctx->block, data, datalen);
+	}
+}
+
+void sha1_finish(SHA1_CTX *ctx, unsigned char *dgst)
+{
+	int i;
+
+	ctx->num &= 0x3f;
+	ctx->block[ctx->num] = 0x80;
+
+	if (ctx->num <= SHA1_BLOCK_SIZE - 9) {
+		memset(ctx->block + ctx->num + 1, 0, SHA1_BLOCK_SIZE - ctx->num - 9);
+	} else {
+		memset(ctx->block + ctx->num + 1, 0, SHA1_BLOCK_SIZE - ctx->num - 1);
+		sha1_compress_blocks(ctx->state, ctx->block, 1);
+		memset(ctx->block, 0, SHA1_BLOCK_SIZE - 8);
+	}
+	PUTU32(ctx->block + 56, ctx->nblocks >> 23);
+	PUTU32(ctx->block + 60, (ctx->nblocks << 9) + (ctx->num << 3));
+
+	sha1_compress_blocks(ctx->state, ctx->block, 1);
+	for (i = 0; i < 5; i++) {
+		PUTU32(dgst + i*4, ctx->state[i]);
+	}
+	memset(ctx, 0, sizeof(*ctx));
 }
 
 void sha1_digest(const unsigned char *data, size_t datalen,
-	unsigned char dgst[SHA1_DIGEST_LENGTH])
+	unsigned char dgst[SHA1_DIGEST_SIZE])
 {
 	SHA1_CTX ctx;
-
 	sha1_init(&ctx);
 	sha1_update(&ctx, data, datalen);
-	sha1_finish(&ctx, dgst);
-
-	memset(&ctx, 0, sizeof(SHA1_CTX));
+	memset(&ctx, 0, sizeof(ctx));
 }

@@ -560,7 +560,7 @@ int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		sm3_hash, 32, NULL, 0,
 		12, local_verify_data);
 	if (memcmp(local_verify_data, verify_data, 12) != 0) {
-		error_print("server_finished.verify_data verification failure");
+		error_puts("server_finished.verify_data verification failure");
 		return -1;
 	}
 
@@ -625,7 +625,7 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	error_print("start listen ...");
+	error_puts("start listen ...");
 	listen(sock, 5);
 
 	memset(conn, 0, sizeof(*conn));
@@ -638,7 +638,7 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	error_print("connected\n");
+	error_puts("connected\n");
 
 
 
@@ -673,7 +673,7 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 		}
 	}
 	if (conn->cipher_suite == 0) {
-		error_print("no common cipher_suite");
+		error_puts("no common cipher_suite");
 		return -1;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
@@ -930,7 +930,7 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 		sm3_hash, 32, NULL, 0,
 		12, local_verify_data);
 	if (memcmp(local_verify_data, verify_data, 12) != 0) {
-		error_print("client_finished.verify_data verification failure");
+		error_puts("client_finished.verify_data verification failure");
 		return -1;
 	}
 

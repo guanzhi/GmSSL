@@ -143,13 +143,13 @@ int hex2bin(const char *in, size_t inlen, uint8_t *out)
 {
 	int c;
 	if (inlen % 2) {
-		error_print("hex %s len = %zu\n", in, inlen);
+		error_print_msg("hex %s len = %zu\n", in, inlen);
 		return -1;
 	}
 
 	while (inlen) {
 		if ((c = hexchar2int(*in++)) < 0) {
-			error_print();
+			error_print_msg("%d", 5);
 			return -1;
 		}
 		*out = (uint8_t)c << 4;
@@ -193,3 +193,14 @@ void gmssl_memxor(void *r, const void *a, const void *b, size_t len)
 		pr[i] = pa[i] ^ pb[i];
 	}
 }
+
+int gmssl_memcmp(const void *s1, const void *s2, size_t n)
+{
+	return memcmp(s1, s2, n);
+}
+
+
+
+
+
+

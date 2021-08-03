@@ -52,73 +52,6 @@
 #include "endian.h"
 
 
-static void md5_compress_blocks(uint32_t state[4],
-	const unsigned char *data, size_t blocks);
-
-
-void md5_init(MD5_CTX *ctx)
-{
-	memset(ctx, 0, sizeof(*ctx));
-	ctx->state[0] = 0x67452301;
-	ctx->state[1] = 0xefcdab89;
-	ctx->state[2] = 0x98badcfe;
-	ctx->state[3] = 0x10325476;
-}
-
-void md5_update(MD5_CTX *ctx, const unsigned char *data, size_t datalen)
-{
-	size_t blocks;
-
-	if (ctx->num) {
-		unsigned int left = MD5_BLOCK_SIZE - ctx->num;
-		if (datalen < left) {
-			memcpy(ctx->block + ctx->num, data, datalen);
-			ctx->num += datalen;
-			return;
-		} else {
-			memcpy(ctx->block + ctx->num, data, left);
-			md5_compress_blocks(ctx->state, ctx->block, 1);
-			ctx->nblocks++;
-			data += left;
-			datalen -= left;
-		}
-	}
-
-	blocks = datalen / MD5_BLOCK_SIZE;
-	md5_compress_blocks(ctx->state, data, blocks);
-	ctx->nblocks += blocks;
-	data += MD5_BLOCK_SIZE * blocks;
-	datalen -= MD5_BLOCK_SIZE * blocks;
-
-	ctx->num = datalen;
-	if (datalen) {
-		memcpy(ctx->block, data, datalen);
-	}
-}
-
-void md5_finish(MD5_CTX *ctx, unsigned char *dgst)
-{
-	int i;
-
-	ctx->block[ctx->num] = 0x80;
-
-	if (ctx->num + 9 <= MD5_BLOCK_SIZE) {
-		memset(ctx->block + ctx->num + 1, 0, MD5_BLOCK_SIZE - ctx->num - 9);
-	} else {
-		memset(ctx->block + ctx->num + 1, 0, MD5_BLOCK_SIZE - ctx->num - 1);
-		md5_compress_blocks(ctx->state, ctx->block, 1);
-		memset(ctx->block, 0, MD5_BLOCK_SIZE - 8);
-	}
-	PUTU64_LE(ctx->block + 56, (ctx->nblocks << 9) + (ctx->num << 3));
-	md5_compress_blocks(ctx->state, ctx->block, 1);
-	for (i = 0; i < 4; i++) {
-		//PUTU32_LE(dgst, ctx->state[i]);
-		*(uint32_t *)dgst = ctx->state[i];
-		dgst += sizeof(uint32_t);
-	}
-}
-
-//#define ROL32(X, n)	(((X) << (n)) | ((X) >> (32-(n))))
 #define F(B, C, D)	(((B) & (C)) | ((~(B)) & (D)))
 #define G(B, C, D)	(((B) & (D)) | ((C) & (~(D))))
 #define H(B, C, D)	((B) ^ (C) ^ (D))
@@ -169,8 +102,7 @@ static void md5_compress_blocks(uint32_t state[4],
 		D = state[3];
 
 		for (i = 0; i < 16; i++) {
-			//W[i] = GETU32_LE(data);
-			W[i] = *((uint32_t *)data);
+			W[i] = GETU32_LE(data);
 			data += sizeof(uint32_t);
 		}
 
@@ -213,9 +145,68 @@ static void md5_compress_blocks(uint32_t state[4],
 	}
 }
 
-void md5_compress(uint32_t state[4], const unsigned char block[64])
+void md5_init(MD5_CTX *ctx)
 {
-	return md5_compress_blocks(state, block, 1);
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->state[0] = 0x67452301;
+	ctx->state[1] = 0xefcdab89;
+	ctx->state[2] = 0x98badcfe;
+	ctx->state[3] = 0x10325476;
+}
+
+void md5_update(MD5_CTX *ctx, const unsigned char *data, size_t datalen)
+{
+	size_t blocks;
+
+	ctx->num &= 0x3f;
+	if (ctx->num) {
+		size_t left = MD5_BLOCK_SIZE - ctx->num;
+		if (datalen < left) {
+			memcpy(ctx->block + ctx->num, data, datalen);
+			ctx->num += datalen;
+			return;
+		} else {
+			memcpy(ctx->block + ctx->num, data, left);
+			md5_compress_blocks(ctx->state, ctx->block, 1);
+			ctx->nblocks++;
+			data += left;
+			datalen -= left;
+		}
+	}
+
+	blocks = datalen / MD5_BLOCK_SIZE;
+	md5_compress_blocks(ctx->state, data, blocks);
+	ctx->nblocks += blocks;
+	data += MD5_BLOCK_SIZE * blocks;
+	datalen -= MD5_BLOCK_SIZE * blocks;
+
+	ctx->num = datalen;
+	if (datalen) {
+		memcpy(ctx->block, data, datalen);
+	}
+}
+
+void md5_finish(MD5_CTX *ctx, unsigned char *dgst)
+{
+	int i;
+
+	ctx->num &= 0x3f;
+	ctx->block[ctx->num] = 0x80;
+
+	if (ctx->num <= MD5_BLOCK_SIZE - 9) {
+		memset(ctx->block + ctx->num + 1, 0, MD5_BLOCK_SIZE - ctx->num - 9);
+	} else {
+		memset(ctx->block + ctx->num + 1, 0, MD5_BLOCK_SIZE - ctx->num - 1);
+		md5_compress_blocks(ctx->state, ctx->block, 1);
+		memset(ctx->block, 0, MD5_BLOCK_SIZE - 8);
+	}
+	PUTU64_LE(ctx->block + 56, (ctx->nblocks << 9) + (ctx->num << 3));
+	md5_compress_blocks(ctx->state, ctx->block, 1);
+	for (i = 0; i < 4; i++) {
+		PUTU32_LE(dgst, ctx->state[i]);
+		dgst += sizeof(uint32_t);
+	}
+	memset(ctx, 0, sizeof(*ctx));
 }
 
 void md5_digest(const unsigned char *data, size_t datalen,

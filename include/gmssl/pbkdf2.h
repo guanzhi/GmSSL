@@ -49,11 +49,15 @@
 #ifndef GMSSL_PBKDF2_H
 #define GMSSL_PBKDF2_H
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <gmssl/hmac.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #define PBKDF2_MIN_ITER			10000
@@ -61,16 +65,10 @@
 #define PBKDF2_DEFAULT_SALT_SIZE	8
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 int pbkdf2_genkey(const DIGEST *digest,
 	const char *pass, size_t passlen,
 	const uint8_t *salt, size_t saltlen,
-	unsigned int count, size_t outlen, uint8_t *out);
-
+	size_t count, size_t outlen, uint8_t *out);
 
 
 #ifdef __cplusplus

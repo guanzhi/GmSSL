@@ -140,7 +140,7 @@ static int test_asn1_length(void)
 		rv = asn1_length_from_der(&val, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th length: get %zu, should be %zu", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th length: get %zu, should be %zu", i, val, tests[i]);
 			err++;
 		}
 	}
@@ -175,7 +175,7 @@ static int test_asn1_boolean(void)
 		rv = asn1_boolean_from_der(&val, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
 			err++;
 		}
 	}
@@ -210,7 +210,7 @@ static int test_asn1_integer(void)
 		rv = asn1_int_from_der(&val, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
 			err++;
 		}
 	}
@@ -245,7 +245,7 @@ static int test_asn1_bit_string(void)
 		rv = asn1_bits_from_der(&val, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
 			err++;
 		}
 	}
@@ -312,7 +312,7 @@ static int test_asn1_object_identifier(void)
 		rv = asn1_object_identifier_from_der(&val, nodes, &nodes_count, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th: get %d, should be %d", i, val, tests[i]);
 			err++;
 		}
 		printf("%s\n", asn1_object_identifier_name(val));
@@ -353,7 +353,7 @@ static int test_asn1_printable_string(void)
 		memcpy(str, val, vallen);
 
 		if (strcmp(str, tests[i]) != 0) {
-			error_print("error decoding %zu-th: get %s, should be %s", i, str, tests[i]);
+			error_print_msg("error decoding %zu-th: get %s, should be %s", i, str, tests[i]);
 			err++;
 		}
 		printf("%s\n", str);
@@ -394,7 +394,7 @@ static int test_asn1_utf8_string(void)
 		memcpy(str, val, vallen);
 
 		if (strcmp(str, tests[i]) != 0) {
-			error_print("error decoding %zu-th: get %s, should be %s", i, str, tests[i]);
+			error_print_msg("error decoding %zu-th: get %s, should be %s", i, str, tests[i]);
 			err++;
 		}
 		printf("%s\n", str);
@@ -435,7 +435,7 @@ static int test_asn1_ia5_string(void)
 		memcpy(str, val, vallen);
 
 		if (strcmp(str, tests[i]) != 0) {
-			error_print("error decoding %zu-th: get %s, should be %s", i, str, tests[i]);
+			error_print_msg("error decoding %zu-th: get %s, should be %s", i, str, tests[i]);
 			err++;
 		}
 		printf("%s\n", str);
@@ -451,8 +451,9 @@ static int test_time(void)
 	printf("%s", ctime(&tval));
 	time(&tval);
 	printf("%s", ctime(&tval));
-	printf("%016llx\n", (uint64_t)tval);
 
+
+	printf("%08x%08x\n", (uint32_t)(tval >> 32), (uint32_t)tval);
 
 	return 0;
 }
@@ -484,7 +485,7 @@ static int test_asn1_utc_time(void)
 		rv = asn1_utc_time_from_der(&val, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th: get %zu, should be %zu", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th: get %zu, should be %zu", i, val, tests[i]);
 			err++;
 		}
 		printf("%s", ctime(&val));
@@ -523,7 +524,7 @@ static int test_asn1_generalized_time(void)
 		rv = asn1_generalized_time_from_der(&val, &cp, &left);
 		assert(rv > 0);
 		if (val != tests[i]) {
-			error_print("error decoding %zu-th: get %zu, should be %zu", i, val, tests[i]);
+			error_print_msg("error decoding %zu-th: get %zu, should be %zu", i, val, tests[i]);
 			err++;
 		}
 		printf("%s", ctime(&val));

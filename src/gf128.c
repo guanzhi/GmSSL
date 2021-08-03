@@ -81,11 +81,12 @@ int gf128_equ_hex(gf128_t a, const char *s)
 	return memcmp(bin1, bin2, sizeof(bin1)) == 0;
 }
 
+// FIXME: 这个函数不支持struct				
 void gf128_print_bits(gf128_t a)
 {
 	int i;
 	for (i = 0; i < 128; i++) {
-		printf("%d", (int)(a % 2));
+		printf("%d", (int)(a % 2)); //FIXME
 		a >>= 1;
 	}
 	printf("\n");

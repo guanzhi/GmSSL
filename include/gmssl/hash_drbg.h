@@ -109,8 +109,6 @@ int hash_drbg_generate(HASH_DRBG *drbg,
 	const uint8_t *additional, size_t additional_len,
 	size_t outlen, uint8_t *out);
 
-void hash_drbg_cleanup(HASH_DRBG *drbg);
-
 
 #ifdef __cplusplus
 }

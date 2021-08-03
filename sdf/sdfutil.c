@@ -50,13 +50,8 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include <openssl/bio.h>
-# include <openssl/err.h>
-# include <openssl/evp.h>
-# include <openssl/pem.h>
-# include <openssl/gmsdf.h>
-# include <openssl/gmapi.h>
-# include "apps.h"
+#include "sdf.h"
+#include "sdf_ext.h"
 
 
 # define OP_NONE		0
@@ -70,129 +65,152 @@
 # define OP_EXPORTOBJ 		8
 # define OP_DELOBJ 		9
 
-OPTIONS sdf_options[] = {
-	{"help", OPT_HELP, '-', "Display this summary"},
-	{"lib", OPT_LIB, 's', "Vendor's SDF dynamic library"},
-	{"vendor", OPT_VENDOR, 's', "Vendor name"},
-	{"printdevinfo", OPT_PRINTDEVINFO, '-', "Print device information"},
-	{"printsm2sign", OPT_PRINTSM2SIGN, 's', "Print SM2 signing key with key index"},
-	{"printsm2enc", OPT_PRINTSM2ENC, 's', "Print SM2 encryption key with key index"},
-	{"printrsasign", OPT_PRINTRSASIGN, 's', "Print RSA signing key with key index"},
-	{"printrsaenc", OPT_PRINTRSAENC, 's', "Print RSA encryption key with key index"},
-	{"accesskey", OPT_ACCESSKEY, 's', "Access private key with the key index number"},
-	{"pass", OPT_PASS, 's', "Passphrase source for accessing private key"},
-	{"importobj", OPT_IMPORTOBJ, 's', "Import data object into device"},
-	{"exportobj", OPT_EXPORTOBJ, 's', "Export data object from device"},
-	{"delobj", OPT_DELOBJ, 's', "Delete data object from device"},
-	{"in", OPT_IN, '<', "File to be imported from"},
-	{"out", OPT_OUT, '>', "File to be exported to"},
-	{NULL}
-};
 
-int sdf_main(int argc, char **argv)
+void print_usage(FILE *out, const char *prog)
+{
+	fprintf(out, "Usage: %s commands\n", prog);
+	fprintf(out, "\n");
+	fprintf(out, "Commands:\n");
+	fprintf(out, "  -help           print the usage message\n");
+	fprintf(out, "  -lib            Vendor's SDF dynamic library\n");
+	fprintf(out, "  -vendor         Vendor name\n");
+	fprintf(out, "  -printdevinfo   Print device information\n");
+	fprintf(out, "  -printsm2sign   Print SM2 signing key with key index\n");
+	fprintf(out, "  -printsm2enc    Print SM2 encryption key with key index\n");
+	fprintf(out, "  -printrsasign   Print RSA signing key with key index\n");
+	fprintf(out, "  -printrsaenc    Print RSA encryption key with key index\n");
+	fprintf(out, "  -accesskey      Access private key with the key index number\n");
+	fprintf(out, "  -pass           Passphrase source for accessing private key\n");
+	fprintf(out, "  -importobj      Import data object into device\n");
+	fprintf(out, "  -exportobj      Export data object from device\n");
+	fprintf(out, "  -delobj         Delete data object from device\n");
+	fprintf(out, "  -in             File to be imported from\n");
+	fprintf(out, "  -out            File to be exported to\n");
+
+}
+
+int main(int argc, char **argv)
 {
 	int ret = 1;
 	char *infile = NULL, *outfile = NULL, *prog;
 	char *objname = NULL, *passarg = NULL, *pass = NULL;
-	BIO *in = NULL, *out = NULL;
+	FILE *in = NULL, *out = NULL;
 	char *lib = NULL, *vendor = NULL;
-	unsigned char *buf = NULL;
+	unsigned char buf[SDF_MAX_FILE_SIZE];
 	unsigned int ulen;
 	int len, key_idx = -1;
-	OPTION_CHOICE o;
+
+	int o;
 	int op = OP_NONE;
 	void *hDev = NULL;
 	void *hSession = NULL;
 
-	prog = opt_init(argc, argv, sdf_options);
-	while ((o = opt_next()) != OPT_EOF) {
-		switch (o) {
-		case OPT_EOF:
-		case OPT_ERR:
+	argc--;
+	argv++;
+	while (argc >= 1) {
+		if (!strcmp(*argv, "-help")) {
 opthelp:
-			BIO_printf(bio_err, "%s: Use -help for summary.\n", prog);
+			print_usage(stdout, prog);
 			goto end;
-		case OPT_HELP:
-			opt_help(sdf_options);
-			ret = 0;
-			goto end;
-		case OPT_LIB:
-			lib = opt_arg();
-			break;
-		case OPT_VENDOR:
-			vendor = opt_arg();
-			break;
-		case OPT_PRINTDEVINFO:
+
+		} else if (!strcmp(*argv, "-lib")) {
+			if (--argc < 1) goto bad;
+			lib = *(++argv);
+
+		} else if (!strcmp(*argv, "-vendor")) {
+			if (--argc < 1) goto bad;
+			vendor = *(++argv);
+
+		} else if (!strcmp(*argv, "-printdevinfo")) {
 			if (op)
 				goto opthelp;
 			op = OP_PRINTDEVINFO;
-			break;
-		case OPT_PRINTSM2SIGN:
+			if (--argc < 1) goto bad;
+			key_idx = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-printsm2sign")) {
 			if (op)
 				goto opthelp;
 			op = OP_PRINTSM2SIGN;
-			key_idx = atoi(opt_arg());
-			break;
-		case OPT_PRINTSM2ENC:
+			if (--argc < 1) goto bad;
+			key_idx = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-printsm2enc")) {
 			if (op)
 				goto opthelp;
 			op = OP_PRINTSM2ENC;
-			key_idx = atoi(opt_arg());
-			break;
-		case OPT_PRINTRSASIGN:
+			if (--argc < 1) goto bad;
+			key_idx = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-printrsasign")) {
 			if (op)
 				goto opthelp;
 			op = OP_PRINTRSASIGN;
-			key_idx = atoi(opt_arg());
-			break;
-		case OPT_PRINTRSAENC:
+			if (--argc < 1) goto bad;
+			key_idx = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-printrsaenc")) {
 			if (op)
 				goto opthelp;
 			op = OP_PRINTRSAENC;
-			key_idx = atoi(opt_arg());
-			break;
-		case OPT_ACCESSKEY:
-			key_idx = atoi(opt_arg());
-			break;
-		case OPT_PASS:
-			passarg = opt_arg();
-			break;
-		case OPT_IMPORTOBJ:
+			if (--argc < 1) goto bad;
+			key_idx = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-accesskey")) {
+			if (--argc < 1) goto bad;
+			key_idx = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
+
+		} else if (!strcmp(*argv, "-importobj")) {
 			if (op)
 				goto opthelp;
 			op = OP_IMPORTOBJ;
-			objname = opt_arg();
-			break;
-		case OPT_EXPORTOBJ:
+			if (--argc < 1) goto bad;
+			objname = *(++argv);
+
+		} else if (!strcmp(*argv, "-exportobj")) {
 			if (op)
 				goto opthelp;
 			op = OP_EXPORTOBJ;
-			objname = opt_arg();
-			break;
-		case OPT_DELOBJ:
+			if (--argc < 1) goto bad;
+			objname = *(++argv);
+
+		} else if (!strcmp(*argv, "-delobj")) {
 			if (op)
 				goto opthelp;
 			op = OP_DELOBJ;
-			objname = opt_arg();
-			break;
-		case OPT_IN:
-			infile = opt_arg();
-			break;
-		case OPT_OUT:
-			outfile = opt_arg();
+			if (--argc < 1) goto bad;
+			objname = *(++argv);
+
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
+
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
+
+		} else {
 			break;
 		}
+
+		argc--;
+		argv++;
 	}
-	argc = opt_num_rest();
+
+
 	if (argc != 0)
 		goto opthelp;
 
 	if (!lib) {
-		BIO_printf(bio_err, "Option '-lib' required\n");
-x509		goto opthelp;
+		fprintf(stderr, "Option '-lib' required\n");
+		goto opthelp;
 	}
 	if (SDF_LoadLibrary(lib, vendor) != SDR_OK) {
-		ERR_print_errors(bio_err);
+		//ERR_print_errors(stderr);
 		goto end;
 	}
 
@@ -203,7 +221,7 @@ x509		goto opthelp;
 
 	if (SDF_OpenDevice(&hDev) != SDR_OK
 		|| SDF_OpenSession(hDev, &hSession) != SDR_OK) {
-		ERR_print_errors(bio_err);
+		//ERR_print_errors(stderr);
 		goto end;
 	}
 
@@ -213,7 +231,7 @@ x509		goto opthelp;
 	case OP_PRINTSM2ENC:
 	case OP_PRINTRSASIGN:
 	case OP_PRINTRSAENC:
-		if (!(out = bio_open_default(outfile, 'w', FORMAT_TEXT))) {
+		if (!(out = fopen(outfile, "w"))) {
 			goto opthelp;
 		}
 		break;
@@ -226,7 +244,7 @@ x509		goto opthelp;
 	case OP_PRINTRSAENC:
 	case OP_ACCESSKEY:
 		if (key_idx < SDF_MIN_KEY_INDEX || key_idx > SDF_MAX_KEY_INDEX) {
-			BIO_printf(bio_err, "Invalid key index\n");
+			fprintf(stderr, "Invalid key index\n");
 			goto end;
 		}
 		break;
@@ -236,7 +254,7 @@ x509		goto opthelp;
 		DEVICEINFO devInfo;
 		if (SDF_GetDeviceInfo(hSession, &devInfo) != SDR_OK
 			|| SDF_PrintDeviceInfo(out, &devInfo) != SDR_OK) {
-			ERR_print_errors(bio_err);
+			//ERR_print_errors(stderr);
 			goto end;
 		}
 
@@ -245,20 +263,20 @@ x509		goto opthelp;
 		if (op == OP_PRINTSM2SIGN) {
 			if (SDF_ExportSignPublicKey_ECC(hSession,
 				key_idx, &publicKey) != SDR_OK) {
-				ERR_print_errors(bio_err);
+				//ERR_print_errors(stderr);
 				goto end;
 			}
-			BIO_puts(out, "SM2 Signing Public Key:\n");
+			fprintf(out, "SM2 Signing Public Key:\n");
 		} else {
 			if (SDF_ExportEncPublicKey_ECC(hSession,
 				key_idx, &publicKey) != SDR_OK) {
-				ERR_print_errors(bio_err);
+				//ERR_print_errors(stderr);
 				goto end;
 			}
-			BIO_puts(out, "SM2 Encryption Public Key:\n");
+			fprintf(out, "SM2 Encryption Public Key:\n");
 		}
 		if (SDF_PrintECCPublicKey(out, &publicKey) != SDR_OK) {
-			ERR_print_errors(bio_err);
+			//ERR_print_errors(stderr);
 			goto end;
 		}
 
@@ -267,69 +285,63 @@ x509		goto opthelp;
 		if (op == OP_PRINTRSASIGN) {
 			if (SDF_ExportSignPublicKey_RSA(hSession,
 				key_idx, &publicKey) != SDR_OK) {
-				ERR_print_errors(bio_err);
+				//ERR_print_errors(stderr);
 				goto end;
 			}
-			BIO_puts(out, "RSA Signing Public Key:\n");
+			fprintf(out, "RSA Signing Public Key:\n");
 		} else {
 			if (SDF_ExportEncPublicKey_RSA(hSession,
 				key_idx, &publicKey) != SDR_OK) {
-				ERR_print_errors(bio_err);
+				//ERR_print_errors(stderr);
 				goto end;
 			}
-			BIO_puts(out, "RSA Encryption Public Key:\n");
+			fprintf(out, "RSA Encryption Public Key:\n");
 		}
 		if (SDF_PrintRSAPublicKey(out, &publicKey) != SDR_OK) {
-			ERR_print_errors(bio_err);
+			//ERR_print_errors(stderr);
 			goto end;
 		}
 
 	} else if (op == OP_ACCESSKEY) {
-		if (!app_passwd(passarg, NULL, &pass, NULL)) {
-			BIO_printf(bio_err, "Error getting password\n");
-			goto end;
-		}
 		if (SDF_GetPrivateKeyAccessRight(hSession, (unsigned int)key_idx,
 			(unsigned char *)pass, strlen(pass)) != SDR_OK) {
-			OPENSSL_cleanse(pass, sizeof(pass));
 			return 0;
 		}
 		(void)SDF_ReleasePrivateKeyAccessRight(hSession, (unsigned int)key_idx);
-		BIO_printf(bio_err, "Access private key %d success\n", key_idx);
+		fprintf(stderr, "Access private key %d success\n", key_idx);
 
 	} else if (op == OP_IMPORTOBJ) {
-		if (!(in = bio_open_default(infile, 'r', FORMAT_BINARY))) {
+		if (!(in = fopen(infile, "r"))) {
 			goto opthelp;
 		}
-		if ((len = bio_to_mem(&buf, SDF_MAX_FILE_SIZE, in)) < 0) {
-			BIO_printf(bio_err, "Error reading data object content\n");
+		if ((len = fread(buf, 1, SDF_MAX_FILE_SIZE, in)) < 0) {
+			fprintf(stderr, "Error reading data object content\n");
 			goto end;
 		}
 		if (SDF_CreateFile(hSession, (unsigned char *)objname, strlen(objname), len) != SDR_OK
 			|| SDF_WriteFile(hSession, (unsigned char *)objname, strlen(objname), 0, len, buf) != SDR_OK) {
-			ERR_print_errors(bio_err);
+			//ERR_print_errors(stderr);
 			goto end;
 		}
-		BIO_printf(bio_err, "Object '%s' (%d bytes) created\n", objname, len);
+		fprintf(stderr, "Object '%s' (%d bytes) created\n", objname, len);
 
 	} else if (op == OP_EXPORTOBJ) {
-		if (!(out = bio_open_default(outfile, 'w', FORMAT_BINARY))) {
+		if (!(out = fopen(outfile, "w"))) {
 			goto opthelp;
 		}
-		if (!(buf = OPENSSL_zalloc(SDF_MAX_FILE_SIZE))
-			|| SDF_ReadFile(hSession, (unsigned char *)objname, strlen(objname), 0, &ulen, buf) != SDR_OK
-			|| BIO_write(out, buf, ulen) != ulen) {
-			ERR_print_errors(bio_err);
+		if (SDF_ReadFile(hSession, (unsigned char *)objname, strlen(objname), 0, &ulen, buf) != SDR_OK
+			|| fwrite(buf, 1, ulen, out) != ulen) {
+			//ERR_print_errors(stderr);
 			goto end;
 		}
-		BIO_printf(bio_err, "Object '%s' (%u bytes) exported\n", objname, ulen);
+		fprintf(stderr, "Object '%s' (%u bytes) exported\n", objname, ulen);
 
 	} else if (op == OP_DELOBJ) {
 		if (SDF_DeleteFile(hSession, (unsigned char *)objname, strlen(objname)) != SDR_OK) {
-			ERR_print_errors(bio_err);
+			//ERR_print_errors(stderr);
 			goto end;
 		}
-		BIO_printf(bio_err, "Object '%s' deleted\n", objname);
+		fprintf(stderr, "Object '%s' deleted\n", objname);
 
 	} else {
 		goto end;
@@ -337,11 +349,14 @@ x509		goto opthelp;
 
 	ret = 0;
 
+bad:
+	fprintf(stderr, "%s: commands should not be used together\n", prog);
+
+
 end:
-	BIO_free(in);
-	BIO_free(out);
-	OPENSSL_free(buf);
-	OPENSSL_free(pass);
+	fclose(in);
+	fclose(out);
+
 	if (hSession) (void)SDF_CloseSession(hSession);
 	if (hDev) (void)SDF_CloseDevice(hDev);
 	if (lib) SDF_UnloadLibrary();

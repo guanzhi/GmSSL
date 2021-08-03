@@ -283,7 +283,7 @@ static int sha1_digest_finish(DIGEST_CTX *ctx, unsigned char *dgst)
 
 static const DIGEST sha1_digest_object = {
 	OID_sha1,
-	SHA1_DIGEST_LENGTH,
+	SHA1_DIGEST_SIZE,
 	SHA1_BLOCK_SIZE,
 	sizeof(SHA1_CTX),
 	sha1_digest_init,

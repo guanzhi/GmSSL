@@ -49,7 +49,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <gmssl/sm3.h>
 
 
@@ -69,7 +68,7 @@ int main(int argc, char **argv)
 	}
 
 	sm3_init(&ctx);
-	while ((len = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
+	while ((len = fread(buf, 1, sizeof(buf), stdin)) > 0) {
 		sm3_update(&ctx, buf, len);
 	}
 	sm3_finish(&ctx, dgst);

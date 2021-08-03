@@ -49,16 +49,17 @@
 #ifndef GMSSL_PKCS8_H
 #define GMSSL_PKCS8_H
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmssl/sm2.h>
 #include <gmssl/pem.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 // EncryptedPrivateKeyInfo
 int sm2_enced_private_key_info_to_der(const SM2_KEY *key, const char *pass, uint8_t **out, size_t *outlen);
@@ -158,7 +159,6 @@ int pkcs8_enced_private_key_info_from_der(
 	const uint8_t **iv, size_t *ivlen,
 	const uint8_t **enced, size_t *encedlen,
 	const uint8_t **in, size_t *inlen);
-
 
 
 #ifdef __cplusplus

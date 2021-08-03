@@ -212,7 +212,8 @@ end:
  */
 static void drbg_add(uint8_t *R, const uint8_t *A, size_t seedlen)
 {
-	int temp = 0, i;
+	int temp = 0;
+	size_t i;
 	for (i = seedlen - 1; i >= 0; i--) {
 		temp += R[i] + A[i];
 		R[i] = temp & 0xff;
@@ -222,7 +223,8 @@ static void drbg_add(uint8_t *R, const uint8_t *A, size_t seedlen)
 
 static void drbg_add1(uint8_t *R, size_t seedlen)
 {
-	int temp = 1, i;
+	int temp = 1;
+	size_t i;
 	for (i = seedlen - 1; i >= 0; i--) {
 		temp += R[i];
 		R[i] = temp & 0xff;
@@ -265,7 +267,7 @@ static int drbg_hashgen(HASH_DRBG *drbg, size_t outlen, uint8_t *out)
 
 	ret = 1;
 end:
-	digest_ctx_cleanup(&ctx);
+	memset(&ctx, 0, sizeof(ctx));
 	memset(data, 0, sizeof(data));
 	return ret;
 }
@@ -338,9 +340,4 @@ end:
 	memset(T, 0, sizeof(T));
 	memset(dgst, 0, sizeof(dgst));
 	return ret;
-}
-
-void hash_drbg_cleanup(HASH_DRBG *drbg)
-{
-	//mem_cleanup(drbg, sizeof(HASH_DRBG));
 }

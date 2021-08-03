@@ -574,7 +574,6 @@ int asn1_x509_kp_oid_from_octets(const uint8_t *in, size_t inlen)
 int asn1_x509_kp_oid_from_name(const char *name)
 {
 	int i;
-	assert(i >= 0 && i < sizeof(x509_kp_oids)/sizeof(x509_kp_oids[0]));
 	for (i = 0; i < sizeof(x509_kp_oids)/sizeof(x509_kp_oids[0]); i++) {
 		if (strcmp(name, x509_kp_oids[i].name) == 0) {
 			return OID_kp_serverAuth + i;
@@ -598,7 +597,7 @@ void asn1_oid_to_octets(int oid, uint8_t *out, size_t *outlen)
 	} else if (oid <= OID_at_role) {
 		asn1_x509_oid_to_octets(oid, out, outlen);
 	} else {
-		error_print("unknown oid %d\n", oid);
+		error_print();
 		assert(0);
 	}
 }
@@ -639,7 +638,7 @@ int asn1_oid_from_octets(const uint8_t *in, size_t inlen)
 	}
 
 	if (ret < 0) {
-		error_print("invalid der\n");
+		error_print();
 	}
 	return ret;
 }
@@ -907,7 +906,7 @@ int test_asn1_object_identifier_to_der(int oid)
 	printf("\n");
 
 	if (roid != oid) {
-		error_print("oid = %d, parsed oid = %d\n", oid, roid);
+		error_print();
 		return -1;
 	}
 	if (len != 0) {

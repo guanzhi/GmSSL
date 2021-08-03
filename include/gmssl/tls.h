@@ -701,6 +701,9 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 
 
 
+int tls_shutdown(TLS_CONNECT *conn);
+
+
 #define tls_trace printf
 
 

@@ -236,7 +236,7 @@ static int bn_print(FILE *fp, const bignum_t a, int format, int indent)
 		if (a[i] >= ((uint64_t)1 << 32)) {
 			printf("bn_print check failed\n");
 		}
-		ret += fprintf(fp, "%08llx", a[i]);
+		ret += fprintf(fp, "%08x", (uint32_t)a[i]);
 	}
 	ret += fprintf(fp, "\n");
 	return ret;
@@ -340,8 +340,9 @@ static void bn_rand_range(bignum_t r, const bignum_t range)
 static void fp_add(bignum_t r, const bignum_t a, const bignum_t b)
 {
 	bn_add(r, a, b);
-	if (bn_cmp(r, SM2_P) >= 0)
-		return bn_sub(r, r, SM2_P);
+	if (bn_cmp(r, SM2_P) >= 0) {
+		bn_sub(r, r, SM2_P);
+	}
 }
 
 static void fp_sub(bignum_t r, const bignum_t a, const bignum_t b)
@@ -540,7 +541,7 @@ static void fn_add(bignum_t r, const bignum_t a, const bignum_t b)
 {
 	bn_add(r, a, b);
 	if (bn_cmp(r, SM2_N) >= 0) {
-		return bn_sub(r, r, SM2_N);
+		bn_sub(r, r, SM2_N);
 	}
 }
 
@@ -714,7 +715,7 @@ static void fn_mul(bignum_t r, const bignum_t a, const bignum_t b)
 
 static void fn_sqr(bignum_t r, const bignum_t a)
 {
-	return fn_mul(r, a, a);
+	fn_mul(r, a, a);
 }
 
 static void fn_exp(bignum_t r, const bignum_t a, const bignum_t e)
@@ -747,7 +748,7 @@ static void fn_inv(bignum_t r, const bignum_t a)
 
 static void fn_rand(bignum_t r)
 {
-	return bn_rand_range(r, SM2_N);
+	bn_rand_range(r, SM2_N);
 }
 
 #define hex_fp_add_x_y "eefbe4cf140ff8b5b956d329d5a2eae8608c933cb89053217439786e54866567"
@@ -1011,8 +1012,8 @@ static void point_dbl(point_t *R, const point_t *P)
 
 }
 
-// 这个函数有一个严重的问题，就是我们假定Q是一个已经正规化的点
-// 因此如果这个点不是仿射坐标的就出现问题了
+// FIXME: Q must be affine coordinate
+// change API!			
 static void point_add(point_t *R, const point_t *P, const point_t *Q)
 {
 	const uint64_t *X1 = P->X;
@@ -1090,7 +1091,7 @@ static void point_mul(point_t *R, const bignum_t k, const point_t *P)
 	point_t _T, *T = &_T;
 	int i;
 
-	// point_add要求输入的P必须为仿射坐标
+	// FIXME: point_add need affine, so we can not use point_add
 	if (!bn_is_one(P->Z)) {
 		bignum_t x;
 		bignum_t y;
@@ -1600,7 +1601,7 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 	uint8_t hash[32];
 	int i;
 
-	// FIXME: 检查SM2_CIPHERTEXT格式
+	// FIXME: check SM2_CIPHERTEXT format
 
 	// check C1
 	point_from_bytes(P, (uint8_t *)&in->point);

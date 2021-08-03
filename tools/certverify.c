@@ -49,7 +49,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
 #include <gmssl/pkcs8.h>

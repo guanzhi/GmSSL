@@ -50,32 +50,33 @@
 #ifndef GMSSL_MD5_H
 #define GMSSL_MD5_H
 
-#define MD5_IS_BIG_ENDIAN	0
-
-#define MD5_DIGEST_SIZE		16
-#define MD5_BLOCK_SIZE		64
 
 #include <string.h>
 #include <stdint.h>
-#include <sys/types.h>
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
+#define MD5_IS_BIG_ENDIAN	0
+
+#define MD5_DIGEST_SIZE		16
+#define MD5_BLOCK_SIZE		64
+
+
 typedef struct {
 	uint32_t state[4];
 	uint64_t nblocks; /* num of processed blocks */
-	unsigned char block[64]; /* buffer */
-	int num; /* buffered bytes in |block| */
+	uint8_t block[64]; /* buffer */
+	size_t num; /* buffered bytes in |block| */
 } MD5_CTX;
 
 
 void md5_init(MD5_CTX *ctx);
-void md5_update(MD5_CTX *ctx, const uint8_t* data, size_t datalen);
+void md5_update(MD5_CTX *ctx, const uint8_t *data, size_t datalen);
 void md5_finish(MD5_CTX *ctx, uint8_t dgst[MD5_DIGEST_SIZE]);
-void md5_compress(uint32_t state[4], const uint8_t block[MD5_BLOCK_SIZE]);
 void md5_digest(const uint8_t *data, size_t datalen, uint8_t dgst[MD5_DIGEST_SIZE]);
 
 

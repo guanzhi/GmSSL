@@ -110,26 +110,7 @@ void sm3_hmac_finish(SM3_HMAC_CTX *ctx, uint8_t mac[SM3_HMAC_SIZE])
 	sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
 	sm3_update(&ctx->sm3_ctx, mac, SM3_DIGEST_SIZE);
 	sm3_finish(&ctx->sm3_ctx, mac);
-}
-
-int sm3_hmac_finish_and_verify(SM3_HMAC_CTX *ctx, const uint8_t mac[SM3_HMAC_SIZE])
-{
-	uint8_t buf[32];
-	sm3_hmac_finish(ctx, buf);
-	if (memcmp(mac, buf, sizeof(buf)) == 0) {
-		return 1;
-	} else {
-		error_print("sm3_hmac verify failure");
-		return 0;
-	}
-}
-
-void sm3_hmac_reset(SM3_HMAC_CTX *ctx)
-{
-	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
-	// 不应该保留原始密钥，而是应该保持这次update之后的状态
-	// 这样可以降低reset的工作量
+	memset(ctx, 0, sizeof(*ctx));
 }
 
 void sm3_hmac(const uint8_t *data, size_t data_len,
@@ -140,5 +121,4 @@ void sm3_hmac(const uint8_t *data, size_t data_len,
 	sm3_hmac_init(&ctx, key, key_len);
 	sm3_hmac_update(&ctx, data, data_len);
 	sm3_hmac_finish(&ctx, mac);
-	memset(&ctx, 0, sizeof(ctx));
 }

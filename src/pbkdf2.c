@@ -125,7 +125,7 @@
 
 int pbkdf2_genkey(const DIGEST *digest,
 	const char *pass, size_t passlen,
-	const uint8_t *salt, size_t saltlen, unsigned int count,
+	const uint8_t *salt, size_t saltlen, size_t count,
 	size_t outlen, uint8_t *out)
 {
 	HMAC_CTX ctx;
@@ -139,7 +139,7 @@ int pbkdf2_genkey(const DIGEST *digest,
 	hmac_init(&ctx_tmpl, digest, (uint8_t *)pass, passlen);
 
 	while (outlen > 0) {
-		int i;
+		size_t i;
 
 		PUTU32(iter_be, iter);
 		iter++;

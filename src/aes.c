@@ -114,7 +114,7 @@ static uint32_t rot_word(uint32_t A)
 #ifdef CRYPTO_INFO
 static void print_rk(const AES_KEY *aes_key)
 {
-	int i;
+	size_t i;
 	for (i = 0; i <= aes_key->rounds; i++) {
 		printf("%08x ", aes_key->rk[4 * i]);
 		printf("%08x ", aes_key->rk[4 * i + 1]);
@@ -134,7 +134,7 @@ int aes_set_encrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 	 */
 	uint32_t *W = (uint32_t *)aes_key->rk;
 	size_t Nk = keylen/sizeof(uint32_t);
-	int i;
+	size_t i;
 
 	switch (keylen) {
 	case AES128_KEY_SIZE:
@@ -177,7 +177,7 @@ int aes_set_decrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 {
 	int ret = 0;
 	AES_KEY enc_key;
-	int i;
+	size_t i;
 
 	if (!aes_set_encrypt_key(&enc_key, key, keylen)) {
 		goto end;
@@ -402,7 +402,7 @@ static void print_state(const uint8_t S[4][4])
 void aes_encrypt(const AES_KEY *key, const uint8_t in[16], uint8_t out[16])
 {
 	uint8_t state[4][4];
-	int i;
+	size_t i;
 
 	/* fill state columns */
 	for (i = 0; i < 4; i++) {
@@ -442,7 +442,7 @@ void aes_encrypt(const AES_KEY *key, const uint8_t in[16], uint8_t out[16])
 void aes_decrypt(const AES_KEY *aes_key, const uint8_t in[16], uint8_t out[16])
 {
 	uint8_t state[4][4];
-	int i;
+	size_t i;
 
 	/* fill state columns */
 	for (i = 0; i < 4; i++) {

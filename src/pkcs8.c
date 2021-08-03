@@ -280,7 +280,7 @@ int pbes2_enc_algor_from_der(int *cipher, const uint8_t **iv, size_t *ivlen, con
 			*cipher = OID_sm4_cbc;
 		} else {
 			size_t i;
-			error_print("unknown cipher oid :");
+			error_print();
 			for (i = 0; i < nodes_count; i++) {
 				fprintf(stderr, " %d", nodes[i]);
 			}
@@ -339,7 +339,7 @@ int pbes2_params_from_der(
 		return -1;
 	}
 	if (keylen >= 0 && keylen != 16) {
-		error_print("keylen = %d\n", keylen);
+		error_print();
 		return -1;
 	}
 	return 1;
@@ -436,10 +436,6 @@ int pkcs8_enced_private_key_info_from_der(
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	const uint8_t *algid;
-	size_t algidlen;
-	uint32_t nodes[32];
-	size_t nodes_count;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();

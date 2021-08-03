@@ -86,7 +86,7 @@ int aes_cbc_padding_encrypt(const AES_KEY *key, const uint8_t iv[16],
 {
 	uint8_t block[16];
 	size_t rem = inlen % 16;
-	int padding = 16 - rem;
+	int padding = 16 - inlen % 16;
 
 	if (in) {
 		memcpy(block, in + inlen - rem, rem);
@@ -107,14 +107,15 @@ int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
 	uint8_t *out, size_t *outlen)
 {
 	uint8_t block[16];
+	size_t len = sizeof(block);
 	int padding;
 
 	if (inlen == 0) {
-		error_print("warning: input lenght = 0");
+		error_print();
 		return 0;
 	}
 	if (inlen%16 != 0 || inlen < 16) {
-		error_print("invalid cbc ciphertext length");
+		error_print();
 		return -1;
 	}
 	if (inlen > 16) {
@@ -127,7 +128,8 @@ int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
 		error_print();
 		return -1;
 	}
-	memcpy(out + inlen - 16, block, 16 - padding);
+	len -= padding;
+	memcpy(out + inlen - 16, block, len);
 	*outlen = inlen - padding;
 	return 1;
 }

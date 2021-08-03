@@ -46,38 +46,36 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef GMSSL_SHA1_H
 #define GMSSL_SHA1_H
-
-#define SHA1_IS_BIG_ENDIAN	1
-
-#define SHA1_DIGEST_LENGTH	20
-#define SHA1_BLOCK_SIZE		64
-#define SHA1_STATE_WORDS	(SHA1_DIGEST_LENGTH/sizeof(uint32_t))
 
 #include <string.h>
 #include <stdint.h>
 #include <sys/types.h>
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
+#define SHA1_IS_BIG_ENDIAN	1
+
+#define SHA1_DIGEST_SIZE	20
+#define SHA1_BLOCK_SIZE		64
+#define SHA1_STATE_WORDS	(SHA1_DIGEST_SIZE/sizeof(uint32_t))
+
+
 typedef struct {
 	uint32_t state[SHA1_STATE_WORDS];
 	uint64_t nblocks; /* num of processed blocks */
 	uint8_t block[SHA1_BLOCK_SIZE]; /* buffer */
-	int num; /* buffered bytes in |block| */
+	size_t num; /* buffered bytes in |block| */
 } SHA1_CTX;
 
 void sha1_init(SHA1_CTX *ctx);
 void sha1_update(SHA1_CTX *ctx, const uint8_t *data, size_t datalen);
-void sha1_finish(SHA1_CTX *ctx, uint8_t dgst[SHA1_DIGEST_LENGTH]);
-void sha1_compress(uint32_t state[SHA1_STATE_WORDS], const uint8_t block[SHA1_BLOCK_SIZE]);
-void sha1_digest(const uint8_t *data, size_t datalen, uint8_t dgst[SHA1_DIGEST_LENGTH]);
+void sha1_finish(SHA1_CTX *ctx, uint8_t dgst[SHA1_DIGEST_SIZE]);
+void sha1_digest(const uint8_t *data, size_t datalen, uint8_t dgst[SHA1_DIGEST_SIZE]);
 
 
 #ifdef __cplusplus

@@ -337,7 +337,7 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 		return -1;
 	}
 	if (inlen > (1 << 14)) {
-		error_print("invalid tls record data length %zu\n", inlen);
+		error_print_msg("invalid tls record data length %zu\n", inlen);
 		return -1;
 	}
 
@@ -384,6 +384,7 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	const uint8_t *mac;
 	uint8_t header[5];
 	int padding_len;
+	uint8_t hmac[32];
 	int i;
 
 	if (!inited_hmac_ctx || !dec_key || !seq_num || !enced_header || !in || !inlen || !out || !outlen) {
@@ -393,7 +394,7 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	if (inlen % 16
 		|| inlen < (16 + 0 + 32 + 16) // iv + data +  mac + padding
 		|| inlen > (16 + (1<<14) + 32 + 256)) {
-		error_print("invalid tls cbc ciphertext length %zu\n", inlen);
+		error_print_msg("invalid tls cbc ciphertext length %zu\n", inlen);
 		return -1;
 	}
 
@@ -411,7 +412,7 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	}
 	for (i = 0; i < padding_len; i++) {
 		if (padding[i] != padding_len) {
-			error_print("tls ciphertext cbc-padding check failure");
+			error_puts("tls ciphertext cbc-padding check failure");
 			return -1;
 		}
 	}
@@ -428,8 +429,9 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	sm3_hmac_update(&hmac_ctx, seq_num, 8);
 	sm3_hmac_update(&hmac_ctx, header, 5);
 	sm3_hmac_update(&hmac_ctx, out, *outlen);
-	if (sm3_hmac_finish_and_verify(&hmac_ctx, mac) != 1) {
-		error_print("tls ciphertext mac check failure");
+	sm3_hmac_finish(&hmac_ctx, hmac);
+	if (memcmp(mac, hmac, sizeof(hmac)) != 0) { //FIXME: const time memcmp!
+		error_puts("tls ciphertext mac check failure");
 		return -1;
 	}
 	return 1;
@@ -634,7 +636,7 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 		return -1;
 	}
 	if (datalen > (1 << 14) - 4) {
-		error_print("gmssl does not support handshake longer than record");
+		error_puts("gmssl does not support handshake longer than record");
 		return -1;
 	}
 	handshakelen = 4 + datalen;
@@ -885,7 +887,7 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 		return -1;
 	}
 	if (!tls_cipher_suite_name(*cipher_suite)) {
-		error_print("unknown server cipher_suite 0x%04x", *cipher_suite);
+		error_print_msg("unknown server cipher_suite 0x%04x", *cipher_suite);
 		return -1;
 	}
 	if (comp_meth != TLS_compression_null) {
@@ -894,7 +896,7 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	}
 	if (len > 0) {
 		if (tls_record_version(record) < TLS_version_tls12) {
-			error_print("warning: should not have extentions");
+			error_puts("warning: should not have extentions");
 			return -1;
 		}
 		// FIXME: 用 tls_extensions_from_bytes() 解析		
@@ -1355,7 +1357,7 @@ int tls_record_get_alert(const uint8_t *record,
 		return -1;
 	}
 	if (!tls_alert_description_text(*alert_description)) {
-		error_print("warning");
+		error_puts("warning");
 		return -1;
 	}
 	return 1;
@@ -1394,7 +1396,7 @@ int tls_record_get_change_cipher_spec(const uint8_t *record)
 		return -1;
 	}
 	if (record[5] != TLS_change_cipher_spec) {
-		error_print("unknown ChangeCipherSpec value %d", record[5]);
+		error_print_msg("unknown ChangeCipherSpec value %d", record[5]);
 		return -1;
 	}
 	return 1;
@@ -1470,11 +1472,11 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, int sock)
 	}
 
 	if (!tls_record_type_name(record[0])) {
-		error_print("invalid record type: %d\n", record[0]);
+		error_print_msg("invalid record type: %d\n", record[0]);
 		return -1;
 	}
 	if (!tls_version_text(tls_record_version(record))) {
-		error_print("invalid record version: %d.%d\n", record[1], record[2]);
+		error_print_msg("invalid record version: %d.%d\n", record[1], record[2]);
 		return -1;
 	}
 	len = (size_t)record[3] << 8 | record[4];
@@ -1588,4 +1590,10 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 	memcpy(data, mrec + 5, mlen - 5);
 	*datalen = mlen - 5;
 	return 1;
+}
+
+//FIXME: any difference in TLS 1.2 and TLS 1.3?
+int tls_shutdown(TLS_CONNECT *conn)
+{
+	return -1;
 }
