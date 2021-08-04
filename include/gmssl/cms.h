@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,88 +47,6 @@
  */
 
 
-/*
-
-
-
-ContentInfo ::= SEQUENCE {
-	contentType			OBJECT IDENTIFIER,
-	content				[0] EXPLICIT ANY OPTIONAL
-}
-
-
-data 1.2.156.10197.6.1.4.2.1
-
-
-
-
-
-data ::= OCTET STRING
-
-SignedData ::= SEQUENCE {
-	version			INTEGER (1),
-	digestAlgorithms	SET OF AlgorithmIdentifier,
-	contentInfo		ContentInfo,
-	certificates		[0] IMPLICIT SET OF Certificate OPTIONAL,
-	crls			[1] IMPLICIT SET OF CertificateRevocationList OPTIONAL,
-	signerInfos		SET OF SignerInfo
-}
-
-SignerInfo ::= SEQUENCE {
-	version				INTEGER (1),
-	issuerAndSerialNumber		IssuerAndSerialNumber,
-	digestAlgorithm			AlgorithmIdentifier,
-	authenticatedAttributes		[0] IMPLICIT SET OF Attribute OPTINOAL,
-	digestEncryptionAlgorithm	AlgorithmIdentifier,
-	encryptedDigest			OCTET STRING,
-	unauthenticatedAttributes       [1] IMPLICIT SET OF Attribute OPTINOAL,
-}
-
-EnvelopedData ::= SEQUENCE {
-	version				INTEGER (1),
-	recipientInfos			SET OF RecipientInfo,
-	encryptedContentInfo		EncryptedContentInfo
-}
-
-EncryptedContentInfo ::= SEQUENCE {
-	contentType			OBJECT IDENTIFIER,
-	contentEncryptionAlgorithm	AlgorithmIdentifier,
-	encryptedContent		[0] IMPLICIT OCTET STRING OPTIONAL,
-	sharedInfo1			[1] IMPLICIT OCTET STRING OPTIONAL,
-	sharedInfo2			[2] IMPLICIT OCTET STRING OPTIONAL,
-}
-
-RecipientInfo ::= SEQUENCE {
-	version				INTEGER (1),
-	issuerAndSerialNumber		IssuerAndSerialNumber,
-	keyEncryptionAlgorithm		AlgorithmIdentifier,
-	encryptedKey			OCTET STRING
-}
-
-SignedAndEnvelopedData ::= SEQUENCE {
-	version			INTEGER (1),
-	recipientInfos		SET OF RecipientInfo,
-	digestAlgorithms	SET OF AlgorithmIdentifier,
-	encryptedContentInfo	EncryptedContentInfo,
-	certificates		[0] IMPLICIT SET OF Certificate OPTIONAL,
-	crls			[1] IMPLICIT SET OF CertificateRevocationList OPTIONAL,
-	signerInfos		SET OF SignerInfo
-}
-
-EncryptedData ::= SEQUENCE {
-	version			INTEGER (1),
-	encryptedContentInfo	EncryptedContentInfo
-}
-
-KeyAgreementInfo ::= SEQUENCE {
-	version			INTEGER (1),
-	tempPublicKeyR		SM2PublicKey,
-	userCertificate		Certificate,
-	userID			OCTET STRING
-}
-*/
-
-
 #ifndef GMSSL_CMS_H
 #define GMSSL_CMS_H
 
@@ -149,8 +67,6 @@ enum {
 	CMS_version = 1,
 };
 
-
-
 typedef enum {
 	CMS_data 			= 1,
 	CMS_signed_data			= 2,
@@ -163,11 +79,7 @@ typedef enum {
 
 
 
-/*
-IssuerAndSerialNumber ::= SEQUENCE {
-	issuer				Name,
-	serialNumber			INTEGER }
-*/
+
 int cms_issuer_and_serial_number_from_certificate(const X509_NAME **issuer,
 	const uint8_t **serial_number, size_t *serial_number_len,
 	const X509_CERTIFICATE *cert);
@@ -211,9 +123,9 @@ int cms_signer_info_to_der(const X509_NAME *issuer,
 
 int cms_signer_info_from_der(X509_NAME *issuer,
 	const uint8_t **serial_number, size_t *serial_number_len,
-	int *digest_algor, uint32_t *nodes, size_t *nodes_count,
+	int *digest_algor,
 	const uint8_t **authed_attrs, size_t *authed_attrs_len,
-	int *sign_algor, uint32_t *sign_algor_nodes, size_t *sign_algor_nodes_count,
+	int *sign_algor,
 	const uint8_t **enced_digest, size_t *enced_digest_len,
 	const uint8_t **unauthed_attrs, size_t *unauthed_attrs_len,
 	const uint8_t **in, size_t *inlen);
@@ -267,7 +179,26 @@ int cms_sign(const SM2_KEY *sign_keys,
 	const uint8_t **crls, size_t *crls_lens, size_t crls_count,
 	uint8_t *content_info, size_t *content_info_len);
 
+int cms_encrypt(const uint8_t key[16], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
 
+int cms_decrypt(const uint8_t key[16], const uint8_t *in, size_t inlen,
+	int *content_type, uint8_t *out, size_t *outlen,
+	const uint8_t **shared_info1, size_t *shared_info1_len,
+	const uint8_t **shared_info2, size_t *shared_info2_len);
+
+int cms_enced_content_info_to_der(int enc_algor, const uint8_t *enc_iv, size_t enc_iv_len,
+	int content_type, const uint8_t *enced_content, size_t enced_content_len,
+	const uint8_t *shared_info1, size_t shared_info1_len,
+	const uint8_t *shared_info2, size_t shared_info2_len,
+	uint8_t **out, size_t *outlen);
+
+int cms_enced_content_info_from_der(int *content_type,
+	int *enc_algor, const uint8_t **enc_iv, size_t *enc_iv_len,
+	const uint8_t **enced_content, size_t *enced_content_len,
+	const uint8_t **shared_info1, size_t *shared_info1_len,
+	const uint8_t **shared_info2, size_t *shared_info2_len,
+	const uint8_t **in, size_t *inlen);
 
 
 #ifdef __cplusplus

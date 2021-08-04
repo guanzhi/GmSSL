@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -267,6 +267,8 @@ typedef struct {
 int asn1_sequence_of_get_next_item(const ASN1_SEQUENCE_OF *a, const uint8_t **next, const uint8_t **data, size_t *datalen);
 int asn1_sequence_of_get_count(const ASN1_SEQUENCE_OF *a, size_t *count);
 
+
+int asn1_check(int expr);
 
 
 #if __cplusplus

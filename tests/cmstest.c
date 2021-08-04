@@ -53,6 +53,7 @@
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+#include <gmssl/sm4.h>
 #include <gmssl/cms.h>
 
 static int test_cms_data(void)
@@ -99,9 +100,85 @@ static int test_cms_sign(void)
 }
 
 
+static int test_cms_enced_content_info(void)
+{
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	uint8_t iv[16];
+	uint8_t enced_content[30];
+
+	if (cms_enced_content_info_to_der(OID_sm4_cbc, iv, sizeof(iv),
+		CMS_data, enced_content, sizeof(enced_content),
+		NULL, 0,
+		NULL, 0,
+		&p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	int content_type;
+	int enc_algor;
+	const uint8_t *enc_iv;
+	size_t enc_iv_len;
+	const uint8_t *penced_content;
+	size_t enced_content_len;
+	const uint8_t *shared_info1, *shared_info2;
+	size_t shared_info1_len, shared_info2_len;
+
+	if (cms_enced_content_info_from_der(&content_type,
+		&enc_algor, &enc_iv, &enc_iv_len,
+		&penced_content, &enced_content_len,
+		&shared_info1, &shared_info1_len,
+		&shared_info2, &shared_info2_len,
+		&cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+
+	return 1;
+}
+
+
+static int test_cms_encrypt(void)
+{
+	uint8_t key[16];
+	uint8_t msg[] = "Hello world!";
+	uint8_t cbuf[512];
+	uint8_t mbuf[512];
+	size_t clen, mlen;
+	int content_type = 0;
+	const uint8_t *shared_info1 = NULL;
+	const uint8_t *shared_info2 = NULL;
+	size_t shared_info1_len, shared_info2_len;
+
+	if (cms_encrypt(key, msg, sizeof(msg), cbuf, &clen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	format_bytes(stderr, 0, 0, "EncryptedData\n", cbuf, clen);
+
+
+	if (cms_decrypt(key, cbuf, clen, &content_type, mbuf, &mlen,
+		&shared_info1, &shared_info1_len,
+		&shared_info2, &shared_info2_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
 int main(void)
 {
-	test_cms_data();
-	test_cms_sign();
+	// 很可能x509_algor.c中有错误！
+	test_cms_enced_content_info();
+	//test_cms_encrypt();
+	//test_cms_data();
+	//test_cms_sign();
 	return 0;
 }

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -156,34 +156,41 @@ int x509_encryption_algor_to_der(int cipher, const uint8_t *iv, size_t ivlen,
 	return 1;
 }
 
-int x509_encryption_algor_from_der(int *cipher,
+const char *x509_encryption_algor_name(int algor)
+{
+	switch (algor) {
+	case OID_sm4_cbc: return "sm4-cbc";
+	}
+	return NULL;
+}
+
+
+int x509_encryption_algor_from_der(int *algor, uint32_t nodes[32], size_t *nodes_count,
 	const uint8_t **iv, size_t *ivlen,
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	uint32_t nodes[32];
-	size_t nodes_count;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_object_identifier_from_der(cipher, nodes, &nodes_count, &data, &datalen) != 1
+	if (asn1_object_identifier_from_der(algor, nodes, nodes_count, &data, &datalen) != 1
 		|| asn1_octet_string_from_der(iv, ivlen, &data, &datalen) != 1
 		|| datalen > 0) {
 		error_print();
 		return -1;
 	}
-	if (*cipher == OID_undef) {
-		if (nodes_count == sm4_cbc_nodes_count
+	if (*algor == OID_undef) {
+		if (*nodes_count == sm4_cbc_nodes_count
 			&& memcmp(nodes, sm4_cbc_nodes, sizeof(sm4_cbc_nodes)) == 0) {
-			*cipher = OID_sm4_cbc;
+			*algor = OID_sm4_cbc;
 		} else {
 			size_t i;
 			error_puts("unknown cipher oid :");
-			for (i = 0; i < nodes_count; i++) {
+			for (i = 0; i < *nodes_count; i++) {
 				fprintf(stderr, " %d", nodes[i]);
 			}
 			fprintf(stderr, "\n");
@@ -252,19 +259,18 @@ int x509_signature_algor_to_der(int oid, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
-int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen)
+int x509_signature_algor_from_der(int *algor, uint32_t nodes[32], size_t nodes_count,
+	const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	uint32_t nodes[32];
-	size_t nodes_count;
 	int has_null_obj;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		return ret;
 	}
-	if (asn1_object_identifier_from_der(oid, nodes, &nodes_count, &data, &datalen) != 1) {
+	if (asn1_object_identifier_from_der(algor, nodes, &nodes_count, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -278,7 +284,7 @@ int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen)
 		return -1;
 	}
 
-	switch (*oid) {
+	switch (*algor) {
 	//case OID_ecdsa_with_sha1:
 	//case OID_ecdsa_with_sha224
 	//case OID_ecdsa_with_sha256:
@@ -327,7 +333,7 @@ int x509_public_key_encryption_algor_to_der(int algor, uint8_t **out, size_t *ou
 }
 
 int x509_public_key_encryption_algor_from_der(int *algor, uint32_t *nodes, size_t *nodes_count,
-	const uint8_t *params, size_t *params_len,
+	const uint8_t **params, size_t *params_len,
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
@@ -345,17 +351,3 @@ int x509_public_key_encryption_algor_from_der(int *algor, uint32_t *nodes, size_
 	// FIXME: 我们需要一个读取完整obj的函数
 	return 1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

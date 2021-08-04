@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1031,4 +1031,12 @@ int asn1_sequence_of_get_count(const ASN1_SEQUENCE_OF *a, size_t *count)
 		return -1;
 	}
 	return 1;
+}
+
+int asn1_check(int expr)
+{
+	if (expr)
+		return 1;
+	error_print();
+	return -1;
 }

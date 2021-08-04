@@ -1,4 +1,4 @@
-/* ====================================================================
+﻿/* ====================================================================
  * Copyright (c) 2015 - 2019 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -998,6 +998,8 @@ int x509_tbs_certificate_from_der(X509_TBS_CERTIFICATE *a, const uint8_t **in, s
 	const uint8_t *serial_number;
 	const uint8_t *issuer_unique_id = NULL;
 	const uint8_t *subject_unique_id = NULL;
+	uint32_t nodes[32];
+	size_t nodes_count;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
@@ -1005,7 +1007,7 @@ int x509_tbs_certificate_from_der(X509_TBS_CERTIFICATE *a, const uint8_t **in, s
 	}
 	if (x509_version_from_der(&a->version, &data, &datalen) != 1
 		|| asn1_integer_from_der(&serial_number, &a->serial_number_len, &data, &datalen) != 1
-		|| x509_signature_algor_from_der(&a->signature_algor, &data, &datalen) != 1
+		|| x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1
 		|| x509_name_from_der(&a->issuer, &data, &datalen) != 1
 		|| x509_validity_from_der(&a->validity, &data, &datalen) != 1
 		|| x509_name_from_der(&a->subject, &data, &datalen) != 1
@@ -1077,6 +1079,8 @@ int x509_certificate_from_der(X509_CERTIFICATE *a, const uint8_t **in, size_t *i
 	size_t datalen;
 	const uint8_t *sig;
 	size_t sig_nbits;
+	uint32_t nodes[32];
+	size_t nodes_count;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
@@ -1084,7 +1088,7 @@ int x509_certificate_from_der(X509_CERTIFICATE *a, const uint8_t **in, size_t *i
 	}
 	memset(a, 0, sizeof(X509_CERTIFICATE));
 	if (x509_tbs_certificate_from_der(&a->tbs_certificate, &data, &datalen) != 1
-		|| x509_signature_algor_from_der(&a->signature_algor, &data, &datalen) != 1
+		|| x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1
 		|| asn1_bit_string_from_der(&sig, &sig_nbits, &data, &datalen) != 1
 		|| datalen > 0) {
 		error_print();
@@ -1263,13 +1267,15 @@ int x509_cert_request_from_der(X509_CERT_REQUEST *a, const uint8_t **in, size_t 
 	size_t datalen;
 	const uint8_t *sig;
 	size_t siglen;
+	uint32_t nodes[32];
+	size_t nodes_count;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
 	if (x509_cert_request_info_from_der(&a->req_info, &data, &datalen) != 1
-		|| x509_signature_algor_from_der(&a->signature_algor, &data, &datalen) != 1
+		|| x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1
 		|| x509_signature_copy_from_der(128, a->signature, &a->signature_len, &data, &datalen) != 1
 		|| datalen > 0) {
 		error_print();

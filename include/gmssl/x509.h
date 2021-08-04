@@ -168,23 +168,35 @@ AlgorithmIdentifier  ::=  SEQUENCE  {
 	当 algorithm 为 ECDSA/SM2 时，parameters 为空
 	当 algorithm 为 RSA 时，parameters 为 ASN1_NULL 对象
 */
-int x509_signature_algor_to_der(int oid, uint8_t **out, size_t *outlen);
-int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int x509_signature_algor_to_der(int algor, uint8_t **out, size_t *outlen);
 
-const char *x509_digest_algor_name(int oid);
+int x509_signature_algor_from_der(
+	int *algor, uint32_t algor_nodes[32], size_t *algor_nodes_count,
+	const uint8_t **in, size_t *inlen);
+
+const char *x509_digest_algor_name(int algor);
 
 int x509_digest_algor_to_der(int oid, uint8_t **out, size_t *outlen);
 int x509_digest_algor_from_der(int *oid, uint32_t *nodes, size_t *nodes_count,
 	const uint8_t **in, size_t *inlen);
+
+const char *x509_encryption_algor_name(int algor);
+
 int x509_encryption_algor_to_der(int cipher, const uint8_t *iv, size_t ivlen,
 	uint8_t **out, size_t *outlen);
-int x509_encryption_algor_from_der(int *cipher,
+
+
+
+int x509_encryption_algor_from_der(
+	int *algor, uint32_t algor_nodes[32], size_t *algor_nodes_count,
 	const uint8_t **iv, size_t *ivlen,
 	const uint8_t **in, size_t *inlen);
+
 int x509_public_key_encryption_algor_to_der(int algor, uint8_t **out, size_t *outlen);
+
 int x509_public_key_encryption_algor_from_der(int *algor,
 	uint32_t *nodes, size_t *nodes_count,
-	const uint8_t *params, size_t *params_len,
+	const uint8_t **params, size_t *params_len,
 	const uint8_t **in, size_t *inlen);
 
 

@@ -125,6 +125,8 @@ static int test_x509_signature_algor(int oid)
 	int err = 0;
 	int tests[] = {OID_sm2sign_with_sm3, OID_rsasign_with_sm3};
 	int val;
+	uint32_t nodes[32];
+	size_t nodes_count;
 	uint8_t buf[128];
 	const uint8_t *cp = buf;
 	uint8_t *p = buf;
@@ -145,7 +147,7 @@ static int test_x509_signature_algor(int oid)
 		printf("\n");
 	}
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		if (x509_signature_algor_from_der(&val, &cp, &len) != 1) {
+		if (x509_signature_algor_from_der(&val, nodes, &nodes_count, &cp, &len) != 1) {
 			error_print();
 			err++;
 			goto end;
