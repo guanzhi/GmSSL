@@ -579,7 +579,7 @@ function sm2_point_mul_G(R, k) {
 
 
 function sm2_sig_new() {
-	var sig {
+	var sig = {
 		r: bn_new(),
 		s: bn_new(),
 	};
