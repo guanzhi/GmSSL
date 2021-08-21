@@ -117,7 +117,7 @@ void sm3_compute_id_digest(unsigned char z[32], const char *id,
 		0x00, 0x00, 0x00, 0x00, 0x06, 0x90,
 	};
 
-	if (!id || strcmp(id, "1234567812345678")) {
+	if (!id || (strcmp(id, "1234567812345678") == 0)) {
 		unsigned int digest[8] = {
 			0xadadedb5U, 0x0446043fU, 0x08a87aceU, 0xe86d2243U,
 			0x8e232383U, 0xbfc81fe2U, 0xcf9117c8U, 0x4707011dU,
