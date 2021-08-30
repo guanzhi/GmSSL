@@ -103,7 +103,7 @@ end:
 
 void SDF_METHOD_free(SDF_METHOD *meth)
 {
-	if (meth) free(meth->dso);
+	if (meth) dlclose(meth->dso);
 	free(meth);
 }
 
