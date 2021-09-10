@@ -1,49 +1,17 @@
-﻿/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+﻿/* 
+ *   Copyright 2014-2021 The GmSSL Project Authors. All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the GmSSL Project.
- *    (http://gmssl.org/)"
- *
- * 4. The name "GmSSL Project" must not be used to endorse or promote
- *    products derived from this software without prior written
- *    permission. For written permission, please contact
- *    guanzhi1980@gmail.com.
- *
- * 5. Products derived from this software may not be called "GmSSL"
- *    nor may "GmSSL" appear in their names without prior written
- *    permission of the GmSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the GmSSL Project
- *    (http://gmssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
  */
 
 #include <stdio.h>
@@ -163,7 +131,9 @@ int asn1_ia5_string_check(const char *a, size_t alen)
 /////////////////////////////////////////////////////////////////////////////////////////////
 // DER encoding
 /////////////////////////////////////////////////////////////////////////////////////////////
-// 这组函数不对输入进行检查
+// 这组函数不对输入进行检查			
+// 还是检查报错比较方便，这样调用的函数更容易实现
+// asn.1编解码不考虑效率的问题
 
 void asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen)
 {
@@ -211,7 +181,12 @@ void asn1_data_to_der(const uint8_t *data, size_t datalen, uint8_t **out, size_t
 
 int asn1_tag_from_der(int tag, const uint8_t **in, size_t *inlen)
 {
-	if (*inlen == 0 || **in != tag) {
+	if (*inlen == 0) {
+		//error_print_msg("inlen = %zu\n", *inlen);
+		return 0;
+	}
+	if  (**in != tag) {
+		//error_print_msg("tag get %d instead of %d\n", **in, tag);
 		return 0;
 	}
 	(*in)++;
@@ -229,12 +204,14 @@ int asn1_length_from_der(size_t *plen, const uint8_t **pin, size_t *pinlen)
 		return -1;
 	}
 
+
 	if (*in < 128) {
 		len = *in++;
 		inlen--;
 	} else {
 		uint8_t buf[4] = {0};
 		int nbytes = *in++ & 0x7f;
+		//error_print_msg("nbytes = %d\n", nbytes);
 
 		if (nbytes < 1 || nbytes > 4) {
 			error_print();
@@ -252,7 +229,8 @@ int asn1_length_from_der(size_t *plen, const uint8_t **pin, size_t *pinlen)
 	}
 
 	if (inlen < len) {
-		error_print();
+		error_print_msg("inlen = %zu\n", *pinlen);
+		error_print_msg("length = %zu, left = %zu\n", len, inlen);
 		return -1;
 	}
 
@@ -285,18 +263,18 @@ int asn1_header_to_der(int tag, size_t len, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
+
 // If data == NULL, out should not be NULL
-// 这个实现是不支持OPTIONAL的，
+// 这个实现是不支持OPTIONAL的
 int asn1_type_to_der(int tag, const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
-	if (data == NULL && datalen == 0 && out) {
+	// 针对IMPLICIT, OPTIONAL
+	if (data == NULL && datalen == 0) {
 		return 0;
 	}
 
-	if ((!data && out) || datalen >= INT_MAX || (out && !(*out)) || !outlen) {
-		error_print();
-		return -1;
-	}
+	// FIXME: asn1_tag,length,data_to_der这几个函数增加错误检查
+	// 检查这几个函数的返回值				
 	asn1_tag_to_der(tag, out, outlen);
 	asn1_length_to_der(datalen, out, outlen);
 	asn1_data_to_der(data, datalen, out, outlen);
@@ -307,8 +285,11 @@ int asn1_type_to_der(int tag, const uint8_t *data, size_t datalen, uint8_t **out
 int asn1_type_from_der(int tag, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen)
 {
 	int ret;
+	*data = NULL;
+	*datalen = 0;
 	if ((ret = asn1_tag_from_der(tag, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		//if (ret == 0) error_print();
 		return ret;
 	}
 	if (asn1_length_from_der(datalen, in, inlen) != 1
@@ -749,18 +730,26 @@ int asn1_bit_string_from_der_ex(int tag, const uint8_t **bits, size_t *nbits, co
 	int unused_bits;
 
 	if (!bits || !nbits || !pin || !(*pin) || !pinlen) {
+		error_print();
 		return -1;
 	}
+
+	// FIXME: 其他函数可能存在类似情况				
+	*bits = NULL;
+	*nbits = 0;
+
 	if (inlen-- < 1 || *in++ != tag) {
 		return 0;
 	}
 	if (asn1_length_from_der(&len, &in, &inlen) != 1
 		|| len <= 0) {
+		error_print();
 		return -1;
 	}
 
 	unused_bits = *in;
 	if (unused_bits > 8 || (len == 1 && unused_bits > 0)) {
+		error_print();
 		return -1;
 	}
 
@@ -815,6 +804,7 @@ int asn1_null_from_der(const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
+// FIXME：这个函数应该最终取消返回oid				
 int asn1_object_identifier_from_der_ex(int tag, int *oid, uint32_t nodes[32], size_t *nodes_count,
 	const uint8_t **pin, size_t *pinlen)
 {
@@ -822,7 +812,7 @@ int asn1_object_identifier_from_der_ex(int tag, int *oid, uint32_t nodes[32], si
 	size_t inlen = *pinlen;
 	size_t len;
 
-	if (!oid || !nodes || !nodes_count || !pin || !(*pin) || !pinlen) {
+	if (!nodes || !nodes_count || !pin || !(*pin) || !pinlen) {
 		error_print();
 		return -1;
 	}
@@ -841,7 +831,9 @@ int asn1_object_identifier_from_der_ex(int tag, int *oid, uint32_t nodes[32], si
 		error_print();
 		return -1;
 	}
-	*oid = asn1_oid_from_octets(in, len);
+	if (oid) {
+		*oid = asn1_oid_from_octets(in, len);
+	}
 	*pin = in + len;
 	*pinlen = inlen - len;
 	return 1;
@@ -1039,4 +1031,13 @@ int asn1_check(int expr)
 		return 1;
 	error_print();
 	return -1;
+}
+
+int asn1_length_is_zero(size_t len)
+{
+	if (len) {
+		error_print();
+		return 0;
+	}
+	return 1;
 }

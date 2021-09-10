@@ -1,49 +1,17 @@
-﻿/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+﻿/* 
+ *   Copyright 2014-2021 The GmSSL Project Authors. All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the GmSSL Project.
- *    (http://gmssl.org/)"
- *
- * 4. The name "GmSSL Project" must not be used to endorse or promote
- *    products derived from this software without prior written
- *    permission. For written permission, please contact
- *    guanzhi1980@gmail.com.
- *
- * 5. Products derived from this software may not be called "GmSSL"
- *    nor may "GmSSL" appear in their names without prior written
- *    permission of the GmSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the GmSSL Project
- *    (http://gmssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
  */
 
 
@@ -1497,7 +1465,7 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	if (bn_cmp(e, r) == 0) {
 		return 1;
 	} else {
-		error_print();
+		error_print(); // 此处不应该打印错误，因为验证失败是预期的返回结果之一
 		return 0;
 	}
 }
@@ -1632,6 +1600,7 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 	for (i = 0; i < inlen; i++) {
 		out[i] ^= in->ciphertext[i];
 	}
+	*outlen = inlen;
 
 	// u = Hash(x2 || M || y2)
 	sm3_init(&sm3_ctx);

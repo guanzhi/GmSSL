@@ -46,93 +46,84 @@ include_directories(include)
 add_library(
   gmssl
 
-  SHARED 
-  
+  SHARED
+
   src/hex.c
   src/debug.c
   src/rand.c
 
-  src/sm2_lib.c
-  src/sm2_prn.c
+  # default sm algors
   src/sm2_algo.c
+  src/sm2_lib.c
   src/sm2_asn1.c
+  src/sm2_prn.c
   src/sm3.c
   src/sm3_hmac.c
   src/sm4_common.c
   src/sm4_setkey.c
   src/sm4_enc.c
   src/sm4_modes.c
+
+  # optional sm algors
   src/sm9_math.c
   src/zuc_core.c
   src/zuc_eea.c
   src/zuc_eia.c
 
-  src/hash_drbg.c
-  src/hmac.c
-  src/hkdf.c
-  src/pbkdf2.c
-  src/pkcs8.c
-
-  src/oid.c
-  src/asn1.c
-
-  src/rc4.c
-  src/md5.c
-  src/des.c
+  # optional nist algors
   src/aes.c
   src/aes_modes.c
   src/chacha20.c
-  src/sha1.c
   src/sha256.c
   src/sha512.c
 
+  # legacy algors
+  src/rc4.c
+  src/des.c
+  src/md5.c
+  src/sha1.c
+
+  # schemes
+  src/hash_drbg.c
+  src/hmac.c
+
+  # abstract
   src/digest.c
   src/block_cipher.c
-  src/gf128.c
-  src/gcm.c
 
+  # pkix
+  src/oid.c
+  src/asn1.c
+  src/base64.c
+  src/pem.c
+  src/pbkdf2.c
+  src/pkcs8.c
   src/x509_lib.c
   src/x509_asn1.c
   src/x509_ext.c
   src/x509_algor.c
+  src/cms.c
 
-  src/base64.c
-  src/pem.c
+  # for tls 1.3
+  src/hkdf.c
+  src/gf128.c
+  src/gcm.c
 
+  # ssl/tls/tlcp
   src/tls.c
   src/tls_trace.c
   src/tls12.c
   src/tlcp.c
   src/tls13.c
 
-  src/cms.c
-
 )
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 
+# tools
 
-add_executable (digest tools/digest.c)
-target_link_libraries (digest LINK_PUBLIC gmssl)
-
-add_executable (certview tools/certview.c)
-target_link_libraries (certview LINK_PUBLIC gmssl)
-
-add_executable (certgen tools/certgen.c)
-target_link_libraries (certgen LINK_PUBLIC gmssl)
-
-add_executable (certverify tools/certverify.c)
-target_link_libraries (certverify LINK_PUBLIC gmssl)
-
-add_executable (reqgen tools/reqgen.c)
-target_link_libraries (reqgen LINK_PUBLIC gmssl)
-
-add_executable (sm3sum tools/sm3sum.c)
-target_link_libraries (sm3sum LINK_PUBLIC gmssl)
-
-add_executable (sm2gen tools/sm2gen.c)
-target_link_libraries (sm2gen LINK_PUBLIC gmssl)
-
+add_executable (sm2keygen tools/sm2keygen.c)
+target_link_libraries (sm2keygen LINK_PUBLIC gmssl)
 add_executable (sm2sign tools/sm2sign.c)
 target_link_libraries (sm2sign LINK_PUBLIC gmssl)
 add_executable (sm2verify tools/sm2verify.c)
@@ -142,33 +133,42 @@ target_link_libraries (sm2encrypt LINK_PUBLIC gmssl)
 add_executable (sm2decrypt tools/sm2decrypt.c)
 target_link_libraries (sm2decrypt LINK_PUBLIC gmssl)
 
-add_executable (pkcs8gen tools/pkcs8gen.c)
-target_link_libraries (pkcs8gen LINK_PUBLIC gmssl)
+add_executable (sm3 tools/sm3.c)
+target_link_libraries (sm3 LINK_PUBLIC gmssl)
+add_executable (sm3hmac tools/sm3hmac.c)
+target_link_libraries (sm3hmac LINK_PUBLIC gmssl)
 
-add_executable (sm2view tools/sm2view.c)
-target_link_libraries (sm2view LINK_PUBLIC gmssl)
+add_executable (reqgen tools/reqgen.c)
+target_link_libraries (reqgen LINK_PUBLIC gmssl)
+add_executable (reqparse tools/reqparse.c)
+target_link_libraries (reqparse LINK_PUBLIC gmssl)
 
-add_executable (pkcs8view tools/pkcs8view.c)
-target_link_libraries (pkcs8view LINK_PUBLIC gmssl)
+add_executable (certgen tools/certgen.c)
+target_link_libraries (certgen LINK_PUBLIC gmssl)
+add_executable (certparse tools/certparse.c)
+target_link_libraries (certparse LINK_PUBLIC gmssl)
+add_executable (certverify tools/certverify.c)
+target_link_libraries (certverify LINK_PUBLIC gmssl)
 
 add_executable (tlcp_client tools/tlcp_client.c)
 target_link_libraries (tlcp_client LINK_PUBLIC gmssl)
-
 add_executable (tlcp_server tools/tlcp_server.c)
 target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
-
 add_executable (tls12_client tools/tls12_client.c)
 target_link_libraries (tls12_client LINK_PUBLIC gmssl)
-
 add_executable (tls12_server tools/tls12_server.c)
 target_link_libraries (tls12_server LINK_PUBLIC gmssl)
-
 add_executable (tls13_client tools/tls13_client.c)
 target_link_libraries (tls13_client LINK_PUBLIC gmssl)
 add_executable (tls13_server tools/tls13_server.c)
 target_link_libraries (tls13_server LINK_PUBLIC gmssl)
 
+
+
 # tests
+enable_testing()
+
+
 add_executable(sm2test tests/sm2test.c)
 target_link_libraries (sm2test LINK_PUBLIC gmssl)
 
@@ -300,23 +300,8 @@ add_test(NAME x509		COMMAND x509test)
 add_test(NAME zuc		COMMAND zuctest)
 
 
-
-
-
-
-#add_executable(tlstest tests/tlstest.c)
-#target_link_libraries (tlstest LINK_PUBLIC gmssl)
-
-# 安装可执行文件
-INSTALL(TARGETS  digest  certview certgen certverify reqgen sm3sum sm2gen sm2sign sm2verify sm2encrypt sm2decrypt pkcs8gen sm2view pkcs8view tlcp_client tlcp_server tls12_client tls12_server tls13_client tls13_server
-        RUNTIME DESTINATION bin  
-        )
-# 安装动态库
-INSTALL(TARGETS gmssl 
-        LIBRARY DESTINATION lib  
-        )
-#安装头文件
-INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl
-		DESTINATION include
-		)
+INSTALL(TARGETS certparse certgen certverify reqgen sm3 sm2keygen sm2sign sm2verify sm2encrypt sm2decrypt tlcp_client tlcp_server tls12_client tls12_server tls13_client tls13_server
+        RUNTIME DESTINATION bin)
+INSTALL(TARGETS gmssl LIBRARY DESTINATION lib)
+INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 

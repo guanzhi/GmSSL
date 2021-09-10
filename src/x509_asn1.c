@@ -1,49 +1,17 @@
-﻿/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+﻿/* 
+ *   Copyright 2014-2021 The GmSSL Project Authors. All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the GmSSL Project.
- *    (http://gmssl.org/)"
- *
- * 4. The name "GmSSL Project" must not be used to endorse or promote
- *    products derived from this software without prior written
- *    permission. For written permission, please contact
- *    guanzhi1980@gmail.com.
- *
- * 5. Products derived from this software may not be called "GmSSL"
- *    nor may "GmSSL" appear in their names without prior written
- *    permission of the GmSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the GmSSL Project
- *    (http://gmssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
  */
 
 #include <stdio.h>
@@ -79,7 +47,7 @@ int x509_version_to_der(int version, uint8_t **out, size_t *outlen)
 	case X509_version_v3:
 		break;
 	default:
-		error_puts("invalid version");
+		error_print_msg("invalid version %d\n", version);
 		return -1;
 	}
 	if (asn1_int_to_der(version, NULL, &len) != 1
@@ -797,7 +765,7 @@ int x509_extension_from_der(int *oid, uint32_t *nodes, size_t *nodes_count,
 	if (x509_extension_oid_from_der(oid, nodes, nodes_count, &seq, &seqlen) != 1 // FIXME:  这里检查OID应该是从一个子集里面检索
 		|| asn1_boolean_from_der(is_critical, &seq, &seqlen) < 0
 		|| asn1_octet_string_from_der(data, datalen, &seq, &seqlen) != 1
-		|| seqlen > 0) {
+		|| asn1_length_is_zero(seqlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -832,6 +800,8 @@ int x509_extension_print(FILE *fp, int oid, const uint32_t *nodes, size_t nodes_
 	case OID_ce_basicConstraints: return x509_basic_constraints_print(fp, data, datalen, format, indent);
 	case OID_ce_keyUsage: return x509_key_usage_print(fp, data, datalen, format, indent);
 	case OID_ce_subjectKeyIdentifier: return x509_subject_key_identifier_print(fp, data, datalen, format, indent);
+	case OID_ce_extKeyUsage: return x509_ext_key_usage_print(fp, data, datalen, format, indent);
+	case OID_ce_policyConstraints: return x509_policy_constraints_print(fp, data, datalen, format, indent);
 	default:
 		format_bytes(fp, format, indent, "extnValue : ", data, datalen);
 	}
@@ -881,7 +851,7 @@ int x509_extensions_from_der(X509_EXTENSIONS *a, const uint8_t **in, size_t *inl
 		return ret;
 	}
 	if (asn1_sequence_copy_from_der(512, a->data, &a->datalen, &data, &datalen) != 1
-		|| datalen > 0) {
+		|| asn1_length_is_zero(datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1005,6 +975,12 @@ int x509_tbs_certificate_from_der(X509_TBS_CERTIFICATE *a, const uint8_t **in, s
 		if (ret < 0) error_print();
 		return ret;
 	}
+
+	memset(a, 0, sizeof(*a));
+
+	size_t issuer_unique_id_nbits;
+	size_t subject_unique_id_nbits;
+
 	if (x509_version_from_der(&a->version, &data, &datalen) != 1
 		|| asn1_integer_from_der(&serial_number, &a->serial_number_len, &data, &datalen) != 1
 		|| x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1
@@ -1012,21 +988,31 @@ int x509_tbs_certificate_from_der(X509_TBS_CERTIFICATE *a, const uint8_t **in, s
 		|| x509_validity_from_der(&a->validity, &data, &datalen) != 1
 		|| x509_name_from_der(&a->subject, &data, &datalen) != 1
 		|| x509_public_key_info_from_der(&a->subject_public_key_info, &data, &datalen) != 1
-		|| asn1_implicit_bit_string_from_der(1, &issuer_unique_id, &a->issuer_unique_id_len, &data, &datalen) < 0
-		|| asn1_implicit_bit_string_from_der(2, &subject_unique_id, &a->subject_unique_id_len, &data, &datalen) < 0
+		|| asn1_implicit_bit_string_from_der(1, &issuer_unique_id, &issuer_unique_id_nbits, &data, &datalen) < 0
+		|| asn1_implicit_bit_string_from_der(2, &subject_unique_id, &subject_unique_id_nbits, &data, &datalen) < 0
 		|| (is_ext = x509_extensions_from_der(&a->extensions, &data, &datalen)) < 0
-		|| datalen > 0) {
+		|| asn1_length_is_zero(datalen) != 1) {
 		error_print();
-		if (datalen > 0) error_print();
 		return -1;
 	}
 
+	// FIXME: 应该提供了检查函数，可以返回错误行数			
 	if (a->serial_number_len > 20
-		|| a->issuer_unique_id_len > 64
-		|| a->subject_unique_id_len > 64) {
+		|| issuer_unique_id_nbits != 32 * 8
+		|| subject_unique_id_nbits != 32 * 8) {
+
 		error_print();
 		return -1;
 	}
+
+	a->issuer_unique_id_len = issuer_unique_id_nbits/8;
+	a->subject_unique_id_len = subject_unique_id_nbits/8;
+
+
+	// asn1_implicit_bit_string_from_der 返回的是比特长度！
+	// 应该改变 issue			
+
+
 	// FIXME: 这几个都应该用copy的方式
 	memcpy(a->serial_number, serial_number, a->serial_number_len);
 	if (issuer_unique_id) {
@@ -1087,10 +1073,24 @@ int x509_certificate_from_der(X509_CERTIFICATE *a, const uint8_t **in, size_t *i
 		return ret;
 	}
 	memset(a, 0, sizeof(X509_CERTIFICATE));
-	if (x509_tbs_certificate_from_der(&a->tbs_certificate, &data, &datalen) != 1
-		|| x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1
-		|| asn1_bit_string_from_der(&sig, &sig_nbits, &data, &datalen) != 1
-		|| datalen > 0) {
+	if (x509_tbs_certificate_from_der(&a->tbs_certificate, &data, &datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1) {
+		error_print();
+		int i;
+		for (i = 0; i < nodes_count; i++) {
+			printf("%d ", (int)nodes[i]);
+		}
+		printf("\n");
+		return -1;
+	}
+	if (asn1_bit_string_from_der(&sig, &sig_nbits, &data, &datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_length_is_zero(datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1237,10 +1237,24 @@ int x509_cert_request_info_from_der(X509_CERT_REQUEST_INFO *a, const uint8_t **i
 		|| x509_name_from_der(&a->subject, &data, &datalen) != 1
 		|| x509_public_key_info_from_der(&a->subject_public_key_info, &data, &datalen) != 1
 		|| asn1_implicit_from_der(0, &attrs, &attrslen, &data, &datalen) < 0
-		|| datalen > 0) {
+		|| asn1_length_is_zero(datalen) != 1) {
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+int x509_cert_request_info_print(FILE *fp, const X509_CERT_REQUEST_INFO *a, int format, int indent)
+{
+	format_print(fp, format, indent, "CertificationRequestInfo\n");
+	indent += 4;
+	format_print(fp, format, indent, "version: %s (%d)\n", x509_version_name(a->version), a->version);
+	format_print(fp, format, indent, "subject\n");
+	x509_name_print(fp, &a->subject, format, indent+4);
+	format_print(fp, format, indent, "subjectPublicKeyInfo\n");
+	x509_public_key_info_print(fp, &a->subject_public_key_info, format, indent+4);
+
+	// FIXME: attributes 没有处理	
 	return 1;
 }
 
@@ -1277,12 +1291,10 @@ int x509_cert_request_from_der(X509_CERT_REQUEST *a, const uint8_t **in, size_t 
 	if (x509_cert_request_info_from_der(&a->req_info, &data, &datalen) != 1
 		|| x509_signature_algor_from_der(&a->signature_algor, nodes, &nodes_count, &data, &datalen) != 1
 		|| x509_signature_copy_from_der(128, a->signature, &a->signature_len, &data, &datalen) != 1
-		|| datalen > 0) {
+		|| asn1_length_is_zero(datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	a->signature_len = siglen * 8;
-	memcpy(a->signature, sig, a->signature_len);
 	return 1;
 }
 
@@ -1314,7 +1326,7 @@ int x509_cert_request_from_pem(X509_CERT_REQUEST *a, FILE *fp)
 		return -1;
 	}
 	if (x509_cert_request_from_der(a, &cp, &len) != 1
-		|| len > 0) {
+		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1324,15 +1336,12 @@ int x509_cert_request_from_pem(X509_CERT_REQUEST *a, FILE *fp)
 int x509_cert_request_print(FILE *fp, const X509_CERT_REQUEST *a, int format, int indent)
 {
 	size_t i;
-	fprintf(fp, "version = %s\n", x509_version_name(a->req_info.version));
-	x509_name_print(fp, &a->req_info.subject, 0, 0);
-	x509_public_key_info_print(fp, &a->req_info.subject_public_key_info, 0, 0);
-	fprintf(fp, "SignatureAlgorithm = %s\n", asn1_object_identifier_name(a->signature_algor));
-	fprintf(fp, "Signature = ");
-	for (i = 0; i < a->signature_len; i++) {
-		fprintf(fp, "%02x", a->signature[i]);
-	}
-	fprintf(fp, "\n");
+
+	format_print(fp, format, indent, "CertificationRequest\n");
+	indent += 4;
+	x509_cert_request_info_print(fp, &a->req_info, format, indent);
+	format_print(fp, format, indent, "signatureAlgorithm: %s\n", asn1_object_identifier_name(a->signature_algor));
+	format_bytes(fp, format, indent, "signature: ", a->signature, a->signature_len);
 	return 1;
 }
 

@@ -1,55 +1,22 @@
-﻿/*
- * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
+﻿/* 
+ *   Copyright 2014-2021 The GmSSL Project Authors. All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the GmSSL Project.
- *    (http://gmssl.org/)"
- *
- * 4. The name "GmSSL Project" must not be used to endorse or promote
- *    products derived from this software without prior written
- *    permission. For written permission, please contact
- *    guanzhi1980@gmail.com.
- *
- * 5. Products derived from this software may not be called "GmSSL"
- *    nor may "GmSSL" appear in their names without prior written
- *    permission of the GmSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the GmSSL Project
- *    (http://gmssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
 #include <gmssl/pkcs8.h>
@@ -57,9 +24,16 @@
 #include <gmssl/error.h>
 
 
+#ifndef WIN32
+#include <pwd.h>
+#include <unistd.h>
+#endif
+
+
+
 void print_usage(const char *prog)
 {
-	printf("Usage: %s command [options] ...\n", prog);
+	printf("usage: %s command [options] ...\n", prog);
 	printf("\n");
 	printf("Options:\n");
 	printf("  -C  <str>          country name\n");
@@ -71,6 +45,8 @@ void print_usage(const char *prog)
 	printf("\n");
 	printf("  -days <num>        validity days\n");
 	printf("  -keyfile <file>    private key file\n");
+	printf("  -pass password     password\n");
+	printf("  -out file          output req file\n");
 }
 
 int main(int argc, char **argv)
@@ -83,13 +59,14 @@ int main(int argc, char **argv)
 	char *org_unit = NULL;
 	char *common_name = NULL;
 	char *keyfile = NULL;
+	char *pass = NULL;
+	char *outfile = NULL;
 	int days = 0;
 
 	FILE *keyfp = NULL;
+	FILE *outfp = stdout;
 
 	X509_CERT_REQUEST req;
-
-	char *pass;
 
 	X509_NAME name;
 	SM2_KEY sm2_key; // 这个应该是从文件中读取的！
@@ -102,6 +79,7 @@ int main(int argc, char **argv)
 
 	argc--;
 	argv++;
+
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
 			print_usage(prog);
@@ -131,9 +109,17 @@ int main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
 
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
+
 		} else if (!strcmp(*argv, "-days")) {
 			if (--argc < 1) goto bad;
 			days = atoi(*(++argv));
+
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
 
 		} else {
 			print_usage(prog);
@@ -153,7 +139,22 @@ int main(int argc, char **argv)
 		goto bad;
 	}
 
-	pass = getpass("Password : ");
+
+	if (outfile) {
+		if (!(outfp = fopen(outfile, "w"))) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (!pass) {
+#ifndef WIN32
+		pass = getpass("Encryption Password : ");
+#else
+		fprintf(stderr, "%s: '-pass' option required\n", prog);
+#endif
+	}
+
 	if (sm2_enced_private_key_info_from_pem(&sm2_key, pass, keyfp) != 1) {
 		error_print();
 		goto end;
@@ -204,7 +205,8 @@ int main(int argc, char **argv)
 	x509_cert_request_set(&req, &name, &sm2_key);
 	x509_cert_request_sign(&req, &sm2_key);
 
-	x509_cert_request_to_pem(&req, stdout);
+	x509_cert_request_to_pem(&req, outfp);
+
 	ret = 0;
 	goto end;
 

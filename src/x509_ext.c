@@ -1,49 +1,17 @@
-﻿/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+﻿/* 
+ *   Copyright 2014-2021 The GmSSL Project Authors. All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * 3. All advertising materials mentioning features or use of this
- *    software must display the following acknowledgment:
- *    "This product includes software developed by the GmSSL Project.
- *    (http://gmssl.org/)"
- *
- * 4. The name "GmSSL Project" must not be used to endorse or promote
- *    products derived from this software without prior written
- *    permission. For written permission, please contact
- *    guanzhi1980@gmail.com.
- *
- * 5. Products derived from this software may not be called "GmSSL"
- *    nor may "GmSSL" appear in their names without prior written
- *    permission of the GmSSL Project.
- *
- * 6. Redistributions of any form whatsoever must retain the following
- *    acknowledgment:
- *    "This product includes software developed by the GmSSL Project
- *    (http://gmssl.org/)"
- *
- * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
- * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
- * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
  */
 
 
@@ -1039,7 +1007,29 @@ KeyUsage ::= BIT STRING {
 
 
 /*
-4 CertificatePolicies ::= SEQUENCE SIZE (1..MAX) OF PolicyInformation
+4
+CertificatePolicies ::= SEQUENCE SIZE (1..MAX) OF PolicyInformation
+
+PolicyInformation ::= SEQUENCE {
+     policyIdentifier   OBJECT IDENTIFIER,
+     policyQualifiers   SEQUENCE SIZE (1..MAX) OF
+                             PolicyQualifierInfo OPTIONAL }
+
+PolicyQualifierInfo ::= SEQUENCE {
+     policyQualifierId  OBJECT IDENTIFIER,
+     qualifier          ANY DEFINED BY policyQualifierId }
+
+Qualifier ::= CHOICE {
+     cPSuri           IA5String,
+     userNotice       UserNotice }
+
+UserNotice ::= SEQUENCE {
+     noticeRef        NoticeReference OPTIONAL,
+     explicitText     DisplayText OPTIONAL }
+
+NoticeReference ::= SEQUENCE {
+     organization     DisplayText,
+     noticeNumbers    SEQUENCE OF INTEGER }
 
 
 看来这是一个非常复杂的扩展，可能很难通过简单的接口去设置。
@@ -1047,6 +1037,9 @@ KeyUsage ::= BIT STRING {
 在解析的时候，可以有独立的函数将其解析成文本之类的可能更好
 
 虽然这个扩展很复杂，但是我们的主要需求就是能够解析并转化为可显示的字符串
+
+这个扩展在证书中确实是出现的，但是我们主要的目标还是显示这个扩展的内容
+
 */
 
 
@@ -1365,11 +1358,16 @@ int x509_policy_mapping_from_der(
 
 
 /*
- ## 6
+## 6
 
-   SubjectAltName ::= GeneralNames
+SubjectAltName ::= GeneralNames
 
 GeneralNames 也是 SEQUENCE OF SEQUENCE
+
+提供证书主体的多个可替代的名字，如域名、IP地址、邮件地址等。
+
+
+
 */
 
 
@@ -1542,21 +1540,15 @@ int x509_basic_constraints_print(FILE *fp, const uint8_t *data, size_t datalen, 
 		return -1;
 	}
 	if (is_ca_cert >= 0) {
-		fprintf(fp, "cA : %s\n", is_ca_cert ? "true" : "false");
+
+		format_print(fp, format, indent, "cA : %s\n", is_ca_cert ? "true" : "false");
+
 	}
 	if (cert_chain_maxlen >= 0) {
-		fprintf(fp, "pathLenConstraint : %d\n", cert_chain_maxlen);
+		format_print(fp, format, indent, "pathLenConstraint : %d\n", cert_chain_maxlen);
 	}
 	return 1;
 }
-
-
-
-
-
-
-
-
 
 /*
 10
@@ -1683,6 +1675,29 @@ PolicyConstraints ::= SEQUENCE {
 
 Conforming CAs MUST mark this extension as critical.
 */
+
+int x509_policy_constraints_print(FILE *fp, const uint8_t *p, size_t len, int format, int indent)
+{
+	int require_explicit_policy = -1;
+	int inhibit_policy_mapping = -1;
+	if (x509_policy_constraints_from_der(&require_explicit_policy, &inhibit_policy_mapping, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, format, indent, "policyConstraints:\n");
+	if (require_explicit_policy >= 0) {
+		format_print(fp, format, indent+4, "requireExplicitPolicy: %d\n", require_explicit_policy);
+	}
+	if (inhibit_policy_mapping >= 0) {
+		format_print(fp, format, indent+4, "inhibitPolicyMapping: %d\n", inhibit_policy_mapping);
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_policy_constraints_to_der(int require_explicit_policy, int inhibit_policy_mapping, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -1745,15 +1760,52 @@ ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF OBJECT IDENTIFIER
 解析的时候不可能只用oid来承接了，必须用带buffer的来承接
 */
 
+int x509_ext_key_usage_print(FILE *fp, const uint8_t *p, size_t len, int format, int indent)
+{
+	const uint8_t *data;
+	size_t datalen;
+
+	if (asn1_sequence_from_der(&data, &datalen, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, format, indent, "extKeyUsages:\n");
+	while (datalen) {
+		int key_usage;
+		uint32_t nodes[32];
+		size_t nodes_count;
+		size_t i;
+
+		if (asn1_object_identifier_from_der(&key_usage, nodes, &nodes_count, &data, &datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, format, indent + 4, "%s (", "unknown");
+		for (i = 0; i < nodes_count - 1; i++) {
+			fprintf(fp, "%d.", nodes[i]);
+		}
+		fprintf(fp, "%d)\n", nodes[i]);
+	}
+
+	if (len) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 
 /*
+## 13 CRLDistributionPoints
+
+SHOULD be non-critical
+
+
 
 实际上我现在没有一个统一的方法去处理CHOICE类型的设置和解析
 首先是否要给一个CHOICE类型设置一个新的对象，按照我们的设置，如果设置的话，就需要这个对象能够承载内部数据
 
 
-13
 
    CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
 
@@ -1966,7 +2018,7 @@ int x509_subject_key_identifier_print(FILE *fp, const uint8_t *data, size_t data
 		error_print();
 		return -1;
 	}
-	format_bytes(fp, format, indent, "", keyid, keyidlen);
+	format_bytes(fp, format, indent, "keyIdentifier: ", keyid, keyidlen);
 	return 1;
 }
 
