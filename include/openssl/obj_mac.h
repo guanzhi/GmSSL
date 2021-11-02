@@ -4856,7 +4856,7 @@
 #define NID_sm2sign_with_sha256         1127
 #define OBJ_sm2sign_with_sha256         OBJ_sm_scheme,503L
 
-#define SN_sm2sign_with_sha512          "SM2Sign-with-SHA511"
+#define SN_sm2sign_with_sha512          "SM2Sign-with-SHA512"
 #define LN_sm2sign_with_sha512          "sm2sign-with-sha512"
 #define NID_sm2sign_with_sha512         1128
 #define OBJ_sm2sign_with_sha512         OBJ_sm_scheme,504L

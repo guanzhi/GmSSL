@@ -1570,7 +1570,7 @@ sm-scheme 301 3		: sm2encrypt
 sm-scheme 501		: SM2Sign-with-SM3	: sm2sign-with-sm3
 sm-scheme 502		: SM2Sign-with-SHA1 	: sm2sign-with-sha1
 sm-scheme 503		: SM2Sign-with-SHA256	: sm2sign-with-sha256
-sm-scheme 504		: SM2Sign-with-SHA511	: sm2sign-with-sha512
+sm-scheme 504		: SM2Sign-with-SHA512	: sm2sign-with-sha512
 sm-scheme 505		: SM2Sign-with-SHA224	: sm2sign-with-sha224
 sm-scheme 506		: SM2Sign-with-SHA384	: sm2sign-with-sha384
 sm-scheme 507		: SM2Sign-with-RMD160	: sm2sign-with-rmd160

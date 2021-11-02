@@ -2242,7 +2242,7 @@ static const ASN1_OBJECT nid_objs[NUM_NID] = {
     {"SM2Sign-with-SM3", "sm2sign-with-sm3", NID_sm2sign_with_sm3, 8, &so[7189]},
     {"SM2Sign-with-SHA1", "sm2sign-with-sha1", NID_sm2sign_with_sha1, 8, &so[7197]},
     {"SM2Sign-with-SHA256", "sm2sign-with-sha256", NID_sm2sign_with_sha256, 8, &so[7205]},
-    {"SM2Sign-with-SHA511", "sm2sign-with-sha512", NID_sm2sign_with_sha512, 8, &so[7213]},
+    {"SM2Sign-with-SHA512", "sm2sign-with-sha512", NID_sm2sign_with_sha512, 8, &so[7213]},
     {"SM2Sign-with-SHA224", "sm2sign-with-sha224", NID_sm2sign_with_sha224, 8, &so[7221]},
     {"SM2Sign-with-SHA384", "sm2sign-with-sha384", NID_sm2sign_with_sha384, 8, &so[7229]},
     {"SM2Sign-with-RMD160", "sm2sign-with-rmd160", NID_sm2sign_with_rmd160, 8, &so[7237]},
@@ -2578,7 +2578,7 @@ static const unsigned int sn_objs[NUM_SN] = {
     1129,    /* "SM2Sign-with-SHA224" */
     1127,    /* "SM2Sign-with-SHA256" */
     1130,    /* "SM2Sign-with-SHA384" */
-    1128,    /* "SM2Sign-with-SHA511" */
+    1128,    /* "SM2Sign-with-SHA512" */
     1125,    /* "SM2Sign-with-SM3" */
     1132,    /* "SM2Sign-with-Whirlpool" */
     1148,    /* "SM3" */
