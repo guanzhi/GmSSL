@@ -630,10 +630,11 @@ int ssl_get_prev_session(SSL *s, const PACKET *ext, const PACKET *session_id)
         p = buf;
         l = ret->cipher_id;
         l2n(l, p);
-        if ((ret->ssl_version >> 8) >= SSL3_VERSION_MAJOR)
+        if ((ret->ssl_version >> 8) >= SSL3_VERSION_MAJOR || ret->ssl_version == GMTLS_VERSION) {
             ret->cipher = ssl_get_cipher_by_char(s, &(buf[2]));
-        else
+        } else {
             ret->cipher = ssl_get_cipher_by_char(s, &(buf[1]));
+        }
         if (ret->cipher == NULL)
             goto err;
     }
