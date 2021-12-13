@@ -105,9 +105,14 @@ static ossl_inline int io_setup(unsigned n, aio_context_t *ctx)
     return syscall(__NR_io_setup, n, ctx);
 }
 
+/* Add __NR_eventfd2 syscall for loongarch64 architecture */
 static ossl_inline int eventfd(int n)
 {
+#ifdef __loongarch64
+    return syscall(__NR_eventfd2, n);
+#else	
     return syscall(__NR_eventfd, n);
+#endif    
 }
 
 static ossl_inline int io_destroy(aio_context_t ctx)
