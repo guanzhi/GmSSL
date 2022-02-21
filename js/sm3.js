@@ -319,6 +319,14 @@ function sm3(m) {
 	return digest;
 }
 
+function sm3_ctx_init(ctx) {
+	sm3_init(ctx);
+}
+
+function sm3_ctx_free(ctx) {
+	delete ctx;
+}
+
 function sm3_compute_z(z, id, pk) {
 	const Z_CONST = [
 		0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF,
