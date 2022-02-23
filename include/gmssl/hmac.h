@@ -70,13 +70,13 @@ typedef struct hmac_ctx_st {
 
 size_t hmac_size(const HMAC_CTX *ctx);
 
-int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, size_t keylen);
-int hmac_update(HMAC_CTX *ctx, const unsigned char *data, size_t datalen);
-int hmac_finish(HMAC_CTX *ctx, unsigned char *mac, size_t *maclen);
+int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t keylen);
+int hmac_update(HMAC_CTX *ctx, const uint8_t *data, size_t datalen);
+int hmac_finish(HMAC_CTX *ctx, uint8_t *mac, size_t *maclen);
 
-int hmac(const DIGEST *md, const unsigned char *key, size_t keylen,
-	const unsigned char *data, size_t dlen,
-	unsigned char *mac, size_t *maclen);
+int hmac(const DIGEST *md, const uint8_t *key, size_t keylen,
+	const uint8_t *data, size_t dlen,
+	uint8_t *mac, size_t *maclen);
 
 
 #ifdef  __cplusplus

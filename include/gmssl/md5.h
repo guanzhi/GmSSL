@@ -64,13 +64,13 @@ extern "C" {
 
 #define MD5_DIGEST_SIZE		16
 #define MD5_BLOCK_SIZE		64
-
+#define MD5_STATE_WORDS		(MD5_BLOCK_SIZE/sizeof(uint32_t))
 
 typedef struct {
-	uint32_t state[4];
-	uint64_t nblocks; /* num of processed blocks */
-	uint8_t block[64]; /* buffer */
-	size_t num; /* buffered bytes in |block| */
+	uint32_t state[MD5_STATE_WORDS];
+	uint64_t nblocks;
+	uint8_t block[MD5_BLOCK_SIZE];
+	size_t num;
 } MD5_CTX;
 
 

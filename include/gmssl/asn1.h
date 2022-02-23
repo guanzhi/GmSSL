@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,14 +46,15 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// https://www.obj-sys.com/asn1tutorial/node128.html
+
+
 #ifndef GMSSL_ASN1_H
 #define GMSSL_ASN1_H
-
 
 #include <time.h>
 #include <stdlib.h>
 #include <stdint.h>
-
 
 #if __cplusplus
 extern "C" {
@@ -70,8 +71,6 @@ extern "C" {
 #define ASN1_TAG_IMPLICIT(index)	(ASN1_TAG_CONTENT_SPECIFIC|(index))
 #define ASN1_TAG_EXPLICIT(index)	ASN1_TAG_IMPLICIT(ASN1_TAG_CONSTRUCTED|(index))
 
-
-// https://www.obj-sys.com/asn1tutorial/node128.html
 
 enum ASN1_TAG {
 	ASN1_TAG_BOOLEAN		= 1,
@@ -105,172 +104,194 @@ enum ASN1_TAG {
 	ASN1_TAG_EXPLICIT		= 0xa0,
 };
 
-
-
-#define ASN1_TRUE 0xff
-#define ASN1_FALSE 0x00
-
-
-
-// 用来解析未定义的OID
-typedef struct {
-	int oid;
-	uint32_t nodes[16];
-	size_t nodes_count;
-} ASN1_OID_INFO;
-
 const char *asn1_tag_name(int tag);
-
-
-
-
-// private
-void asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen);
-void asn1_length_to_der(size_t len, uint8_t **in, size_t *inlen);
-void asn1_data_to_der(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen);
-
+int asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen);
 int asn1_tag_from_der(int tag, const uint8_t **in, size_t *inlen);
-int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen);
-int asn1_data_from_der(const uint8_t **data, size_t datalen, const uint8_t **in, size_t *inlen);
-
-
-const char *asn1_object_identifier_name(int oid);
-const char *asn1_object_identifier_description(int oid);
-int asn1_object_identifier_from_name(int *oid, const char *name);
-
-int asn1_utf8_string_check(const char *a, size_t alen);
-int asn1_printable_string_check(const char *a, size_t alen);
-int asn1_ia5_string_check(const char *a, size_t alen);
-
-int asn1_header_to_der(int tag, size_t len, uint8_t **out, size_t *outlen);
-int asn1_type_to_der(int tag, const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen);
-int asn1_type_from_der(int tag, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
-
-int asn1_type_copy_from_der(int tag, size_t maxlen, uint8_t *data, size_t *datalen, const uint8_t **in, size_t *inlen);
-#define asn1_sequence_copy_from_der(maxl,d,dl,i,il) asn1_type_copy_from_der(ASN1_TAG_SEQUENCE,maxl,d,dl,i,il)
-// FIXME: 调整一下参数位置，maxl放在dl前面
-
 int asn1_any_tag_from_der(int *tag, const uint8_t **in, size_t *inlen);
-int asn1_any_type_from_der(int *tag, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
+int asn1_tag_get(int *tag, const uint8_t **in, size_t *inlen); // 这个函数是看看下一个tag是什么，并不修改in,inlen
+int asn1_tag_is_cstring(int tag);
+int asn1_length_to_der(size_t len, uint8_t **in, size_t *inlen);
+int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen);
+int asn1_length_is_zero(size_t len);
+int asn1_data_to_der(const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int asn1_data_from_der(const uint8_t **d, size_t dlen, const uint8_t **in, size_t *inlen);
 
-int asn1_any_from_der(const uint8_t **tlv, size_t *tlvlen, const uint8_t **in, size_t *inlen);
+int asn1_type_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
+int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 
 int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen);
-int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
-int asn1_int_to_der_ex(int tag, int a, uint8_t **out, size_t *outlen);
-int asn1_bit_string_to_der_ex(int tag, const uint8_t *bits, size_t nbits, uint8_t **out, size_t *outlen);
-int asn1_bits_to_der_ex(int tag, int bits, uint8_t **out, size_t *outlen);
-int asn1_null_to_der(uint8_t **out, size_t *outlen);
-int asn1_object_identifier_to_der_ex(int tag, int oid, const uint32_t *nodes, size_t nodes_count, uint8_t **out, size_t *outlen);
-int asn1_utf8_string_to_der_ex(int tag, const char *a, uint8_t **out, size_t *outlen);
-int asn1_printable_string_to_der_ex(int tag, const char *a, uint8_t **out, size_t *outlen);
-int asn1_ia5_string_to_der_ex(int tag, const char *a, uint8_t **out, size_t *outlen);
-int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen);
-int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen);
-
 int asn1_boolean_from_der_ex(int tag, int *val, const uint8_t **in, size_t *inlen);
-int asn1_integer_from_der_ex(int tag, const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
+#define asn1_boolean_to_der(val,out,outlen)			asn1_boolean_to_der_ex(ASN1_TAG_BOOLEAN,val,out,outlen)
+#define asn1_boolean_from_der(val,in,inlen)			asn1_boolean_from_der_ex(ASN1_TAG_BOOLEAN,val,in,inlen)
+#define asn1_implicit_boolean_to_der(idx,val,out,outlen)	asn1_boolean_to_der_ex(ASN1_TAG_IMPLICIT(idx),val,out,outlen)
+#define asn1_implicit_boolean_from_der(idx,val,in,inlen)	asn1_boolean_from_der_ex(ASN1_TAG_IMPLICIT(idx),val,in,inlen)
+
+int asn1_integer_to_der_ex(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int asn1_integer_from_der_ex(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+#define asn1_integer_to_der(d,dlen,out,outlen)			asn1_integer_to_der_ex(ASN1_TAG_INTEGER,d,dlen,out,outlen)
+#define asn1_integer_from_der(d,dlen,in,inlen)			asn1_integer_from_der_ex(ASN1_TAG_INTEGER,d,dlen,in,inlen)
+#define asn1_implicit_integer_to_der(idx,d,dlen,out,outlen)	asn1_integer_to_der_ex(ASN1_TAG_IMPLICIT(idx),d,dlen,out,outlen)
+#define asn1_implicit_integer_from_der(idx,d,dlen,in,inlen)	asn1_integer_from_der_ex(ASN1_TAG_IMPLICIT(idx),d,dlen,in,inlen)
+
+int asn1_int_to_der_ex(int tag, int a, uint8_t **out, size_t *outlen);
 int asn1_int_from_der_ex(int tag, int *a, const uint8_t **in, size_t *inlen);
-int asn1_bit_string_from_der_ex(int tag, const uint8_t **bits, size_t *nbits, const uint8_t **in, size_t *inlen);
+#define asn1_int_to_der(val,out,outlen)				asn1_int_to_der_ex(ASN1_TAG_INTEGER,val,out,outlen)
+#define asn1_int_from_der(val,in,inlen)				asn1_int_from_der_ex(ASN1_TAG_INTEGER,val,in,inlen)
+#define asn1_implicit_int_to_der(idx,val,out,outlen)		asn1_int_to_der_ex(ASN1_TAG_IMPLICIT(idx),val,out,outlen)
+#define asn1_implicit_int_from_der(idx,val,in,inlen)		asn1_int_from_der_ex(ASN1_TAG_IMPLICIT(idx),val,in,inlen)
+
+int asn1_bit_string_to_der_ex(int tag, const uint8_t *d, size_t nbits, uint8_t **out, size_t *outlen);
+int asn1_bit_string_from_der_ex(int tag, const uint8_t **d, size_t *nbits, const uint8_t **in, size_t *inlen);
+#define asn1_bit_string_to_der(d,nbits,out,outlen)		asn1_bit_string_to_der_ex(ASN1_TAG_BIT_STRING,d,nbits,out,outlen)
+#define asn1_bit_string_from_der(d,nbits,in,inlen)		asn1_bit_string_from_der_ex(ASN1_TAG_BIT_STRING,d,nbits,in,inlen)
+#define asn1_implicit_bit_string_to_der(idx,d,nbits,out,outlen)	asn1_bit_string_to_der_ex(ASN1_TAG_IMPLICIT(idx),d,nbits,out,outlen)
+#define asn1_implicit_bit_string_from_der(idx,d,nbits,in,inlen)	asn1_bit_string_from_der_ex(ASN1_TAG_IMPLICIT(idx),d,nbits,in,inlen)
+
+int asn1_bit_octets_to_der_ex(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int asn1_bit_octets_from_der_ex(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+#define asn1_bit_octets_to_der(d,dlen,out,outlen)		asn1_bit_octets_to_der_ex(ASN1_TAG_BIT_STRING,d,dlen,out,outlen)
+#define asn1_bit_octets_from_der(d,dlen,in,inlen)		asn1_bit_octets_from_der_ex(ASN1_TAG_BIT_STRING,d,dlen,out,outlen)
+#define asn1_implicit_bit_octets_to_der(idx,d,dlen,out,outlen)	asn1_bit_octets_to_der_ex(ASN1_TAG_IMPLICIT(idx),d,dlen,out,outlen)
+#define asn1_implicit_bit_octets_from_der(idx,d,dlen,in,inlen)	asn1_bit_octets_from_der_ex(ASN1_TAG_IMPLICIT(idx),d,dlen,out,outlen)
+
+int asn1_bits_to_der_ex(int tag, int bits, uint8_t **out, size_t *outlen);
 int asn1_bits_from_der_ex(int tag, int *bits, const uint8_t **in, size_t *inlen);
-int asn1_octet_string_from_der_ex(int tag, const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
+#define asn1_bits_to_der(val,out,outlen)			asn1_bits_to_der_ex(ASN1_TAG_BIT_STRING,val,out,outlen)
+#define asn1_bits_from_der(val,out,outlen)			asn1_bits_from_der_ex(ASN1_TAG_BIT_STRING,val,out,outlen)
+#define asn1_implicit_bits_to_der(idx,val,out,outlen)		asn1_bits_to_der_ex(ASN1_TAG_IMPLICIT(idx),val,out,outlen)
+#define asn1_implicit_bits_from_der(idx,val,out,outlen)		asn1_bits_from_der_ex(ASN1_TAG_IMPLICIT(idx),val,out,outlen)
+int asn1_bits_print(FILE *fp, int fmt, int ind, const char *label, const char **names, size_t names_cnt, int bits);
+
+#define asn1_octet_string_to_der_ex(tag,a,alen,d,dlen)	asn1_type_to_der(tag,a,alen,d,dlen)
+#define asn1_octet_string_from_der_ex(tag,a,alen,d,dlen)	asn1_type_from_der(tag,a,alen,d,dlen)
+#define asn1_octet_string_to_der(val,d,dlen,out,outlen)		asn1_type_to_der(ASN1_TAG_OCTET_STRING,val,d,dlen,out,outlen)
+#define asn1_octet_string_from_der(val,d,dlen,out,outlen)		asn1_type_from_der(ASN1_TAG_OCTET_STRING,val,d,dlen,out,outlen)
+#define asn1_implicit_octet_string_to_der(idx,val,d,dlen,out,outlen)	asn1_type_to_der(ASN1_TAG_IMPLICIT(idx),val,d,dlen,out,outlen)
+#define asn1_implicit_octet_string_from_der(idx,val,d,dlen,out,outlen)	asn1_type_from_der(ASN1_TAG_IMPLICIT(idx),val,d,dlen,out,outlen)
+
+int asn1_null_to_der(uint8_t **out, size_t *outlen);
 int asn1_null_from_der(const uint8_t **in, size_t *inlen);
-int asn1_object_identifier_from_der_ex(int tag, int *oid, uint32_t *nodes, size_t *nodes_count, const uint8_t **in, size_t *inlen);
+
+#define ASN1_OID_MAX_NODES 32
+int asn1_object_identifier_to_octets(const uint32_t *nodes, size_t nodes_count, uint8_t *out, size_t *outlen);
+int asn1_object_identifier_from_octets(uint32_t *nodes, size_t *nodes_count, const uint8_t *in, size_t inlen);
+
+int asn1_object_identifier_equ(const uint32_t *a, size_t a_count, const uint32_t *b, size_t b_count);
+int asn1_object_identifier_to_der_ex(int tag, const uint32_t *nodes, size_t nodes_count, uint8_t **out, size_t *outlen);
+int asn1_object_identifier_from_der_ex(int tag, uint32_t *nodes, size_t *nodes_count, const uint8_t **in, size_t *inlen);
+#define asn1_object_identifier_to_der(val,d,dlen,out,outlen)		asn1_object_identifier_to_der_ex(ASN1_TAG_OBJECT_IDENTIFIER,val,d,dlen,out,outlen)
+#define asn1_object_identifier_from_der(val,d,dlen,out,outlen)		asn1_object_identifier_from_der_ex(ASN1_TAG_OBJECT_IDENTIFIER,val,d,dlen,out,outlen)
+#define asn1_implicit_object_identifier_to_der(idx,val,d,dlen,out,outlen)	asn1_object_identifier_to_der_ex(ASN1_TAG_IMPLICIT(idx),val,d,dlen,out,outlen)
+#define asn1_implicit_object_identifier_from_der(idx,val,d,dlen,out,outlen)	asn1_object_identifier_from_der_ex(ASN1_TAG_IMPLICIT(idx),val,d,dlen,out,outlen)
+int asn1_object_identifier_print(FILE *fp, int fmt, int ind, const char *label, const char *name,
+	const uint32_t *nodes, size_t nodes_count);
+
+#define asn1_enumerated_to_der_ex(tag,val,out,outlen)		asn1_int_to_der_ex(tag,val,out,outlen)
+#define asn1_enumerated_from_der_ex(tag,val,out,outlen)		asn1_int_from_der_ex(tag,val,out,outlen)
+#define asn1_enumerated_to_der(val,out,outlen)			asn1_int_to_der_ex(ASN1_TAG_ENUMERATED,val,out,outlen)
+#define asn1_enumerated_from_der(val,out,outlen)		asn1_int_from_der_ex(ASN1_TAG_ENUMERATED,val,out,outlen)
+#define asn1_implicit_enumerated_to_der(idx,val,out,outlen)	asn1_int_to_der_ex(ASN1_TAG_IMPLICIT(idx),val,out,outlen)
+#define asn1_implicit_enumerated_from_der(idx,val,out,outlen)	asn1_int_from_der_ex(ASN1_TAG_IMPLICIT(idx),val,out,outlen)
+
+int asn1_utf8_string_check(const char *d, size_t dlen);
+int asn1_utf8_string_to_der_ex(int tag, const char *a, uint8_t **out, size_t *outlen);
 int asn1_utf8_string_from_der_ex(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen);
+#define asn1_utf8_string_to_der(val,out,outlen)			asn1_utf8_string_to_der_ex(ASN1_TAG_UTF8String,val,out,outlen)
+#define asn1_utf8_string_from_der(val,d,dlen,out,outlen)		asn1_utf8_string_from_der_ex(ASN1_TAG_UTF8String,val,d,dlen,out,outlen)
+#define asn1_implicit_utf8_string_to_der(i,val,out,outlen)	asn1_utf8_string_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+#define asn1_implicit_utf8_string_from_der(i,val,out,outlen)	asn1_utf8_string_from_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+
+int asn1_printable_string_check(const char *d, size_t dlen);
+int asn1_printable_string_to_der_ex(int tag, const char *a, uint8_t **out, size_t *outlen);
 int asn1_printable_string_from_der_ex(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen);
+#define asn1_printable_string_to_der(val,out,outlen)		asn1_printable_string_to_der_ex(ASN1_TAG_PrintableString,val,out,outlen)
+#define asn1_printable_string_from_der(val,d,dlen,out,outlen)	asn1_printable_string_from_der_ex(ASN1_TAG_PrintableString,val,d,dlen,out,outlen)
+#define asn1_implicit_printable_string_to_der(i,val,out,outlen)		asn1_printable_string_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+#define asn1_implicit_printable_string_from_der(i,val,out,outlen)	asn1_printable_string_from_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+
+int asn1_ia5_string_check(const char *d, size_t dlen);
+int asn1_ia5_string_to_der_ex(int tag, const char *a, uint8_t **out, size_t *outlen);
 int asn1_ia5_string_from_der_ex(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen);
+#define asn1_ia5_string_to_der(val,out,outlen)			asn1_ia5_string_to_der_ex(ASN1_TAG_IA5String,val,out,outlen)
+#define asn1_ia5_string_from_der(val,d,dlen,out,outlen)		asn1_ia5_string_from_der_ex(ASN1_TAG_IA5String,val,d,dlen,out,outlen)
+#define asn1_implicit_ia5_string_to_der(i,val,out,outlen)	asn1_ia5_string_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+#define asn1_implicit_ia5_string_from_der(i,val,out,outlen)	asn1_ia5_string_from_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+
+int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen);
+
+
+int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen);
 int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **in, size_t *inlen);
+#define asn1_utc_time_to_der(val,out,outlen)			asn1_utc_time_to_der_ex(ASN1_TAG_UTCTime,val,out,outlen)
+#define asn1_utc_time_from_der(val,out,outlen)			asn1_utc_time_from_der_ex(ASN1_TAG_UTCTime,val,out,outlen)
+#define asn1_implicit_utc_time_to_der(i,val,out,outlen)		asn1_utc_time_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+#define asn1_implicit_utc_time_from_der(i,val,out,outlen)	asn1_utc_time_from_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+
+int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen);
 int asn1_generalized_time_from_der_ex(int tag, time_t *t, const uint8_t **in, size_t *inlen);
+#define asn1_generalized_time_to_der(val,out,outlen)		asn1_generalized_time_to_der_ex(ASN1_TAG_GeneralizedTime,val,out,outlen)
+#define asn1_generalized_time_from_der(val,out,outlen)		asn1_generalized_time_from_der_ex(ASN1_TAG_GeneralizedTime,val,out,outlen)
+#define asn1_implicit_generalized_time_to_der(i,val,out,outlen)		asn1_generalized_time_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
+#define asn1_implicit_generalized_time_from_der(i,val,out,outlen)	asn1_generalized_time_from_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
 
 
+#define asn1_sequence_to_der(val,d,dlen,out,outlen)			asn1_type_to_der(ASN1_TAG_SEQUENCE,val,d,dlen,out,outlen)
+#define asn1_sequence_from_der(val,d,dlen,out,outlen)		asn1_type_from_der(ASN1_TAG_SEQUENCE,val,d,dlen,out,outlen)
+#define asn1_implicit_sequence_to_der(i,val,d,dlen,out,outlen)	asn1_type_to_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
+#define asn1_implicit_sequence_from_der(i,val,d,dlen,out,outlen)	asn1_type_from_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
 
-#define asn1_boolean_to_der(a,d,dl)			asn1_boolean_to_der_ex(ASN1_TAG_BOOLEAN,a,d,dl)
-#define asn1_integer_to_der(a,al,d,dl)			asn1_integer_to_der_ex(ASN1_TAG_INTEGER,a,al,d,dl)
-#define asn1_int_to_der(a,d,dl)				asn1_int_to_der_ex(ASN1_TAG_INTEGER,a,d,dl)
-#define asn1_bit_string_to_der(a,al,d,dl)		asn1_bit_string_to_der_ex(ASN1_TAG_BIT_STRING,a,al,d,dl)
-#define asn1_bits_to_der(a,d,dl)			asn1_bits_to_der_ex(ASN1_TAG_BIT_STRING,a,d,dl)
-#define asn1_octet_string_to_der(a,al,d,dl)		asn1_type_to_der(ASN1_TAG_OCTET_STRING,a,al,d,dl)
-#define asn1_object_identifier_to_der(oid,a,al,d,dl)	asn1_object_identifier_to_der_ex(ASN1_TAG_OBJECT_IDENTIFIER,oid,a,al,d,dl)
-#define asn1_utf8_string_to_der(a,d,dl)			asn1_utf8_string_to_der_ex(ASN1_TAG_UTF8String,a,d,dl)
-#define asn1_printable_string_to_der(a,d,dl)		asn1_printable_string_to_der_ex(ASN1_TAG_PrintableString,a,d,dl)
-#define asn1_ia5_string_to_der(a,d,dl)			asn1_ia5_string_to_der_ex(ASN1_TAG_IA5String,a,d,dl)
-#define asn1_utc_time_to_der(a,d,dl)			asn1_utc_time_to_der_ex(ASN1_TAG_UTCTime,a,d,dl)
-#define asn1_generalized_time_to_der(a,d,dl)		asn1_generalized_time_to_der_ex(ASN1_TAG_GeneralizedTime,a,d,dl)
+
+#define asn1_set_to_der(val,d,dlen,out,outlen)			asn1_type_to_der(ASN1_TAG_SET,val,d,dlen,out,outlen)
+#define asn1_set_from_der(val,d,dlen,out,outlen)			asn1_type_from_der(ASN1_TAG_SET,val,d,dlen,out,outlen)
+#define asn1_implicit_set_to_der(i,val,d,dlen,out,outlen)		asn1_type_to_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
+#define asn1_implicit_set_from_der(i,val,d,dlen,out,outlen)		asn1_type_from_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
+
+#define asn1_implicit_to_der(i,val,d,dlen,out,outlen)		asn1_type_to_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
+#define asn1_implicit_from_der(i,val,d,dlen,out,outlen)		asn1_type_from_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
+
+
+int asn1_header_to_der(int tag, size_t len, uint8_t **out, size_t *outlen);
 #define asn1_sequence_header_to_der(al,d,dl)		asn1_header_to_der(ASN1_TAG_SEQUENCE,al,d,dl)
+#define asn1_implicit_sequence_header_to_der(i,al,d,dl)	asn1_header_to_der(ASN1_TAG_EXPLICIT(i),al,d,dl)
+
 #define asn1_set_header_to_der(al,d,dl)			asn1_header_to_der(ASN1_TAG_SET,al,d,dl)
+#define asn1_implicit_set_header_to_der(i,al,d,dl)	asn1_header_to_der(ASN1_TAG_EXPLICIT(i),al,d,dl)
+
 #define asn1_explicit_header_to_der(i,al,d,dl)		asn1_header_to_der(ASN1_TAG_EXPLICIT(i),al,d,dl)
-#define asn1_sequence_to_der(a,al,d,dl)			asn1_type_to_der(ASN1_TAG_SEQUENCE,a,al,d,dl)
-#define asn1_set_to_der(a,al,d,dl)			asn1_type_to_der(ASN1_TAG_SET,a,al,d,dl)
-#define asn1_explicit_to_der(i,a,al,d,dl)		asn1_type_to_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
 
-#define asn1_boolean_from_der(a,d,dl)			asn1_boolean_from_der_ex(ASN1_TAG_BOOLEAN,a,d,dl)
-#define asn1_integer_from_der(a,al,d,dl)		asn1_integer_from_der_ex(ASN1_TAG_INTEGER,a,al,d,dl)
-#define asn1_int_from_der(a,d,dl)			asn1_int_from_der_ex(ASN1_TAG_INTEGER,a,d,dl)
-#define asn1_bit_string_from_der(a,al,d,dl)		asn1_bit_string_from_der_ex(ASN1_TAG_BIT_STRING,a,al,d,dl)
-#define asn1_bits_from_der(a,d,dl)			asn1_bits_from_der_ex(ASN1_TAG_BIT_STRING,a,d,dl)
-#define asn1_octet_string_from_der(a,al,d,dl)		asn1_type_from_der(ASN1_TAG_OCTET_STRING,a,al,d,dl)
-#define asn1_object_identifier_from_der(oid,a,al,d,dl)	asn1_object_identifier_from_der_ex(ASN1_TAG_OBJECT_IDENTIFIER,oid,a,al,d,dl)
-#define asn1_utf8_string_from_der(a,al,d,dl)		asn1_utf8_string_from_der_ex(ASN1_TAG_UTF8String,a,al,d,dl)
-#define asn1_printable_string_from_der(a,al,d,dl)	asn1_printable_string_from_der_ex(ASN1_TAG_PrintableString,a,al,d,dl)
-#define asn1_ia5_string_from_der(a,al,d,dl)		asn1_ia5_string_from_der_ex(ASN1_TAG_IA5String,a,al,d,dl)
-#define asn1_utc_time_from_der(a,d,dl)			asn1_utc_time_from_der_ex(ASN1_TAG_UTCTime,a,d,dl)
-#define asn1_generalized_time_from_der(a,d,dl)		asn1_generalized_time_from_der_ex(ASN1_TAG_GeneralizedTime,a,d,dl)
-#define asn1_sequence_from_der(a,al,d,dl)		asn1_type_from_der(ASN1_TAG_SEQUENCE,a,al,d,dl)
-#define asn1_set_from_der(a,al,d,dl)			asn1_type_from_der(ASN1_TAG_SET,a,al,d,dl)
-#define asn1_implicit_from_der(i,a,al,d,dl)		asn1_type_from_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
-#define asn1_explicit_from_der(i,a,al,d,dl)		asn1_type_from_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
-
-#define asn1_implicit_boolean_to_der(i,a,d,dl)			asn1_boolean_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_integer_to_der(i,a,al,d,dl)		asn1_integer_to_der_ex(ASN1_TAG_IMPLICIT(i),a,al,d,dl)
-#define asn1_implicit_int_to_der(i,a,d,dl)			asn1_int_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_bit_string_to_der(i,a,al,d,dl)		asn1_bit_string_to_der_ex(ASN1_TAG_IMPLICIT(i),a,al,d,dl)
-#define asn1_implicit_bits_to_der(i,a,d,dl)			asn1_bits_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_octet_string_to_der(i,a,al,d,dl)		asn1_type_to_der(ASN1_TAG_IMPLICIT(i),a,al,d,dl)
-#define asn1_implicit_object_identifier_to_der(i,oid,a,al,d,dl)	asn1_object_identifier_to_der_ex(ASN1_TAG_IMPLICIT(i),oid,a,al,d,dl)
-#define asn1_implicit_utf8_string_to_der(i,a,d,dl)		asn1_utf8_string_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_printable_string_to_der(i,a,d,dl)		asn1_printable_string_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_ia5_string_to_der(i,a,d,dl)		asn1_ia5_string_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_utc_time_to_der(i,a,d,dl)			asn1_utc_time_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_generalized_time_to_der(i,a,d,dl)		asn1_generalized_time_to_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_sequence_header_to_der(i,al,d,dl)		asn1_header_to_der(ASN1_TAG_EXPLICIT(i),al,d,dl)
-#define asn1_implicit_set_header_to_der(i,al,d,dl)		asn1_header_to_der(ASN1_TAG_EXPLICIT(i),al,d,dl)
-#define asn1_implicit_sequence_to_der(i,a,al,d,dl)		asn1_type_to_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
-#define asn1_implicit_set_to_der(i,a,al,d,dl)			asn1_type_to_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
-
-#define asn1_implicit_boolean_from_der(i,a,d,dl)			asn1_boolean_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_integer_from_der(i,a,al,d,dl)			asn1_integer_from_der_ex(ASN1_TAG_IMPLICIT(i),a,al,d,dl)
-#define asn1_implicit_int_from_der(i,a,d,dl)				asn1_int_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_bit_string_from_der(i,a,al,d,dl)			asn1_bit_string_from_der_ex(ASN1_TAG_IMPLICIT(i),a,al,d,dl)
-#define asn1_implicit_bits_from_der(i,a,d,dl)				asn1_bits_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_octet_string_from_der(i,a,al,d,dl)		asn1_type_from_der(ASN1_TAG_IMPLICIT(i),a,al,d,dl)
-#define asn1_implicit_object_identifier_from_der(i,oid,a,al,d,dl)	asn1_object_identifier_from_der_ex(ASN1_TAG_IMPLICIT(i),oid,a,al,d,dl)
-#define asn1_implicit_utf8_string_from_der(i,a,d,dl)			asn1_utf8_string_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_printable_string_from_der(i,a,d,dl)		asn1_printable_string_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_ia5_string_from_der(i,a,d,dl)			asn1_ia5_string_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_utc_time_from_der(i,a,d,dl)			asn1_utc_time_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_generalized_time_from_der(i,a,d,dl)		asn1_generalized_time_from_der_ex(ASN1_TAG_IMPLICIT(i),a,d,dl)
-#define asn1_implicit_sequence_from_der(i,a,al,d,dl)			asn1_type_from_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
-#define asn1_implicit_set_from_der(i,a,al,d,dl)				asn1_type_from_der(ASN1_TAG_EXPLICIT(i),a,al,d,dl)
+#define asn1_explicit_to_der(i,val,d,dlen,out,outlen)		asn1_type_to_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
+#define asn1_explicit_from_der(i,val,d,dlen,out,outlen)		asn1_type_from_der(ASN1_TAG_EXPLICIT(i),val,d,dlen,out,outlen)
 
 
-int asn1_cstring_to_der(int tag, const char *a, uint8_t **out, size_t *outlen);
-int asn1_cstring_from_der(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen);
+int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, int *count);
+int asn1_types_get_type_by_index(const uint8_t *d, size_t *dlen, int tag, const uint8_t **val, size_t *vlen);
 
-
+int asn1_sequence_of_integer_to_der(const int *nums, size_t nums_cnt, uint8_t **out, size_t *outlen);
+int asn1_sequence_of_integer_from_der(int *nums, size_t *nums_cnt, const uint8_t **in, size_t *inlen);
+int asn1_sequence_of_integer_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 
 typedef struct {
-	size_t datalen;
-	uint8_t data[1];
-} ASN1_SEQUENCE_OF;
+	int oid;
+	char *name;
+	uint32_t *nodes;
+	size_t nodes_count;
+	int flags;
+	char *description;
+} ASN1_OID_INFO;
 
-int asn1_sequence_of_get_next_item(const ASN1_SEQUENCE_OF *a, const uint8_t **next, const uint8_t **data, size_t *datalen);
-int asn1_sequence_of_get_count(const ASN1_SEQUENCE_OF *a, size_t *count);
+const ASN1_OID_INFO *asn1_oid_info_from_name(const ASN1_OID_INFO *infos, size_t count, const char *name);
+const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t count, int oid);
+int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_t *nodes_count,
+	const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen);
+int asn1_oid_info_from_der(const ASN1_OID_INFO **info,
+	const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen);
 
 
 int asn1_check(int expr);
-int asn1_length_is_zero(size_t len);
-
 
 
 #if __cplusplus

@@ -49,12 +49,15 @@
 #ifndef GMSSL_RAND_H
 #define GMSSL_RAND_H
 
-
 #include <stdint.h>
 #include <stdlib.h>
 
 
-int rand_bytes(uint8_t *buf, size_t len);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int rand_bytes(uint8_t *buf, size_t buflen);
 
 
 #ifdef __cplusplus

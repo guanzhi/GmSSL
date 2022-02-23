@@ -81,14 +81,12 @@ typedef struct {
 } CHACHA20_STATE;
 
 
-void chacha20_set_key(CHACHA20_STATE *state,
+void chacha20_init(CHACHA20_STATE *state,
 	const uint8_t key[CHACHA20_KEY_SIZE],
-	const uint8_t nonce[CHACHA20_NONCE_SIZE],
-	uint32_t counter);
+	const uint8_t nonce[CHACHA20_NONCE_SIZE], uint32_t counter);
 
 void chacha20_generate_keystream(CHACHA20_STATE *state,
-	unsigned int counts,
-	uint8_t *out);
+	size_t counts, uint8_t *out);
 
 
 #ifdef __cplusplus

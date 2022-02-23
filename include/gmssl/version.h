@@ -50,17 +50,15 @@
 #ifndef GMSSL_VERSION_H
 #define GMSSL_VERSION_H
 
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define GMSSL_VERSION_NUM	30000
+#define GMSSL_VERSION_STR	"GmSSL 3.0.0 Alpha"
 
-const char *gmssl_version(void);
-
-
+int gmssl_version_num(void);
+const char *gmssl_version_str(void);
 
 #ifdef __cplusplus
 }

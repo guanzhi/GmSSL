@@ -51,7 +51,6 @@
 
 #include <string.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,9 +66,9 @@ extern "C" {
 
 typedef struct {
 	uint32_t state[SHA1_STATE_WORDS];
-	uint64_t nblocks; /* num of processed blocks */
-	uint8_t block[SHA1_BLOCK_SIZE]; /* buffer */
-	size_t num; /* buffered bytes in |block| */
+	uint64_t nblocks;
+	uint8_t block[SHA1_BLOCK_SIZE];
+	size_t num;
 } SHA1_CTX;
 
 void sha1_init(SHA1_CTX *ctx);

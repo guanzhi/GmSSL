@@ -50,56 +50,14 @@ OCSPSigning * Redistribution and use in source and binary forms, with or without
 #ifndef GMSSL_OID_H
 #define GMSSL_OID_H
 
-
 #include <stdint.h>
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
 enum {
 	OID_undef = 0,
-	//OID_aes,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	// ShangMi schemes in GM/T 0006-2012
 	OID_sm1,
@@ -119,128 +77,74 @@ enum {
 	OID_hmac_sm3,
 	OID_sm2sign_with_sm3,
 	OID_rsasign_with_sm3,
-	OID_x9_62_ecPublicKey, // start of X9.62 curves
+	OID_ec_public_key, // X9.62 ecPublicKey
 	OID_prime192v1,
-	OID_prime192v2,
-	OID_prime192v3,
-	OID_prime239v1,
-	OID_prime239v2,
-	OID_prime239v3,
 	OID_prime256v1,
-	OID_secp256k1, // start of SECG curves (secure curves only!)
+	OID_secp256k1,
 	OID_secp192k1,
 	OID_secp224k1,
 	OID_secp224r1,
 	OID_secp384r1,
 	OID_secp521r1,
-	OID_at_commonName, // start of X.509 Attributes
-	OID_at_surname,
-	OID_at_serialNumber,
-	OID_at_countryName,
-	OID_at_localityName,
-	OID_at_stateOrProvinceName,
-	OID_at_streetAddress,
-	OID_at_organizationName,
-	OID_at_organizationalUnitName,
-	OID_at_title,
-	OID_at_description,
-	OID_at_searchGuide,
-	OID_at_businessCategory,
-	OID_at_postalAddress,
-	OID_at_postalCode,
-	OID_at_postOfficeBox,
-	OID_at_physicalDeliveryOfficeName,
-	OID_at_telephoneNumber,
-	OID_at_telexNumber,
-	OID_at_teletexTerminalIdentifier,
-	OID_at_facsimileTelephoneNumber,
-	OID_at_x121Address,
-	OID_at_internationaliSDNNumber,
-	OID_at_registeredAddress,
-	OID_at_destinationIndicator,
-	OID_at_preferredDeliveryMethod,
-	OID_at_presentationAddress,
-	OID_at_supportedApplicationContext,
-	OID_at_member,
-	OID_at_owner,
-	OID_at_roleOccupant,
-	OID_at_seeAlso,
-	OID_at_userPassword,
-	OID_at_userCertificate,
-	OID_at_caCertificate,
-	OID_at_authorityRevocationList,
-	OID_at_certificateRevocationList,
-	OID_at_crossCertificatePair,
+
 	OID_at_name,
-	OID_at_givenName,
+	OID_at_surname,
+	OID_at_given_name,
 	OID_at_initials,
-	OID_at_generationQualifier,
-	OID_at_x500UniqueIdentifier,
-	OID_at_dnQualifier,
-	OID_at_enhancedSearchGuide,
-	OID_at_protocolInformation,
-	OID_at_distinguishedName,
-	OID_at_uniqueMember,
-	OID_at_houseIdentifier,
-	OID_at_supportedAlgorithms,
-	OID_at_deltaRevocationList,
-	OID_at_dmdName,
+	OID_at_generation_qualifier,
+	OID_at_common_name,
+	OID_at_locality_name,
+	OID_at_state_or_province_name,
+	OID_at_organization_name,
+	OID_at_organizational_unit_name,
+	OID_at_title,
+	OID_at_dn_qualifier,
+	OID_at_country_name,
+	OID_at_serial_number,
 	OID_at_pseudonym,
-	OID_at_role,
+	OID_domain_component,
 
-	/* ext  1 */ OID_ce_authorityKeyIdentifier,
-	/* ext  2 */ OID_ce_subjectKeyIdentifier,
-	/* ext  3 */ OID_ce_keyUsage,
-	/* ext  4 */ OID_ce_certificatePolicies, // start of X.500v3 Certificate Extensions
-	/* ext  5 */ OID_ce_policyMappings, // start of OID_ce_certificatePolicies,
-	/* ext  6 */ OID_ce_subjectAltName,
-	/* ext  7 */ OID_ce_issuerAltName,
-	/* ext  8 */ OID_ce_subjectDirectoryAttributes,
-	/* ext  9 */ OID_ce_basicConstraints,
-	/* ext 10 */ OID_ce_nameConstraints,
-	/* ext 11 */ OID_ce_policyConstraints,
-	/* ext 12 */ OID_ce_extKeyUsage,
-	/* ext 13 */ OID_ce_crlDistributionPoints,
-	/* ext 14 */ OID_ce_inhibitAnyPolicy,
-	/* ext 15 */ OID_ce_freshestCRL,
+	// Cert Extensions
+	OID_ce_authority_key_identifier,
+	OID_ce_subject_key_identifier,
+	OID_ce_key_usage,
+	OID_ce_certificate_policies,
+	OID_ce_policy_mappings,
+	OID_ce_subject_alt_name,
+	OID_ce_issuer_alt_name,
+	OID_ce_subject_directory_attributes,
+	OID_ce_basic_constraints,
+	OID_ce_name_constraints,
+	OID_ce_policy_constraints,
+	OID_ce_ext_key_usage,
+	OID_ce_crl_distribution_points,
+	OID_ce_inhibit_any_policy,
+	OID_ce_freshest_crl,
 
-	OID_ce_primaryKeyUsageRestriction,
-	
-	
-	
-	OID_ce_privateKeyUsagePeriod,
-	
-	
-	
-	OID_ce_crlNumber,
-	OID_ce_reasonCode,
-	OID_ce_instructionCode,
-	OID_ce_invalidityDate,
-	OID_ce_deltaCRLIndicator,
-	OID_ce_issuingDistributionPoint,
-	OID_ce_certificateIssuer,
-	
-	
-	
-	
-	
-	
-	
-	
+	// CRL Extensions
+	//OID_ce_authority_key_identifier,
+	//OID_ce_issuer_alt_name,
+	OID_ce_crl_number,
+	OID_ce_delta_crl_indicator,
+	OID_ce_issuing_distribution_point,
+	//OID_ce_freshest_crl,
+	OID_pe_authority_info_access,
 
+	// CRL Entry Extensions
+	OID_ce_crl_reasons,
+	OID_ce_invalidity_date,
+	OID_ce_certificate_issuer,
 
-	OID_kp_serverAuth, // start of X.509 KeyPropuseID
-	OID_kp_clientAuth,
-	OID_kp_codeSigning,
-	OID_kp_emailProtection,
-	OID_kp_timeStamping,
-	OID_kp_OCSPSigning,
-
+	// X.509 KeyPropuseID
+	OID_kp_server_auth,
+	OID_kp_client_auth,
+	OID_kp_code_signing,
+	OID_kp_email_protection,
+	OID_kp_time_stamping,
+	OID_kp_ocsp_signing,
 
 	OID_qt_cps,
 	OID_qt_unotice,
-
-	OID_MAX,
 
 	OID_md5,
 	OID_sha1,
@@ -251,7 +155,6 @@ enum {
 	OID_sha512_224,
 	OID_sha512_256,
 
-
 	OID_pbkdf2, // {pkcs-5 12}
 	OID_pbes2,  // {pkcs-5 13}
 	OID_hmacWithSHA1,
@@ -259,7 +162,6 @@ enum {
 
 	OID_sm4_ecb, // 1 2 156 10197 1 104 1
 	OID_sm4_cbc, // 1 2 156 10197 1 104 2
-
 
 	OID_aes,
 	OID_aes128_cbc,
@@ -281,57 +183,32 @@ enum {
 	OID_rsa_encryption,
 	OID_rsaes_oaep,
 
+	OID_any_policy,
 
+	OID_cms_data,
+	OID_cms_signed_data,
+	OID_cms_enveloped_data,
+	OID_cms_signed_and_enveloped_data,
+	OID_cms_encrypted_data,
+	OID_cms_key_agreement_info,
 };
 
-typedef struct {
-	int oid;
-	uint32_t nodes[32];
-	int nodes_count;
-} ASN1_OBJECT_IDENTIFIER;
 
 
+#define oid_pkix 1,3,6,1,5,5,7
+
+#define oid_pe	oid_pkix,1
+#define oid_qt	oid_pkix,2
+#define oid_kp	oid_pkix,3
+#define oid_ad	oid_pkix,48
 
 
-const char *asn1_sm_oid_name(int oid);
-const char *asn1_sm_oid_description(int oid);
-void asn1_sm_oid_to_octets(int oid, uint8_t *out, size_t *outlen);
-int asn1_sm_oid_from_octets(const uint8_t *in, size_t inlen);
-int asn1_sm_oid_from_name(const char *name);
-
-const char *asn1_x9_62_curve_oid_name(int oid);
-const char *asn1_x9_62_curve_oid_description(int oid);
-void asn1_x9_62_curve_oid_to_octets(int oid, uint8_t *out, size_t *outlen);
-int asn1_x9_62_curve_oid_from_octets(const uint8_t *in, size_t inlen);
-int asn1_x9_62_curve_oid_from_name(const char *name);
-
-const char *asn1_secg_curve_oid_name(int oid);
-const char *asn1_secg_curve_oid_description(int oid);
-void asn1_secg_curve_oid_to_octets(int oid, uint8_t *out, size_t *outlen);
-int asn1_secg_curve_oid_from_octets(const uint8_t *in, size_t inlen);
-int asn1_secg_curve_oid_from_name(const char *name);
-
-const char *asn1_x509_oid_name(int oid);
-const char *asn1_x509_oid_description(int oid);
-void asn1_x509_oid_to_octets(int oid, uint8_t *out, size_t *outlen);
-int asn1_x509_oid_from_octets(const uint8_t *in, size_t inlen);
-int asn1_x509_oid_from_name(const char *name);
+#define oid_at	2,5,4
+#define oid_ce	2,5,29
 
 
-const char *asn1_x509_kp_oid_name(int oid);
-const char *asn1_x509_kp_oid_description(int oid);
-void asn1_x509_kp_oid_to_octets(int oid, uint8_t *out, size_t *outlen);
-int asn1_x509_kp_oid_from_octets(const uint8_t *in, size_t inlen);
-int asn1_x509_kp_oid_from_name(const char *name);
+#define oid_sm2_cms 1,2,156,10197,6,1,4,2
 
-
-void asn1_oid_to_octets(int oid, uint8_t *out, size_t *outlen);
-int asn1_oid_from_octets(const uint8_t *in, size_t inlen);
-int asn1_oid_nodes_to_octets(const uint32_t *nodes, size_t nodes_count, uint8_t *out, size_t *outlen);
-int asn1_oid_nodes_from_octets(uint32_t *nodes, size_t *nodes_count, const uint8_t *in, size_t inlen);
-
-int test_asn1_oid(void);
-int test_asn1_object_identifier(void);
 
 #ifdef __cplusplus
 }

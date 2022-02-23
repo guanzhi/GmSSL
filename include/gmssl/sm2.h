@@ -60,7 +60,6 @@ extern "C" {
 #endif
 
 
-
 typedef struct {
 	uint8_t x[32];
 	uint8_t y[32];
@@ -69,18 +68,15 @@ typedef struct {
 void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33]);
 void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65]);
 int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
-int sm2_point_to_der(const SM2_POINT *a, uint8_t **out, size_t *outlen);
-int sm2_point_from_der(SM2_POINT *a, const uint8_t **in, size_t *inlen);
+int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen);
+int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen);
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y);
 int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32]);
 int sm2_point_is_on_curve(const SM2_POINT *P);
 int sm2_point_mul(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P);
 int sm2_point_mul_generator(SM2_POINT *R, const uint8_t k[32]);
-int sm2_point_mul_sum(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P, const uint8_t s[32]);
-int sm2_point_print(FILE *fp, const SM2_POINT *P, int format, int indent);
-
-int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id);
-
+int sm2_point_mul_sum(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P, const uint8_t s[32]); // R = k * P + s * G
+int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P);
 
 typedef struct {
 	SM2_POINT public_key;
@@ -88,30 +84,63 @@ typedef struct {
 	uint8_t key_usage[4];
 } SM2_KEY;
 
-int sm2_keygen(SM2_KEY *key);
-int sm2_set_private_key(SM2_KEY *key, const uint8_t private_key[32]);
-int sm2_set_public_key(SM2_KEY *key, const uint8_t public_key[64]); // FIXME: 这里是否应该用octets呢？这算是椭圆曲线点的一个公开格式了
-int sm2_key_print(FILE *fp, const SM2_KEY *key, int format, int indent);
+int sm2_key_generate(SM2_KEY *key);
+int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]);
+int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key);
+int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
+
+int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key);
 int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
 
-// ECPrivateKey
+/*
+from RFC 5915
+
+ECPrivateKey ::= SEQUENCE {
+	version		INTEGER,	-- value MUST be (1)
+	privateKey	OCTET STRING,	-- big endian encoding of integer
+	parameters	[0] EXPLICIT ECParameters OPTIONAL,
+					-- ONLY namedCurve OID is permitted, by RFC 5480
+					-- MUST always include this field, by RFC 5915
+	publicKey	[1] EXPLICIT BIT STRING OPTIONAL
+					-- SHOULD always include this field, by RFC 5915 }
+
+ECParameters ::= CHOICE { namedCurve OBJECT IDENTIFIER }
+*/
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
-int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
 int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen);
+int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
 int sm2_private_key_from_pem(SM2_KEY *key, FILE *fp);
 
-
-// AlgorithmIdentifier
+/*
+AlgorithmIdentifier ::= {
+	algorithm	OBJECT IDENTIFIER { id-ecPublicKey },
+	parameters	OBJECT IDENTIFIER { id-sm2 } }
+*/
 int sm2_public_key_algor_to_der(uint8_t **out, size_t *outlen);
 int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen);
 
-// X.509 SubjectPublicKeyInfo
+
+/*
+X.509 SubjectPublicKeyInfo from RFC 5280
+
+SubjectPublicKeyInfo  ::=  SEQUENCE  {
+	algorithm            AlgorithmIdentifier,
+	subjectPublicKey     BIT STRING  -- uncompressed octets of ECPoint }
+*/
 int sm2_public_key_info_to_der(const SM2_KEY *a, uint8_t **out, size_t *outlen);
-int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp);
 int sm2_public_key_info_from_der(SM2_KEY *a, const uint8_t **in, size_t *inlen);
+int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp);
 int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp);
 
-// PKCS #8 PrivateKeyInfo
+/*
+PKCS #8 PrivateKeyInfo from RFC 5208
+
+PrivateKeyInfo ::= SEQUENCE {
+	version			Version { v1(0) },
+	privateKeyAlgorithm	AlgorithmIdentifier,
+	privateKey		OCTET STRING, -- DER-encoding of ECPrivateKey
+	attributes		[0] IMPLICIT SET OF Attribute OPTIONAL }
+*/
 int sm2_private_key_info_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, const uint8_t **in, size_t *inlen);
 int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
@@ -125,24 +154,26 @@ typedef struct {
 
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
+int sm2_signature_print(FILE *fp, int fmt, int ind, const SM2_SIGNATURE *sig);
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
-int sm2_print_signature(FILE *fp, const uint8_t *sig, size_t siglen, int format, int indent);
 
 #define SM2_MAX_SIGNATURE_SIZE 72
 
 int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
 int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
 
-#define SM2_MAX_ID_BITS				65535
-#define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
-#define SM2_MAX_ID_SIZE				(SM2_MAX_ID_BITS/8)
-#define SM2_DEFAULT_ID_GMT09			"1234567812345678"
-#define SM2_DEFAULT_ID_GMSSL			"anonym@gmssl.org"
-#define SM2_DEFAULT_ID				SM2_DEFAULT_ID_GMT09
+
+#define SM2_DEFAULT_ID				"1234567812345678"
 #define SM2_DEFAULT_ID_LENGTH			(sizeof(SM2_DEFAULT_ID) - 1)
 #define SM2_DEFAULT_ID_BITS			(SM2_DEFAULT_ID_LENGTH * 8)
 #define SM2_DEFAULT_ID_DIGEST_LENGTH		SM3_DIGEST_LENGTH
+
+#define SM2_MAX_ID_BITS				65535
+#define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
+#define SM2_MAX_ID_SIZE				(SM2_MAX_ID_BITS/8)
+
+int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t idlen);
 
 
 typedef struct {
@@ -151,14 +182,21 @@ typedef struct {
 	int flags;
 } SM2_SIGN_CTX;
 
-int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id);
+int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
 int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
-int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id);
+
+int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
 int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen);
 
-
+/*
+SM2Cipher ::= SEQUENCE {
+	XCoordinate	INTEGER,
+	YCoordinate	INTEGER,
+	HASH		OCTET STRING SIZE(32),
+	CipherText	OCTET STRING }
+*/
 typedef struct {
 	SM2_POINT point;
 	uint8_t hash[32];
@@ -166,18 +204,13 @@ typedef struct {
 	uint8_t ciphertext[1];
 } SM2_CIPHERTEXT;
 
-#define SM2_MAX_PLAINTEXT	256
 #define SM2_MAX_PLAINTEXT_SIZE	256
-
-#define SM2_CIPHERTEXT_SIZE(inlen)  (sizeof(SM2_CIPHERTEXT)-1+inlen)
-
 #define SM2_MAX_CIPHERTEXT_SIZE	512
 
-
-
+int sm2_ciphertext_size(size_t inlen, size_t *outlen);
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen);
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
-int sm2_ciphertext_print(FILE *fp, const SM2_CIPHERTEXT *c, int format, int indent);
+int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const SM2_CIPHERTEXT *c);
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen);
 
@@ -186,9 +219,6 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 int sm2_print_ciphertext(FILE *fp, const uint8_t *c, size_t clen, int format, int indent);
 
 int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
-
-
-int sm2_algo_selftest(void);
 
 
 #ifdef __cplusplus

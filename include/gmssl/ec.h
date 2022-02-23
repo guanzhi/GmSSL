@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,92 +46,37 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef GMSSL_EC_H
+#define GMSSL_EC_H
 
-#ifndef GMSSL_SHA2_H
-#define GMSSL_SHA2_H
 
+#include <time.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/types.h>
+#include <stdlib.h>
+#include <gmssl/sm2.h>
+#include <gmssl/oid.h>
+#include <gmssl/asn1.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*
+curve:
+	OID_sm2
+	OID_prime192v1
+	OID_prime256v1
+	OID_secp256k1
+	OID_secp384r1
+	OID_secp521r1
+*/
+const char *ec_curve_name(int curve);
+int ec_curve_from_name(const char *name);
 
-#define SHA2_IS_BIG_ENDIAN	1
-
-
-#define SHA224_DIGEST_SIZE	28
-#define SHA224_BLOCK_SIZE	64
-#define SHA224_STATE_WORDS	8
-
-typedef struct {
-	uint32_t state[SHA224_STATE_WORDS];
-	uint64_t nblocks;
-	uint8_t block[SHA224_BLOCK_SIZE];
-	int num;
-} SHA224_CTX;
-
-void sha224_init(SHA224_CTX *ctx);
-void sha224_update(SHA224_CTX *ctx, const uint8_t* data, size_t datalen);
-void sha224_finish(SHA224_CTX *ctx, uint8_t dgst[SHA224_DIGEST_SIZE]);
-void sha224_digest(const uint8_t *data, size_t datalen,
-	uint8_t dgst[SHA224_DIGEST_SIZE]);
-
-
-#define SHA256_DIGEST_SIZE	32
-#define SHA256_BLOCK_SIZE	64
-#define SHA256_STATE_WORDS	8
-
-typedef struct {
-	uint32_t state[SHA256_STATE_WORDS];
-	uint64_t nblocks;
-	uint8_t block[SHA256_BLOCK_SIZE];
-	int num;
-} SHA256_CTX;
-
-void sha256_init(SHA256_CTX *ctx);
-void sha256_update(SHA256_CTX *ctx, const uint8_t* data, size_t datalen);
-void sha256_finish(SHA256_CTX *ctx, uint8_t dgst[SHA256_DIGEST_SIZE]);
-void sha256_digest(const uint8_t *data, size_t datalen,
-	uint8_t dgst[SHA256_DIGEST_SIZE]);
-
-
-#define SHA384_DIGEST_SIZE	48
-#define SHA384_BLOCK_SIZE	128
-#define SHA384_STATE_WORDS	8
-
-typedef struct {
-	uint64_t state[SHA384_STATE_WORDS];
-	uint64_t nblocks;
-	uint8_t block[SHA384_BLOCK_SIZE];
-	int num;
-} SHA384_CTX;
-
-void sha384_init(SHA384_CTX *ctx);
-void sha384_update(SHA384_CTX *ctx, const uint8_t* data, size_t datalen);
-void sha384_finish(SHA384_CTX *ctx, uint8_t dgst[SHA384_DIGEST_SIZE]);
-void sha384_digest(const uint8_t *data, size_t datalen,
-	uint8_t dgst[SHA384_DIGEST_SIZE]);
-
-
-#define SHA512_DIGEST_SIZE	64
-#define SHA512_BLOCK_SIZE	128
-#define SHA512_STATE_WORDS	8
-
-typedef struct {
-	uint64_t state[SHA512_STATE_WORDS];
-	uint64_t nblocks;
-	uint8_t block[SHA512_BLOCK_SIZE];
-	int num;
-} SHA512_CTX;
-
-void sha512_init(SHA512_CTX *ctx);
-void sha512_update(SHA512_CTX *ctx, const uint8_t* data, size_t datalen);
-void sha512_finish(SHA512_CTX *ctx, uint8_t dgst[SHA512_DIGEST_SIZE]);
-void sha512_digest(const uint8_t *data, size_t datalen,
-	uint8_t dgst[SHA512_DIGEST_SIZE]);
+int ec_public_key_algor_to_der(int curve, uint8_t **out, size_t *outlen);
+int ec_public_key_algor_from_der(int *curve, const uint8_t **in, size_t *inlen);
+int ec_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 
 #ifdef __cplusplus

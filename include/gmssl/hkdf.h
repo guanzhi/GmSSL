@@ -69,7 +69,6 @@ int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
 	size_t L, uint8_t *okm);
 
 
-
 #ifdef  __cplusplus
 }
 #endif

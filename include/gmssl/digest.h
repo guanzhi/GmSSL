@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,16 +64,15 @@ extern "C" {
 #endif
 
 
-typedef struct digest_st DIGEST;
-typedef struct digest_ctx_st DIGEST_CTX;
+typedef struct DIGEST DIGEST;
+typedef struct DIGEST_CTX DIGEST_CTX;
 
 
 #define DIGEST_MAX_SIZE		64
 #define DIGEST_MAX_BLOCK_SIZE (1024/8)
 
 
-struct digest_ctx_st {
-	const DIGEST *digest;
+struct DIGEST_CTX {
 	union {
 		SM3_CTX sm3_ctx;
 		MD5_CTX md5_ctx;
@@ -83,22 +82,18 @@ struct digest_ctx_st {
 		SHA384_CTX sha384_ctx;
 		SHA512_CTX sha512_ctx;
 	} u;
+	const DIGEST *digest;
 };
 
-struct digest_st {
-	int nid;
+struct DIGEST {
+	int oid;
 	size_t digest_size;
 	size_t block_size;
 	size_t ctx_size;
 	int (*init)(DIGEST_CTX *ctx);
-	int (*update)(DIGEST_CTX *ctx, const unsigned char *data, size_t datalen);
-	int (*finish)(DIGEST_CTX *ctx, unsigned char *dgst);
+	int (*update)(DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
+	int (*finish)(DIGEST_CTX *ctx, uint8_t *dgst);
 };
-
-int digest_nid(const DIGEST *digest);
-const char *digest_name(const DIGEST *digest);
-size_t digest_size(const DIGEST *digest);
-size_t digest_block_size(const DIGEST *digest);
 
 const DIGEST *DIGEST_sm3(void);
 const DIGEST *DIGEST_md5(void);
@@ -111,26 +106,12 @@ const DIGEST *DIGEST_sha512_224(void);
 const DIGEST *DIGEST_sha512_256(void);
 
 const DIGEST *digest_from_name(const char *name);
-
-int digest_ctx_nid(const DIGEST_CTX *ctx);
-const char *digest_ctx_name(const DIGEST_CTX *ctx);
-size_t digest_ctx_size(const DIGEST_CTX *ctx);
-size_t digest_ctx_block_size(const DIGEST_CTX *ctx);
-const DIGEST *digest_ctx_digest(const DIGEST_CTX *ctx);
-
-int digest_ctx_init(DIGEST_CTX *ctx);
+const char *digest_name(const DIGEST *digest);
 int digest_init(DIGEST_CTX *ctx, const DIGEST *algor);
-int digest_update(DIGEST_CTX *ctx, const unsigned char *data, size_t datalen);
-int digest_finish(DIGEST_CTX *ctx, unsigned char *dgst, size_t *dgstlen);
-void digest_ctx_cleanup(DIGEST_CTX *ctx);
+int digest_update(DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
+int digest_finish(DIGEST_CTX *ctx, uint8_t *dgst, size_t *dgstlen);
+int digest(const DIGEST *digest, const uint8_t *data, size_t datalen, uint8_t *dgst, size_t *dgstlen);
 
-int digest(const DIGEST *digest, const unsigned char *data, size_t datalen,
-	unsigned char *dgst, size_t *dgstlen);
-
-const char *digest_algor_name(int oid);
-int digest_algor_to_der(int oid, uint8_t **out, size_t *outlen);
-int digest_algor_from_der(int *oid, uint32_t *nodes, size_t *nodes_count,
-	const uint8_t **in, size_t *inlen);
 
 #ifdef __cplusplus
 }

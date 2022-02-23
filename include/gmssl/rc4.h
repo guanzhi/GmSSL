@@ -65,10 +65,10 @@ extern "C" {
 
 
 typedef struct {
-	unsigned char d[256];
+	uint8_t d[RC4_STATE_NUM_WORDS];
 } RC4_STATE;
 
-void rc4_set_key(RC4_STATE *state, const uint8_t *key, size_t keylen);
+void rc4_init(RC4_STATE *state, const uint8_t *key, size_t keylen);
 void rc4_generate_keystream(RC4_STATE *state, size_t outlen, uint8_t *out);
 
 

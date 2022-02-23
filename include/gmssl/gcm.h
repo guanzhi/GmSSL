@@ -61,8 +61,6 @@
 extern "C" {
 #endif
 
-
-
 #define GCM_IV_MIN_SIZE		1
 #define GCM_IV_MAX_SIZE		((uint64_t)(1 << (64-3)))
 #define GCM_IV_DEFAULT_BITS	96
@@ -84,7 +82,6 @@ extern "C" {
 void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen,
 	const uint8_t *c, size_t clen, uint8_t out[16]);
 
-
 int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t taglen, uint8_t *tag);
@@ -92,8 +89,6 @@ int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
 	const uint8_t *tag, size_t taglen, uint8_t *out);
-
-
 
 
 #ifdef __cplusplus

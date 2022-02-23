@@ -45,6 +45,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+// RFC 5208: PKCS #8: Private-Key Information Syntax Specification version 1.2
+
 
 #ifndef GMSSL_PKCS8_H
 #define GMSSL_PKCS8_H
@@ -62,8 +64,10 @@ extern "C" {
 
 
 // EncryptedPrivateKeyInfo
-int sm2_enced_private_key_info_to_der(const SM2_KEY *key, const char *pass, uint8_t **out, size_t *outlen);
-int sm2_enced_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, const char *pass, const uint8_t **in, size_t *inlen);
+int sm2_enced_private_key_info_to_der(const SM2_KEY *key,
+	const char *pass, uint8_t **out, size_t *outlen);
+int sm2_enced_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen,
+	const char *pass, const uint8_t **in, size_t *inlen);
 int sm2_enced_private_key_info_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
 int sm2_enced_private_key_info_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
 
@@ -71,19 +75,9 @@ int sm2_enced_private_key_info_from_pem(SM2_KEY *key, const char *pass, FILE *fp
 	prf must be OID_hmac_sm3
 	cipher must be OID_sm4_cbc
 */
-
-int pbkdf2_params_to_der(
-	const uint8_t *salt, size_t saltlen,
-	int iter,
-	int keylen, // optional, -1
-	int prf,
+int pbkdf2_params_to_der(const uint8_t *salt, size_t saltlen, int iter, int keylen, int prf,
 	uint8_t **out, size_t *outlen);
-
-int pbkdf2_params_from_der(
-	const uint8_t **salt, size_t *saltlen,
-	int *iter,
-	int *keylen, // -1, optional
-	int *prf,
+int pbkdf2_params_from_der(const uint8_t **salt, size_t *saltlen, int *iter, int *keylen, int *prf,
 	const uint8_t **in, size_t *inlen);
 
 int pbkdf2_algor_to_der(
@@ -92,7 +86,6 @@ int pbkdf2_algor_to_der(
 	int keylen,
 	int prf,
 	uint8_t **out, size_t *outlen);
-
 int pbkdf2_algor_from_der(
 	const uint8_t **salt, size_t *saltlen,
 	int *iter,
@@ -104,7 +97,6 @@ int pbes2_enc_algor_to_der(
 	int cipher,
 	const uint8_t *iv, size_t ivlen,
 	uint8_t **out, size_t *outlen);
-
 int pbes2_enc_algor_from_der(
 	int *cipher,
 	const uint8_t **iv, size_t *ivlen,
@@ -117,7 +109,6 @@ int pbes2_params_to_der(
 	int cipher,
 	const uint8_t *iv, size_t ivlen,
 	uint8_t **out, size_t *outlen);
-
 int pbes2_params_from_der(
 	const uint8_t **salt, size_t *saltlen,
 	int *iter,
@@ -133,7 +124,6 @@ int pbes2_algor_to_der(
 	int cipher,
 	const uint8_t *iv, size_t ivlen,
 	uint8_t **out, size_t *outlen);
-
 int pbes2_algor_from_der(
 	const uint8_t **salt, size_t *saltlen,
 	int *iter,
@@ -150,7 +140,6 @@ int pkcs8_enced_private_key_info_to_der(
 	const uint8_t *iv, size_t ivlen,
 	const uint8_t *enced, size_t encedlen,
 	uint8_t **out, size_t *outlen);
-
 int pkcs8_enced_private_key_info_from_der(
 	const uint8_t **salt, size_t *saltlen,
 	int *iter,
