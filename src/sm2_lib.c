@@ -104,7 +104,7 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *der, s
 //FIXME: 由于每次加密的时候密文编码长度不同，因此这个函数应该避免在out == NULL时输出一个长度！
 int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	size_t clen = SM2_CIPHERTEXT_SIZE(inlen);
+	size_t clen = sizeof(SM2_CIPHERTEXT)-1+inlen; // FIXME: not supported in MS VS
 	size_t cbuf[clen];
 	SM2_CIPHERTEXT *c = (SM2_CIPHERTEXT *)cbuf;
 
@@ -127,7 +127,7 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 
 extern void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks);
 
-int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id)
+int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t idlen)
 {
 	uint8_t zin[] = {
 		0x00, 0x80,
@@ -190,15 +190,13 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id)
 	} else {
 		SM3_CTX ctx;
 		uint8_t idbits[2];
-		size_t len;
 
-		len = strlen(id);
-		idbits[0] = (uint8_t)(len >> 5);
-		idbits[1] = (uint8_t)(len << 3);
+		idbits[0] = (uint8_t)(idlen >> 5);
+		idbits[1] = (uint8_t)(idlen << 3);
 
 		sm3_init(&ctx);
 		sm3_update(&ctx, idbits, 2);
-		sm3_update(&ctx, (uint8_t *)id, len);
+		sm3_update(&ctx, (uint8_t *)id, idlen);
 		sm3_update(&ctx, zin + 18, 128);
 		sm3_update(&ctx, pub->x, 32);
 		sm3_update(&ctx, pub->y, 32);
@@ -208,13 +206,13 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id)
 	return 1;
 }
 
-int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id)
+int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
 	uint8_t z[32];
-	if (!ctx || !key || !id || strlen(id) > SM2_MAX_ID_SIZE) {
+	if (!ctx || !key || !id || idlen > SM2_MAX_ID_SIZE) {
 		return -1;
 	}
-	sm2_compute_z(z, &key->public_key, id);
+	sm2_compute_z(z, &key->public_key, id, idlen);
 
 	sm3_init(&ctx->sm3_ctx);
 	sm3_update(&ctx->sm3_ctx, z, 32);
@@ -241,13 +239,13 @@ int sm2_sign_resume(SM2_SIGN_CTX *ctx)
 	return 0;
 }
 
-int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id)
+int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
 	uint8_t z[32];
-	if (!ctx || !key || !id || strlen(id) > SM2_MAX_ID_SIZE) {
+	if (!ctx || !key || !id || idlen > SM2_MAX_ID_SIZE) {
 		return -1;
 	}
-	sm2_compute_z(z, &key->public_key, id);
+	sm2_compute_z(z, &key->public_key, id, idlen);
 	sm3_init(&ctx->sm3_ctx);
 	sm3_update(&ctx->sm3_ctx, z, 32);
 	memcpy(&ctx->key, key, sizeof(SM2_KEY));
@@ -269,15 +267,14 @@ int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 	return ret;
 }
 
-int sm2_set_private_key(SM2_KEY *key, const uint8_t private_key[32])
+int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32])
 {
 	memcpy(&key->private_key, private_key, 32);
 	return 1;
 }
 
-// FIXME: 检查公钥是否正确
-int sm2_set_public_key(SM2_KEY *key, const uint8_t public_key[64])
+int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key)
 {
-	memcpy(&key->public_key, public_key, 64);
+	key->public_key = *public_key;
 	return 1;
 }

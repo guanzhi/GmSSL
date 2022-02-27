@@ -120,6 +120,19 @@ int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_
 }
 
 
+int format_string(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	while (ind--) {
+		fprintf(fp, " ");
+	}
+	fprintf(fp, "%s: ", label);
+	while (dlen--) {
+		fprintf(fp, "%c", *d++);
+	}
+	fprintf(fp, "\n");
+	return 1;
+}
+
 int tls_trace(int format, int indent, const char *str, ...)
 {
 	FILE *fp = stderr;

@@ -55,7 +55,7 @@
 #define OPAD	0x5C
 
 
-int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, size_t keylen)
+int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t keylen)
 {
 	uint8_t i_key[DIGEST_MAX_BLOCK_SIZE] = {0};
 	uint8_t o_key[DIGEST_MAX_BLOCK_SIZE] = {0};
@@ -69,7 +69,7 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, siz
 
 	ctx->digest = digest;
 
-	blocksize = digest_block_size(digest);
+	blocksize = digest->block_size;
 	if (keylen <= blocksize) {
 		memcpy(i_key, key, keylen);
 		memcpy(o_key, key, keylen);
@@ -95,7 +95,7 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const unsigned char *key, siz
 	return 1;
 }
 
-int hmac_update(HMAC_CTX *ctx, const unsigned char *data, size_t datalen)
+int hmac_update(HMAC_CTX *ctx, const uint8_t *data, size_t datalen)
 {
 	if (!ctx || (!data &&  datalen != 0)) {
 		error_print();
@@ -108,7 +108,7 @@ int hmac_update(HMAC_CTX *ctx, const unsigned char *data, size_t datalen)
 	return 1;
 }
 
-int hmac_finish(HMAC_CTX *ctx, unsigned char *mac, size_t *maclen)
+int hmac_finish(HMAC_CTX *ctx, uint8_t *mac, size_t *maclen)
 {
 	if (digest_finish(&ctx->digest_ctx, mac, maclen) != 1) {
 		error_print();
@@ -140,9 +140,9 @@ int hmac_finish_and_verify(HMAC_CTX *ctx, const uint8_t *mac, size_t maclen)
 	return 1;
 }
 
-int hmac(const DIGEST *digest, const unsigned char *key, size_t keylen,
-	const unsigned char *data, size_t datalen,
-	unsigned char *mac, size_t *maclen)
+int hmac(const DIGEST *digest, const uint8_t *key, size_t keylen,
+	const uint8_t *data, size_t datalen,
+	uint8_t *mac, size_t *maclen)
 {
 	int ret = 0;
 	HMAC_CTX ctx;

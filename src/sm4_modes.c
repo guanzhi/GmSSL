@@ -156,7 +156,7 @@ void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, siz
 
 int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
-	uint8_t *out, const size_t taglen, uint8_t *tag)
+	uint8_t *out, size_t taglen, uint8_t *tag)
 {
 	const uint8_t *pin = in;
 	uint8_t *pout = out;

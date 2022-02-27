@@ -71,6 +71,10 @@ PBKDF2-params ::= SEQUENCE {
 
 */
 
+static const uint32_t oid_hmac_sm3[] = { 1,2 };
+static const size_t oid_hmac_sm3_count = sizeof(oid_hmac_sm3)/sizeof(oid_hmac_sm3[0]);
+
+
 int pbkdf2_params_to_der(
 	const uint8_t *salt, size_t saltlen,
 	int iter,
@@ -103,7 +107,7 @@ int pbkdf2_params_to_der(
 	if (asn1_octet_string_to_der(salt, saltlen, NULL, &len) != 1
 		|| asn1_int_to_der(iter, NULL, &len) != 1
 		|| asn1_int_to_der(keylen, NULL, &len) < 0
-		|| asn1_object_identifier_to_der(prf, NULL, 0, NULL, &prflen) != 1
+		|| asn1_object_identifier_to_der(oid_hmac_sm3, oid_hmac_sm3_count, NULL, &prflen) != 1
 		|| asn1_null_to_der(NULL, &prflen) != 1
 		|| asn1_sequence_to_der(NULL, prflen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -111,7 +115,7 @@ int pbkdf2_params_to_der(
 		|| asn1_int_to_der(iter, out, outlen) != 1
 		|| asn1_int_to_der(keylen, out, outlen) < 0
 		|| asn1_sequence_header_to_der(prflen, out, outlen) != 1
-		|| asn1_object_identifier_to_der(prf, NULL, 0, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_hmac_sm3, oid_hmac_sm3_count, out, outlen) != 1
 		|| asn1_null_to_der(out, outlen)  != 1) {
 		error_print();
 		return -1;
@@ -155,16 +159,22 @@ int pbkdf2_params_from_der(
 	if (algo) {
 		uint32_t nodes[32];
 		size_t nodes_count;
-		if (asn1_object_identifier_from_der(prf, nodes, &nodes_count, &algo, &algolen) != 1
+
+		if (asn1_object_identifier_from_der(nodes, &nodes_count, &algo, &algolen) != 1
 			|| asn1_null_from_der(&algo, &algolen) != 1
 			|| algolen > 0) {
 			error_print();
 			return -1;
 		}
-		if (*prf != OID_hmac_sm3) {
+		if (nodes_count == oid_hmac_sm3_count
+			&& memcmp(nodes, oid_hmac_sm3, sizeof(oid_hmac_sm3)) == 0) {
+			*prf = OID_hmac_sm3;
+		} else {
+			*prf = OID_undef;
 			error_print();
 			return -1;
 		}
+
 	} else {
 		//*prf = OID_hmacWithSHA1;
 		error_print();
@@ -174,6 +184,9 @@ int pbkdf2_params_from_der(
 	return 1;
 }
 
+static const uint32_t oid_pbkdf2[] = { 1, 2, 840, 113549, 1, 5, 12 };
+static const size_t oid_pbkdf2_count = sizeof(oid_pbkdf2)/sizeof(oid_pbkdf2[0]);
+
 int pbkdf2_algor_to_der(
 	const uint8_t *salt, size_t saltlen,
 	int iter,
@@ -182,13 +195,11 @@ int pbkdf2_algor_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	uint32_t pbkdf2[] = { 1, 2, 840, 113549, 1, 5, 12 };
-	size_t pbkdf2_count = sizeof(pbkdf2)/sizeof(pbkdf2[0]);
 
-	if (asn1_object_identifier_to_der(OID_undef, pbkdf2, pbkdf2_count, NULL, &len) != 1
+	if (asn1_object_identifier_to_der(oid_pbkdf2, oid_pbkdf2_count, NULL, &len) != 1
 		|| pbkdf2_params_to_der(salt, saltlen, iter, keylen, prf, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_object_identifier_to_der(OID_undef, pbkdf2, pbkdf2_count, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_pbkdf2, oid_pbkdf2_count, out, outlen) != 1
 		|| pbkdf2_params_to_der(salt, saltlen, iter, keylen, prf, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -206,8 +217,6 @@ int pbkdf2_algor_from_der(
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	uint32_t pbkdf2[] = { 1, 2, 840, 113549, 1, 5, 12 };
-	size_t pbkdf2_count = sizeof(pbkdf2)/sizeof(pbkdf2[0]);
 	int oid;
 	uint32_t nodes[32];
 	size_t nodes_count;
@@ -216,14 +225,15 @@ int pbkdf2_algor_from_der(
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_object_identifier_from_der(&oid, nodes, &nodes_count, &data, &datalen) != 1
+
+	if (asn1_object_identifier_from_der(nodes, &nodes_count, &data, &datalen) != 1
 		|| pbkdf2_params_from_der(salt, saltlen, iter, keylen, prf, &data, &datalen) != 1
 		|| datalen > 0) {
 		error_print();
 		return -1;
 	}
-	if (oid != OID_undef || nodes_count != pbkdf2_count
-		|| memcmp(nodes, pbkdf2, sizeof(pbkdf2)) != 0) {
+	if (oid != OID_undef || nodes_count != oid_pbkdf2_count
+		|| memcmp(nodes, oid_pbkdf2, sizeof(oid_pbkdf2)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -232,8 +242,8 @@ int pbkdf2_algor_from_der(
 	return 1;
 }
 
-static uint32_t sm4_cbc_nodes[] = { 1, 2, 156, 10197, 1, 104, 2 };
-static size_t sm4_cbc_nodes_count = sizeof(sm4_cbc_nodes)/sizeof(sm4_cbc_nodes[0]);
+static const uint32_t oid_sm4_cbc[] = { 1, 2, 156, 10197, 1, 104, 2 };
+static const size_t oid_sm4_cbc_count = sizeof(oid_sm4_cbc)/sizeof(oid_sm4_cbc[0]);
 
 
 // 这个应该提取到外面，和digest_algor, encryption_algor, sign_algor 之类的放到一起
@@ -245,10 +255,10 @@ int pbes2_enc_algor_to_der(int cipher, const uint8_t *iv, size_t ivlen, uint8_t 
 		error_print();
 		return -1;
 	}
-	if (asn1_object_identifier_to_der(OID_undef, sm4_cbc_nodes, sm4_cbc_nodes_count, NULL, &len) != 1
+	if (asn1_object_identifier_to_der(oid_sm4_cbc, oid_sm4_cbc_count, NULL, &len) != 1
 		|| asn1_octet_string_to_der(iv, ivlen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_object_identifier_to_der(OID_undef, sm4_cbc_nodes, sm4_cbc_nodes_count, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_sm4_cbc, oid_sm4_cbc_count, out, outlen) != 1
 		|| asn1_octet_string_to_der(iv, ivlen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -268,26 +278,25 @@ int pbes2_enc_algor_from_der(int *cipher, const uint8_t **iv, size_t *ivlen, con
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_object_identifier_from_der(cipher, nodes, &nodes_count, &data, &datalen) != 1
+
+	if (asn1_object_identifier_from_der(nodes, &nodes_count, &data, &datalen) != 1
 		|| asn1_octet_string_from_der(iv, ivlen, &data, &datalen) != 1
-		|| datalen > 0) {
+		|| asn1_length_is_zero(datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (*cipher == OID_undef) {
-		if (nodes_count == sm4_cbc_nodes_count
-			&& memcmp(nodes, sm4_cbc_nodes, sizeof(sm4_cbc_nodes)) == 0) {
-			*cipher = OID_sm4_cbc;
-		} else {
-			size_t i;
-			error_print();
-			for (i = 0; i < nodes_count; i++) {
-				fprintf(stderr, " %d", nodes[i]);
-			}
-			fprintf(stderr, "\n");
-			return -1;
+
+	if (asn1_object_identifier_equ(nodes, nodes_count, oid_sm4_cbc, oid_sm4_cbc_count) != 1) {
+		size_t i;
+		*cipher = OID_undef;
+		error_print();
+		for (i = 0; i < nodes_count; i++) {
+			fprintf(stderr, " %d", nodes[i]);
 		}
+		fprintf(stderr, "\n");
+		return -1;
 	}
+	*cipher = OID_sm4_cbc;
 
 	// FIXME: 检查ivlen					
 	return 1;
@@ -345,6 +354,10 @@ int pbes2_params_from_der(
 	return 1;
 }
 
+
+static const uint32_t oid_pbes2[] = { 1, 2, 840, 113549, 1, 5, 13 };
+static const size_t oid_pbes2_count = sizeof(oid_pbes2)/sizeof(oid_pbes2[0]);
+
 int pbes2_algor_to_der(
 	const uint8_t *salt, size_t saltlen,
 	int iter,
@@ -354,13 +367,11 @@ int pbes2_algor_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	uint32_t pbes2[] = { 1, 2, 840, 113549, 1, 5, 13 };
-	size_t pbes2_count = sizeof(pbes2)/sizeof(pbes2[0]);
 
-	if (asn1_object_identifier_to_der(OID_undef, pbes2, pbes2_count, NULL, &len) != 1
+	if (asn1_object_identifier_to_der(oid_pbes2, oid_pbes2_count, NULL, &len) != 1
 		|| pbes2_params_to_der(salt, saltlen, iter, prf, cipher, iv, ivlen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_object_identifier_to_der(OID_undef, pbes2, pbes2_count, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_pbes2, oid_pbes2_count, out, outlen) != 1
 		|| pbes2_params_to_der(salt, saltlen, iter, prf, cipher, iv, ivlen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -379,8 +390,6 @@ int pbes2_algor_from_der(
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	uint32_t pbes2[] = { 1, 2, 840, 113549, 1, 5, 13 };
-	size_t pbes2_count = sizeof(pbes2)/sizeof(pbes2[0]);
 	int oid;
 	uint32_t nodes[32];
 	size_t nodes_count;
@@ -389,17 +398,15 @@ int pbes2_algor_from_der(
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_object_identifier_from_der(&oid, nodes, &nodes_count, &data, &datalen) != 1
+
+	if (asn1_object_identifier_from_der(nodes, &nodes_count, &data, &datalen) != 1
 		|| pbes2_params_from_der(salt, saltlen, iter, prf, cipher, iv, ivlen, &data, &datalen) != 1
 		|| datalen > 0) {
 		error_print();
 		return -1;
 	}
-	if (oid != OID_undef) {
-		error_print();
-		return -1;
-	}
-	if (nodes_count != pbes2_count && memcmp(nodes, pbes2, sizeof(pbes2)) != 0) {
+	if (nodes_count != oid_pbes2_count
+		&& memcmp(nodes, oid_pbes2, sizeof(oid_pbes2)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -569,7 +576,7 @@ int sm2_enced_private_key_info_from_pem(SM2_KEY *key, const char *pass, FILE *fp
 	const uint8_t *attrs;
 	size_t attrslen;
 
-	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len) != 1) {
+	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf)) != 1) {
 		error_print();
 		return -1;
 	}

@@ -142,7 +142,8 @@ static void bn_from_bytes(bn_t r, const uint8_t in[32])
 static int bn_from_hex(bn_t r, const char hex[65])
 {
 	uint8_t buf[32];
-	if (hex2bin(hex, 64, buf) < 0) {
+	size_t len;
+	if (hex_to_bytes(hex, 64, buf, &len) < 0) {
 		return -1;
 	}
 	bn_from_bytes(r, buf);

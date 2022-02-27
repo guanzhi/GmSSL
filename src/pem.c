@@ -70,7 +70,7 @@ int pem_write(FILE *fp, const char *name, const uint8_t *data, size_t datalen)
 	return ret;
 }
 
-int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen)
+int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t maxlen)
 {
 	char line[80];
 	char begin_line[80];

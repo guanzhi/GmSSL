@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,9 @@
 #include <gmssl/asn1.h>
 #include <gmssl/pem.h>
 #include <gmssl/error.h>
+
+// sm2 curve 1.2.156.10197.1.301
+
 
 void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33])
 {
@@ -136,14 +139,12 @@ int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 	return 1;
 }
 
-/*
-SM2Cipher ::= SEQUENCE {
-	XCoordinate	INTEGER, // 变长
-	YCoordinate	INTEGER, // 变长
-	HASH		OCTET STRING SIZE(32),
-	CipherText	OCTET STRING
+int sm2_ciphertext_size(size_t inlen, size_t *outlen)
+{
+	*outlen = sizeof(SM2_CIPHERTEXT)-1+inlen;
+	return 1;
 }
-*/
+
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -187,23 +188,12 @@ int sm2_ciphertext_from_der(SM2_CIPHERTEXT *a, const uint8_t **in, size_t *inlen
 	return 1;
 }
 
-/*
-from RFC 5915
 
-ECPrivateKey ::= SEQUENCE {
-	version INTEGER,		-- value MUST be ecPrivkeyVer1(1)
-	privateKey OCTET STRING,	-- big endian encoding of integer
-	parameters [0] EXPLICIT ECParameters OPTIONAL,
-					-- ONLY namedCurve OID is permitted, by RFC 5480
-					-- MUST always include this field, by RFC 5915
-	publicKey  [1] EXPLICIT BIT STRING OPTIONAL
-					-- SHOULD always include this field, by RFC 5915
-}
 
-ECParameters ::= CHOICE {
-	namedCurve OBJECT IDENTIFIER
-}
-*/
+// TODO: sm2, ecPublicKey 这些公用的OID应该提取到一个地方
+static const uint32_t oid_sm2[] = { 1,2,156,10197,1,301 };
+static const size_t oid_sm2_count = sizeof(oid_sm2)/sizeof(oid_sm2[0]);
+
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 {
 	int version = 1;
@@ -216,7 +206,7 @@ int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 
 	asn1_int_to_der(version, NULL, &len);
 	asn1_octet_string_to_der(key->private_key, 32, NULL, &len);
-	asn1_object_identifier_to_der(OID_sm2, NULL, 0, NULL, &params_len);
+	asn1_object_identifier_to_der(oid_sm2, oid_sm2_count, NULL, &params_len);
 	asn1_explicit_to_der(0, NULL, params_len, NULL, &len);
 	asn1_bit_string_to_der(public_key, sizeof(public_key) * 8, NULL, &pubkey_len);
 	asn1_explicit_to_der(1, NULL, pubkey_len, NULL, &len);
@@ -225,7 +215,7 @@ int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 	asn1_int_to_der(version, out, outlen);
 	asn1_octet_string_to_der(key->private_key, 32, out, outlen);
 	asn1_explicit_header_to_der(0, params_len, out, outlen);
-	asn1_object_identifier_to_der(OID_sm2, NULL, 0, out, outlen);
+	asn1_object_identifier_to_der(oid_sm2, oid_sm2_count, out, outlen);
 	asn1_explicit_header_to_der(1, pubkey_len, out, outlen);
 	asn1_bit_string_to_der(public_key, sizeof(public_key) * 8, out, outlen);
 
@@ -266,21 +256,21 @@ int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen)
 		error_print();
 		return -1;
 	}
-	if (sm2_set_private_key(key, prikey) != 1) {
+	if (sm2_key_set_private_key(key, prikey) != 1) {
 		error_print();
 		return -1;
 	}
 	if (params) {
-		int curve_oid;
-		uint32_t nodes[16];
+		uint32_t nodes[16]; // FIXME: 这个长度不对啊！					
 		size_t nodes_count;
 
-		if (asn1_object_identifier_from_der(&curve_oid, nodes, &nodes_count, &params, &params_len) != 1
+		if (asn1_object_identifier_from_der(nodes, &nodes_count, &params, &params_len) != 1
 			|| params_len > 0) {
 			error_print();
 			return -1;
 		}
-		if (curve_oid != OID_sm2) {
+		if (nodes_count != oid_sm2_count
+			|| memcmp(nodes, oid_sm2, sizeof(oid_sm2)) != 0) {
 			error_print();
 			return -1;
 		}
@@ -307,19 +297,22 @@ int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-/*
-AlgorithmIdentifier ::= {
-	algorithm OBJECT IDENTIFIER { id-ecPublicKey },
-	parameters OBJECT IDENTIFIER { id-sm2 } }
-*/
+
+
+static const uint32_t oid_ec_public_key[] = { 1,2,840,10045,2,1 };
+static const size_t oid_ec_public_key_count = sizeof(oid_ec_public_key)/sizeof(oid_ec_public_key[0]);
+
 int sm2_public_key_algor_to_der(uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	asn1_object_identifier_to_der(OID_x9_62_ecPublicKey, NULL, 0, NULL, &len);
-	asn1_object_identifier_to_der(OID_sm2, NULL, 0, NULL, &len);
-	asn1_sequence_header_to_der(len, out, outlen);
-	asn1_object_identifier_to_der(OID_x9_62_ecPublicKey, NULL, 0, out, outlen);
-	asn1_object_identifier_to_der(OID_sm2, NULL, 0, out, outlen);
+	if (asn1_object_identifier_to_der(oid_ec_public_key, oid_ec_public_key_count, NULL, &len) != 1
+		|| asn1_object_identifier_to_der(oid_sm2, oid_sm2_count, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_ec_public_key, oid_ec_public_key_count, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_sm2, oid_sm2_count, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -328,23 +321,20 @@ int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
 	int ret;
 	const uint8_t *data;
 	size_t datalen;
-	int oid;
-	uint32_t nodes[16];
-	size_t nodes_count = 16;
+	uint32_t nodes[ASN1_OID_MAX_NODES];
+	size_t nodes_count;
 
 	if ((ret = asn1_sequence_from_der(&data, &datalen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-
-	if (asn1_object_identifier_from_der(&oid, nodes, &nodes_count, &data, &datalen) != 1
-		|| oid != OID_x9_62_ecPublicKey) {
+	if (asn1_object_identifier_from_der(nodes, &nodes_count, &data, &datalen) != 1
+		|| asn1_object_identifier_equ(nodes, nodes_count, oid_ec_public_key, oid_ec_public_key_count) != 1) {
 		error_print();
 		return -1;
 	}
-
-	if (asn1_object_identifier_from_der(&oid, nodes, &nodes_count, &data, &datalen) != 1
-		|| oid != OID_sm2) {
+	if (asn1_object_identifier_from_der(nodes, &nodes_count, &data, &datalen) != 1
+		|| asn1_object_identifier_equ(nodes, nodes_count, oid_sm2, oid_sm2_count) != 1) {
 		error_print();
 		return -1;
 	}
@@ -355,16 +345,7 @@ int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-/*
-from RFC 5208
 
-PrivateKeyInfo ::= SEQUENCE {
-	version			Version { v1(0) },
-	privateKeyAlgorithm	AlgorithmIdentifier,
-	privateKey		OCTET STRING, -- DER-encoding of ECPrivateKey
-	attributes		[0] IMPLICIT SET OF Attribute OPTIONAL
-}
-*/
 int sm2_private_key_info_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -441,7 +422,7 @@ int sm2_private_key_info_from_pem(SM2_KEY *key, const uint8_t **attrs, size_t *a
 	const uint8_t *cp = buf;
 	size_t len;
 
-	if (pem_read(fp, "PRIVATE KEY", buf, &len) != 1) {
+	if (pem_read(fp, "PRIVATE KEY", buf, &len, sizeof(buf)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -452,12 +433,7 @@ int sm2_private_key_info_from_pem(SM2_KEY *key, const uint8_t **attrs, size_t *a
 	return 1;
 }
 
-/*
-SubjectPublicKeyInfo  ::=  SEQUENCE  {
-	algorithm            AlgorithmIdentifier,
-	subjectPublicKey     BIT STRING  -- uncompressed octets of ECPoint
-}
-*/
+
 int sm2_public_key_info_to_der(const SM2_KEY *a, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -502,7 +478,7 @@ int sm2_public_key_info_from_der(SM2_KEY *a, const uint8_t **in, size_t *inlen)
 		return -1;
 	}
 	memset(a, 0, sizeof(SM2_KEY));
-	if (sm2_set_public_key(a, (uint8_t *)&point) != 1) {
+	if (sm2_key_set_public_key(a, &point) != 1) {
 		error_print();
 		return -1;
 	}
@@ -532,7 +508,7 @@ int sm2_private_key_from_pem(SM2_KEY *a, FILE *fp)
 	const uint8_t *cp = buf;
 	size_t len;
 
-	if (pem_read(fp, "EC PRIVATE KEY", buf, &len) != 1) {
+	if (pem_read(fp, "EC PRIVATE KEY", buf, &len, sizeof(buf)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -567,7 +543,7 @@ int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp)
 	const uint8_t *cp = buf;
 	size_t len;
 
-	if (pem_read(fp, "PUBLIC KEY", buf, &len) != 1) {
+	if (pem_read(fp, "PUBLIC KEY", buf, &len, sizeof(buf)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -578,6 +554,10 @@ int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp)
 	return 1;
 }
 
+int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key)
+{
+	return sm2_key_set_public_key(sm2_key, &pub_key->public_key);
+}
 
 int sm2_public_key_digest(const SM2_KEY *sm2_key, uint8_t dgst[32])
 {

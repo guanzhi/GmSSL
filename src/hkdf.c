@@ -93,7 +93,7 @@ int hkdf_extract(const DIGEST *digest, const uint8_t *salt, size_t saltlen,
 
 	if (!salt || saltlen == 0) {
 		uint8_t zeros[DIGEST_MAX_SIZE] = {0};
-		if (hmac_init(&hmac_ctx, digest, zeros, digest_size(digest)) != 1) {
+		if (hmac_init(&hmac_ctx, digest, zeros, digest->digest_size) != 1) {
 			error_print();
 			return -1;
 		}

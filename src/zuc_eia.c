@@ -52,7 +52,7 @@
 #include <gmssl/zuc.h>
 #include "endian.h"
 
-static void zuc_set_eia_iv(unsigned char iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+static void zuc_set_eia_iv(uint8_t iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)
 {
 	memset(iv, 0, 16);
@@ -67,15 +67,15 @@ static void zuc_set_eia_iv(unsigned char iv[16], ZUC_UINT32 count, ZUC_UINT5 bea
 
 #if 1
 ZUC_UINT32 zuc_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
-	const unsigned char key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+	const uint8_t key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)
 {
 	ZUC_MAC_CTX ctx;
-	unsigned char iv[16];
-	unsigned char mac[4];
+	uint8_t iv[16];
+	uint8_t mac[4];
 	zuc_set_eia_iv(iv, count, bearer, direction);
 	zuc_mac_init(&ctx, key, iv);
-	zuc_mac_finish(&ctx, (unsigned char *)data, nbits, mac);
+	zuc_mac_finish(&ctx, (uint8_t *)data, nbits, mac);
 	return GETU32(mac);
 }
 #else
@@ -91,12 +91,12 @@ ZUC_UINT32 zuc_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
 	(((*((ZUC_UINT32 *)(p) + (i)/32)) & (1 << (31 - ((i) % 32)))) ? 1 : 0)
 
 ZUC_UINT32 ZUC_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
-	const unsigned char user_key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+	const uint8_t user_key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)
 {
 	ZUC_UINT32 T = 0;
-	ZUC_KEY key;
-	unsigned char iv[16];
+	ZUC_STATE key;
+	uint8_t iv[16];
 	ZUC_UINT32 buf[ZUC_MAC_BUF_WORDS + 2];
 	size_t nwords = (nbits + 31)/32;
 	size_t i;

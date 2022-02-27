@@ -68,7 +68,8 @@ gf128_t gf128_zero(void)
 gf128_t gf128_from_hex(const char *s)
 {
 	uint8_t bin[16];
-	hex2bin(s, strlen(s), bin);
+	size_t len;
+	hex_to_bytes(s, strlen(s), bin, &len);
 	return gf128_from_bytes(bin);
 }
 
@@ -76,7 +77,8 @@ int gf128_equ_hex(gf128_t a, const char *s)
 {
 	uint8_t bin1[16];
 	uint8_t bin2[16];
-	hex2bin(s, strlen(s), bin1);
+	size_t len;
+	hex_to_bytes(s, strlen(s), bin1, &len);
 	gf128_to_bytes(a, bin2);
 	return memcmp(bin1, bin2, sizeof(bin1)) == 0;
 }

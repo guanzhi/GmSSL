@@ -47,11 +47,14 @@
  */
 
 
-#include <string.h>
-#include <gmssl/md5.h>
-#include "endian.h"
+#include <gmssl/version.h>
+
+int gmssl_version_num(void)
+{
+	return GMSSL_VERSION_NUM;
+}
 
 const char *gmssl_version(void)
 {
-	return "GmSSL 3.0 alpha";
+	return GMSSL_VERSION_STR;
 }

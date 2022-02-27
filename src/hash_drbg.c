@@ -66,8 +66,6 @@ static int hash_df(const DIGEST *digest, const uint8_t *in, size_t inlen,
 	counter = 0x01;
 	PUTU32(outbits, (uint32_t)outlen << 3);
 
-	digest_ctx_init(&ctx);
-
 	while (outlen > 0) {
 		if (!digest_init(&ctx, digest)
 			|| !digest_update(&ctx, &counter, sizeof(counter))
@@ -89,7 +87,7 @@ static int hash_df(const DIGEST *digest, const uint8_t *in, size_t inlen,
 
 	ret = 1;
 end:
-	digest_ctx_cleanup(&ctx);
+	memset(&ctx, 0, sizeof(ctx));
 	memset(dgst, 0, sizeof(dgst));
 	return ret;
 }
@@ -111,7 +109,7 @@ int hash_drbg_init(HASH_DRBG *drbg, const DIGEST *digest,
 	drbg->digest = digest;
 
 	/* set seedlen */
-	if (digest_size(digest) <= 32) {
+	if (digest->digest_size <= 32) {
 		drbg->seedlen = HASH_DRBG_SM3_SEED_SIZE;
 	} else {
 		drbg->seedlen = HASH_DRBG_SHA512_SEED_SIZE;
@@ -240,8 +238,6 @@ static int drbg_hashgen(HASH_DRBG *drbg, size_t outlen, uint8_t *out)
 	uint8_t dgst[DIGEST_MAX_SIZE];
 	size_t len;
 
-	digest_ctx_init(&ctx);
-
 	/* data = V */
 	memcpy(data, drbg->V, drbg->seedlen);
 
@@ -289,8 +285,6 @@ int hash_drbg_generate(HASH_DRBG *drbg,
 		return 0;
 	}
 
-	digest_ctx_init(&ctx);
-
 	if (additional) {
 		/* w = Hash (0x02 || V || additional_input) */
 		prefix = 0x02;
@@ -336,7 +330,7 @@ int hash_drbg_generate(HASH_DRBG *drbg,
 
 	ret = 1;
 end:
-	digest_ctx_cleanup(&ctx);
+	memset(&ctx, 0, sizeof(ctx));
 	memset(T, 0, sizeof(T));
 	memset(dgst, 0, sizeof(dgst));
 	return ret;

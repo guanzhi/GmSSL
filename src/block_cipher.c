@@ -85,6 +85,7 @@ int block_cipher_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t
 }
 
 static const BLOCK_CIPHER sm4_block_cipher_object = {
+	OID_sm4,
 	SM4_KEY_SIZE,
 	SM4_BLOCK_SIZE,
 	(block_cipher_set_encrypt_key_func)sm4_set_encrypt_key,
@@ -106,6 +107,7 @@ static int aes128_set_decrypt_key(AES_KEY *aes_key, const uint8_t key[16]) {
 }
 
 static const BLOCK_CIPHER aes128_block_cipher_object = {
+	OID_aes128,
 	AES128_KEY_SIZE,
 	AES_BLOCK_SIZE,
 	(block_cipher_set_encrypt_key_func)aes128_set_encrypt_key,

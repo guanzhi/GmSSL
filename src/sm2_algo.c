@@ -1251,13 +1251,13 @@ static int point_test(void)
 	return err;
 }
 
-int sm2_algo_selftest(void)
+int sm2_selftest(void)
 {
 	point_test();
 	return 0;
 }
 
-int sm2_keygen(SM2_KEY *key)
+int sm2_key_generate(SM2_KEY *key)
 {
 	bignum_t x;
 	bignum_t y;

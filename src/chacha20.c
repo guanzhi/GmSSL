@@ -54,8 +54,8 @@
 #include "endian.h"
 
 void chacha20_set_key(CHACHA20_STATE *state,
-	const unsigned char key[CHACHA20_KEY_SIZE],
-	const unsigned char nonce[CHACHA20_NONCE_SIZE],
+	const uint8_t key[CHACHA20_KEY_SIZE],
+	const uint8_t nonce[CHACHA20_NONCE_SIZE],
 	uint32_t counter)
 {
 	state->d[ 0] = 0x61707865;
@@ -102,7 +102,7 @@ void chacha20_set_key(CHACHA20_STATE *state,
 	QR(S[2], S[7], S[ 8], S[13]);  \
 	QR(S[3], S[4], S[ 9], S[14])
 
-void chacha20_generate_keystream(CHACHA20_STATE *state, unsigned int counts, unsigned char *out)
+void chacha20_generate_keystream(CHACHA20_STATE *state, size_t counts, uint8_t *out)
 {
 	uint32_t working_state[16];
 	int i;

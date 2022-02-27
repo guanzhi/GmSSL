@@ -51,12 +51,12 @@
 #include <stdlib.h>
 #include <gmssl/rc4.h>
 
-void rc4_set_key(RC4_STATE *state, const unsigned char *key, size_t keylen)
+void rc4_init(RC4_STATE *state, const uint8_t *key, size_t keylen)
 {
 	int i, j;
-	unsigned char *s = state->d;
-	unsigned char k[256];
-	unsigned char temp;
+	uint8_t *s = state->d;
+	uint8_t k[256];
+	uint8_t temp;
 
 	/* expand key */
 	for (i = 0; i < keylen; i++) {
@@ -86,10 +86,10 @@ void rc4_set_key(RC4_STATE *state, const unsigned char *key, size_t keylen)
 	memset(k, 0, sizeof(k));
 }
 
-void rc4_generate_keystream(RC4_STATE *state, size_t outlen, unsigned char *out)
+void rc4_generate_keystream(RC4_STATE *state, size_t outlen, uint8_t *out)
 {
 	int i = 0, j = 0;
-	unsigned char *s = state->d;
+	uint8_t *s = state->d;
 	int oi;
 	int temp;
 
@@ -109,9 +109,9 @@ void rc4_generate_keystream(RC4_STATE *state, size_t outlen, unsigned char *out)
 	}
 }
 
-unsigned char rc4_generate_keybyte(RC4_STATE *state)
+uint8_t rc4_generate_keybyte(RC4_STATE *state)
 {
-	unsigned char out[1];
+	uint8_t out[1];
 	rc4_generate_keystream(state, 1, out);
 	return out[0];
 }

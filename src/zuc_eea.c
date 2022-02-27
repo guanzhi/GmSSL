@@ -50,23 +50,23 @@
 #include <stdlib.h>
 #include <gmssl/zuc.h>
 
-static void zuc_set_eea_key(ZUC_KEY *key, const unsigned char user_key[16],
+static void zuc_set_eea_key(ZUC_STATE *key, const uint8_t user_key[16],
 	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_BIT direction)
 {
-	unsigned char iv[16] = {0};
+	uint8_t iv[16] = {0};
 	iv[0] = iv[8] = count >> 24;
 	iv[1] = iv[9] = count >> 16;
 	iv[2] = iv[10] = count >> 8;
 	iv[3] = iv[11] = count;
 	iv[4] = iv[12] = ((bearer << 1) | (direction & 1)) << 2;
-	zuc_set_key(key, user_key, iv);
+	zuc_init(key, user_key, iv);
 }
 
 void zuc_eea_encrypt(const ZUC_UINT32 *in, ZUC_UINT32 *out, size_t nbits,
-	const unsigned char key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+	const uint8_t key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)
 {
-	ZUC_KEY zuc_key;
+	ZUC_STATE zuc_key;
 	size_t nwords = (nbits + 31)/32;
 	size_t i;
 
