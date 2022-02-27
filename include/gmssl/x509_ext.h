@@ -104,6 +104,8 @@ int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t
 int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int skip_certs);
 int x509_exts_add_freshest_crl(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 
+int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
+	int oid, int critical, const uint8_t *d, size_t dlen);
 
 /*
 OtherName ::= SEQUENCE {
@@ -191,6 +193,12 @@ int x509_authority_key_identifier_from_der(
 int x509_authority_key_identifier_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
+SubjectKeyIdentifier ::= OCTET STRING
+*/
+#define X509_SUBJECT_KEY_IDENTIFIER_MIN_LEN 16
+#define X509_SUBJECT_KEY_IDENTIFIER_MAX_LEN 64
+
+/*
 KeyUsage ::= BIT STRING {
 	digitalSignature	(0),
 	nonRepudiation		(1), -- recent renamed contentCommitment
@@ -265,6 +273,9 @@ int x509_policy_qualifier_info_from_der(int *oid,
 	const uint8_t **qualifier, size_t *qualifier_len,
 	const uint8_t **in, size_t *inlen);
 int x509_policy_qualifier_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+#define x509_policy_qualifier_infos_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
+#define x509_policy_qualifier_infos_from_der(d,dlen,in,ineln) asn1_sequence_from_der(d,dlen,in,inlen)
 int x509_policy_qualifier_infos_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -489,8 +500,26 @@ int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label
 
 /*
 CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
-FreshestCRL ::= CRLDistributionPoints
 */
+#define x509_crl_distribution_points_to_der(d,dlen,out,outlen) x509_distribution_points_to_der(d,dlen,out,outlen)
+#define x509_crl_distribution_points_from_der(d,dlen,in,inlen) x509_distribution_points_from_der(d,dlen,in,inlen)
+#define x509_crl_distribution_points_print(fp,fmt,ind,label,d,dlen) x509_distribution_points_print(fp,fmt,ind,label,d,dlen)
+
+
+/*
+InhibitAnyPolicy ::= SkipCerts
+SkipCerts ::= INTEGER (0..MAX)
+*/
+#define x509_inhibit_any_policy_to_der(val,out,outlen) asn1_int_to_der(val,out,outlen)
+#define x509_inhibit_any_policy_from_der(val,in,inlen) asn1_int_from_der(val,in,inlen)
+
+/*
+FreshestCRL ::= CRLDistributionPoints
+ */
+#define x509_freshest_crl_to_der(d,dlen,out,outlen) x509_crl_distribution_points_to_der(d,dlen,out,outlen)
+#define x509_freshest_crl_from_der(d,dlen,in,inlen) x509_crl_distribution_points_from_der(d,dlen,in,inlen)
+#define x509_freshest_crl_print(fp,fmt,ind,label,d,dlen) x509_crl_distribution_points_print(fp,fmt,ind,label,d,dlen)
+
 
 #ifdef __cplusplus
 }

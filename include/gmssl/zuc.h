@@ -113,7 +113,7 @@ ZUC_UINT32 zuc_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
 
 typedef ZUC_STATE ZUC256_STATE;
 
-void zuc256_set_state(ZUC256_STATE *state, const uint8_t key[ZUC256_KEY_SIZE], const uint8_t iv[ZUC256_IV_SIZE]);
+void zuc256_init(ZUC256_STATE *state, const uint8_t key[ZUC256_KEY_SIZE], const uint8_t iv[ZUC256_IV_SIZE]);
 #define zuc256_generate_keystream(state,nwords,words) zuc_generate_keystream(state,nwords,words)
 #define zuc256_generate_keyword(state) zuc_generate_keyword(state)
 

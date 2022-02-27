@@ -154,7 +154,7 @@ typedef struct {
 
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
-int sm2_signature_print(FILE *fp, int fmt, int ind, const SM2_SIGNATURE *sig);
+int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
@@ -207,19 +207,22 @@ typedef struct {
 #define SM2_MAX_PLAINTEXT_SIZE	256
 #define SM2_MAX_CIPHERTEXT_SIZE	512
 
+#define SM2_CIPHERTEXT_SIZE(inlen) (sizeof(SM2_CIPHERTEXT)-1+(inlen))
 int sm2_ciphertext_size(size_t inlen, size_t *outlen);
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen);
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
-int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const SM2_CIPHERTEXT *c);
+int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen);
 
 int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm2_print_ciphertext(FILE *fp, const uint8_t *c, size_t clen, int format, int indent);
+
+
 
 int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
 
+int sm2_selftest(void);
 
 #ifdef __cplusplus
 extern "C" {

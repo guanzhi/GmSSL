@@ -111,9 +111,9 @@ int x509_req_sign(uint8_t *req, size_t *reqlen, size_t maxlen,
 	const SM2_KEY *subject_public_key,
 	const uint8_t *attrs, size_t attrs_len,
 	int signature_algor,
-	const SM2_KEY *sign_key, const char *signer_id);
+	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
 int x509_req_verify(const uint8_t *req, size_t reqlen,
-	const SM2_KEY *sign_pubkey, const char *signer_id)
+	const SM2_KEY *sign_pubkey, const char *signer_id, size_t signer_id_len);
 int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	int *verison,
 	const uint8_t **subject, size_t *subject_len,
@@ -121,7 +121,7 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	const uint8_t **attributes, size_t *attributes_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);
-int x509_req_print(FILE *fp, int fmt, int ind, const uint8_t *req, size_t reqlen)
+int x509_req_print(FILE *fp, int fmt, int ind, const uint8_t *req, size_t reqlen);
 int x509_req_to_pem(const uint8_t *req, size_t reqlen, FILE *fp);
 int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp);
 

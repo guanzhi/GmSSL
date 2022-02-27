@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2020 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,6 +100,10 @@ int x509_crl_entry_exts_add_certificate_issuer(
 	uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical,
 	const uint8_t *d, size_t dlen);
+
+#define x509_crl_entry_exts_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
+#define x509_crl_entry_exts_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
+int x509_crl_entry_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
 RevokedCertificate ::= SEQUENCE {
@@ -238,8 +242,9 @@ int x509_crl_sign(uint8_t *crl, size_t *crl_len,
 	time_t next_update,
 	const uint8_t *revoked_certs, size_t revoked_certs_len,
 	const uint8_t *exts, size_t exts_len,
-	const SM2_KEY *sign_key, const char *signer_id);
-int x509_crl_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key, const char *key_id);
+	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
+int x509_crl_verify(const uint8_t *a, size_t alen,
+	const SM2_KEY *sign_pub_key, const char *signer_id, size_t signer_id_len);
 
 int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
 	int *version,

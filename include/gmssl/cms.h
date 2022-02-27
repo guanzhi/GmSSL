@@ -316,7 +316,7 @@ int cms_signed_data_from_der(
 	int *content_type, const uint8_t **content, size_t *content_len,
 	const uint8_t **certs, size_t *certs_len,
 	const uint8_t **crls, size_t *crls_len,
-cms_set_key_agreement_info	const uint8_t **signer_infos, size_t *signer_infos_len,
+	const uint8_t **signer_infos, size_t *signer_infos_len,
 	const uint8_t **in, size_t *inlen);
 int cms_signed_data_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 

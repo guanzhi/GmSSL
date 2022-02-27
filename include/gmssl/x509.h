@@ -70,8 +70,8 @@ enum X509_Version {
 };
 
 const char *x509_version_name(int version);
-int x509_explicit_version_to_der(int index, int version);
-int x509_explicit_version_from_der(int index, int *version);
+int x509_explicit_version_to_der(int index, int version, uint8_t **out, size_t *outlen);
+int x509_explicit_version_from_der(int index, int *version, const uint8_t **in, size_t *inlen);
 
 /*
 Time ::= CHOICE {
@@ -86,6 +86,8 @@ Validity ::= SEQUENCE {
 	notBefore	Time,
 	notAfter	Time }
 */
+#define X509_VALIDITY_MIN_DAYS 1
+#define X509_VALIDITY_MAX_DAYS (365 * 3)
 int x509_validity_add_days(time_t *not_after, time_t not_before, int days);
 int x509_validity_to_der(time_t not_before, time_t not_after, uint8_t **out, size_t *outlen);
 int x509_validity_from_der(time_t *not_before, time_t *not_after, const uint8_t **in, size_t *inlen);
@@ -142,8 +144,8 @@ Name ::= SEQUENCE OF RelativeDistinguishedName
 int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen, int oid, int tag, const uint8_t *val, size_t vlen, const uint8_t *more, size_t mlen);
 int x509_name_add_country_name(uint8_t *d, size_t *dlen, int maxlen, const char val[2] ); // val: PrintableString SIZE(2)
 int x509_name_add_state_or_province_name(uint8_t *d, size_t *dlen, int maxlen, int tag, const uint8_t *val, size_t vlen);
-int x509_name_add_locality_name(uint8_t *d, size_t *dlen, int maxlen, cint tag, onst uint8_t *val, size_t vlen);
-int x509_name_add_organization_name(uint8_t *d, size_t *dlen, int maxlen, cint tag, onst uint8_t *val, size_t vlen);
+int x509_name_add_locality_name(uint8_t *d, size_t *dlen, int maxlen, int tag, const uint8_t *val, size_t vlen);
+int x509_name_add_organization_name(uint8_t *d, size_t *dlen, int maxlen, int tag, const uint8_t *val, size_t vlen);
 int x509_name_add_organizational_unit_name(uint8_t *d, size_t *dlen, int maxlen, int tag, const uint8_t *val, size_t vlen);
 int x509_name_add_common_name(uint8_t *d, size_t *dlen, int maxlen, int tag, const uint8_t *val, size_t vlen);
 int x509_name_add_domain_component(uint8_t *d, size_t *dlen, int maxlen, const char *val, size_t vlen); // val: IA5String
@@ -184,7 +186,7 @@ int x509_explicit_exts_from_der(int index, const uint8_t **d, size_t *dlen, cons
 #define x509_exts_to_der(d,dlen,out,outlen) x509_explicit_exts_to_der(3,d,dlen,out,outlen)
 #define x509_exts_from_der(d,dlen,in,inlen) x509_explicit_exts_from_der(3,d,dlen,in,inlen)
 
-int x509_exts_get_count(const uint8_t *d, size_t dlen, int *count);
+int x509_exts_get_count(const uint8_t *d, size_t dlen, size_t *cnt);
 int x509_exts_get_ext_by_index(const uint8_t *d, size_t dlen, int index,
 	int *oid, uint32_t *nodes, size_t *nodes_cnt, int *critical,
 	const uint8_t **val, size_t *vlen);
@@ -267,15 +269,15 @@ int x509_cert_sign(
 	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
 	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
 	const uint8_t *exts, size_t exts_len,
-	const SM2_KEY *sign_key, const char *signer_id);
-int x509_cert_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key, const char *signer_id);
+	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
+int x509_cert_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len);
 int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen);
 
 int x509_cert_to_pem(const uint8_t *a, size_t alen, FILE *fp);
 int x509_cert_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
-int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp, int index);
-int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp, const uint8_t *name, size_t namelen);
-int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
+int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, int index, FILE *fp);
+int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, const uint8_t *name, size_t namelen, FILE *fp);
+int x509_cert_print(FILE *fp, int fmt, int ind, const uint8_t *a, size_t alen);
 
 int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *version,
@@ -283,7 +285,7 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *inner_signature_algor,
 	const uint8_t **issuer, size_t *issuer_len,
 	time_t *not_before, time_t *not_after,
-	const uint8_t *subject, size_t *subject_len,
+	const uint8_t **subject, size_t *subject_len,
 	SM2_KEY *subject_public_key,
 	const uint8_t **issuer_unique_id, size_t *issuer_unique_id_len,
 	const uint8_t **subject_unique_id, size_t *subject_unique_id_len,
@@ -296,13 +298,15 @@ IssuerAndSerialNumber ::= SEQUENCE {
 	isser		Name,
 	serialNumber	INTEGER }
 */
-int x509_cert_get_issuer_and_serial_number(const uint8_t *cert, size_t certlen,
+int x509_cert_get_issuer_and_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t **issuer, size_t *issuer_len,
 	const uint8_t **serial_number, size_t *serial_number_len);
+int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **subj, size_t *subj_len);
+int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, SM2_KEY *public_key);
 
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp);
 int x509_certs_from_pem(const uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp);
-int x509_certs_get_count(const uint8_t *d, size_t dlen, int count);
+int x509_certs_get_count(const uint8_t *d, size_t dlen, size_t *cnt);
 int x509_certs_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const uint8_t **cert, size_t *certlen);
 int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen, const uint8_t *subject, size_t subject_len, const uint8_t **cert, size_t *certlen);
 

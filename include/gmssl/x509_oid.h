@@ -104,10 +104,10 @@ id-ce:
 	OID_ce_inhibit_any_policy
 	OID_ce_freshest_crl
 */
-const char *x509_ext_type_name(int oid);
-int x509_ext_type_from_name(const char *name);
-int x509_ext_type_from_der(int *oid, uint32_t *nodes, size_t *nodes_count, const uint8_t **in, size_t *inlen);
-int x509_ext_type_to_der(int oid, uint8_t **out, size_t *outlen);
+const char *x509_ext_id_name(int oid);
+int x509_ext_id_from_name(const char *name);
+int x509_ext_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_count, const uint8_t **in, size_t *inlen);
+int x509_ext_id_to_der(int oid, uint8_t **out, size_t *outlen);
 
 /*
 id-qt
