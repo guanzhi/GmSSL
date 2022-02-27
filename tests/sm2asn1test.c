@@ -65,7 +65,7 @@ static int test_sm2_point_octets(void)
 	// compress
 	for (i = 0; i < 8; i++) {
 		uint8_t buf[33];
-		sm2_keygen(&sm2_key);
+		sm2_key_generate(&sm2_key);
 		sm2_point_to_compressed_octets(&sm2_key.public_key, buf);
 		if (sm2_point_from_octets(&point, buf, sizeof(buf)) != 1) {
 			error_print();
@@ -82,7 +82,7 @@ static int test_sm2_point_octets(void)
 	// uncompress
 	for (i = 0; i < 8; i++) {
 		uint8_t buf[65];
-		sm2_keygen(&sm2_key);
+		sm2_key_generate(&sm2_key);
 		sm2_point_to_uncompressed_octets(&sm2_key.public_key, buf);
 		if (sm2_point_from_octets(&point, buf, sizeof(buf)) != 1) {
 			error_print();
@@ -111,7 +111,7 @@ static int test_sm2_private_key(void)
 	size_t len = 0;
 
 
-	sm2_keygen(&sm2_key);
+	sm2_key_generate(&sm2_key);
 
 	if (sm2_private_key_to_der(&sm2_key, &p, &len) != 1) {
 		error_print();
@@ -145,7 +145,7 @@ static int test_sm2_public_key_info(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 
-	sm2_keygen(&sm2_key);
+	sm2_key_generate(&sm2_key);
 
 	if (sm2_public_key_info_to_der(&sm2_key, &p, &len) != 1) {
 		error_print();

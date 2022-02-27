@@ -85,9 +85,9 @@ int zuc_test(void)
 	};
 
 	for (i = 0; i < 3; i++) {
-		ZUC_KEY zuc = {{0}};
+		ZUC_STATE zuc = {{0}};
 		uint32_t buf[3] = {0};
-		zuc_set_key(&zuc, key[i], iv[i]);
+		zuc_init(&zuc, key[i], iv[i]);
 		zuc_generate_keystream(&zuc, 2, buf);
 		if (buf[0] != ciphertext[i][0] || buf[1] != ciphertext[i][1]) {
 			fprintf(stderr, "error generating ZUC key stream on test vector %d\n", i);
@@ -358,10 +358,10 @@ int zuc256_test(void)
 	};
 
 	for (i = 0; i < sizeof(key)/sizeof(key[0]); i++) {
-		ZUC_KEY zuc_key;
+		ZUC_STATE zuc_key;
 		uint32_t buf[20] = {0};
 
-		zuc256_set_key(&zuc_key, key[i], iv[i]);
+		zuc256_init(&zuc_key, key[i], iv[i]);
 		zuc_generate_keystream(&zuc_key, 20, buf);
 
 		if (memcmp(buf, ciphertext[i], 20) != 0) {

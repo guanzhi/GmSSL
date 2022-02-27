@@ -128,9 +128,9 @@ int test_hmac(const DIGEST *digest, const char *key_hex, const char *data_hex, c
 	uint8_t buf[64];
 	size_t len;
 
-	hex2bin(key_hex, strlen(key_hex), key);
-	hex2bin(data_hex, strlen(data_hex), data);
-	hex2bin(hmac_hex, strlen(hmac_hex), hmac);
+	hex_to_bytes(key_hex, strlen(key_hex), key, &len);
+	hex_to_bytes(data_hex, strlen(data_hex), data, &len);
+	hex_to_bytes(hmac_hex, strlen(hmac_hex), hmac, &len);
 
 	hmac_init(&ctx, digest, key, sizeof(key));
 	hmac_update(&ctx, data, sizeof(data));

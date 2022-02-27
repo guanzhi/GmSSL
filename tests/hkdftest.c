@@ -194,15 +194,16 @@ int test_hkdf(void)
 	size_t L;
 	uint8_t buf[512];
 	size_t buflen;
+	size_t len;
 
 	for (i = 0; i < sizeof(hkdf_tests)/sizeof(hkdf_tests[0]); i++) {
 
 		digest = digest_from_name(hkdf_tests[i].algor);
-		hex2bin(hkdf_tests[i].ikm, strlen(hkdf_tests[i].ikm), ikm);
-		hex2bin(hkdf_tests[i].salt, strlen(hkdf_tests[i].salt), salt);
-		hex2bin(hkdf_tests[i].info, strlen(hkdf_tests[i].info), info);
-		hex2bin(hkdf_tests[i].prk, strlen(hkdf_tests[i].prk), prk);
-		hex2bin(hkdf_tests[i].okm, strlen(hkdf_tests[i].okm), okm);
+		hex_to_bytes(hkdf_tests[i].ikm, strlen(hkdf_tests[i].ikm), ikm, &len);
+		hex_to_bytes(hkdf_tests[i].salt, strlen(hkdf_tests[i].salt), salt, &len);
+		hex_to_bytes(hkdf_tests[i].info, strlen(hkdf_tests[i].info), info, &len);
+		hex_to_bytes(hkdf_tests[i].prk, strlen(hkdf_tests[i].prk), prk, &len);
+		hex_to_bytes(hkdf_tests[i].okm, strlen(hkdf_tests[i].okm), okm, &len);
 		ikmlen = strlen(hkdf_tests[i].ikm)/2;
 		saltlen = strlen(hkdf_tests[i].salt)/2;
 		infolen = strlen(hkdf_tests[i].info)/2;

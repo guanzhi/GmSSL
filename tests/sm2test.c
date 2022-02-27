@@ -75,8 +75,8 @@ static int test_sm2_point(void)
 
 	sm2_point_mul_generator(&P, k);
 
-	printf("k * G :\n");
-	sm2_point_print(stdout, &P, 0, 2);
+	sm2_point_print(stdout, 0, 4, "k * G", &P);
+
 
 	sm2_point_to_compressed_octets(&P, buf);
 	for (i = 0; i < 33; i++) printf("%02x", buf[i]); printf("\n");
@@ -110,12 +110,11 @@ static int test_sm2_do_encrypt(void)
 	size_t plainlen = 0;
 	int r = 0;
 
-	sm2_keygen(&key);
+	sm2_key_generate(&key);
 
 	sm2_do_encrypt(&key, plaintext, sizeof(plaintext), ciphertext);
 
-	printf("ciphertext:\n");
-	sm2_ciphertext_print(stdout, ciphertext, 0, 2);
+	//sm2_ciphertext_print(stdout, 0, 4, "ciphertext", ciphertext);
 
 	sm2_do_decrypt(&key, ciphertext, plainbuf, &plainlen);
 
@@ -133,17 +132,16 @@ static int test_sm2_sign(void)
 	int i;
 	int r;
 
-	sm2_keygen(&key);
-	sm2_key_print(stdout, &key, 0, 0);
+	sm2_key_generate(&key);
+	sm2_key_print(stdout, 0, 4, "sm2_key", &key);
 
-	sm2_sign_init(&ctx, &key, SM2_DEFAULT_ID);
+	sm2_sign_init(&ctx, &key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID));
 	sm2_sign_update(&ctx, msg, sizeof(msg));
 	sm2_sign_finish(&ctx, sig, &siglen);
 
-	printf("signature:\n");
-	sm2_print_signature(stdout, sig, siglen, 0, 2);
+	sm2_signature_print(stdout, 0, 4, "signature", sig, siglen);
 
-	sm2_verify_init(&ctx, &key, SM2_DEFAULT_ID);
+	sm2_verify_init(&ctx, &key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID));
 	sm2_verify_update(&ctx, msg, sizeof(msg));
 	r = sm2_verify_finish(&ctx, sig, siglen);
 	printf("verify %s\n", r > 0 ? "success" : "failed");
@@ -153,7 +151,7 @@ static int test_sm2_sign(void)
 
 int main(void)
 {
-	sm2_algo_selftest();
+	sm2_selftest();
 
 	//test_sm2_point();
 	//test_sm2_sign();
