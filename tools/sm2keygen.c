@@ -129,7 +129,7 @@ help:
 		}
 	}
 
-	if (sm2_keygen(&key) != 1) {
+	if (sm2_key_generate(&key) != 1) {
 		error_print();
 		return -1;
 	}

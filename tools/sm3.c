@@ -117,7 +117,7 @@ help:
 			id = SM2_DEFAULT_ID;
 		}
 
-		sm2_compute_z(z, (SM2_POINT *)&sm2_key, id);
+		sm2_compute_z(z, (SM2_POINT *)&sm2_key, id, strlen(id));
 		sm3_update(&sm3_ctx, z, sizeof(z));
 
 	} else {

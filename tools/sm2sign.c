@@ -156,7 +156,7 @@ help:
 		return -1;
 	}
 
-	sm2_sign_init(&sign_ctx, &key, id);
+	sm2_sign_init(&sign_ctx, &key, id, strlen(id));
 
 	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 		sm2_sign_update(&sign_ctx, buf, len);

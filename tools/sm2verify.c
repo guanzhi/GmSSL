@@ -74,8 +74,9 @@ int main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *sigfp = NULL;
 	SM2_KEY key;
-	X509_CERTIFICATE cert;
 	SM2_SIGN_CTX verify_ctx;
+	uint8_t cert[1024];
+	size_t certlen;
 	uint8_t buf[4096];
 	ssize_t len;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
@@ -134,11 +135,11 @@ help:
 			error_print();
 			return -1;
 		}
-		if (x509_certificate_from_pem(&cert, certfp) != 1) {
+		if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_certificate_get_public_key(&cert, &key) != 1) {
+		if (x509_cert_get_subject_public_key(cert, certlen, &key) != 1) {
 			error_print();
 			return -1;
 		}
@@ -167,7 +168,7 @@ help:
 		return -1;
 	}
 
-	sm2_verify_init(&verify_ctx, &key, id);
+	sm2_verify_init(&verify_ctx, &key, id, strlen(id));
 	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 		sm2_verify_update(&verify_ctx, buf, len);
 	}

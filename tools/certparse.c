@@ -56,9 +56,11 @@
 
 int main(void)
 {
-	X509_CERTIFICATE cert;
+	uint8_t cert[1024];
+	size_t certlen;
+
 	for (;;) {
-		int ret = x509_certificate_from_pem(&cert, stdin);
+		int ret = x509_cert_from_pem(cert, &certlen, sizeof(cert), stdin);
 		if (ret < 0) {
 			error_print();
 			return -1;
@@ -67,8 +69,8 @@ int main(void)
 			goto end;
 		}
 		fprintf(stdout, "Certificate\n");
-		x509_certificate_print(stdout, &cert, 0, 0);
-		x509_certificate_to_pem(&cert, stdout);
+		x509_cert_print(stdout, 0, 0, cert, certlen);
+		x509_cert_to_pem(cert, certlen, stdout);
 		fprintf(stdout, "\n");
 	}
 end:
