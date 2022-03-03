@@ -80,7 +80,7 @@ int main(void)
 	unsigned char buf[64];
 
 	CHACHA20_STATE state;
-	chacha20_set_key(&state, key, nonce, counter);
+	chacha20_init(&state, key, nonce, counter);
 	chacha20_generate_keystream(&state, 1, buf);
 
 	if (memcmp(buf, testdata, sizeof(testdata)) != 0) {

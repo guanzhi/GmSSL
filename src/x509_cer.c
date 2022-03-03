@@ -994,6 +994,16 @@ int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *ca
 	return ret;
 }
 
+int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
+{
+	return asn1_any_to_der(a, alen, out, outlen);
+}
+
+int x509_cert_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen)
+{
+	return asn1_any_from_der(a, alen, in, inlen);
+}
+
 int x509_cert_to_pem(const uint8_t *a, size_t alen, FILE *fp)
 {
 	if (pem_write(fp, "CERTIFICATE", a, alen) != 1) {

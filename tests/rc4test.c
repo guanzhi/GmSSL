@@ -395,7 +395,7 @@ int main(void)
 
 	for (i = 0; i < sizeof(keybits)/sizeof(keybits[0]); i++) {
 		int e = 0;
-		rc4_set_key(&state, key1, keybits[i]/8);
+		rc4_init(&state, key1, keybits[i]/8);
 		rc4_generate_keystream(&state, sizeof(buf), buf);
 		for (j = 0; j < sizeof(testindex)/sizeof(testindex[0]); j++) {
 			if (memcmp(buf + testindex[j], &testdata1[i][j * 16], 16) != 0) {
@@ -410,7 +410,7 @@ int main(void)
 
 	for (i = 0; i < sizeof(keybits)/sizeof(keybits[0]); i++) {
 		int e = 0;
-		rc4_set_key(&state, key2 + sizeof(key2) - keybits[i]/8, keybits[i]/8);
+		rc4_init(&state, key2 + sizeof(key2) - keybits[i]/8, keybits[i]/8);
 		rc4_generate_keystream(&state, sizeof(buf), buf);
 		for (j = 0; j < sizeof(testindex)/sizeof(testindex[0]); j++) {
 			if (memcmp(buf + testindex[j], &testdata2[i][j * 16], 16) != 0) {

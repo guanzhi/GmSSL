@@ -273,6 +273,8 @@ int x509_cert_sign(
 int x509_cert_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len);
 int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen);
 
+int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
+int x509_cert_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 int x509_cert_to_pem(const uint8_t *a, size_t alen, FILE *fp);
 int x509_cert_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
 int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, int index, FILE *fp);

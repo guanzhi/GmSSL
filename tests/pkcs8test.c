@@ -275,7 +275,7 @@ static int test_pkcs8(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 
-	sm2_keygen(&sm2_key);
+	sm2_key_generate(&sm2_key);
 	memcpy(&sm2_buf, &sm2_key, sizeof(sm2_key));
 	//sm2_key_print(stdout, &sm2_key, 0, 0);
 

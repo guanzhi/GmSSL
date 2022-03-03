@@ -53,7 +53,7 @@
 #include <gmssl/chacha20.h>
 #include "endian.h"
 
-void chacha20_set_key(CHACHA20_STATE *state,
+void chacha20_init(CHACHA20_STATE *state,
 	const uint8_t key[CHACHA20_KEY_SIZE],
 	const uint8_t nonce[CHACHA20_NONCE_SIZE],
 	uint32_t counter)

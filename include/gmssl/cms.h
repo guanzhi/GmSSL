@@ -169,6 +169,7 @@ int cms_encrypted_data_from_der(
 int cms_encrypted_data_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 int cms_encrypted_data_encrypt_to_der(
+	int version,
 	int content_type,
 	int enc_algor, const uint8_t *iv, size_t ivlen,
 	const uint8_t *content, size_t content_len,
@@ -177,6 +178,7 @@ int cms_encrypted_data_encrypt_to_der(
 	const uint8_t *key, size_t keylen,
 	uint8_t **out, size_t *outlen);
 int cms_encrypted_data_decrypt_from_der(
+	int *version,
 	int *content_type,
 	int *enc_algor, const uint8_t **iv, size_t *ivlen,
 	uint8_t *content, size_t *content_len,
@@ -238,8 +240,7 @@ int cms_signer_info_sign_to_der(
 	const uint8_t *serial_number, size_t serial_number_len,
 	const uint8_t *authed_attrs, size_t authed_attrs_len,
 	const uint8_t *unauthed_attrs, size_t unauthed_attrs_len,
-	const SM3_CTX *sm3_ctx,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	const SM3_CTX *sm3_ctx, const SM2_KEY *sign_key,
 	uint8_t **out, size_t *outlen);
 int cms_signer_info_verify_from_der(
 	int *version,
@@ -250,7 +251,7 @@ int cms_signer_info_verify_from_der(
 	int *signature_algor,
 	const uint8_t **enced_digest, size_t *enced_digest_len,
 	const uint8_t **unauthed_attrs, size_t *unauthed_attrs_len,
-	const uint8_t *certs, size_t certslen,
+	const SM3_CTX *sm3_ctx, const SM2_KEY *sign_pub_key,
 	const uint8_t **in, size_t *inlen);
 
 /*
@@ -263,8 +264,7 @@ int cms_signer_infos_add_signer_info(
 	const uint8_t *serial_number, size_t serial_number_len,
 	const uint8_t *authed_attrs, size_t authed_attrs_len,
 	const uint8_t *unauthed_attrs, size_t unauthed_attrs_len,
-	const SM3_CTX *sm3_ctx,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
+	const SM3_CTX *sm3_ctx, const SM2_KEY *sign_key);
 
 #define cms_signer_infos_to_der(d,dlen,out,outlen) asn1_set_to_der(d,dlen,out,outlen)
 #define cms_signer_infos_from_der(d,dlen,in,inlen) asn1_set_from_der(d,dlen,in,inlen)
@@ -293,6 +293,11 @@ int cms_extened_certs_add_cert(uint8_t *d, size_t *dlen, size_t maxlen, const ui
 #define cms_extened_certs_from_der(d,dlen,in,inlen) asn1_set_from_der(d,dlen,in,inlen)
 int cms_extended_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
+int cms_digest_algors_to_der(const int *digest_algors, size_t digest_algors_cnt, uint8_t **out, size_t *outlen);
+int cms_digest_algors_from_der(int *digest_algors, size_t *digest_algors_cnt, size_t max_digest_algors,
+	const uint8_t **in, size_t *inlen);
+int cms_digest_algors_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
 /*
 SignedData ::= SEQUENCE {
 	version			INTEGER (1),
@@ -304,15 +309,15 @@ SignedData ::= SEQUENCE {
 */
 int cms_signed_data_to_der(
 	int version,
-	const int *digest_algors, const size_t digest_algors_cnt,
+	const int *digest_algors, size_t digest_algors_cnt,
 	const int content_type, const uint8_t *content, const size_t content_len,
 	const uint8_t *certs, size_t certs_len,
-	const uint8_t *crls, const size_t crls_lens,
-	const uint8_t *signer_infos, size_t signer_infos_lens,
+	const uint8_t *crls, const size_t crls_len,
+	const uint8_t *signer_infos, size_t signer_infos_len,
 	uint8_t **out, size_t *outlen);
 int cms_signed_data_from_der(
 	int *version,
-	const uint8_t *digest_algors, size_t *digest_algors_count, size_t max_digest_algors,
+	int *digest_algors, size_t *digest_algors_cnt, size_t max_digest_algors,
 	int *content_type, const uint8_t **content, size_t *content_len,
 	const uint8_t **certs, size_t *certs_len,
 	const uint8_t **crls, size_t *crls_len,
@@ -401,7 +406,7 @@ int cms_enveloped_data_to_der(
 	const uint8_t *enced_content, size_t enced_content_len,
 	const uint8_t *shared_info1, size_t shared_info1_len,
 	const uint8_t *shared_info2, size_t shared_info2_len,
-	const uint8_t **out, size_t *outlen);
+	uint8_t **out, size_t *outlen);
 int cms_enveloped_data_from_der(
 	int *version,
 	const uint8_t **rcpt_infos, size_t *rcpt_infos_len,
@@ -445,7 +450,7 @@ SignedAndEnvelopedData ::= SEQUENCE {
 int cms_signed_and_enveloped_data_to_der(
 	int version,
 	const uint8_t *rcpt_infos, size_t rcpt_infos_len,
-	const int *digest_algors, size_t digest_algors_count,
+	const int *digest_algors, size_t digest_algors_cnt,
 	int content_type,
 	int enc_algor, const uint8_t *iv, size_t ivlen,
 	const uint8_t *enced_content, size_t enced_content_len,
@@ -453,11 +458,12 @@ int cms_signed_and_enveloped_data_to_der(
 	const uint8_t *shared_info2, size_t shared_info2_len,
 	const uint8_t *certs, size_t certs_len,
 	const uint8_t *crls, size_t crls_len,
-	const uint8_t *signer_infos, size_t signer_infos_len);
+	const uint8_t *signer_infos, size_t signer_infos_len,
+	uint8_t **out, size_t *outlen);
 int cms_signed_and_enveloped_data_from_der(
 	int *version,
 	const uint8_t **rcpt_infos, size_t *rcpt_infos_len,
-	const uint8_t **digest_algors, size_t *digest_algors_len,
+	int *digest_algors, size_t *digest_algors_cnt, size_t max_digest_algors,
 	int *content_type,
 	int *enc_algor, const uint8_t **enc_iv, size_t *enc_iv_len,
 	const uint8_t **enced_content, size_t *enced_content_len,
@@ -527,14 +533,14 @@ int cms_key_agreement_info_print(FILE *fp, int fmt, int ind, const char *label, 
 
 
 // 生成ContentInfo, type == data
-int cms_set_data(uint8_t *cms, size_t *cms_len, const uint8_t *d, size_t dlen);
+int cms_set_data(uint8_t *cms, size_t *cmslen, size_t maxlen, const uint8_t *d, size_t dlen);
 
 int cms_encrypt(
 	int enc_algor, const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen, // 对称加密算法、密钥和IV
 	int content_type, const uint8_t *content, size_t content_len, // 待加密的输入数据
 	const uint8_t *shared_info1, size_t shared_info1_len, // 附加信息
 	const uint8_t *shared_info2, size_t shared_info2_len, // 附加信息
-	uint8_t *cms, size_t *cms_len); // 输出的ContentInfo (type encryptedData)
+	uint8_t *cms, size_t *cmslen, size_t maxlen); // 输出的ContentInfo (type encryptedData)
 
 int cms_decrypt(
 	const uint8_t *key, size_t keylen, // 解密密钥（我们不知道解密算法）

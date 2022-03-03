@@ -66,6 +66,9 @@
 
 #define OCTETS_1	"\x12\x34\x45\x56"
 
+
+#if 0
+
 static void print_buf(const uint8_t *a, size_t len)
 {
 	size_t i;
@@ -540,7 +543,7 @@ static int test_asn1_generalized_time(void)
 
 
 
-
+#endif
 
 
 
@@ -552,18 +555,18 @@ static int test_asn1_generalized_time(void)
 int main(void)
 {
 	int err = 0;
-	err += test_asn1_tag();
-	err += test_asn1_length();
-	err += test_asn1_boolean();
-	err += test_asn1_integer();
+	//err += test_asn1_tag();
+	//err += test_asn1_length();
+	//err += test_asn1_boolean();
+	//err += test_asn1_integer();
 	//err += test_asn1_bit_string();
-	err += test_asn1_null();
-	err += test_asn1_object_identifier();
-	err += test_asn1_printable_string();
-	err += test_asn1_utf8_string();
-	err += test_asn1_ia5_string();
-	err += test_asn1_utc_time();
-	err += test_asn1_generalized_time();
+	//err += test_asn1_null();
+	//err += test_asn1_object_identifier();
+	//err += test_asn1_printable_string();
+	//err += test_asn1_utf8_string();
+	//err += test_asn1_ia5_string();
+	//err += test_asn1_utc_time();
+	//err += test_asn1_generalized_time();
 
 	return err;
 }

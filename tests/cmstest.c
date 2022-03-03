@@ -56,6 +56,7 @@
 #include <gmssl/sm4.h>
 #include <gmssl/cms.h>
 
+#if 0
 static int test_cms_data(void)
 {
 	uint8_t data[20];
@@ -604,7 +605,7 @@ static int test_cms_sign(void)
 
 
 
-
+#endif
 
 
 
@@ -620,7 +621,7 @@ int main(void)
 	//test_cms_recipient_info();
 	//test_cms_signer_info();
 	//test_cms_signed_data();
-	test_cms_enveloped_data();
+	//test_cms_enveloped_data();
 	//test_cms_sign();
 	return 0;
 }

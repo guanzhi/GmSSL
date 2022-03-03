@@ -142,7 +142,7 @@ int main(void)
 	size_t len;
 
 	for (i = 0; i < sizeof(pbkdf2_hmac_sha1_tests)/sizeof(pbkdf2_hmac_sha1_tests[0]); i++) {
-		hex2bin(pbkdf2_hmac_sha1_tests[i].dk, strlen(pbkdf2_hmac_sha1_tests[i].dk), buf);
+		hex_to_bytes(pbkdf2_hmac_sha1_tests[i].dk, strlen(pbkdf2_hmac_sha1_tests[i].dk), buf, &len);
 
 		pbkdf2_genkey(DIGEST_sha1(),
 			pbkdf2_hmac_sha1_tests[i].pass, strlen(pbkdf2_hmac_sha1_tests[i].pass),

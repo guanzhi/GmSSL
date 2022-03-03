@@ -99,7 +99,6 @@ static int test_sm4_cbc_padding(void)
 	sm4_cbc_padding_decrypt(&dec_key, iv, out, len1, buf, &len2);
 	printf("m = (%zu) ", len2); for (i = 0; i < len2; i++) printf("%02x", buf[i]); printf("\n");
 
-
 	return 1;
 }
 

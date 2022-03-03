@@ -313,19 +313,19 @@ static int test_x509_cert_request(void)
 end:
 	return err;
 }
+#endif
 
 
 int main(void)
 {
 	int err = 0;
 	//err += test_x509_validity();
-	err += test_x509_signature_algor(OID_sm2sign_with_sm3);
-	err += test_x509_signature_algor(OID_rsasign_with_sm3);
-	err += test_x509_name();
-	err += test_x509_public_key_info();
-	err += test_x509_certificate();
-	err += test_x509_cert_request();
+	//err += test_x509_signature_algor(OID_sm2sign_with_sm3);
+	//err += test_x509_signature_algor(OID_rsasign_with_sm3);
+	//err += test_x509_name();
+	//err += test_x509_public_key_info();
+	//err += test_x509_certificate();
+	//err += test_x509_cert_request();
 	//test_x509_extensions();
 	return 1;
 }
-#endif
