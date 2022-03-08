@@ -581,3 +581,21 @@ int x509_crl_get_revoked_cert_by_serial_number(const uint8_t *a, size_t alen,
 {
 	return 1;
 }
+
+int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_cert_list_print(fp, fmt, ind, "CertificateRevocationList", p, len);
+	}
+	return 1;
+}

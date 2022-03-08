@@ -64,6 +64,12 @@ int sm2_key_print(FILE *fp, int format, int indent, const char *label, const SM2
 	return 1;
 }
 
+int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key)
+{
+	sm2_point_print(fp, fmt, ind + 4, "public_key", &pub_key->public_key);
+	return 1;
+}
+
 int sm2_point_print(FILE *fp, int format, int indent, const char *label, const SM2_POINT *P)
 {
 	format_bytes(fp, format, indent, "x : ", P->x, 32);

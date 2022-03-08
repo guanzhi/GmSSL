@@ -1237,3 +1237,49 @@ int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen,
 	error_print();
 	return -1;
 }
+
+int x509_certs_get_cert_by_issuer_and_serial_number(
+	const uint8_t *certs, size_t certs_len,
+	const uint8_t *issuer, size_t issuer_len,
+	const uint8_t *serial, size_t serial_len,
+	const uint8_t **cert, size_t *cert_len)
+{
+	const uint8_t *cur_issuer;
+	size_t cur_issuer_len;
+	const uint8_t *cur_serial;
+	size_t cur_serial_len;
+
+	while (certs_len) {
+		if (asn1_any_from_der(cert, cert_len, &certs, &certs_len) != 1
+			|| x509_cert_get_issuer_and_serial_number(*cert, *cert_len,
+				&cur_issuer, &cur_issuer_len,
+				&cur_serial, &cur_serial_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (cur_issuer_len == issuer_len
+			&& memcmp(cur_issuer, issuer, issuer_len) == 0
+			&& cur_serial_len == serial_len
+			&& memcmp(cur_serial, serial, serial_len) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_certificate_print(fp, fmt, ind, "Certficate", p, len);
+	}
+	return 1;
+}

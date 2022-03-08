@@ -91,6 +91,7 @@ int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *
 
 int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key);
 int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
+int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
 
 /*
 from RFC 5915

@@ -257,6 +257,8 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *tv, const uint8_t **in, s
 #define asn1_implicit_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
 
 int asn1_header_to_der(int tag, size_t dlen, uint8_t **out, size_t *outlen);
+#define asn1_implicit_header_to_der(i,dlen,out,outlen) asn1_header_to_der(ASN1_TAG_EXPLICIT(i),dlen,out,outlen)
+
 #define asn1_sequence_header_to_der(dlen,out,outlen) asn1_header_to_der(ASN1_TAG_SEQUENCE,dlen,out,outlen)
 #define asn1_implicit_sequence_header_to_der(i,dlen,out,outlen) asn1_header_to_der(ASN1_TAG_EXPLICIT(i),dlen,out,outlen)
 

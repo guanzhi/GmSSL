@@ -312,6 +312,15 @@ int x509_certs_get_count(const uint8_t *d, size_t dlen, size_t *cnt);
 int x509_certs_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const uint8_t **cert, size_t *certlen);
 int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen, const uint8_t *subject, size_t subject_len, const uint8_t **cert, size_t *certlen);
 
+int x509_certs_get_cert_by_issuer_and_serial_number(
+	const uint8_t *certs, size_t certs_len,
+	const uint8_t *issuer, size_t issuer_len,
+	const uint8_t *serial, size_t serial_len,
+	const uint8_t **cert, size_t *cert_len);
+
+int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+
 #ifdef __cplusplus
 }
 #endif
