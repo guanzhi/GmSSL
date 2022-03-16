@@ -134,7 +134,7 @@ help:
 		return -1;
 	}
 
-	if (sm2_enced_private_key_info_to_pem(&key, pass, outfp) != 1) {
+	if (sm2_private_key_info_encrypt_to_pem(&key, pass, outfp) != 1) {
 		memset(&key, 0, sizeof(SM2_KEY));
 		error_print();
 		return -1;

@@ -91,9 +91,5 @@ int main(void)
 	gf128_print("H = ", H);
 	gf128_print("C * H = ", T);
 
-
-
-
-
 	return 0;
 }

@@ -155,10 +155,19 @@ enum {
 	OID_sha512_224,
 	OID_sha512_256,
 
+
+	OID_hmac_sha1,
+	OID_hmac_sha224,
+	OID_hmac_sha256,
+	OID_hmac_sha384,
+	OID_hmac_sha512,
+	OID_hmac_sha512_224,
+	OID_hmac_sha512_256,
+
 	OID_pbkdf2, // {pkcs-5 12}
 	OID_pbes2,  // {pkcs-5 13}
-	OID_hmacWithSHA1,
-	OID_hmacWithSHA224,
+
+
 
 	OID_sm4_ecb, // 1 2 156 10197 1 104 1
 	OID_sm4_cbc, // 1 2 156 10197 1 104 2
@@ -209,7 +218,23 @@ enum {
 #define oid_ce	2,5,29
 
 
+#define oid_sm		1,2,156,10197
+#define oid_sm_algors	oid_sm,1
+
+
 #define oid_sm2_cms 1,2,156,10197,6,1,4,2
+
+/*
+rsadsi OBJECT IDENTIFIER ::= {iso(1) member-body(2) us(840) 113549}
+pkcs OBJECT IDENTIFIER   ::= {rsadsi 1}
+pkcs-5 OBJECT IDENTIFIER ::= {pkcs 5}
+id-PBKDF2 OBJECT IDENTIFIER ::= {pkcs-5 12}
+id-PBES2 OBJECT IDENTIFIER ::= {pkcs-5 13}
+*/
+
+#define oid_rsadsi	1,2,840,113549
+#define oid_pkcs	oid_rsadsi,1
+#define oid_pkcs5	oid_pkcs,5
 
 
 #ifdef __cplusplus

@@ -55,7 +55,8 @@
 
 int main(void)
 {
-	int e = 0, i;
+	int err = 0;
+	int i;
 	const unsigned char key[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -83,13 +84,14 @@ int main(void)
 	chacha20_init(&state, key, nonce, counter);
 	chacha20_generate_keystream(&state, 1, buf);
 
+	printf("chacha20 test ");
 	if (memcmp(buf, testdata, sizeof(testdata)) != 0) {
-		printf("chacha20 test 1 failed\n");
-		return -1;
+		printf("failed\n");
+		err++;
 	} else {
-		printf("chacha20 test 1 ok\n");
+		printf("ok\n");
 	}
 
-	return 0;
+	return err;
 }
 

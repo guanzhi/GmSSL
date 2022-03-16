@@ -350,7 +350,7 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	return 1;
 }
 
-int x509_req_print(FILE *fp, int fmt, int ind, const uint8_t *req, size_t reqlen)
+int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen)
 {
 	const uint8_t *d;
 	size_t dlen;
@@ -360,7 +360,7 @@ int x509_req_print(FILE *fp, int fmt, int ind, const uint8_t *req, size_t reqlen
 		error_print();
 		return -1;
 	}
-	x509_request_print(fp, fmt, ind, "CertificationRequest", d, dlen);
+	x509_request_print(fp, fmt, ind, label, d, dlen);
 	return 1;
 }
 

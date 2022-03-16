@@ -148,12 +148,13 @@ int test_ghash(void)
 		format_print(stdout, 0, 2, "             = %s\n\n", ghash_tests[i].T);
 		*/
 	}
-	return 1;
+	return 0;
 }
 
 
-int main(void)
+int main(int argc, char **argv)
 {
-	test_ghash();
-	return 1;
+	int err = 0;
+	err += test_ghash();
+	return err;
 }

@@ -69,7 +69,7 @@ int main(void)
 			goto end;
 		}
 		fprintf(stdout, "Certificate\n");
-		x509_cert_print(stdout, 0, 0, cert, certlen);
+		x509_cert_print(stdout, 0, 0, "Certificate", cert, certlen);
 		x509_cert_to_pem(cert, certlen, stdout);
 		fprintf(stdout, "\n");
 	}

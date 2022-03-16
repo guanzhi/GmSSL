@@ -150,6 +150,10 @@ int x509_name_add_organizational_unit_name(uint8_t *d, size_t *dlen, int maxlen,
 int x509_name_add_common_name(uint8_t *d, size_t *dlen, int maxlen, int tag, const uint8_t *val, size_t vlen);
 int x509_name_add_domain_component(uint8_t *d, size_t *dlen, int maxlen, const char *val, size_t vlen); // val: IA5String
 
+int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
+	const char *country, const char *state, const char *locality,
+	const char *org, const char *org_unit, const char *common_name);
+
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int x509_name_get_printable(const uint8_t *d, size_t dlen, char *str, size_t maxlen);
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);
@@ -269,9 +273,12 @@ int x509_cert_sign(
 	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
 	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
 	const uint8_t *exts, size_t exts_len,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
-int x509_cert_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len);
-int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen);
+	const SM2_KEY *sign_key,
+	const char *signer_id, size_t signer_id_len);
+int x509_cert_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key,
+	const char *signer_id, size_t signer_id_len);
+int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len);
 
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
 int x509_cert_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
@@ -279,7 +286,7 @@ int x509_cert_to_pem(const uint8_t *a, size_t alen, FILE *fp);
 int x509_cert_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
 int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, int index, FILE *fp);
 int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, const uint8_t *name, size_t namelen, FILE *fp);
-int x509_cert_print(FILE *fp, int fmt, int ind, const uint8_t *a, size_t alen);
+int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 
 int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *version,

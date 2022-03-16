@@ -101,7 +101,7 @@ int x509_explicit_version_from_der(int index, int *version, const uint8_t **in, 
 
 	if ((ret = asn1_explicit_from_der(index, &d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		else *version = X509_version_v1;
+		else *version = -1;
 		return ret;
 	}
 	if (asn1_int_from_der(version, &d, &dlen) != 1
@@ -224,9 +224,9 @@ int x509_validity_print(FILE *fp, int fmt, int ind, const char *label, const uin
 	ind += 4;
 
 	if (x509_time_from_der(&tv, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "notBefore : %s\n", ctime(&tv));
+	format_print(fp, fmt, ind, "notBefore: %s", ctime(&tv));
 	if (x509_time_from_der(&tv, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "notAfter : %s\n", ctime(&tv));
+	format_print(fp, fmt, ind, "notAfter: %s", ctime(&tv));
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -278,7 +278,8 @@ int x509_attr_type_and_value_check(int oid, int tag, const uint8_t *val, size_t 
 			return 1;
 		}
 	}
-	return 0;
+	error_print();
+	return -1;
 }
 
 int x509_attr_type_and_value_to_der(int oid, int tag, const uint8_t *val, size_t vlen,
@@ -324,14 +325,19 @@ int x509_attr_type_and_value_print(FILE *fp, int fmt, int ind, const char *label
 	const uint8_t *val;
 	size_t vlen;
 
-	if (label) {
+	if (fmt & ASN1_FMT_FULL) {
 		format_print(fp, fmt, ind, "%s\n", label);
 		ind += 4;
 	}
 	if (x509_name_type_from_der(&oid, &d, &dlen) != 1) goto err;
-	asn1_object_identifier_print(fp, fmt, ind, "type", x509_name_type_name(oid), NULL, 0);
+	if (fmt & ASN1_FMT_FULL)
+		asn1_object_identifier_print(fp, fmt, ind, "type", x509_name_type_name(oid), NULL, 0);
+
 	if (x509_directory_name_from_der(&tag, &val, &vlen, &d, &dlen) != 1) goto err;
-	x509_directory_name_print(fp, fmt, ind, "value", tag, val, vlen);
+	if (fmt & ASN1_FMT_FULL)
+		x509_directory_name_print(fp, fmt, ind, "value", tag, val, vlen);
+	else	x509_directory_name_print(fp, fmt, ind, x509_name_type_name(oid), tag, val, vlen);
+
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -387,7 +393,7 @@ int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	const uint8_t *p;
 	size_t len;
 
-	if (label) {
+	if (fmt & ASN1_FMT_FULL) {
 		format_print(fp, fmt, ind, "%s\n", label);
 		ind += 4;
 	}
@@ -398,7 +404,7 @@ int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 		}
 		x509_attr_type_and_value_print(fp, fmt, ind, "AttributeTypeAndValue", p, len);
 	}
-	format_print(fp, fmt, ind, "\n");
+	//format_print(fp, fmt, ind, "\n");
 	return 1;
 }
 
@@ -406,19 +412,14 @@ int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen,
 	int oid, int tag, const uint8_t *val, size_t vlen,
 	const uint8_t *more, size_t morelen)
 {
-	uint8_t *p;
 	size_t len = 0;
-
-	if (x509_rdn_to_der(oid, tag, val, len, NULL, 0, NULL, &len) != 1) {
-		error_print();
-		return -1;
+	uint8_t *p = d + *dlen;
+	if (!val && !more) {
+		return 0;
 	}
-	if (*dlen + len + morelen > maxlen) {
-		error_print();
-		return -1;
-	}
-	if (x509_rdn_to_der(oid, tag, val, len, NULL, 0, &d, dlen) != 1
-		|| asn1_data_to_der(more, morelen, &d, dlen) < 0) {
+	if (x509_rdn_to_der(oid, tag, val, vlen, NULL, 0, NULL, &len) != 1
+		|| asn1_length_le(*dlen + len, maxlen) != 1
+		|| x509_rdn_to_der(oid, tag, val, vlen, NULL, 0, &p, dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -427,44 +428,88 @@ int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen,
 
 int x509_name_add_country_name(uint8_t *d, size_t *dlen, int maxlen, const char val[2])
 {
-	return x509_name_add_rdn(d, dlen, maxlen,
+	int ret;
+	ret = x509_name_add_rdn(d, dlen, maxlen,
 		OID_at_country_name, ASN1_TAG_PrintableString, (uint8_t *)val, 2, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
 }
 
 int x509_name_add_state_or_province_name(uint8_t *d, size_t *dlen, int maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
-	return x509_name_add_rdn(d, dlen, maxlen, OID_at_state_or_province_name, tag, val, vlen, NULL, 0);
+	int ret;
+	ret = x509_name_add_rdn(d, dlen, maxlen, OID_at_state_or_province_name, tag, val, vlen, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
 }
 
 int x509_name_add_locality_name(uint8_t *d, size_t *dlen, int maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
-	return x509_name_add_rdn(d, dlen, maxlen, OID_at_locality_name, tag, val, vlen, NULL, 0);
+	int ret;
+	ret = x509_name_add_rdn(d, dlen, maxlen, OID_at_locality_name, tag, val, vlen, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
 }
 
 int x509_name_add_organization_name(uint8_t *d, size_t *dlen, int maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
-	return x509_name_add_rdn(d, dlen, maxlen, OID_at_organization_name, tag, val, vlen, NULL, 0);
+	int ret;
+	ret = x509_name_add_rdn(d, dlen, maxlen, OID_at_organization_name, tag, val, vlen, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
 }
 
 int x509_name_add_organizational_unit_name(uint8_t *d, size_t *dlen, int maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
-	return x509_name_add_rdn(d, dlen, maxlen, OID_at_organizational_unit_name, tag, val, vlen, NULL, 0);
+	int ret;
+	ret = x509_name_add_rdn(d, dlen, maxlen, OID_at_organizational_unit_name, tag, val, vlen, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
 }
 
 int x509_name_add_common_name(uint8_t *d, size_t *dlen, int maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
-	return x509_name_add_rdn(d, dlen, maxlen, OID_at_common_name, tag, val, vlen, NULL, 0);
+	int ret;
+	ret = x509_name_add_rdn(d, dlen, maxlen, OID_at_common_name, tag, val, vlen, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
 }
 
 int x509_name_add_domain_component(uint8_t *d, size_t *dlen, int maxlen,
 	const char *val, size_t vlen)
 {
+	int ret;
 	return x509_name_add_rdn(d, dlen, maxlen, OID_domain_component, ASN1_TAG_IA5String, (uint8_t *)val, vlen, NULL, 0);
+	if (ret < 0) error_print();
+	return ret;
+}
+
+static size_t _strlen(const char *s) { return s ? strlen(s) : 0; }
+
+int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
+	const char *country, const char *state, const char *locality,
+	const char *org, const char *org_unit, const char *common_name)
+{
+	int tag = ASN1_TAG_PrintableString;
+	if (country && strlen(country) != 2) {
+		error_print();
+		return -1;
+	}
+	if (x509_name_add_country_name(d, dlen, maxlen, country) < 0
+		|| x509_name_add_state_or_province_name(d, dlen, maxlen, tag, (uint8_t *)state, _strlen(state)) < 0
+		|| x509_name_add_locality_name(d, dlen, maxlen, tag, (uint8_t *)locality, _strlen(locality)) < 0
+		|| x509_name_add_organization_name(d, dlen, maxlen, tag, (uint8_t *)org, _strlen(org)) < 0
+		|| x509_name_add_organizational_unit_name(d, dlen, maxlen, tag, (uint8_t *)org_unit, _strlen(org_unit)) < 0
+		|| x509_name_add_common_name(d, dlen, maxlen, tag, (uint8_t *)common_name, _strlen(common_name)) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -515,7 +560,7 @@ int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, co
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_public_key_algor_print(fp, fmt, ind, "algorithm", p, len);
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	format_bytes(fp, fmt, ind, "subjectPublicKey: ", p, len);
+	format_bytes(fp, fmt, ind, "subjectPublicKey", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -649,6 +694,9 @@ err:
 int x509_explicit_exts_to_der(int index, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (!d) {
+		return 0;
+	}
 	if (asn1_sequence_to_der(d, dlen, NULL, &len) != 1
 		|| asn1_explicit_header_to_der(index, len, out, outlen) != 1
 		|| asn1_sequence_to_der(d, dlen, out, outlen) != 1) {
@@ -803,17 +851,17 @@ int x509_tbs_cert_print(FILE *fp, int fmt, int ind, const char *label, const uin
 	ind += 4;
 
 	if ((ret = x509_explicit_version_from_der(0, &val, &d, &dlen)) < 0) goto err;
-	if (ret) format_print(fp, fmt, ind, "version: %s\n", x509_version_name(val));
+	if (ret) format_print(fp, fmt, ind, "version: %s (%d)\n", x509_version_name(val), val);
 	if (asn1_integer_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "serialNumber", p, len);
 	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
 	format_print(fp, fmt, ind, "siganture: %s\n", x509_signature_algor_name(val));
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	x509_name_print(fp, fmt, ind, "issuer", d, dlen);
+	x509_name_print(fp, fmt, ind, "issuer", p, len);
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_validity_print(fp, fmt, ind, "validity", p, len);
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	x509_name_print(fp, fmt, ind, "subject", d, dlen);
+	x509_name_print(fp, fmt, ind, "subject", p, len);
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_public_key_info_print(fp, fmt, ind, "subjectPulbicKeyInfo", p, len);
 	if ((ret = asn1_implicit_bit_octets_from_der(1, &p, &len, &d, &dlen)) < 0) goto err;
@@ -886,6 +934,7 @@ int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const 
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "signatureValue", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
+	return 1;
 err:
 	error_print();
 	return -1;
@@ -980,13 +1029,15 @@ int x509_cert_verify(const uint8_t *a, size_t alen,
 	return ret;
 }
 
-int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen)
+int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen,
+	const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len)
 {
 	int ret;
 	SM2_KEY public_key;
 
 	if (x509_cert_get_subject_public_key(cacert, cacertlen, &public_key) != 1
-		|| (ret = x509_cert_verify(a, alen, &public_key, NULL, 0)) < 0) {
+		|| (ret = x509_cert_verify(a, alen, &public_key, signer_id, signer_id_len)) < 0) {
 		error_print();
 		return -1;
 	}
@@ -1015,9 +1066,10 @@ int x509_cert_to_pem(const uint8_t *a, size_t alen, FILE *fp)
 
 int x509_cert_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
 {
-	if (pem_read(fp, "CERTIFICATE", a, alen, maxlen) != 1) {
-		error_print();
-		return -1;
+	int ret;
+	if ((ret = pem_read(fp, "CERTIFICATE", a, alen, maxlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1054,17 +1106,20 @@ int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, const
 	return 0;
 }
 
-int x509_cert_print(FILE *fp, int fmt, int ind, const uint8_t *a, size_t alen)
+int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
 	const uint8_t *d;
 	size_t dlen;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
 
 	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
-	x509_certificate_print(fp, fmt, ind, "Certificate", d, dlen);
+	x509_certificate_print(fp, fmt, ind, label, d, dlen);
 	return 1;
 }
 
@@ -1082,10 +1137,13 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len)
 {
-	const uint8_t *d;
-	size_t dlen;
+	const uint8_t *tbs;
+	size_t tbs_len;
 	int sig_alg;
 	const uint8_t *sig; size_t sig_len;
+
+	const uint8_t *d;
+	size_t dlen;
 
 	int ver;
 	const uint8_t *serial; size_t serial_len;
@@ -1098,11 +1156,17 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	const uint8_t *subj_uniq_id; size_t subj_uniq_id_len;
 	const uint8_t *exts; size_t exts_len;
 
-	if (x509_certificate_from_der(&d, &dlen, &sig_alg, &sig, &sig_len, &a, &alen) != 1
+	if (x509_certificate_from_der(&tbs, &tbs_len, &sig_alg, &sig, &sig_len, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (asn1_sequence_from_der(&d, &dlen, &tbs, &tbs_len) != 1
+		|| asn1_length_is_zero(tbs_len) != 1) {
+		error_print();
+		return -1;
+	}
+
 	if (x509_explicit_version_from_der(0, &ver, &d, &dlen) < 0
 		|| asn1_integer_from_der(&serial, &serial_len, &d, &dlen) != 1
 		|| x509_signature_algor_from_der(&inner_sig_alg, &d, &dlen) != 1

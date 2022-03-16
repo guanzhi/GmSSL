@@ -121,7 +121,7 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	const uint8_t **attributes, size_t *attributes_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);
-int x509_req_print(FILE *fp, int fmt, int ind, const uint8_t *req, size_t reqlen);
+int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen);
 int x509_req_to_pem(const uint8_t *req, size_t reqlen, FILE *fp);
 int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp);
 

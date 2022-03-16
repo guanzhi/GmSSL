@@ -72,6 +72,9 @@ extern "C" {
 #define ASN1_TAG_EXPLICIT(index)	ASN1_TAG_IMPLICIT(ASN1_TAG_CONSTRUCTED|(index))
 
 
+#define ASN1_FMT_FULL	0x01
+
+
 enum ASN1_TAG {
 	ASN1_TAG_BOOLEAN		= 1,
 	ASN1_TAG_INTEGER		= 2,
@@ -229,6 +232,9 @@ int asn1_ia5_string_from_der_ex(int tag, const char **d, size_t *dlen, const uin
 
 int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen);
 
+#define ASN1_UTC_TIME_LEN		(sizeof("YYMMDDHHMMSSZ")-1)
+#define ASN1_GENERALIZED_TIME_LEN	(sizeof("YYYYMMDDHHMMSSZ")-1)
+
 int asn1_utc_time_to_der_ex(int tag, time_t tv, uint8_t **out, size_t *outlen);
 int asn1_utc_time_from_der_ex(int tag, time_t *tv, const uint8_t **in, size_t *inlen);
 #define asn1_utc_time_to_der(tv,out,outlen) asn1_utc_time_to_der_ex(ASN1_TAG_UTCTime,tv,out,outlen)
@@ -253,8 +259,8 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *tv, const uint8_t **in, s
 #define asn1_implicit_set_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_set_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
 
-#define asn1_implicit_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
-#define asn1_implicit_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+#define asn1_implicit_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_IMPLICIT(i),d,dlen,out,outlen)
+#define asn1_implicit_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
 int asn1_header_to_der(int tag, size_t dlen, uint8_t **out, size_t *outlen);
 #define asn1_implicit_header_to_der(i,dlen,out,outlen) asn1_header_to_der(ASN1_TAG_EXPLICIT(i),dlen,out,outlen)

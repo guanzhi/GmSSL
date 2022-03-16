@@ -55,13 +55,14 @@
 
 int test_base64(void)
 {
+	int err = 0;
+
 	uint8_t bin1[50];
 	uint8_t bin2[100];
 	uint8_t bin3[200];
 	uint8_t buf1[8000] = {0};
 	uint8_t buf2[8000] = {0};
 
-	int err = 0;
 	BASE64_CTX ctx;
 	uint8_t *p;
 	int len;
@@ -78,8 +79,6 @@ int test_base64(void)
 	base64_encode_update(&ctx, bin3, sizeof(bin3), p, &len); p += len;
 	base64_encode_finish(&ctx, p, &len); p += len;
 	len = (int)(p - buf1);
-	printf("%s\n", buf1);
-
 
 	p = buf2;
 	base64_decode_init(&ctx);
@@ -87,24 +86,23 @@ int test_base64(void)
 	base64_decode_finish(&ctx, p, &len); p += len;
 	len = (int)(p - buf2);
 
-	printf("len = %d\n", len);
-	print_der(buf2, len);
-	printf("\n");
+	printf("base64 test ");
+	if (len != sizeof(bin1) + sizeof(bin2) + sizeof(bin3)
+		|| memcmp(buf2, bin1, sizeof(bin1)) != 0
+		|| memcmp(buf2 + sizeof(bin1), bin2, sizeof(bin2)) != 0
+		|| memcmp(buf2 + sizeof(bin1) + sizeof(bin2), bin3, sizeof(bin3)) != 0) {
+		printf("failed\n");
+		err++;
+	} else {
+		printf("ok\n");
+	}
 
 	return err;
 }
 
 int main(void)
 {
-	test_base64();
-	return 0;
+	int err = 0;
+	err += test_base64();
+	return err;
 }
-
-
-
-
-
-
-
-
-

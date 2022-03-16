@@ -146,14 +146,11 @@ int x509_crl_entry_ext_id_from_name(const char *name)
 int x509_crl_entry_ext_id_to_der(int oid, uint8_t **out, size_t *outlen)
 {
 	const ASN1_OID_INFO *info;
-	size_t len = 0;
 	if (!(info = asn1_oid_info_from_oid(x509_crl_entry_exts, x509_crl_entry_exts_count, oid))) {
 		error_print();
 		return -1;
 	}
-	if (asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, NULL, &len) != 1
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out,  outlen) != 1) {
+	if (asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out,  outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -163,17 +160,15 @@ int x509_crl_entry_ext_id_to_der(int oid, uint8_t **out, size_t *outlen)
 int x509_crl_entry_ext_id_from_der(int *oid, const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	const uint8_t *p;
-	size_t len;
 	const ASN1_OID_INFO *info;
 
-	*oid = 0;
 	if ((ret = asn1_oid_info_from_der(&info, x509_crl_entry_exts, x509_crl_entry_exts_count, in, inlen)) != 1) {
-		error_print();
-		return -1;
+		if (ret < 0) error_print();
+		else *oid = -1;
+		return ret;
 	}
 	*oid = info->oid;
-	return ret;
+	return 1;
 }
 
 int x509_crl_entry_exts_add_reason(uint8_t *exts, size_t *extslen, size_t maxlen,
@@ -278,12 +273,15 @@ int x509_revoked_cert_print(FILE *fp, int fmt, int ind, const char *label, const
 	size_t len;
 	time_t tv;
 
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
 	if (asn1_integer_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "userCertificate", p, len);
 	if (asn1_generalized_time_from_der(&tv, &d, &dlen) != 1) goto err;
 	format_print(fp, fmt, ind, "revocationDate: %s\n", ctime(&tv));
 	if ((ret = asn1_sequence_from_der(&p, &len, &d, &dlen)) < 0) goto err;
-	//if (ret) x509_crl_entry_exts_print(fp, fmt, ind, "crlEntryExtensions", p, len); // 这里需要一个函数能够处理		
+	if (ret) x509_crl_entry_exts_print(fp, fmt, ind, "crlEntryExtensions", p, len); // 这里需要一个函数能够处理		
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:

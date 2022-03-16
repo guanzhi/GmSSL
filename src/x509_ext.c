@@ -423,6 +423,9 @@ int x509_edi_party_name_print(FILE *fp, int fmt, int ind, const char *label, con
 	size_t len;
 	int tag;
 
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
 	if ((ret = x509_explicit_directory_name_from_der(0, &tag, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_directory_name_print(fp, fmt, ind, "nameAssigner", tag, p, len);
 	if (x509_explicit_directory_name_from_der(1, &tag, &p, &len, &d, &dlen) != 1) goto err;
@@ -443,13 +446,27 @@ int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t 
 
 int x509_general_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
 {
-	int ret, tag;
+	int ret;
+	int tag;
 	if ((ret = asn1_any_type_from_der(&tag, d, dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-							
-	return -1;
+	switch (tag) {
+	case ASN1_TAG_IMPLICIT(0): *choice = 0; break;
+	case ASN1_TAG_IMPLICIT(1): *choice = 1; break;
+	case ASN1_TAG_IMPLICIT(2): *choice = 2; break;
+	case ASN1_TAG_IMPLICIT(3): *choice = 3; break;
+	case ASN1_TAG_IMPLICIT(4): *choice = 4; break;
+	case ASN1_TAG_IMPLICIT(5): *choice = 5; break;
+	case ASN1_TAG_IMPLICIT(6): *choice = 6; break;
+	case ASN1_TAG_IMPLICIT(7): *choice = 7; break;
+	case ASN1_TAG_IMPLICIT(8): *choice = 8; break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_general_name_print(FILE *fp, int fmt, int ind, const char *label, int choice, const uint8_t *d, size_t dlen)
@@ -486,8 +503,15 @@ int x509_general_name_print(FILE *fp, int fmt, int ind, const char *label, int c
 int x509_general_names_add_general_name(uint8_t *gns, size_t *gnslen, size_t maxlen,
 	int choice, const uint8_t *d, size_t dlen)
 {
-	error_print();
-	return -1;
+	size_t len = 0;
+	uint8_t *p = gns + *gnslen;
+	if (x509_general_name_to_der(choice, d, dlen, NULL, &len) != 1
+		|| asn1_length_le(*gnslen + len, maxlen) != 1
+		|| x509_general_name_to_der(choice, d, dlen, &p, gnslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_general_names_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)

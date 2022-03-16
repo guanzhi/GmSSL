@@ -59,9 +59,6 @@
 #include "endian.h"
 
 
-//FIXME: ENUMERATED 没有支持，在CRLReason中用到
-
-
 /*
 
 ## 返回值
@@ -113,7 +110,10 @@ const char *asn1_tag_name(int tag)
 	case ASN1_TAG_EXTERNAL: return "EXTERNAL";
 	case ASN1_TAG_REAL: return "REAL";
 	case ASN1_TAG_ENUMERATED: return "ENUMERATED";
+	case ASN1_TAG_EMBEDDED: return "EMBEDDED";
 	case ASN1_TAG_UTF8String: return "UTF8String";
+	case ASN1_TAG_RELATIVE_OID: return "RELATIVE_OID";
+	case ASN1_TAG_NumericString: return "NumericString";
 	case ASN1_TAG_PrintableString: return "PrintableString";
 	case ASN1_TAG_TeletexString: return "TeletexString";
 	case ASN1_TAG_VideotexString: return "VideotexString";
@@ -128,6 +128,7 @@ const char *asn1_tag_name(int tag)
 	case ASN1_TAG_BMPString: return "BMPString";
 	case ASN1_TAG_SEQUENCE: return "SEQUENCE";
 	case ASN1_TAG_SET: return "SET";
+	case ASN1_TAG_EXPLICIT: return "EXPLICIT";
 	}
 
 	error_print();
@@ -221,11 +222,9 @@ int asn1_data_to_der(const uint8_t *data, size_t datalen, uint8_t **out, size_t 
 int asn1_tag_from_der(int tag, const uint8_t **in, size_t *inlen)
 {
 	if (*inlen == 0) {
-		//error_print_msg("inlen = %zu\n", *inlen);
 		return 0;
 	}
 	if  (**in != tag) {
-		//error_print_msg("tag get %d instead of %d\n", **in, tag);
 		return 0;
 	}
 	(*in)++;
@@ -276,15 +275,15 @@ int asn1_length_from_der(size_t *plen, const uint8_t **pin, size_t *pinlen)
 		inlen -= nbytes;
 	}
 
-	if (inlen < len) {
-		error_print_msg("inlen = %zu\n", *pinlen);
-		error_print_msg("length = %zu, left = %zu\n", len, inlen);
-		return -1;
-	}
-
 	*plen = len;
 	*pin = in;
 	*pinlen = inlen;
+
+	if (inlen < len) {
+		error_print_msg("inlen = %zu\n", *pinlen);
+		error_print_msg("length = %zu, left = %zu\n", len, inlen);
+		return -2; // 特殊错误值用于 test_asn1_length() 的测试
+	}
 	return 1;
 }
 
@@ -476,27 +475,19 @@ int asn1_int_to_der_ex(int tag, int a, uint8_t **out, size_t *outlen)
 
 int asn1_bit_string_to_der_ex(int tag, const uint8_t *bits, size_t nbits, uint8_t **out, size_t *outlen)
 {
-	int unused = (8 - nbits % 8) % 8;
+	uint8_t unused = (8 - nbits % 8) % 8;
 	size_t nbytes = (nbits + 7) / 8;
 
-	if (!bits || nbits >= INT_MAX || (out && !(*out)) || !outlen) {
+	if (!bits) {
+		return 0;
+	}
+	if (asn1_tag_to_der(tag, out, outlen) != 1
+		|| asn1_length_to_der(nbytes + 1, out, outlen) != 1
+		|| asn1_data_to_der(&unused, 1, out, outlen) != 1
+		|| asn1_data_to_der(bits, nbytes, out, outlen) != 1) {
+		error_print();
 		return -1;
 	}
-
-	if (out)
-		*(*out)++ = tag;
-	(*outlen)++;
-
-	asn1_length_to_der(nbytes + 1, out, outlen);
-
-	if (out) {
-		*(*out)++ = (uint8_t)unused;
-		memcpy(*out, bits, nbytes);
-		(*out) += nbytes;
-	}
-	*outlen += 1 + nbytes;
-
-
 	return 1;
 }
 
@@ -505,22 +496,25 @@ int asn1_bit_octets_to_der_ex(int tag, const uint8_t *octs, size_t nocts, uint8_
 	return asn1_bit_string_to_der_ex(tag, octs, nocts << 3, out, outlen);
 }
 
-
 int asn1_bits_to_der_ex(int tag, int bits, uint8_t **out, size_t *outlen)
 {
 	size_t nbits = 0;
 	uint8_t buf[4] = {0};
 	int i = 0;
+	uint8_t mask = 0x80;
 
 	if (bits < 0) {
 		return 0;
 	}
-	while (bits) {
-		buf[i] = (buf[i] << 1) | (bits & 1);
+	while (bits > 0) {
+		if (bits & 1)
+			buf[i] |= mask;
+		mask >>= 1;
 		bits >>= 1;
 		nbits++;
-		if (nbits % 8) {
+		if (nbits % 8 == 0) {
 			i++;
+			mask = 0x80;
 		}
 	}
 	if (!nbits) {
@@ -643,9 +637,11 @@ int asn1_object_identifier_from_octets(uint32_t *nodes, size_t *nodes_cnt, const
 	while (inlen) {
 		uint32_t val;
 		if (count > 32) {
+			error_print();
 			return -1;
 		}
 		if (asn1_oid_node_from_base128(&val, &in, &inlen) < 0) {
+			error_print();
 			return -1;
 		}
 		if (nodes) {
@@ -706,8 +702,6 @@ const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t c
 	return NULL;
 }
 
-// 这个函数可以支持未知的OID，通常只有在print或者解析Extensions时需要调用该函数
-// 注意：函数有特殊返回值
 int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_t *nodes_cnt,
 	const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen)
 {
@@ -716,6 +710,7 @@ int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_
 
 	if ((ret = asn1_object_identifier_from_der(nodes, nodes_cnt, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		if (ret == 0) error_print();
 		return ret;
 	}
 	*info = NULL;
@@ -726,7 +721,8 @@ int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_
 			return 1;
 		}
 	}
-	return 2; // 返回非1的正整数表示OID格式正确但是不在给定列表中
+	// 注意，此时虽然返回1，但是*info == NULL，因此调用方应该显式的判断info
+	return 1;
 }
 
 int asn1_oid_info_from_der(const ASN1_OID_INFO **info, const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen)
@@ -777,13 +773,12 @@ int asn1_ia5_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out
 int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
 	struct tm tm_val;
-	char buf[sizeof("YYMMDDHHMMSSZ")];
+	char buf[ASN1_UTC_TIME_LEN + 1];
 
 	if ((out && !(*out)) || !outlen) {
 		return -1;
 	}
 
-	// 注意，这个函数可能在Windows上是没有的！
 	gmtime_r(&a, &tm_val);
 	strftime(buf, sizeof(buf), "%y%m%d%H%M%SZ", &tm_val);
 
@@ -800,10 +795,11 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
+
 int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
 	struct tm tm_val;
-	char buf[sizeof("YYYYMMDDHHMMSSZ")];
+	char buf[ASN1_GENERALIZED_TIME_LEN + 1];
 
 	if ((out && !(*out)) || !outlen) {
 		error_print();
@@ -812,16 +808,17 @@ int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *ou
 
 	gmtime_r(&a, &tm_val);
 	strftime(buf, sizeof(buf), "%Y%m%d%H%M%SZ", &tm_val);
+	//printf("%s %d: generalized time : %s\n", __FILE__, __LINE__, buf);
 
 	if (out)
 		*(*out)++ = tag;
 	(*outlen)++;
-	asn1_length_to_der(sizeof(buf)-1, out, outlen);
+	asn1_length_to_der(ASN1_GENERALIZED_TIME_LEN, out, outlen);
 	if (out) {
-		memcpy(*out, buf, sizeof(buf)-1);
-		(*out) += sizeof(buf)-1;
+		memcpy(*out, buf, ASN1_GENERALIZED_TIME_LEN);
+		(*out) += ASN1_GENERALIZED_TIME_LEN;
 	}
-	*outlen += sizeof(buf)-1;
+	*outlen += ASN1_GENERALIZED_TIME_LEN;
 
 	return 1;
 }
@@ -951,41 +948,45 @@ int asn1_int_from_der_ex(int tag, int *a, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-int asn1_bit_string_from_der_ex(int tag, const uint8_t **bits, size_t *nbits, const uint8_t **pin, size_t *pinlen)
+int asn1_bit_string_from_der_ex(int tag, const uint8_t **bits, size_t *nbits, const uint8_t **in, size_t *inlen)
 {
-	const uint8_t *in = *pin;
-	size_t inlen = *pinlen;
+	int ret;
 	size_t len;
 	int unused_bits;
 
-	if (!bits || !nbits || !pin || !(*pin) || !pinlen) {
+	if ((ret = asn1_tag_from_der(tag, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		else {
+			*bits = NULL;
+			*nbits = 0;
+		}
+		return ret;
+	}
+	if (asn1_length_from_der(&len, in, inlen) != 1
+		|| asn1_data_from_der(bits, len, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len < 2) {
 		error_print();
 		return -1;
 	}
 
-	// FIXME: 其他函数可能存在类似情况				
-	*bits = NULL;
-	*nbits = 0;
 
-	if (inlen-- < 1 || *in++ != tag) {
-		return 0;
-	}
-	if (asn1_length_from_der(&len, &in, &inlen) != 1
-		|| len <= 0) {
+	unused_bits = **bits;
+
+	if (len < 1) {
 		error_print();
 		return -1;
 	}
-
-	unused_bits = *in;
 	if (unused_bits > 8 || (len == 1 && unused_bits > 0)) {
 		error_print();
 		return -1;
 	}
 
-	*bits = in + 1;
-	*nbits = (len - 1) * 8 - unused_bits;
-	*pin = in + len;
-	*pinlen = inlen - len;
+	(*bits)++;
+	*nbits = (len - 1) << 3;
+
 	return 1;
 }
 
@@ -1051,32 +1052,22 @@ int asn1_null_from_der(const uint8_t **in, size_t *inlen)
 }
 
 int asn1_object_identifier_from_der_ex(int tag, uint32_t *nodes, size_t *nodes_cnt,
-	const uint8_t **pin, size_t *pinlen)
+	const uint8_t **in, size_t *inlen)
 {
-	const uint8_t *in = *pin;
-	size_t inlen = *pinlen;
+	int ret;
 	size_t len;
+	const uint8_t *p;
 
-	if (!nodes || !nodes_cnt || !pin || !(*pin) || !pinlen) {
+	if ((ret = asn1_tag_from_der(tag, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_length_from_der(&len, in, inlen) != 1
+		|| asn1_data_from_der(&p, len, in, inlen) != 1
+		|| asn1_object_identifier_from_octets(nodes, nodes_cnt, p, len) != 1) {
 		error_print();
 		return -1;
 	}
-
-	if (inlen-- <= 0 || *in++ != tag) {
-		error_print();
-		return 0;
-	}
-	if (asn1_length_from_der(&len, &in, &inlen) != 1
-		|| len <= 0) {
-		error_print();
-		return -1;
-	}
-	if (asn1_object_identifier_from_octets(nodes, nodes_cnt, in, len) != 1) {
-		error_print();
-		return -1;
-	}
-	*pin = in + len;
-	*pinlen = inlen - len;
 	return 1;
 }
 
@@ -1206,8 +1197,6 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, s
 	}
 	memcpy(buf, in, len);
 
-
-
 	if (len == sizeof("YYYYMMDDHHMMSSZ")-1) {
 		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
 			error_print();
@@ -1312,7 +1301,17 @@ int asn1_sequence_of_int_from_der(int *nums, size_t *nums_cnt, const uint8_t **i
 
 int asn1_sequence_of_int_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
-	return -1;
+	int val;
+	format_print(fp, fmt, ind, "%s: ", label);
+	while (dlen) {
+		if (asn1_int_from_der(&val, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		fprintf(fp, "%d%s", val, dlen ? "," : "");
+	}
+	fprintf(fp, "\n");
+	return 1;
 }
 
 
@@ -1320,11 +1319,15 @@ int asn1_object_identifier_print(FILE *fp, int format, int indent, const char *l
 	const uint32_t *nodes, size_t nodes_cnt)
 {
 	size_t i;
-	format_print(fp, format, indent, "%s: %s (", label, name);
-	for (i = 0; i < nodes_cnt - 1; i++) {
-		fprintf(fp, "%d.", (int)nodes[i]);
+	format_print(fp, format, indent, "%s: %s", label, name);
+	if (nodes) {
+		fprintf(fp, " (");
+		for (i = 0; i < nodes_cnt - 1; i++) {
+			fprintf(fp, "%d.", (int)nodes[i]);
+		}
+		fprintf(fp, "%d)", nodes[i]);
 	}
-	fprintf(fp, "%d)\n", nodes[i]);
+	fprintf(fp, "\n");
 	return 1;
 }
 
@@ -1345,10 +1348,8 @@ int asn1_bits_print(FILE *fp, int fmt, int ind, const char *label, const char **
 
 	for (i = 0; i < names_cnt; i++) {
 		if (bits & 0x01)
-			fprintf(fp, "%s", names[i]);
+			fprintf(fp, "%s%s", names[i], bits >> 1 ? "," : "");
 		bits >>= 1;
-		if (bits)
-			fprintf(fp, ", ");
 	}
 	fprintf(fp, "\n");
 	if (bits) {
@@ -1357,7 +1358,6 @@ int asn1_bits_print(FILE *fp, int fmt, int ind, const char *label, const char **
 	}
 	return 1;
 }
-
 
 int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, size_t *cnt)
 {
@@ -1371,11 +1371,3 @@ int asn1_types_get_item_by_index(const uint8_t *d, size_t *dlen, int tag,
 	error_print();
 	return -1;
 }
-
-
-
-
-
-
-
-

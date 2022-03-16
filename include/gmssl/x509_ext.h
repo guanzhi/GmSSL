@@ -459,8 +459,8 @@ ReasonFlags ::= BIT STRING {
 #define X509_RF_PRIVILEGE_WITHDRAWN	(1 << 7)
 #define X509_RF_AA_COMPROMISE		(1 << 8)
 
-int x509_revoke_reasons_to_der(int bits, uint8_t **out, size_t *outlen);
-int x509_revoke_reasons_from_der(int *bits, const uint8_t **in, size_t *inlen);
+#define x509_revoke_reasons_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
+#define x509_revoke_reasons_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
 int x509_revoke_reasons_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 /*

@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_req.h>
 #include <gmssl/error.h>
 
 
@@ -58,8 +59,9 @@ int main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *infile = NULL;
-	X509_CERT_REQUEST req;
 	FILE *infp = stdin;
+	uint8_t req[1024];
+	size_t reqlen;
 
 	argc--;
 	argv++;
@@ -90,16 +92,12 @@ help:
 		}
 	}
 
-	int ret = x509_cert_request_from_pem(&req, infp);
-	if (ret < 0) {
+	if (x509_req_from_pem(req, &reqlen, sizeof(req), infp) != 1) {
 		error_print();
 		return -1;
 	}
-	if (ret == 0) {
-		error_print();
-		return -1;
-	}
-	x509_cert_request_print(stdout, &req, 0, 0);
+	x509_req_print(stdout, 0, 0, "CertificationRequest", req, reqlen);
+	x509_req_to_pem(req, reqlen, stdout);
 	return 0;
 
 bad:

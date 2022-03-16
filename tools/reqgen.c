@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_req.h>
 #include <gmssl/pkcs8.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
@@ -98,9 +99,12 @@ int main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *outfp = stdout;
 
-	X509_CERT_REQUEST req;
+	uint8_t req[1024];
+	size_t reqlen = 0;
 
-	X509_NAME name;
+	uint8_t name[256];
+	size_t namelen = 0;
+
 	SM2_KEY sm2_key; // 这个应该是从文件中读取的！
 
 
@@ -171,7 +175,6 @@ int main(int argc, char **argv)
 		goto bad;
 	}
 
-
 	if (outfile) {
 		if (!(outfp = fopen(outfile, "w"))) {
 			error_print();
@@ -187,57 +190,35 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	if (sm2_enced_private_key_info_from_pem(&sm2_key, pass, keyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		error_print();
 		goto end;
 	}
 
 
-
-	memset(&name, 0, sizeof(name));
-
-
-
-	if (country) {
-		if (x509_name_set_country(&name, country) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (state) {
-		if (x509_name_set_state_or_province(&name, state) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (org) {
-		if (x509_name_set_organization(&name, org) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (org_unit) {
-		if (x509_name_set_organizational_unit(&name, org_unit) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (!common_name) {
+	if (x509_name_set(name, &namelen, sizeof(name),
+		country, state, NULL, org, org_unit, common_name) != 1) {
 		error_print();
-		goto end;
-	} else {
-		if (x509_name_set_common_name(&name, common_name) != 1) {
-			error_print();
-			goto end;
-		}
+		return -1;
 	}
 
 
-	memset(&req, 0, sizeof(req));
-	x509_cert_request_set(&req, &name, &sm2_key);
-	x509_cert_request_sign(&req, &sm2_key);
+	if (x509_req_sign(req, &reqlen, sizeof(req),
+		X509_version_v1,
+		name, namelen,
+		&sm2_key,
+		NULL, 0,
+		OID_sm2sign_with_sm3,
+		&sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		error_print();
+		return -1;
+	}
 
-	x509_cert_request_to_pem(&req, outfp);
+
+	if (x509_req_to_pem(req, reqlen, outfp) != 1) {
+		error_print();
+		return -1;
+	}
 
 	ret = 0;
 	goto end;

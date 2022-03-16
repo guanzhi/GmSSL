@@ -50,6 +50,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/sm4.h>
+#include <gmssl/error.h>
 
 # ifdef SM4_AVX2
 void sm4_avx2_ecb_encrypt_blocks(const unsigned char *in,
@@ -93,13 +94,15 @@ static int test_ecb(int avx)
 # endif
 	default:
 		printf("avx shuold be in {2}\n");
-		return 0;
+		error_print();
+		return -1;
 	}
 
 	if (memcmp(out1, out2, sizeof(out1)) != 0) {
-		return 0;
+		error_print();
+		return -1;
 	}
-	return 1;
+	return 0;
 }
 
 static void xor_block(unsigned char *out, const unsigned char *in)
@@ -151,13 +154,15 @@ static int test_ctr32(int avx)
 		break;
 	default:
 		printf("avx should be in {0, 2}\n");
-		return 0;
+		error_print();
+		return -1;
 	}
 
 	if (memcmp(out1, out2, sizeof(out1)) != 0) {
-		return 0;
+		error_print();
+		return -1;
 	}
-	return 1;
+	return 0;
 }
 
 
@@ -197,7 +202,7 @@ static int test_ede(void)
 }
 */
 
-int main(int argc, char **argv)
+int test_sm4(void)
 {
 	int err = 0;
 	int i;
@@ -307,5 +312,65 @@ int main(int argc, char **argv)
 end:
 		printf("some test vector failed\n");
 
+	return err;
+}
+
+
+static int test_sm4_cbc(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t iv[16];
+
+	uint8_t buf1[2]  = {0};
+	uint8_t buf2[32] = {0};
+	uint8_t buf3[47] = {0};
+	uint8_t buf4[96] = {0};
+	uint8_t buf5[96];
+	int i;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+	sm4_cbc_encrypt(&sm4_key, iv, buf2, 2, buf4);
+
+	for (i = 0; i < 32; i++) {
+		printf("%02x", buf4[i]);
+	}
+	printf("\n");
+	return 0;
+}
+
+static int test_sm4_cbc_padding(void)
+{
+	SM4_KEY enc_key;
+	SM4_KEY dec_key;
+	uint8_t key[16] = {0};
+	uint8_t iv[16] = {0};
+	uint8_t in[64];
+	uint8_t out[128];
+	uint8_t buf[128];
+	size_t len1, len2, i;
+
+	for (i = 0; i < sizeof(in); i++) {
+		in[i] = i;
+	}
+
+	sm4_set_encrypt_key(&enc_key, key);
+	sm4_set_decrypt_key(&dec_key, key);
+
+	sm4_cbc_padding_encrypt(&enc_key, iv, in, 33, out, &len1);
+	printf("c = (%zu) ", len1); for (i = 0; i < len1; i++) printf("%02x", out[i]); printf("\n");
+
+	sm4_cbc_padding_decrypt(&dec_key, iv, out, len1, buf, &len2);
+	printf("m = (%zu) ", len2); for (i = 0; i < len2; i++) printf("%02x", buf[i]); printf("\n");
+
+	return 0;
+}
+
+int main(void)
+{
+	int err = 0;
+	err += test_sm4();
+	err += test_sm4_cbc();
+	err += test_sm4_cbc_padding();
 	return err;
 }

@@ -54,41 +54,42 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
-// FIXME: 缺乏打印公钥的函数，有时候SM2_KEY中只有公钥，没有私钥
-int sm2_key_print(FILE *fp, int format, int indent, const char *label, const SM2_KEY *key)
+
+int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key)
 {
-	format_print(fp, format, indent, "SM2PrivateKey\n");
-	indent += 4;
-	format_bytes(fp, format, indent, "private_key : ", key->private_key, 32);
-	sm2_point_print(fp, format, indent + 4, "public_key", &key->public_key);
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	sm2_public_key_print(fp, fmt, ind, "publicKey", key);
+	format_bytes(fp, fmt, ind, "privateKey", key->private_key, 32);
 	return 1;
 }
 
 int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key)
 {
-	sm2_point_print(fp, fmt, ind + 4, "public_key", &pub_key->public_key);
-	return 1;
+	return sm2_point_print(fp, fmt, ind, label, &pub_key->public_key);
 }
 
-int sm2_point_print(FILE *fp, int format, int indent, const char *label, const SM2_POINT *P)
+int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P)
 {
-	format_bytes(fp, format, indent, "x : ", P->x, 32);
-	format_bytes(fp, format, indent, "y : ", P->y, 32);
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	format_bytes(fp, fmt, ind, "x", P->x, 32);
+	format_bytes(fp, fmt, ind, "y", P->y, 32);
 	return 1;
 }
 
 int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
 	SM2_SIGNATURE sig;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
 	if (sm2_signature_from_der(&sig, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	format_bytes(fp, fmt, ind, "r : ", sig.r, 32);
-	format_bytes(fp, fmt, ind, "s : ", sig.s, 32);
+	format_bytes(fp, fmt, ind, "r", sig.r, 32);
+	format_bytes(fp, fmt, ind, "s", sig.s, 32);
 	return 1;
 }
 

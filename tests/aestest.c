@@ -55,50 +55,6 @@
 #include <gmssl/error.h>
 
 
-int test_aes_ctr(void)
-{
-	// NIST SP 800-38A F.5.1
-	char *hex_key = "2b7e151628aed2a6abf7158809cf4f3c";
-	char *hex_ctr = "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff";
-	char *hex_msg = "6bc1bee22e409f96e93d7e117393172a"
-			"ae2d8a571e03ac9c9eb76fac45af8e51"
-			"30c81c46a35ce411e5fbc1191a0a52ef"
-			"f69f2445df4f9b17ad2b417be66c3710";
-	char *hex_out = "874d6191b620e3261bef6864990db6ce"
-			"9806f66b7970fdff8617187bb9fffdff"
-			"5ae4df3edbd5d35e5b4f09020db03eab"
-			"1e031dda2fbe03d1792170a0f3009cee";
-
-	int err = 0;
-	AES_KEY aes_key;
-	uint8_t key[32];
-	uint8_t ctr[16];
-	uint8_t msg[64];
-	uint8_t out[64];
-	uint8_t buf[64];
-	size_t keylen, ctrlen, msglen, outlen, buflen;
-
-	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
-	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
-	hex_to_bytes(hex_msg, strlen(hex_msg), msg, &msglen);
-	hex_to_bytes(hex_out, strlen(hex_out), out, &outlen);
-
-	aes_set_encrypt_key(&aes_key, key, keylen);
-	aes_ctr_encrypt(&aes_key, ctr, msg, msglen, buf);
-	buflen = msglen;
-
-	format_bytes(stdout, 0, 0, "aes_ctr(msg) = ", buf, buflen);
-	format_bytes(stdout, 0, 0, "             = ", out, outlen);
-
-	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
-	aes_ctr_encrypt(&aes_key, ctr, buf, buflen, buf);
-	format_bytes(stdout, 0, 0, "msg = ", msg, msglen);
-	format_bytes(stdout, 0, 0, "    = ", buf, buflen);
-
-	return 1;
-}
-
-
 int test_aes(void)
 {
 	int err = 0;
@@ -230,7 +186,65 @@ int test_aes(void)
 		printf("ok\n");
 	}
 
-	return 0;
+	return err;
+}
+
+int test_aes_ctr(void)
+{
+	int err = 0;
+
+	// NIST SP 800-38A F.5.1
+	char *hex_key = "2b7e151628aed2a6abf7158809cf4f3c";
+	char *hex_ctr = "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff";
+	char *hex_msg = "6bc1bee22e409f96e93d7e117393172a"
+			"ae2d8a571e03ac9c9eb76fac45af8e51"
+			"30c81c46a35ce411e5fbc1191a0a52ef"
+			"f69f2445df4f9b17ad2b417be66c3710";
+	char *hex_out = "874d6191b620e3261bef6864990db6ce"
+			"9806f66b7970fdff8617187bb9fffdff"
+			"5ae4df3edbd5d35e5b4f09020db03eab"
+			"1e031dda2fbe03d1792170a0f3009cee";
+
+	AES_KEY aes_key;
+	uint8_t key[32];
+	uint8_t ctr[16];
+	uint8_t msg[64];
+	uint8_t out[64];
+	uint8_t buf[64];
+	size_t keylen, ctrlen, msglen, outlen, buflen;
+
+	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
+	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
+	hex_to_bytes(hex_msg, strlen(hex_msg), msg, &msglen);
+	hex_to_bytes(hex_out, strlen(hex_out), out, &outlen);
+
+	aes_set_encrypt_key(&aes_key, key, keylen);
+	aes_ctr_encrypt(&aes_key, ctr, msg, msglen, buf);
+	buflen = msglen;
+
+	printf("aes ctr test 1 ");
+	if (memcmp(buf, out, outlen) != 0) {
+		printf("failed\n");
+		err++;
+		format_bytes(stdout, 0, 0, "aes_ctr(msg) = ", buf, buflen);
+		format_bytes(stdout, 0, 0, "            != ", out, outlen);
+	} else {
+		printf("ok\n");
+	}
+
+	printf("aes ctr test 2 ");
+	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
+	aes_ctr_decrypt(&aes_key, ctr, buf, buflen, buf);
+	if (memcmp(buf, msg, msglen) != 0) {
+		printf("failed\n");
+		format_bytes(stdout, 0, 0, "msg = ", msg, msglen);
+		format_bytes(stdout, 0, 0, "    = ", buf, buflen);
+		err++;
+	} else {
+		printf("ok\n");
+	}
+
+	return err;
 }
 
 
@@ -340,6 +354,7 @@ struct {
 
 int test_aes_gcm(void)
 {
+	int err = 0;
 	uint8_t K[32];
 	uint8_t P[64];
 	uint8_t A[32];
@@ -354,8 +369,6 @@ int test_aes_gcm(void)
 	uint8_t buf[64];
 	int i;
 
-	printf("%s\n", __FUNCTION__);
-
 	for (i = 0; i < sizeof(aes_gcm_tests)/sizeof(aes_gcm_tests[0]); i++) {
 		int ok = 1;
 
@@ -369,43 +382,33 @@ int test_aes_gcm(void)
 		aes_set_encrypt_key(&aes_key, K, Klen);
 		aes_gcm_encrypt(&aes_key, IV, IVlen, A, Alen, P, Plen, out, Tlen, tag);
 
-		if (aes_gcm_decrypt(&aes_key, IV, IVlen, A, Alen, out, Plen, tag, Tlen, buf) != 1) {
-			error_print();
-			ok = 0;
+		printf("aes gcm test %d ", i + 1);
+		if (aes_gcm_decrypt(&aes_key, IV, IVlen, A, Alen, out, Plen, tag, Tlen, buf) != 1
+			|| memcmp(buf, P, Plen) != 0) {
+			printf("failed\n");
+			format_print(stdout, 0, 2, "K = %s\n", aes_gcm_tests[i].K);
+			format_print(stdout, 0, 2, "P = %s\n", aes_gcm_tests[i].P);
+			format_print(stdout, 0, 2, "A = %s\n", aes_gcm_tests[i].A);
+			format_print(stdout, 0, 2, "IV = %s\n", aes_gcm_tests[i].IV);
+			format_print(stdout, 0, 2, "C = %s\n", aes_gcm_tests[i].C);
+			format_bytes(stdout, 0, 2, "  = ", out, Plen);
+			format_print(stdout, 0, 2, "T = %s\n", aes_gcm_tests[i].T);
+			format_bytes(stdout, 0, 2, "  = ", tag, Tlen);
+			err++;
+		} else {
+			printf("ok\n");
 		}
-		if (memcmp(buf, P, Plen) != 0) {
-			error_print();
-			ok = 0;
-		}
-
-		printf(" test %d %s\n", i + 1, ok ? "ok" : "error");
-
-		/*
-		format_print(stdout, 0, 2, "K = %s\n", aes_gcm_tests[i].K);
-		format_print(stdout, 0, 2, "P = %s\n", aes_gcm_tests[i].P);
-		format_print(stdout, 0, 2, "A = %s\n", aes_gcm_tests[i].A);
-		format_print(stdout, 0, 2, "IV = %s\n", aes_gcm_tests[i].IV);
-		format_print(stdout, 0, 2, "C = %s\n", aes_gcm_tests[i].C);
-		format_bytes(stdout, 0, 2, "  = ", out, Plen);
-		format_print(stdout, 0, 2, "T = %s\n", aes_gcm_tests[i].T);
-		format_bytes(stdout, 0, 2, "  = ", tag, Tlen);
-		printf("\n");
-		*/
 	}
 
-	return 0;
+	return err;
 }
-
-
-
-
-
 
 int main(void)
 {
-	test_aes();
-	test_aes_ctr();
-	test_aes_gcm();
-	return 0;
+	int err = 0;
+	err += test_aes();
+	err += test_aes_ctr();
+	err += test_aes_gcm();
+	return err;
 }
 

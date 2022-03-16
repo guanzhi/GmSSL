@@ -1,0 +1,253 @@
+/*
+ * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the GmSSL Project.
+ *    (http://gmssl.org/)"
+ *
+ * 4. The name "GmSSL Project" must not be used to endorse or promote
+ *    products derived from this software without prior written
+ *    permission. For written permission, please contact
+ *    guanzhi1980@gmail.com.
+ *
+ * 5. Products derived from this software may not be called "GmSSL"
+ *    nor may "GmSSL" appear in their names without prior written
+ *    permission of the GmSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the GmSSL Project
+ *    (http://gmssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE GmSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE GmSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <gmssl/oid.h>
+#include <gmssl/x509_alg.h>
+#include <gmssl/x509_oid.h>
+#include <gmssl/x509_req.h>
+#include <gmssl/x509.h>
+#include <gmssl/rand.h>
+#include <gmssl/error.h>
+
+
+static int test_x509_request_info(void)
+{
+	uint8_t subject[256];
+	size_t subject_len;
+	SM2_KEY sm2_key;
+
+	uint8_t buf[256];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
+
+	int version;
+	const uint8_t *subj;
+	size_t subj_len;
+	SM2_KEY pub_key;
+	const uint8_t *attrs;
+	size_t attrs_len;
+
+	if (sm2_key_generate(&sm2_key) != 1
+		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
+		|| x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, NULL, 0, &p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_request_info_print(stderr, 0, 0, "CertificationRequestInfo", d, dlen);
+
+	p = buf;
+	cp = buf;
+	len = 0;
+
+	if (x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, NULL, 0, &p, &len) != 1
+		|| x509_request_info_from_der(&version, &subj, &subj_len, &pub_key, &attrs, &attrs_len, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(stderr, 0, 0, "CertificationRequestInfo\n");
+	format_print(stderr, 0, 4, "version: %d\n", version);
+	x509_name_print(stderr, 0, 4, "subject", subj, subj_len);
+	sm2_public_key_print(stderr, 0, 4, "publicKey", &pub_key);
+	format_bytes(stderr, 0, 4, "attributes", attrs, attrs_len);
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 0;
+}
+
+static int test_x509_request(void)
+{
+	uint8_t subject[256];
+	size_t subject_len;
+	SM2_KEY sm2_key;
+	uint8_t signature[128] = { 0x01, 0x02 };
+
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
+
+	int version;
+	const uint8_t *subj;
+	size_t subj_len;
+	SM2_KEY pub_key;
+	const uint8_t *attrs;
+	size_t attrs_len;
+	int sig_alg;
+	const uint8_t *sig;
+	size_t siglen;
+
+	if (sm2_key_generate(&sm2_key) != 1
+		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
+		|| x509_request_to_der(X509_version_v1, subject, subject_len, &sm2_key, NULL, 0,
+			OID_sm2sign_with_sm3, signature, sizeof(signature), &p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_request_print(stderr, 0, 0, "CertificationRequest", d, dlen);
+
+	p = buf;
+	cp = buf;
+	len = 0;
+
+	if (x509_request_to_der(X509_version_v1, subject, subject_len, &sm2_key, NULL, 0,
+			OID_sm2sign_with_sm3, signature, sizeof(signature), &p, &len) != 1
+		|| x509_request_from_der(&version, &subj, &subj_len, &pub_key, &attrs, &attrs_len,
+			&sig_alg, &sig, &siglen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(stderr, 0, 0, "CertificationRequest\n");
+	format_print(stderr, 0, 4, "version: %d\n", version);
+	x509_name_print(stderr, 0, 4, "subject", subj, subj_len);
+	sm2_public_key_print(stderr, 0, 4, "publicKey", &pub_key);
+	format_bytes(stderr, 0, 4, "attributes", attrs, attrs_len);
+	format_print(stderr, 0, 4, "signatureAlgor: %s\n", x509_signature_algor_name(sig_alg));
+	format_bytes(stderr, 0, 4, "signature", sig, siglen);
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 0;
+}
+
+static int test_x509_req(void)
+{
+	uint8_t subject[256];
+	size_t subject_len;
+	SM2_KEY sm2_key;
+
+	uint8_t req[512];
+	size_t reqlen = 0;
+
+	int version;
+	const uint8_t *subj;
+	size_t subj_len;
+	SM2_KEY pub_key;
+	const uint8_t *attrs;
+	size_t attrs_len;
+
+	if (sm2_key_generate(&sm2_key) != 1
+		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
+		|| x509_req_sign(req, &reqlen, sizeof(req),
+		X509_version_v1, subject, subject_len, &sm2_key, NULL, 0,
+		OID_sm2sign_with_sm3, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_req_print(stderr, 0, 0, "CertificationRequest", req, reqlen);
+
+
+
+	FILE *fp;
+
+	if ((fp = fopen("req.pem", "w")) == NULL) {
+		error_print();
+		return -1;
+	}
+	if (x509_req_to_pem(req, reqlen, fp) != 1) {
+		error_print();
+		return -1;
+	}
+	fclose(fp);
+	x509_req_to_pem(req, reqlen, stderr);
+
+
+	memset(req, 0, sizeof(req));
+
+	if ((fp = fopen("req.pem", "r")) == NULL) {
+		error_print();
+		return -1;
+	}
+	if (x509_req_from_pem(req, &reqlen, sizeof(req), fp) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_req_verify(req, reqlen, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(stderr, 0, 0, "x509_req_verify() success\n");
+
+
+
+
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+int main(void)
+{
+	int err = 0;
+	err += test_x509_request_info();
+	err += test_x509_request();
+	err += test_x509_req();
+	return err;
+}
+

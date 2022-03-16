@@ -120,7 +120,6 @@ AlgorithmIdentifier ::= {
 int sm2_public_key_algor_to_der(uint8_t **out, size_t *outlen);
 int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen);
 
-
 /*
 X.509 SubjectPublicKeyInfo from RFC 5280
 
@@ -146,6 +145,18 @@ int sm2_private_key_info_to_der(const SM2_KEY *key, uint8_t **out, size_t *outle
 int sm2_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, const uint8_t **in, size_t *inlen);
 int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
 int sm2_private_key_info_from_pem(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, FILE *fp);
+
+/*
+EncryptedPrivateKeyInfo ::= SEQUENCE {
+	encryptionAlgorithm	EncryptionAlgorithmIdentifier, -- id-PBES2
+	encryptedData		OCTET STRING }
+*/
+int sm2_private_key_info_encrypt_to_der(const SM2_KEY *key,
+	const char *pass, uint8_t **out, size_t *outlen);
+int sm2_private_key_info_decrypt_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrs_len,
+	const char *pass, const uint8_t **in, size_t *inlen);
+int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
+int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
 
 
 typedef struct {

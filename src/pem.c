@@ -67,7 +67,8 @@ int pem_write(FILE *fp, const char *name, const uint8_t *data, size_t datalen)
 	ret += fprintf(fp, "-----BEGIN %s-----\n", name);
 	ret += fprintf(fp, "%s", (char *)b64);
 	ret += fprintf(fp, "-----END %s-----\n", name);
-	return ret;
+	//return ret;
+	return 1;
 }
 
 int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t maxlen)
@@ -81,9 +82,17 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 	snprintf(begin_line, sizeof(begin_line), "-----BEGIN %s-----\n", name);
 	snprintf(end_line, sizeof(end_line), "-----END %s-----\n", name);
 
-	if (!fgets(line, sizeof(line), fp)) {
-		//FIXME: feof 判断是不是文件结束了呢
+	if (feof(fp)) {
 		return 0;
+	}
+
+	if (!fgets(line, sizeof(line), fp)) {
+		if (feof(fp))
+			return 0;
+		else {
+			error_print();
+			return -1;
+		}
 	}
 
 	if (strcmp(line, begin_line) != 0) {

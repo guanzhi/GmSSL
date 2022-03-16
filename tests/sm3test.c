@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 {
 	int err = 0;
 	char *p;
-	uint8_t testbuf[sizeof(testhex)/2];
+	uint8_t testbuf[sizeof(testhex)/2 + 1000];
 	uint8_t dgstbuf[32];
 	size_t testbuflen, dgstbuflen;
 	uint8_t dgst[32];

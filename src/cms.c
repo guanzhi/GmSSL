@@ -1975,7 +1975,7 @@ int cms_key_agreement_info_print(FILE *fp, int fmt, int ind, const char *label, 
 	if (sm2_public_key_info_from_der(&pub_key, &d, &dlen) != 1) goto err;
 	sm2_public_key_print(fp, fmt, ind, "tempPublicKeyR", &pub_key);
 	if (x509_cert_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	x509_cert_print(fp, fmt, ind, p, len);
+	x509_cert_print(fp, fmt, ind, "certificate", p, len);
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "userID", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;

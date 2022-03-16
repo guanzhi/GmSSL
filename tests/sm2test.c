@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/error.h>
 #include <gmssl/sm2.h>
 
 
@@ -96,7 +97,7 @@ static int test_sm2_point(void)
 	i = sm2_point_is_on_curve(&P);
 	printf("point_is_on_curve: %d\n", i);
 
-	return 1;
+	return 0;
 }
 
 
@@ -119,7 +120,7 @@ static int test_sm2_do_encrypt(void)
 	sm2_do_decrypt(&key, ciphertext, plainbuf, &plainlen);
 
 	printf("plaintext = %s\n", (char *)plainbuf);
-	return r;
+	return 0;
 }
 
 static int test_sm2_sign(void)
@@ -149,13 +150,130 @@ static int test_sm2_sign(void)
 	return 0;
 }
 
+static int test_sm2_point_octets(void)
+{
+	int err = 0;
+	SM2_KEY sm2_key;
+	SM2_POINT point;
+	uint8_t buf[65];
+	int i;
+
+	// compress
+	for (i = 0; i < 8; i++) {
+		uint8_t buf[33];
+		sm2_key_generate(&sm2_key);
+		sm2_point_to_compressed_octets(&sm2_key.public_key, buf);
+		if (sm2_point_from_octets(&point, buf, sizeof(buf)) != 1) {
+			error_print();
+			err++;
+			break;
+		}
+		if (memcmp(&sm2_key.public_key, &point, sizeof(SM2_POINT)) != 0) {
+			error_print();
+			err++;
+			break;
+		}
+	}
+
+	// uncompress
+	for (i = 0; i < 8; i++) {
+		uint8_t buf[65];
+		sm2_key_generate(&sm2_key);
+		sm2_point_to_uncompressed_octets(&sm2_key.public_key, buf);
+		if (sm2_point_from_octets(&point, buf, sizeof(buf)) != 1) {
+			error_print();
+			err++;
+			break;
+		}
+		if (memcmp(&sm2_key.public_key, &point, sizeof(SM2_POINT)) != 0) {
+			error_print();
+			err++;
+			break;
+		}
+	}
+
+	printf("%s : %s\n", __func__, err ? "failed" : "ok");
+	return err;
+}
+
+static int test_sm2_private_key(void)
+{
+	int err = 0;
+	SM2_KEY sm2_key;
+	SM2_KEY sm2_tmp;
+	uint8_t buf[256];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	sm2_key_generate(&sm2_key);
+
+	if (sm2_private_key_to_der(&sm2_key, &p, &len) != 1) {
+		error_print();
+		err++;
+		goto end;
+	}
+	if (sm2_private_key_from_der(&sm2_tmp, &cp, &len) != 1
+		|| len > 0) {
+		error_print();
+		err++;
+		goto end;
+	}
+	if (memcmp(&sm2_tmp, &sm2_key, sizeof(SM2_KEY)) != 0) {
+		error_print();
+		err++;
+		goto end;
+	}
+
+	printf("%s : ok\n", __func__);
+end:
+	printf("%s : %s\n", __func__, err ? "failed" : "ok");
+	return err;
+}
+
+static int test_sm2_public_key_info(void)
+{
+	int err = 0;
+	SM2_KEY sm2_key;
+	SM2_KEY sm2_tmp;
+	uint8_t buf[256];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	sm2_key_generate(&sm2_key);
+
+	if (sm2_public_key_info_to_der(&sm2_key, &p, &len) != 1) {
+		error_print();
+		err++;
+		goto end;
+	}
+	if (sm2_public_key_info_from_der(&sm2_tmp, &cp, &len) != 1
+		|| len > 0) {
+		error_print();
+		err++;
+		goto end;
+	}
+	if (memcmp(&sm2_key.public_key, &sm2_tmp.public_key, sizeof(SM2_POINT)) != 0) {
+		error_print();
+		err++;
+		goto end;
+	}
+	printf("%s : ok\n", __func__);
+end:
+	printf("%s : %s\n", __func__, err ? "failed" : "ok");
+	return err;
+}
+
 int main(void)
 {
-	sm2_selftest();
-
-	//test_sm2_point();
-	//test_sm2_sign();
-	test_sm2_do_encrypt();
-
-	return 0;
+	int err = 0;
+	err += sm2_selftest();
+	err += test_sm2_point();
+	err += test_sm2_sign();
+	err += test_sm2_do_encrypt();
+	err += test_sm2_point_octets();
+	err += test_sm2_private_key();
+	err += test_sm2_public_key_info();
+	return err;
 }

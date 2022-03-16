@@ -105,6 +105,7 @@ int x509_directory_name_check_ex(int tag, const uint8_t *d, size_t dlen, size_t 
 		return -1;
 	}
 	if (dlen < minlen || dlen > maxlen) {
+		printf("%s %d: dlen = %zu, minlen = %zu, maxlne = %zu\n", __FILE__, __LINE__, dlen, minlen, maxlen);
 		error_print();
 		return -1;
 	}

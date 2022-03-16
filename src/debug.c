@@ -107,7 +107,7 @@ int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_
 	for (i = 0; i < indent; i++) {
 		fprintf(fp, " ");
 	}
-	fprintf(fp, "%s", str);
+	fprintf(fp, "%s: ", str);
 	if (!datalen) {
 		fprintf(fp, "(null)\n");
 		return 1;

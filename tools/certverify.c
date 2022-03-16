@@ -59,66 +59,21 @@
 // 比如最基本的是证书中的签名、有效期、各个扩展等
 // 外部相关的：证书链、CRL等
 
-
-static int verify_cert(const X509_CERTIFICATE *cert, const X509_CERTIFICATE *cacert)
-{
-	int ret;
-	SM2_KEY ca_pubkey;
-
-	if (x509_name_equ(&cert->tbs_certificate.issuer, &cacert->tbs_certificate.subject) != 1) {
-		error_print();
-		return -1;
-	}
-	if (x509_certificate_get_public_key(cacert, &ca_pubkey) != 1) {
-		error_print();
-		return -1;
-	}
-	if ((ret = x509_certificate_verify(cert, &ca_pubkey)) < 0) {
-		error_print();
-		return -1;
-	}
-	return ret;
-}
-
-static int find_cacert(X509_CERTIFICATE *cacert, FILE *fp, const X509_NAME *issuer)
-{
-	int ret;
-	for (;;) {
-		if ((ret = x509_certificate_from_pem(cacert, fp)) != 1) {
-			if (ret < 0) error_print();
-			return ret;
-		}
-		if (x509_name_equ(&cacert->tbs_certificate.subject, issuer) == 1) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-
-void print_usage(const char *prog)
-{
-	printf("Usage: %s command [options] ...\n", prog);
-	printf("\n");
-	printf("Options:\n");
-	printf("  -cert <file>        PKCS #10 certificate request file\n");
-	printf("  -cacert <file>     CA certificate file\n");
-}
-
 int main(int argc, char **argv)
 {
-	int ret = -1;
+	int ret = 0;
 	char *prog = argv[0];
 	char *certfile = NULL;
-	char *cacertfile = NULL;
 	FILE *certfp = NULL;
+
+	char *cacertfile = NULL;
 	FILE *cacertfp = NULL;
 
-	X509_CERTIFICATE cert1;
-	X509_CERTIFICATE cert2;
-	X509_CERTIFICATE *cert = &cert1;
-	X509_CERTIFICATE *cacert = &cert2;
-	X509_CERTIFICATE *tmpcert;
+	uint8_t cert[1024];
+	size_t certlen;
+	uint8_t cacert[1024];
+	size_t cacertlen;
+	char *signer_id = SM2_DEFAULT_ID;
 
 	SM2_KEY ca_pubkey;
 
@@ -126,7 +81,7 @@ int main(int argc, char **argv)
 	argv++;
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+			printf("Usage: %s [-cert pem] -cacert pem\n", prog);
 			return 0;
 
 		} else if (!strcmp(*argv, "-cert")) {
@@ -144,7 +99,7 @@ int main(int argc, char **argv)
 				return -1;
 			}
 		} else {
-			print_usage(prog);
+			printf("Usage: %s [-cert pem] -cacert pem\n", prog);
 			return 0;
 			break;
 		}
@@ -154,36 +109,24 @@ int main(int argc, char **argv)
 	}
 
 	if (!certfp || !cacertfp) {
-		print_usage(prog);
+		error_print();
 		return -1;
 	}
 
-	if (x509_certificate_from_pem(cert, certfp) != 1) {
-		error_print();
-		return -1;
-	}
-	for (;;) {
-		if ((ret = x509_certificate_from_pem(cacert, certfp)) != 1) {
-			if (ret < 0) error_print();
-			break;
-		}
-		if (verify_cert(cert, cacert) != 1) {
-			error_print();
-			return -1;
-		}
-		tmpcert = cacert;
-		cert = cacert;
-		cacert = tmpcert;
-	}
 
-	if (find_cacert(cacert, cacertfp, &cert->tbs_certificate.issuer) != 1) {
+	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
 		error_print();
 		return -1;
 	}
-	if ((ret = verify_cert(cert, cacert)) < 0) {
+	if (x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), cacertfp) != 1) {
 		error_print();
 		return -1;
 	}
+	if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id)) != 1) {
+		error_print();
+		return -1;
+	}
+	ret = 1;
 	printf("Verification %s\n", ret ? "success" : "failure");
 
 	ret = 0;
