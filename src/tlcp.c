@@ -132,31 +132,35 @@ int tlcp_certificate_chain_verify(const uint8_t *data, size_t datalen, FILE *ca_
 {
 	const uint8_t *certs;
 	size_t certslen;
-	const uint8_t *der;
-	size_t derlen;
-	X509_CERTIFICATE sign_cert;
-	X509_CERTIFICATE enc_cert;
-	X509_CERTIFICATE ca_cert;
+
+	const uint8_t *sign_cert;
+	size_t sign_cert_len;
+	const uint8_t *enc_cert;
+	size_t enc_cert_len;
+	const uint8_t *ca_cert;
+	size_t ca_cert_len;
+	const uint8_t *sign_issuer;
+	size_t sign_issuer_len;
+	const uint8_t *enc_issuer;
+	size_t enc_issuer_len;
 
 	if (tls_uint24array_from_bytes(&certs, &certslen, &data, &datalen) != 1
 		|| datalen > 0) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1
-		|| x509_certificate_from_der(&sign_cert, &der, &derlen) != 1
-		|| derlen > 0) {
+	if (tls_uint24array_from_bytes(&sign_cert, &sign_cert_len, &certs, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1
-		|| x509_certificate_from_der(&enc_cert, &der, &derlen) != 1
-		|| derlen > 0) {
+	if (tls_uint24array_from_bytes(&enc_cert, &enc_cert_len, &certs, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_name_equ(&sign_cert.tbs_certificate.issuer,
-		&enc_cert.tbs_certificate.issuer) != 1) {
+	if (x509_cert_get_issuer(sign_cert, sign_cert_len, &sign_issuer, &sign_issuer_len) != 1
+		|| x509_cert_get_issuer(enc_cert, enc_cert_len, &enc_issuer, &enc_issuer_len) != 1
+		|| asn1_check(sign_issuer_len == enc_issuer_len) != 1
+		|| asn1_check(memcmp(sign_issuer, enc_issuer, enc_issuer_len) == 0) != 1) {
 		error_print();
 		return -1;
 	}
@@ -164,14 +168,12 @@ int tlcp_certificate_chain_verify(const uint8_t *data, size_t datalen, FILE *ca_
 	if (certslen) {
 		const uint8_t *chain = certs;
 		size_t chainlen = certslen;
-		if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1
-			|| x509_certificate_from_der(&ca_cert, &der, &derlen) != 1
-			|| derlen > 0) {
+		if (tls_uint24array_from_bytes(&ca_cert, &ca_cert_len, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_certificate_verify_by_certificate(&sign_cert, &ca_cert) != 1
-			|| x509_certificate_verify_by_certificate(&enc_cert, &ca_cert) != 1) {
+		if (x509_cert_verify_by_ca_cert(sign_cert, sign_cert_len, ca_cert, ca_cert_len, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+			|| x509_cert_verify_by_ca_cert(enc_cert, enc_cert_len, ca_cert, ca_cert_len, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
 			return -1;
 		}
@@ -180,7 +182,9 @@ int tlcp_certificate_chain_verify(const uint8_t *data, size_t datalen, FILE *ca_
 			return -1;
 		}
 	} else {
-		if (x509_certificate_from_pem_by_name(&ca_cert, ca_certs_fp, &sign_cert.tbs_certificate.issuer) != 1
+
+		/*
+		if (x509_cert_from_pem_by_subject(&ca_cert, ca_certs_fp, &sign_cert.tbs_certificate.issuer) != 1
 			|| x509_certificate_verify_by_certificate(&sign_cert, &ca_cert) != 1) {
 			error_print();
 			return -1;
@@ -190,6 +194,7 @@ int tlcp_certificate_chain_verify(const uint8_t *data, size_t datalen, FILE *ca_
 			error_print();
 			return -1;
 		}
+		*/
 	}
 	return 1;
 }
@@ -241,7 +246,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 
 	sm3_init(&sm3_ctx);
 	if (client_sign_key)
-		sm2_sign_init(&sign_ctx, client_sign_key, SM2_DEFAULT_ID);
+		sm2_sign_init(&sign_ctx, client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	tls_record_set_version(record, TLS_version_tlcp);
 	tls_record_set_version(finished, TLS_version_tlcp);
 
@@ -333,7 +338,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		error_print();
 		return -1;
 	}
-	if (sm2_verify_init(&verify_ctx, &server_sign_key, SM2_DEFAULT_ID) != 1
+	if (sm2_verify_init(&verify_ctx, &server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_verify_update(&verify_ctx, client_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, server_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, server_enc_cert, server_enc_cert_len) != 1) {
@@ -692,7 +697,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	}
 
 	tls_trace(">>>> ServerKeyExchange\n");
-	if (sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID) != 1
+	if (sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_sign_update(&sign_ctx, client_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_enc_cert, server_enc_certlen) != 1
@@ -820,7 +825,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 			return -1;
 		}
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-		sm2_verify_init(&sign_ctx, &client_sign_key, SM2_DEFAULT_ID);
+		sm2_verify_init(&sign_ctx, &client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 		sm2_verify_update(&sign_ctx, handshakes_buf, handshakeslen);
 		if (sm2_verify_finish(&sign_ctx, sig, siglen) != 1) {
 			error_print();

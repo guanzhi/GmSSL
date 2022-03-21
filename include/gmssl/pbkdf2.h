@@ -66,7 +66,11 @@ extern "C" {
 
 
 int pbkdf2_genkey(const DIGEST *digest,
-	const char *pass, size_t passlen, const uint8_t *salt, size_t saltlen, size_t count,
+	const char *pass, size_t passlen, const uint8_t *salt, size_t saltlen, size_t iter,
+	size_t outlen, uint8_t *out);
+
+int pbkdf2_hmac_sm3_genkey(
+	const char *pass, size_t passlen, const uint8_t *salt, size_t saltlen, size_t iter,
 	size_t outlen, uint8_t *out);
 
 

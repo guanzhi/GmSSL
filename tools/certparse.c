@@ -53,26 +53,55 @@
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
 
+static const char *options = "[-in file]";
 
-int main(void)
+int main(int argc, char **argv)
 {
-	uint8_t cert[1024];
+	char *prog = argv[0];
+	char *infile = NULL;
+	FILE *infp = stdin;
+
+	uint8_t cert[18192];
 	size_t certlen;
 
-	for (;;) {
-		int ret = x509_cert_from_pem(cert, &certlen, sizeof(cert), stdin);
-		if (ret < 0) {
+	argc--;
+	argv++;
+
+	while (argc > 0) {
+		if (!strcmp(*argv, "-help")) {
+			printf("usage: %s %s\n", prog, options);
+			return 0;
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
+		} else {
+bad:
+			fprintf(stderr, "%s: llegal option '%s'\n", prog, *argv);
+			printf("usage: %s %s\n", prog, options);
+			return 1;
+		}
+
+		argc--;
+		argv++;
+	}
+
+	if (infile) {
+		if (!(infp = fopen(infile, "r"))) {
 			error_print();
 			return -1;
 		}
-		if (ret == 0) {
-			goto end;
+	}
+
+	for (;;) {
+		int ret;
+		if ((ret = x509_cert_from_pem(cert, &certlen, sizeof(cert), infp)) < 0) {
+			error_print();
+			return -1;
+		} else if (!ret) {
+			break;
 		}
-		fprintf(stdout, "Certificate\n");
 		x509_cert_print(stdout, 0, 0, "Certificate", cert, certlen);
 		x509_cert_to_pem(cert, certlen, stdout);
-		fprintf(stdout, "\n");
 	}
-end:
 	return 0;
 }

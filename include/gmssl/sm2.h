@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,8 +68,15 @@ typedef struct {
 void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33]);
 void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65]);
 int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
+
+/*
+RFC 5480 Elliptic Curve Cryptography Subject Public Key Information
+ECPoint ::= OCTET STRING
+*/
 int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen);
 int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen);
+
+
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y);
 int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32]);
 int sm2_point_is_on_curve(const SM2_POINT *P);
@@ -81,14 +88,14 @@ int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POI
 typedef struct {
 	SM2_POINT public_key;
 	uint8_t private_key[32];
-	uint8_t key_usage[4];
 } SM2_KEY;
 
 int sm2_key_generate(SM2_KEY *key);
-int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]);
-int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key);
+int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]); // 自动生成公钥
+int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key); // 自动清空私钥，不要和set_private_key同时用
 int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
 
+int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key);
 int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key);
 int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
 int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
@@ -98,17 +105,21 @@ from RFC 5915
 
 ECPrivateKey ::= SEQUENCE {
 	version		INTEGER,	-- value MUST be (1)
-	privateKey	OCTET STRING,	-- big endian encoding of integer
+	privateKey	OCTET STRING,	-- big endian encoding of integer 这里不是以INTEGER编码的，因此长度固定
 	parameters	[0] EXPLICIT ECParameters OPTIONAL,
 					-- ONLY namedCurve OID is permitted, by RFC 5480
 					-- MUST always include this field, by RFC 5915
-	publicKey	[1] EXPLICIT BIT STRING OPTIONAL
+	publicKey	[1] EXPLICIT BIT STRING OPTIONAL -- compressed_point
 					-- SHOULD always include this field, by RFC 5915 }
 
 ECParameters ::= CHOICE { namedCurve OBJECT IDENTIFIER }
 */
+#define SM2_PRIVATE_KEY_DEFAULT_SIZE 120 // generated
+#define SM2_PRIVATE_KEY_BUF_SIZE 512 // MUST >= SM2_PRIVATE_KEY_DEFAULT_SIZE
+
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen);
+int sm2_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
 int sm2_private_key_from_pem(SM2_KEY *key, FILE *fp);
 
@@ -141,8 +152,13 @@ PrivateKeyInfo ::= SEQUENCE {
 	privateKey		OCTET STRING, -- DER-encoding of ECPrivateKey
 	attributes		[0] IMPLICIT SET OF Attribute OPTIONAL }
 */
+enum {
+	PKCS8_private_key_info_version = 0,
+};
+
 int sm2_private_key_info_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, const uint8_t **in, size_t *inlen);
+int sm2_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
 int sm2_private_key_info_from_pem(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, FILE *fp);
 
@@ -170,6 +186,7 @@ int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uin
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
+#define SM2_MIN_SIGNATURE_SIZE 8
 #define SM2_MAX_SIGNATURE_SIZE 72
 
 int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
@@ -177,13 +194,10 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, s
 
 
 #define SM2_DEFAULT_ID				"1234567812345678"
-#define SM2_DEFAULT_ID_LENGTH			(sizeof(SM2_DEFAULT_ID) - 1)
+#define SM2_DEFAULT_ID_LENGTH			(sizeof(SM2_DEFAULT_ID) - 1)  // LENGTH for string and SIZE for bytes
 #define SM2_DEFAULT_ID_BITS			(SM2_DEFAULT_ID_LENGTH * 8)
-#define SM2_DEFAULT_ID_DIGEST_LENGTH		SM3_DIGEST_LENGTH
-
 #define SM2_MAX_ID_BITS				65535
 #define SM2_MAX_ID_LENGTH			(SM2_MAX_ID_BITS/8)
-#define SM2_MAX_ID_SIZE				(SM2_MAX_ID_BITS/8)
 
 int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t idlen);
 
@@ -191,7 +205,6 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t id
 typedef struct {
 	SM2_KEY key;
 	SM3_CTX sm3_ctx;
-	int flags;
 } SM2_SIGN_CTX;
 
 int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
@@ -209,27 +222,27 @@ SM2Cipher ::= SEQUENCE {
 	HASH		OCTET STRING SIZE(32),
 	CipherText	OCTET STRING }
 */
+#define SM2_MIN_PLAINTEXT_SIZE	1 // re-compute SM2_MIN_CIPHERTEXT_SIZE when modify
+#define SM2_MAX_PLAINTEXT_SIZE	255 // re-compute SM2_MAX_CIPHERTEXT_SIZE when modify
+
 typedef struct {
 	SM2_POINT point;
 	uint8_t hash[32];
-	uint32_t ciphertext_size;
-	uint8_t ciphertext[1];
+	uint8_t ciphertext_size;
+	uint8_t ciphertext[SM2_MAX_PLAINTEXT_SIZE];
 } SM2_CIPHERTEXT;
 
-#define SM2_MAX_PLAINTEXT_SIZE	256
-#define SM2_MAX_CIPHERTEXT_SIZE	512
-
-#define SM2_CIPHERTEXT_SIZE(inlen) (sizeof(SM2_CIPHERTEXT)-1+(inlen))
-int sm2_ciphertext_size(size_t inlen, size_t *outlen);
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen);
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
 int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen);
 
+#define SM2_MIN_CIPHERTEXT_SIZE	45 // dependes on SM2_MIN_PLAINTEXT_SIZE
+#define SM2_MAX_CIPHERTEXT_SIZE	366 // depends on SM2_MAX_PLAINTEXT_SIZE
+
 int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-
 
 
 int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);

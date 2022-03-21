@@ -570,21 +570,12 @@ int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int for
 		return -1;
 	}
 	while (certslen > 0) {
-		X509_CERTIFICATE cert;
 		if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_certificate_from_der(&cert, &der, &derlen) != 1) {
-			error_print();
-			return -1;
-		}
-		if (derlen > 0) {
-			error_print();
-			return -1;
-		}
-		(void)x509_certificate_print(fp, &cert, format, indent);
-		(void)x509_certificate_to_pem(&cert, fp);
+		(void)x509_cert_print(fp, format, indent, "Certificate", der, derlen);
+		(void)x509_cert_to_pem(der, derlen, fp);
 	}
 	return 1;
 }

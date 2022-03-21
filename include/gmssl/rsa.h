@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+﻿/*
+ * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,15 +47,48 @@
  */
 
 
+#ifndef GMSSL_RSA_H
+#define GMSSL_RSA_H
+
+
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-#include <gmssl/des.h>
+#include <stdint.h>
 
 
-int main(void)
-{
-	int err = 0;
-	return err;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+/*
+RSAPublicKey ::= SEQUENCE {
+	modulus			INTEGER,  -- n
+	publicExponent		INTEGER   -- e
 }
 
+RSAPrivateKey ::= SEQUENCE {
+	version			INTEGER, -- 0
+	modulus			INTEGER, -- n
+	publicExponent		INTEGER, -- e
+	privateExponent		INTEGER, -- d
+	prime1			INTEGER, -- p
+	prime2			INTEGER, -- q
+	exponent1		INTEGER, -- d mod (p-1)
+	exponent2		INTEGER, -- d mod (q-1)
+	coefficient		INTEGER  -- q^-1 mod p
+}
+*/
+
+
+int rsa_public_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+
+
+
+
+
+#ifdef __cplusplus
+}
+#endif
+#endif

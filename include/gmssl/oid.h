@@ -120,6 +120,9 @@ enum {
 	OID_ce_crl_distribution_points,
 	OID_ce_inhibit_any_policy,
 	OID_ce_freshest_crl,
+	OID_netscape_cert_comment,
+	OID_cert_authority_info_access,
+	OID_ct_precertificate_scts,
 
 	// CRL Extensions
 	//OID_ce_authority_key_identifier,
@@ -235,6 +238,12 @@ id-PBES2 OBJECT IDENTIFIER ::= {pkcs-5 13}
 #define oid_rsadsi	1,2,840,113549
 #define oid_pkcs	oid_rsadsi,1
 #define oid_pkcs5	oid_pkcs,5
+
+
+#define oid_cnt(nodes)	(sizeof(nodes)/sizeof(int))
+
+
+#define oid_x9_62 1,2,840,10045
 
 
 #ifdef __cplusplus

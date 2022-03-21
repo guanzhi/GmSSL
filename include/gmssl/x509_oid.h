@@ -103,6 +103,7 @@ id-ce:
 	OID_ce_crl_distribution_points
 	OID_ce_inhibit_any_policy
 	OID_ce_freshest_crl
+	OID_netscape_cert_comment
 */
 const char *x509_ext_id_name(int oid);
 int x509_ext_id_from_name(const char *name);

@@ -64,9 +64,10 @@ int main(int argc, char **argv)
 	size_t keylen;
 	FILE *in = stdin;
 	SM3_HMAC_CTX ctx;
-	unsigned char dgst[32];
-	unsigned char buf[4096];
+	uint8_t dgst[32];
+	uint8_t buf[4096];
 	size_t len;
+	size_t i;
 
 	argc--;
 	argv++;
@@ -114,8 +115,13 @@ help:
 	}
 	sm3_hmac_finish(&ctx, dgst);
 
-
-	format_bytes(stdout, 0, 0, "", dgst, sizeof(dgst));
+	for (i = 0; i < sizeof(dgst); i++) {
+		printf("%02x", dgst[i]);
+	}
+	if (infile) {
+		printf(" : %s", infile);
+	}
+	printf("\n");
 
 	memset(&ctx, 0, sizeof(ctx));
 	memset(key, 0, sizeof(key));

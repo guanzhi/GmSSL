@@ -61,43 +61,13 @@
 #include <unistd.h>
 #endif
 
+static const char *options = "[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num -key file [-pass pass]";
 
-/*
-from RFC 2253
-
-String  X.500 AttributeType
-------------------------------
-CN      commonName
-L       localityName
-ST      stateOrProvinceName
-O       organizationName
-OU      organizationalUnitName
-C       countryName
-STREET  streetAddress
-DC      domainComponent
-UID     userid
-*/
-
-void print_usage(const char *prog)
-{
-	printf("Usage: %s command [options] ...\n", prog);
-	printf("\n");
-	printf("Options:\n");
-	printf("  -C <str>           country name\n");
-	printf("  -ST <str>          state of province name\n");
-	printf("  -L <str>           locality name\n");
-	printf("  -O <str>           orgnization name\n");
-	printf("  -OU <str>          orgnizational unit name\n");
-	printf("  -CN <str>          common name\n");
-	printf("  -days <num>        validity days\n");
-	printf("  -key <file>        private key file\n");
-	printf("  -pass pass         password\n");
-}
 
 int main(int argc, char **argv)
 {
+	int ret = 1;
 	char *prog = argv[0];
-
 	char *country = NULL;
 	char *state = NULL;
 	char *locality = NULL;
@@ -126,72 +96,68 @@ int main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+help:
+			printf("usage: %s %s\n", prog, options);
 			return 0;
-
 		} else if (!strcmp(*argv, "-CN")) {
 			if (--argc < 1) goto bad;
 			common_name = *(++argv);
-
 		} else if (!strcmp(*argv, "-O")) {
 			if (--argc < 1) goto bad;
 			org = *(++argv);
-
 		} else if (!strcmp(*argv, "-OU")) {
 			if (--argc < 1) goto bad;
 			org_unit = *(++argv);
-
 		} else if (!strcmp(*argv, "-C")) {
 			if (--argc < 1) goto bad;
 			country = *(++argv);
-
 		} else if (!strcmp(*argv, "-ST")) {
 			if (--argc < 1) goto bad;
 			state = *(++argv);
-
+		} else if (!strcmp(*argv, "-L")) {
+			if (--argc < 1) goto bad;
+			locality = *(++argv);
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-
 		} else if (!strcmp(*argv, "-days")) {
 			if (--argc < 1) goto bad;
 			days = atoi(*(++argv));
-
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
-
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-
-
 		} else {
+bad:
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			print_usage(prog);
-			return 0;
+			fprintf(stderr, "usage: %s %s\n", prog, options);
+			return 1;
 		}
 
 		argc--;
 		argv++;
 	}
 
-	if (days <= 0 || !keyfile) {
-		error_print();
-		goto bad;
-	}
-
-	if (!(keyfp = fopen(keyfile, "r"))) {
-		error_print();
-		goto bad;
+	if (!common_name || days <= 0 || !keyfile) {
+		fprintf(stderr, "%s: missing options\n", prog);
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
 	}
 
 	if (!pass) {
-#ifndef WIN32
 		pass = getpass("Encryption Password : ");
-#else
+	}
+	if (!pass || strlen(pass) == 0) {
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
-#endif
+		error_print();
+		return -1;
+	}
+	if (!(keyfp = fopen(keyfile, "r"))
+		|| sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (outfile) {
@@ -202,8 +168,7 @@ int main(int argc, char **argv)
 	}
 
 	time(&not_before);
-	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1
-		|| rand_bytes(serial, sizeof(serial)) != 1
+	if (rand_bytes(serial, sizeof(serial)) != 1
 		|| x509_name_set(name, &namelen, sizeof(name),
 			country, state, locality, org, org_unit, common_name) != 1
 		|| x509_validity_add_days(&not_after, not_before, days) != 1
@@ -224,11 +189,9 @@ int main(int argc, char **argv)
 		error_print();
 		return -1;
 	}
-	return 0;
-
-bad:
-	fprintf(stderr, "%s: commands should not be used together\n", prog);
+	ret = 0;
 
 end:
-	return -1;
+	memset(&sm2_key, 0, sizeof(SM2_KEY));
+	return ret;
 }

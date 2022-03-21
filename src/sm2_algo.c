@@ -1267,6 +1267,8 @@ int sm2_key_generate(SM2_KEY *key)
 		return -1;
 	}
 
+	memset(key, 0, sizeof(SM2_KEY));
+
 	do {
 		bn_rand_range(x, SM2_N);
 	} while (bn_is_zero(x));

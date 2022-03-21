@@ -209,7 +209,7 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t id
 int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
 	uint8_t z[32];
-	if (!ctx || !key || !id || idlen > SM2_MAX_ID_SIZE) {
+	if (!ctx || !key || !id || idlen > SM2_MAX_ID_LENGTH) {
 		return -1;
 	}
 	sm2_compute_z(z, &key->public_key, id, idlen);
@@ -242,7 +242,7 @@ int sm2_sign_resume(SM2_SIGN_CTX *ctx)
 int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
 	uint8_t z[32];
-	if (!ctx || !key || !id || idlen > SM2_MAX_ID_SIZE) {
+	if (!ctx || !key || !id || idlen > SM2_MAX_ID_LENGTH) {
 		return -1;
 	}
 	sm2_compute_z(z, &key->public_key, id, idlen);

@@ -387,7 +387,7 @@ int tls13_sign(const SM2_KEY *key, const DIGEST_CTX *dgst_ctx, uint8_t *sig, siz
 	temp_dgst_ctx = *dgst_ctx;
 	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
 
-	sm2_sign_init(&sm2_ctx, key, SM2_DEFAULT_ID);
+	sm2_sign_init(&sm2_ctx, key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	sm2_sign_update(&sm2_ctx, prefix, 64);
 	sm2_sign_update(&sm2_ctx, context_str, context_str_len);
 	sm2_sign_update(&sm2_ctx, dgst, dgstlen);
@@ -412,7 +412,7 @@ int tls13_verify(const SM2_KEY *key, const DIGEST_CTX *dgst_ctx, const uint8_t *
 	temp_dgst_ctx = *dgst_ctx;
 	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
 
-	sm2_verify_init(&sm2_ctx, key, SM2_DEFAULT_ID);
+	sm2_verify_init(&sm2_ctx, key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	sm2_verify_update(&sm2_ctx, prefix, 64);
 	sm2_verify_update(&sm2_ctx, is_server ? server_context_str : client_context_str, sizeof(server_context_str));
 	sm2_verify_update(&sm2_ctx, dgst, dgstlen);
@@ -1013,24 +1013,18 @@ int tls13_record_set_handshake_certificate_from_pem(uint8_t *record, size_t *rec
 
 	for (;;) {
 		int ret;
-		X509_CERTIFICATE cert;
-		uint8_t der[1024];
-		const uint8_t *cp = der;
-		size_t derlen;
+		uint8_t cert[1024];
+		size_t certlen;
 
-		if ((ret = pem_read(fp, "CERTIFICATE", der, &derlen)) < 0) {
+		if (x509_cert_from_pem(cert, &certlen, sizeof(cert), fp) < 0) {
 			error_print();
 			return -1;
-		} else if (ret == 0) {
+		} else if (!ret) {
 			break;
 		}
-		tls_uint24array_to_bytes(der, derlen, &certs, &certslen);
-		if (x509_certificate_from_der(&cert, &cp, &derlen) != 1
-			|| derlen > 0) {
-			error_print();
-			return -1;
-		}
-		//x509_certificate_print(stderr, &cert, 0, 0);
+
+		tls_uint24array_to_bytes(cert, certlen, &certs, &certslen);
+		x509_cert_print(stderr, 0, 0, "Certificate", cert, certlen);
 	}
 	datalen = certslen;
 	tls_uint24_to_bytes((uint24_t)certslen, &data, &datalen);
@@ -1312,7 +1306,7 @@ int tls13_connect(TLS_CONNECT *conn, const char *hostname, int port, FILE *serve
 	tls_record_set_version(record, TLS_version_tls12);
 	rand_bytes(client_random, 32);
 	rand_bytes(session_id, 32);
-	sm2_keygen(&client_ecdhe);
+	sm2_key_generate(&client_ecdhe);
 	tls13_client_hello_extensions_set(exts, &extslen, &(client_ecdhe.public_key));
 	tls_record_set_handshake_client_hello(record, &recordlen,
 		TLS_version_tls12, client_random, session_id, 32,
@@ -1772,7 +1766,7 @@ int tls13_accept(TLS_CONNECT *conn, int port,
 	tls_trace("<<<< ServerHello\n");
 
 	rand_bytes(server_random, 32);
-	sm2_keygen(&server_ecdhe);
+	sm2_key_generate(&server_ecdhe);
 	tls13_server_hello_extensions_set(exts, &extslen, &(server_ecdhe.public_key), NULL);
 
 	if (tls_record_set_handshake_server_hello(enced_record, &enced_recordlen,

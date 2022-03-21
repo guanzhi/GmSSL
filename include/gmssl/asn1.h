@@ -85,23 +85,23 @@ enum ASN1_TAG {
 	ASN1_TAG_ObjectDescriptor	= 7,
 	ASN1_TAG_EXTERNAL		= 8,
 	ASN1_TAG_REAL			= 9,
-	ASN1_TAG_ENUMERATED		= 10,
-	ASN1_TAG_EMBEDDED		= 11,
-	ASN1_TAG_UTF8String		= 12,
-	ASN1_TAG_RELATIVE_OID		= 13,
-	ASN1_TAG_NumericString		= 18,
-	ASN1_TAG_PrintableString	= 19, // printable subset of ascii
-	ASN1_TAG_TeletexString		= 20, // T61String
-	ASN1_TAG_VideotexString		= 21,
-	ASN1_TAG_IA5String		= 22, // 7-bit ascii
-	ASN1_TAG_UTCTime		= 23,
-	ASN1_TAG_GeneralizedTime	= 24,
-	ASN1_TAG_GraphicString		= 25,
-	ASN1_TAG_VisibleString		= 26,
-	ASN1_TAG_GeneralString		= 27,
-	ASN1_TAG_UniversalString	= 28,
-	ASN1_TAG_CHARACTER_STRING	= 29,
-	ASN1_TAG_BMPString		= 30, // 2-byte unicode with zeros
+	ASN1_TAG_ENUMERATED		= 10, // 0x0A
+	ASN1_TAG_EMBEDDED		= 11, // 0x0B
+	ASN1_TAG_UTF8String		= 12, // 0x0C
+	ASN1_TAG_RELATIVE_OID		= 13, // 0x0D
+	ASN1_TAG_NumericString		= 18, // 0x12
+	ASN1_TAG_PrintableString	= 19, // 0x13, printable subset of ascii
+	ASN1_TAG_TeletexString		= 20, // 0x14, T61String
+	ASN1_TAG_VideotexString		= 21, // 0x15
+	ASN1_TAG_IA5String		= 22, // 0x16, 7-bit ascii
+	ASN1_TAG_UTCTime		= 23, // 0x17
+	ASN1_TAG_GeneralizedTime	= 24, // 0x18
+	ASN1_TAG_GraphicString		= 25, // 0x19
+	ASN1_TAG_VisibleString		= 26, // 0x20
+	ASN1_TAG_GeneralString		= 27, // 0x21
+	ASN1_TAG_UniversalString	= 28, // 0x22
+	ASN1_TAG_CHARACTER_STRING	= 29, // 0x23
+	ASN1_TAG_BMPString		= 30, // 0x24, 2-byte unicode with zeros
 	ASN1_TAG_SEQUENCE		= 0x30,
 	ASN1_TAG_SET			= 0x31,
 	ASN1_TAG_EXPLICIT		= 0xa0,
@@ -126,6 +126,8 @@ int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint
 int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen); // 调用方应保证a,alen为TLV
 int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen); // 检查输入为TLV
 
+const char *asn1_boolean_name(int val);
+int asn1_boolean_from_name(int *val, const char *name);
 int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen);
 int asn1_boolean_from_der_ex(int tag, int *val, const uint8_t **in, size_t *inlen);
 #define asn1_boolean_to_der(val,out,outlen) asn1_boolean_to_der_ex(ASN1_TAG_BOOLEAN,val,out,outlen)
@@ -182,6 +184,7 @@ int asn1_bits_print(FILE *fp, int fmt, int ind, const char *label, const char **
 #define asn1_implicit_octet_string_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_IMPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_octet_string_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
+const char *asn1_null_name(void);
 int asn1_null_to_der(uint8_t **out, size_t *outlen);
 int asn1_null_from_der(const uint8_t **in, size_t *inlen);
 

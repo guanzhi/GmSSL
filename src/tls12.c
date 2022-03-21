@@ -264,7 +264,7 @@ int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 
 	sm3_init(&sm3_ctx);
 	if (client_sign_key)
-		sm2_sign_init(&sign_ctx, client_sign_key, SM2_DEFAULT_ID);
+		sm2_sign_init(&sign_ctx, client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	tls_record_set_version(record, TLS_version_tls1);
 	tls_record_set_version(finished, TLS_version_tls12);
 
@@ -378,7 +378,7 @@ int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	}
 
 	tls_trace("++++ generate secrets\n");
-	sm2_keygen(&client_ecdh);
+	sm2_key_generate(&client_ecdh);
 	sm2_ecdh(&client_ecdh, &server_ecdh_public, &server_ecdh_public);
 	memcpy(pre_master_secret, &server_ecdh_public, 32);
 
@@ -732,7 +732,7 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 	}
 
 	tls_trace(">>>> ServerKeyExchange\n");
-	sm2_keygen(&server_ecdh);
+	sm2_key_generate(&server_ecdh);
 	if (tls_sign_server_ecdh_params(server_sign_key,
 		client_random, server_random,
 		TLS_curve_sm2p256v1, &server_ecdh.public_key, sig, &siglen) != 1) {
@@ -887,7 +887,7 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 			return -1;
 		}
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-		sm2_verify_init(&sign_ctx, &client_sign_key, SM2_DEFAULT_ID);
+		sm2_verify_init(&sign_ctx, &client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 		sm2_verify_update(&sign_ctx, handshakes_buf, handshakeslen);
 		if (sm2_verify_finish(&sign_ctx, sig, siglen) != 1) {
 			error_print();

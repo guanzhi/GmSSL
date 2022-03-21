@@ -49,12 +49,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/ec.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
 
-#define oid_x9_62 1,2,840,10045
 
 
 static uint32_t oid_sm3[] = { 1,2,156,10197,1,401 };
@@ -489,50 +489,7 @@ err:
 }
 
 
-#define oid_sm_scheme 1,2,156,10197,1
-static uint32_t oid_sm2[] = { oid_sm_scheme,301 };
 
-#define oid_x9_62_curves oid_x9_62,3
-#define oid_x9_62_prime_curves oid_x9_62_curves,1
-static uint32_t oid_prime192v1[] = { oid_x9_62_prime_curves,1 };
-static uint32_t oid_prime256v1[] = { oid_x9_62_prime_curves,7 }; // NIST P-256
-
-#define oid_secg_curve 1,3,132,0
-static uint32_t oid_secp256k1[] = { oid_secg_curve,10 };
-static uint32_t oid_secp384r1[] = { oid_secg_curve,34 }; // NIST P-384
-static uint32_t oid_secp521r1[] = { oid_secg_curve,35 }; // NIST P-521
-
-
-static const ASN1_OID_INFO ec_curves[] = {
-	{ OID_sm2, "sm2", oid_sm2, sizeof(oid_sm2)/sizeof(int), 0, "SM2" },
-	{ OID_prime192v1, "prime192v1", oid_prime192v1, sizeof(oid_prime192v1)/sizeof(int), 0, },
-	{ OID_prime256v1, "prime256v1", oid_prime256v1, sizeof(oid_prime256v1)/sizeof(int), 0, "NIST P-256" },
-	{ OID_secp256k1, "secp256k1", oid_secp256k1, sizeof(oid_secp256k1)/sizeof(int) },
-	{ OID_secp384r1, "secp384r1", oid_secp384r1, sizeof(oid_secp384r1)/sizeof(int), 0, "NIST P-384" },
-	{ OID_secp521r1, "secp521r1", oid_secp521r1, sizeof(oid_secp521r1)/sizeof(int), 0, "NIST P-521" }
-};
-
-static const int ec_curves_count = sizeof(ec_curves)/sizeof(ec_curves[0]);
-
-const char *ec_curve_name(int oid)
-{
-	const ASN1_OID_INFO *info;
-	if (!(info = asn1_oid_info_from_oid(ec_curves, ec_curves_count, oid))) {
-		error_print();
-		return NULL;
-	}
-	return info->name;
-}
-
-int ec_curve_from_name(const char *name)
-{
-	const ASN1_OID_INFO *info;
-	if (!(info = asn1_oid_info_from_name(ec_curves, ec_curves_count, name))) {
-		error_print();
-		return OID_undef;
-	}
-	return info->oid;
-}
 
 
 static uint32_t oid_ec_public_key[] = { oid_x9_62,2,1 };
@@ -566,66 +523,102 @@ int x509_public_key_algor_from_name(const char *name)
 	return info->oid;
 }
 
-int x509_ec_public_key_algor_to_der(int curve_oid, uint8_t **out, size_t *outlen)
+int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size_t *outlen)
 {
-	const ASN1_OID_INFO *info;
 	size_t len = 0;
 
-	if (!(info = asn1_oid_info_from_oid(ec_curves, ec_curves_count, curve_oid))) {
-		error_print();
-		return -1;
-	}
-	if (asn1_object_identifier_to_der(oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), NULL, &len) != 1
-		|| asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, NULL, &len) != 1
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_object_identifier_to_der(oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), out, outlen) != 1
-		|| asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out, outlen) != 1) {
+	switch (oid) {
+	case OID_ec_public_key:
+		if (asn1_object_identifier_to_der(oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), NULL, &len) != 1
+			|| ec_named_curve_to_der(curve_or_null, NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), out, outlen) != 1
+			|| ec_named_curve_to_der(curve_or_null, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_rsa_encryption:
+		if (asn1_object_identifier_to_der(oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-int x509_ec_public_key_algor_from_der(int *curve_oid, const uint8_t **in, size_t *inlen)
+int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	const uint8_t *p;
-	size_t len;
+	const uint8_t *d;
+	size_t dlen;
 	const ASN1_OID_INFO *info;
 
-	*curve_oid = OID_undef;
-	if ((ret = asn1_sequence_from_der(&p, &len, in, inlen)) != 1) {
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_oid_info_from_der(&info, x509_public_key_algors, x509_public_key_algors_count, &p, &len) != 1) {
+
+	if (asn1_oid_info_from_der(&info, x509_public_key_algors, x509_public_key_algors_count, &d, &dlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (info->oid != OID_ec_public_key) {
+	*oid = info->oid;
+
+	switch (*oid) {
+	case OID_ec_public_key:
+		if (ec_named_curve_from_der(curve_or_null, &d, &dlen) != 1
+			|| asn1_length_is_zero(dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_rsa_encryption:
+		if ((*curve_or_null = asn1_null_from_der(&d, &dlen)) < 0
+			|| asn1_length_is_zero(dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
 		error_print();
 		return -1;
 	}
-	if (asn1_oid_info_from_der(&info, ec_curves, ec_curves_count, &p, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	*curve_oid = info->oid;
 	return 1;
 }
 
 int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const ASN1_OID_INFO *info;
+	int val;
+
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
 	if (asn1_oid_info_from_der(&info, x509_public_key_algors, x509_public_key_algors_count, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "algorithm: %s\n", info->description);
-	if (info->oid != OID_ec_public_key) goto err;
-	if (asn1_oid_info_from_der(&info, ec_curves, ec_curves_count, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "namedCurve: %s\n", info->name);
+	format_print(fp, fmt, ind, "algorithm: %s\n", info->name);
+
+	switch (info->oid) {
+	case OID_ec_public_key:
+		if (ec_named_curve_from_der(&val, &d, &dlen) != 1) goto err;
+		format_print(fp, fmt, ind, "namedCurve: %s\n", ec_named_curve_name(val));
+		break;
+	case OID_rsa_encryption:
+		if ((val = asn1_null_from_der(&d, &dlen)) < 0) goto err;
+		else if (val) format_print(fp, fmt, ind, "parameters: %s\n", asn1_null_name());
+		break;
+	default:
+		error_print();
+		return -1;
+	}
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:

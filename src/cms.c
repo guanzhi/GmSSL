@@ -78,7 +78,7 @@ static uint32_t oid_cms_key_agreement_info[] = { oid_sm2_cms,6 };
 static const ASN1_OID_INFO cms_content_types[] = {
 	{ OID_cms_data, "data", oid_cms_data, OID_CMS_CONUNT },
 	{ OID_cms_signed_data, "signedData", oid_cms_signed_data, OID_CMS_CONUNT },
-	{ OID_cms_enveloped_data, "envelopedData", oid_cms_signed_data, OID_CMS_CONUNT },
+	{ OID_cms_enveloped_data, "envelopedData", oid_cms_enveloped_data, OID_CMS_CONUNT },
 	{ OID_cms_signed_and_enveloped_data, "signedAndEnvelopedData", oid_cms_signed_and_enveloped_data, OID_CMS_CONUNT },
 	{ OID_cms_encrypted_data, "encryptedData", oid_cms_encrypted_data, OID_CMS_CONUNT },
 	{ OID_cms_key_agreement_info, "keyAgreementInfo", oid_cms_key_agreement_info, OID_CMS_CONUNT }
@@ -346,11 +346,11 @@ int cms_enced_content_info_print(FILE *fp, int fmt, int ind, const char *label, 
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_encryption_algor_print(fp, fmt, ind, "contentEncryptionAlgorithm", p, len);
 	if ((ret = asn1_implicit_octet_string_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
-	if (ret) format_bytes(fp, fmt, ind, "encryptedContent", d, dlen);
+	if (ret) format_bytes(fp, fmt, ind, "encryptedContent", p, len);
 	if ((ret = asn1_implicit_octet_string_from_der(1, &p, &len, &d, &dlen)) < 0) goto err;
-	if (ret) format_bytes(fp, fmt, ind, "sharedInfo1", d, dlen);
+	if (ret) format_bytes(fp, fmt, ind, "sharedInfo1", p, len);
 	if ((ret = asn1_implicit_octet_string_from_der(2, &p, &len, &d, &dlen)) < 0) goto err;
-	if (ret) format_bytes(fp, fmt, ind, "sharedInfo2", d, dlen);
+	if (ret) format_bytes(fp, fmt, ind, "sharedInfo2", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -658,6 +658,7 @@ int cms_signer_info_to_der(
 		error_print();
 		return -1;
 	}
+
 	if (asn1_int_to_der(version, NULL, &len) != 1
 		|| cms_issuer_and_serial_number_to_der(
 			issuer, issuer_len,
@@ -732,13 +733,13 @@ int cms_signer_info_print(FILE *fp, int fmt, int ind, const char *label, const u
 	cms_issuer_and_serial_number_print(fp, fmt, ind, "issuerAndSerialNumber", p, len);
 	if (x509_digest_algor_from_der(&val, &d, &dlen) != 1) goto err;
 	format_print(fp, fmt, ind, "digestAlgorithm: %s\n", x509_digest_algor_name(val));
-	if ((ret = asn1_implicit_set_from_der(0, &p, &len, &d, &dlen)) != 1) goto err;
+	if ((ret = asn1_implicit_set_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_attributes_print(fp, fmt, ind, "authenticatedAttributes", p, len);
 	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
 	format_print(fp, fmt, ind, "digestEncryptionAlgorithm: %s\n", x509_signature_algor_name(val));
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "encryptedDigest", p, len);
-	if ((ret = asn1_implicit_set_from_der(1, &p, &len, &d, &dlen)) != 1) goto err;
+	if ((ret = asn1_implicit_set_from_der(1, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_attributes_print(fp, fmt, ind, "unauthenticatedAttributes", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
@@ -834,6 +835,7 @@ int cms_signer_infos_add_signer_info(
 	const uint8_t *unauthed_attrs, size_t unauthed_attrs_len)
 {
 	size_t len = *dlen;
+	d += *dlen;
 	if (cms_signer_info_sign_to_der(sm3_ctx, sign_key,
 			issuer, issuer_len, serial_number, serial_number_len,
 			authed_attrs, authed_attrs_len,
@@ -1290,7 +1292,7 @@ int cms_recipient_info_encrypt_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	int pke_algor = OID_sm2encrypt;
-	uint8_t enced_key[SM2_CIPHERTEXT_SIZE(inlen)];
+	uint8_t enced_key[SM2_MAX_CIPHERTEXT_SIZE];
 	size_t enced_key_len;
 
 	if (pke_algor != OID_sm2encrypt) {

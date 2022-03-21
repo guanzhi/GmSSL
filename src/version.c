@@ -54,7 +54,7 @@ int gmssl_version_num(void)
 	return GMSSL_VERSION_NUM;
 }
 
-const char *gmssl_version(void)
+const char *gmssl_version_str(void)
 {
 	return GMSSL_VERSION_STR;
 }

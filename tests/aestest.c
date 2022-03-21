@@ -411,4 +411,3 @@ int main(void)
 	err += test_aes_gcm();
 	return err;
 }
-

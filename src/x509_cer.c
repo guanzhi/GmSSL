@@ -55,6 +55,7 @@
 #include <gmssl/oid.h>
 #include <gmssl/pem.h>
 #include <gmssl/asn1.h>
+#include <gmssl/rsa.h>
 #include <gmssl/x509_oid.h>
 #include <gmssl/x509_str.h>
 #include <gmssl/x509_alg.h>
@@ -500,6 +501,7 @@ int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 		error_print();
 		return -1;
 	}
+	*dlen = 0;
 	if (x509_name_add_country_name(d, dlen, maxlen, country) < 0
 		|| x509_name_add_state_or_province_name(d, dlen, maxlen, tag, (uint8_t *)state, _strlen(state)) < 0
 		|| x509_name_add_locality_name(d, dlen, maxlen, tag, (uint8_t *)locality, _strlen(locality)) < 0
@@ -551,16 +553,30 @@ int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uin
 
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
-	const uint8_t *p;
-	size_t len;
+	const uint8_t *p = d;
+	size_t len = dlen;
+	int alg;
+	int params;
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
+	if (x509_public_key_algor_from_der(&alg, &params, &p, &len) != 1) goto err;
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_public_key_algor_print(fp, fmt, ind, "algorithm", p, len);
+	format_print(fp, fmt, ind, "subjectPublicKey\n");
+	ind += 4;
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	format_bytes(fp, fmt, ind, "subjectPublicKey", p, len);
+	switch (alg) {
+	case OID_ec_public_key:
+		format_bytes(fp, fmt, ind, "ECPoint", p, len);
+		break;
+	case OID_rsa_encryption:
+		rsa_public_key_print(fp, fmt, ind, "RSAPublicKey", p, len);
+		break;
+	default:
+		format_bytes(fp, fmt, ind, "raw_data", p, len);
+	}
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -627,12 +643,12 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	if (x509_ext_id_from_der(&oid, nodes, &nodes_cnt, &d, &dlen) != 1) goto err;
 	asn1_object_identifier_print(fp, fmt, ind, "extnID", x509_ext_id_name(oid), nodes, nodes_cnt);
 	if ((ret = asn1_boolean_from_der(&critical, &d, &dlen)) < 0) goto err;
-	if (ret) format_print(fp, fmt, ind, "critical: %s\n", critical ? "True" : "False");
+	if (ret) format_print(fp, fmt, ind, "critical: %s\n", asn1_boolean_name(critical));
 	if (asn1_octet_string_from_der(&val, &vlen, &d, &dlen) != 1) goto err;
 
 	switch (oid) {
 	case OID_ce_subject_key_identifier:
-		if (asn1_octet_string_from_der(&p, &len, &val, &vlen)) {
+		if (asn1_octet_string_from_der(&p, &len, &val, &vlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -649,6 +665,8 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 			return -1;
 		}
 		break;
+	case OID_netscape_cert_comment:
+	case OID_ct_precertificate_scts:
 	case OID_undef:
 		p = val;
 		len = vlen;
@@ -683,6 +701,7 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	case OID_ce_crl_distribution_points: return x509_crl_distribution_points_print(fp, fmt, ind, name, p, len);
 	case OID_ce_inhibit_any_policy: format_print(fp, fmt, ind, "%s: %d\n", name, ival);
 	case OID_ce_freshest_crl: return x509_freshest_crl_print(fp, fmt, ind, name, p, len);
+	case OID_netscape_cert_comment: return format_string(fp, fmt, ind, name, p, len);
 	default: format_bytes(fp, fmt, ind, "extnValue", p, len);
 	}
 	return 1;
@@ -1257,7 +1276,22 @@ int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **d, size
 		NULL, NULL); // signature
 }
 
-
+int x509_cert_get_issuer(const uint8_t *a, size_t alen, const uint8_t **d, size_t *dlen)
+{
+	return x509_cert_get_details(a, alen,
+		NULL, // version
+		NULL, NULL, // serial
+		NULL, // signature_algor
+		d, dlen, // issuer
+		NULL, NULL, // validity
+		NULL, NULL, // subject
+		NULL, // subject_public_key
+		NULL, NULL, // issuer_unique_id
+		NULL, NULL, // subject_unique_id
+		NULL, NULL, // extensions
+		NULL, // signature_algor
+		NULL, NULL); // signature
+}
 
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp)
 {
@@ -1330,6 +1364,7 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	}
 	return 0;
 }
+
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;

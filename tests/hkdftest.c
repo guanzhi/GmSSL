@@ -243,11 +243,12 @@ int test_hkdf(void)
 		printf("\n");
 
 	}
-	return 1;
+	return 0;
 }
 
 int main(void)
 {
-	test_hkdf();
-	return 0;
+	int err = 0;
+	err += test_hkdf();
+	return err;
 }

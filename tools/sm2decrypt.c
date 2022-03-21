@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 		if (!strcmp(*argv, "-help")) {
 help:
 			fprintf(stderr, "usage: %s -key pem [-pass password] [-in file] [-out file]\n", prog);
-			goto help;
+			return 0;
 
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
@@ -156,9 +156,6 @@ help:
 		error_print();
 		return -1;
 	}
-
-	error_print_msg("outlen = %zu\n", outlen);
-
 	if (outlen != fwrite(outbuf, 1, outlen, outfp)) {
 		error_print();
 		return -1;

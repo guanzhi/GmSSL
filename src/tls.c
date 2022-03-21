@@ -583,7 +583,7 @@ int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	server_ecdh_params[3] = 65;
 	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 
-	sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID);
+	sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	sm2_sign_update(&sign_ctx, client_random, 32);
 	sm2_sign_update(&sign_ctx, server_random, 32);
 	sm2_sign_update(&sign_ctx, server_ecdh_params, 69);
@@ -612,7 +612,7 @@ int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 	server_ecdh_params[3] = 65;
 	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 
-	sm2_verify_init(&verify_ctx, server_sign_key, SM2_DEFAULT_ID);
+	sm2_verify_init(&verify_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	sm2_verify_update(&verify_ctx, client_random, 32);
 	sm2_verify_update(&verify_ctx, server_random, 32);
 	sm2_verify_update(&verify_ctx, server_ecdh_params, 69);
@@ -951,24 +951,16 @@ int tls_record_set_handshake_certificate_from_pem(uint8_t *record, size_t *recor
 
 	for (;;) {
 		int ret;
-		X509_CERTIFICATE cert;
-		uint8_t der[1024];
-		const uint8_t *cp = der;
-		size_t derlen;
+		uint8_t cert[1024];
+		size_t certlen;
 
-		if ((ret = pem_read(fp, "CERTIFICATE", der, &derlen)) < 0) {
+		if ((ret = x509_cert_from_pem(cert, &certlen, sizeof(cert), fp)) < 0) {
 			error_print();
 			return -1;
-		} else if (ret == 0) {
+		} else if (!ret) {
 			break;
 		}
-		tls_uint24array_to_bytes(der, derlen, &certs, &certslen);
-		if (x509_certificate_from_der(&cert, &cp, &derlen) != 1
-			|| derlen > 0) {
-			error_print();
-			return -1;
-		}
-		//x509_certificate_print(stderr, &cert, 0, 0);
+		tls_uint24array_to_bytes(cert, certlen, &certs, &certslen);
 	}
 	datalen = certslen;
 	tls_uint24_to_bytes((uint24_t)certslen, &data, &datalen);
@@ -996,25 +988,22 @@ int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *data, s
 int tls_certificate_get_subject_names(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen)
 {
 	*nameslen = 0;
-	const uint8_t *der;
-	size_t derlen;
+	const uint8_t *cert;
+	size_t certlen;
 
 	while (certslen > 0) {
-		X509_CERTIFICATE cert;
+		const uint8_t *subject;
+		size_t subject_len;
 
-		if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1) {
+		if (tls_uint24array_from_bytes(&cert, &certlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_certificate_from_der(&cert, &der, &derlen) != 1) {
+		if (x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
 			error_print();
 			return -1;
 		}
-		if (derlen > 0) {
-			error_print();
-			return -1;
-		}
-		if (x509_name_to_der(&cert.tbs_certificate.subject, &names, nameslen) != 1) {
+		if (asn1_sequence_to_der(subject, subject_len, &names, nameslen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1056,7 +1045,6 @@ int tls_certificate_get_second(const uint8_t *data, size_t datalen, const uint8_
 int tls_certificate_get_public_keys(const uint8_t *data, size_t datalen,
 	SM2_KEY *sign_key, SM2_KEY *enc_key)
 {
-	X509_CERTIFICATE x509;
 	const uint8_t *cert;
 	const uint8_t *der;
 	size_t certlen, derlen;
@@ -1067,23 +1055,26 @@ int tls_certificate_get_public_keys(const uint8_t *data, size_t datalen,
 	}
 	if (tls_certificate_get_first(data, datalen, &cert, &certlen) != 1
 		|| tls_uint24array_from_bytes(&der, &derlen, &cert, &certlen) != 1
-		|| certlen > 0
-		|| x509_certificate_from_der(&x509, &der, &derlen) != 1
-		|| derlen > 0) {
+		|| certlen > 0) {
 		error_print();
 		return -1;
 	}
-	memcpy(sign_key, &x509.tbs_certificate.subject_public_key_info.sm2_key, sizeof(SM2_KEY));
+	if (x509_cert_get_subject_public_key(der, derlen, sign_key) != 1) {
+		error_print();
+		return -1;
+	}
+
 	if (enc_key) {
 		if (tls_certificate_get_second(data, datalen, &cert, &certlen) != 1
 			|| tls_uint24array_from_bytes(&der, &derlen, &cert, &certlen) != 1
-			|| certlen > 0
-			|| x509_certificate_from_der(&x509, &der, &derlen) != 1
-			|| derlen > 0) {
+			|| certlen > 0) {
 			error_print();
 			return -1;
 		}
-		memcpy(enc_key, &x509.tbs_certificate.subject_public_key_info.sm2_key, sizeof(SM2_KEY));
+		if (x509_cert_get_subject_public_key(der, derlen, enc_key) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	return 1;
 }
@@ -1092,40 +1083,43 @@ int tls_certificate_get_public_keys(const uint8_t *data, size_t datalen,
 
 int tls_certificate_chain_verify(const uint8_t *certs, size_t certslen, FILE *ca_certs_fp, int depth)
 {
-	X509_CERTIFICATE cert;
-	X509_CERTIFICATE cacert;
-	const uint8_t *der;
-	size_t derlen;
-	if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (x509_certificate_from_der(&cert, &der, &derlen) != 1
-		|| derlen > 0) {
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *cacert;
+	size_t cacertlen;
+	const uint8_t *subject;
+	size_t subject_len;
+	uint8_t rootcacert[1024];
+	size_t rootcacertlen;
+	const char *signer_id = SM2_DEFAULT_ID;
+
+	if (tls_uint24array_from_bytes(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
 	while (certslen > 0) {
-		if (tls_uint24array_from_bytes(&der, &derlen, &certs, &certslen) != 1
-			|| x509_certificate_from_der(&cacert, &der, &derlen) != 1
-			|| derlen > 0) {
+		if (tls_uint24array_from_bytes(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_certificate_verify_by_certificate(&cert, &cacert) != 1) {
+		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id)) != 1) {
 			error_print();
 			return -1;
 		}
-		memcpy(&cert, &cacert, sizeof(X509_CERTIFICATE));
+		cert = cacert;
+		certlen = cacertlen;
 	}
-	if (x509_certificate_from_pem_by_name(&cacert, ca_certs_fp, &cert.tbs_certificate.issuer) != 1
-		|| x509_certificate_verify_by_certificate(&cert, &cacert) != 1) {
+	if (x509_cert_get_subject(cacert, cacertlen, &subject, &subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_from_pem_by_subject(rootcacert, &rootcacertlen, sizeof(rootcacert), subject, subject_len, ca_certs_fp) != 1
+		|| x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id)) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
-
 
 int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
 	const int *cert_types, size_t cert_types_count,

@@ -310,6 +310,7 @@ IssuerAndSerialNumber ::= SEQUENCE {
 int x509_cert_get_issuer_and_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t **issuer, size_t *issuer_len,
 	const uint8_t **serial_number, size_t *serial_number_len);
+int x509_cert_get_issuer(const uint8_t *a, size_t alen, const uint8_t **name, size_t *namelen);
 int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **subj, size_t *subj_len);
 int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, SM2_KEY *public_key);
 

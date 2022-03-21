@@ -62,25 +62,9 @@
 #include <unistd.h>
 #endif
 
-
-
-void print_usage(const char *prog)
-{
-	printf("usage: %s command [options] ...\n", prog);
-	printf("\n");
-	printf("Options:\n");
-	printf("  -C  <str>          country name\n");
-	printf("  -O  <str>          orgnization name\n");
-	printf("  -OU <str>          orgnizational unit name\n");
-	printf("  -CN <str>          common name\n");
-	printf("  -L  <str>          locality name\n");
-	printf("  -ST <str>          state of province name\n");
-	printf("\n");
-	printf("  -days <num>        validity days\n");
-	printf("  -keyfile <file>    private key file\n");
-	printf("  -pass password     password\n");
-	printf("  -out file          output req file\n");
-}
+static const char *options =
+	"[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num"
+	" -key file [-pass pass] [-out file]";
 
 int main(int argc, char **argv)
 {
@@ -88,6 +72,7 @@ int main(int argc, char **argv)
 	char *prog = argv[0];
 	char *country = NULL;
 	char *state = NULL;
+	char *locality = NULL;
 	char *org = NULL;
 	char *org_unit = NULL;
 	char *common_name = NULL;
@@ -107,10 +92,9 @@ int main(int argc, char **argv)
 
 	SM2_KEY sm2_key; // 这个应该是从文件中读取的！
 
-
 	if (argc < 2) {
-		print_usage(prog);
-		return 0;
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
 	}
 
 	argc--;
@@ -118,114 +102,89 @@ int main(int argc, char **argv)
 
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+			printf("usage: %s %s\n", prog, options);
 			return 0;
-
-		} else if (!strcmp(*argv, "-CN")) {
-			if (--argc < 1) goto bad;
-			common_name = *(++argv);
-
-		} else if (!strcmp(*argv, "-O")) {
-			if (--argc < 1) goto bad;
-			org = *(++argv);
-
-		} else if (!strcmp(*argv, "-OU")) {
-			if (--argc < 1) goto bad;
-			org_unit = *(++argv);
-
 		} else if (!strcmp(*argv, "-C")) {
 			if (--argc < 1) goto bad;
 			country = *(++argv);
-
 		} else if (!strcmp(*argv, "-ST")) {
 			if (--argc < 1) goto bad;
 			state = *(++argv);
-
-		} else if (!strcmp(*argv, "-keyfile")) {
+		} else if (!strcmp(*argv, "-L")) {
+			if (--argc < 1) goto bad;
+			locality = *(++argv);
+		} else if (!strcmp(*argv, "-O")) {
+			if (--argc < 1) goto bad;
+			org = *(++argv);
+		} else if (!strcmp(*argv, "-OU")) {
+			if (--argc < 1) goto bad;
+			org_unit = *(++argv);
+		} else if (!strcmp(*argv, "-CN")) {
+			if (--argc < 1) goto bad;
+			common_name = *(++argv);
+		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
-
 		} else if (!strcmp(*argv, "-days")) {
 			if (--argc < 1) goto bad;
 			days = atoi(*(++argv));
-
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-
 		} else {
-			print_usage(prog);
-			return 0;
-			break;
+bad:
+			fprintf(stderr, "usage: %s %s\n", prog, options);
 		}
 
 		argc--;
 		argv++;
 	}
 
-	if (days <= 0 && !keyfile) {
-		goto bad;
-	}
-
-	if (!(keyfp = fopen(keyfile, "r"))) {
-		goto bad;
+	if (!common_name || days <= 0 || !keyfile) {
+		fprintf(stderr, "%s: missing options\n", prog);
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
 	}
 
 	if (outfile) {
-		if (!(outfp = fopen(outfile, "w"))) {
+		if (!(outfp = fopen(outfile, "wb"))) {
 			error_print();
 			return -1;
 		}
 	}
 
 	if (!pass) {
-#ifndef WIN32
 		pass = getpass("Encryption Password : ");
-#else
+	}
+	if (!pass || strlen(pass) == 0) {
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
-#endif
-	}
-
-	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		error_print();
-		goto end;
+		return -1;
 	}
-
+	if (!(keyfp = fopen(keyfile, "r"))
+		|| sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (x509_name_set(name, &namelen, sizeof(name),
-		country, state, NULL, org, org_unit, common_name) != 1) {
+			country, state, NULL, org, org_unit, common_name) != 1
+		|| x509_req_sign(req, &reqlen, sizeof(req),
+			X509_version_v1,
+			name, namelen,
+			&sm2_key,
+			NULL, 0,
+			OID_sm2sign_with_sm3,
+			&sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1
+		|| x509_req_to_pem(req, reqlen, outfp) != 1) {
+		memset(&sm2_key, 0, sizeof(SM2_KEY));
 		error_print();
 		return -1;
 	}
 
-
-	if (x509_req_sign(req, &reqlen, sizeof(req),
-		X509_version_v1,
-		name, namelen,
-		&sm2_key,
-		NULL, 0,
-		OID_sm2sign_with_sm3,
-		&sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
-		error_print();
-		return -1;
-	}
-
-
-	if (x509_req_to_pem(req, reqlen, outfp) != 1) {
-		error_print();
-		return -1;
-	}
-
-	ret = 0;
-	goto end;
-
-bad:
-	fprintf(stderr, "%s: commands should not be used together\n", prog);
-
-end:
-	return ret;
+	memset(&sm2_key, 0, sizeof(SM2_KEY));
+	return 0;
 }

@@ -419,28 +419,19 @@ static int test_x509_cert(void)
 	}
 	x509_cert_print(stderr, 0, 4, "Certificate", cert, certlen);
 
-
-	return 0;
-}
-
-
-static int test_x509_cert_request(void)
-{
 	return 0;
 }
 
 int main(void)
 {
 	int err = 0;
-//	err += test_x509_version();
-//	err += test_x509_validity();
-//	err += test_x509_attr_type_and_value();
-//	err += test_x509_rdn();
-//	err += test_x509_name();
-//	err += test_x509_public_key_info();
-//	err += test_x509_tbs_cert();
+	err += test_x509_version();
+	err += test_x509_validity();
+	err += test_x509_attr_type_and_value();
+	err += test_x509_rdn();
+	err += test_x509_name();
+	err += test_x509_public_key_info();
+	err += test_x509_tbs_cert();
 	err += test_x509_cert();
-	//err += test_x509_cert_request();
-	//test_x509_extensions();
 	return err;
 }

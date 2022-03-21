@@ -390,6 +390,7 @@ static int test_pkcs8(void)
 			return -1;
 		}
 		pkcs8_enced_private_key_info_print(stderr, 0, 0, "test_pkcs8: 392", d, dlen);
+		fprintf(stderr, "\n");
 	}
 
 	memset(&sm2_key, 0, sizeof(sm2_key));
@@ -398,6 +399,7 @@ static int test_pkcs8(void)
 		error_print();
 		return -1;
 	}
+		fprintf(stderr, "\n");
 	sm2_key_print(stderr, 0, 0, "SM2_KEY", &sm2_key);
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -441,13 +443,15 @@ static int test_pkcs8_pem(void)
 int main(void)
 {
 	int err = 0;
+	/*
 	err += test_pbkdf2_params();
 	err += test_pbkdf2_algor();
 	err += test_pbes2_enc_algor();
 	err += test_pbes2_params();
 	err += test_pbes2_algor();
 	err += test_pkcs8_enced_private_key_info();
+	*/
 	err += test_pkcs8();
-	err += test_pkcs8_pem();
+//	err += test_pkcs8_pem();
 	return err;
 }

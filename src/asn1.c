@@ -313,34 +313,37 @@ int asn1_header_to_der(int tag, size_t len, uint8_t **out, size_t *outlen)
 
 // If data == NULL, out should not be NULL
 // 这个实现是不支持OPTIONAL的
-int asn1_type_to_der(int tag, const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
+int asn1_type_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
-	// 针对IMPLICIT, OPTIONAL
-	if (data == NULL && datalen == 0) {
+	if (!d) {
+		if (dlen) {
+			error_print();
+			return -1;
+		}
 		return 0;
 	}
-
-	// FIXME: asn1_tag,length,data_to_der这几个函数增加错误检查
-	// 检查这几个函数的返回值				
-	asn1_tag_to_der(tag, out, outlen);
-	asn1_length_to_der(datalen, out, outlen);
-	asn1_data_to_der(data, datalen, out, outlen);
+	if (asn1_tag_to_der(tag, out, outlen) != 1
+		|| asn1_length_to_der(dlen, out, outlen) != 1
+		|| asn1_data_to_der(d, dlen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
-
-int asn1_type_from_der(int tag, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen)
+int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	*data = NULL;
-	*datalen = 0;
 	if ((ret = asn1_tag_from_der(tag, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		//if (ret == 0) error_print();
+		else {
+			*d = NULL;
+			*dlen = 0;
+		}
 		return ret;
 	}
-	if (asn1_length_from_der(datalen, in, inlen) != 1
-		|| asn1_data_from_der(data, *datalen, in, inlen) != 1) {
+	if (asn1_length_from_der(dlen, in, inlen) != 1
+		|| asn1_data_from_der(d, *dlen, in, inlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -402,11 +405,38 @@ int asn1_any_from_der(const uint8_t **tlv, size_t *tlvlen, const uint8_t **in, s
 #define ASN1_TRUE 0xff
 #define ASN1_FALSE 0x00
 
+const char *asn1_boolean_name(int val)
+{
+	switch (val) {
+	case 1: return "true";
+	case 0: return "false";
+	}
+	return NULL;
+}
+
+int asn1_boolean_from_name(int *val, const char *name)
+{
+	if (strcmp(name, "true") == 0) {
+		*val = 1;
+		return 1;
+	} else if (strcmp(name, "false") == 0) {
+		*val = 0;
+		return 1;
+	}
+	*val = -1;
+	return -1;
+}
+
 int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen)
 {
 	if ((out && !(*out)) || !outlen) {
 		return -1;
 	}
+
+	if (val < 0) {
+		return 0;
+	}
+
 	if (out) {
 		*(*out)++ = tag;
 		*(*out)++ = 0x01;
@@ -523,6 +553,11 @@ int asn1_bits_to_der_ex(int tag, int bits, uint8_t **out, size_t *outlen)
 	return asn1_bit_string_to_der_ex(tag, buf, nbits, out, outlen);
 }
 
+const char *asn1_null_name(void)
+{
+	return "null";
+}
+
 int asn1_null_to_der(uint8_t **out, size_t *outlen)
 {
 	if ((out && !(*out)) || !outlen) {
@@ -591,7 +626,7 @@ static int asn1_oid_node_from_base128(uint32_t *a, const uint8_t **in, size_t *i
 	return 1;
 }
 
-int asn1_oid_nodes_to_octets(const uint32_t *nodes, size_t nodes_cnt, uint8_t *out, size_t *outlen)
+int asn1_object_identifier_to_octets(const uint32_t *nodes, size_t nodes_cnt, uint8_t *out, size_t *outlen)
 {
 	if (nodes_cnt < 2 || nodes_cnt > 32) {
 		return -1;
@@ -667,7 +702,7 @@ int asn1_object_identifier_to_der_ex(int tag, const uint32_t *nodes, size_t node
 		*(*out)++ = tag;
 	(*outlen)++;
 
-	asn1_oid_nodes_to_octets(nodes, nodes_cnt, octets, &octetslen);
+	asn1_object_identifier_to_octets(nodes, nodes_cnt, octets, &octetslen);
 
 	asn1_length_to_der(octetslen, out, outlen);
 
@@ -865,6 +900,7 @@ int asn1_boolean_from_der_ex(int tag, int *val, const uint8_t **in, size_t *inle
 	}
 
 	if (*inlen <= 0 || **in != tag) {
+		*val = -1;
 		return 0;
 	}
 	if (*inlen < 3
@@ -1242,12 +1278,11 @@ int asn1_length_le(size_t len1, size_t len2)
 
 int asn1_object_identifier_equ(const uint32_t *a, size_t a_cnt, const uint32_t *b, size_t b_cnt)
 {
-	if (a_cnt != b_cnt
-		|| memcmp(a, b, b_cnt * sizeof(uint32_t)) != 0) {
-		error_print();
-		return 0;
+	if (a_cnt == b_cnt
+		&& memcmp(a, b, b_cnt * sizeof(uint32_t)) == 0) {
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 

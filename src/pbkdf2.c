@@ -173,3 +173,12 @@ int pbkdf2_genkey(const DIGEST *digest,
 	memset(tmp_block, 0, sizeof(key_block));
 	return 1;
 }
+
+int pbkdf2_hmac_sm3_genkey(
+	const char *pass, size_t passlen,
+	const uint8_t *salt, size_t saltlen, size_t count,
+	size_t outlen, uint8_t *out)
+{
+	return pbkdf2_genkey(DIGEST_sm3(), pass, passlen, salt, saltlen, count, outlen, out);
+}
+

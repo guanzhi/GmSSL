@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.0)
 project(GmSSL)
 
 set(CMAKE_MACOSX_RPATH 1)
@@ -8,82 +8,66 @@ SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 include_directories(include)
 
 add_library(
-  gmssl
+	gmssl
 
-  SHARED
+	SHARED
 
-  src/hex.c
-  src/debug.c
-  src/rand.c
-
-  # default sm algors
-  src/sm2_algo.c
-  src/sm2_lib.c
-  src/sm2_asn1.c
-  src/sm2_prn.c
-  src/sm3.c
-  src/sm3_hmac.c
-  src/sm4_common.c
-  src/sm4_setkey.c
-  src/sm4_enc.c
-  src/sm4_modes.c
-
-  # optional sm algors
-  src/sm9_math.c
-  src/zuc_core.c
-  src/zuc_eea.c
-  src/zuc_eia.c
-
-  # optional nist algors
-  src/aes.c
-  src/aes_modes.c
-  src/chacha20.c
-  src/sha256.c
-  src/sha512.c
-
-  # legacy algors
-  src/rc4.c
-  src/des.c
-  src/md5.c
-  src/sha1.c
-
-  # schemes
-  src/hash_drbg.c
-  src/hmac.c
-
-  # abstract
-  src/digest.c
-  src/block_cipher.c
-
-  # pkix
-  src/asn1.c
-  src/base64.c
-  src/pem.c
-  src/pbkdf2.c
-  src/pkcs8.c
-
-  src/x509_str.c
-  src/x509_alg.c
-  src/x509_oid.c
-  src/x509_cer.c
-  src/x509_ext.c
-  src/x509_req.c
-  src/x509_crl.c
-
-  src/cms.c
-
-  # for tls 1.3
-  src/hkdf.c
-  src/gf128.c
-  src/gcm.c
-
-  # ssl/tls/tlcp
-  #src/tls.c
-  #src/tls_trace.c
-  #src/tls12.c
-  #src/tlcp.c
-  #src/tls13.c
-
+	src/aes.c
+	src/aes_modes.c
+	src/asn1.c
+	src/base64.c
+	src/block_cipher.c
+	src/chacha20.c
+	src/cms.c
+	src/debug.c
+	src/des.c
+	src/digest.c
+	src/ec.c
+	src/gcm.c
+	src/gf128.c
+	src/hash_drbg.c
+	src/hex.c
+	src/hkdf.c
+	src/hmac.c
+	src/md5.c
+	src/pbkdf2.c
+	src/pem.c
+	src/pkcs8.c
+	src/rand.c
+	src/rc4.c
+	src/rsa.c
+	src/sha1.c
+	src/sha256.c
+	src/sha512.c
+	src/sm2_algo.c
+	src/sm2_asn1.c
+	src/sm2_lib.c
+	src/sm2_prn.c
+	src/sm3.c
+	src/sm3_hmac.c
+	src/sm4_common.c
+	src/sm4_enc.c
+	src/sm4_modes.c
+	src/sm4_setkey.c
+#	src/sm9_keygen.c
+#	src/sm9_math.c
+#	src/sm9_sign.c
+	src/tlcp.c
+	src/tls.c
+	src/tls12.c
+	src/tls13.c
+	src/tls_trace.c
+	src/version.c
+	src/x509_alg.c
+	src/x509_cer.c
+	src/x509_crl.c
+	src/x509_ext.c
+	src/x509_oid.c
+	src/x509_req.c
+	src/x509_str.c
+	src/zuc_core.c
+	src/zuc_eea.c
+	src/zuc_eia.c
 )
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
@@ -92,47 +76,44 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 # tools
 
 add_executable (sm2keygen tools/sm2keygen.c)
-target_link_libraries (sm2keygen LINK_PUBLIC gmssl)
 add_executable (sm2sign tools/sm2sign.c)
-target_link_libraries (sm2sign LINK_PUBLIC gmssl)
 add_executable (sm2verify tools/sm2verify.c)
-target_link_libraries (sm2verify LINK_PUBLIC gmssl)
 add_executable (sm2encrypt tools/sm2encrypt.c)
-target_link_libraries (sm2encrypt LINK_PUBLIC gmssl)
 add_executable (sm2decrypt tools/sm2decrypt.c)
-target_link_libraries (sm2decrypt LINK_PUBLIC gmssl)
-
 add_executable (sm3 tools/sm3.c)
-target_link_libraries (sm3 LINK_PUBLIC gmssl)
 add_executable (sm3hmac tools/sm3hmac.c)
-target_link_libraries (sm3hmac LINK_PUBLIC gmssl)
-
 add_executable (reqgen tools/reqgen.c)
-target_link_libraries (reqgen LINK_PUBLIC gmssl)
 add_executable (reqparse tools/reqparse.c)
-target_link_libraries (reqparse LINK_PUBLIC gmssl)
-
 add_executable (certgen tools/certgen.c)
-target_link_libraries (certgen LINK_PUBLIC gmssl)
 add_executable (certparse tools/certparse.c)
-target_link_libraries (certparse LINK_PUBLIC gmssl)
 add_executable (certverify tools/certverify.c)
+add_executable (reqsign tools/reqsign.c)
+add_executable (tlcp_client tools/tlcp_client.c)
+add_executable (tlcp_server tools/tlcp_server.c)
+add_executable (tls12_client tools/tls12_client.c)
+add_executable (tls12_server tools/tls12_server.c)
+add_executable (tls13_client tools/tls13_client.c)
+add_executable (tls13_server tools/tls13_server.c)
+
+target_link_libraries (sm2keygen LINK_PUBLIC gmssl)
+target_link_libraries (sm2sign LINK_PUBLIC gmssl)
+target_link_libraries (sm2verify LINK_PUBLIC gmssl)
+target_link_libraries (sm2encrypt LINK_PUBLIC gmssl)
+target_link_libraries (sm2decrypt LINK_PUBLIC gmssl)
+target_link_libraries (sm3 LINK_PUBLIC gmssl)
+target_link_libraries (sm3hmac LINK_PUBLIC gmssl)
+target_link_libraries (reqgen LINK_PUBLIC gmssl)
+target_link_libraries (reqparse LINK_PUBLIC gmssl)
+target_link_libraries (reqsign LINK_PUBLIC gmssl)
+target_link_libraries (certgen LINK_PUBLIC gmssl)
+target_link_libraries (certparse LINK_PUBLIC gmssl)
 target_link_libraries (certverify LINK_PUBLIC gmssl)
-
-#add_executable (tlcp_client tools/tlcp_client.c)
-#target_link_libraries (tlcp_client LINK_PUBLIC gmssl)
-#add_executable (tlcp_server tools/tlcp_server.c)
-#target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
-#add_executable (tls12_client tools/tls12_client.c)
-#target_link_libraries (tls12_client LINK_PUBLIC gmssl)
-#add_executable (tls12_server tools/tls12_server.c)
-#target_link_libraries (tls12_server LINK_PUBLIC gmssl)
-#add_executable (tls13_client tools/tls13_client.c)
-#target_link_libraries (tls13_client LINK_PUBLIC gmssl)
-#add_executable (tls13_server tools/tls13_server.c)
-#target_link_libraries (tls13_server LINK_PUBLIC gmssl)
-
-
+target_link_libraries (tlcp_client LINK_PUBLIC gmssl)
+target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
+target_link_libraries (tls12_client LINK_PUBLIC gmssl)
+target_link_libraries (tls12_server LINK_PUBLIC gmssl)
+target_link_libraries (tls13_client LINK_PUBLIC gmssl)
+target_link_libraries (tls13_server LINK_PUBLIC gmssl)
 
 # tests
 enable_testing()
@@ -239,6 +220,11 @@ target_link_libraries (x509_exttest LINK_PUBLIC gmssl)
 add_executable(zuctest tests/zuctest.c)
 target_link_libraries (zuctest LINK_PUBLIC gmssl)
 
+add_executable(tlstest tests/tlstest.c)
+target_link_libraries (tlstest LINK_PUBLIC gmssl)
+
+
+
 enable_testing()
 add_test(NAME aes		COMMAND aestest)
 add_test(NAME asn1		COMMAND asn1test)
@@ -268,7 +254,7 @@ add_test(NAME sha512		COMMAND sha512test)
 add_test(NAME sm2		COMMAND sm2test)
 add_test(NAME sm3		COMMAND sm3test)
 add_test(NAME sm4		COMMAND sm4test)
-#add_test(NAME tls		COMMAND tlstest)
+add_test(NAME tls		COMMAND tlstest)
 add_test(NAME x509		COMMAND x509test)
 add_test(NAME x509_oid		COMMAND x509_oidtest)
 add_test(NAME x509_alg		COMMAND x509_algtest)
@@ -279,8 +265,9 @@ add_test(NAME x509_ext		COMMAND x509_exttest)
 add_test(NAME zuc		COMMAND zuctest)
 
 
-INSTALL(TARGETS certparse sm3 sm2keygen sm2sign sm2verify sm2encrypt sm2decrypt RUNTIME DESTINATION bin)
-#INSTALL(TARGETS certparse certgen certverify reqgen tlcp_client tlcp_server tls12_client tls12_server tls13_client tls13_server RUNTIME DESTINATION bin)
+INSTALL(TARGETS sm3 sm3hmac sm2keygen sm2sign sm2verify sm2encrypt sm2decrypt RUNTIME DESTINATION bin)
+INSTALL(TARGETS certparse certgen certverify reqgen reqparse reqsign RUNTIME DESTINATION bin)
+INSTALL(TARGETS tlcp_client tlcp_server tls12_client tls12_server tls13_client tls13_server RUNTIME DESTINATION bin)
 INSTALL(TARGETS gmssl LIBRARY DESTINATION lib)
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 

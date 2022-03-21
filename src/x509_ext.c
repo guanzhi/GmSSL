@@ -71,6 +71,7 @@ int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
 	size_t curlen = *extslen;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (asn1_sequence_to_der(d, dlen, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -94,6 +95,7 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 	size_t vlen = 0;
 	size_t len = 0;
 
+	exts += *extslen;
 	if (x509_authority_key_identifier_to_der(
 			keyid, keyid_len,
 			issuer, issuer_len,
@@ -128,6 +130,8 @@ int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t 
 		error_print();
 		return -1;
 	}
+
+	exts += *extslen;
 	if (asn1_octet_string_to_der(d, dlen, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -146,6 +150,7 @@ int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int c
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (asn1_bits_to_der(bits, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -203,6 +208,7 @@ int x509_exts_add_name_constraints(uint8_t *exts, size_t *extslen, size_t maxlen
 	size_t vlen = 0;
 	size_t len = 0;
 
+	exts += *extslen;
 	if (x509_name_constraints_to_der(
 			permitted_subtrees, permitted_subtrees_len,
 			excluded_subtrees, excluded_subtrees_len,
@@ -230,6 +236,7 @@ int x509_exts_add_policy_constraints(uint8_t *exts, size_t *extslen, size_t maxl
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (x509_policy_constraints_to_der(
 			require_explicit_policy,
 			inhibit_policy_mapping,
@@ -252,6 +259,7 @@ int x509_exts_add_basic_constraints(uint8_t *exts, size_t *extslen, size_t maxle
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (x509_basic_constraints_to_der(ca, path_len_constraint, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -272,6 +280,7 @@ int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen,
 	size_t vlen = 0;
 	size_t len = 0;
 
+	exts += *extslen;
 	if (x509_ext_key_usage_to_der(key_purposes, key_purposes_cnt, NULL, &len) != 1
 		|| asn1_length_le(len, sizeof(val)) != 1
 		|| x509_ext_key_usage_to_der(key_purposes, key_purposes_cnt, &p, &vlen) != 1
@@ -300,6 +309,7 @@ int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxl
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (x509_inhibit_any_policy_to_der(skip_certs, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -505,9 +515,80 @@ int x509_general_names_add_general_name(uint8_t *gns, size_t *gnslen, size_t max
 {
 	size_t len = 0;
 	uint8_t *p = gns + *gnslen;
+
+	switch (choice) {
+	case X509_gn_rfc822_name:
+	case X509_gn_dns_name:
+	case X509_gn_uniform_resource_identifier:
+		if (asn1_ia5_string_check((char *)d, dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
 	if (x509_general_name_to_der(choice, d, dlen, NULL, &len) != 1
 		|| asn1_length_le(*gnslen + len, maxlen) != 1
 		|| x509_general_name_to_der(choice, d, dlen, &p, gnslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_general_names_add_other_name(uint8_t *gns, size_t *gnslen, size_t maxlen,
+	const uint32_t *nodes, size_t nodes_cnt,
+	const uint8_t *value, size_t value_len)
+{
+	int choice = X509_gn_other_name;
+	uint8_t buf[128];		
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
+
+	if (x509_other_name_to_der(nodes, nodes_cnt, value, value_len, &p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| x509_general_names_add_general_name(gns, gnslen, maxlen, choice, d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_general_names_add_edi_party_name(uint8_t *gns, size_t *gnslen, size_t maxlen,
+	int assigner_tag, const uint8_t *assigner, size_t assigner_len,
+	int party_name_tag, const uint8_t *party_name, size_t party_name_len)
+{
+	int choice = X509_gn_edi_party_name;
+	uint8_t buf[128];		
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
+
+	if (x509_edi_party_name_to_der(
+			assigner_tag, assigner, assigner_len,
+			party_name_tag, party_name, party_name_len,
+			&p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| x509_general_names_add_general_name(gns, gnslen, maxlen, choice, d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t maxlen,
+	const uint32_t *nodes, size_t nodes_cnt)
+{
+	int choice = X509_gn_registered_id;
+	uint8_t d[128];		
+	size_t dlen;
+
+	if (asn1_object_identifier_to_octets(nodes, nodes_cnt, d, &dlen) != 1
+		|| x509_general_names_add_general_name(gns, gnslen, maxlen, choice, d, dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -614,6 +695,37 @@ static const char *x509_key_usages[] = {
 static size_t x509_key_usages_count =
 	sizeof(x509_key_usages)/sizeof(x509_key_usages[0]);
 
+const char *x509_key_usage_name(int flag)
+{
+	int i;
+	for (i = 0; i < x509_key_usages_count; i++) {
+		if (flag & 1) {
+			if (flag >> 1) {
+				error_print();
+				return NULL;
+			}
+			return x509_key_usages[i];
+		}
+		flag >>= 1;
+	}
+	error_print();
+	return NULL;
+}
+
+int x509_key_usage_from_name(int *flag, const char *name)
+{
+	int i;
+	for (i = 0; i < x509_key_usages_count; i++) {
+		if (strcmp(name, x509_key_usages[i]) == 0) {
+			*flag = i;
+			return 1;
+		}
+	}
+	*flag = 0;
+	error_print();
+	return -1;
+}
+
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits)
 {
 	return asn1_bits_print(fp, fmt, ind, label, x509_key_usages, x509_key_usages_count, bits);
@@ -647,6 +759,7 @@ int x509_notice_reference_from_der(
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else error_print();
 		return ret;
 	}
 	if (x509_display_text_from_der(org_tag, org, org_len, &d, &dlen) != 1
@@ -655,7 +768,7 @@ int x509_notice_reference_from_der(
 		error_print();
 		return -1;
 	}
-	return -1;
+	return 1;
 }
 
 int x509_notice_reference_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -747,6 +860,7 @@ err:
 	return -1;
 }
 
+// 是否要针对oid = cps的IA5String做一个方便的接口呢？毕竟oid 只有两个可选项		
 int x509_policy_qualifier_info_to_der(
 	int oid,
 	const uint8_t *qualifier, size_t qualifier_len,
@@ -1097,18 +1211,20 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else {
+			*ca = -1;
+			*path_len_cons = -1;
+		};
 		return ret;
 	}
-
-	*ca = 0;
-	*path_len_cons = 0; // FIXME: 默认值应该设置为多少？
-
 	if (asn1_boolean_from_der(ca, &d, &dlen) < 0
 		|| asn1_int_from_der(path_len_cons, &d, &dlen) < 0
+		|| asn1_check(ca >= 0 || path_len_cons >= 0) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (*ca < 0) *ca = 0;
 	return 1;
 }
 
@@ -1120,7 +1236,7 @@ int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, 
 	ind += 4;
 
 	if ((ret = asn1_boolean_from_der(&val, &d, &dlen)) < 0) goto err;
-	if (ret) format_print(fp, fmt, ind, "cA: %s\n", val ? "True" : "False");
+	if (ret) format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(val));
 	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "pathLenConstraint: %d\n", val);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
@@ -1164,15 +1280,14 @@ int x509_general_subtree_from_der(
 		if (ret < 0) error_print();
 		return ret;
 	}
-	*minimum = 0;
-	*maximum = -1;
 	if (x509_general_name_from_der(base_choice, base, base_len, &d, &dlen) != 1
-		|| asn1_int_from_der(minimum, &d, &dlen) < 0
-		|| asn1_int_from_der(maximum, &d, &dlen) < 0
+		|| asn1_implicit_int_from_der(0, minimum, &d, &dlen) < 0
+		|| asn1_implicit_int_from_der(1, maximum, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (*minimum < 0) *minimum = 0;
 	return 1;
 }
 
@@ -1187,9 +1302,9 @@ int x509_general_subtree_print(FILE *fp, int fmt, int ind, const char *label, co
 
 	if (x509_general_name_from_der(&choice, &p, &len, &d, &dlen) != 1) goto err;
 	x509_general_name_print(fp, fmt, ind, "base", choice, p, len);
-	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
+	if ((ret = asn1_implicit_int_from_der(0, &val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "minimum: %d\n", val);
-	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
+	if ((ret = asn1_implicit_int_from_der(1, &val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "maximum: %d\n", val);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
@@ -1337,7 +1452,7 @@ int x509_policy_constraints_print(FILE *fp, int fmt, int ind, const char *label,
 
 	if ((ret = asn1_implicit_int_from_der(0, &val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "requireExplicitPolicy: %d\n", val);
-	if ((ret = asn1_implicit_int_from_der(0, &val, &d, &dlen)) < 0) goto err;
+	if ((ret = asn1_implicit_int_from_der(1, &val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "inhibitPolicyMapping: %d\n", val);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
@@ -1403,15 +1518,16 @@ int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, con
 int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	int oid;
-	format_print(fp, fmt, ind, "%s: ", label);
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
 	while (dlen) {
 		if (x509_key_purpose_from_der(&oid, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		fprintf(fp, "%s%s", x509_key_purpose_name(oid), dlen ? ", " : "");
+		format_print(fp, fmt, ind, "%s\n", x509_key_purpose_name(oid));
 	}
-	fprintf(fp, "\n");
 	return 1;
 }
 
@@ -1429,6 +1545,36 @@ static const char *x509_revoke_reasons[] = {
 
 static size_t x509_revoke_reasons_count =
 	sizeof(x509_revoke_reasons)/sizeof(x509_revoke_reasons[0]);
+
+const char *x509_revoke_reason_name(int flag)
+{
+	int i;
+	for (i = 0; i < x509_revoke_reasons_count; i++) {
+		if (flag & 1) {
+			if (flag >> 1) {
+				error_print();
+				return NULL;
+			}
+			return x509_revoke_reasons[i];
+		}
+		flag >>= 1;
+	}
+	return NULL;
+}
+
+int x509_revoke_reason_from_name(int *flag, const char *name)
+{
+	int i;
+	for (i = 0; i < x509_revoke_reasons_count; i++) {
+		if (strcmp(name, x509_revoke_reasons[i]) == 0) {
+			*flag = 1 << i;
+			return 1;
+		}
+	}
+	*flag = 0;
+	error_print();
+	return -1;
+}
 
 int x509_revoke_reasons_print(FILE *fp, int fmt, int ind, const char *label, int bits)
 {
@@ -1548,7 +1694,10 @@ int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label,
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
+	format_bytes(stderr, 0, 0, "1697", d, dlen);
+
 	if ((ret = asn1_explicit_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
+	/*
 	if (ret) {
 		int choice;
 		const uint8_t *name;
@@ -1558,11 +1707,13 @@ int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label,
 		x509_distribution_point_name_print(fp, fmt, ind, "DistributionPointName", choice, name, namelen);
 		if (asn1_length_is_zero(len) != 1) goto err;
 	}
+
 	if ((ret = asn1_implicit_bits_from_der(1, &bits, &d, &dlen)) < 0) goto err;
 	if (ret) x509_revoke_reasons_print(fp, fmt, ind, "reasons", bits);
 	if ((ret = asn1_implicit_sequence_from_der(2, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_general_names_print(fp, fmt, ind, "cRLIssuer", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
+	*/
 	return 1;
 err:
 	error_print();

@@ -75,6 +75,7 @@ static uint32_t oid_at_country_name[] = { oid_at,6 };
 static uint32_t oid_at_serial_number[] = { oid_at,5 };
 static uint32_t oid_at_pseudonym[] = { oid_at,65 };
 static uint32_t oid_domain_component[] = { 0,9,2342,19200300,100,1,25 };
+
 static const size_t oid_at_cnt = sizeof(oid_at_name)/sizeof(int);
 
 static const ASN1_OID_INFO x509_name_types[] = {
@@ -165,6 +166,10 @@ static uint32_t oid_ce_freshest_crl[] = { oid_ce,46 };
 static uint32_t oid_ce_inhibit_any_policy[] = { oid_ce,54 };
 static const size_t oid_ce_cnt = sizeof(oid_ce_subject_directory_attributes)/sizeof(int);
 
+static uint32_t oid_netscape_cert_comment[] = { 2,16,840,1,113730,1,13 };
+static uint32_t oid_cert_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
+static uint32_t oid_ct_precertificate_scts[] = { 1,3,6,1,4,1,11129,2,4,2 };
+
 static const ASN1_OID_INFO x509_ext_ids[] = {
 	{ OID_ce_authority_key_identifier, "AuthorityKeyIdentifier", oid_ce_authority_key_identifier, oid_ce_cnt },
 	{ OID_ce_subject_key_identifier, "SubjectKeyIdentifier", oid_ce_subject_key_identifier, oid_ce_cnt },
@@ -181,6 +186,9 @@ static const ASN1_OID_INFO x509_ext_ids[] = {
 	{ OID_ce_crl_distribution_points, "CRLDistributionPoints", oid_ce_crl_distribution_points, oid_ce_cnt },
 	{ OID_ce_inhibit_any_policy, "InhibitAnyPolicy", oid_ce_inhibit_any_policy, oid_ce_cnt },
 	{ OID_ce_freshest_crl, "FreshestCRL", oid_ce_freshest_crl, oid_ce_cnt },
+	{ OID_netscape_cert_comment, "NetscapeCertComment", oid_netscape_cert_comment, sizeof(oid_netscape_cert_comment)/sizeof(int) },
+	{ OID_cert_authority_info_access, "CertificateAuthorityInformationAccess", oid_cert_authority_info_access, sizeof(oid_cert_authority_info_access)/sizeof(int) },
+	{ OID_ct_precertificate_scts, "CT-PrecertificateSCTs", oid_ct_precertificate_scts, sizeof(oid_ct_precertificate_scts)/sizeof(int) },
 };
 
 static const int x509_ext_ids_count =
@@ -189,6 +197,9 @@ static const int x509_ext_ids_count =
 const char *x509_ext_id_name(int oid)
 {
 	const ASN1_OID_INFO *info;
+	if (oid == 0) {
+		return NULL;
+	}
 	if (!(info = asn1_oid_info_from_oid(x509_ext_ids, x509_ext_ids_count, oid))) {
 		error_print();
 		return NULL;
@@ -340,13 +351,12 @@ int x509_cert_policy_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, c
 	int ret;
 	if ((ret = asn1_object_identifier_from_der(nodes, nodes_cnt, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		*oid = -1;
+		else *oid = -1;
 		return ret;
 	}
-	if (*nodes_cnt == sizeof(oid_any_policy)/sizeof(int)
-		&& memcmp(nodes, oid_any_policy, sizeof(oid_any_policy))) {
+	if (asn1_object_identifier_equ(nodes, *nodes_cnt, oid_any_policy, oid_cnt(oid_any_policy)))
 		*oid = OID_any_policy;
-	}
+	else	*oid = 0;
 	return 1;
 }
 
@@ -424,7 +434,7 @@ int x509_key_purpose_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	const ASN1_OID_INFO *info;
 	if ((ret = asn1_oid_info_from_der(&info, x509_key_purposes, x509_key_purposes_count, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		else *oid = 0;
+		else *oid = -1;
 		return ret;
 	}
 	*oid = info->oid;

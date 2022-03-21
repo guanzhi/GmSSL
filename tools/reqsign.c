@@ -52,174 +52,162 @@
 #include <unistd.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_req.h>
 #include <gmssl/pkcs8.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 
-
-
-void print_usage(const char *prog)
-{
-	printf("Usage: %s command [options] ...\n", prog);
-	printf("\n");
-	printf("Options:\n");
-	printf("  -req <file>        PKCS #10 certificate request file\n");
-	printf("  -cacert <file>     CA certificate file\n");
-	printf("  -keyfile <file>    private key of cacert\n");
-}
+static const char *usage = "usage: %s [-in file] -days num -cacert file -key file [-pass str] [-out file]\n";
 
 int main(int argc, char **argv)
 {
-	int ret = -1;
 	char *prog = argv[0];
+	char *infile = NULL;
+	char *outfile = NULL;
+	char *cacertfile = NULL;
 	char *keyfile = NULL;
+	char *pass = NULL;
+	int days = 0;
+
+	FILE *infp = stdin;
+	uint8_t req[512];
+	size_t reqlen;
+	const uint8_t *subject;
+	size_t subject_len;
+	SM2_KEY subject_public_key;
+
+	FILE *outfp = stdout;
+
+	FILE *cacertfp = NULL;
+	uint8_t cacert[1024];
+	size_t cacertlen;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	SM2_KEY issuer_public_key;
 
 	FILE *keyfp = NULL;
+	SM2_KEY sm2_key;
 
-	X509_CERTIFICATE cert;
-
-	char *pass;
-
+	uint8_t cert[1024];
+	size_t certlen;
 	uint8_t serial[12];
-	X509_NAME name;
-	time_t not_before;
-	SM2_KEY sm2_key; // 这个应该是从文件中读取的！
-	uint8_t uniq_id[32];
+	time_t not_before, not_after;
 
-	uint8_t buf[1024];
-	const uint8_t *cp = buf;
-	uint8_t *p = buf;
-	size_t len = 0;
 
 	if (argc < 2) {
-		print_usage(prog);
-		return 0;
+		fprintf(stderr, usage, prog);
+		return 1;
 	}
 
 	argc--;
 	argv++;
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+help:
+			printf(usage, prog);
 			return 0;
-
-		} else if (!strcmp(*argv, "-CN")) {
+		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
-			common_name = *(++argv);
-
-		} else if (!strcmp(*argv, "-O")) {
+			infile = *(++argv);
+		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
-			org = *(++argv);
-
-		} else if (!strcmp(*argv, "-OU")) {
-			if (--argc < 1) goto bad;
-			org_unit = *(++argv);
-
-		} else if (!strcmp(*argv, "-C")) {
-			if (--argc < 1) goto bad;
-			country = *(++argv);
-
-		} else if (!strcmp(*argv, "-ST")) {
-			if (--argc < 1) goto bad;
-			state = *(++argv);
-
-		} else if (!strcmp(*argv, "-keyfile")) {
+			cacertfile = *(++argv);
+		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
 		} else if (!strcmp(*argv, "-days")) {
 			if (--argc < 1) goto bad;
 			days = atoi(*(++argv));
-
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
 		} else {
-			print_usage(prog);
-			return 0;
+bad:
+			error_print();
 			break;
 		}
 
 		argc--;
 		argv++;
 	}
-
-	if (days <= 0 && !keyfile) {
-		goto bad;
-	}
-
-	if (!(keyfp = fopen(keyfile, "r"))) {
-		goto bad;
-	}
-
-	pass = getpass("Password : ");
-	if (sm2_enced_private_key_info_from_pem(&sm2_key, pass, keyfp) != 1) {
+	if (days <= 0
+		|| !cacertfile
+		|| !keyfile) {
 		error_print();
-		goto end;
+		return -1;
 	}
 
+
+	if (infile) {
+		if (!(infp = fopen(infile, "r"))) {
+			error_print();
+			return -1;
+		}
+	}
+	if (x509_req_from_pem(req, &reqlen, sizeof(req), infp) != 1
+		|| x509_req_get_details(req, reqlen,
+			NULL, &subject, &subject_len, &subject_public_key,
+			NULL, NULL, NULL, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (!(cacertfp = fopen(cacertfile, "r"))
+		|| x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), cacertfp) != 1
+		|| x509_cert_get_subject(cacert, cacertlen, &issuer, &issuer_len) != 1
+		|| x509_cert_get_subject_public_key(cacert, cacertlen, &issuer_public_key) != 1) {
+ 		error_print();
+		return -1;
+	}
+
+	if (outfile) {
+		if (!(outfp = fopen(outfile, "w"))) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (!pass) {
+		pass = getpass("Password : ");
+	}
+	if (!pass || strlen(pass) == 0) {
+		error_print();
+		return -1;
+	}
+	if (!(keyfp = fopen(keyfile, "r"))
+		|| sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1
+		|| sm2_public_key_equ(&sm2_key, &issuer_public_key) != 1) {
+		error_print();
+		memset(&sm2_key, 0, sizeof(SM2_KEY));
+		return -1;
+	}
 
 	rand_bytes(serial, sizeof(serial));
-
-
-
-	memset(&name, 0, sizeof(name));
-
-
-
-	if (country) {
-		if (x509_name_set_country(&name, country) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (state) {
-		if (x509_name_set_state_or_province(&name, state) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (org) {
-		if (x509_name_set_organization(&name, org) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (org_unit) {
-		if (x509_name_set_organizational_unit(&name, org_unit) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (!common_name) {
-		error_print();
-		goto end;
-	} else {
-		if (x509_name_set_common_name(&name, common_name) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-
 	time(&not_before);
 
+	if (x509_validity_add_days(&not_after, not_before, days) != 1
+		|| x509_cert_sign(
+			cert, &certlen, sizeof(cert),
+			X509_version_v3,
+			serial, sizeof(serial),
+			OID_sm2sign_with_sm3,
+			subject, subject_len,
+			not_before, not_after,
+			issuer, issuer_len,
+			&subject_public_key,
+			NULL, 0,
+			NULL, 0,
+			NULL, 0,
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+		|| x509_cert_to_pem(cert, certlen, outfp) != 1) {
+		memset(&sm2_key, 0, sizeof(SM2_KEY));
+		error_print();
+		return -1;
+	}
 
-	memset(&cert, 0, sizeof(cert));
-	x509_certificate_set_version(&cert, X509_version_v3);
-	x509_certificate_set_serial_number(&cert, serial, sizeof(serial));
-	x509_certificate_set_signature_algor(&cert, OID_sm2sign_with_sm3);
-	x509_certificate_set_issuer(&cert, &name);
-	x509_certificate_set_subject(&cert, &name);
-	x509_certificate_set_validity(&cert, not_before, days);
-	x509_certificate_set_subject_public_key_info_sm2(&cert, &sm2_key);
-	x509_certificate_set_issuer_unique_id(&cert, uniq_id, sizeof(uniq_id));
-	x509_certificate_set_subject_unique_id(&cert, uniq_id, sizeof(uniq_id));
-	x509_certificate_sign_sm2(&cert, &sm2_key);
-
-	x509_certificate_to_pem(&cert, stdout);
-	ret = 0;
-	goto end;
-
-bad:
-	fprintf(stderr, "%s: commands should not be used together\n", prog);
-
-end:
-	return ret;
+	memset(&sm2_key, 0, sizeof(SM2_KEY));
+	return 0;
 }

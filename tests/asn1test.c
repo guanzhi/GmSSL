@@ -629,6 +629,5 @@ int main(void)
 	err += test_asn1_ia5_string();
 	err += test_asn1_utc_time();
 	err += test_asn1_generalized_time();
-
 	return err;
 }

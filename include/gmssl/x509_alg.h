@@ -94,9 +94,11 @@ int x509_public_key_encryption_algor_print(FILE *fp, int fmt, int ind, const cha
 
 const char *x509_public_key_algor_name(int oid);
 int x509_public_key_algor_from_name(const char *name);
-int x509_public_key_algor_from_der(int *oid, const uint8_t **params, size_t *paramslen, const uint8_t **in, size_t *inlen);
-int x509_public_key_algor_to_der(int oid, const uint8_t *params, size_t paramslen, uint8_t **out, size_t *outlen);
+int x509_public_key_algor_to_der(int oid, int curve, uint8_t **out, size_t *outlen);
+int x509_public_key_algor_from_der(int *oid, int *curve_or_null, const uint8_t **in, size_t *inlen);
 int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+
 
 #ifdef __cplusplus
 }

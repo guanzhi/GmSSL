@@ -174,6 +174,21 @@ int x509_general_names_add_general_name(uint8_t *gns, size_t *gnslen, size_t max
 	int choice, const uint8_t *d, size_t dlen);
 int x509_general_names_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
+int x509_general_names_add_other_name(uint8_t *gns, size_t *gnslen, size_t maxlen,
+	const uint32_t *nodes, size_t nodes_count,
+	const uint8_t *value, size_t value_len);
+#define x509_general_names_add_rfc822_name(a,alen,maxlen,s) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_rfc822_name,(uint8_t*)s,strlen(s))
+#define x509_general_names_add_dns_name(a,alen,maxlen,s) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_dns_name,(uint8_t*)s,strlen(s))
+#define x509_general_names_add_x400_address(a,alen,maxlen,d,dlen) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_x400_address,d,dlen)
+#define x509_general_names_add_directory_name(a,alen,maxlen,d,dlen) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_directory_name,d,dlen)
+int x509_general_names_add_edi_party_name(uint8_t *gns, size_t *gnslen, size_t maxlen,
+	int assigner_tag, const uint8_t *assigner, size_t assigner_len,
+	int party_name_tag, const uint8_t *party_name, size_t party_name_len);
+#define x509_general_names_add_uniform_resource_identifier(a,alen,maxlen,s) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_uniform_resource_identifier,(uint8_t*)s,strlen(s))
+#define x509_general_names_add_ip_address(a,alen,maxlen,s) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_ip_address,(uint8_t*)s,strlen(s))
+int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t maxlen,
+	const uint32_t *nodes, size_t nodes_cnt);
+
 /*
 AuthorityKeyIdentifier ::= SEQUENCE {
 	keyIdentifier			[0] IMPLICIT OCTET STRING OPTIONAL,
@@ -220,6 +235,8 @@ KeyUsage ::= BIT STRING {
 #define X509_KU_ENCIPHER_ONLY		(1 << 7)
 #define X509_KU_DECIPHER_ONLY		(1 << 8)
 
+const char *x509_key_usage_name(int flag);
+int x509_key_usage_from_name(int *flag, const char *name);
 #define x509_key_usage_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
 #define x509_key_usage_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits);
@@ -266,10 +283,12 @@ PolicyQualifierInfo ::= SEQUENCE {
 	case id-qt-cps		: qualifier ::= IA5String
 	case id-qt-unotice	: qualifier ::= UserNotice
 */
-int x509_policy_qualifier_info_to_der(int oid,
+int x509_policy_qualifier_info_to_der(
+	int oid,
 	const uint8_t *qualifier, size_t qualifier_len,
 	uint8_t **out, size_t *outlen);
-int x509_policy_qualifier_info_from_der(int *oid,
+int x509_policy_qualifier_info_from_der(
+	int *oid,
 	const uint8_t **qualifier, size_t *qualifier_len,
 	const uint8_t **in, size_t *inlen);
 int x509_policy_qualifier_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -308,7 +327,7 @@ int x509_certificate_policies_print(FILE *fp, int fmt, int ind, const char *labe
 
 /*
 PolicyMapping ::= SEQUENCE {
-	issuerDomainPolicy	CertPolicyId,
+	issuerDomainPolicy	CertPolicyId, -- id-anyPolicy or other undefined
 	subjectDomainPolicy	CertPolicyId }
 */
 int x509_policy_mapping_to_der(
@@ -395,7 +414,8 @@ int x509_general_subtree_print(FILE *fp, int fmt, int ind, const char *label, co
 /*
 GeneralSubtrees ::= SEQUENCE SIZE (1..MAX) OF GeneralSubtree
 */
-int x509_general_subtrees_add_general_subtree(uint8_t *d, size_t *dlen, size_t maxlen,
+// 应该参考general_names_add_xxx来改写这个函数，只是不知道这个函数用的多不多
+int x509_general_subtrees_add_general_subtree(uint8_t *d, size_t *dlen, size_t maxlen, // 这个功能和general_names很类似，只是多了一点点内容
 	int base_choice, const uint8_t *base, size_t base_len,
 	int minimum, int maximum);
 int x509_general_subtrees_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -431,6 +451,14 @@ int x509_policy_constraints_print(FILE *fp, int fmt, int ind, const char *label,
 
 /*
 ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
+
+KeyPurposeId:
+	OID_kp_server_auth
+	OID_kp_client_auth
+	OID_kp_code_signing
+	OID_kp_email_protection
+	OID_kp_time_stamping
+	OID_kp_ocsp_signing
 */
 #define X509_MAX_KEY_PURPOSES	6
 int x509_ext_key_usage_to_der(const int *oids, size_t oids_cnt, uint8_t **out, size_t *outlen);
@@ -459,6 +487,8 @@ ReasonFlags ::= BIT STRING {
 #define X509_RF_PRIVILEGE_WITHDRAWN	(1 << 7)
 #define X509_RF_AA_COMPROMISE		(1 << 8)
 
+const char *x509_revoke_reason_name(int flag);
+int x509_revoke_reason_from_name(int *flag, const char *name);
 #define x509_revoke_reasons_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
 #define x509_revoke_reasons_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
 int x509_revoke_reasons_print(FILE *fp, int fmt, int ind, const char *label, int bits);
@@ -525,3 +555,4 @@ FreshestCRL ::= CRLDistributionPoints
 }
 #endif
 #endif
+

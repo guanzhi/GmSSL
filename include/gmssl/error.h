@@ -76,10 +76,14 @@ void print_der(const uint8_t *in, size_t inlen);
 void print_bytes(const uint8_t *in, size_t inlen);
 void print_nodes(const uint32_t *in, size_t inlen);
 
+#define FMT_CARRAY 0x80
+
 
 int format_print(FILE *fp, int format, int indent, const char *str, ...);
 int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_t *data, size_t datalen);
 int format_string(FILE *fp, int format, int indent, const char *str, const uint8_t *data, size_t datalen);
+
+
 
 //int tls_trace(int format, int indent, const char *str, ...);
 

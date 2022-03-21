@@ -184,14 +184,12 @@ static int test_tls_server_hello(void)
 	uint8_t version[2] = {1,1};
 	uint8_t random[32];
 	uint16_t cipher_suite = TLCP_cipher_ecdhe_sm4_cbc_sm3;
-	uint8_t comp_meth = 0;
 
 	tls_record_set_handshake_server_hello(record, &recordlen,
 		version,
 		random,
 		NULL, 0,
 		cipher_suite,
-		comp_meth,
 		NULL, 0);
 
 	tls_server_hello_print(stdout, record + 5 + 4, recordlen - 5 -4, 0, 0);
@@ -348,6 +346,5 @@ int main(void)
 	err += test_tls_alert();
 	err += test_tls_change_cipher_spec();
 	err += test_tls_application_data();
-	return 0;
+	return err;
 }
-
