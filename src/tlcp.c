@@ -764,7 +764,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		handshakeslen += recordlen - 5;
 	}
 
-	if (handshakes) {
+	if (client_cacerts_fp) {
 		tls_trace("<<<< ClientCertificate\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_version(record) != TLS_version_tlcp) {
@@ -812,7 +812,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	if (handshakes) {
+	if (client_cacerts_fp) {
 		tls_trace("<<<< CertificateVerify\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_version(record) != TLS_version_tlcp) {

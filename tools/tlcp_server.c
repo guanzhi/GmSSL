@@ -55,30 +55,24 @@
 #include <gmssl/error.h>
 
 
-void print_usage(const char *prog)
-{
-	printf("Usage: %s [options]\n", prog);
-	printf("  -port <num>\n");
-	printf("  -cert <file>\n");
-	printf("  -signkey <file>\n");
-	printf("  -enckey <file>\n");
-}
 
+static const char *options = "[-port num] -cert file -key file [-pass str] -ex_key file [-ex_pass str] [-cacert file]";
 
-
-int main(int argc , char *argv[])
+int main(int argc , char **argv)
 {
 	int ret = -1;
 	char *prog = argv[0];
 	int port = 443;
-	char *certfile = NULL;
-	char *signkeyfile = NULL;
-	char *enckeyfile = NULL;
+	char *file = NULL;
+
 	FILE *certfp = NULL;
 	FILE *signkeyfp = NULL;
 	FILE *enckeyfp = NULL;
 	SM2_KEY signkey;
 	SM2_KEY enckey;
+
+	char *pass = NULL;
+	char *ex_pass = NULL;
 
 	uint8_t verify_buf[4096];
 
@@ -88,73 +82,89 @@ int main(int argc , char *argv[])
 	size_t len = sizeof(buf);
 
 	if (argc < 2) {
-		print_usage(prog);
-		return 0;
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
 	}
 
 	argc--;
 	argv++;
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+			printf("usage: %s %s\n", prog, options);
 			return 0;
-
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
-
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
-			certfile = *(++argv);
-
-		} else if (!strcmp(*argv, "-signkey")) {
+			file = *(++argv);
+			if (!(certfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			signkeyfile = *(++argv);
-
-		} else if (!strcmp(*argv, "-enckey")) {
+			file = *(++argv);
+			if (!(signkeyfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
-			enckeyfile = *(++argv);
-
+			pass = *(++argv);
+		} else if (!strcmp(*argv, "-ex_key")) {
+			if (--argc < 1) goto bad;
+			file = *(++argv);
+			if (!(enckeyfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-ex_pass")) {
+			if (--argc < 1) goto bad;
+			ex_pass = *(++argv);
 		} else {
-			print_usage(prog);
-			return 0;
+			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
+			return 1;
+bad:
+			fprintf(stderr, "%s: option '%s' argument required\n", prog, *argv);
+			return 1;
 		}
 		argc--;
 		argv++;
 	}
 
-	if (!certfile || !signkeyfile || !enckeyfile) {
-		print_usage(prog);
+	if (!certfp) {
+		error_print();
 		return -1;
 	}
-
-	if (!(certfp = fopen(certfile, "r"))) {
+	if (!signkeyfp) {
+		error_print();
+		return -1;
+	}
+	if (!enckeyfp) {
 		error_print();
 		return -1;
 	}
 
-
-	if (!(signkeyfp = fopen(signkeyfile, "r"))) {
-		error_print();
-		return -1;
+	if (!pass) {
+		pass = getpass("Sign Key Password : ");
 	}
-	if (sm2_private_key_from_pem(&signkey, signkeyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&signkey, pass, signkeyfp) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (!(enckeyfp = fopen(enckeyfile, "r"))) {
-		error_print();
-		return -1;
+	if (!ex_pass) {
+		ex_pass = getpass("Encryption Key Password : ");
 	}
-	if (sm2_private_key_from_pem(&enckey, enckeyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&enckey, ex_pass, enckeyfp) != 1) {
 		error_print();
 		return -1;
 	}
 
 	memset(&conn, 0, sizeof(conn));
 	if (tlcp_accept(&conn, port, certfp, &signkey, &enckey,
-		certfp, verify_buf, 4096) != 1) {
+		NULL, verify_buf, 4096) != 1) {
 		error_print();
 		return -1;
 	}
@@ -183,11 +193,6 @@ int main(int argc , char *argv[])
 
 	}
 
-
-
-	return 1;
-bad:
-	fprintf(stderr, "%s: command error\n", prog);
 
 	return 0;
 }

@@ -65,7 +65,7 @@ int hkdf_extract(const DIGEST *digest, const uint8_t *salt, size_t saltlen,
 	uint8_t *prk, size_t *prklen);
 
 int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
-	const uint8_t *info, size_t infolen,
+	const uint8_t *opt_info, size_t opt_infolen,
 	size_t L, uint8_t *okm);
 
 

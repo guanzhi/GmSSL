@@ -51,6 +51,7 @@
 #include <gmssl/sm3.h>
 #include <gmssl/oid.h>
 #include <gmssl/digest.h>
+#include <gmssl/error.h>
 
 
 typedef struct {
@@ -83,6 +84,10 @@ const char *digest_name(const DIGEST *digest)
 int digest_init(DIGEST_CTX *ctx, const DIGEST *algor)
 {
 	memset(ctx, 0, sizeof(DIGEST_CTX));
+	if (algor == NULL) {
+		error_print();
+		return -1;
+	}
 	ctx->digest = algor;
 	ctx->digest->init(ctx);
 	return 1;
@@ -90,12 +95,19 @@ int digest_init(DIGEST_CTX *ctx, const DIGEST *algor)
 
 int digest_update(DIGEST_CTX *ctx, const uint8_t *data, size_t datalen)
 {
+	if (data == NULL || datalen == 0) {
+		return 0;
+	}
 	ctx->digest->update(ctx, data, datalen);
 	return 1;
 }
 
 int digest_finish(DIGEST_CTX *ctx, uint8_t *dgst, size_t *dgstlen)
 {
+	if (dgst == NULL || dgstlen == NULL) {
+		error_print();
+		return -1;
+	}
 	ctx->digest->finish(ctx, dgst);
 	*dgstlen = ctx->digest->digest_size;
 	return 1;
@@ -105,10 +117,11 @@ int digest(const DIGEST *digest, const uint8_t *data, size_t datalen,
 	uint8_t *dgst, size_t *dgstlen)
 {
 	DIGEST_CTX ctx;
-	if (!digest_init(&ctx, digest)
-		|| !digest_update(&ctx, data, datalen)
-		|| !digest_finish(&ctx, dgst, dgstlen)) {
-		return 0;
+	if (digest_init(&ctx, digest) != 1
+		|| digest_update(&ctx, data, datalen) < 0
+		|| digest_finish(&ctx, dgst, dgstlen) != 1) {
+		error_print();
+		return -1;
 	}
 	memset(&ctx, 0, sizeof(DIGEST_CTX));
 	return 1;
@@ -141,7 +154,8 @@ const DIGEST *digest_from_name(const char *name)
 static int sm3_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sm3_init(&ctx->u.sm3_ctx);
 	return 1;
@@ -150,7 +164,8 @@ static int sm3_digest_init(DIGEST_CTX *ctx)
 static int sm3_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sm3_update(&ctx->u.sm3_ctx, in, inlen);
 	return 1;
@@ -159,7 +174,8 @@ static int sm3_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 static int sm3_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sm3_finish(&ctx->u.sm3_ctx, dgst);
 	return 1;
@@ -186,7 +202,8 @@ const DIGEST *DIGEST_sm3(void)
 static int md5_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	md5_init(&ctx->u.md5_ctx);
 	return 1;
@@ -195,7 +212,8 @@ static int md5_digest_init(DIGEST_CTX *ctx)
 static int md5_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	md5_update(&ctx->u.md5_ctx, in, inlen);
 	return 1;
@@ -204,7 +222,8 @@ static int md5_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 static int md5_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	md5_finish(&ctx->u.md5_ctx, dgst);
 	return 1;
@@ -231,7 +250,8 @@ const DIGEST *DIGEST_md5(void)
 static int sha1_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha1_init(&ctx->u.sha1_ctx);
 	return 1;
@@ -240,7 +260,8 @@ static int sha1_digest_init(DIGEST_CTX *ctx)
 static int sha1_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha1_update(&ctx->u.sha1_ctx, in, inlen);
 	return 1;
@@ -249,7 +270,8 @@ static int sha1_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 static int sha1_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha1_finish(&ctx->u.sha1_ctx, dgst);
 	return 1;
@@ -276,7 +298,8 @@ const DIGEST *DIGEST_sha1(void)
 static int sha224_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha224_init(&ctx->u.sha224_ctx);
 	return 1;
@@ -285,7 +308,8 @@ static int sha224_digest_init(DIGEST_CTX *ctx)
 static int sha224_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha224_update(&ctx->u.sha224_ctx, in, inlen);
 	return 1;
@@ -294,7 +318,8 @@ static int sha224_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen
 static int sha224_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha224_finish(&ctx->u.sha224_ctx, dgst);
 	return 1;
@@ -318,7 +343,8 @@ const DIGEST *DIGEST_sha224(void)
 static int sha256_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha256_init(&ctx->u.sha256_ctx);
 	return 1;
@@ -327,7 +353,8 @@ static int sha256_digest_init(DIGEST_CTX *ctx)
 static int sha256_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha256_update(&ctx->u.sha256_ctx, in, inlen);
 	return 1;
@@ -336,7 +363,8 @@ static int sha256_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen
 static int sha256_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha256_finish(&ctx->u.sha256_ctx, dgst);
 	return 1;
@@ -361,7 +389,8 @@ const DIGEST *DIGEST_sha256(void)
 static int sha384_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha384_init(&ctx->u.sha384_ctx);
 	return 1;
@@ -370,7 +399,8 @@ static int sha384_digest_init(DIGEST_CTX *ctx)
 static int sha384_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha384_update(&ctx->u.sha384_ctx, in, inlen);
 	return 1;
@@ -379,7 +409,8 @@ static int sha384_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen
 static int sha384_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha384_finish(&ctx->u.sha384_ctx, dgst);
 	return 1;
@@ -404,7 +435,8 @@ const DIGEST *DIGEST_sha384(void)
 static int sha512_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha512_init(&ctx->u.sha512_ctx);
 	return 1;
@@ -413,7 +445,8 @@ static int sha512_digest_init(DIGEST_CTX *ctx)
 static int sha512_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha512_update(&ctx->u.sha512_ctx, in, inlen);
 	return 1;
@@ -422,7 +455,8 @@ static int sha512_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen
 static int sha512_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha512_finish(&ctx->u.sha512_ctx, dgst);
 	return 1;
@@ -448,7 +482,8 @@ static int sha512_224_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	uint8_t buf[SHA512_DIGEST_SIZE];
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha512_finish(&ctx->u.sha512_ctx, buf);
 	memcpy(dgst, buf, SHA224_DIGEST_SIZE);
@@ -476,7 +511,8 @@ static int sha512_256_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	uint8_t buf[SHA512_DIGEST_SIZE];
 	if (!ctx || !dgst) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	sha512_finish(&ctx->u.sha512_ctx, buf);
 	memcpy(dgst, buf, SHA256_DIGEST_SIZE);

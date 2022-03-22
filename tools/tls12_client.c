@@ -59,70 +59,62 @@ const char *http_get =
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
-void print_usage(const char *prog)
-{
-	printf("Usage: %s [options]\n", prog);
-	printf("  -host <str>\n");
-	printf("  -port <num>\n");
-	printf("  -cacerts <file>\n");
-	printf("  -cert <file>\n");
-	printf("  -key <file>\n");
-}
+
+static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file [-pass str]]";
 
 int main(int argc , char *argv[])
 {
-	int ret = -1;
 	char *prog = argv[0];
 	char *host = NULL;
 	int port = 443;
+	char *cacertfile = NULL;
+	char *certfile = NULL;
+	char *keyfile = NULL;
+	char *pass = NULL;
+
+	FILE *cacertfp = NULL;
+	FILE *certfp = NULL;
+	FILE *keyfp = NULL;
+	SM2_KEY sm2_key;
+
 	TLS_CONNECT conn;
 	char buf[100] = {0};
 	size_t len = sizeof(buf);
 
-	char *cacertsfile = NULL;
-	char *certfile = NULL;
-	char *keyfile = NULL;
-
-	FILE *cacertsfp = NULL;
-	FILE *certfp = NULL;
-	FILE *keyfp = NULL;
-	SM2_KEY sign_key;
-
-
 	if (argc < 2) {
-		print_usage(prog);
-		return 0;
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
 	}
 
 	argc--;
 	argv++;
-	while (argc >= 1) {
+	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+			printf("usage: %s %s\n", prog, options);
 			return 0;
-
 		} else if (!strcmp(*argv, "-host")) {
 			if (--argc < 1) goto bad;
 			host = *(++argv);
-
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
-
-		} else if (!strcmp(*argv, "-cacerts")) {
+		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
-			cacertsfile = *(++argv);
-
+			cacertfile = *(++argv);
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
 		} else {
-			print_usage(prog);
+			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
+			return 1;
+bad:
+			fprintf(stderr, "%s: option '%s' argument required\n", prog, *argv);
 			return 0;
 		}
 		argc--;
@@ -130,28 +122,34 @@ int main(int argc , char *argv[])
 	}
 
 	if (!host) {
-		print_usage(prog);
-		return -1;
+		error_print();
+		return 1;
 	}
 
-	if (cacertsfile) {
-		if (!(cacertsfp = fopen(cacertsfile, "r"))) {
+	if (cacertfile) {
+		if (!(cacertfp = fopen(cacertfile, "r"))) {
 			error_print();
-			return -1;
+			return 1;
 		}
 	}
+
 	if (certfile) {
 		if (!(certfp = fopen(certfile, "r"))) {
 			error_print();
-			return -1;
+			return 1;
 		}
-	}
-	if (keyfile) {
+		if (!pass) {
+			pass = getpass("Password : ");
+		}
+		if (!keyfile) {
+			error_print();
+			return 1;
+		}
 		if (!(keyfp = fopen(keyfile, "r"))) {
 			error_print();
 			return -1;
 		}
-		if (sm2_private_key_from_pem(&sign_key, keyfp) != 1) {
+		if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 			error_print();
 			return -1;
 		}
@@ -159,12 +157,11 @@ int main(int argc , char *argv[])
 
 	memset(&conn, 0, sizeof(conn));
 
-	if (tls12_connect(&conn, host, port, cacertsfp, certfp, &sign_key) != 1) {
+	if (tls12_connect(&conn, host, port, cacertfp, certfp, &sm2_key) != 1) {
 		error_print();
 		return -1;
 	}
 
-	// 这个client 发收了一个消息就结束了
 	if (tls_send(&conn, (uint8_t *)"12345\n", 6) != 1) {
 		error_print();
 		return -1;
@@ -182,12 +179,5 @@ int main(int argc , char *argv[])
 			break;
 		}
 	}
-
-	return 1;
-bad:
-	fprintf(stderr, "%s: command error\n", prog);
-
 	return 0;
 }
-
-

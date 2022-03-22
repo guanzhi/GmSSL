@@ -52,24 +52,39 @@
 #include <unistd.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_ext.h>
 #include <gmssl/x509_req.h>
 #include <gmssl/pkcs8.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+
+static int ext_key_usage_set(int *usages, const char *usage_name)
+{
+	int flag = 0;
+	if (x509_key_usage_from_name(&flag, usage_name) != 1) {
+		error_print();
+		return -1;
+	}
+	*usages |= flag;
+
+	printf("flag = %08x", flag);
+	printf("usage = %08x", *usages);
+	return 1;
+}
+
 
 static const char *usage = "usage: %s [-in file] -days num -cacert file -key file [-pass str] [-out file]\n";
 
 int main(int argc, char **argv)
 {
 	char *prog = argv[0];
-	char *infile = NULL;
-	char *outfile = NULL;
-	char *cacertfile = NULL;
-	char *keyfile = NULL;
+	char *file;
 	char *pass = NULL;
 	int days = 0;
 
 	FILE *infp = stdin;
+
+
 	uint8_t req[512];
 	size_t reqlen;
 	const uint8_t *subject;
@@ -92,6 +107,9 @@ int main(int argc, char **argv)
 	size_t certlen;
 	uint8_t serial[12];
 	time_t not_before, not_after;
+	uint8_t exts[512];
+	size_t extslen = 0;
+	int key_usage = 0;
 
 
 	if (argc < 2) {
@@ -108,22 +126,45 @@ help:
 			return 0;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
-			infile = *(++argv);
-		} else if (!strcmp(*argv, "-cacert")) {
-			if (--argc < 1) goto bad;
-			cacertfile = *(++argv);
-		} else if (!strcmp(*argv, "-key")) {
-			if (--argc < 1) goto bad;
-			keyfile = *(++argv);
-		} else if (!strcmp(*argv, "-pass")) {
-			if (--argc < 1) goto bad;
-			pass = *(++argv);
+			file = *(++argv);
+			if (!(infp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-days")) {
 			if (--argc < 1) goto bad;
 			days = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-key_usage")) {
+			if (--argc < 1) goto bad;
+			if (ext_key_usage_set(&key_usage, *(++argv)) != 1) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-cacert")) {
+			if (--argc < 1) goto bad;
+			file = *(++argv);
+			if (!(cacertfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-key")) {
+			if (--argc < 1) goto bad;
+			file = *(++argv);
+			if (!(keyfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
+
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
-			outfile = *(++argv);
+			file = *(++argv);
+			if (!(outfp = fopen(file, "w"))) {
+				error_print();
+				return -1;
+			}
 		} else {
 bad:
 			error_print();
@@ -134,19 +175,13 @@ bad:
 		argv++;
 	}
 	if (days <= 0
-		|| !cacertfile
-		|| !keyfile) {
+		|| !infp
+		|| !cacertfp
+		|| !keyfp) {
 		error_print();
 		return -1;
 	}
 
-
-	if (infile) {
-		if (!(infp = fopen(infile, "r"))) {
-			error_print();
-			return -1;
-		}
-	}
 	if (x509_req_from_pem(req, &reqlen, sizeof(req), infp) != 1
 		|| x509_req_get_details(req, reqlen,
 			NULL, &subject, &subject_len, &subject_public_key,
@@ -155,19 +190,11 @@ bad:
 		return -1;
 	}
 
-	if (!(cacertfp = fopen(cacertfile, "r"))
-		|| x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), cacertfp) != 1
+	if (x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), cacertfp) != 1
 		|| x509_cert_get_subject(cacert, cacertlen, &issuer, &issuer_len) != 1
 		|| x509_cert_get_subject_public_key(cacert, cacertlen, &issuer_public_key) != 1) {
  		error_print();
 		return -1;
-	}
-
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "w"))) {
-			error_print();
-			return -1;
-		}
 	}
 
 	if (!pass) {
@@ -177,8 +204,7 @@ bad:
 		error_print();
 		return -1;
 	}
-	if (!(keyfp = fopen(keyfile, "r"))
-		|| sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1
 		|| sm2_public_key_equ(&sm2_key, &issuer_public_key) != 1) {
 		error_print();
 		memset(&sm2_key, 0, sizeof(SM2_KEY));
@@ -189,6 +215,7 @@ bad:
 	time(&not_before);
 
 	if (x509_validity_add_days(&not_after, not_before, days) != 1
+		|| x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1
 		|| x509_cert_sign(
 			cert, &certlen, sizeof(cert),
 			X509_version_v3,
@@ -200,7 +227,7 @@ bad:
 			&subject_public_key,
 			NULL, 0,
 			NULL, 0,
-			NULL, 0,
+			exts, extslen,
 			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| x509_cert_to_pem(cert, certlen, outfp) != 1) {
 		memset(&sm2_key, 0, sizeof(SM2_KEY));
@@ -208,6 +235,7 @@ bad:
 		return -1;
 	}
 
+	// FIXME: fclose() ....
 	memset(&sm2_key, 0, sizeof(SM2_KEY));
 	return 0;
 }

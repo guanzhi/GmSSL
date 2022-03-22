@@ -97,9 +97,12 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t ke
 
 int hmac_update(HMAC_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	if (!ctx || (!data &&  datalen != 0)) {
+	if (ctx == NULL) {
 		error_print();
 		return -1;
+	}
+	if (data == NULL || datalen == 0) {
+		return 0;
 	}
 	if (digest_update(&ctx->digest_ctx, data, datalen) != 1) {
 		error_print();
@@ -110,6 +113,10 @@ int hmac_update(HMAC_CTX *ctx, const uint8_t *data, size_t datalen)
 
 int hmac_finish(HMAC_CTX *ctx, uint8_t *mac, size_t *maclen)
 {
+	if (ctx == NULL || maclen == NULL) {
+		error_print();
+		return -1;
+	}
 	if (digest_finish(&ctx->digest_ctx, mac, maclen) != 1) {
 		error_print();
 		return -1;

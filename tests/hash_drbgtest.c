@@ -53,6 +53,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/digest.h>
 #include <gmssl/hash_drbg.h>
+#include <gmssl/error.h>
 
 
 #define EntropyInput "212956390783381dbfc6362dd0da9a09"
@@ -114,9 +115,9 @@ int main(void)
 		printf("ok\n");
 	}
 
-
 	hash_drbg_reseed(&drbg, pr1, pr1_len, NULL, 0);
 	hash_drbg_generate(&drbg, NULL, 0, 640/8, out);
+
 
 	hash_drbg_reseed(&drbg, pr2, pr2_len, NULL, 0);
 	hash_drbg_generate(&drbg, NULL, 0, 640/8, out);

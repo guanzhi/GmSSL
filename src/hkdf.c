@@ -113,7 +113,7 @@ int hkdf_extract(const DIGEST *digest, const uint8_t *salt, size_t saltlen,
 }
 
 int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
-	const uint8_t *info, size_t infolen,
+	const uint8_t *opt_info, size_t opt_infolen,
 	size_t L, uint8_t *okm)
 {
 	HMAC_CTX hmac_ctx;
@@ -123,7 +123,7 @@ int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
 
 	if (L > 0) {
 		if (hmac_init(&hmac_ctx, digest, prk, prklen) != 1
-			|| hmac_update(&hmac_ctx, info, infolen) != 1
+			|| hmac_update(&hmac_ctx, opt_info, opt_infolen) < 0
 			|| hmac_update(&hmac_ctx, &counter, 1) != 1
 			|| hmac_finish(&hmac_ctx, T, &len) != 1) {
 			error_print();
@@ -144,7 +144,7 @@ int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
 		}
 		if (hmac_init(&hmac_ctx, digest, prk, prklen) != 1
 			|| hmac_update(&hmac_ctx, T, len) != 1
-			|| hmac_update(&hmac_ctx, info, infolen) != 1
+			|| hmac_update(&hmac_ctx, opt_info, opt_infolen) < 0
 			|| hmac_update(&hmac_ctx, &counter, 1) != 1
 			|| hmac_finish(&hmac_ctx, T, &len) != 1) {
 			error_print();

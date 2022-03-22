@@ -76,9 +76,9 @@ int main(int argc, char **argv)
 	char *org = NULL;
 	char *org_unit = NULL;
 	char *common_name = NULL;
-	char *keyfile = NULL;
+
+	char *file = NULL;
 	char *pass = NULL;
-	char *outfile = NULL;
 	int days = 0;
 
 	FILE *keyfp = NULL;
@@ -124,7 +124,11 @@ int main(int argc, char **argv)
 			common_name = *(++argv);
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			keyfile = *(++argv);
+			file = *(++argv);
+			if (!(keyfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
@@ -133,7 +137,11 @@ int main(int argc, char **argv)
 			days = atoi(*(++argv));
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
-			outfile = *(++argv);
+			file = *(++argv);
+			if (!(outfp = fopen(file, "w"))) {
+				error_print();
+				return -1;
+			}
 		} else {
 bad:
 			fprintf(stderr, "usage: %s %s\n", prog, options);
@@ -143,19 +151,11 @@ bad:
 		argv++;
 	}
 
-	if (!common_name || days <= 0 || !keyfile) {
+	if (!common_name || days <= 0 || !keyfp) {
 		fprintf(stderr, "%s: missing options\n", prog);
 		fprintf(stderr, "usage: %s %s\n", prog, options);
 		return 1;
 	}
-
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "wb"))) {
-			error_print();
-			return -1;
-		}
-	}
-
 	if (!pass) {
 		pass = getpass("Encryption Password : ");
 	}
@@ -164,8 +164,7 @@ bad:
 		error_print();
 		return -1;
 	}
-	if (!(keyfp = fopen(keyfile, "r"))
-		|| sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		error_print();
 		return -1;
 	}

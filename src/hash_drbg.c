@@ -51,6 +51,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/hash_drbg.h>
+#include <gmssl/error.h>
 #include "endian.h"
 
 static int hash_df(const DIGEST *digest, const uint8_t *in, size_t inlen,
@@ -67,11 +68,11 @@ static int hash_df(const DIGEST *digest, const uint8_t *in, size_t inlen,
 	PUTU32(outbits, (uint32_t)outlen << 3);
 
 	while (outlen > 0) {
-		if (!digest_init(&ctx, digest)
-			|| !digest_update(&ctx, &counter, sizeof(counter))
-			|| !digest_update(&ctx, outbits, sizeof(outbits))
-			|| !digest_update(&ctx, in, inlen)
-			|| !digest_finish(&ctx, dgst, &len)) {
+		if (digest_init(&ctx, digest) != 1
+			|| digest_update(&ctx, &counter, sizeof(counter)) != 1
+			|| digest_update(&ctx, outbits, sizeof(outbits)) != 1
+			|| digest_update(&ctx, in, inlen) != 1
+			|| digest_finish(&ctx, dgst, &len) != 1) {
 			goto end;
 		}
 
@@ -211,7 +212,7 @@ end:
 static void drbg_add(uint8_t *R, const uint8_t *A, size_t seedlen)
 {
 	int temp = 0;
-	size_t i;
+	int i;
 	for (i = seedlen - 1; i >= 0; i--) {
 		temp += R[i] + A[i];
 		R[i] = temp & 0xff;
@@ -222,7 +223,7 @@ static void drbg_add(uint8_t *R, const uint8_t *A, size_t seedlen)
 static void drbg_add1(uint8_t *R, size_t seedlen)
 {
 	int temp = 1;
-	size_t i;
+	int i;
 	for (i = seedlen - 1; i >= 0; i--) {
 		temp += R[i];
 		R[i] = temp & 0xff;
@@ -244,9 +245,9 @@ static int drbg_hashgen(HASH_DRBG *drbg, size_t outlen, uint8_t *out)
 	while (outlen > 0) {
 
 		/* output Hash(data) */
-		if (!digest_init(&ctx, drbg->digest)
-			|| !digest_update(&ctx, data, drbg->seedlen)
-			|| !digest_finish(&ctx, dgst, &len)) {
+		if (digest_init(&ctx, drbg->digest) != 1
+			|| digest_update(&ctx, data, drbg->seedlen) != 1
+			|| digest_finish(&ctx, dgst, &len) != 1) {
 			goto end;
 		}
 
@@ -288,11 +289,11 @@ int hash_drbg_generate(HASH_DRBG *drbg,
 	if (additional) {
 		/* w = Hash (0x02 || V || additional_input) */
 		prefix = 0x02;
-		if (!digest_init(&ctx, drbg->digest)
-			|| !digest_update(&ctx, &prefix, 1)
-			|| !digest_update(&ctx, drbg->V, drbg->seedlen)
-			|| !digest_update(&ctx, additional, additional_len)
-			|| !digest_finish(&ctx, dgst, &dgstlen)) {
+		if (digest_init(&ctx, drbg->digest) != 1
+			|| digest_update(&ctx, &prefix, 1) != 1
+			|| digest_update(&ctx, drbg->V, drbg->seedlen) != 1
+			|| digest_update(&ctx, additional, additional_len) != 1
+			|| digest_finish(&ctx, dgst, &dgstlen) != 1) {
 			goto end;
 		}
 
@@ -307,10 +308,10 @@ int hash_drbg_generate(HASH_DRBG *drbg,
 
 	/* H = Hash (0x03 || V). */
 	prefix = 0x03;
-	if (!digest_init(&ctx, drbg->digest)
-		|| !digest_update(&ctx, &prefix, 1)
-		|| !digest_update(&ctx, drbg->V, drbg->seedlen)
-		|| !digest_finish(&ctx, dgst, &dgstlen)) {
+	if (digest_init(&ctx, drbg->digest) != 1
+		|| digest_update(&ctx, &prefix, 1) != 1
+		|| digest_update(&ctx, drbg->V, drbg->seedlen) != 1
+		|| digest_finish(&ctx, dgst, &dgstlen) != 1) {
 		goto end;
 	}
 

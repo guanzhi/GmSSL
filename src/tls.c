@@ -106,7 +106,7 @@ void tls_uint32_to_bytes(uint32_t a, uint8_t **out, size_t *outlen)
 
 void tls_array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
-	if (out) {
+	if (*out) {
 		memcpy(*out, data, datalen);
 		*out += datalen;
 	}
@@ -810,16 +810,44 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	uint8_t *p = record + 5 + 4;
 	size_t len = 0;
 
-	if (!record || !recordlen || !tls_version_text(version) || !random
-		|| (!session_id && session_id_len) || session_id_len > 32
-		|| (!exts && exts_len) || exts_len > 512) {
+	if (!record || !recordlen) {
 		error_print();
 		return -1;
 	}
-	if (record[0] != TLS_record_handshake
-		|| !tls_version_text(version)
-		|| !tls_cipher_suite_name(cipher_suite)
-		|| version < tls_record_version(record)) {
+	if (tls_version_text(version) == NULL || random == NULL) {
+		error_print();
+		return -1;
+	}
+	if (session_id != NULL) {
+		if (session_id_len <= 0 || session_id_len > 32) {
+			error_print();
+			return -1;
+		}
+	}
+	if (exts && exts_len > 512) {
+		error_print();
+		return -1;
+	}
+
+
+	if (record[0] != TLS_record_handshake) {
+		error_print();
+		return -1;
+	}
+	if (!tls_version_text(version)) {
+		error_print();
+		return -1;
+	}
+	if (!tls_cipher_suite_name(cipher_suite)) {
+		error_print();
+		return -1;
+	}
+	if (version < tls_record_version(record)) {
+
+
+		printf("version = %d\n", version);
+		printf("version = %d\n", tls_record_version(record));
+
 		error_print();
 		return -1;
 	}
@@ -1087,11 +1115,10 @@ int tls_certificate_chain_verify(const uint8_t *certs, size_t certslen, FILE *ca
 	size_t certlen;
 	const uint8_t *cacert;
 	size_t cacertlen;
-	const uint8_t *subject;
-	size_t subject_len;
-	uint8_t rootcacert[1024];
-	size_t rootcacertlen;
-	const char *signer_id = SM2_DEFAULT_ID;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	uint8_t rootcert[4096];
+	size_t rootcertlen;
 
 	if (tls_uint24array_from_bytes(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
@@ -1102,19 +1129,19 @@ int tls_certificate_chain_verify(const uint8_t *certs, size_t certslen, FILE *ca
 			error_print();
 			return -1;
 		}
-		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id)) != 1) {
+		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
 			return -1;
 		}
 		cert = cacert;
 		certlen = cacertlen;
 	}
-	if (x509_cert_get_subject(cacert, cacertlen, &subject, &subject_len) != 1) {
+	if (x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_cert_from_pem_by_subject(rootcacert, &rootcacertlen, sizeof(rootcacert), subject, subject_len, ca_certs_fp) != 1
-		|| x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id)) != 1) {
+	if (x509_cert_from_pem_by_subject(rootcert, &rootcertlen, sizeof(rootcert), issuer, issuer_len, ca_certs_fp) != 1
+		|| x509_cert_verify_by_ca_cert(cert, certlen, rootcert, rootcertlen, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1539,7 +1566,7 @@ int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen)
 		seq_num = conn->server_seq_num;
 	}
 
-	tls_trace(">>>> ApplicationData\n");
+	tls_trace("send ApplicationData\n");
 	if (tls_record_set_version(mrec, conn->version) != 1
 		|| tls_record_set_application_data(mrec, &mlen, data, datalen) != 1
 		|| tls_record_encrypt(hmac_ctx, enc_key, seq_num, mrec, mlen, crec, &clen) != 1
@@ -1572,7 +1599,7 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 		seq_num = conn->client_seq_num;
 	}
 
-	tls_trace("<<<< ApplicationData\n");
+	tls_trace("recv ApplicationData\n");
 	if (tls_record_recv(crec, &clen, conn->sock) != 1
 		// FIXME: 检查版本号
 		|| tls_record_decrypt(hmac_ctx, dec_key, seq_num, crec, clen, mrec, &mlen) != 1

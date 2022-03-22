@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
@@ -58,100 +59,94 @@ const char *http_get =
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
-void print_usage(const char *prog)
-{
-	printf("Usage: %s [options]\n", prog);
-	printf("  -host <str>\n");
-	printf("  -port <num>\n");
-	printf("  -cacerts <file>\n");
-	printf("  -cert <file>\n");
-	printf("  -key <file>\n");
-}
 
-int main(int argc , char *argv[])
+// 虽然服务器可以用双证书，但是客户端只能使用一个证书，也就是签名证书
+static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file [-pass str]]";
+
+int main(int argc, char *argv[])
 {
 	int ret = -1;
 	char *prog = argv[0];
 	char *host = NULL;
 	int port = 443;
+	char *pass = NULL;
 	TLS_CONNECT conn;
 	char buf[100] = {0};
 	size_t len = sizeof(buf);
 
+	char *file;
 
-	char *cacertsfile = NULL;
-	char *certfile = NULL;
-	char *keyfile = NULL;
-
-	FILE *cacertsfp = NULL;
+	FILE *cacertfp = NULL;
 	FILE *certfp = NULL;
 	FILE *keyfp = NULL;
 	SM2_KEY sign_key;
 
-
 	if (argc < 2) {
-		print_usage(prog);
-		return 0;
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
 	}
 
 	argc--;
 	argv++;
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
+			printf("usage: %s %s\n", prog, options);
 			return 0;
-
 		} else if (!strcmp(*argv, "-host")) {
 			if (--argc < 1) goto bad;
 			host = *(++argv);
-
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
-
-		} else if (!strcmp(*argv, "-cacerts")) {
+		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
-			cacertsfile = *(++argv);
-
+			file = *(++argv);
+			if (!(cacertfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
-			certfile = *(++argv);
-
+			file = *(++argv);
+			if (!(certfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			keyfile = *(++argv);
-
+			file = *(++argv);
+			if (!(keyfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
 		} else {
-			print_usage(prog);
+			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
+			return 1;
+bad:
+			fprintf(stderr, "%s: option '%s' argument required\n", prog, *argv);
 			return 0;
 		}
 		argc--;
 		argv++;
 	}
 
-	if (!host || !certfile || !keyfile) {
-		print_usage(prog);
+	if (!host) {
+		error_print();
 		return -1;
 	}
 
-	if (cacertsfile) {
-		if (!(cacertsfp = fopen(cacertsfile, "r"))) {
+	if (certfp) {
+		if (!keyfp) {
 			error_print();
 			return -1;
 		}
-	}
-	if (certfile) {
-		if (!(certfp = fopen(certfile, "r"))) {
-			error_print();
-			return -1;
+		if (!pass) {
+			pass = getpass("Password : ");
 		}
-	}
-	if (keyfile) {
-		if (!(keyfp = fopen(keyfile, "r"))) {
-			error_print();
-			return -1;
-		}
-		if (sm2_private_key_from_pem(&sign_key, keyfp) != 1) {
+		if (sm2_private_key_info_decrypt_from_pem(&sign_key, pass, keyfp) != 1) {
 			error_print();
 			return -1;
 		}
@@ -159,7 +154,7 @@ int main(int argc , char *argv[])
 
 	memset(&conn, 0, sizeof(conn));
 
-	if (tlcp_connect(&conn, host, port, cacertsfp, certfp, &sign_key) != 1) {
+	if (tlcp_connect(&conn, host, port, cacertfp, certfp, &sign_key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -184,11 +179,5 @@ int main(int argc , char *argv[])
 		}
 	}
 
-	return 1;
-bad:
-	fprintf(stderr, "%s: command error\n", prog);
-
 	return 0;
 }
-
-

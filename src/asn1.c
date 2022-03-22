@@ -457,6 +457,11 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 		*(*out)++ = tag;
 	(*outlen)++;
 
+	while (*a == 0 && alen > 1) {
+		a++;
+		alen--;
+	}
+
 	if (a[0] & 0x80) {
 		asn1_length_to_der(alen + 1, out, outlen);
 		if (out) {
@@ -466,11 +471,7 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 		}
 		(*outlen) += 1 + alen;
 	} else {
-		while (*a == 0 && alen > 1) {
-			a++;
-			alen--;
-		}
-		asn1_length_to_der(alen, out, outlen);
+		asn1_length_to_der(alen, out ,outlen);
 		if (out) {
 			memcpy(*out, a, alen);
 			(*out) += alen;

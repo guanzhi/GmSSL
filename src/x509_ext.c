@@ -717,7 +717,7 @@ int x509_key_usage_from_name(int *flag, const char *name)
 	int i;
 	for (i = 0; i < x509_key_usages_count; i++) {
 		if (strcmp(name, x509_key_usages[i]) == 0) {
-			*flag = i;
+			*flag = 1 << i;
 			return 1;
 		}
 	}

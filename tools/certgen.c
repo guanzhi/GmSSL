@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,9 +51,21 @@
 #include <stdlib.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_ext.h>
 #include <gmssl/pkcs8.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+
+static int ext_key_usage_set(int *usages, const char *usage_name)
+{
+	int flag;
+	if (x509_key_usage_from_name(&flag, usage_name) != 1) {
+		error_print();
+		return -1;
+	}
+	*usages |= flag;
+	return 1;
+}
 
 
 #ifndef WIN32
@@ -61,7 +73,10 @@
 #include <unistd.h>
 #endif
 
-static const char *options = "[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num -key file [-pass pass]";
+static const char *options =
+	"[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num "
+	"-key file [-pass pass] "
+	"[-key_usage str]*";
 
 
 int main(int argc, char **argv)
@@ -75,11 +90,11 @@ int main(int argc, char **argv)
 	char *org_unit = NULL;
 	char *common_name = NULL;
 	int days = 0;
-	char *keyfile = NULL;
+	int key_usage = 0;
+	char *file = NULL;
+	FILE *outfp = stdout;
 	FILE *keyfp = NULL;
 	char *pass = NULL;
-	char *outfile = NULL;
-	FILE *outfp = stdout;
 
 	SM2_KEY sm2_key;
 	uint8_t serial[12];
@@ -88,6 +103,8 @@ int main(int argc, char **argv)
 	time_t not_before;
 	time_t not_after;
 	uint8_t uniq_id[32];
+	uint8_t exts[512];
+	size_t extslen = 0;
 	uint8_t cert[1024];
 	size_t certlen;
 
@@ -117,18 +134,32 @@ help:
 		} else if (!strcmp(*argv, "-L")) {
 			if (--argc < 1) goto bad;
 			locality = *(++argv);
-		} else if (!strcmp(*argv, "-key")) {
-			if (--argc < 1) goto bad;
-			keyfile = *(++argv);
 		} else if (!strcmp(*argv, "-days")) {
 			if (--argc < 1) goto bad;
 			days = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-key_usage")) {
+			if (--argc < 1) goto bad;
+			if (ext_key_usage_set(&key_usage, *(++argv)) != 1) {
+				error_print();
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-key")) {
+			if (--argc < 1) goto bad;
+			file = *(++argv);
+			if (!(keyfp = fopen(file, "r"))) {
+				error_print();
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
-			outfile = *(++argv);
+			file = *(++argv);
+			if (!(outfp = fopen(file, "w"))) {
+				error_print();
+				return -1;
+			}
 		} else {
 bad:
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
@@ -140,7 +171,7 @@ bad:
 		argv++;
 	}
 
-	if (!common_name || days <= 0 || !keyfile) {
+	if (!common_name || days <= 0) {
 		fprintf(stderr, "%s: missing options\n", prog);
 		fprintf(stderr, "usage: %s %s\n", prog, options);
 		return 1;
@@ -154,17 +185,14 @@ bad:
 		error_print();
 		return -1;
 	}
-	if (!(keyfp = fopen(keyfile, "r"))
-		|| sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
+
+	if (keyfp == NULL) {
+		error_print();
+		return -1;
+	}
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		error_print();
 		goto end;
-	}
-
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "wb"))) {
-			error_print();
-			return -1;
-		}
 	}
 
 	time(&not_before);
@@ -172,6 +200,7 @@ bad:
 		|| x509_name_set(name, &namelen, sizeof(name),
 			country, state, locality, org, org_unit, common_name) != 1
 		|| x509_validity_add_days(&not_after, not_before, days) != 1
+		|| x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1
 		|| x509_cert_sign(
 			cert, &certlen, sizeof(cert),
 			X509_version_v3,
@@ -183,7 +212,7 @@ bad:
 			&sm2_key,
 			NULL, 0,
 			NULL, 0,
-			NULL, 0,
+			exts, extslen,
 			&sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1
 		|| x509_cert_to_pem(cert, certlen, outfp) != 1) {
 		error_print();
