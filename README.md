@@ -6,7 +6,9 @@
 
 GmSSL is an open source cryptographic toolkit that provide first level support of Chinese national cryptographic algorithms and protocols which are specified in the GM/T serial standards. As a branch of the OpenSSL project, GmSSL provides API level compatibility with OpenSSL and maintains all the functionalities. Existing projects such as Apache web server can be easily ported to GmSSL with minor modification and a simple rebuild. Since the first release in late 2014, GmSSL has been selected as one of the six recommended cryptographic projects by Open Source China and the winner of the 2015 Chinese Linux Software Award.
 
-The new version of GmSSL (version 3.0) is under development in a different repo (https://github.com/guanzhi/gmssl-v3-dev), and will be merged into this one late this year.
+## Recent
+
+- The development of the new version of GmSSL (version 3.0)  has been completed and now released in the [develop](https://github.com/guanzhi/GmSSL/tree/develop) branch. It is expected to switch to the new version of GmSSL in April.
 
 ## Features
 
