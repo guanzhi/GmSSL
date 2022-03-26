@@ -4186,6 +4186,20 @@ int tls1_check_chain(SSL *s, X509 *x, EVP_PKEY *pk, STACK_OF(X509) *chain,
     return rv;
 }
 
+# ifndef OPENSSL_NO_SM9
+int tls1_check_chain_sm9(SSL *s)
+{
+    if (!SSL_IS_GMTLS(s))
+        return 0;
+
+    uint32_t *pvalid = s->s3->tmp.valid_flags + SSL_PKEY_SM9;
+    int rv = 0;
+    rv |= CERT_PKEY_VALID;
+    *pvalid = rv;
+    return rv;
+}
+# endif
+
 /* Set validity of certificates in an SSL structure */
 void tls1_set_cert_validity(SSL *s)
 {
@@ -4198,7 +4212,9 @@ void tls1_set_cert_validity(SSL *s)
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_GOST12_512);
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SM2);
     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SM2_ENC);
-			
+# ifndef OPENSSL_NO_SM9
+    tls1_check_chain_sm9(s); // SSL_PKEY_SM9
+# endif
 }
 
 /* User level utiity function to check a chain is suitable */

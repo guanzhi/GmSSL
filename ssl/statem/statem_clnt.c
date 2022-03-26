@@ -694,7 +694,7 @@ MSG_PROCESS_RETURN ossl_statem_client_process_message(SSL *s, PACKET *pkt)
     case TLS_ST_CR_CERT:
 #ifndef OPENSSL_NO_GMTLS
         if (SSL_IS_GMTLS(s))
-            return tls_process_server_certificate(s, pkt);
+            return gmtls_process_server_certificate(s, pkt);
 #endif
         return tls_process_server_certificate(s, pkt);
 

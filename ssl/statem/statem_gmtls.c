@@ -222,7 +222,7 @@ static int gmtls_construct_sm9_params(SSL *s, unsigned char **p, int *l, int *al
 		return 0;
 	}
 
-	d = *p;
+	d = *p = ssl_handshake_start(s);
 	s2n(idlen, d);
 	memcpy(d, sm9->id, idlen);
 	d += idlen;
@@ -247,11 +247,6 @@ static int gmtls_process_sm9_params(SSL *s, PACKET *pkt, int *al, int ibe)
 
 	*al = SSL_AD_INTERNAL_ERROR;
 	sm9 = ibe ? &s->session->ibe : &s->session->ibs;
-
-	if (sm9->id || sm9->params || sm9->publickey) {
-		SSLerr(SSL_F_GMTLS_PROCESS_SM9_PARAMS, ERR_R_INTERNAL_ERROR);
-		return 0;
-	}
 
 	if (!PACKET_get_length_prefixed_2(pkt, &id)) {
 		*al = SSL_AD_DECODE_ERROR;
@@ -291,6 +286,7 @@ static int gmtls_process_sm9_params(SSL *s, PACKET *pkt, int *al, int ibe)
 		return 0;
 	}
 
+	s->session->peer_identity = sm9->id;
 	*al = -1;
 	return 1;
 }
@@ -393,17 +389,9 @@ MSG_PROCESS_RETURN gmtls_process_server_certificate(SSL *s, PACKET *pkt)
 	unsigned long alg_a = s->s3->tmp.new_cipher->algorithm_auth;
 
 	if (alg_a & SSL_aSM2) {
-		if (!gmtls_process_sm2_certs(s, pkt, &al)) {
-			SSLerr(SSL_F_GMTLS_PROCESS_SERVER_CERTIFICATE,
-				ERR_R_INTERNAL_ERROR);
-			goto err;
-		}
+		return tls_process_server_certificate(s, pkt);
 	} else if (alg_a & SSL_aRSA) {
-		if (!gmtls_process_rsa_certs(s, pkt, &al)) {
-			SSLerr(SSL_F_GMTLS_PROCESS_SERVER_CERTIFICATE,
-				ERR_R_INTERNAL_ERROR);
-			goto err;
-		}
+		return tls_process_server_certificate(s, pkt);
 	} else if (alg_a & SSL_aSM9) {
 		if (!gmtls_process_ibs_params(s, pkt, &al)) {
 			SSLerr(SSL_F_GMTLS_PROCESS_SERVER_CERTIFICATE,
@@ -975,13 +963,13 @@ static int gmtls_construct_ske_sm9(SSL *s, unsigned char **p, int *l, int *al, i
 	/* sign digest and output signature */
 	d = *p;
 	siglen = SM9_signature_size(s->cert->ibs.params);
-#if 0
-	if (!SM9_sign(s->cert->ibs.params, dgst, dgstlen, &(d[2]), &siglen,
+
+	if (!SM9_sign(NID_sm3, dgst, dgstlen, &(d[2]), &siglen,
 		s->cert->ibs.privatekey)) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_SKE_SM9, ERR_R_SM9_LIB);
 		goto end;
 	}
-#endif
+
 	s2n(siglen, d);
 
 	*l += 2 + siglen;
@@ -1050,7 +1038,7 @@ static int gmtls_process_ske_sm9(SSL *s, PACKET *pkt, int *al, int dhe)
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM9, ERR_R_EVP_LIB);
 		goto end;
 	}
-	if (!dhe) {
+	if (dhe) {
 		SM9PublicKey *pk = NULL;
 		unsigned char enckey[1024];
 		if (!(pk = SM9_extract_public_key(s->session->ibe.params,
@@ -1059,7 +1047,7 @@ static int gmtls_process_ske_sm9(SSL *s, PACKET *pkt, int *al, int dhe)
 			goto end;
 		}
 		if (!SM9PublicKey_get_gmtls_encoded(s->session->ibe.params,
-			s->session->ibe.publickey, enckey)) {
+			pk, enckey)) {
 			SM9PublicKey_free(pk);
 			SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM9, ERR_R_INTERNAL_ERROR);
 			goto end;
@@ -1078,15 +1066,13 @@ static int gmtls_process_ske_sm9(SSL *s, PACKET *pkt, int *al, int dhe)
 	}
 
 	/* verify signature */
-#if 0
-	if (1 != SM9_verify(s->session->ibs.params, dgst, dgstlen,
+	if (1 != SM9_verify(NID_sm3, dgst, dgstlen,
 		PACKET_data(&signature), PACKET_remaining(&signature),
-		s->session->ibs.id, strlen(s->session->ibs.id))) {
+		s->session->ibs.params, s->session->ibs.id, strlen(s->session->ibs.id))) {
 		*al = SSL_AD_DECRYPT_ERROR;
 		SSLerr(SSL_F_GMTLS_PROCESS_SKE_SM9, SSL_R_BAD_SIGNATURE);
 		goto end;
 	}
-#endif
 
 	ret = 1;
 
@@ -1801,20 +1787,17 @@ static int gmtls_construct_cke_sm9(SSL *s, unsigned char **p, int *l, int *al)
 		goto end;
 	}
 
-
-#if 0
-	if (!SM9_encrypt(sm9->params, &encparam, pms, pmslen,
-		NULL, &enclen, sm9->id, strlen(sm9->id))) {
+	if (!SM9_encrypt(NID_sm9encrypt_with_sm3_xor, pms, pmslen,
+		NULL, &enclen, sm9->params, sm9->id, strlen(sm9->id))) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_CKE_SM9, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
 	d = *p;
-	if (!SM9_encrypt(sm9->params, &encparam, pms, pmslen,
-		&(d[2]), &enclen, sm9->id, strlen(sm9->id))) {
+	if (!SM9_encrypt(NID_sm9encrypt_with_sm3_xor, pms, pmslen,
+		&(d[2]), &enclen, sm9->params, sm9->id, strlen(sm9->id))) {
 		SSLerr(SSL_F_GMTLS_CONSTRUCT_CKE_SM9, ERR_R_INTERNAL_ERROR);
 		goto end;
 	}
-#endif
 
 	/* save pre_master_secret */
 	s->s3->tmp.pms = pms;
@@ -1837,9 +1820,9 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 {
 	int ret = 0;
 	PACKET enced_pms;
-	CERT_SM9 *sm9;
-	unsigned char *pms = NULL;
-	size_t pms_len;
+	CERT_SM9 *sm9 = NULL;
+	unsigned char pms[SSL_MAX_MASTER_KEY_LENGTH];
+	size_t pms_len = sizeof(pms);
 
 
 	*al = SSL_AD_INTERNAL_ERROR;
@@ -1857,11 +1840,9 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 		return 0;
 	}
 
-
-#if 0
-	if (!SM9_decrypt(sm9->params, &encparam,
+	if (!SM9_decrypt(NID_sm9encrypt_with_sm3_xor,
 		PACKET_data(&enced_pms), PACKET_remaining(&enced_pms), pms, &pms_len,
-		sm9->privatekey, sm9->id, strlen(sm9->id))) {
+		sm9->privatekey)) {
 		*al = SSL_AD_DECRYPT_ERROR;
 		SSLerr(SSL_F_GMTLS_PROCESS_CKE_SM9, ERR_R_INTERNAL_ERROR);
 		return 0;
@@ -1872,7 +1853,6 @@ static int gmtls_process_cke_sm9(SSL *s, PACKET *pkt, int *al)
 		SSLerr(SSL_F_GMTLS_PROCESS_CKE_SM9, SSL_R_DECRYPTION_FAILED);
 		goto end;
 	}
-#endif
 
 	/* generate master_secret */
 	if (!ssl_generate_master_secret(s, pms, pms_len, 0)) {
