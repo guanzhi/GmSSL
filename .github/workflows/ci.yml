@@ -1,0 +1,25 @@
+on: push
+jobs:
+  buildNtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+        with:
+          repository: guanzhi/GmSSL
+          path: GMSSL
+      - run: SYSTEM=`uname -s` ./config --prefix=/usr/local/gmssl;
+        working-directory: GMSSL
+      - run: make
+        working-directory: GMSSL
+      - run: sudo make install_sw
+        working-directory: GMSSL
+      - uses: actions/checkout@main
+      - run: go build
+        working-directory: gmssl
+      - run: curl --version
+        name: curl san check
+      - run: env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -v ./...
+        working-directory: test
+      - run: env LD_LIBRARY_PATH=/usr/local/gmssl/lib go test -bench=. -run=none -cover
+        working-directory: test
+        name: bench test
