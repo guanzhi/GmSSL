@@ -1,0 +1,12 @@
+name: Github workflow
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@main
+      - run: SYSTEM=`uname -s` ./config --prefix=/usr/local/gmssl;
+      - run: make
+      - run: sudo make install_sw
+
+
