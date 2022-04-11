@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2020 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,69 +46,63 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/sm2.h>
-#include <gmssl/asn1.h>
+#include <gmssl/pem.h>
+#include <gmssl/x509.h>
+#include <gmssl/x509_crl.h>
 #include <gmssl/error.h>
 
+static const char *options = "[-in file]";
 
-int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key)
+int main(int argc, char **argv)
 {
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	sm2_public_key_print(fp, fmt, ind, "publicKey", key);
-	format_bytes(fp, fmt, ind, "privateKey", key->private_key, 32);
-	return 1;
-}
+	char *prog = argv[0];
+	char *infile = NULL;
+	FILE *infp = stdin;
 
-int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key)
-{
-	return sm2_point_print(fp, fmt, ind, label, &pub_key->public_key);
-}
+	uint8_t crl[18192];
+	size_t crllen;
 
-int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P)
-{
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	format_bytes(fp, fmt, ind, "x", P->x, 32);
-	format_bytes(fp, fmt, ind, "y", P->y, 32);
-	return 1;
-}
+	argc--;
+	argv++;
 
-int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
-{
-	SM2_SIGNATURE sig;
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	if (sm2_signature_from_der(&sig, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
-		error_print();
-		return -1;
+	while (argc > 0) {
+		if (!strcmp(*argv, "-help")) {
+			printf("usage: %s %s\n", prog, options);
+			return 0;
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
+		} else {
+bad:
+			fprintf(stderr, "%s: llegal option '%s'\n", prog, *argv);
+			printf("usage: %s %s\n", prog, options);
+			return 1;
+		}
+
+		argc--;
+		argv++;
 	}
-	format_bytes(fp, fmt, ind, "r", sig.r, 32);
-	format_bytes(fp, fmt, ind, "s", sig.s, 32);
-	return 1;
-}
 
-int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
-{
-	uint8_t buf[512] = {0};
-	SM2_CIPHERTEXT *c = (SM2_CIPHERTEXT *)buf;
-	int i;
-
-	if (sm2_ciphertext_from_der(c, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
-		error_print();
-		return -1;
+	if (infile) {
+		if (!(infp = fopen(infile, "r"))) {
+			error_print();
+			return -1;
+		}
 	}
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	format_bytes(fp, fmt, ind, "XCoordinate", c->point.x, 32);
-	format_bytes(fp, fmt, ind, "YCoordinate", c->point.y, 32);
-	format_bytes(fp, fmt, ind, "HASH", c->hash, 32);
-	format_bytes(fp, fmt, ind, "CipherText", c->ciphertext, c->ciphertext_size);
-	return 1;
+
+	for (;;) {
+		int ret;
+		if ((ret = x509_crl_from_pem(crl, &crllen, sizeof(crl), infp)) < 0) {
+			error_print();
+			return -1;
+		} else if (!ret) {
+			break;
+		}
+		x509_crl_print(stdout, 0, 0, "CRL", crl, crllen);
+	//	x509_crl_to_pem(crl, crllen, stdout);
+	}
+	return 0;
 }

@@ -395,11 +395,13 @@ int cms_enced_content_info_encrypt_to_der(
 	return 1;
 }
 
+// 这个函数显然是有问题的，调用方根本不知道应该准备多大的buffer			
+// 应该为content_len 输出给一个maxlen 的最大buffer值				
 int cms_enced_content_info_decrypt_from_der(
 	int *enc_algor, const uint8_t *key, size_t keylen,
 	int *content_type, uint8_t *content, size_t *content_len,
-	const uint8_t **shared_info1, size_t *shared_info1_len,
-	const uint8_t **shared_info2, size_t *shared_info2_len,
+	const uint8_t **shared_info1, size_t *shared_info1_len,// 支持可选null输出	
+	const uint8_t **shared_info2, size_t *shared_info2_len,// 支持可选null输出	
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
@@ -763,6 +765,7 @@ int cms_signer_info_sign_to_der(
 
 	sm3_update(&ctx, authed_attrs, authed_attrs_len);
 	sm3_finish(&ctx, dgst);
+
 	if (sm2_sign(sign_key, dgst, sig, &siglen) != 1) {
 		error_print();
 		return -1;
@@ -819,6 +822,7 @@ int cms_signer_info_verify_from_der(
 
 	sm3_update(&sm3_ctx, *authed_attrs, *authed_attrs_len);
 	sm3_finish(&sm3_ctx, dgst);
+
 	if (sm2_verify(&public_key, dgst, sig, siglen) != 1) {
 		error_print();
 		return -1;
@@ -1056,14 +1060,14 @@ static int cms_implicit_signers_certs_to_der(int index,
 
 int cms_signed_data_sign_to_der(
 	const CMS_CERTS_AND_KEY *signers, size_t signers_cnt,
-	int content_type, const uint8_t *content, size_t content_len,
+	int content_type, const uint8_t *data, size_t datalen,
 	const uint8_t *crls, size_t crls_len,
 	uint8_t **out, size_t *outlen)
 {
 	int digest_algors[] = { OID_sm3 };
 	size_t digest_algors_cnt = sizeof(digest_algors)/sizeof(int);
 	uint8_t content_header[256];
-	size_t content_header_len = 0;
+	size_t content_header_len;
 	const uint8_t *certs;
 	size_t certs_len = 0;
 	uint8_t signer_infos[512];
@@ -1077,14 +1081,30 @@ int cms_signed_data_sign_to_der(
 	size_t len = 0;
 	size_t i;
 
+
+	// 当content_type == OID_cms_data 时，data是raw data，被封装为OCTET STRING编码输出
+	// 而content_type为其他类型时，data均为TLV的DER数据
+	// 在to_der/from_der 中已经处理，但是计算哈希值时也需要做处理
 	p = content_header;
-	if (cms_content_info_header_to_der(content_type, content_len, &p, &content_header_len) != 1) {
-		error_print();
-		return -1;
+	content_header_len = 0;
+	if (content_type == OID_cms_data) {
+		size_t content_len = 0;
+		if (asn1_octet_string_to_der(data, datalen, NULL, &content_len) != 1
+			|| cms_content_info_header_to_der(content_type, content_len, &p, &content_header_len) != 1
+			|| asn1_octet_string_header_to_der(datalen, &p, &content_header_len) != 1) {
+			error_print();
+			return -1;
+		}
+	} else {
+		if (cms_content_info_header_to_der(content_type, datalen, &p, &content_header_len) != 1) {
+			error_print();
+			return -1;
+		}
 	}
+
 	sm3_init(&sm3_ctx);
 	sm3_update(&sm3_ctx, content_header, content_header_len);
-	sm3_update(&sm3_ctx, content, content_len);
+	sm3_update(&sm3_ctx, data, datalen);
 
 	for (i = 0; i < signers_cnt; i++) {
 		if (x509_cert_get_issuer_and_serial_number(
@@ -1102,15 +1122,16 @@ int cms_signed_data_sign_to_der(
 
 	if (asn1_int_to_der(CMS_version_v1, NULL, &len) != 1
 		|| cms_digest_algors_to_der(digest_algors, digest_algors_cnt, NULL, &len) != 1
-		|| cms_content_info_to_der(content_type, content, content_len, NULL, &len) != 1
-		|| cms_implicit_signers_certs_to_der(0, signers, signers_cnt, NULL, &len) != 1
+		|| cms_content_info_to_der(content_type, data, datalen, NULL, &len) != 1
+		|| cms_implicit_signers_certs_to_der(0, signers, signers_cnt, NULL, &len) < 0
 		|| asn1_implicit_set_to_der(1, crls, crls_len, NULL, &len) < 0
 		|| asn1_set_to_der(signer_infos, signer_infos_len, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_int_to_der(CMS_version_v1, out, outlen) != 1
 		|| cms_digest_algors_to_der(digest_algors, digest_algors_cnt, out, outlen) != 1
-		|| cms_content_info_to_der(content_type, content, content_len, out, outlen) != 1
-		|| cms_implicit_signers_certs_to_der(0, signers, signers_cnt, out, outlen) != 1
-		|| asn1_implicit_set_to_der(1, crls, crls_len, out, outlen) != 1
+		|| cms_content_info_to_der(content_type, data, datalen, out, outlen) != 1
+		|| cms_implicit_signers_certs_to_der(0, signers, signers_cnt, out, outlen) < 0
+		|| asn1_implicit_set_to_der(1, crls, crls_len, out, outlen) < 0
 		|| asn1_set_to_der(signer_infos, signer_infos_len, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -1154,12 +1175,14 @@ int cms_signed_data_verify_from_der(
 	*psigner_infos = signer_infos;
 	*psigner_infos_len = signer_infos_len;
 
+	content_info_header_len = 0;
 	if (cms_content_info_header_to_der(*content_type, *content_len,
 		&p, &content_info_header_len) != 1) {
 		error_print();
 		return -1;
 	}
 	sm3_init(&sm3_ctx);
+
 	sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
 	sm3_update(&sm3_ctx, *content, *content_len);
 
@@ -1276,7 +1299,7 @@ int cms_recipient_info_print(FILE *fp, int fmt, int ind, const char *label, cons
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_public_key_encryption_algor_print(fp, fmt, ind, "keyEncryptionAlgorithm", p, len);
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	format_bytes(fp, fmt, ind, "encryptedKey", d, dlen);
+	format_bytes(fp, fmt, ind, "encryptedKey", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -1331,6 +1354,7 @@ int cms_recipient_info_decrypt_from_der(
 	size_t issuer_len;
 	const uint8_t *serial;
 	size_t serial_len;
+	uint8_t outbuf[SM2_MAX_PLAINTEXT_SIZE];
 
 	if (cms_recipient_info_from_der(&version,
 		&issuer, &issuer_len, &serial, &serial_len,
@@ -1344,16 +1368,48 @@ int cms_recipient_info_decrypt_from_der(
 		|| memcmp(issuer, rcpt_issuer, rcpt_issuer_len) != 0
 		|| serial_len != rcpt_serial_len
 		|| memcmp(serial, rcpt_serial, serial_len) != 0) {
+		error_print();
 		return 0;
 	}
 	if (pke_algor != OID_sm2encrypt || params || params_len) {
 		error_print();
 		return -1;
 	}
+	if (sm2_decrypt(sm2_key, enced_key, enced_key_len, outbuf, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (maxlen < *outlen) {
+		error_print();
+		return -1;
+	}
+	memcpy(out, outbuf, *outlen);
+	return 1;
+}
 
-	if (sm2_decrypt(sm2_key, enced_key, enced_key_len, NULL, outlen) != 1
-		|| asn1_length_le(*outlen, maxlen) != 1
-		|| sm2_decrypt(sm2_key, enced_key, enced_key_len, out, outlen) != 1) {
+int cms_recipient_infos_add_recipient_info(
+	uint8_t *d, size_t *dlen, size_t maxlen,
+	const SM2_KEY *public_key,
+	const uint8_t *issuer, size_t issuer_len,
+	const uint8_t *serial, size_t serial_len,
+	const uint8_t *in, size_t inlen)
+{
+	size_t len = *dlen;
+	d += *dlen;
+
+	if (cms_recipient_info_encrypt_to_der(
+			public_key,
+			issuer, issuer_len,
+			serial, serial_len,
+			in, inlen,
+			NULL, &len) != 1
+		|| asn1_length_le(len, maxlen) != 1
+		|| cms_recipient_info_encrypt_to_der(
+			public_key,
+			issuer, issuer_len,
+			serial, serial_len,
+			in, inlen,
+			&d, dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1466,7 +1522,7 @@ int cms_enveloped_data_encrypt_to_der(
 	const uint8_t *shared_info2, size_t shared_info2_len,
 	uint8_t **out, size_t *outlen)
 {
-	uint8_t rcpt_infos[512];
+	uint8_t rcpt_infos[1024]; // 到底需要多大？				
 	size_t rcpt_infos_len = 0;
 	uint8_t *p = rcpt_infos;
 	size_t len = 0;
@@ -1979,7 +2035,7 @@ int cms_key_agreement_info_print(FILE *fp, int fmt, int ind, const char *label, 
 	if (x509_cert_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_cert_print(fp, fmt, ind, "certificate", p, len);
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
-	format_bytes(fp, fmt, ind, "userID", p, len);
+	format_string(fp, fmt, ind, "userID", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:

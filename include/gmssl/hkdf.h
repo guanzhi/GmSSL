@@ -68,6 +68,14 @@ int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
 	const uint8_t *opt_info, size_t opt_infolen,
 	size_t L, uint8_t *okm);
 
+int sm3_hkdf_extract(const uint8_t *salt, size_t saltlen,
+	const uint8_t *ikm, size_t ikmlen,
+	uint8_t *prk, size_t *prklen);
+
+int sm3_hkdf_expand(const uint8_t *prk, size_t prklen,
+	const uint8_t *opt_info, size_t opt_infolen,
+	size_t L, uint8_t *okm);
+
 
 #ifdef  __cplusplus
 }

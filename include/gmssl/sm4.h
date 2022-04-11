@@ -81,6 +81,7 @@ int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE]
 int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
+
 void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen, uint8_t *out);
 #define sm4_ctr_decrypt(key,ctr,in,inlen,out) sm4_ctr_encrypt(key,ctr,in,inlen,out)
@@ -103,6 +104,24 @@ int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
 	const uint8_t *tag, size_t taglen, uint8_t *out);
+
+
+// Public API
+
+typedef struct {
+	SM4_KEY sm4_key;
+	uint8_t iv[SM4_BLOCK_SIZE];
+	uint8_t block[SM4_BLOCK_SIZE];
+	size_t block_nbytes;
+} SM4_CBC_CTX;
+
+int sm4_cbc_encrypt_init(SM4_CBC_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE]);
+int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm4_cbc_encrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
+
+int sm4_cbc_decrypt_init(SM4_CBC_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE]);
+int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
 
 
 #ifdef __cplusplus

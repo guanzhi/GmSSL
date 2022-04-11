@@ -160,3 +160,84 @@ int hkdf_expand(const DIGEST *digest, const uint8_t *prk, size_t prklen,
 	}
 	return 1;
 }
+
+/*
+int sm3_hkdf_extract(const uint8_t *salt, size_t saltlen,
+	const uint8_t *ikm, size_t ikmlen,
+	uint8_t *prk, size_t *prklen)
+{
+	SM3_HMAC_CTX hmac_ctx;
+
+	if (!salt || saltlen == 0) {
+		uint8_t zeros[SM3_HMAC_SIZE] = {0};
+		if (sm3_hmac_init(&hmac_ctx, zeros, SM3_HMAC_SIZE) != 1) {
+			error_print();
+			return -1;
+		}
+	} else {
+		if (sm3_hmac_init(&hmac_ctx, salt, saltlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (sm3_hmac_update(&hmac_ctx, ikm, ikmlen) != 1
+		|| sm3_hmac_finish(&hmac_ctx, prk) != 1) {
+		error_print();
+		return -1;
+	}
+	*prklen = SM3_HMAC_SIZE;
+	return 1;
+}
+
+int sm3_hkdf_expand(const uint8_t *prk, size_t prklen,
+	const uint8_t *opt_info, size_t opt_infolen,
+	size_t L, uint8_t *okm)
+{
+	SM3_HMAC_CTX hmac_ctx;
+	uint8_t T[SM3_HMAC_SIZE];
+	uint8_t counter = 0x01;
+	size_t len;
+
+	if (L > 0) {
+		if (sm3_hmac_init(&hmac_ctx, prk, prklen) != 1
+			|| sm3_hmac_update(&hmac_ctx, opt_info, opt_infolen) < 0
+			|| sm3_hmac_update(&hmac_ctx, &counter, 1) != 1
+			|| sm3_hmac_finish(&hmac_ctx, T) != 1) {
+			error_print();
+			return -1;
+		}
+		counter++;
+		len = SM3_HMAC_SIZE;
+		if (len > L) {
+			len = L;
+		}
+		memcpy(okm, T, len);
+		okm += len;
+		L -= len;
+	}
+	while (L > 0) {
+		if (counter == 0) {
+			error_print();
+			return -1;
+		}
+		if (sm3_hmac_init(&hmac_ctx, digest, prk, prklen) != 1
+			|| sm3_hmac_update(&hmac_ctx, T, len) != 1
+			|| sm3_hmac_update(&hmac_ctx, opt_info, opt_infolen) < 0
+			|| sm3_hmac_update(&hmac_ctx, &counter, 1) != 1
+			|| sm3_hmac_finish(&hmac_ctx, T) != 1) {
+			error_print();
+			return -1;
+		}
+		counter++;
+		len = SM3_HMAC_SIZE;
+		if (len > L) {
+			len = L;
+		}
+		memcpy(okm, T, len);
+		okm += len;
+		L -= len;
+	}
+	return 1;
+}
+*/

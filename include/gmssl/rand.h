@@ -57,7 +57,11 @@
 extern "C" {
 #endif
 
+
 int rand_bytes(uint8_t *buf, size_t buflen);
+
+int rdrand_bytes(uint8_t *buf, size_t buflen);
+int rdseed_bytes(uint8_t *buf, size_t buflen);
 
 
 #ifdef __cplusplus

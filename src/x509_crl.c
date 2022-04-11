@@ -55,6 +55,7 @@
 #include <gmssl/x509_crl.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
+#include <gmssl/pem.h>
 #include <gmssl/error.h>
 
 static const char *x509_crl_reason_names[] = {
@@ -180,6 +181,7 @@ int x509_crl_entry_exts_add_reason(uint8_t *exts, size_t *extslen, size_t maxlen
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (x509_crl_reason_to_der(reason, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -199,6 +201,7 @@ int x509_crl_entry_exts_add_invalidity_date(uint8_t *exts, size_t *extslen, size
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	exts += *extslen;
 	if (asn1_generalized_time_to_der(tv, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -216,10 +219,71 @@ int x509_crl_entry_exts_add_certificate_issuer(uint8_t *exts, size_t *extslen, s
 	return x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen);
 }
 
+int x509_crl_entry_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	int ret, oid, critical;
+	const uint8_t *v;
+	size_t vlen;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (x509_crl_entry_ext_id_from_der(&oid, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "extnID: %s\n", x509_crl_entry_ext_id_name(oid));
+	if ((ret = asn1_boolean_from_der(&critical, &d, &dlen)) < 0) goto err;
+	if (ret) format_print(fp, fmt, ind, "critical: %s\n", asn1_boolean_name(critical));
+	if (asn1_octet_string_from_der(&v, &vlen, &d, &dlen) != 1) goto err;
+
+	if (oid == OID_ce_crl_reasons) {
+		int reason;
+		if (x509_crl_reason_from_der(&reason, &v, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, ind, "reasonCode: %s\n", x509_crl_reason_name(reason));
+
+	} else if (oid == OID_ce_invalidity_date) {
+		time_t invalidity_date;
+		if (asn1_generalized_time_from_der(&invalidity_date, &v, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, ind, "invalidityDate: %s", ctime(&invalidity_date));
+
+	} else if (oid == OID_ce_certificate_issuer) {
+		const uint8_t *gns;
+		size_t gnslen;
+		if (asn1_sequence_from_der(&gns, &gnslen, &v, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_general_names_print(fp, fmt, ind, "certificateIssuer", gns, gnslen);
+
+	} else {
+err:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
 int x509_crl_entry_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
-	error_print();				
-	return -1;
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_crl_entry_ext_print(fp, fmt, ind, "Extension", p, len);
+	}
+	return 1;
 }
 
 int x509_revoked_cert_to_der(
@@ -230,11 +294,11 @@ int x509_revoked_cert_to_der(
 {
 	size_t len = 0;
 	if (asn1_integer_to_der(serial, serial_len, NULL, &len) != 1
-		|| asn1_generalized_time_to_der(revoke_date, NULL, &len) != 1
+		|| x509_time_to_der(revoke_date, NULL, &len) != 1
 		|| asn1_sequence_to_der(entry_exts, entry_exts_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_integer_to_der(serial, serial_len, out, outlen) != 1
-		|| asn1_generalized_time_to_der(revoke_date, out, outlen) != 1
+		|| x509_time_to_der(revoke_date, out, outlen) != 1
 		|| asn1_sequence_to_der(entry_exts, entry_exts_len, out, outlen) < 0) {
 		error_print();
 		return -1;
@@ -257,7 +321,7 @@ int x509_revoked_cert_from_der(
 		return ret;
 	}
 	if (asn1_integer_from_der(serial, serial_len, &d, &dlen) != 1
-		|| asn1_generalized_time_from_der(revoke_date, &d, &dlen) != 1
+		|| x509_time_from_der(revoke_date, &d, &dlen) != 1
 		|| asn1_sequence_from_der(entry_exts, entry_exts_len, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
@@ -278,15 +342,51 @@ int x509_revoked_cert_print(FILE *fp, int fmt, int ind, const char *label, const
 
 	if (asn1_integer_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "userCertificate", p, len);
-	if (asn1_generalized_time_from_der(&tv, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "revocationDate: %s\n", ctime(&tv));
+	if (x509_time_from_der(&tv, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "revocationDate: %s", ctime(&tv));
 	if ((ret = asn1_sequence_from_der(&p, &len, &d, &dlen)) < 0) goto err;
-	if (ret) x509_crl_entry_exts_print(fp, fmt, ind, "crlEntryExtensions", p, len); // 这里需要一个函数能够处理		
+	if (ret) x509_crl_entry_exts_print(fp, fmt, ind, "crlEntryExtensions", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
 	error_print();
 	return -1;
+}
+
+int x509_revoked_certs_add_revoked_cert(uint8_t *d, size_t *dlen, size_t maxlen,
+	const uint8_t *serial, size_t serial_len,
+	time_t revoke_date,
+	const uint8_t *entry_exts, size_t entry_exts_len)
+{
+	error_print();
+	return -1;
+}
+
+int x509_revoked_certs_get_revoked_cert_by_serial_number(const uint8_t *d, size_t dlen,
+	const uint8_t *serial, size_t serial_len,
+	time_t *revoke_date,
+	const uint8_t **entry_exts, size_t *entry_exts_len)
+{
+	error_print();
+	return -1;
+}
+
+int x509_revoked_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_revoked_cert_print(fp, fmt, ind, "RevokedCertificate", p, len);
+	}
+	return 1;
 }
 
 
@@ -295,13 +395,18 @@ static uint32_t oid_ce_issuer_alt_name[] = { oid_ce,18 };
 static uint32_t oid_ce_crl_number[] = { oid_ce,20 };
 static uint32_t oid_ce_delta_crl_indicator[] = { oid_ce,27 };
 static uint32_t oid_ce_issuing_distribution_point[] = { oid_ce,28 };
+static uint32_t oid_ce_freshest_crl[] = { oid_ce,46 };
+static uint32_t oid_pe_authority_info_access[] = { oid_pe,1 };
+
 
 static const ASN1_OID_INFO x509_crl_exts[] = {
 	{ OID_ce_authority_key_identifier, "AuthorityKeyIdentifier", oid_ce_authority_key_identifier, sizeof(oid_ce_authority_key_identifier)/sizeof(int) },
 	{ OID_ce_issuer_alt_name, "IssuerAltName", oid_ce_issuer_alt_name, sizeof(oid_ce_issuer_alt_name)/sizeof(int) },
 	{ OID_ce_crl_number, "CRLNumber", oid_ce_crl_number, sizeof(oid_ce_crl_number)/sizeof(int) },
 	{ OID_ce_delta_crl_indicator, "DeltaCRLIndicator", oid_ce_delta_crl_indicator, sizeof(oid_ce_delta_crl_indicator)/sizeof(int) },
-	{ OID_ce_issuing_distribution_point, "IssuingDistributionPoint", oid_ce_issuing_distribution_point, sizeof(oid_ce_issuing_distribution_point)/sizeof(int) }
+	{ OID_ce_issuing_distribution_point, "IssuingDistributionPoint", oid_ce_issuing_distribution_point, sizeof(oid_ce_issuing_distribution_point)/sizeof(int) },
+	{ OID_ce_freshest_crl, "FreshestCRL", oid_ce_freshest_crl, sizeof(oid_ce_freshest_crl)/sizeof(int) },
+	{ OID_pe_authority_info_access, "AuthorityInfoAccess", oid_pe_authority_info_access, sizeof(oid_pe_authority_info_access)/sizeof(int) },
 };
 
 static const int x509_crl_exts_count =
@@ -367,8 +472,12 @@ int x509_crl_exts_add_authority_key_identifier(
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len)
 {
-	error_print();
-	return -1;
+	if (x509_exts_add_authority_key_identifier(exts, extslen, maxlen, critical,
+		keyid, keyid_len, issuer, issuer_len, serial, serial_len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_crl_exts_add_issuer_alt_name(
@@ -376,8 +485,11 @@ int x509_crl_exts_add_issuer_alt_name(
 	int critical,
 	const uint8_t *d, size_t dlen)
 {
-	error_print();
-	return -1;
+	if (x509_exts_add_issuer_alt_name(exts, extslen, maxlen, critical, d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_crl_exts_add_crl_number(
@@ -385,8 +497,21 @@ int x509_crl_exts_add_crl_number(
 	int critical,
 	int num)
 {
-	error_print();
-	return -1;
+	int oid = OID_ce_crl_number;
+	size_t curlen = *extslen;
+	uint8_t val[32];
+	uint8_t *p = val;
+	size_t vlen = 0;
+
+	exts += *extslen;
+	if (asn1_int_to_der(num, &p, &vlen) != 1
+		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+		|| asn1_length_le(curlen, maxlen) != 1
+		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_crl_exts_add_delta_crl_indicator(
@@ -394,8 +519,21 @@ int x509_crl_exts_add_delta_crl_indicator(
 	int critical,
 	int num)
 {
-	error_print();
-	return -1;
+	int oid = OID_ce_delta_crl_indicator;
+	size_t curlen = *extslen;
+	uint8_t val[32];
+	uint8_t *p = val;
+	size_t vlen = 0;
+
+	exts += *extslen;
+	if (asn1_int_to_der(num, &p, &vlen) != 1
+		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+		|| asn1_length_le(curlen, maxlen) != 1
+		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_crl_exts_add_issuing_distribution_point(
@@ -412,10 +550,156 @@ int x509_crl_exts_add_issuing_distribution_point(
 	return -1;
 }
 
-int x509_crl_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+int x509_issuing_distribution_point_to_der(
+	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
+	int only_contains_user_certs,
+	int only_contains_ca_certs,
+	int only_some_reasons,
+	int indirect_crl,
+	int only_contains_attr_certs,
+	uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (x509_explicit_distribution_point_name_to_der(0, dist_point_choice, dist_point, dist_point_len, NULL, &len) < 0
+		|| asn1_implicit_boolean_to_der(1, only_contains_user_certs, NULL, &len) < 0
+		|| asn1_implicit_boolean_to_der(2, only_contains_ca_certs, NULL, &len) < 0
+		|| asn1_implicit_bits_to_der(3, only_some_reasons, NULL, &len) < 0 // 是否有特化的类型
+		|| asn1_implicit_boolean_to_der(4, indirect_crl, NULL, &len) < 0
+		|| asn1_implicit_boolean_to_der(5, only_contains_attr_certs, NULL, &len) < 0
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_explicit_distribution_point_name_to_der(0, dist_point_choice, dist_point, dist_point_len, out, outlen) < 0
+		|| asn1_implicit_boolean_to_der(1, only_contains_user_certs, out, outlen) < 0
+		|| asn1_implicit_boolean_to_der(2, only_contains_ca_certs, out, outlen) < 0
+		|| asn1_implicit_bits_to_der(3, only_some_reasons, out, outlen) < 0 // 是否有特化的类型
+		|| asn1_implicit_boolean_to_der(4, indirect_crl, out, outlen) < 0
+		|| asn1_implicit_boolean_to_der(5, only_contains_attr_certs, out, outlen) < 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_issuing_distribution_point_from_der(
+	int *dist_point_choice, const uint8_t **dist_point, size_t *dist_point_len,
+	int *only_contains_user_certs,
+	int *only_contains_ca_certs,
+	int *only_some_reasons,
+	int *indirect_crl,
+	int *only_contains_attr_certs,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_explicit_distribution_point_name_from_der(0, dist_point_choice, dist_point, dist_point_len, &d, &dlen) < 0
+		|| asn1_implicit_boolean_from_der(1, only_contains_user_certs, &d, &dlen) < 0
+		|| asn1_implicit_boolean_from_der(2, only_contains_ca_certs, &d, &dlen) < 0
+		|| asn1_implicit_bits_from_der(3, only_some_reasons, &d, &dlen) < 0
+		|| asn1_implicit_boolean_from_der(4, indirect_crl, &d, &dlen) < 0
+		|| asn1_implicit_boolean_from_der(5, only_contains_attr_certs, &d, &dlen) < 0
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_issuing_distribution_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	error_print();
+	return -1;
+}
+
+int x509_access_descriptions_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	error_print();
 	return -1;
+}
+
+int x509_crl_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	int ret, oid, critical;
+	const char *name;
+	const uint8_t *v;
+	size_t vlen;
+	const uint8_t *p;
+	size_t len;
+	int num;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (x509_crl_ext_id_from_der(&oid, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "extnID: %s\n", x509_crl_ext_id_name(oid));
+	if ((ret = asn1_boolean_from_der(&critical, &d, &dlen)) < 0) goto err;
+	if (ret) format_print(fp, fmt, ind, "critical: %s\n", asn1_boolean_name(critical));
+	if (asn1_octet_string_from_der(&v, &vlen, &d, &dlen) != 1) goto err;
+
+	switch (oid) {
+	case OID_ce_authority_key_identifier:
+	case OID_ce_issuer_alt_name:
+	case OID_ce_issuing_distribution_point:
+	case OID_ce_freshest_crl:
+	case OID_pe_authority_info_access:
+		if (asn1_sequence_from_der(&p, &len, &v, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ce_crl_number:
+	case OID_ce_delta_crl_indicator:
+		if (asn1_int_from_der(&num, &v, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
+
+	name = x509_crl_ext_id_name(oid);
+
+	switch (oid) {
+	case OID_ce_authority_key_identifier: x509_authority_key_identifier_print(fp, fmt, ind, name, p, len); break;
+	case OID_ce_issuer_alt_name: x509_general_names_print(fp, fmt, ind, name, p, len); break;
+	case OID_ce_crl_number: format_print(fp, fmt, ind, "%s: %d\n", name, num); break;
+	case OID_ce_delta_crl_indicator: format_print(fp, fmt, ind, "%s: %d\n", name, num); break;
+	case OID_ce_issuing_distribution_point: x509_issuing_distribution_point_print(fp, fmt, ind, name, p, len); break;
+	case OID_ce_freshest_crl: x509_crl_distribution_points_print(fp, fmt, ind, name, p, len); break;
+	case OID_pe_authority_info_access: x509_access_descriptions_print(fp, fmt, ind, name, p, len); break;
+	}
+	if (asn1_length_is_zero(vlen) != 1) goto err;
+	return 1;
+err:
+	error_print();
+	return -1;
+}
+
+int x509_crl_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_crl_ext_print(fp, fmt, ind, "Extension", p, len);
+	}
+	return 1;
 }
 
 int x509_tbs_crl_to_der(
@@ -429,16 +713,16 @@ int x509_tbs_crl_to_der(
 {
 	size_t len = 0;
 	if (asn1_int_to_der(version, NULL, &len) < 0
-		|| x509_signature_algor_to_der(signature_algor, NULL, &len) < 0
-		|| asn1_sequence_to_der(issuer, issuer_len, NULL, &len) != 1
+		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
+		|| x509_name_to_der(issuer, issuer_len, NULL, &len) != 1
 		|| x509_time_to_der(this_update, NULL, &len) != 1
 		|| x509_time_to_der(next_update, NULL, &len) < 0
 		|| asn1_sequence_to_der(revoked_certs, revoked_certs_len, NULL, &len) < 0
 		|| asn1_sequence_to_der(exts, exts_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_int_to_der(version, out, outlen) < 0
-		|| x509_signature_algor_to_der(signature_algor, out, outlen) < 0
-		|| asn1_sequence_to_der(issuer, issuer_len, out, outlen) != 1
+		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
+		|| x509_name_to_der(issuer, issuer_len, out, outlen) != 1
 		|| x509_time_to_der(this_update, out, outlen) != 1
 		|| x509_time_to_der(next_update, out, outlen) < 0
 		|| asn1_sequence_to_der(revoked_certs, revoked_certs_len, out, outlen) < 0
@@ -457,14 +741,72 @@ int x509_tbs_crl_from_der(
 	time_t *next_update,
 	const uint8_t **revoked_certs, size_t *revoked_certs_len,
 	const uint8_t **exts, size_t *exts_len,
-	uint8_t **in, size_t *inlen)
+	const uint8_t **in, size_t *inlen)
 {
-	error_print();
-	return -1;
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_int_from_der(version, &d, &dlen) < 0
+		|| x509_signature_algor_from_der(signature_algor, &d, &dlen) != 1
+		|| x509_name_from_der(issuer, issuer_len, &d, &dlen) != 1
+		|| x509_time_from_der(this_update, &d, &dlen) != 1
+		|| x509_time_from_der(next_update, &d, &dlen) < 0
+		|| asn1_sequence_from_der(revoked_certs, revoked_certs_len, &d, &dlen) < 0
+		|| x509_explicit_exts_from_der(0, exts, exts_len, &d, &dlen) < 0
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (*version >= 0 && *version != X509_version_v2) {
+		error_print();
+		return -1;
+	}
+	if (*revoked_certs && *version != X509_version_v2) {
+		error_print();
+		return -1;
+	}
+	if (*exts && *version != X509_version_v2) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
 }
 
 int x509_tbs_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
+	int ret, val;
+	const uint8_t *p;
+	size_t len;
+	time_t tv;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
+	if (ret) format_print(fp, fmt, ind, "version: %s (%d)\n", x509_version_name(val), val);
+	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "signature: %s\n", x509_signature_algor_name(val));
+	if (x509_name_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_name_print(fp, fmt, ind, "issuer", p, len);
+	if (x509_time_from_der(&tv, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "thisUpdate: %s", ctime(&tv));
+	if ((ret = x509_time_from_der(&tv, &d, &dlen)) < 0) goto err;
+	if (ret) format_print(fp, fmt, ind, "nextUpdate: %s", ctime(&tv));
+	if ((ret = asn1_sequence_from_der(&p, &len, &d, &dlen)) < 0) goto err;
+	if (ret) x509_revoked_certs_print(fp, fmt, ind, "revokedCertificates", p, len);
+	if ((ret = x509_explicit_exts_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
+	if (ret) {
+		x509_crl_exts_print(fp, fmt, ind, "crlExtensions", p, len);
+	}
+	if (asn1_length_is_zero(dlen) != 1) goto err;
+	return 1;
+err:
 	error_print();
 	return -1;
 }
@@ -473,36 +815,105 @@ int x509_cert_list_to_der(const uint8_t *tbs_crl, size_t tbs_crl_len,
 	int signature_algor, const uint8_t *sig, size_t siglen,
 	uint8_t **out, size_t *outlen)
 {
-	error_print();
-	return -1;
+	size_t len = 0;
+	if (asn1_sequence_to_der(tbs_crl, tbs_crl_len, NULL, &len) != 1
+		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_sequence_to_der(tbs_crl, tbs_crl_len, out, outlen) != 1
+		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_cert_list_from_der(const uint8_t **tbs_crl, size_t *tbs_crl_len,
 	int *signature_algor, const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen)
 {
-	error_print();
-	return -1;
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_sequence_from_der(tbs_crl, tbs_crl_len, &d, &dlen) != 1
+		|| x509_signature_algor_from_der(signature_algor, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(sig, siglen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_cert_list_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
+	int val;
+	const uint8_t *p;
+	size_t len;
+
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_tbs_crl_print(fp, fmt, ind, "tbsCertList", p, len);
+	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
+	format_print(fp, fmt, ind, "signatureAlgorithm: %s\n", x509_signature_algor_name(val));
+	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	format_bytes(fp, fmt, ind, "signatureValue", p, len);
+	if (asn1_length_is_zero(dlen) != 1) goto err;
+	return 1;
+err:
 	error_print();
 	return -1;
 }
 
-int x509_crl_to_pem(const uint8_t *a, size_t *alen, FILE *fp)
+// FIXME: 这两个函数应该检查CRL格式是否正确
+int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
+	return asn1_any_to_der(a, alen, out, outlen);
+}
+
+int x509_crl_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen)
+{
+	return asn1_any_from_der(a, alen, in, inlen);
+}
+
+int x509_crl_to_pem(const uint8_t *a, size_t alen, FILE *fp)
+{
+	if (pem_write(fp, "X509 CRL", a, alen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
 int x509_crl_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
 {
+	int ret;
+	if ((ret = pem_read(fp, "X509 CRL", a, alen, maxlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
 	return 1;
 }
 
-int x509_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+int x509_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
+	const uint8_t *d;
+	size_t dlen;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_cert_list_print(fp, fmt, ind, label, d, dlen);
 	return 1;
 }
 
@@ -553,31 +964,142 @@ int x509_tbs_crl_sign(
 }
 
 int x509_crl_verify(const uint8_t *a, size_t alen,
-	const SM2_KEY *signer_key, const char *signer_id, size_t signer_id_len)
+	const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len)
 {
-	error_print();
-	return -1;
+	int ret;
+	const uint8_t *tbs;
+	size_t tbslen;
+	int sig_alg;
+	const uint8_t *sig;
+	size_t siglen;
+	SM2_SIGN_CTX verify_ctx;
+
+	if (x509_cert_list_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sig_alg != OID_sm2sign_with_sm3) {
+		error_print();
+		return -1;
+	}
+	if (sm2_verify_init(&verify_ctx, pub_key, signer_id, signer_id_len) != 1
+		|| sm2_verify_update(&verify_ctx, tbs, tbslen) != 1
+		|| (ret = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (!ret) error_print();
+	return ret;
 }
 
 int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
-	int *version,
-	const uint8_t **issuer, size_t *issuer_len,
-	time_t *this_update,
-	time_t *next_update,
-	const uint8_t **revoked_certs, size_t *revoked_certs_len,
-	int *signature_algor,
-	const uint8_t *sig, size_t *siglen)
+	int *opt_version,
+	const uint8_t **opt_issuer, size_t *opt_issuer_len,
+	time_t *opt_this_update,
+	time_t *opt_next_update,
+	const uint8_t **opt_revoked_certs, size_t *opt_revoked_certs_len,
+	const uint8_t **opt_exts, size_t *opt_exts_len,
+	int *opt_signature_algor,
+	const uint8_t **opt_sig, size_t *opt_siglen)
 {
-	error_print();
-	return -1;
+	const uint8_t *tbs;
+	size_t tbs_len;
+	int signature_algor;
+	const uint8_t *sig;
+	size_t siglen;
+
+
+	if (x509_cert_list_from_der(&tbs, &tbs_len, &signature_algor, &sig, &siglen, &crl, &crl_len) != 1
+		|| asn1_length_is_zero(crl_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (opt_signature_algor) *opt_signature_algor = signature_algor;
+	if (opt_sig) *opt_sig = sig;
+	if (opt_siglen) *opt_siglen = siglen;
+
+	if (opt_version
+		|| opt_issuer || opt_issuer_len
+		|| opt_this_update
+		|| opt_next_update
+		|| opt_revoked_certs || opt_revoked_certs_len) {
+
+		int version;
+		int sig_alg;
+		const uint8_t *issuer;
+		size_t issuer_len;
+		time_t this_update;
+		time_t next_update;
+		const uint8_t *revoked_certs;
+		size_t revoked_certs_len;
+		const uint8_t *exts;
+		size_t exts_len;
+
+		if (x509_tbs_crl_from_der(
+				&version,
+				&sig_alg,
+				&issuer, &issuer_len,
+				&this_update,
+				&next_update,
+				&revoked_certs, &revoked_certs_len,
+				&exts, &exts_len,
+				&tbs, &tbs_len) != 1
+			|| asn1_length_is_zero(tbs_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sig_alg != signature_algor) {
+			error_print();
+			return -1;
+		}
+		if (opt_version) *opt_version = version;
+		if (opt_issuer) *opt_issuer = issuer;
+		if (opt_issuer_len) *opt_issuer_len = issuer_len;
+		if (opt_this_update) *opt_this_update = this_update;
+		if (opt_next_update) *opt_next_update = next_update;
+		if (opt_revoked_certs) *opt_revoked_certs = revoked_certs;
+		if (opt_revoked_certs_len) *opt_revoked_certs_len = revoked_certs_len;
+		if (opt_exts) *opt_exts = exts;
+		if (opt_exts_len) *opt_exts_len = exts_len;
+	}
+	return 1;
 }
 
-int x509_crl_get_revoked_cert_by_serial_number(const uint8_t *a, size_t alen,
+int x509_crl_find_revoked_cert_by_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t *serial, size_t serial_len,
 	time_t *revoke_date,
 	const uint8_t **entry_exts, size_t *entry_exts_len)
 {
-	return 1;
+	const uint8_t *certs;
+	size_t certslen;
+
+	if (x509_crl_get_details(a, alen,
+		NULL, NULL, NULL, NULL, NULL,
+		&certs, &certslen,
+		NULL, NULL, NULL, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
+	while (certslen) {
+		const uint8_t *serial_number;
+		size_t serial_number_len;
+
+		if (x509_revoked_cert_from_der(
+			&serial_number, &serial_number_len,
+			revoke_date,
+			entry_exts, entry_exts_len,
+			&certs, &certslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (serial_number_len == serial_len
+			&& memcmp(serial_number, serial, serial_len) == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)

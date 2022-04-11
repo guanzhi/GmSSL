@@ -154,6 +154,8 @@ int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 	const char *country, const char *state, const char *locality,
 	const char *org, const char *org_unit, const char *common_name);
 
+#define x509_name_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
+#define x509_name_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int x509_name_get_printable(const uint8_t *d, size_t dlen, char *str, size_t maxlen);
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);

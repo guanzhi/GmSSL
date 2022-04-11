@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <gmssl/sm4.h>
 #include <gmssl/error.h>
+#include <gmssl/rand.h>
 
 # ifdef SM4_AVX2
 void sm4_avx2_ecb_encrypt_blocks(const unsigned char *in,
@@ -366,11 +367,100 @@ static int test_sm4_cbc_padding(void)
 	return 0;
 }
 
+static int test_sm4_cbc_update(void)
+{
+	SM4_CBC_CTX enc_ctx;
+	SM4_CBC_CTX dec_ctx;
+
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint8_t mbuf[16 * 10];
+	uint8_t cbuf[16 * 11];
+	uint8_t pbuf[16 * 11];
+	size_t mlen = 0;
+	size_t clen = 0;
+	size_t plen = 0;
+
+	size_t len;
+	size_t lens[] = { 1,5,17,80 };
+	int i;
+
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(mbuf, sizeof(mbuf));
+
+	format_bytes(stderr, 0, 0, "iv", iv, sizeof(iv));
+
+
+	mlen = 16;
+	clen = 0;
+	format_bytes(stderr, 0, 0, "m", mbuf, mlen);
+	if (sm4_cbc_encrypt_init(&enc_ctx, key, iv) != 1
+		|| sm4_cbc_encrypt_update(&enc_ctx, mbuf, mlen, cbuf + clen, &clen) != 1
+		|| (len += len) < 0
+		|| sm4_cbc_encrypt_update(&enc_ctx, NULL, 0, cbuf + clen, &clen) != 1
+		|| (len += len) < 0
+		|| sm4_cbc_encrypt_finish(&enc_ctx, cbuf + clen, &len) != 1
+		|| (clen += len) < 0) {
+		error_print();
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, "c", cbuf, clen);
+
+	if (sm4_cbc_decrypt_init(&dec_ctx, key, iv) != 1
+		|| sm4_cbc_decrypt_update(&dec_ctx, cbuf, clen, pbuf, &plen) != 1
+		|| sm4_cbc_decrypt_finish(&dec_ctx, pbuf + plen, &len) != 1
+		|| (plen += len) < 0) {
+		error_print();
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, "p", pbuf, plen);
+
+	/*
+	for (i = 0; i < sizeof(inlens)/sizeof(inlens[0]); i++) {
+		if (sm4_cbc_encrypt_update(&enc_ctx, in + inlen, inlens[i], out + outlen, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		inlen += inlens[i];
+		outlen += len;
+	}
+	printf("inlen = %zu\n", inlen);
+
+	if (sm4_cbc_encrypt_finish(&enc_ctx, out + outlen, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	outlen += len;
+
+	if (sm4_cbc_decrypt_init(&dec_ctx, key, iv) != 1) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
+		if (sm4_cbc_decrypt_update(&dec_ctx, cbuf + inlen, lens[i], pbuf + outlen, &len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (sm4_cbc_decrypt_finish(&dec_ctx, pbuf + outlen, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	outlen += len;
+	*/
+
+	return 1;
+}
+
 int main(void)
 {
-	int err = 0;
-	err += test_sm4();
-	err += test_sm4_cbc();
-	err += test_sm4_cbc_padding();
-	return err;
+/*
+	test_sm4();
+	test_sm4_cbc();
+	test_sm4_cbc_padding();
+*/
+	test_sm4_cbc_update();
+	return 0;
 }

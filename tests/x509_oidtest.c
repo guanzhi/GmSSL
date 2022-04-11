@@ -111,7 +111,7 @@ static int test_x509_name_type()
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_ext_id()
@@ -170,7 +170,7 @@ static int test_x509_ext_id()
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_qualifier_id(void)
@@ -214,7 +214,7 @@ static int test_x509_qualifier_id(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_cert_policy_id(void)
@@ -259,7 +259,7 @@ static int test_x509_cert_policy_id(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_key_purpose(void)
@@ -307,16 +307,19 @@ static int test_x509_key_purpose(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_x509_name_type();
-	err += test_x509_ext_id();
-	err += test_x509_qualifier_id();
-	err += test_x509_cert_policy_id();
-	err += test_x509_key_purpose();
-	return err;
+	if (test_x509_name_type() != 1) goto err;
+	if (test_x509_ext_id() != 1) goto err;
+	if (test_x509_qualifier_id() != 1) goto err;
+	if (test_x509_cert_policy_id() != 1) goto err;
+	if (test_x509_key_purpose() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
 }

@@ -57,7 +57,6 @@
 
 int test_aes(void)
 {
-	int err = 0;
 	AES_KEY aes_key;
 	int i;
 
@@ -143,7 +142,7 @@ int test_aes(void)
 	aes_set_encrypt_key(&aes_key, key128, sizeof(key128));
 	if (memcmp(&aes_key, rk128, sizeof(rk128)) != 0) {
 		printf("failed\n");
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
@@ -152,7 +151,7 @@ int test_aes(void)
 	aes_set_encrypt_key(&aes_key, key192, sizeof(key192));
 	if (memcmp(&aes_key, rk192, sizeof(rk192)) != 0) {
 		printf("failed\n");
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
@@ -161,7 +160,7 @@ int test_aes(void)
 	aes_set_encrypt_key(&aes_key, key256, sizeof(key256));
 	if (memcmp(&aes_key, rk256, sizeof(rk256)) != 0) {
 		printf("failed\n");
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
@@ -171,7 +170,7 @@ int test_aes(void)
 	aes_encrypt(&aes_key, in1, buf);
 	if (memcmp(buf, out1, sizeof(out1)) != 0) {
 		printf("failed\n");
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
@@ -181,18 +180,17 @@ int test_aes(void)
 	aes_decrypt(&aes_key, buf, buf);
 	if (memcmp(buf, in1, sizeof(in1)) != 0) {
 		printf("failed\n");
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
 
-	return err;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 int test_aes_ctr(void)
 {
-	int err = 0;
-
 	// NIST SP 800-38A F.5.1
 	char *hex_key = "2b7e151628aed2a6abf7158809cf4f3c";
 	char *hex_ctr = "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff";
@@ -225,9 +223,9 @@ int test_aes_ctr(void)
 	printf("aes ctr test 1 ");
 	if (memcmp(buf, out, outlen) != 0) {
 		printf("failed\n");
-		err++;
 		format_bytes(stdout, 0, 0, "aes_ctr(msg) = ", buf, buflen);
 		format_bytes(stdout, 0, 0, "            != ", out, outlen);
+		return -1;
 	} else {
 		printf("ok\n");
 	}
@@ -239,12 +237,13 @@ int test_aes_ctr(void)
 		printf("failed\n");
 		format_bytes(stdout, 0, 0, "msg = ", msg, msglen);
 		format_bytes(stdout, 0, 0, "    = ", buf, buflen);
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
 
-	return err;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 
@@ -370,8 +369,6 @@ int test_aes_gcm(void)
 	int i;
 
 	for (i = 0; i < sizeof(aes_gcm_tests)/sizeof(aes_gcm_tests[0]); i++) {
-		int ok = 1;
-
 		hex_to_bytes(aes_gcm_tests[i].K, strlen(aes_gcm_tests[i].K), K, &Klen);
 		hex_to_bytes(aes_gcm_tests[i].P, strlen(aes_gcm_tests[i].P), P, &Plen);
 		hex_to_bytes(aes_gcm_tests[i].A, strlen(aes_gcm_tests[i].A), A, &Alen);
@@ -394,20 +391,24 @@ int test_aes_gcm(void)
 			format_bytes(stdout, 0, 2, "  = ", out, Plen);
 			format_print(stdout, 0, 2, "T = %s\n", aes_gcm_tests[i].T);
 			format_bytes(stdout, 0, 2, "  = ", tag, Tlen);
-			err++;
+			return -1;
 		} else {
 			printf("ok\n");
 		}
 	}
 
-	return err;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_aes();
-	err += test_aes_ctr();
-	err += test_aes_gcm();
-	return err;
+	if (test_aes() != 1) goto err;
+	if (test_aes_ctr() != 1) goto err;
+	if (test_aes_gcm() != 1) goto err;
+	printf("%s all tests passed!\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
 }

@@ -746,7 +746,9 @@ int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_
 
 	if ((ret = asn1_object_identifier_from_der(nodes, nodes_cnt, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		if (ret == 0) error_print();
+		if (ret == 0) {
+			error_print();
+		}
 		return ret;
 	}
 	*info = NULL;
@@ -1272,6 +1274,7 @@ int asn1_length_le(size_t len1, size_t len2)
 {
 	if (len1 > len2) {
 		error_print();
+		format_print(stderr, 0, 0, "%s: %zu <= %zu failed\n", __FUNCTION__, len1, len2);
 		return -1;
 	}
 	return 1;

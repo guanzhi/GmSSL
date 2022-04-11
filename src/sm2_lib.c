@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,76 +52,233 @@
 #include <stdlib.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
+#include <gmssl/asn1.h>
 #include <gmssl/error.h>
 #include "endian.h"
 
+#define print_bn(str,a) sm2_bn_print(stderr,0,4,str,a)
+
+int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
+{
+	SM2_JACOBIAN_POINT _P, *P = &_P;
+	SM2_BN d;
+	SM2_BN e;
+	SM2_BN k;
+	SM2_BN x;
+	SM2_BN r;
+	SM2_BN s;
+
+	sm2_bn_from_bytes(d, key->private_key);
+
+	// e = H(M)
+	sm2_bn_from_bytes(e, dgst);	//print_bn("e", e);
+
+retry:
+
+	// rand k in [1, n - 1]
+	do {
+		sm2_fn_rand(k);
+	} while (sm2_bn_is_zero(k));
+					//print_bn("k", k);
+
+	// (x, y) = kG
+	sm2_jacobian_point_mul_generator(P, k);
+	sm2_jacobian_point_get_xy(P, x, NULL);
+					//print_bn("x", x);
+
+
+	// r = e + x (mod n)
+	sm2_fn_add(r, e, x);		//print_bn("r = e + x (mod n)", r);
+
+	/* if r == 0 or r + k == n re-generate k */
+	if (sm2_bn_is_zero(r)) {
+		goto retry;
+	}
+	sm2_bn_add(x, r, k);
+	if (sm2_bn_cmp(x, SM2_N) == 0) {
+		goto retry;
+	}
+
+	/* s = ((1 + d)^-1 * (k - r * d)) mod n */
+
+	sm2_fn_mul(e, r, d);		//print_bn("r*d", e);
+	sm2_fn_sub(k, k, e);		//print_bn("k-r*d", k);
+	sm2_fn_add(e, SM2_ONE, d);	//print_bn("1 +d", e);
+	sm2_fn_inv(e, e);		//print_bn("(1+d)^-1", e);
+	sm2_fn_mul(s, e, k);		//print_bn("s = ((1 + d)^-1 * (k - r * d)) mod n", s);
+
+	sm2_bn_clean(d);
+	sm2_bn_clean(k);
+	sm2_bn_to_bytes(r, sig->r);	//print_bn("r", r);
+	sm2_bn_to_bytes(s, sig->s);	//print_bn("s", s);
+
+
+	sm2_bn_clean(d);
+	sm2_bn_clean(k);
+	return 1;
+}
+
+int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
+{
+	SM2_JACOBIAN_POINT _P, *P = &_P;
+	SM2_JACOBIAN_POINT _R, *R = &_R;
+	SM2_BN r;
+	SM2_BN s;
+	SM2_BN e;
+	SM2_BN x;
+	SM2_BN t;
+
+	// parse signature values
+	sm2_bn_from_bytes(r, sig->r);	//print_bn("r", r);
+	sm2_bn_from_bytes(s, sig->s);	//print_bn("s", s);
+	if (sm2_bn_is_zero(r) == 1
+		|| sm2_bn_cmp(r, SM2_N) >= 0
+		|| sm2_bn_is_zero(s) == 1
+		|| sm2_bn_cmp(s, SM2_N) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	// parse public key
+	sm2_jacobian_point_from_bytes(P, (const uint8_t *)&key->public_key);
+					//print_point("P", P);
+
+	// t = r + s (mod n)
+	// check t != 0
+	sm2_fn_add(t, r, s);		//print_bn("t = r + s (mod n)", t);
+	if (sm2_bn_is_zero(t)) {
+		error_print();
+		return -1;
+	}
+
+	// Q = s * G + t * P
+	sm2_jacobian_point_mul_sum(R, t, P, s);
+	sm2_jacobian_point_get_xy(R, x, NULL);
+					//print_bn("x", x);
+
+	// e  = H(M)
+	// r' = e + x (mod n)
+	sm2_bn_from_bytes(e, dgst);	//print_bn("e = H(M)", e);
+	sm2_fn_add(e, e, x);		//print_bn("e + x (mod n)", e);
+
+	// check if r == r'
+	if (sm2_bn_cmp(e, r) == 0) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (!sig) {
+		return 0;
+	}
+	if (asn1_integer_to_der(sig->r, 32, NULL, &len) != 1
+		|| asn1_integer_to_der(sig->s, 32, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_integer_to_der(sig->r, 32, out, outlen) != 1
+		|| asn1_integer_to_der(sig->s, 32, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *r;
+	size_t rlen;
+	const uint8_t *s;
+	size_t slen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_integer_from_der(&r, &rlen, &d, &dlen) != 1
+		|| asn1_integer_from_der(&s, &slen, &d, &dlen) != 1
+		|| asn1_length_le(rlen, 32) != 1
+		|| asn1_length_le(slen, 32) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(sig, 0, sizeof(*sig));
+	memcpy(sig->r + 32 - rlen, r, rlen); // 需要测试当r, s是比较小的整数时
+	memcpy(sig->s + 32 - slen, s, slen);
+	return 1;
+}
+
+int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
+{
+	SM2_SIGNATURE sig;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	if (sm2_signature_from_der(&sig, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_bytes(fp, fmt, ind, "r", sig.r, 32);
+	format_bytes(fp, fmt, ind, "s", sig.s, 32);
+	return 1;
+}
 
 #define SM2_SIGNATURE_MAX_DER_SIZE 77
 
-int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *der, size_t *derlen)
+int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
 {
-	SM2_SIGNATURE sig;
-	uint8_t *p = der;
-	size_t len = 0;
+	SM2_SIGNATURE signature;
+	uint8_t *p;
 
-	if (!der && derlen) {
-		*derlen = SM2_SIGNATURE_MAX_DER_SIZE;
-		return 1;
-	}
-	if (!key || !der || !derlen) {
+	if (!key
+		|| !dgst
+		|| !sig
+		|| !siglen) {
+		error_print();
 		return -1;
 	}
 
-	sm2_do_sign(key, dgst, &sig);
-	sm2_signature_to_der(&sig, &p, &len);
-	*derlen = len;
-
+	p = sig;
+	*siglen = 0;
+	if (sm2_do_sign(key, dgst, &signature) != 1
+		|| sm2_signature_to_der(&signature, &p, siglen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
-int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *der, size_t derlen)
+int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen)
 {
 	int ret;
-	SM2_SIGNATURE sig;
-	const uint8_t *p = der;
-	size_t len = derlen;
+	SM2_SIGNATURE signature;
+	const uint8_t *p;
+	size_t len;
 
-	if (!key || !der || !derlen) {
+	if (!key
+		|| !dgst
+		|| !sig
+		|| !siglen) {
 		error_print();
 		return -1;
 	}
-	if (sm2_signature_from_der(&sig, &p, &len) < 0
-		|| len > 0) {
+
+	p = sig;
+	if (sm2_signature_from_der(&signature, &p, &siglen) != 1
+		|| asn1_length_is_zero(siglen) != 1) {
 		error_print();
-		return -2;
+		return -1;
 	}
-	if ((ret = sm2_do_verify(key, dgst, &sig)) != 1) {
-		error_print(); // 此处应该判断ret是否为0，如果返回的是0，那么不应该输出错误日志，会产生不必要的终端输出
+	if ((ret = sm2_do_verify(key, dgst, &signature)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
-	return ret;
-}
-
-//FIXME: 由于每次加密的时候密文编码长度不同，因此这个函数应该避免在out == NULL时输出一个长度！
-int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	size_t clen = sizeof(SM2_CIPHERTEXT)-1+inlen; // FIXME: not supported in MS VS
-	size_t cbuf[clen];
-	SM2_CIPHERTEXT *c = (SM2_CIPHERTEXT *)cbuf;
-
-	sm2_do_encrypt(key, in, inlen, c);
-
-	*outlen = 0;
-	sm2_ciphertext_to_der(c, &out, outlen);
-	return 1;
-}
-
-int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	size_t cbuf[inlen];
-	SM2_CIPHERTEXT *c = (SM2_CIPHERTEXT *)cbuf;
-
-	sm2_ciphertext_from_der(c, &in, &inlen); // FIXME: 检查是否有剩余长度		
-	sm2_do_decrypt(key, c, out, outlen);
 	return 1;
 }
 
@@ -170,6 +327,7 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t id
 		return -1;
 	}
 
+
 	if (strcmp(id, "1234567812345678") == 0) {
 		uint32_t digest[8] = {
 			0xadadedb5U, 0x0446043fU, 0x08a87aceU, 0xe86d2243U,
@@ -208,73 +366,376 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t id
 
 int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
-	uint8_t z[32];
-	if (!ctx || !key || !id || idlen > SM2_MAX_ID_LENGTH) {
+	if (!ctx || !key) {
+		error_print();
 		return -1;
 	}
-	sm2_compute_z(z, &key->public_key, id, idlen);
-
+	ctx->key = *key;
 	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, z, 32);
-	memcpy(&ctx->key, key, sizeof(SM2_KEY));
+
+	if (id) {
+		uint8_t z[SM3_DIGEST_SIZE];
+		if (idlen <= 0 || idlen > SM2_MAX_ID_LENGTH) {
+			error_print();
+			return -1;
+		}
+		sm2_compute_z(z, &key->public_key, id, idlen);
+		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
+	}
 	return 1;
 }
 
 int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	sm3_update(&ctx->sm3_ctx, data, datalen);
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (data && datalen > 0) {
+		sm3_update(&ctx->sm3_ctx, data, datalen);
+	}
 	return 1;
 }
 
 int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 {
-	uint8_t dgst[32];
-	sm3_finish(&ctx->sm3_ctx, dgst);
-	sm2_sign(&ctx->key, dgst, sig, siglen);
-	return 1;
-}
+	int ret;
+	uint8_t dgst[SM3_DIGEST_SIZE];
 
-int sm2_sign_resume(SM2_SIGN_CTX *ctx)
-{
-	return 0;
+	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	sm3_finish(&ctx->sm3_ctx, dgst);
+	if ((ret = sm2_sign(&ctx->key, dgst, sig, siglen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	return 1;
 }
 
 int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
-	uint8_t z[32];
-	if (!ctx || !key || !id || idlen > SM2_MAX_ID_LENGTH) {
+	if (!ctx || !key) {
+		error_print();
 		return -1;
 	}
-	sm2_compute_z(z, &key->public_key, id, idlen);
+	ctx->key = *key;
 	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, z, 32);
-	memcpy(&ctx->key, key, sizeof(SM2_KEY));
+
+	if (id) {
+		uint8_t z[SM3_DIGEST_SIZE];
+		if (idlen <= 0 || idlen > SM2_MAX_ID_LENGTH) {
+			error_print();
+			return -1;
+		}
+		sm2_compute_z(z, &key->public_key, id, idlen);
+		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
+	}
 	return 1;
 }
 
 int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	sm3_update(&ctx->sm3_ctx, data, datalen);
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (data && datalen > 0) {
+		sm3_update(&ctx->sm3_ctx, data, datalen);
+	}
 	return 1;
 }
 
 int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 {
 	int ret;
-	uint8_t dgst[32];
-	sm3_finish(&ctx->sm3_ctx, dgst);
-	ret = sm2_verify(&ctx->key, dgst, sig, siglen);
-	return ret;
-}
+	uint8_t dgst[SM3_DIGEST_SIZE];
 
-int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32])
-{
-	memcpy(&key->private_key, private_key, 32);
+	if (!ctx || !sig) {
+		error_print();
+		return -1;
+	}
+	sm3_finish(&ctx->sm3_ctx, dgst);
+	if ((ret = sm2_verify(&ctx->key, dgst, sig, siglen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
 	return 1;
 }
 
-int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key)
+int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out)
 {
-	key->public_key = *public_key;
+	SM3_CTX ctx;
+	uint8_t counter_be[4];
+	uint8_t dgst[SM3_DIGEST_SIZE];
+	uint32_t counter = 1;
+	size_t len;
+
+	/*
+	size_t i; fprintf(stderr, "kdf input : ");
+	for (i = 0; i < inlen; i++) fprintf(stderr, "%02x", in[i]); fprintf(stderr, "\n");
+	*/
+
+	while (outlen) {
+		PUTU32(counter_be, counter);
+		counter++;
+
+		sm3_init(&ctx);
+		sm3_update(&ctx, in, inlen);
+		sm3_update(&ctx, counter_be, sizeof(counter_be));
+		sm3_finish(&ctx, dgst);
+
+		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;
+		memcpy(out, dgst, len);
+		out += len;
+		outlen -= len;
+	}
+
+	memset(&ctx, 0, sizeof(SM3_CTX));
+	memset(dgst, 0, sizeof(dgst));
+	return 1;
+}
+
+int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
+{
+	SM2_BN k;
+	SM2_JACOBIAN_POINT _P, *P = &_P;
+	SM3_CTX sm3_ctx;
+	uint8_t buf[64];
+	int i;
+
+	// rand k in [1, n - 1]
+	do {
+		sm2_bn_rand_range(k, SM2_N);
+	} while (sm2_bn_is_zero(k));
+
+	// C1 = k * G = (x1, y1)
+	sm2_jacobian_point_mul_generator(P, k);
+	sm2_jacobian_point_to_bytes(P, (uint8_t *)&out->point);
+
+
+	// Q = k * P = (x2, y2)
+	sm2_jacobian_point_from_bytes(P, (uint8_t *)&key->public_key);
+
+	sm2_jacobian_point_mul(P, k, P);
+
+	sm2_jacobian_point_to_bytes(P, buf);
+
+
+	// t = KDF(x2 || y2, klen)
+	sm2_kdf(buf, sizeof(buf), inlen, out->ciphertext);
+
+
+	// C2 = M xor t
+	for (i = 0; i < inlen; i++) {
+		out->ciphertext[i] ^= in[i];
+	}
+	out->ciphertext_size = (uint32_t)inlen;
+
+	// C3 = Hash(x2 || m || y2)
+	sm3_init(&sm3_ctx);
+	sm3_update(&sm3_ctx, buf, 32);
+	sm3_update(&sm3_ctx, in, inlen);
+	sm3_update(&sm3_ctx, buf + 32, 32);
+	sm3_finish(&sm3_ctx, out->hash);
+
+	return 1;
+}
+
+int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
+{
+	uint32_t inlen;
+	SM2_BN d;
+	SM2_JACOBIAN_POINT _P, *P = &_P;
+	SM3_CTX sm3_ctx;
+	uint8_t buf[64];
+	uint8_t hash[32];
+	int i;
+
+	// FIXME: check SM2_CIPHERTEXT format
+
+	// check C1
+	sm2_jacobian_point_from_bytes(P, (uint8_t *)&in->point);
+	//point_print(stdout, P, 0, 2);
+
+	/*
+	if (!sm2_jacobian_point_is_on_curve(P)) {
+		fprintf(stderr, "%s %d: invalid ciphertext\n", __FILE__, __LINE__);
+		return -1;
+	}
+	*/
+
+	// d * C1 = (x2, y2)
+	sm2_bn_from_bytes(d, key->private_key);
+	sm2_jacobian_point_mul(P, d, P);
+	sm2_bn_clean(d);
+	sm2_jacobian_point_to_bytes(P, buf);
+
+	// t = KDF(x2 || y2, klen)
+	if ((inlen = in->ciphertext_size) <= 0) {
+		fprintf(stderr, "%s %d: invalid ciphertext\n", __FILE__, __LINE__);
+		return -1;
+	}
+
+	sm2_kdf(buf, sizeof(buf), inlen, out);
+
+	// M = C2 xor t
+	for (i = 0; i < inlen; i++) {
+		out[i] ^= in->ciphertext[i];
+	}
+	*outlen = inlen;
+
+	// u = Hash(x2 || M || y2)
+	sm3_init(&sm3_ctx);
+	sm3_update(&sm3_ctx, buf, 32);
+	sm3_update(&sm3_ctx, out, inlen);
+	sm3_update(&sm3_ctx, buf + 32, 32);
+	sm3_finish(&sm3_ctx, hash);
+
+	// check if u == C3
+	if (memcmp(in->hash, hash, sizeof(hash)) != 0) {
+		fprintf(stderr, "%s %d: invalid ciphertext\n", __FILE__, __LINE__);
+		return -1;
+	}
+
+	return 1;
+}
+
+int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *C, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (!C) {
+		return 0;
+	}
+	if (asn1_integer_to_der(C->point.x, 32, NULL, &len) != 1
+		|| asn1_integer_to_der(C->point.y, 32, NULL, &len) != 1
+		|| asn1_octet_string_to_der(C->hash, 32, NULL, &len) != 1
+		|| asn1_octet_string_to_der(C->ciphertext, C->ciphertext_size, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_integer_to_der(C->point.x, 32, out, outlen) != 1
+		|| asn1_integer_to_der(C->point.y, 32, out, outlen) != 1
+		|| asn1_octet_string_to_der(C->hash, 32, out, outlen) != 1
+		|| asn1_octet_string_to_der(C->ciphertext, C->ciphertext_size, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_ciphertext_from_der(SM2_CIPHERTEXT *C, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *x;
+	const uint8_t *y;
+	const uint8_t *hash;
+	const uint8_t *c;
+	size_t xlen, ylen, hashlen, clen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_integer_from_der(&x, &xlen, &d, &dlen) != 1
+		|| asn1_integer_from_der(&y, &ylen, &d, &dlen) != 1
+		|| asn1_octet_string_from_der(&hash, &hashlen, &d, &dlen) != 1
+		|| asn1_octet_string_from_der(&c, &clen, &d, &dlen) != 1
+		|| asn1_length_le(xlen, 32) != 1
+		|| asn1_length_le(ylen, 32) != 1
+		|| asn1_check(hashlen == 32) != 1
+		|| asn1_length_le(clen, SM2_MAX_PLAINTEXT_SIZE) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(C, 0, sizeof(SM2_CIPHERTEXT));
+	memcpy(C->point.x + 32 - xlen, x, xlen);
+	memcpy(C->point.y + 32 - ylen, y, ylen);
+	if (sm2_point_is_on_curve(&C->point) != 1) {
+		error_print();
+		return -1;
+	}
+	memcpy(C->hash, hash, hashlen);
+	memcpy(C->ciphertext, c, clen);
+	C->ciphertext_size = (uint8_t)clen;
+	return 1;
+}
+
+int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
+{
+	uint8_t buf[512] = {0};
+	SM2_CIPHERTEXT *c = (SM2_CIPHERTEXT *)buf;
+	int i;
+
+	if (sm2_ciphertext_from_der(c, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	format_bytes(fp, fmt, ind, "XCoordinate", c->point.x, 32);
+	format_bytes(fp, fmt, ind, "YCoordinate", c->point.y, 32);
+	format_bytes(fp, fmt, ind, "HASH", c->hash, 32);
+	format_bytes(fp, fmt, ind, "CipherText", c->ciphertext, c->ciphertext_size);
+	return 1;
+}
+
+int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	SM2_CIPHERTEXT C;
+
+	if (!key || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (inlen < SM2_MIN_PLAINTEXT_SIZE || inlen > SM2_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (sm2_do_encrypt(key, in, inlen, &C) != 1) {
+		error_print();
+		return -1;
+	}
+	*outlen = 0;
+	if (sm2_ciphertext_to_der(&C, &out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	SM2_CIPHERTEXT C;
+
+	if (!key || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (sm2_ciphertext_from_der(&C, &in, &inlen) != 1
+		|| asn1_length_is_zero(inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_do_decrypt(key, &C, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out)
+{
+	if (!key || !peer_public || !out) {
+		error_print();
+		return -1;
+	}
+	if (sm2_point_mul(out, key->private_key, peer_public) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }

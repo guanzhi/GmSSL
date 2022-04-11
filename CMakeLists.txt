@@ -5,6 +5,8 @@ set(CMAKE_MACOSX_RPATH 1)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
+
 include_directories(include)
 
 add_library(
@@ -35,14 +37,14 @@ add_library(
 	src/pkcs8.c
 	src/rand.c
 	src/rc4.c
+#	src/rdrand.c
 	src/rsa.c
 	src/sha1.c
 	src/sha256.c
 	src/sha512.c
-	src/sm2_algo.c
-	src/sm2_asn1.c
+	src/sm2_alg.c
+	src/sm2_key.c
 	src/sm2_lib.c
-	src/sm2_prn.c
 	src/sm3.c
 	src/sm3_hmac.c
 	src/sm4_common.c
@@ -70,6 +72,7 @@ add_library(
 	src/zuc_eia.c
 )
 
+
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 
@@ -82,11 +85,13 @@ add_executable (sm2encrypt tools/sm2encrypt.c)
 add_executable (sm2decrypt tools/sm2decrypt.c)
 add_executable (sm3 tools/sm3.c)
 add_executable (sm3hmac tools/sm3hmac.c)
-add_executable (reqgen tools/reqgen.c)
-add_executable (reqparse tools/reqparse.c)
+add_executable (sm4 tools/sm4.c)
 add_executable (certgen tools/certgen.c)
 add_executable (certparse tools/certparse.c)
 add_executable (certverify tools/certverify.c)
+add_executable (crlparse tools/crlparse.c)
+add_executable (reqgen tools/reqgen.c)
+add_executable (reqparse tools/reqparse.c)
 add_executable (reqsign tools/reqsign.c)
 add_executable (tlcp_client tools/tlcp_client.c)
 add_executable (tlcp_server tools/tlcp_server.c)
@@ -102,12 +107,14 @@ target_link_libraries (sm2encrypt LINK_PUBLIC gmssl)
 target_link_libraries (sm2decrypt LINK_PUBLIC gmssl)
 target_link_libraries (sm3 LINK_PUBLIC gmssl)
 target_link_libraries (sm3hmac LINK_PUBLIC gmssl)
+target_link_libraries (sm4 LINK_PUBLIC gmssl)
 target_link_libraries (reqgen LINK_PUBLIC gmssl)
 target_link_libraries (reqparse LINK_PUBLIC gmssl)
 target_link_libraries (reqsign LINK_PUBLIC gmssl)
 target_link_libraries (certgen LINK_PUBLIC gmssl)
 target_link_libraries (certparse LINK_PUBLIC gmssl)
 target_link_libraries (certverify LINK_PUBLIC gmssl)
+target_link_libraries (crlparse LINK_PUBLIC gmssl)
 target_link_libraries (tlcp_client LINK_PUBLIC gmssl)
 target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
 target_link_libraries (tls12_client LINK_PUBLIC gmssl)
@@ -265,9 +272,9 @@ add_test(NAME x509_ext		COMMAND x509_exttest)
 add_test(NAME zuc		COMMAND zuctest)
 
 
-INSTALL(TARGETS sm3 sm3hmac sm2keygen sm2sign sm2verify sm2encrypt sm2decrypt RUNTIME DESTINATION bin)
+INSTALL(TARGETS sm3 sm3hmac sm4 sm2keygen sm2sign sm2verify sm2encrypt sm2decrypt RUNTIME DESTINATION bin)
 INSTALL(TARGETS certparse certgen certverify reqgen reqparse reqsign RUNTIME DESTINATION bin)
-INSTALL(TARGETS tlcp_client tlcp_server tls12_client tls12_server tls13_client tls13_server RUNTIME DESTINATION bin)
+INSTALL(TARGETS tlcp_client tlcp_server tls12_client tls12_server RUNTIME DESTINATION bin)
 INSTALL(TARGETS gmssl LIBRARY DESTINATION lib)
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 

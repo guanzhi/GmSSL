@@ -262,7 +262,6 @@ int cms_signer_infos_add_signer_info(
 	const uint8_t *serial_number, size_t serial_number_len,
 	const uint8_t *authed_attrs, size_t authed_attrs_len,
 	const uint8_t *unauthed_attrs, size_t unauthed_attrs_len);
-
 #define cms_signer_infos_to_der(d,dlen,out,outlen) asn1_set_to_der(d,dlen,out,outlen)
 #define cms_signer_infos_from_der(d,dlen,in,inlen) asn1_set_from_der(d,dlen,in,inlen)
 int cms_signer_infos_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -308,17 +307,18 @@ typedef struct {
 
 int cms_signed_data_sign_to_der(
 	const CMS_CERTS_AND_KEY *signers, size_t signers_cnt,
-	int content_type, const uint8_t *content, size_t content_len,
+	int content_type, const uint8_t *data, size_t datalen, // 当OID_cms_data时为raw data
 	const uint8_t *crls, size_t crls_len, // 可以为空
 	uint8_t **out, size_t *outlen);
 int cms_signed_data_verify_from_der(
 	const uint8_t *extra_certs, size_t extra_certs_len,
 	const uint8_t *extra_crls, size_t extra_crls_len,
-	int *content_type, const uint8_t **content, size_t *content_len,
+	int *content_type, const uint8_t **content, size_t *content_len, // 是否应该返回raw data呢？			
 	const uint8_t **certs, size_t *certs_len,
 	const uint8_t **crls, size_t *crls_len,
 	const uint8_t **signer_infos, size_t *signer_infos_len,
 	const uint8_t **in, size_t *inlen);
+
 
 /*
 RecipientInfo ::= SEQUENCE {
@@ -344,6 +344,7 @@ int cms_recipient_info_from_der(
 	const uint8_t **in, size_t *inlen);
 int cms_recipient_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
+
 int cms_recipient_info_encrypt_to_der(
 	const SM2_KEY *public_key,
 	const uint8_t *issuer, size_t issuer_len,
@@ -357,6 +358,12 @@ int cms_recipient_info_decrypt_from_der(
 	uint8_t *out, size_t *outlen, size_t maxlen,
 	const uint8_t **in, size_t *inlen);
 
+int cms_recipient_infos_add_recipient_info(
+	uint8_t *d, size_t *dlen, size_t maxlen,
+	const SM2_KEY *public_key,
+	const uint8_t *issuer, size_t issuer_len,
+	const uint8_t *serial, size_t serial_len,
+	const uint8_t *in, size_t inlen);
 #define cms_recipient_infos_to_der(d,dlen,out,outlen) asn1_set_to_der(d,dlen,out,outlen)
 #define cms_recipient_infos_from_der(d,dlen,in,inlen) asn1_set_from_der(d,dlen,in,inlen)
 int cms_recipient_infos_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);

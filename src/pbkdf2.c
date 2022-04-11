@@ -179,6 +179,48 @@ int pbkdf2_hmac_sm3_genkey(
 	const uint8_t *salt, size_t saltlen, size_t count,
 	size_t outlen, uint8_t *out)
 {
-	return pbkdf2_genkey(DIGEST_sm3(), pass, passlen, salt, saltlen, count, outlen, out);
-}
+	SM3_HMAC_CTX ctx;
+	SM3_HMAC_CTX ctx_tmpl;
+	uint32_t iter = 1;
+	uint8_t iter_be[4];
+	uint8_t tmp_block[SM3_DIGEST_SIZE];
+	uint8_t key_block[SM3_DIGEST_SIZE];
+	size_t len;
 
+	sm3_hmac_init(&ctx_tmpl, (uint8_t *)pass, passlen);
+
+	while (outlen > 0) {
+		size_t i;
+
+		PUTU32(iter_be, iter);
+		iter++;
+
+		ctx = ctx_tmpl;
+		sm3_hmac_update(&ctx, salt, saltlen);
+		sm3_hmac_update(&ctx, iter_be, sizeof(iter_be));
+		sm3_hmac_finish(&ctx, tmp_block);
+		memcpy(key_block, tmp_block, SM3_DIGEST_SIZE);
+
+		for (i = 1; i < count; i++) {
+			ctx = ctx_tmpl;
+			sm3_hmac_update(&ctx, tmp_block, SM3_DIGEST_SIZE);
+			sm3_hmac_finish(&ctx, tmp_block);
+			memxor(key_block, tmp_block, SM3_DIGEST_SIZE);
+		}
+
+		if (outlen < SM3_DIGEST_SIZE) {
+			memcpy(out, key_block, outlen);
+			out += outlen;
+			outlen = 0;
+		} else {
+			memcpy(out, key_block, SM3_DIGEST_SIZE);
+			out += len;
+			outlen -= len;
+		}
+	}
+
+	memset(&ctx, 0, sizeof(ctx));
+	memset(key_block, 0, sizeof(key_block));
+	memset(tmp_block, 0, sizeof(key_block));
+	return 1;
+}

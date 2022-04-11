@@ -61,5 +61,6 @@ int rand_bytes(uint8_t *buf, size_t len)
 		return -1;
 	}
 	fread(buf, 1, len, fp);
+	fclose(fp);
 	return 1;
 }

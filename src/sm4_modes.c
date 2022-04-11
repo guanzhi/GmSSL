@@ -118,6 +118,10 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 		iv = in + inlen - 32;
 	}
 	sm4_cbc_decrypt(key, iv, in + inlen - 16, 1, block);
+
+	format_bytes(stderr, 0, 0, "last_decrypted_block", block, 16);
+
+
 	padding = block[15];
 	if (padding < 1 || padding > 16) {
 		error_print();
@@ -231,6 +235,148 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 		pin += len;
 		pout += len;
 		left -= len;
+	}
+	return 1;
+}
+
+
+int sm4_cbc_encrypt_init(SM4_CBC_CTX *ctx,
+	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
+{
+	sm4_set_encrypt_key(&ctx->sm4_key, key);
+	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
+	memset(ctx->block, 0, SM4_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
+}
+
+int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	size_t left;
+	size_t nblocks;
+	size_t len;
+
+	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	*outlen = 0;
+	if (ctx->block_nbytes) {
+		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
+		if (inlen < left) {
+			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
+			ctx->block_nbytes += inlen;
+			return 1;
+		}
+		memcpy(ctx->block + ctx->block_nbytes, in, left);
+		sm4_cbc_encrypt(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
+		memcpy(ctx->iv, out, SM4_BLOCK_SIZE);
+		in += left;
+		inlen -= left;
+		out += SM4_BLOCK_SIZE;
+		*outlen += SM4_BLOCK_SIZE;
+	}
+	if (inlen >= SM4_BLOCK_SIZE) {
+		nblocks = inlen / SM4_BLOCK_SIZE;
+		len = nblocks * SM4_BLOCK_SIZE;
+		sm4_cbc_encrypt(&ctx->sm4_key, ctx->iv, in, nblocks, out);
+		memcpy(ctx->iv, out + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
+		in += len;
+		inlen -= len;
+		out += len;
+		*outlen += len;
+	}
+	if (inlen) {
+		memcpy(ctx->block, in, inlen);
+	}
+	ctx->block_nbytes = inlen;
+	return 1;
+}
+
+int sm4_cbc_encrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	size_t left;
+	size_t i;
+
+	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	format_bytes(stderr, 0, 0, "encrypt_finish", ctx->block, ctx->block_nbytes);
+
+	if (sm4_cbc_padding_encrypt(&ctx->sm4_key, ctx->iv, ctx->block, ctx->block_nbytes, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm4_cbc_decrypt_init(SM4_CBC_CTX *ctx,
+	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
+{
+	sm4_set_decrypt_key(&ctx->sm4_key, key);
+	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
+	memset(ctx->block, 0, SM4_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
+}
+
+int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	size_t left, len, nblocks;
+
+	if (ctx->block_nbytes > SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	*outlen = 0;
+	if (ctx->block_nbytes < SM4_BLOCK_SIZE) {
+		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
+		if (inlen <= left) {
+			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
+			ctx->block_nbytes += inlen;
+			return 1;
+		}
+		memcpy(ctx->block + ctx->block_nbytes, in, left);
+		sm4_cbc_decrypt(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
+		memcpy(ctx->iv, ctx->block, SM4_BLOCK_SIZE);
+		in += left;
+		inlen -= left;
+		out += SM4_BLOCK_SIZE;
+		*outlen += SM4_BLOCK_SIZE;
+	}
+	if (inlen > SM4_BLOCK_SIZE) {
+		nblocks = (inlen-1) / SM4_BLOCK_SIZE;
+		len = nblocks * SM4_BLOCK_SIZE;
+		sm4_cbc_decrypt(&ctx->sm4_key, ctx->iv, in, nblocks, out);
+		memcpy(ctx->iv, in + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
+		in += len;
+		inlen -= len;
+		out += len;
+		*outlen += len;
+	}
+	memcpy(ctx->block, in, inlen);
+	ctx->block_nbytes = inlen;
+	return 1;
+}
+
+int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	if (ctx->block_nbytes != SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, "block", ctx->block, ctx->block_nbytes);
+	format_bytes(stderr, 0, 0, "iv", ctx->iv, 16);
+
+
+	if (sm4_cbc_padding_decrypt(&ctx->sm4_key, ctx->iv, ctx->block, SM4_BLOCK_SIZE, out, outlen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }

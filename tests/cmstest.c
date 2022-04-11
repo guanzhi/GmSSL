@@ -92,7 +92,7 @@ static int test_cms_content_type(void)
 	(void)asn1_length_is_zero(len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_content_info(void)
@@ -131,7 +131,7 @@ static int test_cms_content_info(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_enced_content_info(void)
@@ -189,7 +189,7 @@ static int test_cms_enced_content_info(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_enced_content_info_encrypt(void)
@@ -263,7 +263,7 @@ static int test_cms_enced_content_info_encrypt(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_issuer_and_serial_number(void)
@@ -313,7 +313,7 @@ static int test_cms_issuer_and_serial_number(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_signer_info(void)
@@ -394,53 +394,61 @@ static int test_cms_signer_info(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_signer_info_sign(void)
 {
-	uint8_t buf[512];
+	uint8_t buf[1024];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	const uint8_t *d;
 	size_t dlen;
 
-	SM3_CTX sm3_ctx;
 	SM2_KEY sm2_key;
-
-	uint8_t issuer_buf[256];
-	size_t issuer_len;
 	uint8_t serial_buf[20];
-	uint8_t auth_attrs_buf[80];
-
-	// 这个函数的验证是需要证书的			
+	uint8_t name[256];
+	size_t namelen;
+	time_t not_before, not_after;
 	uint8_t certs[1024];
 	size_t certslen;
+
+	SM3_CTX sm3_ctx;
+
 	const uint8_t *cert;
 	size_t certlen;
-
-	const uint8_t *issuer;
 	const uint8_t *serial;
-	size_t serial_len;
+	const uint8_t *issuer;
 	const uint8_t *auth_attrs;
-	size_t auth_attrs_len;
 	const uint8_t *unauth_attrs;
-	size_t unauth_attrs_len;
+	size_t serial_len, issuer_len, auth_attrs_len, unauth_attrs_len;
 
+	if (sm2_key_generate(&sm2_key) != 1
+		|| rand_bytes(serial_buf, sizeof(serial_buf)) != 1
+		|| x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
+		|| time(&not_before) == -1
+		|| x509_validity_add_days(&not_after, not_before, 365) != 1
+		|| x509_cert_sign(certs, &certslen, sizeof(certs),
+			X509_version_v3, serial_buf, sizeof(serial_buf),
+			OID_sm2sign_with_sm3,
+			name, namelen,
+			not_before, not_after,
+			name, namelen,
+			&sm2_key, NULL, 0, NULL, 0, NULL, 0,
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
 
-	sm2_key_generate(&sm2_key);
 	sm3_init(&sm3_ctx);
 	sm3_update(&sm3_ctx, (uint8_t *)"hello", 5);
 
-	x509_name_set(issuer_buf, &issuer_len, sizeof(issuer_buf), "CN", "Beijing", "Haidian", "PKU", "CS", "CA");
-
+	cp = p = buf; len = 0;
 	if (cms_signer_info_sign_to_der(
 			&sm3_ctx, &sm2_key,
-			issuer_buf, issuer_len,
-			serial_buf, sizeof(serial_buf),
-			NULL, 0,
-			NULL, 0,
+			name, namelen, serial_buf, sizeof(serial_buf),
+			NULL, 0, NULL, 0,
 			&p, &len) != 1
 		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
@@ -452,10 +460,8 @@ static int test_cms_signer_info_sign(void)
 	cp = p = buf; len = 0;
 	if (cms_signer_info_sign_to_der(
 			&sm3_ctx, &sm2_key,
-			issuer_buf, issuer_len,
-			serial_buf, sizeof(serial_buf),
-			NULL, 0,
-			NULL, 0,
+			name, namelen, serial_buf, sizeof(serial_buf),
+			NULL, 0, NULL, 0,
 			&p, &len) != 1
 		|| cms_signer_info_verify_from_der(
 			&sm3_ctx, certs, certslen,
@@ -471,7 +477,7 @@ static int test_cms_signer_info_sign(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_signer_infos(void)
@@ -530,7 +536,7 @@ static int test_cms_signer_infos(void)
 
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_digest_algors(void)
@@ -571,16 +577,381 @@ static int test_cms_digest_algors(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_cms_signed_data(void)
 {
-	// 这个函数需要证书了，我们需要一个很容易生成证书的函数。
+	SM2_KEY sm2_key;
+	uint8_t cert[4096];
+	size_t certlen = 0;
+	CMS_CERTS_AND_KEY signers[1];
+	uint8_t data[48] = {0};
+	uint8_t buf[4096];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
 
-	return -1;
+	sm2_key_generate(&sm2_key);
+
+	{
+		uint8_t serial[20];
+		size_t serial_len = sizeof(serial);
+		uint8_t name[256];
+		size_t namelen = 0;
+		time_t not_before, not_after;
+		uint8_t subject[256];
+		size_t subject_len = 0;
+		uint8_t *p = cert;
+		const uint8_t *cp = cert;
+
+		rand_bytes(serial, sizeof(serial));
+		x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "CA");
+		time(&not_before);
+		x509_validity_add_days(&not_after, not_before, 365);
+
+		if (x509_cert_sign(
+			cert, &certlen, sizeof(cert),
+			X509_version_v3,
+			serial, sizeof(serial),
+			OID_sm2sign_with_sm3,
+			name, namelen,
+			not_before, not_after,
+			name, namelen,
+			&sm2_key,
+			NULL, 0,
+			NULL, 0,
+			NULL, 0,
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	signers[0].certs = cert;
+	signers[0].certs_len = certlen;
+	signers[0].sign_key = &sm2_key;
+
+	if (cms_signed_data_sign_to_der(
+			signers, sizeof(signers)/sizeof(signers[0]),
+			OID_cms_data, data, sizeof(data),
+			NULL, 0,
+			&p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	cms_signed_data_print(stderr, 0, 0, "SignedData", d, dlen);
+
+	cp = p = buf; len = 0;
+	{
+		int content_type;
+		const uint8_t *content;
+		size_t content_len;
+		const uint8_t *certs;
+		size_t certslen;
+		const uint8_t *crls;
+		size_t crlslen;
+		const uint8_t *signer_infos;
+		size_t signer_infos_len;
+
+		if (cms_signed_data_sign_to_der(
+				signers, sizeof(signers)/sizeof(signers[0]),
+				OID_cms_data, data, sizeof(data),
+				NULL, 0,
+				&p, &len) != 1
+			|| cms_signed_data_verify_from_der(
+				NULL, 0,
+				NULL, 0,
+				&content_type, &content, &content_len,
+				&certs, &certslen,
+				&crls, &crlslen,
+				&signer_infos, &signer_infos_len,
+				&cp, &len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
+static int test_cms_recipient_info(void)
+{
+	SM2_KEY sm2_key;
+	uint8_t name[256];
+	size_t namelen;
+	uint8_t serial_buf[20];
+	uint8_t in[16];
+
+	uint8_t buf[1024];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
+
+	int version;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *serial;
+	size_t serial_len;
+	int pke_algor;
+	const uint8_t *params;
+	size_t params_len;
+	const uint8_t *enced_key;
+	size_t enced_key_len;
+
+	uint8_t out[sizeof(in)];
+	size_t outlen;
+
+	sm2_key_generate(&sm2_key);
+	x509_name_set(name, &namelen, sizeof(name), "US", "CA", NULL, "BB", "AA", "CC");
+	rand_bytes(serial_buf, sizeof(serial_buf));
+	rand_bytes(in, sizeof(in));
+
+	if (cms_recipient_info_encrypt_to_der(&sm2_key,
+			name, namelen,
+			serial_buf, sizeof(serial_buf),
+			in, sizeof(in),
+			&p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	cms_recipient_info_print(stderr, 0, 0, "RecipientInfo", d, dlen);
+
+
+	cp = p = buf; len = 0;
+	if (cms_recipient_info_encrypt_to_der(&sm2_key,
+			name, namelen,
+			serial_buf, sizeof(serial_buf),
+			in, sizeof(in),
+			&p, &len) != 1
+		|| cms_recipient_info_from_der(
+			&version,
+			&issuer, &issuer_len,
+			&serial, &serial_len,
+			&pke_algor, &params, &params_len,
+			&enced_key, &enced_key_len,
+			&cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+	cp = p = buf; len = 0;
+	if (cms_recipient_info_encrypt_to_der(
+			&sm2_key,
+			name, namelen,
+			serial_buf, sizeof(serial_buf),
+			in, sizeof(in),
+			&p, &len) != 1
+		|| cms_recipient_info_decrypt_from_der(
+			&sm2_key,
+			name, namelen,
+			serial_buf, sizeof(serial_buf),
+			out, &outlen, sizeof(out),
+			&cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sizeof(in) != outlen
+		|| memcmp(in, out, outlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+int test_cms_enveloped_data(void)
+{
+	SM2_KEY sm2_key1;
+	uint8_t name1[256];
+	size_t name1_len;
+	uint8_t serial1[20];
+	size_t serial1_len;
+
+	SM2_KEY sm2_key2;
+	uint8_t name2[256];
+	size_t name2_len;
+	uint8_t serial2[20];
+	size_t serial2_len;
+
+	time_t not_before, not_after;
+
+	uint8_t certs[2048];
+	size_t certslen;
+
+	uint8_t key[16];
+	uint8_t iv[16];
+
+	uint8_t in[80];
+	uint8_t out[256];
+	size_t outlen;
+	size_t maxlen;
+
+	uint8_t buf[4096];
+	uint8_t *p;
+	const uint8_t *cp;
+	size_t len;
+	const uint8_t *d;
+	size_t dlen;
+
+	// prepare keys and certs
+
+	if (time(&not_before) == -1
+		|| x509_validity_add_days(&not_after, not_before, 365) != 1) {
+		error_print();
+		return -1;
+	}
+
+	p = certs;
+	certslen = 0;
+	maxlen = sizeof(certs);
+
+	if (sm2_key_generate(&sm2_key1) != 1
+		|| rand_bytes(serial1, sizeof(serial1)) != 1
+		|| x509_name_set(name1, &name1_len, sizeof(name1), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
+		|| x509_cert_sign(
+			p, &len, maxlen,
+			X509_version_v3,
+			serial1, sizeof(serial1),
+			OID_sm2sign_with_sm3,
+			name1, name1_len,
+			not_before, not_after,
+			name1, name1_len,
+			&sm2_key1, NULL, 0, NULL, 0, NULL, 0,
+			&sm2_key1, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+	p += len;
+	certslen += len;
+	maxlen -= len;
+
+	if (sm2_key_generate(&sm2_key2) != 1
+		|| rand_bytes(serial2, sizeof(serial2)) != 1
+		|| x509_name_set(name2, &name2_len, sizeof(name2), "CN", "Beijing", "Haidian", "PKU", "CS", "Bob") != 1
+		|| x509_cert_sign(
+			p, &len, maxlen,
+			X509_version_v3,
+			serial2, sizeof(serial2),
+			OID_sm2sign_with_sm3,
+			name2, name2_len,
+			not_before, not_after,
+			name2, name2_len,
+			&sm2_key2, NULL, 0, NULL, 0, NULL, 0,
+			&sm2_key2, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+	p += len;
+	certslen += len;
+	maxlen -= len;
+
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(in, sizeof(in));
+
+	// test
+
+	cp = p = buf; len = 0;
+	if (cms_enveloped_data_encrypt_to_der(
+			certs, certslen,
+			OID_sm4_cbc, key, sizeof(key), iv, sizeof(iv),
+			OID_cms_data, in, sizeof(in),
+			NULL, 0, NULL, 0,
+			&p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	cms_enveloped_data_print(stderr, 0, 0, "EnvelopedData", d, dlen);
+
+
+	int content_type;
+
+
+	cp = p = buf; len = 0;
+	if (cms_enveloped_data_encrypt_to_der(
+			certs, certslen,
+			OID_sm4_cbc, key, sizeof(key), iv, sizeof(iv),
+			OID_cms_data, in, sizeof(in),
+			NULL, 0, NULL, 0,
+			&p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	const uint8_t *rcpt_infos;
+	const uint8_t *shared_info1;
+	const uint8_t *shared_info2;
+	size_t rcpt_infos_len, shared_info1_len, shared_info2_len;
+
+	if (cms_enveloped_data_decrypt_from_der(
+			&sm2_key1,
+			name1, name1_len,
+			serial1, sizeof(serial1),
+			&content_type, out, &outlen,
+			&rcpt_infos, &rcpt_infos_len,
+			&shared_info1, &shared_info1_len,
+			&shared_info2, &shared_info2_len,
+			&cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_cms_signed_and_enveloped_data(void)
+{
+/*
+444 int cms_signed_and_enveloped_data_encipher_to_der(
+445         const CMS_CERTS_AND_KEY *signers, size_t signers_cnt,
+446         const uint8_t *rcpt_certs, size_t rcpt_certs_len,
+447         int enc_algor, const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
+448         int content_type, const uint8_t *content, size_t content_len,
+449         const uint8_t *signers_crls, size_t signers_crls_len,
+450         const uint8_t *shared_info1, size_t shared_info1_len,
+451         const uint8_t *shared_info2, size_t shared_info2_len,
+452         uint8_t **out, size_t *outlen);
+453 int cms_signed_and_enveloped_data_decipher_from_der(
+454         const SM2_KEY *rcpt_key,
+455         const uint8_t *rcpt_issuer, size_t rcpt_issuer_len,
+456         const uint8_t *rcpt_serial, size_t rcpt_serial_len,
+457         int *content_type, uint8_t *content, size_t *content_len,
+458         const uint8_t **prcpt_infos, size_t *prcpt_infos_len,
+459         const uint8_t **shared_info1, size_t *shared_info1_len,
+460         const uint8_t **shared_info2, size_t *shared_info2_len,
+461         const uint8_t **certs, size_t *certs_len,
+462         const uint8_t **crls, size_t *crls_len,
+463         const uint8_t **psigner_infos, size_t *psigner_infos_len,
+464         const uint8_t *extra_certs, size_t extra_certs_len,
+465         const uint8_t *extra_crls, size_t extra_crls_len,
+466         const uint8_t **in, size_t *inlen);
+*/
+	SM2_KEY sign_key;
+	SM2_KEY decr_key;
+
+
+
+	uint8_t sign_serial[20];
+	uint8_t sign_name[256];
+	size_t sign_name_len;
 
 
 
@@ -590,24 +961,121 @@ static int test_cms_signed_data(void)
 
 
 
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_cms_key_agreement_info(void)
+{
+	SM2_KEY sm2_key;
+	uint8_t name[256];
+	size_t namelen;
+	uint8_t serial[20];
+	time_t not_before, not_after;
+	uint8_t cert[2048];
+	size_t certlen;
+
+	uint8_t buf[4096];
+	uint8_t *p;
+	const uint8_t *cp;
+	size_t len;
+	const uint8_t *d;
+	size_t dlen;
+
+	int version;
+	SM2_KEY public_key;
+	const uint8_t *pcert;
+	size_t pcertlen;
+	const uint8_t *id;
+	size_t idlen;
+
+	if (sm2_key_generate(&sm2_key) != 1
+		|| rand_bytes(serial, sizeof(serial)) != 1
+		|| x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
+		|| time(&not_before) == - 1
+		|| x509_validity_add_days(&not_after, not_before, 365) != 1
+		|| x509_cert_sign(
+			cert, &certlen, sizeof(cert),
+			X509_version_v3,
+			serial, sizeof(serial),
+			OID_sm2sign_with_sm3,
+			name, namelen,
+			not_before, not_after,
+			name, namelen,
+			&sm2_key, NULL, 0, NULL, 0, NULL, 0,
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+
+	cp = p = buf; len = 0;
+	if (cms_key_agreement_info_to_der(
+			CMS_version_v1,
+			&sm2_key,
+			cert, certlen,
+			(uint8_t *)SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&p, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	cms_key_agreement_info_print(stderr, 0, 0, "KeyAgreementInfo", d, dlen);
 
 
+	cp = p = buf; len = 0;
+	if (cms_key_agreement_info_to_der(
+			CMS_version_v1,
+			&sm2_key,
+			cert, certlen,
+			(uint8_t *)SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&p, &len) != 1
+		|| cms_key_agreement_info_from_der(
+			&version,
+			&public_key,
+			&pcert, &pcertlen,
+			&id, &idlen,
+			&cp, &len) != 1
+		|| asn1_check(version == CMS_version_v1) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_public_key_equ(&sm2_key, &public_key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pcertlen != certlen
+		|| memcmp(pcert, cert, certlen) != 0
+		|| idlen != SM2_DEFAULT_ID_LENGTH
+		|| memcmp(SM2_DEFAULT_ID, id, idlen) != 0) {
+		error_print();
+		return -1;
+	}
 
-
-
-
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 int main(int argc, char **argv)
 {
-	int err;
-	err += test_cms_content_type();
-	err += test_cms_content_info();
-	err += test_cms_enced_content_info();
-	err += test_cms_enced_content_info_encrypt();
-	err += test_cms_issuer_and_serial_number();
-	err += test_cms_signer_info();
-	err += test_cms_signer_info_sign();
-	err += test_cms_signer_infos();
-	err += test_cms_digest_algors();
-	return err;
+	if (test_cms_content_type() != 1) goto err;
+	if (test_cms_content_info() != 1) goto err;
+	if (test_cms_enced_content_info() != 1) goto err;
+	if (test_cms_enced_content_info_encrypt() != 1) goto err;
+	if (test_cms_issuer_and_serial_number() != 1) goto err;
+	if (test_cms_signer_info() != 1) goto err;
+	if (test_cms_signer_info_sign() != 1) goto err;
+	if (test_cms_signer_infos() != 1) goto err;
+	if (test_cms_digest_algors() != 1) goto err;
+	if (test_cms_signed_data() != 1) goto err;
+	if (test_cms_recipient_info() != 1) goto err;
+	if (test_cms_enveloped_data() != 1) goto err;
+	if (test_cms_key_agreement_info() != 1) goto err;
+
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

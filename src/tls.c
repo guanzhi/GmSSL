@@ -1544,6 +1544,7 @@ int tls_compression_methods_has_null_compression(const uint8_t *meths, size_t me
 }
 
 // FIXME: 设定支持的最大输入长度
+// FIXME: 没回返回实际的发送长度
 int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen)
 {
 	const SM3_HMAC_CTX *hmac_ctx;
@@ -1617,4 +1618,11 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 int tls_shutdown(TLS_CONNECT *conn)
 {
 	return -1;
+}
+
+// 参考 man verify 的错误返回值
+int tls_get_verify_result(TLS_CONNECT *conn, int *result)
+{
+	*result = 0;
+	return 1;
 }

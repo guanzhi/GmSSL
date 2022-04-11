@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -64,7 +65,6 @@
 #include <gmssl/sm4.h>
 #include <gmssl/pem.h>
 #include <gmssl/tls.h>
-
 
 
 
@@ -258,26 +258,29 @@ int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	uint8_t verify_data[12];
 	uint8_t remote_verify_data[12];
 
-	struct sockaddr_in server;
+	if (conn->sock <= 0) {
+		int sock;
+		struct sockaddr_in server;
 
+		server.sin_addr.s_addr = inet_addr(hostname);
+		server.sin_family = AF_INET;
+		server.sin_port = htons(port);
+
+		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			error_print();
+			return -1;
+		}
+
+		if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
+			error_print();
+			return -1;
+		}
+
+		conn->sock = sock;
+		conn->is_client = 1;
+	}
 
 	sm3_init(&sm3_ctx);
-
-
-
-	server.sin_addr.s_addr = inet_addr(hostname);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
-	if ((conn->sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		error_print();
-		return -1;
-	}
-	if (connect(conn->sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
-		error_print();
-		return -1;
-	}
-	conn->is_client = 1;
-
 
 	if (client_certs_fp) {
 		if (!client_sign_key) {
@@ -292,8 +295,6 @@ int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 
 	tls_record_set_version(record, TLS_version_tls1);
 	tls_record_set_version(finished, TLS_version_tls12);
-
-
 
 
 	tls_trace("send ClientHello\n");
@@ -595,15 +596,24 @@ int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	return 1;
 }
 
-// 实际上我们需要好几个比较大的buffer
-// 一个是记录的buffer
-// 还有就是server端需要一个握手buffer，这是啥?
 
-/*
-常规情况下服务器和客户端对所有的握手消息计算哈希值，最后用于Finished消息
-但是如果服务器要求客户端提供客户端证书，那么就必须要验证客户端证书
-*/
+int tls_set_fd(TLS_CONNECT *conn, int sock)
+{
+	int opts;
 
+	if ((opts = fcntl(sock, F_GETFL)) < 0) {
+		error_print();
+		return -1;
+	}
+	opts &= ~O_NONBLOCK;
+	if (fcntl(sock, F_SETFL, opts) < 0) {
+		error_print();
+		return -1;
+	}
+
+	conn->sock = sock;
+	return 1;
+}
 
 int tls12_accept(TLS_CONNECT *conn, int port,
 	FILE *server_certs_fp, const SM2_KEY *server_sign_key,
@@ -641,40 +651,37 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 	uint8_t local_verify_data[12];
 	size_t i;
 
-	int sock;
-	struct sockaddr_in server_addr;
-	struct sockaddr_in client_addr;
-	socklen_t client_addrlen;
+	if (conn->sock <= 0) {
+		int sock;
+		struct sockaddr_in server_addr;
+		struct sockaddr_in client_addr;
+		socklen_t client_addrlen;
 
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		error_print();
-		return -1;
+		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			error_print();
+			return -1;
+		}
+		server_addr.sin_family = AF_INET;
+		server_addr.sin_addr.s_addr = INADDR_ANY;
+		server_addr.sin_port = htons(port);
+
+		if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+			error_print();
+			return -1;
+		}
+
+		error_puts("start listen ...");
+		listen(sock, 5);
+
+		client_addrlen = sizeof(client_addr);
+		if ((conn->sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
+			error_print();
+			return -1;
+		}
+
+		error_puts("connected\n");
+		conn->sock = sock;
 	}
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(port);
-
-	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		error_print();
-		return -1;
-	}
-
-	error_puts("start listen ...");
-	listen(sock, 5);
-
-	memset(conn, 0, sizeof(*conn));
-
-
-
-	client_addrlen = sizeof(client_addr);
-	if ((conn->sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
-		error_print();
-		return -1;
-	}
-
-	error_puts("connected\n");
-
-
 
 
 	sm3_init(&sm3_ctx);
@@ -776,9 +783,11 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 	if (client_cacerts_fp) {
 		tls_trace("send CertificateRequest\n");
 		const int cert_types[] = { TLS_cert_type_ecdsa_sign, };
-		uint8_t ca_names[TLS_MAX_CA_NAMES_SIZE] = {0};
 		size_t cert_types_count = sizeof(cert_types)/sizeof(cert_types[0]);
+		uint8_t ca_names[TLS_MAX_CA_NAMES_SIZE] = {0};
 		size_t ca_names_len = 0;
+
+		// FIXME: 没有设置ca_names
 		if (tls_record_set_handshake_certificate_request(record, &recordlen,
 			cert_types, cert_types_count,
 			ca_names, ca_names_len) != 1) {
@@ -834,6 +843,8 @@ int tls12_accept(TLS_CONNECT *conn, int port,
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 		tls_array_to_bytes(record + 5, recordlen - 5, &handshakes, &handshakeslen);
 	}
+
+	//sleep(1);
 
 	tls_trace("recv ClientKeyExchange\n");
 	if (tls12_record_recv(record, &recordlen, conn->sock) != 1) {

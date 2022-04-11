@@ -1616,6 +1616,20 @@ int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t
 	return 1;
 }
 
+int x509_explicit_distribution_point_name_to_der(int index, int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
+{
+	// 注意：要能够解决d == NULL的情况
+	error_print();
+	return -1;
+}
+
+int x509_explicit_distribution_point_name_from_der(int index, int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
+{
+	// 注意：要能够解决d == NULL的情况
+	error_print();
+	return -1;
+}
+
 int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, int choice, const uint8_t *d, size_t dlen)
 {
 	format_print(fp, fmt, ind, "%s\n", label);
@@ -1631,21 +1645,16 @@ int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *l
 }
 
 int x509_distribution_point_to_der(
-	int dist_point_choice, const uint8_t *dist_point_d, size_t dist_point_dlen,
+	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	const uint8_t *dist_point;
-	size_t dist_point_len = 0;
-
-	x509_distribution_point_name_to_der(dist_point_choice, dist_point_d, dist_point_dlen, NULL, &dist_point_len);
-
-	if (asn1_explicit_to_der(0, dist_point, dist_point_len, NULL, &len) < 0
+	if (x509_explicit_distribution_point_name_to_der(0, dist_point_choice, dist_point, dist_point_len, NULL, &len) < 0
 		|| asn1_implicit_bits_to_der(1, reasons, NULL, &len) < 0
 		|| asn1_implicit_sequence_to_der(2, crl_issuer, crl_issuer_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_explicit_to_der(0, dist_point, dist_point_len, out, outlen) < 0
+		|| x509_explicit_distribution_point_name_to_der(0, dist_point_choice, dist_point, dist_point_len, out, outlen) < 0
 		|| asn1_implicit_bits_to_der(1, reasons, out, outlen) < 0
 		|| asn1_implicit_sequence_to_der(2, crl_issuer, crl_issuer_len, out, outlen) < 0) {
 		error_print();
@@ -1655,29 +1664,22 @@ int x509_distribution_point_to_der(
 }
 
 int x509_distribution_point_from_der(
-	int *dist_point_choice, const uint8_t **dist_point_d, size_t *dist_point_dlen,
+	int *dist_point_choice, const uint8_t **dist_point, size_t *dist_point_len,
 	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	const uint8_t *p;
-	size_t len;
-	const uint8_t *dist_point;
-	size_t dist_point_len;
+	const uint8_t *d;
+	size_t dlen;
 
-	if ((ret = asn1_sequence_from_der(&p, &len, in, inlen)) != 1) {
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_explicit_from_der(0, &dist_point, &dist_point_len, &p, &len) < 0
-		|| asn1_implicit_bits_from_der(1, reasons, &p, &len) < 0
-		|| asn1_implicit_sequence_from_der(2, crl_issuer, crl_issuer_len, &p, &len) < 0
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (x509_distribution_point_name_from_der(dist_point_choice, dist_point_d, dist_point_dlen,  &dist_point, &dist_point_len) != 1
-		|| asn1_length_is_zero(dist_point_len) != 1) {
+	if (x509_explicit_distribution_point_name_from_der(0, dist_point_choice, dist_point, dist_point_len, &d, &dlen) < 0
+		|| asn1_implicit_bits_from_der(1, reasons, &d, &dlen) < 0
+		|| asn1_implicit_sequence_from_der(2, crl_issuer, crl_issuer_len, &d, &dlen) < 0
+		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}

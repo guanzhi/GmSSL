@@ -405,7 +405,6 @@ int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 		}
 		x509_attr_type_and_value_print(fp, fmt, ind, "AttributeTypeAndValue", p, len);
 	}
-	//format_print(fp, fmt, ind, "\n");
 	return 1;
 }
 

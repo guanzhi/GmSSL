@@ -79,7 +79,7 @@ static int test_x509_digest_algor(void)
 		oid = x509_digest_algor_from_name(names[i]);
 		if (x509_digest_algor_to_der(oid, &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -88,7 +88,7 @@ static int test_x509_digest_algor(void)
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
 		if (x509_digest_algor_from_der(&oid, &cp, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		if (oid != x509_digest_algor_from_name(names[i])) {
 			error_print();
@@ -97,7 +97,7 @@ static int test_x509_digest_algor(void)
 		format_print(stderr, 0, 4, "%s\n", x509_digest_algor_name(oid));
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_encryption_algor(void)
@@ -123,7 +123,7 @@ static int test_x509_encryption_algor(void)
 		oid = x509_encryption_algor_from_name(names[i]);
 		if (x509_encryption_algor_to_der(oid, iv, sizeof(iv), &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -133,12 +133,12 @@ static int test_x509_encryption_algor(void)
 			|| asn1_check(params != NULL) != 1
 			|| asn1_check(paramslen == sizeof(iv)) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_print(stderr, 0, 4, "%s\n", x509_encryption_algor_name(oid));
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_signature_algor(void)
@@ -169,7 +169,7 @@ static int test_x509_signature_algor(void)
 		oid = x509_signature_algor_from_name(names[i]);
 		if (x509_signature_algor_to_der(oid, &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -177,12 +177,12 @@ static int test_x509_signature_algor(void)
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
 		if (x509_signature_algor_from_der(&oid, &cp, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_print(stderr, 0, 4, "%s\n", x509_signature_algor_name(oid));
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_public_key_encryption_algor(void)
@@ -206,7 +206,7 @@ static int test_x509_public_key_encryption_algor(void)
 		oid = x509_public_key_encryption_algor_from_name(names[i]);
 		if (x509_public_key_encryption_algor_to_der(oid, &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -214,20 +214,23 @@ static int test_x509_public_key_encryption_algor(void)
 	for (i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
 		if (x509_public_key_encryption_algor_from_der(&oid, &params, &paramslen, &cp, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_print(stderr, 0, 4, "%s\n", x509_public_key_encryption_algor_name(oid));
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_x509_digest_algor();
-	err += test_x509_encryption_algor();
-	err += test_x509_signature_algor();
-	err += test_x509_public_key_encryption_algor();
-	return err;
+	if (test_x509_digest_algor() != 1) goto err;
+	if (test_x509_encryption_algor() != 1) goto err;
+	if (test_x509_signature_algor() != 1) goto err;
+	if (test_x509_public_key_encryption_algor() != 1) goto err;
+	printf("%s all tests passed!\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
 }

@@ -367,92 +367,11 @@ typedef enum {
 #define TLS_MAX_HANDSHAKES_SIZE		4096
 
 
-// 应该保留对方的证书
-
-// 我们应该讲这个值编码为一个标准的TLS的结构
-
-
-typedef struct {
-	int is_client;
-	int version;
-	int cipher_suite;
-	int compression_method;
-	uint8_t master_secret[48];
-	uint8_t server_certs[1600];
-	size_t server_certs_size;
-	uint8_t client_cert[1024];
-	size_t client_cert_size;
-} TLS_SESSION;
-
-
-typedef struct {
-	int sock;
-	int is_client;
-	int version;
-	int cipher_suite;
-	uint8_t session_id[32];
-	size_t session_id_len;
-	uint8_t master_secret[48];
-	uint8_t key_block[96];
-	int do_trace;
-
-	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE];
-	size_t server_certs_len;
-
-	uint8_t client_certs[TLS_MAX_CERTIFICATES_SIZE];
-	size_t client_certs_len;
-
-	SM3_HMAC_CTX client_write_mac_ctx;
-	SM3_HMAC_CTX server_write_mac_ctx;
-	SM4_KEY client_write_enc_key;
-	SM4_KEY server_write_enc_key;
-	uint8_t client_seq_num[8];
-	uint8_t server_seq_num[8];
-
-	uint8_t record[TLS_MAX_RECORD_SIZE];
-	uint8_t handshakes[TLS_MAX_HANDSHAKES_SIZE];
-	size_t handshakes_len;
-
-	uint8_t client_write_iv[12];
-	uint8_t server_write_iv[12];
-
-
-
-	BLOCK_CIPHER_KEY client_write_key;
-	BLOCK_CIPHER_KEY server_write_key;
-
-} TLS_CONNECT;
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-// 有可能在连接建立之后，客户端还是想获得一些这个连接的有关信息呢？比如random中有时间信息？
-// 服务器的证书一定是需要的吧
-
-
-// 客户端证书应该是预置的
-int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
-	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
-
-int tlcp_accept(TLS_CONNECT *conn, int port,
-	FILE *server_certs_fp, const SM2_KEY *server_sign_key, const SM2_KEY *server_enc_key,
-	FILE *client_cacerts_fp, uint8_t *client_cert_verify_buf, size_t client_cert_verify_buflen);
-
-
-int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
-int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen);
 
 
 
@@ -541,6 +460,7 @@ int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 	const uint8_t *certs, size_t certslen);
 int tls_record_set_handshake_certificate_from_pem(uint8_t *record, size_t *recordlen, FILE *fp);
 int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen);
+
 int tls_certificate_get_subject_names(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
 int tls_certificate_get_public_keys(const uint8_t *certs, size_t certslen, SM2_KEY *sign_key, SM2_KEY *enc_key);
 int tls_certificate_print(FILE *fp, const uint8_t *certs, size_t certslen, int format, int indent);
@@ -657,6 +577,113 @@ int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 int tls12_record_recv(uint8_t *record, size_t *recordlen, int sock);
 
 
+
+
+
+
+
+
+typedef struct {
+	int protocol_versions[4];
+	size_t protocol_versions_cnt;
+	int cipher_suites[8];
+	size_t cipher_suits_cnt;
+	uint8_t certs[4096];
+	size_t certslen;
+	SM2_KEY key;
+	SM2_KEY ex_key;
+	uint8_t cacerts[2048];
+	size_t cacertslen;
+	int shutdown_mode;
+} TLS_CTX;
+
+int tls_ctx_set_protocol_versions(TLS_CTX *ctx, const int *versions, size_t versions_cnt);
+int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const char *ciphers);
+int tls_ctx_set_certificats_and_keys(TLS_CTX *ctx, FILE *certs_fp, FILE *key_fp, const char *pass, FILE *ex_key_fp, const char *ex_pass);
+int tls_ctx_set_ca_certificates(TLS_CTX *ctx, FILE *fp, int depth);
+int tls_ctx_set_crl(TLS_CTX *ctx, FILE *fp);
+int tls_ctx_set_client_verify_ca_certificates(TLS_CTX *ctx, FILE *fp, int depth);
+int tls_ctx_set_shutdown_mode(TLS_CTX *ctx, int mode);
+
+
+
+
+
+
+
+typedef struct {
+	int version;
+	int cipher_suite;
+	uint8_t session_id[32];
+	size_t session_id_len;
+	uint8_t peer_certs[1600];
+	size_t peer_certs_len;
+	uint8_t master_secret[48];
+	int client_cert_verify_result;
+	time_t start_time;
+	int timeout_secs;
+} TLS_SESSION;
+
+typedef struct {
+	int sock;
+	int is_client;
+
+	int version;
+	int cipher_suite;
+	uint8_t session_id[32];
+	size_t session_id_len;
+	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; //
+	size_t server_certs_len;
+	uint8_t client_certs[TLS_MAX_CERTIFICATES_SIZE];
+	size_t client_certs_len;
+	int client_cert_verify_result;
+	uint8_t master_secret[48];
+
+	SM3_HMAC_CTX client_write_mac_ctx;
+	SM3_HMAC_CTX server_write_mac_ctx;
+	SM4_KEY client_write_enc_key;
+	SM4_KEY server_write_enc_key;
+	uint8_t client_seq_num[8];
+	uint8_t server_seq_num[8];
+
+	uint8_t key_block[96]; // 这个似乎不应该放在这里
+	BLOCK_CIPHER_KEY client_write_key; // used in tls13.c
+	BLOCK_CIPHER_KEY server_write_key; // used in tls13.c
+	uint8_t client_write_iv[12]; // 同样
+	uint8_t server_write_iv[12];
+
+	uint8_t record[TLS_MAX_RECORD_SIZE];
+	uint8_t handshakes[TLS_MAX_HANDSHAKES_SIZE];
+	size_t handshakes_len;
+
+	int do_trace;
+} TLS_CONNECT;
+
+
+int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx);
+int tls_set_fd(TLS_CONNECT *conn, int sock);
+int tls_get_verify_result(TLS_CONNECT *conn, int *result);
+
+
+
+
+
+
+// 客户端证书应该是预置的
+int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
+	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
+
+int tlcp_accept(TLS_CONNECT *conn, int port,
+	FILE *server_certs_fp, const SM2_KEY *server_sign_key, const SM2_KEY *server_enc_key,
+	FILE *client_cacerts_fp, uint8_t *client_cert_verify_buf, size_t client_cert_verify_buflen);
+
+
+int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
+int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen); // 发送、接收的数据量以单独的接口提供
+
+
+
+
 int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
 
@@ -683,7 +710,6 @@ int tls_secrets_print(FILE *fp,
 	const uint8_t master_secret[48],
 	const uint8_t *key_block, size_t key_block_len,
 	int format, int indent);
-
 
 
 int tls_ext_signature_algors_to_bytes(const int *algors, size_t algors_count,

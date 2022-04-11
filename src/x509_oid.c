@@ -164,8 +164,10 @@ static uint32_t oid_ce_policy_constraints[] = { oid_ce,36 };
 static uint32_t oid_ce_ext_key_usage[] = { oid_ce,37 };
 static uint32_t oid_ce_freshest_crl[] = { oid_ce,46 };
 static uint32_t oid_ce_inhibit_any_policy[] = { oid_ce,54 };
+static uint32_t oid_ce_crl_reasons[] = { oid_ce,21 }; // crl_entry_ext
+static uint32_t oid_ce_invalidity_date[] = { oid_ce,24 }; // crl_entry_ext
+static uint32_t oid_ce_certificate_issuer[] = { oid_ce,29 }; // crl_entry_ext
 static const size_t oid_ce_cnt = sizeof(oid_ce_subject_directory_attributes)/sizeof(int);
-
 static uint32_t oid_netscape_cert_comment[] = { 2,16,840,1,113730,1,13 };
 static uint32_t oid_cert_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
 static uint32_t oid_ct_precertificate_scts[] = { 1,3,6,1,4,1,11129,2,4,2 };
@@ -186,6 +188,9 @@ static const ASN1_OID_INFO x509_ext_ids[] = {
 	{ OID_ce_crl_distribution_points, "CRLDistributionPoints", oid_ce_crl_distribution_points, oid_ce_cnt },
 	{ OID_ce_inhibit_any_policy, "InhibitAnyPolicy", oid_ce_inhibit_any_policy, oid_ce_cnt },
 	{ OID_ce_freshest_crl, "FreshestCRL", oid_ce_freshest_crl, oid_ce_cnt },
+	{ OID_ce_crl_reasons, "CRLReasons", oid_ce_crl_reasons, oid_ce_cnt },
+	{ OID_ce_invalidity_date, "InvalidityDate", oid_ce_invalidity_date, oid_ce_cnt },
+	{ OID_ce_certificate_issuer, "CertificateIssuer", oid_ce_certificate_issuer, oid_ce_cnt },
 	{ OID_netscape_cert_comment, "NetscapeCertComment", oid_netscape_cert_comment, sizeof(oid_netscape_cert_comment)/sizeof(int) },
 	{ OID_cert_authority_info_access, "CertificateAuthorityInformationAccess", oid_cert_authority_info_access, sizeof(oid_cert_authority_info_access)/sizeof(int) },
 	{ OID_ct_precertificate_scts, "CT-PrecertificateSCTs", oid_ct_precertificate_scts, sizeof(oid_ct_precertificate_scts)/sizeof(int) },

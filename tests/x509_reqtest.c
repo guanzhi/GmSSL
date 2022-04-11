@@ -105,7 +105,7 @@ static int test_x509_request_info(void)
 	format_bytes(stderr, 0, 4, "attributes", attrs, attrs_len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_request(void)
@@ -164,7 +164,7 @@ static int test_x509_request(void)
 	format_bytes(stderr, 0, 4, "signature", sig, siglen);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_req(void)
@@ -230,7 +230,7 @@ static int test_x509_req(void)
 
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 
@@ -244,10 +244,13 @@ static int test_x509_req(void)
 
 int main(void)
 {
-	int err = 0;
-	err += test_x509_request_info();
-	err += test_x509_request();
-	err += test_x509_req();
-	return err;
+	if (test_x509_request_info() != 1) goto err;
+	if (test_x509_request() != 1) goto err;
+	if (test_x509_req() != 1) goto err;
+	printf("%s all tests passed!\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
 }
 

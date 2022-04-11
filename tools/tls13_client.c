@@ -151,7 +151,7 @@ int main(int argc , char *argv[])
 			error_print();
 			return -1;
 		}
-		if (sm2_private_key_from_pem(&sign_key, keyfp) != 1) {
+		if (sm2_private_key_info_decrypt_from_pem(&sign_key, "password", keyfp) != 1) {
 			error_print();
 			return -1;
 		}

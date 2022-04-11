@@ -84,7 +84,7 @@ static int test_x509_crl_reason(void)
 	}
 	(void)asn1_length_is_zero(len);
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_crl_entry_ext(void)
@@ -118,7 +118,7 @@ static int test_x509_crl_entry_ext(void)
 	}
 	(void)asn1_length_is_zero(len);
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_crl_entry_exts(void)
@@ -144,9 +144,10 @@ static int test_x509_crl_entry_exts(void)
 		error_print();
 		return -1;
 	}
-	x509_crl_entry_exts_print(stderr, 0, 0, "CRL Entry Extensions", exts, extslen);
+	x509_crl_entry_exts_print(stderr, 0, 0, "CRLEntryExtensions", exts, extslen);
 
-	return 0;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 static int test_x509_revoked_cert(void)
@@ -171,16 +172,19 @@ static int test_x509_revoked_cert(void)
 	}
 	x509_revoked_cert_print(stderr, 0, 0, "RevokedCertificate", d, dlen);
 
-	return 0;
+	return 1;
 }
 
 
 int main(void)
 {
-	int err = 0;
-	err += test_x509_crl_reason();
-	err += test_x509_crl_entry_ext();
-	//err += test_x509_crl_entry_exts();
-	err += test_x509_revoked_cert();
-	return err;
- }
+	if (test_x509_crl_reason() != 1) goto err;
+	if (test_x509_crl_entry_ext() != 1) goto err;
+	if (test_x509_crl_entry_exts() != 1) goto err;
+	if (test_x509_revoked_cert() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
+}

@@ -97,7 +97,7 @@ static int test_x509_other_name(void)
 	asn1_object_identifier_print(stderr, 0, 4, "type-id", NULL, nodes, nodes_cnt);
 	format_bytes(stderr, 0, 4, "value", val, vlen);
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_edi_party_name(void)
@@ -147,7 +147,7 @@ static int test_x509_edi_party_name(void)
 	x509_directory_name_print(stderr, 0, 4, "partyName", party_name_tag,  party_name, party_name_len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_general_name(void)
@@ -205,7 +205,7 @@ static int test_x509_general_name(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 uint8_t general_names[202] = {
@@ -277,7 +277,7 @@ static int test_x509_authority_key_identifier(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_key_usage(void)
@@ -322,7 +322,7 @@ static int test_x509_key_usage(void)
 	(void)asn1_length_is_zero(len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_notice_reference(void)
@@ -371,7 +371,7 @@ static int test_x509_notice_reference(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_user_notice(void)
@@ -426,7 +426,7 @@ static int test_x509_user_notice(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_policy_qualifier_info(void)
@@ -452,7 +452,7 @@ static int test_x509_policy_qualifier_info(void)
 
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_policy_mapping(void)
@@ -500,13 +500,13 @@ static int test_x509_policy_mapping(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 // 这里的一些OID应该在RFC中有，但是我们不实现
 static int test_x509_attribute(void)
 {
-	return 0;
+	return -1;
 }
 
 
@@ -576,7 +576,6 @@ static int test_x509_basic_constraints(void)
 		error_print();
 		return -1;
 	}
-	return 0;
 
 	cp = p = buf; len = 0;
 	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != 1 // should return error
@@ -586,7 +585,7 @@ static int test_x509_basic_constraints(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_general_subtree(void)
@@ -642,7 +641,7 @@ static int test_x509_general_subtree(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_policy_constraints(void)
@@ -706,7 +705,7 @@ static int test_x509_policy_constraints(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_ext_key_usage(void)
@@ -748,7 +747,7 @@ static int test_x509_ext_key_usage(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_revoke_reasons(void)
@@ -785,7 +784,7 @@ static int test_x509_revoke_reasons(void)
 	(void)asn1_length_is_zero(len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_exts(void)
@@ -821,7 +820,7 @@ static int test_x509_exts(void)
 
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_x509_cert_with_exts(void)
@@ -878,7 +877,7 @@ static int test_x509_cert_with_exts(void)
 	x509_cert_print(stderr, 0, 0, "Certificate", cert, certlen);
 
 
-	return 0;
+	return 1;
 }
 
 
@@ -887,22 +886,25 @@ static int test_x509_cert_with_exts(void)
 
 int main(int argc, char **argv)
 {
-	int err = 0;
-	//err += test_x509_other_name();
-	//err += test_x509_edi_party_name();
-	err += test_x509_general_name();
-	err += test_x509_authority_key_identifier();
-	err += test_x509_key_usage();
-	err += test_x509_notice_reference();
-	err += test_x509_user_notice();
-	err += test_x509_policy_qualifier_info();
-	err += test_x509_policy_mapping();
-	err += test_x509_basic_constraints();
-	err += test_x509_general_subtree();
-	err += test_x509_policy_constraints();
-	err += test_x509_ext_key_usage();
-	err += test_x509_revoke_reasons();
-	err += test_x509_exts();
-	err += test_x509_cert_with_exts();
-	return err;
+	if (test_x509_other_name() != 1) goto err;
+	if (test_x509_edi_party_name() != 1) goto err;
+	if (test_x509_general_name() != 1) goto err;
+	if (test_x509_authority_key_identifier() != 1) goto err;
+	if (test_x509_key_usage() != 1) goto err;
+	if (test_x509_notice_reference() != 1) goto err;
+	if (test_x509_user_notice() != 1) goto err;
+	if (test_x509_policy_qualifier_info() != 1) goto err;
+	if (test_x509_policy_mapping() != 1) goto err;
+	if (test_x509_basic_constraints() != 1) goto err;
+	if (test_x509_general_subtree() != 1) goto err;
+	if (test_x509_policy_constraints() != 1) goto err;
+	if (test_x509_ext_key_usage() != 1) goto err;
+	if (test_x509_revoke_reasons() != 1) goto err;
+	if (test_x509_exts() != 1) goto err;
+	if (test_x509_cert_with_exts() != 1) goto err;
+	printf("%s all tests passed!\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
 }
