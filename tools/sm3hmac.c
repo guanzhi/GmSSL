@@ -54,7 +54,7 @@
 #include <gmssl/error.h>
 
 
-int main(int argc, char **argv)
+int sm3hmac_main(int argc, char **argv)
 {
 	int ret = -1;
 	char *prog = argv[0];

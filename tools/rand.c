@@ -47,38 +47,53 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <gmssl/pem.h>
-#include <gmssl/x509.h>
-#include <gmssl/x509_crl.h>
+#include <string.h>
+#include <limits.h>
+#include <gmssl/rand.h>
 #include <gmssl/error.h>
 
-static const char *options = "[-in file]";
 
-int crlparse_main(int argc, char **argv)
+static const char *options = "[-hex] [-rdrand] -outlen num";
+
+int rand_main(int argc, char **argv)
 {
+	int ret = -1;
 	char *prog = argv[0];
-	char *infile = NULL;
-	FILE *infp = stdin;
-
-	uint8_t crl[18192];
-	size_t crllen;
+	int hex = 0;
+	int rdrand = 0;
+	int outlen = 0;
+	uint8_t buf[2048];
+	int i;
 
 	argc--;
 	argv++;
 
+	if (argc < 1) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
+
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
-			return 0;
-		} else if (!strcmp(*argv, "-in")) {
+			fprintf(stderr, "usage: %s %s\n", prog, options);
+			return 1;
+		} else if (!strcmp(*argv, "-hex")) {
+			hex = 1;
+		} else if (!strcmp(*argv, "-rdrand")) {
+			// rdrand = 1; // FIXME: CMakeList.txt should be updated to support this option
+		} else if (!strcmp(*argv, "-outlen")) {
 			if (--argc < 1) goto bad;
-			infile = *(++argv);
+			outlen = atoi(*(++argv));
+			if (outlen < 1 || outlen > INT_MAX) {
+				error_print();
+				return 1;
+			}
 		} else {
+			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			return 1;
 bad:
-			fprintf(stderr, "%s: llegal option '%s'\n", prog, *argv);
-			printf("usage: %s %s\n", prog, options);
+			fprintf(stderr, "%s: invalid option argument\n", prog);
 			return 1;
 		}
 
@@ -86,23 +101,43 @@ bad:
 		argv++;
 	}
 
-	if (infile) {
-		if (!(infp = fopen(infile, "r"))) {
-			error_print();
-			return -1;
-		}
+	if (!outlen) {
+		error_print();
+		return 1;
 	}
 
-	for (;;) {
-		int ret;
-		if ((ret = x509_crl_from_pem(crl, &crllen, sizeof(crl), infp)) < 0) {
-			error_print();
-			return -1;
-		} else if (!ret) {
-			break;
+	while (outlen) {
+		size_t len = outlen < sizeof(buf) ? outlen : sizeof(buf);
+
+		if (rdrand) {
+/*
+			if (rdrand_bytes(buf, len) != 1) {
+				error_print();
+				return 1;
+			}
+*/
+		} else {
+			if (rand_bytes(buf, len) != 1) {
+				error_print();
+				return -1;
+			}
 		}
-		x509_crl_print(stdout, 0, 0, "CRL", crl, crllen);
-	//	x509_crl_to_pem(crl, crllen, stdout);
+
+		if (hex) {
+			int i;
+			for (i = 0; i < len; i++) {
+				fprintf(stdout, "%02X", buf[i]);
+			}
+		} else {
+			fwrite(buf, 1, len, stdout);
+		}
+
+		outlen -= len;
 	}
+
+	if (hex) {
+		fprintf(stdout, "\n");
+	}
+
 	return 0;
 }

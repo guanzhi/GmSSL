@@ -54,7 +54,7 @@
 #include <gmssl/error.h>
 
 
-const char *http_get =
+static const char *http_get =
 	"GET / HTTP/1.1\r\n"
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
@@ -63,7 +63,7 @@ const char *http_get =
 // 虽然服务器可以用双证书，但是客户端只能使用一个证书，也就是签名证书
 static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file [-pass str]]";
 
-int main(int argc, char *argv[])
+int tlcp_client_main(int argc, char *argv[])
 {
 	int ret = -1;
 	char *prog = argv[0];

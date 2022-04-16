@@ -55,7 +55,7 @@
 #include <gmssl/error.h>
 
 
-void print_usage(const char *prog)
+static void print_usage(const char *prog)
 {
 	printf("Usage: %s [options]\n", prog);
 	printf("  -port <num>\n");
@@ -63,7 +63,7 @@ void print_usage(const char *prog)
 	printf("  -signkey <file>\n");
 }
 
-int main(int argc , char *argv[])
+int tls13_server_main(int argc , char *argv[])
 {
 	int ret = -1;
 	char *prog = argv[0];

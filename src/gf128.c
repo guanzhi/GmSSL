@@ -59,6 +59,7 @@
 #include <gmssl/gf128.h>
 #include "endian.h"
 
+
 gf128_t gf128_zero(void)
 {
 	uint8_t zero[16] = {0};
@@ -87,92 +88,31 @@ int gf128_equ_hex(gf128_t a, const char *s)
 void gf128_print_bits(gf128_t a)
 {
 	int i;
-	for (i = 0; i < 128; i++) {
-		printf("%d", (int)(a % 2)); //FIXME
-		a >>= 1;
+	for (i = 0; i < 64; i++) {
+		printf("%d", (int)(a.hi % 2));
+		a.hi >>= 1;
+	}
+	for (i = 0; i < 64; i++) {
+		printf("%d", (int)(a.lo % 2));
+		a.lo >>= 1;
 	}
 	printf("\n");
 }
 
-void gf128_print(const char *s, gf128_t a)
+int gf128_print(FILE *fp, int fmt, int ind, const char *label, gf128_t a)
 {
 	uint8_t be[16];
 	int i;
 
-	printf("%s", s);
+	printf("%s", label);
 	gf128_to_bytes(a, be);
 	for (i = 0; i < 16; i++) {
 		printf("%02X", be[i]);
 	}
 	printf("\n");
+	return 1;
 }
 
-#ifdef GMSSL_HAVE_UINT128
-gf128_t gf128_mul(gf128_t a, gf128_t b)
-{
-	const gf128_t mask = (gf128_t)1 << 127;
-
-	gf128_t r = 0;
-	int i;
-
-	for (i = 0; i < 128; i++) {
-		// r = r * 2
-		if (r & mask)
-			r = (r << 1) ^ 0x87;
-		else	r <<= 1;
-
-		// if b[127-i] == 1, r = r + a
-		if (b & mask)
-			r ^= a;
-		b <<= 1;
-	}
-	return r;
-}
-
-gf128_t gf128_add(gf128_t a, gf128_t b)
-{
-	return a ^ b;
-}
-
-gf128_t gf128_mul2(gf128_t a)
-{
-	if (a & ((gf128_t)1 << 127))
-		return (a << 1) ^ 0x87;
-	else	return (a << 1);
-}
-
-gf128_t gf128_reverse(gf128_t a)
-{
-	gf128_t r = 0;
-	int i;
-
-	for (i = 0; i < 128; i++) {
-		r = (r << 1) | (a & 1);
-		a >>= 1;
-	}
-	return r;
-}
-
-gf128_t gf128_from_bytes(const uint8_t p[16])
-{
-	uint64_t hi = GETU64(p);
-	uint64_t lo = GETU64(p + 8);
-	gf128_t r = (gf128_t)hi << 64 | lo;
-	r = gf128_reverse(r);
-	return r;
-}
-
-void gf128_to_bytes(gf128_t a, uint8_t p[16])
-{
-	a = gf128_reverse(a);
-	uint64_t hi = a >> 64;
-	uint64_t lo = a;
-	PUTU64(p, hi);
-	PUTU64(p + 8, lo);
-}
-
-
-#else
 gf128_t gf128_from_bytes(const uint8_t p[16])
 {
 	gf128_t r;
@@ -253,4 +193,68 @@ gf128_t gf128_mul2(gf128_t a)
 
 	return r;
 }
-#endif
+
+/*
+gf128_t gf128_mul(gf128_t a, gf128_t b)
+{
+	const gf128_t mask = (gf128_t)1 << 127;
+
+	gf128_t r = 0;
+	int i;
+
+	for (i = 0; i < 128; i++) {
+		// r = r * 2
+		if (r & mask)
+			r = (r << 1) ^ 0x87;
+		else	r <<= 1;
+
+		// if b[127-i] == 1, r = r + a
+		if (b & mask)
+			r ^= a;
+		b <<= 1;
+	}
+	return r;
+}
+
+gf128_t gf128_add(gf128_t a, gf128_t b)
+{
+	return a ^ b;
+}
+
+gf128_t gf128_mul2(gf128_t a)
+{
+	if (a & ((gf128_t)1 << 127))
+		return (a << 1) ^ 0x87;
+	else	return (a << 1);
+}
+
+gf128_t gf128_reverse(gf128_t a)
+{
+	gf128_t r = 0;
+	int i;
+
+	for (i = 0; i < 128; i++) {
+		r = (r << 1) | (a & 1);
+		a >>= 1;
+	}
+	return r;
+}
+
+gf128_t gf128_from_bytes(const uint8_t p[16])
+{
+	uint64_t hi = GETU64(p);
+	uint64_t lo = GETU64(p + 8);
+	gf128_t r = (gf128_t)hi << 64 | lo;
+	r = gf128_reverse(r);
+	return r;
+}
+
+void gf128_to_bytes(gf128_t a, uint8_t p[16])
+{
+	a = gf128_reverse(a);
+	uint64_t hi = a >> 64;
+	uint64_t lo = a;
+	PUTU64(p, hi);
+	PUTU64(p + 8, lo);
+}
+*/

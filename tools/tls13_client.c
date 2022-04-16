@@ -54,7 +54,7 @@
 #include <gmssl/error.h>
 
 
-const char *http_get =
+static const char *http_get =
 	"GET / HTTP/1.1\r\n"
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
@@ -69,7 +69,7 @@ void print_usage(const char *prog)
 	printf("  -key <file>\n");
 }
 
-int main(int argc , char *argv[])
+int tls13_client_main(int argc , char *argv[])
 {
 	int ret = -1;
 	char *prog = argv[0];

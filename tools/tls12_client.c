@@ -62,7 +62,7 @@ const char *http_get =
 
 static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file [-pass str]]";
 
-int main(int argc , char *argv[])
+int tls12_client_main(int argc , char *argv[])
 {
 	char *prog = argv[0];
 	char *host = NULL;

@@ -62,7 +62,7 @@
 #endif
 
 
-int main(int argc, char **argv)
+int sm2decrypt_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *keyfile = NULL;

@@ -87,9 +87,9 @@ int main(void)
 	gf128_t T = gf128_mul(C, H);
 
 
-	gf128_print("C = ", C);
-	gf128_print("H = ", H);
-	gf128_print("C * H = ", T);
+	gf128_print(stderr, 0, 0, "C", C);
+	gf128_print(stderr, 0, 0, "H", H);
+	gf128_print(stderr, 0, 0, "C * H", T);
 
 	return 0;
 }

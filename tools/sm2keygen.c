@@ -59,7 +59,7 @@
 #include <unistd.h>
 #endif
 
-int main(int argc, char **argv)
+int sm2keygen_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *pass = NULL;

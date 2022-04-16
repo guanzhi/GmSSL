@@ -47,38 +47,65 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <gmssl/pem.h>
-#include <gmssl/x509.h>
-#include <gmssl/x509_crl.h>
+#include <string.h>
+#include <gmssl/pbkdf2.h>
+#include <gmssl/hex.h>
 #include <gmssl/error.h>
 
-static const char *options = "[-in file]";
 
-int crlparse_main(int argc, char **argv)
+static const char *options = "-salt hex -iter num [-pass str] -outlen num";
+
+int pbkdf2_main(int argc, char **argv)
 {
+	int ret = -1;
 	char *prog = argv[0];
-	char *infile = NULL;
-	FILE *infp = stdin;
-
-	uint8_t crl[18192];
-	size_t crllen;
+	char *salthex = NULL;
+	uint8_t salt[PBKDF2_MAX_SALT_SIZE];
+	size_t saltlen;
+	int iter = 0;
+	char *pass = NULL;
+	int outlen = 0;
+	uint8_t outbuf[64];
+	int i;
 
 	argc--;
 	argv++;
 
+	if (argc < 1) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
+
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
-			return 0;
-		} else if (!strcmp(*argv, "-in")) {
+			fprintf(stderr, "usage: %s %s\n", prog, options);
+			return 1;
+		} else if (!strcmp(*argv, "-salt")) {
 			if (--argc < 1) goto bad;
-			infile = *(++argv);
+			salthex = *(++argv);
+		} else if (!strcmp(*argv, "-iter")) {
+			if (--argc < 1) goto bad;
+			iter = atoi(*(++argv));
+			if (iter < PBKDF2_MIN_ITER || iter > INT_MAX) {
+				error_print();
+				return 1;
+			}
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
+		} else if (!strcmp(*argv, "-outlen")) {
+			if (--argc < 1) goto bad;
+			outlen = atoi(*(++argv));
+			if (outlen < 1 || outlen > sizeof(outbuf)) {
+				error_print();
+				return 1;
+			}
 		} else {
+			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			return 1;
 bad:
-			fprintf(stderr, "%s: llegal option '%s'\n", prog, *argv);
-			printf("usage: %s %s\n", prog, options);
+			fprintf(stderr, "%s: invalid option argument\n", prog);
 			return 1;
 		}
 
@@ -86,23 +113,43 @@ bad:
 		argv++;
 	}
 
-	if (infile) {
-		if (!(infp = fopen(infile, "r"))) {
-			error_print();
-			return -1;
-		}
+	if (!salthex) {
+		error_print();
+		return 1;
+	}
+	if (strlen(salthex) > sizeof(salt) * 2) {
+		error_print();
+		return 1;
+	}
+	if (hex_to_bytes(salthex, strlen(salthex), salt, &saltlen) != 1) {
+		error_print();
+		return 1;
 	}
 
-	for (;;) {
-		int ret;
-		if ((ret = x509_crl_from_pem(crl, &crllen, sizeof(crl), infp)) < 0) {
-			error_print();
-			return -1;
-		} else if (!ret) {
-			break;
-		}
-		x509_crl_print(stdout, 0, 0, "CRL", crl, crllen);
-	//	x509_crl_to_pem(crl, crllen, stdout);
+	if (!iter) {
+		error_print();
+		return 1;
 	}
+	if (!outlen) {
+		error_print();
+		return 1;
+	}
+
+
+	if (!pass) {
+		error_print();
+		return -1;
+	}
+
+	if (pbkdf2_hmac_sm3_genkey(pass, strlen(pass), salt, saltlen, iter, outlen, outbuf) != 1) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < outlen; i++) {
+		printf("%02X", outbuf[i]);
+	}
+	printf("\n");
+
+
 	return 0;
 }

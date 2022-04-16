@@ -66,7 +66,7 @@ static const char *options =
 	"[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num"
 	" -key file [-pass pass] [-out file]";
 
-int main(int argc, char **argv)
+int reqgen_main(int argc, char **argv)
 {
 	int ret = -1;
 	char *prog = argv[0];

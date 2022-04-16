@@ -55,7 +55,7 @@
 
 static const char *options = "[-in file]";
 
-int main(int argc, char **argv)
+int certparse_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *infile = NULL;

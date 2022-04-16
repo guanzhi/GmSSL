@@ -55,7 +55,7 @@
 #include <gmssl/error.h>
 
 
-int main(int argc, char **argv)
+int reqparse_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *infile = NULL;

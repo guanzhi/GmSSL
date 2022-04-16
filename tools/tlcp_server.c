@@ -58,7 +58,7 @@
 
 static const char *options = "[-port num] -cert file -key file [-pass str] -ex_key file [-ex_pass str] [-cacert file]";
 
-int main(int argc , char **argv)
+int tlcp_server_main(int argc , char **argv)
 {
 	int ret = -1;
 	char *prog = argv[0];

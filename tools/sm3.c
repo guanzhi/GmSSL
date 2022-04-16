@@ -54,7 +54,7 @@
 #include <gmssl/error.h>
 
 
-int main(int argc, char **argv)
+int sm3_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *pubkeyfile = NULL;

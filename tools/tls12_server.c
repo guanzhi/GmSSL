@@ -58,7 +58,7 @@
 // 因此如果提供了CA证书，那么等同于要求客户端验证
 static const char *options = " [-port num] -cert file -key file [-pass str] [-cacert file]";
 
-int main(int argc , char *argv[])
+int tls12_server_main(int argc , char *argv[])
 {
 	int ret = -1;
 	char *prog = argv[0];

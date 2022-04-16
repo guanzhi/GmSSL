@@ -75,7 +75,7 @@ static int ext_key_usage_set(int *usages, const char *usage_name)
 
 static const char *usage = "usage: %s [-in file] -days num -cacert file -key file [-pass str] [-out file]\n";
 
-int main(int argc, char **argv)
+int reqsign_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *file;

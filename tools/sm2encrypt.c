@@ -58,7 +58,7 @@
 #include <gmssl/error.h>
 
 
-int main(int argc, char **argv)
+int sm2encrypt_main(int argc, char **argv)
 {
 	int ret;
 	char *prog = argv[0];

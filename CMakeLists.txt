@@ -12,8 +12,6 @@ include_directories(include)
 add_library(
 	gmssl
 
-	SHARED
-
 	src/aes.c
 	src/aes_modes.c
 	src/asn1.c
@@ -78,49 +76,36 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 # tools
 
-add_executable (sm2keygen tools/sm2keygen.c)
-add_executable (sm2sign tools/sm2sign.c)
-add_executable (sm2verify tools/sm2verify.c)
-add_executable (sm2encrypt tools/sm2encrypt.c)
-add_executable (sm2decrypt tools/sm2decrypt.c)
-add_executable (sm3 tools/sm3.c)
-add_executable (sm3hmac tools/sm3hmac.c)
-add_executable (sm4 tools/sm4.c)
-add_executable (certgen tools/certgen.c)
-add_executable (certparse tools/certparse.c)
-add_executable (certverify tools/certverify.c)
-add_executable (crlparse tools/crlparse.c)
-add_executable (reqgen tools/reqgen.c)
-add_executable (reqparse tools/reqparse.c)
-add_executable (reqsign tools/reqsign.c)
-add_executable (tlcp_client tools/tlcp_client.c)
-add_executable (tlcp_server tools/tlcp_server.c)
-add_executable (tls12_client tools/tls12_client.c)
-add_executable (tls12_server tools/tls12_server.c)
-add_executable (tls13_client tools/tls13_client.c)
-add_executable (tls13_server tools/tls13_server.c)
+add_executable(
+	gmssl-bin
+	tools/gmssl.c
+	tools/rand.c
+	tools/sm2keygen.c
+	tools/sm2sign.c
+	tools/sm2verify.c
+	tools/sm2encrypt.c
+	tools/sm2decrypt.c
+	tools/sm3.c
+	tools/sm3hmac.c
+	tools/sm4.c
+	tools/certgen.c
+	tools/certparse.c
+	tools/certverify.c
+	tools/crlparse.c
+	tools/pbkdf2.c
+	tools/reqgen.c
+	tools/reqparse.c
+	tools/reqsign.c
+	tools/tlcp_client.c
+	tools/tlcp_server.c
+	tools/tls12_client.c
+	tools/tls12_server.c
+	tools/tls13_client.c
+	tools/tls13_server.c
+)
+target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
+set_target_properties (gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
 
-target_link_libraries (sm2keygen LINK_PUBLIC gmssl)
-target_link_libraries (sm2sign LINK_PUBLIC gmssl)
-target_link_libraries (sm2verify LINK_PUBLIC gmssl)
-target_link_libraries (sm2encrypt LINK_PUBLIC gmssl)
-target_link_libraries (sm2decrypt LINK_PUBLIC gmssl)
-target_link_libraries (sm3 LINK_PUBLIC gmssl)
-target_link_libraries (sm3hmac LINK_PUBLIC gmssl)
-target_link_libraries (sm4 LINK_PUBLIC gmssl)
-target_link_libraries (reqgen LINK_PUBLIC gmssl)
-target_link_libraries (reqparse LINK_PUBLIC gmssl)
-target_link_libraries (reqsign LINK_PUBLIC gmssl)
-target_link_libraries (certgen LINK_PUBLIC gmssl)
-target_link_libraries (certparse LINK_PUBLIC gmssl)
-target_link_libraries (certverify LINK_PUBLIC gmssl)
-target_link_libraries (crlparse LINK_PUBLIC gmssl)
-target_link_libraries (tlcp_client LINK_PUBLIC gmssl)
-target_link_libraries (tlcp_server LINK_PUBLIC gmssl)
-target_link_libraries (tls12_client LINK_PUBLIC gmssl)
-target_link_libraries (tls12_server LINK_PUBLIC gmssl)
-target_link_libraries (tls13_client LINK_PUBLIC gmssl)
-target_link_libraries (tls13_server LINK_PUBLIC gmssl)
 
 # tests
 enable_testing()
@@ -231,7 +216,6 @@ add_executable(tlstest tests/tlstest.c)
 target_link_libraries (tlstest LINK_PUBLIC gmssl)
 
 
-
 enable_testing()
 add_test(NAME aes		COMMAND aestest)
 add_test(NAME asn1		COMMAND asn1test)
@@ -272,9 +256,7 @@ add_test(NAME x509_ext		COMMAND x509_exttest)
 add_test(NAME zuc		COMMAND zuctest)
 
 
-INSTALL(TARGETS sm3 sm3hmac sm4 sm2keygen sm2sign sm2verify sm2encrypt sm2decrypt RUNTIME DESTINATION bin)
-INSTALL(TARGETS certparse certgen certverify reqgen reqparse reqsign RUNTIME DESTINATION bin)
-INSTALL(TARGETS tlcp_client tlcp_server tls12_client tls12_server RUNTIME DESTINATION bin)
 INSTALL(TARGETS gmssl LIBRARY DESTINATION lib)
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
+INSTALL(TARGETS gmssl RUNTIME DESTINATION bin)
 

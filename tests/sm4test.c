@@ -166,43 +166,6 @@ static int test_ctr32(int avx)
 	return 0;
 }
 
-
-/*
-static int test_ede(void)
-{
-	SM4_KEY key;
-	sm4_ede_key_t ede_key;
-	unsigned char user_key[48];
-	unsigned char in[16];
-	unsigned char out1[16];
-	unsigned char out2[16];
-
-	RAND_bytes(in, sizeof(in));
-
-	RAND_bytes(user_key, 16);
-	memcpy(user_key + 16, user_key, 16);
-	memcpy(user_key + 32, user_key, 16);
-	sm4_set_encrypt_key(&key, user_key);
-	sm4_encrypt(in, out1, &key);
-	sm4_ede_set_encrypt_key(&ede_key, user_key);
-	sm4_ede_encrypt(in, out2, &ede_key);
-	if (memcmp(out1, out2, 16) != 0) {
-		return 0;
-	}
-
-	RAND_bytes(user_key, sizeof(user_key));
-	sm4_ede_set_encrypt_key(&ede_key, user_key);
-	sm4_ede_encrypt(in, out1, &ede_key);
-	sm4_ede_set_decrypt_key(&ede_key, user_key);
-	sm4_ede_decrypt(out1, out2, &ede_key);
-	if (memcmp(in, out2, 16) != 0) {
-		return 0;
-	}
-
-	return 1;
-}
-*/
-
 int test_sm4(void)
 {
 	int err = 0;
@@ -280,16 +243,6 @@ int test_sm4(void)
 		err++;
 	} else
 		printf("sm4 ctr32 pass!\n");
-
-	/* test ede */
-/*
-	if (!test_ede()) {
-		printf("sm4 ede not pass!\n");
-		err++;
-	} else
-		printf("sm4 ede pass!\n");
-*/
-
 
 # ifdef SM4_AVX2
 	/* test ecb in avx2 */

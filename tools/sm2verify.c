@@ -60,7 +60,7 @@
 
 // sm2verify [-in file] {-pubkey pem | -cert pem} [-id str] -sig file
 
-int main(int argc, char **argv)
+int sm2verify_main(int argc, char **argv)
 {
 	int ret;
 	char *prog = argv[0];

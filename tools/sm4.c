@@ -53,10 +53,14 @@
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
 
-static const char *options = "-key hex -iv hex [-in file] [-out file]";
+
+#define SM4_MODE_CBC 1
+#define SM4_MODE_CTR 2
+
+static const char *options = "{-cbc|-ctr} {-encrypt|-decrypt} -key hex -iv hex [-in file] [-out file]";
 
 
-int main(int argc, char **argv)
+int sm4_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *keystr = NULL;
@@ -69,8 +73,10 @@ int main(int argc, char **argv)
 	size_t ivlen = sizeof(iv);
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
+	int mode = 0;
 	int enc = -1;
 	SM4_CBC_CTX cbc_ctx;
+	SM4_CTR_CTX ctr_ctx;
 	uint8_t inbuf[4096];
 	size_t inlen;
 	uint8_t outbuf[4196];
@@ -98,6 +104,12 @@ int main(int argc, char **argv)
 			enc = 1;
 		} else if (!strcmp(*argv, "-decrypt")) {
 			enc = 0;
+		} else if (!strcmp(*argv, "-cbc")) {
+			if (mode) goto bad;
+			mode = SM4_MODE_CBC;
+		} else if (!strcmp(*argv, "-ctr")) {
+			if (mode) goto bad;
+			mode = SM4_MODE_CTR;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
@@ -116,6 +128,10 @@ bad:
 		argv++;
 	}
 
+	if (!mode) {
+		fprintf(stderr, "%s: mode not assigned, -cbc or -ctr option required\n", prog);
+		return 1;
+	}
 
 	if (!keystr) {
 		error_print();
@@ -157,6 +173,36 @@ bad:
 		}
 	}
 
+
+	if (mode == SM4_MODE_CTR) {
+		if (sm4_ctr_encrypt_init(&ctr_ctx, key, iv) != 1) {
+			error_print();
+			return -1;
+		}
+		while ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) > 0) {
+			if (sm4_ctr_encrypt_update(&ctr_ctx, inbuf, inlen, outbuf, &outlen) != 1) {
+				error_print();
+				return -1;
+			}
+			if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
+				error_print();
+				return -1;
+			}
+		}
+		if (sm4_ctr_encrypt_finish(&ctr_ctx, outbuf, &outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
+			error_print();
+			return -1;
+		}
+
+
+		return 0;
+	}
+
+
 	if (enc < 0) {
 		error_print();
 		return -1;
@@ -185,8 +231,6 @@ bad:
 			error_print();
 			return -1;
 		}
-
-
 
 	} else {
 		if (sm4_cbc_decrypt_init(&cbc_ctx, key, iv) != 1) {

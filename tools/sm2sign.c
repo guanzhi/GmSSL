@@ -64,7 +64,7 @@
 // echo data | sm2sign -id "Alice" -keyfile sm2.pem
 // echo data | sm2verify -id "Alice" -keyfile sm2pub.pem -certfile a -cacertfile b
 
-int main(int argc, char **argv)
+int sm2sign_main(int argc, char **argv)
 {
 	char *prog = argv[0];
 	char *keyfile = NULL;

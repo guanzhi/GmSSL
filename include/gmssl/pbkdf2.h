@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <limits.h>
 #include <gmssl/hmac.h>
 
 #ifdef __cplusplus
@@ -61,7 +62,8 @@ extern "C" {
 
 
 #define PBKDF2_MIN_ITER			10000
-#define PBKDF2_MIN_SALT_SIZE		64
+#define PBKDF2_MAX_ITER			(INT_MAX)
+#define PBKDF2_MAX_SALT_SIZE		64
 #define PBKDF2_DEFAULT_SALT_SIZE	8
 
 

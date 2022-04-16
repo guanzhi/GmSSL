@@ -124,6 +124,22 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx, const uint8_t *in, size_t inlen, ui
 int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
 
 
+typedef struct {
+	SM4_KEY sm4_key;
+	uint8_t ctr[SM4_BLOCK_SIZE];
+	uint8_t block[SM4_BLOCK_SIZE];
+	size_t block_nbytes;
+} SM4_CTR_CTX;
+
+int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE]);
+int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen);
+
+#define sm4_ctr_decrypt_init(ctx,key,ctr) sm4_ctr_encrypt_init(ctx,key,ctr)
+#define sm4_ctr_decrypt_update(ctx,in,inlen,out,outlen) sm4_ctr_encrypt_update(ctx,in,inlen,out,outlen)
+#define sm4_ctr_decrypt_finish(ctx,out,outlen) sm4_ctr_encrypt_finish(ctx,out,outlen)
+
+
 #ifdef __cplusplus
 }
 #endif

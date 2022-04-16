@@ -59,7 +59,7 @@
 // 比如最基本的是证书中的签名、有效期、各个扩展等
 // 外部相关的：证书链、CRL等
 
-int main(int argc, char **argv)
+int certverify_main(int argc, char **argv)
 {
 	int ret = 0;
 	char *prog = argv[0];
