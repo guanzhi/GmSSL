@@ -93,6 +93,9 @@ static const char *options =
 	"	sm2verify\n"
 	"	sm2encrypt\n"
 	"	sm2decrypt\n"
+	"	sm3\n"
+	"	sm3hmac\n"
+	"	sm4\n"
 	"	pbkdf2\n"
 	"	reqgen\n"
 	"	reqsign\n"
@@ -163,6 +166,12 @@ help:
 			return sm2decrypt_main(argc, argv);
 		} else if (!strcmp(*argv, "sm2keygen")) {
 			return sm2keygen_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3")) {
+			return sm3_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3hmac")) {
+			return sm3hmac_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4")) {
+			return sm4_main(argc, argv);
 		} else if (!strcmp(*argv, "tlcp_client")) {
 			return tlcp_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tlcp_server")) {
