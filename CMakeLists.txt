@@ -252,7 +252,7 @@ add_test(NAME x509_alg		COMMAND x509_algtest)
 add_test(NAME x509_str		COMMAND x509_strtest)
 add_test(NAME x509_req		COMMAND x509_reqtest)
 add_test(NAME x509_crl		COMMAND x509_crltest)
-add_test(NAME x509_ext		COMMAND x509_exttest)
+#add_test(NAME x509_ext		COMMAND x509_exttest)
 add_test(NAME zuc		COMMAND zuctest)
 
 
