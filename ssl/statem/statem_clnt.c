@@ -2772,8 +2772,12 @@ int tls_construct_client_verify(SSL *s)
     }
 
     p = ssl_handshake_start(s);
-    pkey = s->cert->key->privatekey;
-
+    
+    if (SSL_IS_GMTLS(s) && s->cert->pkeys[SSL_PKEY_SM2].privatekey)
+        pkey = s->cert->pkeys[SSL_PKEY_SM2].privatekey;
+    else
+        pkey = s->cert->key->privatekey;
+    
     hdatalen = BIO_get_mem_data(s->s3->handshake_buffer, &hdata);
     if (hdatalen <= 0) {
         SSLerr(SSL_F_TLS_CONSTRUCT_CLIENT_VERIFY, ERR_R_INTERNAL_ERROR);
