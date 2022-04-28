@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <gmssl/hex.h>
+#include <gmssl/sm9.h>
 #include "endian.h"
 
 
