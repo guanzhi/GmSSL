@@ -46,6 +46,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdint.h>
+
 #ifndef GMSSL_SM9_H
 #define GMSSL_SM9_H
 
