@@ -507,7 +507,6 @@ int sm2_do_verify(const unsigned char *dgst, int dgstlen,
 	if (BN_ucmp(t, sig->r) == 0) {
 		ret = 1;
 	} else {
-		printf("%s %d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 		ret = 0;
 	}
 

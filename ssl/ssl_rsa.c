@@ -212,18 +212,6 @@ static int ssl_set_pkey(CERT *c, EVP_PKEY *pkey)
         }
     }
 
-#define GMTLS_DEBUG
-#ifdef GMTLS_DEBUG
-    switch (i) {
-    case SSL_PKEY_SM2:
-        fprintf(stderr, "[GMTLS_DEBUG] set sm2 signing private key\n");
-        break;
-    case SSL_PKEY_SM2_ENC:
-        fprintf(stderr, "[GMTLS_DEBUG] set sm2 decryption private key\n");
-        break;
-    }
-#endif
-
     EVP_PKEY_free(c->pkeys[i].privatekey);
     EVP_PKEY_up_ref(pkey);
     c->pkeys[i].privatekey = pkey;
@@ -428,17 +416,6 @@ static int ssl_set_cert(CERT *c, X509 *x)
             ERR_clear_error();
         }
     }
-
-#ifdef GMTLS_DEBUG
-    switch (i) {
-    case SSL_PKEY_SM2:
-        fprintf(stderr, "[GMTLS_DEBUG] set sm2 signing certificate\n");
-        break;
-    case SSL_PKEY_SM2_ENC:
-        fprintf(stderr, "[GMTLS_DEBUG] set sm2 encryption certificate\n");
-        break;
-    }
-#endif
 
     X509_free(c->pkeys[i].x509);
     X509_up_ref(x);
