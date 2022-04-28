@@ -270,6 +270,44 @@ static void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_poin
 
 void sm9_pairing_test();
 
+/* old API
+
+// set the same value as sm2
+#define SM9_MAX_ID_BITS		65535
+#define SM9_MAX_ID_SIZE		(SM9_MAX_ID_BITS/8)
+
+typedef struct {
+	uint8_t x[32];
+	uint8_t y[32];
+} SM9_POINT;
+
+typedef struct {
+	uint8_t x[64];
+	uint8_t y[64];
+} SM9_TWIST_POINT;
+
+typedef struct {
+	uint8_t ks[32];
+	SM9_TWIST_POINT Ppubs; // Ppubs = ks * P2
+} SM9_SIGN_MASTER_KEY;
+
+typedef struct {
+	SM9_POINT ds;
+} SM9_SIGN_KEY;
+
+typedef struct {
+	uint8_t h[32];
+	SM9_TWIST_POINT S;
+} SM9_SIGNATURE;
+
+int sm9_sign_setup(SM9_SIGN_MASTER_KEY *msk);
+int sm9_sign_keygen(SM9_SIGN_MASTER_KEY *msk, const char *id, size_t idlen, SM9_POINT *ds);
+
+int sm9_do_sign(SM9_SIGN_KEY *key, const uint8_t dgst[32], SM9_SIGNATURE *sig);
+int sm9_do_verify(SM9_SIGN_KEY *key, const uint8_t dgst[32], const SM9_SIGNATURE *sig);
+
+*/
+
 #  ifdef  __cplusplus
 }
 #  endif
