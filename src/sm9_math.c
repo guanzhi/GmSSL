@@ -54,19 +54,12 @@
 #include <gmssl/hex.h>
 #include "endian.h"
 
-typedef uint64_t sm9_bn_t[8];
-typedef sm9_bn_t sm9_fp_t;
-typedef sm9_bn_t sm9_fn_t;
-typedef uint64_t sm9_barrett_bn_t[9];
-typedef sm9_fp_t sm9_fp2_t[2];
-typedef sm9_fp2_t sm9_fp4_t[2];
-typedef sm9_fp4_t sm9_fp12_t[3];
-
 
 static const sm9_bn_t SM9_ZERO  = {0,0,0,0,0,0,0,0};
 static const sm9_bn_t SM9_ONE   = {1,0,0,0,0,0,0,0};
 static const sm9_bn_t SM9_TWO   = {2,0,0,0,0,0,0,0};
 static const sm9_bn_t SM9_FIVE  = {5,0,0,0,0,0,0,0};
+
 
 // p =  b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
 // n =  b640000002a3a6f1d603ab4ff58ec74449f2934b18ea8beee56ee19cd69ecf25
@@ -76,11 +69,6 @@ static const sm9_bn_t SM9_P_MINUS_ONE = {0xe351457c, 0xe56f9b27, 0x1a7aeedb, 0x2
 static const sm9_bn_t SM9_N = {0xd69ecf25, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
 static const sm9_bn_t SM9_MU = {0xd5c22146, 0x71188f90, 0x1e36081c, 0xf2665f6d, 0xdcd1312a, 0x55f73aeb, 0xeb5759a6, 0x167980e0b};
 
-typedef struct {
-	sm9_fp_t X;
-	sm9_fp_t Y;
-	sm9_fp_t Z;
-} sm9_point_t;
 
 // P1.X 0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD
 // P1.Y 0x21FE8DDA4F21E607631065125C395BBC1C1C00CBFA6024350C464CD70A3EA616
@@ -91,11 +79,6 @@ static const sm9_point_t _SM9_P1 = {
 };
 static const sm9_point_t *SM9_P1 = &_SM9_P1;
 
-typedef struct {
-	sm9_fp2_t X;
-	sm9_fp2_t Y;
-	sm9_fp2_t Z;
-} sm9_twist_point_t;
 
 /*
 	X : [0x3722755292130b08d2aab97fd34ec120ee265948d19c17abf9b7213baf82d65bn,
@@ -114,7 +97,6 @@ static const sm9_twist_point_t _SM9_P2 = {
 static const sm9_twist_point_t *SM9_P2 = &_SM9_P2;
 
 
-
 static const sm9_twist_point_t _SM9_Ppubs = {
 	{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
 	 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
@@ -124,16 +106,6 @@ static const sm9_twist_point_t _SM9_Ppubs = {
 };
 static const sm9_twist_point_t *SM9_Ppubs = &_SM9_Ppubs;
 
-
-
-
-#define sm9_bn_init(r)		memset((r),0,sizeof(sm9_bn_t))
-#define sm9_bn_clean(r)		memset((r),0,sizeof(sm9_bn_t))
-#define sm9_bn_set_zero(r)	memset((r),0,sizeof(sm9_bn_t))
-#define sm9_bn_set_one(r)	memcpy((r),&SM9_ONE,sizeof(sm9_bn_t))
-#define sm9_bn_copy(r,a)	memcpy((r),(a),sizeof(sm9_bn_t))
-#define sm9_bn_is_zero(a)	(memcmp((a),&SM9_ZERO, sizeof(sm9_bn_t)) == 0)
-#define sm9_bn_is_one(a)	(memcmp((a),&SM9_ONE, sizeof(sm9_bn_t)) == 0)
 
 static void sm9_bn_to_bytes(const sm9_bn_t a, uint8_t out[32])
 {
@@ -256,16 +228,6 @@ static void sm9_bn_rand_range(sm9_bn_t r, const sm9_bn_t range)
 	} while (sm9_bn_cmp(r, range) >= 0);
 	fclose(fp);
 }
-
-#define sm9_fp_init(a)		sm9_bn_init(a)
-#define sm9_fp_clean(a)		sm9_bn_clean(a)
-#define sm9_fp_is_zero(a)	sm9_bn_is_zero(a)
-#define sm9_fp_is_one(a)	sm9_bn_is_one(a)
-#define sm9_fp_set_zero(a)	sm9_bn_set_zero(a)
-#define sm9_fp_set_one(a)	sm9_bn_set_one(a)
-#define sm9_fp_from_hex(a,s) 	sm9_bn_from_hex((a),(s))
-#define sm9_fp_to_hex(a,s)	sm9_bn_to_hex((a),(s))
-#define sm9_fp_copy(r,a)	sm9_bn_copy((r),(a))
 
 static int sm9_fp_equ(const sm9_fp_t a, const sm9_fp_t b)
 {
@@ -486,20 +448,10 @@ static void sm9_fp_inv(sm9_fp_t r, const sm9_fp_t a)
 	sm9_fp_pow(r, a, e);
 }
 
-
-
 static const sm9_fp2_t SM9_FP2_ZERO = {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}};
 static const sm9_fp2_t SM9_FP2_ONE  = {{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}};
 static const sm9_fp2_t SM9_FP2_U    = {{0,0,0,0,0,0,0,0},{1,0,0,0,0,0,0,0}};
 static const sm9_fp2_t SM9_FP2_5U    = {{0,0,0,0,0,0,0,0},{5,0,0,0,0,0,0,0}};
-
-
-#define sm9_fp2_init(a)		memset((a), 0, sizeof(sm9_fp2_t))
-#define sm9_fp2_clean(a)	memset((a), 0, sizeof(sm9_fp2_t))
-#define sm9_fp2_is_zero(a)	(memcmp((a), &SM9_FP2_ZERO, sizeof(sm9_fp2_t)) == 0)
-#define sm9_fp2_is_one(a)	(memcmp((a), &SM9_FP2_ONE, sizeof(sm9_fp2_t)) == 0)
-#define sm9_fp2_copy(r,a)	memcpy((r), (a), sizeof(sm9_fp2_t))
-#define sm9_fp2_equ(a,b)	(memcmp((a),(b),sizeof(sm9_fp2_t)) == 0)
 
 static void sm9_fp2_from_hex(sm9_fp2_t r, const char hex[65 * 2])
 {
@@ -521,16 +473,11 @@ static void sm9_fp2_print(const char *prefix, const sm9_fp2_t a)
 	printf("%s\n%s\n", prefix, hex);
 }
 
-#define sm9_fp2_set_zero(a)	memset((a), 0, sizeof(sm9_fp2_t))
-#define sm9_fp2_set_one(a)	memcpy((a), &SM9_FP2_ONE, sizeof(sm9_fp2_t))
-
 static void sm9_fp2_set_fp(sm9_fp2_t r, const sm9_fp_t a)
 {
 	sm9_fp_copy(r[0], a);
 	sm9_fp_set_zero(r[1]);
 }
-
-#define sm9_fp2_set_u(a)	memcpy((a), &SM9_FP2_U, sizeof(sm9_fp2_t))
 
 static void sm9_fp2_set(sm9_fp2_t r, const sm9_fp_t a0, const sm9_fp_t a1)
 {
@@ -706,17 +653,6 @@ static const sm9_fp4_t SM9_FP4_ONE = {{{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{0
 static const sm9_fp4_t SM9_FP4_U = {{{0,0,0,0,0,0,0,0},{1,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
 static const sm9_fp4_t SM9_FP4_V = {{{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
 
-#define sm9_fp4_init(r)	memcpy((r), &SM9_FP4_ZERO, sizeof(sm9_fp4_t))
-#define sm9_fp4_clean(r)	memcpy((r), &SM9_FP4_ZERO, sizeof(sm9_fp4_t))
-#define sm9_fp4_set_zero(r)	memcpy((r), &SM9_FP4_ZERO, sizeof(sm9_fp4_t))
-#define sm9_fp4_set_one(r)	memcpy((r), &SM9_FP4_ONE, sizeof(sm9_fp4_t))
-#define sm9_fp4_is_zero(a)	(memcmp((a), &SM9_FP4_ZERO, sizeof(sm9_fp4_t)) == 0)
-#define sm9_fp4_is_one(a)	(memcmp((a), &SM9_FP4_ONE, sizeof(sm9_fp4_t)) == 0)
-#define sm9_fp4_equ(a,b)	(memcmp((a), (b), sizeof(sm9_fp4_t)) == 0)
-#define sm9_fp4_copy(r,a)	memcpy((r), (a), sizeof(sm9_fp4_t))
-
-
-
 static void sm9_fp4_from_hex(sm9_fp4_t r, const char hex[65 * 4])
 {
 	sm9_fp2_from_hex(r[1], hex);
@@ -882,12 +818,6 @@ static void sm9_fp4_inv(sm9_fp4_t r, const sm9_fp4_t a)
 	sm9_fp2_copy(r[0], r0);
 	sm9_fp2_copy(r[1], r1);
 }
-
-
-#define sm9_fp12_init(r)	memset((r), 0, sizeof(sm9_fp12_t))
-#define sm9_fp12_clean(r)	memset((r), 0, sizeof(sm9_fp12_t))
-#define sm9_fp12_set_zero(r)	memset((r), 0, sizeof(sm9_fp12_t))
-#define sm9_fp12_copy(r, a)	memcpy((r), (a), sizeof(sm9_fp12_t))
 
 static void sm9_fp12_set_one(sm9_fp12_t r)
 {
@@ -1312,8 +1242,6 @@ static void sm9_point_from_hex(sm9_point_t *R, const char hex[65 * 2])
 	sm9_bn_set_one(R->Z);
 }
 
-#define sm9_point_copy(R, P)	memcpy((R), (P), sizeof(sm9_point_t))
-
 static int sm9_point_is_at_infinity(const sm9_point_t *P) {
 	return sm9_fp_is_zero(P->X);
 }
@@ -1509,8 +1437,6 @@ static void sm9_twist_point_from_hex(sm9_twist_point_t *R, const char hex[65 * 4
 	sm9_fp2_from_hex(R->Y, hex + 65 * 2);
 	sm9_fp2_set_one(R->Z);
 }
-
-#define sm9_twist_point_copy(R, P)	memcpy((R), (P), sizeof(sm9_twist_point_t))
 
 static int sm9_twist_point_is_at_infinity(const sm9_twist_point_t *P)
 {
