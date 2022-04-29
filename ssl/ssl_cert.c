@@ -927,6 +927,10 @@ int ssl_add_cert_chain(SSL *s, CERT_PKEY *cpk, unsigned long *l)
             return 0;
         for (i = 0; i < sk_X509_num(extra_certs); i++) {
             x = sk_X509_value(extra_certs, i);
+
+            if (!SSL_IS_GMTLS(s) && X509_get_signature_nid(x) == NID_sm2sign_with_sm3)
+                continue;
+
             if (!ssl_add_cert_to_buf(buf, l, x))
                 return 0;
         }
