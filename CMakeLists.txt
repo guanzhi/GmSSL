@@ -50,7 +50,7 @@ add_library(
 	src/sm4_modes.c
 	src/sm4_setkey.c
 #	src/sm9_keygen.c
-#	src/sm9_math.c
+	src/sm9_math.c
 #	src/sm9_sign.c
 	src/tlcp.c
 	src/tls.c
@@ -194,6 +194,9 @@ target_link_libraries (sm3test LINK_PUBLIC gmssl)
 add_executable(sm4test tests/sm4test.c)
 target_link_libraries (sm4test LINK_PUBLIC gmssl)
 
+add_executable(sm9test tests/sm9test.c)
+target_link_libraries (sm9test LINK_PUBLIC gmssl)
+
 add_executable(x509test tests/x509test.c)
 target_link_libraries (x509test LINK_PUBLIC gmssl)
 add_executable(x509_oidtest tests/x509_oidtest.c)
@@ -245,6 +248,7 @@ add_test(NAME sha512		COMMAND sha512test)
 add_test(NAME sm2		COMMAND sm2test)
 add_test(NAME sm3		COMMAND sm3test)
 add_test(NAME sm4		COMMAND sm4test)
+add_test(NAME sm9		COMMAND sm9test)
 add_test(NAME tls		COMMAND tlstest)
 add_test(NAME x509		COMMAND x509test)
 add_test(NAME x509_oid		COMMAND x509_oidtest)
