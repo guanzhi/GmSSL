@@ -54,7 +54,11 @@
 
 void memxor(void *r, const void *a, size_t len);
 void gmssl_memxor(void *r, const void *a, const void *b, size_t len);
-int gmssl_memcmp(const void *s1, const void *s2, size_t n);
+
+int gmssl_secure_memcmp(const volatile void * volatile in_a, const volatile void * volatile in_b, size_t len);
+void gmssl_secure_clear(void *ptr, size_t len);
+
 
 
 #endif
+

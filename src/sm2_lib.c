@@ -54,7 +54,7 @@
 #include <gmssl/sm3.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 #define print_bn(str,a) sm2_bn_print(stderr,0,4,str,a)
 

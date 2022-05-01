@@ -68,7 +68,7 @@
 #include <gmssl/gcm.h>
 #include <gmssl/hmac.h>
 #include <gmssl/hkdf.h>
-#include "mem.h"
+#include <gmssl/mem.h>
 
 
 

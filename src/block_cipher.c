@@ -52,8 +52,7 @@
 #include <stdlib.h>
 #include <gmssl/oid.h>
 #include <gmssl/block_cipher.h>
-#include "endian.h"
-
+#include <gmssl/endian.h>
 
 
 int block_cipher_set_encrypt_key(BLOCK_CIPHER_KEY *key, const BLOCK_CIPHER *cipher, const uint8_t *raw_key)

@@ -48,7 +48,7 @@
 
 #include <string.h>
 #include <gmssl/sha2.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 #define Ch(X, Y, Z)	(((X) & (Y)) ^ ((~(X)) & (Z)))

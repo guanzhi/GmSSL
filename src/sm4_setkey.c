@@ -48,7 +48,7 @@
  */
 
 #include <gmssl/sm4.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 #include "sm4_lcl.h"
 
 static uint32_t FK[4] = {

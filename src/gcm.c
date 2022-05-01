@@ -54,7 +54,8 @@
 #include <gmssl/oid.h>
 #include <gmssl/error.h>
 #include <gmssl/aes.h>
-#include "endian.h"
+#include <gmssl/endian.h>
+
 
 /*
  * GHASH(H, A, C) = X_{m + n + 1}

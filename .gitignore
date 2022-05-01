@@ -212,6 +212,11 @@ apps/gmca/.ca
 /engines/sdf
 /engines/skf
 
+/sdf/*
+/skf/*
+/src/skf*
+/src/sdf*
+
 include/openssl/srp.h
 
 /*.sh

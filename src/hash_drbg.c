@@ -52,7 +52,8 @@
 #include <stdlib.h>
 #include <gmssl/hash_drbg.h>
 #include <gmssl/error.h>
-#include "endian.h"
+#include <gmssl/endian.h>
+
 
 static int hash_df(const DIGEST *digest, const uint8_t *in, size_t inlen,
 	size_t outlen, uint8_t *out)

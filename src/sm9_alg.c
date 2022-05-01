@@ -53,7 +53,7 @@
 #include <assert.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm9.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 static const sm9_bn_t SM9_ZERO  = {0,0,0,0,0,0,0,0};

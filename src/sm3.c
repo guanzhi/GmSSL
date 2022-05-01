@@ -48,7 +48,8 @@
 
 #include <string.h>
 #include <gmssl/sm3.h>
-#include "endian.h"
+#include <gmssl/endian.h>
+
 
 #ifdef SM3_SSE3
 # include <x86intrin.h>

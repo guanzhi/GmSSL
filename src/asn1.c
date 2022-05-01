@@ -56,7 +56,7 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 /*

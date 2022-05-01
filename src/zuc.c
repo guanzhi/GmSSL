@@ -49,7 +49,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gmssl/zuc.h>
-#include "endian.h"
+#include <gmssl/mem.h>
+#include <gmssl/endian.h>
+
 
 static const ZUC_UINT15 KD[16] = {
 	0x44D7,0x26BC,0x626B,0x135E,0x5789,0x35E2,0x7135,0x09AF,
@@ -182,9 +184,9 @@ static const uint8_t S1[256] = {
 	(X0 ^ R1) + R2;					\
 	F_(X1, X2)
 
-void zuc_init(ZUC_STATE *key, const uint8_t *user_key, const uint8_t *iv)
+void zuc_init(ZUC_STATE *state, const uint8_t *user_key, const uint8_t *iv)
 {
-	ZUC_UINT31 *LFSR = key->LFSR;
+	ZUC_UINT31 *LFSR = state->LFSR;
 	uint32_t R1, R2;
 	uint32_t X0, X1, X2;
 	uint32_t W, W1, W2, U, V;
@@ -207,15 +209,15 @@ void zuc_init(ZUC_STATE *key, const uint8_t *user_key, const uint8_t *iv)
 	F_(X1, X2);
 	LFSRWithWorkMode();
 
-	key->R1 = R1;
-	key->R2 = R2;
+	state->R1 = R1;
+	state->R2 = R2;
 }
 
-uint32_t zuc_generate_keyword(ZUC_STATE *key)
+uint32_t zuc_generate_keyword(ZUC_STATE *state)
 {
-	ZUC_UINT31 *LFSR = key->LFSR;
-	uint32_t R1 = key->R1;
-	uint32_t R2 = key->R2;
+	ZUC_UINT31 *LFSR = state->LFSR;
+	uint32_t R1 = state->R1;
+	uint32_t R2 = state->R2;
 	uint32_t X0, X1, X2, X3;
 	uint32_t W1, W2, U, V;
 	uint32_t Z;
@@ -224,17 +226,17 @@ uint32_t zuc_generate_keyword(ZUC_STATE *key)
 	Z = X3 ^ F(X0, X1, X2);
 	LFSRWithWorkMode();
 
-	key->R1 = R1;
-	key->R2 = R2;
+	state->R1 = R1;
+	state->R2 = R2;
 
 	return Z;
 }
 
-void zuc_generate_keystream(ZUC_STATE *key, size_t nwords, uint32_t *keystream)
+void zuc_generate_keystream(ZUC_STATE *state, size_t nwords, uint32_t *keystream)
 {
-	ZUC_UINT31 *LFSR = key->LFSR;
-	uint32_t R1 = key->R1;
-	uint32_t R2 = key->R2;
+	ZUC_UINT31 *LFSR = state->LFSR;
+	uint32_t R1 = state->R1;
+	uint32_t R2 = state->R2;
 	uint32_t X0, X1, X2, X3;
 	uint32_t W1, W2, U, V;
 	size_t i;
@@ -245,8 +247,42 @@ void zuc_generate_keystream(ZUC_STATE *key, size_t nwords, uint32_t *keystream)
 		LFSRWithWorkMode();
 	}
 
-	key->R1 = R1;
-	key->R2 = R2;
+	state->R1 = R1;
+	state->R2 = R2;
+}
+
+void zuc_encrypt(ZUC_STATE *state, const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	ZUC_UINT31 *LFSR = state->LFSR;
+	uint32_t R1 = state->R1;
+	uint32_t R2 = state->R2;
+	uint32_t X0, X1, X2, X3;
+	uint32_t W1, W2, U, V;
+	uint32_t Z;
+	uint8_t block[4];
+	size_t nwords = inlen / sizeof(uint32_t);
+	size_t i;
+
+	for (i = 0; i < nwords; i ++) {
+		BitReconstruction4(X0, X1, X2, X3);
+		Z = X3 ^ F(X0, X1, X2);
+		LFSRWithWorkMode();
+		PUTU32(block, Z);
+		gmssl_memxor(out, in, block, sizeof(block));
+		in += sizeof(block);
+		out += sizeof(block);
+	}
+	if (inlen % 4) {
+		// TODO: use assert to make sure this branch should not be arrived
+		BitReconstruction4(X0, X1, X2, X3);
+		Z = X3 ^ F(X0, X1, X2);
+		LFSRWithWorkMode();
+		PUTU32(block, Z);
+		gmssl_memxor(out, in, block, inlen % 4);
+	}
+
+	state->R1 = R1;
+	state->R2 = R2;
 }
 
 void zuc_mac_init(ZUC_MAC_CTX *ctx, const uint8_t key[16], const uint8_t iv[16])

@@ -1,5 +1,5 @@
-﻿/* ====================================================================
- * Copyright (c) 2015 - 2019 The GmSSL Project.  All rights reserved.
+﻿/*
+ * Copyright (c) 2015 - 2022 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,13 +44,47 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * ====================================================================
  */
 
-#include <stdlib.h>
+
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <gmssl/zuc.h>
-#include "endian.h"
+#include <gmssl/error.h>
+#include <gmssl/endian.h>
+
+
+static void zuc_set_eea_key(ZUC_STATE *key, const uint8_t user_key[16],
+	ZUC_UINT32 count, ZUC_UINT5 bearer, ZUC_BIT direction)
+{
+	uint8_t iv[16] = {0};
+	iv[0] = iv[8] = count >> 24;
+	iv[1] = iv[9] = count >> 16;
+	iv[2] = iv[10] = count >> 8;
+	iv[3] = iv[11] = count;
+	iv[4] = iv[12] = ((bearer << 1) | (direction & 1)) << 2;
+	zuc_init(key, user_key, iv);
+}
+
+void zuc_eea_encrypt(const ZUC_UINT32 *in, ZUC_UINT32 *out, size_t nbits,
+	const uint8_t key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
+	ZUC_BIT direction)
+{
+	ZUC_STATE zuc_key;
+	size_t nwords = (nbits + 31)/32;
+	size_t i;
+
+	zuc_set_eea_key(&zuc_key, key, count, bearer, direction);
+	zuc_generate_keystream(&zuc_key, nwords, out);
+	for (i = 0; i < nwords; i++) {
+		out[i] ^= in[i];
+	}
+
+	if (nbits % 32 != 0) {
+		out[nwords - 1] |= (0xffffffff << (32 - (nbits%32)));
+	}
+}
 
 static void zuc_set_eia_iv(uint8_t iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)
@@ -65,7 +99,6 @@ static void zuc_set_eia_iv(uint8_t iv[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	iv[14] = (direction << 7);
 }
 
-#if 1
 ZUC_UINT32 zuc_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
 	const uint8_t key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction)
@@ -78,82 +111,70 @@ ZUC_UINT32 zuc_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
 	zuc_mac_finish(&ctx, (uint8_t *)data, nbits, mac);
 	return GETU32(mac);
 }
-#else
 
-#define ZUC_MAC_BUF_WORDS 64
+#define ZUC_BLOCK_SIZE 4
 
-#define GET_WORD(p, i)	((i) % 32) \
-		? ((*((ZUC_UINT32 *)(p) + (i)/32) << ((i) % 32)) \
-			 | (*((ZUC_UINT32 *)(p) + (i)/32 + 1) >> (32 - ((i) % 32)))) \
-		: *((ZUC_UINT32 *)(p) + (i)/32)
-
-#define GET_BIT(p, i) \
-	(((*((ZUC_UINT32 *)(p) + (i)/32)) & (1 << (31 - ((i) % 32)))) ? 1 : 0)
-
-ZUC_UINT32 ZUC_eia_generate_mac(const ZUC_UINT32 *data, size_t nbits,
-	const uint8_t user_key[16], ZUC_UINT32 count, ZUC_UINT5 bearer,
-	ZUC_BIT direction)
+int zuc_encrypt_init(ZUC_CTX *ctx, const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE])
 {
-	ZUC_UINT32 T = 0;
-	ZUC_STATE key;
-	uint8_t iv[16];
-	ZUC_UINT32 buf[ZUC_MAC_BUF_WORDS + 2];
-	size_t nwords = (nbits + 31)/32;
-	size_t i;
-	size_t num = ZUC_MAC_BUF_WORDS;
-
-
-	ZUC_set_eia_iv(iv, count, bearer, direction);
-	ZUC_set_key(&key, user_key, iv);
-
-	if (nwords <= ZUC_MAC_BUF_WORDS) {
-		ZUC_generate_keystream(&key, nwords + 2, buf);
-		for (i = 0; i < nbits; i++) {
-			if (GET_BIT(data, i)) {
-				T ^= GET_WORD(buf, i);
-			}
-		}
-		T ^= GET_WORD(buf, i);
-		T ^= buf[nwords + 1];
-		return T;
-
-	} else {
-
-		ZUC_generate_keystream(&key, ZUC_MAC_BUF_WORDS + 1, buf);
-		for (i = 0; i < ZUC_MAC_BUF_WORDS * 32; i++) {
-			if (GET_BIT(data, i)) {
-				T ^= GET_WORD(buf, i);
-			}
-		}
-		data += ZUC_MAC_BUF_WORDS;
-		nwords -= ZUC_MAC_BUF_WORDS;
-		nbits -= ZUC_MAC_BUF_WORDS * 32;
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
 	}
-
-	while (nwords > ZUC_MAC_BUF_WORDS) {
-		buf[0] = buf[ZUC_MAC_BUF_WORDS];
-		ZUC_generate_keystream(&key, ZUC_MAC_BUF_WORDS, buf + 1);
-		for (i = 0; i < ZUC_MAC_BUF_WORDS * 32; i ++) {
-			if (GET_BIT(data, i)) {
-				T ^= GET_WORD(buf, i);
-			}
-		}
-		data += num;
-		nwords -= num;
-		nbits -= ZUC_MAC_BUF_WORDS * 32;
-	}
-
-	buf[0] = buf[ZUC_MAC_BUF_WORDS];
-	ZUC_generate_keystream(&key, nwords + 1, buf + 1);
-	for (i = 0; i < nbits; i++) {
-		if (GET_BIT(data, i)) {
-			T ^= GET_WORD(buf, i);
-		}
-	}
-
-	T ^= GET_WORD(buf, i);
-	T ^= buf[nwords + 1];
-
-	return T;
+	zuc_init(&ctx->zuc_state, key, iv);
+	memset(ctx->block, 0, ZUC_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
 }
-#endif
+
+int zuc_encrypt_update(ZUC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	size_t left;
+	size_t nblocks;
+	size_t len;
+
+	if (ctx->block_nbytes >= ZUC_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	*outlen = 0;
+	if (ctx->block_nbytes) {
+		left = ZUC_BLOCK_SIZE - ctx->block_nbytes;
+		if (inlen < left) {
+			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
+			ctx->block_nbytes += inlen;
+			return 1;
+		}
+		memcpy(ctx->block + ctx->block_nbytes, in, left);
+		zuc_encrypt(&ctx->zuc_state, ctx->block, ZUC_BLOCK_SIZE, out);
+		in += left;
+		inlen -= left;
+		out += ZUC_BLOCK_SIZE;
+		*outlen += ZUC_BLOCK_SIZE;
+	}
+	if (inlen >= ZUC_BLOCK_SIZE) {
+		nblocks = inlen / ZUC_BLOCK_SIZE;
+		len = nblocks * ZUC_BLOCK_SIZE;
+		zuc_encrypt(&ctx->zuc_state, in, len, out);
+		in += len;
+		inlen -= len;
+		out += len;
+		*outlen += len;
+	}
+	if (inlen) {
+		memcpy(ctx->block, in, inlen);
+	}
+	ctx->block_nbytes = inlen;
+	return 1;
+}
+
+int zuc_encrypt_finish(ZUC_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	size_t left;
+	if (ctx->block_nbytes >= ZUC_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	zuc_encrypt(&ctx->zuc_state, ctx->block, ctx->block_nbytes, out);
+	*outlen = ctx->block_nbytes;
+	return 1;
+}

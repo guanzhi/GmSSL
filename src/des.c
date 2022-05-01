@@ -50,7 +50,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/des.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 /* permuted choice 1 for key schedule, 64 bits to 56 bits */

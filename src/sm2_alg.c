@@ -53,7 +53,7 @@
 #include <gmssl/sm2.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 #define sm2_print_bn(label,a) sm2_bn_print(stderr,0,0,label,a) // 这个不应该放在这里，应该放在测试文件中

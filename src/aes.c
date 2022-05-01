@@ -51,8 +51,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/aes.h>
-#include "endian.h"
-#include "mem.h"
+#include <gmssl/endian.h>
+#include <gmssl/mem.h>
 
 
 static const uint8_t S[256] = {

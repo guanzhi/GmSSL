@@ -57,7 +57,7 @@
 #include <stdlib.h>
 #include <gmssl/hex.h>
 #include <gmssl/gf128.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 gf128_t gf128_zero(void)

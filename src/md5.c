@@ -49,7 +49,7 @@
 
 #include <string.h>
 #include <gmssl/md5.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 #define F(B, C, D)	(((B) & (C)) | ((~(B)) & (D)))

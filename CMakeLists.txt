@@ -49,9 +49,9 @@ add_library(
 	src/sm4_enc.c
 	src/sm4_modes.c
 	src/sm4_setkey.c
-#	src/sm9_keygen.c
-	src/sm9_math.c
-#	src/sm9_sign.c
+	src/sm9_alg.c
+#	src/sm9_key.c
+#	src/sm9_lib.c
 	src/tlcp.c
 	src/tls.c
 	src/tls12.c
@@ -65,9 +65,8 @@ add_library(
 	src/x509_oid.c
 	src/x509_req.c
 	src/x509_str.c
-	src/zuc_core.c
-	src/zuc_eea.c
-	src/zuc_eia.c
+	src/zuc.c
+	src/zuc_modes.c
 )
 
 
@@ -79,6 +78,7 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 add_executable(
 	gmssl-bin
 	tools/gmssl.c
+	tools/version.c
 	tools/rand.c
 	tools/sm2keygen.c
 	tools/sm2sign.c
@@ -88,6 +88,13 @@ add_executable(
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm4.c
+	tools/zuc.c
+	tools/sm9setup.c
+	tools/sm9keygen.c
+	tools/sm9sign.c
+	tools/sm9verify.c
+	tools/sm9encrypt.c
+	tools/sm9decrypt.c
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c

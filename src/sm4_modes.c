@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,9 +47,9 @@
  */
 
 #include <gmssl/sm4.h>
-#include <gmssl/error.h>
+#include <gmssl/mem.h>
 #include <gmssl/gcm.h>
-#include "mem.h"
+#include <gmssl/error.h>
 
 void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
@@ -428,12 +428,11 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	size_t left;
-	size_t i;
-
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
 	}
 	sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, ctx->block_nbytes, out);
+	*outlen = ctx->block_nbytes;
 	return 1;
 }

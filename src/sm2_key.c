@@ -371,8 +371,8 @@ err:
 	return -1;
 }
 
-/*
-#define SM2_PRIVATE_KEY_INFO_MAX_SIZE 512 // 计算长度
+#if 0 // 私钥的BASE64编解码可能受到侧信道攻击
+#define SM2_PRIVATE_KEY_INFO_MAX_SIZE 512 // TODO：计算长度
 
 int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp)
 {
@@ -404,7 +404,7 @@ int sm2_private_key_info_from_pem(SM2_KEY *sm2_key, const uint8_t **attrs, size_
 	}
 	return 1;
 }
-*/
+#endif
 
 int sm2_public_key_info_to_der(const SM2_KEY *pub_key, uint8_t **out, size_t *outlen)
 {
@@ -439,7 +439,7 @@ int sm2_public_key_info_from_der(SM2_KEY *pub_key, const uint8_t **in, size_t *i
 	return 1;
 }
 
-/*
+#if 0 // 私钥的BASE64编解码可能受到侧信道攻击
 int sm2_private_key_to_pem(const SM2_KEY *a, FILE *fp)
 {
 	uint8_t buf[512];
@@ -474,7 +474,7 @@ int sm2_private_key_from_pem(SM2_KEY *a, FILE *fp)
 	}
 	return 1;
 }
-*/
+#endif
 
 int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp)
 {

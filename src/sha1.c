@@ -48,7 +48,7 @@
 
 #include <string.h>
 #include <gmssl/sha1.h>
-#include "endian.h"
+#include <gmssl/endian.h>
 
 
 #define F0(B, C, D)	(((B) & (C)) | ((~(B)) & (D)))

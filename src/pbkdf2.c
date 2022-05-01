@@ -120,8 +120,8 @@
 #include <gmssl/digest.h>
 #include <gmssl/error.h>
 #include <gmssl/oid.h>
-#include "endian.h"
-#include "mem.h"
+#include <gmssl/endian.h>
+#include <gmssl/mem.h>
 
 int pbkdf2_genkey(const DIGEST *digest,
 	const char *pass, size_t passlen,

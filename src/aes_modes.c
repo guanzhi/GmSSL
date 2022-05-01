@@ -53,7 +53,7 @@
 #include <gmssl/aes.h>
 #include <gmssl/gcm.h>
 #include <gmssl/error.h>
-#include "mem.h"
+#include <gmssl/mem.h>
 
 
 void aes_cbc_encrypt(const AES_KEY *key, const uint8_t iv[16],

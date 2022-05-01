@@ -194,13 +194,49 @@ void gmssl_memxor(void *r, const void *a, const void *b, size_t len)
 	}
 }
 
-int gmssl_memcmp(const void *s1, const void *s2, size_t n)
+
+// Note: comments and code from OpenSSL crypto/cryptlib.c:CRYPTO_memcmp()
+/* volatile unsigned char* pointers are there because
+ * 1. Accessing a variable declared volatile via a pointer
+ *    that lacks a volatile qualifier causes undefined behavior.
+ * 2. When the variable itself is not volatile the compiler is
+ *    not required to keep all those reads and can convert
+ *    this into canonical memcmp() which doesn't read the whole block.
+ * Pointers to volatile resolve the first problem fully. The second
+ * problem cannot be resolved in any Standard-compliant way but this
+ * works the problem around. Compilers typically react to
+ * pointers to volatile by preserving the reads and writes through them.
+ * The latter is not required by the Standard if the memory pointed to
+ * is not volatile.
+ * Pointers themselves are volatile in the function signature to work
+ * around a subtle bug in gcc 4.6+ which causes writes through
+ * pointers to volatile to not be emitted in some rare,
+ * never needed in real life, pieces of code.
+ */
+int gmssl_secure_memcmp(const volatile void * volatile in_a, const volatile void * volatile in_b, size_t len)
 {
-	return memcmp(s1, s2, n);
+	size_t i;
+	const volatile unsigned char *a = in_a;
+	const volatile unsigned char *b = in_b;
+	unsigned char x = 0;
+
+	for (i = 0; i < len; i++) {
+		x |= a[i] ^ b[i];
+	}
+
+	return x;
 }
 
+/*
+ * Pointer to memset is volatile so that compiler must de-reference
+ * the pointer and can't assume that it points to any function in
+ * particular (such as memset, which it then might further "optimize")
+ */
+typedef void *(*memset_t)(void *, int, size_t);
 
+static volatile memset_t memset_func = memset;
 
-
-
-
+void gmssl_secure_clear(void *ptr, size_t len)
+{
+	memset_func(ptr, 0, len);
+}

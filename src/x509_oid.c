@@ -76,7 +76,7 @@ static uint32_t oid_at_serial_number[] = { oid_at,5 };
 static uint32_t oid_at_pseudonym[] = { oid_at,65 };
 static uint32_t oid_domain_component[] = { 0,9,2342,19200300,100,1,25 };
 
-#define oid_at_cnt (sizeof(oid_at_name)/sizeof(int))
+static const size_t oid_at_cnt = sizeof(oid_at_name)/sizeof(int);
 
 static const ASN1_OID_INFO x509_name_types[] = {
 	{ OID_at_name, "name", oid_at_name, oid_at_cnt },
@@ -167,7 +167,7 @@ static uint32_t oid_ce_inhibit_any_policy[] = { oid_ce,54 };
 static uint32_t oid_ce_crl_reasons[] = { oid_ce,21 }; // crl_entry_ext
 static uint32_t oid_ce_invalidity_date[] = { oid_ce,24 }; // crl_entry_ext
 static uint32_t oid_ce_certificate_issuer[] = { oid_ce,29 }; // crl_entry_ext
-#define oid_ce_cnt (sizeof(oid_ce_subject_directory_attributes)/sizeof(int))
+static const size_t oid_ce_cnt = sizeof(oid_ce_subject_directory_attributes)/sizeof(int);
 static uint32_t oid_netscape_cert_comment[] = { 2,16,840,1,113730,1,13 };
 static uint32_t oid_cert_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
 static uint32_t oid_ct_precertificate_scts[] = { 1,3,6,1,4,1,11129,2,4,2 };
@@ -374,7 +374,7 @@ static uint32_t oid_kp_code_signing[] = { oid_kp,3 };
 static uint32_t oid_kp_email_protection[] = { oid_kp,4 };
 static uint32_t oid_kp_time_stamping[] = { oid_kp,8 };
 static uint32_t oid_kp_ocsp_signing[] = { oid_kp,9 };
-#define oid_kp_cnt (sizeof(oid_kp_server_auth)/sizeof(int))
+static const size_t oid_kp_cnt = sizeof(oid_kp_server_auth)/sizeof(int);
 
 
 static const ASN1_OID_INFO x509_key_purposes[] = {
