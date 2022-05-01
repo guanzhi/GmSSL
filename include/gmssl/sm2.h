@@ -369,6 +369,6 @@ int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
 
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 #endif
