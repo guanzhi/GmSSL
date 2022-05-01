@@ -110,6 +110,7 @@ int hash_drbg_generate(HASH_DRBG *drbg,
 	size_t outlen, uint8_t *out);
 
 
+
 #ifdef __cplusplus
 }
 #endif

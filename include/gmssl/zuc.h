@@ -79,7 +79,7 @@ typedef struct {
 void zuc_init(ZUC_STATE *state, const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE]);
 void zuc_generate_keystream(ZUC_STATE *state, size_t nwords, ZUC_UINT32 *words);
 ZUC_UINT32 zuc_generate_keyword(ZUC_STATE *state);
-
+void zuc_encrypt(ZUC_STATE *state, const uint8_t *in, size_t inlen, uint8_t *out);
 
 typedef struct ZUC_MAC_CTX_st {
 	ZUC_UINT31 LFSR[16];
@@ -133,6 +133,23 @@ void zuc256_mac_init(ZUC256_MAC_CTX *ctx, const uint8_t key[ZUC256_KEY_SIZE],
 	const uint8_t iv[ZUC256_IV_SIZE], int macbits);
 void zuc256_mac_update(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t len);
 void zuc256_mac_finish(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t *mac);
+
+
+// Public API
+
+typedef struct {
+	ZUC_STATE zuc_state;
+	uint8_t block[4];
+	size_t block_nbytes;
+} ZUC_CTX;
+
+int zuc_encrypt_init(ZUC_CTX *ctx, const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE]);
+int zuc_encrypt_update(ZUC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int zuc_encrypt_finish(ZUC_CTX *ctx, uint8_t *out, size_t *outlen);
+
+#define zuc_decrypt_init(ctx,key,iv) zuc_encrypt_init(ctx,key,iv)
+#define zuc_decrypt_update(ctx,in,inlen,out,outlen) zuc_encrypt_update(ctx,in,inlen,out,outlen)
+#define zuc_decrypt_finish(ctx,out,outlen) zuc_encrypt_finish(ctx,out,outlen)
 
 
 #ifdef __cplusplus

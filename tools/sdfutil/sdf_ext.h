@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,13 +46,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef GMSSL_ERROR_H
-#define GMSSL_ERROR_H
+#ifndef SDFUTIL_SDF_EXT_H
+#define SDFUTIL_SDF_EXT_H
 
 
 #include <stdio.h>
-#include <stdarg.h>
+#include <stdint.h>
+#include "sgd.h"
+#include "sdf.h"
 
 
 #ifdef __cplusplus
@@ -60,39 +61,29 @@ extern "C" {
 #endif
 
 
-#define GMSSL_FMT_BIN	1
-#define GMSSL_FMT_HEX	2
-#define GMSSL_FMT_DER	4
-#define GMSSL_FMT_PEM	8
+#define SDF_MIN_KEY_INDEX	  1 /* defined by GM/T 0018 */
+#define SDF_MAX_KEY_INDEX	 32 /* defined by GmSSL */
+#define SDF_MIN_PASSWORD_LENGTH	  8 /* defined by GM/T 0018 */
+#define SDF_MAX_PASSWORD_LENGTH	255 /* defined by GmSSL */
+#define SDF_MAX_FILE_SIZE	(256 * 1024)
 
 
 
-#define DEBUG 1
+int SDF_LoadLibrary(char *so_path, char *vendor);
+int SDF_UnloadLibrary(void);
+int SDF_ImportKey(void *hSessionHandle, unsigned char *pucKey,
+	unsigned int uiKeyLength, void **phKeyHandle);
 
-#define error_print() \
-	do { if (DEBUG) fprintf(stderr, "%s:%d:%s():\n",__FILE__, __LINE__, __func__); } while (0)
-
-#define error_print_msg(fmt, ...) \
-	do { if (DEBUG) fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__); } while (0)
-
-#define error_puts(str) \
-            do { if (DEBUG) fprintf(stderr, "%s: %d: %s: %s", __FILE__, __LINE__, __func__, str); } while (0)
-
-
-void print_der(const uint8_t *in, size_t inlen);
-void print_bytes(const uint8_t *in, size_t inlen);
-void print_nodes(const uint32_t *in, size_t inlen);
-
-#define FMT_CARRAY 0x80
-
-
-int format_print(FILE *fp, int format, int indent, const char *str, ...);
-int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_t *data, size_t datalen);
-int format_string(FILE *fp, int format, int indent, const char *str, const uint8_t *data, size_t datalen);
-
-
-
-//int tls_trace(int format, int indent, const char *str, ...);
+int SDF_PrintDeviceInfo(FILE *out, DEVICEINFO *devInfo);
+int SDF_PrintRSAPublicKey(FILE *out, RSArefPublicKey *ref);
+int SDF_PrintRSAPrivateKey(FILE *out, RSArefPrivateKey *ref);
+int SDF_PrintECCPublicKey(FILE *out, ECCrefPublicKey *ref);
+int SDF_PrintECCPrivateKey(FILE *out, ECCrefPrivateKey *ref);
+int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen);
+int SDF_FreeECCCipher(ECCCipher *cipher);
+int SDF_PrintECCCipher(FILE *out, ECCCipher *cipher);
+int SDF_PrintECCSignature(FILE *out, ECCSignature *sig);
+const char *SDF_GetErrorReason(int err);
 
 
 #ifdef __cplusplus
