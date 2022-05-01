@@ -49,31 +49,38 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/sm2.h>
-#include <gmssl/sm3.h>
+#include <gmssl/zuc.h>
+#include <gmssl/hex.h>
 #include <gmssl/error.h>
 
 
-static const char *options = "[-hex|-bin] [-pubkey pem [-id str]] [-in file]";
+
+static const char *options = "-key hex -iv hex [-in file] [-out file]";
 
 
-
-int sm3_main(int argc, char **argv)
+int zuc_main(int argc, char **argv)
 {
-	int ret = 1;
 	char *prog = argv[0];
-	int bin = 0;
-	char *pubkeyfile = NULL;
+	char *keystr = NULL;
+	char *ivstr = NULL;
 	char *infile = NULL;
-	char *id = NULL;
-	FILE *pubkeyfp = NULL;
+	char *outfile = NULL;
+	uint8_t key[16];
+	uint8_t iv[16];
+	size_t keylen = sizeof(key);
+	size_t ivlen = sizeof(iv);
 	FILE *infp = stdin;
+	FILE *outfp = stdout;
+	ZUC_CTX zuc_ctx;
+	uint8_t inbuf[4096];
+	size_t inlen;
+	uint8_t outbuf[4196];
+	size_t outlen;
 
-	SM3_CTX sm3_ctx;
-	uint8_t dgst[32];
-	uint8_t buf[4096];
-	ssize_t len;
-	int i;
+	if (argc < 2) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
 
 	argc--;
 	argv++;
@@ -81,89 +88,93 @@ int sm3_main(int argc, char **argv)
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			fprintf(stderr, "usage: %s %s\n", prog, options);
-			fprintf(stderr, "usage: echo -n \"abc\" | %s\n", prog);
 			return 0;
-		} else if (!strcmp(*argv, "-hex")) {
-			if (bin) {
-				error_print();
-				goto end;
-			}
-			bin = 0;
-		} else if (!strcmp(*argv, "-bin")) {
-			bin = 1;
-		} else if (!strcmp(*argv, "-pubkey")) {
+		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			pubkeyfile = *(++argv);
-		} else if (!strcmp(*argv, "-id")) {
+			keystr = *(++argv);
+		} else if (!strcmp(*argv, "-iv")) {
 			if (--argc < 1) goto bad;
-			id = *(++argv);
+			ivstr = *(++argv);
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			goto end;
+			return 1;
 bad:
-			fprintf(stderr, "%s: '%s' option value required\n", prog, *argv);
-			goto end;
+			fprintf(stderr, "%s: no option value\n", prog);
+			return 1;
 		}
 
 		argc--;
 		argv++;
 	}
 
-	sm3_init(&sm3_ctx);
+	if (!keystr) {
+		error_print();
+		return -1;
+	}
+	if (strlen(keystr) != 32) {
+		printf("keystr len = %d\n", strlen(keystr));
+		error_print();
+		return -1;
+	}
+	if (hex_to_bytes(keystr, strlen(keystr), key, &keylen) != 1) {
+		error_print();
+		return -1;
+	}
 
-	if (pubkeyfile) {
-		SM2_KEY sm2_key;
-		uint8_t z[32];
-
-		if (!(pubkeyfp = fopen(pubkeyfile, "r"))) {
-			error_print();
-			goto end;
-		}
-		if (sm2_public_key_info_from_pem(&sm2_key, pubkeyfp) != 1) {
-			error_print();
-			goto end;
-		}
-		if (!id) {
-			id = SM2_DEFAULT_ID;
-		}
-
-		sm2_compute_z(z, (SM2_POINT *)&sm2_key, id, strlen(id));
-		sm3_update(&sm3_ctx, z, sizeof(z));
-
-	} else {
-		if (id) {
-			fprintf(stderr, "%s: option '-id' must be with '-pubkey'\n", prog);
-			goto end;
-		}
+	if (!ivstr) {
+		error_print();
+		return -1;
+	}
+	if (strlen(ivstr) != 32) {
+		error_print();
+		return -1;
+	}
+	if (hex_to_bytes(ivstr, strlen(ivstr), iv, &ivlen) != 1) {
+		error_print();
+		return -1;
 	}
 
 	if (infile) {
 		if (!(infp = fopen(infile, "r"))) {
 			error_print();
-			goto end;
+			return -1;
 		}
 	}
-	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-		sm3_update(&sm3_ctx, buf, len);
-	}
-
-	sm3_finish(&sm3_ctx, dgst);
-
-	if (bin) {
-		fwrite(dgst, 1, 32, stdout);
-	} else {
-		for (i = 0; i < sizeof(dgst); i++) {
-			printf("%02x", dgst[i]);
+	if (outfile) {
+		if (!(outfp = fopen(outfile, "w"))) {
+			error_print();
+			return -1;
 		}
-		printf("\n");
 	}
 
-	ret = 0;
+	if (zuc_encrypt_init(&zuc_ctx, key, iv) != 1) {
+		error_print();
+		return -1;
+	}
+	while ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) > 0) {
+		if (zuc_encrypt_update(&zuc_ctx, inbuf, inlen, outbuf, &outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
+			error_print();
+			return -1;
+		}
+	}
+	if (zuc_encrypt_finish(&zuc_ctx, outbuf, &outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
+		error_print();
+		return -1;
+	}
 
-end:
-	if (infile) fclose(infp);
-	return ret;
+	return 0;
 }
