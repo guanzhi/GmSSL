@@ -76,24 +76,24 @@ static uint32_t oid_at_serial_number[] = { oid_at,5 };
 static uint32_t oid_at_pseudonym[] = { oid_at,65 };
 static uint32_t oid_domain_component[] = { 0,9,2342,19200300,100,1,25 };
 
-static const size_t oid_at_cnt = sizeof(oid_at_name)/sizeof(int);
+#define OID_AT_CNT (sizeof(oid_at_name)/sizeof(int))
 
 static const ASN1_OID_INFO x509_name_types[] = {
-	{ OID_at_name, "name", oid_at_name, oid_at_cnt },
-	{ OID_at_surname, "surname", oid_at_surname, oid_at_cnt },
-	{ OID_at_given_name, "givenName", oid_at_given_name, oid_at_cnt },
-	{ OID_at_initials, "initials", oid_at_initials, oid_at_cnt },
-	{ OID_at_generation_qualifier, "generationQualifier", oid_at_generation_qualifier, oid_at_cnt },
-	{ OID_at_common_name, "commonName", oid_at_common_name, oid_at_cnt },
-	{ OID_at_locality_name, "localityName", oid_at_locality_name, oid_at_cnt },
-	{ OID_at_state_or_province_name, "stateOrProvinceName", oid_at_state_or_province_name, oid_at_cnt },
-	{ OID_at_organization_name, "organizationName", oid_at_organization_name, oid_at_cnt },
-	{ OID_at_organizational_unit_name, "organizationalUnitName", oid_at_organizational_unit_name, oid_at_cnt },
-	{ OID_at_title, "title", oid_at_title, oid_at_cnt },
-	{ OID_at_dn_qualifier, "dnQualifier", oid_at_dn_qualifier, oid_at_cnt },
-	{ OID_at_country_name, "countryName", oid_at_country_name, oid_at_cnt },
-	{ OID_at_serial_number, "serialNumber", oid_at_serial_number, oid_at_cnt },
-	{ OID_at_pseudonym, "pseudonym", oid_at_pseudonym, oid_at_cnt },
+	{ OID_at_name, "name", oid_at_name, OID_AT_CNT },
+	{ OID_at_surname, "surname", oid_at_surname, OID_AT_CNT },
+	{ OID_at_given_name, "givenName", oid_at_given_name, OID_AT_CNT },
+	{ OID_at_initials, "initials", oid_at_initials, OID_AT_CNT },
+	{ OID_at_generation_qualifier, "generationQualifier", oid_at_generation_qualifier, OID_AT_CNT },
+	{ OID_at_common_name, "commonName", oid_at_common_name, OID_AT_CNT },
+	{ OID_at_locality_name, "localityName", oid_at_locality_name, OID_AT_CNT },
+	{ OID_at_state_or_province_name, "stateOrProvinceName", oid_at_state_or_province_name, OID_AT_CNT },
+	{ OID_at_organization_name, "organizationName", oid_at_organization_name, OID_AT_CNT },
+	{ OID_at_organizational_unit_name, "organizationalUnitName", oid_at_organizational_unit_name, OID_AT_CNT },
+	{ OID_at_title, "title", oid_at_title, OID_AT_CNT },
+	{ OID_at_dn_qualifier, "dnQualifier", oid_at_dn_qualifier, OID_AT_CNT },
+	{ OID_at_country_name, "countryName", oid_at_country_name, OID_AT_CNT },
+	{ OID_at_serial_number, "serialNumber", oid_at_serial_number, OID_AT_CNT },
+	{ OID_at_pseudonym, "pseudonym", oid_at_pseudonym, OID_AT_CNT },
 	{ OID_domain_component, "domainComponent", oid_domain_component, sizeof(oid_domain_component)/sizeof(int) },
 };
 
@@ -167,30 +167,30 @@ static uint32_t oid_ce_inhibit_any_policy[] = { oid_ce,54 };
 static uint32_t oid_ce_crl_reasons[] = { oid_ce,21 }; // crl_entry_ext
 static uint32_t oid_ce_invalidity_date[] = { oid_ce,24 }; // crl_entry_ext
 static uint32_t oid_ce_certificate_issuer[] = { oid_ce,29 }; // crl_entry_ext
-static const size_t oid_ce_cnt = sizeof(oid_ce_subject_directory_attributes)/sizeof(int);
+#define OID_CE_CNT sizeof(oid_ce_subject_directory_attributes)/sizeof(int)
 static uint32_t oid_netscape_cert_comment[] = { 2,16,840,1,113730,1,13 };
 static uint32_t oid_cert_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
 static uint32_t oid_ct_precertificate_scts[] = { 1,3,6,1,4,1,11129,2,4,2 };
 
 static const ASN1_OID_INFO x509_ext_ids[] = {
-	{ OID_ce_authority_key_identifier, "AuthorityKeyIdentifier", oid_ce_authority_key_identifier, oid_ce_cnt },
-	{ OID_ce_subject_key_identifier, "SubjectKeyIdentifier", oid_ce_subject_key_identifier, oid_ce_cnt },
-	{ OID_ce_key_usage, "KeyUsage", oid_ce_key_usage, oid_ce_cnt },
-	{ OID_ce_certificate_policies, "CertificatePolicies", oid_ce_certificate_policies, oid_ce_cnt },
-	{ OID_ce_policy_mappings, "PolicyMappings", oid_ce_policy_mappings, oid_ce_cnt },
-	{ OID_ce_subject_alt_name, "SubjectAltName", oid_ce_subject_alt_name, oid_ce_cnt },
-	{ OID_ce_issuer_alt_name, "IssuerAltName", oid_ce_issuer_alt_name, oid_ce_cnt },
-	{ OID_ce_subject_directory_attributes, "SubjectDirectoryAttributes", oid_ce_subject_directory_attributes, oid_ce_cnt },
-	{ OID_ce_basic_constraints, "BasicConstraints", oid_ce_basic_constraints, oid_ce_cnt },
-	{ OID_ce_name_constraints, "NameConstraints", oid_ce_name_constraints, oid_ce_cnt },
-	{ OID_ce_policy_constraints, "PolicyConstraints", oid_ce_policy_constraints, oid_ce_cnt },
-	{ OID_ce_ext_key_usage, "ExtKeyUsage", oid_ce_ext_key_usage, oid_ce_cnt },
-	{ OID_ce_crl_distribution_points, "CRLDistributionPoints", oid_ce_crl_distribution_points, oid_ce_cnt },
-	{ OID_ce_inhibit_any_policy, "InhibitAnyPolicy", oid_ce_inhibit_any_policy, oid_ce_cnt },
-	{ OID_ce_freshest_crl, "FreshestCRL", oid_ce_freshest_crl, oid_ce_cnt },
-	{ OID_ce_crl_reasons, "CRLReasons", oid_ce_crl_reasons, oid_ce_cnt },
-	{ OID_ce_invalidity_date, "InvalidityDate", oid_ce_invalidity_date, oid_ce_cnt },
-	{ OID_ce_certificate_issuer, "CertificateIssuer", oid_ce_certificate_issuer, oid_ce_cnt },
+	{ OID_ce_authority_key_identifier, "AuthorityKeyIdentifier", oid_ce_authority_key_identifier, OID_CE_CNT },
+	{ OID_ce_subject_key_identifier, "SubjectKeyIdentifier", oid_ce_subject_key_identifier, OID_CE_CNT },
+	{ OID_ce_key_usage, "KeyUsage", oid_ce_key_usage, OID_CE_CNT },
+	{ OID_ce_certificate_policies, "CertificatePolicies", oid_ce_certificate_policies, OID_CE_CNT },
+	{ OID_ce_policy_mappings, "PolicyMappings", oid_ce_policy_mappings, OID_CE_CNT },
+	{ OID_ce_subject_alt_name, "SubjectAltName", oid_ce_subject_alt_name, OID_CE_CNT },
+	{ OID_ce_issuer_alt_name, "IssuerAltName", oid_ce_issuer_alt_name, OID_CE_CNT },
+	{ OID_ce_subject_directory_attributes, "SubjectDirectoryAttributes", oid_ce_subject_directory_attributes, OID_CE_CNT },
+	{ OID_ce_basic_constraints, "BasicConstraints", oid_ce_basic_constraints, OID_CE_CNT },
+	{ OID_ce_name_constraints, "NameConstraints", oid_ce_name_constraints, OID_CE_CNT },
+	{ OID_ce_policy_constraints, "PolicyConstraints", oid_ce_policy_constraints, OID_CE_CNT },
+	{ OID_ce_ext_key_usage, "ExtKeyUsage", oid_ce_ext_key_usage, OID_CE_CNT },
+	{ OID_ce_crl_distribution_points, "CRLDistributionPoints", oid_ce_crl_distribution_points, OID_CE_CNT },
+	{ OID_ce_inhibit_any_policy, "InhibitAnyPolicy", oid_ce_inhibit_any_policy, OID_CE_CNT },
+	{ OID_ce_freshest_crl, "FreshestCRL", oid_ce_freshest_crl, OID_CE_CNT },
+	{ OID_ce_crl_reasons, "CRLReasons", oid_ce_crl_reasons, OID_CE_CNT },
+	{ OID_ce_invalidity_date, "InvalidityDate", oid_ce_invalidity_date, OID_CE_CNT },
+	{ OID_ce_certificate_issuer, "CertificateIssuer", oid_ce_certificate_issuer, OID_CE_CNT },
 	{ OID_netscape_cert_comment, "NetscapeCertComment", oid_netscape_cert_comment, sizeof(oid_netscape_cert_comment)/sizeof(int) },
 	{ OID_cert_authority_info_access, "CertificateAuthorityInformationAccess", oid_cert_authority_info_access, sizeof(oid_cert_authority_info_access)/sizeof(int) },
 	{ OID_ct_precertificate_scts, "CT-PrecertificateSCTs", oid_ct_precertificate_scts, sizeof(oid_ct_precertificate_scts)/sizeof(int) },
@@ -374,16 +374,15 @@ static uint32_t oid_kp_code_signing[] = { oid_kp,3 };
 static uint32_t oid_kp_email_protection[] = { oid_kp,4 };
 static uint32_t oid_kp_time_stamping[] = { oid_kp,8 };
 static uint32_t oid_kp_ocsp_signing[] = { oid_kp,9 };
-static const size_t oid_kp_cnt = sizeof(oid_kp_server_auth)/sizeof(int);
-
+#define OID_KP_CNT sizeof(oid_kp_server_auth)/sizeof(int)
 
 static const ASN1_OID_INFO x509_key_purposes[] = {
-	{ OID_kp_server_auth, "serverAuth", oid_kp_server_auth, oid_kp_cnt, 0, "TLS WWW server authentication" },
-	{ OID_kp_client_auth, "clientAuth", oid_kp_client_auth, oid_kp_cnt, 0, "TLS WWW client authentication" },
-	{ OID_kp_code_signing, "codeSigning", oid_kp_code_signing, oid_kp_cnt, 0, "Signing of downloadable executable code" },
-	{ OID_kp_email_protection, "emailProtection", oid_kp_email_protection, oid_kp_cnt, 0, "Email protection" },
-	{ OID_kp_time_stamping, "timeStamping", oid_kp_time_stamping, oid_kp_cnt, 0, "Binding the hash of an object to a time" },
-	{ OID_kp_ocsp_signing, "OCSPSigning", oid_kp_ocsp_signing, oid_kp_cnt, 0, "Signing OCSP responses" },
+	{ OID_kp_server_auth, "serverAuth", oid_kp_server_auth, OID_KP_CNT, 0, "TLS WWW server authentication" },
+	{ OID_kp_client_auth, "clientAuth", oid_kp_client_auth, OID_KP_CNT, 0, "TLS WWW client authentication" },
+	{ OID_kp_code_signing, "codeSigning", oid_kp_code_signing, OID_KP_CNT, 0, "Signing of downloadable executable code" },
+	{ OID_kp_email_protection, "emailProtection", oid_kp_email_protection, OID_KP_CNT, 0, "Email protection" },
+	{ OID_kp_time_stamping, "timeStamping", oid_kp_time_stamping, OID_KP_CNT, 0, "Binding the hash of an object to a time" },
+	{ OID_kp_ocsp_signing, "OCSPSigning", oid_kp_ocsp_signing, OID_KP_CNT, 0, "Signing OCSP responses" },
 };
 
 static const int x509_key_purposes_count =
