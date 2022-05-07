@@ -199,12 +199,6 @@ apps/gmca/.ca
 # gmtls
 /ssl/ssl_load.c
 
-# demos
-/demos
-/demos/kdf
-/demos/ssl
-/demos/otp
-/demos/sm9
 
 # engines
 /engines/e_skf*
@@ -212,10 +206,6 @@ apps/gmca/.ca
 /engines/sdf
 /engines/skf
 
-/sdf/*
-/skf/*
-/src/skf*
-/src/sdf*
 
 include/openssl/srp.h
 
