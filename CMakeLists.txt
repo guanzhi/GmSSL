@@ -11,7 +11,7 @@ include_directories(include)
 
 add_library(
 	gmssl
-
+	SHARED
 	src/aes.c
 	src/aes_modes.c
 	src/asn1.c
@@ -67,11 +67,16 @@ add_library(
 	src/x509_str.c
 	src/zuc.c
 	src/zuc_modes.c
+	src/sdf/sdf.c
+	src/sdf/sdf_lib.c
+	src/sdf/sdf_meth.c
+	src/sdf/sdf_ext.c
+	src/sdf/sdf_sansec.c
 )
-
-
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
+add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
+SET_TARGET_PROPERTIES(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
 
 # tools
 
@@ -109,9 +114,11 @@ add_executable(
 	tools/tls12_server.c
 	tools/tls13_client.c
 	tools/tls13_server.c
+	tools/sdfutil.c
 )
 target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
 set_target_properties (gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
+
 
 
 # tests

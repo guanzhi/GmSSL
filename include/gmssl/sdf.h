@@ -60,19 +60,20 @@ extern "C" {
 
 
 typedef struct {
-	void *device_handle;
-	char device_issuer[41];
-	char device_name[17];
-	char device_serial[17];
+	void *handle;
+	char issuer[41];
+	char name[17];
+	char serial[17];
 } SDF_DEVICE;
 
 typedef struct {
-	void *session_handle;
-	int key_index;
 	SM2_KEY public_key;
+	void *session;
+	int index;
 } SDF_KEY;
 
 
+int sdf_load_library(const char *so_path, const char *vendor);
 int sdf_open_device(SDF_DEVICE *dev);
 int sdf_print_device_info(FILE *fp, int fmt, int ind, const char *lable, SDF_DEVICE *dev);
 int sdf_rand_bytes(SDF_DEVICE *dev, uint8_t *buf, size_t len);
@@ -80,6 +81,7 @@ int sdf_load_key(SDF_DEVICE *dev, SDF_KEY *key, int index, const char *pass);
 int sdf_sign(SDF_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
 int sdf_release_key(SDF_KEY *key);
 int sdf_close_device(SDF_DEVICE *dev);
+void sdf_unload_library(void);
 
 
 #ifdef __cplusplus
