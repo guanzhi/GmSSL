@@ -94,18 +94,18 @@
 #define SGD_ZUC_EIA3		(SGD_ZUC|SGD_EIA3)
 
 /* public key usage */
-#define SGD_PK_SIGN		0x0100
-#define SGD_PK_DH		0x0200
-#define SGD_PK_ENC		0x0400
+#define SGD_PK_SIGN		0x0100 // FIXME: correct?        
+#define SGD_PK_DH		0x0200 // FIXME: correct?        
+#define SGD_PK_ENC		0x0400 // FIXME: correct?        
 
 /* public key types */
 #define SGD_RSA			0x00010000
-#define SGD_RSA_SIGN		(SGD_RSA|SGD_PK_SIGN)
-#define SGD_RSA_ENC		(SGD_RSA|SGD_PK_ENC)
-#define SGD_SM2			0x00020000
-#define SGD_SM2_1		(SGD_SM2|SGD_PK_SIGN)
-#define SGD_SM2_2		(SGD_SM2|SGD_PK_DH)
-#define SGD_SM2_3		(SGD_SM2|SGD_PK_ENC)
+#define SGD_RSA_SIGN		(SGD_RSA|SGD_PK_SIGN) // FIXME: correct?	
+#define SGD_RSA_ENC		(SGD_RSA|SGD_PK_ENC) // FIXME: correct?		
+#define SGD_SM2			0x00020100
+#define SGD_SM2_1		0x00020200
+#define SGD_SM2_2		0x00020400
+#define SGD_SM2_3		0x00020800
 
 /* hash */
 #define SGD_SM3			0x00000001
