@@ -73,6 +73,7 @@ add_library(
 	src/sdf/sdf_ext.c
 	src/sdf/sdf_sansec.c
 )
+target_link_libraries(gmssl dl)
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
