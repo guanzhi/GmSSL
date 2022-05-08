@@ -72,7 +72,8 @@ SDF_METHOD *SDF_METHOD_load_library(const char *so_path)
 	}
 	memset(sdf, 0, sizeof(*sdf));
 
-	if (!(sdf->dso = dlopen(so_path, 0))) {
+	if (!(sdf->dso = dlopen(so_path, RTLD_LAZY))) {
+		fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, dlerror());
 		SDFerr(SDF_F_SDF_METHOD_LOAD_LIBRARY, SDF_R_DSO_LOAD_FAILURE);
 		goto end;
 	}

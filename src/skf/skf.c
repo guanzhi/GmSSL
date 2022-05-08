@@ -46,39 +46,52 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/rand.h>
+#include <gmssl/skf.h>
 #include <gmssl/error.h>
 
-#define RAND_MAX_BUF_SIZE 4096
 
-int rand_bytes(uint8_t *buf, size_t len)
+int skf_open_device(SKF_DEVICE *dev, const char *devname, const uint8_t *authkey, size_t authkeylen)
 {
-	FILE *fp;
-	if (!buf) {
-		error_print();
-		return -1;
-	}
-	if (len > RAND_MAX_BUF_SIZE) {
-		error_print();
-		return -1;
-	}
-	if (!len) {
-		return 0;
-	}
-
-	if (!(fp = fopen("/dev/urandom", "rb"))) {
-		error_print();
-		return -1;
-	}
-	if (fread(buf, 1, len, fp) != len) {
-		error_print();
-		fclose(fp);
-		return -1;
-	}
-	fclose(fp);
-	return 1;
+	error_print();
+	return -1;
 }
+
+int skf_print_device_info(FILE *fp, int fmt, int ind, const char *lable, SKF_DEVICE *dev)
+{
+	error_print();
+	return -1;
+}
+
+int skf_rand_bytes(SKF_DEVICE *dev, uint8_t *buf, size_t len)
+{
+	error_print();
+	return -1;
+}
+
+int sdf_load_key(SKF_DEVICE *dev, const char *appname, const char *pass, const char *container_name, SKF_KEY *key)
+{
+	error_print();
+	return -1;
+}
+
+int skf_sign(SKF_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
+{
+	error_print();
+	return -1;
+}
+
+int skf_release_key(SKF_KEY *key)
+{
+	error_print();
+	return -1;
+}
+
+int skf_close_deivce(SKF_DEVICE *dev)
+{
+	error_print();
+	return -1;
+}
+

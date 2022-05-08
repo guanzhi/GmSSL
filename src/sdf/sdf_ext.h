@@ -74,12 +74,12 @@ int SDF_UnloadLibrary(void);
 int SDF_ImportKey(void *hSessionHandle, unsigned char *pucKey,
 	unsigned int uiKeyLength, void **phKeyHandle);
 
-int SDF_PrintDeviceInfo(FILE *out, DEVICEINFO *devInfo);
-int SDF_PrintRSAPublicKey(FILE *out, RSArefPublicKey *ref);
-int SDF_PrintRSAPrivateKey(FILE *out, RSArefPrivateKey *ref);
-int SDF_PrintECCPublicKey(FILE *out, ECCrefPublicKey *ref);
-int SDF_PrintECCPrivateKey(FILE *out, ECCrefPrivateKey *ref);
-int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen);
+int SDF_PrintDeviceInfo(FILE *fp, const DEVICEINFO *devInfo);
+int SDF_PrintRSAPublicKey(FILE *fp, const RSArefPublicKey *ref);
+int SDF_PrintRSAPrivateKey(FILE *fp, const RSArefPrivateKey *ref);
+int SDF_PrintECCPublicKey(FILE *fp, const ECCrefPublicKey *ref);
+int SDF_PrintECCPrivateKey(FILE *fp, const ECCrefPrivateKey *ref);
+int SDF_NewECCCipher(ECCCipher **cipher, size_t ulDataLen); // FIMXE: 和GmSSL的内存使用方式不同		
 int SDF_FreeECCCipher(ECCCipher *cipher);
 int SDF_PrintECCCipher(FILE *out, ECCCipher *cipher);
 int SDF_PrintECCSignature(FILE *out, ECCSignature *sig);

@@ -52,6 +52,7 @@
 #include <assert.h>
 #include <gmssl/sm2.h>
 #include <gmssl/asn1.h>
+#include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 
@@ -331,19 +332,14 @@ void sm2_bn_sub(SM2_BN ret, const SM2_BN a, const SM2_BN b)
 	sm2_bn_copy(ret, r);
 }
 
+// FIXME: get random from outside		
 void sm2_bn_rand_range(SM2_BN r, const SM2_BN range)
 {
-	FILE *fp;
-	uint8_t buf[256];
-
-	fp = fopen("/dev/urandom", "rb");
-
+	uint8_t buf[32];
 	do {
-		fread(buf, 1, 256, fp);
+		(void)rand_bytes(buf, sizeof(buf));
 		sm2_bn_from_bytes(r, buf);
 	} while (sm2_bn_cmp(r, range) >= 0);
-
-	fclose(fp);
 }
 
 typedef SM2_BN SM2_Fp;

@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <limits.h>
 #include <gmssl/error.h>
 #include "sdf_int.h"
@@ -98,121 +99,112 @@ static table_item_t sdf_pkey_caps[] = {
 	{ SGD_SM2_3, "sm2encrypt" }
 };
 
-int SDF_PrintDeviceInfo(FILE *out, DEVICEINFO *pstDeviceInfo)
+int SDF_PrintDeviceInfo(FILE *fp, const DEVICEINFO *pstDeviceInfo)
 {
 	size_t i, n;
 	DEVICEINFO buf;
 	DEVICEINFO *devInfo = &buf;
+	int fmt = 0, ind = 4;
 
 	memcpy(devInfo, pstDeviceInfo, sizeof(DEVICEINFO));
 	devInfo->IssuerName[39] = 0;
 	devInfo->DeviceName[15] = 0;
 	devInfo->DeviceSerial[15] = 0;
 
-	fprintf(out, "  %-18s : %s\n", "Device Name", devInfo->DeviceName);
-	fprintf(out, "  %-18s : %s\n", "Serial Number", devInfo->DeviceSerial);
-	fprintf(out, "  %-18s : %s\n", "Issuer", devInfo->IssuerName);
-	fprintf(out, "  %-18s : %u\n", "Hardware Version", devInfo->DeviceVersion);
-	fprintf(out, "  %-18s : %u\n", "Standard Version", devInfo->StandardVersion);
-	fprintf(out, "  %-18s : ", "Public Key Algors");
+	format_print(fp, fmt, ind, "%-18s: %s\n", "Device Name", devInfo->DeviceName);
+	format_print(fp, fmt, ind, "%-18s: %s\n", "Serial Number", devInfo->DeviceSerial);
+	format_print(fp, fmt, ind, "%-18s: %s\n", "Issuer", devInfo->IssuerName);
+	format_print(fp, fmt, ind, "%-18s: %u\n", "Hardware Version", devInfo->DeviceVersion);
+	format_print(fp, fmt, ind, "%-18s: %u\n", "Standard Version", devInfo->StandardVersion);
+	format_print(fp, fmt, ind, "%-18s: ", "Public Key Algors");
 	for (i = n = 0; i < sizeof(sdf_pkey_caps)/sizeof(sdf_pkey_caps[0]); i++) {
 		if ((devInfo->AsymAlgAbility[0] & sdf_pkey_caps[i].id) ==
 			sdf_pkey_caps[i].id) {
-			fprintf(out, "%s%s", n ? "," : "", sdf_pkey_caps[i].name);
+			format_print(fp, fmt, 0, "%s%s", n ? "," : "", sdf_pkey_caps[i].name);
 			n++;
 		}
 	}
-	fprintf(out, "\n");
+	format_print(fp, fmt, 0, "\n");
 
-	fprintf(out, "  %-18s : ", "Ciphers");
+	format_print(fp, fmt, ind, "%-18s: ", "Ciphers");
 	for (i = n = 0; i < sizeof(sdf_cipher_caps)/sizeof(sdf_cipher_caps[0]); i++) {
 		if ((devInfo->SymAlgAbility & sdf_cipher_caps[i].id) ==
 			sdf_cipher_caps[i].id) {
-			fprintf(out, "%s%s", n ? "," : "", sdf_cipher_caps[i].name);
+			format_print(fp, fmt, 0, "%s%s", n ? "," : "", sdf_cipher_caps[i].name);
 			n++;
 		}
 	}
-	fprintf(out, "\n");
+	format_print(fp, fmt, 0, "\n");
 
-	fprintf(out, "  %-18s : ", "Digests");
+	format_print(fp, fmt, ind, "%-18s: ", "Digests");
 	for (i = n = 0; i < sizeof(sdf_digest_caps)/sizeof(sdf_digest_caps[0]); i++) {
 		if ((devInfo->HashAlgAbility & sdf_digest_caps[i].id) ==
 			sdf_digest_caps[i].id) {
-			fprintf(out, "%s%s", n ? "," : "", sdf_digest_caps[i].name);
+			format_print(fp, fmt, 0, "%s%s", n ? "," : "", sdf_digest_caps[i].name);
 			n++;
 		}
 	}
-	fprintf(out, "\n");
-	fprintf(out, "\n");
-
+	format_print(fp, fmt, 0, "\n");
 	return SDR_OK;
 }
 
-int SDF_PrintRSAPublicKey(FILE *out, RSArefPublicKey *blob)
+int SDF_PrintRSAPublicKey(FILE *fp, const RSArefPublicKey *blob)
 {
-	(void)fprintf(out, "bits: %d\n", blob->bits);
-	(void)fprintf(out, "m:\n    ");
-	(void)format_bytes(out, 4, 16, "m", blob->m, sizeof(blob->m));
-	(void)fprintf(out, "\n");
-	(void)fprintf(out, "e:\n    ");
-	(void)format_bytes(out, 4, 16, "e", blob->e, sizeof(blob->e));
-	(void)fprintf(out, "\n");
+	int fmt = 0, ind = 4;
+	(void)format_print(fp, fmt, ind, "bits: %d\n", blob->bits);
+	(void)format_bytes(fp, fmt, ind, "m", blob->m, sizeof(blob->m));
+	(void)format_bytes(fp, fmt, ind, "e", blob->e, sizeof(blob->e));
 	return SDR_OK;
 }
 
-int SDF_PrintRSAPrivateKey(FILE *bio, RSArefPrivateKey *blob)
+int SDF_PrintRSAPrivateKey(FILE *fp, const RSArefPrivateKey *blob)
 {
-	(void)fprintf(bio, "bits: %d", blob->bits);
-	(void)format_bytes(bio, 4, 16, "m", blob->m, sizeof(blob->m));
-	(void)format_bytes(bio, 4, 16, "e", blob->e, sizeof(blob->e));
-	(void)format_bytes(bio, 4, 16, "d", blob->d, sizeof(blob->d));
-	(void)format_bytes(bio, 4, 16, "prime[0]", blob->prime[0], sizeof(blob->prime[0]));
-	(void)format_bytes(bio, 4, 16, "prime[1]", blob->prime[1], sizeof(blob->prime[1]));
-	(void)format_bytes(bio, 4, 16, "pexp[0]", blob->pexp[0], sizeof(blob->pexp[0]));
-	(void)format_bytes(bio, 4, 16, "pexp[1]", blob->pexp[1], sizeof(blob->pexp[1]));
-	(void)format_bytes(bio, 4, 16, "coef", blob->coef, sizeof(blob->coef));
-	(void)fprintf(bio, "\n");
-
+	int fmt = 0, ind = 4;
+	(void)format_print(fp, fmt, ind, "bits: %d", blob->bits);
+	(void)format_bytes(fp, fmt, ind, "m", blob->m, sizeof(blob->m));
+	(void)format_bytes(fp, fmt, ind, "e", blob->e, sizeof(blob->e));
+	(void)format_bytes(fp, fmt, ind, "d", blob->d, sizeof(blob->d));
+	(void)format_bytes(fp, fmt, ind, "prime[0]", blob->prime[0], sizeof(blob->prime[0]));
+	(void)format_bytes(fp, fmt, ind, "prime[1]", blob->prime[1], sizeof(blob->prime[1]));
+	(void)format_bytes(fp, fmt, ind, "pexp[0]", blob->pexp[0], sizeof(blob->pexp[0]));
+	(void)format_bytes(fp, fmt, ind, "pexp[1]", blob->pexp[1], sizeof(blob->pexp[1]));
+	(void)format_bytes(fp, fmt, ind, "coef", blob->coef, sizeof(blob->coef));
 	return SDR_OK;
 }
 
-int SDF_PrintECCPublicKey(FILE *bio, ECCrefPublicKey *blob)
+int SDF_PrintECCPublicKey(FILE *fp, const ECCrefPublicKey *blob)
 {
-	(void)fprintf(bio, "bits: %d", blob->bits);
-	(void)format_bytes(bio, 4, 16, "x", blob->x, sizeof(blob->x));
-	(void)format_bytes(bio, 4, 16, "y", blob->y, sizeof(blob->y));
-	(void)fprintf(bio, "\n");
-
+	int fmt = 0, ind = 4;
+	(void)format_print(fp, fmt, ind, "bits: %d", blob->bits);
+	(void)format_bytes(fp, fmt, ind, "x", blob->x, sizeof(blob->x));
+	(void)format_bytes(fp, fmt, ind, "y", blob->y, sizeof(blob->y));
 	return SDR_OK;
 }
 
-int SDF_PrintECCPrivateKey(FILE *bio, ECCrefPrivateKey *blob)
+int SDF_PrintECCPrivateKey(FILE *fp, const ECCrefPrivateKey *blob)
 {
-	(void)fprintf(bio, "bits: %d", blob->bits);
-	(void)format_bytes(bio, 4, 16, "K", blob->K, sizeof(blob->K));
-	(void)fprintf(bio, "\n");
-
+	int fmt = 0, ind = 4;
+	(void)format_print(fp, fmt, ind, "bits: %d", blob->bits);
+	(void)format_bytes(fp, fmt, ind, "K", blob->K, sizeof(blob->K));
 	return SDR_OK;
 }
 
-int SDF_PrintECCCipher(FILE *bio, ECCCipher *blob)
+int SDF_PrintECCCipher(FILE *fp, const ECCCipher *blob)
 {
-	(void)format_bytes(bio, 4, 16, "x", blob->x, sizeof(blob->x));
-	(void)format_bytes(bio, 4, 16, "y", blob->y, sizeof(blob->y));
-	(void)format_bytes(bio, 4, 16, "M", blob->M, sizeof(blob->M));
-	(void)fprintf(bio, "\nL: %d", blob->L);
-	(void)format_bytes(bio, 4, 16, "C", blob->C, sizeof(blob->C));
-	(void)fprintf(bio, "\n");
-
+	int fmt = 0, ind = 4;
+	(void)format_bytes(fp, fmt, ind, "x", blob->x, sizeof(blob->x));
+	(void)format_bytes(fp, fmt, ind, "y", blob->y, sizeof(blob->y));
+	(void)format_bytes(fp, fmt, ind, "M", blob->M, sizeof(blob->M));
+	(void)format_print(fp, fmt, ind, "L: %d", blob->L);
+	(void)format_bytes(fp, fmt, ind, "C", blob->C, sizeof(blob->C));
 	return SDR_OK;
 }
 
-int SDF_PrintECCSignature(FILE *bio, ECCSignature *blob)
+int SDF_PrintECCSignature(FILE *fp, const ECCSignature *blob)
 {
-	(void)format_bytes(bio, 4, 16, "r", blob->r, sizeof(blob->r));
-	(void)format_bytes(bio, 4, 16, "s", blob->s, sizeof(blob->s));
-	(void)fprintf(bio, "\n");
-
+	int fmt = 0, ind = 4;
+	(void)format_bytes(fp, fmt, ind, "r", blob->r, sizeof(blob->r));
+	(void)format_bytes(fp, fmt, ind, "s", blob->s, sizeof(blob->s));
 	return SDR_OK;
 }
 

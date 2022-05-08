@@ -53,7 +53,8 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-
+#include <string.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
