@@ -189,6 +189,7 @@ int aes_set_decrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 		aes_key->rk[4*i + 2] = enc_key.rk[4*(enc_key.rounds - i) + 2];
 		aes_key->rk[4*i + 3] = enc_key.rk[4*(enc_key.rounds - i) + 3];
 	}
+	aes_key->rounds = enc_key.rounds;
 	ret = 1;
 
 #ifdef CRYPTO_INFO
