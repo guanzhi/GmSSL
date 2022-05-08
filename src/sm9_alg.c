@@ -53,32 +53,32 @@
 #include <assert.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm9.h>
-#include <gmssl/endian.h>
+#include "endian.h"
 
 
-static const sm9_bn_t SM9_ZERO  = {0,0,0,0,0,0,0,0};
-static const sm9_bn_t SM9_ONE   = {1,0,0,0,0,0,0,0};
-static const sm9_bn_t SM9_TWO   = {2,0,0,0,0,0,0,0};
-static const sm9_bn_t SM9_FIVE  = {5,0,0,0,0,0,0,0};
+const sm9_bn_t SM9_ZERO  = {0,0,0,0,0,0,0,0};
+const sm9_bn_t SM9_ONE   = {1,0,0,0,0,0,0,0};
+const sm9_bn_t SM9_TWO   = {2,0,0,0,0,0,0,0};
+const sm9_bn_t SM9_FIVE  = {5,0,0,0,0,0,0,0};
 
 
 // p =  b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
 // n =  b640000002a3a6f1d603ab4ff58ec74449f2934b18ea8beee56ee19cd69ecf25
 // mu = 2^512 // p = 167980e0beb5759a655f73aebdcd1312af2665f6d1e36081c71188f90d5c22146
-static const sm9_bn_t SM9_P = {0xe351457d, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
-static const sm9_bn_t SM9_P_MINUS_ONE = {0xe351457c, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
-static const sm9_bn_t SM9_N = {0xd69ecf25, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
-static const sm9_bn_t SM9_MU = {0xd5c22146, 0x71188f90, 0x1e36081c, 0xf2665f6d, 0xdcd1312a, 0x55f73aeb, 0xeb5759a6, 0x167980e0b};
+const sm9_bn_t SM9_P = {0xe351457d, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
+const sm9_bn_t SM9_P_MINUS_ONE = {0xe351457c, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
+const sm9_bn_t SM9_N = {0xd69ecf25, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
+const sm9_barrett_bn_t SM9_MU = {0xd5c22146, 0x71188f90, 0x1e36081c, 0xf2665f6d, 0xdcd1312a, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
 
 
 // P1.X 0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD
 // P1.Y 0x21FE8DDA4F21E607631065125C395BBC1C1C00CBFA6024350C464CD70A3EA616
-static const sm9_point_t _SM9_P1 = {
+const sm9_point_t _SM9_P1 = {
 	{0x7c66dddd, 0xe8c4e481, 0x09dc3280, 0xe1e40869, 0x487d01d6, 0xf5ed0704, 0x62bf718f, 0x93de051d},
 	{0x0a3ea616, 0x0c464cd7, 0xfa602435, 0x1c1c00cb, 0x5c395bbc, 0x63106512, 0x4f21e607, 0x21fe8dda},
 	{1,0,0,0,0,0,0,0}
 };
-static const sm9_point_t *SM9_P1 = &_SM9_P1;
+const sm9_point_t *SM9_P1 = &_SM9_P1;
 
 
 /*
@@ -88,27 +88,27 @@ static const sm9_point_t *SM9_P1 = &_SM9_P1;
 	     0x17509b092e845c1266ba0d262cbee6ed0736a96fa347c8bd856dc76b84ebeb96n],
 	Z : [1n, 0n],
 */
-static const sm9_twist_point_t _SM9_P2 = {
+const sm9_twist_point_t _SM9_P2 = {
 	{{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948, 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
 	 {0xD8806141, 0x54806C11, 0x0F5E93C4, 0xF1DD2C19, 0xB441A01F, 0x597B6027, 0x78640C98, 0x85AEF3D0}},
 	{{0xC999A7C7, 0x6215BBA5, 0xA71A0811, 0x47EFBA98, 0x3D278FF2, 0x5F317015, 0x19BE3DA6, 0xA7CF28D5},
 	 {0x84EBEB96, 0x856DC76B, 0xA347C8BD, 0x0736A96F, 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}},
 	{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
 };
-static const sm9_twist_point_t *SM9_P2 = &_SM9_P2;
+const sm9_twist_point_t *SM9_P2 = &_SM9_P2;
 
 
-static const sm9_twist_point_t _SM9_Ppubs = {
+const sm9_twist_point_t _SM9_Ppubs = {
 	{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
 	 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
 	{{0xB4E3216D, 0x0E75C05F, 0x5CDFF073, 0x1006E85F, 0xB7A46F74, 0x1A7CE027, 0xDDA532DA, 0x41E00A53},
          {0xD0EF1C25, 0xE89E1408, 0x1A77F335, 0xAD3E2FDB, 0x47E3A0CB, 0xB57329F4, 0xABEA0112, 0x69850938}},
 	{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
 };
-static const sm9_twist_point_t *SM9_Ppubs = &_SM9_Ppubs;
+const sm9_twist_point_t *SM9_Ppubs = &_SM9_Ppubs;
 
 
-static void sm9_bn_to_bytes(const sm9_bn_t a, uint8_t out[32])
+void sm9_bn_to_bytes(const sm9_bn_t a, uint8_t out[32])
 {
 	int i;
 	for (i = 7; i >= 0; i--) {
@@ -117,7 +117,7 @@ static void sm9_bn_to_bytes(const sm9_bn_t a, uint8_t out[32])
 	}
 }
 
-static void sm9_bn_from_bytes(sm9_bn_t r, const uint8_t in[32])
+void sm9_bn_from_bytes(sm9_bn_t r, const uint8_t in[32])
 {
 	int i;
 	for (i = 7; i >= 0; i--) {
@@ -126,7 +126,7 @@ static void sm9_bn_from_bytes(sm9_bn_t r, const uint8_t in[32])
 	}
 }
 
-static int sm9_bn_from_hex(sm9_bn_t r, const char hex[65])
+int sm9_bn_from_hex(sm9_bn_t r, const char hex[65])
 {
 	uint8_t buf[32];
 	size_t len;
@@ -137,24 +137,24 @@ static int sm9_bn_from_hex(sm9_bn_t r, const char hex[65])
 	return 0;
 }
 
-static void sm9_bn_to_hex(const sm9_bn_t a, char hex[65])
+void sm9_bn_to_hex(const sm9_bn_t a, char hex[65])
 {
 	int i;
 	for (i = 7; i >= 0; i--) {
-		(void)sprintf(hex, "%08x", (uint32_t)a[i]);
-		hex += 8;
+		(void)sprintf(hex + 8*(7-i), "%08x", (uint32_t)a[i]);
+		//hex += 8;
 	}
-	hex[64] = '0';
+	hex[64] = 0;
 }
 
-static void sm9_print_bn(const char *prefix, const sm9_bn_t a)
+void sm9_print_bn(const char *prefix, const sm9_bn_t a)
 {
 	char hex[65];
 	sm9_bn_to_hex(a, hex);
 	printf("%s\n%s\n", prefix, hex);
 }
 
-static void sm9_bn_to_bits(const sm9_bn_t a, char bits[256])
+void sm9_bn_to_bits(const sm9_bn_t a, char bits[256])
 {
 	int i, j;
 	for (i = 7; i >= 0; i--) {
@@ -166,7 +166,7 @@ static void sm9_bn_to_bits(const sm9_bn_t a, char bits[256])
 	}
 }
 
-static int sm9_bn_cmp(const sm9_bn_t a, const sm9_bn_t b)
+int sm9_bn_cmp(const sm9_bn_t a, const sm9_bn_t b)
 {
 	int i;
 	for (i = 7; i >= 0; i--) {
@@ -178,20 +178,20 @@ static int sm9_bn_cmp(const sm9_bn_t a, const sm9_bn_t b)
 	return 0;
 }
 
-static int sm9_bn_equ_hex(const sm9_bn_t a, const char *hex)
+int sm9_bn_equ_hex(const sm9_bn_t a, const char *hex)
 {
 	sm9_bn_t b;
 	sm9_bn_from_hex(b, hex);
 	return (sm9_bn_cmp(a, b) == 0);
 }
 
-static void sm9_bn_set_word(sm9_bn_t r, uint32_t a)
+void sm9_bn_set_word(sm9_bn_t r, uint32_t a)
 {
 	sm9_bn_set_zero(r);
 	r[0] = a;
 }
 
-static void sm9_bn_add(sm9_bn_t r, const sm9_bn_t a, const sm9_bn_t b)
+void sm9_bn_add(sm9_bn_t r, const sm9_bn_t a, const sm9_bn_t b)
 {
 	int i;
 	r[0] = a[0] + b[0];
@@ -203,7 +203,7 @@ static void sm9_bn_add(sm9_bn_t r, const sm9_bn_t a, const sm9_bn_t b)
 	}
 }
 
-static void sm9_bn_sub(sm9_bn_t ret, const sm9_bn_t a, const sm9_bn_t b)
+void sm9_bn_sub(sm9_bn_t ret, const sm9_bn_t a, const sm9_bn_t b)
 {
 	int i;
 	sm9_bn_t r;
@@ -217,7 +217,7 @@ static void sm9_bn_sub(sm9_bn_t ret, const sm9_bn_t a, const sm9_bn_t b)
 	sm9_bn_copy(ret, r);
 }
 
-static void sm9_bn_rand_range(sm9_bn_t r, const sm9_bn_t range)
+void sm9_bn_rand_range(sm9_bn_t r, const sm9_bn_t range)
 {
 	FILE *fp;
 	uint8_t buf[256];
@@ -230,7 +230,7 @@ static void sm9_bn_rand_range(sm9_bn_t r, const sm9_bn_t range)
 	fclose(fp);
 }
 
-static int sm9_fp_equ(const sm9_fp_t a, const sm9_fp_t b)
+int sm9_fp_equ(const sm9_fp_t a, const sm9_fp_t b)
 {
 	int i;
 	for (i = 0; i < 8; i++) {
@@ -240,14 +240,14 @@ static int sm9_fp_equ(const sm9_fp_t a, const sm9_fp_t b)
 	return 1;
 }
 
-static void sm9_fp_add(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
+void sm9_fp_add(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 {
 	sm9_bn_add(r, a, b);
 	if (sm9_bn_cmp(r, SM9_P) >= 0)
 		return sm9_bn_sub(r, r, SM9_P);
 }
 
-static void sm9_fp_sub(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
+void sm9_fp_sub(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 {
 	if (sm9_bn_cmp(a, b) >= 0) {
 		sm9_bn_sub(r, a, b);
@@ -258,19 +258,19 @@ static void sm9_fp_sub(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 }
 
-static void sm9_fp_dbl(sm9_fp_t r, const sm9_fp_t a)
+void sm9_fp_dbl(sm9_fp_t r, const sm9_fp_t a)
 {
 	sm9_fp_add(r, a, a);
 }
 
-static void sm9_fp_tri(sm9_fp_t r, const sm9_fp_t a)
+void sm9_fp_tri(sm9_fp_t r, const sm9_fp_t a)
 {
 	sm9_fp_t t;
 	sm9_fp_dbl(t, a);
 	sm9_fp_add(r, t, a);
 }
 
-static void sm9_fp_div2(sm9_fp_t r, const sm9_fp_t a)
+void sm9_fp_div2(sm9_fp_t r, const sm9_fp_t a)
 {
 	int i;
 	sm9_bn_copy(r, a);
@@ -283,7 +283,7 @@ static void sm9_fp_div2(sm9_fp_t r, const sm9_fp_t a)
 	r[i] >>= 1;
 }
 
-static void sm9_fp_neg(sm9_fp_t r, const sm9_fp_t a)
+void sm9_fp_neg(sm9_fp_t r, const sm9_fp_t a)
 {
 	if (sm9_bn_is_zero(a)) {
 		sm9_bn_copy(r, a);
@@ -292,7 +292,7 @@ static void sm9_fp_neg(sm9_fp_t r, const sm9_fp_t a)
 	}
 }
 
-static int sm9_barrett_bn_cmp(const sm9_barrett_bn_t a, const sm9_barrett_bn_t b)
+int sm9_barrett_bn_cmp(const sm9_barrett_bn_t a, const sm9_barrett_bn_t b)
 {
 	int i;
 	for (i = 8; i >= 0; i--) {
@@ -304,7 +304,7 @@ static int sm9_barrett_bn_cmp(const sm9_barrett_bn_t a, const sm9_barrett_bn_t b
 	return 0;
 }
 
-static void sm9_barrett_bn_add(sm9_barrett_bn_t r, const sm9_barrett_bn_t a, const sm9_barrett_bn_t b)
+void sm9_barrett_bn_add(sm9_barrett_bn_t r, const sm9_barrett_bn_t a, const sm9_barrett_bn_t b)
 {
 	int i;
 	r[0] = a[0] + b[0];
@@ -316,7 +316,7 @@ static void sm9_barrett_bn_add(sm9_barrett_bn_t r, const sm9_barrett_bn_t a, con
 	}
 }
 
-static void sm9_barrett_bn_sub(sm9_barrett_bn_t ret, const sm9_barrett_bn_t a, const sm9_barrett_bn_t b)
+void sm9_barrett_bn_sub(sm9_barrett_bn_t ret, const sm9_barrett_bn_t a, const sm9_barrett_bn_t b)
 {
 	sm9_barrett_bn_t r;
 	int i;
@@ -332,9 +332,9 @@ static void sm9_barrett_bn_sub(sm9_barrett_bn_t ret, const sm9_barrett_bn_t a, c
 	}
 }
 
-static void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
+void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 {
-	uint64_t s[17];
+	uint64_t s[18];
 	sm9_barrett_bn_t zh, zl, q;
 	uint64_t w;
 	int i, j;
@@ -361,30 +361,30 @@ static void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 
 	/* q = zh * mu // (2^32)^9 */
-	for (i = 0; i < 9; i++) {
+	for (i = 0; i < 18; i++) {
 		s[i] = 0;
 	}
 	for (i = 0; i < 9; i++) {
 		w = 0;
-		for (j = 0; j < 8; j++) {
+		for (j = 0; j < 9; j++) {
 			w += s[i + j] + zh[i] * SM9_MU[j];
 			s[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
-		s[i + 8] = w;
+		s[i + 9] = w;
 	}
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 9; i++) {
 		q[i] = s[9 + i];
 	}
 
-	/* q = q * n mod (2^32)^9 */
-	for (i = 0; i < 8; i++) {
+	/* q = q * p mod (2^32)^9 */
+	for (i = 0; i < 18; i++) {
 		s[i] = 0;
 	}
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 9; i++) {
 		w = 0;
 		for (j = 0; j < 8; j++) {
-			w += s[i + j] + q[i] * SM9_N[j];
+			w += s[i + j] + q[i] * SM9_P[j];
 			s[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
@@ -402,26 +402,28 @@ static void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 		sm9_barrett_bn_t c = {0,0,0,0,0,0,0,0,0x100000000};
 		sm9_barrett_bn_sub(q, c, q);
 		sm9_barrett_bn_add(zl, q, zl);
-
 	}
+
 
 	for (i = 0; i < 8; i++) {
 		r[i] = zl[i];
 	}
-	r[7] += zl[8] << 32;
 
-	/* while r >= p do: r = r - n */
-	while (sm9_bn_cmp(r, SM9_N) >= 0) {
-		sm9_bn_sub(r, r, SM9_N);
+	r[7] += (zl[8] << 32);
+
+	/* while r >= p do: r = r - p */
+	while (sm9_bn_cmp(r, SM9_P) >= 0) {
+
+		sm9_bn_sub(r, r, SM9_P);
 	}
 }
 
-static void sm9_fp_sqr(sm9_fp_t r, const sm9_fp_t a)
+void sm9_fp_sqr(sm9_fp_t r, const sm9_fp_t a)
 {
 	sm9_fp_mul(r, a, a);
 }
 
-static void sm9_fp_pow(sm9_fp_t r, const sm9_fp_t a, const sm9_bn_t e)
+void sm9_fp_pow(sm9_fp_t r, const sm9_fp_t a, const sm9_bn_t e)
 {
 	sm9_fp_t t;
 	uint32_t w;
@@ -442,81 +444,81 @@ static void sm9_fp_pow(sm9_fp_t r, const sm9_fp_t a, const sm9_bn_t e)
 	sm9_bn_copy(r, t);
 }
 
-static void sm9_fp_inv(sm9_fp_t r, const sm9_fp_t a)
+void sm9_fp_inv(sm9_fp_t r, const sm9_fp_t a)
 {
 	sm9_fp_t e;
 	sm9_bn_sub(e, SM9_P, SM9_TWO);
 	sm9_fp_pow(r, a, e);
 }
 
-static const sm9_fp2_t SM9_FP2_ZERO = {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}};
-static const sm9_fp2_t SM9_FP2_ONE  = {{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}};
-static const sm9_fp2_t SM9_FP2_U    = {{0,0,0,0,0,0,0,0},{1,0,0,0,0,0,0,0}};
-static const sm9_fp2_t SM9_FP2_5U    = {{0,0,0,0,0,0,0,0},{5,0,0,0,0,0,0,0}};
+const sm9_fp2_t SM9_FP2_ZERO = {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}};
+const sm9_fp2_t SM9_FP2_ONE  = {{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}};
+const sm9_fp2_t SM9_FP2_U    = {{0,0,0,0,0,0,0,0},{1,0,0,0,0,0,0,0}};
+const sm9_fp2_t SM9_FP2_5U    = {{0,0,0,0,0,0,0,0},{5,0,0,0,0,0,0,0}};
 
-static void sm9_fp2_from_hex(sm9_fp2_t r, const char hex[65 * 2])
+void sm9_fp2_from_hex(sm9_fp2_t r, const char hex[65 * 2])
 {
 	sm9_fp_from_hex(r[1], hex);
 	sm9_fp_from_hex(r[0], hex + 65);
 }
 
-static void sm9_fp2_to_hex(const sm9_fp2_t a, char hex[65 * 2])
+void sm9_fp2_to_hex(const sm9_fp2_t a, char hex[65 * 2])
 {
 	sm9_fp_to_hex(a[1], hex);
 	hex[64] = '\n';
 	sm9_fp_to_hex(a[0], hex + 65);
 }
 
-static void sm9_fp2_print(const char *prefix, const sm9_fp2_t a)
+void sm9_fp2_print(const char *prefix, const sm9_fp2_t a)
 {
 	char hex[65 * 2];
 	sm9_fp2_to_hex(a, hex);
 	printf("%s\n%s\n", prefix, hex);
 }
 
-static void sm9_fp2_set_fp(sm9_fp2_t r, const sm9_fp_t a)
+void sm9_fp2_set_fp(sm9_fp2_t r, const sm9_fp_t a)
 {
 	sm9_fp_copy(r[0], a);
 	sm9_fp_set_zero(r[1]);
 }
 
-static void sm9_fp2_set(sm9_fp2_t r, const sm9_fp_t a0, const sm9_fp_t a1)
+void sm9_fp2_set(sm9_fp2_t r, const sm9_fp_t a0, const sm9_fp_t a1)
 {
 	sm9_fp_copy(r[0], a0);
 	sm9_fp_copy(r[1], a1);
 }
 
-static void sm9_fp2_add(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
+void sm9_fp2_add(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 {
 	sm9_fp_add(r[0], a[0], b[0]);
 	sm9_fp_add(r[1], a[1], b[1]);
 }
 
-static void sm9_fp2_dbl(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_dbl(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_dbl(r[0], a[0]);
 	sm9_fp_dbl(r[1], a[1]);
 }
 
-static void sm9_fp2_tri(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_tri(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_tri(r[0], a[0]);
 	sm9_fp_tri(r[1], a[1]);
 }
 
-static void sm9_fp2_sub(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
+void sm9_fp2_sub(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 {
 	sm9_fp_sub(r[0], a[0], b[0]);
 	sm9_fp_sub(r[1], a[1], b[1]);
 }
 
-static void sm9_fp2_neg(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_neg(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_neg(r[0], a[0]);
 	sm9_fp_neg(r[1], a[1]);
 }
 
-static void sm9_fp2_mul(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
+void sm9_fp2_mul(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 {
 	sm9_fp_t r0, r1, t;
 
@@ -535,7 +537,7 @@ static void sm9_fp2_mul(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 	sm9_fp_copy(r[1], r1);
 }
 
-static void sm9_fp2_mul_u(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
+void sm9_fp2_mul_u(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 {
 	sm9_fp_t r0, r1, t;
 
@@ -556,13 +558,13 @@ static void sm9_fp2_mul_u(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 	sm9_fp_copy(r[1], r1);
 }
 
-static void sm9_fp2_mul_fp(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp_t k)
+void sm9_fp2_mul_fp(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp_t k)
 {
 	sm9_fp_mul(r[0], a[0], k);
 	sm9_fp_mul(r[1], a[1], k);
 }
 
-static void sm9_fp2_sqr(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_sqr(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_t r0, r1, t;
 
@@ -580,7 +582,7 @@ static void sm9_fp2_sqr(sm9_fp2_t r, const sm9_fp2_t a)
 	sm9_bn_copy(r[1], r1);
 }
 
-static void sm9_fp2_sqr_u(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_sqr_u(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_t r0, r1, t;
 
@@ -601,7 +603,7 @@ static void sm9_fp2_sqr_u(sm9_fp2_t r, const sm9_fp2_t a)
 
 }
 
-static void sm9_fp2_inv(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_inv(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	if (sm9_fp_is_zero(a[0])) {
 		// r0 = 0
@@ -636,100 +638,100 @@ static void sm9_fp2_inv(sm9_fp2_t r, const sm9_fp2_t a)
 	}
 }
 
-static void sm9_fp2_div(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
+void sm9_fp2_div(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 {
 	sm9_fp2_t t;
 	sm9_fp2_inv(t, b);
 	sm9_fp2_mul(r, a, t);
 }
 
-static void sm9_fp2_div2(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_div2(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_div2(r[0], a[0]);
 	sm9_fp_div2(r[1], a[1]);
 }
 
-static const sm9_fp4_t SM9_FP4_ZERO = {{{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
-static const sm9_fp4_t SM9_FP4_ONE = {{{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
-static const sm9_fp4_t SM9_FP4_U = {{{0,0,0,0,0,0,0,0},{1,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
-static const sm9_fp4_t SM9_FP4_V = {{{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
+const sm9_fp4_t SM9_FP4_ZERO = {{{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
+const sm9_fp4_t SM9_FP4_ONE = {{{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
+const sm9_fp4_t SM9_FP4_U = {{{0,0,0,0,0,0,0,0},{1,0,0,0,0,0,0,0}}, {{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
+const sm9_fp4_t SM9_FP4_V = {{{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}, {{1,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0}}};
 
-static void sm9_fp4_from_hex(sm9_fp4_t r, const char hex[65 * 4])
+void sm9_fp4_from_hex(sm9_fp4_t r, const char hex[65 * 4])
 {
 	sm9_fp2_from_hex(r[1], hex);
 	sm9_fp2_from_hex(r[0], hex + 65 * 2);
 }
 
-static void sm9_fp4_to_hex(const sm9_fp4_t a, char hex[65 * 4])
+void sm9_fp4_to_hex(const sm9_fp4_t a, char hex[65 * 4])
 {
 	sm9_fp2_to_hex(a[1], hex);
 	hex[65 + 64] = '\n';
 	sm9_fp2_to_hex(a[0], hex + 65 * 2);
 }
 
-static void sm9_fp4_set_fp(sm9_fp4_t r, const sm9_fp_t a)
+void sm9_fp4_set_fp(sm9_fp4_t r, const sm9_fp_t a)
 {
 	sm9_fp2_set_fp(r[0], a);
 	sm9_fp2_set_zero(r[1]);
 }
 
-static void sm9_fp4_set_fp2(sm9_fp4_t r, const sm9_fp2_t a)
+void sm9_fp4_set_fp2(sm9_fp4_t r, const sm9_fp2_t a)
 {
 	sm9_fp2_copy(r[0], a);
 	sm9_fp2_set_zero(r[1]);
 }
 
-static void sm9_fp4_set(sm9_fp4_t r, const sm9_fp2_t a0, const sm9_fp2_t a1)
+void sm9_fp4_set(sm9_fp4_t r, const sm9_fp2_t a0, const sm9_fp2_t a1)
 {
 	sm9_fp2_copy(r[0], a0);
 	sm9_fp2_copy(r[1], a1);
 }
 
 /*
-static void sm9_fp4_set_one(sm9_fp4_t r)
+void sm9_fp4_set_one(sm9_fp4_t r)
 {
 	sm9_fp2_set_one(r[0]);
 	sm9_fp2_set_zero(r[1]);
 }
 */
 
-static void sm9_fp4_set_u(sm9_fp4_t r)
+void sm9_fp4_set_u(sm9_fp4_t r)
 {
 	sm9_fp2_set_u(r[0]);
 	sm9_fp2_set_zero(r[1]);
 }
 
-static void sm9_fp4_set_v(sm9_fp4_t r)
+void sm9_fp4_set_v(sm9_fp4_t r)
 {
 	sm9_fp2_set_zero(r[0]);
 	sm9_fp2_set_one(r[1]);
 }
 
-static void sm9_fp4_add(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
+void sm9_fp4_add(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
 {
 	sm9_fp2_add(r[0], a[0], b[0]);
 	sm9_fp2_add(r[1], a[1], b[1]);
 }
 
-static void sm9_fp4_dbl(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_dbl(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_dbl(r[0], a[0]);
 	sm9_fp2_dbl(r[1], a[1]);
 }
 
-static void sm9_fp4_sub(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
+void sm9_fp4_sub(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
 {
 	sm9_fp2_sub(r[0], a[0], b[0]);
 	sm9_fp2_sub(r[1], a[1], b[1]);
 }
 
-static void sm9_fp4_neg(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_neg(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_neg(r[0], a[0]);
 	sm9_fp2_neg(r[1], a[1]);
 }
 
-static void sm9_fp4_mul(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
+void sm9_fp4_mul(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
 {
 	sm9_fp2_t r0, r1, t;
 
@@ -745,19 +747,19 @@ static void sm9_fp4_mul(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
 	sm9_fp2_copy(r[1], r1);
 }
 
-static void sm9_fp4_mul_fp(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp_t k)
+void sm9_fp4_mul_fp(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp_t k)
 {
 	sm9_fp2_mul_fp(r[0], a[0], k);
 	sm9_fp2_mul_fp(r[1], a[1], k);
 }
 
-static void sm9_fp4_mul_fp2(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp2_t b0)
+void sm9_fp4_mul_fp2(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp2_t b0)
 {
 	sm9_fp2_mul(r[0], a[0], b0);
 	sm9_fp2_mul(r[1], a[1], b0);
 }
 
-static void sm9_fp4_mul_v(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
+void sm9_fp4_mul_v(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
 {
 	sm9_fp2_t r0, r1, t;
 
@@ -773,7 +775,7 @@ static void sm9_fp4_mul_v(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp4_t b)
 	sm9_fp2_copy(r[1], r1);
 }
 
-static void sm9_fp4_sqr(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_sqr(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_t r0, r1, t;
 
@@ -787,7 +789,7 @@ static void sm9_fp4_sqr(sm9_fp4_t r, const sm9_fp4_t a)
 	sm9_fp2_copy(r[1], r1);
 }
 
-static void sm9_fp4_sqr_v(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_sqr_v(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_t r0, r1, t;
 
@@ -802,7 +804,7 @@ static void sm9_fp4_sqr_v(sm9_fp4_t r, const sm9_fp4_t a)
 	sm9_fp2_copy(r[1], r1);
 }
 
-static void sm9_fp4_inv(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_inv(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_t r0, r1, k;
 
@@ -820,35 +822,35 @@ static void sm9_fp4_inv(sm9_fp4_t r, const sm9_fp4_t a)
 	sm9_fp2_copy(r[1], r1);
 }
 
-static void sm9_fp12_set_one(sm9_fp12_t r)
+void sm9_fp12_set_one(sm9_fp12_t r)
 {
 	sm9_fp4_set_one(r[0]);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static int sm9_fp12_is_one(const sm9_fp12_t a)
+int sm9_fp12_is_one(const sm9_fp12_t a)
 {
 	return sm9_fp4_is_one(a[0])
 		&& sm9_fp4_is_zero(a[1])
 		&& sm9_fp4_is_zero(a[2]);
 }
 
-static int sm9_fp12_is_zero(const sm9_fp12_t a)
+int sm9_fp12_is_zero(const sm9_fp12_t a)
 {
 	return sm9_fp4_is_zero(a[0])
 		&& sm9_fp4_is_zero(a[1])
 		&& sm9_fp4_is_zero(a[2]);
 }
 
-static void sm9_fp12_from_hex(sm9_fp12_t r, const char hex[65 * 12])
+void sm9_fp12_from_hex(sm9_fp12_t r, const char hex[65 * 12])
 {
 	sm9_fp4_from_hex(r[2], hex);
 	sm9_fp4_from_hex(r[1], hex + 65 * 4);
 	sm9_fp4_from_hex(r[0], hex + 65 * 8);
 }
 
-static void sm9_fp12_to_hex(const sm9_fp12_t a, char hex[65 * 12])
+void sm9_fp12_to_hex(const sm9_fp12_t a, char hex[65 * 12])
 {
 	sm9_fp4_to_hex(a[2], hex);
 	hex[65 * 4 - 1] = '\n';
@@ -857,112 +859,112 @@ static void sm9_fp12_to_hex(const sm9_fp12_t a, char hex[65 * 12])
 	sm9_fp4_to_hex(a[0], hex + 65 * 8);
 }
 
-static void sm9_fp12_print(const char *prefix, const sm9_fp12_t a)
+void sm9_fp12_print(const char *prefix, const sm9_fp12_t a)
 {
 	char hex[65 * 12];
 	sm9_fp12_to_hex(a, hex);
 	printf("%s\n%s\n", prefix, hex);
 }
 
-static void sm9_fp12_set(sm9_fp12_t r, const sm9_fp4_t a0, const sm9_fp4_t a1, const sm9_fp4_t a2)
+void sm9_fp12_set(sm9_fp12_t r, const sm9_fp4_t a0, const sm9_fp4_t a1, const sm9_fp4_t a2)
 {
 	sm9_fp4_copy(r[0], a0);
 	sm9_fp4_copy(r[1], a1);
 	sm9_fp4_copy(r[2], a2);
 }
 
-static void sm9_fp12_set_fp(sm9_fp12_t r, const sm9_fp_t a)
+void sm9_fp12_set_fp(sm9_fp12_t r, const sm9_fp_t a)
 {
 	sm9_fp4_set_fp(r[0], a);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static void sm9_fp12_set_fp2(sm9_fp12_t r, const sm9_fp2_t a)
+void sm9_fp12_set_fp2(sm9_fp12_t r, const sm9_fp2_t a)
 {
 	sm9_fp4_set_fp2(r[0], a);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static void sm9_fp12_set_fp4(sm9_fp12_t r, const sm9_fp4_t a)
+void sm9_fp12_set_fp4(sm9_fp12_t r, const sm9_fp4_t a)
 {
 	sm9_fp4_copy(r[0], a);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static void sm9_fp12_set_u(sm9_fp12_t r)
+void sm9_fp12_set_u(sm9_fp12_t r)
 {
 	sm9_fp4_set_u(r[0]);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static void sm9_fp12_set_v(sm9_fp12_t r)
+void sm9_fp12_set_v(sm9_fp12_t r)
 {
 	sm9_fp4_set_v(r[0]);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static void sm9_fp12_set_w(sm9_fp12_t r)
+void sm9_fp12_set_w(sm9_fp12_t r)
 {
 	sm9_fp4_set_zero(r[0]);
 	sm9_fp4_set_one(r[1]);
 	sm9_fp4_set_zero(r[2]);
 }
 
-static void sm9_fp12_set_w_sqr(sm9_fp12_t r)
+void sm9_fp12_set_w_sqr(sm9_fp12_t r)
 {
 	sm9_fp4_set_zero(r[0]);
 	sm9_fp4_set_zero(r[1]);
 	sm9_fp4_set_one(r[2]);
 }
 
-static int sm9_fp12_equ(const sm9_fp12_t a, const sm9_fp12_t b)
+int sm9_fp12_equ(const sm9_fp12_t a, const sm9_fp12_t b)
 {
 	return sm9_fp4_equ(a[0], b[0])
 		&& sm9_fp4_equ(a[1], b[1])
 		&& sm9_fp4_equ(a[2], b[2]);
 }
 
-static void sm9_fp12_add(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
+void sm9_fp12_add(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
 {
 	sm9_fp4_add(r[0], a[0], b[0]);
 	sm9_fp4_add(r[1], a[1], b[1]);
 	sm9_fp4_add(r[2], a[2], b[2]);
 }
 
-static void sm9_fp12_dbl(sm9_fp12_t r, const sm9_fp12_t a)
+void sm9_fp12_dbl(sm9_fp12_t r, const sm9_fp12_t a)
 {
 	sm9_fp4_dbl(r[0], a[0]);
 	sm9_fp4_dbl(r[1], a[1]);
 	sm9_fp4_dbl(r[2], a[2]);
 }
 
-static void sm9_fp12_tri(sm9_fp12_t r, const sm9_fp12_t a)
+void sm9_fp12_tri(sm9_fp12_t r, const sm9_fp12_t a)
 {
 	sm9_fp12_t t;
 	sm9_fp12_dbl(t, a);
 	sm9_fp12_add(r, t, a);
 }
 
-static void sm9_fp12_sub(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
+void sm9_fp12_sub(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
 {
 	sm9_fp4_sub(r[0], a[0], b[0]);
 	sm9_fp4_sub(r[1], a[1], b[1]);
 	sm9_fp4_sub(r[2], a[2], b[2]);
 }
 
-static void sm9_fp12_neg(sm9_fp12_t r, const sm9_fp12_t a)
+void sm9_fp12_neg(sm9_fp12_t r, const sm9_fp12_t a)
 {
 	sm9_fp4_neg(r[0], a[0]);
 	sm9_fp4_neg(r[1], a[1]);
 	sm9_fp4_neg(r[2], a[2]);
 }
 
-static void sm9_fp12_mul(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
+void sm9_fp12_mul(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
 {
 	sm9_fp4_t r0, r1, r2, t;
 
@@ -989,7 +991,7 @@ static void sm9_fp12_mul(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
 	sm9_fp4_copy(r[2], r2);
 }
 
-static void sm9_fp12_sqr(sm9_fp12_t r, const sm9_fp12_t a)
+void sm9_fp12_sqr(sm9_fp12_t r, const sm9_fp12_t a)
 {
 	sm9_fp4_t r0, r1, r2, t;
 
@@ -1013,7 +1015,7 @@ static void sm9_fp12_sqr(sm9_fp12_t r, const sm9_fp12_t a)
 	sm9_fp4_copy(r[2], r2);
 }
 
-static void sm9_fp12_inv(sm9_fp12_t r, const sm9_fp12_t a)
+void sm9_fp12_inv(sm9_fp12_t r, const sm9_fp12_t a)
 {
 	if (sm9_fp4_is_zero(a[2])) {
 		sm9_fp4_t k, t;
@@ -1065,7 +1067,7 @@ static void sm9_fp12_inv(sm9_fp12_t r, const sm9_fp12_t a)
 	}
 }
 
-static void sm9_fp12_pow(sm9_fp12_t r, const sm9_fp12_t a, const sm9_bn_t k)
+void sm9_fp12_pow(sm9_fp12_t r, const sm9_fp12_t a, const sm9_bn_t k)
 {
 	char kbits[257];
 	sm9_fp12_t t;
@@ -1085,14 +1087,14 @@ static void sm9_fp12_pow(sm9_fp12_t r, const sm9_fp12_t a, const sm9_bn_t k)
 	sm9_fp12_copy(r, t);
 }
 
-static void sm9_fp2_conjugate(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_conjugate(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	sm9_fp_copy(r[0], a[0]);
 	sm9_fp_neg (r[1], a[1]);
 
 }
 
-static void sm9_fp2_frobenius(sm9_fp2_t r, const sm9_fp2_t a)
+void sm9_fp2_frobenius(sm9_fp2_t r, const sm9_fp2_t a)
 {
 	return sm9_fp2_conjugate(r, a);
 }
@@ -1103,33 +1105,33 @@ static void sm9_fp2_frobenius(sm9_fp2_t r, const sm9_fp2_t a)
 // alpha3 = 0x6c648de5dc0a3f2cf55acc93ee0baf159f9d411806dc5177f5b21fd3da24d011
 // alpha4 = 0xf300000002a3a6f2780272354f8b78f4d5fc11967be65333
 // alpha5 = 0x2d40a38cf6983351711e5f99520347cc57d778a9f8ff4c8a4c949c7fa2a96686
-static const sm9_fp2_t SM9_BETA = {{0xda24d011, 0xf5b21fd3, 0x06dc5177, 0x9f9d4118, 0xee0baf15, 0xf55acc93, 0xdc0a3f2c, 0x6c648de5}, {0}};
-static const sm9_fp_t SM9_ALPHA1 = {0x377b698b, 0xa91d8354, 0x0ddd04ed, 0x47c5c86e, 0x9c086749, 0x843c6cfa, 0xe5720bdb, 0x3f23ea58};
-static const sm9_fp_t SM9_ALPHA2 = {0x7be65334, 0xd5fc1196, 0x4f8b78f4, 0x78027235, 0x02a3a6f2, 0xf3000000, 0x0,        0x0       };
-static const sm9_fp_t SM9_ALPHA3 = {0xda24d011, 0xf5b21fd3, 0x06dc5177, 0x9f9d4118, 0xee0baf15, 0xf55acc93, 0xdc0a3f2c, 0x6c648de5};
-static const sm9_fp_t SM9_ALPHA4 = {0x7be65333, 0xd5fc1196, 0x4f8b78f4, 0x78027235, 0x02a3a6f2, 0xf3000000, 0x0,        0x0       };
-static const sm9_fp_t SM9_ALPHA5 = {0xa2a96686, 0x4c949c7f, 0xf8ff4c8a, 0x57d778a9, 0x520347cc, 0x711e5f99, 0xf6983351, 0x2d40a38c};
+const sm9_fp2_t SM9_BETA = {{0xda24d011, 0xf5b21fd3, 0x06dc5177, 0x9f9d4118, 0xee0baf15, 0xf55acc93, 0xdc0a3f2c, 0x6c648de5}, {0}};
+const sm9_fp_t SM9_ALPHA1 = {0x377b698b, 0xa91d8354, 0x0ddd04ed, 0x47c5c86e, 0x9c086749, 0x843c6cfa, 0xe5720bdb, 0x3f23ea58};
+const sm9_fp_t SM9_ALPHA2 = {0x7be65334, 0xd5fc1196, 0x4f8b78f4, 0x78027235, 0x02a3a6f2, 0xf3000000, 0x0,        0x0       };
+const sm9_fp_t SM9_ALPHA3 = {0xda24d011, 0xf5b21fd3, 0x06dc5177, 0x9f9d4118, 0xee0baf15, 0xf55acc93, 0xdc0a3f2c, 0x6c648de5};
+const sm9_fp_t SM9_ALPHA4 = {0x7be65333, 0xd5fc1196, 0x4f8b78f4, 0x78027235, 0x02a3a6f2, 0xf3000000, 0x0,        0x0       };
+const sm9_fp_t SM9_ALPHA5 = {0xa2a96686, 0x4c949c7f, 0xf8ff4c8a, 0x57d778a9, 0x520347cc, 0x711e5f99, 0xf6983351, 0x2d40a38c};
 
 
-static void sm9_fp4_frobenius(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_frobenius(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_conjugate(r[0], a[0]);
 	sm9_fp2_conjugate(r[1], a[1]);
 	sm9_fp2_mul(r[1], r[1], SM9_BETA);
 }
 
-static void sm9_fp4_conjugate(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_conjugate(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_copy(r[0], a[0]);
 	sm9_fp2_neg(r[1], a[1]);
 }
 
-static void sm9_fp4_frobenius2(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_frobenius2(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	return sm9_fp4_conjugate(r, a);
 }
 
-static void sm9_fp4_frobenius3(sm9_fp4_t r, const sm9_fp4_t a)
+void sm9_fp4_frobenius3(sm9_fp4_t r, const sm9_fp4_t a)
 {
 	sm9_fp2_conjugate(r[0], a[0]);
 	sm9_fp2_conjugate(r[1], a[1]);
@@ -1137,7 +1139,7 @@ static void sm9_fp4_frobenius3(sm9_fp4_t r, const sm9_fp4_t a)
 	sm9_fp2_neg(r[1], r[1]);
 }
 
-static void sm9_fp12_frobenius(sm9_fp12_t r, const sm9_fp12_t x)
+void sm9_fp12_frobenius(sm9_fp12_t r, const sm9_fp12_t x)
 {
 	const sm9_fp2_t *xa = x[0];
 	const sm9_fp2_t *xb = x[1];
@@ -1163,7 +1165,7 @@ static void sm9_fp12_frobenius(sm9_fp12_t r, const sm9_fp12_t x)
 	sm9_fp12_set(r, ra, rb, rc);
 }
 
-static void sm9_fp12_frobenius2(sm9_fp12_t r, const sm9_fp12_t x)
+void sm9_fp12_frobenius2(sm9_fp12_t r, const sm9_fp12_t x)
 {
 	sm9_fp4_t a;
 	sm9_fp4_t b;
@@ -1180,7 +1182,7 @@ static void sm9_fp12_frobenius2(sm9_fp12_t r, const sm9_fp12_t x)
 	sm9_fp4_copy(r[2], c);
 }
 
-static void sm9_fp12_frobenius3(sm9_fp12_t r, const sm9_fp12_t x)
+void sm9_fp12_frobenius3(sm9_fp12_t r, const sm9_fp12_t x)
 {
 	const sm9_fp2_t *xa = x[0];
 	const sm9_fp2_t *xb = x[1];
@@ -1208,7 +1210,7 @@ static void sm9_fp12_frobenius3(sm9_fp12_t r, const sm9_fp12_t x)
 	sm9_fp4_copy(r[2], rc);
 }
 
-static void sm9_fp12_frobenius6(sm9_fp12_t r, const sm9_fp12_t x)
+void sm9_fp12_frobenius6(sm9_fp12_t r, const sm9_fp12_t x)
 {
 	sm9_fp4_t a;
 	sm9_fp4_t b;
@@ -1229,31 +1231,31 @@ static void sm9_fp12_frobenius6(sm9_fp12_t r, const sm9_fp12_t x)
 }
 
 
-static void sm9_point_init(sm9_point_t *R)
+void sm9_point_init(sm9_point_t *R)
 {
 	sm9_fp_set_zero(R->X);
 	sm9_fp_set_zero(R->Y);
 	sm9_fp_set_one(R->Z);
 }
 
-static void sm9_point_from_hex(sm9_point_t *R, const char hex[65 * 2])
+void sm9_point_from_hex(sm9_point_t *R, const char hex[65 * 2])
 {
 	sm9_bn_from_hex(R->X, hex);
 	sm9_bn_from_hex(R->Y, hex + 65);
 	sm9_bn_set_one(R->Z);
 }
 
-static int sm9_point_is_at_infinity(const sm9_point_t *P) {
+int sm9_point_is_at_infinity(const sm9_point_t *P) {
 	return sm9_fp_is_zero(P->X);
 }
 
-static void sm9_point_set_infinity(sm9_point_t *R) {
+void sm9_point_set_infinity(sm9_point_t *R) {
 	sm9_fp_set_one(R->X);
 	sm9_fp_set_one(R->Y);
 	sm9_fp_set_zero(R->Z);
 }
 
-static void sm9_point_get_xy(const sm9_point_t *P, sm9_fp_t x, sm9_fp_t y)
+void sm9_point_get_xy(const sm9_point_t *P, sm9_fp_t x, sm9_fp_t y)
 {
 	sm9_fp_t z_inv;
 
@@ -1273,7 +1275,7 @@ static void sm9_point_get_xy(const sm9_point_t *P, sm9_fp_t x, sm9_fp_t y)
 		sm9_fp_mul(y, y, z_inv);
 }
 
-static int sm9_point_equ(const sm9_point_t *P, const sm9_point_t *Q)
+int sm9_point_equ(const sm9_point_t *P, const sm9_point_t *Q)
 {
 	sm9_fp_t t1, t2, t3, t4;
 	sm9_fp_sqr(t1, P->Z);
@@ -1290,7 +1292,7 @@ static int sm9_point_equ(const sm9_point_t *P, const sm9_point_t *Q)
 	return sm9_fp_equ(t3, t4);
 }
 
-static int sm9_point_is_on_curve(const sm9_point_t *P)
+int sm9_point_is_on_curve(const sm9_point_t *P)
 {
 	sm9_fp_t t0, t1, t2;
 	if (sm9_fp_is_one(P->Z)) {
@@ -1311,7 +1313,7 @@ static int sm9_point_is_on_curve(const sm9_point_t *P)
 	return sm9_fp_equ(t0, t1);
 }
 
-static void sm9_point_dbl(sm9_point_t *R, const sm9_point_t *P)
+void sm9_point_dbl(sm9_point_t *R, const sm9_point_t *P)
 {
 	const uint64_t *X1 = P->X;
 	const uint64_t *Y1 = P->Y;
@@ -1343,7 +1345,7 @@ static void sm9_point_dbl(sm9_point_t *R, const sm9_point_t *P)
 	sm9_fp_copy(R->Z, Z3);
 }
 
-static void sm9_point_add(sm9_point_t *R, const sm9_point_t *P, const sm9_point_t *Q)
+void sm9_point_add(sm9_point_t *R, const sm9_point_t *P, const sm9_point_t *Q)
 {
 	const uint64_t *X1 = P->X;
 	const uint64_t *Y1 = P->Y;
@@ -1396,21 +1398,21 @@ static void sm9_point_add(sm9_point_t *R, const sm9_point_t *P, const sm9_point_
 	sm9_fp_copy(R->Z, Z3);
 }
 
-static void sm9_point_neg(sm9_point_t *R, const sm9_point_t *P)
+void sm9_point_neg(sm9_point_t *R, const sm9_point_t *P)
 {
 	sm9_fp_copy(R->X, P->X);
 	sm9_fp_neg(R->Y, P->Y);
 	sm9_fp_copy(R->Z, P->Z);
 }
 
-static void sm9_point_sub(sm9_point_t *R, const sm9_point_t *P, const sm9_point_t *Q)
+void sm9_point_sub(sm9_point_t *R, const sm9_point_t *P, const sm9_point_t *Q)
 {
 	sm9_point_t _T, *T = &_T;
 	sm9_point_neg(T, Q);
 	sm9_point_add(R, P, T);
 }
 
-static void sm9_point_mul(sm9_point_t *R, const sm9_bn_t k, const sm9_point_t *P)
+void sm9_point_mul(sm9_point_t *R, const sm9_bn_t k, const sm9_point_t *P)
 {
 	char kbits[257];
 	sm9_point_t _Q, *Q = &_Q;
@@ -1426,32 +1428,32 @@ static void sm9_point_mul(sm9_point_t *R, const sm9_bn_t k, const sm9_point_t *P
 	sm9_point_copy(R, Q);
 }
 
-static void sm9_point_mul_generator(sm9_point_t *R, const sm9_bn_t k)
+void sm9_point_mul_generator(sm9_point_t *R, const sm9_bn_t k)
 {
 	sm9_point_mul(R, k, SM9_P1);
 }
 
 
-static void sm9_twist_point_from_hex(sm9_twist_point_t *R, const char hex[65 * 4])
+void sm9_twist_point_from_hex(sm9_twist_point_t *R, const char hex[65 * 4])
 {
 	sm9_fp2_from_hex(R->X, hex);
 	sm9_fp2_from_hex(R->Y, hex + 65 * 2);
 	sm9_fp2_set_one(R->Z);
 }
 
-static int sm9_twist_point_is_at_infinity(const sm9_twist_point_t *P)
+int sm9_twist_point_is_at_infinity(const sm9_twist_point_t *P)
 {
 	return sm9_fp2_is_zero(P->Z);
 }
 
-static void sm9_twist_point_set_infinity(sm9_twist_point_t *R)
+void sm9_twist_point_set_infinity(sm9_twist_point_t *R)
 {
 	sm9_fp2_set_one(R->X);
 	sm9_fp2_set_one(R->Y);
 	sm9_fp2_set_zero(R->Z);
 }
 
-static void sm9_twist_point_get_xy(const sm9_twist_point_t *P, sm9_fp2_t x, sm9_fp2_t y)
+void sm9_twist_point_get_xy(const sm9_twist_point_t *P, sm9_fp2_t x, sm9_fp2_t y)
 {
 	sm9_fp2_t z_inv;
 
@@ -1472,7 +1474,7 @@ static void sm9_twist_point_get_xy(const sm9_twist_point_t *P, sm9_fp2_t x, sm9_
 }
 
 
-static int sm9_twist_point_equ(const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
+int sm9_twist_point_equ(const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
 {
 	sm9_fp2_t t1, t2, t3, t4;
 
@@ -1490,7 +1492,7 @@ static int sm9_twist_point_equ(const sm9_twist_point_t *P, const sm9_twist_point
 	return sm9_fp2_equ(t3, t4);
 }
 
-static int sm9_twist_point_is_on_curve(const sm9_twist_point_t *P)
+int sm9_twist_point_is_on_curve(const sm9_twist_point_t *P)
 {
 	sm9_fp2_t t0, t1, t2;
 
@@ -1514,14 +1516,14 @@ static int sm9_twist_point_is_on_curve(const sm9_twist_point_t *P)
 	return sm9_fp2_equ(t0, t1);
 }
 
-static void sm9_twist_point_neg(sm9_twist_point_t *R, const sm9_twist_point_t *P)
+void sm9_twist_point_neg(sm9_twist_point_t *R, const sm9_twist_point_t *P)
 {
 	sm9_fp2_copy(R->X, P->X);
 	sm9_fp2_neg(R->Y, P->Y);
 	sm9_fp2_copy(R->Z, P->Z);
 }
 
-static void sm9_twist_point_dbl(sm9_twist_point_t *R, const sm9_twist_point_t *P)
+void sm9_twist_point_dbl(sm9_twist_point_t *R, const sm9_twist_point_t *P)
 {
 	const sm9_fp_t *X1 = P->X;
 	const sm9_fp_t *Y1 = P->Y;
@@ -1552,7 +1554,7 @@ static void sm9_twist_point_dbl(sm9_twist_point_t *R, const sm9_twist_point_t *P
 	sm9_fp2_copy(R->Z, Z3);
 }
 
-static void sm9_twist_point_add(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
+void sm9_twist_point_add(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
 {
 	const sm9_fp_t *X1 = P->X;
 	const sm9_fp_t *Y1 = P->Y;
@@ -1603,14 +1605,14 @@ static void sm9_twist_point_add(sm9_twist_point_t *R, const sm9_twist_point_t *P
 	sm9_fp2_copy(R->Z, Z3);
 }
 
-static void sm9_twist_point_sub(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
+void sm9_twist_point_sub(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
 {
 	sm9_twist_point_t _T, *T = &_T;
 	sm9_twist_point_neg(T, Q);
 	sm9_twist_point_add(R, P, T);
 }
 
-static void sm9_twist_point_add_full(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
+void sm9_twist_point_add_full(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
 {
 	const sm9_fp_t *X1 = P->X;
 	const sm9_fp_t *Y1 = P->Y;
@@ -1667,7 +1669,7 @@ static void sm9_twist_point_add_full(sm9_twist_point_t *R, const sm9_twist_point
 	sm9_fp2_copy(R->Z, T7);
 }
 
-static void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm9_twist_point_t *P)
+void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm9_twist_point_t *P)
 {
 	sm9_twist_point_t _Q, *Q = &_Q;
 	char kbits[256];
@@ -1683,12 +1685,12 @@ static void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm
 	sm9_twist_point_copy(R, Q);
 }
 
-static void sm9_twist_point_mul_G(sm9_twist_point_t *R, const sm9_bn_t k)
+void sm9_twist_point_mul_G(sm9_twist_point_t *R, const sm9_bn_t k)
 {
 	sm9_twist_point_mul(R, k, SM9_P2);
 }
 
-static void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *P, const sm9_point_t *Q)
+void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *P, const sm9_point_t *Q)
 {
 	const sm9_fp_t *XP = P->X;
 	const sm9_fp_t *YP = P->Y;
@@ -1729,7 +1731,7 @@ static void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_p
 	sm9_fp2_sub(a0, t0, t1);
 }
 
-static void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *T, const sm9_twist_point_t *P, const sm9_point_t *Q)
+void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *T, const sm9_twist_point_t *P, const sm9_point_t *Q)
 {
 	const sm9_fp_t *XT = T->X;
 	const sm9_fp_t *YT = T->Y;
@@ -1778,7 +1780,7 @@ static void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_poin
 	sm9_fp2_copy(a1, T2);
 }
 
-static void sm9_twist_point_pi1(sm9_twist_point_t *R, const sm9_twist_point_t *P)
+void sm9_twist_point_pi1(sm9_twist_point_t *R, const sm9_twist_point_t *P)
 {
 	//const c = 0x3f23ea58e5720bdb843c6cfa9c08674947c5c86e0ddd04eda91d8354377b698bn;
 	const sm9_fp_t c = {
@@ -1792,7 +1794,7 @@ static void sm9_twist_point_pi1(sm9_twist_point_t *R, const sm9_twist_point_t *P
 
 }
 
-static void sm9_twist_point_pi2(sm9_twist_point_t *R, const sm9_twist_point_t *P)
+void sm9_twist_point_pi2(sm9_twist_point_t *R, const sm9_twist_point_t *P)
 {
 	//c = 0xf300000002a3a6f2780272354f8b78f4d5fc11967be65334
 	const sm9_fp_t c = {
@@ -1804,7 +1806,7 @@ static void sm9_twist_point_pi2(sm9_twist_point_t *R, const sm9_twist_point_t *P
 	sm9_fp2_mul_fp(R->Z, P->Z, c);
 }
 
-static void sm9_twist_point_neg_pi2(sm9_twist_point_t *R, const sm9_twist_point_t *P)
+void sm9_twist_point_neg_pi2(sm9_twist_point_t *R, const sm9_twist_point_t *P)
 {
 	// c = 0xf300000002a3a6f2780272354f8b78f4d5fc11967be65334
 	const sm9_fp_t c = {
@@ -1817,7 +1819,7 @@ static void sm9_twist_point_neg_pi2(sm9_twist_point_t *R, const sm9_twist_point_
 }
 
 
-static void sm9_final_exponent_hard_part(sm9_fp12_t r, const sm9_fp12_t f)
+void sm9_final_exponent_hard_part(sm9_fp12_t r, const sm9_fp12_t f)
 {
 	// a2 = 0xd8000000019062ed0000b98b0cb27659
 	// a3 = 0x2400000000215d941
@@ -1853,7 +1855,7 @@ static void sm9_final_exponent_hard_part(sm9_fp12_t r, const sm9_fp12_t f)
 	sm9_fp12_copy(r, t1);
 }
 
-static void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f)
+void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f)
 {
 	sm9_fp12_t t0;
 	sm9_fp12_t t1;
@@ -1868,7 +1870,7 @@ static void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f)
 	sm9_fp12_copy(r, t0);
 }
 
-static void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P) {
+void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P) {
 	const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
 
 	sm9_twist_point_t _T, *T = &_T;
