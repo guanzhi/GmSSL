@@ -1071,14 +1071,18 @@ void sm9_fp12_pow(sm9_fp12_t r, const sm9_fp12_t a, const sm9_bn_t k)
 {
 	char kbits[257];
 	sm9_fp12_t t;
-	int i;
+	int i = 0;
 
 	assert(sm9_bn_cmp(k, SM9_P_MINUS_ONE) < 0);
 	sm9_fp12_set_zero(t);
 
 	sm9_bn_to_bits(k, kbits);
 	sm9_fp12_copy(t, a);
-	for (i = 1; i < 256; i++) {
+	while (kbits[i] == '0') {
+		i++;
+	}
+	i++;
+	for (; i < 256; i++) {
 		sm9_fp12_sqr(t, t);
 		if (kbits[i] == '1') {
 			sm9_fp12_mul(t, t, a);
