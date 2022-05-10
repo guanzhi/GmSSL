@@ -1077,7 +1077,7 @@ void sm9_fp12_pow(sm9_fp12_t r, const sm9_fp12_t a, const sm9_bn_t k)
 	sm9_fp12_set_zero(t);
 
 	sm9_bn_to_bits(k, kbits);
-	sm9_fp12_copy(t, a);
+	sm9_fp12_set_one(t);
 	for (i = 1; i < 256; i++) {
 		sm9_fp12_sqr(t, t);
 		if (kbits[i] == '1') {
