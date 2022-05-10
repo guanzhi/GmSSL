@@ -329,7 +329,7 @@ static int test_cms_signer_info(void)
 	size_t issuer_len;
 	uint8_t serial_buf[20];
 	uint8_t sig_buf[256];
-	size_t siglen;
+	size_t siglen = sizeof(sig_buf);
 
 	int version;
 	const uint8_t *issuer;
