@@ -83,6 +83,7 @@ extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
 extern int sdfutil_main(int argc, char **argv);
+extern int skfutil_main(int argc, char **argv);
 
 
 static const char *options =
@@ -121,7 +122,8 @@ static const char *options =
 	"  tls12_server    TLS 1.2 server\n"
 	"  tls13_client    TLS 1.3 client\n"
 	"  tls13_server    TLS 1.3 server\n"
-	"  sdfutil         SDF crypto device utility\n";
+	"  sdfutil         SDF crypto device utility\n"
+	"  skfutil         SKF crypto device utility\n";
 
 
 
@@ -204,6 +206,8 @@ int main(int argc, char **argv)
 			return tls13_server_main(argc, argv);
 		} else if (!strcmp(*argv, "sdfutil")) {
 			return sdfutil_main(argc, argv);
+		} else if (!strcmp(*argv, "skfutil")) {
+			return skfutil_main(argc, argv);
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			fprintf(stderr, "usage: %s %s\n", prog, options);

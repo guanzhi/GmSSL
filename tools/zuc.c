@@ -118,7 +118,7 @@ bad:
 		return -1;
 	}
 	if (strlen(keystr) != 32) {
-		printf("keystr len = %d\n", strlen(keystr));
+		printf("keystr len = %zu\n", strlen(keystr));
 		error_print();
 		return -1;
 	}

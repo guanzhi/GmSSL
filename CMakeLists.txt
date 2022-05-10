@@ -72,12 +72,21 @@ add_library(
 	src/sdf/sdf_meth.c
 	src/sdf/sdf_ext.c
 	src/sdf/sdf_sansec.c
+	src/skf/skf.c
+	src/skf/skf_lib.c
+	src/skf/skf_meth.c
+	src/skf/skf_ext.c
+	src/skf/skf_prn.c
+	src/skf/skf_wisec.c
 )
 target_link_libraries(gmssl dl)
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
 SET_TARGET_PROPERTIES(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+
+add_library(skf_dummy SHARED src/skf/skf_dummy.c)
+SET_TARGET_PROPERTIES(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
 
 # tools
 
@@ -116,6 +125,7 @@ add_executable(
 	tools/tls13_client.c
 	tools/tls13_server.c
 	tools/sdfutil.c
+	tools/skfutil.c
 )
 target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
 set_target_properties (gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)

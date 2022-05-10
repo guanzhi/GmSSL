@@ -50,9 +50,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gmssl/hex.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
-#include <gmssl/sdf.h>
+#include <gmssl/skf.h>
 #include <gmssl/error.h>
 
 
@@ -67,19 +68,22 @@
 static void print_usage(FILE *fp, const char *prog)
 {
 	fprintf(fp, "usage:\n");
-	fprintf(fp, "  %s -lib so_path -devinfo\n", prog);
-	fprintf(fp, "  %s -lib so_path -exportpubkey -key index [-out file]\n", prog);
-	fprintf(fp, "  %s -lib so_path -sign [-in file] [-out file]\n", prog);
-	fprintf(fp, "  %s -lib so_path -rand num [-out file]\n", prog);
+	fprintf(fp, "  %s -lib so_path -dev str -devinfo\n", prog);
+	fprintf(fp, "  %s -lib so_path -dev str -app str [-pass str] -container str -exportpubkey [-out file]\n", prog);
+	fprintf(fp, "  %s -lib so_path -dev str -app str [-pass str] -container str -sign [-in file] [-out file]\n", prog);
+	fprintf(fp, "  %s -lib so_path -dev str -rand num [-out file]\n", prog);
 }
 
-int sdfutil_main(int argc, char **argv)
+int skfutil_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
 	char *lib = NULL;
 	int op = 0;
-	int keyindex = -1;
+	char *devname = NULL;
+	char *authkeystr = NULL;
+	char *appname = NULL;
+	char *container_name = NULL;
 	char *pass = NULL;
 	char *id = SM2_DEFAULT_ID;
 	int num = 0;
@@ -91,8 +95,10 @@ int sdfutil_main(int argc, char **argv)
 	unsigned int ulen;
 	int len;
 
-	SDF_DEVICE dev;
-	SDF_KEY key;
+	uint8_t authkey[16];
+	size_t authkeylen;
+	SKF_DEVICE dev;
+	SKF_KEY key;
 
 
 	argc--;
@@ -110,15 +116,32 @@ bad:
 		} else if (!strcmp(*argv, "-lib")) {
 			if (--argc < 1) goto bad;
 			lib = *(++argv);
+		} else if (!strcmp(*argv, "-lib")) {
+			if (--argc < 1) goto bad;
+			devname = *(++argv);
 		} else if (!strcmp(*argv, "-devinfo")) {
 			op = OP_DEVINFO;
+		} else if (!strcmp(*argv, "-dev")) {
+			if (--argc < 1) goto bad;
+			devname = *(++argv);
+		} else if (!strcmp(*argv, "-authkey")) {
+			if (--argc < 1) goto bad;
+			authkeystr = *(++argv);
+			if (strlen(authkeystr) != 32) {
+				error_print();
+				return -1;
+			}
+			hex_to_bytes(authkeystr, strlen(authkeystr), authkey, &authkeylen);
 		} else if (!strcmp(*argv, "-exportpubkey")) {
 			op = OP_EXPORTPUBKEY;
 		} else if (!strcmp(*argv, "-sign")) {
 			op = OP_SIGN;
-		} else if (!strcmp(*argv, "-key")) {
+		} else if (!strcmp(*argv, "-app")) {
 			if (--argc < 1) goto bad;
-			keyindex = atoi(*(++argv));
+			appname = *(++argv);
+		} else if (!strcmp(*argv, "-container")) {
+			if (--argc < 1) goto bad;
+			container_name = *(++argv);
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
@@ -152,7 +175,7 @@ bad:
 		fprintf(stderr, "Option '-lib' required\n");
 		goto bad;
 	}
-	if (sdf_load_library(lib, NULL) != 1) {
+	if (skf_load_library(lib, NULL) != 1) {
 		error_print();
 		goto end;
 	}
@@ -171,33 +194,61 @@ bad:
 		}
 	}
 
-	if (sdf_open_device(&dev) != 1) {
+	if (!op) {
+		error_print();
+		goto bad;
+	}
+
+
+	if (!devname) {
+		error_print();
+		goto bad;
+	}
+	if (op == OP_DEVINFO) {
+		skf_print_device_info(stdout, 0, 0, devname);
+		ret = 0;
+		goto end;
+	}
+
+	if (skf_open_device(&dev, devname, authkey) != 1) {
 		error_print();
 		return -1;
 	}
 
-	switch (op) {
-	case OP_DEVINFO:
-		sdf_print_device_info(stdout, 0, 0, "SDF", &dev);
-		break;
+	if (op == OP_RAND) {
+		skf_rand_bytes(&dev, buf, len);
+		fwrite(buf, 1, len, outfp);
+		ret = 0;
+		goto end;
+	}
 
-	case OP_EXPORTPUBKEY:
-		if (keyindex < 0) {
-			error_print();
-			goto end;
-		}
-		sdf_load_sign_key(&dev, &key, keyindex, pass);
+	if (!appname) {
+		error_print();
+		goto bad;
+	}
+	if (!container_name) {
+		error_print();
+		goto bad;
+	}
+	if (!pass) {
+		error_print();
+		goto bad;
+	}
+
+	if (op == OP_EXPORTPUBKEY) {
+		skf_load_sign_key(&dev, appname, pass, container_name, &key);
 		sm2_public_key_info_to_pem(&(key.public_key), outfp);
-		break;
+		ret = 0;
+		goto end;
+	}
 
-	case OP_SIGN:
-		{
+	if (op == OP_SIGN) {
 		SM3_CTX sm3_ctx;
 		uint8_t dgst[32];
 		uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 		size_t siglen;
 
-		sdf_load_sign_key(&dev, &key, keyindex, pass);
+		skf_load_sign_key(&dev, appname, pass, container_name, &key);
 
 		sm3_init(&sm3_ctx);
 		sm2_compute_z(dgst, &(key.public_key.public_key), id, strlen(id));
@@ -208,21 +259,11 @@ bad:
 		}
 		sm3_finish(&sm3_ctx, dgst);
 
-		if ((ret = sdf_sign(&key, dgst, sig, &siglen)) != 1) {
+		if ((ret = skf_sign(&key, dgst, sig, &siglen)) != 1) {
 			error_print();
 			return -1;
 		}
-		}
-		break;
-
-	case OP_RAND:
-		sdf_rand_bytes(&dev, buf, len);
-		fwrite(buf, 1, len, outfp);
-		break;
-
-	default:
-		error_print();
-		return -1;
+		ret = 0;
 	}
 
 end:

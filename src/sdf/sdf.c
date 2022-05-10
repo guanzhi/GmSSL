@@ -173,29 +173,7 @@ end:
 	return ret;
 }
 
-int sdf_export_public_key(SDF_DEVICE *dev, SM2_KEY *public_key, int index)
-{
-	int ret = -1;
-	void *hSession = NULL;
-	ECCrefPublicKey eccPublicKey;
-
-	if (!dev || !public_key) {
-		error_print();
-		return -1;
-	}
-	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK
-		|| SDF_ExportSignPublicKey_ECC(hSession, index, &eccPublicKey) != SDR_OK
-		|| SDF_ECCrefPublicKey_to_SM2_KEY(&eccPublicKey, public_key) != SDR_OK) {
-		error_print();
-		goto end;
-	}
-	ret = 1;
-end:
-	if (hSession) SDF_CloseSession(hSession);
-	return ret;
-}
-
-int sdf_load_key(SDF_DEVICE *dev, SDF_KEY *key, int index, const char *pass)
+int sdf_load_sign_key(SDF_DEVICE *dev, SDF_KEY *key, int index, const char *pass)
 {
 	int ret = -1;
 	void *hSession = NULL;
