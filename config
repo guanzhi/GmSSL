@@ -565,6 +565,7 @@ case "$GUESSOS" in
 	OUT="linux-mips64"
 	;;
   mips*-*-linux2) OUT="linux-mips32" ;;
+  loongarch64-*-linux2) OUT="linux64-loongarch64" ;;
   ppc60x-*-vxworks*) OUT="vxworks-ppc60x" ;;
   ppcgen-*-vxworks*) OUT="vxworks-ppcgen" ;;
   pentium-*-vxworks*) OUT="vxworks-pentium" ;;
