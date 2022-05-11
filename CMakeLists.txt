@@ -50,8 +50,8 @@ add_library(
 	src/sm4_modes.c
 	src/sm4_setkey.c
 	src/sm9_alg.c
-#	src/sm9_key.c
-#	src/sm9_lib.c
+	src/sm9_key.c
+	src/sm9_lib.c
 	src/tlcp.c
 	src/tls.c
 	src/tls12.c

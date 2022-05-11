@@ -46,11 +46,21 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <gmssl/sm3.h>
+#include <gmssl/sm9.h>
+#include <gmssl/error.h>
 
 
-int sm9_hash1(bignum_t r, const char *id, size_t idlen, uint8_t hid)
+
+
+
+// generate h1 in [1, n-1]
+int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid)
 {
-	bignum_t h;
+	sm9_fn_t h;
 	SM3_CTX ctx1;
 	SM3_CTX ctx2;
 
@@ -61,15 +71,99 @@ int sm9_hash1(bignum_t r, const char *id, size_t idlen, uint8_t hid)
 
 	sm3_init(&ctx1);
 	sm3_update(&ctx1, prefix, sizeof(prefix));
-	sm3_update(&ctx1, id, idlen);
+	sm3_update(&ctx1, (uint8_t *)id, idlen);
 	sm3_update(&ctx1, &hid, 1);
-
-	memcpy(&ctx2, &ctx1, sizeof(SM3_CTX));
-
+	ctx2 = ctx1;
 	sm3_update(&ctx1, ct1, sizeof(ct1));
 	sm3_update(&ctx2, ct2, sizeof(ct2));
 	sm3_finish(&ctx1, buf);
 	sm3_finish(&ctx2, buf + 32);
 
-		
+	// 这个buflen == 64，我们要将长为40的部分取出来，模 N-1  再加1
+	return -1;
 }
+
+void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
+{
+}
+
+void sm9_fn_sub(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
+{
+}
+
+void sm9_fn_mul(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
+{
+}
+
+void sm9_fn_inv(sm9_fn_t r, const sm9_fn_t a)
+{
+}
+
+int sm9_fn_is_zero(const sm9_fn_t a)
+{
+	return 0;
+}
+
+int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *master)
+{
+	// k = rand(1, n-1)
+	//sm9_bn_rand_range(master->ks, SM9_N);
+
+	// Ppubs = k * P2 in E'(F_p^2)
+	sm9_twist_point_mul_G(&master->Ppubs, master->ks);
+
+	return 1;
+}
+
+int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master)
+{
+	// k = rand(1, n-1)
+	//sm9_bn_rand_range(master->ke, SM9_N);
+
+	// Ppube = ke * P1 in E(F_p)
+	sm9_point_mul_generator(&master->Ppube, master->ke);
+
+	return 1;
+}
+
+int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *master, const char *id, size_t idlen, SM9_SIGN_KEY *key)
+{
+	sm9_fn_t t;
+
+	sm9_hash1(t, id, idlen, SM9_HID_SIGN);
+	sm9_fn_add(t, t, master->ks);
+	if (sm9_fn_is_zero(t)) {
+		error_print();
+		return -1;
+	}
+	sm9_fn_inv(t, t);
+	sm9_fn_mul(t, t, master->ks);
+	sm9_point_mul_generator(&key->ds, t);
+	return 1;
+}
+
+int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen,
+	SM9_ENC_KEY *key)
+{
+	sm9_fn_t t;
+
+	sm9_hash1(t, id, idlen, SM9_HID_ENC);
+	sm9_fn_add(t, t, master->ke);
+	if (sm9_fn_is_zero(t)) {
+		error_print();
+		return -1;
+	}
+	sm9_fn_inv(t, t);
+	sm9_fn_mul(t, t, master->ke);
+	sm9_twist_point_mul_G(&key->de, t);
+	return 1;
+}
+
+
+
+
+
+
+
+
+

@@ -46,7 +46,12 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <gmssl/sm3.h>
+
 
 #ifndef GMSSL_SM9_H
 #define GMSSL_SM9_H
@@ -277,7 +282,28 @@ void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f);
 void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P);
 
 
-/* old API
+
+
+
+/* private key extract algorithms */
+#define SM9_HID_SIGN		0x01
+#define SM9_HID_EXCH		0x02
+#define SM9_HID_ENC		0x03
+
+#define SM9_HASH1		0x01
+#define SM9_HASH2		0x02
+
+void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b);
+void sm9_fn_sub(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b);
+void sm9_fn_mul(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b);
+void sm9_fn_inv(sm9_fn_t r, const sm9_fn_t a);
+int sm9_fn_is_zero(const sm9_fn_t a);
+int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b);
+void sm9_fn_rand(sm9_fn_t r);
+void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12]);
+
+
+int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid);
 
 // set the same value as sm2
 #define SM9_MAX_ID_BITS		65535
@@ -294,26 +320,52 @@ typedef struct {
 } SM9_TWIST_POINT;
 
 typedef struct {
-	uint8_t ks[32];
-	SM9_TWIST_POINT Ppubs; // Ppubs = ks * P2
+	sm9_twist_point_t Ppubs; // Ppubs = ks * P2
+	sm9_fn_t ks;
 } SM9_SIGN_MASTER_KEY;
 
 typedef struct {
-	SM9_POINT ds;
+	sm9_twist_point_t Ppubs;
+	sm9_point_t ds;
 } SM9_SIGN_KEY;
 
+int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *master);
+int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *master, const char *id, size_t idlen, SM9_SIGN_KEY *key);
+
 typedef struct {
-	uint8_t h[32];
-	SM9_TWIST_POINT S;
+	SM3_CTX sm3_ctx;
+	SM9_SIGN_KEY key;
+} SM9_SIGN_CTX;
+
+typedef struct {
+	sm9_fn_t h;
+	sm9_point_t S;
 } SM9_SIGNATURE;
 
-int sm9_sign_setup(SM9_SIGN_MASTER_KEY *msk);
-int sm9_sign_keygen(SM9_SIGN_MASTER_KEY *msk, const char *id, size_t idlen, SM9_POINT *ds);
+int sm9_sign_init(SM9_SIGN_CTX *ctx);
+int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int sm9_sign_finish(SM9_SIGN_CTX *ctx, SM9_SIGN_KEY *key, SM9_SIGNATURE *sig);
 
-int sm9_do_sign(SM9_SIGN_KEY *key, const uint8_t dgst[32], SM9_SIGNATURE *sig);
-int sm9_do_verify(SM9_SIGN_KEY *key, const uint8_t dgst[32], const SM9_SIGNATURE *sig);
+int sm9_verify_init(SM9_SIGN_CTX *ctx);
+int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int sm9_verify_finish(SM9_SIGN_CTX *ctx, const SM9_SIGNATURE *sig,
+	const SM9_SIGN_MASTER_KEY *master_public, const char *id, size_t idlen);
 
-*/
+
+typedef struct {
+	sm9_point_t Ppube; // Ppube = ke * P1
+	sm9_fn_t ke;
+} SM9_ENC_MASTER_KEY;
+
+typedef struct {
+	sm9_point_t Ppube;
+	sm9_twist_point_t de;
+} SM9_ENC_KEY;
+
+int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master);
+int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen, SM9_ENC_KEY *key);
+
+
 
 #  ifdef  __cplusplus
 }

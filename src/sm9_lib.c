@@ -46,94 +46,111 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-int sm9_sign_setup(SM9_SIGN_MASTER_KEY *msk)
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <gmssl/sm3.h>
+#include <gmssl/sm9.h>
+#include <gmssl/error.h>
+
+
+void sm9_fn_rand(sm9_fn_t r)
 {
-
-	// rand ks in [1, N-1]
-	fn_rand(ks);
-
-	// Ppubs = ks * P2
-	twist_point_mul_generator(Ppubs, ks);
+	// FIXME: add impl
 }
 
-
-
-int sm9_sign_keygen(SM9_SIGN_MASTER_KEY *msk, const char *id, size_t idlen, SM9_POINT *ds)
+int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b)
 {
-
-}
-
-
-int sm9_sign_init(SM3_CTX *ctx)
-{
-	uint8_t prefix[1] = {0x02};
-	if (!ctx) {
-		return -1;
-	}
-
-	sm3_init(ctx);
-	sm3_update(ctx, prefix, sizeof(prefix));
-	return 0;
-}
-
-int sm9_sign_update(SM3_CTX *ctx, const uint8_t *data, size_t datalen)
-{
-	sm3_update(ctx, data, datalen);
+	// FIXME: add impl
 	return 1;
 }
 
-int sm9_sign_finish(SM3_CTX *ctx, SM9_SIGNATURE *sig)
+void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12])
 {
+	// FIXME: add impl
+}
 
-	fp12_t g;
+int sm9_sign_init(SM9_SIGN_CTX *ctx)
+{
+	const uint8_t prefix[1] = {0x02};
+	sm3_init(&ctx->sm3_ctx);
+	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
+	return 1;
+}
 
-	sm9_pairing(g, SM9_P1, Ppubs);
+int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	sm3_update(&ctx->sm3_ctx, data, datalen);
+	return 1;
+}
 
-	fn_rand(r);
+int sm9_sign_finish(SM9_SIGN_CTX *ctx, SM9_SIGN_KEY *key, SM9_SIGNATURE *sig)
+{
+	sm9_fn_t r;
+	sm9_fn_t h;
+	sm9_fp12_t g;
+	sm9_fp12_t w;
+	uint8_t wbuf[32 * 12];
+	uint8_t dgst[32];
 
-	fp12_pow(w, g, r);
-
-
-	fn_sub(l, r, h);
-	if (fn_is_zero(l)) {
-	}
-
-
-	point_mul(S, l, ds);
-
+	sm9_pairing(g, &key->Ppubs, SM9_P1);
+	do {
+		sm9_fn_rand(r);
+		sm9_fp12_pow(w, g, r);
+		sm9_fp12_to_bytes(w, wbuf);
+		sm3_update(&ctx->sm3_ctx, wbuf, sizeof(wbuf));
+		sm3_finish(&ctx->sm3_ctx, dgst);
+		// do H2() staff, generate output sig->h
+		sm9_fn_sub(r, r, h);
+	} while (sm9_fn_is_zero(r));
+	sm9_point_mul(&sig->S, r, &key->ds);
+	return 1;
 }
 
 int sm9_verify_init(SM9_SIGN_CTX *ctx)
 {
+	const uint8_t prefix[1] = {0x02};
 	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, SM9_HASH1_PREFIX, sizeof(SM9_HASH1_PREFIX));
-	return 0;
+	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
+	return 1;
 }
 
 int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
 	sm3_update(&ctx->sm3_ctx, data, datalen);
+	return 1;
 }
 
-int sm9_verify_finish(SM9_SIGN_CTX *ctx, const char *id, size_t idlen, const SM9_SIGNATURE *sig)
+// 签名的时候
+int sm9_verify_finish(SM9_SIGN_CTX *ctx, const SM9_SIGNATURE *sig,
+	const SM9_SIGN_MASTER_KEY *master_public, const char *id, size_t idlen)
 {
+	sm9_fn_t h1;
+	sm9_fn_t h2;
+	sm9_fp12_t g;
+	sm9_fp12_t t;
+	sm9_fp12_t u;
+	sm9_fp12_t w;
+	sm9_twist_point_t P;
+	uint8_t wbuf[32 * 12];
 
-	if (bn_is_zero(h) || bn_cmp(h, SM9_N) >= 0) {
+	sm9_pairing(g, &master_public->Ppubs, SM9_P1);
+	sm9_fp12_pow(t, g, sig->h);
+	sm9_hash1(h1, id, idlen, SM9_HID_SIGN);
+	sm9_twist_point_mul_G(&P, h1);
+	sm9_twist_point_add(&P, &P, &master_public->Ppubs);
+	sm9_pairing(u, &P, &sig->S);
+	sm9_fp12_mul(w, u, t);
+	sm9_fp12_to_bytes(w, wbuf);
+
+	sm3_update(&ctx->sm3_ctx, wbuf, sizeof(wbuf));
+	// convert h2
+
+	if (sm9_fn_equ(h2, sig->h) != 1) {
+		return 0;
 	}
-
-	if (!point_is_on_curve(S)) {
-	}
-
-	sm9_pairing(g, SM9_P1, Ppubs);
-
-	fp12_pow(t, g, h);
-
-
-	sm9_hash1(h1, id, idlen);
-
-	twist_point_mul_generator(P, h1);
-	twist_point_add(P, P, Ppubs);
-	pairing(u, S, P);
+	return 1;
 }
 
 
