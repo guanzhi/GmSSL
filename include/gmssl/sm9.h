@@ -75,6 +75,11 @@ typedef struct {
 	sm9_fp2_t Z;
 } sm9_twist_point_t;
 
+
+// FIXME: 公开的参数值应该是序列化之后的
+extern const sm9_bn_t SM9_P;
+extern const sm9_bn_t SM9_N;
+extern const sm9_point_t *SM9_P1;
 extern const sm9_twist_point_t *SM9_P2;
 extern const sm9_twist_point_t *SM9_Ppubs;
 
@@ -271,7 +276,6 @@ void sm9_final_exponent_hard_part(sm9_fp12_t r, const sm9_fp12_t f);
 void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f);
 void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P);
 
-void sm9_pairing_test();
 
 /* old API
 

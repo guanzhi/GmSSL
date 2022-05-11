@@ -1925,27 +1925,3 @@ void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P)
 	sm9_final_exponent(r, r);
 }
 
-void sm9_pairing_test()
-{
-	sm9_fp12_t r;
-	sm9_fp12_init(r);
-
-	const char *sm9_g_hex[] = {
-		"aab9f06a4eeba4323a7833db202e4e35639d93fa3305af73f0f071d7d284fcfb\n",
-		"84b87422330d7936eaba1109fa5a7a7181ee16f2438b0aeb2f38fd5f7554e57a\n",
-		"4c744e69c4a2e1c8ed72f796d151a17ce2325b943260fc460b9f73cb57c9014b\n",
-		"b3129a75d31d17194675a1bc56947920898fbf390a5bf5d931ce6cbb3340f66d\n",
-		"93634f44fa13af76169f3cc8fbea880adaff8475d5fd28a75deb83c44362b439\n",
-		"1604a3fcfa9783e667ce9fcb1062c2a5c6685c316dda62de0548baa6ba30038b\n",
-		"5a1ae172102efd95df7338dbc577c66d8d6c15e0a0158c7507228efb078f42a6\n",
-		"67e0e0c2eed7a6993dce28fe9aa2ef56834307860839677f96685f2b44d0911f\n",
-		"a01f2c8bee81769609462c69c96aa923fd863e209d3ce26dd889b55e2e3873db\n",
-		"38bffe40a22d529a0c66124b2c308dac9229912656f62b4facfced408e02380f\n",
-		"28b3404a61908f5d6198815c99af1990c8af38655930058c28c21bb539ce0000\n",
-		"4e378fb5561cd0668f906b731ac58fee25738edf09cadc7a29c0abc0177aea6d\n",
-	};
-
-	sm9_pairing(r, SM9_Ppubs, SM9_P1);
-	//printf("test pairing: %d\n", sm9_fp12_equ(&r, sm9_fp12_from_hex(g)));
-}
-
