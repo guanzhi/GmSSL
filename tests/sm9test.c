@@ -350,6 +350,8 @@ err:
 }
 
 int test_sm9_pairing() { // will be finished in this week 
+	int j = 1;
+	
 	sm9_fp12_t r;
 	sm9_fp12_init(r);
 
