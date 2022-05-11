@@ -301,8 +301,55 @@ err:
 	return -1;
 }
 
-int test_sm9_pairing()
-{
+#define hex_point1	"917be49d159184fba140f4dfc5d653464e94f718fe195b226b3f715829e6e768-288578d9505d462867a50acee40ee143b896e72505be10e8ce4c6b0c945b642b"
+#define hex_point2	"593417680f252445fd0522383e23c77a54b11fe222de4a886eabc26e16bffa3c-38e8fc9a8b60f5ba0c6c411f721c117044435a833757d8fee65828511b8b245d"
+#define hex_point_dbl	"268def7968f1e8c51635e277425403df88355fb2ecf16f7920f112eb2a7e50c9-5c596b534bbaa85c1d3aecf436e61ff1bfd9f70856f0309c2a63d8248205d84e"
+#define hex_point_add	"056610cb69f8d5659ea94e4a67bbf3b93fb0bd449672d7ca2525ec3b68c894d1-88f3f99ce78ed3ffe6ca1cface5242570cb5d053f16a8e0baae10414babd86a7"
+#define hex_point_neg	"917be49d159184fba140f4dfc5d653464e94f718fe195b226b3f715829e6e768-8dba8726b24660c96e5ea081117fe601695bac2614bcddf31723301b4ef5e152"
+#define hex_point_sub	"29e4a54cad98da9939b95f677784bff3b1dd9334c83d93e351e0f8f7c4ce2dc5-4473eba3b8ff990b8456c41ec0727b76cb2b0f960495b144949f70bf95643b82"
+#define hex_point_mul	"997fcff625adbae62566f684f9e89181713f972c5a9cd9ce6764636761ba87d1-8142a28d1bd109501452a649e2d68f012e265460e0c7d3da743fb036eb23b03b"
+#define hex_point_mul_g	"7cf689748f3714490d7a19eae0e7bfad0e0182498b7bcd8a6998dfd00f59be51-4e2e98d190e9d775e0caa943196bfb066d9c30818b2d768fb5299e7135830a6f"
+
+int test_sm9_point() {
+	sm9_point_t p;
+	sm9_point_t q;
+	sm9_point_t r;
+	sm9_point_t s;
+	sm9_bn_t k;
+	int j = 1;
+	
+	sm9_bn_from_hex(k, hex_iv);
+	
+	sm9_point_from_hex(&p, hex_point1); if(!sm9_point_is_on_curve(&p)) goto err; ++j;
+	sm9_point_from_hex(&q, hex_point2); if(!sm9_point_is_on_curve(&q)) goto err; ++j;
+	sm9_point_dbl(&r, &p);     sm9_point_from_hex(&s, hex_point_dbl); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_add(&r, &p, &q); sm9_point_from_hex(&s, hex_point_add); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_neg(&r, &p);     sm9_point_from_hex(&s, hex_point_neg); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_sub(&r, &p, &q); sm9_point_from_hex(&s, hex_point_sub); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_mul(&r, k, &p);  sm9_point_from_hex(&s, hex_point_mul); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_mul_generator(&r, k); sm9_point_from_hex(&s, hex_point_mul_g); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
+int test_sm9_twist_point() {
+	
+	int j = 1;
+	
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
+int test_sm9_pairing() { // will be finished in this week 
 	sm9_fp12_t r;
 	sm9_fp12_init(r);
 
@@ -324,7 +371,14 @@ int test_sm9_pairing()
 	sm9_pairing(r, SM9_Ppubs, SM9_P1); // FIXME: check			
 
 	//printf("test pairing: %d\n", sm9_fp12_equ(&r, sm9_fp12_from_hex(g)));
+
+	
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
 }
 
 int main(void) {
@@ -332,6 +386,8 @@ int main(void) {
 	if (test_sm9_fp2() != 1) goto err;
 	if (test_sm9_fp4() != 1) goto err;
 	if (test_sm9_fp12() != 1) goto err;
+	if (test_sm9_point() != 1) goto err;
+	if (test_sm9_twist_point() != 1) goto err;
 	if (test_sm9_pairing() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
