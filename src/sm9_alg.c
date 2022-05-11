@@ -1078,7 +1078,7 @@ void sm9_fp12_pow(sm9_fp12_t r, const sm9_fp12_t a, const sm9_bn_t k)
 
 	sm9_bn_to_bits(k, kbits);
 	sm9_fp12_set_one(t);
-	for (i = 1; i < 256; i++) {
+	for (i = 0; i < 256; i++) {
 		sm9_fp12_sqr(t, t);
 		if (kbits[i] == '1') {
 			sm9_fp12_mul(t, t, a);
@@ -1246,7 +1246,7 @@ void sm9_point_from_hex(sm9_point_t *R, const char hex[65 * 2])
 }
 
 int sm9_point_is_at_infinity(const sm9_point_t *P) {
-	return sm9_fp_is_zero(P->X);
+	return sm9_fp_is_zero(P->Z);
 }
 
 void sm9_point_set_infinity(sm9_point_t *R) {
@@ -1419,6 +1419,7 @@ void sm9_point_mul(sm9_point_t *R, const sm9_bn_t k, const sm9_point_t *P)
 	int i;
 
 	sm9_bn_to_bits(k, kbits);
+	sm9_point_set_infinity(Q);
 	for (i = 0; i < 256; i++) {
 		sm9_point_dbl(Q, Q);
 		if (kbits[i] == '1') {
