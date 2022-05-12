@@ -320,14 +320,14 @@ int test_sm9_point() {
 	
 	sm9_bn_from_hex(k, hex_iv);
 	
-	sm9_point_from_hex(&p, hex_point1); if(!sm9_point_is_on_curve(&p)) goto err; ++j;
-	sm9_point_from_hex(&q, hex_point2); if(!sm9_point_is_on_curve(&q)) goto err; ++j;
-	sm9_point_dbl(&r, &p);     sm9_point_from_hex(&s, hex_point_dbl); if(!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_add(&r, &p, &q); sm9_point_from_hex(&s, hex_point_add); if(!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_neg(&r, &p);     sm9_point_from_hex(&s, hex_point_neg); if(!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_sub(&r, &p, &q); sm9_point_from_hex(&s, hex_point_sub); if(!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_mul(&r, k, &p);  sm9_point_from_hex(&s, hex_point_mul); if(!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_mul_generator(&r, k); sm9_point_from_hex(&s, hex_point_mul_g); if(!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_from_hex(&p, hex_point1); if (!sm9_point_is_on_curve(&p)) goto err; ++j;
+	sm9_point_from_hex(&q, hex_point2); if (!sm9_point_is_on_curve(&q)) goto err; ++j;
+	sm9_point_dbl(&r, &p);     sm9_point_from_hex(&s, hex_point_dbl); if (!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_add(&r, &p, &q); sm9_point_from_hex(&s, hex_point_add); if (!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_neg(&r, &p);     sm9_point_from_hex(&s, hex_point_neg); if (!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_sub(&r, &p, &q); sm9_point_from_hex(&s, hex_point_sub); if (!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_mul(&r, k, &p);  sm9_point_from_hex(&s, hex_point_mul); if (!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_point_mul_generator(&r, k); sm9_point_from_hex(&s, hex_point_mul_g); if (!sm9_point_equ(&r, &s)) goto err; ++j;
 	
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -336,10 +336,59 @@ err:
 	error_print();
 	return -1;
 }
+
+#define hex_tpoint1	"83f6a65d85d51ec72eacf19bc38384e0369eb22a134a725a0191faa6e4f192ef\
+-9a79bfd491ef1cb32d9b57f7d0590ccff6b1cfe63dd15c0823d692fafbe96dbc\
+-9ed11c499291db0454d738555af0ce8a1df960056ee7425a6bf296eae60a5037\
+-849d4434eb7113fc9fb3809b51d54064fa2f20503423d256bc044905b1eba3fb"
+#define hex_tpoint2	"a36232a9713f69157b7cdceef54aa0237b3ba0642a80dbb597af8935aea2c130\
+-624b19114e49f00281e2aee1f1b9d4f0a081a135868f8bbdb7b7a7b7da5fd6bc\
+-77966917ec1c5a294dd836c34691ab5e891f8c9f017443902c0a73ec54d449d8\
+-1be45454b6fa085a53744b22fd398238e400c3e031c8796e59e1bd6222048af0"
+#define hex_tpoint_neg	"83f6a65d85d51ec72eacf19bc38384e0369eb22a134a725a0191faa6e4f192ef\
+-9a79bfd491ef1cb32d9b57f7d0590ccff6b1cfe63dd15c0823d692fafbe96dbc\
+-176ee3b67011cbed812c72fa9a9df8bb03f93345ab93ac81797d043cfd46f546\
+-31a2bbcb173292f536502ab4a3b986e027c372fae6571c85296b52223165a182"
+#define hex_tpoint_dbl	"73cbced58a8e76ef5235b480050a74e906e4d27185bd85d7ebdcd43ad24475fd\
+-58400f0eb23000d814f5b5d0706749a72909795b7b04f26d6d58b2cf478ad9c9\
+-19b460e09ac9ddbb380d6441e078a47bfcaa7d4c3d60b3a6c0d05f896472dc3c\
+-1d69f785f47d6f25cb901b131612c37edc5e89ee9ba2dac8c401ced40e340a39"
+#define hex_tpoint_add	"5f443752a19e368f404b89abae20a386d2b534c424b93ededdbfd04d4c569e6b\
+-a411bbd84ee92a6ee53e5ca9cb81bacc192c6ba406f6fdcb2b04d0ab9c42ae44\
+-6a3dadfcaac134e8353dd3abf37d487b206ca28dfab1e0a9376649df748f1605\
+-4fa25e5e6100a023d4923df385dd236749c6a7f8e68db55e0bd1e2263fc04d28"
+#define hex_tpoint_sub	"3cbbf5fcc6c11a3579036e617bbf0b2861c53979f01e37f59fc4a10d991ccde7\
+-1e9c3c99524c7867c9dbc4f52fdc938cf5aa4a980d3905cc91a5b91331235290\
+-44027c5d814bab73ad93d14b564303aab153ad7355bcfbf8a8bed7cb577e7fd8\
+-47a4037d1d6f6d2014aa04292fa91cf07b1f4331a85d4b66a6e048226ddfc43e"
+#define hex_tpoint_mul	"5d704de3261290dbba39dbd14e6bc416025240fd1ed65ec982efed685ae41e8b\
+-705c9ca4b5ef465c4e5db80ca4880627a6d9d6bcefd4756496baba9d5eaa3304\
+-4e96eb3543aabf1e9a65cae24177b9d13b0f7fae9472145ba7ae2b14bb447aef\
+-5d7ba50d7eac49a00b18fee2069afd3cc9719993fa78271e66b7a3efed46ac8b"
+#define hex_tpoint_mulg "920ef6fb3a2acff52aa0c004c18feca149dfd33d98086f8f402ea9e0de303c49\
+-1f97dd359f2b065d63e0987f5bea2f3dc865c2cc112d7d161b46b83451716fd8\
+-614881d4d05fef3173a4990465876c5200f58c5015e13354b23ae401c20c4aef\
+-18a22e02b7d395a49f0646a79438e79cd37c32f163fe8923c13d56bab668e8a7"
 
 int test_sm9_twist_point() {
-	
+	sm9_twist_point_t p;
+	sm9_twist_point_t q;
+	sm9_twist_point_t r;
+	sm9_twist_point_t s;
+	sm9_bn_t k;
 	int j = 1;
+	
+	sm9_bn_from_hex(k, hex_iv);
+	
+	sm9_twist_point_from_hex(&p, hex_tpoint1); if (!sm9_twist_point_is_on_curve(&p)) goto err; ++j;
+	sm9_twist_point_from_hex(&q, hex_tpoint2); if (!sm9_twist_point_is_on_curve(&q)) goto err; ++j;
+	sm9_twist_point_neg(&r, &p);     sm9_twist_point_from_hex(&s, hex_tpoint_neg); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_dbl(&r, &p);     sm9_twist_point_from_hex(&s, hex_tpoint_dbl); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_add(&r, &p, &q); sm9_twist_point_from_hex(&s, hex_tpoint_add); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_add_full(&r, &p, &q); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_sub(&r, &p, &q); sm9_twist_point_from_hex(&s, hex_tpoint_sub); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_mul(&r, k, &p);  sm9_twist_point_from_hex(&s, hex_tpoint_mul); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_mul_G(&r, k);    sm9_twist_point_from_hex(&s, hex_tpoint_mulg); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
 	
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -349,31 +398,67 @@ err:
 	return -1;
 }
 
-int test_sm9_pairing() { // will be finished in this week 
+#define hex_pairing1	"4e378fb5561cd0668f906b731ac58fee25738edf09cadc7a29c0abc0177aea6d\
+-28b3404a61908f5d6198815c99af1990c8af38655930058c28c21bb539ce0000\
+-38bffe40a22d529a0c66124b2c308dac9229912656f62b4facfced408e02380f\
+-a01f2c8bee81769609462c69c96aa923fd863e209d3ce26dd889b55e2e3873db\
+-67e0e0c2eed7a6993dce28fe9aa2ef56834307860839677f96685f2b44d0911f\
+-5a1ae172102efd95df7338dbc577c66d8d6c15e0a0158c7507228efb078f42a6\
+-1604a3fcfa9783e667ce9fcb1062c2a5c6685c316dda62de0548baa6ba30038b\
+-93634f44fa13af76169f3cc8fbea880adaff8475d5fd28a75deb83c44362b439\
+-b3129a75d31d17194675a1bc56947920898fbf390a5bf5d931ce6cbb3340f66d\
+-4c744e69c4a2e1c8ed72f796d151a17ce2325b943260fc460b9f73cb57c9014b\
+-84b87422330d7936eaba1109fa5a7a7181ee16f2438b0aeb2f38fd5f7554e57a\
+-aab9f06a4eeba4323a7833db202e4e35639d93fa3305af73f0f071d7d284fcfb"
+
+#define hex_RA	"7CBA5B19069EE66AA79D490413D11846B9BA76DD22567F809CF23B6D964BB265-A9760C99CB6F706343FED05637085864958D6C90902ABA7D405FBEDF7B781599"
+#define hex_deB	"74CCC3AC9C383C60AF083972B96D05C75F12C8907D128A17ADAFBAB8C5A4ACF7\
+-01092FF4DE89362670C21711B6DBE52DCD5F8E40C6654B3DECE573C2AB3D29B2\
+-44B0294AA04290E1524FF3E3DA8CFD432BB64DE3A8040B5B88D1B5FC86A4EBC1\
+-8CFC48FB4FF37F1E27727464F3C34E2153861AD08E972D1625FC1A7BD18D5539"
+#define hex_pairing2	"28542FB6954C84BE6A5F2988A31CB6817BA0781966FA83D9673A9577D3C0C134\
+-5E27C19FC02ED9AE37F5BB7BE9C03C2B87DE027539CCF03E6B7D36DE4AB45CD1\
+-A1ABFCD30C57DB0F1A838E3A8F2BF823479C978BD137230506EA6249C891049E\
+-3497477913AB89F5E2960F382B1B5C8EE09DE0FA498BA95C4409D630D343DA40\
+-4FEC93472DA33A4DB6599095C0CF895E3A7B993EE5E4EBE3B9AB7D7D5FF2A3D1\
+-647BA154C3E8E185DFC33657C1F128D480F3F7E3F16801208029E19434C733BB\
+-73F21693C66FC23724DB26380C526223C705DAF6BA18B763A68623C86A632B05\
+-0F63A071A6D62EA45B59A1942DFF5335D1A232C9C5664FAD5D6AF54C11418B0D\
+-8C8E9D8D905780D50E779067F2C4B1C8F83A8B59D735BB52AF35F56730BDE5AC\
+-861CCD9978617267CE4AD9789F77739E62F2E57B48C2FF26D2E90A79A1D86B93\
+-9B1CA08F64712E33AEDA3F44BD6CB633E0F722211E344D73EC9BBEBC92142765\
+-6BA584CE742A2A3AB41C15D3EF94EDEB8EF74A2BDCDAAECC09ABA567981F6437"
+
+#define hex_Ppube	"9174542668E8F14AB273C0945C3690C66E5DD09678B86F734C4350567ED06283-54E598C6BF749A3DACC9FFFEDD9DB6866C50457CFC7AA2A4AD65C3168FF74210"
+#define rB		"00018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE"
+#define hex_pairing3	"1052D6E9D13E381909DFF7B2B41E13C987D0A9068423B769480DACCE6A06F492\
+-5FFEB92AD870F97DC0893114DA22A44DBC9E7A8B6CA31A0CF0467265A1FB48C7\
+-2C5C3B37E4F2FF83DB33D98C0317BCBBBBF4AC6DF6B89ECA58268B280045E612\
+-6CED9E2D7C9CD3D5AD630DEFAB0B831506218037EE0F861CF9B43C78434AEC38\
+-0AE7BF3E1AEC0CB67A03440906C7DFB3BCD4B6EEEBB7E371F0094AD4A816088D\
+-98DBC791D0671CACA12236CDF8F39E15AEB96FAEB39606D5B04AC581746A663D\
+-00DD2B7416BAA91172E89D5309D834F78C1E31B4483BB97185931BAD7BE1B9B5\
+-7EBAC0349F8544469E60C32F6075FB0468A68147FF013537DF792FFCE024F857\
+-10CC2B561A62B62DA36AEFD60850714F49170FD94A0010C6D4B651B64F3A3A5E\
+-58C9687BEDDCD9E4FEDAB16B884D1FE6DFA117B2AB821F74E0BF7ACDA2269859\
+-2A430968F16086061904CE201847934B11CA0F9E9528F5A9D0CE8F015C9AEA79\
+-934FDDA6D3AB48C8571CE2354B79742AA498CB8CDDE6BD1FA5946345A1A652F6"
+
+int test_sm9_pairing() {
+	sm9_twist_point_t p;
+	sm9_point_t q;
+	sm9_fp12_t r;
+	sm9_fp12_t s;
+	sm9_bn_t k;
 	int j = 1;
 	
-	sm9_fp12_t r;
-	sm9_fp12_init(r);
-
-	const char *sm9_g_hex[] = {
-		"aab9f06a4eeba4323a7833db202e4e35639d93fa3305af73f0f071d7d284fcfb\n",
-		"84b87422330d7936eaba1109fa5a7a7181ee16f2438b0aeb2f38fd5f7554e57a\n",
-		"4c744e69c4a2e1c8ed72f796d151a17ce2325b943260fc460b9f73cb57c9014b\n",
-		"b3129a75d31d17194675a1bc56947920898fbf390a5bf5d931ce6cbb3340f66d\n",
-		"93634f44fa13af76169f3cc8fbea880adaff8475d5fd28a75deb83c44362b439\n",
-		"1604a3fcfa9783e667ce9fcb1062c2a5c6685c316dda62de0548baa6ba30038b\n",
-		"5a1ae172102efd95df7338dbc577c66d8d6c15e0a0158c7507228efb078f42a6\n",
-		"67e0e0c2eed7a6993dce28fe9aa2ef56834307860839677f96685f2b44d0911f\n",
-		"a01f2c8bee81769609462c69c96aa923fd863e209d3ce26dd889b55e2e3873db\n",
-		"38bffe40a22d529a0c66124b2c308dac9229912656f62b4facfced408e02380f\n",
-		"28b3404a61908f5d6198815c99af1990c8af38655930058c28c21bb539ce0000\n",
-		"4e378fb5561cd0668f906b731ac58fee25738edf09cadc7a29c0abc0177aea6d\n",
-	};
-
-	sm9_pairing(r, SM9_Ppubs, SM9_P1); // FIXME: check			
-
-	//printf("test pairing: %d\n", sm9_fp12_equ(&r, sm9_fp12_from_hex(g)));
-
+	sm9_pairing(r, SM9_Ppubs, SM9_P1); sm9_fp12_from_hex(s, hex_pairing1); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	
+	sm9_twist_point_from_hex(&p, hex_deB); sm9_point_from_hex(&q, hex_RA);
+	sm9_pairing(r, &p, &q); sm9_fp12_from_hex(s, hex_pairing2); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	
+	sm9_bn_from_hex(k, rB); sm9_point_from_hex(&q, hex_Ppube);
+	sm9_pairing(r, SM9_P2, &q); sm9_fp12_pow(r, r, k); sm9_fp12_from_hex(s, hex_pairing3); if (!sm9_fp12_equ(r, s)) goto err; ++j;
 	
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;

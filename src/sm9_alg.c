@@ -1677,6 +1677,7 @@ void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm9_twist
 	int i;
 
 	sm9_bn_to_bits(k, kbits);
+	sm9_twist_point_set_infinity(Q);
 	for (i = 0; i < 256; i++) {
 		sm9_twist_point_dbl(Q, Q);
 		if (kbits[i] == '1') {
