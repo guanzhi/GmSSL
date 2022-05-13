@@ -99,7 +99,6 @@ int main(void)
 	hex_to_bytes(PR1, strlen(PR1), pr1, &pr1_len);
 	hex_to_bytes(PR2, strlen(PR2), pr2, &pr2_len);
 
-
 	hash_drbg_init(&drbg, DIGEST_sha1(),
 		entropy, entropy_len,
 		nonce, nonce_len,
@@ -111,13 +110,13 @@ int main(void)
 		|| memcmp(drbg.C, c, clen) != 0
 		|| drbg.reseed_counter != 1) {
 		printf("failed\n");
+		return 1;
 	} else {
 		printf("ok\n");
 	}
 
 	hash_drbg_reseed(&drbg, pr1, pr1_len, NULL, 0);
 	hash_drbg_generate(&drbg, NULL, 0, 640/8, out);
-
 
 	hash_drbg_reseed(&drbg, pr2, pr2_len, NULL, 0);
 	hash_drbg_generate(&drbg, NULL, 0, 640/8, out);

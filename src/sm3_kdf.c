@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,107 +46,47 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
+
 #include <string.h>
-#include <stdlib.h>
 #include <gmssl/sm3.h>
-#include <gmssl/sm9.h>
+#include <gmssl/endian.h>
 #include <gmssl/error.h>
 
 
-// generate h1 in [1, n-1]
-int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid)
+void sm3_kdf_init(SM3_KDF_CTX *ctx, size_t outlen)
 {
-	SM3_CTX ctx;
-	uint8_t prefix[1] = {0x01};
-	uint8_t ct1[4] = {0x00, 0x00, 0x00, 0x01};
-	uint8_t ct2[4] = {0x00, 0x00, 0x00, 0x02};
-	uint8_t Ha[64];
-
-	sm3_init(&ctx);
-	sm3_update(&ctx, prefix, sizeof(prefix));
-	sm3_update(&ctx, (uint8_t *)id, idlen);
-	sm3_update(&ctx, &hid, 1);
-	sm3_update(&ctx, ct1, sizeof(ct1));
-	sm3_finish(&ctx, Ha);
-
-	sm3_init(&ctx);
-	sm3_update(&ctx, prefix, sizeof(prefix));
-	sm3_update(&ctx, (uint8_t *)id, idlen);
-	sm3_update(&ctx, &hid, 1);
-	sm3_update(&ctx, ct2, sizeof(ct2));
-	sm3_finish(&ctx, Ha + 32);
-
-	sm9_fn_from_hash(h1, Ha);
-	return 1;
+	sm3_init(&ctx->sm3_ctx);
+	ctx->outlen = outlen;
 }
 
-int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
+void sm3_kdf_update(SM3_KDF_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	// k = rand(1, n-1)
-	sm9_fn_rand(msk->ks);
-
-	// Ppubs = k * P2 in E'(F_p^2)
-	sm9_twist_point_mul_generator(&msk->Ppubs, msk->ks);
-
-	return 1;
+	sm3_update(&ctx->sm3_ctx, data, datalen);
 }
 
-int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
+void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out)
 {
-	// k = rand(1, n-1)
-	sm9_fn_rand(msk->ke);
+	SM3_CTX sm3_ctx;
+	size_t outlen = ctx->outlen;
+	uint8_t counter_be[4];
+	uint8_t dgst[SM3_DIGEST_SIZE];
+	uint32_t counter = 1;
+	size_t len;
 
-	// Ppube = ke * P1 in E(F_p)
-	sm9_point_mul_generator(&msk->Ppube, msk->ke);
+	while (outlen) {
+		PUTU32(counter_be, counter);
+		counter++;
 
-	return 1;
-}
+		sm3_ctx = ctx->sm3_ctx;
+		sm3_update(&sm3_ctx, counter_be, sizeof(counter_be));
+		sm3_finish(&sm3_ctx, dgst);
 
-int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, size_t idlen, SM9_SIGN_KEY *key)
-{
-	sm9_fn_t t;
-
-	// t1 = H1(ID || hid, N) + ks
-	sm9_hash1(t, id, idlen, SM9_HID_SIGN);
-	sm9_fn_add(t, t, msk->ks);
-	if (sm9_fn_is_zero(t)) {
-		// 这是一个严重问题，意味着整个msk都需要作废了
-		error_print();
-		return -1;
+		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;
+		memcpy(out, dgst, len);
+		out += len;
+		outlen -= len;
 	}
 
-	// t2 = ks * t1^-1
-	sm9_fn_inv(t, t);
-	sm9_fn_mul(t, t, msk->ks);
-
-	// ds = t2 * P1
-	sm9_point_mul_generator(&key->ds, t);
-	key->Ppubs = msk->Ppubs;
-
-	return 1;
-}
-
-int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *msk, const char *id, size_t idlen,
-	SM9_ENC_KEY *key)
-{
-	sm9_fn_t t;
-
-	// t1 = H1(ID || hid, N) + ke
-	sm9_hash1(t, id, idlen, SM9_HID_ENC);
-	sm9_fn_add(t, t, msk->ke);
-	if (sm9_fn_is_zero(t)) {
-		error_print();
-		return -1;
-	}
-
-	// t2 = ke * t1^-1
-	sm9_fn_inv(t, t);
-	sm9_fn_mul(t, t, msk->ke);
-
-	// de = t2 * P2
-	sm9_twist_point_mul_generator(&key->de, t);
-	key->Ppube = msk->Ppube;
-
-	return 1;
+	memset(&sm3_ctx, 0, sizeof(SM3_CTX));
+	memset(dgst, 0, sizeof(dgst));
 }

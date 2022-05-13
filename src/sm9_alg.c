@@ -1687,7 +1687,7 @@ void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm9_twist
 	sm9_twist_point_copy(R, Q);
 }
 
-void sm9_twist_point_mul_G(sm9_twist_point_t *R, const sm9_bn_t k)
+void sm9_twist_point_mul_generator(sm9_twist_point_t *R, const sm9_bn_t k)
 {
 	sm9_twist_point_mul(R, k, SM9_P2);
 }
@@ -1926,4 +1926,79 @@ void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P)
 
 	sm9_final_exponent(r, r);
 }
+
+void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
+{
+}
+
+void sm9_fn_sub(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
+{
+}
+
+void sm9_fn_mul(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
+{
+}
+
+void sm9_fn_inv(sm9_fn_t r, const sm9_fn_t a)
+{
+}
+
+int sm9_fn_is_zero(const sm9_fn_t a)
+{
+	return 0;
+}
+void sm9_fn_rand(sm9_fn_t r)
+{
+	// FIXME: add impl
+}
+
+int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b)
+{
+	// FIXME: add impl
+	return 1;
+}
+
+// for H1() and H2()
+// h = (Ha mod (n-1)) + 1;  h in [1, n-1], n is the curve order, Ha is 40 bytes from hash
+int sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40])
+{
+	return 1;
+}
+
+void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12])
+{
+	// FIXME: add impl
+}
+
+int sm9_point_to_bytes(const sm9_point_t *P, uint8_t out[32 * 2])
+{
+	// FIXME
+	return 1;
+}
+
+int sm9_point_from_bytes(sm9_point_t *P, const uint8_t in[32 * 2])
+{
+	// FIXME
+	return 1;
+}
+
+int sm9_twist_point_to_bytes(const sm9_twist_point_t *P, uint8_t out[32 * 2])
+{
+	// FIXME
+	return 1;
+}
+
+int sm9_twist_point_from_bytes(sm9_twist_point_t *P, const uint8_t in[32 * 2])
+{
+	// FIXME
+	return 1;
+}
+
+
+
+
+
+
+
+
 

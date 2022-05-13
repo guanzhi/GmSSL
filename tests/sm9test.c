@@ -388,7 +388,7 @@ int test_sm9_twist_point() {
 	sm9_twist_point_add_full(&r, &p, &q); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
 	sm9_twist_point_sub(&r, &p, &q); sm9_twist_point_from_hex(&s, hex_tpoint_sub); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
 	sm9_twist_point_mul(&r, k, &p);  sm9_twist_point_from_hex(&s, hex_tpoint_mul); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_mul_G(&r, k);    sm9_twist_point_from_hex(&s, hex_tpoint_mulg); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_twist_point_mul_generator(&r, k);    sm9_twist_point_from_hex(&s, hex_tpoint_mulg); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
 	
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;

@@ -240,3 +240,18 @@ void gmssl_secure_clear(void *ptr, size_t len)
 {
 	memset_func(ptr, 0, len);
 }
+
+int mem_is_zero(const uint8_t *buf, size_t len)
+{
+	int ret = 1;
+	size_t i;
+	for (i = 0; i < len; i++) {
+		if (buf[i]) ret = 0;
+	}
+	return ret;
+}
+
+
+
+
+

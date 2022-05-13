@@ -91,6 +91,16 @@ void sm3_hmac(const uint8_t *key, size_t keylen,
 	uint8_t mac[SM3_HMAC_SIZE]);
 
 
+typedef struct {
+	SM3_CTX sm3_ctx;
+	size_t outlen;
+} SM3_KDF_CTX;
+
+void sm3_kdf_init(SM3_KDF_CTX *ctx, size_t outlen);
+void sm3_kdf_update(SM3_KDF_CTX *ctx, const uint8_t *data, size_t datalen);
+void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out);
+
+
 #ifdef __cplusplus
 }
 #endif

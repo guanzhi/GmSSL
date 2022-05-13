@@ -45,6 +45,7 @@ add_library(
 	src/sm2_lib.c
 	src/sm3.c
 	src/sm3_hmac.c
+	src/sm3_kdf.c
 	src/sm4_common.c
 	src/sm4_enc.c
 	src/sm4_modes.c

@@ -268,7 +268,7 @@ void sm9_twist_point_add(sm9_twist_point_t *R, const sm9_twist_point_t *P, const
 void sm9_twist_point_sub(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q);
 void sm9_twist_point_add_full(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q);
 void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm9_twist_point_t *P);
-void sm9_twist_point_mul_G(sm9_twist_point_t *R, const sm9_bn_t k);
+void sm9_twist_point_mul_generator(sm9_twist_point_t *R, const sm9_bn_t k);
 
 void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *P, const sm9_point_t *Q);
 void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *T, const sm9_twist_point_t *P, const sm9_point_t *Q);
@@ -302,8 +302,19 @@ int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b);
 void sm9_fn_rand(sm9_fn_t r);
 void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12]);
 
+int sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40]);
 
 int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid);
+
+int sm9_point_to_bytes(const sm9_point_t *P, uint8_t out[32 * 2]);
+int sm9_point_from_bytes(sm9_point_t *P, const uint8_t in[32 * 2]);
+int sm9_twist_point_to_bytes(const sm9_twist_point_t *P, uint8_t out[32 * 2]);
+int sm9_twist_point_from_bytes(sm9_twist_point_t *P, const uint8_t in[32 * 2]);
+
+
+
+
+
 
 // set the same value as sm2
 #define SM9_MAX_ID_BITS		65535
@@ -332,24 +343,29 @@ typedef struct {
 int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *master);
 int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *master, const char *id, size_t idlen, SM9_SIGN_KEY *key);
 
-typedef struct {
-	SM3_CTX sm3_ctx;
-	SM9_SIGN_KEY key;
-} SM9_SIGN_CTX;
 
 typedef struct {
 	sm9_fn_t h;
 	sm9_point_t S;
 } SM9_SIGNATURE;
 
+int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig);
+int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
+	const SM3_CTX *sm3_ctx, const SM9_SIGNATURE *sig);
+
+
+typedef struct {
+	SM3_CTX sm3_ctx;
+} SM9_SIGN_CTX;
+
 int sm9_sign_init(SM9_SIGN_CTX *ctx);
 int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm9_sign_finish(SM9_SIGN_CTX *ctx, SM9_SIGN_KEY *key, SM9_SIGNATURE *sig);
+int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, size_t *siglen);
 
 int sm9_verify_init(SM9_SIGN_CTX *ctx);
 int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm9_verify_finish(SM9_SIGN_CTX *ctx, const SM9_SIGNATURE *sig,
-	const SM9_SIGN_MASTER_KEY *master_public, const char *id, size_t idlen);
+int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
+	const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen);
 
 
 typedef struct {
@@ -365,7 +381,12 @@ typedef struct {
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master);
 int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen, SM9_ENC_KEY *key);
 
-
+int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen, size_t klen, uint8_t *kbuf, uint8_t cbuf[64]);
+int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const uint8_t cbuf[64], size_t klen, uint8_t *kbuf);
+int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
+	const uint8_t *in, size_t inlen, uint8_t C1[64], uint8_t *C2, uint8_t C3[32]);
+int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
+	const uint8_t C1[64], const uint8_t *C2, size_t C2len, const uint8_t C3[32], uint8_t *out);
 
 #  ifdef  __cplusplus
 }
