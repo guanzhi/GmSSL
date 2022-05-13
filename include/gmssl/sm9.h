@@ -296,6 +296,7 @@ void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P)
 void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b);
 void sm9_fn_sub(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b);
 void sm9_fn_mul(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b);
+void sm9_fn_pow(sm9_fn_t r, const sm9_fn_t a, const sm9_bn_t e);
 void sm9_fn_inv(sm9_fn_t r, const sm9_fn_t a);
 int sm9_fn_is_zero(const sm9_fn_t a);
 int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b);
