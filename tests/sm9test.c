@@ -117,7 +117,7 @@ int test_sm9_fn() {
 	sm9_bn_from_hex(x, hex_x);
 	sm9_bn_from_hex(y, hex_y);
 	
-	sm9_fn_t iv = {0, 0, 0, 0, 0, 0, 0, 0}; if (!sm9_fn_is_zero(iv) != 0) goto err; ++j;
+	sm9_fn_t iv = {0, 0, 0, 0, 0, 0, 0, 0}; if (!sm9_fn_is_zero(iv)) goto err; ++j;
 	sm9_fn_add(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_add)) goto err; ++j;
 	sm9_fn_sub(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_sub)) goto err; ++j;
 	sm9_fn_sub(r, y, x); if (!sm9_bn_equ_hex(r, hex_fn_nsub)) goto err; ++j;
