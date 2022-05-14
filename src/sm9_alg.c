@@ -64,11 +64,14 @@ const sm9_bn_t SM9_FIVE  = {5,0,0,0,0,0,0,0};
 
 // p =  b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
 // n =  b640000002a3a6f1d603ab4ff58ec74449f2934b18ea8beee56ee19cd69ecf25
-// mu = 2^512 // p = 167980e0beb5759a655f73aebdcd1312af2665f6d1e36081c71188f90d5c22146
+// mu_p = 2^512 // p = 167980e0beb5759a655f73aebdcd1312af2665f6d1e36081c71188f90d5c22146
+// mu_n = 2^512 // n
 const sm9_bn_t SM9_P = {0xe351457d, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
 const sm9_bn_t SM9_P_MINUS_ONE = {0xe351457c, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
 const sm9_bn_t SM9_N = {0xd69ecf25, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
-const sm9_barrett_bn_t SM9_MU = {0xd5c22146, 0x71188f90, 0x1e36081c, 0xf2665f6d, 0xdcd1312a, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
+const sm9_bn_t SM9_N_MINUS_ONE = {0xd69ecf24, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
+const sm9_barrett_bn_t SM9_MU_P = {0xd5c22146, 0x71188f90, 0x1e36081c, 0xf2665f6d, 0xdcd1312a, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
+const sm9_barrett_bn_t SM9_MU_N = {0xdfc97c2f, 0x74df4fd4, 0xc9c073b0, 0x9c95d85e, 0xdcd1312c, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
 
 
 // P1.X 0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD
@@ -367,7 +370,7 @@ void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	for (i = 0; i < 9; i++) {
 		w = 0;
 		for (j = 0; j < 9; j++) {
-			w += s[i + j] + zh[i] * SM9_MU[j];
+			w += s[i + j] + zh[i] * SM9_MU_P[j];
 			s[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
@@ -1929,32 +1932,151 @@ void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P)
 
 void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
 {
+	sm9_bn_add(r, a, b);
+	if (sm9_bn_cmp(r, SM9_N) >= 0)
+		return sm9_bn_sub(r, r, SM9_N);
 }
 
 void sm9_fn_sub(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
 {
+	if (sm9_bn_cmp(a, b) >= 0) {
+		sm9_bn_sub(r, a, b);
+	} else {
+		sm9_bn_t t;
+		sm9_bn_sub(t, SM9_N, b);
+		sm9_bn_add(r, t, a);
+	}
 }
 
 void sm9_fn_mul(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
 {
+	uint64_t s[18];
+	sm9_barrett_bn_t zh, zl, q;
+	uint64_t w;
+	int i, j;
+
+	/* z = a * b */
+	for (i = 0; i < 8; i++) {
+		s[i] = 0;
+	}
+	for (i = 0; i < 8; i++) {
+		w = 0;
+		for (j = 0; j < 8; j++) {
+			w += s[i + j] + a[i] * b[j];
+			s[i + j] = w & 0xffffffff;
+			w >>= 32;
+		}
+		s[i + 8] = w;
+	}
+
+	/* zl = z mod (2^32)^9 = z[0..8]
+	 * zh = z // (2^32)^7 = z[7..15] */
+	for (i = 0; i < 9; i++) {
+		zl[i] = s[i];
+		zh[i] = s[7 + i];
+	}
+
+	/* q = zh * mu // (2^32)^9 */
+	for (i = 0; i < 18; i++) {
+		s[i] = 0;
+	}
+	for (i = 0; i < 9; i++) {
+		w = 0;
+		for (j = 0; j < 9; j++) {
+			w += s[i + j] + zh[i] * SM9_MU_N[j];
+			s[i + j] = w & 0xffffffff;
+			w >>= 32;
+		}
+		s[i + 9] = w;
+	}
+	for (i = 0; i < 9; i++) {
+		q[i] = s[9 + i];
+	}
+
+	/* q = q * n mod (2^32)^9 */
+	for (i = 0; i < 18; i++) {
+		s[i] = 0;
+	}
+	for (i = 0; i < 9; i++) {
+		w = 0;
+		for (j = 0; j < 8; j++) {
+			w += s[i + j] + q[i] * SM9_N[j];
+			s[i + j] = w & 0xffffffff;
+			w >>= 32;
+		}
+		s[i + 8] = w;
+	}
+	for (i = 0; i < 9; i++) {
+		q[i] = s[i];
+	}
+
+	/* r = zl - q (mod (2^32)^9) */
+
+	if (sm9_barrett_bn_cmp(zl, q)) {
+		sm9_barrett_bn_sub(zl, zl, q);
+	} else {
+		sm9_barrett_bn_t c = {0,0,0,0,0,0,0,0,0x100000000};
+		sm9_barrett_bn_sub(q, c, q);
+		sm9_barrett_bn_add(zl, q, zl);
+	}
+
+
+	for (i = 0; i < 8; i++) {
+		r[i] = zl[i];
+	}
+
+	r[7] += (zl[8] << 32);
+
+	/* while r >= n do: r = r - n */
+	while (sm9_bn_cmp(r, SM9_N) >= 0) {
+		sm9_bn_sub(r, r, SM9_N);
+	}
+}
+
+void sm9_fn_pow(sm9_fn_t r, const sm9_fn_t a, const sm9_bn_t e)
+{
+	sm9_fn_t t;
+	uint32_t w;
+	int i, j;
+
+	assert(sm9_bn_cmp(e, SM9_N_MINUS_ONE) < 0);
+
+	sm9_bn_set_one(t);
+	for (i = 7; i >= 0; i--) {
+		w = (uint32_t)e[i];
+		for (j = 0; j < 32; j++) {
+			sm9_fn_mul(t, t, t);
+			if (w & 0x80000000)
+				sm9_fn_mul(t, t, a);
+			w <<= 1;
+		}
+	}
+	sm9_bn_copy(r, t);
 }
 
 void sm9_fn_inv(sm9_fn_t r, const sm9_fn_t a)
 {
+	sm9_fn_t e;
+	sm9_bn_sub(e, SM9_N, SM9_TWO);
+	sm9_fn_pow(r, a, e);
 }
 
 int sm9_fn_is_zero(const sm9_fn_t a)
 {
-	return 0;
+	return sm9_bn_is_zero(a);
 }
 void sm9_fn_rand(sm9_fn_t r)
 {
-	// FIXME: add impl
+	sm9_bn_rand_range(r, SM9_N);
 }
 
 int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b)
 {
-	// FIXME: add impl
+	int i;
+	for (i = 0; i < 8; i++) {
+		if (a[i] != b[i])
+			return 0;
+	}
 	return 1;
 }
 

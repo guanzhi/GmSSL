@@ -99,6 +99,40 @@ err:
 	return -1;
 }
 
+#define hex_x		"483f336f119053cba8c0e738cabc2bfdbf047caf7e1aaa92526fa48041ceea2b"
+#define hex_y		"3220b45276e3692a387faa7bf3cd46e390608f2f4298cce467bf2b7fda091edb"
+#define hex_fn_add 	"7a5fe7c18873bcf5e14091b4be8972e14f650bdec0b37776ba2ed0001bd80906"
+#define hex_fn_sub 	"161e7f1c9aaceaa170413cbcd6eee51a2ea3ed803b81ddadeab0790067c5cb50"
+#define hex_fn_nsub 	"a02180e367f6bc5065c26e931e9fe22a1b4ea5cadd68ae40fabe689c6ed903d5"
+#define hex_fn_mul 	"25c528484b65755b1ff57b47b77f2b32e20467be1dde566ede4264b2e092d223"
+#define hex_fn_pow 	"445cb9b76f27e9d03a2c30fbabb59b0ea6d7b06259b0c8a1b30f21b9b274a055"
+#define hex_fn_inv 	"3e3e849c2144c3596d9c79cb1f8ee7c60828787e298b06cc341a9a165191bc5e"
+
+int test_sm9_fn() {
+	sm9_fn_t x;
+	sm9_fn_t y;
+	sm9_fn_t r;
+	int j = 1;
+	
+	sm9_bn_from_hex(x, hex_x);
+	sm9_bn_from_hex(y, hex_y);
+	
+	sm9_fn_t iv = {0, 0, 0, 0, 0, 0, 0, 0}; if (!sm9_fn_is_zero(iv)) goto err; ++j;
+	sm9_fn_add(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_add)) goto err; ++j;
+	sm9_fn_sub(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_sub)) goto err; ++j;
+	sm9_fn_sub(r, y, x); if (!sm9_bn_equ_hex(r, hex_fn_nsub)) goto err; ++j;
+	sm9_fn_mul(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_mul)) goto err; ++j;
+	sm9_fn_pow(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_pow)) goto err; ++j;
+	sm9_fn_inv(r, x);    if (!sm9_bn_equ_hex(r, hex_fn_inv)) goto err; ++j;
+	
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
 #define hex_iv2 	"123456789abcdef00fedcba987654321123456789abcdef00fedcba987654321-a39654024e243d806e492768664a2b72d632457dd14f49a9f1fdd299c9bb073c"
 #define hex_fp2_add	"0074a3145c65ac547541612178e584a902248740e70606dcaaafe2bcbd2f6a21-1b6ac9eb2c47b62cf61608b26c3c7e20674a48c4c509ac130bbaf6d47d32c07c"
 #define hex_fp2_dbl	"2ea136125d08b824cd741a4c597dcdda0e6d52df468f917b0adb8ed709d7d72c-995e51aa30d8d45ae85f34da84c0589f6dece1e633b92146debbdc23afe20a11"
@@ -470,6 +504,7 @@ err:
 
 int main(void) {
 	if (test_sm9_fp() != 1) goto err;
+	if (test_sm9_fn() != 1) goto err;
 	if (test_sm9_fp2() != 1) goto err;
 	if (test_sm9_fp4() != 1) goto err;
 	if (test_sm9_fp12() != 1) goto err;
