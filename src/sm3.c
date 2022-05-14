@@ -160,7 +160,7 @@
 #define K62	0x9ea1e762U
 #define K63	0x3d43cec5U
 
-uint32_t K[64] = {
+static uint32_t K[64] = {
 	K0,  K1,  K2,  K3,  K4,  K5,  K6,  K7,
 	K8,  K9,  K10, K11, K12, K13, K14, K15,
 	K16, K17, K18, K19, K20, K21, K22, K23,
