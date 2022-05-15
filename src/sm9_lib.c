@@ -53,8 +53,61 @@
 #include <gmssl/mem.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm9.h>
+#include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
+
+
+
+int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen)
+{
+	uint8_t hbuf[32];
+	uint8_t Sbuf[65];
+	size_t len = 0;
+
+	sm9_fn_to_bytes(sig->h, hbuf);
+	sm9_point_to_uncompressed_octets(&sig->S, Sbuf);
+
+	if (asn1_integer_to_der(hbuf, sizeof(hbuf), NULL, &len) != 1
+		|| asn1_bit_octets_to_der(Sbuf, sizeof(Sbuf), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_integer_to_der(hbuf, sizeof(hbuf), out, outlen) != 1
+		|| asn1_bit_octets_to_der(Sbuf, sizeof(Sbuf), out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *h;
+	size_t hlen;
+	const uint8_t *S;
+	size_t Slen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_integer_from_der(&h, &hlen, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&S, &Slen, &d, &dlen) != 1
+		|| asn1_check(hlen == 32) != 1
+		|| asn1_check(Slen == 65) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_fn_from_bytes(sig->h, h) != 1
+		|| sm9_point_from_uncompressed_octets(&sig->S, S) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 int sm9_sign_init(SM9_SIGN_CTX *ctx)
 {
@@ -72,7 +125,18 @@ int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 
 int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, size_t *siglen)
 {
-	return -1;
+	SM9_SIGNATURE signature;
+
+	if (sm9_do_sign(key, &ctx->sm3_ctx, &signature) != 1) {
+		error_print();
+		return -1;
+	}
+	*siglen = 0;
+	if (sm9_signature_to_der(&signature, &sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig)
@@ -140,7 +204,20 @@ int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
 	const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen)
 {
-	return -1;
+	int ret;
+	SM9_SIGNATURE signature;
+
+	if (sm9_signature_from_der(&signature, &sig, &siglen) != 1
+		|| asn1_length_is_zero(siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if ((ret = sm9_do_verify(mpk, id, idlen, &ctx->sm3_ctx, &signature)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
 }
 
 int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
@@ -200,26 +277,26 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 }
 
 int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
-	size_t klen, uint8_t *kbuf, uint8_t cbuf[64])
+	size_t klen, uint8_t *kbuf, sm9_point_t *C)
 {
 	sm9_fn_t r;
 	sm9_fp12_t w;
-	sm9_point_t C;
 	uint8_t wbuf[32 * 12];
+	uint8_t cbuf[65];
 	SM3_KDF_CTX kdf_ctx;
 
 	// A1: Q = H1(ID||hid,N) * P1 + Ppube
 	sm9_hash1(r, id, idlen, SM9_HID_EXCH);
-	sm9_point_mul(&C, r, SM9_P1);
-	sm9_point_add(&C, &C, &mpk->Ppube);
+	sm9_point_mul(C, r, SM9_P1);
+	sm9_point_add(C, C, &mpk->Ppube);
 
 	do {
 		// A2: rand r in [1, N-1]
 		sm9_fn_rand(r);
 
 		// A3: C1 = r * Q
-		sm9_point_mul(&C, r, &C);
-		sm9_point_to_bytes(&C, cbuf);
+		sm9_point_mul(C, r, C);
+		sm9_point_to_uncompressed_octets(C, cbuf);
 
 		// A4: g = e(Ppube, P2)
 		sm9_pairing(w, SM9_P2, &mpk->Ppube);
@@ -230,7 +307,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 
 		// A6: K = KDF(C || w || ID_B, klen), if K == 0, goto A2
 		sm3_kdf_init(&kdf_ctx, klen);
-		sm3_kdf_update(&kdf_ctx, cbuf, 64);
+		sm3_kdf_update(&kdf_ctx, cbuf + 1, 64);
 		sm3_kdf_update(&kdf_ctx, wbuf, sizeof(wbuf));
 		sm3_kdf_update(&kdf_ctx, (uint8_t *)id, idlen);
 		sm3_kdf_finish(&kdf_ctx, kbuf);
@@ -239,7 +316,6 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 
 	gmssl_secure_clear(&r, sizeof(r));
 	gmssl_secure_clear(&w, sizeof(w));
-	gmssl_secure_clear(&C, sizeof(C));
 	gmssl_secure_clear(wbuf, sizeof(wbuf));
 	gmssl_secure_clear(&kdf_ctx, sizeof(kdf_ctx));
 
@@ -247,26 +323,23 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	return 1;
 }
 
-int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const uint8_t cbuf[64],
+int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const sm9_point_t *C,
 	size_t klen, uint8_t *kbuf)
 {
 	sm9_fp12_t w;
-	sm9_point_t C;
 	uint8_t wbuf[32 * 12];
+	uint8_t cbuf[65];
 	SM3_KDF_CTX kdf_ctx;
 
 	// B1: check C in G1
-	if (sm9_point_from_bytes(&C, cbuf) != 1) {
-		error_print();
-		return -1;
-	}
+	sm9_point_to_uncompressed_octets(C, cbuf + 1);
 
 	// B2: w = e(C, de);
-	sm9_pairing(w, &key->de, &C);
+	sm9_pairing(w, &key->de, C);
 
 	// B3: K = KDF(C || w || ID, klen)
 	sm3_kdf_init(&kdf_ctx, klen);
-	sm3_kdf_update(&kdf_ctx, cbuf, 64);
+	sm3_kdf_update(&kdf_ctx, cbuf + 1, 64);
 	sm3_kdf_update(&kdf_ctx, wbuf, sizeof(wbuf));
 	sm3_kdf_update(&kdf_ctx, (uint8_t *)id, idlen);
 	sm3_kdf_finish(&kdf_ctx, kbuf);
@@ -277,7 +350,6 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 	}
 
 	gmssl_secure_clear(&w, sizeof(w));
-	gmssl_secure_clear(&C, sizeof(C));
 	gmssl_secure_clear(wbuf, sizeof(wbuf));
 	gmssl_secure_clear(&kdf_ctx, sizeof(kdf_ctx));
 
@@ -287,30 +359,153 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 
 int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen,
-	uint8_t C1[64], uint8_t *C2, uint8_t C3[32])
+	sm9_point_t *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE])
 {
 	uint8_t K[inlen + 32];
 
 	sm9_kem_encrypt(mpk, id, idlen, sizeof(K), K, C1);
-	gmssl_memxor(C2, K, in, inlen);
-	sm3_hmac(K + inlen, 32, C2, inlen, C3);
+	gmssl_memxor(c2, K, in, inlen);
+	sm3_hmac(K + inlen, 32, c2, inlen, c3);
 
 	return 1;
 }
 
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
-	const uint8_t C1[64], const uint8_t *C2, size_t C2len, const uint8_t C3[32],
+	const sm9_point_t *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE],
 	uint8_t *out)
 {
-	uint8_t K[C2len + 32];
-	uint8_t mac[32];
+	uint8_t k[c2len + SM3_HMAC_SIZE];
+	uint8_t mac[SM3_HMAC_SIZE];
 
-	sm9_kem_decrypt(key, id, idlen, C1, sizeof(K), K);
-	sm3_hmac(K + C2len, 32, C2, C2len, mac);
-	if (gmssl_secure_memcmp(C3, mac, sizeof(mac)) != 0) {
+	sm9_kem_decrypt(key, id, idlen, C1, sizeof(k), k);
+	sm3_hmac(k + c2len, SM3_HMAC_SIZE, c2, c2len, mac);
+	if (gmssl_secure_memcmp(c3, mac, sizeof(mac)) != 0) {
 		error_print();
 		return -1;
 	}
-	gmssl_memxor(out, K, C2, C2len);
+	gmssl_memxor(out, k, c2, c2len);
+	return 1;
+}
+
+#define SM9_ENC_TYPE_XOR	0
+#define SM9_ENC_TYPE_ECB	1
+#define SM9_ENC_TYPE_CBC	2
+#define SM9_ENC_TYPE_OFB	4
+#define SM9_ENC_TYPE_CFB	8
+
+/*
+SM9Cipher ::= SEQUENCE {
+	EnType		INTEGER, -- 0 for XOR
+	C1		BIT STRING, -- uncompressed octets of ECPoint
+	C3		OCTET STRING, -- 32 bytes HMAC-SM3 tag
+	CipherText	OCTET STRING,
+}
+*/
+int sm9_ciphertext_to_der(const sm9_point_t *C1, const uint8_t *c2, size_t c2len,
+	const uint8_t c3[SM3_HMAC_SIZE], uint8_t **out, size_t *outlen)
+{
+	int en_type = SM9_ENC_TYPE_XOR;
+	uint8_t c1[65];
+	size_t len = 0;
+
+	sm9_point_to_uncompressed_octets(C1, c1);
+	if (asn1_int_to_der(en_type, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(c1, sizeof(c1), NULL, &len) != 1
+		|| asn1_octet_string_to_der(c3, SM3_HMAC_SIZE, NULL, &len) != 1
+		|| asn1_octet_string_to_der(c2, c2len, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_int_to_der(en_type, out, outlen) != 1
+		|| asn1_bit_octets_to_der(c1, sizeof(c1), out, outlen) != 1
+		|| asn1_octet_string_to_der(c3, SM3_HMAC_SIZE, out, outlen) != 1
+		|| asn1_octet_string_to_der(c2, c2len, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_ciphertext_from_der(
+	sm9_point_t *C1, const uint8_t **c2, size_t *c2len, const uint8_t **c3,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	int en_type;
+	const uint8_t *c1;
+	size_t c1len;
+	size_t c3len;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_int_from_der(&en_type, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&c1, &c1len, &d, &dlen) != 1
+		|| asn1_octet_string_from_der(c3, &c3len, &d, &dlen) != 1
+		|| asn1_octet_string_from_der(c2, c2len, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (en_type != SM9_ENC_TYPE_XOR) {
+		error_print();
+		return -1;
+	}
+	if (c1len != 65) {
+		error_print();
+		return -1;
+	}
+	if (c3len != SM3_HMAC_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (sm9_point_from_uncompressed_octets(C1, c1) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	sm9_point_t C1;
+	uint8_t c2[inlen];
+	uint8_t c3[SM3_HMAC_SIZE];
+
+	if (sm9_do_encrypt(mpk, id, idlen, in, inlen, &C1, c2, c3) != 1) {
+		error_print();
+		return -1;
+	}
+	*outlen = 0;
+	if (sm9_ciphertext_to_der(&C1, c2, inlen, c3, &out, outlen) != 1) { // FIXME: when out == NULL	
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	sm9_point_t C1;
+	const uint8_t *c2;
+	size_t c2len;
+	const uint8_t *c3;
+
+	if (sm9_ciphertext_from_der(&C1, &c2, &c2len, &c3, &in, &inlen) != 1
+		|| asn1_length_is_zero(inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = c2len;
+		return 1;
+	}
+	if (sm9_do_decrypt(key, id, idlen, &C1, c2, c2len, c3, out) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }

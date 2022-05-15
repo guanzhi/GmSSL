@@ -51,6 +51,8 @@
 #include <stdlib.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm9.h>
+#include <gmssl/mem.h>
+#include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
 
@@ -78,6 +80,298 @@ int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid)
 	sm3_finish(&ctx, Ha + 32);
 
 	sm9_fn_from_hash(h1, Ha);
+	return 1;
+}
+
+int sm9_sign_master_key_to_der(const SM9_SIGN_MASTER_KEY *msk, uint8_t **out, size_t *outlen)
+{
+	uint8_t ks[32];
+	uint8_t Ppubs[1 + 32 * 4];
+	size_t len = 0;
+
+	sm9_fn_to_bytes(msk->ks, ks);
+	sm9_twist_point_to_uncompressed_octets(&msk->Ppubs, Ppubs);
+
+	if (asn1_integer_to_der(ks, sizeof(ks), NULL, &len) != 1
+		|| asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_integer_to_der(ks, sizeof(ks), out, outlen) != 1
+		|| asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), out, outlen) != 1) {
+		gmssl_secure_clear(ks, sizeof(ks));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(ks, sizeof(ks));
+	return 1;
+}
+
+int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *ks;
+	size_t kslen;
+	const uint8_t *Ppubs;
+	size_t Ppubslen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_integer_from_der(&ks, &kslen, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&Ppubs, &Ppubslen, &d, &dlen) != 1
+		|| asn1_check(kslen == 32) != 1
+		|| asn1_check(Ppubslen == 1 + 32 * 4) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(msk, 0, sizeof(*msk));
+	if (sm9_fn_from_bytes(msk->ks, ks) != 1
+		|| sm9_twist_point_from_uncompressed_octets(&msk->Ppubs, Ppubs) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_sign_master_public_key_to_der(const SM9_SIGN_MASTER_KEY *mpk, uint8_t **out, size_t *outlen)
+{
+	uint8_t Ppubs[1 + 32 * 4];
+	size_t len = 0;
+
+	sm9_twist_point_to_uncompressed_octets(&mpk->Ppubs, Ppubs);
+	if (asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_sign_master_public_key_from_der(SM9_SIGN_MASTER_KEY *mpk, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *Ppubs;
+	size_t Ppubslen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_bit_octets_from_der(&Ppubs, &Ppubslen, &d, &dlen) != 1
+		|| asn1_check(Ppubslen == 1 + 32 * 4) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(mpk, 0, sizeof(*mpk));
+	if (sm9_twist_point_from_uncompressed_octets(&mpk->Ppubs, Ppubs) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_sign_key_to_der(const SM9_SIGN_KEY *key, uint8_t **out, size_t *outlen)
+{
+	uint8_t ds[32];
+	uint8_t Ppubs[129];
+	size_t len = 0;
+
+	sm9_point_to_uncompressed_octets(&key->ds, ds);
+	sm9_twist_point_to_uncompressed_octets(&key->Ppubs, Ppubs);
+	if (asn1_bit_octets_to_der(ds, sizeof(ds), NULL, &len) != 1
+		|| asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_bit_octets_to_der(ds, sizeof(ds), out, outlen) != 1
+		|| asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), out, outlen) != 1) {
+		gmssl_secure_clear(ds, sizeof(ds));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(ds, sizeof(ds));
+	return 1;
+}
+
+int sm9_sign_key_from_der(SM9_SIGN_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *ds;
+	size_t dslen;
+	const uint8_t *Ppubs;
+	size_t Ppubslen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_bit_octets_from_der(&ds, &dslen, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&Ppubs, &Ppubslen, &d, &dlen) != 1
+		|| asn1_check(dslen == 65) != 1
+		|| asn1_check(Ppubslen == 129) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(key, 0, sizeof(*key));
+	if (sm9_point_from_uncompressed_octets(&key->ds, ds) != 1
+		|| sm9_twist_point_from_uncompressed_octets(&key->Ppubs, Ppubs) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_enc_master_key_to_der(const SM9_ENC_MASTER_KEY *msk, uint8_t **out, size_t *outlen)
+{
+	uint8_t ke[32];
+	uint8_t Ppube[1 + 32 * 2];
+	size_t len = 0;
+
+	sm9_fn_to_bytes(msk->ke, ke);
+	sm9_point_to_uncompressed_octets(&msk->Ppube, Ppube);
+
+	if (asn1_integer_to_der(ke, sizeof(ke), NULL, &len) != 1
+		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_integer_to_der(ke, sizeof(ke), out, outlen) != 1
+		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), out, outlen) != 1) {
+		gmssl_secure_clear(ke, sizeof(ke));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(ke, sizeof(ke));
+	return 1;
+}
+
+int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *ke;
+	size_t kelen;
+	const uint8_t *Ppube;
+	size_t Ppubelen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_integer_from_der(&ke, &kelen, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&Ppube, &Ppubelen, &d, &dlen) != 1
+		|| asn1_check(kelen == 32) != 1
+		|| asn1_check(Ppubelen == 1 + 32 * 2) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(msk, 0, sizeof(*msk));
+	if (sm9_fn_from_bytes(msk->ke, ke) != 1
+		|| sm9_point_from_uncompressed_octets(&msk->Ppube, Ppube) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_enc_master_public_key_to_der(const SM9_ENC_MASTER_KEY *mpk, uint8_t **out, size_t *outlen)
+{
+	uint8_t Ppube[1 + 32 * 2];
+	size_t len = 0;
+
+	sm9_point_to_uncompressed_octets(&mpk->Ppube, Ppube);
+	if (asn1_bit_octets_to_der(Ppube, sizeof(Ppube), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_enc_master_public_key_from_der(SM9_ENC_MASTER_KEY *mpk, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *Ppube;
+	size_t Ppubelen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_bit_octets_from_der(&Ppube, &Ppubelen, &d, &dlen) != 1
+		|| asn1_check(Ppubelen == 1 + 32 * 2) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(mpk, 0, sizeof(*mpk));
+	if (sm9_point_from_uncompressed_octets(&mpk->Ppube, Ppube) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm9_enc_key_to_der(const SM9_ENC_KEY *key, uint8_t **out, size_t *outlen)
+{
+	uint8_t de[129];
+	uint8_t Ppube[65];
+	size_t len = 0;
+
+	sm9_twist_point_to_uncompressed_octets(&key->de, de);
+	sm9_point_to_uncompressed_octets(&key->Ppube, Ppube);
+	if (asn1_bit_octets_to_der(de, sizeof(de), NULL, &len) != 1
+		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_bit_octets_to_der(de, sizeof(de), out, outlen) != 1
+		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), out, outlen) != 1) {
+		gmssl_secure_clear(de, sizeof(de));
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(de, sizeof(de));
+	return 1;
+}
+
+int sm9_enc_key_from_der(SM9_ENC_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *de;
+	size_t delen;
+	const uint8_t *Ppube;
+	size_t Ppubelen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_bit_octets_from_der(&de, &delen, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&Ppube, &Ppubelen, &d, &dlen) != 1
+		|| asn1_check(delen == 129) != 1
+		|| asn1_check(Ppubelen == 65) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(key, 0, sizeof(*key));
+	if (sm9_twist_point_from_uncompressed_octets(&key->de, de) != 1
+		|| sm9_point_from_uncompressed_octets(&key->Ppube, Ppube) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 

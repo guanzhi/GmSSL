@@ -2092,35 +2092,35 @@ void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12])
 	// FIXME: add impl
 }
 
-int sm9_point_to_bytes(const sm9_point_t *P, uint8_t out[32 * 2])
+void sm9_fn_to_bytes(const sm9_fn_t a, uint8_t out[32])
 {
-	// FIXME
-	return 1;
 }
 
-int sm9_point_from_bytes(sm9_point_t *P, const uint8_t in[32 * 2])
+int sm9_fn_from_bytes(sm9_fn_t a, const uint8_t in[32])
 {
-	// FIXME
-	return 1;
+	// FIXME: impl		
+	return -1;
 }
 
-int sm9_twist_point_to_bytes(const sm9_twist_point_t *P, uint8_t out[32 * 2])
+int sm9_point_to_uncompressed_octets(const sm9_point_t *P, uint8_t octets[65])
 {
-	// FIXME
-	return 1;
+	//FIXME: impl		
+	return -1;
 }
 
-int sm9_twist_point_from_bytes(sm9_twist_point_t *P, const uint8_t in[32 * 2])
+int sm9_point_from_uncompressed_octets(sm9_point_t *P, const uint8_t octets[65])
 {
-	// FIXME
-	return 1;
+	//FIXME: impl		
+	return -1;
 }
 
+int sm9_twist_point_to_uncompressed_octets(const sm9_twist_point_t *P, uint8_t octets[129])
+{
+	return -1;
+}
 
-
-
-
-
-
-
+int sm9_twist_point_from_uncompressed_octets(sm9_twist_point_t *P, const uint8_t octets[129])
+{
+	return -1;
+}
 

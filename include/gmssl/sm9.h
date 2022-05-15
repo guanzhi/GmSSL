@@ -312,9 +312,12 @@ int sm9_point_from_bytes(sm9_point_t *P, const uint8_t in[32 * 2]);
 int sm9_twist_point_to_bytes(const sm9_twist_point_t *P, uint8_t out[32 * 2]);
 int sm9_twist_point_from_bytes(sm9_twist_point_t *P, const uint8_t in[32 * 2]);
 
-
-
-
+void sm9_fn_to_bytes(const sm9_fn_t a, uint8_t out[32]);
+int sm9_fn_from_bytes(sm9_fn_t a, const uint8_t in[32]);
+int sm9_point_to_uncompressed_octets(const sm9_point_t *P, uint8_t octets[65]);
+int sm9_point_from_uncompressed_octets(sm9_point_t *P, const uint8_t octets[65]);
+int sm9_twist_point_to_uncompressed_octets(const sm9_twist_point_t *P, uint8_t octets[129]);
+int sm9_twist_point_from_uncompressed_octets(sm9_twist_point_t *P, const uint8_t octets[129]);
 
 
 // set the same value as sm2
@@ -331,20 +334,48 @@ typedef struct {
 	uint8_t y[64];
 } SM9_TWIST_POINT;
 
+
+/*
+SM9SignMasterKey ::= SEQUENCE {
+	ks	INTEGER,
+	Ppubs	BIT STRING, -- uncompressed octets of twisted point
+}
+*/
 typedef struct {
 	sm9_twist_point_t Ppubs; // Ppubs = ks * P2
 	sm9_fn_t ks;
 } SM9_SIGN_MASTER_KEY;
 
+int sm9_sign_master_key_to_der(const SM9_SIGN_MASTER_KEY *msk, uint8_t **out, size_t *outlen);
+int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, size_t *inlen);
+int sm9_sign_master_public_key_to_der(const SM9_SIGN_MASTER_KEY *mpk, uint8_t **out, size_t *outlen);
+int sm9_sign_master_public_key_from_der(SM9_SIGN_MASTER_KEY *mpk, const uint8_t **in, size_t *inlen);
+
+/*
+SM9SignPrivateKey ::= SEQUENCE {
+	ds	BIT STRING, -- uncompressed octets of ECPoint
+	Ppubs	BIT STRING -- uncompressed octets of twisted point
+}
+*/
 typedef struct {
 	sm9_twist_point_t Ppubs;
 	sm9_point_t ds;
 } SM9_SIGN_KEY;
 
+int sm9_sign_key_to_der(const SM9_SIGN_KEY *key, uint8_t **out, size_t *outlen);
+int sm9_sign_key_from_der(SM9_SIGN_KEY *key, const uint8_t **in, size_t *inlen);
+
+
 int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *master);
 int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *master, const char *id, size_t idlen, SM9_SIGN_KEY *key);
 
 
+/*
+from GM/T 0080-2020 SM9 Cryptographic Alagorithm Application Specification
+SM9Signature ::= SEQUENCE {
+	h	OCTET STRING,
+	S	BIT STRING,  -- uncompressed octets of ECPoint }
+*/
 typedef struct {
 	sm9_fn_t h;
 	sm9_point_t S;
@@ -353,6 +384,8 @@ typedef struct {
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig);
 int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const SM3_CTX *sm3_ctx, const SM9_SIGNATURE *sig);
+int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen);
+int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
 
 
 typedef struct {
@@ -368,26 +401,53 @@ int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
 	const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen);
 
-
 typedef struct {
 	sm9_point_t Ppube; // Ppube = ke * P1
 	sm9_fn_t ke;
 } SM9_ENC_MASTER_KEY;
 
+int sm9_enc_master_key_to_der(const SM9_ENC_MASTER_KEY *msk, uint8_t **out, size_t *outlen);
+int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, size_t *inlen);
+int sm9_enc_master_public_key_to_der(const SM9_ENC_MASTER_KEY *mpk, uint8_t **out, size_t *outlen);
+int sm9_enc_master_public_key_from_der(SM9_ENC_MASTER_KEY *mpk, const uint8_t **in, size_t *inlen);
+
+/*
+SM9EncPrivateKey ::= SEQUENCE {
+	de	BIT STRING, -- uncompressed octets of twisted point
+	Ppube	BIT STRING -- uncompressed octets of ECPoint
+}
+*/
 typedef struct {
 	sm9_point_t Ppube;
 	sm9_twist_point_t de;
 } SM9_ENC_KEY;
 
+int sm9_enc_key_to_der(const SM9_ENC_KEY *key, uint8_t **out, size_t *outlen);
+int sm9_enc_key_from_der(SM9_ENC_KEY *key, const uint8_t **in, size_t *inlen);
+
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master);
 int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen, SM9_ENC_KEY *key);
 
-int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen, size_t klen, uint8_t *kbuf, uint8_t cbuf[64]);
-int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const uint8_t cbuf[64], size_t klen, uint8_t *kbuf);
+/*
+from GM/T 0080-2020 SM9 Cryptographic Alagorithm Application Specification
+SM9Cipher ::= SEQUENCE {
+	EnType		INTEGER, -- 0 for XOR
+	C1		BIT STRING, -- uncompressed octets of ECPoint
+	C3		OCTET STRING, -- 32 bytes HMAC-SM3 tag
+	CipherText	OCTET STRING,
+}
+*/
+int sm9_ciphertext_to_der(const sm9_point_t *C1, const uint8_t *c2, size_t c2len,
+	const uint8_t c3[SM3_HMAC_SIZE], uint8_t **out, size_t *outlen);
+int sm9_ciphertext_from_der(sm9_point_t *C1, const uint8_t **c2, size_t *c2len,
+	const uint8_t *c3[SM3_HMAC_SIZE], const uint8_t **in, size_t *inlen);
+
+int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen, size_t klen, uint8_t *kbuf, sm9_point_t *C);
+int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const sm9_point_t *C, size_t klen, uint8_t *kbuf);
 int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
-	const uint8_t *in, size_t inlen, uint8_t C1[64], uint8_t *C2, uint8_t C3[32]);
+	const uint8_t *in, size_t inlen, sm9_point_t *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE]);
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
-	const uint8_t C1[64], const uint8_t *C2, size_t C2len, const uint8_t C3[32], uint8_t *out);
+	const sm9_point_t *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE], uint8_t *out);
 
 #  ifdef  __cplusplus
 }
