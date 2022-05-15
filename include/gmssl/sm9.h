@@ -303,7 +303,7 @@ int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b);
 void sm9_fn_rand(sm9_fn_t r);
 void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12]);
 
-int sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40]);
+void sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40]);
 
 int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid);
 

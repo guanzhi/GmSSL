@@ -502,6 +502,46 @@ err:
 	return -1;
 }
 
+#define hex_ks		"000130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4"
+#define hex_t2		"291FE3CAC8F58AD2DC462C8D4D578A94DAFD5624DDC28E328D2936688A86CF1A"
+#define hex_Ppubs	"9f64080b3084f733e48aff4b41b565011ce0711c5e392cfb0ab1b6791b94c408\
+-29dba116152d1f786ce843ed24a3b573414d2177386a92dd8f14d65696ea5e32\
+-69850938abea0112b57329f447e3a0cbad3e2fdb1a77f335e89e1408d0ef1c25\
+-41e00a53dda532da1a7ce027b7a46f741006e85f5cdff0730e75c05fb4e3216d"
+#define hex_ds		"A5702F05CF1315305E2D6EB64B0DEB923DB1A0BCF0CAFF90523AC8754AA69820-78559A844411F9825C109F5EE3F52D720DD01785392A727BB1556952B2B013D3"
+#define hex_h_ans	"823C4B21E4BD2DFE1ED92C606653E996668563152FC33F55D7BFBB9BD9705ADB"
+#define hex_S_ans	"73BF96923CE58B6AD0E13E9643A406D8EB98417C50EF1B29CEF9ADB48B6D598C-856712F1C2E0968AB7769F42A99586AED139D5B8B3E15891827CC2ACED9BAA05"
+
+int test_sm9_sign() {
+	SM9_SIGN_CTX ctx;
+	SM9_SIGN_KEY key;
+	SM9_SIGNATURE sig;
+	sm9_twist_point_t ts;
+	sm9_point_t s;
+	sm9_bn_t k;
+	int j = 1;
+	
+	uint8_t data[20] = {0x43, 0x68, 0x69, 0x6E, 0x65, 0x73, 0x65, 0x20, 0x49, 0x42, 0x53, 0x20, 0x73, 0x74, 0x61, 0x6E, 0x64, 0x61, 0x72, 0x64};
+
+	sm9_bn_from_hex(k, hex_ks); sm9_twist_point_mul_generator(&(key.Ppubs), k);
+	sm9_twist_point_from_hex(&ts, hex_Ppubs); if (!sm9_twist_point_equ(&ts, &(key.Ppubs))) goto err; ++j;
+	sm9_bn_from_hex(k, hex_t2); sm9_point_mul_generator(&(key.ds), k);
+	sm9_point_from_hex(&s, hex_ds); if (!sm9_point_equ(&(key.ds), &s)) goto err; ++j;
+
+	sm9_sign_init(&ctx);
+	sm9_sign_update(&ctx, data, sizeof(data));
+	sm9_do_sign(&key, &(ctx.sm3_ctx), &sig);
+	sm9_bn_from_hex(k, hex_h_ans); if (!sm9_fn_equ(sig.h, k)) goto err; ++j;
+	sm9_point_from_hex(&s, hex_S_ans); if (!sm9_point_equ(&(sig.S), &s)) goto err; ++j;
+	
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
 int main(void) {
 	if (test_sm9_fp() != 1) goto err;
 	if (test_sm9_fn() != 1) goto err;
@@ -511,6 +551,7 @@ int main(void) {
 	if (test_sm9_point() != 1) goto err;
 	if (test_sm9_twist_point() != 1) goto err;
 	if (test_sm9_pairing() != 1) goto err;
+	// if (test_sm9_sign() != 1) goto err; /* Must open "#define hex_r" in sm9_lib.c  */
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

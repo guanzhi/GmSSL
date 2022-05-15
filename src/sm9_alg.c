@@ -72,6 +72,7 @@ const sm9_bn_t SM9_N = {0xd69ecf25, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec7
 const sm9_bn_t SM9_N_MINUS_ONE = {0xd69ecf24, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
 const sm9_barrett_bn_t SM9_MU_P = {0xd5c22146, 0x71188f90, 0x1e36081c, 0xf2665f6d, 0xdcd1312a, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
 const sm9_barrett_bn_t SM9_MU_N = {0xdfc97c2f, 0x74df4fd4, 0xc9c073b0, 0x9c95d85e, 0xdcd1312c, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
+const sm9_barrett_bn_t SM9_MU_N_MINUS_ONE = {0xdfc97c31, 0x74df4fd4, 0xc9c073b0, 0x9c95d85e, 0xdcd1312c, 0x55f73aeb, 0xeb5759a6, 0x67980e0b, 0x00000001};
 
 
 // P1.X 0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD
@@ -1350,11 +1351,15 @@ void sm9_point_dbl(sm9_point_t *R, const sm9_point_t *P)
 
 void sm9_point_add(sm9_point_t *R, const sm9_point_t *P, const sm9_point_t *Q)
 {
+	sm9_fp_t x;
+	sm9_fp_t y;
+	sm9_point_get_xy(Q, x, y);
+
 	const uint64_t *X1 = P->X;
 	const uint64_t *Y1 = P->Y;
 	const uint64_t *Z1 = P->Z;
-	const uint64_t *x2 = Q->X;
-	const uint64_t *y2 = Q->Y;
+	const uint64_t *x2 = x;
+	const uint64_t *y2 = y;
 	sm9_fp_t X3, Y3, Z3, T1, T2, T3, T4;
 
 	if (sm9_point_is_at_infinity(Q)) {
@@ -1613,7 +1618,7 @@ void sm9_twist_point_sub(sm9_twist_point_t *R, const sm9_twist_point_t *P, const
 {
 	sm9_twist_point_t _T, *T = &_T;
 	sm9_twist_point_neg(T, Q);
-	sm9_twist_point_add(R, P, T);
+	sm9_twist_point_add_full(R, P, T);
 }
 
 void sm9_twist_point_add_full(sm9_twist_point_t *R, const sm9_twist_point_t *P, const sm9_twist_point_t *Q)
@@ -1684,7 +1689,7 @@ void sm9_twist_point_mul(sm9_twist_point_t *R, const sm9_bn_t k, const sm9_twist
 	for (i = 0; i < 256; i++) {
 		sm9_twist_point_dbl(Q, Q);
 		if (kbits[i] == '1') {
-			sm9_twist_point_add(Q, Q, P);
+			sm9_twist_point_add_full(Q, Q, P);
 		}
 	}
 	sm9_twist_point_copy(R, Q);
@@ -1907,7 +1912,7 @@ void sm9_pairing(sm9_fp12_t r, const sm9_twist_point_t *Q, const sm9_point_t *P)
 			sm9_eval_g_line(g_num, g_den, T, Q, P);
 			sm9_fp12_mul(f_num, f_num, g_num);
 			sm9_fp12_mul(f_den, f_den, g_den);
-			sm9_twist_point_add(T, T, Q);
+			sm9_twist_point_add_full(T, T, Q);
 		}
 	}
 
@@ -2082,45 +2087,155 @@ int sm9_fn_equ(const sm9_fn_t a, const sm9_fn_t b)
 
 // for H1() and H2()
 // h = (Ha mod (n-1)) + 1;  h in [1, n-1], n is the curve order, Ha is 40 bytes from hash
-int sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40])
+void sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40])
 {
-	return 1;
+	uint64_t s[18] = {0};
+	sm9_barrett_bn_t zh, zl, q;
+	uint64_t w;
+	int i, j;
+	
+	/* s = Ha -> int */
+	for (int i = 0; i < 10; i++) {
+		for (int j = 0; j < 4; j++) {
+			s[i] <<= 8;
+			s[i] += Ha[4 * (9-i) + j];
+		}
+	}
+
+	/* zl = z mod (2^32)^9 = z[0..8]
+	 * zh = z // (2^32)^7 = z[7..15] */
+	for (i = 0; i < 9; i++) {
+		zl[i] = s[i];
+		zh[i] = s[7 + i];
+	}
+
+	/* q = zh * mu // (2^32)^9 */
+	for (i = 0; i < 18; i++) {
+		s[i] = 0;
+	}
+	for (i = 0; i < 9; i++) {
+		w = 0;
+		for (j = 0; j < 9; j++) {
+			w += s[i + j] + zh[i] * SM9_MU_N_MINUS_ONE[j]; //
+			s[i + j] = w & 0xffffffff;
+			w >>= 32;
+		}
+		s[i + 9] = w;
+	}
+	for (i = 0; i < 9; i++) {
+		q[i] = s[9 + i];
+	}
+
+	/* q = q * p mod (2^32)^9 */
+	for (i = 0; i < 18; i++) {
+		s[i] = 0;
+	}
+	for (i = 0; i < 9; i++) {
+		w = 0;
+		for (j = 0; j < 8; j++) {
+			w += s[i + j] + q[i] * SM9_N_MINUS_ONE[j];
+			s[i + j] = w & 0xffffffff;
+			w >>= 32;
+		}
+		s[i + 8] = w;
+	}
+	for (i = 0; i < 9; i++) {
+		q[i] = s[i];
+	}
+
+	/* h = zl - q (mod (2^32)^9) */
+
+	if (sm9_barrett_bn_cmp(zl, q)) {
+		sm9_barrett_bn_sub(zl, zl, q);
+	} else {
+		sm9_barrett_bn_t c = {0,0,0,0,0,0,0,0,0x100000000};
+		sm9_barrett_bn_sub(q, c, q);
+		sm9_barrett_bn_add(zl, q, zl);
+	}
+	
+	for (i = 0; i < 8; i++) {
+		h[i] = zl[i];
+	}
+
+	h[7] += (zl[8] << 32);
+
+	/* while h >= (n-1) do: h = h - (n-1) */
+	while (sm9_bn_cmp(h, SM9_N_MINUS_ONE) >= 0) {
+		sm9_bn_sub(h, h, SM9_N_MINUS_ONE);
+	}
+
+	sm9_fn_add(h, h, SM9_ONE);
+}
+
+void sm9_fp2_from_bytes(sm9_fp2_t r, const uint8_t in[32 * 2])
+{
+	sm9_bn_from_bytes(r[1], in);
+	sm9_bn_from_bytes(r[0], in + 32);
+}
+
+void sm9_fp2_to_bytes(const sm9_fp2_t a, uint8_t buf[32 * 2])
+{
+	sm9_bn_to_bytes(a[1], buf);
+	sm9_bn_to_bytes(a[0], buf + 32);
+}
+
+void sm9_fp4_to_bytes(const sm9_fp4_t a, uint8_t buf[32 * 4])
+{
+	sm9_fp2_to_bytes(a[1], buf);
+	sm9_fp2_to_bytes(a[0], buf + 32 * 2);
 }
 
 void sm9_fp12_to_bytes(const sm9_fp12_t a, uint8_t buf[32 * 12])
 {
-	// FIXME: add impl
+	sm9_fp4_to_bytes(a[2], buf);
+	sm9_fp4_to_bytes(a[1], buf + 32 * 4);
+	sm9_fp4_to_bytes(a[0], buf + 32 * 8);
 }
 
 void sm9_fn_to_bytes(const sm9_fn_t a, uint8_t out[32])
 {
+	sm9_bn_to_bytes(a, out);
+	return;
 }
 
 int sm9_fn_from_bytes(sm9_fn_t a, const uint8_t in[32])
 {
-	// FIXME: impl		
-	return -1;
+	sm9_bn_from_bytes(a, in);
+	return 1;
 }
 
 int sm9_point_to_uncompressed_octets(const sm9_point_t *P, uint8_t octets[65])
 {
-	//FIXME: impl		
-	return -1;
+	sm9_fp_t x;
+	sm9_fp_t y;
+	sm9_point_get_xy(P, x, y);
+	sm9_bn_to_bytes(x, octets);
+	sm9_bn_to_bytes(y, octets + 32);
+	return 1;
 }
 
 int sm9_point_from_uncompressed_octets(sm9_point_t *P, const uint8_t octets[65])
 {
-	//FIXME: impl		
-	return -1;
+	sm9_bn_from_bytes(P->X, octets);
+	sm9_bn_from_bytes(P->Y, octets + 32);
+	sm9_fp_set_one(P->Z);
+	return 1;
 }
 
 int sm9_twist_point_to_uncompressed_octets(const sm9_twist_point_t *P, uint8_t octets[129])
 {
-	return -1;
+	sm9_fp2_t x;
+	sm9_fp2_t y;
+	sm9_twist_point_get_xy(P, x, y);
+	sm9_fp2_to_bytes(x, octets);
+	sm9_fp2_to_bytes(y, octets + 32 * 2);
+	return 1;
 }
 
 int sm9_twist_point_from_uncompressed_octets(sm9_twist_point_t *P, const uint8_t octets[129])
 {
-	return -1;
+	sm9_fp2_from_bytes(P->X, octets);
+	sm9_fp2_from_bytes(P->Y, octets + 32 * 2);
+	sm9_fp2_set_one(P->Z);
+	return 1;
 }
-
