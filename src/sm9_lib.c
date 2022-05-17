@@ -139,8 +139,6 @@ int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, si
 	return 1;
 }
 
-#define hex_r	"00033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE"
-
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig)
 {
 	sm9_fn_t r;
@@ -158,7 +156,6 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 	do {
 		// A2: rand r in [1, N-1]
 		sm9_fn_rand(r);
-		//sm9_bn_from_hex(r, hex_r);
 
 		// A3: w = g^r
 		sm9_fp12_pow(g, g, r);
@@ -289,7 +286,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	SM3_KDF_CTX kdf_ctx;
 
 	// A1: Q = H1(ID||hid,N) * P1 + Ppube
-	sm9_hash1(r, id, idlen, SM9_HID_EXCH);
+	sm9_hash1(r, id, idlen, SM9_HID_ENC);
 	sm9_point_mul(C, r, SM9_P1);
 	sm9_point_add(C, C, &mpk->Ppube);
 
@@ -335,10 +332,11 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 	SM3_KDF_CTX kdf_ctx;
 
 	// B1: check C in G1
-	sm9_point_to_uncompressed_octets(C, cbuf + 1);
+	sm9_point_to_uncompressed_octets(C, cbuf);
 
 	// B2: w = e(C, de);
 	sm9_pairing(w, &key->de, C);
+	sm9_fp12_to_bytes(w, wbuf);
 
 	// B3: K = KDF(C || w || ID, klen)
 	sm3_kdf_init(&kdf_ctx, klen);
