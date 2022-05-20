@@ -445,6 +445,8 @@ typedef struct {
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig);
 int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const SM3_CTX *sm3_ctx, const SM9_SIGNATURE *sig);
+
+#define SM9_MAX_SIGNATURE_SIZE 512 // TODO: calcalate this size		
 int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
 
@@ -516,6 +518,10 @@ int sm9_ciphertext_to_der(const sm9_point_t *C1, const uint8_t *c2, size_t c2len
 int sm9_ciphertext_from_der(sm9_point_t *C1, const uint8_t **c2, size_t *c2len,
 	const uint8_t *c3[SM3_HMAC_SIZE], const uint8_t **in, size_t *inlen);
 
+#define SM9_MAX_PLAINTEXT_SIZE 512 // FIXME		
+#define SM9_MAX_CIPHERTEXT_SIZE 512 // FIXME		
+
+
 int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen, size_t klen, uint8_t *kbuf, sm9_point_t *C);
 int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const sm9_point_t *C, size_t klen, uint8_t *kbuf);
 
@@ -541,6 +547,14 @@ int sm9_enc_master_public_key_print(FILE *fp, int fmt, int ind, const char *labe
 int sm9_enc_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_ENC_KEY *key);
 int sm9_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 int sm9_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
+
+const char *sm9_oid_name(int oid);
+int sm9_oid_from_name(const char *name);
+int sm9_oid_to_der(int oid, uint8_t **out, size_t *outlen);
+int sm9_oid_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int sm9_algor_to_der(int alg, int params, uint8_t **out, size_t *outlen);
+int sm9_algor_from_der(int *alg, int *params, const uint8_t **in, size_t *inlen);
+
 
 
 #  ifdef  __cplusplus
