@@ -518,7 +518,7 @@ int test_sm9_sign() {
 	uint8_t IDA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
 
 	sm9_bn_from_hex(mpk.ks, hex_ks); sm9_twist_point_mul_generator(&(mpk.Ppubs), mpk.ks);
-	if (sm9_sign_master_key_extract_key(&mpk, IDA, sizeof(IDA), &key) < 0) goto err; ++j;
+	if (sm9_sign_master_key_extract_key(&mpk, (char *)IDA, sizeof(IDA), &key) < 0) goto err; ++j;
 	sm9_point_from_hex(&ds, hex_ds); if (!sm9_point_equ(&(key.ds), &ds)) goto err; ++j;
 
 	sm9_sign_init(&ctx);
@@ -527,7 +527,7 @@ int test_sm9_sign() {
 
 	sm9_verify_init(&ctx);
 	sm9_verify_update(&ctx, data, sizeof(data));
-	if (sm9_verify_finish(&ctx, sig, siglen, &mpk, IDA, sizeof(IDA)) < 0) goto err; ++j;
+	if (sm9_verify_finish(&ctx, sig, siglen, &mpk, (char *)IDA, sizeof(IDA)) < 0) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -557,11 +557,11 @@ int test_sm9_encrypt() {
 	uint8_t IDB[3] = {0x42, 0x6F, 0x62};
 
 	sm9_bn_from_hex(msk.ke, hex_ke); sm9_point_mul_generator(&(msk.Ppube), msk.ke);
-	if (sm9_enc_master_key_extract_key(&msk, IDB, sizeof(IDB), &key) < 0) goto err; ++j;
+	if (sm9_enc_master_key_extract_key(&msk, (char *)IDB, sizeof(IDB), &key) < 0) goto err; ++j;
 	sm9_twist_point_from_hex(&de, hex_de); if (!sm9_twist_point_equ(&(key.de), &de)) goto err; ++j;
 
-	if (sm9_encrypt(&msk, IDB, sizeof(IDB), data, sizeof(data), out, &outlen) < 0) goto err; ++j;
-	if (sm9_decrypt(&key, IDB, sizeof(IDB), out, outlen, dec, &declen) < 0) goto err; ++j;
+	if (sm9_encrypt(&msk, (char *)IDB, sizeof(IDB), data, sizeof(data), out, &outlen) < 0) goto err; ++j;
+	if (sm9_decrypt(&key, (char *)IDB, sizeof(IDB), out, outlen, dec, &declen) < 0) goto err; ++j;
 	if (memcmp(data, dec, sizeof(data)) != 0) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);

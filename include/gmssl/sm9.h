@@ -336,6 +336,47 @@ typedef struct {
 
 
 /*
+SM9私钥如何存储：
+
+可以用PrivateKeyInfo, EncryptedPrivateKeyInfo 来存储SM9的主密钥
+这需要SM9签名、加密等方案的OID，并且需要区分主密钥和用户私钥
+否则无法通过AlgorithmIdentifier来区分
+
+SM9的主密钥和EC密钥类型很像，都是一个大整数和一个曲线点。
+但是SM9的主密钥存在KeyUsage这个特性，签名和加密的格式并不一样。
+是否将其整合在一个ASN.1对象中呢？
+
+主密钥、用户密钥、签名、加密，这用一个OID来区分还是2个OID来区分？
+
+
+PrivateKeyInfo ::= SEQUENCE {
+	version			Version { v1(0) },
+	privateKeyAlgorithm	AlgorithmIdentifier,
+	privateKey		OCTET STRING, -- DER-encoding of ECPrivateKey
+	attributes		[0] IMPLICIT SET OF Attribute OPTIONAL }
+
+这里privateKeyAlgorithm只有一个值，因此必须为上述提供4个不同OID
+
+主公钥其实是无所谓的，
+
+SM9 OIDs from GM/T 0006-2012
+
+	1.2.156.10197.1.302	sm9
+	1.2.156.10197.1.302.1	sm9sign
+	1.2.156.10197.1.302.2	sm9keyagreement
+	1.2.156.10197.1.302.3	sm9encrypt
+
+*/
+
+#define PEM_SM9_SIGN_MASTER_KEY		"ENCRYPTED SM9 SIGN MASTER KEY"
+#define PEM_SM9_SIGN_MASTER_PUBLIC_KEY	"SM9 SIGN MASTER PUBLIC KEY"
+#define PEM_SM9_SIGN_PRIVATE_KEY	"ENCRYPTED SM9 SIGN PRIVATE KEY"
+#define PEM_SM9_ENC_MASTER_KEY		"ENCRYPTED SM9 ENC MASTER KEY"
+#define PEM_SM9_ENC_MASTER_PUBLIC_KEY	"SM9 ENC MASTER PUBLIC KEY"
+#define PEM_SM9_ENC_PRIVATE_KEY		"ENCRYPTED SM9 ENC PRIVATE KEY"
+
+
+/*
 SM9SignMasterKey ::= SEQUENCE {
 	ks	INTEGER,
 	Ppubs	BIT STRING, -- uncompressed octets of twisted point
@@ -346,25 +387,45 @@ typedef struct {
 	sm9_fn_t ks;
 } SM9_SIGN_MASTER_KEY;
 
+// algorthm,parameters = sm9,sm9sign
 int sm9_sign_master_key_to_der(const SM9_SIGN_MASTER_KEY *msk, uint8_t **out, size_t *outlen);
 int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, size_t *inlen);
+int sm9_sign_master_key_info_encrypt_to_der(const SM9_SIGN_MASTER_KEY *msk, const char *pass, uint8_t **out, size_t *outlen);
+int sm9_sign_master_key_info_decrypt_from_der(SM9_SIGN_MASTER_KEY *msk, const char *pass, const uint8_t **in, size_t *inlen);
+int sm9_sign_master_key_info_encrypt_to_pem(const SM9_SIGN_MASTER_KEY *msk, const char *pass, FILE *fp);
+int sm9_sign_master_key_info_decrypt_from_pem(SM9_SIGN_MASTER_KEY *msk, const char *pass, FILE *fp);
+
+/*
+SM9SignMasterPublicKey ::= SEQUENCE {
+	Ppubs   BIT STRING, -- uncompressed octets of twisted point
+}
+*/
 int sm9_sign_master_public_key_to_der(const SM9_SIGN_MASTER_KEY *mpk, uint8_t **out, size_t *outlen);
 int sm9_sign_master_public_key_from_der(SM9_SIGN_MASTER_KEY *mpk, const uint8_t **in, size_t *inlen);
+int sm9_sign_master_public_key_to_pem(const SM9_SIGN_MASTER_KEY *mpk, FILE *fp);
+int sm9_sign_master_public_key_from_pem(SM9_SIGN_MASTER_KEY *mpk, FILE *fp);
+
 
 /*
 SM9SignPrivateKey ::= SEQUENCE {
 	ds	BIT STRING, -- uncompressed octets of ECPoint
 	Ppubs	BIT STRING -- uncompressed octets of twisted point
 }
+
+SM9的用户私钥和椭圆曲线的就没有任何关系了。
 */
 typedef struct {
 	sm9_twist_point_t Ppubs;
 	sm9_point_t ds;
 } SM9_SIGN_KEY;
 
+// algorithm,parameters = sm9sign,<null>
 int sm9_sign_key_to_der(const SM9_SIGN_KEY *key, uint8_t **out, size_t *outlen);
 int sm9_sign_key_from_der(SM9_SIGN_KEY *key, const uint8_t **in, size_t *inlen);
-
+int sm9_sign_key_info_encrypt_to_der(const SM9_SIGN_KEY *key, const char *pass, uint8_t **out, size_t *outlen);
+int sm9_sign_key_info_decrypt_from_der(SM9_SIGN_KEY *key, const char *pass, const uint8_t **in, size_t *inlen);
+int sm9_sign_key_info_encrypt_to_pem(const SM9_SIGN_KEY *key, const char *pass, FILE *fp);
+int sm9_sign_key_info_decrypt_from_pem(SM9_SIGN_KEY *key, const char *pass, FILE *fp);
 
 int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *master);
 int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *master, const char *id, size_t idlen, SM9_SIGN_KEY *key);
@@ -406,10 +467,18 @@ typedef struct {
 	sm9_fn_t ke;
 } SM9_ENC_MASTER_KEY;
 
+// algorithm,parameters = sm9,sm9encrypt
 int sm9_enc_master_key_to_der(const SM9_ENC_MASTER_KEY *msk, uint8_t **out, size_t *outlen);
 int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, size_t *inlen);
+int sm9_enc_master_key_info_encrypt_to_der(const SM9_ENC_MASTER_KEY *msk, const char *pass, uint8_t **out, size_t *outlen);
+int sm9_enc_master_key_info_decrypt_from_der(SM9_ENC_MASTER_KEY *msk, const char *pass, const uint8_t **in, size_t *inlen);
+int sm9_enc_master_key_info_encrypt_to_pem(const SM9_ENC_MASTER_KEY *msk, const char *pass, FILE *fp);
+int sm9_enc_master_key_info_decrypt_from_pem(SM9_ENC_MASTER_KEY *msk, const char *pass, FILE *fp);
+
 int sm9_enc_master_public_key_to_der(const SM9_ENC_MASTER_KEY *mpk, uint8_t **out, size_t *outlen);
 int sm9_enc_master_public_key_from_der(SM9_ENC_MASTER_KEY *mpk, const uint8_t **in, size_t *inlen);
+int sm9_enc_master_public_key_to_pem(const SM9_ENC_MASTER_KEY *mpk, FILE *fp);
+int sm9_enc_master_public_key_from_pem(SM9_ENC_MASTER_KEY *mpk, FILE *fp);
 
 /*
 SM9EncPrivateKey ::= SEQUENCE {
@@ -422,8 +491,13 @@ typedef struct {
 	sm9_twist_point_t de;
 } SM9_ENC_KEY;
 
+// algorithm,parameters = sm9encrypt,<null>
 int sm9_enc_key_to_der(const SM9_ENC_KEY *key, uint8_t **out, size_t *outlen);
 int sm9_enc_key_from_der(SM9_ENC_KEY *key, const uint8_t **in, size_t *inlen);
+int sm9_enc_key_info_encrypt_to_der(const SM9_ENC_KEY *key, const char *pass, uint8_t **out, size_t *outlen);
+int sm9_enc_key_info_decrypt_from_der(SM9_ENC_KEY *key, const char *pass, const uint8_t **in, size_t *inlen);
+int sm9_enc_key_info_encrypt_to_pem(const SM9_ENC_KEY *key, const char *pass, FILE *fp);
+int sm9_enc_key_info_decrypt_from_pem(SM9_ENC_KEY *key, const char *pass, FILE *fp);
 
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master);
 int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen, SM9_ENC_KEY *key);
@@ -444,6 +518,7 @@ int sm9_ciphertext_from_der(sm9_point_t *C1, const uint8_t **c2, size_t *c2len,
 
 int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen, size_t klen, uint8_t *kbuf, sm9_point_t *C);
 int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const sm9_point_t *C, size_t klen, uint8_t *kbuf);
+
 int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, sm9_point_t *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE]);
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
@@ -452,6 +527,21 @@ int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+
+
+int sm9_fn_print(FILE *fp, int fmt, int ind, const char *label, const sm9_fn_t a);
+int sm9_point_print(FILE *fp, int fmt, int ind, const char *label, const sm9_point_t *P);
+int sm9_twist_point_print(FILE *fp, int fmt, int ind, const char *label, const sm9_twist_point_t *P);
+
+int sm9_sign_master_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_SIGN_MASTER_KEY *msk);
+int sm9_sign_master_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_SIGN_MASTER_KEY *mpk);
+int sm9_sign_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_SIGN_KEY *key);
+int sm9_enc_master_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_ENC_MASTER_KEY *msk);
+int sm9_enc_master_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_ENC_MASTER_KEY *mpk);
+int sm9_enc_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_ENC_KEY *key);
+int sm9_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
+int sm9_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
+
 
 #  ifdef  __cplusplus
 }

@@ -139,6 +139,8 @@ int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, si
 	return 1;
 }
 
+#define hex_r	"00033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE"
+
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig)
 {
 	sm9_fn_t r;
@@ -156,6 +158,7 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 	do {
 		// A2: rand r in [1, N-1]
 		sm9_fn_rand(r);
+		//sm9_bn_from_hex(r, hex_r);
 
 		// A3: w = g^r
 		sm9_fp12_pow(g, g, r);
