@@ -1702,11 +1702,15 @@ void sm9_twist_point_mul_generator(sm9_twist_point_t *R, const sm9_bn_t k)
 
 void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *P, const sm9_point_t *Q)
 {
+	sm9_fp_t x;
+	sm9_fp_t y;
+	sm9_point_get_xy(Q, x, y);
+
 	const sm9_fp_t *XP = P->X;
 	const sm9_fp_t *YP = P->Y;
 	const sm9_fp_t *ZP = P->Z;
-	const uint64_t *xQ = Q->X;
-	const uint64_t *yQ = Q->Y;
+	const uint64_t *xQ = x;
+	const uint64_t *yQ = y;
 
 	sm9_fp_t *a0 = num[0][0];
 	sm9_fp_t *a1 = num[0][1];
@@ -1743,14 +1747,18 @@ void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t 
 
 void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const sm9_twist_point_t *T, const sm9_twist_point_t *P, const sm9_point_t *Q)
 {
+	sm9_fp_t x;
+	sm9_fp_t y;
+	sm9_point_get_xy(Q, x, y);
+
 	const sm9_fp_t *XT = T->X;
 	const sm9_fp_t *YT = T->Y;
 	const sm9_fp_t *ZT = T->Z;
 	const sm9_fp_t *XP = P->X;
 	const sm9_fp_t *YP = P->Y;
 	const sm9_fp_t *ZP = P->Z;
-	const uint64_t *xQ = Q->X;
-	const uint64_t *yQ = Q->Y;
+	const uint64_t *xQ = x;
+	const uint64_t *yQ = y;
 
 	sm9_fp_t *a0 = num[0][0];
 	sm9_fp_t *a1 = num[0][1];
@@ -2209,33 +2217,39 @@ int sm9_point_to_uncompressed_octets(const sm9_point_t *P, uint8_t octets[65])
 	sm9_fp_t x;
 	sm9_fp_t y;
 	sm9_point_get_xy(P, x, y);
-	sm9_bn_to_bytes(x, octets);
-	sm9_bn_to_bytes(y, octets + 32);
+	octets[0] = 0x04;
+	sm9_bn_to_bytes(x, octets + 1);
+	sm9_bn_to_bytes(y, octets + 32 + 1);
 	return 1;
 }
 
 int sm9_point_from_uncompressed_octets(sm9_point_t *P, const uint8_t octets[65])
 {
-	sm9_bn_from_bytes(P->X, octets);
-	sm9_bn_from_bytes(P->Y, octets + 32);
+	assert(octets[0] == 0x04);
+	sm9_bn_from_bytes(P->X, octets + 1);
+	sm9_bn_from_bytes(P->Y, octets + 32 + 1);
 	sm9_fp_set_one(P->Z);
+	if (!sm9_point_is_on_curve(P)) return -1;
 	return 1;
 }
 
 int sm9_twist_point_to_uncompressed_octets(const sm9_twist_point_t *P, uint8_t octets[129])
 {
+	octets[0] = 0x04;
 	sm9_fp2_t x;
 	sm9_fp2_t y;
 	sm9_twist_point_get_xy(P, x, y);
-	sm9_fp2_to_bytes(x, octets);
-	sm9_fp2_to_bytes(y, octets + 32 * 2);
+	sm9_fp2_to_bytes(x, octets + 1);
+	sm9_fp2_to_bytes(y, octets + 32 * 2 + 1);
 	return 1;
 }
 
 int sm9_twist_point_from_uncompressed_octets(sm9_twist_point_t *P, const uint8_t octets[129])
 {
-	sm9_fp2_from_bytes(P->X, octets);
-	sm9_fp2_from_bytes(P->Y, octets + 32 * 2);
+	assert(octets[0] == 0x04);
+	sm9_fp2_from_bytes(P->X, octets + 1);
+	sm9_fp2_from_bytes(P->Y, octets + 32 * 2 + 1);
 	sm9_fp2_set_one(P->Z);
+	if (!sm9_twist_point_is_on_curve(P)) return -1;
 	return 1;
 }

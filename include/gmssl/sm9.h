@@ -448,6 +448,10 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, sm9_point_t *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE]);
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const sm9_point_t *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE], uint8_t *out);
+int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
 #  ifdef  __cplusplus
 }
