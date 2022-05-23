@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(GmSSL)
 
-set(CMAKE_MACOSX_RPATH 1)
+#set(CMAKE_MACOSX_RPATH 1)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
@@ -11,7 +11,7 @@ include_directories(include)
 
 add_library(
 	gmssl
-	SHARED
+#	SHARED
 	src/aes.c
 	src/aes_modes.c
 	src/asn1.c
