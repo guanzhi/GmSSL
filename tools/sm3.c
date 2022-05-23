@@ -47,6 +47,7 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/sm2.h>
@@ -54,9 +55,7 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-hex|-bin] [-pubkey pem [-id str]] [-in file]";
-
-
+static const char *options = "[-hex|-bin] [-pubkey pem [-id str]] [-in file] [-out file]";
 
 int sm3_main(int argc, char **argv)
 {
@@ -65,10 +64,11 @@ int sm3_main(int argc, char **argv)
 	int bin = 0;
 	char *pubkeyfile = NULL;
 	char *infile = NULL;
+	char *outfile = NULL;
 	char *id = NULL;
 	FILE *pubkeyfp = NULL;
 	FILE *infp = stdin;
-
+	FILE *outfp = stdout;
 	SM3_CTX sm3_ctx;
 	uint8_t dgst[32];
 	uint8_t buf[4096];
@@ -80,9 +80,10 @@ int sm3_main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			fprintf(stderr, "usage: %s %s\n", prog, options);
-			fprintf(stderr, "usage: echo -n \"abc\" | %s\n", prog);
-			return 0;
+			printf("usage: %s %s\n", prog, options);
+			printf("usage: echo -n \"abc\" | %s\n", prog);
+			ret = 0;
+			goto end;
 		} else if (!strcmp(*argv, "-hex")) {
 			if (bin) {
 				error_print();
@@ -94,17 +95,32 @@ int sm3_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pubkey")) {
 			if (--argc < 1) goto bad;
 			pubkeyfile = *(++argv);
+			if (!(pubkeyfp = fopen(pubkeyfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-id")) {
 			if (--argc < 1) goto bad;
 			id = *(++argv);
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
+			if (!(infp = fopen(infile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
+			if (!(outfp = fopen(outfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
 bad:
-			fprintf(stderr, "%s: '%s' option value required\n", prog, *argv);
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
 			goto end;
 		}
 
@@ -118,12 +134,8 @@ bad:
 		SM2_KEY sm2_key;
 		uint8_t z[32];
 
-		if (!(pubkeyfp = fopen(pubkeyfile, "r"))) {
-			error_print();
-			goto end;
-		}
 		if (sm2_public_key_info_from_pem(&sm2_key, pubkeyfp) != 1) {
-			error_print();
+			fprintf(stderr, "%s: parse public key failed\n", prog);
 			goto end;
 		}
 		if (!id) {
@@ -132,7 +144,6 @@ bad:
 
 		sm2_compute_z(z, (SM2_POINT *)&sm2_key, id, strlen(id));
 		sm3_update(&sm3_ctx, z, sizeof(z));
-
 	} else {
 		if (id) {
 			fprintf(stderr, "%s: option '-id' must be with '-pubkey'\n", prog);
@@ -140,30 +151,26 @@ bad:
 		}
 	}
 
-	if (infile) {
-		if (!(infp = fopen(infile, "r"))) {
-			error_print();
-			goto end;
-		}
-	}
 	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 		sm3_update(&sm3_ctx, buf, len);
 	}
-
 	sm3_finish(&sm3_ctx, dgst);
 
 	if (bin) {
-		fwrite(dgst, 1, 32, stdout);
+		if (fwrite(dgst, 1, sizeof(dgst), outfp) != sizeof(dgst)) {
+			fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
+			goto end;
+		}
 	} else {
 		for (i = 0; i < sizeof(dgst); i++) {
-			printf("%02x", dgst[i]);
+			fprintf(outfp, "%02x", dgst[i]);
 		}
-		printf("\n");
+		fprintf(outfp, "\n");
 	}
-
 	ret = 0;
-
 end:
-	if (infile) fclose(infp);
+	if (pubkeyfp) fclose(pubkeyfp);
+	if (infile && infp) fclose(infp);
+	if (outfile && outfp) fclose(outfp);
 	return ret;
 }

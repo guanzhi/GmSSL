@@ -235,7 +235,7 @@ int skf_release_key(SKF_KEY *key)
 	return 1;
 }
 
-int skf_close_deivce(SKF_DEVICE *dev)
+int skf_close_device(SKF_DEVICE *dev)
 {
 	if (SKF_UnlockDev(dev->handle) != SAR_OK
 		|| SKF_DisConnectDev(dev->handle) != SAR_OK) {

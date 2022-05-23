@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,23 +47,20 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
-#include <gmssl/pem.h>
-#include <gmssl/pkcs8.h>
-#include <gmssl/error.h>
 
-#ifndef WIN32
-#include <pwd.h>
-#include <unistd.h>
-#endif
+
+static const char *options = "-pass str [-out pem] [-pubout pem]";
 
 int sm2keygen_main(int argc, char **argv)
 {
+	int ret = 1;
 	char *prog = argv[0];
 	char *pass = NULL;
-	char passbuf[64] = {0};
 	char *outfile = NULL;
 	char *puboutfile = NULL;
 	FILE *outfp = stdout;
@@ -73,82 +70,61 @@ int sm2keygen_main(int argc, char **argv)
 	argc--;
 	argv++;
 
+	if (argc < 1) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
+
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-help:
-			fprintf(stderr, "usage: %s [-pass passphrase] [-out pem] [-pubout pem]\n", prog);
-			return -1;
-
+			printf("usage: %s %s\n", prog, options);
+			ret = 0;
+			goto end;
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
-
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-pubout")) {
 			if (--argc < 1) goto bad;
 			puboutfile = *(++argv);
-
+			if (!(puboutfp = fopen(puboutfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			goto help;
+			goto end;
+bad:
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			goto end;
 		}
 
 		argc--;
 		argv++;
 	}
 
-
 	if (!pass) {
-#ifndef WIN32
-		pass = getpass("Encryption Password : ");
-		strncpy(passbuf, pass, sizeof(passbuf));
-		pass = getpass("Encryption Password (Again) : ");
-		if (strcmp(passbuf, pass) != 0) {
-			fprintf(stderr, "error: passwords not match\n");
-			return -1;
-		}
-#else
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
-		goto help;
-#endif
+		goto end;
 	}
 
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "w"))) {
-			error_print();
-			return -1;
-		}
+	if (sm2_key_generate(&key) != 1
+		|| sm2_private_key_info_encrypt_to_pem(&key, pass, outfp) != 1
+		|| sm2_public_key_info_to_pem(&key, puboutfp) != 1) {
+		fprintf(stderr, "%s: inner failure\n", prog);
+		goto end;
 	}
-	if (puboutfile) {
-		if (!(puboutfp = fopen(puboutfile, "w"))) {
-			error_print();
-			return -1;
-		}
-	}
+	ret = 0;
 
-	if (sm2_key_generate(&key) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (sm2_private_key_info_encrypt_to_pem(&key, pass, outfp) != 1) {
-		memset(&key, 0, sizeof(SM2_KEY));
-		error_print();
-		return -1;
-	}
-	if (sm2_public_key_info_to_pem(&key, puboutfp) != 1) {
-		memset(&key, 0, sizeof(SM2_KEY));
-		error_print();
-		return -1;
-	}
-
-	memset(&key, 0, sizeof(SM2_KEY));
-	return 0;
-
-bad:
-	fprintf(stderr, "%s: '%s' option value required\n", prog, *argv);
-	return -1;
+end:
+	gmssl_secure_clear(&key, sizeof(key));
+	if (outfile && outfp) fclose(outfp);
+	if (puboutfile && puboutfp) fclose(puboutfp);
+	return ret;
 }

@@ -48,12 +48,13 @@
 
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sdf.h>
-#include <gmssl/error.h>
 
 
 #define OP_NONE			0
@@ -61,7 +62,6 @@
 #define OP_EXPORTPUBKEY		2
 #define OP_SIGN			3
 #define OP_RAND			4
-
 
 
 static void print_usage(FILE *fp, const char *prog)
@@ -90,15 +90,18 @@ int sdfutil_main(int argc, char **argv)
 	unsigned char buf[4096];
 	unsigned int ulen;
 	int len;
-
 	SDF_DEVICE dev;
 	SDF_KEY key;
+	int dev_opened = 0;
+	int key_opened = 0;
 
+	memset(&dev, 0, sizeof(dev));
+	memset(&key, 0, sizeof(key));
 
 	argc--;
 	argv++;
+
 	if (argc < 1) {
-bad:
 		print_usage(stderr, prog);
 		return 1;
 	}
@@ -131,50 +134,43 @@ bad:
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
+			if (!(infp = fopen(infile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else {
-			break;
+			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			goto end;
+bad:
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			goto end;
 		}
 
 		argc--;
 		argv++;
 	}
 
-	if (argc) {
-		fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
-		return 1;
-	}
-
 	if (!lib) {
-		fprintf(stderr, "Option '-lib' required\n");
-		goto bad;
+		fprintf(stderr, "%s: option '-lib' required\n", prog);
+		goto end;
 	}
 	if (sdf_load_library(lib, NULL) != 1) {
-		error_print();
+		fprintf(stderr, "%s: load library failure\n", prog);
 		goto end;
 	}
 
-	if (infile) {
-		if (!(infp = fopen(infile, "rb"))) {
-			error_print();
-			return -1;
-		}
-	}
-
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "wb"))) {
-			error_print();
-			return -1;
-		}
-	}
-
 	if (sdf_open_device(&dev) != 1) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: open device failure\n", prog);
+		goto end;
 	}
+	dev_opened = 1;
 
 	switch (op) {
 	case OP_DEVINFO:
@@ -183,11 +179,18 @@ bad:
 
 	case OP_EXPORTPUBKEY:
 		if (keyindex < 0) {
-			error_print();
+			fprintf(stderr, "%s: invalid key index\n", prog);
 			goto end;
 		}
-		sdf_load_sign_key(&dev, &key, keyindex, pass);
-		sm2_public_key_info_to_pem(&(key.public_key), outfp);
+		if (sdf_load_sign_key(&dev, &key, keyindex, pass) != 1) {
+			fprintf(stderr, "%s: load sign key failed\n", prog);
+			goto end;
+		}
+		key_opened = 1;
+		if (sm2_public_key_info_to_pem(&(key.public_key), outfp) != 1) {
+			fprintf(stderr, "%s: output public key to PEM failed\n", prog);
+			goto end;
+		}
 		break;
 
 	case OP_SIGN:
@@ -197,7 +200,11 @@ bad:
 		uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 		size_t siglen;
 
-		sdf_load_sign_key(&dev, &key, keyindex, pass);
+		if (sdf_load_sign_key(&dev, &key, keyindex, pass) != 1) {
+			fprintf(stderr, "%s: load sign key failed\n", prog);
+			goto end;
+		}
+		key_opened = 1;
 
 		sm3_init(&sm3_ctx);
 		sm2_compute_z(dgst, &(key.public_key.public_key), id, strlen(id));
@@ -209,22 +216,39 @@ bad:
 		sm3_finish(&sm3_ctx, dgst);
 
 		if ((ret = sdf_sign(&key, dgst, sig, &siglen)) != 1) {
-			error_print();
-			return -1;
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+		if (fwrite(sig, 1, siglen, outfp) != siglen) {
+			fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
+			goto end;
 		}
 		}
 		break;
 
 	case OP_RAND:
-		sdf_rand_bytes(&dev, buf, len);
-		fwrite(buf, 1, len, outfp);
+		if (sdf_rand_bytes(&dev, buf, len) != 1) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+		if (fwrite(buf, 1, len, outfp) != len) {
+			fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
+			goto end;
+		}
 		break;
 
 	default:
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: this should not happen\n", prog);
+		goto end;
 	}
+	ret = 0;
 
 end:
+	gmssl_secure_clear(buf, sizeof(buf));
+	if (key_opened) sdf_release_key(&key);
+	if (dev_opened) sdf_close_device(&dev);
+	if (lib) sdf_unload_library();
+	if (infile && infp) fclose(infp);
+	if (outfile && outfp) fclose(outfp);
 	return ret;
 }

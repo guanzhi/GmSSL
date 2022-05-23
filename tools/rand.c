@@ -47,22 +47,25 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <gmssl/mem.h>
 #include <gmssl/rand.h>
-#include <gmssl/error.h>
 
 
-static const char *options = "[-hex] [-rdrand] -outlen num";
+static const char *options = "[-hex] [-rdrand] -outlen num [-out file]";
 
 int rand_main(int argc, char **argv)
 {
-	int ret = -1;
+	int ret = 1;
 	char *prog = argv[0];
 	int hex = 0;
 	int rdrand = 0;
 	int outlen = 0;
+	char *outfile = NULL;
+	FILE *outfp = stdout;
 	uint8_t buf[2048];
 	int i;
 
@@ -76,25 +79,33 @@ int rand_main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			fprintf(stderr, "usage: %s %s\n", prog, options);
-			return 1;
+			printf("usage: %s %s\n", prog, options);
+			ret = 0;
+			goto end;
 		} else if (!strcmp(*argv, "-hex")) {
 			hex = 1;
 		} else if (!strcmp(*argv, "-rdrand")) {
-			// rdrand = 1; // FIXME: CMakeList.txt should be updated to support this option
+			rdrand = 1;
 		} else if (!strcmp(*argv, "-outlen")) {
 			if (--argc < 1) goto bad;
 			outlen = atoi(*(++argv));
 			if (outlen < 1 || outlen > INT_MAX) {
-				error_print();
-				return 1;
+				fprintf(stderr, "%s: invalid outlen\n", prog);
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
 			}
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			return 1;
+			goto end;
 bad:
-			fprintf(stderr, "%s: invalid option argument\n", prog);
-			return 1;
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			goto end;
 		}
 
 		argc--;
@@ -102,8 +113,8 @@ bad:
 	}
 
 	if (!outlen) {
-		error_print();
-		return 1;
+		fprintf(stderr, "%s: option -outlen missing\n", prog);
+		goto end;
 	}
 
 	while (outlen) {
@@ -112,32 +123,36 @@ bad:
 		if (rdrand) {
 /*
 			if (rdrand_bytes(buf, len) != 1) {
-				error_print();
-				return 1;
+				fprintf(stderr, "%s: inner error\n", prog);
+				goto end;
 			}
 */
 		} else {
 			if (rand_bytes(buf, len) != 1) {
-				error_print();
-				return -1;
+				fprintf(stderr, "%s: inner error\n", prog);
+				goto end;
 			}
 		}
 
 		if (hex) {
 			int i;
 			for (i = 0; i < len; i++) {
-				fprintf(stdout, "%02X", buf[i]);
+				fprintf(outfp, "%02X", buf[i]);
 			}
 		} else {
-			fwrite(buf, 1, len, stdout);
+			if (fwrite(buf, 1, len, outfp) != len) {
+				fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
+				goto end;
+			}
 		}
-
 		outlen -= len;
 	}
-
 	if (hex) {
-		fprintf(stdout, "\n");
+		fprintf(outfp, "\n");
 	}
-
-	return 0;
+	ret = 0;
+end:
+	gmssl_secure_clear(buf, sizeof(buf));
+	if (outfile && outfp) fclose(outfp);
+	return ret;
 }

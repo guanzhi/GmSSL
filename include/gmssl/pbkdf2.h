@@ -60,6 +60,16 @@
 extern "C" {
 #endif
 
+/*
+PBKDF2 Public API
+
+	PBKDF2_MIN_ITER
+	PBKDF2_DEFAULT_SALT_SIZE
+	PBKDF2_MAX_SALT_SIZE
+
+	pbkdf2_hmac_sm3_genkey
+*/
+
 
 #define PBKDF2_MIN_ITER			10000
 #define PBKDF2_MAX_ITER			(INT_MAX)

@@ -48,13 +48,14 @@
 
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gmssl/mem.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/skf.h>
-#include <gmssl/error.h>
 
 
 #define OP_NONE			0
@@ -99,12 +100,16 @@ int skfutil_main(int argc, char **argv)
 	size_t authkeylen;
 	SKF_DEVICE dev;
 	SKF_KEY key;
+	int dev_opened = 0;
+	int key_opened = 0;
 
+	memset(&dev, 0, sizeof(dev));
+	memset(&key, 0, sizeof(key));
 
 	argc--;
 	argv++;
+
 	if (argc < 1) {
-bad:
 		print_usage(stderr, prog);
 		return 1;
 	}
@@ -128,8 +133,8 @@ bad:
 			if (--argc < 1) goto bad;
 			authkeystr = *(++argv);
 			if (strlen(authkeystr) != 32) {
-				error_print();
-				return -1;
+				fprintf(stderr, "%s: invalid authkey length\n", prog);
+				goto end;
 			}
 			hex_to_bytes(authkeystr, strlen(authkeystr), authkey, &authkeylen);
 		} else if (!strcmp(*argv, "-exportpubkey")) {
@@ -154,55 +159,46 @@ bad:
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
+			if (!(infp = fopen(infile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else {
-			break;
+			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			goto end;
+bad:
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			goto end;
 		}
 
 		argc--;
 		argv++;
 	}
 
-	if (argc) {
-		fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
-		return 1;
-	}
-
 	if (!lib) {
-		fprintf(stderr, "Option '-lib' required\n");
-		goto bad;
+		fprintf(stderr, "%s: option '-lib' required\n", prog);
+		goto end;
 	}
 	if (skf_load_library(lib, NULL) != 1) {
-		error_print();
+		fprintf(stderr, "%s: load library failure\n", prog);
 		goto end;
 	}
 
-	if (infile) {
-		if (!(infp = fopen(infile, "rb"))) {
-			error_print();
-			return -1;
-		}
-	}
-
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "wb"))) {
-			error_print();
-			return -1;
-		}
-	}
-
 	if (!op) {
-		error_print();
-		goto bad;
+		fprintf(stderr, "%s: option of (-devinfo|-exportpubkey|-sign|-rand) required\n", prog);
+		goto end;
 	}
-
 
 	if (!devname) {
-		error_print();
-		goto bad;
+		fprintf(stderr, "%s: option '-dev' required\n", prog);
+		goto end;
 	}
 	if (op == OP_DEVINFO) {
 		skf_print_device_info(stdout, 0, 0, devname);
@@ -211,33 +207,46 @@ bad:
 	}
 
 	if (skf_open_device(&dev, devname, authkey) != 1) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: open device failure\n", prog);
+		goto end;
 	}
+	dev_opened = 1;
 
 	if (op == OP_RAND) {
-		skf_rand_bytes(&dev, buf, len);
-		fwrite(buf, 1, len, outfp);
+		if (skf_rand_bytes(&dev, buf, len) != 1) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+		if (fwrite(buf, 1, len, outfp) != len) {
+			fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
+			goto end;
+		}
 		ret = 0;
 		goto end;
 	}
 
 	if (!appname) {
-		error_print();
-		goto bad;
+		fprintf(stderr, "%s: option '-app' required\n", prog);
+		goto end;
 	}
 	if (!container_name) {
-		error_print();
-		goto bad;
+		fprintf(stderr, "%s: option '-container' required\n", prog);
+		goto end;
 	}
 	if (!pass) {
-		error_print();
-		goto bad;
+		fprintf(stderr, "%s: option '-pass' required\n", prog);
+		goto end;
 	}
 
 	if (op == OP_EXPORTPUBKEY) {
-		skf_load_sign_key(&dev, appname, pass, container_name, &key);
-		sm2_public_key_info_to_pem(&(key.public_key), outfp);
+		if (skf_load_sign_key(&dev, appname, pass, container_name, &key) != 1) {
+			fprintf(stderr, "%s: load sign key failed\n", prog);
+			goto end;
+		}
+		if (sm2_public_key_info_to_pem(&(key.public_key), outfp) != 1) {
+			fprintf(stderr, "%s: output public key PEM failure\n", prog);
+			goto end;
+		}
 		ret = 0;
 		goto end;
 	}
@@ -248,7 +257,11 @@ bad:
 		uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 		size_t siglen;
 
-		skf_load_sign_key(&dev, appname, pass, container_name, &key);
+		if (skf_load_sign_key(&dev, appname, pass, container_name, &key) != 1) {
+			fprintf(stderr, "%s: load sign key failed\n", prog);
+			goto end;
+		}
+		key_opened = 1;
 
 		sm3_init(&sm3_ctx);
 		sm2_compute_z(dgst, &(key.public_key.public_key), id, strlen(id));
@@ -260,12 +273,23 @@ bad:
 		sm3_finish(&sm3_ctx, dgst);
 
 		if ((ret = skf_sign(&key, dgst, sig, &siglen)) != 1) {
-			error_print();
-			return -1;
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
 		}
 		ret = 0;
+		goto end;
+
+	} else {
+		fprintf(stderr, "%s: this should not happen\n", prog);
+		goto end;
 	}
 
 end:
+	gmssl_secure_clear(buf, sizeof(buf));
+	if (key_opened) skf_release_key(&key);
+	if (dev_opened) skf_close_device(&dev);
+	if (lib) skf_unload_library();
+	if (infile && infp) fclose(infp);
+	if (outfile && outfp) fclose(outfp);
 	return ret;
 }

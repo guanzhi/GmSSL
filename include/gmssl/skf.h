@@ -122,7 +122,7 @@ int skf_print_device_info(FILE *fp, int fmt, int ind, const char *devname);
 int skf_open_device(SKF_DEVICE *dev, const char *devname, const uint8_t authkey[16]);
 int skf_set_label(SKF_DEVICE *dev, const char *label);
 int skf_change_authkey(SKF_DEVICE *dev, const uint8_t authkey[16]);
-int skf_close_deivce(SKF_DEVICE *dev);;
+int skf_close_device(SKF_DEVICE *dev);
 
 int skf_list_apps(SKF_DEVICE *dev, int fmt, int ind, const char *label, FILE *fp);
 int skf_create_app(SKF_DEVICE *dev, const char *appname, const char *admin_pin, const char *user_pin);

@@ -47,23 +47,18 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/hex.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
-#include <gmssl/pem.h>
-#include <gmssl/pkcs8.h>
-#include <gmssl/error.h>
 
 
-#ifndef WIN32
-#include <pwd.h>
-#include <unistd.h>
-#endif
-
+static const char *options = "-key pem -pass str [-in file] [-out file]";
 
 int sm2decrypt_main(int argc, char **argv)
 {
+	int ret = 1;
 	char *prog = argv[0];
 	char *keyfile = NULL;
 	char *pass = NULL;
@@ -80,32 +75,46 @@ int sm2decrypt_main(int argc, char **argv)
 	argc--;
 	argv++;
 
+	if (argc < 1) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
+
 	while (argc > 0) {
-
 		if (!strcmp(*argv, "-help")) {
-help:
-			fprintf(stderr, "usage: %s -key pem [-pass password] [-in file] [-out file]\n", prog);
-			return 0;
-
+			printf("usage: %s %s\n", prog, options);
+			ret = 0;
+			goto end;
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-
+			if (!(keyfp = fopen(keyfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, keyfile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
-
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-
+			if (!(infp = fopen(infile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			goto help;
+			goto end;
+bad:
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			goto end;
 		}
 
 		argc--;
@@ -113,63 +122,36 @@ help:
 	}
 
 	if (!keyfile) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: '-key' option required\n", prog);
+		goto end;
 	}
-	if (!(keyfp = fopen(keyfile, "r"))) {
-		error_print();
-		return -1;
-	}
-
 	if (!pass) {
-#ifndef WIN32
-		pass = getpass("Encryption Password : ");
-#else
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
-#endif
-	}
-
-	if (infile) {
-		if (!(infp = fopen(infile, "rb"))) {
-			error_print();
-			return -1;
-		}
-	}
-
-	if (outfile) {
-		if (!(outfp = fopen(outfile, "wb"))) {
-			error_print();
-			return -1;
-		}
+		goto end;
 	}
 
 	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
-		error_puts("private key decryption failure");
-		return -1;
+		fprintf(stderr, "%s: private key decryption failure", prog);
+		goto end;
 	}
 
 	if ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) <= 0) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: read input failed : %s\n", prog, strerror(errno));
+		goto end;
 	}
 	if (sm2_decrypt(&key, inbuf, inlen, outbuf, &outlen) != 1) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: decryption failure\n", prog);
+		goto end;
 	}
 	if (outlen != fwrite(outbuf, 1, outlen, outfp)) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: output plaintext failed : %s\n", prog, strerror(errno));
+		goto end;
 	}
-
-	memset(&key, 0, sizeof(SM2_KEY));
-
-	// FIXME: 清空所有缓冲区
-	if (infile) fclose(infp);
-	if (outfile) fclose(outfp);
-	return 0;
-
-bad:
-	fprintf(stderr, "%s: '%s' option value required\n", prog, *argv);
-	return -1;
-
+	ret = 0;
+end:
+	gmssl_secure_clear(&key, sizeof(key));
+	if (keyfp) fclose(keyfp);
+	if (infile && infp) fclose(infp);
+	if (outfile && outfp) fclose(outfp);
+	return ret;
 }
