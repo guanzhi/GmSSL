@@ -58,6 +58,23 @@
 extern "C" {
 #endif
 
+/*
+SDF Public API
+
+	sdf_load_library
+	sdf_unload_library
+
+	SDF_DEVICE
+	sdf_open_device
+	sdf_close_device
+	sdf_print_device_info
+	sdf_rand_bytes
+	sdf_load_sign_key
+
+	SDF_KEY
+	sdf_sign
+	sdf_release_key
+*/
 
 typedef struct {
 	void *handle;

@@ -62,6 +62,37 @@
 extern "C" {
 #endif
 
+/*
+X509 Public API
+
+	x509_name_add_rdn
+	x509_name_add_country_name
+	x509_name_add_state_or_province_name
+	x509_name_add_locality_name
+	x509_name_add_organization_name
+	x509_name_add_organizational_unit_name
+	x509_name_add_common_name
+	x509_name_add_domain_component
+	x509_name_to_der
+	x509_name_from_der
+	x509_name_print
+	x509_name_get_printable
+	x509_name_get_value_by_type
+	x509_name_get_common_name
+
+	x509_cert_sign
+	x509_cert_verify
+	x509_cert_verify_by_ca_cert
+	x509_cert_get_issuer_and_serial_number
+	x509_cert_get_issuer
+	x509_cert_get_subject
+	x509_cert_get_subject_public_key
+	x509_cert_to_der
+	x509_cert_from_der
+	x509_cert_to_pem
+	x509_cert_from_pem
+	x509_cert_print
+*/
 
 enum X509_Version {
 	X509_version_v1 = 0,
@@ -329,6 +360,7 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	const uint8_t **cert, size_t *cert_len);
 
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
 
 
 #ifdef __cplusplus

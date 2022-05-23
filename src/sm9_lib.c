@@ -57,8 +57,6 @@
 #include <gmssl/error.h>
 
 
-
-
 int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen)
 {
 	uint8_t hbuf[32];
@@ -68,10 +66,10 @@ int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen
 	sm9_fn_to_bytes(sig->h, hbuf);
 	sm9_point_to_uncompressed_octets(&sig->S, Sbuf);
 
-	if (asn1_integer_to_der(hbuf, sizeof(hbuf), NULL, &len) != 1
+	if (asn1_octet_string_to_der(hbuf, sizeof(hbuf), NULL, &len) != 1
 		|| asn1_bit_octets_to_der(Sbuf, sizeof(Sbuf), NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_integer_to_der(hbuf, sizeof(hbuf), out, outlen) != 1
+		|| asn1_octet_string_to_der(hbuf, sizeof(hbuf), out, outlen) != 1
 		|| asn1_bit_octets_to_der(Sbuf, sizeof(Sbuf), out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -93,7 +91,7 @@ int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_integer_from_der(&h, &hlen, &d, &dlen) != 1
+	if (asn1_octet_string_from_der(&h, &hlen, &d, &dlen) != 1
 		|| asn1_bit_octets_from_der(&S, &Slen, &d, &dlen) != 1
 		|| asn1_check(hlen == 32) != 1
 		|| asn1_check(Slen == 65) != 1
@@ -111,7 +109,7 @@ int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 
 int sm9_sign_init(SM9_SIGN_CTX *ctx)
 {
-	const uint8_t prefix[1] = {0x02};
+	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
 	sm3_init(&ctx->sm3_ctx);
 	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
@@ -139,8 +137,6 @@ int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, si
 	return 1;
 }
 
-#define hex_r	"00033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE"
-
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig)
 {
 	sm9_fn_t r;
@@ -157,8 +153,11 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 
 	do {
 		// A2: rand r in [1, N-1]
-		sm9_fn_rand(r);
-		//sm9_bn_from_hex(r, hex_r);
+		if (sm9_fn_rand(r) != 1) {
+			error_print();
+			return -1;
+		}
+		//sm9_fn_from_hex(r, "00033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE"); // for testing
 
 		// A3: w = g^r
 		sm9_fp12_pow(g, g, r);
@@ -192,7 +191,7 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 
 int sm9_verify_init(SM9_SIGN_CTX *ctx)
 {
-	const uint8_t prefix[1] = {0x02};
+	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
 	sm3_init(&ctx->sm3_ctx);
 	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
@@ -232,7 +231,7 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	sm9_fp12_t t;
 	sm9_fp12_t u;
 	sm9_fp12_t w;
-	sm9_twist_point_t P;
+	SM9_TWIST_POINT P;
 	uint8_t wbuf[32 * 12];
 	SM3_CTX ctx = *sm3_ctx;
 	SM3_CTX tmp_ctx;
@@ -280,7 +279,7 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 }
 
 int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
-	size_t klen, uint8_t *kbuf, sm9_point_t *C)
+	size_t klen, uint8_t *kbuf, SM9_POINT *C)
 {
 	sm9_fn_t r;
 	sm9_fp12_t w;
@@ -295,7 +294,10 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 
 	do {
 		// A2: rand r in [1, N-1]
-		sm9_fn_rand(r);
+		if (sm9_fn_rand(r) != 1) {
+			error_print();
+			return -1;
+		}
 
 		// A3: C1 = r * Q
 		sm9_point_mul(C, r, C);
@@ -326,7 +328,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	return 1;
 }
 
-int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const sm9_point_t *C,
+int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const SM9_POINT *C,
 	size_t klen, uint8_t *kbuf)
 {
 	sm9_fp12_t w;
@@ -348,7 +350,7 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 	sm3_kdf_update(&kdf_ctx, (uint8_t *)id, idlen);
 	sm3_kdf_finish(&kdf_ctx, kbuf);
 
-	if (mem_is_zero(kbuf, klen) != 1) {
+	if (mem_is_zero(kbuf, klen)) {
 		error_print();
 		return -1;
 	}
@@ -363,26 +365,32 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 
 int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen,
-	sm9_point_t *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE])
+	SM9_POINT *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE])
 {
 	uint8_t K[inlen + 32];
 
-	sm9_kem_encrypt(mpk, id, idlen, sizeof(K), K, C1);
+	if (sm9_kem_encrypt(mpk, id, idlen, sizeof(K), K, C1) != 1) {
+		error_print();
+		return -1;
+	}
 	gmssl_memxor(c2, K, in, inlen);
 	sm3_hmac(K + inlen, 32, c2, inlen, c3);
-
 	return 1;
 }
 
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
-	const sm9_point_t *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE],
+	const SM9_POINT *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE],
 	uint8_t *out)
 {
 	uint8_t k[c2len + SM3_HMAC_SIZE];
 	uint8_t mac[SM3_HMAC_SIZE];
 
-	sm9_kem_decrypt(key, id, idlen, C1, sizeof(k), k);
+	if (sm9_kem_decrypt(key, id, idlen, C1, sizeof(k), k) != 1) {
+		error_print();
+		return -1;
+	}
 	sm3_hmac(k + c2len, SM3_HMAC_SIZE, c2, c2len, mac);
+
 	if (gmssl_secure_memcmp(c3, mac, sizeof(mac)) != 0) {
 		error_print();
 		return -1;
@@ -405,14 +413,17 @@ SM9Cipher ::= SEQUENCE {
 	CipherText	OCTET STRING,
 }
 */
-int sm9_ciphertext_to_der(const sm9_point_t *C1, const uint8_t *c2, size_t c2len,
+int sm9_ciphertext_to_der(const SM9_POINT *C1, const uint8_t *c2, size_t c2len,
 	const uint8_t c3[SM3_HMAC_SIZE], uint8_t **out, size_t *outlen)
 {
 	int en_type = SM9_ENC_TYPE_XOR;
 	uint8_t c1[65];
 	size_t len = 0;
 
-	sm9_point_to_uncompressed_octets(C1, c1);
+	if (sm9_point_to_uncompressed_octets(C1, c1) != 1) {
+		error_print();
+		return -1;
+	}
 	if (asn1_int_to_der(en_type, NULL, &len) != 1
 		|| asn1_bit_octets_to_der(c1, sizeof(c1), NULL, &len) != 1
 		|| asn1_octet_string_to_der(c3, SM3_HMAC_SIZE, NULL, &len) != 1
@@ -428,9 +439,8 @@ int sm9_ciphertext_to_der(const sm9_point_t *C1, const uint8_t *c2, size_t c2len
 	return 1;
 }
 
-int sm9_ciphertext_from_der(
-	sm9_point_t *C1, const uint8_t **c2, size_t *c2len, const uint8_t **c3,
-	const uint8_t **in, size_t *inlen)
+int sm9_ciphertext_from_der(SM9_POINT *C1, const uint8_t **c2, size_t *c2len,
+	const uint8_t **c3, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *d;
@@ -474,7 +484,7 @@ int sm9_ciphertext_from_der(
 int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	sm9_point_t C1;
+	SM9_POINT C1;
 	uint8_t c2[inlen];
 	uint8_t c3[SM3_HMAC_SIZE];
 
@@ -493,7 +503,7 @@ int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	sm9_point_t C1;
+	SM9_POINT C1;
 	const uint8_t *c2;
 	size_t c2len;
 	const uint8_t *c3;
@@ -503,8 +513,8 @@ int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 		error_print();
 		return -1;
 	}
+	*outlen = c2len;
 	if (!out) {
-		*outlen = c2len;
 		return 1;
 	}
 	if (sm9_do_decrypt(key, id, idlen, &C1, c2, c2len, c3, out) != 1) {

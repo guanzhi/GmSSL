@@ -72,7 +72,7 @@ int sm9sign_main(int argc, char **argv)
 	SM9_SIGN_CTX ctx;
 	uint8_t buf[4096];
 	ssize_t len;
-	uint8_t sig[SM9_MAX_SIGNATURE_SIZE];
+	uint8_t sig[SM9_SIGNATURE_SIZE];
 	size_t siglen;
 
 	argc--;
@@ -90,14 +90,14 @@ int sm9sign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(infile, "w"))) {
+			if (!(infp = fopen(infile, "r"))) {
 				error_print();
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-			if (!(keyfp = fopen(keyfile, "w"))) {
+			if (!(keyfp = fopen(keyfile, "r"))) {
 				error_print();
 				goto end;
 			}
@@ -145,6 +145,14 @@ bad:
 		error_print();
 		goto end;
 	}
+
+	if (siglen != fwrite(sig, 1, siglen, outfp)) {
+		error_print();
+		goto end;
+	}
+
+
+
 	ret = 0;
 
 end:

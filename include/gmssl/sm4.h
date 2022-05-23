@@ -57,6 +57,29 @@ extern "C" {
 #endif
 
 
+/*
+SM4 Public API
+
+	SM4_KEY_SIZE
+	SM4_BLOCK_SIZE
+
+	SM4_CBC_CTX
+	sm4_cbc_encrypt_init
+	sm4_cbc_encrypt_update
+	sm4_cbc_encrypt_finish
+	sm4_cbc_decrypt_init
+	sm4_cbc_decrypt_update
+	sm4_cbc_decrypt_finish
+
+	SM4_CTR_CTX
+	sm4_ctr_encrypt_init
+	sm4_ctr_encrypt_update
+	sm4_ctr_encrypt_finish
+	sm4_ctr_decrypt_init
+	sm4_ctr_decrypt_update
+	sm4_ctr_decrypt_finish
+*/
+
 #define SM4_KEY_SIZE		(16)
 #define SM4_BLOCK_SIZE		(16)
 #define SM4_NUM_ROUNDS		(32)
@@ -106,8 +129,6 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *tag, size_t taglen, uint8_t *out);
 
 
-// Public API
-
 typedef struct {
 	SM4_KEY sm4_key;
 	uint8_t iv[SM4_BLOCK_SIZE];
@@ -115,11 +136,11 @@ typedef struct {
 	size_t block_nbytes;
 } SM4_CBC_CTX;
 
-int sm4_cbc_encrypt_init(SM4_CBC_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE]);
+int sm4_cbc_encrypt_init(SM4_CBC_CTX *ctx, const uint8_t key[SM4_KEY_SIZE], const uint8_t iv[SM4_BLOCK_SIZE]);
 int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm4_cbc_encrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
 
-int sm4_cbc_decrypt_init(SM4_CBC_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE]);
+int sm4_cbc_decrypt_init(SM4_CBC_CTX *ctx, const uint8_t key[SM4_KEY_SIZE], const uint8_t iv[SM4_BLOCK_SIZE]);
 int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
 
@@ -131,7 +152,7 @@ typedef struct {
 	size_t block_nbytes;
 } SM4_CTR_CTX;
 
-int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE]);
+int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx, const uint8_t key[SM4_KEY_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE]);
 int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen);
 

@@ -746,9 +746,6 @@ int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_
 
 	if ((ret = asn1_object_identifier_from_der(nodes, nodes_cnt, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		if (ret == 0) {
-			error_print();
-		}
 		return ret;
 	}
 	*info = NULL;

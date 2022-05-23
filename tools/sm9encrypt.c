@@ -118,9 +118,13 @@ bad:
 		argv++;
 	}
 
-	if (!mpkfile || !id) {
+	if (!mpkfp || !id) {
 		error_print();
 		goto end;
+	}
+	if (sm9_enc_master_public_key_from_pem(&mpk, mpkfp) != 1) {
+		error_print();
+		return -1;
 	}
 	if ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) <= 0) {
 		error_print();
@@ -138,5 +142,6 @@ bad:
 end:
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
+	if (mpkfp) fclose(mpkfp);
 	return ret;
 }

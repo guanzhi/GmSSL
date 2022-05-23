@@ -119,9 +119,6 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 	}
 	sm4_cbc_decrypt(key, iv, in + inlen - 16, 1, block);
 
-	format_bytes(stderr, 0, 0, "last_decrypted_block", block, 16);
-
-
 	padding = block[15];
 	if (padding < 1 || padding > 16) {
 		error_print();

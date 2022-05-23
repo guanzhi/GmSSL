@@ -60,7 +60,40 @@ extern "C" {
 #endif
 
 
-// 比较重要的是哪些是公开接口，公开接口应该做完整的参数检查
+/*
+SM2 Public API
+
+	SM2_DEFAULT_ID
+	SM2_MAX_ID_LENGTH
+	SM2_MAX_SIGNATURE_SIZE
+	SM2_MAX_PLAINTEXT_SIZE
+	SM2_MAX_CIPHERTEXT_SIZE
+
+	SM2_KEY
+	sm2_key_generate
+	sm2_private_key_info_encrypt_to_der
+	sm2_private_key_info_decrypt_from_der
+	sm2_private_key_info_encrypt_to_pem
+	sm2_private_key_info_decrypt_from_pem
+	sm2_public_key_info_to_der
+	sm2_public_key_info_from_der
+	sm2_public_key_info_to_pem
+	sm2_public_key_info_from_pem
+
+	sm2_sign
+	sm2_verify
+	sm2_encrypt
+	sm2_decrypt
+	sm2_ecdh
+
+	SM2_SIGN_CTX
+	sm2_sign_init
+	sm2_sign_update
+	sm2_sign_finish
+	sm2_verify_init
+	sm2_verify_update
+	sm2_verify_finish
+*/
 
 typedef uint64_t SM2_BN[8];
 
@@ -211,6 +244,7 @@ typedef struct {
 	SM2_POINT public_key;
 	uint8_t private_key[32];
 } SM2_KEY;
+
 
 int sm2_key_generate(SM2_KEY *key);
 int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]); // 自动生成公钥

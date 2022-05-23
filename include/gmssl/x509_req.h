@@ -63,6 +63,17 @@
 extern "C" {
 #endif
 
+/*
+X509 REQ Public API
+
+	x509_req_sign
+	x509_req_verify
+	x509_req_get_details
+	x509_req_print
+	x509_req_to_pem
+	x509_req_from_pem
+*/
+
 
 /*
 from RFC 2986

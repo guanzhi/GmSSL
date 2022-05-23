@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 - 2020 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@
 int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid)
 {
 	SM3_CTX ctx;
-	uint8_t prefix[1] = {0x01};
+	uint8_t prefix[1] = { SM9_HASH1_PREFIX };
 	uint8_t ct1[4] = {0x00, 0x00, 0x00, 0x01};
 	uint8_t ct2[4] = {0x00, 0x00, 0x00, 0x02};
 	uint8_t Ha[64];
@@ -184,12 +184,13 @@ int sm9_sign_master_public_key_from_der(SM9_SIGN_MASTER_KEY *mpk, const uint8_t 
 
 int sm9_sign_key_to_der(const SM9_SIGN_KEY *key, uint8_t **out, size_t *outlen)
 {
-	uint8_t ds[32];
+	uint8_t ds[65];
 	uint8_t Ppubs[129];
 	size_t len = 0;
 
 	sm9_point_to_uncompressed_octets(&key->ds, ds);
 	sm9_twist_point_to_uncompressed_octets(&key->Ppubs, Ppubs);
+
 	if (asn1_bit_octets_to_der(ds, sizeof(ds), NULL, &len) != 1
 		|| asn1_bit_octets_to_der(Ppubs, sizeof(Ppubs), NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -293,6 +294,7 @@ int sm9_enc_master_public_key_to_der(const SM9_ENC_MASTER_KEY *mpk, uint8_t **ou
 	size_t len = 0;
 
 	sm9_point_to_uncompressed_octets(&mpk->Ppube, Ppube);
+
 	if (asn1_bit_octets_to_der(Ppube, sizeof(Ppube), NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), out, outlen) != 1) {
@@ -336,6 +338,7 @@ int sm9_enc_key_to_der(const SM9_ENC_KEY *key, uint8_t **out, size_t *outlen)
 
 	sm9_twist_point_to_uncompressed_octets(&key->de, de);
 	sm9_point_to_uncompressed_octets(&key->Ppube, Ppube);
+
 	if (asn1_bit_octets_to_der(de, sizeof(de), NULL, &len) != 1
 		|| asn1_bit_octets_to_der(Ppube, sizeof(Ppube), NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -382,23 +385,29 @@ int sm9_enc_key_from_der(SM9_ENC_KEY *key, const uint8_t **in, size_t *inlen)
 
 int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 {
+	if (!msk) {
+		error_print();
+		return -1;
+	}
 	// k = rand(1, n-1)
-	sm9_fn_rand(msk->ks);
-
+	if (sm9_fn_rand(msk->ks) != 1) {
+		error_print();
+		return -1;
+	}
 	// Ppubs = k * P2 in E'(F_p^2)
 	sm9_twist_point_mul_generator(&msk->Ppubs, msk->ks);
-
 	return 1;
 }
 
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
 {
 	// k = rand(1, n-1)
-	sm9_fn_rand(msk->ke);
-
+	if (sm9_fn_rand(msk->ke) != 1) {
+		error_print();
+		return -1;
+	}
 	// Ppube = ke * P1 in E(F_p)
 	sm9_point_mul_generator(&msk->Ppube, msk->ke);
-
 	return 1;
 }
 
@@ -490,6 +499,10 @@ int sm9_oid_from_name(const char *name)
 int sm9_oid_to_der(int oid, uint8_t **out, size_t *outlen)
 {
 	const ASN1_OID_INFO *info;
+	if (oid == -1) {
+		// TODO: 检查其他的oid_to_der是否支持这个default == -1 的特性
+		return 0;
+	}
 	if (!(info = asn1_oid_info_from_oid(sm9_oids, sm9_oids_count, oid))) {
 		error_print();
 		return -1;
@@ -552,6 +565,10 @@ static int sm9_private_key_info_to_der(int alg, int params, const uint8_t *prike
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (prikey_len > SM9_MAX_PRIVATE_KEY_SIZE) {
+		error_print();
+		return -1;
+	}
 	if (asn1_int_to_der(PKCS8_private_key_info_version, NULL, &len) != 1
 		|| sm9_algor_to_der(alg, params, NULL, &len) != 1
 		|| asn1_octet_string_to_der(prikey, prikey_len, NULL, &len) != 1
@@ -562,6 +579,7 @@ static int sm9_private_key_info_to_der(int alg, int params, const uint8_t *prike
 		error_print();
 		return -1;
 	}
+	//printf("alg %s params %s prikey_len %zu: SM9_PRIVATE_KEY_INFO_SIZE %zu\n", sm9_oid_name(alg), sm9_oid_name(params), prikey_len, *outlen);
 	return 1;
 }
 
@@ -575,6 +593,7 @@ static int sm9_private_key_info_from_der(int *alg, int *params, const uint8_t **
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else error_print();
 		return ret;
 	}
 	if (asn1_int_from_der(&ver, &d, &dlen) != 1
@@ -588,6 +607,10 @@ static int sm9_private_key_info_from_der(int *alg, int *params, const uint8_t **
 		error_print();
 		return -1;
 	}
+	if (*prikey_len > SM9_MAX_PRIVATE_KEY_SIZE) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -595,7 +618,7 @@ static int sm9_private_key_info_encrypt_to_der(int alg, int params, const uint8_
 	const char *pass, uint8_t **out, size_t *outlen)
 {
 	int ret = -1;
-	uint8_t pkey_info[1024];
+	uint8_t pkey_info[SM9_MAX_PRIVATE_KEY_INFO_SIZE];
 	uint8_t *p = pkey_info;
 	size_t pkey_info_len = 0;
 	uint8_t salt[16];
@@ -603,7 +626,7 @@ static int sm9_private_key_info_encrypt_to_der(int alg, int params, const uint8_
 	uint8_t iv[16];
 	uint8_t key[16];
 	SM4_KEY sm4_key;
-	uint8_t enced_pkey_info[2480];
+	uint8_t enced_pkey_info[sizeof(pkey_info) + 16]; // cbc-padding of pkey_info
 	size_t enced_pkey_info_len;
 
 	if (sm9_private_key_info_to_der(alg, params, prikey, prikey_len, &p, &pkey_info_len) != 1
@@ -621,6 +644,7 @@ static int sm9_private_key_info_encrypt_to_der(int alg, int params, const uint8_
 		error_print();
 		goto end;
 	}
+	//printf("SM9_ENCED_PRIVATE_KEY_INFO_SIZE %zu\n", *outlen);
 	ret = 1;
 end:
 	gmssl_secure_clear(pkey_info, sizeof(pkey_info));
@@ -630,7 +654,6 @@ end:
 	return ret;
 }
 
-// 这里私钥我们必须要提供一个buffer
 static int sm9_private_key_info_decrypt_from_der(int *alg, int *params, uint8_t *prikey, size_t *prikey_len,
 	const char *pass, const uint8_t **in, size_t *inlen)
 {
@@ -647,7 +670,7 @@ static int sm9_private_key_info_decrypt_from_der(int *alg, int *params, uint8_t 
 	SM4_KEY sm4_key;
 	const uint8_t *enced_pkey_info;
 	size_t enced_pkey_info_len;
-	uint8_t pkey_info[256]; // 这是一个比较大的缓冲空间
+	uint8_t pkey_info[SM9_MAX_PRIVATE_KEY_INFO_SIZE];
 	const uint8_t *cp = pkey_info;
 	size_t pkey_info_len;
 	const uint8_t *cp_prikey;
@@ -684,9 +707,11 @@ end:
 	return ret;
 }
 
+
+
 int sm9_sign_master_key_info_encrypt_to_der(const SM9_SIGN_MASTER_KEY *msk, const char *pass, uint8_t **out, size_t *outlen)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_SIGN_MASTER_KEY_MAX_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -698,11 +723,12 @@ int sm9_sign_master_key_info_encrypt_to_der(const SM9_SIGN_MASTER_KEY *msk, cons
 	return 1;
 }
 
+
 int sm9_sign_master_key_info_decrypt_from_der(SM9_SIGN_MASTER_KEY *msk, const char *pass, const uint8_t **in, size_t *inlen)
 {
 	int ret = -1;
 	int alg, params;
-	uint8_t prikey[512];
+	uint8_t prikey[SM9_MAX_PRIVATE_KEY_SIZE];
 	size_t prikey_len;
 	const uint8_t *cp = prikey;
 
@@ -731,7 +757,7 @@ end:
 
 int sm9_sign_master_key_info_encrypt_to_pem(const SM9_SIGN_MASTER_KEY *msk, const char *pass, FILE *fp)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -748,7 +774,7 @@ int sm9_sign_master_key_info_encrypt_to_pem(const SM9_SIGN_MASTER_KEY *msk, cons
 
 int sm9_sign_master_key_info_decrypt_from_pem(SM9_SIGN_MASTER_KEY *msk, const char *pass, FILE *fp)
 {
-	uint8_t buf[512];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	const uint8_t *cp = buf;
 	size_t len;
 
@@ -763,7 +789,7 @@ int sm9_sign_master_key_info_decrypt_from_pem(SM9_SIGN_MASTER_KEY *msk, const ch
 
 int sm9_sign_master_public_key_to_pem(const SM9_SIGN_MASTER_KEY *mpk, FILE *fp)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_SIGN_MASTER_PUBLIC_KEY_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -795,7 +821,7 @@ int sm9_sign_master_public_key_from_pem(SM9_SIGN_MASTER_KEY *mpk, FILE *fp)
 
 int sm9_sign_key_info_encrypt_to_der(const SM9_SIGN_KEY *key, const char *pass, uint8_t **out, size_t *outlen)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_SIGN_KEY_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -840,7 +866,7 @@ end:
 
 int sm9_sign_key_info_encrypt_to_pem(const SM9_SIGN_KEY *key, const char *pass, FILE *fp)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -857,7 +883,7 @@ int sm9_sign_key_info_encrypt_to_pem(const SM9_SIGN_KEY *key, const char *pass, 
 
 int sm9_sign_key_info_decrypt_from_pem(SM9_SIGN_KEY *key, const char *pass, FILE *fp)
 {
-	uint8_t buf[512];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	const uint8_t *cp = buf;
 	size_t len;
 
@@ -872,7 +898,7 @@ int sm9_sign_key_info_decrypt_from_pem(SM9_SIGN_KEY *key, const char *pass, FILE
 
 int sm9_enc_master_key_info_encrypt_to_der(const SM9_ENC_MASTER_KEY *msk, const char *pass, uint8_t **out, size_t *outlen)
 {
-	uint8_t buf[1024];
+	uint8_t buf[256];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -917,7 +943,7 @@ end:
 
 int sm9_enc_master_key_info_encrypt_to_pem(const SM9_ENC_MASTER_KEY *msk, const char *pass, FILE *fp)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -934,7 +960,7 @@ int sm9_enc_master_key_info_encrypt_to_pem(const SM9_ENC_MASTER_KEY *msk, const 
 
 int sm9_enc_master_key_info_decrypt_from_pem(SM9_ENC_MASTER_KEY *msk, const char *pass, FILE *fp)
 {
-	uint8_t buf[512];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	const uint8_t *cp = buf;
 	size_t len;
 
@@ -1026,7 +1052,7 @@ end:
 
 int sm9_enc_key_info_encrypt_to_pem(const SM9_ENC_KEY *key, const char *pass, FILE *fp)
 {
-	uint8_t buf[1024];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
@@ -1043,7 +1069,7 @@ int sm9_enc_key_info_encrypt_to_pem(const SM9_ENC_KEY *key, const char *pass, FI
 
 int sm9_enc_key_info_decrypt_from_pem(SM9_ENC_KEY *key, const char *pass, FILE *fp)
 {
-	uint8_t buf[512];
+	uint8_t buf[SM9_MAX_ENCED_PRIVATE_KEY_INFO_SIZE];
 	const uint8_t *cp = buf;
 	size_t len;
 
@@ -1053,30 +1079,6 @@ int sm9_enc_key_info_decrypt_from_pem(SM9_ENC_KEY *key, const char *pass, FILE *
 		error_print();
 		return -1;
 	}
-	return 1;
-}
-
-int sm9_fn_print(FILE *fp, int fmt, int ind, const char *label, const sm9_fn_t a)
-{
-	uint8_t buf[32];
-	sm9_fn_to_bytes(a, buf);
-	format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
-	return 1;
-}
-
-int sm9_point_print(FILE *fp, int fmt, int ind, const char *label, const sm9_point_t *P)
-{
-	uint8_t buf[65];
-	sm9_point_to_uncompressed_octets(P, buf);
-	format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
-	return 1;
-}
-
-int sm9_twist_point_print(FILE *fp, int fmt, int ind, const char *label, const sm9_twist_point_t *P)
-{
-	uint8_t buf[129];
-	sm9_twist_point_to_uncompressed_octets(P, buf);
-	format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
 	return 1;
 }
 
@@ -1132,7 +1134,6 @@ int sm9_enc_key_print(FILE *fp, int fmt, int ind, const char *label, const SM9_E
 	return 1;
 }
 
-
 int sm9_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen)
 {
 	const uint8_t *d;
@@ -1145,7 +1146,6 @@ int sm9_signature_print(FILE *fp, int fmt, int ind, const char *label, const uin
 		error_print();
 		return -1;
 	}
-
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;

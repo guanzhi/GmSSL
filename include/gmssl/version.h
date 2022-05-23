@@ -54,6 +54,13 @@
 extern "C" {
 #endif
 
+/*
+Version Public API
+
+	gmssl_version_num
+	gmssl_version_str
+*/
+
 #define GMSSL_VERSION_NUM	30000
 #define GMSSL_VERSION_STR	"GmSSL 3.0.0 Alpha"
 

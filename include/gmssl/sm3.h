@@ -56,6 +56,25 @@
 extern "C" {
 #endif
 
+/*
+SM3 Public API
+
+	SM3_DIGEST_SIZE
+	SM3_HMAC_SIZE
+
+	SM3_CTX
+	sm3_init
+	sm3_update
+	sm3_finish
+
+	SM3_HMAC_CTX
+	sm3_hmac_init
+	sm3_hmac_update
+	sm3_hmac_finish
+
+	sm3_digest
+	sm3_hmac
+*/
 
 #define SM3_IS_BIG_ENDIAN	1
 

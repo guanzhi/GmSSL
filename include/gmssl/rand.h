@@ -57,6 +57,12 @@
 extern "C" {
 #endif
 
+/*
+Rand Public API
+
+	rand_bytes
+
+*/
 
 int rand_bytes(uint8_t *buf, size_t buflen);
 

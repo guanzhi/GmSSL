@@ -101,7 +101,7 @@ int sm9decrypt_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(outfile, "r"))) {
+			if (!(infp = fopen(infile, "r"))) {
 				error_print();
 				goto end;
 			}

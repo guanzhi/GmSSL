@@ -57,6 +57,20 @@
 extern "C" {
 #endif
 
+/*
+BASE64 Public API
+
+	BASE64_CTX
+	base64_encode_init
+	base64_encode_update
+	base64_encode_finish
+	base64_decode_init
+	base64_decode_update
+	base64_decode_finish
+
+*/
+
+
 typedef struct {
     /* number saved in a partial encode/decode */
     int num;
