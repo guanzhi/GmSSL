@@ -1,0 +1,31 @@
+name: Cygwin
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: windows-latest
+    
+    env:
+      SHELLOPTS: igncr
+    defaults:
+      run:
+        shell: C:\tools\cygwin\bin\bash.exe --login '{0}'
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Cygwin
+      uses: egor-tensin/setup-cygwin@v3
+      with:
+        platform: x64
+        packages: cmake gcc-g++
+
