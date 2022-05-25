@@ -8,7 +8,7 @@ GmSSL的2.x版本的开发始于2016年，目前主分支在功能上实现了�
 
 #### Nginx-with-GmSSL3.0
 
-目前GmSSL项目组已经实现了Nginx对GmSSL3.0的支持，并开源了项目实现，参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3)
+目前GmSSL项目组已经实现了Nginx对GmSSL3.0的支持，并提供了Docker实现，具体参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3)
 
 ## 编译与安装
 
