@@ -4,6 +4,12 @@
 
 GmSSL的2.x版本的开发始于2016年，目前主分支在功能上实现了对主要国密算法、标准和协议的覆盖，并成功应用于多种互联网场景中。但是随着GmSSL在物联网、区块链等新场景中的应用，及在密码产品合规检测过程中的实践，我们发现应用对GmSSL提出了一些新的需求。由于很难在基于OpenSSL的GmSSL 2.x版本上满足新需求，因此我们重新设计了GmSSL的架构，GmSSL也迎来第三个大版本——GmSSL 3.0。
 
+## 典型应用
+
+#### Nginx-with-GmSSL3.0
+
+目前GmSSL项目组已经实现了Nginx对GmSSL3.0的支持，并开源了项目实现，参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3)
+
 ## 编译与安装
 
 GmSSL 3.0 采用了cmake构建系统。下载源代码后将其解压缩，进入源码目录，执行：
