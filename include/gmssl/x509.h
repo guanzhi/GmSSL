@@ -76,7 +76,6 @@ X509 Public API
 	x509_name_to_der
 	x509_name_from_der
 	x509_name_print
-	x509_name_get_printable
 	x509_name_get_value_by_type
 	x509_name_get_common_name
 
@@ -171,6 +170,16 @@ int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 
 /*
 Name ::= SEQUENCE OF RelativeDistinguishedName
+
+Example:
+    SEQUENCE LEN
+      SET LEN
+          SEQUENCE LEN OID=countryName, String=CN
+      SET LEN
+          SEQUENCE LEN OID=stateName, String=CN
+          SEQUENCE LEN OID=unknown, String=ABC
+      SET LEN
+          SEQUENCE LEN OID=commonNmame, String=ABC
 */
 int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen, int oid, int tag, const uint8_t *val, size_t vlen, const uint8_t *more, size_t mlen);
 int x509_name_add_country_name(uint8_t *d, size_t *dlen, int maxlen, const char val[2] ); // val: PrintableString SIZE(2)
@@ -188,7 +197,6 @@ int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 #define x509_name_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
 #define x509_name_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-int x509_name_get_printable(const uint8_t *d, size_t dlen, char *str, size_t maxlen);
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);
 int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uint8_t **val, size_t *vlen);
 
@@ -348,7 +356,7 @@ int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **subj, s
 int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, SM2_KEY *public_key);
 
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp);
-int x509_certs_from_pem(const uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp);
+int x509_certs_from_pem(uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp);
 int x509_certs_get_count(const uint8_t *d, size_t dlen, size_t *cnt);
 int x509_certs_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const uint8_t **cert, size_t *certlen);
 int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen, const uint8_t *subject, size_t subject_len, const uint8_t **cert, size_t *certlen);

@@ -76,6 +76,11 @@ extern int sm9sign_main(int argc, char **argv);
 extern int sm9verify_main(int argc, char **argv);
 extern int sm9encrypt_main(int argc, char **argv);
 extern int sm9decrypt_main(int argc, char **argv);
+extern int cmsparse_main(int argc, char **argv);
+extern int cmsencrypt_main(int argc, char **argv);
+extern int cmsdecrypt_main(int argc, char **argv);
+extern int cmssign_main(int argc, char **argv);
+extern int cmsverify_main(int argc, char **argv);
 extern int tlcp_client_main(int argc, char **argv);
 extern int tlcp_server_main(int argc, char **argv);
 extern int tls12_client_main(int argc, char **argv);
@@ -90,18 +95,18 @@ static const char *options =
 	"command [options]\n"
 	"\n"
 	"Commands:\n"
-	"  help            Print commands list or help for one command\n"
+	"  help            Print this help message\n"
 	"  version         Print version\n"
 	"  rand            Generate random bytes\n"
 	"  sm2keygen       Generate SM2 keypair\n"
 	"  sm2sign         Generate SM2 signature\n"
 	"  sm2verify       Verify SM2 signature\n"
-	"  sm2encrypt      SM2 public key encryption\n"
-	"  sm2decrypt      SM2 decryption\n"
+	"  sm2encrypt      Encrypt with SM2 public key\n"
+	"  sm2decrypt      Decrypt with SM2 private key\n"
 	"  sm3             Generate SM3 hash\n"
-	"  sm3hmac         Generate HMAC-SM3 MAC tag\n"
-	"  sm4             Encrypt or decrypt data with SM4\n"
-	"  zuc             Encrypt or decrypt data with ZUC\n"
+	"  sm3hmac         Generate SM3 HMAC tag\n"
+	"  sm4             Encrypt or decrypt with SM4\n"
+	"  zuc             Encrypt or decrypt with ZUC\n"
 	"  sm9setup        Generate SM9 master secret\n"
 	"  sm9keygen       Generate SM9 private key\n"
 	"  sm9sign         Generate SM9 signature\n"
@@ -109,21 +114,26 @@ static const char *options =
 	"  sm9encrypt      SM9 public key encryption\n"
 	"  sm9decrypt      SM9 decryption\n"
 	"  pbkdf2          Generate key from password\n"
-	"  reqgen          Generate PKCS #10 certificate signing request (CSR)\n"
-	"  reqsign         Generate a certificate from PKCS #10 CSR\n"
-	"  reqparse        Parse and print a PKCS #10 CSR\n"
+	"  reqgen          Generate certificate signing request (CSR)\n"
+	"  reqsign         Generate certificate from CSR\n"
+	"  reqparse        Parse and print a CSR\n"
 	"  crlparse        Parse and print CRL\n"
-	"  certgen         Generate a self-signed X.509 certificate in PEM format\n"
-	"  certparse       Parse and print certificates in a PEM file\n"
-	"  certverify      Verify certificate chain in a PEM file\n"
+	"  certgen         Generate a self-signed certificate\n"
+	"  certparse       Parse and print certificates\n"
+	"  certverify      Verify certificate chain\n"
+	"  cmsparse        Parse cryptographic message syntax (CMS)\n"
+	"  cmsencrypt      Generate CMS EnvelopedData\n"
+	"  cmsdecrypt      Decrypt CMS EnvelopedData\n"
+	"  cmssign         Generate CMS SignedData\n"
+	"  cmsverify       Verify CMS SignedData\n"
+	"  sdfutil         SDF crypto device utility\n"
+	"  skfutil         SKF crypto device utility\n"
 	"  tlcp_client     TLCP client\n"
 	"  tlcp_server     TLCP server\n"
 	"  tls12_client    TLS 1.2 client\n"
 	"  tls12_server    TLS 1.2 server\n"
 	"  tls13_client    TLS 1.3 client\n"
-	"  tls13_server    TLS 1.3 server\n"
-	"  sdfutil         SDF crypto device utility\n"
-	"  skfutil         SKF crypto device utility\n";
+	"  tls13_server    TLS 1.3 server\n";
 
 
 
@@ -154,6 +164,8 @@ int main(int argc, char **argv)
 			return certparse_main(argc, argv);
 		} else if (!strcmp(*argv, "certverify")) {
 			return certverify_main(argc, argv);
+		} else if (!strcmp(*argv, "crlparse")) {
+			return crlparse_main(argc, argv);
 		} else if (!strcmp(*argv, "reqgen")) {
 			return reqgen_main(argc, argv);
 		} else if (!strcmp(*argv, "reqparse")) {
@@ -192,6 +204,16 @@ int main(int argc, char **argv)
 			return sm9encrypt_main(argc, argv);
 		} else if (!strcmp(*argv, "sm9decrypt")) {
 			return sm9decrypt_main(argc, argv);
+		} else if (!strcmp(*argv, "cmsparse")) {
+			return cmsparse_main(argc, argv);
+		} else if (!strcmp(*argv, "cmsencrypt")) {
+			return cmsencrypt_main(argc, argv);
+		} else if (!strcmp(*argv, "cmsdecrypt")) {
+			return cmsdecrypt_main(argc, argv);
+		} else if (!strcmp(*argv, "cmssign")) {
+			return cmssign_main(argc, argv);
+		} else if (!strcmp(*argv, "cmsverify")) {
+			return cmsverify_main(argc, argv);
 		} else if (!strcmp(*argv, "tlcp_client")) {
 			return tlcp_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tlcp_server")) {

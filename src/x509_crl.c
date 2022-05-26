@@ -416,7 +416,6 @@ const char *x509_crl_ext_id_name(int oid)
 {
 	const ASN1_OID_INFO *info;
 	if (!(info = asn1_oid_info_from_oid(x509_crl_exts, x509_crl_exts_count, oid))) {
-		error_print();
 		return NULL;
 	}
 	return info->name;
@@ -449,7 +448,7 @@ int x509_crl_ext_id_to_der(int oid, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
-int x509_crl_ext_id_from_der(int *oid, const uint8_t **in, size_t *inlen)
+int x509_crl_ext_id_from_der_ex(int *oid, uint32_t *nodes, size_t *nodes_cnt, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *p;
@@ -457,11 +456,13 @@ int x509_crl_ext_id_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	const ASN1_OID_INFO *info;
 
 	*oid = 0;
-	if ((ret = asn1_oid_info_from_der(&info, x509_crl_exts, x509_crl_exts_count, in, inlen)) != 1) {
+	if ((ret = asn1_oid_info_from_der_ex(&info, nodes, nodes_cnt, x509_crl_exts, x509_crl_exts_count, in, inlen)) != 1) {
 		error_print();
 		return -1;
 	}
-	*oid = info->oid;
+	if (info) {
+		*oid = info->oid;
+	}
 	return ret;
 }
 
@@ -635,13 +636,15 @@ int x509_crl_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint
 	size_t vlen;
 	const uint8_t *p;
 	size_t len;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
 	int num;
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	if (x509_crl_ext_id_from_der(&oid, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "extnID: %s\n", x509_crl_ext_id_name(oid));
+	if (x509_crl_ext_id_from_der_ex(&oid, nodes, &nodes_cnt, &d, &dlen) != 1) goto err;
+	asn1_object_identifier_print(fp, fmt, ind, "extnID", x509_crl_ext_id_name(oid), nodes, nodes_cnt);
 	if ((ret = asn1_boolean_from_der(&critical, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "critical: %s\n", asn1_boolean_name(critical));
 	if (asn1_octet_string_from_der(&v, &vlen, &d, &dlen) != 1) goto err;
@@ -664,6 +667,11 @@ int x509_crl_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint
 			return -1;
 		}
 		break;
+	default:
+		if (asn1_any_from_der(&p, &len, &v, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 
 	name = x509_crl_ext_id_name(oid);
@@ -676,6 +684,7 @@ int x509_crl_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint
 	case OID_ce_issuing_distribution_point: x509_issuing_distribution_point_print(fp, fmt, ind, name, p, len); break;
 	case OID_ce_freshest_crl: x509_crl_distribution_points_print(fp, fmt, ind, name, p, len); break;
 	case OID_pe_authority_info_access: x509_access_descriptions_print(fp, fmt, ind, name, p, len); break;
+	default: format_bytes(fp, fmt, ind, "value", p, len);
 	}
 	if (asn1_length_is_zero(vlen) != 1) goto err;
 	return 1;
@@ -873,12 +882,22 @@ err:
 // FIXME: 这两个函数应该检查CRL格式是否正确
 int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
-	return asn1_any_to_der(a, alen, out, outlen);
+	int ret;
+	if ((ret = asn1_any_to_der(a, alen, out, outlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	return 1;
 }
 
 int x509_crl_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen)
 {
-	return asn1_any_from_der(a, alen, in, inlen);
+	int ret;
+	if ((ret = asn1_any_from_der(a, alen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	return 1;
 }
 
 int x509_crl_to_pem(const uint8_t *a, size_t alen, FILE *fp)
@@ -899,6 +918,44 @@ int x509_crl_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
 	}
 	return 1;
 }
+
+int x509_crl_to_fp(const uint8_t *a, size_t alen, FILE *fp)
+{
+	if (fwrite(a, 1, alen, fp) != alen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_crl_from_fp(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
+{
+	size_t len;
+	const uint8_t *d = a;
+	size_t dlen;
+	const uint8_t *crl;
+	size_t crl_len;
+
+	if (!(len = fread(a, 1, maxlen, fp))) {
+		if (feof(fp)) {
+			return 0;
+		} else {
+			error_print();
+			return -1;
+		}
+	}
+
+	dlen = len;
+	if (x509_crl_from_der(&crl, &crl_len, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	*alen = len;
+	return 1;
+}
+
 
 int x509_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {

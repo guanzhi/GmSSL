@@ -327,6 +327,8 @@ RecipientInfo ::= SEQUENCE {
 	keyEncryptionAlgorithm		AlgorithmIdentifier,
 	encryptedKey			OCTET STRING -- DER-encoding of SM2Cipher
 }
+由于encryptedKey的类型为SM2Cipher, 而SM2Cipher中有2个INTEGER，因此长度是不固定的。
+因此不能预先确定输出长度
 */
 int cms_recipient_info_to_der(
 	int version,
@@ -573,6 +575,11 @@ int cms_set_key_agreement_info(
 	const SM2_KEY *temp_public_key_r,
 	const uint8_t *user_cert, size_t user_cert_len,
 	const uint8_t *user_id, size_t user_id_len);
+
+#define PEM_CMS "CMS"
+int cms_to_pem(const uint8_t *cms, size_t cms_len, FILE *fp);
+int cms_from_pem(uint8_t *cms, size_t *cms_len, size_t maxlen, FILE *fp);
+
 
 int cms_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 

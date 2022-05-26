@@ -554,6 +554,24 @@ FreshestCRL ::= CRLDistributionPoints
 #define x509_freshest_crl_from_der(d,dlen,in,inlen) x509_crl_distribution_points_from_der(d,dlen,in,inlen)
 #define x509_freshest_crl_print(fp,fmt,ind,label,d,dlen) x509_crl_distribution_points_print(fp,fmt,ind,label,d,dlen)
 
+/*
+Netscape-Defined Certificate Extensions
+https://docs.oracle.com/cd/E19957-01/816-5533-10/ext.htm#1023061
+
+NetscapeCertType ::= BIT STRING
+
+	bit 0: SSL Client certificate
+	bit 1: SSL Server certificate
+	bit 2: S/MIME certificate
+	bit 3: Object-signing certificate
+	bit 4: Reserved for future use
+	bit 5: SSL CA certificate
+	bit 6: S/MIME CA certificate
+	bit 7: Object-signing CA certificate
+
+NetscapeCertComment ::= IA5String
+*/
+int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 #ifdef __cplusplus
 }

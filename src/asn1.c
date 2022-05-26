@@ -738,6 +738,7 @@ const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t c
 	return NULL;
 }
 
+// 如果一个正确解析的OID并不在infos列表中，那么仍然返回1，但是调用方必须检查返回的info是否为空
 int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_t *nodes_cnt,
 	const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen)
 {
@@ -753,27 +754,30 @@ int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_
 		if (*nodes_cnt == infos[i].nodes_cnt
 			&& memcmp(nodes, infos[i].nodes, (*nodes_cnt) * sizeof(int)) == 0) {
 			*info = &infos[i];
-			return 1;
+			goto end;
 		}
 	}
-	// 注意，此时虽然返回1，但是*info == NULL，因此调用方应该显式的判断info
+end:
 	return 1;
 }
 
+// 和ex版本不同的是，如果在infos列表中未找到OID，返回错误
 int asn1_oid_info_from_der(const ASN1_OID_INFO **info, const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	uint32_t nodes[32];
 	size_t nodes_cnt;
 
-	if ((ret = asn1_oid_info_from_der_ex(info, nodes, &nodes_cnt, infos, count, in, inlen)) < 0) {
-		error_print();
-		return -1;
-	} else if (ret > 1) {
+	if ((ret = asn1_oid_info_from_der_ex(info, nodes, &nodes_cnt, infos, count, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (*info == NULL) {
+		asn1_object_identifier_print(stderr, 0, 0, "Unknown OID", NULL, nodes, nodes_cnt);
 		error_print();
 		return -1;
 	}
-	return ret;
+	return 1;
 }
 
 
@@ -1355,7 +1359,7 @@ int asn1_object_identifier_print(FILE *fp, int format, int indent, const char *l
 	const uint32_t *nodes, size_t nodes_cnt)
 {
 	size_t i;
-	format_print(fp, format, indent, "%s: %s", label, name);
+	format_print(fp, format, indent, "%s: %s", label, name ? name : "(unknown)");
 	if (nodes) {
 		fprintf(fp, " (");
 		for (i = 0; i < nodes_cnt - 1; i++) {

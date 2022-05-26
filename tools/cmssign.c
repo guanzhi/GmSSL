@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,61 +50,59 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/mem.h>
-#include <gmssl/rand.h>
+#include <sys/stat.h>
 #include <gmssl/x509.h>
-#include <gmssl/x509_ext.h>
-#include <gmssl/x509_req.h>
+#include <gmssl/cms.h>
+#include <gmssl/error.h>
 
 
-static const char *options = "[-in pem] -days num -cacert pem -key pem [-pass str] [-out pem]\n";
+/*
+302 typedef struct {
+303         uint8_t *certs;
+304         size_t certs_len;
+305         SM2_KEY *sign_key;
+306 } CMS_CERTS_AND_KEY;
 
-static int ext_key_usage_set(int *usages, const char *usage_name)
-{
-	int flag = 0;
-	if (x509_key_usage_from_name(&flag, usage_name) != 1) {
-		return -1;
-	}
-	*usages |= flag;
-	return 1;
-}
 
-int reqsign_main(int argc, char **argv)
+
+输出长度主要由输入长度和
+
+*/
+
+static const char *options = "-key file -pass str -cert file -in file [-out file]";
+
+int cmssign_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
-	char *infile = NULL;
-	int days = 0;
-	char *cacertfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char *certfile = NULL;
+	char *infile = NULL;
 	char *outfile = NULL;
-	FILE *infp = stdin;
-	FILE *cacertfp = NULL;
 	FILE *keyfp = NULL;
+	FILE *certfp = NULL;
+	FILE *infp = NULL;
 	FILE *outfp = stdout;
-
-	uint8_t req[512];
-	size_t reqlen;
-	const uint8_t *subject;
-	size_t subject_len;
-	SM2_KEY subject_public_key;
-
-	uint8_t cacert[1024];
-	size_t cacertlen;
-	const uint8_t *issuer;
-	size_t issuer_len;
-	SM2_KEY issuer_public_key;
-
-	SM2_KEY sm2_key;
-
+	SM2_KEY key;
 	uint8_t cert[1024];
 	size_t certlen;
-	uint8_t serial[12];
-	time_t not_before, not_after;
-	uint8_t exts[512];
-	size_t extslen = 0;
-	int key_usage = 0;
+	struct stat st;
+	uint8_t *in = NULL;
+	size_t inlen;
+	uint8_t *cms = NULL;
+	size_t cmslen, cms_maxlen;
+	CMS_CERTS_AND_KEY cert_and_key;
+
+	int content_type;
+	uint8_t *content = NULL;
+	size_t content_len;
+
+	const uint8_t *rcpt_infos;
+	size_t rcpt_infos_len;
+	const uint8_t *shared_info1;
+	const uint8_t *shared_info2;
+	size_t shared_info1_len, shared_info2_len;
 
 	argc--;
 	argv++;
@@ -114,38 +112,11 @@ int reqsign_main(int argc, char **argv)
 		return 1;
 	}
 
-	while (argc >= 1) {
+	while (argc > 1) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			ret = 0;
 			goto end;
-		} else if (!strcmp(*argv, "-in")) {
-			if (--argc < 1) goto bad;
-			infile = *(++argv);
-			if (!(infp = fopen(infile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
-				goto end;
-			}
-		} else if (!strcmp(*argv, "-days")) {
-			if (--argc < 1) goto bad;
-			days = atoi(*(++argv));
-			if (days <= 0) {
-				fprintf(stderr, "%s: invalid '-days' value\n", prog);
-				goto end;
-			}
-		} else if (!strcmp(*argv, "-key_usage")) {
-			if (--argc < 1) goto bad;
-			if (ext_key_usage_set(&key_usage, *(++argv)) != 1) {
-				fprintf(stderr, "%s: set KeyUsage extenstion failure\n", prog);
-				goto end;
-			}
-		} else if (!strcmp(*argv, "-cacert")) {
-			if (--argc < 1) goto bad;
-			cacertfile = *(++argv);
-			if (!(cacertfp = fopen(cacertfile, "r"))) {
-				fprintf(stderr, "%s: invalid -key_usage value\n", prog);
-				goto end;
-			}
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
@@ -156,6 +127,20 @@ int reqsign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-cert")) {
+			if (--argc < 1) goto bad;
+			certfile = *(++argv);
+			if (!(certfp = fopen(certfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
+			if (!(infp = fopen(infile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
@@ -175,14 +160,6 @@ bad:
 		argv++;
 	}
 
-	if (!days) {
-		fprintf(stderr, "%s: '-days' option required\n", prog);
-		goto end;
-	}
-	if (!cacertfile) {
-		fprintf(stderr, "%s: '-cacert' option required\n", prog);
-		goto end;
-	}
 	if (!keyfile) {
 		fprintf(stderr, "%s: '-key' option required\n", prog);
 		goto end;
@@ -191,66 +168,79 @@ bad:
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		goto end;
 	}
-
-
-	if (x509_req_from_pem(req, &reqlen, sizeof(req), infp) != 1
-		|| x509_req_get_details(req, reqlen,
-			NULL, &subject, &subject_len, &subject_public_key,
-			NULL, NULL, NULL, NULL, NULL) != 1) {
-		fprintf(stderr, "%s: parse CSR failure\n", prog);
+	if (!certfile) {
+		fprintf(stderr, "%s: '-cert' option required\n", prog);
+		goto end;
+	}
+	if (!infile) {
+		fprintf(stderr, "%s: '-in' option required\n", prog);
 		goto end;
 	}
 
-	if (x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), cacertfp) != 1
-		|| x509_cert_get_subject(cacert, cacertlen, &issuer, &issuer_len) != 1
-		|| x509_cert_get_subject_public_key(cacert, cacertlen, &issuer_public_key) != 1) {
-		fprintf(stderr, "%s: parse CA certificate failure\n", prog);
+	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
+		fprintf(stderr, "%s: private key decryption failure\n", prog);
+		goto end;
+	}
+	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
+		fprintf(stderr, "%s: load certificate failure\n", prog);
+		goto end;
+	}
+	{
+		SM2_KEY public_key;
+		if (x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
+			fprintf(stderr, "%s: parse certficate failure\n", prog);
+			goto end;
+		}
+		if (sm2_public_key_equ(&key, &public_key) != 1) {
+			fprintf(stderr, "%s: key and cert are not match!\n", prog);
+			goto end;
+		}
+	}
+
+	cert_and_key.certs = cert;
+	cert_and_key.certs_len = certlen;
+	cert_and_key.sign_key = &key;
+
+	if (fstat(fileno(infp), &st) < 0) {
+		fprintf(stderr, "%s: access file error : %s\n", prog, strerror(errno));
+		goto end;
+	}
+	if ((inlen = st.st_size) <= 0) {
+		fprintf(stderr, "%s: invalid input length\n", prog);
+		goto end;
+	}
+	if (!(in = malloc(inlen))) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
+		goto end;
+	}
+	if (fread(in, 1, inlen, infp) != inlen) {
+		fprintf(stderr, "%s: read file error : %s\n",  prog, strerror(errno));
 		goto end;
 	}
 
-	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
-		fprintf(stderr, "%s: load private key failure\n", prog);
-		goto end;
-	}
-	if (sm2_public_key_equ(&sm2_key, &issuer_public_key) != 1) {
-		fprintf(stderr, "%s: private key and CA certificate not match\n", prog);
+	cms_maxlen = (inlen * 4)/3 + 4096; // 主要由SignerInfos，其中的DN长度决定
+	if (!(cms = malloc(cms_maxlen))) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;
 	}
 
-	if (rand_bytes(serial, sizeof(serial)) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
+	if (cms_sign(cms, &cmslen, &cert_and_key, 1, OID_cms_data, in, inlen, NULL, 0) != 1) {
+		fprintf(stderr, "%s: sign failure\n", prog);
 		goto end;
 	}
-	time(&not_before);
 
-	if (x509_validity_add_days(&not_after, not_before, days) != 1
-		|| x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1
-		|| x509_cert_sign(
-			cert, &certlen, sizeof(cert),
-			X509_version_v3,
-			serial, sizeof(serial),
-			OID_sm2sign_with_sm3,
-			subject, subject_len,
-			not_before, not_after,
-			issuer, issuer_len,
-			&subject_public_key,
-			NULL, 0,
-			NULL, 0,
-			exts, extslen,
-			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
+	if (cms_to_pem(cms, cmslen, outfp) != 1) {
+		fprintf(stderr, "%s: output failure\n", prog);
 		goto end;
 	}
-	if (x509_cert_to_pem(cert, certlen, outfp) != 1) {
-		fprintf(stderr, "%s: output certificate failed\n", prog);
-		goto end;
-	}
+
 	ret = 0;
+
 end:
-	gmssl_secure_clear(&sm2_key, sizeof(SM2_KEY));
-	if (keyfp) fclose(keyfp);
-	if (cacertfp) fclose(cacertfp);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
+	if (keyfile && keyfp) fclose(keyfp);
+	if (cms) free(cms);
+	if (in) free(in);
 	return ret;
 }

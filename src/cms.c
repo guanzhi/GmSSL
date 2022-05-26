@@ -63,6 +63,7 @@
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_crl.h>
 #include <gmssl/rand.h>
+#include <gmssl/pem.h>
 #include <gmssl/cms.h>
 
 
@@ -110,14 +111,15 @@ int cms_content_type_from_name(const char *name)
 int cms_content_type_to_der(int oid, uint8_t **out, size_t *outlen)
 {
 	const ASN1_OID_INFO *info;
-	size_t len = 0;
+
+	if (oid == -1) {
+		return 0;
+	}
 	if (!(info = asn1_oid_info_from_oid(cms_content_types, cms_content_types_count, oid))) {
 		error_print();
 		return -1;
 	}
-	if (asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, NULL, &len) != 1
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out,  outlen) != 1) {
+	if (asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -127,18 +129,11 @@ int cms_content_type_to_der(int oid, uint8_t **out, size_t *outlen)
 int cms_content_type_from_der(int *oid, const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	const uint8_t *p;
-	size_t len;
 	const ASN1_OID_INFO *info;
 
-	*oid = 0;
-	if ((ret = asn1_sequence_from_der(&p, &len, in, inlen)) != 1) {
+	if ((ret = asn1_oid_info_from_der(&info, cms_content_types, cms_content_types_count, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		return ret;
-	}
-	if ((ret = asn1_oid_info_from_der(&info, cms_content_types, cms_content_types_count, &p, &len)) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
+		else *oid = -1;
 		return ret;
 	}
 	*oid = info->oid;
@@ -164,12 +159,13 @@ static int cms_content_info_data_header_to_der(size_t dlen, uint8_t **out, size_
 
 int cms_content_info_header_to_der(int content_type, size_t content_len, uint8_t **out, size_t *outlen)
 {
-	size_t len = 0;
+	size_t len = content_len; // 注意：由于header_to_der没有输出数据，因此需要加上数据的长度，header length 才是正确的值
 	/*
 	if (content_type == OID_cms_data) {
 		return cms_content_info_data_header_to_der(content_len, out, outlen);
 	}
 	*/
+
 	if (cms_content_type_to_der(content_type, NULL, &len) != 1
 		|| asn1_explicit_header_to_der(0, content_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -254,23 +250,43 @@ int cms_content_info_print(FILE *fp, int fmt, int ind, const char *label, const 
 	if (cms_content_type_from_der(&content_type, &d, &dlen) != 1) goto err;
 	format_print(fp, fmt, ind, "contentType: %s\n", cms_content_type_name(content_type));
 
-	if ((ret = asn1_explicit_from_der(0, &content, &content_len, &d, &dlen)) < 0) goto err;
-	if (ret) {
+	/*
 		if (content_type == OID_cms_data) {
 			if (asn1_octet_string_from_der(&p, &len, &content, &content_len) != 1) goto err;
 		} else {
 			if (asn1_sequence_from_der(&p, &len, &content, &content_len) != 1) goto err;
 		}
-		switch (content_type) {
-		case OID_cms_data: format_bytes(fp, fmt, ind, "content", p, len); break;
-		case OID_cms_signed_data: cms_signed_data_print(fp, fmt, ind, "content", p, len); break;
-		case OID_cms_enveloped_data: cms_enveloped_data_print(fp, fmt, ind, "content", p, len); break;
-		case OID_cms_signed_and_enveloped_data: cms_signed_and_enveloped_data_print(fp, fmt, ind, "content", p, len); break;
-		case OID_cms_encrypted_data: cms_encrypted_data_print(fp, fmt, ind, "content", p, len); break;
-		case OID_cms_key_agreement_info: cms_key_agreement_info_print(fp, fmt, ind, "content", p, len); break;
+	*/
+
+	//format_bytes(stderr, 0, 0, "content", d, dlen);
+
+	if ((ret = asn1_explicit_from_der(0, &content, &content_len, &d, &dlen)) < 0) { error_print(); goto err; }
+	if (ret == 0) { error_print(); goto err; }
+
+	if (content_type == OID_cms_data) {
+		if (asn1_octet_string_from_der(&p, &len, &content, &content_len) != 1
+			|| asn1_length_is_zero(content_len) != 1) {
+			error_print();
+			return -1;
 		}
-		if (asn1_length_is_zero(content_len) != 1) goto err;
+		format_bytes(fp, fmt, ind, "content", p, len);
+		return 1;
 	}
+
+
+	if (asn1_sequence_from_der(&p, &len, &content, &content_len) != 1) { error_print(); goto err; }
+
+	switch (content_type) {
+	//case OID_cms_data: format_bytes(fp, fmt, ind, "content", p, len); break;
+	case OID_cms_signed_data: cms_signed_data_print(fp, fmt, ind, "content", p, len); break;
+	case OID_cms_enveloped_data: cms_enveloped_data_print(fp, fmt, ind, "content", p, len); break;
+	case OID_cms_signed_and_enveloped_data: cms_signed_and_enveloped_data_print(fp, fmt, ind, "content", p, len); break;
+	case OID_cms_encrypted_data: cms_encrypted_data_print(fp, fmt, ind, "content", p, len); break;
+	case OID_cms_key_agreement_info: cms_key_agreement_info_print(fp, fmt, ind, "content", p, len); break;
+	}
+	if (asn1_length_is_zero(content_len) != 1) goto err;
+
+
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -367,8 +383,8 @@ int cms_enced_content_info_encrypt_to_der(
 {
 	int ret;
 	SM4_KEY sm4_key;
-	uint8_t enced_content[32 + content_len];
-	size_t enced_content_len;
+	uint8_t enced_content[32 + content_len]; // FIXME: 如果content_len 过长，会直接导致segment fault
+	size_t enced_content_len = 100;
 
 	if (enc_algor != OID_sm4_cbc || keylen != 16 || ivlen != 16) {
 		error_print();
@@ -759,6 +775,7 @@ int cms_signer_info_sign_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	SM3_CTX ctx = *sm3_ctx;
+	int fixed_outlen = 1;
 	uint8_t dgst[SM3_DIGEST_SIZE];
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
@@ -766,11 +783,12 @@ int cms_signer_info_sign_to_der(
 	sm3_update(&ctx, authed_attrs, authed_attrs_len);
 	sm3_finish(&ctx, dgst);
 
-	if (sm2_sign(sign_key, dgst, sig, &siglen) != 1) {
+
+
+	if (sm2_sign_ex(sign_key, fixed_outlen, dgst, sig, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
-
 	if (cms_signer_info_to_der(CMS_version_v1,
 		issuer, issuer_len, serial_number, serial_number_len,
 		OID_sm3, authed_attrs, authed_attrs_len,
@@ -1206,6 +1224,7 @@ int cms_signed_data_verify_from_der(
 			&authed_attrs, &authed_attrs_len,
 			&unauthed_attrs, &unauthed_attrs_len,
 			&signer_infos, &signer_infos_len) != 1) {
+
 			error_print();
 			return -1;
 		}
@@ -1264,7 +1283,8 @@ int cms_recipient_info_from_der(
 			serial_number, serial_number_len, &d, &dlen) != 1
 		|| x509_public_key_encryption_algor_from_der(pke_algor, params, params_len, &d, &dlen) != 1
 		|| asn1_octet_string_from_der(enced_key, enced_key_len, &d, &dlen) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
+	//	|| asn1_length_is_zero(dlen) != 1				
+		) {
 		error_print();
 		return -1;
 	}
@@ -1317,12 +1337,14 @@ int cms_recipient_info_encrypt_to_der(
 	int pke_algor = OID_sm2encrypt;
 	uint8_t enced_key[SM2_MAX_CIPHERTEXT_SIZE];
 	size_t enced_key_len;
+	int fixed_outlen = 1;
 
 	if (pke_algor != OID_sm2encrypt) {
 		error_print();
 		return -1;
 	}
-	if (sm2_encrypt(public_key, in, inlen, enced_key, &enced_key_len) != 1) {
+
+	if (sm2_encrypt_ex(public_key, fixed_outlen, in, inlen, enced_key, &enced_key_len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1554,7 +1576,6 @@ int cms_enveloped_data_encrypt_to_der(
 			return -1;
 		}
 	}
-
 	len = 0;
 	if (asn1_int_to_der(CMS_version_v1, NULL, &len) != 1
 		|| asn1_set_to_der(rcpt_infos, rcpt_infos_len, NULL, &len) != 1
@@ -2048,9 +2069,20 @@ int cms_set_data(uint8_t *cms, size_t *cmslen, const uint8_t *d, size_t dlen)
 	int oid = OID_cms_data;
 	size_t len = 0;
 
+	if (asn1_octet_string_to_der(d, dlen, NULL, &len) < 0) {
+		error_print();
+		return -1;
+	}
 	*cmslen = 0;
-	if (asn1_octet_string_to_der(d, dlen, NULL, &len) < 0
-		|| cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
+	if (!cms) {
+		uint8_t data[1];
+		if (cms_content_info_to_der(oid, data, len, NULL, cmslen) != 1) {
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
 		|| asn1_octet_string_to_der(d, dlen, &cms, cmslen) < 0) {
 		error_print();
 		return -1;
@@ -2067,14 +2099,25 @@ int cms_encrypt(uint8_t *cms, size_t *cmslen,
 	int oid = OID_cms_encrypted_data;
 	size_t len = 0;
 
-	*cmslen = 0;
 	if (cms_encrypted_data_encrypt_to_der(
-			enc_algor, key, keylen, iv, ivlen,
-			content_type, content, content_len,
-			shared_info1, shared_info1_len,
-			shared_info2, shared_info2_len,
-			NULL, &len) != 1
-		|| cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
+		enc_algor, key, keylen, iv, ivlen,
+		content_type, content, content_len,
+		shared_info1, shared_info1_len,
+		shared_info2, shared_info2_len,
+		NULL, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	*cmslen = 0;
+	if (!cms) {
+		uint8_t data[1];
+		if (cms_content_info_to_der(oid, data, len, NULL, cmslen) != 1) {
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
 		|| cms_encrypted_data_encrypt_to_der(
 			enc_algor, key, keylen, iv, ivlen,
 			content_type, content, content_len,
@@ -2125,13 +2168,24 @@ int cms_sign(uint8_t *cms, size_t *cmslen,
 	int oid = OID_cms_signed_data;
 	size_t len = 0;
 
-	*cmslen = 0;
 	if (cms_signed_data_sign_to_der(
-			signers, signers_cnt,
-			content_type, content, content_len,
-			crls, crls_len,
-			NULL, &len) != 1
-		|| cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
+		signers, signers_cnt,
+		content_type, content, content_len,
+		crls, crls_len,
+		NULL, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	*cmslen = 0;
+	if (!cms) {
+		uint8_t data[1];
+		if (cms_content_info_to_der(oid, data, len, NULL, cmslen) != 1) {
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
 		|| cms_signed_data_sign_to_der(
 			signers, signers_cnt,
 			content_type, content, content_len,
@@ -2156,12 +2210,19 @@ int cms_verify(const uint8_t *cms, size_t cmslen,
 	size_t cms_content_len;
 
 	if (cms_content_info_from_der(&cms_type, &cms_content, &cms_content_len, &cms, &cmslen) != 1
-		|| asn1_check(cms_type != OID_cms_signed_data) != 1
-		|| asn1_check(cms_content && cms_content_len) != 1
 		|| asn1_length_is_zero(cmslen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (cms_type != OID_cms_signed_data) {
+		error_print();
+		return -1;
+	}
+	if (cms_content_len <= 0) {
+		error_print();
+		return -1;
+	}
+
 	if (cms_signed_data_verify_from_der(
 			extra_certs, extra_certs_len,
 			extra_crls, extra_crls_len,
@@ -2188,15 +2249,26 @@ int cms_envelop(
 	int oid = OID_cms_enveloped_data;
 	size_t len = 0;
 
-	*cmslen = 0;
 	if (cms_enveloped_data_encrypt_to_der(
-			rcpt_certs, rcpt_certs_len,
-			enc_algor, key, keylen, iv, ivlen,
-			content_type, content, content_len,
-			shared_info1, shared_info1_len,
-			shared_info2, shared_info2_len,
-			NULL, &len) != 1
-		|| cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
+		rcpt_certs, rcpt_certs_len,
+		enc_algor, key, keylen, iv, ivlen,
+		content_type, content, content_len,
+		shared_info1, shared_info1_len,
+		shared_info2, shared_info2_len,
+		NULL, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	*cmslen = 0;
+	if (!cms) {
+		uint8_t data[1];
+		if (cms_content_info_to_der(oid, data, len, NULL, cmslen) != 1) {
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
 		|| cms_enveloped_data_encrypt_to_der(
 			rcpt_certs, rcpt_certs_len,
 			enc_algor, key, keylen, iv, ivlen,
@@ -2272,17 +2344,28 @@ int cms_sign_and_envelop(uint8_t *cms, size_t *cmslen,
 	int oid = OID_cms_signed_and_enveloped_data;
 	size_t len = 0;
 
-	*cmslen = 0;
 	if (cms_signed_and_enveloped_data_encipher_to_der(
-			signers, signers_cnt,
-			rcpt_certs, rcpt_certs_len,
-			enc_algor, key, keylen, iv, ivlen,
-			content_type, content, content_len,
-			crls, crls_len,
-			shared_info1, shared_info1_len,
-			shared_info2, shared_info2_len,
-			NULL, &len) != 1
-		|| cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
+		signers, signers_cnt,
+		rcpt_certs, rcpt_certs_len,
+		enc_algor, key, keylen, iv, ivlen,
+		content_type, content, content_len,
+		crls, crls_len,
+		shared_info1, shared_info1_len,
+		shared_info2, shared_info2_len,
+		NULL, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	*cmslen = 0;
+	if (!cms) {
+		uint8_t data[1];
+		if (cms_content_info_to_der(oid, data, len, NULL, cmslen) != 1) {
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
 		|| cms_signed_and_enveloped_data_encipher_to_der(
 			signers, signers_cnt,
 			rcpt_certs, rcpt_certs_len,
@@ -2372,10 +2455,21 @@ int cms_set_key_agreement_info(
 	int oid = OID_cms_key_agreement_info;
 	size_t len = 0;
 
-	*cmslen = 0;
 	if (cms_key_agreement_info_to_der(CMS_version_v1, temp_public_key_r,
-			user_cert, user_cert_len, user_id, user_id_len, NULL, &len) != 1
-		|| cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
+		user_cert, user_cert_len, user_id, user_id_len, NULL, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	*cmslen = 0;
+	if (!cms) {
+		uint8_t data[1];
+		if (cms_content_info_to_der(oid, data, len, NULL, cmslen) != 1) {
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (cms_content_info_header_to_der(oid, len, &cms, cmslen) != 1
 		|| cms_key_agreement_info_to_der(CMS_version_v1, temp_public_key_r,
 			user_cert, user_cert_len, user_id, user_id_len, &cms, cmslen) != 1) {
 		error_print();
@@ -2384,16 +2478,41 @@ int cms_set_key_agreement_info(
 	return 1;
 }
 
+int cms_to_pem(const uint8_t *cms, size_t cms_len, FILE *fp)
+{
+	if (pem_write(fp, PEM_CMS, cms, cms_len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int cms_from_pem(uint8_t *cms, size_t *cms_len, size_t maxlen, FILE *fp)
+{
+	int ret;
+	if ((ret = pem_read(fp, PEM_CMS, cms, cms_len, maxlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+
+	return 1;
+}
+
 int cms_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
 	const uint8_t *d;
 	size_t dlen;
 
+
 	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1) goto err;
+
+
 	cms_content_info_print(fp, fmt, ind, label, d, dlen);
-	if (asn1_length_is_zero(alen) != 1) goto err;
+	//if (asn1_length_is_zero(alen) != 1) goto err;			
 	return 1;
 err:
 	error_print();
 	return -1;
 }
+
+

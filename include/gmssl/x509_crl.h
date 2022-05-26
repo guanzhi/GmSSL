@@ -268,6 +268,10 @@ int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen
 int x509_crl_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 int x509_crl_to_pem(const uint8_t *a, size_t alen, FILE *fp);
 int x509_crl_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
+int x509_crl_to_fp(const uint8_t *a, size_t alen, FILE *fp);
+int x509_crl_from_fp(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
+
+
 int x509_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 
 int x509_crl_sign(uint8_t *crl, size_t *crl_len,

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,27 +50,41 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <gmssl/x509.h>
+#include <gmssl/cms.h>
 
 
-static const char *options = "[-in pem] -cacert pem (-id str)\n";
 
-int certverify_main(int argc, char **argv)
+static const char *options = "-key file -pass str -cert file -in file [-out file]";
+
+int cmsdecrypt_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
+	char *keyfile = NULL;
+	char *pass = NULL;
+	char *certfile = NULL;
 	char *infile = NULL;
-	char *cacertfile = NULL;
-	FILE *infp = stdin;
-	FILE *cacertfp = NULL;
+	char *outfile = NULL;
+	FILE *keyfp = NULL;
+	FILE *certfp = NULL;
+	FILE *infp = NULL;
+	FILE *outfp = stdout;
 	uint8_t cert[1024];
 	size_t certlen;
-	const uint8_t *issuer;
-	size_t issuer_len;
-	uint8_t cacert[1024];
-	size_t cacertlen;
-	char *signer_id = SM2_DEFAULT_ID;
-	int rv;
+	struct stat st;
+	uint8_t *cms = NULL;
+	size_t cmslen, cms_maxlen;
+	SM2_KEY key;
+	int content_type;
+	uint8_t *content = NULL;
+	size_t content_len;
+	const uint8_t *rcpt_infos;
+	size_t rcpt_infos_len;
+	const uint8_t *shared_info1;
+	const uint8_t *shared_info2;
+	size_t shared_info1_len, shared_info2_len;
 
 	argc--;
 	argv++;
@@ -80,28 +94,42 @@ int certverify_main(int argc, char **argv)
 		return 1;
 	}
 
-	while (argc > 0) {
+	while (argc > 1) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			ret = 0;
 			goto end;
+		} else if (!strcmp(*argv, "-key")) {
+			if (--argc < 1) goto bad;
+			keyfile = *(++argv);
+			if (!(keyfp = fopen(keyfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, keyfile, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
 		} else if (!strcmp(*argv, "-cert")) {
+			if (--argc < 1) goto bad;
+			certfile = *(++argv);
+			if (!(certfp = fopen(certfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
 			if (!(infp = fopen(infile, "r"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-cacert")) {
+		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
-			cacertfile = *(++argv);
-			if (!(cacertfp = fopen(cacertfile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
+			outfile = *(++argv);
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-id")) {
-			if (--argc < 1) goto bad;
-			signer_id = *(++argv);
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
@@ -114,31 +142,74 @@ bad:
 		argv++;
 	}
 
-	if (!cacertfile) {
-		fprintf(stderr, "%s: '-cacert' option required\n", prog);
+	if (!keyfile) {
+		fprintf(stderr, "%s: '-key' option required\n", prog);
+		goto end;
+	}
+	if (!pass) {
+		fprintf(stderr, "%s: '-pass' option required\n", prog);
+		goto end;
+	}
+	if (!certfile) {
+		fprintf(stderr, "%s: '-cert' option required\n", prog);
+		goto end;
+	}
+	if (!infile) {
+		fprintf(stderr, "%s: '-in' option required\n", prog);
 		goto end;
 	}
 
-	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), infp) != 1) {
-		fprintf(stderr, "%s: read certificate failure\n", prog);
+	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
+		fprintf(stderr, "%s: private key decryption failure\n", prog);
 		goto end;
 	}
-	if (x509_cert_get_subject(cert, certlen, &issuer, &issuer_len) != 1) {
-		fprintf(stderr, "%s: parse certificate error\n", prog);
+	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
+		fprintf(stderr, "%s: load certificate failure\n", prog);
 		goto end;
 	}
-	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), issuer, issuer_len, cacertfp) != 1) {
-		fprintf(stderr, "%s: load CA certificate failure\n", prog);
+
+	fstat(fileno(infp), &st);
+	cms_maxlen = (st.st_size * 3)/4 + 1;
+	if (!(cms = malloc(cms_maxlen))) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;
 	}
-	if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id))) < 0) {
-		fprintf(stderr, "%s: inner error\n", prog);
+	if (cms_from_pem(cms, &cmslen, cms_maxlen, infp) != 1) {
+		fprintf(stderr, "%s: read CMS failure\n", prog);
 		goto end;
 	}
-	printf("Verification %s\n", rv ? "success" : "failure");
+
+	if (!(content = malloc(cmslen))) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
+		goto end;
+	}
+
+	if (cms_deenvelop(cms, cmslen,
+		&key, cert, certlen,
+		&content_type, content, &content_len,
+		&rcpt_infos, &rcpt_infos_len,
+		&shared_info1, &shared_info1_len,
+		&shared_info2, &shared_info2_len) != 1) {
+		fprintf(stderr, "%s: decryption failure\n", prog);
+		goto end;
+	}
+	if (content_type != OID_cms_data) {
+		fprintf(stderr, "%s: invalid CMS content type: %s\n", prog, cms_content_type_name(content_type));
+		goto end;
+	}
+
+	if (fwrite(content, 1, content_len, outfp) != content_len) {
+		fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
+		goto end;
+	}
+
 	ret = 0;
+
 end:
 	if (infile && infp) fclose(infp);
-	if (cacertfp) fclose(cacertfp);
+	if (outfile && outfp) fclose(outfp);
+	if (keyfile && keyfp) fclose(keyfp);
+	if (cms) free(cms);
+	if (content) free(content);
 	return ret;
 }

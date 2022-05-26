@@ -75,6 +75,7 @@ static uint32_t oid_at_country_name[] = { oid_at,6 };
 static uint32_t oid_at_serial_number[] = { oid_at,5 };
 static uint32_t oid_at_pseudonym[] = { oid_at,65 };
 static uint32_t oid_domain_component[] = { 0,9,2342,19200300,100,1,25 };
+static uint32_t oid_email_address[] = { 1,2,840,113549,1,9,1 };
 
 #define OID_AT_CNT (sizeof(oid_at_name)/sizeof(int))
 
@@ -95,6 +96,7 @@ static const ASN1_OID_INFO x509_name_types[] = {
 	{ OID_at_serial_number, "serialNumber", oid_at_serial_number, OID_AT_CNT },
 	{ OID_at_pseudonym, "pseudonym", oid_at_pseudonym, OID_AT_CNT },
 	{ OID_domain_component, "domainComponent", oid_domain_component, sizeof(oid_domain_component)/sizeof(int) },
+	{ OID_email_address, "emailAddress", oid_email_address, sizeof(oid_email_address)/sizeof(int) },
 };
 
 static const int x509_name_types_count
@@ -168,6 +170,7 @@ static uint32_t oid_ce_crl_reasons[] = { oid_ce,21 }; // crl_entry_ext
 static uint32_t oid_ce_invalidity_date[] = { oid_ce,24 }; // crl_entry_ext
 static uint32_t oid_ce_certificate_issuer[] = { oid_ce,29 }; // crl_entry_ext
 #define OID_CE_CNT sizeof(oid_ce_subject_directory_attributes)/sizeof(int)
+static uint32_t oid_netscape_cert_type[] = { 2,16,840,1,113730,1,1 };
 static uint32_t oid_netscape_cert_comment[] = { 2,16,840,1,113730,1,13 };
 static uint32_t oid_cert_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
 static uint32_t oid_ct_precertificate_scts[] = { 1,3,6,1,4,1,11129,2,4,2 };
@@ -191,6 +194,7 @@ static const ASN1_OID_INFO x509_ext_ids[] = {
 	{ OID_ce_crl_reasons, "CRLReasons", oid_ce_crl_reasons, OID_CE_CNT },
 	{ OID_ce_invalidity_date, "InvalidityDate", oid_ce_invalidity_date, OID_CE_CNT },
 	{ OID_ce_certificate_issuer, "CertificateIssuer", oid_ce_certificate_issuer, OID_CE_CNT },
+	{ OID_netscape_cert_type, "NetscapeCertType", oid_netscape_cert_type, sizeof(oid_netscape_cert_type)/sizeof(int) },
 	{ OID_netscape_cert_comment, "NetscapeCertComment", oid_netscape_cert_comment, sizeof(oid_netscape_cert_comment)/sizeof(int) },
 	{ OID_cert_authority_info_access, "CertificateAuthorityInformationAccess", oid_cert_authority_info_access, sizeof(oid_cert_authority_info_access)/sizeof(int) },
 	{ OID_ct_precertificate_scts, "CT-PrecertificateSCTs", oid_ct_precertificate_scts, sizeof(oid_ct_precertificate_scts)/sizeof(int) },

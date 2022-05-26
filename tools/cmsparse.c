@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,27 +50,23 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <gmssl/cms.h>
 #include <gmssl/x509.h>
+#include <gmssl/rand.h>
 
 
-static const char *options = "[-in pem] -cacert pem (-id str)\n";
+static const char *options = "-in file";
 
-int certverify_main(int argc, char **argv)
+int cmsparse_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
 	char *infile = NULL;
-	char *cacertfile = NULL;
 	FILE *infp = stdin;
-	FILE *cacertfp = NULL;
-	uint8_t cert[1024];
-	size_t certlen;
-	const uint8_t *issuer;
-	size_t issuer_len;
-	uint8_t cacert[1024];
-	size_t cacertlen;
-	char *signer_id = SM2_DEFAULT_ID;
-	int rv;
+	struct stat st;
+	uint8_t *cms = NULL;
+	size_t cms_maxlen, cmslen;
 
 	argc--;
 	argv++;
@@ -79,29 +75,18 @@ int certverify_main(int argc, char **argv)
 		fprintf(stderr, "usage: %s %s\n", prog, options);
 		return 1;
 	}
-
-	while (argc > 0) {
+	while (argc > 1) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			ret = 0;
 			goto end;
-		} else if (!strcmp(*argv, "-cert")) {
+		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
 			if (!(infp = fopen(infile, "r"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-cacert")) {
-			if (--argc < 1) goto bad;
-			cacertfile = *(++argv);
-			if (!(cacertfp = fopen(cacertfile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
-				goto end;
-			}
-		} else if (!strcmp(*argv, "-id")) {
-			if (--argc < 1) goto bad;
-			signer_id = *(++argv);
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
@@ -114,31 +99,28 @@ bad:
 		argv++;
 	}
 
-	if (!cacertfile) {
-		fprintf(stderr, "%s: '-cacert' option required\n", prog);
+	if (!infile) {
+		fprintf(stderr, "%s: option '-in' required'\n", prog);
 		goto end;
 	}
 
-	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), infp) != 1) {
-		fprintf(stderr, "%s: read certificate failure\n", prog);
+	if (fstat(fileno(infp), &st) < 0) {
+		fprintf(stderr, "%s: access '%s' failed : %s\n", prog, infile, strerror(errno));
 		goto end;
 	}
-	if (x509_cert_get_subject(cert, certlen, &issuer, &issuer_len) != 1) {
-		fprintf(stderr, "%s: parse certificate error\n", prog);
+	cms_maxlen = (st.st_size * 3)/4 + 1;
+	if (!(cms = malloc(cms_maxlen))) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;
 	}
-	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), issuer, issuer_len, cacertfp) != 1) {
-		fprintf(stderr, "%s: load CA certificate failure\n", prog);
+	if (cms_from_pem(cms, &cmslen, cms_maxlen, infp) != 1) {
+		fprintf(stderr, "%s: parse CMS error\n", prog);
 		goto end;
 	}
-	if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id))) < 0) {
-		fprintf(stderr, "%s: inner error\n", prog);
-		goto end;
-	}
-	printf("Verification %s\n", rv ? "success" : "failure");
+	cms_print(stdout, 0, 0, "CMS", cms, cmslen);
 	ret = 0;
 end:
-	if (infile && infp) fclose(infp);
-	if (cacertfp) fclose(cacertfp);
+	if (infp) fclose(infp);
+	if (cms) free(cms);
 	return ret;
 }

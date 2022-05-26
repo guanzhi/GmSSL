@@ -103,6 +103,7 @@ enum {
 	OID_at_serial_number,
 	OID_at_pseudonym,
 	OID_domain_component,
+	OID_email_address,
 
 	// Cert Extensions
 	OID_ce_authority_key_identifier,
@@ -120,6 +121,7 @@ enum {
 	OID_ce_crl_distribution_points,
 	OID_ce_inhibit_any_policy,
 	OID_ce_freshest_crl,
+	OID_netscape_cert_type,
 	OID_netscape_cert_comment,
 	OID_cert_authority_info_access,
 	OID_ct_precertificate_scts,

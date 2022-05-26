@@ -463,16 +463,17 @@ int x509_general_name_from_der(int *choice, const uint8_t **d, size_t *dlen, con
 		return ret;
 	}
 	switch (tag) {
-	case ASN1_TAG_IMPLICIT(0): *choice = 0; break;
+	case ASN1_TAG_EXPLICIT(0): *choice = 0; break;
 	case ASN1_TAG_IMPLICIT(1): *choice = 1; break;
 	case ASN1_TAG_IMPLICIT(2): *choice = 2; break;
-	case ASN1_TAG_IMPLICIT(3): *choice = 3; break;
-	case ASN1_TAG_IMPLICIT(4): *choice = 4; break;
-	case ASN1_TAG_IMPLICIT(5): *choice = 5; break;
+	case ASN1_TAG_EXPLICIT(3): *choice = 3; break;
+	case ASN1_TAG_EXPLICIT(4): *choice = 4; break;
+	case ASN1_TAG_EXPLICIT(5): *choice = 5; break;
 	case ASN1_TAG_IMPLICIT(6): *choice = 6; break;
 	case ASN1_TAG_IMPLICIT(7): *choice = 7; break;
 	case ASN1_TAG_IMPLICIT(8): *choice = 8; break;
 	default:
+		fprintf(stderr, "%s %d: tag = %x\n", __FILE__, __LINE__, tag);
 		error_print();
 		return -1;
 	}
@@ -481,9 +482,24 @@ int x509_general_name_from_der(int *choice, const uint8_t **d, size_t *dlen, con
 
 int x509_general_name_print(FILE *fp, int fmt, int ind, const char *label, int choice, const uint8_t *d, size_t dlen)
 {
+	const uint8_t *p;
+	size_t len;
+
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
+	switch (choice) {
+	case 0:
+	case 3:
+	case 4:
+	case 5:
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		d = p;
+		dlen = len;
+	}
 	switch (choice) {
 	case 0: return x509_other_name_print(fp, fmt, ind, "otherName", d, dlen);
 	case 1: return asn1_string_print(fp, fmt, ind, "rfc822Name", ASN1_TAG_IA5String, d, dlen);
@@ -1211,16 +1227,15 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		else {
-			*ca = -1;
-			*path_len_cons = -1;
-		};
 		return ret;
 	}
 	if (asn1_boolean_from_der(ca, &d, &dlen) < 0
 		|| asn1_int_from_der(path_len_cons, &d, &dlen) < 0
-		|| asn1_check(ca >= 0 || path_len_cons >= 0) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (*ca < 0 && *path_len_cons < 0) {
 		error_print();
 		return -1;
 	}
@@ -1237,6 +1252,7 @@ int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, 
 
 	if ((ret = asn1_boolean_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(val));
+	else format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(0)); // 特殊对待，无论cA值是否编码均输出结果
 	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "pathLenConstraint: %d\n", val);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
@@ -1748,3 +1764,21 @@ int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label
 	}
 	return 1;
 }
+
+static const char *netscape_cert_types[] = {
+	"SSL Client certificate",
+	"SSL Server certificate",
+	"S/MIME certificate",
+	"Object-signing certificate",
+	"Reserved for future use",
+	"SSL CA certificate",
+	"S/MIME CA certificate",
+	"Object-signing CA certificate",
+};
+
+int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label, int bits)
+{
+	return asn1_bits_print(fp, fmt, ind, label, netscape_cert_types,
+		sizeof(netscape_cert_types)/sizeof(netscape_cert_types[0]), bits);
+}
+

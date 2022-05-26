@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/asn1.h>
@@ -58,7 +59,7 @@
 
 #define print_bn(str,a) sm2_bn_print(stderr,0,4,str,a)
 
-int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
+int sm2_do_sign_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_JACOBIAN_POINT _P, *P = &_P;
 	SM2_BN d;
@@ -68,12 +69,12 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 	SM2_BN r;
 	SM2_BN s;
 
+retry:
 	sm2_bn_from_bytes(d, key->private_key);
 
 	// e = H(M)
 	sm2_bn_from_bytes(e, dgst);	//print_bn("e", e);
-
-retry:
+					// e被重用了，注意retry的位置！
 
 	// rand k in [1, n - 1]
 	do {
@@ -107,15 +108,29 @@ retry:
 	sm2_fn_inv(e, e);		//print_bn("(1+d)^-1", e);
 	sm2_fn_mul(s, e, k);		//print_bn("s = ((1 + d)^-1 * (k - r * d)) mod n", s);
 
-	sm2_bn_clean(d);
-	sm2_bn_clean(k);
 	sm2_bn_to_bytes(r, sig->r);	//print_bn("r", r);
 	sm2_bn_to_bytes(s, sig->s);	//print_bn("s", s);
 
+	if (fixed_outlen) {
+		uint8_t buf[72];
+		uint8_t *p = buf;
+		size_t len = 0;
+		sm2_signature_to_der(sig, &p, &len);
+		if (len != 71) {
+			goto retry;
+		}
+	}
 
-	sm2_bn_clean(d);
-	sm2_bn_clean(k);
+	gmssl_secure_clear(d, sizeof(d));
+	gmssl_secure_clear(e, sizeof(e));
+	gmssl_secure_clear(k, sizeof(k));
+	gmssl_secure_clear(x, sizeof(x));
 	return 1;
+}
+
+int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
+{
+	return sm2_do_sign_ex(key, 0, dgst, sig);
 }
 
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
@@ -161,12 +176,12 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	sm2_bn_from_bytes(e, dgst);	//print_bn("e = H(M)", e);
 	sm2_fn_add(e, e, x);		//print_bn("e + x (mod n)", e);
 
+
 	// check if r == r'
-	if (sm2_bn_cmp(e, r) == 0) {
-		return 1;
-	} else {
+	if (sm2_bn_cmp(e, r) != 0) {
 		return 0;
 	}
+	return 1;
 }
 
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen)
@@ -231,7 +246,7 @@ int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uin
 
 #define SM2_SIGNATURE_MAX_DER_SIZE 77
 
-int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
+int sm2_sign_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
 {
 	SM2_SIGNATURE signature;
 	uint8_t *p;
@@ -246,12 +261,17 @@ int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *s
 
 	p = sig;
 	*siglen = 0;
-	if (sm2_do_sign(key, dgst, &signature) != 1
+	if (sm2_do_sign_ex(key, fixed_outlen, dgst, &signature) != 1
 		|| sm2_signature_to_der(&signature, &p, siglen) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
+}
+
+int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
+{
+	return sm2_sign_ex(key, 0, dgst, sig, siglen);
 }
 
 int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen)
@@ -497,7 +517,7 @@ int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out)
 	return 1;
 }
 
-int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
+int sm2_do_encrypt_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
 {
 	SM2_BN k;
 	SM2_JACOBIAN_POINT _P, *P = &_P;
@@ -505,15 +525,22 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 	uint8_t buf[64];
 	int i;
 
+retry:
 	// rand k in [1, n - 1]
-	do {
-		sm2_bn_rand_range(k, SM2_N);
-	} while (sm2_bn_is_zero(k));
+	sm2_bn_rand_range(k, SM2_N);
+	if (sm2_bn_is_zero(k)) goto retry;
 
 	// C1 = k * G = (x1, y1)
 	sm2_jacobian_point_mul_generator(P, k);
 	sm2_jacobian_point_to_bytes(P, (uint8_t *)&out->point);
 
+	if (fixed_outlen) {
+		size_t xlen = 0, ylen = 0;
+		asn1_integer_to_der(out->point.x, 32, NULL, &xlen);
+		if (xlen != 34) goto retry;
+		asn1_integer_to_der(out->point.y, 32, NULL, &ylen);
+		if (ylen != 34) goto retry;
+	}
 
 	// Q = k * P = (x2, y2)
 	sm2_jacobian_point_from_bytes(P, (uint8_t *)&key->public_key);
@@ -541,6 +568,11 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 	sm3_finish(&sm3_ctx, out->hash);
 
 	return 1;
+}
+
+int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
+{
+	return sm2_do_encrypt_ex(key, 0, in, inlen, out);
 }
 
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
@@ -683,7 +715,7 @@ int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const ui
 	return 1;
 }
 
-int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+int sm2_encrypt_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	SM2_CIPHERTEXT C;
 
@@ -695,7 +727,7 @@ int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 		error_print();
 		return -1;
 	}
-	if (sm2_do_encrypt(key, in, inlen, &C) != 1) {
+	if (sm2_do_encrypt_ex(key, fixed_outlen, in, inlen, &C) != 1) {
 		error_print();
 		return -1;
 	}
@@ -705,6 +737,11 @@ int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 		return -1;
 	}
 	return 1;
+}
+
+int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	return sm2_encrypt_ex(key, 0, in, inlen, out, outlen);
 }
 
 int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)

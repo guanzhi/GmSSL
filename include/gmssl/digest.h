@@ -75,7 +75,7 @@ typedef struct DIGEST_CTX DIGEST_CTX;
 struct DIGEST_CTX {
 	union {
 		SM3_CTX sm3_ctx;
-		MD5_CTX md5_ctx;
+//		MD5_CTX md5_ctx;
 		SHA1_CTX sha1_ctx;
 		SHA224_CTX sha224_ctx;
 		SHA256_CTX sha256_ctx;
@@ -96,7 +96,7 @@ struct DIGEST {
 };
 
 const DIGEST *DIGEST_sm3(void);
-const DIGEST *DIGEST_md5(void);
+//const DIGEST *DIGEST_md5(void);
 const DIGEST *DIGEST_sha1(void);
 const DIGEST *DIGEST_sha224(void);
 const DIGEST *DIGEST_sha256(void);

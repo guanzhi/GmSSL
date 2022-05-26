@@ -697,12 +697,6 @@ void sm2_fn_mul(SM2_BN r, const SM2_BN a, const SM2_BN b)
 		uint64_t c[9] = {0,0,0,0,0,0,0,0,0x100000000};
 		sm2_bn288_sub(q, c, q);
 		sm2_bn288_add(zl, q, zl);
-		printf("******\n");
-		printf("******\n");
-		printf("******\n");
-		printf("******\n");
-		printf("******\n");
-
 	}
 
 	//printf("r  = "); for (i = 8; i >= 0; i--) printf("%08x", (uint32_t)zl[i]); printf("\n");

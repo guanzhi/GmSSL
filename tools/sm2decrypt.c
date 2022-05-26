@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -131,7 +131,7 @@ bad:
 	}
 
 	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
-		fprintf(stderr, "%s: private key decryption failure", prog);
+		fprintf(stderr, "%s: private key decryption failure\n", prog);
 		goto end;
 	}
 

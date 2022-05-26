@@ -47,19 +47,23 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/pem.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_req.h>
-#include <gmssl/error.h>
 
+
+static const char *options = "[-in file] [-out file]";
 
 int reqparse_main(int argc, char **argv)
 {
+	int ret = 1;
 	char *prog = argv[0];
 	char *infile = NULL;
+	char *outfile = NULL;
 	FILE *infp = stdin;
+	FILE *outfp = stdout;
 	uint8_t req[1024];
 	size_t reqlen;
 
@@ -68,39 +72,46 @@ int reqparse_main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-help:
-			fprintf(stderr, "usage: %s [-in file]\n", prog);
-			return -1;
-
+			printf("usage: %s %s\n", prog, options);
+			goto end;
 		} else if(!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-
+			if (!(infp = fopen(infile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-out")) {
+			if (--argc < 1) goto bad;
+			outfile = *(++argv);
+			if (!(outfp = fopen(outfile, "w"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				goto end;
+			}
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			goto help;
+			goto end;
+bad:
+			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			goto end;
 		}
 
 		argc--;
 		argv++;
 	}
 
-	if (infile) {
-		if (!(infp = fopen(infile, "r"))) {
-			error_print();
-			return -1;
-		}
-	}
-
 	if (x509_req_from_pem(req, &reqlen, sizeof(req), infp) != 1) {
-		error_print();
-		return -1;
+		fprintf(stderr, "%s: read CSR failure\n", prog);
+		goto end;
 	}
-	x509_req_print(stdout, 0, 0, "CertificationRequest", req, reqlen);
-	x509_req_to_pem(req, reqlen, stdout);
-	return 0;
-
-bad:
-	fprintf(stderr, "%s: '%s' option value required\n", prog, *argv);
-	return -1;
+	x509_req_print(outfp, 0, 0, "CertificationRequest", req, reqlen);
+	if (x509_req_to_pem(req, reqlen, outfp) != 1) {
+		fprintf(stderr, "%s: output CSR failure\n", prog);
+		goto end;
+	}
+	ret = 0;
+end:
+	if (infile && infp) fclose(infp);
+	if (outfile && outfp) fclose(outfp);
+	return ret;
 }

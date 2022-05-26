@@ -53,7 +53,7 @@
 #include <gmssl/digest.h>
 
 const char *digests[] = {
-	"md5",
+//	"md5",
 	"sha1",
 	"sm3",
 	"sha224",

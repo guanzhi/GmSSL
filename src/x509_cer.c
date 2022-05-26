@@ -329,16 +329,26 @@ int x509_attr_type_and_value_print(FILE *fp, int fmt, int ind, const char *label
 	if (fmt & ASN1_FMT_FULL) {
 		format_print(fp, fmt, ind, "%s\n", label);
 		ind += 4;
-	}
-	if (x509_name_type_from_der(&oid, &d, &dlen) != 1) goto err;
-	if (fmt & ASN1_FMT_FULL)
+
+		if (x509_name_type_from_der(&oid, &d, &dlen) != 1) goto err;
 		asn1_object_identifier_print(fp, fmt, ind, "type", x509_name_type_name(oid), NULL, 0);
-
-	if (x509_directory_name_from_der(&tag, &val, &vlen, &d, &dlen) != 1) goto err;
-	if (fmt & ASN1_FMT_FULL)
-		x509_directory_name_print(fp, fmt, ind, "value", tag, val, vlen);
-	else	x509_directory_name_print(fp, fmt, ind, x509_name_type_name(oid), tag, val, vlen);
-
+		if (oid == OID_email_address) {
+			if (asn1_ia5_string_from_der((const char **)&val, &vlen, &d, &dlen) != 1) goto err;
+			format_string(fp, fmt, ind, "value", val, vlen);
+		} else {
+			if (x509_directory_name_from_der(&tag, &val, &vlen, &d, &dlen) != 1) goto err;
+			x509_directory_name_print(fp, fmt, ind, "value", tag, val, vlen);
+		}
+	} else {
+		if (x509_name_type_from_der(&oid, &d, &dlen) != 1) { error_print(); goto err; }
+		if (oid == OID_email_address) {
+			if (asn1_ia5_string_from_der((const char **)&val, &vlen, &d, &dlen) != 1) goto err;
+			format_string(fp, fmt, ind, "emailAddress", val, vlen);
+		} else {
+			if (x509_directory_name_from_der(&tag, &val, &vlen, &d, &dlen) != 1) goto err;
+			x509_directory_name_print(fp, fmt, ind, x509_name_type_name(oid), tag, val, vlen);
+		}
+	}
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
@@ -398,12 +408,17 @@ int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 		format_print(fp, fmt, ind, "%s\n", label);
 		ind += 4;
 	}
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_attr_type_and_value_print(fp, fmt, ind, "AttributeTypeAndValue", p, len);
 	while (dlen) {
 		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		x509_attr_type_and_value_print(fp, fmt, ind, "AttributeTypeAndValue", p, len);
+		x509_attr_type_and_value_print(fp, fmt, ind + 4, "AttributeTypeAndValue", p, len);
 	}
 	return 1;
 }
@@ -532,21 +547,43 @@ int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 	return 1;
 }
 
-int x509_name_get_printable(const uint8_t *d, size_t dlen, char *str, size_t maxlen)
-{
-	error_print();
-	return -1;
-}
-
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen)
 {
-	error_print();
-	return -1;
+	const uint8_t *rdn_d;
+	size_t rdn_dlen;
+
+	while (dlen) {
+		int attr_oid;
+		int attr_tag;
+		const uint8_t *attr_val;
+		size_t attr_vlen;
+
+		if (asn1_set_from_der(&rdn_d, &rdn_dlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		while (rdn_dlen) {
+			if (x509_attr_type_and_value_from_der(&attr_oid, &attr_tag, &attr_val, &attr_vlen,
+				&rdn_d, &rdn_dlen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		if (attr_oid == oid) {
+			*tag = attr_tag;
+			*val = attr_val;
+			*vlen = attr_vlen;
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uint8_t **val, size_t *vlen)
 {
-	error_print();
+	int ret;
+	ret = x509_name_get_value_by_type(d, dlen, OID_at_common_name, tag, val, vlen);
+	if (ret < 0) error_print();
 	return -1;
 }
 
@@ -653,6 +690,7 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 		}
 		break;
 	case OID_ce_key_usage:
+	case OID_netscape_cert_type:
 		if (asn1_bits_from_der(&ival, &val, &vlen) != 1) {
 			error_print();
 			return -1;
@@ -665,6 +703,11 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 		}
 		break;
 	case OID_netscape_cert_comment:
+		if (asn1_ia5_string_from_der((const char **)&p, &len, &val, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	case OID_ct_precertificate_scts:
 	case OID_undef:
 		p = val;
@@ -700,6 +743,7 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	case OID_ce_crl_distribution_points: return x509_crl_distribution_points_print(fp, fmt, ind, name, p, len);
 	case OID_ce_inhibit_any_policy: format_print(fp, fmt, ind, "%s: %d\n", name, ival);
 	case OID_ce_freshest_crl: return x509_freshest_crl_print(fp, fmt, ind, name, p, len);
+	case OID_netscape_cert_type: return x509_netscape_cert_type_print(fp, fmt, ind, name, ival);
 	case OID_netscape_cert_comment: return format_string(fp, fmt, ind, name, p, len);
 	default: format_bytes(fp, fmt, ind, "extnValue", p, len);
 	}
@@ -1132,12 +1176,15 @@ int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
+	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1) {
 		error_print();
 		return -1;
 	}
 	x509_certificate_print(fp, fmt, ind, label, d, dlen);
+	if (asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -1307,10 +1354,27 @@ int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp)
 	return 1;
 }
 
-int x509_certs_from_pem(const uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp)
+int x509_certs_from_pem(uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp)
 {
-	error_print();
-	return -1;
+	int ret;
+	size_t len, total_len = 0;
+
+	for (;;) {
+		if ((ret = x509_cert_from_pem(d, &len, maxlen, fp)) < 0) {
+			error_print();
+			return -1;
+		} else if (ret == 0) {
+			break;
+		}
+		d += len;
+		total_len += len;
+		maxlen -= len;
+	}
+	*dlen = total_len;
+	if (!total_len) {
+		return 0;
+	}
+	return 1;
 }
 
 int x509_certs_get_count(const uint8_t *d, size_t dlen, size_t *cnt)
@@ -1324,15 +1388,42 @@ int x509_certs_get_count(const uint8_t *d, size_t dlen, size_t *cnt)
 
 int x509_certs_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const uint8_t **cert, size_t *certlen)
 {
-	error_print();
-	return -1;
+	const uint8_t *a;
+	size_t alen;
+	int ret, i;
+
+	for (i = 0; i <= index; i++) {
+		if ((ret = x509_cert_from_der(&a, &alen, &d, &dlen)) != 1) {
+			if (ret < 0) error_print();
+			else error_print();
+			return -1;
+		}
+	}
+	*cert = a;
+	*certlen = alen;
+	return 1;
 }
 
 int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen,
 	const uint8_t *subject, size_t subject_len, const uint8_t **cert, size_t *certlen)
 {
-	error_print();
-	return -1;
+	const uint8_t *a;
+	size_t alen;
+	const uint8_t *subj;
+	size_t subj_len;
+
+	while (dlen) {
+		if (x509_cert_from_der(&a, &alen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (subj_len == subject_len && memcmp(subj, subject, subj_len) == 0) {
+			*cert = a;
+			*certlen = alen;
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int x509_certs_get_cert_by_issuer_and_serial_number(
