@@ -5,6 +5,7 @@ project(GmSSL)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
+SET(CMAKE_C_FLAGS "-std=c99")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 
 include_directories(include)
