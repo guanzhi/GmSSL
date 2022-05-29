@@ -122,6 +122,11 @@ add_executable(
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c
+	tools/cmsdecrypt.c
+	tools/cmsencrypt.c
+	tools/cmsparse.c
+	tools/cmssign.c
+	tools/cmsverify.c
 	tools/crlparse.c
 	tools/crlverify.c
 	tools/cmssign.c
