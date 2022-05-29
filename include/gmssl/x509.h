@@ -117,7 +117,7 @@ Validity ::= SEQUENCE {
 	notAfter	Time }
 */
 #define X509_VALIDITY_MIN_DAYS 1
-#define X509_VALIDITY_MAX_DAYS (365 * 3)
+#define X509_VALIDITY_MAX_DAYS (365 * 10) // ROOTCA, CA需要更长的时间！
 int x509_validity_add_days(time_t *not_after, time_t not_before, int days);
 int x509_validity_to_der(time_t not_before, time_t not_after, uint8_t **out, size_t *outlen);
 int x509_validity_from_der(time_t *not_before, time_t *not_after, const uint8_t **in, size_t *inlen);

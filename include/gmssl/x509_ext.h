@@ -86,6 +86,8 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 	const uint8_t *keyid, size_t keyid_len,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len);
+int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
+	const SM2_KEY *public_key);
 int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int bits);
 int x509_exts_add_certificate_policies(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
@@ -500,7 +502,7 @@ DistributionPointName ::= CHOICE {
 */
 int x509_distribution_point_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
-int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, int choice, const uint8_t *d, size_t dlen);
+int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label,const uint8_t *a, size_t alen);
 
 int x509_explicit_distribution_point_name_to_der(int index, int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int x509_explicit_distribution_point_name_from_der(int index, int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);

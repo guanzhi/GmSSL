@@ -268,8 +268,8 @@ int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen
 int x509_crl_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 int x509_crl_to_pem(const uint8_t *a, size_t alen, FILE *fp);
 int x509_crl_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
-int x509_crl_to_fp(const uint8_t *a, size_t alen, FILE *fp);
-int x509_crl_from_fp(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
+int x509_crl_to_fp(const uint8_t *a, size_t alen, FILE *fp); // 去掉这个函数
+int x509_crl_from_fp(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp); // 去掉这个函数
 
 
 int x509_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
@@ -285,6 +285,8 @@ int x509_crl_sign(uint8_t *crl, size_t *crl_len,
 	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
 int x509_crl_verify(const uint8_t *a, size_t alen,
 	const SM2_KEY *sign_pub_key, const char *signer_id, size_t signer_id_len);
+int x509_crl_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len);
 
 int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
 	int *version,
@@ -295,9 +297,14 @@ int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
 	const uint8_t **exts, size_t *exts_len,
 	int *signature_algor,
 	const uint8_t **sig, size_t *siglen);
+int x509_crl_get_issuer(const uint8_t *crl, size_t crl_len,
+	const uint8_t **issuer, size_t *issuer_len);
+
 int x509_crl_find_revoked_cert_by_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t *serial, size_t serial_len, time_t *revoke_date,
 	const uint8_t **entry_exts, size_t *entry_exts_len);
+
+
 
 int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 

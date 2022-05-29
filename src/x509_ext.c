@@ -116,6 +116,24 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 	return 1;
 }
 
+int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
+	const SM2_KEY *public_key)
+{
+	uint8_t buf[65];
+	uint8_t id[32];
+	int critical = -1;
+
+	sm2_point_to_uncompressed_octets(&public_key->public_key, buf);
+	sm3_digest(buf, sizeof(buf), id);
+
+	if (x509_exts_add_authority_key_identifier(exts, extslen, maxlen, critical,
+		id, sizeof(id), NULL, 0, NULL, 0) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical, const uint8_t *d, size_t dlen)
 {
@@ -149,6 +167,12 @@ int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int c
 	uint8_t val[16];
 	uint8_t *p = val;
 	size_t vlen = 0;
+
+	if (!bits) {
+		// TODO: 检查是否在合法范围内
+		error_print();
+		return -1;
+	}
 
 	exts += *extslen;
 	if (asn1_bits_to_der(bits, &p, &vlen) != 1
@@ -1646,18 +1670,27 @@ int x509_explicit_distribution_point_name_from_der(int index, int *choice, const
 	return -1;
 }
 
-int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, int choice, const uint8_t *d, size_t dlen)
+int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
+	int tag;
+	const uint8_t *d;
+	size_t dlen;
+
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	switch (choice) {
-	case 0: return x509_general_names_print(fp, fmt, ind, "fullName", d, dlen);
-	case 1: return x509_rdn_print(fp, fmt, ind, "nameRelativeToCRLIssuer", d, dlen);
+	if (asn1_any_type_from_der(&tag, &d, &dlen, &a, &alen) != 1) {
+		error_print();
+		return -1;
+	}
+	switch (tag) {
+	case ASN1_TAG_EXPLICIT(0): return x509_general_names_print(fp, fmt, ind, "fullName", d, dlen);
+	case ASN1_TAG_IMPLICIT(1): return x509_rdn_print(fp, fmt, ind, "nameRelativeToCRLIssuer", d, dlen);
 	default:
 		error_print();
 		return -1;
 	}
+	return 1;
 }
 
 int x509_distribution_point_to_der(
@@ -1712,30 +1745,39 @@ int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label,
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	format_bytes(stderr, 0, 0, "1697", d, dlen);
-
 	if ((ret = asn1_explicit_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
-	/*
-	if (ret) {
-		int choice;
-		const uint8_t *name;
-		size_t namelen;
-
-		if (x509_distribution_point_name_from_der(&choice, &name, &namelen, &p, &len) != 1) goto err;
-		x509_distribution_point_name_print(fp, fmt, ind, "DistributionPointName", choice, name, namelen);
-		if (asn1_length_is_zero(len) != 1) goto err;
-	}
+	if (ret) x509_distribution_point_name_print(fp, fmt, ind, "distributionPoint", p, len);
 
 	if ((ret = asn1_implicit_bits_from_der(1, &bits, &d, &dlen)) < 0) goto err;
 	if (ret) x509_revoke_reasons_print(fp, fmt, ind, "reasons", bits);
+
 	if ((ret = asn1_implicit_sequence_from_der(2, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_general_names_print(fp, fmt, ind, "cRLIssuer", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
-	*/
 	return 1;
 err:
 	error_print();
 	return -1;
+}
+
+/*
+                extnID: CRLDistributionPoints (2.5.29.31)
+                    DistributionPoint
+                        distributionPoint
+                            fullName
+                                GeneralName
+                                    URI: http://www.rootca.gov.cn/Civil_Servant_arl/Civil_Servant_ARL.crl
+                    DistributionPoint
+                        distributionPoint
+                            fullName
+                                GeneralName
+                                    URI: ldap://ldap.rootca.gov.cn:390/CN=Civil_Servant_ARL,OU=ARL,O=NRCAC,C=CN
+
+*/
+
+int x509_distribution_points_add_url(uint8_t *d, size_t *dlen, size_t maxlen, const char *url)
+{
+	return 0;
 }
 
 int x509_distribution_points_add_distribution_point(uint8_t *d, size_t *dlen, size_t maxlen,

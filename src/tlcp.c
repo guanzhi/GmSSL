@@ -86,6 +86,7 @@ int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *r
 		error_print();
 		return -1;
 	}
+	tls_uint16_to_bytes(siglen, &p, &hslen);
 	tls_array_to_bytes(sig, siglen, &p, &hslen);
 	tls_record_set_handshake(record, recordlen, type, NULL, hslen);
 	return 1;
@@ -115,16 +116,11 @@ int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	/*
 	if (tls_uint16array_copy_from_bytes(sig, siglen, *siglen, &p, &len) != 1
 		|| len > 0) {
 		error_print();
 		return -1;
 	}
-	*/
-	// FIXME: check *siglen >= len
-	memcpy(sig, p, len);
-	*siglen = len;
 	return 1;
 }
 
@@ -250,7 +246,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	tls_record_set_version(record, TLS_version_tlcp);
 	tls_record_set_version(finished, TLS_version_tlcp);
 
-	tls_trace(">>>> ClientHello\n");
+	tls_trace("send ClientHello\n");
 	tls_random_generate(client_random);
 	if (tls_record_set_handshake_client_hello(record, &recordlen,
 		TLS_version_tlcp, client_random, NULL, 0,
@@ -267,7 +263,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	if (client_sign_key)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
-	tls_trace("<<<< ServerHello\n");
+	tls_trace("recv ServerHello\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -292,7 +288,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	if (client_sign_key)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
-	tls_trace("<<<< ServerCertificate\n");
+	tls_trace("recv ServerCertificate\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -317,7 +313,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	if (client_sign_key)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
-	tls_trace("<<<< ServerKeyExchange\n");
+	tls_trace("recv ServerKeyExchange\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -332,7 +328,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	if (client_sign_key)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
-	tls_trace("++++ process ServerKeyExchange\n");
+	tls_trace("process ServerKeyExchange\n");
 	if (tls_certificate_get_second(conn->server_certs, conn->server_certs_len,
 		&server_enc_cert, &server_enc_cert_len) != 1) {
 		error_print();
@@ -357,7 +353,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		return -1;
 	}
 	if (type == TLS_handshake_certificate_request) {
-		tls_trace("<<<< CertificateRequest\n");
+		tls_trace("recv CertificateRequest\n");
 		int cert_types[TLS_MAX_CERTIFICATE_TYPES];
 		size_t cert_types_count;;
 		uint8_t ca_names[TLS_MAX_CA_NAMES_SIZE];
@@ -382,7 +378,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		memset(&sign_ctx, 0, sizeof(SM2_SIGN_CTX));
 		client_sign_key = NULL;
 	}
-	tls_trace("<<<< ServerHelloDone\n");
+	tls_trace("recv ServerHelloDone\n");
 	tls_record_print(stderr, record, recordlen, 0, 0);
 	if (tls_record_get_handshake_server_hello_done(record) != 1) {
 		error_print();
@@ -392,7 +388,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	if (client_sign_key) {
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
-		tls_trace(">>>> ClientCertificate\n");
+		tls_trace("send ClientCertificate\n");
 		if (tls_record_set_handshake_certificate_from_pem(record, &recordlen, client_certs_fp) != 1) {
 			error_print();
 			return -1;
@@ -406,7 +402,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 	}
 
-	tls_trace("++++ generate secrets\n");
+	tls_trace("generate secrets\n");
 	if (tls_pre_master_secret_generate(pre_master_secret, TLS_version_tlcp) != 1
 		|| tls_prf(pre_master_secret, 48, "master secret",
 			client_random, 32, server_random, 32,
@@ -421,15 +417,15 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_encrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_decrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
-	format_bytes(stderr, 0, 0, "pre_master_secret : ", pre_master_secret, 48);
-	format_bytes(stderr, 0, 0, "master_secret : ", conn->master_secret, 48);
-	format_bytes(stderr, 0, 0, "client_write_mac_key : ", conn->key_block, 32);
-	format_bytes(stderr, 0, 0, "server_write_mac_key : ", conn->key_block + 32, 32);
-	format_bytes(stderr, 0, 0, "client_write_enc_key : ", conn->key_block + 64, 16);
-	format_bytes(stderr, 0, 0, "server_write_enc_key : ", conn->key_block + 80, 16);
+	format_bytes(stderr, 0, 4, "PRE_MASTER_SECRET", pre_master_secret, 48);
+	format_bytes(stderr, 0, 4, "MASTER_SECRET", conn->master_secret, 48);
+	format_bytes(stderr, 0, 4, "CLIENT_WRITE_MAC_KEY", conn->key_block, 32);
+	format_bytes(stderr, 0, 4, "SERVER_WRITE_MAC_KEY", conn->key_block + 32, 32);
+	format_bytes(stderr, 0, 4, "CLIENT_WRITE_ENC_KEY", conn->key_block + 64, 16);
+	format_bytes(stderr, 0, 4, "SERVER_WRITE_ENC_KEY", conn->key_block + 80, 16);
 	format_print(stderr, 0, 0, "\n");
 
-	tls_trace(">>>> ClientKeyExchange\n");
+	tls_trace("send ClientKeyExchange\n");
 	if (sm2_encrypt(&server_enc_key, pre_master_secret, 48,
 		enced_pre_master_secret, &enced_pre_master_secret_len) != 1) {
 		error_print();
@@ -450,7 +446,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	if (client_sign_key) {
-		tls_trace(">>>> CertificateVerify\n");
+		tls_trace("send CertificateVerify\n");
 		sm2_sign_finish(&sign_ctx, sig, &siglen);
 		if (tls_record_set_handshake_certificate_verify(record, &recordlen, sig, siglen) != 1) {
 			error_print();
@@ -464,7 +460,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	}
 
-	tls_trace(">>>> [ChangeCipherSpec]\n");
+	tls_trace("send [ChangeCipherSpec]\n");
 	if (tls_record_set_change_cipher_spec(record, &recordlen) !=1) {
 		error_print();
 		return -1;
@@ -475,7 +471,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	}
 	tls_record_print(stderr, record, recordlen, 0, 0);
 
-	tls_trace(">>>> Finished\n");
+	tls_trace("send Finished\n");
 	memcpy(&tmp_sm3_ctx, &sm3_ctx, sizeof(sm3_ctx));
 	sm3_finish(&tmp_sm3_ctx, sm3_hash);
 
@@ -503,7 +499,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		return -1;
 	}
 
-	tls_trace("<<<< [ChangeCipherSpec]\n");
+	tls_trace("recv [ChangeCipherSpec]\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -515,7 +511,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	}
 	tls_record_print(stderr, record, recordlen, 0, 0);
 
-	tls_trace("<<<< Finished\n");
+	tls_trace("recv Finished\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -600,7 +596,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	error_puts("start listen ...");
+	error_puts("start listen ...\n");
 	listen(sock, 5);
 
 	memset(conn, 0, sizeof(*conn));
@@ -619,7 +615,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 
 	sm3_init(&sm3_ctx);
 
-	tls_trace("<<<< ClientHello\n");
+	tls_trace("recv ClientHello\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -653,7 +649,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		handshakeslen += recordlen - 5;
 	}
 
-	tls_trace(">>>> ServerHello\n");
+	tls_trace("send ServerHello\n");
 	tls_random_generate(server_random);
 	if (tls_record_set_handshake_server_hello(record, &recordlen,
 		TLS_version_tlcp, server_random, NULL, 0,
@@ -673,7 +669,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		handshakeslen += recordlen - 5;
 	}
 
-	tls_trace(">>>> ServerCertificate\n");
+	tls_trace("send ServerCertificate\n");
 	if (tls_record_set_handshake_certificate_from_pem(record, &recordlen, certs_fp) != 1) {
 		error_print();
 		return -1;
@@ -696,7 +692,8 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		handshakeslen += recordlen - 5;
 	}
 
-	tls_trace(">>>> ServerKeyExchange\n");
+	tls_trace("send ServerKeyExchange\n");
+
 	if (sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_sign_update(&sign_ctx, client_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_random, 32) != 1
@@ -705,6 +702,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		error_print();
 		return -1;
 	}
+
 	if (tlcp_record_set_handshake_server_key_exchange_pke(record, &recordlen, sig, siglen) != 1) {
 		error_print();
 		return -1;
@@ -722,11 +720,16 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	}
 
 	if (client_cacerts_fp) {
-		tls_trace(">>>> CertificateRequest\n");
+		tls_trace("send CertificateRequest\n");
 		const int cert_types[] = { TLS_cert_type_ecdsa_sign, };
 		uint8_t ca_names[TLS_MAX_CA_NAMES_SIZE] = {0};
 		size_t cert_types_count = sizeof(cert_types)/sizeof(cert_types[0]);
 		size_t ca_names_len = 0;
+
+		//TODO : read CAnames				
+
+
+
 		if (tls_record_set_handshake_certificate_request(record, &recordlen,
 			cert_types, cert_types_count,
 			ca_names, ca_names_len) != 1) {
@@ -747,7 +750,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		}
 	}
 
-	tls_trace(">>>> ServerHelloDone\n");
+	tls_trace("send ServerHelloDone\n");
 	if (tls_record_set_handshake_server_hello_done(record, &recordlen) != 1) {
 		error_print();
 		return -1;
@@ -765,7 +768,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	}
 
 	if (client_cacerts_fp) {
-		tls_trace("<<<< ClientCertificate\n");
+		tls_trace("recv ClientCertificate\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_version(record) != TLS_version_tlcp) {
 			error_print();
@@ -789,7 +792,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		handshakeslen += recordlen - 5;
 	}
 
-	tls_trace("<<<< ClientKeyExchange\n");
+	tls_trace("recv ClientKeyExchange\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -813,7 +816,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	}
 
 	if (client_cacerts_fp) {
-		tls_trace("<<<< CertificateVerify\n");
+		tls_trace("recv CertificateVerify\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_version(record) != TLS_version_tlcp) {
 			error_print();
@@ -833,7 +836,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		}
 	}
 
-	tls_trace("++++ generate secrets\n");
+	tls_trace("generate secrets\n");
 	if (tls_prf(pre_master_secret, 48, "master secret",
 		client_random, 32, server_random, 32,
 		48, conn->master_secret) != 1) {
@@ -850,16 +853,16 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_decrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_encrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
-	format_bytes(stderr, 0, 0, "pre_master_secret : ", pre_master_secret, 48);
-	format_bytes(stderr, 0, 0, "master_secret : ", conn->master_secret, 48);
-	format_bytes(stderr, 0, 0, "client_write_mac_key : ", conn->key_block, 32);
-	format_bytes(stderr, 0, 0, "server_write_mac_key : ", conn->key_block + 32, 32);
-	format_bytes(stderr, 0, 0, "client_write_enc_key : ", conn->key_block + 64, 16);
-	format_bytes(stderr, 0, 0, "server_write_enc_key : ", conn->key_block + 80, 16);
+	format_bytes(stderr, 0, 4, "PRE_MASTER_SECRET", pre_master_secret, 48);
+	format_bytes(stderr, 0, 4, "MASTER_SECRET", conn->master_secret, 48);
+	format_bytes(stderr, 0, 4, "CLIENT_WRITE_MAC_KEY", conn->key_block, 32);
+	format_bytes(stderr, 0, 4, "SERVER_WRITE_MAC_KEY", conn->key_block + 32, 32);
+	format_bytes(stderr, 0, 4, "CLIENT_WRITE_ENC_KEY", conn->key_block + 64, 16);
+	format_bytes(stderr, 0, 4, "SERVER_WRITE_ENC_KEY", conn->key_block + 80, 16);
 	format_print(stderr, 0, 0, "\n");
 
 
-	tls_trace("<<<< [ChangeCipherSpec]\n");
+	tls_trace("recv [ChangeCipherSpec]\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -871,7 +874,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	tls_trace("<<<< ClientFinished\n");
+	tls_trace("recv ClientFinished\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
 		|| tls_record_version(record) != TLS_version_tlcp) {
 		error_print();
@@ -902,7 +905,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	tls_trace(">>>> [ChangeCipherSpec]\n");
+	tls_trace("send [ChangeCipherSpec]\n");
 	if (tls_record_set_change_cipher_spec(record, &recordlen) != 1) {
 		error_print();
 		return -1;
@@ -913,7 +916,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		return -1;
 	}
 
-	tls_trace(">>>> ServerFinished\n");
+	tls_trace("send ServerFinished\n");
 	sm3_finish(&sm3_ctx, sm3_hash);
 	if (tls_prf(conn->master_secret, 48, "server finished", sm3_hash, 32, NULL, 0,
 		12, verify_data) != 1) {

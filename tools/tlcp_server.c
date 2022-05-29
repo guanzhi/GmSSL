@@ -47,48 +47,51 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
-#include <gmssl/error.h>
-
 
 
 static const char *options = "[-port num] -cert file -key file [-pass str] -ex_key file [-ex_pass str] [-cacert file]";
 
 int tlcp_server_main(int argc , char **argv)
 {
-	int ret = -1;
+	int ret = 1;
 	char *prog = argv[0];
 	int port = 443;
-	char *file = NULL;
+	char *certfile = NULL;
+	char *signkeyfile = NULL;
+	char *signpass = NULL;
+	char *enckeyfile = NULL;
+	char *encpass = NULL;
+	char *cacertfile = NULL;
 
 	FILE *certfp = NULL;
 	FILE *signkeyfp = NULL;
 	FILE *enckeyfp = NULL;
+	FILE *cacertfp = NULL;
 	SM2_KEY signkey;
 	SM2_KEY enckey;
 
-	char *pass = NULL;
-	char *ex_pass = NULL;
-
 	uint8_t verify_buf[4096];
-
 
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
 
-	if (argc < 2) {
+
+	argc--;
+	argv++;
+
+	if (argc < 1) {
 		fprintf(stderr, "usage: %s %s\n", prog, options);
 		return 1;
 	}
 
-	argc--;
-	argv++;
-	while (argc >= 1) {
+	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			return 0;
@@ -97,31 +100,38 @@ int tlcp_server_main(int argc , char **argv)
 			port = atoi(*(++argv));
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
-			file = *(++argv);
-			if (!(certfp = fopen(file, "r"))) {
-				error_print();
-				return -1;
+			certfile = *(++argv);
+			if (!(certfp = fopen(certfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
+				goto end;
 			}
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			file = *(++argv);
-			if (!(signkeyfp = fopen(file, "r"))) {
-				error_print();
-				return -1;
+			signkeyfile = *(++argv);
+			if (!(signkeyfp = fopen(signkeyfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, signkeyfile, strerror(errno));
+				goto end;
 			}
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
-			pass = *(++argv);
+			signpass = *(++argv);
 		} else if (!strcmp(*argv, "-ex_key")) {
 			if (--argc < 1) goto bad;
-			file = *(++argv);
-			if (!(enckeyfp = fopen(file, "r"))) {
-				error_print();
-				return -1;
+			enckeyfile = *(++argv);
+			if (!(enckeyfp = fopen(enckeyfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, enckeyfile, strerror(errno));
+				goto end;
 			}
 		} else if (!strcmp(*argv, "-ex_pass")) {
 			if (--argc < 1) goto bad;
-			ex_pass = *(++argv);
+			encpass = *(++argv);
+		} else if (!strcmp(*argv, "-cacert")) {
+			if (--argc < 1) goto bad;
+			cacertfile = *(++argv);
+			if (!(cacertfp = fopen(cacertfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
+				goto end;
+			}
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -132,67 +142,69 @@ bad:
 		argc--;
 		argv++;
 	}
+	if (!certfile) {
+		fprintf(stderr, "%s: '-cert' option required\n", prog);
+		goto end;
+	}
+	if (!signkeyfile) {
+		fprintf(stderr, "%s: '-key' option required\n", prog);
+		goto end;
+	}
+	if (!signpass) {
+		fprintf(stderr, "%s: '-pass' option required\n", prog);
+		goto end;
+	}
+	if (!enckeyfile) {
+		fprintf(stderr, "%s: '-ex_key' option required\n", prog);
+		goto end;
+	}
+	if (!encpass) {
+		fprintf(stderr, "%s: '-ex_pass' option required\n", prog);
+		goto end;
+	}
 
-	if (!certfp) {
-		error_print();
-		return -1;
+	if (sm2_private_key_info_decrypt_from_pem(&signkey, signpass, signkeyfp) != 1) {
+		fprintf(stderr, "%s: load private key failure\n", prog);
+		goto end;
 	}
-	if (!signkeyfp) {
-		error_print();
-		return -1;
-	}
-	if (!enckeyfp) {
-		error_print();
-		return -1;
+	if (sm2_private_key_info_decrypt_from_pem(&enckey, encpass, enckeyfp) != 1) {
+		fprintf(stderr, "%s: load private key failure\n", prog);
+		goto end;
 	}
 
-	if (!pass) {
-		pass = getpass("Sign Key Password : ");
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&signkey, pass, signkeyfp) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (!ex_pass) {
-		ex_pass = getpass("Encryption Key Password : ");
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&enckey, ex_pass, enckeyfp) != 1) {
-		error_print();
-		return -1;
-	}
+	printf("start ...........\n");
 
 	memset(&conn, 0, sizeof(conn));
-	if (tlcp_accept(&conn, port, certfp, &signkey, &enckey,
-		NULL, verify_buf, 4096) != 1) {
-		error_print();
-		return -1;
+
+	if (tlcp_accept(&conn, port, certfp, &signkey, &enckey, cacertfp, verify_buf, 4096) != 1) {
+		fprintf(stderr, "%s: tlcp accept failure\n", prog);
+		goto end;
 	}
 
-	// 我要做一个反射的服务器，接收到用户的输入之后，再反射回去
 	for (;;) {
 
-		// 接收一个消息
-		// 按道理说第二次执行的时候是不可能成功的了，因此客户端没有数据发过来
 		do {
 			len = sizeof(buf);
 			if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
-				error_print();
-				return -1;
+				fprintf(stderr, "%s: recv failure\n", prog);
+				goto end;
 			}
 		} while (!len);
 
 
-		// 把这个消息再发回去
 		if (tls_send(&conn, (uint8_t *)buf, len) != 1) {
-			error_print();
-			return -1;
+			fprintf(stderr, "%s: send failure\n", prog);
+			goto end;
 		}
-
-		fprintf(stderr, "-----------------\n\n\n\n\n\n");
-
 	}
 
 
-	return 0;
+end:
+	gmssl_secure_clear(&signkey, sizeof(signkey));
+	gmssl_secure_clear(&enckey, sizeof(enckey));
+	if (certfp) fclose(certfp);
+	if (signkeyfp) fclose(signkeyfp);
+	if (enckeyfp) fclose(enckeyfp);
+	if (cacertfp) fclose(cacertfp);
+	return ret;
 }

@@ -53,7 +53,30 @@
 #include <gmssl/x509.h>
 
 
-static const char *options = "[-in pem] -cacert pem (-id str)\n";
+// 这里面我们想支持证书链的验证
+// 首先输入的应该是一个证书链
+// 需要兼容TLCP的双证书证书链
+// 验证完之后，最后一个证书需要由一个ROOTCA证书来验证
+
+/*
+
+首先从证书链中读取第一个证书，如果没有读取到证书就失败了
+
+从证书链中尝试读取一个证书，如果没有读取到，这个就结束了
+如果读取到，存放在CA证书中
+验证证书
+将CA证书copy到被验证证书缓冲中
+
+从证书链中读取一个证书，如果没有读取到，就技术了
+如果读取到，存在在CA证书中
+验证证书
+将CA证书copy到被验证证书缓冲中
+
+*/
+
+
+
+static const char *options = "[-in pem] -cacert pem\n";
 
 int certverify_main(int argc, char **argv)
 {
@@ -65,8 +88,8 @@ int certverify_main(int argc, char **argv)
 	FILE *cacertfp = NULL;
 	uint8_t cert[1024];
 	size_t certlen;
-	const uint8_t *issuer;
-	size_t issuer_len;
+	const uint8_t *subject;
+	size_t subject_len;
 	uint8_t cacert[1024];
 	size_t cacertlen;
 	char *signer_id = SM2_DEFAULT_ID;
@@ -85,7 +108,7 @@ int certverify_main(int argc, char **argv)
 			printf("usage: %s %s\n", prog, options);
 			ret = 0;
 			goto end;
-		} else if (!strcmp(*argv, "-cert")) {
+		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
 			if (!(infp = fopen(infile, "r"))) {
@@ -123,15 +146,42 @@ bad:
 		fprintf(stderr, "%s: read certificate failure\n", prog);
 		goto end;
 	}
-	if (x509_cert_get_subject(cert, certlen, &issuer, &issuer_len) != 1) {
+	if (x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
+		goto end;
+	}
+	x509_name_print(stdout, 0, 0, "Certificate", subject, subject_len);
+
+	for (;;) {
+		if ((rv = x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), infp)) != 1) {
+			if (rv < 0) goto end;
+			goto final;
+		}
+		if (x509_cert_get_subject(cacert, cacertlen, &subject, &subject_len) != 1) {
+			goto end;
+		}
+		x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
+
+		if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+		printf("Verification %s\n", rv ? "success" : "failure");
+
+		memcpy(cert, cacert, cacertlen);
+		certlen = cacertlen;
+	}
+
+final:
+	if (x509_cert_get_issuer(cert, certlen, &subject, &subject_len) != 1) {
 		fprintf(stderr, "%s: parse certificate error\n", prog);
 		goto end;
 	}
-	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), issuer, issuer_len, cacertfp) != 1) {
+	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), subject, subject_len, cacertfp) != 1) {
 		fprintf(stderr, "%s: load CA certificate failure\n", prog);
 		goto end;
 	}
-	if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, signer_id, strlen(signer_id))) < 0) {
+	x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
+	if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}

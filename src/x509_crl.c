@@ -110,6 +110,11 @@ int x509_crl_reason_from_der(int *reason, const uint8_t **in, size_t *inlen)
 	return asn1_enumerated_from_der(reason, in, inlen);
 }
 
+int x509_implicit_crl_reason_from_der(int index, int *reason, const uint8_t **in, size_t *inlen)
+{
+	return asn1_implicit_enumerated_from_der(index, reason, in, inlen);
+}
+
 
 static uint32_t oid_ce_crl_reasons[] = { oid_ce,21 };
 static uint32_t oid_ce_invalidity_date[] = { oid_ce,24 };
@@ -612,12 +617,32 @@ int x509_issuing_distribution_point_from_der(
 
 int x509_issuing_distribution_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
+	int ret, val;
 	const uint8_t *p;
 	size_t len;
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
+	if ((ret = asn1_explicit_from_der(0, &p, &len, &d, &dlen)) < 0) goto end;
+	if (ret) x509_distribution_point_name_print(fp, fmt, ind, "distributionPoint", p, len);
+	if ((ret = asn1_implicit_boolean_from_der(1, &val, &d, &dlen)) < 0) goto end;
+	if (!ret) val = 0;
+	format_print(fp, fmt, ind, "onlyContainsUserCerts: %s\n", asn1_boolean_name(val));
+	if ((ret = asn1_implicit_boolean_from_der(2, &val, &d, &dlen)) < 0) goto end;
+	if (!ret) val = 0;
+	format_print(fp, fmt, ind, "onlyContainsCACerts: %s\n", asn1_boolean_name(val));
+	if ((ret = x509_implicit_crl_reason_from_der(3, &val, &d, &dlen)) < 0) goto end;
+	if (ret) format_print(fp, fmt, ind, "onlySomeReasons: %s\n", x509_crl_reason_name(val));
+	if ((ret = asn1_implicit_boolean_from_der(4, &val, &d, &dlen)) < 0) goto end;
+	if (!ret) val = 0;
+	format_print(fp, fmt, ind, "indirectCRL: %s\n", asn1_boolean_name(val));
+	if ((ret = asn1_implicit_boolean_from_der(5, &val, &d, &dlen)) < 0) goto end;
+	if (!ret) val = 0;
+	format_print(fp, fmt, ind, "onlyContainsAttributeCerts: %s\n", asn1_boolean_name(val));
+	if (asn1_length_is_zero(dlen) != 1) goto end;
+	return 1;
+end:
 	error_print();
 	return -1;
 }
@@ -758,6 +783,7 @@ int x509_tbs_crl_from_der(
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else error_print();
 		return ret;
 	}
 	if (asn1_int_from_der(version, &d, &dlen) < 0
@@ -1024,6 +1050,8 @@ int x509_crl_verify(const uint8_t *a, size_t alen,
 	const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len)
 {
 	int ret;
+	const uint8_t *d;
+	size_t dlen;
 	const uint8_t *tbs;
 	size_t tbslen;
 	int sig_alg;
@@ -1031,8 +1059,15 @@ int x509_crl_verify(const uint8_t *a, size_t alen,
 	size_t siglen;
 	SM2_SIGN_CTX verify_ctx;
 
-	if (x509_cert_list_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
+	if ((ret = asn1_sequence_from_der(&d, &dlen, &a, &alen)) != 1) {
+		if (ret < 0) error_print();
+		else error_print();
+		return -1;
+	}
+	if (asn1_any_from_der(&tbs, &tbslen, &d, &dlen) != 1
+		|| x509_signature_algor_from_der(&sig_alg, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&sig, &siglen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1041,8 +1076,26 @@ int x509_crl_verify(const uint8_t *a, size_t alen,
 		return -1;
 	}
 	if (sm2_verify_init(&verify_ctx, pub_key, signer_id, signer_id_len) != 1
-		|| sm2_verify_update(&verify_ctx, tbs, tbslen) != 1
-		|| (ret = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
+		|| sm2_verify_update(&verify_ctx, tbs, tbslen) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = sm2_verify_finish(&verify_ctx, sig, siglen)) != 1) {
+		if (ret < 0) error_print();
+		else error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_crl_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len)
+{
+	int ret;
+	SM2_KEY public_key;
+
+	if (x509_cert_get_subject_public_key(cacert, cacertlen, &public_key) != 1
+		|| (ret = x509_crl_verify(a, alen, &public_key, signer_id, signer_id_len)) < 0) {
 		error_print();
 		return -1;
 	}
@@ -1050,7 +1103,7 @@ int x509_crl_verify(const uint8_t *a, size_t alen,
 	return ret;
 }
 
-int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
+int x509_crl_get_details(const uint8_t *a, size_t alen,
 	int *opt_version,
 	const uint8_t **opt_issuer, size_t *opt_issuer_len,
 	time_t *opt_this_update,
@@ -1060,15 +1113,35 @@ int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
 	int *opt_signature_algor,
 	const uint8_t **opt_sig, size_t *opt_siglen)
 {
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
 	const uint8_t *tbs;
 	size_t tbs_len;
 	int signature_algor;
 	const uint8_t *sig;
 	size_t siglen;
 
+	int version;
+	int sig_alg;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	time_t this_update;
+	time_t next_update;
+	const uint8_t *revoked_certs;
+	size_t revoked_certs_len;
+	const uint8_t *exts;
+	size_t exts_len;
 
-	if (x509_cert_list_from_der(&tbs, &tbs_len, &signature_algor, &sig, &siglen, &crl, &crl_len) != 1
-		|| asn1_length_is_zero(crl_len) != 1) {
+	if ((ret = asn1_sequence_from_der(&d, &dlen, &a, &alen)) != 1) {
+		if (ret < 0) error_print();
+		else error_print();
+		return -1;
+	}
+	if (asn1_any_from_der(&tbs, &tbs_len, &d, &dlen) != 1
+		|| x509_signature_algor_from_der(&sig_alg, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&sig, &siglen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1076,49 +1149,40 @@ int x509_crl_get_details(const uint8_t *crl, size_t crl_len,
 	if (opt_sig) *opt_sig = sig;
 	if (opt_siglen) *opt_siglen = siglen;
 
-	if (opt_version
-		|| opt_issuer || opt_issuer_len
-		|| opt_this_update
-		|| opt_next_update
-		|| opt_revoked_certs || opt_revoked_certs_len) {
+	if (x509_tbs_crl_from_der(&version, &sig_alg, &issuer, &issuer_len,
+		&this_update, &next_update, &revoked_certs, &revoked_certs_len,
+		&exts, &exts_len, &tbs, &tbs_len) != 1
+		|| asn1_length_is_zero(tbs_len) != 1) {
+		error_print();
+		return -1;
+	}
 
-		int version;
-		int sig_alg;
-		const uint8_t *issuer;
-		size_t issuer_len;
-		time_t this_update;
-		time_t next_update;
-		const uint8_t *revoked_certs;
-		size_t revoked_certs_len;
-		const uint8_t *exts;
-		size_t exts_len;
+	if (opt_version) *opt_version = version;
+	if (opt_issuer) *opt_issuer = issuer;
+	if (opt_issuer_len) *opt_issuer_len = issuer_len;
+	if (opt_this_update) *opt_this_update = this_update;
+	if (opt_next_update) *opt_next_update = next_update;
+	if (opt_revoked_certs) *opt_revoked_certs = revoked_certs;
+	if (opt_revoked_certs_len) *opt_revoked_certs_len = revoked_certs_len;
+	if (opt_exts) *opt_exts = exts;
+	if (opt_exts_len) *opt_exts_len = exts_len;
+	return 1;
+}
 
-		if (x509_tbs_crl_from_der(
-				&version,
-				&sig_alg,
-				&issuer, &issuer_len,
-				&this_update,
-				&next_update,
-				&revoked_certs, &revoked_certs_len,
-				&exts, &exts_len,
-				&tbs, &tbs_len) != 1
-			|| asn1_length_is_zero(tbs_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (sig_alg != signature_algor) {
-			error_print();
-			return -1;
-		}
-		if (opt_version) *opt_version = version;
-		if (opt_issuer) *opt_issuer = issuer;
-		if (opt_issuer_len) *opt_issuer_len = issuer_len;
-		if (opt_this_update) *opt_this_update = this_update;
-		if (opt_next_update) *opt_next_update = next_update;
-		if (opt_revoked_certs) *opt_revoked_certs = revoked_certs;
-		if (opt_revoked_certs_len) *opt_revoked_certs_len = revoked_certs_len;
-		if (opt_exts) *opt_exts = exts;
-		if (opt_exts_len) *opt_exts_len = exts_len;
+int x509_crl_get_issuer(const uint8_t *crl, size_t crl_len,
+	const uint8_t **issuer, size_t *issuer_len)
+{
+	if (x509_crl_get_details(crl, crl_len,
+		NULL, // version
+		issuer, issuer_len,
+		NULL, NULL, // this_udpate, next_update
+		NULL, NULL, // revoked_certs, revoked_certs_len
+		NULL, NULL, // exts, exts_len,
+		NULL, // signature_algor
+		NULL, NULL // sig, siglen
+		) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }

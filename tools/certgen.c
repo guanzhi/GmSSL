@@ -144,9 +144,11 @@ int certgen_main(int argc, char **argv)
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-key_usage")) {
+			char *usage;
 			if (--argc < 1) goto bad;
-			if (ext_key_usage_set(&key_usage, *(++argv)) != 1) {
-				fprintf(stderr, "%s: invalid -key_usage value\n", prog);
+			usage = *(++argv);
+			if (ext_key_usage_set(&key_usage, usage) != 1) {
+				fprintf(stderr, "%s: invalid -key_usage value '%s'\n", prog, usage);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-key")) {
@@ -194,17 +196,28 @@ bad:
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		goto end;
 	}
+	if (!key_usage) {
+		fprintf(stderr, "%s: '-key_usage' option required\n", prog);
+		goto end;
+	}
 
 	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load private key failed\n", prog);
 		goto end;
 	}
+
+	if (x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1
+		|| x509_exts_add_basic_constraints(exts, &extslen, sizeof(exts), 1, 1, -1) != 1
+		|| x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sm2_key) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
+
 	time(&not_before);
 	if (rand_bytes(serial, sizeof(serial)) != 1
 		|| x509_name_set(name, &namelen, sizeof(name),
 			country, state, locality, org, org_unit, common_name) != 1
 		|| x509_validity_add_days(&not_after, not_before, days) != 1
-		|| x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1
 		|| x509_cert_sign(
 			cert, &certlen, sizeof(cert),
 			X509_version_v3,

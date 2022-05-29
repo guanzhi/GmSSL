@@ -628,7 +628,7 @@ int x509_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint
 		|| asn1_octet_string_to_der(val, vlen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| x509_ext_id_to_der(oid, out, outlen) != 1
-		|| asn1_boolean_to_der(critical, out, outlen) != 1
+		|| asn1_boolean_to_der(critical, out, outlen) < 0
 		|| asn1_octet_string_to_der(val, vlen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -1150,20 +1150,23 @@ int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, int ind
 
 int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, const uint8_t *name, size_t namelen, FILE *fp)
 {
+	int ret;
 	const uint8_t *d;
 	size_t dlen;
 
 	for (;;) {
-		if (x509_cert_from_pem(a, alen, maxlen, fp) != 1) {
+		if ((ret = x509_cert_from_pem(a, alen, maxlen, fp)) != 1) {
+			if (ret < 0) error_print();
+			return ret;
+		}
+		if (x509_cert_get_subject(a, *alen, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		x509_cert_get_subject(a, *alen, &d, &dlen);
 
 		if (dlen == namelen && memcmp(name, d, dlen) == 0) {
 			return 1;
 		}
-
 	}
 	return 0;
 }

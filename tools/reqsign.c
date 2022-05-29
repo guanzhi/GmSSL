@@ -57,7 +57,8 @@
 #include <gmssl/x509_req.h>
 
 
-static const char *options = "[-in pem] -days num -cacert pem -key pem [-pass str] [-out pem]\n";
+static const char *options = "[-in pem] -days num -cacert pem -key pem [-pass str] [-out pem] "
+	"-key_usage oid -path_len_constraint num  -crl_url url\n";
 
 static int ext_key_usage_set(int *usages, const char *usage_name)
 {
@@ -105,6 +106,7 @@ int reqsign_main(int argc, char **argv)
 	uint8_t exts[512];
 	size_t extslen = 0;
 	int key_usage = 0;
+	int path_len_constraint = -1;
 
 	argc--;
 	argv++;
@@ -139,6 +141,16 @@ int reqsign_main(int argc, char **argv)
 				fprintf(stderr, "%s: set KeyUsage extenstion failure\n", prog);
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-path_len_constraint")) {
+			if (--argc < 1) goto bad;
+			path_len_constraint = atoi(*(++argv));
+			if (path_len_constraint < 0) {
+				fprintf(stderr, "%s: invalid value for '-path_len_constraint'\n", prog);
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-crl_url")) {
+			if (--argc < 1) goto bad;
+			//crl_url = *(++argv);
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -223,16 +235,31 @@ bad:
 	}
 	time(&not_before);
 
+
+	if (x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
+	if (path_len_constraint >= 0) {
+		if (x509_exts_add_basic_constraints(exts, &extslen, sizeof(exts), 1, 1, path_len_constraint) != 1) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+	}
+	if (x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sm2_key) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
+
 	if (x509_validity_add_days(&not_after, not_before, days) != 1
-		|| x509_exts_add_key_usage(exts, &extslen, sizeof(exts), 1, key_usage) != 1
 		|| x509_cert_sign(
 			cert, &certlen, sizeof(cert),
 			X509_version_v3,
 			serial, sizeof(serial),
 			OID_sm2sign_with_sm3,
-			subject, subject_len,
-			not_before, not_after,
 			issuer, issuer_len,
+			not_before, not_after,
+			subject, subject_len,
 			&subject_public_key,
 			NULL, 0,
 			NULL, 0,

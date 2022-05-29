@@ -190,6 +190,7 @@ enum {
 	OID_ecdsa_with_sha384,
 	OID_ecdsa_with_sha512,
 
+	OID_rsasign_with_md5,
 	OID_rsasign_with_sha1,
 	OID_rsasign_with_sha224,
 	OID_rsasign_with_sha256,

@@ -448,10 +448,20 @@ int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen)
 
 int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
-	if (!a || alen <= 0 || alen > INT_MAX || (out && !(*out)) || !outlen) {
+	if (!a) {
+		return 0;
+	}
+
+
+
+	if (alen <= 0 || alen > INT_MAX || (out && !(*out)) || !outlen) {
 		error_print();
 		return -1;
 	}
+
+
+
+
 
 	if (out)
 		*(*out)++ = tag;

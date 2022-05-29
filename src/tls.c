@@ -783,18 +783,19 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 		(*cipher_suites_count)++;
 	}
 	if (len > 0) {
+		/*
+		// OpenSSL 即使在TLCP时仍然会发出扩展
 		if (*version < TLS_version_tls12) {
 			error_print();
 			return -1;
 		}
-		if (!exts) {
-			error_print();
-			return -1;
-		}
-		if (tls_uint16array_copy_from_bytes(exts, exts_len, TLS_MAX_EXTENSIONS_SIZE, &p, &len) != 1
-			|| len > 0) {
-			error_print();
-			return -1;
+		*/
+		if (exts) {
+			if (tls_uint16array_copy_from_bytes(exts, exts_len, TLS_MAX_EXTENSIONS_SIZE, &p, &len) != 1
+				|| len > 0) {
+				error_print();
+				return -1;
+			}
 		}
 	}
 	return 1;
@@ -1482,10 +1483,16 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, int sock)
 	int type;
 	size_t len;
 
+retry:
 	if ((r = recv(sock, record, 5, 0)) < 0) {
 		error_print();
 		return -1;
 	} else if (r != 5) {
+		sleep(1);
+		goto retry;
+
+		format_bytes(stderr, 0, 0, "record", record, r);
+
 		// FIXME: 如果对方已经中断连接，那么我们要判断这个错误吗? 
 		error_print();
 		perror(""); // 否则打印ioctl错误

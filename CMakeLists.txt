@@ -123,6 +123,12 @@ add_executable(
 	tools/certparse.c
 	tools/certverify.c
 	tools/crlparse.c
+	tools/crlverify.c
+	tools/cmssign.c
+	tools/cmsverify.c
+	tools/cmsencrypt.c
+	tools/cmsdecrypt.c
+	tools/cmsparse.c
 	tools/pbkdf2.c
 	tools/reqgen.c
 	tools/reqparse.c

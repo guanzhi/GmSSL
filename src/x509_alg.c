@@ -264,6 +264,7 @@ static uint32_t oid_ecdsa_with_sha224[] = { 1,2,840,10045,4,3,1 };
 static uint32_t oid_ecdsa_with_sha256[] = { 1,2,840,10045,4,3,2 };
 static uint32_t oid_ecdsa_with_sha384[] = { 1,2,840,10045,4,3,3 };
 static uint32_t oid_ecdsa_with_sha512[] = { 1,2,840,10045,4,3,4 };
+static uint32_t oid_rsasign_with_md5[] = { 1,2,840,113549,1,1,4 };
 static uint32_t oid_rsasign_with_sha1[] = { 1,2,840,113549,1,1,5 };
 static uint32_t oid_rsasign_with_sha224[] = { 1,2,840,113549,1,1,14 };
 static uint32_t oid_rsasign_with_sha256[] = { 1,2,840,113549,1,1,11 };
@@ -279,6 +280,7 @@ static const ASN1_OID_INFO x509_sign_algors[] = {
 	{ OID_ecdsa_with_sha256, "ecdsa-with-sha256", oid_ecdsa_with_sha256, sizeof(oid_ecdsa_with_sha256)/sizeof(int), X509_ALGOR_ALLOW_EC_NULL_PARAM },
 	{ OID_ecdsa_with_sha384, "ecdsa-with-sha384", oid_ecdsa_with_sha384, sizeof(oid_ecdsa_with_sha384)/sizeof(int), X509_ALGOR_ALLOW_EC_NULL_PARAM },
 	{ OID_ecdsa_with_sha512, "ecdsa-with-sha512", oid_ecdsa_with_sha512, sizeof(oid_ecdsa_with_sha512)/sizeof(int), X509_ALGOR_ALLOW_EC_NULL_PARAM },
+	{ OID_rsasign_with_md5, "md5WithRSAEncryption", oid_rsasign_with_md5, sizeof(oid_rsasign_with_md5)/sizeof(int), X509_ALGOR_ALLOW_EC_NULL_PARAM },
 	{ OID_rsasign_with_sha1, "sha1WithRSAEncryption", oid_rsasign_with_sha1, sizeof(oid_rsasign_with_sha1)/sizeof(int), X509_ALGOR_ALLOW_EC_NULL_PARAM },
 	{ OID_rsasign_with_sha224, "sha224WithRSAEncryption", oid_rsasign_with_sha224, sizeof(oid_rsasign_with_sha224)/sizeof(int), 1 },
 	{ OID_rsasign_with_sha256, "sha256WithRSAEncryption", oid_rsasign_with_sha256, sizeof(oid_rsasign_with_sha256)/sizeof(int), 1 },

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2020 - 2021 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,22 +55,27 @@
 #include <gmssl/x509_crl.h>
 
 
-static const char *options = "-in file [-out file]";
+static const char *options = "-in file -cacert file\n";
 
-int crlparse_main(int argc, char **argv)
+int crlverify_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
 	char *infile = NULL;
-	char *outfile = NULL;
-	FILE *infp = stdin;
-	FILE *outfp = stdout;
-	struct stat st;
+	char *cacertfile = NULL;
+	FILE *infp = NULL;
+	FILE *cacertfp = NULL;
 	uint8_t *in = NULL;
 	size_t inlen;
+	struct stat st;
 	const uint8_t *pin;
 	const uint8_t *crl = NULL;
 	size_t crllen;
+	const uint8_t *subject;
+	size_t subject_len;
+	uint8_t cacert[1024];
+	size_t cacertlen;
+	int rv;
 
 	argc--;
 	argv++;
@@ -83,6 +88,7 @@ int crlparse_main(int argc, char **argv)
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
+			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
@@ -91,11 +97,11 @@ int crlparse_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-out")) {
+		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
-			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+			cacertfile = *(++argv);
+			if (!(cacertfp = fopen(cacertfile, "r"))) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
 				goto end;
 			}
 		} else {
@@ -114,6 +120,12 @@ bad:
 		fprintf(stderr, "%s: '-in' option required\n", prog);
 		goto end;
 	}
+	if (!cacertfile) {
+		fprintf(stderr, "%s: '-cacert' option required\n", prog);
+		goto end;
+	}
+
+
 	if (fstat(fileno(infp), &st) < 0) {
 		fprintf(stderr, "%s: access file error : %s\n", prog, strerror(errno));
 		goto end;
@@ -136,11 +148,47 @@ bad:
 		fprintf(stderr, "%s: read CRL failure\n", prog);
 		goto end;
 	}
-	x509_crl_print(outfp, 0, 0, "CRL", crl, crllen);
+
+	if (x509_crl_get_issuer(crl, crllen, &subject, &subject_len) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
+	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), subject, subject_len, cacertfp) != 1) {
+		fprintf(stderr, "%s: read certificate failure\n", prog);
+		goto end;
+	}
+	if ((rv = x509_crl_verify_by_ca_cert(crl, crllen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+		fprintf(stderr, "%s: verification inner error\n", prog);
+		goto end;
+	}
+
+	printf("Verification %s\n", rv ? "success" : "failure");
+	if (rv == 1) ret = 0;
 
 end:
 	if (infile && infp) fclose(infp);
-	if (outfile && outfp) fclose(outfp);
+	if (cacertfp) fclose(cacertfp);
 	if (in) free(in);
 	return ret;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
