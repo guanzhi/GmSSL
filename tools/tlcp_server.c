@@ -50,6 +50,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
@@ -174,6 +175,7 @@ bad:
 
 	printf("start ...........\n");
 
+restart:
 	memset(&conn, 0, sizeof(conn));
 
 	if (tlcp_accept(&conn, port, certfp, &signkey, &enckey, cacertfp, verify_buf, 4096) != 1) {
@@ -183,17 +185,22 @@ bad:
 
 	for (;;) {
 
+		int rv;
+
 		do {
 			len = sizeof(buf);
-			if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
-				fprintf(stderr, "%s: recv failure\n", prog);
-				goto end;
+			if ((rv = tls_recv(&conn, (uint8_t *)buf, &len)) != 1) {
+				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
+				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
+
+				close(conn.sock);
+				goto restart;
 			}
 		} while (!len);
 
-
 		if (tls_send(&conn, (uint8_t *)buf, len) != 1) {
-			fprintf(stderr, "%s: send failure\n", prog);
+			fprintf(stderr, "%s: send failure, close connection\n", prog);
+			close(conn.sock);
 			goto end;
 		}
 	}

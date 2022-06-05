@@ -199,6 +199,9 @@ int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);
 int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uint8_t **val, size_t *vlen);
+int x509_name_equ(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen);
+
+int x509_names_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
 SubjectPublicKeyInfo  ::=  SEQUENCE  {
@@ -360,6 +363,7 @@ int x509_certs_from_pem(uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp);
 int x509_certs_get_count(const uint8_t *d, size_t dlen, size_t *cnt);
 int x509_certs_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const uint8_t **cert, size_t *certlen);
 int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen, const uint8_t *subject, size_t subject_len, const uint8_t **cert, size_t *certlen);
+int x509_certs_get_last(const uint8_t *d, size_t dlen, const uint8_t **cert, size_t *certlen);
 
 int x509_certs_get_cert_by_issuer_and_serial_number(
 	const uint8_t *certs, size_t certs_len,
@@ -367,6 +371,11 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	const uint8_t *serial, size_t serial_len,
 	const uint8_t **cert, size_t *cert_len);
 
+int x509_certs_verify(const uint8_t *certs, size_t certslen,
+	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
+int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
+	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
+int x509_certs_get_subjects(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 

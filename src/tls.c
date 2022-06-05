@@ -59,6 +59,7 @@
 #include <gmssl/rand.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
@@ -107,7 +108,9 @@ void tls_uint32_to_bytes(uint32_t a, uint8_t **out, size_t *outlen)
 void tls_array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
 	if (*out) {
-		memcpy(*out, data, datalen);
+		if (data) {
+			memcpy(*out, data, datalen);
+		}
 		*out += datalen;
 	}
 	*outlen += datalen;
@@ -199,18 +202,6 @@ int tls_array_from_bytes(const uint8_t **data, size_t datalen, const uint8_t **i
 	return 1;
 }
 
-int tls_array_copy_from_bytes(uint8_t *data, size_t datalen, const uint8_t **in, size_t *inlen)
-{
-	int ret;
-	const uint8_t *p;
-	if (tls_array_from_bytes(&p, datalen, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	memcpy(data, p, datalen);
-	return 1;
-}
-
 int tls_uint8array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen)
 {
 	uint8_t len;
@@ -219,22 +210,10 @@ int tls_uint8array_from_bytes(const uint8_t **data, size_t *datalen, const uint8
 		error_print();
 		return -1;
 	}
+	if (!len) {
+		*data = NULL;
+	}
 	*datalen = len;
-	return 1;
-}
-
-int tls_uint8array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxlen, const uint8_t **in, size_t *inlen)
-{
-	const uint8_t *p;
-	if (tls_uint8array_from_bytes(&p, datalen, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (*datalen > maxlen) {
-		error_print();
-		return -1;
-	}
-	memcpy(data, p, *datalen);
 	return 1;
 }
 
@@ -246,22 +225,10 @@ int tls_uint16array_from_bytes(const uint8_t **data, size_t *datalen, const uint
 		error_print();
 		return -1;
 	}
+	if (!len) {
+		*data = NULL;
+	}
 	*datalen = len;
-	return 1;
-}
-
-int tls_uint16array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxlen, const uint8_t **in, size_t *inlen)
-{
-	const uint8_t *p;
-	if (tls_uint16array_from_bytes(&p, datalen, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (*datalen > maxlen) {
-		error_print();
-		return -1;
-	}
-	memcpy(data, p, *datalen);
 	return 1;
 }
 
@@ -273,28 +240,41 @@ int tls_uint24array_from_bytes(const uint8_t **data, size_t *datalen, const uint
 		error_print();
 		return -1;
 	}
+	if (!len) {
+		*data = NULL;
+	}
 	*datalen = len;
 	return 1;
 }
 
-int tls_uint24array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxlen, const uint8_t **in, size_t *inlen)
+// 获取记录基本信息，不做正确性检查，考虑实现为宏
+int tls_record_type(const uint8_t *record)
 {
-	const uint8_t *p;
-	if (tls_uint24array_from_bytes(&p, datalen, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (*datalen > maxlen) {
-		error_print();
-		return -1;
-	}
-	memcpy(data, p, *datalen);
-	return 1;
+	return record[0];
 }
 
+int tls_record_length(const uint8_t *record)
+{
+	int ret;
+	ret = ((uint16_t)record[3] << 8) | record[4];
+	return ret;
+}
 
+int tls_record_version(const uint8_t *record)
+{
+	int version = ((int)record[1] << 8) | record[2];
+	return version;
+}
 
-
+int tls_record_set_type(uint8_t *record, int type)
+{
+	if (!tls_record_type_name(type)) {
+		error_print();
+		return -1;
+	}
+	record[0] = type;
+	return 1;
+}
 
 int tls_record_set_version(uint8_t *record, int version)
 {
@@ -306,21 +286,6 @@ int tls_record_set_version(uint8_t *record, int version)
 	record[2] = version;
 	return 1;
 }
-
-int tls_record_version(const uint8_t *record)
-{
-	int version = ((int)record[1] << 8) | record[2];
-	return version;
-}
-
-//					
-int tls_record_length(const uint8_t *record)
-{
-	int ret;
-	ret = ((uint16_t)record[3] << 8) | record[4];
-	return ret;
-}
-
 
 int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
@@ -430,14 +395,13 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	sm3_hmac_update(&hmac_ctx, header, 5);
 	sm3_hmac_update(&hmac_ctx, out, *outlen);
 	sm3_hmac_finish(&hmac_ctx, hmac);
-	if (memcmp(mac, hmac, sizeof(hmac)) != 0) { //FIXME: const time memcmp!
-		error_puts("tls ciphertext mac check failure");
+	if (gmssl_secure_memcmp(mac, hmac, sizeof(hmac)) != 0) {
+		error_puts("tls ciphertext mac check failure\n");
 		return -1;
 	}
 	return 1;
 }
 
-// 这个函数应该是处理的，这个函数是不应该用的，通常我们在加密的时候，header ，明文数据是分离的，但是输出的record是一个
 int tls_record_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
@@ -479,15 +443,16 @@ int tls_record_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 	return 1;
 }
 
-// handshake types
-
 int tls_random_generate(uint8_t random[32])
 {
 	uint32_t gmt_unix_time = (uint32_t)time(NULL);
 	uint8_t *p = random;
 	size_t len = 0;
 	tls_uint32_to_bytes(gmt_unix_time, &p, &len);
-	rand_bytes(random + 4, 28);
+	if (rand_bytes(random + 4, 28) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -563,7 +528,28 @@ int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int version)
 	return 1;
 }
 
-
+// 用于设置CertificateRequest
+int tls_cert_type_from_oid(int oid)
+{
+	switch (oid) {
+	case OID_sm2sign_with_sm3:
+	case OID_ecdsa_with_sha1:
+	case OID_ecdsa_with_sha224:
+	case OID_ecdsa_with_sha256:
+	case OID_ecdsa_with_sha512:
+		return TLS_cert_type_ecdsa_sign;
+	case OID_rsasign_with_sm3:
+	case OID_rsasign_with_md5:
+	case OID_rsasign_with_sha1:
+	case OID_rsasign_with_sha224:
+	case OID_rsasign_with_sha256:
+	case OID_rsasign_with_sha384:
+	case OID_rsasign_with_sha512:
+		return TLS_cert_type_rsa_sign;
+	}
+	// TLS_cert_type_xxx 中没有为0的值
+	return 0;
+}
 
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
@@ -602,7 +588,7 @@ int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 
 	if (!server_sign_key || !client_random || !server_random
 		|| curve != TLS_curve_sm2p256v1 || !point || !sig || !siglen
-		|| siglen > TLS_MAX_SIGNATURE_SIZE) {
+		|| siglen > SM2_MAX_SIGNATURE_SIZE) {
 		error_print();
 		return -1;
 	}
@@ -621,11 +607,6 @@ int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 	return ret;
 }
 
-
-
-
-// handshakes
-
 int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	int type, const uint8_t *data, size_t datalen)
 {
@@ -635,6 +616,7 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 		error_print();
 		return -1;
 	}
+	// 这个长度限制应该修改为宏					
 	if (datalen > (1 << 14) - 4) {
 		error_puts("gmssl does not support handshake longer than record");
 		return -1;
@@ -654,6 +636,7 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
+// 这个函数应该再仔细检查一下			
 int tls_record_get_handshake(const uint8_t *record,
 	int *type, const uint8_t **data, size_t *datalen)
 {
@@ -670,7 +653,7 @@ int tls_record_get_handshake(const uint8_t *record,
 	}
 	// 我们应该假定这个record是正确的，不再检查长度之类
 	record_datalen = (size_t)record[3] << 8 | record[4];
-	if (record_datalen > TLS_RECORD_MAX_PLAINDATA_SIZE
+	if (record_datalen > TLS_MAX_PLAINTEXT_SIZE
 		|| record_datalen < 4) {
 		error_print();
 		return -1;
@@ -683,6 +666,10 @@ int tls_record_get_handshake(const uint8_t *record,
 	*type = record[5];
 	*datalen = ((size_t)record[6] << 16) | ((size_t)record[7] << 8) | record[8]; // FIXME：检查长度
 	*data = record + 5 + 4;
+
+	if (*datalen == 0) {
+		*data = NULL;
+	}
 	return 1;
 }
 
@@ -710,6 +697,7 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 		return -1;
 	}
 
+
 	tls_uint16_to_bytes((uint16_t)version, &p, &len);
 	tls_array_to_bytes(random, 32, &p, &len);
 	tls_uint8array_to_bytes(session_id, session_id_len, &p, &len);
@@ -734,22 +722,27 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
+// 这样的函数是否会出现内部错误或者消息解析错误呢？
 int tls_record_get_handshake_client_hello(const uint8_t *record,
-	int *version, uint8_t random[32], uint8_t *session_id, size_t *session_id_len,
-	int *cipher_suites, size_t *cipher_suites_count,
-	uint8_t *exts, size_t *exts_len)
+	int *version, const uint8_t **random,
+	const uint8_t **session_id, size_t *session_id_len,
+	const uint8_t **cipher_suites, size_t *cipher_suites_len,
+	const uint8_t **exts, size_t *exts_len)
 {
 	int type;
 	const uint8_t *p;
 	size_t len;
-	const uint8_t *ciphers;
-	size_t ciphers_len;
+	uint16_t ver;
 	const uint8_t *comp_meths;
 	size_t comp_meths_len;
 
 	if (!record || !random || !session_id || !session_id_len
-		|| !cipher_suites || !cipher_suites_count || (exts && !exts_len)
-		|| record[0] != TLS_record_handshake) {
+		|| !cipher_suites || !cipher_suites_len
+		|| record[0] != TLS_record_handshake) { // record_type应该有一个独立的错误
+		error_print();
+		return -1;
+	}
+	if (tls_record_type(record) != TLS_record_handshake) {
 		error_print();
 		return -1;
 	}
@@ -758,50 +751,49 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	*version = 0;
-	if (tls_uint16_from_bytes((uint16_t *)version, &p, &len) != 1
-		|| tls_array_copy_from_bytes(random, 32, &p, &len) != 1
-		|| tls_uint8array_copy_from_bytes(session_id, session_id_len, 32, &p, &len) != 1
-		|| tls_uint16array_from_bytes(&ciphers, &ciphers_len, &p, &len) != 1
+	if (tls_uint16_from_bytes(&ver, &p, &len) != 1
+		|| tls_array_from_bytes(random, 32, &p, &len) != 1
+		|| tls_uint8array_from_bytes(session_id, session_id_len, &p, &len) != 1
+		|| tls_uint16array_from_bytes(cipher_suites, cipher_suites_len, &p, &len) != 1
 		|| tls_uint8array_from_bytes(&comp_meths, &comp_meths_len, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (ciphers_len % 2) {
+	if (!tls_version_text(ver)) {
 		error_print();
 		return -1;
 	}
-	*cipher_suites_count = 0;
-	while (ciphers_len) {
-		uint16_t cipher_suite;
-		tls_uint16_from_bytes(&cipher_suite, &ciphers, &ciphers_len);
-		if (!tls_cipher_suite_name(cipher_suite)) {
-			error_print();
-			return -1;
-		}
-		*cipher_suites++ = cipher_suite;
-		(*cipher_suites_count)++;
+	*version = ver;
+	if (*session_id_len > TLS_MAX_SESSION_ID_SIZE) {
+		error_print();
+		return -1;
 	}
-	if (len > 0) {
-		/*
-		// OpenSSL 即使在TLCP时仍然会发出扩展
-		if (*version < TLS_version_tls12) {
+	// 是否允许未定义密码套件，留给调用方解析判断
+	if (!cipher_suites) {
+		error_print();
+		return -1;
+	}
+	if (*cipher_suites_len % 2) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		if (tls_uint16array_from_bytes(exts, exts_len, &p, &len) != 1) {
 			error_print();
 			return -1;
 		}
-		*/
-		if (exts) {
-			if (tls_uint16array_copy_from_bytes(exts, exts_len, TLS_MAX_EXTENSIONS_SIZE, &p, &len) != 1
-				|| len > 0) {
-				error_print();
-				return -1;
-			}
-		}
+	} else {
+		*exts = NULL;
+		*exts_len = 0;
+	}
+	if (len) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
 
-
+// 如果有错误，都是内部错误
 int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	int version, const uint8_t random[32],
 	const uint8_t *session_id, size_t session_id_len, int cipher_suite,
@@ -830,7 +822,6 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 		return -1;
 	}
 
-
 	if (record[0] != TLS_record_handshake) {
 		error_print();
 		return -1;
@@ -843,15 +834,12 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 		error_print();
 		return -1;
 	}
+	/*
 	if (version < tls_record_version(record)) {
-
-
-		printf("version = %d\n", version);
-		printf("version = %d\n", tls_record_version(record));
-
 		error_print();
 		return -1;
 	}
+	*/
 	tls_uint16_to_bytes((uint16_t)version, &p, &len);
 	tls_array_to_bytes(random, 32, &p, &len);
 	tls_uint8array_to_bytes(session_id, session_id_len, &p, &len);
@@ -872,16 +860,18 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 }
 
 int tls_record_get_handshake_server_hello(const uint8_t *record,
-	int *version, uint8_t random[32], uint8_t *session_id, size_t *session_id_len,
-	int *cipher_suite, uint8_t *exts, size_t *exts_len)
+	int *version, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
+	int *cipher_suite, const uint8_t **exts, size_t *exts_len)
 {
 	int type;
 	const uint8_t *p;
 	size_t len;
+	uint16_t ver; // 如果直接读取uint16到*version中，则*version的高16位没有初始化
+	uint16_t cipher; // 同上
 	uint8_t comp_meth;
 
 	if (!record || !version || !random || !session_id || !session_id_len
-		|| !cipher_suite || (exts && !exts_len)) {
+		|| !cipher_suite) {
 		error_print();
 		return -1;
 	}
@@ -897,80 +887,91 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	*version = 0;
-	*cipher_suite = 0;
-	if (tls_uint16_from_bytes((uint16_t *)version, &p, &len) != 1
-		|| tls_array_copy_from_bytes(random, 32, &p, &len) != 1
-		|| tls_uint8array_copy_from_bytes(session_id, session_id_len, 32, &p, &len) != 1
-		|| tls_uint16_from_bytes((uint16_t *)cipher_suite, &p, &len) != 1
+	if (tls_uint16_from_bytes(&ver, &p, &len) != 1
+		|| tls_array_from_bytes(random, 32, &p, &len) != 1
+		|| tls_uint8array_from_bytes(session_id, session_id_len, &p, &len) != 1
+		|| tls_uint16_from_bytes(&cipher, &p, &len) != 1
 		|| tls_uint8_from_bytes(&comp_meth, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (!tls_version_text(*version)) {
+	if (!tls_version_text(ver)) {
 		error_print();
 		return -1;
 	}
-	if (*version < tls_record_version(record)) {
+	if (ver < tls_record_version(record)) {
 		error_print();
 		return -1;
 	}
-	if (!tls_cipher_suite_name(*cipher_suite)) {
+	*version = ver;
+	if (*session_id_len > TLS_MAX_SESSION_ID_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (!tls_cipher_suite_name(cipher)) {
 		error_print_msg("unknown server cipher_suite 0x%04x", *cipher_suite);
 		return -1;
 	}
+	*cipher_suite = cipher;
 	if (comp_meth != TLS_compression_null) {
 		error_print();
 		return -1;
 	}
-	if (len > 0) {
-		if (tls_record_version(record) < TLS_version_tls12) {
-			error_puts("warning: should not have extentions");
-			return -1;
-		}
-		// FIXME: 用 tls_extensions_from_bytes() 解析		
-		if (tls_uint16array_copy_from_bytes(exts, exts_len, TLS_MAX_EXTENSIONS_SIZE, &p, &len) != 1
-			|| len > 0) {
+	if (len) {
+		if (tls_uint16array_from_bytes(exts, exts_len, &p, &len) != 1) {
 			error_print();
 			return -1;
 		}
+	} else {
+		*exts = NULL;
+		*exts_len = 0;
+	}
+	if (len) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
-
-
-
-
 
 
 int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
-	const uint8_t *data, size_t datalen)
+	const uint8_t *certs, size_t certslen)
 {
 	int type = TLS_handshake_certificate;
-	const uint8_t *cp = data;
-	size_t len = datalen;
-	const uint8_t *certs;
-	size_t certslen;
+	const size_t maxlen = TLS_MAX_HANDSHAKE_DATA_SIZE - tls_uint24_size();
+	uint8_t *data, *p;
+	size_t datalen = 0;
+	size_t len = 0;
 
-	if (!record || !recordlen
-		|| !data || datalen <= 3 || datalen > 65535) {
+	if (!record || !recordlen || !certs || !certslen) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint24array_from_bytes(&certs, &certslen, &cp, &len) != 1
-		|| len > 0) {
-		error_print();
-		return -1;
+	data = tls_handshake_data(tls_record_data(record));
+	p = data + tls_uint24_size();
+
+	// set (uint24 certlen, cert)*
+	while (certslen) {
+		const uint8_t *cert;
+		size_t certlen;
+
+		if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+			error_print();
+			return -1;
+		}
+		// 如何防止溢出
+		if (3 + certlen > maxlen) {
+			error_print();
+			return -1;
+		}
+		tls_uint24array_to_bytes(cert, certlen, &p, &datalen);
 	}
-	// FIXME: check certificate		
-	if (!certslen) {
-		error_print();
-		return -1;
-	}
-	tls_record_set_handshake(record, recordlen, type, data, datalen);
+	tls_uint24_to_bytes(datalen, &data, &datalen);
+	tls_record_set_handshake(record, recordlen, type, NULL, datalen);
 	return 1;
 }
 
+/*
 int tls_record_set_handshake_certificate_from_pem(uint8_t *record, size_t *recordlen, FILE *fp)
 {
 	int type = TLS_handshake_certificate;
@@ -996,13 +997,20 @@ int tls_record_set_handshake_certificate_from_pem(uint8_t *record, size_t *recor
 	tls_record_set_handshake(record, recordlen, type, NULL, datalen);
 	return 1;
 }
+*/
 
-int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *data, size_t *datalen)
+// 如果certs长度超过限制怎么办？
+// 在调用这个函数之前，应该保证准备的缓冲区为
+int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen)
 {
 	int type;
-	const uint8_t *cp;
+	const uint8_t *data;
+	size_t datalen;
+	uint8_t *out = certs;
+	const uint8_t *p;
+	size_t len;
 
-	if (tls_record_get_handshake(record, &type, &cp, datalen) != 1) {
+	if (tls_record_get_handshake(record, &type, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1010,147 +1018,34 @@ int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *data, s
 		error_print();
 		return -1;
 	}
-	memcpy(data, cp, *datalen);
-	return 1;
-}
+	if (tls_uint24array_from_bytes(&p, &len, &data, &datalen) != 1) {
+		error_print();
+		return -1;
+	}
 
-int tls_certificate_get_subject_names(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen)
-{
-	*nameslen = 0;
-	const uint8_t *cert;
-	size_t certlen;
+	*certslen = 0;
+	while (len) {
+		const uint8_t *d;
+		size_t dlen;
+		const uint8_t *cert;
+		size_t certlen;
 
-	while (certslen > 0) {
-		const uint8_t *subject;
-		size_t subject_len;
-
-		if (tls_uint24array_from_bytes(&cert, &certlen, &certs, &certslen) != 1) {
+		if (tls_uint24array_from_bytes(&d, &dlen, &p, &len) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
+		if (x509_cert_from_der(&cert, &certlen, &d, &dlen) != 1
+			|| asn1_length_is_zero(dlen) != 1
+			|| x509_cert_to_der(cert, certlen, &out, certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (asn1_sequence_to_der(subject, subject_len, &names, nameslen) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-	return 1;
-}
-
-int tls_certificate_get_first(const uint8_t *data, size_t datalen, const uint8_t **cert, size_t *certlen)
-{
-	const uint8_t *certs;
-	size_t certslen;
-	if (tls_uint24array_from_bytes(&certs, &certslen, &data, &datalen) != 1
-		|| datalen > 0
-		|| tls_uint24array_from_bytes(cert, certlen, &certs, &certslen) != 1) {
-		error_print();
-		return -1;
-	}
-	*cert -= 3;
-	*certlen += 3;
-	return 1;
-}
-
-int tls_certificate_get_second(const uint8_t *data, size_t datalen, const uint8_t **cert, size_t *certlen)
-{
-	const uint8_t *certs;
-	size_t certslen;
-	if (tls_uint24array_from_bytes(&certs, &certslen, &data, &datalen) != 1
-		|| datalen > 0
-		|| tls_uint24array_from_bytes(cert, certlen, &certs, &certslen) != 1
-		|| tls_uint24array_from_bytes(cert, certlen, &certs, &certslen) != 1) {
-		error_print();
-		return -1;
-	}
-	*cert -= 3;
-	*certlen += 3;
-	return 1;
-}
-
-int tls_certificate_get_public_keys(const uint8_t *data, size_t datalen,
-	SM2_KEY *sign_key, SM2_KEY *enc_key)
-{
-	const uint8_t *cert;
-	const uint8_t *der;
-	size_t certlen, derlen;
-
-	if (!data || !datalen || !sign_key) {
-		error_print();
-		return -1;
-	}
-	if (tls_certificate_get_first(data, datalen, &cert, &certlen) != 1
-		|| tls_uint24array_from_bytes(&der, &derlen, &cert, &certlen) != 1
-		|| certlen > 0) {
-		error_print();
-		return -1;
-	}
-	if (x509_cert_get_subject_public_key(der, derlen, sign_key) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (enc_key) {
-		if (tls_certificate_get_second(data, datalen, &cert, &certlen) != 1
-			|| tls_uint24array_from_bytes(&der, &derlen, &cert, &certlen) != 1
-			|| certlen > 0) {
-			error_print();
-			return -1;
-		}
-		if (x509_cert_get_subject_public_key(der, derlen, enc_key) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-	return 1;
-}
-
-
-
-int tls_certificate_chain_verify(const uint8_t *certs, size_t certslen, FILE *ca_certs_fp, int depth)
-{
-	const uint8_t *cert;
-	size_t certlen;
-	const uint8_t *cacert;
-	size_t cacertlen;
-	const uint8_t *issuer;
-	size_t issuer_len;
-	uint8_t rootcert[4096];
-	size_t rootcertlen;
-
-	if (tls_uint24array_from_bytes(&cert, &certlen, &certs, &certslen) != 1) {
-		error_print();
-		return -1;
-	}
-	while (certslen > 0) {
-		if (tls_uint24array_from_bytes(&cacert, &cacertlen, &certs, &certslen) != 1) {
-			error_print();
-			return -1;
-		}
-		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
-			error_print();
-			return -1;
-		}
-		cert = cacert;
-		certlen = cacertlen;
-	}
-	if (x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (x509_cert_from_pem_by_subject(rootcert, &rootcertlen, sizeof(rootcert), issuer, issuer_len, ca_certs_fp) != 1
-		|| x509_cert_verify_by_ca_cert(cert, certlen, rootcert, rootcertlen, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
-		error_print();
-		return -1;
 	}
 	return 1;
 }
 
 int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
-	const int *cert_types, size_t cert_types_count,
+	const uint8_t *cert_types, size_t cert_types_len,
 	const uint8_t *ca_names, size_t ca_names_len)
 {
 	int type = TLS_handshake_certificate_request;
@@ -1158,24 +1053,21 @@ int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *record
 	size_t len = 0;
 
 	if (!record || !recordlen
-		|| !cert_types || !cert_types_count || cert_types_count > TLS_MAX_CERTIFICATE_TYPES
+		|| !cert_types || !cert_types_len || cert_types_len > TLS_MAX_CERTIFICATE_TYPES
 		|| (!ca_names && ca_names_len) || ca_names_len > TLS_MAX_CA_NAMES_SIZE) {
 		error_print();
 		return -1;
 	}
-	tls_uint8_to_bytes((uint8_t)cert_types_count, &p, &len);
-	while (cert_types_count--) {
-		tls_uint8_to_bytes((uint8_t)(*cert_types), &p, &len);
-		cert_types++;
-	}
+	// 对cert_types_len和ca_names_len的长度检查保证输出不会超过记录长度			
+	tls_uint8array_to_bytes(cert_types, cert_types_len, &p, &len);
 	tls_uint16array_to_bytes(ca_names, ca_names_len, &p, &len);
 	tls_record_set_handshake(record, recordlen, type, NULL, len);
 	return 1;
 }
 
 int tls_record_get_handshake_certificate_request(const uint8_t *record,
-	int *cert_types, size_t *cert_types_count,
-	uint8_t *ca_names, size_t *ca_names_len)
+	const uint8_t **cert_types, size_t *cert_types_len,
+	const uint8_t **ca_names, size_t *ca_names_len)
 {
 	int type;
 	const uint8_t *cp;
@@ -1184,24 +1076,17 @@ int tls_record_get_handshake_certificate_request(const uint8_t *record,
 	size_t count;
 
 	if (!record
-		|| !cert_types || !cert_types_count || !ca_names || !ca_names_len
+		|| !cert_types || !cert_types_len || !ca_names || !ca_names_len
 		|| record[0] != TLS_record_handshake) {
 		error_print();
 		return -1;
 	}
 	if (tls_record_get_handshake(record, &type, &cp, &len) != 1
-		|| tls_uint8array_from_bytes(&types, &count, &cp, &len) != 1
-		|| tls_uint16array_copy_from_bytes(ca_names, ca_names_len, TLS_MAX_CA_NAMES_SIZE, &cp, &len) != 1
+		|| tls_uint8array_from_bytes(cert_types, cert_types_len, &cp, &len) != 1
+		|| tls_uint16array_from_bytes(ca_names, ca_names_len, &cp, &len) != 1
 		|| len > 0) {
 		error_print();
 		return -1;
-	}
-	if (count > TLS_MAX_CERTIFICATE_TYPES) {
-		error_print();
-		return -1;
-	}
-	while (count--) {
-		*cert_types++ = *types++;
 	}
 	return 1;
 }
@@ -1253,7 +1138,7 @@ int tls_record_set_handshake_client_key_exchange_pke(uint8_t *record, size_t *re
 }
 
 int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
-	uint8_t *enced_pms, size_t *enced_pms_len)
+	const uint8_t **enced_pms, size_t *enced_pms_len)
 {
 	int type;
 	const uint8_t *p;
@@ -1269,7 +1154,7 @@ int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	if (tls_uint16array_copy_from_bytes(enced_pms, enced_pms_len, *enced_pms_len, &p, &len) != 1
+	if (tls_uint16array_from_bytes(enced_pms, enced_pms_len, &p, &len) != 1
 		|| len > 0) {
 		error_print();
 		return -1;
@@ -1286,57 +1171,59 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 }
 
 int tls_record_get_handshake_certificate_verify(const uint8_t *record,
-	uint8_t *sig, size_t *siglen)
+	const uint8_t **sig, size_t *siglen)
 {
 	int type;
-	const uint8_t *p;
-	size_t len ;
 
-	if (tls_record_get_handshake(record, &type, &p, &len) != 1
+	if (tls_record_get_handshake(record, &type, sig, siglen) != 1
 		|| type != TLS_handshake_certificate_verify) {
 		error_print();
 		return -1;
 	}
-	memcpy(sig, p, len);
-	*siglen = len;
+	if (*sig == NULL) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
 //FIXME: TLS 1.3 中的verify_data长度和hashLen一样,并且长度是不单独编码的，
 // 因此这个函数应该改一下了
 int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
-	const uint8_t verify_data[12])
+	const uint8_t *verify_data, size_t verify_data_len)
 {
 	int type = TLS_handshake_finished;
 	if (!record || !recordlen || !verify_data) {
 		error_print();
 		return -1;
 	}
-	tls_record_set_handshake(record, recordlen, type, verify_data, 12);
+	tls_record_set_handshake(record, recordlen, type, verify_data, verify_data_len);
 	return 1;
 }
 
-int tls_record_get_handshake_finished(const uint8_t *record, uint8_t verify_data[12])
+int tls_record_get_handshake_finished(const uint8_t *record, const uint8_t **verify_data, size_t *verify_data_len)
 {
 	int type;
-	const uint8_t *p;
-	size_t len;
 
-	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
+	if (tls_record_get_handshake(record, &type, verify_data, verify_data_len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (len != 12) {
+	if (type != TLS_handshake_finished) {
 		error_print();
 		return -1;
 	}
-	memcpy(verify_data, p, 12);
+	if (*verify_data == NULL) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
 // alert protocol
 
 
+// 这个函数没有必要设置长度，因此Alert长度是固定的！
 int tls_record_set_alert(uint8_t *record, size_t *recordlen,
 	int alert_level,
 	int alert_description)
@@ -1459,6 +1346,9 @@ int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
 	return 0;
 }
 
+// 两类错误，一种是输入的记录格式有问题，一种是网络问题
+// 显然输入格式是编译期的错误，不应该发生
+// 网络错误如果发生，那么也没有必要再发错误消息了
 int tls_record_send(const uint8_t *record, size_t recordlen, int sock)
 {
 	ssize_t r;
@@ -1484,31 +1374,26 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, int sock)
 	size_t len;
 
 retry:
+	// TODO：支持非租塞socket或针对可能的网络延迟重新recv
 	if ((r = recv(sock, record, 5, 0)) < 0) {
 		error_print();
 		return -1;
-	} else if (r != 5) {
-		sleep(1);
-		goto retry;
-
-		format_bytes(stderr, 0, 0, "record", record, r);
-
-		// FIXME: 如果对方已经中断连接，那么我们要判断这个错误吗? 
-		error_print();
-		perror(""); // 否则打印ioctl错误
-		return -1;
 	}
-
-	if (!tls_record_type_name(record[0])) {
-		error_print_msg("invalid record type: %d\n", record[0]);
+	if (!tls_record_type_name(tls_record_type(record))) {
+		error_print_msg("Invalid record type: %d\n", record[0]);
 		return -1;
 	}
 	if (!tls_version_text(tls_record_version(record))) {
-		error_print_msg("invalid record version: %d.%d\n", record[1], record[2]);
+		error_print_msg("Invalid record version: %d.%d\n", record[1], record[2]);
 		return -1;
 	}
 	len = (size_t)record[3] << 8 | record[4];
 	*recordlen = 5 + len;
+	if (*recordlen > TLS_MAX_RECORD_SIZE) {
+		// 这里只检查是否超过最大长度，握手协议的长度检查由上层协议完成
+		error_print();
+		return -1;
+	}
 	if (len) {
 		if ((r = recv(sock, record + 5, len, 0)) < 0) {
 			error_print();
@@ -1518,9 +1403,32 @@ retry:
 			return -1;
 		}
 	}
-
-	if (record[0] == TLS_record_alert) {
-		tls_record_print(stderr, record, *recordlen, 0, 0);
+	if (tls_record_type(record) == TLS_record_alert) {
+		int level;
+		int alert;
+		if (tls_record_get_alert(record, &level, &alert) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_record_trace(stderr, record, *recordlen, 0, 0);
+		if (level == TLS_alert_level_warning) {
+			// 忽略Warning，读取下一个记录
+			error_puts("Warning record received!\n");
+			goto retry;
+		}
+		if (alert == TLS_alert_close_notify) {
+			// close_notify是唯一需要提供反馈的Fatal Alert，其他直接中止连接
+			uint8_t alert_record[TLS_ALERT_RECORD_SIZE];
+			size_t alert_record_len;
+			tls_record_set_type(alert_record, TLS_record_alert);
+			tls_record_set_version(alert_record, tls_record_version(record));
+			tls_record_set_alert(alert_record, &alert_record_len, TLS_alert_level_fatal, TLS_alert_close_notify);
+			tls_record_print(stderr, alert_record, alert_record_len, 0, 0);
+			tls_record_send(alert_record, alert_record_len, sock);
+		}
+		// 返回错误0通知调用方不再做任何处理（无需再发送Alert）
+		error_puts("Alert record received!\n");
+		return 0;
 	}
 	return 1;
 }
@@ -1549,6 +1457,56 @@ int tls_compression_methods_has_null_compression(const uint8_t *meths, size_t me
 	}
 	return -1;
 }
+
+int tls_send_alert(TLS_CONNECT *conn, int alert)
+{
+	uint8_t record[5 + 2];
+	size_t recordlen;
+
+	tls_record_set_version(record, conn->version);
+	tls_record_set_alert(record, &recordlen, TLS_alert_level_fatal, alert);
+	tls_record_send(record, sizeof(record), conn->sock);
+	tls_record_trace(stderr, record, sizeof(record), 0, 0);
+	return 1;
+}
+
+int tls_alert_level(int alert)
+{
+	switch (alert) {
+	case TLS_alert_bad_certificate:
+	case TLS_alert_unsupported_certificate:
+	case TLS_alert_certificate_revoked:
+	case TLS_alert_certificate_expired:
+	case TLS_alert_certificate_unknown:
+		return 0;
+	case TLS_alert_user_canceled:
+	case TLS_alert_no_renegotiation:
+		return TLS_alert_level_warning;
+	default:
+		return TLS_alert_level_fatal;
+	}
+	return -1;
+}
+
+
+int tls_send_warning(TLS_CONNECT *conn, int alert)
+{
+	uint8_t record[5 + 2];
+	size_t recordlen;
+
+	if (tls_alert_level(alert) == TLS_alert_level_fatal) {
+		error_print();
+		return -1;
+	}
+	tls_record_set_version(record, conn->version);
+	tls_record_set_alert(record, &recordlen, TLS_alert_level_warning, alert);
+	tls_record_send(record, sizeof(record), conn->sock);
+	tls_record_trace(stderr, record, sizeof(record), 0, 0);
+	return 1;
+}
+
+
+
 
 // FIXME: 设定支持的最大输入长度
 // FIXME: 没回返回实际的发送长度
@@ -1583,7 +1541,7 @@ int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen)
 		error_print();
 		return -1;
 	}
-	(void)tls_record_print(stderr, crec, clen, 0, 0);
+	tls_record_trace(stderr, crec, clen, 0, 0);
 	return 1;
 }
 
@@ -1608,14 +1566,44 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 	}
 
 	tls_trace("recv ApplicationData\n");
-	if (tls_record_recv(crec, &clen, conn->sock) != 1
-		// FIXME: 检查版本号
-		|| tls_record_decrypt(hmac_ctx, dec_key, seq_num, crec, clen, mrec, &mlen) != 1
+	if (tls_record_recv(crec, &clen, conn->sock) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (crec[0] == TLS_record_alert) {
+		int level;
+		int alert;
+
+		if (tls_record_get_alert(crec, &level, &alert) != 1) {
+			error_print();
+			return -1;
+		}
+		if (alert == TLS_alert_close_notify) {
+			if (tls_record_send(crec, clen, conn->sock) != 1) {
+				error_print();
+				return -1;
+			}
+
+		} else {
+			error_print();
+			return -1;
+		}
+
+		if (level == TLS_alert_level_fatal) {
+			tls_trace("close Connection\n");
+			return 0;
+		}
+	}
+
+
+	// FIXME: 检查版本号
+	if (tls_record_decrypt(hmac_ctx, dec_key, seq_num, crec, clen, mrec, &mlen) != 1
 		|| tls_seq_num_incr(seq_num) != 1) {
 		error_print();
 		return -1;
 	}
-	(void)tls_record_print(stderr, mrec, mlen, 0, 0);
+	tls_record_trace(stderr, mrec, mlen, 0, 0);
 	memcpy(data, mrec + 5, mlen - 5);
 	*datalen = mlen - 5;
 	return 1;
@@ -1624,7 +1612,31 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 //FIXME: any difference in TLS 1.2 and TLS 1.3?
 int tls_shutdown(TLS_CONNECT *conn)
 {
-	return -1;
+	uint8_t alert[128];
+	size_t len;
+
+	tls_record_set_version(alert, conn->version);
+	tls_record_set_alert(alert, &len, TLS_alert_level_fatal, TLS_alert_close_notify);
+
+	if (tls_record_send(alert, len, conn->sock) != 1) {
+		error_print();
+		return -1;
+	}
+
+	tls_trace("send Alert.close_notify\n");
+	tls_record_trace(stderr, alert, len, 0, 0);
+
+
+	memset(alert, 0, sizeof(alert));
+	// 这里接收实际上只是检查一下对方是否合规，不管怎么说我们都要结束了
+	if (tls_record_recv(alert, &len, conn->sock) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_trace("recv Alert.close_notify\n");
+	tls_record_trace(stderr, alert, len, 0, 0);
+
+	return 1;
 }
 
 // 参考 man verify 的错误返回值
@@ -1633,3 +1645,190 @@ int tls_get_verify_result(TLS_CONNECT *conn, int *result)
 	*result = 0;
 	return 1;
 }
+
+// 这里的输出是record，因此是有一个长度限制的
+
+int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, const uint8_t *certs, size_t certslen)
+{
+	uint8_t *out = names;
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *name;
+	size_t namelen;
+
+	*nameslen = 0;
+	while (certslen) {
+		size_t alen = 0;
+		if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1
+			|| x509_cert_get_subject(cert, certlen, &name, &namelen) != 1
+			|| asn1_sequence_to_der(name, namelen, NULL, &alen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls_uint16_size() + alen > maxlen) {
+
+			fprintf(stderr, "alen = %zu\n", alen);
+			fprintf(stderr, "maxlen = %zu\n", maxlen);
+
+			error_print();
+			return -1;
+		}
+		// 这里要兼容names == NULL的情况			
+		tls_uint16_to_bytes(alen, &out, nameslen);
+		if (asn1_sequence_to_der(name, namelen, &out, nameslen) != 1) {
+			error_print();
+			return -1;
+		}
+		maxlen -= alen;
+	}
+	return 1;
+}
+
+int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_names_len, const uint8_t *certs, size_t certslen)
+{
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *issuer;
+	size_t issuer_len;
+
+	if (x509_certs_get_last(certs, certslen, &cert, &certlen) != 1
+		|| x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1) {
+		error_print();
+		return -1;
+	}
+	while (ca_names_len) {
+		const uint8_t *p;
+		size_t len;
+		const uint8_t *name;
+		size_t namelen;
+
+		if (tls_uint16array_from_bytes(&p, &len, &ca_names, &ca_names_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (asn1_sequence_from_der(&name, &namelen, &p, &len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_name_equ(name, namelen, issuer, issuer_len) == 1) {
+			return 1;
+		}
+	}
+	error_print();
+	return 0;
+}
+
+int tls_cert_types_accepted(const uint8_t *types, size_t types_len, const uint8_t *client_certs, size_t client_certs_len)
+{
+	const uint8_t *cert;
+	size_t certlen;
+	int sig_alg;
+	size_t i;
+
+	if (x509_certs_get_cert_by_index(client_certs, client_certs_len, 0, &cert, &certlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((sig_alg = tls_cert_type_from_oid(OID_sm2sign_with_sm3)) < 0) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < types_len; i++) {
+		if (sig_alg == types[i]) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+int tls_client_verify_init(TLS_CLIENT_VERIFY_CTX *ctx)
+{
+	memset(ctx, 0, sizeof(TLS_CLIENT_VERIFY_CTX));
+	return 1;
+}
+
+int tls_client_verify_update(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *handshake, size_t handshake_len)
+{
+	uint8_t *buf;
+	if (ctx->index < 0 || ctx->index > 7) {
+		error_print();
+		return -1;
+	}
+	if (!(buf = malloc(handshake_len))) {
+		error_print();
+		return -1;
+	}
+	memcpy(buf, handshake, handshake_len);
+	ctx->handshake[ctx->index] = buf;
+	ctx->handshake_len[ctx->index] = handshake_len;
+	ctx->index++;
+	return 1;
+}
+
+int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, size_t siglen, const SM2_KEY *public_key)
+{
+	int ret;
+	SM2_SIGN_CTX sm2_ctx;
+	int i;
+
+	if (ctx->index != 8) {
+		error_print();
+		return -1;
+	}
+	if (sm2_verify_init(&sm2_ctx, public_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < 8; i++) {
+		if (sm2_verify_update(&sm2_ctx, ctx->handshake[i], ctx->handshake_len[i]) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if ((ret = sm2_verify_finish(&sm2_ctx, sig, siglen)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+void tls_client_verify_cleanup(TLS_CLIENT_VERIFY_CTX *ctx)
+{
+	int i;
+	for (i = 0; i< ctx->index; i++) {
+		if (ctx->handshake[i]) {
+			free(ctx->handshake[i]);
+			ctx->handshake[i] = NULL;
+			ctx->handshake_len[i] = 0;
+		}
+	}
+}
+
+
+int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_ciphers_len,
+	const int *server_ciphers, size_t server_ciphers_cnt,
+	int *selected_cipher)
+{
+	while (server_ciphers_cnt--) {
+		const uint8_t *p = client_ciphers;
+		size_t len = client_ciphers_len;
+		while (len) {
+			uint16_t cipher;
+			if (tls_uint16_from_bytes(&cipher, &p, &len) != 1) {
+				error_print();
+				return -1;
+			}
+			if (cipher == *server_ciphers) {
+				*selected_cipher = *server_ciphers;
+				return 1;
+			}
+		}
+		server_ciphers++;
+	}
+	return 0;
+}
+
+
+

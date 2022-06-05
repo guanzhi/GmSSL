@@ -547,6 +547,24 @@ int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 	return 1;
 }
 
+int x509_names_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_name_print(fp, fmt, ind, "Name", p, len);
+	}
+	return 1;
+}
+
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen)
 {
 	const uint8_t *rdn_d;
@@ -586,6 +604,15 @@ int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uin
 	if (ret < 0) error_print();
 	return -1;
 }
+
+int x509_name_equ(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen)
+{
+	if (alen != blen || memcmp(a, b, blen) != 0) {
+		return 0;
+	}
+	return 1;
+}
+
 
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
@@ -1407,6 +1434,21 @@ int x509_certs_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const
 	return 1;
 }
 
+int x509_certs_get_last(const uint8_t *d, size_t dlen, const uint8_t **cert, size_t *certlen)
+{
+	if (!dlen) {
+		error_print();
+		return -1;
+	}
+	while (dlen) {
+		if (x509_cert_from_der(cert, certlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
 int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen,
 	const uint8_t *subject, size_t subject_len, const uint8_t **cert, size_t *certlen)
 {
@@ -1420,7 +1462,11 @@ int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen,
 			error_print();
 			return -1;
 		}
-		if (subj_len == subject_len && memcmp(subj, subject, subj_len) == 0) {
+		if (x509_cert_get_subject(a, alen, &subj, &subj_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_name_equ(subj, subj_len, subject, subject_len) == 1) {
 			*cert = a;
 			*certlen = alen;
 			return 1;
@@ -1457,6 +1503,125 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	}
 	return 0;
 }
+
+
+int x509_certs_verify(const uint8_t *certs, size_t certslen,
+	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
+{
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *cacert;
+	size_t cacertlen;
+	const uint8_t *name;
+	size_t namelen;
+
+	*verify_result = -1;
+
+	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+		error_print();
+		return -1;
+	}
+	while (certslen) {
+		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
+			error_print();
+			return -1;
+		}
+		// 这里应该检查证书是否有效啊, 这个函数应该返回进一步的错误信息
+		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			error_print();
+			return -1;
+		}
+		cert = cacert;
+		certlen = cacertlen;
+	}
+	if (x509_cert_get_issuer(cert, certlen, &name, &namelen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen,
+		&cacert, &cacertlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
+	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
+{
+	const uint8_t *signcert;
+	size_t signcertlen;
+	int signcert_verified = 0;
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *cacert;
+	size_t cacertlen;
+	const uint8_t *name;
+	size_t namelen;
+
+	*verify_result = -1;
+
+	if (x509_cert_from_der(&signcert, &signcertlen, &certs, &certslen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+		error_print();
+		return -1;
+	}
+	// 要检查这两个证书的类型是否分别为签名和加密证书
+	// FIXME: 检查depth
+	while (certslen) {
+		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!signcert_verified) {
+			if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+				error_print();
+				return -1;
+			}
+			signcert_verified = 1;
+		}
+		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			error_print();
+			return -1;
+		}
+		cert = cacert;
+		certlen = cacertlen;
+	}
+	if (x509_cert_get_issuer(cert, certlen, &name, &namelen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen, &cacert, &cacertlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!signcert_verified) {
+		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {

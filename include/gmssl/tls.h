@@ -65,6 +65,10 @@ extern "C" {
 
 typedef uint32_t uint24_t;
 
+#define tls_uint8_size()	1
+#define tls_uint16_size()	2
+#define tls_uint24_size()	3
+
 void tls_uint8_to_bytes(uint8_t a, uint8_t **out, size_t *outlen);
 void tls_uint16_to_bytes(uint16_t a, uint8_t **out, size_t *outlen);
 void tls_uint24_to_bytes(uint24_t a, uint8_t **out, size_t *outlen);
@@ -81,14 +85,6 @@ int tls_array_from_bytes(const uint8_t **data, size_t datalen, const uint8_t **i
 int tls_uint8array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_uint16array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_uint24array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
-int tls_array_copy_from_bytes(uint8_t *data, size_t datalen, const uint8_t **in, size_t *inlen);
-int tls_uint8array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxlen, const uint8_t **in, size_t *inlen);
-int tls_uint16array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxlen, const uint8_t **in, size_t *inlen);
-int tls_uint24array_copy_from_bytes(uint8_t *data, size_t *datalen, size_t maxlen, const uint8_t **in, size_t *inlen);
-
-
-#define TLCP_VERSION_MAJOR 1
-#define TLCP_VERSION_MINOR 1
 
 
 typedef enum {
@@ -105,6 +101,10 @@ typedef enum {
 	TLS_version_dtls12	= 0xfefd, // {254, 253}
 } TLS_VERSION;
 
+const char *tls_version_text(int version);
+
+
+// 兼容GmSSL 2.5.4
 typedef enum {
 	TLS_cipher_null_with_null_null		= 0x0000,
 	TLS_cipher_sm4_gcm_sm3			= 0x00c6,
@@ -125,6 +125,7 @@ typedef enum {
 	GMSSL_cipher_ecdhe_sm2_with_sm4_gcm_sm3	= 0xe107,
 	GMSSL_cipher_ecdhe_sm2_with_sm4_ccm_sm3	= 0xe108,
 	GMSSL_cipher_ecdhe_sm2_with_zuc_sm3	= 0xe10d,
+
 	TLS_cipher_empty_renegotiation_info_scsv = 0x00ff,
 
 	// TLS 1.3 ciphers (rfc 8446 p.133)
@@ -136,15 +137,31 @@ typedef enum {
 
 } TLS_CIPHER_SUITE;
 
+const char *tls_cipher_suite_name(int cipher);
+int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_ciphers_len,
+	const int *server_ciphers, size_t server_ciphers_cnt, int *selected_cipher);
+int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count);
+
+
 typedef enum {
-	TLS_record_invalid		= 0, // TLS 1.3
-	TLS_record_change_cipher_spec	= 20,
-	TLS_record_alert		= 21,
-	TLS_record_handshake		= 22,
-	TLS_record_application_data	= 23,
-	TLS_record_heartbeat		= 24,
-	TLS_record_tls12_cid		= 25,
+	TLS_compression_null	= 0,
+	TLS_compression_default	= 1,
+} TLS_COMPRESSION_METHOD;
+
+const char *tls_compression_method_name(int meth);
+
+
+typedef enum {
+	TLS_record_invalid			= 0, // TLS 1.3
+	TLS_record_change_cipher_spec		= 20, // 0x14
+	TLS_record_alert			= 21, // 0x15
+	TLS_record_handshake			= 22, // 0x16
+	TLS_record_application_data		= 23, // 0x17
+	TLS_record_heartbeat			= 24, // 0x18
+	TLS_record_tls12_cid			= 25, // 0x19
 } TLS_RECORD_TYPE;
+
+const char *tls_record_type_name(int type);
 
 typedef enum  {
 	TLS_handshake_hello_request		= 0,
@@ -171,11 +188,11 @@ typedef enum  {
 	TLS_handshake_message_hash		= 254,
 } TLS_HANDSHAKE_TYPE;
 
-typedef enum {
-	TLS_compression_null	= 0,
-	TLS_compression_default	= 1,
-} TLS_COMPRESSION_METHOD;
+const char *tls_handshake_type_name(int type);
 
+
+
+// 这里面应该有一个和OID类型的转换
 typedef enum {
 	TLS_cert_type_rsa_sign			= 1,
 	TLS_cert_type_dss_sign			= 2,
@@ -191,6 +208,9 @@ typedef enum {
 	TLS_cert_type_gost_sign512		= 68,
 	TLS_cert_type_ibc_params		= 80,
 } TLS_CERTIFICATE_TYPE;
+
+const char *tls_cert_type_name(int type);
+int tls_cert_type_from_oid(int oid);
 
 typedef enum {
 	TLS_extension_server_name		= 0, // tls 1.3 mandatory-to-implement
@@ -252,59 +272,68 @@ typedef enum {
 	TLS_extension_renegotiation_info	= 65281,
 } TLS_EXTENSION_TYPE;
 
+
 typedef enum {
-	TLS_point_uncompressed = 0,
-	TLS_point_ansix962_compressed_prime = 1,
-	TLS_point_ansix962_compressed_char2 = 2,
+	TLS_point_uncompressed			= 0,
+	TLS_point_ansix962_compressed_prime	= 1,
+	TLS_point_ansix962_compressed_char2	= 2,
 } TLS_EC_POINT_FORMAT;
 
+const char *tls_ec_point_format_name(int format);
+
 typedef enum {
-	TLS_curve_type_explicit_prime	= 1,
-	TLS_curve_type_explicit_char2	= 2,
-	TLS_curve_type_named_curve	= 3,
+	TLS_curve_type_explicit_prime		= 1,
+	TLS_curve_type_explicit_char2		= 2,
+	TLS_curve_type_named_curve		= 3,
 } TLS_CURVE_TYPE;
 
-typedef enum {
-	TLS_curve_secp256k1		= 22,
-	TLS_curve_secp256r1		= 23,
-	TLS_curve_secp384r1		= 24,
-	TLS_curve_secp521r1		= 25,
-	TLS_curve_brainpoolp256r1	= 26,
-	TLS_curve_brainpoolp384r1	= 27,
-	TLS_curve_brainpoolp512r1	= 28,
-	TLS_curve_x25519		= 29,
-	TLS_curve_x448			= 99, //30,
-	TLS_curve_brainpoolp256r1tls13	= 31,
-	TLS_curve_brainpoolp384r1tls13	= 32,
-	TLS_curve_brainpoolp512r1tls13	= 33,
-	TLS_curve_sm2p256v1		= 30,//41, // in gmssl v2, is 30
-} TLS_NAMED_CURVE;
+const char *tls_curve_type_name(int type);
 
 typedef enum {
-	TLS_sig_rsa_pkcs1_sha1		= 0x0201,
-	TLS_sig_ecdsa_sha1		= 0x0203,
-	TLS_sig_rsa_pkcs1_sha256	= 0x0401,
-	TLS_sig_ecdsa_secp256r1_sha256	= 0x0403,
-	TLS_sig_rsa_pkcs1_sha256_legacy	= 0x0420,
-	TLS_sig_rsa_pkcs1_sha384	= 0x0501,
-	TLS_sig_ecdsa_secp384r1_sha384	= 0x0503,
-	TLS_sig_rsa_pkcs1_sha384_legacy	= 0x0520,
-	TLS_sig_rsa_pkcs1_sha512	= 0x0601,
-	TLS_sig_ecdsa_secp521r1_sha512	= 0x0603,
-	TLS_sig_rsa_pkcs1_sha512_legacy	= 0x0620,
-	TLS_sig_sm2sig_sm3		= 0x0707,//0x0708, // is 0707 in gmsslv2
-	TLS_sig_rsa_pss_rsae_sha256	= 0x0804,
-	TLS_sig_rsa_pss_rsae_sha384	= 0x0805,
-	TLS_sig_rsa_pss_rsae_sha512	= 0x0806,
-	TLS_sig_ed25519			= 0x0807,
-	TLS_sig_ed448			= 0x0808,
-	TLS_sig_rsa_pss_pss_sha256	= 0x0809,
-	TLS_sig_rsa_pss_pss_sha384	= 0x080A,
-	TLS_sig_rsa_pss_pss_sha512	= 0x080B,
+	TLS_curve_secp256k1			= 22,
+	TLS_curve_secp256r1			= 23,
+	TLS_curve_secp384r1			= 24,
+	TLS_curve_secp521r1			= 25,
+	TLS_curve_brainpoolp256r1		= 26,
+	TLS_curve_brainpoolp384r1		= 27,
+	TLS_curve_brainpoolp512r1		= 28,
+	TLS_curve_x25519			= 29,
+	TLS_curve_x448				= 99, //30,
+	TLS_curve_brainpoolp256r1tls13		= 31,
+	TLS_curve_brainpoolp384r1tls13		= 32,
+	TLS_curve_brainpoolp512r1tls13		= 33,
+	TLS_curve_sm2p256v1			= 30,//41, // in gmssl v2, is 30
+} TLS_NAMED_CURVE;
+
+const char *tls_named_curve_name(int curve);
+
+typedef enum {
+	TLS_sig_rsa_pkcs1_sha1			= 0x0201,
+	TLS_sig_ecdsa_sha1			= 0x0203,
+	TLS_sig_rsa_pkcs1_sha256		= 0x0401,
+	TLS_sig_ecdsa_secp256r1_sha256		= 0x0403,
+	TLS_sig_rsa_pkcs1_sha256_legacy		= 0x0420,
+	TLS_sig_rsa_pkcs1_sha384		= 0x0501,
+	TLS_sig_ecdsa_secp384r1_sha384		= 0x0503,
+	TLS_sig_rsa_pkcs1_sha384_legacy		= 0x0520,
+	TLS_sig_rsa_pkcs1_sha512		= 0x0601,
+	TLS_sig_ecdsa_secp521r1_sha512		= 0x0603,
+	TLS_sig_rsa_pkcs1_sha512_legacy		= 0x0620,
+	TLS_sig_sm2sig_sm3			= 0x0707,//0x0708, // is 0707 in gmsslv2
+	TLS_sig_rsa_pss_rsae_sha256		= 0x0804,
+	TLS_sig_rsa_pss_rsae_sha384		= 0x0805,
+	TLS_sig_rsa_pss_rsae_sha512		= 0x0806,
+	TLS_sig_ed25519				= 0x0807,
+	TLS_sig_ed448				= 0x0808,
+	TLS_sig_rsa_pss_pss_sha256		= 0x0809,
+	TLS_sig_rsa_pss_pss_sha384		= 0x080A,
+	TLS_sig_rsa_pss_pss_sha512		= 0x080B,
 	TLS_sig_ecdsa_brainpoolP256r1tls13_sha256 = 0x081A,
 	TLS_sig_ecdsa_brainpoolP384r1tls13_sha384 = 0x081B,
 	TLS_sig_ecdsa_brainpoolP512r1tls13_sha512 = 0x081C,
 } TLS_SIGNATURE_SCHEME;
+
+const char *tls_signature_scheme_name(int scheme);
 
 typedef enum {
 	TLS_change_cipher_spec = 1,
@@ -316,90 +345,74 @@ typedef enum {
 } TLS_ALERT_LEVEL;
 
 typedef enum {
-	TLS_alert_close_notify		= 0,
-	TLS_alert_unexpected_message	= 10,
-	TLS_alert_bad_record_mac	= 20,
-	TLS_alert_decryption_failed	= 21,
-	TLS_alert_record_overflow	= 22,
-	TLS_alert_decompression_failure	= 30,
-	TLS_alert_handshake_failure	= 40,
-	TLS_alert_no_certificate	= 41,
-	TLS_alert_bad_certificate	= 42,
-	TLS_alert_unsupported_certificate = 43,
-	TLS_alert_certificate_revoked	= 44,
-	TLS_alert_certificate_expired	= 45,
-	TLS_alert_certificate_unknown	= 46,
-	TLS_alert_illegal_parameter	= 47,
-	TLS_alert_unknown_ca		= 48,
-	TLS_alert_access_denied		= 49,
-	TLS_alert_decode_error		= 50,
-	TLS_alert_decrypt_error		= 51,
-	TLS_alert_export_restriction	= 60,
-	TLS_alert_protocol_version	= 70,
-	TLS_alert_insufficient_security	= 71,
-	TLS_alert_internal_error	= 80,
-	TLS_alert_user_canceled		= 90,
-	TLS_alert_no_renegotiation	= 100,
-	TLS_alert_unsupported_site2site	= 200,
-	TLS_alert_no_area		= 201,
-	TLS_alert_unsupported_areatype	= 202,
-	TLS_alert_bad_ibcparam		= 203,
-	TLS_alert_unsupported_ibcparam	= 204,
-	TLS_alert_identity_need		= 205,
+	TLS_alert_close_notify			= 0, // Fatal
+	TLS_alert_unexpected_message		= 10, // Fatal 和正确实现的对方交互时不应出现此错误
+	TLS_alert_bad_record_mac		= 20, // Fatal 密文Mac验证错误、CBC密文长度错误、CBC密文填充错误
+	TLS_alert_decryption_failed		= 21, // 作废
+	TLS_alert_record_overflow		= 22, // Fatal TLSCiphertext.length > 2^14 + 2048, TLSCompressed.length > 2^14 + 1024
+	TLS_alert_decompression_failure		= 30, // 本实现不支持压缩
+	TLS_alert_handshake_failure		= 40, // Fatal, 安全参数协商失败，TLCP服务器没有找到合适的套件
+	TLS_alert_no_certificate		= 41, // 作废
+	TLS_alert_bad_certificate		= 42, // Any 我们使用Fatal
+	TLS_alert_unsupported_certificate	= 43, // Any 我们使用Fatal
+	TLS_alert_certificate_revoked		= 44, // Any 我们使用Fatal
+	TLS_alert_certificate_expired		= 45, // Any 我们使用Fatal
+	TLS_alert_certificate_unknown		= 46, // Any 我们使用Fatal, 大概没有CA证书
+	TLS_alert_illegal_parameter		= 47, // Fatal, 似乎TLCP不会遇到此情况
+	TLS_alert_unknown_ca			= 48, // Fatal
+	TLS_alert_access_denied			= 49, // Fatal，？？？
+	TLS_alert_decode_error			= 50, // Fatal, 正确实现不会出现此问题，可能由网络故障导致
+	TLS_alert_decrypt_error			= 51, // Fatal, 验签失败、Finished验证失败
+	TLS_alert_export_restriction		= 60, // 作废
+	TLS_alert_protocol_version		= 70, // Fatal
+	TLS_alert_insufficient_security		= 71, // Fatal，如果客户端Ciphers均强度不足，则服务器返回此错误
+	TLS_alert_internal_error		= 80, // Fatal
+	TLS_alert_user_canceled			= 90, // Warning, 一般后面要跟一个close_notify，似乎没有必要
+	TLS_alert_no_renegotiation		= 100, // Warning，客户端收到HelloRequest, 服务器在握手后收到ClientHello
+	TLS_alert_unsupported_extension		= 110, // Fatal, 服务器ServerHello返回不在ClientHello范围内的扩展
+	TLS_alert_unsupported_site2site		= 200,
+	TLS_alert_no_area			= 201,
+	TLS_alert_unsupported_areatype		= 202,
+	TLS_alert_bad_ibcparam			= 203,
+	TLS_alert_unsupported_ibcparam		= 204,
+	TLS_alert_identity_need			= 205,
 } TLS_ALERT_DESCRIPTION;
 
+/*
+TLCP ServerCertificate
+	如果不是SM2的证书，那么返回 unsupported_certificate
+	如果证书链有问题，比如不是双证书（比如少一个加密证书），bad_certificate
+	如果证书本身验证错误 bad_certificate
+	如果证书链没有对应的ROOTCA证书，那么返回certificate_unknown
+	如果证书过期
+	如果证书作废：必须要结合CRL等
+	如果证书扩展没有通过验证，返回bad_certificate，Warning/Fatal
+*/
 
-
-
-#define TLS_RECORD_MAX_PLAINDATA_SIZE	16384 // 2^14
-#define TLS_RECORD_MAX_DATA_SIZE	18432 // 2^24 + 2048
-#define TLS_RECORD_MAX_SIZE		18437 // 5 + (2^24 + 2048)
-
-#define TLS_MAX_RECORD_SIZE		18437 // 5 + (2^24 + 2048)
-
-#define TLS_MAX_SIGNATURE_SIZE		SM2_MAX_SIGNATURE_SIZE
-
-#define TLS_MAX_EXTENSIONS_SIZE		512
-#define TLS_MAX_CERT_SIZE		1024
-#define TLS_MAX_CERTIFICATES_SIZE	2048
-#define TLS_MAX_SERVER_CERTS_SIZE	2048
-
-#define TLS_MAX_HANDSHAKES_SIZE		4096
-
-
-
-
-
-
-
-
-
+// Ciphers
 
 int tls_seq_num_incr(uint8_t seq_num[8]);
-
 
 int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
 	const uint8_t *seed, size_t seedlen,
 	const uint8_t *more, size_t morelen,
 	size_t outlen, uint8_t *out);
 
+int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
+int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
+	const char *label, const uint8_t *context, size_t context_len,
+	size_t outlen, uint8_t *out);
+int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32]);
+
+#define TLS_MAX_PADDING_SIZE	(1 + 255)
+#define TLS_MAC_SIZE		32 // 目前只支持SM3、SHA256
+
 int tls_cbc_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-
 int tls_cbc_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *dec_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-
-
-const char *tls_record_type_name(int type);
-int tls_record_version(const uint8_t *record);
-int tls_record_length(const uint8_t *record);
-
-const char *tls_version_text(int version);
-
-int tls_record_set_version(uint8_t *record, int version);
-
 
 int tls_record_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
@@ -408,153 +421,119 @@ int tls_record_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
 
-
-int tls_record_send(const uint8_t *record, size_t recordlen, int sock);
-int tls_record_recv(uint8_t *record, size_t *recordlen, int sock);
-
-
 int tls_random_generate(uint8_t random[32]);
 int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent);
+
 int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int version);
 int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], int format, int indent);
 
+int tls_secrets_print(FILE *fp,
+	const uint8_t *pre_master_secret, size_t pre_master_secret_len,
+	const uint8_t client_random[32], const uint8_t server_random[32],
+	const uint8_t master_secret[48],
+	const uint8_t *key_block, size_t key_block_len,
+	int format, int indent);
 
-int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count);
-const char *tlcp_cipher_suite_name(int cipher);
-const char *tls_cipher_suite_name(int cipher);
-const char *tls_compression_method_name(int meth);
+// Record
+
+typedef struct {
+	uint8_t type;
+	uint8_t version[2];
+	uint8_t length[2];
+} TLS_RECORD_HEADER;
+
+#define TLS_RECORD_HEADER_SIZE		5
+#define TLS_MAX_PLAINTEXT_SIZE		(1 << 14) // 2^14 = 16384
+#define TLS_MAX_COMPRESSED_SIZE		((1 << 14) + 1024) // 17408
+#define TLS_MAX_CIPHERTEXT_SIZE		((1 << 14) + 2048) // 18432
+#define TLS_MAX_RECORD_SIZE		(TLS_RECORD_HEADER_SIZE + TLS_MAX_CIPHERTEXT_SIZE) // 18437
+
+int tls_record_type(const uint8_t *record);
+int tls_record_version(const uint8_t *record);
+int tls_record_length(const uint8_t *record);
+#define tls_record_data(record)	((record)+4)
+
+int tls_record_set_type(uint8_t *record, int type);
+int tls_record_set_version(uint8_t *record, int version);
+
+// format
+//	0-7  比特表示通用输出格式
+//	8-16 比特表示密码套件 format |= (cipher_suite << 8)
+//	     因为握手消息ServerKeyExchange, ClientKeyExchange的解析依赖当前密码套件
+int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
+int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
+
+int tls_record_send(const uint8_t *record, size_t recordlen, int sock);
+int tls_record_recv(uint8_t *record, size_t *recordlen, int sock);
+int tls12_record_recv(uint8_t *record, size_t *recordlen, int sock);
 
 
+
+// Handshake
+typedef struct {
+	uint8_t type;
+	uint8_t length[3];
+} TLS_HANDSHAKE_HEADER;
+
+#define TLS_HANDSHAKE_HEADER_SIZE	4
+#define TLS_MAX_HANDSHAKE_DATA_SIZE 	(TLS_MAX_PLAINTEXT_SIZE - TLS_HANDSHAKE_HEADER_SIZE)
+
+#define tls_handshake_data(p)	((p)+5)
 int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	int type, const uint8_t *data, size_t datalen);
 int tls_record_get_handshake(const uint8_t *record,
 	int *type, const uint8_t **data, size_t *datalen);
+int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent);
 
+/*
+HelloRequest
+TLCP 服务器均不支持 HelloRequest 握手消息
+TLS 服务器
+	在握手阶段收到 HelloRequest 消息则中止握手
+	在建立连接之后收到，忽略或者同时返回一个no_renegotiation warning alert
+*/
+int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+// ClientHello, ServerHello
+#define TLS_MIN_SESSION_ID_SIZE		0
+#define TLS_MAX_SESSION_ID_SIZE		32
 
 int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 	int client_version, const uint8_t random[32],
 	const uint8_t *session_id, size_t session_id_len,
 	const int *cipher_suites, size_t cipher_suites_count,
 	const uint8_t *exts, size_t exts_len);
-
 int tls_record_get_handshake_client_hello(const uint8_t *record,
-	int *client_version, uint8_t random[32],
-	uint8_t *session_id, size_t *session_id_len,
-	int *cipher_suites, size_t *cipher_suites_count,
-	uint8_t *exts, size_t *exts_len);
-
+	int *client_version, const uint8_t **random,
+	const uint8_t **session_id, size_t *session_id_len,
+	const uint8_t **cipher_suites, size_t *cipher_suites_len,
+	const uint8_t **exts, size_t *exts_len);
 int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
 
 int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	int server_version, const uint8_t random[32],
-	const uint8_t *session_id, size_t session_id_len, int cipher_suite,
-	const uint8_t *exts, size_t exts_len);
-
+	const uint8_t *session_id, size_t session_id_len,
+	int cipher_suite, const uint8_t *exts, size_t exts_len);
 int tls_record_get_handshake_server_hello(const uint8_t *record,
-	int *version, uint8_t random[32], uint8_t *session_id, size_t *session_id_len,
-	int *cipher_suite, uint8_t *exts, size_t *exts_len);
-
+	int *version, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
+	int *cipher_suite, const uint8_t **exts, size_t *exts_len);
 int tls_server_hello_print(FILE *fp, const uint8_t *server_hello, size_t len, int format, int indent);
 
+// Extensions
+int tls_ext_signature_algors_to_bytes(const int *algors, size_t algors_count,
+	uint8_t **out, size_t *outlen);
+
+
+// Certificate
 int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 	const uint8_t *certs, size_t certslen);
-int tls_record_set_handshake_certificate_from_pem(uint8_t *record, size_t *recordlen, FILE *fp);
+// 这个函数比较特殊，是直接解析了证书链，而不是返回指针
+// 应该提供一个独立的解析函数来解析TLS的证书链
 int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen);
 
-int tls_certificate_get_subject_names(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
-int tls_certificate_get_public_keys(const uint8_t *certs, size_t certslen, SM2_KEY *sign_key, SM2_KEY *enc_key);
-int tls_certificate_print(FILE *fp, const uint8_t *certs, size_t certslen, int format, int indent);
-
-int tls_certificate_chain_verify(const uint8_t *certs, size_t certslen, FILE *ca_certs_fp, int depth);
-
-int tls_certificate_get_first(const uint8_t *data, size_t datalen, const uint8_t **cert, size_t *certlen);
-int tls_certificate_get_second(const uint8_t *data, size_t datalen, const uint8_t **cert, size_t *certlen);
-
-
-// 应该把所有TLCP协议的内容放到一起
-int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *recordlen,
-	const uint8_t *sig, size_t siglen);
-int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
-	uint8_t *sig, size_t *siglen);
-int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *sig, size_t siglen, int format, int indent);
-
-
-
+// ServerKeyExchange
 int tls_server_key_exchange_print(FILE *fp, const uint8_t *ske, size_t skelen, int format, int indent);
-const char *tls_cert_type_name(int type);
 
-
-#define TLS_MAX_CERTIFICATE_TYPES 16
-#define TLS_MAX_CA_NAMES_SIZE  256
-
-
-int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
-	const int *cert_types, size_t cert_types_count,
-	const uint8_t *ca_names, size_t ca_names_len);
-
-int tls_record_get_handshake_certificate_request(const uint8_t *record,
-	int *cert_types, size_t *cert_types_count,
-	uint8_t *ca_names, size_t *ca_names_len);
-
-
-
-int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
-int tls_record_set_handshake_server_hello_done(uint8_t *record, size_t *recordlen);
-int tls_record_get_handshake_server_hello_done(const uint8_t *record);
-int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
-
-int tls_record_set_handshake_client_key_exchange_pke(uint8_t *record, size_t *recordlen,
-	const uint8_t *enced_pms, size_t enced_pms_len);
-int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
-	uint8_t *enced_pms, size_t *enced_pms_len);
-int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
-int tls_client_key_exchange_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
-int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
-	const uint8_t *sig, size_t siglen);
-int tls_record_get_handshake_certificate_verify(const uint8_t *record,
-	uint8_t *sig, size_t *siglen);
-int tls_certificate_verify_print(FILE *fp, const uint8_t *p, size_t len, int format, int indent);
-
-int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
-	const uint8_t verify_data[12]);
-int tls_record_get_handshake_finished(const uint8_t *record, uint8_t verify_data[12]);
-int tls_finished_print(FILE *fp, const uint8_t *a, size_t len, int format, int indent);
-const char *tls_handshake_type_name(int type);
-int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent);
-
-
-const char *tls_alert_level_name(int level);
-const char *tls_alert_description_text(int description);
-int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
-
-
-int tls_record_set_alert(uint8_t *record, size_t *recordlen,
-	int alert_level,
-	int alert_description);
-int tls_record_get_alert(const uint8_t *record,
-	int *alert_level,
-	int *alert_description);
-
-const char *tls_change_cipher_spec_text(int change_cipher_spec);
-int tls_record_set_change_cipher_spec(uint8_t *record, size_t *recordlen);
-int tls_record_get_change_cipher_spec(const uint8_t *record);
-int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
-
-int tls_record_set_application_data(uint8_t *record, size_t *recordlen,
-	const uint8_t *data, size_t datalen);
-int tls_record_get_application_data(uint8_t *record,
-	const uint8_t **data, size_t *datalen);
-int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
-
-
-int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
-
-
-
-const char *tls_ec_point_format_name(int format);
-const char *tls_curve_type_name(int type);
-const char *tls_named_curve_name(int curve);
-const char *tls_signature_scheme_name(int scheme);
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
 	int curve, const SM2_POINT *point, uint8_t *sig, size_t *siglen);
@@ -567,19 +546,124 @@ int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 	int *curve, SM2_POINT *point, uint8_t *sig, size_t *siglen);
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
+
+int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *recordlen,
+	const uint8_t *sig, size_t siglen);
+int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
+	const uint8_t **sig, size_t *siglen);
+int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *sig, size_t siglen, int format, int indent);
+
+
+
+// CertificateRequest
+#define TLS_MAX_CERTIFICATE_TYPES 16
+#define TLS_MAX_CA_NAMES_SIZE  512
+
+int tls_authorities_from_certs(uint8_t *ca_names, size_t *ca_names_len, size_t maxlen, const uint8_t *certs, size_t certslen);
+int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_namelen, const uint8_t *certs, size_t certslen);
+int tls_cert_types_accepted(const uint8_t *types, size_t types_len, const uint8_t *client_certs, size_t client_certs_len);
+
+int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
+	const uint8_t *cert_types, size_t cert_types_len,
+	const uint8_t *ca_names, size_t ca_names_len);
+int tls_record_get_handshake_certificate_request(const uint8_t *record,
+	const uint8_t **cert_types, size_t *cert_types_len,
+	const uint8_t **ca_names, size_t *ca_names_len);
+int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+
+// ServerHelloDone
+int tls_record_set_handshake_server_hello_done(uint8_t *record, size_t *recordlen);
+int tls_record_get_handshake_server_hello_done(const uint8_t *record);
+int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+// ClientKeyExchange
+int tls_record_set_handshake_client_key_exchange_pke(uint8_t *record, size_t *recordlen,
+	const uint8_t *enced_pms, size_t enced_pms_len);
+int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
+	const uint8_t **enced_pms, size_t *enced_pms_len);
+int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
+int tls_client_key_exchange_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
+
 int tls_record_set_handshake_client_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
 	const SM2_POINT *point);
 int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_POINT *point);
 int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
 
+// CertificateVerify
+int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
+	const uint8_t *sig, size_t siglen);
+int tls_record_get_handshake_certificate_verify(const uint8_t *record,
+	const uint8_t **sig, size_t *siglen);
+int tls_certificate_verify_print(FILE *fp, const uint8_t *p, size_t len, int format, int indent);
 
-int tls12_record_recv(uint8_t *record, size_t *recordlen, int sock);
+typedef enum {
+	TLS_client_verify_client_hello		= 0,
+	TLS_client_verify_server_hello		= 1,
+	TLS_client_verify_server_certificate	= 2,
+	TLS_client_verify_server_key_exchange	= 3,
+	TLS_client_verify_cert_request		= 4,
+	TLS_client_verify_server_hello_done	= 5,
+	TLS_client_verify_client_certificate	= 6,
+	TLS_client_verify_client_key_exchange	= 7,
+} TLS_CLIENT_VERIFY_INDEX;
+
+typedef struct {
+	TLS_CLIENT_VERIFY_INDEX index;
+	uint8_t *handshake[8]; // Record data only, no record header
+	size_t handshake_len[8];
+} TLS_CLIENT_VERIFY_CTX;
+
+int tls_client_verify_init(TLS_CLIENT_VERIFY_CTX *ctx);
+int tls_client_verify_update(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *handshake, size_t handshake_len);
+int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, size_t siglen, const SM2_KEY *public_key);
+void tls_client_verify_cleanup(TLS_CLIENT_VERIFY_CTX *ctx);
+
+// Finished
+#define TLS_VERIFY_DATA_SIZE 12 // TLS 1.3或者其他版本支持更长的verify_data
+#define TLS_FINISHED_RECORD_SIZE	(TLS_RECORD_HEADER_SIZE + TLS_HANDSHAKE_HEADER_SIZE + TLS_VERIFY_DATA_SIZE) // 21
+#define TLS_FINISHED_RECORD_BUF_SIZE	(TLS_FINISHED_RECORD_SIZE + TLS_MAC_SIZE + TLS_MAX_PADDING_SIZE) // 309
+
+int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
+	const uint8_t *verify_data, size_t verify_data_len);
+int tls_record_get_handshake_finished(const uint8_t *record,
+	const uint8_t **verify_data, size_t *verify_data_len);
+int tls_finished_print(FILE *fp, const uint8_t *a, size_t len, int format, int indent);
 
 
+// Alert
+typedef struct {
+	uint8_t level;
+	uint8_t description;
+} TLS_ALERT;
+
+#define TLS_ALERT_RECORD_SIZE (TLS_RECORD_HEADER_SIZE + 2)
+
+const char *tls_alert_level_name(int level);
+const char *tls_alert_description_text(int description);
+int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+int tls_record_set_alert(uint8_t *record, size_t *recordlen, int alert_level, int alert_description);
+int tls_record_get_alert(const uint8_t *record, int *alert_level, int *alert_description);
 
 
+// ChangeCipherSpec
+typedef struct {
+	uint8_t type;
+} TLS_CHANGE_CIPHER_SPEC;
 
+const char *tls_change_cipher_spec_text(int change_cipher_spec);
+int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_record_set_change_cipher_spec(uint8_t *record, size_t *recordlen);
+int tls_record_get_change_cipher_spec(const uint8_t *record);
+
+// ApplicationData
+int tls_record_set_application_data(uint8_t *record, size_t *recordlen,
+	const uint8_t *data, size_t datalen);
+int tls_record_get_application_data(uint8_t *record,
+	const uint8_t **data, size_t *datalen);
+int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
 
 
 
@@ -607,22 +691,7 @@ int tls_ctx_set_shutdown_mode(TLS_CTX *ctx, int mode);
 
 
 
-
-
-
-
-typedef struct {
-	int version;
-	int cipher_suite;
-	uint8_t session_id[32];
-	size_t session_id_len;
-	uint8_t peer_certs[1600];
-	size_t peer_certs_len;
-	uint8_t master_secret[48];
-	int client_cert_verify_result;
-	time_t start_time;
-	int timeout_secs;
-} TLS_SESSION;
+#define TLS_MAX_CERTIFICATES_SIZE	2048
 
 typedef struct {
 	int sock;
@@ -632,12 +701,17 @@ typedef struct {
 	int cipher_suite;
 	uint8_t session_id[32];
 	size_t session_id_len;
-	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; //
+	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; // 动态的可能会好一点
 	size_t server_certs_len;
 	uint8_t client_certs[TLS_MAX_CERTIFICATES_SIZE];
 	size_t client_certs_len;
+	uint8_t ca_certs[2048];
+	size_t ca_certs_len;
+
 	int client_cert_verify_result;
+
 	uint8_t master_secret[48];
+	uint8_t key_block[96];
 
 	SM3_HMAC_CTX client_write_mac_ctx;
 	SM3_HMAC_CTX server_write_mac_ctx;
@@ -646,17 +720,12 @@ typedef struct {
 	uint8_t client_seq_num[8];
 	uint8_t server_seq_num[8];
 
-	uint8_t key_block[96]; // 这个似乎不应该放在这里
+	// 这个有点问题，我们暂时还是不支持
 	BLOCK_CIPHER_KEY client_write_key; // used in tls13.c
 	BLOCK_CIPHER_KEY server_write_key; // used in tls13.c
-	uint8_t client_write_iv[12]; // 同样
-	uint8_t server_write_iv[12];
+	uint8_t client_write_iv[12]; // tls13
+	uint8_t server_write_iv[12]; // tls13
 
-	uint8_t record[TLS_MAX_RECORD_SIZE];
-	uint8_t handshakes[TLS_MAX_HANDSHAKES_SIZE];
-	size_t handshakes_len;
-
-	int do_trace;
 } TLS_CONNECT;
 
 
@@ -664,12 +733,10 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx);
 int tls_set_fd(TLS_CONNECT *conn, int sock);
 int tls_get_verify_result(TLS_CONNECT *conn, int *result);
 
+int tls_send_alert (TLS_CONNECT *conn, int alert);
+int tls_send_warning(TLS_CONNECT *conn, int alert);
 
 
-
-
-
-// 客户端证书应该是预置的
 int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
 
@@ -677,60 +744,37 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	FILE *server_certs_fp, const SM2_KEY *server_sign_key, const SM2_KEY *server_enc_key,
 	FILE *client_cacerts_fp, uint8_t *client_cert_verify_buf, size_t client_cert_verify_buflen);
 
-
-int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
-int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen); // 发送、接收的数据量以单独的接口提供
-
-
-
-
 int tls12_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
-
 int tls12_accept(TLS_CONNECT *conn, int port,
 	FILE *certs_fp, const SM2_KEY *server_sign_key,
 	FILE *client_cacerts_fp, uint8_t *handshakes_buf, size_t handshakes_buflen);
 
-
-
-
-
 int tls13_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key);
-
-
 int tls13_accept(TLS_CONNECT *conn, int port,
 	FILE *certs_fp, const SM2_KEY *server_sign_key,
 	FILE *client_cacerts_fp);
 
-
-int tls_secrets_print(FILE *fp,
-	const uint8_t *pre_master_secret, size_t pre_master_secret_len,
-	const uint8_t client_random[32], const uint8_t server_random[32],
-	const uint8_t master_secret[48],
-	const uint8_t *key_block, size_t key_block_len,
-	int format, int indent);
-
-
-int tls_ext_signature_algors_to_bytes(const int *algors, size_t algors_count,
-	uint8_t **out, size_t *outlen);
+int tls_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
+int tls_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen);
 
 int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t padding_len);
 int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen);
 
-
-int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
-int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
-	const char *label, const uint8_t *context, size_t context_len,
-	size_t outlen, uint8_t *out);
-int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32]);
-
-
-
 int tls_shutdown(TLS_CONNECT *conn);
 
 
-#define tls_trace printf
+
+#if 1
+#define tls_trace(s) fprintf(stderr,(s))
+#define tls_record_trace(fp,rec,reclen,fmt,ind)  tls_record_print(fp,rec,reclen,fmt,ind)
+#define tlcp_record_trace(fp,rec,reclen,fmt,ind)  tlcp_record_print(fp,rec,reclen,fmt,ind)
+#else
+#define tls_trace(s)
+#define tls_record_trace(fp,rec,reclen,fmt,ind)
+#define tlcp_record_trace(fp,rec,reclen,fmt,ind)
+#endif
 
 
 #ifdef  __cplusplus

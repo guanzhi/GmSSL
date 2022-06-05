@@ -63,8 +63,8 @@ add_library(
 	src/sm9_lib.c
 	src/tlcp.c
 	src/tls.c
-	src/tls12.c
-	src/tls13.c
+#	src/tls12.c
+#	src/tls13.c
 	src/tls_trace.c
 	src/version.c
 	src/x509_alg.c
@@ -122,11 +122,6 @@ add_executable(
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c
-	tools/cmsdecrypt.c
-	tools/cmsencrypt.c
-	tools/cmsparse.c
-	tools/cmssign.c
-	tools/cmsverify.c
 	tools/crlparse.c
 	tools/crlverify.c
 	tools/cmssign.c
@@ -140,10 +135,10 @@ add_executable(
 	tools/reqsign.c
 	tools/tlcp_client.c
 	tools/tlcp_server.c
-	tools/tls12_client.c
-	tools/tls12_server.c
-	tools/tls13_client.c
-	tools/tls13_server.c
+#	tools/tls12_client.c
+#	tools/tls12_server.c
+#	tools/tls13_client.c
+#	tools/tls13_server.c
 	tools/sdfutil.c
 	tools/skfutil.c
 )
@@ -260,8 +255,8 @@ target_link_libraries (x509_crltest LINK_PUBLIC gmssl)
 add_executable(zuctest tests/zuctest.c)
 target_link_libraries (zuctest LINK_PUBLIC gmssl)
 
-add_executable(tlstest tests/tlstest.c)
-target_link_libraries (tlstest LINK_PUBLIC gmssl)
+#add_executable(tlstest tests/tlstest.c)
+#target_link_libraries (tlstest LINK_PUBLIC gmssl)
 
 
 enable_testing()
@@ -294,7 +289,7 @@ add_test(NAME sm2		COMMAND sm2test)
 add_test(NAME sm3		COMMAND sm3test)
 add_test(NAME sm4		COMMAND sm4test)
 add_test(NAME sm9		COMMAND sm9test)
-add_test(NAME tls		COMMAND tlstest)
+#add_test(NAME tls		COMMAND tlstest)
 add_test(NAME x509		COMMAND x509test)
 add_test(NAME x509_oid		COMMAND x509_oidtest)
 add_test(NAME x509_alg		COMMAND x509_algtest)

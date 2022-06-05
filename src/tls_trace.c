@@ -222,7 +222,7 @@ const char *tls_alert_level_name(int level)
 	case TLS_alert_level_warning: return "warning";
 	case TLS_alert_level_fatal: return "fatal";
 	}
-	error_print_msg("unknown alert level %d", level);
+	error_print_msg("unknown alert level %d\n", level);
 	return NULL;
 }
 
@@ -253,6 +253,7 @@ const char *tls_alert_description_text(int description)
 	case TLS_alert_internal_error: return "internal_error";
 	case TLS_alert_user_canceled: return "user_canceled";
 	case TLS_alert_no_renegotiation: return "no_renegotiation";
+	case TLS_alert_unsupported_extension: return "unsupported_extension";
 	case TLS_alert_unsupported_site2site: return "unsupported_site2site";
 	case TLS_alert_no_area: return "no_area";
 	case TLS_alert_unsupported_areatype: return "unsupported_areatype";
@@ -468,6 +469,17 @@ int tls_extensions_print(FILE *fp, const uint8_t *exts, size_t extslen, int form
 	return 1;
 }
 
+int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+{
+	format_print(fp, format, indent, "HelloRequest\n");
+	indent += 4;
+	if (data || datalen > 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	int ret = -1;
@@ -580,22 +592,6 @@ int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int for
 	return 1;
 }
 
-int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
-{
-	const uint8_t *sig = data;
-	size_t siglen = datalen;
-	/*
-	if (tls_uint16array_from_bytes(&sig, &siglen, &data, &datalen) != 1
-		|| datalen > 0) {
-		error_print();
-	}
-	*/
-	format_print(fp, format, indent, "ServerKeyExchange\n");
-	indent += 4;
-	format_bytes(fp, format, indent, "signature", sig, siglen);
-	return 1;
-}
-
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent)
 {
@@ -675,6 +671,32 @@ int tls_server_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 	return 1;
 }
 
+int tls_certificate_subjects_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *a;
+	size_t alen;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		const uint8_t *name;
+		size_t namelen;
+
+		if (tls_uint16array_from_bytes(&a, &alen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (asn1_sequence_from_der(&name, &namelen, &a, &alen) != 1
+			|| asn1_length_is_zero(alen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_name_print(fp, fmt, ind, "DistinguishedName", name, namelen);
+	}
+	return 1;
+}
+
 int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	const uint8_t *cert_types;
@@ -688,7 +710,8 @@ int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen,
 		format_print(fp, format, indent + 4, "%s\n", tls_cert_type_name(*cert_types++));
 	}
 	if (tls_uint16array_from_bytes(&ca_names, &ca_names_len, &data, &datalen) != 1) goto bad;
-	format_bytes(fp, format, indent, "CAnames", ca_names, ca_names_len);
+	tls_certificate_subjects_print(fp, format, indent, "CAnames", ca_names, ca_names_len);
+
 	return 1;
 bad:
 	error_print();
@@ -806,6 +829,9 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 		return -1;
 	}
 	switch (type) {
+	case TLS_handshake_hello_request:
+		if (tls_hello_request_print(fp, data, datalen, format, indent) != 1)
+			{ error_print(); return -1; } break;
 	case TLS_handshake_client_hello:
 		if (tls_client_hello_print(fp, data, datalen, format, indent) != 1)
 			{ error_print(); return -1; } break;
@@ -871,6 +897,8 @@ int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, in
 	return 1;
 }
 
+// 当消息为ClientKeyExchange,ServerKeyExchange，需要密码套件中的密钥交换算法信息
+// 当消息为加密的Finished，记录类型为Handshake，但是记录负载数据中没有Handshake头
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
 {
 	const uint8_t *data;
@@ -889,6 +917,13 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 
 	data = record + 5;
 	datalen = recordlen - 5;
+
+	// 最高字节设置后强制打印记录原始数据
+	if (format >> 24) {
+		format_bytes(fp, format, indent, "Data", data, datalen);
+		fprintf(fp, "\n");
+		return 1;
+	}
 
 	switch (record[0]) {
 	case TLS_record_handshake:

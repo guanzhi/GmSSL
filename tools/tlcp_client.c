@@ -74,6 +74,9 @@ int tlcp_client_main(int argc, char *argv[])
 	char buf[100] = {0};
 	size_t len = sizeof(buf);
 
+	char send_buf[1024] = {0};
+	size_t send_len;
+
 	char *file;
 
 	FILE *cacertfp = NULL;
@@ -159,25 +162,40 @@ bad:
 		return -1;
 	}
 
-
-	// 这个client 发收了一个消息就结束了
-	if (tls_send(&conn, (uint8_t *)"12345\n", 6) != 1) {
-		error_print();
-		return -1;
-	}
-
 	for (;;) {
-		memset(buf, 0, sizeof(buf));
-		len = sizeof(buf);
-		if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
+
+		memset(send_buf, 0, sizeof(send_buf));
+
+		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+			if (feof(stdin)) {
+				tls_shutdown(&conn);
+				goto end;
+			} else {
+				continue;
+			}
+		}
+
+		if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf)) != 1) {
 			error_print();
 			return -1;
 		}
-		if (len > 0) {
-			printf("%s\n", buf);
-			break;
+
+		for (;;) {
+			memset(buf, 0, sizeof(buf));
+			len = sizeof(buf);
+			if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
+				error_print();
+				return -1;
+			}
+			if (len > 0) {
+				printf("%s\n", buf);
+				break;
+			}
 		}
+
 	}
 
+
+end:
 	return 0;
 }

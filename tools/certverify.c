@@ -53,30 +53,7 @@
 #include <gmssl/x509.h>
 
 
-// 这里面我们想支持证书链的验证
-// 首先输入的应该是一个证书链
-// 需要兼容TLCP的双证书证书链
-// 验证完之后，最后一个证书需要由一个ROOTCA证书来验证
-
-/*
-
-首先从证书链中读取第一个证书，如果没有读取到证书就失败了
-
-从证书链中尝试读取一个证书，如果没有读取到，这个就结束了
-如果读取到，存放在CA证书中
-验证证书
-将CA证书copy到被验证证书缓冲中
-
-从证书链中读取一个证书，如果没有读取到，就技术了
-如果读取到，存在在CA证书中
-验证证书
-将CA证书copy到被验证证书缓冲中
-
-*/
-
-
-
-static const char *options = "[-in pem] -cacert pem\n";
+static const char *options = "-in pem [-double_certs] -cacert pem\n";
 
 int certverify_main(int argc, char **argv)
 {
@@ -88,11 +65,16 @@ int certverify_main(int argc, char **argv)
 	FILE *cacertfp = NULL;
 	uint8_t cert[1024];
 	size_t certlen;
-	const uint8_t *subject;
-	size_t subject_len;
 	uint8_t cacert[1024];
 	size_t cacertlen;
-	char *signer_id = SM2_DEFAULT_ID;
+	const uint8_t *subject;
+	size_t subject_len;
+	const uint8_t *subj;
+	size_t subj_len;
+
+	int double_certs = 0;
+	uint8_t enc_cert[1024];
+	size_t enc_cert_len;
 	int rv;
 
 	argc--;
@@ -115,6 +97,8 @@ int certverify_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-double_certs")) {
+			double_certs = 1;
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -122,9 +106,6 @@ int certverify_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-id")) {
-			if (--argc < 1) goto bad;
-			signer_id = *(++argv);
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
@@ -137,19 +118,37 @@ bad:
 		argv++;
 	}
 
+
+	if (!infile) {
+		fprintf(stderr, "%s: '-in' option required\n", prog);
+		goto end;
+	}
 	if (!cacertfile) {
 		fprintf(stderr, "%s: '-cacert' option required\n", prog);
 		goto end;
 	}
 
-	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), infp) != 1) {
+	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), infp) != 1
+		|| x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
 		fprintf(stderr, "%s: read certificate failure\n", prog);
 		goto end;
 	}
-	if (x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
-		goto end;
-	}
 	x509_name_print(stdout, 0, 0, "Certificate", subject, subject_len);
+
+	if (double_certs) {
+
+		if (x509_cert_from_pem(enc_cert, &enc_cert_len, sizeof(enc_cert), infp) != 1
+			|| x509_cert_get_subject(enc_cert, enc_cert_len, &subj, &subj_len) != 1) {
+			fprintf(stderr, "%s: read encryption certficate failure\n", prog);
+			goto end;
+		}
+
+		if (subj_len != subject_len
+			|| memcmp(subject, subj, subj_len) != 0) {
+			fprintf(stderr, "%s: double certificates not compatible\n", prog);
+			goto end;
+		}
+	}
 
 	for (;;) {
 		if ((rv = x509_cert_from_pem(cacert, &cacertlen, sizeof(cacert), infp)) != 1) {
@@ -159,13 +158,24 @@ bad:
 		if (x509_cert_get_subject(cacert, cacertlen, &subject, &subject_len) != 1) {
 			goto end;
 		}
-		x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
 
 		if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
 			fprintf(stderr, "%s: inner error\n", prog);
 			goto end;
 		}
 		printf("Verification %s\n", rv ? "success" : "failure");
+
+		if (double_certs) {
+			x509_name_print(stdout, 0, 0, "Certificate", subj, subj_len);
+
+			if ((rv = x509_cert_verify_by_ca_cert(enc_cert, enc_cert_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+				fprintf(stderr, "%s: inner error\n", prog);
+				goto end;
+			}
+			printf("Verification %s\n", rv ? "success" : "failure");
+			double_certs = 0;
+		}
+		x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
 
 		memcpy(cert, cacert, cacertlen);
 		certlen = cacertlen;
@@ -180,12 +190,21 @@ final:
 		fprintf(stderr, "%s: load CA certificate failure\n", prog);
 		goto end;
 	}
-	x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
 	if ((rv = x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}
 	printf("Verification %s\n", rv ? "success" : "failure");
+	x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
+
+	if (double_certs) {
+		if ((rv = x509_cert_verify_by_ca_cert(enc_cert, enc_cert_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+		printf("Verification %s\n", rv ? "success" : "failure");
+	}
+
 	ret = 0;
 end:
 	if (infile && infp) fclose(infp);
