@@ -1016,6 +1016,9 @@ int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const 
 	size_t len;
 	int val;
 
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_tbs_cert_print(fp, fmt, ind, "tbsCertificate", p, len);
 	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
@@ -1640,3 +1643,65 @@ int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_
 	}
 	return 1;
 }
+
+#include <errno.h>
+#include <sys/stat.h>
+
+int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file)
+{
+	int ret = -1;
+	FILE *fp = NULL;
+	struct stat st;
+	uint8_t *buf = NULL;
+	size_t buflen;
+
+	if (!(fp = fopen(file, "r"))
+		|| fstat(fileno(fp), &st) < 0
+		|| (buflen = (st.st_size * 3)/4 + 1) < 0
+		|| (buf = malloc((st.st_size * 3)/4 + 1)) == NULL) {
+		error_print();
+		goto end;
+	}
+	if (x509_cert_from_pem(buf, outlen, buflen, fp) != 1) {
+		error_print();
+		goto end;
+	}
+	*out = buf;
+	buf = NULL;
+	ret = 1;
+end:
+	if (fp) fclose(fp);
+	if (buf) free(buf);
+	return ret;
+}
+
+int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file)
+{
+	int ret = -1;
+	FILE *fp = NULL;
+	struct stat st;
+	uint8_t *buf = NULL;
+	size_t buflen;
+
+	if (!(fp = fopen(file, "r"))
+		|| fstat(fileno(fp), &st) < 0
+		|| (buflen = (st.st_size * 3)/4 + 1) < 0
+		|| (buf = malloc((st.st_size * 3)/4 + 1)) == NULL) {
+		error_print();
+		goto end;
+	}
+	if (x509_certs_from_pem(buf, outlen, buflen, fp) != 1) {
+		error_print();
+		goto end;
+	}
+	*out = buf;
+	buf = NULL;
+	ret = 1;
+end:
+	if (fp) fclose(fp);
+	if (buf) free(buf);
+	return ret;
+}
+
+
+

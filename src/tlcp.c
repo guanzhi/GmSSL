@@ -159,11 +159,10 @@ int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t dat
 	return 1;
 }
 
-int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
-	FILE *ca_certs_fp, FILE *client_certs_fp, const SM2_KEY *client_sign_key)
+int tlcp_do_connect(TLS_CONNECT *conn)
 {
 	int ret = -1;
-	uint8_t record[TLS_MAX_RECORD_SIZE];
+	uint8_t *record = conn->record;
 	uint8_t finished_record[TLS_FINISHED_RECORD_BUF_SIZE];
 	size_t recordlen, finished_record_len;
 
@@ -205,29 +204,6 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	int alert = 0;
 	int verify_result;
 
-	struct sockaddr_in server;
-
-
-	memset(conn, 0, sizeof(*conn));
-	conn->is_client = 1;
-
-	// 设置CA证书（和客户端证书）
-	if (ca_certs_fp) {
-		if (x509_certs_from_pem(conn->ca_certs, &conn->ca_certs_len, 2048, ca_certs_fp) != 1) {
-			error_print();
-			goto end;
-		}
-	}
-	if (client_sign_key) {
-		if (!client_certs_fp) {
-			error_print();
-			goto end;
-		}
-		if (x509_certs_from_pem(conn->client_certs, &conn->client_certs_len, 2048, client_certs_fp) != 1) {
-			error_print();
-			goto end;
-		}
-	}
 
 	// 初始化记录缓冲
 	tls_record_set_version(record, TLS_version_tlcp);
@@ -235,21 +211,8 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 
 	// 准备Finished Context（和ClientVerify）
 	sm3_init(&sm3_ctx);
-	if (client_sign_key)
-		sm2_sign_init(&sign_ctx, client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
-
-	// 设置Socket
-	server.sin_addr.s_addr = inet_addr(hostname);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
-	if ((conn->sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		error_print();
-		goto end;
-	}
-	if (connect(conn->sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
-		error_print();
-		goto end;
-	}
+	if (conn->client_certs_len)
+		sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 
 
 	// send ClientHello
@@ -267,7 +230,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_sign_key)
+	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// recv ServerHello
@@ -309,7 +272,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	memcpy(conn->session_id, session_id, session_id_len);
 	conn->cipher_suite = cipher_suite;
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_sign_key)
+	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// recv ServerCertificate
@@ -321,6 +284,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		goto end;
 	}
 	tlcp_record_trace(stderr, record, recordlen, 0, 0);
+
 	if (tls_record_get_handshake_certificate(record,
 		conn->server_certs, &conn->server_certs_len) != 1) {
 		error_print();
@@ -328,7 +292,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_sign_key)
+	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerCertificate
@@ -354,7 +318,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_sign_key)
+	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerKeyExchange
@@ -406,7 +370,7 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 			tls_send_alert(conn, TLS_alert_unexpected_message);
 			goto end;
 		}
-		if(!client_sign_key) {
+		if(!conn->client_certs_len) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			goto end;
@@ -428,7 +392,10 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 			goto end;
 		}
 	} else {
-		client_sign_key = NULL;
+		// 这个得处理一下
+		conn->client_certs_len = 0;
+		gmssl_secure_clear(&conn->sign_key, sizeof(SM2_KEY));
+		//client_sign_key = NULL;
 	}
 	tls_trace("recv ServerHelloDone\n");
 	tlcp_record_trace(stderr, record, recordlen, 0, 0);
@@ -438,11 +405,11 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_sign_key)
+	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// send ClientCertificate
-	if (client_sign_key) {
+	if (conn->client_certs_len) {
 		tls_trace("send ClientCertificate\n");
 		if (tls_record_set_handshake_certificate(record, &recordlen, conn->client_certs, conn->client_certs_len) != 1) {
 			error_print();
@@ -475,15 +442,12 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_encrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_decrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
-	/*
-	format_bytes(stderr, 0, 4, "PRE_MASTER_SECRET", pre_master_secret, 48);
-	format_bytes(stderr, 0, 4, "MASTER_SECRET", conn->master_secret, 48);
-	format_bytes(stderr, 0, 4, "CLIENT_WRITE_MAC_KEY", conn->key_block, 32);
-	format_bytes(stderr, 0, 4, "SERVER_WRITE_MAC_KEY", conn->key_block + 32, 32);
-	format_bytes(stderr, 0, 4, "CLIENT_WRITE_ENC_KEY", conn->key_block + 64, 16);
-	format_bytes(stderr, 0, 4, "SERVER_WRITE_ENC_KEY", conn->key_block + 80, 16);
-	format_print(stderr, 0, 0, "\n");
-	*/
+	tls_secrets_print(stderr,
+		pre_master_secret, 48,
+		client_random, server_random,
+		conn->master_secret,
+		conn->key_block, 96,
+		0, 4);
 
 	// send ClientKeyExchange
 	tls_trace("send ClientKeyExchange\n");
@@ -501,11 +465,11 @@ int tlcp_connect(TLS_CONNECT *conn, const char *hostname, int port,
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_sign_key)
+	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// send CertificateVerify
-	if (client_sign_key) {
+	if (conn->client_certs_len) {
 		tls_trace("send CertificateVerify\n");
 		uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
 		if (sm2_sign_finish(&sign_ctx, sigbuf, &siglen) != 1
@@ -639,21 +603,13 @@ end:
 	return 1;
 }
 
-
-int tlcp_accept(TLS_CONNECT *conn, int port,
-	FILE *certs_fp, const SM2_KEY *server_sign_key, const SM2_KEY *server_enc_key,
-	FILE *client_cacerts_fp, uint8_t *handshakes_buf, size_t handshakes_buflen)
+int tlcp_do_accept(TLS_CONNECT *conn)
 {
 	int ret = -1;
 
-	int sock;
-	struct sockaddr_in server_addr;
-	struct sockaddr_in client_addr;
-	socklen_t client_addrlen;
-
 	int client_verify = 0;
 
-	uint8_t record[TLS_MAX_RECORD_SIZE];
+	uint8_t *record = conn->record;
 	uint8_t finished_record[TLS_FINISHED_RECORD_BUF_SIZE]; // 解密可能导致前面的record被覆盖
 	size_t recordlen, finished_record_len;
 	const int server_ciphers[] = { TLCP_cipher_ecc_sm4_cbc_sm3 }; // 未来应该支持GCM/CBC两个套件
@@ -704,51 +660,9 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	size_t len;
 
 
-
-	memset(conn, 0, sizeof(*conn));
-
-
-
-	// 设置服务器证书（客户端验证CA证书）
-	if (!certs_fp || !server_sign_key || !server_enc_key) {
-		error_print();
-		goto end;
-	}
-	if (x509_certs_from_pem(conn->server_certs, &conn->server_certs_len, 2048, certs_fp) != 1) {
-		error_print();
-		goto end;
-	}
-	if (client_cacerts_fp) {
-		if (x509_certs_from_pem(conn->ca_certs, &conn->ca_certs_len, 2048, client_cacerts_fp) != 1) {
-			error_print();
-			goto end;
-		}
+	// 服务器端如果设置了CA
+	if (conn->ca_certs_len)
 		client_verify = 1;
-	}
-
-	// Socket
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		error_print();
-		goto end;
-	}
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(port);
-	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		error_print();
-		perror("tlcp_accept: bind: ");
-		goto end;
-	}
-	puts("start listen ...\n");
-	listen(sock, 5);
-
-	client_addrlen = sizeof(client_addr);
-	if ((conn->sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
-		error_print();
-		goto end;
-	}
-	puts("socket connected\n");
-
 
 	// 初始化Finished和客户端验证环境
 	sm3_init(&sm3_ctx);
@@ -846,7 +760,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	}
 	p = server_enc_cert_lenbuf; len = 0;
 	tls_uint24_to_bytes(server_enc_cert_len, &p, &len);
-	if (sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+	if (sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_sign_update(&sign_ctx, client_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_enc_cert_lenbuf, 3) != 1
@@ -910,7 +824,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 	// recv ClientCertificate
-	if (client_cacerts_fp) {
+	if (conn->ca_certs_len) {
 		tls_trace("recv ClientCertificate\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_version(record) != TLS_version_tlcp) {
@@ -948,7 +862,7 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	if (sm2_decrypt(server_enc_key, enced_pms, enced_pms_len,
+	if (sm2_decrypt(&conn->kenc_key, enced_pms, enced_pms_len,
 		pre_master_secret, &pre_master_secret_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_decrypt_error);
@@ -1008,15 +922,12 @@ int tlcp_accept(TLS_CONNECT *conn, int port,
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_decrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_encrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
-	/*
-	format_bytes(stderr, 0, 4, "PRE_MASTER_SECRET", pre_master_secret, 48);
-	format_bytes(stderr, 0, 4, "MASTER_SECRET", conn->master_secret, 48);
-	format_bytes(stderr, 0, 4, "CLIENT_WRITE_MAC_KEY", conn->key_block, 32);
-	format_bytes(stderr, 0, 4, "SERVER_WRITE_MAC_KEY", conn->key_block + 32, 32);
-	format_bytes(stderr, 0, 4, "CLIENT_WRITE_ENC_KEY", conn->key_block + 64, 16);
-	format_bytes(stderr, 0, 4, "SERVER_WRITE_ENC_KEY", conn->key_block + 80, 16);
-	format_print(stderr, 0, 0, "\n");
-	*/
+	tls_secrets_print(stderr,
+		pre_master_secret, 48,
+		client_random, server_random,
+		conn->master_secret,
+		conn->key_block, 96,
+		0, 4);
 
 	// recv [ChangeCipherSpec]
 	tls_trace("recv [ChangeCipherSpec]\n");

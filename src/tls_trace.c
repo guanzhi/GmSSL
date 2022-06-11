@@ -899,6 +899,7 @@ int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, in
 
 // 当消息为ClientKeyExchange,ServerKeyExchange，需要密码套件中的密钥交换算法信息
 // 当消息为加密的Finished，记录类型为Handshake，但是记录负载数据中没有Handshake头
+// 注意：这里的recordlen 是冗余的，要容忍recordlen的错误
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
 {
 	const uint8_t *data;
@@ -913,10 +914,15 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 	format_print(fp, format, indent, "Record\n"); indent += 4;
 	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
 	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_version_text(version), version >> 8, version & 0xff);
-	format_print(fp, format, indent, "Length: %d\n", tls_record_length(record));
+	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
 
-	data = record + 5;
-	datalen = recordlen - 5;
+	data = tls_record_data(record);
+	datalen = tls_record_data_length(record);
+
+	if (recordlen < tls_record_length(record)) {
+		error_print();
+		return -1;
+	}
 
 	// 最高字节设置后强制打印记录原始数据
 	if (format >> 24) {
@@ -954,6 +960,12 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 		error_print();
 		return -1;
 	}
+
+	recordlen -= tls_record_length(record);
+	if (recordlen) {
+		format_print(fp, 0, 0, "DataLeftInRecord: %zu\n", recordlen);
+	}
+
 	fprintf(fp, "\n");
 	return 1;
 }
@@ -965,6 +977,7 @@ int tls_secrets_print(FILE *fp,
 	const uint8_t *key_block, size_t key_block_len,
 	int format, int indent)
 {
+	// 应该检查一下key_block_len的值，判断是否支持，或者算法选择, 或者要求输入一个cipher_suite参数
 	format_bytes(stderr, format, indent, "pre_master_secret", pre_master_secret, pre_master_secret_len);
 	format_bytes(stderr, format, indent, "client_random", client_random, 32);
 	format_bytes(stderr, format, indent, "server_random", server_random, 32);

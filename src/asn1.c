@@ -173,7 +173,7 @@ int asn1_ia5_string_check(const char *a, size_t alen)
 
 int asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen)
 {
-	if (out) {
+	if (out && *out) {
 		*(*out)++ = (uint8_t)tag;
 	}
 	(*outlen)++;
@@ -183,7 +183,7 @@ int asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen)
 int asn1_length_to_der(size_t len, uint8_t **out, size_t *outlen)
 {
 	if (len < 128) {
-		if (out) {
+		if (out && *out) {
 			*(*out)++ = (uint8_t)len;
 		}
 		(*outlen)++;
@@ -198,7 +198,7 @@ int asn1_length_to_der(size_t len, uint8_t **out, size_t *outlen)
 		else if (len < (1 << 24)) i = 3;
 		else i = 4;
 
-		if (out) {
+		if (out && *out) {
 			*(*out)++ = 0x80 + i;
 			memcpy(*out, buf + 4 - i, i);
 			(*out) += i;
@@ -211,7 +211,7 @@ int asn1_length_to_der(size_t len, uint8_t **out, size_t *outlen)
 // 提供返回值是为了和其他to_der函数一致
 int asn1_data_to_der(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
-	if (out) {
+	if (out && *out) {
 		memcpy(*out, data, datalen);
 		*out += datalen;
 	}
@@ -301,7 +301,7 @@ int asn1_data_from_der(const uint8_t **data, size_t datalen, const uint8_t **in,
 
 int asn1_header_to_der(int tag, size_t len, uint8_t **out, size_t *outlen)
 {
-	if ((out && !(*out)) || !outlen) {
+	if (!outlen) {
 		error_print();
 		return -1;
 	}
@@ -429,7 +429,8 @@ int asn1_boolean_from_name(int *val, const char *name)
 
 int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen)
 {
-	if ((out && !(*out)) || !outlen) {
+	if (!outlen) {
+		error_print();
 		return -1;
 	}
 
@@ -437,7 +438,7 @@ int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen)
 		return 0;
 	}
 
-	if (out) {
+	if (out && *out) {
 		*(*out)++ = tag;
 		*(*out)++ = 0x01;
 		*(*out)++ = val ? 0xff : 0x00;
@@ -448,22 +449,20 @@ int asn1_boolean_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen)
 
 int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
-	if (!a) {
-		return 0;
-	}
-
-
-
-	if (alen <= 0 || alen > INT_MAX || (out && !(*out)) || !outlen) {
+	if (!outlen) {
 		error_print();
 		return -1;
 	}
 
+	if (alen <= 0 || alen > INT_MAX) {
+		error_print();
+		return -1;
+	}
+	if (!a) {
+		return 0;
+	}
 
-
-
-
-	if (out)
+	if (out && *out)
 		*(*out)++ = tag;
 	(*outlen)++;
 
@@ -474,7 +473,7 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 
 	if (a[0] & 0x80) {
 		asn1_length_to_der(alen + 1, out, outlen);
-		if (out) {
+		if (out && *out) {
 			*(*out)++ = 0x00;
 			memcpy(*out, a, alen);
 			(*out) += alen;
@@ -482,7 +481,7 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 		(*outlen) += 1 + alen;
 	} else {
 		asn1_length_to_der(alen, out ,outlen);
-		if (out) {
+		if (out && *out) {
 			memcpy(*out, a, alen);
 			(*out) += alen;
 		}
@@ -571,11 +570,11 @@ const char *asn1_null_name(void)
 
 int asn1_null_to_der(uint8_t **out, size_t *outlen)
 {
-	if ((out && !(*out)) || !outlen) {
+	if (!outlen) {
+		error_print();
 		return -1;
 	}
-
-	if (out) {
+	if (out && *out) {
 		*(*out)++ = ASN1_TAG_NULL;
 		*(*out)++ = 0x00;
 	}
@@ -597,7 +596,7 @@ static void asn1_oid_node_to_base128(uint32_t a, uint8_t **out, size_t *outlen)
 	}
 
 	while (n--) {
-		if (out)
+		if (out && *out)
 			*(*out)++ = buf[n];
 		(*outlen)++;
 	}
@@ -639,10 +638,14 @@ static int asn1_oid_node_from_base128(uint32_t *a, const uint8_t **in, size_t *i
 
 int asn1_object_identifier_to_octets(const uint32_t *nodes, size_t nodes_cnt, uint8_t *out, size_t *outlen)
 {
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
 	if (nodes_cnt < 2 || nodes_cnt > 32) {
 		return -1;
 	}
-	if (out)
+	if (out && *out)
 		*out++ = (uint8_t)(nodes[0] * 40 + nodes[1]);
 	(*outlen) = 1;
 	nodes += 2;
@@ -705,11 +708,12 @@ int asn1_object_identifier_to_der_ex(int tag, const uint32_t *nodes, size_t node
 	uint8_t octets[32];
 	size_t octetslen = 0;
 
-	if ((out && !(*out)) || !outlen) {
+	if (!outlen) {
+		error_print();
 		return -1;
 	}
 
-	if (out)
+	if (out && *out)
 		*(*out)++ = tag;
 	(*outlen)++;
 
@@ -717,7 +721,7 @@ int asn1_object_identifier_to_der_ex(int tag, const uint32_t *nodes, size_t node
 
 	asn1_length_to_der(octetslen, out, outlen);
 
-	if (out) {
+	if (out && *out) {
 		// 注意：If out == NULL, *out ==> Segment Fault
 		memcpy(*out, octets, octetslen);
 		*out += octetslen;
@@ -824,18 +828,19 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 	struct tm tm_val;
 	char buf[ASN1_UTC_TIME_LEN + 1];
 
-	if ((out && !(*out)) || !outlen) {
+	if (!outlen) {
+		error_print();
 		return -1;
 	}
 
 	gmtime_r(&a, &tm_val);
 	strftime(buf, sizeof(buf), "%y%m%d%H%M%SZ", &tm_val);
 
-	if (out)
+	if (out && *out)
 		*(*out)++ = tag;
 	(*outlen)++;
 	asn1_length_to_der(sizeof(buf)-1, out, outlen);
-	if (out) {
+	if (out && *out) {
 		memcpy(*out, buf, sizeof(buf)-1);
 		(*out) += sizeof(buf)-1;
 	}
@@ -850,7 +855,7 @@ int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *ou
 	struct tm tm_val;
 	char buf[ASN1_GENERALIZED_TIME_LEN + 1];
 
-	if ((out && !(*out)) || !outlen) {
+	if (!outlen) {
 		error_print();
 		return -1;
 	}
@@ -859,11 +864,11 @@ int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *ou
 	strftime(buf, sizeof(buf), "%Y%m%d%H%M%SZ", &tm_val);
 	//printf("%s %d: generalized time : %s\n", __FILE__, __LINE__, buf);
 
-	if (out)
+	if (out && *out)
 		*(*out)++ = tag;
 	(*outlen)++;
 	asn1_length_to_der(ASN1_GENERALIZED_TIME_LEN, out, outlen);
-	if (out) {
+	if (out && *out) {
 		memcpy(*out, buf, ASN1_GENERALIZED_TIME_LEN);
 		(*out) += ASN1_GENERALIZED_TIME_LEN;
 	}

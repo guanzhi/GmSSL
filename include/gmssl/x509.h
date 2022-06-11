@@ -379,6 +379,11 @@ int x509_certs_get_subjects(const uint8_t *certs, size_t certslen, uint8_t *name
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 
+int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file);
+int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file);
+
+
+
 
 #ifdef __cplusplus
 }

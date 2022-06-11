@@ -51,9 +51,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
+#include <gmssl/error.h>
 
 
 static const char *options = "[-port num] -cert file -key file [-pass str] -ex_key file [-ex_pass str] [-cacert file]";
@@ -70,18 +75,19 @@ int tlcp_server_main(int argc , char **argv)
 	char *encpass = NULL;
 	char *cacertfile = NULL;
 
-	FILE *certfp = NULL;
-	FILE *signkeyfp = NULL;
-	FILE *enckeyfp = NULL;
-	FILE *cacertfp = NULL;
-	SM2_KEY signkey;
-	SM2_KEY enckey;
-
+	int server_ciphers[] = { TLCP_cipher_ecc_sm4_cbc_sm3, };
 	uint8_t verify_buf[4096];
 
+	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
+
+	int sock;
+	struct sockaddr_in server_addr;
+	struct sockaddr_in client_addr;
+	socklen_t client_addrlen;
+	int conn_sock;
 
 
 	argc--;
@@ -102,37 +108,21 @@ int tlcp_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-			if (!(certfp = fopen(certfile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
-				goto end;
-			}
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			signkeyfile = *(++argv);
-			if (!(signkeyfp = fopen(signkeyfile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, signkeyfile, strerror(errno));
-				goto end;
-			}
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			signpass = *(++argv);
 		} else if (!strcmp(*argv, "-ex_key")) {
 			if (--argc < 1) goto bad;
 			enckeyfile = *(++argv);
-			if (!(enckeyfp = fopen(enckeyfile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, enckeyfile, strerror(errno));
-				goto end;
-			}
 		} else if (!strcmp(*argv, "-ex_pass")) {
 			if (--argc < 1) goto bad;
 			encpass = *(++argv);
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
-			if (!(cacertfp = fopen(cacertfile, "r"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
-				goto end;
-			}
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -145,60 +135,97 @@ bad:
 	}
 	if (!certfile) {
 		fprintf(stderr, "%s: '-cert' option required\n", prog);
-		goto end;
+		return 1;
 	}
 	if (!signkeyfile) {
 		fprintf(stderr, "%s: '-key' option required\n", prog);
-		goto end;
+		return 1;
 	}
 	if (!signpass) {
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
-		goto end;
+		return 1;
 	}
 	if (!enckeyfile) {
 		fprintf(stderr, "%s: '-ex_key' option required\n", prog);
-		goto end;
+		return 1;
 	}
 	if (!encpass) {
 		fprintf(stderr, "%s: '-ex_pass' option required\n", prog);
-		goto end;
+		return 1;
 	}
 
-	if (sm2_private_key_info_decrypt_from_pem(&signkey, signpass, signkeyfp) != 1) {
-		fprintf(stderr, "%s: load private key failure\n", prog);
-		goto end;
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&enckey, encpass, enckeyfp) != 1) {
-		fprintf(stderr, "%s: load private key failure\n", prog);
-		goto end;
-	}
-
-	printf("start ...........\n");
-
-restart:
+	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
-	if (tlcp_accept(&conn, port, certfp, &signkey, &enckey, cacertfp, verify_buf, 4096) != 1) {
-		fprintf(stderr, "%s: tlcp accept failure\n", prog);
+	if (tls_ctx_init(&ctx, TLS_version_tlcp, TLS_server_mode) != 1
+		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
+		|| tls_ctx_set_tlcp_server_certificate_and_keys(&ctx, certfile, signkeyfile, signpass, enckeyfile, encpass) != 1) {
+		error_print();
+		return -1;
+	}
+	if (cacertfile) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	// Socket
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		error_print();
+		return 1;
+	}
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port = htons(port);
+	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+		error_print();
+		perror("tlcp_accept: bind: ");
 		goto end;
+	}
+	puts("start listen ...\n");
+	listen(sock, 1);
+
+
+
+restart:
+
+	client_addrlen = sizeof(client_addr);
+	if ((conn_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
+		error_print();
+		goto end;
+	}
+	puts("socket connected\n");
+
+	if (tls_init(&conn, &ctx) != 1
+		|| tls_set_socket(&conn, conn_sock) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (tls_do_handshake(&conn) != 1) {
+		error_print(); // 为什么这个会触发呢？
+		return -1;
 	}
 
 	for (;;) {
 
 		int rv;
+		size_t sentlen;
 
 		do {
 			len = sizeof(buf);
-			if ((rv = tls_recv(&conn, (uint8_t *)buf, &len)) != 1) {
+			if ((rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
 				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
 				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
 
-				close(conn.sock);
+				//close(conn.sock);
+				tls_cleanup(&conn);
 				goto restart;
 			}
 		} while (!len);
 
-		if (tls_send(&conn, (uint8_t *)buf, len) != 1) {
+		if (tls_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
 			fprintf(stderr, "%s: send failure, close connection\n", prog);
 			close(conn.sock);
 			goto end;
@@ -207,11 +234,5 @@ restart:
 
 
 end:
-	gmssl_secure_clear(&signkey, sizeof(signkey));
-	gmssl_secure_clear(&enckey, sizeof(enckey));
-	if (certfp) fclose(certfp);
-	if (signkeyfp) fclose(signkeyfp);
-	if (enckeyfp) fclose(enckeyfp);
-	if (cacertfp) fclose(cacertfp);
 	return ret;
 }
