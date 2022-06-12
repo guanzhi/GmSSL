@@ -645,7 +645,7 @@ int asn1_object_identifier_to_octets(const uint32_t *nodes, size_t nodes_cnt, ui
 	if (nodes_cnt < 2 || nodes_cnt > 32) {
 		return -1;
 	}
-	if (out && *out)
+	if (out)
 		*out++ = (uint8_t)(nodes[0] * 40 + nodes[1]);
 	(*outlen) = 1;
 	nodes += 2;
