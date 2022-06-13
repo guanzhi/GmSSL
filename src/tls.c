@@ -268,14 +268,14 @@ int tls_record_set_type(uint8_t *record, int type)
 	return 1;
 }
 
-int tls_record_set_version(uint8_t *record, int version)
+int tls_record_set_protocol(uint8_t *record, int protocol)
 {
-	if (!tls_version_text(version)) {
+	if (!tls_protocol_name(protocol)) {
 		error_print();
 		return -1;
 	}
-	record[1] = version >> 8;
-	record[2] = version;
+	record[1] = protocol >> 8;
+	record[2] = protocol;
 	return 1;
 }
 
@@ -528,14 +528,14 @@ int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
 	return 1;
 }
 
-int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int version)
+int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int protocol)
 {
-	if (!tls_version_text(version)) {
+	if (!tls_protocol_name(protocol)) {
 		error_print();
 		return -1;
 	}
-	pre_master_secret[0] = version >> 8;
-	pre_master_secret[1] = version;
+	pre_master_secret[0] = protocol >> 8;
+	pre_master_secret[1] = protocol;
 	if (rand_bytes(pre_master_secret + 2, 46) != 1) {
 		error_print();
 		return -1;
@@ -566,6 +566,7 @@ int tls_cert_type_from_oid(int oid)
 	return 0;
 }
 
+// 这两个函数没有对应的TLCP版本
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
 	int curve, const SM2_POINT *point, uint8_t *sig, size_t *siglen)
@@ -637,7 +638,7 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 		return -1;
 	}
 
-	if (!tls_version_text(tls_record_version(record))) {
+	if (!tls_protocol_name(tls_record_protocol(record))) {
 		error_print();
 		return -1;
 	}
@@ -671,7 +672,7 @@ int tls_record_get_handshake(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	if (!tls_version_text(tls_record_version(record))) {
+	if (!tls_protocol_name(tls_record_protocol(record))) {
 		error_print();
 		return -1;
 	}
@@ -718,7 +719,7 @@ int tls_record_get_handshake(const uint8_t *record,
 }
 
 int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
-	int version, const uint8_t random[32],
+	int protocol, const uint8_t random[32],
 	const uint8_t *session_id, size_t session_id_len,
 	const int *cipher_suites, size_t cipher_suites_count,
 	const uint8_t *exts, size_t exts_len)
@@ -752,11 +753,11 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 	p = tls_handshake_data(tls_record_data(record));
 	len = 0;
 
-	if (!tls_version_text(version)) {
+	if (!tls_protocol_name(protocol)) {
 		error_print();
 		return -1;
 	}
-	tls_uint16_to_bytes((uint16_t)version, &p, &len);
+	tls_uint16_to_bytes((uint16_t)protocol, &p, &len);
 	tls_array_to_bytes(random, 32, &p, &len);
 	tls_uint8array_to_bytes(session_id, session_id_len, &p, &len);
 	tls_uint16_to_bytes(cipher_suites_count * 2, &p, &len);
@@ -772,7 +773,7 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 	tls_uint8_to_bytes((uint8_t)TLS_compression_null, &p, &len);
 	if (exts) {
 		size_t tmp_len = len;
-		if (version < TLS_version_tls12) {
+		if (protocol < TLS_protocol_tls12) {
 			error_print();
 			return -1;
 		}
@@ -791,7 +792,7 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 }
 
 int tls_record_get_handshake_client_hello(const uint8_t *record,
-	int *version, const uint8_t **random,
+	int *protocol, const uint8_t **random,
 	const uint8_t **session_id, size_t *session_id_len,
 	const uint8_t **cipher_suites, size_t *cipher_suites_len,
 	const uint8_t **exts, size_t *exts_len)
@@ -803,7 +804,7 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 	const uint8_t *comp_meths;
 	size_t comp_meths_len;
 
-	if (!record || !version || !random
+	if (!record || !protocol || !random
 		|| !session_id || !session_id_len
 		|| !cipher_suites || !cipher_suites_len
 		|| !exts || !exts_len) {
@@ -827,11 +828,11 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 		return -1;
 	}
 
-	if (!tls_version_text(ver)) {
+	if (!tls_protocol_name(ver)) {
 		error_print();
 		return -1;
 	}
-	*version = ver;
+	*protocol = ver;
 
 	if (*session_id) {
 		if (*session_id_len == 0
@@ -872,7 +873,7 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 }
 
 int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
-	int version, const uint8_t random[32],
+	int protocol, const uint8_t random[32],
 	const uint8_t *session_id, size_t session_id_len, int cipher_suite,
 	const uint8_t *exts, size_t exts_len)
 {
@@ -892,7 +893,7 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 			return -1;
 		}
 	}
-	if (!tls_version_text(version)) {
+	if (!tls_protocol_name(protocol)) {
 		error_print();
 		return -1;
 	}
@@ -904,13 +905,13 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	p = tls_handshake_data(tls_record_data(record));
 	len = 0;
 
-	tls_uint16_to_bytes((uint16_t)version, &p, &len);
+	tls_uint16_to_bytes((uint16_t)protocol, &p, &len);
 	tls_array_to_bytes(random, 32, &p, &len);
 	tls_uint8array_to_bytes(session_id, session_id_len, &p, &len);
 	tls_uint16_to_bytes((uint16_t)cipher_suite, &p, &len);
 	tls_uint8_to_bytes((uint8_t)TLS_compression_null, &p, &len);
 	if (exts) {
-		if (version < TLS_version_tls12) {
+		if (protocol < TLS_protocol_tls12) {
 			error_print();
 			return -1;
 		}
@@ -924,7 +925,7 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 }
 
 int tls_record_get_handshake_server_hello(const uint8_t *record,
-	int *version, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
+	int *protocol, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
 	int *cipher_suite, const uint8_t **exts, size_t *exts_len)
 {
 	int type;
@@ -934,7 +935,7 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	uint16_t cipher;
 	uint8_t comp_meth;
 
-	if (!record || !version || !random || !session_id || !session_id_len
+	if (!record || !protocol || !random || !session_id || !session_id_len
 		|| !cipher_suite || !exts || !exts_len) {
 		error_print();
 		return -1;
@@ -956,15 +957,15 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 		return -1;
 	}
 
-	if (!tls_version_text(ver)) {
+	if (!tls_protocol_name(ver)) {
 		error_print();
 		return -1;
 	}
-	if (ver < tls_record_version(record)) {
+	if (ver < tls_record_protocol(record)) {
 		error_print();
 		return -1;
 	}
-	*version = ver;
+	*protocol = ver;
 
 	if (*session_id) {
 		if (*session_id == 0
@@ -1522,7 +1523,7 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 		error_print();
 		return -1;
 	}
-	if (!tls_version_text(tls_record_version(record))) {
+	if (!tls_protocol_name(tls_record_protocol(record))) {
 		error_print();
 		return -1;
 	}
@@ -1571,7 +1572,7 @@ retry:
 			uint8_t alert_record[TLS_ALERT_RECORD_SIZE];
 			size_t alert_record_len;
 			tls_record_set_type(alert_record, TLS_record_alert);
-			tls_record_set_version(alert_record, tls_record_version(record));
+			tls_record_set_protocol(alert_record, tls_record_protocol(record));
 			tls_record_set_alert(alert_record, &alert_record_len, TLS_alert_level_fatal, TLS_alert_close_notify);
 
 			tls_trace("send Alert close_notifiy\n");
@@ -1619,7 +1620,7 @@ int tls_send_alert(TLS_CONNECT *conn, int alert)
 		error_print();
 		return -1;
 	}
-	tls_record_set_version(record, conn->version);
+	tls_record_set_protocol(record, conn->protocol);
 	tls_record_set_alert(record, &recordlen, TLS_alert_level_fatal, alert);
 
 	if (tls_record_send(record, sizeof(record), conn->sock) != 1) {
@@ -1661,7 +1662,7 @@ int tls_send_warning(TLS_CONNECT *conn, int alert)
 		error_print();
 		return -1;
 	}
-	tls_record_set_version(record, conn->version);
+	tls_record_set_protocol(record, conn->protocol);
 	tls_record_set_alert(record, &recordlen, TLS_alert_level_warning, alert);
 
 	if (tls_record_send(record, sizeof(record), conn->sock) != 1) {
@@ -1709,7 +1710,7 @@ int tls_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen
 	tls_trace("send ApplicationData\n");
 
 	if (tls_record_set_type(record, TLS_record_application_data) != 1
-		|| tls_record_set_version(record, conn->version) != 1
+		|| tls_record_set_protocol(record, conn->protocol) != 1
 		|| tls_record_set_length(record, inlen) != 1) {
 		error_print();
 		return -1;
@@ -2021,7 +2022,7 @@ void tls_ctx_cleanup(TLS_CTX *ctx)
 	}
 }
 
-int tls_ctx_init(TLS_CTX *ctx, int protocol_version, int is_client)
+int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 {
 	if (!ctx) {
 		error_print();
@@ -2029,11 +2030,11 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol_version, int is_client)
 	}
 	memset(ctx, 0, sizeof(*ctx));
 
-	switch (protocol_version) {
-	case TLS_version_tlcp:
-	case TLS_version_tls12:
-	case TLS_version_tls13:
-		ctx->protocol_version = protocol_version;
+	switch (protocol) {
+	case TLS_protocol_tlcp:
+	case TLS_protocol_tls12:
+	case TLS_protocol_tls13:
+		ctx->protocol = protocol;
 		break;
 	default:
 		error_print();
@@ -2078,7 +2079,7 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 		error_print();
 		return -1;
 	}
-	if (!tls_version_text(ctx->protocol_version)) {
+	if (!tls_protocol_name(ctx->protocol)) {
 		error_print();
 		return -1;
 	}
@@ -2115,7 +2116,7 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 		error_print();
 		return -1;
 	}
-	if (!tls_version_text(ctx->protocol_version)) {
+	if (!tls_protocol_name(ctx->protocol)) {
 		error_print();
 		return -1;
 	}
@@ -2178,7 +2179,7 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		error_print();
 		return -1;
 	}
-	if (!tls_version_text(ctx->protocol_version)) {
+	if (!tls_protocol_name(ctx->protocol)) {
 		error_print();
 		return -1;
 	}
@@ -2243,7 +2244,7 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 	size_t i;
 	memset(conn, 0, sizeof(*conn));
 
-	conn->version = ctx->protocol_version;
+	conn->protocol = ctx->protocol;
 	conn->is_client = ctx->is_client;
 	for (i = 0; i < ctx->cipher_suites_cnt; i++) {
 		conn->cipher_suites[i] = ctx->cipher_suites[i];
@@ -2302,15 +2303,15 @@ int tls_set_socket(TLS_CONNECT *conn, int sock)
 
 int tls_do_handshake(TLS_CONNECT *conn)
 {
-	switch (conn->version) {
-	case TLS_version_tlcp:
+	switch (conn->protocol) {
+	case TLS_protocol_tlcp:
 		if (conn->is_client) return tlcp_do_connect(conn);
 		else return tlcp_do_accept(conn);
-	/*
-	case TLS_version_tls12:
+	case TLS_protocol_tls12:
 		if (conn->is_client) return tls12_do_connect(conn);
 		else return tls12_do_accept(conn);
-	case TLS_version_tls13:
+	/*
+	case TLS_protocol_tls13:
 		if (conn->is_client) return tls13_do_connect(conn);
 		else return tls13_do_accept(conn);
 	*/

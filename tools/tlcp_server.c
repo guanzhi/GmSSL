@@ -75,7 +75,7 @@ int tlcp_server_main(int argc , char **argv)
 	char *encpass = NULL;
 	char *cacertfile = NULL;
 
-	int server_ciphers[] = { TLCP_cipher_ecc_sm4_cbc_sm3, };
+	int server_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3, };
 	uint8_t verify_buf[4096];
 
 	TLS_CTX ctx;
@@ -157,7 +157,7 @@ bad:
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
-	if (tls_ctx_init(&ctx, TLS_version_tlcp, TLS_server_mode) != 1
+	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_server_mode) != 1
 		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
 		|| tls_ctx_set_tlcp_server_certificate_and_keys(&ctx, certfile, signkeyfile, signpass, enckeyfile, encpass) != 1) {
 		error_print();

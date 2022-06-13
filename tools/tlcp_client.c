@@ -60,7 +60,7 @@
 #include <gmssl/error.h>
 
 
-static int client_ciphers[] = { TLCP_cipher_ecc_sm4_cbc_sm3, };
+static int client_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3, };
 
 static const char *http_get =
 	"GET / HTTP/1.1\r\n"
@@ -149,7 +149,7 @@ bad:
 		goto end;
 	}
 
-	if (tls_ctx_init(&ctx, TLS_version_tlcp, TLS_client_mode) != 1
+	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_client_mode) != 1
 		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1
 		|| tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1
 		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {

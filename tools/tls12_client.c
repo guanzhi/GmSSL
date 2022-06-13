@@ -47,23 +47,33 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include <unistd.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
 
-const char *http_get =
+// TLSv1.2客户单和TLCP客户端可能没有什么区别
+
+static int client_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3 };
+
+static const char *http_get =
 	"GET / HTTP/1.1\r\n"
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
+static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str]";
 
-static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file [-pass str]]";
-
-int tls12_client_main(int argc , char *argv[])
+int tls12_client_main(int argc, char *argv[])
 {
+	int ret = -1;
 	char *prog = argv[0];
 	char *host = NULL;
 	int port = 443;
@@ -71,24 +81,22 @@ int tls12_client_main(int argc , char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
-
-	FILE *cacertfp = NULL;
-	FILE *certfp = NULL;
-	FILE *keyfp = NULL;
-	SM2_KEY sm2_key;
-
+	struct sockaddr_in server;
+	int sock;
+	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[100] = {0};
 	size_t len = sizeof(buf);
-
-	if (argc < 2) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
-		return 1;
-	}
+	char send_buf[1024] = {0};
+	size_t send_len;
 
 	argc--;
 	argv++;
-	while (argc > 0) {
+	if (argc < 1) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
+	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			return 0;
@@ -122,62 +130,73 @@ bad:
 	}
 
 	if (!host) {
-		error_print();
-		return 1;
+		fprintf(stderr, "%s: '-in' option required\n", prog);
+		return -1;
 	}
 
-	if (cacertfile) {
-		if (!(cacertfp = fopen(cacertfile, "r"))) {
-			error_print();
-			return 1;
-		}
-	}
-
-	if (certfile) {
-		if (!(certfp = fopen(certfile, "r"))) {
-			error_print();
-			return 1;
-		}
-		if (!pass) {
-			pass = getpass("Password : ");
-		}
-		if (!keyfile) {
-			error_print();
-			return 1;
-		}
-		if (!(keyfp = fopen(keyfile, "r"))) {
-			error_print();
-			return -1;
-		}
-		if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
+	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
-	if (tls12_connect(&conn, host, port, cacertfp, certfp, &sm2_key) != 1) {
-		error_print();
-		return -1;
+	server.sin_addr.s_addr = inet_addr(host);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(port);
+
+
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno));
+		goto end;
+	}
+	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
+		fprintf(stderr, "%s: connect error : %s\n", prog, strerror(errno));
+		goto end;
 	}
 
-	if (tls_send(&conn, (uint8_t *)"12345\n", 6) != 1) {
-		error_print();
-		return -1;
+	if (tls_ctx_init(&ctx, TLS_protocol_tls12, TLS_client_mode) != 1
+		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1
+		|| tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1
+		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+		fprintf(stderr, "%s: context init error\n", prog);
+		goto end;
+	}
+	if (tls_init(&conn, &ctx) != 1
+		|| tls_set_socket(&conn, sock) != 1
+		|| tls_do_handshake(&conn) != 1) {
+		fprintf(stderr, "%s: error\n", prog);
+		goto end;
 	}
 
 	for (;;) {
-		memset(buf, 0, sizeof(buf));
-		len = sizeof(buf);
-		if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
-			error_print();
-			return -1;
+		size_t sentlen;
+
+		memset(send_buf, 0, sizeof(send_buf));
+		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+			if (feof(stdin)) {
+				tls_shutdown(&conn);
+				goto end;
+			} else {
+				continue;
+			}
 		}
-		if (len > 0) {
+		if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+
+		{
+			memset(buf, 0, sizeof(buf));
+			len = sizeof(buf);
+			if (tls_recv(&conn, (uint8_t *)buf, sizeof(len), &len) != 1) {
+				goto end;
+			}
+			buf[len] = 0;
 			printf("%s\n", buf);
-			break;
 		}
 	}
+
+
+end:
+	close(sock);
+	tls_ctx_cleanup(&ctx);
+	tls_cleanup(&conn);
 	return 0;
 }

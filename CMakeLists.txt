@@ -63,8 +63,9 @@ add_library(
 	src/sm9_lib.c
 	src/tlcp.c
 	src/tls.c
-#	src/tls12.c
+	src/tls12.c
 #	src/tls13.c
+	src/tls_ext.c
 	src/tls_trace.c
 	src/version.c
 	src/x509_alg.c
@@ -135,8 +136,8 @@ add_executable(
 	tools/reqsign.c
 	tools/tlcp_client.c
 	tools/tlcp_server.c
-#	tools/tls12_client.c
-#	tools/tls12_server.c
+	tools/tls12_client.c
+	tools/tls12_server.c
 #	tools/tls13_client.c
 #	tools/tls13_server.c
 	tools/sdfutil.c

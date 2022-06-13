@@ -102,84 +102,84 @@ int test_sm2_bn(void)
 	sm2_bn_from_hex(r, hex_v);
 	ok = (sm2_bn_cmp(r, v) == 0);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	// fp tests
 	sm2_fp_add(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fp_add_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fp_sub(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fp_sub_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fp_mul(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fp_mul_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fp_exp(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fp_exp_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fp_inv(r, x);
 	ok = sm2_bn_equ_hex(r, hex_fp_inv_x);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fp_neg(r, x);
 	ok = sm2_bn_equ_hex(r, hex_fp_neg_x);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	// fn tests
 	sm2_fn_add(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fn_add_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_sub(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fn_sub_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_sub(r, y, x);
 	ok = sm2_bn_equ_hex(r, hex_fn_sub_y_x);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_neg(r, x);
 	ok = sm2_bn_equ_hex(r, hex_fn_neg_x);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_mul(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fn_mul_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_mul(r, x, v);
 	ok = sm2_bn_equ_hex(r, hex_fn_mul_x_v);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_sqr(r, x);
 	ok = sm2_bn_equ_hex(r, hex_fn_sqr_x);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_exp(r, x, y);
 	ok = sm2_bn_equ_hex(r, hex_fn_exp_x_y);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_fn_inv(r, x);
 	ok = sm2_bn_equ_hex(r, hex_fn_inv_x);
 	printf("sm2 bn test %d %s\n", i++, ok ? "ok" : "failed");
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	SM2_BN tv = {
 		0x2b94b325, 0x5da17313, 0x28d356b1, 0xa4f7fa5e,
@@ -187,11 +187,11 @@ int test_sm2_bn(void)
 	};
 	sm2_bn_from_hex(t, hex_t);
 	ok = (sm2_bn_cmp(t, tv) == 0);
-	if (!ok) return 1;
+	if (!ok) return -1;
 
 	sm2_bn_to_hex(t, hex);
 
-	return 0;
+	return 1;
 }
 
 
@@ -231,7 +231,7 @@ int test_sm2_jacobian_point(void)
 	SM2_JACOBIAN_POINT _P, *P = &_P;
 	SM2_JACOBIAN_POINT _G, *G = &_G;
 	SM2_BN k;
-	int err = 0, i = 1, ok;
+	int i = 1, ok;
 
 	uint8_t buf[64];
 
@@ -239,40 +239,48 @@ int test_sm2_jacobian_point(void)
 
 	sm2_jacobian_point_copy(G, SM2_G);
 	ok = sm2_jacobian_point_equ_hex(G, hex_G);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	ok = sm2_jacobian_point_is_on_curve(G);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_jacobian_point_dbl(P, G);
 	ok = sm2_jacobian_point_equ_hex(P, hex_2G);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_jacobian_point_add(P, P, G);
 	ok = sm2_jacobian_point_equ_hex(P, hex_3G);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_jacobian_point_sub(P, P, G);
 	ok = sm2_jacobian_point_equ_hex(P, hex_2G);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_jacobian_point_neg(P, G);
 	ok = sm2_jacobian_point_equ_hex(P, hex_negG);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_bn_set_word(k, 10);
 	sm2_jacobian_point_mul(P, k, G);
 	ok = sm2_jacobian_point_equ_hex(P, hex_10G);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_jacobian_point_mul_generator(P, SM2_B);
 	ok = sm2_jacobian_point_equ_hex(P, hex_bG);
-	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed"); err += ok ^ 1;
+	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
+	if (!ok) return -1;
 
 	sm2_jacobian_point_to_bytes(P, buf);
 	sm2_jacobian_point_from_hex(P, hex_P);
 
-	return err;
+	return 1;
 }
 
 #define hex_d   "5aebdfd947543b713bc0df2c65baaecc5dadd2cab39c6971402daf92c263fad2"
@@ -330,7 +338,7 @@ static int test_sm2_point(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_point_der(void)
@@ -366,7 +374,7 @@ static int test_sm2_point_der(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_point_octets(void)
@@ -404,7 +412,7 @@ static int test_sm2_point_octets(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_point_from_x(void)
@@ -441,7 +449,7 @@ static int test_sm2_point_from_x(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_signature(void)
@@ -495,7 +503,7 @@ static int test_sm2_signature(void)
 
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_sign(void)
@@ -534,7 +542,7 @@ static int test_sm2_sign(void)
 	// FIXME: 还应该增加验证不通过的测试
 	// 还应该增加底层的参数
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_ciphertext(void)
@@ -618,7 +626,7 @@ static int test_sm2_ciphertext(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 
@@ -650,7 +658,7 @@ static int test_sm2_do_encrypt(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 
@@ -728,7 +736,7 @@ test_sm2_do_encrypt() ok
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 
@@ -783,7 +791,7 @@ static int test_sm2_private_key(void)
 	sm2_private_key_print(stderr, 0, 4, "ECPrivateKey", d, dlen);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_private_key_info(void)
@@ -832,7 +840,7 @@ static int test_sm2_private_key_info(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_sm2_enced_private_key_info(void)
@@ -883,26 +891,29 @@ static int test_sm2_enced_private_key_info(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
+
 
 int main(void)
 {
-	int err = 0;
-	err += test_sm2_bn();
-	err += test_sm2_jacobian_point();
-	err += test_sm2_point();
-	err += test_sm2_point_octets();
-	err += test_sm2_point_from_x();
-	err += test_sm2_point_der();
-	err += test_sm2_private_key();
-	err += test_sm2_private_key_info();
-	err += test_sm2_enced_private_key_info();
-	err += test_sm2_signature();
-	err += test_sm2_sign();
-//	err += test_sm2_ciphertext();
-	err += test_sm2_do_encrypt();
-	err += test_sm2_encrypt();
-	if (!err) printf("%s all tests passed\n", __FILE__);
-	return err;
+	if (test_sm2_bn()  != 1) goto err;
+	if (test_sm2_jacobian_point() != 1) goto err;
+	if (test_sm2_point() != 1) goto err;
+	if (test_sm2_point_octets() != 1) goto err;
+	if (test_sm2_point_from_x() != 1) goto err;
+	if (test_sm2_point_der() != 1) goto err;
+	if (test_sm2_private_key() != 1) goto err;
+	if (test_sm2_private_key_info() != 1) goto err;
+	if (test_sm2_enced_private_key_info() != 1) goto err;
+	if (test_sm2_signature() != 1) goto err;
+	if (test_sm2_sign() != 1) goto err;
+//	if (test_sm2_ciphertext() != 1) goto err;
+	if (test_sm2_do_encrypt() != 1) goto err;
+	if (test_sm2_encrypt() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

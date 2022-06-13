@@ -67,18 +67,18 @@ const char *tls_record_type_name(int type)
 	return NULL;
 }
 
-const char *tls_version_text(int version)
+const char *tls_protocol_name(int protocol)
 {
-	switch(version) {
-	case TLS_version_tlcp: return "TLCP";
-	case TLS_version_ssl2: return "SSL 2.0";
-	case TLS_version_ssl3: return "SSL 3.0";
-	case TLS_version_tls1: return "TLS 1.0";
-	case TLS_version_tls11: return "TLS 1.1";
-	case TLS_version_tls12: return "TLS 1.2";
-	case TLS_version_tls13: return "TLS 1.3";
-	case TLS_version_dtls1: return "DTLS 1.0";
-	case TLS_version_dtls12: return "DTLS 1.2";
+	switch(protocol) {
+	case TLS_protocol_tlcp: return "TLCP";
+	case TLS_protocol_ssl2: return "SSL2.0";
+	case TLS_protocol_ssl3: return "SSL3.0";
+	case TLS_protocol_tls1: return "TLS1.0";
+	case TLS_protocol_tls11: return "TLS1.1";
+	case TLS_protocol_tls12: return "TLS1.2";
+	case TLS_protocol_tls13: return "TLS1.3";
+	case TLS_protocol_dtls1: return "DTLS1.0";
+	case TLS_protocol_dtls12: return "DTLS1.2";
 	}
 	return NULL;
 }
@@ -86,23 +86,19 @@ const char *tls_version_text(int version)
 const char *tls_cipher_suite_name(int cipher)
 {
 	switch (cipher) {
-	case TLCP_cipher_ecdhe_sm4_cbc_sm3: return "TLCP_ECDHE_SM4_CBC_SM3";
-	case TLCP_cipher_ecdhe_sm4_gcm_sm3: return "TLCP_ECDHE_SM4_GCM_SM3";
-	case TLCP_cipher_ecc_sm4_cbc_sm3: return "TLCP_ECC_SM4_CBC_SM3";
-	case TLCP_cipher_ecc_sm4_gcm_sm3: return "TLCP_ECC_SM4_GCM_SM3";
-	case TLCP_cipher_ibsdh_sm4_cbc_sm3: return "TLCP_IBSDH_SM4_CBC_SM3";
-	case TLCP_cipher_ibsdh_sm4_gcm_sm3: return "TLCP_IBSDH_SM4_GCM_SM3";
-	case TLCP_cipher_ibc_sm4_cbc_sm3: return "TLCP_IBC_SM4_CBC_SM3";
-	case TLCP_cipher_ibc_sm4_gcm_sm3: return "TLCP_IBC_SM4_GCM_SM3";
-	case TLCP_cipher_rsa_sm4_cbc_sm3: return "TLCP_RSA_SM4_CBC_SM3";
-	case TLCP_cipher_rsa_sm4_gcm_sm3: return "TLCP_RSA_SM4_GCM_SM3";
-	case TLCP_cipher_rsa_sm4_cbc_sha256: return "TLCP_RSA_SM4_CBC_SHA256";
-	case TLCP_cipher_rsa_sm4_gcm_sha256: return "TLCP_RSA_SM4_GCM_SHA256";
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_sm3: return "GMSSL_ECDHE_SM2_WITH_SM4_SM3";
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_gcm_sm3: return "GMSSL_ECDHE_SM2_WITH_SM4_GCM_SM3";
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_ccm_sm3: return "GMSSL_ECDHE_SM2_WITH_SM4_CCM_SM3";
-	case GMSSL_cipher_ecdhe_sm2_with_zuc_sm3: return "GMSSL_ECDHE_SM2_WITH_ZUC_SM3";
-	case TLS_cipher_empty_renegotiation_info_scsv: return "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
+	case TLS_cipher_ecdhe_sm4_cbc_sm3: return "ECDHE_SM4_CBC_SM3";
+	case TLS_cipher_ecdhe_sm4_gcm_sm3: return "ECDHE_SM4_GCM_SM3";
+	case TLS_cipher_ecc_sm4_cbc_sm3: return "ECC_SM4_CBC_SM3";
+	case TLS_cipher_ecc_sm4_gcm_sm3: return "ECC_SM4_GCM_SM3";
+	case TLS_cipher_ibsdh_sm4_cbc_sm3: return "IBSDH_SM4_CBC_SM3";
+	case TLS_cipher_ibsdh_sm4_gcm_sm3: return "IBSDH_SM4_GCM_SM3";
+	case TLS_cipher_ibc_sm4_cbc_sm3: return "IBC_SM4_CBC_SM3";
+	case TLS_cipher_ibc_sm4_gcm_sm3: return "IBC_SM4_GCM_SM3";
+	case TLS_cipher_rsa_sm4_cbc_sm3: return "RSA_SM4_CBC_SM3";
+	case TLS_cipher_rsa_sm4_gcm_sm3: return "RSA_SM4_GCM_SM3";
+	case TLS_cipher_rsa_sm4_cbc_sha256: return "RSA_SM4_CBC_SHA256";
+	case TLS_cipher_rsa_sm4_gcm_sha256: return "RSA_SM4_GCM_SHA256";
+	case TLS_cipher_empty_renegotiation_info_scsv: return "EMPTY_RENEGOTIATION_INFO_SCSV";
 	}
 	return NULL;
 }
@@ -160,7 +156,7 @@ const char *tls_extension_name(int ext)
 	case TLS_extension_supported_ekt_ciphers: return "supported_ekt_ciphers";
 	case TLS_extension_pre_shared_key: return "pre_shared_key";
 	case TLS_extension_early_data: return "early_data";
-	case TLS_extension_supported_versions: return "supported_versions";
+	case TLS_extension_supported_protocols: return "supported_protocols";
 	case TLS_extension_cookie: return "cookie";
 	case TLS_extension_psk_key_exchange_modes: return "psk_key_exchange_modes";
 	case TLS_extension_certificate_authorities: return "certificate_authorities";
@@ -362,10 +358,10 @@ int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent)
 
 int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], int format, int indent)
 {
-	int version = ((int)pre_master_secret[0] << 8) | pre_master_secret[1];
+	int protocol = ((int)pre_master_secret[0] << 8) | pre_master_secret[1];
 	format_print(fp, format, indent, "PreMasterSecret\n");
 	indent += 4;
-	format_print(fp, format, indent, "version : %s\n", tls_version_text(version));
+	format_print(fp, format, indent, "protocol : %s\n", tls_protocol_name(protocol));
 	format_bytes(fp, format, indent, "pre_master_secret", pre_master_secret, 48);
 	return 1;
 }
@@ -389,7 +385,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint16_t curve;
 			tls_uint16_from_bytes(&curve, &p, &len);
-			format_print(fp, format, indent, "%s (0x%04x)\n",
+			format_print(fp, format, indent, "%s (%d)\n",
 				tls_named_curve_name(curve), curve);
 		}
 		break;
@@ -436,7 +432,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 				error_print();
 				return -1;
 			}
-			format_print(fp, format, indent, "group: %s\n", tls_named_curve_name(group));
+			format_print(fp, format, indent, "group: %s (%d)\n", tls_named_curve_name(group), group);
 			format_bytes(fp, format, indent, "key_exchange", key_exch, key_exch_len);
 		}
 		break;
@@ -483,7 +479,7 @@ int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int f
 int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	int ret = -1;
-	uint16_t version;
+	uint16_t protocol;
 	const uint8_t *random;
 	const uint8_t *session_id;
 	const uint8_t *cipher_suites;
@@ -493,9 +489,9 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	size_t i;
 
 	format_print(fp, format, indent, "ClientHello\n"); indent += 4;
-	if (tls_uint16_from_bytes((uint16_t *)&version, &data, &datalen) != 1) goto end;
+	if (tls_uint16_from_bytes((uint16_t *)&protocol, &data, &datalen) != 1) goto end;
 	format_print(fp, format, indent, "Version: %s (%d.%d)\n",
-		tls_version_text(version), version >> 8, version & 0xff);
+		tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto end;
 	tls_random_print(fp, random, format, indent);
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &data, &datalen) != 1) goto end;
@@ -534,7 +530,7 @@ end:
 int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	int ret = -1;
-	uint16_t version;
+	uint16_t protocol;
 	const uint8_t *random;
 	const uint8_t *session_id;
 	uint16_t cipher_suite;
@@ -544,9 +540,9 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	size_t i;
 
 	format_print(fp, format, indent, "ServerHello\n"); indent += 4;
-	if (tls_uint16_from_bytes(&version, &data, &datalen) != 1) goto bad;
+	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto bad;
 	format_print(fp, format, indent, "Version: %s (%d.%d)\n",
-		tls_version_text(version), version >> 8, version & 0xff);
+		tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto bad;
 	tls_random_print(fp, random, format, indent);
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &data, &datalen) != 1) goto bad;
@@ -617,7 +613,7 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent + 8, "named_curve: %s (04%04x)\n",
+	format_print(fp, format, indent + 8, "named_curve: %s (%d)\n",
 		tls_named_curve_name(curve), curve);
 	if (tls_uint8array_from_bytes(&octets, &octetslen, &data, &datalen) != 1) {
 		error_print();
@@ -628,7 +624,7 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "SignatureScheme: %s (04%04x)\n",
+	format_print(fp, format, indent, "SignatureScheme: %s (0x%04x)\n",
 		tls_signature_scheme_name(sig_alg), sig_alg);
 	if (tls_uint16array_from_bytes(&sig, &siglen, &data, &datalen) != 1) {
 		error_print();
@@ -647,18 +643,15 @@ int tls_server_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int cipher_suite = (format >> 8) & 0xffff;
 
 	switch (cipher_suite) {
-	case TLCP_cipher_ecc_sm4_cbc_sm3:
-	case TLCP_cipher_ecc_sm4_gcm_sm3:
+	case TLS_cipher_ecc_sm4_cbc_sm3:
+	case TLS_cipher_ecc_sm4_gcm_sm3:
 		if (tlcp_server_key_exchange_pke_print(fp, data, datalen, format, indent) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
-	case TLCP_cipher_ecdhe_sm4_cbc_sm3:
-	case TLCP_cipher_ecdhe_sm4_gcm_sm3:
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_sm3:
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_gcm_sm3:
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_ccm_sm3:
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 		if (tls_server_key_exchange_ecdhe_print(fp, data, datalen, format, indent) != 1) {
 			error_print();
 			return -1;
@@ -707,7 +700,8 @@ int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen,
 	if (tls_uint8array_from_bytes(&cert_types, &cert_types_len, &data, &datalen) != 1) goto bad;
 	format_print(fp, format, indent, "cert_types\n");
 	while (cert_types_len--) {
-		format_print(fp, format, indent + 4, "%s\n", tls_cert_type_name(*cert_types++));
+		int cert_type = *cert_types++;
+		format_print(fp, format, indent + 4, "%s (%d)\n", tls_cert_type_name(cert_type), cert_type);
 	}
 	if (tls_uint16array_from_bytes(&ca_names, &ca_names_len, &data, &datalen) != 1) goto bad;
 	tls_certificate_subjects_print(fp, format, indent, "CAnames", ca_names, ca_names_len);
@@ -764,18 +758,15 @@ int tls_client_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 {
 	int cipher_suite = (format >> 8) & 0xffff;
 	switch (cipher_suite) {
-	case TLCP_cipher_ecc_sm4_cbc_sm3:
-	case TLCP_cipher_ecc_sm4_gcm_sm3:
+	case TLS_cipher_ecc_sm4_cbc_sm3:
+	case TLS_cipher_ecc_sm4_gcm_sm3:
 		if (tls_client_key_exchange_pke_print(fp, data, datalen, format, indent) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
-	case TLCP_cipher_ecdhe_sm4_cbc_sm3:
-	case TLCP_cipher_ecdhe_sm4_gcm_sm3:
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_sm3:
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_gcm_sm3:
-	case GMSSL_cipher_ecdhe_sm2_with_sm4_ccm_sm3:
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 		if (tls_client_key_exchange_ecdhe_print(fp, data, datalen, format, indent) != 1) {
 			error_print();
 			return -1;
@@ -904,16 +895,16 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 {
 	const uint8_t *data;
 	size_t datalen;
-	int version;
+	int protocol;
 
 	if (!fp || !record || recordlen < 5) {
 		error_print();
 		return -1;
 	}
-	version = tls_record_version(record);
+	protocol = tls_record_protocol(record);
 	format_print(fp, format, indent, "Record\n"); indent += 4;
 	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_version_text(version), version >> 8, version & 0xff);
+	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
 	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
 
 	data = tls_record_data(record);

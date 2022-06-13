@@ -222,11 +222,11 @@ int main(int argc, char **argv)
 			return tlcp_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tlcp_server")) {
 			return tlcp_server_main(argc, argv);
-/*
 		} else if (!strcmp(*argv, "tls12_client")) {
 			return tls12_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls12_server")) {
 			return tls12_server_main(argc, argv);
+/*
 		} else if (!strcmp(*argv, "tls13_client")) {
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {

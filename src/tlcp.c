@@ -68,7 +68,7 @@
 #include <gmssl/tls.h>
 
 
-static const int tlcp_ciphers[] = { TLCP_cipher_ecc_sm4_cbc_sm3 };
+static const int tlcp_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3 };
 static const size_t tlcp_ciphers_count = sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]);
 
 int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
@@ -94,7 +94,7 @@ int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *r
 		error_print();
 		return -1;
 	}
-	if (tls_record_version(record) != TLS_version_tlcp) {
+	if (tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		return -1;
 	}
@@ -125,7 +125,7 @@ int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	if (tls_record_version(record) != TLS_version_tlcp) {
+	if (tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		return -1;
 	}
@@ -168,7 +168,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 	uint8_t client_random[32];
 	uint8_t server_random[32];
-	int version;
+	int protocol;
 	int cipher_suite;
 	const uint8_t *random;
 	const uint8_t *session_id;
@@ -206,8 +206,8 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 
 	// 初始化记录缓冲
-	tls_record_set_version(record, TLS_version_tlcp);
-	tls_record_set_version(finished_record, TLS_version_tlcp);
+	tls_record_set_protocol(record, TLS_protocol_tlcp);
+	tls_record_set_protocol(finished_record, TLS_protocol_tlcp);
 
 	// 准备Finished Context（和ClientVerify）
 	sm3_init(&sm3_ctx);
@@ -218,7 +218,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// send ClientHello
 	tls_random_generate(client_random);
 	if (tls_record_set_handshake_client_hello(record, &recordlen,
-		TLS_version_tlcp, client_random, NULL, 0,
+		TLS_protocol_tlcp, client_random, NULL, 0,
 		tlcp_ciphers, tlcp_ciphers_count, NULL, 0) != 1) {
 		error_print();
 		goto end;
@@ -241,19 +241,19 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	tlcp_record_trace(stderr, record, recordlen, 0, 0);
-	if (tls_record_version(record) != TLS_version_tlcp) {
+	if (tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_protocol_version);
 		goto end;
 	}
 	if (tls_record_get_handshake_server_hello(record,
-		&version, &random, &session_id, &session_id_len, &cipher_suite,
+		&protocol, &random, &session_id, &session_id_len, &cipher_suite,
 		&exts, &exts_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	if (version != TLS_version_tlcp) {
+	if (protocol != TLS_protocol_tlcp) {
 		tls_send_alert(conn, TLS_alert_protocol_version);
 		error_print();
 		goto end;
@@ -278,7 +278,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// recv ServerCertificate
 	tls_trace("recv ServerCertificate\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -306,15 +306,15 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// recv ServerKeyExchange
 	tls_trace("recv ServerKeyExchange\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
 	tlcp_record_trace(stderr, record, recordlen, 0, 0);
 	if (tlcp_record_get_handshake_server_key_exchange_pke(record, &sig, &siglen) != 1) {
-		tls_send_alert(conn, TLS_alert_unexpected_message);
 		error_print();
+		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
@@ -349,7 +349,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 	// recv CertificateRequest or ServerHelloDone
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp
+		|| tls_record_protocol(record) != TLS_protocol_tlcp
 		|| tls_record_get_handshake(record, &handshake_type, &cp, &len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -386,7 +386,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 		// recv ServerHelloDone
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
-			|| tls_record_version(record) != TLS_version_tlcp) {
+			|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_unexpected_message);
 			goto end;
@@ -427,7 +427,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 	// generate MASTER_SECRET
 	tls_trace("generate secrets\n");
-	if (tls_pre_master_secret_generate(pre_master_secret, TLS_version_tlcp) != 1
+	if (tls_pre_master_secret_generate(pre_master_secret, TLS_protocol_tlcp) != 1
 		|| tls_prf(pre_master_secret, 48, "master secret",
 			client_random, 32, server_random, 32,
 			48, conn->master_secret) != 1
@@ -532,7 +532,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// [ChangeCipherSpec]
 	tls_trace("recv [ChangeCipherSpec]\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -547,7 +547,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// Finished
 	tls_trace("recv Finished\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -592,7 +592,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	tls_trace("Connection established!\n");
 
 
-	conn->version = TLS_version_tlcp;
+	conn->protocol = TLS_protocol_tlcp;
 	conn->cipher_suite = cipher_suite;
 
 	ret = 1;
@@ -612,12 +612,12 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	uint8_t *record = conn->record;
 	uint8_t finished_record[TLS_FINISHED_RECORD_BUF_SIZE]; // 解密可能导致前面的record被覆盖
 	size_t recordlen, finished_record_len;
-	const int server_ciphers[] = { TLCP_cipher_ecc_sm4_cbc_sm3 }; // 未来应该支持GCM/CBC两个套件
+	const int server_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3 }; // 未来应该支持GCM/CBC两个套件
 
 	// ClientHello, ServerHello
 	uint8_t client_random[32];
 	uint8_t server_random[32];
-	int version;
+	int protocol;
 	const uint8_t *random;
 	const uint8_t *session_id; // TLCP服务器忽略客户端SessionID，也不主动设置SessionID
 	size_t session_id_len;
@@ -678,20 +678,20 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	tlcp_record_trace(stderr, record, recordlen, 0, 0);
-	if (tls_record_version(record) != TLS_version_tlcp) {
+	if (tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_protocol_version);
 		goto end;
 	}
 	if (tls_record_get_handshake_client_hello(record,
-		&version, &random, &session_id, &session_id_len,
+		&protocol, &random, &session_id, &session_id_len,
 		&client_ciphers, &client_ciphers_len,
 		&exts, &exts_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	if (version != TLS_version_tlcp) {
+	if (protocol != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_protocol_version);
 		goto end;
@@ -719,7 +719,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	tls_trace("send ServerHello\n");
 	tls_random_generate(server_random);
 	if (tls_record_set_handshake_server_hello(record, &recordlen,
-		TLS_version_tlcp, server_random, NULL, 0,
+		TLS_protocol_tlcp, server_random, NULL, 0,
 		conn->cipher_suite, NULL, 0) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
@@ -827,7 +827,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	if (conn->ca_certs_len) {
 		tls_trace("recv ClientCertificate\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
-			|| tls_record_version(record) != TLS_version_tlcp) {
+			|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_unexpected_message);
 			goto end;
@@ -851,7 +851,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	// ClientKeyExchange
 	tls_trace("recv ClientKeyExchange\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -881,7 +881,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	if (client_verify) {
 		tls_trace("recv CertificateVerify\n");
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
-			|| tls_record_version(record) != TLS_version_tlcp) {
+			|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 			tls_send_alert(conn, TLS_alert_unexpected_message);
 			error_print();
 			goto end;
@@ -932,7 +932,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	// recv [ChangeCipherSpec]
 	tls_trace("recv [ChangeCipherSpec]\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -947,7 +947,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	// recv ClientFinished
 	tls_trace("recv Finished\n");
 	if (tls_record_recv(record, &recordlen, conn->sock) != 1
-		|| tls_record_version(record) != TLS_version_tlcp) {
+		|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -1035,7 +1035,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 
-	conn->version = TLS_version_tlcp;
+	conn->protocol = TLS_protocol_tlcp;
 
 	tls_trace("Connection Established!\n\n");
 	ret = 1;

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,48 +47,56 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
-// [-cacert file] 如果服务器需要客户端提供证书，那么自己必须准备可以验证客户端证书的CA证书
-// 因此如果提供了CA证书，那么等同于要求客户端验证
-static const char *options = " [-port num] -cert file -key file [-pass str] [-cacert file]";
 
-int tls12_server_main(int argc , char *argv[])
+static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
+
+int tls12_server_main(int argc , char **argv)
 {
-	int ret = -1;
+	int ret = 1;
 	char *prog = argv[0];
-
 	int port = 443;
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
 	char *cacertfile = NULL;
 
-	FILE *certfp = NULL;
-	FILE *keyfp = NULL;
-	FILE *cacertfp = NULL;
-	SM2_KEY sm2_key;
-
+	int server_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3, };
 	uint8_t verify_buf[4096];
 
-
+	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
 
-	if (argc < 2) {
+	int sock;
+	struct sockaddr_in server_addr;
+	struct sockaddr_in client_addr;
+	socklen_t client_addrlen;
+	int conn_sock;
+
+
+	argc--;
+	argv++;
+
+	if (argc < 1) {
 		fprintf(stderr, "usage: %s %s\n", prog, options);
 		return 1;
 	}
 
-	argc--;
-	argv++;
-	while (argc >= 1) {
+	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			return 0;
@@ -117,65 +125,98 @@ bad:
 		argc--;
 		argv++;
 	}
-
-	if (!certfile || !keyfile) {
-		error_print();
+	if (!certfile) {
+		fprintf(stderr, "%s: '-cert' option required\n", prog);
+		return 1;
+	}
+	if (!keyfile) {
+		fprintf(stderr, "%s: '-key' option required\n", prog);
+		return 1;
+	}
+	if (!pass) {
+		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
 
+	memset(&ctx, 0, sizeof(ctx));
+	memset(&conn, 0, sizeof(conn));
+
+	if (tls_ctx_init(&ctx, TLS_protocol_tls12, TLS_server_mode) != 1
+		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
+		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+		error_print();
+		return -1;
+	}
 	if (cacertfile) {
-		if (!(cacertfp = fopen(cacertfile, "r"))) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
 			error_print();
 			return -1;
 		}
 	}
 
-	if (!(certfp = fopen(certfile, "r"))) {
+	// Socket
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		error_print();
+		return 1;
+	}
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port = htons(port);
+	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+		error_print();
+		perror("tlcp_accept: bind: ");
+		goto end;
+	}
+	puts("start listen ...\n");
+	listen(sock, 1);
+
+
+
+restart:
+
+	client_addrlen = sizeof(client_addr);
+	if ((conn_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
+		error_print();
+		goto end;
+	}
+	puts("socket connected\n");
+
+	if (tls_init(&conn, &ctx) != 1
+		|| tls_set_socket(&conn, conn_sock) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (!pass) {
-		pass = getpass("Password : ");
-	}
-	if (!(keyfp = fopen(keyfile, "r"))) {
-		error_print();
-		return -1;
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
-		error_print();
+	if (tls_do_handshake(&conn) != 1) {
+		error_print(); // 为什么这个会触发呢？
 		return -1;
 	}
 
-	memset(&conn, 0, sizeof(conn));
-	if (tls12_accept(&conn, port, certfp, &sm2_key, cacertfp, verify_buf, 4096) != 1) {
-	//if (tls12_accept(&conn, port, certfp, &sm2_key, NULL, NULL, 0) != 1) {
-		error_print();
-		return -1;
-	}
-
-	// 我要做一个反射的服务器，接收到用户的输入之后，再反射回去
 	for (;;) {
 
-		// 接收一个消息
-		// 按道理说第二次执行的时候是不可能成功的了，因此客户端没有数据发过来
+		int rv;
+		size_t sentlen;
+
 		do {
 			len = sizeof(buf);
-			if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
-				error_print();
-				return -1;
+			if ((rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
+				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
+
+				//close(conn.sock);
+				tls_cleanup(&conn);
+				goto restart;
 			}
 		} while (!len);
 
-
-		// 把这个消息再发回去
-		if (tls_send(&conn, (uint8_t *)buf, len) != 1) {
-			error_print();
-			return -1;
+		if (tls_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
+			fprintf(stderr, "%s: send failure, close connection\n", prog);
+			close(conn.sock);
+			goto end;
 		}
-
-		fprintf(stderr, "-----------------\n\n\n\n\n\n");
-
 	}
-	return 0;
+
+
+end:
+	return ret;
 }
