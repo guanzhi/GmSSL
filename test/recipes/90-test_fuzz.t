@@ -9,7 +9,9 @@
 use strict;
 use warnings;
 
-use if $^O ne "VMS", 'File::Glob' => qw/glob/;
+use FindBin;
+use lib "$FindBin::Bin/util/perl";
+use OpenSSL::Glob;
 use OpenSSL::Test qw/:DEFAULT srctop_file/;
 use OpenSSL::Test::Utils;
 

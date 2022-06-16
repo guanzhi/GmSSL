@@ -16,7 +16,9 @@ BEGIN {
 
 use File::Spec::Functions qw/catdir catfile curdir abs2rel rel2abs/;
 use File::Basename;
-use if $^O ne "VMS", 'File::Glob' => qw/glob/;
+use FindBin;
+use lib "$FindBin::Bin/util/perl";
+use OpenSSL::Glob;
 use Test::Harness qw/runtests $switches/;
 
 my $srctop = $ENV{SRCTOP} || $ENV{TOP};
