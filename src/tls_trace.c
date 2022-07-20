@@ -86,19 +86,27 @@ const char *tls_protocol_name(int protocol)
 const char *tls_cipher_suite_name(int cipher)
 {
 	switch (cipher) {
-	case TLS_cipher_ecdhe_sm4_cbc_sm3: return "ECDHE_SM4_CBC_SM3";
-	case TLS_cipher_ecdhe_sm4_gcm_sm3: return "ECDHE_SM4_GCM_SM3";
-	case TLS_cipher_ecc_sm4_cbc_sm3: return "ECC_SM4_CBC_SM3";
-	case TLS_cipher_ecc_sm4_gcm_sm3: return "ECC_SM4_GCM_SM3";
-	case TLS_cipher_ibsdh_sm4_cbc_sm3: return "IBSDH_SM4_CBC_SM3";
-	case TLS_cipher_ibsdh_sm4_gcm_sm3: return "IBSDH_SM4_GCM_SM3";
-	case TLS_cipher_ibc_sm4_cbc_sm3: return "IBC_SM4_CBC_SM3";
-	case TLS_cipher_ibc_sm4_gcm_sm3: return "IBC_SM4_GCM_SM3";
-	case TLS_cipher_rsa_sm4_cbc_sm3: return "RSA_SM4_CBC_SM3";
-	case TLS_cipher_rsa_sm4_gcm_sm3: return "RSA_SM4_GCM_SM3";
-	case TLS_cipher_rsa_sm4_cbc_sha256: return "RSA_SM4_CBC_SHA256";
-	case TLS_cipher_rsa_sm4_gcm_sha256: return "RSA_SM4_GCM_SHA256";
-	case TLS_cipher_empty_renegotiation_info_scsv: return "EMPTY_RENEGOTIATION_INFO_SCSV";
+	case TLS_cipher_null_with_null_null: return "TLS_NULL_WITH_NULL_NULL";
+	case TLS_cipher_sm4_gcm_sm3: return "TLS_SM4_GCM_SM3";
+	case TLS_cipher_sm4_ccm_sm3: return "TLS_SM4_CCM_SM3";
+	case TLS_cipher_ecdhe_sm4_cbc_sm3: return "TLS_ECDHE_SM4_CBC_SM3";
+	case TLS_cipher_ecdhe_sm4_gcm_sm3: return "TLS_ECDHE_SM4_GCM_SM3";
+	case TLS_cipher_ecc_sm4_cbc_sm3: return "TLS_ECC_SM4_CBC_SM3";
+	case TLS_cipher_ecc_sm4_gcm_sm3: return "TLS_ECC_SM4_GCM_SM3";
+	case TLS_cipher_ibsdh_sm4_cbc_sm3: return "TLS_IBSDH_SM4_CBC_SM3";
+	case TLS_cipher_ibsdh_sm4_gcm_sm3: return "TLS_IBSDH_SM4_GCM_SM3";
+	case TLS_cipher_ibc_sm4_cbc_sm3: return "TLS_IBC_SM4_CBC_SM3";
+	case TLS_cipher_ibc_sm4_gcm_sm3: return "TLS_IBC_SM4_GCM_SM3";
+	case TLS_cipher_rsa_sm4_cbc_sm3: return "TLS_RSA_SM4_CBC_SM3";
+	case TLS_cipher_rsa_sm4_gcm_sm3: return "TLS_RSA_SM4_GCM_SM3";
+	case TLS_cipher_rsa_sm4_cbc_sha256: return "TLS_RSA_SM4_CBC_SHA256";
+	case TLS_cipher_rsa_sm4_gcm_sha256: return "TLS_RSA_SM4_GCM_SHA256";
+	case TLS_cipher_aes_128_gcm_sha256: return "TLS_AES_128_GCM_SHA256";
+	case TLS_cipher_aes_256_gcm_sha384: return "TLS_AES_256_GCM_SHA384";
+	case TLS_cipher_chacha20_poly1305_sha256: return "TLS_CHACHA20_POLY1305_SHA256";
+	case TLS_cipher_aes_128_ccm_sha256: return "TLS_AES_128_CCM_SHA256";
+	case TLS_cipher_aes_128_ccm_8_sha256: return "TLS_AES_128_CCM_8_SHA256";
+	case TLS_cipher_empty_renegotiation_info_scsv: return "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 	}
 	return NULL;
 }
@@ -156,7 +164,7 @@ const char *tls_extension_name(int ext)
 	case TLS_extension_supported_ekt_ciphers: return "supported_ekt_ciphers";
 	case TLS_extension_pre_shared_key: return "pre_shared_key";
 	case TLS_extension_early_data: return "early_data";
-	case TLS_extension_supported_protocols: return "supported_protocols";
+	case TLS_extension_supported_versions: return "supported_versions";
 	case TLS_extension_cookie: return "cookie";
 	case TLS_extension_psk_key_exchange_modes: return "psk_key_exchange_modes";
 	case TLS_extension_certificate_authorities: return "certificate_authorities";
@@ -201,13 +209,25 @@ const char *tls_handshake_type_name(int type)
 	case TLS_handshake_hello_request: return "HelloRequest";
 	case TLS_handshake_client_hello: return "ClientHello";
 	case TLS_handshake_server_hello: return "ServerHello";
+	case TLS_handshake_hello_verify_request: return "HelloVerifyRequest";
+	case TLS_handshake_new_session_ticket: return "NewSessionTicket";
+	case TLS_handshake_end_of_early_data: return "EndOfEarlyData";
+	case TLS_handshake_hello_retry_request: return "HelloRetryRequest";
+	case TLS_handshake_encrypted_extensions: return "EncryptedExtensions";
 	case TLS_handshake_certificate: return "Certificate";
 	case TLS_handshake_server_key_exchange: return "ServerKeyExchange";
 	case TLS_handshake_certificate_request: return "CertificateRequest";
 	case TLS_handshake_server_hello_done: return "ServerHelloDone";
-	case TLS_handshake_certificate_verify: return "CertificateRequest";
+	case TLS_handshake_certificate_verify: return "CertificateVerify";
 	case TLS_handshake_client_key_exchange: return "ClientKeyExchange";
 	case TLS_handshake_finished: return "Finished";
+	case TLS_handshake_certificate_url: return "CertificateUrl";
+	case TLS_handshake_certificate_status: return "CertificateStatus";
+	case TLS_handshake_supplemental_data: return "SupplementalData";
+	case TLS_handshake_key_update: return "KeyUpdate";
+	case TLS_handshake_compressed_certificate: return "CompressedCertificate";
+	case TLS_handshake_ekt_key: return "EktKey";
+	case TLS_handshake_message_hash: return "MessageHash";
 	}
 	return NULL;
 }
@@ -366,6 +386,7 @@ int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], i
 	return 1;
 }
 
+// supported_versions 的格式还受到 handshake_type 影响
 int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	const uint8_t *p;
@@ -375,6 +396,20 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 	indent += 4;
 
 	switch (type) {
+	case TLS_extension_supported_versions:
+		if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1
+			|| tls_length_is_zero(datalen) != 1
+			|| len % 2) {
+			error_print();
+			return -1;
+		}
+		while (len) {
+			uint16_t proto;
+			tls_uint16_from_bytes(&proto, &p, &len);
+			format_print(fp, format, indent, "%s (0x%04x)\n",
+				tls_protocol_name(proto), proto);
+		}
+		break;
 	case TLS_extension_supported_groups:
 		if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1
 			|| datalen
@@ -439,6 +474,56 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 
 	default:
 		format_bytes(fp, format, indent, "raw_data", data, datalen);
+	}
+	return 1;
+}
+
+int tls13_extension_print(FILE *fp, int fmt, int ind,
+	int handshake_type, int ext_type, const uint8_t *ext_data, size_t ext_datalen)
+{
+	switch (ext_type) {
+	case TLS_extension_supported_groups:
+	case TLS_extension_ec_point_formats:
+	case TLS_extension_signature_algorithms:
+		return tls_extension_print(fp, ext_type, ext_data, ext_datalen, fmt, ind);
+	}
+
+	format_print(fp, fmt, ind, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
+	ind += 4;
+
+	switch (ext_type) {
+	case TLS_extension_supported_versions:
+		tls13_supported_versions_ext_print(fp, fmt, ind, handshake_type, ext_data, ext_datalen);
+		break;
+	case TLS_extension_key_share:
+		tls13_key_share_ext_print(fp, fmt, ind, handshake_type, ext_data, ext_datalen);
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_extensions_print(FILE *fp, int fmt, int ind,
+	int handshake_type, const uint8_t *exts, size_t extslen)
+{
+	uint16_t ext_type;
+	const uint8_t *ext_data;
+	size_t ext_datalen;
+
+	format_print(fp, fmt, ind, "Extensions\n");
+	ind += 4;
+	while (extslen > 0) {
+		if (tls_uint16_from_bytes(&ext_type, &exts, &extslen) != 1
+			|| tls_uint16array_from_bytes(&ext_data, &ext_datalen, &exts, &extslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls13_extension_print(fp, fmt, ind, handshake_type, ext_type, ext_data, ext_datalen) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	return 1;
 }
@@ -516,7 +601,8 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	}
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto end;
-		tls_extensions_print(fp, exts, exts_len, format, indent);
+		//tls_extensions_print(fp, exts, exts_len, format, indent);
+		tls13_extensions_print(fp, format, indent, TLS_handshake_client_hello, exts, exts_len);
 	}
 	if (datalen > 0) {
 		error_print();
@@ -556,7 +642,8 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto bad;
 		//format_bytes(fp, format, indent, "Extensions : ", exts, exts_len); // FIXME: extensions_print		
-		tls_extensions_print(fp, exts, exts_len, format, indent);
+		//tls_extensions_print(fp, exts, exts_len, format, indent);
+		tls13_extensions_print(fp, format, indent, TLS_handshake_server_hello, exts, exts_len);
 	}
 	return 1;
 bad:
@@ -572,8 +659,7 @@ int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int for
 	const uint8_t *der;
 	size_t derlen;
 
-	if (tls_uint24array_from_bytes(&certs, &certslen, &data, &datalen) != 1
-		|| datalen > 0) {
+	if (tls_uint24array_from_bytes(&certs, &certslen, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -584,6 +670,11 @@ int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int for
 		}
 		(void)x509_cert_print(fp, format, indent, "Certificate", der, derlen);
 		(void)x509_cert_to_pem(der, derlen, fp);
+	}
+
+	if (datalen) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -794,17 +885,41 @@ int tls_finished_print(FILE *fp, const uint8_t *data, size_t datalen, int format
 	return 1;
 }
 
+int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, size_t handshake_len)
+{
+	const uint8_t *p = handshake;
+	size_t len = handshake_len;
+	uint8_t type;
+	const uint8_t *data;
+	size_t datalen;
+
+	if (tls_uint8_from_bytes(&type, &handshake, &handshake_len) != 1
+		|| tls_uint24array_from_bytes(&data, &datalen, &handshake, &handshake_len) != 1
+		|| tls_length_is_zero(handshake_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	switch (type) {
+	case TLS_handshake_certificate:
+		return tls13_certificate_print(fp, fmt, ind, data, datalen);
+	}
+
+	return tls_handshake_print(fp, p, len, fmt, ind);
+}
+
+// 这个是有问题的，因为TLS 1.3的证书和TLS 1.2是不一样的
 int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent)
 {
 	const uint8_t *cp = handshake;
-	int type;
+	uint8_t type;
 	const uint8_t *data;
 	size_t datalen = 0;
 
 	format_print(fp, format, indent, "Handshake\n");
 	indent += 4;
 
-	if (tls_uint8_from_bytes((uint8_t *)&type, &cp, &handshakelen) != 1) {
+	if (tls_uint8_from_bytes(&type, &cp, &handshakelen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -829,6 +944,10 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 	case TLS_handshake_server_hello:
 		if (tls_server_hello_print(fp, data, datalen, format, indent) != 1)
 			{ error_print(); return -1; } break;
+	case TLS_handshake_encrypted_extensions:
+		tls13_encrypted_extensions_print(fp, format, indent, data, datalen);
+		break;
+
 	case TLS_handshake_certificate:
 		if (tls_certificate_print(fp, data, datalen, format, indent) != 1)
 			{ error_print(); return -1; } break;
@@ -888,9 +1007,86 @@ int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, in
 	return 1;
 }
 
+int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen)
+{
+	const uint8_t *data;
+	size_t datalen;
+	int protocol;
+
+	format |= TLS_cipher_sm4_gcm_sm3 << 8;
+
+	if (!fp || !record || recordlen < 5) {
+		error_print();
+		return -1;
+	}
+	protocol = tls_record_protocol(record);
+	format_print(fp, format, indent, "Record\n"); indent += 4;
+	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
+	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
+	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
+
+	data = tls_record_data(record);
+	datalen = tls_record_data_length(record);
+
+	if (recordlen < tls_record_length(record)) {
+		error_print();
+		return -1;
+	}
+
+	// 最高字节设置后强制打印记录原始数据
+	if (format >> 24) {
+		format_bytes(fp, format, indent, "Data", data, datalen);
+		fprintf(fp, "\n");
+		return 1;
+	}
+
+	switch (record[0]) {
+	case TLS_record_handshake:
+		tls13_handshake_print(fp, format, indent, data, datalen);
+		break;
+	case TLS_record_alert:
+		if (tls_alert_print(fp, data, datalen, format, indent) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case TLS_record_change_cipher_spec:
+		if (tls_change_cipher_spec_print(fp, data, datalen, format, indent) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case TLS_record_application_data:
+		if (tls_application_data_print(fp, data, datalen, format, indent) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	recordlen -= tls_record_length(record);
+	if (recordlen) {
+		format_print(fp, 0, 0, "DataLeftInRecord: %zu\n", recordlen);
+	}
+
+	fprintf(fp, "\n");
+	return 1;
+
+}
+
+
+// 仅从record数据是不能判断这个record是TLS 1.2还是TLS 1.3
+// 不同协议上，同名的握手消息，其格式也是不一样的。这真是太恶心了！！！！
+
 // 当消息为ClientKeyExchange,ServerKeyExchange，需要密码套件中的密钥交换算法信息
 // 当消息为加密的Finished，记录类型为Handshake，但是记录负载数据中没有Handshake头
 // 注意：这里的recordlen 是冗余的，要容忍recordlen的错误
+//
+// supported_versions 的格式由handshake_type 是否为ClientHello, ServerHello 决定
+// record中是包含这个信息的，但是在exts中没有这个信息
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
 {
 	const uint8_t *data;
@@ -959,6 +1155,34 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 
 	fprintf(fp, "\n");
 	return 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 int tls_secrets_print(FILE *fp,

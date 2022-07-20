@@ -64,7 +64,7 @@ add_library(
 	src/tlcp.c
 	src/tls.c
 	src/tls12.c
-#	src/tls13.c
+	src/tls13.c
 	src/tls_ext.c
 	src/tls_trace.c
 	src/version.c
@@ -138,8 +138,8 @@ add_executable(
 	tools/tlcp_server.c
 	tools/tls12_client.c
 	tools/tls12_server.c
-#	tools/tls13_client.c
-#	tools/tls13_server.c
+	tools/tls13_client.c
+	tools/tls13_server.c
 	tools/sdfutil.c
 	tools/skfutil.c
 )
@@ -258,6 +258,8 @@ target_link_libraries (zuctest LINK_PUBLIC gmssl)
 
 #add_executable(tlstest tests/tlstest.c)
 #target_link_libraries (tlstest LINK_PUBLIC gmssl)
+add_executable(tls13test tests/tls13test.c)
+target_link_libraries (tls13test LINK_PUBLIC gmssl)
 
 
 enable_testing()
@@ -290,7 +292,7 @@ add_test(NAME sm2		COMMAND sm2test)
 add_test(NAME sm3		COMMAND sm3test)
 add_test(NAME sm4		COMMAND sm4test)
 add_test(NAME sm9		COMMAND sm9test)
-#add_test(NAME tls		COMMAND tlstest)
+add_test(NAME tls13		COMMAND tls13test)
 add_test(NAME x509		COMMAND x509test)
 add_test(NAME x509_oid		COMMAND x509_oidtest)
 add_test(NAME x509_alg		COMMAND x509_algtest)

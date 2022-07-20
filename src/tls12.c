@@ -203,6 +203,27 @@ int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM
 	return 1;
 }
 
+/*
+      Client                                               Server
+
+      ClientHello                  -------->
+                                                      ServerHello
+                                                      Certificate
+                                                ServerKeyExchange
+                                              CertificateRequest*
+                                   <--------      ServerHelloDone
+      Certificate*
+      ClientKeyExchange
+      CertificateVerify*
+      [ChangeCipherSpec]
+      Finished                     -------->
+                                               [ChangeCipherSpec]
+                                   <--------             Finished
+      Application Data             <------->     Application Data
+
+
+*/
+
 int tls12_do_connect(TLS_CONNECT *conn)
 {
 	int ret = -1;
@@ -275,9 +296,14 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	size_t signature_algors_cnt = 1;
 
 	client_exts_len = 0;
+	/*
 	tls_exts_add_ec_point_formats(client_exts, &client_exts_len, sizeof(client_exts), ec_point_formats, ec_point_formats_cnt);
 	tls_exts_add_supported_groups(client_exts, &client_exts_len, sizeof(client_exts), supported_groups, supported_groups_cnt);
 	tls_exts_add_signature_algors(client_exts, &client_exts_len, sizeof(client_exts), signature_algors, signature_algors_cnt);
+	*/
+
+
+
 
 	if (tls_record_set_handshake_client_hello(record, &recordlen,
 		conn->protocol, client_random, NULL, 0,
@@ -332,7 +358,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	if (tls_process_server_exts(server_exts, server_exts_len, &ec_point_format, &supported_group, &signature_algor) != 1
+	if (tls_process_server_hello_exts(server_exts, server_exts_len, &ec_point_format, &supported_group, &signature_algor) != 1
 		|| ec_point_format < 0
 		|| supported_group < 0
 		|| signature_algor < 0) {
@@ -780,7 +806,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		server_exts_len = 0;
 		curve = TLS_curve_sm2p256v1;
 
-		tls_process_client_exts(client_exts, client_exts_len, server_exts, &server_exts_len, sizeof(server_exts));
+		tls_process_client_hello_exts(client_exts, client_exts_len, server_exts, &server_exts_len, sizeof(server_exts));
 
 
 

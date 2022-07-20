@@ -47,127 +47,176 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
 
-static void print_usage(const char *prog)
-{
-	printf("Usage: %s [options]\n", prog);
-	printf("  -port <num>\n");
-	printf("  -cert <file>\n");
-	printf("  -signkey <file>\n");
-}
+static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
 
-int tls13_server_main(int argc , char *argv[])
+int tls13_server_main(int argc , char **argv)
 {
-	int ret = -1;
+	int ret = 1;
 	char *prog = argv[0];
 	int port = 443;
 	char *certfile = NULL;
-	char *signkeyfile = NULL;
-	FILE *certfp = NULL;
-	FILE *signkeyfp = NULL;
-	SM2_KEY signkey;
+	char *keyfile = NULL;
+	char *pass = NULL;
+	char *cacertfile = NULL;
 
+	int server_ciphers[] = { TLS_cipher_sm4_gcm_sm3, };
 	uint8_t verify_buf[4096];
 
-
+	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
 
-	if (argc < 2) {
-		print_usage(prog);
-		return 0;
-	}
+	int sock;
+	struct sockaddr_in server_addr;
+	struct sockaddr_in client_addr;
+	socklen_t client_addrlen;
+	int conn_sock;
+
 
 	argc--;
 	argv++;
-	while (argc >= 1) {
-		if (!strcmp(*argv, "-help")) {
-			print_usage(prog);
-			return 0;
 
+	if (argc < 1) {
+		fprintf(stderr, "usage: %s %s\n", prog, options);
+		return 1;
+	}
+
+	while (argc > 0) {
+		if (!strcmp(*argv, "-help")) {
+			printf("usage: %s %s\n", prog, options);
+			return 0;
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
-
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-
-		} else if (!strcmp(*argv, "-signkey")) {
+		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			signkeyfile = *(++argv);
-
+			keyfile = *(++argv);
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
+		} else if (!strcmp(*argv, "-cacert")) {
+			if (--argc < 1) goto bad;
+			cacertfile = *(++argv);
 		} else {
-			print_usage(prog);
-			return 0;
+			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
+			return 1;
+bad:
+			fprintf(stderr, "%s: option '%s' argument required\n", prog, *argv);
+			return 1;
 		}
 		argc--;
 		argv++;
 	}
-
-	if (!certfile || !signkeyfile) {
-		print_usage(prog);
-		return -1;
+	if (!certfile) {
+		fprintf(stderr, "%s: '-cert' option required\n", prog);
+		return 1;
+	}
+	if (!keyfile) {
+		fprintf(stderr, "%s: '-key' option required\n", prog);
+		return 1;
+	}
+	if (!pass) {
+		fprintf(stderr, "%s: '-pass' option required\n", prog);
+		return 1;
 	}
 
-	if (!(certfp = fopen(certfile, "r"))) {
-		error_print();
-		return -1;
-	}
-
-
-	if (!(signkeyfp = fopen(signkeyfile, "r"))) {
-		error_print();
-		return -1;
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&signkey, "password", signkeyfp) != 1) {
-		error_print();
-		return -1;
-	}
-
+	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
-	if (tls13_accept(&conn, port, certfp, &signkey, certfp) != 1) {
+
+	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_server_mode) != 1
+		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
+		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
 		error_print();
 		return -1;
 	}
-
-	// 我要做一个反射的服务器，接收到用户的输入之后，再反射回去
-	for (;;) {
-
-		// 接收一个消息
-		// 按道理说第二次执行的时候是不可能成功的了，因此客户端没有数据发过来
-		do {
-			len = sizeof(buf);
-			if (tls_recv(&conn, (uint8_t *)buf, &len) != 1) {
-				error_print();
-				return -1;
-			}
-		} while (!len);
-
-
-		// 把这个消息再发回去
-		if (tls_send(&conn, (uint8_t *)buf, len) != 1) {
+	if (cacertfile) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
 			error_print();
 			return -1;
 		}
+	}
 
-		fprintf(stderr, "-----------------\n\n\n\n\n\n");
+	// Socket
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		error_print();
+		return 1;
+	}
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port = htons(port);
+	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+		error_print();
+		perror("tlcp_accept: bind: ");
+		goto end;
+	}
+	puts("start listen ...\n");
+	listen(sock, 1);
 
+
+
+restart:
+
+	client_addrlen = sizeof(client_addr);
+	if ((conn_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
+		error_print();
+		goto end;
+	}
+	puts("socket connected\n");
+
+	if (tls_init(&conn, &ctx) != 1
+		|| tls_set_socket(&conn, conn_sock) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (tls_do_handshake(&conn) != 1) {
+		error_print(); // 为什么这个会触发呢？
+		return -1;
+	}
+
+	for (;;) {
+
+		int rv;
+		size_t sentlen;
+
+		do {
+			len = sizeof(buf);
+			if ((rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
+				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
+
+				//close(conn.sock);
+				tls_cleanup(&conn);
+				goto restart;
+			}
+		} while (!len);
+
+		if (tls_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
+			fprintf(stderr, "%s: send failure, close connection\n", prog);
+			close(conn.sock);
+			goto end;
+		}
 	}
 
 
-
-	return 1;
-bad:
-	fprintf(stderr, "%s: command error\n", prog);
-
-	return 0;
+end:
+	return ret;
 }

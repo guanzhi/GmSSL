@@ -122,14 +122,17 @@ int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t *out, size_t taglen, uint8_t *tag)
 {
 	if (key->cipher == BLOCK_CIPHER_sm4()) {
-		sm4_gcm_encrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag);
-		return 1;
+		if (sm4_gcm_encrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag) != 1) {
+			error_print();
+			return -1;
+		}
 	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
-		aes_gcm_encrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag);
-		return 1;
+		if (aes_gcm_encrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag) != 1) {
+			error_print();
+			return -1;
+		}
 	}
-	error_print();
-	return -1;
+	return 1;
 }
 
 int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
@@ -137,10 +140,15 @@ int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *tag, size_t taglen, uint8_t *out)
 {
 	if (key->cipher == BLOCK_CIPHER_sm4()) {
-		sm4_gcm_decrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out);
+		if (sm4_gcm_decrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out) != 1) {
+			error_print();
+			return -1;
+		}
 	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
-		aes_gcm_decrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out);
+		if (aes_gcm_decrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out) != 1) {
+			error_print();
+			return -1;
+		}
 	}
-	error_print();
-	return -1;
+	return 1;
 }

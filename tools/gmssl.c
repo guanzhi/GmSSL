@@ -226,12 +226,10 @@ int main(int argc, char **argv)
 			return tls12_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls12_server")) {
 			return tls12_server_main(argc, argv);
-/*
 		} else if (!strcmp(*argv, "tls13_client")) {
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
-*/
 		} else if (!strcmp(*argv, "sdfutil")) {
 			return sdfutil_main(argc, argv);
 		} else if (!strcmp(*argv, "skfutil")) {

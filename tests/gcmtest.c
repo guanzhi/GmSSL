@@ -51,6 +51,8 @@
 #include <stdlib.h>
 #include <gmssl/gcm.h>
 #include <gmssl/hex.h>
+#include <gmssl/rand.h>
+#include <gmssl/block_cipher.h>
 #include <gmssl/error.h>
 
 
@@ -130,8 +132,6 @@ int test_ghash(void)
 	size_t Hlen, Alen, Clen, Tlen;
 	int i;
 
-	printf("%s\n", __FUNCTION__);
-
 	for (i = 0; i < sizeof(ghash_tests)/sizeof(ghash_tests[0]); i++) {
 		hex_to_bytes(ghash_tests[i].H, strlen(ghash_tests[i].H), H, &Hlen);
 		hex_to_bytes(ghash_tests[i].A, strlen(ghash_tests[i].A), A, &Alen);
@@ -139,22 +139,93 @@ int test_ghash(void)
 		hex_to_bytes(ghash_tests[i].T, strlen(ghash_tests[i].T), T, &Tlen);
 		ghash(H, A, Alen, C, Clen, out);
 
-		printf("  test %d %s\n", i + 1, memcmp(out ,T, Tlen) == 0 ? "ok" : "error");
-		/*
-		format_print(stdout, 0, 2, "H = %s\n", ghash_tests[i].H);
-		format_print(stdout, 0, 2, "A = %s\n", ghash_tests[i].A);
-		format_print(stdout, 0, 2, "C = %s\n", ghash_tests[i].C);
-		format_bytes(stdout, 0, 2, "GHASH(H,A,C) = ", out, 16);
-		format_print(stdout, 0, 2, "             = %s\n\n", ghash_tests[i].T);
-		*/
+		if (memcmp(out, T, Tlen) != 0) {
+			format_print(stderr, 0, 0, "test %d failed\n", i + 1);
+			format_print(stderr, 0, 2, "H = %s\n", ghash_tests[i].H);
+			format_print(stderr, 0, 2, "A = %s\n", ghash_tests[i].A);
+			format_print(stderr, 0, 2, "C = %s\n", ghash_tests[i].C);
+			format_bytes(stderr, 0, 2, "GHASH(H,A,C) = ", out, 16);
+			format_print(stderr, 0, 2, "             = %s\n\n", ghash_tests[i].T);
+		}
 	}
-	return 0;
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
+
+int test_gcm(void)
+{
+	BLOCK_CIPHER_KEY block_key;
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t aad[64];
+	uint8_t in[100];
+	uint8_t out[sizeof(in)];
+	uint8_t buf[sizeof(in)];
+	uint8_t tag[16];
+
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(aad, sizeof(aad));
+	rand_bytes(in, sizeof(in));
+
+	memset(out, 0, sizeof(out));
+	memset(buf, 0, sizeof(buf));
+	memset(tag, 0, sizeof(tag));
+
+	if (block_cipher_set_encrypt_key(&block_key, BLOCK_CIPHER_aes128(), key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (gcm_encrypt(&block_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, sizeof(tag), tag) != 1) {
+		error_print();
+		return -1;
+	}
+	if (gcm_decrypt(&block_key, iv, sizeof(iv), aad, sizeof(aad), out, sizeof(out), tag, sizeof(tag), buf) != 1) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(buf, in, sizeof(in)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	memset(out, 0, sizeof(out));
+	memset(buf, 0, sizeof(buf));
+	memset(tag, 0, sizeof(tag));
+
+	if (block_cipher_set_encrypt_key(&block_key, BLOCK_CIPHER_sm4(), key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (gcm_encrypt(&block_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, sizeof(tag), tag) != 1) {
+		error_print();
+		return -1;
+	}
+	if (gcm_decrypt(&block_key, iv, sizeof(iv), aad, sizeof(aad), out, sizeof(out), tag, sizeof(tag), buf) != 1) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(buf, in, sizeof(in)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+
+
 
 
 int main(int argc, char **argv)
 {
-	int err = 0;
-	err += test_ghash();
-	return err;
+	if (test_ghash() != 1) goto err;
+	if (test_gcm() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

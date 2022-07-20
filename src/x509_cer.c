@@ -1507,6 +1507,43 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	return 0;
 }
 
+int x509_cert_check(const uint8_t *cert, size_t certlen)
+{
+	time_t not_before;
+	time_t not_after;
+	time_t now;
+
+	x509_cert_get_details(cert, certlen,
+		NULL, // version
+		NULL, NULL, // serial
+		NULL, // signature_algor
+		NULL, NULL, // issuer
+		&not_before, &not_after, // validity
+		NULL, NULL, // subject
+		NULL, // subject_public_key
+		NULL, NULL, // issuer_unique_id
+		NULL, NULL, // subject_unique_id
+		NULL, NULL, // extensions
+		NULL, // signature_algor
+		NULL, NULL); // signature
+
+	// not_before < now < not_after
+	time(&now);
+	if (not_before >= not_after) {
+		error_print();
+		return -1;
+	}
+	if (now < not_before) {
+		error_print();
+		return X509_verify_err_cert_not_yet_valid;
+	}
+	if (not_after < now) {
+		error_print();
+		return  X509_verify_err_cert_has_expired;
+	}
+
+	return 1;
+}
 
 int x509_certs_verify(const uint8_t *certs, size_t certslen,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
@@ -1517,7 +1554,6 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen,
 	size_t cacertlen;
 	const uint8_t *name;
 	size_t namelen;
-
 	*verify_result = -1;
 
 	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
@@ -1525,6 +1561,11 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen,
 		return -1;
 	}
 	while (certslen) {
+
+		if ((*verify_result = x509_cert_check(cert, certlen)) < 0) {
+			error_print();
+			return -1;
+		}
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
@@ -1582,6 +1623,10 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
 	// 要检查这两个证书的类型是否分别为签名和加密证书
 	// FIXME: 检查depth
 	while (certslen) {
+		if ((*verify_result = x509_cert_check(cert, certlen)) < 0) {
+			error_print();
+			return -1;
+		}
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
@@ -1702,6 +1747,3 @@ end:
 	if (buf) free(buf);
 	return ret;
 }
-
-
-

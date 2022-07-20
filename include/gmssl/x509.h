@@ -371,6 +371,14 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	const uint8_t *serial, size_t serial_len,
 	const uint8_t **cert, size_t *cert_len);
 
+
+typedef enum {
+	X509_verify_err_cert_revoked		= -2,
+	X509_verify_err_cert_not_yet_valid	= -3,
+	X509_verify_err_cert_has_expired	= -4,
+	X509_verify_err_cert_chain_too_long	= -5,
+} X509_VERIFY_ERR;
+
 int x509_certs_verify(const uint8_t *certs, size_t certslen,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,

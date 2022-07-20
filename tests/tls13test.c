@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 - 2021 The GmSSL Project.  All rights reserved.
+ * Copyright (c) 2021 - 2021 The GmSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,98 +49,71 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
-#include <gmssl/hex.h>
-#include <gmssl/gf128.h>
+#include <gmssl/oid.h>
+#include <gmssl/x509.h>
+#include <gmssl/rand.h>
 #include <gmssl/error.h>
+#include <gmssl/tls.h>
+#include <gmssl/sm3.h>
+#include <gmssl/sm4.h>
 
 
-int test_gf128_from_hex(void)
+static int test_tls13_gcm(void)
 {
-	char *tests[] = {
-		"00000000000000000000000000000000",
-		"00000000000000000000000000000001",
-		"10000000000000000000000000000000",
-		"de300f9301a499a965f8bf677e99e80d",
-		"14b267838ec9ef1bb7b5ce8c19e34bc6",
-	};
-	gf128_t a;
-	int i;
 
-	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		a = gf128_from_hex(tests[i]);
-		if (gf128_equ_hex(a, tests[i]) != 1) {
-			error_print();
-			return -1;
-		}
-	}
+	BLOCK_CIPHER_KEY block_key;
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t seq_num[8] = {0,0,0,0,0,0,0,1};
+	int record_type = TLS_record_handshake;
+	uint8_t in[40];
+	size_t padding_len = 8;
+	uint8_t out[256];
+	size_t outlen;
+	uint8_t buf[256];
+	size_t buflen;
 
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(in, sizeof(in));
 
-int test_gf128_mul2(void)
-{
-	char *tests[] = {
-		"00000000000000000000000000000001",
-		"de300f9301a499a965f8bf677e99e80d",
-	};
-	char *results[] = {
-		"e1000000000000000000000000000000",
-		"8e1807c980d24cd4b2fc5fb3bf4cf406",
-	};
-	gf128_t a;
-	int i;
+	memset(out, 1, sizeof(out));
+	outlen = 0;
+	memset(buf, 1, sizeof(buf));
+	buflen = 0;
 
-	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		a = gf128_from_hex(tests[i]);
-		a = gf128_mul2(a);
-		if (gf128_equ_hex(a, results[i]) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-int test_gf128_mul(void)
-{
-	char *hex_a = "de300f9301a499a965f8bf677e99e80d";
-	char *hex_b = "14b267838ec9ef1bb7b5ce8c19e34bc6";
-	char *hex_add_a_b = "ca8268108f6d76b2d24d71eb677aa3cb";
-	char *hex_mul_a_b = "7d87dda57a20b0c51d9743071ab14010";
-	gf128_t a, b, r;
-
-	a = gf128_from_hex(hex_a);
-	b = gf128_from_hex(hex_b);
-
-	r = gf128_add(a, b);
-	if (gf128_equ_hex(r, hex_add_a_b) != 1) {
+	if (block_cipher_set_encrypt_key(&block_key, BLOCK_CIPHER_sm4(), key) != 1) {
 		error_print();
 		return -1;
 	}
 
-	r = gf128_mul(a, b);
-	if (gf128_equ_hex(r, hex_mul_a_b) != 1) {
+	if (tls13_gcm_encrypt(&block_key, iv, seq_num, record_type, in, sizeof(in), padding_len, out, &outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls13_gcm_decrypt(&block_key, iv, seq_num, out, outlen, &record_type, buf, &buflen) != 1) {
 		error_print();
 		return -1;
 	}
 
+	if (buflen != sizeof(in)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(in, buf, buflen) != 0) {
+		error_print();
+		return -1;
+	}
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
 int main(void)
 {
-	if (test_gf128_from_hex() != 1) goto err;
-	if (test_gf128_mul2() != 1) goto err;
-	if (test_gf128_mul() != 1) goto err;
+	if (test_tls13_gcm() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
 	error_print();
 	return -1;
-
 }

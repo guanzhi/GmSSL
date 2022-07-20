@@ -118,6 +118,13 @@ void tls_array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size
 	*outlen += datalen;
 }
 
+/*
+这几个函数要区分data = NULL, datalen = 0 和 data = NULL, datalen != 0的情况
+前者意味着数据为空，因此输出的就是一个长度
+后者意味着数据不为空，只是我们不想输出数据，只输出头部的长度，并且更新整个的输出长度。 这种情况应该避免！
+
+*/
+
 void tls_uint8array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
 	tls_uint8_to_bytes((uint8_t)datalen, out, outlen);
@@ -637,7 +644,6 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 		error_print();
 		return -1;
 	}
-
 	if (!tls_protocol_name(tls_record_protocol(record))) {
 		error_print();
 		return -1;
@@ -2310,11 +2316,9 @@ int tls_do_handshake(TLS_CONNECT *conn)
 	case TLS_protocol_tls12:
 		if (conn->is_client) return tls12_do_connect(conn);
 		else return tls12_do_accept(conn);
-	/*
 	case TLS_protocol_tls13:
 		if (conn->is_client) return tls13_do_connect(conn);
 		else return tls13_do_accept(conn);
-	*/
 	}
 	error_print();
 	return -1;

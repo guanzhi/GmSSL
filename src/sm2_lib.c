@@ -69,6 +69,8 @@ int sm2_do_sign_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t dgst[32],
 	SM2_BN r;
 	SM2_BN s;
 
+	format_bytes(stderr, 0, 0, "sm2_do_sign_ex dgst", dgst, 32);
+
 retry:
 	sm2_bn_from_bytes(d, key->private_key);
 
@@ -142,6 +144,8 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	SM2_BN e;
 	SM2_BN x;
 	SM2_BN t;
+
+	format_bytes(stderr, 0, 0, "sm2_do_verify dgst", dgst, 32);
 
 	// parse signature values
 	sm2_bn_from_bytes(r, sig->r);	//print_bn("r", r);
