@@ -874,6 +874,7 @@ int tls13_extensions_print(FILE *fp, int fmt, int ind,
 	int handshake_type, const uint8_t *exts, size_t extslen);
 
 int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *cert, size_t certlen);
+int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *cert, size_t certlen);
 int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen);
 
 

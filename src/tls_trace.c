@@ -903,6 +903,8 @@ int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, 
 	switch (type) {
 	case TLS_handshake_certificate:
 		return tls13_certificate_print(fp, fmt, ind, data, datalen);
+	case TLS_handshake_certificate_request:
+		return tls13_certificate_request_print(fp, fmt, ind, data, datalen);
 	}
 
 	return tls_handshake_print(fp, p, len, fmt, ind);

@@ -146,6 +146,7 @@ int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	}
 	*outlen = clen;
 	free(mbuf);
+
 	return 1;
 }
 
@@ -252,7 +253,7 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t pa
 	uint8_t *record = conn->record;
 	size_t recordlen;
 
-	tls_trace("<<<< [ApplicationData]\n");
+	tls_trace("send {ApplicationData}\n");
 
 	if (conn->is_client) {
 		key = &conn->client_write_key;
@@ -294,7 +295,7 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 	uint8_t *seq_num;
 
 
-	tls_trace(">>>> [ApplicationData]\n");
+	tls_trace("recv {ApplicationData}\n");
 
 	if (conn->is_client) {
 		key = &conn->client_write_key;
@@ -427,8 +428,6 @@ int tls13_sign_certificate_verify(int tls_mode,
 	dgst_ctx = *tbs_dgst_ctx;
 	digest_finish(&dgst_ctx, dgst, &dgstlen);
 
-	format_bytes(stderr, 0, 0, "tls13_sign_certificate_verify dgst", dgst, dgstlen);
-
 	sm2_sign_init(&sign_ctx, key, signer_id, signer_id_len);
 	sm2_sign_update(&sign_ctx, prefix, 64);
 	sm2_sign_update(&sign_ctx, context_str_and_zero, context_str_and_zero_len);
@@ -471,14 +470,10 @@ int tls13_verify_certificate_verify(int tls_mode,
 	dgst_ctx = *tbs_dgst_ctx;
 	digest_finish(&dgst_ctx, dgst, &dgstlen);
 
-	format_bytes(stderr, 0, 0, "tls13_verify_certificate_verify dgst", dgst, dgstlen);
-
 	sm2_verify_init(&verify_ctx, public_key, signer_id, signer_id_len);
 	sm2_verify_update(&verify_ctx, prefix, 64);
 	sm2_verify_update(&verify_ctx, context_str_and_zero, context_str_and_zero_len);
 	sm2_verify_update(&verify_ctx, dgst, dgstlen);
-
-	format_bytes(stderr, 0, 0, "477", sig, siglen);
 
 	if ((ret = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
 		error_print();
@@ -926,7 +921,6 @@ int tls13_record_get_handshake_certificate_request(const uint8_t *record,
 	}
 	if (tls_uint8array_from_bytes(requst_context, request_context_len, &p, &len) != 1
 		|| tls_uint16array_from_bytes(exts, exts_len, &p, &len) != 1
-		|| tls_length_is_zero(*exts_len) != 1
 		|| tls_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
@@ -1013,7 +1007,32 @@ int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *cert, siz
 			return -1;
 		}
 		x509_cert_print(fp, fmt, ind, "cert_data", cert_data, cert_data_len);
+		x509_cert_to_pem(cert_data, cert_data_len, fp);
 		tls13_extensions_print(fp, fmt, ind, TLS_handshake_certificate, exts, extslen);
+	}
+	return 1;
+}
+
+int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *certreq, size_t certreqlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	if (tls_uint8array_from_bytes(&p, &len, &certreq, &certreqlen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_bytes(fp, fmt, ind, "certificate_request_context", p, len);
+
+	if (tls_uint16array_from_bytes(&p, &len, &certreq, &certreqlen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_bytes(fp, fmt, ind, "extensions", p, len);
+
+	if (tls_length_is_zero(certreqlen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -1402,7 +1421,8 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	tls_record_set_protocol(enced_record, TLS_protocol_tls12);
 
 	digest_init(&dgst_ctx, digest);
-	null_dgst_ctx = dgst_ctx;// null_dgst_ctx已经初始化了，这个是干什么的？
+	null_dgst_ctx = dgst_ctx;
+
 
 	// 1. send ClientHello
 	tls_trace("send ClientHello\n");
@@ -1494,15 +1514,11 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	block_cipher_set_encrypt_key(&conn->client_write_key, cipher, client_write_key);
 	block_cipher_set_encrypt_key(&conn->server_write_key, cipher, server_write_key);
 
-
 	format_bytes(stderr, 0, 0, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 0, "server_write_key", server_write_key, 16);
 	format_bytes(stderr, 0, 0, "client_write_iv", conn->client_write_iv, 12);
 	format_bytes(stderr, 0, 0, "server_write_iv", conn->server_write_iv, 12);
 
-
-
-	// 后面的消息都是加密的了
 
 	// 3. recv {EncryptedExtensions}
 	printf("recv {EncryptedExtensions}\n");
@@ -1510,8 +1526,6 @@ int tls13_do_connect(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, "{EncryptedExtensions}", enced_record, enced_recordlen);
-
 	if (tls13_record_decrypt(&conn->server_write_key, conn->server_write_iv,
 		conn->server_seq_num, enced_record, enced_recordlen,
 		record, &recordlen) != 1) {
@@ -1546,12 +1560,15 @@ int tls13_do_connect(TLS_CONNECT *conn)
 		return -1;
 	}
 	if (type == TLS_handshake_certificate_request) {
-		tls_trace("<<<< CertificateRequest\n");
+		tls_trace("recv {CertificateRequest*}\n");
 
 		const uint8_t *request_context;
 		size_t request_context_len;
 		const uint8_t *cert_request_exts;
 		size_t cert_request_extslen;
+
+		tls13_record_trace(stderr, record, recordlen, 0, 0);
+
 
 		// 暂时不处理certificate_request数据
 		if (tls13_record_get_handshake_certificate_request(record,
@@ -1560,8 +1577,10 @@ int tls13_do_connect(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+		// request_context 应该为空，当前实现中不支持Post-Handshake Auth
 
-		if (tls_record_recv(record, &recordlen, conn->sock) != 1) {
+		// 这个时候是要接收Certificate
+		if (tls_record_recv(enced_record, &enced_recordlen, conn->sock) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1612,7 +1631,7 @@ int tls13_do_connect(TLS_CONNECT *conn)
 
 	// 7. recv Server {CertificateVerify}
 
-	tls_trace(">>>> {CertificateVerify}\n");
+	tls_trace("recv Server {CertificateVerify}\n");
 	if (tls_record_recv(enced_record, &enced_recordlen, conn->sock) != 1) {
 		error_print();
 		return -1;
@@ -1688,13 +1707,16 @@ int tls13_do_connect(TLS_CONNECT *conn)
 		uint8_t sig[TLS_MAX_SIGNATURE_SIZE];
 		size_t siglen;
 
-		error_print();
-
 		// send client {Certificate*}
 		tls_trace("send Client {Certificate}\n");
 
 
-		if (tls_record_set_handshake_certificate(record, &recordlen, conn->client_certs, conn->client_certs_len) != 1) {
+		uint8_t *request_context = NULL;
+		size_t request_context_len = 0;
+
+		if (tls13_record_set_handshake_certificate(record, &recordlen,
+			request_context, request_context_len,
+			conn->client_certs, conn->client_certs_len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			goto end;
@@ -1717,8 +1739,10 @@ int tls13_do_connect(TLS_CONNECT *conn)
 
 
 		// 10. send client {CertificateVerify*}
-		tls_trace("<<<< client {CertificateVerify}\n");
+		tls_trace("send Client {CertificateVerify*}\n");
 		client_sign_algor = TLS_sig_sm2sig_sm3; // 应该放在conn里面
+
+
 		tls13_sign_certificate_verify(TLS_client_mode, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH, &dgst_ctx, sig, &siglen);
 
 		if (tls13_record_set_handshake_certificate_verify(record, &recordlen,
@@ -1854,6 +1878,7 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	tls13_record_trace(stderr, record, recordlen, 0, 0);
 	tls_seq_num_incr(conn->client_seq_num);
 
+
 	if (tls_record_get_handshake_client_hello(record,
 		&protocol, &random,
 		&session_id, &session_id_len, // 不支持SessionID，不做任何处理
@@ -1915,8 +1940,7 @@ int tls13_do_accept(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_seq_num_incr(conn->server_seq_num);
-
+	tls_seq_num_incr(conn->server_seq_num); // 1
 
 	sm2_ecdh(&server_ecdhe, &client_ecdhe_public, &client_ecdhe_public);
 
@@ -1954,9 +1978,6 @@ int tls13_do_accept(TLS_CONNECT *conn)
 
 	tls13_padding_len_rand(&padding_len);
 
-	format_bytes(stderr, 0, 0, "EncedExts", record, recordlen);
-
-
 	if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
 		conn->server_seq_num, record, recordlen, padding_len,
 		enced_record, &enced_recordlen) != 1) {
@@ -1966,23 +1987,19 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	// FIXME: tls13_record_encrypt需要支持握手消息
 	// tls_record_data(enced_record)[0] = TLS_handshake_encrypted_extensions;
 
-	printf("enced_recordlen = %zu\n", enced_recordlen);
-
 	if (tls_record_send(enced_record, enced_recordlen, conn->sock) != 1) {
 		error_print();
 		return -1;
 	}
-	tls_seq_num_incr(conn->server_seq_num);
-
+	tls_seq_num_incr(conn->server_seq_num); // 2
 
 	// 4. Send {CertificateRequest*}
 	if (client_verify) {
 
 		tls_trace("send {CertificateRequest*}\n");
-		uint8_t request_context[32];
+
 		// TODO: 设置certificate_request中的extensions!
-		if (tls13_record_set_handshake_certificate_request(record, &recordlen,
-			request_context, 32, NULL, 0) != 1) {
+		if (tls13_record_set_handshake_certificate_request_default(record, &recordlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1990,6 +2007,7 @@ int tls13_do_accept(TLS_CONNECT *conn)
 		tls13_record_trace(stderr, record, recordlen, 0, 0);
 
 		tls13_padding_len_rand(&padding_len);
+
 		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
 			conn->server_seq_num, record, recordlen, padding_len,
 			enced_record, &enced_recordlen) != 1) {
@@ -2006,8 +2024,6 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	// 6. send Server {Certificate}
 
 	tls_trace("send Server {Certificate}\n");
-	// 我们需要首先将原始的证书准备好，然后再输入到这个结构里面
-
 	if (tls13_record_set_handshake_certificate(record, &recordlen, NULL, 0, conn->server_certs, conn->server_certs_len) != 1) {
 		error_print();
 		goto end;
@@ -2022,21 +2038,12 @@ int tls13_do_accept(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-
 	if (tls_record_send(enced_record, enced_recordlen, conn->sock) != 1) {
 		error_print();
 		goto end;
 	}
 
 	tls_seq_num_incr(conn->server_seq_num);
-
-	/*
-	// 这个函数不对啊，怎么出现在此处了？
-	if (tls_record_get_handshake_certificate(record, conn->server_certs, &conn->server_certs_len) != 1) {
-		error_print();
-		goto end;
-	}
-	*/
 
 
 	// 7. Send Server {CertificateVerify}
@@ -2135,10 +2142,26 @@ int tls13_do_accept(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+
+
+		if (tls13_process_certificate_list(cert_list, cert_list_len, conn->client_certs, &conn->client_certs_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+
+
 		const uint8_t *cert;
 		size_t certlen;
-		if (x509_certs_get_cert_by_index(conn->client_certs, conn->client_certs_len, 0, &cert, &certlen) != 1
-			|| x509_cert_get_subject_public_key(cert, certlen, &client_sign_key) != 1) {
+
+
+
+
+		if (x509_certs_get_cert_by_index(conn->client_certs, conn->client_certs_len, 0, &cert, &certlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_cert_get_subject_public_key(cert, certlen, &client_sign_key) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2163,7 +2186,6 @@ int tls13_do_accept(TLS_CONNECT *conn)
 			return -1;
 		}
 		tls_seq_num_incr(conn->client_seq_num);
-		digest_update(&dgst_ctx, record + 5, recordlen - 5);
 		tls13_record_trace(stderr, record, recordlen, 0, 0);
 
 		if (tls13_record_get_handshake_certificate_verify(record, &client_sign_algor, &client_sig, &client_siglen) != 1) {
@@ -2174,6 +2196,10 @@ int tls13_do_accept(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+
+
+		digest_update(&dgst_ctx, record + 5, recordlen - 5);
+
 	}
 
 	// 12. Recv Client {Finished}
@@ -2183,13 +2209,13 @@ int tls13_do_accept(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-
 	if (tls13_record_decrypt(&conn->client_write_key, conn->client_write_iv,
 		conn->client_seq_num, enced_record, enced_recordlen,
 		record, &recordlen) != 1) {
 		error_print();
 		return -1;
 	}
+	tls13_record_trace(stderr, record, recordlen, 0, 0);
 
 	tls_seq_num_incr(conn->client_seq_num);
 	if (tls13_record_get_handshake_finished(record, &client_verify_data, &client_verify_data_len) != 1) {
