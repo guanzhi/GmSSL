@@ -49,136 +49,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/hex.h>
 #include <gmssl/sm4.h>
 #include <gmssl/error.h>
 #include <gmssl/rand.h>
 
-# ifdef SM4_AVX2
-void sm4_avx2_ecb_encrypt_blocks(const unsigned char *in,
-	unsigned char *out, size_t blocks, const SM4_KEY *key);
-void sm4_avx2_ctr32_encrypt_blocks(const unsigned char *in,
-	unsigned char *out, size_t blocks, const SM4_KEY *key,
-	const unsigned char iv[16]);
-# endif
 
-static int test_ecb(int avx)
+static int test_sm4(void)
 {
-	SM4_KEY key;
-	unsigned char user_key[16] = {0};
-	/* 2 rounds avx-512 and 2 rounds x86 */
-	unsigned char in[(16 * 2 + 2) * 16] = {0};
-	unsigned char out1[sizeof(in)] = {0};
-	unsigned char out2[sizeof(in)] = {0};
-	int i;
-
-	for (i = 0; i < sizeof(user_key); i++) {
-		user_key[i] = (unsigned char)i;
-	}
-	for (i = 0; i < sizeof(in); i++) {
-		in[i] = (unsigned char)i;
-	}
-	/*
-	RAND_bytes(user_key, sizeof(user_key));
-	RAND_bytes(in, sizeof(in));
-	*/
-
-	sm4_set_encrypt_key(&key, user_key);
-	for (i = 0; i < sizeof(in)/SM4_BLOCK_SIZE; i++) {
-		sm4_encrypt(&key, in + 16*i, out1 + 16*i);
-	}
-
-	switch (avx) {
-# ifdef SM4_AVX2
-	case 2:
-		sm4_avx2_ecb_encrypt_blocks(in, out2, sizeof(in)/SM4_BLOCK_SIZE, &key);
-		break;
-# endif
-	default:
-		printf("avx shuold be in {2}\n");
-		error_print();
-		return -1;
-	}
-
-	if (memcmp(out1, out2, sizeof(out1)) != 0) {
-		error_print();
-		return -1;
-	}
-	return 0;
-}
-
-static void xor_block(unsigned char *out, const unsigned char *in)
-{
-	int i;
-	for (i = 0; i < 16; i++) {
-		out[i] ^= in[i];
-	}
-}
-
-static int test_ctr32(int avx)
-{
-	SM4_KEY key;
-	unsigned char user_key[16] = {0};
-	unsigned char iv[16] = {0};
-	unsigned char ctr1[16];
-	unsigned char ctr2[16];
-	/* 2 rounds avx-512 and 2 rounds x86 */
-	unsigned char in[(16 * 2 + 2) * 16] = {0};
-	unsigned char out1[sizeof(in)];
-	unsigned char out2[sizeof(in)];
-	int i;
-
-	/*
-	RAND_bytes(user_key, sizeof(user_key));
-	RAND_bytes(iv, sizeof(iv) - 1);
-	RAND_bytes(in, sizeof(in));
-	*/
-
-	sm4_set_encrypt_key(&key, user_key);
-	memcpy(ctr1, iv, sizeof(iv));
-	memcpy(ctr2, iv, sizeof(iv));
-
-	for (i = 0; i < sizeof(in)/16; i++) {
-		sm4_encrypt(&key, ctr1, out1 + 16 * i);
-		xor_block(out1 + 16 * i, in + 16 * i);
-		ctr1[15]++;
-	}
-
-	switch (avx) {
-# ifdef SM4_AVX2
-	case 2:
-		sm4_avx2_ctr32_encrypt_blocks(in, out2, sizeof(in)/16, &key, ctr2);
-		break;
-# endif
-	case 0:
-		// do we need this?		
-		//sm4_ctr32_encrypt_blocks(in, out2, sizeof(in)/16, &key, ctr2);
-		break;
-	default:
-		printf("avx should be in {0, 2}\n");
-		error_print();
-		return -1;
-	}
-
-	if (memcmp(out1, out2, sizeof(out1)) != 0) {
-		error_print();
-		return -1;
-	}
-	return 0;
-}
-
-int test_sm4(void)
-{
-	int err = 0;
-	int i;
-	SM4_KEY key;
-	unsigned char buf[16];
-
-	unsigned char user_key[16] = {
+	const uint8_t user_key[16] = {
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 		0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10,
 	};
-
-	uint32_t rk[32] = {
+	const uint32_t rk[32] = {
 		0xf12186f9, 0x41662b61, 0x5a6ab19a, 0x7ba92077,
 		0x367360f4, 0x776a0c61, 0xb6bb89b3, 0x24763151,
 		0xa520307c, 0xb7584dbd, 0xc30753ed, 0x7ee55b57,
@@ -188,109 +71,83 @@ int test_sm4(void)
 		0xb79bd80c, 0x1d2115b0, 0x0e228aeb, 0xf1780c81,
 		0x428d3654, 0x62293496, 0x01cf72e5, 0x9124a012,
 	};
-
-	unsigned char plaintext[16] = {
+	const uint8_t plaintext[16] = {
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 		0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10,
 	};
-
-	unsigned char ciphertext1[16] = {
+	const uint8_t ciphertext[16] = {
 		0x68, 0x1e, 0xdf, 0x34, 0xd2, 0x06, 0x96, 0x5e,
 		0x86, 0xb3, 0xe9, 0x4f, 0x53, 0x6e, 0x42, 0x46,
 	};
-
-	unsigned char ciphertext2[16] = {
+	const uint8_t ciphertext1m[16] = {
 		0x59, 0x52, 0x98, 0xc7, 0xc6, 0xfd, 0x27, 0x1f,
 		0x04, 0x02, 0xf8, 0x04, 0xc3, 0x3d, 0x3f, 0x66,
 	};
+
+	SM4_KEY key;
+	unsigned char buf[16];
+	int i;
 
 	/* test key scheduling */
 	sm4_set_encrypt_key(&key, user_key);
 
 	if (memcmp(key.rk, rk, sizeof(rk)) != 0) {
-		printf("sm4 key scheduling not passed!\n");
-		err++;
-		goto end;
+		fprintf(stderr, "sm4 key scheduling not passed!\n");
+		return -1;
 	}
-	printf("sm4 key scheduling passed!\n");
 
 	/* test encrypt once */
 	sm4_encrypt(&key, plaintext, buf);
-
-	if (memcmp(buf, ciphertext1, sizeof(ciphertext1)) != 0) {
-		printf("sm4 encrypt not pass!\n");
-		err++;
-		goto end;
+	if (memcmp(buf, ciphertext, sizeof(ciphertext)) != 0) {
+		fprintf(stderr, "sm4 encrypt not pass!\n");
+		return -1;
 	}
-	printf("sm4 encrypt pass!\n");
 
 	/* test encrypt 1000000 times */
 	memcpy(buf, plaintext, sizeof(plaintext));
 	for (i = 0; i < 1000000; i++) {
 		sm4_encrypt(&key, buf, buf);
 	}
-
-	if (memcmp(buf, ciphertext2, sizeof(ciphertext2)) != 0) {
-		printf("sm4 encrypt 1000000 times not pass!\n");
-		err++;
-		goto end;
+	if (memcmp(buf, ciphertext1m, sizeof(ciphertext1m)) != 0) {
+		fprintf(stderr, "sm4 encrypt 1000000 times not pass!\n");
+		return -1;
 	}
-	printf("sm4 encrypt 1000000 times pass!\n");
 
-	/* test ctr32 */
-	if (!test_ctr32(0)) {
-		printf("sm4 ctr32 not pass!\n");
-		err++;
-	} else
-		printf("sm4 ctr32 pass!\n");
+	/* test decrypt */
+	memset(&key, 0, sizeof(key));
+	memset(buf, 0, sizeof(buf));
+	sm4_set_decrypt_key(&key, user_key);
+	sm4_decrypt(&key, ciphertext, buf);
+	if (memcmp(buf, plaintext, sizeof(plaintext)) != 0) {
+		fprintf(stderr, "sm4 decrypt not pass!\n");
+		return -1;
+	}
 
-# ifdef SM4_AVX2
-	/* test ecb in avx2 */
-	if (!test_ecb(2)) {
-		printf("sm4 ecb in avx2 not pass!\n");
-		err++;
-	} else
-		printf("sm4 ecb in avx2 pass!\n");
-
-	/* test ctr32 in avx2 */
-	if (!test_ctr32(2)) {
-		printf("sm4 ctr32 in avx2 not pass!\n");
-		err++;
-	} else
-		printf("sm4 ctr32 in avx2 pass!\n");
-# endif
-
-	if (err == 0)
-		printf("sm4 all test vectors pass!\n");
-	else
-end:
-		printf("some test vector failed\n");
-
-	return err;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
-
 
 static int test_sm4_cbc(void)
 {
 	SM4_KEY sm4_key;
 	uint8_t key[16] = {0};
-	uint8_t iv[16];
-
-	uint8_t buf1[2]  = {0};
+	uint8_t iv[16] = {0};
+	uint8_t buf1[32] = {0};
 	uint8_t buf2[32] = {0};
-	uint8_t buf3[47] = {0};
-	uint8_t buf4[96] = {0};
-	uint8_t buf5[96];
-	int i;
+	uint8_t buf3[32] = {0};
 
 	sm4_set_encrypt_key(&sm4_key, key);
-	sm4_cbc_encrypt(&sm4_key, iv, buf2, 2, buf4);
+	sm4_cbc_encrypt(&sm4_key, iv, buf1, 2, buf2);
+	sm4_set_decrypt_key(&sm4_key, key);
+	sm4_cbc_decrypt(&sm4_key, iv, buf2, 2, buf3);
 
-	for (i = 0; i < 32; i++) {
-		printf("%02x", buf4[i]);
+	if (memcmp(buf1, buf3, sizeof(buf3)) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
 	}
-	printf("\n");
-	return 0;
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 static int test_sm4_cbc_padding(void)
@@ -299,29 +156,150 @@ static int test_sm4_cbc_padding(void)
 	SM4_KEY dec_key;
 	uint8_t key[16] = {0};
 	uint8_t iv[16] = {0};
-	uint8_t in[64];
-	uint8_t out[128];
-	uint8_t buf[128];
-	size_t len1, len2, i;
-
-	for (i = 0; i < sizeof(in); i++) {
-		in[i] = i;
-	}
+	uint8_t buf1[64];
+	uint8_t buf2[128];
+	uint8_t buf3[128];
+	size_t len1, len2, len3;
 
 	sm4_set_encrypt_key(&enc_key, key);
 	sm4_set_decrypt_key(&dec_key, key);
 
-	sm4_cbc_padding_encrypt(&enc_key, iv, in, 33, out, &len1);
-	printf("c = (%zu) ", len1); for (i = 0; i < len1; i++) printf("%02x", out[i]); printf("\n");
+	len1 = 0;
+	sm4_cbc_padding_encrypt(&enc_key, iv, buf1, len1, buf2, &len2);
+	sm4_cbc_padding_decrypt(&dec_key, iv, buf2, len2, buf3, &len3);
+	if (len1 != len3 || memcmp(buf1, buf3, len3) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
+	}
 
-	sm4_cbc_padding_decrypt(&dec_key, iv, out, len1, buf, &len2);
-	printf("m = (%zu) ", len2); for (i = 0; i < len2; i++) printf("%02x", buf[i]); printf("\n");
+	len1 = 7;
+	sm4_cbc_padding_encrypt(&enc_key, iv, buf1, len1, buf2, &len2);
+	sm4_cbc_padding_decrypt(&dec_key, iv, buf2, len2, buf3, &len3);
+	if (len1 != len3 || memcmp(buf1, buf3, len3) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
+	}
 
-	return 0;
+	len1 = 16;
+	sm4_cbc_padding_encrypt(&enc_key, iv, buf1, len1, buf2, &len2);
+	sm4_cbc_padding_decrypt(&dec_key, iv, buf2, len2, buf3, &len3);
+	if (len1 != len3 || memcmp(buf1, buf3, len3) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
+	}
+
+	len1 = 33;
+	sm4_cbc_padding_encrypt(&enc_key, iv, buf1, len1, buf2, &len2);
+	sm4_cbc_padding_decrypt(&dec_key, iv, buf2, len2, buf3, &len3);
+	if (len1 != len3 || memcmp(buf1, buf3, len3) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
+	}
+
+	len1 = sizeof(buf1);
+	sm4_cbc_padding_encrypt(&enc_key, iv, buf1, len1, buf2, &len2);
+	sm4_cbc_padding_decrypt(&dec_key, iv, buf2, len2, buf3, &len3);
+	if (len1 != len3 || memcmp(buf1, buf3, len3) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_ctr(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t ctr[16];
+	uint8_t buf1[30] = {0};
+	uint8_t buf2[30] = {0};
+	uint8_t buf3[30] = {0};
+
+	sm4_set_encrypt_key(&sm4_key, key);
+	memset(ctr, 0, sizeof(ctr));
+	sm4_ctr_encrypt(&sm4_key, ctr, buf1, sizeof(buf1), buf2);
+
+	memset(ctr, 0, sizeof(ctr));
+	sm4_ctr_decrypt(&sm4_key, ctr, buf2, sizeof(buf2), buf3);
+
+	if (memcmp(buf1, buf3, sizeof(buf3)) != 0) {
+		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_gcm(void)
+{
+	// gcm test vectors from rfc 8998 A.1
+	const char *hex_key =	"0123456789ABCDEFFEDCBA9876543210";
+	const char *hex_iv =	"00001234567800000000ABCD";
+	const char *hex_aad =	"FEEDFACEDEADBEEFFEEDFACEDEADBEEF"
+				"ABADDAD2";
+	const char *hex_in =	"AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBB"
+				"CCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDD"
+				"EEEEEEEEEEEEEEEEFFFFFFFFFFFFFFFF"
+				"EEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAA";
+	const char *hex_out =	"17F399F08C67D5EE19D0DC9969C4BB7D"
+				"5FD46FD3756489069157B282BB200735"
+				"D82710CA5C22F0CCFA7CBF93D496AC15"
+				"A56834CBCF98C397B4024A2691233B8D";
+	const char *hex_tag =	"83DE3541E4C2B58177E065A9BF7B62EC";
+
+	SM4_KEY sm4_key;
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t aad[20];
+	uint8_t in[64];
+	uint8_t out[64];
+	uint8_t tag[16];
+	size_t keylen, ivlen, aadlen, inlen, outlen, taglen;
+
+	uint8_t buf[64];
+	uint8_t mac[16];
+
+	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
+	hex_to_bytes(hex_iv, strlen(hex_iv), iv, &ivlen);
+	hex_to_bytes(hex_aad, strlen(hex_aad), aad, &aadlen);
+	hex_to_bytes(hex_in, strlen(hex_in), in, &inlen);
+	hex_to_bytes(hex_out, strlen(hex_out), out, &outlen);
+	hex_to_bytes(hex_tag, strlen(hex_tag), tag, &taglen);
+
+	memset(buf, 0, sizeof(buf));
+	memset(mac, 0, sizeof(mac));
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	// test gcm encrypt
+	sm4_gcm_encrypt(&sm4_key, iv, ivlen, aad, aadlen, in, inlen, buf, taglen, mac);
+	if (memcmp(buf, out, outlen) != 0) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(mac, tag, taglen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// test gcm decrypt
+	memset(buf, 0, sizeof(buf));
+	sm4_gcm_decrypt(&sm4_key, iv, ivlen, aad, aadlen, out, outlen, tag, taglen, buf);
+	if (memcmp(buf, in, inlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 static int test_sm4_cbc_update(void)
 {
+	SM4_KEY sm4_key;
 	SM4_CBC_CTX enc_ctx;
 	SM4_CBC_CTX dec_ctx;
 
@@ -334,86 +312,138 @@ static int test_sm4_cbc_update(void)
 	size_t clen = 0;
 	size_t plen = 0;
 
+	uint8_t *in;
+	uint8_t *out;
 	size_t len;
 	size_t lens[] = { 1,5,17,80 };
 	int i;
 
 	rand_bytes(key, sizeof(key));
 	rand_bytes(iv, sizeof(iv));
-	rand_bytes(mbuf, sizeof(mbuf));
 
-	format_bytes(stderr, 0, 0, "iv", iv, sizeof(iv));
 
+
+	// first test
 
 	mlen = 16;
-	clen = 0;
-	format_bytes(stderr, 0, 0, "m", mbuf, mlen);
+	rand_bytes(mbuf, mlen);
+
 	if (sm4_cbc_encrypt_init(&enc_ctx, key, iv) != 1
-		|| sm4_cbc_encrypt_update(&enc_ctx, mbuf, mlen, cbuf + clen, &clen) != 1
-		|| (len += len) < 0
-		|| sm4_cbc_encrypt_update(&enc_ctx, NULL, 0, cbuf + clen, &clen) != 1
-		|| (len += len) < 0
-		|| sm4_cbc_encrypt_finish(&enc_ctx, cbuf + clen, &len) != 1
-		|| (clen += len) < 0) {
+		|| sm4_cbc_encrypt_update(&enc_ctx, mbuf, mlen, cbuf, &clen) != 1
+		|| sm4_cbc_encrypt_finish(&enc_ctx, cbuf + clen, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, "c", cbuf, clen);
+	clen += len;
 
+	// check ciphertext
+	sm4_set_encrypt_key(&sm4_key, key);
+	sm4_cbc_padding_encrypt(&sm4_key, iv, mbuf, mlen, pbuf, &plen);
+	if (clen != plen || memcmp(cbuf, pbuf, plen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// check decrypt
 	if (sm4_cbc_decrypt_init(&dec_ctx, key, iv) != 1
 		|| sm4_cbc_decrypt_update(&dec_ctx, cbuf, clen, pbuf, &plen) != 1
-		|| sm4_cbc_decrypt_finish(&dec_ctx, pbuf + plen, &len) != 1
-		|| (plen += len) < 0) {
+		|| sm4_cbc_decrypt_finish(&dec_ctx, pbuf + plen, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, "p", pbuf, plen);
+	plen += len;
+	if (plen != mlen || memcmp(pbuf, mbuf, mlen) != 0) {
+		error_print();
+		return -1;
+	}
 
-	/*
-	for (i = 0; i < sizeof(inlens)/sizeof(inlens[0]); i++) {
-		if (sm4_cbc_encrypt_update(&enc_ctx, in + inlen, inlens[i], out + outlen, &len) != 1) {
+
+	// second test
+
+	rand_bytes(mbuf, sizeof(mbuf));
+
+	if (sm4_cbc_encrypt_init(&enc_ctx, key, iv) != 1) {
+		error_print();
+		return -1;
+	}
+	in = mbuf;
+	out = cbuf;
+	mlen = 0;
+	clen = 0;
+	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
+		if (sm4_cbc_encrypt_update(&enc_ctx, in, lens[i], out, &len) != 1) {
 			error_print();
 			return -1;
 		}
-		inlen += inlens[i];
-		outlen += len;
-	}
-	printf("inlen = %zu\n", inlen);
+		in += lens[i];
+		mlen += lens[i];
+		out += len;
+		clen += len;
 
-	if (sm4_cbc_encrypt_finish(&enc_ctx, out + outlen, &len) != 1) {
+	}
+	if (sm4_cbc_encrypt_finish(&enc_ctx, out, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	outlen += len;
+	clen += len;
 
+	// check ciphertest
+	sm4_cbc_padding_encrypt(&sm4_key, iv, mbuf, mlen, pbuf, &plen);
+	if (plen != clen || memcmp(pbuf, cbuf, clen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// check decrypt
 	if (sm4_cbc_decrypt_init(&dec_ctx, key, iv) != 1) {
 		error_print();
 		return -1;
 	}
+	plen = 0;
+	in = cbuf;
+	out = pbuf;
 	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
-		if (sm4_cbc_decrypt_update(&dec_ctx, cbuf + inlen, lens[i], pbuf + outlen, &len) != 1) {
+		if (sm4_cbc_decrypt_update(&dec_ctx, in, lens[i], out, &len) != 1) {
 			error_print();
 			return -1;
 		}
+		in += lens[i];
+		clen -= lens[i];
+		out += len;
+		plen += len;
 	}
-
-	if (sm4_cbc_decrypt_finish(&dec_ctx, pbuf + outlen, &len) != 1) {
+	if (sm4_cbc_decrypt_update(&dec_ctx, in, clen, out, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	outlen += len;
-	*/
+	out += len;
+	plen += len;
+	if (sm4_cbc_decrypt_finish(&dec_ctx, out, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	plen += len;
 
+	if (plen != mlen || memcmp(pbuf, mbuf, mlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
 int main(void)
 {
-/*
-	test_sm4();
-	test_sm4_cbc();
-	test_sm4_cbc_padding();
-*/
-	test_sm4_cbc_update();
+	if (test_sm4() != 1) goto err;
+	if (test_sm4_cbc() != 1) goto err;
+	if (test_sm4_cbc_padding() != 1) goto err;
+	if (test_sm4_ctr() != 1) goto err;
+	if (test_sm4_gcm() != 1) goto err;
+	if (test_sm4_cbc_update() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
 	return 0;
+err:
+	error_print();
+	return 1;
 }
