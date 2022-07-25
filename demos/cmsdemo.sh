@@ -2,7 +2,7 @@
 
 
 gmssl sm2keygen -pass 1234 -out key.pem -pubout keypub.pem
-gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN Alice -days 365 -key key.pem -pass 1234 -out cert.pem
+gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN Alice -key_usage dataEncipherment -days 365 -key key.pem -pass 1234 -out cert.pem
 
 echo "<html>The plaintext message.</html>" > plain.txt
 

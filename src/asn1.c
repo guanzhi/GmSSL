@@ -454,12 +454,12 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 		return -1;
 	}
 
+	if (!a) {
+		return 0;
+	}
 	if (alen <= 0 || alen > INT_MAX) {
 		error_print();
 		return -1;
-	}
-	if (!a) {
-		return 0;
 	}
 
 	if (out && *out)

@@ -295,15 +295,13 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	int signature_algors[] = { TLS_sig_sm2sig_sm3 };
 	size_t signature_algors_cnt = 1;
 
+
+	p = client_exts;
 	client_exts_len = 0;
-	/*
-	tls_exts_add_ec_point_formats(client_exts, &client_exts_len, sizeof(client_exts), ec_point_formats, ec_point_formats_cnt);
-	tls_exts_add_supported_groups(client_exts, &client_exts_len, sizeof(client_exts), supported_groups, supported_groups_cnt);
-	tls_exts_add_signature_algors(client_exts, &client_exts_len, sizeof(client_exts), signature_algors, signature_algors_cnt);
-	*/
 
-
-
+	tls_ec_point_formats_ext_to_bytes(ec_point_formats, ec_point_formats_cnt, &p, &client_exts_len);
+	tls_supported_groups_ext_to_bytes(supported_groups, supported_groups_cnt, &p, &client_exts_len);
+	tls_signature_algorithms_ext_to_bytes(signature_algors, signature_algors_cnt, &p, &client_exts_len);
 
 	if (tls_record_set_handshake_client_hello(record, &recordlen,
 		conn->protocol, client_random, NULL, 0,

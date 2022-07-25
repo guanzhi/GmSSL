@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 
 gmssl sm2keygen -pass 1234 -out rootcakey.pem
@@ -15,20 +15,16 @@ gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -days 365 
 gmssl reqsign -in signreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out signcert.pem
 gmssl certparse -in signcert.pem
 
-gmssl sm2keygen -pass 1234 -out enckey.pem
-gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -days 365 -key enckey.pem -pass 1234 -out encreq.pem
-gmssl reqsign -in encreq.pem -days 365 -key_usage keyEncipherment -cacert cacert.pem -key cakey.pem -pass 1234 -out enccert.pem
-gmssl certparse -in enccert.pem
-
-
 cat signcert.pem > certs.pem
 cat cacert.pem >> certs.pem
-gmssl certverify -in certs.pem -cacert rootcacert.pem
 
+sudo gmssl tls12_server -port 443 -cert certs.pem -key signkey.pem -pass 1234 -cacert cacert.pem  1>/dev/null  2>/dev/null &
+sleep 3
 
-cat signcert.pem > dbl_certs.pem
-cat enccert.pem >> dbl_certs.pem
-cat cacert.pem >> dbl_certs.pem
-gmssl certverify -double_certs -in dbl_certs.pem -cacert rootcacert.pem
+gmssl sm2keygen -pass 1234 -out clientkey.pem
+gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN Client -days 365 -key clientkey.pem -pass 1234 -out clientreq.pem
+gmssl reqsign -in clientreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out clientcert.pem
+gmssl certparse -in clientcert.pem
 
+gmssl tls12_client -host 127.0.0.1 -cacert rootcacert.pem -cert clientcert.pem -key clientkey.pem -pass 1234
 
