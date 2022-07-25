@@ -173,7 +173,7 @@ bad:
 	}
 
 	if (x509_name_set(name, &namelen, sizeof(name),
-			country, state, NULL, org, org_unit, common_name) != 1
+			country, state, locality, org, org_unit, common_name) != 1
 		|| x509_req_sign(req, &reqlen, sizeof(req),
 			X509_version_v1,
 			name, namelen,
