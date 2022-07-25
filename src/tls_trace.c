@@ -512,8 +512,14 @@ int tls13_extensions_print(FILE *fp, int fmt, int ind,
 	const uint8_t *ext_data;
 	size_t ext_datalen;
 
+	if (!exts) {
+		format_print(fp, fmt, ind, "Extensions: (null)\n");
+		return 1;
+	}
+
 	format_print(fp, fmt, ind, "Extensions\n");
 	ind += 4;
+
 	while (extslen > 0) {
 		if (tls_uint16_from_bytes(&ext_type, &exts, &extslen) != 1
 			|| tls_uint16array_from_bytes(&ext_data, &ext_datalen, &exts, &extslen) != 1) {
@@ -902,9 +908,21 @@ int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, 
 
 	switch (type) {
 	case TLS_handshake_certificate:
+	case TLS_handshake_certificate_request:
+	case TLS_handshake_certificate_verify:
+		format_print(fp, fmt, ind, "Handshake\n");
+		ind += 4;
+		format_print(fp, fmt, ind, "Type: %s (%d)\n", tls_handshake_type_name(type), type);
+		format_print(fp, fmt, ind, "Length: %zu\n", datalen);
+		break;
+	}
+	switch (type) {
+	case TLS_handshake_certificate:
 		return tls13_certificate_print(fp, fmt, ind, data, datalen);
 	case TLS_handshake_certificate_request:
 		return tls13_certificate_request_print(fp, fmt, ind, data, datalen);
+	case TLS_handshake_certificate_verify:
+		return tls13_certificate_verify_print(fp, fmt, ind, data, datalen);
 	}
 
 	return tls_handshake_print(fp, p, len, fmt, ind);

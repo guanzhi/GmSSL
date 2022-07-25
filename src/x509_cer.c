@@ -1206,9 +1206,6 @@ int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 	const uint8_t *d;
 	size_t dlen;
 
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-
 	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1) {
 		error_print();
 		return -1;

@@ -199,7 +199,7 @@ restart:
 
 		do {
 			len = sizeof(buf);
-			if ((rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+			if ((rv = tls13_recv(&conn, (uint8_t *)buf, /*sizeof(buf),*/ &len)) != 1) {
 				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
 				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
 
@@ -209,7 +209,7 @@ restart:
 			}
 		} while (!len);
 
-		if (tls_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
+		if (tls13_send(&conn, (uint8_t *)buf, len, /* &sentlen*/ 0) != 1) {
 			fprintf(stderr, "%s: send failure, close connection\n", prog);
 			close(conn.sock);
 			goto end;

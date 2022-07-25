@@ -177,7 +177,7 @@ bad:
 				continue;
 			}
 		}
-		if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+		if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), 0 /*&sentlen*/) != 1) {
 			fprintf(stderr, "%s: send error\n", prog);
 			goto end;
 		}
@@ -185,7 +185,7 @@ bad:
 		{
 			memset(buf, 0, sizeof(buf));
 			len = sizeof(buf);
-			if (tls_recv(&conn, (uint8_t *)buf, sizeof(len), &len) != 1) {
+			if (tls13_recv(&conn, (uint8_t *)buf, /*sizeof(len),*/ &len) != 1) {
 				goto end;
 			}
 			buf[len] = 0;
