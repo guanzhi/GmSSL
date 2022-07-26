@@ -1545,6 +1545,8 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 			error_print();
 			return -1;
 		} else if (r != len) {
+			// FIXME: 不一定能够一次读取全部数据，需要修正这个bug
+			fprintf(stderr, "%s %d: r = %zu, len = %zu\n", __FILE__, __LINE__, r, len);
 			error_print();
 			return -1;
 		}

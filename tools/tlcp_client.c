@@ -150,12 +150,24 @@ bad:
 	}
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_client_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1
-		|| tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1
-		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
 		fprintf(stderr, "%s: context init error\n", prog);
 		goto end;
 	}
+	if (cacertfile) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
+			fprintf(stderr, "%s: context init error\n", prog);
+			goto end;
+		}
+	}
+	if (certfile) {
+		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+			fprintf(stderr, "%s: context init error\n", prog);
+			goto end;
+		}
+	}
+
+
 	if (tls_init(&conn, &ctx) != 1
 		|| tls_set_socket(&conn, sock) != 1
 		|| tls_do_handshake(&conn) != 1) {

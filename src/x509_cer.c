@@ -1472,6 +1472,7 @@ int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen,
 			return 1;
 		}
 	}
+	error_print(); // 可能来自于没有找到对应的CA证书
 	return 0;
 }
 
@@ -1649,6 +1650,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
 		return -1;
 	}
 	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen, &cacert, &cacertlen) != 1) {
+		// 当前证书链和提供的CA证书不匹配
 		error_print();
 		return -1;
 	}

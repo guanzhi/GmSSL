@@ -296,11 +296,15 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerCertificate
-	if (x509_certs_verify_tlcp(conn->server_certs, conn->server_certs_len,
-		conn->ca_certs, conn->ca_certs_len, depth, &verify_result) != 1) {
-		error_print();
-		tls_send_alert(conn, alert);
-		goto end;
+	if (conn->ca_certs_len) {
+		// 只有提供了CA证书才验证服务器证书链
+		// FIXME: 逻辑需要再检查
+		if (x509_certs_verify_tlcp(conn->server_certs, conn->server_certs_len,
+			conn->ca_certs, conn->ca_certs_len, depth, &verify_result) != 1) {
+			error_print();
+			tls_send_alert(conn, alert);
+			goto end;
+		}
 	}
 
 	// recv ServerKeyExchange
