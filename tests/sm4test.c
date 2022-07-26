@@ -433,6 +433,144 @@ static int test_sm4_cbc_update(void)
 	return 1;
 }
 
+static int test_sm4_ctr_update(void)
+{
+	SM4_KEY sm4_key;
+	SM4_CTR_CTX enc_ctx;
+	SM4_CTR_CTX dec_ctx;
+
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint8_t ctr[16];
+	uint8_t mbuf[16 * 10];
+	uint8_t cbuf[16 * 11];
+	uint8_t pbuf[16 * 11];
+	size_t mlen = 0;
+	size_t clen = 0;
+	size_t plen = 0;
+
+	uint8_t *in;
+	uint8_t *out;
+	size_t len;
+	size_t lens[] = { 1,5,17,80 };
+	int i;
+
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+
+	// first test
+
+	mlen = 16;
+	rand_bytes(mbuf, mlen);
+	memcpy(ctr, iv, sizeof(iv));
+	if (sm4_ctr_encrypt_init(&enc_ctx, key, ctr) != 1
+		|| sm4_ctr_encrypt_update(&enc_ctx, mbuf, mlen, cbuf, &clen) != 1
+		|| sm4_ctr_encrypt_finish(&enc_ctx, cbuf + clen, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	clen += len;
+
+	// check ciphertext
+	sm4_set_encrypt_key(&sm4_key, key);
+	sm4_ctr_encrypt(&sm4_key, ctr, mbuf, mlen, pbuf); // 注意：sm4_ctr_encrypt() 会修改ctr的值
+	memcpy(ctr, iv, sizeof(iv));
+	if (memcmp(cbuf, pbuf, clen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// check decrypt
+	if (sm4_ctr_decrypt_init(&dec_ctx, key, ctr) != 1
+		|| sm4_ctr_decrypt_update(&dec_ctx, cbuf, clen, pbuf, &plen) != 1
+		|| sm4_ctr_decrypt_finish(&dec_ctx, pbuf + plen, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	plen += len;
+
+	if (plen != mlen || memcmp(pbuf, mbuf, mlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+
+	// second test
+
+	rand_bytes(mbuf, sizeof(mbuf));
+
+	if (sm4_ctr_encrypt_init(&enc_ctx, key, ctr) != 1) {
+		error_print();
+		return -1;
+	}
+	in = mbuf;
+	out = cbuf;
+	mlen = 0;
+	clen = 0;
+	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
+		if (sm4_ctr_encrypt_update(&enc_ctx, in, lens[i], out, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		in += lens[i];
+		mlen += lens[i];
+		out += len;
+		clen += len;
+
+	}
+	if (sm4_ctr_encrypt_finish(&enc_ctx, out, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	clen += len;
+
+	// check ciphertest
+	sm4_ctr_encrypt(&sm4_key, ctr, mbuf, mlen, pbuf);
+	memcpy(ctr, iv, sizeof(iv));
+	if (memcmp(pbuf, cbuf, mlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// check decrypt
+	if (sm4_ctr_decrypt_init(&dec_ctx, key, ctr) != 1) {
+		error_print();
+		return -1;
+	}
+	plen = 0;
+	in = cbuf;
+	out = pbuf;
+	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
+		if (sm4_ctr_decrypt_update(&dec_ctx, in, lens[i], out, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		in += lens[i];
+		clen -= lens[i];
+		out += len;
+		plen += len;
+	}
+	if (sm4_ctr_decrypt_update(&dec_ctx, in, clen, out, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	out += len;
+	plen += len;
+	if (sm4_ctr_decrypt_finish(&dec_ctx, out, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	plen += len;
+
+	if (plen != mlen || memcmp(pbuf, mbuf, mlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_sm4() != 1) goto err;
@@ -441,6 +579,7 @@ int main(void)
 	if (test_sm4_ctr() != 1) goto err;
 	if (test_sm4_gcm() != 1) goto err;
 	if (test_sm4_cbc_update() != 1) goto err;
+	if (test_sm4_ctr_update() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
