@@ -545,6 +545,7 @@ static int test_sm2_sign(void)
 	return 1;
 }
 
+// 由于当前Ciphertext中椭圆曲线点数据不正确，因此无法通过测试
 static int test_sm2_ciphertext(void)
 {
 	SM2_CIPHERTEXT C;
@@ -553,9 +554,8 @@ static int test_sm2_ciphertext(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 
-
-	// {0, 0, Hash, NULL} 这个肯定是无法通过检测的
 	memset(&C, 0, sizeof(SM2_CIPHERTEXT));
+
 	cp = p = buf; len = 0;
 	if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
 		error_print();
@@ -563,6 +563,8 @@ static int test_sm2_ciphertext(void)
 	}
 	format_print(stderr, 0, 4, "SM2_NULL_CIPHERTEXT_SIZE: %zu\n", len);
 	format_bytes(stderr, 0, 4, "", buf, len);
+
+
 	if (sm2_ciphertext_from_der(&C, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -687,47 +689,20 @@ static int test_sm2_encrypt(void)
 	}
 
 	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
-
-		format_bytes(stderr, 0, 4, "mesg", msg, lens[i]);
-
+		format_print(stderr, 0, 0, "test %d\n", i + 1);
+		format_bytes(stderr, 0, 4, "plaintext", msg, lens[i]);
 		if (sm2_encrypt(&sm2_key, msg, lens[i], cbuf, &clen) != 1) {
 			error_print();
 			return -1;
 		}
-		format_print(stderr, 0, 4, "inlen = %zu, outlen = %zu\n", lens[i], clen);
-		format_bytes(stderr, 0, 4, "", cbuf, clen);
-		sm2_ciphertext_print(stderr, 0, 4, "ciphertext", cbuf, clen);
-
-/*
-test_sm2_do_encrypt() ok
-    mesg: 00
-    inlen = 1, outlen = 108
-    : 306A02202C42AB80CFCE26AE4C9E191465D8939A262D672A2BB3DC85E0A708ED227224F102210093F8817FAB5C83B9676A32E0E23FCAF72D0F38B53A9EAB27B79761ADD9E343E90420511C09CBBCFD1BA3B7C337D8607AB65839EA6BBE5067CDD21E3CBD6595B06215040107
-    ciphertext
-        XCoordinate: 2C42AB80CFCE26AE4C9E191465D8939A262D672A2BB3DC85E0A708ED227224F1
-        YCoordinate: 93F8817FAB5C83B9676A32E0E23FCAF72D0F38B53A9EAB27B79761ADD9E343E9
-        HASH: 511C09CBBCFD1BA3B7C337D8607AB65839EA6BBE5067CDD21E3CBD6595B06215
-        CipherText: 07
-    mbuf: 00
-    mesg: 000102030405060708090A0B0C0D0E0F
-    inlen = 16, outlen = 123
-    : 307902210096D5A0399A83EC70225D7CEB17BA78597AB95C1997FB34160159B21AA2D8FF82022000D5956AACBB025689D0E61CAB4DA539F2726DF5824FE507EE830F050F0C3CDE042050EAEC4EBBF85ED9AA41C30009A1E7956ED193D9C4CD1E5C8A47BAA8E35869170410CA5D840DB514013B795F60D76C856E59
-    ciphertext
-        XCoordinate: 96D5A0399A83EC70225D7CEB17BA78597AB95C1997FB34160159B21AA2D8FF82
-        YCoordinate: D5956AACBB025689D0E61CAB4DA539F2726DF5824FE507EE830F050F0C3CDE00
-        HASH: 50EAEC4EBBF85ED9AA41C30009A1E7956ED193D9C4CD1E5C8A47BAA8E3586917
-        CipherText: CA5D840DB514013B795F60D76C856E59
-/Users/guanzhi/code/gmssl3/src/sm2_lib.c 598: invalid ciphertext
-/Users/guanzhi/code/gmssl3/src/sm2_lib.c:720:sm2_decrypt():
-/Users/guanzhi/code/gmssl3/tests/sm2test.c:693:test_sm2_encrypt():
-*/
+		format_bytes(stderr, 0, 4, "ciphertext", cbuf, clen);
+		sm2_ciphertext_print(stderr, 0, 4, "Ciphertext", cbuf, clen);
+		format_print(stderr, 0, 0, "\n");
 
 		if (sm2_decrypt(&sm2_key, cbuf, clen, mbuf, &mlen) != 1) {
 			error_print();
 			return -1;
 		}
-		format_bytes(stderr, 0, 4, "mbuf", mbuf, mlen);
-
 		if (mlen != lens[i]
 			|| memcmp(mbuf, msg, lens[i]) != 0) {
 			error_print();
@@ -908,7 +883,7 @@ int main(void)
 	if (test_sm2_enced_private_key_info() != 1) goto err;
 	if (test_sm2_signature() != 1) goto err;
 	if (test_sm2_sign() != 1) goto err;
-//	if (test_sm2_ciphertext() != 1) goto err;
+	//if (test_sm2_ciphertext() != 1) goto err; // 需要正确的Ciphertext数据
 	if (test_sm2_do_encrypt() != 1) goto err;
 	if (test_sm2_encrypt() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
