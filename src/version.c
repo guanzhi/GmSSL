@@ -46,12 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
-## TODO:
- 1. 每次发布时，应该将当前的时间戳添加到版本中
- 2. 将编译信息加入到版本的全部信息中，特别是发布二进制版专有功能时
-
-*/
 
 #include <gmssl/version.h>
 

@@ -1519,11 +1519,14 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 	int type;
 	size_t len;
 
-	// TODO：支持非租塞socket或针对可能的网络延迟重新recv
-	if ((r = recv(sock, record, 5, 0)) < 0) {
-		perror("");
-		error_print();
-		return -1;
+	len = 5;
+	while (len) {
+		if ((r = recv(sock, record + 5 - len, len, 0)) < 0) {
+			perror("");
+			error_print();
+			return -1;
+		}
+		len -= r;
 	}
 	if (!tls_record_type_name(tls_record_type(record))) {
 		error_print();
@@ -1540,16 +1543,13 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 		error_print();
 		return -1;
 	}
-	if (len) {
-		if ((r = recv(sock, record + 5, len, 0)) < 0) {
-			error_print();
-			return -1;
-		} else if (r != len) {
-			// FIXME: 不一定能够一次读取全部数据，需要修正这个bug
-			fprintf(stderr, "%s %d: r = %zu, len = %zu\n", __FILE__, __LINE__, r, len);
+	while (len) {
+		if ((r = recv(sock, record + *recordlen - len, len, 0)) < 0) {
+			perror("");
 			error_print();
 			return -1;
 		}
+		len -= r;
 	}
 	return 1;
 }

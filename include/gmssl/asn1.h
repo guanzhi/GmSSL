@@ -46,8 +46,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// https://www.obj-sys.com/asn1tutorial/node128.html
-
 
 #ifndef GMSSL_ASN1_H
 #define GMSSL_ASN1_H
@@ -111,12 +109,12 @@ const char *asn1_tag_name(int tag);
 int asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen);
 int asn1_tag_from_der(int tag, const uint8_t **in, size_t *inlen);
 int asn1_any_tag_from_der(int *tag, const uint8_t **in, size_t *inlen);
-int asn1_tag_get(int *tag, const uint8_t **in, size_t *inlen); // 这个函数是看看下一个tag是什么，并不修改in,inlen
+int asn1_tag_get(int *tag, const uint8_t **in, size_t *inlen); // 尝试读取下一个tag，但是并不修改in,inlen
 int asn1_tag_is_cstring(int tag);
 int asn1_length_to_der(size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_length_from_der(size_t *dlen, const uint8_t **in, size_t *inlen);
 int asn1_length_is_zero(size_t len);
-int asn1_length_le(size_t len1, size_t len2);
+int asn1_length_le(size_t len1, size_t len2); // less than
 int asn1_data_to_der(const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_data_from_der(const uint8_t **d, size_t dlen, const uint8_t **in, size_t *inlen);
 
@@ -124,7 +122,7 @@ int asn1_type_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size
 int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen); // 调用方应保证a,alen为TLV
-int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen); // 检查输入为TLV
+int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen); // 该函数会检查输入是否为TLV
 
 const char *asn1_boolean_name(int val);
 int asn1_boolean_from_name(int *val, const char *name);

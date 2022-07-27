@@ -210,14 +210,22 @@ enum {
 	OID_cms_key_agreement_info,
 };
 
+// {iso(1) org(3) dod(6) internet(1) security(5) mechanisms(5) pkix(7)}
+#define oid_pkix	1,3,6,1,5,5,7
 
+#define oid_pe		oid_pkix,1
+#define oid_qt		oid_pkix,2
+#define oid_kp		oid_pkix,3
+#define oid_ad		oid_pkix,48
 
-#define oid_pkix 1,3,6,1,5,5,7
+// {iso(1) member-body(2) us(840) rsadsi(113549)}
+#define oid_rsadsi	1,2,840,113549
+#define oid_pkcs	oid_rsadsi,1
+#define oid_pkcs5	oid_pkcs,5
 
-#define oid_pe	oid_pkix,1
-#define oid_qt	oid_pkix,2
-#define oid_kp	oid_pkix,3
-#define oid_ad	oid_pkix,48
+// {iso(1) member-body(2) us(840) ansi-x962(10045)}
+#define oid_x9_62	1,2,840,10045
+
 
 
 #define oid_at	2,5,4
@@ -226,27 +234,15 @@ enum {
 
 #define oid_sm		1,2,156,10197
 #define oid_sm_algors	oid_sm,1
+#define oid_sm2_cms	oid_sm,6,1,4,2
 
 
-#define oid_sm2_cms 1,2,156,10197,6,1,4,2
 
-/*
-rsadsi OBJECT IDENTIFIER ::= {iso(1) member-body(2) us(840) 113549}
-pkcs OBJECT IDENTIFIER   ::= {rsadsi 1}
-pkcs-5 OBJECT IDENTIFIER ::= {pkcs 5}
-id-PBKDF2 OBJECT IDENTIFIER ::= {pkcs-5 12}
-id-PBES2 OBJECT IDENTIFIER ::= {pkcs-5 13}
-*/
-
-#define oid_rsadsi	1,2,840,113549
-#define oid_pkcs	oid_rsadsi,1
-#define oid_pkcs5	oid_pkcs,5
 
 
 #define oid_cnt(nodes)	(sizeof(nodes)/sizeof(int))
 
 
-#define oid_x9_62 1,2,840,10045
 
 
 #ifdef __cplusplus

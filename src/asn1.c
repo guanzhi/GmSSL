@@ -46,6 +46,8 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// https://www.obj-sys.com/asn1tutorial/node128.html
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
