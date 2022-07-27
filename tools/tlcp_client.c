@@ -52,6 +52,7 @@
 #include <stdlib.h>
 
 #include <unistd.h>
+#include <netdb.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -79,6 +80,7 @@ int tlcp_client_main(int argc, char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	struct hostent *hp;
 	struct sockaddr_in server;
 	int sock;
 	TLS_CTX ctx;
@@ -131,14 +133,17 @@ bad:
 		fprintf(stderr, "%s: '-in' option required\n", prog);
 		return -1;
 	}
+	if (!(hp = gethostbyname(host))) {
+		herror("tlcp_client: '-host' invalid");
+		goto end;
+	}
 
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
-	server.sin_addr.s_addr = inet_addr(host);
+	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
-
 
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno));
