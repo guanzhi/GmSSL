@@ -342,8 +342,6 @@ void sm2_bn_rand_range(SM2_BN r, const SM2_BN range)
 	} while (sm2_bn_cmp(r, range) >= 0);
 }
 
-typedef SM2_BN SM2_Fp;
-
 void sm2_fp_add(SM2_Fp r, const SM2_Fp a, const SM2_Fp b)
 {
 	sm2_bn_add(r, a, b);

@@ -53,6 +53,7 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
+
 static void print_buf(const uint8_t *a, size_t len)
 {
 	size_t i;
@@ -103,7 +104,7 @@ static int test_asn1_tag(void)
 		format_print(stderr, 0, 4, "%s (0x%02x)\n", asn1_tag_name(i), i);
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_length(void)
@@ -153,7 +154,7 @@ static int test_asn1_length(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_boolean(void)
@@ -188,7 +189,7 @@ static int test_asn1_boolean(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_int(void)
@@ -249,7 +250,7 @@ static int test_asn1_int(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_bits(void)
@@ -298,7 +299,7 @@ static int test_asn1_bits(void)
 		if (asn1_bits_from_der(&bits, &cp, &len) != 1
 			|| asn1_check(bits == tests[i]) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_print(stderr, 0, 4, "%x\n", bits);
 	}
@@ -307,7 +308,7 @@ static int test_asn1_bits(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_null(void)
@@ -338,15 +339,15 @@ static int test_asn1_null(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_object_identifier(void)
 {
-	int err = 0;
 	format_print(stderr, 0, 0, "%s\n", asn1_tag_name(ASN1_TAG_OBJECT_IDENTIFIER));
 
-	if (1) {
+	// test 1
+	{
 		char *name = "sm2";
 		uint32_t oid[] = { 1,2,156,10197,1,301 };
 		uint8_t der[] = { 0x06, 0x08, 0x2A, 0x81, 0x1C, 0xCF, 0x55, 0x01, 0x82, 0x2D };
@@ -364,15 +365,16 @@ static int test_asn1_object_identifier(void)
 			|| asn1_object_identifier_from_der(nodes, &nodes_cnt, &cp, &len) != 1
 			|| asn1_length_is_zero(len) != 1
 			|| asn1_object_identifier_equ(nodes, nodes_cnt, oid, sizeof(oid)/sizeof(int)) != 1) {
-			printf("failed\n");
+			fprintf(stderr, "failed\n");
 			error_print();
-			err++;
+			return -1;
 		} else {
 			printf("ok\n");
 		}
 	}
 
-	if (2) {
+	// test 2
+	{
 		char *name = "x9.62-ecPublicKey";
 		uint32_t oid[] = { 1,2,840,10045,2,1 };
 		uint8_t der[] = { 0x06, 0x07, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x02, 0x01 };
@@ -390,16 +392,16 @@ static int test_asn1_object_identifier(void)
 			|| asn1_object_identifier_from_der(nodes, &nodes_cnt, &cp, &len) != 1
 			|| asn1_length_is_zero(len) != 1
 			|| asn1_object_identifier_equ(nodes, nodes_cnt, oid, sizeof(oid)/sizeof(int)) != 1) {
-			printf("failed\n");
+			fprintf(stderr, "failed\n");
 			error_print();
-			err++;
+			return -1;
 		} else {
 			printf("ok\n");
 		}
 	}
 
-	if (!err) printf("%s() ok\n", __FUNCTION__);
-	return err;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 static int test_asn1_printable_string(void)
@@ -419,7 +421,7 @@ static int test_asn1_printable_string(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (asn1_printable_string_to_der(tests[i], strlen(tests[i]), &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -430,7 +432,7 @@ static int test_asn1_printable_string(void)
 			|| strlen(tests[i]) != dlen
 			|| memcmp(tests[i], d, dlen) != 0) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_string(stderr, 0, 4, "", (uint8_t *)d, dlen);
 	}
@@ -439,7 +441,7 @@ static int test_asn1_printable_string(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_utf8_string(void)
@@ -459,7 +461,7 @@ static int test_asn1_utf8_string(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (asn1_utf8_string_to_der(tests[i], strlen(tests[i]), &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -470,7 +472,7 @@ static int test_asn1_utf8_string(void)
 			|| strlen(tests[i]) != dlen
 			|| memcmp(tests[i], d, dlen) != 0) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_string(stderr, 0, 4, "", (uint8_t *)d, dlen);
 	}
@@ -479,7 +481,7 @@ static int test_asn1_utf8_string(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_ia5_string(void)
@@ -499,7 +501,7 @@ static int test_asn1_ia5_string(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (asn1_ia5_string_to_der(tests[i], strlen(tests[i]), &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -510,7 +512,7 @@ static int test_asn1_ia5_string(void)
 			|| strlen(tests[i]) != dlen
 			|| memcmp(tests[i], d, dlen) != 0) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_string(stderr, 0, 4, "", (uint8_t *)d, dlen);
 	}
@@ -519,7 +521,7 @@ static int test_asn1_ia5_string(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_time(void)
@@ -531,7 +533,7 @@ static int test_time(void)
 
 	printf("%08x%08x\n", (uint32_t)(tval >> 32), (uint32_t)tval);
 
-	return 0;
+	return 1;
 }
 
 static int test_asn1_utc_time(void)
@@ -571,7 +573,7 @@ static int test_asn1_utc_time(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_asn1_generalized_time(void)
@@ -592,7 +594,7 @@ static int test_asn1_generalized_time(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (asn1_generalized_time_to_der(tests[i], &p, &len) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
@@ -601,7 +603,7 @@ static int test_asn1_generalized_time(void)
 		if (asn1_generalized_time_from_der(&tv, &cp, &len) != 1
 			|| asn1_check(tv == tests[i]) != 1) {
 			error_print();
-			return 1;
+			return -1;
 		}
 		format_print(stderr, 0, 4, "%s", ctime(&tv));
 	}
@@ -610,24 +612,26 @@ static int test_asn1_generalized_time(void)
 		return -1;
 	}
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
-
 
 int main(void)
 {
-	int err = 0;
-	err += test_asn1_tag();
-	err += test_asn1_length();
-	err += test_asn1_boolean();
-	err += test_asn1_int();
-	err += test_asn1_bits();
-	err += test_asn1_null();
-	err += test_asn1_object_identifier();
-	err += test_asn1_printable_string();
-	err += test_asn1_utf8_string();
-	err += test_asn1_ia5_string();
-	err += test_asn1_utc_time();
-	err += test_asn1_generalized_time();
-	return err;
+	if (test_asn1_tag() != 1) goto err;
+	if (test_asn1_length() != 1) goto err;
+	if (test_asn1_boolean() != 1) goto err;
+	if (test_asn1_int() != 1) goto err;
+	if (test_asn1_bits() != 1) goto err;
+	if (test_asn1_null() != 1) goto err;
+	if (test_asn1_object_identifier() != 1) goto err;
+	if (test_asn1_printable_string() != 1) goto err;
+	if (test_asn1_utf8_string() != 1) goto err;
+	if (test_asn1_ia5_string() != 1) goto err;
+	if (test_asn1_utc_time() != 1) goto err;
+	if (test_asn1_generalized_time() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

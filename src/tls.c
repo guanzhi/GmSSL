@@ -308,7 +308,6 @@ int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
-
 int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
@@ -325,6 +324,10 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 	}
 	if (inlen > (1 << 14)) {
 		error_print_msg("invalid tls record data length %zu\n", inlen);
+		return -1;
+	}
+	if ((((size_t)header[3]) << 8) + header[4] != inlen) {
+		error_print();
 		return -1;
 	}
 
@@ -405,6 +408,7 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	}
 
 	*outlen = inlen - 32 - padding_len - 1;
+
 	header[0] = enced_header[0];
 	header[1] = enced_header[1];
 	header[2] = enced_header[2];
@@ -1716,6 +1720,8 @@ int tls_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen
 	record = conn->record;
 
 	tls_trace("send ApplicationData\n");
+
+	format_bytes(stderr, 0, 0, "tls_send: payload", in, inlen);
 
 	if (tls_record_set_type(record, TLS_record_application_data) != 1
 		|| tls_record_set_protocol(record, conn->protocol) != 1

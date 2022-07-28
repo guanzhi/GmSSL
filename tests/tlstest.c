@@ -94,16 +94,16 @@ static int test_tls_encode(void)
 		|| tls_uint24array_from_bytes(&pdata, &datalen, &cp, &len) != 1 || datalen != 7 || memcmp(pdata, data, 7) != 0
 		|| len > 0) {
 		error_print();
-		return 1;
+		return -1;
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_cbc(void)
 {
-	uint8_t key[32];
+	uint8_t key[32] = {0};
 	SM3_HMAC_CTX hmac_ctx;
 	SM4_KEY sm4_key;
 	uint8_t seq_num[8] = { 0,0,0,0,0,0,0,1 };
@@ -114,22 +114,23 @@ static int test_tls_cbc(void)
 	size_t len;
 	size_t buflen;
 
+	header[0] = TLS_record_handshake;
+	header[1] = TLS_protocol_tls12 >> 8;
+	header[2] = TLS_protocol_tls12 & 0xff;
+	header[3] = sizeof(in) >> 8;
+	header[4] = sizeof(in) & 0xff;
+
 	sm3_hmac_init(&hmac_ctx, key, 32);
 	sm4_set_encrypt_key(&sm4_key, key);
-
 	tls_cbc_encrypt(&hmac_ctx, &sm4_key, seq_num, header, in, sizeof(in), out, &len);
-
-	printf("%zu\n", len);
-	print_der(out, len);
-	printf("\n");
 
 	sm3_hmac_init(&hmac_ctx, key, 32);
 	sm4_set_decrypt_key(&sm4_key, key);
 
 	tls_cbc_decrypt(&hmac_ctx, &sm4_key, seq_num, header, out, len, buf, &buflen);
 
-	printf("%s\n", buf);
-	return 0;
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 static int test_tls_random(void)
@@ -139,7 +140,7 @@ static int test_tls_random(void)
 	tls_random_print(stdout, random, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_client_hello(void)
@@ -147,24 +148,25 @@ static int test_tls_client_hello(void)
 	uint8_t record[512];
 	size_t recordlen = 0;
 
-	int version = TLS_version_tlcp;
+	int version = TLS_protocol_tlcp;
 	uint8_t random[32];
 	int cipher_suites[] = {
-		TLCP_cipher_ecc_sm4_cbc_sm3,
-		TLCP_cipher_ecc_sm4_gcm_sm3,
-		TLCP_cipher_ecdhe_sm4_cbc_sm3,
-		TLCP_cipher_ecdhe_sm4_gcm_sm3,
-		TLCP_cipher_ibsdh_sm4_cbc_sm3,
-		TLCP_cipher_ibsdh_sm4_gcm_sm3,
-		TLCP_cipher_ibc_sm4_cbc_sm3,
-		TLCP_cipher_ibc_sm4_gcm_sm3,
-		TLCP_cipher_rsa_sm4_cbc_sm3,
-		TLCP_cipher_rsa_sm4_gcm_sm3,
-		TLCP_cipher_rsa_sm4_cbc_sha256,
-		TLCP_cipher_rsa_sm4_gcm_sha256,
+		TLS_cipher_ecc_sm4_cbc_sm3,
+		TLS_cipher_ecc_sm4_gcm_sm3,
+		TLS_cipher_ecdhe_sm4_cbc_sm3,
+		TLS_cipher_ecdhe_sm4_gcm_sm3,
+		TLS_cipher_ibsdh_sm4_cbc_sm3,
+		TLS_cipher_ibsdh_sm4_gcm_sm3,
+		TLS_cipher_ibc_sm4_cbc_sm3,
+		TLS_cipher_ibc_sm4_gcm_sm3,
+		TLS_cipher_rsa_sm4_cbc_sm3,
+		TLS_cipher_rsa_sm4_gcm_sm3,
+		TLS_cipher_rsa_sm4_cbc_sha256,
+		TLS_cipher_rsa_sm4_gcm_sha256,
 	};
 	int comp_meths[] = {0};
 
+	tls_record_set_protocol(record, TLS_protocol_tlcp);
 	if (tls_record_set_handshake_client_hello(record, &recordlen,
 		version,
 		random,
@@ -177,7 +179,7 @@ static int test_tls_client_hello(void)
 	tls_client_hello_print(stdout, record + 5 + 4, recordlen - 5 -4, 0, 4);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_server_hello(void)
@@ -186,12 +188,12 @@ static int test_tls_server_hello(void)
 	size_t recordlen = 0;
 
 	uint8_t random[32];
-	uint16_t cipher_suite = TLCP_cipher_ecdhe_sm4_cbc_sm3;
+	uint16_t cipher_suite = TLS_cipher_ecdhe_sm4_cbc_sm3;
 
 
-	tls_record_set_version(record, TLS_version_tlcp);
+	tls_record_set_protocol(record, TLS_protocol_tlcp);
 	if (tls_record_set_handshake_server_hello(record, &recordlen,
-		TLS_version_tlcp,
+		TLS_protocol_tlcp,
 		random,
 		NULL, 0,
 		cipher_suite,
@@ -202,7 +204,7 @@ static int test_tls_server_hello(void)
 	tls_server_hello_print(stdout, record + 5 + 4, recordlen - 5 -4, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_certificate(void)
@@ -212,6 +214,7 @@ static int test_tls_certificate(void)
 	FILE *fp = NULL;
 
 	// 测试函数不要有外部的依赖
+	// TODO: 输出一些握手过程的record字节数组和handshake字节数组，作为后续测试的测试数据
 
 	/*
 	if (!(fp = fopen("cacert.pem", "r"))) {
@@ -226,51 +229,53 @@ static int test_tls_certificate(void)
 	*/
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_server_key_exchange(void)
 {
 	uint8_t record[1024];
 	size_t recordlen = 0;
-	uint8_t sig[77] = {0xAA, 0xBB};
+	uint8_t sig[SM2_MAX_SIGNATURE_SIZE] = {0xAA, 0xBB};
+	const uint8_t *psig;
 	size_t siglen;
 
-	tls_record_set_version(record, TLS_version_tlcp);
+	tls_record_set_protocol(record, TLS_protocol_tlcp);
 	if (tlcp_record_set_handshake_server_key_exchange_pke(record, &recordlen, sig, sizeof(sig)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tlcp_record_get_handshake_server_key_exchange_pke(record, sig, &siglen) != 1) {
+	if (tlcp_record_get_handshake_server_key_exchange_pke(record, &psig, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
-	tls_server_key_exchange_print(stdout, sig, siglen, TLCP_cipher_ecc_sm4_gcm_sm3 << 8, 0);
+	format_bytes(stdout, 0, 0, "server_key_exchange siganture", psig, siglen);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_certificate_verify(void)
 {
 	uint8_t record[1024];
 	size_t recordlen = 0;
-	uint8_t sig[77];
+	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
+	const uint8_t *psig;
 	size_t siglen;
 
-	tls_record_set_version(record, TLS_version_tls12);
+	tls_record_set_protocol(record, TLS_protocol_tls12);
 	if (tls_record_set_handshake_certificate_verify(record, &recordlen, sig, sizeof(sig)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tls_record_get_handshake_certificate_verify(record, sig, &siglen) != 1) {
+	if (tls_record_get_handshake_certificate_verify(record, &psig, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
-	tls_certificate_verify_print(stdout, sig, siglen, 0, 0);
+	tls_certificate_verify_print(stdout, psig, siglen, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_finished(void)
@@ -278,19 +283,21 @@ static int test_tls_finished(void)
 	uint8_t record[1024];
 	size_t recordlen = 0;
 	uint8_t verify_data[12];
+	const uint8_t *verify_data_ptr;
+	size_t verify_data_len;
 
-	if (tls_record_set_handshake_finished(record, &recordlen, verify_data) != 1) {
+	if (tls_record_set_handshake_finished(record, &recordlen, verify_data, sizeof(verify_data)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tls_record_get_handshake_finished(record, verify_data) != 1) {
+	if (tls_record_get_handshake_finished(record, &verify_data_ptr, &verify_data_len) != 1) {
 		error_print();
 		return -1;
 	}
-	tls_finished_print(stdout, verify_data, 12, 0, 0);
+	tls_finished_print(stdout, verify_data_ptr, verify_data_len, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_alert(void)
@@ -311,7 +318,7 @@ static int test_tls_alert(void)
 	tls_alert_print(stdout, record + 5, recordlen - 5, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_change_cipher_spec(void)
@@ -330,7 +337,7 @@ static int test_tls_change_cipher_spec(void)
 	tls_change_cipher_spec_print(stdout, record + 5, recordlen - 5, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_tls_application_data(void)
@@ -352,24 +359,26 @@ static int test_tls_application_data(void)
 	tls_application_data_print(stdout, p, len, 0, 0);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_tls_encode();
-	err += test_tls_cbc();
-	err += test_tls_random();
-	err += test_tls_client_hello();
-	err += test_tls_server_hello();
-	err += test_tls_certificate();
-	err += test_tls_server_key_exchange();
-	err += test_tls_certificate_verify();
-	err += test_tls_finished();
-	err += test_tls_alert();
-	err += test_tls_change_cipher_spec();
-	err += test_tls_application_data();
-	if (err == 0) printf("%s all tests passed\n", __FILE__);
-	return err;
+	if (test_tls_encode() != 1) goto err;
+	if (test_tls_cbc() != 1) goto err;
+	if (test_tls_random() != 1) goto err;
+	if (test_tls_client_hello() != 1) goto err;
+	if (test_tls_server_hello() != 1) goto err;
+	if (test_tls_certificate() != 1) goto err;
+	if (test_tls_server_key_exchange() != 1) goto err;
+	if (test_tls_certificate_verify() != 1) goto err;
+	if (test_tls_finished() != 1) goto err;
+	if (test_tls_alert() != 1) goto err;
+	if (test_tls_change_cipher_spec() != 1) goto err;
+	if (test_tls_application_data() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

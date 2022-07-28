@@ -506,17 +506,9 @@ static int test_x509_policy_mapping(void)
 // 这里的一些OID应该在RFC中有，但是我们不实现
 static int test_x509_attribute(void)
 {
-	return -1;
+	// TODO
+	return 1;
 }
-
-
-
-
-
-
-
-
-
 
 static int test_x509_basic_constraints(void)
 {
@@ -879,10 +871,6 @@ static int test_x509_cert_with_exts(void)
 
 	return 1;
 }
-
-
-
-
 
 int main(int argc, char **argv)
 {

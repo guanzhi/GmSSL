@@ -53,10 +53,9 @@
 #include <gmssl/base64.h>
 #include <gmssl/error.h>
 
-int test_base64(void)
-{
-	int err = 0;
 
+static int test_base64(void)
+{
 	uint8_t bin1[50];
 	uint8_t bin2[100];
 	uint8_t bin3[200];
@@ -92,17 +91,20 @@ int test_base64(void)
 		|| memcmp(buf2 + sizeof(bin1), bin2, sizeof(bin2)) != 0
 		|| memcmp(buf2 + sizeof(bin1) + sizeof(bin2), bin3, sizeof(bin3)) != 0) {
 		printf("failed\n");
-		err++;
+		return -1;
 	} else {
 		printf("ok\n");
 	}
 
-	return err;
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_base64();
-	return err;
+	if (test_base64() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

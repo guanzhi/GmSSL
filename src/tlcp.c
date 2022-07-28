@@ -446,12 +446,14 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_encrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_decrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
+	/*
 	tls_secrets_print(stderr,
 		pre_master_secret, 48,
 		client_random, server_random,
 		conn->master_secret,
 		conn->key_block, 96,
 		0, 4);
+	*/
 
 	// send ClientKeyExchange
 	tls_trace("send ClientKeyExchange\n");
@@ -926,12 +928,14 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_decrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_encrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
+	/*
 	tls_secrets_print(stderr,
 		pre_master_secret, 48,
 		client_random, server_random,
 		conn->master_secret,
 		conn->key_block, 96,
 		0, 4);
+	*/
 
 	// recv [ChangeCipherSpec]
 	tls_trace("recv [ChangeCipherSpec]\n");

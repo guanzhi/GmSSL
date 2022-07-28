@@ -889,7 +889,7 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 
 
 
-#define TLS_DEBUG
+//#define TLS_DEBUG
 
 #ifdef TLS_DEBUG
 #	define tls_trace(s) fprintf(stderr,(s))

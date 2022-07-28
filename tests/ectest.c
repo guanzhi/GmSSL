@@ -96,7 +96,7 @@ static int test_ec_named_curve(void)
 	(void)asn1_length_is_zero(len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_ec_point_print(void)
@@ -117,7 +117,7 @@ static int test_ec_point_print(void)
 	ec_point_print(stderr, 0, 4, "ECPoint", buf, len);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 static int test_ec_private_key_print(void)
@@ -143,14 +143,17 @@ static int test_ec_private_key_print(void)
 	ec_private_key_print(stderr, 0, 4, "ECPrivateKey", d, dlen);
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 0;
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_ec_named_curve();
-	err += test_ec_point_print();
-	err += test_ec_private_key_print();
-	return err;
+	if (test_ec_named_curve() != 1) goto err;
+	if (test_ec_point_print() != 1) goto err;
+	if (test_ec_private_key_print() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return -1;
 }

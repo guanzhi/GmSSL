@@ -53,6 +53,5 @@
 
 int main(void)
 {
-	int err = 0;
-	return err;
+	return 0;
 }
