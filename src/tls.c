@@ -1775,10 +1775,11 @@ int tls_do_recv(TLS_CONNECT *conn)
 	tls_record_trace(stderr, record, recordlen, 0, 0);
 	if (tls_cbc_decrypt(hmac_ctx, dec_key, seq_num, record,
 		tls_record_data(record), tls_record_data_length(record),
-		conn->data, &conn->datalen) != 1) {
+		conn->databuf, &conn->datalen) != 1) {
 		error_print();
 		return -1;
 	}
+	conn->data = conn->databuf;
 	tls_seq_num_incr(seq_num);
 
 	tls_record_set_data(record, conn->data, conn->datalen);
@@ -1802,6 +1803,7 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 	}
 	*recvlen = outlen <= conn->datalen ? outlen : conn->datalen;
 	memcpy(out, conn->data, *recvlen);
+	conn->data += *recvlen;
 	conn->datalen -= *recvlen;
 	return 1;
 }

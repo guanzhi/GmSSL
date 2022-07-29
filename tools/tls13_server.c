@@ -199,7 +199,7 @@ restart:
 
 		do {
 			len = sizeof(buf);
-			if ((rv = tls13_recv(&conn, (uint8_t *)buf, /*sizeof(buf),*/ &len)) != 1) {
+			if ((rv = tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
 				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
 				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
 

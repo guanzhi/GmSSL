@@ -50,7 +50,6 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/types.h>
@@ -85,7 +84,7 @@ int tlcp_client_main(int argc, char *argv[])
 	int sock;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
-	char buf[1000] = {0};
+	char buf[10] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
 	size_t send_len;
@@ -180,16 +179,15 @@ bad:
 		goto end;
 	}
 
-	fd_set fds;
 
 
 	for (;;) {
+		fd_set fds;
 		size_t sentlen;
-
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
-		FD_SET(0, &fds);
+		FD_SET(STDIN_FILENO, &fds);
 
 		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
@@ -197,18 +195,17 @@ bad:
 		}
 
 		if (FD_ISSET(conn.sock, &fds)) {
-			memset(buf, 0, sizeof(buf));
-			len = sizeof(buf);
-
-			if (tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
-				goto end;
+			for (;;) {
+				memset(buf, 0, sizeof(buf));
+				if (tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
+					goto end;
+				}
+				fwrite(buf, 1, len, stdout);
+				fflush(stdout);
 			}
 
-			buf[len] = 0;
-			printf("%s\n", buf);
-
 		}
-		if (FD_ISSET(0, &fds)) {
+		if (FD_ISSET(STDIN_FILENO, &fds)) {
 			memset(send_buf, 0, sizeof(send_buf));
 
 			if (!fgets(send_buf, sizeof(send_buf), stdin)) {

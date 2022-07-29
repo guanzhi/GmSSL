@@ -789,7 +789,8 @@ typedef struct {
 	uint8_t record[TLS_MAX_RECORD_SIZE];
 
 	// 其实这个就不太对了，还是应该有一个完整的密文记录
-	uint8_t data[TLS_MAX_PLAINTEXT_SIZE];
+	uint8_t databuf[TLS_MAX_PLAINTEXT_SIZE];
+	uint8_t *data;
 	size_t datalen;
 
 	int cipher_suite;
@@ -846,8 +847,8 @@ int tls13_do_accept(TLS_CONNECT *conn);
 int tls_send_alert(TLS_CONNECT *conn, int alert);
 int tls_send_warning(TLS_CONNECT *conn, int alert);
 
-int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t padding_len);
-int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen);
+int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen);
+int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen);
 
 
 int tls13_connect(TLS_CONNECT *conn, const char *hostname, int port, FILE *server_cacerts_fp,

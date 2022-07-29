@@ -245,13 +245,14 @@ int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	return 1;
 }
 
-int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t padding_len)
+int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen)
 {
 	const BLOCK_CIPHER_KEY *key;
 	const uint8_t *iv;
 	uint8_t *seq_num;
 	uint8_t *record = conn->record;
 	size_t recordlen;
+	size_t padding_len = 0; //FIXME: 在conn中设置是否加随机填充，及设置该值
 
 	tls_trace("send {ApplicationData}\n");
 
@@ -284,9 +285,12 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t pa
 
 	tls_seq_num_incr(seq_num);
 
+	*sentlen = datalen;
+
 	return 1;
 }
 
+/*
 int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 {
 	int record_type;
@@ -303,8 +307,6 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 		key = &conn->server_write_key;
 		iv = conn->server_write_iv;
 		seq_num = conn->server_seq_num;
-
-
 	} else {
 		key = &conn->client_write_key;
 		iv = conn->client_write_iv;
@@ -336,6 +338,77 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *data, size_t *datalen)
 	}
 	return 1;
 }
+*/
+
+int tls13_do_recv(TLS_CONNECT *conn)
+{
+	int ret;
+	const BLOCK_CIPHER_KEY *key;
+	const uint8_t *iv;
+	uint8_t *seq_num;
+	uint8_t *record = conn->record;
+	size_t recordlen;
+	int record_type;
+
+	if (conn->is_client) {
+		key = &conn->server_write_key;
+		iv = conn->server_write_iv;
+		seq_num = conn->server_seq_num;
+	} else {
+		key = &conn->client_write_key;
+		iv = conn->client_write_iv;
+		seq_num = conn->client_seq_num;
+	}
+
+	tls_trace("recv ApplicationData\n");
+	if ((ret = tls_record_recv(record, &recordlen, conn->sock)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	tls_record_trace(stderr, record, recordlen, 0, 0);
+	// TODO: 是否需要检查record_type?  record[0] != TLS_record_application_data		
+
+	if (tls13_gcm_decrypt(key, iv,
+		seq_num, record + 5, recordlen - 5,
+		&record_type, conn->databuf, &conn->datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	conn->data = conn->databuf;
+	tls_seq_num_incr(seq_num);
+
+	tls_record_set_data(record, conn->data, conn->datalen);
+	tls_trace("decrypt ApplicationData\n");
+	tls_record_trace(stderr, record, tls_record_length(record), 0, 0);
+
+
+	if (record_type != TLS_record_application_data) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
+{
+	if (!conn || !out || !outlen || !recvlen) {
+		error_print();
+		return -1;
+	}
+	if (conn->datalen == 0) {
+		int ret;
+		if ((ret = tls13_do_recv(conn)) != 1) {
+			if (ret) error_print();
+			return ret;
+		}
+	}
+	*recvlen = outlen <= conn->datalen ? outlen : conn->datalen;
+	memcpy(out, conn->data, *recvlen);
+	conn->data += *recvlen;
+	conn->datalen -= *recvlen;
+	return 1;
+}
+
 
 
 /*
@@ -1551,13 +1624,13 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(digest, server_handshake_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
 	block_cipher_set_encrypt_key(&conn->client_write_key, cipher, client_write_key);
 	block_cipher_set_encrypt_key(&conn->server_write_key, cipher, server_write_key);
-
+	/*
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
-
+	*/
 
 	// recv {EncryptedExtensions}
 	printf("recv {EncryptedExtensions}\n");
@@ -1736,11 +1809,12 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(digest, server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
 	block_cipher_set_encrypt_key(&conn->server_write_key, cipher, server_write_key);
 	tls13_hkdf_expand_label(digest, server_application_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-
+	/*
 	format_print(stderr, 0, 0, "update server secrets\n");
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
+	*/
 
 	if (conn->client_certs_len) {
 		int client_sign_algor;
@@ -1831,13 +1905,13 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(digest, client_application_traffic_secret, "key", NULL, 0, 16, client_write_key);
 	tls13_hkdf_expand_label(digest, client_application_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
 	block_cipher_set_encrypt_key(&conn->client_write_key, cipher, client_write_key);
-
+	/*
 	format_print(stderr, 0, 0, "update client secrets\n");
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
-
-	tls_trace("++++ Connection established\n");
+	*/
+	printf("++++ Connection established\n");
 
 end:
 	return 1;
@@ -2003,14 +2077,14 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(digest, server_handshake_traffic_secret, "key", NULL, 0, 16, server_write_key);
 	block_cipher_set_encrypt_key(&conn->server_write_key, cipher, server_write_key);
 	tls13_hkdf_expand_label(digest, server_handshake_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-
+	/*
 	format_print(stderr, 0, 0, "generate handshake secrets\n");
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
-
+	*/
 
 	// 3. Send {EncryptedExtensions}
 	tls_trace("send {EncryptedExtensions}\n");
@@ -2146,12 +2220,12 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(digest, server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
 	block_cipher_set_encrypt_key(&conn->server_write_key, cipher, server_write_key);
 	tls13_hkdf_expand_label(digest, server_application_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-
+	/*
 	format_print(stderr, 0, 0, "update server secrets\n");
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
-
+	*/
 
 	// Recv Client {Certificate*}
 	if (client_verify) {
@@ -2272,13 +2346,13 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(digest, client_application_traffic_secret, "key", NULL, 0, 16, client_write_key);
 	tls13_hkdf_expand_label(digest, client_application_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
 	block_cipher_set_encrypt_key(&conn->client_write_key, cipher, client_write_key);
-
+	/*
 	format_print(stderr, 0, 0, "update client secrets\n");
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
-
-	tls_trace("Connection Established!\n\n");
+	*/
+	printf("Connection Established!\n\n");
 
 end:
 	return 1;

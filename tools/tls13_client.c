@@ -87,7 +87,7 @@ int tls13_client_main(int argc, char *argv[])
 	int sock;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
-	char buf[100] = {0};
+	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
 	size_t send_len;
@@ -158,11 +158,21 @@ bad:
 	}
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_client_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1
-		|| tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1
-		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
 		fprintf(stderr, "%s: context init error\n", prog);
 		goto end;
+	}
+	if (cacertfile) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
+			fprintf(stderr, "%s: context init error\n", prog);
+			goto end;
+		}
+	}
+	if (certfile) {
+		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+			fprintf(stderr, "%s: context init error\n", prog);
+			goto end;
+		}
 	}
 	if (tls_init(&conn, &ctx) != 1
 		|| tls_set_socket(&conn, sock) != 1
@@ -172,33 +182,46 @@ bad:
 	}
 
 	for (;;) {
+		fd_set fds;
 		size_t sentlen;
 
-		memset(send_buf, 0, sizeof(send_buf));
-		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
-			if (feof(stdin)) {
-				tls_shutdown(&conn);
-				goto end;
-			} else {
-				continue;
-			}
-		}
-		if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), 0 /*&sentlen*/) != 1) {
-			fprintf(stderr, "%s: send error\n", prog);
+		FD_ZERO(&fds);
+		FD_SET(conn.sock, &fds);
+		FD_SET(STDIN_FILENO, &fds);
+
+		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
+			fprintf(stderr, "%s: select failed\n", prog);
 			goto end;
 		}
 
-		{
-			memset(buf, 0, sizeof(buf));
-			len = sizeof(buf);
-			if (tls13_recv(&conn, (uint8_t *)buf, /*sizeof(len),*/ &len) != 1) {
+		if (FD_ISSET(conn.sock, &fds)) {
+			for (;;) {
+				memset(buf, 0, sizeof(buf));
+				if (tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
+					goto end;
+				}
+				fwrite(buf, 1, len, stdout);
+				fflush(stdout);
+			}
+
+		}
+		if (FD_ISSET(STDIN_FILENO, &fds)) {
+			memset(send_buf, 0, sizeof(send_buf));
+
+			if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+				if (feof(stdin)) {
+					tls_shutdown(&conn);
+					goto end;
+				} else {
+					continue;
+				}
+			}
+			if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+				fprintf(stderr, "%s: send error\n", prog);
 				goto end;
 			}
-			buf[len] = 0;
-			printf("%s\n", buf);
 		}
 	}
-
 
 end:
 	close(sock);
