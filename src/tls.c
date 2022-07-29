@@ -1530,6 +1530,12 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 			error_print();
 			return -1;
 		}
+		if (r == 0) {
+			perror("");
+			error_print();
+			return 0;
+		}
+
 		len -= r;
 	}
 	if (!tls_record_type_name(tls_record_type(record))) {
@@ -1772,6 +1778,7 @@ int tls_do_recv(TLS_CONNECT *conn)
 		if (ret < 0) error_print();
 		return ret;
 	}
+
 	tls_record_trace(stderr, record, recordlen, 0, 0);
 	if (tls_cbc_decrypt(hmac_ctx, dec_key, seq_num, record,
 		tls_record_data(record), tls_record_data_length(record),

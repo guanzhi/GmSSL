@@ -84,7 +84,7 @@ int tlcp_client_main(int argc, char *argv[])
 	int sock;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
-	char buf[10] = {0};
+	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
 	size_t send_len;
@@ -202,10 +202,17 @@ bad:
 				}
 				fwrite(buf, 1, len, stdout);
 				fflush(stdout);
+
+				// 应该调整tls_recv 逻辑、API或者其他方式			
+				if (conn.datalen == 0) {
+					break;
+				}
 			}
 
 		}
 		if (FD_ISSET(STDIN_FILENO, &fds)) {
+			fprintf(stderr, "recv from stdin\n");
+
 			memset(send_buf, 0, sizeof(send_buf));
 
 			if (!fgets(send_buf, sizeof(send_buf), stdin)) {
@@ -221,6 +228,8 @@ bad:
 				goto end;
 			}
 		}
+
+		fprintf(stderr, "end of this round\n");
 	}
 
 

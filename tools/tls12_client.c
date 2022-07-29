@@ -203,6 +203,11 @@ bad:
 				}
 				fwrite(buf, 1, len, stdout);
 				fflush(stdout);
+
+				// 应该调整tls_recv 逻辑、API或者其他方式			
+				if (conn.datalen == 0) {
+					break;
+				}
 			}
 
 		}
