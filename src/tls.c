@@ -1721,8 +1721,6 @@ int tls_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen
 
 	tls_trace("send ApplicationData\n");
 
-	format_bytes(stderr, 0, 0, "tls_send: payload", in, inlen);
-
 	if (tls_record_set_type(record, TLS_record_application_data) != 1
 		|| tls_record_set_protocol(record, conn->protocol) != 1
 		|| tls_record_set_length(record, inlen) != 1) {

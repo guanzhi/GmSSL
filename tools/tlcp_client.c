@@ -85,7 +85,7 @@ int tlcp_client_main(int argc, char *argv[])
 	int sock;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
-	char buf[100] = {0};
+	char buf[1000] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
 	size_t send_len;
@@ -180,31 +180,49 @@ bad:
 		goto end;
 	}
 
+	fd_set fds;
+
+
 	for (;;) {
 		size_t sentlen;
 
-		memset(send_buf, 0, sizeof(send_buf));
-		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
-			if (feof(stdin)) {
-				tls_shutdown(&conn);
-				goto end;
-			} else {
-				continue;
-			}
-		}
-		if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
-			fprintf(stderr, "%s: send error\n", prog);
+
+		FD_ZERO(&fds);
+		FD_SET(conn.sock, &fds);
+		FD_SET(0, &fds);
+
+		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
+			fprintf(stderr, "%s: select failed\n", prog);
 			goto end;
 		}
 
-		{
+		if (FD_ISSET(conn.sock, &fds)) {
 			memset(buf, 0, sizeof(buf));
 			len = sizeof(buf);
-			if (tls_recv(&conn, (uint8_t *)buf, sizeof(len), &len) != 1) {
+
+			if (tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
 				goto end;
 			}
+
 			buf[len] = 0;
 			printf("%s\n", buf);
+
+		}
+		if (FD_ISSET(0, &fds)) {
+			memset(send_buf, 0, sizeof(send_buf));
+
+			if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+				if (feof(stdin)) {
+					tls_shutdown(&conn);
+					goto end;
+				} else {
+					continue;
+				}
+			}
+			if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+				fprintf(stderr, "%s: send error\n", prog);
+				goto end;
+			}
 		}
 	}
 
