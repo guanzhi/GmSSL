@@ -61,7 +61,7 @@
 #include <gmssl/error.h>
 
 
-// TLSv1.2客户单和TLCP客户端可能没有什么区别
+// TLSv1.3客户端和TLCP客户端可能没有什么区别
 
 static int client_ciphers[] = { TLS_cipher_sm4_gcm_sm3 };
 
