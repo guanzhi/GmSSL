@@ -1507,7 +1507,7 @@ int tls_record_send(const uint8_t *record, size_t recordlen, int sock)
 		return -1;
 	}
 	if ((r = send(sock, record, recordlen, 0)) < 0) {
-		perror("");
+		perror("tls_record_send");
 		error_print();
 		return -1;
 	} else if (r != recordlen) {
@@ -1526,12 +1526,12 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 	len = 5;
 	while (len) {
 		if ((r = recv(sock, record + 5 - len, len, 0)) < 0) {
-			perror("");
+			perror("tls_record_do_recv");
 			error_print();
 			return -1;
 		}
 		if (r == 0) {
-			perror("");
+			perror("tls_record_do_recv");
 			error_print();
 			return 0;
 		}
@@ -1555,7 +1555,7 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 	}
 	while (len) {
 		if ((r = recv(sock, record + *recordlen - len, len, 0)) < 0) {
-			perror("");
+			perror("tls_record_do_recv");
 			error_print();
 			return -1;
 		}
@@ -2310,7 +2310,7 @@ int tls_set_socket(TLS_CONNECT *conn, int sock)
 
 	if ((opts = fcntl(sock, F_GETFL)) < 0) {
 		error_print();
-		perror("");
+		perror("tls_set_socket");
 		return -1;
 	}
 	opts &= ~O_NONBLOCK;
