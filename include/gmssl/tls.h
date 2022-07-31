@@ -841,6 +841,11 @@ int tlcp_do_connect(TLS_CONNECT *conn);
 int tlcp_do_accept(TLS_CONNECT *conn);
 int tls12_do_connect(TLS_CONNECT *conn);
 int tls12_do_accept(TLS_CONNECT *conn);
+
+
+#define TLS13_SM2_ID		"TLSv1.3+GM+Cipher+Suite"
+#define TLS13_SM2_ID_LENGTH	(sizeof(TLS13_SM2_ID)-1)
+
 int tls13_do_connect(TLS_CONNECT *conn);
 int tls13_do_accept(TLS_CONNECT *conn);
 
@@ -890,7 +895,7 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 
 
 
-//#define TLS_DEBUG
+#define TLS_DEBUG
 
 #ifdef TLS_DEBUG
 #	define tls_trace(s) fprintf(stderr,(s))

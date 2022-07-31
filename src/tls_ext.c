@@ -363,12 +363,16 @@ int tls_process_client_signature_algorithms(const uint8_t *ext_data, size_t ext_
 			error_print();
 			return -1;
 		}
+		/*
+		// GmSSL不识别所有的算法！
 		if (!tls_signature_scheme_name(alg)) {
 			error_print();
 			return -1;
 		}
+		*/
 		if (alg == shared_algs[0]) {
 			shared_algs_cnt = 1;
+			break;
 		}
 	}
 	if (!shared_algs_cnt) {

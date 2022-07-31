@@ -1638,7 +1638,7 @@ int tls_send_alert(TLS_CONNECT *conn, int alert)
 		error_print();
 		return -1;
 	}
-	tls_record_set_protocol(record, conn->protocol);
+	tls_record_set_protocol(record, conn->protocol == TLS_protocol_tls13 ? TLS_protocol_tls12 : conn->protocol);
 	tls_record_set_alert(record, &recordlen, TLS_alert_level_fatal, alert);
 
 	if (tls_record_send(record, sizeof(record), conn->sock) != 1) {
@@ -1680,7 +1680,7 @@ int tls_send_warning(TLS_CONNECT *conn, int alert)
 		error_print();
 		return -1;
 	}
-	tls_record_set_protocol(record, conn->protocol);
+	tls_record_set_protocol(record, conn->protocol == TLS_protocol_tls13 ? TLS_protocol_tls12 : conn->protocol);
 	tls_record_set_alert(record, &recordlen, TLS_alert_level_warning, alert);
 
 	if (tls_record_send(record, sizeof(record), conn->sock) != 1) {

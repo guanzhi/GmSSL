@@ -499,8 +499,7 @@ int tls13_extension_print(FILE *fp, int fmt, int ind,
 		tls13_key_share_ext_print(fp, fmt, ind, handshake_type, ext_data, ext_datalen);
 		break;
 	default:
-		error_print();
-		return -1;
+		format_bytes(fp, fmt, ind, "raw_data", ext_data, ext_datalen);
 	}
 	return 1;
 }
