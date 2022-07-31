@@ -113,8 +113,8 @@ void sm3_hmac_finish(SM3_HMAC_CTX *ctx, uint8_t mac[SM3_HMAC_SIZE])
 	memset(ctx, 0, sizeof(*ctx));
 }
 
-void sm3_hmac(const uint8_t *data, size_t data_len,
-	const uint8_t *key, size_t key_len,
+void sm3_hmac(const uint8_t *key, size_t key_len,
+	const uint8_t *data, size_t data_len,
 	uint8_t mac[SM3_HMAC_SIZE])
 {
 	SM3_HMAC_CTX ctx;

@@ -367,6 +367,7 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen,
 	SM9_POINT *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE])
 {
+	SM3_HMAC_CTX hmac_ctx;
 	uint8_t K[inlen + 32];
 
 	if (sm9_kem_encrypt(mpk, id, idlen, sizeof(K), K, C1) != 1) {
@@ -374,7 +375,12 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 		return -1;
 	}
 	gmssl_memxor(c2, K, in, inlen);
-	sm3_hmac(K + inlen, 32, c2, inlen, c3);
+
+	//sm3_hmac(K + inlen, 32, c2, inlen, c3);
+	sm3_hmac_init(&hmac_ctx, K + inlen, SM3_HMAC_SIZE);
+	sm3_hmac_update(&hmac_ctx, c2, inlen);
+	sm3_hmac_finish(&hmac_ctx, c3);
+	gmssl_secure_clear(&hmac_ctx, sizeof(hmac_ctx));
 	return 1;
 }
 
@@ -382,6 +388,7 @@ int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const SM9_POINT *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE],
 	uint8_t *out)
 {
+	SM3_HMAC_CTX hmac_ctx;
 	uint8_t k[c2len + SM3_HMAC_SIZE];
 	uint8_t mac[SM3_HMAC_SIZE];
 
@@ -389,7 +396,11 @@ int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 		error_print();
 		return -1;
 	}
-	sm3_hmac(k + c2len, SM3_HMAC_SIZE, c2, c2len, mac);
+	//sm3_hmac(k + c2len, SM3_HMAC_SIZE, c2, c2len, mac);
+	sm3_hmac_init(&hmac_ctx, k + c2len, SM3_HMAC_SIZE);
+	sm3_hmac_update(&hmac_ctx, c2, c2len);
+	sm3_hmac_finish(&hmac_ctx, mac);
+	gmssl_secure_clear(&hmac_ctx, sizeof(hmac_ctx));
 
 	if (gmssl_secure_memcmp(c3, mac, sizeof(mac)) != 0) {
 		error_print();
