@@ -166,6 +166,11 @@ int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t Y[16];
 	uint8_t T[16];
 
+	if (taglen > SM4_GCM_MAX_TAG_SIZE) {
+		error_print();
+		return -1;
+	}
+
 	sm4_encrypt(key, H, H);
 
 	if (ivlen == 12) {
