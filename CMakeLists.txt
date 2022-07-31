@@ -19,7 +19,7 @@ include_directories(include)
 
 add_library(
 	gmssl
-#	SHARED
+	SHARED
 	src/version.c
 	src/debug.c
 	src/sm4_common.c
