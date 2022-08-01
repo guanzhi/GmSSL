@@ -1923,7 +1923,7 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
 	*/
-	printf("++++ Connection established\n");
+	fprintf(stderr, "Connection established\n");
 
 end:
 	return 1;
@@ -2369,7 +2369,7 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	format_print(stderr, 0, 0, "\n");
 	*/
 
-	printf("Connection Established!\n\n");
+	fprintf(stderr, "Connection Established!\n\n");
 
 end:
 	return 1;

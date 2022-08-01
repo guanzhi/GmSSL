@@ -595,7 +595,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_decrypt_error);
 		goto end;
 	}
-	printf("Connection established!\n");
+	fprintf(stderr, "Connection established!\n");
 
 
 	conn->protocol = TLS_protocol_tlcp;
@@ -1045,7 +1045,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 
 	conn->protocol = TLS_protocol_tlcp;
 
-	tls_trace("Connection Established!\n\n");
+	fprintf(stderr, "Connection Established!\n\n");
 	ret = 1;
 
 end:
