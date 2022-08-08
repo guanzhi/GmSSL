@@ -1,10 +1,8 @@
 /*
- *  Copyright 2022 The GmSSL Project. All Rights Reserved.
+ * Copyright (c) 2022 Kazuyoshi Tomita
  *
- *  Licensed under the Apache License, Version 2.0 (the License); you may
- *  not use this file except in compliance with the License.
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * This software is released under the MIT License.
+ * https://opensource.org/licenses/mit-license.php
  */
 
 #ifndef URL_PARSER_H
