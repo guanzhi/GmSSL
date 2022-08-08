@@ -12,6 +12,8 @@ COPYRIGHT+=" *  http://www.apache.org/licenses/LICENSE-2.0"$'\n'
 COPYRIGHT+=" */"$'\n'
 COPYRIGHT_FILE=copyright.txt
 echo "$COPYRIGHT" > $COPYRIGHT_FILE
+TEMP_FILE=tempfile.temp
+touch $TEMP_FILE
 copyright_start_string="/*"
 copyright_end_string="*/"
 
@@ -20,15 +22,20 @@ function modify_copyright(){
 	copyright_start_line=`grep -n "/\*" $file_path  | head -1 | cut -d  ':' -f  1`
 	copyright_end_line=`grep -n  "\*/" $file_path | head -1| cut -d  ':' -f  1`
 	echo $file_path $copyright_start_line $copyright_end_line
-	sed -i $copyright_start_line,$copyright_end_line'd' $file_path
-	sed -i "1 r $COPYRIGHT_FILE" $file_path
-	sed -i '1d' $file_path
+	if [[  $copyright_start_line && $copyright_end_line ]];then
+		sed -i $copyright_start_line,$copyright_end_line'd' $file_path
+	fi
+	
+	cat $COPYRIGHT_FILE > $TEMP_FILE
+	cat $file_path >> $TEMP_FILE
+	mv $TEMP_FILE $file_path
+	
 }
 
 function getDir() {
 	for filename in $1/*
 	do
-	    if [ -d $filename ]
+	    if [[ -d $filename ]];
 	    then
 	        getDir $filename
 	    else
@@ -40,6 +47,7 @@ function getDir() {
 	    fi
 	done
 }
+
 getDir ..
 
-rm $COPYRIGHT_FILE
+rm -f $COPYRIGHT_FILE
