@@ -540,7 +540,7 @@ int test_sm9_sign() {
 
 	sm9_verify_init(&ctx);
 	sm9_verify_update(&ctx, data, sizeof(data));
-	if (sm9_verify_finish(&ctx, sig, siglen, &mpk, (char *)IDA, sizeof(IDA)) < 0) goto err; ++j;
+	if (sm9_verify_finish(&ctx, sig, siglen, &mpk, (char *)IDA, sizeof(IDA)) != 1) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;

@@ -216,7 +216,7 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 
 	// B6: P = h1 * P2 + Ppubs
 	sm9_twist_point_mul_generator(&P, h1);
-	sm9_twist_point_add(&P, &P, &mpk->Ppubs);
+	sm9_twist_point_add_full(&P, &P, &mpk->Ppubs);
 
 	// B7: u = e(S, P)
 	sm9_pairing(u, &P, &sig->S);
