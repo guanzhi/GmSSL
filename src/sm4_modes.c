@@ -294,7 +294,7 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 	}
 
 	*outlen = 0;
-	if (ctx->block_nbytes < SM4_BLOCK_SIZE) {
+	if (ctx->block_nbytes) {
 		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
 		if (inlen <= left) {
 			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
