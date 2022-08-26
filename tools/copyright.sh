@@ -3,7 +3,7 @@
 YEAR=`date "+%Y"`
 COPYRIGHT=""
 COPYRIGHT+="/*"$'\n'
-COPYRIGHT+=" *  Copyright $YEAR The GmSSL Project. All Rights Reserved."$'\n'
+COPYRIGHT+=" *  Copyright 2014-$YEAR The GmSSL Project. All Rights Reserved."$'\n'
 COPYRIGHT+=" *"$'\n'
 COPYRIGHT+=" *  Licensed under the Apache License, Version 2.0 (the "License"); you may"$'\n'
 COPYRIGHT+=" *  not use this file except in compliance with the License."$'\n'

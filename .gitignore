@@ -69,6 +69,7 @@
 /test/*.dp
 /test/*.pd
 /test/*.p
+/demos/*.pem
 
 /util/shlib_wrap.sh
 
