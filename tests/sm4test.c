@@ -195,6 +195,50 @@ static int test_sm4_ctr(void)
 	return 1;
 }
 
+static int test_sm4_ctr_with_carray(void)
+{
+	const char *hex_key =	"0123456789ABCDEFFEDCBA9876543210";
+	const char *hex_ctr =	"0000000000000000000000000000FFFF";
+	const char *hex_in =	"AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBB"
+							"CCCCCCCCCCCCCCCCDDDDDDDDDDDD";
+	const char *hex_out =	"7EA678F9F0CBE2000917C63D4E77B4C8"
+							"6E4E8532B0046E4AC1E97DA8B831";
+
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t ctr[16];
+	uint8_t buf1[30] = {0};
+	uint8_t buf2[30] = {0};
+	uint8_t buf3[30] = {0};
+
+	size_t keylen, ctrlen, inlen, outlen;
+
+	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
+	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
+	hex_to_bytes(hex_in, strlen(hex_in), buf1, &inlen);
+	hex_to_bytes(hex_out, strlen(hex_out), buf3, &outlen);
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	sm4_ctr_encrypt(&sm4_key, ctr, buf1, sizeof(buf1), buf2);
+
+	if (memcmp(buf2, buf3, sizeof(buf3)) != 0) {
+			error_print();
+			return -1;
+		}
+
+	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
+	sm4_ctr_decrypt(&sm4_key, ctr, buf3, sizeof(buf3), buf2);
+
+	if (memcmp(buf2, buf1, sizeof(buf1)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sm4_gcm(void)
 {
 	// gcm test vectors from rfc 8998 A.1
