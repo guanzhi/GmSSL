@@ -99,7 +99,7 @@ int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
 static void ctr_incr(uint8_t a[16])
 {
 	int i;
-	for (i = 15; i > 0; i--) {
+	for (i = 15; i >= 0; i--) {
 		a[i]++;
 		if (a[i]) break;
 	}
