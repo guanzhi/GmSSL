@@ -31,9 +31,9 @@ int sm9verify_main(int argc, char **argv)
 	SM9_SIGN_MASTER_KEY mpk;
 	SM9_SIGN_CTX ctx;
 	uint8_t buf[4096];
-	ssize_t len;
+	size_t len;
 	uint8_t sig[SM9_SIGNATURE_SIZE];
-	ssize_t siglen;
+	size_t siglen;
 
 	argc--;
 	argv++;

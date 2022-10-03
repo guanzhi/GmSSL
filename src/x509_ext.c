@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -28,10 +28,15 @@
 int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int oid, int critical, const uint8_t *d, size_t dlen)
 {
-	uint8_t val[32 + dlen];
+	uint8_t *val = NULL;
 	uint8_t *p = val;
 	size_t curlen = *extslen;
 	size_t vlen = 0;
+
+	if (!(val = malloc(32 + dlen))) {
+		error_print();
+		return -1;
+	}
 
 	exts += *extslen;
 	if (asn1_sequence_to_der(d, dlen, &p, &vlen) != 1

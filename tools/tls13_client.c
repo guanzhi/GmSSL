@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -12,13 +12,16 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-
+#ifdef WIN32
+#include <winsock2.h>
+#else
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
@@ -98,7 +101,7 @@ bad:
 		return -1;
 	}
 	if (!(hp = gethostbyname(host))) {
-		herror("tls13_client: '-host' invalid");
+		//herror("tls13_client: '-host' invalid");			
 		goto end;
 	}
 
@@ -149,7 +152,7 @@ bad:
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
-		FD_SET(STDIN_FILENO, &fds);
+		FD_SET(fileno(stdin), &fds);
 
 		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
@@ -172,7 +175,7 @@ bad:
 			}
 
 		}
-		if (FD_ISSET(STDIN_FILENO, &fds)) {
+		if (FD_ISSET(fileno(stdin), &fds)) {
 			memset(send_buf, 0, sizeof(send_buf));
 
 			if (!fgets(send_buf, sizeof(send_buf), stdin)) {

@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -172,7 +172,6 @@ static int test_asn1_int(void)
 	const uint8_t *cp = buf;
 	size_t len = 0;
 	size_t i;
-	int rv;
 
 	format_print(stderr, 0, 0, "%s\n", asn1_tag_name(ASN1_TAG_INTEGER));
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {

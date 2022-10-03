@@ -36,7 +36,7 @@ int sm2verify_main(int argc, char **argv)
 	uint8_t cert[1024];
 	size_t certlen;
 	uint8_t buf[4096];
-	ssize_t len;
+	size_t len;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
 	int vr;

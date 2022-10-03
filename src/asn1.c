@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -20,9 +20,27 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-#include <gmssl/endian.h>
+#include <gmssl/endian.h> 
 
+#ifdef WIN32
+time_t timegm(struct tm* timeptr)
+{
+#error "Not implemented"
+	return 0;
+}
 
+struct tm* gmtime_r(const time_t* clock, struct tm* result)
+{
+#error "Not implemented"
+	return NULL;
+}
+
+char* strptime(const char* buf, const char* format, struct tm* timeptr)
+{
+#error "Not implemented"
+	return NULL;
+}
+#endif
 /*
 
 ## 返回值

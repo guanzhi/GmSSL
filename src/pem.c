@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -15,12 +15,22 @@
 #include <gmssl/error.h>
 
 
-int pem_write(FILE *fp, const char *name, const uint8_t *data, size_t datalen)
+int pem_write(FILE* fp, const char* name, const uint8_t* data, size_t datalen)
 {
 	int ret = 0;
 	BASE64_CTX ctx;
-	uint8_t b64[datalen * 2];
+	uint8_t* b64 = NULL;
 	int len;
+
+	if (!datalen) {
+		error_print();
+		return -1;
+	}
+
+	if (!(b64 = malloc(datalen * 2))) {
+		error_print();
+		return -1;
+	}
 
 	base64_encode_init(&ctx);
 	base64_encode_update(&ctx, data, (int)datalen, b64, &len);

@@ -330,7 +330,7 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	SM9_POINT *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE])
 {
 	SM3_HMAC_CTX hmac_ctx;
-	uint8_t K[inlen + 32];
+	uint8_t K[SM9_MAX_PLAINTEXT_SIZE + 32];
 
 	if (sm9_kem_encrypt(mpk, id, idlen, sizeof(K), K, C1) != 1) {
 		error_print();
@@ -351,8 +351,13 @@ int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	uint8_t *out)
 {
 	SM3_HMAC_CTX hmac_ctx;
-	uint8_t k[c2len + SM3_HMAC_SIZE];
+	uint8_t k[SM9_MAX_PLAINTEXT_SIZE + SM3_HMAC_SIZE];
 	uint8_t mac[SM3_HMAC_SIZE];
+
+	if (c2len > SM9_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
 
 	if (sm9_kem_decrypt(key, id, idlen, C1, sizeof(k), k) != 1) {
 		error_print();
@@ -458,8 +463,13 @@ int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	SM9_POINT C1;
-	uint8_t c2[inlen];
+	uint8_t c2[SM9_MAX_PLAINTEXT_SIZE];
 	uint8_t c3[SM3_HMAC_SIZE];
+
+	if (inlen > SM9_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
 
 	if (sm9_do_encrypt(mpk, id, idlen, in, inlen, &C1, c2, c3) != 1) {
 		error_print();

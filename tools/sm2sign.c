@@ -33,7 +33,7 @@ int sm2sign_main(int argc, char **argv)
 	SM2_KEY key;
 	SM2_SIGN_CTX sign_ctx;
 	uint8_t buf[4096];
-	ssize_t len;
+	size_t len;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
 

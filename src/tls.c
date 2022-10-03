@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -14,12 +14,19 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef WIN32
+#include <winsock2.h>
+#else
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
+
 #include <gmssl/rand.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
@@ -1455,7 +1462,11 @@ int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
 
 int tls_record_send(const uint8_t *record, size_t recordlen, int sock)
 {
+#ifdef WIN32
+	int r;
+#else
 	ssize_t r;
+#endif
 	if (!record) {
 		error_print();
 		return -1;
@@ -1481,7 +1492,11 @@ int tls_record_send(const uint8_t *record, size_t recordlen, int sock)
 
 int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 {
+#ifdef WIN32
+	int r;
+#else
 	ssize_t r;
+#endif
 	int type;
 	size_t len;
 
@@ -2270,6 +2285,8 @@ int tls_set_socket(TLS_CONNECT *conn, int sock)
 {
 	int opts;
 
+#if 0
+	// FIXME: do we still need this? when using select?
 	if ((opts = fcntl(sock, F_GETFL)) < 0) {
 		error_print();
 		perror("tls_set_socket");
@@ -2280,6 +2297,7 @@ int tls_set_socket(TLS_CONNECT *conn, int sock)
 		error_print();
 		return -1;
 	}
+#endif
 	conn->sock = sock;
 	return 1;
 }

@@ -101,6 +101,40 @@ static void ctr_incr(uint8_t a[16])
 	}
 }
 
+// 这个函数支持任意长度的输入，如果输入的长度不是整数长度，那么调用会出现错误
+// 如果输出的长度正好可以凑够4个分组，那么我们就可以一次性的加密4个分组
+// 我们还是应该先准备一个底层的封装，就是CTR模式，给定一个ctr，然后我们输出的是4个分组，并且对ctr做一个变化
+
+void sm4_encrypt4(const uint32_t rk[32], void *src, const void *dst);
+
+void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	uint8_t blocks[64];
+
+	while (inlen >= 64) {
+		memcpy(blocks, ctr, 16); ctr_incr(ctr);
+		memcpy(blocks + 16, ctr, 16); ctr_incr(ctr);
+		memcpy(blocks + 32, ctr, 16); ctr_incr(ctr);
+		memcpy(blocks + 48, ctr, 16); ctr_incr(ctr);
+		sm4_encrypt4(key->rk, blocks, blocks);
+		gmssl_memxor(out, in, blocks, 64);
+		in += 64;
+		out += 64;
+		inlen -= 64;
+	}
+
+	while (inlen) {
+		size_t len = inlen < 16 ? inlen : 16;
+		sm4_encrypt(key, ctr, blocks);
+		gmssl_memxor(out, in, blocks, len);
+		ctr_incr(ctr);
+		in += len;
+		out += len;
+		inlen -= len;
+	}
+}
+
+/*
 void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
 {
 	uint8_t block[16];
@@ -116,6 +150,7 @@ void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, siz
 		inlen -= len;
 	}
 }
+*/
 
 int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
@@ -259,6 +294,9 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 
 int sm4_cbc_encrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	size_t left;
+	size_t i;
+
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -388,6 +426,7 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 
 int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	size_t left;
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;

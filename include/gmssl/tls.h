@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -11,6 +11,12 @@
 
 #ifndef GMSSL_TLS_H
 #define GMSSL_TLS_H
+
+#ifdef WIN32
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib")
+#endif
 
 
 #include <stdint.h>

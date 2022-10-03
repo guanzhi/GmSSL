@@ -12,11 +12,15 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef WIN32
+#include <winsock2.h>
+#else
 #include <unistd.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
@@ -46,7 +50,11 @@ int tls13_server_main(int argc , char **argv)
 	int sock;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
+#ifdef WIN32
+	int client_addrlen;
+#else
 	socklen_t client_addrlen;
+#endif
 	int conn_sock;
 
 

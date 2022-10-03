@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -12,6 +12,9 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef WIN32
+#include <winsock2.h>
+#else
 
 #include <unistd.h>
 #include <netdb.h>
@@ -19,6 +22,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
+
+
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
@@ -52,7 +58,6 @@ int tls12_client_main(int argc, char *argv[])
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
-	size_t send_len;
 
 	argc--;
 	argv++;
@@ -98,7 +103,7 @@ bad:
 		return -1;
 	}
 	if (!(hp = gethostbyname(host))) {
-		herror("tls12_client: '-host' invalid");
+		//herror("tls12_client: '-host' invalid"); // herror() not in winsock2, use WSAGetLastError() instead
 		goto end;
 	}
 
@@ -111,11 +116,11 @@ bad:
 
 
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno));
+		//fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno)); //FIXME: WIN32 use WSAGetLastError()			
 		goto end;
 	}
 	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
-		fprintf(stderr, "%s: connect error : %s\n", prog, strerror(errno));
+		//fprintf(stderr, "%s: connect error : %s\n", prog, strerror(errno)); //			
 		goto end;
 	}
 
@@ -150,7 +155,7 @@ bad:
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
-		FD_SET(STDIN_FILENO, &fds);
+		FD_SET(fileno(stdin), &fds);
 
 		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
@@ -173,7 +178,7 @@ bad:
 			}
 
 		}
-		if (FD_ISSET(STDIN_FILENO, &fds)) {
+		if (FD_ISSET(fileno(stdin), &fds)) {
 			memset(send_buf, 0, sizeof(send_buf));
 
 			if (!fgets(send_buf, sizeof(send_buf), stdin)) {
@@ -193,7 +198,11 @@ bad:
 
 
 end:
+#ifdef WIN32
+	closesocket(sock);
+#else
 	close(sock);
+#endif
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;

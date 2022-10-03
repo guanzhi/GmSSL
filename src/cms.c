@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -345,8 +345,15 @@ int cms_enced_content_info_encrypt_to_der(
 {
 	int ret;
 	SM4_KEY sm4_key;
-	uint8_t enced_content[32 + content_len]; // FIXME: 如果content_len 过长，会直接导致segment fault
-	size_t enced_content_len = 100;
+	uint8_t* enced_content = NULL;							
+	size_t enced_content_len = 100; // FIXME: why 100?					
+
+	if (!(enced_content = malloc(32 + content_len))) {
+		error_print();
+		return -1;
+	}
+
+
 
 	if (enc_algor != OID_sm4_cbc || keylen != 16 || ivlen != 16) {
 		error_print();

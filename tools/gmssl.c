@@ -192,10 +192,12 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
+#ifndef WIN32
 		} else if (!strcmp(*argv, "sdfutil")) {
 			return sdfutil_main(argc, argv);
 		} else if (!strcmp(*argv, "skfutil")) {
 			return skfutil_main(argc, argv);
+#endif
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			fprintf(stderr, "usage: %s %s\n", prog, options);
