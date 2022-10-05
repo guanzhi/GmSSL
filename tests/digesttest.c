@@ -15,8 +15,10 @@
 #include <gmssl/digest.h>
 
 const char *digests[] = {
-//	"md5",
+#ifdef ENABLE_BROKEN_CRYPTO
+	"md5",
 	"sha1",
+#endif
 	"sm3",
 	"sha224",
 	"sha256",

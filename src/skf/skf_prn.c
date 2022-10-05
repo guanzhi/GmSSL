@@ -48,7 +48,7 @@ static char *skf_algor_name(ULONG ulAlgID)
 	return NULL;
 }
 
-ULONG SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
+ULONG DEVAPI SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
 {
 	if (!szDevStateName) {
 		return SAR_INDATALENERR;
@@ -72,7 +72,7 @@ ULONG SKF_GetDevStateName(ULONG ulDevState, LPSTR *szDevStateName)
 	return SAR_OK;
 }
 
-ULONG SKF_GetContainerTypeName(ULONG ulContainerType, LPSTR *szName)
+ULONG DEVAPI SKF_GetContainerTypeName(ULONG ulContainerType, LPSTR *szName)
 {
 	switch (ulContainerType) {
 	case SKF_CONTAINER_TYPE_UNDEF:
@@ -130,7 +130,7 @@ static table_item_t skf_pkey_caps[] = {
 	{ SGD_SM2_3, "sm2encrypt" }
 };
 
-ULONG SKF_PrintDevInfo(FILE *fp, const DEVINFO *devInfo)
+ULONG DEVAPI SKF_PrintDevInfo(FILE *fp, const DEVINFO *devInfo)
 {
 	size_t i, n;
 	int fmt = 0, ind = 4;
@@ -205,7 +205,7 @@ ULONG SKF_PrintDevInfo(FILE *fp, const DEVINFO *devInfo)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintRSAPublicKey(FILE *fp, const RSAPUBLICKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintRSAPublicKey(FILE *fp, const RSAPUBLICKEYBLOB *blob)
 {
 	int fmt = 0, ind = 4;
 	format_print(fp, fmt, ind, "AlgID: %s\n", skf_algor_name(blob->AlgID));
@@ -215,7 +215,7 @@ ULONG SKF_PrintRSAPublicKey(FILE *fp, const RSAPUBLICKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintRSAPrivateKey(FILE *fp, const RSAPRIVATEKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintRSAPrivateKey(FILE *fp, const RSAPRIVATEKEYBLOB *blob)
 {
 	int fmt = 0, ind = 4;
 	format_print(fp, fmt, ind, "AlgID: %s\n", skf_algor_name(blob->AlgID));
@@ -231,7 +231,7 @@ ULONG SKF_PrintRSAPrivateKey(FILE *fp, const RSAPRIVATEKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCPublicKey(FILE *fp, const ECCPUBLICKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintECCPublicKey(FILE *fp, const ECCPUBLICKEYBLOB *blob)
 {
 	int fmt = 0, ind = 4;
 	format_print(fp, fmt, ind, "BitLen: %u\n", blob->BitLen);
@@ -240,7 +240,7 @@ ULONG SKF_PrintECCPublicKey(FILE *fp, const ECCPUBLICKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCPrivateKey(FILE *fp, const ECCPRIVATEKEYBLOB *blob)
+ULONG DEVAPI SKF_PrintECCPrivateKey(FILE *fp, const ECCPRIVATEKEYBLOB *blob)
 {
 	int fmt = 0, ind = 4;
 	format_print(fp, fmt, ind, "BitLen: %u\n", blob->BitLen);
@@ -248,7 +248,7 @@ ULONG SKF_PrintECCPrivateKey(FILE *fp, const ECCPRIVATEKEYBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCCipher(FILE *fp, const ECCCIPHERBLOB *blob)
+ULONG DEVAPI SKF_PrintECCCipher(FILE *fp, const ECCCIPHERBLOB *blob)
 {
 	int fmt = 0, ind = 4;
 	format_bytes(fp, fmt, ind, "XCoordinate", blob->XCoordinate, ECC_MAX_XCOORDINATE_BITS_LEN/8);
@@ -259,7 +259,7 @@ ULONG SKF_PrintECCCipher(FILE *fp, const ECCCIPHERBLOB *blob)
 	return SAR_OK;
 }
 
-ULONG SKF_PrintECCSignature(FILE *fp, const ECCSIGNATUREBLOB *blob)
+ULONG DEVAPI SKF_PrintECCSignature(FILE *fp, const ECCSIGNATUREBLOB *blob)
 {
 	int fmt = 0, ind = 4;
 	format_bytes(fp, fmt, ind, "r", blob->r, ECC_MAX_XCOORDINATE_BITS_LEN/8);

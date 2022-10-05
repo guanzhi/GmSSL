@@ -14,6 +14,10 @@
 #include "../sgd.h"
 #include "skf.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 
 typedef ULONG (DEVAPI *SKF_WaitForDevEvent_FuncPtr)(
 	LPSTR szDevName,
@@ -472,7 +476,11 @@ typedef ULONG (DEVAPI *SKF_CloseHandle_FuncPtr)(
 
 typedef struct skf_method_st {
 	char *name;
+#ifdef WIN32
+	HMODULE dso;
+#else
 	void *dso;
+#endif
 	SKF_WaitForDevEvent_FuncPtr WaitForDevEvent;
 	SKF_CancelWaitForDevEvent_FuncPtr CancelWaitForDevEvent;
 	SKF_EnumDev_FuncPtr EnumDev;

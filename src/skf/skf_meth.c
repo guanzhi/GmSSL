@@ -11,15 +11,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 #include "skf.h"
 #include "skf_ext.h"
 #include "skf_int.h"
 
 #define SKFerr(e,r)
 
+#ifdef WIN32
+#define SKF_METHOD_BIND_FUNCTION_EX(func,name) \
+	skf->func = (SKF_##func##_FuncPtr)GetProcAddress(skf->dso, "SKF_"#name)
+#else
 #define SKF_METHOD_BIND_FUNCTION_EX(func,name) \
 	skf->func = (SKF_##func##_FuncPtr)dlsym(skf->dso, "SKF_"#name)
+#endif
 
 #define SKF_METHOD_BIND_FUNCTION(func) \
 	SKF_METHOD_BIND_FUNCTION_EX(func,func)
@@ -34,10 +43,17 @@ SKF_METHOD *SKF_METHOD_load_library(const char *so_path)
 		SKFerr(SKF_F_SKF_METHOD_LOAD_LIBRARY, ERR_R_MALLOC_FAILURE);
 		goto end;
 	}
-	if (!(skf->dso = dlopen(so_path, RTLD_LAZY))) {
+#ifdef WIN32
+	if ((skf->dso = LoadLibraryA(so_path)) == NULL) {
+		goto end;
+	}
+
+#else	
+	if (!(skf->dso = dlopen(so_path, 0/*RTLD_LAZY*/))) {//FIXME:dlopen not in windows			
 		SKFerr(SKF_F_SKF_METHOD_LOAD_LIBRARY, SKF_R_DSO_LOAD_FAILURE);
 		goto end;
 	}
+#endif
 
 	SKF_METHOD_BIND_FUNCTION(WaitForDevEvent);
 	SKF_METHOD_BIND_FUNCTION(CancelWaitForDevEvent);

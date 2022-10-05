@@ -11,13 +11,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 #include "sdf_int.h"
 
 #define SDFerr(a,b)
 
+#ifdef WIN32
+#define SDF_METHOD_BIND_FUNCTION_EX(func,name) \
+	sdf->func = (SDF_##func##_FuncPtr)GetProcAddress(sdf->dso, "SDF_"#name)
+#else
 #define SDF_METHOD_BIND_FUNCTION_EX(func,name) \
 	sdf->func = (SDF_##func##_FuncPtr)dlsym(sdf->dso, "SDF_"#name)
+#endif
 
 #define SDF_METHOD_BIND_FUNCTION(func) \
 	SDF_METHOD_BIND_FUNCTION_EX(func,func)
@@ -33,11 +42,18 @@ SDF_METHOD *SDF_METHOD_load_library(const char *so_path)
 	}
 	memset(sdf, 0, sizeof(*sdf));
 
-	if (!(sdf->dso = dlopen(so_path, RTLD_LAZY))) {
+#ifdef WIN32
+	if ((sdf->dso = LoadLibraryA(so_path)) == NULL) {
+		goto end;
+	}
+
+#else
+	if (!(sdf->dso = dlopen(so_path, 0/*RTLD_LAZY*/))) { // FIXME: dlfcn.h, dlopen, RTLD_LAZY not in windows!
 		fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, dlerror());
 		SDFerr(SDF_F_SDF_METHOD_LOAD_LIBRARY, SDF_R_DSO_LOAD_FAILURE);
 		goto end;
 	}
+#endif
 
 	SDF_METHOD_BIND_FUNCTION(OpenDevice);
 	SDF_METHOD_BIND_FUNCTION(CloseDevice);

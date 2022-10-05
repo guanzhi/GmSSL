@@ -13,6 +13,10 @@
 
 #include "sdf.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 typedef int (*SDF_OpenDevice_FuncPtr)(
 	void **phDeviceHandle);
 
@@ -346,7 +350,11 @@ typedef int (*SDF_DeleteObject_FuncPtr)(
 
 typedef struct sdf_method_st {
 	char *name;
+#ifdef WIN32
+	HMODULE dso;
+#else
 	void *dso;
+#endif
 	SDF_OpenDevice_FuncPtr OpenDevice;
 	SDF_CloseDevice_FuncPtr CloseDevice;
 	SDF_OpenSession_FuncPtr OpenSession;

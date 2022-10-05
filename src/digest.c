@@ -24,8 +24,10 @@ typedef struct {
 
 DIGEST_TABLE digest_table[] = {
 	{ OID_sm3, "sm3", "SM3" },
-//	{ OID_md5, "md5", "MD5" },
+#ifdef ENABLE_BROKEN_CRYPTO
+	{ OID_md5, "md5", "MD5" },
 	{ OID_sha1, "sha1", "SHA-1" },
+#endif
 	{ OID_sha224, "sha224", "SHA-224" },
 	{ OID_sha256, "sha256", "SHA-256" },
 	{ OID_sha384, "sha384", "SHA-384" },
@@ -93,12 +95,12 @@ const DIGEST *digest_from_name(const char *name)
 {
 	if (!strcmp(name, "sm3") || !strcmp(name, "SM3")) {
 		return DIGEST_sm3();
-	/*
+#ifdef ENABLE_BROKEN_CRYPTO
 	} else if (!strcmp(name, "md5") || !strcmp(name, "MD5")) {
 		return DIGEST_md5();
-	*/
 	} else if (!strcmp(name, "sha1") || !strcmp(name, "SHA1")) {
 		return DIGEST_sha1();
+#endif
 	} else if (!strcmp(name, "sha224") || !strcmp(name, "SHA224")) {
 		return DIGEST_sha224();
 	} else if (!strcmp(name, "sha256") || !strcmp(name, "SHA256")) {
@@ -160,7 +162,8 @@ const DIGEST *DIGEST_sm3(void)
         return &sm3_digest_object;
 }
 
-/*
+#ifdef ENABLE_BROKEN_CRYPTO
+
 #include <gmssl/md5.h>
 
 static int md5_digest_init(DIGEST_CTX *ctx)
@@ -207,7 +210,6 @@ const DIGEST *DIGEST_md5(void)
 {
         return &md5_digest_object;
 }
-*/
 
 
 #include <gmssl/sha1.h>
@@ -256,6 +258,7 @@ const DIGEST *DIGEST_sha1(void)
 {
         return &sha1_digest_object;
 }
+#endif
 
 #include <gmssl/sha2.h>
 

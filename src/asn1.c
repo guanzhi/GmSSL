@@ -20,27 +20,12 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-#include <gmssl/endian.h> 
+#include <gmssl/endian.h>
 
 #ifdef WIN32
-time_t timegm(struct tm* timeptr)
-{
-#error "Not implemented"
-	return 0;
-}
-
-struct tm* gmtime_r(const time_t* clock, struct tm* result)
-{
-#error "Not implemented"
-	return NULL;
-}
-
-char* strptime(const char* buf, const char* format, struct tm* timeptr)
-{
-#error "Not implemented"
-	return NULL;
-}
+#include "u_time.h"
 #endif
+
 /*
 
 ## 返回值
@@ -808,15 +793,21 @@ int asn1_ia5_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out
 int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
 	struct tm tm_val;
-	char buf[ASN1_UTC_TIME_LEN + 1];
+	char buf[ASN1_UTC_TIME_LEN + 1] = {0};
 
 	if (!outlen) {
 		error_print();
 		return -1;
 	}
 
+#ifdef WIN32
+	GMSSL_gmtime(&a, &tm_val);
+	asn1_tm_to_utctime(&tm_val, buf);
+#else
 	gmtime_r(&a, &tm_val);
 	strftime(buf, sizeof(buf), "%y%m%d%H%M%SZ", &tm_val);
+#endif
+
 
 	if (out && *out)
 		*(*out)++ = tag;
@@ -835,15 +826,20 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
 	struct tm tm_val;
-	char buf[ASN1_GENERALIZED_TIME_LEN + 1];
+	char buf[ASN1_GENERALIZED_TIME_LEN + 1] = {0};
 
 	if (!outlen) {
 		error_print();
 		return -1;
 	}
 
+#ifdef WIN32
+	GMSSL_gmtime(&a, &tm_val);
+	asn1_tm_to_generalizedtime(&tm_val, buf);
+#else
 	gmtime_r(&a, &tm_val);
 	strftime(buf, sizeof(buf), "%Y%m%d%H%M%SZ", &tm_val);
+#endif
 	//printf("%s %d: generalized time : %s\n", __FILE__, __LINE__, buf);
 
 	if (out && *out)
@@ -1197,14 +1193,18 @@ int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *p
 		buf[1] = '0';
 	}
 	if (len == sizeof("YYMMDDHHMMSSZ")-1) {
-		//  这里应该自己写一个函数来解析
-		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) { // 注意：这个函数在Windows上没有！！		
+#ifdef WIN32
+		asn1_generalizedtime_to_tm(&tm_val, buf);
+		*t = GMSSL_timegm(&tm_val);
+#else
+		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
 			return -1;
 		}
+		*t = timegm(&tm_val);
+#endif
 	} else {
 		return -1;
 	}
-	*t = timegm(&tm_val); // FIXME: Windows !				
 
 	*pin = in + len;
 	*pinlen = inlen - len;
@@ -1235,16 +1235,25 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, s
 	memcpy(buf, in, len);
 
 	if (len == sizeof("YYYYMMDDHHMMSSZ")-1) {
+
+#ifdef WIN32
+		asn1_generalizedtime_to_tm(buf, &tm_val);
+		*t = GMSSL_timegm(&tm_val);
+#else
 		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
 			error_print();
 			return -1;
 		}
+		*t = timegm(&tm_val);
+#endif
+
+
 	} else {
 		// TODO: 处理这种情况		
 		error_print();
 		return -2;
 	}
-	*t = timegm(&tm_val);
+
 	*pin = in + len;
 	*pinlen = inlen - len;
 	return 1;
