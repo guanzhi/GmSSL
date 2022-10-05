@@ -53,3 +53,18 @@ sudo make install
 #### Nginx-with-GmSSL3.0
 
 GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3) 项目。
+
+## Roadmap
+
+- [ ] Add Windows Visual Studio support
+- [ ] Add Windows MinGW support
+- [ ] Add iOS support and iOS demo App
+- [ ] Add Android support
+- [ ] **Version 3.1.0 release**
+- [ ] Add GCC specific optimization
+- [ ] Add X86_64 assembly implementation
+- [ ] Add GPU implementation
+- [ ] Add performance benchmark tool
+- [ ] Add GCM cipher suites
+- [ ] Release official open interfaces
+- [ ] **Version 3.2.0 release**
