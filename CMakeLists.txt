@@ -77,6 +77,10 @@ set(src
 	src/tls13.c
 )
 
+if (WIN32)
+	list(APPEND src src/u_time.c)
+endif()
+
 set(broken_crypto_src
 	src/des.c
 	src/sha1.c
