@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.0)
 project(GmSSL)
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+if (WIN32)
+	set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+else()
+	set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+endif()
 
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 include_directories(include)
 
 #enable_language(ASM)

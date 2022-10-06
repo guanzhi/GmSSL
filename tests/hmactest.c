@@ -84,9 +84,9 @@ struct {
 int test_hmac(const DIGEST *digest, const char *key_hex, const char *data_hex, const char *hmac_hex)
 {
 	HMAC_CTX ctx;
-	uint8_t key[strlen(key_hex)/2];
-	uint8_t data[strlen(data_hex)/2];
-	uint8_t hmac[strlen(hmac_hex)/2];
+	uint8_t key = malloc(strlen(key_hex)/2); // FIXME: malloc
+	uint8_t data = malloc(strlen(data_hex)/2);
+	uint8_t hmac = malloc(strlen(hmac_hex) / 2);
 	uint8_t buf[64];
 	size_t len;
 
@@ -103,6 +103,9 @@ int test_hmac(const DIGEST *digest, const char *key_hex, const char *data_hex, c
 		return 0;
 	}
 	printf("ok\n");
+	if (key) free(key);
+	if (data) free(data);
+	if (hmac) free(hmac);
 	return 1;
 }
 
