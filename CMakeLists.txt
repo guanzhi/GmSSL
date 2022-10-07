@@ -1,16 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
 project(GmSSL)
 
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
-if (WIN32)
-	set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-else()
-	set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
-	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-endif()
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 include_directories(include)
 
 #enable_language(ASM)
@@ -39,7 +34,6 @@ set(src
 	src/sha256.c
 	src/sha512.c
 	src/chacha20.c
-	src/rand.c
 	src/hash_drbg.c
 	src/block_cipher.c
 	src/digest.c
@@ -84,6 +78,9 @@ set(src
 
 if (WIN32)
 	list(APPEND src src/u_time.c)
+	list(APPEND src src/rand_win.c)
+else()
+	list(APPEND src src/rand.c)
 endif()
 
 set(broken_crypto_src
