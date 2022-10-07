@@ -24,6 +24,39 @@ make test
 sudo make install
 ```
 
+### Visual Studio环境编译
+
+在Visual Studio命令提示符下执行：
+
+```bash
+mkdir build
+cd build
+cmake .. -G "NMake Makefiles"
+nmake
+```
+
+### iOS编译
+
+下载 https://github.com/leetal/ios-cmake，将`ios.toolchain.cmake`文件复制到`build`目录。
+
+```bash
+mkdir build; cd build
+cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake -DPLATFORM=OS64
+cmake --build . --config Release
+```
+
+如果出现“error: Signing for "gmssl" requires a development team.”错误，可以用Xcode打开工程文件，在Signing配置中设置Development Team。
+
+### Android编译
+
+下载Android NDK，执行
+
+```bash
+mkdir build; cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23
+make
+```
+
 ## 主要功能
 
 ### 密码算法
@@ -68,3 +101,4 @@ GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-G
 - [ ] Add GCM cipher suites
 - [ ] Release official open interfaces
 - [ ] **Version 3.2.0 release**
+

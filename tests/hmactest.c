@@ -84,25 +84,27 @@ struct {
 int test_hmac(const DIGEST *digest, const char *key_hex, const char *data_hex, const char *hmac_hex)
 {
 	HMAC_CTX ctx;
-	uint8_t key = malloc(strlen(key_hex)/2); // FIXME: malloc
-	uint8_t data = malloc(strlen(data_hex)/2);
-	uint8_t hmac = malloc(strlen(hmac_hex) / 2);
+	uint8_t *key = (uint8_t *)malloc(strlen(key_hex)/2);
+	uint8_t *data = (uint8_t *)malloc(strlen(data_hex)/2);
+	uint8_t *hmac = (uint8_t *)malloc(strlen(hmac_hex) / 2);
+	size_t keylen, datalen, hmaclen;
 	uint8_t buf[64];
-	size_t len;
+	size_t buflen;
 
-	hex_to_bytes(key_hex, strlen(key_hex), key, &len);
-	hex_to_bytes(data_hex, strlen(data_hex), data, &len);
-	hex_to_bytes(hmac_hex, strlen(hmac_hex), hmac, &len);
+	hex_to_bytes(key_hex, strlen(key_hex), key, &keylen);
+	hex_to_bytes(data_hex, strlen(data_hex), data, &datalen);
+	hex_to_bytes(hmac_hex, strlen(hmac_hex), hmac, &hmaclen);
 
-	hmac_init(&ctx, digest, key, sizeof(key));
-	hmac_update(&ctx, data, sizeof(data));
-	hmac_finish(&ctx, buf, &len);
+	hmac_init(&ctx, digest, key, keylen);
+	hmac_update(&ctx, data, datalen);
+	hmac_finish(&ctx, buf, &buflen);
 
-	if (len != sizeof(hmac) || memcmp(buf, hmac, sizeof(hmac)) != 0) {
+	if (buflen !=  hmaclen || memcmp(buf, hmac, hmaclen) != 0) {
 		printf("failed\n");
 		return 0;
 	}
 	printf("ok\n");
+
 	if (key) free(key);
 	if (data) free(data);
 	if (hmac) free(hmac);
