@@ -16,6 +16,7 @@
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
+#include <winsock2.h>
 #endif
 
 
@@ -748,7 +749,11 @@ typedef struct {
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
 
+#ifdef WIN32
+	SOCKET sock;
+#else
 	int sock;
+#endif
 
 	uint8_t enced_record[TLS_MAX_RECORD_SIZE];
 	size_t enced_record_len;
