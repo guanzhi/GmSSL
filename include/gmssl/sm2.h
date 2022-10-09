@@ -172,7 +172,11 @@ extern const SM2_BN SM2_ONE;
 extern const SM2_BN SM2_TWO;
 extern const SM2_BN SM2_THREE;
 extern const SM2_BN SM2_U_PLUS_ONE;
-extern const SM2_JACOBIAN_POINT *SM2_G; // 应该同时给出Affine的
+extern SM2_JACOBIAN_POINT _SM2_G; // 应该同时给出Affine的
+
+
+extern SM2_JACOBIAN_POINT* SM2_G;
+
 
 
 typedef struct {

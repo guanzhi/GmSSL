@@ -49,7 +49,11 @@ int tlcp_client_main(int argc, char *argv[])
 	char *pass = NULL;
 	struct hostent *hp;
 	struct sockaddr_in server;
+#ifdef WIN32
+	SOCKET sock;
+#else	
 	int sock;
+#endif
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};
@@ -202,7 +206,11 @@ bad:
 
 
 end:
+#ifdef WIN32
+	closesocket(sock);
+#else
 	close(sock);
+#endif
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;

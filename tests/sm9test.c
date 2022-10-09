@@ -590,8 +590,12 @@ int test_sm9_encrypt() {
 	size_t declen = 20;
 	uint8_t IDB[3] = {0x42, 0x6F, 0x62};
 
-	sm9_bn_from_hex(msk.ke, hex_ke); sm9_point_mul_generator(&(msk.Ppube), msk.ke);
+	sm9_bn_from_hex(msk.ke, hex_ke);
+	sm9_point_mul_generator(&(msk.Ppube), msk.ke);
+
 	if (sm9_enc_master_key_extract_key(&msk, (char *)IDB, sizeof(IDB), &key) < 0) goto err; ++j;
+
+
 	sm9_twist_point_from_hex(&de, hex_de); if (!sm9_twist_point_equ(&(key.de), &de)) goto err; ++j;
 
 	if (sm9_encrypt(&msk, (char *)IDB, sizeof(IDB), data, sizeof(data), out, &outlen) < 0) goto err; ++j;

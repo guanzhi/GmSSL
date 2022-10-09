@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 project(GmSSL)
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 include_directories(include)
 
@@ -108,12 +108,17 @@ if (ENABLE_RDRND)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 endif()
 
-
+if (WIN32)
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+	target_link_libraries(gmssl dl)
+endif()
 
 add_library(gmssl ${src})
 
 
-#target_link_libraries(gmssl dl)
+
+
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 set(tools

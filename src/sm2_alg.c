@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -19,21 +19,21 @@
 #include <gmssl/endian.h>
 
 
-#define sm2_print_bn(label,a) sm2_bn_print(stderr,0,0,label,a) // Õâ¸ö²»Ó¦¸Ã·ÅÔÚÕâÀï£¬Ó¦¸Ã·ÅÔÚ²âÊÔÎÄ¼þÖÐ
+#define sm2_print_bn(label,a) sm2_bn_print(stderr,0,0,label,a) // ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï£¬Ó¦ï¿½Ã·ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 
 
 
-const SM2_BN SM2_P = {
+extern const SM2_BN SM2_P = {
 	0xffffffff, 0xffffffff, 0x00000000, 0xffffffff,
 	0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe,
 };
 
-const SM2_BN SM2_B = {
+extern const SM2_BN SM2_B = {
 	0x4d940e93, 0xddbcbd41, 0x15ab8f92, 0xf39789f5,
 	0xcf6509a7, 0x4d5a9e4b, 0x9d9f5e34, 0x28e9fa9e,
 };
 
-const SM2_JACOBIAN_POINT _SM2_G = {
+extern SM2_JACOBIAN_POINT _SM2_G = {
 	{
 	0x334c74c7, 0x715a4589, 0xf2660be1, 0x8fe30bbf,
 	0x6a39c994, 0x5f990446, 0x1f198119, 0x32c4ae2c,
@@ -46,9 +46,9 @@ const SM2_JACOBIAN_POINT _SM2_G = {
 	1, 0, 0, 0, 0, 0, 0, 0,
 	},
 };
-const SM2_JACOBIAN_POINT *SM2_G = &_SM2_G;
+extern SM2_JACOBIAN_POINT * SM2_G = &_SM2_G;
 
-const SM2_BN SM2_N = {
+extern const SM2_BN SM2_N = {
 	0x39d54123, 0x53bbf409, 0x21c6052b, 0x7203df6b,
 	0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe,
 };

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <windows.h>
 #include <wincrypt.h>
 #include <gmssl/error.h>
 
@@ -37,7 +38,7 @@ int rand_bytes(uint8_t *buf, size_t len)
 		error_print();
 		goto end;
 	}
-	ret = 1
+	ret = 1;
 end:
 	if (CryptReleaseContext(hCryptProv, 0) != TRUE) {
 		error_print();

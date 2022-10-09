@@ -52,7 +52,11 @@ int tls12_client_main(int argc, char *argv[])
 	char *pass = NULL;
 	struct hostent *hp;
 	struct sockaddr_in server;
+#ifdef WIN32
+	SOCKET sock;
+#else	
 	int sock;
+#endif
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};

@@ -18,6 +18,7 @@
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
+#include <gmssl/rand.h>
 
 
 const sm9_bn_t SM9_ZERO = {0,0,0,0,0,0,0,0};
@@ -187,15 +188,12 @@ void sm9_bn_sub(sm9_bn_t ret, const sm9_bn_t a, const sm9_bn_t b)
 
 int sm9_bn_rand_range(sm9_bn_t r, const sm9_bn_t range)
 {
-	FILE *fp;
 	uint8_t buf[256];
 
-	fp = fopen("/dev/urandom", "rb");
 	do {
-		fread(buf, 1, 256, fp);
+		rand_bytes(buf, sizeof(buf));
 		sm9_bn_from_bytes(r, buf);
 	} while (sm9_bn_cmp(r, range) >= 0);
-	fclose(fp);
 	return 1;
 }
 
