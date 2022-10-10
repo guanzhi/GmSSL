@@ -108,13 +108,13 @@ if (ENABLE_RDRND)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 endif()
 
+add_library(gmssl ${src})
+
 if (WIN32)
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
 	target_link_libraries(gmssl dl)
 endif()
-
-add_library(gmssl ${src})
 
 
 
