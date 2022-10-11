@@ -58,6 +58,7 @@ void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t datalen);
 void sm3_finish(SM3_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
 void sm3_digest(const uint8_t *data, size_t datalen, uint8_t dgst[SM3_DIGEST_SIZE]);
 
+void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks);
 
 typedef struct {
 	SM3_CTX sm3_ctx;
