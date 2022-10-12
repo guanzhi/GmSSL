@@ -22,9 +22,9 @@ int main(int argc, char **argv)
 	uint8_t dgst[32];
 	int i;
 
-	sm3_init(&sm3_ctx);
+	GMSSL_sm3_init(&sm3_ctx);
 	while ((len = fread(buf, 1, sizeof(buf), stdin)) > 0) {
-		sm3_update(&sm3_ctx, buf, len);
+		GMSSL_sm3_update(&sm3_ctx, buf, len);
 	}
 	sm3_finish(&sm3_ctx, dgst);
 

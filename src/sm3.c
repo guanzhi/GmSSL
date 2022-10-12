@@ -295,7 +295,7 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 }
 
 
-void sm3_init(SM3_CTX *ctx)
+void GMSSL_sm3_init(SM3_CTX *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->digest[0] = 0x7380166F;
@@ -308,7 +308,7 @@ void sm3_init(SM3_CTX *ctx)
 	ctx->digest[7] = 0xB0FB0E4E;
 }
 
-void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
+void GMSSL_sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
 {
 	size_t blocks;
 
@@ -371,7 +371,7 @@ void sm3_digest(const uint8_t *msg, size_t msglen,
 	uint8_t dgst[SM3_DIGEST_SIZE])
 {
 	SM3_CTX ctx;
-	sm3_init(&ctx);
-	sm3_update(&ctx, msg, msglen);
+	GMSSL_sm3_init(&ctx);
+	GMSSL_sm3_update(&ctx, msg, msglen);
 	sm3_finish(&ctx, dgst);
 }

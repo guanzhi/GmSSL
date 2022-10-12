@@ -25,10 +25,10 @@ int main(void)
 	sm2_key_generate(&sm2_key);
 	memcpy(&pub_key, &sm2_key, sizeof(SM2_POINT));
 
-	sm2_encrypt(&pub_key, (uint8_t *)"hello world", strlen("hello world"), ciphertext, &len);
+	GMSSL_sm2_encrypt(&pub_key, (uint8_t *)"hello world", strlen("hello world"), ciphertext, &len);
 	format_bytes(stdout, 0, 0, "ciphertext", ciphertext, len);
 
-	if (sm2_decrypt(&sm2_key, ciphertext, len, plaintext, &len) != 1) {
+	if (GMSSL_sm2_decrypt(&sm2_key, ciphertext, len, plaintext, &len) != 1) {
 		fprintf(stderr, "error\n");
 		return 1;
 	}

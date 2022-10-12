@@ -679,7 +679,7 @@ static int test_sm2_encrypt(void)
 	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
 		format_print(stderr, 0, 0, "test %d\n", i + 1);
 		format_bytes(stderr, 0, 4, "plaintext", msg, lens[i]);
-		if (sm2_encrypt(&sm2_key, msg, lens[i], cbuf, &clen) != 1) {
+		if (GMSSL_sm2_encrypt(&sm2_key, msg, lens[i], cbuf, &clen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -687,7 +687,7 @@ static int test_sm2_encrypt(void)
 		sm2_ciphertext_print(stderr, 0, 4, "Ciphertext", cbuf, clen);
 		format_print(stderr, 0, 0, "\n");
 
-		if (sm2_decrypt(&sm2_key, cbuf, clen, mbuf, &mlen) != 1) {
+		if (GMSSL_sm2_decrypt(&sm2_key, cbuf, clen, mbuf, &mlen) != 1) {
 			error_print();
 			return -1;
 		}

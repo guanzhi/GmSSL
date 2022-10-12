@@ -749,7 +749,7 @@ int cms_signer_info_sign_to_der(
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
 
-	sm3_update(&ctx, authed_attrs, authed_attrs_len);
+	GMSSL_sm3_update(&ctx, authed_attrs, authed_attrs_len);
 	sm3_finish(&ctx, dgst);
 
 
@@ -807,10 +807,10 @@ int cms_signer_info_verify_from_der(
 		return -1;
 	}
 
-	sm3_update(&sm3_ctx, *authed_attrs, *authed_attrs_len);
+	GMSSL_sm3_update(&sm3_ctx, *authed_attrs, *authed_attrs_len);
 	sm3_finish(&sm3_ctx, dgst);
 
-	if (sm2_verify(&public_key, dgst, sig, siglen) != 1) {
+	if (GMSSL_sm2_verify(&public_key, dgst, sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1089,9 +1089,9 @@ int cms_signed_data_sign_to_der(
 		}
 	}
 
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, content_header, content_header_len);
-	sm3_update(&sm3_ctx, data, datalen);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, content_header, content_header_len);
+	GMSSL_sm3_update(&sm3_ctx, data, datalen);
 
 	for (i = 0; i < signers_cnt; i++) {
 		if (x509_cert_get_issuer_and_serial_number(
@@ -1168,10 +1168,10 @@ int cms_signed_data_verify_from_der(
 		error_print();
 		return -1;
 	}
-	sm3_init(&sm3_ctx);
+	GMSSL_sm3_init(&sm3_ctx);
 
-	sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
-	sm3_update(&sm3_ctx, *content, *content_len);
+	GMSSL_sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
+	GMSSL_sm3_update(&sm3_ctx, *content, *content_len);
 
 	while (signer_infos_len) {
 		const uint8_t *cert;
@@ -1366,7 +1366,7 @@ int cms_recipient_info_decrypt_from_der(
 		error_print();
 		return -1;
 	}
-	if (sm2_decrypt(sm2_key, enced_key, enced_key_len, outbuf, outlen) != 1) {
+	if (GMSSL_sm2_decrypt(sm2_key, enced_key, enced_key_len, outbuf, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1792,9 +1792,9 @@ int cms_signed_and_enveloped_data_encipher_to_der(
 		error_print();
 		return -1;
 	}
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
-	sm3_update(&sm3_ctx, content, content_len);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
+	GMSSL_sm3_update(&sm3_ctx, content, content_len);
 
 	for (i = 0; i < signers_cnt; i++) {
 		if (x509_cert_get_issuer_and_serial_number(
@@ -1927,9 +1927,9 @@ int cms_signed_and_enveloped_data_decipher_from_der(
 		error_print();
 		return -1;
 	}
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
-	sm3_update(&sm3_ctx, content, *content_len);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, content_info_header, content_info_header_len);
+	GMSSL_sm3_update(&sm3_ctx, content, *content_len);
 
 	while (signer_infos_len) {
 		const uint8_t *cert;

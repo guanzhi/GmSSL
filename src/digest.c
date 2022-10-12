@@ -123,7 +123,7 @@ static int sm3_digest_init(DIGEST_CTX *ctx)
 		error_print();
 		return -1;
 	}
-	sm3_init(&ctx->u.sm3_ctx);
+	GMSSL_sm3_init(&ctx->u.sm3_ctx);
 	return 1;
 }
 
@@ -133,7 +133,7 @@ static int sm3_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 		error_print();
 		return -1;
 	}
-	sm3_update(&ctx->u.sm3_ctx, in, inlen);
+	GMSSL_sm3_update(&ctx->u.sm3_ctx, in, inlen);
 	return 1;
 }
 

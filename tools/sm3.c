@@ -90,7 +90,7 @@ bad:
 		argv++;
 	}
 
-	sm3_init(&sm3_ctx);
+	GMSSL_sm3_init(&sm3_ctx);
 
 	if (pubkeyfile) {
 		SM2_KEY sm2_key;
@@ -105,7 +105,7 @@ bad:
 		}
 
 		sm2_compute_z(z, (SM2_POINT *)&sm2_key, id, strlen(id));
-		sm3_update(&sm3_ctx, z, sizeof(z));
+		GMSSL_sm3_update(&sm3_ctx, z, sizeof(z));
 	} else {
 		if (id) {
 			fprintf(stderr, "%s: option '-id' must be with '-pubkey'\n", prog);
@@ -114,7 +114,7 @@ bad:
 	}
 
 	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-		sm3_update(&sm3_ctx, buf, len);
+		GMSSL_sm3_update(&sm3_ctx, buf, len);
 	}
 	sm3_finish(&sm3_ctx, dgst);
 

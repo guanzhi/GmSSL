@@ -247,7 +247,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	tls_record_set_protocol(finished_record, conn->protocol);
 
 	// 准备Finished Context（和ClientVerify）
-	sm3_init(&sm3_ctx);
+	GMSSL_sm3_init(&sm3_ctx);
 	if (conn->client_certs_len)
 		sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 
@@ -282,7 +282,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
@@ -333,7 +333,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	memcpy(server_random, random, 32);
 	memcpy(conn->session_id, session_id, session_id_len);
 	conn->cipher_suite = cipher_suite;
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
@@ -353,7 +353,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
@@ -387,7 +387,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
@@ -439,7 +439,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_unsupported_certificate);
 			goto end;
 		}
-		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+		GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 		// recv ServerHelloDone
@@ -461,7 +461,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
@@ -478,7 +478,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 			error_print();
 			goto end;
 		}
-		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+		GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 	}
 
@@ -525,7 +525,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (conn->client_certs_len)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
@@ -544,7 +544,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 			error_print();
 			goto end;
 		}
-		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+		GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	}
 
 	// send [ChangeCipherSpec]
@@ -573,7 +573,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	tls12_record_trace(stderr, finished_record, finished_record_len, 0, 0);
-	sm3_update(&sm3_ctx, finished_record + 5, finished_record_len - 5);
+	GMSSL_sm3_update(&sm3_ctx, finished_record + 5, finished_record_len - 5);
 
 	// encrypt Client Finished
 	tls_trace("encrypt Finished\n");
@@ -707,7 +707,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 	// ClientKeyExchange
 	SM2_POINT client_ecdhe_point;
-	uint8_t pre_master_secret[SM2_MAX_PLAINTEXT_SIZE]; // sm2_decrypt 保证输出不会溢出
+	uint8_t pre_master_secret[SM2_MAX_PLAINTEXT_SIZE]; // GMSSL_sm2_decrypt 保证输出不会溢出
 	size_t pre_master_secret_len;
 
 	// Finished
@@ -728,7 +728,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		client_verify = 1;
 
 	// 初始化Finished和客户端验证环境
-	sm3_init(&sm3_ctx);
+	GMSSL_sm3_init(&sm3_ctx);
 	if (client_verify)
 		tls_client_verify_init(&client_verify_ctx);
 
@@ -777,7 +777,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (client_verify)
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
@@ -798,7 +798,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (client_verify)
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
@@ -815,7 +815,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (client_verify)
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
@@ -840,7 +840,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (client_verify)
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
@@ -867,7 +867,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			error_print();
 			goto end;
 		}
-		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+		GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 	}
 
@@ -879,7 +879,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (client_verify)
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
@@ -904,7 +904,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			goto end;
 		}
-		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+		GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 	}
 
@@ -923,7 +923,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 
-	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+	GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	if (client_verify)
 		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
@@ -953,7 +953,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_decrypt_error);
 			goto end;
 		}
-		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
+		GMSSL_sm3_update(&sm3_ctx, record + 5, recordlen - 5);
 	}
 
 	// generate secrets
@@ -1028,7 +1028,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 	// verify ClientFinished
 	memcpy(&tmp_sm3_ctx, &sm3_ctx, sizeof(SM3_CTX));
-	sm3_update(&sm3_ctx, finished_record + 5, finished_record_len - 5);
+	GMSSL_sm3_update(&sm3_ctx, finished_record + 5, finished_record_len - 5);
 	sm3_finish(&tmp_sm3_ctx, sm3_hash);
 	if (tls_prf(conn->master_secret, 48, "client finished", sm3_hash, 32, NULL, 0,
 		sizeof(local_verify_data), local_verify_data) != 1) {

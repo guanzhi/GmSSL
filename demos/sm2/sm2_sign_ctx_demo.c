@@ -37,7 +37,7 @@ int main(void)
 
 	// digest and verify
 	sm3_digest((unsigned char *)"hello world", strlen("hello world"), dgst);
-	ret = sm2_verify(&pub_key, dgst, sig, siglen);
+	ret = GMSSL_sm2_verify(&pub_key, dgst, sig, siglen);
 	printf("verify result: %s\n", ret == 1 ? "success" : "failure");
 
 	// use verify update API

@@ -32,18 +32,18 @@ int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid)
 	uint8_t ct2[4] = {0x00, 0x00, 0x00, 0x02};
 	uint8_t Ha[64];
 
-	sm3_init(&ctx);
-	sm3_update(&ctx, prefix, sizeof(prefix));
-	sm3_update(&ctx, (uint8_t *)id, idlen);
-	sm3_update(&ctx, &hid, 1);
-	sm3_update(&ctx, ct1, sizeof(ct1));
+	GMSSL_sm3_init(&ctx);
+	GMSSL_sm3_update(&ctx, prefix, sizeof(prefix));
+	GMSSL_sm3_update(&ctx, (uint8_t *)id, idlen);
+	GMSSL_sm3_update(&ctx, &hid, 1);
+	GMSSL_sm3_update(&ctx, ct1, sizeof(ct1));
 	sm3_finish(&ctx, Ha);
 
-	sm3_init(&ctx);
-	sm3_update(&ctx, prefix, sizeof(prefix));
-	sm3_update(&ctx, (uint8_t *)id, idlen);
-	sm3_update(&ctx, &hid, 1);
-	sm3_update(&ctx, ct2, sizeof(ct2));
+	GMSSL_sm3_init(&ctx);
+	GMSSL_sm3_update(&ctx, prefix, sizeof(prefix));
+	GMSSL_sm3_update(&ctx, (uint8_t *)id, idlen);
+	GMSSL_sm3_update(&ctx, &hid, 1);
+	GMSSL_sm3_update(&ctx, ct2, sizeof(ct2));
 	sm3_finish(&ctx, Ha + 32);
 
 	sm9_fn_from_hash(h1, Ha);

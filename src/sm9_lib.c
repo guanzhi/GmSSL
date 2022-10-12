@@ -72,14 +72,14 @@ int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 int sm9_sign_init(SM9_SIGN_CTX *ctx)
 {
 	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
-	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
+	GMSSL_sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
 }
 
 int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	sm3_update(&ctx->sm3_ctx, data, datalen);
+	GMSSL_sm3_update(&ctx->sm3_ctx, data, datalen);
 	return 1;
 }
 
@@ -126,11 +126,11 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 		sm9_fp12_to_bytes(g, wbuf);
 
 		// A4: h = H2(M || w, N)
-		sm3_update(&ctx, wbuf, sizeof(wbuf));
+		GMSSL_sm3_update(&ctx, wbuf, sizeof(wbuf));
 		tmp_ctx = ctx;
-		sm3_update(&ctx, ct1, sizeof(ct1));
+		GMSSL_sm3_update(&ctx, ct1, sizeof(ct1));
 		sm3_finish(&ctx, Ha);
-		sm3_update(&tmp_ctx, ct2, sizeof(ct2));
+		GMSSL_sm3_update(&tmp_ctx, ct2, sizeof(ct2));
 		sm3_finish(&tmp_ctx, Ha + 32);
 		sm9_fn_from_hash(sig->h, Ha);
 
@@ -154,14 +154,14 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 int sm9_verify_init(SM9_SIGN_CTX *ctx)
 {
 	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
-	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
+	GMSSL_sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
 }
 
 int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	sm3_update(&ctx->sm3_ctx, data, datalen);
+	GMSSL_sm3_update(&ctx->sm3_ctx, data, datalen);
 	return 1;
 }
 
@@ -226,11 +226,11 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	sm9_fp12_to_bytes(w, wbuf);
 
 	// B9: h2 = H2(M || w, N), check h2 == h
-	sm3_update(&ctx, wbuf, sizeof(wbuf));
+	GMSSL_sm3_update(&ctx, wbuf, sizeof(wbuf));
 	tmp_ctx = ctx;
-	sm3_update(&ctx, ct1, sizeof(ct1));
+	GMSSL_sm3_update(&ctx, ct1, sizeof(ct1));
 	sm3_finish(&ctx, Ha);
-	sm3_update(&tmp_ctx, ct2, sizeof(ct2));
+	GMSSL_sm3_update(&tmp_ctx, ct2, sizeof(ct2));
 	sm3_finish(&tmp_ctx, Ha + 32);
 	sm9_fn_from_hash(h2, Ha);
 	if (sm9_fn_equ(h2, sig->h) != 1) {

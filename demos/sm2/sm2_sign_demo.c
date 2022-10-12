@@ -28,12 +28,12 @@ int main(void)
 
 	sm2_key_generate(&sm2_key);
 
-	sm2_sign(&sm2_key, dgst, sig, &siglen);
+	GMSSL_sm2_sign(&sm2_key, dgst, sig, &siglen);
 	format_bytes(stdout, 0, 0, "signature", sig, siglen);
 
 	memcpy(&pub_key, &sm2_key, sizeof(SM2_POINT));
 
-	if ((ret = sm2_verify(&pub_key, dgst, sig, siglen)) != 1) {
+	if ((ret = GMSSL_sm2_verify(&pub_key, dgst, sig, siglen)) != 1) {
 		fprintf(stderr, "verify failed\n");
 	} else {
 		printf("verify success\n");

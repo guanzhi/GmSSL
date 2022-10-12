@@ -403,8 +403,8 @@ static int test_cms_signer_info_sign(void)
 		return -1;
 	}
 
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, (uint8_t *)"hello", 5);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, (uint8_t *)"hello", 5);
 
 	cp = p = buf; len = 0;
 	if (cms_signer_info_sign_to_der(
@@ -462,8 +462,8 @@ static int test_cms_signer_infos(void)
 	uint8_t serial_buf[20];
 
 	sm2_key_generate(&sm2_key);
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, (uint8_t *)"hello", 5);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, (uint8_t *)"hello", 5);
 	x509_name_set(issuer_buf, &issuer_len, sizeof(issuer_buf), "CN", "Beijing", "Haidian", "PKU", "CS", "CA");
 
 

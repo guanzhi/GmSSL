@@ -25,8 +25,8 @@ SM3 Public API
 	SM3_HMAC_SIZE
 
 	SM3_CTX
-	sm3_init
-	sm3_update
+	GMSSL_sm3_init
+	GMSSL_sm3_update
 	sm3_finish
 
 	SM3_HMAC_CTX
@@ -53,8 +53,8 @@ typedef struct {
 	size_t num;
 } SM3_CTX;
 
-void sm3_init(SM3_CTX *ctx);
-void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t datalen);
+void GMSSL_sm3_init(SM3_CTX *ctx);
+void GMSSL_sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t datalen);
 void sm3_finish(SM3_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
 void sm3_digest(const uint8_t *data, size_t datalen, uint8_t dgst[SM3_DIGEST_SIZE]);
 

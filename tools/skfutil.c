@@ -225,12 +225,12 @@ bad:
 		}
 		key_opened = 1;
 
-		sm3_init(&sm3_ctx);
+		GMSSL_sm3_init(&sm3_ctx);
 		sm2_compute_z(dgst, &(key.public_key.public_key), id, strlen(id));
-		sm3_update(&sm3_ctx, dgst, sizeof(dgst));
+		GMSSL_sm3_update(&sm3_ctx, dgst, sizeof(dgst));
 
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-			sm3_update(&sm3_ctx, buf, len);
+			GMSSL_sm3_update(&sm3_ctx, buf, len);
 		}
 		sm3_finish(&sm3_ctx, dgst);
 

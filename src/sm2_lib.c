@@ -90,12 +90,12 @@ retry:
 	return 1;
 }
 
-int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
+int GMSSL_sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	return sm2_do_sign_ex(key, 0, dgst, sig);
 }
 
-int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
+int GMSSL_sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
 {
 	SM2_JACOBIAN_POINT _P, *P = &_P;
 	SM2_JACOBIAN_POINT _R, *R = &_R;
@@ -231,12 +231,12 @@ int sm2_sign_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t dgst[32], ui
 	return 1;
 }
 
-int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
+int GMSSL_sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
 {
 	return sm2_sign_ex(key, 0, dgst, sig, siglen);
 }
 
-int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen)
+int GMSSL_sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen)
 {
 	int ret;
 	SM2_SIGNATURE signature;
@@ -257,7 +257,7 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, s
 		error_print();
 		return -1;
 	}
-	if ((ret = sm2_do_verify(key, dgst, &signature)) != 1) {
+	if ((ret = GMSSL_sm2_do_verify(key, dgst, &signature)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
@@ -290,16 +290,16 @@ int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t id
 	memcpy(&zin[18 + 32 * 4], pub->x, 32);
 	memcpy(&zin[18 + 32 * 5], pub->y, 32);
 
-	sm3_init(&ctx);
+	GMSSL_sm3_init(&ctx);
 	if (strcmp(id, SM2_DEFAULT_ID) == 0) {
-		sm3_update(&ctx, zin, sizeof(zin));
+		GMSSL_sm3_update(&ctx, zin, sizeof(zin));
 	} else {
 		uint8_t idbits[2];
 		idbits[0] = (uint8_t)(idlen >> 5);
 		idbits[1] = (uint8_t)(idlen << 3);
-		sm3_update(&ctx, idbits, 2);
-		sm3_update(&ctx, (uint8_t *)id, idlen);
-		sm3_update(&ctx, zin + 18, 32 * 6);
+		GMSSL_sm3_update(&ctx, idbits, 2);
+		GMSSL_sm3_update(&ctx, (uint8_t *)id, idlen);
+		GMSSL_sm3_update(&ctx, zin + 18, 32 * 6);
 	}
 	sm3_finish(&ctx, z);
 	return 1;
@@ -312,7 +312,7 @@ int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t 
 		return -1;
 	}
 	ctx->key = *key;
-	sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_init(&ctx->sm3_ctx);
 
 	if (id) {
 		uint8_t z[SM3_DIGEST_SIZE];
@@ -321,7 +321,7 @@ int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t 
 			return -1;
 		}
 		sm2_compute_z(z, &key->public_key, id, idlen);
-		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
+		GMSSL_sm3_update(&ctx->sm3_ctx, z, sizeof(z));
 	}
 	return 1;
 }
@@ -333,7 +333,7 @@ int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		return -1;
 	}
 	if (data && datalen > 0) {
-		sm3_update(&ctx->sm3_ctx, data, datalen);
+		GMSSL_sm3_update(&ctx->sm3_ctx, data, datalen);
 	}
 	return 1;
 }
@@ -348,7 +348,7 @@ int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 		return -1;
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if ((ret = sm2_sign(&ctx->key, dgst, sig, siglen)) != 1) {
+	if ((ret = GMSSL_sm2_sign(&ctx->key, dgst, sig, siglen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
@@ -362,7 +362,7 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 		return -1;
 	}
 	ctx->key = *key;
-	sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_init(&ctx->sm3_ctx);
 
 	if (id) {
 		uint8_t z[SM3_DIGEST_SIZE];
@@ -371,7 +371,7 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 			return -1;
 		}
 		sm2_compute_z(z, &key->public_key, id, idlen);
-		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
+		GMSSL_sm3_update(&ctx->sm3_ctx, z, sizeof(z));
 	}
 	return 1;
 }
@@ -383,7 +383,7 @@ int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 		return -1;
 	}
 	if (data && datalen > 0) {
-		sm3_update(&ctx->sm3_ctx, data, datalen);
+		GMSSL_sm3_update(&ctx->sm3_ctx, data, datalen);
 	}
 	return 1;
 }
@@ -398,7 +398,7 @@ int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 		return -1;
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if ((ret = sm2_verify(&ctx->key, dgst, sig, siglen)) != 1) {
+	if ((ret = GMSSL_sm2_verify(&ctx->key, dgst, sig, siglen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
@@ -417,9 +417,9 @@ int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out)
 		PUTU32(counter_be, counter);
 		counter++;
 
-		sm3_init(&ctx);
-		sm3_update(&ctx, in, inlen);
-		sm3_update(&ctx, counter_be, sizeof(counter_be));
+		GMSSL_sm3_init(&ctx);
+		GMSSL_sm3_update(&ctx, in, inlen);
+		GMSSL_sm3_update(&ctx, counter_be, sizeof(counter_be));
 		sm3_finish(&ctx, dgst);
 
 		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;
@@ -477,10 +477,10 @@ retry:
 	out->ciphertext_size = (uint32_t)inlen;
 
 	// C3 = Hash(x2 || m || y2)
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, buf, 32);
-	sm3_update(&sm3_ctx, in, inlen);
-	sm3_update(&sm3_ctx, buf + 32, 32);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, buf, 32);
+	GMSSL_sm3_update(&sm3_ctx, in, inlen);
+	GMSSL_sm3_update(&sm3_ctx, buf + 32, 32);
 	sm3_finish(&sm3_ctx, out->hash);
 
 	return 1;
@@ -535,10 +535,10 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 	*outlen = inlen;
 
 	// u = Hash(x2 || M || y2)
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, buf, 32);
-	sm3_update(&sm3_ctx, out, inlen);
-	sm3_update(&sm3_ctx, buf + 32, 32);
+	GMSSL_sm3_init(&sm3_ctx);
+	GMSSL_sm3_update(&sm3_ctx, buf, 32);
+	GMSSL_sm3_update(&sm3_ctx, out, inlen);
+	GMSSL_sm3_update(&sm3_ctx, buf + 32, 32);
 	sm3_finish(&sm3_ctx, hash);
 
 	// check if u == C3
@@ -655,12 +655,12 @@ int sm2_encrypt_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t *in, size
 	return 1;
 }
 
-int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+int GMSSL_sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	return sm2_encrypt_ex(key, 0, in, inlen, out, outlen);
 }
 
-int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+int GMSSL_sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	SM2_CIPHERTEXT C;
 

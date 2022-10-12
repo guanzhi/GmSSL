@@ -101,7 +101,7 @@ bad:
 		fprintf(stderr, "%s: read input failed : %s\n", prog, strerror(errno));
 		goto end;
 	}
-	if (sm2_decrypt(&key, inbuf, inlen, outbuf, &outlen) != 1) {
+	if (GMSSL_sm2_decrypt(&key, inbuf, inlen, outbuf, &outlen) != 1) {
 		fprintf(stderr, "%s: decryption failure\n", prog);
 		goto end;
 	}

@@ -42,10 +42,10 @@ SM2 Public API
 	sm2_public_key_info_to_pem
 	sm2_public_key_info_from_pem
 
-	sm2_sign
-	sm2_verify
-	sm2_encrypt
-	sm2_decrypt
+	GMSSL_sm2_sign
+	GMSSL_sm2_verify
+	GMSSL_sm2_encrypt
+	GMSSL_sm2_decrypt
 	sm2_ecdh
 
 	SM2_SIGN_CTX
@@ -299,8 +299,8 @@ typedef struct {
 } SM2_SIGNATURE;
 
 int sm2_do_sign_ex(const SM2_KEY *key, int flags, const uint8_t dgst[32], SM2_SIGNATURE *sig);
-int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
-int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
+int GMSSL_sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
+int GMSSL_sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
 #define SM2_MIN_SIGNATURE_SIZE 8
 #define SM2_MAX_SIGNATURE_SIZE 72
@@ -308,8 +308,8 @@ int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
 int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 int sm2_sign_ex(const SM2_KEY *key, int flags, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
-int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
-int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
+int GMSSL_sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
+int GMSSL_sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
 
 
 #define SM2_DEFAULT_ID		"1234567812345678"
@@ -361,8 +361,8 @@ int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
 int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 int sm2_encrypt_ex(const SM2_KEY *key, int flags, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int GMSSL_sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int GMSSL_sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
 
 int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);

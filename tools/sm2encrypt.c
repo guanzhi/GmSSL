@@ -124,7 +124,7 @@ bad:
 		goto end;
 	}
 
-	if (sm2_encrypt(&key, inbuf, inlen, outbuf, &outlen) != 1) {
+	if (GMSSL_sm2_encrypt(&key, inbuf, inlen, outbuf, &outlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}

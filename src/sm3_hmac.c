@@ -42,8 +42,8 @@ void sm3_hmac_init(SM3_HMAC_CTX *ctx, const uint8_t *key, size_t key_len)
 		memcpy(ctx->key, key, key_len);
 		memset(ctx->key + key_len, 0, SM3_BLOCK_SIZE - key_len);
 	} else {
-		sm3_init(&ctx->sm3_ctx);
-		sm3_update(&ctx->sm3_ctx, key, key_len);
+		GMSSL_sm3_init(&ctx->sm3_ctx);
+		GMSSL_sm3_update(&ctx->sm3_ctx, key, key_len);
 		sm3_finish(&ctx->sm3_ctx, ctx->key);
 		memset(ctx->key + SM3_DIGEST_SIZE, 0,
 			SM3_BLOCK_SIZE - SM3_DIGEST_SIZE);
@@ -52,13 +52,13 @@ void sm3_hmac_init(SM3_HMAC_CTX *ctx, const uint8_t *key, size_t key_len)
 		ctx->key[i] ^= IPAD;
 	}
 
-	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
+	GMSSL_sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
 }
 
 void sm3_hmac_update(SM3_HMAC_CTX *ctx, const uint8_t *data, size_t data_len)
 {
-	sm3_update(&ctx->sm3_ctx, data, data_len);
+	GMSSL_sm3_update(&ctx->sm3_ctx, data, data_len);
 }
 
 void sm3_hmac_finish(SM3_HMAC_CTX *ctx, uint8_t mac[SM3_HMAC_SIZE])
@@ -68,9 +68,9 @@ void sm3_hmac_finish(SM3_HMAC_CTX *ctx, uint8_t mac[SM3_HMAC_SIZE])
 		ctx->key[i] ^= (IPAD ^ OPAD);
 	}
 	sm3_finish(&ctx->sm3_ctx, mac);
-	sm3_init(&ctx->sm3_ctx);
-	sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
-	sm3_update(&ctx->sm3_ctx, mac, SM3_DIGEST_SIZE);
+	GMSSL_sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
+	GMSSL_sm3_update(&ctx->sm3_ctx, mac, SM3_DIGEST_SIZE);
 	sm3_finish(&ctx->sm3_ctx, mac);
 	memset(ctx, 0, sizeof(*ctx));
 }

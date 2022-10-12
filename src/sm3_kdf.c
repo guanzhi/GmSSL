@@ -17,13 +17,13 @@
 
 void sm3_kdf_init(SM3_KDF_CTX *ctx, size_t outlen)
 {
-	sm3_init(&ctx->sm3_ctx);
+	GMSSL_sm3_init(&ctx->sm3_ctx);
 	ctx->outlen = outlen;
 }
 
 void sm3_kdf_update(SM3_KDF_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	sm3_update(&ctx->sm3_ctx, data, datalen);
+	GMSSL_sm3_update(&ctx->sm3_ctx, data, datalen);
 }
 
 void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out)
@@ -40,7 +40,7 @@ void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out)
 		counter++;
 
 		sm3_ctx = ctx->sm3_ctx;
-		sm3_update(&sm3_ctx, counter_be, sizeof(counter_be));
+		GMSSL_sm3_update(&sm3_ctx, counter_be, sizeof(counter_be));
 		sm3_finish(&sm3_ctx, dgst);
 
 		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;

@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <gmssl/error.h>
 
-int OPENSSL_hexchar2int(unsigned char c)
+int OPSSL_hexchar2int(unsigned char c)
 {
     switch (c) {
     case '0':
@@ -55,7 +55,7 @@ int OPENSSL_hexchar2int(unsigned char c)
     return -1;
 }
 
-unsigned char *OPENSSL_hexstr2buf(const char *str, size_t *len)
+unsigned char *hexstr2buf(const char *str, size_t *len)
 {
     unsigned char *hexbuf, *q;
     unsigned char ch, cl;
@@ -77,8 +77,8 @@ unsigned char *OPENSSL_hexstr2buf(const char *str, size_t *len)
             free(hexbuf);
             return NULL;
         }
-        cli = OPENSSL_hexchar2int(cl);
-        chi = OPENSSL_hexchar2int(ch);
+        cli = OPSSL_hexchar2int(cl);
+        chi = OPSSL_hexchar2int(ch);
         if (cli < 0 || chi < 0) {
             free(hexbuf);
             //CRYPTOerr(CRYPTO_F_OPENSSL_HEXSTR2BUF, CRYPTO_R_ILLEGAL_HEX_DIGIT);
