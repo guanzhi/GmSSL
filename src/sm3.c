@@ -330,10 +330,12 @@ void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
 	}
 
 	blocks = data_len / SM3_BLOCK_SIZE;
-	sm3_compress_blocks(ctx->digest, data, blocks);
-	ctx->nblocks += blocks;
-	data += SM3_BLOCK_SIZE * blocks;
-	data_len -= SM3_BLOCK_SIZE * blocks;
+	if (blocks) {
+		sm3_compress_blocks(ctx->digest, data, blocks);
+		ctx->nblocks += blocks;
+		data += SM3_BLOCK_SIZE * blocks;
+		data_len -= SM3_BLOCK_SIZE * blocks;
+	}
 
 	ctx->num = data_len;
 	if (data_len) {

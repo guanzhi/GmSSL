@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -172,11 +172,7 @@ extern const SM2_BN SM2_ONE;
 extern const SM2_BN SM2_TWO;
 extern const SM2_BN SM2_THREE;
 extern const SM2_BN SM2_U_PLUS_ONE;
-extern SM2_JACOBIAN_POINT _SM2_G; // 应该同时给出Affine的
-
-
-extern SM2_JACOBIAN_POINT* SM2_G;
-
+extern const SM2_JACOBIAN_POINT *SM2_G; // 应该同时给出Affine的
 
 
 typedef struct {
