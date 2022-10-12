@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 		sha224_finish(&ctx, dgst);
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
-			printf("sha224 test %lu failed\n", i+1);
+			printf("sha224 test %zu failed\n", i+1);
 			printf("%s\n", tests[i].dgsthex);
 			for (j = 0; j < sizeof(dgst); j++) {
 				printf("%02X", dgst[j]);
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 			printf("\n");
 			err++;
 		} else {
-			printf("sha224 test %lu ok\n", i+1);
+			printf("sha224 test %zu ok\n", i+1);
 		}
 	}
 

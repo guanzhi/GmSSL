@@ -1099,7 +1099,7 @@ int x509_crl_get_details(const uint8_t *a, size_t alen,
 		return -1;
 	}
 	if (asn1_any_from_der(&tbs, &tbs_len, &d, &dlen) != 1
-		|| x509_signature_algor_from_der(&sig_alg, &d, &dlen) != 1
+		|| x509_signature_algor_from_der(&signature_algor, &d, &dlen) != 1
 		|| asn1_bit_octets_from_der(&sig, &siglen, &d, &dlen) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();

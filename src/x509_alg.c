@@ -298,8 +298,6 @@ int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	const uint8_t *p;
 	size_t len;
 	const ASN1_OID_INFO *info;
-	int has_null_obj;
-	int i;
 
 	*oid = OID_undef;
 	if ((ret = asn1_sequence_from_der(&p, &len, in, inlen)) != 1) {

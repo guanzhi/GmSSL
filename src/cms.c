@@ -389,7 +389,6 @@ int cms_enced_content_info_decrypt_from_der(
 	const uint8_t **shared_info2, size_t *shared_info2_len,// 支持可选null输出	
 	const uint8_t **in, size_t *inlen)
 {
-	int ret;
 	SM4_KEY sm4_key;
 	const uint8_t *iv;
 	size_t ivlen;
@@ -1055,7 +1054,6 @@ int cms_signed_data_sign_to_der(
 	size_t digest_algors_cnt = sizeof(digest_algors)/sizeof(int);
 	uint8_t content_header[256];
 	size_t content_header_len;
-	const uint8_t *certs;
 	size_t certs_len = 0;
 	uint8_t signer_infos[512];
 	size_t signer_infos_len = 0;
@@ -1334,7 +1332,6 @@ int cms_recipient_info_decrypt_from_der(
 	uint8_t *out, size_t *outlen, size_t maxlen,
 	const uint8_t **in, size_t *inlen)
 {
-	int ret;
 	int version;
 	int pke_algor;
 	const uint8_t *params;
@@ -1485,7 +1482,7 @@ int cms_enveloped_data_from_der(
 
 int cms_enveloped_data_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
-	int ret, val;
+	int val;
 	const uint8_t *p;
 	size_t len;
 
@@ -1579,7 +1576,7 @@ int cms_enveloped_data_decrypt_from_der(
 	const uint8_t **shared_info2, size_t *shared_info2_len,
 	const uint8_t **in, size_t *inlen)
 {
-	int ret;
+	int ret = 0;
 	int version;
 	const uint8_t *rcpt_infos;
 	size_t rcpt_infos_len;
@@ -1594,7 +1591,7 @@ int cms_enveloped_data_decrypt_from_der(
 			&enced_content_info, &enced_content_info_len,
 			in, inlen) != 1
 		|| asn1_check(version == CMS_version_v1) != 1) {
-		return ret;
+		return -1;
 	}
 	*recipient_infos = rcpt_infos;
 	*recipient_infos_len = rcpt_infos_len;
@@ -2370,8 +2367,6 @@ int cms_deenvelop_and_verify(const uint8_t *cms, size_t cmslen,
 	int cms_type;
 	const uint8_t *cms_content;
 	size_t cms_content_len;
-	int digest_algors[4];
-	size_t digest_algors_cnt;
 
 	if (cms_content_info_from_der(&cms_type, &cms_content, &cms_content_len, &cms, &cmslen) != 1
 		|| asn1_check(cms_type == OID_cms_signed_and_enveloped_data) != 1

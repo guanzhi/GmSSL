@@ -210,8 +210,9 @@ int sm9_bn_equ(const sm9_bn_t a, const sm9_bn_t b)
 void sm9_fp_add(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 {
 	sm9_bn_add(r, a, b);
-	if (sm9_bn_cmp(r, SM9_P) >= 0)
-		return sm9_bn_sub(r, r, SM9_P);
+	if (sm9_bn_cmp(r, SM9_P) >= 0) {
+		sm9_bn_sub(r, r, SM9_P);
+	}
 }
 
 void sm9_fp_sub(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
@@ -1204,7 +1205,7 @@ void sm9_fp2_conjugate(sm9_fp2_t r, const sm9_fp2_t a)
 
 void sm9_fp2_frobenius(sm9_fp2_t r, const sm9_fp2_t a)
 {
-	return sm9_fp2_conjugate(r, a);
+	sm9_fp2_conjugate(r, a);
 }
 
 // beta   = 0x6c648de5dc0a3f2cf55acc93ee0baf159f9d411806dc5177f5b21fd3da24d011
@@ -1236,7 +1237,7 @@ void sm9_fp4_conjugate(sm9_fp4_t r, const sm9_fp4_t a)
 
 void sm9_fp4_frobenius2(sm9_fp4_t r, const sm9_fp4_t a)
 {
-	return sm9_fp4_conjugate(r, a);
+	sm9_fp4_conjugate(r, a);
 }
 
 void sm9_fp4_frobenius3(sm9_fp4_t r, const sm9_fp4_t a)
@@ -1777,10 +1778,12 @@ void sm9_twist_point_add_full(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, cons
 	sm9_fp2_sub(T1, T1, T2);
 
 	if (sm9_fp2_is_zero(T1) && sm9_fp2_is_zero(T3)) {
-		return sm9_twist_point_dbl(R, P);
+		sm9_twist_point_dbl(R, P);
+		return;
 	}
 	if (sm9_fp2_is_zero(T1) && sm9_fp2_is_zero(T6)) {
-		return sm9_twist_point_set_infinity(R);
+		sm9_twist_point_set_infinity(R);
+		return;
 	}
 
 	sm9_fp2_sqr(T6, T1);
@@ -2069,8 +2072,9 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
 {
 	sm9_bn_add(r, a, b);
-	if (sm9_bn_cmp(r, SM9_N) >= 0)
-		return sm9_bn_sub(r, r, SM9_N);
+	if (sm9_bn_cmp(r, SM9_N) >= 0) {
+		sm9_bn_sub(r, r, SM9_N);
+	}
 }
 
 void sm9_fn_sub(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)

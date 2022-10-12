@@ -58,7 +58,6 @@ int certgen_main(int argc, char **argv)
 	size_t namelen;
 	time_t not_before;
 	time_t not_after;
-	uint8_t uniq_id[32];
 	uint8_t exts[512];
 	size_t extslen = 0;
 	FILE *keyfp = NULL;

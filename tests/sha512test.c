@@ -84,7 +84,7 @@ int main(void)
 		sha512_finish(&ctx, dgst);
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
-			printf("sha512 test %lu failed\n", i+1);
+			printf("sha512 test %zu failed\n", i+1);
 			printf("%s\n", tests[i].dgsthex);
 			for (j = 0; j < sizeof(dgst); j++) {
 				printf("%02x", dgst[j]);
@@ -92,7 +92,7 @@ int main(void)
 			printf("\n");
 			err++;
 		} else {
-			printf("sha512 test %lu ok\n", i+1);
+			printf("sha512 test %zu ok\n", i+1);
 		}
 	}
 

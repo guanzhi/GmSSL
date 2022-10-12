@@ -55,16 +55,7 @@ int cmssign_main(int argc, char **argv)
 	uint8_t *cms = NULL;
 	size_t cmslen, cms_maxlen;
 	CMS_CERTS_AND_KEY cert_and_key;
-
 	int content_type;
-	uint8_t *content = NULL;
-	size_t content_len;
-
-	const uint8_t *rcpt_infos;
-	size_t rcpt_infos_len;
-	const uint8_t *shared_info1;
-	const uint8_t *shared_info2;
-	size_t shared_info1_len, shared_info2_len;
 
 	argc--;
 	argv++;

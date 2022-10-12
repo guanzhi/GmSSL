@@ -125,7 +125,7 @@ int sdf_rand_bytes(SDF_DEVICE *dev, uint8_t *buf, size_t len)
 		return -1;
 	}
 	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK
-		|| SDF_GenerateRandom(hSession, len, buf) != SDR_OK) {
+		|| SDF_GenerateRandom(hSession, (unsigned int)len, buf) != SDR_OK) {
 		error_print();
 		goto end;
 	}
@@ -149,7 +149,7 @@ int sdf_load_sign_key(SDF_DEVICE *dev, SDF_KEY *key, int index, const char *pass
 	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK
 		|| SDF_ExportSignPublicKey_ECC(hSession, index, &eccPublicKey) != SDR_OK
 		|| SDF_ECCrefPublicKey_to_SM2_KEY(&eccPublicKey, &public_key) != SDR_OK
-		|| SDF_GetPrivateKeyAccessRight(hSession, index, (unsigned char *)pass, strlen(pass)) != SDR_OK) {
+		|| SDF_GetPrivateKeyAccessRight(hSession, index, (unsigned char *)pass, (unsigned int)strlen(pass)) != SDR_OK) {
 		error_print();
 		goto end;
 	}

@@ -458,11 +458,15 @@ int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen);
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
 int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
 
-
+#ifdef WIN32
+int tls_record_send(const uint8_t* record, size_t recordlen, SOCKET sock);
+int tls_record_recv(uint8_t* record, size_t* recordlen, SOCKET sock);
+int tls12_record_recv(uint8_t* record, size_t* recordlen, SOCKET sock);
+#else
 int tls_record_send(const uint8_t *record, size_t recordlen, int sock);
 int tls_record_recv(uint8_t *record, size_t *recordlen, int sock);
 int tls12_record_recv(uint8_t *record, size_t *recordlen, int sock);
-
+#endif
 
 
 // Handshake
