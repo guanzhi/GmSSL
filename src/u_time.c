@@ -143,7 +143,7 @@ int GMSSL_gmtime_adj(struct tm *tm, long offset_sec)
 }
 
 //convert generalizedtime to tm
-int asn1_generalizedtime_to_tm(struct tm *tm, char *gtime)
+int asn1_generalizedtime_to_tm(char *gtime,struct tm *tm)
 {
     static const int min[9] = { 0, 0, 1, 1, 0, 0, 0, 0, 0 };
     static const int max[9] = { 99, 99, 12, 31, 23, 59, 59, 12, 59 };
