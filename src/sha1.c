@@ -109,7 +109,7 @@ void sha1_update(SHA1_CTX *ctx, const unsigned char *data, size_t datalen)
 
 	ctx->num &= 0x3f;
 	if (ctx->num) {
-		unsigned int left = SHA1_BLOCK_SIZE - ctx->num;
+		size_t left = SHA1_BLOCK_SIZE - ctx->num;
 		if (datalen < left) {
 			memcpy(ctx->block + ctx->num, data, datalen);
 			ctx->num += datalen;
@@ -124,10 +124,12 @@ void sha1_update(SHA1_CTX *ctx, const unsigned char *data, size_t datalen)
 	}
 
 	blocks = datalen / SHA1_BLOCK_SIZE;
-	sha1_compress_blocks(ctx->state, data, blocks);
-	ctx->nblocks += blocks;
-	data += SHA1_BLOCK_SIZE * blocks;
-	datalen -= SHA1_BLOCK_SIZE * blocks;
+	if (blocks) {
+		sha1_compress_blocks(ctx->state, data, blocks);
+		ctx->nblocks += blocks;
+		data += SHA1_BLOCK_SIZE * blocks;
+		datalen -= SHA1_BLOCK_SIZE * blocks;
+	}
 
 	ctx->num = datalen;
 	if (datalen) {

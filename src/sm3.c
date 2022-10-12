@@ -311,11 +311,10 @@ void sm3_init(SM3_CTX *ctx)
 void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
 {
 	size_t blocks;
-
-
+	
 	ctx->num &= 0x3f;
 	if (ctx->num) {
-		unsigned int left = SM3_BLOCK_SIZE - ctx->num;
+		size_t left = SM3_BLOCK_SIZE - ctx->num;
 		if (data_len < left) {
 			memcpy(ctx->block + ctx->num, data, data_len);
 			ctx->num += data_len;

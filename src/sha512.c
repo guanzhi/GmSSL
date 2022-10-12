@@ -36,7 +36,7 @@ void sha512_update(SHA512_CTX *ctx, const unsigned char *data, size_t datalen)
 	size_t blocks;
 
 	if (ctx->num) {
-		unsigned int left = SHA512_BLOCK_SIZE - ctx->num;
+		size_t left = SHA512_BLOCK_SIZE - ctx->num;
 		if (datalen < left) {
 			memcpy(ctx->block + ctx->num, data, datalen);
 			ctx->num += datalen;
@@ -51,10 +51,12 @@ void sha512_update(SHA512_CTX *ctx, const unsigned char *data, size_t datalen)
 	}
 
 	blocks = datalen / SHA512_BLOCK_SIZE;
-	sha512_compress_blocks(ctx->state, data, blocks);
-	ctx->nblocks += blocks;
-	data += SHA512_BLOCK_SIZE * blocks;
-	datalen -= SHA512_BLOCK_SIZE * blocks;
+	if (blocks) {
+		sha512_compress_blocks(ctx->state, data, blocks);
+		ctx->nblocks += blocks;
+		data += SHA512_BLOCK_SIZE * blocks;
+		datalen -= SHA512_BLOCK_SIZE * blocks;
+	}
 
 	ctx->num = datalen;
 	if (datalen) {

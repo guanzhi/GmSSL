@@ -117,7 +117,7 @@ void sha256_update(SHA256_CTX *ctx, const unsigned char *data, size_t datalen)
 
 	ctx->num &= 0x3f;
 	if (ctx->num) {
-		unsigned int left = SHA256_BLOCK_SIZE - ctx->num;
+		size_t left = SHA256_BLOCK_SIZE - ctx->num;
 		if (datalen < left) {
 			memcpy(ctx->block + ctx->num, data, datalen);
 			ctx->num += datalen;
@@ -132,10 +132,12 @@ void sha256_update(SHA256_CTX *ctx, const unsigned char *data, size_t datalen)
 	}
 
 	blocks = datalen / SHA256_BLOCK_SIZE;
-	sha256_compress_blocks(ctx->state, data, blocks);
-	ctx->nblocks += blocks;
-	data += SHA256_BLOCK_SIZE * blocks;
-	datalen -= SHA256_BLOCK_SIZE * blocks;
+	if (blocks) {
+		sha256_compress_blocks(ctx->state, data, blocks);
+		ctx->nblocks += blocks;
+		data += SHA256_BLOCK_SIZE * blocks;
+		datalen -= SHA256_BLOCK_SIZE * blocks;
+	}
 
 	ctx->num = datalen;
 	if (datalen) {

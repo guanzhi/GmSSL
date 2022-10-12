@@ -32,7 +32,7 @@ typedef struct {
 	uint32_t state[SHA224_STATE_WORDS];
 	uint64_t nblocks;
 	uint8_t block[SHA224_BLOCK_SIZE];
-	int num;
+	size_t num;
 } SHA224_CTX;
 
 void sha224_init(SHA224_CTX *ctx);
@@ -50,7 +50,7 @@ typedef struct {
 	uint32_t state[SHA256_STATE_WORDS];
 	uint64_t nblocks;
 	uint8_t block[SHA256_BLOCK_SIZE];
-	int num;
+	size_t num;
 } SHA256_CTX;
 
 void sha256_init(SHA256_CTX *ctx);
@@ -68,7 +68,7 @@ typedef struct {
 	uint64_t state[SHA384_STATE_WORDS];
 	uint64_t nblocks;
 	uint8_t block[SHA384_BLOCK_SIZE];
-	int num;
+	size_t num;
 } SHA384_CTX;
 
 void sha384_init(SHA384_CTX *ctx);
@@ -86,7 +86,7 @@ typedef struct {
 	uint64_t state[SHA512_STATE_WORDS];
 	uint64_t nblocks;
 	uint8_t block[SHA512_BLOCK_SIZE];
-	int num;
+	size_t num;
 } SHA512_CTX;
 
 void sha512_init(SHA512_CTX *ctx);
