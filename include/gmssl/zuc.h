@@ -112,7 +112,7 @@ typedef struct ZUC256_MAC_CTX_st {
 	ZUC_UINT32 T[4];
 	ZUC_UINT32 K0[4];
 	uint8_t buf[4];
-	int buflen;
+	size_t buflen;
 	int macbits;
 } ZUC256_MAC_CTX;
 

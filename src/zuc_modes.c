@@ -131,7 +131,6 @@ int zuc_encrypt_update(ZUC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *o
 
 int zuc_encrypt_finish(ZUC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
-	size_t left;
 	if (ctx->block_nbytes >= ZUC_BLOCK_SIZE) {
 		error_print();
 		return -1;
