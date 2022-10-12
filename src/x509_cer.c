@@ -415,7 +415,7 @@ int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen,
 	return 1;
 }
 
-int x509_name_add_country_name(uint8_t *d, size_t *dlen, int maxlen, const char val[2])
+int x509_name_add_country_name(uint8_t *d, size_t *dlen, size_t maxlen, const char val[2])
 {
 	int ret;
 	ret = x509_name_add_rdn(d, dlen, maxlen,
@@ -424,7 +424,7 @@ int x509_name_add_country_name(uint8_t *d, size_t *dlen, int maxlen, const char 
 	return ret;
 }
 
-int x509_name_add_state_or_province_name(uint8_t *d, size_t *dlen, int maxlen,
+int x509_name_add_state_or_province_name(uint8_t *d, size_t *dlen, size_t maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
 	int ret;
@@ -433,7 +433,7 @@ int x509_name_add_state_or_province_name(uint8_t *d, size_t *dlen, int maxlen,
 	return ret;
 }
 
-int x509_name_add_locality_name(uint8_t *d, size_t *dlen, int maxlen,
+int x509_name_add_locality_name(uint8_t *d, size_t *dlen, size_t maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
 	int ret;
@@ -442,7 +442,7 @@ int x509_name_add_locality_name(uint8_t *d, size_t *dlen, int maxlen,
 	return ret;
 }
 
-int x509_name_add_organization_name(uint8_t *d, size_t *dlen, int maxlen,
+int x509_name_add_organization_name(uint8_t *d, size_t *dlen, size_t maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
 	int ret;
@@ -451,7 +451,7 @@ int x509_name_add_organization_name(uint8_t *d, size_t *dlen, int maxlen,
 	return ret;
 }
 
-int x509_name_add_organizational_unit_name(uint8_t *d, size_t *dlen, int maxlen,
+int x509_name_add_organizational_unit_name(uint8_t *d, size_t *dlen, size_t maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
 	int ret;
@@ -460,7 +460,7 @@ int x509_name_add_organizational_unit_name(uint8_t *d, size_t *dlen, int maxlen,
 	return ret;
 }
 
-int x509_name_add_common_name(uint8_t *d, size_t *dlen, int maxlen,
+int x509_name_add_common_name(uint8_t *d, size_t *dlen, size_t maxlen,
 	int tag, const uint8_t *val, size_t vlen)
 {
 	int ret;
@@ -469,7 +469,7 @@ int x509_name_add_common_name(uint8_t *d, size_t *dlen, int maxlen,
 	return ret;
 }
 
-int x509_name_add_domain_component(uint8_t *d, size_t *dlen, int maxlen,
+int x509_name_add_domain_component(uint8_t *d, size_t *dlen, size_t maxlen,
 	const char *val, size_t vlen)
 {
 	int ret;

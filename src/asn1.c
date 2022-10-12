@@ -460,7 +460,6 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 
 int asn1_int_to_der_ex(int tag, int a, uint8_t **out, size_t *outlen)
 {
-	int i;
 	uint8_t buf[4] = {0};
 	size_t len = 0;
 

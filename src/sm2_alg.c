@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -219,8 +219,9 @@ int sm2_bn_print(FILE *fp, int fmt, int ind, const char *label, const SM2_BN a)
 void sm2_bn_to_bits(const SM2_BN a, char bits[256])
 {
 	int i, j;
+	uint64_t w;
 	for (i = 7; i >= 0; i--) {
-		uint32_t w = a[i];
+		w = a[i];
 		for (j = 0; j < 32; j++) {
 			*bits++ = (w & 0x80000000) ? '1' : '0';
 			w <<= 1;
