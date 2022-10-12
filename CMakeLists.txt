@@ -118,6 +118,9 @@ endif()
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
+# enable intel intrinsics
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2")
+
 set(tools
 	tools/gmssl.c
 	tools/version.c
