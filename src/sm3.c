@@ -294,6 +294,7 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 	}
 }
 
+
 void sm3_init(SM3_CTX *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
@@ -320,6 +321,7 @@ void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
 			ctx->num += data_len;
 			return;
 		} else {
+			memcpy(ctx->block + ctx->num, data, left);
 			sm3_compress_blocks(ctx->digest, ctx->block, 1);
 			ctx->nblocks++;
 			data += left;
