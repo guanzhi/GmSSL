@@ -589,7 +589,7 @@ int main(void)
 	if (test_asn1_utf8_string() != 1) goto err;
 	if (test_asn1_ia5_string() != 1) goto err;
 	if (test_asn1_utc_time() != 1) goto err;
-	//if (test_asn1_generalized_time() != 1) goto err;
+	if (test_asn1_generalized_time() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

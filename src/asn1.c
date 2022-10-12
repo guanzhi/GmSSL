@@ -1193,7 +1193,7 @@ int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *p
 	}
 	if (len == sizeof("YYMMDDHHMMSSZ")-1) {
 #ifdef WIN32
-		asn1_generalizedtime_to_tm(&tm_val, buf);
+		asn1_generalizedtime_to_tm(buf, &tm_val);
 		*t = GMSSL_timegm(&tm_val);
 #else
 		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
