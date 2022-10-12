@@ -43,7 +43,7 @@ nmake
 
 ### iOS编译
 
-下载 https://github.com/leetal/ios-cmake，将`ios.toolchain.cmake`文件复制到`build`目录。
+下载 https://github.com/leetal/ios-cmake ，将`ios.toolchain.cmake`文件复制到`build`目录。
 
 ```bash
 mkdir build; cd build
