@@ -17,14 +17,18 @@ void rc4_init(RC4_STATE *state, const uint8_t *key, size_t keylen)
 {
 	int i, j;
 	uint8_t *s = state->d;
-	uint8_t k[256];
+	uint8_t k[256] = {0};
 	uint8_t temp;
 
+	if (keylen > sizeof(k)) {
+		keylen = sizeof(k);
+	}
+
 	/* expand key */
-	for (i = 0; i < keylen; i++) {
+	for (i = 0; i < (int)keylen; i++) {
 		k[i] = key[i];
 	}
-	for (i = keylen; i < 256; i++) {
+	for (; i < 256; i++) {
 		k[i] = key[i % keylen];
 	}
 
