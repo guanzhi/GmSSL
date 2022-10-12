@@ -175,10 +175,9 @@ end:
 static void drbg_add(uint8_t *R, const uint8_t *A, size_t seedlen)
 {
 	int temp = 0;
-	int i;
-	for (i = seedlen - 1; i >= 0; i--) {
-		temp += R[i] + A[i];
-		R[i] = temp & 0xff;
+	while (seedlen--) {
+		temp += R[seedlen] + A[seedlen];
+		R[seedlen] = temp & 0xff;
 		temp >>= 8;
 	}
 }
@@ -186,10 +185,9 @@ static void drbg_add(uint8_t *R, const uint8_t *A, size_t seedlen)
 static void drbg_add1(uint8_t *R, size_t seedlen)
 {
 	int temp = 1;
-	int i;
-	for (i = seedlen - 1; i >= 0; i--) {
-		temp += R[i];
-		R[i] = temp & 0xff;
+	while (seedlen--) {
+		temp += R[seedlen];
+		R[seedlen] = temp & 0xff;
 		temp >>= 8;
 	}
 }
