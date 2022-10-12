@@ -241,7 +241,6 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, s
 	int ret;
 	SM2_SIGNATURE signature;
 	const uint8_t *p;
-	size_t len;
 
 	if (!key
 		|| !dgst
@@ -615,7 +614,6 @@ int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const ui
 {
 	uint8_t buf[512] = {0};
 	SM2_CIPHERTEXT *c = (SM2_CIPHERTEXT *)buf;
-	int i;
 
 	if (sm2_ciphertext_from_der(c, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {

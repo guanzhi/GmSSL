@@ -418,8 +418,6 @@ int x509_crl_ext_id_to_der(int oid, uint8_t **out, size_t *outlen)
 int x509_crl_ext_id_from_der_ex(int *oid, uint32_t *nodes, size_t *nodes_cnt, const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	const uint8_t *p;
-	size_t len;
 	const ASN1_OID_INFO *info;
 
 	*oid = 0;
