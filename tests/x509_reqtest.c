@@ -134,16 +134,8 @@ static int test_x509_req(void)
 	uint8_t subject[256];
 	size_t subject_len;
 	SM2_KEY sm2_key;
-
 	uint8_t req[512];
 	size_t reqlen = 0;
-
-	int version;
-	const uint8_t *subj;
-	size_t subj_len;
-	SM2_KEY pub_key;
-	const uint8_t *attrs;
-	size_t attrs_len;
 
 	if (sm2_key_generate(&sm2_key) != 1
 		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1

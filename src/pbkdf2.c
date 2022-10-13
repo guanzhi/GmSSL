@@ -147,7 +147,7 @@ int pbkdf2_hmac_sm3_genkey(
 	uint8_t iter_be[4];
 	uint8_t tmp_block[SM3_DIGEST_SIZE];
 	uint8_t key_block[SM3_DIGEST_SIZE];
-	size_t len;
+	// TODO: a bug in 3.0.0 is fixied. How to update release version 3.0.0 ? A test is also required!
 
 	sm3_hmac_init(&ctx_tmpl, (uint8_t *)pass, passlen);
 
@@ -176,8 +176,8 @@ int pbkdf2_hmac_sm3_genkey(
 			outlen = 0;
 		} else {
 			memcpy(out, key_block, SM3_DIGEST_SIZE);
-			out += len;
-			outlen -= len;
+			out += SM3_DIGEST_SIZE;
+			outlen -= SM3_DIGEST_SIZE;
 		}
 	}
 

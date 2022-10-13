@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -170,8 +170,6 @@ static int test_cms_enced_content_info_encrypt(void)
 
 	int oid;
 	int cipher;
-	const uint8_t *piv;
-	size_t ivlen;
 	uint8_t data2[256];
 	const uint8_t *shared_info1;
 	size_t shared_info1_len;
@@ -564,7 +562,6 @@ static int test_cms_signed_data(void)
 		uint8_t name[256];
 		size_t namelen = 0;
 		time_t not_before, not_after;
-		uint8_t subject[256];
 		size_t subject_len = 0;
 		uint8_t *p = cert;
 		const uint8_t *cp = cert;
@@ -742,13 +739,11 @@ int test_cms_enveloped_data(void)
 	uint8_t name1[256];
 	size_t name1_len;
 	uint8_t serial1[20];
-	size_t serial1_len;
 
 	SM2_KEY sm2_key2;
 	uint8_t name2[256];
 	size_t name2_len;
 	uint8_t serial2[20];
-	size_t serial2_len;
 
 	time_t not_before, not_after;
 
@@ -882,30 +877,6 @@ int test_cms_enveloped_data(void)
 static int test_cms_signed_and_enveloped_data(void)
 {
 /*
-444 int cms_signed_and_enveloped_data_encipher_to_der(
-445         const CMS_CERTS_AND_KEY *signers, size_t signers_cnt,
-446         const uint8_t *rcpt_certs, size_t rcpt_certs_len,
-447         int enc_algor, const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
-448         int content_type, const uint8_t *content, size_t content_len,
-449         const uint8_t *signers_crls, size_t signers_crls_len,
-450         const uint8_t *shared_info1, size_t shared_info1_len,
-451         const uint8_t *shared_info2, size_t shared_info2_len,
-452         uint8_t **out, size_t *outlen);
-453 int cms_signed_and_enveloped_data_decipher_from_der(
-454         const SM2_KEY *rcpt_key,
-455         const uint8_t *rcpt_issuer, size_t rcpt_issuer_len,
-456         const uint8_t *rcpt_serial, size_t rcpt_serial_len,
-457         int *content_type, uint8_t *content, size_t *content_len,
-458         const uint8_t **prcpt_infos, size_t *prcpt_infos_len,
-459         const uint8_t **shared_info1, size_t *shared_info1_len,
-460         const uint8_t **shared_info2, size_t *shared_info2_len,
-461         const uint8_t **certs, size_t *certs_len,
-462         const uint8_t **crls, size_t *crls_len,
-463         const uint8_t **psigner_infos, size_t *psigner_infos_len,
-464         const uint8_t *extra_certs, size_t extra_certs_len,
-465         const uint8_t *extra_crls, size_t extra_crls_len,
-466         const uint8_t **in, size_t *inlen);
-*/
 	SM2_KEY sign_key;
 	SM2_KEY decr_key;
 
@@ -914,14 +885,7 @@ static int test_cms_signed_and_enveloped_data(void)
 	uint8_t sign_serial[20];
 	uint8_t sign_name[256];
 	size_t sign_name_len;
-
-
-
-
-
-
-
-
+*/
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;

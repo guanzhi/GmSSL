@@ -55,8 +55,7 @@ int skfutil_main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
 	unsigned char buf[4096];
-	unsigned int ulen;
-	int len;
+	size_t len;
 
 	uint8_t authkey[16];
 	size_t authkeylen;

@@ -32,7 +32,7 @@ static int test_x509_version(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	size_t i;
+	int i;
 
 	format_print(stderr, 0, 0, "Version\n");
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
@@ -65,7 +65,6 @@ static int test_x509_validity(void)
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
-	size_t i;
 
 	time(&not_before);
 
@@ -239,7 +238,6 @@ static int set_x509_name(uint8_t *name, size_t *namelen, size_t maxlen)
 static int test_x509_tbs_cert(void)
 {
 	uint8_t serial[20] = { 0x01, 0x00 };
-	size_t serial_len;
 	uint8_t issuer[256];
 	size_t issuer_len = 0;
 	time_t not_before, not_after;
@@ -311,7 +309,6 @@ static int test_x509_cert_get(const uint8_t *cert, size_t certlen)
 static int test_x509_cert(void)
 {
 	uint8_t serial[20] = { 0x01, 0x00 };
-	size_t serial_len;
 	uint8_t issuer[256];
 	size_t issuer_len = 0;
 	time_t not_before, not_after;

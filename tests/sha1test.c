@@ -56,7 +56,7 @@ int main(void)
 		sha1_finish(&ctx, dgst);
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
-			printf("sha1 test %lu failed\n", i+1);
+			printf("sha1 test %zu failed\n", i+1);
 			printf("%s\n", dgsthex[i]);
 			for (j = 0; j < sizeof(dgst); j++) {
 				printf("%02X", dgst[j]);
@@ -64,7 +64,7 @@ int main(void)
 			printf("\n");
 			err++;
 		} else {
-			printf("sha1 test %lu ok\n", i+1);
+			printf("sha1 test %zu ok\n", i+1);
 		}
 	}
 

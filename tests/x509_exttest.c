@@ -681,7 +681,6 @@ static int test_x509_ext_key_usage(void)
 	};
 	int oids[16]  = {0};
 	size_t oids_cnt;
-	int i;
 
 	if (x509_ext_key_usage_to_der(kp, sizeof(kp)/sizeof(int), &p, &len) != 1
 		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
