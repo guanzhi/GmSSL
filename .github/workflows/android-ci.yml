@@ -23,22 +23,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - shell: bash
-      run: mkdir toolchains
-    - name: Android NDK toolchain Setup
-      # You may pin to the exact commit or the version.
-      # uses: ravinderjangra/android-ndk-toolchain-setup@88bfbd8e61af597832637fb9d2f81a7cc68d1331
+      run: mkdir ${{github.workspace}}/toolchains
+    - name: specify NDK
       uses: ravinderjangra/android-ndk-toolchain-setup@0.2
       with:
-        # Android API
-        api: 21 # default is 21
-        # Platform arch
-        arch: x86
-        # Path to use for NDK toolchain
-        install-location: ${{github.workspace}}/ndk
-        # Force install toolchain
-        force: true # optional, default is false
-        # Add toolchain to the path
-        add-to-path: true # optional, default is true
+        api: '21'
+        arch: 'x86'
+        install-location: ${{github.workspace}}/toolchains
+        force: true
 
         
     - name: Configure CMake
