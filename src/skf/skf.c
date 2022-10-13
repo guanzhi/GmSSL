@@ -536,8 +536,8 @@ int skf_import_object(SKF_DEVICE *dev, const char *appname, const char *pin,
 		error_print();
 		return -1;
 	}
-	if (SKF_CreateFile(hApp, (LPSTR)objname, datalen, ulReadRights, ulWriteRights) != SAR_OK
-		|| SKF_WriteFile(hApp, (LPSTR)objname, 0, (BYTE *)data, datalen) != SAR_OK) {
+	if (SKF_CreateFile(hApp, (LPSTR)objname, (ULONG)datalen, ulReadRights, ulWriteRights) != SAR_OK
+		|| SKF_WriteFile(hApp, (LPSTR)objname, 0, (BYTE *)data, (ULONG)datalen) != SAR_OK) {
 		error_print();
 		goto end;
 	}
@@ -554,7 +554,6 @@ int skf_export_object(SKF_DEVICE *dev, const char *appname, const char *pin,
 	HAPPLICATION hApp = NULL;
 	FILEATTRIBUTE fileInfo;
 	ULONG ulen;
-	int len;
 
 	if (!dev || !appname || !pin || !objname || !outlen) {
 		error_print();

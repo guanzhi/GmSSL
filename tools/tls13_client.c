@@ -59,7 +59,6 @@ int tls13_client_main(int argc, char *argv[])
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
-	size_t send_len;
 
 	argc--;
 	argv++;
@@ -158,7 +157,8 @@ bad:
 		FD_SET(conn.sock, &fds);
 		FD_SET(fileno(stdin), &fds);
 
-		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
+		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
+			&fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
 			goto end;
 		}

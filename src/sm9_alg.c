@@ -126,7 +126,7 @@ void sm9_bn_to_bits(const sm9_bn_t a, char bits[256])
 {
 	int i, j;
 	for (i = 7; i >= 0; i--) {
-		uint32_t w = a[i];
+		uint32_t w = (uint32_t)a[i];
 		for (j = 0; j < 32; j++) {
 			*bits++ = (w & 0x80000000) ? '1' : '0';
 			w <<= 1;

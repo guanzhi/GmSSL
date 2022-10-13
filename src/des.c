@@ -175,7 +175,7 @@ void des_set_encrypt_key(DES_KEY *key, const unsigned char user_key[8])
 
 	K = GETU64(user_key);
 	K = permute(PC1, sizeof(PC1), K);
-	L = K >> 28;
+	L = (K >> 28) & 0xffffffff;
 	R = K & 0x0fffffff;
 
 	for (i = 0; i < 16; i++) {
@@ -217,7 +217,7 @@ void des_encrypt(DES_KEY *key, const unsigned char in[DES_BLOCK_SIZE],
 		T ^= L;
 
 		L = R;
-		R = T;
+		R = T & 0xffffffff;
 	}
 
 	T = ((uint64_t)L << 32) | R;

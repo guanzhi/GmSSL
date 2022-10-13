@@ -1483,7 +1483,11 @@ int tls_record_send(const uint8_t *record, size_t recordlen, int sock)
 		error_print();
 		return -1;
 	}
+#ifdef WIN32
+	if ((r = send(sock, record, (int)recordlen, 0)) < 0) {
+#else	
 	if ((r = send(sock, record, recordlen, 0)) < 0) {
+#endif
 		perror("tls_record_send");
 		error_print();
 		return -1;
@@ -1509,7 +1513,11 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 
 	len = 5;
 	while (len) {
+#ifdef WIN32
+		if ((r = recv(sock, record + 5 - len, (int)len, 0)) < 0) {
+#else
 		if ((r = recv(sock, record + 5 - len, len, 0)) < 0) {
+#endif
 			perror("tls_record_do_recv");
 			error_print();
 			return -1;
@@ -1538,7 +1546,11 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
 		return -1;
 	}
 	while (len) {
+#ifdef WIN32
+		if ((r = recv(sock, record + *recordlen - len, (int)len, 0)) < 0) {
+#else
 		if ((r = recv(sock, record + *recordlen - len, len, 0)) < 0) {
+#endif
 			perror("tls_record_do_recv");
 			error_print();
 			return -1;

@@ -161,7 +161,7 @@ bad:
 		FD_SET(conn.sock, &fds);
 		FD_SET(fileno(stdin), &fds);
 
-		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
+		if (select((int)(conn.sock + 1), &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
 			goto end;
 		}

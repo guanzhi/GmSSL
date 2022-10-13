@@ -434,7 +434,7 @@ ULONG DEVAPI SKF_ExportCertificate(
 	BYTE *pbCert,
 	ULONG *pulCertLen)
 {
-	*pulCertLen = strlen(sm2cert_pemstr);
+	*pulCertLen = (ULONG)strlen(sm2cert_pemstr);
 	memcpy(pbCert, sm2cert_pemstr, *pulCertLen);
 
 	return SAR_OK;

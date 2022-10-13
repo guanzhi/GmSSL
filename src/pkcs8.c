@@ -353,7 +353,6 @@ int pbes2_algor_from_der(
 	int ret;
 	const uint8_t *d;
 	size_t dlen;
-	int oid;
 	uint32_t nodes[32];
 	size_t nodes_cnt;
 

@@ -492,13 +492,12 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
 {
-	uint32_t inlen;
+	uint32_t inlen, i;
 	SM2_BN d;
 	SM2_JACOBIAN_POINT _P, *P = &_P;
 	SM3_CTX sm3_ctx;
 	uint8_t buf[64];
 	uint8_t hash[32];
-	int i;
 
 	// FIXME: check SM2_CIPHERTEXT format
 
