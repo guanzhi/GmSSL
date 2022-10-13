@@ -43,8 +43,3 @@ jobs:
       run: mkdir ${{github.workspace}}/build; cd ${{github.workspace}}/build; cmake .. -DCMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23;make
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
