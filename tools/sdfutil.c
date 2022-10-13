@@ -50,8 +50,7 @@ int sdfutil_main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
 	unsigned char buf[4096];
-	unsigned int ulen;
-	int len;
+	size_t len;
 	SDF_DEVICE dev;
 	SDF_KEY key;
 	int dev_opened = 0;

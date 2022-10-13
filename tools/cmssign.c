@@ -55,7 +55,6 @@ int cmssign_main(int argc, char **argv)
 	uint8_t *cms = NULL;
 	size_t cmslen, cms_maxlen;
 	CMS_CERTS_AND_KEY cert_and_key;
-	int content_type;
 
 	argc--;
 	argv++;

@@ -40,7 +40,6 @@ static char *dgsthex[] = {
 int main(int argc, char **argv)
 {
 	int err = 0;
-	char *p;
 	uint8_t dgst[16];
 	uint8_t dgstbuf[16];
 	size_t dgstbuflen;
@@ -61,7 +60,7 @@ int main(int argc, char **argv)
 			printf(" digest(error)  = %s\n", dgsthex[i]);
 			err++;
 		} else {
-			printf("md5 test %lu ok\n", i+1);
+			printf("md5 test %zu ok\n", i+1);
 		}
 	}
 

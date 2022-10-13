@@ -240,7 +240,7 @@ int tls_record_set_type(uint8_t *record, int type)
 		error_print();
 		return -1;
 	}
-	record[0] = type;
+	record[0] = (uint8_t)type;
 	return 1;
 }
 
@@ -250,8 +250,8 @@ int tls_record_set_protocol(uint8_t *record, int protocol)
 		error_print();
 		return -1;
 	}
-	record[1] = protocol >> 8;
-	record[2] = protocol;
+	record[1] = (uint8_t)(protocol >> 8);
+	record[2] = (uint8_t)(protocol);
 	return 1;
 }
 
@@ -313,7 +313,7 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 	padding = mac + 32;
 	padding_len = 16 - rem - 1;
 	for (i = 0; i <= padding_len; i++) {
-		padding[i] = padding_len;
+		padding[i] = (uint8_t)padding_len;
 	}
 
 	iv = out;
@@ -514,8 +514,8 @@ int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int protocol)
 		error_print();
 		return -1;
 	}
-	pre_master_secret[0] = protocol >> 8;
-	pre_master_secret[1] = protocol;
+	pre_master_secret[0] = (uint8_t)(protocol >> 8);
+	pre_master_secret[1] = (uint8_t)(protocol);
 	if (rand_bytes(pre_master_secret + 2, 46) != 1) {
 		error_print();
 		return -1;
@@ -560,8 +560,8 @@ int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 		return -1;
 	}
 	server_ecdh_params[0] = TLS_curve_type_named_curve;
-	server_ecdh_params[1] = curve >> 8;
-	server_ecdh_params[2] = curve;
+	server_ecdh_params[1] = (uint8_t)(curve >> 8);
+	server_ecdh_params[2] = (uint8_t)curve;
 	server_ecdh_params[3] = 65;
 	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 
@@ -589,8 +589,8 @@ int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 		return -1;
 	}
 	server_ecdh_params[0] = TLS_curve_type_named_curve;
-	server_ecdh_params[1] = curve >> 8;
-	server_ecdh_params[2] = curve;
+	server_ecdh_params[1] = (uint8_t)(curve >> 8);
+	server_ecdh_params[2] = (uint8_t)(curve);
 	server_ecdh_params[3] = 65;
 	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 
@@ -1648,11 +1648,9 @@ int tls_alert_level(int alert)
 		return 0;
 	case TLS_alert_user_canceled:
 	case TLS_alert_no_renegotiation:
-		return TLS_alert_level_warning;
-	default:
-		return TLS_alert_level_fatal;
+		return TLS_alert_level_warning;	
 	}
-	return -1;
+	return TLS_alert_level_fatal;	
 }
 
 int tls_send_warning(TLS_CONNECT *conn, int alert)
@@ -1844,7 +1842,11 @@ int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, 
 			error_print();
 			return -1;
 		}
-		tls_uint16_to_bytes(alen, &names, nameslen);
+		if (alen > UINT16_MAX) {
+			error_print();
+			return -1;
+		}
+		tls_uint16_to_bytes((uint16_t)alen, &names, nameslen);
 		if (asn1_sequence_to_der(name, namelen, &names, nameslen) != 1) {
 			error_print();
 			return -1;
@@ -2289,12 +2291,15 @@ void tls_cleanup(TLS_CONNECT *conn)
 	gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
 }
 
-
+#ifdef WIN32
+int tls_set_socket(TLS_CONNECT *conn, SOCKET sock)
+#else
 int tls_set_socket(TLS_CONNECT *conn, int sock)
+#endif
 {
+#if 0
 	int opts;
 
-#if 0
 	// FIXME: do we still need this? when using select?
 	if ((opts = fcntl(sock, F_GETFL)) < 0) {
 		error_print();

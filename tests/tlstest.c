@@ -171,7 +171,6 @@ static int test_tls_server_hello(void)
 
 static int test_tls_certificate(void)
 {
-	uint8_t record[1024];
 	size_t recordlen = 0;
 	FILE *fp = NULL;
 

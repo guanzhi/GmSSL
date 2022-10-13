@@ -90,6 +90,8 @@ set(broken_crypto_src
 	src/rc4.c
 )
 
+
+
 # FIXME: change this default to OFF
 option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" ON)
 
@@ -115,6 +117,8 @@ else()
 	add_library(gmssl ${src})
 	target_link_libraries(gmssl dl)
 endif()
+
+
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
@@ -238,3 +242,9 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	INSTALL(TARGETS gmssl-bin RUNTIME DESTINATION bin)
 endif()
 
+if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	target_compile_options(gmssl PRIVATE /wd4996)
+	target_compile_options(gmssl-bin PRIVATE /wd4996)
+#	target_compile_options(gmssl PRIVATE /wd4996)
+endif()
