@@ -22,15 +22,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - shell: bash
-      run: mkdir ${{github.workspace}}/toolchains
-    - name: specify NDK
-      uses: ravinderjangra/android-ndk-toolchain-setup@0.2
+    
+    - uses: nttld/setup-ndk@v1
+      id: setup-ndk
       with:
-        api: '21'
-        arch: 'x86'
-        install-location: ${{github.workspace}}/toolchains
-        force: true
+        ndk-version: r21e
+        add-to-path: false
+    - run: echo ${{env.ANDROID_NDK_HOME}}
+      env:
+        ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
         
     - name: Configure CMake
