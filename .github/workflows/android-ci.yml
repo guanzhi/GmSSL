@@ -22,9 +22,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: nttld/setup-ndk@v1
+    - shell: bash
+      run: mkdir toolchains
+    - name: Android NDK toolchain Setup
+      # You may pin to the exact commit or the version.
+      # uses: ravinderjangra/android-ndk-toolchain-setup@88bfbd8e61af597832637fb9d2f81a7cc68d1331
+      uses: ravinderjangra/android-ndk-toolchain-setup@0.2
       with:
-        ndk-version: r21e
+        # Android API
+        api: 21 # default is 21
+        # Platform arch
+        arch: x86
+        # Path to use for NDK toolchain
+        install-location: ${{github.workspace}}/ndk
+        # Force install toolchain
+        force: true # optional, default is false
+        # Add toolchain to the path
+        add-to-path: true # optional, default is true
+
+        
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -32,7 +48,7 @@ jobs:
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE= ${{github.workspace}}/ndk/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
     - name: Test
