@@ -26,7 +26,7 @@ jobs:
     - uses: nttld/setup-ndk@v1
       id: setup-ndk
       with:
-        ndk-version: r23e
+        ndk-version: r23c
         add-to-path: false
     - run: echo ${{env.ANDROID_NDK_HOME}}
       env:
