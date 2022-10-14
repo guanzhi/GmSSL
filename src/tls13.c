@@ -101,8 +101,8 @@ int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	aad[0] = TLS_record_application_data;
 	aad[1] = 0x03; //TLS_protocol_tls12_major;
 	aad[2] = 0x03; //TLS_protocol_tls12_minor;
-	aad[3] = clen >> 8;
-	aad[4] = clen;
+	aad[3] = (uint8_t)(clen >> 8);
+	aad[4] = (uint8_t)(clen);
 
 	gmac = out + mlen;
 	if (gcm_encrypt(key, nonce, sizeof(nonce), aad, sizeof(aad), mbuf, mlen, out, 16, gmac) != 1) {
@@ -124,7 +124,6 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	uint8_t aad[5];
 	size_t mlen;
 	const uint8_t *gmac;
-	size_t i;
 
 	// nonce = (zeros|seq_num) xor (iv)
 	nonce[0] = nonce[1] = nonce[2] = nonce[3] = 0;
@@ -135,8 +134,8 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	aad[0] = TLS_record_application_data;
 	aad[1] = 0x03; //TLS_protocol_tls12_major;
 	aad[2] = 0x03; //TLS_protocol_tls12_minor;
-	aad[3] = inlen >> 8;
-	aad[4] = inlen;
+	aad[3] = (uint8_t)(inlen >> 8);
+	aad[4] = (uint8_t)(inlen);
 
 	if (inlen < GHASH_SIZE) {
 		error_print();
@@ -182,8 +181,8 @@ int tls13_record_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	enced_record[0] = TLS_record_application_data; // 显然这个不太对啊
 	enced_record[1] = 0x03; //TLS_protocol_tls12_major;
 	enced_record[2] = 0x03; //TLS_protocol_tls12_minor;
-	enced_record[3] = (*enced_recordlen) >> 8;
-	enced_record[4] = (*enced_recordlen);
+	enced_record[3] = (uint8_t)((*enced_recordlen) >> 8);
+	enced_record[4] = (uint8_t)(*enced_recordlen);
 
 	(*enced_recordlen) += 5;
 	return 1;
@@ -204,8 +203,8 @@ int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	record[0] = record_type;
 	record[1] = 0x03; //TLS_protocol_tls12_major;
 	record[2] = 0x03; //TLS_protocol_tls12_minor;
-	record[3] = (*recordlen) >> 8;
-	record[4] = (*recordlen);
+	record[3] = (uint8_t)((*recordlen) >> 8);
+	record[4] = (uint8_t)(*recordlen);
 
 	(*recordlen) += 5;
 	return 1;
@@ -242,8 +241,8 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 	record[0] = TLS_record_application_data;
 	record[1] = TLS_protocol_tls12 >> 8;
 	record[2] = TLS_protocol_tls12 & 0xff;
-	record[3] = recordlen >> 8;
-	record[4] = recordlen;
+	record[3] = (uint8_t)(recordlen >> 8);
+	record[4] = (uint8_t)(recordlen);
 	recordlen += 5;
 
 	tls_record_send(record, recordlen, conn->sock);
@@ -412,7 +411,7 @@ int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
 	uint8_t *p = hkdf_label;
 	size_t hkdf_label_len = 0;
 
-	label_len = strlen("tls13 ") + strlen(label);
+	label_len = (uint8_t)(strlen("tls13 ") + strlen(label)); //FIXME: check length < 255
 	tls_uint16_to_bytes((uint16_t)outlen, &p, &hkdf_label_len);
 	tls_uint8_to_bytes(label_len, &p, &hkdf_label_len);
 	tls_array_to_bytes((uint8_t *)"tls13 ", strlen("tls13 "), &p, &hkdf_label_len);
@@ -712,8 +711,6 @@ int tls13_server_hello_extensions_get(const uint8_t *exts, size_t extslen, SM2_P
 		uint16_t ext_type;
 		const uint8_t *ext_data;
 		size_t ext_datalen;
-		const uint8_t *p;
-		size_t len;
 
 		tls_uint16_from_bytes(&ext_type, &exts, &extslen);
 		tls_uint16array_from_bytes(&ext_data, &ext_datalen, &exts, &extslen);
@@ -1498,8 +1495,6 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	const uint8_t *cert;
 	size_t certlen;
 
-	uint8_t *p;
-
 
 	conn->is_client = 1;
 	tls_record_set_protocol(enced_record, TLS_protocol_tls12);
@@ -1937,7 +1932,6 @@ int tls13_do_accept(TLS_CONNECT *conn)
 
 	const uint8_t *client_verify_data;
 	size_t client_verify_data_len;
-	size_t i;
 
 	uint8_t client_write_key[16];
 	uint8_t server_write_key[16];
@@ -1945,7 +1939,6 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	uint8_t zeros[32] = {0};
 	uint8_t psk[32] = {0};
 	uint8_t early_secret[32];
-	uint8_t binder_key[32];
 	uint8_t handshake_secret[32];
 	uint8_t client_handshake_traffic_secret[32];
 	uint8_t server_handshake_traffic_secret[32];

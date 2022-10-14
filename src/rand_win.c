@@ -18,7 +18,7 @@
 
 int rand_bytes(uint8_t *buf, size_t len)
 {
-	HCRYPTPROV hCryptProv = NULL;
+	HCRYPTPROV hCryptProv;
 	int ret = -1;
 
 	if (!buf) {

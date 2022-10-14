@@ -588,7 +588,7 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	uint16_t cipher_suite;
 	uint8_t comp_meth;
 	const uint8_t *exts;
-	size_t session_id_len, cipher_suites_len, comp_meths_len, exts_len;
+	size_t session_id_len, exts_len;
 
 	format_print(fp, format, indent, "ServerHello\n"); indent += 4;
 	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto bad;
