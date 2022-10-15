@@ -83,6 +83,13 @@ if (ENABLE_SM3_AVX_BMI2)
 	list(APPEND src src/sm3_avx_bmi2.s)
 endif()
 
+option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
+
+if (ENABLE_SM4_AESNI_AVX)
+	list(APPEND src src/sm4_aesni_avx.c)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+endif()
+
 if (WIN32)
 	list(APPEND src src/u_time.c)
 	list(APPEND src src/rand_win.c)
@@ -97,10 +104,7 @@ set(broken_crypto_src
 	src/rc4.c
 )
 
-
-
-# FIXME: change this default to OFF
-option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" ON)
+option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 
 if (ENABLE_BROKEN_CRYPTO)
 	list(APPEND src ${broken_crypto_src})
