@@ -129,7 +129,9 @@ else()
 	target_link_libraries(gmssl dl)
 endif()
 
-
+if(MINGW)
+	target_link_libraries(gmssl PRIVATE wsock32)
+endif()
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
@@ -241,6 +243,9 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
 	set_target_properties (gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
+	if(MINGW)
+		target_link_libraries(gmssl-bin PRIVATE Ws2_32)
+	endif()
 
 	enable_testing()
 	foreach(name ${tests})
