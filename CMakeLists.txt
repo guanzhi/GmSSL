@@ -8,7 +8,6 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 include_directories(include)
 
-#enable_language(ASM)
 
 
 set(src
@@ -75,6 +74,14 @@ set(src
 	src/tls12.c
 	src/tls13.c
 )
+
+option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
+
+
+if (ENABLE_SM3_AVX_BMI2)
+	enable_language(ASM)
+	list(APPEND src src/sm3_avx_bmi2.s)
+endif()
 
 if (WIN32)
 	list(APPEND src src/u_time.c)
