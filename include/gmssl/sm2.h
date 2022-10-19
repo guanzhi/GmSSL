@@ -368,6 +368,10 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
 
 
+int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t dgst[32],
+	SM2_POINT points[4], size_t *points_cnt);
+
+
 #ifdef __cplusplus
 }
 #endif
