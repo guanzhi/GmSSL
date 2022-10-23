@@ -140,12 +140,6 @@
 
 ##### Generic patterns
 # Auto generated assembly language source files
-*.s
-!/crypto/*/asm/*.s
-/crypto/arm*.S
-/crypto/*/*.S
-*.asm
-!/crypto/*/asm/*.asm
 
 # Object files
 *.o
