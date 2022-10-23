@@ -12,11 +12,91 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <gmssl/sm2.h>
+#include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
 
 
 typedef uint8_t sm2_bn_t[32];
+
+
+static int compare_point(const void *P, const void *Q)
+{
+	const uint8_t *p = (uint8_t *)P;
+	const uint8_t *q = (uint8_t *)Q;
+	int i, r;
+	for (i = 0; i < sizeof(SM2_POINT); i++) {
+		r = p[i] - q[i];
+		if (r) {
+			return r;
+		}
+	}
+	return 0;
+}
+
+int sm2_ring_public_keys_sort(SM2_POINT *points, size_t points_cnt)
+{
+	qsort(points, points_cnt, sizeof(SM2_POINT), compare_point);
+	return 1;
+}
+
+int sm2_ring_signature_to_der(const sm2_bn_t r0, const sm2_bn_t *s_vec, size_t s_cnt, uint8_t **out, size_t *outlen)
+{
+	size_t i, len = 0;
+
+	asn1_integer_to_der(r0, 32, NULL, &len);
+	for (i = 0; i < s_cnt; i++) {
+		asn1_integer_to_der(s_vec[i], 32, NULL, &len);
+	}
+	asn1_sequence_header_to_der(len, out, outlen);
+	asn1_integer_to_der(r0, 32, out, outlen);
+	for (i = 0; i < s_cnt; i++) {
+		asn1_integer_to_der(s_vec[i], 32, out, outlen);
+	}
+	return 1;
+}
+
+int sm2_ring_signature_from_der(sm2_bn_t r0, sm2_bn_t *s_vec, size_t *s_cnt, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *p;
+	size_t len;
+	uint8_t *s = (uint8_t *)&s_vec[0];
+
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+
+	asn1_integer_from_der(&p, &len, in, inlen);
+	if (len > 32) {
+		error_print();
+		return -1;
+	}
+	memset(r0, 0, 32);
+	memcpy(r0 + 32 - len, p, len);
+
+	// 应该判定如果s_vec == NULL的情况
+	(*s_cnt) = 0;
+
+	while (inlen) {
+		asn1_integer_from_der(&p, &len, in, inlen);
+		if (len > 32) {
+			error_print();
+			return -1;
+		}
+		memset(s, 0, 32 - len);
+		memcpy(s + 32 - len, p, len);
+		s += 32;
+
+		(*s_cnt)++;
+	}
+
+	return 1;
+}
 
 int sm2_ring_do_sign(const SM2_KEY *sign_key,
 	const SM2_POINT *public_keys, size_t public_keys_cnt,
