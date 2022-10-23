@@ -25,7 +25,7 @@ jobs:
         # Git host platform. Ex: github, gitlab, bitbucket, gitee, or else (git.suckless.org, ...)
         platform: github
         # Relative path from current directory, where to clone.
-        #path: ios-# optional
+        path: ios-cmake # optional
     
     
     - name: configure
