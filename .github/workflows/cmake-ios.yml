@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: get ios-cmake
+    - name: Get ios-cmake
       uses: sudosubin/git-clone-action@v1.0.1
       with:
         # Repository owner and name. Ex: sudosubin/git-clone-action
@@ -31,6 +31,9 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: ls;mkdir build;cd build; cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64
+      run: cmake -B ${{github.workspace}}/build -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64
 
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
