@@ -1,0 +1,38 @@
+name: CMake
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+  
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: get ios-cmake
+      uses: sudosubin/git-clone-action@v1.0.1
+      with:
+        # Repository owner and name. Ex: sudosubin/git-clone-action
+        repository: leetal/ios-cmake
+        # Git host platform. Ex: github, gitlab, bitbucket, gitee, or else (git.suckless.org, ...)
+        platform: github
+        # Relative path from current directory, where to clone.
+        #path: ios-# optional
+    
+    
+    - name: configure
+      run: ./configure
+    - name: make
+      run: make
+    - name: make check
+      run: make check
+    - name: make distcheck
+      run: make distcheck
