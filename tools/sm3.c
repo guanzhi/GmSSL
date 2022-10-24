@@ -57,7 +57,7 @@ int sm3_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pubkey")) {
 			if (--argc < 1) goto bad;
 			pubkeyfile = *(++argv);
-			if (!(pubkeyfp = fopen(pubkeyfile, "r"))) {
+			if (!(pubkeyfp = fopen(pubkeyfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
 				goto end;
 			}
@@ -67,14 +67,14 @@ int sm3_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(infile, "r"))) {
+			if (!(infp = fopen(infile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "r"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}

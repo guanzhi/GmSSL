@@ -71,7 +71,7 @@ static int get_files_size(int argc, char **argv, const char *option, size_t *len
 				return -1;
 			}
 			file = *(++argv);
-			if (!(fp = fopen(file, "r"))) {
+			if (!(fp = fopen(file, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failed : %s\n", prog, file, strerror(errno));
 				return -1;
 			}
@@ -155,7 +155,7 @@ int cmsencrypt_main(int argc, char **argv)
 			size_t certlen;
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-			if (!(certfp = fopen(certfile, "r"))) {
+			if (!(certfp = fopen(certfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
 				goto end;
 			}
@@ -169,7 +169,7 @@ int cmsencrypt_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(infile, "r"))) {
+			if (!(infp = fopen(infile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
@@ -180,7 +180,7 @@ int cmsencrypt_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}

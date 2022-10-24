@@ -57,7 +57,7 @@ int sm2encrypt_main(int argc, char **argv)
 			}
 			if (--argc < 1) goto bad;
 			pubkeyfile = *(++argv);
-			if (!(pubkeyfp = fopen(pubkeyfile, "r"))) {
+			if (!(pubkeyfp = fopen(pubkeyfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
 				goto end;
 			}
@@ -68,21 +68,21 @@ int sm2encrypt_main(int argc, char **argv)
 			}
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-			if (!(certfp = fopen(certfile, "r"))) {
+			if (!(certfp = fopen(certfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(infile, "r"))) {
+			if (!(infp = fopen(infile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}

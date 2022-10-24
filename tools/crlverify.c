@@ -55,14 +55,14 @@ int crlverify_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(infile, "r"))) {
+			if (!(infp = fopen(infile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
-			if (!(cacertfp = fopen(cacertfile, "r"))) {
+			if (!(cacertfp = fopen(cacertfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
 				goto end;
 			}

@@ -86,7 +86,7 @@ int reqgen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-			if (!(keyfp = fopen(keyfile, "r"))) {
+			if (!(keyfp = fopen(keyfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, keyfile, strerror(errno));
 				goto end;
 			}
@@ -96,7 +96,7 @@ int reqgen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}

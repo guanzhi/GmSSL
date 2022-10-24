@@ -49,7 +49,7 @@ int sm9encrypt_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-pubmaster")) {
 			if (--argc < 1) goto bad;
 			mpkfile = *(++argv);
-			if (!(mpkfp = fopen(mpkfile, "r"))) {
+			if (!(mpkfp = fopen(mpkfile, "rb"))) {
 				error_print();
 				goto end;
 			}
@@ -59,14 +59,14 @@ int sm9encrypt_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(outfile, "r"))) {
+			if (!(infp = fopen(infile, "rb"))) {
 				error_print();
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				error_print();
 				goto end;
 			}
