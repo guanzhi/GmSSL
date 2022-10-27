@@ -40,7 +40,6 @@ set(src
 	src/hmac.c
 	src/hkdf.c
 	src/pbkdf2.c
-	src/gf128.c
 	src/gcm.c
 	src/pkcs8.c
 	src/ec.c
@@ -75,6 +74,13 @@ set(src
 	src/tls12.c
 	src/tls13.c
 )
+
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2 -mavx512bw")
+	list(APPEND src src/gf128_avx.c)
+else()
+	list(APPEND src src/gf128.c)
+endif()
 
 if (WIN32)
 	list(APPEND src src/u_time.c)
@@ -119,11 +125,10 @@ else()
 endif()
 
 
-
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
 # enable intel intrinsics
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2")
+
 
 set(tools
 	tools/gmssl.c
