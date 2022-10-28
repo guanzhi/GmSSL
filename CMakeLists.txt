@@ -74,13 +74,12 @@ set(src
 	src/tls13.c
 )
 
-<<<<<<< HEAD
 if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2 -mavx512bw")
 	list(APPEND src src/gf128_avx.c)
 else()
 	list(APPEND src src/gf128.c)
-=======
+	
 option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 
 
@@ -94,7 +93,6 @@ option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 if (ENABLE_SM4_AESNI_AVX)
 	list(APPEND src src/sm4_aesni_avx.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
->>>>>>> upstream/master
 endif()
 
 if (WIN32)
@@ -136,12 +134,9 @@ else()
 	target_link_libraries(gmssl dl)
 endif()
 
-<<<<<<< HEAD
-=======
 if(MINGW)
 	target_link_libraries(gmssl PRIVATE wsock32)
 endif()
->>>>>>> upstream/master
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
