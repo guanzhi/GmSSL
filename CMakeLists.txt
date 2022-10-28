@@ -8,8 +8,6 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 include_directories(include)
 
-
-
 set(src
 	src/version.c
 	src/debug.c
@@ -79,9 +77,9 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
 	list(APPEND src src/gf128_avx.c)
 else()
 	list(APPEND src src/gf128.c)
-	
-option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
+endif()
 
+option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 
 if (ENABLE_SM3_AVX_BMI2)
 	enable_language(ASM)
