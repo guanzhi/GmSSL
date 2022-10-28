@@ -217,7 +217,6 @@ int tls12_do_connect(TLS_CONNECT *conn)
 
 
 	SM2_KEY server_sign_key;
-	SM2_SIGN_CTX verify_ctx;
 	SM2_SIGN_CTX sign_ctx;
 	const uint8_t *sig;
 	size_t siglen;
@@ -228,11 +227,8 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	const uint8_t *verify_data;
 	size_t verify_data_len;
 	uint8_t local_verify_data[12];
-
 	int handshake_type;
-	const uint8_t *server_enc_cert; // 这几个值也是不需要的
-	size_t server_enc_cert_len;
-	uint8_t server_enc_cert_lenbuf[3];
+
 	const uint8_t *cp;
 	uint8_t *p;
 	size_t len;
@@ -708,7 +704,6 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	// ClientKeyExchange
 	SM2_POINT client_ecdhe_point;
 	uint8_t pre_master_secret[SM2_MAX_PLAINTEXT_SIZE]; // sm2_decrypt 保证输出不会溢出
-	size_t pre_master_secret_len;
 
 	// Finished
 	SM3_CTX sm3_ctx;
@@ -718,7 +713,6 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	const uint8_t *verify_data;
 	size_t verify_data_len;
 
-	uint8_t *p;
 	const uint8_t *cp;
 	size_t len;
 

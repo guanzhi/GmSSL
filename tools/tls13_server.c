@@ -40,8 +40,7 @@ int tls13_server_main(int argc , char **argv)
 	char *cacertfile = NULL;
 
 	int server_ciphers[] = { TLS_cipher_sm4_gcm_sm3, };
-	uint8_t verify_buf[4096];
-
+	
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};

@@ -8,41 +8,33 @@
  */
 
 
+
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <windows.h>
-#include <wincrypt.h>
+#include <stdint.h>
+#include <unistd.h> // in Linux
+//#include <sys/random.h> // in Apple
+#include <gmssl/rand.h>
 #include <gmssl/error.h>
 
 
+#define RAND_MAX_BUF_SIZE 256 // requirement of getentropy()
+
 int rand_bytes(uint8_t *buf, size_t len)
 {
-	HCRYPTPROV hCryptProv;
-	int ret = -1;
-
 	if (!buf) {
 		error_print();
 		return -1;
 	}
-	if (len > INT_MAX) {
+	if (!len || len > RAND_MAX_BUF_SIZE) {
 		error_print();
 		return -1;
 	}
-	if (CryptAcquireContextA(&hCryptProv, NULL, NULL, PROV_RSA_FULL,
-		CRYPT_VERIFYCONTEXT|CRYPT_SILENT) != TRUE) {
+	if (getentropy(buf, len) != 0) {
 		error_print();
 		return -1;
 	}
-	if (CryptGenRandom(hCryptProv, (DWORD)len, buf) != TRUE) {
-		error_print();
-		goto end;
-	}
-	ret = 1;
-end:
-	if (CryptReleaseContext(hCryptProv, 0) != TRUE) {
-		error_print();
-		ret = -1;
-	}
-	return ret;
+	return 1;
 }
+

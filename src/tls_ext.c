@@ -502,7 +502,6 @@ int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_
 	const uint8_t *versions;
 	size_t versions_len;
 	int selected_version = -1;
-	size_t len;
 
 	if (tls_uint8array_from_bytes(&versions, &versions_len, &ext_data, &ext_datalen) != 1
 		|| tls_length_is_zero(ext_datalen) != 1) {
@@ -644,7 +643,7 @@ int tls13_server_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, s
 	}
 	tls13_key_share_entry_to_bytes(point, NULL, &ext_datalen);
 	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(ext_datalen, out, outlen);
+	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
 	tls13_key_share_entry_to_bytes(point, out, outlen);
 	return 1;
 }
@@ -694,8 +693,8 @@ int tls13_client_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, s
 	ext_datalen = tls_uint16_size() + client_shares_len;
 
 	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(ext_datalen, out, outlen);
-	tls_uint16_to_bytes(client_shares_len, out, outlen);
+	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen); // FIXME: do we need to check length < UINT16_MAX?
+	tls_uint16_to_bytes((uint16_t)client_shares_len, out, outlen);
 	tls13_key_share_entry_to_bytes(point, out, outlen);
 	return 1;
 }
@@ -791,8 +790,8 @@ int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t c
 	ext_datalen = tls_uint16_size() + authorities_len;
 
 	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(ext_datalen, out, outlen);
-	tls_uint16_to_bytes(authorities_len, out, outlen);
+	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
+	tls_uint16_to_bytes((uint16_t)authorities_len, out, outlen);
 	while (ca_names_len) {
 		x509_name_from_der(&name, &namelen, &ca_names, &ca_names_len);
 		tls_uint16array_to_bytes(name, namelen, out, outlen);

@@ -8,7 +8,6 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 include_directories(include)
 
-#enable_language(ASM)
 
 
 set(src
@@ -75,11 +74,27 @@ set(src
 	src/tls13.c
 )
 
+<<<<<<< HEAD
 if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2 -mavx512bw")
 	list(APPEND src src/gf128_avx.c)
 else()
 	list(APPEND src src/gf128.c)
+=======
+option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
+
+
+if (ENABLE_SM3_AVX_BMI2)
+	enable_language(ASM)
+	list(APPEND src src/sm3_avx_bmi2.s)
+endif()
+
+option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
+
+if (ENABLE_SM4_AESNI_AVX)
+	list(APPEND src src/sm4_aesni_avx.c)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+>>>>>>> upstream/master
 endif()
 
 if (WIN32)
@@ -96,10 +111,7 @@ set(broken_crypto_src
 	src/rc4.c
 )
 
-
-
-# FIXME: change this default to OFF
-option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" ON)
+option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 
 if (ENABLE_BROKEN_CRYPTO)
 	list(APPEND src ${broken_crypto_src})
@@ -124,6 +136,12 @@ else()
 	target_link_libraries(gmssl dl)
 endif()
 
+<<<<<<< HEAD
+=======
+if(MINGW)
+	target_link_libraries(gmssl PRIVATE wsock32)
+endif()
+>>>>>>> upstream/master
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 
@@ -238,6 +256,9 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
 	set_target_properties (gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
+	if(MINGW)
+		target_link_libraries(gmssl-bin PRIVATE Ws2_32)
+	endif()
 
 	enable_testing()
 	foreach(name ${tests})

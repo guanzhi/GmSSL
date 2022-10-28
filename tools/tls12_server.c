@@ -40,7 +40,6 @@ int tls12_server_main(int argc , char **argv)
 	char *cacertfile = NULL;
 
 	int server_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3, };
-	uint8_t verify_buf[4096];
 
 	TLS_CTX ctx;
 	TLS_CONNECT conn;

@@ -146,6 +146,23 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	return 1;
 }
 
+// verify the xR of R = s * G + (s + r) * P
+// so (-r, -s) is also a valid SM2 signature
+int sm2_signature_conjugate(const SM2_SIGNATURE *sig, SM2_SIGNATURE *new_sig)
+{
+	SM2_Fn r;
+	SM2_Fn s;
+
+	sm2_bn_from_bytes(r, sig->r);
+	sm2_bn_from_bytes(s, sig->s);
+	sm2_fn_neg(r, r);
+	sm2_fn_neg(s, s);
+	sm2_bn_to_bytes(r, new_sig->r);
+	sm2_bn_to_bytes(s, new_sig->s);
+
+	return 1;
+}
+
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -492,13 +509,12 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
 {
-	uint32_t inlen;
+	uint32_t inlen, i;
 	SM2_BN d;
 	SM2_JACOBIAN_POINT _P, *P = &_P;
 	SM3_CTX sm3_ctx;
 	uint8_t buf[64];
 	uint8_t hash[32];
-	int i;
 
 	// FIXME: check SM2_CIPHERTEXT format
 

@@ -126,7 +126,7 @@ void sm9_bn_to_bits(const sm9_bn_t a, char bits[256])
 {
 	int i, j;
 	for (i = 7; i >= 0; i--) {
-		uint32_t w = a[i];
+		uint32_t w = (uint32_t)a[i];
 		for (j = 0; j < 32; j++) {
 			*bits++ = (w & 0x80000000) ? '1' : '0';
 			w <<= 1;
@@ -2015,7 +2015,7 @@ void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f)
 }
 
 void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
-	const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
+	const char *abits = "00100000000000000000000000000000000000010000101100020200101000020";
 
 	SM9_TWIST_POINT _T, *T = &_T;
 	SM9_TWIST_POINT _Q1, *Q1 = &_Q1;
@@ -2031,9 +2031,8 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 	sm9_fp12_set_one(f_num);
 	sm9_fp12_set_one(f_den);
-
+	
 	for (i = 0; i < strlen(abits); i++) {
-
 		sm9_fp12_sqr(f_num, f_num);
 		sm9_fp12_sqr(f_den, f_den);
 		sm9_eval_g_tangent(g_num, g_den, T, P);
@@ -2047,6 +2046,12 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 			sm9_fp12_mul(f_num, f_num, g_num);
 			sm9_fp12_mul(f_den, f_den, g_den);
 			sm9_twist_point_add_full(T, T, Q);
+		} else if (abits[i] == '2') {
+			sm9_twist_point_neg(Q1, Q);
+			sm9_eval_g_line(g_num, g_den, T, Q1, P);
+			sm9_fp12_mul(f_num, f_num, g_num);
+			sm9_fp12_mul(f_den, f_den, g_den);
+			sm9_twist_point_add_full(T, T, Q1);
 		}
 	}
 

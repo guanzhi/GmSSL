@@ -301,7 +301,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	p = server_enc_cert_lenbuf; len = 0;
-	tls_uint24_to_bytes(server_enc_cert_len, &p, &len);
+	tls_uint24_to_bytes((uint24_t)server_enc_cert_len, &p, &len);
 	if (sm2_verify_init(&verify_ctx, &server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_verify_update(&verify_ctx, client_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, server_random, 32) != 1
@@ -731,7 +731,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	p = server_enc_cert_lenbuf; len = 0;
-	tls_uint24_to_bytes(server_enc_cert_len, &p, &len);
+	tls_uint24_to_bytes((uint24_t)server_enc_cert_len, &p, &len);
 	if (sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_sign_update(&sign_ctx, client_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_random, 32) != 1

@@ -275,34 +275,9 @@ typedef int32_t			SGD_BOOL;
 #define SGD_STATUS_READY		0x00000202
 #define SGD_STATUS_EXCEPTION		0x00000203
 
-/* SKF */
-#ifndef WIN32
-typedef signed char		INT8;
-typedef signed short		INT16;
-typedef signed int		INT32;
-typedef unsigned char		UINT8;
-typedef unsigned short		UINT16;
-typedef unsigned int		UINT32;
-typedef long			BOOL;
-typedef UINT8			BYTE;
-typedef UINT8			CHAR;
-typedef INT16			SHORT;
-typedef UINT16			USHORT;
-# ifndef SGD_NATIVE_LONG
-typedef INT32			LONG;
-typedef UINT32			ULONG;
-# else
-typedef long			LONG;
-typedef unsigned long		ULONG;
-# endif
-typedef UINT32			UINT;
-typedef UINT16			WORD;
-typedef UINT32			DWORD;
-typedef UINT32			FLAGS;
-typedef CHAR *			LPSTR;
-typedef void *			HANDLE;
+#ifdef WIN32
+#include <windows.h>
 #else
-#ifndef _WINDEF_H
 typedef signed char		INT8;
 typedef signed short		INT16;
 typedef signed int		INT32;
@@ -328,7 +303,7 @@ typedef UINT32			FLAGS;
 typedef CHAR *			LPSTR;
 typedef void *			HANDLE;
 #endif
-#endif
+
 
 typedef HANDLE DEVHANDLE;
 typedef HANDLE HAPPLICATION;

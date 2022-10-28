@@ -375,8 +375,6 @@ static int test_pkcs8_pem(void)
 	char *pass = "password";
 	SM2_KEY sm2_key;
 	SM2_KEY sm2_buf;
-	const uint8_t *attrs;
-	size_t attrs_len;
 	FILE *fp;
 
 	sm2_key_generate(&sm2_key);

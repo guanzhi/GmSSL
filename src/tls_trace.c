@@ -325,7 +325,6 @@ const char *tls_signature_scheme_name(int scheme)
 
 int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent)
 {
-	int i;
 	time_t gmt_unix_time = 0;
 	const uint8_t *cp = random;
 	size_t len = 4;
@@ -589,8 +588,7 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	uint16_t cipher_suite;
 	uint8_t comp_meth;
 	const uint8_t *exts;
-	size_t session_id_len, cipher_suites_len, comp_meths_len, exts_len;
-	size_t i;
+	size_t session_id_len, exts_len;
 
 	format_print(fp, format, indent, "ServerHello\n"); indent += 4;
 	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto bad;
@@ -620,7 +618,6 @@ bad:
 
 int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
-	int ret;
 	const uint8_t *certs;
 	size_t certslen;
 	const uint8_t *der;
@@ -752,7 +749,7 @@ int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen,
 {
 	const uint8_t *cert_types;
 	const uint8_t *ca_names;
-	size_t cert_types_len, ca_names_len, i;
+	size_t cert_types_len, ca_names_len;
 
 	format_print(fp, format, indent, "CertificateRequest\n"); indent += 4;
 	if (tls_uint8array_from_bytes(&cert_types, &cert_types_len, &data, &datalen) != 1) goto bad;

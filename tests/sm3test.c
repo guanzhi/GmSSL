@@ -141,7 +141,6 @@ static int test_sm3(void)
 	};
 
 	int err = 0;
-	char *p;
 	uint8_t testbuf[sizeof(testhex)/2 + 1000];
 	uint8_t dgstbuf[32];
 	size_t testbuflen, dgstbuflen;
@@ -156,7 +155,7 @@ static int test_sm3(void)
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
 			int n;
-			fprintf(stderr, "sm3 test %lu failed\n", i+1);
+			fprintf(stderr, "sm3 test %zu failed\n", i+1);
 			fprintf(stderr, "error calculating SM3 on %s\n", testhex[i]);
 			fprintf(stderr, " digest(corret) = ");
 			for (n = 0; n < sizeof(dgst); n++) {

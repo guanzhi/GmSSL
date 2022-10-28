@@ -421,7 +421,7 @@ int zuc256_mac_test(void)
 		{0xa35bb274,0xb567c48b,0x28319f11,0x1af34fbd},
 		{0x3a83b554,0xbe408ca5,0x494124ed,0x9d473205},
 	};
-	int i, j;
+	unsigned int i, j;
 
 	bswap_buf((uint32_t *)tag32, sizeof(tag32)/4);
 	bswap_buf((uint32_t *)tag64, sizeof(tag64)/4);
