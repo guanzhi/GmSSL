@@ -78,17 +78,32 @@ int gf128_print(FILE *fp, int fmt, int ind, const char *label, gf128_t a)
 	return 1;
 }
 
+
 static uint64_t reverse_bits(uint64_t a)
 {
-	__mmask64 in = (__mmask64)a;
-	__m512i bytes = _mm512_movm_epi8(in);
-    __m512i mask  = _mm512_set_epi8(8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,
-                                       8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,
-                                       8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,
-                                       8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7);
-    uint64_t rBytes = _mm512_movepi8_mask(_mm512_shuffle_epi8(bytes, mask));
-    return __bswap_64(rBytes);
+	uint64_t r = 0;
+	int i;
+
+	for (i = 0; i < 63; i++) {
+		r |= a & 1;
+		r <<= 1;
+		a >>= 1;
+	}
+	r |= a & 1;
+	return r;
 }
+
+// static uint64_t reverse_bits(uint64_t a)
+// {
+// 	__mmask64 in = (__mmask64)a;
+// 	__m512i bytes = _mm512_movm_epi8(in);
+//     __m512i mask  = _mm512_set_epi8(8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,
+//                                        8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,
+//                                        8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,
+//                                        8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7);
+//     uint64_t rBytes = _mm512_movepi8_mask(_mm512_shuffle_epi8(bytes, mask));
+//     return __bswap_64(rBytes);
+// }
 
 gf128_t gf128_from_bytes(const uint8_t p[16])
 {
@@ -201,30 +216,32 @@ gf128_t gf128_mul2(gf128_t ga)
 {
 	uint8_t r[16], a[16];
 
-	gf128_to_bytes(ga, a);
-
-	__m128i a1 = _mm_loadu_si128((const __m128i*)a);
-
-	__m128i MASK1 = _mm_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x87);
-	__m128i MASK2 = _mm_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x01);
-
+	const __m128i MASK = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+	__m128i MASK1 = _mm_set_epi8(0xe1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	__m128i MASK2 = _mm_set_epi8(0x80,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 
 	__m128i T0, T1, T2, T3, T4, T5;
 
-	T0 = _mm_slli_epi64(a1,1);
+	gf128_to_bytes(ga, a);
 
-	T1 = _mm_srli_epi64(a1,63);
-	T2 = _mm_shuffle_epi32(T1,0x30);
+	__m128i a1 = _mm_loadu_si128((const __m128i*)a);
+	a1 = _mm_shuffle_epi8(a1, MASK);
 
-	T3 = _mm_shuffle_epi32(T1,0x01);
+	T0 = _mm_srli_epi64(a1,1);
+
+	T1 = _mm_slli_epi64(a1,63);
+	T2 = _mm_shuffle_epi32(T1,0x0C);
+
+	T3 = _mm_shuffle_epi32(T1,0x40);
 	T4 = _mm_cmpeq_epi8(T3,MASK2);
 	T3 = _mm_and_si128(T4,MASK1);
 
 	T5 = _mm_xor_si128(T0,T2);
 	T5 = _mm_xor_si128(T5,T3);
 
+	T5 = _mm_shuffle_epi8(T5, MASK);
+
 	_mm_storeu_si128((__m128i*)r, T5);
 
 	return gf128_from_bytes(r);
-
 }
