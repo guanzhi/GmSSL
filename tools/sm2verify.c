@@ -61,7 +61,7 @@ int sm2verify_main(int argc, char **argv)
 			}
 			if (--argc < 1) goto bad;
 			pubkeyfile = *(++argv);
-			if (!(pubkeyfp = fopen(pubkeyfile, "r"))) {
+			if (!(pubkeyfp = fopen(pubkeyfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
 				goto end;
 			}
@@ -72,7 +72,7 @@ int sm2verify_main(int argc, char **argv)
 			}
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-			if (!(certfp = fopen(certfile, "r"))) {
+			if (!(certfp = fopen(certfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
 				goto end;
 			}
@@ -82,14 +82,14 @@ int sm2verify_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
-			if (!(infp = fopen(infile, "r"))) {
+			if (!(infp = fopen(infile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-sig")) {
 			if (--argc < 1) goto bad;
 			sigfile = *(++argv);
-			if (!(sigfp = fopen(sigfile, "r"))) {
+			if (!(sigfp = fopen(sigfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, sigfile, strerror(errno));
 				goto end;
 			}
