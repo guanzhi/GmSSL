@@ -48,14 +48,14 @@ int sm2keygen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-pubout")) {
 			if (--argc < 1) goto bad;
 			puboutfile = *(++argv);
-			if (!(puboutfp = fopen(puboutfile, "w"))) {
+			if (!(puboutfp = fopen(puboutfile, "wb"))) {
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}

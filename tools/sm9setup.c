@@ -57,14 +57,14 @@ int sm9setup_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-out")) {
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "w"))) {
+			if (!(outfp = fopen(outfile, "wb"))) {
 				error_print();
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-pubout")) {
 			if (--argc < 1) goto bad;
 			puboutfile = *(++argv);
-			if (!(puboutfp = fopen(puboutfile, "w"))) {
+			if (!(puboutfp = fopen(puboutfile, "wb"))) {
 				error_print();
 				goto end;
 			}
