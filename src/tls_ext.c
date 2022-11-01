@@ -14,18 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#ifdef WIN32
-
-#include <winsock2.h>		
-
-
-#else
-#include <unistd.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
 #include <gmssl/rand.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>

@@ -12,15 +12,6 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#ifdef WIN32
-#include <winsock2.h>
-#else
-#include <unistd.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
@@ -38,30 +29,16 @@ int tls13_server_main(int argc , char **argv)
 	char *keyfile = NULL;
 	char *pass = NULL;
 	char *cacertfile = NULL;
-
 	int server_ciphers[] = { TLS_cipher_sm4_gcm_sm3, };
-	
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
-
-#ifdef WIN32
-	SOCKET sock;
-	SOCKET conn_sock;
-#else
-	int sock;
-	int conn_sock;	
-#endif
+	tls_socket_t sock;
+	tls_socket_t conn_sock;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
-#ifdef WIN32
-	int client_addrlen;
-#else
-	socklen_t client_addrlen;
-#endif
-
-
+	tls_socklen_t client_addrlen;
 
 	argc--;
 	argv++;
@@ -186,11 +163,7 @@ restart:
 
 		if (tls13_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
 			fprintf(stderr, "%s: send failure, close connection\n", prog);
-#ifdef WIN32
-			closesocket(conn.sock);
-#else
-			close(conn.sock);
-#endif
+			tls_socket_close(conn.sock);
 			goto end;
 		}
 	}
