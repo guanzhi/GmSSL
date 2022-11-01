@@ -12,16 +12,6 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#ifdef WIN32
-#include <winsock2.h>
-#else
-#include <unistd.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
@@ -49,11 +39,7 @@ int tls13_client_main(int argc, char *argv[])
 	char *pass = NULL;
 	struct hostent *hp;
 	struct sockaddr_in server;
-#ifdef WIN32
-	SOCKET sock;
-#else	
-	int sock;
-#endif
+	tls_socket_t sock;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};
@@ -198,11 +184,7 @@ bad:
 	}
 
 end:
-#ifdef WIN32
-	closesocket(sock);
-#else
-	close(sock);
-#endif
+	tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;
