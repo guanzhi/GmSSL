@@ -14,6 +14,19 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef WIN32
+#include <winsock2.h>
+#else
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 #include <gmssl/rand.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
@@ -1447,10 +1460,17 @@ int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
 	return 0;
 }
 
-int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
+#ifdef WIN32
+int tls_record_send(const uint8_t *record, size_t recordlen, SOCKET sock)
+#else
+int tls_record_send(const uint8_t *record, size_t recordlen, int sock)
+#endif
 {
-	tls_ret_t r;
-
+#ifdef WIN32
+	int r;
+#else
+	ssize_t r;
+#endif
 	if (!record) {
 		error_print();
 		return -1;
@@ -1463,7 +1483,11 @@ int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 		error_print();
 		return -1;
 	}
-	if ((r = tls_socket_send(sock, record, recordlen, 0)) < 0) {
+#ifdef WIN32
+	if ((r = send(sock, record, (int)recordlen, 0)) < 0) {
+#else	
+	if ((r = send(sock, record, recordlen, 0)) < 0) {
+#endif
 		perror("tls_record_send");
 		error_print();
 		return -1;
@@ -1474,14 +1498,26 @@ int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 	return 1;
 }
 
-int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
+#ifdef WIN32
+int tls_record_do_recv(uint8_t *record, size_t *recordlen, SOCKET sock)
+#else
+int tls_record_do_recv(uint8_t *record, size_t *recordlen, int sock)
+#endif
 {
-	tls_ret_t r;
+#ifdef WIN32
+	int r;
+#else
+	ssize_t r;
+#endif
 	size_t len;
 
 	len = 5;
 	while (len) {
-		if ((r = tls_socket_recv(sock, record + 5 - len, len, 0)) < 0) {
+#ifdef WIN32
+		if ((r = recv(sock, record + 5 - len, (int)len, 0)) < 0) {
+#else
+		if ((r = recv(sock, record + 5 - len, len, 0)) < 0) {
+#endif
 			perror("tls_record_do_recv");
 			error_print();
 			return -1;
@@ -1510,7 +1546,11 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 		return -1;
 	}
 	while (len) {
+#ifdef WIN32
+		if ((r = recv(sock, record + *recordlen - len, (int)len, 0)) < 0) {
+#else
 		if ((r = recv(sock, record + *recordlen - len, len, 0)) < 0) {
+#endif
 			perror("tls_record_do_recv");
 			error_print();
 			return -1;
@@ -1520,7 +1560,11 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 	return 1;
 }
 
-int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
+#ifdef WIN32
+int tls_record_recv(uint8_t *record, size_t *recordlen, SOCKET sock)
+#else
+int tls_record_recv(uint8_t *record, size_t *recordlen, int sock)
+#endif
 {
 retry:
 	if (tls_record_do_recv(record, recordlen, sock) != 1) {
@@ -2259,7 +2303,11 @@ void tls_cleanup(TLS_CONNECT *conn)
 	gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
 }
 
-int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
+#ifdef WIN32
+int tls_set_socket(TLS_CONNECT *conn, SOCKET sock)
+#else
+int tls_set_socket(TLS_CONNECT *conn, int sock)
+#endif
 {
 #if 0
 	int opts;

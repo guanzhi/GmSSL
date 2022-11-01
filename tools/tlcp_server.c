@@ -12,6 +12,15 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef WIN32
+#include <winsock2.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
@@ -38,11 +47,23 @@ int tlcp_server_main(int argc , char **argv)
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
-	tls_socket_t sock;
-	tls_socket_t conn_sock;
+
+#ifdef WIN32
+	SOCKET sock;
+	SOCKET conn_sock;
+#else
+	int sock;
+	int conn_sock;	
+#endif
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
-	tls_socklen_t client_addrlen;
+#ifdef WIN32
+	int client_addrlen;
+#else
+	socklen_t client_addrlen;
+#endif
+
+
 
 	argc--;
 	argv++;
@@ -173,7 +194,7 @@ restart:
 				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
 				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
 
-				//tls_socket_close(conn.sock); // FIXME: 		
+				//close(conn.sock);
 				tls_cleanup(&conn);
 				goto restart;
 			}
@@ -181,7 +202,11 @@ restart:
 
 		if (tls_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
 			fprintf(stderr, "%s: send failure, close connection\n", prog);
-			tls_socket_close(conn.sock);
+#ifdef WIN32
+			closesocket(conn.sock);
+#else
+			close(conn.sock);
+#endif
 			goto end;
 		}
 	}
