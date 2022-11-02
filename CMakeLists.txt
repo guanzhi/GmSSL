@@ -73,7 +73,7 @@ set(src
 )
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2 -mavx512bw")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpclmul -msse4.2")
 	list(APPEND src src/gf128_avx.c)
 else()
 	list(APPEND src src/gf128.c)
@@ -182,6 +182,8 @@ set(tools
 	tools/tls12_server.c
 	tools/tls13_client.c
 	tools/tls13_server.c
+	tools/sm3speed.c
+	tools/sm4speed.c
 )
 
 add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
