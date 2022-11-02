@@ -67,6 +67,7 @@ int sm2_bn_from_hex(SM2_BN r, const char hex[64]);
 int sm2_bn_from_asn1_integer(SM2_BN r, const uint8_t *d, size_t dlen);
 int sm2_bn_equ_hex(const SM2_BN a, const char *hex);
 int sm2_bn_print(FILE *fp, int fmt, int ind, const char *label, const SM2_BN a);
+int sm2_bn_rshift(SM2_BN ret, const SM2_BN a, unsigned int nbits);
 
 void sm2_bn_to_bytes(const SM2_BN a, uint8_t out[32]);
 void sm2_bn_from_bytes(SM2_BN r, const uint8_t in[32]);
@@ -98,6 +99,8 @@ void sm2_fp_neg(SM2_Fp r, const SM2_Fp a);
 void sm2_fp_sqr(SM2_Fp r, const SM2_Fp a);
 void sm2_fp_inv(SM2_Fp r, const SM2_Fp a);
 void sm2_fp_rand(SM2_Fp r); // 外部提供随机性，如果满足条件就输出，如果不满足条件就哈希一下再输出
+
+int sm2_fp_sqrt(SM2_Fp r, const SM2_Fp a);
 
 #define sm2_fp_init(r)		sm2_bn_init(r)
 #define sm2_fp_set_zero(r)	sm2_bn_set_zero(r)
@@ -300,12 +303,16 @@ typedef struct {
 
 int sm2_do_sign_ex(const SM2_KEY *key, int flags, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
+int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
 #define SM2_MIN_SIGNATURE_SIZE 8
 #define SM2_MAX_SIGNATURE_SIZE 72
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
+int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t dgst[32],
+	SM2_POINT points[4], size_t *points_cnt);
+
 int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
 int sm2_sign_ex(const SM2_KEY *key, int flags, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
 int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);

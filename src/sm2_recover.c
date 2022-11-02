@@ -13,66 +13,7 @@
 #include <assert.h>
 #include <gmssl/sm2.h>
 #include <gmssl/error.h>
-#include "sm2_recover.h"
 
-
-static int sm2_bn_rshift(SM2_BN ret, const SM2_BN a, unsigned int nbits)
-{
-	SM2_BN r;
-	int i;
-	assert(nbits < 32);
-	for (i = 0; i < 7; i++) {
-		r[i] = a[i] >> nbits;
-		r[i] |= (a[i+1] << (32 - nbits)) & 0xffffffff;
-	}
-	r[i] = a[i] >> nbits;
-	sm2_bn_copy(ret, r);
-	return 1;
-}
-
-static int test_sm2_bn_rshift(void)
-{
-	SM2_BN a;
-	int i;
-
-	sm2_bn_from_hex(a, "ad23f3bff55b45c7192e25efcefa5fcecab1f072cd04a88e6cf64bfd3f531966");
-	sm2_bn_print(stderr, 0, 0, "a", a);
-
-	for (i = 0; i < 64; i++) {
-		sm2_bn_rshift(a, a, 31);
-		sm2_bn_print(stderr, 0, 0, "a", a);
-	}
-
-	return 0;
-}
-
-static int sm2_fp_sqrt(SM2_Fp r, const SM2_Fp a)
-{
-	SM2_BN u;
-	SM2_BN y; // temp result, prevent call sm2_fp_sqrt(a, a)
-
-	// r = a^((p - 1)/4) when p = 3 (mod 4)
-	sm2_bn_add(u, SM2_P, SM2_ONE);
-	sm2_bn_rshift(u, u, 2);
-	sm2_fp_exp(y, a, u);
-
-	// check r^2 == a
-	sm2_fp_sqr(u, y);
-	if (sm2_bn_cmp(u, a) != 0) {
-		error_print();
-		return -1;
-	}
-
-	sm2_bn_copy(r, y);
-	return 1;
-}
-
-static int test_sm2_fp_sqrt(void)
-{
-	// a = 0x998eb0e4b8399fb359268966270049a6a4a317f9417c572c910d80c09969dc3
-	// a^2 = 0x1b20ef7d2082f66c7561cdd4cdb0a8d58fa753e3e0d2e0560c80c849568f3fdb
-	return 1;
-}
 
 // r = H(Z||M) + x1 (mod n)
 // x1 = r - H(Z||M) (mod n) or (r - H(Z||M) (mod n)) + n
@@ -188,13 +129,3 @@ static int test_sm2_signature_to_public_key_points(void)
 	return 1;
 }
 
-#if 0
-int main(void)
-{
-	//test_sm2_bn_rshift();
-	//test_sm2_fp_sqrt();
-
-	test_sm2_signature_to_public_key_points();
-	return 0;
-}
-#endif

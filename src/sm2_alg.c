@@ -268,6 +268,28 @@ void sm2_bn_set_word(SM2_BN r, uint32_t a)
 	}
 }
 
+int sm2_bn_rshift(SM2_BN ret, const SM2_BN a, unsigned int nbits)
+{
+	SM2_BN r;
+	int i;
+
+	if (nbits > 31) {
+		error_print();
+		return -1;
+	}
+	if (nbits == 0) {
+		sm2_bn_copy(ret, a);
+	}
+
+	for (i = 0; i < 7; i++) {
+		r[i] = a[i] >> nbits;
+		r[i] |= (a[i+1] << (32 - nbits)) & 0xffffffff;
+	}
+	r[i] = a[i] >> nbits;
+	sm2_bn_copy(ret, r);
+	return 1;
+}
+
 void sm2_bn_add(SM2_BN r, const SM2_BN a, const SM2_BN b)
 {
 	int i;
@@ -502,6 +524,27 @@ void sm2_fp_inv(SM2_Fp r, const SM2_Fp a)
 	sm2_bn_clean(a3);
 	sm2_bn_clean(a4);
 	sm2_bn_clean(a5);
+}
+
+int sm2_fp_sqrt(SM2_Fp r, const SM2_Fp a)
+{
+	SM2_BN u;
+	SM2_BN y; // temp result, prevent call sm2_fp_sqrt(a, a)
+
+	// r = a^((p - 1)/4) when p = 3 (mod 4)
+	sm2_bn_add(u, SM2_P, SM2_ONE);
+	sm2_bn_rshift(u, u, 2);
+	sm2_fp_exp(y, a, u);
+
+	// check r^2 == a
+	sm2_fp_sqr(u, y);
+	if (sm2_bn_cmp(u, a) != 0) {
+		error_print();
+		return -1;
+	}
+
+	sm2_bn_copy(r, y);
+	return 1;
 }
 
 void sm2_fn_add(SM2_Fn r, const SM2_Fn a, const SM2_Fn b)
