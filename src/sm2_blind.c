@@ -15,15 +15,7 @@
 #include <gmssl/mem.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-
-
-typedef struct {
-	SM3_CTX sm3_ctx;
-	SM2_KEY public_key;
-	uint8_t blind_factor_a[32];
-	uint8_t blind_factor_b[32];
-	uint8_t r[32];
-} SM2_BLIND_SIGN_CTX;
+#include <gmssl/sm2_blind.h>
 
 
 int sm2_blind_sign_commit(SM2_Fn k, uint8_t *commit, size_t *commitlen)
@@ -36,8 +28,8 @@ int sm2_blind_sign_commit(SM2_Fn k, uint8_t *commit, size_t *commitlen)
 
 	// commitment = k * G
 	sm2_point_mul_generator(&K, k_bytes);
-	sm2_point_to_uncompressed_octets(&K, commit);
-	*commitlen = 65;
+	sm2_point_to_compressed_octets(&K, commit);
+	*commitlen = 33;
 	gmssl_secure_clear(k_bytes, sizeof(k_bytes));
 
 	return 1;
@@ -111,7 +103,7 @@ int sm2_blind_sign_finish(SM2_BLIND_SIGN_CTX *ctx,
 
 	// r = x1 + e (mod n)
 	sm2_fn_add(r, r, e);
-	sm2_bn_to_bytes(r, ctx->r);
+	sm2_bn_to_bytes(r, ctx->sig_r);
 
 	// r' = a^-1 * (r + b)
 	sm2_fn_add(r, r, b);
@@ -150,11 +142,12 @@ int sm2_blind_sign(const SM2_KEY *key, const SM2_Fn k, const uint8_t blinded_r[3
 	return 1;
 }
 
-int sm2_blind_sign_unblind(SM2_BLIND_SIGN_CTX *ctx, const uint8_t blinded_sig_s[32], SM2_SIGNATURE *sig)
+int sm2_blind_sign_unblind(SM2_BLIND_SIGN_CTX *ctx, const uint8_t blinded_sig_s[32], uint8_t *sig, size_t *siglen)
 {
 	SM2_Fn a;
 	SM2_Fn b;
 	SM2_Fn s;
+	SM2_SIGNATURE signature;
 
 	sm2_bn_from_bytes(a, ctx->blind_factor_a);
 	sm2_bn_from_bytes(b, ctx->blind_factor_b);
@@ -164,11 +157,92 @@ int sm2_blind_sign_unblind(SM2_BLIND_SIGN_CTX *ctx, const uint8_t blinded_sig_s[
 	sm2_fn_mul(s, s, a);
 	sm2_fn_add(s, s, b);
 
-	memcpy(sig->r, ctx->r, 32);
-	sm2_bn_to_bytes(s, sig->s);
+	memcpy(signature.r, ctx->sig_r, 32);
+	sm2_bn_to_bytes(s, signature.s);
+
+
+	*siglen = 0;
+	sm2_signature_to_der(&signature, &sig, siglen);
 
 	gmssl_secure_clear(a, sizeof(a));
 	gmssl_secure_clear(b, sizeof(b));
 	gmssl_secure_clear(ctx, sizeof(*ctx));
 	return 1;
+}
+
+int test_sm2_blind_sign(void)
+{
+	int r = -1;
+
+	// signer
+	SM2_KEY key;
+	SM2_Fn k;
+	uint8_t commit[65];
+	size_t commitlen;
+
+	// caller
+	SM2_KEY public_key;
+	SM2_BLIND_SIGN_CTX sign_ctx;
+	uint8_t msg[128] = {0};
+	uint8_t blinded_sig_s[32];
+	uint8_t blinded_sig_r[32];
+	uint8_t sig[128];
+	size_t siglen;
+
+	// verifier
+	SM2_SIGN_CTX verify_ctx;
+
+
+	// signer
+	if (sm2_key_generate(&key) != 1
+		|| sm2_key_set_public_key(&public_key, &key.public_key) != 1) {
+		error_print();
+		goto end;
+	}
+	if (sm2_blind_sign_commit(k, commit, &commitlen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, "signer: commitment", commit, commitlen);
+
+	// caller
+	if (sm2_blind_sign_init(&sign_ctx, &public_key,
+		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1
+		|| sm2_blind_sign_update(&sign_ctx, msg, 32) != 1
+		|| sm2_blind_sign_update(&sign_ctx, msg + 32, 32) != 1
+		|| sm2_blind_sign_update(&sign_ctx, msg + 64, 64) != 1
+		|| sm2_blind_sign_finish(&sign_ctx, commit, commitlen, blinded_sig_r) != 1) {
+		error_print();
+		goto end;
+	}
+	format_bytes(stderr, 0, 0, "caller: blinded_sig_r", blinded_sig_r, sizeof(blinded_sig_r));
+
+	// signer
+	if (sm2_blind_sign(&key, k, blinded_sig_r, blinded_sig_s) != 1) {
+		error_print();
+		goto end;
+	}
+	format_bytes(stderr, 0, 0, "signer: blinded_sig_s", blinded_sig_s, sizeof(blinded_sig_s));
+
+	// caller
+	if (sm2_blind_sign_unblind(&sign_ctx, blinded_sig_s, sig, &siglen) != 1) {
+		error_print();
+		goto end;
+	}
+	format_bytes(stderr, 0, 0, "caller: unblinded_sig", sig, siglen);
+
+	// verifier
+	if (sm2_verify_init(&verify_ctx, &public_key,
+		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1
+		|| sm2_verify_update(&verify_ctx, msg, sizeof(msg)) != 1
+		|| (r = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
+		error_print();
+		goto end;
+	}
+	format_print(stderr, 0, 0, "verifier: %s\n", r == 1 ? "success" : "failure");
+
+end:
+	gmssl_secure_clear(&key, sizeof(key));
+	gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
+	return r;
 }
