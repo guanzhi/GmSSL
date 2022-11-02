@@ -17,11 +17,12 @@
 #include <gmssl/rand.h>
 
 #ifdef WIN32
+#include <windows.h>
 #include <wincrypt.h>
 
 static volatile int finish;
 
-VOID CALLBACK TimerProc_sm4(HWND hwnd, UINT message, UINT iTimerID, DWORD dwTime) 
+VOID CALLBACK TimerRoutine_sm4(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 { 
 	finish = 0;
 } 
@@ -48,8 +49,17 @@ int test_sm4()
 	SM4_KEY key;
 	int sizebox[] = {16,64,256,1024,8192,16384};
 	int countbox[18] ={0};
-	uint8_t *testhex[];
-	HCRYPTPROV   hCryptProv;
+	uint8_t **testhex;
+	HCRYPTPROV  hCryptProv = 0;
+	HANDLE hTimer = NULL;
+    HANDLE hTimerQueue = NULL;
+
+	hTimerQueue = CreateTimerQueue();
+    if (NULL == hTimerQueue)
+    {
+        printf("CreateTimerQueue failed (%d)\n", GetLastError());
+        return -1;
+    }
 
 	testhex = (uint8_t **)malloc(sizeof(uint8_t *) * 6);
 	for (int i = 0; i < 6; i++) {
@@ -64,14 +74,19 @@ int test_sm4()
 	for (int i = 0; i < 6; i++) {
 		finish = 1;
 		count = 0;
+
+		if (!CreateTimerQueueTimer( &hTimer, hTimerQueue, (WAITORTIMERCALLBACK)TimerRoutine_sm4, NULL, 3000, 0, 0))
+		{
+			printf("CreateTimerQueueTimer failed (%d)\n", GetLastError());
+			return -1;
+		}
+
 		printf("Doing sm4-cbc for 3s on %d size blocks: ", sizebox[i]);
-		UINT_PTR iTimerID = SetTimer(NULL,0,3000,TimerProc_sm4); 
 		while(finish)
 		{
 			sm4_cbc_encrypt(&key, iv, testhex[i], sizebox[i] / 16, out);
 			count++;
 		}
-		KillTimer(NULL,iTimerID); 
 		countbox[i] = count;
 		printf("%d sm4-cbc's in 3s\n", count);
 	}
@@ -79,13 +94,16 @@ int test_sm4()
 		finish = 1;
 		count = 0;
 		printf("Doing sm4-ctr for 3s on %d size blocks: ", sizebox[i]);
-		UINT_PTR iTimerID = SetTimer(NULL,0,3000,TimerProc); 
+		if (!CreateTimerQueueTimer( &hTimer, hTimerQueue, (WAITORTIMERCALLBACK)TimerRoutine_sm4, NULL, 3000, 0, 0))
+		{
+			printf("CreateTimerQueueTimer failed (%d)\n", GetLastError());
+			return -1;
+		}
 		while(finish)
 		{
 			sm4_ctr_encrypt(&key, ctr, testhex[i], sizebox[i], out);
 			count++;
 		}
-		KillTimer(NULL,iTimerID); 
 		countbox[i+6] = count;
 		printf("%d sm4-ctr's in 3s\n", count);
 	}
@@ -93,13 +111,16 @@ int test_sm4()
 		finish = 1;
 		count = 0;
 		printf("Doing sm4-gcm for 3s on %d size blocks: ", sizebox[i]);
-		UINT_PTR iTimerID = SetTimer(NULL,0,3000,TimerProc); 
+		if (!CreateTimerQueueTimer( &hTimer, hTimerQueue, (WAITORTIMERCALLBACK)TimerRoutine_sm4, NULL, 3000, 0, 0))
+		{
+			printf("CreateTimerQueueTimer failed (%d)\n", GetLastError());
+			return -1;
+		}
 		while(finish)
 		{
 			sm4_gcm_encrypt(&key, iv, 16, aad, 16, testhex[i],sizebox[i], out, 16, mac);
 			count++;
 		}
-		KillTimer(NULL,iTimerID); 
 		countbox[i+12] = count;
 		printf("%d sm4-gcm's in 3s\n", count);
 	}
@@ -124,6 +145,11 @@ int test_sm4()
 		free(testhex[i]); 
 	}
 	free(testhex);
+	if (!DeleteTimerQueue(hTimerQueue))
+	{
+		printf("DeleteTimerQueue failed (%d)\n", GetLastError()); 
+		return -1;
+	}
 	return 1;
 }
 

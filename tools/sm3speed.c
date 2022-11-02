@@ -17,11 +17,12 @@
 #include <gmssl/error.h>
 
 #ifdef WIN32
+#include <windows.h>
 #include <wincrypt.h>
 
 static volatile int finish;
 
-VOID CALLBACK TimerProc_sm3(HWND hwnd, UINT message, UINT iTimerID, DWORD dwTime) 
+VOID CALLBACK TimerRoutine_sm3(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 { 
 	finish = 0;
 } 
@@ -31,7 +32,16 @@ int test_sm3()
 	int sizebox[] = {16,64,256,1024,8192,16384};
 	int countbox[6] ={0};
 	uint8_t **testhex;
-	HCRYPTPROV   hCryptProv;
+	HCRYPTPROV   hCryptProv = 0;
+	HANDLE hTimer = NULL;
+    HANDLE hTimerQueue = NULL;
+
+	hTimerQueue = CreateTimerQueue();
+    if (NULL == hTimerQueue)
+    {
+        printf("CreateTimerQueue failed (%d)\n", GetLastError());
+        return -1;
+    }
 
 	testhex = (uint8_t **)malloc(sizeof(uint8_t *) * 6);
 	for (int i = 0; i < 6; i++) {
@@ -45,14 +55,17 @@ int test_sm3()
 	for (int i = 0; i < 6; i++) {
 		finish = 1;
 		count = 0;
+		if (!CreateTimerQueueTimer( &hTimer, hTimerQueue, (WAITORTIMERCALLBACK)TimerRoutine_sm3, NULL, 3000, 0, 0))
+		{
+			printf("CreateTimerQueueTimer failed (%d)\n", GetLastError());
+			return -1;
+		}
 		printf("Doing sm3 for 3s on %d size blocks: ", sizebox[i]);
-		UINT_PTR iTimerID = SetTimer(NULL,0,3000,TimerProc_sm3); 
 		while(finish)
 		{
 			sm3_digest(testhex[i], sizebox[i], dgst);
 			count++;
 		}
-		KillTimer(NULL,iTimerID); 
 		countbox[i] = count;
 		printf("%d sm3's in 3s\n", count);
 	}
@@ -67,6 +80,11 @@ int test_sm3()
 		free(testhex[i]); 
 	}
 	free(testhex);
+	if (!DeleteTimerQueue(hTimerQueue))
+	{
+		printf("DeleteTimerQueue failed (%d)\n", GetLastError()); 
+		return -1;
+	}
 	return 1;
 }
 
