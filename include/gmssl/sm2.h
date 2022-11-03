@@ -191,6 +191,8 @@ int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y);
 int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32]);
 int sm2_point_is_on_curve(const SM2_POINT *P);
+int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
+int sm2_point_dbl(SM2_POINT *R, const SM2_POINT *P);
 int sm2_point_mul(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P);
 int sm2_point_mul_generator(SM2_POINT *R, const uint8_t k[32]);
 int sm2_point_mul_sum(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P, const uint8_t s[32]); // R = k * P + s * G
@@ -203,6 +205,7 @@ ECPoint ::= OCTET STRING
 int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen);
 int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen);
 int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P);
+int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen);
 
 
 typedef struct {

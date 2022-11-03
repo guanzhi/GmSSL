@@ -531,7 +531,7 @@ int sm2_fp_sqrt(SM2_Fp r, const SM2_Fp a)
 	SM2_BN u;
 	SM2_BN y; // temp result, prevent call sm2_fp_sqrt(a, a)
 
-	// r = a^((p - 1)/4) when p = 3 (mod 4)
+	// r = a^((p + 1)/4) when p = 3 (mod 4)
 	sm2_bn_add(u, SM2_P, SM2_ONE);
 	sm2_bn_rshift(u, u, 2);
 	sm2_fp_exp(y, a, u);
@@ -1115,6 +1115,30 @@ int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32])
 	return sm2_point_is_on_curve(P);
 }
 
+int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
+{
+	SM2_JACOBIAN_POINT P_;
+	SM2_JACOBIAN_POINT Q_;
+
+	sm2_jacobian_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_jacobian_point_from_bytes(&Q_, (uint8_t *)Q);
+	sm2_jacobian_point_add(&P_, &P_, &Q_);
+	sm2_jacobian_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_dbl(SM2_POINT *R, const SM2_POINT *P)
+{
+	SM2_JACOBIAN_POINT P_;
+
+	sm2_jacobian_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_jacobian_point_dbl(&P_, &P_);
+	sm2_jacobian_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
 int sm2_point_mul(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P)
 {
 	SM2_BN _k;
@@ -1233,3 +1257,45 @@ int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen)
 	}
 	return 1;
 }
+
+int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
+{
+	SM2_BN u;
+	SM2_Fp x;
+	SM2_Fp y;
+	SM2_Fp s;
+	SM2_Fp s_;
+	uint8_t dgst[32];
+
+	// u = (p + 1)/4
+	sm2_bn_add(u, SM2_P, SM2_ONE);
+	sm2_bn_rshift(u, u, 2);
+
+	do {
+		sm3_digest(data, datalen, dgst);
+
+		sm2_bn_from_bytes(x, dgst);
+		if (sm2_bn_cmp(x, SM2_P) >= 0) {
+			sm2_bn_sub(x, x, SM2_P);
+		}
+
+		// s = y^2 = x^3 + a*x + b
+		sm2_fp_sqr(s, x);
+		sm2_fp_sub(s, s, SM2_THREE);
+		sm2_fp_mul(s, s, x);
+		sm2_fp_add(s, s, SM2_B);
+
+		// y = s^((p+1)/4) = (sqrt(s) (mod p))
+		sm2_fp_exp(y, s, u);
+		sm2_fp_sqr(s_, y);
+
+		data = dgst;
+		datalen = sizeof(dgst);
+
+	} while (sm2_bn_cmp(s, s_) != 0);
+
+	sm2_bn_to_bytes(x, R->x);
+	sm2_bn_to_bytes(y, R->y);
+	return 1;
+}
+

@@ -14,76 +14,25 @@
 #include <stdint.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
+#include <gmssl/mem.h>
 #include <gmssl/asn1.h>
+#include <gmssl/rand.h>
 #include <gmssl/error.h>
+#include <gmssl/sm2_commit.h>
 
 
-#define SM2_H_TEXT "GmSSL SM2 Pederson Commitment Generator H"
+#define SM2_COMMIT_SEED "GmSSL SM2 Pederson Commitment Generator H"
 
 
-static int sm2_bn_rshift(SM2_BN ret, const SM2_BN a, unsigned int nbits)
+// C = rG + xH
+int sm2_commit_generate(const uint8_t x[32], uint8_t r[32], uint8_t commit[65], size_t *commitlen)
 {
-	SM2_BN r;
-	int i;
-	for (i = 0; i < 7; i++) {
-		r[i] = a[i] >> nbits;
-		r[i] |= (a[i+1] << (32 - nbits)) & 0xffffffff;
-	}
-	r[i] = a[i] >> nbits;
-	sm2_bn_copy(ret, r);
-	return 1;
-}
-
-int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
-{
-	SM2_BN u;
-	SM2_Fp x;
-	SM2_Fp y;
-	SM2_Fp s;
-	SM2_Fp s_;
-	uint8_t dgst[32];
-
-	// u = (p-1)/4
-	sm2_bn_sub(u, SM2_P, SM2_ONE);
-	sm2_bn_rshift(u, u, 2);
-
-	do {
-		sm3_digest(data, datalen, dgst);
-
-		sm2_bn_from_bytes(x, dgst);
-		if (sm2_bn_cmp(x, SM2_P) >= 0) {
-			sm2_bn_sub(x, x, SM2_P);
-		}
-
-		// s = x^3 + a*x + b
-		sm2_fp_sqr(s, x);
-		sm2_fp_sub(s, s, SM2_THREE);
-		sm2_fp_mul(s, s, x);
-		sm2_fp_add(s, s, SM2_B);
-
-		// y = s^((p-1)/4) = (sqrt(s) (mod p))
-		sm2_fp_exp(y, s, u);
-		sm2_fp_sqr(s_, y);
-
-		data = dgst;
-		datalen = sizeof(dgst);
-
-	} while (sm2_bn_cmp(s, s_) != 0);
-
-	sm2_bn_to_bytes(x, R->x);
-	sm2_bn_to_bytes(y, R->y);
-	return 1;
-}
-
-int sm2_pederson_do_commit(const SM2_POINT *H, const uint8_t a[32], uint8_t r[32], SM2_POINT *C)
-{
+	SM2_POINT H;
+	SM2_POINT C;
 	SM2_BN r_;
-	SM2_BN a_;
 
-	sm2_bn_from_bytes(a_, a);
-	if (sm2_bn_cmp(a_, SM2_N) >= 0) {
+	if (sm2_point_from_hash(&H, (uint8_t *)SM2_COMMIT_SEED, sizeof(SM2_COMMIT_SEED)-1) != 1) {
 		error_print();
-		memset(a_, 0, sizeof(a_));
 		return -1;
 	}
 
@@ -92,35 +41,170 @@ int sm2_pederson_do_commit(const SM2_POINT *H, const uint8_t a[32], uint8_t r[32
 	} while (sm2_bn_is_zero(r_));
 
 	sm2_bn_to_bytes(r_, r);
+	gmssl_secure_clear(r_, sizeof(r_));
 
-	// C= r*H + a*G
-	sm2_point_mul_sum(C, r, H, a);
+	// C = xH + rG
+	sm2_point_mul_sum(&C, x, &H, r);
 
-	memset(a_, 0, sizeof(a_));
-	memset(r_, 0, sizeof(r_));
+	sm2_point_to_compressed_octets(&C, commit);
+	*commitlen = 33;
 	return 1;
 }
 
-int sm2_pederson_do_open(const SM2_POINT *H, const SM2_POINT *C, const uint8_t a[32], const uint8_t r[32])
+int sm2_commit_open(const uint8_t x[32], const uint8_t r[32], const uint8_t *commit, size_t commitlen)
 {
-	SM2_BN a_;
+	SM2_POINT H;
+	SM2_POINT C;
 	SM2_POINT C_;
 
-	sm2_bn_from_bytes(a_, a);
-	if (sm2_bn_cmp(a_, SM2_N) >= 0) {
+	if (sm2_point_from_octets(&C, commit, commitlen) != 1) {
 		error_print();
-		memset(a_, 0, sizeof(a_));
 		return -1;
 	}
 
-	sm2_point_mul_sum(&C_, r, H, a);
-	if (memcmp(&C, C, sizeof(SM2_POINT)) != 0) {
+	if (sm2_point_from_hash(&H, (uint8_t *)SM2_COMMIT_SEED, sizeof(SM2_COMMIT_SEED)-1) != 1) {
 		error_print();
-		memset(a_, 0, sizeof(a_));
-		return 0;
+		return -1;
 	}
 
-	memset(a_, 0, sizeof(a_));
+	// C' = xH + rG
+	if (sm2_point_mul_sum(&C_, x, &H, r) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (memcmp(&C, &C_, sizeof(SM2_POINT)) != 0) {
+		error_print();
+		return 0;
+	}
 	return 1;
 }
 
+// C = r*G + x1*H1 + x2*H2 + ...
+int sm2_commit_vector_generate(const sm2_bn_t *x, size_t count, uint8_t r[32], uint8_t commit[65], size_t *commitlen)
+{
+	SM2_POINT H;
+	SM2_POINT C;
+	SM2_Fn r_;
+	size_t i;
+
+	if (count < 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm2_point_from_hash(&H, (uint8_t *)SM2_COMMIT_SEED, sizeof(SM2_COMMIT_SEED)-1) != 1) {
+		error_print();
+		return -1;
+	}
+
+	do {
+		sm2_fn_rand(r_);
+	} while (sm2_bn_is_zero(r_));
+
+	sm2_bn_to_bytes(r_, r);
+	gmssl_secure_clear(r_, sizeof(r_));
+
+	if (sm2_point_mul_sum(&C, x[0], &H, r) != 1) {
+		error_print();
+		return -1;
+	}
+
+	for (i = 1; i < count; i++) {
+		SM2_POINT xH;
+
+		if (sm2_point_from_hash(&H, (uint8_t *)&H, sizeof(H)) != 1
+			|| sm2_point_mul(&xH, x[i], &H) != 1
+			|| sm2_point_add(&C, &C, &xH) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	sm2_point_to_compressed_octets(&C, commit);
+	*commitlen = 33;
+	return 1;
+}
+
+int sm2_commit_vector_open(const sm2_bn_t *x, size_t count, const uint8_t r[32], const uint8_t *commit, size_t commitlen)
+{
+	SM2_POINT H;
+	SM2_POINT C;
+	SM2_POINT C_;
+	size_t i;
+
+	if (count < 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm2_point_from_octets(&C, commit, commitlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm2_point_from_hash(&H, (uint8_t *)SM2_COMMIT_SEED, sizeof(SM2_COMMIT_SEED)-1) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm2_point_mul_sum(&C_, x[0], &H, r) != 1) {
+		error_print();
+		return -1;
+	}
+
+	for (i = 1; i< count; i++) {
+		SM2_POINT xH;
+
+		if (sm2_point_from_hash(&H, (uint8_t *)&H, sizeof(H)) != 1
+			|| sm2_point_mul(&xH, x[i], &H) != 1
+			|| sm2_point_add(&C_, &C_, &xH) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (memcmp(&C, &C_, sizeof(SM2_POINT)) != 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int test_sm2_commit(void)
+{
+	uint8_t x[32];
+	uint8_t xvec[8][32];
+	uint8_t r[32];
+	uint8_t commit[65];
+	size_t commitlen;
+	int ret;
+
+	rand_bytes(x, sizeof(x));
+	format_bytes(stderr, 0, 0, "secret", x, sizeof(x));
+
+	sm2_commit_generate(x, r, commit, &commitlen);
+	format_bytes(stderr, 0, 0, "random", r, sizeof(r));
+	format_bytes(stderr, 0, 0, "commitment", commit, commitlen);
+
+	ret = sm2_commit_open(x, r, commit, commitlen);
+	printf("open commitment: %s\n", ret == 1 ? "success" : "failure");
+
+
+	sm2_commit_vector_generate(&x, 1, r, commit, &commitlen);
+	format_bytes(stderr, 0, 0, "random", r, sizeof(r));
+	format_bytes(stderr, 0, 0, "commitment", commit, commitlen);
+
+	ret = sm2_commit_vector_open(&x, 1, r, commit, commitlen);
+	printf("open commitment: %s\n", ret == 1 ? "success" : "failure");
+
+
+	rand_bytes(xvec[0], sizeof(xvec));
+	sm2_commit_vector_generate(xvec, 8, r, commit, &commitlen);
+	ret = sm2_commit_vector_open(xvec, 8, r, commit, commitlen);
+	printf("open commitment: %s\n", ret == 1 ? "success" : "failure");
+
+
+
+	return 1;
+}
