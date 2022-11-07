@@ -28,7 +28,7 @@ typedef HMODULE dylib_handle_t;
 #define dylib_load_library(so_path)	LoadLibraryA(so_path)
 #define dylib_get_function(handle,name)	GetProcAddress(handle,name)
 #define dylib_close_library(handle)
-#define dylib_error_str()
+#define dylib_error_str()		""
 
 
 #else
