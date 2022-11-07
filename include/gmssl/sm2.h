@@ -76,7 +76,7 @@ void sm2_bn_to_bits(const SM2_BN a, char bits[256]);
 void sm2_bn_set_word(SM2_BN r, uint32_t a);
 void sm2_bn_add(SM2_BN r, const SM2_BN a, const SM2_BN b);
 void sm2_bn_sub(SM2_BN ret, const SM2_BN a, const SM2_BN b);
-void sm2_bn_rand_range(SM2_BN r, const SM2_BN range); // 这个函数需要修改一下，从外部引入随机数
+int  sm2_bn_rand_range(SM2_BN r, const SM2_BN range);
 
 #define sm2_bn_init(r) memset((r),0,sizeof(SM2_BN))
 #define sm2_bn_set_zero(r) memset((r),0,sizeof(SM2_BN))
@@ -98,7 +98,7 @@ void sm2_fp_div2(SM2_Fp r, const SM2_Fp a);
 void sm2_fp_neg(SM2_Fp r, const SM2_Fp a);
 void sm2_fp_sqr(SM2_Fp r, const SM2_Fp a);
 void sm2_fp_inv(SM2_Fp r, const SM2_Fp a);
-void sm2_fp_rand(SM2_Fp r); // 外部提供随机性，如果满足条件就输出，如果不满足条件就哈希一下再输出
+int  sm2_fp_rand(SM2_Fp r);
 
 int sm2_fp_sqrt(SM2_Fp r, const SM2_Fp a);
 
@@ -114,11 +114,12 @@ typedef SM2_BN SM2_Fn;
 void sm2_fn_add(SM2_Fn r, const SM2_Fn a, const SM2_Fn b);
 void sm2_fn_sub(SM2_Fn r, const SM2_Fn a, const SM2_Fn b);
 void sm2_fn_mul(SM2_Fn r, const SM2_Fn a, const SM2_Fn b);
+void sm2_fn_mul_word(SM2_Fn r, const SM2_Fn a, uint32_t b);
 void sm2_fn_exp(SM2_Fn r, const SM2_Fn a, const SM2_Fn e);
 void sm2_fn_neg(SM2_Fn r, const SM2_Fn a);
 void sm2_fn_sqr(SM2_Fn r, const SM2_Fn a);
 void sm2_fn_inv(SM2_Fn r, const SM2_Fn a);
-void sm2_fn_rand(SM2_Fn r);
+int  sm2_fn_rand(SM2_Fn r);
 
 #define sm2_fn_init(r)		sm2_bn_init(r)
 #define sm2_fn_set_zero(r)	sm2_bn_set_zero(r)
@@ -297,6 +298,19 @@ int sm2_private_key_info_decrypt_from_der(SM2_KEY *key, const uint8_t **attrs, s
 	const char *pass, const uint8_t **in, size_t *inlen);
 int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
 int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
+
+// SM2 Key Shamir Secret Sharing
+typedef struct {
+	SM2_KEY key;
+	size_t index;
+	size_t total_cnt;
+} SM2_KEY_SHARE;
+
+int sm2_key_split(const SM2_KEY *key, size_t recover_cnt, size_t total_cnt, SM2_KEY_SHARE *shares);
+int sm2_key_recover(SM2_KEY *key, const SM2_KEY_SHARE *shares, size_t shares_cnt);
+int sm2_key_share_encrypt_to_file(const SM2_KEY_SHARE *share, const char *pass, const char *path_prefix);
+int sm2_key_share_decrypt_from_file(SM2_KEY_SHARE *share, const char *pass, const char *file);
+int sm2_key_share_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY_SHARE *share);
 
 
 typedef struct {

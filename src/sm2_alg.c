@@ -317,14 +317,26 @@ void sm2_bn_sub(SM2_BN ret, const SM2_BN a, const SM2_BN b)
 	sm2_bn_copy(ret, r);
 }
 
-// FIXME: get random from outside		
-void sm2_bn_rand_range(SM2_BN r, const SM2_BN range)
+int sm2_bn_rand_range(SM2_BN r, const SM2_BN range)
 {
 	uint8_t buf[32];
 	do {
-		(void)rand_bytes(buf, sizeof(buf));
+		if (rand_bytes(buf, sizeof(buf)) != 1) {
+			error_print();
+			return -1;
+		}
 		sm2_bn_from_bytes(r, buf);
 	} while (sm2_bn_cmp(r, range) >= 0);
+	return 1;
+}
+
+int sm2_fp_rand(SM2_Fp r)
+{
+	if (sm2_bn_rand_range(r, SM2_P) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 void sm2_fp_add(SM2_Fp r, const SM2_Fp a, const SM2_Fp b)
@@ -618,20 +630,19 @@ static void sm2_bn288_sub(uint64_t ret[9], const uint64_t a[9], const uint64_t b
 	}
 }
 
-void sm2_fn_mul(SM2_BN r, const SM2_BN a, const SM2_BN b)
+void sm2_fn_mul(SM2_BN ret, const SM2_BN a, const SM2_BN b)
 {
-	static const uint64_t mu[8] = {
-		0xf15149a0, 0x12ac6361, 0xfa323c01, 0x8dfc2096,
-		1, 1, 1, 0x100000001,
+	SM2_BN r;
+	static const uint64_t mu[9] = {
+		0xf15149a0, 0x12ac6361, 0xfa323c01, 0x8dfc2096, 1, 1, 1, 1, 1,
 	};
 
-	uint64_t s[17];
+	uint64_t s[18];
 	uint64_t zh[9];
 	uint64_t zl[9];
 	uint64_t q[9];
 	uint64_t w;
 	int i, j;
-
 
 	/* z = a * b */
 	for (i = 0; i < 8; i++) {
@@ -662,21 +673,20 @@ void sm2_fn_mul(SM2_BN r, const SM2_BN a, const SM2_BN b)
 	}
 	for (i = 0; i < 9; i++) {
 		w = 0;
-		for (j = 0; j < 8; j++) {
+		for (j = 0; j < 9; j++) {
 			w += s[i + j] + zh[i] * mu[j];
 			s[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
-		s[i + 8] = w;
+		s[i + 9] = w;
 	}
 	for (i = 0; i < 8; i++) {
 		q[i] = s[9 + i];
 	}
 	//printf("q  = "); for (i = 7; i >= 0; i--) printf("%08x", (uint32_t)q[i]); printf("\n");
 
-
 	/* q = q * n mod (2^32)^9 */
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 17; i++) {
 		s[i] = 0;
 	}
 	for (i = 0; i < 8; i++) {
@@ -691,7 +701,7 @@ void sm2_fn_mul(SM2_BN r, const SM2_BN a, const SM2_BN b)
 	for (i = 0; i < 9; i++) {
 		q[i] = s[i];
 	}
-	//printf("qn = "); for (i = 8; i >= 0; i--) printf("%08x", (uint32_t)q[i]); printf("\n");
+	//printf("qn = "); for (i = 8; i >= 0; i--) printf("%08x ", (uint32_t)q[i]); printf("\n");
 
 	/* r = zl - q (mod (2^32)^9) */
 
@@ -702,9 +712,7 @@ void sm2_fn_mul(SM2_BN r, const SM2_BN a, const SM2_BN b)
 		sm2_bn288_sub(q, c, q);
 		sm2_bn288_add(zl, q, zl);
 	}
-
-	//printf("r  = "); for (i = 8; i >= 0; i--) printf("%08x", (uint32_t)zl[i]); printf("\n");
-
+	//printf("zl  = "); for (i = 8; i >= 0; i--) printf("%08x ", (uint32_t)zl[i]); printf("\n");
 	for (i = 0; i < 8; i++) {
 		r[i] = zl[i];
 	}
@@ -713,8 +721,16 @@ void sm2_fn_mul(SM2_BN r, const SM2_BN a, const SM2_BN b)
 	/* while r >= p do: r = r - n */
 	while (sm2_bn_cmp(r, SM2_N) >= 0) {
 		sm2_bn_sub(r, r, SM2_N);
-		//printf("r = r -n  = "); for (i = 8; i >= 0; i--) printf("%08x", (uint32_t)zl[i]); printf("\n");
+		//printf("r-n = "); for (i = 7; i >= 0; i--) printf("%16llx ", r[i]); printf("\n");
 	}
+	sm2_bn_copy(ret, r);
+}
+
+void sm2_fn_mul_word(SM2_Fn r, const SM2_Fn a, uint32_t b)
+{
+	SM2_Fn t;
+	sm2_bn_set_word(t, b);
+	sm2_fn_mul(r, a, t);
 }
 
 void sm2_fn_sqr(SM2_BN r, const SM2_BN a)
@@ -739,7 +755,6 @@ void sm2_fn_exp(SM2_BN r, const SM2_BN a, const SM2_BN e)
 			w <<= 1;
 		}
 	}
-
 	sm2_bn_copy(r, t);
 }
 
@@ -750,9 +765,13 @@ void sm2_fn_inv(SM2_BN r, const SM2_BN a)
 	sm2_fn_exp(r, a, e);
 }
 
-void sm2_fn_rand(SM2_BN r)
+int sm2_fn_rand(SM2_BN r)
 {
-	sm2_bn_rand_range(r, SM2_N);
+	if (sm2_bn_rand_range(r, SM2_N) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 
@@ -1088,7 +1107,7 @@ int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y)
 		error_print();
 		return -1;
 	}
-	
+
 	if ((y == 0x02 && sm2_bn_is_odd(_y)) || (y == 0x03) && !sm2_bn_is_odd(_y)) {
 		sm2_fp_neg(_y, _y);
 	}
