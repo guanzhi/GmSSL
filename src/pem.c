@@ -83,8 +83,19 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 
 	for (;;) {
 		if (!fgets(line, sizeof(line), fp)) {
-			error_print();
-			return -1;
+			if (feof(fp)){
+			    //如果END xxx最后一行没有换行符，提前跳出循环
+				if (strncmp(line, end_line, strlen(end_line)-1) == 0) {
+					break;
+				} else {
+					error_print();
+					return -1;
+				}
+			}
+			else {
+				error_print();
+				return -1;
+			}
 		}
 		if (strcmp(line, end_line) == 0) {
 			break;
