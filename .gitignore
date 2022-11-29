@@ -210,3 +210,10 @@ include/openssl/srp.h
 /rust
 /python
 /build
+
+.gmssl
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+install_manifest.txt
+CMakeCache.txt
