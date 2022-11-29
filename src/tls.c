@@ -1453,13 +1453,16 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock) {
         while (r = tls_socket_recv(sock, record + 5 - len, len, 0)) {
             if (errno == EAGAIN) {
                 continue;
-            } else if (r <= 0) {
+            } else if (r < 0) {
                 error_print();
+                return -1;
+            } else {
                 perror("tls_record_do_recv");
-                return r;
-            } else
-                break;
+                error_print();
+                return 0;
+            }
         }
+
         len -= r;
     }
     if (!tls_record_type_name(tls_record_type(record))) {
