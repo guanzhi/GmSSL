@@ -217,3 +217,4 @@ CTestTestfile.cmake
 cmake_install.cmake
 install_manifest.txt
 CMakeCache.txt
+bin/
