@@ -1450,17 +1450,20 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock) {
 
     len = 5;
     while (len) {
-        while (r = tls_socket_recv(sock, record + 5 - len, len, 0)) {
+        while ((r = tls_socket_recv(sock, record + 5 - len, len, 0)) < 0) {
             if (errno == EAGAIN) {
                 continue;
-            } else if (r < 0) {
+            } else {
                 error_print();
                 return -1;
-            } else {
-                perror("tls_record_do_recv");
-                error_print();
-                return 0;
             }
+        }
+
+        error_print();
+        if (r == 0) {
+            perror("tls_record_do_recv");
+            error_print();
+            return 0;
         }
 
         len -= r;
