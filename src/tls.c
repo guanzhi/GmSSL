@@ -1488,6 +1488,7 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock) {
 }
 
 int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock) {
+    fprintf(stderr, "%s:%d:%s):\n", __FILE__, __LINE__, __func__);
 retry:
     if (tls_record_do_recv(record, recordlen, sock) != 1) {
         error_print();
@@ -2249,25 +2250,36 @@ int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock) {
 }
 
 int tls_do_handshake(TLS_CONNECT *conn) {
+    fprintf(stderr, "%s:%d:%s --------- %d:\n", __FILE__, __LINE__, __func__,
+            conn->protocol);
     switch (conn->protocol) {
         case TLS_protocol_tlcp:
+            fprintf(stderr, "%s:%d:%s(TLS_protocol_tlcp):\n", __FILE__,
+                    __LINE__, __func__);
             if (conn->is_client)
                 return tlcp_do_connect(conn);
             else
                 return tlcp_do_accept(conn);
         case TLS_protocol_tls12:
+            fprintf(stderr, "%s:%d:%s(TLS_protocol_tls12):\n", __FILE__,
+                    __LINE__, __func__);
             if (conn->is_client)
                 return tls12_do_connect(conn);
             else
                 return tls12_do_accept(conn);
         case TLS_protocol_tls13:
-            if (conn->is_client) 
+            if (conn->is_client) {
+                fprintf(stderr, "%s:%d:%s(client):\n", __FILE__, __LINE__,
+                        __func__);
                 return tls13_do_connect(conn);
-             else 
+            } else {
+                fprintf(stderr, "%s:%d:%s(server):\n", __FILE__, __LINE__,
+                        __func__);
                 return tls13_do_accept(conn);
-            
+            }
     }
 
+    fprintf(stderr, "%s:%d:%s(error):\n", __FILE__, __LINE__, __func__);
     error_print();
     return -1;
 }
