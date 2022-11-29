@@ -211,8 +211,6 @@ include/openssl/srp.h
 /python
 /build
 
-build/
-bin/
 .gmssl
 CMakeFiles/
 CTestTestfile.cmake

@@ -1450,16 +1450,9 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock) {
 
     len = 5;
     while (len) {
-        while ((r = tls_socket_recv(sock, record + 5 - len, len, 0)) < 0) {
-            if (errno == EAGAIN) {
-                continue;
-            } else {
-                error_print();
-                return -1;
-            }
+        while ((r = tls_socket_recv(sock, record + 5 - len, len, 0)) < 0 &&
+               errno == EAGAIN) {
         }
-
-        error_print();
         if (r == 0) {
             perror("tls_record_do_recv");
             error_print();
@@ -2268,10 +2261,11 @@ int tls_do_handshake(TLS_CONNECT *conn) {
             else
                 return tls12_do_accept(conn);
         case TLS_protocol_tls13:
-            if (conn->is_client)
+            if (conn->is_client) 
                 return tls13_do_connect(conn);
-            else
+             else 
                 return tls13_do_accept(conn);
+            
     }
 
     error_print();
