@@ -2253,32 +2253,31 @@ int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock) {
 }
 
 int tls_do_handshake(TLS_CONNECT *conn) {
-            conn->protocol);
-            switch (conn->protocol) {
-                case TLS_protocol_tlcp:
-                    if (conn->is_client)
-                        return tlcp_do_connect(conn);
-                    else
-                        return tlcp_do_accept(conn);
-                case TLS_protocol_tls12:
-                    if (conn->is_client)
-                        return tls12_do_connect(conn);
-                    else
-                        return tls12_do_accept(conn);
-                case TLS_protocol_tls13:
-                    if (conn->is_client) {
-                        return tls13_do_connect(conn);
-                    } else {
-                        return tls13_do_accept(conn);
-                    }
+    switch (conn->protocol) {
+        case TLS_protocol_tlcp:
+            if (conn->is_client)
+                return tlcp_do_connect(conn);
+            else
+                return tlcp_do_accept(conn);
+        case TLS_protocol_tls12:
+            if (conn->is_client)
+                return tls12_do_connect(conn);
+            else
+                return tls12_do_accept(conn);
+        case TLS_protocol_tls13:
+            if (conn->is_client) {
+                return tls13_do_connect(conn);
+            } else {
+                return tls13_do_accept(conn);
             }
+    }
 
-            fprintf(stderr, "%s:%d:%s(error):\n", __FILE__, __LINE__, __func__);
-            error_print();
-            return -1;
+    fprintf(stderr, "%s:%d:%s(error):\n", __FILE__, __LINE__, __func__);
+    error_print();
+    return -1;
 }
 
 int tls_get_verify_result(TLS_CONNECT *conn, int *result) {
-            *result = conn->verify_result;
-            return 1;
+    *result = conn->verify_result;
+    return 1;
 }
