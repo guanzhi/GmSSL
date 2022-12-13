@@ -211,6 +211,7 @@ include/openssl/srp.h
 /python
 /build
 
+
 .gmssl
 CMakeFiles/
 CTestTestfile.cmake
@@ -218,3 +219,6 @@ cmake_install.cmake
 install_manifest.txt
 CMakeCache.txt
 bin/
+
+.vscode/*
+
