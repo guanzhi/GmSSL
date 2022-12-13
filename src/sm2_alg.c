@@ -797,19 +797,22 @@ void sm2_jacobian_point_set_xy(SM2_JACOBIAN_POINT *R, const SM2_BN x, const SM2_
 
 void sm2_jacobian_point_get_xy(const SM2_JACOBIAN_POINT *P, SM2_BN x, SM2_BN y)
 {
-	SM2_BN z_inv;
-
 	if (sm2_bn_is_one(P->Z)) {
 		sm2_bn_copy(x, P->X);
-		sm2_bn_copy(y, P->Y);
+		if (y) {
+			sm2_bn_copy(y, P->Y);
+		}
 	} else {
+		SM2_BN z_inv;
 		sm2_fp_inv(z_inv, P->Z);
-		if (y)
+		if (y) {
 			sm2_fp_mul(y, P->Y, z_inv);
+		}
 		sm2_fp_sqr(z_inv, z_inv);
 		sm2_fp_mul(x, P->X, z_inv);
-		if (y)
+		if (y) {
 			sm2_fp_mul(y, y, z_inv);
+		}
 	}
 }
 
@@ -1142,6 +1145,30 @@ int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
 	sm2_jacobian_point_from_bytes(&P_, (uint8_t *)P);
 	sm2_jacobian_point_from_bytes(&Q_, (uint8_t *)Q);
 	sm2_jacobian_point_add(&P_, &P_, &Q_);
+	sm2_jacobian_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_sub(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
+{
+	SM2_JACOBIAN_POINT P_;
+	SM2_JACOBIAN_POINT Q_;
+
+	sm2_jacobian_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_jacobian_point_from_bytes(&Q_, (uint8_t *)Q);
+	sm2_jacobian_point_sub(&P_, &P_, &Q_);
+	sm2_jacobian_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_neg(SM2_POINT *R, const SM2_POINT *P)
+{
+	SM2_JACOBIAN_POINT P_;
+
+	sm2_jacobian_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_jacobian_point_neg(&P_, &P_);
 	sm2_jacobian_point_to_bytes(&P_, (uint8_t *)R);
 
 	return 1;
