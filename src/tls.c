@@ -1510,7 +1510,7 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 		return -1;
 	}
 	while (len) {
-		if ((r = recv(sock, record + *recordlen - len, len, 0)) < 0) {
+		if ((r = recv(sock, record + *recordlen - len, (int)len, 0)) < 0) { // winsock2 recv() use int
 			perror("tls_record_do_recv");
 			error_print();
 			return -1;

@@ -90,7 +90,7 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 			break;
 		}
 
-		base64_decode_update(&ctx, (uint8_t *)line, strlen(line), data, &len);
+		base64_decode_update(&ctx, (uint8_t *)line, (int)strlen(line), data, &len);
 		data += len;
 		*datalen += len;
 	}

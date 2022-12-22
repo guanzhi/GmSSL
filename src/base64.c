@@ -133,7 +133,7 @@ int base64_encode_update(BASE64_CTX *ctx, const uint8_t *in, int inl, uint8_t *o
     if (inl != 0)
         memcpy(&(ctx->enc_data[0]), in, inl);
     ctx->num = inl;
-    *outl = total;
+    *outl = (int)total;
 
     return 1;
 }
