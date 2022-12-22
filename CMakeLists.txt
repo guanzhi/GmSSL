@@ -43,6 +43,7 @@ set(src
 	src/ec.c
 	src/rsa.c
 	src/asn1.c
+	src/u_time.c
 	src/hex.c
 	src/base64.c
 	src/pem.c
@@ -109,7 +110,7 @@ endif()
 
 
 if (WIN32)
-	list(APPEND src src/u_time.c)
+#	list(APPEND src src/u_time.c)
 	list(APPEND src src/rand_win.c)
 elseif (APPLE)
 	list(APPEND src src/rand_apple.c)

@@ -21,7 +21,7 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
-
+#define WIN32 // only for use own time functions
 #ifdef WIN32
 #include "u_time.h"
 #endif
