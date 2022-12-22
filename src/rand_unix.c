@@ -14,7 +14,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h> // in Linux
-//#include <sys/random.h> // in Apple
+#ifdef APPLE
+#include <sys/random.h> // in Apple
+#endif
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 
@@ -37,4 +39,3 @@ int rand_bytes(uint8_t *buf, size_t len)
 	}
 	return 1;
 }
-

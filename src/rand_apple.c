@@ -20,12 +20,15 @@ int rand_bytes(uint8_t *buf, size_t len)
 {
 	int errCode;
 	if ((errCode = SecRandomCopyBytes(kSecRandomDefault, len, buf)) != errSecSuccess) {
-		//CFStringRef errStr;
-		//errStr = SecCopyErrorMessageString(errCode, NULL);
-		//CFRelease(errStr);
 		error_print();
+		fprintf(stderr, "%s:%d: SecRandomCopyBytes() return OSStatus = %d\n", __FILE__, __LINE__, errCode);
+		/*
+		CFStringRef errStr;
+		errStr = SecCopyErrorMessageString(errCode, NULL);
+		fprintf(stderr, "error: %s\n", CFStringGetCStringPtr(errStr, kCFStringEncodingMacRoman));
+		CFRelease(errStr); // -framework CoreFoundation
+		*/
 		return -1;
 	}
 	return 1;
 }
-

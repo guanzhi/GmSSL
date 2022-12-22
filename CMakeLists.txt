@@ -8,8 +8,6 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 include_directories(include)
 
-
-
 set(src
 	src/version.c
 	src/debug.c
@@ -76,62 +74,63 @@ set(src
 )
 
 option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
-
-
 if (ENABLE_SM3_AVX_BMI2)
 	enable_language(ASM)
 	list(APPEND src src/sm3_avx_bmi2.s)
 endif()
 
-option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 
+option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 if (ENABLE_SM4_AESNI_AVX)
 	list(APPEND src src/sm4_aesni_avx.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 endif()
 
-if (WIN32)
-	list(APPEND src src/u_time.c)
-	list(APPEND src src/rand_win.c)
-else()
-	list(APPEND src src/rand.c)
-endif()
 
+option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 set(broken_crypto_src
 	src/des.c
 	src/sha1.c
 	src/md5.c
 	src/rc4.c
 )
-
-option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
-
 if (ENABLE_BROKEN_CRYPTO)
 	list(APPEND src ${broken_crypto_src})
 endif()
 
 option(ENABLE_RDRND "Enable Intel RDRND instructions" OFF)
-
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
 	set(ENABLE_RDRND ON)
 endif()
-
 if (ENABLE_RDRND)
 	list(APPEND src src/rdrand.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 endif()
 
+
+if (WIN32)
+	list(APPEND src src/u_time.c)
+	list(APPEND src src/rand_win.c)
+elseif (APPLE)
+	list(APPEND src src/rand_apple.c)
+else()
+	list(APPEND src src/rand_unix.c)
+endif()
+
+add_library(gmssl ${src})
+
 if (WIN32)
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-	add_library(gmssl ${src})
+elseif (APPLE)
+	target_link_libraries(gmssl dl)
+	target_link_libraries(gmssl "-framework Security")
+	#target_link_libraries(gmssl "-framework CoreFoundation") # rand_apple.c CFRelease()
+elseif (MINGW)
+	target_link_libraries(gmssl PRIVATE wsock32)
 else()
-	add_library(gmssl ${src})
 	target_link_libraries(gmssl dl)
 endif()
 
-if(MINGW)
-	target_link_libraries(gmssl PRIVATE wsock32)
-endif()
 
 SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
 

@@ -8,8 +8,8 @@
  */
 
 
-#ifndef GMSSL_RAND_H
-#define GMSSL_RAND_H
+#ifndef GMSSL_RDRAND_H
+#define GMSSL_RDRAND_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -19,14 +19,9 @@
 extern "C" {
 #endif
 
-/*
-Rand Public API
 
-	rand_bytes
-
-*/
-
-int rand_bytes(uint8_t *buf, size_t buflen);
+int rdrand_bytes(uint8_t *buf, size_t buflen);
+int rdseed_bytes(uint8_t *buf, size_t buflen);
 
 
 #ifdef __cplusplus
