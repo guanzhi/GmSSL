@@ -180,14 +180,6 @@ set(tools
 	tools/tls13_server.c
 )
 
-add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-SET_TARGET_PROPERTIES(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
-
-add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-SET_TARGET_PROPERTIES(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
-
-
-
 set(tests
 	sm4
 	sm3
@@ -241,6 +233,12 @@ INSTALL(TARGETS gmssl ARCHIVE DESTINATION lib  LIBRARY DESTINATION lib)
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+
+	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
+	SET_TARGET_PROPERTIES(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+
+	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
+	SET_TARGET_PROPERTIES(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
 
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
