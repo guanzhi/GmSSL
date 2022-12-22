@@ -196,7 +196,7 @@ int sm2_bn_from_asn1_integer(SM2_BN r, const uint8_t *d, size_t dlen)
 		error_print();
 		return -1;
 	}
-	memcmp(buf + sizeof(buf) - dlen, d, dlen);
+	memcpy(buf + sizeof(buf) - dlen, d, dlen);
 	sm2_bn_from_bytes(r, buf);
 	return 1;
 }
