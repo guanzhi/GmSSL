@@ -217,6 +217,10 @@ int test_sm2_jacobian_point(void)
 		1, 0, 0, 0, 0, 0, 0, 0,
 		},
 	};
+	const SM2_BN _B = {
+		0x4d940e93, 0xddbcbd41, 0x15ab8f92, 0xf39789f5,
+		0xcf6509a7, 0x4d5a9e4b, 0x9d9f5e34, 0x28e9fa9e,
+	};
 	const SM2_JACOBIAN_POINT *G = &_G;
 	SM2_JACOBIAN_POINT _P, *P = &_P;
 	SM2_BN k;
@@ -260,7 +264,7 @@ int test_sm2_jacobian_point(void)
 	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
 	if (!ok) return -1;
 
-	sm2_jacobian_point_mul_generator(P, SM2_B);
+	sm2_jacobian_point_mul_generator(P, _B);
 	ok = sm2_jacobian_point_equ_hex(P, hex_bG);
 	printf("sm2 point test %d %s\n", i++, ok ? "ok" : "failed");
 	if (!ok) return -1;

@@ -251,7 +251,7 @@ int test_sm9_fp4() {
 	sm9_fp2_from_hex(y[0], hex_fp2_add);
 	sm9_fp2_from_hex(y[1], hex_fp2_tri);
 	sm9_bn_from_hex(k, hex_iv);
-	sm9_fp2_copy(q, SM9_Ppubs->X);
+	sm9_fp2_copy(q, Ppubs->X);
 
 	sm9_fp4_t iv4 = {{{0xc9bb073c, 0xf1fdd299, 0xd14f49a9, 0xd632457d, 0x664a2b72, 0x6e492768, 0x4e243d80, 0xa3965402},
 	                  {0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678, 0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678}},
@@ -531,7 +531,33 @@ err:
 	"934FDDA6D3AB48C8571CE2354B79742AA498CB8CDDE6BD1FA5946345A1A652F6"
 
 
-int test_sm9_pairing() {
+int test_sm9_pairing()
+{
+	const SM9_POINT _P1 = {
+		{0x7c66dddd, 0xe8c4e481, 0x09dc3280, 0xe1e40869, 0x487d01d6, 0xf5ed0704, 0x62bf718f, 0x93de051d},
+		{0x0a3ea616, 0x0c464cd7, 0xfa602435, 0x1c1c00cb, 0x5c395bbc, 0x63106512, 0x4f21e607, 0x21fe8dda},
+		{1,0,0,0,0,0,0,0}
+	};
+	const SM9_POINT *P1 = &_P1;
+
+	const SM9_TWIST_POINT _P2 = {
+		{{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948, 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
+		 {0xD8806141, 0x54806C11, 0x0F5E93C4, 0xF1DD2C19, 0xB441A01F, 0x597B6027, 0x78640C98, 0x85AEF3D0}},
+		{{0xC999A7C7, 0x6215BBA5, 0xA71A0811, 0x47EFBA98, 0x3D278FF2, 0x5F317015, 0x19BE3DA6, 0xA7CF28D5},
+		 {0x84EBEB96, 0x856DC76B, 0xA347C8BD, 0x0736A96F, 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}},
+		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+	};
+	const SM9_TWIST_POINT *P2 = &_P2;
+
+	const SM9_TWIST_POINT _Ppubs = {
+		{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
+		 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
+		{{0xB4E3216D, 0x0E75C05F, 0x5CDFF073, 0x1006E85F, 0xB7A46F74, 0x1A7CE027, 0xDDA532DA, 0x41E00A53},
+	         {0xD0EF1C25, 0xE89E1408, 0x1A77F335, 0xAD3E2FDB, 0x47E3A0CB, 0xB57329F4, 0xABEA0112, 0x69850938}},
+		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+	};
+	const SM9_TWIST_POINT *Ppubs = &_Ppubs;
+
 	SM9_TWIST_POINT p;
 	SM9_POINT q;
 	sm9_fp12_t r;
@@ -539,13 +565,13 @@ int test_sm9_pairing() {
 	sm9_bn_t k;
 	int j = 1;
 
-	sm9_pairing(r, SM9_Ppubs, SM9_P1); sm9_fp12_from_hex(s, hex_pairing1); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	sm9_pairing(r, Ppubs, P1); sm9_fp12_from_hex(s, hex_pairing1); if (!sm9_fp12_equ(r, s)) goto err; ++j;
 
 	sm9_twist_point_from_hex(&p, hex_deB); sm9_point_from_hex(&q, hex_RA);
 	sm9_pairing(r, &p, &q); sm9_fp12_from_hex(s, hex_pairing2); if (!sm9_fp12_equ(r, s)) goto err; ++j;
 
 	sm9_bn_from_hex(k, rB); sm9_point_from_hex(&q, hex_Ppube);
-	sm9_pairing(r, SM9_P2, &q); sm9_fp12_pow(r, r, k); sm9_fp12_from_hex(s, hex_pairing3); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	sm9_pairing(r, P2, &q); sm9_fp12_pow(r, r, k); sm9_fp12_from_hex(s, hex_pairing3); if (!sm9_fp12_equ(r, s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -600,6 +626,13 @@ err:
 
 int test_sm9_ciphertext()
 {
+	const SM9_POINT _P1 = {
+		{0x7c66dddd, 0xe8c4e481, 0x09dc3280, 0xe1e40869, 0x487d01d6, 0xf5ed0704, 0x62bf718f, 0x93de051d},
+		{0x0a3ea616, 0x0c464cd7, 0xfa602435, 0x1c1c00cb, 0x5c395bbc, 0x63106512, 0x4f21e607, 0x21fe8dda},
+		{1,0,0,0,0,0,0,0}
+	};
+	const SM9_POINT *P1 = &_P1;
+
 	SM9_POINT C1;
 	uint8_t c2[SM9_MAX_PLAINTEXT_SIZE];
 	uint8_t c3[SM3_HMAC_SIZE];
@@ -607,7 +640,7 @@ int test_sm9_ciphertext()
 	uint8_t *p = buf;
 	size_t len = 0;
 
-	sm9_point_copy(&C1, SM9_P1);
+	sm9_point_copy(&C1, P1);
 	if (sm9_ciphertext_to_der(&C1, c2, sizeof(c2), c3, &p, &len) != 1) {
 		error_print();
 		return -1;

@@ -157,28 +157,6 @@ int sm2_jacobian_point_print(FILE *fp, int fmt, int ind, const char *label, cons
 #define sm2_jacobian_point_copy(R, P) memcpy((R), (P), sizeof(SM2_JACOBIAN_POINT))
 
 
-
-/*
-SM2 Public API
-
-SM2接口有两个层次，基本的和ASN.1/PKI的
-基本的接口不依赖ASN.1编码，可以直接将结构体的内存输出(endian一致即可)
-基本的接口也不进行输入的格式检查，调用方应保证输入不为空
-*/
-
-
-// 这里应该用#define 给出常量的值
-extern const SM2_BN SM2_P;
-//extern const SM2_BN SM2_A;
-extern const SM2_BN SM2_B;
-extern const SM2_BN SM2_N;
-extern const SM2_BN SM2_ONE;
-extern const SM2_BN SM2_TWO;
-extern const SM2_BN SM2_THREE;
-extern const SM2_BN SM2_U_PLUS_ONE;
-extern const SM2_JACOBIAN_POINT *SM2_G; // 应该同时给出Affine的
-
-
 typedef struct {
 	uint8_t x[32];
 	uint8_t y[32];

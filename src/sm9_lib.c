@@ -18,6 +18,9 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
+extern const SM9_POINT *SM9_P1;
+extern const SM9_TWIST_POINT *SM9_P2;
+
 
 int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen)
 {

@@ -22,6 +22,9 @@
 #include <gmssl/x509_alg.h>
 
 
+extern const SM2_BN SM2_N;
+
+
 int sm2_key_generate(SM2_KEY *key)
 {
 	SM2_BN x;

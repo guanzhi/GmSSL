@@ -19,6 +19,10 @@
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 
+
+extern const SM2_BN SM2_N;
+extern const SM2_BN SM2_ONE;
+
 #define print_bn(str,a) sm2_bn_print(stderr,0,4,str,a)
 
 int sm2_do_sign_ex(const SM2_KEY *key, int fixed_outlen, const uint8_t dgst[32], SM2_SIGNATURE *sig)

@@ -297,7 +297,6 @@ typedef struct {
 	sm9_fp_t Y;
 	sm9_fp_t Z;
 } SM9_POINT;
-extern const SM9_POINT *SM9_P1;
 
 #define sm9_point_init(R)	sm9_point_set_infinity(R)
 #define sm9_point_clean(R)	sm9_point_set_infinity(R)
@@ -325,9 +324,6 @@ typedef struct {
 	sm9_fp2_t Y;
 	sm9_fp2_t Z;
 } SM9_TWIST_POINT;
-
-extern const SM9_TWIST_POINT *SM9_P2;
-extern const SM9_TWIST_POINT *SM9_Ppubs;
 
 #define sm9_twist_point_copy(R, P)	memcpy((R), (P), sizeof(SM9_TWIST_POINT))
 
