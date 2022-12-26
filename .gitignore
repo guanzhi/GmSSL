@@ -212,3 +212,6 @@ include/openssl/srp.h
 /build
 .vscode/*
 
+# emacs lsp
+/.cache
+/compile_commands.json

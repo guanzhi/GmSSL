@@ -187,8 +187,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (conn->client_certs_len)
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// recv ServerHello
 	tls_trace("recv ServerHello\n");
@@ -229,8 +227,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	memcpy(conn->session_id, session_id, session_id_len);
 	conn->cipher_suite = cipher_suite;
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (conn->client_certs_len)
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// recv ServerCertificate
 	tls_trace("recv ServerCertificate\n");
@@ -249,8 +245,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (conn->client_certs_len)
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerCertificate
 	if (conn->ca_certs_len) {
@@ -279,8 +273,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (conn->client_certs_len)
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerKeyExchange
 	if (x509_certs_get_cert_by_index(conn->server_certs, conn->server_certs_len, 0, &cp, &len) != 1
@@ -343,7 +335,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 			goto end;
 		}
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 		// recv ServerHelloDone
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
@@ -366,8 +357,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (conn->client_certs_len)
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// send ClientCertificate
 	if (conn->client_certs_len) {
@@ -383,7 +372,6 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 			goto end;
 		}
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 	}
 
 	// generate MASTER_SECRET
@@ -428,13 +416,17 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (conn->client_certs_len)
-		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// send CertificateVerify
 	if (conn->client_certs_len) {
 		tls_trace("send CertificateVerify\n");
+		SM3_CTX cert_verify_ctx;
+		uint8_t cert_verify_hash[SM3_DIGEST_SIZE] = {0};
 		uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
+		memset(&cert_verify_ctx, 0, sizeof(SM3_CTX));
+		memcpy(&cert_verify_ctx, &sm3_ctx, sizeof(sm3_ctx));
+		sm3_finish(&cert_verify_ctx, cert_verify_hash);
+		sm2_sign_update(&sign_ctx, cert_verify_hash, SM3_DIGEST_SIZE);
 		if (sm2_sign_finish(&sign_ctx, sigbuf, &siglen) != 1
 			|| tls_record_set_handshake_certificate_verify(record, &recordlen, sigbuf, siglen) != 1) {
 			error_print();
@@ -674,8 +666,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_verify)
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 
 	// send ServerHello
@@ -694,8 +684,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_verify)
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 	// send ServerCertificate
 	tls_trace("send ServerCertificate\n");
@@ -711,8 +699,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_verify)
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 	// send ServerKeyExchange
 	tls_trace("send ServerKeyExchange\n");
@@ -744,8 +730,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_verify)
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 	// send CertificateRequest
 	if (client_verify) {
@@ -771,7 +755,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 			goto end;
 		}
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 	}
 
 	// send ServerHelloDone
@@ -783,8 +766,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_verify)
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 	// recv ClientCertificate
 	if (conn->ca_certs_len) {
@@ -808,7 +789,6 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 			goto end;
 		}
 		sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 	}
 
 	// ClientKeyExchange
@@ -837,12 +817,12 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		goto end;
 	}
 	sm3_update(&sm3_ctx, record + 5, recordlen - 5);
-	if (client_verify)
-		tls_client_verify_update(&client_verify_ctx, record + 5, recordlen - 5);
 
 	// recv CertificateVerify
 	if (client_verify) {
 		tls_trace("recv CertificateVerify\n");
+		SM3_CTX cert_verify_ctx;
+		uint8_t cert_verify_hash[SM3_DIGEST_SIZE] = {0};
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 			tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -861,6 +841,10 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			goto end;
 		}
+		memset(&cert_verify_ctx, 0, sizeof(SM3_CTX));
+		memcpy(&cert_verify_ctx, &sm3_ctx, sizeof(sm3_ctx));
+		sm3_finish(&cert_verify_ctx, cert_verify_hash);
+		tls_client_verify_update(&client_verify_ctx, cert_verify_hash, SM3_DIGEST_SIZE);
 		if (tls_client_verify_finish(&client_verify_ctx, sig, siglen, &client_sign_key) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_decrypt_error);

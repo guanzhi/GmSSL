@@ -1227,6 +1227,7 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 	const uint8_t *sig, size_t siglen)
 {
 	int type = TLS_handshake_certificate_verify;
+	uint8_t sig_fix[SM2_MAX_SIGNATURE_SIZE] = {0};
 
 	if (!record || !recordlen || !sig || !siglen) {
 		error_print();
@@ -1236,7 +1237,10 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 		error_print();
 		return -1;
 	}
-	tls_record_set_handshake(record, recordlen, type, sig, siglen);
+	// insert signature length
+	sig_fix[1] = (uint8_t)siglen;
+	memcpy(sig_fix+2, sig, siglen);
+	tls_record_set_handshake(record, recordlen, type, sig_fix, siglen+2);
 	return 1;
 }
 
