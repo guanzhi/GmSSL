@@ -31,8 +31,7 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      #run: cmake -B ${{github.workspace}}/build -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=zhaoxiaomeng.GmSSL
-      run: cmake -B ${{github.workspace}}/build -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64
+      run: cmake -B ${{github.workspace}}/build -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DBUILD_SHARED_LIBS=OFF
 
     - name: Build
       # Build your program with the given configuration
