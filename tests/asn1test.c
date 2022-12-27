@@ -497,6 +497,62 @@ static int test_time(void)
 	return 1;
 }
 
+static int test_asn1_time(void)
+{
+	time_t tests[] = {
+		0,
+		31*86400,
+		(31+28)*86400,
+	 };
+	char *utc_time[] = {
+		"700101000000Z",
+		"700201000000Z",
+		"700301000000Z",
+	};
+	char *gen_time[] = {
+		"19700101000000Z",
+		"19700201000000Z",
+		"19700301000000Z",
+	};
+	time_t cur = time(NULL);
+	time_t ts;
+	char str[16] = {0};
+	int i;
+
+	if (asn1_time_to_str(0, cur, str) != 1
+		|| asn1_time_from_str(0, &ts, str) != 1
+		|| ts != cur) {
+		error_print();
+		return -1;
+	}
+
+	if (asn1_time_to_str(1, cur, str) != 1
+		|| asn1_time_from_str(1, &ts, str) != 1
+		|| ts != cur) {
+		error_print();
+		return -1;
+	}
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+		memset(str, 0, sizeof(str));
+		if (asn1_time_to_str(1, tests[i], str) != 1
+			|| strcmp(str, utc_time[i]) != 0) {
+			error_print();
+			return -1;
+		}
+
+		memset(str, 0, sizeof(str));
+		if (asn1_time_to_str(0, tests[i], str) != 1
+			|| strcmp(str, gen_time[i]) != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_asn1_utc_time(void)
 {
 	time_t tests[] = {
@@ -588,6 +644,7 @@ int main(void)
 	if (test_asn1_printable_string() != 1) goto err;
 	if (test_asn1_utf8_string() != 1) goto err;
 	if (test_asn1_ia5_string() != 1) goto err;
+	if (test_asn1_time() != 1) goto err;
 	if (test_asn1_utc_time() != 1) goto err;
 	if (test_asn1_generalized_time() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);

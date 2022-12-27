@@ -43,7 +43,6 @@ set(src
 	src/ec.c
 	src/rsa.c
 	src/asn1.c
-	src/u_time.c
 	src/hex.c
 	src/base64.c
 	src/pem.c

@@ -21,10 +21,7 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
-#define WIN32 // only for use own time functions
-#ifdef WIN32
-#include "u_time.h"
-#endif
+
 
 /*
 
@@ -460,6 +457,7 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 
 int asn1_int_to_der_ex(int tag, int a, uint8_t **out, size_t *outlen)
 {
+	int i;
 	uint8_t buf[4] = {0};
 	size_t len = 0;
 
@@ -789,34 +787,172 @@ int asn1_ia5_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out
 	return asn1_type_to_der(tag, (const uint8_t *)d, dlen, out, outlen);
 }
 
+static int is_leap_year(int year) {
+	return ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) ? 1 : 0;
+}
+
+#define val(c)	((c)-'0')
+
+int asn1_time_from_str(int utc_time, time_t *timestamp, const char *str)
+{
+	int time_str_len[2] = { 15, 13 };
+	int days_per_year[2] = { 365, 366 };
+	int days_per_month[] = { 0,31,28,31,30,31,30,31,31,30,31,30,31 };
+	int year, month, day, hour, minute, second;
+	const char *p = str;
+	int i;
+
+	utc_time &= 1;
+	for (i = 0; i < time_str_len[utc_time] - 1; i++) {
+		if (!isdigit(str[i])) {
+			error_print();
+			return -1;
+		}
+	}
+	if (str[i] != 'Z') {
+		error_print();
+		return -1;
+	}
+
+	if (utc_time) {
+		year = val(p[0]) * 10 + val(p[1]);
+		if (year <= 50) {
+			year += 2000;
+		} else {
+			year += 1900;
+		}
+		p += 2;
+	} else {
+		year = val(p[0]) * 1000 + val(str[1]) * 100 + val(str[2]) * 10 + val(str[3]);
+		p += 4;
+	}
+	if (is_leap_year(year)) {
+		days_per_month[2] = 29;
+	}
+	month	= val(p[0]) * 10 + val(p[1]); p += 2;
+	day	= val(p[0]) * 10 + val(p[1]); p += 2;
+	hour	= val(p[0]) * 10 + val(p[1]); p += 2;
+	minute	= val(p[0]) * 10 + val(p[1]); p += 2;
+	second	= val(p[0]) * 10 + val(p[1]); p += 2;
+
+	if (year < 1970
+		|| month < 1 || month > 12
+		|| day < 1 || day > days_per_month[month]
+		|| hour < 0 || hour > 23
+		|| minute < 0 || minute > 59
+		|| second < 0 || second > 59) {
+		error_print();
+		return -1;
+	}
+
+	day--;
+
+	while (year-- > 1970) {
+		day += days_per_year[is_leap_year(year)];
+	}
+	while (month-- > 1) {
+		day += days_per_month[month];
+	}
+	*timestamp = (time_t)day * 86400 + hour * 3600 + minute * 60 + second;
+
+	return 1;
+}
+
+int asn1_time_to_str(int utc_time, time_t timestamp, char *str)
+{
+	int days_per_month[] = { 0,31,28,31,30,31,30,31,31,30,31,30,31 };
+	int days_per_year[2] = { 365, 366 };
+	int max_year[2] = { 9999, 2050 };
+	int year, month, second, hour, minute;
+	time_t day;
+	char *p = str;
+
+	utc_time &= 1;
+	day = timestamp / 86400;
+	second = timestamp % 86400;
+
+	// In UTCTime, year in [1951, 2050], YY <= 50, year = 20YY; YY > 50, year = 19YY
+	// For Validity, year SHOULD <= 2049 (NOT 2050)
+	for (year = 1970; year <= max_year[utc_time]; year++) {
+		if (day < days_per_year[is_leap_year(year)]) {
+			break;
+		}
+		day -= days_per_year[is_leap_year(year)];
+	}
+	if (year > max_year[utc_time]) {
+		error_print();
+		return -1;
+	}
+
+	day++;
+
+	if (is_leap_year(year)) {
+		days_per_month[2] = 29;
+	}
+	for (month = 1; month <= 12; month++) {
+		if (day <= days_per_month[month]) {
+			break;
+		}
+		day -= days_per_month[month];
+	}
+
+	hour = second / 3600;
+	second %= 3600;
+	minute = second / 60;
+	second %= 60;
+
+	if (utc_time) {
+		memset(p, '0', 12);
+	} else {
+		memset(p, '0', 14);
+		p[0] += (year / 100) / 10;
+		p[1] += (year / 100) % 10;
+		p += 2;
+	}
+
+	year %= 100;
+	p[0] += year / 10;
+	p[1] += year % 10;
+	p[2] += month / 10;
+	p[3] += month % 10;
+	p[4] += day / 10;
+	p[5] += day % 10;
+	p[6] += hour / 10;
+	p[7] += hour % 10;
+	p[8] += minute / 10;
+	p[9] += minute % 10;
+	p[10] += second / 10;
+	p[11] += second % 10;
+	p[12] = 'Z';
+
+	return 1;
+}
+
 int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
 	struct tm tm_val;
 	char buf[ASN1_UTC_TIME_LEN + 1] = {0};
+	int utc_time = 1;
 
 	if (!outlen) {
 		error_print();
 		return -1;
 	}
 
-#ifdef WIN32
-	GMSSL_gmtime(&a, &tm_val);
-	asn1_tm_to_utctime(&tm_val, buf);
-#else
-	gmtime_r(&a, &tm_val);
-	strftime(buf, sizeof(buf), "%y%m%d%H%M%SZ", &tm_val);
-#endif
-
+	if (asn1_time_to_str(utc_time, a, buf) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (out && *out)
 		*(*out)++ = tag;
 	(*outlen)++;
-	asn1_length_to_der(sizeof(buf)-1, out, outlen);
+	asn1_length_to_der(ASN1_UTC_TIME_LEN, out, outlen);
 	if (out && *out) {
-		memcpy(*out, buf, sizeof(buf)-1);
-		(*out) += sizeof(buf)-1;
+		memcpy(*out, buf, ASN1_UTC_TIME_LEN);
+		(*out) += ASN1_UTC_TIME_LEN;
 	}
-	*outlen += sizeof(buf)-1;
+	*outlen += ASN1_UTC_TIME_LEN;
 
 	return 1;
 }
@@ -826,20 +962,17 @@ int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *ou
 {
 	struct tm tm_val;
 	char buf[ASN1_GENERALIZED_TIME_LEN + 1] = {0};
+	int utc_time = 0;
 
 	if (!outlen) {
 		error_print();
 		return -1;
 	}
 
-#ifdef WIN32
-	GMSSL_gmtime(&a, &tm_val);
-	asn1_tm_to_generalizedtime(&tm_val, buf);
-#else
-	gmtime_r(&a, &tm_val);
-	strftime(buf, sizeof(buf), "%Y%m%d%H%M%SZ", &tm_val);
-#endif
-	//printf("%s %d: generalized time : %s\n", __FILE__, __LINE__, buf);
+	if (asn1_time_to_str(utc_time, a, buf) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (out && *out)
 		*(*out)++ = tag;
@@ -1143,21 +1276,6 @@ int asn1_ia5_string_from_der_ex(int tag, const char **a, size_t *alen, const uin
 	return asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen);
 }
 
-/*
-int hh, mm, ss;
-struct tm when = {0};
-
-sscanf_s(date, "%d:%d:%d", &hh, &mm, &ss);
-
-
-when.tm_hour = hh;
-when.tm_min = mm;
-when.tm_sec = ss;
-
-time_t converted;
-converted = mktime(&when);
-*/
-
 int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *pinlen)
 {
 	const uint8_t *in = *pin;
@@ -1178,30 +1296,15 @@ int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *p
 		|| (len != sizeof("YYMMDDHHMMSSZ")-1 && len != sizeof("YYMMDDHHMMSS+HHMM")-1)) {
 		return -1;
 	}
-	memcpy(buf + 2, in, len);
+	memcpy(buf, in, len);
 
-	if (!isdigit(buf[2]) && !isdigit(buf[3])) {
-		return -1;
-	}
-	year = (buf[2] - '0') * 10 + (buf[3] - '0');
-	if (year >= 50) {
-		buf[0] = '1';
-		buf[1] = '9';
-	} else {
-		buf[0] = '2';
-		buf[1] = '0';
-	}
 	if (len == sizeof("YYMMDDHHMMSSZ")-1) {
-#ifdef WIN32
-		asn1_generalizedtime_to_tm(buf, &tm_val);
-		*t = GMSSL_timegm(&tm_val);
-#else
-		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
+		if (asn1_time_from_str(1, t, buf) != 1) {
+			error_print();
 			return -1;
 		}
-		*t = timegm(&tm_val);
-#endif
 	} else {
+		error_print();
 		return -1;
 	}
 
@@ -1234,21 +1337,12 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, s
 	memcpy(buf, in, len);
 
 	if (len == sizeof("YYYYMMDDHHMMSSZ")-1) {
-
-#ifdef WIN32
-		asn1_generalizedtime_to_tm(buf, &tm_val);
-		*t = GMSSL_timegm(&tm_val);
-#else
-		if (!strptime(buf, "%Y%m%d%H%M%SZ", &tm_val)) {
+		if (asn1_time_from_str(0, t, buf) != 1) {
 			error_print();
 			return -1;
 		}
-		*t = timegm(&tm_val);
-#endif
-
-
 	} else {
-		// TODO: 处理这种情况		
+		// FIXME: handle "YYYYMMDDHHMMSS+HHMM"
 		error_print();
 		return -2;
 	}

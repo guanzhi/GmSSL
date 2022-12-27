@@ -198,6 +198,9 @@ int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, co
 #define ASN1_UTC_TIME_LEN		(sizeof("YYMMDDHHMMSSZ")-1)
 #define ASN1_GENERALIZED_TIME_LEN	(sizeof("YYYYMMDDHHMMSSZ")-1)
 
+int asn1_time_to_str(int utc_time, time_t timestamp, char *str);
+int asn1_time_from_str(int utc_time, time_t *timestamp, const char *str);
+
 int asn1_utc_time_to_der_ex(int tag, time_t tv, uint8_t **out, size_t *outlen);
 int asn1_utc_time_from_der_ex(int tag, time_t *tv, const uint8_t **in, size_t *inlen);
 #define asn1_utc_time_to_der(tv,out,outlen) asn1_utc_time_to_der_ex(ASN1_TAG_UTCTime,tv,out,outlen)
