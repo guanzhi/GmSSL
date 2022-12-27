@@ -457,7 +457,6 @@ int asn1_integer_to_der_ex(int tag, const uint8_t *a, size_t alen, uint8_t **out
 
 int asn1_int_to_der_ex(int tag, int a, uint8_t **out, size_t *outlen)
 {
-	int i;
 	uint8_t buf[4] = {0};
 	size_t len = 0;
 
@@ -915,7 +914,7 @@ int asn1_time_to_str(int utc_time, time_t timestamp, char *str)
 	p[1] += year % 10;
 	p[2] += month / 10;
 	p[3] += month % 10;
-	p[4] += day / 10;
+	p[4] += (int)day / 10;
 	p[5] += day % 10;
 	p[6] += hour / 10;
 	p[7] += hour % 10;
@@ -960,7 +959,6 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 
 int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
-	struct tm tm_val;
 	char buf[ASN1_GENERALIZED_TIME_LEN + 1] = {0};
 	int utc_time = 0;
 
@@ -1280,10 +1278,8 @@ int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *p
 {
 	const uint8_t *in = *pin;
 	size_t inlen = *pinlen;
-	struct tm tm_val;
 	char buf[sizeof("YYYYMMDDHHMMSSZ")] = {0};
 	size_t len;
-	int year;
 
 
 	if (!t || !pin || !(*pin) || !pinlen) {
@@ -1318,7 +1314,6 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, s
 	int ret;
 	const uint8_t *in = *pin;
 	size_t inlen = *pinlen;
-	struct tm tm_val;
 	char buf[sizeof("YYYYMMDDHHMMSS+HHMM")] = {0};
 	size_t len;
 

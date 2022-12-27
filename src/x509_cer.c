@@ -25,10 +25,6 @@
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
 
-#ifdef WIN32
-#include "u_time.h"
-#endif
-
 
 const char *x509_version_name(int version)
 {
@@ -100,13 +96,16 @@ int x509_time_to_der(time_t tv, uint8_t **out, size_t *outlen)
 {
 	int ret;
 	struct tm tm_val;
+	static time_t utc_time_max = 0;
 
-#ifdef WIN32
-	GMSSL_gmtime(&tv, &tm_val);
-#else
-	gmtime_r(&tv, &tm_val);
-#endif
-	if (tm_val.tm_year < 2050 - 1900) {
+	if (!utc_time_max) {
+		if (asn1_time_from_str(0, &utc_time_max, "20500101000000Z") != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (tv < utc_time_max) {
 		if ((ret = asn1_utc_time_to_der(tv, out, outlen)) != 1) {
 			if (ret < 0) error_print();
 		}
@@ -144,13 +143,7 @@ int x509_validity_add_days(time_t *not_after, time_t not_before, int days)
 		error_print();
 		return -1;
 	}
-#ifdef WIN32
-	GMSSL_gmtime(&not_before, &tm_val);
-#else	
-	gmtime_r(&not_before, &tm_val);
-#endif
-	tm_val.tm_mday += days;
-	*not_after = mktime(&tm_val);
+	*not_after = not_before + (time_t)days * 24 * 60 * 60;
 	return 1;
 }
 
