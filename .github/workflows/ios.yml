@@ -1,4 +1,4 @@
-name: CMake-ios
+name: CMake-iOS
 
 on:
   push:
