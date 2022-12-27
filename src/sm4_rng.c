@@ -121,6 +121,9 @@ int sm4_rng_update(SM4_RNG *rng, const uint8_t seed[32])
 	sm4_encrypt(&sm4_key, rng->V, rng->K);
 	be_incr(rng->V);
 	sm4_encrypt(&sm4_key, rng->V, rng->V);
+    
+    memxor(rng->K, seed, 16);
+    memxor(rng->V, seed + 16, 16);
 
 	return 1;
 }
