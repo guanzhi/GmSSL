@@ -1147,7 +1147,7 @@ int asn1_bit_string_from_der_ex(int tag, const uint8_t **bits, size_t *nbits, co
 	}
 
 	(*bits)++;
-	*nbits = (len - 1) << 3;
+	*nbits = ((len - 1) << 3) - unused_bits; // FIXME: need more tests
 
 	return 1;
 }
