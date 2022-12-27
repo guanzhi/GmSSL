@@ -81,18 +81,14 @@ SM9 Public API
 #define SM9_HEX_SEP '\n'
 
 typedef uint64_t sm9_bn_t[8];
-extern const sm9_bn_t SM9_ZERO;
-extern const sm9_bn_t SM9_ONE;
-extern const sm9_bn_t SM9_P;
-extern const sm9_bn_t SM9_N;
 
 #define sm9_bn_init(r)		sm9_bn_set_zero(r)
 #define sm9_bn_clean(r)		sm9_bn_set_zero(r)
-#define sm9_bn_set_zero(r)	sm9_bn_copy((r), SM9_ZERO)
-#define sm9_bn_set_one(r)	sm9_bn_copy((r), SM9_ONE)
-#define sm9_bn_is_zero(a)	(sm9_bn_cmp((a), SM9_ZERO) == 0)
-#define sm9_bn_is_one(a)	(sm9_bn_cmp((a), SM9_ONE) == 0)
 
+void sm9_bn_set_zero(sm9_bn_t r);
+void sm9_bn_set_one(sm9_bn_t r);
+int  sm9_bn_is_zero(const sm9_bn_t a);
+int  sm9_bn_is_one(const sm9_bn_t a);
 void sm9_bn_set_word(sm9_bn_t r, uint32_t a);
 void sm9_bn_copy(sm9_bn_t r, const sm9_bn_t a);
 int  sm9_bn_rand_range(sm9_bn_t r, const sm9_bn_t range);

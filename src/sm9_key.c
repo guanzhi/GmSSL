@@ -23,6 +23,9 @@
 #include <gmssl/error.h>
 
 
+extern const sm9_bn_t SM9_ZERO;
+extern const sm9_bn_t SM9_N;
+
 // generate h1 in [1, n-1]
 int sm9_hash1(sm9_bn_t h1, const char *id, size_t idlen, uint8_t hid)
 {

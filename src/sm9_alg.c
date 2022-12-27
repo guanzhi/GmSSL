@@ -77,6 +77,26 @@ const SM9_TWIST_POINT _SM9_Ppubs = {
 const SM9_TWIST_POINT *SM9_Ppubs = &_SM9_Ppubs;
 
 
+void sm9_bn_set_zero(sm9_bn_t r)
+{
+	sm9_bn_copy(r, SM9_ZERO);
+}
+
+void sm9_bn_set_one(sm9_bn_t r)
+{
+	sm9_bn_copy(r, SM9_ONE);
+}
+
+int sm9_bn_is_zero(const sm9_bn_t a)
+{
+	return (sm9_bn_cmp(a, SM9_ZERO) == 0);
+}
+
+int sm9_bn_is_one(const sm9_bn_t a)
+{
+	return (sm9_bn_cmp(a, SM9_ONE) == 0);
+}
+
 void sm9_bn_to_bytes(const sm9_bn_t a, uint8_t out[32])
 {
 	int i;

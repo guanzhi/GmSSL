@@ -4,8 +4,6 @@ project(GmSSL)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-
 include_directories(include)
 
 set(src
@@ -109,7 +107,6 @@ endif()
 
 
 if (WIN32)
-#	list(APPEND src src/u_time.c)
 	list(APPEND src src/rand_win.c)
 elseif (APPLE)
 	list(APPEND src src/rand_apple.c)
@@ -119,10 +116,18 @@ else()
 	list(APPEND src src/rand_unix.c)
 endif()
 
+
+
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+
+if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # set before add_library
+endif()
+
 add_library(gmssl ${src})
 
+
 if (WIN32)
-	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 elseif (APPLE)
 	target_link_libraries(gmssl dl)
 	target_link_libraries(gmssl "-framework Security")

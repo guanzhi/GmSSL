@@ -18,6 +18,9 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
+
+extern const sm9_bn_t SM9_ZERO;
+extern const sm9_bn_t SM9_N;
 extern const SM9_POINT *SM9_P1;
 extern const SM9_TWIST_POINT *SM9_P2;
 
