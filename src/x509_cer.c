@@ -95,7 +95,6 @@ int x509_explicit_version_from_der(int index, int *version, const uint8_t **in, 
 int x509_time_to_der(time_t tv, uint8_t **out, size_t *outlen)
 {
 	int ret;
-	struct tm tm_val;
 	static time_t utc_time_max = 0;
 
 	if (!utc_time_max) {
@@ -137,7 +136,6 @@ int x509_time_from_der(time_t *tv, const uint8_t **in, size_t *inlen)
 
 int x509_validity_add_days(time_t *not_after, time_t not_before, int days)
 {
-	struct tm tm_val;
 	if (days < X509_VALIDITY_MIN_DAYS
 		|| days > X509_VALIDITY_MAX_DAYS) {
 		error_print();

@@ -929,7 +929,6 @@ int asn1_time_to_str(int utc_time, time_t timestamp, char *str)
 
 int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
-	struct tm tm_val;
 	char buf[ASN1_UTC_TIME_LEN + 1] = {0};
 	int utc_time = 1;
 
