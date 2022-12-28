@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/x509.h>
 #include <gmssl/cms.h>
 #include <gmssl/error.h>
@@ -49,7 +49,6 @@ int cmssign_main(int argc, char **argv)
 	SM2_KEY key;
 	uint8_t cert[1024];
 	size_t certlen;
-	struct stat st;
 	uint8_t *in = NULL;
 	size_t inlen;
 	uint8_t *cms = NULL;
@@ -153,12 +152,8 @@ bad:
 	cert_and_key.certs_len = certlen;
 	cert_and_key.sign_key = &key;
 
-	if (fstat(fileno(infp), &st) < 0) {
-		fprintf(stderr, "%s: access file error : %s\n", prog, strerror(errno));
-		goto end;
-	}
-	if ((inlen = st.st_size) <= 0) {
-		fprintf(stderr, "%s: invalid input length\n", prog);
+	if (file_size(infp, &inlen) != 1) {
+		fprintf(stderr, "%s: get input length failed\n", prog);
 		goto end;
 	}
 	if (!(in = malloc(inlen))) {

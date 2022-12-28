@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_crl.h>
 
@@ -29,7 +29,6 @@ int crlverify_main(int argc, char **argv)
 	FILE *cacertfp = NULL;
 	uint8_t *in = NULL;
 	size_t inlen;
-	struct stat st;
 	const uint8_t *pin;
 	const uint8_t *crl = NULL;
 	size_t crllen;
@@ -87,13 +86,8 @@ bad:
 		goto end;
 	}
 
-
-	if (fstat(fileno(infp), &st) < 0) {
-		fprintf(stderr, "%s: access file error : %s\n", prog, strerror(errno));
-		goto end;
-	}
-	if ((inlen = st.st_size) <= 0) {
-		fprintf(stderr, "%s: invalid input length\n", prog);
+	if (file_size(infp, &inlen) != 1) {
+		fprintf(stderr, "%s: get input length failed\n", prog);
 		goto end;
 	}
 	if (!(in = malloc(inlen))) {

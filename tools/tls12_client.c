@@ -142,7 +142,10 @@ bad:
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
+#ifdef WIN32
+#else
 		FD_SET(fileno(stdin), &fds);
+#endif
 
 		if (select((int)(conn.sock + 1), &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
@@ -165,6 +168,8 @@ bad:
 			}
 
 		}
+#ifdef WIN32
+#else
 		if (FD_ISSET(fileno(stdin), &fds)) {
 			memset(send_buf, 0, sizeof(send_buf));
 
@@ -181,6 +186,7 @@ bad:
 				goto end;
 			}
 		}
+#endif
 	}
 
 

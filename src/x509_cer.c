@@ -18,6 +18,7 @@
 #include <gmssl/pem.h>
 #include <gmssl/asn1.h>
 #include <gmssl/rsa.h>
+#include <gmssl/file.h>
 #include <gmssl/x509_oid.h>
 #include <gmssl/x509_str.h>
 #include <gmssl/x509_alg.h>
@@ -1660,14 +1661,14 @@ int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file)
 {
 	int ret = -1;
 	FILE *fp = NULL;
-	struct stat st;
+	size_t fsize;
 	uint8_t *buf = NULL;
 	size_t buflen;
 
 	if (!(fp = fopen(file, "r"))
-		|| fstat(fileno(fp), &st) < 0
-		|| (buflen = (st.st_size * 3)/4 + 1) < 0
-		|| (buf = malloc((st.st_size * 3)/4 + 1)) == NULL) {
+		|| file_size(fp, &fsize) != 1
+		|| (buflen = (fsize * 3)/4 + 1) < 0
+		|| (buf = malloc((fsize * 3)/4 + 1)) == NULL) {
 		error_print();
 		goto end;
 	}
@@ -1688,14 +1689,14 @@ int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file)
 {
 	int ret = -1;
 	FILE *fp = NULL;
-	struct stat st;
+	size_t fsize;
 	uint8_t *buf = NULL;
 	size_t buflen;
 
 	if (!(fp = fopen(file, "r"))
-		|| fstat(fileno(fp), &st) < 0
-		|| (buflen = (st.st_size * 3)/4 + 1) < 0
-		|| (buf = malloc((st.st_size * 3)/4 + 1)) == NULL) {
+		|| file_size(fp, &fsize) != 1
+		|| (buflen = (fsize * 3)/4 + 1) < 0
+		|| (buf = malloc((fsize * 3)/4 + 1)) == NULL) {
 		error_print();
 		goto end;
 	}

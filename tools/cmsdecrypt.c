@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/x509.h>
 #include <gmssl/cms.h>
 
@@ -35,7 +35,7 @@ int cmsdecrypt_main(int argc, char **argv)
 	FILE *outfp = stdout;
 	uint8_t cert[1024];
 	size_t certlen;
-	struct stat st;
+	size_t inlen;
 	uint8_t *cms = NULL;
 	size_t cmslen, cms_maxlen;
 	SM2_KEY key;
@@ -130,8 +130,11 @@ bad:
 		goto end;
 	}
 
-	fstat(fileno(infp), &st);
-	cms_maxlen = (st.st_size * 3)/4 + 1;
+	if (file_size(infp, &inlen) != 1) {
+		fprintf(stderr, "%s: get input length failed\n", prog);
+		goto end;
+	}
+	cms_maxlen = (inlen * 3)/4 + 1;
 	if (!(cms = malloc(cms_maxlen))) {
 		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;

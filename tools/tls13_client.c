@@ -141,7 +141,10 @@ bad:
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
+#ifdef WIN32
+#else
 		FD_SET(fileno(stdin), &fds);
+#endif
 
 		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
 			&fds, NULL, NULL, NULL) < 0) {
@@ -165,6 +168,8 @@ bad:
 			}
 
 		}
+#ifdef WIN32
+#else
 		if (FD_ISSET(fileno(stdin), &fds)) {
 			memset(send_buf, 0, sizeof(send_buf));
 
@@ -181,6 +186,7 @@ bad:
 				goto end;
 			}
 		}
+#endif
 	}
 
 end:

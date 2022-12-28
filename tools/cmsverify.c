@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/cms.h>
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
@@ -29,10 +29,9 @@ int cmsverify_main(int argc, char **argv)
 	char *outfile = NULL;
 	FILE *infp = NULL;
 	FILE *outfp = NULL;
-	struct stat st;
+	size_t inlen;
 	uint8_t *cms = NULL;
 	size_t cmslen, cms_maxlen;
-
 	int content_type;
 	const uint8_t *content;
 	size_t content_len;
@@ -87,8 +86,11 @@ bad:
 		fprintf(stderr, "%s: '-in' option required\n", prog);
 		goto end;
 	}
-	fstat(fileno(infp), &st);
-	cms_maxlen = (st.st_size * 3)/4 + 1;
+	if (file_size(infp, &inlen) != 1) {
+		fprintf(stderr, "%s: get input length failed\n", prog);
+		goto end;
+	}
+	cms_maxlen = (inlen * 3)/4 + 1;
 	if (!(cms = malloc(cms_maxlen))) {
 		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;

@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_crl.h>
 
@@ -27,7 +27,6 @@ int crlparse_main(int argc, char **argv)
 	char *outfile = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	struct stat st;
 	uint8_t *in = NULL;
 	size_t inlen;
 	const uint8_t *pin;
@@ -76,12 +75,8 @@ bad:
 		fprintf(stderr, "%s: '-in' option required\n", prog);
 		goto end;
 	}
-	if (fstat(fileno(infp), &st) < 0) {
-		fprintf(stderr, "%s: access file error : %s\n", prog, strerror(errno));
-		goto end;
-	}
-	if ((inlen = st.st_size) <= 0) {
-		fprintf(stderr, "%s: invalid input length\n", prog);
+	if (file_size(infp, &inlen) != 1) {
+		fprintf(stderr, "%s: get input length failed\n", prog);
 		goto end;
 	}
 	if (!(in = malloc(inlen))) {

@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/cms.h>
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
@@ -58,7 +58,6 @@ static int get_files_size(int argc, char **argv, const char *option, size_t *len
 	char *prog = argv[0];
 	char *file = NULL;
 	FILE *fp = NULL;
-	struct stat st;
 
 	argc--;
 	argv++;
@@ -66,21 +65,24 @@ static int get_files_size(int argc, char **argv, const char *option, size_t *len
 	*len = 0;
 	while (argc > 1) {
 		if (!strcmp(*argv, option)) {
+			size_t fsize;
+
 			if (--argc < 1) {
 				fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
 				return -1;
 			}
 			file = *(++argv);
+
 			if (!(fp = fopen(file, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failed : %s\n", prog, file, strerror(errno));
 				return -1;
 			}
-			if (fstat(fileno(fp), &st) < 0) {
+			if (file_size(fp, &fsize) != 1) {
 				fprintf(stderr, "%s: access '%s' failed : %s\n", prog, file, strerror(errno));
 				fclose(fp);
 				return -1;
 			}
-			*len += st.st_size;
+			*len += fsize;
 			fclose(fp);
 		}
 		argc--;

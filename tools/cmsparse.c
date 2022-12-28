@@ -12,7 +12,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <gmssl/file.h>
 #include <gmssl/cms.h>
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
@@ -26,7 +26,7 @@ int cmsparse_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *infile = NULL;
 	FILE *infp = stdin;
-	struct stat st;
+	size_t inlen;
 	uint8_t *cms = NULL;
 	size_t cms_maxlen, cmslen;
 
@@ -66,11 +66,11 @@ bad:
 		goto end;
 	}
 
-	if (fstat(fileno(infp), &st) < 0) {
+	if (file_size(infp, &inlen) != 1) { // FIXME: infp == stdin?
 		fprintf(stderr, "%s: access '%s' failed : %s\n", prog, infile, strerror(errno));
 		goto end;
 	}
-	cms_maxlen = (st.st_size * 3)/4 + 1;
+	cms_maxlen = (inlen * 3)/4 + 1;
 	if (!(cms = malloc(cms_maxlen))) {
 		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;
