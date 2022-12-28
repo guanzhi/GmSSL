@@ -1227,6 +1227,8 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 	const uint8_t *sig, size_t siglen)
 {
 	int type = TLS_handshake_certificate_verify;
+	uint8_t *p;
+	size_t len = 0;
 
 	if (!record || !recordlen || !sig || !siglen) {
 		error_print();
@@ -1236,7 +1238,9 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 		error_print();
 		return -1;
 	}
-	tls_record_set_handshake(record, recordlen, type, sig, siglen);
+	p = tls_handshake_data(tls_record_data(record));
+	tls_uint16array_to_bytes(sig, siglen, &p, &len);
+	tls_record_set_handshake(record, recordlen, type, NULL, len);
 	return 1;
 }
 
@@ -1244,12 +1248,14 @@ int tls_record_get_handshake_certificate_verify(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen)
 {
 	int type;
+	const uint8_t *cp;
+	size_t len;
 
 	if (!record || !sig || !siglen) {
 		error_print();
 		return -1;
 	}
-	if (tls_record_get_handshake(record, &type, sig, siglen) != 1) {
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1257,11 +1263,8 @@ int tls_record_get_handshake_certificate_verify(const uint8_t *record,
 		error_print();
 		return -1;
 	}
-	if (*sig == NULL || *siglen == 0) {
-		error_print();
-		return -1;
-	}
-	if (*siglen > TLS_MAX_SIGNATURE_SIZE) {
+	if (tls_uint16array_from_bytes(sig, siglen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
 	}

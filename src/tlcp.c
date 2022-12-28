@@ -427,24 +427,19 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// send CertificateVerify
 	if (conn->client_certs_len) {
 		tls_trace("send CertificateVerify\n");
-		uint8_t sigbuf[2 + SM2_MAX_SIGNATURE_SIZE];
-		memset(sigbuf, 0, 2 + SM2_MAX_SIGNATURE_SIZE);
-		SM3_CTX cert_verify_ctx;
-		uint8_t cert_verify_hash[SM3_DIGEST_SIZE] = {0};
-		memset(&cert_verify_ctx, 0, sizeof(SM3_CTX));
-		memset(cert_verify_hash, 0, SM3_DIGEST_SIZE);
-		memcpy(&cert_verify_ctx, &sm3_ctx, sizeof(sm3_ctx));
-		sm3_finish(&cert_verify_ctx, cert_verify_hash);
-		sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
-		sm2_sign_update(&sign_ctx, cert_verify_hash, SM3_DIGEST_SIZE);
-		if (sm2_sign_finish(&sign_ctx, sigbuf+2, &siglen) != 1) {
+
+		SM3_CTX cert_verify_sm3_ctx = sm3_ctx;
+		uint8_t cert_verify_hash[SM3_DIGEST_SIZE];
+		uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
+
+		sm3_finish(&cert_verify_sm3_ctx, cert_verify_hash);
+		if (sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+			|| sm2_sign_update(&sign_ctx, cert_verify_hash, SM3_DIGEST_SIZE) != 1
+			|| sm2_sign_finish(&sign_ctx, sigbuf, &siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			goto end;
 		}
-		sigbuf[0] = siglen >> 8;
-		sigbuf[1] = siglen ;
-		siglen += 2;
 		if (tls_record_set_handshake_certificate_verify(record, &recordlen, sigbuf, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
@@ -608,6 +603,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 
 	// ClientCertificate, CertificateVerify
 	SM2_KEY client_sign_key;
+	SM2_SIGN_CTX verify_ctx;
 	const uint8_t *sig;
 	const int verify_depth = 5;
 	int verify_result;
@@ -834,6 +830,9 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	// recv CertificateVerify
 	if (client_verify) {
 		tls_trace("recv CertificateVerify\n");
+		SM3_CTX cert_verify_sm3_ctx = sm3_ctx;
+		uint8_t cert_verify_hash[SM3_DIGEST_SIZE];
+
 		if (tls_record_recv(record, &recordlen, conn->sock) != 1
 			|| tls_record_protocol(record) != TLS_protocol_tlcp) {
 			tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -852,16 +851,11 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			goto end;
 		}
-		SM3_CTX cert_verify_ctx;
-		SM2_SIGN_CTX sm2_ctx;
-		uint8_t cert_verify_hash[SM3_DIGEST_SIZE] = {0};
-		memset(&cert_verify_ctx, 0, sizeof(SM3_CTX));
-		memset(cert_verify_hash, 0, SM3_DIGEST_SIZE);
-		memcpy(&cert_verify_ctx, &sm3_ctx, sizeof(sm3_ctx));
-		sm3_finish(&cert_verify_ctx, cert_verify_hash);
-		sm2_verify_init(&sm2_ctx, &client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
-		sm2_verify_update(&sm2_ctx, cert_verify_hash, SM3_DIGEST_SIZE); 
-		if (sm2_verify_finish(&sm2_ctx, sig+2, siglen-2) != 1) { 
+
+		sm3_finish(&cert_verify_sm3_ctx, cert_verify_hash);
+		if (sm2_verify_init(&verify_ctx, &client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+			|| sm2_verify_update(&verify_ctx, cert_verify_hash, SM3_DIGEST_SIZE) != 1
+			|| sm2_verify_finish(&verify_ctx, sig, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_decrypt_error);
 			goto end;

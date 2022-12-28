@@ -71,6 +71,12 @@ set(src
 	src/tls13.c
 )
 
+option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
+if (ENABLE_TLS_DEBUG)
+	add_definitions(-DTLS_DEBUG)
+endif()
+
+
 option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 if (ENABLE_SM3_AVX_BMI2)
 	enable_language(ASM)
