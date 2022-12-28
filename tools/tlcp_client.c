@@ -186,7 +186,9 @@ bad:
 		if (select((int)(conn.sock + 1), // WinSock2 select() ignore this arg
 			&fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
+#ifdef WIN32
 			fprintf(stderr, "WSAGetLastError = %u\n", WSAGetLastError());
+#endif
 			goto end;
 		}
 
