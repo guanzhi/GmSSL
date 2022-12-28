@@ -546,7 +546,7 @@ int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 int sm9_ciphertext_to_der(const SM9_POINT *C1, const uint8_t *c2, size_t c2len,
 	const uint8_t c3[SM3_HMAC_SIZE], uint8_t **out, size_t *outlen);
 int sm9_ciphertext_from_der(SM9_POINT *C1, const uint8_t **c2, size_t *c2len,
-	const uint8_t *c3[SM3_HMAC_SIZE], const uint8_t **in, size_t *inlen);
+	const uint8_t **c3, const uint8_t **in, size_t *inlen);
 int sm9_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
