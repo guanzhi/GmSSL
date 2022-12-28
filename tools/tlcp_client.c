@@ -38,6 +38,7 @@ int tlcp_client_main(int argc, char *argv[])
 	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock;
+	int sock_inited = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};
@@ -87,6 +88,18 @@ bad:
 		fprintf(stderr, "%s: '-in' option required\n", prog);
 		return -1;
 	}
+
+#ifdef WIN32
+	WORD wVersion;
+	WSADATA wsaData;
+	wVersion = MAKEWORD(2, 2);
+	int err;
+	if ((err = WSAStartup(wVersion, &wsaData)) != 0) {
+		fprintf(stderr, "WSAStartup error %d\n", err);
+		return -1;
+	}
+#endif
+
 	if (!(hp = gethostbyname(host))) {
 		//herror("tlcp_client: '-host' invalid");			
 		goto end;
@@ -99,14 +112,27 @@ bad:
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
+#ifdef WIN32
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+		fprintf(stderr, "%s: open socket error : %u\n", prog, WSAGetLastError());
+		goto end;
+	}
+	sock_inited = 1;
+	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) == SOCKET_ERROR) {
+		fprintf(stderr, "%s: connect error : %u\n", prog, WSAGetLastError());
+		goto end;
+	}
+#else
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno));
 		goto end;
 	}
+	sock_inited = 1;
 	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
 		fprintf(stderr, "%s: connect error : %s\n", prog, strerror(errno));
 		goto end;
 	}
+#endif
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_client_mode) != 1
 		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
@@ -126,7 +152,6 @@ bad:
 		}
 	}
 
-
 	if (tls_init(&conn, &ctx) != 1
 		|| tls_set_socket(&conn, sock) != 1
 		|| tls_do_handshake(&conn) != 1) {
@@ -134,19 +159,34 @@ bad:
 		goto end;
 	}
 
-
-
 	for (;;) {
 		fd_set fds;
 		size_t sentlen;
 
+		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+			if (feof(stdin)) {
+				tls_shutdown(&conn);
+				goto end;
+			} else {
+				continue;
+			}
+		}
+		if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
-		FD_SET(fileno(stdin), &fds); //FD_SET(STDIN_FILENO, &fds);
+#ifdef WIN32
+#else		
+		FD_SET(fileno(stdin), &fds); //FD_SET(STDIN_FILENO, &fds); // NOT allowed in winsock2 !!!
+#endif
 
 		if (select((int)(conn.sock + 1), // WinSock2 select() ignore this arg
 			&fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
+			fprintf(stderr, "WSAGetLastError = %u\n", WSAGetLastError());
 			goto end;
 		}
 
@@ -166,6 +206,8 @@ bad:
 			}
 
 		}
+#ifdef WIN32
+#else
 		if (FD_ISSET(fileno(stdin), &fds)) {
 			fprintf(stderr, "recv from stdin\n");
 
@@ -184,13 +226,13 @@ bad:
 				goto end;
 			}
 		}
+#endif
 
 		fprintf(stderr, "end of this round\n");
 	}
 
-
 end:
-	tls_socket_close(sock);
+	if (sock_inited) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;

@@ -124,6 +124,19 @@ bad:
 		}
 	}
 
+#ifdef WIN32
+	WORD wVersion;
+	WSADATA wsaData;
+	wVersion = MAKEWORD(2, 2);
+	int err;
+	if ((err = WSAStartup(wVersion, &wsaData)) != 0) {
+		fprintf(stderr, "WSAStartup error %d\n", err);
+		return -1;
+	}
+
+#endif
+
+
 	// Socket
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		error_print();
@@ -132,11 +145,18 @@ bad:
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
 	server_addr.sin_port = htons(port);
+#ifdef WIN32
+	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+		fprintf(stderr, "bind error %u\n", WSAGetLastError());
+		goto end;
+	}
+#else
 	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
 		error_print();
 		perror("tlcp_accept: bind: ");
 		goto end;
 	}
+#endif
 	puts("start listen ...\n");
 	listen(sock, 1);
 
