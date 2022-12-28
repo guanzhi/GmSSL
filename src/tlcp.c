@@ -427,8 +427,8 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// send CertificateVerify
 	if (conn->client_certs_len) {
 		tls_trace("send CertificateVerify\n");
-		uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
-		memset(sigbuf, 0, SM2_MAX_SIGNATURE_SIZE);
+		uint8_t sigbuf[2 + SM2_MAX_SIGNATURE_SIZE];
+		memset(sigbuf, 0, 2 + SM2_MAX_SIGNATURE_SIZE);
 		SM3_CTX cert_verify_ctx;
 		uint8_t cert_verify_hash[SM3_DIGEST_SIZE] = {0};
 		memset(&cert_verify_ctx, 0, sizeof(SM3_CTX));
