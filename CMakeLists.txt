@@ -69,6 +69,7 @@ set(src
 	src/tlcp.c
 	src/tls12.c
 	src/tls13.c
+	src/file.c
 )
 
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
@@ -239,21 +240,21 @@ if (ENABLE_BROKEN_CRYPTO)
 	list(APPEND tests ${broken_crypto_tests})
 endif()
 
-INSTALL(TARGETS gmssl ARCHIVE DESTINATION lib  LIBRARY DESTINATION lib)
-INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
+install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 
 	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	SET_TARGET_PROPERTIES(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+	set_target_properties(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
 
 	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-	SET_TARGET_PROPERTIES(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+	set_target_properties(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
 
 	add_executable(gmssl-bin ${tools})
-	target_link_libraries (gmssl-bin LINK_PUBLIC gmssl)
-	set_target_properties (gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
-	if(MINGW)
+	target_link_libraries(gmssl-bin LINK_PUBLIC gmssl)
+	set_target_properties(gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
+	if (MINGW)
 		target_link_libraries(gmssl-bin PRIVATE Ws2_32)
 	endif()
 
@@ -265,7 +266,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	endforeach()
 
 
-	INSTALL(TARGETS gmssl-bin RUNTIME DESTINATION bin)
+	install(TARGETS gmssl-bin RUNTIME DESTINATION bin)
 endif()
 
 if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
@@ -273,7 +274,6 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_INSTALL_PREFIX "C:/Program Files/GmSSL") # change by `cmake -DCMAKE_INSTALL_PREFIX=C:\path\to\install`
 	# run `set path=%path%;C:\Program Files\GmSSL\bin`
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-	target_compile_options(gmssl PRIVATE /wd4996)
-	target_compile_options(gmssl-bin PRIVATE /wd4996)
 #	target_compile_options(gmssl PRIVATE /wd4996)
+#	target_compile_options(gmssl-bin PRIVATE /wd4996)
 endif()
