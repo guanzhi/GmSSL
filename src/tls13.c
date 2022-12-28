@@ -1415,6 +1415,7 @@ TLS 1.3的区别：
 
 int tls13_do_connect(TLS_CONNECT *conn)
 {
+	int ret = -1;
 	uint8_t *record = conn->record;
 	uint8_t *enced_record = conn->enced_record;
 	size_t recordlen;
@@ -1876,13 +1877,27 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	format_print(stderr, 0, 0, "\n");
 	*/
 	fprintf(stderr, "Connection established\n");
+	ret = 1;
 
 end:
-	return 1;
+	gmssl_secure_clear(&client_ecdhe, sizeof(client_ecdhe));
+	gmssl_secure_clear(&server_sign_key, sizeof(server_sign_key));
+	gmssl_secure_clear(psk, sizeof(psk));
+	gmssl_secure_clear(early_secret, sizeof(early_secret));
+	gmssl_secure_clear(handshake_secret, sizeof(handshake_secret));
+	gmssl_secure_clear(master_secret, sizeof(master_secret));
+	gmssl_secure_clear(client_handshake_traffic_secret, sizeof(client_handshake_traffic_secret));
+	gmssl_secure_clear(server_handshake_traffic_secret, sizeof(server_handshake_traffic_secret));
+	gmssl_secure_clear(client_application_traffic_secret, sizeof(client_application_traffic_secret));
+	gmssl_secure_clear(server_application_traffic_secret, sizeof(server_application_traffic_secret));
+	gmssl_secure_clear(client_write_key, sizeof(client_write_key));
+	gmssl_secure_clear(server_write_key, sizeof(server_write_key));
+	return ret;
 }
 
 int tls13_do_accept(TLS_CONNECT *conn)
 {
+	int ret = -1;
 	uint8_t *record = conn->record;
 	size_t recordlen;
 	uint8_t enced_record[25600];
@@ -2320,7 +2335,19 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	*/
 
 	fprintf(stderr, "Connection Established!\n\n");
-
+	ret = 1;
 end:
-	return 1;
+	gmssl_secure_clear(&server_ecdhe, sizeof(server_ecdhe));
+	gmssl_secure_clear(&client_sign_key, sizeof(client_sign_key));
+	gmssl_secure_clear(psk, sizeof(psk));
+	gmssl_secure_clear(early_secret, sizeof(early_secret));
+	gmssl_secure_clear(handshake_secret, sizeof(handshake_secret));
+	gmssl_secure_clear(master_secret, sizeof(master_secret));
+	gmssl_secure_clear(client_handshake_traffic_secret, sizeof(client_handshake_traffic_secret));
+	gmssl_secure_clear(server_handshake_traffic_secret, sizeof(server_handshake_traffic_secret));
+	gmssl_secure_clear(client_application_traffic_secret, sizeof(client_application_traffic_secret));
+	gmssl_secure_clear(server_application_traffic_secret, sizeof(server_application_traffic_secret));
+	gmssl_secure_clear(client_write_key, sizeof(client_write_key));
+	gmssl_secure_clear(server_write_key, sizeof(server_write_key));
+	return ret;
 }

@@ -567,7 +567,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 end:
 	gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 	gmssl_secure_clear(pre_master_secret, sizeof(pre_master_secret));
-	return 1;
+	return ret;
 }
 
 int tlcp_do_accept(TLS_CONNECT *conn)
