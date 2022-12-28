@@ -185,7 +185,9 @@ int sm4_rng_reseed(SM4_RNG *rng, const uint8_t *addin, size_t addin_len)
 	sm4_df_finish(&df_ctx, seed);
 
 	sm4_rng_update(rng, seed);
-
+    
+	rng->reseed_counter = 1;
+	rng->last_reseed_time = time(NULL);
 
 	gmssl_secure_clear(&df_ctx, sizeof(df_ctx));
 	gmssl_secure_clear(entropy, sizeof(entropy));
