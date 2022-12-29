@@ -152,7 +152,7 @@ static uint32_t K[64] = {
 	*/
 };
 
-#ifndef ENABLE_SM3_AVX_BMI2
+#ifndef SM3_AVX_BMI2
 void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 {
 	uint32_t A;

@@ -80,6 +80,7 @@ endif()
 
 option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 if (ENABLE_SM3_AVX_BMI2)
+	add_definitions(-DSM3_AVX_BMI2)
 	enable_language(ASM)
 	list(APPEND src src/sm3_avx_bmi2.s)
 endif()
