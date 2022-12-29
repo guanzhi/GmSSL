@@ -223,9 +223,9 @@ static int test_sm4_ctr_with_carray(void)
 	sm4_ctr_encrypt(&sm4_key, ctr, buf1, sizeof(buf1), buf2);
 
 	if (memcmp(buf2, buf3, sizeof(buf3)) != 0) {
-			error_print();
-			return -1;
-		}
+		error_print();
+		return -1;
+	}
 
 	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
 	sm4_ctr_decrypt(&sm4_key, ctr, buf3, sizeof(buf3), buf2);

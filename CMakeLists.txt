@@ -72,83 +72,6 @@ set(src
 	src/file.c
 )
 
-option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
-if (ENABLE_TLS_DEBUG)
-	add_definitions(-DTLS_DEBUG)
-endif()
-
-
-option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
-if (ENABLE_SM3_AVX_BMI2)
-	add_definitions(-DSM3_AVX_BMI2)
-	enable_language(ASM)
-	list(APPEND src src/sm3_avx_bmi2.s)
-endif()
-
-
-option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
-if (ENABLE_SM4_AESNI_AVX)
-	list(APPEND src src/sm4_aesni_avx.c)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-endif()
-
-
-option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
-set(broken_crypto_src
-	src/des.c
-	src/sha1.c
-	src/md5.c
-	src/rc4.c
-)
-if (ENABLE_BROKEN_CRYPTO)
-	list(APPEND src ${broken_crypto_src})
-endif()
-
-option(ENABLE_RDRND "Enable Intel RDRND instructions" OFF)
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
-	set(ENABLE_RDRND ON)
-endif()
-if (ENABLE_RDRND)
-	list(APPEND src src/rdrand.c)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
-endif()
-
-
-if (WIN32)
-	list(APPEND src src/rand_win.c)
-elseif (APPLE)
-	list(APPEND src src/rand_apple.c)
-elseif (ANDROID)
-	list(APPEND src src/rand.c)
-else()
-	list(APPEND src src/rand_unix.c)
-endif()
-
-
-
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-
-if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
-	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # set before add_library
-endif()
-
-add_library(gmssl ${src})
-
-
-if (WIN32)
-elseif (APPLE)
-	target_link_libraries(gmssl dl)
-	target_link_libraries(gmssl "-framework Security")
-	#target_link_libraries(gmssl "-framework CoreFoundation") # rand_apple.c CFRelease()
-elseif (MINGW)
-	target_link_libraries(gmssl PRIVATE wsock32)
-else()
-	target_link_libraries(gmssl dl)
-endif()
-
-
-SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
-
 set(tools
 	tools/gmssl.c
 	tools/version.c
@@ -230,16 +153,82 @@ set(tests
 	tls13
 )
 
-set(broken_crypto_tests
-	des
-	sha1
-	md5
-	rc4
-)
 
-if (ENABLE_BROKEN_CRYPTO)
-	list(APPEND tests ${broken_crypto_tests})
+option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
+if (ENABLE_TLS_DEBUG)
+	add_definitions(-DTLS_DEBUG)
 endif()
+
+
+option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
+if (ENABLE_SM3_AVX_BMI2)
+	add_definitions(-DSM3_AVX_BMI2)
+	enable_language(ASM)
+	list(APPEND src src/sm3_avx_bmi2.s)
+endif()
+
+
+option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
+if (ENABLE_SM4_AESNI_AVX)
+	add_definitions(-DENABLE_SM4_AESNI_AVX)
+	list(APPEND src src/sm4_aesni_avx.c)
+	list(APPEND tests sm4_aesni_avx)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+endif()
+
+
+option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
+if (ENABLE_BROKEN_CRYPTO)
+	list(APPEND src src/des.c src/sha1.c src/md5.c src/rc4.c)
+	list(APPEND tests des sha1 md5 rc4)
+endif()
+
+
+option(ENABLE_RDRND "Enable Intel RDRND instructions" OFF)
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
+	set(ENABLE_RDRND ON)
+endif()
+if (ENABLE_RDRND)
+	list(APPEND src src/rdrand.c)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
+endif()
+
+
+if (WIN32)
+	list(APPEND src src/rand_win.c)
+elseif (APPLE)
+	list(APPEND src src/rand_apple.c)
+elseif (ANDROID)
+	list(APPEND src src/rand.c)
+else()
+	list(APPEND src src/rand_unix.c)
+endif()
+
+
+
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+
+if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # set before add_library
+endif()
+
+add_library(gmssl ${src})
+
+
+if (WIN32)
+elseif (APPLE)
+	target_link_libraries(gmssl dl)
+	target_link_libraries(gmssl "-framework Security")
+	#target_link_libraries(gmssl "-framework CoreFoundation") # rand_apple.c CFRelease()
+elseif (MINGW)
+	target_link_libraries(gmssl PRIVATE wsock32)
+else()
+	target_link_libraries(gmssl dl)
+endif()
+
+
+SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
+
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
