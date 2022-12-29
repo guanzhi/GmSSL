@@ -24,7 +24,9 @@ cat signcert.pem > double_certs.pem
 cat enccert.pem >> double_certs.pem
 cat cacert.pem >> double_certs.pem
 
-sudo gmssl tlcp_server -port 443 -cert double_certs.pem -key signkey.pem -pass 1234 -ex_key enckey.pem -ex_pass 1234 -cacert cacert.pem  1>/dev/null  2>/dev/null &
+# If port is already in use, `gmssl` will fail, use `ps aux | grep gmssl` and `sudo kill -9` to kill existing proc
+# TODO: check if `gmssl` is failed
+sudo gmssl tlcp_server -port 443 -cert double_certs.pem -key signkey.pem -pass 1234 -ex_key enckey.pem -ex_pass 1234 -cacert cacert.pem & # 1>/dev/null  2>/dev/null &
 sleep 3
 
 gmssl sm2keygen -pass 1234 -out clientkey.pem

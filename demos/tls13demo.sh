@@ -18,7 +18,9 @@ gmssl certparse -in signcert.pem
 cat signcert.pem > certs.pem
 cat cacert.pem >> certs.pem
 
-sudo gmssl tls13_server -port 443 -cert certs.pem -key signkey.pem -pass 1234 -cacert cacert.pem  1>/dev/null  2>/dev/null &
+# If port is already in use, `gmssl` will fail, use `ps aux | grep gmssl` and `sudo kill -9` to kill existing proc
+# TODO: check if `gmssl` is failed
+sudo gmssl tls13_server -port 443 -cert certs.pem -key signkey.pem -pass 1234 -cacert cacert.pem & # 1>/dev/null  2>/dev/null &
 sleep 3
 
 gmssl sm2keygen -pass 1234 -out clientkey.pem
