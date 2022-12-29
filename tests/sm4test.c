@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -199,10 +199,10 @@ static int test_sm4_ctr_with_carray(void)
 {
 	const char *hex_key =	"0123456789ABCDEFFEDCBA9876543210";
 	const char *hex_ctr =	"0000000000000000000000000000FFFF";
-	const char *hex_in =	"AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBB"
-							"CCCCCCCCCCCCCCCCDDDDDDDDDDDD";
+	const char *hex_in  =	"AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBB"
+				"CCCCCCCCCCCCCCCCDDDDDDDDDDDD";
 	const char *hex_out =	"7EA678F9F0CBE2000917C63D4E77B4C8"
-							"6E4E8532B0046E4AC1E97DA8B831";
+				"6E4E8532B0046E4AC1E97DA8B831";
 
 	SM4_KEY sm4_key;
 	uint8_t key[16] = {0};
@@ -243,7 +243,7 @@ static int test_sm4_gcm(void)
 {
 	// gcm test vectors from rfc 8998 A.1
 	const char *hex_key =	"0123456789ABCDEFFEDCBA9876543210";
-	const char *hex_iv =	"00001234567800000000ABCD";
+	const char *hex_iv  =	"00001234567800000000ABCD";
 	const char *hex_aad =	"FEEDFACEDEADBEEFFEEDFACEDEADBEEF"
 				"ABADDAD2";
 	const char *hex_in =	"AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBB"
@@ -255,6 +255,120 @@ static int test_sm4_gcm(void)
 				"D82710CA5C22F0CCFA7CBF93D496AC15"
 				"A56834CBCF98C397B4024A2691233B8D";
 	const char *hex_tag =	"83DE3541E4C2B58177E065A9BF7B62EC";
+
+	SM4_KEY sm4_key;
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t aad[20];
+	uint8_t in[64];
+	uint8_t out[64];
+	uint8_t tag[16];
+	size_t keylen, ivlen, aadlen, inlen, outlen, taglen;
+
+	uint8_t buf[64];
+	uint8_t mac[16];
+
+	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
+	hex_to_bytes(hex_iv, strlen(hex_iv), iv, &ivlen);
+	hex_to_bytes(hex_aad, strlen(hex_aad), aad, &aadlen);
+	hex_to_bytes(hex_in, strlen(hex_in), in, &inlen);
+	hex_to_bytes(hex_out, strlen(hex_out), out, &outlen);
+	hex_to_bytes(hex_tag, strlen(hex_tag), tag, &taglen);
+
+	memset(buf, 0, sizeof(buf));
+	memset(mac, 0, sizeof(mac));
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	// test gcm encrypt
+	sm4_gcm_encrypt(&sm4_key, iv, ivlen, aad, aadlen, in, inlen, buf, taglen, mac);
+	if (memcmp(buf, out, outlen) != 0) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(mac, tag, taglen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// test gcm decrypt
+	memset(buf, 0, sizeof(buf));
+	sm4_gcm_decrypt(&sm4_key, iv, ivlen, aad, aadlen, out, outlen, tag, taglen, buf);
+	if (memcmp(buf, in, inlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_gcm_gbt36624_1(void)
+{
+	// gcm test vectors from GB/T 36624-2018 C.5
+	const char *hex_key = "00000000000000000000000000000000";
+	const char *hex_iv  = "000000000000000000000000";
+	const char *hex_aad = "";
+	const char *hex_in  = "";
+	const char *hex_out = "";
+	const char *hex_tag = "232F0CFE308B49EA6FC88229B5DC858D";
+
+	SM4_KEY sm4_key;
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t aad[20];
+	uint8_t in[64];
+	uint8_t out[64];
+	uint8_t tag[16];
+	size_t keylen, ivlen, aadlen, inlen, outlen, taglen;
+
+	uint8_t buf[64];
+	uint8_t mac[16];
+
+	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
+	hex_to_bytes(hex_iv, strlen(hex_iv), iv, &ivlen);
+	hex_to_bytes(hex_aad, strlen(hex_aad), aad, &aadlen);
+	hex_to_bytes(hex_in, strlen(hex_in), in, &inlen);
+	hex_to_bytes(hex_out, strlen(hex_out), out, &outlen);
+	hex_to_bytes(hex_tag, strlen(hex_tag), tag, &taglen);
+
+	memset(buf, 0, sizeof(buf));
+	memset(mac, 0, sizeof(mac));
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	// test gcm encrypt
+	sm4_gcm_encrypt(&sm4_key, iv, ivlen, aad, aadlen, in, inlen, buf, taglen, mac);
+	if (memcmp(buf, out, outlen) != 0) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(mac, tag, taglen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// test gcm decrypt
+	memset(buf, 0, sizeof(buf));
+	sm4_gcm_decrypt(&sm4_key, iv, ivlen, aad, aadlen, out, outlen, tag, taglen, buf);
+	if (memcmp(buf, in, inlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_gcm_gbt36624_2(void)
+{
+	// gcm test vectors from GB/T 36624-2018 C.5
+	const char *hex_key = "00000000000000000000000000000000";
+	const char *hex_iv  = "000000000000000000000000";
+	const char *hex_aad = "";
+	const char *hex_in  = "00000000000000000000000000000000";
+	const char *hex_out = "7DE2AA7F1110188218063BE1BFEB6D89";
+	const char *hex_tag = "B851B5F39493752BE508F1BB4482C557";
 
 	SM4_KEY sm4_key;
 	uint8_t key[16];
@@ -584,6 +698,8 @@ int main(void)
 	if (test_sm4_cbc_padding() != 1) goto err;
 	if (test_sm4_ctr() != 1) goto err;
 	if (test_sm4_gcm() != 1) goto err;
+	if (test_sm4_gcm_gbt36624_1() != 1) goto err;
+	if (test_sm4_gcm_gbt36624_2() != 1) goto err;
 	if (test_sm4_cbc_update() != 1) goto err;
 	if (test_sm4_ctr_update() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
