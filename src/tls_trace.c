@@ -540,7 +540,7 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	size_t i;
 
 	format_print(fp, format, indent, "ClientHello\n"); indent += 4;
-	if (tls_uint16_from_bytes((uint16_t *)&protocol, &data, &datalen) != 1) goto end;
+	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto end;
 	format_print(fp, format, indent, "Version: %s (%d.%d)\n",
 		tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto end;
@@ -892,7 +892,7 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 	const uint8_t *cp = handshake;
 	uint8_t type;
 	const uint8_t *data;
-	size_t datalen = 0;
+	uint24_t datalen;
 
 	format_print(fp, format, indent, "Handshake\n");
 	indent += 4;
@@ -902,7 +902,7 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 		return -1;
 	}
 	format_print(fp, format, indent, "Type: %s (%d)\n", tls_handshake_type_name(type), type);
-	if (tls_uint24_from_bytes((uint24_t *)&datalen, &cp, &handshakelen) != 1) {
+	if (tls_uint24_from_bytes(&datalen, &cp, &handshakelen) != 1) {
 		error_print();
 		return -1;
 	}

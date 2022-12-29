@@ -855,6 +855,7 @@ int tls13_record_get_handshake_certificate_verify(const uint8_t *record,
 	int type;
 	const uint8_t *p;
 	size_t len ;
+	uint16_t alg;
 
 	if (tls_record_get_handshake(record, &type, &p, &len) != 1
 		|| type != TLS_handshake_certificate_verify) {
@@ -862,9 +863,9 @@ int tls13_record_get_handshake_certificate_verify(const uint8_t *record,
 		return -1;
 	}
 
-	*sign_algor = 0;
-	tls_uint16_from_bytes((uint16_t *)sign_algor, &p, &len);
+	tls_uint16_from_bytes(&alg, &p, &len);
 	tls_uint16array_from_bytes(sig, siglen, &p, &len);
+	*sign_algor = alg;
 
 	return 1;
 }
