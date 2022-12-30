@@ -209,6 +209,11 @@ if (ENABLE_RDRND)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 endif()
 
+option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
+if (ENABLE_GMT_0105_RNG)
+	list(APPEND src src/sm3_rng.c src/sm4_cbc_mac.c src/sm4_rng.c)
+	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
+endif()
 
 if (WIN32)
 	list(APPEND src src/rand_win.c)
