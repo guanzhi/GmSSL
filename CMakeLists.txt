@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.6)
 project(GmSSL)
 
+SET(CMAKE_PROJECT_HOMEPAGE_URL "http://gmssl.org")
+
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include_directories(include)
 
@@ -280,3 +283,11 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 #	target_compile_options(gmssl PRIVATE /wd4996)
 #	target_compile_options(gmssl-bin PRIVATE /wd4996)
 endif()
+
+if (UNIX)
+	# packaging
+	include(LinuxPacking)
+	include(DebPacking)
+	include(RpmPacking)
+	include(CPack)
+endif (UNIX)

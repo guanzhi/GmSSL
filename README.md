@@ -65,6 +65,26 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake  -DANDR
 make
 ```
 
+### Linux软件包构建
+
+依赖于cmake工具包中的cpack工具，目前仅支持构建：
+* .deb
+* .rpm
+* .sh安装脚本
+
+```bash
+mkdir build; cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+# 构建deb软件包
+cpack -G DEB
+# 构建rpm软件包
+cpack -G RPM
+# 构建.sh安装脚本
+make package
+```
+
+构建的软件包在`build`目录下。
+
 ## 主要功能
 
 ### 密码算法
