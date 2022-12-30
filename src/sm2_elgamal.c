@@ -14,18 +14,14 @@
 #include <stdint.h>
 #include <assert.h>
 #include <gmssl/mem.h>
-#include <gmssl/sm2.h>
+#include <gmssl/sm2_elgamal.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
 
-#define SM2_PRE_COMPUTE_MAX_OFFSETS	6
+extern const SM2_JACOBIAN_POINT *SM2_G;
 
-typedef struct {
-	uint16_t offset[SM2_PRE_COMPUTE_MAX_OFFSETS];
-	uint8_t offset_count;
-	uint8_t x_coordinate[32];
-} SM2_PRE_COMPUTE;
+
 
 // generate baby-step table
 int sm2_elgamal_decrypt_pre_compute(SM2_PRE_COMPUTE table[1<<16])
@@ -116,11 +112,6 @@ ok:
 	gmssl_secure_clear(x, sizeof(x));
 	return ret;
 }
-
-typedef struct {
-	SM2_POINT C1;
-	SM2_POINT C2;
-} SM2_ELGAMAL_CIPHERTEXT;
 
 int sm2_elgamal_do_encrypt(const SM2_KEY *pub_key, uint32_t in, SM2_ELGAMAL_CIPHERTEXT *out)
 {
@@ -419,14 +410,3 @@ int sm2_elgamal_decrypt(SM2_KEY *key, const uint8_t *in, size_t inlen, uint32_t 
 	}
 	return 1;
 }
-
-int test_sm2_elgamal_do_encrypt(void)
-{
-	return -1;
-}
-
-int test_sm2_elgamal_encrypt(void)
-{
-	return -1;
-}
-

@@ -28,12 +28,10 @@ extern "C" {
 #endif
 
 
-typedef uint8_t sm2_bn_t[32];
-
-int sm2_commit_generate(const uint8_t x[32], uint8_t r[32], uint8_t commit[65], size_t *commitlen)
-int sm2_commit_open(const uint8_t x[32], const uint8_t r[32], const uint8_t *commit, size_t commitlen)
-int sm2_commit_vector_generate(const sm2_bn_t *x, size_t count, uint8_t r[32], uint8_t commit[65], size_t *commitlen)
-int sm2_commit_vector_open(const sm2_bn_t *x, size_t count, const uint8_t r[32], const uint8_t *commit, size_t commitlen)
+int sm2_commit_generate(const uint8_t x[32], uint8_t r[32], uint8_t commit[65], size_t *commitlen);
+int sm2_commit_open(const uint8_t x[32], const uint8_t r[32], const uint8_t *commit, size_t commitlen);
+int sm2_commit_vector_generate(const sm2_bn_t *x, size_t count, uint8_t r[32], uint8_t commit[65], size_t *commitlen);
+int sm2_commit_vector_open(const sm2_bn_t *x, size_t count, const uint8_t r[32], const uint8_t *commit, size_t commitlen);
 
 
 #ifdef __cplusplus

@@ -11,10 +11,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmssl/sm2.h>
+#include <gmssl/sm2_key_share.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 
+extern SM2_BN SM2_N;
 
 int sm2_key_share_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY_SHARE *share)
 {
@@ -35,8 +36,6 @@ static void eval_univariate_poly(SM2_Fn y, const SM2_Fn *coeffs, size_t coeffs_c
 		sm2_fn_add(y, y, coeffs[coeffs_cnt]);
 	}
 }
-
-#define SM2_KEY_MAX_SHARES 12 // 12! = 479001600 < 2^31 = 2147483648
 
 int sm2_key_split(const SM2_KEY *key, size_t recover_cnt, size_t total_cnt, SM2_KEY_SHARE *shares)
 {
@@ -214,77 +213,3 @@ int sm2_key_share_decrypt_from_file(SM2_KEY_SHARE *share, const char *pass, cons
 	error_print();
 	return -1;
 }
-
-int test_sm2_key_share_args(size_t k, size_t n)
-{
-	SM2_KEY key;
-	SM2_KEY key_;
-	SM2_KEY_SHARE shares[SM2_KEY_MAX_SHARES];
-
-	if (sm2_key_generate(&key) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm2_key_split(&key, k, n, shares) != 1) {
-		error_print();
-		return -1;
-	}
-
-	// recover from 0 .. k
-	if (sm2_key_recover(&key_, shares, k) != 1) {
-		error_print();
-		return -1;
-	}
-	if (memcmp(&key_, &key, sizeof(SM2_KEY)) != 0) {
-		error_print();
-		return -1;
-	}
-
-	// recover from n-k .. n
-	memset(&key_, 0, sizeof(key_));
-	if (sm2_key_recover(&key_, shares + n - k, k) != 1) {
-		error_print();
-		return -1;
-	}
-	if (memcmp(&key_, &key, sizeof(SM2_KEY)) != 0) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int test_sm2_key_share(void)
-{
-	if (test_sm2_key_share_args(1, 1) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(1, 3) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(2, 3) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(3, 5) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(4, 5) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(5, 5) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(11, 12) != 1) { error_print(); return -1; }
-	if (test_sm2_key_share_args(12, 12) != 1) { error_print(); return -1; }
-	return 1;
-}
-
-int test_sm2_key_share_file(void)
-{
-	SM2_KEY key;
-	SM2_KEY_SHARE shares[SM2_KEY_MAX_SHARES];
-
-	if (sm2_key_generate(&key) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm2_key_split(&key, 2, 3, shares) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm2_key_share_encrypt_to_file(&shares[0], "123456", "sm2key") != 1
-		|| sm2_key_share_encrypt_to_file(&shares[1], "123456", "sm2key") != 1
-		|| sm2_key_share_encrypt_to_file(&shares[2], "123456", "sm2key") != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-

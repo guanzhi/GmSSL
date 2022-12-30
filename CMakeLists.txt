@@ -177,6 +177,19 @@ if (ENABLE_SM4_AESNI_AVX)
 endif()
 
 
+option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
+if (ENABLE_SM2_EXTS)
+	list(APPEND src
+		src/sm2_key_share.c
+		src/sm2_recover.c
+		src/sm2_blind.c
+		src/sm2_ring.c
+		src/sm2_elgamal.c
+		src/sm2_commit.c)
+	list(APPEND tests sm2_key_share sm2_blind sm2_ring sm2_elgamal sm2_commit)
+endif()
+
+
 option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 if (ENABLE_BROKEN_CRYPTO)
 	list(APPEND src src/des.c src/sha1.c src/md5.c src/rc4.c)

@@ -15,6 +15,11 @@
 #include <gmssl/error.h>
 
 
+extern SM2_BN SM2_P;
+extern SM2_BN SM2_B;
+extern SM2_BN SM2_N;
+extern SM2_BN SM2_THREE;
+
 // r = H(Z||M) + x1 (mod n)
 // x1 = r - H(Z||M) (mod n) or (r - H(Z||M) (mod n)) + n
 // y1 = sqrt(x1^3 + a*x1 + b)
@@ -107,25 +112,3 @@ int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t d
 
 	return 1;
 }
-
-static int test_sm2_signature_to_public_key_points(void)
-{
-	SM2_KEY key;
-	uint8_t dgst[32] = {1,2,3,4};
-	SM2_SIGNATURE sig;
-	SM2_POINT points[4];
-	size_t points_cnt, i;
-
-	sm2_key_generate(&key);
-	sm2_do_sign(&key, dgst, &sig);
-	sm2_signature_to_public_key_points(&sig, dgst, points, &points_cnt);
-
-	for (i = 0; i < points_cnt; i++) {
-		int vr;
-		sm2_point_print(stderr, 0, 0, "point", &points[i]);
-		vr = sm2_do_verify((SM2_KEY *)&points[1], dgst, &sig);
-		printf("verify = %d\n", vr);
-	}
-	return 1;
-}
-

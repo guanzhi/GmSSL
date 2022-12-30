@@ -11,9 +11,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <gmssl/sm2.h>
+#include <gmssl/sm2_ring.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
+
+
+extern SM2_BN SM2_N;
+extern SM2_BN SM2_ONE;
 
 
 static int compare_point(const void *P, const void *Q)
