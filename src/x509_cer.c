@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -1440,6 +1440,16 @@ int x509_certs_get_cert_by_subject(const uint8_t *d, size_t dlen,
 	}
 	error_print(); // 可能来自于没有找到对应的CA证书
 	return 0;
+}
+
+int x509_certs_get_cert_by_subject_and_key_identifier(const uint8_t *d, size_t dlen,
+	const uint8_t *subject, size_t subject_len,
+	const uint8_t *key_id, size_t key_id_len, // AuthorityKeyIdentifier.keyIdentifier
+	const uint8_t **cert, size_t *certlen)
+{
+	// TODO: implement this
+	error_print();
+	return -1;
 }
 
 int x509_certs_get_cert_by_issuer_and_serial_number(
