@@ -345,6 +345,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 
 	// verify ServerCertificate
 	if (x509_certs_verify(conn->server_certs, conn->server_certs_len,
+		1, // server
 		conn->ca_certs, conn->ca_certs_len, depth, &verify_result) != 1) {
 		error_print();
 		tls_send_alert(conn, alert);
@@ -883,6 +884,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			goto end;
 		}
 		if (x509_certs_verify(conn->client_certs, conn->client_certs_len,
+			0, // client
 			conn->ca_certs, conn->ca_certs_len, verify_depth, &verify_result) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_bad_certificate);

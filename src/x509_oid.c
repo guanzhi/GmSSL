@@ -332,6 +332,8 @@ int x509_cert_policy_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, c
 }
 
 
+static uint32_t oid_any_extended_key_usage[] = { oid_ce,37,0 };
+
 #define oid_kp oid_pkix,3
 
 static uint32_t oid_kp_server_auth[] = { oid_kp,1 };
@@ -343,6 +345,7 @@ static uint32_t oid_kp_ocsp_signing[] = { oid_kp,9 };
 #define OID_KP_CNT sizeof(oid_kp_server_auth)/sizeof(int)
 
 static const ASN1_OID_INFO x509_key_purposes[] = {
+	{ OID_any_extended_key_usage, "anyExtendedKeyUsage", oid_any_extended_key_usage, sizeof(oid_any_extended_key_usage)/sizeof(uint32_t), 0, "Any Extended Key Usage" },
 	{ OID_kp_server_auth, "serverAuth", oid_kp_server_auth, OID_KP_CNT, 0, "TLS WWW server authentication" },
 	{ OID_kp_client_auth, "clientAuth", oid_kp_client_auth, OID_KP_CNT, 0, "TLS WWW client authentication" },
 	{ OID_kp_code_signing, "codeSigning", oid_kp_code_signing, OID_KP_CNT, 0, "Signing of downloadable executable code" },

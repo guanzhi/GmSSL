@@ -203,6 +203,7 @@ const char *x509_key_usage_name(int flag);
 int x509_key_usage_from_name(int *flag, const char *name);
 #define x509_key_usage_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
 #define x509_key_usage_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
+int x509_key_usage_validate(int bits, int cert_type);
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 /*
@@ -355,6 +356,7 @@ BasicConstraints ::= SEQUENCE {
 */
 int x509_basic_constraints_to_der(int ca, int path_len_cons, uint8_t **out, size_t *outlen);
 int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t **in, size_t *inlen);
+int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type);
 int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -417,6 +419,7 @@ int x509_policy_constraints_print(FILE *fp, int fmt, int ind, const char *label,
 ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
 
 KeyPurposeId:
+	OID_any_extended_key_usage
 	OID_kp_server_auth
 	OID_kp_client_auth
 	OID_kp_code_signing
@@ -424,9 +427,10 @@ KeyPurposeId:
 	OID_kp_time_stamping
 	OID_kp_ocsp_signing
 */
-#define X509_MAX_KEY_PURPOSES	6
+#define X509_MAX_KEY_PURPOSES	7
 int x509_ext_key_usage_to_der(const int *oids, size_t oids_cnt, uint8_t **out, size_t *outlen);
 int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, const uint8_t **in, size_t *inlen);
+int x509_ext_key_usage_validate(const int *oids, size_t oids_cnt, int cert_type);
 int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -536,6 +540,9 @@ NetscapeCertType ::= BIT STRING
 NetscapeCertComment ::= IA5String
 */
 int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label, int bits);
+
+int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
+	int *path_len_constraints);
 
 #ifdef __cplusplus
 }

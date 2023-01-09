@@ -346,6 +346,7 @@ typedef enum {
 } X509_VERIFY_ERR;
 
 int x509_certs_verify(const uint8_t *certs, size_t certslen,
+	int server,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
@@ -356,6 +357,16 @@ int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_
 int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file);
 int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file);
 
+
+typedef enum {
+	X509_cert_server_auth,
+	X509_cert_client_auth,
+	X509_cert_server_key_encipher,
+	X509_cert_client_key_encipher,
+	X509_cert_ca,
+	X509_cert_root_ca,
+	X509_cert_crl_sign,
+} X509_CERT_TYPE;
 
 
 

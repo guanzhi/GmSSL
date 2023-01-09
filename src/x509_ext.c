@@ -733,6 +733,70 @@ int x509_key_usage_from_name(int *flag, const char *name)
 	return -1;
 }
 
+int x509_key_usage_validate(int bits, int cert_type)
+{
+	switch (cert_type) {
+	case X509_cert_server_auth:
+	case X509_cert_client_auth:
+		if (!(bits & X509_KU_DIGITAL_SIGNATURE)
+			//&& !(bits & X509_KU_NON_REPUDIATION) // un-comment for compatibility
+			) {
+			error_print();
+			return -1;
+		}
+		if ((bits & X509_KU_KEY_CERT_SIGN)
+			|| (bits & X509_KU_CRL_SIGN)) {
+			error_print();
+			return -1;
+		}
+		break;
+
+	case X509_cert_server_key_encipher:
+	case X509_cert_client_key_encipher:
+		if (!(bits & X509_KU_KEY_ENCIPHERMENT)
+			//&& !(bits & X509_KU_KEY_AGREEMENT) // un-comment for compatibility
+			) {
+			error_print();
+			return -1;
+		}
+		if ((bits & X509_KU_KEY_CERT_SIGN)
+			|| (bits & X509_KU_CRL_SIGN)) {
+			error_print();
+			return -1;
+		}
+		break;
+
+	case X509_cert_ca:
+		if (!(bits & X509_KU_KEY_CERT_SIGN)) {
+			error_print();
+			return -1;
+		}
+		if ((bits & X509_KU_DIGITAL_SIGNATURE)
+			|| (bits & X509_KU_NON_REPUDIATION)) {
+			error_print();
+			//return -1; // comment to print warning
+		}
+		break;
+	case X509_cert_crl_sign:
+		if (!(bits & X509_KU_CRL_SIGN)) {
+			error_print();
+			return -1;
+		}
+		if ((bits & X509_KU_DIGITAL_SIGNATURE)
+			|| (bits & X509_KU_NON_REPUDIATION)) {
+			error_print();
+			//return -1; // comment to print warning
+		}
+		break;
+
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits)
 {
 	return asn1_bits_print(fp, fmt, ind, label, x509_key_usages, x509_key_usages_count, bits);
@@ -1234,6 +1298,26 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 	return 1;
 }
 
+int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type)
+{
+	if (cert_type == X509_cert_ca) {
+		if (ca != 1) {
+			error_print();
+			return -1;
+		}
+		if (path_len_cons < 0 || path_len_cons > 6) {
+			error_print();
+			return -1;
+		}
+	} else {
+		if (ca == 1 || path_len_cons >= 0) {
+			error_print();
+			return -1; // comment to only warning
+		}
+	}
+	return 1;
+}
+
 int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	int ret, val;
@@ -1522,6 +1606,40 @@ int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, con
 	return 1;
 }
 
+int x509_ext_key_usage_validate(const int *oids, size_t oids_cnt, int cert_type)
+{
+	int ret = -1;
+	size_t i;
+
+	for (i = 0; i < oids_cnt; i++) {
+		// anyExtendedKeyUsage might not acceptable for strict validation
+		if (oids[i] == OID_any_extended_key_usage) {
+			ret = 0;
+		}
+
+		switch (cert_type) {
+		case X509_cert_server_auth:
+		case X509_cert_server_key_encipher:
+			if (oids[i] == OID_kp_server_auth) {
+				return 1;
+			}
+			break;
+
+		case X509_cert_client_auth:
+		case X509_cert_client_key_encipher:
+			if (oids[i] == OID_kp_client_auth) {
+				return 1;
+			}
+			break;
+
+		default:
+			error_print();
+			return -1;
+		}
+	}
+	return ret;
+}
+
 int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	int oid;
@@ -1790,4 +1908,88 @@ int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label,
 	return asn1_bits_print(fp, fmt, ind, label, netscape_cert_types,
 		sizeof(netscape_cert_types)/sizeof(netscape_cert_types[0]), bits);
 }
+
+int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
+	int *path_len_constraints)
+{
+	int oid;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+	int critical;
+	const uint8_t *val;
+	size_t vlen;
+
+	int ca = -1;
+	int path_len = -1;
+	int key_usage;
+	int ext_key_usages[X509_MAX_KEY_PURPOSES];
+	size_t ext_key_usages_cnt;
+
+	*path_len_constraints = -1;
+
+	while (extslen) {
+		if (x509_ext_from_der(&oid, nodes, &nodes_cnt, &critical, &val, &vlen, &exts, &extslen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		switch (oid) {
+		case OID_ce_basic_constraints:
+			if (x509_basic_constraints_from_der(&ca, &path_len, &val, &vlen) != 1
+				|| x509_basic_constraints_validate(ca, path_len, cert_type) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+
+		case OID_ce_key_usage:
+			if (asn1_bits_from_der(&key_usage, &val, &vlen) != 1
+				|| x509_key_usage_validate(key_usage, cert_type) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+
+		case OID_ce_ext_key_usage:
+			if (x509_ext_key_usage_from_der(ext_key_usages, &ext_key_usages_cnt,
+					sizeof(ext_key_usages)/sizeof(ext_key_usages[0]), &val, &vlen) != 1
+				|| x509_ext_key_usage_validate(ext_key_usages, ext_key_usages_cnt, cert_type) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+
+		case OID_ce_authority_key_identifier:
+		case OID_ce_subject_key_identifier:
+		case OID_ce_certificate_policies:
+		case OID_ce_policy_mappings:
+		case OID_ce_subject_alt_name:
+		case OID_ce_issuer_alt_name:
+		case OID_ce_subject_directory_attributes:
+		case OID_ce_name_constraints:
+		case OID_ce_policy_constraints:
+		case OID_ce_crl_distribution_points:
+		case OID_ce_inhibit_any_policy:
+		case OID_ce_freshest_crl:
+		default:
+			if (critical) {
+				error_print();
+				return -1;
+			}
+		}
+	}
+
+	switch (cert_type) {
+	case X509_cert_ca:
+		if (ca != 1 || path_len < 0) {
+			error_print();
+			return -1;
+		}
+		*path_len_constraints = path_len;
+		break;
+	}
+
+	return 1;
+}
+
 

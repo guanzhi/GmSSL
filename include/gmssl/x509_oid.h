@@ -91,6 +91,7 @@ int x509_cert_policy_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, c
 int x509_cert_policy_id_to_der(int oid, const uint32_t *nodes, size_t nodes_cnt, uint8_t **out, size_t *outlen);
 
 /*
+	OID_any_extended_key_usage
 id-kp
 	OID_kp_server_auth
 	OID_kp_client_auth

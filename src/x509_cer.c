@@ -1519,7 +1519,54 @@ int x509_cert_check(const uint8_t *cert, size_t certlen)
 	return 1;
 }
 
+int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
+	int *path_len_constraints)
+{
+	time_t now;
+	time_t not_before;
+	time_t not_after;
+	const uint8_t *exts;
+	size_t extslen;
+
+	x509_cert_get_details(cert, certlen,
+		NULL, // version
+		NULL, NULL, // serial
+		NULL, // signature_algor
+		NULL, NULL, // issuer
+		&not_before, &not_after, // validity
+		NULL, NULL, // subject
+		NULL, // subject_public_key
+		NULL, NULL, // issuer_unique_id
+		NULL, NULL, // subject_unique_id
+		&exts, &extslen, // extensions
+		NULL, // signature_algor
+		NULL, NULL); // signature
+
+	// not_before < now < not_after
+	time(&now);
+	if (not_before >= not_after) {
+		error_print();
+		return -1;
+	}
+	if (now < not_before) {
+		error_print();
+		return X509_verify_err_cert_not_yet_valid;
+	}
+	if (not_after < now) {
+		error_print();
+		return  X509_verify_err_cert_has_expired;
+	}
+
+	if (x509_exts_validate(exts, extslen, cert_type, path_len_constraints) != 1) {
+		error_print();
+		return -1; //TODO: return X509_verify_err_xxx
+	}
+
+	return 1;
+}
+
 int x509_certs_verify(const uint8_t *certs, size_t certslen,
+	int server,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
 {
 	const uint8_t *cert;
@@ -1530,16 +1577,24 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen,
 	size_t namelen;
 	*verify_result = -1;
 
+	int cert_type = server ? X509_cert_server_auth : X509_cert_client_auth;
+	int path_len_constraints;
+
 	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
 	while (certslen) {
 
-		if ((*verify_result = x509_cert_check(cert, certlen)) < 0) {
+		if ((*verify_result = x509_cert_validate(cert, certlen, cert_type, &path_len_constraints)) < 0) {
 			error_print();
 			return -1;
 		}
+
+		cert_type = X509_cert_ca;
+
+		// FIXME: check path_len_constraints
+
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;

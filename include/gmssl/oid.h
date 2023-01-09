@@ -103,6 +103,7 @@ enum {
 	OID_ce_certificate_issuer,
 
 	// X.509 KeyPropuseID
+	OID_any_extended_key_usage,
 	OID_kp_server_auth,
 	OID_kp_client_auth,
 	OID_kp_code_signing,
