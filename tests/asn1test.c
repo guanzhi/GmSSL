@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -405,6 +405,58 @@ static int test_asn1_printable_string(void)
 	return 1;
 }
 
+static int test_asn1_printable_string_check(void)
+{
+	char *printable_str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:=?";
+	if (asn1_printable_string_check(printable_str, strlen(printable_str)) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (asn1_printable_string_check("a*b", 3) == 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_asn1_printable_string_case_ignore_match(void)
+{
+	if (asn1_printable_string_case_ignore_match("HELLO", 5, "WORLD", 5) == 1) {
+		error_print();
+		return -1;
+	}
+
+	if (asn1_printable_string_case_ignore_match("HELLO", 5, "HELLO", 5) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_printable_string_case_ignore_match("HELLO", 5, "hello", 5) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_printable_string_case_ignore_match("  HELLO", 7, "hello", 5) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_printable_string_case_ignore_match("  HELLO", 7, "hello   ", 8) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_printable_string_case_ignore_match(" A2b ", 5, "  a2B  ", 7) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_printable_string_case_ignore_match("     ", 5, "       ", 7) != 1) {
+		error_print();
+		return -1;
+	}
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_asn1_utf8_string(void)
 {
 	char *tests[] = {
@@ -642,6 +694,7 @@ int main(void)
 	if (test_asn1_null() != 1) goto err;
 	if (test_asn1_object_identifier() != 1) goto err;
 	if (test_asn1_printable_string() != 1) goto err;
+	if (test_asn1_printable_string_case_ignore_match() != 1) goto err;
 	if (test_asn1_utf8_string() != 1) goto err;
 	if (test_asn1_ia5_string() != 1) goto err;
 	if (test_asn1_time() != 1) goto err;

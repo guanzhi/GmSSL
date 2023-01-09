@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -178,6 +178,7 @@ int asn1_utf8_string_from_der_ex(int tag, const char **d, size_t *dlen, const ui
 #define asn1_implicit_utf8_string_from_der(i,d,dlen,in,inlen) asn1_utf8_string_from_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
 int asn1_printable_string_check(const char *d, size_t dlen);
+int asn1_printable_string_case_ignore_match(const char *a, size_t alen, const char *b, size_t blen);
 int asn1_printable_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_printable_string_from_der_ex(int tag, const char **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 #define asn1_printable_string_to_der(d,dlen,out,outlen)	asn1_printable_string_to_der_ex(ASN1_TAG_PrintableString,d,dlen,out,outlen)

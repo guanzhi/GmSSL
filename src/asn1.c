@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -118,8 +118,62 @@ int asn1_utf8_string_check(const char *a, size_t alen)
 	return 1;
 }
 
+static int asn1_char_is_printable(int a)
+{
+	if (isalpha(a) || isdigit(a)) {
+		return 1;
+	}
+	switch (a) {
+	case ' ': case '\'': case '(': case ')':
+	case '+': case ',': case '-': case '.':
+	case '/': case ':': case '=': case '?':
+		return 1;
+	}
+	return 0;
+}
+
 int asn1_printable_string_check(const char *a, size_t alen)
 {
+	size_t i;
+	for (i = 0; i < alen; i++) {
+		if (asn1_char_is_printable(a[i]) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int asn1_printable_string_case_ignore_match(const char *a, size_t alen,
+	const char *b, size_t blen)
+{
+	// remove leading and suffix space chars
+	while (alen && *a == ' ') {
+		a++;
+		alen--;
+	}
+	while (alen && a[alen - 1] == ' ') {
+		alen--;
+	}
+
+	// remove leading and suffix space chars
+	while (blen && *b == ' ') {
+		b++;
+		blen--;
+	}
+	while (blen && b[blen - 1] == ' ') {
+		blen--;
+	}
+
+	if (alen != blen) {
+		return 0;
+	}
+	// case insensitive compare
+	while (alen--) {
+		if (toupper(*a) != toupper(*b)) {
+			return 0;
+		}
+	}
 	return 1;
 }
 
