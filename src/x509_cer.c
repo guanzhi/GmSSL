@@ -1087,6 +1087,7 @@ int x509_cert_verify(const uint8_t *a, size_t alen,
 	return ret;
 }
 
+// TODO: return an extra error code
 int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen,
 	const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len)
@@ -1565,10 +1566,10 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	return 1;
 }
 
-int x509_certs_verify(const uint8_t *certs, size_t certslen,
-	int server,
+int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
 {
+	int entity_cert_type;
 	const uint8_t *cert;
 	size_t certlen;
 	const uint8_t *cacert;
@@ -1577,37 +1578,66 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen,
 	size_t namelen;
 	*verify_result = -1;
 
-	int cert_type = server ? X509_cert_server_auth : X509_cert_client_auth;
+	int path_len = 0;
 	int path_len_constraints;
 
+	switch (certs_type) {
+	case X509_cert_chain_server:
+		entity_cert_type = X509_cert_server_auth;
+		break;
+	case X509_cert_chain_client:
+		entity_cert_type = X509_cert_client_auth;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	// entity cert
 	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
+	if ((*verify_result = x509_cert_validate(cert, certlen, entity_cert_type,
+		&path_len_constraints)) < 0) {
+		error_print();
+		return -1;
+	}
+
 	while (certslen) {
-
-		if ((*verify_result = x509_cert_validate(cert, certlen, cert_type, &path_len_constraints)) < 0) {
-			error_print();
-			return -1;
-		}
-
-		cert_type = X509_cert_ca;
-
-		// FIXME: check path_len_constraints
 
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		// 这里应该检查证书是否有效啊, 这个函数应该返回进一步的错误信息
+		if ((*verify_result = x509_cert_validate(cert, certlen, X509_cert_ca,
+			&path_len_constraints)) < 0) {
+			error_print();
+			return -1;
+		}
+
+		if (path_len == 0) {
+			if (path_len_constraints != 0) {
+				error_print();
+				return -1;
+			}
+		}
+		if (path_len > path_len_constraints || path_len > depth) {
+			error_print();
+			return -1;
+		}
+
 		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
 			return -1;
 		}
+
 		cert = cacert;
 		certlen = cacertlen;
+		path_len++;
 	}
+
 	if (x509_cert_get_issuer(cert, certlen, &name, &namelen) != 1) {
 		error_print();
 		return -1;
@@ -1626,72 +1656,119 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen,
 	return 1;
 }
 
-int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
+int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
 {
-	const uint8_t *signcert;
-	size_t signcertlen;
-	int signcert_verified = 0;
+	int sign_cert_type;
+	int kenc_cert_type;
 	const uint8_t *cert;
 	size_t certlen;
+	const uint8_t *kenc_cert;
+	size_t kenc_certlen;
 	const uint8_t *cacert;
 	size_t cacertlen;
 	const uint8_t *name;
 	size_t namelen;
-
 	*verify_result = -1;
 
-	if (x509_cert_from_der(&signcert, &signcertlen, &certs, &certslen) != 1) {
+	int path_len = 0;
+	int path_len_constraints;
+
+	switch (certs_type) {
+	case X509_cert_chain_server:
+		sign_cert_type = X509_cert_server_auth;
+		kenc_cert_type = X509_cert_server_key_encipher;
+		break;
+	case X509_cert_chain_client:
+		sign_cert_type = X509_cert_server_auth;
+		kenc_cert_type = X509_cert_server_key_encipher;
+		break;
+	default:
 		error_print();
 		return -1;
 	}
+
 	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
-	// 要检查这两个证书的类型是否分别为签名和加密证书
-	// FIXME: 检查depth
+	if ((*verify_result = x509_cert_validate(cert, certlen, sign_cert_type,
+		&path_len_constraints)) < 0) {
+		error_print();
+		return -1;
+	}
+
+	// entity key encipherment cert
+	if (x509_cert_from_der(&kenc_cert, &kenc_certlen, &certs, &certslen) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((*verify_result = x509_cert_validate(kenc_cert, kenc_certlen, kenc_cert_type,
+		&path_len_constraints)) < 0) {
+		error_print();
+		return -1;
+	}
+
 	while (certslen) {
-		if ((*verify_result = x509_cert_check(cert, certlen)) < 0) {
-			error_print();
-			return -1;
-		}
+
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (!signcert_verified) {
-			if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+		if ((*verify_result = x509_cert_validate(cacert, cacertlen, X509_cert_ca,
+			&path_len_constraints)) < 0) {
+			error_print();
+			return -1;
+		}
+
+		if (path_len == 0) {
+			if (path_len_constraints != 0) {
+				error_print();
+				return -1;
+			}
+
+			// verify entity key encipherment cert
+			if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
 				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 				error_print();
 				return -1;
 			}
-			signcert_verified = 1;
 		}
+		if (path_len > path_len_constraints || path_len > depth) {
+			error_print();
+			return -1;
+		}
+
 		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
 			return -1;
 		}
+
 		cert = cacert;
 		certlen = cacertlen;
+		path_len++;
 	}
+
+
 	if (x509_cert_get_issuer(cert, certlen, &name, &namelen) != 1) {
 		error_print();
 		return -1;
 	}
 	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen, &cacert, &cacertlen) != 1) {
-		// 当前证书链和提供的CA证书不匹配
 		error_print();
 		return -1;
 	}
-	if (!signcert_verified) {
-		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
+
+	// when no mid CA certs
+	if (path_len == 0) {
+		if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
 			return -1;
 		}
 	}
+
 	if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
 		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 		error_print();
@@ -1699,7 +1776,6 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
 	}
 	return 1;
 }
-
 
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {

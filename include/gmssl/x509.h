@@ -345,10 +345,14 @@ typedef enum {
 	X509_verify_err_cert_chain_too_long	= -5,
 } X509_VERIFY_ERR;
 
-int x509_certs_verify(const uint8_t *certs, size_t certslen,
-	int server,
+typedef enum {
+	X509_cert_chain_server,
+	X509_cert_chain_client,
+} X509_CERT_CHAIN_TYPE;
+
+int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
-int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen,
+int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_get_subjects(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);

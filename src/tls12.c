@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -344,8 +344,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerCertificate
-	if (x509_certs_verify(conn->server_certs, conn->server_certs_len,
-		1, // server
+	if (x509_certs_verify(conn->server_certs, conn->server_certs_len, X509_cert_chain_server,
 		conn->ca_certs, conn->ca_certs_len, depth, &verify_result) != 1) {
 		error_print();
 		tls_send_alert(conn, alert);
@@ -883,8 +882,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_unexpected_message);
 			goto end;
 		}
-		if (x509_certs_verify(conn->client_certs, conn->client_certs_len,
-			0, // client
+		if (x509_certs_verify(conn->client_certs, conn->client_certs_len, X509_cert_chain_client,
 			conn->ca_certs, conn->ca_certs_len, verify_depth, &verify_result) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_bad_certificate);
