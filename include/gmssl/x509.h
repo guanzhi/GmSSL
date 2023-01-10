@@ -79,10 +79,12 @@ Validity ::= SEQUENCE {
 	notAfter	Time }
 */
 #define X509_VALIDITY_MIN_DAYS 1
-#define X509_VALIDITY_MAX_DAYS (365 * 10) // ROOTCA, CA需要更长的时间！
+#define X509_VALIDITY_MAX_DAYS 3653
+#define X509_VALIDITY_MAX_SECONDS (X509_VALIDITY_MAX_DAYS * 86400)
 int x509_validity_add_days(time_t *not_after, time_t not_before, int days);
 int x509_validity_to_der(time_t not_before, time_t not_after, uint8_t **out, size_t *outlen);
 int x509_validity_from_der(time_t *not_before, time_t *not_after, const uint8_t **in, size_t *inlen);
+int x509_validity_validate(time_t not_before, time_t not_after, time_t now, int max_secs);
 int x509_validity_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -128,6 +130,7 @@ RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue
 */
 int x509_rdn_to_der(int oid, int tag, const uint8_t *val, size_t vlen, const uint8_t *more, size_t mlen, uint8_t **out, size_t *outlen);
 int x509_rdn_from_der(int *oid, int *tag, const uint8_t **val, size_t *vlen, const uint8_t **more, size_t *mlen, const uint8_t **in, size_t *inlen);
+int x509_rdn_validate(const uint8_t *d, size_t dlen);
 int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -158,6 +161,7 @@ int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 
 #define x509_name_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
 #define x509_name_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
+int x509_name_validate(const uint8_t *d, size_t dlen);
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);
 int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uint8_t **val, size_t *vlen);
@@ -307,6 +311,7 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	const uint8_t **extensions, size_t *extensions_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);
+int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraints);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {

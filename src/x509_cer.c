@@ -183,6 +183,23 @@ int x509_validity_from_der(time_t *not_before, time_t *not_after, const uint8_t 
 	return 1;
 }
 
+int x509_validity_validate(time_t not_before, time_t not_after, time_t now, int max_secs)
+{
+	if (!(not_before <= not_after)) {
+		error_print();
+		return -1;
+	}
+	if (!(not_after - not_before <= (unsigned int)max_secs)) {
+		error_print();
+		return -1;
+	}
+	if (!(not_before <= now && now <= not_after)) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_validity_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	time_t tv;
@@ -365,6 +382,42 @@ int x509_rdn_from_der(int *oid, int *tag, const uint8_t **val, size_t *vlen,
 	return 1;
 }
 
+int x509_rdn_validate(const uint8_t *d, size_t dlen)
+{
+	int non_empty_attrs = 0;
+	const uint8_t *attr_d;
+	size_t attr_dlen;
+
+	while (dlen) {
+		int oid;
+		int tag;
+		const uint8_t *val;
+		size_t vlen;
+
+		if (asn1_sequence_from_der(&attr_d, &attr_dlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_attr_type_and_value_from_der(&oid, &tag, &val, &vlen, &attr_d, &attr_dlen) != 1
+			|| asn1_length_is_zero(attr_dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (val && vlen) {
+			if (tag != ASN1_TAG_PrintableString) {
+				non_empty_attrs++;
+			} else if (asn1_printable_string_case_ignore_match((char *)val, vlen, "", 0) != 1) {
+				non_empty_attrs++;
+			}
+		}
+	}
+	if (non_empty_attrs <= 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;
@@ -472,24 +525,60 @@ int x509_name_add_domain_component(uint8_t *d, size_t *dlen, size_t maxlen,
 
 static size_t _strlen(const char *s) { return s ? strlen(s) : 0; }
 
+static int x509_name_tag(const char *str)
+{
+	if (str) {
+		if (asn1_printable_string_check(str, strlen(str)) == 1)
+			return ASN1_TAG_PrintableString;
+		else	return ASN1_TAG_UTF8String;
+	}
+	return 0;
+}
+
 int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 	const char *country, const char *state, const char *locality,
 	const char *org, const char *org_unit, const char *common_name)
 {
-	int tag = ASN1_TAG_PrintableString;
 	if (country && strlen(country) != 2) {
 		error_print();
 		return -1;
 	}
+
 	*dlen = 0;
 	if (x509_name_add_country_name(d, dlen, maxlen, country) < 0
-		|| x509_name_add_state_or_province_name(d, dlen, maxlen, tag, (uint8_t *)state, _strlen(state)) < 0
-		|| x509_name_add_locality_name(d, dlen, maxlen, tag, (uint8_t *)locality, _strlen(locality)) < 0
-		|| x509_name_add_organization_name(d, dlen, maxlen, tag, (uint8_t *)org, _strlen(org)) < 0
-		|| x509_name_add_organizational_unit_name(d, dlen, maxlen, tag, (uint8_t *)org_unit, _strlen(org_unit)) < 0
-		|| x509_name_add_common_name(d, dlen, maxlen, tag, (uint8_t *)common_name, _strlen(common_name)) != 1) {
+		|| x509_name_add_state_or_province_name(d, dlen, maxlen, x509_name_tag(state), (uint8_t *)state, strlen(state)) < 0
+		|| x509_name_add_locality_name(d, dlen, maxlen, x509_name_tag(locality), (uint8_t *)locality, _strlen(locality)) < 0
+		|| x509_name_add_organization_name(d, dlen, maxlen, x509_name_tag(org), (uint8_t *)org, _strlen(org)) < 0
+		|| x509_name_add_organizational_unit_name(d, dlen, maxlen, x509_name_tag(org_unit), (uint8_t *)org_unit, _strlen(org_unit)) < 0
+		|| x509_name_add_common_name(d, dlen, maxlen, x509_name_tag(common_name), (uint8_t *)common_name, _strlen(common_name)) != 1) {
 		error_print();
 		return -1;
+	}
+	return 1;
+}
+
+// TODO: need to support NameConstraints
+int x509_name_validate(const uint8_t *d, size_t dlen)
+{
+	int rdn_cnt = 0;
+	const uint8_t *rdn;
+	size_t rdnlen;
+
+	while (dlen) {
+		if (asn1_set_from_der(&rdn, &rdnlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_rdn_validate(rdn, rdnlen) != 1) {
+			error_print();
+			return -1;
+		}
+		rdn_cnt++;
+	}
+
+	if (rdn_cnt <= 0) {
+		error_print();
+		return 0; // empty subject feild is allowed
 	}
 	return 1;
 }
@@ -578,7 +667,6 @@ int x509_name_equ(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen)
 	}
 	return 1;
 }
-
 
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
@@ -1482,50 +1570,16 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	return 0;
 }
 
-int x509_cert_check(const uint8_t *cert, size_t certlen)
-{
-	time_t not_before;
-	time_t not_after;
-	time_t now;
-
-	x509_cert_get_details(cert, certlen,
-		NULL, // version
-		NULL, NULL, // serial
-		NULL, // signature_algor
-		NULL, NULL, // issuer
-		&not_before, &not_after, // validity
-		NULL, NULL, // subject
-		NULL, // subject_public_key
-		NULL, NULL, // issuer_unique_id
-		NULL, NULL, // subject_unique_id
-		NULL, NULL, // extensions
-		NULL, // signature_algor
-		NULL, NULL); // signature
-
-	// not_before < now < not_after
-	time(&now);
-	if (not_before >= not_after) {
-		error_print();
-		return -1;
-	}
-	if (now < not_before) {
-		error_print();
-		return X509_verify_err_cert_not_yet_valid;
-	}
-	if (not_after < now) {
-		error_print();
-		return  X509_verify_err_cert_has_expired;
-	}
-
-	return 1;
-}
-
 int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	int *path_len_constraints)
 {
 	time_t now;
 	time_t not_before;
 	time_t not_after;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *subject;
+	size_t subject_len;
 	const uint8_t *exts;
 	size_t extslen;
 
@@ -1533,9 +1587,9 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 		NULL, // version
 		NULL, NULL, // serial
 		NULL, // signature_algor
-		NULL, NULL, // issuer
+		&issuer, &issuer_len, // issuer
 		&not_before, &not_after, // validity
-		NULL, NULL, // subject
+		&subject, &subject_len, // subject
 		NULL, // subject_public_key
 		NULL, NULL, // issuer_unique_id
 		NULL, NULL, // subject_unique_id
@@ -1543,26 +1597,27 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 		NULL, // signature_algor
 		NULL, NULL); // signature
 
-	// not_before < now < not_after
+
 	time(&now);
-	if (not_before >= not_after) {
+	if (x509_validity_validate(not_before, not_after, now, X509_VALIDITY_MAX_SECONDS) != 1) {
 		error_print();
 		return -1;
 	}
-	if (now < not_before) {
+
+	// check issuer and subject not empty
+	if (x509_name_validate(issuer, issuer_len) != 1) {
 		error_print();
-		return X509_verify_err_cert_not_yet_valid;
+		return -1;
 	}
-	if (not_after < now) {
+	if (x509_name_validate(subject, subject_len) != 1) {
 		error_print();
-		return  X509_verify_err_cert_has_expired;
+		return -1;
 	}
 
 	if (x509_exts_validate(exts, extslen, cert_type, path_len_constraints) != 1) {
 		error_print();
-		return -1; //TODO: return X509_verify_err_xxx
+		return -1;
 	}
-
 	return 1;
 }
 
@@ -1576,7 +1631,6 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	size_t cacertlen;
 	const uint8_t *name;
 	size_t namelen;
-	*verify_result = -1;
 
 	int path_len = 0;
 	int path_len_constraints;
@@ -1598,8 +1652,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		error_print();
 		return -1;
 	}
-	if ((*verify_result = x509_cert_validate(cert, certlen, entity_cert_type,
-		&path_len_constraints)) < 0) {
+	if (x509_cert_validate(cert, certlen, entity_cert_type, &path_len_constraints) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1610,8 +1663,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			error_print();
 			return -1;
 		}
-		if ((*verify_result = x509_cert_validate(cert, certlen, X509_cert_ca,
-			&path_len_constraints)) < 0) {
+		if (x509_cert_validate(cert, certlen, X509_cert_ca, &path_len_constraints) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1622,7 +1674,8 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 				return -1;
 			}
 		}
-		if (path_len > path_len_constraints || path_len > depth) {
+		if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+			|| path_len > depth) {
 			error_print();
 			return -1;
 		}
@@ -1644,6 +1697,16 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	}
 	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen,
 		&cacert, &cacertlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraints) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+		|| path_len > depth) {
 		error_print();
 		return -1;
 	}
@@ -1669,7 +1732,6 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	size_t cacertlen;
 	const uint8_t *name;
 	size_t namelen;
-	*verify_result = -1;
 
 	int path_len = 0;
 	int path_len_constraints;
@@ -1692,8 +1754,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if ((*verify_result = x509_cert_validate(cert, certlen, sign_cert_type,
-		&path_len_constraints)) < 0) {
+	if (x509_cert_validate(cert, certlen, sign_cert_type, &path_len_constraints) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1703,8 +1764,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if ((*verify_result = x509_cert_validate(kenc_cert, kenc_certlen, kenc_cert_type,
-		&path_len_constraints)) < 0) {
+	if (x509_cert_validate(kenc_cert, kenc_certlen, kenc_cert_type, &path_len_constraints) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1715,8 +1775,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 			error_print();
 			return -1;
 		}
-		if ((*verify_result = x509_cert_validate(cacert, cacertlen, X509_cert_ca,
-			&path_len_constraints)) < 0) {
+		if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraints) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1734,7 +1793,8 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 				return -1;
 			}
 		}
-		if (path_len > path_len_constraints || path_len > depth) {
+		if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+			|| path_len > depth) {
 			error_print();
 			return -1;
 		}
@@ -1756,6 +1816,15 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		return -1;
 	}
 	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen, &cacert, &cacertlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraints) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+		|| path_len > depth) {
 		error_print();
 		return -1;
 	}

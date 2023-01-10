@@ -137,8 +137,8 @@ int asn1_printable_string_check(const char *a, size_t alen)
 	size_t i;
 	for (i = 0; i < alen; i++) {
 		if (asn1_char_is_printable(a[i]) != 1) {
-			error_print();
-			return -1;
+			error_print(); // TODO: replace with waring_print()
+			return 0;
 		}
 	}
 	return 1;
