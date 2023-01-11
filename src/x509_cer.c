@@ -859,7 +859,7 @@ int x509_explicit_exts_from_der(int index, const uint8_t **d, size_t *dlen, cons
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_sequence_from_der(d, dlen, &p, &len) != 1
+	if (asn1_sequence_of_from_der(d, dlen, &p, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
@@ -1573,6 +1573,7 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	int *path_len_constraints)
 {
+	int version;
 	time_t now;
 	time_t not_before;
 	time_t not_after;
@@ -1582,11 +1583,13 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	size_t subject_len;
 	const uint8_t *exts;
 	size_t extslen;
+	int tbs_sig_algor;
+	int sig_algor;
 
 	x509_cert_get_details(cert, certlen,
-		NULL, // version
+		&version, // version
 		NULL, NULL, // serial
-		NULL, // signature_algor
+		&tbs_sig_algor, // signature_algor
 		&issuer, &issuer_len, // issuer
 		&not_before, &not_after, // validity
 		&subject, &subject_len, // subject
@@ -1594,9 +1597,13 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 		NULL, NULL, // issuer_unique_id
 		NULL, NULL, // subject_unique_id
 		&exts, &extslen, // extensions
-		NULL, // signature_algor
+		&sig_algor, // signature_algor
 		NULL, NULL); // signature
 
+	if (version != X509_version_v3) {
+		error_print();
+		return -1;
+	}
 
 	time(&now);
 	if (x509_validity_validate(not_before, not_after, now, X509_VALIDITY_MAX_SECONDS) != 1) {
@@ -1614,10 +1621,21 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 		return -1;
 	}
 
+	if (!exts || !extslen) {
+		error_print();
+		return -1;
+	}
+
 	if (x509_exts_validate(exts, extslen, cert_type, path_len_constraints) != 1) {
 		error_print();
 		return -1;
 	}
+
+	if (tbs_sig_algor != sig_algor) {
+		error_print();
+		return -1;
+	}
+
 	return 1;
 }
 
