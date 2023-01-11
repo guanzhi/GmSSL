@@ -1586,16 +1586,23 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	int tbs_sig_algor;
 	int sig_algor;
 
+	const uint8_t *serial;
+	size_t serial_len;
+	const uint8_t *issuer_uniq_id;
+	size_t issuer_uniq_id_len;
+	const uint8_t *subj_uniq_id;
+	size_t subj_uniq_id_len;
+
 	x509_cert_get_details(cert, certlen,
 		&version, // version
-		NULL, NULL, // serial
+		&serial, &serial_len, // serial
 		&tbs_sig_algor, // signature_algor
 		&issuer, &issuer_len, // issuer
 		&not_before, &not_after, // validity
 		&subject, &subject_len, // subject
 		NULL, // subject_public_key
-		NULL, NULL, // issuer_unique_id
-		NULL, NULL, // subject_unique_id
+		&issuer_uniq_id, &issuer_uniq_id_len, // issuer_unique_id
+		&subj_uniq_id, &subj_uniq_id_len, // subject_unique_id
 		&exts, &extslen, // extensions
 		&sig_algor, // signature_algor
 		NULL, NULL); // signature
@@ -1603,6 +1610,14 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	if (version != X509_version_v3) {
 		error_print();
 		return -1;
+	}
+
+	if (!serial || !serial_len) {
+		error_print();
+		return -1;
+	}
+	if (serial_len < 4) {
+		error_print(); // not enough randomness
 	}
 
 	time(&now);
@@ -1621,9 +1636,10 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 		return -1;
 	}
 
-	if (!exts || !extslen) {
+	// CAs conforming to RFC 5280 MUST NOT generate certificates with unique identifiers
+	if (issuer_uniq_id || subj_uniq_id) {
 		error_print();
-		return -1;
+		//return -1;
 	}
 
 	if (x509_exts_validate(exts, extslen, cert_type, path_len_constraints) != 1) {

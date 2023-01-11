@@ -355,6 +355,7 @@ typedef enum {
 	X509_cert_chain_client,
 } X509_CERT_CHAIN_TYPE;
 
+#define X509_MAX_VERIFY_DEPTH	6 // TODO: any requirement from CA/B or OpenSSL?
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,

@@ -347,7 +347,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	if (x509_certs_verify(conn->server_certs, conn->server_certs_len, X509_cert_chain_server,
 		conn->ca_certs, conn->ca_certs_len, depth, &verify_result) != 1) {
 		error_print();
-		tls_send_alert(conn, alert);
+		tls_send_alert(conn, TLS_alert_bad_certificate);
 		goto end;
 	}
 
