@@ -250,6 +250,8 @@ int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, size_t *cnt);
 int asn1_types_get_item_by_index(const uint8_t *d, size_t *dlen, int tag,
 	int index, const uint8_t **item_d, size_t *item_dlen);
 
+int asn1_sequence_of_from_der(const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+
 int asn1_sequence_of_int_to_der(const int *nums, size_t nums_cnt, uint8_t **out, size_t *outlen);
 int asn1_sequence_of_int_from_der(int *nums, size_t *nums_cnt, const uint8_t **in, size_t *inlen);
 int asn1_sequence_of_int_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);

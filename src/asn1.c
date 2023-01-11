@@ -1437,6 +1437,19 @@ int asn1_object_identifier_equ(const uint32_t *a, size_t a_cnt, const uint32_t *
 	return 0;
 }
 
+int asn1_sequence_of_from_der(const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	if ((ret = asn1_sequence_from_der(d, dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (!(*d) || !(*dlen)) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 int asn1_sequence_of_int_to_der(const int *nums, size_t nums_cnt, uint8_t **out, size_t *outlen)
 {
