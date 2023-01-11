@@ -859,7 +859,7 @@ int x509_explicit_exts_from_der(int index, const uint8_t **d, size_t *dlen, cons
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (asn1_sequence_of_from_der(d, dlen, &p, &len) != 1
+	if (asn1_sequence_of_from_der(d, dlen, &p, &len) != 1 // TODO: check ALL SEQUENCE OF types
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
