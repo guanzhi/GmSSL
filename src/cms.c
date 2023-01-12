@@ -746,14 +746,12 @@ int cms_signer_info_sign_to_der(
 	int fixed_outlen = 1;
 	uint8_t dgst[SM3_DIGEST_SIZE];
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen;
+	size_t siglen = SM2_signature_typical_size;
 
 	sm3_update(&ctx, authed_attrs, authed_attrs_len);
 	sm3_finish(&ctx, dgst);
 
-
-
-	if (sm2_sign_ex(sign_key, fixed_outlen, dgst, sig, &siglen) != 1) {
+	if (sm2_sign_fixlen(sign_key, dgst, siglen, sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1311,7 +1309,8 @@ int cms_recipient_info_encrypt_to_der(
 		return -1;
 	}
 
-	if (sm2_encrypt_ex(public_key, fixed_outlen, in, inlen, enced_key, &enced_key_len) != 1) {
+	if (sm2_encrypt_fixlen(public_key, in, inlen, SM2_ciphertext_typical_point_size,
+		enced_key, &enced_key_len) != 1) {
 		error_print();
 		return -1;
 	}

@@ -23,7 +23,7 @@ extern "C" {
 
 int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t dgst[32],
 	SM2_POINT points[4], size_t *points_cnt);
-
+int sm2_signature_conjugate(const SM2_SIGNATURE *sig, SM2_SIGNATURE *new_sig);
 
 #ifdef __cplusplus
 }

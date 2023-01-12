@@ -290,18 +290,21 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
+
 #define SM2_MIN_SIGNATURE_SIZE 8
 #define SM2_MAX_SIGNATURE_SIZE 72
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
-int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t dgst[32],
-	SM2_POINT points[4], size_t *points_cnt);
-
 int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
-int sm2_sign_ex(const SM2_KEY *key, int flags, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
 int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
 int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
 
+enum {
+	SM2_signature_compact_size = 70,
+	SM2_signature_typical_size = 71,
+	SM2_signature_max_size = 72,
+};
+int sm2_sign_fixlen(const SM2_KEY *key, const uint8_t dgst[32], size_t siglen, uint8_t *sig);
 
 #define SM2_DEFAULT_ID		"1234567812345678"
 #define SM2_DEFAULT_ID_LENGTH	(sizeof(SM2_DEFAULT_ID) - 1)  // LENGTH for string and SIZE for bytes
@@ -342,7 +345,6 @@ typedef struct {
 	uint8_t ciphertext[SM2_MAX_PLAINTEXT_SIZE];
 } SM2_CIPHERTEXT;
 
-int sm2_do_encrypt_ex(const SM2_KEY *key, int flags, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen);
 
@@ -351,9 +353,16 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen);
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
 int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
-int sm2_encrypt_ex(const SM2_KEY *key, int flags, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+
+enum {
+	SM2_ciphertext_compact_point_size = 68,
+	SM2_ciphertext_typical_point_size = 69,
+	SM2_ciphertext_max_point_size = 70,
+};
+int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, SM2_CIPHERTEXT *out);
+int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, uint8_t *out, size_t *outlen);
 
 
 int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);

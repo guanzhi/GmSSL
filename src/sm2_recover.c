@@ -112,3 +112,20 @@ int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t d
 
 	return 1;
 }
+
+// verify the xR of R = s * G + (s + r) * P
+// so (-r, -s) is also a valid SM2 signature
+int sm2_signature_conjugate(const SM2_SIGNATURE *sig, SM2_SIGNATURE *new_sig)
+{
+	SM2_Fn r;
+	SM2_Fn s;
+
+	sm2_bn_from_bytes(r, sig->r);
+	sm2_bn_from_bytes(s, sig->s);
+	sm2_fn_neg(r, r);
+	sm2_fn_neg(s, s);
+	sm2_bn_to_bytes(r, new_sig->r);
+	sm2_bn_to_bytes(s, new_sig->s);
+
+	return 1;
+}
