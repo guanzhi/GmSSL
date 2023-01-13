@@ -370,7 +370,7 @@ static int test_asn1_printable_string(void)
 	char *tests[] = {
 		"hello",
 		"world",
-		"Just do it!",
+		"Just do it", // string "Just do it!" include invalid '!'
 	};
 	uint8_t buf[256];
 	uint8_t *p = buf;
@@ -408,12 +408,12 @@ static int test_asn1_printable_string(void)
 static int test_asn1_printable_string_check(void)
 {
 	char *printable_str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 '()+,-./:=?";
-	if (asn1_printable_string_check(printable_str, strlen(printable_str)) != 1) {
+	if (asn1_string_is_printable_string(printable_str, strlen(printable_str)) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (asn1_printable_string_check("a*b", 3) == 1) {
+	if (asn1_string_is_printable_string("a*b", 3) == 1) {
 		error_print();
 		return -1;
 	}

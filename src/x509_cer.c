@@ -528,7 +528,7 @@ static size_t _strlen(const char *s) { return s ? strlen(s) : 0; }
 static int x509_name_tag(const char *str)
 {
 	if (str) {
-		if (asn1_printable_string_check(str, strlen(str)) == 1)
+		if (asn1_string_is_printable_string(str, strlen(str)) == 1)
 			return ASN1_TAG_PrintableString;
 		else	return ASN1_TAG_UTF8String;
 	}

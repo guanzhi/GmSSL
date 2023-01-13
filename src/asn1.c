@@ -113,12 +113,73 @@ int asn1_tag_is_cstring(int tag)
 	return 0;
 }
 
-int asn1_utf8_string_check(const char *a, size_t alen)
+/*
+utf-8 character encoding
+ 	1-byte: 0xxxxxxx
+	2-byte: 110xxxxx 10xxxxxx
+	3-byte: 1110xxxx 10xxxxxx 10xxxxxx
+	4-byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+*/
+int asn1_utf8char_from_bytes(uint32_t *c, const uint8_t **pin, size_t *pinlen)
 {
+	uint32_t utf8char;
+	const uint8_t *in = *pin;
+	size_t inlen = *pinlen;
+	uint32_t utf8char_len, i;
+
+	if (!inlen) {
+		return 0;
+	}
+
+	if ((in[0] & 0x80) == 0x00) {
+		utf8char_len = 1;
+	} else if ((in[0] & 0xe0) == 0xc0) {
+		utf8char_len = 2;
+	} else if ((in[0] & 0xf0) == 0xe0) {
+		utf8char_len = 3;
+	} else if ((in[0] & 0xf8) == 0xf0) {
+		utf8char_len = 4;
+	} else {
+		//error_print();
+		return -1;
+	}
+
+	if (inlen < utf8char_len) {
+		//error_print();
+		return -1;
+	}
+
+	utf8char = in[0];
+	for (i = 1; i < utf8char_len; i++) {
+		if ((in[i] & 0x60) != 0x80) {
+			//error_print();
+			return -1;
+		}
+		utf8char = (utf8char << 8) | in[i];
+	}
+
+	*c = utf8char;
+	(*pin) += utf8char_len;
+	(*pinlen) -= utf8char_len;
 	return 1;
 }
 
-static int asn1_char_is_printable(int a)
+int asn1_string_is_utf8_string(const char *a, size_t alen)
+{
+	uint32_t utf8char;
+
+	if (!a || !alen) {
+		return 0;
+	}
+	while (alen) {
+		if (asn1_utf8char_from_bytes(&utf8char, (const uint8_t **)&a, &alen) != 1) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int asn1_char_is_printable(int a)
 {
 	if (isalpha(a) || isdigit(a)) {
 		return 1;
@@ -132,12 +193,25 @@ static int asn1_char_is_printable(int a)
 	return 0;
 }
 
+/*
 int asn1_printable_string_check(const char *a, size_t alen)
 {
 	size_t i;
 	for (i = 0; i < alen; i++) {
 		if (asn1_char_is_printable(a[i]) != 1) {
 			error_print(); // TODO: replace with waring_print()
+			return 0;
+		}
+	}
+	return 1;
+}
+*/
+
+int asn1_string_is_printable_string(const char *a, size_t alen)
+{
+	size_t i;
+	for (i = 0; i < alen; i++) {
+		if (asn1_char_is_printable(a[i]) != 1) {
 			return 0;
 		}
 	}
@@ -177,8 +251,14 @@ int asn1_printable_string_case_ignore_match(const char *a, size_t alen,
 	return 1;
 }
 
-int asn1_ia5_string_check(const char *a, size_t alen)
+int asn1_string_is_ia5_string(const char *a, size_t alen)
 {
+	size_t i;
+	for (i = 0; i < alen; i++) {
+		if (!isascii(a[i])) {
+			return 0;
+		}
+	}
 	return 1;
 }
 
@@ -1314,17 +1394,56 @@ int asn1_string_from_der(int tag, const char **a, size_t *alen, const uint8_t **
 
 int asn1_utf8_string_from_der_ex(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen)
 {
-	return asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen);
+	int ret;
+	if ((ret = asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (!(*a) || !(*alen)) {
+		error_print();
+		return -1;
+	}
+	if (asn1_string_is_utf8_string(*a, *alen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int asn1_printable_string_from_der_ex(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen)
 {
-	return asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen);
+	int ret;
+	if ((ret = asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (!(*a) || !(*alen)) {
+		error_print();
+		return -1;
+	}
+	if (asn1_string_is_printable_string(*a, *alen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int asn1_ia5_string_from_der_ex(int tag, const char **a, size_t *alen, const uint8_t **in, size_t *inlen)
 {
-	return asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen);
+	int ret;
+	if ((ret = asn1_type_from_der(tag, (const uint8_t **)a, alen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (!(*a) || !(*alen)) {
+		error_print();
+		return -1;
+	}
+	if (asn1_string_is_ia5_string(*a, *alen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **pin, size_t *pinlen)
