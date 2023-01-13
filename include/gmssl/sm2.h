@@ -365,7 +365,8 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, uint8_t *out, size_t *outlen);
 
 
-int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
+int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
+int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out);
 
 
 typedef uint8_t sm2_bn_t[32];

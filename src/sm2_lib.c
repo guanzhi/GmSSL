@@ -814,7 +814,7 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 	return 1;
 }
 
-int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out)
+int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out)
 {
 	if (!key || !peer_public || !out) {
 		error_print();
@@ -826,6 +826,22 @@ int sm2_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out)
 	}
 	return 1;
 }
+
+int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out)
+{
+	SM2_POINT point;
+
+	if (sm2_point_from_octets(&point, peer_public, peer_public_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_do_ecdh(key, &point, out) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 
 // (x1, y1) = k * G
 // r = e + x1
