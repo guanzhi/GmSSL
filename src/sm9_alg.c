@@ -357,7 +357,7 @@ void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 
 	/* q = zh * mu // (2^32)^9 */
-	for (i = 0; i < 18; i++) {
+	for (i = 0; i < 9; i++) {
 		s[i] = 0;
 	}
 	for (i = 0; i < 9; i++) {
@@ -374,17 +374,23 @@ void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 
 	/* q = q * p mod (2^32)^9 */
-	for (i = 0; i < 18; i++) {
+	for (i = 0; i < 8; i++) {
 		s[i] = 0;
 	}
-	for (i = 0; i < 9; i++) {
+	w = 0;
+    for (j = 0; j < 8; j++) {
+		w += s[j] + q[0] * SM9_P[j];
+ 		s[j] = w & 0xffffffff;
+		w >>= 32;
+	}
+	s[8] = w;
+	for (i = 1; i < 9; i++) {
 		w = 0;
-		for (j = 0; j < 8; j++) {
+		for (j = 0; i + j < 9; j++) {
 			w += s[i + j] + q[i] * SM9_P[j];
 			s[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
-		s[i + 8] = w;
 	}
 	for (i = 0; i < 9; i++) {
 		q[i] = s[i];
