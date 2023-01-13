@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -527,7 +527,7 @@ int x509_general_names_add_general_name(uint8_t *gns, size_t *gnslen, size_t max
 	case X509_gn_rfc822_name:
 	case X509_gn_dns_name:
 	case X509_gn_uniform_resource_identifier:
-		if (asn1_ia5_string_check((char *)d, dlen) != 1) {
+		if (asn1_string_is_ia5_string((char *)d, dlen) != 1) {
 			error_print();
 			return -1;
 		}
