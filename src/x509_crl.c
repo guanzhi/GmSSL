@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -992,11 +992,11 @@ int x509_tbs_crl_sign(
 		error_print();
 		return -1;
 	}
-	if (asn1_data_to_der(tbs, tbslen, NULL, &len) != 1
+	if (asn1_any_to_der(tbs, tbslen, NULL, &len) != 1
 		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, &out, &outlen) != 1
-		|| asn1_data_to_der(tbs, tbslen, &out, &outlen) != 1
+		|| asn1_any_to_der(tbs, tbslen, &out, &outlen) != 1
 		|| x509_signature_algor_to_der(signature_algor, &out, &outlen) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, &out, &outlen) != 1) {
 		error_print();

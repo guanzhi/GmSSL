@@ -21,6 +21,7 @@ extern "C" {
 #endif
 
 
+
 #define ASN1_TAG_UNIVERSAL		0x00
 #define ASN1_TAG_APPLICATION		0x40
 #define ASN1_TAG_CONTENT_SPECIFIC	0x80
@@ -67,11 +68,46 @@ enum ASN1_TAG {
 	ASN1_TAG_EXPLICIT		= 0xa0,
 };
 
+
+/*
+DER encoding (d, dlen) to_der
+
+	d != NULL && dlen != 0: return 1 on success or -1 on failure
+	d == NULL && dlen != 0: invalid input, return -1
+	d == NULL && dlen == 0: do nothing, return 0 to info OPTIONAL types
+	d != NULL && dlen == 0: encode an empty type, output tag and length = 0 without value
+
+解码函数的返回值：
+
+	ret == 0
+		当前剩余的数据数据长度为0
+		或者下一个对象与期待不符，即输入对象的标签不等于输入的tag
+		当对象为OPTIONAL时，调用方可以通过判断返回值是否为0进行处理
+	ret < 0
+		标签正确但是长度或数据解析出错
+	ret == 1
+		解析正确
+
+
+解码函数的输入：
+
+	*in != NULL
+		例如一个SEQUENCE中的属性均为OPTIONAL，解析后指针仍不为空
+		因此不允许输入空的输入数据指针
+
+
+处理规则
+
+	当返回值 ret <= 0 时，*tag, *in, *inlen 的值保持不变
+
+	如果一个类型有 DEFAULT 属性，调用方可以将返回数据预先设置为默认值，
+	如果该对象未被编码，即返回值为0，那么解码函数不会修改已经设置的默认值
+
+*/
+
 const char *asn1_tag_name(int tag);
-int asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen);
-int asn1_tag_from_der(int tag, const uint8_t **in, size_t *inlen);
-int asn1_any_tag_from_der(int *tag, const uint8_t **in, size_t *inlen);
-int asn1_tag_get(int *tag, const uint8_t **in, size_t *inlen); // 尝试读取下一个tag，但是并不修改in,inlen
+int asn1_tag_from_der(int *tag, const uint8_t **in, size_t *inlen);
+int asn1_tag_from_der_readonly(int *tag, const uint8_t **in, size_t *inlen); // read the next tag without changing *in,*inlen
 int asn1_tag_is_cstring(int tag);
 int asn1_length_to_der(size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_length_from_der(size_t *dlen, const uint8_t **in, size_t *inlen);
@@ -85,6 +121,9 @@ int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t *
 int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen); // 调用方应保证a,alen为TLV
 int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen); // 该函数会检查输入是否为TLV
+
+#define ASN1_TRUE 0xff
+#define ASN1_FALSE 0x00
 
 const char *asn1_boolean_name(int val);
 int asn1_boolean_from_name(int *val, const char *name);
@@ -217,15 +256,27 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *tv, const uint8_t **in, s
 #define asn1_implicit_generalized_time_to_der(i,tv,out,outlen) asn1_generalized_time_to_der_ex(ASN1_TAG_IMPLICIT(i),tv,out,outlen)
 #define asn1_implicit_generalized_time_from_der(i,tv,in,inlen) asn1_generalized_time_from_der_ex(ASN1_TAG_IMPLICIT(i),tv,in,inlen)
 
-#define asn1_sequence_to_der(d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_SEQUENCE,d,dlen,out,outlen)
-#define asn1_sequence_from_der(d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_SEQUENCE,d,dlen,in,inlen)
-#define asn1_implicit_sequence_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
-#define asn1_implicit_sequence_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+int asn1_nonempty_type_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int asn1_nonempty_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 
-#define asn1_set_to_der(d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_SET,d,dlen,out,outlen)
-#define asn1_set_from_der(d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_SET,d,dlen,in,inlen)
-#define asn1_implicit_set_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
-#define asn1_implicit_set_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+#define asn1_sequence_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SEQUENCE,d,dlen,out,outlen)
+#define asn1_sequence_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SEQUENCE,d,dlen,in,inlen)
+#define asn1_implicit_sequence_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
+#define asn1_implicit_sequence_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+
+#define asn1_sequence_of_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SEQUENCE,d,dlen,out,outlen)
+#define asn1_sequence_of_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SEQUENCE,d,dlen,in,inlen)
+int asn1_sequence_of_int_to_der(const int *nums, size_t nums_cnt, uint8_t **out, size_t *outlen);
+int asn1_sequence_of_int_from_der(int *nums, size_t *nums_cnt, const uint8_t **in, size_t *inlen);
+int asn1_sequence_of_int_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+#define asn1_set_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SET,d,dlen,out,outlen)
+#define asn1_set_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SET,d,dlen,in,inlen)
+#define asn1_implicit_set_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
+#define asn1_implicit_set_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+
+#define asn1_set_of_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SET,d,dlen,out,outlen)
+#define asn1_set_of_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SET,d,dlen,in,inlen)
 
 #define asn1_implicit_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_IMPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
@@ -243,19 +294,14 @@ int asn1_header_to_der(int tag, size_t dlen, uint8_t **out, size_t *outlen);
 
 #define asn1_explicit_header_to_der(i,dlen,out,outlen) asn1_header_to_der(ASN1_TAG_EXPLICIT(i),dlen,out,outlen)
 
-#define asn1_explicit_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
-#define asn1_explicit_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+#define asn1_explicit_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
+#define asn1_explicit_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
 
 // d,dlen 是 SEQUENCE OF, SET OF 中的值
 int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, size_t *cnt);
 int asn1_types_get_item_by_index(const uint8_t *d, size_t *dlen, int tag,
 	int index, const uint8_t **item_d, size_t *item_dlen);
 
-int asn1_sequence_of_from_der(const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
-
-int asn1_sequence_of_int_to_der(const int *nums, size_t nums_cnt, uint8_t **out, size_t *outlen);
-int asn1_sequence_of_int_from_der(int *nums, size_t *nums_cnt, const uint8_t **in, size_t *inlen);
-int asn1_sequence_of_int_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 
 typedef struct {

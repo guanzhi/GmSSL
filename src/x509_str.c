@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ int x509_directory_name_from_der(int *tag, const uint8_t **d, size_t *dlen, cons
 {
 	int ret;
 
-	if ((ret = asn1_tag_get(tag, in, inlen)) != 1) {
+	if ((ret = asn1_tag_from_der_readonly(tag, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
@@ -204,7 +204,7 @@ int x509_display_text_from_der(int *tag, const uint8_t **d, size_t *dlen, const 
 {
 	int ret;
 
-	if ((ret = asn1_tag_get(tag, in, inlen)) != 1) {
+	if ((ret = asn1_tag_from_der_readonly(tag, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}

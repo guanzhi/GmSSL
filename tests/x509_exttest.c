@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -504,7 +504,7 @@ static int test_x509_basic_constraints(void)
 
 	cp = p = buf; len = 0;
 	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != 1
-		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != -1 // empty sequence is not allowed
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
@@ -650,7 +650,7 @@ static int test_x509_policy_constraints(void)
 	cp = p = buf; len = 0;
 	val1 = val2 = 99;
 	if (x509_policy_constraints_to_der(-1, -1, &p, &len) != 1
-		|| x509_policy_constraints_from_der(&val1, &val2, &cp, &len) != 1
+		|| x509_policy_constraints_from_der(&val1, &val2, &cp, &len) != -1 // empty sequence is not allowed
 		|| asn1_check(val1 == -1) != 1
 		|| asn1_check(val2 == -1) != 1
 		|| asn1_length_is_zero(len) != 1) {

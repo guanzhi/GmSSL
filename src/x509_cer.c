@@ -345,10 +345,10 @@ int x509_rdn_to_der(int oid, int tag, const uint8_t *val, size_t vlen,
 {
 	size_t len = 0;
 	if (x509_attr_type_and_value_to_der(oid, tag, val, vlen, NULL, &len) != 1
-		|| asn1_data_to_der(more, morelen, NULL, &len) < 0
+		|| asn1_any_to_der(more, morelen, NULL, &len) < 0
 		|| asn1_set_header_to_der(len, out, outlen) != 1
 		|| x509_attr_type_and_value_to_der(oid, tag, val, vlen, out, outlen) != 1
-		|| asn1_data_to_der(more, morelen, out, outlen) < 0) {
+		|| asn1_any_to_der(more, morelen, out, outlen) < 0) {
 		error_print();
 		return -1;
 	}
