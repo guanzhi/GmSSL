@@ -302,8 +302,6 @@ int asn1_type_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size
 
 int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
 {
-	int ret;
-
 	if (!d || !dlen || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
@@ -367,8 +365,6 @@ int asn1_nonempty_type_from_der(int tag, const uint8_t **d, size_t *dlen, const 
 
 int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
 {
-	int ret;
-
 	if (!tag || !d || !dlen || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
@@ -686,7 +682,7 @@ int asn1_int_from_der_ex(int tag, int *a, const uint8_t **in, size_t *inlen)
 int asn1_bit_string_to_der_ex(int tag, const uint8_t *bits, size_t nbits, uint8_t **out, size_t *outlen)
 {
 	size_t nbytes = (nbits + 7) / 8;
-	uint8_t unused_nbits = nbytes * 8 - nbits;
+	size_t unused_nbits = nbytes * 8 - nbits;
 
 	if (!outlen) {
 		error_print();
@@ -712,7 +708,7 @@ int asn1_bit_string_to_der_ex(int tag, const uint8_t *bits, size_t nbits, uint8_
 
 	// unused num of bits
 	if (out && *out) {
-		*(*out)++ = unused_nbits;
+		*(*out)++ = (uint8_t)unused_nbits;
 	}
 	(*outlen)++;
 
@@ -728,7 +724,6 @@ int asn1_bit_string_to_der_ex(int tag, const uint8_t *bits, size_t nbits, uint8_
 
 int asn1_bit_string_from_der_ex(int tag, const uint8_t **bits, size_t *nbits, const uint8_t **in, size_t *inlen)
 {
-	int ret;
 	size_t len;
 	int unused_bits;
 
@@ -1095,9 +1090,7 @@ int asn1_object_identifier_to_der_ex(int tag, const uint32_t *nodes, size_t node
 int asn1_object_identifier_from_der_ex(int tag, uint32_t *nodes, size_t *nodes_cnt,
 	const uint8_t **in, size_t *inlen)
 {
-	int ret;
 	size_t len;
-	const uint8_t *p;
 
 	// unlike _from_octets(), _from_der() require output buffer
 	if (!nodes || !nodes_cnt || !in || !(*in) || !inlen) {

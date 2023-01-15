@@ -220,7 +220,6 @@ int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uin
 int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sigbuf, size_t *siglen)
 {
 	SM2_SIGNATURE sig;
-	uint8_t *p;
 
 	if (!key || !dgst || !sigbuf || !siglen) {
 		error_print();
@@ -276,7 +275,6 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sigbuf
 {
 	int ret;
 	SM2_SIGNATURE sig;
-	const uint8_t *p;
 
 	if (!key || !dgst || !sigbuf || !siglen) {
 		error_print();
@@ -481,7 +479,6 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 	SM2_JACOBIAN_POINT _kP, *kP = &_kP;
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
-	size_t i;
 
 	if (!(SM2_MIN_PLAINTEXT_SIZE <= inlen && inlen <= SM2_MAX_PLAINTEXT_SIZE)) {
 		error_print();
@@ -545,7 +542,6 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 	SM2_JACOBIAN_POINT _kP, *kP = &_kP;
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
-	size_t i;
 
 	if (!(SM2_MIN_PLAINTEXT_SIZE <= inlen && inlen <= SM2_MAX_PLAINTEXT_SIZE)) {
 		error_print();
