@@ -834,7 +834,7 @@ int x509_notice_reference_from_der(
 		return ret;
 	}
 	if (x509_display_text_from_der(org_tag, org, org_len, &d, &dlen) != 1
-		|| asn1_sequence_of_int_from_der(notice_numbers, notice_numbers_cnt, &d, &dlen) != 1
+		|| asn1_sequence_of_int_from_der(notice_numbers, notice_numbers_cnt, X509_MAX_NOTICE_NUMBERS, &d, &dlen) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;

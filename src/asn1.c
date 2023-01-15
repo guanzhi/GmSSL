@@ -960,17 +960,13 @@ static void asn1_oid_node_to_base128(uint32_t a, uint8_t **out, size_t *outlen)
 	}
 
 	while (n--) {
-		if (out && *out)
+		if (out && *out) {
 			*(*out)++ = buf[n];
+		}
 		(*outlen)++;
 	}
 }
 
-// 实际上我们在解析的时候是不知道具体在哪里结束的
-// 解析是有可能出错的，如果没有发现最后一个0开头的字节就出错了
-// 还有值太大也会出错，我们最多读取5个字节
-// { 0x81, 0x82 }
-// { 0x81, 0x82, 0x83, 0x84, 0x85, 0x06 }
 static int asn1_oid_node_from_base128(uint32_t *a, const uint8_t **in, size_t *inlen)
 {
 	uint8_t buf[5];
@@ -1002,27 +998,19 @@ static int asn1_oid_node_from_base128(uint32_t *a, const uint8_t **in, size_t *i
 	return 1;
 }
 
-// change name
-int asn1_object_identifier_equ(const uint32_t *a, size_t a_cnt, const uint32_t *b, size_t b_cnt)
-{
-	if (a_cnt == b_cnt
-		&& memcmp(a, b, b_cnt * sizeof(uint32_t)) == 0) {
-		return 1;
-	}
-	return 0;
-}
-
 int asn1_object_identifier_to_octets(const uint32_t *nodes, size_t nodes_cnt, uint8_t *out, size_t *outlen)
 {
-	if (!outlen) {
+	if (!nodes || !outlen) {
 		error_print();
 		return -1;
 	}
-	if (nodes_cnt < 2 || nodes_cnt > 32) {
+	if (nodes_cnt < ASN1_OID_MIN_NODES || nodes_cnt > ASN1_OID_MAX_NODES) {
+		error_print();
 		return -1;
 	}
-	if (out)
+	if (out) {
 		*out++ = (uint8_t)(nodes[0] * 40 + nodes[1]);
+	}
 	(*outlen) = 1;
 	nodes += 2;
 	nodes_cnt -= 2;
@@ -1033,35 +1021,24 @@ int asn1_object_identifier_to_octets(const uint32_t *nodes, size_t nodes_cnt, ui
 	return 1;
 }
 
-// 因为这个函数总是被asn1函数调用的，因此给的输入数据长度是已知的
 int asn1_object_identifier_from_octets(uint32_t *nodes, size_t *nodes_cnt, const uint8_t *in, size_t inlen)
 {
-	size_t count = 0;
-	const uint8_t *p = in;
-	size_t len = inlen;
-
-	if (!nodes || !nodes_cnt || !in || inlen <= 0) {
+	if (!nodes_cnt || !in || !inlen) {
 		error_print();
 		return -1;
 	}
 
-	if (inlen < 1) {
-		error_print();
-		return -1;
-	}
-
-	// FIXME: 需要支持 nodes = NULL 吗？
 	if (nodes) {
 		*nodes++ = (*in) / 40;
 		*nodes++ = (*in) % 40;
 	}
 	in++;
 	inlen--;
-	count += 2;
+	*nodes_cnt = 2;
 
 	while (inlen) {
 		uint32_t val;
-		if (count > 32) {
+		if (*nodes_cnt > ASN1_OID_MAX_NODES) {
 			error_print();
 			return -1;
 		}
@@ -1072,33 +1049,42 @@ int asn1_object_identifier_from_octets(uint32_t *nodes, size_t *nodes_cnt, const
 		if (nodes) {
 			*nodes++ = val;
 		}
-		count++;
+		(*nodes_cnt)++;
 	}
 
-	*nodes_cnt = count;
 	return 1;
 }
 
 int asn1_object_identifier_to_der_ex(int tag, const uint32_t *nodes, size_t nodes_cnt, uint8_t **out, size_t *outlen)
 {
-	uint8_t octets[32];
+	uint8_t octets[ASN1_OID_MAX_OCTETS];
 	size_t octetslen = 0;
 
 	if (!outlen) {
 		error_print();
 		return -1;
 	}
+	if (!nodes) {
+		if (nodes_cnt) {
+			error_print();
+			return -1;
+		}
+		return 0;
+	}
 
-	if (out && *out)
-		*(*out)++ = tag;
-	(*outlen)++;
-
-	asn1_object_identifier_to_octets(nodes, nodes_cnt, octets, &octetslen);
-
-	asn1_length_to_der(octetslen, out, outlen);
+	if (asn1_object_identifier_to_octets(nodes, nodes_cnt, octets, &octetslen) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (out && *out) {
-		// 注意：If out == NULL, *out ==> Segment Fault
+		*(*out)++ = tag;
+	}
+	(*outlen)++;
+
+	(void)asn1_length_to_der(octetslen, out, outlen);
+
+	if (out && *out) {
 		memcpy(*out, octets, octetslen);
 		*out += octetslen;
 	}
@@ -1113,7 +1099,8 @@ int asn1_object_identifier_from_der_ex(int tag, uint32_t *nodes, size_t *nodes_c
 	size_t len;
 	const uint8_t *p;
 
-	if (!in || !(*in) || !inlen) {
+	// unlike _from_octets(), _from_der() require output buffer
+	if (!nodes || !nodes_cnt || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
 	}
@@ -1131,7 +1118,7 @@ int asn1_object_identifier_from_der_ex(int tag, uint32_t *nodes, size_t *nodes_c
 		error_print();
 		return -1;
 	}
-	if (len == 0) {
+	if (len < ASN1_OID_MIN_OCTETS) {
 		error_print();
 		return -1;
 	}
@@ -1144,6 +1131,19 @@ int asn1_object_identifier_from_der_ex(int tag, uint32_t *nodes, size_t *nodes_c
 	*in += len;
 	*inlen -= len;
 
+	return 1;
+}
+
+int asn1_object_identifier_equ(const uint32_t *a, size_t a_cnt, const uint32_t *b, size_t b_cnt)
+{
+	if (!a || a_cnt < ASN1_OID_MIN_NODES || a_cnt > ASN1_OID_MAX_NODES
+		|| !b || b_cnt < ASN1_OID_MIN_NODES || b_cnt > ASN1_OID_MAX_NODES) {
+		error_print();
+		return 0; // _equ() should return 1 or 0
+	}
+	if (a_cnt != b_cnt || memcmp(a, b, b_cnt * sizeof(uint32_t))) {
+		return 0;
+	}
 	return 1;
 }
 
@@ -1163,10 +1163,15 @@ int asn1_object_identifier_print(FILE *fp, int format, int indent, const char *l
 	return 1;
 }
 
-const ASN1_OID_INFO *asn1_oid_info_from_name(const ASN1_OID_INFO *infos, size_t count, const char *name)
+const ASN1_OID_INFO *asn1_oid_info_from_name(const ASN1_OID_INFO *infos, size_t infos_cnt, const char *name)
 {
 	size_t i;
-	for (i = 0; i < count; i++) {
+
+	if (!infos || !infos_cnt || !name) {
+		error_print();
+		return NULL;
+	}
+	for (i = 0; i < infos_cnt; i++) {
 		if (strcmp(infos[i].name, name) == 0) {
 			return &infos[i];
 		}
@@ -1174,10 +1179,15 @@ const ASN1_OID_INFO *asn1_oid_info_from_name(const ASN1_OID_INFO *infos, size_t 
 	return NULL;
 }
 
-const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t count, int oid)
+const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t infos_cnt, int oid)
 {
 	size_t i;
-	for (i = 0; i < count; i++) {
+
+	if (!infos || !infos_cnt || oid <= 0) {
+		error_print();
+		return NULL;
+	}
+	for (i = 0; i < infos_cnt; i++) {
 		if (infos[i].oid == oid) {
 			return &infos[i];
 		}
@@ -1185,34 +1195,39 @@ const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t c
 	return NULL;
 }
 
-// 如果一个正确解析的OID并不在infos列表中，那么仍然返回1，但是调用方必须检查返回的info是否为空
 int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_t *nodes_cnt,
-	const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen)
+	const ASN1_OID_INFO *infos, size_t infos_cnt, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	size_t i;
 
+	if (!info) {
+		error_print();
+		return -1;
+	}
 	if ((ret = asn1_object_identifier_from_der(nodes, nodes_cnt, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else *info = NULL;
 		return ret;
 	}
-	*info = NULL;
-	for (i = 0; i < count; i++) {
+
+	for (i = 0; i < infos_cnt; i++) {
 		if (*nodes_cnt == infos[i].nodes_cnt
 			&& memcmp(nodes, infos[i].nodes, (*nodes_cnt) * sizeof(int)) == 0) {
 			*info = &infos[i];
-			goto end;
+			return 1;
 		}
 	}
-end:
+
+	// OID with correct encoding but in the (infos, infos_cnt) list
+	*info = NULL;
 	return 1;
 }
 
-// 和ex版本不同的是，如果在infos列表中未找到OID，返回错误
 int asn1_oid_info_from_der(const ASN1_OID_INFO **info, const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	uint32_t nodes[32];
+	uint32_t nodes[ASN1_OID_MAX_NODES];
 	size_t nodes_cnt;
 
 	if ((ret = asn1_oid_info_from_der_ex(info, nodes, &nodes_cnt, infos, count, in, inlen)) != 1) {
@@ -1224,16 +1239,6 @@ int asn1_oid_info_from_der(const ASN1_OID_INFO **info, const ASN1_OID_INFO *info
 		error_print();
 		return -1;
 	}
-	return 1;
-}
-
-int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen)
-{
-	format_print(fp, fmt, ind, "%s: ", label);
-	while (dlen--) {
-		fprintf(fp, "%c", *d++);
-	}
-	fprintf(fp, "\n");
 	return 1;
 }
 
@@ -1264,19 +1269,19 @@ static int asn1_utf8char_from_bytes(uint32_t *c, const uint8_t **pin, size_t *pi
 	} else if ((in[0] & 0xf8) == 0xf0) {
 		utf8char_len = 4;
 	} else {
-		//error_print();
+		//error_print(); // disable error_print for _is_ compare
 		return -1;
 	}
 
 	if (inlen < utf8char_len) {
-		//error_print();
+		//error_print(); // disable error_print for _is_ compare
 		return -1;
 	}
 
 	utf8char = in[0];
 	for (i = 1; i < utf8char_len; i++) {
 		if ((in[i] & 0x60) != 0x80) {
-			//error_print();
+			//error_print(); // disable error_print for _is_ compare
 			return -1;
 		}
 		utf8char = (utf8char << 8) | in[i];
@@ -1427,16 +1432,6 @@ int asn1_printable_string_from_der_ex(int tag, const char **a, size_t *alen, con
 	return 1;
 }
 
-
-
-
-// asn1_oid_from_octets 不返回错误值，只返回 OID_undef
-// 但是数据编码仍可能是非法的
-// 如果返回 OID_undef，需要通过 asn1_object_identifier_from_octets 判断格式是否正确
-
-// 显然这个函数并不合适，因为在整个gmssl中，我们不提供完整的ASN.1数据库，无法从一个OID中给出解析
-
-
 int asn1_string_is_ia5_string(const char *a, size_t alen)
 {
 	size_t i;
@@ -1481,8 +1476,15 @@ int asn1_ia5_string_from_der_ex(int tag, const char **a, size_t *alen, const uin
 	return 1;
 }
 
-
-
+int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen)
+{
+	format_print(fp, fmt, ind, "%s: ", label);
+	while (dlen--) {
+		fprintf(fp, "%c", *d++);
+	}
+	fprintf(fp, "\n");
+	return 1;
+}
 
 static int is_leap_year(int year) {
 	return ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) ? 1 : 0;
@@ -1627,7 +1629,7 @@ int asn1_time_to_str(int utc_time, time_t timestamp, char *str)
 
 int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
-	char buf[ASN1_UTC_TIME_LEN + 1] = {0};
+	char buf[ASN1_UTC_TIME_STRLEN + 1] = {0};
 	int utc_time = 1;
 
 	if (!outlen) {
@@ -1644,12 +1646,12 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 		*(*out)++ = tag;
 	}
 	(*outlen)++;
-	asn1_length_to_der(ASN1_UTC_TIME_LEN, out, outlen);
+	asn1_length_to_der(ASN1_UTC_TIME_STRLEN, out, outlen);
 	if (out && *out) {
-		memcpy(*out, buf, ASN1_UTC_TIME_LEN);
-		(*out) += ASN1_UTC_TIME_LEN;
+		memcpy(*out, buf, ASN1_UTC_TIME_STRLEN);
+		(*out) += ASN1_UTC_TIME_STRLEN;
 	}
-	*outlen += ASN1_UTC_TIME_LEN;
+	*outlen += ASN1_UTC_TIME_STRLEN;
 
 	return 1;
 }
@@ -1702,7 +1704,7 @@ int asn1_utc_time_from_der_ex(int tag, time_t *t, const uint8_t **in, size_t *in
 
 int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 {
-	char buf[ASN1_GENERALIZED_TIME_LEN + 1] = {0};
+	char buf[ASN1_GENERALIZED_TIME_STRLEN + 1] = {0};
 	int utc_time = 0;
 
 	if (!outlen) {
@@ -1718,12 +1720,12 @@ int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *ou
 	if (out && *out)
 		*(*out)++ = tag;
 	(*outlen)++;
-	asn1_length_to_der(ASN1_GENERALIZED_TIME_LEN, out, outlen);
+	asn1_length_to_der(ASN1_GENERALIZED_TIME_STRLEN, out, outlen);
 	if (out && *out) {
-		memcpy(*out, buf, ASN1_GENERALIZED_TIME_LEN);
-		(*out) += ASN1_GENERALIZED_TIME_LEN;
+		memcpy(*out, buf, ASN1_GENERALIZED_TIME_STRLEN);
+		(*out) += ASN1_GENERALIZED_TIME_STRLEN;
 	}
-	*outlen += ASN1_GENERALIZED_TIME_LEN;
+	*outlen += ASN1_GENERALIZED_TIME_STRLEN;
 
 	return 1;
 }
@@ -1777,6 +1779,12 @@ int asn1_sequence_of_int_to_der(const int *nums, size_t nums_cnt, uint8_t **out,
 {
 	size_t len = 0;
 	size_t i;
+
+	if (!nums || !nums_cnt || !outlen) {
+		error_print();
+		return -1;
+	}
+
 	for (i = 0; i < nums_cnt; i++) {
 		if (asn1_int_to_der(nums[i], NULL, &len) != 1) {
 			error_print();
@@ -1796,26 +1804,33 @@ int asn1_sequence_of_int_to_der(const int *nums, size_t nums_cnt, uint8_t **out,
 	return 1;
 }
 
-int asn1_sequence_of_int_from_der(int *nums, size_t *nums_cnt, const uint8_t **in, size_t *inlen)
+int asn1_sequence_of_int_from_der(int *nums, size_t *nums_cnt, size_t max_nums, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *d;
 	size_t dlen;
 
+	if (!nums || !nums_cnt || !max_nums) {
+		error_print();
+		return -1;
+	}
+
+	*nums_cnt = 0;
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	*nums_cnt = 0;
 	while (dlen) {
 		int num;
+		if (*nums_cnt > max_nums) {
+			error_print();
+			return -1;
+		}
 		if (asn1_int_from_der(&num, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (nums) {
-			*nums++ = num;
-		}
+		*nums++ = num;
 		(*nums_cnt)++;
 	}
 	return 1;
@@ -1838,18 +1853,61 @@ int asn1_sequence_of_int_print(FILE *fp, int fmt, int ind, const char *label, co
 
 int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, size_t *cnt)
 {
-	error_print();
-	return -1;
+	int item_tag;
+	const uint8_t *item_d;
+	size_t item_dlen;
+
+	if (!d || !cnt) {
+		error_print();
+		return -1;
+	}
+	*cnt = 0;
+	while (dlen) {
+		if (asn1_any_type_from_der(&item_tag, &item_d, &item_dlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (item_tag != tag) {
+			error_print();
+			return -1;
+		}
+		(*cnt)++;
+	}
+	return 1;
 }
 
-int asn1_types_get_item_by_index(const uint8_t *d, size_t *dlen, int tag,
+int asn1_types_get_item_by_index(const uint8_t *d, size_t dlen, int tag,
 	int index, const uint8_t **item_d, size_t *item_dlen)
 {
+	int a_tag;
+	const uint8_t *a_d;
+	size_t a_dlen;
+	int i = 0;
+
+	if (!d || !item_d || !item_dlen) {
+		error_print();
+		return -1;
+	}
+
+	while (dlen) {
+		if (asn1_any_type_from_der(&a_tag, &a_d, &a_dlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (a_tag != tag) {
+			error_print();
+			return -1;
+		}
+		if (i++ == index) {
+			*item_d = d;
+			*item_dlen = dlen;
+			return 1; // do not check the following
+		}
+	}
+
 	error_print();
 	return -1;
 }
-
-
 
 int asn1_check(int expr)
 {
