@@ -237,6 +237,7 @@ add_library(gmssl ${src})
 
 
 if (WIN32)
+	target_link_libraries(gmssl -lws2_32)
 elseif (APPLE)
 	target_link_libraries(gmssl dl)
 	target_link_libraries(gmssl "-framework Security")
