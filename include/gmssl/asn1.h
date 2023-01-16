@@ -278,8 +278,9 @@ int asn1_generalized_time_from_der_ex(int tag, time_t *tv, const uint8_t **in, s
 #define asn1_implicit_generalized_time_to_der(i,tv,out,outlen) asn1_generalized_time_to_der_ex(ASN1_TAG_IMPLICIT(i),tv,out,outlen)
 #define asn1_implicit_generalized_time_from_der(i,tv,in,inlen) asn1_generalized_time_from_der_ex(ASN1_TAG_IMPLICIT(i),tv,in,inlen)
 
-#define asn1_sequence_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SEQUENCE,d,dlen,out,outlen)
-#define asn1_sequence_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SEQUENCE,d,dlen,in,inlen)
+// BasicConstraints might be an empty sequence in entity certificates
+#define asn1_sequence_to_der(d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_SEQUENCE,d,dlen,out,outlen)
+#define asn1_sequence_from_der(d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_SEQUENCE,d,dlen,in,inlen)
 #define asn1_implicit_sequence_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_sequence_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
 
@@ -305,6 +306,7 @@ int asn1_header_to_der(int tag, size_t dlen, uint8_t **out, size_t *outlen);
 
 #define asn1_octet_string_header_to_der(dlen,out,outlen) asn1_header_to_der(ASN1_TAG_OCTET_STRING,dlen,out,outlen)
 
+#define asn1_sequence_header_to_der_ex(tag,dlen,out,outlen) asn1_header_to_der(tag,dlen,out,outlen)
 #define asn1_sequence_header_to_der(dlen,out,outlen) asn1_header_to_der(ASN1_TAG_SEQUENCE,dlen,out,outlen)
 #define asn1_implicit_sequence_header_to_der(i,dlen,out,outlen) asn1_header_to_der(ASN1_TAG_EXPLICIT(i),dlen,out,outlen)
 

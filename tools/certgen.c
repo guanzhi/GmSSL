@@ -23,7 +23,7 @@
 static const char *options =
 	"[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num "
 	"-key file [-pass pass] "
-	"[-key_usage str]* [-out file]";
+	"[-key_usage str]* [-ocsp uri] [-crl uri] [-out file]";
 
 
 static int ext_key_usage_set(int *usages, const char *usage_name)
@@ -49,6 +49,8 @@ int certgen_main(int argc, char **argv)
 	char *common_name = NULL;
 	int days = 0;
 	int key_usage = 0;
+	char *ocsp = NULL;
+	char *crl = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
 	char *outfile = NULL;
@@ -112,6 +114,12 @@ int certgen_main(int argc, char **argv)
 				fprintf(stderr, "%s: invalid -key_usage value '%s'\n", prog, usage);
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-ocsp")) {
+			if (--argc < 1) goto bad;
+			ocsp = *(++argv);
+		} else if (!strcmp(*argv, "-crl")) {
+			if (--argc < 1) goto bad;
+			crl = *(++argv);
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
@@ -172,6 +180,13 @@ bad:
 		|| x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sm2_key) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
+	}
+	if (ocsp) {
+		if (x509_exts_add_authority_info_access(exts, &extslen, sizeof(exts), 0,
+			ocsp, strlen(ocsp), crl, strlen(crl)) != 1) {
+			fprintf(stderr, "%s: error\n",  prog);
+			goto end;
+		}
 	}
 
 	time(&not_before);

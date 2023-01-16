@@ -525,6 +525,7 @@ int x509_issuing_distribution_point_to_der(
 	int only_contains_attr_certs,
 	uint8_t **out, size_t *outlen)
 {
+	/*
 	size_t len = 0;
 	if (x509_explicit_distribution_point_name_to_der(0, dist_point_choice, dist_point, dist_point_len, NULL, &len) < 0
 		|| asn1_implicit_boolean_to_der(1, only_contains_user_certs, NULL, &len) < 0
@@ -542,6 +543,7 @@ int x509_issuing_distribution_point_to_der(
 		error_print();
 		return -1;
 	}
+	*/
 	return 1;
 }
 
@@ -554,6 +556,7 @@ int x509_issuing_distribution_point_from_der(
 	int *only_contains_attr_certs,
 	const uint8_t **in, size_t *inlen)
 {
+	/*
 	int ret;
 	const uint8_t *d;
 	size_t dlen;
@@ -572,6 +575,7 @@ int x509_issuing_distribution_point_from_der(
 		error_print();
 		return -1;
 	}
+	*/
 	return 1;
 }
 

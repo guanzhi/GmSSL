@@ -134,7 +134,7 @@ static uint32_t oid_ce_certificate_issuer[] = { oid_ce,29 }; // crl_entry_ext
 #define OID_CE_CNT sizeof(oid_ce_subject_directory_attributes)/sizeof(int)
 static uint32_t oid_netscape_cert_type[] = { 2,16,840,1,113730,1,1 };
 static uint32_t oid_netscape_cert_comment[] = { 2,16,840,1,113730,1,13 };
-static uint32_t oid_cert_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
+static uint32_t oid_pe_authority_info_access[] = { 1,3,6,1,5,5,7,1,1 };
 static uint32_t oid_ct_precertificate_scts[] = { 1,3,6,1,4,1,11129,2,4,2 };
 
 static const ASN1_OID_INFO x509_ext_ids[] = {
@@ -158,7 +158,7 @@ static const ASN1_OID_INFO x509_ext_ids[] = {
 	{ OID_ce_certificate_issuer, "CertificateIssuer", oid_ce_certificate_issuer, OID_CE_CNT },
 	{ OID_netscape_cert_type, "NetscapeCertType", oid_netscape_cert_type, sizeof(oid_netscape_cert_type)/sizeof(int) },
 	{ OID_netscape_cert_comment, "NetscapeCertComment", oid_netscape_cert_comment, sizeof(oid_netscape_cert_comment)/sizeof(int) },
-	{ OID_cert_authority_info_access, "CertificateAuthorityInformationAccess", oid_cert_authority_info_access, sizeof(oid_cert_authority_info_access)/sizeof(int) },
+	{ OID_pe_authority_info_access, "AuthorityInformationAccess", oid_pe_authority_info_access, sizeof(oid_pe_authority_info_access)/sizeof(int) },
 	{ OID_ct_precertificate_scts, "CT-PrecertificateSCTs", oid_ct_precertificate_scts, sizeof(oid_ct_precertificate_scts)/sizeof(int) },
 };
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -288,6 +288,13 @@ int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t
 	int critical, const uint8_t *d, size_t dlen)
 {
 	int oid = OID_ce_crl_distribution_points;
+
+	// The extension SHOULD be non-critical, but this profile
+	// RECOMMENDS support for this extension by CAs and applications.
+	if (critical) {
+		error_print();
+		return -1;
+	}
 	return x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen);
 }
 
@@ -438,11 +445,23 @@ err:
 	return -1;
 }
 
-// GeneralName CHOICE 中有的是基本类型，有的是SEQUENCE，在设置标签时是否有区别？			
-// 这里是否支持OPTIONAL??		
 int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
-	return asn1_implicit_to_der(choice, d, dlen, out, outlen);
+	switch (choice) {
+	case X509_gn_rfc822_name:
+	case X509_gn_dns_name:
+	case X509_gn_uniform_resource_identifier:
+	case X509_gn_ip_address:
+		if (asn1_implicit_to_der(choice, d, dlen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
 }
 
 int x509_general_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
@@ -1284,6 +1303,11 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 		if (ret < 0) error_print();
 		return ret;
 	}
+	if (!d || !dlen) {
+		*ca = -1;
+		*path_len_cons = -1;
+		return 1;
+	}
 	if (asn1_boolean_from_der(ca, &d, &dlen) < 0
 		|| asn1_int_from_der(path_len_cons, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
@@ -1294,18 +1318,32 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 		error_print();
 		return -1;
 	}
-	if (*ca < 0) *ca = 0;
+	// from_der() MUST NOT set default value to *ca
 	return 1;
 }
 
 int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type)
 {
+	/*
+	entity_cert:
+		ca = -1 or 0
+		path_len_constraints = -1
+	first_ca_cert:
+		ca = 1
+		path_len_constraints = 0
+	middle_ca_cert:
+		ca = 1
+		path_len_constraints = -1 or > 0
+	root_ca_cert:
+		ca = 1
+		path_len_constraints = -1 or > 0 (=0 might be ok?)
+	*/
 	if (cert_type == X509_cert_ca) {
 		if (ca != 1) {
 			error_print();
 			return -1;
 		}
-		if (path_len_cons < 0 || path_len_cons > 6) {
+		if (path_len_cons < 0 || path_len_cons > 6) {			
 			error_print();
 			return -1;
 		}
@@ -1324,6 +1362,11 @@ int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, 
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
+
+	// BasicConstraints might be an empty sequence in entity certificates
+	if (!d || !dlen) {
+		return 1;
+	}
 
 	if ((ret = asn1_boolean_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(val));
@@ -1656,6 +1699,35 @@ int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, cons
 	return 1;
 }
 
+
+/*
+CRL Distribution Points
+
+	* 假设证书的cRLIssuer和issuer一致，即签发证书的CA也签发了证书所属的CRL
+	  不支持可选的cRLIssuer编码，解码时忽略cRLIssuer
+	  编解、解码时均要求DistributionPoint中包含distributionPoint
+
+	* 如果证书扩展中不包含reasons，那么在CRL中必须包含完整的reasons。
+	  证书扩展中包含reasons，逻辑上意味由不同的CRL包含因不同原因注销的证书，RFC不推荐这种方式
+
+	* 编码时最多支持2个DistributionPoint，分别用于HTTP和LDAP的URI
+	  即DistributionPointName CHOICE GeneralNames，其中只有一个GeneralName CHOICE uri
+
+	* 解码时对每个解析成功的DistributionPoint的uri进行判断
+	  最多返回一个http和一个ldap，其他协议的uri被忽略
+
+	* RFC要求每个DistributionPoint中至少包含一个HTTP或LDAP uri
+
+	* 解码时不支持DistributionPointName为nameRelativeToCRLIssuer
+	  解码时DistributionPointName为(GeneralNames)fullName时，只返回第一个CHOICE为uri的GeneralName
+
+	* 当uri为HTTP时，CRL文件为DER编码
+	* 当uri为LDAP时
+		如 ldap://ldap.example.com/cn=example%20CA,dc=example,dc=com?certificateRevocationList;binary
+		如 ldap:///cn=example%20CA,dc=example,dc=com?certificateRevocationList;binary
+		必须包含 DN, certificateRevocationList， 应包含host部分
+*/
+
 static const char *x509_revoke_reasons[] = {
 	"unused",
 	"keyCompromise",
@@ -1706,20 +1778,68 @@ int x509_revoke_reasons_print(FILE *fp, int fmt, int ind, const char *label, int
 	return asn1_bits_print(fp, fmt, ind, label, x509_revoke_reasons, x509_revoke_reasons_count, bits);
 }
 
-int x509_distribution_point_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
+int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen,
+	uint8_t **out, size_t *outlen)
 {
-	switch (choice) {
-	case 0:
-	case 1:
-		if (asn1_implicit_to_der(choice, d, dlen, out, outlen) != 1) {
-			error_print();
-			return -1;
-		}
-		return 1;
-	default:
+	int choice = X509_gn_uniform_resource_identifier;
+	size_t len = 0;
+	if (x509_general_name_to_der(choice, (uint8_t *)uri, urilen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der_ex(tag, len, out, outlen) != 1
+		|| x509_general_name_to_der(choice, (uint8_t *)uri, urilen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen,
+	uint8_t **out, size_t *outlen)
+{
+	if (x509_uri_as_general_names_to_der_ex(ASN1_TAG_EXPLICIT(0), uri, urilen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_uri_as_explicit_distribution_point_name_to_der(int index,
+	const char *uri, size_t urilen, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (x509_uri_as_distribution_point_name_to_der(uri, urilen, NULL, &len) != 1
+		|| asn1_explicit_header_to_der(index, len, out, outlen) != 1
+		|| x509_uri_as_distribution_point_name_to_der(uri, urilen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (x509_uri_as_explicit_distribution_point_name_to_der(0, uri, urilen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_uri_as_explicit_distribution_point_name_to_der(0, uri, urilen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_distribution_points_to_der(const char *http_uri, size_t http_urilen,
+	const char *ldap_uri, size_t ldap_urilen, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (x509_uri_as_distribution_point_to_der(http_uri, http_urilen, NULL, &len) < 0
+		|| x509_uri_as_distribution_point_to_der(ldap_uri, ldap_urilen, NULL, &len) < 0
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_uri_as_distribution_point_to_der(http_uri, http_urilen, out, outlen) < 0
+		|| x509_uri_as_distribution_point_to_der(ldap_uri, ldap_urilen, out, outlen) < 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
@@ -1739,20 +1859,6 @@ int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t
 		return -1;
 	}
 	return 1;
-}
-
-int x509_explicit_distribution_point_name_to_der(int index, int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
-{
-	// 注意：要能够解决d == NULL的情况
-	error_print();
-	return -1;
-}
-
-int x509_explicit_distribution_point_name_from_der(int index, int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
-{
-	// 注意：要能够解决d == NULL的情况
-	error_print();
-	return -1;
 }
 
 int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
@@ -1783,6 +1889,7 @@ int x509_distribution_point_to_der(
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
 	uint8_t **out, size_t *outlen)
 {
+	/*
 	size_t len = 0;
 	if (x509_explicit_distribution_point_name_to_der(0, dist_point_choice, dist_point, dist_point_len, NULL, &len) < 0
 		|| asn1_implicit_bits_to_der(1, reasons, NULL, &len) < 0
@@ -1794,6 +1901,7 @@ int x509_distribution_point_to_der(
 		error_print();
 		return -1;
 	}
+	*/
 	return 1;
 }
 
@@ -1802,6 +1910,7 @@ int x509_distribution_point_from_der(
 	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
 	const uint8_t **in, size_t *inlen)
 {
+	/*
 	int ret;
 	const uint8_t *d;
 	size_t dlen;
@@ -1817,6 +1926,7 @@ int x509_distribution_point_from_der(
 		error_print();
 		return -1;
 	}
+	*/
 	return 1;
 }
 
@@ -1841,34 +1951,6 @@ int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label,
 	if (asn1_length_is_zero(dlen) != 1) goto err;
 	return 1;
 err:
-	error_print();
-	return -1;
-}
-
-/*
-                extnID: CRLDistributionPoints (2.5.29.31)
-                    DistributionPoint
-                        distributionPoint
-                            fullName
-                                GeneralName
-                                    URI: http://www.rootca.gov.cn/Civil_Servant_arl/Civil_Servant_ARL.crl
-                    DistributionPoint
-                        distributionPoint
-                            fullName
-                                GeneralName
-                                    URI: ldap://ldap.rootca.gov.cn:390/CN=Civil_Servant_ARL,OU=ARL,O=NRCAC,C=CN
-
-*/
-
-int x509_distribution_points_add_url(uint8_t *d, size_t *dlen, size_t maxlen, const char *url)
-{
-	return 0;
-}
-
-int x509_distribution_points_add_distribution_point(uint8_t *d, size_t *dlen, size_t maxlen,
-	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
-	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len)
-{
 	error_print();
 	return -1;
 }
@@ -1989,6 +2071,306 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 		break;
 	}
 
+	return 1;
+}
+
+// AuthorityInfoAccess Extension
+
+static uint32_t oid_ad_ocsp[] =  { oid_ad,1 };
+static uint32_t oid_ad_ca_issuers[] = { oid_ad,2 };
+
+#define cnt(oid)	(sizeof(oid)/sizeof((oid)[0]))
+
+static const ASN1_OID_INFO access_methods[] = {
+	{ OID_ad_ocsp, "OCSP", oid_ad_ocsp, oid_cnt(oid_ad_ocsp) },
+	{ OID_ad_ca_issuers, "CAIssuers", oid_ad_ca_issuers, oid_cnt(oid_ad_ca_issuers) },
+};
+
+const char *x509_access_method_name(int oid)
+{
+	const ASN1_OID_INFO *info;
+	if (!(info = asn1_oid_info_from_oid(access_methods, cnt(access_methods), oid))) {
+		error_print();
+		return NULL;
+	}
+	return info->name;
+}
+
+int x509_access_method_from_name(const char *name)
+{
+	const ASN1_OID_INFO *info;
+	if (!(info = asn1_oid_info_from_name(access_methods, cnt(access_methods), name))) {
+		error_print();
+		return OID_undef;
+	}
+	return info->oid;
+}
+
+int x509_access_method_to_der(int oid, uint8_t **out, size_t *outlen)
+{
+	const ASN1_OID_INFO *info;
+	if (!(info = asn1_oid_info_from_oid(access_methods, cnt(access_methods), oid))) {
+		error_print();
+		return -1;
+	}
+	if (asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_access_method_from_der(int *oid, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const ASN1_OID_INFO *info;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+
+	if ((ret = asn1_oid_info_from_der_ex(&info, nodes, &nodes_cnt, access_methods, cnt(access_methods), in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		else *oid = -1;
+		return ret;
+	}
+	*oid = info->oid;
+	return 1;
+}
+
+// currently AccessDescription not support values of SubjectInfoAccess extension
+int x509_access_description_to_der(int oid, const char *uri, size_t urilen, uint8_t **out, size_t *outlen)
+{
+	const int uri_choice = X509_gn_uniform_resource_identifier;
+	size_t len = 0;
+
+	if (oid != OID_ad_ocsp && oid != OID_ad_ca_issuers) {
+		error_print();
+		return -1;
+	}
+	if (!uri || !urilen) {
+		error_print();
+		return -1;
+	}
+	if (x509_access_method_to_der(oid, NULL, &len) != 1
+		|| x509_general_name_to_der(uri_choice, (const uint8_t *)uri, urilen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_access_method_to_der(oid, out, outlen) != 1
+		|| x509_general_name_to_der(uri_choice, (const uint8_t *)uri, urilen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_access_description_from_der(int *oid, const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	int uri_choice;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		else {
+			*oid = -1;
+			*uri = NULL;
+			*urilen = 0;
+		}
+		return ret;
+	}
+	if (x509_access_method_from_der(oid, &d, &dlen) != 1
+		|| x509_general_name_from_der(&uri_choice, (const uint8_t **)uri, urilen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (uri_choice != X509_gn_uniform_resource_identifier) {
+		error_print();
+		return -1;
+	}
+	if (*uri == NULL || *urilen == 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_access_description_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	int oid;
+	int choice;
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (x509_access_method_from_der(&oid, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "accessMethod: %s\n", x509_access_method_name(oid));
+
+	if (x509_general_name_from_der(&choice, &p, &len, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_general_name_print(fp, fmt, ind, "GeneralName", choice, p, len);
+
+	if (dlen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_authority_info_access_to_der(
+	const char *crt_uri, size_t crt_urilen,
+	const char *ocsp_uri, size_t ocsp_urilen,
+	uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+
+	if (crt_uri && crt_urilen) {
+		if (x509_access_description_to_der(OID_ad_ca_issuers, crt_uri, crt_urilen, NULL, &len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (ocsp_uri && ocsp_urilen) {
+		if (x509_access_description_to_der(OID_ad_ocsp, ocsp_uri, ocsp_urilen, NULL, &len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (!len) {
+		error_print();
+		return -1;
+	}
+	if (asn1_sequence_header_to_der(len, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (crt_uri && crt_urilen) {
+		if (x509_access_description_to_der(OID_ad_ca_issuers, crt_uri, crt_urilen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (ocsp_uri && ocsp_urilen) {
+		if (x509_access_description_to_der(OID_ad_ocsp, ocsp_uri, ocsp_urilen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int x509_authority_info_access_from_der(
+	const char **crt_uri, size_t *crt_urilen,
+	const char **ocsp_uri, size_t *ocsp_urilen,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *ad;
+	size_t adlen;
+
+	if (!crt_uri || !crt_urilen  || !ocsp_uri || !ocsp_urilen || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+
+	*crt_uri = NULL;
+	*crt_urilen = 0;
+	*ocsp_uri = NULL;
+	*ocsp_urilen = 0;
+
+	if ((ret = asn1_sequence_of_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+
+	while (dlen) {
+		int oid;
+		const char *uri;
+		size_t urilen;
+
+		if (x509_access_description_from_der(&oid, &uri, &urilen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		switch (oid) {
+		case OID_ad_ca_issuers:
+			if (*crt_uri) {
+				error_print();
+				return -1;
+			}
+			*crt_uri = uri;
+			*crt_urilen = urilen;
+			break;
+		case OID_ad_ocsp:
+			if (*ocsp_uri) {
+				error_print();
+				return -1;
+			}
+			*ocsp_uri = uri;
+			*ocsp_urilen = urilen;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int x509_authority_info_access_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_access_description_print(fp, fmt, ind, "AccessDescription", p, len);
+	}
+	return 1;
+}
+
+int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
+	const char *crt_uri, size_t crt_urilen, const char *ocsp_uri, size_t ocsp_urilen)
+{
+	int oid = OID_pe_authority_info_access;
+	size_t curlen = *extslen;
+	uint8_t val[256];
+	uint8_t *p = val;
+	size_t vlen = 0;
+	size_t len = 0;
+
+	// Conforming CAs MUST mark this extension as non-critical.
+	if (critical == 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_authority_info_access_to_der(crt_uri, crt_urilen, ocsp_uri, ocsp_urilen, NULL, &len) != 1
+		|| asn1_length_le(len, sizeof(val)) != 1
+		|| x509_authority_info_access_to_der(crt_uri, crt_urilen, ocsp_uri, ocsp_urilen, &p, &vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	exts += *extslen;
+	if (x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+		|| asn1_length_le(curlen, maxlen) != 1
+		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 

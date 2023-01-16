@@ -826,6 +826,7 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	case OID_ce_freshest_crl: return x509_freshest_crl_print(fp, fmt, ind, name, p, len);
 	case OID_netscape_cert_type: return x509_netscape_cert_type_print(fp, fmt, ind, name, ival);
 	case OID_netscape_cert_comment: return format_string(fp, fmt, ind, name, p, len);
+	case OID_pe_authority_info_access: return x509_authority_info_access_print(fp, fmt, ind, name, p, len);
 	default: format_bytes(fp, fmt, ind, "extnValue", p, len);
 	}
 	return 1;

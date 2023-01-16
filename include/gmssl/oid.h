@@ -85,8 +85,10 @@ enum {
 	OID_ce_freshest_crl,
 	OID_netscape_cert_type,
 	OID_netscape_cert_comment,
-	OID_cert_authority_info_access,
 	OID_ct_precertificate_scts,
+
+	OID_ad_ca_issuers,
+	OID_ad_ocsp,
 
 	// CRL Extensions
 	//OID_ce_authority_key_identifier,

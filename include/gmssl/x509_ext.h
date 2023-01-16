@@ -67,6 +67,9 @@ int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, i
 int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int skip_certs);
 int x509_exts_add_freshest_crl(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
+int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
+	const char *crt_uri, size_t crt_urilen, // crt_uri is the URI (http://examaple.com/subCA.crt) of DER-encoded CA cert
+	const char *ocsp_uri, size_t ocsp_urilen);
 
 int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int oid, int critical, const uint8_t *d, size_t dlen);
@@ -466,6 +469,10 @@ DistributionPointName ::= CHOICE {
 	fullName		[0] IMPLICIT GeneralNames, -- SEQUENCE OF
 	nameRelativeToCRLIssuer	[1] IMPLICIT RelativeDistinguishedName } -- SET OF
 */
+int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_uri_as_explicit_distribution_point_name_to_der(int index, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+
 int x509_distribution_point_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label,const uint8_t *a, size_t alen);
@@ -480,6 +487,10 @@ DistributionPoint ::= SEQUENCE {
 	reasons			[1] IMPLICIT ReasonFlags OPTIONAL,
 	cRLIssuer		[2] IMPLICIT GeneralNames OPTIONAL }
 */
+int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_distribution_points_to_der(const char *http_uri, size_t http_urilen,
+	const char *ldap_uri, size_t ldap_urilen, uint8_t **out, size_t *outlen);
+
 int x509_distribution_point_to_der(
 	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
@@ -497,8 +508,7 @@ int x509_distribution_points_add_distribution_point(uint8_t *d, size_t *dlen, si
 	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len);
 int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-#define x509_distribution_points_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
-#define x509_distribution_points_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
+
 
 /*
 CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
@@ -543,6 +553,37 @@ int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label,
 
 int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 	int *path_len_constraints);
+
+/*
+AuthorityInfoAccessSyntax ::= SEQUENCE OF AccessDescription
+
+AccessDescription ::= SEQUENCE {
+	accessMethod	OBJECT IDENTIFIER,
+	accessLocation	GeneralName }
+
+accessMethods:
+	OID_ad_ca_issuers
+	OID_ad_ocsp
+*/
+const char *x509_access_method_name(int oid);
+int x509_access_method_from_name(const char *name);
+int x509_access_method_to_der(int oid, uint8_t **out, size_t *outlen);
+int x509_access_method_from_der(int *oid, const uint8_t **in, size_t *inlen);
+
+int x509_access_description_to_der(int oid, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_access_description_from_der(int *oid, const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
+int x509_access_description_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+int x509_authority_info_access_to_der(
+	const char *crt_uri, size_t crt_urilen,
+	const char *ocsp_uri, size_t ocsp_urilen,
+	uint8_t **out, size_t *outlen);
+int x509_authority_info_access_from_der(
+	const char **crt_uri, size_t *crt_urilen,
+	const char **ocsp_uri, size_t *ocsp_urilen,
+	const uint8_t **in, size_t *inlen);
+int x509_authority_info_access_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
 
 #ifdef __cplusplus
 }
