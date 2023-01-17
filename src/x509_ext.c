@@ -285,17 +285,36 @@ int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen,
 }
 
 int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen,
-	int critical, const uint8_t *d, size_t dlen)
+	int critical, const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen)
 {
 	int oid = OID_ce_crl_distribution_points;
+	size_t curlen = *extslen;
+	uint8_t val[256];
+	uint8_t *p = val;
+	size_t vlen = 0;
+	size_t len = 0;
 
 	// The extension SHOULD be non-critical, but this profile
 	// RECOMMENDS support for this extension by CAs and applications.
 	if (critical) {
 		error_print();
+		//return -1;
+	}
+
+	if (x509_distribution_points_to_der(http_uri, http_urilen, ldap_uri, ldap_urilen, NULL, &len) != 1
+		|| asn1_length_le(len, sizeof(val)) != 1
+		|| x509_distribution_points_to_der(http_uri, http_urilen, ldap_uri, ldap_urilen, &p, &vlen) != 1) {
+		error_print();
 		return -1;
 	}
-	return x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen);
+	exts += *extslen;
+	if (x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+		|| asn1_length_le(curlen, maxlen) != 1
+		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxlen,
@@ -447,20 +466,22 @@ err:
 
 int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
+	int ret;
+
 	switch (choice) {
 	case X509_gn_rfc822_name:
 	case X509_gn_dns_name:
 	case X509_gn_uniform_resource_identifier:
 	case X509_gn_ip_address:
-		if (asn1_implicit_to_der(choice, d, dlen, out, outlen) != 1) {
-			error_print();
-			return -1;
+		if ((ret = asn1_implicit_to_der(choice, d, dlen, out, outlen)) != 1) {
+			if (ret < 0) error_print();
+			return ret;
 		}
+		break;
 	default:
 		error_print();
 		return -1;
 	}
-
 	return 1;
 }
 
@@ -1783,6 +1804,10 @@ int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen,
 {
 	int choice = X509_gn_uniform_resource_identifier;
 	size_t len = 0;
+
+	if (!uri || !urilen) {
+		return 0;
+	}
 	if (x509_general_name_to_der(choice, (uint8_t *)uri, urilen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der_ex(tag, len, out, outlen) != 1
 		|| x509_general_name_to_der(choice, (uint8_t *)uri, urilen, out, outlen) != 1) {
@@ -1795,7 +1820,8 @@ int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen,
 int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen,
 	uint8_t **out, size_t *outlen)
 {
-	if (x509_uri_as_general_names_to_der_ex(ASN1_TAG_EXPLICIT(0), uri, urilen, out, outlen) != 1) {
+	int ret;
+	if ((ret = x509_uri_as_general_names_to_der_ex(ASN1_TAG_EXPLICIT(0), uri, urilen, out, outlen)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1806,6 +1832,10 @@ int x509_uri_as_explicit_distribution_point_name_to_der(int index,
 	const char *uri, size_t urilen, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (!uri || !urilen) {
+		return 0;
+	}
 	if (x509_uri_as_distribution_point_name_to_der(uri, urilen, NULL, &len) != 1
 		|| asn1_explicit_header_to_der(index, len, out, outlen) != 1
 		|| x509_uri_as_distribution_point_name_to_der(uri, urilen, out, outlen) != 1) {
@@ -1818,6 +1848,10 @@ int x509_uri_as_explicit_distribution_point_name_to_der(int index,
 int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (!uri || !urilen) {
+		return 0;
+	}
 	if (x509_uri_as_explicit_distribution_point_name_to_der(0, uri, urilen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| x509_uri_as_explicit_distribution_point_name_to_der(0, uri, urilen, out, outlen) != 1) {
@@ -1831,6 +1865,10 @@ int x509_distribution_points_to_der(const char *http_uri, size_t http_urilen,
 	const char *ldap_uri, size_t ldap_urilen, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if ((!http_uri || !http_urilen) && (!ldap_uri || !ldap_urilen)) {
+		return 0;
+	}
 	if (x509_uri_as_distribution_point_to_der(http_uri, http_urilen, NULL, &len) < 0
 		|| x509_uri_as_distribution_point_to_der(ldap_uri, ldap_urilen, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -1884,6 +1922,7 @@ int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *l
 	return 1;
 }
 
+// 这个如何使用？如何准备完整的数据呢？
 int x509_distribution_point_to_der(
 	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
@@ -2224,14 +2263,14 @@ int x509_access_description_print(FILE *fp, int fmt, int ind, const char *label,
 }
 
 int x509_authority_info_access_to_der(
-	const char *crt_uri, size_t crt_urilen,
+	const char *ca_issuers_uri, size_t ca_issuers_urilen,
 	const char *ocsp_uri, size_t ocsp_urilen,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
 
-	if (crt_uri && crt_urilen) {
-		if (x509_access_description_to_der(OID_ad_ca_issuers, crt_uri, crt_urilen, NULL, &len) != 1) {
+	if (ca_issuers_uri && ca_issuers_urilen) {
+		if (x509_access_description_to_der(OID_ad_ca_issuers, ca_issuers_uri, ca_issuers_urilen, NULL, &len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2250,8 +2289,8 @@ int x509_authority_info_access_to_der(
 		error_print();
 		return -1;
 	}
-	if (crt_uri && crt_urilen) {
-		if (x509_access_description_to_der(OID_ad_ca_issuers, crt_uri, crt_urilen, out, outlen) != 1) {
+	if (ca_issuers_uri && ca_issuers_urilen) {
+		if (x509_access_description_to_der(OID_ad_ca_issuers, ca_issuers_uri, ca_issuers_urilen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2266,7 +2305,7 @@ int x509_authority_info_access_to_der(
 }
 
 int x509_authority_info_access_from_der(
-	const char **crt_uri, size_t *crt_urilen,
+	const char **ca_issuers_uri, size_t *ca_issuers_urilen,
 	const char **ocsp_uri, size_t *ocsp_urilen,
 	const uint8_t **in, size_t *inlen)
 {
@@ -2276,13 +2315,13 @@ int x509_authority_info_access_from_der(
 	const uint8_t *ad;
 	size_t adlen;
 
-	if (!crt_uri || !crt_urilen  || !ocsp_uri || !ocsp_urilen || !in || !(*in) || !inlen) {
+	if (!ca_issuers_uri || !ca_issuers_urilen  || !ocsp_uri || !ocsp_urilen || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
 	}
 
-	*crt_uri = NULL;
-	*crt_urilen = 0;
+	*ca_issuers_uri = NULL;
+	*ca_issuers_urilen = 0;
 	*ocsp_uri = NULL;
 	*ocsp_urilen = 0;
 
@@ -2302,12 +2341,12 @@ int x509_authority_info_access_from_der(
 		}
 		switch (oid) {
 		case OID_ad_ca_issuers:
-			if (*crt_uri) {
+			if (*ca_issuers_uri) {
 				error_print();
 				return -1;
 			}
-			*crt_uri = uri;
-			*crt_urilen = urilen;
+			*ca_issuers_uri = uri;
+			*ca_issuers_urilen = urilen;
 			break;
 		case OID_ad_ocsp:
 			if (*ocsp_uri) {
@@ -2344,7 +2383,7 @@ int x509_authority_info_access_print(FILE *fp, int fmt, int ind, const char *lab
 }
 
 int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
-	const char *crt_uri, size_t crt_urilen, const char *ocsp_uri, size_t ocsp_urilen)
+	const char *ca_issuers_uri, size_t ca_issuers_urilen, const char *ocsp_uri, size_t ocsp_urilen)
 {
 	int oid = OID_pe_authority_info_access;
 	size_t curlen = *extslen;
@@ -2358,9 +2397,9 @@ int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t m
 		error_print();
 		return -1;
 	}
-	if (x509_authority_info_access_to_der(crt_uri, crt_urilen, ocsp_uri, ocsp_urilen, NULL, &len) != 1
+	if (x509_authority_info_access_to_der(ca_issuers_uri, ca_issuers_urilen, ocsp_uri, ocsp_urilen, NULL, &len) != 1
 		|| asn1_length_le(len, sizeof(val)) != 1
-		|| x509_authority_info_access_to_der(crt_uri, crt_urilen, ocsp_uri, ocsp_urilen, &p, &vlen) != 1) {
+		|| x509_authority_info_access_to_der(ca_issuers_uri, ca_issuers_urilen, ocsp_uri, ocsp_urilen, &p, &vlen) != 1) {
 		error_print();
 		return -1;
 	}

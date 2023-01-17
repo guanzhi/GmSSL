@@ -64,11 +64,12 @@ int x509_exts_add_policy_constraints(uint8_t *exts, size_t *extslen, size_t maxl
 	int require_explicit_policy, int inhibit_policy_mapping);
 int x509_exts_add_basic_constraints(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int ca, int path_len_constraint);
 int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const int *key_purposes, size_t key_purposes_cnt);
-int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
+int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
+	const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen);
 int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int skip_certs);
 int x509_exts_add_freshest_crl(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
-	const char *crt_uri, size_t crt_urilen, // crt_uri is the URI (http://examaple.com/subCA.crt) of DER-encoded CA cert
+	const char *ca_issuers_uri, size_t ca_issuers_urilen, // ca_issuers_uri is the URI (http://examaple.com/subCA.crt) of DER-encoded CA cert
 	const char *ocsp_uri, size_t ocsp_urilen);
 
 int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
@@ -575,11 +576,11 @@ int x509_access_description_from_der(int *oid, const char **uri, size_t *urilen,
 int x509_access_description_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 int x509_authority_info_access_to_der(
-	const char *crt_uri, size_t crt_urilen,
+	const char *ca_issuers_uri, size_t ca_issuers_urilen,
 	const char *ocsp_uri, size_t ocsp_urilen,
 	uint8_t **out, size_t *outlen);
 int x509_authority_info_access_from_der(
-	const char **crt_uri, size_t *crt_urilen,
+	const char **ca_issuers_uri, size_t *ca_issuers_urilen,
 	const char **ocsp_uri, size_t *ocsp_urilen,
 	const uint8_t **in, size_t *inlen);
 int x509_authority_info_access_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);

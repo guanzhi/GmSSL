@@ -23,7 +23,9 @@
 static const char *options =
 	"[-C str] [-ST str] [-L str] [-O str] [-OU str] -CN str -days num "
 	"-key file [-pass pass] "
-	"[-key_usage str]* [-ocsp uri] [-crl uri] [-out file]";
+	"-crl_uri uri"
+	"-ca_issuers_uri uri -ocsp_uri uri"
+	"[-key_usage str]* [-ocsp uri] [-out file]";
 
 
 static int ext_key_usage_set(int *usages, const char *usage_name)
@@ -50,7 +52,9 @@ int certgen_main(int argc, char **argv)
 	int days = 0;
 	int key_usage = 0;
 	char *ocsp = NULL;
-	char *crl = NULL;
+	char *crl_uri = NULL;
+	char *ca_issuers_uri = NULL;
+	char *ocsp_uri = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
 	char *outfile = NULL;
@@ -114,12 +118,15 @@ int certgen_main(int argc, char **argv)
 				fprintf(stderr, "%s: invalid -key_usage value '%s'\n", prog, usage);
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-ocsp")) {
+		} else if (!strcmp(*argv, "-crl_uri")) {
 			if (--argc < 1) goto bad;
-			ocsp = *(++argv);
-		} else if (!strcmp(*argv, "-crl")) {
+			crl_uri = *(++argv);
+		} else if (!strcmp(*argv, "-ca_issuers_uri")) {
 			if (--argc < 1) goto bad;
-			crl = *(++argv);
+			ca_issuers_uri = *(++argv);
+		} else if (!strcmp(*argv, "-ocsp_uri")) {
+			if (--argc < 1) goto bad;
+			ocsp_uri = *(++argv);
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
@@ -181,9 +188,16 @@ bad:
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}
-	if (ocsp) {
+	if (crl_uri) {
+		if (x509_exts_add_crl_distribution_points(exts, &extslen, sizeof(exts), 0,
+			crl_uri, strlen(crl_uri), NULL, 0) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (ca_issuers_uri || ocsp_uri) {
 		if (x509_exts_add_authority_info_access(exts, &extslen, sizeof(exts), 0,
-			ocsp, strlen(ocsp), crl, strlen(crl)) != 1) {
+			ca_issuers_uri, strlen(ca_issuers_uri), ocsp_uri, strlen(ocsp_uri)) != 1) {
 			fprintf(stderr, "%s: error\n",  prog);
 			goto end;
 		}

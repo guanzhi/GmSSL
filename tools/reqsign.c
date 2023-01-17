@@ -20,7 +20,8 @@
 
 
 static const char *options = "[-in pem] -days num -cacert pem -key pem [-pass str] [-out pem] "
-	"-key_usage oid -path_len_constraint num  -crl_url url\n";
+	"-key_usage oid -path_len_constraint num  -crl_uri uri "
+	"-ca_issuers_uri uri -ocsp_uri uri\n";
 
 static int ext_key_usage_set(int *usages, const char *usage_name)
 {
@@ -38,6 +39,9 @@ int reqsign_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *infile = NULL;
 	int days = 0;
+	char *crl_uri = NULL;
+	char *ca_issuers_uri = NULL;
+	char *ocsp_uri = NULL;
 	char *cacertfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
@@ -110,9 +114,15 @@ int reqsign_main(int argc, char **argv)
 				fprintf(stderr, "%s: invalid value for '-path_len_constraint'\n", prog);
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-crl_url")) {
+		} else if (!strcmp(*argv, "-crl_uri")) {
 			if (--argc < 1) goto bad;
-			//crl_url = *(++argv);
+			crl_uri = *(++argv);
+		} else if (!strcmp(*argv, "-ca_issuers_uri")) {
+			if (--argc < 1) goto bad;
+			ca_issuers_uri = *(++argv);
+		} else if (!strcmp(*argv, "-ocsp_uri")) {
+			if (--argc < 1) goto bad;
+			ocsp_uri = *(++argv);
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -211,6 +221,20 @@ bad:
 	if (x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sm2_key) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
+	}
+	if (crl_uri) {
+		if (x509_exts_add_crl_distribution_points(exts, &extslen, sizeof(exts), 0,
+			crl_uri, strlen(crl_uri), NULL, 0) != 1) {
+			fprintf(stderr, "%s: process -crl_uri error\n",  prog);
+			return -1;
+		}
+	}
+	if (ca_issuers_uri || ocsp_uri) {
+		if (x509_exts_add_authority_info_access(exts, &extslen, sizeof(exts), 0,
+			ca_issuers_uri, strlen(ca_issuers_uri), ocsp_uri, strlen(ocsp_uri)) != 1) {
+			fprintf(stderr, "%s: process -ca_issuers_uri -ocsp_uri error\n",  prog);
+			goto end;
+		}
 	}
 
 	if (x509_validity_add_days(&not_after, not_before, days) != 1
