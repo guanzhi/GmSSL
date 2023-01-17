@@ -73,6 +73,7 @@ set(src
 	src/tls12.c
 	src/tls13.c
 	src/file.c
+	src/http.c
 )
 
 set(tools
@@ -154,6 +155,7 @@ set(tests
 	cms
 	tls
 	tls13
+	http
 )
 
 
