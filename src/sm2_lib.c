@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -376,6 +376,23 @@ int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
 	if ((ret = sm2_sign(&ctx->key, dgst, sig, siglen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
+{
+	int ret;
+	uint8_t dgst[SM3_DIGEST_SIZE];
+
+	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	sm3_finish(&ctx->sm3_ctx, dgst);
+	if ((ret = sm2_sign_fixlen(&ctx->key, dgst, siglen, sig)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}

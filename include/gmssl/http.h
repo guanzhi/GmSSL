@@ -19,8 +19,8 @@ extern "C" {
 
 
 int http_parse_uri(const char *uri, char host[128], int *port, char path[256]);
-int http_parse_response(uint8_t *buf, size_t buflen, uint8_t **content, size_t *contentlen, size_t *left);
-int http_get(const char *uri, uint8_t *buf, size_t buflen, uint8_t **content, size_t *contentlen);
+int http_parse_response(char *buf, size_t buflen, uint8_t **content, size_t *contentlen, size_t *left);
+int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen);
 
 
 #ifdef __cplusplus

@@ -260,6 +260,7 @@ int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, co
 
 #define ASN1_UTC_TIME_STRLEN		(sizeof("YYMMDDHHMMSSZ")-1)
 #define ASN1_GENERALIZED_TIME_STRLEN	(sizeof("YYYYMMDDHHMMSSZ")-1)
+#define ASN1_GENERALIZED_TIME_MAX_SIZE	(2 + ASN1_GENERALIZED_TIME_STRLEN)
 
 int asn1_time_to_str(int utc_time, time_t timestamp, char *str);
 int asn1_time_from_str(int utc_time, time_t *timestamp, const char *str);

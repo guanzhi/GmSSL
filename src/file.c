@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -33,3 +33,31 @@ int file_size(FILE *fp, size_t *size)
 	*size = st.st_size;
 	return 1;
 }
+
+int file_read_all(const char *file, uint8_t **out, size_t *outlen)
+{
+	int ret = -1;
+	FILE *fp = NULL;
+	size_t fsize;
+	uint8_t *buf = NULL;
+
+	if (!(fp = fopen(file, "r"))
+		|| file_size(fp, &fsize) != 1
+		|| (buf = malloc(fsize)) == NULL) {
+		error_print();
+		goto end;
+	}
+	if (fread(buf, 1, fsize, fp) != fsize) {
+		error_print();
+		goto end;
+	}
+	*out = buf;
+	*outlen = fsize;
+	buf = NULL;
+	ret = 1;
+end:
+	if (fp) fclose(fp);
+	if (buf) free(buf);
+	return ret;
+}
+

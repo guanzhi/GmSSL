@@ -99,9 +99,11 @@ set(tools
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c
+	tools/certrevoke.c
 	tools/reqgen.c
 	tools/reqparse.c
 	tools/reqsign.c
+	tools/crlgen.c
 	tools/crlparse.c
 	tools/crlverify.c
 	tools/cmssign.c

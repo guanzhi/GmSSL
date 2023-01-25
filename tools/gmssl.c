@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ extern int rand_main(int argc, char **argv);
 extern int certgen_main(int argc, char **argv);
 extern int certparse_main(int argc, char **argv);
 extern int certverify_main(int argc, char **argv);
+extern int certrevoke_main(int argc, char **argv);
+extern int crlgen_main(int argc, char **argv);
 extern int crlparse_main(int argc, char **argv);
 extern int crlverify_main(int argc, char **argv);
 extern int pbkdf2_main(int argc, char **argv);
@@ -80,11 +82,13 @@ static const char *options =
 	"  reqgen          Generate certificate signing request (CSR)\n"
 	"  reqsign         Generate certificate from CSR\n"
 	"  reqparse        Parse and print a CSR\n"
+	"  crlgen          Sign a CRL with CA certificate and private key\n"
 	"  crlparse        Verify a CRL with certificate\n"
 	"  crlverify       Parse and print CRL\n"
 	"  certgen         Generate a self-signed certificate\n"
 	"  certparse       Parse and print certificates\n"
 	"  certverify      Verify certificate chain\n"
+	"  certrevoke      Revoke certificate and output RevokedCertificate in DER\n"
 	"  cmsparse        Parse cryptographic message syntax (CMS)\n"
 	"  cmsencrypt      Generate CMS EnvelopedData\n"
 	"  cmsdecrypt      Decrypt CMS EnvelopedData\n"
@@ -128,6 +132,10 @@ int main(int argc, char **argv)
 			return certparse_main(argc, argv);
 		} else if (!strcmp(*argv, "certverify")) {
 			return certverify_main(argc, argv);
+		} else if (!strcmp(*argv, "certrevoke")) {
+			return certrevoke_main(argc, argv);
+		} else if (!strcmp(*argv, "crlgen")) {
+			return crlgen_main(argc, argv);
 		} else if (!strcmp(*argv, "crlparse")) {
 			return crlparse_main(argc, argv);
 		} else if (!strcmp(*argv, "crlverify")) {

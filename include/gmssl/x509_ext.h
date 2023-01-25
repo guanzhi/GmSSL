@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -23,6 +23,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+enum {
+	X509_non_critical = 0,
+	X509_critical = 1,
+};
 
 /*
 Extensions:
@@ -64,6 +70,8 @@ int x509_exts_add_policy_constraints(uint8_t *exts, size_t *extslen, size_t maxl
 	int require_explicit_policy, int inhibit_policy_mapping);
 int x509_exts_add_basic_constraints(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int ca, int path_len_constraint);
 int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const int *key_purposes, size_t key_purposes_cnt);
+int x509_exts_add_crl_distribution_points_ex(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int oid,
+	const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen);
 int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
 	const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen);
 int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int skip_certs);
@@ -471,6 +479,7 @@ DistributionPointName ::= CHOICE {
 	nameRelativeToCRLIssuer	[1] IMPLICIT RelativeDistinguishedName } -- SET OF
 */
 int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+#define x509_uri_as_general_names_to_der(uri,urilen,out,outlen) x509_uri_as_general_names_to_der_ex(ASN1_TAG_SEQUENCE,uri,urilen,out,outlen)
 int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
 int x509_uri_as_explicit_distribution_point_name_to_der(int index, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
 

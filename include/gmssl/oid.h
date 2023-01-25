@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -205,8 +205,7 @@ enum {
 
 
 
-#define oid_cnt(nodes)	(sizeof(nodes)/sizeof(int))
-
+#define oid_cnt(nodes)	(sizeof(nodes)/sizeof((nodes)[0]))
 
 
 

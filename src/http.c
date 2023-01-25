@@ -1,5 +1,4 @@
-﻿
-/*
+﻿/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -65,7 +64,7 @@ static int socket_recv_all(int sock, uint8_t *buf, size_t len)
 	return 1;
 }
 
-int http_parse_response(uint8_t *buf, size_t buflen, uint8_t **content, size_t *contentlen, size_t *left)
+int http_parse_response(char *buf, size_t buflen, uint8_t **content, size_t *contentlen, size_t *left)
 {
 	char *ok = "HTTP/1.1 200 OK\r\n";
 	char *p;
@@ -75,14 +74,14 @@ int http_parse_response(uint8_t *buf, size_t buflen, uint8_t **content, size_t *
 		error_print();
 		return -1;
 	}
-	if (!(p = strnstr((char *)buf, "\r\n\r\n", buflen))) {
+	if (!(p = strnstr(buf, "\r\n\r\n", buflen))) {
 		error_print();
 		return -1;
 	}
 	*content = (uint8_t *)(p + 4);
-	headerlen = *content - buf;
+	headerlen = *content - (uint8_t *)buf;
 
-	if (!(p = strnstr((char *)buf, "\r\nContent-Length: ", headerlen))) {
+	if (!(p = strnstr(buf, "\r\nContent-Length: ", headerlen))) {
 		error_print();
 		return -1;
 	}
@@ -104,10 +103,9 @@ int http_parse_response(uint8_t *buf, size_t buflen, uint8_t **content, size_t *
 
 #define HTTP_GET_TEMPLATE "GET %s HTTP/1.1\r\n" "Host: %s\r\n" "\r\n\r\n"
 
-int http_get(const char *uri, uint8_t *buf, size_t buflen,
-	uint8_t **content, size_t *contentlen)
+int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 {
-	char *uribuf = NULL;
+	int ret = -1;
 	char host[128];
 	int port;
 	char path[256];
@@ -116,16 +114,22 @@ int http_get(const char *uri, uint8_t *buf, size_t buflen,
 	tls_socket_t sock;
 	char get[sizeof(HTTP_GET_TEMPLATE) + sizeof(host) + sizeof(path)];
 	int getlen;
+	char response[512];
+	uint8_t *p;
 	size_t len;
 	size_t left;
 
-	// parse uri
+	// parse uri and compose request
 	if (http_parse_uri(uri, host, &port, path) != 1) {
 		error_print();
 		return -1;
 	}
+	if ((getlen = snprintf(get, sizeof(get), HTTP_GET_TEMPLATE, path, host)) <= 0) {
+		error_print();
+		return -1;
+	}
 
-	// connect
+	// connect and send request
 	if (!(hp = gethostbyname(host))) {
 		error_print();
 		return -1;
@@ -140,42 +144,36 @@ int http_get(const char *uri, uint8_t *buf, size_t buflen,
 	}
 	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
 		error_print();
-		return -1;
-	}
-
-	// request
-	if ((getlen = snprintf(get, sizeof(get),
-		"GET %s HTTP/1.1\r\n"
-		"Host: %s\r\n"
-		"\r\n\r\n", path, host)) <= 0) {
-		error_print();
-		return -1;
+		goto end;
 	}
 	if (send(sock, get, strlen(get), 0) != getlen) {
 		error_print();
-		return -1;
+		goto end;
+	}
+	if ((len = recv(sock, response, sizeof(response), 0)) <= 0) {
+		error_print();
+		goto end;
 	}
 
-	// response
-	if ((len = recv(sock, buf, buflen, 0)) <= 0) {
+	// process response header and retrieve left
+	if (http_parse_response(response, len, &p, contentlen, &left) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
-	if (http_parse_response(buf, len, content, contentlen, &left) != 1) {
-		error_print();
-		return -1;
+	if (!buf || buflen < *contentlen) {
+		ret = 0;
+		goto end;
 	}
+	memcpy(buf, p, *contentlen - left);
 	if (left) {
-		if (len + left > buflen) {
-			error_print(); // buf is not enough
-			return -1;
-		}
-		if (socket_recv_all(sock, buf + len, left) != 1) {
+		if (socket_recv_all(sock, buf + *contentlen - left, left) != 1) {
 			error_print();
-			return -1;
+			goto end;
 		}
 	}
+	ret = 1;
 
-	return 1;
+end:
+	close(sock);
+	return ret;
 }
-

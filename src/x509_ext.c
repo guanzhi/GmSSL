@@ -284,22 +284,14 @@ int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen,
 	return 1;
 }
 
-int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen,
-	int critical, const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen)
+int x509_exts_add_crl_distribution_points_ex(uint8_t *exts, size_t *extslen, size_t maxlen,
+	int oid, int critical, const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen)
 {
-	int oid = OID_ce_crl_distribution_points;
 	size_t curlen = *extslen;
 	uint8_t val[256];
 	uint8_t *p = val;
 	size_t vlen = 0;
 	size_t len = 0;
-
-	// The extension SHOULD be non-critical, but this profile
-	// RECOMMENDS support for this extension by CAs and applications.
-	if (critical) {
-		error_print();
-		//return -1;
-	}
 
 	if (x509_distribution_points_to_der(http_uri, http_urilen, ldap_uri, ldap_urilen, NULL, &len) != 1
 		|| asn1_length_le(len, sizeof(val)) != 1
@@ -311,6 +303,18 @@ int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t
 	if (x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen,
+	int critical, const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen)
+{
+	int oid = OID_ce_crl_distribution_points;
+	if (x509_exts_add_crl_distribution_points_ex(exts, extslen, maxlen,
+		oid, critical, http_uri, http_urilen, ldap_uri, ldap_urilen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -701,6 +705,38 @@ int x509_authority_key_identifier_from_der(
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
+	}
+	return 1;
+}
+
+int x509_authority_key_identifier_validate(const uint8_t *a, size_t alen)
+{
+	const uint8_t *keyid;
+	size_t keyid_len;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *serial;
+	size_t serial_len;
+
+	if (x509_authority_key_identifier_from_der(
+			&keyid, &keyid_len,
+			&issuer, &issuer_len,
+			&serial, &serial_len, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!keyid && !issuer && !serial) {
+		error_print();
+		return -1;
+	}
+	if (issuer) {
+		/*
+		if (asn1_general_names_validate(issuer, issuer_len) != 1) {
+			error_print();
+			return -1;
+		}
+		*/
 	}
 	return 1;
 }
@@ -1118,6 +1154,12 @@ int x509_certificate_policies_add_policy_information(uint8_t *d, size_t *dlen, s
 	return -1;
 }
 
+int x509_certificate_polices_validate(const uint8_t *d, size_t dlen)
+{
+	error_print();
+	return -1;
+}
+
 int x509_certificate_policies_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;
@@ -1198,6 +1240,16 @@ int x509_policy_mapping_print(FILE *fp, int fmt, int ind, const char *label, con
 	return 1;
 err:
 	error_print();
+	return -1;
+}
+
+int x509_policy_mapping_validate(const uint8_t *a, size_t alen)
+{
+	return -1;
+}
+
+int x509_policy_mappings_validate(const uint8_t *d, size_t dlen)
+{
 	return -1;
 }
 
@@ -1343,6 +1395,8 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 	return 1;
 }
 
+
+// 这个函数原型可能要改一下
 int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type)
 {
 	/*
@@ -1598,6 +1652,12 @@ int x509_policy_constraints_from_der(
 	return 1;
 }
 
+int x509_policy_constraints_validate(const uint8_t *a, size_t alen)
+{
+	return -1;
+
+}
+
 int x509_policy_constraints_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	int ret, val;
@@ -1670,6 +1730,7 @@ int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, con
 	return 1;
 }
 
+// 这个函数原型可能也要改一下
 int x509_ext_key_usage_validate(const int *oids, size_t oids_cnt, int cert_type)
 {
 	int ret = -1;
@@ -1994,6 +2055,11 @@ err:
 	return -1;
 }
 
+int x509_distribution_points_validate(const uint8_t *d, size_t dlen)
+{
+	return -1;
+}
+
 int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;
@@ -2055,6 +2121,69 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 		}
 
 		switch (oid) {
+		case OID_ce_authority_key_identifier:
+			if (critical == X509_critical) {
+				error_print();
+				return -1;
+			}
+			/*
+			if (x509_authority_key_identifier(val, vlen) != 1) {
+				error_print();
+				return -1;
+			}
+			*/
+			break;
+		case OID_ce_subject_key_identifier:
+			if (critical == X509_critical) {
+				error_print();
+				return -1;
+			}
+			const uint8_t *p;
+			size_t len;
+			if (asn1_octet_string_from_der(&p, &len, &val, &vlen) != 1
+				|| asn1_length_is_zero(vlen) != 1) {
+				error_print();
+				return -1;
+			}
+			if (!p || !len) {
+				error_print();
+				return -1;
+			}
+			break;
+		case OID_ce_key_usage:
+			if (critical != X509_critical) {
+				error_print();
+				// conforming CAs SHOULD mark this extension as critical.
+			}
+			if (asn1_bits_from_der(&key_usage, &val, &vlen) != 1
+				|| x509_key_usage_validate(key_usage, cert_type) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		case OID_ce_certificate_policies:
+			break;
+		case OID_ce_policy_mappings:
+			if (critical != X509_critical) {
+				error_print();
+				return -1;
+			}
+			break;
+		case OID_ce_subject_alt_name:
+			break;
+		case OID_ce_issuer_alt_name:
+			if (critical == X509_critical) {
+				error_print();
+				return -1;
+			}
+			break;
+		case OID_ce_subject_directory_attributes:
+			if (critical == X509_critical) {
+				error_print();
+				return -1;
+			}
+			break;
+
 		case OID_ce_basic_constraints:
 			if (x509_basic_constraints_from_der(&ca, &path_len, &val, &vlen) != 1
 				|| x509_basic_constraints_validate(ca, path_len, cert_type) != 1) {
@@ -2063,13 +2192,7 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 			}
 			break;
 
-		case OID_ce_key_usage:
-			if (asn1_bits_from_der(&key_usage, &val, &vlen) != 1
-				|| x509_key_usage_validate(key_usage, cert_type) != 1) {
-				error_print();
-				return -1;
-			}
-			break;
+
 
 		case OID_ce_ext_key_usage:
 			if (x509_ext_key_usage_from_der(ext_key_usages, &ext_key_usages_cnt,
@@ -2080,20 +2203,15 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 			}
 			break;
 
-		case OID_ce_authority_key_identifier:
-		case OID_ce_subject_key_identifier:
-		case OID_ce_certificate_policies:
-		case OID_ce_policy_mappings:
-		case OID_ce_subject_alt_name:
-		case OID_ce_issuer_alt_name:
-		case OID_ce_subject_directory_attributes:
 		case OID_ce_name_constraints:
 		case OID_ce_policy_constraints:
 		case OID_ce_crl_distribution_points:
 		case OID_ce_inhibit_any_policy:
 		case OID_ce_freshest_crl:
+
+			break;
 		default:
-			if (critical) {
+			if (critical == X509_critical) {
 				error_print();
 				return -1;
 			}

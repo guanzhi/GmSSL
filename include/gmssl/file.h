@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ extern "C" {
 
 
 int file_size(FILE *fp, size_t *size);
+int file_read_all(const char *file, uint8_t **out, size_t *outlen);
 
 
 #ifdef __cplusplus

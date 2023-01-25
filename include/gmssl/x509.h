@@ -268,6 +268,18 @@ int x509_certificate_from_der(
 	int *signature_algor,
 	const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen);
+
+int x509_signed_to_der(
+	const uint8_t *tbs, size_t tbslen,
+	int signature_algor,
+	const uint8_t *sig, size_t siglen,
+	uint8_t **out, size_t *outlen);
+int x509_signed_from_der(
+	const uint8_t **tbs, size_t *tbslen,
+	int *signature_algor,
+	const uint8_t **sig, size_t *siglen,
+	const uint8_t **in, size_t *inlen);
+
 int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 // x509_cert functions

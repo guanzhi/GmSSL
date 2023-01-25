@@ -729,7 +729,7 @@ int x509_ext_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt,
 		if (ret < 0) error_print();
 		return ret;
 	}
-	*critical = 0;
+	*critical = 0; // FIXME: do not set default 							
 	if (x509_ext_id_from_der(oid, nodes, nodes_cnt, &d, &dlen) != 1
 		|| asn1_boolean_from_der(critical, &d, &dlen) < 0
 		|| asn1_octet_string_from_der(val, vlen, &d, &dlen) != 1
@@ -1035,6 +1035,48 @@ int x509_certificate_to_der(
 		|| asn1_data_to_der(tbs, tbslen, out, outlen) != 1
 		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
 		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_signed_to_der(
+	const uint8_t *tbs, size_t tbslen, // full TLV
+	int signature_algor,
+	const uint8_t *sig, size_t siglen,
+	uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (asn1_data_to_der(tbs, tbslen, NULL, &len) != 1
+		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_data_to_der(tbs, tbslen, out, outlen) != 1
+		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_signed_from_der(const uint8_t **tbs, size_t *tbs_len,
+	int *sig_alg, const uint8_t **sig, size_t *siglen,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return -1;
+	}
+	if (asn1_any_from_der(tbs, tbs_len, &d, &dlen) != 1
+		|| x509_signature_algor_from_der(sig_alg, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(sig, siglen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1571,6 +1613,8 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	return 0;
 }
 
+// 这里面需要validate的类型是两种，一种直接得到了实际值，因此可以直接对实际值做验证
+// 另一种是SEQUENCE OF类型，本质上是完整的a,alen，因此这种类型实际上可以用from_der来解析
 int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 	int *path_len_constraints)
 {
