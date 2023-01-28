@@ -104,13 +104,16 @@ bad:
 		fprintf(stderr, "%s: read CRL failure\n", prog);
 		goto end;
 	}
-
 	if (x509_crl_get_issuer(crl, crllen, &subject, &subject_len) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}
 	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), subject, subject_len, cacertfp) != 1) {
 		fprintf(stderr, "%s: read certificate failure\n", prog);
+		goto end;
+	}
+	if (x509_crl_validate(crl, crllen, time(NULL)) != 1) {
+		fprintf(stderr, "%s: invalid CRL data or format\n", prog);
 		goto end;
 	}
 	if ((rv = x509_crl_verify_by_ca_cert(crl, crllen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
@@ -127,24 +130,3 @@ end:
 	if (in) free(in);
 	return ret;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -775,13 +775,14 @@ int x509_issuing_distribution_point_from_der(
 	int ret;
 	const uint8_t *d;
 	size_t dlen;
+	const uint8_t *a;
+	size_t alen;
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	/*
-	if (x509_explicit_distribution_point_name_from_der(0, dist_point_choice, dist_point, dist_point_len, &d, &dlen) < 0
+	if (asn1_explicit_from_der(0, &a, &alen, &d, &dlen) < 0
 		|| asn1_implicit_boolean_from_der(1, only_contains_user_certs, &d, &dlen) < 0
 		|| asn1_implicit_boolean_from_der(2, only_contains_ca_certs, &d, &dlen) < 0
 		|| asn1_implicit_bits_from_der(3, only_some_reasons, &d, &dlen) < 0
@@ -791,7 +792,11 @@ int x509_issuing_distribution_point_from_der(
 		error_print();
 		return -1;
 	}
-	*/
+	if (x509_distribution_point_name_from_der(dist_point_choice, dist_point, dist_point_len, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -812,8 +817,8 @@ int x509_issuing_distribution_point_print(FILE *fp, int fmt, int ind, const char
 	if ((ret = asn1_implicit_boolean_from_der(2, &val, &d, &dlen)) < 0) goto end;
 	if (!ret) val = 0;
 	format_print(fp, fmt, ind, "onlyContainsCACerts: %s\n", asn1_boolean_name(val));
-	if ((ret = x509_implicit_crl_reason_from_der(3, &val, &d, &dlen)) < 0) goto end;
-	if (ret) format_print(fp, fmt, ind, "onlySomeReasons: %s\n", x509_crl_reason_name(val));
+	if ((ret = asn1_implicit_bits_from_der(3, &val, &d, &dlen)) < 0) goto end;
+	if (ret) x509_revoke_reasons_print(fp, fmt, ind, "onlySomeReasons", val);
 	if ((ret = asn1_implicit_boolean_from_der(4, &val, &d, &dlen)) < 0) goto end;
 	if (!ret) val = 0;
 	format_print(fp, fmt, ind, "indirectCRL: %s\n", asn1_boolean_name(val));
@@ -984,6 +989,16 @@ int x509_crl_exts_add_authority_key_identifier(
 	return 1;
 }
 
+int x509_crl_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
+	const SM2_KEY *public_key)
+{
+	if (x509_exts_add_default_authority_key_identifier(exts, extslen, maxlen, public_key) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_crl_exts_add_issuer_alt_name(
 	uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical,
@@ -1005,11 +1020,15 @@ int x509_crl_exts_add_crl_number_ex(
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	if (num < 0) {
+		return 0;
+	}
+
 	exts += *extslen;
 	if (asn1_int_to_der(num, &p, &vlen) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+		|| x509_crl_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		|| x509_crl_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1021,9 +1040,11 @@ int x509_crl_exts_add_crl_number(
 	int critical, int num)
 {
 	int oid = OID_ce_crl_number;
-	if (x509_crl_exts_add_crl_number_ex(exts, extslen, maxlen, oid, critical, num) != 1) {
-		error_print();
-		return -1;
+	int ret;
+
+	if ((ret = x509_crl_exts_add_crl_number_ex(exts, extslen, maxlen, oid, critical, num)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1034,9 +1055,11 @@ int x509_crl_exts_add_delta_crl_indicator(
 	int num)
 {
 	int oid = OID_ce_delta_crl_indicator;
-	if (x509_crl_exts_add_crl_number_ex(exts, extslen, maxlen, oid, critical, num) != 1) {
-		error_print();
-		return -1;
+	int ret;
+
+	if ((ret = x509_crl_exts_add_crl_number_ex(exts, extslen, maxlen, oid, critical, num)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1054,25 +1077,32 @@ int x509_crl_exts_add_issuing_distribution_point(
 	int oid = OID_ce_issuing_distribution_point;
 	size_t curlen = *extslen;
 	uint8_t val[512];
-	uint8_t *p = val;
 	size_t vlen = 0;
+	uint8_t *p = val;
+	size_t len = 0;
 
-	exts += *extslen;
 	if (x509_issuing_distribution_point_to_der(
 			dist_point_uri, dist_point_uri_len,
 			only_contains_user_certs,
 			only_contains_ca_certs,
 			only_some_reasons,
 			indirect_crl,
-			only_contains_attr_certs, NULL, &curlen) != 1
-		|| asn1_length_le(curlen, maxlen) != 1
+			only_contains_attr_certs, NULL, &len) != 1
+		|| asn1_length_le(len, sizeof(val)) != 1
 		|| x509_issuing_distribution_point_to_der(
 			dist_point_uri, dist_point_uri_len,
 			only_contains_user_certs,
 			only_contains_ca_certs,
 			only_some_reasons,
 			indirect_crl,
-			only_contains_attr_certs, &exts, extslen) != 1) {
+			only_contains_attr_certs, &p, &vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	exts += *extslen;
+	if (x509_crl_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+		|| asn1_length_le(curlen, maxlen) != 1
+		|| x509_crl_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1470,21 +1500,24 @@ int x509_crl_from_der_ex(
 	return 1;
 }
 
-int x509_crl_verify(const uint8_t *a, size_t alen,
-	const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len)
-{
-	// change x509_cert_verify to x509_verify
-	if (x509_cert_verify(a, alen, pub_key, signer_id, signer_id_len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 int x509_crl_verify_by_ca_cert(const uint8_t *a, size_t alen,
 	const uint8_t *cert, size_t certlen, const char *signer_id, size_t signer_id_len)
 {
-	if (x509_cert_verify_by_ca_cert(a, alen, cert, certlen, signer_id, signer_id_len) != 1) {
+	const uint8_t *crl_issuer;
+	size_t crl_issuer_len;
+	const uint8_t *ca_subject;
+	size_t ca_subject_len;
+
+	if (x509_crl_get_issuer(a, alen, &crl_issuer, &crl_issuer_len) != 1
+		|| x509_cert_get_subject(cert, certlen, &ca_subject, &ca_subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_name_equ(crl_issuer, crl_issuer_len, ca_subject, ca_subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_signed_verify_by_ca_cert(a, alen, cert, certlen, signer_id, signer_id_len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1542,7 +1575,7 @@ int x509_crl_get_details(const uint8_t *a, size_t alen,
 	return 1;
 }
 
-int x509_crl_validate(const uint8_t *a, size_t alen, time_t now, const uint8_t *ca_subject, size_t ca_subject_len)
+int x509_crl_validate(const uint8_t *a, size_t alen, time_t now)
 {
 	int version;
 	int inner_sig_alg;
@@ -1565,10 +1598,6 @@ int x509_crl_validate(const uint8_t *a, size_t alen, time_t now, const uint8_t *
 		return -1;
 	}
 	if (version != X509_version_v1 && version != X509_version_v2) {
-		error_print();
-		return -1;
-	}
-	if (issuer_len != ca_subject_len || memcmp(issuer, ca_subject, ca_subject_len) != 0) {
 		error_print();
 		return -1;
 	}

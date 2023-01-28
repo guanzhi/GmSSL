@@ -307,34 +307,127 @@ static int test_x509_crl_ext_id(void)
 	return 1;
 }
 
+static int test_x509_issuing_distribution_point(void)
+{
+	char *dist_point_uri = "http://www.example.com/crl.crl";
+	int reason_flags = X509_RF_KEY_COMPROMISE|X509_RF_CA_COMPROMISE;
+
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	const uint8_t *d;
+	size_t dlen;
+
+	if (x509_issuing_distribution_point_to_der(
+		dist_point_uri, strlen(dist_point_uri),
+		ASN1_TRUE,
+		ASN1_TRUE,
+		reason_flags,
+		ASN1_TRUE,
+		ASN1_TRUE, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	x509_issuing_distribution_point_print(stderr, 0, 0, "IssuingDistributionPoint", d, dlen);
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_x509_issuing_distribution_point_from_der(void)
+{
+	char *uri = "http://www.example.com/crl.crl";
+	int flags = X509_RF_KEY_COMPROMISE|X509_RF_CA_COMPROMISE;
+
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	int dist_point_choice;
+	const uint8_t *dist_point;
+	size_t dist_point_len;
+	int only_contains_user_certs;
+	int only_contains_ca_certs;
+	int only_some_reasons;
+	int indirect_crl;
+	int only_contains_attr_certs;
+
+	if (x509_issuing_distribution_point_to_der(
+		uri, strlen(uri),
+		ASN1_TRUE,
+		ASN1_FALSE,
+		flags,
+		-1,
+		ASN1_FALSE, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_issuing_distribution_point_from_der(
+		&dist_point_choice, &dist_point, &dist_point_len,
+		&only_contains_user_certs,
+		&only_contains_ca_certs,
+		&only_some_reasons,
+		&indirect_crl,
+		&only_contains_attr_certs, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_x509_crl_exts(void)
 {
-	/*
 	uint8_t exts[1024];
 	size_t extslen = 0;
+	uint8_t key_id[32];
+	uint8_t issuer[128];
+	size_t issuer_len = 0;
+	uint8_t serial[20];
+	char *http_uri = "http://www.example.com/crl.crl";
+	char *ldap_uri = "ldap://www.example.com/ldap";
+	char *ca_issuers_uri = "http://www.example.com/ca.crt";
+	char *ocsp_uri = "http://www.example.com/ocsp";
+	char *dist_point_uri = "http://www.example.com/crl.crl";
+	int reason_flags = X509_RF_KEY_COMPROMISE|X509_RF_CA_COMPROMISE;
 
-	if (0
-		|| x509_crl_exts_add_authority_key_identifier(exts, &extslen, sizeof(exts),
-			X509_non_critical, key_id, sizeof(key_id), issuer, sizeof(issuer), serial, sizeof(serial)) != 1
+	if (rand_bytes(key_id, sizeof(key_id)) != 1
+		|| x509_general_names_add_uniform_resource_identifier(issuer, &issuer_len, sizeof(issuer), "http://www.example.com") != 1
+		|| rand_bytes(serial, sizeof(serial)) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_crl_exts_add_authority_key_identifier(exts, &extslen, sizeof(exts),
+			-1, key_id, sizeof(key_id), issuer, issuer_len, serial, sizeof(serial)) != 1
 		|| x509_crl_exts_add_issuer_alt_name(exts, &extslen, sizeof(exts),
-			X509_non_critical, issuer_alt_name, sizeof(issuer_alt_name)) != 1
+			X509_non_critical, issuer, issuer_len) != 1
 		|| x509_crl_exts_add_crl_number(exts, &extslen, sizeof(exts),
 			X509_non_critical, 112) != 1
 		|| x509_crl_exts_add_delta_crl_indicator(exts, &extslen, sizeof(exts),
-			X509_non_critical, 113) != 1
+			X509_critical, 113) != 1
 		|| x509_crl_exts_add_issuing_distribution_point(exts, &extslen, sizeof(exts),
-			X509_non_critical, dist_point_uri, strlen(dist_point_uri),
-			ASN1_FALSE, ASN1_FALSE, -1, ASN1_FALSE, ASN1_FALSE) != 1
+			X509_critical, dist_point_uri, strlen(dist_point_uri),
+			ASN1_FALSE, ASN1_FALSE, reason_flags, ASN1_FALSE, ASN1_FALSE) != 1
 		|| x509_crl_exts_add_freshest_crl(exts, &extslen, sizeof(exts),
 			X509_non_critical, http_uri, strlen(http_uri), ldap_uri, strlen(ldap_uri)) != 1
 		|| x509_crl_exts_add_authority_info_acess(exts, &extslen, sizeof(exts),
-			X509_non_critical, ca_issuers_uri, strlen(ca_issuers_uri), ocsp_uri, strlen(ocsp_uri)) != 1) {
+			X509_non_critical, ca_issuers_uri, strlen(ca_issuers_uri), ocsp_uri, strlen(ocsp_uri)) != 1
+		) {
 		error_print();
 		return -1;
 	}
 
 	x509_crl_exts_print(stderr, 0, 0, "CRLExtensions", exts, extslen);
-	*/
 
 	return 1;
 }
@@ -345,14 +438,23 @@ static int test_x509_cert_revoke(void)
 	return 1;
 }
 
+/*
+	http://mscrl.microsoft.com/pki/mscorp/crl/Microsoft%20RSA%20TLS%20CA%2002.crl
+	http://crl.microsoft.com/pki/mscorp/crl/Microsoft%20RSA%20TLS%20CA%2002.crl
+	http://crl3.digicert.com/Omniroot2025.crl
+*/
+
 int main(void)
 {
 	if (test_x509_crl_reason() != 1) goto err;
 	if (test_x509_crl_entry_ext() != 1) goto err;
 	if (test_x509_crl_entry_exts() != 1) goto err;
 	if (test_x509_revoked_cert() != 1) goto err;
-//	if (test_vector_gen_uri_as_general_names() != 1) goto err;
+	if (test_vector_gen_uri_as_general_names() != 1) goto err;
 	if (test_x509_crl_ext_id() != 1) goto err;
+	if (test_x509_issuing_distribution_point() != 1) goto err;
+	if (test_x509_issuing_distribution_point_from_der() != 1) goto err;
+	if (test_x509_crl_exts() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

@@ -1188,7 +1188,7 @@ int x509_cert_sign(
 	return 1;
 }
 
-int x509_cert_verify(const uint8_t *a, size_t alen,
+int x509_signed_verify(const uint8_t *a, size_t alen,
 	const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len)
 {
 	int ret;
@@ -1199,7 +1199,7 @@ int x509_cert_verify(const uint8_t *a, size_t alen,
 	size_t siglen;
 	SM2_SIGN_CTX verify_ctx;
 
-	if (x509_certificate_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
+	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
@@ -1218,8 +1218,7 @@ int x509_cert_verify(const uint8_t *a, size_t alen,
 	return ret;
 }
 
-// TODO: return an extra error code
-int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen,
+int x509_signed_verify_by_ca_cert(const uint8_t *a, size_t alen,
 	const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len)
 {
@@ -1227,12 +1226,23 @@ int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen,
 	SM2_KEY public_key;
 
 	if (x509_cert_get_subject_public_key(cacert, cacertlen, &public_key) != 1
-		|| (ret = x509_cert_verify(a, alen, &public_key, signer_id, signer_id_len)) < 0) {
+		|| (ret = x509_signed_verify(a, alen, &public_key, signer_id, signer_id_len)) < 0) {
 		error_print();
 		return -1;
 	}
 	if (!ret) error_print();
 	return ret;
+}
+
+int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen,
+	const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len)
+{
+	if (x509_signed_verify_by_ca_cert(a, alen, cacert, cacertlen, signer_id, signer_id_len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)

@@ -2,7 +2,14 @@
 
 
 gmssl sm2keygen -pass 1234 -out rootcakey.pem
-gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 -key rootcakey.pem -pass 1234 -out rootcacert.pem -key_usage keyCertSign -key_usage cRLSign -crl_uri http://pku.edu.cn/ca.crl -ca_issuers_uri http://pku.edu.cn/ca.crt -ocsp_uri http://ocsp.pku.edu.cn
+gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \
+	-key rootcakey.pem -pass 1234 \
+	-out rootcacert.pem \
+	-ca -path_len_constraints 6 \
+	-key_usage keyCertSign -key_usage cRLSign \
+	-crl_http_uri http://pku.edu.cn/ca.crl -ca_issuers_uri http://pku.edu.cn/ca.crt -ocsp_uri http://ocsp.pku.edu.cn
+
+
 gmssl certparse -in rootcacert.pem
 
 gmssl sm2keygen -pass 1234 -out cakey.pem

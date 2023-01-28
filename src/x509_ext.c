@@ -25,24 +25,41 @@
 
 
 
-int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
-	int oid, int critical, const uint8_t *d, size_t dlen)
+int x509_ext_to_der_ex(int oid, int critical, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
-	uint8_t *val = NULL;
-	uint8_t *p = val;
-	size_t curlen = *extslen;
 	size_t vlen = 0;
+	size_t len = 0;
 
-	if (!(val = malloc(32 + dlen))) {
+	if (asn1_sequence_to_der(d, dlen, NULL, &vlen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (x509_ext_id_to_der(oid, NULL, &len) != 1
+		|| asn1_boolean_to_der(critical, NULL, &len) < 0
+		|| asn1_tag_to_der(ASN1_TAG_OCTET_STRING, NULL, &len) != 1
+		|| asn1_length_to_der(vlen, NULL, &len) != 1
+		|| asn1_sequence_to_der(d, dlen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_ext_id_to_der(oid, out, outlen) != 1
+		|| asn1_boolean_to_der(critical, out, outlen) < 0
+		|| asn1_tag_to_der(ASN1_TAG_OCTET_STRING, out, outlen) != 1
+		|| asn1_length_to_der(vlen, out, outlen) != 1
+		|| asn1_sequence_to_der(d, dlen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
+	int oid, int critical, const uint8_t *d, size_t dlen)
+{
+	size_t curlen = *extslen;
 
 	exts += *extslen;
-	if (asn1_sequence_to_der(d, dlen, &p, &vlen) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
+	if (x509_ext_to_der_ex(oid, critical, d, dlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		|| x509_ext_to_der_ex(oid, critical, d, dlen, &exts, extslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -121,6 +138,22 @@ int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t 
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, &exts, extslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen,
+	int critical, const SM2_KEY *subject_key)
+{
+	uint8_t buf[65];
+	uint8_t id[32];
+
+	sm2_point_to_uncompressed_octets(&subject_key->public_key, buf);
+	sm3_digest(buf, sizeof(buf), id);
+
+	if (x509_exts_add_subject_key_identifier(exts, extslen, maxlen, critical, id, 32) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1944,14 +1977,15 @@ int x509_distribution_points_to_der(const char *http_uri, size_t http_urilen,
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
 {
 	int ret;
+	int tag;
 
-	if ((ret = asn1_implicit_from_der(*choice, d, dlen, in, inlen)) != 1) {
+	if ((ret = asn1_any_type_from_der(&tag, d, dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return -1;
 	}
-	switch (*choice) {
-	case 0:
-	case 1:
+	switch (tag) {
+	case ASN1_TAG_EXPLICIT(0):
+	case ASN1_TAG_EXPLICIT(1):
 		break;
 	default:
 		error_print();

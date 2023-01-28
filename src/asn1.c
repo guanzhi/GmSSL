@@ -1176,7 +1176,7 @@ const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t i
 {
 	size_t i;
 
-	if (!infos || !infos_cnt || oid <= 0) {
+	if (!infos || !infos_cnt || oid < 0) {
 		error_print();
 		return NULL;
 	}

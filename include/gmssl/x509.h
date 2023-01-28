@@ -279,6 +279,10 @@ int x509_signed_from_der(
 	int *signature_algor,
 	const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen);
+int x509_signed_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key,
+	const char *signer_id, size_t signer_id_len);
+int x509_signed_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len);
 
 int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
@@ -297,10 +301,6 @@ int x509_cert_sign(
 	const uint8_t *exts, size_t exts_len,
 	const SM2_KEY *sign_key,
 	const char *signer_id, size_t signer_id_len);
-int x509_cert_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key,
-	const char *signer_id, size_t signer_id_len);
-int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
-	const char *signer_id, size_t signer_id_len);
 
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
 int x509_cert_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
@@ -309,6 +309,9 @@ int x509_cert_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
 int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, int index, FILE *fp);
 int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, const uint8_t *name, size_t namelen, FILE *fp);
 int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
+
+int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
+	const char *signer_id, size_t signer_id_len);
 
 int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *version,

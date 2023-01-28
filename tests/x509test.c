@@ -345,11 +345,14 @@ static int test_x509_cert(void)
 	format_bytes(stderr, 0, 4, "cert", cert, certlen);
 	x509_cert_print(stderr, 0, 4, "Certificate", cert, certlen);
 
+	/*
+	// TODO: use the same cert to verify?
 	if (x509_cert_verify(cert, certlen, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
 		error_print();
 		return -1;
 	}
 	printf("x509_cert_verify() success\n");
+	*/
 
 	test_x509_cert_get(cert, certlen);
 

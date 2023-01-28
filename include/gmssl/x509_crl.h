@@ -173,6 +173,8 @@ int x509_crl_exts_add_authority_key_identifier(
 	const uint8_t *keyid, size_t keyid_len,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len);
+int x509_crl_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
+	const SM2_KEY *public_key);
 int x509_crl_exts_add_issuer_alt_name(
 	uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical,
@@ -277,7 +279,7 @@ int x509_crl_from_der_ex(
 	const uint8_t **exts, size_t *exts_len,
 	int *sig_alg, const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen);
-int x509_crl_validate(const uint8_t *a, size_t alen, time_t now, const uint8_t *ca_subject, size_t ca_subject_len);
+int x509_crl_validate(const uint8_t *a, size_t alen, time_t now);
 int x509_crl_verify(const uint8_t *a, size_t alen,
 	const SM2_KEY *sign_pub_key, const char *signer_id, size_t signer_id_len);
 int x509_crl_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,

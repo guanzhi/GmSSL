@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -33,21 +33,21 @@ enum {
 /*
 Extensions:
 
-	1.  AuthorityKeyIdentifier	SEQUENCE			AuthorityKeyIdentifier
-	2.  SubjectKeyIdentifier	OCTET STRING
-	3.  KeyUsage			BIT STRING
+	1.  AuthorityKeyIdentifier	SEQUENCE			AuthorityKeyIdentifier		MUST non-critical
+	2.  SubjectKeyIdentifier	OCTET STRING							MUST non-critical
+	3.  KeyUsage			BIT STRING							SHOULD critical
 	4.  CertificatePolicies		SEQUENCE OF SEQUENCE		CertificatePolicies
-	5.  PolicyMappings		SEQUENCE OF SEQUENCE		PolicyMappings
-	6.  SubjectAltName		SEQUENCE OF SEQUENCE		GeneralNames
-	7.  IssuerAltName		SEQUENCE OF SEQUENCE		GeneralNames
-	8.  SubjectDirectoryAttributes	SEQUENCE OF SEQUENCE		Attributes
-	9.  BasicConstraints		SEQUENCE			BasicConstraints
+	5.  PolicyMappings		SEQUENCE OF SEQUENCE		PolicyMappings			SHOULD critical
+	6.  SubjectAltName		SEQUENCE OF SEQUENCE		GeneralNames			SHOULD non-critical
+	7.  IssuerAltName		SEQUENCE OF SEQUENCE		GeneralNames			SHOULD non-critical
+	8.  SubjectDirectoryAttributes	SEQUENCE OF SEQUENCE		Attributes			MUST non-critical
+	9.  BasicConstraints		SEQUENCE			BasicConstraints		CA: MUST critical, End-entity: MAY critical or non-critical
 	10. NameConstraints		SEQUENCE			NameConstraints
-	11. PolicyConstraints		SEQUENCE			PolicyConstraints
-	12. ExtKeyUsageSyntax		SEQUENCE OF OBJECT IDENTIFIER
+	11. PolicyConstraints		SEQUENCE			PolicyConstraints		MUST critical
+	12. ExtKeyUsageSyntax		SEQUENCE OF OBJECT IDENTIFIER					MAY critical or non-critical
 	13. CRLDistributionPoints	SEQUENCE OF SEQUENCE		DistributionPoints
-	14. InhibitAnyPolicy		INTEGER
-	15. FreshestCRL			SEQUENCE OF SEQUENCE		DistributionPoints
+	14. InhibitAnyPolicy		INTEGER								MUST critical
+	15. FreshestCRL			SEQUENCE OF SEQUENCE		DistributionPoints		MUST non-critical
 */
 
 int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
@@ -57,6 +57,7 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
 	const SM2_KEY *public_key);
 int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
+int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const SM2_KEY *subject_key);
 int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int bits);
 int x509_exts_add_certificate_policies(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 int x509_exts_add_policy_mappings(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);

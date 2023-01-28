@@ -114,7 +114,7 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	tls_socket_t sock;
 	char get[sizeof(HTTP_GET_TEMPLATE) + sizeof(host) + sizeof(path)];
 	int getlen;
-	char response[512];
+	char response[1024];
 	uint8_t *p;
 	size_t len;
 	size_t left;
@@ -150,13 +150,17 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 		error_print();
 		goto end;
 	}
-	if ((len = recv(sock, response, sizeof(response), 0)) <= 0) {
+	if ((len = recv(sock, response, sizeof(response) - 1, 0)) <= 0) {
 		error_print();
 		goto end;
 	}
 
 	// process response header and retrieve left
 	if (http_parse_response(response, len, &p, contentlen, &left) != 1) {
+
+		response[len] = 0;
+		fprintf(stderr, "Response:\n%s\n", response);
+
 		error_print();
 		goto end;
 	}

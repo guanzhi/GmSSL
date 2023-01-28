@@ -158,6 +158,7 @@ set(tests
 	tls
 	tls13
 	http
+	http_crl
 )
 
 
