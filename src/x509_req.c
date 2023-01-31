@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -229,51 +229,19 @@ int x509_req_sign(
 	return 1;
 }
 
-int x509_req_verify(const uint8_t *req, size_t reqlen, const SM2_KEY *sign_pubkey, const char *signer_id, size_t signer_id_len)
+int x509_req_verify(const uint8_t *req, size_t reqlen, const char *signer_id, size_t signer_id_len)
 {
-	int ret;
-	const uint8_t *d;
-	size_t dlen;
-	const uint8_t *p;
-	size_t len;
-	const uint8_t *req_info;
-	size_t req_info_len;
-	int signature_algor;
-	const uint8_t *sig;
-	size_t siglen;
-	SM2_SIGN_CTX sign_ctx;
+	SM2_KEY public_key;
 
-	if (asn1_sequence_from_der(&d, &dlen, &req, &reqlen) != 1
-		|| asn1_length_is_zero(reqlen) != 1) {
+	if (x509_req_get_details(req, reqlen, NULL, NULL, NULL, &public_key, NULL, NULL, NULL, NULL, NULL) != 1) {
 		error_print();
 		return -1;
 	}
-
-	req_info = d;
-	req_info_len = dlen;
-	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+	if (x509_signed_verify(req, reqlen, &public_key, signer_id, signer_id_len) != 1) {
 		error_print();
 		return -1;
 	}
-	req_info_len -= dlen;
-
-	if (x509_signature_algor_from_der(&signature_algor, &d, &dlen) != 1
-		|| asn1_bit_octets_from_der(&sig, &siglen, &d, &dlen) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (signature_algor != OID_sm2sign_with_sm3) {
-		error_print();
-		return -1;
-	}
-	if (sm2_verify_init(&sign_ctx, sign_pubkey, signer_id, signer_id_len) != 1
-		|| sm2_verify_update(&sign_ctx, req_info, req_info_len) != 1
-		|| (ret = sm2_verify_finish(&sign_ctx, sig, siglen)) != 1) {
-		error_print();
-		return -1;
-	}
-	return ret;
+	return 1;
 }
 
 int x509_req_get_details(const uint8_t *req, size_t reqlen,
@@ -341,5 +309,52 @@ int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp)
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+#include <gmssl/file.h>
+
+int x509_req_new_from_pem(uint8_t **out, size_t *outlen, FILE *fp)
+{
+	uint8_t *req;
+	size_t reqlen;
+	size_t maxlen;
+
+	if (!out || !outlen || !fp) {
+		error_print();
+		return -1;
+	}
+	if (file_size(fp, &maxlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!(req = malloc(maxlen))) {
+		error_print();
+		return -1;
+	}
+	if (x509_req_from_pem(req, &reqlen, maxlen, fp) != 1) {
+		free(req);
+		error_print();
+		return -1;
+	}
+	*out = req;
+	*outlen = reqlen;
+	return 1;
+}
+
+int x509_req_new_from_file(uint8_t **req, size_t *reqlen, const char *file)
+{
+	FILE *fp = NULL;
+
+	if (!(fp = fopen(file, "rb"))) {
+		error_print();
+		return -1;
+	}
+	if (x509_req_new_from_pem(req, reqlen, fp) != 1) {
+		error_print();
+		fclose(fp);
+		return -1;
+	}
+	fclose(fp);
 	return 1;
 }

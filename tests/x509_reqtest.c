@@ -173,7 +173,7 @@ static int test_x509_req(void)
 		error_print();
 		return -1;
 	}
-	if (x509_req_verify(req, reqlen, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+	if (x509_req_verify(req, reqlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
 		error_print();
 		return -1;
 	}

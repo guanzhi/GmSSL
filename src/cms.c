@@ -721,8 +721,8 @@ int cms_signer_info_print(FILE *fp, int fmt, int ind, const char *label, const u
 	format_print(fp, fmt, ind, "digestAlgorithm: %s\n", x509_digest_algor_name(val));
 	if ((ret = asn1_implicit_set_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_attributes_print(fp, fmt, ind, "authenticatedAttributes", p, len);
-	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "digestEncryptionAlgorithm: %s\n", x509_signature_algor_name(val));
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_signature_algor_print(fp, fmt, ind, "digestEncryptionAlgorithm", p, len);
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "encryptedDigest", p, len);
 	if ((ret = asn1_implicit_set_from_der(1, &p, &len, &d, &dlen)) < 0) goto err;

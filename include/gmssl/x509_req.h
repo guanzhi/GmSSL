@@ -86,7 +86,7 @@ int x509_req_sign(uint8_t *req, size_t *reqlen, size_t maxlen,
 	int signature_algor,
 	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
 int x509_req_verify(const uint8_t *req, size_t reqlen,
-	const SM2_KEY *sign_pubkey, const char *signer_id, size_t signer_id_len);
+	const char *signer_id, size_t signer_id_len);
 int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	int *verison,
 	const uint8_t **subject, size_t *subject_len,
@@ -97,6 +97,8 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen);
 int x509_req_to_pem(const uint8_t *req, size_t reqlen, FILE *fp);
 int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp);
+int x509_req_new_from_pem(uint8_t **req, size_t *reqlen, FILE *fp);
+int x509_req_new_from_file(uint8_t **req, size_t *reqlen, const char *file);
 
 
 #ifdef __cplusplus

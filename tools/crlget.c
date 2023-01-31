@@ -14,21 +14,20 @@
 #include <stdlib.h>
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
+#include <gmssl/http.h>
 
 
-static const char *options = "[-in pem] [-out file]";
+static const char *usage = "[-in pem] [-out file]\n";
 
-static char *usage =
+static const char *options =
 "Options\n"
 "\n"
-"    [-in pem]|stdin        Input certificates in PEM format.\n"
-"                           This command supports continuous multiple certificates\n"
-"                           Do not include blank line or comments between PEM data\n"
-"    [-out file]stdout      Output file\n"
+"    -in pem | stdin        Input certificates in PEM format.\n"
+"    -out der | stdout      Output CRL file in DER-encoding\n"
 "\n"
 "Examples\n"
 "\n"
-"    gmssl certparse -in certs.pem\n"
+"    gmssl crlget -in cert.pem -out crl.der\n"
 "\n";
 
 int certparse_main(int argc, char **argv)
@@ -76,19 +75,14 @@ bad:
 		argv++;
 	}
 
-	for (;;) {
-		int rv;
-		if ((rv = x509_cert_from_pem(cert, &certlen, sizeof(cert), infp)) != 1) {
-			if (rv < 0) fprintf(stderr, "%s: read certificate failure\n", prog);
-			else ret = 0;
-			goto end;
-		}
-		x509_cert_print(outfp, 0, 0, "Certificate", cert, certlen);
-		if (x509_cert_to_pem(cert, certlen, outfp) != 1) {
-			fprintf(stderr, "%s: output certficate failure\n", prog);
-			goto end;
-		}
+	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), infp) != 1) {
+		goto end;
 	}
+	if (x509_cert_get_exts(cert, certlen, &exts, &extslen) != 1) {
+		goto end;
+	}
+	if (x509_exts_get_ext_by_oid(exts, extslen, OID_ce_crl_
+
 
 end:
 	if (infile && infp) fclose(infp);

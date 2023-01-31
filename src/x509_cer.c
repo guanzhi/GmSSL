@@ -448,7 +448,12 @@ int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen,
 {
 	size_t len = 0;
 	uint8_t *p = d + *dlen;
-	if (!val && !more) {
+
+	if (!val) {
+		if (more) {
+			error_print();
+			return -1;
+		}
 		return 0;
 	}
 	if (x509_rdn_to_der(oid, tag, val, vlen, NULL, 0, NULL, &len) != 1
@@ -546,7 +551,7 @@ int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
 
 	*dlen = 0;
 	if (x509_name_add_country_name(d, dlen, maxlen, country) < 0
-		|| x509_name_add_state_or_province_name(d, dlen, maxlen, x509_name_tag(state), (uint8_t *)state, strlen(state)) < 0
+		|| x509_name_add_state_or_province_name(d, dlen, maxlen, x509_name_tag(state), (uint8_t *)state, _strlen(state)) < 0
 		|| x509_name_add_locality_name(d, dlen, maxlen, x509_name_tag(locality), (uint8_t *)locality, _strlen(locality)) < 0
 		|| x509_name_add_organization_name(d, dlen, maxlen, x509_name_tag(org), (uint8_t *)org, _strlen(org)) < 0
 		|| x509_name_add_organizational_unit_name(d, dlen, maxlen, x509_name_tag(org_unit), (uint8_t *)org_unit, _strlen(org_unit)) < 0
@@ -1118,8 +1123,8 @@ int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const 
 
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_tbs_cert_print(fp, fmt, ind, "tbsCertificate", p, len);
-	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "signatureAlgorithm: %s\n", x509_signature_algor_name(val));
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_signature_algor_print(fp, fmt, ind, "signatureAlgorithm", p, len);
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "signatureValue", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;

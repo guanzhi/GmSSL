@@ -720,19 +720,19 @@ static int test_x509_revoke_reasons(void)
 	int i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		if (x509_revoke_reasons_to_der(tests[i], &p, &len) != 1) {
+		if (x509_revoke_reason_flags_to_der(tests[i], &p, &len) != 1) {
 			error_print();
 			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		if (x509_revoke_reasons_from_der(&bits, &cp, &len) != 1
+		if (x509_revoke_reason_flags_from_der(&bits, &cp, &len) != 1
 			|| asn1_check(bits == tests[i]) != 1) {
 			error_print();
 			return -1;
 		}
-		x509_revoke_reasons_print(stderr, 0, 4, "ReasonFlags", bits);
+		x509_revoke_reason_flags_print(stderr, 0, 4, "ReasonFlags", bits);
 	}
 	(void)asn1_length_is_zero(len);
 

@@ -166,6 +166,9 @@ int x509_general_names_add_edi_party_name(uint8_t *gns, size_t *gnslen, size_t m
 int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t maxlen,
 	const uint32_t *nodes, size_t nodes_cnt);
 
+int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+#define x509_uri_as_general_names_to_der(uri,urilen,out,outlen) x509_uri_as_general_names_to_der_ex(ASN1_TAG_SEQUENCE,uri,urilen,out,outlen)
+
 /*
 AuthorityKeyIdentifier ::= SEQUENCE {
 	keyIdentifier			[0] IMPLICIT OCTET STRING OPTIONAL,
@@ -468,29 +471,24 @@ ReasonFlags ::= BIT STRING {
 #define X509_RF_PRIVILEGE_WITHDRAWN	(1 << 7)
 #define X509_RF_AA_COMPROMISE		(1 << 8)
 
-const char *x509_revoke_reason_name(int flag);
-int x509_revoke_reason_from_name(int *flag, const char *name);
-#define x509_revoke_reasons_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
-#define x509_revoke_reasons_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
-int x509_revoke_reasons_print(FILE *fp, int fmt, int ind, const char *label, int bits);
+const char *x509_revoke_reason_flag_name(int flag);
+int x509_revoke_reason_flag_from_name(int *flag, const char *name);
+#define x509_revoke_reason_flags_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
+#define x509_revoke_reason_flags_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
+int x509_revoke_reason_flags_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 /*
 DistributionPointName ::= CHOICE {
 	fullName		[0] IMPLICIT GeneralNames, -- SEQUENCE OF
 	nameRelativeToCRLIssuer	[1] IMPLICIT RelativeDistinguishedName } -- SET OF
 */
-int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
-#define x509_uri_as_general_names_to_der(uri,urilen,out,outlen) x509_uri_as_general_names_to_der_ex(ASN1_TAG_SEQUENCE,uri,urilen,out,outlen)
 int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
-int x509_uri_as_explicit_distribution_point_name_to_der(int index, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
-
-int x509_distribution_point_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int x509_uri_as_distribution_point_name_from_der(const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
 int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label,const uint8_t *a, size_t alen);
 
-int x509_explicit_distribution_point_name_to_der(int index, int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
-int x509_explicit_distribution_point_name_from_der(int index, int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
-int x509_explicit_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int x509_uri_as_explicit_distribution_point_name_to_der(int index, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_uri_as_explicit_distribution_point_name_from_der(int index, const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
 
 /*
 DistributionPoint ::= SEQUENCE {
@@ -498,16 +496,10 @@ DistributionPoint ::= SEQUENCE {
 	reasons			[1] IMPLICIT ReasonFlags OPTIONAL,
 	cRLIssuer		[2] IMPLICIT GeneralNames OPTIONAL }
 */
-int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
-int x509_distribution_points_to_der(const char *http_uri, size_t http_urilen,
-	const char *ldap_uri, size_t ldap_urilen, uint8_t **out, size_t *outlen);
-
-int x509_distribution_point_to_der(
-	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
+int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen,
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
 	uint8_t **out, size_t *outlen);
-int x509_distribution_point_from_der(
-	int *dist_point_choice, const uint8_t **dist_point, size_t *dist_point_len,
+int x509_uri_as_distribution_point_from_der(const char **uri, size_t *urilen,
 	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
 	const uint8_t **in, size_t *inlen);
 int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -515,9 +507,12 @@ int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label,
 /*
 DistributionPoints ::= SEQUENCE OF DistributionPoint
 */
-int x509_distribution_points_add_distribution_point(uint8_t *d, size_t *dlen, size_t maxlen,
-	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
-	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len);
+int x509_uri_as_distribution_points_to_der(const char *uri, size_t urilen,
+	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
+	uint8_t **out, size_t *outlen);
+int x509_uri_as_distribution_points_from_der(const char **uri, size_t *urilen,
+	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
+	const uint8_t **in, size_t *inlen);
 int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 

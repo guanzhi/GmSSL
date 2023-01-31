@@ -59,6 +59,32 @@ int x509_digest_algor_from_name(const char *name)
 	return info->oid;
 }
 
+/*
+from RFC 5754 Using SHA2 Algorithms with Cryptographic Message Syntax
+
+   2.  Message Digest Algorithms
+
+   The AlgorithmIdentifier parameters field is OPTIONAL.
+   Implementations MUST accept SHA2 AlgorithmIdentifiers with absent
+   parameters.  Implementations MUST accept SHA2 AlgorithmIdentifiers
+   with NULL parameters.  Implementations MUST generate SHA2
+   AlgorithmIdentifiers with absent parameters.
+
+from RFC 5758 Internet X.509 Public Key Infrastructure:
+        Additional Algorithms and Identifiers for DSA and ECDSA
+
+   2.  Hash Functions
+
+   id-sha224
+   id-sha256
+   id-sha384
+   id-sha512
+
+   When one of these OIDs appears in an AlgorithmIdentifier, all
+   implementations MUST accept both NULL and absent parameters as legal
+   and equivalent encodings.
+
+*/
 int x509_digest_algor_to_der(int oid, uint8_t **out, size_t *outlen)
 {
 	const ASN1_OID_INFO *info;
@@ -234,6 +260,59 @@ static uint32_t oid_rsasign_with_sha384[] = { 1,2,840,113549,1,1,12 };
 static uint32_t oid_rsasign_with_sha512[] = { 1,2,840,113549,1,1,13 };
 
 
+/*
+from RFC 3447 Public-Key Cryptography Standards (PKCS) #1: RSA Cryptography
+                      Specifications Version 2.1
+
+  Appendix C. ASN.1 module
+
+  -- When rsaEncryption is used in an AlgorithmIdentifier the
+  -- parameters MUST be present and MUST be NULL.
+
+  -- When the following OIDs are used in an AlgorithmIdentifier the
+  -- parameters MUST be present and MUST be NULL.
+  --
+  md2WithRSAEncryption       OBJECT IDENTIFIER ::= { pkcs-1 2 }
+  md5WithRSAEncryption       OBJECT IDENTIFIER ::= { pkcs-1 4 }
+  sha1WithRSAEncryption      OBJECT IDENTIFIER ::= { pkcs-1 5 }
+  sha256WithRSAEncryption    OBJECT IDENTIFIER ::= { pkcs-1 11 }
+  sha384WithRSAEncryption    OBJECT IDENTIFIER ::= { pkcs-1 12 }
+  sha512WithRSAEncryption    OBJECT IDENTIFIER ::= { pkcs-1 13 }
+
+
+from RFC 5754 Using SHA2 Algorithms with Cryptographic Message Syntax
+
+   3.3.  ECDSA
+
+   When any of these four object identifiers appears within an
+                     ^ ecdsa-with-SHA224/SHA256/SHA384/SHA512
+   AlgorithmIdentifier, the parameters field MUST be absent.  That is,
+   the AlgorithmIdentifier SHALL be a SEQUENCE of one component: the OID
+   ecdsa-with-SHA224, ecdsa-with-SHA256, ecdsa-with-SHA384, or ecdsa-
+   with-SHA512.
+
+
+from RFC 5758 Internet X.509 Public Key Infrastructure:
+        Additional Algorithms and Identifiers for DSA and ECDSA
+
+   3.1.  DSA Signature Algorithm
+
+   When the id-dsa-with-sha224 or id-dsa-with-sha256 algorithm
+   identifier appears in the algorithm field as an AlgorithmIdentifier,
+   the encoding SHALL omit the parameters field.  That is, the
+   AlgorithmIdentifier SHALL be a SEQUENCE of one component, the OID id-
+   dsa-with-sha224 or id-dsa-with-sha256.
+
+   3.2.  ECDSA Signature Algorithm
+
+   When the ecdsa-with-SHA224, ecdsa-with-SHA256, ecdsa-with-SHA384, or
+   ecdsa-with-SHA512 algorithm identifier appears in the algorithm field
+   as an AlgorithmIdentifier, the encoding MUST omit the parameters
+   field.  That is, the AlgorithmIdentifier SHALL be a SEQUENCE of one
+   component, the OID ecdsa-with-SHA224, ecdsa-with-SHA256, ecdsa-with-
+   SHA384, or ecdsa-with-SHA512.
+
+*/
 static const ASN1_OID_INFO x509_sign_algors[] = {
 	{ OID_sm2sign_with_sm3, "sm2sign-with-sm3", oid_sm2sign_with_sm3, sizeof(oid_sm2sign_with_sm3)/sizeof(int), X509_ALGOR_ALLOW_EC_NULL_PARAM },
 	{ OID_rsasign_with_sm3, "rsasign-with-sm3", oid_rsasign_with_sm3, sizeof(oid_rsasign_with_sm3)/sizeof(int), 1 },

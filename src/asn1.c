@@ -1629,6 +1629,9 @@ int asn1_utc_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *outlen)
 		error_print();
 		return -1;
 	}
+	if (a == -1) {
+		return 0;
+	}
 
 	if (asn1_time_to_str(utc_time, a, buf) != 1) {
 		error_print();
@@ -1703,6 +1706,9 @@ int asn1_generalized_time_to_der_ex(int tag, time_t a, uint8_t **out, size_t *ou
 	if (!outlen) {
 		error_print();
 		return -1;
+	}
+	if (a == -1) {
+		return 0;
 	}
 
 	if (asn1_time_to_str(utc_time, a, buf) != 1) {

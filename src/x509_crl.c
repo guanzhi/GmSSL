@@ -818,7 +818,7 @@ int x509_issuing_distribution_point_print(FILE *fp, int fmt, int ind, const char
 	if (!ret) val = 0;
 	format_print(fp, fmt, ind, "onlyContainsCACerts: %s\n", asn1_boolean_name(val));
 	if ((ret = asn1_implicit_bits_from_der(3, &val, &d, &dlen)) < 0) goto end;
-	if (ret) x509_revoke_reasons_print(fp, fmt, ind, "onlySomeReasons", val);
+	if (ret) x509_revoke_reason_flags_print(fp, fmt, ind, "onlySomeReasons", val);
 	if ((ret = asn1_implicit_boolean_from_der(4, &val, &d, &dlen)) < 0) goto end;
 	if (!ret) val = 0;
 	format_print(fp, fmt, ind, "indirectCRL: %s\n", asn1_boolean_name(val));
@@ -1299,8 +1299,8 @@ int x509_cert_list_print(FILE *fp, int fmt, int ind, const char *label, const ui
 
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_tbs_crl_print(fp, fmt, ind, "tbsCertList", p, len);
-	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "signatureAlgorithm: %s\n", x509_signature_algor_name(val));
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_signature_algor_print(fp, fmt, ind, "signatureAlgorithm", p, len);
 	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "signatureValue", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
