@@ -1495,6 +1495,31 @@ int x509_cert_get_issuer(const uint8_t *a, size_t alen, const uint8_t **d, size_
 		NULL, NULL); // signature
 }
 
+int x509_cert_get_exts(const uint8_t *a, size_t alen, const uint8_t **d, size_t *dlen)
+{
+	if (x509_cert_get_details(a, alen,
+		NULL, // version
+		NULL, NULL, // serial
+		NULL, // signature_algor
+		NULL, NULL, // issuer
+		NULL, NULL, // validity
+		NULL, NULL, // subject
+		NULL, // subject_public_key
+		NULL, NULL, // issuer_unique_id
+		NULL, NULL, // subject_unique_id
+		d, dlen, // extensions
+		NULL, // signature_algor
+		NULL, NULL // signature
+		) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!d || !dlen) {
+		return 0;
+	}
+	return 1;
+}
+
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp)
 {
 	const uint8_t *a;

@@ -304,7 +304,9 @@ int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 
 
 int x509_crl_new_from_uri(uint8_t **crl, size_t *crl_len, const char *uri, size_t urilen);
-
+int x509_crl_new_from_cert(uint8_t **crl, size_t *crl_len, const uint8_t *cert, size_t certlen);
+int x509_cert_check_crl(const uint8_t *cert, size_t certlen, const uint8_t *cacert, size_t cacertlen,
+	const char *ca_signer_id, size_t ca_signer_id_len);
 
 
 #ifdef  __cplusplus

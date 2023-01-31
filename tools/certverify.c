@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -13,9 +13,24 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_crl.h>
 
 
-static const char *options = "-in pem [-double_certs] -cacert pem\n";
+static const char *usage =
+	" -in pem [-double_certs]"
+	" [-check_crl]"
+	" -cacert pem"
+	"\n";
+
+static const char *options =
+"Options\n"
+"\n"
+"    -in pem             Input certificate chain file in PEM format\n"
+"    -double_certs       The first two certificates are SM2 signing and encryption entity certificate\n"
+"    -check_crl          If the entity certificate has CRLDistributionPoints extension, Download and check againt the CRL\n"
+"    -cacert pem         CA certificate\n"
+"\n";
+
 
 int certverify_main(int argc, char **argv)
 {
@@ -39,6 +54,8 @@ int certverify_main(int argc, char **argv)
 	size_t enc_cert_len;
 	int rv;
 
+	int check_crl = 0;
+
 	argc--;
 	argv++;
 
@@ -49,7 +66,8 @@ int certverify_main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
+			printf("usage: %s %s\n", prog, usage);
+			printf("%s\n", options);
 			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-in")) {
@@ -61,6 +79,8 @@ int certverify_main(int argc, char **argv)
 			}
 		} else if (!strcmp(*argv, "-double_certs")) {
 			double_certs = 1;
+		} else if (!strcmp(*argv, "-check_crl")) {
+			check_crl = 1;
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -127,6 +147,12 @@ bad:
 		}
 		printf("Verification %s\n", rv ? "success" : "failure");
 
+		if (check_crl) {
+			if (x509_cert_check_crl(cert, certlen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) < 0) {
+				fprintf(stderr, "%s: certificate has been revoked\n", prog);
+				goto end;
+			}
+		}
 		if (double_certs) {
 			x509_name_print(stdout, 0, 0, "Certificate", subj, subj_len);
 
@@ -136,8 +162,18 @@ bad:
 			}
 			printf("Verification %s\n", rv ? "success" : "failure");
 			double_certs = 0;
+
+			if (check_crl) {
+				if (x509_cert_check_crl(enc_cert, enc_cert_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) < 0) {
+					fprintf(stderr, "%s: certificate has been revoked\n", prog);
+					goto end;
+				}
+			}
+
 		}
 		x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
+
+		check_crl = 0; // only check the entity CRL
 
 		memcpy(cert, cacert, cacertlen);
 		certlen = cacertlen;

@@ -15,6 +15,7 @@
 #include <gmssl/pem.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
+#include <gmssl/x509_crl.h>
 #include <gmssl/http.h>
 
 #include <gmssl/error.h>
@@ -42,9 +43,8 @@ int crlget_main(int argc, char **argv)
 	size_t certlen = 0;
 	char *outfile = NULL;
 	FILE *outfp = stdout;
-
-	const uint8_t *exts;
-	size_t extslen;
+	uint8_t *crl = NULL;
+	size_t crl_len = 0;
 
 	argc--;
 	argv++;
@@ -86,6 +86,9 @@ bad:
 		goto end;
 	}
 
+	/*
+	const uint8_t *exts;
+	size_t extslen;
 	if (x509_cert_get_exts(cert, certlen, &exts, &extslen) != 1) {
 		error_print();
 		goto end;
@@ -120,8 +123,6 @@ bad:
 		goto end;
 	}
 
-	uint8_t *crl = NULL;
-	size_t crl_len = 0;
 
 	if (http_get(uristr, NULL, &crl_len, 0) < 0) {
 		error_print();
@@ -135,6 +136,13 @@ bad:
 		error_print();
 		goto end;
 	}
+	*/
+
+
+	if (x509_crl_new_from_cert(&crl, &crl_len, cert, certlen) != 1) {
+		error_print();
+		goto end;
+	}
 
 	fwrite(crl, crl_len, 1, outfp);
 
@@ -145,3 +153,4 @@ end:
 	if (outfile && outfp) fclose(outfp);
 	return ret;
 }
+

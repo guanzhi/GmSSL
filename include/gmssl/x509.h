@@ -340,8 +340,7 @@ int x509_cert_get_issuer_and_serial_number(const uint8_t *a, size_t alen,
 int x509_cert_get_issuer(const uint8_t *a, size_t alen, const uint8_t **name, size_t *namelen);
 int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **subj, size_t *subj_len);
 int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, SM2_KEY *public_key);
-#define x509_cert_get_exts(a,alen,d,dlen) x509_cert_get_details(a,alen,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,d,dlen,NULL,NULL,NULL)
-
+int x509_cert_get_exts(const uint8_t *a, size_t alen, const uint8_t **d, size_t *dlen);
 
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp);
 int x509_certs_from_pem(uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp);
