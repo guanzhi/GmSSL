@@ -19,6 +19,7 @@ extern int certgen_main(int argc, char **argv);
 extern int certparse_main(int argc, char **argv);
 extern int certverify_main(int argc, char **argv);
 extern int certrevoke_main(int argc, char **argv);
+extern int crlget_main(int argc, char **argv);
 extern int crlgen_main(int argc, char **argv);
 extern int crlparse_main(int argc, char **argv);
 extern int crlverify_main(int argc, char **argv);
@@ -82,6 +83,7 @@ static const char *options =
 	"  reqgen          Generate certificate signing request (CSR)\n"
 	"  reqsign         Generate certificate from CSR\n"
 	"  reqparse        Parse and print a CSR\n"
+	"  crlget          Download the CRL of given certificate\n"
 	"  crlgen          Sign a CRL with CA certificate and private key\n"
 	"  crlparse        Verify a CRL with certificate\n"
 	"  crlverify       Parse and print CRL\n"
@@ -134,6 +136,8 @@ int main(int argc, char **argv)
 			return certverify_main(argc, argv);
 		} else if (!strcmp(*argv, "certrevoke")) {
 			return certrevoke_main(argc, argv);
+		} else if (!strcmp(*argv, "crlget")) {
+			return crlget_main(argc, argv);
 		} else if (!strcmp(*argv, "crlgen")) {
 			return crlgen_main(argc, argv);
 		} else if (!strcmp(*argv, "crlparse")) {

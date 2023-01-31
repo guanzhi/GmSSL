@@ -104,6 +104,7 @@ set(tools
 	tools/reqparse.c
 	tools/reqsign.c
 	tools/crlgen.c
+	tools/crlget.c
 	tools/crlparse.c
 	tools/crlverify.c
 	tools/cmssign.c

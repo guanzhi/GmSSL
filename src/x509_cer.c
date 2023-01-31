@@ -889,7 +889,20 @@ int x509_exts_get_ext_by_index(const uint8_t *d, size_t dlen, int index,
 int x509_exts_get_ext_by_oid(const uint8_t *d, size_t dlen, int oid,
 	int *critical, const uint8_t **val, size_t *vlen)
 {
-	return -1;
+	int ext_id;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+
+	while (dlen) {
+		if (x509_ext_from_der(&ext_id, nodes, &nodes_cnt, critical, val, vlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (ext_id == oid) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int x509_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)

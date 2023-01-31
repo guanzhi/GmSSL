@@ -833,6 +833,25 @@ static int test_x509_cert_with_exts(void)
 	return 1;
 }
 
+static int test_x509_distribution_point_name(void)
+{
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+
+	x509_general_name_to_der(X509_gn_uniform_resource_identifier, (uint8_t *)"http://", 7, &p, &len);
+
+//	x509_uri_as_general_names_to_der_ex(0x80, "http://", 7, &p, &len);
+
+	format_bytes(stderr, 0, 0, "GeneralNames", buf, len);
+
+	return 1;
+}
+
+
+
 int main(int argc, char **argv)
 {
 	if (test_x509_other_name() != 1) goto err;
@@ -851,6 +870,8 @@ int main(int argc, char **argv)
 	if (test_x509_revoke_reasons() != 1) goto err;
 	if (test_x509_exts() != 1) goto err;
 	if (test_x509_cert_with_exts() != 1) goto err;
+	if (test_x509_distribution_point_name() != 1) goto err;
+
 	printf("%s all tests passed!\n", __FILE__);
 	return 0;
 err:

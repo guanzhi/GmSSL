@@ -679,47 +679,18 @@ int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t ma
 	return 1;
 }
 
-int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen,
-	uint8_t **out, size_t *outlen)
-{
-	int choice = X509_gn_uniform_resource_identifier;
-	size_t len = 0;
-
-	if (!uri || !urilen) {
-		return 0;
-	}
-	if (x509_general_name_to_der(choice, (uint8_t *)uri, urilen, NULL, &len) != 1
-		|| asn1_sequence_header_to_der_ex(tag, len, out, outlen) != 1
-		|| x509_general_name_to_der(choice, (uint8_t *)uri, urilen, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-/*
-int x509_uri_as_general_names_from_der_ex(int tag, const uint8_t **uri, size_t *urilen,
-	const uint8_t **in, size_t *inlen)
-{
-	int choice = X509_gn_uniform_resource_identifier;
-	int ret;
-	const uint8_t *d;
-	size_t dlen;
-
-	if ((ret = asn1_sequence_from_der_ex(tag, &d, &dlen, in, inlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	if (x509_general_names_get_first(d, dlen, NULL, choice, uri, urilen) < 0) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
-
 int x509_general_names_get_next(const uint8_t *gns, size_t gns_len, const uint8_t **ptr, int choice, const uint8_t **d, size_t *dlen)
 {
+
+	if (!gns || !gns_len) {
+		error_print();
+		return -1;
+	}
+	if (!ptr || !d || !dlen) {
+		error_print();
+		return -1;
+	}
+
 	if (*ptr > gns + gns_len) {
 		error_print();
 		return -1;
@@ -742,12 +713,67 @@ int x509_general_names_get_next(const uint8_t *gns, size_t gns_len, const uint8_
 int x509_general_names_get_first(const uint8_t *gns, size_t gns_len, const uint8_t **ptr, int choice, const uint8_t **d, size_t *dlen)
 {
 	int ret;
-	*ptr = gns;
-	if ((ret = x509_general_names_get_next(gns, gns_len, ptr, choice, d, dlen)) < 0) {
+	const uint8_t *p;
+	p = gns;
+
+	if ((ret = x509_general_names_get_next(gns, gns_len, &p, choice, d, dlen)) < 0) {
 		error_print();
 		return - 1;
 	}
+
+	if (ptr) {
+		*ptr = p;
+	}
+
 	return ret;
+}
+
+
+
+/*
+DistributionPointName ::= CHOICE {
+     fullName                [0]     GeneralNames,
+     nameRelativeToCRLIssuer [1]     RelativeDistinguishedName }
+
+本来GeneralNames是一个SEQUENCE OF，本来这个类型编码的时候应该是80开头的
+
+
+*/
+int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen,
+	uint8_t **out, size_t *outlen)
+{
+	int choice = X509_gn_uniform_resource_identifier;
+	size_t len = 0;
+
+	if (!uri || !urilen) {
+		return 0;
+	}
+	if (x509_general_name_to_der(choice, (uint8_t *)uri, urilen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der_ex(tag, len, out, outlen) != 1
+		|| x509_general_name_to_der(choice, (uint8_t *)uri, urilen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_uri_as_general_names_from_der_ex(int tag, const uint8_t **uri, size_t *urilen,
+	const uint8_t **in, size_t *inlen)
+{
+	int choice = X509_gn_uniform_resource_identifier;
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_type_from_der(tag, &d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_general_names_get_first(d, dlen, NULL, choice, uri, urilen) < 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int x509_general_names_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -2009,6 +2035,7 @@ int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t
 	switch (tag) {
 	case ASN1_TAG_EXPLICIT(0):
 		*choice = 0;
+		// 此时返回的值是GeneralNames的d,dlen，因此这个返回值不能用general_names_from来解析
 		break;
 	case ASN1_TAG_EXPLICIT(1):
 		*choice = 1;
@@ -2033,8 +2060,10 @@ int x509_uri_as_distribution_point_name_from_der(const char **uri, size_t *urile
 		return ret;
 	}
 	if (choice == 0) {
-		*uri = (char *)d;
-		*urilen = dlen;
+		if (x509_general_names_get_first(d, dlen, NULL, choice, (const uint8_t **)uri, urilen) < 0) {
+			error_print();
+			return -1;
+		}
 	}
 	return 1;
 }
@@ -2187,6 +2216,32 @@ int x509_uri_as_distribution_points_to_der(const char *uri, size_t urilen,
 	return 1;
 }
 
+
+/*
+
+DistributionPoints :== SEQUENCE OF DistributionPoint
+
+
+	80 Len  -- DistributionPoints header
+
+		80  Len  DistributionPoint 1 header
+
+			80 EXPLICIT(0)
+				DistributionPointName
+				80 len d,dln GeneralNames
+					06 len URI
+
+			01 len d,dlen ReasonFlags
+			82 len, d,dlen GeneralNames
+
+		80  Len  DistributionPoint 2 header
+
+
+
+		80  Len  DistributionPoint 3 header
+
+*/
+
 int x509_uri_as_distribution_points_from_der(const char **uri, size_t *urilen,
 	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
 	const uint8_t **in, size_t *inlen)
@@ -2213,7 +2268,6 @@ int x509_uri_as_distribution_points_from_der(const char **uri, size_t *urilen,
 		}
 	}
 	return 1;
-
 }
 
 int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -2686,5 +2740,6 @@ int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t m
 	}
 	return 1;
 }
+
 
 
