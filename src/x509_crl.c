@@ -529,7 +529,7 @@ int x509_revoked_cert_from_der(
 	}
 	if (asn1_integer_from_der(serial, serial_len, &d, &dlen) != 1
 		|| x509_time_from_der(revoke_date, &d, &dlen) != 1
-		|| asn1_sequence_from_der(crl_entry_exts, crl_entry_exts_len, &d, &dlen) != 1
+		|| asn1_sequence_from_der(crl_entry_exts, crl_entry_exts_len, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;

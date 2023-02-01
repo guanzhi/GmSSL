@@ -1669,7 +1669,7 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 // 这里面需要validate的类型是两种，一种直接得到了实际值，因此可以直接对实际值做验证
 // 另一种是SEQUENCE OF类型，本质上是完整的a,alen，因此这种类型实际上可以用from_der来解析
 int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
-	int *path_len_constraints)
+	int *path_len_constraint)
 {
 	int version;
 	time_t now;
@@ -1740,7 +1740,7 @@ int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type,
 		//return -1;
 	}
 
-	if (x509_exts_validate(exts, extslen, cert_type, path_len_constraints) != 1) {
+	if (x509_exts_validate(exts, extslen, cert_type, path_len_constraint) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1765,7 +1765,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	size_t namelen;
 
 	int path_len = 0;
-	int path_len_constraints;
+	int path_len_constraint;
 
 	switch (certs_type) {
 	case X509_cert_chain_server:
@@ -1784,7 +1784,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		error_print();
 		return -1;
 	}
-	if (x509_cert_validate(cert, certlen, entity_cert_type, &path_len_constraints) != 1) {
+	if (x509_cert_validate(cert, certlen, entity_cert_type, &path_len_constraint) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1795,18 +1795,18 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			error_print();
 			return -1;
 		}
-		if (x509_cert_validate(cert, certlen, X509_cert_ca, &path_len_constraints) != 1) {
+		if (x509_cert_validate(cert, certlen, X509_cert_ca, &path_len_constraint) != 1) {
 			error_print();
 			return -1;
 		}
 
 		if (path_len == 0) {
-			if (path_len_constraints != 0) {
+			if (path_len_constraint != 0) {
 				error_print();
 				return -1;
 			}
 		}
-		if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+		if ((path_len_constraint >= 0 && path_len > path_len_constraint)
 			|| path_len > depth) {
 			error_print();
 			return -1;
@@ -1833,11 +1833,11 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		return -1;
 	}
 
-	if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraints) != 1) {
+	if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
 		error_print();
 		return -1;
 	}
-	if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+	if ((path_len_constraint >= 0 && path_len > path_len_constraint)
 		|| path_len > depth) {
 		error_print();
 		return -1;
@@ -1866,7 +1866,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	size_t namelen;
 
 	int path_len = 0;
-	int path_len_constraints;
+	int path_len_constraint;
 
 	switch (certs_type) {
 	case X509_cert_chain_server:
@@ -1886,7 +1886,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if (x509_cert_validate(cert, certlen, sign_cert_type, &path_len_constraints) != 1) {
+	if (x509_cert_validate(cert, certlen, sign_cert_type, &path_len_constraint) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1896,7 +1896,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if (x509_cert_validate(kenc_cert, kenc_certlen, kenc_cert_type, &path_len_constraints) != 1) {
+	if (x509_cert_validate(kenc_cert, kenc_certlen, kenc_cert_type, &path_len_constraint) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1907,13 +1907,13 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 			error_print();
 			return -1;
 		}
-		if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraints) != 1) {
+		if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
 			error_print();
 			return -1;
 		}
 
 		if (path_len == 0) {
-			if (path_len_constraints != 0) {
+			if (path_len_constraint != 0) {
 				error_print();
 				return -1;
 			}
@@ -1925,7 +1925,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 				return -1;
 			}
 		}
-		if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+		if ((path_len_constraint >= 0 && path_len > path_len_constraint)
 			|| path_len > depth) {
 			error_print();
 			return -1;
@@ -1951,11 +1951,11 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraints) != 1) {
+	if (x509_cert_validate(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
 		error_print();
 		return -1;
 	}
-	if ((path_len_constraints >= 0 && path_len > path_len_constraints)
+	if ((path_len_constraint >= 0 && path_len > path_len_constraint)
 		|| path_len > depth) {
 		error_print();
 		return -1;

@@ -33,7 +33,7 @@ static const char *options =
 	" [-key_usage str]*"
 	" [-subject_dns_name str]*"
 	" [-issuer_dns_name str]*"
-	" [-ca -path_len_constraints num]"
+	" [-ca -path_len_constraint num]"
 	" [-ext_key_usage str]*"
 	" [-crl_http_uri uri] [-crl_ldap_uri uri]"
 	" [-inhibit_any_policy num]"
@@ -85,7 +85,7 @@ static char *usage =
 "    -issuer_dns_name str         Add DNS name to IssuerAltName extension\n"
 "                                 this option can be called multi-times\n"
 "    -ca                          Set cA of BasicConstaints extension\n"
-"    -path_len_constraints num    Set pathLenConstaints of BasicConstaints extension\n"
+"    -path_len_constraint num     Set pathLenConstraint of BasicConstaints extension\n"
 "    -ext_key_usage str           Set ExtKeyUsage extension\n"
 "                                 this option can be called multi-times\n"
 "                                 avaiable values:\n"
@@ -108,7 +108,7 @@ static char *usage =
 "\n"
 "    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \\\n"
 "          -key rootcakey.pem -pass P@ssw0rd \\\n"
-"          -ca -path_len_constraints 6 \\\n"
+"          -ca -path_len_constraint 6 \\\n"
 "          -key_usage keyCertSign -key_usage cRLSign \\\n"
 "          -crl_http_uri http://pku.edu.cn/ca.crl \\\n"
 "          -ca_issuers_uri http://pku.edu.cn/ca.crt -ocsp_uri http://ocsp.pku.edu.cn \\\n"
@@ -187,7 +187,7 @@ int certgen_main(int argc, char **argv)
 
 	// BasicConstraints
 	int ca = -1;
-	int path_len_constraints = -1;
+	int path_len_constraint = -1;
 
 	// ExtKeyUsageSyntax
 	int ext_key_usages[12];
@@ -316,11 +316,11 @@ int certgen_main(int argc, char **argv)
 			}
 		} else if (!strcmp(*argv, "-ca")) {
 			ca = 1;
-		} else if (!strcmp(*argv, "-path_len_constraints")) {
+		} else if (!strcmp(*argv, "-path_len_constraint")) {
 			if (--argc < 1) goto bad;
-			path_len_constraints = atoi(*(++argv));
-			if (path_len_constraints < 0) {
-				fprintf(stderr, "%s: invalid `-path_len_constraints` value\n", prog);
+			path_len_constraint = atoi(*(++argv));
+			if (path_len_constraint < 0) {
+				fprintf(stderr, "%s: invalid `-path_len_constraint` value\n", prog);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-ext_key_usage")) {
@@ -459,9 +459,9 @@ bad:
 		}
 	}
 	// no SubjectDirectoryAttributes
-	if (ca >= 0 || path_len_constraints >= 0) {
+	if (ca >= 0 || path_len_constraint >= 0) {
 		if (x509_exts_add_basic_constraints(exts, &extslen, sizeof(exts),
-			X509_critical, ca, path_len_constraints) != 1) {
+			X509_critical, ca, path_len_constraint) != 1) {
 			fprintf(stderr, "%s: set BasicConstraints extension failure\n", prog);
 			goto end;
 		}

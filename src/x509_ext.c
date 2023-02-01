@@ -1532,16 +1532,16 @@ int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type)
 	/*
 	entity_cert:
 		ca = -1 or 0
-		path_len_constraints = -1
+		path_len_constraint = -1
 	first_ca_cert:
 		ca = 1
-		path_len_constraints = 0
+		path_len_constraint = 0
 	middle_ca_cert:
 		ca = 1
-		path_len_constraints = -1 or > 0
+		path_len_constraint = -1 or > 0
 	root_ca_cert:
 		ca = 1
-		path_len_constraints = -1 or > 0 (=0 might be ok?)
+		path_len_constraint = -1 or > 0 (=0 might be ok?)
 	*/
 	if (cert_type == X509_cert_ca) {
 		if (ca != 1) {
@@ -2307,7 +2307,7 @@ int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label,
 }
 
 int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
-	int *path_len_constraints)
+	int *path_len_constraint)
 {
 	int oid;
 	uint32_t nodes[32];
@@ -2322,7 +2322,7 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 	int ext_key_usages[X509_MAX_KEY_PURPOSES];
 	size_t ext_key_usages_cnt;
 
-	*path_len_constraints = -1;
+	*path_len_constraint = -1;
 
 	while (extslen) {
 		if (x509_ext_from_der(&oid, nodes, &nodes_cnt, &critical, &val, &vlen, &exts, &extslen) != 1) {
@@ -2434,7 +2434,7 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 			error_print();
 			return -1;
 		}
-		*path_len_constraints = path_len;
+		*path_len_constraint = path_len;
 		break;
 	}
 

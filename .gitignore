@@ -2,6 +2,7 @@
 # generated file
 /build*
 /demos/*.pem
+/demos/.private
 
 # Object files
 *.o
