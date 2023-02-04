@@ -223,6 +223,22 @@ int x509_key_usage_check(int bits, int cert_type);
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 /*
+DisplayText ::= CHOICE {
+	ia5String		IA5String	(SIZE (1..200)),
+	visibleString		VisibleString	(SIZE (1..200)),
+	bmpString		BMPString	(SIZE (1..200)),
+	utf8String		UTF8String	(SIZE (1..200))
+}
+*/
+#define X509_DISPLAY_TEXT_MIN_LEN 1
+#define X509_DISPLAY_TEXT_MAX_LEN 200
+
+int x509_display_text_check(int tag, const uint8_t *d, size_t dlen);
+int x509_display_text_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int x509_display_text_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int x509_display_text_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen);
+
+/*
 NoticeReference ::= SEQUENCE {
 	organization	DisplayText,
 	noticeNumbers	SEQUENCE OF INTEGER }

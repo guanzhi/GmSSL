@@ -1436,49 +1436,39 @@ int x509_crl_sign_to_der(
 	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen)
 {
+	size_t len = 0;
+	uint8_t *tbs;
+	size_t tbslen;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen = SM2_signature_typical_size;
-	size_t tbs_dlen = 0;
-	size_t tbs_alen = 0;
-	uint8_t *tbs_a = sig;
-	size_t crl_dlen;
 
-	if (asn1_int_to_der(version, NULL, &tbs_dlen) != 1
-		|| x509_signature_algor_to_der(sig_alg, NULL, &tbs_dlen) != 1
-		|| x509_name_to_der(issuer, issuer_len, NULL, &tbs_dlen) != 1
-		|| x509_time_to_der(this_update, NULL, &tbs_dlen) != 1
-		|| x509_time_to_der(next_update, NULL, &tbs_dlen) < 0
-		|| asn1_sequence_to_der(revoked_certs, revoked_certs_len, NULL, &tbs_dlen) < 0
-		|| x509_explicit_exts_to_der(0, crl_exts, crl_exts_len, NULL, &tbs_dlen) < 0
-		|| asn1_sequence_to_der(tbs_a, tbs_dlen, NULL, &tbs_alen) != 1) {
+	if (sig_alg != OID_sm2sign_with_sm3) {
 		error_print();
 		return -1;
 	}
-	crl_dlen = tbs_alen;
-	if (x509_signature_algor_to_der(sig_alg, NULL, &crl_dlen) != 1
-		|| asn1_bit_octets_to_der(sig, siglen, NULL, &crl_dlen) != 1
-		|| asn1_sequence_header_to_der(crl_dlen, out, outlen) != 1) {
+
+	if (x509_tbs_crl_to_der(version, sig_alg, issuer, issuer_len,
+			this_update, next_update, revoked_certs, revoked_certs_len,
+			crl_exts, crl_exts_len, NULL, &len) != 1
+		|| x509_signature_algor_to_der(sig_alg, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (out && *out) {
-		tbs_a = *out;
-	}
-	if (asn1_sequence_header_to_der(tbs_dlen, out, outlen) != 1
-		|| asn1_int_to_der(version, out, outlen) != 1
-		|| x509_signature_algor_to_der(sig_alg, out, outlen) != 1
-		|| x509_name_to_der(issuer, issuer_len, out, outlen) != 1
-		|| x509_time_to_der(this_update, out, outlen) != 1
-		|| x509_time_to_der(next_update, out, outlen) < 0
-		|| asn1_sequence_to_der(revoked_certs, revoked_certs_len, out, outlen) < 0
-		|| x509_explicit_exts_to_der(0, crl_exts, crl_exts_len, out, outlen) < 0) {
+	tbs = *out;
+	if (x509_tbs_crl_to_der(version, sig_alg, issuer, issuer_len,
+			this_update, next_update, revoked_certs, revoked_certs_len,
+			crl_exts, crl_exts_len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
+	tbslen = *out - tbs;
+
 	if (out && *out) {
 		SM2_SIGN_CTX sign_ctx;
 		if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
-			|| sm2_sign_update(&sign_ctx, tbs_a, tbs_alen) != 1
+			|| sm2_sign_update(&sign_ctx, tbs, tbslen) != 1
 			|| sm2_sign_finish_fixlen(&sign_ctx, siglen, sig) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();

@@ -83,6 +83,7 @@ int reqgen_main(int argc, char **argv)
 	char *outfile = NULL;
 	FILE *outfp = stdout;
 	uint8_t req[1024];
+	uint8_t *p = req;
 	size_t reqlen = 0;
 
 	argc--;
@@ -198,13 +199,14 @@ bad:
 		goto end;
 	}
 
-	if (x509_req_sign(req, &reqlen, sizeof(req),
+	if (x509_req_sign_to_der(
 		X509_version_v1,
 		name, namelen,
 		&sm2_key,
 		NULL, 0,
 		OID_sm2sign_with_sm3,
-		&sm2_key, signer_id, signer_id_len) != 1) {
+		&sm2_key, signer_id, signer_id_len,
+		&p, &reqlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}

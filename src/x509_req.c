@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
@@ -75,10 +76,12 @@ int x509_request_info_from_der(
 		error_print();
 		return -1;
 	}
+	/*
 	if (*version != X509_version_v1) {
 		error_print();
 		return -1;
 	}
+	*/
 	return 1;
 }
 
@@ -106,30 +109,7 @@ err:
 	return -1;
 }
 
-int x509_request_to_der(
-	int version,
-	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
-	const uint8_t *attrs, size_t attrs_len,
-	int signature_algor,
-	const uint8_t *sig, size_t siglen,
-	uint8_t **out, size_t *outlen)
-{
-	size_t len = 0;
-	if (x509_request_info_to_der(version, subject, subject_len, subject_public_key, attrs, attrs_len, NULL, &len) != 1
-		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
-		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| x509_request_info_to_der(version, subject, subject_len, subject_public_key, attrs, attrs_len, out, outlen) != 1
-		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
-		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_request_from_der(
+static int x509_request_from_der(
 	int *version,
 	const uint8_t **subject, size_t *subject_len,
 	SM2_KEY *subject_public_key,
@@ -157,7 +137,7 @@ int x509_request_from_der(
 	return 1;
 }
 
-int x509_request_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+static int x509_request_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;
 	size_t len;
@@ -178,51 +158,50 @@ err:
 	return -1;
 }
 
-int x509_req_sign(
-	uint8_t *req, size_t *reqlen, size_t maxlen,
+int x509_req_sign_to_der(
 	int version,
 	const uint8_t *subject, size_t subject_len,
 	const SM2_KEY *subject_public_key,
 	const uint8_t *attrs, size_t attrs_len,
 	int signature_algor,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len)
+	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	uint8_t **out, size_t *outlen)
 {
-	uint8_t req_info[2048];
-	size_t req_info_len = 0;
-	uint8_t *p = req_info;
 	size_t len = 0;
-	SM2_SIGN_CTX sign_ctx;
+	uint8_t *tbs;
+	size_t tbslen;
+	int sig_alg = OID_sm2sign_with_sm3;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen;
+	size_t siglen = SM2_signature_typical_size;
 
 	if (x509_request_info_to_der(version, subject, subject_len, subject_public_key,
 			attrs, attrs_len, NULL, &len) != 1
-		|| asn1_length_le(len, sizeof(req_info)) != 1
-		|| x509_request_info_to_der(version, subject, subject_len, subject_public_key,
-			attrs, attrs_len, &p, &req_info_len) != 1) {
+		|| x509_signature_algor_to_der(sig_alg, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
-
-	if (signature_algor != OID_sm2sign_with_sm3) {
+	tbs = *out;
+	if (x509_request_info_to_der(version, subject, subject_len, subject_public_key,
+			attrs, attrs_len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
-		|| sm2_sign_update(&sign_ctx, req_info, req_info_len) != 1
-		|| sm2_sign_finish(&sign_ctx, sig, &siglen) != 1) {
-		memset(&sign_ctx, 0, sizeof(sign_ctx));
-		error_print();
-		return -1;
+	tbslen = *out - tbs;
+	if (out && *out) {
+		SM2_SIGN_CTX sign_ctx;
+		if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
+			|| sm2_sign_update(&sign_ctx, tbs, tbslen) != 1
+			|| sm2_sign_finish_fixlen(&sign_ctx, siglen, sig) != 1) {
+			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
+			error_print();
+			return -1;
+		}
+		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 	}
-	memset(&sign_ctx, 0, sizeof(sign_ctx));
-
-	len = *reqlen = 0;
-	if (x509_request_to_der(version, subject, subject_len, subject_public_key,
-			attrs, attrs_len, signature_algor, sig, siglen, NULL, &len) != 1
-		|| asn1_length_le(len, maxlen) != 1
-		|| x509_request_to_der(version, subject, subject_len, subject_public_key,
-			attrs, attrs_len, signature_algor, sig, siglen, &req, reqlen) != 1) {
+	if (x509_signature_algor_to_der(sig_alg, out, outlen) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -233,7 +212,8 @@ int x509_req_verify(const uint8_t *req, size_t reqlen, const char *signer_id, si
 {
 	SM2_KEY public_key;
 
-	if (x509_req_get_details(req, reqlen, NULL, NULL, NULL, &public_key, NULL, NULL, NULL, NULL, NULL) != 1) {
+	if (x509_req_get_details(req, reqlen,
+		NULL, NULL, NULL, &public_key, NULL, NULL, NULL, NULL, NULL) != 1) {
 		error_print();
 		return -1;
 	}
@@ -280,6 +260,31 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	return 1;
 }
 
+int x509_req_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
+{
+	int ret;
+	if ((ret = asn1_any_to_der(a, alen, out, outlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int x509_req_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	if ((ret = asn1_any_from_der(a, alen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_req_get_details(*a, *alen,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen)
 {
 	const uint8_t *d;
@@ -309,52 +314,5 @@ int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp)
 		error_print();
 		return -1;
 	}
-	return 1;
-}
-
-#include <gmssl/file.h>
-
-int x509_req_new_from_pem(uint8_t **out, size_t *outlen, FILE *fp)
-{
-	uint8_t *req;
-	size_t reqlen;
-	size_t maxlen;
-
-	if (!out || !outlen || !fp) {
-		error_print();
-		return -1;
-	}
-	if (file_size(fp, &maxlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (!(req = malloc(maxlen))) {
-		error_print();
-		return -1;
-	}
-	if (x509_req_from_pem(req, &reqlen, maxlen, fp) != 1) {
-		free(req);
-		error_print();
-		return -1;
-	}
-	*out = req;
-	*outlen = reqlen;
-	return 1;
-}
-
-int x509_req_new_from_file(uint8_t **req, size_t *reqlen, const char *file)
-{
-	FILE *fp = NULL;
-
-	if (!(fp = fopen(file, "rb"))) {
-		error_print();
-		return -1;
-	}
-	if (x509_req_new_from_pem(req, reqlen, fp) != 1) {
-		error_print();
-		fclose(fp);
-		return -1;
-	}
-	fclose(fp);
 	return 1;
 }

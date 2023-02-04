@@ -1000,18 +1000,10 @@ int x509_cert_sign_to_der(
 		issuer_unique_id, issuer_unique_id_len,
 		subject_unique_id, subject_unique_id_len,
 		exts, exts_len,
-		NULL, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	tbslen = len;
-	if (x509_signature_algor_to_der(sig_alg, NULL, &len) != 1
-		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (asn1_sequence_header_to_der(len, out, outlen) != 1) {
+		NULL, &len) != 1
+		|| x509_signature_algor_to_der(sig_alg, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(sig, siglen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
