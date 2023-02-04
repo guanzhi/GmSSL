@@ -288,6 +288,7 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sigbuf
 	}
 	if ((ret = sm2_do_verify(key, dgst, &sig)) != 1) {
 		if (ret < 0) error_print();
+		else error_print();
 		return ret;
 	}
 	return 1;
@@ -405,7 +406,7 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 		error_print();
 		return -1;
 	}
-	ctx->key = *key;
+	ctx->key = *key; //FIXME: only copy public_key
 	sm3_init(&ctx->sm3_ctx);
 
 	if (id) {
@@ -444,6 +445,7 @@ int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 	sm3_finish(&ctx->sm3_ctx, dgst);
 	if ((ret = sm2_verify(&ctx->key, dgst, sig, siglen)) != 1) {
 		if (ret < 0) error_print();
+		else error_print();
 		return ret;
 	}
 	return 1;

@@ -779,7 +779,8 @@ static int test_x509_exts(void)
 static int test_x509_cert_with_exts(void)
 {
 	uint8_t cert[1024];
-	size_t certlen;
+	size_t certlen = 0;
+	uint8_t *p = cert;
 	uint8_t serial[20];
 	uint8_t name[256];
 	size_t namelen;
@@ -810,8 +811,7 @@ static int test_x509_cert_with_exts(void)
 		return -1;
 	}
 
-	if (x509_cert_sign(
-		cert, &certlen, sizeof(cert),
+	if (x509_cert_sign_to_der(
 		X509_version_v3,
 		serial, sizeof(serial),
 		OID_sm2sign_with_sm3,
@@ -823,10 +823,16 @@ static int test_x509_cert_with_exts(void)
 		uniq_id, sizeof(uniq_id),
 		exts, extslen,
 		&sm2_key,
-		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
+		&p, &certlen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (certlen > sizeof(cert)) {
+		error_print();
+		return -1;
+	}
+
 	x509_cert_print(stderr, 0, 0, "Certificate", cert, certlen);
 
 

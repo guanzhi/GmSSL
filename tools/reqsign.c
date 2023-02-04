@@ -185,8 +185,9 @@ int reqsign_main(int argc, char **argv)
 	// Output
 	char *outfile = NULL;
 	FILE *outfp = stdout;
-	uint8_t cert[4096];
-	size_t certlen;
+	uint8_t *cert = NULL;
+	size_t certlen = 0;
+	uint8_t *p;
 
 	// Extensions
 	uint8_t exts[4096];
@@ -559,8 +560,7 @@ bad:
 		}
 	}
 
-	if (x509_cert_sign(
-		cert, &certlen, sizeof(cert),
+	if (x509_cert_sign_to_der(
 		X509_version_v3,
 		serial, serial_len,
 		OID_sm2sign_with_sm3,
@@ -571,10 +571,34 @@ bad:
 		NULL, 0,
 		NULL, 0,
 		exts, extslen,
-		&sm2_key, signer_id, signer_id_len) != 1) {
+		&sm2_key, signer_id, signer_id_len,
+		NULL, &certlen) != 1) {
 		fprintf(stderr, "%s: certificate generation failure\n", prog);
 		goto end;
 	}
+	if (!(cert = malloc(certlen))) {
+		fprintf(stderr, "%s: malloc failure\n", prog);
+		goto end;
+	}
+	p = cert;
+	certlen = 0;
+	if (x509_cert_sign_to_der(
+		X509_version_v3,
+		serial, serial_len,
+		OID_sm2sign_with_sm3,
+		issuer, issuer_len,
+		not_before, not_after,
+		subject, subject_len,
+		&subject_public_key,
+		NULL, 0,
+		NULL, 0,
+		exts, extslen,
+		&sm2_key, signer_id, signer_id_len,
+		&p, &certlen) != 1) {
+		fprintf(stderr, "%s: certificate generation failure\n", prog);
+		goto end;
+	}
+
 	if (x509_cert_to_pem(cert, certlen, outfp) != 1) {
 		fprintf(stderr, "%s: output certificate failed\n", prog);
 		goto end;
@@ -582,6 +606,7 @@ bad:
 	ret = 0;
 end:
 	gmssl_secure_clear(&sm2_key, sizeof(SM2_KEY));
+	if (cert) free(cert);
 	if (keyfp) fclose(keyfp);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

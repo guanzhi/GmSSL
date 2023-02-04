@@ -40,6 +40,7 @@ static const char *x509_crl_reason_names[] = {
 static const size_t x509_crl_reason_names_count =
 	sizeof(x509_crl_reason_names)/sizeof(x509_crl_reason_names[0]);
 
+// 这个函数也不应该有错误的输入值
 const char *x509_crl_reason_name(int reason)
 {
 	if (reason < 0 || reason >= x509_crl_reason_names_count) {
@@ -49,6 +50,8 @@ const char *x509_crl_reason_name(int reason)
 	return x509_crl_reason_names[reason];
 }
 
+// 这个函数由于需要用在判断中，最好不要打印错误值。并且有可能这个name是一个我们不识别的值，因此返回0？
+// 不识别的name还是应该返回-1更合适
 int x509_crl_reason_from_name(int *reason, const char *name)
 {
 	int i;
@@ -197,7 +200,7 @@ int x509_crl_reason_ext_to_der(int critical, int reason, uint8_t **out, size_t *
 	uint8_t *p = val;
 	size_t vlen = 0;
 
-	if (reason < 0) {
+	if (reason == -1) {
 		return 0;
 	}
 	if (x509_crl_reason_to_der(reason, &p, &vlen) != 1
@@ -216,7 +219,7 @@ int x509_invalidity_date_ext_to_der(int critical, time_t date, uint8_t **out, si
 	uint8_t *p = val;
 	size_t vlen = 0;
 
-	if (date < 0) {
+	if (date == -1) {
 		return 0;
 	}
 	if (asn1_generalized_time_to_der(date, &p, &vlen) != 1
@@ -235,7 +238,7 @@ int x509_cert_issuer_ext_to_der(int critical, const uint8_t *d, size_t dlen, uin
 	uint8_t *p = val;
 	size_t vlen = 0;
 
-	if (!d) {
+	if (dlen == 0) {
 		return 0;
 	}
 	if (asn1_sequence_to_der(d, dlen, NULL, &vlen) != 1
@@ -369,7 +372,7 @@ int x509_crl_entry_exts_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	if (reason == -1 && invalid_date == -1 && !cert_issuer) {
+	if (reason == -1 && invalid_date == -1 && cert_issuer_len == 0) {
 		return 0;
 	}
 	if (x509_crl_reason_ext_to_der(-1, reason, NULL, &len) < 0
@@ -482,6 +485,9 @@ int x509_revoked_cert_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (serial_len == 0 && revoke_date == -1 && crl_entry_exts_len == 0) {
+		return 0;
+	}
 	if (asn1_integer_to_der(serial, serial_len, NULL, &len) != 1
 		|| asn1_generalized_time_to_der(revoke_date, NULL, &len) != 1
 		|| asn1_sequence_to_der(crl_entry_exts, crl_entry_exts_len, NULL, &len) < 0
@@ -501,6 +507,10 @@ int x509_revoked_cert_to_der_ex(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (serial_len ==0 && revoke_date == -1
+		&& reason == -1 && invalid_date == -1 && cert_issuer_len == 0) {
+		return 0;
+	}
 	if (asn1_integer_to_der(serial, serial_len, NULL, &len) != 1
 		|| asn1_generalized_time_to_der(revoke_date, NULL, &len) != 1
 		|| x509_crl_entry_exts_to_der(reason, invalid_date, cert_issuer, cert_issuer_len, NULL, &len) < 0
@@ -744,6 +754,14 @@ int x509_issuing_distribution_point_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (dist_point_uri_len == 0
+		&& only_contains_user_certs == -1
+		&& only_contains_ca_certs == -1
+		&& only_some_reasons == -1
+		&& indirect_crl == -1
+		&& only_contains_attr_certs == -1) {
+		return 0;
+	}
 	if (x509_uri_as_explicit_distribution_point_name_to_der(0, dist_point_uri, dist_point_uri_len, NULL, &len) < 0
 		|| asn1_implicit_boolean_to_der(1, only_contains_user_certs, NULL, &len) < 0
 		|| asn1_implicit_boolean_to_der(2, only_contains_ca_certs, NULL, &len) < 0
@@ -870,6 +888,10 @@ int x509_crl_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (vlen == 0) {
+		return 0;
+	}
 	if (x509_crl_ext_id_to_der(oid, NULL, &len) != 1
 		|| asn1_boolean_to_der(critical, NULL, &len) < 0
 		|| asn1_octet_string_to_der(val, vlen, NULL, &len) != 1
@@ -1538,14 +1560,10 @@ int x509_crl_get_details(const uint8_t *a, size_t alen,
 	struct {
 		int version;
 		int sig_alg;
-		const uint8_t *issuer;
-		size_t issuer_len;
-		time_t this_update;
-		time_t next_update;
-		const uint8_t *revoked_certs;
-		size_t revoked_certs_len;
-		const uint8_t *exts;
-		size_t exts_len;
+		const uint8_t *issuer; size_t issuer_len;
+		time_t this_update; time_t next_update;
+		const uint8_t *revoked_certs; size_t revoked_certs_len;
+		const uint8_t *exts; size_t exts_len;
 	} tbs;
 
 	if (x509_tbs_crl_from_der(
@@ -1842,5 +1860,3 @@ end:
 	if (crl) free(crl);
 	return ret;
 }
-
-

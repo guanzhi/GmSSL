@@ -219,7 +219,7 @@ const char *x509_key_usage_name(int flag);
 int x509_key_usage_from_name(int *flag, const char *name);
 #define x509_key_usage_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
 #define x509_key_usage_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
-int x509_key_usage_validate(int bits, int cert_type);
+int x509_key_usage_check(int bits, int cert_type);
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 /*
@@ -372,7 +372,7 @@ BasicConstraints ::= SEQUENCE {
 */
 int x509_basic_constraints_to_der(int ca, int path_len_cons, uint8_t **out, size_t *outlen);
 int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t **in, size_t *inlen);
-int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type);
+int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type);
 int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -446,7 +446,7 @@ KeyPurposeId:
 #define X509_MAX_KEY_PURPOSES	7
 int x509_ext_key_usage_to_der(const int *oids, size_t oids_cnt, uint8_t **out, size_t *outlen);
 int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, const uint8_t **in, size_t *inlen);
-int x509_ext_key_usage_validate(const int *oids, size_t oids_cnt, int cert_type);
+int x509_ext_key_usage_check(const int *oids, size_t oids_cnt, int cert_type);
 int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -482,6 +482,11 @@ DistributionPointName ::= CHOICE {
 	fullName		[0] IMPLICIT GeneralNames, -- SEQUENCE OF
 	nameRelativeToCRLIssuer	[1] IMPLICIT RelativeDistinguishedName } -- SET OF
 */
+enum {
+	X509_full_name = 0,
+	X509_name_relative_to_crl_issuer = 1,
+};
+
 int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 int x509_uri_as_distribution_point_name_from_der(const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
@@ -557,7 +562,7 @@ NetscapeCertComment ::= IA5String
 */
 int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
-int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
+int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 	int *path_len_constraints);
 
 /*

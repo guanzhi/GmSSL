@@ -70,6 +70,8 @@ Time ::= CHOICE {
 	utcTime		UTCTime,
 	generalTime	GeneralizedTime }
 */
+#define X509_MAX_UTC_TIME            2524607999 // "20491231235959Z"
+#define X509_MAX_GENERALIZED_TIME  253402300799 // "99991231235959Z"
 int x509_time_to_der(time_t a, uint8_t **out, size_t *outlen);
 int x509_time_from_der(time_t *a, const uint8_t **in, size_t *inlen);
 
@@ -84,8 +86,25 @@ Validity ::= SEQUENCE {
 int x509_validity_add_days(time_t *not_after, time_t not_before, int days);
 int x509_validity_to_der(time_t not_before, time_t not_after, uint8_t **out, size_t *outlen);
 int x509_validity_from_der(time_t *not_before, time_t *not_after, const uint8_t **in, size_t *inlen);
-int x509_validity_validate(time_t not_before, time_t not_after, time_t now, int max_secs);
+int x509_validity_check(time_t not_before, time_t not_after, time_t now, int max_secs);
 int x509_validity_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+/*
+DirectoryString or DirectoryName
+
+DirectoryName ::= CHOICE {
+	teletexString		TeletexString	(SIZE (1..MAX)),
+	printableString		PrintableString	(SIZE (1..MAX)),
+	universalString		UniversalString	(SIZE (1..MAX)),
+	utf8String		UTF8String	(SIZE (1..MAX)),
+	bmpString		BMPString	(SIZE (1..MAX)),
+}
+*/
+int x509_directory_name_check(int tag, const uint8_t *d, size_t dlen);
+int x509_directory_name_check_ex(int tag, const uint8_t *d, size_t dlen, size_t minlen, size_t maxlen);
+int x509_directory_name_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int x509_directory_name_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int x509_directory_name_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen);
 
 /*
 AttributeTypeAndValue ::= SEQUENCE {
@@ -130,7 +149,7 @@ RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue
 */
 int x509_rdn_to_der(int oid, int tag, const uint8_t *val, size_t vlen, const uint8_t *more, size_t mlen, uint8_t **out, size_t *outlen);
 int x509_rdn_from_der(int *oid, int *tag, const uint8_t **val, size_t *vlen, const uint8_t **more, size_t *mlen, const uint8_t **in, size_t *inlen);
-int x509_rdn_validate(const uint8_t *d, size_t dlen);
+int x509_rdn_check(const uint8_t *d, size_t dlen);
 int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -156,12 +175,12 @@ int x509_name_add_common_name(uint8_t *d, size_t *dlen, size_t maxlen, int tag, 
 int x509_name_add_domain_component(uint8_t *d, size_t *dlen, size_t maxlen, const char *val, size_t vlen); // val: IA5String
 
 int x509_name_set(uint8_t *d, size_t *dlen, size_t maxlen,
-	const char *country, const char *state, const char *locality,
+	const char country[2], const char *state, const char *locality,
 	const char *org, const char *org_unit, const char *common_name);
 
 #define x509_name_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
 #define x509_name_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
-int x509_name_validate(const uint8_t *d, size_t dlen);
+int x509_name_check(const uint8_t *d, size_t dlen);
 int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);
 int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uint8_t **val, size_t *vlen);
@@ -200,10 +219,6 @@ int x509_explicit_exts_from_der(int index, const uint8_t **d, size_t *dlen, cons
 #define x509_exts_to_der(d,dlen,out,outlen) x509_explicit_exts_to_der(3,d,dlen,out,outlen)
 #define x509_exts_from_der(d,dlen,in,inlen) x509_explicit_exts_from_der(3,d,dlen,in,inlen)
 
-int x509_exts_get_count(const uint8_t *d, size_t dlen, size_t *cnt);
-int x509_exts_get_ext_by_index(const uint8_t *d, size_t dlen, int index,
-	int *oid, uint32_t *nodes, size_t *nodes_cnt, int *critical,
-	const uint8_t **val, size_t *vlen);
 int x509_exts_get_ext_by_oid(const uint8_t *d, size_t dlen, int oid,
 	int *critical, const uint8_t **val, size_t *vlen);
 int x509_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -284,9 +299,23 @@ int x509_signed_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key,
 int x509_signed_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len);
 
-int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+//int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 // x509_cert functions
+int x509_cert_sign_to_der(
+	int version,
+	const uint8_t *serial, size_t serial_len,
+	int signature_algor,
+	const uint8_t *issuer, size_t issuer_len,
+	time_t not_before, time_t not_after,
+	const uint8_t *subject, size_t subject_len,
+	const SM2_KEY *subject_public_key,
+	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
+	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
+	const uint8_t *exts, size_t exts_len,
+	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	uint8_t **out, size_t *outlen);
+/*
 int x509_cert_sign(
 	uint8_t *cert, size_t *certlen, size_t maxlen,
 	int version,
@@ -301,12 +330,12 @@ int x509_cert_sign(
 	const uint8_t *exts, size_t exts_len,
 	const SM2_KEY *sign_key,
 	const char *signer_id, size_t signer_id_len);
+*/
 
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
 int x509_cert_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 int x509_cert_to_pem(const uint8_t *a, size_t alen, FILE *fp);
 int x509_cert_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp);
-int x509_cert_from_pem_by_index(uint8_t *a, size_t *alen, size_t maxlen, int index, FILE *fp);
 int x509_cert_from_pem_by_subject(uint8_t *a, size_t *alen, size_t maxlen, const uint8_t *name, size_t namelen, FILE *fp);
 int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
 
@@ -326,7 +355,7 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	const uint8_t **extensions, size_t *extensions_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);
-int x509_cert_validate(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraints);
+int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraints);
 
 
 /*

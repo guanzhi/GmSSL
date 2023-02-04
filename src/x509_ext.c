@@ -24,12 +24,34 @@
 #include <gmssl/error.h>
 
 
+int x509_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+
+	if (vlen == 0) {
+		return 0;
+	}
+	if (x509_ext_id_to_der(oid, NULL, &len) != 1
+		|| asn1_boolean_to_der(critical, NULL, &len) < 0
+		|| asn1_octet_string_to_der(val, vlen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_ext_id_to_der(oid, out, outlen) != 1
+		|| asn1_boolean_to_der(critical, out, outlen) < 0
+		|| asn1_octet_string_to_der(val, vlen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 int x509_ext_to_der_ex(int oid, int critical, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
 	size_t vlen = 0;
 	size_t len = 0;
 
+	if (dlen == 0) {
+		return 0;
+	}
 	if (asn1_sequence_to_der(d, dlen, NULL, &vlen) != 1) {
 		error_print();
 		return -1;
@@ -49,6 +71,123 @@ int x509_ext_to_der_ex(int oid, int critical, const uint8_t *d, size_t dlen, uin
 		return -1;
 	}
 	return 1;
+}
+
+int x509_ext_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt,
+	int *critical, const uint8_t **val, size_t *vlen,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_ext_id_from_der(oid, nodes, nodes_cnt, &d, &dlen) != 1
+		|| asn1_boolean_from_der(critical, &d, &dlen) < 0
+		|| asn1_octet_string_from_der(val, vlen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	int ret, oid, critical;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+	const uint8_t *val;
+	size_t vlen;
+
+	const uint8_t *p;
+	size_t len;
+	int ival;
+	const char *name;
+
+	if (label) {
+		format_print(fp, fmt, ind, "%s\n", label);
+		ind += 4;
+	}
+	if (x509_ext_id_from_der(&oid, nodes, &nodes_cnt, &d, &dlen) != 1) goto err;
+	asn1_object_identifier_print(fp, fmt, ind, "extnID", x509_ext_id_name(oid), nodes, nodes_cnt);
+	if ((ret = asn1_boolean_from_der(&critical, &d, &dlen)) < 0) goto err;
+	if (ret) format_print(fp, fmt, ind, "critical: %s\n", asn1_boolean_name(critical));
+	if (asn1_octet_string_from_der(&val, &vlen, &d, &dlen) != 1) goto err;
+
+	switch (oid) {
+	case OID_ce_subject_key_identifier:
+		if (asn1_octet_string_from_der(&p, &len, &val, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ce_key_usage:
+	case OID_netscape_cert_type:
+		if (asn1_bits_from_der(&ival, &val, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ce_inhibit_any_policy:
+		if (asn1_int_from_der(&ival, &val, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_netscape_cert_comment:
+		if (asn1_ia5_string_from_der((const char **)&p, &len, &val, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ct_precertificate_scts:
+	case OID_undef:
+		p = val;
+		len = vlen;
+		vlen = 0;
+		break;
+	default:
+		if (asn1_sequence_from_der(&p, &len, &val, &vlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	name = x509_ext_id_name(oid);
+
+	switch (oid) {
+	case OID_ce_authority_key_identifier: return x509_authority_key_identifier_print(fp, fmt, ind, name, p, len);
+	case OID_ce_subject_key_identifier: return format_bytes(fp, fmt, ind, name, p, len);
+	case OID_ce_key_usage: return x509_key_usage_print(fp, fmt, ind, name, ival);
+	case OID_ce_certificate_policies: return x509_certificate_policies_print(fp, fmt, ind, name, p, len);
+	case OID_ce_policy_mappings: return x509_policy_mappings_print(fp, fmt, ind, name, p, len);
+	case OID_ce_subject_alt_name: return x509_general_names_print(fp, fmt, ind, name, p, len);
+	case OID_ce_issuer_alt_name: return x509_general_names_print(fp, fmt, ind, name, p, len);
+	case OID_ce_subject_directory_attributes: return x509_attributes_print(fp, fmt, ind, name, p, len);
+	case OID_ce_basic_constraints: return x509_basic_constraints_print(fp, fmt, ind, name, p, len);
+	case OID_ce_name_constraints: return x509_name_constraints_print(fp, fmt, ind, name, p, len);
+	case OID_ce_policy_constraints: return x509_policy_constraints_print(fp, fmt, ind, name, p, len);
+	case OID_ce_ext_key_usage: return x509_ext_key_usage_print(fp, fmt, ind, name, p, len);
+	case OID_ce_crl_distribution_points: return x509_crl_distribution_points_print(fp, fmt, ind, name, p, len);
+	case OID_ce_inhibit_any_policy: format_print(fp, fmt, ind, "%s: %d\n", name, ival);
+	case OID_ce_freshest_crl: return x509_freshest_crl_print(fp, fmt, ind, name, p, len);
+	case OID_netscape_cert_type: return x509_netscape_cert_type_print(fp, fmt, ind, name, ival);
+	case OID_netscape_cert_comment: return format_string(fp, fmt, ind, name, p, len);
+	case OID_pe_authority_info_access: return x509_authority_info_access_print(fp, fmt, ind, name, p, len);
+	default: format_bytes(fp, fmt, ind, "extnValue", p, len);
+	}
+	return 1;
+err:
+	error_print();
+	return -1;
 }
 
 int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
@@ -374,24 +513,76 @@ int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxl
 	return 1;
 }
 
+// 是否支持输入为空，这样返回0？我感觉这是一个比较高层的API，可能被应用直接调用，还是做严格检查比较好
 int x509_exts_add_freshest_crl(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical, const uint8_t *d, size_t dlen)
 {
 	int oid = OID_ce_freshest_crl;
-	return x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen);
+	if (x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
+
+int x509_exts_get_ext_by_oid(const uint8_t *d, size_t dlen, int oid,
+	int *critical, const uint8_t **val, size_t *vlen)
+{
+	int ext_id;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+
+	while (dlen) {
+		if (x509_ext_from_der(&ext_id, nodes, &nodes_cnt, critical, val, vlen, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (ext_id == oid) {
+			return 1;
+		}
+	}
+	*critical = -1;
+	*val = NULL;
+	*vlen = 0;
+	return 0;
+}
+
+int x509_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	if (label) {
+		format_print(fp, fmt, ind, "%s\n", label);
+		ind += 4;
+	}
+	while (dlen) {
+		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_ext_print(fp, fmt, ind, "Extension", p, len);
+	}
+	return 1;
+}
+
+// GeneralName
 
 int x509_other_name_to_der(
 	const uint32_t *type_nodes, size_t type_nodes_cnt,
-	const uint8_t *value, size_t value_len,
+	const uint8_t *value_a, size_t value_alen,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (type_nodes_cnt == 0 && value_alen == 0) {
+		return 0;
+	}
 	if (asn1_object_identifier_to_der(type_nodes, type_nodes_cnt, NULL, &len) != 1
-		|| asn1_explicit_to_der(0, value, value_len, NULL, &len) != 1
+		|| asn1_explicit_to_der(0, value_a, value_alen, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_object_identifier_to_der(type_nodes, type_nodes_cnt, out, outlen) != 1
-		|| asn1_explicit_to_der(0, value, value_len, out, outlen) != 1) {
+		|| asn1_explicit_to_der(0, value_a, value_alen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -447,6 +638,10 @@ int x509_edi_party_name_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (assigner_len == 0 && party_name_len == 0) {
+		return 0;
+	}
 	if (x509_explicit_directory_name_to_der(0, assigner_choice, assigner, assigner_len, NULL, &len) < 0
 		|| x509_explicit_directory_name_to_der(1, party_name_choice, party_name, party_name_len, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -504,6 +699,10 @@ err:
 int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
 	int ret;
+
+	if (dlen == 0) {
+		return 0;
+	}
 
 	switch (choice) {
 	case X509_gn_rfc822_name:
@@ -681,7 +880,6 @@ int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t ma
 
 int x509_general_names_get_next(const uint8_t *gns, size_t gns_len, const uint8_t **ptr, int choice, const uint8_t **d, size_t *dlen)
 {
-
 	if (!gns || !gns_len) {
 		error_print();
 		return -1;
@@ -707,6 +905,9 @@ int x509_general_names_get_next(const uint8_t *gns, size_t gns_len, const uint8_
 			return 1;
 		}
 	}
+
+	*d = NULL;
+	*dlen = 0;
 	return 0;
 }
 
@@ -728,24 +929,13 @@ int x509_general_names_get_first(const uint8_t *gns, size_t gns_len, const uint8
 	return ret;
 }
 
-
-
-/*
-DistributionPointName ::= CHOICE {
-     fullName                [0]     GeneralNames,
-     nameRelativeToCRLIssuer [1]     RelativeDistinguishedName }
-
-本来GeneralNames是一个SEQUENCE OF，本来这个类型编码的时候应该是80开头的
-
-
-*/
 int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen,
 	uint8_t **out, size_t *outlen)
 {
 	int choice = X509_gn_uniform_resource_identifier;
 	size_t len = 0;
 
-	if (!uri || !urilen) {
+	if (!urilen) {
 		return 0;
 	}
 	if (x509_general_name_to_der(choice, (uint8_t *)uri, urilen, NULL, &len) != 1
@@ -767,6 +957,10 @@ int x509_uri_as_general_names_from_der_ex(int tag, const uint8_t **uri, size_t *
 
 	if ((ret = asn1_type_from_der(tag, &d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else {
+			*uri = NULL;
+			*urilen = 0;
+		}
 		return ret;
 	}
 	if (x509_general_names_get_first(d, dlen, NULL, choice, uri, urilen) < 0) {
@@ -802,6 +996,9 @@ int x509_authority_key_identifier_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (keyid_len == 0 && issuer_len == 0 && serial_len == 0) {
+		return 0;
+	}
 	if (asn1_implicit_octet_string_to_der(0, keyid, keyid_len, NULL, &len) < 0
 		|| asn1_implicit_sequence_to_der(1, issuer, issuer_len, NULL, &len) < 0
 		|| asn1_implicit_integer_to_der(2, serial, serial_len, NULL, &len) < 0
@@ -835,38 +1032,6 @@ int x509_authority_key_identifier_from_der(
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
-	}
-	return 1;
-}
-
-int x509_authority_key_identifier_validate(const uint8_t *a, size_t alen)
-{
-	const uint8_t *keyid;
-	size_t keyid_len;
-	const uint8_t *issuer;
-	size_t issuer_len;
-	const uint8_t *serial;
-	size_t serial_len;
-
-	if (x509_authority_key_identifier_from_der(
-			&keyid, &keyid_len,
-			&issuer, &issuer_len,
-			&serial, &serial_len, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (!keyid && !issuer && !serial) {
-		error_print();
-		return -1;
-	}
-	if (issuer) {
-		/*
-		if (asn1_general_names_validate(issuer, issuer_len) != 1) {
-			error_print();
-			return -1;
-		}
-		*/
 	}
 	return 1;
 }
@@ -939,7 +1104,7 @@ int x509_key_usage_from_name(int *flag, const char *name)
 	return -1;
 }
 
-int x509_key_usage_validate(int bits, int cert_type)
+int x509_key_usage_check(int bits, int cert_type)
 {
 	switch (cert_type) {
 	case X509_cert_server_auth:
@@ -1005,7 +1170,8 @@ int x509_key_usage_validate(int bits, int cert_type)
 
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits)
 {
-	return asn1_bits_print(fp, fmt, ind, label, x509_key_usages, x509_key_usages_count, bits);
+	(void)asn1_bits_print(fp, fmt, ind, label, x509_key_usages, x509_key_usages_count, bits);
+	return 1;
 }
 
 int x509_notice_reference_to_der(
@@ -1014,6 +1180,10 @@ int x509_notice_reference_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (org_len == 0 && notice_numbers_cnt == 0) {
+		return 0;
+	}
 	if (x509_display_text_to_der(org_tag, org, org_len, NULL, &len) != 1
 		|| asn1_sequence_of_int_to_der(notice_numbers, notice_numbers_cnt, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -1075,6 +1245,11 @@ int x509_user_notice_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (notice_ref_org_len == 0
+		&& notice_ref_notice_numbers_cnt == 0
+		&& explicit_text_len == 0) {
+		return 0;
+	}
 	if (x509_notice_reference_to_der(
 			notice_ref_org_tag, notice_ref_org, notice_ref_org_len,
 			notice_ref_notice_numbers, notice_ref_notice_numbers_cnt,
@@ -1144,6 +1319,9 @@ int x509_policy_qualifier_info_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (qualifier_len == 0) {
+		return 0;
+	}
 	if (x509_qualifier_id_to_der(oid, NULL, &len) != 1
 		|| asn1_any_to_der(qualifier, qualifier_len, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -1284,7 +1462,7 @@ int x509_certificate_policies_add_policy_information(uint8_t *d, size_t *dlen, s
 	return -1;
 }
 
-int x509_certificate_polices_validate(const uint8_t *d, size_t dlen)
+int x509_certificate_polices_check(const uint8_t *d, size_t dlen)
 {
 	error_print();
 	return -1;
@@ -1314,6 +1492,10 @@ int x509_policy_mapping_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+	if (issuer_policy_nodes_cnt == 0
+		&& subject_policy_nodes_cnt == 0) {
+		return 0;
+	}
 	if (x509_cert_policy_id_to_der(issuer_policy_oid,
 			issuer_policy_nodes, issuer_policy_nodes_cnt, NULL, &len) != 1
 		|| x509_cert_policy_id_to_der(subject_policy_oid,
@@ -1373,16 +1555,6 @@ err:
 	return -1;
 }
 
-int x509_policy_mapping_validate(const uint8_t *a, size_t alen)
-{
-	return -1;
-}
-
-int x509_policy_mappings_validate(const uint8_t *d, size_t dlen)
-{
-	return -1;
-}
-
 int x509_policy_mappings_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;
@@ -1400,7 +1572,6 @@ int x509_policy_mappings_print(FILE *fp, int fmt, int ind, const char *label, co
 	}
 	return 1;
 }
-
 
 int x509_attribute_to_der(
 	const uint32_t *nodes, size_t nodes_cnt,
@@ -1527,7 +1698,7 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 
 
 // 这个函数原型可能要改一下
-int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type)
+int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type)
 {
 	/*
 	entity_cert:
@@ -1782,7 +1953,7 @@ int x509_policy_constraints_from_der(
 	return 1;
 }
 
-int x509_policy_constraints_validate(const uint8_t *a, size_t alen)
+int x509_policy_constraints_check(const uint8_t *a, size_t alen)
 {
 	return -1;
 
@@ -1861,7 +2032,7 @@ int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, con
 }
 
 // 这个函数原型可能也要改一下
-int x509_ext_key_usage_validate(const int *oids, size_t oids_cnt, int cert_type)
+int x509_ext_key_usage_check(const int *oids, size_t oids_cnt, int cert_type)
 {
 	int ret = -1;
 	size_t i;
@@ -1910,35 +2081,6 @@ int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, cons
 	}
 	return 1;
 }
-
-
-/*
-CRL Distribution Points
-
-	* 假设证书的cRLIssuer和issuer一致，即签发证书的CA也签发了证书所属的CRL
-	  不支持可选的cRLIssuer编码，解码时忽略cRLIssuer
-	  编解、解码时均要求DistributionPoint中包含distributionPoint
-
-	* 如果证书扩展中不包含reasons，那么在CRL中必须包含完整的reasons。
-	  证书扩展中包含reasons，逻辑上意味由不同的CRL包含因不同原因注销的证书，RFC不推荐这种方式
-
-	* 编码时最多支持2个DistributionPoint，分别用于HTTP和LDAP的URI
-	  即DistributionPointName CHOICE GeneralNames，其中只有一个GeneralName CHOICE uri
-
-	* 解码时对每个解析成功的DistributionPoint的uri进行判断
-	  最多返回一个http和一个ldap，其他协议的uri被忽略
-
-	* RFC要求每个DistributionPoint中至少包含一个HTTP或LDAP uri
-
-	* 解码时不支持DistributionPointName为nameRelativeToCRLIssuer
-	  解码时DistributionPointName为(GeneralNames)fullName时，只返回第一个CHOICE为uri的GeneralName
-
-	* 当uri为HTTP时，CRL文件为DER编码
-	* 当uri为LDAP时
-		如 ldap://ldap.example.com/cn=example%20CA,dc=example,dc=com?certificateRevocationList;binary
-		如 ldap:///cn=example%20CA,dc=example,dc=com?certificateRevocationList;binary
-		必须包含 DN, certificateRevocationList， 应包含host部分
-*/
 
 static const char *x509_revoke_reason_flags[] = {
 	"unused",
@@ -1990,33 +2132,13 @@ int x509_revoke_reason_flags_print(FILE *fp, int fmt, int ind, const char *label
 	return asn1_bits_print(fp, fmt, ind, label, x509_revoke_reason_flags, x509_revoke_reason_flags_count, bits);
 }
 
-/*
-Example CRLDistributionPoints extension
-
-	1 DistributionPoint in CRLDistributionPoints
-	distributionPoint choice: fullName
-	2 GeneralName in fullName(GeneralNames), same CRL with different URI
-
-    Extension
-	extnID: CRLDistributionPoints (2.5.29.31)
-	CRLDistributionPoints
-	    DistributionPoint
-		distributionPoint
-		    fullName
-			GeneralName
-			    URI: http://mscrl.microsoft.com/pki/mscorp/crl/Microsoft%20RSA%20TLS%20CA%2002.crl
-			GeneralName
-			    URI: http://crl.microsoft.com/pki/mscorp/crl/Microsoft%20RSA%20TLS%20CA%2002.crl
-*/
-
-
-
 int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen,
 	uint8_t **out, size_t *outlen)
 {
 	int ret;
-	if ((ret = x509_uri_as_general_names_to_der_ex(ASN1_TAG_EXPLICIT(0), uri, urilen, out, outlen)) != 1) {
-		if (ret < 0) error_print();
+	int tag = ASN1_TAG_EXPLICIT(X509_full_name);
+	if ((ret = x509_uri_as_general_names_to_der_ex(tag, uri, urilen, out, outlen)) != 1) {
+		if (ret < 0) error_print(); // 检查一下，是否有必要支持返回0		
 		return ret;
 	}
 	return 1;
@@ -2033,12 +2155,11 @@ int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t
 		return ret;
 	}
 	switch (tag) {
-	case ASN1_TAG_EXPLICIT(0):
-		*choice = 0;
-		// 此时返回的值是GeneralNames的d,dlen，因此这个返回值不能用general_names_from来解析
+	case ASN1_TAG_EXPLICIT(X509_full_name):
+		*choice = X509_full_name;
 		break;
-	case ASN1_TAG_EXPLICIT(1):
-		*choice = 1;
+	case ASN1_TAG_EXPLICIT(X509_name_relative_to_crl_issuer):
+		*choice = X509_name_relative_to_crl_issuer;
 		break;
 	default:
 		error_print();
@@ -2051,15 +2172,15 @@ int x509_uri_as_distribution_point_name_from_der(const char **uri, size_t *urile
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
+	int choice;
 	const uint8_t *d;
 	size_t dlen;
-	int choice;
 
 	if ((ret = x509_distribution_point_name_from_der(&choice, &d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (choice == 0) {
+	if (choice == X509_full_name) {
 		if (x509_general_names_get_first(d, dlen, NULL, choice, (const uint8_t **)uri, urilen) < 0) {
 			error_print();
 			return -1;
@@ -2096,7 +2217,7 @@ int x509_uri_as_explicit_distribution_point_name_to_der(int index,
 {
 	size_t len = 0;
 
-	if (!uri || !urilen) {
+	if (!urilen) {
 		return 0;
 	}
 	if (x509_uri_as_distribution_point_name_to_der(uri, urilen, NULL, &len) != 1
@@ -2132,10 +2253,6 @@ int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-
-	if (!uri || !urilen) {
-		return 0;
-	}
 	if (x509_uri_as_explicit_distribution_point_name_to_der(0, uri, urilen, NULL, &len) != 1
 		|| x509_revoke_reason_flags_to_der(reasons, NULL, &len) < 0
 		|| x509_general_names_to_der(crl_issuer, crl_issuer_len, NULL, &len) < 0
@@ -2161,7 +2278,7 @@ int x509_uri_as_distribution_point_from_der(const char **uri, size_t *urilen,
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if (x509_uri_as_explicit_distribution_point_name_from_der(0, uri, urilen, &d, &dlen) != 1
+	if (x509_uri_as_explicit_distribution_point_name_from_der(0, uri, urilen, &d, &dlen) < 0
 		|| x509_revoke_reason_flags_from_der(reasons, &d, &dlen) < 0
 		|| x509_general_names_from_der(crl_issuer, crl_issuer_len, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
@@ -2201,46 +2318,14 @@ int x509_uri_as_distribution_points_to_der(const char *uri, size_t urilen,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-
-	if (!uri || !urilen) {
-		return 0;
-	}
-	if (x509_uri_as_distribution_point_to_der(uri, urilen,
-			reasons, crl_issuer, crl_issuer_len, NULL, &len) < 0
+	if (x509_uri_as_distribution_point_to_der(uri, urilen, reasons, crl_issuer, crl_issuer_len, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
-		|| x509_uri_as_distribution_point_to_der(uri, urilen,
-			reasons, crl_issuer, crl_issuer_len, out, outlen) < 0) {
+		|| x509_uri_as_distribution_point_to_der(uri, urilen, reasons, crl_issuer, crl_issuer_len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
-
-
-/*
-
-DistributionPoints :== SEQUENCE OF DistributionPoint
-
-
-	80 Len  -- DistributionPoints header
-
-		80  Len  DistributionPoint 1 header
-
-			80 EXPLICIT(0)
-				DistributionPointName
-				80 len d,dln GeneralNames
-					06 len URI
-
-			01 len d,dlen ReasonFlags
-			82 len, d,dlen GeneralNames
-
-		80  Len  DistributionPoint 2 header
-
-
-
-		80  Len  DistributionPoint 3 header
-
-*/
 
 int x509_uri_as_distribution_points_from_der(const char **uri, size_t *urilen,
 	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
@@ -2254,19 +2339,20 @@ int x509_uri_as_distribution_points_from_der(const char **uri, size_t *urilen,
 		if (ret < 0) error_print();
 		return ret;
 	}
-
-	*uri = NULL;
-	*urilen = 0;
-
 	while (dlen) {
 		if (x509_uri_as_distribution_point_from_der(uri, urilen, reasons, crl_issuer, crl_issuer_len, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (*uri) {
+		if (*uri != NULL) {
 			return 1;
 		}
 	}
+	*uri = NULL;
+	*urilen = 0;
+	*reasons = -1;
+	*crl_issuer = NULL;
+	*crl_issuer_len = 0;
 	return 1;
 }
 
@@ -2306,7 +2392,7 @@ int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label,
 		sizeof(netscape_cert_types)/sizeof(netscape_cert_types[0]), bits);
 }
 
-int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
+int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 	int *path_len_constraint)
 {
 	int oid;
@@ -2366,7 +2452,7 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 				// conforming CAs SHOULD mark this extension as critical.
 			}
 			if (asn1_bits_from_der(&key_usage, &val, &vlen) != 1
-				|| x509_key_usage_validate(key_usage, cert_type) != 1) {
+				|| x509_key_usage_check(key_usage, cert_type) != 1) {
 				error_print();
 				return -1;
 			}
@@ -2396,7 +2482,7 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 
 		case OID_ce_basic_constraints:
 			if (x509_basic_constraints_from_der(&ca, &path_len, &val, &vlen) != 1
-				|| x509_basic_constraints_validate(ca, path_len, cert_type) != 1) {
+				|| x509_basic_constraints_check(ca, path_len, cert_type) != 1) {
 				error_print();
 				return -1;
 			}
@@ -2407,7 +2493,7 @@ int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
 		case OID_ce_ext_key_usage:
 			if (x509_ext_key_usage_from_der(ext_key_usages, &ext_key_usages_cnt,
 					sizeof(ext_key_usages)/sizeof(ext_key_usages[0]), &val, &vlen) != 1
-				|| x509_ext_key_usage_validate(ext_key_usages, ext_key_usages_cnt, cert_type) != 1) {
+				|| x509_ext_key_usage_check(ext_key_usages, ext_key_usages_cnt, cert_type) != 1) {
 				error_print();
 				return -1;
 			}

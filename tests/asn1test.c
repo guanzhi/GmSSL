@@ -607,6 +607,34 @@ static int test_asn1_time(void)
 	return 1;
 }
 
+static int test_asn1_time_limits(void)
+{
+	char *tests[] = {
+		"20491231235959Z",
+		"20500101000000Z",
+		"99991231235959Z",
+	};
+	size_t i;
+
+	time_t tv[sizeof(tests)/sizeof(tests[0])];
+	char str[16] = {0};
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+		if (asn1_time_from_str(0, &tv[i], tests[i]) != 1) {
+			error_print();
+			return -1;
+		}
+		fprintf(stderr, "    %s: %lld\n", tests[i], (long long)tv[i]);
+	}
+	if (tv[0] + 1 != tv[1]) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_asn1_utc_time(void)
 {
 	time_t tests[] = {
@@ -790,6 +818,7 @@ int main(void)
 	if (test_asn1_utf8_string() != 1) goto err;
 	if (test_asn1_ia5_string() != 1) goto err;
 	if (test_asn1_time() != 1) goto err;
+	if (test_asn1_time_limits() != 1) goto err;
 	if (test_asn1_utc_time() != 1) goto err;
 	if (test_asn1_generalized_time() != 1) goto err;
 	if (test_asn1_from_der_null_args() != 1) goto err;

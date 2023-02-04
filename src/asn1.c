@@ -217,15 +217,21 @@ int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-// not in-use
 // asn1_data_to_der do not check the validity of data
 int asn1_data_to_der(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
-	if (!data || !datalen || !outlen) {
+	if (!outlen) {
 		error_print();
 		return -1;
 	}
+	if (datalen == 0) {
+		return 0;
+	}
 	if (out && *out) {
+		if (!data) {
+			error_print();
+			return -1;
+		}
 		memcpy(*out, data, datalen);
 		*out += datalen;
 	}
@@ -323,13 +329,9 @@ int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t *
 	}
 
 	// data
-	if (*dlen == 0) {
-		*d = NULL;
-	} else {
-		*d = *in;
-		*in += *dlen;
-		*inlen -= *dlen;
-	}
+	*d = *in;
+	*in += *dlen;
+	*inlen -= *dlen;
 	return 1;
 }
 
@@ -385,13 +387,9 @@ int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint
 		return -1;
 	}
 
-	if (*dlen == 0) {
-		*d = NULL;
-	} else {
-		*d = *in;
-		*in += *dlen;
-		*inlen -= *dlen;
-	}
+	*d = *in;
+	*in += *dlen;
+	*inlen -= *dlen;
 	return 1;
 }
 

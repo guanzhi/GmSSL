@@ -326,8 +326,7 @@ static int test_x509_cert(void)
 	set_x509_name(subject, &subject_len, sizeof(subject));
 	sm2_key_generate(&sm2_key);
 
-	if (x509_cert_sign(
-		cert, &certlen, sizeof(cert),
+	if (x509_cert_sign_to_der(
 		X509_version_v3,
 		serial, sizeof(serial),
 		OID_sm2sign_with_sm3,
@@ -338,7 +337,8 @@ static int test_x509_cert(void)
 		NULL, 0,
 		NULL, 0,
 		NULL, 0,
-		&sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		&sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
+		&p, &certlen) != 1) {
 		error_print();
 		return -1;
 	}

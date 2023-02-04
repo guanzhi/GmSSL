@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -18,7 +18,12 @@
 #include <gmssl/pem.h>
 #include <gmssl/asn1.h>
 #include <gmssl/x509_str.h>
+#include <gmssl/x509.h>
 #include <gmssl/error.h>
+#include <gmssl/file.h>
+
+#include <errno.h>
+#include <sys/stat.h>
 
 /*
 DirectoryString ::= CHOICE {
@@ -35,88 +40,7 @@ RDN 中很多值都是这个类型，但是有特定的长度限制，因此这�
 */
 
 
-int x509_directory_name_check(int tag, const uint8_t *d, size_t dlen)
-{
-	switch (tag) {
-	case ASN1_TAG_TeletexString:
-	case ASN1_TAG_PrintableString:
-	case ASN1_TAG_UniversalString:
-	case ASN1_TAG_UTF8String:
-		if (d && strnlen((char *)d, dlen) != dlen) {
-			error_print();
-			return -1;
-		}
-		break;
-	case ASN1_TAG_BMPString:
-		if (d && dlen % 2) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
 
-int x509_directory_name_check_ex(int tag, const uint8_t *d, size_t dlen, size_t minlen, size_t maxlen)
-{
-	if (x509_directory_name_check(tag, d, dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (dlen < minlen || dlen > maxlen) {
-		printf("%s %d: dlen = %zu, minlen = %zu, maxlne = %zu\n", __FILE__, __LINE__, dlen, minlen, maxlen);
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_directory_name_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
-{
-	int ret;
-	if (x509_directory_name_check(tag, d, dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if ((ret = asn1_type_to_der(tag, d, dlen, out, outlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	return 1;
-}
-
-int x509_directory_name_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
-{
-	int ret;
-
-	if ((ret = asn1_tag_from_der_readonly(tag, in, inlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	switch (*tag) {
-	case ASN1_TAG_TeletexString:
-	case ASN1_TAG_PrintableString:
-	case ASN1_TAG_UniversalString:
-	case ASN1_TAG_UTF8String:
-	case ASN1_TAG_BMPString:
-		break;
-	default:
-		return 0;
-	}
-
-	if ((ret = asn1_any_type_from_der(tag, d, dlen, in, inlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	if (x509_directory_name_check(*tag, *d, *dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
 
 int x509_explicit_directory_name_to_der(int index, int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
@@ -151,11 +75,6 @@ int x509_explicit_directory_name_from_der(int index, int *tag, const uint8_t **d
 		return -1;
 	}
 	return 1;
-}
-
-int x509_directory_name_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen)
-{
-	return asn1_string_print(fp, fmt, ind, label, tag, d, dlen);
 }
 
 int x509_display_text_check(int tag, const uint8_t *d, size_t dlen)
@@ -233,3 +152,62 @@ int x509_display_text_print(FILE *fp, int fmt, int ind, const char *label, int t
 {
 	return asn1_string_print(fp, fmt, ind, label, tag, d, dlen);
 }
+
+
+
+int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file)
+{
+	int ret = -1;
+	FILE *fp = NULL;
+	size_t fsize;
+	uint8_t *buf = NULL;
+	size_t buflen;
+
+	if (!(fp = fopen(file, "r"))
+		|| file_size(fp, &fsize) != 1
+		|| (buflen = (fsize * 3)/4 + 1) < 0
+		|| (buf = malloc((fsize * 3)/4 + 1)) == NULL) {
+		error_print();
+		goto end;
+	}
+	if (x509_cert_from_pem(buf, outlen, buflen, fp) != 1) {
+		error_print();
+		goto end;
+	}
+	*out = buf;
+	buf = NULL;
+	ret = 1;
+end:
+	if (fp) fclose(fp);
+	if (buf) free(buf);
+	return ret;
+}
+
+int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file)
+{
+	int ret = -1;
+	FILE *fp = NULL;
+	size_t fsize;
+	uint8_t *buf = NULL;
+	size_t buflen;
+
+	if (!(fp = fopen(file, "r"))
+		|| file_size(fp, &fsize) != 1
+		|| (buflen = (fsize * 3)/4 + 1) < 0
+		|| (buf = malloc((fsize * 3)/4 + 1)) == NULL) {
+		error_print();
+		goto end;
+	}
+	if (x509_certs_from_pem(buf, outlen, buflen, fp) != 1) {
+		error_print();
+		goto end;
+	}
+	*out = buf;
+	buf = NULL;
+	ret = 1;
+end:
+	if (fp) fclose(fp);
+	if (buf) free(buf);
+	return ret;
+}
+
