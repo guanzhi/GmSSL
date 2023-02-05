@@ -57,12 +57,15 @@ int x509_crl_entry_ext_id_from_name(const char *name);
 int x509_crl_entry_ext_id_to_der(int oid, uint8_t **out, size_t *outlen);
 int x509_crl_entry_ext_id_from_der(int *oid, const uint8_t **in, size_t *inlen);
 
-int x509_crl_entry_ext_critical_validate(int oid, int critical);
+int x509_crl_entry_ext_critical_check(int oid, int critical);
 
+
+int x509_crl_entry_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen);
 int x509_crl_reason_ext_to_der(int critical, int reason, uint8_t **out, size_t *outlen);
 int x509_invalidity_date_ext_to_der(int critical, time_t date, uint8_t **out, size_t *outlen);
 int x509_cert_issuer_ext_to_der(int critical, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
-int x509_crl_entry_ext_from_der(int *oid, int *critical,
+int x509_crl_entry_ext_from_der(int *oid, int *critical, const uint8_t **val, size_t *vlen, const uint8_t **in, size_t *inlen);
+int x509_crl_entry_ext_from_der_ex(int *oid, int *critical,
 	int *reason, time_t *invalid_date, const uint8_t **cert_issuer, size_t *cert_issuer_len,
 	const uint8_t **in, size_t *inlen);
 int x509_crl_entry_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -75,7 +78,7 @@ int x509_crl_entry_exts_from_der(
 	const uint8_t **in, size_t *inlen);
 int x509_crl_entry_exts_get(const uint8_t *d, size_t dlen,
 	int *reason, time_t *invalid_date, const uint8_t **cert_issuer, size_t *cert_issuer_len);
-int x509_crl_entry_exts_validate(const uint8_t *d, size_t dlen);
+int x509_crl_entry_exts_check(const uint8_t *d, size_t dlen);
 int x509_crl_entry_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 
@@ -159,7 +162,7 @@ int x509_issuing_distribution_point_from_der(
 	const uint8_t **in, size_t *inlen);
 int x509_issuing_distribution_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
-int x509_crl_ext_critical_validate(int oid, int critical);
+int x509_crl_ext_critical_check(int oid, int critical);
 int x509_crl_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen);
 int x509_crl_ext_from_der_ex(int *oid, uint32_t *nodes, size_t *nodes_cnt,
 	int *critical, const uint8_t **val, size_t *vlen,
@@ -208,7 +211,7 @@ int x509_crl_exts_add_authority_info_acess(
 	const char *ca_issuers_uri, size_t ca_issuers_urilen,
 	const char *ocsp_uri, size_t ocsp_urilen);
 
-int x509_crl_exts_validate(const uint8_t *d, size_t dlen);
+int x509_crl_exts_check(const uint8_t *d, size_t dlen);
 #define x509_crl_exts_to_der(d,dlen,out,outlen) x509_explicit_exts_to_der(0,d,dlen,out,outlen)
 #define x509_crl_exts_from_der(d,dlen,in,inlen) x509_explicit_exts_from_der(0,d,dlen,in,inlen)
 int x509_crl_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -250,9 +253,6 @@ CertificateList ::= SEQUENCE {
 	signatureAlgorithm	AlgorithmIdentifier,
 	signatureValue		BIT STRING }
 */
-#define x509_cert_list_to_der(tbs,tbslen,sig_alg,sig,siglen,out,outlen) x509_signed_to_der(tbs,tbslen,sig_alg,sig,siglen,out,outlen)
-#define x509_cert_list_from_der(tbs,tbslen,sig_alg,sig,siglen,in,inlen) x509_signed_from_der(tbs,tbslen,sig_alg,sig,siglen,in,inlen)
-int x509_cert_list_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 // x509_crl_ functions
 int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
@@ -279,7 +279,7 @@ int x509_crl_from_der_ex(
 	const uint8_t **exts, size_t *exts_len,
 	int *sig_alg, const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen);
-int x509_crl_validate(const uint8_t *a, size_t alen, time_t now);
+int x509_crl_check(const uint8_t *a, size_t alen, time_t now);
 int x509_crl_verify(const uint8_t *a, size_t alen,
 	const SM2_KEY *sign_pub_key, const char *signer_id, size_t signer_id_len);
 int x509_crl_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,

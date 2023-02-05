@@ -40,7 +40,6 @@ static const char *x509_crl_reason_names[] = {
 static const size_t x509_crl_reason_names_count =
 	sizeof(x509_crl_reason_names)/sizeof(x509_crl_reason_names[0]);
 
-// 这个函数也不应该有错误的输入值
 const char *x509_crl_reason_name(int reason)
 {
 	if (reason < 0 || reason >= x509_crl_reason_names_count) {
@@ -50,8 +49,6 @@ const char *x509_crl_reason_name(int reason)
 	return x509_crl_reason_names[reason];
 }
 
-// 这个函数由于需要用在判断中，最好不要打印错误值。并且有可能这个name是一个我们不识别的值，因此返回0？
-// 不识别的name还是应该返回-1更合适
 int x509_crl_reason_from_name(int *reason, const char *name)
 {
 	int i;
@@ -61,7 +58,8 @@ int x509_crl_reason_from_name(int *reason, const char *name)
 			return 1;
 		}
 	}
-	return 0;
+	error_print();
+	return -1;
 }
 
 int x509_crl_reason_to_der(int reason, uint8_t **out, size_t *outlen)
@@ -94,6 +92,7 @@ int x509_crl_reason_from_der(int *reason, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
+/*
 int x509_implicit_crl_reason_from_der(int index, int *reason, const uint8_t **in, size_t *inlen)
 {
 	int ret;
@@ -107,7 +106,7 @@ int x509_implicit_crl_reason_from_der(int index, int *reason, const uint8_t **in
 	}
 	return 1;
 }
-
+*/
 
 static uint32_t oid_ce_crl_reasons[] = { oid_ce,21 };
 static uint32_t oid_ce_invalidity_date[] = { oid_ce,24 };
@@ -170,7 +169,7 @@ int x509_crl_entry_ext_id_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-int x509_crl_entry_ext_critical_validate(int oid, int critical)
+int x509_crl_entry_ext_critical_check(int oid, int critical)
 {
 	switch (oid) {
 	case OID_ce_crl_reasons:
@@ -193,6 +192,47 @@ int x509_crl_entry_ext_critical_validate(int oid, int critical)
 	return 1;
 }
 
+int x509_crl_entry_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+
+	if (vlen == 0) {
+		return 0;
+	}
+	if (x509_crl_entry_ext_id_to_der(oid, NULL, &len) != 1
+		|| asn1_boolean_to_der(critical, NULL, &len) < 0
+		|| asn1_octet_string_to_der(val, vlen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_crl_entry_ext_id_to_der(oid, out, outlen) != 1
+		|| asn1_boolean_to_der(critical, out, outlen) < 0
+		|| asn1_octet_string_to_der(val, vlen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_crl_entry_ext_from_der(int *oid, int *critical, const uint8_t **val, size_t *vlen,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_crl_entry_ext_id_from_der(oid, &d, &dlen) != 1
+		|| asn1_boolean_from_der(critical, &d, &dlen) < 0
+		|| asn1_octet_string_from_der(val, vlen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_crl_reason_ext_to_der(int critical, int reason, uint8_t **out, size_t *outlen)
 {
 	int oid = OID_ce_crl_reasons;
@@ -205,7 +245,7 @@ int x509_crl_reason_ext_to_der(int critical, int reason, uint8_t **out, size_t *
 	}
 	if (x509_crl_reason_to_der(reason, &p, &vlen) != 1
 		|| asn1_length_le(vlen, sizeof(val)) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, out, outlen) != 1) {
+		|| x509_crl_entry_ext_to_der(oid, critical, val, vlen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -224,7 +264,7 @@ int x509_invalidity_date_ext_to_der(int critical, time_t date, uint8_t **out, si
 	}
 	if (asn1_generalized_time_to_der(date, &p, &vlen) != 1
 		|| asn1_length_le(vlen, sizeof(val)) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, out, outlen) != 1) {
+		|| x509_crl_entry_ext_to_der(oid, critical, val, vlen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -248,33 +288,30 @@ int x509_cert_issuer_ext_to_der(int critical, const uint8_t *d, size_t dlen, uin
 	}
 	vlen = 0;
 	if (asn1_sequence_to_der(d, dlen, &p, &vlen) != 1
-		|| x509_ext_to_der(oid, critical, val, vlen, out, outlen) != 1) {
+		|| x509_crl_entry_ext_to_der(oid, critical, val, vlen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-int x509_crl_entry_ext_from_der(int *oid, int *critical,
+int x509_crl_entry_ext_from_der_ex(int *oid, int *critical,
 	int *reason, time_t *invalid_date, const uint8_t **cert_issuer, size_t *cert_issuer_len,
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
-	const uint8_t *d;
-	size_t dlen;
 	const uint8_t *val;
 	size_t vlen;
 
-	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+	if ((ret = x509_crl_entry_ext_from_der(oid, critical, &val, &vlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else {
+			*reason = -1;
+			*invalid_date = -1;
+			*cert_issuer = NULL;
+			*cert_issuer_len = 0;
+		}
 		return ret;
-	}
-	if (x509_crl_entry_ext_id_from_der(oid, &d, &dlen) != 1
-		|| asn1_boolean_from_der(critical, &d, &dlen) < 0
-		|| asn1_octet_string_from_der(&val, &vlen, &d, &dlen) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
-		error_print();
-		return -1;
 	}
 	switch (*oid) {
 	case OID_ce_crl_reasons:
@@ -399,11 +436,11 @@ int x509_crl_entry_exts_get(const uint8_t *d, size_t dlen,
 	*cert_issuer_len = 0;
 
 	while (dlen) {
-		if (x509_crl_entry_ext_from_der(&oid, &critical, reason, invalid_date, cert_issuer, cert_issuer_len, &d, &dlen) != 1) {
+		if (x509_crl_entry_ext_from_der_ex(&oid, &critical, reason, invalid_date, cert_issuer, cert_issuer_len, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_crl_entry_ext_critical_validate(oid, critical) != 1) {
+		if (x509_crl_entry_ext_critical_check(oid, critical) != 1) {
 			error_print();
 			return -1;
 		}
@@ -434,7 +471,7 @@ int x509_crl_entry_exts_from_der(
 	return 1;
 }
 
-int x509_crl_entry_exts_validate(const uint8_t *d, size_t dlen)
+int x509_crl_entry_exts_check(const uint8_t *d, size_t dlen)
 {
 	int oid;
 	int critical;
@@ -444,12 +481,12 @@ int x509_crl_entry_exts_validate(const uint8_t *d, size_t dlen)
 	size_t cert_issuer_len = 0;
 
 	while (dlen) {
-		if (x509_crl_entry_ext_from_der(&oid, &critical,
+		if (x509_crl_entry_ext_from_der_ex(&oid, &critical,
 			&reason, &invalid_date, &cert_issuer, &cert_issuer_len, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (x509_crl_entry_ext_critical_validate(oid, critical) != 1) {
+		if (x509_crl_entry_ext_critical_check(oid, critical) != 1) {
 			error_print();
 			return -1;
 		}
@@ -850,7 +887,7 @@ end:
 	return -1;
 }
 
-int x509_crl_ext_critical_validate(int oid, int critical)
+int x509_crl_ext_critical_check(int oid, int critical)
 {
 	switch (oid) {
 	// MUST be critical
@@ -992,6 +1029,7 @@ err:
 	return -1;
 }
 
+// 这类函数应该支持返回0，也就是没有加入数据，这样就不用检查输入是否为空了
 int x509_crl_exts_add_authority_key_identifier(
 	uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical,
@@ -1156,7 +1194,7 @@ int x509_crl_exts_add_authority_info_acess(
 	return 1;
 }
 
-int x509_crl_exts_validate(const uint8_t *d, size_t dlen)
+int x509_crl_exts_check(const uint8_t *d, size_t dlen)
 {
 	int oid;
 	uint32_t nodes[32];
@@ -1173,7 +1211,7 @@ int x509_crl_exts_validate(const uint8_t *d, size_t dlen)
 			error_print();
 			return -1;
 		}
-		if (x509_crl_ext_critical_validate(oid, critical) != 1) {
+		if (x509_crl_ext_critical_check(oid, critical) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1250,7 +1288,6 @@ int x509_tbs_crl_from_der(
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
-		else error_print();
 		return ret;
 	}
 	if (asn1_int_from_der(version, &d, &dlen) < 0
@@ -1313,7 +1350,7 @@ err:
 	return -1;
 }
 
-int x509_cert_list_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+static int x509_cert_list_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	int val;
 	const uint8_t *p;
@@ -1334,10 +1371,13 @@ err:
 
 int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
-	int ret;
-	if ((ret = asn1_any_to_der(a, alen, out, outlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
+	if (x509_crl_get_issuer(a, alen, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_any_to_der(a, alen, out, outlen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -1349,66 +1389,12 @@ int x509_crl_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_
 		if (ret < 0) error_print();
 		return ret;
 	}
-	return 1;
-}
-
-int x509_crl_to_pem(const uint8_t *a, size_t alen, FILE *fp)
-{
-	if (pem_write(fp, "X509 CRL", a, alen) != 1) {
+	if (x509_crl_get_issuer(*a, *alen, NULL, NULL) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
-
-int x509_crl_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
-{
-	int ret;
-	if ((ret = pem_read(fp, "X509 CRL", a, alen, maxlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	return 1;
-}
-
-/*
-int x509_crl_to_fp(const uint8_t *a, size_t alen, FILE *fp)
-{
-	if (fwrite(a, 1, alen, fp) != alen) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_crl_from_fp(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
-{
-	size_t len;
-	const uint8_t *d = a;
-	size_t dlen;
-	const uint8_t *crl;
-	size_t crl_len;
-
-	if (!(len = fread(a, 1, maxlen, fp))) {
-		if (feof(fp)) {
-			return 0;
-		} else {
-			error_print();
-			return -1;
-		}
-	}
-
-	dlen = len;
-	if (x509_crl_from_der(&crl, &crl_len, &d, &dlen) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	*alen = len;
-	return 1;
-}
-*/
 
 int x509_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
@@ -1583,7 +1569,7 @@ int x509_crl_get_details(const uint8_t *a, size_t alen,
 	return 1;
 }
 
-int x509_crl_validate(const uint8_t *a, size_t alen, time_t now)
+int x509_crl_check(const uint8_t *a, size_t alen, time_t now)
 {
 	int version;
 	int inner_sig_alg;
@@ -1620,7 +1606,7 @@ int x509_crl_validate(const uint8_t *a, size_t alen, time_t now)
 			return -1;
 		}
 	}
-	if (x509_crl_exts_validate(exts, exts_len) != 1) {
+	if (x509_crl_exts_check(exts, exts_len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1807,7 +1793,7 @@ int x509_cert_check_crl(const uint8_t *cert, size_t certlen, const uint8_t *cace
 		error_print();
 		return -1;
 	}
-	if (x509_crl_validate(crl, crl_len, time(NULL)) != 1) {
+	if (x509_crl_check(crl, crl_len, time(NULL)) != 1) {
 		error_print();
 		goto end;
 	}

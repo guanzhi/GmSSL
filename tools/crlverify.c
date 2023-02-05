@@ -121,7 +121,7 @@ bad:
 		goto end;
 	}
 
-	if (x509_crl_validate(crl, crl_len, time(NULL)) != 1) {
+	if (x509_crl_check(crl, crl_len, time(NULL)) != 1) {
 		fprintf(stderr, "%s: invalid CRL data or format\n", prog);
 		goto end;
 	}

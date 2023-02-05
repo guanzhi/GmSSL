@@ -208,23 +208,23 @@ int x509_req_sign_to_der(
 	return 1;
 }
 
-int x509_req_verify(const uint8_t *req, size_t reqlen, const char *signer_id, size_t signer_id_len)
+int x509_req_verify(const uint8_t *a, size_t alen, const char *signer_id, size_t signer_id_len)
 {
 	SM2_KEY public_key;
 
-	if (x509_req_get_details(req, reqlen,
+	if (x509_req_get_details(a, alen,
 		NULL, NULL, NULL, &public_key, NULL, NULL, NULL, NULL, NULL) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_signed_verify(req, reqlen, &public_key, signer_id, signer_id_len) != 1) {
+	if (x509_signed_verify(a, alen, &public_key, signer_id, signer_id_len) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-int x509_req_get_details(const uint8_t *req, size_t reqlen,
+int x509_req_get_details(const uint8_t *a, size_t alen,
 	int *version,
 	const uint8_t **subject, size_t *subject_len,
 	SM2_KEY *subject_public_key,
@@ -243,8 +243,8 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	size_t siglen;
 
 	if (x509_request_from_der(&ver, &subj, &subj_len, &pub_key, &attrs, &attrs_len,
-			&sig_alg, &sig, &siglen, &req, &reqlen) != 1
-		|| asn1_length_is_zero(reqlen) != 1) {
+			&sig_alg, &sig, &siglen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -263,6 +263,11 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 int x509_req_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
 	int ret;
+	if (x509_req_get_details(a, alen,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
 	if ((ret = asn1_any_to_der(a, alen, out, outlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
@@ -285,13 +290,13 @@ int x509_req_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_
 	return 1;
 }
 
-int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen)
+int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
 	const uint8_t *d;
 	size_t dlen;
 
-	if (asn1_sequence_from_der(&d, &dlen, &req, &reqlen) != 1
-		|| asn1_length_is_zero(reqlen) != 1) {
+	if (asn1_sequence_from_der(&d, &dlen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -299,18 +304,28 @@ int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	return 1;
 }
 
-int x509_req_to_pem(const uint8_t *req, size_t reqlen, FILE *fp)
+int x509_req_to_pem(const uint8_t *a, size_t alen, FILE *fp)
 {
-	if (pem_write(fp, "CERTIFICATE REQUEST", req, reqlen) <= 0) {
+	if (x509_req_get_details(a, alen,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pem_write(fp, "CERTIFICATE REQUEST", a, alen) <= 0) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp)
+int x509_req_from_pem(uint8_t *a, size_t *alen, size_t maxlen, FILE *fp)
 {
-	if (pem_read(fp, "CERTIFICATE REQUEST", req, reqlen, maxlen) != 1) {
+	if (pem_read(fp, "CERTIFICATE REQUEST", a, alen, maxlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_req_get_details(a, *alen,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL) != 1) {
 		error_print();
 		return -1;
 	}

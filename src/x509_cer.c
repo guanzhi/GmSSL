@@ -912,8 +912,8 @@ int x509_tbs_cert_from_der(
 	size_t dlen;
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
-		error_print();
-		return -1;
+		if (ret < 0) error_print();
+		return ret;
 	}
 	if (x509_explicit_version_from_der(0, version, &d, &dlen) < 0
 		|| asn1_integer_from_der(serial, serial_len, &d, &dlen) != 1
@@ -1142,6 +1142,10 @@ int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen,
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
 	int ret;
+	if (x509_cert_get_subject(a, alen, NULL, NULL) != 1) {
+		error_print();
+		return -1;
+	}
 	if ((ret = asn1_any_to_der(a, alen, out, outlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;

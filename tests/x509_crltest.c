@@ -179,7 +179,7 @@ static int test_x509_crl_entry_exts(void)
 			}
 			x509_crl_entry_exts_print(stderr, 0, 0, "CRLEntryExtensions", d, dlen);
 
-			if (x509_crl_entry_exts_validate(d, dlen) != 1) {
+			if (x509_crl_entry_exts_check(d, dlen) != 1) {
 				error_print();
 				return -1;
 			}
