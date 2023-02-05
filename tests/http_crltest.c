@@ -54,5 +54,5 @@ int main(void)
 	if (test_x509_crl_new_from_uri() != 1) { error_print(); return -1; }
 
 	printf("%s all tests passed\n", __FILE__);
-	return 1;
+	return 0;
 }
