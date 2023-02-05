@@ -195,6 +195,9 @@ int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
 {
 	size_t curlen = *extslen;
 
+	if (dlen == 0) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_ext_to_der_ex(oid, critical, d, dlen, NULL, &curlen) != 1
 		|| asn1_length_le(curlen, maxlen) != 1
@@ -218,6 +221,9 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 	size_t vlen = 0;
 	size_t len = 0;
 
+	if (keyid_len == 0 && issuer_len == 0 && serial_len == 0) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_authority_key_identifier_to_der(
 			keyid, keyid_len,
@@ -246,6 +252,9 @@ int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extsle
 	uint8_t id[32];
 	int critical = -1;
 
+	if (!public_key) {
+		return 0;
+	}
 	sm2_point_to_uncompressed_octets(&public_key->public_key, buf);
 	sm3_digest(buf, sizeof(buf), id);
 
@@ -266,6 +275,9 @@ int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t 
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	if (dlen == 0) {
+		return 0;
+	}
 	if (dlen < X509_SUBJECT_KEY_IDENTIFIER_MIN_LEN
 		|| dlen > X509_SUBJECT_KEY_IDENTIFIER_MAX_LEN) {
 		error_print();
@@ -289,6 +301,9 @@ int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size
 	uint8_t buf[65];
 	uint8_t id[32];
 
+	if (!subject_key) {
+		return 0;
+	}
 	sm2_point_to_uncompressed_octets(&subject_key->public_key, buf);
 	sm3_digest(buf, sizeof(buf), id);
 
@@ -307,8 +322,11 @@ int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int c
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	if (bits == -1) {
+		return 0;
+	}
 	if (!bits) {
-		// TODO: 检查是否在合法范围内
+		// TODO: 检查是否在合法范围内					
 		error_print();
 		return -1;
 	}
@@ -371,6 +389,9 @@ int x509_exts_add_name_constraints(uint8_t *exts, size_t *extslen, size_t maxlen
 	size_t vlen = 0;
 	size_t len = 0;
 
+	if (permitted_subtrees_len == 0 && excluded_subtrees_len == 0) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_name_constraints_to_der(
 			permitted_subtrees, permitted_subtrees_len,
@@ -399,6 +420,9 @@ int x509_exts_add_policy_constraints(uint8_t *exts, size_t *extslen, size_t maxl
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	if (require_explicit_policy == -1 && inhibit_policy_mapping == -1) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_policy_constraints_to_der(
 			require_explicit_policy,
@@ -422,6 +446,9 @@ int x509_exts_add_basic_constraints(uint8_t *exts, size_t *extslen, size_t maxle
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	if (ca == -1 && path_len_constraint == -1) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_basic_constraints_to_der(ca, path_len_constraint, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
@@ -443,6 +470,9 @@ int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen,
 	size_t vlen = 0;
 	size_t len = 0;
 
+	if (key_purposes_cnt == 0) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_ext_key_usage_to_der(key_purposes, key_purposes_cnt, NULL, &len) != 1
 		|| asn1_length_le(len, sizeof(val)) != 1
@@ -465,6 +495,9 @@ int x509_exts_add_crl_distribution_points_ex(uint8_t *exts, size_t *extslen, siz
 	size_t vlen = 0;
 	size_t len = 0;
 
+	if (urilen == 0 && ldap_urilen == 0) {
+		return 0;
+	}
 	if (x509_uri_as_distribution_points_to_der(uri, urilen, -1, NULL, 0, NULL, &len) != 1
 		|| asn1_length_le(len, sizeof(val)) != 1
 		|| x509_uri_as_distribution_points_to_der(uri, urilen, -1, NULL, 0, &p, &vlen) != 1) {
@@ -502,6 +535,9 @@ int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxl
 	uint8_t *p = val;
 	size_t vlen = 0;
 
+	if (skip_certs == -1) {
+		return 0;
+	}
 	exts += *extslen;
 	if (x509_inhibit_any_policy_to_der(skip_certs, &p, &vlen) != 1
 		|| x509_ext_to_der(oid, critical, val, vlen, NULL, &curlen) != 1
@@ -513,16 +549,11 @@ int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxl
 	return 1;
 }
 
-// 是否支持输入为空，这样返回0？我感觉这是一个比较高层的API，可能被应用直接调用，还是做严格检查比较好
 int x509_exts_add_freshest_crl(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical, const uint8_t *d, size_t dlen)
 {
 	int oid = OID_ce_freshest_crl;
-	if (x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
+	return x509_exts_add_sequence(exts, extslen, maxlen, oid, critical, d, dlen);
 }
 
 int x509_exts_get_ext_by_oid(const uint8_t *d, size_t dlen, int oid,
@@ -738,12 +769,16 @@ int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t 
 	if (dlen == 0) {
 		return 0;
 	}
-
 	switch (choice) {
+	case X509_gn_other_name:
 	case X509_gn_rfc822_name:
 	case X509_gn_dns_name:
+	case X509_gn_x400_address:
+	case X509_gn_directory_name:
+	case X509_gn_edi_party_name:
 	case X509_gn_uniform_resource_identifier:
 	case X509_gn_ip_address:
+	case X509_gn_registered_id:
 		if ((ret = asn1_implicit_to_der(choice, d, dlen, out, outlen)) != 1) {
 			if (ret < 0) error_print();
 			return ret;
@@ -858,7 +893,7 @@ int x509_general_names_add_other_name(uint8_t *gns, size_t *gnslen, size_t maxle
 	const uint8_t *value, size_t value_len)
 {
 	int choice = X509_gn_other_name;
-	uint8_t buf[128];		
+	uint8_t buf[256];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
@@ -879,7 +914,7 @@ int x509_general_names_add_edi_party_name(uint8_t *gns, size_t *gnslen, size_t m
 	int party_name_tag, const uint8_t *party_name, size_t party_name_len)
 {
 	int choice = X509_gn_edi_party_name;
-	uint8_t buf[128];		
+	uint8_t buf[256];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
@@ -902,7 +937,7 @@ int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t ma
 	const uint32_t *nodes, size_t nodes_cnt)
 {
 	int choice = X509_gn_registered_id;
-	uint8_t d[128];		
+	uint8_t d[64];
 	size_t dlen;
 
 	if (asn1_object_identifier_to_octets(nodes, nodes_cnt, d, &dlen) != 1
@@ -1031,6 +1066,7 @@ int x509_authority_key_identifier_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
 	if (keyid_len == 0 && issuer_len == 0 && serial_len == 0) {
 		return 0;
 	}
@@ -1603,8 +1639,7 @@ int x509_policy_mapping_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	if (issuer_policy_nodes_cnt == 0
-		&& subject_policy_nodes_cnt == 0) {
+	if (issuer_policy_oid == -1 && subject_policy_oid == -1) {
 		return 0;
 	}
 	if (x509_cert_policy_id_to_der(issuer_policy_oid,
@@ -1767,6 +1802,11 @@ int x509_attributes_print(FILE *fp, int fmt, int ind, const char *label, const u
 int x509_basic_constraints_to_der(int ca, int path_len_cons, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (ca == -1 && path_len_cons == -1) {
+		error_print();
+		return -1;
+	}
 	if (asn1_boolean_to_der(ca, NULL, &len) < 0
 		|| asn1_int_to_der(path_len_cons, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -1786,12 +1826,12 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else *ca = *path_len_cons = -1;
 		return ret;
 	}
-	if (!d || !dlen) {
-		*ca = -1;
-		*path_len_cons = -1;
-		return 1;
+	if (dlen == 0) {
+		error_print();
+		return -1;
 	}
 	if (asn1_boolean_from_der(ca, &d, &dlen) < 0
 		|| asn1_int_from_der(path_len_cons, &d, &dlen) < 0
@@ -1799,14 +1839,8 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 		error_print();
 		return -1;
 	}
-	if (*ca < 0 && *path_len_cons < 0) {
-		error_print();
-		return -1;
-	}
-	// from_der() MUST NOT set default value to *ca
 	return 1;
 }
-
 
 // 这个函数原型可能要改一下
 int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type)
@@ -2029,6 +2063,11 @@ int x509_policy_constraints_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
+
+	if (require_explicit_policy == -1 && inhibit_policy_mapping == -1) {
+		error_print();
+		return -1;
+	}
 	if (asn1_implicit_int_to_der(0, require_explicit_policy, NULL, &len) < 0
 		|| asn1_implicit_int_to_der(1, inhibit_policy_mapping, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
@@ -2051,10 +2090,13 @@ int x509_policy_constraints_from_der(
 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
+		else *require_explicit_policy = *inhibit_policy_mapping = -1;
 		return ret;
 	}
-	*require_explicit_policy = -1;
-	*inhibit_policy_mapping = -1;
+	if (dlen == 0) {
+		error_print();
+		return -1;
+	}
 	if (asn1_implicit_int_from_der(0, require_explicit_policy, &d, &dlen) < 0
 		|| asn1_implicit_int_from_der(1, inhibit_policy_mapping, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
@@ -2917,11 +2959,6 @@ int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t m
 	size_t vlen = 0;
 	size_t len = 0;
 
-	// Conforming CAs MUST mark this extension as non-critical.
-	if (critical == 1) {
-		error_print();
-		return -1;
-	}
 	if (x509_authority_info_access_to_der(ca_issuers_uri, ca_issuers_urilen, ocsp_uri, ocsp_urilen, NULL, &len) != 1
 		|| asn1_length_le(len, sizeof(val)) != 1
 		|| x509_authority_info_access_to_der(ca_issuers_uri, ca_issuers_urilen, ocsp_uri, ocsp_urilen, &p, &vlen) != 1) {

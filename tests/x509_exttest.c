@@ -136,7 +136,8 @@ static int test_x509_general_name(void)
 		return -1;
 	}
 	gnslen = 0;
-	if (x509_general_names_add_other_name(gns, &gnslen, sizeof(gns), other_id, cnt(other_id), value, sizeof(value)) != 1
+	if (0
+		|| x509_general_names_add_other_name(gns, &gnslen, sizeof(gns), other_id, cnt(other_id), value, sizeof(value)) != 1
 		|| x509_general_names_add_rfc822_name(gns, &gnslen, sizeof(gns), "guan@pku.edu.cn") != 1
 		|| x509_general_names_add_dns_name(gns, &gnslen, sizeof(gns), "www.pku.edu.cn") != 1
 		|| x509_general_names_add_x400_address(gns, &gnslen, sizeof(gns), x400, sizeof(x400)) != 1
@@ -503,8 +504,8 @@ static int test_x509_basic_constraints(void)
 
 
 	cp = p = buf; len = 0;
-	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != 1
-		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != -1 // empty sequence is not allowed
+	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != -1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 0 // empty sequence is not allowed
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
@@ -524,7 +525,7 @@ static int test_x509_basic_constraints(void)
 	cp = p = buf; len = 0;
 	if (x509_basic_constraints_to_der(-1, 4, &p, &len) != 1
 		|| x509_basic_constraints_from_der(&ca, &path, &cp, &len) != 1
-		|| asn1_check(ca == 0) != 1
+		|| asn1_check(ca == -1) != 1
 		|| asn1_check(path == 4) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -532,8 +533,8 @@ static int test_x509_basic_constraints(void)
 	}
 
 	cp = p = buf; len = 0;
-	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != 1 // should return error
-		|| x509_basic_constraints_from_der(&ca, &path, &cp, &len) != -1) {
+	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != -1 // should return error
+		|| x509_basic_constraints_from_der(&ca, &path, &cp, &len) != 0) {
 		error_print();
 		return -1;
 	}
@@ -649,10 +650,10 @@ static int test_x509_policy_constraints(void)
 
 	cp = p = buf; len = 0;
 	val1 = val2 = 99;
-	if (x509_policy_constraints_to_der(-1, -1, &p, &len) != 1
-		|| x509_policy_constraints_from_der(&val1, &val2, &cp, &len) != -1 // empty sequence is not allowed
-	//	|| asn1_check(val1 == -1) != 1
-	//	|| asn1_check(val2 == -1) != 1
+	if (x509_policy_constraints_to_der(-1, -1, &p, &len) != -1
+		|| x509_policy_constraints_from_der(&val1, &val2, &cp, &len) != 0 // empty sequence is not allowed
+		|| asn1_check(val1 == -1) != 1
+		|| asn1_check(val2 == -1) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;

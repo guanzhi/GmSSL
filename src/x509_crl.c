@@ -1029,7 +1029,6 @@ err:
 	return -1;
 }
 
-// 这类函数应该支持返回0，也就是没有加入数据，这样就不用检查输入是否为空了
 int x509_crl_exts_add_authority_key_identifier(
 	uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical,
@@ -1037,14 +1036,11 @@ int x509_crl_exts_add_authority_key_identifier(
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len)
 {
-	if (!keyid || !keyid_len) {
-		error_print();
-		return -1;
-	}
-	if (x509_exts_add_authority_key_identifier(exts, extslen, maxlen, critical,
-		keyid, keyid_len, issuer, issuer_len, serial, serial_len) != 1) {
-		error_print();
-		return -1;
+	int ret;
+	if ((ret = x509_exts_add_authority_key_identifier(exts, extslen, maxlen, critical,
+		keyid, keyid_len, issuer, issuer_len, serial, serial_len)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1052,9 +1048,10 @@ int x509_crl_exts_add_authority_key_identifier(
 int x509_crl_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
 	const SM2_KEY *public_key)
 {
-	if (x509_exts_add_default_authority_key_identifier(exts, extslen, maxlen, public_key) != 1) {
-		error_print();
-		return -1;
+	int ret;
+	if ((ret = x509_exts_add_default_authority_key_identifier(exts, extslen, maxlen, public_key)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1064,9 +1061,10 @@ int x509_crl_exts_add_issuer_alt_name(
 	int critical,
 	const uint8_t *d, size_t dlen)
 {
-	if (x509_exts_add_issuer_alt_name(exts, extslen, maxlen, critical, d, dlen) != 1) {
-		error_print();
-		return -1;
+	int ret;
+	if ((ret = x509_exts_add_issuer_alt_name(exts, extslen, maxlen, critical, d, dlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1135,27 +1133,34 @@ int x509_crl_exts_add_issuing_distribution_point(
 	int only_contains_attr_certs)
 {
 	int oid = OID_ce_issuing_distribution_point;
+	int ret;
 	size_t curlen = *extslen;
 	uint8_t val[512];
 	size_t vlen = 0;
 	uint8_t *p = val;
 	size_t len = 0;
 
+	if ((ret = x509_issuing_distribution_point_to_der(
+		dist_point_uri, dist_point_uri_len,
+		only_contains_user_certs,
+		only_contains_ca_certs,
+		only_some_reasons,
+		indirect_crl,
+		only_contains_attr_certs, NULL, &len)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (len > sizeof(val)) {
+		error_print();
+		return -1;
+	}
 	if (x509_issuing_distribution_point_to_der(
-			dist_point_uri, dist_point_uri_len,
-			only_contains_user_certs,
-			only_contains_ca_certs,
-			only_some_reasons,
-			indirect_crl,
-			only_contains_attr_certs, NULL, &len) != 1
-		|| asn1_length_le(len, sizeof(val)) != 1
-		|| x509_issuing_distribution_point_to_der(
-			dist_point_uri, dist_point_uri_len,
-			only_contains_user_certs,
-			only_contains_ca_certs,
-			only_some_reasons,
-			indirect_crl,
-			only_contains_attr_certs, &p, &vlen) != 1) {
+		dist_point_uri, dist_point_uri_len,
+		only_contains_user_certs,
+		only_contains_ca_certs,
+		only_some_reasons,
+		indirect_crl,
+		only_contains_attr_certs, &p, &vlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1174,10 +1179,11 @@ int x509_crl_exts_add_freshest_crl(
 	const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen)
 {
 	int oid = OID_ce_freshest_crl;
-	if (x509_exts_add_crl_distribution_points_ex(exts, extslen, maxlen,
-		oid, critical, http_uri, http_urilen, ldap_uri, ldap_urilen) != 1) {
-		error_print();
-		return -1;
+	int ret;
+	if ((ret = x509_exts_add_crl_distribution_points_ex(exts, extslen, maxlen,
+		oid, critical, http_uri, http_urilen, ldap_uri, ldap_urilen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }
@@ -1186,10 +1192,11 @@ int x509_crl_exts_add_authority_info_acess(
 	uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
 	const char *ca_issuers_uri, size_t ca_issuers_urilen, const char *ocsp_uri, size_t ocsp_urilen)
 {
-	if (x509_exts_add_authority_info_access(exts, extslen, maxlen, critical,
-		ca_issuers_uri, ca_issuers_urilen, ocsp_uri, ocsp_urilen) != 1) {
-		error_print();
-		return -1;
+	int ret;
+	if ((ret = x509_exts_add_authority_info_access(exts, extslen, maxlen, critical,
+		ca_issuers_uri, ca_issuers_urilen, ocsp_uri, ocsp_urilen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
 	}
 	return 1;
 }

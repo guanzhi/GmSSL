@@ -74,14 +74,19 @@ int http_parse_response(char *buf, size_t buflen, uint8_t **content, size_t *con
 		error_print();
 		return -1;
 	}
-	if (!(p = strnstr(buf, "\r\n\r\n", buflen))) {
+	if (buf[buflen] != 0) {
+		error_print();
+		return -1;
+	}
+	if (!(p = strstr(buf, "\r\n\r\n"))) {
 		error_print();
 		return -1;
 	}
 	*content = (uint8_t *)(p + 4);
 	headerlen = *content - (uint8_t *)buf;
+	*p = 0;
 
-	if (!(p = strnstr(buf, "\r\nContent-Length: ", headerlen))) {
+	if (!(p = strstr(buf, "\r\nContent-Length: "))) {
 		error_print();
 		return -1;
 	}
@@ -154,6 +159,7 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 		error_print();
 		goto end;
 	}
+	response[len] = 0;
 
 	// process response header and retrieve left
 	if (http_parse_response(response, len, &p, contentlen, &left) != 1) {
