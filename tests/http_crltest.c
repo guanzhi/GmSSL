@@ -38,6 +38,7 @@ static int test_x509_crl_new_from_uri(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (x509_crl_new_from_uri(&crl, &crl_len, tests[i], strlen(tests[i])) != 1) {
 			error_print();
+			fprintf(stderr, "test %zu: %s\n", i, tests[i]);
 			return -1;
 		}
 		x509_crl_print(stderr, 0, 0, "CRL", crl, crl_len);

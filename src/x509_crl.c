@@ -1336,8 +1336,8 @@ int x509_tbs_crl_print(FILE *fp, int fmt, int ind, const char *label, const uint
 
 	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "version: %s (%d)\n", x509_version_name(val), val);
-	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "signature: %s\n", x509_signature_algor_name(val));
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_signature_algor_print(fp, fmt, ind, "signature", p, len);
 	if (x509_name_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_name_print(fp, fmt, ind, "issuer", p, len);
 	if (x509_time_from_der(&tv, &d, &dlen) != 1) goto err;
@@ -1537,9 +1537,12 @@ int x509_crl_get_details(const uint8_t *a, size_t alen,
 	const uint8_t **exts, size_t *exts_len,
 	int *sig_alg, const uint8_t **sig, size_t *siglen)
 {
+	const uint8_t *crl_tbs;
+	size_t crl_tbslen;
 	int crl_sig_alg;
 	const uint8_t *crl_sig;
 	size_t crl_siglen;
+
 	struct {
 		int version;
 		int sig_alg;
@@ -1549,13 +1552,18 @@ int x509_crl_get_details(const uint8_t *a, size_t alen,
 		const uint8_t *exts; size_t exts_len;
 	} tbs;
 
+	if (x509_signed_from_der(&crl_tbs, &crl_tbslen, &crl_sig_alg, &crl_sig, &crl_siglen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
 	if (x509_tbs_crl_from_der(
 		&tbs.version, &tbs.sig_alg,
 		&tbs.issuer, &tbs.issuer_len,
 		&tbs.this_update, &tbs.next_update,
 		&tbs.revoked_certs, &tbs.revoked_certs_len,
-		&tbs.exts, &tbs.exts_len, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
+		&tbs.exts, &tbs.exts_len, &crl_tbs, &crl_tbslen) != 1
+		|| asn1_length_is_zero(crl_tbslen) != 1) {
 		error_print();
 		return -1;
 	}
