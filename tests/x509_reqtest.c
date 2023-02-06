@@ -26,6 +26,9 @@ static int test_x509_request_info(void)
 	size_t subject_len;
 	SM2_KEY sm2_key;
 
+	uint8_t attrs_buf[512];
+	size_t attrs_len = 0;
+
 	uint8_t buf[256];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
@@ -38,11 +41,10 @@ static int test_x509_request_info(void)
 	size_t subj_len;
 	SM2_KEY pub_key;
 	const uint8_t *attrs;
-	size_t attrs_len;
 
 	if (sm2_key_generate(&sm2_key) != 1
 		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
-		|| x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, NULL, 0, &p, &len) != 1
+		|| x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, attrs_buf, attrs_len, &p, &len) != 1
 		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -54,7 +56,7 @@ static int test_x509_request_info(void)
 	cp = buf;
 	len = 0;
 
-	if (x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, NULL, 0, &p, &len) != 1
+	if (x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, attrs_buf, attrs_len, &p, &len) != 1
 		|| x509_request_info_from_der(&version, &subj, &subj_len, &pub_key, &attrs, &attrs_len, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -136,6 +138,9 @@ static int test_x509_req(void)
 	uint8_t subject[256];
 	size_t subject_len;
 	SM2_KEY sm2_key;
+	uint8_t attrs[256];
+	size_t attrs_len = 0;
+
 	uint8_t req[512];
 	uint8_t *p = req;
 	size_t reqlen = 0;
@@ -143,7 +148,7 @@ static int test_x509_req(void)
 	if (sm2_key_generate(&sm2_key) != 1
 		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
 		|| x509_req_sign_to_der(
-			X509_version_v1, subject, subject_len, &sm2_key, NULL, 0,
+			X509_version_v1, subject, subject_len, &sm2_key, attrs, attrs_len,
 			OID_sm2sign_with_sm3, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
 			&p, &reqlen) != 1) {
 		error_print();
