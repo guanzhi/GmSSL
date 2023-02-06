@@ -73,7 +73,6 @@ set(src
 	src/tls12.c
 	src/tls13.c
 	src/file.c
-	src/http.c
 )
 
 set(tools
@@ -222,13 +221,13 @@ if (ENABLE_GMT_0105_RNG)
 endif()
 
 if (WIN32)
-	list(APPEND src src/rand_win.c)
+	list(APPEND src src/rand_win.c src/http_win.c)
 elseif (APPLE)
-	list(APPEND src src/rand_apple.c)
+	list(APPEND src src/rand_apple.c src/http.c)
 elseif (ANDROID)
-	list(APPEND src src/rand.c)
+	list(APPEND src src/rand.c src/http.c)
 else()
-	list(APPEND src src/rand_unix.c)
+	list(APPEND src src/rand_unix.c src/http.c)
 endif()
 
 
