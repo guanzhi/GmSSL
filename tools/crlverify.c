@@ -48,9 +48,6 @@ int crlverify_main(int argc, char **argv)
 	size_t cacertlen;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = SM2_DEFAULT_ID;
 	size_t signer_id_len = strlen(SM2_DEFAULT_ID);
-
-	const uint8_t *subject;
-	size_t subject_len;
 	int rv;
 
 	argc--;

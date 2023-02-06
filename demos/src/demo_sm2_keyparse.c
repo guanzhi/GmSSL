@@ -17,7 +17,6 @@
 int main(int argc, char **argv)
 {
 	uint8_t buf[4096];
-	ssize_t len;
 	uint8_t dgst[32];
 	int i;
 

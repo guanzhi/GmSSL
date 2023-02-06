@@ -2567,7 +2567,6 @@ int x509_revoke_reason_flags_print(FILE *fp, int fmt, int ind, const char *label
 int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen,
 	uint8_t **out, size_t *outlen)
 {
-	int ret;
 	int tag = ASN1_TAG_EXPLICIT(X509_full_name);
 
 	if (urilen == 0) {

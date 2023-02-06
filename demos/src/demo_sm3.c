@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {
 	SM3_CTX sm3_ctx;
 	uint8_t buf[4096];
-	ssize_t len;
+	size_t len;
 	uint8_t dgst[32];
 	int i;
 

@@ -758,7 +758,6 @@ int test_cms_enveloped_data(void)
 	uint8_t in[80];
 	uint8_t out[256];
 	size_t outlen;
-	size_t maxlen;
 
 	uint8_t buf[4096];
 	uint8_t *p;

@@ -722,7 +722,6 @@ static int test_asn1_from_der_null_args(void)
 
 	int val;
 	const char *str;
-	const uint8_t *d;
 	size_t dlen;
 	time_t t;
 	uint32_t nodes[32];

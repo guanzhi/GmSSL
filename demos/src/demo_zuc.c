@@ -26,7 +26,7 @@ int main(void)
 	};
 	unsigned char inbuf[1024];
 	unsigned char outbuf[1024 + 32];
-	ssize_t inlen;
+	size_t inlen;
 	size_t outlen;
 
 	if (zuc_encrypt_init(&zuc_ctx, key, iv) != 1) {
