@@ -20,3 +20,8 @@ gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key encke
 gmssl reqsign -in encreq.pem -days 365 -key_usage keyEncipherment -cacert cacert.pem -key cakey.pem -pass 1234 -out enccert.pem
 gmssl certparse -in enccert.pem
 
+gmssl certrevoke -in signcert.pem -reason keyCompromise > revoked_certs.der
+gmssl certrevoke -in enccert.pem -reason keyCompromise >> revoked_certs.der
+gmssl crlgen -in revoked_certs.der -cacert cacert.pem -key cakey.pem -pass 1234 -next_update 20240101000000Z -gen_authority_key_id -crl_num 1 -out crl.der
+gmssl crlparse -in crl.der
+
