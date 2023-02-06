@@ -129,7 +129,7 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	WSADATA wsaData;
 	wVersion = MAKEWORD(2, 2);
 	int err;
-	sock_inited = 1;
+	int sock_inited = 0;
 
 	// parse uri and compose request
 	if (http_parse_uri(uri, host, &port, path) != 1) {
@@ -156,16 +156,16 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
-	int sock_inited = 0;
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
 		error_print();
-		fprintf(stderr, "%s: open socket error : %u\n", prog, WSAGetLastError());
+		fprintf(stderr, "%s %d: open socket error : %u\n", __FILE__, __LINE__, WSAGetLastError());
 		goto end;
 	}
+	sock_inited = 1;
 
 	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) == SOCKET_ERROR) {
 		error_print();
-		fprintf(stderr, "%s: connect error : %u\n", prog, WSAGetLastError());
+		fprintf(stderr, "%s %d: connect error : %u\n", __FILE__, __LINE__, WSAGetLastError());
 		goto end;
 	}
 	if (tls_socket_send(sock, get, strlen(get), 0) != getlen) {
