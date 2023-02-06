@@ -1427,7 +1427,6 @@ int x509_crl_sign_to_der(
 {
 	size_t len = 0;
 	uint8_t *tbs;
-	size_t tbslen;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen = SM2_signature_typical_size;
 
@@ -1445,19 +1444,19 @@ int x509_crl_sign_to_der(
 		error_print();
 		return -1;
 	}
-	tbs = *out;
+	if (out && *out) {
+		tbs = *out;
+	}
 	if (x509_tbs_crl_to_der(version, sig_alg, issuer, issuer_len,
 			this_update, next_update, revoked_certs, revoked_certs_len,
 			crl_exts, crl_exts_len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
-	tbslen = *out - tbs;
-
 	if (out && *out) {
 		SM2_SIGN_CTX sign_ctx;
 		if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
-			|| sm2_sign_update(&sign_ctx, tbs, tbslen) != 1
+			|| sm2_sign_update(&sign_ctx, tbs, *out - tbs) != 1
 			|| sm2_sign_finish_fixlen(&sign_ctx, siglen, sig) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();
