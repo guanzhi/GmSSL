@@ -1261,7 +1261,7 @@ int x509_tbs_crl_to_der(
 		|| x509_time_to_der(this_update, NULL, &len) != 1
 		|| x509_time_to_der(next_update, NULL, &len) < 0
 		|| asn1_sequence_to_der(revoked_certs, revoked_certs_len, NULL, &len) < 0
-		|| asn1_sequence_to_der(exts, exts_len, NULL, &len) < 0
+		|| x509_explicit_exts_to_der(0, exts, exts_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_int_to_der(version, out, outlen) < 0
 		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
@@ -1269,7 +1269,7 @@ int x509_tbs_crl_to_der(
 		|| x509_time_to_der(this_update, out, outlen) != 1
 		|| x509_time_to_der(next_update, out, outlen) < 0
 		|| asn1_sequence_to_der(revoked_certs, revoked_certs_len, out, outlen) < 0
-		|| asn1_sequence_to_der(exts, exts_len, out, outlen) < 0) {
+		|| x509_explicit_exts_to_der(0, exts, exts_len, out, outlen) < 0) {
 		error_print();
 		return -1;
 	}
