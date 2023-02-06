@@ -158,7 +158,7 @@ set(tests
 	tls
 	tls13
 	http
-	http_crl
+	#http_crl
 )
 
 
@@ -230,6 +230,10 @@ else()
 	list(APPEND src src/rand_unix.c src/http.c)
 endif()
 
+option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
+if (ENABLE_HTTP_TESTS)
+	list(APPEND tests http_crl)
+endif()
 
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
