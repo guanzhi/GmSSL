@@ -163,10 +163,6 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 
 	// process response header and retrieve left
 	if (http_parse_response(response, len, &p, contentlen, &left) != 1) {
-
-		response[len] = 0;
-		fprintf(stderr, "Response:\n%s\n", response);
-
 		error_print();
 		goto end;
 	}
