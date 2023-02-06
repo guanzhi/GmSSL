@@ -18,7 +18,6 @@
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_req.h>
-#include <gmssl/x509_oid.h>
 
 
 static const char *options =

@@ -116,12 +116,12 @@ int x509_edi_party_name_print(FILE *fp, int fmt, int ind, const char *label, con
 
 /*
 GeneralName ::= CHOICE {
-	otherName			[0] IMPLICIT OtherName,	-- 只在GeneralName中出现
+	otherName			[0] IMPLICIT OtherName,	-- Only in GeneralName
 	rfc822Name			[1] IMPLICIT IA5String,
 	dNSName				[2] IMPLICIT IA5String,
 	x400Address			[3] IMPLICIT ORAddress,
-	directoryName			[4] IMPLICIT Name,	-- SEQENCE OF，因此是d,dlen
-	ediPartyName			[5] IMPLICIT EDIPartyName, -- 只在GeneralName中出现
+	directoryName			[4] IMPLICIT Name,	-- SEQENCE OF
+	ediPartyName			[5] IMPLICIT EDIPartyName, -- Only in GeneralName
 	uniformResourceIdentifier	[6] IMPLICIT IA5String,
 	iPAddress			[7] IMPLICIT OCTET STRING, -- 4 bytes or string?
 	registeredID			[8] IMPLICIT OBJECT IDENTIFIER }
@@ -276,10 +276,19 @@ PolicyQualifierInfo ::= SEQUENCE {
         policyQualifierId  PolicyQualifierId,
         qualifier          ANY DEFINED BY policyQualifierId }
 
+id-qt
+	OID_qt_cps
+	OID_qt_unotice
+
 	switch(policyQualifierId)
 	case id-qt-cps		: qualifier ::= IA5String
 	case id-qt-unotice	: qualifier ::= UserNotice
 */
+const char *x509_qualifier_id_name(int oid);
+int x509_qualifier_id_from_name(const char *name);
+int x509_qualifier_id_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int x509_qualifier_id_to_der(int oid, uint8_t **out, size_t *outlen);
+
 int x509_policy_qualifier_info_to_der(
 	int oid,
 	const uint8_t *qualifier, size_t qualifier_len,
@@ -300,7 +309,13 @@ PolicyInformation ::= SEQUENCE {
         policyQualifiers   SEQUENCE SIZE (1..MAX) OF PolicyQualifierInfo OPTIONAL }
 
 CertPolicyId ::= OBJECT IDENTIFIER -- undefined
+
+	OID_any_policy
 */
+char *x509_cert_policy_id_name(int oid);
+int x509_cert_policy_id_from_name(const char *name);
+int x509_cert_policy_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, const uint8_t **in, size_t *inlen);
+int x509_cert_policy_id_to_der(int oid, const uint32_t *nodes, size_t nodes_cnt, uint8_t **out, size_t *outlen);
 
 int x509_policy_information_to_der(
 	int policy_oid, const uint32_t *policy_nodes, size_t policy_nodes_cnt,
@@ -413,8 +428,7 @@ int x509_general_subtree_print(FILE *fp, int fmt, int ind, const char *label, co
 /*
 GeneralSubtrees ::= SEQUENCE SIZE (1..MAX) OF GeneralSubtree
 */
-// 应该参考general_names_add_xxx来改写这个函数，只是不知道这个函数用的多不多
-int x509_general_subtrees_add_general_subtree(uint8_t *d, size_t *dlen, size_t maxlen, // 这个功能和general_names很类似，只是多了一点点内容
+int x509_general_subtrees_add_general_subtree(uint8_t *d, size_t *dlen, size_t maxlen,
 	int base_choice, const uint8_t *base, size_t base_len,
 	int minimum, int maximum);
 int x509_general_subtrees_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -453,6 +467,7 @@ ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
 
 KeyPurposeId:
 	OID_any_extended_key_usage
+  id-kp
 	OID_kp_server_auth
 	OID_kp_client_auth
 	OID_kp_code_signing
@@ -461,6 +476,12 @@ KeyPurposeId:
 	OID_kp_ocsp_signing
 */
 #define X509_MAX_KEY_PURPOSES	7
+const char *x509_key_purpose_name(int oid);
+const char *x509_key_purpose_text(int oid);
+int x509_key_purpose_from_name(const char *name);
+int x509_key_purpose_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int x509_key_purpose_to_der(int oid, uint8_t **out, size_t *outlen);
+
 int x509_ext_key_usage_to_der(const int *oids, size_t oids_cnt, uint8_t **out, size_t *outlen);
 int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, const uint8_t **in, size_t *inlen);
 int x509_ext_key_usage_check(const int *oids, size_t oids_cnt, int cert_type);

@@ -24,36 +24,6 @@
 extern "C" {
 #endif
 
-/*
-X509 Public API
-
-	x509_name_add_rdn
-	x509_name_add_country_name
-	x509_name_add_state_or_province_name
-	x509_name_add_locality_name
-	x509_name_add_organization_name
-	x509_name_add_organizational_unit_name
-	x509_name_add_common_name
-	x509_name_add_domain_component
-	x509_name_to_der
-	x509_name_from_der
-	x509_name_print
-	x509_name_get_value_by_type
-	x509_name_get_common_name
-
-	x509_cert_sign
-	x509_cert_verify
-	x509_cert_verify_by_ca_cert
-	x509_cert_get_issuer_and_serial_number
-	x509_cert_get_issuer
-	x509_cert_get_subject
-	x509_cert_get_subject_public_key
-	x509_cert_to_der
-	x509_cert_from_der
-	x509_cert_to_pem
-	x509_cert_from_pem
-	x509_cert_print
-*/
 
 enum X509_Version {
 	X509_version_v1 = 0,
@@ -114,23 +84,28 @@ AttributeTypeAndValue ::= SEQUENCE {
 	value ANY -- DEFINED BY AttributeType }
 
 id-at
-	name			DirectoryName		1..ub-name
-	surname			DirectoryName		1..ub-name
-	givenName		DirectoryName		1..ub-name
-	initials		DirectoryName		1..ub-name
-	generationQualifier	DirectoryName		1..ub-name
-	commonName		DirectoryName		1..ub-common-name
-	localityName		DirectoryName		1..ub-locality-name
-	stateOrProvinceName	DirectoryName		1..ub-state-name
-	organizationName	DirectoryName		1..ub-organization-name
-	organizationalUnitName	DirectoryName		1..ub-organizational-unit-name
-	title			DirectoryName		1..ub-title
-	dnQualifier		PrintableString		N/A
-	countryName		PrintableString		2..2
-	serialNumber		PrintableString		1..ub-serial-number
-	pseudonym		DirectoryName		1..ub-pseudonym
-	domainComponent		IA5String		N/A
+	OID_at_name			name			DirectoryName		1..ub-name
+	OID_at_surname			surname			DirectoryName		1..ub-name
+	OID_at_given_name		givenName		DirectoryName		1..ub-name
+	OID_at_initials			initials		DirectoryName		1..ub-name
+	OID_at_generation_qualifier	generationQualifier	DirectoryName		1..ub-name
+	OID_at_common_name		commonName		DirectoryName		1..ub-common-name
+	OID_at_locality_name		localityName		DirectoryName		1..ub-locality-name
+	OID_at_state_or_province_name	stateOrProvinceName	DirectoryName		1..ub-state-name
+	OID_at_organization_name	organizationName	DirectoryName		1..ub-organization-name
+	OID_at_organizational_unit_name	organizationalUnitName	DirectoryName		1..ub-organizational-unit-name
+	OID_at_title			title			DirectoryName		1..ub-title
+	OID_at_dn_qualifier		dnQualifier		PrintableString		N/A
+	OID_at_country_name		countryName		PrintableString		2..2
+	OID_at_serial_number		serialNumber		PrintableString		1..ub-serial-number
+	OID_at_pseudonym		pseudonym		DirectoryName		1..ub-pseudonym
+	OID_domain_component		domainComponent		IA5String		N/A
 */
+const char *x509_name_type_name(int oid);
+int x509_name_type_from_name(const char *name);
+int x509_name_type_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int x509_name_type_to_der(int oid, uint8_t **out, size_t *outlen);
+
 #define X509_ub_name 32768
 #define X509_ub_common_name 64
 #define X509_ub_locality_name 128
@@ -156,16 +131,6 @@ int x509_rdn_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 
 /*
 Name ::= SEQUENCE OF RelativeDistinguishedName
-
-Example:
-    SEQUENCE LEN
-      SET LEN
-          SEQUENCE LEN OID=countryName, String=CN
-      SET LEN
-          SEQUENCE LEN OID=stateName, String=CN
-          SEQUENCE LEN OID=unknown, String=ABC
-      SET LEN
-          SEQUENCE LEN OID=commonNmame, String=ABC
 */
 int x509_name_add_rdn(uint8_t *d, size_t *dlen, size_t maxlen, int oid, int tag, const uint8_t *val, size_t vlen, const uint8_t *more, size_t mlen);
 int x509_name_add_country_name(uint8_t *d, size_t *dlen, size_t maxlen, const char val[2] ); // val: PrintableString SIZE(2)
@@ -208,7 +173,30 @@ Extension  ::=  SEQUENCE  {
 	extnID OBJECT IDENTIFIER,
 	critical BOOLEAN DEFAULT FALSE,
 	extnValue OCTET STRING -- contains the DER encoding of an ASN.1 value
+
+id-ce:
+	OID_ce_authority_key_identifier
+	OID_ce_subject_key_identifier
+	OID_ce_key_usage
+	OID_ce_certificate_policies
+	OID_ce_policy_mappings
+	OID_ce_subject_alt_name
+	OID_ce_issuer_alt_name
+	OID_ce_subject_directory_attributes
+	OID_ce_basic_constraints
+	OID_ce_name_constraints
+	OID_ce_policy_constraints
+	OID_ce_ext_key_usage
+	OID_ce_crl_distribution_points
+	OID_ce_inhibit_any_policy
+	OID_ce_freshest_crl
+	OID_netscape_cert_comment
 */
+const char *x509_ext_id_name(int oid);
+int x509_ext_id_from_name(const char *name);
+int x509_ext_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_count, const uint8_t **in, size_t *inlen);
+int x509_ext_id_to_der(int oid, uint8_t **out, size_t *outlen);
+
 int x509_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen);
 int x509_ext_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, int *critical, const uint8_t **val, size_t *vlen, const uint8_t **in, size_t *inlen);
 int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -286,11 +274,6 @@ int x509_certificate_from_der(
 	const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen);
 
-int x509_signed_to_der(
-	const uint8_t *tbs, size_t tbslen,
-	int signature_algor,
-	const uint8_t *sig, size_t siglen,
-	uint8_t **out, size_t *outlen);
 int x509_signed_from_der(
 	const uint8_t **tbs, size_t *tbslen,
 	int *signature_algor,
@@ -300,8 +283,6 @@ int x509_signed_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key,
 	const char *signer_id, size_t signer_id_len);
 int x509_signed_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len);
-
-//int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 // x509_cert functions
 int x509_cert_sign_to_der(
@@ -317,22 +298,6 @@ int x509_cert_sign_to_der(
 	const uint8_t *exts, size_t exts_len,
 	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen);
-/*
-int x509_cert_sign(
-	uint8_t *cert, size_t *certlen, size_t maxlen,
-	int version,
-	const uint8_t *serial, size_t serial_len,
-	int signature_algor,
-	const uint8_t *issuer, size_t issuer_len,
-	time_t not_before, time_t not_after,
-	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
-	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
-	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
-	const uint8_t *exts, size_t exts_len,
-	const SM2_KEY *sign_key,
-	const char *signer_id, size_t signer_id_len);
-*/
 
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
 int x509_cert_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
@@ -357,8 +322,19 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	const uint8_t **extensions, size_t *extensions_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);
-int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraints);
 
+
+typedef enum {
+	X509_cert_server_auth,
+	X509_cert_client_auth,
+	X509_cert_server_key_encipher,
+	X509_cert_client_key_encipher,
+	X509_cert_ca,
+	X509_cert_root_ca,
+	X509_cert_crl_sign,
+} X509_CERT_TYPE;
+
+int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraints);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {
@@ -390,20 +366,12 @@ int x509_certs_get_cert_by_issuer_and_serial_number(
 	const uint8_t *serial, size_t serial_len,
 	const uint8_t **cert, size_t *cert_len);
 
-
-typedef enum {
-	X509_verify_err_cert_revoked		= -2,
-	X509_verify_err_cert_not_yet_valid	= -3,
-	X509_verify_err_cert_has_expired	= -4,
-	X509_verify_err_cert_chain_too_long	= -5,
-} X509_VERIFY_ERR;
-
 typedef enum {
 	X509_cert_chain_server,
 	X509_cert_chain_client,
 } X509_CERT_CHAIN_TYPE;
 
-#define X509_MAX_VERIFY_DEPTH	6 // TODO: any requirement from CA/B or OpenSSL?
+#define X509_MAX_VERIFY_DEPTH	6
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
@@ -414,18 +382,6 @@ int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_
 
 int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file);
 int x509_certs_new_from_file(uint8_t **out, size_t *outlen, const char *file);
-
-
-typedef enum {
-	X509_cert_server_auth,
-	X509_cert_client_auth,
-	X509_cert_server_key_encipher,
-	X509_cert_client_key_encipher,
-	X509_cert_ca,
-	X509_cert_root_ca,
-	X509_cert_crl_sign,
-} X509_CERT_TYPE;
-
 
 
 #ifdef __cplusplus

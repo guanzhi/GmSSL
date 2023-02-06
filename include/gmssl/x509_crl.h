@@ -57,18 +57,17 @@ int x509_crl_entry_ext_id_from_name(const char *name);
 int x509_crl_entry_ext_id_to_der(int oid, uint8_t **out, size_t *outlen);
 int x509_crl_entry_ext_id_from_der(int *oid, const uint8_t **in, size_t *inlen);
 
-int x509_crl_entry_ext_critical_check(int oid, int critical);
-
-
 int x509_crl_entry_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen);
+int x509_crl_entry_ext_from_der(int *oid, int *critical, const uint8_t **val, size_t *vlen, const uint8_t **in, size_t *inlen);
+int x509_crl_entry_ext_critical_check(int oid, int critical);
+int x509_crl_entry_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
 int x509_crl_reason_ext_to_der(int critical, int reason, uint8_t **out, size_t *outlen);
 int x509_invalidity_date_ext_to_der(int critical, time_t date, uint8_t **out, size_t *outlen);
 int x509_cert_issuer_ext_to_der(int critical, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
-int x509_crl_entry_ext_from_der(int *oid, int *critical, const uint8_t **val, size_t *vlen, const uint8_t **in, size_t *inlen);
 int x509_crl_entry_ext_from_der_ex(int *oid, int *critical,
 	int *reason, time_t *invalid_date, const uint8_t **cert_issuer, size_t *cert_issuer_len,
 	const uint8_t **in, size_t *inlen);
-int x509_crl_entry_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 int x509_crl_entry_exts_to_der(
 	int reason, time_t invalid_date, const uint8_t *cert_issuer, size_t cert_issuer_len,
@@ -80,7 +79,6 @@ int x509_crl_entry_exts_get(const uint8_t *d, size_t dlen,
 	int *reason, time_t *invalid_date, const uint8_t **cert_issuer, size_t *cert_issuer_len);
 int x509_crl_entry_exts_check(const uint8_t *d, size_t dlen);
 int x509_crl_entry_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-
 
 /*
 RevokedCertificate ::= SEQUENCE {
@@ -143,7 +141,6 @@ IssuingDistributionPoint ::= SEQUENCE {
 	indirectCRL			[4] IMPLICIT BOOLEAN DEFAULT FALSE,
 	onlyContainsAttributeCerts	[5] IMPLICIT BOOLEAN DEFAULT FALSE }
 */
-
 int x509_issuing_distribution_point_to_der(
 	const char *dist_point_uri, size_t dist_point_uri_len,
 	int only_contains_user_certs,
@@ -162,11 +159,11 @@ int x509_issuing_distribution_point_from_der(
 	const uint8_t **in, size_t *inlen);
 int x509_issuing_distribution_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
-int x509_crl_ext_critical_check(int oid, int critical);
 int x509_crl_ext_to_der(int oid, int critical, const uint8_t *val, size_t vlen, uint8_t **out, size_t *outlen);
 int x509_crl_ext_from_der_ex(int *oid, uint32_t *nodes, size_t *nodes_cnt,
 	int *critical, const uint8_t **val, size_t *vlen,
 	const uint8_t **in, size_t *inlen);
+int x509_crl_ext_critical_check(int oid, int critical);
 int x509_crl_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 
@@ -211,11 +208,10 @@ int x509_crl_exts_add_authority_info_acess(
 	const char *ca_issuers_uri, size_t ca_issuers_urilen,
 	const char *ocsp_uri, size_t ocsp_urilen);
 
-int x509_crl_exts_check(const uint8_t *d, size_t dlen);
 #define x509_crl_exts_to_der(d,dlen,out,outlen) x509_explicit_exts_to_der(0,d,dlen,out,outlen)
 #define x509_crl_exts_from_der(d,dlen,in,inlen) x509_explicit_exts_from_der(0,d,dlen,in,inlen)
+int x509_crl_exts_check(const uint8_t *d, size_t dlen);
 int x509_crl_exts_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-
 
 /*
 TBSCertList ::= SEQUENCE {
@@ -253,8 +249,6 @@ CertificateList ::= SEQUENCE {
 	signatureAlgorithm	AlgorithmIdentifier,
 	signatureValue		BIT STRING }
 */
-
-// x509_crl_ functions
 int x509_crl_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
 int x509_crl_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 int x509_crl_to_pem(const uint8_t *a, size_t alen, FILE *fp);
@@ -300,8 +294,8 @@ int x509_crl_get_revoked_certs(const uint8_t *a, size_t alen, const uint8_t **d,
 int x509_crl_find_revoked_cert_by_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t *serial, size_t serial_len, time_t *revoke_date,
 	const uint8_t **entry_exts, size_t *entry_exts_len);
-int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
+int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 int x509_crl_new_from_uri(uint8_t **crl, size_t *crl_len, const char *uri, size_t urilen);
 int x509_crl_new_from_cert(uint8_t **crl, size_t *crl_len, const uint8_t *cert, size_t certlen);

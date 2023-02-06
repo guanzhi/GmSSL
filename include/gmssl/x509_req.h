@@ -67,9 +67,10 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	const uint8_t **signature, size_t *signature_len);
 int x509_req_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
 int x509_req_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
-int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen);
 int x509_req_to_pem(const uint8_t *req, size_t reqlen, FILE *fp);
 int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp);
+int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen);
+
 int x509_req_new_from_pem(uint8_t **req, size_t *reqlen, FILE *fp);
 int x509_req_new_from_file(uint8_t **req, size_t *reqlen, const char *file);
 

@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <gmssl/oid.h>
 #include <gmssl/x509_alg.h>
-#include <gmssl/x509_oid.h>
 #include <gmssl/x509_req.h>
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>

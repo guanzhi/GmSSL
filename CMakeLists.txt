@@ -47,13 +47,12 @@ set(src
 	src/hex.c
 	src/base64.c
 	src/pem.c
-	src/x509_oid.c
 	src/x509_alg.c
-	src/x509_str.c
 	src/x509_cer.c
 	src/x509_ext.c
 	src/x509_req.c
 	src/x509_crl.c
+	src/x509_new.c
 	src/cms.c
 	src/sdf/sdf.c
 	src/sdf/sdf_lib.c
@@ -157,6 +156,35 @@ set(tests
 	cms
 	tls
 	tls13
+)
+
+set(demos
+	demo_sm2_encrypt
+	demo_sm2_keygen
+	demo_sm2_keyparse
+	demo_sm2_private_key
+	demo_sm2_private_key_parse
+	demo_sm2_public_key
+	demo_sm2_sign
+	demo_sm2_sign_ctx
+	demo_sm3
+	demo_sm3_hmac
+	demo_sm3_kdf
+	demo_sm4
+	demo_sm4_cbc
+	demo_sm4_cbc_decrypt_update
+	demo_sm4_cbc_encrypt_update
+	demo_sm4_cbc_padding
+	demo_sm4_ctr
+	demo_sm4_ctr_encrypt_update
+	demo_sm4_gcm
+	demo_sm9_encrypt
+	demo_sm9_keygen
+	demo_sm9_sign
+#	demo_tlcp_get
+#	demo_tlcp_post
+#	demo_wget
+	demo_zuc
 )
 
 
@@ -283,6 +311,10 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 		target_link_libraries (${name}test LINK_PUBLIC gmssl)
 	endforeach()
 
+	foreach(name ${demos})
+		add_executable(${name} demos/src/${name}.c)
+		target_link_libraries(${name} LINK_PUBLIC gmssl)
+	endforeach()
 
 	install(TARGETS gmssl-bin RUNTIME DESTINATION bin)
 endif()

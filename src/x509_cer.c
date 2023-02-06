@@ -20,7 +20,6 @@
 #include <gmssl/asn1.h>
 #include <gmssl/rsa.h>
 #include <gmssl/file.h>
-#include <gmssl/x509_oid.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509.h>
@@ -217,6 +216,98 @@ err:
 	return -1;
 }
 
+
+static uint32_t oid_at_name[] = { oid_at,41 };
+static uint32_t oid_at_surname[] = { oid_at,4 };
+static uint32_t oid_at_given_name[] = { oid_at,42 };
+static uint32_t oid_at_initials[] = { oid_at,43 };
+static uint32_t oid_at_generation_qualifier[] = { oid_at,44 };
+static uint32_t oid_at_common_name[] = { oid_at,3 };
+static uint32_t oid_at_locality_name[] = { oid_at,7 };
+static uint32_t oid_at_state_or_province_name[] = { oid_at,8 };
+static uint32_t oid_at_organization_name[] = { oid_at,10 };
+static uint32_t oid_at_organizational_unit_name[] = { oid_at,11 };
+static uint32_t oid_at_title[] = { oid_at,12 };
+static uint32_t oid_at_dn_qualifier[] = { oid_at,46 };
+static uint32_t oid_at_country_name[] = { oid_at,6 };
+static uint32_t oid_at_serial_number[] = { oid_at,5 };
+static uint32_t oid_at_pseudonym[] = { oid_at,65 };
+static uint32_t oid_domain_component[] = { 0,9,2342,19200300,100,1,25 };
+static uint32_t oid_email_address[] = { 1,2,840,113549,1,9,1 };
+
+#define OID_AT_CNT (sizeof(oid_at_name)/sizeof(int))
+
+static const ASN1_OID_INFO x509_name_types[] = {
+	{ OID_at_name, "name", oid_at_name, OID_AT_CNT },
+	{ OID_at_surname, "surname", oid_at_surname, OID_AT_CNT },
+	{ OID_at_given_name, "givenName", oid_at_given_name, OID_AT_CNT },
+	{ OID_at_initials, "initials", oid_at_initials, OID_AT_CNT },
+	{ OID_at_generation_qualifier, "generationQualifier", oid_at_generation_qualifier, OID_AT_CNT },
+	{ OID_at_common_name, "commonName", oid_at_common_name, OID_AT_CNT },
+	{ OID_at_locality_name, "localityName", oid_at_locality_name, OID_AT_CNT },
+	{ OID_at_state_or_province_name, "stateOrProvinceName", oid_at_state_or_province_name, OID_AT_CNT },
+	{ OID_at_organization_name, "organizationName", oid_at_organization_name, OID_AT_CNT },
+	{ OID_at_organizational_unit_name, "organizationalUnitName", oid_at_organizational_unit_name, OID_AT_CNT },
+	{ OID_at_title, "title", oid_at_title, OID_AT_CNT },
+	{ OID_at_dn_qualifier, "dnQualifier", oid_at_dn_qualifier, OID_AT_CNT },
+	{ OID_at_country_name, "countryName", oid_at_country_name, OID_AT_CNT },
+	{ OID_at_serial_number, "serialNumber", oid_at_serial_number, OID_AT_CNT },
+	{ OID_at_pseudonym, "pseudonym", oid_at_pseudonym, OID_AT_CNT },
+	{ OID_domain_component, "domainComponent", oid_domain_component, sizeof(oid_domain_component)/sizeof(int) },
+	{ OID_email_address, "emailAddress", oid_email_address, sizeof(oid_email_address)/sizeof(int) },
+};
+
+static const int x509_name_types_count
+	= sizeof(x509_name_types)/sizeof(x509_name_types[0]);
+
+const char *x509_name_type_name(int oid)
+{
+	const ASN1_OID_INFO *info;
+	if (!(info = asn1_oid_info_from_oid(x509_name_types, x509_name_types_count, oid))) {
+		error_print();
+		return NULL;
+	}
+	return info->name;
+}
+
+int x509_name_type_from_name(const char *name)
+{
+	const ASN1_OID_INFO *info;
+	if (!(info = asn1_oid_info_from_name(x509_name_types, x509_name_types_count, name))) {
+		error_print();
+		return OID_undef;
+	}
+	return info->oid;
+}
+
+int x509_name_type_to_der(int oid, uint8_t **out, size_t *outlen)
+{
+	const ASN1_OID_INFO *info;
+	if (!(info = asn1_oid_info_from_oid(x509_name_types, x509_name_types_count, oid))) {
+		error_print();
+		return -1;
+	}
+	if (asn1_object_identifier_to_der(info->nodes, info->nodes_cnt, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_name_type_from_der(int *oid, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const ASN1_OID_INFO *info;
+
+	if ((ret = asn1_oid_info_from_der(&info, x509_name_types, x509_name_types_count, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		else *oid = -1;
+		return ret;
+	}
+	*oid = info->oid;
+	return 1;
+}
+
 int x509_directory_name_check(int tag, const uint8_t *d, size_t dlen)
 {
 	if (dlen == 0) {
@@ -355,7 +446,7 @@ static const struct {
 	int is_printable_string_only;
 	int minlen;
 	int maxlen;
-} x509_name_types[] = {
+} x509_name_types_info[] = {
 	{ OID_at_country_name,             1, 2, 2 },
 	{ OID_at_state_or_province_name,   0, 1, X509_ub_state_name },
 	{ OID_at_locality_name,            0, 1, X509_ub_locality_name },
@@ -372,21 +463,21 @@ static const struct {
 	{ OID_at_pseudonym,                0, 1, X509_ub_pseudonym },
 };
 
-static const int x509_name_types_count
-	= sizeof(x509_name_types)/sizeof(x509_name_types[0]);
+static const int x509_name_types_info_count
+	= sizeof(x509_name_types_info)/sizeof(x509_name_types_info[0]);
 
 int x509_attr_type_and_value_check(int oid, int tag, const uint8_t *val, size_t vlen)
 {
 	int i;
-	for (i = 0; i < x509_name_types_count; i++) {
-		if (oid == x509_name_types[i].oid) {
-			if (x509_name_types[i].is_printable_string_only
+	for (i = 0; i < x509_name_types_info_count; i++) {
+		if (oid == x509_name_types_info[i].oid) {
+			if (x509_name_types_info[i].is_printable_string_only
 				&& tag != ASN1_TAG_PrintableString) {
 				error_print();
 				return -1;
 			}
 			if (x509_directory_name_check_ex(tag, val, vlen,
-				x509_name_types[i].minlen, x509_name_types[i].maxlen) != 1) {
+				x509_name_types_info[i].minlen, x509_name_types_info[i].maxlen) != 1) {
 				error_print();
 				return -1;
 			}

@@ -18,7 +18,6 @@
 #include <gmssl/error.h>
 #include <gmssl/hex.h>
 #include <gmssl/x509.h>
-#include <gmssl/x509_oid.h>
 #include <gmssl/x509_ext.h>
 
 
