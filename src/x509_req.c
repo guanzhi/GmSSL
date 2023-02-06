@@ -41,12 +41,12 @@ int x509_request_info_to_der(
 	if (asn1_int_to_der(version, NULL, &len) != 1
 		|| asn1_sequence_to_der(subject, subject_len, NULL, &len) != 1
 		|| x509_public_key_info_to_der(subject_public_key, NULL, &len) != 1
-		|| asn1_implicit_set_to_der(0, attrs, attrs_len, NULL, &len) < 0
+		|| asn1_implicit_set_to_der(0, attrs, attrs_len, NULL, &len) != 1
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_int_to_der(version, out, outlen) != 1
 		|| asn1_sequence_to_der(subject, subject_len, out, outlen) != 1
 		|| x509_public_key_info_to_der(subject_public_key, out, outlen) != 1
-		|| asn1_implicit_set_to_der(0, attrs, attrs_len, out, outlen) < 0) {
+		|| asn1_implicit_set_to_der(0, attrs, attrs_len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}

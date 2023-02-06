@@ -647,7 +647,7 @@ int x509_name_add_country_name(uint8_t *d, size_t *dlen, size_t maxlen, const ch
 {
 	int ret;
 	ret = x509_name_add_rdn(d, dlen, maxlen,
-		OID_at_country_name, ASN1_TAG_PrintableString, (uint8_t *)val, 2, NULL, 0);
+		OID_at_country_name, ASN1_TAG_PrintableString, (uint8_t *)val, val ? 2 : 0, NULL, 0);
 	if (ret < 0) error_print();
 	return ret;
 }

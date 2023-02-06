@@ -69,42 +69,6 @@ enum ASN1_TAG {
 };
 
 
-/*
-DER encoding (d, dlen) to_der
-
-	d != NULL && dlen != 0: return 1 on success or -1 on failure
-	d == NULL && dlen != 0: invalid input, return -1
-	d == NULL && dlen == 0: do nothing, return 0 to info OPTIONAL types
-	d != NULL && dlen == 0: encode an empty type, output tag and length = 0 without value
-
-解码函数的返回值：
-
-	ret == 0
-		当前剩余的数据数据长度为0
-		或者下一个对象与期待不符，即输入对象的标签不等于输入的tag
-		当对象为OPTIONAL时，调用方可以通过判断返回值是否为0进行处理
-	ret < 0
-		标签正确但是长度或数据解析出错
-	ret == 1
-		解析正确
-
-
-解码函数的输入：
-
-	*in != NULL
-		例如一个SEQUENCE中的属性均为OPTIONAL，解析后指针仍不为空
-		因此不允许输入空的输入数据指针
-
-
-处理规则
-
-	当返回值 ret <= 0 时，*tag, *in, *inlen 的值保持不变
-
-	如果一个类型有 DEFAULT 属性，调用方可以将返回数据预先设置为默认值，
-	如果该对象未被编码，即返回值为0，那么解码函数不会修改已经设置的默认值
-
-*/
-
 const char *asn1_tag_name(int tag);
 int asn1_tag_is_cstring(int tag);
 int asn1_tag_to_der(int tag, uint8_t **out, size_t *outlen);
@@ -293,8 +257,8 @@ int asn1_sequence_of_int_print(FILE *fp, int fmt, int ind, const char *label, co
 
 #define asn1_set_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SET,d,dlen,out,outlen)
 #define asn1_set_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SET,d,dlen,in,inlen)
-#define asn1_implicit_set_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
-#define asn1_implicit_set_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+#define asn1_implicit_set_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
+#define asn1_implicit_set_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
 
 #define asn1_set_of_to_der(d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_SET,d,dlen,out,outlen)
 #define asn1_set_of_from_der(d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_SET,d,dlen,in,inlen)

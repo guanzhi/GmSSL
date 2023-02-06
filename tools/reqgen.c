@@ -72,6 +72,10 @@ int reqgen_main(int argc, char **argv)
 	char *org_unit = NULL;
 	char *common_name = NULL;
 
+	// Attributs
+	uint8_t attrs[512];
+	size_t attrs_len = 0;
+
 	// Private Key
 	FILE *keyfp = NULL;
 	char *pass = NULL;
@@ -203,7 +207,7 @@ bad:
 		X509_version_v1,
 		name, namelen,
 		&sm2_key,
-		NULL, 0,
+		attrs, attrs_len,
 		OID_sm2sign_with_sm3,
 		&sm2_key, signer_id, signer_id_len,
 		&p, &reqlen) != 1) {

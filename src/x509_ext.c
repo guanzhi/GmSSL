@@ -1762,6 +1762,9 @@ int x509_attributes_print(FILE *fp, int fmt, int ind, const char *label, const u
 		format_print(fp, fmt, ind, "%s\n", label);
 		ind += 4;
 	}
+	if (!dlen) {
+		format_print(fp, fmt, ind, "(null)\n");
+	}
 	while (dlen) {
 		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
 			error_print();
