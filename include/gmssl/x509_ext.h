@@ -386,6 +386,7 @@ BasicConstraints ::= SEQUENCE {
 	cA			BOOLEAN DEFAULT FALSE,
 	pathLenConstraint	INTEGER (0..MAX) OPTIONAL }
 */
+#define X509_MAX_PATH_LEN_CONSTRAINT 6
 int x509_basic_constraints_to_der(int ca, int path_len_cons, uint8_t **out, size_t *outlen);
 int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t **in, size_t *inlen);
 int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type);

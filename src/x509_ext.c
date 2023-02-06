@@ -18,7 +18,6 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/x509.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_oid.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/error.h>
@@ -326,9 +325,10 @@ int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int c
 		return 0;
 	}
 	if (!bits) {
-		// TODO: 检查是否在合法范围内					
-		error_print();
-		return -1;
+		if (x509_key_usage_check(bits, -1) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 
 	exts += *extslen;
@@ -661,41 +661,6 @@ int x509_other_name_print(FILE *fp, int fmt, int ind, const char *label, const u
 err:
 	error_print();
 	return -1;
-}
-
-int x509_explicit_directory_name_to_der(int index, int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
-{
-	int ret;
-	size_t len = 0;
-
-	if ((ret = x509_directory_name_to_der(tag, d, dlen, NULL, &len)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	if (asn1_explicit_header_to_der(index, len, out, outlen) != 1
-		|| x509_directory_name_to_der(tag, d, dlen, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_explicit_directory_name_from_der(int index, int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
-{
-	int ret;
-	const uint8_t *p;
-	size_t len;
-
-	if ((ret = asn1_explicit_from_der(index, &p, &len, in, inlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	if (x509_directory_name_from_der(tag, d, dlen, &p, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
 }
 
 int x509_edi_party_name_to_der(
@@ -1177,7 +1142,17 @@ int x509_key_usage_from_name(int *flag, const char *name)
 
 int x509_key_usage_check(int bits, int cert_type)
 {
+	if (bits == -1) {
+		return 0;
+	}
+	if (!bits) {
+		error_print();
+		return -1;
+	}
+
 	switch (cert_type) {
+	case -1:
+		break;
 	case X509_cert_server_auth:
 	case X509_cert_client_auth:
 		if (!(bits & X509_KU_DIGITAL_SIGNATURE)
@@ -1230,7 +1205,6 @@ int x509_key_usage_check(int bits, int cert_type)
 			//return -1; // comment to print warning
 		}
 		break;
-
 	default:
 		error_print();
 		return -1;
@@ -1344,7 +1318,7 @@ int x509_notice_reference_to_der(
 
 int x509_notice_reference_from_der(
 	int *org_tag, const uint8_t **org, size_t *org_len,
-	int notice_numbers[X509_MAX_NOTICE_NUMBERS], size_t *notice_numbers_cnt, size_t max_notice_numbers, //FIXME: max_notice_numbers 还没检查	
+	int *notice_numbers, size_t *notice_numbers_cnt, size_t max_notice_numbers,
 	const uint8_t **in, size_t *inlen)
 {
 	int ret;
@@ -1357,7 +1331,7 @@ int x509_notice_reference_from_der(
 		return ret;
 	}
 	if (x509_display_text_from_der(org_tag, org, org_len, &d, &dlen) != 1
-		|| asn1_sequence_of_int_from_der(notice_numbers, notice_numbers_cnt, X509_MAX_NOTICE_NUMBERS, &d, &dlen) != 1
+		|| asn1_sequence_of_int_from_der(notice_numbers, notice_numbers_cnt, max_notice_numbers, &d, &dlen) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
@@ -1416,7 +1390,7 @@ int x509_user_notice_to_der(
 
 int x509_user_notice_from_der(
 	int *notice_ref_org_tag, const uint8_t **notice_ref_org, size_t *notice_ref_org_len,
-	int *notice_ref_notice_numbers, size_t *notice_ref_notice_numbers_cnt, size_t max_notice_ref_notice_numbers, // FIXME: max_notice_ref_notice_numbers	
+	int *notice_ref_notice_numbers, size_t *notice_ref_notice_numbers_cnt, size_t max_notice_ref_notice_numbers,
 	int *explicit_text_tag, const uint8_t **explicit_text, size_t *explicit_text_len,
 	const uint8_t **in, size_t *inlen)
 {
@@ -1459,7 +1433,6 @@ err:
 	return -1;
 }
 
-// 是否要针对oid = cps的IA5String做一个方便的接口呢？毕竟oid 只有两个可选项		
 int x509_policy_qualifier_info_to_der(
 	int oid,
 	const uint8_t *qualifier, size_t qualifier_len,
@@ -1842,7 +1815,6 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 	return 1;
 }
 
-// 这个函数原型可能要改一下
 int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type)
 {
 	/*
@@ -1864,7 +1836,7 @@ int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type)
 			error_print();
 			return -1;
 		}
-		if (path_len_cons < 0 || path_len_cons > 6) {			
+		if (path_len_cons < 0 || path_len_cons > X509_MAX_PATH_LEN_CONSTRAINT) {
 			error_print();
 			return -1;
 		}
@@ -1891,7 +1863,7 @@ int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, 
 
 	if ((ret = asn1_boolean_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(val));
-	else format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(0)); // 特殊对待，无论cA值是否编码均输出结果
+	//else format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(0));
 	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "pathLenConstraint: %d\n", val);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
@@ -2108,8 +2080,8 @@ int x509_policy_constraints_from_der(
 
 int x509_policy_constraints_check(const uint8_t *a, size_t alen)
 {
+	error_print();
 	return -1;
-
 }
 
 int x509_policy_constraints_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -2184,7 +2156,6 @@ int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, con
 	return 1;
 }
 
-// 这个函数原型可能也要改一下
 int x509_ext_key_usage_check(const int *oids, size_t oids_cnt, int cert_type)
 {
 	int ret = -1;
@@ -2290,9 +2261,13 @@ int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen,
 {
 	int ret;
 	int tag = ASN1_TAG_EXPLICIT(X509_full_name);
-	if ((ret = x509_uri_as_general_names_to_der_ex(tag, uri, urilen, out, outlen)) != 1) {
-		if (ret < 0) error_print(); // 检查一下，是否有必要支持返回0		
-		return ret;
+
+	if (urilen == 0) {
+		return 0;
+	}
+	if (x509_uri_as_general_names_to_der_ex(tag, uri, urilen, out, outlen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -2879,8 +2854,6 @@ int x509_authority_info_access_from_der(
 	int ret;
 	const uint8_t *d;
 	size_t dlen;
-	const uint8_t *ad;
-	size_t adlen;
 
 	if (!ca_issuers_uri || !ca_issuers_urilen  || !ocsp_uri || !ocsp_urilen || !in || !(*in) || !inlen) {
 		error_print();
@@ -2974,6 +2947,3 @@ int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t m
 	}
 	return 1;
 }
-
-
-

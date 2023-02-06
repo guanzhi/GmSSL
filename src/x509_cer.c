@@ -21,7 +21,6 @@
 #include <gmssl/rsa.h>
 #include <gmssl/file.h>
 #include <gmssl/x509_oid.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509.h>
@@ -268,8 +267,6 @@ int x509_directory_name_check_ex(int tag, const uint8_t *d, size_t dlen, size_t 
 
 int x509_directory_name_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
-	int ret;
-
 	if (dlen == 0) {
 		return 0;
 	}
@@ -316,6 +313,41 @@ int x509_directory_name_from_der(int *tag, const uint8_t **d, size_t *dlen, cons
 int x509_directory_name_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen)
 {
 	return asn1_string_print(fp, fmt, ind, label, tag, d, dlen);
+}
+
+int x509_explicit_directory_name_to_der(int index, int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
+{
+	int ret;
+	size_t len = 0;
+
+	if ((ret = x509_directory_name_to_der(tag, d, dlen, NULL, &len)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_explicit_header_to_der(index, len, out, outlen) != 1
+		|| x509_directory_name_to_der(tag, d, dlen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_explicit_directory_name_from_der(int index, int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *p;
+	size_t len;
+
+	if ((ret = asn1_explicit_from_der(index, &p, &len, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_directory_name_from_der(tag, d, dlen, &p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 static const struct {
@@ -1223,7 +1255,6 @@ static int x509_certificate_print(FILE *fp, int fmt, int ind, const char *label,
 {
 	const uint8_t *p;
 	size_t len;
-	int val;
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;

@@ -20,7 +20,6 @@
 #include <gmssl/digest.h>
 #include <gmssl/error.h>
 #include <gmssl/x509.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_crl.h>

@@ -14,7 +14,6 @@
 #include <gmssl/oid.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_oid.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>

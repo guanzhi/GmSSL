@@ -17,33 +17,16 @@
 #include <gmssl/oid.h>
 #include <gmssl/pem.h>
 #include <gmssl/asn1.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_req.h>
+#include <gmssl/x509_crl.h>
+#include <gmssl/x509_ext.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
 #include <gmssl/file.h>
+#include <gmssl/http.h>
 
 #include <errno.h>
 #include <sys/stat.h>
-
-/*
-DirectoryString ::= CHOICE {
-	teletexString		TeletexString (SIZE (1..MAX)),
-	printableString 	PrintableString (SIZE (1..MAX)),
-	universalString		UniversalString (SIZE (1..MAX)),
-	utf8String		UTF8String (SIZE (1..MAX)),
-	bmpString		BMPString (SIZE (1..MAX)) }
-
-BMPString has zeros!
-	"Cert" in BMPStirng is 00 43 00 65 00 72 00 74
-
-RDN 中很多值都是这个类型，但是有特定的长度限制，因此这个函数应该增加一个长度限制选项。
-*/
-
-
-
-
-
 
 int x509_cert_new_from_file(uint8_t **out, size_t *outlen, const char *file)
 {
@@ -144,4 +127,158 @@ int x509_req_new_from_file(uint8_t **req, size_t *reqlen, const char *file)
 	}
 	fclose(fp);
 	return 1;
+}
+
+int x509_crl_new_from_uri(uint8_t **crl, size_t *crl_len, const char *uri, size_t urilen)
+{
+	int ret = -1;
+	char *uristr = NULL;
+	uint8_t *buf = NULL;
+	size_t buflen;
+	const uint8_t *p;
+
+	if (!(uristr = malloc(urilen + 1))) {
+		error_print();
+		return -1;
+	}
+	memcpy(uristr, uri, urilen);
+	uristr[urilen] = 0;
+
+	if (http_get(uristr, NULL, &buflen, 0) < 0) {
+		error_print();
+		goto end;
+	}
+	if (!buflen) {
+		error_print();
+		goto end;
+	}
+	if (!(buf = malloc(buflen))) {
+		error_print();
+		goto end;
+	}
+	if (http_get(uristr, buf, &buflen, buflen) != 1) {
+		error_print();
+		goto end;
+	}
+	p = buf;
+	if (x509_crl_from_der((const uint8_t **)crl, crl_len, &p, &buflen) != 1) {
+		error_print();
+		goto end;
+	}
+	buf = NULL;
+	ret = 1;
+end:
+	if (uristr) free(uristr);
+	if (buf) free(buf);
+	return ret;
+}
+
+int x509_crl_new_from_cert(uint8_t **crl, size_t *crl_len, const uint8_t *cert, size_t certlen)
+{
+	int ret;
+	const uint8_t *exts;
+	size_t extslen;
+
+	int critical;
+	const uint8_t *val;
+	size_t vlen;
+
+	const char *uri;
+	size_t urilen;
+	int reason;
+	const uint8_t *crl_issuer;
+	size_t crl_issuer_len;
+
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen,
+		OID_ce_crl_distribution_points, &critical, &val, &vlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_uri_as_distribution_points_from_der(&uri, &urilen,
+		&reason, &crl_issuer, &crl_issuer_len, &val, &vlen) != 1
+		|| asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!uri) {
+		*crl = NULL;
+		*crl_len = 0;
+		return 0;
+	}
+	if (x509_crl_new_from_uri(crl, crl_len, uri, urilen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_cert_check_crl(const uint8_t *cert, size_t certlen, const uint8_t *cacert, size_t cacertlen,
+	const char *ca_signer_id, size_t ca_signer_id_len)
+{
+	int ret = -1;
+	uint8_t *crl = NULL;
+	size_t crl_len = 0;
+	const uint8_t *crl_issuer;
+	size_t crl_issuer_len;
+
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *serial;
+	size_t serial_len;
+
+	time_t revoke_date;
+	const uint8_t *crl_entry_exts;
+	size_t crl_entry_exts_len;
+
+	// download CRL and do basic validation
+	if (x509_crl_new_from_cert(&crl, &crl_len, cert, certlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_crl_check(crl, crl_len, time(NULL)) != 1) {
+		error_print();
+		goto end;
+	}
+
+	if (x509_cert_get_issuer_and_serial_number(cert, certlen, &issuer, &issuer_len, &serial, &serial_len) != 1) {
+		error_print();
+		goto end;
+	}
+
+	// make sure CRL's issuer is the certificate issuer
+	if (x509_crl_get_issuer(crl, crl_len, &crl_issuer, &crl_issuer_len) != 1) {
+		error_print();
+		goto end;
+	}
+	if (x509_name_equ(issuer, issuer_len, crl_issuer, crl_issuer_len) != 1) {
+		error_print();
+		goto end;
+	}
+
+	// verify CRL
+	if (x509_crl_verify_by_ca_cert(crl, crl_len, cacert, cacertlen, ca_signer_id, ca_signer_id_len) != 1) {
+		error_print();
+		goto end;
+	}
+
+	// check if the certificate in the CRL
+	if ((ret = x509_crl_find_revoked_cert_by_serial_number(crl, crl_len, serial, serial_len,
+		&revoke_date, &crl_entry_exts, &crl_entry_exts_len)) < 0) {
+		error_print();
+		goto end;
+	}
+	if (ret == 1) {
+		ret = -1;
+		error_print();
+		goto end;
+	}
+	ret = 1;
+
+end:
+	if (crl) free(crl);
+	return ret;
 }
