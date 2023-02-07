@@ -82,7 +82,7 @@ bad:
 
 	if (!cert) {
 		fprintf(stderr, "%s: `-cert` option required\n", prog);
-		printf("usage: gmssl %s %s\n\n", prog, options);
+		printf("usage: gmssl %s %s\n\n", prog, usage);
 		goto end;
 	}
 

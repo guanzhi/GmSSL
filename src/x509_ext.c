@@ -2623,7 +2623,7 @@ int x509_uri_as_distribution_point_name_from_der(const char **uri, size_t *urile
 		return ret;
 	}
 	if (choice == X509_full_name) {
-		if (x509_general_names_get_first(d, dlen, NULL, choice, (const uint8_t **)uri, urilen) < 0) {
+		if (x509_general_names_get_first(d, dlen, NULL, X509_gn_uniform_resource_identifier, (const uint8_t **)uri, urilen) < 0) {
 			error_print();
 			return -1;
 		}

@@ -1068,8 +1068,8 @@ int x509_tbs_cert_print(FILE *fp, int fmt, int ind, const char *label, const uin
 	if (ret) format_print(fp, fmt, ind, "version: %s (%d)\n", x509_version_name(val), val);
 	if (asn1_integer_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "serialNumber", p, len);
-	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "siganture: %s\n", x509_signature_algor_name(val));
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_signature_algor_print(fp, fmt, ind, "signature", p, len);
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	x509_name_print(fp, fmt, ind, "issuer", p, len);
 	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
