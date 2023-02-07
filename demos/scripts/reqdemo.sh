@@ -17,3 +17,10 @@ gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN Alice -key enckey.pe
 gmssl reqsign -in encreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out enccert.pem
 gmssl certparse -in enccert.pem
 
+# 中文
+gmssl sm2keygen -pass 1234 -out alicekey.pem -pubout alicepubkey.pem
+gmssl reqgen -O "北京大学" -CN "爱丽丝" -key alicekey.pem -pass 1234 -out alicereq.pem
+gmssl reqsign -in alicereq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out alicecert.pem
+gmssl certparse -in alicecert.pem
+
+
