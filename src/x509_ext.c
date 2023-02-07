@@ -2039,7 +2039,7 @@ int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t *
 	return 1;
 }
 
-int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type)
+int x509_basic_constraints_check(int ca, int path_len_constraint, int cert_type)
 {
 	/*
 	entity_cert:
@@ -2055,20 +2055,28 @@ int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type)
 		ca = 1
 		path_len_constraint = -1 or > 0 (=0 might be ok?)
 	*/
-	if (cert_type == X509_cert_ca) {
+	switch (cert_type) {
+	case X509_cert_server_auth:
+	case X509_cert_client_auth:
+	case X509_cert_server_key_encipher:
+	case X509_cert_client_key_encipher:
+		if (ca > 0 || path_len_constraint != -1) {
+			error_print();
+			return -1;
+		}
+		break;
+	// FIXME: add more cert types and check path_len_constraint		
+	case X509_cert_ca:
+	case X509_cert_crl_sign:
+	case X509_cert_root_ca:
 		if (ca != 1) {
 			error_print();
 			return -1;
 		}
-		if (path_len_cons < 0 || path_len_cons > X509_MAX_PATH_LEN_CONSTRAINT) {
-			error_print();
-			return -1;
-		}
-	} else {
-		if (ca == 1 || path_len_cons >= 0) {
-			error_print();
-			return -1; // comment to only warning
-		}
+		break;
+	default:
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -2087,7 +2095,6 @@ int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, 
 
 	if ((ret = asn1_boolean_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(val));
-	//else format_print(fp, fmt, ind, "cA: %s\n", asn1_boolean_name(0));
 	if ((ret = asn1_int_from_der(&val, &d, &dlen)) < 0) goto err;
 	if (ret) format_print(fp, fmt, ind, "pathLenConstraint: %d\n", val);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
@@ -2921,9 +2928,8 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 				error_print();
 				return -1;
 			}
+			*path_len_constraint = path_len;
 			break;
-
-
 
 		case OID_ce_ext_key_usage:
 			if (x509_ext_key_usage_from_der(ext_key_usages, &ext_key_usages_cnt,
@@ -2947,16 +2953,6 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 				return -1;
 			}
 		}
-	}
-
-	switch (cert_type) {
-	case X509_cert_ca:
-		if (ca != 1 || path_len < 0) {
-			error_print();
-			return -1;
-		}
-		*path_len_constraint = path_len;
-		break;
 	}
 
 	return 1;

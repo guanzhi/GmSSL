@@ -733,15 +733,27 @@ int sm2_ciphertext_from_der(SM2_CIPHERTEXT *C, const uint8_t **in, size_t *inlen
 		return ret;
 	}
 	if (asn1_integer_from_der(&x, &xlen, &d, &dlen) != 1
-		|| asn1_integer_from_der(&y, &ylen, &d, &dlen) != 1
-		|| asn1_octet_string_from_der(&hash, &hashlen, &d, &dlen) != 1
-		|| asn1_octet_string_from_der(&c, &clen, &d, &dlen) != 1
-		|| asn1_length_le(xlen, 32) != 1
-		|| asn1_length_le(ylen, 32) != 1
-		|| asn1_check(hashlen == 32) != 1
-		|| asn1_length_le(clen, SM2_MAX_PLAINTEXT_SIZE) != 1
-		|| asn1_length_is_zero(clen) == 1
-		|| asn1_length_is_zero(dlen) != 1) {
+		|| asn1_length_le(xlen, 32) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_integer_from_der(&y, &ylen, &d, &dlen) != 1
+		|| asn1_length_le(ylen, 32) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_octet_string_from_der(&hash, &hashlen, &d, &dlen) != 1
+		|| asn1_check(hashlen == 32) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_octet_string_from_der(&c, &clen, &d, &dlen) != 1
+	//	|| asn1_length_is_zero(clen) == 1
+		|| asn1_length_le(clen, SM2_MAX_PLAINTEXT_SIZE) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -818,7 +830,8 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 		return -1;
 	}
 	if (sm2_ciphertext_from_der(&C, &in, &inlen) != 1
-		|| asn1_length_is_zero(inlen) != 1) {
+		|| asn1_length_is_zero(inlen) != 1
+		) {
 		error_print();
 		return -1;
 	}

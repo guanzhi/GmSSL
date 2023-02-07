@@ -59,6 +59,7 @@ extern int skfutil_main(int argc, char **argv);
 
 static const char *options =
 	"command [options]\n"
+	"command -help\n"
 	"\n"
 	"Commands:\n"
 	"  help            Print this help message\n"
@@ -85,13 +86,13 @@ static const char *options =
 	"  reqparse        Parse and print a CSR\n"
 	"  crlget          Download the CRL of given certificate\n"
 	"  crlgen          Sign a CRL with CA certificate and private key\n"
-	"  crlparse        Verify a CRL with certificate\n"
-	"  crlverify       Parse and print CRL\n"
+	"  crlverify       Verify a CRL with issuer's certificate\n"
+	"  crlparse        Parse and print CRL\n"
 	"  certgen         Generate a self-signed certificate\n"
 	"  certparse       Parse and print certificates\n"
 	"  certverify      Verify certificate chain\n"
-	"  certrevoke      Revoke certificate and output RevokedCertificate in DER\n"
-	"  cmsparse        Parse cryptographic message syntax (CMS)\n"
+	"  certrevoke      Revoke certificate and output RevokedCertificate record\n"
+	"  cmsparse        Parse CMS (cryptographic message syntax) file\n"
 	"  cmsencrypt      Generate CMS EnvelopedData\n"
 	"  cmsdecrypt      Decrypt CMS EnvelopedData\n"
 	"  cmssign         Generate CMS SignedData\n"
@@ -103,8 +104,10 @@ static const char *options =
 	"  tls12_client    TLS 1.2 client\n"
 	"  tls12_server    TLS 1.2 server\n"
 	"  tls13_client    TLS 1.3 client\n"
-	"  tls13_server    TLS 1.3 server\n";
-
+	"  tls13_server    TLS 1.3 server\n"
+	"\n"
+	"run `gmssl <command> -help` to print help of the given command\n"
+	"\n";
 
 
 int main(int argc, char **argv)

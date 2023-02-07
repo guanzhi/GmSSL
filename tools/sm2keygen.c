@@ -16,7 +16,14 @@
 #include <gmssl/sm2.h>
 
 
-static const char *options = "-pass str [-out pem] [-pubout pem]";
+static const char *usage = "-pass str [-out pem] [-pubout pem]\n";
+
+static const char *options =
+"Options\n"
+"    -pass pass                  Password to encrypt the private key\n"
+"    -out pem                    Output password-encrypted PKCS #8 private key in PEM format\n"
+"    -pubout pem                 Output public key in PEM format\n"
+"\n";
 
 int sm2keygen_main(int argc, char **argv)
 {
@@ -39,7 +46,8 @@ int sm2keygen_main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
+			printf("usage: %s %s\n", prog, usage);
+			printf("%s\n", options);
 			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-pass")) {
@@ -63,7 +71,7 @@ int sm2keygen_main(int argc, char **argv)
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
 bad:
-			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			fprintf(stderr, "%s: `%s` option value missing\n", prog, *argv);
 			goto end;
 		}
 
@@ -72,7 +80,7 @@ bad:
 	}
 
 	if (!pass) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
+		fprintf(stderr, "%s: `-pass` option required\n", prog);
 		goto end;
 	}
 

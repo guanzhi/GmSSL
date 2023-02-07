@@ -1796,6 +1796,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	}
 	if (x509_cert_check(cert, certlen, entity_cert_type, &path_len_constraint) != 1) {
 		error_print();
+		x509_cert_print(stderr, 0, 10, "Invalid Entity Certificate", cert, certlen);
 		return -1;
 	}
 
@@ -1805,8 +1806,9 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			error_print();
 			return -1;
 		}
-		if (x509_cert_check(cert, certlen, X509_cert_ca, &path_len_constraint) != 1) {
+		if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
 			error_print();
+			x509_cert_print(stderr, 0, 10, "Invalid CA Certificate", cacert, cacertlen);
 			return -1;
 		}
 

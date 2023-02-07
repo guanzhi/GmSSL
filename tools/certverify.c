@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_crl.h>
+#include <gmssl/error.h>
 
 
 static const char *usage =
@@ -60,7 +61,7 @@ int certverify_main(int argc, char **argv)
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: %s %s\n", prog, usage);
 		return 1;
 	}
 
@@ -171,7 +172,8 @@ bad:
 			}
 
 		}
-		x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
+		format_print(stdout, 0, 0, "Signed by\n");
+		x509_name_print(stdout, 0, 0, "Certificate", subject, subject_len);
 
 		check_crl = 0; // only check the entity CRL
 
@@ -193,7 +195,8 @@ final:
 		goto end;
 	}
 	printf("Verification %s\n", rv ? "success" : "failure");
-	x509_name_print(stdout, 0, 0, "Signed by", subject, subject_len);
+	format_print(stdout, 0, 0, "Signed by\n");
+	x509_name_print(stdout, 0, 0, "Certificate", subject, subject_len);
 
 	if (double_certs) {
 		if ((rv = x509_cert_verify_by_ca_cert(enc_cert, enc_cert_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
@@ -202,6 +205,7 @@ final:
 		}
 		printf("Verification %s\n", rv ? "success" : "failure");
 	}
+	printf("\n");
 
 	ret = 0;
 end:
