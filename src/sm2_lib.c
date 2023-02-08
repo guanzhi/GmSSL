@@ -152,7 +152,8 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 
 	// check if r == r'
 	if (sm2_bn_cmp(e, r) != 0) {
-		return 0;
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -273,7 +274,6 @@ int sm2_sign_fixlen(const SM2_KEY *key, const uint8_t dgst[32], size_t siglen, u
 
 int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sigbuf, size_t siglen)
 {
-	int ret;
 	SM2_SIGNATURE sig;
 
 	if (!key || !dgst || !sigbuf || !siglen) {
@@ -286,10 +286,9 @@ int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sigbuf
 		error_print();
 		return -1;
 	}
-	if ((ret = sm2_do_verify(key, dgst, &sig)) != 1) {
-		if (ret < 0) error_print();
-		else error_print();
-		return ret;
+	if (sm2_do_verify(key, dgst, &sig) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -368,7 +367,6 @@ int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 
 int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 {
-	int ret;
 	uint8_t dgst[SM3_DIGEST_SIZE];
 
 	if (!ctx || !sig || !siglen) {
@@ -376,16 +374,15 @@ int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 		return -1;
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if ((ret = sm2_sign(&ctx->key, dgst, sig, siglen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
+	if (sm2_sign(&ctx->key, dgst, sig, siglen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
 
 int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
 {
-	int ret;
 	uint8_t dgst[SM3_DIGEST_SIZE];
 
 	if (!ctx || !sig || !siglen) {
@@ -393,9 +390,9 @@ int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
 		return -1;
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if ((ret = sm2_sign_fixlen(&ctx->key, dgst, siglen, sig)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
+	if (sm2_sign_fixlen(&ctx->key, dgst, siglen, sig) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -406,7 +403,8 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 		error_print();
 		return -1;
 	}
-	ctx->key = *key; //FIXME: only copy public_key
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->key.public_key = key->public_key;
 	sm3_init(&ctx->sm3_ctx);
 
 	if (id) {
@@ -435,7 +433,6 @@ int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 
 int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 {
-	int ret;
 	uint8_t dgst[SM3_DIGEST_SIZE];
 
 	if (!ctx || !sig) {
@@ -443,10 +440,9 @@ int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 		return -1;
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if ((ret = sm2_verify(&ctx->key, dgst, sig, siglen)) != 1) {
-		if (ret < 0) error_print();
-		else error_print();
-		return ret;
+	if (sm2_verify(&ctx->key, dgst, sig, siglen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -793,6 +789,15 @@ int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 {
 	SM2_CIPHERTEXT C;
 
+	if (!key || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!inlen) {
+		error_print();
+		return -1;
+	}
+
 	if (sm2_do_encrypt(key, in, inlen, &C) != 1) {
 		error_print();
 		return -1;
@@ -808,6 +813,15 @@ int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, uint8_t *out, size_t *outlen)
 {
 	SM2_CIPHERTEXT C;
+
+	if (!key || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!inlen) {
+		error_print();
+		return -1;
+	}
 
 	if (sm2_do_encrypt_fixlen(key, in, inlen, point_size, &C) != 1) {
 		error_print();
@@ -830,8 +844,7 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 		return -1;
 	}
 	if (sm2_ciphertext_from_der(&C, &in, &inlen) != 1
-		|| asn1_length_is_zero(inlen) != 1
-		) {
+		|| asn1_length_is_zero(inlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -844,10 +857,12 @@ int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *ou
 
 int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out)
 {
-	if (!key || !peer_public || !out) {
+	/*
+	if (sm2_point_is_on_curve(peer_public) != 1) {
 		error_print();
 		return -1;
 	}
+	*/
 	if (sm2_point_mul(out, key->private_key, peer_public) != 1) {
 		error_print();
 		return -1;
@@ -859,6 +874,10 @@ int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_
 {
 	SM2_POINT point;
 
+	if (!key || !peer_public || !peer_public_len || !out) {
+		error_print();
+		return -1;
+	}
 	if (sm2_point_from_octets(&point, peer_public, peer_public_len) != 1) {
 		error_print();
 		return -1;
@@ -894,7 +913,10 @@ int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 
 	// rand k in [1, n - 1]
 	do {
-		sm2_fn_rand(k);
+		if (sm2_fn_rand(k) != 1) {
+			error_print();
+			return -1;
+		}
 	} while (sm2_bn_is_zero(k));
 
 	// (x1, y1) = kG
