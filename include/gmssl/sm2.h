@@ -225,8 +225,8 @@ ECParameters ::= CHOICE { namedCurve OBJECT IDENTIFIER }
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen);
 int sm2_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-//int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
-//int sm2_private_key_from_pem(SM2_KEY *key, FILE *fp);
+int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
+int sm2_private_key_from_pem(SM2_KEY *key, FILE *fp);
 
 /*
 AlgorithmIdentifier ::= {
@@ -264,8 +264,8 @@ enum {
 int sm2_private_key_info_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, const uint8_t **in, size_t *inlen);
 int sm2_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-//int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
-//int sm2_private_key_info_from_pem(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, FILE *fp);
+int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
+int sm2_private_key_info_from_pem(SM2_KEY *key, FILE *fp);
 
 /*
 EncryptedPrivateKeyInfo ::= SEQUENCE {

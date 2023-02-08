@@ -17,6 +17,7 @@
 
 int main(int argc, char **argv)
 {
+	int ret = -1;
 	char *prog = argv[0];
 	char *keyfile;
 	char *pass;
@@ -36,15 +37,18 @@ int main(int argc, char **argv)
 	}
 	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load key failure\n", prog);
-		fclose(keyfp);
-		return -1;
+		goto end;
 	}
+	if (sm2_private_key_info_to_pem(&sm2_key, stdout) != 1) {
+		fprintf(stderr, "%s: export failure\n", prog);
+		goto end;
+	}
+	ret = 0;
 
-	sm2_key_print(stdout, 0, 0, "SM2_KEY", &sm2_key);
-
+end:
 	gmssl_secure_clear(&sm2_key, sizeof(sm2_key));
-	fclose(keyfp);
-	return 0;
+	if (keyfp) fclose(keyfp);
+	return ret;
 }
 
 

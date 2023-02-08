@@ -34,5 +34,5 @@ gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN Client -key clientke
 gmssl reqsign -in clientreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out clientcert.pem
 gmssl certparse -in clientcert.pem
 
-gmssl tlcp_client -host 127.0.0.1 -cacert rootcacert.pem -cert clientcert.pem -key clientkey.pem -pass 1234
+#gmssl tlcp_client -host 127.0.0.1 -cacert rootcacert.pem -cert clientcert.pem -key clientkey.pem -pass 1234
 

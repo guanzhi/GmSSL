@@ -187,6 +187,11 @@ set(demos
 	demo_zuc
 )
 
+option(ENABLE_PRIVATE_KEY_EXPORT "Enable export un-encrypted private key" OFF)
+if (ENABLE_PRIVATE_KEY_EXPORT)
+	add_definitions(-DENABLE_PRIVATE_KEY_EXPORT)
+	list(APPEND demos demo_sm2_key_export)
+endif()
 
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 if (ENABLE_TLS_DEBUG)

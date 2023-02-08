@@ -93,6 +93,11 @@ cat $signcert > $chain
 cat $cacert >> $chain
 gmssl certverify -in $chain -cacert $rootcacert
 
+chain_with_root=chain_with_root.pem
+cp $chain $chain_with_root
+cat $rootcacert >> $chain_with_root
+gmssl certverify -in $chain_with_root -cacert $rootcacert
+
 double_certs=double_certs.pem
 cat $signcert > $double_certs
 cat $enccert >> $double_certs
@@ -104,9 +109,9 @@ cat $cacert >> $double_chain
 gmssl certverify -in $double_chain -cacert $rootcacert -double_certs
 
 gmssl certparse -in $double_chain
-#gmssl certverify -in $double_chain -cacert $rootcacert -double_certs -check_crl
-#gmssl crlget -cert $signcert -out $crl
-#gmssl crlparse -in $crl
+gmssl certverify -in $double_chain -cacert $rootcacert -double_certs -check_crl
+gmssl crlget -cert $signcert -out $crl
+gmssl crlparse -in $crl
 
 
 rm -fr $signcert
@@ -115,7 +120,7 @@ rm -fr $crl
 rm -fr $cacert
 rm -fr $rootcacert
 rm -fr $chain
+rm -fr $chain_with_root
 rm -fr $double_certs
 rm -fr $double_chain
-
 
