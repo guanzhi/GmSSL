@@ -187,14 +187,25 @@ set(demos
 	demo_zuc
 )
 
+# when an option has been enabled, `cmake ..` will not refresh the value
+# use `cmake .. -DENABLE_XXX=OFF` to disable the option
+
+option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable AlgorithmIdenifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
+if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
+	message(STATUS "ENABLE_SM2_ALGOR_ID_ENCODE_NULL")
+	add_definitions(-DSM2_ALGOR_ID_ENCODE_NULL)
+endif()
+
 option(ENABLE_PRIVATE_KEY_EXPORT "Enable export un-encrypted private key" OFF)
 if (ENABLE_PRIVATE_KEY_EXPORT)
+	message(STATUS "ENABLE_PRIVATE_KEY_EXPORT")
 	add_definitions(-DENABLE_PRIVATE_KEY_EXPORT)
 	list(APPEND demos demo_sm2_key_export)
 endif()
 
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 if (ENABLE_TLS_DEBUG)
+	message(STATUS "ENABLE_TLS_DEBUG")
 	add_definitions(-DTLS_DEBUG)
 endif()
 

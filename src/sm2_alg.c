@@ -1081,8 +1081,6 @@ int sm2_jacobian_point_equ_hex(const SM2_JACOBIAN_POINT *P, const char hex[128])
 	return (sm2_bn_cmp(x, T->X) == 0) && (sm2_bn_cmp(y, T->Y) == 0);
 }
 
-
-
 int sm2_point_is_on_curve(const SM2_POINT *P)
 {
 	SM2_JACOBIAN_POINT T;
