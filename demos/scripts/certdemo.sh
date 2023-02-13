@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 
 gmssl sm2keygen -pass 1234 -out rootcakey.pem
 gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \

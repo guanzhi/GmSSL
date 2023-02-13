@@ -89,6 +89,10 @@ bad:
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
+	if (tls_socket_lib_init() != 1) {
+		error_print();
+		return -1;
+	}
 
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
@@ -106,29 +110,28 @@ bad:
 		}
 	}
 
-	// Socket
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		error_print();
-		return 1;
+
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
+		fprintf(stderr, "%s: socket create error\n", prog);
+		goto end;
 	}
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
 	server_addr.sin_port = htons(port);
-	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		error_print();
-		perror("tlcp_accept: bind: ");
+	if (tls_socket_bind(sock, &server_addr) != 1) {
+		fprintf(stderr, "%s: socket bind error\n", prog);
 		goto end;
 	}
 	puts("start listen ...\n");
-	listen(sock, 1);
+	tls_socket_listen(sock, 1);
 
 
 
 restart:
 
-	client_addrlen = sizeof(client_addr);
-	if ((conn_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
-		error_print();
+	//client_addrlen = sizeof(client_addr);
+	if (tls_socket_accept(sock, &client_addr, &conn_sock) != 1) {
+		fprintf(stderr, "%s: socket accept error\n", prog);
 		goto end;
 	}
 	puts("socket connected\n");

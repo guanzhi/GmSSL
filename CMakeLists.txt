@@ -65,6 +65,7 @@ set(src
 	src/skf/skf_ext.c
 	src/skf/skf_prn.c
 	src/skf/skf_wisec.c
+	src/socket.c
 	src/tls.c
 	src/tls_ext.c
 	src/tls_trace.c

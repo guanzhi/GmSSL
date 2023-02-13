@@ -1,5 +1,6 @@
 #!/bin/bash -x
 
+set -e
 
 gmssl sm2keygen -pass 1234 -out rootcakey.pem
 gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 -key rootcakey.pem -pass 1234 -out rootcacert.pem -key_usage keyCertSign -key_usage cRLSign -ca
@@ -26,7 +27,11 @@ cat cacert.pem >> double_certs.pem
 
 # If port is already in use, `gmssl` will fail, use `ps aux | grep gmssl` and `sudo kill -9` to kill existing proc
 # TODO: check if `gmssl` is failed
-sudo gmssl tlcp_server -port 443 -cert double_certs.pem -key signkey.pem -pass 1234 -ex_key enckey.pem -ex_pass 1234 -cacert cacert.pem & # 1>/dev/null  2>/dev/null &
+which sudo
+if [ $? -eq 0 ]; then
+	SUDO=sudo
+fi
+$SUDO gmssl tlcp_server -port 443 -cert double_certs.pem -key signkey.pem -pass 1234 -ex_key enckey.pem -ex_pass 1234 -cacert cacert.pem &  1>/dev/null  2>/dev/null &
 sleep 3
 
 gmssl sm2keygen -pass 1234 -out clientkey.pem
@@ -34,5 +39,5 @@ gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN Client -key clientke
 gmssl reqsign -in clientreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out clientcert.pem
 gmssl certparse -in clientcert.pem
 
-#gmssl tlcp_client -host 127.0.0.1 -cacert rootcacert.pem -cert clientcert.pem -key clientkey.pem -pass 1234
+gmssl tlcp_client -host 127.0.0.1 -cacert rootcacert.pem -cert clientcert.pem -key clientkey.pem -pass 1234
 
