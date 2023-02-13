@@ -142,6 +142,7 @@ set(tests
 	pbkdf2
 	gf128
 	gcm
+	aead
 	pkcs8
 	ec
 	asn1
