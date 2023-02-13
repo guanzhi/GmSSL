@@ -40,6 +40,7 @@ set(src
 	src/pbkdf2.c
 	src/gf128.c
 	src/gcm.c
+	src/aead.c
 	src/pkcs8.c
 	src/ec.c
 	src/rsa.c
