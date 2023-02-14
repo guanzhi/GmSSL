@@ -1,5 +1,7 @@
 #!/bin/bash -x
 
+set -e
+
 # generate self-signed CA certificate
 gmssl sm2keygen -pass 1234 -out cakey.pem -pubout pubkey.pem
 gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN CA -days 365 -key cakey.pem -pass 1234 -out cacert.pem
@@ -24,3 +26,17 @@ gmssl reqsign -in alicereq.pem -days 365 -key_usage digitalSignature -cacert cac
 gmssl certparse -in alicecert.pem
 
 
+rm -fr pubkey.pem
+rm -fr cacert.pem
+rm -fr signkey.pem
+rm -fr signreq.pem
+rm -fr signcert.pem
+rm -fr enckey.pem
+rm -fr encreq.pem
+rm -fr enccert.pem
+rm -fr alicekey.pem
+rm -fr alicepubkey.pem
+rm -fr alicereq.pem
+rm -fr alicecert.pem
+
+echo ok

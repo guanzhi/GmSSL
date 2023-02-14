@@ -1334,9 +1334,12 @@ int asn1_utf8_string_from_der_ex(int tag, const char **a, size_t *alen, const ui
 
 static int asn1_char_is_printable(int a)
 {
-	if (isalpha(a) || isdigit(a)) {
+	if (('0' <= a && a <= '9')
+		|| ('a' <= a && a <= 'z')
+		|| ('A' <= a && a <= 'Z')) {
 		return 1;
 	}
+
 	switch (a) {
 	case ' ': case '\'': case '(': case ')':
 	case '+': case ',': case '-': case '.':
@@ -1494,7 +1497,7 @@ int asn1_time_from_str(int utc_time, time_t *timestamp, const char *str)
 
 	utc_time &= 1;
 	for (i = 0; i < time_str_len[utc_time] - 1; i++) {
-		if (!isdigit(str[i])) {
+		if (!('0' <= str[i] && str[i] <= '9')) {
 			error_print();
 			return -1;
 		}
