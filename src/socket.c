@@ -41,7 +41,7 @@ int tls_socket_lib_cleanup(void)
 	return 1;
 }
 
-int tls_socket_create(tls_socket_t *sock, int af, int type, int protocl)
+int tls_socket_create(tls_socket_t *sock, int af, int type, int protocol)
 {
 	if (!sock) {
 		error_print();
@@ -89,7 +89,7 @@ int tls_socket_listen(tls_socket_t sock, int backlog)
 
 int tls_socket_accept(tls_socket_t sock, struct sockaddr_in *addr, tls_socket_t *conn_sock)
 {
-	int addr_len = (int)sizeof(struct sockaddr_in_);
+	int addr_len = (int)sizeof(struct sockaddr_in);
 	if ((*conn_sock = accept(sock, (struct sockaddr *)addr, &addr_len)) == INVALID_SOCKET) {
 		fprintf(stderr, "%s %d: accept error: %u\n", __FILE__, __LINE__, WSAGetLastError());
 		error_print();
