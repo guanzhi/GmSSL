@@ -143,6 +143,20 @@ bad:
 		fd_set fds;
 		size_t sentlen;
 
+		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+			if (feof(stdin)) {
+				tls_shutdown(&conn);
+				goto end;
+			} else {
+				continue;
+			}
+		}
+		if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+
+
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
 #ifdef WIN32
