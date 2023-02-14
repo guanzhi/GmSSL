@@ -1,5 +1,7 @@
 #!/bin/bash -x
 
+set -e
+
 cd ../certs
 
 gmssl certparse -in "rootca/Civil Servant ROOT.pem"
@@ -22,3 +24,4 @@ gmssl certverify -in "ca/TJCA.pem" -cacert "rootca/Civil Servant ROOT.pem" #-che
 gmssl certverify -in "ca/Taier CA.pem" -cacert "rootca/ROOTCA.pem" #-check_crl
 gmssl certverify -in "ca/Ant Financial Certification Authority S1.pem" -cacert "rootca/ROOTCA.pem" #-check_crl
 
+echo ok

@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/bash -x
 
+set -e
 
 gmssl sm2keygen -pass 1234 -out rootcakey.pem
 gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 -key rootcakey.pem -pass 1234 -out rootcacert.pem -key_usage keyCertSign -key_usage cRLSign
@@ -25,3 +26,18 @@ gmssl certrevoke -in enccert.pem -reason keyCompromise >> revoked_certs.der
 gmssl crlgen -in revoked_certs.der -cacert cacert.pem -key cakey.pem -pass 1234 -next_update 20240101000000Z -gen_authority_key_id -crl_num 1 -out crl.der
 gmssl crlparse -in crl.der
 
+rm -fr rootcakey.pem
+rm -fr rootcacert.pem
+rm -fr cakey.pem
+rm -fr careq.pem
+rm -fr cacert.pem
+rm -fr signkey.pem
+rm -fr signreq.pem
+rm -fr signcert.pem
+rm -fr enckey.pem
+rm -fr encreq.pem
+rm -fr enccert.pem
+rm -fr revoked_certs.der
+rm -fr crl.der
+
+echo "all ok"

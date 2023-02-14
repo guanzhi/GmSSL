@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/bash -x
+
 set -e
 
 gmssl sm2keygen -pass 1234 -out rootcakey.pem
@@ -29,7 +30,6 @@ gmssl reqsign -in encreq.pem -days 365 -key_usage keyEncipherment -cacert cacert
 	-crl_http_uri http://github.com/guanzhi/GmSSL/raw/master/demos/certs/SubCA-1.crl
 gmssl certparse -in enccert.pem
 
-
 cat signcert.pem > certs.pem
 cat cacert.pem >> certs.pem
 gmssl certverify -in certs.pem -cacert rootcacert.pem #-check_crl
@@ -39,4 +39,5 @@ cat enccert.pem >> dbl_certs.pem
 cat cacert.pem >> dbl_certs.pem
 gmssl certverify -double_certs -in dbl_certs.pem -cacert rootcacert.pem #-check_crl
 
+echo ok
 

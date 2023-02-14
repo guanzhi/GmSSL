@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/bash -x
+
+set -e
 
 signcert=ebssec.boc.cn-sign.pem
 enccert=ebssec.boc.cn-enc.pem
@@ -113,7 +115,6 @@ gmssl certverify -in $double_chain -cacert $rootcacert -double_certs -check_crl
 gmssl crlget -cert $signcert -out $crl
 gmssl crlparse -in $crl
 
-
 rm -fr $signcert
 rm -fr $enccert
 rm -fr $crl
@@ -123,4 +124,6 @@ rm -fr $chain
 rm -fr $chain_with_root
 rm -fr $double_certs
 rm -fr $double_chain
+
+echo ok
 
