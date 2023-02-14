@@ -14,8 +14,8 @@
 #include <stdint.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
-#include <gmssl/zuc.h>
 #include <gmssl/gcm.h>
+#include <gmssl/api.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,16 +29,23 @@ typedef struct {
 	size_t maclen;
 } SM4_CBC_SM3_HMAC_CTX;
 
-int sm4_cbc_sm3_hmac_encrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+#define SM4_CBC_SM3_HMAC_KEY_SIZE 48
+#define SM4_CBC_SM3_HMAC_IV_SIZE  16
+
+_gmssl_export int sm4_cbc_sm3_hmac_encrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen);
-int sm4_cbc_sm3_hmac_encrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_cbc_sm3_hmac_encrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, size_t *outlen);
-int sm4_cbc_sm3_hmac_decrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+_gmssl_export int sm4_cbc_sm3_hmac_encrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_cbc_sm3_hmac_encrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx,
+	uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_cbc_sm3_hmac_decrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen);
-int sm4_cbc_sm3_hmac_decrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_cbc_sm3_hmac_decrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_cbc_sm3_hmac_decrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_cbc_sm3_hmac_decrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx,
+	uint8_t *out, size_t *outlen);
 
 
 typedef struct {
@@ -48,16 +55,23 @@ typedef struct {
 	size_t maclen;
 } SM4_CTR_SM3_HMAC_CTX;
 
-int sm4_ctr_sm3_hmac_encrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+#define SM4_CTR_SM3_HMAC_KEY_SIZE 48
+#define SM4_CTR_SM3_HMAC_IV_SIZE  16
+
+_gmssl_export int sm4_ctr_sm3_hmac_encrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen);
-int sm4_ctr_sm3_hmac_encrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_ctr_sm3_hmac_encrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, size_t *outlen);
-int sm4_ctr_sm3_hmac_decrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+_gmssl_export int sm4_ctr_sm3_hmac_encrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_ctr_sm3_hmac_encrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx,
+	uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_ctr_sm3_hmac_decrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen);
-int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_ctr_sm3_hmac_decrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_ctr_sm3_hmac_decrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx,
+	uint8_t *out, size_t *outlen);
 
 
 typedef struct {
@@ -69,16 +83,24 @@ typedef struct {
 	size_t maclen;
 } SM4_GCM_CTX;
 
-int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE], const uint8_t *iv, size_t ivlen,
+#define SM4_GCM_KEY_SIZE 16
+#define SM4_GCM_MIN_IV_SIZE 1
+#define SM4_GCM_MAX_IV_SIZE 64
+
+_gmssl_export int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen);
-int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen);
-int sm4_gcm_decrypt_init(SM4_GCM_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE], const uint8_t *iv, size_t ivlen,
+_gmssl_export int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx,
+	uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_decrypt_init(SM4_GCM_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen);
-int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx,
+	uint8_t *out, size_t *outlen);
 
 
 #ifdef __cplusplus

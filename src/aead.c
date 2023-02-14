@@ -11,15 +11,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/sm4.h>
 #include <gmssl/mem.h>
 #include <gmssl/aead.h>
 #include <gmssl/error.h>
 
 
 int sm4_cbc_sm3_hmac_encrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen)
 {
+	if (!ctx || !key || !iv || (!aad && aadlen)) {
+		error_print();
+		return -1;
+	}
+	if (keylen != 48 || ivlen != 16) {
+		error_print();
+		return -1;
+	}
 	memset(ctx, 0, sizeof(*ctx));
 	if (sm4_cbc_encrypt_init(&ctx->enc_ctx, key, iv) != 1) {
 		error_print();
@@ -34,6 +43,10 @@ int sm4_cbc_sm3_hmac_encrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
 
 int sm4_cbc_sm3_hmac_encrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm4_cbc_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -44,6 +57,10 @@ int sm4_cbc_sm3_hmac_encrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx, const uint8_t *in
 
 int sm4_cbc_sm3_hmac_encrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm4_cbc_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -55,9 +72,17 @@ int sm4_cbc_sm3_hmac_encrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 }
 
 int sm4_cbc_sm3_hmac_decrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen)
 {
+	if (!ctx || !key || !iv || (!aad && aadlen)) {
+		error_print();
+		return -1;
+	}
+	if (keylen != 48 || ivlen != 16) {
+		error_print();
+		return -1;
+	}
 	memset(ctx, 0, sizeof(*ctx));
 	if (sm4_cbc_decrypt_init(&ctx->enc_ctx, key, iv) != 1) {
 		error_print();
@@ -74,6 +99,10 @@ int sm4_cbc_sm3_hmac_decrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx, const uint8_t *in
 {
 	size_t len;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->maclen > SM3_HMAC_SIZE) {
 		error_print();
 		return -1;
@@ -126,6 +155,10 @@ int sm4_cbc_sm3_hmac_decrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 {
 	uint8_t mac[SM3_HMAC_SIZE];
 
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->maclen != SM3_HMAC_SIZE) {
 		error_print();
 		return -1;
@@ -145,9 +178,17 @@ int sm4_cbc_sm3_hmac_decrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 }
 
 int sm4_ctr_sm3_hmac_encrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen)
 {
+	if (!ctx || !key || !iv || (!aad && aadlen)) {
+		error_print();
+		return -1;
+	}
+	if (keylen != 48 || ivlen != 16) {
+		error_print();
+		return -1;
+	}
 	memset(ctx, 0, sizeof(*ctx));
 	if (sm4_ctr_encrypt_init(&ctx->enc_ctx, key, iv) != 1) {
 		error_print();
@@ -162,6 +203,10 @@ int sm4_ctr_sm3_hmac_encrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
 
 int sm4_ctr_sm3_hmac_encrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm4_ctr_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -172,6 +217,10 @@ int sm4_ctr_sm3_hmac_encrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 
 int sm4_ctr_sm3_hmac_encrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !out  || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm4_ctr_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -183,9 +232,17 @@ int sm4_ctr_sm3_hmac_encrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 }
 
 int sm4_ctr_sm3_hmac_decrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE + SM3_HMAC_SIZE], const uint8_t iv[SM4_BLOCK_SIZE],
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen)
 {
+	if (!ctx || !key || !iv || (!aad && aadlen)) {
+		error_print();
+		return -1;
+	}
+	if (keylen != 48 || ivlen != 16) {
+		error_print();
+		return -1;
+	}
 	memset(ctx, 0, sizeof(*ctx));
 	if (sm4_ctr_decrypt_init(&ctx->enc_ctx, key, iv) != 1) {
 		error_print();
@@ -202,6 +259,10 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 {
 	size_t len;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->maclen > SM3_HMAC_SIZE) {
 		error_print();
 		return -1;
@@ -254,6 +315,10 @@ int sm4_ctr_sm3_hmac_decrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 {
 	uint8_t mac[SM3_HMAC_SIZE];
 
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->maclen != SM3_HMAC_SIZE) {
 		error_print();
 		return -1;
@@ -282,13 +347,25 @@ static void ctr_incr(uint8_t a[16])
 }
 
 int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE], const uint8_t *iv, size_t ivlen,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen)
 {
 	uint8_t H[16] = {0};
 	uint8_t Y[16];
 
-	if (taglen > SM4_GCM_MAX_TAG_SIZE) {
+	if (!ctx || !key || !iv || (!aad && aadlen)) {
+		error_print();
+		return -1;
+	}
+	if (keylen != 16) {
+		error_print();
+		return -1;
+	}
+	if (ivlen < SM4_GCM_MIN_IV_SIZE || ivlen > SM4_GCM_MAX_IV_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (taglen < 8 || taglen > 16) {
 		error_print();
 		return -1;
 	}
@@ -325,6 +402,10 @@ int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 
 int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm4_ctr_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -337,6 +418,10 @@ int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	uint8_t mac[16];
 
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm4_ctr_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -352,16 +437,20 @@ int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 }
 
 int sm4_gcm_decrypt_init(SM4_GCM_CTX *ctx,
-	const uint8_t key[SM4_KEY_SIZE], const uint8_t *iv, size_t ivlen,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen)
 {
-	return sm4_gcm_encrypt_init(ctx, key, iv, ivlen, aad, aadlen, taglen);
+	return sm4_gcm_encrypt_init(ctx, key, keylen, iv, ivlen, aad, aadlen, taglen);
 }
 
 int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	size_t len;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->maclen > ctx->taglen) {
 		error_print();
 		return -1;
@@ -414,6 +503,10 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	uint8_t mac[GHASH_SIZE];
 
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->maclen != ctx->taglen) {
 		error_print();
 		return -1;
