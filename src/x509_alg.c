@@ -407,7 +407,7 @@ int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	}
 	if (len) {
 		if (info->flags == 0) {
-			warning_print();
+			//warning_print();
 		}
 		if (asn1_null_from_der(&p, &len) < 0) {
 			error_print();
