@@ -41,7 +41,7 @@ int file_read_all(const char *file, uint8_t **out, size_t *outlen)
 	size_t fsize;
 	uint8_t *buf = NULL;
 
-	if (!(fp = fopen(file, "r"))
+	if (!(fp = fopen(file, "rb"))
 		|| file_size(fp, &fsize) != 1
 		|| (buf = malloc(fsize)) == NULL) {
 		error_print();

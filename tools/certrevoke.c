@@ -21,7 +21,8 @@ static const char *options =
 	" -in pem"
 	" [-reason str]"
 	" [-invalid_date time]"
-	" [-out der]";
+	" -out der";	// on windows, send 0x0a through pipe will be connverted to 0x0d0a
+			// so stdout and pipe is not supported
 
 static char *usage =
 "Options\n"
@@ -42,7 +43,7 @@ static char *usage =
 "    -invalid_date time      The date on which it is known or suspected the certificate became invalid\n"
 "                            Time in `YYYYMMDDHHMMSSZ` format such as 20221231000000Z\n"
 "                            The last 'Z' means it is Zulu (GMT) time\n"
-"    -out der | stdout       Output X.509 RevokedCertificate in DER-encoding\n"
+"    -out der                Output X.509 RevokedCertificate in DER-encoding\n"
 "                            This file stores multiple RevokedCertificates, used as input by `crlsign`\n"
 "\n"
 "Examples\n"
@@ -63,10 +64,10 @@ int certrevoke_main(int argc, char **argv)
 	int reason = -1;
 	time_t invalid_date = -1;
 	char *outfile = NULL;
-	FILE *outfp = stdout;
+	FILE *outfp = NULL;
 	uint8_t *outbuf = NULL;
 	uint8_t *out;
-	size_t outlen;
+	size_t outlen = 0;
 
 	argc--;
 	argv++;
@@ -121,6 +122,11 @@ bad:
 		printf("usage: gmssl %s %s\n\n", prog, options);
 		goto end;
 	}
+	if (!outfile) {
+		fprintf(stderr, "%s: option `-out` missing\n", prog);
+		goto end;
+	}
+
 	if (x509_cert_revoke_to_der(cert, certlen, time(NULL), reason, invalid_date, NULL, 0, NULL, &outlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
