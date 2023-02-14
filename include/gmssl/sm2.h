@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <gmssl/sm3.h>
+#include <gmssl/api.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -195,7 +196,7 @@ typedef struct {
 } SM2_KEY;
 
 
-int sm2_key_generate(SM2_KEY *key);
+_gmssl_export int sm2_key_generate(SM2_KEY *key);
 int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]); // key->public_key will be replaced
 int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key); // key->private_key will be cleared // FIXME: support octets as input?
 int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
@@ -243,10 +244,10 @@ SubjectPublicKeyInfo  ::=  SEQUENCE  {
 	algorithm            AlgorithmIdentifier,
 	subjectPublicKey     BIT STRING  -- uncompressed octets of ECPoint }
 */
-int sm2_public_key_info_to_der(const SM2_KEY *a, uint8_t **out, size_t *outlen);
-int sm2_public_key_info_from_der(SM2_KEY *a, const uint8_t **in, size_t *inlen);
-int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp);
-int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp);
+_gmssl_export int sm2_public_key_info_to_der(const SM2_KEY *a, uint8_t **out, size_t *outlen);
+_gmssl_export int sm2_public_key_info_from_der(SM2_KEY *a, const uint8_t **in, size_t *inlen);
+_gmssl_export int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp);
+_gmssl_export int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp);
 
 /*
 PKCS #8 PrivateKeyInfo from RFC 5208
@@ -274,13 +275,13 @@ EncryptedPrivateKeyInfo ::= SEQUENCE {
 	encryptionAlgorithm	EncryptionAlgorithmIdentifier, -- id-PBES2
 	encryptedData		OCTET STRING }
 */
-int sm2_private_key_info_encrypt_to_der(const SM2_KEY *key,
+_gmssl_export int sm2_private_key_info_encrypt_to_der(const SM2_KEY *key,
 	const char *pass, uint8_t **out, size_t *outlen);
-int sm2_private_key_info_decrypt_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrs_len,
+_gmssl_export int sm2_private_key_info_decrypt_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrs_len,
 	const char *pass, const uint8_t **in, size_t *inlen);
-int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
+_gmssl_export int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
 // FIXME: #define default buffer size
-int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
+_gmssl_export int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
 
 
 typedef struct {
@@ -298,8 +299,8 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
 int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
-int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
-int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
+_gmssl_export int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
+_gmssl_export int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
 
 enum {
 	SM2_signature_compact_size = 70,
@@ -322,14 +323,14 @@ typedef struct {
 	SM2_KEY key;
 } SM2_SIGN_CTX;
 
-int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
-int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
+_gmssl_export int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
+_gmssl_export int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+_gmssl_export int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
 int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig);
 
-int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
-int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen);
+_gmssl_export int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
+_gmssl_export int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+_gmssl_export int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen);
 
 /*
 SM2Cipher ::= SEQUENCE {
@@ -356,8 +357,8 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen);
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
 int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
-int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
 enum {
 	SM2_ciphertext_compact_point_size = 68,
@@ -369,7 +370,7 @@ int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int 
 
 
 int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
-int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out);
+_gmssl_export int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out);
 
 
 #ifdef __cplusplus

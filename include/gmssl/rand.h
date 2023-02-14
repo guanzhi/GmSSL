@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-
+#include <gmssl/api.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +26,7 @@ Rand Public API
 
 */
 
-int rand_bytes(uint8_t *buf, size_t buflen);
+_gmssl_export int rand_bytes(uint8_t *buf, size_t buflen);
 
 
 #ifdef __cplusplus
