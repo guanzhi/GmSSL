@@ -18,9 +18,6 @@
 #include <gmssl/error.h>
 
 
-
-
-
 static int test_aead_sm4_cbc_sm3_hmac(void)
 {
 	SM4_CBC_SM3_HMAC_CTX aead_ctx;
@@ -70,6 +67,33 @@ static int test_aead_sm4_cbc_sm3_hmac(void)
 
 	format_bytes(stdout, 0, 4, "plaintext ", plain, sizeof(plain));
 	format_bytes(stdout, 0, 4, "ciphertext", cipher, cipherlen);
+
+	{
+		SM4_KEY sm4_key;
+		SM3_HMAC_CTX sm3_hmac_ctx;
+		uint8_t tmp[256];
+		size_t tmplen;
+
+		sm4_set_encrypt_key(&sm4_key, key);
+		if (sm4_cbc_padding_encrypt(&sm4_key, iv, plain, sizeof(plain), tmp, &tmplen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		sm3_hmac_init(&sm3_hmac_ctx, key + 16, 32);
+		sm3_hmac_update(&sm3_hmac_ctx, aad, sizeof(aad));
+		sm3_hmac_update(&sm3_hmac_ctx, tmp, tmplen);
+		sm3_hmac_finish(&sm3_hmac_ctx, tmp + tmplen);
+		tmplen += 32;
+
+		format_bytes(stdout, 0, 4, "ciphertext", tmp, tmplen);
+
+		if (cipherlen != tmplen
+			|| memcmp(cipher, tmp, tmplen) != 0) {
+			error_print();
+			return -1;
+		}
+	}
 
 	in = cipher;
 	out = buf;
@@ -162,6 +186,35 @@ static int test_aead_sm4_ctr_sm3_hmac(void)
 	format_bytes(stdout, 0, 4, "plaintext ", plain, sizeof(plain));
 	format_bytes(stdout, 0, 4, "ciphertext", cipher, cipherlen);
 
+	{
+		SM4_KEY sm4_key;
+		uint8_t ctr[16];
+		SM3_HMAC_CTX sm3_hmac_ctx;
+		uint8_t tmp[256];
+		size_t tmplen;
+
+		sm4_set_encrypt_key(&sm4_key, key);
+		memcpy(ctr, iv, 16);
+
+		sm4_ctr_encrypt(&sm4_key, ctr, plain, sizeof(plain), tmp);
+		tmplen = sizeof(plain);
+
+		sm3_hmac_init(&sm3_hmac_ctx, key + 16, 32);
+		sm3_hmac_update(&sm3_hmac_ctx, aad, sizeof(aad));
+		sm3_hmac_update(&sm3_hmac_ctx, tmp, tmplen);
+		sm3_hmac_finish(&sm3_hmac_ctx, tmp + tmplen);
+		tmplen += 32;
+
+		format_bytes(stdout, 0, 4, "ciphertext", tmp, tmplen);
+
+		if (cipherlen != tmplen
+			|| memcmp(cipher, tmp, tmplen) != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+
 	in = cipher;
 	out = buf;
 
@@ -253,6 +306,29 @@ static int test_aead_sm4_gcm(void)
 
 	format_bytes(stdout, 0, 4, "plaintext ", plain, sizeof(plain));
 	format_bytes(stdout, 0, 4, "ciphertext", cipher, cipherlen);
+
+	{
+		SM4_KEY sm4_key;
+		uint8_t tmp[256];
+		size_t tmplen;
+
+		sm4_set_encrypt_key(&sm4_key, key);
+
+		if (sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), plain, sizeof(plain),
+			tmp, GHASH_SIZE, tmp + sizeof(plain)) != 1) {
+			error_print();
+			return -1;
+		}
+		tmplen = sizeof(plain) + GHASH_SIZE;
+
+		format_bytes(stdout, 0, 4, "ciphertext", tmp, tmplen);
+
+		if (cipherlen != tmplen
+			|| memcmp(cipher, tmp, tmplen) != 0) {
+			error_print();
+			return -1;
+		}
+	}
 
 	in = cipher;
 	out = buf;

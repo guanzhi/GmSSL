@@ -272,6 +272,15 @@ int sm4_ctr_sm3_hmac_decrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 	return 1;
 }
 
+static void ctr_incr(uint8_t a[16])
+{
+	int i;
+	for (i = 15; i >= 0; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
 int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 	const uint8_t key[SM4_KEY_SIZE], const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen)
@@ -304,9 +313,10 @@ int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 		ghash(H, NULL, 0, iv, ivlen, Y);
 	}
 
-	memcpy(ctx->enc_ctx.ctr, Y, 16);
-
 	sm4_encrypt(&ctx->enc_ctx.sm4_key, Y, ctx->Y);
+
+	ctr_incr(Y);
+	memcpy(ctx->enc_ctx.ctr, Y, 16);
 
 	gmssl_secure_clear(H, sizeof(H));
 	gmssl_secure_clear(Y, sizeof(Y));
@@ -422,38 +432,4 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 	memset(ctx->mac, 0, GHASH_SIZE);
 	ctx->maclen = 0;
 	return 1;
-}
-
-int zuc_with_mac_encrypt_init(ZUC_WITH_MAC_CTX *ctx,
-	const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE],
-	const uint8_t *aad, size_t aadlen)
-{
-	return -1;
-}
-
-int zuc_with_mac_encrypt_update(ZUC_WITH_MAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	return -1;
-}
-
-int zuc_with_mac_encrypt_finish(ZUC_WITH_MAC_CTX *ctx, uint8_t *out, size_t *outlen)
-{
-	return -1;
-}
-
-int zuc_with_mac_decrypt_init(ZUC_WITH_MAC_CTX *ctx,
-	const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE],
-	const uint8_t *aad, size_t aadlen)
-{
-	return -1;
-}
-
-int zuc_with_mac_decrypt_update(ZUC_WITH_MAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	return -1;
-}
-
-int zuc_with_mac_decrypt_finish(ZUC_WITH_MAC_CTX *ctx, uint8_t *out, size_t *outlen)
-{
-	return -1;
 }

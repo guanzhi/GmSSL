@@ -81,26 +81,6 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen);
 
 
-#define ZUC_KEY_SIZE	16
-#define ZUC_IV_SIZE	16
-#define ZUC_MAC_KEY_SIZE	16
-
-typedef struct {
-} ZUC_WITH_MAC_CTX;
-
-int zuc_with_mac_encrypt_init(ZUC_WITH_MAC_CTX *ctx,
-	const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE],
-	const uint8_t *aad, size_t aadlen);
-int zuc_with_mac_encrypt_update(ZUC_WITH_MAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int zuc_with_mac_encrypt_finish(ZUC_WITH_MAC_CTX *ctx, uint8_t *out, size_t *outlen);
-
-int zuc_with_mac_decrypt_init(ZUC_WITH_MAC_CTX *ctx,
-	const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE],
-	const uint8_t *aad, size_t aadlen);
-int zuc_with_mac_decrypt_update(ZUC_WITH_MAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int zuc_with_mac_decrypt_finish(ZUC_WITH_MAC_CTX *ctx, uint8_t *out, size_t *outlen);
-
-
 #ifdef __cplusplus
 }
 #endif
