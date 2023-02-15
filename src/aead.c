@@ -123,14 +123,16 @@ int sm4_cbc_sm3_hmac_decrypt_update(SM4_CBC_SM3_HMAC_CTX *ctx, const uint8_t *in
 	}
 
 	if (inlen <= SM3_HMAC_SIZE) {
+		uint8_t tmp[32];
 		sm3_hmac_update(&ctx->mac_ctx, ctx->mac, inlen);
 		if (sm4_cbc_decrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		len = SM3_HMAC_SIZE - inlen;
-		memcpy(ctx->mac, ctx->mac + inlen, len);
-		memcpy(ctx->mac + len, in, inlen);
+		memcpy(tmp, ctx->mac + inlen, len);
+		memcpy(tmp + len, in, inlen);
+		memcpy(ctx->mac, tmp, 32);
 	} else {
 		sm3_hmac_update(&ctx->mac_ctx, ctx->mac, SM3_HMAC_SIZE);
 		if (sm4_cbc_decrypt_update(&ctx->enc_ctx, ctx->mac, SM3_HMAC_SIZE, out, outlen) != 1) {
@@ -283,14 +285,16 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 	}
 
 	if (inlen <= SM3_HMAC_SIZE) {
+		uint8_t tmp[32];
 		sm3_hmac_update(&ctx->mac_ctx, ctx->mac, inlen);
 		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		len = SM3_HMAC_SIZE - inlen;
-		memcpy(ctx->mac, ctx->mac + inlen, len);
-		memcpy(ctx->mac + len, in, inlen);
+		memcpy(tmp, ctx->mac + inlen, len);
+		memcpy(tmp + len, in, inlen);
+		memcpy(ctx->mac, tmp, 32);
 	} else {
 		sm3_hmac_update(&ctx->mac_ctx, ctx->mac, SM3_HMAC_SIZE);
 		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, SM3_HMAC_SIZE, out, outlen) != 1) {
@@ -471,14 +475,16 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 	}
 
 	if (inlen <= ctx->taglen) {
+		uint8_t tmp[32];
 		ghash_update(&ctx->mac_ctx, ctx->mac, inlen);
 		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		len = ctx->taglen - inlen;
-		memcpy(ctx->mac, ctx->mac + inlen, len);
-		memcpy(ctx->mac + len, in, inlen);
+		memcpy(tmp, ctx->mac + inlen, len);
+		memcpy(tmp + len, in, inlen);
+		memcpy(ctx->mac, tmp, 32);
 	} else {
 		ghash_update(&ctx->mac_ctx, ctx->mac, ctx->taglen);
 		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, ctx->taglen, out, outlen) != 1) {
