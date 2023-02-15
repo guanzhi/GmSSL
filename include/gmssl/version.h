@@ -26,7 +26,7 @@ Version Public API
 */
 
 #define GMSSL_VERSION_NUM	30100
-#define GMSSL_VERSION_STR	"GmSSL 3.1.0 Dev"
+#define GMSSL_VERSION_STR	"GmSSL 3.1.0 PR1"
 
 _gmssl_export int gmssl_version_num(void);
 _gmssl_export const char *gmssl_version_str(void);
