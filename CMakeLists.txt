@@ -199,12 +199,14 @@ if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 	add_definitions(-DSM2_ALGOR_ID_ENCODE_NULL)
 endif()
 
-option(ENABLE_PRIVATE_KEY_EXPORT "Enable export un-encrypted private key" OFF)
-if (ENABLE_PRIVATE_KEY_EXPORT)
-	message(STATUS "ENABLE_PRIVATE_KEY_EXPORT")
-	add_definitions(-DENABLE_PRIVATE_KEY_EXPORT)
+
+option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
+if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
+	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT")
+	add_definitions(-DSM2_PRIVATE_KEY_EXPORT)
 	list(APPEND demos demo_sm2_key_export)
 endif()
+
 
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 if (ENABLE_TLS_DEBUG)
@@ -212,9 +214,9 @@ if (ENABLE_TLS_DEBUG)
 	add_definitions(-DTLS_DEBUG)
 endif()
 
-
 option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 if (ENABLE_SM3_AVX_BMI2)
+	message(STATUS "ENABLE_SM3_AVX_BMI2")
 	add_definitions(-DSM3_AVX_BMI2)
 	enable_language(ASM)
 	list(APPEND src src/sm3_avx_bmi2.s)
@@ -223,7 +225,8 @@ endif()
 
 option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 if (ENABLE_SM4_AESNI_AVX)
-	add_definitions(-DENABLE_SM4_AESNI_AVX)
+	message(STATUS "ENABLE_SM4_AESNI_AVX")
+	add_definitions(-DSM4_AESNI_AVX)
 	list(APPEND src src/sm4_aesni_avx.c)
 	list(APPEND tests sm4_aesni_avx)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
@@ -232,6 +235,7 @@ endif()
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 if (ENABLE_SM2_EXTS)
+	message(STATUS "ENABLE_SM4_AESNI_AVX")
 	list(APPEND src
 		src/sm2_key_share.c
 		src/sm2_recover.c
@@ -245,6 +249,7 @@ endif()
 
 option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 if (ENABLE_BROKEN_CRYPTO)
+	message(STATUS "ENABLE_BROKEN_CRYPTO")
 	list(APPEND src src/des.c src/sha1.c src/md5.c src/rc4.c)
 	list(APPEND tests des sha1 md5 rc4)
 endif()
@@ -255,12 +260,14 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
 	set(ENABLE_RDRND ON)
 endif()
 if (ENABLE_RDRND)
+	message(STATUS "ENABLE_RDRND")
 	list(APPEND src src/rdrand.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 endif()
 
 option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
 if (ENABLE_GMT_0105_RNG)
+	message(STATUS "ENABLE_GMT_0105_RNG")
 	list(APPEND src src/sm3_rng.c src/sm4_cbc_mac.c src/sm4_rng.c)
 	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
 endif()
@@ -277,6 +284,7 @@ endif()
 
 option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
 if (ENABLE_HTTP_TESTS)
+	message(STATUS "ENABLE_HTTP_TESTS")
 	list(APPEND tests http http_crl)
 endif()
 
@@ -284,6 +292,7 @@ endif()
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+	message(STATUS "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS")
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # set before add_library
 endif()
 

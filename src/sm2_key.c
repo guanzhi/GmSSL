@@ -361,7 +361,7 @@ err:
 	return -1;
 }
 
-#ifdef ENABLE_PRIVATE_KEY_EXPORT
+#ifdef SM2_PRIVATE_KEY_EXPORT
 int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp)
 {
 	int ret = -1;
@@ -445,7 +445,7 @@ int sm2_public_key_info_from_der(SM2_KEY *pub_key, const uint8_t **in, size_t *i
 	return 1;
 }
 
-#ifdef ENABLE_PRIVATE_KEY_EXPORT
+#ifdef SM2_PRIVATE_KEY_EXPORT
 
 // FIXME: side-channel of Base64
 int sm2_private_key_to_pem(const SM2_KEY *a, FILE *fp)
