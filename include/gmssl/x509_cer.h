@@ -334,7 +334,7 @@ typedef enum {
 	X509_cert_crl_sign,
 } X509_CERT_TYPE;
 
-int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraints);
+int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraint);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {
