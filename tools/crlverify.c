@@ -122,7 +122,7 @@ bad:
 		fprintf(stderr, "%s: invalid CRL data or format\n", prog);
 		goto end;
 	}
-	if ((rv = x509_crl_verify_by_ca_cert(crl, crl_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+	if ((rv = x509_crl_verify_by_ca_cert(crl, crl_len, cacert, cacertlen, signer_id, signer_id_len)) < 0) {
 		fprintf(stderr, "%s: verification inner error\n", prog);
 		goto end;
 	}
