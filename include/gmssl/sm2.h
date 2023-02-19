@@ -164,13 +164,16 @@ typedef struct {
 	uint8_t y[32];
 } SM2_POINT;
 
+#define sm2_point_init(P) memset((P),0,sizeof(SM2_POINT))
+#define sm2_point_set_infinity(P) sm2_point_init(P)
+int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
 void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33]);
 void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65]);
-int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
 
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y);
 int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32]);
 int sm2_point_is_on_curve(const SM2_POINT *P);
+int sm2_point_is_at_infinity(const SM2_POINT *P);
 int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
 int sm2_point_sub(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
 int sm2_point_neg(SM2_POINT *R, const SM2_POINT *P);

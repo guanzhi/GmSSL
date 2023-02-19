@@ -13,6 +13,7 @@
 #include <string.h>
 #include <assert.h>
 #include <gmssl/sm2.h>
+#include <gmssl/mem.h>
 #include <gmssl/asn1.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
@@ -1086,6 +1087,11 @@ int sm2_point_is_on_curve(const SM2_POINT *P)
 	SM2_JACOBIAN_POINT T;
 	sm2_jacobian_point_from_bytes(&T, (const uint8_t *)P);
 	return sm2_jacobian_point_is_on_curve(&T);
+}
+
+int sm2_point_is_at_infinity(const SM2_POINT *P)
+{
+	return mem_is_zero((uint8_t *)P, sizeof(SM2_POINT));
 }
 
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y)
