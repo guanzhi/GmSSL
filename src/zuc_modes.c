@@ -44,7 +44,7 @@ void zuc_eea_encrypt(const ZUC_UINT32 *in, ZUC_UINT32 *out, size_t nbits,
 	}
 
 	if (nbits % 32 != 0) {
-		out[nwords - 1] |= (0xffffffff << (32 - (nbits%32)));
+		out[nwords - 1] &= (0xffffffff << (32 - (nbits%32)));
 	}
 }
 
