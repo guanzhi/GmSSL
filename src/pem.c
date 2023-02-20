@@ -35,10 +35,8 @@ static int remove_newline(char *line)
 	return 0; // No newline found, might not be an error
 }
 
-
-int pem_write(FILE* fp, const char* name, const uint8_t* data, size_t datalen)
+int pem_write(FILE *fp, const char *name, const uint8_t *data, size_t datalen)
 {
-	int ret = 0;
 	BASE64_CTX ctx;
 	uint8_t* b64 = NULL;
 	int len;
@@ -48,6 +46,7 @@ int pem_write(FILE* fp, const char* name, const uint8_t* data, size_t datalen)
 		return -1;
 	}
 
+	// FIXME: use a fixed-size buffer
 	if (!(b64 = malloc(datalen * 2))) {
 		error_print();
 		return -1;
@@ -57,10 +56,11 @@ int pem_write(FILE* fp, const char* name, const uint8_t* data, size_t datalen)
 	base64_encode_update(&ctx, data, (int)datalen, b64, &len);
 	base64_encode_finish(&ctx, b64 + len, &len);
 
-	ret += fprintf(fp, "-----BEGIN %s-----\n", name);
-	ret += fprintf(fp, "%s", (char *)b64);
-	ret += fprintf(fp, "-----END %s-----\n", name);
-	//return ret;
+	fprintf(fp, "-----BEGIN %s-----\n", name);
+	fprintf(fp, "%s", (char *)b64);
+	fprintf(fp, "-----END %s-----\n", name);
+
+	free(b64);
 	return 1;
 }
 

@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <gmssl/sm3.h>
+#include <gmssl/api.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -135,7 +136,7 @@ typedef struct {
 } SM2_JACOBIAN_POINT;
 
 void sm2_jacobian_point_init(SM2_JACOBIAN_POINT *R);
-void sm2_jacobian_point_set_xy(SM2_JACOBIAN_POINT *R, const SM2_BN x, const SM2_BN y); // 应该返回错误
+void sm2_jacobian_point_set_xy(SM2_JACOBIAN_POINT *R, const SM2_BN x, const SM2_BN y);
 void sm2_jacobian_point_get_xy(const SM2_JACOBIAN_POINT *P, SM2_BN x, SM2_BN y);
 void sm2_jacobian_point_neg(SM2_JACOBIAN_POINT *R, const SM2_JACOBIAN_POINT *P);
 void sm2_jacobian_point_dbl(SM2_JACOBIAN_POINT *R, const SM2_JACOBIAN_POINT *P);
@@ -145,31 +146,34 @@ void sm2_jacobian_point_mul(SM2_JACOBIAN_POINT *R, const SM2_BN k, const SM2_JAC
 void sm2_jacobian_point_to_bytes(const SM2_JACOBIAN_POINT *P, uint8_t out[64]);
 void sm2_jacobian_point_from_bytes(SM2_JACOBIAN_POINT *P, const uint8_t in[64]);
 void sm2_jacobian_point_mul_generator(SM2_JACOBIAN_POINT *R, const SM2_BN k);
-void sm2_jacobian_point_mul_sum(SM2_JACOBIAN_POINT *R, const SM2_BN t, const SM2_JACOBIAN_POINT *P, const SM2_BN s); // 应该返回错误
-void sm2_jacobian_point_from_hex(SM2_JACOBIAN_POINT *P, const char hex[64 * 2]); // 应该返回错误
+void sm2_jacobian_point_mul_sum(SM2_JACOBIAN_POINT *R, const SM2_BN t, const SM2_JACOBIAN_POINT *P, const SM2_BN s);
+void sm2_jacobian_point_from_hex(SM2_JACOBIAN_POINT *P, const char hex[64 * 2]); // for testing only
 
 int sm2_jacobian_point_is_at_infinity(const SM2_JACOBIAN_POINT *P);
 int sm2_jacobian_point_is_on_curve(const SM2_JACOBIAN_POINT *P);
-int sm2_jacobian_point_equ_hex(const SM2_JACOBIAN_POINT *P, const char hex[128]);
+int sm2_jacobian_point_equ_hex(const SM2_JACOBIAN_POINT *P, const char hex[128]); // for testing only
 int sm2_jacobian_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_JACOBIAN_POINT *P);
 
 #define sm2_jacobian_point_set_infinity(R) sm2_jacobian_point_init(R)
 #define sm2_jacobian_point_copy(R, P) memcpy((R), (P), sizeof(SM2_JACOBIAN_POINT))
 
+typedef uint8_t sm2_bn_t[32];
 
 typedef struct {
 	uint8_t x[32];
 	uint8_t y[32];
 } SM2_POINT;
 
+#define sm2_point_init(P) memset((P),0,sizeof(SM2_POINT))
+#define sm2_point_set_infinity(P) sm2_point_init(P)
+int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
 void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33]);
 void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65]);
-int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
-
 
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y);
 int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32]);
 int sm2_point_is_on_curve(const SM2_POINT *P);
+int sm2_point_is_at_infinity(const SM2_POINT *P);
 int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
 int sm2_point_sub(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
 int sm2_point_neg(SM2_POINT *R, const SM2_POINT *P);
@@ -195,15 +199,15 @@ typedef struct {
 } SM2_KEY;
 
 
-int sm2_key_generate(SM2_KEY *key);
-int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]); // 自动生成公钥
-int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key); // 自动清空私钥，不要和set_private_key同时用
+_gmssl_export int sm2_key_generate(SM2_KEY *key);
+int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]); // key->public_key will be replaced
+int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key); // key->private_key will be cleared // FIXME: support octets as input?
 int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
 
 int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key);
-//int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key); // 这个函数的逻辑不清楚
+//int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key); // do we need this?
 int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
-int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key); // 和private_key_print参数不一致
+int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
 
 /*
 from RFC 5915
@@ -225,8 +229,8 @@ ECParameters ::= CHOICE { namedCurve OBJECT IDENTIFIER }
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen);
 int sm2_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-//int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
-//int sm2_private_key_from_pem(SM2_KEY *key, FILE *fp);
+int sm2_private_key_to_pem(const SM2_KEY *key, FILE *fp);
+int sm2_private_key_from_pem(SM2_KEY *key, FILE *fp);
 
 /*
 AlgorithmIdentifier ::= {
@@ -237,16 +241,16 @@ int sm2_public_key_algor_to_der(uint8_t **out, size_t *outlen);
 int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen);
 
 /*
-X.509 SubjectPublicKeyInfo from RFC 5280
+SubjectPublicKeyInfo from RFC 5280
 
 SubjectPublicKeyInfo  ::=  SEQUENCE  {
 	algorithm            AlgorithmIdentifier,
 	subjectPublicKey     BIT STRING  -- uncompressed octets of ECPoint }
 */
-int sm2_public_key_info_to_der(const SM2_KEY *a, uint8_t **out, size_t *outlen);
-int sm2_public_key_info_from_der(SM2_KEY *a, const uint8_t **in, size_t *inlen);
-int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp);
-int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp);
+_gmssl_export int sm2_public_key_info_to_der(const SM2_KEY *a, uint8_t **out, size_t *outlen);
+_gmssl_export int sm2_public_key_info_from_der(SM2_KEY *a, const uint8_t **in, size_t *inlen);
+_gmssl_export int sm2_public_key_info_to_pem(const SM2_KEY *a, FILE *fp);
+_gmssl_export int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp);
 
 /*
 PKCS #8 PrivateKeyInfo from RFC 5208
@@ -261,23 +265,26 @@ enum {
 	PKCS8_private_key_info_version = 0,
 };
 
+
 int sm2_private_key_info_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
 int sm2_private_key_info_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, const uint8_t **in, size_t *inlen);
 int sm2_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-//int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
-//int sm2_private_key_info_from_pem(SM2_KEY *key, const uint8_t **attrs, size_t *attrslen, FILE *fp);
+int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp);
+// FIXME: #define default buffer size for sm2_private_key_info_from_pem
+int sm2_private_key_info_from_pem(SM2_KEY *key, FILE *fp);
 
 /*
 EncryptedPrivateKeyInfo ::= SEQUENCE {
 	encryptionAlgorithm	EncryptionAlgorithmIdentifier, -- id-PBES2
 	encryptedData		OCTET STRING }
 */
-int sm2_private_key_info_encrypt_to_der(const SM2_KEY *key,
+_gmssl_export int sm2_private_key_info_encrypt_to_der(const SM2_KEY *key,
 	const char *pass, uint8_t **out, size_t *outlen);
-int sm2_private_key_info_decrypt_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrs_len,
+_gmssl_export int sm2_private_key_info_decrypt_from_der(SM2_KEY *key, const uint8_t **attrs, size_t *attrs_len,
 	const char *pass, const uint8_t **in, size_t *inlen);
-int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
-int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
+_gmssl_export int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const char *pass, FILE *fp);
+// FIXME: #define default buffer size
+_gmssl_export int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
 
 
 typedef struct {
@@ -285,7 +292,6 @@ typedef struct {
 	uint8_t s[32];
 } SM2_SIGNATURE;
 
-int sm2_do_sign_ex(const SM2_KEY *key, int flags, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
@@ -296,8 +302,8 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
 int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
-int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
-int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
+_gmssl_export int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
+_gmssl_export int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sig, size_t siglen);
 
 enum {
 	SM2_signature_compact_size = 70,
@@ -320,13 +326,14 @@ typedef struct {
 	SM2_KEY key;
 } SM2_SIGN_CTX;
 
-int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
-int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
+_gmssl_export int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
+_gmssl_export int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+_gmssl_export int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
+int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig);
 
-int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
-int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen);
+_gmssl_export int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
+_gmssl_export int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+_gmssl_export int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen);
 
 /*
 SM2Cipher ::= SEQUENCE {
@@ -348,13 +355,13 @@ typedef struct {
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen);
 
-#define SM2_MIN_CIPHERTEXT_SIZE	45 // dependes on SM2_MIN_PLAINTEXT_SIZE
+#define SM2_MIN_CIPHERTEXT_SIZE	 45 // depends on SM2_MIN_PLAINTEXT_SIZE
 #define SM2_MAX_CIPHERTEXT_SIZE	366 // depends on SM2_MAX_PLAINTEXT_SIZE
 int sm2_ciphertext_to_der(const SM2_CIPHERTEXT *c, uint8_t **out, size_t *outlen);
 int sm2_ciphertext_from_der(SM2_CIPHERTEXT *c, const uint8_t **in, size_t *inlen);
 int sm2_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen);
-int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_decrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
 enum {
 	SM2_ciphertext_compact_point_size = 68,
@@ -366,10 +373,7 @@ int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int 
 
 
 int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
-int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out);
-
-
-typedef uint8_t sm2_bn_t[32];
+_gmssl_export int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out);
 
 
 #ifdef __cplusplus

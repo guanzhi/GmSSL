@@ -89,6 +89,11 @@ bad:
 		fprintf(stderr, "%s: '-in' option required\n", prog);
 		return -1;
 	}
+
+	if (tls_socket_lib_init() != 1) {
+		error_print();
+		return -1;
+	}
 	if (!(hp = gethostbyname(host))) {
 		//herror("tls13_client: '-host' invalid");			
 		goto end;
@@ -101,13 +106,12 @@ bad:
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
-
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno));
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
+		fprintf(stderr, "%s: socket create error\n", prog);
 		goto end;
 	}
-	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
-		fprintf(stderr, "%s: connect error : %s\n", prog, strerror(errno));
+	if (tls_socket_connect(sock, &server) != 1) {
+		fprintf(stderr, "%s: socket connect error\n", prog);
 		goto end;
 	}
 
@@ -138,6 +142,20 @@ bad:
 	for (;;) {
 		fd_set fds;
 		size_t sentlen;
+
+		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
+			if (feof(stdin)) {
+				tls_shutdown(&conn);
+				goto end;
+			} else {
+				continue;
+			}
+		}
+		if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);

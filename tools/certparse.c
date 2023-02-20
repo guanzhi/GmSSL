@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,7 +16,20 @@
 #include <gmssl/x509.h>
 
 
-static const char *options = "[-in file] [-out file]";
+static const char *options = "[-in pem] [-out file]";
+
+static char *usage =
+"Options\n"
+"\n"
+"    [-in pem]|stdin        Input certificates in PEM format.\n"
+"                           This command supports continuous multiple certificates\n"
+"                           Do not include blank line or comments between PEM data\n"
+"    [-out file]stdout      Output file\n"
+"\n"
+"Examples\n"
+"\n"
+"    gmssl certparse -in certs.pem\n"
+"\n";
 
 int certparse_main(int argc, char **argv)
 {
@@ -34,7 +47,8 @@ int certparse_main(int argc, char **argv)
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
+			printf("usage: gmssl %s %s\n\n", prog, options);
+			printf("%s\n", usage);
 			goto end;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
@@ -51,10 +65,10 @@ int certparse_main(int argc, char **argv)
 				goto end;
 			}
 		} else {
-			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			fprintf(stderr, "%s: illegal option `%s`\n", prog, *argv);
 			goto end;
 bad:
-			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			fprintf(stderr, "%s: `%s` option value missing\n", prog, *argv);
 			goto end;
 		}
 

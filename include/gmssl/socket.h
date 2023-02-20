@@ -19,6 +19,7 @@ extern "C" {
 #endif
 
 
+
 #ifdef WIN32
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -55,13 +56,15 @@ typedef socklen_t tls_socklen_t;
 #define tls_socket_recv(sock,buf,len,flags)	recv(sock,buf,len,flags)
 #define tls_socket_close(sock)			close(sock)
 
-
-
 #endif
 
-
-
-
+int tls_socket_lib_init(void);
+int tls_socket_lib_cleanup(void);
+int tls_socket_create(tls_socket_t *sock, int af, int type, int protocl);
+int tls_socket_connect(tls_socket_t sock, const struct sockaddr_in *addr);
+int tls_socket_bind(tls_socket_t sock, const struct sockaddr_in *addr);
+int tls_socket_listen(tls_socket_t sock, int backlog);
+int tls_socket_accept(tls_socket_t sock, struct sockaddr_in *addr, tls_socket_t *conn_sock);
 
 
 #ifdef __cplusplus

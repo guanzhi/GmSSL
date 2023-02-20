@@ -854,9 +854,6 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	int *record_type, uint8_t *out, size_t *outlen);
 
 
-
-//#define TLS_DEBUG
-
 #ifdef TLS_DEBUG
 #	define tls_trace(s) fprintf(stderr,(s))
 #	define tls_record_trace(fp,rec,reclen,fmt,ind)  tls_record_print(fp,rec,reclen,fmt,ind)

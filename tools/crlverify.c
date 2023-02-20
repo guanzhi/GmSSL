@@ -12,30 +12,42 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/hex.h>
 #include <gmssl/file.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_crl.h>
 
 
-static const char *options = "-in file -cacert file\n";
+static const char *usage = " -in der -cacert pem [-req_sm2_id str | -req_sm2_id_hex hex]\n";
+static const char *options =
+"Options\n"
+"\n"
+"    -in pem                      Input CSR file in PEM format\n"
+"    -cacert pem                  Issuer CA certificate\n"
+"    -sm2_id str                  Authority's ID in SM2 signature algorithm\n"
+"    -sm2_id_hex hex              Authority's ID in hex format\n"
+"                                 When `-sm2_id` or `-sm2_id_hex` is specified,\n"
+"                                   must use the same ID in other commands explicitly.\n"
+"                                 If neither `-sm2_id` nor `-sm2_id_hex` is specified,\n"
+"                                   the default string '1234567812345678' is used\n"
+"\n"
+"Examples\n"
+"\n"
+"    gmssl certverify -in crl.der -cacert cacert.pem\n"
+"\n";
 
 int crlverify_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
-	char *infile = NULL;
-	char *cacertfile = NULL;
-	FILE *infp = NULL;
-	FILE *cacertfp = NULL;
-	uint8_t *in = NULL;
-	size_t inlen;
-	const uint8_t *pin;
-	const uint8_t *crl = NULL;
-	size_t crllen;
-	const uint8_t *subject;
-	size_t subject_len;
-	uint8_t cacert[1024];
+	char *str;
+
+	uint8_t *crl = NULL;
+	size_t crl_len;
+	uint8_t *cacert = NULL;
 	size_t cacertlen;
+	char signer_id[SM2_MAX_ID_LENGTH + 1] = SM2_DEFAULT_ID;
+	size_t signer_id_len = strlen(SM2_DEFAULT_ID);
 	int rv;
 
 	argc--;
@@ -53,23 +65,43 @@ int crlverify_main(int argc, char **argv)
 			goto end;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
-			infile = *(++argv);
-			if (!(infp = fopen(infile, "rb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+			str = *(++argv);
+			if (file_read_all(str, &crl, &crl_len) != 1) {
+				fprintf(stderr, "%s: read '%s' failure : %s\n", prog, str, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
-			cacertfile = *(++argv);
-			if (!(cacertfp = fopen(cacertfile, "rb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, cacertfile, strerror(errno));
+			str = *(++argv);
+			if (x509_cert_new_from_file(&cacert, &cacertlen, str) != 1) {
+				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, str, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-sm2_id")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if (strlen(str) > sizeof(signer_id) - 1) {
+				fprintf(stderr, "%s: invalid `-sm2_id` length\n", prog);
+				goto end;
+			}
+			strncpy(signer_id, str, sizeof(signer_id));
+			signer_id_len = strlen(str);
+		} else if (!strcmp(*argv, "-sm2_id_hex")) {
+			if (--argc < 1) goto bad;
+			str = *(++argv);
+			if (strlen(str) > (sizeof(signer_id) - 1) * 2) {
+				fprintf(stderr, "%s: invalid `-sm2_id_hex` length\n", prog);
+				goto end;
+			}
+			if (hex_to_bytes(str, strlen(str), (uint8_t *)signer_id, &signer_id_len) != 1) {
+				fprintf(stderr, "%s: invalid `-sm2_id_hex` value\n", prog);
 				goto end;
 			}
 		} else {
-			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			fprintf(stderr, "%s: illegal option `%s`\n", prog, *argv);
 			goto end;
 bad:
-			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			fprintf(stderr, "%s: `%s` option value missing\n", prog, *argv);
 			goto end;
 		}
 
@@ -77,43 +109,20 @@ bad:
 		argv++;
 	}
 
-	if (!infile) {
-		fprintf(stderr, "%s: '-in' option required\n", prog);
+	if (!crl) {
+		fprintf(stderr, "%s: `-in` option required\n", prog);
 		goto end;
 	}
-	if (!cacertfile) {
-		fprintf(stderr, "%s: '-cacert' option required\n", prog);
-		goto end;
-	}
-
-	if (file_size(infp, &inlen) != 1) {
-		fprintf(stderr, "%s: get input length failed\n", prog);
-		goto end;
-	}
-	if (!(in = malloc(inlen))) {
-		fprintf(stderr, "%s: malloc failure\n", prog);
-		goto end;
-	}
-	if (fread(in, 1, inlen, infp) != inlen) {
-		fprintf(stderr, "%s: read file error : %s\n",  prog, strerror(errno));
-		goto end;
-	}
-	pin = in;
-	if (x509_crl_from_der(&crl, &crllen, &pin, &inlen) != 1
-		|| asn1_length_is_zero(inlen) != 1) {
-		fprintf(stderr, "%s: read CRL failure\n", prog);
+	if (!cacert) {
+		fprintf(stderr, "%s: `-cacert` option required\n", prog);
 		goto end;
 	}
 
-	if (x509_crl_get_issuer(crl, crllen, &subject, &subject_len) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
+	if (x509_crl_check(crl, crl_len, time(NULL)) != 1) {
+		fprintf(stderr, "%s: invalid CRL data or format\n", prog);
 		goto end;
 	}
-	if (x509_cert_from_pem_by_subject(cacert, &cacertlen, sizeof(cacert), subject, subject_len, cacertfp) != 1) {
-		fprintf(stderr, "%s: read certificate failure\n", prog);
-		goto end;
-	}
-	if ((rv = x509_crl_verify_by_ca_cert(crl, crllen, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+	if ((rv = x509_crl_verify_by_ca_cert(crl, crl_len, cacert, cacertlen, signer_id, signer_id_len)) < 0) {
 		fprintf(stderr, "%s: verification inner error\n", prog);
 		goto end;
 	}
@@ -122,29 +131,7 @@ bad:
 	if (rv == 1) ret = 0;
 
 end:
-	if (infile && infp) fclose(infp);
-	if (cacertfp) fclose(cacertfp);
-	if (in) free(in);
+	if (crl) free(crl);
+	if (cacert) free(cacert);
 	return ret;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

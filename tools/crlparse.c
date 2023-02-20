@@ -94,6 +94,7 @@ bad:
 		goto end;
 	}
 	x509_crl_print(outfp, 0, 0, "CRL", crl, crllen);
+	ret = 0;
 
 end:
 	if (infile && infp) fclose(infp);

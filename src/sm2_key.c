@@ -19,6 +19,7 @@
 #include <gmssl/pkcs8.h>
 #include <gmssl/error.h>
 #include <gmssl/ec.h>
+#include <gmssl/mem.h>
 #include <gmssl/x509_alg.h>
 
 
@@ -38,7 +39,10 @@ int sm2_key_generate(SM2_KEY *key)
 	memset(key, 0, sizeof(SM2_KEY));
 
 	do {
-		sm2_bn_rand_range(x, SM2_N);
+		if (sm2_bn_rand_range(x, SM2_N) != 1) {
+			error_print();
+			return -1;
+		}
 	} while (sm2_bn_is_zero(x));
 	sm2_bn_to_bytes(x, key->private_key);
 
@@ -46,20 +50,33 @@ int sm2_key_generate(SM2_KEY *key)
 	sm2_jacobian_point_get_xy(P, x, y);
 	sm2_bn_to_bytes(x, key->public_key.x);
 	sm2_bn_to_bytes(y, key->public_key.y);
+
 	return 1;
 }
 
 int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32])
 {
-	memcpy(&key->private_key, private_key, 32);
-	// FIXEM：检查私钥是否在有效的范围内					
+	SM2_BN bn;
 
-	if (sm2_point_mul_generator(&key->public_key, private_key) != 1) {
+	sm2_bn_from_bytes(bn, private_key);
+
+	if (sm2_bn_is_zero(bn)
+		|| sm2_bn_cmp(bn, SM2_N) >= 0) {
+		gmssl_secure_clear(bn, sizeof(bn));
 		error_print();
 		return -1;
 	}
 
+	memcpy(&key->private_key, private_key, 32);
 
+	if (sm2_point_mul_generator(&key->public_key, private_key) != 1) {
+		gmssl_secure_clear(bn, sizeof(bn));
+		gmssl_secure_clear(key, sizeof(SM2_KEY));
+		error_print();
+		return -1;
+	}
+
+	gmssl_secure_clear(bn, sizeof(bn));
 	return 1;
 }
 
@@ -69,7 +86,11 @@ int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key)
 		error_print();
 		return -1;
 	}
-	memset(key, 0, sizeof(SM2_KEY));
+	if (!sm2_point_is_on_curve(public_key)) {
+		error_print();
+		return -1;
+	}
+	gmssl_secure_clear(key, sizeof(SM2_KEY));
 	key->public_key = *public_key;
 	return 1;
 }
@@ -147,7 +168,6 @@ int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
 		return ret;
 	}
 	if (oid != OID_ec_public_key) {
-		printf("%s %d: oid = %d\n", __FILE__, __LINE__, oid);
 		error_print();
 		return -1;
 	}
@@ -158,6 +178,7 @@ int sm2_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
+#define SM2_PRIVATE_KEY_DER_SIZE 121
 int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -168,6 +189,10 @@ int sm2_private_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen)
 	size_t params_len = 0;
 	size_t pubkey_len = 0;
 
+	if (!key) {
+		error_print();
+		return -1;
+	}
 	if (ec_named_curve_to_der(OID_sm2, &params_ptr, &params_len) != 1
 		|| sm2_public_key_to_der(key, &pubkey_ptr, &pubkey_len) != 1) {
 		error_print();
@@ -226,7 +251,8 @@ int sm2_private_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen)
 		error_print();
 		return -1;
 	}
-	// 这里的逻辑上应该是用一个新的公钥来接收公钥，并且判断这个和私钥是否一致
+
+	// check if the public key is correct
 	if (pubkey) {
 		SM2_KEY tmp_key;
 		if (sm2_public_key_from_der(&tmp_key, &pubkey, &pubkey_len) != 1
@@ -247,13 +273,12 @@ int sm2_private_key_print(FILE *fp, int fmt, int ind, const char *label, const u
 	return ec_private_key_print(fp, fmt, ind, label, d, dlen);
 }
 
-
-#define SM2_PRIVATE_KEY_MAX_SIZE 512 // 需要测试这个buffer的最大值
+#define SM2_PRIVATE_KEY_INFO_DER_SIZE 150
 
 int sm2_private_key_info_to_der(const SM2_KEY *sm2_key, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	uint8_t prikey[SM2_PRIVATE_KEY_MAX_SIZE];
+	uint8_t prikey[SM2_PRIVATE_KEY_DER_SIZE];
 	uint8_t *p = prikey;
 	size_t prikey_len = 0;
 
@@ -336,36 +361,52 @@ err:
 	return -1;
 }
 
-#if 0 // 私钥的BASE64编解码可能受到侧信道攻击
-#define SM2_PRIVATE_KEY_INFO_MAX_SIZE 512 // TODO：计算长度
-
+#ifdef SM2_PRIVATE_KEY_EXPORT
 int sm2_private_key_info_to_pem(const SM2_KEY *key, FILE *fp)
 {
-	uint8_t buf[SM2_PRIVATE_KEY_INFO_MAX_SIZE];
+	int ret = -1;
+	uint8_t buf[SM2_PRIVATE_KEY_INFO_DER_SIZE];
 	uint8_t *p = buf;
 	size_t len = 0;
 
-	if (sm2_private_key_info_to_der(key, &p, &len) != 1
-		|| pem_write(fp, "PRIVATE KEY", buf, len) != 1) {
-		memset(buf, 0, sizeof(buf));
+	if (!key || !fp) {
 		error_print();
 		return -1;
 	}
-	memset(buf, 0, sizeof(buf));
-	return 1;
+	if (sm2_private_key_info_to_der(key, &p, &len) != 1) {
+		error_print();
+		goto end;
+	}
+	if (len != sizeof(buf)) {
+		error_print();
+		goto end;
+	}
+	if (pem_write(fp, "PRIVATE KEY", buf, len) != 1) {
+		error_print();
+		goto end;
+	}
+	ret = 1;
+end:
+	gmssl_secure_clear(buf, sizeof(buf));
+	return ret;
 }
 
-int sm2_private_key_info_from_pem(SM2_KEY *sm2_key, const uint8_t **attrs, size_t *attrslen, FILE *fp)
+int sm2_private_key_info_from_pem(SM2_KEY *sm2_key, FILE *fp)
 {
-	uint8_t buf[512]; // 这个可能是不够用的，因为attributes可能很长
+	uint8_t buf[512];
 	const uint8_t *cp = buf;
 	size_t len;
+	const uint8_t *attrs;
+	size_t attrs_len;
 
 	if (pem_read(fp, "PRIVATE KEY", buf, &len, sizeof(buf)) != 1
-		|| sm2_private_key_info_from_der(sm2_key, attrs, attrslen, &cp, &len) != 1
+		|| sm2_private_key_info_from_der(sm2_key, &attrs, &attrs_len, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
+	}
+	if (attrs_len) {
+		error_print();
 	}
 	return 1;
 }
@@ -404,7 +445,9 @@ int sm2_public_key_info_from_der(SM2_KEY *pub_key, const uint8_t **in, size_t *i
 	return 1;
 }
 
-#if 0 // 私钥的BASE64编解码可能受到侧信道攻击
+#ifdef SM2_PRIVATE_KEY_EXPORT
+
+// FIXME: side-channel of Base64
 int sm2_private_key_to_pem(const SM2_KEY *a, FILE *fp)
 {
 	uint8_t buf[512];
@@ -469,7 +512,8 @@ int sm2_public_key_info_from_pem(SM2_KEY *a, FILE *fp)
 		return -1;
 	}
 	if (sm2_public_key_info_from_der(a, &cp, &len) != 1
-		|| len > 0) {
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
 		return -1;
 	}
 	return 1;
@@ -500,7 +544,7 @@ int sm2_private_key_info_encrypt_to_der(const SM2_KEY *sm2_key, const char *pass
 	uint8_t **out, size_t *outlen)
 {
 	int ret = -1;
-	uint8_t pkey_info[2560];
+	uint8_t pkey_info[SM2_PRIVATE_KEY_INFO_DER_SIZE];
 	uint8_t *p = pkey_info;
 	size_t pkey_info_len = 0;
 	uint8_t salt[16];
@@ -508,9 +552,13 @@ int sm2_private_key_info_encrypt_to_der(const SM2_KEY *sm2_key, const char *pass
 	uint8_t iv[16];
 	uint8_t key[16];
 	SM4_KEY sm4_key;
-	uint8_t enced_pkey_info[5120];
+	uint8_t enced_pkey_info[sizeof(pkey_info) + 32];
 	size_t enced_pkey_info_len;
 
+	if (!sm2_key || !pass || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (sm2_private_key_info_to_der(sm2_key, &p, &pkey_info_len) != 1
 		|| rand_bytes(salt, sizeof(salt)) != 1
 		|| rand_bytes(iv, sizeof(iv)) != 1
@@ -519,6 +567,12 @@ int sm2_private_key_info_encrypt_to_der(const SM2_KEY *sm2_key, const char *pass
 		error_print();
 		goto end;
 	}
+	/*
+	if (pkey_info_len != sizeof(pkey_info)) {
+		error_print();
+		goto end;
+	}
+	*/
 	sm4_set_encrypt_key(&sm4_key, key);
 	if (sm4_cbc_padding_encrypt(
 			&sm4_key, iv, pkey_info, pkey_info_len,
@@ -530,11 +584,12 @@ int sm2_private_key_info_encrypt_to_der(const SM2_KEY *sm2_key, const char *pass
 		error_print();
 		goto end;
 	}
+
 	ret = 1;
 end:
-	memset(pkey_info, 0, sizeof(pkey_info));
-	memset(key, 0, sizeof(key));
-	memset(&sm4_key, 0, sizeof(sm4_key));
+	gmssl_secure_clear(pkey_info, sizeof(pkey_info));
+	gmssl_secure_clear(key, sizeof(key));
+	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
 	return ret;
 }
 
@@ -559,6 +614,10 @@ int sm2_private_key_info_decrypt_from_der(SM2_KEY *sm2,
 	const uint8_t *cp = pkey_info;
 	size_t pkey_info_len;
 
+	if (!sm2 || !attrs || !attrs_len || !pass || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
 	if (pkcs8_enced_private_key_info_from_der(&salt, &saltlen, &iter, &keylen, &prf,
 		&cipher, &iv, &ivlen, &enced_pkey_info, &enced_pkey_info_len, in, inlen) != 1
 		|| asn1_check(keylen == -1 || keylen == 16) != 1
@@ -579,19 +638,13 @@ int sm2_private_key_info_decrypt_from_der(SM2_KEY *sm2,
 		|| sm2_private_key_info_from_der(sm2, attrs, attrs_len, &cp, &pkey_info_len) != 1
 		|| asn1_length_is_zero(pkey_info_len) != 1) {
 		error_print();
-
-		if (pkey_info_len) {
-			format_bytes(stderr, 0, 0, "700", cp, pkey_info_len);
-		}
-
-
 		goto end;
 	}
 	ret = 1;
 end:
-	memset(&sm4_key, 0, sizeof(sm4_key));
-	memset(key, 0, sizeof(key));
-	memset(pkey_info, 0, sizeof(pkey_info));
+	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
+	gmssl_secure_clear(key, sizeof(key));
+	gmssl_secure_clear(pkey_info, sizeof(pkey_info));
 	return ret;
 }
 
@@ -601,6 +654,10 @@ int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *sm2_key, const char *pass
 	uint8_t *p = buf;
 	size_t len = 0;
 
+	if (!fp) {
+		error_print();
+		return -1;
+	}
 	if (sm2_private_key_info_encrypt_to_der(sm2_key, pass, &p, &len) != 1) {
 		error_print();
 		return -1;
@@ -620,13 +677,13 @@ int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *
 	const uint8_t *attrs;
 	size_t attrs_len;
 
-	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf)) != 1
-		|| sm2_private_key_info_decrypt_from_der(key, &attrs, &attrs_len, pass, &cp, &len) != 1) {
+	if (!key || !pass || !fp) {
 		error_print();
 		return -1;
 	}
-	if (asn1_length_is_zero(len) != 1) {
-		format_bytes(stderr, 0, 0, "", cp, len);
+	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf)) != 1
+		|| sm2_private_key_info_decrypt_from_der(key, &attrs, &attrs_len, pass, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
 	}

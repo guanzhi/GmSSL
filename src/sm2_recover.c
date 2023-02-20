@@ -40,6 +40,7 @@ int sm2_signature_to_public_key_points(const SM2_SIGNATURE *sig, const uint8_t d
 	SM2_Fp x1;
 	SM2_Fp y1;
 
+	// FIXME: check r, s
 	sm2_bn_from_bytes(r, sig->r);
 	sm2_bn_from_bytes(s, sig->s);
 
@@ -120,6 +121,7 @@ int sm2_signature_conjugate(const SM2_SIGNATURE *sig, SM2_SIGNATURE *new_sig)
 	SM2_Fn r;
 	SM2_Fn s;
 
+	// FIXME: check r,s
 	sm2_bn_from_bytes(r, sig->r);
 	sm2_bn_from_bytes(s, sig->s);
 	sm2_fn_neg(r, r);
@@ -129,3 +131,8 @@ int sm2_signature_conjugate(const SM2_SIGNATURE *sig, SM2_SIGNATURE *new_sig)
 
 	return 1;
 }
+
+// TODO: Add API to support sig,siglen
+
+
+

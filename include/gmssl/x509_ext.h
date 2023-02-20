@@ -1,5 +1,5 @@
-﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+/*
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -24,24 +24,30 @@
 extern "C" {
 #endif
 
+
+enum {
+	X509_non_critical = 0,
+	X509_critical = 1,
+};
+
 /*
 Extensions:
 
-	1.  AuthorityKeyIdentifier	SEQUENCE			AuthorityKeyIdentifier
-	2.  SubjectKeyIdentifier	OCTET STRING
-	3.  KeyUsage			BIT STRING
+	1.  AuthorityKeyIdentifier	SEQUENCE			AuthorityKeyIdentifier		MUST non-critical
+	2.  SubjectKeyIdentifier	OCTET STRING							MUST non-critical
+	3.  KeyUsage			BIT STRING							SHOULD critical
 	4.  CertificatePolicies		SEQUENCE OF SEQUENCE		CertificatePolicies
-	5.  PolicyMappings		SEQUENCE OF SEQUENCE		PolicyMappings
-	6.  SubjectAltName		SEQUENCE OF SEQUENCE		GeneralNames
-	7.  IssuerAltName		SEQUENCE OF SEQUENCE		GeneralNames
-	8.  SubjectDirectoryAttributes	SEQUENCE OF SEQUENCE		Attributes
-	9.  BasicConstraints		SEQUENCE			BasicConstraints
+	5.  PolicyMappings		SEQUENCE OF SEQUENCE		PolicyMappings			SHOULD critical
+	6.  SubjectAltName		SEQUENCE OF SEQUENCE		GeneralNames			SHOULD non-critical
+	7.  IssuerAltName		SEQUENCE OF SEQUENCE		GeneralNames			SHOULD non-critical
+	8.  SubjectDirectoryAttributes	SEQUENCE OF SEQUENCE		Attributes			MUST non-critical
+	9.  BasicConstraints		SEQUENCE			BasicConstraints		CA: MUST critical, End-entity: MAY critical or non-critical
 	10. NameConstraints		SEQUENCE			NameConstraints
-	11. PolicyConstraints		SEQUENCE			PolicyConstraints
-	12. ExtKeyUsageSyntax		SEQUENCE OF OBJECT IDENTIFIER
+	11. PolicyConstraints		SEQUENCE			PolicyConstraints		MUST critical
+	12. ExtKeyUsageSyntax		SEQUENCE OF OBJECT IDENTIFIER					MAY critical or non-critical
 	13. CRLDistributionPoints	SEQUENCE OF SEQUENCE		DistributionPoints
-	14. InhibitAnyPolicy		INTEGER
-	15. FreshestCRL			SEQUENCE OF SEQUENCE		DistributionPoints
+	14. InhibitAnyPolicy		INTEGER								MUST critical
+	15. FreshestCRL			SEQUENCE OF SEQUENCE		DistributionPoints		MUST non-critical
 */
 
 int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
@@ -51,6 +57,7 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
 	const SM2_KEY *public_key);
 int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
+int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const SM2_KEY *subject_key);
 int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int bits);
 int x509_exts_add_certificate_policies(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 int x509_exts_add_policy_mappings(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
@@ -64,9 +71,15 @@ int x509_exts_add_policy_constraints(uint8_t *exts, size_t *extslen, size_t maxl
 	int require_explicit_policy, int inhibit_policy_mapping);
 int x509_exts_add_basic_constraints(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int ca, int path_len_constraint);
 int x509_exts_add_ext_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const int *key_purposes, size_t key_purposes_cnt);
-int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
+int x509_exts_add_crl_distribution_points_ex(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int oid,
+	const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen);
+int x509_exts_add_crl_distribution_points(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
+	const char *http_uri, size_t http_urilen, const char *ldap_uri, size_t ldap_urilen);
 int x509_exts_add_inhibit_any_policy(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int skip_certs);
 int x509_exts_add_freshest_crl(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
+int x509_exts_add_authority_info_access(uint8_t *exts, size_t *extslen, size_t maxlen, int critical,
+	const char *ca_issuers_uri, size_t ca_issuers_urilen, // ca_issuers_uri is the URI (http://examaple.com/subCA.crt) of DER-encoded CA cert
+	const char *ocsp_uri, size_t ocsp_urilen);
 
 int x509_exts_add_sequence(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int oid, int critical, const uint8_t *d, size_t dlen);
@@ -103,12 +116,12 @@ int x509_edi_party_name_print(FILE *fp, int fmt, int ind, const char *label, con
 
 /*
 GeneralName ::= CHOICE {
-	otherName			[0] IMPLICIT OtherName,	-- 只在GeneralName中出现
+	otherName			[0] IMPLICIT OtherName,	-- Only in GeneralName
 	rfc822Name			[1] IMPLICIT IA5String,
 	dNSName				[2] IMPLICIT IA5String,
 	x400Address			[3] IMPLICIT ORAddress,
-	directoryName			[4] IMPLICIT Name,	-- SEQENCE OF，因此是d,dlen
-	ediPartyName			[5] IMPLICIT EDIPartyName, -- 只在GeneralName中出现
+	directoryName			[4] IMPLICIT Name,	-- SEQENCE OF
+	ediPartyName			[5] IMPLICIT EDIPartyName, -- Only in GeneralName
 	uniformResourceIdentifier	[6] IMPLICIT IA5String,
 	iPAddress			[7] IMPLICIT OCTET STRING, -- 4 bytes or string?
 	registeredID			[8] IMPLICIT OBJECT IDENTIFIER }
@@ -152,6 +165,9 @@ int x509_general_names_add_edi_party_name(uint8_t *gns, size_t *gnslen, size_t m
 #define x509_general_names_add_ip_address(a,alen,maxlen,s) x509_general_names_add_general_name(a,alen,maxlen,X509_gn_ip_address,(uint8_t*)s,strlen(s))
 int x509_general_names_add_registered_id(uint8_t *gns, size_t *gnslen, size_t maxlen,
 	const uint32_t *nodes, size_t nodes_cnt);
+
+int x509_uri_as_general_names_to_der_ex(int tag, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+#define x509_uri_as_general_names_to_der(uri,urilen,out,outlen) x509_uri_as_general_names_to_der_ex(ASN1_TAG_SEQUENCE,uri,urilen,out,outlen)
 
 /*
 AuthorityKeyIdentifier ::= SEQUENCE {
@@ -203,8 +219,24 @@ const char *x509_key_usage_name(int flag);
 int x509_key_usage_from_name(int *flag, const char *name);
 #define x509_key_usage_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
 #define x509_key_usage_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
-int x509_key_usage_validate(int bits, int cert_type);
+int x509_key_usage_check(int bits, int cert_type);
 int x509_key_usage_print(FILE *fp, int fmt, int ind, const char *label, int bits);
+
+/*
+DisplayText ::= CHOICE {
+	ia5String		IA5String	(SIZE (1..200)),
+	visibleString		VisibleString	(SIZE (1..200)),
+	bmpString		BMPString	(SIZE (1..200)),
+	utf8String		UTF8String	(SIZE (1..200))
+}
+*/
+#define X509_DISPLAY_TEXT_MIN_LEN 1
+#define X509_DISPLAY_TEXT_MAX_LEN 200
+
+int x509_display_text_check(int tag, const uint8_t *d, size_t dlen);
+int x509_display_text_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+int x509_display_text_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int x509_display_text_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen);
 
 /*
 NoticeReference ::= SEQUENCE {
@@ -244,10 +276,19 @@ PolicyQualifierInfo ::= SEQUENCE {
         policyQualifierId  PolicyQualifierId,
         qualifier          ANY DEFINED BY policyQualifierId }
 
+id-qt
+	OID_qt_cps
+	OID_qt_unotice
+
 	switch(policyQualifierId)
 	case id-qt-cps		: qualifier ::= IA5String
 	case id-qt-unotice	: qualifier ::= UserNotice
 */
+const char *x509_qualifier_id_name(int oid);
+int x509_qualifier_id_from_name(const char *name);
+int x509_qualifier_id_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int x509_qualifier_id_to_der(int oid, uint8_t **out, size_t *outlen);
+
 int x509_policy_qualifier_info_to_der(
 	int oid,
 	const uint8_t *qualifier, size_t qualifier_len,
@@ -268,7 +309,13 @@ PolicyInformation ::= SEQUENCE {
         policyQualifiers   SEQUENCE SIZE (1..MAX) OF PolicyQualifierInfo OPTIONAL }
 
 CertPolicyId ::= OBJECT IDENTIFIER -- undefined
+
+	OID_any_policy
 */
+char *x509_cert_policy_id_name(int oid);
+int x509_cert_policy_id_from_name(const char *name);
+int x509_cert_policy_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, const uint8_t **in, size_t *inlen);
+int x509_cert_policy_id_to_der(int oid, const uint32_t *nodes, size_t nodes_cnt, uint8_t **out, size_t *outlen);
 
 int x509_policy_information_to_der(
 	int policy_oid, const uint32_t *policy_nodes, size_t policy_nodes_cnt,
@@ -354,9 +401,10 @@ BasicConstraints ::= SEQUENCE {
 	cA			BOOLEAN DEFAULT FALSE,
 	pathLenConstraint	INTEGER (0..MAX) OPTIONAL }
 */
+#define X509_MAX_PATH_LEN_CONSTRAINT 6
 int x509_basic_constraints_to_der(int ca, int path_len_cons, uint8_t **out, size_t *outlen);
 int x509_basic_constraints_from_der(int *ca, int *path_len_cons, const uint8_t **in, size_t *inlen);
-int x509_basic_constraints_validate(int ca, int path_len_cons, int cert_type);
+int x509_basic_constraints_check(int ca, int path_len_cons, int cert_type);
 int x509_basic_constraints_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -380,8 +428,7 @@ int x509_general_subtree_print(FILE *fp, int fmt, int ind, const char *label, co
 /*
 GeneralSubtrees ::= SEQUENCE SIZE (1..MAX) OF GeneralSubtree
 */
-// 应该参考general_names_add_xxx来改写这个函数，只是不知道这个函数用的多不多
-int x509_general_subtrees_add_general_subtree(uint8_t *d, size_t *dlen, size_t maxlen, // 这个功能和general_names很类似，只是多了一点点内容
+int x509_general_subtrees_add_general_subtree(uint8_t *d, size_t *dlen, size_t maxlen,
 	int base_choice, const uint8_t *base, size_t base_len,
 	int minimum, int maximum);
 int x509_general_subtrees_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -420,6 +467,7 @@ ExtKeyUsageSyntax ::= SEQUENCE SIZE (1..MAX) OF KeyPurposeId
 
 KeyPurposeId:
 	OID_any_extended_key_usage
+  id-kp
 	OID_kp_server_auth
 	OID_kp_client_auth
 	OID_kp_code_signing
@@ -428,9 +476,15 @@ KeyPurposeId:
 	OID_kp_ocsp_signing
 */
 #define X509_MAX_KEY_PURPOSES	7
+const char *x509_key_purpose_name(int oid);
+const char *x509_key_purpose_text(int oid);
+int x509_key_purpose_from_name(const char *name);
+int x509_key_purpose_from_der(int *oid, const uint8_t **in, size_t *inlen);
+int x509_key_purpose_to_der(int oid, uint8_t **out, size_t *outlen);
+
 int x509_ext_key_usage_to_der(const int *oids, size_t oids_cnt, uint8_t **out, size_t *outlen);
 int x509_ext_key_usage_from_der(int *oids, size_t *oids_cnt, size_t max_cnt, const uint8_t **in, size_t *inlen);
-int x509_ext_key_usage_validate(const int *oids, size_t oids_cnt, int cert_type);
+int x509_ext_key_usage_check(const int *oids, size_t oids_cnt, int cert_type);
 int x509_ext_key_usage_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -455,24 +509,29 @@ ReasonFlags ::= BIT STRING {
 #define X509_RF_PRIVILEGE_WITHDRAWN	(1 << 7)
 #define X509_RF_AA_COMPROMISE		(1 << 8)
 
-const char *x509_revoke_reason_name(int flag);
-int x509_revoke_reason_from_name(int *flag, const char *name);
-#define x509_revoke_reasons_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
-#define x509_revoke_reasons_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
-int x509_revoke_reasons_print(FILE *fp, int fmt, int ind, const char *label, int bits);
+const char *x509_revoke_reason_flag_name(int flag);
+int x509_revoke_reason_flag_from_name(int *flag, const char *name);
+#define x509_revoke_reason_flags_to_der(bits,out,outlen) asn1_bits_to_der(bits,out,outlen)
+#define x509_revoke_reason_flags_from_der(bits,in,inlen) asn1_bits_from_der(bits,in,inlen)
+int x509_revoke_reason_flags_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 /*
 DistributionPointName ::= CHOICE {
 	fullName		[0] IMPLICIT GeneralNames, -- SEQUENCE OF
 	nameRelativeToCRLIssuer	[1] IMPLICIT RelativeDistinguishedName } -- SET OF
 */
-int x509_distribution_point_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
+enum {
+	X509_full_name = 0,
+	X509_name_relative_to_crl_issuer = 1,
+};
+
+int x509_uri_as_distribution_point_name_to_der(const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
 int x509_distribution_point_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int x509_uri_as_distribution_point_name_from_der(const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
 int x509_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label,const uint8_t *a, size_t alen);
 
-int x509_explicit_distribution_point_name_to_der(int index, int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
-int x509_explicit_distribution_point_name_from_der(int index, int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
-int x509_explicit_distribution_point_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int x509_uri_as_explicit_distribution_point_name_to_der(int index, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_uri_as_explicit_distribution_point_name_from_der(int index, const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
 
 /*
 DistributionPoint ::= SEQUENCE {
@@ -480,12 +539,10 @@ DistributionPoint ::= SEQUENCE {
 	reasons			[1] IMPLICIT ReasonFlags OPTIONAL,
 	cRLIssuer		[2] IMPLICIT GeneralNames OPTIONAL }
 */
-int x509_distribution_point_to_der(
-	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
+int x509_uri_as_distribution_point_to_der(const char *uri, size_t urilen,
 	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
 	uint8_t **out, size_t *outlen);
-int x509_distribution_point_from_der(
-	int *dist_point_choice, const uint8_t **dist_point, size_t *dist_point_len,
+int x509_uri_as_distribution_point_from_der(const char **uri, size_t *urilen,
 	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
 	const uint8_t **in, size_t *inlen);
 int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
@@ -493,12 +550,14 @@ int x509_distribution_point_print(FILE *fp, int fmt, int ind, const char *label,
 /*
 DistributionPoints ::= SEQUENCE OF DistributionPoint
 */
-int x509_distribution_points_add_distribution_point(uint8_t *d, size_t *dlen, size_t maxlen,
-	int dist_point_choice, const uint8_t *dist_point, size_t dist_point_len,
-	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len);
+int x509_uri_as_distribution_points_to_der(const char *uri, size_t urilen,
+	int reasons, const uint8_t *crl_issuer, size_t crl_issuer_len,
+	uint8_t **out, size_t *outlen);
+int x509_uri_as_distribution_points_from_der(const char **uri, size_t *urilen,
+	int *reasons, const uint8_t **crl_issuer, size_t *crl_issuer_len,
+	const uint8_t **in, size_t *inlen);
 int x509_distribution_points_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-#define x509_distribution_points_to_der(d,dlen,out,outlen) asn1_sequence_to_der(d,dlen,out,outlen)
-#define x509_distribution_points_from_der(d,dlen,in,inlen) asn1_sequence_from_der(d,dlen,in,inlen)
+
 
 /*
 CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
@@ -541,8 +600,39 @@ NetscapeCertComment ::= IA5String
 */
 int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
-int x509_exts_validate(const uint8_t *exts, size_t extslen, int cert_type,
+int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 	int *path_len_constraints);
+
+/*
+AuthorityInfoAccessSyntax ::= SEQUENCE OF AccessDescription
+
+AccessDescription ::= SEQUENCE {
+	accessMethod	OBJECT IDENTIFIER,
+	accessLocation	GeneralName }
+
+accessMethods:
+	OID_ad_ca_issuers
+	OID_ad_ocsp
+*/
+const char *x509_access_method_name(int oid);
+int x509_access_method_from_name(const char *name);
+int x509_access_method_to_der(int oid, uint8_t **out, size_t *outlen);
+int x509_access_method_from_der(int *oid, const uint8_t **in, size_t *inlen);
+
+int x509_access_description_to_der(int oid, const char *uri, size_t urilen, uint8_t **out, size_t *outlen);
+int x509_access_description_from_der(int *oid, const char **uri, size_t *urilen, const uint8_t **in, size_t *inlen);
+int x509_access_description_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
+int x509_authority_info_access_to_der(
+	const char *ca_issuers_uri, size_t ca_issuers_urilen,
+	const char *ocsp_uri, size_t ocsp_urilen,
+	uint8_t **out, size_t *outlen);
+int x509_authority_info_access_from_der(
+	const char **ca_issuers_uri, size_t *ca_issuers_urilen,
+	const char **ocsp_uri, size_t *ocsp_urilen,
+	const uint8_t **in, size_t *inlen);
+int x509_authority_info_access_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+
 
 #ifdef __cplusplus
 }

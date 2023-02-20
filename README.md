@@ -9,19 +9,18 @@ GmSSL是由由北京大学自主开发的国产商用密码开源库，实现了
 
 ## 主要特性
 
-* 超轻量：GmSSL 3.0大幅度降低了内存需求和二进制代码体积，不依赖动态内存，可以用于无操作系统的低功耗嵌入式环境(MCU、SOC等)，开发者也可以更容易地将国密算法和SSL协议嵌入到现有的项目中。
-* 更合规：GmSSL 3.0 可以配置为仅包含国密算法和国密协议(TLCP协议)，依赖GmSSL 的密码应用更容易满足密码产品型号检测的要求，避免由于混杂非国密算法、不安全算法等导致的安全问题和合规问题。
-* 更安全：TLS 1.3在安全性和通信延迟上相对之前的TLS协议有巨大的提升，GmSSL 3.0支持TLS 1.3协议和RFC 8998的国密套件。GmSSL 3.0默认支持密钥的加密保护，提升了密码算法的抗侧信道攻击能力。
-* 跨平台：GmSSL 3.0更容易跨平台，构建系统不再依赖Perl，默认的CMake构建系统可以容易地和Visual Studio、Android NDK等默认编译工具配合使用，开发者也可以手工编写Makefile在特殊环境中编译、剪裁。
+* 超轻量：GmSSL 3 大幅度降低了内存需求和二进制代码体积，不依赖动态内存，可以用于无操作系统的低功耗嵌入式环境(MCU、SOC等)，开发者也可以更容易地将国密算法和SSL协议嵌入到现有的项目中。
+* 更合规：GmSSL 3 可以配置为仅包含国密算法和国密协议(TLCP协议)，依赖GmSSL 的密码应用更容易满足密码产品型号检测的要求，避免由于混杂非国密算法、不安全算法等导致的安全问题和合规问题。
+* 更安全：TLS 1.3在安全性和通信延迟上相对之前的TLS协议有巨大的提升，GmSSL 3 支持TLS 1.3协议和RFC 8998的国密套件。GmSSL 3 默认支持密钥的加密保护，提升了密码算法的抗侧信道攻击能力。
+* 跨平台：GmSSL 3 更容易跨平台，构建系统不再依赖Perl，默认的CMake构建系统可以容易地和Visual Studio、Android NDK等默认编译工具配合使用，开发者也可以手工编写Makefile在特殊环境中编译、剪裁。
 
 ## 下载
 
-* GmSSL的主分支开发中版本为 [GmSSL-3.1.0-dev](https://github.com/guanzhi/GmSSL/archive/refs/heads/master.zip)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
-* GmSSL当前稳定版本为 [GmSSL-3.0.0](https://github.com/guanzhi/GmSSL/releases/tag/v3.0.0)。
+* GmSSL的主分支版本为 [GmSSL-3.1.0-RR1](https://github.com/guanzhi/GmSSL/archive/refs/heads/master.zip)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
 
 ## 编译与安装
 
-GmSSL 3.0 采用了cmake构建系统。下载源代码后将其解压缩，进入源码目录，执行：
+GmSSL 3 采用了cmake构建系统。下载源代码后将其解压缩，进入源码目录，执行：
 
 ```bash
 mkdir build
@@ -117,10 +116,10 @@ GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-G
 
 ## Roadmap
 
-- [ ] Add Windows Visual Studio support
-- [ ] Add Windows MinGW support
-- [ ] Add iOS support and iOS demo App
-- [ ] Add Android support
+- [X] Add Windows Visual Studio support
+- [X] Add Windows Cygwin support
+- [X] Add iOS support
+- [X] Add Android support
 - [ ] **Version 3.1.0 release**
 - [ ] Add GCC specific optimization
 - [ ] Add X86_64 assembly implementation

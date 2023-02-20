@@ -12,8 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/oid.h>
-#include <gmssl/x509_oid.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_ext.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 
