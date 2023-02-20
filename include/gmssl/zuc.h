@@ -82,6 +82,8 @@ void zuc_mac_init(ZUC_MAC_CTX *ctx, const uint8_t key[ZUC_KEY_SIZE], const uint8
 void zuc_mac_update(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t len);
 void zuc_mac_finish(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t mac[ZUC_MAC_SIZE]);
 
+#define ZUC_EEA_ENCRYPT_NWORDS(nbits) ((nbits + 31)/32)
+#define ZUC_EEA_ENCRYPT_NBYTES(nbits) (ZUC_EEA_ENCRYPT_NWORDS(nbits)*4)
 void zuc_eea_encrypt(const ZUC_UINT32 *in, ZUC_UINT32 *out, size_t nbits,
 	const uint8_t key[ZUC_KEY_SIZE], ZUC_UINT32 count, ZUC_UINT5 bearer,
 	ZUC_BIT direction);
