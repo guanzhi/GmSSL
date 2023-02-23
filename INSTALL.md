@@ -221,3 +221,34 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake  -DANDR
 make
 ```
 
+## 安装包构建
+
+依赖cmake工具包中的cpack工具，生成可发布的安装包。
+
+生成的安装包在`build`目录下。
+
+### 构建DEB安装包
+
+```
+mkdir build; cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cpack -G DEB
+```
+
+### 构建RPM安装包
+
+```
+mkdir build; cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cpack -G RPM
+```
+
+### 构建`.sh`安装脚本
+
+```
+mkdir build; cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cpack -G DEB
+make package
+```
+
