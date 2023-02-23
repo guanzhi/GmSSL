@@ -16,7 +16,7 @@ GmSSL是由由北京大学自主开发的国产商用密码开源库，实现了
 
 ## 下载
 
-* GmSSL的主分支版本为 [GmSSL-3.1.0-RR1](https://github.com/guanzhi/GmSSL/archive/refs/heads/master.zip)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
+* GmSSL的主分支版本为 [GmSSL-3.1.0](https://github.com/guanzhi/GmSSL/releases/tag/v3.1.0)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
 
 ## 编译与安装
 
@@ -31,6 +31,8 @@ make test
 sudo make install
 ```
 
+在`make install`完成后，GmSSL会在默认安装目录中安装`gmssl`命令行工具，在头文件目录中创建`gmssl`目录，并且在库目录中安装`libgmssl.a`、`libgmssl.so`等库文件。
+
 ### Visual Studio环境编译
 
 在Visual Studio命令提示符下执行：
@@ -41,48 +43,6 @@ cd build
 cmake .. -G "NMake Makefiles"
 nmake
 ```
-
-### iOS编译
-
-下载 https://github.com/leetal/ios-cmake ，将`ios.toolchain.cmake`文件复制到`build`目录。
-
-```bash
-mkdir build; cd build
-cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake -DPLATFORM=OS64
-cmake --build . --config Release
-```
-
-如果出现“error: Signing for "gmssl" requires a development team.”错误，可以用Xcode打开工程文件，在Signing配置中设置Development Team。
-
-### Android编译
-
-下载Android NDK，执行
-
-```bash
-mkdir build; cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23
-make
-```
-
-### Linux软件包构建
-
-依赖于cmake工具包中的cpack工具，目前仅支持构建：
-* .deb
-* .rpm
-* .sh安装脚本
-
-```bash
-mkdir build; cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-# 构建deb软件包
-cpack -G DEB
-# 构建rpm软件包
-cpack -G RPM
-# 构建.sh安装脚本
-make package
-```
-
-构建的软件包在`build`目录下。
 
 ## 主要功能
 
@@ -120,7 +80,7 @@ GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-G
 - [X] Add Windows Cygwin support
 - [X] Add iOS support
 - [X] Add Android support
-- [ ] **Version 3.1.0 release**
+- [x] **Version 3.1.0 release**
 - [ ] Add GCC specific optimization
 - [ ] Add X86_64 assembly implementation
 - [ ] Add GPU implementation
