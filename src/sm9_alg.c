@@ -180,7 +180,6 @@ void sm9_bn_set_word(sm9_bn_t r, uint32_t a)
 	r[0] = a;
 }
 
-//r = a + b
 void sm9_bn_add(sm9_bn_t r, const sm9_bn_t a, const sm9_bn_t b)
 {
 	int i;
@@ -193,7 +192,6 @@ void sm9_bn_add(sm9_bn_t r, const sm9_bn_t a, const sm9_bn_t b)
 	}
 }
 
-//ret = a - b;
 void sm9_bn_sub(sm9_bn_t ret, const sm9_bn_t a, const sm9_bn_t b)
 {
 	int i;
@@ -229,7 +227,6 @@ int sm9_bn_equ(const sm9_bn_t a, const sm9_bn_t b)
 	return 1;
 }
 
-//r=a+b,超出则模p
 void sm9_fp_add(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 {
 	sm9_bn_add(r, a, b);
@@ -238,8 +235,6 @@ void sm9_fp_add(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 }
 
-//若a>b,r=a-b
-//若a<b,r=a-b+p
 void sm9_fp_sub(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 {
 	if (sm9_bn_cmp(a, b) >= 0) {
@@ -445,8 +440,6 @@ void sm9_fp_pow(sm9_fp_t r, const sm9_fp_t a, const sm9_bn_t e)
 	sm9_bn_copy(r, t);
 }
 
-//e = p - 2;
-//r = a^e;
 void sm9_fp_inv(sm9_fp_t r, const sm9_fp_t a)
 {
 	sm9_fp_t e;
@@ -542,14 +535,12 @@ void sm9_fp2_to_hex(const sm9_fp2_t a, char hex[129])
 	sm9_fp_to_hex(a[0], hex + 65);
 }
 
-//将sm9_fp_t类型a转化为sm9_fp2_t类型r，扩展位置0
 void sm9_fp2_set_fp(sm9_fp2_t r, const sm9_fp_t a)
 {
 	sm9_fp_copy(r[0], a);
 	sm9_fp_set_zero(r[1]);
 }
 
-//将sm9_fp_t类型a0,a1合为sm9_fp2_t类型r
 void sm9_fp2_set(sm9_fp2_t r, const sm9_fp_t a0, const sm9_fp_t a1)
 {
 	sm9_fp_copy(r[0], a0);
@@ -605,7 +596,6 @@ void sm9_fp2_mul(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 	sm9_fp_copy(r[1], r1);
 }
 
-//a*b*u
 void sm9_fp2_mul_u(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 {
 	sm9_fp_t r0, r1, t;
@@ -627,7 +617,6 @@ void sm9_fp2_mul_u(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 	sm9_fp_copy(r[1], r1);
 }
 
-//fp2类型a * fp类型k
 void sm9_fp2_mul_fp(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp_t k)
 {
 	sm9_fp_mul(r[0], a[0], k);
@@ -786,35 +775,30 @@ void sm9_fp4_to_hex(const sm9_fp4_t a, char hex[259])
 	sm9_fp2_to_hex(a[0], hex + 130);
 }
 
-//fp类型a，扩展为，fp4类型r
 void sm9_fp4_set_fp(sm9_fp4_t r, const sm9_fp_t a)
 {
 	sm9_fp2_set_fp(r[0], a);
 	sm9_fp2_set_zero(r[1]);
 }
 
-//fp2类型a，扩展为，fp4类型r
 void sm9_fp4_set_fp2(sm9_fp4_t r, const sm9_fp2_t a)
 {
 	sm9_fp2_copy(r[0], a);
 	sm9_fp2_set_zero(r[1]);
 }
 
-//fp2类型a0，fp2类型a1，合并为fp4类型r
 void sm9_fp4_set(sm9_fp4_t r, const sm9_fp2_t a0, const sm9_fp2_t a1)
 {
 	sm9_fp2_copy(r[0], a0);
 	sm9_fp2_copy(r[1], a1);
 }
 
-//r置为u
 void sm9_fp4_set_u(sm9_fp4_t r)
 {
 	sm9_fp2_set_u(r[0]);
 	sm9_fp2_set_zero(r[1]);
 }
 
-//r置为v
 void sm9_fp4_set_v(sm9_fp4_t r)
 {
 	sm9_fp2_set_zero(r[0]);
@@ -1218,16 +1202,6 @@ void sm9_fp12_sqr(sm9_fp12_t r, const sm9_fp12_t a)
 	
 	sm9_fp4_sub(t, s3, h1);
 	sm9_fp4_sub(h2, t, h0);
-
-	// sm9_fp4_set_v(t);
-	// sm9_fp4_mul(h1, h1, t);
-	// sm9_fp4_add(h1, h1, s0);
-	// sm9_fp4_sub(h1, h1, s2);
-	// sm9_fp4_sub(h1, h1, s3);
-
-	// sm9_fp4_set_v(t);
-	// sm9_fp4_mul(t, s2, t);
-	// sm9_fp4_add(h0, h0, t);
 
 	sm9_fp4_a_mul_v(h1, h1);
 	sm9_fp4_add(h1, h1, s0);
