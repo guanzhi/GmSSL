@@ -16,13 +16,15 @@
 #include <gmssl/sm2.h>
 
 
-static const char *usage = "-in private.pem -pass pass\n-pubin public.pem";
+static const char *usage = "-in private.pem -pass pass / -pubin public.pem";
 
 static const char *options =
 "Options\n"
 "    -pass pass                  Password to encrypt the private key\n"
 "    -in pem                     Input private key in PEM format\n"
+"    -pubin pem                  Input public key in PEM format\n"
 "\n";
+
 
 int sm2keyparse_main(int argc, char **argv)
 {
