@@ -302,11 +302,11 @@ static int gmtls_process_sm9_params(SSL *s, PACKET *pkt, int *al, int ibe)
 
 int gmtls_construct_server_certificate(SSL *s)
 {
-	unsigned long alg_a;
-	alg_a = s->s3->tmp.new_cipher->algorithm_auth;
 	int l;
 	unsigned char *p;
     int al = -1;
+	unsigned long alg_a;
+	alg_a = s->s3->tmp.new_cipher->algorithm_auth;
 
 	l = 3 + SSL_HM_HEADER_LENGTH(s);
 

@@ -1304,14 +1304,14 @@ int fp12_sqr(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 
 int fp12_inv(fp12_t r, const fp12_t a, const BIGNUM *p, BN_CTX *ctx)
 {
+	fp4_t r0, r1, r2;
 	if (fp4_is_zero(a[2])) {
 		fp4_t k;
 		fp4_t t;
 		if (!fp4_init(t, ctx)) {
 			return 0;
 		}
-
-		fp4_t r0, r1, r2;
+		
 		fp4_init(r0, ctx); // FIXME: r0, r1, r2 never used
 		fp4_init(r1, ctx);
 		fp4_init(r2, ctx);
@@ -2241,6 +2241,7 @@ int point_test(const BIGNUM *p, BN_CTX *ctx)
 	point_t G, P;
 	BIGNUM *k = BN_new();
 	int ok;
+	fp12_t x, y;
 
 	point_init(&G, ctx);
 	point_init(&P, ctx);
@@ -2282,8 +2283,6 @@ int point_test(const BIGNUM *p, BN_CTX *ctx)
 	point_mul_generator(&P, k, p, ctx);
 	ok = point_equ_hex(&P, Ppubs, ctx);
 	printf("point test %d: %s\n", __LINE__, ok ? "ok" : "error");
-
-	fp12_t x, y;
 
 	fp12_init(x, ctx);
 	fp12_init(y, ctx);

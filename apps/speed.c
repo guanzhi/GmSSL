@@ -3463,6 +3463,7 @@ int speed_main(int argc, char **argv)
             ERR_print_errors(bio_err);
             rsa_count = 1;
         } else {
+            size_t len = 0;
             for (i = 0; i < loopargs_len; i++) {
             	/* these 2 lines should be modified ? */
                 /*if (!nopre)
@@ -3499,7 +3500,7 @@ int speed_main(int argc, char **argv)
             /* Perform SM9 verification test */
             for (i = 0; i < loopargs_len; i++) {
             	loopargs[i].sm9sk[testnum] = SM9_extract_private_key(loopargs[i].sm9mst[testnum], sm9enc_id, sm9enc_idlen);
-                size_t len = loopargs[i].cipherlen;
+                len = loopargs[i].cipherlen;
                 st = SM9_decrypt(NID_sm3, loopargs[i].buf2, loopargs[i].cipherlen,
                                  loopargs[i].buf, &len, loopargs[i].sm9sk[testnum]);
                 if (st == 0)
