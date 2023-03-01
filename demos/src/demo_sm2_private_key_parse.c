@@ -34,8 +34,8 @@ int main(void)
 		fprintf(stderr, "error\n");
 		return 1;
 	}
-	fwrite(buf, 1, len, stdout);
-
+	sm2_key_print(stdout, 0, 0, "SM2PrivateKey", &sm2_key);
+	
 	gmssl_secure_clear(&sm2_key, sizeof(sm2_key));
 	return 0;
 }
