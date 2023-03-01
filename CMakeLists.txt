@@ -168,7 +168,7 @@ set(demos
 	demo_sm2_private_key
 	demo_sm2_private_key_parse
 	demo_sm2_public_key
-    demo_sm2_public_key_parse
+      demo_sm2_public_key_parse
 	demo_sm2_sign
 	demo_sm2_sign_ctx
 	demo_sm3
