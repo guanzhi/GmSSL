@@ -1115,7 +1115,7 @@ int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y)
 		return -1;
 	}
 
-	if ((y == 0x02 && sm2_bn_is_odd(_y)) || (y == 0x03) && !sm2_bn_is_odd(_y)) {
+	if ((y == 0x02 && sm2_bn_is_odd(_y)) || ((y == 0x03) && !sm2_bn_is_odd(_y))) {
 		sm2_fp_neg(_y, _y);
 	}
 
