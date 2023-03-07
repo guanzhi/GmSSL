@@ -259,10 +259,27 @@ option(ENABLE_RDRND "Enable Intel RDRND instructions" OFF)
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
 	set(ENABLE_RDRND ON)
 endif()
+
+option(FORCE_DISABLE_RDRND "Force disable Intel RDRND instructions" OFF)
+if (FORCE_DISABLE_RDRND)
+	set(ENABLE_RDRND OFF)
+endif()
+
 if (ENABLE_RDRND)
 	message(STATUS "ENABLE_RDRND")
 	list(APPEND src src/rdrand.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
+
+	foreach(tool ${tools})
+		if(tool MATCHES "tools/rand.c")
+			set(toolset ${toolset}
+			"tools/rand_rdrand.c")
+		else()
+			set(toolset ${toolset}
+			${tool})
+		endif()
+	endforeach()
+	set(tools ${toolset})
 endif()
 
 option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
