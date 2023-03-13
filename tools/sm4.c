@@ -26,7 +26,7 @@
 #define SM4_MODE_CTR_SM3_HMAC 5
 
 
-static const char *usage = "(-cbc|-ctr|-gcm|-cbc_sm3_hmac|-ctr_sm3_hmac) {-encrypt|-decrypt} -key hex -iv hex [-in file] [-out file]";
+static const char *usage = "(-cbc|-ctr|-gcm|-cbc_sm3_hmac|-ctr_sm3_hmac) {-encrypt|-decrypt} -key hex -iv hex [-aad str| -aad_hex hex] [-in file] [-out file]";
 
 static const char *options =
 "Options\n"
@@ -43,6 +43,8 @@ static const char *options =
 "    -decrypt            Decrypt\n"
 "    -key hex            Symmetric key in HEX format\n"
 "    -iv hex             IV in HEX format\n"
+"    -aad str            Authenticated-only message\n"
+"    -aad_hex hex        Authenticated-only data in HEX format\n"
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
@@ -65,6 +67,10 @@ int sm4_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *keyhex = NULL;
 	char *ivhex = NULL;
+	uint8_t *aad = NULL;
+	uint8_t *aad_buf = NULL;
+	size_t aadlen = 0;
+
 	char *infile = NULL;
 	char *outfile = NULL;
 	uint8_t key[48];
@@ -143,6 +149,30 @@ int sm4_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-gcm")) {
 			if (mode) goto bad;
 			mode = SM4_MODE_GCM;
+		} else if (!strcmp(*argv, "-aad")) {
+			if (--argc < 1) goto bad;
+			if (aad) {
+				fprintf(stderr, "%s: `-aad` or `aad_hex` has been specified\n", prog);
+				goto bad;
+			}
+			aad = (uint8_t *)(*(++argv));
+			aadlen = strlen((char *)aad);
+		} else if (!strcmp(*argv, "-aad_hex")) {
+			if (--argc < 1) goto bad;
+			if (aad) {
+				fprintf(stderr, "%s: `-aad` or `aad_hex` has been specified\n", prog);
+				goto bad;
+			}
+			aad = (uint8_t *)(*(++argv));
+			if (!(aad_buf = malloc(strlen((char *)aad)/2 + 1))) {
+				fprintf(stderr, "%s: malloc failure\n", prog);
+				goto end;
+			}
+			if (hex_to_bytes((char *)aad, strlen((char *)aad), aad_buf, &aadlen) != 1) {
+				fprintf(stderr, "%s: `-aad_hex` invalid HEX format argument\n", prog);
+				goto end;
+			}
+			aad = aad_buf;
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
@@ -212,6 +242,16 @@ bad:
 		break;
 	}
 
+	switch (mode) {
+	case SM4_MODE_CBC:
+	case SM4_MODE_CTR:
+		if (aad) {
+			fprintf(stderr, "%s: specified mode does not support `-aad` nor `-aad_hex`\n", prog);
+			goto end;
+		}
+		break;
+	}
+
 	if (mode == SM4_MODE_CTR) {
 		if (sm4_ctr_encrypt_init(&sm4_ctx.ctr, key, iv) != 1) {
 			error_print();
@@ -248,9 +288,9 @@ bad:
 	if (enc) {
 		switch (mode) {
 		case SM4_MODE_CBC: rv = sm4_cbc_encrypt_init(&sm4_ctx.cbc, key, iv); break;
-		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, NULL, 0, GHASH_SIZE); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, NULL, 0); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, NULL, 0); break;
+		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
+		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
+		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
 		}
 		if (rv != 1) {
 			error_print();
@@ -292,9 +332,9 @@ bad:
 	} else {
 		switch (mode) {
 		case SM4_MODE_CBC: rv = sm4_cbc_decrypt_init(&sm4_ctx.cbc, key, iv); break;
-		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, NULL, 0, GHASH_SIZE); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, NULL, 0); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, NULL, 0); break;
+		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
+		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
+		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
 		}
 		if (rv != 1) {
 			error_print();
@@ -342,6 +382,10 @@ end:
 	gmssl_secure_clear(iv, sizeof(iv));
 	gmssl_secure_clear(inbuf, sizeof(inbuf));
 	gmssl_secure_clear(outbuf, sizeof(outbuf));
+	if (aad_buf) {
+		gmssl_secure_clear(aad_buf, aadlen);
+		free(aad_buf);
+	}
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	return ret;
