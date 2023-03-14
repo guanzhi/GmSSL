@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <gmssl/error.h>
 #include <immintrin.h>
+#include <x86intrin.h>
 
 int rdrand_bytes(uint8_t *buf, size_t buflen)
 {
