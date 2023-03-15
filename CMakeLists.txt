@@ -83,6 +83,7 @@ set(tools
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm2keygen.c
+	tools/sm2keyparse.c
 	tools/sm2sign.c
 	tools/sm2verify.c
 	tools/sm2encrypt.c
