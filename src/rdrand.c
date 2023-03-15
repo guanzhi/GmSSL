@@ -12,8 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/error.h>
-#include <immintrin.h>
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+#include <immintrin.h>
 #include <x86intrin.h>
 #endif
 
