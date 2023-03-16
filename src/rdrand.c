@@ -12,8 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/error.h>
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
 #include <immintrin.h>
+#if defined(__GNUC__) && (__GNUC_MAJOR__ > 4 || (__GNUC_MAJOR__ == 4 && __GNUC_MINOR__ >= 6))
 #include <x86intrin.h>
 #endif
 
