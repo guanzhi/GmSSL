@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	size_t len;
 
 	if (argc != 2) {
-		fprintf(stderr, "example: https://sm2only.ovssl.cn\n");
+		fprintf(stderr, "example: example.com\n");
 		return 1;
 	}
 
