@@ -89,3 +89,12 @@ GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-G
 - [ ] Release official open interfaces
 - [ ] **Version 3.2.0 release**
 
+## 开发者们
+<a href="https://github.com/guanzhi/GmSSL/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=guanzhi/GmSSL" />
+</a>
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/guanzhi/GmSSL.svg)](https://starchart.cc/guanzhi/GmSSL)
+
