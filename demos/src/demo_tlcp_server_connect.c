@@ -34,10 +34,11 @@ int main(int argc,char *argv[]){
 	socklen_t client_addrlen;
 	int conn_sock;
 
-	char* certfile="../certs/ca/tlcp_server_double_certs.pem";
-	char* signkeyfile="../certs/ca/tlcp_server_signkey.pem";
-	char* enckeyfile="../certs/ca/tlcp_server_enckey.pem";
-	char* cacertfile="../certs/ca/tlcp_server_cacert.pem";
+	//证书和密钥使用/demos/scripts/tlcp_server.sh生成
+	char* certfile="double_certs.pem";
+	char* signkeyfile="signkey.pem";
+	char* enckeyfile="enckey.pem";
+	char* cacertfile="cacert.pem";
 
 
 	if(argc < 3)
