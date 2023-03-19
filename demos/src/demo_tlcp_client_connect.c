@@ -26,10 +26,11 @@ int main(int argc, char *argv[])
     uint8_t buf[16800];
     char *p;
     size_t len;
-
-    char* cacertfile="../certs/ca/tlcp_client_rootcacert.pem";
-    char* certfile="../certs/ca/tlcp_client_cert.pem";
-    char* keyfile="../certs/ca/tlcp_client_key.pem";
+	
+    //证书和密钥使用/demos/scripts/tlcp_server.sh生成
+    char* cacertfile="rootcacert.pem";
+    char* certfile="clientcert.pem";
+    char* keyfile="clientkey.pem";
     char *pass = "1234";
     if(argc < 3)
     {
