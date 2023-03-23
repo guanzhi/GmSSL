@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
-
+#include <gmssl/error.h>
 
 int main(void)
 {
@@ -34,8 +34,9 @@ int main(void)
 		fprintf(stderr, "error\n");
 		return 1;
 	}
+	format_bytes(stdout, 0, 0, "buf", buf, len);
 	sm2_key_print(stdout, 0, 0, "SM2PrivateKey", &sm2_key);
-	
+
 	gmssl_secure_clear(&sm2_key, sizeof(sm2_key));
 	return 0;
 }
