@@ -68,6 +68,15 @@ nmake
 * TLS 1.2，支持密码套件`TLS_ECDHE_SM4_CBC_SM3 {0xE0,0x11}` (GB/T 38636-2020、GM/T 0024-2014)
 * TLS 1.3，支持密码套件`TLS_SM4_GCM_SM3 {0x00,0xC6}`  (RFC 8998)
 
+### 多语言接口
+
+GmSSL通过子项目提供多种多种编程语言绑定
+
+ * [GmSSL-Java](https://github.com/GmSSL/GmSSL-Java) 以JNI方式实现的Java语言绑定
+ * [GmSSL-PHP](https://github.com/GmSSL/GmSSL-PHP) 以PHP扩展方式实现的PHP语言绑定
+ * [GmSSL-Go](https://github.com/GmSSL/GmSSL-Go) 以CGO方式实现的Go语言绑定
+ * [GmSSL-JS](https://github.com/guanzhi/GmSSL-JS) 纯JavaScript实现的国密算法库
+
 ## 典型应用
 
 #### Nginx-with-GmSSL3.0
