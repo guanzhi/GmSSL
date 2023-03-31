@@ -208,8 +208,18 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	uint8_t Ha[64];
 
 	// B1: check h in [1, N-1]
+    if (sm9_bn_is_zero(sig->h) == 1
+        || sm9_bn_cmp(sig->h, SM9_N) >= 0) {
+        error_print();
+        return -1;
+    }
 
 	// B2: check S in G1
+    if(!sm9_point_is_on_curve(&sig->S))
+    {
+        error_print();
+        return -1;
+    }
 
 	// B3: g = e(P1, Ppubs)
 	sm9_pairing(g, &mpk->Ppubs, SM9_P1);
@@ -304,7 +314,7 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 	uint8_t cbuf[65];
 	SM3_KDF_CTX kdf_ctx;
 
-	// B1: check C in G1
+	// B1: change Point C to octets buf
 	sm9_point_to_uncompressed_octets(C, cbuf);
 
 	// B2: w = e(C, de);
