@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/zuc.h>
+#include <gmssl/error.h>
 
 
 static void bswap_buf(uint32_t *buf, size_t nwords)
@@ -26,9 +27,6 @@ static void bswap_buf(uint32_t *buf, size_t nwords)
 
 int zuc_test(void)
 {
-	int err = 0;
-	int i;
-
 	unsigned char key[][16] = {
 	{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
 	{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},
@@ -44,6 +42,7 @@ int zuc_test(void)
 		{0x0657cfa0, 0x7096398b},
 		{0x14f1c272, 0x3279c419},
 	};
+	int i;
 
 	for (i = 0; i < 3; i++) {
 		ZUC_STATE zuc = {{0}};
@@ -52,19 +51,19 @@ int zuc_test(void)
 		zuc_generate_keystream(&zuc, 2, buf);
 		if (buf[0] != ciphertext[i][0] || buf[1] != ciphertext[i][1]) {
 			fprintf(stderr, "error generating ZUC key stream on test vector %d\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			fprintf(stderr, "zuc test %d ok\n", i);
 		}
 	}
 
-	return err;
+	return 1;
 }
 
 /* test vector from GM/T 0001.2-2012 */
 static int zuc_eea_test(void)
 {
-	int err = 0;
 	unsigned char key[][16] = {
 		{0x17, 0x3d, 0x14, 0xba, 0x50, 0x03, 0x73, 0x1d,
 		 0x7a, 0x60, 0x04, 0x94, 0x70, 0xf0, 0x0a, 0x29},
@@ -178,21 +177,21 @@ static int zuc_eea_test(void)
 
 	for (i = 0; i < sizeof(key)/sizeof(key[i]); i++) {
 		zuc_eea_encrypt(ibs[i], buf, bits[i], key[i], count[i], bearer[i], direction[i]);
-		if (memcmp(buf, obs[i], (bits[i] + 31)/32) != 0) {
+		if (memcmp(buf, obs[i], ZUC_EEA_ENCRYPT_NBYTES(bits[i])) != 0) {
 			printf("zuc eea test %zu failed\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			printf("zuc eea test %zu ok\n", i);
 		}
 	}
 
-	return err;
+	return 1;
 }
 
 /* test vector from GM/T 0001.3-2012 */
 static int zuc_eia_test(void)
 {
-	int err = 0;
 	unsigned char key[][16] = {
 		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -274,21 +273,19 @@ static int zuc_eia_test(void)
 			count[i], bearer[i], direction[i]);
 		if (T != mac[i]) {
 			printf("zuc eia test %zu failed\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			printf("zuc eia test %zu ok\n", i);
 		}
 	}
 
-	return err;
+	return 1;
 }
 
 /* from ZUC256 draft */
 int zuc256_test(void)
 {
-	int err = 0;
-	int i;
-
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -317,6 +314,7 @@ int zuc256_test(void)
 		 0x7a5be02e,0xc32ba585,0x505af316,0xc2f9ded2,0x7cdbd935,
 		 0xe441ce11,0x15fd0a80,0xbb7aef67,0x68989416,0xb8fac8c2}
 	};
+	int i;
 
 	for (i = 0; i < sizeof(key)/sizeof(key[0]); i++) {
 		ZUC_STATE zuc_key;
@@ -327,18 +325,18 @@ int zuc256_test(void)
 
 		if (memcmp(buf, ciphertext[i], 20) != 0) {
 			printf("zuc256 test %d failed\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			printf("zuc256 test %d ok\n", i);
 		}
 	}
 
-	return err;
+	return 1;
 }
 
 int zuc256_mac_test(void)
 {
-	int err = 0;
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -438,7 +436,8 @@ int zuc256_mac_test(void)
 		zuc256_mac_finish(&ctx, NULL, 0, mac);
 		if (memcmp(mac, tag32[i], 4) != 0) {
 			printf("zuc256 mac test %d 32-bit failed\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			printf("zuc256 mac test %d 32-bit ok\n", i);
 		}
@@ -450,7 +449,8 @@ int zuc256_mac_test(void)
 		zuc256_mac_finish(&ctx, NULL, 0, mac);
 		if (memcmp(mac, tag64[i], 8) != 0) {
 			printf("zuc256 mac test %d 64-bit failed\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			printf("zuc256 mac test %d 64-bit ok\n", i);
 		}
@@ -462,22 +462,22 @@ int zuc256_mac_test(void)
 		zuc256_mac_finish(&ctx, NULL, 0, mac);
 		if (memcmp(mac, tag128[i], 16) != 0) {
 			printf("zuc256 mac test %d 128-bit failed\n", i);
-			err++;
+			error_print();
+			return -1;
 		} else {
 			printf("zuc256 mac test %d 128-bit ok\n", i);
 		}
 	}
 
-	return err;
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += zuc_test();
-	err += zuc_eea_test();
-	err += zuc_eia_test();
-	err += zuc256_test();
-	err += zuc256_mac_test();
-	return err;
+	if (zuc_test() != 1) { error_print(); return -1; }
+	if (zuc_eea_test() != 1) { error_print(); return -1; }
+	if (zuc_eia_test() != 1) { error_print(); return -1; }
+	if (zuc256_test() != 1) { error_print(); return -1; }
+	if (zuc256_mac_test() != 1) { error_print(); return -1; }
+	return 0;
 }

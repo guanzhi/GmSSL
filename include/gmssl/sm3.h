@@ -62,7 +62,7 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 
 typedef struct {
 	SM3_CTX sm3_ctx;
-	unsigned char key[SM3_BLOCK_SIZE];
+	uint8_t key[SM3_BLOCK_SIZE];
 } SM3_HMAC_CTX;
 
 void sm3_hmac_init(SM3_HMAC_CTX *ctx, const uint8_t *key, size_t keylen);

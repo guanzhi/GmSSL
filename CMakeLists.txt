@@ -40,6 +40,7 @@ set(src
 	src/pbkdf2.c
 	src/gf128.c
 	src/gcm.c
+	src/aead.c
 	src/pkcs8.c
 	src/ec.c
 	src/rsa.c
@@ -47,13 +48,12 @@ set(src
 	src/hex.c
 	src/base64.c
 	src/pem.c
-	src/x509_oid.c
 	src/x509_alg.c
-	src/x509_str.c
 	src/x509_cer.c
 	src/x509_ext.c
 	src/x509_req.c
 	src/x509_crl.c
+	src/x509_new.c
 	src/cms.c
 	src/sdf/sdf.c
 	src/sdf/sdf_lib.c
@@ -66,6 +66,7 @@ set(src
 	src/skf/skf_ext.c
 	src/skf/skf_prn.c
 	src/skf/skf_wisec.c
+	src/socket.c
 	src/tls.c
 	src/tls_ext.c
 	src/tls_trace.c
@@ -82,6 +83,7 @@ set(tools
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm2keygen.c
+	tools/sm2keyparse.c
 	tools/sm2sign.c
 	tools/sm2verify.c
 	tools/sm2encrypt.c
@@ -98,9 +100,12 @@ set(tools
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c
+	tools/certrevoke.c
 	tools/reqgen.c
 	tools/reqparse.c
 	tools/reqsign.c
+	tools/crlgen.c
+	tools/crlget.c
 	tools/crlparse.c
 	tools/crlverify.c
 	tools/cmssign.c
@@ -138,6 +143,7 @@ set(tests
 	pbkdf2
 	gf128
 	gcm
+	aead
 	pkcs8
 	ec
 	asn1
@@ -156,15 +162,62 @@ set(tests
 	tls13
 )
 
+set(demos
+	demo_sm2_encrypt
+	demo_sm2_keygen
+	demo_sm2_keyparse
+	demo_sm2_private_key
+	demo_sm2_private_key_parse
+	demo_sm2_public_key
+	demo_sm2_sign
+	demo_sm2_sign_ctx
+	demo_sm3
+	demo_sm3_hmac
+	demo_sm3_kdf
+	demo_sm4
+	demo_sm4_cbc
+	demo_sm4_cbc_decrypt_update
+	demo_sm4_cbc_encrypt_update
+	demo_sm4_cbc_padding
+	demo_sm4_ctr
+	demo_sm4_ctr_encrypt_update
+	demo_sm4_gcm
+	demo_sm9_encrypt
+	demo_sm9_keygen
+	demo_sm9_sign
+#	demo_tlcp_get
+#	demo_tlcp_post
+#	demo_wget
+	demo_zuc
+)
 
-option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
-if (ENABLE_TLS_DEBUG)
-	add_definitions(-DTLS_DEBUG)
+# when an option has been enabled, `cmake ..` will not refresh the value
+# use `cmake .. -DENABLE_XXX=OFF` to disable the option
+
+option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable AlgorithmIdenifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
+if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
+	message(STATUS "ENABLE_SM2_ALGOR_ID_ENCODE_NULL")
+	add_definitions(-DSM2_ALGOR_ID_ENCODE_NULL)
 endif()
 
 
+option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
+if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
+	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT")
+	add_definitions(-DSM2_PRIVATE_KEY_EXPORT)
+	list(APPEND demos demo_sm2_key_export)
+endif()
+
+
+option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
+if (ENABLE_TLS_DEBUG)
+	message(STATUS "ENABLE_TLS_DEBUG")
+	add_definitions(-DTLS_DEBUG)
+endif()
+
 option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 if (ENABLE_SM3_AVX_BMI2)
+	message(STATUS "ENABLE_SM3_AVX_BMI2")
 	add_definitions(-DSM3_AVX_BMI2)
 	enable_language(ASM)
 	list(APPEND src src/sm3_avx_bmi2.s)
@@ -173,7 +226,8 @@ endif()
 
 option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 if (ENABLE_SM4_AESNI_AVX)
-	add_definitions(-DENABLE_SM4_AESNI_AVX)
+	message(STATUS "ENABLE_SM4_AESNI_AVX")
+	add_definitions(-DSM4_AESNI_AVX)
 	list(APPEND src src/sm4_aesni_avx.c)
 	list(APPEND tests sm4_aesni_avx)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
@@ -182,6 +236,7 @@ endif()
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 if (ENABLE_SM2_EXTS)
+	message(STATUS "ENABLE_SM4_AESNI_AVX")
 	list(APPEND src
 		src/sm2_key_share.c
 		src/sm2_recover.c
@@ -195,6 +250,7 @@ endif()
 
 option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 if (ENABLE_BROKEN_CRYPTO)
+	message(STATUS "ENABLE_BROKEN_CRYPTO")
 	list(APPEND src src/des.c src/sha1.c src/md5.c src/rc4.c)
 	list(APPEND tests des sha1 md5 rc4)
 endif()
@@ -205,31 +261,39 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
 	set(ENABLE_RDRND ON)
 endif()
 if (ENABLE_RDRND)
+	message(STATUS "ENABLE_RDRND")
 	list(APPEND src src/rdrand.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 endif()
 
 option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
 if (ENABLE_GMT_0105_RNG)
+	message(STATUS "ENABLE_GMT_0105_RNG")
 	list(APPEND src src/sm3_rng.c src/sm4_cbc_mac.c src/sm4_rng.c)
 	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
 endif()
 
 if (WIN32)
-	list(APPEND src src/rand_win.c)
+	list(APPEND src src/rand_win.c src/http_win.c)
 elseif (APPLE)
-	list(APPEND src src/rand_apple.c)
+	list(APPEND src src/rand_apple.c src/http.c)
 elseif (ANDROID)
-	list(APPEND src src/rand.c)
+	list(APPEND src src/rand.c src/http.c)
 else()
-	list(APPEND src src/rand_unix.c)
+	list(APPEND src src/rand_unix.c src/http.c)
 endif()
 
+option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
+if (ENABLE_HTTP_TESTS)
+	message(STATUS "ENABLE_HTTP_TESTS")
+	list(APPEND tests http http_crl)
+endif()
 
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+	message(STATUS "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS")
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # set before add_library
 endif()
 
@@ -239,6 +303,7 @@ SET_TARGET_PROPERTIES(gmssl_static PROPERTIES OUTPUT_NAME "gmssl")
 
 
 if (WIN32)
+	target_link_libraries(gmssl -lws2_32)
 elseif (APPLE)
 	target_link_libraries(gmssl dl)
 	target_link_libraries(gmssl "-framework Security")
@@ -278,6 +343,10 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 		target_link_libraries (${name}test LINK_PUBLIC gmssl)
 	endforeach()
 
+	foreach(name ${demos})
+		add_executable(${name} demos/src/${name}.c)
+		target_link_libraries(${name} LINK_PUBLIC gmssl)
+	endforeach()
 
 	install(TARGETS gmssl-bin RUNTIME DESTINATION bin)
 endif()

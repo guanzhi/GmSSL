@@ -42,7 +42,6 @@ int x509_encryption_algor_from_der(int *oid, const uint8_t **iv, size_t *ivlen, 
 int x509_encryption_algor_to_der(int oid, const uint8_t *iv, size_t ivlen, uint8_t **out, size_t *outlen);
 int x509_encryption_algor_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
-#define X509_ALGOR_ALLOW_EC_NULL_PARAM 1
 const char *x509_signature_algor_name(int oid);
 int x509_signature_algor_from_name(const char *name);
 int x509_signature_algor_from_der(int *oid, const uint8_t **in, size_t *inlen);

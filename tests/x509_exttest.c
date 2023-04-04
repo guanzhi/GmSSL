@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
 #include <stdlib.h>
 #include <gmssl/oid.h>
 #include <gmssl/x509_alg.h>
-#include <gmssl/x509_oid.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
@@ -136,7 +134,8 @@ static int test_x509_general_name(void)
 		return -1;
 	}
 	gnslen = 0;
-	if (x509_general_names_add_other_name(gns, &gnslen, sizeof(gns), other_id, cnt(other_id), value, sizeof(value)) != 1
+	if (0
+		|| x509_general_names_add_other_name(gns, &gnslen, sizeof(gns), other_id, cnt(other_id), value, sizeof(value)) != 1
 		|| x509_general_names_add_rfc822_name(gns, &gnslen, sizeof(gns), "guan@pku.edu.cn") != 1
 		|| x509_general_names_add_dns_name(gns, &gnslen, sizeof(gns), "www.pku.edu.cn") != 1
 		|| x509_general_names_add_x400_address(gns, &gnslen, sizeof(gns), x400, sizeof(x400)) != 1
@@ -503,8 +502,8 @@ static int test_x509_basic_constraints(void)
 
 
 	cp = p = buf; len = 0;
-	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != 1
-		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
+	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != -1
+		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 0 // empty sequence is not allowed
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
 		return -1;
@@ -524,7 +523,7 @@ static int test_x509_basic_constraints(void)
 	cp = p = buf; len = 0;
 	if (x509_basic_constraints_to_der(-1, 4, &p, &len) != 1
 		|| x509_basic_constraints_from_der(&ca, &path, &cp, &len) != 1
-		|| asn1_check(ca == 0) != 1
+		|| asn1_check(ca == -1) != 1
 		|| asn1_check(path == 4) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -532,8 +531,8 @@ static int test_x509_basic_constraints(void)
 	}
 
 	cp = p = buf; len = 0;
-	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != 1 // should return error
-		|| x509_basic_constraints_from_der(&ca, &path, &cp, &len) != -1) {
+	if (x509_basic_constraints_to_der(-1, -1, &p, &len) != -1 // should return error
+		|| x509_basic_constraints_from_der(&ca, &path, &cp, &len) != 0) {
 		error_print();
 		return -1;
 	}
@@ -649,8 +648,8 @@ static int test_x509_policy_constraints(void)
 
 	cp = p = buf; len = 0;
 	val1 = val2 = 99;
-	if (x509_policy_constraints_to_der(-1, -1, &p, &len) != 1
-		|| x509_policy_constraints_from_der(&val1, &val2, &cp, &len) != 1
+	if (x509_policy_constraints_to_der(-1, -1, &p, &len) != -1
+		|| x509_policy_constraints_from_der(&val1, &val2, &cp, &len) != 0 // empty sequence is not allowed
 		|| asn1_check(val1 == -1) != 1
 		|| asn1_check(val2 == -1) != 1
 		|| asn1_length_is_zero(len) != 1) {
@@ -720,19 +719,19 @@ static int test_x509_revoke_reasons(void)
 	int i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		if (x509_revoke_reasons_to_der(tests[i], &p, &len) != 1) {
+		if (x509_revoke_reason_flags_to_der(tests[i], &p, &len) != 1) {
 			error_print();
 			return -1;
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		if (x509_revoke_reasons_from_der(&bits, &cp, &len) != 1
+		if (x509_revoke_reason_flags_from_der(&bits, &cp, &len) != 1
 			|| asn1_check(bits == tests[i]) != 1) {
 			error_print();
 			return -1;
 		}
-		x509_revoke_reasons_print(stderr, 0, 4, "ReasonFlags", bits);
+		x509_revoke_reason_flags_print(stderr, 0, 4, "ReasonFlags", bits);
 	}
 	(void)asn1_length_is_zero(len);
 
@@ -779,7 +778,8 @@ static int test_x509_exts(void)
 static int test_x509_cert_with_exts(void)
 {
 	uint8_t cert[1024];
-	size_t certlen;
+	size_t certlen = 0;
+	uint8_t *p = cert;
 	uint8_t serial[20];
 	uint8_t name[256];
 	size_t namelen;
@@ -810,8 +810,7 @@ static int test_x509_cert_with_exts(void)
 		return -1;
 	}
 
-	if (x509_cert_sign(
-		cert, &certlen, sizeof(cert),
+	if (x509_cert_sign_to_der(
 		X509_version_v3,
 		serial, sizeof(serial),
 		OID_sm2sign_with_sm3,
@@ -823,15 +822,40 @@ static int test_x509_cert_with_exts(void)
 		uniq_id, sizeof(uniq_id),
 		exts, extslen,
 		&sm2_key,
-		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
+		&p, &certlen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (certlen > sizeof(cert)) {
+		error_print();
+		return -1;
+	}
+
 	x509_cert_print(stderr, 0, 0, "Certificate", cert, certlen);
 
 
 	return 1;
 }
+
+static int test_x509_distribution_point_name(void)
+{
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+
+	x509_general_name_to_der(X509_gn_uniform_resource_identifier, (uint8_t *)"http://", 7, &p, &len);
+
+//	x509_uri_as_general_names_to_der_ex(0x80, "http://", 7, &p, &len);
+
+	format_bytes(stderr, 0, 0, "GeneralNames", buf, len);
+
+	return 1;
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -851,6 +875,8 @@ int main(int argc, char **argv)
 	if (test_x509_revoke_reasons() != 1) goto err;
 	if (test_x509_exts() != 1) goto err;
 	if (test_x509_cert_with_exts() != 1) goto err;
+	if (test_x509_distribution_point_name() != 1) goto err;
+
 	printf("%s all tests passed!\n", __FILE__);
 	return 0;
 err:

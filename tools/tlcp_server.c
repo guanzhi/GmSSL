@@ -124,49 +124,35 @@ bad:
 		}
 	}
 
-#ifdef WIN32
-	WORD wVersion;
-	WSADATA wsaData;
-	wVersion = MAKEWORD(2, 2);
-	int err;
-	if ((err = WSAStartup(wVersion, &wsaData)) != 0) {
-		fprintf(stderr, "WSAStartup error %d\n", err);
+
+	if (tls_socket_lib_init() != 1) {
+		error_print();
 		return -1;
 	}
 
-#endif
-
-
-	// Socket
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		error_print();
 		return 1;
 	}
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
 	server_addr.sin_port = htons(port);
-#ifdef WIN32
-	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-		fprintf(stderr, "bind error %u\n", WSAGetLastError());
-		goto end;
-	}
-#else
-	if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		error_print();
-		perror("tlcp_accept: bind: ");
-		goto end;
-	}
-#endif
-	puts("start listen ...\n");
-	listen(sock, 1);
 
+	if (tls_socket_bind(sock, &server_addr) != 1) {
+		fprintf(stderr, "%s: socket bind error\n", prog);
+		goto end;
+	}
+
+	puts("start listen ...\n");
+	tls_socket_listen(sock, 1);
 
 
 restart:
 
 	client_addrlen = sizeof(client_addr);
-	if ((conn_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addrlen)) < 0) {
-		error_print();
+
+	if (tls_socket_accept(sock, &client_addr, &conn_sock) != 1) {
+		fprintf(stderr, "%s: socket accept error\n", prog);
 		goto end;
 	}
 	puts("socket connected\n");

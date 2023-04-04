@@ -372,7 +372,8 @@ static int test_cms_signer_info_sign(void)
 	size_t namelen;
 	time_t not_before, not_after;
 	uint8_t certs[1024];
-	size_t certslen;
+	size_t certslen = 0;
+	uint8_t *pcerts = certs;
 
 	SM3_CTX sm3_ctx;
 
@@ -389,14 +390,15 @@ static int test_cms_signer_info_sign(void)
 		|| x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
 		|| time(&not_before) == -1
 		|| x509_validity_add_days(&not_after, not_before, 365) != 1
-		|| x509_cert_sign(certs, &certslen, sizeof(certs),
+		|| x509_cert_sign_to_der(
 			X509_version_v3, serial_buf, sizeof(serial_buf),
 			OID_sm2sign_with_sm3,
 			name, namelen,
 			not_before, not_after,
 			name, namelen,
 			&sm2_key, NULL, 0, NULL, 0, NULL, 0,
-			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&pcerts, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -571,8 +573,7 @@ static int test_cms_signed_data(void)
 		time(&not_before);
 		x509_validity_add_days(&not_after, not_before, 365);
 
-		if (x509_cert_sign(
-			cert, &certlen, sizeof(cert),
+		if (x509_cert_sign_to_der(
 			X509_version_v3,
 			serial, sizeof(serial),
 			OID_sm2sign_with_sm3,
@@ -583,7 +584,8 @@ static int test_cms_signed_data(void)
 			NULL, 0,
 			NULL, 0,
 			NULL, 0,
-			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&p, &certlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -756,7 +758,6 @@ int test_cms_enveloped_data(void)
 	uint8_t in[80];
 	uint8_t out[256];
 	size_t outlen;
-	size_t maxlen;
 
 	uint8_t buf[4096];
 	uint8_t *p;
@@ -775,13 +776,11 @@ int test_cms_enveloped_data(void)
 
 	p = certs;
 	certslen = 0;
-	maxlen = sizeof(certs);
 
 	if (sm2_key_generate(&sm2_key1) != 1
 		|| rand_bytes(serial1, sizeof(serial1)) != 1
 		|| x509_name_set(name1, &name1_len, sizeof(name1), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
-		|| x509_cert_sign(
-			p, &len, maxlen,
+		|| x509_cert_sign_to_der(
 			X509_version_v3,
 			serial1, sizeof(serial1),
 			OID_sm2sign_with_sm3,
@@ -789,19 +788,16 @@ int test_cms_enveloped_data(void)
 			not_before, not_after,
 			name1, name1_len,
 			&sm2_key1, NULL, 0, NULL, 0, NULL, 0,
-			&sm2_key1, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			&sm2_key1, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&p, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
-	p += len;
-	certslen += len;
-	maxlen -= len;
 
 	if (sm2_key_generate(&sm2_key2) != 1
 		|| rand_bytes(serial2, sizeof(serial2)) != 1
 		|| x509_name_set(name2, &name2_len, sizeof(name2), "CN", "Beijing", "Haidian", "PKU", "CS", "Bob") != 1
-		|| x509_cert_sign(
-			p, &len, maxlen,
+		|| x509_cert_sign_to_der(
 			X509_version_v3,
 			serial2, sizeof(serial2),
 			OID_sm2sign_with_sm3,
@@ -809,13 +805,11 @@ int test_cms_enveloped_data(void)
 			not_before, not_after,
 			name2, name2_len,
 			&sm2_key2, NULL, 0, NULL, 0, NULL, 0,
-			&sm2_key2, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			&sm2_key2, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&p, &certslen) != 1) {
 		error_print();
 		return -1;
 	}
-	p += len;
-	certslen += len;
-	maxlen -= len;
 
 	rand_bytes(key, sizeof(key));
 	rand_bytes(iv, sizeof(iv));
@@ -899,7 +893,7 @@ static int test_cms_key_agreement_info(void)
 	uint8_t serial[20];
 	time_t not_before, not_after;
 	uint8_t cert[2048];
-	size_t certlen;
+	size_t certlen = 0;
 
 	uint8_t buf[4096];
 	uint8_t *p;
@@ -915,13 +909,13 @@ static int test_cms_key_agreement_info(void)
 	const uint8_t *id;
 	size_t idlen;
 
+	p = cert;
 	if (sm2_key_generate(&sm2_key) != 1
 		|| rand_bytes(serial, sizeof(serial)) != 1
 		|| x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
 		|| time(&not_before) == - 1
 		|| x509_validity_add_days(&not_after, not_before, 365) != 1
-		|| x509_cert_sign(
-			cert, &certlen, sizeof(cert),
+		|| x509_cert_sign_to_der(
 			X509_version_v3,
 			serial, sizeof(serial),
 			OID_sm2sign_with_sm3,
@@ -929,7 +923,8 @@ static int test_cms_key_agreement_info(void)
 			not_before, not_after,
 			name, namelen,
 			&sm2_key, NULL, 0, NULL, 0, NULL, 0,
-			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			&sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH,
+			&p, &certlen) != 1) {
 		error_print();
 		return -1;
 	}

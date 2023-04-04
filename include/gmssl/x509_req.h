@@ -26,18 +26,6 @@ extern "C" {
 #endif
 
 /*
-X509 REQ Public API
-
-	x509_req_sign
-	x509_req_verify
-	x509_req_get_details
-	x509_req_print
-	x509_req_to_pem
-	x509_req_from_pem
-*/
-
-
-/*
 from RFC 2986
 
 CertificationRequestInfo ::= SEQUENCE {
@@ -60,33 +48,16 @@ CertificationRequest ::= SEQUENCE {
 	signatureAlgorithm        AlgorithmIdentifier,
 	signature                 BIT STRING }
 */
-int x509_request_to_der(
+int x509_req_sign_to_der(
 	int version,
 	const uint8_t *subject, size_t subject_len,
 	const SM2_KEY *subject_public_key,
 	const uint8_t *attrs, size_t attrs_len,
 	int signature_algor,
-	const uint8_t *sig, size_t siglen,
+	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen);
-int x509_request_from_der(
-	int *version,
-	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
-	const uint8_t **attrs, size_t *attrs_len,
-	int *signature_algor,
-	const uint8_t **sig, size_t *siglen,
-	const uint8_t **in, size_t *inlen);
-int x509_request_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-
-int x509_req_sign(uint8_t *req, size_t *reqlen, size_t maxlen,
-	int version,
-	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
-	const uint8_t *attrs, size_t attrs_len,
-	int signature_algor,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len);
 int x509_req_verify(const uint8_t *req, size_t reqlen,
-	const SM2_KEY *sign_pubkey, const char *signer_id, size_t signer_id_len);
+	const char *signer_id, size_t signer_id_len);
 int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	int *verison,
 	const uint8_t **subject, size_t *subject_len,
@@ -94,9 +65,14 @@ int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	const uint8_t **attributes, size_t *attributes_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);
-int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen);
+int x509_req_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
+int x509_req_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen);
 int x509_req_to_pem(const uint8_t *req, size_t reqlen, FILE *fp);
 int x509_req_from_pem(uint8_t *req, size_t *reqlen, size_t maxlen, FILE *fp);
+int x509_req_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *req, size_t reqlen);
+
+int x509_req_new_from_pem(uint8_t **req, size_t *reqlen, FILE *fp);
+int x509_req_new_from_file(uint8_t **req, size_t *reqlen, const char *file);
 
 
 #ifdef __cplusplus

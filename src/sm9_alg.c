@@ -357,7 +357,7 @@ void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 
 	/* q = zh * mu // (2^32)^9 */
-	for (i = 0; i < 18; i++) {
+	for (i = 0; i < 9; i++) {
 		s[i] = 0;
 	}
 	for (i = 0; i < 9; i++) {
@@ -374,17 +374,23 @@ void sm9_fp_mul(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b)
 	}
 
 	/* q = q * p mod (2^32)^9 */
-	for (i = 0; i < 18; i++) {
+	for (i = 0; i < 8; i++) {
 		s[i] = 0;
 	}
-	for (i = 0; i < 9; i++) {
+	w = 0;
+    for (j = 0; j < 8; j++) {
+		w += s[j] + q[0] * SM9_P[j];
+ 		s[j] = w & 0xffffffff;
+		w >>= 32;
+	}
+	s[8] = w;
+	for (i = 1; i < 9; i++) {
 		w = 0;
-		for (j = 0; j < 8; j++) {
+		for (j = 0; i + j < 9; j++) {
 			w += s[i + j] + q[i] * SM9_P[j];
 			s[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
-		s[i + 8] = w;
 	}
 	for (i = 0; i < 9; i++) {
 		q[i] = s[i];
@@ -1120,28 +1126,100 @@ void sm9_fp12_mul(sm9_fp12_t r, const sm9_fp12_t a, const sm9_fp12_t b)
 	sm9_fp4_copy(r[2], r2);
 }
 
+// void sm9_fp12_sqr(sm9_fp12_t r, const sm9_fp12_t a)
+// {
+// 	sm9_fp4_t r0, r1, r2, t;
+
+// 	sm9_fp4_sqr(r0, a[0]);
+// 	sm9_fp4_mul_v(t, a[1], a[2]);
+// 	sm9_fp4_dbl(t, t);
+// 	sm9_fp4_add(r0, r0, t);
+
+// 	sm9_fp4_mul(r1, a[0], a[1]);
+// 	sm9_fp4_dbl(r1, r1);
+// 	sm9_fp4_sqr_v(t, a[2]);
+// 	sm9_fp4_add(r1, r1, t);
+
+// 	sm9_fp4_mul(r2, a[0], a[2]);
+// 	sm9_fp4_dbl(r2, r2);
+// 	sm9_fp4_sqr(t, a[1]);
+// 	sm9_fp4_add(r2, r2, t);
+
+// 	sm9_fp4_copy(r[0], r0);
+// 	sm9_fp4_copy(r[1], r1);
+// 	sm9_fp4_copy(r[2], r2);
+// }
+
+void sm9_fp4_div2(sm9_fp4_t r, const sm9_fp4_t a)
+{
+	sm9_fp2_div2(r[0], a[0]);
+	sm9_fp2_div2(r[1], a[1]);
+}
+
+void sm9_fp2_a_mul_u(sm9_fp2_t r, sm9_fp2_t a) {
+	sm9_fp_t r0, a0, a1;
+
+	sm9_fp_copy(a0, a[0]);
+	sm9_fp_copy(a1, a[1]);
+	
+	//r0 = -2 * a1
+	sm9_fp_dbl(r0, a1);
+	sm9_fp_neg(r0, r0);
+	sm9_fp_copy(r[0], r0);
+
+	//r1 = a0
+	sm9_fp_copy(r[1], a0);
+}
+
+void sm9_fp4_a_mul_v(sm9_fp4_t r, sm9_fp4_t a) {
+	sm9_fp2_t r0, a0, a1;
+
+	sm9_fp2_copy(a0, a[0]);
+	sm9_fp2_copy(a1, a[1]);
+
+	//r0 = a1 * u
+	sm9_fp2_a_mul_u(r0, a1);
+	sm9_fp2_copy(r[0], r0);
+
+	//r1 = a0
+	sm9_fp2_copy(r[1], a0);
+}
+
 void sm9_fp12_sqr(sm9_fp12_t r, const sm9_fp12_t a)
 {
-	sm9_fp4_t r0, r1, r2, t;
+	sm9_fp4_t h0, h1, h2, t;
+	sm9_fp4_t s0, s1, s2, s3;
 
-	sm9_fp4_sqr(r0, a[0]);
-	sm9_fp4_mul_v(t, a[1], a[2]);
-	sm9_fp4_dbl(t, t);
-	sm9_fp4_add(r0, r0, t);
+	sm9_fp4_sqr(h0, a[0]);
+	sm9_fp4_sqr(h1, a[2]);
+	sm9_fp4_add(s0, a[2], a[0]);
 
-	sm9_fp4_mul(r1, a[0], a[1]);
-	sm9_fp4_dbl(r1, r1);
-	sm9_fp4_sqr_v(t, a[2]);
-	sm9_fp4_add(r1, r1, t);
+	sm9_fp4_sub(t, s0, a[1]);
+	sm9_fp4_sqr(s1, t);
 
-	sm9_fp4_mul(r2, a[0], a[2]);
-	sm9_fp4_dbl(r2, r2);
-	sm9_fp4_sqr(t, a[1]);
-	sm9_fp4_add(r2, r2, t);
+	sm9_fp4_add(t, s0, a[1]);
+	sm9_fp4_sqr(s0, t);
 
-	sm9_fp4_copy(r[0], r0);
-	sm9_fp4_copy(r[1], r1);
-	sm9_fp4_copy(r[2], r2);
+	sm9_fp4_mul(s2, a[1], a[2]);
+	sm9_fp4_dbl(s2, s2);
+
+	sm9_fp4_add(s3, s0, s1);
+	sm9_fp4_div2(s3, s3);
+	
+	sm9_fp4_sub(t, s3, h1);
+	sm9_fp4_sub(h2, t, h0);
+
+	sm9_fp4_a_mul_v(h1, h1);
+	sm9_fp4_add(h1, h1, s0);
+	sm9_fp4_sub(h1, h1, s2);
+	sm9_fp4_sub(h1, h1, s3);
+
+	sm9_fp4_a_mul_v(s2, s2);
+	sm9_fp4_add(h0, h0, s2);
+
+	sm9_fp4_copy(r[0], h0);
+	sm9_fp4_copy(r[1], h1);
+	sm9_fp4_copy(r[2], h2);
 }
 
 void sm9_fp12_inv(sm9_fp12_t r, const sm9_fp12_t a)

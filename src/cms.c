@@ -20,7 +20,6 @@
 #include <gmssl/digest.h>
 #include <gmssl/error.h>
 #include <gmssl/x509.h>
-#include <gmssl/x509_str.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_crl.h>
@@ -721,8 +720,8 @@ int cms_signer_info_print(FILE *fp, int fmt, int ind, const char *label, const u
 	format_print(fp, fmt, ind, "digestAlgorithm: %s\n", x509_digest_algor_name(val));
 	if ((ret = asn1_implicit_set_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_attributes_print(fp, fmt, ind, "authenticatedAttributes", p, len);
-	if (x509_signature_algor_from_der(&val, &d, &dlen) != 1) goto err;
-	format_print(fp, fmt, ind, "digestEncryptionAlgorithm: %s\n", x509_signature_algor_name(val));
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_signature_algor_print(fp, fmt, ind, "digestEncryptionAlgorithm", p, len);
 	if (asn1_octet_string_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	format_bytes(fp, fmt, ind, "encryptedDigest", p, len);
 	if ((ret = asn1_implicit_set_from_der(1, &p, &len, &d, &dlen)) < 0) goto err;
@@ -746,14 +745,12 @@ int cms_signer_info_sign_to_der(
 	int fixed_outlen = 1;
 	uint8_t dgst[SM3_DIGEST_SIZE];
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen;
+	size_t siglen = SM2_signature_typical_size;
 
 	sm3_update(&ctx, authed_attrs, authed_attrs_len);
 	sm3_finish(&ctx, dgst);
 
-
-
-	if (sm2_sign_ex(sign_key, fixed_outlen, dgst, sig, &siglen) != 1) {
+	if (sm2_sign_fixlen(sign_key, dgst, siglen, sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1311,7 +1308,8 @@ int cms_recipient_info_encrypt_to_der(
 		return -1;
 	}
 
-	if (sm2_encrypt_ex(public_key, fixed_outlen, in, inlen, enced_key, &enced_key_len) != 1) {
+	if (sm2_encrypt_fixlen(public_key, in, inlen, SM2_ciphertext_typical_point_size,
+		enced_key, &enced_key_len) != 1) {
 		error_print();
 		return -1;
 	}

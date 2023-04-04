@@ -89,16 +89,10 @@ bad:
 		return -1;
 	}
 
-#ifdef WIN32
-	WORD wVersion;
-	WSADATA wsaData;
-	wVersion = MAKEWORD(2, 2);
-	int err;
-	if ((err = WSAStartup(wVersion, &wsaData)) != 0) {
-		fprintf(stderr, "WSAStartup error %d\n", err);
+	if (tls_socket_lib_init() != 1) {
+		error_print();
 		return -1;
 	}
-#endif
 
 	if (!(hp = gethostbyname(host))) {
 		//herror("tlcp_client: '-host' invalid");			
@@ -112,27 +106,17 @@ bad:
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
-#ifdef WIN32
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-		fprintf(stderr, "%s: open socket error : %u\n", prog, WSAGetLastError());
+
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
+		fprintf(stderr, "%s: open socket error\n", prog);
 		goto end;
 	}
 	sock_inited = 1;
-	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) == SOCKET_ERROR) {
-		fprintf(stderr, "%s: connect error : %u\n", prog, WSAGetLastError());
+
+	if (tls_socket_connect(sock, &server) != 1) {
+		fprintf(stderr, "%s: socket connect error\n", prog);
 		goto end;
 	}
-#else
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		fprintf(stderr, "%s: open socket error : %s\n", prog, strerror(errno));
-		goto end;
-	}
-	sock_inited = 1;
-	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
-		fprintf(stderr, "%s: connect error : %s\n", prog, strerror(errno));
-		goto end;
-	}
-#endif
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_client_mode) != 1
 		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {

@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -344,10 +344,10 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		sm2_sign_update(&sign_ctx, record + 5, recordlen - 5);
 
 	// verify ServerCertificate
-	if (x509_certs_verify(conn->server_certs, conn->server_certs_len,
+	if (x509_certs_verify(conn->server_certs, conn->server_certs_len, X509_cert_chain_server,
 		conn->ca_certs, conn->ca_certs_len, depth, &verify_result) != 1) {
 		error_print();
-		tls_send_alert(conn, alert);
+		tls_send_alert(conn, TLS_alert_bad_certificate);
 		goto end;
 	}
 
@@ -472,7 +472,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	tls_trace("generate secrets\n");
 	SM2_KEY client_ecdh;
 	sm2_key_generate(&client_ecdh);
-	sm2_ecdh(&client_ecdh, &server_ecdhe_public, &server_ecdhe_public);
+	sm2_do_ecdh(&client_ecdh, &server_ecdhe_public, &server_ecdhe_public);
 	memcpy(pre_master_secret, &server_ecdhe_public, 32); // 这个做法很不优雅
 	// ECDHE和ECC的PMS结构是不一样的吗？
 
@@ -882,7 +882,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_unexpected_message);
 			goto end;
 		}
-		if (x509_certs_verify(conn->client_certs, conn->client_certs_len,
+		if (x509_certs_verify(conn->client_certs, conn->client_certs_len, X509_cert_chain_client,
 			conn->ca_certs, conn->ca_certs_len, verify_depth, &verify_result) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_bad_certificate);
@@ -942,7 +942,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 	// generate secrets
 	tls_trace("generate secrets\n");
-	sm2_ecdh(&server_ecdhe_key, &client_ecdhe_point, &client_ecdhe_point);
+	sm2_do_ecdh(&server_ecdhe_key, &client_ecdhe_point, &client_ecdhe_point);
 	memcpy(pre_master_secret, (uint8_t *)&client_ecdhe_point, 32); // 这里应该修改一下表示方式，比如get_xy()
 	tls_prf(pre_master_secret, 32, "master secret",
 		client_random, 32, server_random, 32,
