@@ -2237,18 +2237,25 @@ void sm9_fn_mul(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
 	}
 
 	/* q = q * n mod (2^32)^9 */
-	for (i = 0; i < 18; i++) {
-		s[i] = 0;
-	}
-	for (i = 0; i < 9; i++) {
-		w = 0;
-		for (j = 0; j < 8; j++) {
-			w += s[i + j] + q[i] * SM9_N[j];
-			s[i + j] = w & 0xffffffff;
-			w >>= 32;
-		}
-		s[i + 8] = w;
-	}
+    for (i = 0; i < 8; i++) {
+        s[i] = 0;
+    }
+    w = 0;
+    for (j = 0; j < 8; j++) {
+        w += s[j] + q[0] * SM9_N[j];
+        s[j] = w & 0xffffffff;
+        w >>= 32;
+    }
+    s[8] = w;
+
+    for (i = 1; i < 8; i++) {
+        w = 0;
+        for (j = 0; i + j < 9; j++) {
+            w += s[i + j] + q[i] * SM9_N[j];
+            s[i + j] = w & 0xffffffff;
+            w >>= 32;
+        }
+    }
 	for (i = 0; i < 9; i++) {
 		q[i] = s[i];
 	}
@@ -2347,18 +2354,25 @@ void sm9_fn_from_hash(sm9_fn_t h, const uint8_t Ha[40])
 	}
 
 	/* q = q * p mod (2^32)^9 */
-	for (i = 0; i < 18; i++) {
-		s[i] = 0;
-	}
-	for (i = 0; i < 9; i++) {
-		w = 0;
-		for (j = 0; j < 8; j++) {
-			w += s[i + j] + q[i] * SM9_N_MINUS_ONE[j];
-			s[i + j] = w & 0xffffffff;
-			w >>= 32;
-		}
-		s[i + 8] = w;
-	}
+    for (i = 0; i < 8; i++) {
+        s[i] = 0;
+    }
+    w = 0;
+    for (j = 0; j < 8; j++) {
+        w += s[j] + q[0] * SM9_N_MINUS_ONE[j];
+        s[j] = w & 0xffffffff;
+        w >>= 32;
+    }
+    s[8] = w;
+
+    for (i = 1; i < 8; i++) {
+        w = 0;
+        for (j = 0; i + j < 9; j++) {
+            w += s[i + j] + q[i] * SM9_N_MINUS_ONE[j];
+            s[i + j] = w & 0xffffffff;
+            w >>= 32;
+        }
+    }
 	for (i = 0; i < 9; i++) {
 		q[i] = s[i];
 	}

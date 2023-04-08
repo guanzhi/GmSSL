@@ -687,22 +687,29 @@ void sm2_fn_mul(SM2_BN ret, const SM2_BN a, const SM2_BN b)
 	//printf("q  = "); for (i = 7; i >= 0; i--) printf("%08x", (uint32_t)q[i]); printf("\n");
 
 	/* q = q * n mod (2^32)^9 */
-	for (i = 0; i < 17; i++) {
-		s[i] = 0;
-	}
-	for (i = 0; i < 8; i++) {
-		w = 0;
-		for (j = 0; j < 8; j++) {
-			w += s[i + j] + q[i] * SM2_N[j];
-			s[i + j] = w & 0xffffffff;
-			w >>= 32;
-		}
-		s[i + 8] = w;
-	}
+    for (i = 0; i < 8; i++) {
+        s[i] = 0;
+    }
+    w = 0;
+    for (j = 0; j < 8; j++) {
+        w += s[j] + q[0] * SM2_N[j];
+        s[j] = w & 0xffffffff;
+        w >>= 32;
+    }
+    s[8] = w;
+
+    for (i = 1; i < 8; i++) {
+        w = 0;
+        for (j = 0; i + j < 9; j++) {
+            w += s[i + j] + q[i] * SM2_N[j];
+            s[i + j] = w & 0xffffffff;
+            w >>= 32;
+        }
+    }
+
 	for (i = 0; i < 9; i++) {
 		q[i] = s[i];
 	}
-	//printf("qn = "); for (i = 8; i >= 0; i--) printf("%08x ", (uint32_t)q[i]); printf("\n");
 
 	/* r = zl - q (mod (2^32)^9) */
 
