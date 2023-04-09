@@ -1470,6 +1470,7 @@ void sm9_point_get_xy(const SM9_POINT *P, sm9_fp_t x, sm9_fp_t y)
 	if (sm9_fp_is_one(P->Z)) {
 		sm9_fp_copy(x, P->X);
 		sm9_fp_copy(y, P->Y);
+        return;
 	}
 
 	sm9_fp_inv(z_inv, P->Z);
