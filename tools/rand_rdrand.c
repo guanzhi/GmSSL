@@ -15,6 +15,7 @@
 #include <limits.h>
 #include <gmssl/mem.h>
 #include <gmssl/rand.h>
+#include <gmssl/rdrand.h>
 
 
 static const char *options = "[-hex] [-rdrand] -outlen num [-out file]";
@@ -82,8 +83,10 @@ bad:
 		size_t len = outlen < sizeof(buf) ? outlen : sizeof(buf);
 
 		if (rdrand) {
-			fprintf(stderr, "RDRAND unsupported\n");
-			goto end;
+			if (rdrand_bytes(buf, len) != 1) {
+				fprintf(stderr, "%s: inner error\n", prog);
+				goto end;
+			}
 		} else {
 			if (rand_bytes(buf, len) != 1) {
 				fprintf(stderr, "%s: inner error\n", prog);
