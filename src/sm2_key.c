@@ -86,7 +86,7 @@ int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key)
 		error_print();
 		return -1;
 	}
-	if (!sm2_point_is_on_curve(public_key)) {
+	if (sm2_point_is_on_curve(public_key) != 1) {
 		error_print();
 		return -1;
 	}
