@@ -74,8 +74,8 @@ GmSSL通过子项目提供多种多种编程语言绑定
 
  * [GmSSL-Java](https://github.com/GmSSL/GmSSL-Java) 以JNI方式实现的Java语言绑定
  * [GmSSL-PHP](https://github.com/GmSSL/GmSSL-PHP) 以PHP扩展方式实现的PHP语言绑定
- * [GmSSL-Go](https://github.com/GmSSL/GmSSL-Go) 以CGO方式实现的Go语言绑定
- * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) 以CGO方式实现的Go语言绑定
+ * [GmSSL-Go](https://github.com/guanzhi/GmSSL-Go) 以CGO方式实现的Go语言绑定
+ * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) Python语言绑定
  * [GmSSL-JS](https://github.com/guanzhi/GmSSL-JS) 纯JavaScript实现的国密算法库
 
 ## 典型应用
