@@ -420,12 +420,17 @@ void sm2_fp_mul(SM2_Fp r, const SM2_Fp a, const SM2_Fp b)
 	r[6] = s[6] + s[11] + s[14] + s[15];
 	r[7] = s[7] + s[ 8] + s[ 9] + s[10] + s[11] + s[15] + ((s[12] + s[13] + s[14] + s[15]) << 1);
 
+	u = r[7] >> 32;
+	r[7] = (r[7] & 0xffffffff) + u;
+	r[3] += u;
+	r[0] += u;
+
 	for (i = 1; i < 8; i++) {
 		r[i] += r[i - 1] >> 32;
 		r[i - 1] &= 0xffffffff;
 	}
 
-	d[2] = s[8] + s[9] + s[13] + s[14];
+	d[2] = s[8] + s[9] + s[13] + s[14] + u;
 	d[3] = d[2] >> 32;
 	d[2] &= 0xffffffff;
 	sm2_bn_sub(r, r, d);
