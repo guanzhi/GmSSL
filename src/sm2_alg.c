@@ -1056,17 +1056,17 @@ void sm2_init_cache(SM2_JACOBIAN_POINT cache[][256], const SM2_JACOBIAN_POINT *G
 		for (k = 0; k < 8; k++) {
 			sm2_jacobian_point_copy(cache2 + k, T);
 			sm2_jacobian_point_dbl(T, T);
+			if (!sm2_bn_is_one(T->Z)) {
+				SM2_BN x, y;
+				sm2_jacobian_point_get_xy(T, x, y);
+				sm2_jacobian_point_set_xy(T, x, y);
+			}
 		}
 		for (j = 0; j < 256; j++) {
 			sm2_jacobian_point_set_infinity(Q);
 			for (m = j, k = 0; m && k < 8; k++) {
 				if (m & 0x1) {
 					P = cache2 + k;
-					if (sm2_jacobian_point_is_at_infinity(Q) && !sm2_bn_is_one(P->Z)) {
-						SM2_BN x, y;
-						sm2_jacobian_point_get_xy(P, x, y);
-						sm2_jacobian_point_set_xy(P, x, y);
-					}
 					sm2_jacobian_point_add(Q, Q, P);
 				}
 				m >>= 1;
