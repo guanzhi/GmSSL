@@ -32,6 +32,7 @@ int rdrand_bytes(uint8_t *buf, size_t buflen)
 	return 1;
 }
 
+#ifdef INTEL_RDSEED
 int rdseed_bytes(uint8_t *buf, size_t buflen)
 {
 	unsigned long long val;
@@ -49,3 +50,4 @@ int rdseed_bytes(uint8_t *buf, size_t buflen)
 	}
 	return 1;
 }
+#endif
