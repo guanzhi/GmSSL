@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.6)
-project(GmSSL)
+project(GmSSL C)
 
 SET(CMAKE_PROJECT_HOMEPAGE_URL "http://gmssl.org")
 
