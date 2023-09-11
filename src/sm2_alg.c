@@ -21,12 +21,7 @@
 
 
 #define sm2_print_bn(label,a) sm2_bn_print(stderr,0,0,label,a) // 这个不应该放在这里，应该放在测试文件中
-
 #define USE_SM2_GCACHE
-#ifdef USE_SM2_GCACHE
-static SM2_JACOBIAN_POINT SM2_JPOINT_GCACHE[32][256];
-static int SM2_GCACHE_INITED = 0;
-#endif
 
 const SM2_BN SM2_P = {
 	0xffffffff, 0xffffffff, 0x00000000, 0xffffffff,
@@ -1076,13 +1071,15 @@ void sm2_init_cache(SM2_JACOBIAN_POINT cache[][256], const SM2_JACOBIAN_POINT *G
 				sm2_jacobian_point_get_xy(Q, x, y);
 				sm2_jacobian_point_set_xy(Q, x, y);
 			}
-			sm2_jacobian_point_copy(&SM2_JPOINT_GCACHE[i][j], Q);
+			sm2_jacobian_point_copy(&cache[i][j], Q);
 		}
 	}
 }
 
 void sm2_jacobian_point_fastmul_generator(SM2_JACOBIAN_POINT *R, const uint8_t k[32])
 {
+	static SM2_JACOBIAN_POINT SM2_JPOINT_GCACHE[32][256];
+	static int SM2_GCACHE_INITED = 0;
 	int i;
 	SM2_JACOBIAN_POINT *P;
 	SM2_JACOBIAN_POINT _Q, *Q = &_Q;
