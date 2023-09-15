@@ -77,6 +77,7 @@ GmSSL通过子项目提供多种多种编程语言绑定
  * [GmSSL-Go](https://github.com/GmSSL/GmSSL-Go) 以CGO方式实现的Go语言绑定
  * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) 以CGO方式实现的Go语言绑定
  * [GmSSL-JS](https://github.com/guanzhi/GmSSL-JS) 纯JavaScript实现的国密算法库
+ * [libgmssl-sys](https://github.com/MaxKingPor/libgmssl-sys) 静态链接进入Rust
 
 ## 典型应用
 
