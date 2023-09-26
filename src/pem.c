@@ -76,13 +76,15 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 	snprintf(end_line, sizeof(end_line), "-----END %s-----", name);
 
 	if (feof(fp)) {
+		error_print();
 		return 0;
 	}
 
 	if (!fgets(line, sizeof(line), fp)) {
-		if (feof(fp))
+		if (feof(fp)) {
+			error_print();
 			return 0;
-		else {
+		} else {
 			error_print();
 			return -1;
 		}
