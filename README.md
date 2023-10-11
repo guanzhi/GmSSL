@@ -32,9 +32,80 @@ sudo make install
 ```
 
 因为cmake.. 配置文件时候设置了默认位置，在`make install`完成后，GmSSL会在默认安装目录中安装`gmssl`命令行工具，在头文件目录中创建`gmssl`目录，并且在库目录中安装`libgmssl.a`、`libgmssl.so`等库文件。
+头文件、库等安装路径如下：
+Install the project...
+-- Install configuration: ""
+-- Installing: /usr/local/lib/libgmssl.so.3.0
+-- Up-to-date: /usr/local/lib/libgmssl.so.3
+-- Up-to-date: /usr/local/lib/libgmssl.so
+-- Up-to-date: /usr/local/include/gmssl
+-- Installing: /usr/local/include/gmssl/sm2.h
+-- Installing: /usr/local/include/gmssl/cms.h
+-- Installing: /usr/local/include/gmssl/sm2_elgamal.h
+-- Installing: /usr/local/include/gmssl/zuc.h
+-- Installing: /usr/local/include/gmssl/api.h
+-- Installing: /usr/local/include/gmssl/error.h
+-- Installing: /usr/local/include/gmssl/md5.h
+-- Installing: /usr/local/include/gmssl/pem.h
+-- Installing: /usr/local/include/gmssl/sm2_z256.h
+-- Installing: /usr/local/include/gmssl/version.h
+-- Installing: /usr/local/include/gmssl/sm4_cbc_mac.h
+-- Installing: /usr/local/include/gmssl/hex.h
+-- Installing: /usr/local/include/gmssl/sm2_commit.h
+-- Installing: /usr/local/include/gmssl/hash_drbg.h
+-- Installing: /usr/local/include/gmssl/oid.h
+-- Installing: /usr/local/include/gmssl/socket.h
+-- Installing: /usr/local/include/gmssl/rsa.h
+-- Installing: /usr/local/include/gmssl/sm3_rng.h
+-- Installing: /usr/local/include/gmssl/sm3_x8_avx2.h
+-- Installing: /usr/local/include/gmssl/sm2_blind.h
+-- Installing: /usr/local/include/gmssl/file.h
+-- Installing: /usr/local/include/gmssl/rdrand.h
+-- Installing: /usr/local/include/gmssl/dylib.h
+-- Installing: /usr/local/include/gmssl/pbkdf2.h
+-- Installing: /usr/local/include/gmssl/sha1.h
+-- Installing: /usr/local/include/gmssl/hkdf.h
+-- Installing: /usr/local/include/gmssl/x509_alg.h
+-- Installing: /usr/local/include/gmssl/sha2.h
+-- Installing: /usr/local/include/gmssl/sm2_key_share.h
+-- Installing: /usr/local/include/gmssl/base64.h
+-- Installing: /usr/local/include/gmssl/x509.h
+-- Installing: /usr/local/include/gmssl/digest.h
+-- Installing: /usr/local/include/gmssl/x509_cer.h
+-- Installing: /usr/local/include/gmssl/ec.h
+-- Installing: /usr/local/include/gmssl/gcm.h
+-- Installing: /usr/local/include/gmssl/rand.h
+-- Installing: /usr/local/include/gmssl/sha3.h
+-- Installing: /usr/local/include/gmssl/sm3.h
+-- Installing: /usr/local/include/gmssl/sm2_recover.h
+-- Installing: /usr/local/include/gmssl/aead.h
+-- Installing: /usr/local/include/gmssl/chacha20.h
+-- Installing: /usr/local/include/gmssl/endian.h
+-- Installing: /usr/local/include/gmssl/rc4.h
+-- Installing: /usr/local/include/gmssl/hmac.h
+-- Installing: /usr/local/include/gmssl/pkcs8.h
+-- Installing: /usr/local/include/gmssl/sm4.h
+-- Installing: /usr/local/include/gmssl/aes.h
+-- Installing: /usr/local/include/gmssl/block_cipher.h
+-- Installing: /usr/local/include/gmssl/sm2_ring.h
+-- Installing: /usr/local/include/gmssl/mem.h
+-- Installing: /usr/local/include/gmssl/des.h
+-- Installing: /usr/local/include/gmssl/sdf.h
+-- Installing: /usr/local/include/gmssl/sm9.h
+-- Installing: /usr/local/include/gmssl/x509_ext.h
+-- Installing: /usr/local/include/gmssl/x509_req.h
+-- Installing: /usr/local/include/gmssl/sm4_rng.h
+-- Installing: /usr/local/include/gmssl/tls.h
+-- Installing: /usr/local/include/gmssl/skf.h
+-- Installing: /usr/local/include/gmssl/x509_crl.h
+-- Installing: /usr/local/include/gmssl/asn1.h
+-- Installing: /usr/local/include/gmssl/http.h
+-- Installing: /usr/local/include/gmssl/sm4_cl.h
+-- Installing: /usr/local/include/gmssl/gf128.h
+-- Installing: /usr/local/bin/gmssl
+-- Set runtime path of "/usr/local/bin/gmssl" to ""
 或着可以指定路径安装：
 在cmake 命令后面添加` -DCMAKE_INSTALL_PREFIX=/path/to/install ..`
-
 
 ### Visual Studio环境编译
 
