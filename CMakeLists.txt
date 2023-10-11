@@ -359,6 +359,10 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_INSTALL_PREFIX "C:/Program Files/GmSSL") # change by `cmake -DCMAKE_INSTALL_PREFIX=C:\path\to\install`
 	# run `set path=%path%;C:\Program Files\GmSSL\bin`
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	
+	target_compile_options(gmssl PRIVATE /utf-8)
+	target_compile_options(gmssl-bin PRIVATE /utf-8)
+	
 #	target_compile_options(gmssl PRIVATE /wd4996)
 #	target_compile_options(gmssl-bin PRIVATE /wd4996)
 endif()
