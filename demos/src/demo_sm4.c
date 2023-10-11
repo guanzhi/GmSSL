@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <gmssl/sm4.h>
 
-
 int main(void)
 {
 	SM4_KEY sm4_key;

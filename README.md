@@ -31,7 +31,10 @@ make test
 sudo make install
 ```
 
-在`make install`完成后，GmSSL会在默认安装目录中安装`gmssl`命令行工具，在头文件目录中创建`gmssl`目录，并且在库目录中安装`libgmssl.a`、`libgmssl.so`等库文件。
+因为cmake.. 配置文件时候设置了默认位置，在`make install`完成后，GmSSL会在默认安装目录中安装`gmssl`命令行工具，在头文件目录中创建`gmssl`目录，并且在库目录中安装`libgmssl.a`、`libgmssl.so`等库文件。
+或着可以指定路径安装：
+在cmake 命令后面添加` -DCMAKE_INSTALL_PREFIX=/path/to/install ..`
+
 
 ### Visual Studio环境编译
 

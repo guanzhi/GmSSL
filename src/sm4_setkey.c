@@ -28,18 +28,18 @@ static uint32_t CK[32] = {
 };
 
 #define L32_(x)					\
-	((x) ^ 					\
+	((x) ^ 						\
 	ROL32((x), 13) ^			\
 	ROL32((x), 23))
 
 #define ENC_ROUND(x0, x1, x2, x3, x4, i)	\
-	x4 = x1 ^ x2 ^ x3 ^ *(CK + i);		\
+	x4 = x1 ^ x2 ^ x3 ^ *(CK + i);			\
 	x4 = S32(x4);				\
 	x4 = x0 ^ L32_(x4);			\
 	*(rk + i) = x4
 
 #define DEC_ROUND(x0, x1, x2, x3, x4, i)	\
-	x4 = x1 ^ x2 ^ x3 ^ *(CK + i);		\
+	x4 = x1 ^ x2 ^ x3 ^ *(CK + i);			\
 	x4 = S32(x4);				\
 	x4 = x0 ^ L32_(x4);			\
 	*(rk + 31 - i) = x4
