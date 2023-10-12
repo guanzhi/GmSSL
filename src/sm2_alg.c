@@ -1127,7 +1127,7 @@ int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y)
 	sm2_bn_clean(_g);
 	sm2_bn_clean(_z);
 
-	if (!sm2_point_is_on_curve(P)) {
+	if (sm2_point_is_on_curve(P) != 1) {
 		error_print();
 		return -1;
 	}
