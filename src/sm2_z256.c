@@ -50,6 +50,7 @@
 #include <gmssl/error.h>
 #include <gmssl/hex.h>
 #include <gmssl/endian.h>
+#include <gmssl/sm2_z256.h>
 
 
 // z256
