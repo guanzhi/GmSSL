@@ -142,7 +142,7 @@ int sm4_rng_init(SM4_RNG *rng, const uint8_t *nonce, size_t nonce_len,
 		return -1;
 	}
 
-	// seed = sm4_df(entropy || nonce || label)
+	// seed = sm4_df(entropy || nonce || label) 经过密钥派生函数处理熵源，得到seed
 	sm4_df_init(&df_ctx, sizeof(entropy) + nonce_len + label_len);
 	sm4_df_update(&df_ctx, entropy, sizeof(entropy));
 	sm4_df_update(&df_ctx, nonce, nonce_len);
@@ -201,14 +201,14 @@ int sm4_rng_reseed(SM4_RNG *rng, const uint8_t *addin, size_t addin_len)
 int sm4_rng_generate(SM4_RNG *rng, const uint8_t *addin, size_t addin_len,
 	uint8_t *out, size_t outlen)
 {
-	uint8_t seed[32] = {0};
+	uint8_t seed[32] = {0};//0
 	SM4_KEY sm4_key;
 
 	if (!outlen || outlen > 16) {
 		error_print();
 		return -1;
 	}
-
+	// rng->reseed_counter > SM4_RNG_MAX_RESEED_COUNTER,或者time(NULL) - rng->last_reseed_time > SM4_RNG_MAX_RESEED_SECONDS
 	if (rng->reseed_counter > SM4_RNG_MAX_RESEED_COUNTER
 		|| time(NULL) - rng->last_reseed_time > SM4_RNG_MAX_RESEED_SECONDS) {
 		if (sm4_rng_reseed(rng, addin, addin_len) != 1) {
@@ -219,7 +219,7 @@ int sm4_rng_generate(SM4_RNG *rng, const uint8_t *addin, size_t addin_len,
 			addin = NULL;
 		}
 	}
-
+	// if(addin != NULL)
 	if (addin && addin_len) {
 		// seed = sm4_df(addin)
 		SM4_DF_CTX df_ctx;
@@ -250,7 +250,6 @@ int sm4_rng_generate(SM4_RNG *rng, const uint8_t *addin, size_t addin_len,
 
 	// reseed_counter++
 	(rng->reseed_counter)++;
-
 
 	gmssl_secure_clear(seed, sizeof(seed));
 	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
