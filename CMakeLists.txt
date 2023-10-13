@@ -184,9 +184,6 @@ set(demos
 	demo_sm9_encrypt
 	demo_sm9_keygen
 	demo_sm9_sign
-#	demo_tlcp_get
-#	demo_tlcp_post
-#	demo_wget
 	demo_zuc
 )
 
