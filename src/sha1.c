@@ -167,5 +167,6 @@ void sha1_digest(const unsigned char *data, size_t datalen,
 	SHA1_CTX ctx;
 	sha1_init(&ctx);
 	sha1_update(&ctx, data, datalen);
+	sha1_finish(&ctx, dgst);
 	memset(&ctx, 0, sizeof(ctx));
 }
