@@ -187,6 +187,8 @@ set(demos
 	demo_zuc
 )
 
+include(CheckSymbolExists)
+
 # when an option has been enabled, `cmake ..` will not refresh the value
 # use `cmake .. -DENABLE_XXX=OFF` to disable the option
 
@@ -254,16 +256,29 @@ endif()
 
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
 option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
-	set(ENABLE_INTEL_RDRAND ON)
-endif()
+
 if (ENABLE_INTEL_RDRAND)
-	message(STATUS "ENABLE_INTEL_RDRAND")
-	list(APPEND src src/rdrand.c)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd")
+	include(CheckSourceCompiles)
+	set(CMAKE_REQUIRED_FLAGS "-rdrand")
+	check_source_compiles(C
+		"#include <immintrin.h> int main(void) { unsigned long long val; _rdrand64_step(&val); return 0; }"
+		HAVE_INTEL_RDRAND)
+	if (HAVE_INTEL_RDRAND)
+		message(STATUS "ENABLE_INTEL_RDRAND")
+		add_definitions(-DINTEL_RDRAND)
+		list(APPEND src src/rdrand.c)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd")
+	endif()
 	if (ENABLE_INTEL_RDSEED)
-		add_definitions(-DINTEL_RDSEED)
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdseed")
+		set(CMAKE_REQUIRED_FLAGS "-rdseed")
+		check_source_compiles(C
+			"#include <immintrin.h> int main(void) { unsigned long long val; _rdseed64_step(&val); return 0; }"
+			HAVE_INTEL_RDSEED)
+		if (HAVE_INTEL_RDSEED)
+			message(STATUS "ENABLE_INTEL_RDSEED")
+			add_definitions(-DINTEL_RDSEED)
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdseed")
+		endif()
 	endif()
 endif()
 
@@ -275,15 +290,19 @@ if (ENABLE_GMT_0105_RNG)
 	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
 endif()
 
+
+check_symbol_exists(getentropy "unistd.h" HAVE_GETENTROPY)
 if (WIN32)
 	list(APPEND src src/rand_win.c src/http_win.c)
 elseif (APPLE)
 	list(APPEND src src/rand_apple.c src/http.c)
-elseif (ANDROID)
-	list(APPEND src src/rand.c src/http.c)
-else()
+elseif (HAVE_GETENTROPY)
 	list(APPEND src src/rand_unix.c src/http.c)
+	 message(STATUS "have getentropy")
+else()
+	list(APPEND src src/rand.c src/http.c)
 endif()
+
 
 option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
 if (ENABLE_HTTP_TESTS)
