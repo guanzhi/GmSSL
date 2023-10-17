@@ -334,7 +334,7 @@ else()
 endif()
 
 
-SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
+SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
@@ -343,10 +343,10 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 
 	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	set_target_properties(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
 
 	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-	set_target_properties(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
 
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries(gmssl-bin LINK_PUBLIC gmssl)
