@@ -375,18 +375,40 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_INSTALL_PREFIX "C:/Program Files/GmSSL") # change by `cmake -DCMAKE_INSTALL_PREFIX=C:\path\to\install`
 	# run `set path=%path%;C:\Program Files\GmSSL\bin`
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-	
+
 	target_compile_options(gmssl PRIVATE /utf-8)
 	target_compile_options(gmssl-bin PRIVATE /utf-8)
-	
+
 #	target_compile_options(gmssl PRIVATE /wd4996)
 #	target_compile_options(gmssl-bin PRIVATE /wd4996)
 endif()
 
+
+
 if (UNIX)
-	# packaging
-	include(LinuxPacking)
+	set(CPACK_PACKAGE_NAME "GmSSL")
+	set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
+	set(CPACK_PACKAGE_VERSION "3.1.1-Dev")
+
+	set(CPACK_RPM_PACKAGE_GROUP "GmSSL Group")
+	set(CPACK_PACKAGE_VENDOR "GmSSL Vendor")
+
+	set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
+	string(CONCAT CPACK_PACKAGE_DESCRIPTION_SUMMARY
+	    "GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM9 "
+	    "and other national secret (national commercial password) algorithm. ")
+	set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
+	set(CPACK_PACKAGE_CONTACT "https://github.com/guanzhi/GmSSL/issues")
+	# The general number of package itself.
+	# Should be incremented when the package content changes for the same version.
+	# Can be used to distinguish between different builds of the same version.
+	# Can be overridden by `cmake -DCPACK_NOARCH_PACKAGE_RELEASE=1`
+	set(CPACK_NOARCH_PACKAGE_RELEASE 1 CACHE STRING "The general release number of package")
+
+	set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
 	include(DebPacking)
 	include(RpmPacking)
+
 	include(CPack)
 endif (UNIX)
+
