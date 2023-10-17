@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -168,7 +168,6 @@ void md5_finish(MD5_CTX *ctx, unsigned char *dgst)
 		PUTU32_LE(dgst, ctx->state[i]);
 		dgst += sizeof(uint32_t);
 	}
-	memset(ctx, 0, sizeof(*ctx));
 }
 
 void md5_digest(const unsigned char *data, size_t datalen,
@@ -178,4 +177,5 @@ void md5_digest(const unsigned char *data, size_t datalen,
 	md5_init(&ctx);
 	md5_update(&ctx, data, datalen);
 	md5_finish(&ctx, dgst);
+	memset(&ctx, 0, sizeof(ctx));
 }
