@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -19,12 +19,8 @@
 extern "C" {
 #endif
 
-/*
-Rand Public API
 
-	rand_bytes
-
-*/
+#define RAND_BYTES_MAX_SIZE	(256)
 
 _gmssl_export int rand_bytes(uint8_t *buf, size_t buflen);
 
