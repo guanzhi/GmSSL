@@ -403,7 +403,9 @@ set(CPACK_PACKAGE_CONTACT "https://github.com/guanzhi/GmSSL/issues")
 # Can be overridden by `cmake -DCPACK_NOARCH_PACKAGE_RELEASE=1`
 set(CPACK_NOARCH_PACKAGE_RELEASE 1 CACHE STRING "The general release number of package")
 
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
+#set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
+set(CPACK_NSIS_MODIFY_PATH ON)
+
 include(DebPacking)
 include(RpmPacking)
 include(CPack)
