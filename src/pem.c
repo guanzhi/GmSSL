@@ -54,7 +54,7 @@ int pem_write(FILE *fp, const char *name, const uint8_t *data, size_t datalen)
 	fprintf(fp, "-----BEGIN %s-----\n", name);
 	base64_encode_init(&ctx);
 	while (datalen) {
-		inlen = datalen < 48 ? datalen : 48;
+		inlen = datalen < 48 ? (int)datalen : 48;
 		base64_encode_update(&ctx, data, inlen, out, &outlen);
 		fwrite(out, 1, outlen, fp);
 		data += inlen;
