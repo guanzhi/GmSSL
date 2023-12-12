@@ -356,12 +356,14 @@ int cms_enced_content_info_encrypt_to_der(
 
 	if (enc_algor != OID_sm4_cbc || keylen != 16 || ivlen != 16) {
 		error_print();
+		if (enced_content) free(enced_content);
 		return -1;
 	}
 
 	sm4_set_encrypt_key(&sm4_key, key);
 	if (sm4_cbc_padding_encrypt(&sm4_key, iv, content, content_len,
 		enced_content, &enced_content_len) != 1) {
+		if (enced_content) free(enced_content);
 		memset(&sm4_key, 0, sizeof(SM4_KEY));
 		error_print();
 		return -1;
@@ -373,9 +375,12 @@ int cms_enced_content_info_encrypt_to_der(
 		shared_info1, shared_info1_len,
 		shared_info2, shared_info2_len,
 		out, outlen)) != 1) {
+		if (enced_content) free(enced_content);
 		if (ret < 0) error_print();
 		return ret;
 	}
+
+	free(enced_content); //FIXME: use goto end to clean enced_content
 	return 1;
 }
 
