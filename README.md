@@ -16,7 +16,7 @@ GmSSL是由北京大学自主开发的国产商用密码开源库，实现了对
 
 ## 下载
 
-* GmSSL的主分支版本为 [GmSSL-3.1.0](https://github.com/guanzhi/GmSSL/releases/tag/v3.1.0)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
+* GmSSL的主分支版本为 [GmSSL-3.1.1](https://github.com/guanzhi/GmSSL/releases/tag/v3.1.1)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
 
 ## 编译与安装
 
