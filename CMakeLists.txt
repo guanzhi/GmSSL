@@ -249,8 +249,8 @@ endif()
 option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 if (ENABLE_BROKEN_CRYPTO)
 	message(STATUS "ENABLE_BROKEN_CRYPTO")
-	list(APPEND src src/des.c src/sha1.c src/rc4.c)
-	list(APPEND tests des sha1 rc4)
+	list(APPEND src src/des.c src/sha1.c)
+	list(APPEND tests des sha1)
 endif()
 
 
