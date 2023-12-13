@@ -12,7 +12,7 @@ include_directories(include)
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4.c
+	src/sm4_tbox.c
 	src/sm4_modes.c
 	src/sm3.c
 	src/sm3_hmac.c
