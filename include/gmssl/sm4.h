@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,29 +18,6 @@
 extern "C" {
 #endif
 
-
-/*
-SM4 Public API
-
-	SM4_KEY_SIZE
-	SM4_BLOCK_SIZE
-
-	SM4_CBC_CTX
-	sm4_cbc_encrypt_init
-	sm4_cbc_encrypt_update
-	sm4_cbc_encrypt_finish
-	sm4_cbc_decrypt_init
-	sm4_cbc_decrypt_update
-	sm4_cbc_decrypt_finish
-
-	SM4_CTR_CTX
-	sm4_ctr_encrypt_init
-	sm4_ctr_encrypt_update
-	sm4_ctr_encrypt_finish
-	sm4_ctr_decrypt_init
-	sm4_ctr_decrypt_update
-	sm4_ctr_decrypt_finish
-*/
 
 #define SM4_KEY_SIZE		(16)
 #define SM4_BLOCK_SIZE		(16)

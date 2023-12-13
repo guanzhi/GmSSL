@@ -12,10 +12,8 @@ include_directories(include)
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4_common.c
-	src/sm4_enc.c
+	src/sm4.c
 	src/sm4_modes.c
-	src/sm4_setkey.c
 	src/sm3.c
 	src/sm3_hmac.c
 	src/sm3_kdf.c
