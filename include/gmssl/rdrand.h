@@ -21,7 +21,10 @@ extern "C" {
 
 
 int rdrand_bytes(uint8_t *buf, size_t buflen);
+
+#ifdef INTEL_RDSEED
 int rdseed_bytes(uint8_t *buf, size_t buflen);
+#endif
 
 
 #ifdef __cplusplus

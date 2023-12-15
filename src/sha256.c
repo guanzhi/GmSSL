@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -167,7 +167,6 @@ void sha256_finish(SHA256_CTX *ctx, unsigned char dgst[SHA256_DIGEST_SIZE])
 		PUTU32(dgst, ctx->state[i]);
 		dgst += sizeof(uint32_t);
 	}
-	memset(ctx, 0, sizeof(*ctx));
 }
 
 void sha256_digest(const unsigned char *data, size_t datalen,
@@ -177,6 +176,7 @@ void sha256_digest(const unsigned char *data, size_t datalen,
 	sha256_init(&ctx);
 	sha256_update(&ctx, data, datalen);
 	sha256_finish(&ctx, dgst);
+	memset(&ctx, 0, sizeof(ctx));
 }
 
 
@@ -213,4 +213,5 @@ void sha224_digest(const unsigned char *data, size_t datalen,
 	sha224_init(&ctx);
 	sha224_update(&ctx, data, datalen);
 	sha224_finish(&ctx, dgst);
+	memset(&ctx, 0, sizeof(ctx));
 }

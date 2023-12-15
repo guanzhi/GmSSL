@@ -97,7 +97,7 @@ end:
 
 void SDF_METHOD_free(SDF_METHOD *meth)
 {
-	if (meth) free(meth->dso);
+	if (meth) dylib_close_library(meth->dso);
 	free(meth);
 }
 

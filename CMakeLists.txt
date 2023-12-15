@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.6)
-project(GmSSL)
+project(GmSSL C)
 
 SET(CMAKE_PROJECT_HOMEPAGE_URL "http://gmssl.org")
 
@@ -12,10 +12,8 @@ include_directories(include)
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4_common.c
-	src/sm4_enc.c
+	src/sm4_tbox.c
 	src/sm4_modes.c
-	src/sm4_setkey.c
 	src/sm3.c
 	src/sm3_hmac.c
 	src/sm3_kdf.c
@@ -83,7 +81,6 @@ set(tools
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm2keygen.c
-	tools/sm2keyparse.c
 	tools/sm2sign.c
 	tools/sm2verify.c
 	tools/sm2encrypt.c
@@ -185,11 +182,10 @@ set(demos
 	demo_sm9_encrypt
 	demo_sm9_keygen
 	demo_sm9_sign
-#	demo_tlcp_get
-#	demo_tlcp_post
-#	demo_wget
 	demo_zuc
 )
+
+include(CheckSymbolExists)
 
 # when an option has been enabled, `cmake ..` will not refresh the value
 # use `cmake .. -DENABLE_XXX=OFF` to disable the option
@@ -215,13 +211,13 @@ if (ENABLE_TLS_DEBUG)
 	add_definitions(-DTLS_DEBUG)
 endif()
 
-option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
-if (ENABLE_SM3_AVX_BMI2)
-	message(STATUS "ENABLE_SM3_AVX_BMI2")
-	add_definitions(-DSM3_AVX_BMI2)
-	enable_language(ASM)
-	list(APPEND src src/sm3_avx_bmi2.s)
-endif()
+#option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
+#if (ENABLE_SM3_AVX_BMI2)
+#	message(STATUS "ENABLE_SM3_AVX_BMI2")
+#	add_definitions(-DSM3_AVX_BMI2)
+#	enable_language(ASM)
+#	list(APPEND src src/sm3_avx_bmi2.s)
+#endif()
 
 
 option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
@@ -251,20 +247,39 @@ endif()
 option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
 if (ENABLE_BROKEN_CRYPTO)
 	message(STATUS "ENABLE_BROKEN_CRYPTO")
-	list(APPEND src src/des.c src/sha1.c src/md5.c src/rc4.c)
-	list(APPEND tests des sha1 md5 rc4)
+	list(APPEND src src/sha1.c)
+	list(APPEND tests sha1)
 endif()
 
 
-option(ENABLE_RDRND "Enable Intel RDRND instructions" OFF)
-if (${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
-	set(ENABLE_RDRND ON)
+option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
+option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
+
+if (ENABLE_INTEL_RDRAND)
+	include(CheckSourceCompiles)
+	set(CMAKE_REQUIRED_FLAGS "-rdrand")
+	check_source_compiles(C
+		"#include <immintrin.h> int main(void) { unsigned long long val; _rdrand64_step(&val); return 0; }"
+		HAVE_INTEL_RDRAND)
+	if (HAVE_INTEL_RDRAND)
+		message(STATUS "ENABLE_INTEL_RDRAND")
+		add_definitions(-DINTEL_RDRAND)
+		list(APPEND src src/rdrand.c)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd")
+	endif()
+	if (ENABLE_INTEL_RDSEED)
+		set(CMAKE_REQUIRED_FLAGS "-rdseed")
+		check_source_compiles(C
+			"#include <immintrin.h> int main(void) { unsigned long long val; _rdseed64_step(&val); return 0; }"
+			HAVE_INTEL_RDSEED)
+		if (HAVE_INTEL_RDSEED)
+			message(STATUS "ENABLE_INTEL_RDSEED")
+			add_definitions(-DINTEL_RDSEED)
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdseed")
+		endif()
+	endif()
 endif()
-if (ENABLE_RDRND)
-	message(STATUS "ENABLE_RDRND")
-	list(APPEND src src/rdrand.c)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
-endif()
+
 
 option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
 if (ENABLE_GMT_0105_RNG)
@@ -273,15 +288,19 @@ if (ENABLE_GMT_0105_RNG)
 	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
 endif()
 
+
+check_symbol_exists(getentropy "unistd.h" HAVE_GETENTROPY)
 if (WIN32)
 	list(APPEND src src/rand_win.c src/http_win.c)
 elseif (APPLE)
 	list(APPEND src src/rand_apple.c src/http.c)
-elseif (ANDROID)
-	list(APPEND src src/rand.c src/http.c)
-else()
+elseif (HAVE_GETENTROPY)
 	list(APPEND src src/rand_unix.c src/http.c)
+	 message(STATUS "have getentropy")
+else()
+	list(APPEND src src/rand.c src/http.c)
 endif()
+
 
 option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
 if (ENABLE_HTTP_TESTS)
@@ -313,7 +332,9 @@ else()
 endif()
 
 
-SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.0 SOVERSION 3)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
@@ -322,10 +343,10 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 
 	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	set_target_properties(sdf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
 
 	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-	set_target_properties(skf_dummy PROPERTIES VERSION 3.0 SOVERSION 3)
+	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
 
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries(gmssl-bin LINK_PUBLIC gmssl)
@@ -354,14 +375,38 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_INSTALL_PREFIX "C:/Program Files/GmSSL") # change by `cmake -DCMAKE_INSTALL_PREFIX=C:\path\to\install`
 	# run `set path=%path%;C:\Program Files\GmSSL\bin`
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
+	target_compile_options(gmssl PRIVATE /utf-8)
+	target_compile_options(gmssl-bin PRIVATE /utf-8)
+
 #	target_compile_options(gmssl PRIVATE /wd4996)
 #	target_compile_options(gmssl-bin PRIVATE /wd4996)
 endif()
 
-if (UNIX)
-	# packaging
-	include(LinuxPacking)
-	include(DebPacking)
-	include(RpmPacking)
-	include(CPack)
-endif (UNIX)
+
+set(CPACK_PACKAGE_NAME "GmSSL")
+set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
+set(CPACK_PACKAGE_VERSION "3.1.2-Dev")
+
+set(CPACK_RPM_PACKAGE_GROUP "GmSSL Group")
+set(CPACK_PACKAGE_VENDOR "GmSSL Vendor")
+
+set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
+string(CONCAT CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM9 "
+    "and other national secret (national commercial password) algorithm. ")
+set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_CONTACT "https://github.com/guanzhi/GmSSL/issues")
+# The general number of package itself.
+# Should be incremented when the package content changes for the same version.
+# Can be used to distinguish between different builds of the same version.
+# Can be overridden by `cmake -DCPACK_NOARCH_PACKAGE_RELEASE=1`
+set(CPACK_NOARCH_PACKAGE_RELEASE 1 CACHE STRING "The general release number of package")
+
+#set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
+set(CPACK_NSIS_MODIFY_PATH ON)
+
+include(DebPacking)
+include(RpmPacking)
+include(CPack)
+

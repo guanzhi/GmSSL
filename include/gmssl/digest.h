@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <gmssl/sm3.h>
 #ifdef ENABLE_BROKEN_CRYPTO
-#include <gmssl/md5.h>
 #include <gmssl/sha1.h>
 #endif
 #include <gmssl/sha2.h>
@@ -40,7 +39,6 @@ struct DIGEST_CTX {
 	union {
 		SM3_CTX sm3_ctx;
 #ifdef ENABLE_BROKEN_CRYPTO
-		MD5_CTX md5_ctx;
 		SHA1_CTX sha1_ctx;
 #endif
 		SHA224_CTX sha224_ctx;
@@ -63,7 +61,6 @@ struct DIGEST {
 
 const DIGEST *DIGEST_sm3(void);
 #ifdef ENABLE_BROKEN_CRYPTO
-const DIGEST *DIGEST_md5(void);
 const DIGEST *DIGEST_sha1(void);
 #endif
 const DIGEST *DIGEST_sha224(void);

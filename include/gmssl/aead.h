@@ -84,9 +84,6 @@ typedef struct {
 } SM4_GCM_CTX;
 
 #define SM4_GCM_KEY_SIZE 16
-#define SM4_GCM_MIN_IV_SIZE 1
-#define SM4_GCM_DEFAULT_IV_SIZE 12
-#define SM4_GCM_MAX_IV_SIZE 64
 #define SM4_GCM_DEFAULT_TAG_SIZE 16
 
 _gmssl_export int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,

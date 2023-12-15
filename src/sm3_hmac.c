@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -72,7 +72,6 @@ void sm3_hmac_finish(SM3_HMAC_CTX *ctx, uint8_t mac[SM3_HMAC_SIZE])
 	sm3_update(&ctx->sm3_ctx, ctx->key, SM3_BLOCK_SIZE);
 	sm3_update(&ctx->sm3_ctx, mac, SM3_DIGEST_SIZE);
 	sm3_finish(&ctx->sm3_ctx, mac);
-	memset(ctx, 0, sizeof(*ctx));
 }
 
 void sm3_hmac(const uint8_t *key, size_t key_len,
@@ -83,4 +82,5 @@ void sm3_hmac(const uint8_t *key, size_t key_len,
 	sm3_hmac_init(&ctx, key, key_len);
 	sm3_hmac_update(&ctx, data, data_len);
 	sm3_hmac_finish(&ctx, mac);
+	memset(&ctx, 0, sizeof(ctx));
 }

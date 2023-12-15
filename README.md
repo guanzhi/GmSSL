@@ -16,7 +16,7 @@ GmSSL是由北京大学自主开发的国产商用密码开源库，实现了对
 
 ## 下载
 
-* GmSSL的主分支版本为 [GmSSL-3.1.0](https://github.com/guanzhi/GmSSL/releases/tag/v3.1.0)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
+* GmSSL的主分支版本为 [GmSSL-3.1.1](https://github.com/guanzhi/GmSSL/releases/tag/v3.1.1)，主要增加跨平台特性，特别是对Windows/Visual Studio的支持，Windows、Android、iOS平台的开发者需要使用该版本。
 
 ## 编译与安装
 
@@ -75,7 +75,7 @@ GmSSL通过子项目提供多种多种编程语言绑定
  * [GmSSL-Java](https://github.com/GmSSL/GmSSL-Java) 以JNI方式实现的Java语言绑定
  * [GmSSL-PHP](https://github.com/GmSSL/GmSSL-PHP) 以PHP扩展方式实现的PHP语言绑定
  * [GmSSL-Go](https://github.com/GmSSL/GmSSL-Go) 以CGO方式实现的Go语言绑定
- * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) 以CGO方式实现的Go语言绑定
+ * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) 以ctypes方式实现的Python语言绑定
  * [GmSSL-JS](https://github.com/guanzhi/GmSSL-JS) 纯JavaScript实现的国密算法库
 
 ## 典型应用

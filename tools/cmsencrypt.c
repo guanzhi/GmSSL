@@ -229,6 +229,7 @@ end:
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	if (rcpt_certs) free(rcpt_certs);
+	if (inbuf) free(inbuf);
 	if (cms) free(cms);
 	return ret;
 }

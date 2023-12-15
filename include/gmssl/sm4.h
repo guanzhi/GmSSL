@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,29 +18,6 @@
 extern "C" {
 #endif
 
-
-/*
-SM4 Public API
-
-	SM4_KEY_SIZE
-	SM4_BLOCK_SIZE
-
-	SM4_CBC_CTX
-	sm4_cbc_encrypt_init
-	sm4_cbc_encrypt_update
-	sm4_cbc_encrypt_finish
-	sm4_cbc_decrypt_init
-	sm4_cbc_decrypt_update
-	sm4_cbc_decrypt_finish
-
-	SM4_CTR_CTX
-	sm4_ctr_encrypt_init
-	sm4_ctr_encrypt_update
-	sm4_ctr_encrypt_finish
-	sm4_ctr_decrypt_init
-	sm4_ctr_decrypt_update
-	sm4_ctr_decrypt_finish
-*/
 
 #define SM4_KEY_SIZE		(16)
 #define SM4_BLOCK_SIZE		(16)
@@ -73,17 +50,28 @@ void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[SM4_BLOCK_SIZE],
 
 
 #define SM4_GCM_IV_MIN_SIZE		1
-#define SM4_GCM_IV_MAX_SIZE		((uint64_t)(1 << (64-3)))
+#define SM4_GCM_IV_MAX_SIZE		(((uint64_t)1 << (64-3)) - 1) // 2305843009213693951
+
 #define SM4_GCM_IV_DEFAULT_BITS		96
 #define SM4_GCM_IV_DEFAULT_SIZE		12
 
+//#define NIST_SP800_GCM_MAX_IV_SIZE	(((uint64_t)1 << (64-3)) - 1) // 2305843009213693951
+
+#define SM4_GCM_MAX_IV_SIZE		64
+#define SM4_GCM_MIN_IV_SIZE		1
+#define SM4_GCM_DEFAULT_IV_SIZE		12
+
 #define SM4_GCM_MIN_AAD_SIZE		0
-#define SM4_GCM_MAX_AAD_SIZE		((uint64_t)(1 << (64-3)))
+#define SM4_GCM_MAX_AAD_SIZE		(((uint64_t)1 << (64-3)) - 1) // 2305843009213693951
 
 #define SM4_GCM_MIN_PLAINTEXT_SIZE	0
-#define SM4_GCM_MAX_PLAINTEXT_SIZE	((((uint64_t)1 << 39) - 256) >> 3)
+#define SM4_GCM_MAX_PLAINTEXT_SIZE	((((uint64_t)1 << 39) - 256) >> 3) // 68719476704
 
 #define SM4_GCM_MAX_TAG_SIZE		16
+#define SM4_GCM_MIN_TAG_SIZE		12
+// For certain applications (voice or video), tag may be 64 or 32 bits
+// see NIST Special Publication 800-38D, Appendix C for more details
+
 
 int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,

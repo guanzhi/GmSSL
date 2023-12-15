@@ -25,7 +25,6 @@ typedef struct {
 DIGEST_TABLE digest_table[] = {
 	{ OID_sm3, "sm3", "SM3" },
 #ifdef ENABLE_BROKEN_CRYPTO
-	{ OID_md5, "md5", "MD5" },
 	{ OID_sha1, "sha1", "SHA-1" },
 #endif
 	{ OID_sha224, "sha224", "SHA-224" },
@@ -96,8 +95,6 @@ const DIGEST *digest_from_name(const char *name)
 	if (!strcmp(name, "sm3") || !strcmp(name, "SM3")) {
 		return DIGEST_sm3();
 #ifdef ENABLE_BROKEN_CRYPTO
-	} else if (!strcmp(name, "md5") || !strcmp(name, "MD5")) {
-		return DIGEST_md5();
 	} else if (!strcmp(name, "sha1") || !strcmp(name, "SHA1")) {
 		return DIGEST_sha1();
 #endif
@@ -163,54 +160,6 @@ const DIGEST *DIGEST_sm3(void)
 }
 
 #ifdef ENABLE_BROKEN_CRYPTO
-
-#include <gmssl/md5.h>
-
-static int md5_digest_init(DIGEST_CTX *ctx)
-{
-	if (!ctx) {
-		error_print();
-		return -1;
-	}
-	md5_init(&ctx->u.md5_ctx);
-	return 1;
-}
-
-static int md5_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
-{
-	if (!ctx || (!in && inlen != 0)) {
-		error_print();
-		return -1;
-	}
-	md5_update(&ctx->u.md5_ctx, in, inlen);
-	return 1;
-}
-
-static int md5_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
-{
-	if (!ctx || !dgst) {
-		error_print();
-		return -1;
-	}
-	md5_finish(&ctx->u.md5_ctx, dgst);
-	return 1;
-}
-
-static const DIGEST md5_digest_object = {
-	OID_md5,
-	MD5_DIGEST_SIZE,
-	MD5_BLOCK_SIZE,
-	sizeof(MD5_CTX),
-	md5_digest_init,
-	md5_digest_update,
-	md5_digest_finish,
-};
-
-const DIGEST *DIGEST_md5(void)
-{
-        return &md5_digest_object;
-}
-
 
 #include <gmssl/sha1.h>
 
