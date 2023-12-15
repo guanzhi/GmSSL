@@ -13,10 +13,11 @@
 
 #ifdef WIN32
 #define _gmssl_export  __declspec(dllexport)
-#else
+#elif defined(__GNUC__)
 // use -fvisibility=hidden to change the "default" behavior
 #define _gmssl_export  __attribute__((visibility("default")))
+#else
+#define _gmssl_export
 #endif
-
 
 #endif

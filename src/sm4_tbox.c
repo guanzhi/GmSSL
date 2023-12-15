@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -8,10 +8,25 @@
  */
 
 
-#include "sm4_lcl.h"
+#include <gmssl/sm4.h>
 
 
-const uint8_t SM4_S[256] = {
+static uint32_t FK[4] = {
+	0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc,
+};
+
+static uint32_t CK[32] = {
+	0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269,
+	0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9,
+	0xe0e7eef5, 0xfc030a11, 0x181f262d, 0x343b4249,
+	0x50575e65, 0x6c737a81, 0x888f969d, 0xa4abb2b9,
+	0xc0c7ced5, 0xdce3eaf1, 0xf8ff060d, 0x141b2229,
+	0x30373e45, 0x4c535a61, 0x686f767d, 0x848b9299,
+	0xa0a7aeb5, 0xbcc3cad1, 0xd8dfe6ed, 0xf4fb0209,
+	0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279,
+};
+
+const uint8_t S[256] = {
 	0xd6, 0x90, 0xe9, 0xfe, 0xcc, 0xe1, 0x3d, 0xb7,
 	0x16, 0xb6, 0x14, 0xc2, 0x28, 0xfb, 0x2c, 0x05,
 	0x2b, 0x67, 0x9a, 0x76, 0x2a, 0xbe, 0x04, 0xc3,
@@ -46,7 +61,7 @@ const uint8_t SM4_S[256] = {
 	0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48,
 };
 
-const uint32_t SM4_T[256] = {
+const uint32_t T[256] = {
 	0x8ed55b5bU, 0xd0924242U, 0x4deaa7a7U, 0x06fdfbfbU,
 	0xfccf3333U, 0x65e28787U, 0xc93df4f4U, 0x6bb5dedeU,
 	0x4e165858U, 0x6eb4dadaU, 0x44145050U, 0xcac10b0bU,
@@ -112,3 +127,118 @@ const uint32_t SM4_T[256] = {
 	0x9d78e5e5U, 0x56edbbbbU, 0x235e7d7dU, 0xc63ef8f8U,
 	0x8bd45f5fU, 0xe7c82f2fU, 0xdd39e4e4U, 0x68492121U,
 };
+
+#define GETU32(ptr)				\
+	((uint32_t)(ptr)[0] << 24 |		\
+	 (uint32_t)(ptr)[1] << 16 | 		\
+	 (uint32_t)(ptr)[2] <<  8 | 		\
+	 (uint32_t)(ptr)[3])
+
+#define PUTU32(ptr,X)				\
+	((ptr)[0] = (uint8_t)((X) >> 24),	\
+	 (ptr)[1] = (uint8_t)((X) >> 16),	\
+	 (ptr)[2] = (uint8_t)((X) >>  8),	\
+	 (ptr)[3] = (uint8_t)(X))
+
+#define ROL32(X,n)  (((X)<<(n)) | ((X)>>(32-(n))))
+
+#define L32(X)					\
+	((X) ^					\
+	ROL32((X),  2) ^			\
+	ROL32((X), 10) ^			\
+	ROL32((X), 18) ^			\
+	ROL32((X), 24))
+
+#define L32_(X)					\
+	((X) ^ 					\
+	ROL32((X), 13) ^			\
+	ROL32((X), 23))
+
+#define S32(A)					\
+	((S[((A) >> 24)       ] << 24) |	\
+	 (S[((A) >> 16) & 0xff] << 16) |	\
+	 (S[((A) >>  8) & 0xff] <<  8) |	\
+	 (S[((A))       & 0xff]))
+
+
+void sm4_set_encrypt_key(SM4_KEY *key, const uint8_t user_key[16])
+{
+	uint32_t X0, X1, X2, X3, X4;
+	int i;
+
+	X0 = GETU32(user_key     ) ^ FK[0];
+	X1 = GETU32(user_key  + 4) ^ FK[1];
+	X2 = GETU32(user_key  + 8) ^ FK[2];
+	X3 = GETU32(user_key + 12) ^ FK[3];
+
+	for (i = 0; i < 32; i++) {
+
+		X4 = X1 ^ X2 ^ X3 ^ CK[i];
+		X4 = S32(X4);
+		X4 = X0 ^ L32_(X4);
+
+		key->rk[i] = X4;
+
+		X0 = X1;
+		X1 = X2;
+		X2 = X3;
+		X3 = X4;
+	}
+}
+
+void sm4_set_decrypt_key(SM4_KEY *key, const uint8_t user_key[16])
+{
+	uint32_t X0, X1, X2, X3, X4;
+	int i;
+
+	X0 = GETU32(user_key     ) ^ FK[0];
+	X1 = GETU32(user_key  + 4) ^ FK[1];
+	X2 = GETU32(user_key  + 8) ^ FK[2];
+	X3 = GETU32(user_key + 12) ^ FK[3];
+
+	for (i = 0; i < 32; i++) {
+
+		X4 = X1 ^ X2 ^ X3 ^ CK[i];
+		X4 = S32(X4);
+		X4 = X0 ^ L32_(X4);
+
+		key->rk[31 - i] = X4;
+
+		X0 = X1;
+		X1 = X2;
+		X2 = X3;
+		X3 = X4;
+	}
+}
+
+void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char out[16])
+{
+	uint32_t X0, X1, X2, X3, X4;
+	int i;
+
+	X0 = GETU32(in     );
+	X1 = GETU32(in +  4);
+	X2 = GETU32(in +  8);
+	X3 = GETU32(in + 12);
+
+	for (i = 0; i < 32; i++) {
+
+		X4 = X1 ^ X2 ^ X3 ^ key->rk[i];
+
+		X4 = X0 ^
+			ROL32(T[(X4      ) & 0xff],  8) ^
+			ROL32(T[(X4 >>  8) & 0xff], 16) ^
+			ROL32(T[(X4 >> 16) & 0xff], 24) ^
+			T[(X4 >> 24) & 0xff];
+
+		X0 = X1;
+		X1 = X2;
+		X2 = X3;
+		X3 = X4;
+	}
+
+	PUTU32(out     , X3);
+	PUTU32(out +  4, X2);
+	PUTU32(out +  8, X1);
+	PUTU32(out + 12, X0);
+}

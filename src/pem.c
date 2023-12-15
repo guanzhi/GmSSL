@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <gmssl/pem.h>
 #include <gmssl/error.h>
 
@@ -38,29 +39,31 @@ static int remove_newline(char *line)
 int pem_write(FILE *fp, const char *name, const uint8_t *data, size_t datalen)
 {
 	BASE64_CTX ctx;
-	uint8_t* b64 = NULL;
-	int len;
+	uint8_t out[168];
+	int inlen, outlen;
 
 	if (!datalen) {
 		error_print();
 		return -1;
 	}
-
-	// FIXME: use a fixed-size buffer
-	if (!(b64 = malloc(datalen * 2))) {
+	if (datalen > INT_MAX) {
 		error_print();
 		return -1;
 	}
 
-	base64_encode_init(&ctx);
-	base64_encode_update(&ctx, data, (int)datalen, b64, &len);
-	base64_encode_finish(&ctx, b64 + len, &len);
-
 	fprintf(fp, "-----BEGIN %s-----\n", name);
-	fprintf(fp, "%s", (char *)b64);
+	base64_encode_init(&ctx);
+	while (datalen) {
+		inlen = datalen < 48 ? (int)datalen : 48;
+		base64_encode_update(&ctx, data, inlen, out, &outlen);
+		fwrite(out, 1, outlen, fp);
+		data += inlen;
+		datalen -= inlen;
+	}
+	base64_encode_finish(&ctx, out, &outlen);
+	fwrite(out, 1, outlen, fp);
 	fprintf(fp, "-----END %s-----\n", name);
 
-	free(b64);
 	return 1;
 }
 
@@ -76,13 +79,15 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 	snprintf(end_line, sizeof(end_line), "-----END %s-----", name);
 
 	if (feof(fp)) {
+		error_print();
 		return 0;
 	}
 
 	if (!fgets(line, sizeof(line), fp)) {
-		if (feof(fp))
+		if (feof(fp)) {
+			error_print();
 			return 0;
-		else {
+		} else {
 			error_print();
 			return -1;
 		}

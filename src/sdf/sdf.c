@@ -103,7 +103,7 @@ int sdf_print_device_info(FILE *fp, int fmt, int ind, const char *lable, SDF_DEV
 	void *hSession = NULL;
 	DEVICEINFO devInfo;
 
-	if (SDF_OpenSession(dev->handle, hSession) != SDR_OK
+	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK
 		|| SDF_GetDeviceInfo(hSession, &devInfo) != SDR_OK) {
 		error_print();
 		goto end;

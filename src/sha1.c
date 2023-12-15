@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -158,7 +158,6 @@ void sha1_finish(SHA1_CTX *ctx, unsigned char *dgst)
 	for (i = 0; i < 5; i++) {
 		PUTU32(dgst + i*4, ctx->state[i]);
 	}
-	memset(ctx, 0, sizeof(*ctx));
 }
 
 void sha1_digest(const unsigned char *data, size_t datalen,
@@ -167,5 +166,6 @@ void sha1_digest(const unsigned char *data, size_t datalen,
 	SHA1_CTX ctx;
 	sha1_init(&ctx);
 	sha1_update(&ctx, data, datalen);
+	sha1_finish(&ctx, dgst);
 	memset(&ctx, 0, sizeof(ctx));
 }
