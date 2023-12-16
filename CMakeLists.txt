@@ -362,11 +362,6 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 		target_link_libraries (${name}test LINK_PUBLIC gmssl)
 	endforeach()
 
-	foreach(name ${demos})
-		add_executable(${name} demos/src/${name}.c)
-		target_link_libraries(${name} LINK_PUBLIC gmssl)
-	endforeach()
-
 	install(TARGETS gmssl-bin RUNTIME DESTINATION bin)
 endif()
 
@@ -381,6 +376,16 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 
 #	target_compile_options(gmssl PRIVATE /wd4996)
 #	target_compile_options(gmssl-bin PRIVATE /wd4996)
+endif()
+
+# cmake .. -DENABLE_DEMOS=ON
+option(ENABLE_DEMOS "Build demos" OFF)
+if (ENABLE_DEMOS)
+	message(STATUS "ENABLE_DEMOS is ON")
+	foreach(name ${demos})
+		add_executable(${name} demos/src/${name}.c)
+		target_link_libraries(${name} gmssl)
+	endforeach()
 endif()
 
 
