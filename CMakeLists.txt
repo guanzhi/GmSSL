@@ -160,29 +160,78 @@ set(tests
 )
 
 set(demos
-	demo_sm2_encrypt
-	demo_sm2_keygen
-	demo_sm2_keyparse
-	demo_sm2_private_key
-	demo_sm2_private_key_parse
-	demo_sm2_public_key
-	demo_sm2_sign
-	demo_sm2_sign_ctx
-	demo_sm3
-	demo_sm3_hmac
-	demo_sm3_kdf
-	demo_sm4
-	demo_sm4_cbc
-	demo_sm4_cbc_decrypt_update
-	demo_sm4_cbc_encrypt_update
-	demo_sm4_cbc_padding
-	demo_sm4_ctr
-	demo_sm4_ctr_encrypt_update
-	demo_sm4_gcm
-	demo_sm9_encrypt
-	demo_sm9_keygen
-	demo_sm9_sign
-	demo_zuc
+	asn1_oid_from_der_demo
+	asn1_oid_to_der_demo
+	base64_demo
+	http_get_demo
+	password_to_key_demo
+	pem_from_der_demo
+	pem_to_der_demo
+	rand_demo
+	sdf_info_demo
+	sdf_rand_demo
+	sdf_sign_demo
+	sha256_digest_demo
+	sha512_256_digest_demo
+	sha512_digest_demo
+	#sm2_ciphertext_to_der_demo
+	sm2_ecdh_demo
+	sm2_encrypt_demo
+	sm2_encrypt_fixlen_demo
+	sm2_id_demo
+	sm2_keygen_demo
+	sm2_keyparse_demo
+	sm2_point_demo
+	sm2_point_from_bin_demo
+	sm2_point_from_hash_demo
+	sm2_point_from_octets_demo
+	sm2_point_to_bin_demo
+	sm2_point_to_octets_demo
+	sm2_private_key_demo
+	sm2_private_key_parse_demo
+	sm2_public_key_demo
+	sm2_sig_from_bin_demo
+	#sm2_sig_from_der_demo
+	sm2_sig_to_der_demo
+	sm2_sign_ctx_demo
+	sm2_sign_ctx_fixlen_demo
+	sm2_sign_demo
+	#sm2_sign_digest_demo
+	sm3_ctx_demo
+	sm3_ctx_stdin_demo
+	sm3_demo
+	sm3_hmac_ctx_demo
+	sm3_hmac_demo
+	sm4_cbc_ctx_decrypt_stdin_demo
+	sm4_cbc_ctx_encrypt_stdin_demo
+	sm4_cbc_demo
+	sm4_cbc_padding_demo
+	sm4_cbc_sm3_hmac_demo
+	sm4_consts_demo
+	sm4_ctr_demo
+	sm4_ctr_encrypt_update_demo
+	sm4_ctr_sm3_hmac_demo
+	sm4_demo
+	sm4_ecb_demo
+	sm4_gcm_ctx_demo
+	sm4_gcm_demo
+	sm4_key_demo
+	sm9_encrypt_demo
+	sm9_keygen_demo
+	sm9_sign_demo
+	#tlcp_get_demo
+	#tlcp_post_demo
+	version_demo
+	x509_cert_check_demo
+	x509_cert_parse_demo
+	x509_cert_print_demo
+	x509_cert_verify_demo
+	x509_crl_download_demo
+	#x509_crl_find_revoked_cert_demo
+	x509_crl_print_demo
+	#x509_crl_verify_demo
+	zuc_demo
+	zuc_encrypt_stdin_demo
 )
 
 include(CheckSymbolExists)
@@ -201,7 +250,7 @@ option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key
 if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
 	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT")
 	add_definitions(-DSM2_PRIVATE_KEY_EXPORT)
-	list(APPEND demos demo_sm2_key_export)
+	list(APPEND demos sm2_key_export_demo)
 endif()
 
 
@@ -249,6 +298,7 @@ if (ENABLE_BROKEN_CRYPTO)
 	message(STATUS "ENABLE_BROKEN_CRYPTO")
 	list(APPEND src src/sha1.c)
 	list(APPEND tests sha1)
+	list(APPEND demos sha1_digest_demo)
 endif()
 
 
@@ -265,6 +315,7 @@ if (ENABLE_INTEL_RDRAND)
 		message(STATUS "ENABLE_INTEL_RDRAND")
 		add_definitions(-DINTEL_RDRAND)
 		list(APPEND src src/rdrand.c)
+		list(APPEND demos rdrand_demo)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd")
 	endif()
 	if (ENABLE_INTEL_RDSEED)
@@ -286,6 +337,7 @@ if (ENABLE_GMT_0105_RNG)
 	message(STATUS "ENABLE_GMT_0105_RNG")
 	list(APPEND src src/sm3_rng.c src/sm4_cbc_mac.c src/sm4_rng.c)
 	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
+	list(APPEND demos sm4_cbc_mac_demo)
 endif()
 
 
