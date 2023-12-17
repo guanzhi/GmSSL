@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -19,31 +19,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-/*
-ZUC Public API
-
-	ZUC_KEY_SIZE
-	ZUC_IV_SIZE
-	ZUC_MAC_SIZE
-
-	ZUC_CTX
-	zuc_encrypt_init
-	zuc_encrypt_update
-	zuc_encrypt_finish
-	zuc_decrypt_init
-	zuc_decrypt_update
-	zuc_decrypt_finish
-
-	ZUC_MAC_CTX
-	zuc_mac_init
-	zuc_mac_update
-	zuc_mac_finish
-
-	zuc_eea_encrypt
-	zuc_eia_generate_mac
-*/
 
 
 # define ZUC_KEY_SIZE	16
@@ -123,8 +98,6 @@ void zuc256_mac_init(ZUC256_MAC_CTX *ctx, const uint8_t key[ZUC256_KEY_SIZE],
 void zuc256_mac_update(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t len);
 void zuc256_mac_finish(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t mac[ZUC_MAC_SIZE]);
 
-
-// Public API
 
 typedef struct {
 	ZUC_STATE zuc_state;

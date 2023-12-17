@@ -1299,10 +1299,12 @@ int tls13_cipher_suite_get(int cipher_suite, const DIGEST **digest, const BLOCK_
 		*digest = DIGEST_sm3();
 		*cipher = BLOCK_CIPHER_sm4();
 		break;
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
 	case TLS_cipher_aes_128_gcm_sha256:
 		*digest = DIGEST_sha256();
 		*cipher = BLOCK_CIPHER_aes128();
 		break;
+#endif
 	default:
 		error_print();
 		return -1;

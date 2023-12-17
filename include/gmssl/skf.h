@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -21,42 +21,6 @@
 extern "C" {
 #endif
 
-
-/*
-SKF Public API
-
-	skf_load_library
-	skf_unload_library
-	skf_list_devices
-	skf_print_device_info
-
-	SKF_DEVICE
-	skf_open_device
-	skf_close_deivce
-	skf_set_label
-	skf_change_authkey
-	skf_list_apps
-	skf_create_app
-	skf_delete_app
-	skf_change_app_admin_pin
-	skf_change_app_user_pin
-	skf_unblock_user_pin
-	skf_list_objects
-	skf_import_object
-	skf_export_object
-	skf_delete_object
-	skf_list_containers
-	skf_create_container
-	skf_delete_container
-	skf_import_sign_cert
-	skf_export_sign_cert
-	skf_rand_bytes
-	skf_load_sign_key
-
-	SKF_KEY
-	skf_sign
-	skf_release_key
-*/
 
 typedef struct {
 	void *handle;

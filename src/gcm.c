@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 #include <gmssl/gcm.h>
 #include <gmssl/oid.h>
 #include <gmssl/error.h>
-#include <gmssl/aes.h>
 #include <gmssl/endian.h>
 
 
@@ -178,11 +177,16 @@ int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 			error_print();
 			return -1;
 		}
+#ifdef ENABLE_AES
 	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
 		if (aes_gcm_encrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag) != 1) {
 			error_print();
 			return -1;
 		}
+#endif
+	} else {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
@@ -196,11 +200,16 @@ int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
 			error_print();
 			return -1;
 		}
+#ifdef ENABLE_AES
 	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
 		if (aes_gcm_decrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out) != 1) {
 			error_print();
 			return -1;
 		}
+#endif
+	} else {
+		error_print();
+		return -1;
 	}
 	return 1;
 }

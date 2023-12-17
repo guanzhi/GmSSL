@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -21,16 +21,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
-PBKDF2 Public API
-
-	PBKDF2_MIN_ITER
-	PBKDF2_DEFAULT_SALT_SIZE
-	PBKDF2_MAX_SALT_SIZE
-
-	pbkdf2_hmac_sm3_genkey
-*/
 
 
 #define PBKDF2_MIN_ITER			10000

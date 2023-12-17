@@ -1,14 +1,11 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
  *
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
-
-
-
 
 #ifndef GMSSL_BLOCK_CIPHER_H
 #define GMSSL_BLOCK_CIPHER_H
@@ -17,8 +14,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/aes.h>
 #include <gmssl/sm4.h>
+#ifdef ENABLE_AES
+#include <gmssl/aes.h>
+#endif
 
 
 #ifdef __cplusplus
@@ -37,7 +36,9 @@ typedef struct BLOCK_CIPHER_KEY BLOCK_CIPHER_KEY;
 struct BLOCK_CIPHER_KEY {
 	union {
 		SM4_KEY sm4_key;
+#ifdef ENABLE_AES
 		AES_KEY aes_key;
+#endif
 	} u;
 	const BLOCK_CIPHER *cipher;
 };
@@ -58,7 +59,9 @@ struct BLOCK_CIPHER {
 };
 
 const BLOCK_CIPHER *BLOCK_CIPHER_sm4(void);
+#ifdef ENABLE_AES
 const BLOCK_CIPHER *BLOCK_CIPHER_aes128(void);
+#endif
 
 const BLOCK_CIPHER *block_cipher_from_name(const char *name);
 const char *block_cipher_name(const BLOCK_CIPHER *cipher);

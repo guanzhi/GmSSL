@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -26,39 +26,6 @@
 extern "C" {
 #endif
 
-
-/*
-TLS Public API
-
-	TLS_PROTOCOL
-	TLS_protocol_tlcp
-	TLS_protocol_tls12
-	TLS_protocol_tls13
-
-	TLS_CIPHER_SUITE
-	TLS_cipher_ecc_sm4_cbc_sm3
-	TLS_cipher_ecc_sm4_gcm_sm3
-	TLS_cipher_ecdhe_sm4_cbc_sm3
-	TLS_cipher_ecdhe_sm4_gcm_sm3
-	TLS_cipher_sm4_gcm_sm3
-
-	TLS_CTX
-	tls_ctx_init
-	tls_ctx_set_cipher_suites
-	tls_ctx_set_ca_certificates
-	tls_ctx_set_certificate_and_key
-	tls_ctx_set_tlcp_server_certificate_and_keys
-	tls_ctx_cleanup
-
-	TLS_CONNECT
-	tls_init
-	tls_set_socket
-	tls_do_handshake
-	tls_send
-	tls_recv
-	tls_shutdown
-	tls_cleanup
-*/
 
 typedef uint32_t uint24_t;
 

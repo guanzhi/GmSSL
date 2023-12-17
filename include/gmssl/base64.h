@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,19 +18,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
-BASE64 Public API
-
-	BASE64_CTX
-	base64_encode_init
-	base64_encode_update
-	base64_encode_finish
-	base64_decode_init
-	base64_decode_update
-	base64_decode_finish
-
-*/
 
 
 typedef struct {

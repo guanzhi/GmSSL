@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ const BLOCK_CIPHER *BLOCK_CIPHER_sm4(void) {
 	return &sm4_block_cipher_object;
 }
 
+#ifdef ENABLE_AES
 static int aes128_set_encrypt_key(AES_KEY *aes_key, const uint8_t key[16]) {
 	return aes_set_encrypt_key(aes_key, key, 16);
 }
@@ -80,3 +81,4 @@ static const BLOCK_CIPHER aes128_block_cipher_object = {
 const BLOCK_CIPHER *BLOCK_CIPHER_aes128(void) {
 	return &aes128_block_cipher_object;
 }
+#endif // ENABLE_AES

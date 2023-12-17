@@ -25,8 +25,6 @@ set(src
 	src/sm9_lib.c
 	src/zuc.c
 	src/zuc_modes.c
-	src/aes.c
-	src/aes_modes.c
 	src/hash_drbg.c
 	src/block_cipher.c
 	src/digest.c
@@ -123,7 +121,6 @@ set(tests
 	sm2
 	sm9
 	zuc
-	aes
 	hash_drbg
 	block_cipher
 	digest
@@ -301,6 +298,14 @@ if (ENABLE_SHA2)
 	list(APPEND src src/sha256.c src/sha512.c)
 	list(APPEND tests sha224 sha256 sha384 sha512)
 	list(APPEND demos sha256_digest_demo sha512_digest_demo sha512_256_digest_demo)
+endif()
+
+
+option(ENABLE_AES "Enable AES" ON)
+if (ENABLE_AES)
+	message(STATUS "ENABLE_AES is ON")
+	list(APPEND src src/aes.c src/aes_modes.c)
+	list(APPEND tests aes)
 endif()
 
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -131,6 +131,7 @@ int test_gcm(void)
 	rand_bytes(aad, sizeof(aad));
 	rand_bytes(in, sizeof(in));
 
+#ifdef ENABLE_AES
 	memset(out, 0, sizeof(out));
 	memset(buf, 0, sizeof(buf));
 	memset(tag, 0, sizeof(tag));
@@ -151,6 +152,7 @@ int test_gcm(void)
 		error_print();
 		return -1;
 	}
+#endif // ENABLE_AES
 
 	memset(out, 0, sizeof(out));
 	memset(buf, 0, sizeof(buf));

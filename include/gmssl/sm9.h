@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -23,60 +23,6 @@
 extern "C" {
 #endif
 
-/*
-SM9 Public API
-
-	SM9_SIGNATURE_SIZE
-	SM9_MAX_PLAINTEXT_SIZE
-	SM9_MAX_CIPHERTEXT_SIZE
-
-	SM9_SIGN_MASTER_KEY
-	sm9_sign_master_key_generate
-	sm9_sign_master_key_extract_key
-	sm9_sign_master_key_info_encrypt_to_der
-	sm9_sign_master_key_info_decrypt_from_der
-	sm9_sign_master_key_info_encrypt_to_pem
-	sm9_sign_master_key_info_decrypt_from_pem
-	sm9_sign_master_public_key_to_der
-	sm9_sign_master_public_key_from_der
-	sm9_sign_master_public_key_to_pem
-	sm9_sign_master_public_key_from_pem
-
-	SM9_SIGN_KEY
-	sm9_sign_key_info_encrypt_to_der
-	sm9_sign_key_info_decrypt_from_der
-	sm9_sign_key_info_encrypt_to_pem
-	sm9_sign_key_info_decrypt_from_pem
-
-	SM9_SIGN_CTX
-	sm9_sign_init
-	sm9_sign_update
-	sm9_sign_finish
-	sm9_verify_init
-	sm9_verify_update
-	sm9_verify_finish
-
-	SM9_ENC_MASTER_KEY
-	sm9_enc_master_key_generate
-	sm9_enc_master_key_extract_key
-	sm9_enc_master_key_info_encrypt_to_der
-	sm9_enc_master_key_info_decrypt_from_der
-	sm9_enc_master_key_info_encrypt_to_pem
-	sm9_enc_master_key_info_decrypt_from_pem
-	sm9_enc_master_public_key_to_der
-	sm9_enc_master_public_key_from_der
-	sm9_enc_master_public_key_to_pem
-	sm9_enc_master_public_key_from_pem
-
-	SM9_ENC_KEY
-	sm9_enc_key_info_encrypt_to_der
-	sm9_enc_key_info_decrypt_from_der
-	sm9_enc_key_info_encrypt_to_pem
-	sm9_enc_key_info_decrypt_from_pem
-
-	sm9_encrypt
-	sm9_decrypt
-*/
 
 #define SM9_HEX_SEP '\n'
 
