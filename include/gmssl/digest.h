@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,11 +16,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <gmssl/sm3.h>
-#ifdef ENABLE_BROKEN_CRYPTO
+#ifdef ENABLE_SHA1
 #include <gmssl/sha1.h>
 #endif
+#ifdef ENABLE_SHA2
 #include <gmssl/sha2.h>
-
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,13 +39,15 @@ typedef struct DIGEST_CTX DIGEST_CTX;
 struct DIGEST_CTX {
 	union {
 		SM3_CTX sm3_ctx;
-#ifdef ENABLE_BROKEN_CRYPTO
+#ifdef ENABLE_SHA1
 		SHA1_CTX sha1_ctx;
 #endif
+#ifdef ENABLE_SHA2
 		SHA224_CTX sha224_ctx;
 		SHA256_CTX sha256_ctx;
 		SHA384_CTX sha384_ctx;
 		SHA512_CTX sha512_ctx;
+#endif
 	} u;
 	const DIGEST *digest;
 };
@@ -60,15 +63,17 @@ struct DIGEST {
 };
 
 const DIGEST *DIGEST_sm3(void);
-#ifdef ENABLE_BROKEN_CRYPTO
+#ifdef ENABLE_SHA1
 const DIGEST *DIGEST_sha1(void);
 #endif
+#ifdef ENABLE_SHA2
 const DIGEST *DIGEST_sha224(void);
 const DIGEST *DIGEST_sha256(void);
 const DIGEST *DIGEST_sha384(void);
 const DIGEST *DIGEST_sha512(void);
 const DIGEST *DIGEST_sha512_224(void);
 const DIGEST *DIGEST_sha512_256(void);
+#endif
 
 const DIGEST *digest_from_name(const char *name);
 const char *digest_name(const DIGEST *digest);

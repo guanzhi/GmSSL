@@ -325,7 +325,7 @@ from RFC 5758 Internet X.509 Public Key Infrastructure:
 
 */
 
-#ifdef SM2_ALGOR_ID_ENCODE_NULL // from CMakeLists.txt
+#ifdef ENABLE_SM2_ALGOR_ID_ENCODE_NULL // from CMakeLists.txt
 #define SM2_SIGN_ALGOR_FLAGS 1
 #else
 #define SM2_SIGN_ALGOR_FLAGS 0

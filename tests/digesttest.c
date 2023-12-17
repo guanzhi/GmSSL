@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -15,17 +15,18 @@
 #include <gmssl/digest.h>
 
 const char *digests[] = {
-#ifdef ENABLE_BROKEN_CRYPTO
-	"md5",
+	"sm3",
+#ifdef ENABLE_SHA1
 	"sha1",
 #endif
-	"sm3",
+#ifdef ENABLE_SHA2
 	"sha224",
 	"sha256",
 	"sha384",
 	"sha512",
 	"sha512-224",
 	"sha512-256",
+#endif
 };
 
 int main(void)

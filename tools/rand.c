@@ -85,7 +85,7 @@ bad:
 		size_t len = outlen < sizeof(buf) ? outlen : sizeof(buf);
 
 		if (rdrand) {
-#ifdef INTEL_RDRAND
+#ifdef ENABLE_INTEL_RDRAND
 			if (rdrand_bytes(buf, len) != 1) {
 				fprintf(stderr, "%s: inner error\n", prog);
 				goto end;
@@ -94,7 +94,7 @@ bad:
 			fprintf(stderr, "%s: `-rdrand` is not supported on your platform\n", prog);
 #endif
 		} else if (rdseed) {
-#ifdef INTEL_RDSEED
+#ifdef ENABLE_INTEL_RDSEED
 			if (rdseed_bytes(buf, len) != 1) {
 				fprintf(stderr, "%s: inner error\n", prog);
 				goto end;

@@ -27,9 +27,6 @@ set(src
 	src/zuc_modes.c
 	src/aes.c
 	src/aes_modes.c
-	src/sha256.c
-	src/sha512.c
-	src/chacha20.c
 	src/hash_drbg.c
 	src/block_cipher.c
 	src/digest.c
@@ -127,11 +124,6 @@ set(tests
 	sm9
 	zuc
 	aes
-	sha224
-	sha256
-	sha384
-	sha512
-	chacha20
 	hash_drbg
 	block_cipher
 	digest
@@ -171,9 +163,6 @@ set(demos
 	sdf_info_demo
 	sdf_rand_demo
 	sdf_sign_demo
-	sha256_digest_demo
-	sha512_256_digest_demo
-	sha512_digest_demo
 	#sm2_ciphertext_to_der_demo
 	sm2_ecdh_demo
 	sm2_encrypt_demo
@@ -241,29 +230,30 @@ include(CheckSymbolExists)
 
 option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable AlgorithmIdenifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
 if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
-	message(STATUS "ENABLE_SM2_ALGOR_ID_ENCODE_NULL")
-	add_definitions(-DSM2_ALGOR_ID_ENCODE_NULL)
+	message(STATUS "ENABLE_SM2_ALGOR_ID_ENCODE_NULL is ON")
+	add_definitions(-DENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 endif()
 
 
 option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
 if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
-	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT")
-	add_definitions(-DSM2_PRIVATE_KEY_EXPORT)
+	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT is ON")
+	add_definitions(-DENABLE_SM2_PRIVATE_KEY_EXPORT)
 	list(APPEND demos sm2_key_export_demo)
 endif()
 
 
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 if (ENABLE_TLS_DEBUG)
-	message(STATUS "ENABLE_TLS_DEBUG")
-	add_definitions(-DTLS_DEBUG)
+	message(STATUS "ENABLE_TLS_DEBUG is ON")
+	add_definitions(-DENABLE_TLS_DEBUG)
 endif()
+
 
 #option(ENABLE_SM3_AVX_BMI2 "Enable SM3 AVX+BMI2 assembly implementation" OFF)
 #if (ENABLE_SM3_AVX_BMI2)
-#	message(STATUS "ENABLE_SM3_AVX_BMI2")
-#	add_definitions(-DSM3_AVX_BMI2)
+#	message(STATUS "ENABLE_SM3_AVX_BMI2 is ON")
+#	add_definitions(-DENABLE_SM3_AVX_BMI2)
 #	enable_language(ASM)
 #	list(APPEND src src/sm3_avx_bmi2.s)
 #endif()
@@ -271,8 +261,8 @@ endif()
 
 option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 if (ENABLE_SM4_AESNI_AVX)
-	message(STATUS "ENABLE_SM4_AESNI_AVX")
-	add_definitions(-DSM4_AESNI_AVX)
+	message(STATUS "ENABLE_SM4_AESNI_AVX is ON")
+	add_definitions(-DENABLE_SM4_AESNI_AVX)
 	list(APPEND src src/sm4_aesni_avx.c)
 	list(APPEND tests sm4_aesni_avx)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
@@ -293,12 +283,32 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
-option(ENABLE_BROKEN_CRYPTO "Enable broken crypto algorithms" OFF)
-if (ENABLE_BROKEN_CRYPTO)
-	message(STATUS "ENABLE_BROKEN_CRYPTO")
+option(ENABLE_SHA1 "Enable SHA1" OFF)
+if (ENABLE_SHA1)
+	message(STATUS "ENABLE_SHA1 is ON")
+	add_definitions(-DENABLE_SHA1)
 	list(APPEND src src/sha1.c)
 	list(APPEND tests sha1)
 	list(APPEND demos sha1_digest_demo)
+endif()
+
+
+# TODO: pbkdf, hkdf and tls13 rely on sha2
+option(ENABLE_SHA2 "Enable SHA2" ON)
+if (ENABLE_SHA2)
+	message(STATUS "ENABLE_SHA2 is ON")
+	add_definitions(-DENABLE_SHA2)
+	list(APPEND src src/sha256.c src/sha512.c)
+	list(APPEND tests sha224 sha256 sha384 sha512)
+	list(APPEND demos sha256_digest_demo sha512_digest_demo sha512_256_digest_demo)
+endif()
+
+
+option(ENABLE_CHACHA20 "Enable Chacha20" OFF)
+if (ENABLE_CHACHA20)
+	message(STATUS "ENABLE_CHACHA20 is ON")
+	list(APPEND src src/chacha20.c)
+	list(APPEND tests chacha20)
 endif()
 
 
@@ -313,7 +323,7 @@ if (ENABLE_INTEL_RDRAND)
 		HAVE_INTEL_RDRAND)
 	if (HAVE_INTEL_RDRAND)
 		message(STATUS "ENABLE_INTEL_RDRAND")
-		add_definitions(-DINTEL_RDRAND)
+		add_definitions(-DENABLE_INTEL_RDRAND)
 		list(APPEND src src/rdrand.c)
 		list(APPEND demos rdrand_demo)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd")
@@ -325,7 +335,7 @@ if (ENABLE_INTEL_RDRAND)
 			HAVE_INTEL_RDSEED)
 		if (HAVE_INTEL_RDSEED)
 			message(STATUS "ENABLE_INTEL_RDSEED")
-			add_definitions(-DINTEL_RDSEED)
+			add_definitions(-DENABLE_INTEL_RDSEED)
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdseed")
 		endif()
 	endif()
@@ -348,7 +358,7 @@ elseif (APPLE)
 	list(APPEND src src/rand_apple.c src/http.c)
 elseif (HAVE_GETENTROPY)
 	list(APPEND src src/rand_unix.c src/http.c)
-	 message(STATUS "have getentropy")
+	message(STATUS "have getentropy")
 else()
 	list(APPEND src src/rand.c src/http.c)
 endif()
@@ -440,30 +450,22 @@ if (ENABLE_DEMOS)
 	endforeach()
 endif()
 
-
+# Generate install package with cpack
+#	cpack -G TGZ
+#	cpack -G STGZ
+#	cpack -G NSIS64 # Windows only
+#
+# Install the STGZ package
+#	./GmSSL-<version>-Linux.sh --prefix=/usr/local
+#
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
 set(CPACK_PACKAGE_VERSION "3.1.2-Dev")
-
-set(CPACK_RPM_PACKAGE_GROUP "GmSSL Group")
-set(CPACK_PACKAGE_VENDOR "GmSSL Vendor")
-
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 string(CONCAT CPACK_PACKAGE_DESCRIPTION_SUMMARY
     "GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM9 "
     "and other national secret (national commercial password) algorithm. ")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_CONTACT "https://github.com/guanzhi/GmSSL/issues")
-# The general number of package itself.
-# Should be incremented when the package content changes for the same version.
-# Can be used to distinguish between different builds of the same version.
-# Can be overridden by `cmake -DCPACK_NOARCH_PACKAGE_RELEASE=1`
-set(CPACK_NOARCH_PACKAGE_RELEASE 1 CACHE STRING "The general release number of package")
-
-#set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
 set(CPACK_NSIS_MODIFY_PATH ON)
-
-include(DebPacking)
-include(RpmPacking)
 include(CPack)
 

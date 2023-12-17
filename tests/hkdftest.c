@@ -24,6 +24,7 @@ static struct {
 	char *prk;
 	char *okm;
 } hkdf_tests[] = {
+#ifdef ENABLE_SHA2 // FIXME: add SM3 test suites, if neither SHA1, SHA2 enabled, build failure
 	{
 		// test 1
 		"sha256",
@@ -78,7 +79,9 @@ static struct {
 		"b8a11f5c5ee1879ec3454e5f3c738d2d"
 		"9d201395faa4b61a96c8",
 	},
-#ifdef ENABLE_BROKEN_CRYPTO
+#endif // ENABLE_SHA2
+
+#ifdef ENABLE_SHA1
 	{
 		// test 4
 		"sha1",
@@ -142,7 +145,7 @@ static struct {
 		"b3bae548aa53d423b0d1f27ebba6f5e5"
 		"673a081d70cce7acfc48",
 	},
-#endif
+#endif // ENABLE_SHA1
 };
 
 int test_hkdf(void)

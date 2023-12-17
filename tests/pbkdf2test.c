@@ -102,7 +102,7 @@ void test(void)
 static int test_pbkdf2_genkey(void)
 {
 // FIXME: currently we only has SHA-1 tests, replace with SHA-256
-#ifdef ENABLE_BROKEN_CRYPTO
+#ifdef ENABLE_SHA1
 	int i;
 	uint8_t key[64];
 	uint8_t buf[64];
