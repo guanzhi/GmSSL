@@ -280,6 +280,20 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
+option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" ON)
+if (ENABLE_SM3_XMSS)
+	message(STATUS "ENABLE_SM3_XMSS is ON")
+	list(APPEND src src/sm3_xmss.c)
+
+	option(ENABLE_SM3_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" ON)
+	if (ENABLE_SM3_XMSS_CROSSCHECK)
+		message(STATUS "ENABLE_SM3_XMSS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_SM3_XMSS_CROSSCHECK)
+		list(APPEND tests sm3_xmss)
+	endif()
+endif()
+
+
 option(ENABLE_SHA1 "Enable SHA1" OFF)
 if (ENABLE_SHA1)
 	message(STATUS "ENABLE_SHA1 is ON")
