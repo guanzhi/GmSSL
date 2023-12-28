@@ -34,6 +34,7 @@ extern int sm2encrypt_main(int argc, char **argv);
 extern int sm2decrypt_main(int argc, char **argv);
 extern int sm3_main(int argc, char **argv);
 extern int sm3hmac_main(int argc, char **argv);
+extern int sm3xmss_keygen_main(int argc, char **argv);
 extern int sm4_main(int argc, char **argv);
 extern int zuc_main(int argc, char **argv);
 extern int sm9setup_main(int argc, char **argv);
@@ -72,6 +73,7 @@ static const char *options =
 	"  sm2decrypt      Decrypt with SM2 private key\n"
 	"  sm3             Generate SM3 hash\n"
 	"  sm3hmac         Generate SM3 HMAC tag\n"
+	"  sm3xmss_keygen  Generate SM3-XMSS keypair\n"
 	"  sm4             Encrypt or decrypt with SM4\n"
 	"  zuc             Encrypt or decrypt with ZUC\n"
 	"  sm9setup        Generate SM9 master secret\n"
@@ -169,6 +171,8 @@ int main(int argc, char **argv)
 			return sm3_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3hmac")) {
 			return sm3hmac_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3xmss_keygen")) {
+			return sm3xmss_keygen_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4")) {
 			return sm4_main(argc, argv);
 		} else if (!strcmp(*argv, "zuc")) {

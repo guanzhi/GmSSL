@@ -479,11 +479,9 @@ void sm3_xmss_sig_to_root(const hash256_bytes_t wots_sig[67], int index, const h
 int sm3_xmss_height_from_oid(uint32_t *height, uint32_t id)
 {
 	switch (id) {
-/*
 	case XMSS_SM3_10: *height = 10; break;
 	case XMSS_SM3_16: *height = 16; break;
 	case XMSS_SM3_20: *height = 20; break;
-*/
 	case XMSS_SHA256_10: *height = 10; break;
 	case XMSS_SHA256_16: *height = 16; break;
 	case XMSS_SHA256_20: *height = 20; break;
@@ -553,6 +551,11 @@ int sm3_xmss_key_to_bytes(const SM3_XMSS_KEY *key, uint8_t *out, size_t *outlen)
 	size_t tree_size;
 	uint8_t *p;
 
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
+
 	if (sm3_xmss_height_from_oid(&height, key->oid) != 1) {
 		error_print();
 		return -1;
@@ -561,6 +564,11 @@ int sm3_xmss_key_to_bytes(const SM3_XMSS_KEY *key, uint8_t *out, size_t *outlen)
 	if (!key->tree) {
 		error_print();
 		return -1;
+	}
+
+	if (!out) {
+		*outlen = 4 + 32*4 + 4 + tree_size;
+		return 1;
 	}
 
 	p = out;
@@ -594,7 +602,7 @@ int sm3_xmss_key_from_bytes(SM3_XMSS_KEY *key, const uint8_t *in, size_t inlen)
 		return -1;
 	}
 	tree_size = 32 * ((1 << (height + 1)) - 1);
-	if (inlen != (4 + 32 * 4 + 4 + 32 * tree_size)) {
+	if (inlen != (4 + 32 * 4 + 4 + tree_size)) {
 		error_print();
 		return -1;
 	}
@@ -622,9 +630,19 @@ int sm3_xmss_public_key_to_bytes(const SM3_XMSS_KEY *key, uint8_t *out, size_t *
 	uint32_t height;
 	uint8_t *p;
 
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
+
 	if (sm3_xmss_height_from_oid(&height, key->oid) != 1) {
 		error_print();
 		return -1;
+	}
+
+	if (!out) {
+		*outlen = 4 + 32 + 32;
+		return 1;
 	}
 
 	p = out;
@@ -636,6 +654,7 @@ int sm3_xmss_public_key_to_bytes(const SM3_XMSS_KEY *key, uint8_t *out, size_t *
 	return 1;
 }
 
+// FIXME: check input length
 int sm3_xmss_public_key_from_bytes(SM3_XMSS_KEY *key, const uint8_t *in, size_t inlen)
 {
 	uint32_t height;
