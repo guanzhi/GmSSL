@@ -65,9 +65,9 @@
 #define SGD_RSA_SIGN		(SGD_RSA|SGD_PK_SIGN) // FIXME: correct?	
 #define SGD_RSA_ENC		(SGD_RSA|SGD_PK_ENC) // FIXME: correct?		
 #define SGD_SM2			0x00020100
-#define SGD_SM2_1		0x00020200
-#define SGD_SM2_2		0x00020400
-#define SGD_SM2_3		0x00020800
+#define SGD_SM2_1		0x00020200 // SM2 Signature Scheme
+#define SGD_SM2_2		0x00020400 // SM2 Key Exchange Protocol
+#define SGD_SM2_3		0x00020800 // SM2 Encryption Scheme
 
 /* hash */
 #define SGD_SM3			0x00000001

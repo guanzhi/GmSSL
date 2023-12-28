@@ -75,6 +75,7 @@ set(tools
 	tools/sm4.c
 	tools/sm3.c
 	tools/sm3hmac.c
+	tools/sm3xmss_keygen.c
 	tools/sm2keygen.c
 	tools/sm2sign.c
 	tools/sm2verify.c
@@ -285,7 +286,7 @@ if (ENABLE_SM3_XMSS)
 	message(STATUS "ENABLE_SM3_XMSS is ON")
 	list(APPEND src src/sm3_xmss.c)
 
-	option(ENABLE_SM3_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" ON)
+	option(ENABLE_SM3_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" OFF)
 	if (ENABLE_SM3_XMSS_CROSSCHECK)
 		message(STATUS "ENABLE_SM3_XMSS_CROSSCHECK is ON")
 		add_definitions(-DENABLE_SM3_XMSS_CROSSCHECK)
@@ -331,6 +332,7 @@ if (ENABLE_CHACHA20)
 endif()
 
 
+
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
 option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
 
@@ -361,12 +363,20 @@ if (ENABLE_INTEL_RDRAND)
 endif()
 
 
+option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
+if (ENABLE_SM4_CBC_MAC)
+	message(STATUS "ENABLE_SM4_CBC_MAC is ON")
+	list(APPEND src src/sm4_cbc_mac.c)
+	list(APPEND tests sm4_cbc_mac)
+	list(APPEND demos sm4_cbc_mac_demo)
+endif()
+
+
 option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
 if (ENABLE_GMT_0105_RNG)
-	message(STATUS "ENABLE_GMT_0105_RNG")
-	list(APPEND src src/sm3_rng.c src/sm4_cbc_mac.c src/sm4_rng.c)
-	list(APPEND tests sm3_rng sm4_cbc_mac sm4_rng)
-	list(APPEND demos sm4_cbc_mac_demo)
+	message(STATUS "ENABLE_GMT_0105_RNG is ON")
+	list(APPEND src src/sm3_rng.c src/sm4_rng.c)
+	list(APPEND tests sm3_rng sm4_rng)
 endif()
 
 
@@ -400,6 +410,9 @@ endif()
 add_library(gmssl ${src})
 
 
+
+
+
 if (WIN32)
 	target_link_libraries(gmssl -lws2_32)
 elseif (APPLE)
@@ -420,6 +433,16 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
+
+
+option(ENABLE_SOFT_SDF "Enable Software SDF Implementation" OFF)
+if (ENABLE_SOFT_SDF)
+	message(STATUS "ENABLE_SOFT_SDF is ON")
+	add_library(soft_sdf SHARED src/sdf/soft_sdf.c)
+	target_link_libraries(soft_sdf PRIVATE gmssl)
+	set_target_properties(soft_sdf PROPERTIES VERSION 3.1 SOVERSION 3)
+endif()
+
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 
