@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -82,7 +82,10 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 
 
 typedef struct {
-	SM4_KEY sm4_key;
+	union {
+		SM4_KEY sm4_key;
+		void *handle;
+	};
 	uint8_t iv[SM4_BLOCK_SIZE];
 	uint8_t block[SM4_BLOCK_SIZE];
 	size_t block_nbytes;
@@ -98,7 +101,10 @@ int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
 
 
 typedef struct {
-	SM4_KEY sm4_key;
+	union {
+		SM4_KEY sm4_key;
+		void *handle;
+	};
 	uint8_t ctr[SM4_BLOCK_SIZE];
 	uint8_t block[SM4_BLOCK_SIZE];
 	size_t block_nbytes;
