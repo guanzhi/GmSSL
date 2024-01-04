@@ -14,7 +14,7 @@
 #include <string.h>
 #include <gmssl/mem.h>
 #include <gmssl/hex.h>
-#include <gmssl/sm3.h>
+#include <gmssl/sm3_digest.h>
 
 
 static const char *usage = "-key hex [-in file | -in_str str] [-bin|-hex] [-out file]";
@@ -63,7 +63,7 @@ int sm3hmac_main(int argc, char **argv)
 	size_t keylen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM3_HMAC_CTX ctx;
+	SM3_DIGEST_CTX ctx;
 	uint8_t mac[SM3_HMAC_SIZE];
 	size_t i;
 
@@ -142,18 +142,31 @@ bad:
 		goto end;
 	}
 
-	sm3_hmac_init(&ctx, key, keylen);
+	if (sm3_digest_init(&ctx, key, keylen) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
+
 	if (in_str) {
-		sm3_hmac_update(&ctx, (uint8_t *)in_str, strlen(in_str));
+		if (sm3_digest_update(&ctx, (uint8_t *)in_str, strlen(in_str)) != 1) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
 	} else {
 		uint8_t buf[4096];
 		size_t len;
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-			sm3_hmac_update(&ctx, buf, len);
+			if (sm3_digest_update(&ctx, buf, len) != 1) {
+				fprintf(stderr, "%s: inner error\n", prog);
+				goto end;
+			}
 		}
 		memset(buf, 0, sizeof(buf));
 	}
-	sm3_hmac_finish(&ctx, mac);
+	if (sm3_digest_finish(&ctx, mac) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
 
 	if (outformat > 1) {
 		if (fwrite(mac, 1, sizeof(mac), outfp) != sizeof(mac)) {

@@ -17,6 +17,7 @@ set(src
 	src/sm3.c
 	src/sm3_hmac.c
 	src/sm3_kdf.c
+	src/sm3_digest.c
 	src/sm2_alg.c
 	src/sm2_key.c
 	src/sm2_lib.c

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/sm2.h>
-#include <gmssl/sm3.h>
+#include <gmssl/sm3_digest.h>
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
 
@@ -75,7 +75,7 @@ int sm3_main(int argc, char **argv)
 	FILE *outfp = stdout;
 	uint8_t id_bin[64];
 	size_t id_bin_len;
-	SM3_CTX sm3_ctx;
+	SM3_DIGEST_CTX sm3_ctx;
 	uint8_t dgst[32];
 	int i;
 
@@ -171,7 +171,10 @@ bad:
 		goto end;
 	}
 
-	sm3_init(&sm3_ctx);
+	if (sm3_digest_init(&sm3_ctx, NULL, 0) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
 
 	if (pubkeyfile) {
 		SM2_KEY sm2_key;
@@ -191,20 +194,33 @@ bad:
 			sm2_compute_z(z, (SM2_POINT *)&sm2_key, id, strlen(id));
 		}
 
-		sm3_update(&sm3_ctx, z, sizeof(z));
+		if (sm3_digest_update(&sm3_ctx, z, sizeof(z)) != 1) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
 	}
 
 	if (in_str) {
-		sm3_update(&sm3_ctx, (uint8_t *)in_str, strlen(in_str));
+		if (sm3_digest_update(&sm3_ctx, (uint8_t *)in_str, strlen(in_str)) != 1) {
+			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+
 	} else {
 		uint8_t buf[4096];
 		size_t len;
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-			sm3_update(&sm3_ctx, buf, len);
+			if (sm3_digest_update(&sm3_ctx, buf, len) != 1) {
+				fprintf(stderr, "%s: inner error\n", prog);
+				goto end;
+			}
 		}
 		memset(buf, 0, sizeof(buf));
 	}
-	sm3_finish(&sm3_ctx, dgst);
+	if (sm3_digest_finish(&sm3_ctx, dgst) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
 	memset(&sm3_ctx, 0, sizeof(sm3_ctx));
 
 	if (outformat > 1) {
