@@ -21,6 +21,7 @@ set(src
 	src/sm2_alg.c
 	src/sm2_key.c
 	src/sm2_lib.c
+	src/sm2_ctx.c
 	src/sm9_alg.c
 	src/sm9_key.c
 	src/sm9_lib.c
