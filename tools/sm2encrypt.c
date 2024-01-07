@@ -12,9 +12,9 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
 #include <gmssl/x509.h>
-
 
 static const char *options = "(-pubkey pem | -cert pem) [-in file] [-out file]";
 
@@ -33,6 +33,7 @@ int sm2encrypt_main(int argc, char **argv)
 	uint8_t cert[1024];
 	size_t certlen;
 	SM2_KEY key;
+	SM2_ENC_CTX ctx;
 	uint8_t inbuf[SM2_MAX_PLAINTEXT_SIZE + 1];
 	uint8_t outbuf[SM2_MAX_CIPHERTEXT_SIZE];
 	size_t inlen, outlen = sizeof(outbuf);
@@ -124,8 +125,12 @@ bad:
 		goto end;
 	}
 
-	if (sm2_encrypt(&key, inbuf, inlen, outbuf, &outlen) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
+	if (sm2_encrypt_init(&ctx, &key) != 1) {
+		fprintf(stderr, "%s: sm2_encrypt_init failed\n", prog);
+		goto end;
+	}
+	if (sm2_encrypt_finish(&ctx, inbuf, inlen, outbuf, &outlen) != 1) {
+		fprintf(stderr, "%s: sm2_encrypt_finish error\n", prog);
 		goto end;
 	}
 
@@ -136,6 +141,8 @@ bad:
 	ret = 0;
 
 end:
+	gmssl_secure_clear(&ctx, sizeof(ctx));
+	gmssl_secure_clear(inbuf, sizeof(inbuf));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	if (pubkeyfp) fclose(pubkeyfp);
