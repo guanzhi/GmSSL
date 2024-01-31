@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -1641,17 +1641,26 @@ int tls_send_alert(TLS_CONNECT *conn, int alert)
 int tls_alert_level(int alert)
 {
 	switch (alert) {
-	case TLS_alert_bad_certificate:
-	case TLS_alert_unsupported_certificate:
-	case TLS_alert_certificate_revoked:
-	case TLS_alert_certificate_expired:
-	case TLS_alert_certificate_unknown:
-		return 0;
+	case TLS_alert_unexpected_message:
+	case TLS_alert_bad_record_mac:
+	case TLS_alert_record_overflow:
+	case TLS_alert_decompression_failure:
+	case TLS_alert_handshake_failure:
+	case TLS_alert_illegal_parameter:
+	case TLS_alert_unknown_ca:
+	case TLS_alert_access_denied:
+	case TLS_alert_decode_error:
+	case TLS_alert_decrypt_error:
+	case TLS_alert_protocol_version:
+	case TLS_alert_insufficient_security:
+	case TLS_alert_internal_error:
+	case TLS_alert_unsupported_extension:
+		return TLS_alert_level_fatal;
 	case TLS_alert_user_canceled:
 	case TLS_alert_no_renegotiation:
-		return TLS_alert_level_warning;	
+		return TLS_alert_level_warning;
 	}
-	return TLS_alert_level_fatal;	
+	return TLS_alert_level_undefined;
 }
 
 int tls_send_warning(TLS_CONNECT *conn, int alert)

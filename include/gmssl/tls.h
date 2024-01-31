@@ -309,6 +309,7 @@ typedef enum {
 
 
 typedef enum {
+	TLS_alert_level_undefined = 0,
 	TLS_alert_level_warning = 1,
 	TLS_alert_level_fatal = 2,
 } TLS_ALERT_LEVEL;
