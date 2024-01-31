@@ -42,7 +42,7 @@ extern "C" {
 	do { if (DEBUG) fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__); } while (0)
 
 #define error_puts(str) \
-            do { if (DEBUG) fprintf(stderr, "%s: %d: %s: %s", __FILE__, __LINE__, __func__, str); } while (0)
+            do { if (DEBUG) fprintf(stderr, "%s: %d: %s: %s\n", __FILE__, __LINE__, __func__, str); } while (0)
 
 
 void print_der(const uint8_t *in, size_t inlen);

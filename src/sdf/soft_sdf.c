@@ -369,7 +369,9 @@ int SDF_GetPrivateKeyAccessRight(
 	snprintf(filename, FILENAME_MAX_LEN, "sm2sign-%u.pem", uiKeyIndex);
 	file = fopen(filename, "r");
 	if (file == NULL) {
+		error_print();
 		perror("Error opening file");
+		fprintf(stderr, "open failure %s\n", filename);
 		ret = SDR_KEYNOTEXIST;
 		goto end;
 	}
@@ -669,7 +671,7 @@ int SDF_GenerateKeyPair_ECC(
 		return SDR_INARGERR;
 	}
 
-	if (uiAlgID != SGD_SM2_1 || uiAlgID != SGD_SM2_3) {
+	if (uiAlgID != SGD_SM2_1 && uiAlgID != SGD_SM2_3) {
 		error_print();
 		return SDR_INARGERR;
 	}
