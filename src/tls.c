@@ -1452,7 +1452,7 @@ int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
 
 int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 {
-	tls_ret_t r;
+	tls_ret_t n;
 
 	if (!record) {
 		error_print();
@@ -1466,36 +1466,55 @@ int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 		error_print();
 		return -1;
 	}
-	if ((r = tls_socket_send(sock, record, recordlen, 0)) < 0) {
-		perror("tls_record_send");
-		error_print();
-		return -1;
-	} else if (r != recordlen) {
-		error_print();
-		return -1;
+
+	while (recordlen) {
+		if ((n = tls_socket_send(sock, record, recordlen, 0)) > 0) {
+			record += n;
+			recordlen -= n;
+
+		} else if (n == 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				tls_socket_wait();
+			} else {
+				error_puts("TCP connection closed");
+				return 0;
+			}
+		} else {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				tls_socket_wait();
+			} else {
+				error_print();
+				return -1;
+			}
+		}
 	}
 	return 1;
 }
 
 int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 {
-	tls_ret_t r;
+	uint8_t *p = record;
 	size_t len;
+	tls_ret_t n;
 
 	len = 5;
 	while (len) {
-		if ((r = tls_socket_recv(sock, record + 5 - len, len, 0)) < 0) {
-			perror("tls_record_do_recv");
-			error_print();
-			return -1;
-		}
-		if (r == 0) {
-			perror("tls_record_do_recv");
-			error_print();
+		if ((n = tls_socket_recv(sock, p, len, 0)) > 0) {
+			p += n;
+			len -= n;
+		} else if (n == 0) {
+			error_puts("TCP connection closed");
+			*recordlen = 0;
 			return 0;
+		} else {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				tls_socket_wait();
+			} else {
+				perror("recv");
+				error_print();
+				return -1;
+			}
 		}
-
-		len -= r;
 	}
 	if (!tls_record_type_name(tls_record_type(record))) {
 		error_print();
@@ -1505,27 +1524,39 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 		error_print();
 		return -1;
 	}
+
 	len = (size_t)record[3] << 8 | record[4];
+
 	*recordlen = 5 + len;
 	if (*recordlen > TLS_MAX_RECORD_SIZE) {
-		// 这里只检查是否超过最大长度，握手协议的长度检查由上层协议完成
 		error_print();
 		return -1;
 	}
+
 	while (len) {
-		if ((r = recv(sock, record + *recordlen - len, (int)len, 0)) < 0) { // winsock2 recv() use int
-			perror("tls_record_do_recv");
-			error_print();
-			return -1;
+		if ((n = tls_socket_recv(sock, p, len, 0)) > 0) {
+			p += n;
+			len -= n;
+		} else if (n == 0) {
+			error_puts("connection closed");
+			*recordlen = 0;
+			return 0;
+		} else {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				tls_socket_wait();
+			} else {
+				perror("recv");
+				error_print();
+				return -1;
+			}
 		}
-		len -= r;
 	}
+
 	return 1;
 }
 
 int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 {
-retry:
 	if (tls_record_do_recv(record, recordlen, sock) != 1) {
 		error_print();
 		return -1;
@@ -1534,31 +1565,30 @@ retry:
 	if (tls_record_type(record) == TLS_record_alert) {
 		int level;
 		int alert;
+
 		if (tls_record_get_alert(record, &level, &alert) != 1) {
 			error_print();
 			return -1;
 		}
 		tls_record_trace(stderr, record, *recordlen, 0, 0);
-		if (level == TLS_alert_level_warning) {
-			// 忽略Warning，读取下一个记录
-			error_puts("Warning record received!\n");
-			goto retry;
-		}
-		if (alert == TLS_alert_close_notify) {
-			// close_notify是唯一需要提供反馈的Fatal Alert，其他直接中止连接
-			uint8_t alert_record[TLS_ALERT_RECORD_SIZE];
-			size_t alert_record_len;
-			tls_record_set_type(alert_record, TLS_record_alert);
-			tls_record_set_protocol(alert_record, tls_record_protocol(record));
-			tls_record_set_alert(alert_record, &alert_record_len, TLS_alert_level_fatal, TLS_alert_close_notify);
 
+		if (level == TLS_alert_level_fatal && alert == TLS_alert_close_notify) {
+#if ENABLE_TLS_RESPOND_CLOSE_NOTIFY
 			tls_trace("send Alert close_notifiy\n");
-			tls_record_trace(stderr, alert_record, alert_record_len, 0, 0);
-			tls_record_send(alert_record, alert_record_len, sock);
+			tls_record_trace(stderr, record, *recordlen, 0, 0);
+			if (tls_record_send(record, *recordlen, sock) != 1) {
+				error_print();
+				return -1;
+			}
+#endif
+			return 0;
+
+		} else {
+			error_print();
+			return -1;
 		}
-		// 返回错误0通知调用方不再做任何处理（无需再发送Alert）
-		return 0;
 	}
+
 	return 1;
 }
 
@@ -1782,14 +1812,14 @@ int tls_shutdown(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
+#ifdef ENABLE_TLS_RESPOND_CLOSE_NOTIFY
 	tls_trace("recv Alert close_notify\n");
-
 	if (tls_record_do_recv(conn->record, &recordlen, conn->sock) != 1) {
 		error_print();
 		return -1;
 	}
 	tls_record_trace(stderr, conn->record, recordlen, 0, 0);
-
+#endif
 	return 1;
 }
 
