@@ -1508,6 +1508,9 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 			return 0;
 		} else {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				if (len == 5) {
+					return -EAGAIN;
+				}
 				tls_socket_wait();
 			} else {
 				perror("recv");
@@ -1557,9 +1560,11 @@ int tls_record_do_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 
 int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 {
-	if (tls_record_do_recv(record, recordlen, sock) != 1) {
-		error_print();
-		return -1;
+	int ret;
+
+	if ((ret = tls_record_do_recv(record, recordlen, sock)) != 1) {
+		if (ret && ret != -EAGAIN) error_print();
+		return ret;
 	}
 
 	if (tls_record_type(record) == TLS_record_alert) {
@@ -1769,7 +1774,7 @@ int tls_do_recv(TLS_CONNECT *conn)
 
 	tls_trace("recv ApplicationData\n");
 	if ((ret = tls_record_recv(record, &recordlen, conn->sock)) != 1) {
-		if (ret < 0) error_print();
+		if (ret < 0 && ret != -EAGAIN) error_print();
 		return ret;
 	}
 
@@ -1798,7 +1803,7 @@ int tls_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 	if (conn->datalen == 0) {
 		int ret;
 		if ((ret = tls_do_recv(conn)) != 1) {
-			if (ret) error_print();
+			if (ret < 0 && ret != -EAGAIN) error_print();
 			return ret;
 		}
 	}
