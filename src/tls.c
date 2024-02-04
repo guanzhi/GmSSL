@@ -2308,21 +2308,17 @@ void tls_cleanup(TLS_CONNECT *conn)
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
-#if 0
-	int opts;
+	int flags;
 
-	// FIXME: do we still need this? when using select?
-	if ((opts = fcntl(sock, F_GETFL)) < 0) {
+	if ((flags = fcntl(sock, F_GETFL)) == -1) {
 		error_print();
-		perror("tls_set_socket");
+		perror("fcntl error");
 		return -1;
 	}
-	opts &= ~O_NONBLOCK;
-	if (fcntl(sock, F_SETFL, opts) < 0) {
-		error_print();
+	if (flags & O_NONBLOCK) {
+		error_puts("socket should be in blocking mode");
 		return -1;
 	}
-#endif
 	conn->sock = sock;
 	return 1;
 }
