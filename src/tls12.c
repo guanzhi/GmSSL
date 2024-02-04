@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -31,12 +31,6 @@ static const int tls12_ciphers[] = {
 
 static const size_t tls12_ciphers_count = sizeof(tls12_ciphers)/sizeof(tls12_ciphers[0]);
 
-static const uint8_t tls12_exts[] = {
-	/* supported_groups */ 0x00,0x0A, 0x00,0x04, 0x00,0x02, 0x00,30,//0x29, // curveSM2
-	/* ec_point_formats */ 0x00,0x0B, 0x00,0x02, 0x01,      0x00, // uncompressed
-	/* signature_algors */ 0x00,0x0D, 0x00,0x04, 0x00,0x02, 0x07,0x07,//0x08, // sm2sig_sm3
-};
-
 
 int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
 {
@@ -55,7 +49,7 @@ int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *
 	uint8_t *p = server_ecdh_params + 69;
 	size_t len = 69;
 
-	if (!record || !recordlen || !tls_named_curve_name(curve) || !point
+	if (!record || !recordlen || !tls_curve_name(curve) || !point
 		|| !sig || !siglen || siglen > TLS_MAX_SIGNATURE_SIZE) {
 		error_print();
 		return -1;

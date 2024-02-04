@@ -30,6 +30,13 @@ ec_point_formats
   struct {
 	ECPointFormat ec_point_format_list<1..2^8-1>
   } ECPointFormatList;
+
+Example:
+	ext_type: 0x00,0x0B (ec_point_formats)
+	ext_length: 0x00,0x02
+	ec_point_format_list_len: 0x01
+	ec_point_format_list: 0x00 (uncompressed)
+
 */
 int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	uint8_t **out, size_t *outlen)
@@ -133,6 +140,13 @@ supported_groups
   struct {
 	NamedGroup named_group_list<2..2^16-1>;
   } NamedGroupList;
+
+Example:
+	0x00,0x0A, // ext_type = supported_groups
+	0x00,0x04, // ext_length
+	0x00,0x02, // named_group_list_length
+	0x00,0x30, // named_group_list = [ curveSM2 ]
+
 */
 int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
 	uint8_t **out, size_t *outlen)
@@ -162,7 +176,7 @@ int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
 	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
 	tls_uint16_to_bytes((uint16_t)named_group_list_len, out, outlen);
 	for (i = 0; i < groups_cnt; i++) {
-		if (!tls_named_curve_name(groups[i])) {
+		if (!tls_curve_name(groups[i])) {
 			error_print();
 			return -1;
 		}
@@ -190,7 +204,7 @@ int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_data
 			error_print();
 			return -1;
 		}
-		if (!tls_named_curve_name(group)) {
+		if (!tls_curve_name(group)) {
 			error_print();
 			return -1;
 		}
@@ -243,6 +257,13 @@ signature_algorithms_cert
   struct {
 	SignatureScheme supported_signature_algorithms<2..2^16-2>;
   } SignatureSchemeList;
+
+Example:
+	0x00,0x0D, // ext_type = signature_algors
+	0x00,0x04, // ext_length
+	0x00,0x02, // supported_signature_algorithms_length
+	0x07,0x07, // supported_signature_algorithms = [ sm2sig_sm3 ]
+
 */
 int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen)
@@ -320,13 +341,10 @@ int tls_process_client_signature_algorithms(const uint8_t *ext_data, size_t ext_
 			error_print();
 			return -1;
 		}
-		/*
-		// GmSSL不识别所有的算法！
 		if (!tls_signature_scheme_name(alg)) {
-			error_print();
-			return -1;
+			error_print_msg("unknown TLS signature scheme %04x\n", alg);
+			continue;
 		}
-		*/
 		if (alg == shared_algs[0]) {
 			shared_algs_cnt = 1;
 			break;
@@ -581,7 +599,7 @@ int tls13_key_share_ext_print(FILE *fp, int fmt, int ind, int handshake_type, co
 		ind += 4;
 		while (client_shares_len) {
 			if (tls_uint16_from_bytes(&group, &client_shares, &client_shares_len) != 1) goto err;
-			format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_named_curve_name(group), group);
+			format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_curve_name(group), group);
 			if (tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &client_shares, &client_shares_len) != 1) goto err;
 			format_bytes(fp, fmt, ind, "key_exchange", key_exchange, key_exchange_len);
 		}
@@ -590,7 +608,7 @@ int tls13_key_share_ext_print(FILE *fp, int fmt, int ind, int handshake_type, co
 		format_print(fp, fmt, ind, "server_share\n");
 		ind += 4;
 		if (tls_uint16_from_bytes(&group, &data, &datalen) != 1) goto err;
-		format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_named_curve_name(group), group);
+		format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_curve_name(group), group);
 		if (tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &data, &datalen) != 1) goto err;
 		format_bytes(fp, fmt, ind, "key_exchange", key_exchange, key_exchange_len);
 		break;
@@ -712,7 +730,7 @@ int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
 			error_print();
 			return -1;
 		}
-		if (!tls_named_curve_name(group)) {
+		if (!tls_curve_name(group)) {
 			error_print();
 			return -1;
 		}

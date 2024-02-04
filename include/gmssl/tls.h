@@ -271,7 +271,7 @@ typedef enum {
 	TLS_curve_sm2p256v1			= 41, // GmSSLv2: 30
 } TLS_NAMED_CURVE;
 
-const char *tls_named_curve_name(int curve);
+const char *tls_curve_name(int curve);
 
 
 typedef enum {
