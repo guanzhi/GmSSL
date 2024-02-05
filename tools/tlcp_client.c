@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -21,11 +21,32 @@
 
 static int client_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3, };
 
+static const char *usage =
+	"-host str [-port num] [-cacert file]"
+	" [-cert file -key file -pass str]"
+	" [-outcerts file]"
+	" [-get path]"
+	" [-quiet]";
 
-static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str]"
-	" -quiet"
-	" -get [path]"
-	" [-outcerts file]";
+static const char *help =
+"Options\n"
+"\n"
+"    -host str              Domain name or IP address of remote host\n"
+"    -port num              Port number of remote host, default 443\n"
+"    -cacert file           Trusted CA certificate(s) in PEM format\n"
+"    -cert file             Client certificate(s) in PEM format\n"
+"    -key file              Private key of client certificate\n"
+"    -pass password         Password of encrypted private key\n"
+"    -get path              Send a GET request with given path of URI\n"
+"    -outcerts file         Save server certificates to a PEM file\n"
+"    -quiet                 Without printing any status message\n"
+"\n"
+"Examples\n"
+"\n"
+"  gmssl tlcp_client -host www.pbc.gov.cn -get / -outcerts certs.pem\n"
+"\n"
+"  gmssl tlcp_client -host www.pbc.gov.cn -port 443\n"
+"\n";
 
 int tlcp_client_main(int argc, char *argv[])
 {
@@ -42,8 +63,7 @@ int tlcp_client_main(int argc, char *argv[])
 	int quiet = 0;
 	struct hostent *hp;
 	struct sockaddr_in server;
-	tls_socket_t sock;
-	int sock_inited = 0;
+	tls_socket_t sock = -1;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};
@@ -54,13 +74,15 @@ int tlcp_client_main(int argc, char *argv[])
 	argc--;
 	argv++;
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 	while (argc >= 1) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
-			return 0;
+			printf("usage: gmssl %s %s\n\n", prog, usage);
+			printf("%s\n", help);
+			ret = 0;
+			goto end;
 		} else if (!strcmp(*argv, "-host")) {
 			if (--argc < 1) goto bad;
 			host = *(++argv);
@@ -109,7 +131,7 @@ bad:
 	}
 
 	if (!(hp = gethostbyname(host))) {
-		//herror("tlcp_client: '-host' invalid");			
+		fprintf(stderr, "%s: invalid hostname '%s'\n", prog, host);
 		goto end;
 	}
 
@@ -125,7 +147,6 @@ bad:
 		fprintf(stderr, "%s: open socket error\n", prog);
 		goto end;
 	}
-	sock_inited = 1;
 
 	if (tls_socket_connect(sock, &server) != 1) {
 		fprintf(stderr, "%s: socket connect error\n", prog);
@@ -286,7 +307,7 @@ bad:
 	}
 
 end:
-	if (sock_inited) tls_socket_close(sock);
+	if (sock != -1) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;

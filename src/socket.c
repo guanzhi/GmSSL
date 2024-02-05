@@ -47,6 +47,7 @@ int tls_socket_create(tls_socket_t *sock, int af, int type, int protocol)
 		error_print();
 		return -1;
 	}
+	// INVALID_SOCKET == -1
 	if ((*sock = socket(af, type, protocol)) == INVALID_SOCKET) {
 		fprintf(stderr, "%s %d: socket error: %d\n", __FILE__, __LINE__, WSAGetLastError());
 		error_print();

@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ int tls13_client_main(int argc, char *argv[])
 	char *pass = NULL;
 	struct hostent *hp;
 	struct sockaddr_in server;
-	tls_socket_t sock;
+	tls_socket_t sock = -1;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};
@@ -208,7 +208,7 @@ bad:
 	}
 
 end:
-	tls_socket_close(sock);
+	if (sock != -1) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;
