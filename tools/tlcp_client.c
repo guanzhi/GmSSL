@@ -13,17 +13,19 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/tls.h>
+#include <gmssl/x509.h>
 #include <gmssl/error.h>
 
 
+#define TIMEOUT_SECONDS 1
+
 static int client_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3, };
 
-static const char *http_get =
-	"GET / HTTP/1.1\r\n"
-	"Hostname: aaa\r\n"
-	"\r\n\r\n";
 
-static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str]";
+static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str]"
+	" -quiet"
+	" -get [path]"
+	" [-outcerts file]";
 
 int tlcp_client_main(int argc, char *argv[])
 {
@@ -35,6 +37,9 @@ int tlcp_client_main(int argc, char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char *get = NULL;
+	char *outcertsfile = NULL;
+	int quiet = 0;
 	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock;
@@ -44,6 +49,7 @@ int tlcp_client_main(int argc, char *argv[])
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
+	size_t sentlen;
 
 	argc--;
 	argv++;
@@ -73,6 +79,14 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-get")) {
+			if (--argc < 1) goto bad;
+			get = *(++argv);
+		} else if (!strcmp(*argv, "-outcerts")) {
+			if (--argc < 1) goto bad;
+			outcertsfile = *(++argv);
+		} else if (!strcmp(*argv, "-quiet")) {
+			quiet = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -135,6 +149,9 @@ bad:
 			goto end;
 		}
 	}
+	if (quiet || get) {
+		ctx.quiet = 1;
+	}
 
 	if (tls_init(&conn, &ctx) != 1
 		|| tls_set_socket(&conn, sock) != 1
@@ -143,9 +160,60 @@ bad:
 		goto end;
 	}
 
+	if (outcertsfile) {
+		FILE *outcertsfp;
+		if (!(outcertsfp = fopen(outcertsfile, "wb"))) {
+			fprintf(stderr, "%s: open '%s' failure\n", prog, outcertsfile);
+			perror("fopen");
+			goto end;
+		}
+		if (x509_certs_to_pem(conn.server_certs, conn.server_certs_len, outcertsfp) != 1) {
+			fprintf(stderr, "%s: x509_certs_to_pem error\n", prog);
+			fclose(outcertsfp);
+			goto end;
+		}
+		fclose(outcertsfp);
+	}
+
+	if (get) {
+		struct timeval timeout;
+		timeout.tv_sec = TIMEOUT_SECONDS;
+		timeout.tv_usec = 0;
+
+		snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", get, host);
+
+		if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+
+		if (setsockopt(conn.sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) != 0) {
+			perror("setsockopt");
+			fprintf(stderr, "%s: set socket timeout error\n", prog);
+			goto end;
+		}
+
+		for (;;) {
+			int ret;
+			if ((ret = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+				if (ret == 0) {
+					fprintf(stderr, "%s: TLCP connection is closed by remote host\n", prog);
+				} else if (ret != -EAGAIN) {
+					fprintf(stderr, "%s: recv error\n", prog);
+				}
+				break;
+			}
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
+		}
+
+		tls_shutdown(&conn);
+		goto end;
+	}
+
+
 	for (;;) {
 		fd_set fds;
-		size_t sentlen;
 
 		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
 			if (feof(stdin)) {

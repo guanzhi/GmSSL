@@ -2298,6 +2298,8 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 	conn->sign_key = ctx->signkey;
 	conn->kenc_key = ctx->kenckey;
 
+	conn->quiet = ctx->quiet;
+
 	return 1;
 }
 

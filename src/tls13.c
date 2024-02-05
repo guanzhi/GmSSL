@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -1887,7 +1887,10 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
 	*/
-	fprintf(stderr, "Connection established\n");
+
+	if (!conn->quiet)
+		fprintf(stderr, "Connection established\n");
+
 	ret = 1;
 
 end:
@@ -2354,7 +2357,9 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	format_print(stderr, 0, 0, "\n");
 	*/
 
-	fprintf(stderr, "Connection Established!\n\n");
+	if (!conn->quiet)
+		fprintf(stderr, "Connection Established!\n\n");
+
 	ret = 1;
 end:
 	gmssl_secure_clear(&server_ecdhe, sizeof(server_ecdhe));

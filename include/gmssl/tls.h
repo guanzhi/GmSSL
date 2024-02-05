@@ -684,6 +684,8 @@ typedef struct {
 	SM2_KEY signkey;
 	SM2_KEY kenckey;
 	int verify_depth;
+
+	int quiet;
 } TLS_CTX;
 
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client);
@@ -751,6 +753,7 @@ typedef struct {
 	BLOCK_CIPHER_KEY client_write_key;
 	BLOCK_CIPHER_KEY server_write_key;
 
+	int quiet;
 } TLS_CONNECT;
 
 

@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -28,15 +28,6 @@
 static const int tlcp_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3 };
 static const size_t tlcp_ciphers_count = sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]);
 
-void printbyte(uint8_t *ptr, int len, char *name) {
-  fprintf(stderr, "%s", name);
-  for (int i = 0; i < len; i++) {
-    if (i % 16 == 0)
-      fprintf(stderr, "\n");
-    fprintf(stderr, "0x%02X ", ptr[i]);
-  }
-  fprintf(stderr, "\n");
-}
 
 int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
 {
@@ -46,6 +37,19 @@ int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int fo
 	return tls_record_print(fp, record, recordlen, format, indent);
 }
 
+/*
+select (KeyExchangeAlgorithm) {
+	case ECC:
+		digitall-signed struct {
+			opaque client_random[32];
+			opaque server_random[32];
+			opaque ASN1.Cert<1..2^24-1>;
+		} signed_params;
+	}
+} ServerKeyExchange;
+
+-- in TLCP 1.1, the `signed_params` is DER signature encoded in uint16array
+*/
 int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *recordlen,
 	const uint8_t *sig, size_t siglen)
 {
@@ -66,8 +70,6 @@ int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *r
 		return -1;
 	}
 	p = tls_handshake_data(tls_record_data(record));
-	// 注意TLCP的ServerKeyExchange中的签名值需要封装在uint16array中
-	// 但是CertificateVerify中直接装载签名值DER
 	tls_uint16array_to_bytes(sig, siglen, &p, &len);
 	tls_record_set_handshake(record, recordlen, type, NULL, len);
 	return 1;
@@ -556,7 +558,9 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_decrypt_error);
 		goto end;
 	}
-	fprintf(stderr, "Connection established!\n");
+
+	if (!conn->quiet)
+		fprintf(stderr, "Connection established!\n");
 
 
 	conn->protocol = TLS_protocol_tlcp;
@@ -996,7 +1000,9 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 
 	conn->protocol = TLS_protocol_tlcp;
 
-	fprintf(stderr, "Connection Established!\n\n");
+	if (!conn->quiet)
+		fprintf(stderr, "Connection Established!\n\n");
+
 	ret = 1;
 
 end:

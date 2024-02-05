@@ -630,8 +630,9 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_decrypt_error);
 		goto end;
 	}
-	fprintf(stderr, "Connection established!\n");
 
+	if (!conn->quiet)
+		fprintf(stderr, "Connection established!\n");
 
 	conn->protocol = conn->protocol;
 	conn->cipher_suite = cipher_suite;
@@ -1061,7 +1062,9 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 	conn->protocol = conn->protocol;
 
-	fprintf(stderr, "Connection Established!\n\n");
+	if (!conn->quiet)
+		fprintf(stderr, "Connection Established!\n\n");
+
 	ret = 1;
 
 end:

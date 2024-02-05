@@ -344,7 +344,23 @@ int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], i
 	return 1;
 }
 
-// supported_versions 的格式还受到 handshake_type 影响
+/*
+ * SupportedVersions Extension (only defined in TLS 1.3)
+ *
+ * In ClientHello:
+ *	struct {
+ *		ProtocolVersion versions<2..254>;
+ *	} SupportedVersions;
+ *
+ * In ServerHello:
+ *	struct {
+ *		ProtocolVersion selected_version;
+ *	} SupportedVersions;
+ *
+
+这个函数需要一个参数表示扩展是在ClientHello还是在ServerHello中
+
+ */
 int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	const uint8_t *p;
@@ -354,6 +370,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 	indent += 4;
 
 	switch (type) {
+	// FIXME: 不支持ServerHello
 	case TLS_extension_supported_versions:
 		if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1
 			|| tls_length_is_zero(datalen) != 1
@@ -846,6 +863,7 @@ int tls_finished_print(FILE *fp, const uint8_t *data, size_t datalen, int format
 	return 1;
 }
 
+// FIXME: 应该将这个函数融合到 tls_handshake_print 中
 int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, size_t handshake_len)
 {
 	const uint8_t *p = handshake;
@@ -1052,6 +1070,7 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 
 }
 
+// FIXME: 需要根据RFC来考虑这个函数的参数,从底向上逐步修改每个函数的接口参数
 
 // 仅从record数据是不能判断这个record是TLS 1.2还是TLS 1.3
 // 不同协议上，同名的握手消息，其格式也是不一样的。这真是太恶心了！！！！
@@ -1130,34 +1149,6 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 
 	fprintf(fp, "\n");
 	return 1;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 int tls_secrets_print(FILE *fp,
@@ -1168,6 +1159,9 @@ int tls_secrets_print(FILE *fp,
 	int format, int indent)
 {
 	// 应该检查一下key_block_len的值，判断是否支持，或者算法选择, 或者要求输入一个cipher_suite参数
+	// 这个函数不支持GCM模式套件，使用GCM模式时key_block_len更短
+	// 可以考虑通过key_block_len判断CBC还是GCM，或者在参数上增加cipher_suite
+	// FIXME: 如果增加了GCM套件，需要更新这个函数
 	format_bytes(stderr, format, indent, "pre_master_secret", pre_master_secret, pre_master_secret_len);
 	format_bytes(stderr, format, indent, "client_random", client_random, 32);
 	format_bytes(stderr, format, indent, "server_random", server_random, 32);
