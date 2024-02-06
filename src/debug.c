@@ -61,7 +61,7 @@ int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_
 {
 	int i;
 
-	if (datalen > 4096) {
+	if (datalen > (1<<24)) {
 		error_print();
 		return -1;
 	}

@@ -718,7 +718,7 @@ typedef struct {
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];
 
-	uint8_t databuf[TLS_MAX_PLAINTEXT_SIZE];
+	uint8_t databuf[TLS_MAX_RECORD_SIZE];
 	uint8_t *data;
 	size_t datalen;
 
