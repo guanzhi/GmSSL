@@ -557,11 +557,7 @@ err:
 }
 
 
-
-
-
 static uint32_t oid_ec_public_key[] = { oid_x9_62,2,1 };
-//static uint32_t oid_rsa_encryption[] = { 1,2,840,113549,1,1,1 };
 
 static const ASN1_OID_INFO x509_public_key_algors[] = {
 	{ OID_ec_public_key, "ecPublicKey", oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), 0, "X9.62 ecPublicKey" },

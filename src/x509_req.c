@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -76,12 +76,10 @@ int x509_request_info_from_der(
 		error_print();
 		return -1;
 	}
-	/*
 	if (*version != X509_version_v1) {
 		error_print();
 		return -1;
 	}
-	*/
 	return 1;
 }
 

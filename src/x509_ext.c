@@ -112,7 +112,6 @@ int x509_ext_id_to_der(int oid, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
-// 如果要支持未知的ext_id，应该提供一个callback
 int x509_ext_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, const uint8_t **in, size_t *inlen)
 {
 	int ret;
@@ -1259,9 +1258,7 @@ int x509_key_usage_check(int bits, int cert_type)
 		break;
 	case X509_cert_server_auth:
 	case X509_cert_client_auth:
-		if (!(bits & X509_KU_DIGITAL_SIGNATURE)
-			//&& !(bits & X509_KU_NON_REPUDIATION) // un-comment for compatibility
-			) {
+		if (!(bits & X509_KU_DIGITAL_SIGNATURE)) {
 			error_print();
 			return -1;
 		}
@@ -1274,9 +1271,7 @@ int x509_key_usage_check(int bits, int cert_type)
 
 	case X509_cert_server_key_encipher:
 	case X509_cert_client_key_encipher:
-		if (!(bits & X509_KU_KEY_ENCIPHERMENT)
-			//&& !(bits & X509_KU_KEY_AGREEMENT) // un-comment for compatibility
-			) {
+		if (!(bits & X509_KU_KEY_ENCIPHERMENT)) {
 			error_print();
 			return -1;
 		}
@@ -1292,23 +1287,15 @@ int x509_key_usage_check(int bits, int cert_type)
 			error_print();
 			return -1;
 		}
-		if ((bits & X509_KU_DIGITAL_SIGNATURE)
-			|| (bits & X509_KU_NON_REPUDIATION)) {
-			error_print();
-			//return -1; // comment to print warning
-		}
 		break;
+
 	case X509_cert_crl_sign:
 		if (!(bits & X509_KU_CRL_SIGN)) {
 			error_print();
 			return -1;
 		}
-		if ((bits & X509_KU_DIGITAL_SIGNATURE)
-			|| (bits & X509_KU_NON_REPUDIATION)) {
-			error_print();
-			//return -1; // comment to print warning
-		}
 		break;
+
 	default:
 		error_print();
 		return -1;
