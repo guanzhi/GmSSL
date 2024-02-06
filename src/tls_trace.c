@@ -1070,7 +1070,7 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 
 }
 
-// FIXME: 需要根据RFC来考虑这个函数的参数,从底向上逐步修改每个函数的接口参数
+// FIXME: 根据RFC来考虑这个函数的参数,从底向上逐步修改每个函数的接口参数
 
 // 仅从record数据是不能判断这个record是TLS 1.2还是TLS 1.3
 // 不同协议上，同名的握手消息，其格式也是不一样的。这真是太恶心了！！！！
@@ -1103,13 +1103,6 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 	if (recordlen < tls_record_length(record)) {
 		error_print();
 		return -1;
-	}
-
-	// 最高字节设置后强制打印记录原始数据
-	if (format >> 24) {
-		format_bytes(fp, format, indent, "Data", data, datalen);
-		fprintf(fp, "\n");
-		return 1;
 	}
 
 	switch (record[0]) {
@@ -1173,3 +1166,24 @@ int tls_secrets_print(FILE *fp,
 	format_print(stderr, format, indent, "\n");
 	return 1;
 }
+
+int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
+{
+	int protocol;
+
+	if (!fp || !record || recordlen < 5) {
+		error_print();
+		return -1;
+	}
+
+	protocol = tls_record_protocol(record);
+	format_print(fp, format, indent, "EncryptedRecord\n"); indent += 4;
+	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
+	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
+	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
+	format_bytes(fp, format, indent, "EncryptedData", tls_record_data(record), tls_record_data_length(record));
+
+	fprintf(fp, "\n");
+	return 1;
+}
+

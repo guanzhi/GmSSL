@@ -484,14 +484,13 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	sm3_update(&sm3_ctx, finished_record + 5, finished_record_len - 5);
 
 	// encrypt Client Finished
-	tls_trace("encrypt Finished\n");
 	if (tls_record_encrypt(&conn->client_write_mac_ctx, &conn->client_write_enc_key,
 		conn->client_seq_num, finished_record, finished_record_len, record, &recordlen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		goto end;
 	}
-	tlcp_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
+	tls_encrypted_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
 	tls_seq_num_incr(conn->client_seq_num);
 	if (tls_record_send(record, recordlen, conn->sock) != 1) {
 		error_print();
@@ -526,8 +525,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_record_mac);
 		goto end;
 	}
-	tlcp_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
-	tls_trace("decrypt Finished\n");
+	tls_encrypted_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
 	if (tls_record_decrypt(&conn->server_write_mac_ctx, &conn->server_write_enc_key,
 		conn->server_seq_num, record, recordlen, finished_record, &finished_record_len) != 1) {
 		error_print();
@@ -920,10 +918,10 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	tlcp_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
+	tls_encrypted_record_trace(stderr, record, recordlen, 0, 0);
 
 	// decrypt ClientFinished
-	tls_trace("decrypt Finished\n");
+	//tls_trace("decrypt Finished\n");
 	if (tls_record_decrypt(&conn->client_write_mac_ctx, &conn->client_write_enc_key,
 		conn->client_seq_num, record, recordlen, finished_record, &finished_record_len) != 1) {
 		error_print();
@@ -990,8 +988,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_internal_error);
 		goto end;
 	}
-	tls_trace("encrypt Finished\n");
-	tlcp_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
+	tls_encrypted_record_trace(stderr, record, recordlen, 0, 0);
 	tls_seq_num_incr(conn->server_seq_num);
 	if (tls_record_send(record, recordlen, conn->sock) != 1) {
 		error_print();

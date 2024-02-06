@@ -718,7 +718,6 @@ typedef struct {
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];
 
-	// 其实这个就不太对了，还是应该有一个完整的密文记录
 	uint8_t databuf[TLS_MAX_PLAINTEXT_SIZE];
 	uint8_t *data;
 	size_t datalen;
@@ -828,17 +827,20 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 #ifdef ENABLE_TLS_DEBUG
 #	define tls_trace(s) fprintf(stderr,(s))
 #	define tls_record_trace(fp,rec,reclen,fmt,ind)  tls_record_print(fp,rec,reclen,fmt,ind)
+#	define tls_encrypted_record_trace(fp,rec,reclen,fmt,ind)  tls_encrypted_record_print(fp,rec,reclen,fmt,ind)
 #	define tlcp_record_trace(fp,rec,reclen,fmt,ind)  tlcp_record_print(fp,rec,reclen,fmt,ind)
 #	define tls12_record_trace(fp,rec,reclen,fmt,ind)  tls12_record_print(fp,rec,reclen,fmt,ind)
 #	define tls13_record_trace(fp,rec,reclen,fmt,ind)  tls13_record_print(fp,fmt,ind,rec,reclen)
 #else
 #	define tls_trace(s)
 #	define tls_record_trace(fp,rec,reclen,fmt,ind)
+#	define tls_encrypted_record_trace(fp,rec,reclen,fmt,ind)
 #	define tlcp_record_trace(fp,rec,reclen,fmt,ind)
 #	define tls12_record_trace(fp,rec,reclen,fmt,ind)
 #	define tls13_record_trace(fp,rec,reclen,fmt,ind)
 #endif
 
+int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
 
 #ifdef  __cplusplus
 }
