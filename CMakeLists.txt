@@ -268,6 +268,10 @@ if (ENABLE_SM4_AESNI_AVX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 endif()
 
+option(ENABLE_SM4_MORE_MODES "Enable SM4 ECB/CFB/OFB/CCM modes" OFF)
+if (ENABLE_SM4_MORE_MODES)
+	list(APPEND src src/sm4_ecb.c src/sm4_cfb.c src/sm4_ofb.c src/sm4_ccm.c)
+endif()
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 if (ENABLE_SM2_EXTS)

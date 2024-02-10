@@ -2326,8 +2326,9 @@ int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 		return -1;
 	}
 	if (flags & O_NONBLOCK) {
-		error_puts("socket should be in blocking mode");
-		return -1;
+		error_puts("socket in non-blocking mode");
+		//nginx will pass a socket in non-blocking mode
+		//return -1;
 	}
 	conn->sock = sock;
 	return 1;

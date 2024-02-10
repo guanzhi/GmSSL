@@ -1,0 +1,122 @@
+/*
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the License); you may
+ *  not use this file except in compliance with the License.
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+
+#include <gmssl/sm4.h>
+#include <gmssl/mem.h>
+#include <gmssl/sm4_cbc_mac.h>
+#include <gmssl/error.h>
+
+
+#define SM4_CCM_MIN_IV_SIZE 7
+#define SM4_CCM_MAX_IV_SIZE 13
+#define SM4_CCM_MIN_MAC_SIZE 4
+#define SM4_CCM_MAX_MAC_SIZE 16
+
+
+static void length_to_bytes(size_t len, size_t nbytes, uint8_t *out)
+{
+	uint8_t *p = out + nbytes;
+	while (nbytes--) {
+		*p-- = len & 0xff;
+		len >>= 8;
+	}
+}
+
+int sm4_ccm_encrypt(SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t taglen, uint8_t *tag)
+{
+	SM4_CBC_MAC_CTX cbc_mac_ctx;
+	size_t inlen_size;
+	uint8_t block[16] = {0};
+	uint8_t ctr[16] = {0};
+	uint8_t S0[16];
+	uint8_t cbc_mac[16];
+	const uint8_t zeros[16] = {0};
+	size_t padding_len;
+
+	if (ivlen < 7 || ivlen > 13) {
+		error_print();
+		return -1;
+	}
+	if (!aad && aadlen) {
+		error_print();
+		return -1;
+	}
+	if (taglen < 4 || taglen > 16 || taglen & 1) {
+		error_print();
+		return -1;
+	}
+
+	inlen_size = 15 - ivlen;
+	if (inlen >= (1 << (inlen_size * 8))) {
+		error_print();
+		return -1;
+	}
+
+	// sm4_cbc_mac_init
+	memset(&cbc_mac_ctx, 0, sizeof(cbc_mac_ctx));
+	cbc_mac_ctx.key = *sm4_key;
+
+	// first block
+	block[0] |= ((aadlen > 0) & 0x1) << 6;
+	block[0] |= (((taglen - 2)/2) & 0x7) << 3;
+	block[0] |= (inlen_size - 1) & 0x7;
+	memcpy(block + 1, iv, ivlen);
+	length_to_bytes(inlen, inlen_size, block + 1 + ivlen);
+	sm4_cbc_mac_update(&cbc_mac_ctx, block, 16);
+
+	if (aad && aadlen) {
+		size_t alen;
+
+		if (aadlen < ((1<<16) - (1<<8))) {
+			length_to_bytes(aadlen, 2, block);
+			alen = 2;
+		} else if (aadlen < ((size_t)1<<32)) {
+			block[0] = 0xff;
+			block[1] = 0xfe;
+			length_to_bytes(aadlen, 4, block + 2);
+			alen = 6;
+		} else {
+			block[0] = 0xff;
+			block[1] = 0xff;
+			length_to_bytes(aadlen, 8, block + 2);
+		}
+		sm4_cbc_mac_update(&cbc_mac_ctx, block, alen);
+
+		sm4_cbc_mac_update(&cbc_mac_ctx, aad, aadlen);
+
+		if (alen + aadlen % 16) {
+			sm4_cbc_mac_update(&cbc_mac_ctx, zeros, 16 - (alen + aadlen)%16);
+		}
+	}
+
+	sm4_cbc_mac_update(&cbc_mac_ctx, in, inlen);
+
+	if (inlen % 16) {
+		sm4_cbc_mac_update(&cbc_mac_ctx, zeros, 16 - inlen%16);
+	}
+	sm4_cbc_mac_finish(&cbc_mac_ctx, cbc_mac);
+
+	ctr[0] = 0;
+	ctr[0] |= (inlen_size - 1) & 0x7;
+	memcpy(ctr + 1, iv, ivlen);
+	memset(ctr + 1 + ivlen, 0, 15 - ivlen);
+
+	sm4_encrypt(sm4_key, ctr, S0);
+	gmssl_memxor(out, cbc_mac, S0, taglen);
+
+	ctr[15] = 1;
+	sm4_ctr_encrypt(sm4_key, ctr, in, inlen, out);
+
+	gmssl_secure_clear(&cbc_mac_ctx, sizeof(cbc_mac_ctx));
+	return 1;
+}
+
