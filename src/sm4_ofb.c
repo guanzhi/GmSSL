@@ -27,14 +27,6 @@ void sm4_ofb_encrypt(const SM4_KEY *key, uint8_t iv[16], const uint8_t *in, size
 	}
 }
 
-
-typedef struct {
-	SM4_KEY sm4_key;
-	uint8_t iv[SM4_BLOCK_SIZE];
-	uint8_t block[SM4_BLOCK_SIZE];
-	size_t block_nbytes;
-} SM4_OFB_CTX;
-
 int sm4_ofb_encrypt_init(SM4_OFB_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {

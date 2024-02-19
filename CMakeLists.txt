@@ -268,10 +268,55 @@ if (ENABLE_SM4_AESNI_AVX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 endif()
 
-option(ENABLE_SM4_MORE_MODES "Enable SM4 ECB/CFB/OFB/CCM modes" OFF)
-if (ENABLE_SM4_MORE_MODES)
-	list(APPEND src src/sm4_ecb.c src/sm4_cfb.c src/sm4_ofb.c src/sm4_ccm.c)
+
+option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
+if (ENABLE_SM4_ECB)
+	message(STATUS "ENABLE_SM4_ECB is ON")
+	add_definitions(-DENABLE_SM4_ECB)
+	list(APPEND src src/sm4_ecb.c)
+	list(APPEND tests sm4_ecb)
 endif()
+
+option(ENABLE_SM4_OFB "Enable SM4 OFB mode" OFF)
+if (ENABLE_SM4_OFB)
+	message(STATUS "ENABLE_SM4_OFB is ON")
+	add_definitions(-DENABLE_SM4_OFB)
+	list(APPEND src src/sm4_ofb.c)
+	list(APPEND tests sm4_ofb)
+endif()
+
+option(ENABLE_SM4_CFB "Enable SM4 CFB mode" OFF)
+if (ENABLE_SM4_CFB)
+	message(STATUS "ENABLE_SM4_CFB is ON")
+	add_definitions(-DENABLE_SM4_CFB)
+	list(APPEND src src/sm4_cfb.c)
+	list(APPEND tests sm4_cfb)
+endif()
+
+option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
+
+option(ENABLE_SM4_CCM "Enable SM4 CCM mode" OFF)
+if (ENABLE_SM4_CCM)
+	message(STATUS "ENABLE_SM4_CCM is ON")
+	set(ENABLE_SM4_CBC_MAC ON)
+	add_definitions(-DENABLE_SM4_CCM)
+	list(APPEND src src/sm4_ccm.c)
+	list(APPEND tests sm4_ccm)
+endif()
+
+option(ENABLE_SM4_XTS "Enable SM4 XTS mode" OFF)
+if (ENABLE_SM4_XTS)
+	message(STATUS "ENABLE_SM4_XTS is ON")
+	add_definitions(-DENABLE_SM4_XTS)
+	list(APPEND src src/sm4_xts.c)
+	list(APPEND tests sm4_xts)
+endif()
+
+
+
+
+
+
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 if (ENABLE_SM2_EXTS)
@@ -369,7 +414,6 @@ if (ENABLE_INTEL_RDRAND)
 endif()
 
 
-option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
 if (ENABLE_SM4_CBC_MAC)
 	message(STATUS "ENABLE_SM4_CBC_MAC is ON")
 	list(APPEND src src/sm4_cbc_mac.c)

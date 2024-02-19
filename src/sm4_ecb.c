@@ -22,13 +22,6 @@ void sm4_ecb_encrypt(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint
 	}
 }
 
-
-typedef struct {
-	SM4_KEY sm4_key;
-	uint8_t block[SM4_BLOCK_SIZE];
-	size_t block_nbytes;
-} SM4_ECB_CTX;
-
 int sm4_ecb_encrypt_init(SM4_ECB_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE])
 {
 	sm4_set_encrypt_key(&ctx->sm4_key, key);
@@ -37,7 +30,7 @@ int sm4_ecb_encrypt_init(SM4_ECB_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE])
 	return 1;
 }
 
-int sm4_efb_encrypt_update(SM4_ECB_CTX *ctx,
+int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	size_t left;
@@ -93,3 +86,29 @@ int sm4_ecb_encrypt_finish(SM4_ECB_CTX *ctx, uint8_t *out, size_t *outlen)
 	return 1;
 }
 
+int sm4_ecb_decrypt_init(SM4_ECB_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE])
+{
+	sm4_set_decrypt_key(&ctx->sm4_key, key);
+	memset(ctx->block, 0, SM4_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
+}
+
+int sm4_ecb_decrypt_update(SM4_ECB_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	if (sm4_ecb_encrypt_update(ctx, in, inlen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm4_ecb_decrypt_finish(SM4_ECB_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	if (sm4_ecb_encrypt_finish(ctx, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}

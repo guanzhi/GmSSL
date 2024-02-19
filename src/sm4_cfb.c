@@ -63,14 +63,6 @@ void sm4_cfb_decrypt(const SM4_KEY *key, size_t sbytes, uint8_t iv[16],
 	}
 }
 
-typedef struct {
-	SM4_KEY sm4_key;
-	uint8_t iv[SM4_BLOCK_SIZE];
-	uint8_t block[SM4_BLOCK_SIZE];
-	size_t block_nbytes;
-	size_t sbytes;
-} SM4_CFB_CTX;
-
 int sm4_cfb_encrypt_init(SM4_CFB_CTX *ctx, size_t sbytes,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {
