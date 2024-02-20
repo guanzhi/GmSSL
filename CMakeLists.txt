@@ -313,9 +313,13 @@ if (ENABLE_SM4_XTS)
 endif()
 
 
-
-
-
+option(ENABLE_SM2_Z256 "Enable SM2 z256 implementation" OFF)
+if (ENABLE_SM2_Z256)
+	message(STATUS "ENABLE_SM2_Z256 is ON")
+	add_definitions(-DENABLE_SM2_Z256)
+	list(APPEND src src/sm2_z256.c src/sm2_z256_table.c)
+	list(APPEND tests sm2_z256)
+endif()
 
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
