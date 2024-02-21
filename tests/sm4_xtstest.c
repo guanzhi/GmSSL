@@ -27,10 +27,11 @@ static int test_sm4_xts(void)
 	uint8_t plaintext[16 * 4];
 	uint8_t encrypted[sizeof(plaintext)];
 	uint8_t decrypted[sizeof(plaintext)];
-	size_t tweak = 0x12345678;
+	uint8_t tweak[16];
 	size_t i;
 
 	rand_bytes(key, sizeof(key));
+	rand_bytes(tweak, sizeof(tweak));
 	rand_bytes(plaintext, sizeof(plaintext));
 
 	for (i = 0; i < sizeof(len)/sizeof(len[0]); i++) {

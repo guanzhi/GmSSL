@@ -212,11 +212,27 @@ int sm4_ccm_decrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 
 #ifdef ENABLE_SM4_XTS
 // call `sm4_set_encrypt_key` to set both `key1` and `key2`
-int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, size_t tweak,
+int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t tweak[16],
 	const uint8_t *in, size_t inlen, uint8_t *out);
 // call `sm4_set_decrypt_key(key1)` and `sm4_set_encrypt_key(key2)`
-int sm4_xts_decrypt(const SM4_KEY *key1, const SM4_KEY *key2, size_t tweak,
+int sm4_xts_decrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t tweak[16],
 	const uint8_t *in, size_t inlen, uint8_t *out);
+
+typedef struct {
+	SM4_KEY key1;
+	SM4_KEY key2;
+	uint8_t tweak[16];
+	size_t data_unit_size;
+	uint8_t *block;
+	size_t block_nbytes;
+} SM4_XTS_CTX;
+
+int sm4_xts_encrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t iv[16], size_t data_unit_size);
+int sm4_xts_encrypt_update(SM4_XTS_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm4_xts_encrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen);
+int sm4_xts_decrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t iv[16], size_t data_unit_size);
+int sm4_xts_decrypt_update(SM4_XTS_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm4_xts_decrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen);
 #endif
 
 
