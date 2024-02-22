@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+typedef uint64_t SM2_Z256[4];
 
 void sm2_z256_copy(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_copy_conditional(uint64_t dst[4], const uint64_t src[4], uint64_t move);
@@ -43,12 +44,25 @@ void sm2_z256_modp_mul_by_2(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_mul_by_3(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_div_by_2(uint64_t r[4], const uint64_t a[4]);
 
-void sm2_z256_to_mont(const uint64_t a[4], uint64_t r[4]);
-void sm2_z256_from_mont(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_mont_sqr(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_mont_inv(uint64_t r[4], const uint64_t a[4]);
-int sm2_z256_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
+void sm2_z256_modp_to_mont(const uint64_t a[4], uint64_t r[4]);
+void sm2_z256_modp_from_mont(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
+void sm2_z256_modp_mont_sqr(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
+void sm2_z256_modp_mont_inv(uint64_t r[4], const uint64_t a[4]);
+int sm2_z256_modp_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
+
+void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
+void sm2_z256_modn_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
+void sm2_z256_modn_neg(uint64_t r[4], const uint64_t a[4]);
+
+void sm2_z256_modn_to_mont(const uint64_t a[4], uint64_t r[4]);
+void sm2_z256_modn_from_mont(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
+void sm2_z256_modn_mont_sqr(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modn_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
+void sm2_z256_modn_mont_inv(uint64_t r[4], const uint64_t a[4]);
+int sm2_z256_modn_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
 
 
 typedef struct {

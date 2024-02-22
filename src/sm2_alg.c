@@ -1,5 +1,5 @@
-﻿/*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+/*
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,10 +18,6 @@
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
-
-
-#define sm2_print_bn(label,a) sm2_bn_print(stderr,0,0,label,a) // 这个不应该放在这里，应该放在测试文件中
-
 
 
 const SM2_BN SM2_P = {
@@ -63,7 +59,6 @@ const SM2_BN SM2_U_PLUS_ONE = {
 const SM2_BN SM2_ONE = {1,0,0,0,0,0,0,0};
 const SM2_BN SM2_TWO = {2,0,0,0,0,0,0,0};
 const SM2_BN SM2_THREE = {3,0,0,0,0,0,0,0};
-
 
 
 int sm2_bn_check(const SM2_BN a)
@@ -775,8 +770,6 @@ int sm2_fn_rand(SM2_BN r)
 	return 1;
 }
 
-
-
 void sm2_jacobian_point_init(SM2_JACOBIAN_POINT *R)
 {
 	memset(R, 0, sizeof(SM2_JACOBIAN_POINT));
@@ -817,7 +810,7 @@ void sm2_jacobian_point_get_xy(const SM2_JACOBIAN_POINT *P, SM2_BN x, SM2_BN y)
 	}
 }
 
-int sm2_jacobian_pointpoint_print(FILE *fp, int fmt, int ind, const char *label, const SM2_JACOBIAN_POINT *P)
+int sm2_jacobian_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_JACOBIAN_POINT *P)
 {
 	int len = 0;
 	SM2_BN x;
@@ -1321,6 +1314,7 @@ int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
 	sm2_bn_add(u, SM2_P, SM2_ONE);
 	sm2_bn_rshift(u, u, 2);
 
+	// How many times？			
 	do {
 		sm3_digest(data, datalen, dgst);
 

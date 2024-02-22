@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -316,6 +316,8 @@ typedef struct {
 	uint8_t ciphertext_size;
 	uint8_t ciphertext[SM2_MAX_PLAINTEXT_SIZE];
 } SM2_CIPHERTEXT;
+
+int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out);
 
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen);
