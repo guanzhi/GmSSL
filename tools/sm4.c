@@ -89,6 +89,7 @@ static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
 	return buffer;
 }
 
+#ifdef ENABLE_SM4_CCM
 static int sm4_ccm_crypt(const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen, FILE *infp, FILE *outfp, int enc,
 	const char *prog)
@@ -168,6 +169,7 @@ end:
 	if (outbuf) free(outbuf);
 	return ret;
 }
+#endif
 
 
 static const char *usage =
@@ -557,20 +559,30 @@ bad:
 		goto end;
 	}
 
+#ifdef ENABLE_SM4_XTS
 	if (mode == SM4_MODE_XTS) {
 		if (sm4_ccm_crypt(key, keylen, iv, ivlen, aad, aadlen, taglen, infp, outfp, enc, prog) != 1) {
 			goto end;
 		}
 	}
+#endif
 
 
 	if (enc) {
 		switch (mode) {
+#ifdef ENABLE_SM4_ECB
 		case SM4_MODE_ECB: rv = sm4_ecb_encrypt_init(&sm4_ctx.ecb, key); break;
+#endif
 		case SM4_MODE_CBC: rv = sm4_cbc_encrypt_init(&sm4_ctx.cbc, key, iv); break;
+#ifdef ENABLE_SM4_CFB
 		case SM4_MODE_CFB: rv = sm4_cfb_encrypt_init(&sm4_ctx.cfb, 16, key, iv); break;
+#endif
+#ifdef ENABLE_SM4_OFB
 		case SM4_MODE_OFB: rv = sm4_ofb_encrypt_init(&sm4_ctx.ofb, key, iv); break;
+#endif
+#ifdef ENABLE_SM4_XTS
 		case SM4_MODE_XTS: rv = sm4_xts_encrypt_init(&sm4_ctx.xts, key, iv, xts_data_unit_size); break;
+#endif
 		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
 		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
 		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
@@ -582,11 +594,19 @@ bad:
 
 		while ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) > 0) {
 			switch (mode) {
+#ifdef ENABLE_SM4_ECB
 			case SM4_MODE_ECB: rv = sm4_ecb_encrypt_update(&sm4_ctx.ecb, inbuf, inlen, outbuf, &outlen); break;
+#endif
 			case SM4_MODE_CBC: rv = sm4_cbc_encrypt_update(&sm4_ctx.cbc, inbuf, inlen, outbuf, &outlen); break;
+#ifdef ENABLE_SM4_CFB
 			case SM4_MODE_CFB: rv = sm4_cfb_encrypt_update(&sm4_ctx.cfb, inbuf, inlen, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_OFB
 			case SM4_MODE_OFB: rv = sm4_ofb_encrypt_update(&sm4_ctx.ofb, inbuf, inlen, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_XTS
 			case SM4_MODE_XTS: rv = sm4_xts_encrypt_update(&sm4_ctx.xts, inbuf, inlen, outbuf, &outlen); break;
+#endif
 			case SM4_MODE_GCM: rv = sm4_gcm_encrypt_update(&sm4_ctx.gcm, inbuf, inlen, outbuf, &outlen); break;
 			case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_update(&sm4_ctx.cbc_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
 			case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_update(&sm4_ctx.ctr_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
@@ -602,11 +622,19 @@ bad:
 		}
 
 		switch (mode) {
+#ifdef ENABLE_SM4_ECB
 		case SM4_MODE_ECB: rv = sm4_ecb_encrypt_finish(&sm4_ctx.ecb, outbuf, &outlen); break;
+#endif
 		case SM4_MODE_CBC: rv = sm4_cbc_encrypt_finish(&sm4_ctx.cbc, outbuf, &outlen); break;
+#ifdef ENABLE_SM4_CFB
 		case SM4_MODE_CFB: rv = sm4_cfb_encrypt_finish(&sm4_ctx.cfb, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_OFB
 		case SM4_MODE_OFB: rv = sm4_ofb_encrypt_finish(&sm4_ctx.ofb, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_XTS
 		case SM4_MODE_XTS: rv = sm4_xts_encrypt_finish(&sm4_ctx.xts, outbuf, &outlen); break;
+#endif
 		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_finish(&sm4_ctx.gcm, outbuf, &outlen); break;
 		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_finish(&sm4_ctx.cbc_sm3_hmac, outbuf, &outlen); break;
 		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_finish(&sm4_ctx.ctr_sm3_hmac, outbuf, &outlen); break;
@@ -622,11 +650,19 @@ bad:
 
 	} else {
 		switch (mode) {
+#ifdef ENABLE_SM4_ECB
 		case SM4_MODE_ECB: rv = sm4_ecb_decrypt_init(&sm4_ctx.ecb, key); break;
+#endif
 		case SM4_MODE_CBC: rv = sm4_cbc_decrypt_init(&sm4_ctx.cbc, key, iv); break;
+#ifdef ENABLE_SM4_CFB
 		case SM4_MODE_CFB: rv = sm4_cfb_decrypt_init(&sm4_ctx.cfb, 16, key, iv); break;
+#endif
+#ifdef ENABLE_SM4_OFB
 		case SM4_MODE_OFB: rv = sm4_ofb_encrypt_init(&sm4_ctx.ofb, key, iv); break;
+#endif
+#ifdef ENABLE_SM4_XTS
 		case SM4_MODE_XTS: rv = sm4_xts_decrypt_init(&sm4_ctx.xts, key, iv, xts_data_unit_size); break;
+#endif
 		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
 		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
 		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
@@ -638,11 +674,19 @@ bad:
 
 		while ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) > 0) {
 			switch (mode) {
+#ifdef ENABLE_SM4_ECB
 			case SM4_MODE_ECB: rv = sm4_ecb_decrypt_update(&sm4_ctx.ecb, inbuf, inlen, outbuf, &outlen); break;
+#endif
 			case SM4_MODE_CBC: rv = sm4_cbc_decrypt_update(&sm4_ctx.cbc, inbuf, inlen, outbuf, &outlen); break;
+#ifdef ENABLE_SM4_CFB
 			case SM4_MODE_CFB: rv = sm4_cfb_decrypt_update(&sm4_ctx.cfb, inbuf, inlen, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_OFB
 			case SM4_MODE_OFB: rv = sm4_ofb_encrypt_update(&sm4_ctx.ofb, inbuf, inlen, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_XTS
 			case SM4_MODE_XTS: rv = sm4_xts_encrypt_update(&sm4_ctx.xts, inbuf, inlen, outbuf, &outlen); break;
+#endif
 			case SM4_MODE_GCM: rv = sm4_gcm_decrypt_update(&sm4_ctx.gcm, inbuf, inlen, outbuf, &outlen); break;
 			case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_update(&sm4_ctx.cbc_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
 			case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_update(&sm4_ctx.ctr_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;
@@ -659,11 +703,19 @@ bad:
 		}
 
 		switch (mode) {
+#ifdef ENABLE_SM4_ECB
 		case SM4_MODE_ECB: rv = sm4_ecb_decrypt_finish(&sm4_ctx.ecb, outbuf, &outlen); break;
+#endif
 		case SM4_MODE_CBC: rv = sm4_cbc_decrypt_finish(&sm4_ctx.cbc, outbuf, &outlen); break;
+#ifdef ENABLE_SM4_CFB
 		case SM4_MODE_CFB: rv = sm4_cfb_decrypt_finish(&sm4_ctx.cfb, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_OFB
 		case SM4_MODE_OFB: rv = sm4_ofb_encrypt_finish(&sm4_ctx.ofb, outbuf, &outlen); break;
+#endif
+#ifdef ENABLE_SM4_XTS
 		case SM4_MODE_XTS: rv = sm4_xts_decrypt_finish(&sm4_ctx.xts, outbuf, &outlen); break;
+#endif
 		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_finish(&sm4_ctx.gcm, outbuf, &outlen); break;
 		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_finish(&sm4_ctx.cbc_sm3_hmac, outbuf, &outlen); break;
 		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_finish(&sm4_ctx.ctr_sm3_hmac, outbuf, &outlen); break;
