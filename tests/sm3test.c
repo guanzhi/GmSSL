@@ -157,12 +157,12 @@ static int test_sm3(void)
 			int n;
 			fprintf(stderr, "sm3 test %zu failed\n", i+1);
 			fprintf(stderr, "error calculating SM3 on %s\n", testhex[i]);
-			fprintf(stderr, " digest(corret) = ");
+			fprintf(stderr, " digest(error) = ");
 			for (n = 0; n < sizeof(dgst); n++) {
 				fprintf(stderr, "%02X", dgst[n]);
 			}
 			fprintf(stderr, "\n");
-			fprintf(stderr, " digest(error)  = %s\n", dgsthex[i]);
+			fprintf(stderr, " digest(correct)  = %s\n", dgsthex[i]);
 			return -1;
 		}
 	}
