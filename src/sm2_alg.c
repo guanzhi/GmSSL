@@ -1343,3 +1343,17 @@ int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
+const uint64_t *sm2_bn_prime(void) {
+	return &SM2_P[0];
+}
+
+const uint64_t *sm2_bn_order(void) {
+	return &SM2_N[0];
+}
+
+const uint64_t *sm2_bn_one(void) {
+	return &SM2_ONE[0];
+}
+
+
+

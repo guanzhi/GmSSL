@@ -19,9 +19,6 @@
 #include <gmssl/endian.h>
 
 
-extern const SM2_BN SM2_N;
-extern const SM2_BN SM2_ONE;
-
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_JACOBIAN_POINT _P, *P = &_P;
@@ -34,11 +31,14 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 	SM2_BN r;
 	SM2_BN s;
 
+	const uint64_t *one = sm2_bn_one();
+	const uint64_t *order = sm2_bn_order();
+
 	//fprintf(stderr, "sm2_do_sign\n");
 	sm2_bn_from_bytes(d, key->private_key);
 
 	// compute (d + 1)^-1 (mod n)
-	sm2_fn_add(d_inv, d, SM2_ONE);	//sm2_bn_print(stderr, 0, 4, "(1+d)", d_inv);
+	sm2_fn_add(d_inv, d, one);	//sm2_bn_print(stderr, 0, 4, "(1+d)", d_inv);
 	if (sm2_bn_is_zero(d_inv)) {
 		error_print();
 		return -1;
@@ -63,17 +63,17 @@ retry:
 					//sm2_bn_print(stderr, 0, 4, "x", x);
 
 	// r = e + x (mod n)
-	if (sm2_bn_cmp(e, SM2_N) >= 0) {
-		sm2_bn_sub(e, e, SM2_N);
+	if (sm2_bn_cmp(e, order) >= 0) {
+		sm2_bn_sub(e, e, order);
 	}
-	if (sm2_bn_cmp(x, SM2_N) >= 0) {
-		sm2_bn_sub(x, x, SM2_N);
+	if (sm2_bn_cmp(x, order) >= 0) {
+		sm2_bn_sub(x, x, order);
 	}
 	sm2_fn_add(r, e, x);		//sm2_bn_print(stderr, 0, 4, "r = e + x (mod n)", r);
 
 	// if r == 0 or r + k == n re-generate k
 	sm2_bn_add(t, r, k);
-	if (sm2_bn_is_zero(r) || sm2_bn_cmp(t, SM2_N) == 0) {
+	if (sm2_bn_is_zero(r) || sm2_bn_cmp(t, order) == 0) {
 					//sm2_bn_print(stderr, 0, 4, "r + k", t);
 		goto retry;
 	}
@@ -113,10 +113,12 @@ int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 	SM2_BN r;
 	SM2_BN s;
 
+	const uint64_t *order = sm2_bn_order();
+
 	// e = H(M)
 	sm2_bn_from_bytes(e, dgst);
-	if (sm2_bn_cmp(e, SM2_N) >= 0) {
-		sm2_bn_sub(e, e, SM2_N);
+	if (sm2_bn_cmp(e, order) >= 0) {
+		sm2_bn_sub(e, e, order);
 	}
 
 	// rand k in [1, n - 1]
@@ -154,6 +156,8 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	SM2_BN x;
 	SM2_BN t;
 
+	const uint64_t *order = sm2_bn_order();
+
 	// parse public key
 	sm2_jacobian_point_from_bytes(P, (const uint8_t *)&key->public_key);
 					//sm2_jacobian_point_print(stderr, 0, 4, "P", P);
@@ -164,9 +168,9 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 
 	// check r, s in [1, n-1]
 	if (sm2_bn_is_zero(r) == 1
-		|| sm2_bn_cmp(r, SM2_N) >= 0
+		|| sm2_bn_cmp(r, order) >= 0
 		|| sm2_bn_is_zero(s) == 1
-		|| sm2_bn_cmp(s, SM2_N) >= 0) {
+		|| sm2_bn_cmp(s, order) >= 0) {
 		error_print();
 		return -1;
 	}
@@ -187,11 +191,11 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 					//sm2_bn_print(stderr, 0, 4, "x", x);
 
 	// r' = e + x (mod n)
-	if (sm2_bn_cmp(e, SM2_N) >= 0) {
-		sm2_bn_sub(e, e, SM2_N);
+	if (sm2_bn_cmp(e, order) >= 0) {
+		sm2_bn_sub(e, e, order);
 	}
-	if (sm2_bn_cmp(x, SM2_N) >= 0) {
-		sm2_bn_sub(x, x, SM2_N);
+	if (sm2_bn_cmp(x, order) >= 0) {
+		sm2_bn_sub(x, x, order);
 	}
 	sm2_fn_add(e, e, x);		//sm2_bn_print(stderr, 0, 4, "e + x (mod n)", e);
 

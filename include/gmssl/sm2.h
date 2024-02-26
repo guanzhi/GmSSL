@@ -356,6 +356,9 @@ _gmssl_export int sm2_decrypt_init(SM2_ENC_CTX *ctx, const SM2_KEY *sm2_key);
 _gmssl_export int sm2_decrypt_update(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 _gmssl_export int sm2_decrypt_finish(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
+const uint64_t *sm2_bn_prime(void);
+const uint64_t *sm2_bn_order(void);
+const uint64_t *sm2_bn_one(void);
 
 #ifdef __cplusplus
 }

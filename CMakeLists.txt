@@ -20,7 +20,7 @@ set(src
 	src/sm3_digest.c
 	src/sm2_alg.c
 	src/sm2_key.c
-	src/sm2_sign.c
+	src/sm2_z256_sign.c
 	src/sm2_lib.c
 	src/sm2_ctx.c
 	src/sm9_alg.c
@@ -123,6 +123,8 @@ set(tests
 	sm4
 	sm3
 	sm2
+	sm2_sign
+	sm2_enc
 	sm9
 	zuc
 	hash_drbg

@@ -19,6 +19,7 @@
 
 enum {
 	OP_ADD,
+	OP_DBL,
 	OP_SUB,
 	OP_NEG,
 	OP_MUL,
@@ -240,25 +241,16 @@ static int test_sm2_z256_modn(void)
 			sm2_z256_modn_neg(c, a);
 			break;
 		case OP_MUL:
-			sm2_z256_modn_to_mont(a, a);
-			sm2_z256_modn_to_mont(b, b);
-			sm2_z256_modn_mont_mul(c, a, b);
-			sm2_z256_modn_from_mont(c, c);
+			sm2_z256_modn_mul(c, a, b);
 			break;
 		case OP_SQR:
-			sm2_z256_modn_to_mont(a, a);
-			sm2_z256_modn_mont_sqr(c, a);
-			sm2_z256_modn_from_mont(c, c);
+			sm2_z256_modn_sqr(c, a);
 			break;
 		case OP_EXP:
-			sm2_z256_modn_to_mont(a, a);
-			sm2_z256_modn_mont_exp(c, a, b);
-			sm2_z256_modn_from_mont(c, c);
+			sm2_z256_modn_exp(c, a, b);
 			break;
 		case OP_INV:
-			sm2_z256_modn_to_mont(a, a);
-			sm2_z256_modn_mont_inv(c, a);
-			sm2_z256_modn_from_mont(c, c);
+			sm2_z256_modn_inv(c, a);
 			break;
 		default:
 			error_print();
@@ -275,6 +267,219 @@ static int test_sm2_z256_modn(void)
 			if (tests[i].b) {
 				fprintf(stderr, "        op2: %s\n", tests[i].b);
 			}
+
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_point_is_on_curve(void)
+{
+
+	struct {
+		char *label;
+		char *mont_X;
+		char *mont_Y;
+		char *mont_Z;
+	} tests[] = {
+		{
+		"Point at Infinity (1:1:0)",
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		},
+		{
+		"Affine Point [1]G with Montgomery Coordinates",
+		"91167a5ee1c13b05d6a1ed99ac24c3c33e7981eddca6c05061328990f418029e", // mont(x)
+		"63cd65d481d735bd8d4cfb066e2a48f8c1f5e5788d3295fac1354e593c2d0ddd", // mont(y)
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		},
+		{
+		"Jacobian Point [2]G with Montgomery Coordinates",
+		"398874c476a3b1f77aef3e862601440903243d78d5b614a62eda8381e63c48d6",
+		"1fbbdfdddaf4fd475a86a7ae64921d4829f04a88f6cf4dc128385681c1a73e40",
+		"c79acba903ae6b7b1a99f60cdc5491f183ebcaf11a652bf5826a9cb2785a1bba",
+		},
+	};
+
+	SM2_Z256_POINT P;
+	size_t i;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		sm2_z256_from_hex(P.X, tests[i].mont_X);
+		sm2_z256_from_hex(P.Y, tests[i].mont_Y);
+		sm2_z256_from_hex(P.Z, tests[i].mont_Z);
+
+		if (sm2_z256_point_is_on_curve(&P) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_point_get_xy(void)
+{
+	struct {
+		char *label;
+		char *mont_X;
+		char *mont_Y;
+		char *mont_Z;
+		char *x;
+		char *y;
+	} tests[] = {
+		{
+		"Point at Infinity (1:1:0)",
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		},
+		{
+		"Affine Point [1]G with Montgomery Coordinates",
+		"91167a5ee1c13b05d6a1ed99ac24c3c33e7981eddca6c05061328990f418029e", // mont(x)
+		"63cd65d481d735bd8d4cfb066e2a48f8c1f5e5788d3295fac1354e593c2d0ddd", // mont(y)
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7", // x
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0", // y
+		},
+		{
+		"Jacobian Point [2]G with Montgomery Coordinates",
+		"398874c476a3b1f77aef3e862601440903243d78d5b614a62eda8381e63c48d6",
+		"1fbbdfdddaf4fd475a86a7ae64921d4829f04a88f6cf4dc128385681c1a73e40",
+		"c79acba903ae6b7b1a99f60cdc5491f183ebcaf11a652bf5826a9cb2785a1bba",
+		"56cefd60d7c87c000d58ef57fa73ba4d9c0dfa08c08a7331495c2e1da3f2bd52",
+		"31b7e7e6cc8189f668535ce0f8eaf1bd6de84c182f6c8e716f780d3a970a23c3",
+		},
+	};
+
+	SM2_Z256_POINT P;
+	uint64_t x[4];
+	uint64_t y[4];
+	size_t i;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		sm2_z256_from_hex(P.X, tests[i].mont_X);
+		sm2_z256_from_hex(P.Y, tests[i].mont_Y);
+		sm2_z256_from_hex(P.Z, tests[i].mont_Z);
+
+		sm2_z256_point_get_xy(&P, x, NULL);
+		if (sm2_z256_equ_hex(x, tests[i].x) != 1) {
+			error_print();
+			return -1;
+		}
+
+		sm2_z256_point_get_xy(&P, x, y);
+		if (sm2_z256_equ_hex(y, tests[i].y) != 1) {
+			error_print();
+			return -1;
+		}
+	};
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_point_ops(void)
+{
+	char *hex_G =
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7"
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0";
+	char *hex_2G =
+		"56cefd60d7c87c000d58ef57fa73ba4d9c0dfa08c08a7331495c2e1da3f2bd52"
+		"31b7e7e6cc8189f668535ce0f8eaf1bd6de84c182f6c8e716f780d3a970a23c3";
+	char *hex_3G =
+		"a97f7cd4b3c993b4be2daa8cdb41e24ca13f6bd945302244e26918f1d0509ebf"
+		"530b5dd88c688ef5ccc5cec08a72150f7c400ee5cd045292aaacdd037458f6e6";
+	char *hex_negG =
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7"
+		"43c8c95c0b098863a642311c9496deac2f56788239d5b8c0fd20cd1adec60f5f";
+	char *hex_10G =
+		"d3f94862519621c121666061f65c3e32b2d0d065cd219e3284a04814db522756"
+		"4b9030cf676f6a742ebd57d146dca428f6b743f64d1482d147d46fb2bab82a14";
+	char *hex_bG =
+		"528470bc74a6ebc663c06fc4cfa1b630d1e9d4a80c0a127b47f73c324c46c0ba"
+		"832cf9c5a15b997e60962b4cf6e2c9cee488faaec98d20599d323d4cabfc1bf4";
+	char *hex_10 =
+		"000000000000000000000000000000000000000000000000000000000000000A";
+	char *hex_b =
+		"28e9fa9e9d9f5e344d5a9e4bcf6509a7f39789f515ab8f92ddbcbd414d940e93";
+
+	struct {
+		char *label;
+		int op;
+		char *R;
+		char *k;
+		char *A;
+		char *B;
+	} tests[] = {
+		{"[2]G", OP_DBL, hex_2G, NULL, hex_G, NULL,},
+		{"[2]G + G", OP_ADD, hex_3G, NULL, hex_2G, hex_G,},
+		{"[3]G - G", OP_SUB, hex_2G, NULL, hex_3G, hex_G,},
+		{"-G", OP_NEG, hex_negG, NULL, hex_G, NULL,},
+		{"[10]G", OP_MUL, hex_10G, hex_10, hex_G, NULL,},
+		{"[b]G", OP_MUL, hex_bG, hex_b, hex_G, NULL,},
+	};
+
+	size_t i;
+
+	SM2_Z256_POINT P;
+	SM2_Z256_POINT R;
+	uint64_t k[4];
+	SM2_Z256_POINT A;
+	SM2_Z256_POINT B;
+
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		sm2_z256_point_from_hex(&R, tests[i].R);
+		if (tests[i].k) {
+			sm2_z256_from_hex(k, tests[i].k);
+		}
+
+		sm2_z256_point_from_hex(&A, tests[i].A);
+		if (tests[i].B) {
+			sm2_z256_point_from_hex(&B, tests[i].B);
+		}
+
+		switch (tests[i].op) {
+		case OP_ADD:
+			sm2_z256_point_add(&P, &A, &B);
+			break;
+		case OP_DBL:
+			sm2_z256_point_dbl(&P, &A);
+			break;
+		case OP_SUB:
+			sm2_z256_point_sub(&P, &A, &B);
+			break;
+		case OP_NEG:
+			sm2_z256_point_neg(&P, &A);
+			break;
+		case OP_MUL:
+			sm2_z256_point_mul(&P, k, &A);
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+
+			fprintf(stderr, "%s\n", tests[i].label);
+			sm2_z256_point_print(stderr, 0, 4, "R", &P);
+			fprintf(stderr, "   R: %s\n", tests[i].R);
+			fprintf(stderr, "   k: %s\n", tests[i].k);
+			fprintf(stderr, "   A: %s\n", tests[i].A);
+			fprintf(stderr, "   B: %s\n", tests[i].B);
+
+		if (sm2_z256_point_equ_hex(&P, tests[i].R) != 1) {
 
 			error_print();
 			return -1;
@@ -340,7 +545,6 @@ static int test_sm2_z256_point_mul_generator(void)
 		"DDF092555409C19DFDBE86A75C139906A80198337744EE78CD27E384D9FCAF15"
 		"847D18FFB38E87065CD6B6E9C12D2922037937707D6A49A2223B949657E52BC1",
 		},
-		// k = G.x
 		{
 		"[x]G",
 		"32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7",
@@ -414,6 +618,9 @@ int main(void)
 {
 	if (test_sm2_z256_modp() != 1) goto err;
 	if (test_sm2_z256_modn() != 1) goto err;
+	if (test_sm2_z256_point_is_on_curve() != 1) goto err;
+	if (test_sm2_z256_point_get_xy() != 1) goto err;
+	if (test_sm2_z256_point_ops() != 1) goto err;
 	if (test_sm2_z256_point_mul_generator() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
