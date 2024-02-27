@@ -20,7 +20,6 @@ set(src
 	src/sm3_digest.c
 	src/sm2_alg.c
 	src/sm2_key.c
-	src/sm2_z256_sign.c
 	src/sm2_lib.c
 	src/sm2_ctx.c
 	src/sm9_alg.c
@@ -320,8 +319,10 @@ option(ENABLE_SM2_Z256 "Enable SM2 z256 implementation" OFF)
 if (ENABLE_SM2_Z256)
 	message(STATUS "ENABLE_SM2_Z256 is ON")
 	add_definitions(-DENABLE_SM2_Z256)
-	list(APPEND src src/sm2_z256.c src/sm2_z256_table.c)
+	list(APPEND src src/sm2_z256.c src/sm2_z256_sign.c src/sm2_z256_table.c)
 	list(APPEND tests sm2_z256)
+else()
+	list(APPEND src src/sm2_sign.c)
 endif()
 
 

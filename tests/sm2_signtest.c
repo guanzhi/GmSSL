@@ -102,6 +102,8 @@ static int test_sm2_do_sign(void)
 	return 1;
 }
 
+#ifdef ENABLE_SM2_Z256
+
 #define SM2_U256		SM2_Z256
 #define sm2_u256_one		sm2_z256_one
 #define sm2_u256_is_zero	sm2_z256_is_zero
@@ -140,6 +142,8 @@ static int test_sm2_do_sign_fast(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+
+#endif // ENABLE_SM2_Z256
 
 static int test_sm2_sign(void)
 {
