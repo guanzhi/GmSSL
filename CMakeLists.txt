@@ -122,7 +122,6 @@ set(tests
 	sm4
 	sm3
 	sm2
-	sm2_sign
 	sm2_enc
 	sm9
 	zuc
@@ -320,7 +319,7 @@ if (ENABLE_SM2_Z256)
 	message(STATUS "ENABLE_SM2_Z256 is ON")
 	add_definitions(-DENABLE_SM2_Z256)
 	list(APPEND src src/sm2_z256.c src/sm2_z256_table.c src/sm2_z256_sign.c)
-	list(APPEND tests sm2_z256)
+	list(APPEND tests sm2_z256 sm2_sign)
 else ()
 	list(APPEND src src/sm2_sign.c)
 endif()
