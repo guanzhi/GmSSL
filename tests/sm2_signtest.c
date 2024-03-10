@@ -109,6 +109,7 @@ static int test_sm2_do_sign(void)
 #define sm2_u256_modn_add	sm2_z256_modn_add
 #define sm2_u256_modn_inv	sm2_z256_modn_inv
 
+
 static int test_sm2_do_sign_fast(void)
 {
 	SM2_KEY sm2_key;
@@ -135,6 +136,45 @@ static int test_sm2_do_sign_fast(void)
 			error_print();
 			return -1;
 		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_do_sign_pre_compute(void)
+{
+	SM2_KEY sm2_key;
+	uint64_t d[4];
+
+	uint64_t k[4];
+	uint64_t x1[4];
+	uint8_t dgst[32];
+	SM2_SIGNATURE sig;
+
+
+	sm2_key_generate(&sm2_key);
+
+		const uint64_t *one = sm2_z256_one();
+		sm2_z256_from_bytes(d, sm2_key.private_key);
+		sm2_z256_modn_add(d, d, one);
+		sm2_z256_modn_inv(d, d);
+
+	if (sm2_do_sign_pre_compute(k, x1) != 1) {
+		error_print();
+		return -1;
+	}
+
+	rand_bytes(dgst, sizeof(dgst));
+
+	if (sm2_do_sign_fast_ex(d, k, x1, dgst, &sig) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm2_do_verify(&sm2_key, dgst, &sig) != 1) {
+		error_print();
+		return -1;
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -209,12 +249,95 @@ static int test_sm2_sign_ctx(void)
 	return 1;
 }
 
+static int test_sm2_sign_ctx_reset(void)
+{
+	SM2_KEY sm2_key;
+	SM2_SIGN_CTX sign_ctx;
+	SM2_SIGN_CTX vrfy_ctx;
+	uint8_t msg[64];
+	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
+	size_t siglen;
+
+	if (sm2_key_generate(&sm2_key) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// init sign_ctx and sign a message
+	rand_bytes(msg, sizeof(msg));
+
+	if (sm2_sign_init(&sign_ctx, &sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_sign_update(&sign_ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_sign_finish(&sign_ctx, sig, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// reset sign_ctx and sign another message
+	rand_bytes(msg, sizeof(msg));
+
+	if (sm2_sign_ctx_reset(&sign_ctx) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_sign_update(&sign_ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_sign_finish(&sign_ctx, sig, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// verify, check whether reset works
+	if (sm2_verify_init(&vrfy_ctx, &sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_verify_update(&vrfy_ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_verify_finish(&vrfy_ctx, sig, siglen) != 1) {
+		format_bytes(stderr, 0, 4, "signature", sig, siglen);
+		error_print();
+		return -1;
+	}
+
+	// reset ctx and verify again
+	if (sm2_sign_ctx_reset(&vrfy_ctx) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_verify_update(&vrfy_ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_verify_finish(&vrfy_ctx, sig, siglen) != 1) {
+		format_bytes(stderr, 0, 4, "signature", sig, siglen);
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
+	if (test_sm2_do_sign_fast() != 1) goto err;
 	if (test_sm2_signature() != 1) goto err;
 	if (test_sm2_do_sign() != 1) goto err;
+	if (test_sm2_do_sign_pre_compute() != 1) goto err;
 	if (test_sm2_sign() != 1) goto err;
 	if (test_sm2_sign_ctx() != 1) goto err;
+	if (test_sm2_sign_ctx_reset() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

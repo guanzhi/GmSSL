@@ -539,10 +539,17 @@ int sm2_fp_sqrt(SM2_Fp r, const SM2_Fp a)
 	SM2_BN u;
 	SM2_BN y; // temp result, prevent call sm2_fp_sqrt(a, a)
 
+	printf("sm2_fp_sqrt\n");
+	sm2_bn_print(stderr, 0, 4, "a", a);
+
 	// r = a^((p + 1)/4) when p = 3 (mod 4)
 	sm2_bn_add(u, SM2_P, SM2_ONE);
 	sm2_bn_rshift(u, u, 2);
+
+	sm2_bn_print(stderr, 0, 4, "u", u);
+
 	sm2_fp_exp(y, a, u);
+	sm2_bn_print(stderr, 0, 4, "y", y);
 
 	// check r^2 == a
 	sm2_fp_sqr(u, y);
@@ -1087,6 +1094,7 @@ int sm2_point_is_at_infinity(const SM2_POINT *P)
 	return mem_is_zero((uint8_t *)P, sizeof(SM2_POINT));
 }
 
+// 这个函数和 sm2_z256_point_from_x_bytes 不一样
 int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y)
 {
 	SM2_BN _x, _y, _g, _z;

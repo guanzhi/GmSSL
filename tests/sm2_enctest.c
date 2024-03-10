@@ -16,88 +16,52 @@
 #include <gmssl/sm2.h>
 #include <gmssl/pkcs8.h>
 
-
-
-// 由于当前Ciphertext中椭圆曲线点数据不正确，因此无法通过测试
+// 应该整理出不同编码长度的椭圆曲线点，可以由x求出y
 static int test_sm2_ciphertext(void)
 {
+	struct {
+		char *label;
+		size_t ciphertext_size;
+	} tests[] = {
+		{ "null ciphertext", 0 },
+		{ "min ciphertext size", SM2_MIN_PLAINTEXT_SIZE },
+		{ "max ciphertext size", SM2_MAX_PLAINTEXT_SIZE },
+	};
+
 	SM2_CIPHERTEXT C;
+	SM2_KEY sm2_key;
 	uint8_t buf[1024];
-	uint8_t *p = buf;
-	const uint8_t *cp = buf;
-	size_t len = 0;
+	size_t i;
 
-	memset(&C, 0, sizeof(SM2_CIPHERTEXT));
+	rand_bytes(C.hash, 32);
+	rand_bytes(C.ciphertext, SM2_MAX_PLAINTEXT_SIZE);
 
-	cp = p = buf; len = 0;
-	if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	format_print(stderr, 0, 4, "SM2_NULL_CIPHERTEXT_SIZE: %zu\n", len);
-	format_bytes(stderr, 0, 4, "", buf, len);
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 
+		uint8_t *p = buf;
+		const uint8_t *cp = buf;
+		size_t len = 0;
 
-	if (sm2_ciphertext_from_der(&C, &cp, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
+		if (sm2_key_generate(&sm2_key) != 1) {
+			error_print();
+			return -1;
+		}
+		C.point = sm2_key.public_key;
+		C.ciphertext_size = tests[i].ciphertext_size;
 
+		if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
+			error_print();
+			return -1;
+		}
 
-	// {0, 0, Hash, MinLen}
-	C.ciphertext_size = SM2_MIN_PLAINTEXT_SIZE;
-	cp = p = buf; len = 0;
-	if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	format_print(stderr, 0, 4, "SM2_MIN_PLAINTEXT_SIZE: %zu\n", SM2_MIN_PLAINTEXT_SIZE);
-	format_print(stderr, 0, 4, "SM2_MIN_CIPHERTEXT_SIZE: %zu\n", len);
-	format_bytes(stderr, 0, 4, "", buf, len);
-	if (len != SM2_MIN_CIPHERTEXT_SIZE) {
-		error_print();
-		return -1;
-	}
-	if (sm2_ciphertext_from_der(&C, &cp, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
+		printf("Plaintext size = %zu, SM2Ciphertext DER size %zu\n", tests[i].ciphertext_size, len);
 
-	// { 33, 33, Hash, NULL }
-	memset(&C, 0x80, sizeof(SM2_POINT));
-	cp = p = buf; len = 0;
-	if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	format_print(stderr, 0, 4, "ciphertext len: %zu\n", len);
-	format_bytes(stderr, 0, 4, "", buf, len);
-	if (sm2_ciphertext_from_der(&C, &cp, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
+		if (sm2_ciphertext_from_der(&C, &cp, &len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
 
-	// { 33, 33, Hash, MaxLen }
-	C.ciphertext_size = SM2_MAX_PLAINTEXT_SIZE;//SM2_MAX_PLAINTEXT_SIZE;
-	cp = p = buf; len = 0;
-	if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	format_print(stderr, 0, 4, "SM2_MAX_PLAINTEXT_SIZE: %zu\n", SM2_MAX_PLAINTEXT_SIZE);
-	format_print(stderr, 0, 4, "SM2_MAX_CIPHERTEXT_SIZE: %zu\n", len);
-	format_bytes(stderr, 0, 4, "", buf, len);
-	if (len != SM2_MAX_CIPHERTEXT_SIZE) {
-		error_print();
-		return -1;
-	}
-	if (sm2_ciphertext_from_der(&C, &cp, &len) != 1
-		|| asn1_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -265,14 +229,6 @@ static int test_sm2_encrypt_fixlen(void)
 }
 
 
-
-// 应该生成不同情况下的密文！
-			
-
-
-
-
-
 static int test_sm2_encrypt(void)
 {
 	SM2_KEY sm2_key;
@@ -327,7 +283,7 @@ static int test_sm2_encrypt(void)
 
 int main(void)
 {
-	//if (test_sm2_ciphertext() != 1) goto err; // 需要正确的Ciphertext数据
+	if (test_sm2_ciphertext() != 1) goto err;
 	if (test_sm2_do_encrypt() != 1) goto err;
 	if (test_sm2_do_encrypt_fixlen() != 1) goto err;
 	if (test_sm2_encrypt() != 1) goto err;

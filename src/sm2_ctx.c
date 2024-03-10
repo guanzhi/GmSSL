@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
+#include <gmssl/sm2_z256.h>
 #include <gmssl/sm3.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
@@ -22,11 +23,19 @@
 
 int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
+	size_t i;
+
 	if (!ctx || !key) {
 		error_print();
 		return -1;
 	}
 	ctx->key = *key;
+
+	// d' = (d + 1)^-1 (mod n)
+	sm2_z256_from_bytes(ctx->sign_key, key->private_key);
+	sm2_z256_modn_add(ctx->sign_key, ctx->sign_key, sm2_z256_one());
+	sm2_z256_modn_inv(ctx->sign_key, ctx->sign_key);
+
 	sm3_init(&ctx->sm3_ctx);
 
 	if (id) {
@@ -38,6 +47,24 @@ int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t 
 		sm2_compute_z(z, &key->public_key, id, idlen);
 		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
 	}
+
+	ctx->inited_sm3_ctx = ctx->sm3_ctx;
+
+	// pre compute (k, x = [k]G.x)
+	for (i = 0; i < 32; i++) {
+		if (sm2_do_sign_pre_compute(ctx->pre_comp[i].k, ctx->pre_comp[i].x1) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	ctx->num_pre_comp = 32;
+
+	return 1;
+}
+
+int sm2_sign_ctx_reset(SM2_SIGN_CTX *ctx)
+{
+	ctx->sm3_ctx = ctx->inited_sm3_ctx;
 	return 1;
 }
 
@@ -56,16 +83,39 @@ int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 {
 	uint8_t dgst[SM3_DIGEST_SIZE];
+	SM2_SIGNATURE signature;
 
 	if (!ctx || !sig || !siglen) {
 		error_print();
 		return -1;
 	}
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if (sm2_sign(&ctx->key, dgst, sig, siglen) != 1) {
+
+	if (ctx->num_pre_comp == 0) {
+		size_t i;
+		for (i = 0; i < 32; i++) {
+			if (sm2_do_sign_pre_compute(ctx->pre_comp[i].k, ctx->pre_comp[i].x1) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		ctx->num_pre_comp = 32;
+	}
+
+	ctx->num_pre_comp--;
+	if (sm2_do_sign_fast_ex(ctx->sign_key,
+		ctx->pre_comp[ctx->num_pre_comp].k, ctx->pre_comp[ctx->num_pre_comp].x1,
+		dgst, &signature) != 1) {
 		error_print();
 		return -1;
 	}
+
+	*siglen = 0;
+	if (sm2_signature_to_der(&signature, &sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
 	return 1;
 }
 
@@ -93,6 +143,9 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 	}
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->key.public_key = key->public_key;
+
+	sm2_z256_point_from_bytes(&ctx->public_key, (const uint8_t *)&key->public_key);
+
 	sm3_init(&ctx->sm3_ctx);
 
 	if (id) {
@@ -104,6 +157,9 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 		sm2_compute_z(z, &key->public_key, id, idlen);
 		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
 	}
+
+	ctx->inited_sm3_ctx = ctx->sm3_ctx;
+
 	return 1;
 }
 
@@ -134,9 +190,6 @@ int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
 	}
 	return 1;
 }
-
-
-
 
 int sm2_encrypt_init(SM2_ENC_CTX *ctx, const SM2_KEY *sm2_key)
 {

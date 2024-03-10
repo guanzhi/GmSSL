@@ -12,10 +12,19 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <gmssl/sm2.h>
 #include <gmssl/sm2_z256.h>
+#include <gmssl/sm3.h>
+#include <gmssl/sm3_digest.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+
+
+/*
+TODO: 验证点加、倍点等计算是否支持无穷远点、共轭点等特殊形势
+
+*/
 
 enum {
 	OP_ADD,
@@ -27,6 +36,67 @@ enum {
 	OP_EXP,
 	OP_INV,
 };
+
+#define TEST_COUNT 10
+
+static int test_sm2_z256_rshift(void)
+{
+	uint64_t r[4];
+	uint64_t a[4];
+	uint64_t b[4];
+	unsigned int i;
+
+	sm2_z256_modn_rand(a);
+
+	sm2_z256_rshift(r, a, 0);
+	sm2_z256_copy(b, a);
+	if (sm2_z256_cmp(r, b) != 0) {
+		error_print();
+		return -1;
+	}
+
+	sm2_z256_rshift(r, a, 63);
+	for (i = 0; i < 63; i++) {
+		sm2_z256_rshift(a, a, 1);
+	}
+	if (sm2_z256_cmp(r, a) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_modp_mont_sqrt(void)
+{
+	uint64_t a[4];
+	uint64_t neg_a[4];
+	uint64_t mont_a[4];
+	uint64_t mont_sqr_a[4];
+	uint64_t mont_a_[4];
+	uint64_t a_[4];
+	int i;
+
+	for (i = 0; i < 6; i++) {
+		sm2_z256_modn_rand(a);
+		sm2_z256_modp_neg(neg_a, a);
+
+		sm2_z256_modp_to_mont(a, mont_a);
+		sm2_z256_modp_mont_sqr(mont_sqr_a, mont_a);
+		sm2_z256_modp_mont_sqrt(mont_a_, mont_sqr_a);
+		sm2_z256_modp_from_mont(a_, mont_a_);
+
+		// a_ = sqrt(a^2), a_ should be a or -a
+		if (sm2_z256_cmp(a_, a) != 0 && sm2_z256_cmp(a_, neg_a) != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 static int test_sm2_z256_modp(void)
 {
@@ -389,6 +459,95 @@ static int test_sm2_z256_point_get_xy(void)
 	return 1;
 }
 
+static int test_sm2_z256_point_from_x_bytes(void)
+{
+	struct {
+		char *label;
+		char *xy;
+		int y_is_odd;
+	} tests[] = {
+		{
+		"G (y is even)",
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7"
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0",
+		0,
+		},
+		{
+		"2G (y is odd)",
+		"56cefd60d7c87c000d58ef57fa73ba4d9c0dfa08c08a7331495c2e1da3f2bd52"
+		"31b7e7e6cc8189f668535ce0f8eaf1bd6de84c182f6c8e716f780d3a970a23c3",
+		1,
+		},
+	};
+
+	SM2_Z256_POINT P;
+	uint8_t x_bytes[32];
+	size_t i, len;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		hex_to_bytes(tests[i].xy, 64, x_bytes, &len);
+
+		sm2_z256_point_from_x_bytes(&P, x_bytes, tests[i].y_is_odd);
+
+		if (sm2_z256_point_equ_hex(&P, tests[i].xy) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_point_add_conjugate(void)
+{
+	char *hex_G =
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7"
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0";
+	char *hex_negG =
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7"
+		"43c8c95c0b098863a642311c9496deac2f56788239d5b8c0fd20cd1adec60f5f";
+
+	SM2_Z256_POINT R;
+	SM2_Z256_POINT P;
+	SM2_Z256_POINT Q;
+
+	sm2_z256_point_from_hex(&P, hex_G);
+	sm2_z256_point_from_hex(&Q, hex_negG);
+	sm2_z256_point_add(&R, &P, &Q);
+
+	// P + (-P) = (0:0:0)
+	if (!sm2_z256_is_zero(R.X)
+		|| !sm2_z256_is_zero(R.Y)
+		|| !sm2_z256_is_zero(R.Z)) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_point_dbl_infinity(void)
+{
+	SM2_Z256_POINT P_infinity;
+	SM2_Z256_POINT R;
+
+	sm2_z256_point_set_infinity(&P_infinity);
+	sm2_z256_point_dbl(&R, &P_infinity); // 显然这个计算就会出错了！
+
+	if (!sm2_z256_point_is_at_infinity(&R)) {
+		error_print(); // 这个会出错						
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+
+}
+
+
 static int test_sm2_z256_point_ops(void)
 {
 	char *hex_G =
@@ -472,14 +631,14 @@ static int test_sm2_z256_point_ops(void)
 			return -1;
 		}
 
+		if (sm2_z256_point_equ_hex(&P, tests[i].R) != 1) {
+
 			fprintf(stderr, "%s\n", tests[i].label);
 			sm2_z256_point_print(stderr, 0, 4, "R", &P);
 			fprintf(stderr, "   R: %s\n", tests[i].R);
 			fprintf(stderr, "   k: %s\n", tests[i].k);
 			fprintf(stderr, "   A: %s\n", tests[i].A);
 			fprintf(stderr, "   B: %s\n", tests[i].B);
-
-		if (sm2_z256_point_equ_hex(&P, tests[i].R) != 1) {
 
 			error_print();
 			return -1;
@@ -614,14 +773,108 @@ static int test_sm2_z256_point_mul_generator(void)
 	return 1;
 }
 
+static int test_sm2_z256_point_equ(void)
+{
+	struct {
+		char *label;
+		char *mont_X1;
+		char *mont_Y1;
+		char *mont_Z1;
+		char *mont_X2;
+		char *mont_Y2;
+		char *mont_Z2;
+	} tests[] = {
+		{
+		"Point at Infinity (1:1:0)",
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		},
+		{
+		"[2]2G == 2G + G + G",
+		"87b2ca9ded2487c6efdbc69303258763a0b5520fc63cf40154f6c059b945acf2",
+		"dc86353bc72db45ebb5b2d03cec4614b164688f19f12dd857fd007e181457b59",
+		"050653f8579d1d2d930d7346e31bad56b5a4654d6a9f2c5022434941744ced3a",
+		"e8457905838420a51366f7fe174ce34dc3579fefc188f0b5124e7537526ae99e",
+		"48c3374ab1d5fde0276bebb81b8ff0baa9805cc2d0f487e18d7b3a4352f4ae21",
+		"79f76fd57f22f1e282d64ff809a53f1f729f6b89c6f626b96725a9d05704e681",
+		}
+	};
+
+	SM2_Z256_POINT P;
+	SM2_Z256_POINT Q;
+	size_t i;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		sm2_z256_from_hex(P.X, tests[i].mont_X1);
+		sm2_z256_from_hex(P.Y, tests[i].mont_Y1);
+		sm2_z256_from_hex(P.Z, tests[i].mont_Z1);
+
+		sm2_z256_from_hex(Q.X, tests[i].mont_X2);
+		sm2_z256_from_hex(Q.Y, tests[i].mont_Y2);
+		sm2_z256_from_hex(Q.Z, tests[i].mont_Z2);
+
+		if (sm2_z256_point_equ(&P, &Q) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_point_from_hash(void)
+{
+	SM2_Z256_POINT P;
+	uint8_t data[64];
+	size_t datalen = sizeof(data);
+	int y_is_odd = 1;
+	int y_is_even = 0;
+	size_t i;
+
+	for (i = 0; i < 5; i++) {
+
+		rand_bytes(data, datalen);
+
+		if (sm2_z256_point_from_hash(&P, data, datalen, y_is_odd) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sm2_z256_point_from_hash(&P, data, datalen, y_is_even) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+
+
+}
+
+
 int main(void)
 {
+
+	if (test_sm2_z256_rshift() != 1) goto err;
 	if (test_sm2_z256_modp() != 1) goto err;
 	if (test_sm2_z256_modn() != 1) goto err;
 	if (test_sm2_z256_point_is_on_curve() != 1) goto err;
+	if (test_sm2_z256_point_equ() != 1) goto err;
 	if (test_sm2_z256_point_get_xy() != 1) goto err;
+	if (test_sm2_z256_point_add_conjugate() != 1) goto err;
+	if (test_sm2_z256_point_dbl_infinity() != 1) goto err;
 	if (test_sm2_z256_point_ops() != 1) goto err;
 	if (test_sm2_z256_point_mul_generator() != 1) goto err;
+	if (test_sm2_z256_point_from_hash() != 1) goto err;
+	if (test_sm2_z256_point_from_x_bytes() != 1) goto err;
+	if (test_sm2_z256_modp_mont_sqrt() != 1) goto err;
+
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

@@ -20,7 +20,6 @@
 #include <gmssl/endian.h>
 
 
-
 typedef SM2_Z256 SM2_U256;
 
 #define sm2_u256_one()				sm2_z256_one()
@@ -52,7 +51,6 @@ typedef SM2_Z256_POINT SM2_U256_POINT;
 #define sm2_u256_point_get_xy(P,x,y)		sm2_z256_point_get_xy((P),(x),(y))
 
 
-
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_U256_POINT _P, *P = &_P;
@@ -82,6 +80,10 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 	sm2_u256_from_bytes(e, dgst);	//sm2_bn_print(stderr, 0, 4, "e", e);
 
 retry:
+
+	// >>>>>>>>>> BEGIN PRECOMP
+
+
 	// rand k in [1, n - 1]
 	do {
 		if (sm2_u256_modn_rand(k) != 1) {
@@ -95,6 +97,11 @@ retry:
 	sm2_u256_point_get_xy(P, x, NULL);
 					//sm2_bn_print(stderr, 0, 4, "x", x);
 
+
+	// 如果我们提前计算了 (k, x) 那么我们在真正做签名的时候就可以利用到这个与计算的表了，直接从表中读取 (k, x)
+	// 当然这些计算都可以放在sign_fast里面
+
+	// >>>>>>>>>>> END PRECOMP
 
 	// r = e + x (mod n)
 	if (sm2_u256_cmp(e, order) >= 0) {
@@ -132,13 +139,65 @@ retry:
 	return 1;
 }
 
+// k 和 x1 都是要参与计算的，因此我们返回的是内部格式
+int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4])
+{
+	SM2_Z256_POINT P;
+
+	// rand k in [1, n - 1]
+	do {
+		if (sm2_z256_modn_rand(k) != 1) {
+			error_print();
+			return -1;
+		}
+	} while (sm2_z256_is_zero(k));
+
+	// (x1, y1) = kG
+	sm2_u256_point_mul_generator(&P, k); // 这个函数要粗力度并行，这要怎么做？
+	sm2_u256_point_get_xy(&P, x1, NULL);
+
+	return 1;
+}
+
+// 实际上这里只有一次mod n的乘法，用barret就可以了
+int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t x1[4], const uint8_t dgst[32], SM2_SIGNATURE *sig)
+{
+	SM2_Z256_POINT R;
+	uint64_t e[4];
+	uint64_t r[4];
+	uint64_t s[4];
+
+	const uint64_t *order = sm2_z256_order();
+
+	// e = H(M)
+	sm2_z256_from_bytes(e, dgst);
+	if (sm2_z256_cmp(e, order) >= 0) {
+		sm2_z256_sub(e, e, order);
+	}
+
+	// r = e + x1 (mod n)
+	sm2_z256_modn_add(r, e, x1);
+
+	// s = (k + r) * d' - r
+	sm2_z256_modn_add(s, k, r);
+	sm2_z256_modn_mul(s, s, d);
+	sm2_z256_modn_sub(s, s, r);
+
+	sm2_u256_to_bytes(r, sig->r);
+	sm2_u256_to_bytes(s, sig->s);
+
+	return 1;
+}
+
+
 // (x1, y1) = k * G
 // r = e + x1
 // s = (k - r * d)/(1 + d) = (k +r - r * d - r)/(1 + d) = (k + r - r(1 +d))/(1 + d) = (k + r)/(1 + d) - r
 //	= -r + (k + r)*(1 + d)^-1
 //	= -r + (k + r) * d'
 
-int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig)
+// 这个函数是我们真正要调用的，甚至可以替代原来的函数
+int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_U256_POINT R;
 	SM2_U256 e;
@@ -155,6 +214,8 @@ int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 		sm2_u256_sub(e, e, order);
 	}
 
+	/// <<<<<<<<<<<  这里的 (k, x1) 应该是从外部输入的！！，这样才是最快的。
+
 	// rand k in [1, n - 1]
 	do {
 		if (sm2_u256_modn_rand(k) != 1) {
@@ -164,21 +225,93 @@ int sm2_do_sign_fast(const SM2_Fn d, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 	} while (sm2_u256_is_zero(k));
 
 	// (x1, y1) = kG
-	sm2_u256_point_mul_generator(&R, k);
+	sm2_u256_point_mul_generator(&R, k); // 这个函数要粗力度并行，这要怎么做？
 	sm2_u256_point_get_xy(&R, x1, NULL);
+
+	/// >>>>>>>>>>>>>>>>>>
 
 	// r = e + x1 (mod n)
 	sm2_u256_modn_add(r, e, x1);
 
 	// 对于快速实现来说，只需要一次乘法
 
+	// 如果 (k, x) 是预计算的，这意味着我们可以并行这个操作
+	// 也就是随机产生一些k，然后执行粗力度并行的点乘
+
+
 	// s = (k + r) * d' - r
-	sm2_u256_add(s, k, r);
+	sm2_u256_modn_add(s, k, r);
 	sm2_u256_modn_mul(s, s, d);
 	sm2_u256_modn_sub(s, s, r);
 
 	sm2_u256_to_bytes(r, sig->r);
 	sm2_u256_to_bytes(s, sig->s);
+	return 1;
+}
+
+// 这个其实并没有更快，无非就是降低了解析公钥椭圆曲线点的计算量，这个点要转换为内部的Mont格式
+// 这里根本没有modn的乘法
+int sm2_do_verify_fast(const SM2_Z256_POINT *P, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
+{
+	SM2_U256_POINT R;
+	SM2_U256 r;
+	SM2_U256 s;
+	SM2_U256 e;
+	SM2_U256 x;
+	SM2_U256 t;
+
+	const uint64_t *order = sm2_u256_order();
+
+	sm2_u256_from_bytes(r, sig->r);
+	// check r in [1, n-1]
+	if (sm2_u256_is_zero(r) == 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_u256_cmp(r, order) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	sm2_u256_from_bytes(s, sig->s);
+	// check s in [1, n-1]
+	if (sm2_u256_is_zero(s) == 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_u256_cmp(s, order) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	// e = H(M)
+	sm2_u256_from_bytes(e, dgst);
+
+	// t = r + s (mod n), check t != 0
+	sm2_u256_modn_add(t, r, s);
+	if (sm2_u256_is_zero(t)) {
+		error_print();
+		return -1;
+	}
+
+	// Q = s * G + t * P
+	sm2_u256_point_mul_sum(&R, t, P, s);
+	sm2_u256_point_get_xy(&R, x, NULL);
+
+	// r' = e + x (mod n)
+	if (sm2_u256_cmp(e, order) >= 0) {
+		sm2_u256_sub(e, e, order);
+	}
+	if (sm2_u256_cmp(x, order) >= 0) {
+		sm2_u256_sub(x, x, order);
+	}
+	sm2_u256_modn_add(e, e, x);
+
+	// check if r == r'
+	if (sm2_u256_cmp(e, r) != 0) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -277,6 +410,27 @@ static int all_zero(const uint8_t *buf, size_t len)
 	return 1;
 }
 
+int sm2_do_encrypt_pre_compute(uint64_t k[4], uint8_t C1[64])
+{
+	SM2_Z256_POINT P;
+
+	// rand k in [1, n - 1]
+	do {
+		if (sm2_z256_modn_rand(k) != 1) {
+			error_print();
+			return -1;
+		}
+	} while (sm2_z256_is_zero(k));
+
+	// output C1 = k * G = (x1, y1)
+	sm2_z256_point_mul_generator(&P, k);
+	sm2_z256_point_to_bytes(&P, C1);
+
+	return 1;
+}
+
+// 和签名不一样，加密的时候要生成 (k, (x1, y1)) ，也就是y坐标也是需要的
+// 其中k是要参与计算的，但是 (x1, y1) 不参与计算，输出为 bytes 就可以了
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
 {
 	SM2_U256 k;

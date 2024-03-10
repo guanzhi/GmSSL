@@ -30,6 +30,7 @@ void sm2_z256_to_bytes(const uint64_t a[4], uint8_t out[32]);
 int sm2_z256_cmp(const uint64_t a[4], const uint64_t b[4]);
 uint64_t sm2_z256_is_zero(const uint64_t a[4]);
 uint64_t sm2_z256_equ(const uint64_t a[4], const uint64_t b[4]);
+void sm2_z256_rshift(uint64_t r[4], const uint64_t a[4], unsigned int nbits);
 uint64_t sm2_z256_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 uint64_t sm2_z256_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4]);
@@ -53,6 +54,7 @@ void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 void sm2_z256_modp_mont_sqr(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
 void sm2_z256_modp_mont_inv(uint64_t r[4], const uint64_t a[4]);
+int sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4]);
 int sm2_z256_modp_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
 
 int sm2_z256_modn_rand(uint64_t r[4]);
@@ -79,11 +81,13 @@ typedef struct {
 	uint64_t Z[4];
 } SM2_Z256_POINT;
 
+void sm2_z256_point_set_infinity(SM2_Z256_POINT *P);
 void sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]);
 void sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64]);
 
 int sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P);
 int sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P);
+int sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q);
 void sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]);
 
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A);
@@ -110,11 +114,25 @@ void sm2_z256_point_mul_sum(SM2_Z256_POINT *R, const uint64_t t[4], const SM2_Z2
 
 const uint64_t *sm2_z256_prime(void);
 const uint64_t *sm2_z256_order(void);
+const uint64_t *sm2_z256_order_minus_one(void);
 const uint64_t *sm2_z256_one(void);
 
 void sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex);
 int sm2_z256_point_equ_hex(const SM2_Z256_POINT *P, const char *hex);
 
+enum {
+	SM2_point_at_infinity = 0x00,
+	SM2_point_compressed_y_even = 0x02,
+	SM2_point_compressed_y_odd = 0x03,
+	SM2_point_uncompressed = 0x04,
+	SM2_point_uncompressed_y_even = 0x06,
+	SM2_point_uncompressed_y_odd = 0x07,
+};
+
+int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], int y_is_odd);
+int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t datalen, int y_is_odd);
+
+int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
 
 #ifdef __cplusplus
 }
