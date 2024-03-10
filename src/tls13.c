@@ -337,7 +337,16 @@ int tls13_do_recv(TLS_CONNECT *conn)
 	tls_trace("decrypt ApplicationData\n");
 	tls_record_trace(stderr, record, tls_record_length(record), 0, 0);
 
-
+	if (record_type == TLS_record_alert) {
+		if (record[5] == TLS_alert_level_warning) {  //level
+			return 0;
+		}
+		if (record[6] == TLS_alert_close_notify) {  //alert
+			return 0;
+		}
+		error_print();
+		return -1;
+	}
 	if (record_type != TLS_record_application_data) {
 		error_print();
 		return -1;
