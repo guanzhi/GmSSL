@@ -100,6 +100,7 @@ static int prepare_pem_file(void)
 		fclose(fp);
 		return -1;
 	}
+	fclose(fp);
 
 	if (!(fp = fopen("rootcacert.pem", "wb"))) {
 		fprintf(stderr, "fopen() error\n");
