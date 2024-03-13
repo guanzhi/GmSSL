@@ -18,17 +18,17 @@ set(src
 	src/sm3_hmac.c
 	src/sm3_kdf.c
 	src/sm3_digest.c
-	#src/sm2_alg.c
-	src/sm2_point.c
-	src/sm2_z256.c
-	src/sm2_z256_table.c
-	src/sm2_z256_key.c
-	src/sm2_z256_sign.c
+	src/sm2_alg.c
+	src/sm2_sign.c
+	src/sm2_key.c
 	src/sm2_lib.c
 	src/sm2_ctx.c
-	src/sm9_alg.c
-	src/sm9_key.c
-	src/sm9_lib.c
+	#src/sm9_alg.c
+	#src/sm9_key.c
+	#src/sm9_lib.c
+	src/sm9_z256_alg.c
+	src/sm9_z256_key.c
+	src/sm9_z256_lib.c
 	src/zuc.c
 	src/zuc_modes.c
 	src/hash_drbg.c
@@ -125,11 +125,11 @@ set(tools
 set(tests
 	sm4
 	sm3
-#	sm2
-	sm2_z256
-	sm2_sign
+	sm2
+	#sm2_sign
 	sm2_enc
-	sm9
+	#sm9
+	sm9_z256
 	zuc
 	hash_drbg
 	block_cipher
@@ -242,15 +242,6 @@ if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 endif()
 
 
-option(ENABLE_SM2_Z256_ARMV8 "Enable SM2_Z256 ARMv8 assembly" OFF)
-if (ENABLE_SM2_Z256_ARMV8)
-	message(STATUS "ENABLE_SM2_Z256_ARMV8 is ON")
-	add_definitions(-DENABLE_SM2_Z256_ARMV8)
-	enable_language(ASM)
-	list(APPEND src src/sm2_z256_armv8.S)
-endif()
-
-
 option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
 if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
 	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT is ON")
@@ -326,6 +317,15 @@ if (ENABLE_SM4_XTS)
 	add_definitions(-DENABLE_SM4_XTS)
 	list(APPEND src src/sm4_xts.c)
 	list(APPEND tests sm4_xts)
+endif()
+
+
+option(ENABLE_SM2_Z256 "Enable SM2 z256 implementation" OFF)
+if (ENABLE_SM2_Z256)
+	message(STATUS "ENABLE_SM2_Z256 is ON")
+	add_definitions(-DENABLE_SM2_Z256)
+	list(APPEND src src/sm2_z256.c src/sm2_z256_table.c src/sm2_z256_sign.c)
+	list(APPEND tests sm2_z256)
 endif()
 
 
