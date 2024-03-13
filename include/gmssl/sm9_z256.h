@@ -71,7 +71,8 @@ void sm9_z256_fp_neg(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fp_to_mont(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_from_mont(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_sqr(sm9_z256_t r, const sm9_z256_t a);
+#define sm9_z256_fp_sqr(r,a,b)	sm9_z256_fp_mont_sqr(r,a,b)
+void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
 void sm9_z256_fp_inv(sm9_z256_t r, const sm9_z256_t a);
 int  sm9_z256_fp_from_bytes(sm9_z256_t r, const uint8_t buf[32]);
