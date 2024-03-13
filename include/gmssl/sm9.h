@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmLLS Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmlls/sm3.h>
-#include <gmlls/sm2.h>
+#include <gmssl/sm3.h>
+#include <gmssl/sm2.h>
 
 
-#ifndef GMLLS_SM9_H
-#define GMLLS_SM9_H
+#ifndef GMSSL_SM9_H
+#define GMSSL_SM9_H
 
 #ifdef __cplusplus
 extern "C" {
