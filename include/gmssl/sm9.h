@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2023 The GmLLS Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmssl/sm3.h>
-#include <gmssl/sm2.h>
+#include <gmlls/sm3.h>
+#include <gmlls/sm2.h>
 
 
-#ifndef GMSSL_SM9_H
-#define GMSSL_SM9_H
+#ifndef GMLLS_SM9_H
+#define GMLLS_SM9_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,6 +52,8 @@ void sm9_print_bn(const char *prefix, const sm9_bn_t a); // 标准打印格式
 
 
 typedef sm9_bn_t sm9_fp_t;
+extern const sm9_fp_t SM9_P;
+extern const sm9_fp_t SM9_N;
 
 #define sm9_fp_init(r)		sm9_fp_set_zero(r)
 #define sm9_fp_clean(f)		sm9_fp_set_zero(r)
@@ -79,6 +81,9 @@ void sm9_fp_div2(sm9_fp_t r, const sm9_fp_t a);
 int sm9_fp_from_bytes(sm9_fp_t r, const uint8_t buf[32]);
 int sm9_fp_from_hex(sm9_fp_t r, const char hex[64]);
 
+void sm9_fp_to_mont(sm9_fp_t r, const sm9_fp_t a);
+void sm9_fp_from_mont(sm9_fp_t r, const sm9_fp_t a);
+void sm9_fp_mul_mont(sm9_fp_t r, const sm9_fp_t a, const sm9_fp_t b);
 
 typedef sm9_bn_t sm9_fn_t;
 
