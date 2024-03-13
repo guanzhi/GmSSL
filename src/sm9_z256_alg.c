@@ -557,9 +557,9 @@ void sm9_z256_fp_from_mont(sm9_z256_t r, const sm9_z256_t a)
 	sm9_z256_fp_mont_mul(r, a, SM9_Z256_ONE);
 }
 
-void sm9_z256_fp_sqr(sm9_z256_t r, const sm9_z256_t a)
+void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a)
 {
-	sm9_z256_fp_mul(r, a, a);
+	sm9_z256_fp_mont_mul(r, a, a);
 }
 
 void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e)
