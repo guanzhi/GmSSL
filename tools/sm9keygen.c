@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/oid.h>
-#include <gmssl/sm9.h>
+#include <gmssl/sm9_z256.h>
 #include <gmssl/error.h>
 
 static const char *options = "-alg (sm9sign|sm9encrypt) -in master_key.pem -inpass str -id str [-out pem] -outpass str";
