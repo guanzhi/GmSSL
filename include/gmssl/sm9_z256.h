@@ -379,6 +379,7 @@ int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
 	const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen);
 
 
+
 /*
 SM9EncMasterKey ::= SEQUENCE {
 	de	INTEGER,
@@ -464,6 +465,21 @@ int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 
+
+
+
+// SM9 Key Exchange (To be continued)
+#define SM9_EXCH_MASTER_KEY SM9_ENC_MASTER_KEY
+#define SM9_EXCH_KEY SM9_ENC_KEY
+#define sm9_exch_master_key_generate(msk) sm9_enc_master_key_generate(msk)
+int sm9_exch_master_key_extract_key(SM9_EXCH_MASTER_KEY *master, const char *id, size_t idlen, SM9_EXCH_KEY *key);
+
+int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idBlen, SM9_Z256_POINT *RA, sm9_z256_t rA);
+int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idAlen, const char *idB, size_t idBlen,
+	const SM9_EXCH_KEY *key, const SM9_Z256_POINT *RA, SM9_Z256_POINT *RB, uint8_t *sk, size_t klen);
+int sm9_exch_step_2A(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idAlen, const char *idB, size_t idBlen,
+	const SM9_EXCH_KEY *key, const sm9_z256_t rA, const SM9_Z256_POINT *RA, const SM9_Z256_POINT *RB, uint8_t *sk, size_t klen);
+int sm9_exch_step_2B();
 
 
 #ifdef  __cplusplus
