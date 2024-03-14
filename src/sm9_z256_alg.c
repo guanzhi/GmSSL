@@ -1746,7 +1746,6 @@ void sm9_z256_point_mul_generator(SM9_Z256_POINT *R, const sm9_z256_t k)
 	sm9_z256_point_mul(R, k, SM9_Z256_MONT_P1);
 }
 
-
 int sm9_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM9_Z256_POINT *P)
 {
 	uint8_t buf[65];

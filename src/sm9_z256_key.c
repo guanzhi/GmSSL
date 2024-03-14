@@ -424,6 +424,30 @@ int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *msk, const char *id, size
 	return 1;
 }
 
+int sm9_exch_master_key_extract_key(SM9_EXCH_MASTER_KEY *msk, const char *id, size_t idlen,
+	SM9_EXCH_KEY *key)
+{
+	sm9_z256_t t;
+
+	// t1 = H1(ID || hid, N) + ke
+	sm9_z256_hash1(t, id, idlen, SM9_HID_EXCH);
+	sm9_z256_fn_add(t, t, msk->ke);
+	if (sm9_z256_fn_is_zero(t)) {
+		error_print();
+		return -1;
+	}
+
+	// t2 = ke * t1^-1
+	sm9_z256_fn_inv(t, t);
+	sm9_z256_fn_mul(t, t, msk->ke);
+
+	// de = t2 * P2
+	sm9_z256_twist_point_mul_generator(&key->de, t);
+	key->Ppube = msk->Ppube;
+
+	return 1;
+}
+
 
 #define OID_SM9	oid_sm_algors,302
 static uint32_t oid_sm9[] = { OID_SM9 };
