@@ -690,13 +690,65 @@ int test_sm9_z256_encrypt()
 	sm9_z256_point_mul_generator(&(msk.Ppube), msk.ke);
 
 	if (sm9_enc_master_key_extract_key(&msk, (char *)IDB, sizeof(IDB), &key) < 0) goto err; ++j;
-
-
 	sm9_z256_twist_point_from_hex(&de, hex_de); if (!sm9_z256_twist_point_equ(&(key.de), &de)) goto err; ++j;
 
 	if (sm9_encrypt(&msk, (char *)IDB, sizeof(IDB), data, sizeof(data), out, &outlen) < 0) goto err; ++j;
 	if (sm9_decrypt(&key, (char *)IDB, sizeof(IDB), out, outlen, dec, &declen) < 0) goto err; ++j;
 	if (memcmp(data, dec, sizeof(data)) != 0) goto err; ++j;
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
+#define hex_kex		"0002E65B0762D042F51F0D23542B13ED8CFA2E9A0E7206361E013A283905E31F"
+
+#define hex_deA \
+	"0FE8EAB395199B56BF1D75BD2CD610B6424F08D1092922C5882B52DCD6CA832A\n" \
+	"7DA57BC50241F9E5BFDDC075DD9D32C7777100D736916CFC165D8D36E0634CD7\n" \
+	"83A457DAF52CAD464C903B26062CAF937BB40E37DADED9EDA401050E49C8AD0C\n" \
+	"6970876B9AAD1B7A50BB4863A11E574AF1FE3C5975161D73DE4C3AF621FB1EFB"
+
+#define hex_deB \
+	"74CCC3AC9C383C60AF083972B96D05C75F12C8907D128A17ADAFBAB8C5A4ACF7\n" \
+	"01092FF4DE89362670C21711B6DBE52DCD5F8E40C6654B3DECE573C2AB3D29B2\n" \
+	"44B0294AA04290E1524FF3E3DA8CFD432BB64DE3A8040B5B88D1B5FC86A4EBC1\n" \
+	"8CFC48FB4FF37F1E27727464F3C34E2153861AD08E972D1625FC1A7BD18D5539"
+
+int test_sm9_z256_exchange()
+{
+	SM9_EXCH_MASTER_KEY msk;
+	SM9_EXCH_KEY keyA, keyB;
+	SM9_Z256_TWIST_POINT de;
+	SM9_Z256_POINT RA, RB;
+	sm9_z256_t rA;
+	int i, j = 1;
+
+	uint8_t idA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
+	uint8_t idB[3] = {0x42, 0x6F, 0x62};
+	size_t klen = 0x10;
+	uint8_t skA[200] = {}, skB[200] = {};
+
+	sm9_z256_from_hex(msk.ke, hex_kex);
+	sm9_z256_point_mul_generator(&(msk.Ppube), msk.ke);
+	if (sm9_exch_master_key_extract_key(&msk, (char *)idA, sizeof(idA), &keyA) < 0) goto err; ++j;
+	if (sm9_exch_master_key_extract_key(&msk, (char *)idB, sizeof(idB), &keyB) < 0) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&de, hex_deA); if (!sm9_z256_twist_point_equ(&(keyA.de), &de)) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&de, hex_deB); if (!sm9_z256_twist_point_equ(&(keyB.de), &de)) goto err; ++j;
+
+	if (sm9_exch_step_1A(&msk, (char *)idB, sizeof(idB), &RA, rA) < 0) goto err; ++j;
+	if (sm9_exch_step_1B(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyB, &RA, &RB, skB, klen) < 0) goto err; ++j;
+	if (sm9_exch_step_2A(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyA, rA, &RA, &RB, skA, klen) < 0) goto err; ++j;
+
+	for (i = 0; i < klen; i++) {
+		if (skA[i] != skB[i]) {
+			printf("Exchange key different at byte %d\n", i);
+			goto err;
+		}
+	} ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -718,6 +770,7 @@ int main(void) {
 	if (test_sm9_z256_sign() != 1) goto err;
 	if (test_sm9_z256_ciphertext() != 1) goto err;
 	if (test_sm9_z256_encrypt() != 1) goto err;
+	if (test_sm9_z256_exchange() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
