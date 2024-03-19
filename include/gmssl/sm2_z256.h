@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <gmssl/sm2.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,6 +134,13 @@ int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], in
 int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t datalen, int y_is_odd);
 
 int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
+
+// 这些函数的问题是依赖于sm2.h 这些接口的，最好是不要有这些依赖
+// 这些接口和底层的SM2曲线实现是相关的
+int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
+int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4]);
+int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t x1[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
+int sm2_do_verify_fast(const SM2_Z256_POINT *P, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
 #ifdef __cplusplus
 }

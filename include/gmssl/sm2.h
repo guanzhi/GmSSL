@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <gmssl/api.h>
 #include <gmssl/sm3.h>
-#include <gmssl/sm2_z256.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -163,13 +162,9 @@ typedef struct {
 } SM2_SIGNATURE;
 
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
-int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
-int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4]);
 
-int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t x1[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
-int sm2_do_verify_fast(const SM2_Z256_POINT *P, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
 
 #define SM2_MIN_SIGNATURE_SIZE 8
@@ -203,19 +198,22 @@ typedef struct {
 	uint64_t x1[4];
 } SM2_SIGN_PRE_COMP;
 
+
 typedef struct {
 	SM3_CTX sm3_ctx;
 	SM2_KEY key;
 	// FIXME: change `key` to SM2_Z256_POINT and uint64_t[4], inner type, faster sign/verify
 
-	SM2_Z256_POINT public_key; // z256 only
+	uint64_t public_key[3][8]; // enough to hold point in Jacobian format
+
 	uint64_t sign_key[8]; // u64[8] to support SM2_BN
 	SM3_CTX inited_sm3_ctx;
 
 	SM2_SIGN_PRE_COMP pre_comp[32];
 	unsigned int num_pre_comp;
-
 } SM2_SIGN_CTX;
+
+
 
 _gmssl_export int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
 _gmssl_export int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
