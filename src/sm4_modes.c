@@ -101,6 +101,15 @@ static void ctr_incr(uint8_t a[16])
 	}
 }
 
+static void gcm_incr(uint8_t a[16])
+{
+    int i;
+    for (i = 15; i >= 12; i--) {
+        a[i]++;
+        if (a[i]) break;
+    }
+}
+
 #ifndef ENABLE_SM4_AESNI_AVX
 void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
 {
@@ -150,7 +159,7 @@ int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	while (left) {
 		uint8_t block[16];
 		size_t len = left < 16 ? left : 16;
-		ctr_incr(Y);
+		gcm_incr(Y);
 		sm4_encrypt(key, Y, block);
 		gmssl_memxor(pout, pin, block, len);
 		pin += len;
@@ -195,7 +204,7 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	while (left) {
 		uint8_t block[16];
 		size_t len = left < 16 ? left : 16;
-		ctr_incr(Y);
+		gcm_incr(Y);
 		sm4_encrypt(key, Y, block);
 		gmssl_memxor(pout, pin, block, len);
 		pin += len;

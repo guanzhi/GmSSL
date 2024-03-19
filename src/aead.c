@@ -350,6 +350,15 @@ static void ctr_incr(uint8_t a[16])
 	}
 }
 
+static void gcm_incr(uint8_t a[16])
+{
+    int i;
+    for (i = 15; i >= 12; i--) {
+        a[i]++;
+        if (a[i]) break;
+    }
+}
+
 int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, size_t taglen)
@@ -396,7 +405,7 @@ int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 
 	sm4_encrypt(&ctx->enc_ctx.sm4_key, Y, ctx->Y);
 
-	ctr_incr(Y);
+	gcm_incr(Y);
 	memcpy(ctx->enc_ctx.ctr, Y, 16);
 
 	gmssl_secure_clear(H, sizeof(H));
