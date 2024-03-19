@@ -18,8 +18,6 @@ set(src
 	src/sm3_hmac.c
 	src/sm3_kdf.c
 	src/sm3_digest.c
-	#src/sm2_alg.c
-	src/sm2_point.c
 	src/sm2_z256.c
 	src/sm2_z256_table.c
 	src/sm2_z256_key.c

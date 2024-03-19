@@ -53,7 +53,7 @@
 #include <gmssl/endian.h>
 #include <gmssl/sm2_z256.h>
 #include <gmssl/sm3.h>
-
+#include <gmssl/asn1.h>
 
 /*
 SM2 parameters
@@ -1054,6 +1054,7 @@ void sm2_z256_point_multi_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *P, unsign
 	// A = Z1^2
 }
 
+#ifndef ENABLE_SM2_Z256_ARMV8
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 {
 	const uint64_t *X1 = A->X;
@@ -1069,58 +1070,75 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 
 	// S = 2*Y1
 	sm2_z256_modp_mul_by_2(S, Y1);
-
+	sm2_z256_print(stderr, 0, 0, "1. S = 2*Y1", S);
 
 	// Zsqr = Z1^2
 	sm2_z256_modp_mont_sqr(Zsqr, Z1);
+	sm2_z256_print(stderr, 0, 0, "2. Zsqr = Z1^2", Zsqr);
 
 	// S = S^2 = 4*Y1^2
 	sm2_z256_modp_mont_sqr(S, S);
+	sm2_z256_print(stderr, 0, 0, "3. S = S^2 = 4*Y1^2", S);
 
 	// Z3 = Z1 * Y1
 	sm2_z256_modp_mont_mul(Z3, Z1, Y1);
+	sm2_z256_print(stderr, 0, 0, "4. Z3 = Z1 * Y1", Z3);
 
 	// Z3 = 2 * Z3 = 2*Y1*Z1
 	sm2_z256_modp_mul_by_2(Z3, Z3);
+	sm2_z256_print(stderr, 0, 0, "5. Z3 = 2 * Z3 = 2*Y1*Z1", Z3);
 
 	// M = X1 + Zsqr = X1 + Z1^2
 	sm2_z256_modp_add(M, X1, Zsqr);
+	sm2_z256_print(stderr, 0, 0, "6. M = X1 + Zsqr = X1 + Z1^2", M);
 
 	// Zsqr = X1 - Zsqr = X1 - Z1^2
 	sm2_z256_modp_sub(Zsqr, X1, Zsqr);
+	sm2_z256_print(stderr, 0, 0, "7. Zsqr = X1 - Zsqr = X1 - Z1^2", Zsqr);
 
 	// Y3 = S^2 = 16 * Y1^4
 	sm2_z256_modp_mont_sqr(Y3, S);
+	sm2_z256_print(stderr, 0, 0, "8. Y3 = S^2 = 16 * Y1^4", Y3);
 
 	// Y3 = Y3/2 = 8 * Y1^4
 	sm2_z256_modp_div_by_2(Y3, Y3);
+	sm2_z256_print(stderr, 0, 0, "9. Y3 = Y3/2 = 8 * Y1^4", Y3);
 
 	// M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)
 	sm2_z256_modp_mont_mul(M, M, Zsqr);
+	sm2_z256_print(stderr, 0, 0, "10. M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)", M);
 
 	// M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)
 	sm2_z256_modp_mul_by_3(M, M);
+	sm2_z256_print(stderr, 0, 0, "11. M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)", M);
 
 	// S = S * X1 = 4 * X1 * Y1^2
 	sm2_z256_modp_mont_mul(S, S, X1);
+	sm2_z256_print(stderr, 0, 0, "12. S = S * X1 = 4 * X1 * Y1^2", S);
 
 	// tmp0 = 2 * S = 8 * X1 * Y1^2
 	sm2_z256_modp_mul_by_2(tmp0, S);
+	sm2_z256_print(stderr, 0, 0, "13. tmp0 = 2 * S = 8 * X1 * Y1^2", tmp0);
 
 	// X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2
 	sm2_z256_modp_mont_sqr(X3, M);
+	sm2_z256_print(stderr, 0, 0, "14. X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2", X3);
 
 	// X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2
 	sm2_z256_modp_sub(X3, X3, tmp0);
+	sm2_z256_print(stderr, 0, 0, "15. X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2", X3);
 
 	// S = S - X3 = 4 * X1 * Y1^2 - X3
 	sm2_z256_modp_sub(S, S, X3);
+	sm2_z256_print(stderr, 0, 0, "16. S = S - X3 = 4 * X1 * Y1^2 - X3", S);
 
 	// S = S * M = 3(X1 + Z1^2)(X1 - Z1^2)(4 * X1 * Y1^2 - X3)
 	sm2_z256_modp_mont_mul(S, S, M);
+	sm2_z256_print(stderr, 0, 0, "17. S = S * M", S);
 
 	// Y3 = S - Y3 = 3(X1 + Z1^2)(X1 - Z1^2)(4 * X1 * Y1^2 - X3) - 8 * Y1^4
 	sm2_z256_modp_sub(Y3, S, Y3);
+	sm2_z256_print(stderr, 0, 0, "18. Y3", Y3);
 }
 
 /*
@@ -1234,6 +1252,7 @@ void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z2
 	memcpy(r->Y, res_y, sizeof(res_y));
 	memcpy(r->Z, res_z, sizeof(res_z));
 }
+#endif
 
 void sm2_z256_point_neg(SM2_Z256_POINT *R, const SM2_Z256_POINT *P)
 {
@@ -1363,6 +1382,7 @@ void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT_AFFINE *
 
 // 这是一个比较容易并行的算法
 // r, a, b 都转换为实际输入的值
+#ifndef ENABLE_SM2_Z256_ARMV8
 void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT_AFFINE *b)
 {
 	uint64_t U2[4], S2[4];
@@ -1443,6 +1463,7 @@ void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const
 	memcpy(r->Y, res_y, sizeof(res_y));
 	memcpy(r->Z, res_z, sizeof(res_z));
 }
+#endif
 
 void sm2_z256_point_sub_affine(SM2_Z256_POINT *R,
 	const SM2_Z256_POINT *A, const SM2_Z256_POINT_AFFINE *B)
@@ -1700,4 +1721,284 @@ int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t data
 
 	return 1;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+int sm2_point_is_on_curve(const SM2_POINT *P)
+{
+	SM2_Z256_POINT T;
+	sm2_z256_point_from_bytes(&T, (const uint8_t *)P);
+
+	if (sm2_z256_point_is_on_curve(&T) == 1) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+// 应该测试这个函数
+int sm2_point_is_at_infinity(const SM2_POINT *P)
+{
+	SM2_Z256_POINT T;
+
+	sm2_z256_point_from_bytes(&T, (const uint8_t *)P);
+	if (sm2_z256_point_is_at_infinity(&T)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y_is_odd)
+{
+
+	SM2_Z256_POINT T;
+
+	if (sm2_z256_point_from_x_bytes(&T, x, y_is_odd) != 1) {
+		error_print();
+		return -1;
+	}
+
+	sm2_z256_point_to_bytes(&T, (uint8_t *)P);
+	return 1;
+}
+
+int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32])
+{
+	memcpy(P->x, x, 32);
+	memcpy(P->y, y, 32);
+	return sm2_point_is_on_curve(P);
+}
+
+int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
+{
+	SM2_Z256_POINT P_;
+	SM2_Z256_POINT Q_;
+
+	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_z256_point_from_bytes(&Q_, (uint8_t *)Q);
+	sm2_z256_point_add(&P_, &P_, &Q_);
+	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_sub(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
+{
+	SM2_Z256_POINT P_;
+	SM2_Z256_POINT Q_;
+
+	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_z256_point_from_bytes(&Q_, (uint8_t *)Q);
+	sm2_z256_point_sub(&P_, &P_, &Q_);
+	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_neg(SM2_POINT *R, const SM2_POINT *P)
+{
+	SM2_Z256_POINT P_;
+
+	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_z256_point_neg(&P_, &P_);
+	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_dbl(SM2_POINT *R, const SM2_POINT *P)
+{
+	SM2_Z256_POINT P_;
+
+	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
+	sm2_z256_point_dbl(&P_, &P_);
+	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
+
+	return 1;
+}
+
+int sm2_point_mul(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P)
+{
+	uint64_t _k[4];
+	SM2_Z256_POINT _P;
+
+	sm2_z256_from_bytes(_k, k);
+	sm2_z256_point_from_bytes(&_P, (uint8_t *)P);
+	sm2_z256_point_mul(&_P, _k, &_P);
+	sm2_z256_point_to_bytes(&_P, (uint8_t *)R);
+
+	memset(_k, 0, sizeof(_k));
+	return 1;
+}
+
+int sm2_point_mul_generator(SM2_POINT *R, const uint8_t k[32])
+{
+	uint64_t _k[4];
+	SM2_Z256_POINT _R;
+
+	sm2_z256_from_bytes(_k, k);
+	sm2_z256_point_mul_generator(&_R, _k);
+	sm2_z256_point_to_bytes(&_R, (uint8_t *)R);
+
+	memset(_k, 0, sizeof(_k));
+	return 1;
+}
+
+int sm2_point_mul_sum(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P, const uint8_t s[32])
+{
+	uint64_t _k[4];
+	SM2_Z256_POINT _P;
+	uint64_t _s[4];
+
+	sm2_z256_from_bytes(_k, k);
+	sm2_z256_point_from_bytes(&_P, (uint8_t *)P);
+	sm2_z256_from_bytes(_s, s);
+	sm2_z256_point_mul_sum(&_P, _k, &_P, _s);
+	sm2_z256_point_to_bytes(&_P, (uint8_t *)R);
+
+	memset(_k, 0, sizeof(_k));
+	memset(_s, 0, sizeof(_s));
+	return 1;
+}
+
+int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P)
+{
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	format_bytes(fp, fmt, ind, "x", P->x, 32);
+	format_bytes(fp, fmt, ind, "y", P->y, 32);
+	return 1;
+}
+
+void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33])
+{
+	*out++ = (P->y[31] & 0x01) ? 0x03 : 0x02;
+	memcpy(out, P->x, 32);
+}
+
+void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65])
+{
+	*out++ = 0x04;
+	memcpy(out, P, 64);
+}
+
+int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen)
+{
+	switch (*in) {
+	case SM2_point_at_infinity:
+		if (inlen != 1) {
+			error_print();
+			return -1;
+		}
+		sm2_z256_point_set_infinity(P);
+		break;
+	case SM2_point_compressed_y_even:
+		if (inlen != 33) {
+			error_print();
+			return -1;
+		}
+		if (sm2_z256_point_from_x_bytes(P, in + 1, 0) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case SM2_point_compressed_y_odd:
+		if (inlen != 33) {
+			error_print();
+			return -1;
+		}
+		if (sm2_z256_point_from_x_bytes(P, in + 1, 1) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case SM2_point_uncompressed:
+		if (inlen != 65) {
+			error_print();
+			return -1;
+		}
+		sm2_z256_point_from_bytes(P, in + 1);
+		if (sm2_z256_point_is_on_curve(P) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen)
+{
+	if ((*in == 0x02 || *in == 0x03) && inlen == 33) {
+		if (sm2_point_from_x(P, in + 1, *in) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (*in == 0x04 && inlen == 65) {
+		if (sm2_point_from_xy(P, in + 1, in + 33) != 1) {
+			error_print();
+			return -1;
+		}
+	} else {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen)
+{
+	uint8_t octets[65];
+	if (!P) {
+		return 0;
+	}
+	sm2_point_to_uncompressed_octets(P, octets);
+	if (asn1_octet_string_to_der(octets, sizeof(octets), out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_octet_string_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (dlen != 65) {
+		error_print();
+		return -1;
+	}
+	if (sm2_point_from_octets(P, d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
+{
+	return 1;
+}
+
+
 

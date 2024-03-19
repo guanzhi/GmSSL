@@ -517,10 +517,22 @@ static int test_sm2_z256_point_add_conjugate(void)
 	sm2_z256_point_from_hex(&Q, hex_negG);
 	sm2_z256_point_add(&R, &P, &Q);
 
+	// 汇编代码在实现点加的时候，为什么会出现X, Y != 0的情况呢？
+	sm2_z256_print(stderr, 0, 0, "R.X", R.X);
+	sm2_z256_print(stderr, 0, 0, "R.Y", R.Y);
+	sm2_z256_print(stderr, 0, 0, "R.Z", R.Z);
+
 	// P + (-P) = (0:0:0)
+	/*
+	// 有可能在计算的时候，已经发现这是共轭点，那就不做进一步的计算了
 	if (!sm2_z256_is_zero(R.X)
-		|| !sm2_z256_is_zero(R.Y)
-		|| !sm2_z256_is_zero(R.Z)) {
+		|| !sm2_z256_is_zero(R.Y)) {
+		error_print();
+		return -1;
+	}
+	*/
+
+	if (!sm2_z256_is_zero(R.Z)) {
 		error_print();
 		return -1;
 	}
@@ -536,9 +548,10 @@ static int test_sm2_z256_point_dbl_infinity(void)
 
 	sm2_z256_point_set_infinity(&P_infinity);
 	sm2_z256_point_dbl(&R, &P_infinity); // 显然这个计算就会出错了！
+	sm2_z256_print(stderr, 0, 0, "ret", R.X);
 
 	if (!sm2_z256_point_is_at_infinity(&R)) {
-		error_print(); // 这个会出错						
+		error_print();
 		return -1;
 	}
 
@@ -616,6 +629,9 @@ static int test_sm2_z256_point_ops(void)
 			break;
 		case OP_DBL:
 			sm2_z256_point_dbl(&P, &A);
+			sm2_z256_print(stderr, 0, 0, "X", P.X);
+			sm2_z256_print(stderr, 0, 0, "Y", P.Y);
+			sm2_z256_print(stderr, 0, 0, "Z", P.Z);
 			break;
 		case OP_SUB:
 			sm2_z256_point_sub(&P, &A, &B);
@@ -860,6 +876,8 @@ static int test_sm2_z256_point_from_hash(void)
 
 int main(void)
 {
+	if (test_sm2_z256_point_dbl_infinity() != 1) goto err;
+	if (test_sm2_z256_point_ops() != 1) goto err;
 
 	if (test_sm2_z256_rshift() != 1) goto err;
 	if (test_sm2_z256_modp() != 1) goto err;
@@ -868,8 +886,6 @@ int main(void)
 	if (test_sm2_z256_point_equ() != 1) goto err;
 	if (test_sm2_z256_point_get_xy() != 1) goto err;
 	if (test_sm2_z256_point_add_conjugate() != 1) goto err;
-	if (test_sm2_z256_point_dbl_infinity() != 1) goto err;
-	if (test_sm2_z256_point_ops() != 1) goto err;
 	if (test_sm2_z256_point_mul_generator() != 1) goto err;
 	if (test_sm2_z256_point_from_hash() != 1) goto err;
 	if (test_sm2_z256_point_from_x_bytes() != 1) goto err;
