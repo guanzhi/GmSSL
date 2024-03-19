@@ -1817,7 +1817,7 @@ void sm9_z256_point_sub_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const
 extern const uint64_t sm9_z256_pre_comp[37][64 * 4 * 2];
 static SM9_Z256_POINT_AFFINE (*g_pre_comp)[64] = (SM9_Z256_POINT_AFFINE (*)[64])sm9_z256_pre_comp;
 
-void sm9_z256_point_mul_generator_fast(SM9_Z256_POINT *R, const sm9_z256_t k)
+void sm9_z256_point_mul_generator(SM9_Z256_POINT *R, const sm9_z256_t k)
 {
 	size_t window_size = 7;
 	int R_infinity = 1;
@@ -1844,11 +1844,6 @@ void sm9_z256_point_mul_generator_fast(SM9_Z256_POINT *R, const sm9_z256_t k)
 	if (R_infinity) {
 		sm9_z256_point_set_infinity(R);
 	}
-}
-
-void sm9_z256_point_mul_generator(SM9_Z256_POINT *R, const sm9_z256_t k)
-{
-	sm9_z256_point_mul(R, k, SM9_Z256_MONT_P1);
 }
 
 int sm9_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM9_Z256_POINT *P)
