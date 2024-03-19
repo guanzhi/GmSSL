@@ -226,6 +226,7 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 void sm9_z256_point_sub(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q);
 void sm9_z256_point_mul(SM9_Z256_POINT *R, const sm9_z256_t k, const SM9_Z256_POINT *P);
 void sm9_z256_point_mul_generator(SM9_Z256_POINT *R, const sm9_z256_t k);
+void sm9_z256_point_mul_generator_fast(SM9_Z256_POINT *R, const sm9_z256_t k);
 int  sm9_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM9_Z256_POINT *P);
 int  sm9_z256_point_to_uncompressed_octets(const SM9_Z256_POINT *P, uint8_t octets[65]);
 int  sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t octets[65]);
