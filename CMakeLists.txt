@@ -32,6 +32,7 @@ set(src
 	src/sm9_z256_alg.c
 	src/sm9_z256_key.c
 	src/sm9_z256_lib.c
+	src/sm9_z256_table.c
 	src/zuc.c
 	src/zuc_modes.c
 	src/hash_drbg.c
@@ -254,6 +255,13 @@ if (ENABLE_SM2_Z256_ARMV8)
 	list(APPEND src src/sm2_z256_armv8.S)
 endif()
 
+option(ENABLE_SM9_Z256_ARMV8 "Enable SM9_Z256 ARMv8 assembly" OFF)
+if (ENABLE_SM9_Z256_ARMV8)
+	message(STATUS "ENABLE_SM9_Z256_ARMV8 is ON")
+	add_definitions(-DENABLE_SM9_Z256_ARMV8)
+	enable_language(ASM)
+	list(APPEND src src/sm9_z256_armv8.S)
+endif()
 
 option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
 if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
