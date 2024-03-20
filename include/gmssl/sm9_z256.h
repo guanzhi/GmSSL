@@ -39,6 +39,7 @@ void sm9_z256_copy_conditional(sm9_z256_t dst, const sm9_z256_t src, uint64_t mo
 void sm9_z256_set_zero(sm9_z256_t r);
 int  sm9_z256_cmp(const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_mul_low(uint64_t r[4], const sm9_z256_t a, const sm9_z256_t b);
 int  sm9_z256_from_hex(sm9_z256_t r, const char *hex);
 void sm9_z256_to_hex(const sm9_z256_t r, char hex[64]);
 int  sm9_z256_equ_hex(const sm9_z256_t a, const char *hex);
