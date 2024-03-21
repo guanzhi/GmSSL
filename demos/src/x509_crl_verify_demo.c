@@ -28,10 +28,10 @@ int main(int argc, char **argv)
 	printf("Demo - Check if a Certificate has been revoked in a CRL\n");
 
 
-126         if ((rv = x509_crl_verify_by_ca_cert(crl, crl_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
-127                 fprintf(stderr, "%s: verification inner error\n", prog);
-128                 goto end;
-129         }
+         if ((rv = x509_crl_verify_by_ca_cert(crl, crl_len, cacert, cacertlen, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID))) < 0) {
+                 fprintf(stderr, "%s: verification inner error\n", prog);
+                 goto end;
+         }
 
 
 
