@@ -97,6 +97,7 @@ static int prepare_pem_file(void)
 		|| fwrite(enccert_pem, 1, strlen(enccert_pem), fp) != strlen(enccert_pem)
 		|| fwrite(cacert_pem, 1, strlen(cacert_pem), fp) != strlen(cacert_pem)) {
 		fprintf(stderr, "fwrite() error\n");
+		fclose(fp);
 		return -1;
 	}
 	fclose(fp);
@@ -107,10 +108,11 @@ static int prepare_pem_file(void)
 	}
 	if (fwrite(rootcacert_pem, 1, strlen(rootcacert_pem), fp) != strlen(rootcacert_pem)) {
 		fprintf(stderr, "fwrite() error\n");
+		fclose(fp);
 		return -1;
 	}
-	fclose(fp);
 
+	fclose(fp);
 	return 1;
 }
 
