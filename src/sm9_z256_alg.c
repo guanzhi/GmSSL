@@ -38,6 +38,11 @@ const sm9_z256_t SM9_Z256_NEG_N = {0x1a911e63296130db, 0xb60d6cb4e7157411, 0x29f
 const sm9_z256_t SM9_Z256_N_MINUS_ONE = {0xe56ee19cd69ecf24, 0x49f2934b18ea8bee, 0xd603ab4ff58ec744, 0xb640000002a3a6f1};
 
 
+// e = p - 2 = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457b
+// p - 2, used in a^(p-2) = a^-1
+const sm9_z256_t SM9_Z256_P_MINUS_TWO = {0xe56f9b27e351457b, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1};
+
+
 // P1.X 0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD
 // P1.Y 0x21FE8DDA4F21E607631065125C395BBC1C1C00CBFA6024350C464CD70A3EA616
 const SM9_Z256_POINT _SM9_Z256_P1 = {
@@ -491,6 +496,8 @@ void sm9_z256_fp_neg(sm9_z256_t r, const sm9_z256_t a)
 }
 #endif
 
+// (w0,w1) = a*b + c + d
+#if 0
 void sm9_u64_mul_add(uint64_t *w0, uint64_t *w1,
 	const uint64_t a, const uint64_t b, const uint64_t c, const uint64_t d)
 {
@@ -519,7 +526,7 @@ void sm9_u64_mul_add(uint64_t *w0, uint64_t *w1,
 	for (i = 0; i < 2; i++) {
 		r[i] = (s[2 * i + 1] << 32) | s[2 * i];
 	}
-	
+
 	r[0] += c;
 	if (r[0] < c) {
 		r[1]++;
@@ -528,10 +535,11 @@ void sm9_u64_mul_add(uint64_t *w0, uint64_t *w1,
 	if (r[0] < d) {
 		r[1]++;
 	}
-	
+
 	*w0 = r[0];
 	*w1 = r[1];
 }
+#endif
 
 													
 // p = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
@@ -542,6 +550,7 @@ const uint64_t SM9_Z256_P_PRIME[4] = {
 };
 
 
+#ifndef ENABLE_SM9_Z256_ARMV8
 // z = a*b
 // c = (z + (z * p' mod 2^256) * p)/2^256
 void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
@@ -572,20 +581,23 @@ void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4
 		(void)sm9_z256_sub(r, r, SM9_Z256_P);
 	}
 }
+#endif
 
+// TODO: NEON/SVE/SVE2 implementation
+#if 0
 void sm9_z256_fp_mont_mul_2way(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 {
 	sm9_z256_t d = {0}, e = {0};
 	uint64_t q, t0, t1, p0, p1, tmp;
 	uint64_t pre = SM9_Z256_MODP_MU * b[0];
 	int i, j;
-	
+
 	for (j = 0; j < 4; j++) {
 		q = pre * a[j] + SM9_Z256_MODP_MU * (d[0]-e[0]);
-		
+
 		sm9_u64_mul_add(&tmp, &t0, a[j], b[0], d[0], 0);
 		sm9_u64_mul_add(&tmp, &t1, q, SM9_Z256_P[0], e[0], 0);
-		
+
 		for (i = 1; i < 4; i++) {
 			sm9_u64_mul_add(&d[i-1], &t0, a[j], b[i], t0, d[i]);
 			sm9_u64_mul_add(&e[i-1], &t1, q, SM9_Z256_P[i], t1, e[i]);
@@ -593,12 +605,14 @@ void sm9_z256_fp_mont_mul_2way(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_
 		d[3] = t0;
 		e[3] = t1;
 	}
-	
+
 	if (sm9_z256_sub(r, d, e)) {
 		sm9_z256_add(r, r, SM9_Z256_P);
 	}
 }
+#endif
 
+#ifndef ENABLE_SM9_Z256_ARMV8
 void sm9_z256_fp_to_mont(sm9_z256_t r, const sm9_z256_t a)
 {
 	sm9_z256_fp_mont_mul(r, a, SM9_Z256_MODP_2e512);
@@ -608,12 +622,15 @@ void sm9_z256_fp_from_mont(sm9_z256_t r, const sm9_z256_t a)
 {
 	sm9_z256_fp_mont_mul(r, a, SM9_Z256_ONE);
 }
+#endif
 
+// ASM			
 void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a)
 {
 	sm9_z256_fp_mont_mul(r, a, a);
 }
 
+// change args name to a_mont, r_mont
 void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e)
 {
 	sm9_z256_t t;
@@ -626,9 +643,9 @@ void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e)
 	for (i = 3; i >= 0; i--) {
 		w = e[i];
 		for (j = 0; j < 64; j++) {
-			sm9_z256_fp_sqr(t, t);
+			sm9_z256_fp_mont_sqr(t, t);
 			if (w & 0x8000000000000000) {
-				sm9_z256_fp_mul(t, t, a);
+				sm9_z256_fp_mont_mul(t, t, a);
 			}
 			w <<= 1;
 		}
@@ -637,12 +654,9 @@ void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e)
 	sm9_z256_copy(r, t);
 }
 
-// TODO: what is sm2_mont_inv?
 void sm9_z256_fp_inv(sm9_z256_t r, const sm9_z256_t a)
 {
-	sm9_z256_t e;
-	sm9_z256_sub(e, SM9_Z256_P, SM9_Z256_TWO);
-	sm9_z256_fp_pow(r, a, e);
+	sm9_z256_fp_pow(r, a, SM9_Z256_P_MINUS_TWO);
 }
 
 int sm9_z256_fp_from_bytes(sm9_z256_t r, const uint8_t buf[32])
@@ -763,6 +777,10 @@ void sm9_z256_fp2_to_hex(const sm9_z256_fp2 a, char hex[129])
 	hex[64] = SM9_Z256_HEX_SEP;
 	sm9_z256_fp_to_hex(a[0], hex + 65);
 }
+
+// TODO:
+// fp2, fp4 函数可以粗粒度并行，或者调用 __sm9_z256_fp_add 来函数开始和结束的开销
+// 是否需要给fp2提供独立的展开函数？还是直接展开fp4，提供armv8?
 
 void sm9_z256_fp2_add(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
 {
