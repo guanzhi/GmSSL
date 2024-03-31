@@ -22,6 +22,19 @@
 #include <gmssl/endian.h>
 #include <gmssl/error.h>
 
+static uint64_t reverse_bits(uint64_t a)
+{
+	uint64_t r = 0;
+	int i;
+
+	for (i = 0; i < 63; i++) {
+		r |= a & 1;
+		r <<= 1;
+		a >>= 1;
+	}
+	r |= a & 1;
+	return r;
+}
 
 gf128_t gf128_zero(void)
 {
@@ -50,6 +63,10 @@ int gf128_equ_hex(gf128_t a, const char *s)
 void gf128_print_bits(gf128_t a)
 {
 	int i;
+
+	a.hi = reverse_bits(a.hi);
+	a.lo = reverse_bits(a.lo);
+
 	for (i = 0; i < 64; i++) {
 		printf("%d", (int)(a.hi % 2));
 		a.hi >>= 1;
@@ -73,20 +90,6 @@ int gf128_print(FILE *fp, int fmt, int ind, const char *label, gf128_t a)
 	}
 	printf("\n");
 	return 1;
-}
-
-static uint64_t reverse_bits(uint64_t a)
-{
-	uint64_t r = 0;
-	int i;
-
-	for (i = 0; i < 63; i++) {
-		r |= a & 1;
-		r <<= 1;
-		a >>= 1;
-	}
-	r |= a & 1;
-	return r;
 }
 
 gf128_t gf128_from_bytes(const uint8_t p[16])
@@ -117,6 +120,7 @@ gf128_t gf128_add(gf128_t a, gf128_t b)
 	return r;
 }
 
+#ifndef ENABLE_GMUL_ARMV8
 gf128_t gf128_mul(gf128_t a, gf128_t b)
 {
 	gf128_t r = {0, 0};
@@ -159,6 +163,18 @@ gf128_t gf128_mul(gf128_t a, gf128_t b)
 
 	return r;
 }
+#else
+
+extern void gmul(uint64_t r[2], const uint64_t a[2], const uint64_t b[2]);
+
+gf128_t gf128_mul(gf128_t a, gf128_t b)
+{
+	gf128_t r;
+	gmul(&r, &a, &b);
+	return r;
+}
+
+#endif
 
 gf128_t gf128_mul2(gf128_t a)
 {
