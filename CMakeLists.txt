@@ -302,6 +302,13 @@ if (ENABLE_SM4_AESNI_AVX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 endif()
 
+option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)
+if (ENABLE_SM4_AARCH64)
+	message(STATUS "ENABLE_SM4_AARCH64 is ON")
+	add_definitions(-DENABLE_SM4_AARCH64)
+	enable_language(ASM)
+	list(APPEND src src/sm4_aarch64.S)
+endif()
 
 option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
 if (ENABLE_SM4_ECB)
