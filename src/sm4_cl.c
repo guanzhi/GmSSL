@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <gmssl/sm4.h>
-
+#include <gmssl/error.h>
 
 #define MACOS
 #ifdef MACOS
@@ -282,7 +282,7 @@ end:
 
 
 #define KERNEL(...) #__VA_ARGS__
-const char *sm4_cl_src = KERNEL(
+static const char *sm4_cl_src = KERNEL(
 
 __constant unsigned char SBOX[256] = {
 	0xd6, 0x90, 0xe9, 0xfe, 0xcc, 0xe1, 0x3d, 0xb7, 0x16, 0xb6, 0x14, 0xc2, 0x28, 0xfb, 0x2c, 0x05,

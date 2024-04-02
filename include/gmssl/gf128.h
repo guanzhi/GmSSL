@@ -29,9 +29,11 @@ extern "C" {
 
 //typedef unsigned __int128 gf128_t;
 
+// the least significant bit of lo is a_0, the most significant bit of hi is a_127
+// so x^7 + x^2 + x + 1 is 0x87
 typedef struct {
-	uint64_t hi;
 	uint64_t lo;
+	uint64_t hi;
 } gf128_t;
 
 
@@ -45,7 +47,7 @@ gf128_t gf128_mul2(gf128_t a);
 gf128_t gf128_from_bytes(const uint8_t p[16]);
 void gf128_to_bytes(gf128_t a, uint8_t p[16]);
 int gf128_print(FILE *fp, int fmt ,int ind, const char *label, gf128_t a);
-
+void gf128_print_bits(gf128_t a);
 
 #ifdef __cplusplus
 }
