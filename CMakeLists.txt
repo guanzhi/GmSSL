@@ -293,6 +293,15 @@ endif()
 #endif()
 
 
+option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
+if (ENABLE_SM3_SSE)
+	message(STATUS "ENABLE_SM3_SSE is ON")
+	list(FIND src src/sm3.c sm3_index)
+	list(REMOVE_AT src ${sm3_index})
+	list(INSERT src ${sm3_index} src/sm3_sse.c)
+endif()
+
+
 option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
 if (ENABLE_SM4_AESNI_AVX)
 	message(STATUS "ENABLE_SM4_AESNI_AVX is ON")
