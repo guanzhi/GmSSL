@@ -12,7 +12,7 @@ include_directories(include)
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4_tbox.c
+	src/sm4.c
 	src/sm4_modes.c
 	src/sm3.c
 	src/sm3_hmac.c
@@ -292,6 +292,13 @@ endif()
 #	list(APPEND src src/sm3_avx_bmi2.s)
 #endif()
 
+option (ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
+if (ENABLE_SM4_TBOX)
+	message(STATUS "ENABLE_SM4_TBOX is ON")
+	list(FIND src src/sm4.c sm4_index)
+	list(REMOVE_AT src ${sm4_index})
+	list(INSERT src ${sm4_index} src/sm4_tbox.c)
+endif()
 
 option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
 if (ENABLE_SM3_SSE)
