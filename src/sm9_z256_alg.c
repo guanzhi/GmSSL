@@ -550,7 +550,123 @@ const uint64_t SM9_Z256_P_PRIME[4] = {
 };
 
 
-#ifndef ENABLE_SM9_Z256_ARMV8
+#if defined(ENABLE_SM9_Z256_ARMV8)
+	// src/sm9_z256_armv8.S
+#elif defined(ENABLE_SM9_Z256_NEON)
+#include <arm_neon.h>
+
+// precompute <<= 32
+const uint64_t SM9_Z256_P_LEFT_32[8] = {
+	0xe351457d00000000, 0xe56f9b2700000000, 0x1a7aeedb00000000, 0x21f2934b00000000,
+	0xf58ec74500000000, 0xd603ab4f00000000, 0x02a3a6f100000000, 0xb640000000000000
+};
+
+const uint32_t SM9_Z256_MU_32 = 0xd0d11bd5;
+
+void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
+{
+	int i;
+	uint32_t a_[8], b_[8];
+
+	for (i = 0; i < 4; ++i) {
+		a_[2 * i]     = a[i] & 0xffffffff;
+		a_[2 * i + 1] = a[i] >> 32;
+		b_[2 * i]     = b[i] & 0xffffffff;
+		b_[2 * i + 1] = b[i] >> 32;
+	}
+
+	uint64x2_t d0, d1, d2, d3, d4, d5, d6, d7;
+	uint64x2_t t, low32 = vmovq_n_u64(0xffffffff);
+	uint32x2_t w0, w1;
+	uint64_t q, d[16] = {};
+	uint32_t pre = SM9_Z256_MU_32 * b[0];
+
+	d0 = vmovq_n_u64(0);
+	d1 = vmovq_n_u64(0);
+	d2 = vmovq_n_u64(0);
+	d3 = vmovq_n_u64(0);
+	d4 = vmovq_n_u64(0);
+	d5 = vmovq_n_u64(0);
+	d6 = vmovq_n_u64(0);
+	d7 = vmovq_n_u64(0);
+
+	for (i = 0; i < 8; i++) {
+		q = pre * a_[i] + SM9_Z256_MU_32 * (d[0]-d[1]);
+		q <<= 32;
+
+		w0 = vcreate_u32(a_[i] | q);
+		w1 = vcreate_u32(b_[0] | SM9_Z256_P_LEFT_32[0]);
+		t = vmlal_u32(d0, w0, w1);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[1] | SM9_Z256_P_LEFT_32[1]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d1);
+		d0 = vandq_u64(t, low32);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[2] | SM9_Z256_P_LEFT_32[2]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d2);
+		d1 = vandq_u64(t, low32);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[3] | SM9_Z256_P_LEFT_32[3]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d3);
+		d2 = vandq_u64(t, low32);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[4] | SM9_Z256_P_LEFT_32[4]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d4);
+		d3 = vandq_u64(t, low32);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[5] | SM9_Z256_P_LEFT_32[5]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d5);
+		d4 = vandq_u64(t, low32);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[6] | SM9_Z256_P_LEFT_32[6]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d6);
+		d5 = vandq_u64(t, low32);
+		t = vshrq_n_u64(t, 32);
+
+		w1 = vcreate_u32(b_[7] | SM9_Z256_P_LEFT_32[7]);
+		t = vmlal_u32(t, w0, w1);
+		t = vaddq_u64(t, d7);
+		d6 = vandq_u64(t, low32);
+
+		d7 = vshrq_n_u64(t, 32);
+
+		vst1q_u64(d, d0);
+	}
+
+	vst1q_u64(d, d0);
+	vst1q_u64(d + 2, d1);
+	vst1q_u64(d + 4, d2);
+	vst1q_u64(d + 6, d3);
+	vst1q_u64(d + 8, d4);
+	vst1q_u64(d + 10, d5);
+	vst1q_u64(d + 12, d6);
+	vst1q_u64(d + 14, d7);
+
+	sm9_z256_t e, f;
+	for (i = 0; i < 4; ++i) {
+		e[i] = d[4 * i]     | d[4 * i + 2] << 32;
+		f[i] = d[4 * i + 1] | d[4 * i + 3] << 32;
+	}
+
+	if (sm9_z256_sub(r, e, f)) {
+		sm9_z256_add(r, r, SM9_Z256_P);
+	}
+}
+
+#else // ENABLE_SM9_Z256_NEON
+
 // z = a*b
 // c = (z + (z * p' mod 2^256) * p)/2^256
 void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
@@ -581,7 +697,18 @@ void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4
 		(void)sm9_z256_sub(r, r, SM9_Z256_P);
 	}
 }
-#endif
+#endif // ENABLE_SM9_Z256_ARMV8
+
+
+
+
+
+
+
+
+
+
+
 
 // TODO: NEON/SVE/SVE2 implementation
 #if 0

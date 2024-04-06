@@ -269,6 +269,12 @@ if (ENABLE_SM9_Z256_ARMV8)
 	list(APPEND src src/sm9_z256_armv8.S)
 endif()
 
+option(ENABLE_SM9_NEON "Enable SM9 NEON intrinsics" OFF)
+if (ENABLE_SM9_NEON)
+	message(STATUS "ENABLE_SM9_NEON is ON")
+	add_definitions(-DENABLE_SM9_NEON)
+endif()
+
 option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
 if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
 	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT is ON")
