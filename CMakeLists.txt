@@ -13,7 +13,7 @@ include_directories(include)
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4_tbox.c
+	src/sm4.c
 	src/sm4_modes.c
 	src/sm3.c
 	src/sm3_hmac.c
@@ -270,6 +270,12 @@ if (ENABLE_SM9_Z256_ARMV8)
 	list(APPEND src src/sm9_z256_armv8.S)
 endif()
 
+option(ENABLE_SM9_NEON "Enable SM9 NEON intrinsics" OFF)
+if (ENABLE_SM9_NEON)
+	message(STATUS "ENABLE_SM9_NEON is ON")
+	add_definitions(-DENABLE_SM9_NEON)
+endif()
+
 option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
 if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
 	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT is ON")
@@ -292,6 +298,22 @@ endif()
 #	enable_language(ASM)
 #	list(APPEND src src/sm3_avx_bmi2.s)
 #endif()
+
+option (ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
+if (ENABLE_SM4_TBOX)
+	message(STATUS "ENABLE_SM4_TBOX is ON")
+	list(FIND src src/sm4.c sm4_index)
+	list(REMOVE_AT src ${sm4_index})
+	list(INSERT src ${sm4_index} src/sm4_tbox.c)
+endif()
+
+option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
+if (ENABLE_SM3_SSE)
+	message(STATUS "ENABLE_SM3_SSE is ON")
+	list(FIND src src/sm3.c sm3_index)
+	list(REMOVE_AT src ${sm3_index})
+	list(INSERT src ${sm3_index} src/sm3_sse.c)
+endif()
 
 
 option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
