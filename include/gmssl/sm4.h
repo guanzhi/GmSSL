@@ -119,6 +119,39 @@ int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen);
 #define sm4_ctr_decrypt_finish(ctx,out,outlen) sm4_ctr_encrypt_finish(ctx,out,outlen)
 
 
+#include <gmssl/ghash.h>
+#include <gmssl/api.h>
+
+typedef struct {
+	SM4_CTR_CTX enc_ctx;
+	GHASH_CTX mac_ctx;
+	uint8_t Y[16]; // E(K, Y_0)
+	size_t taglen;
+	uint8_t mac[16];
+	size_t maclen;
+} SM4_GCM_CTX;
+
+#define SM4_GCM_KEY_SIZE 16
+#define SM4_GCM_DEFAULT_TAG_SIZE 16
+
+_gmssl_export int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, size_t taglen);
+_gmssl_export int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx,
+	uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_decrypt_init(SM4_GCM_CTX *ctx,
+	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, size_t taglen);
+_gmssl_export int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx,
+	uint8_t *out, size_t *outlen);
+
+
+
+
 #ifdef ENABLE_SM4_ECB
 // call `sm4_set_decrypt_key` before decrypt
 void sm4_ecb_encrypt(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);

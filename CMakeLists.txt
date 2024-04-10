@@ -13,7 +13,9 @@ set(src
 	src/version.c
 	src/debug.c
 	src/sm4.c
-	src/sm4_modes.c
+	src/sm4_cbc.c
+	src/sm4_ctr.c
+	src/sm4_gcm.c
 	src/sm3.c
 	src/sm3_hmac.c
 	src/sm3_kdf.c
@@ -40,8 +42,10 @@ set(src
 	src/hkdf.c
 	src/pbkdf2.c
 	src/gf128.c
+	src/ghash.c
 	src/gcm.c
-	src/aead.c
+	src/sm4_cbc_sm3_hmac.c
+	src/sm4_ctr_sm3_hmac.c
 	src/pkcs8.c
 	src/ec.c
 	src/rsa.c
