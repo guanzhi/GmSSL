@@ -1,4 +1,4 @@
-out/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -94,7 +94,6 @@ const uint8_t S[256] = {
 	 (S[((A))       & 0xff]))
 
 
-#ifndef ENABLE_SM4_AARCH64
 void sm4_set_encrypt_key(SM4_KEY *key, const uint8_t user_key[16])
 {
 	uint32_t X0, X1, X2, X3, X4;
@@ -172,4 +171,3 @@ void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char o
 	PUTU32(out +  8, X1);
 	PUTU32(out + 12, X0);
 }
-#endif
