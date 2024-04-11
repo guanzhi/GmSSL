@@ -1,16 +1,10 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
  *
  *  http://www.apache.org/licenses/LICENSE-2.0
- */
-
-
-/* GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
- * A + B mod f(x) = a xor b
- * A * 2 mod f(x)
  */
 
 
@@ -22,61 +16,7 @@
 #include <gmssl/gf128.h>
 #include <gmssl/endian.h>
 #include <gmssl/error.h>
-
 #include <immintrin.h>
-
-
-gf128_t gf128_zero(void)
-{
-	uint8_t zero[16] = {0};
-	return gf128_from_bytes(zero);
-}
-
-gf128_t gf128_from_hex(const char *s)
-{
-	uint8_t bin[16];
-	size_t len;
-	hex_to_bytes(s, strlen(s), bin, &len);
-	return gf128_from_bytes(bin);
-}
-
-int gf128_equ_hex(gf128_t a, const char *s)
-{
-	uint8_t bin1[16];
-	uint8_t bin2[16];
-	size_t len;
-	hex_to_bytes(s, strlen(s), bin1, &len);
-	gf128_to_bytes(a, bin2);
-	return memcmp(bin1, bin2, sizeof(bin1)) == 0;
-}
-
-void gf128_print_bits(gf128_t a)
-{
-	int i;
-	for (i = 0; i < 64; i++) {
-		printf("%d", (int)(a.hi % 2));
-		a.hi >>= 1;
-	}
-	for (i = 0; i < 64; i++) {
-		printf("%d", (int)(a.lo % 2));
-		a.lo >>= 1;
-	}
-	printf("\n");
-}
-
-int gf128_print(FILE *fp, int fmt, int ind, const char *label, gf128_t a)
-{
-	uint8_t be[16];
-	int i;
-
-	printf("%s: ", label);
-	gf128_to_bytes(a, be);
-	for (i = 0; i < 16; i++) {
-		printf("%02x", be[i]);
-	}
-	printf("\n");
-	return 1;
-}
 
 
 static uint64_t reverse_bits(uint64_t a)
@@ -93,50 +33,78 @@ static uint64_t reverse_bits(uint64_t a)
 	return r;
 }
 
-gf128_t gf128_from_bytes(const uint8_t p[16])
+void gf128_set_zero(gf128_t r)
 {
-	gf128_t r;
-
-	r.lo = GETU64(p);
-	r.hi = GETU64(p + 8);
-
-	r.lo = reverse_bits(r.lo);
-	r.hi = reverse_bits(r.hi);
-	return r;
+	r[0] = 0;
+	r[1] = 0;
 }
 
-void gf128_to_bytes(gf128_t a, uint8_t p[16])
+void gf128_set_one(gf128_t r)
 {
-	a.lo = reverse_bits(a.lo);
+	r[0] = 1;
+	r[1] = 0;
+}
+
+/*
+void gf128_print_bits(gf128_t a)
+{
+	int i;
+
 	a.hi = reverse_bits(a.hi);
-	PUTU64(p, a.lo);
-	PUTU64(p + 8, a.hi);
-}
+	a.lo = reverse_bits(a.lo);
 
-gf128_t gf128_add(gf128_t ga, gf128_t gb)
+	for (i = 0; i < 64; i++) {
+		printf("%d", (int)(a.hi % 2));
+		a.hi >>= 1;
+	}
+	for (i = 0; i < 64; i++) {
+		printf("%d", (int)(a.lo % 2));
+		a.lo >>= 1;
+	}
+	printf("\n");
+}
+*/
+
+int gf128_print(FILE *fp, int fmt, int ind, const char *label, const gf128_t a)
 {
-	uint8_t r[16], a[16], b[16];
+	uint8_t be[16];
+	int i;
 
-	gf128_to_bytes(ga, a);
-	gf128_to_bytes(gb, b);
-
-	__m128i a1 = _mm_loadu_si128((const __m128i*)a);
-	__m128i b1 = _mm_loadu_si128((const __m128i*)b);
-	__m128i T0 = _mm_xor_si128(a1, b1);
-
-	_mm_storeu_si128((__m128i*)r, T0);
-
-	return gf128_from_bytes(r);
+	printf("%s: ", label);
+	gf128_to_bytes(a, be);
+	for (i = 0; i < 16; i++) {
+		printf("%02x", be[i]);
+	}
+	printf("\n");
+	return 1;
 }
 
+void gf128_from_bytes(gf128_t r, const uint8_t p[16])
+{
+	r[0] = reverse_bits(GETU64(p));
+	r[1] = reverse_bits(GETU64(p + 8));
+}
 
-gf128_t gf128_mul(gf128_t ga, gf128_t gb)
+void gf128_to_bytes(const gf128_t a, uint8_t p[16])
+{
+	PUTU64(p, reverse_bits(a[0]));
+	PUTU64(p + 8, reverse_bits(a[1]));
+}
+
+void gf128_add(gf128_t r, const gf128_t a, const gf128_t b)
+{
+	r[0] = a[0] ^ b[0];
+	r[1] = a[1] ^ b[1];
+}
+
+void gf128_mul(gf128_t gr, const gf128_t ga, const gf128_t gb)
 {
 	const __m128i MASK = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 	__m128i a1, b1;
 	__m128i T0, T1, T2, T3, T4, T5;
 	uint8_t r[16], a[16], b[16];
 
+	// FIXME: directly load a, b
 	gf128_to_bytes(ga, a);
 	gf128_to_bytes(gb, b);
 
@@ -191,10 +159,10 @@ gf128_t gf128_mul(gf128_t ga, gf128_t gb)
 
 	T3 = _mm_shuffle_epi8(T3, MASK);
 	_mm_storeu_si128((__m128i*)r, T3);
-	return gf128_from_bytes(r);
+	gf128_from_bytes(gr, r);
 }
 
-gf128_t gf128_mul2(gf128_t ga)
+void gf128_mul_by_2(gf128_t gr, const gf128_t ga)
 {
 	const __m128i MASK = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 	__m128i MASK1 = _mm_set_epi8(0xe1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
@@ -221,5 +189,5 @@ gf128_t gf128_mul2(gf128_t ga)
 
 	T5 = _mm_shuffle_epi8(T5, MASK);
 	_mm_storeu_si128((__m128i*)r, T5);
-	return gf128_from_bytes(r);
+	gf128_from_bytes(gr, r);
 }

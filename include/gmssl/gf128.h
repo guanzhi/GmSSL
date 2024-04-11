@@ -7,11 +7,7 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
-
-/* GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
- * A + B mod f(x) = a xor b
- * A * 2 mod f(x)
- */
+// GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
 
 #ifndef GMSSL_GF128_H
 #define GMSSL_GF128_H
