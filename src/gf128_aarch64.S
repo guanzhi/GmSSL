@@ -8,7 +8,7 @@
  */
 
 
-v5.16b, v1.16b, v1.16b, #8/* GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
+/* GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
 
 	f0 = x^128 = x^7 + x^2 + x + 1
 	ext([a0,a1],[b0,b1],8) => [a1,b0]
