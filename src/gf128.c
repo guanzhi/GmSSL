@@ -120,7 +120,7 @@ gf128_t gf128_add(gf128_t a, gf128_t b)
 	return r;
 }
 
-#ifndef ENABLE_GMUL_ARMV8
+#ifndef ENABLE_GMUL_AARCH64
 gf128_t gf128_mul(gf128_t a, gf128_t b)
 {
 	gf128_t r = {0, 0};

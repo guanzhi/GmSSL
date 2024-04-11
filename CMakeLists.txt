@@ -9,6 +9,12 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include_directories(include)
 
+
+option(ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
+option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
+
+
+
 set(src
 	src/version.c
 	src/debug.c
@@ -249,12 +255,11 @@ if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 endif()
 
 
-option(ENABLE_GMUL_ARMV8 "Enable GF(2^128) Multiplication ARMv8 assembly" OFF)
-if (ENABLE_GMUL_ARMV8)
-	message(STATUS "ENABLE_GMUL_ARMV8 is ON")
-	add_definitions(-DENABLE_GMUL_ARMV8)
+if (ENABLE_GMUL_AARCH64)
+	message(STATUS "ENABLE_GMUL_AARCH64 is ON")
+	add_definitions(-DENABLE_GMUL_AARCH64)
 	enable_language(ASM)
-	list(APPEND src src/gf128_armv8.S)
+	list(APPEND src src/gf128_aarch64.S)
 endif()
 
 option(ENABLE_SM2_Z256_ARMV8 "Enable SM2_Z256 ARMv8 assembly" OFF)
@@ -302,13 +307,6 @@ if (ENABLE_SM3_SSE)
 	list(INSERT src ${sm3_index} src/sm3_sse.c)
 endif()
 
-option (ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" OFF)
-if (ENABLE_SM4_TBOX)
-	message(STATUS "ENABLE_SM4_TBOX is ON")
-	list(FIND src src/sm4.c sm4_index)
-	list(REMOVE_AT src ${sm4_index})
-	list(INSERT src ${sm4_index} src/sm4_tbox.c)
-endif()
 
 option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)
 if (ENABLE_SM4_AARCH64)
