@@ -22,7 +22,6 @@ static void ctr_incr(uint8_t a[16])
 	}
 }
 
-#ifndef ENABLE_SM4_AESNI_AVX
 void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
 {
 	uint8_t block[16];
@@ -38,7 +37,6 @@ void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, siz
 		inlen -= len;
 	}
 }
-#endif
 
 int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE])

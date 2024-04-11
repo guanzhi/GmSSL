@@ -12,7 +12,7 @@ include_directories(include)
 
 option(ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
 option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)
-option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
+option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
 
 option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
 option(ENABLE_SM4_OFB "Enable SM4 OFB mode" OFF)
@@ -20,6 +20,7 @@ option(ENABLE_SM4_CFB "Enable SM4 CFB mode" OFF)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
 option(ENABLE_SM4_CCM "Enable SM4 CCM mode" OFF)
 
+option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
 
 set(src
@@ -322,12 +323,11 @@ if (ENABLE_SM4_AARCH64)
 	enable_language(ASM)
 endif()
 
-option(ENABLE_SM4_AESNI_AVX "Enable SM4 AESNI+AVX assembly implementation" OFF)
-if (ENABLE_SM4_AESNI_AVX)
-	message(STATUS "ENABLE_SM4_AESNI_AVX is ON")
-	add_definitions(-DENABLE_SM4_AESNI_AVX)
-	list(APPEND src src/sm4_aesni_avx.c)
-	list(APPEND tests sm4_aesni_avx)
+if (ENABLE_SM4_CTR_AESNI_AVX)
+	message(STATUS "ENABLE_SM4_CTR_AESNI_AVX is ON")
+	list(FIND src src/sm4_ctr.c sm4_ctr_index)
+	list(REMOVE_AT src ${sm4_ctr_index})
+	list(INSERT src ${sm4_ctr_index} src/sm4_ctr_aesni_avx.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 endif()
 

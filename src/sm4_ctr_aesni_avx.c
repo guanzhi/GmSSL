@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -32,16 +32,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include <x86intrin.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm4.h>
-#include <x86intrin.h>
+#include <gmssl/error.h>
 
 
-void sm4_aesni_avx_encrypt(const uint32_t rk[32], const uint8_t in[16 * 4], uint8_t out[16 * 4])
+static void sm4_aesni_avx_encrypt(const uint32_t rk[32], const uint8_t in[16 * 4], uint8_t out[16 * 4])
 {
 	// nibble mask
 	const __m128i c0f __attribute__((aligned(0x10))) = {
@@ -187,4 +184,67 @@ void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, siz
 	}
 
 	memset(blocks, 0, sizeof(blocks));
+}
+
+int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx,
+	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE])
+{
+	sm4_set_encrypt_key(&ctx->sm4_key, key);
+	memcpy(ctx->ctr, ctr, SM4_BLOCK_SIZE);
+	memset(ctx->block, 0, SM4_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
+}
+
+int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	size_t left;
+	size_t nblocks;
+	size_t len;
+
+	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	*outlen = 0;
+	if (ctx->block_nbytes) {
+		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
+		if (inlen < left) {
+			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
+			ctx->block_nbytes += inlen;
+			return 1;
+		}
+		memcpy(ctx->block + ctx->block_nbytes, in, left);
+		sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, SM4_BLOCK_SIZE, out);
+		in += left;
+		inlen -= left;
+		out += SM4_BLOCK_SIZE;
+		*outlen += SM4_BLOCK_SIZE;
+	}
+	if (inlen >= SM4_BLOCK_SIZE) {
+		nblocks = inlen / SM4_BLOCK_SIZE;
+		len = nblocks * SM4_BLOCK_SIZE;
+		sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, in, len, out);
+		in += len;
+		inlen -= len;
+		out += len;
+		*outlen += len;
+	}
+	if (inlen) {
+		memcpy(ctx->block, in, inlen);
+	}
+	ctx->block_nbytes = inlen;
+	return 1;
+}
+
+int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, ctx->block_nbytes, out);
+	*outlen = ctx->block_nbytes;
+	return 1;
 }
