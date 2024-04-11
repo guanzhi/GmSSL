@@ -14,8 +14,9 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm4.h>
+#include <gmssl/sm4_cbc_sm3_hmac.h>
+#include <gmssl/sm4_ctr_sm3_hmac.h>
 #include <gmssl/hex.h>
-#include <gmssl/aead.h>
 #include <gmssl/error.h>
 
 

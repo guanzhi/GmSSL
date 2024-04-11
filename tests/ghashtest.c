@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -11,10 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/gcm.h>
+#include <gmssl/ghash.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
-#include <gmssl/block_cipher.h>
 #include <gmssl/error.h>
 
 
@@ -115,6 +114,7 @@ int test_ghash(void)
 	return 1;
 }
 
+#if 0
 int test_gcm(void)
 {
 	BLOCK_CIPHER_KEY block_key;
@@ -178,15 +178,12 @@ int test_gcm(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
-
-
-
+#endif
 
 
 int main(int argc, char **argv)
 {
 	if (test_ghash() != 1) goto err;
-	if (test_gcm() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

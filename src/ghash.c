@@ -13,9 +13,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <gmssl/mem.h>
-#include <gmssl/gf128.h>
 #include <gmssl/ghash.h>
-#include <gmssl/oid.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 
@@ -79,10 +77,9 @@ void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t
 	}
 
 	gf128_add(X, X, L);
-	gf128_mul(H, H, X);
+	gf128_mul(H, X, H); // clear secrets in H
 	gf128_to_bytes(H, out);
 }
-
 
 void ghash_init(GHASH_CTX *ctx, const uint8_t h[16], const uint8_t *aad, size_t aadlen)
 {

@@ -111,7 +111,6 @@ void gf128_mul(gf128_t r, const gf128_t a, const gf128_t b)
 	uint64_t r1 = 0;
 	int i;
 
-
 	for (i = 0; i < 64; i++) {
 		if (r1 & mask) {
 			r1 = r1 << 1 | r0 >> 63;

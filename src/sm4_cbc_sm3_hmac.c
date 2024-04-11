@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -11,9 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/sm4.h>
+#include <gmssl/sm4_cbc_sm3_hmac.h>
 #include <gmssl/mem.h>
-#include <gmssl/aead.h>
 #include <gmssl/error.h>
 
 

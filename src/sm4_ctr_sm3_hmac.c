@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -11,11 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/sm4.h>
+#include <gmssl/sm4_ctr_sm3_hmac.h>
 #include <gmssl/mem.h>
-#include <gmssl/aead.h>
 #include <gmssl/error.h>
-
 
 
 int sm4_ctr_sm3_hmac_encrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
@@ -179,13 +177,3 @@ int sm4_ctr_sm3_hmac_decrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 	ctx->maclen = 0;
 	return 1;
 }
-
-static void ctr_incr(uint8_t a[16])
-{
-	int i;
-	for (i = 15; i >= 0; i--) {
-		a[i]++;
-		if (a[i]) break;
-	}
-}
-

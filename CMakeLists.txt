@@ -49,7 +49,6 @@ set(src
 	src/pbkdf2.c
 	src/gf128.c
 	src/ghash.c
-	src/gcm.c
 	src/sm4_cbc_sm3_hmac.c
 	src/sm4_ctr_sm3_hmac.c
 	src/pkcs8.c
@@ -137,6 +136,7 @@ set(tools
 set(tests
 	sm4
 	sm3
+	sm4_sm3_hmac
 #	sm2
 	sm2_z256
 	sm2_sign
@@ -151,8 +151,7 @@ set(tests
 	hkdf
 	pbkdf2
 	gf128
-	gcm
-	aead
+	ghash
 	pkcs8
 	ec
 	asn1
