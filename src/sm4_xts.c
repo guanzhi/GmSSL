@@ -36,8 +36,8 @@ int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 		sm4_encrypt(key1, block, block);
 		gmssl_memxor(out, block, T, 16);
 
-		a = gf128_from_bytes(T);
-		a = gf128_mul2(a);
+		gf128_from_bytes(a, T);
+		gf128_mul_by_2(a, a);
 		gf128_to_bytes(a, T);
 
 		in += 16;
@@ -55,8 +55,8 @@ int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 		sm4_encrypt(key1, block, block);
 		gmssl_memxor(block, block, T, 16);
 
-		a = gf128_from_bytes(T);
-		a = gf128_mul2(a);
+		gf128_from_bytes(a, T);
+		gf128_mul_by_2(a, a);
 		gf128_to_bytes(a, T);
 
 		in += 16;
@@ -95,8 +95,8 @@ int sm4_xts_decrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 		sm4_decrypt(key1, block, block);
 		gmssl_memxor(out, block, T, 16);
 
-		a = gf128_from_bytes(T);
-		a = gf128_mul2(a);
+		gf128_from_bytes(a, T);
+		gf128_mul_by_2(a, a);
 		gf128_to_bytes(a, T);
 
 		in += 16;
@@ -112,8 +112,8 @@ int sm4_xts_decrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 	} else  {
 		uint8_t T1[16];
 
-		a = gf128_from_bytes(T);
-		a = gf128_mul2(a);
+		gf128_from_bytes(a, T);
+		gf128_mul_by_2(a, a);
 		gf128_to_bytes(a, T1);
 
 		gmssl_memxor(block, in, T1, 16);

@@ -559,8 +559,8 @@ bad:
 		goto end;
 	}
 
-#ifdef ENABLE_SM4_XTS
-	if (mode == SM4_MODE_XTS) {
+#ifdef ENABLE_SM4_CCM
+	if (mode == SM4_MODE_CCM) {
 		if (sm4_ccm_crypt(key, keylen, iv, ivlen, aad, aadlen, taglen, infp, outfp, enc, prog) != 1) {
 			goto end;
 		}
