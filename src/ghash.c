@@ -35,48 +35,51 @@
  */
 void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t *c, size_t clen, uint8_t out[16])
 {
-	gf128_t H = gf128_from_bytes(h);
-	gf128_t X = gf128_zero();
+	gf128_t H;
+	gf128_t X;
 	gf128_t L;
+
+	gf128_from_bytes(H, h);
+	gf128_set_zero(X);
 
 	PUTU64(out, (uint64_t)aadlen << 3);
 	PUTU64(out + 8, (uint64_t)clen << 3);
-	L = gf128_from_bytes(out);
+	gf128_from_bytes(L, out);
 
 	while (aadlen) {
 		gf128_t A;
 		if (aadlen >= 16) {
-			A = gf128_from_bytes(aad);
+			gf128_from_bytes(A, aad);
 			aad += 16;
 			aadlen -= 16;
 		} else {
 			memset(out, 0, 16);
 			memcpy(out, aad, aadlen);
-			A = gf128_from_bytes(out);
+			gf128_from_bytes(A, out);
 			aadlen = 0;
 		}
-		X = gf128_add(X, A);
-		X = gf128_mul(X, H);
+		gf128_add(X, X, A);
+		gf128_mul(X, X, H);
 	}
 
 	while (clen) {
 		gf128_t C;
 		if (clen >= 16) {
-			C = gf128_from_bytes(c);
+			gf128_from_bytes(C, c);
 			c += 16;
 			clen -= 16;
 		} else {
 			memset(out, 0, 16);
 			memcpy(out, c, clen);
-			C = gf128_from_bytes(out);
+			gf128_from_bytes(C, out);
 			clen = 0;
 		}
-		X = gf128_add(X, C);
-		X = gf128_mul(X, H);
+		gf128_add(X, X, C);
+		gf128_mul(X, X, H);
 	}
 
-	X = gf128_add(X, L);
-	H = gf128_mul(X, H);
+	gf128_add(X, X, L);
+	gf128_mul(H, H, X);
 	gf128_to_bytes(H, out);
 }
 
@@ -86,24 +89,24 @@ void ghash_init(GHASH_CTX *ctx, const uint8_t h[16], const uint8_t *aad, size_t 
 	gf128_t A;
 
 	memset(ctx, 0, sizeof(*ctx));
-	ctx->H = gf128_from_bytes(h);
-	ctx->X = gf128_zero();
+	gf128_from_bytes(ctx->H, h);
+	gf128_set_zero(ctx->X);
 	ctx->aadlen = aadlen;
 	ctx->clen = 0;
 
 	while (aadlen) {
 		if (aadlen >= 16) {
-			A = gf128_from_bytes(aad);
+			gf128_from_bytes(A, aad);
 			aad += 16;
 			aadlen -= 16;
 		} else {
 			memset(ctx->block, 0, 16);
 			memcpy(ctx->block, aad, aadlen);
-			A = gf128_from_bytes(ctx->block);
+			gf128_from_bytes(A, ctx->block);
 			aadlen = 0;
 		}
-		ctx->X = gf128_add(ctx->X, A);
-		ctx->X = gf128_mul(ctx->X, ctx->H);
+		gf128_add(ctx->X, ctx->X, A);
+		gf128_mul(ctx->X, ctx->X, ctx->H);
 	}
 }
 
@@ -123,18 +126,18 @@ void ghash_update(GHASH_CTX *ctx, const uint8_t *c, size_t clen)
 			return;
 		} else {
 			memcpy(ctx->block + ctx->num, c, left);
-			C = gf128_from_bytes(ctx->block);
-			ctx->X = gf128_add(ctx->X, C);
-			ctx->X = gf128_mul(ctx->X, ctx->H);
+			gf128_from_bytes(C, ctx->block);
+			gf128_add(ctx->X, ctx->X, C);
+			gf128_mul(ctx->X, ctx->X, ctx->H);
 			c += left;
 			clen -= left;
 		}
 	}
 
 	while (clen >= 16) {
-		C = gf128_from_bytes(c);
-		ctx->X = gf128_add(ctx->X, C);
-		ctx->X = gf128_mul(ctx->X, ctx->H);
+		gf128_from_bytes(C, c);
+		gf128_add(ctx->X, ctx->X, C);
+		gf128_mul(ctx->X, ctx->X, ctx->H);
 		c += 16;
 		clen -= 16;
 	}
@@ -152,17 +155,17 @@ void ghash_finish(GHASH_CTX *ctx, uint8_t out[16])
 
 	if (ctx->num) {
 		memset(ctx->block + ctx->num, 0, 16 - ctx->num);
-		C = gf128_from_bytes(ctx->block);
-		ctx->X = gf128_add(ctx->X, C);
-		ctx->X = gf128_mul(ctx->X, ctx->H);
+		gf128_from_bytes(C, ctx->block);
+		gf128_add(ctx->X, ctx->X, C);
+		gf128_mul(ctx->X, ctx->X, ctx->H);
 	}
 
 	PUTU64(ctx->block, (uint64_t)ctx->aadlen << 3);
 	PUTU64(ctx->block + 8, (uint64_t)ctx->clen << 3);
-	L = gf128_from_bytes(ctx->block);
+	gf128_from_bytes(L, ctx->block);
 
-	ctx->X = gf128_add(ctx->X, L);
-	ctx->H = gf128_mul(ctx->X, ctx->H);
+	gf128_add(ctx->X, ctx->X, L);
+	gf128_mul(ctx->H, ctx->X, ctx->H);
 	gf128_to_bytes(ctx->H, out);
 
 	gmssl_secure_clear(ctx, sizeof(*ctx));

@@ -29,9 +29,9 @@
 	= c + (e0 + w0) * x^64 + (d0 + w1) * f0
 */
 .text
-.globl	_gmul
+.globl	_gf128_mul
 .align	4
-_gmul:
+_gf128_mul:
 	// load (a0, a1)
 	ld1	{v1.2d},[x1]
 	// load (b0, b1)

@@ -77,63 +77,22 @@ int test_gf128_mul_more(void)
 
 		printf("test %zu\n", i);
 
-		a = gf128_from_hex(tests[i].a);
-		b = gf128_from_hex(tests[i].b);
+		gf128_from_hex(a, tests[i].a);
+		gf128_from_hex(b, tests[i].b);
 
-		printf("a0 = %llx, a1 = %llx\n", a.lo,  a.hi);
-		printf("b0 = %llx, b1 = %llx\n", b.lo,  b.hi);
-
-		r = gf128_mul(a, b);
-
-		printf("r0 = %llx, r1 = %llx\n", r.lo,  r.hi);
-			gf128_print_bits(a);
-			gf128_print_bits(b);
-			gf128_print_bits(r);
-
-			gf128_to_bytes(r, buf);
-			format_bytes(stderr, 0, 0, "r" ,buf ,16);
+		gf128_mul(r, a, b);
 
 		if (gf128_equ_hex(r, tests[i].r) != 1) {
+
+
+			printf("error: %s\n", tests[i].label);
 			error_print();
-			//return -1;
+			return -1;
 		}
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
-}
-
-int test_gf128_armv8(void)
-{
-	gf128_t a = { 1, 0 };
-	gf128_t b = { 1, 0 };
-
-	a = gf128_from_hex("de300f9301a499a965f8bf677e99e80d");
-	b = gf128_from_hex("14b267838ec9ef1bb7b5ce8c19e34bc6");
-
-	// pmull 是对低位做了乘法
-	//gf128_print_bits(b);
-
-	gf128_t c = gf128_mul(a, b);
-
-	gf128_print_bits(c);
-	return 1;
-}
-
-
-int test_gf128_print(void)
-{
-	gf128_t a = { 0, 0x8000000000000000 }; // a = 1 + 0*x + ... + 0*x^127
-	gf128_print(stderr, 0, 0, "1 + 0*x + ... + 0*x^127", a);
-
-	// 这个函数打印的不对，因为真正的值是需要 reverse_bits 的，但是这里我们没有反转
-	gf128_print_bits(a);
-
-	// 看来这个比较奇怪了
-
-
-	return 1;
-
 }
 
 int test_gf128_from_hex(void)
@@ -149,7 +108,7 @@ int test_gf128_from_hex(void)
 	int i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		a = gf128_from_hex(tests[i]);
+		gf128_from_hex(a, tests[i]);
 		if (gf128_equ_hex(a, tests[i]) != 1) {
 			error_print();
 			return -1;
@@ -160,7 +119,7 @@ int test_gf128_from_hex(void)
 	return 1;
 }
 
-int test_gf128_mul2(void)
+int test_gf128_mul_by_2(void)
 {
 	char *tests[] = {
 		"00000000000000000000000000000001",
@@ -174,8 +133,8 @@ int test_gf128_mul2(void)
 	int i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
-		a = gf128_from_hex(tests[i]);
-		a = gf128_mul2(a);
+		gf128_from_hex(a, tests[i]);
+		gf128_mul_by_2(a, a);
 		if (gf128_equ_hex(a, results[i]) != 1) {
 			error_print();
 			return -1;
@@ -196,16 +155,16 @@ int test_gf128_mul(void)
 	char *hex_mul_a_b = "7d87dda57a20b0c51d9743071ab14010";
 	gf128_t a, b, r;
 
-	a = gf128_from_hex(hex_a);
-	b = gf128_from_hex(hex_b);
+	gf128_from_hex(a, hex_a);
+	gf128_from_hex(b, hex_b);
 
-	r = gf128_add(a, b);
+	gf128_add(r, a, b);
 	if (gf128_equ_hex(r, hex_add_a_b) != 1) {
 		error_print();
 		return -1;
 	}
 
-	r = gf128_mul(a, b);
+	gf128_mul(r, a, b);
 	if (gf128_equ_hex(r, hex_mul_a_b) != 1) {
 		error_print();
 		return -1;
@@ -217,11 +176,9 @@ int test_gf128_mul(void)
 
 int main(void)
 {
-	if (test_gf128_armv8() != 1) goto err;
+	if (test_gf128_mul_by_2() != 1) goto err;
 	if (test_gf128_mul_more() != 1) goto err;
-	if (test_gf128_print() != 1) goto err;
 	if (test_gf128_from_hex() != 1) goto err;
-	if (test_gf128_mul2() != 1) goto err;
 	if (test_gf128_mul() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
