@@ -40,9 +40,6 @@ set(src
 	src/sm2_z256_sign.c
 	src/sm2_lib.c
 	src/sm2_ctx.c
-	#src/sm9_alg.c
-	#src/sm9_key.c
-	#src/sm9_lib.c
 	src/sm9_z256_alg.c
 	src/sm9_z256_key.c
 	src/sm9_z256_lib.c
@@ -149,8 +146,7 @@ set(tests
 	sm2_z256
 	sm2_sign
 	sm2_enc
-	#sm9
-	sm9_z256
+	sm9
 	zuc
 	hash_drbg
 	block_cipher

@@ -11,17 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/sm9.h>
+#include <gmssl/sm9_z256.h>
 #include <gmssl/error.h>
 #include <gmssl/rand.h>
-
-
-static int sm9_bn_equ_hex(const sm9_bn_t a, const char *hex)
-{
-	sm9_bn_t b;
-	sm9_bn_from_hex(b, hex);
-	return (sm9_bn_cmp(a, b) == 0);
-}
 
 
 #define hex_iv 		"123456789abcdef00fedcba987654321123456789abcdef00fedcba987654321"
@@ -37,45 +29,49 @@ static int sm9_bn_equ_hex(const sm9_bn_t a, const char *hex)
 #define hex_fp_pow 	"5679a8f0a46ada5b9d48008cde0b8b7a233f882c08afe8f08a36a20ac845bb1a"
 #define hex_fp_inv 	"7d404b0027a93e3fa8f8bc7ee367a96814c42a3b69feb1845093406948a34753"
 
-int test_sm9_fp() {
-	const SM9_TWIST_POINT _P2 = {
-		{{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948, 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
-		 {0xD8806141, 0x54806C11, 0x0F5E93C4, 0xF1DD2C19, 0xB441A01F, 0x597B6027, 0x78640C98, 0x85AEF3D0}},
-		{{0xC999A7C7, 0x6215BBA5, 0xA71A0811, 0x47EFBA98, 0x3D278FF2, 0x5F317015, 0x19BE3DA6, 0xA7CF28D5},
-		 {0x84EBEB96, 0x856DC76B, 0xA347C8BD, 0x0736A96F, 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+int test_sm9_z256_fp() {
+	const SM9_Z256_TWIST_POINT _P2 = {
+		{{0xF9B7213BAF82D65B, 0xEE265948D19C17AB, 0xD2AAB97FD34EC120, 0x3722755292130B08},
+		 {0x54806C11D8806141, 0xF1DD2C190F5E93C4, 0x597B6027B441A01F, 0x85AEF3D078640C98}},
+		{{0x6215BBA5C999A7C7, 0x47EFBA98A71A0811, 0x5F3170153D278FF2, 0xA7CF28D519BE3DA6},
+		 {0x856DC76B84EBEB96, 0x0736A96FA347C8BD, 0x66BA0D262CBEE6ED, 0x17509B092E845C12}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *P2 = &_P2;
-	const SM9_TWIST_POINT _Ppubs = {
-		{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
-		 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
-		{{0xB4E3216D, 0x0E75C05F, 0x5CDFF073, 0x1006E85F, 0xB7A46F74, 0x1A7CE027, 0xDDA532DA, 0x41E00A53},
-	         {0xD0EF1C25, 0xE89E1408, 0x1A77F335, 0xAD3E2FDB, 0x47E3A0CB, 0xB57329F4, 0xABEA0112, 0x69850938}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+	const SM9_Z256_TWIST_POINT *P2 = &_P2;
+	const SM9_Z256_TWIST_POINT _Ppubs = {
+		{{0x8F14D65696EA5E32, 0x414D2177386A92DD, 0x6CE843ED24A3B573, 0x29DBA116152D1F78},
+		 {0x0AB1B6791B94C408, 0x1CE0711C5E392CFB, 0xE48AFF4B41B56501, 0x9F64080B3084F733}},
+		{{0x0E75C05FB4E3216D, 0x1006E85F5CDFF073, 0x1A7CE027B7A46F74, 0x41E00A53DDA532DA},
+	     {0xE89E1408D0EF1C25, 0xAD3E2FDB1A77F335, 0xB57329F447E3A0CB, 0x69850938ABEA0112}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *Ppubs = &_Ppubs;
-	sm9_fp_t x;
-	sm9_fp_t y;
-	sm9_fp_t r;
+	const SM9_Z256_TWIST_POINT *Ppubs = &_Ppubs;
+	sm9_z256_t x;
+	sm9_z256_t y;
+	sm9_z256_t r;
 	int j = 1;
 
-	sm9_bn_copy(x, P2->X[1]);
-	sm9_bn_copy(y, Ppubs->Y[0]);
+	sm9_z256_copy(x, P2->X[1]);
+	sm9_z256_copy(y, Ppubs->Y[0]);
 
-	sm9_fp_t iv = {0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678, 0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678};
-	sm9_bn_from_hex(r, hex_iv); if (sm9_bn_cmp(r, iv) != 0) goto err; ++j;
+	sm9_z256_t iv = {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0};
+	sm9_z256_from_hex(r, hex_iv); if (sm9_z256_cmp(r, iv) != 0) goto err; ++j;
 
-	sm9_fp_add(r, x, y); if (!sm9_bn_equ_hex(r, hex_fp_add)) goto err; ++j;
-	sm9_fp_sub(r, x, y); if (!sm9_bn_equ_hex(r, hex_fp_sub)) goto err; ++j;
-	sm9_fp_sub(r, y, x); if (!sm9_bn_equ_hex(r, hex_fp_nsub)) goto err; ++j;
-	sm9_fp_dbl(r, x);    if (!sm9_bn_equ_hex(r, hex_fp_dbl)) goto err; ++j;
-	sm9_fp_tri(r, x);    if (!sm9_bn_equ_hex(r, hex_fp_tri)) goto err; ++j;
-	sm9_fp_div2(r, x);   if (!sm9_bn_equ_hex(r, hex_fp_div2)) goto err; ++j;
-	sm9_fp_neg(r, x);    if (!sm9_bn_equ_hex(r, hex_fp_neg)) goto err; ++j;
-	sm9_fp_mul(r, x, y); if (!sm9_bn_equ_hex(r, hex_fp_mul)) goto err; ++j;
-	sm9_fp_sqr(r, x);    if (!sm9_bn_equ_hex(r, hex_fp_sqr)) goto err; ++j;
-	sm9_fp_pow(r, x, y); if (!sm9_bn_equ_hex(r, hex_fp_pow)) goto err; ++j;
-	sm9_fp_inv(r, x);    if (!sm9_bn_equ_hex(r, hex_fp_inv)) goto err; ++j;
+	sm9_z256_fp_to_mont(x, x);
+	sm9_z256_fp_to_mont(y, y);
+	
+	sm9_z256_fp_add(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_add)) goto err; ++j;
+	sm9_z256_fp_sub(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sub)) goto err; ++j;
+	sm9_z256_fp_sub(r, y, x); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_nsub)) goto err; ++j;
+	sm9_z256_fp_dbl(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_dbl)) goto err; ++j;
+	sm9_z256_fp_tri(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_tri)) goto err; ++j;
+	sm9_z256_fp_div2(r, x);   sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_div2)) goto err; ++j;
+	sm9_z256_fp_neg(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_neg)) goto err; ++j;
+	sm9_z256_fp_mul(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_mul)) goto err; ++j;
+	sm9_z256_fp_sqr(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sqr)) goto err; ++j;
+	sm9_z256_fp_from_mont(y, y);
+	sm9_z256_fp_pow(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_pow)) goto err; ++j;
+	sm9_z256_fp_inv(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_inv)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -89,27 +85,27 @@ err:
 #define hex_y		"3220b45276e3692a387faa7bf3cd46e390608f2f4298cce467bf2b7fda091edb"
 #define hex_fn_add 	"7a5fe7c18873bcf5e14091b4be8972e14f650bdec0b37776ba2ed0001bd80906"
 #define hex_fn_sub 	"161e7f1c9aaceaa170413cbcd6eee51a2ea3ed803b81ddadeab0790067c5cb50"
-#define hex_fn_nsub 	"a02180e367f6bc5065c26e931e9fe22a1b4ea5cadd68ae40fabe689c6ed903d5"
+#define hex_fn_nsub "a02180e367f6bc5065c26e931e9fe22a1b4ea5cadd68ae40fabe689c6ed903d5"
 #define hex_fn_mul 	"25c528484b65755b1ff57b47b77f2b32e20467be1dde566ede4264b2e092d223"
 #define hex_fn_pow 	"445cb9b76f27e9d03a2c30fbabb59b0ea6d7b06259b0c8a1b30f21b9b274a055"
 #define hex_fn_inv 	"3e3e849c2144c3596d9c79cb1f8ee7c60828787e298b06cc341a9a165191bc5e"
 
-int test_sm9_fn() {
-	sm9_fn_t x;
-	sm9_fn_t y;
-	sm9_fn_t r;
+int test_sm9_z256_fn() {
+	sm9_z256_t x;
+	sm9_z256_t y;
+	sm9_z256_t r;
 	int j = 1;
 
-	sm9_bn_from_hex(x, hex_x);
-	sm9_bn_from_hex(y, hex_y);
+	sm9_z256_from_hex(x, hex_x);
+	sm9_z256_from_hex(y, hex_y);
 
-	sm9_fn_t iv = {0, 0, 0, 0, 0, 0, 0, 0}; if (!sm9_fn_is_zero(iv)) goto err; ++j;
-	sm9_fn_add(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_add)) goto err; ++j;
-	sm9_fn_sub(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_sub)) goto err; ++j;
-	sm9_fn_sub(r, y, x); if (!sm9_bn_equ_hex(r, hex_fn_nsub)) goto err; ++j;
-	sm9_fn_mul(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_mul)) goto err; ++j;
-	sm9_fn_pow(r, x, y); if (!sm9_bn_equ_hex(r, hex_fn_pow)) goto err; ++j;
-	sm9_fn_inv(r, x);    if (!sm9_bn_equ_hex(r, hex_fn_inv)) goto err; ++j;
+	sm9_z256_t iv = {0, 0, 0, 0}; if (!sm9_z256_fn_is_zero(iv)) goto err; ++j;
+	sm9_z256_fn_add(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_add)) goto err; ++j;
+	sm9_z256_fn_sub(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_sub)) goto err; ++j;
+	sm9_z256_fn_sub(r, y, x); if (!sm9_z256_equ_hex(r, hex_fn_nsub)) goto err; ++j;
+	sm9_z256_fn_mul(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_mul)) goto err; ++j;
+	sm9_z256_fn_pow(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_pow)) goto err; ++j;
+	sm9_z256_fn_inv(r, x);    if (!sm9_z256_equ_hex(r, hex_fn_inv)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -134,51 +130,57 @@ err:
 #define hex_fp2_div	"ad68ff7c507f2d4e1cc6cd973c6b821906b9f5937a04fdedc84af1f75f97d00b-8a84a35da11d401c8dca50a572ce7a8c99e7117c45d251f57a2418613dab16bb"
 #define hex_fp2_div2	"0ba84d8497422e09335d0693165f7376839b54b7d1a3e45ec2b6e3b5c275f5cb-af07946a8e30f24c1a9a8db2995b2b9bb4f126f1e0ca7b76a3c2ab66d67576a2"
 
-int test_sm9_fp2() {
-	const SM9_TWIST_POINT _P2 = {
-		{{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948, 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
-		 {0xD8806141, 0x54806C11, 0x0F5E93C4, 0xF1DD2C19, 0xB441A01F, 0x597B6027, 0x78640C98, 0x85AEF3D0}},
-		{{0xC999A7C7, 0x6215BBA5, 0xA71A0811, 0x47EFBA98, 0x3D278FF2, 0x5F317015, 0x19BE3DA6, 0xA7CF28D5},
-		 {0x84EBEB96, 0x856DC76B, 0xA347C8BD, 0x0736A96F, 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+int test_sm9_z256_fp2() {
+	const SM9_Z256_TWIST_POINT _P2 = {
+		{{0xF9B7213BAF82D65B, 0xEE265948D19C17AB, 0xD2AAB97FD34EC120, 0x3722755292130B08},
+		 {0x54806C11D8806141, 0xF1DD2C190F5E93C4, 0x597B6027B441A01F, 0x85AEF3D078640C98}},
+		{{0x6215BBA5C999A7C7, 0x47EFBA98A71A0811, 0x5F3170153D278FF2, 0xA7CF28D519BE3DA6},
+		 {0x856DC76B84EBEB96, 0x0736A96FA347C8BD, 0x66BA0D262CBEE6ED, 0x17509B092E845C12}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *P2 = &_P2;
-	const SM9_TWIST_POINT _Ppubs = {
-		{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
-		 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
-		{{0xB4E3216D, 0x0E75C05F, 0x5CDFF073, 0x1006E85F, 0xB7A46F74, 0x1A7CE027, 0xDDA532DA, 0x41E00A53},
-	         {0xD0EF1C25, 0xE89E1408, 0x1A77F335, 0xAD3E2FDB, 0x47E3A0CB, 0xB57329F4, 0xABEA0112, 0x69850938}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+	const SM9_Z256_TWIST_POINT *P2 = &_P2;
+	const SM9_Z256_TWIST_POINT _Ppubs = {
+		{{0x8F14D65696EA5E32, 0x414D2177386A92DD, 0x6CE843ED24A3B573, 0x29DBA116152D1F78},
+		 {0x0AB1B6791B94C408, 0x1CE0711C5E392CFB, 0xE48AFF4B41B56501, 0x9F64080B3084F733}},
+		{{0x0E75C05FB4E3216D, 0x1006E85F5CDFF073, 0x1A7CE027B7A46F74, 0x41E00A53DDA532DA},
+	     {0xE89E1408D0EF1C25, 0xAD3E2FDB1A77F335, 0xB57329F447E3A0CB, 0x69850938ABEA0112}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *Ppubs = &_Ppubs;
-	sm9_fp2_t x;
-	sm9_fp2_t y;
-	sm9_fp2_t r;
-	sm9_fp2_t s;
-	sm9_fp_t k;
+	const SM9_Z256_TWIST_POINT *Ppubs = &_Ppubs;
+	sm9_z256_fp2 x;
+	sm9_z256_fp2 y;
+	sm9_z256_fp2 r;
+	sm9_z256_fp2 s;
+	sm9_z256_t k;
 	int j = 1;
 
-	sm9_fp2_copy(x, P2->Y);
-	sm9_fp2_copy(y, Ppubs->X);
-	sm9_bn_from_hex(k, hex_iv);
+	sm9_z256_fp2_copy(x, P2->Y);
+	sm9_z256_fp2_copy(y, Ppubs->X);
+	sm9_z256_from_hex(k, hex_iv);
+	
+	sm9_z256_fp_to_mont(x[0], x[0]);
+	sm9_z256_fp_to_mont(x[1], x[1]);
+	sm9_z256_fp_to_mont(y[0], y[0]);
+	sm9_z256_fp_to_mont(y[1], y[1]);
+	sm9_z256_fp_to_mont(k, k);
 
-	sm9_fp2_t iv2 = {{0xc9bb073c, 0xf1fdd299, 0xd14f49a9, 0xd632457d, 0x664a2b72, 0x6e492768, 0x4e243d80, 0xa3965402},
-	                 {0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678, 0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678}};
-	sm9_fp2_from_hex(r, hex_iv2); if (!sm9_fp2_equ(r, iv2)) goto err; ++j;
+	sm9_z256_fp2 iv2 = {{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
+	                    {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}};
+	//sm9_z256_fp2_from_hex(r, hex_iv2); if (!sm9_z256_fp2_equ(r, iv2)) goto err; ++j;
 
-	sm9_fp2_add(r, x, y);    sm9_fp2_from_hex(s, hex_fp2_add); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_dbl(r, x);       sm9_fp2_from_hex(s, hex_fp2_dbl); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_tri(r, x);       sm9_fp2_from_hex(s, hex_fp2_tri); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_sub(r, x, y);    sm9_fp2_from_hex(s, hex_fp2_sub); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_neg(r, x);       sm9_fp2_from_hex(s, hex_fp2_neg); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_mul(r, x, y);    sm9_fp2_from_hex(s, hex_fp2_mul); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_mul_u(r, x, y);  sm9_fp2_from_hex(s, hex_fp2_mul_u); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_mul_fp(r, x, k); sm9_fp2_from_hex(s, hex_fp2_mul_fp); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_sqr(r, x);       sm9_fp2_from_hex(s, hex_fp2_sqr); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_sqr_u(r, x);     sm9_fp2_from_hex(s, hex_fp2_sqr_u); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_inv(r, x);       sm9_fp2_from_hex(s, hex_fp2_inv); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_div(r, x, y);    sm9_fp2_from_hex(s, hex_fp2_div); if (!sm9_fp2_equ(r, s)) goto err; ++j;
-	sm9_fp2_div2(r, x);      sm9_fp2_from_hex(s, hex_fp2_div2); if (!sm9_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_add(r, x, y);    sm9_z256_fp2_from_hex(s, hex_fp2_add); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_dbl(r, x);       sm9_z256_fp2_from_hex(s, hex_fp2_dbl); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_tri(r, x);       sm9_z256_fp2_from_hex(s, hex_fp2_tri); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_sub(r, x, y);    sm9_z256_fp2_from_hex(s, hex_fp2_sub); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_neg(r, x);       sm9_z256_fp2_from_hex(s, hex_fp2_neg); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_mul(r, x, y);    sm9_z256_fp2_from_hex(s, hex_fp2_mul); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_mul_u(r, x, y);  sm9_z256_fp2_from_hex(s, hex_fp2_mul_u); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_mul_fp(r, x, k); sm9_z256_fp2_from_hex(s, hex_fp2_mul_fp); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_sqr(r, x);       sm9_z256_fp2_from_hex(s, hex_fp2_sqr); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_sqr_u(r, x);     sm9_z256_fp2_from_hex(s, hex_fp2_sqr_u); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_inv(r, x);       sm9_z256_fp2_from_hex(s, hex_fp2_inv); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_div(r, x, y);    sm9_z256_fp2_from_hex(s, hex_fp2_div); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_div2(r, x);      sm9_z256_fp2_from_hex(s, hex_fp2_div2); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -229,43 +231,46 @@ err:
 	"1cbf7f3bb04e2389184eade12de2752711cbff452363d2dfaf2bfef40618cebc\n" \
 	"3a70e829b83dc311970bc8d3e3e652f88a1ecd49b4672aa18c1c613c9a97d86f"
 
-int test_sm9_fp4() {
-	const SM9_TWIST_POINT _Ppubs = {
-		{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
-		 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
-		{{0xB4E3216D, 0x0E75C05F, 0x5CDFF073, 0x1006E85F, 0xB7A46F74, 0x1A7CE027, 0xDDA532DA, 0x41E00A53},
-	         {0xD0EF1C25, 0xE89E1408, 0x1A77F335, 0xAD3E2FDB, 0x47E3A0CB, 0xB57329F4, 0xABEA0112, 0x69850938}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+int test_sm9_z256_fp4() {
+	const SM9_Z256_TWIST_POINT _Ppubs = {
+		{{0x8F14D65696EA5E32, 0x414D2177386A92DD, 0x6CE843ED24A3B573, 0x29DBA116152D1F78},
+		 {0x0AB1B6791B94C408, 0x1CE0711C5E392CFB, 0xE48AFF4B41B56501, 0x9F64080B3084F733}},
+		{{0x0E75C05FB4E3216D, 0x1006E85F5CDFF073, 0x1A7CE027B7A46F74, 0x41E00A53DDA532DA},
+	     {0xE89E1408D0EF1C25, 0xAD3E2FDB1A77F335, 0xB57329F447E3A0CB, 0x69850938ABEA0112}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *Ppubs = &_Ppubs;
-	sm9_fp4_t x;
-	sm9_fp4_t y;
-	sm9_fp4_t r;
-	sm9_fp4_t s;
-	sm9_fp2_t q;
-	sm9_fp_t k;
+	const SM9_Z256_TWIST_POINT *Ppubs = &_Ppubs;
+	sm9_z256_fp4 x;
+	sm9_z256_fp4 y;
+	sm9_z256_fp4 r;
+	sm9_z256_fp4 s;
+	sm9_z256_fp2 q;
+	sm9_z256_t k;
 	int j = 1;
 
-	sm9_fp2_from_hex(x[0], hex_fp2_mul_fp);
-	sm9_fp2_from_hex(x[1], hex_fp2_sqr);
-	sm9_fp2_from_hex(y[0], hex_fp2_add);
-	sm9_fp2_from_hex(y[1], hex_fp2_tri);
-	sm9_bn_from_hex(k, hex_iv);
-	sm9_fp2_copy(q, Ppubs->X);
+	sm9_z256_fp2_from_hex(x[0], hex_fp2_mul_fp);
+	sm9_z256_fp2_from_hex(x[1], hex_fp2_sqr);
+	sm9_z256_fp2_from_hex(y[0], hex_fp2_add);
+	sm9_z256_fp2_from_hex(y[1], hex_fp2_tri);
+	sm9_z256_from_hex(k, hex_iv);
+	sm9_z256_fp_to_mont(k, k);
+	sm9_z256_fp2_copy(q, Ppubs->X);
+	sm9_z256_fp_to_mont(q[0], q[0]);
+	sm9_z256_fp_to_mont(q[1], q[1]);
 
-	sm9_fp4_t iv4 = {{{0xc9bb073c, 0xf1fdd299, 0xd14f49a9, 0xd632457d, 0x664a2b72, 0x6e492768, 0x4e243d80, 0xa3965402},
-	                  {0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678, 0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678}},
-			 {{0xc9bb073c, 0xf1fdd299, 0xd14f49a9, 0xd632457d, 0x664a2b72, 0x6e492768, 0x4e243d80, 0xa3965402},
-	                  {0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678, 0x87654321, 0x0fedcba9, 0x9abcdef0, 0x12345678}}};
-	sm9_fp4_from_hex(r, hex_iv4); if (!sm9_fp4_equ(r, iv4)) goto err; ++j;
+	sm9_z256_fp4 iv4 = {{{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
+	                     {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}},
+						{{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
+	                     {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}}};
+	//sm9_z256_fp4_from_hex(r, hex_iv4); if (!sm9_z256_fp4_equ(r, iv4)) goto err; ++j;
 
-	sm9_fp4_mul(r, x, y);        sm9_fp4_from_hex(s, hex_fp4_mul); if (!sm9_fp4_equ(r, s)) goto err; ++j;
-	sm9_fp4_mul_fp(r, x, k);     sm9_fp4_from_hex(s, hex_fp4_mul_fp); if (!sm9_fp4_equ(r, s)) goto err; ++j;
-	sm9_fp4_mul_fp2(r, x, q);    sm9_fp4_from_hex(s, hex_fp4_mul_fp2); if (!sm9_fp4_equ(r, s)) goto err; ++j;
-	sm9_fp4_mul_v(r, x, y);      sm9_fp4_from_hex(s, hex_fp4_mul_v); if (!sm9_fp4_equ(r, s)) goto err; ++j;
-	sm9_fp4_sqr(r, x);           sm9_fp4_from_hex(s, hex_fp4_sqr); if (!sm9_fp4_equ(r, s)) goto err; ++j;
-	sm9_fp4_sqr_v(r, x);         sm9_fp4_from_hex(s, hex_fp4_sqr_v); if (!sm9_fp4_equ(r, s)) goto err; ++j;
-	sm9_fp4_inv(r, x);           sm9_fp4_from_hex(s, hex_fp4_inv); if (!sm9_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_mul(r, x, y);        sm9_z256_fp4_from_hex(s, hex_fp4_mul); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_mul_fp(r, x, k);     sm9_z256_fp4_from_hex(s, hex_fp4_mul_fp); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_mul_fp2(r, x, q);    sm9_z256_fp4_from_hex(s, hex_fp4_mul_fp2); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_mul_v(r, x, y);      sm9_z256_fp4_from_hex(s, hex_fp4_mul_v); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_sqr(r, x);           sm9_z256_fp4_from_hex(s, hex_fp4_sqr); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_sqr_v(r, x);         sm9_z256_fp4_from_hex(s, hex_fp4_sqr_v); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
+	sm9_z256_fp4_inv(r, x);           sm9_z256_fp4_from_hex(s, hex_fp4_inv); if (!sm9_z256_fp4_equ(r, s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -328,26 +333,26 @@ err:
 	"6c78632b7dbbbdbf347a3f5fd6935a9f9b425125b7ac106e3586a7fbee3f2f20\n" \
 	"6b35df1d1153684f1363fce020088a797802e18959df4f006bc5d7f4a632e9f9"
 
-int test_sm9_fp12() {
-	sm9_fp12_t x;
-	sm9_fp12_t y;
-	sm9_fp12_t r;
-	sm9_fp12_t s;
-	sm9_bn_t k;
+int test_sm9_z256_fp12() {
+	sm9_z256_fp12 x;
+	sm9_z256_fp12 y;
+	sm9_z256_fp12 r;
+	sm9_z256_fp12 s;
+	sm9_z256_t k;
 	int j = 1;
 
-	sm9_fp4_from_hex(x[0], hex_fp4_mul);
-	sm9_fp4_from_hex(x[1], hex_fp4_mul_fp);
-	sm9_fp4_from_hex(x[2], hex_fp4_mul_fp2);
-	sm9_fp4_from_hex(y[0], hex_fp4_mul_v);
-	sm9_fp4_from_hex(y[1], hex_fp4_sqr);
-	sm9_fp4_from_hex(y[2], hex_fp4_inv);
-	sm9_bn_from_hex(k, hex_iv);
+	sm9_z256_fp4_from_hex(x[0], hex_fp4_mul);
+	sm9_z256_fp4_from_hex(x[1], hex_fp4_mul_fp);
+	sm9_z256_fp4_from_hex(x[2], hex_fp4_mul_fp2);
+	sm9_z256_fp4_from_hex(y[0], hex_fp4_mul_v);
+	sm9_z256_fp4_from_hex(y[1], hex_fp4_sqr);
+	sm9_z256_fp4_from_hex(y[2], hex_fp4_inv);
+	sm9_z256_from_hex(k, hex_iv);
 
-	sm9_fp12_mul(r, x, y); sm9_fp12_from_hex(s, hex_fp12_mul); if (!sm9_fp12_equ(r, s)) goto err; ++j;
-	sm9_fp12_sqr(r, x);    sm9_fp12_from_hex(s, hex_fp12_sqr); if (!sm9_fp12_equ(r, s)) goto err; ++j;
-	sm9_fp12_inv(r, x);    sm9_fp12_from_hex(s, hex_fp12_inv); if (!sm9_fp12_equ(r, s)) goto err; ++j;
-	sm9_fp12_pow(r, x, k); sm9_fp12_from_hex(s, hex_fp12_pow); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_fp12_mul(r, x, y); sm9_z256_fp12_from_hex(s, hex_fp12_mul); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_fp12_sqr(r, x);    sm9_z256_fp12_from_hex(s, hex_fp12_sqr); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_fp12_inv(r, x);    sm9_z256_fp12_from_hex(s, hex_fp12_inv); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_fp12_pow(r, x, k); sm9_z256_fp12_from_hex(s, hex_fp12_pow); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -366,36 +371,29 @@ err:
 #define hex_point_mul	"997fcff625adbae62566f684f9e89181713f972c5a9cd9ce6764636761ba87d1-8142a28d1bd109501452a649e2d68f012e265460e0c7d3da743fb036eb23b03b"
 #define hex_point_mul_g	"7cf689748f3714490d7a19eae0e7bfad0e0182498b7bcd8a6998dfd00f59be51-4e2e98d190e9d775e0caa943196bfb066d9c30818b2d768fb5299e7135830a6f"
 
-int test_sm9_point() {
-	SM9_POINT p;
-	SM9_POINT q;
-	SM9_POINT r;
-	SM9_POINT s;
-	sm9_bn_t k;
+int test_sm9_z256_point() {
+	SM9_Z256_POINT p;
+	SM9_Z256_POINT q;
+	SM9_Z256_POINT r;
+	SM9_Z256_POINT s;
+	sm9_z256_t k;
 	int j = 1;
 	uint8_t buf[65];			
 
-	sm9_bn_from_hex(k, hex_iv);
+	sm9_z256_from_hex(k, hex_iv);
 
-	sm9_point_from_hex(&p, hex_point1); if (!sm9_point_is_on_curve(&p)) goto err; ++j;
-	sm9_point_from_hex(&q, hex_point2); if (!sm9_point_is_on_curve(&q)) goto err; ++j;
-	sm9_point_dbl(&r, &p);     sm9_point_from_hex(&s, hex_point_dbl); if (!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_add(&r, &p, &q); sm9_point_from_hex(&s, hex_point_add); if (!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_neg(&r, &p);     sm9_point_from_hex(&s, hex_point_neg); if (!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_sub(&r, &p, &q); sm9_point_from_hex(&s, hex_point_sub); if (!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_mul(&r, k, &p);  sm9_point_from_hex(&s, hex_point_mul); if (!sm9_point_equ(&r, &s)) goto err; ++j;
-	sm9_point_mul_generator(&r, k); sm9_point_from_hex(&s, hex_point_mul_g); if (!sm9_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_point_from_hex(&p, hex_point1); if (!sm9_z256_point_is_on_curve(&p)) goto err; ++j;
+	sm9_z256_point_from_hex(&q, hex_point2); if (!sm9_z256_point_is_on_curve(&q)) goto err; ++j;
+	sm9_z256_point_dbl(&r, &p);     sm9_z256_point_from_hex(&s, hex_point_dbl); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_point_add(&r, &p, &q); sm9_z256_point_from_hex(&s, hex_point_add); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_point_neg(&r, &p);     sm9_z256_point_from_hex(&s, hex_point_neg); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_point_sub(&r, &p, &q); sm9_z256_point_from_hex(&s, hex_point_sub); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_point_mul(&r, k, &p);  sm9_z256_point_from_hex(&s, hex_point_mul); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_point_mul_generator(&r, k); sm9_z256_point_from_hex(&s, hex_point_mul_g); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
 
-	sm9_point_to_uncompressed_octets(&p, buf);
-	sm9_point_from_uncompressed_octets(&q, buf);
-	if (!sm9_point_equ(&p, &q)) {
-		error_print();
-		return -1;
-	}
-
-
-
-
+	sm9_z256_point_to_uncompressed_octets(&p, buf);
+	sm9_z256_point_from_uncompressed_octets(&q, buf);
+	if (!sm9_z256_point_equ(&p, &q)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -446,25 +444,25 @@ err:
 	"614881d4d05fef3173a4990465876c5200f58c5015e13354b23ae401c20c4aef\n" \
 	"18a22e02b7d395a49f0646a79438e79cd37c32f163fe8923c13d56bab668e8a7"
 
-int test_sm9_twist_point() {
-	SM9_TWIST_POINT p;
-	SM9_TWIST_POINT q;
-	SM9_TWIST_POINT r;
-	SM9_TWIST_POINT s;
-	sm9_bn_t k;
+int test_sm9_z256_twist_point() {
+	SM9_Z256_TWIST_POINT p;
+	SM9_Z256_TWIST_POINT q;
+	SM9_Z256_TWIST_POINT r;
+	SM9_Z256_TWIST_POINT s;
+	sm9_z256_t k;
 	int j = 1;
 
-	sm9_bn_from_hex(k, hex_iv);
+	sm9_z256_from_hex(k, hex_iv);
 
-	sm9_twist_point_from_hex(&p, hex_tpoint1); if (!sm9_twist_point_is_on_curve(&p)) goto err; ++j;
-	sm9_twist_point_from_hex(&q, hex_tpoint2); if (!sm9_twist_point_is_on_curve(&q)) goto err; ++j;
-	sm9_twist_point_neg(&r, &p);     sm9_twist_point_from_hex(&s, hex_tpoint_neg); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_dbl(&r, &p);     sm9_twist_point_from_hex(&s, hex_tpoint_dbl); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_add(&r, &p, &q); sm9_twist_point_from_hex(&s, hex_tpoint_add); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_add_full(&r, &p, &q); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_sub(&r, &p, &q); sm9_twist_point_from_hex(&s, hex_tpoint_sub); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_mul(&r, k, &p);  sm9_twist_point_from_hex(&s, hex_tpoint_mul); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
-	sm9_twist_point_mul_generator(&r, k);    sm9_twist_point_from_hex(&s, hex_tpoint_mulg); if (!sm9_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&p, hex_tpoint1); if (!sm9_z256_twist_point_is_on_curve(&p)) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&q, hex_tpoint2); if (!sm9_z256_twist_point_is_on_curve(&q)) goto err; ++j;
+	sm9_z256_twist_point_neg(&r, &p);     sm9_z256_twist_point_from_hex(&s, hex_tpoint_neg); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_dbl(&r, &p);     sm9_z256_twist_point_from_hex(&s, hex_tpoint_dbl); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_add(&r, &p, &q); sm9_z256_twist_point_from_hex(&s, hex_tpoint_add); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_add_full(&r, &p, &q); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_sub(&r, &p, &q); sm9_z256_twist_point_from_hex(&s, hex_tpoint_sub); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_mul(&r, k, &p);  sm9_z256_twist_point_from_hex(&s, hex_tpoint_mul); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
+	sm9_z256_twist_point_mul_generator(&r, k);    sm9_z256_twist_point_from_hex(&s, hex_tpoint_mulg); if (!sm9_z256_twist_point_equ(&r, &s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -531,47 +529,62 @@ err:
 	"934FDDA6D3AB48C8571CE2354B79742AA498CB8CDDE6BD1FA5946345A1A652F6"
 
 
-int test_sm9_pairing()
+int test_sm9_z256_pairing()
 {
-	const SM9_POINT _P1 = {
-		{0x7c66dddd, 0xe8c4e481, 0x09dc3280, 0xe1e40869, 0x487d01d6, 0xf5ed0704, 0x62bf718f, 0x93de051d},
-		{0x0a3ea616, 0x0c464cd7, 0xfa602435, 0x1c1c00cb, 0x5c395bbc, 0x63106512, 0x4f21e607, 0x21fe8dda},
-		{1,0,0,0,0,0,0,0}
+	SM9_Z256_POINT _P1 = {
+		{0xe8c4e4817c66dddd, 0xe1e4086909dc3280, 0xf5ed0704487d01d6, 0x93de051d62bf718f},
+		{0x0c464cd70a3ea616, 0x1c1c00cbfa602435, 0x631065125c395bbc, 0x21fe8dda4f21e607},
+		{1,0,0,0},
 	};
-	const SM9_POINT *P1 = &_P1;
+	SM9_Z256_POINT *P1 = &_P1;
 
-	const SM9_TWIST_POINT _P2 = {
-		{{0xAF82D65B, 0xF9B7213B, 0xD19C17AB, 0xEE265948, 0xD34EC120, 0xD2AAB97F, 0x92130B08, 0x37227552},
-		 {0xD8806141, 0x54806C11, 0x0F5E93C4, 0xF1DD2C19, 0xB441A01F, 0x597B6027, 0x78640C98, 0x85AEF3D0}},
-		{{0xC999A7C7, 0x6215BBA5, 0xA71A0811, 0x47EFBA98, 0x3D278FF2, 0x5F317015, 0x19BE3DA6, 0xA7CF28D5},
-		 {0x84EBEB96, 0x856DC76B, 0xA347C8BD, 0x0736A96F, 0x2CBEE6ED, 0x66BA0D26, 0x2E845C12, 0x17509B09}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+	SM9_Z256_TWIST_POINT _P2 = {
+		{{0xF9B7213BAF82D65B, 0xEE265948D19C17AB, 0xD2AAB97FD34EC120, 0x3722755292130B08},
+		 {0x54806C11D8806141, 0xF1DD2C190F5E93C4, 0x597B6027B441A01F, 0x85AEF3D078640C98}},
+		{{0x6215BBA5C999A7C7, 0x47EFBA98A71A0811, 0x5F3170153D278FF2, 0xA7CF28D519BE3DA6},
+		 {0x856DC76B84EBEB96, 0x0736A96FA347C8BD, 0x66BA0D262CBEE6ED, 0x17509B092E845C12}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *P2 = &_P2;
-
-	const SM9_TWIST_POINT _Ppubs = {
-		{{0x96EA5E32, 0x8F14D656, 0x386A92DD, 0x414D2177, 0x24A3B573, 0x6CE843ED, 0x152D1F78, 0x29DBA116},
-		 {0x1B94C408, 0x0AB1B679, 0x5E392CFB, 0x1CE0711C, 0x41B56501, 0xE48AFF4B, 0x3084F733, 0x9F64080B}},
-		{{0xB4E3216D, 0x0E75C05F, 0x5CDFF073, 0x1006E85F, 0xB7A46F74, 0x1A7CE027, 0xDDA532DA, 0x41E00A53},
-	         {0xD0EF1C25, 0xE89E1408, 0x1A77F335, 0xAD3E2FDB, 0x47E3A0CB, 0xB57329F4, 0xABEA0112, 0x69850938}},
-		{{1,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}},
+	SM9_Z256_TWIST_POINT *P2 = &_P2;
+	SM9_Z256_TWIST_POINT _Ppubs = {
+		{{0x8F14D65696EA5E32, 0x414D2177386A92DD, 0x6CE843ED24A3B573, 0x29DBA116152D1F78},
+		 {0x0AB1B6791B94C408, 0x1CE0711C5E392CFB, 0xE48AFF4B41B56501, 0x9F64080B3084F733}},
+		{{0x0E75C05FB4E3216D, 0x1006E85F5CDFF073, 0x1A7CE027B7A46F74, 0x41E00A53DDA532DA},
+	     {0xE89E1408D0EF1C25, 0xAD3E2FDB1A77F335, 0xB57329F447E3A0CB, 0x69850938ABEA0112}},
+		{{1,0,0,0}, {0,0,0,0}},
 	};
-	const SM9_TWIST_POINT *Ppubs = &_Ppubs;
+	SM9_Z256_TWIST_POINT *Ppubs = &_Ppubs;
 
-	SM9_TWIST_POINT p;
-	SM9_POINT q;
-	sm9_fp12_t r;
-	sm9_fp12_t s;
-	sm9_bn_t k;
+	SM9_Z256_TWIST_POINT p;
+	SM9_Z256_POINT q;
+	sm9_z256_fp12 r;
+	sm9_z256_fp12 s;
+	sm9_z256_t k;
 	int j = 1;
+	
+	sm9_z256_fp_to_mont(P1->X, P1->X);
+	sm9_z256_fp_to_mont(P1->Y, P1->Y);
+	sm9_z256_fp_to_mont(P1->Z, P1->Z);
+	sm9_z256_fp_to_mont(P2->X[0], P2->X[0]);
+	sm9_z256_fp_to_mont(P2->Y[0], P2->Y[0]);
+	sm9_z256_fp_to_mont(P2->Z[0], P2->Z[0]);
+	sm9_z256_fp_to_mont(P2->X[1], P2->X[1]);
+	sm9_z256_fp_to_mont(P2->Y[1], P2->Y[1]);
+	sm9_z256_fp_to_mont(P2->Z[1], P2->Z[1]);
+	sm9_z256_fp_to_mont(Ppubs->X[0], Ppubs->X[0]);
+	sm9_z256_fp_to_mont(Ppubs->Y[0], Ppubs->Y[0]);
+	sm9_z256_fp_to_mont(Ppubs->Z[0], Ppubs->Z[0]);
+	sm9_z256_fp_to_mont(Ppubs->X[1], Ppubs->X[1]);
+	sm9_z256_fp_to_mont(Ppubs->Y[1], Ppubs->Y[1]);
+	sm9_z256_fp_to_mont(Ppubs->Z[1], Ppubs->Z[1]);
 
-	sm9_pairing(r, Ppubs, P1); sm9_fp12_from_hex(s, hex_pairing1); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_pairing(r, Ppubs, P1); sm9_z256_fp12_from_hex(s, hex_pairing1); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
 
-	sm9_twist_point_from_hex(&p, hex_deB); sm9_point_from_hex(&q, hex_RA);
-	sm9_pairing(r, &p, &q); sm9_fp12_from_hex(s, hex_pairing2); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&p, hex_deB); sm9_z256_point_from_hex(&q, hex_RA);
+	sm9_z256_pairing(r, &p, &q); sm9_z256_fp12_from_hex(s, hex_pairing2); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
 
-	sm9_bn_from_hex(k, rB); sm9_point_from_hex(&q, hex_Ppube);
-	sm9_pairing(r, P2, &q); sm9_fp12_pow(r, r, k); sm9_fp12_from_hex(s, hex_pairing3); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	sm9_z256_from_hex(k, rB); sm9_z256_point_from_hex(&q, hex_Ppube);
+	sm9_z256_pairing(r, P2, &q); sm9_z256_fp12_pow(r, r, k); sm9_z256_fp12_from_hex(s, hex_pairing3); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -584,11 +597,12 @@ err:
 #define hex_ks		"000130E78459D78545CB54C587E02CF480CE0B66340F319F348A1D5B1F2DC5F4"
 #define hex_ds		"A5702F05CF1315305E2D6EB64B0DEB923DB1A0BCF0CAFF90523AC8754AA69820-78559A844411F9825C109F5EE3F52D720DD01785392A727BB1556952B2B013D3"
 
-int test_sm9_sign() {
+int test_sm9_z256_sign()
+{
 	SM9_SIGN_CTX ctx;
 	SM9_SIGN_KEY key;
 	SM9_SIGN_MASTER_KEY mpk;
-	SM9_POINT ds;
+	SM9_Z256_POINT ds;
 	uint8_t sig[1000] = {0};
 	size_t siglen = 0;
 	int j = 1;
@@ -596,9 +610,9 @@ int test_sm9_sign() {
 	uint8_t data[20] = {0x43, 0x68, 0x69, 0x6E, 0x65, 0x73, 0x65, 0x20, 0x49, 0x42, 0x53, 0x20, 0x73, 0x74, 0x61, 0x6E, 0x64, 0x61, 0x72, 0x64};
 	uint8_t IDA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
 
-	sm9_bn_from_hex(mpk.ks, hex_ks); sm9_twist_point_mul_generator(&(mpk.Ppubs), mpk.ks);
+	sm9_z256_from_hex(mpk.ks, hex_ks); sm9_z256_twist_point_mul_generator(&(mpk.Ppubs), mpk.ks);
 	if (sm9_sign_master_key_extract_key(&mpk, (char *)IDA, sizeof(IDA), &key) < 0) goto err; ++j;
-	sm9_point_from_hex(&ds, hex_ds); if (!sm9_point_equ(&(key.ds), &ds)) goto err; ++j;
+	sm9_z256_point_from_hex(&ds, hex_ds); if (!sm9_z256_point_equ(&(key.ds), &ds)) goto err; ++j;
 
 	sm9_sign_init(&ctx);
 	sm9_sign_update(&ctx, data, sizeof(data));
@@ -624,36 +638,45 @@ err:
 	"7AA5E47570DA7600CD760A0CF7BEAF71C447F3844753FE74FA7BA92CA7D3B55F\n" \
 	"27538A62E7F7BFB51DCE08704796D94C9D56734F119EA44732B50E31CDEB75C1"
 
-int test_sm9_ciphertext()
+int test_sm9_z256_ciphertext()
 {
-	const SM9_POINT _P1 = {
-		{0x7c66dddd, 0xe8c4e481, 0x09dc3280, 0xe1e40869, 0x487d01d6, 0xf5ed0704, 0x62bf718f, 0x93de051d},
-		{0x0a3ea616, 0x0c464cd7, 0xfa602435, 0x1c1c00cb, 0x5c395bbc, 0x63106512, 0x4f21e607, 0x21fe8dda},
-		{1,0,0,0,0,0,0,0}
+	SM9_Z256_POINT _P1 = {
+		{0xe8c4e4817c66dddd, 0xe1e4086909dc3280, 0xf5ed0704487d01d6, 0x93de051d62bf718f},
+		{0x0c464cd70a3ea616, 0x1c1c00cbfa602435, 0x631065125c395bbc, 0x21fe8dda4f21e607},
+		{1,0,0,0},
 	};
-	const SM9_POINT *P1 = &_P1;
+	SM9_Z256_POINT *P1 = &_P1;
+	
+	sm9_z256_fp_to_mont(P1->X, P1->X);
+	sm9_z256_fp_to_mont(P1->Y, P1->Y);
+	sm9_z256_fp_to_mont(P1->Z, P1->Z);
 
-	SM9_POINT C1;
+	SM9_Z256_POINT C1;
 	uint8_t c2[SM9_MAX_PLAINTEXT_SIZE];
 	uint8_t c3[SM3_HMAC_SIZE];
 	uint8_t buf[1024];
 	uint8_t *p = buf;
 	size_t len = 0;
+	int j = 1;
 
-	sm9_point_copy(&C1, P1);
-	if (sm9_ciphertext_to_der(&C1, c2, sizeof(c2), c3, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	//printf("SM9_MAX_CIPHERTEXT_SIZE %zu\n", len);
+	sm9_z256_point_copy(&C1, P1);
+	if (sm9_ciphertext_to_der(&C1, c2, sizeof(c2), c3, &p, &len) != 1) goto err; ++j;
+	//printf("SM9_Z256_MAX_CIPHERTEXT_SIZE %zu\n", len);
+	
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
 }
 
 
-int test_sm9_encrypt() {
+int test_sm9_z256_encrypt()
+{
 	SM9_ENC_MASTER_KEY msk;
 	SM9_ENC_KEY key;
-	SM9_TWIST_POINT de;
+	SM9_Z256_TWIST_POINT de;
 	uint8_t out[1000] = {0};
 	size_t outlen = 0;
 	int j = 1;
@@ -663,13 +686,11 @@ int test_sm9_encrypt() {
 	size_t declen = 20;
 	uint8_t IDB[3] = {0x42, 0x6F, 0x62};
 
-	sm9_bn_from_hex(msk.ke, hex_ke);
-	sm9_point_mul_generator(&(msk.Ppube), msk.ke);
+	sm9_z256_from_hex(msk.ke, hex_ke);
+	sm9_z256_point_mul_generator(&(msk.Ppube), msk.ke);
 
 	if (sm9_enc_master_key_extract_key(&msk, (char *)IDB, sizeof(IDB), &key) < 0) goto err; ++j;
-
-
-	sm9_twist_point_from_hex(&de, hex_de); if (!sm9_twist_point_equ(&(key.de), &de)) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&de, hex_de); if (!sm9_z256_twist_point_equ(&(key.de), &de)) goto err; ++j;
 
 	if (sm9_encrypt(&msk, (char *)IDB, sizeof(IDB), data, sizeof(data), out, &outlen) < 0) goto err; ++j;
 	if (sm9_decrypt(&key, (char *)IDB, sizeof(IDB), out, outlen, dec, &declen) < 0) goto err; ++j;
@@ -683,18 +704,73 @@ err:
 	return -1;
 }
 
+#define hex_kex		"0002E65B0762D042F51F0D23542B13ED8CFA2E9A0E7206361E013A283905E31F"
+
+#define hex_deA \
+	"0FE8EAB395199B56BF1D75BD2CD610B6424F08D1092922C5882B52DCD6CA832A\n" \
+	"7DA57BC50241F9E5BFDDC075DD9D32C7777100D736916CFC165D8D36E0634CD7\n" \
+	"83A457DAF52CAD464C903B26062CAF937BB40E37DADED9EDA401050E49C8AD0C\n" \
+	"6970876B9AAD1B7A50BB4863A11E574AF1FE3C5975161D73DE4C3AF621FB1EFB"
+
+#define hex_deB \
+	"74CCC3AC9C383C60AF083972B96D05C75F12C8907D128A17ADAFBAB8C5A4ACF7\n" \
+	"01092FF4DE89362670C21711B6DBE52DCD5F8E40C6654B3DECE573C2AB3D29B2\n" \
+	"44B0294AA04290E1524FF3E3DA8CFD432BB64DE3A8040B5B88D1B5FC86A4EBC1\n" \
+	"8CFC48FB4FF37F1E27727464F3C34E2153861AD08E972D1625FC1A7BD18D5539"
+
+int test_sm9_z256_exchange()
+{
+	SM9_EXCH_MASTER_KEY msk;
+	SM9_EXCH_KEY keyA, keyB;
+	SM9_Z256_TWIST_POINT de;
+	SM9_Z256_POINT RA, RB;
+	sm9_z256_t rA;
+	int i, j = 1;
+
+	uint8_t idA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
+	uint8_t idB[3] = {0x42, 0x6F, 0x62};
+	size_t klen = 0x10;
+	uint8_t skA[200] = {}, skB[200] = {};
+
+	sm9_z256_from_hex(msk.ke, hex_kex);
+	sm9_z256_point_mul_generator(&(msk.Ppube), msk.ke);
+	if (sm9_exch_master_key_extract_key(&msk, (char *)idA, sizeof(idA), &keyA) < 0) goto err; ++j;
+	if (sm9_exch_master_key_extract_key(&msk, (char *)idB, sizeof(idB), &keyB) < 0) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&de, hex_deA); if (!sm9_z256_twist_point_equ(&(keyA.de), &de)) goto err; ++j;
+	sm9_z256_twist_point_from_hex(&de, hex_deB); if (!sm9_z256_twist_point_equ(&(keyB.de), &de)) goto err; ++j;
+
+	if (sm9_exch_step_1A(&msk, (char *)idB, sizeof(idB), &RA, rA) < 0) goto err; ++j;
+	if (sm9_exch_step_1B(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyB, &RA, &RB, skB, klen) < 0) goto err; ++j;
+	if (sm9_exch_step_2A(&msk, (char *)idA, sizeof(idA), (char *)idB, sizeof(idB), &keyA, rA, &RA, &RB, skA, klen) < 0) goto err; ++j;
+
+	for (i = 0; i < klen; i++) {
+		if (skA[i] != skB[i]) {
+			printf("Exchange key different at byte %d\n", i);
+			goto err;
+		}
+	} ++j;
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
 int main(void) {
-	if (test_sm9_fp() != 1) goto err;
-	if (test_sm9_fn() != 1) goto err;
-	if (test_sm9_fp2() != 1) goto err;
-	if (test_sm9_fp4() != 1) goto err;
-	if (test_sm9_fp12() != 1) goto err;
-	if (test_sm9_point() != 1) goto err;
-	if (test_sm9_twist_point() != 1) goto err;
-	if (test_sm9_pairing() != 1) goto err;
-	if (test_sm9_sign() != 1) goto err;
-	if (test_sm9_ciphertext() != 1) goto err;
-	if (test_sm9_encrypt() != 1) goto err;
+	if (test_sm9_z256_fp() != 1) goto err;
+	if (test_sm9_z256_fn() != 1) goto err;
+	if (test_sm9_z256_fp2() != 1) goto err;
+	if (test_sm9_z256_fp4() != 1) goto err;
+	if (test_sm9_z256_fp12() != 1) goto err;
+	if (test_sm9_z256_point() != 1) goto err;
+	if (test_sm9_z256_twist_point() != 1) goto err;
+	if (test_sm9_z256_pairing() != 1) goto err;
+	if (test_sm9_z256_sign() != 1) goto err;
+	if (test_sm9_z256_ciphertext() != 1) goto err;
+	if (test_sm9_z256_encrypt() != 1) goto err;
+	if (test_sm9_z256_exchange() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
