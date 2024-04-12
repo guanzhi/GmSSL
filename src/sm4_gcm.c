@@ -10,7 +10,7 @@
 
 #include <gmssl/sm4.h>
 #include <gmssl/mem.h>
-#include <gmssl/gcm.h>
+#include <gmssl/ghash.h>
 #include <gmssl/error.h>
 
 

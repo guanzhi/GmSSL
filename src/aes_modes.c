@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/aes.h>
-#include <gmssl/gcm.h>
-#include <gmssl/error.h>
 #include <gmssl/mem.h>
+#include <gmssl/ghash.h>
+#include <gmssl/error.h>
 
 
 void aes_cbc_encrypt(const AES_KEY *key, const uint8_t iv[16],
@@ -149,16 +149,8 @@ int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 
 	aes_encrypt(key, Y, T);
 
-	while (left) {
-		uint8_t block[16];
-		size_t len = left < 16 ? left : 16;
-		ctr_incr(Y);
-		aes_encrypt(key, Y, block);
-		gmssl_memxor(pout, pin, block, len);
-		pin += len;
-		pout += len;
-		left -= len;
-	}
+	ctr_incr(Y);
+	aes_ctr_encrypt(key, Y, in, inlen, out);
 
 	ghash(H, aad, aadlen, out, inlen, H);
 	gmssl_memxor(tag, T, H, taglen);
@@ -194,15 +186,8 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 		return -1;
 	}
 
-	while (left) {
-		uint8_t block[16];
-		size_t len = left < 16 ? left : 16;
-		ctr_incr(Y);
-		aes_encrypt(key, Y, block);
-		gmssl_memxor(pout, pin, block, len);
-		pin += len;
-		pout += len;
-		left -= len;
-	}
+	ctr_incr(Y);
+	aes_ctr_encrypt(key, Y, in, inlen, out);
+
 	return 1;
 }
