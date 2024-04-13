@@ -147,10 +147,10 @@ int test_sm9_z256_fp2() {
 		{{1,0,0,0}, {0,0,0,0}},
 	};
 	const SM9_Z256_TWIST_POINT *Ppubs = &_Ppubs;
-	sm9_z256_fp2 x;
-	sm9_z256_fp2 y;
-	sm9_z256_fp2 r;
-	sm9_z256_fp2 s;
+	sm9_z256_fp2_t x;
+	sm9_z256_fp2_t y;
+	sm9_z256_fp2_t r;
+	sm9_z256_fp2_t s;
 	sm9_z256_t k;
 	int j = 1;
 
@@ -164,7 +164,7 @@ int test_sm9_z256_fp2() {
 	sm9_z256_fp_to_mont(y[1], y[1]);
 	sm9_z256_fp_to_mont(k, k);
 
-	sm9_z256_fp2 iv2 = {{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
+	sm9_z256_fp2_t iv2 = {{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
 	                    {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}};
 	//sm9_z256_fp2_from_hex(r, hex_iv2); if (!sm9_z256_fp2_equ(r, iv2)) goto err; ++j;
 
@@ -240,11 +240,11 @@ int test_sm9_z256_fp4() {
 		{{1,0,0,0}, {0,0,0,0}},
 	};
 	const SM9_Z256_TWIST_POINT *Ppubs = &_Ppubs;
-	sm9_z256_fp4 x;
-	sm9_z256_fp4 y;
-	sm9_z256_fp4 r;
-	sm9_z256_fp4 s;
-	sm9_z256_fp2 q;
+	sm9_z256_fp4_t x;
+	sm9_z256_fp4_t y;
+	sm9_z256_fp4_t r;
+	sm9_z256_fp4_t s;
+	sm9_z256_fp2_t q;
 	sm9_z256_t k;
 	int j = 1;
 
@@ -258,7 +258,7 @@ int test_sm9_z256_fp4() {
 	sm9_z256_fp_to_mont(q[0], q[0]);
 	sm9_z256_fp_to_mont(q[1], q[1]);
 
-	sm9_z256_fp4 iv4 = {{{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
+	sm9_z256_fp4_t iv4 = {{{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
 	                     {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}},
 						{{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
 	                     {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}}};
@@ -334,10 +334,10 @@ err:
 	"6b35df1d1153684f1363fce020088a797802e18959df4f006bc5d7f4a632e9f9"
 
 int test_sm9_z256_fp12() {
-	sm9_z256_fp12 x;
-	sm9_z256_fp12 y;
-	sm9_z256_fp12 r;
-	sm9_z256_fp12 s;
+	sm9_z256_fp12_t x;
+	sm9_z256_fp12_t y;
+	sm9_z256_fp12_t r;
+	sm9_z256_fp12_t s;
 	sm9_z256_t k;
 	int j = 1;
 
@@ -557,8 +557,8 @@ int test_sm9_z256_pairing()
 
 	SM9_Z256_TWIST_POINT p;
 	SM9_Z256_POINT q;
-	sm9_z256_fp12 r;
-	sm9_z256_fp12 s;
+	sm9_z256_fp12_t r;
+	sm9_z256_fp12_t s;
 	sm9_z256_t k;
 	int j = 1;
 	

@@ -760,46 +760,46 @@ void sm9_z256_fp_to_hex(const sm9_z256_t r, char hex[64])
 }
 
 
-const sm9_z256_fp2 SM9_Z256_FP2_ZERO = {{0,0,0,0},{0,0,0,0}};
-const sm9_z256_fp2 SM9_Z256_FP2_ONE = {{1,0,0,0},{0,0,0,0}};
-const sm9_z256_fp2 SM9_Z256_FP2_U = {{0,0,0,0},{1,0,0,0}};
-static const sm9_z256_fp2 SM9_Z256_FP2_MONT_5U = {{0,0,0,0},{0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63}};
+const sm9_z256_fp2_t SM9_Z256_FP2_ZERO = {{0,0,0,0},{0,0,0,0}};
+const sm9_z256_fp2_t SM9_Z256_FP2_ONE = {{1,0,0,0},{0,0,0,0}};
+const sm9_z256_fp2_t SM9_Z256_FP2_U = {{0,0,0,0},{1,0,0,0}};
+static const sm9_z256_fp2_t SM9_Z256_FP2_MONT_5U = {{0,0,0,0},{0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63}};
 
 
-void sm9_z256_fp2_set_zero(sm9_z256_fp2 r)
+void sm9_z256_fp2_set_zero(sm9_z256_fp2_t r)
 {
 	sm9_z256_set_zero(r[0]);
 	sm9_z256_set_zero(r[1]);
 }
 
-void sm9_z256_fp2_set_one(sm9_z256_fp2 r)
+void sm9_z256_fp2_set_one(sm9_z256_fp2_t r)
 {
 	sm9_z256_copy(r[0], SM9_Z256_MODP_MONT_ONE);
 	sm9_z256_set_zero(r[1]);
 }
 
-int sm9_z256_fp2_is_one(const sm9_z256_fp2 a)
+int sm9_z256_fp2_is_one(const sm9_z256_fp2_t a)
 {
 	return sm9_z256_equ(a[0], SM9_Z256_MODP_MONT_ONE) && sm9_z256_is_zero(a[1]);
 }
 
-int sm9_z256_fp2_is_zero(const sm9_z256_fp2 a)
+int sm9_z256_fp2_is_zero(const sm9_z256_fp2_t a)
 {
 	return sm9_z256_is_zero(a[0]) && sm9_z256_is_zero(a[1]);
 }
 
-int sm9_z256_fp2_equ(const sm9_z256_fp2 a, const sm9_z256_fp2 b)
+int sm9_z256_fp2_equ(const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
 	return sm9_z256_equ(a[0], b[0]) && sm9_z256_equ(a[1], b[1]);
 }
 
-void sm9_z256_fp2_copy(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_copy(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_copy(r[0], a[0]);
 	sm9_z256_copy(r[1], a[1]);
 }
 
-int sm9_z256_fp2_rand(sm9_z256_fp2 r)
+int sm9_z256_fp2_rand(sm9_z256_fp2_t r)
 {
 	if (sm9_z256_fp_rand(r[0]) != 1
 		|| sm9_z256_fp_rand(r[1]) != 1) {
@@ -809,13 +809,13 @@ int sm9_z256_fp2_rand(sm9_z256_fp2 r)
 	return 1;
 }
 
-void sm9_z256_fp2_to_bytes(const sm9_z256_fp2 a, uint8_t buf[64])
+void sm9_z256_fp2_to_bytes(const sm9_z256_fp2_t a, uint8_t buf[64])
 {
 	sm9_z256_fp_to_bytes(a[1], buf);
 	sm9_z256_fp_to_bytes(a[0], buf + 32);
 }
 
-int sm9_z256_fp2_from_bytes(sm9_z256_fp2 r, const uint8_t buf[64])
+int sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64])
 {
 	if (sm9_z256_fp_from_bytes(r[1], buf) != 1
 		|| sm9_z256_fp_from_bytes(r[0], buf + 32) != 1) {
@@ -825,7 +825,7 @@ int sm9_z256_fp2_from_bytes(sm9_z256_fp2 r, const uint8_t buf[64])
 	return 1;
 }
 
-int sm9_z256_fp2_from_hex(sm9_z256_fp2 r, const char hex[129])
+int sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[129])
 {
 	if (sm9_z256_fp_from_hex(r[1], hex) != 1
 		|| sm9_z256_fp_from_hex(r[0], hex + 65) != 1) {
@@ -841,44 +841,44 @@ int sm9_z256_fp2_from_hex(sm9_z256_fp2 r, const char hex[129])
 	return 1;
 }
 
-void sm9_z256_fp2_to_hex(const sm9_z256_fp2 a, char hex[129])
+void sm9_z256_fp2_to_hex(const sm9_z256_fp2_t a, char hex[129])
 {
 	sm9_z256_fp_to_hex(a[1], hex);
 	hex[64] = SM9_Z256_HEX_SEP;
 	sm9_z256_fp_to_hex(a[0], hex + 65);
 }
 
-void sm9_z256_fp2_add(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
+void sm9_z256_fp2_add(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
 	sm9_z256_fp_add(r[0], a[0], b[0]);
 	sm9_z256_fp_add(r[1], a[1], b[1]);
 }
 
-void sm9_z256_fp2_dbl(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_dbl(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_fp_dbl(r[0], a[0]);
 	sm9_z256_fp_dbl(r[1], a[1]);
 }
 
-void sm9_z256_fp2_tri(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_tri(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_fp_tri(r[0], a[0]);
 	sm9_z256_fp_tri(r[1], a[1]);
 }
 
-void sm9_z256_fp2_sub(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
+void sm9_z256_fp2_sub(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
 	sm9_z256_fp_sub(r[0], a[0], b[0]);
 	sm9_z256_fp_sub(r[1], a[1], b[1]);
 }
 
-void sm9_z256_fp2_neg(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_neg(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_fp_neg(r[0], a[0]);
 	sm9_z256_fp_neg(r[1], a[1]);
 }
 
-void sm9_z256_fp2_a_mul_u(sm9_z256_fp2 r, sm9_z256_fp2 a)
+void sm9_z256_fp2_a_mul_u(sm9_z256_fp2_t r, sm9_z256_fp2_t a)
 {
 	sm9_z256_t r0;
 
@@ -890,7 +890,7 @@ void sm9_z256_fp2_a_mul_u(sm9_z256_fp2 r, sm9_z256_fp2 a)
 }
 
 
-void sm9_z256_fp2_mul(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
+void sm9_z256_fp2_mul(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
 	sm9_z256_t t0;
 	sm9_z256_t t1;
@@ -919,7 +919,7 @@ void sm9_z256_fp2_mul(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b
 	sm9_z256_copy(r[1], t2);
 }
 
-void sm9_z256_fp2_mul_u(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
+void sm9_z256_fp2_mul_u(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
 	sm9_z256_t t0;
 	sm9_z256_t t1;
@@ -950,13 +950,13 @@ void sm9_z256_fp2_mul_u(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2
 	sm9_z256_copy(r[1], t0);
 }
 
-void sm9_z256_fp2_mul_fp(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_t k)
+void sm9_z256_fp2_mul_fp(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_t k)
 {
 	sm9_z256_fp_mont_mul(r[0], a[0], k);
 	sm9_z256_fp_mont_mul(r[1], a[1], k);
 }
 
-void sm9_z256_fp2_sqr(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_sqr(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_t r0, r1, c0, c1;
 
@@ -975,7 +975,7 @@ void sm9_z256_fp2_sqr(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 	sm9_z256_copy(r[1], r1);
 }
 
-void sm9_z256_fp2_sqr_u(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_sqr_u(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_t t0;
 	sm9_z256_t t1;
@@ -1004,7 +1004,7 @@ void sm9_z256_fp2_sqr_u(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 	sm9_z256_copy(r[1], t2);
 }
 
-void sm9_z256_fp2_inv(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_inv(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	if (sm9_z256_is_zero(a[0])) {
 		// r0 = 0
@@ -1039,42 +1039,42 @@ void sm9_z256_fp2_inv(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 	}
 }
 
-void sm9_z256_fp2_div(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
+void sm9_z256_fp2_div(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
 {
-	sm9_z256_fp2 t;
+	sm9_z256_fp2_t t;
 	sm9_z256_fp2_inv(t, b);
 	sm9_z256_fp2_mul(r, a, t);
 }
 
-void sm9_z256_fp2_div2(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_div2(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_fp_div2(r[0], a[0]);
 	sm9_z256_fp_div2(r[1], a[1]);
 }
 
 
-const sm9_z256_fp4 SM9_Z256_FP4_ZERO = {
+const sm9_z256_fp4_t SM9_Z256_FP4_ZERO = {
 	{{0,0,0,0},{0,0,0,0}},
 	{{0,0,0,0},{0,0,0,0}}
 };
 
-const sm9_z256_fp4 SM9_Z256_FP4_MONT_ONE = {
+const sm9_z256_fp4_t SM9_Z256_FP4_MONT_ONE = {
 	{{0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e},{0,0,0,0}},
 	{{0,0,0,0},{0,0,0,0}}
 };
 
 
-int sm9_z256_fp4_is_zero(const sm9_z256_fp4 a)
+int sm9_z256_fp4_is_zero(const sm9_z256_fp4_t a)
 {
 	return sm9_z256_fp2_is_zero(a[0]) && sm9_z256_fp2_is_zero(a[1]);
 }
 
-int sm9_z256_fp4_equ(const sm9_z256_fp4 a, const sm9_z256_fp4 b)
+int sm9_z256_fp4_equ(const sm9_z256_fp4_t a, const sm9_z256_fp4_t b)
 {
 	return sm9_z256_fp2_equ(a[0], b[0]) && sm9_z256_fp2_equ(a[1], b[1]);
 }
 
-int sm9_z256_fp4_rand(sm9_z256_fp4 r)
+int sm9_z256_fp4_rand(sm9_z256_fp4_t r)
 {
 	if (sm9_z256_fp2_rand(r[1]) != 1
 		|| sm9_z256_fp2_rand(r[0]) != 1) {
@@ -1084,19 +1084,19 @@ int sm9_z256_fp4_rand(sm9_z256_fp4 r)
 	return 1;
 }
 
-void sm9_z256_fp4_copy(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_copy(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_copy(r[0], a[0]);
 	sm9_z256_fp2_copy(r[1], a[1]);
 }
 
-void sm9_z256_fp4_to_bytes(const sm9_z256_fp4 a, uint8_t buf[128])
+void sm9_z256_fp4_to_bytes(const sm9_z256_fp4_t a, uint8_t buf[128])
 {
 	sm9_z256_fp2_to_bytes(a[1], buf);
 	sm9_z256_fp2_to_bytes(a[0], buf + 64);
 }
 
-int sm9_z256_fp4_from_bytes(sm9_z256_fp4 r, const uint8_t buf[128])
+int sm9_z256_fp4_from_bytes(sm9_z256_fp4_t r, const uint8_t buf[128])
 {
 	if (sm9_z256_fp2_from_bytes(r[1], buf) != 1
 		|| sm9_z256_fp2_from_bytes(r[0], buf + 64) != 1) {
@@ -1106,7 +1106,7 @@ int sm9_z256_fp4_from_bytes(sm9_z256_fp4 r, const uint8_t buf[128])
 	return 1;
 }
 
-int sm9_z256_fp4_from_hex(sm9_z256_fp4 r, const char hex[65 * 4])
+int sm9_z256_fp4_from_hex(sm9_z256_fp4_t r, const char hex[65 * 4])
 {
 	if (sm9_z256_fp2_from_hex(r[1], hex) != 1
 		|| hex[129] != SM9_Z256_HEX_SEP
@@ -1117,46 +1117,46 @@ int sm9_z256_fp4_from_hex(sm9_z256_fp4 r, const char hex[65 * 4])
 	return 1;
 }
 
-void sm9_z256_fp4_to_hex(const sm9_z256_fp4 a, char hex[259])
+void sm9_z256_fp4_to_hex(const sm9_z256_fp4_t a, char hex[259])
 {
 	sm9_z256_fp2_to_hex(a[1], hex);
 	hex[129] = SM9_Z256_HEX_SEP;
 	sm9_z256_fp2_to_hex(a[0], hex + 130);
 }
 
-void sm9_z256_fp4_add(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b)
+void sm9_z256_fp4_add(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b)
 {
 	sm9_z256_fp2_add(r[0], a[0], b[0]);
 	sm9_z256_fp2_add(r[1], a[1], b[1]);
 }
 
-void sm9_z256_fp4_dbl(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_dbl(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_dbl(r[0], a[0]);
 	sm9_z256_fp2_dbl(r[1], a[1]);
 }
 
-void sm9_z256_fp4_sub(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b)
+void sm9_z256_fp4_sub(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b)
 {
 	sm9_z256_fp2_sub(r[0], a[0], b[0]);
 	sm9_z256_fp2_sub(r[1], a[1], b[1]);
 }
 
-void sm9_z256_fp4_neg(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_neg(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_neg(r[0], a[0]);
 	sm9_z256_fp2_neg(r[1], a[1]);
 }
 
-void sm9_z256_fp4_div2(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_div2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_div2(r[0], a[0]);
 	sm9_z256_fp2_div2(r[1], a[1]);
 }
 
-void sm9_z256_fp4_a_mul_v(sm9_z256_fp4 r, sm9_z256_fp4 a)
+void sm9_z256_fp4_a_mul_v(sm9_z256_fp4_t r, sm9_z256_fp4_t a)
 {
-	sm9_z256_fp2 r0;
+	sm9_z256_fp2_t r0;
 
 	sm9_z256_fp2_a_mul_u(r0, a[1]);
 
@@ -1164,9 +1164,9 @@ void sm9_z256_fp4_a_mul_v(sm9_z256_fp4 r, sm9_z256_fp4 a)
 	sm9_z256_fp2_copy(r[0], r0);
 }
 
-void sm9_z256_fp4_mul(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b)
+void sm9_z256_fp4_mul(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b)
 {
-	sm9_z256_fp2 r0, r1, t;
+	sm9_z256_fp2_t r0, r1, t;
 
 	// r0 = a0 + a1
 	sm9_z256_fp2_add(r0, a[0], a[1]);
@@ -1197,21 +1197,21 @@ void sm9_z256_fp4_mul(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b
 	sm9_z256_fp2_copy(r[1], r1);
 }
 
-void sm9_z256_fp4_mul_fp(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_t k)
+void sm9_z256_fp4_mul_fp(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_t k)
 {
 	sm9_z256_fp2_mul_fp(r[0], a[0], k);
 	sm9_z256_fp2_mul_fp(r[1], a[1], k);
 }
 
-void sm9_z256_fp4_mul_fp2(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp2 b0)
+void sm9_z256_fp4_mul_fp2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp2_t b0)
 {
 	sm9_z256_fp2_mul(r[0], a[0], b0);
 	sm9_z256_fp2_mul(r[1], a[1], b0);
 }
 
-void sm9_z256_fp4_mul_v(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b)
+void sm9_z256_fp4_mul_v(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b)
 {
-	sm9_z256_fp2 r0, r1, t;
+	sm9_z256_fp2_t r0, r1, t;
 
 	sm9_z256_fp2_mul_u(r0, a[0], b[1]);
 	sm9_z256_fp2_mul_u(t, a[1], b[0]);
@@ -1225,9 +1225,9 @@ void sm9_z256_fp4_mul_v(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4
 	sm9_z256_fp2_copy(r[1], r1);
 }
 
-void sm9_z256_fp4_sqr(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_sqr(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
-	sm9_z256_fp2 r0, r1, t;
+	sm9_z256_fp2_t r0, r1, t;
 
 	sm9_z256_fp2_add(r1, a[0], a[1]);
 	sm9_z256_fp2_sqr(r1, r1);
@@ -1245,9 +1245,9 @@ void sm9_z256_fp4_sqr(sm9_z256_fp4 r, const sm9_z256_fp4 a)
 	sm9_z256_fp2_copy(r[1], r1);
 }
 
-void sm9_z256_fp4_sqr_v(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_sqr_v(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
-	sm9_z256_fp2 r0, r1, t;
+	sm9_z256_fp2_t r0, r1, t;
 
 	sm9_z256_fp2_mul_u(t, a[0], a[1]);
 	sm9_z256_fp2_dbl(r0, t);
@@ -1260,9 +1260,9 @@ void sm9_z256_fp4_sqr_v(sm9_z256_fp4 r, const sm9_z256_fp4 a)
 	sm9_z256_fp2_copy(r[1], r1);
 }
 
-void sm9_z256_fp4_inv(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_inv(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
-	sm9_z256_fp2 r0, r1, k;
+	sm9_z256_fp2_t r0, r1, k;
 
 	sm9_z256_fp2_sqr_u(k, a[1]);
 	sm9_z256_fp2_sqr(r0, a[0]);
@@ -1278,14 +1278,14 @@ void sm9_z256_fp4_inv(sm9_z256_fp4 r, const sm9_z256_fp4 a)
 	sm9_z256_fp2_copy(r[1], r1);
 }
 
-void sm9_z256_fp12_copy(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_copy(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
 	sm9_z256_fp4_copy(r[0], a[0]);
 	sm9_z256_fp4_copy(r[1], a[1]);
 	sm9_z256_fp4_copy(r[2], a[2]);
 }
 
-int sm9_z256_fp12_rand(sm9_z256_fp12 r)
+int sm9_z256_fp12_rand(sm9_z256_fp12_t r)
 {
 	if (sm9_z256_fp4_rand(r[0]) != 1
 		|| sm9_z256_fp4_rand(r[1]) != 1
@@ -1296,21 +1296,21 @@ int sm9_z256_fp12_rand(sm9_z256_fp12 r)
 	return 1;
 }
 
-void sm9_z256_fp12_set_zero(sm9_z256_fp12 r)
+void sm9_z256_fp12_set_zero(sm9_z256_fp12_t r)
 {
 	sm9_z256_fp4_copy(r[0], SM9_Z256_FP4_ZERO);
 	sm9_z256_fp4_copy(r[1], SM9_Z256_FP4_ZERO);
 	sm9_z256_fp4_copy(r[2], SM9_Z256_FP4_ZERO);
 }
 
-void sm9_z256_fp12_set_one(sm9_z256_fp12 r)
+void sm9_z256_fp12_set_one(sm9_z256_fp12_t r)
 {
 	sm9_z256_fp4_copy(r[0], SM9_Z256_FP4_MONT_ONE);
 	sm9_z256_fp4_copy(r[1], SM9_Z256_FP4_ZERO);
 	sm9_z256_fp4_copy(r[2], SM9_Z256_FP4_ZERO);
 }
 
-int sm9_z256_fp12_from_hex(sm9_z256_fp12 r, const char hex[65 * 12 - 1])
+int sm9_z256_fp12_from_hex(sm9_z256_fp12_t r, const char hex[65 * 12 - 1])
 {
 	if (sm9_z256_fp4_from_hex(r[2], hex) != 1
 		|| hex[65 * 4 - 1] != SM9_Z256_HEX_SEP
@@ -1323,7 +1323,7 @@ int sm9_z256_fp12_from_hex(sm9_z256_fp12 r, const char hex[65 * 12 - 1])
 	return 1;
 }
 
-void sm9_z256_fp12_to_hex(const sm9_z256_fp12 a, char hex[65 * 12 - 1])
+void sm9_z256_fp12_to_hex(const sm9_z256_fp12_t a, char hex[65 * 12 - 1])
 {
 	sm9_z256_fp4_to_hex(a[2], hex);
 	hex[65 * 4 - 1] = SM9_Z256_HEX_SEP;
@@ -1332,74 +1332,74 @@ void sm9_z256_fp12_to_hex(const sm9_z256_fp12 a, char hex[65 * 12 - 1])
 	sm9_z256_fp4_to_hex(a[0], hex + 65 * 8);
 }
 
-void sm9_z256_fp12_to_bytes(const sm9_z256_fp12 a, uint8_t buf[32 * 12])
+void sm9_z256_fp12_to_bytes(const sm9_z256_fp12_t a, uint8_t buf[32 * 12])
 {
 	sm9_z256_fp4_to_bytes(a[2], buf);
 	sm9_z256_fp4_to_bytes(a[1], buf + 32 * 4);
 	sm9_z256_fp4_to_bytes(a[0], buf + 32 * 8);
 }
 
-void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12 a)
+void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12_t a)
 {
 	char hex[65 * 12];
 	sm9_z256_fp12_to_hex(a, hex);
 	printf("%s\n%s\n", prefix, hex);
 }
 
-void sm9_z256_fp12_set(sm9_z256_fp12 r, const sm9_z256_fp4 a0, const sm9_z256_fp4 a1, const sm9_z256_fp4 a2)
+void sm9_z256_fp12_set(sm9_z256_fp12_t r, const sm9_z256_fp4_t a0, const sm9_z256_fp4_t a1, const sm9_z256_fp4_t a2)
 {
 	sm9_z256_fp4_copy(r[0], a0);
 	sm9_z256_fp4_copy(r[1], a1);
 	sm9_z256_fp4_copy(r[2], a2);
 }
 
-int sm9_z256_fp12_equ(const sm9_z256_fp12 a, const sm9_z256_fp12 b)
+int sm9_z256_fp12_equ(const sm9_z256_fp12_t a, const sm9_z256_fp12_t b)
 {
 	return sm9_z256_fp4_equ(a[0], b[0])
 		&& sm9_z256_fp4_equ(a[1], b[1])
 		&& sm9_z256_fp4_equ(a[2], b[2]);
 }
 
-void sm9_z256_fp12_add(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp12 b)
+void sm9_z256_fp12_add(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b)
 {
 	sm9_z256_fp4_add(r[0], a[0], b[0]);
 	sm9_z256_fp4_add(r[1], a[1], b[1]);
 	sm9_z256_fp4_add(r[2], a[2], b[2]);
 }
 
-void sm9_z256_fp12_dbl(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_dbl(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
 	sm9_z256_fp4_dbl(r[0], a[0]);
 	sm9_z256_fp4_dbl(r[1], a[1]);
 	sm9_z256_fp4_dbl(r[2], a[2]);
 }
 
-void sm9_z256_fp12_tri(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_tri(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
-	sm9_z256_fp12 t;
+	sm9_z256_fp12_t t;
 	sm9_z256_fp12_dbl(t, a);
 	sm9_z256_fp12_add(r, t, a);
 }
 
-void sm9_z256_fp12_sub(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp12 b)
+void sm9_z256_fp12_sub(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b)
 {
 	sm9_z256_fp4_sub(r[0], a[0], b[0]);
 	sm9_z256_fp4_sub(r[1], a[1], b[1]);
 	sm9_z256_fp4_sub(r[2], a[2], b[2]);
 }
 
-void sm9_z256_fp12_neg(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_neg(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
 	sm9_z256_fp4_neg(r[0], a[0]);
 	sm9_z256_fp4_neg(r[1], a[1]);
 	sm9_z256_fp4_neg(r[2], a[2]);
 }
 
-void sm9_z256_fp12_mul(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp12 b)
+void sm9_z256_fp12_mul(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b)
 {
-	sm9_z256_fp4 r0, r1, r2;
-	sm9_z256_fp4 t,  k0, k1;
-	sm9_z256_fp4 m0, m1, m2;
+	sm9_z256_fp4_t r0, r1, r2;
+	sm9_z256_fp4_t t,  k0, k1;
+	sm9_z256_fp4_t m0, m1, m2;
 
 	sm9_z256_fp4_mul(m0, a[0], b[0]);
 	sm9_z256_fp4_mul(m1, a[1], b[1]);
@@ -1435,9 +1435,9 @@ void sm9_z256_fp12_mul(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp
 
 #if 0
 //this is slower than the version below
-void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_sqr(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
-	sm9_z256_fp4 r0, r1, r2, t;
+	sm9_z256_fp4_t r0, r1, r2, t;
 
 	sm9_z256_fp4_sqr(r0, a[0]);
 	sm9_z256_fp4_mul_v(t, a[1], a[2]);
@@ -1459,10 +1459,10 @@ void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 	sm9_z256_fp4_copy(r[2], r2);
 }
 #else
-void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_sqr(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
-	sm9_z256_fp4 h0, h1, h2, t;
-	sm9_z256_fp4 s0, s1, s2, s3;
+	sm9_z256_fp4_t h0, h1, h2, t;
+	sm9_z256_fp4_t s0, s1, s2, s3;
 
 	sm9_z256_fp4_sqr(h0, a[0]);
 	sm9_z256_fp4_sqr(h1, a[2]);
@@ -1497,10 +1497,10 @@ void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 }
 #endif
 
-void sm9_z256_fp12_inv(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+void sm9_z256_fp12_inv(sm9_z256_fp12_t r, const sm9_z256_fp12_t a)
 {
 	if (sm9_z256_fp4_is_zero(a[2])) {
-		sm9_z256_fp4 k, t;
+		sm9_z256_fp4_t k, t;
 
 		sm9_z256_fp4_sqr(k, a[0]);
 		sm9_z256_fp4_mul(k, k, a[0]);
@@ -1520,7 +1520,7 @@ void sm9_z256_fp12_inv(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 		sm9_z256_fp4_mul(r[0], r[0], k);
 
 	} else {
-		sm9_z256_fp4 t0, t1, t2, t3;
+		sm9_z256_fp4_t t0, t1, t2, t3;
 
 		sm9_z256_fp4_sqr(t0, a[1]);
 		sm9_z256_fp4_mul(t1, a[0], a[2]);
@@ -1549,9 +1549,9 @@ void sm9_z256_fp12_inv(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 	}
 }
 
-void sm9_z256_fp12_pow(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_t k)
+void sm9_z256_fp12_pow(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_t k)
 {
-	sm9_z256_fp12 t;
+	sm9_z256_fp12_t t;
 	uint64_t w;
 	int i, j;
 
@@ -1571,13 +1571,13 @@ void sm9_z256_fp12_pow(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_t 
 	sm9_z256_fp12_copy(r, t);
 }
 
-void sm9_z256_fp2_conjugate(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_conjugate(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_copy(r[0], a[0]);
 	sm9_z256_fp_neg (r[1], a[1]);
 }
 
-void sm9_z256_fp2_frobenius(sm9_z256_fp2 r, const sm9_z256_fp2 a)
+void sm9_z256_fp2_frobenius(sm9_z256_fp2_t r, const sm9_z256_fp2_t a)
 {
 	sm9_z256_fp2_conjugate(r, a);
 }
@@ -1590,7 +1590,7 @@ void sm9_z256_fp2_frobenius(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 // alpha5 = 0x2d40a38cf6983351711e5f99520347cc57d778a9f8ff4c8a4c949c7fa2a96686
 
 // mont version (mod p)
-static const sm9_z256_fp2 SM9_MONT_BETA  = {{0x39b4ef0f3ee72529, 0xdb043bf508582782, 0xb8554ab054ac91e3, 0x9848eec25498cab5}, {0}};
+static const sm9_z256_fp2_t SM9_MONT_BETA  = {{0x39b4ef0f3ee72529, 0xdb043bf508582782, 0xb8554ab054ac91e3, 0x9848eec25498cab5}, {0}};
 static const sm9_z256_t SM9_MONT_ALPHA1   = {0x1a98dfbd4575299f, 0x9ec8547b245c54fd, 0xf51f5eac13df846c, 0x9ef74015d5a16393};
 static const sm9_z256_t SM9_MONT_ALPHA2   = {0xb626197dce4736ca, 0x08296b3557ed0186, 0x9c705db2fd91512a, 0x1c753e748601c992};
 static const sm9_z256_t SM9_MONT_ALPHA3   = {0x39b4ef0f3ee72529, 0xdb043bf508582782, 0xb8554ab054ac91e3, 0x9848eec25498cab5};
@@ -1598,25 +1598,25 @@ static const sm9_z256_t SM9_MONT_ALPHA4   = {0x81054fcd94e9c1c4, 0x4c0e91cb8ce2d
 static const sm9_z256_t SM9_MONT_ALPHA5   = {0x048baa79dcc34107, 0x5e2e7ac4fe76c161, 0x99399754365bd4bc, 0xaf91aeac819b0e13};
 
 
-void sm9_z256_fp4_frobenius(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_frobenius(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_conjugate(r[0], a[0]);
 	sm9_z256_fp2_conjugate(r[1], a[1]);
 	sm9_z256_fp2_mul(r[1], r[1], SM9_MONT_BETA);
 }
 
-void sm9_z256_fp4_conjugate(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_conjugate(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_copy(r[0], a[0]);
 	sm9_z256_fp2_neg(r[1], a[1]);
 }
 
-void sm9_z256_fp4_frobenius2(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_frobenius2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp4_conjugate(r, a);
 }
 
-void sm9_z256_fp4_frobenius3(sm9_z256_fp4 r, const sm9_z256_fp4 a)
+void sm9_z256_fp4_frobenius3(sm9_z256_fp4_t r, const sm9_z256_fp4_t a)
 {
 	sm9_z256_fp2_conjugate(r[0], a[0]);
 	sm9_z256_fp2_conjugate(r[1], a[1]);
@@ -1624,15 +1624,15 @@ void sm9_z256_fp4_frobenius3(sm9_z256_fp4 r, const sm9_z256_fp4 a)
 	sm9_z256_fp2_neg(r[1], r[1]);
 }
 
-void sm9_z256_fp12_frobenius(sm9_z256_fp12 r, const sm9_z256_fp12 x)
+void sm9_z256_fp12_frobenius(sm9_z256_fp12_t r, const sm9_z256_fp12_t x)
 {
-	const sm9_z256_fp2 *xa = x[0];
-	const sm9_z256_fp2 *xb = x[1];
-	const sm9_z256_fp2 *xc = x[2];
+	const sm9_z256_fp2_t *xa = x[0];
+	const sm9_z256_fp2_t *xb = x[1];
+	const sm9_z256_fp2_t *xc = x[2];
 
-	sm9_z256_fp4 ra;
-	sm9_z256_fp4 rb;
-	sm9_z256_fp4 rc;
+	sm9_z256_fp4_t ra;
+	sm9_z256_fp4_t rb;
+	sm9_z256_fp4_t rc;
 
 	sm9_z256_fp2_conjugate(ra[0], xa[0]);
 	sm9_z256_fp2_conjugate(ra[1], xa[1]);
@@ -1651,11 +1651,11 @@ void sm9_z256_fp12_frobenius(sm9_z256_fp12 r, const sm9_z256_fp12 x)
 	sm9_z256_fp12_set(r, ra, rb, rc);
 }
 
-void sm9_z256_fp12_frobenius2(sm9_z256_fp12 r, const sm9_z256_fp12 x)
+void sm9_z256_fp12_frobenius2(sm9_z256_fp12_t r, const sm9_z256_fp12_t x)
 {
-	sm9_z256_fp4 a;
-	sm9_z256_fp4 b;
-	sm9_z256_fp4 c;
+	sm9_z256_fp4_t a;
+	sm9_z256_fp4_t b;
+	sm9_z256_fp4_t c;
 
 	sm9_z256_fp4_conjugate(a, x[0]);
 	sm9_z256_fp4_conjugate(b, x[1]);
@@ -1668,15 +1668,15 @@ void sm9_z256_fp12_frobenius2(sm9_z256_fp12 r, const sm9_z256_fp12 x)
 	sm9_z256_fp4_copy(r[2], c);
 }
 
-void sm9_z256_fp12_frobenius3(sm9_z256_fp12 r, const sm9_z256_fp12 x)
+void sm9_z256_fp12_frobenius3(sm9_z256_fp12_t r, const sm9_z256_fp12_t x)
 {
-	const sm9_z256_fp2 *xa = x[0];
-	const sm9_z256_fp2 *xb = x[1];
-	const sm9_z256_fp2 *xc = x[2];
+	const sm9_z256_fp2_t *xa = x[0];
+	const sm9_z256_fp2_t *xb = x[1];
+	const sm9_z256_fp2_t *xc = x[2];
 
-	sm9_z256_fp4 ra;
-	sm9_z256_fp4 rb;
-	sm9_z256_fp4 rc;
+	sm9_z256_fp4_t ra;
+	sm9_z256_fp4_t rb;
+	sm9_z256_fp4_t rc;
 
 	sm9_z256_fp2_conjugate(ra[0], xa[0]);
 	sm9_z256_fp2_conjugate(ra[1], xa[1]);
@@ -1697,11 +1697,11 @@ void sm9_z256_fp12_frobenius3(sm9_z256_fp12 r, const sm9_z256_fp12 x)
 	sm9_z256_fp4_copy(r[2], rc);
 }
 
-void sm9_z256_fp12_frobenius6(sm9_z256_fp12 r, const sm9_z256_fp12 x)
+void sm9_z256_fp12_frobenius6(sm9_z256_fp12_t r, const sm9_z256_fp12_t x)
 {
-	sm9_z256_fp4 a;
-	sm9_z256_fp4 b;
-	sm9_z256_fp4 c;
+	sm9_z256_fp4_t a;
+	sm9_z256_fp4_t b;
+	sm9_z256_fp4_t c;
 
 	sm9_z256_fp4_copy(a, x[0]);
 	sm9_z256_fp4_copy(b, x[1]);
@@ -2060,9 +2060,9 @@ void sm9_z256_twist_point_set_infinity(SM9_Z256_TWIST_POINT *R)
 	sm9_z256_fp2_set_zero(R->Z);
 }
 
-void sm9_z256_twist_point_get_xy(const SM9_Z256_TWIST_POINT *P, sm9_z256_fp2 x, sm9_z256_fp2 y)
+void sm9_z256_twist_point_get_xy(const SM9_Z256_TWIST_POINT *P, sm9_z256_fp2_t x, sm9_z256_fp2_t y)
 {
-	sm9_z256_fp2 z_inv;
+	sm9_z256_fp2_t z_inv;
 
 	assert(!sm9_z256_fp2_is_zero(P->Z));
 
@@ -2082,7 +2082,7 @@ void sm9_z256_twist_point_get_xy(const SM9_Z256_TWIST_POINT *P, sm9_z256_fp2 x, 
 
 int sm9_z256_twist_point_equ(const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST_POINT *Q)
 {
-	sm9_z256_fp2 t1, t2, t3, t4;
+	sm9_z256_fp2_t t1, t2, t3, t4;
 
 	sm9_z256_fp2_sqr(t1, P->Z);
 	sm9_z256_fp2_sqr(t2, Q->Z);
@@ -2100,7 +2100,7 @@ int sm9_z256_twist_point_equ(const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST
 
 int sm9_z256_twist_point_is_on_curve(const SM9_Z256_TWIST_POINT *P)
 {
-	sm9_z256_fp2 t0, t1, t2;
+	sm9_z256_fp2_t t0, t1, t2;
 
 	if (sm9_z256_fp2_is_one(P->Z)) {
 		sm9_z256_fp2_sqr(t0, P->Y);
@@ -2136,7 +2136,7 @@ void sm9_z256_twist_point_dbl(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POIN
 	const sm9_z256_t *X1 = P->X;
 	const sm9_z256_t *Y1 = P->Y;
 	const sm9_z256_t *Z1 = P->Z;
-	sm9_z256_fp2 X3, Y3, Z3, T1, T2, T3;
+	sm9_z256_fp2_t X3, Y3, Z3, T1, T2, T3;
 
 	if (sm9_z256_twist_point_is_at_infinity(P)) {
 		*R = *P;
@@ -2169,7 +2169,7 @@ void sm9_z256_twist_point_add(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POIN
 	const sm9_z256_t *Z1 = P->Z;
 	const sm9_z256_t *x2 = Q->X;
 	const sm9_z256_t *y2 = Q->Y;
-	sm9_z256_fp2 X3, Y3, Z3, T1, T2, T3, T4;
+	sm9_z256_fp2_t X3, Y3, Z3, T1, T2, T3, T4;
 
 	if (sm9_z256_twist_point_is_at_infinity(Q)) {
 		*R = *P;
@@ -2228,7 +2228,7 @@ void sm9_z256_twist_point_add_full(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST
 	const sm9_z256_t *X2 = Q->X;
 	const sm9_z256_t *Y2 = Q->Y;
 	const sm9_z256_t *Z2 = Q->Z;
-	sm9_z256_fp2 T1, T2, T3, T4, T5, T6, T7, T8;
+	sm9_z256_fp2_t T1, T2, T3, T4, T5, T6, T7, T8;
 
 	if (sm9_z256_twist_point_is_at_infinity(Q)) {
 		*R = *P;
@@ -2301,7 +2301,7 @@ void sm9_z256_twist_point_mul_generator(SM9_Z256_TWIST_POINT *R, const sm9_z256_
 	sm9_z256_twist_point_mul(R, k, SM9_Z256_MONT_P2);
 }
 
-void sm9_z256_eval_g_tangent(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q)
+void sm9_z256_eval_g_tangent(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q)
 {
 	sm9_z256_t x;
 	sm9_z256_t y;
@@ -2318,9 +2318,9 @@ void sm9_z256_eval_g_tangent(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z25
 	sm9_z256_t *a4 = num[2][0];
 	sm9_z256_t *b1 = den[0][1];
 
-	sm9_z256_fp2 t0;
-	sm9_z256_fp2 t1;
-	sm9_z256_fp2 t2;
+	sm9_z256_fp2_t t0;
+	sm9_z256_fp2_t t1;
+	sm9_z256_fp2_t t2;
 
 	sm9_z256_fp12_set_zero(num);
 	sm9_z256_fp12_set_zero(den);
@@ -2345,7 +2345,7 @@ void sm9_z256_eval_g_tangent(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z25
 	sm9_z256_fp2_sub(a0, t0, t1);
 }
 
-void sm9_z256_eval_g_line(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q)
+void sm9_z256_eval_g_line(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q)
 {
 	sm9_z256_t x;
 	sm9_z256_t y;
@@ -2365,7 +2365,7 @@ void sm9_z256_eval_g_line(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z256_T
 	sm9_z256_t *a4 = num[2][0];
 	sm9_z256_t *b1 = den[0][1];
 
-	sm9_z256_fp2 T0, T1, T2, T3, T4;
+	sm9_z256_fp2_t T0, T1, T2, T3, T4;
 
 
 	sm9_z256_fp12_set_zero(num);
@@ -2431,14 +2431,14 @@ void sm9_z256_twist_point_neg_pi2(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_
 }
 
 
-void sm9_z256_final_exponent_hard_part(sm9_z256_fp12 r, const sm9_z256_fp12 f)
+void sm9_z256_final_exponent_hard_part(sm9_z256_fp12_t r, const sm9_z256_fp12_t f)
 {
 	// a2 = 0xd8000000019062ed0000b98b0cb27659
 	// a3 = 0x2400000000215d941
 	const sm9_z256_t a2 = {0x0000b98b0cb27659, 0xd8000000019062ed, 0, 0};
 	const sm9_z256_t a3 = {0x400000000215d941, 0x2, 0, 0};
 	const sm9_z256_t nine = {9,0,0,0};
-	sm9_z256_fp12 t0, t1, t2, t3;
+	sm9_z256_fp12_t t0, t1, t2, t3;
 
 	sm9_z256_fp12_pow(t0, f, a3);
 	sm9_z256_fp12_inv(t0, t0);
@@ -2467,10 +2467,10 @@ void sm9_z256_final_exponent_hard_part(sm9_z256_fp12 r, const sm9_z256_fp12 f)
 	sm9_z256_fp12_copy(r, t1);
 }
 
-void sm9_z256_final_exponent(sm9_z256_fp12 r, const sm9_z256_fp12 f)
+void sm9_z256_final_exponent(sm9_z256_fp12_t r, const sm9_z256_fp12_t f)
 {
-	sm9_z256_fp12 t0;
-	sm9_z256_fp12 t1;
+	sm9_z256_fp12_t t0;
+	sm9_z256_fp12_t t1;
 
 	sm9_z256_fp12_frobenius6(t0, f);
 	sm9_z256_fp12_inv(t1, f);
@@ -2484,7 +2484,7 @@ void sm9_z256_final_exponent(sm9_z256_fp12 r, const sm9_z256_fp12 f)
 
 // 这个计算是否有更快速的算法
 // 特别是主循环中的计算时否需要再Fp12上面
-void sm9_z256_pairing(sm9_z256_fp12 r, const SM9_Z256_TWIST_POINT *Q, const SM9_Z256_POINT *P)
+void sm9_z256_pairing(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM9_Z256_POINT *P)
 {
 	const char *abits = "00100000000000000000000000000000000000010000101100020200101000020";
 
@@ -2492,10 +2492,10 @@ void sm9_z256_pairing(sm9_z256_fp12 r, const SM9_Z256_TWIST_POINT *Q, const SM9_
 	SM9_Z256_TWIST_POINT _Q1, *Q1 = &_Q1;
 	SM9_Z256_TWIST_POINT _Q2, *Q2 = &_Q2;
 
-	sm9_z256_fp12 f_num;
-	sm9_z256_fp12 f_den;
-	sm9_z256_fp12 g_num;
-	sm9_z256_fp12 g_den;
+	sm9_z256_fp12_t f_num;
+	sm9_z256_fp12_t f_den;
+	sm9_z256_fp12_t g_num;
+	sm9_z256_fp12_t g_den;
 	int i;
 
 	*T = *Q;
@@ -2759,8 +2759,8 @@ int sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t oct
 int sm9_z256_twist_point_to_uncompressed_octets(const SM9_Z256_TWIST_POINT *P, uint8_t octets[129])
 {
 	octets[0] = 0x04;
-	sm9_z256_fp2 x;
-	sm9_z256_fp2 y;
+	sm9_z256_fp2_t x;
+	sm9_z256_fp2_t y;
 	sm9_z256_twist_point_get_xy(P, x, y);
 	sm9_z256_fp2_to_bytes(x, octets + 1);
 	sm9_z256_fp2_to_bytes(y, octets + 32 * 2 + 1);

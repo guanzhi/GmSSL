@@ -108,7 +108,7 @@ int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, si
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig)
 {
 	sm9_z256_t r;
-	sm9_z256_fp12 g;
+	sm9_z256_fp12_t g;
 	uint8_t wbuf[32 * 12];
 	SM3_CTX ctx = *sm3_ctx;
 	SM3_CTX tmp_ctx;
@@ -197,10 +197,10 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 {
 	sm9_z256_t h1;
 	sm9_z256_t h2;
-	sm9_z256_fp12 g;
-	sm9_z256_fp12 t;
-	sm9_z256_fp12 u;
-	sm9_z256_fp12 w;
+	sm9_z256_fp12_t g;
+	sm9_z256_fp12_t t;
+	sm9_z256_fp12_t u;
+	sm9_z256_fp12_t w;
 	SM9_Z256_TWIST_POINT P;
 	uint8_t wbuf[32 * 12];
 	SM3_CTX ctx = *sm3_ctx;
@@ -252,7 +252,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	size_t klen, uint8_t *kbuf, SM9_Z256_POINT *C)
 {
 	sm9_z256_t r;
-	sm9_z256_fp12 w;
+	sm9_z256_fp12_t w;
 	uint8_t wbuf[32 * 12];
 	uint8_t cbuf[65];
 	SM3_KDF_CTX kdf_ctx;
@@ -301,7 +301,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const SM9_Z256_POINT *C,
 	size_t klen, uint8_t *kbuf)
 {
-	sm9_z256_fp12 w;
+	sm9_z256_fp12_t w;
 	uint8_t wbuf[32 * 12];
 	uint8_t cbuf[65];
 	SM3_KDF_CTX kdf_ctx;
@@ -543,7 +543,7 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 	const SM9_EXCH_KEY *key, const SM9_Z256_POINT *RA, SM9_Z256_POINT *RB, uint8_t *sk, size_t klen)
 {
 	sm9_z256_t rB;
-	sm9_z256_fp12 G1, G2, G3;
+	sm9_z256_fp12_t G1, G2, G3;
 	uint8_t g1[32 * 12], g2[32 * 12], g3[32 * 12];
 	uint8_t ta[65], tb[65];
 	SM3_KDF_CTX kdf_ctx;
@@ -615,7 +615,7 @@ int sm9_exch_step_2A(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 	const SM9_EXCH_KEY *key, const sm9_z256_t rA, const SM9_Z256_POINT *RA, const SM9_Z256_POINT *RB, uint8_t *sk, size_t klen)
 {
 	sm9_z256_t r;
-	sm9_z256_fp12 G1, G2, G3;
+	sm9_z256_fp12_t G1, G2, G3;
 	uint8_t g1[32 * 12], g2[32 * 12], g3[32 * 12];
 	uint8_t ta[65], tb[65];
 	SM3_KDF_CTX kdf_ctx;

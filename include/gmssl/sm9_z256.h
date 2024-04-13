@@ -83,101 +83,101 @@ void sm9_z256_fn_from_hash(sm9_z256_t h, const uint8_t Ha[40]);
 int  sm9_z256_fn_from_bytes(sm9_z256_t a, const uint8_t in[32]);
 
 
-typedef sm9_z256_t sm9_z256_fp2[2];
-extern const sm9_z256_fp2 SM9_FP2_ZERO;
+typedef sm9_z256_t sm9_z256_fp2_t[2];
+extern const sm9_z256_fp2_t SM9_FP2_ZERO;
 
 
-void sm9_z256_fp2_set_one(sm9_z256_fp2 r);
-void sm9_z256_fp2_set_zero(sm9_z256_fp2 r);
-int  sm9_z256_fp2_is_one(const sm9_z256_fp2 a);
-int  sm9_z256_fp2_is_zero(const sm9_z256_fp2 a);
-int  sm9_z256_fp2_equ(const sm9_z256_fp2 a, const sm9_z256_fp2 b);
-void sm9_z256_fp2_copy(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-int  sm9_z256_fp2_rand(sm9_z256_fp2 r);
-void sm9_z256_fp2_to_bytes(const sm9_z256_fp2 a, uint8_t buf[64]);
-int  sm9_z256_fp2_from_bytes(sm9_z256_fp2 r, const uint8_t buf[64]);
-int  sm9_z256_fp2_from_hex(sm9_z256_fp2 r, const char hex[129]);
-void sm9_z256_fp2_to_hex(const sm9_z256_fp2 a, char hex[129]);
-void sm9_z256_fp2_add(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b);
-void sm9_z256_fp2_dbl(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_tri(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_sub(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b);
-void sm9_z256_fp2_neg(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_a_mul_u(sm9_z256_fp2 r, sm9_z256_fp2 a);
-void sm9_z256_fp2_mul(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b);
-void sm9_z256_fp2_mul_u(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b);
-void sm9_z256_fp2_mul_fp(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_t k);
-void sm9_z256_fp2_sqr(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_sqr_u(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_inv(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_div(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b);
-void sm9_z256_fp2_div2(sm9_z256_fp2 r, const sm9_z256_fp2 a);
+void sm9_z256_fp2_set_one(sm9_z256_fp2_t r);
+void sm9_z256_fp2_set_zero(sm9_z256_fp2_t r);
+int  sm9_z256_fp2_is_one(const sm9_z256_fp2_t a);
+int  sm9_z256_fp2_is_zero(const sm9_z256_fp2_t a);
+int  sm9_z256_fp2_equ(const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
+void sm9_z256_fp2_copy(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+int  sm9_z256_fp2_rand(sm9_z256_fp2_t r);
+void sm9_z256_fp2_to_bytes(const sm9_z256_fp2_t a, uint8_t buf[64]);
+int  sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64]);
+int  sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[129]);
+void sm9_z256_fp2_to_hex(const sm9_z256_fp2_t a, char hex[129]);
+void sm9_z256_fp2_add(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
+void sm9_z256_fp2_dbl(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_tri(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_sub(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
+void sm9_z256_fp2_neg(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_a_mul_u(sm9_z256_fp2_t r, sm9_z256_fp2_t a);
+void sm9_z256_fp2_mul(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
+void sm9_z256_fp2_mul_u(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
+void sm9_z256_fp2_mul_fp(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_t k);
+void sm9_z256_fp2_sqr(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_sqr_u(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_inv(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_div(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
+void sm9_z256_fp2_div2(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 
 
-typedef sm9_z256_fp2 sm9_z256_fp4[2];
-extern const sm9_z256_fp4 SM9_FP4_ZERO;
-extern const sm9_z256_fp4 SM9_FP4_ONE;
-extern const sm9_z256_fp4 SM9_FP4_U;
-extern const sm9_z256_fp4 SM9_FP4_V;
+typedef sm9_z256_fp2_t sm9_z256_fp4_t[2];
+extern const sm9_z256_fp4_t SM9_FP4_ZERO;
+extern const sm9_z256_fp4_t SM9_FP4_ONE;
+extern const sm9_z256_fp4_t SM9_FP4_U;
+extern const sm9_z256_fp4_t SM9_FP4_V;
 
-int sm9_z256_fp4_is_zero(const sm9_z256_fp4 a);
-int  sm9_z256_fp4_equ(const sm9_z256_fp4 a, const sm9_z256_fp4 b);
-int  sm9_z256_fp4_rand(sm9_z256_fp4 r);
-void sm9_z256_fp4_copy(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_to_bytes(const sm9_z256_fp4 a, uint8_t buf[128]);
-int  sm9_z256_fp4_from_bytes(sm9_z256_fp4 r, const uint8_t buf[128]);
-int  sm9_z256_fp4_from_hex(sm9_z256_fp4 r, const char hex[65 * 4]);
-void sm9_z256_fp4_to_hex(const sm9_z256_fp4 a, char hex[259]);
-void sm9_z256_fp4_add(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b);
-void sm9_z256_fp4_dbl(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_sub(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b);
-void sm9_z256_fp4_neg(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_div2(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_a_mul_v(sm9_z256_fp4 r, sm9_z256_fp4 a);
-void sm9_z256_fp4_mul(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b);
-void sm9_z256_fp4_mul_fp(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_t k);
-void sm9_z256_fp4_mul_fp2(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp2 b0);
-void sm9_z256_fp4_mul_v(sm9_z256_fp4 r, const sm9_z256_fp4 a, const sm9_z256_fp4 b);
-void sm9_z256_fp4_sqr(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_sqr_v(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_inv(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-
-
+int sm9_z256_fp4_is_zero(const sm9_z256_fp4_t a);
+int  sm9_z256_fp4_equ(const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
+int  sm9_z256_fp4_rand(sm9_z256_fp4_t r);
+void sm9_z256_fp4_copy(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_to_bytes(const sm9_z256_fp4_t a, uint8_t buf[128]);
+int  sm9_z256_fp4_from_bytes(sm9_z256_fp4_t r, const uint8_t buf[128]);
+int  sm9_z256_fp4_from_hex(sm9_z256_fp4_t r, const char hex[65 * 4]);
+void sm9_z256_fp4_to_hex(const sm9_z256_fp4_t a, char hex[259]);
+void sm9_z256_fp4_add(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
+void sm9_z256_fp4_dbl(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_sub(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
+void sm9_z256_fp4_neg(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_div2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_a_mul_v(sm9_z256_fp4_t r, sm9_z256_fp4_t a);
+void sm9_z256_fp4_mul(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
+void sm9_z256_fp4_mul_fp(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_t k);
+void sm9_z256_fp4_mul_fp2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp2_t b0);
+void sm9_z256_fp4_mul_v(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
+void sm9_z256_fp4_sqr(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_sqr_v(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_inv(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
 
 
-typedef sm9_z256_fp4 sm9_z256_fp12[3];
-
-void sm9_z256_fp12_copy(sm9_z256_fp12 r, const sm9_z256_fp12 a);
-int  sm9_z256_fp12_rand(sm9_z256_fp12 r);
-void sm9_z256_fp12_set_zero(sm9_z256_fp12 r);
-void sm9_z256_fp12_set_one(sm9_z256_fp12 r);
-int  sm9_z256_fp12_from_hex(sm9_z256_fp12 r, const char hex[65 * 12 - 1]);
-void sm9_z256_fp12_to_hex(const sm9_z256_fp12 a, char hex[65 * 12 - 1]);
-void sm9_z256_fp12_to_bytes(const sm9_z256_fp12 a, uint8_t buf[32 * 12]);
-void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12 a);
-void sm9_z256_fp12_set(sm9_z256_fp12 r, const sm9_z256_fp4 a0, const sm9_z256_fp4 a1, const sm9_z256_fp4 a2);
-int  sm9_z256_fp12_equ(const sm9_z256_fp12 a, const sm9_z256_fp12 b);
-void sm9_z256_fp12_add(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp12 b);
-void sm9_z256_fp12_dbl(sm9_z256_fp12 r, const sm9_z256_fp12 a);
-void sm9_z256_fp12_tri(sm9_z256_fp12 r, const sm9_z256_fp12 a);
-void sm9_z256_fp12_sub(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp12 b);
-void sm9_z256_fp12_neg(sm9_z256_fp12 r, const sm9_z256_fp12 a);
-void sm9_z256_fp12_mul(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp12 b);
-void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a);
-void sm9_z256_fp12_inv(sm9_z256_fp12 r, const sm9_z256_fp12 a);
-void sm9_z256_fp12_pow(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_t k);
 
 
-void sm9_z256_fp2_conjugate(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp2_frobenius(sm9_z256_fp2 r, const sm9_z256_fp2 a);
-void sm9_z256_fp4_frobenius(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_conjugate(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_frobenius2(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp4_frobenius3(sm9_z256_fp4 r, const sm9_z256_fp4 a);
-void sm9_z256_fp12_frobenius(sm9_z256_fp12 r, const sm9_z256_fp12 x);
-void sm9_z256_fp12_frobenius2(sm9_z256_fp12 r, const sm9_z256_fp12 x);
-void sm9_z256_fp12_frobenius3(sm9_z256_fp12 r, const sm9_z256_fp12 x);
-void sm9_z256_fp12_frobenius6(sm9_z256_fp12 r, const sm9_z256_fp12 x);
+typedef sm9_z256_fp4_t sm9_z256_fp12_t[3];
+
+void sm9_z256_fp12_copy(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
+int  sm9_z256_fp12_rand(sm9_z256_fp12_t r);
+void sm9_z256_fp12_set_zero(sm9_z256_fp12_t r);
+void sm9_z256_fp12_set_one(sm9_z256_fp12_t r);
+int  sm9_z256_fp12_from_hex(sm9_z256_fp12_t r, const char hex[65 * 12 - 1]);
+void sm9_z256_fp12_to_hex(const sm9_z256_fp12_t a, char hex[65 * 12 - 1]);
+void sm9_z256_fp12_to_bytes(const sm9_z256_fp12_t a, uint8_t buf[32 * 12]);
+void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12_t a);
+void sm9_z256_fp12_set(sm9_z256_fp12_t r, const sm9_z256_fp4_t a0, const sm9_z256_fp4_t a1, const sm9_z256_fp4_t a2);
+int  sm9_z256_fp12_equ(const sm9_z256_fp12_t a, const sm9_z256_fp12_t b);
+void sm9_z256_fp12_add(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b);
+void sm9_z256_fp12_dbl(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
+void sm9_z256_fp12_tri(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
+void sm9_z256_fp12_sub(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b);
+void sm9_z256_fp12_neg(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
+void sm9_z256_fp12_mul(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp12_t b);
+void sm9_z256_fp12_sqr(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
+void sm9_z256_fp12_inv(sm9_z256_fp12_t r, const sm9_z256_fp12_t a);
+void sm9_z256_fp12_pow(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_t k);
+
+
+void sm9_z256_fp2_conjugate(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_frobenius(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp4_frobenius(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_conjugate(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_frobenius2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_frobenius3(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp12_frobenius(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
+void sm9_z256_fp12_frobenius2(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
+void sm9_z256_fp12_frobenius3(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
+void sm9_z256_fp12_frobenius6(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
 
 
 typedef struct {
@@ -205,9 +205,9 @@ int  sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t oc
 
 
 typedef struct {
-	sm9_z256_fp2 X;
-	sm9_z256_fp2 Y;
-	sm9_z256_fp2 Z;
+	sm9_z256_fp2_t X;
+	sm9_z256_fp2_t Y;
+	sm9_z256_fp2_t Z;
 } SM9_Z256_TWIST_POINT;
 
 int sm9_z256_twist_point_to_uncompressed_octets(const SM9_Z256_TWIST_POINT *P, uint8_t octets[129]);
@@ -217,7 +217,7 @@ int  sm9_z256_twist_point_print(FILE *fp, int fmt, int ind, const char *label, c
 void sm9_z256_twist_point_from_hex(SM9_Z256_TWIST_POINT *R, const char hex[65 * 4]);
 int  sm9_z256_twist_point_is_at_infinity(const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_set_infinity(SM9_Z256_TWIST_POINT *R);
-void sm9_z256_twist_point_get_xy(const SM9_Z256_TWIST_POINT *P, sm9_z256_fp2 x, sm9_z256_fp2 y);
+void sm9_z256_twist_point_get_xy(const SM9_Z256_TWIST_POINT *P, sm9_z256_fp2_t x, sm9_z256_fp2_t y);
 int  sm9_z256_twist_point_equ(const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST_POINT *Q);
 int  sm9_z256_twist_point_is_on_curve(const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_neg(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
@@ -229,14 +229,14 @@ void sm9_z256_twist_point_mul(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k, const
 void sm9_z256_twist_point_mul_generator(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k);
 
 
-void sm9_z256_eval_g_tangent(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
-void sm9_z256_eval_g_line(sm9_z256_fp12 num, sm9_z256_fp12 den, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
+void sm9_z256_eval_g_tangent(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
+void sm9_z256_eval_g_line(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
 void sm9_z256_twist_point_pi1(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_pi2(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_neg_pi2(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
-void sm9_z256_final_exponent_hard_part(sm9_z256_fp12 r, const sm9_z256_fp12 f);
-void sm9_z256_final_exponent(sm9_z256_fp12 r, const sm9_z256_fp12 f);
-void sm9_z256_pairing(sm9_z256_fp12 r, const SM9_Z256_TWIST_POINT *Q, const SM9_Z256_POINT *P);
+void sm9_z256_final_exponent_hard_part(sm9_z256_fp12_t r, const sm9_z256_fp12_t f);
+void sm9_z256_final_exponent(sm9_z256_fp12_t r, const sm9_z256_fp12_t f);
+void sm9_z256_pairing(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM9_Z256_POINT *P);
 
 int sm9_z256_hash1(sm9_z256_t h1, const char *id, size_t idlen, uint8_t hid);
 
