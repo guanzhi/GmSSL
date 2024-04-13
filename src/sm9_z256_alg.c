@@ -28,19 +28,34 @@ const sm9_z256_t SM9_Z256_FIVE = {5,0,0,0};
 
 
 // p =  b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
+const sm9_z256_t SM9_Z256_P = {
+	0xe56f9b27e351457d, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1
+};
+
+// p - 2 = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457b, used in a^(p-2) = a^-1
+const sm9_z256_t SM9_Z256_P_MINUS_TWO = {
+	0xe56f9b27e351457b, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1
+};
+
 // n =  b640000002a3a6f1d603ab4ff58ec74449f2934b18ea8beee56ee19cd69ecf25
+const sm9_z256_t SM9_Z256_N = {
+	0xe56ee19cd69ecf25, 0x49f2934b18ea8bee, 0xd603ab4ff58ec744, 0xb640000002a3a6f1
+};
+
+// n - 1
+const sm9_z256_t SM9_Z256_N_MINUS_ONE = {
+	0xe56ee19cd69ecf24, 0x49f2934b18ea8bee, 0xd603ab4ff58ec744, 0xb640000002a3a6f1
+};
+
+const sm9_z256_t SM9_Z256_NEG_N = {
+	0x1a911e63296130db, 0xb60d6cb4e7157411, 0x29fc54b00a7138bb, 0x49bffffffd5c590e
+};
+
 // mu_p = 2^512 // p = 167980e0beb5759a655f73aebdcd1312af2665f6d1e36081c71188f90d5c22146
 // mu_n = 2^512 // n
-const sm9_z256_t SM9_Z256_P = {0xe56f9b27e351457d, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1};
-const sm9_z256_t SM9_Z256_N = {0xe56ee19cd69ecf25, 0x49f2934b18ea8bee, 0xd603ab4ff58ec744, 0xb640000002a3a6f1};
-const sm9_z256_t SM9_Z256_NEG_N = {0x1a911e63296130db, 0xb60d6cb4e7157411, 0x29fc54b00a7138bb, 0x49bffffffd5c590e};
-// n - 1
-const sm9_z256_t SM9_Z256_N_MINUS_ONE = {0xe56ee19cd69ecf24, 0x49f2934b18ea8bee, 0xd603ab4ff58ec744, 0xb640000002a3a6f1};
 
 
-// e = p - 2 = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457b
-// p - 2, used in a^(p-2) = a^-1
-const sm9_z256_t SM9_Z256_P_MINUS_TWO = {0xe56f9b27e351457b, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1};
+
 
 
 // P1.X 0x93DE051D62BF718FF5ED0704487D01D6E1E4086909DC3280E8C4E4817C66DDDD
@@ -50,6 +65,7 @@ const SM9_Z256_POINT _SM9_Z256_P1 = {
 	{0x0c464cd70a3ea616, 0x1c1c00cbfa602435, 0x631065125c395bbc, 0x21fe8dda4f21e607},
 	{1,0,0,0}
 };
+
 const SM9_Z256_POINT *SM9_Z256_P1 = &_SM9_Z256_P1;
 
 /*
@@ -83,7 +99,7 @@ const SM9_Z256_TWIST_POINT *SM9_Z256_Ppubs = &_SM9_Z256_Ppubs;
 // mu = p^-1 mod 2^64 = 0x76d43bd3d0d11bd5
 // 2^512 mod p = 0x2ea795a656f62fbde479b522d6706e7b88f8105fae1a5d3f27dea312b417e2d2
 // mont(1) mod p = 2^256 mod p = 0x49bffffffd5c590e29fc54b00a7138bade0d6cb4e58511241a9064d81caeba83
-const uint64_t SM9_Z256_MODP_MU = 0x76d43bd3d0d11bd5;
+//const uint64_t SM9_Z256_MODP_MU = 0x76d43bd3d0d11bd5;
 const sm9_z256_t SM9_Z256_MODP_2e512 = {0x27dea312b417e2d2, 0x88f8105fae1a5d3f, 0xe479b522d6706e7b, 0x2ea795a656f62fbd};
 #define SM9_Z256_NEG_P SM9_Z256_MODP_MONT_ONE
 const sm9_z256_t SM9_Z256_MODP_MONT_ONE = {0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e};
@@ -274,16 +290,6 @@ uint64_t sm9_z256_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 }
 
 #ifndef ENABLE_SM9_Z256_ARMV8
-void sm9_z256_mul_low(uint64_t r[4], const sm9_z256_t a, const sm9_z256_t b)
-{
-	uint64_t t[8];
-	sm9_z256_mul(t, a, b);
-	r[0] = t[0];
-	r[1] = t[1];
-	r[2] = t[2];
-	r[3] = t[3];
-}
-
 void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b)
 {
 	uint64_t a_[8];
@@ -315,51 +321,6 @@ void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b)
 }
 #endif
 
-uint64_t sm9_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8])
-{
-	uint64_t t, c = 0;
-
-	t = a[0] + b[0];
-	c = t < a[0];
-	r[0] = t;
-
-	t = a[1] + c;
-	c = t < a[1];
-	r[1] = t + b[1];
-	c += r[1] < t;
-
-	t = a[2] + c;
-	c = t < a[2];
-	r[2] = t + b[2];
-	c += r[2] < t;
-
-	t = a[3] + c;
-	c = t < a[3];
-	r[3] = t + b[3];
-	c += r[3] < t;
-
-	t = a[4] + c;
-	c = t < a[4];
-	r[4] = t + b[4];
-	c += r[4] < t;
-
-	t = a[5] + c;
-	c = t < a[5];
-	r[5] = t + b[5];
-	c += r[5] < t;
-
-	t = a[6] + c;
-	c = t < a[6];
-	r[6] = t + b[6];
-	c += r[6] < t;
-
-	t = a[7] + c;
-	c = t < a[7];
-	r[7] = t + b[7];
-	c += r[7] < t;
-
-	return c;
-}
 
 int sm9_z256_get_booth(const uint64_t a[4], uint64_t window_size, int i)
 {
@@ -496,52 +457,16 @@ void sm9_z256_fp_neg(sm9_z256_t r, const sm9_z256_t a)
 }
 #endif
 
-// (w0,w1) = a*b + c + d
-#if 0
-void sm9_u64_mul_add(uint64_t *w0, uint64_t *w1,
-	const uint64_t a, const uint64_t b, const uint64_t c, const uint64_t d)
+int sm9_z256_fp_rand(sm9_z256_t r)
 {
-	uint64_t a_[2];
-	uint64_t b_[2];
-	uint64_t s[4] = {0};
-	uint64_t u;
-	uint64_t r[2];
-	int i, j;
-
-	a_[0] = a & 0xffffffff;
-	b_[0] = b & 0xffffffff;
-	a_[1] = a >> 32;
-	b_[1] = b >> 32;
-
-	for (i = 0; i < 2; i++) {
-		u = 0;
-		for (j = 0; j < 2; j++) {
-			u = s[i + j] + a_[i] * b_[j] + u;
-			s[i + j] = u & 0xffffffff;
-			u >>= 32;
-		}
-		s[i + 2] = u;
+	if (sm9_z256_rand_range(r, SM9_Z256_P) != 1) {
+		error_print();
+		return -1;
 	}
-
-	for (i = 0; i < 2; i++) {
-		r[i] = (s[2 * i + 1] << 32) | s[2 * i];
-	}
-
-	r[0] += c;
-	if (r[0] < c) {
-		r[1]++;
-	}
-	r[0] += d;
-	if (r[0] < d) {
-		r[1]++;
-	}
-
-	*w0 = r[0];
-	*w1 = r[1];
+	return 1;
 }
-#endif
 
-													
+
 // p = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
 // p' = -p^(-1) mod 2^256 = afd2bac5558a13b3966a4b291522b137181ae39613c8dbaf892bc42c2f2ee42b
 // sage: -(IntegerModRing(2^256)(p))^-1
@@ -667,6 +592,53 @@ void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 
 #else // ENABLE_SM9_Z256_NEON
 
+
+static uint64_t sm9_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8])
+{
+	uint64_t t, c = 0;
+
+	t = a[0] + b[0];
+	c = t < a[0];
+	r[0] = t;
+
+	t = a[1] + c;
+	c = t < a[1];
+	r[1] = t + b[1];
+	c += r[1] < t;
+
+	t = a[2] + c;
+	c = t < a[2];
+	r[2] = t + b[2];
+	c += r[2] < t;
+
+	t = a[3] + c;
+	c = t < a[3];
+	r[3] = t + b[3];
+	c += r[3] < t;
+
+	t = a[4] + c;
+	c = t < a[4];
+	r[4] = t + b[4];
+	c += r[4] < t;
+
+	t = a[5] + c;
+	c = t < a[5];
+	r[5] = t + b[5];
+	c += r[5] < t;
+
+	t = a[6] + c;
+	c = t < a[6];
+	r[6] = t + b[6];
+	c += r[6] < t;
+
+	t = a[7] + c;
+	c = t < a[7];
+	r[7] = t + b[7];
+	c += r[7] < t;
+
+	return c;
+}
+
 // z = a*b
 // c = (z + (z * p' mod 2^256) * p)/2^256
 void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
@@ -679,7 +651,7 @@ void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4
 	sm9_z256_mul(z, a, b);
 
 	// t = low(z) * p'
-	sm9_z256_mul_low(t, z, SM9_Z256_P_PRIME);
+	sm9_z256_mul(t, z, SM9_Z256_P_PRIME);
 
 	// t = low(t) * p
 	sm9_z256_mul(t, t, SM9_Z256_P);
@@ -700,46 +672,6 @@ void sm9_z256_fp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4
 #endif // ENABLE_SM9_Z256_ARMV8
 
 
-
-
-
-
-
-
-
-
-
-
-// TODO: NEON/SVE/SVE2 implementation
-#if 0
-void sm9_z256_fp_mont_mul_2way(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
-{
-	sm9_z256_t d = {0}, e = {0};
-	uint64_t q, t0, t1, p0, p1, tmp;
-	uint64_t pre = SM9_Z256_MODP_MU * b[0];
-	int i, j;
-
-	for (j = 0; j < 4; j++) {
-		q = pre * a[j] + SM9_Z256_MODP_MU * (d[0]-e[0]);
-
-		sm9_u64_mul_add(&tmp, &t0, a[j], b[0], d[0], 0);
-		sm9_u64_mul_add(&tmp, &t1, q, SM9_Z256_P[0], e[0], 0);
-
-		for (i = 1; i < 4; i++) {
-			sm9_u64_mul_add(&d[i-1], &t0, a[j], b[i], t0, d[i]);
-			sm9_u64_mul_add(&e[i-1], &t1, q, SM9_Z256_P[i], t1, e[i]);
-		}
-		d[3] = t0;
-		e[3] = t1;
-	}
-
-	if (sm9_z256_sub(r, d, e)) {
-		sm9_z256_add(r, r, SM9_Z256_P);
-	}
-}
-#endif
-
-
 #ifndef ENABLE_SM9_Z256_ARMV8
 void sm9_z256_fp_to_mont(sm9_z256_t r, const sm9_z256_t a)
 {
@@ -757,10 +689,6 @@ void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a)
 }
 #endif
 
-// change args name to a_mont, r_mont
-// 这个函数反复多次调用mont_mul，如果展开为asm，可以节约一些开销
-// 也可以不展开这个函数，只是展开inv那个函数
-// 所有256次调用可以完全展开，展开之后不需要判断w，直接就做计算就可以了，好处就是所有的初始化都不需要了
 void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e)
 {
 	sm9_z256_t t;
@@ -837,15 +765,27 @@ const sm9_z256_fp2 SM9_Z256_FP2_ONE = {{1,0,0,0},{0,0,0,0}};
 const sm9_z256_fp2 SM9_Z256_FP2_U = {{0,0,0,0},{1,0,0,0}};
 static const sm9_z256_fp2 SM9_Z256_FP2_MONT_5U = {{0,0,0,0},{0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63}};
 
-void sm9_z256_fp2_set_one(sm9_z256_fp2 r)
+
+void sm9_z256_fp2_set_zero(sm9_z256_fp2 r)
 {
-	sm9_z256_fp_copy(r[0], SM9_Z256_MODP_MONT_ONE);
-	sm9_z256_fp_set_zero(r[1]);
+	sm9_z256_set_zero(r[0]);
+	sm9_z256_set_zero(r[1]);
 }
 
-int sm9_z256_fp2_is_one(const sm9_z256_fp2 r)
+void sm9_z256_fp2_set_one(sm9_z256_fp2 r)
 {
-	return sm9_z256_equ(r[0], SM9_Z256_MODP_MONT_ONE) && sm9_z256_is_zero(r[1]);
+	sm9_z256_copy(r[0], SM9_Z256_MODP_MONT_ONE);
+	sm9_z256_set_zero(r[1]);
+}
+
+int sm9_z256_fp2_is_one(const sm9_z256_fp2 a)
+{
+	return sm9_z256_equ(a[0], SM9_Z256_MODP_MONT_ONE) && sm9_z256_is_zero(a[1]);
+}
+
+int sm9_z256_fp2_is_zero(const sm9_z256_fp2 a)
+{
+	return sm9_z256_is_zero(a[0]) && sm9_z256_is_zero(a[1]);
 }
 
 int sm9_z256_fp2_equ(const sm9_z256_fp2 a, const sm9_z256_fp2 b)
@@ -908,10 +848,6 @@ void sm9_z256_fp2_to_hex(const sm9_z256_fp2 a, char hex[129])
 	sm9_z256_fp_to_hex(a[0], hex + 65);
 }
 
-// TODO:
-// fp2, fp4 函数可以粗粒度并行，或者调用 __sm9_z256_fp_add 来函数开始和结束的开销
-// 是否需要给fp2提供独立的展开函数？还是直接展开fp4，提供armv8?
-
 void sm9_z256_fp2_add(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
 {
 	sm9_z256_fp_add(r[0], a[0], b[0]);
@@ -949,8 +885,8 @@ void sm9_z256_fp2_a_mul_u(sm9_z256_fp2 r, sm9_z256_fp2 a)
 	sm9_z256_fp_dbl(r0, a[1]);
 	sm9_z256_fp_neg(r0, r0);
 
-	sm9_z256_fp_copy(r[1], a[0]);
-	sm9_z256_fp_copy(r[0], r0);
+	sm9_z256_copy(r[1], a[0]);
+	sm9_z256_copy(r[0], r0);
 }
 
 
@@ -963,13 +899,13 @@ void sm9_z256_fp2_mul(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b
 	// t2 = (a0 + a1) * (b0 + b1)
 	sm9_z256_fp_add(t0, a[0], a[1]);
 	sm9_z256_fp_add(t1, b[0], b[1]);
-	sm9_z256_fp_mul(t2, t0, t1);
+	sm9_z256_fp_mont_mul(t2, t0, t1);
 
 	// t0 = a0 * b0
-	sm9_z256_fp_mul(t0, a[0], b[0]);
+	sm9_z256_fp_mont_mul(t0, a[0], b[0]);
 
 	// t1 = a1 * b1
-	sm9_z256_fp_mul(t1, a[1], b[1]);
+	sm9_z256_fp_mont_mul(t1, a[1], b[1]);
 
 	// r1 = t2 - t0 - t1 = a0 * b1 + a1 * b0
 	sm9_z256_fp_sub(t2, t2, t0);
@@ -979,8 +915,8 @@ void sm9_z256_fp2_mul(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b
 	sm9_z256_fp_dbl(t1, t1);
 	sm9_z256_fp_sub(t0, t0, t1);
 
-	sm9_z256_fp_copy(r[0], t0);
-	sm9_z256_fp_copy(r[1], t2);
+	sm9_z256_copy(r[0], t0);
+	sm9_z256_copy(r[1], t2);
 }
 
 void sm9_z256_fp2_mul_u(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2 b)
@@ -992,13 +928,13 @@ void sm9_z256_fp2_mul_u(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2
 	// t2 = (a0 + a1) * (b0 + b1)
 	sm9_z256_fp_add(t0, a[0], a[1]);
 	sm9_z256_fp_add(t1, b[0], b[1]);
-	sm9_z256_fp_mul(t2, t0, t1);
+	sm9_z256_fp_mont_mul(t2, t0, t1);
 
 	// t0 = a0 * b0
-	sm9_z256_fp_mul(t0, a[0], b[0]);
+	sm9_z256_fp_mont_mul(t0, a[0], b[0]);
 
 	// t1 = a1 * b1
-	sm9_z256_fp_mul(t1, a[1], b[1]);
+	sm9_z256_fp_mont_mul(t1, a[1], b[1]);
 
 	// r0 = -2 *(t2 - t0 - t1) = -2 * (a0 * b1 + a1 * b0)
 	sm9_z256_fp_sub(t2, t2, t0);
@@ -1010,14 +946,14 @@ void sm9_z256_fp2_mul_u(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_fp2
 	sm9_z256_fp_dbl(t1, t1);
 	sm9_z256_fp_sub(t0, t0, t1);
 
-	sm9_z256_fp_copy(r[0], t2);
-	sm9_z256_fp_copy(r[1], t0);
+	sm9_z256_copy(r[0], t2);
+	sm9_z256_copy(r[1], t0);
 }
 
 void sm9_z256_fp2_mul_fp(sm9_z256_fp2 r, const sm9_z256_fp2 a, const sm9_z256_t k)
 {
-	sm9_z256_fp_mul(r[0], a[0], k);
-	sm9_z256_fp_mul(r[1], a[1], k);
+	sm9_z256_fp_mont_mul(r[0], a[0], k);
+	sm9_z256_fp_mont_mul(r[1], a[1], k);
 }
 
 void sm9_z256_fp2_sqr(sm9_z256_fp2 r, const sm9_z256_fp2 a)
@@ -1025,11 +961,11 @@ void sm9_z256_fp2_sqr(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 	sm9_z256_t r0, r1, c0, c1;
 
 	// r0 = (a0 + a1) * (a0 - 2a1) + a0 * a1
-	sm9_z256_fp_mul(r1, a[0], a[1]);
+	sm9_z256_fp_mont_mul(r1, a[0], a[1]);
 	sm9_z256_fp_add(c0, a[0], a[1]);
 	sm9_z256_fp_dbl(c1, a[1]);
 	sm9_z256_fp_sub(c1, a[0], c1);
-	sm9_z256_fp_mul(r0, c0, c1);
+	sm9_z256_fp_mont_mul(r0, c0, c1);
 	sm9_z256_fp_add(r0, r0, r1);
 
 	// r1 = 2 * a0 * a1
@@ -1070,17 +1006,17 @@ void sm9_z256_fp2_sqr_u(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 
 void sm9_z256_fp2_inv(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 {
-	if (sm9_z256_fp_is_zero(a[0])) {
+	if (sm9_z256_is_zero(a[0])) {
 		// r0 = 0
-		sm9_z256_fp_set_zero(r[0]);
+		sm9_z256_set_zero(r[0]);
 		// r1 = -(2 * a1)^-1
 		sm9_z256_fp_dbl(r[1], a[1]);
 		sm9_z256_fp_inv(r[1], r[1]);
 		sm9_z256_fp_neg(r[1], r[1]);
 
-	} else if (sm9_z256_fp_is_zero(a[1])) {
+	} else if (sm9_z256_is_zero(a[1])) {
 		/* r1 = 0 */
-		sm9_z256_fp_set_zero(r[1]);
+		sm9_z256_set_zero(r[1]);
 		/* r0 = a0^-1 */
 		sm9_z256_fp_inv(r[0], a[0]);
 
@@ -1088,17 +1024,17 @@ void sm9_z256_fp2_inv(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 		sm9_z256_t k, t;
 
 		// k = (a[0]^2 + 2 * a[1]^2)^-1
-		sm9_z256_fp_sqr(k, a[0]);
-		sm9_z256_fp_sqr(t, a[1]);
+		sm9_z256_fp_mont_sqr(k, a[0]);
+		sm9_z256_fp_mont_sqr(t, a[1]);
 		sm9_z256_fp_dbl(t, t);
 		sm9_z256_fp_add(k, k, t);
 		sm9_z256_fp_inv(k, k);
 
 		// r[0] = a[0] * k
-		sm9_z256_fp_mul(r[0], a[0], k);
+		sm9_z256_fp_mont_mul(r[0], a[0], k);
 
 		// r[1] = -a[1] * k
-		sm9_z256_fp_mul(r[1], a[1], k);
+		sm9_z256_fp_mont_mul(r[1], a[1], k);
 		sm9_z256_fp_neg(r[1], r[1]);
 	}
 }
@@ -1117,8 +1053,21 @@ void sm9_z256_fp2_div2(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 }
 
 
-const sm9_z256_fp4 SM9_Z256_FP4_ZERO = {{{0,0,0,0},{0,0,0,0}}, {{0,0,0,0},{0,0,0,0}}};
-const sm9_z256_fp4 SM9_Z256_FP4_MONT_ONE = {{{0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e},{0,0,0,0}}, {{0,0,0,0},{0,0,0,0}}};
+const sm9_z256_fp4 SM9_Z256_FP4_ZERO = {
+	{{0,0,0,0},{0,0,0,0}},
+	{{0,0,0,0},{0,0,0,0}}
+};
+
+const sm9_z256_fp4 SM9_Z256_FP4_MONT_ONE = {
+	{{0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e},{0,0,0,0}},
+	{{0,0,0,0},{0,0,0,0}}
+};
+
+
+int sm9_z256_fp4_is_zero(const sm9_z256_fp4 a)
+{
+	return sm9_z256_fp2_is_zero(a[0]) && sm9_z256_fp2_is_zero(a[1]);
+}
 
 int sm9_z256_fp4_equ(const sm9_z256_fp4 a, const sm9_z256_fp4 b)
 {
@@ -1329,9 +1278,6 @@ void sm9_z256_fp4_inv(sm9_z256_fp4 r, const sm9_z256_fp4 a)
 	sm9_z256_fp2_copy(r[1], r1);
 }
 
-
-
-
 void sm9_z256_fp12_copy(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 {
 	sm9_z256_fp4_copy(r[0], a[0]);
@@ -1487,31 +1433,32 @@ void sm9_z256_fp12_mul(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_fp
 	sm9_z256_fp4_copy(r[2], r2);
 }
 
-// this is slower than the version below
-// void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
-// {
-// 	sm9_z256_fp4 r0, r1, r2, t;
+#if 0
+//this is slower than the version below
+void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
+{
+	sm9_z256_fp4 r0, r1, r2, t;
 
-// 	sm9_z256_fp4_sqr(r0, a[0]);
-// 	sm9_z256_fp4_mul_v(t, a[1], a[2]);
-// 	sm9_z256_fp4_dbl(t, t);
-// 	sm9_z256_fp4_add(r0, r0, t);
+	sm9_z256_fp4_sqr(r0, a[0]);
+	sm9_z256_fp4_mul_v(t, a[1], a[2]);
+	sm9_z256_fp4_dbl(t, t);
+	sm9_z256_fp4_add(r0, r0, t);
 
-// 	sm9_z256_fp4_mul(r1, a[0], a[1]);
-// 	sm9_z256_fp4_dbl(r1, r1);
-// 	sm9_z256_fp4_sqr_v(t, a[2]);
-// 	sm9_z256_fp4_add(r1, r1, t);
+	sm9_z256_fp4_mul(r1, a[0], a[1]);
+	sm9_z256_fp4_dbl(r1, r1);
+	sm9_z256_fp4_sqr_v(t, a[2]);
+	sm9_z256_fp4_add(r1, r1, t);
 
-// 	sm9_z256_fp4_mul(r2, a[0], a[2]);
-// 	sm9_z256_fp4_dbl(r2, r2);
-// 	sm9_z256_fp4_sqr(t, a[1]);
-// 	sm9_z256_fp4_add(r2, r2, t);
+	sm9_z256_fp4_mul(r2, a[0], a[2]);
+	sm9_z256_fp4_dbl(r2, r2);
+	sm9_z256_fp4_sqr(t, a[1]);
+	sm9_z256_fp4_add(r2, r2, t);
 
-// 	sm9_z256_fp4_copy(r[0], r0);
-// 	sm9_z256_fp4_copy(r[1], r1);
-// 	sm9_z256_fp4_copy(r[2], r2);
-// }
-
+	sm9_z256_fp4_copy(r[0], r0);
+	sm9_z256_fp4_copy(r[1], r1);
+	sm9_z256_fp4_copy(r[2], r2);
+}
+#else
 void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 {
 	sm9_z256_fp4 h0, h1, h2, t;
@@ -1548,6 +1495,7 @@ void sm9_z256_fp12_sqr(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 	sm9_z256_fp4_copy(r[1], h1);
 	sm9_z256_fp4_copy(r[2], h2);
 }
+#endif
 
 void sm9_z256_fp12_inv(sm9_z256_fp12 r, const sm9_z256_fp12 a)
 {
@@ -1625,7 +1573,7 @@ void sm9_z256_fp12_pow(sm9_z256_fp12 r, const sm9_z256_fp12 a, const sm9_z256_t 
 
 void sm9_z256_fp2_conjugate(sm9_z256_fp2 r, const sm9_z256_fp2 a)
 {
-	sm9_z256_fp_copy(r[0], a[0]);
+	sm9_z256_copy(r[0], a[0]);
 	sm9_z256_fp_neg (r[1], a[1]);
 }
 
@@ -1780,14 +1728,14 @@ void sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2])
 
 int sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P)
 {
-	return sm9_z256_fp_is_zero(P->Z);
+	return sm9_z256_is_zero(P->Z);
 }
 
 void sm9_z256_point_set_infinity(SM9_Z256_POINT *R)
 {
 	sm9_z256_copy(R->X, SM9_Z256_MODP_MONT_ONE);
 	sm9_z256_copy(R->Y, SM9_Z256_MODP_MONT_ONE);
-	sm9_z256_fp_set_zero(R->Z);
+	sm9_z256_set_zero(R->Z);
 }
 
 void sm9_z256_point_copy(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
@@ -1800,58 +1748,58 @@ void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y)
 {
 	sm9_z256_t z_inv;
 
-	assert(!sm9_z256_fp_is_zero(P->Z));
+	assert(!sm9_z256_is_zero(P->Z));
 
-	if (sm9_z256_fp_equ(P->Z, SM9_Z256_MODP_MONT_ONE)) {
-		sm9_z256_fp_copy(x, P->X);
-		sm9_z256_fp_copy(y, P->Y);
+	if (sm9_z256_equ(P->Z, SM9_Z256_MODP_MONT_ONE)) {
+		sm9_z256_copy(x, P->X);
+		sm9_z256_copy(y, P->Y);
 	}
 
 	sm9_z256_fp_inv(z_inv, P->Z);
 	if (y)
-		sm9_z256_fp_mul(y, P->Y, z_inv);
-	sm9_z256_fp_sqr(z_inv, z_inv);
-	sm9_z256_fp_mul(x, P->X, z_inv);
+		sm9_z256_fp_mont_mul(y, P->Y, z_inv);
+	sm9_z256_fp_mont_sqr(z_inv, z_inv);
+	sm9_z256_fp_mont_mul(x, P->X, z_inv);
 	if (y)
-		sm9_z256_fp_mul(y, y, z_inv);
+		sm9_z256_fp_mont_mul(y, y, z_inv);
 }
 
 int sm9_z256_point_equ(const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q)
 {
 	sm9_z256_t t1, t2, t3, t4;
-	sm9_z256_fp_sqr(t1, P->Z);
-	sm9_z256_fp_sqr(t2, Q->Z);
-	sm9_z256_fp_mul(t3, P->X, t2);
-	sm9_z256_fp_mul(t4, Q->X, t1);
-	if (!sm9_z256_fp_equ(t3, t4)) {
+	sm9_z256_fp_mont_sqr(t1, P->Z);
+	sm9_z256_fp_mont_sqr(t2, Q->Z);
+	sm9_z256_fp_mont_mul(t3, P->X, t2);
+	sm9_z256_fp_mont_mul(t4, Q->X, t1);
+	if (!sm9_z256_equ(t3, t4)) {
 		return 0;
 	}
-	sm9_z256_fp_mul(t1, t1, P->Z);
-	sm9_z256_fp_mul(t2, t2, Q->Z);
-	sm9_z256_fp_mul(t3, P->Y, t2);
-	sm9_z256_fp_mul(t4, Q->Y, t1);
-	return sm9_z256_fp_equ(t3, t4);
+	sm9_z256_fp_mont_mul(t1, t1, P->Z);
+	sm9_z256_fp_mont_mul(t2, t2, Q->Z);
+	sm9_z256_fp_mont_mul(t3, P->Y, t2);
+	sm9_z256_fp_mont_mul(t4, Q->Y, t1);
+	return sm9_z256_equ(t3, t4);
 }
 
 int sm9_z256_point_is_on_curve(const SM9_Z256_POINT *P)
 {
 	sm9_z256_t t0, t1, t2;
-	if (sm9_z256_fp_equ(P->Z, SM9_Z256_MODP_MONT_ONE)) {
-		sm9_z256_fp_sqr(t0, P->Y);
-		sm9_z256_fp_sqr(t1, P->X);
-		sm9_z256_fp_mul(t1, t1, P->X);
+	if (sm9_z256_equ(P->Z, SM9_Z256_MODP_MONT_ONE)) {
+		sm9_z256_fp_mont_sqr(t0, P->Y);
+		sm9_z256_fp_mont_sqr(t1, P->X);
+		sm9_z256_fp_mont_mul(t1, t1, P->X);
 		sm9_z256_fp_add(t1, t1, SM9_Z256_MODP_MONT_FIVE);
 	} else {
-		sm9_z256_fp_sqr(t0, P->X);
-		sm9_z256_fp_mul(t0, t0, P->X);
-		sm9_z256_fp_sqr(t1, P->Z);
-		sm9_z256_fp_sqr(t2, t1);
-		sm9_z256_fp_mul(t1, t1, t2);
-		sm9_z256_fp_mul(t1, t1, SM9_Z256_MODP_MONT_FIVE);
+		sm9_z256_fp_mont_sqr(t0, P->X);
+		sm9_z256_fp_mont_mul(t0, t0, P->X);
+		sm9_z256_fp_mont_sqr(t1, P->Z);
+		sm9_z256_fp_mont_sqr(t2, t1);
+		sm9_z256_fp_mont_mul(t1, t1, t2);
+		sm9_z256_fp_mont_mul(t1, t1, SM9_Z256_MODP_MONT_FIVE);
 		sm9_z256_fp_add(t1, t0, t1);
-		sm9_z256_fp_sqr(t0, P->Y);
+		sm9_z256_fp_mont_sqr(t0, P->Y);
 	}
-	if (sm9_z256_fp_equ(t0, t1) != 1) {
+	if (sm9_z256_equ(t0, t1) != 1) {
 		error_print();
 		return 0;
 	}
@@ -1871,24 +1819,24 @@ void sm9_z256_point_dbl(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
 		return;
 	}
 
-	sm9_z256_fp_sqr(T2, X1);
+	sm9_z256_fp_mont_sqr(T2, X1);
 	sm9_z256_fp_tri(T2, T2);
 	sm9_z256_fp_dbl(Y3, Y1);
-	sm9_z256_fp_mul(Z3, Y3, Z1);
-	sm9_z256_fp_sqr(Y3, Y3);
-	sm9_z256_fp_mul(T3, Y3, X1);
-	sm9_z256_fp_sqr(Y3, Y3);
+	sm9_z256_fp_mont_mul(Z3, Y3, Z1);
+	sm9_z256_fp_mont_sqr(Y3, Y3);
+	sm9_z256_fp_mont_mul(T3, Y3, X1);
+	sm9_z256_fp_mont_sqr(Y3, Y3);
 	sm9_z256_fp_div2(Y3, Y3);
-	sm9_z256_fp_sqr(X3, T2);
+	sm9_z256_fp_mont_sqr(X3, T2);
 	sm9_z256_fp_dbl(T1, T3);
 	sm9_z256_fp_sub(X3, X3, T1);
 	sm9_z256_fp_sub(T1, T3, X3);
-	sm9_z256_fp_mul(T1, T1, T2);
+	sm9_z256_fp_mont_mul(T1, T1, T2);
 	sm9_z256_fp_sub(Y3, T1, Y3);
 
-	sm9_z256_fp_copy(R->X, X3);
-	sm9_z256_fp_copy(R->Y, Y3);
-	sm9_z256_fp_copy(R->Z, Z3);
+	sm9_z256_copy(R->X, X3);
+	sm9_z256_copy(R->Y, Y3);
+	sm9_z256_copy(R->Z, Z3);
 }
 
 void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q)
@@ -1913,15 +1861,15 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 		return;
 	}
 
-	sm9_z256_fp_sqr(T1, Z1);
-	sm9_z256_fp_mul(T2, T1, Z1);
-	sm9_z256_fp_mul(T1, T1, x2);
-	sm9_z256_fp_mul(T2, T2, y2);
+	sm9_z256_fp_mont_sqr(T1, Z1);
+	sm9_z256_fp_mont_mul(T2, T1, Z1);
+	sm9_z256_fp_mont_mul(T1, T1, x2);
+	sm9_z256_fp_mont_mul(T2, T2, y2);
 	sm9_z256_fp_sub(T1, T1, X1);
 	sm9_z256_fp_sub(T2, T2, Y1);
 
-	if (sm9_z256_fp_is_zero(T1)) {
-		if (sm9_z256_fp_is_zero(T2)) {
+	if (sm9_z256_is_zero(T1)) {
+		if (sm9_z256_is_zero(T2)) {
 			sm9_z256_point_dbl(R, Q);
 			return;
 		} else {
@@ -1930,29 +1878,29 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 		}
 	}
 
-	sm9_z256_fp_mul(Z3, Z1, T1);
-	sm9_z256_fp_sqr(T3, T1);
-	sm9_z256_fp_mul(T4, T3, T1);
-	sm9_z256_fp_mul(T3, T3, X1);
+	sm9_z256_fp_mont_mul(Z3, Z1, T1);
+	sm9_z256_fp_mont_sqr(T3, T1);
+	sm9_z256_fp_mont_mul(T4, T3, T1);
+	sm9_z256_fp_mont_mul(T3, T3, X1);
 	sm9_z256_fp_dbl(T1, T3);
-	sm9_z256_fp_sqr(X3, T2);
+	sm9_z256_fp_mont_sqr(X3, T2);
 	sm9_z256_fp_sub(X3, X3, T1);
 	sm9_z256_fp_sub(X3, X3, T4);
 	sm9_z256_fp_sub(T3, T3, X3);
-	sm9_z256_fp_mul(T3, T3, T2);
-	sm9_z256_fp_mul(T4, T4, Y1);
+	sm9_z256_fp_mont_mul(T3, T3, T2);
+	sm9_z256_fp_mont_mul(T4, T4, Y1);
 	sm9_z256_fp_sub(Y3, T3, T4);
 
-	sm9_z256_fp_copy(R->X, X3);
-	sm9_z256_fp_copy(R->Y, Y3);
-	sm9_z256_fp_copy(R->Z, Z3);
+	sm9_z256_copy(R->X, X3);
+	sm9_z256_copy(R->Y, Y3);
+	sm9_z256_copy(R->Z, Z3);
 }
 
 void sm9_z256_point_neg(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
 {
-	sm9_z256_fp_copy(R->X, P->X);
+	sm9_z256_copy(R->X, P->X);
 	sm9_z256_fp_neg(R->Y, P->Y);
-	sm9_z256_fp_copy(R->Z, P->Z);
+	sm9_z256_copy(R->Z, P->Z);
 }
 
 void sm9_z256_point_sub(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q)
@@ -2196,7 +2144,7 @@ void sm9_z256_twist_point_dbl(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POIN
 	sm9_z256_fp2 X3, Y3, Z3, T1, T2, T3;
 
 	if (sm9_z256_twist_point_is_at_infinity(P)) {
-		sm9_z256_twist_point_copy(R, P);
+		*R = *P;
 		return;
 	}
 	sm9_z256_fp2_sqr(T2, X1);
@@ -2229,11 +2177,11 @@ void sm9_z256_twist_point_add(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POIN
 	sm9_z256_fp2 X3, Y3, Z3, T1, T2, T3, T4;
 
 	if (sm9_z256_twist_point_is_at_infinity(Q)) {
-		sm9_z256_twist_point_copy(R, P);
+		*R = *P;
 		return;
 	}
 	if (sm9_z256_twist_point_is_at_infinity(P)) {
-		sm9_z256_twist_point_copy(R, Q);
+		*R = *Q;
 		return;
 	}
 
@@ -2288,11 +2236,11 @@ void sm9_z256_twist_point_add_full(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST
 	sm9_z256_fp2 T1, T2, T3, T4, T5, T6, T7, T8;
 
 	if (sm9_z256_twist_point_is_at_infinity(Q)) {
-		sm9_z256_twist_point_copy(R, P);
+		*R = *P;
 		return;
 	}
 	if (sm9_z256_twist_point_is_at_infinity(P)) {
-		sm9_z256_twist_point_copy(R, Q);
+		*R = *Q;
 		return;
 	}
 
@@ -2350,7 +2298,7 @@ void sm9_z256_twist_point_mul(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k, const
 			sm9_z256_twist_point_add_full(Q, Q, P);
 		}
 	}
-	sm9_z256_twist_point_copy(R, Q);
+	*R = *Q;
 }
 
 void sm9_z256_twist_point_mul_generator(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k)
@@ -2555,7 +2503,7 @@ void sm9_z256_pairing(sm9_z256_fp12 r, const SM9_Z256_TWIST_POINT *Q, const SM9_
 	sm9_z256_fp12 g_den;
 	int i;
 
-	sm9_z256_twist_point_copy(T, Q);
+	*T = *Q;
 
 	sm9_z256_fp12_set_one(f_num);
 	sm9_z256_fp12_set_one(f_den);
@@ -2601,6 +2549,18 @@ void sm9_z256_pairing(sm9_z256_fp12 r, const SM9_Z256_TWIST_POINT *Q, const SM9_
 
 	sm9_z256_final_exponent(r, r);
 }
+
+
+int sm9_z256_fn_rand(sm9_z256_t r)
+{
+	if (sm9_z256_rand_range(r, SM9_Z256_N) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
 
 // Mont was not used for mod N
 void sm9_z256_fn_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
@@ -2793,7 +2753,7 @@ int sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t oct
 	memset(P, 0, sizeof(*P));
 	sm9_z256_fp_from_bytes(P->X, octets + 1); // fp_from_bytes include to_mont
 	sm9_z256_fp_from_bytes(P->Y, octets + 32 + 1);
-	sm9_z256_fp_copy(P->Z, SM9_Z256_MODP_MONT_ONE);
+	sm9_z256_copy(P->Z, SM9_Z256_MODP_MONT_ONE);
 	if (!sm9_z256_point_is_on_curve(P)) {
 		error_print();
 		return -1;

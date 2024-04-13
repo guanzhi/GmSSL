@@ -211,7 +211,7 @@ typedef struct {
 	sm9_z256_fp2 Z;
 } SM9_Z256_TWIST_POINT;
 
-#define sm9_z256_twist_point_copy(R, P)	memcpy((R), (P), sizeof(SM9_Z256_TWIST_POINT))
+//#define sm9_z256_twist_point_copy(R, P)	memcpy((R), (P), sizeof(SM9_Z256_TWIST_POINT))
 
 int sm9_z256_twist_point_to_uncompressed_octets(const SM9_Z256_TWIST_POINT *P, uint8_t octets[129]);
 int sm9_z256_twist_point_from_uncompressed_octets(SM9_Z256_TWIST_POINT *P, const uint8_t octets[129]);
