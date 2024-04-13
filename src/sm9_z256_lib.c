@@ -31,7 +31,7 @@ int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen
 	uint8_t Sbuf[65];
 	size_t len = 0;
 
-	sm9_z256_fn_to_bytes(sig->h, hbuf);
+	sm9_z256_to_bytes(sig->h, hbuf);
 	sm9_z256_point_to_uncompressed_octets(&sig->S, Sbuf);
 
 	if (asn1_octet_string_to_der(hbuf, sizeof(hbuf), NULL, &len) != 1
@@ -145,7 +145,7 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 		// A5: l = (r - h) mod N, if l = 0, goto A2
 		sm9_z256_fn_sub(r, r, sig->h);
 
-	} while (sm9_z256_fn_is_zero(r));
+	} while (sm9_z256_is_zero(r));
 
 	// A6: S = l * dsA
 	sm9_z256_point_mul(&sig->S, r, &key->ds);
@@ -241,7 +241,7 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	sm3_update(&tmp_ctx, ct2, sizeof(ct2));
 	sm3_finish(&tmp_ctx, Ha + 32);
 	sm9_z256_fn_from_hash(h2, Ha);
-	if (sm9_z256_fn_equ(h2, sig->h) != 1) {
+	if (sm9_z256_equ(h2, sig->h) != 1) {
 		return 0;
 	}
 

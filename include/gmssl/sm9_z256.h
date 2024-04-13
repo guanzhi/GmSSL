@@ -23,12 +23,10 @@
 extern "C" {
 #endif
 
-typedef uint64_t sm9_z256_t[4]; 
+typedef uint64_t sm9_z256_t[4];
 
 #define SM9_Z256_HEX_SEP '\n'
 
-#define sm9_z256_init(r)		sm9_z256_set_zero(r)
-#define sm9_z256_clean(r)		sm9_z256_set_zero(r)
 
 void sm9_z256_to_bits(const sm9_z256_t a, char bits[256]);
 int  sm9_z256_rand_range(sm9_z256_t r, const sm9_z256_t range);
@@ -39,7 +37,6 @@ void sm9_z256_copy_conditional(sm9_z256_t dst, const sm9_z256_t src, uint64_t mo
 void sm9_z256_set_zero(sm9_z256_t r);
 int  sm9_z256_cmp(const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_mul_low(uint64_t r[4], const sm9_z256_t a, const sm9_z256_t b);
 int  sm9_z256_from_hex(sm9_z256_t r, const char *hex);
 void sm9_z256_to_hex(const sm9_z256_t r, char hex[64]);
 int  sm9_z256_equ_hex(const sm9_z256_t a, const char *hex);
@@ -50,17 +47,10 @@ uint64_t sm9_z256_equ(const sm9_z256_t a, const sm9_z256_t b);
 uint64_t sm9_z256_is_zero(const sm9_z256_t a);
 uint64_t sm9_z256_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 uint64_t sm9_z256_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-uint64_t sm9_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8]);
 
 extern const sm9_z256_t SM9_Z256_P;
 extern const sm9_z256_t SM9_Z256_N;
 
-
-#define sm9_z256_fp_copy(r,a)	sm9_z256_copy((r),(a))
-#define sm9_z256_fp_rand(r)		sm9_z256_rand_range((r), SM9_Z256_P)
-#define sm9_z256_fp_equ(a,b)	sm9_z256_equ((a),(b))
-#define sm9_z256_fp_is_zero(a)	sm9_z256_is_zero(a)
-#define sm9_z256_fp_set_zero(a)	sm9_z256_set_zero(a)
 
 void sm9_z256_fp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fp_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
@@ -68,11 +58,9 @@ void sm9_z256_fp_dbl(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_tri(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_div2(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_neg(sm9_z256_t r, const sm9_z256_t a);
-#define sm9_z256_fp_mul(r,a,b)	sm9_z256_fp_mont_mul(r,a,b)
 void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fp_to_mont(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_from_mont(sm9_z256_t r, const sm9_z256_t a);
-#define sm9_z256_fp_sqr(r,a)	sm9_z256_fp_mont_sqr(r,a)
 void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
 void sm9_z256_fp_inv(sm9_z256_t r, const sm9_z256_t a);
@@ -80,20 +68,11 @@ int  sm9_z256_fp_from_bytes(sm9_z256_t r, const uint8_t buf[32]);
 void sm9_z256_fp_to_bytes(const sm9_z256_t r, uint8_t out[32]);
 int  sm9_z256_fp_from_hex(sm9_z256_t r, const char hex[64]);
 void sm9_z256_fp_to_hex(const sm9_z256_t r, char hex[64]);
+int sm9_z256_fp_rand(sm9_z256_t r);
 
 
-#define sm9_z256_fn_init(r)		sm9_z256_set_zero(r)
-#define sm9_z256_fn_clean(r)	sm9_z256_set_zero(r)
-#define sm9_z256_fn_set_zero(r)	sm9_z256_set_zero(r)
-#define sm9_z256_fn_set_one(r)	sm9_z256_set_one(r)
-#define sm9_z256_fn_copy(r,a)	sm9_z256_copy((r),(a))
-#define sm9_z256_fn_rand(r)		sm9_z256_rand_range((r), SM9_Z256_N)
-#define sm9_z256_fn_is_zero(a)	sm9_z256_is_zero(a)
-#define sm9_z256_fn_is_one(a)	sm9_z256_is_one(a)
-#define sm9_z256_fn_equ(a,b)	sm9_z256_equ((a),(b))
-#define sm9_z256_fn_to_bytes(a,out)	sm9_z256_to_bytes((a),(out))
-#define sm9_z256_fn_to_hex(a,s)	sm9_z256_to_hex((a),(s))
-#define sm9_z256_fn_print(fp,fmt,ind,label,a) sm9_z256_print(fp,fmt,ind,label,a)
+
+int sm9_z256_fn_rand(sm9_z256_t r);
 
 void sm9_z256_fn_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fn_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
@@ -107,13 +86,11 @@ int  sm9_z256_fn_from_bytes(sm9_z256_t a, const uint8_t in[32]);
 typedef sm9_z256_t sm9_z256_fp2[2];
 extern const sm9_z256_fp2 SM9_FP2_ZERO;
 
-#define sm9_z256_fp2_init(a)		sm9_z256_fp2_set_zero(a)
-#define sm9_z256_fp2_clean(a)		sm9_z256_fp2_set_zero(a)
-#define sm9_z256_fp2_set_zero(a)	sm9_z256_fp2_copy((a), SM9_Z256_FP2_ZERO)
-#define sm9_z256_fp2_is_zero(a)		sm9_z256_fp2_equ((a), SM9_Z256_FP2_ZERO)
 
 void sm9_z256_fp2_set_one(sm9_z256_fp2 r);
-int  sm9_z256_fp2_is_one(const sm9_z256_fp2 r);
+void sm9_z256_fp2_set_zero(sm9_z256_fp2 r);
+int  sm9_z256_fp2_is_one(const sm9_z256_fp2 a);
+int  sm9_z256_fp2_is_zero(const sm9_z256_fp2 a);
 int  sm9_z256_fp2_equ(const sm9_z256_fp2 a, const sm9_z256_fp2 b);
 void sm9_z256_fp2_copy(sm9_z256_fp2 r, const sm9_z256_fp2 a);
 int  sm9_z256_fp2_rand(sm9_z256_fp2 r);
@@ -143,8 +120,7 @@ extern const sm9_z256_fp4 SM9_FP4_ONE;
 extern const sm9_z256_fp4 SM9_FP4_U;
 extern const sm9_z256_fp4 SM9_FP4_V;
 
-#define sm9_z256_fp4_is_zero(a)	sm9_z256_fp4_equ((a), SM9_Z256_FP4_ZERO)
-
+int sm9_z256_fp4_is_zero(const sm9_z256_fp4 a);
 int  sm9_z256_fp4_equ(const sm9_z256_fp4 a, const sm9_z256_fp4 b);
 int  sm9_z256_fp4_rand(sm9_z256_fp4 r);
 void sm9_z256_fp4_copy(sm9_z256_fp4 r, const sm9_z256_fp4 a);
@@ -167,10 +143,9 @@ void sm9_z256_fp4_sqr_v(sm9_z256_fp4 r, const sm9_z256_fp4 a);
 void sm9_z256_fp4_inv(sm9_z256_fp4 r, const sm9_z256_fp4 a);
 
 
-typedef sm9_z256_fp4 sm9_z256_fp12[3];
 
-#define sm9_fp12_init(r)	sm9_fp12_set_zero(r)
-#define sm9_fp12_clean(r)	sm9_fp12_set_zero(r)
+
+typedef sm9_z256_fp4 sm9_z256_fp12[3];
 
 void sm9_z256_fp12_copy(sm9_z256_fp12 r, const sm9_z256_fp12 a);
 int  sm9_z256_fp12_rand(sm9_z256_fp12 r);
@@ -211,8 +186,6 @@ typedef struct {
 	sm9_z256_t Z;
 } SM9_Z256_POINT;
 
-#define sm9_point_init(R)	sm9_point_set_infinity(R)
-#define sm9_point_clean(R)	sm9_point_set_infinity(R)
 
 void sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2]);
 int  sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P);

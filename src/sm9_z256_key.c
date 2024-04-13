@@ -59,7 +59,7 @@ int sm9_sign_master_key_to_der(const SM9_SIGN_MASTER_KEY *msk, uint8_t **out, si
 	uint8_t Ppubs[1 + 32 * 4];
 	size_t len = 0;
 
-	sm9_z256_fn_to_bytes(msk->ks, ks);
+	sm9_z256_to_bytes(msk->ks, ks);
 	sm9_z256_twist_point_to_uncompressed_octets(&msk->Ppubs, Ppubs);
 
 	if (asn1_integer_to_der(ks, sizeof(ks), NULL, &len) != 1
@@ -206,7 +206,7 @@ int sm9_enc_master_key_to_der(const SM9_ENC_MASTER_KEY *msk, uint8_t **out, size
 	uint8_t Ppube[1 + 32 * 2];
 	size_t len = 0;
 
-	sm9_z256_fn_to_bytes(msk->ke, ke);
+	sm9_z256_to_bytes(msk->ke, ke);
 	sm9_z256_point_to_uncompressed_octets(&msk->Ppube, Ppube);
 
 	if (asn1_integer_to_der(ke, sizeof(ke), NULL, &len) != 1
@@ -383,7 +383,7 @@ int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, si
 	// t1 = H1(ID || hid, N) + ks
 	sm9_z256_hash1(t, id, idlen, SM9_HID_SIGN);
 	sm9_z256_fn_add(t, t, msk->ks);
-	if (sm9_z256_fn_is_zero(t)) {
+	if (sm9_z256_is_zero(t)) {
 		// 这是一个严重问题，意味着整个msk都需要作废了
 		error_print();
 		return -1;
@@ -408,7 +408,7 @@ int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *msk, const char *id, size
 	// t1 = H1(ID || hid, N) + ke
 	sm9_z256_hash1(t, id, idlen, SM9_HID_ENC);
 	sm9_z256_fn_add(t, t, msk->ke);
-	if (sm9_z256_fn_is_zero(t)) {
+	if (sm9_z256_is_zero(t)) {
 		error_print();
 		return -1;
 	}
@@ -432,7 +432,7 @@ int sm9_exch_master_key_extract_key(SM9_EXCH_MASTER_KEY *msk, const char *id, si
 	// t1 = H1(ID || hid, N) + ke
 	sm9_z256_hash1(t, id, idlen, SM9_HID_EXCH);
 	sm9_z256_fn_add(t, t, msk->ke);
-	if (sm9_z256_fn_is_zero(t)) {
+	if (sm9_z256_is_zero(t)) {
 		error_print();
 		return -1;
 	}
@@ -1075,7 +1075,7 @@ int sm9_sign_master_key_print(FILE *fp, int fmt, int ind, const char *label, con
 {
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
-	sm9_z256_fn_print(fp, fmt, ind, "ks", msk->ks);
+	sm9_z256_print(fp, fmt, ind, "ks", msk->ks);
 	sm9_z256_twist_point_print(fp, fmt, ind, "Ppubs", &msk->Ppubs);
 	return 1;
 }
@@ -1101,7 +1101,7 @@ int sm9_enc_master_key_print(FILE *fp, int fmt, int ind, const char *label, cons
 {
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
-	sm9_z256_fn_print(fp, fmt, ind, "ke", msk->ke);
+	sm9_z256_print(fp, fmt, ind, "ke", msk->ke);
 	sm9_z256_point_print(fp, fmt, ind, "Ppube", &msk->Ppube);
 	return 1;
 }

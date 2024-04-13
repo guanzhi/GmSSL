@@ -67,8 +67,8 @@ int test_sm9_z256_fp() {
 	sm9_z256_fp_tri(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_tri)) goto err; ++j;
 	sm9_z256_fp_div2(r, x);   sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_div2)) goto err; ++j;
 	sm9_z256_fp_neg(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_neg)) goto err; ++j;
-	sm9_z256_fp_mul(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_mul)) goto err; ++j;
-	sm9_z256_fp_sqr(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sqr)) goto err; ++j;
+	sm9_z256_fp_mont_mul(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_mul)) goto err; ++j;
+	sm9_z256_fp_mont_sqr(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sqr)) goto err; ++j;
 	sm9_z256_fp_from_mont(y, y);
 	sm9_z256_fp_pow(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_pow)) goto err; ++j;
 	sm9_z256_fp_inv(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_inv)) goto err; ++j;
@@ -99,7 +99,7 @@ int test_sm9_z256_fn() {
 	sm9_z256_from_hex(x, hex_x);
 	sm9_z256_from_hex(y, hex_y);
 
-	sm9_z256_t iv = {0, 0, 0, 0}; if (!sm9_z256_fn_is_zero(iv)) goto err; ++j;
+	sm9_z256_t iv = {0, 0, 0, 0}; if (!sm9_z256_is_zero(iv)) goto err; ++j;
 	sm9_z256_fn_add(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_add)) goto err; ++j;
 	sm9_z256_fn_sub(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_sub)) goto err; ++j;
 	sm9_z256_fn_sub(r, y, x); if (!sm9_z256_equ_hex(r, hex_fn_nsub)) goto err; ++j;
