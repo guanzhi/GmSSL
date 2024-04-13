@@ -8,6 +8,9 @@
  */
 
 
+#include <gmssl/asm.h>
+
+
 /* GF(2^128) defined by f(x) = x^128 + x^7 + x^2 + x + 1
 
 	f0 = x^128 = x^7 + x^2 + x + 1
@@ -29,9 +32,11 @@
 	= c + (e0 + w0) * x^64 + (d0 + w1) * f0
 */
 .text
-.globl	_gf128_mul
+
+.globl	func(gf128_mul)
 .align	4
-_gf128_mul:
+
+func(gf128_mul):
 	// load (a0, a1)
 	ld1	{v1.2d},[x1]
 	// load (b0, b1)

@@ -20,7 +20,9 @@ option(ENABLE_SM4_CFB "Enable SM4 CFB mode" OFF)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
 option(ENABLE_SM4_CCM "Enable SM4 CCM mode" OFF)
 
+option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
+
 
 
 set(src
@@ -257,6 +259,10 @@ if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 	add_definitions(-DENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 endif()
 
+if (ENABLE_ASM_UNDERSCORE_PREFIX)
+	message(STATUS "ENABLE_ASM_UNDERSCORE_PREFIX is ON")
+	add_definitions(-DENABLE_ASM_UNDERSCORE_PREFIX)
+endif()
 
 if (ENABLE_GMUL_AARCH64)
 	message(STATUS "ENABLE_GMUL_AARCH64 is ON")

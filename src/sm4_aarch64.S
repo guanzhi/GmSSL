@@ -7,6 +7,7 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
+#include <gmssl/asm.h>
 
 .align	7
 
@@ -62,9 +63,10 @@ Llshift:
 .byte	4,5,6,7,  8,9,10,11,  12,13,14,15,  0,1,2,3
 
 
-.globl	_sm4_set_encrypt_key
+.globl	func(sm4_set_encrypt_key)
 .align	4
-_sm4_set_encrypt_key:
+
+func(sm4_set_encrypt_key):
 
 	// load const v16..v31 = SBox
 	adr	x3, LSBOX
@@ -140,9 +142,10 @@ _sm4_set_encrypt_key:
 	ret
 
 
-.globl	_sm4_set_decrypt_key
+.globl	func(sm4_set_decrypt_key)
 .align	4
-_sm4_set_decrypt_key:
+
+func(sm4_set_decrypt_key):
 
 	// load const v16..v31 = SBox
 	adr	x3,LSBOX
@@ -221,10 +224,10 @@ _sm4_set_decrypt_key:
 	ret
 
 
-.globl	_sm4_encrypt
+.globl	func(sm4_encrypt)
 
 .align	5
-_sm4_encrypt:
+func(sm4_encrypt):
 
 	// load sbox
 	adr	x3, LSBOX
