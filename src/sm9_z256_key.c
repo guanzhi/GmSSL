@@ -98,8 +98,12 @@ int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, s
 		return -1;
 	}
 	memset(msk, 0, sizeof(*msk));
-	if (sm9_z256_fn_from_bytes(msk->ks, ks) != 1
-		|| sm9_z256_twist_point_from_uncompressed_octets(&msk->Ppubs, Ppubs) != 1) {
+	sm9_z256_from_bytes(msk->ks, ks);
+	if (sm9_z256_cmp(msk->ks, SM9_Z256_N) >= 0) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_twist_point_from_uncompressed_octets(&msk->Ppubs, Ppubs) != 1) {
 		error_print();
 		return -1;
 	}
@@ -245,8 +249,13 @@ int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, siz
 		return -1;
 	}
 	memset(msk, 0, sizeof(*msk));
-	if (sm9_z256_fn_from_bytes(msk->ke, ke) != 1
-		|| sm9_z256_point_from_uncompressed_octets(&msk->Ppube, Ppube) != 1) {
+
+	sm9_z256_from_bytes(msk->ke, ke);
+	if (sm9_z256_cmp(msk->ke, SM9_Z256_N) >= 0) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_point_from_uncompressed_octets(&msk->Ppube, Ppube) != 1) {
 		error_print();
 		return -1;
 	}

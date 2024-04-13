@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -19,6 +19,9 @@
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/rand.h>
+
+
+#define SM9_Z256_HEX_SEP '\n'
 
 
 const sm9_z256_t SM9_Z256_ZERO = {0,0,0,0};
@@ -190,9 +193,21 @@ void sm9_z256_copy_conditional(sm9_z256_t dst, const sm9_z256_t src, uint64_t mo
 	dst[3] = (src[3] & mask1) ^ (dst[3] & mask2);
 }
 
+
+void sm9_z256_set_one(sm9_z256_t r)
+{
+	r[0] = 1;
+	r[1] = 0;
+	r[2] = 0;
+	r[3] = 0;
+}
+
 void sm9_z256_set_zero(sm9_z256_t r)
 {
-	sm9_z256_copy(r, SM9_Z256_ZERO);
+	r[0] = 0;
+	r[1] = 0;
+	r[2] = 0;
+	r[3] = 0;
 }
 
 static uint64_t is_zero(uint64_t in)
@@ -386,12 +401,14 @@ int sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256
 	return 1;
 }
 
+/*
 int sm9_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8])
 {
 	format_print(fp, ind, fmt, "%s: %016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx\n",
 		label, a[7], a[6], a[5], a[4], a[3], a[2], a[1], a[0]);
 	return 1;
 }
+*/
 
 #ifndef ENABLE_SM9_Z256_ARMV8
 void sm9_z256_fp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
@@ -717,6 +734,9 @@ void sm9_z256_fp_inv(sm9_z256_t r, const sm9_z256_t a)
 	sm9_z256_fp_pow(r, a, SM9_Z256_P_MINUS_TWO);
 }
 
+// 这个函数不合适，而且这个实现也不正确啊
+// 但是对于SM9的Fp2，Fp4等而言，必须一开始就转换到Montgomery上面，因为没有
+/*
 int sm9_z256_fp_from_bytes(sm9_z256_t r, const uint8_t buf[32])
 {
 	sm9_z256_from_bytes(r, buf);
@@ -727,6 +747,7 @@ int sm9_z256_fp_from_bytes(sm9_z256_t r, const uint8_t buf[32])
 	}
 	return 1;
 }
+*/
 
 void sm9_z256_fp_to_bytes(const sm9_z256_t r, uint8_t out[32])
 {
@@ -760,9 +781,9 @@ void sm9_z256_fp_to_hex(const sm9_z256_t r, char hex[64])
 }
 
 
-const sm9_z256_fp2_t SM9_Z256_FP2_ZERO = {{0,0,0,0},{0,0,0,0}};
-const sm9_z256_fp2_t SM9_Z256_FP2_ONE = {{1,0,0,0},{0,0,0,0}};
-const sm9_z256_fp2_t SM9_Z256_FP2_U = {{0,0,0,0},{1,0,0,0}};
+//const sm9_z256_fp2_t SM9_Z256_FP2_ZERO = {{0,0,0,0},{0,0,0,0}};
+//const sm9_z256_fp2_t SM9_Z256_FP2_ONE = {{1,0,0,0},{0,0,0,0}};
+//const sm9_z256_fp2_t SM9_Z256_FP2_U = {{0,0,0,0},{1,0,0,0}};
 static const sm9_z256_fp2_t SM9_Z256_FP2_MONT_5U = {{0,0,0,0},{0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63}};
 
 
@@ -817,11 +838,28 @@ void sm9_z256_fp2_to_bytes(const sm9_z256_fp2_t a, uint8_t buf[64])
 
 int sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64])
 {
+	sm9_z256_from_bytes(r[1], buf);
+	if (sm9_z256_cmp(r[1], SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	sm9_z256_from_bytes(r[0], buf + 32);
+	if (sm9_z256_cmp(r[0], SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	sm9_z256_fp_to_mont(r[1], r[1]);
+	sm9_z256_fp_to_mont(r[0], r[0]);
+
+	/*
 	if (sm9_z256_fp_from_bytes(r[1], buf) != 1
 		|| sm9_z256_fp_from_bytes(r[0], buf + 32) != 1) {
 		error_print();
 		return -1;
 	}
+	*/
 	return 1;
 }
 
@@ -1801,7 +1839,6 @@ int sm9_z256_point_is_on_curve(const SM9_Z256_POINT *P)
 	return 1;
 }
 
-// E(F_p): y^2 = x^3 + b， 计算公式和SM2不同
 void sm9_z256_point_dbl(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
 {
 	const uint64_t *X1 = P->X;
@@ -2690,11 +2727,6 @@ void sm9_z256_fn_inv(sm9_z256_t r, const sm9_z256_t a)
 	sm9_z256_fn_pow(r, a, e);
 }
 
-int sm9_z256_fn_from_bytes(sm9_z256_t a, const uint8_t in[32])
-{
-	sm9_z256_from_bytes(a, in);
-	return 1;
-}
 
 const sm9_z256_t SM9_Z256_N_MINUS_ONE_BARRETT_MU = {0x74df4fd4dfc97c31,
 		0x9c95d85ec9c073b0, 0x55f73aebdcd1312c, 0x67980e0beb5759a6}; // , 0x1};
@@ -2745,10 +2777,23 @@ int sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t oct
 		error_print();
 		return -1;
 	}
-	memset(P, 0, sizeof(*P));
-	sm9_z256_fp_from_bytes(P->X, octets + 1); // fp_from_bytes include to_mont
-	sm9_z256_fp_from_bytes(P->Y, octets + 32 + 1);
+
+	sm9_z256_from_bytes(P->X, octets + 1);
+	if (sm9_z256_cmp(P->X, SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_fp_to_mont(P->X, P->X);
+
+	sm9_z256_from_bytes(P->Y, octets + 32 + 1);
+	if (sm9_z256_cmp(P->X, SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_fp_to_mont(P->Y, P->Y);
+
 	sm9_z256_copy(P->Z, SM9_Z256_MODP_MONT_ONE);
+
 	if (!sm9_z256_point_is_on_curve(P)) {
 		error_print();
 		return -1;

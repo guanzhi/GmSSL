@@ -67,8 +67,14 @@ int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 		error_print();
 		return -1;
 	}
-	if (sm9_z256_fn_from_bytes(sig->h, h) != 1
-		|| sm9_z256_point_from_uncompressed_octets(&sig->S, S) != 1) {
+
+	sm9_z256_from_bytes(sig->h, h);
+	if (sm9_z256_cmp(sig->h, SM9_Z256_N) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	if (sm9_z256_point_from_uncompressed_octets(&sig->S, S) != 1) {
 		error_print();
 		return -1;
 	}

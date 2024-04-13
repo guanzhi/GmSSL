@@ -7,6 +7,8 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
+#ifndef GMSSL_SM9_Z256_H
+#define GMSSL_SM9_Z256_H
 
 #include <stdio.h>
 #include <string.h>
@@ -15,42 +17,37 @@
 #include <gmssl/sm3.h>
 #include <gmssl/sm2.h>
 
-
-#ifndef GMSSL_SM9_Z256_H
-#define GMSSL_SM9_Z256_H
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
 typedef uint64_t sm9_z256_t[4];
 
-#define SM9_Z256_HEX_SEP '\n'
-
-
-void sm9_z256_to_bits(const sm9_z256_t a, char bits[256]);
-int  sm9_z256_rand_range(sm9_z256_t r, const sm9_z256_t range);
+void sm9_z256_set_one(sm9_z256_t r);
+void sm9_z256_set_zero(sm9_z256_t r);
+void sm9_z256_copy(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_copy_conditional(sm9_z256_t r, const sm9_z256_t a, uint64_t move);
+int  sm9_z256_cmp(const sm9_z256_t a, const sm9_z256_t b);
+uint64_t sm9_z256_is_zero(const sm9_z256_t a);
+uint64_t sm9_z256_equ(const sm9_z256_t a, const sm9_z256_t b);
+uint64_t sm9_z256_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+uint64_t sm9_z256_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_from_bytes(sm9_z256_t r, const uint8_t in[32]);
 void sm9_z256_to_bytes(const sm9_z256_t a, uint8_t out[32]);
-void sm9_z256_copy(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_copy_conditional(sm9_z256_t dst, const sm9_z256_t src, uint64_t move);
-void sm9_z256_set_zero(sm9_z256_t r);
-int  sm9_z256_cmp(const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b);
 int  sm9_z256_from_hex(sm9_z256_t r, const char *hex);
 void sm9_z256_to_hex(const sm9_z256_t r, char hex[64]);
 int  sm9_z256_equ_hex(const sm9_z256_t a, const char *hex);
+void sm9_z256_to_bits(const sm9_z256_t a, char bits[256]);
+int  sm9_z256_rand_range(sm9_z256_t r, const sm9_z256_t range);
 void sm9_z256_print_bn(const char *prefix, const sm9_z256_t a);
 int  sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256_t a);
-int  sm9_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8]);
-uint64_t sm9_z256_equ(const sm9_z256_t a, const sm9_z256_t b);
-uint64_t sm9_z256_is_zero(const sm9_z256_t a);
-uint64_t sm9_z256_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-uint64_t sm9_z256_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 
-extern const sm9_z256_t SM9_Z256_P;
-extern const sm9_z256_t SM9_Z256_N;
 
+// 从逻辑上讲，fp元素模式还是一个z256的值，需要显示的被转换为mont格式
+// 因此在计算上是需要区分mont_mul,也提供了to_mont, from_mont的计算
+// 因此这里最好不要用fp来表示，而是用modp来表示，这样逻辑更正确
 
 void sm9_z256_fp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fp_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
@@ -58,21 +55,13 @@ void sm9_z256_fp_dbl(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_tri(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_div2(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_neg(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fp_to_mont(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_from_mont(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
 void sm9_z256_fp_inv(sm9_z256_t r, const sm9_z256_t a);
-int  sm9_z256_fp_from_bytes(sm9_z256_t r, const uint8_t buf[32]);
-void sm9_z256_fp_to_bytes(const sm9_z256_t r, uint8_t out[32]);
-int  sm9_z256_fp_from_hex(sm9_z256_t r, const char hex[64]);
-void sm9_z256_fp_to_hex(const sm9_z256_t r, char hex[64]);
-int sm9_z256_fp_rand(sm9_z256_t r);
-
-
-
-int sm9_z256_fn_rand(sm9_z256_t r);
+int  sm9_z256_fp_rand(sm9_z256_t r);
 
 void sm9_z256_fn_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fn_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
@@ -80,11 +69,14 @@ void sm9_z256_fn_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
 void sm9_z256_fn_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
 void sm9_z256_fn_inv(sm9_z256_t r, const sm9_z256_t a);
 void sm9_z256_fn_from_hash(sm9_z256_t h, const uint8_t Ha[40]);
-int  sm9_z256_fn_from_bytes(sm9_z256_t a, const uint8_t in[32]);
+int  sm9_z256_fn_from_bytes(sm9_z256_t a, const uint8_t in[32]); // 这个就比较特殊了，应该支持这个函数吗？我觉得不应该支持，这个太奇怪了
+int  sm9_z256_fn_rand(sm9_z256_t r);
+
+
+// 但是在GF(p^2)
 
 
 typedef sm9_z256_t sm9_z256_fp2_t[2];
-extern const sm9_z256_fp2_t SM9_FP2_ZERO;
 
 
 void sm9_z256_fp2_set_one(sm9_z256_fp2_t r);
@@ -96,8 +88,10 @@ void sm9_z256_fp2_copy(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 int  sm9_z256_fp2_rand(sm9_z256_fp2_t r);
 void sm9_z256_fp2_to_bytes(const sm9_z256_fp2_t a, uint8_t buf[64]);
 int  sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64]);
+
 int  sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[129]);
 void sm9_z256_fp2_to_hex(const sm9_z256_fp2_t a, char hex[129]);
+
 void sm9_z256_fp2_add(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
 void sm9_z256_fp2_dbl(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 void sm9_z256_fp2_tri(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
@@ -115,12 +109,8 @@ void sm9_z256_fp2_div2(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 
 
 typedef sm9_z256_fp2_t sm9_z256_fp4_t[2];
-extern const sm9_z256_fp4_t SM9_FP4_ZERO;
-extern const sm9_z256_fp4_t SM9_FP4_ONE;
-extern const sm9_z256_fp4_t SM9_FP4_U;
-extern const sm9_z256_fp4_t SM9_FP4_V;
 
-int sm9_z256_fp4_is_zero(const sm9_z256_fp4_t a);
+int  sm9_z256_fp4_is_zero(const sm9_z256_fp4_t a);
 int  sm9_z256_fp4_equ(const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
 int  sm9_z256_fp4_rand(sm9_z256_fp4_t r);
 void sm9_z256_fp4_copy(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
@@ -179,6 +169,8 @@ void sm9_z256_fp12_frobenius2(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
 void sm9_z256_fp12_frobenius3(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
 void sm9_z256_fp12_frobenius6(sm9_z256_fp12_t r, const sm9_z256_fp12_t x);
 
+
+// E(F_p): y^2 = x^3 + 5
 
 typedef struct {
 	sm9_z256_t X;
