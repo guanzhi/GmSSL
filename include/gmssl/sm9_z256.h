@@ -190,7 +190,6 @@ typedef struct {
 void sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2]);
 int  sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P);
 void sm9_z256_point_set_infinity(SM9_Z256_POINT *R);
-void sm9_z256_point_copy(SM9_Z256_POINT *R, const SM9_Z256_POINT *P);
 void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y);
 int  sm9_z256_point_equ(const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q);
 int  sm9_z256_point_is_on_curve(const SM9_Z256_POINT *P);
@@ -210,8 +209,6 @@ typedef struct {
 	sm9_z256_fp2 Y;
 	sm9_z256_fp2 Z;
 } SM9_Z256_TWIST_POINT;
-
-//#define sm9_z256_twist_point_copy(R, P)	memcpy((R), (P), sizeof(SM9_Z256_TWIST_POINT))
 
 int sm9_z256_twist_point_to_uncompressed_octets(const SM9_Z256_TWIST_POINT *P, uint8_t octets[129]);
 int sm9_z256_twist_point_from_uncompressed_octets(SM9_Z256_TWIST_POINT *P, const uint8_t octets[129]);

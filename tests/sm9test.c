@@ -659,7 +659,8 @@ int test_sm9_z256_ciphertext()
 	size_t len = 0;
 	int j = 1;
 
-	sm9_z256_point_copy(&C1, P1);
+	C1 = *P1;
+
 	if (sm9_ciphertext_to_der(&C1, c2, sizeof(c2), c3, &p, &len) != 1) goto err; ++j;
 	//printf("SM9_Z256_MAX_CIPHERTEXT_SIZE %zu\n", len);
 	

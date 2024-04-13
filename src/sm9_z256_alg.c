@@ -1738,11 +1738,6 @@ void sm9_z256_point_set_infinity(SM9_Z256_POINT *R)
 	sm9_z256_set_zero(R->Z);
 }
 
-void sm9_z256_point_copy(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
-{
-	*R = *P;
-}
-
 // xy from this function are still mont
 void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y)
 {
@@ -1815,7 +1810,7 @@ void sm9_z256_point_dbl(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
 	sm9_z256_t X3, Y3, Z3, T1, T2, T3;
 
 	if (sm9_z256_point_is_at_infinity(P)) {
-		sm9_z256_point_copy(R, P);
+		*R = *P;
 		return;
 	}
 
@@ -1853,11 +1848,11 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 	sm9_z256_t X3, Y3, Z3, T1, T2, T3, T4;
 
 	if (sm9_z256_point_is_at_infinity(Q)) {
-		sm9_z256_point_copy(R, P);
+		*R = *P;
 		return;
 	}
 	if (sm9_z256_point_is_at_infinity(P)) {
-		sm9_z256_point_copy(R, Q);
+		*R = *Q;
 		return;
 	}
 
@@ -1929,7 +1924,7 @@ void sm9_z256_point_mul(SM9_Z256_POINT *R, const sm9_z256_t k, const SM9_Z256_PO
 	int i;
 
 	// T[i] = (i + 1) * P
-	sm9_z256_point_copy(&T[0], P);
+	T[0] = *P;
 
 	sm9_z256_point_dbl(&T[2-1], &T[1-1]);
 	sm9_z256_point_dbl(&T[4-1], &T[2-1]);
