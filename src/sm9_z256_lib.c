@@ -584,8 +584,8 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 
 		// B5: sk = KDF(ID_A || ID_B || RA || RB || g1 || g2 || g3, klen)
 		sm3_kdf_init(&kdf_ctx, klen);
-		sm3_kdf_update(&kdf_ctx, idA, idAlen);
-		sm3_kdf_update(&kdf_ctx, idB, idBlen);
+		sm3_kdf_update(&kdf_ctx, (uint8_t *)idA, idAlen);
+		sm3_kdf_update(&kdf_ctx, (uint8_t *)idB, idBlen);
 		sm3_kdf_update(&kdf_ctx, ta + 1, 64);
 		sm3_kdf_update(&kdf_ctx, tb + 1, 64);
 		sm3_kdf_update(&kdf_ctx, g1, sizeof(g1));
@@ -642,8 +642,8 @@ int sm9_exch_step_2A(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 
 		// A7: sk = KDF(ID_A || ID_B || RA || RB || g1 || g2 || g3, klen) 
 		sm3_kdf_init(&kdf_ctx, klen);
-		sm3_kdf_update(&kdf_ctx, idA, idAlen);
-		sm3_kdf_update(&kdf_ctx, idB, idBlen);
+		sm3_kdf_update(&kdf_ctx, (uint8_t *)idA, idAlen);
+		sm3_kdf_update(&kdf_ctx, (uint8_t *)idB, idBlen);
 		sm3_kdf_update(&kdf_ctx, ta + 1, 64);
 		sm3_kdf_update(&kdf_ctx, tb + 1, 64);
 		sm3_kdf_update(&kdf_ctx, g1, sizeof(g1));

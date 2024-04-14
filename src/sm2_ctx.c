@@ -144,7 +144,7 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->key.public_key = key->public_key;
 
-	sm2_z256_point_from_bytes(&ctx->public_key, (const uint8_t *)&key->public_key);
+	sm2_z256_point_from_bytes((SM2_Z256_POINT *)&ctx->public_key, (const uint8_t *)&key->public_key);
 
 	sm3_init(&ctx->sm3_ctx);
 
