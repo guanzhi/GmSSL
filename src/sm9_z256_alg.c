@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <gmssl/hex.h>
 #include <gmssl/mem.h>
-#include <gmssl/sm9_z256.h>
+#include <gmssl/sm9.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/rand.h>
@@ -24,16 +24,17 @@
 #define SM9_Z256_HEX_SEP '\n'
 
 
-const sm9_z256_t SM9_Z256_ZERO = {0,0,0,0};
 const sm9_z256_t SM9_Z256_ONE = {1,0,0,0};
-const sm9_z256_t SM9_Z256_TWO = {2,0,0,0};
-const sm9_z256_t SM9_Z256_FIVE = {5,0,0,0};
 
 
 // p =  b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
 const sm9_z256_t SM9_Z256_P = {
 	0xe56f9b27e351457d, 0x21f2934b1a7aeedb, 0xd603ab4ff58ec745, 0xb640000002a3a6f1
 };
+
+const uint64_t *sm9_256_prime(void) {
+	return &SM9_Z256_P[0];
+}
 
 // p - 2 = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457b, used in a^(p-2) = a^-1
 const sm9_z256_t SM9_Z256_P_MINUS_TWO = {
@@ -44,6 +45,10 @@ const sm9_z256_t SM9_Z256_P_MINUS_TWO = {
 const sm9_z256_t SM9_Z256_N = {
 	0xe56ee19cd69ecf25, 0x49f2934b18ea8bee, 0xd603ab4ff58ec744, 0xb640000002a3a6f1
 };
+
+const uint64_t *sm9_z256_order(void) {
+	return &SM9_Z256_N[0];
+}
 
 // n - 1
 const sm9_z256_t SM9_Z256_N_MINUS_ONE = {
@@ -109,31 +114,27 @@ const sm9_z256_t SM9_Z256_MODP_MONT_ONE = {0x1a9064d81caeba83, 0xde0d6cb4e585112
 const sm9_z256_t SM9_Z256_MODP_MONT_FIVE = {0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63};
 
 
-const SM9_Z256_POINT _SM9_Z256_MONT_P1 = {
+const SM9_Z256_POINT SM9_Z256_MONT_P1 = {
 	{0x22e935e29860501b, 0xa946fd5e0073282c, 0xefd0cec817a649be, 0x5129787c869140b5},
 	{0xee779649eb87f7c7, 0x15563cbdec30a576, 0x326353912824efbf, 0x7215717763c39828},
 	{0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e}
 };
-const SM9_Z256_POINT *SM9_Z256_MONT_P1 = &_SM9_Z256_MONT_P1;
 
-const SM9_Z256_TWIST_POINT _SM9_Z256_MONT_P2 = {
+const SM9_Z256_POINT *sm9_z256_generator(void) {
+	return &SM9_Z256_MONT_P1;
+}
+
+const SM9_Z256_TWIST_POINT SM9_Z256_MONT_P2 = {
 	{{0x260226a68ce2da8f, 0x7ee5645edbf6c06b, 0xf8f57c82b1495444, 0x61fcf018bc47c4d1},
 	 {0xdb6db4822750a8a6, 0x84c6135a5121f134, 0x1874032f88791d41, 0x905112f2b85f3a37}},
 	{{0xc03f138f9171c24a, 0x92fbab45a15a3ca7, 0x2445561e2ff77cdb, 0x108495e0c0f62ece},
 	 {0xf7b82dac4c89bfbb, 0x3706f3f6a49dc12f, 0x1e29de93d3eef769, 0x81e448c3c76a5d53}},
 	{{0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e}, {0,0,0,0}},
 };
-const SM9_Z256_TWIST_POINT *SM9_Z256_MONT_P2 = &_SM9_Z256_MONT_P2;
 
-const SM9_Z256_TWIST_POINT _SM9_Z256_MONT_Ppubs = {
-	{{0xb2e0a02b40b3d927, 0x153e2b9e897e44a0, 0x47cd0690d256c1a9, 0x5d3123b78630320e},
-	 {0x2c3c3f7ba9fc143e, 0x1f214aa16a4fa43f, 0x424e7e2f0dbc839b, 0x87eecef7fd6531c9}},
-	{{0x07a059838aa95e77, 0x6e65e6d455509cae, 0xf921da6493e4f742, 0x9fcf05bded9f2d36},
-	 {0xdc4fea9a756fc34e, 0xe4e34e772312a7b1, 0xbfa26e7682b1f64a, 0x7f1337b7cda2bf5e}},
-	{{0x1a9064d81caeba83, 0xde0d6cb4e5851124, 0x29fc54b00a7138ba, 0x49bffffffd5c590e}, {0,0,0,0}},
-};
-const SM9_Z256_TWIST_POINT *SM9_Z256_MONT_Ppubs = &_SM9_Z256_MONT_Ppubs;
-
+const SM9_Z256_TWIST_POINT *sm9_z256_twist_generator(void) {
+	return &SM9_Z256_MONT_P2;
+}
 
 void sm9_z256_to_bits(const sm9_z256_t a, char bits[256])
 {
@@ -401,14 +402,6 @@ int sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256
 	return 1;
 }
 
-/*
-int sm9_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8])
-{
-	format_print(fp, ind, fmt, "%s: %016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx\n",
-		label, a[7], a[6], a[5], a[4], a[3], a[2], a[1], a[0]);
-	return 1;
-}
-*/
 
 #ifndef ENABLE_SM9_Z256_ARMV8
 void sm9_z256_modp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
@@ -474,17 +467,6 @@ void sm9_z256_modp_neg(sm9_z256_t r, const sm9_z256_t a)
 }
 #endif
 
-/*
-int sm9_z256_modp_rand(sm9_z256_t r)
-{
-	if (sm9_z256_rand_range(r, SM9_Z256_P) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-*/
 
 // p = b640000002a3a6f1d603ab4ff58ec74521f2934b1a7aeedbe56f9b27e351457d
 // p' = -p^(-1) mod 2^256 = afd2bac5558a13b3966a4b291522b137181ae39613c8dbaf892bc42c2f2ee42b
@@ -736,21 +718,6 @@ void sm9_z256_modp_mont_inv(sm9_z256_t r, const sm9_z256_t a)
 	sm9_z256_modp_mont_pow(r, a, SM9_Z256_P_MINUS_TWO);
 }
 
-// 这个函数不合适，而且这个实现也不正确啊
-// 但是对于SM9的Fp2，Fp4等而言，必须一开始就转换到Montgomery上面，因为没有
-/*
-int sm9_z256_modp_from_bytes(sm9_z256_t r, const uint8_t buf[32])
-{
-	sm9_z256_from_bytes(r, buf);
-	sm9_z256_modp_to_mont(r, r);
-	if (sm9_z256_cmp(r, SM9_Z256_P) >= 0) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
-
 void sm9_z256_modp_to_bytes(const sm9_z256_t r, uint8_t out[32])
 {
 	sm9_z256_t t;
@@ -857,14 +824,6 @@ int sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64])
 
 	sm9_z256_modp_to_mont(r[1], r[1]);
 	sm9_z256_modp_to_mont(r[0], r[0]);
-
-	/*
-	if (sm9_z256_modp_from_bytes(r[1], buf) != 1
-		|| sm9_z256_modp_from_bytes(r[0], buf + 32) != 1) {
-		error_print();
-		return -1;
-	}
-	*/
 	return 1;
 }
 
@@ -1141,8 +1100,11 @@ void sm9_z256_fp4_to_bytes(const sm9_z256_fp4_t a, uint8_t buf[128])
 
 int sm9_z256_fp4_from_bytes(sm9_z256_fp4_t r, const uint8_t buf[128])
 {
-	if (sm9_z256_fp2_from_bytes(r[1], buf) != 1
-		|| sm9_z256_fp2_from_bytes(r[0], buf + 64) != 1) {
+	if (sm9_z256_fp2_from_bytes(r[1], buf) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_fp2_from_bytes(r[0], buf + 64) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1380,6 +1342,23 @@ void sm9_z256_fp12_to_bytes(const sm9_z256_fp12_t a, uint8_t buf[32 * 12])
 	sm9_z256_fp4_to_bytes(a[2], buf);
 	sm9_z256_fp4_to_bytes(a[1], buf + 32 * 4);
 	sm9_z256_fp4_to_bytes(a[0], buf + 32 * 8);
+}
+
+int sm9_z256_fp12_from_bytes(sm9_z256_fp12_t r, const uint8_t buf[128 * 3])
+{
+	if (sm9_z256_fp4_from_bytes(r[2], buf) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_fp4_from_bytes(r[1], buf + 128) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_fp4_from_bytes(r[0], buf + 256) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 void sm9_z256_fp12_print(const char *prefix, const sm9_z256_fp12_t a)
@@ -2171,8 +2150,6 @@ void sm9_z256_twist_point_neg(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POIN
 	sm9_z256_fp2_copy(R->Z, P->Z);
 }
 
-// E(Fp^2)的计算也比较重要，但是fp2上的计算并不容易做2路并发
-
 void sm9_z256_twist_point_dbl(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P)
 {
 	const sm9_z256_t *X1 = P->X;
@@ -2340,7 +2317,7 @@ void sm9_z256_twist_point_mul(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k, const
 
 void sm9_z256_twist_point_mul_generator(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k)
 {
-	sm9_z256_twist_point_mul(R, k, SM9_Z256_MONT_P2);
+	sm9_z256_twist_point_mul(R, k, &SM9_Z256_MONT_P2);
 }
 
 void sm9_z256_eval_g_tangent(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q)
@@ -2727,6 +2704,7 @@ void sm9_z256_modn_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e)
 
 void sm9_z256_modn_inv(sm9_z256_t r, const sm9_z256_t a)
 {
+	const sm9_z256_t SM9_Z256_TWO = {2,0,0,0};
 	sm9_z256_t e;
 	sm9_z256_sub(e, SM9_Z256_N, SM9_Z256_TWO);
 	sm9_z256_modn_pow(r, a, e);

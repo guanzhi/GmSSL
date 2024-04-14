@@ -14,15 +14,9 @@
 #include <stdint.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm3.h>
-#include <gmssl/sm9_z256.h>
+#include <gmssl/sm9.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
-
-
-extern const sm9_z256_t SM9_Z256_ZERO;
-extern const sm9_z256_t SM9_Z256_N;
-extern const SM9_Z256_POINT *SM9_Z256_MONT_P1;
-extern const SM9_Z256_TWIST_POINT *SM9_Z256_MONT_P2;
 
 
 int sm9_signature_to_der(const SM9_SIGNATURE *sig, uint8_t **out, size_t *outlen)
@@ -69,7 +63,7 @@ int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 	}
 
 	sm9_z256_from_bytes(sig->h, h);
-	if (sm9_z256_cmp(sig->h, SM9_Z256_N) >= 0) {
+	if (sm9_z256_cmp(sig->h, sm9_z256_order()) >= 0) {
 		error_print();
 		return -1;
 	}
@@ -123,11 +117,11 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 	uint8_t Ha[64];
 
 	// A1: g = e(P1, Ppubs)
-	sm9_z256_pairing(g, &key->Ppubs, SM9_Z256_MONT_P1);
+	sm9_z256_pairing(g, &key->Ppubs, sm9_z256_generator());
 
 	do {
 		// A2: rand r in [1, N-1]
-		if (sm9_z256_rand_range(r, SM9_Z256_N) != 1) {
+		if (sm9_z256_rand_range(r, sm9_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -220,7 +214,7 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	// B2: check S in G1
 
 	// B3: g = e(P1, Ppubs)
-	sm9_z256_pairing(g, &mpk->Ppubs, SM9_Z256_MONT_P1);
+	sm9_z256_pairing(g, &mpk->Ppubs, sm9_z256_generator());
 
 	// B4: t = g^h
 	sm9_z256_fp12_pow(t, g, sig->h);
@@ -265,12 +259,12 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 
 	// A1: Q = H1(ID||hid,N) * P1 + Ppube
 	sm9_z256_hash1(r, id, idlen, SM9_HID_ENC);
-	sm9_z256_point_mul(C, r, SM9_Z256_MONT_P1);
+	sm9_z256_point_mul(C, r, sm9_z256_generator());
 	sm9_z256_point_add(C, C, &mpk->Ppube);
 
 	do {
 		// A2: rand r in [1, N-1]
-		if (sm9_z256_rand_range(r, SM9_Z256_N) != 1) {
+		if (sm9_z256_rand_range(r, sm9_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -280,7 +274,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 		sm9_z256_point_to_uncompressed_octets(C, cbuf);
 
 		// A4: g = e(Ppube, P2)
-		sm9_z256_pairing(w, SM9_Z256_MONT_P2, &mpk->Ppube);
+		sm9_z256_pairing(w, sm9_z256_twist_generator(), &mpk->Ppube);
 
 		// A5: w = g^r
 		sm9_z256_fp12_pow(w, w, r);
@@ -527,11 +521,11 @@ int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idB
 {
 	// A1: Q = H1(ID_B||hid,N) * P1 + Ppube
 	sm9_z256_hash1(rA, idB, idBlen, SM9_HID_EXCH);
-	sm9_z256_point_mul(RA, rA, SM9_Z256_MONT_P1);
+	sm9_z256_point_mul(RA, rA, sm9_z256_generator());
 	sm9_z256_point_add(RA, RA, &mpk->Ppube);
 
 	// A2: rand rA in [1, N-1]
-	if (sm9_z256_rand_range(rA, SM9_Z256_N) != 1) {
+	if (sm9_z256_rand_range(rA, sm9_z256_order()) != 1) {
 		error_print();
 		return -1;
 	}
@@ -556,13 +550,13 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 
 	// B1: Q = H1(ID_A||hid,N) * P1 + Ppube
 	sm9_z256_hash1(rB, idA, idAlen, SM9_HID_EXCH);
-	sm9_z256_point_mul(RB, rB, SM9_Z256_MONT_P1);
+	sm9_z256_point_mul(RB, rB, sm9_z256_generator());
 	sm9_z256_point_add(RB, RB, &mpk->Ppube);
 
 	do {
 		// B2: rand rB in [1, N-1]
 		// FIXME: check rb != 0			
-		if (sm9_z256_rand_range(rB, SM9_Z256_N) != 1) {
+		if (sm9_z256_rand_range(rB, sm9_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -578,7 +572,7 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 			return -1;
 		}
 		sm9_z256_pairing(G1, &key->de, RA);
-		sm9_z256_pairing(G2, SM9_Z256_MONT_P2, &mpk->Ppube);
+		sm9_z256_pairing(G2, sm9_z256_twist_generator(), &mpk->Ppube);
 		sm9_z256_fp12_pow(G2, G2, rB);
 		sm9_z256_fp12_pow(G3, G1, rB);
 
@@ -633,7 +627,7 @@ int sm9_exch_step_2A(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 			error_print();
 			return -1;
 		}
-		sm9_z256_pairing(G1, SM9_Z256_MONT_P2, &mpk->Ppube);
+		sm9_z256_pairing(G1, sm9_z256_twist_generator(), &mpk->Ppube);
 		sm9_z256_fp12_pow(G1, G1, rA);
 		sm9_z256_pairing(G2, &key->de, RB);
 		sm9_z256_fp12_pow(G3, G2, rA);

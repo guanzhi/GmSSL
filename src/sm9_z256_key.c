@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
-#include <gmssl/sm9_z256.h>
+#include <gmssl/sm9.h>
 #include <gmssl/mem.h>
 #include <gmssl/oid.h>
 #include <gmssl/rand.h>
@@ -22,9 +22,6 @@
 #include <gmssl/pbkdf2.h>
 #include <gmssl/error.h>
 
-
-extern const sm9_z256_t SM9_Z256_ZERO;
-extern const sm9_z256_t SM9_Z256_N;
 
 // generate h1 in [1, n-1]
 int sm9_z256_hash1(sm9_z256_t h1, const char *id, size_t idlen, uint8_t hid)
@@ -99,7 +96,7 @@ int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, s
 	}
 	memset(msk, 0, sizeof(*msk));
 	sm9_z256_from_bytes(msk->ks, ks);
-	if (sm9_z256_cmp(msk->ks, SM9_Z256_N) >= 0) {
+	if (sm9_z256_cmp(msk->ks, sm9_z256_order()) >= 0) {
 		error_print();
 		return -1;
 	}
@@ -251,7 +248,7 @@ int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, siz
 	memset(msk, 0, sizeof(*msk));
 
 	sm9_z256_from_bytes(msk->ke, ke);
-	if (sm9_z256_cmp(msk->ke, SM9_Z256_N) >= 0) {
+	if (sm9_z256_cmp(msk->ke, sm9_z256_order()) >= 0) {
 		error_print();
 		return -1;
 	}
@@ -364,7 +361,7 @@ int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 		return -1;
 	}
 	// k = rand(1, n-1)
-	if (sm9_z256_rand_range(msk->ks, SM9_Z256_N) != 1) {
+	if (sm9_z256_rand_range(msk->ks, sm9_z256_order()) != 1) {
 		error_print();
 		return -1;
 	}
@@ -376,7 +373,7 @@ int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
 {
 	// k = rand(1, n-1)
-	if (sm9_z256_rand_range(msk->ke, SM9_Z256_N) != 1) {
+	if (sm9_z256_rand_range(msk->ke, sm9_z256_order()) != 1) {
 		error_print();
 		return -1;
 	}
