@@ -49,7 +49,7 @@ int sm9_z256_hash1(sm9_z256_t h1, const char *id, size_t idlen, uint8_t hid)
 	sm3_update(&ctx, ct2, sizeof(ct2));
 	sm3_finish(&ctx, Ha + 32);
 
-	sm9_z256_fn_from_hash(h1, Ha);
+	sm9_z256_modn_from_hash(h1, Ha);
 	return 1;
 }
 
@@ -364,7 +364,7 @@ int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 		return -1;
 	}
 	// k = rand(1, n-1)
-	if (sm9_z256_fn_rand(msk->ks) != 1) {
+	if (sm9_z256_rand_range(msk->ks, SM9_Z256_N) != 1) {
 		error_print();
 		return -1;
 	}
@@ -376,7 +376,7 @@ int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
 {
 	// k = rand(1, n-1)
-	if (sm9_z256_fn_rand(msk->ke) != 1) {
+	if (sm9_z256_rand_range(msk->ke, SM9_Z256_N) != 1) {
 		error_print();
 		return -1;
 	}
@@ -391,7 +391,7 @@ int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, si
 
 	// t1 = H1(ID || hid, N) + ks
 	sm9_z256_hash1(t, id, idlen, SM9_HID_SIGN);
-	sm9_z256_fn_add(t, t, msk->ks);
+	sm9_z256_modn_add(t, t, msk->ks);
 	if (sm9_z256_is_zero(t)) {
 		// 这是一个严重问题，意味着整个msk都需要作废了
 		error_print();
@@ -399,8 +399,8 @@ int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, si
 	}
 
 	// t2 = ks * t1^-1
-	sm9_z256_fn_inv(t, t);
-	sm9_z256_fn_mul(t, t, msk->ks);
+	sm9_z256_modn_inv(t, t);
+	sm9_z256_modn_mul(t, t, msk->ks);
 
 	// ds = t2 * P1
 	sm9_z256_point_mul_generator(&key->ds, t);
@@ -416,15 +416,15 @@ int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *msk, const char *id, size
 
 	// t1 = H1(ID || hid, N) + ke
 	sm9_z256_hash1(t, id, idlen, SM9_HID_ENC);
-	sm9_z256_fn_add(t, t, msk->ke);
+	sm9_z256_modn_add(t, t, msk->ke);
 	if (sm9_z256_is_zero(t)) {
 		error_print();
 		return -1;
 	}
 
 	// t2 = ke * t1^-1
-	sm9_z256_fn_inv(t, t);
-	sm9_z256_fn_mul(t, t, msk->ke);
+	sm9_z256_modn_inv(t, t);
+	sm9_z256_modn_mul(t, t, msk->ke);
 
 	// de = t2 * P2
 	sm9_z256_twist_point_mul_generator(&key->de, t);
@@ -440,15 +440,15 @@ int sm9_exch_master_key_extract_key(SM9_EXCH_MASTER_KEY *msk, const char *id, si
 
 	// t1 = H1(ID || hid, N) + ke
 	sm9_z256_hash1(t, id, idlen, SM9_HID_EXCH);
-	sm9_z256_fn_add(t, t, msk->ke);
+	sm9_z256_modn_add(t, t, msk->ke);
 	if (sm9_z256_is_zero(t)) {
 		error_print();
 		return -1;
 	}
 
 	// t2 = ke * t1^-1
-	sm9_z256_fn_inv(t, t);
-	sm9_z256_fn_mul(t, t, msk->ke);
+	sm9_z256_modn_inv(t, t);
+	sm9_z256_modn_mul(t, t, msk->ke);
 
 	// de = t2 * P2
 	sm9_z256_twist_point_mul_generator(&key->de, t);

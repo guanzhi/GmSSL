@@ -127,7 +127,7 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 
 	do {
 		// A2: rand r in [1, N-1]
-		if (sm9_z256_fn_rand(r) != 1) {
+		if (sm9_z256_rand_range(r, SM9_Z256_N) != 1) {
 			error_print();
 			return -1;
 		}
@@ -146,10 +146,10 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 		sm3_finish(&ctx, Ha);
 		sm3_update(&tmp_ctx, ct2, sizeof(ct2));
 		sm3_finish(&tmp_ctx, Ha + 32);
-		sm9_z256_fn_from_hash(sig->h, Ha);
+		sm9_z256_modn_from_hash(sig->h, Ha);
 
 		// A5: l = (r - h) mod N, if l = 0, goto A2
-		sm9_z256_fn_sub(r, r, sig->h);
+		sm9_z256_modn_sub(r, r, sig->h);
 
 	} while (sm9_z256_is_zero(r));
 
@@ -246,7 +246,7 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	sm3_finish(&ctx, Ha);
 	sm3_update(&tmp_ctx, ct2, sizeof(ct2));
 	sm3_finish(&tmp_ctx, Ha + 32);
-	sm9_z256_fn_from_hash(h2, Ha);
+	sm9_z256_modn_from_hash(h2, Ha);
 	if (sm9_z256_equ(h2, sig->h) != 1) {
 		return 0;
 	}
@@ -270,7 +270,7 @@ int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 
 	do {
 		// A2: rand r in [1, N-1]
-		if (sm9_z256_fn_rand(r) != 1) {
+		if (sm9_z256_rand_range(r, SM9_Z256_N) != 1) {
 			error_print();
 			return -1;
 		}
@@ -531,7 +531,7 @@ int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idB
 	sm9_z256_point_add(RA, RA, &mpk->Ppube);
 
 	// A2: rand rA in [1, N-1]
-	if (sm9_z256_fn_rand(rA) != 1) {
+	if (sm9_z256_rand_range(rA, SM9_Z256_N) != 1) {
 		error_print();
 		return -1;
 	}
@@ -561,7 +561,8 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 
 	do {
 		// B2: rand rB in [1, N-1]
-		if (sm9_z256_fn_rand(rB) != 1) {
+		// FIXME: check rb != 0			
+		if (sm9_z256_rand_range(rB, SM9_Z256_N) != 1) {
 			error_print();
 			return -1;
 		}

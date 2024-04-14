@@ -44,33 +44,26 @@ int  sm9_z256_rand_range(sm9_z256_t r, const sm9_z256_t range);
 void sm9_z256_print_bn(const char *prefix, const sm9_z256_t a);
 int  sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256_t a);
 
+void sm9_z256_modp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_modp_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_modp_dbl(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modp_tri(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modp_haf(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modp_neg(sm9_z256_t r, const sm9_z256_t a);
 
-// 从逻辑上讲，fp元素模式还是一个z256的值，需要显示的被转换为mont格式
-// 因此在计算上是需要区分mont_mul,也提供了to_mont, from_mont的计算
-// 因此这里最好不要用fp来表示，而是用modp来表示，这样逻辑更正确
+void sm9_z256_modp_to_mont(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modp_from_mont(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_modp_mont_sqr(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modp_mont_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
+void sm9_z256_modp_mont_inv(sm9_z256_t r, const sm9_z256_t a);
 
-void sm9_z256_fp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_fp_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_fp_dbl(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_tri(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_div2(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_neg(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_to_mont(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_from_mont(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_mont_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_fp_mont_sqr(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fp_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
-void sm9_z256_fp_inv(sm9_z256_t r, const sm9_z256_t a);
-int  sm9_z256_fp_rand(sm9_z256_t r);
-
-void sm9_z256_fn_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_fn_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_fn_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
-void sm9_z256_fn_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
-void sm9_z256_fn_inv(sm9_z256_t r, const sm9_z256_t a);
-void sm9_z256_fn_from_hash(sm9_z256_t h, const uint8_t Ha[40]);
-int  sm9_z256_fn_from_bytes(sm9_z256_t a, const uint8_t in[32]); // 这个就比较特殊了，应该支持这个函数吗？我觉得不应该支持，这个太奇怪了
-int  sm9_z256_fn_rand(sm9_z256_t r);
+void sm9_z256_modn_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_modn_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_modn_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b);
+void sm9_z256_modn_pow(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t e);
+void sm9_z256_modn_inv(sm9_z256_t r, const sm9_z256_t a);
+void sm9_z256_modn_from_hash(sm9_z256_t h, const uint8_t Ha[40]);
 
 
 // 但是在GF(p^2)
@@ -105,7 +98,7 @@ void sm9_z256_fp2_sqr(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 void sm9_z256_fp2_sqr_u(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 void sm9_z256_fp2_inv(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 void sm9_z256_fp2_div(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b);
-void sm9_z256_fp2_div2(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
+void sm9_z256_fp2_haf(sm9_z256_fp2_t r, const sm9_z256_fp2_t a);
 
 
 typedef sm9_z256_fp2_t sm9_z256_fp4_t[2];
@@ -122,7 +115,7 @@ void sm9_z256_fp4_add(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_f
 void sm9_z256_fp4_dbl(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
 void sm9_z256_fp4_sub(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
 void sm9_z256_fp4_neg(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
-void sm9_z256_fp4_div2(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
+void sm9_z256_fp4_haf(sm9_z256_fp4_t r, const sm9_z256_fp4_t a);
 void sm9_z256_fp4_a_mul_v(sm9_z256_fp4_t r, sm9_z256_fp4_t a);
 void sm9_z256_fp4_mul(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_fp4_t b);
 void sm9_z256_fp4_mul_fp(sm9_z256_fp4_t r, const sm9_z256_fp4_t a, const sm9_z256_t k);

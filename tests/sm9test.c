@@ -22,7 +22,7 @@
 #define hex_fp_nsub 	"7271168367e4cd3397052b4ff8f19699401c4f9167fc4b8a9f64ef75bfb405a9"
 #define hex_fp_dbl 	"551de7a0ee24723edcf314ff72f478fac1c7c4e7044238acc3913cfbcdaf7d05"
 #define hex_fp_tri 	"248cdb7163e4d7e5606ac9d731a751d591b25db4f925dd9532a20de5c2de98c9"
-#define hex_fp_div2 	"9df779e83d83d9c517bf85bbd4e833b289e7dfb214ecc1501cf8039cdde8d35f"
+#define hex_fp_haf 	"9df779e83d83d9c517bf85bbd4e833b289e7dfb214ecc1501cf8039cdde8d35f"
 #define hex_fp_neg 	"30910c2f8a3f9a597c884b28414d2725301567320b1c5b1790ef2f160ad0e43c"
 #define hex_fp_mul 	"9e4d19bb5d94a47352e6f53f4116b2a71b16a1113dc789b26528ee19f46b72e0"
 #define hex_fp_sqr 	"46dc2a5b8853234b341d9c57f9c4ca5709e95bbfef25356812e884e4f38cd0d6"
@@ -57,21 +57,21 @@ int test_sm9_z256_fp() {
 	sm9_z256_t iv = {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0};
 	sm9_z256_from_hex(r, hex_iv); if (sm9_z256_cmp(r, iv) != 0) goto err; ++j;
 
-	sm9_z256_fp_to_mont(x, x);
-	sm9_z256_fp_to_mont(y, y);
+	sm9_z256_modp_to_mont(x, x);
+	sm9_z256_modp_to_mont(y, y);
 	
-	sm9_z256_fp_add(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_add)) goto err; ++j;
-	sm9_z256_fp_sub(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sub)) goto err; ++j;
-	sm9_z256_fp_sub(r, y, x); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_nsub)) goto err; ++j;
-	sm9_z256_fp_dbl(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_dbl)) goto err; ++j;
-	sm9_z256_fp_tri(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_tri)) goto err; ++j;
-	sm9_z256_fp_div2(r, x);   sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_div2)) goto err; ++j;
-	sm9_z256_fp_neg(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_neg)) goto err; ++j;
-	sm9_z256_fp_mont_mul(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_mul)) goto err; ++j;
-	sm9_z256_fp_mont_sqr(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sqr)) goto err; ++j;
-	sm9_z256_fp_from_mont(y, y);
-	sm9_z256_fp_pow(r, x, y); sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_pow)) goto err; ++j;
-	sm9_z256_fp_inv(r, x);    sm9_z256_fp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_inv)) goto err; ++j;
+	sm9_z256_modp_add(r, x, y); sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_add)) goto err; ++j;
+	sm9_z256_modp_sub(r, x, y); sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sub)) goto err; ++j;
+	sm9_z256_modp_sub(r, y, x); sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_nsub)) goto err; ++j;
+	sm9_z256_modp_dbl(r, x);    sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_dbl)) goto err; ++j;
+	sm9_z256_modp_tri(r, x);    sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_tri)) goto err; ++j;
+	sm9_z256_modp_haf(r, x);   sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_haf)) goto err; ++j;
+	sm9_z256_modp_neg(r, x);    sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_neg)) goto err; ++j;
+	sm9_z256_modp_mont_mul(r, x, y); sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_mul)) goto err; ++j;
+	sm9_z256_modp_mont_sqr(r, x);    sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_sqr)) goto err; ++j;
+	sm9_z256_modp_from_mont(y, y);
+	sm9_z256_modp_mont_pow(r, x, y); sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_pow)) goto err; ++j;
+	sm9_z256_modp_mont_inv(r, x);    sm9_z256_modp_from_mont(r, r); if (!sm9_z256_equ_hex(r, hex_fp_inv)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -100,12 +100,12 @@ int test_sm9_z256_fn() {
 	sm9_z256_from_hex(y, hex_y);
 
 	sm9_z256_t iv = {0, 0, 0, 0}; if (!sm9_z256_is_zero(iv)) goto err; ++j;
-	sm9_z256_fn_add(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_add)) goto err; ++j;
-	sm9_z256_fn_sub(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_sub)) goto err; ++j;
-	sm9_z256_fn_sub(r, y, x); if (!sm9_z256_equ_hex(r, hex_fn_nsub)) goto err; ++j;
-	sm9_z256_fn_mul(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_mul)) goto err; ++j;
-	sm9_z256_fn_pow(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_pow)) goto err; ++j;
-	sm9_z256_fn_inv(r, x);    if (!sm9_z256_equ_hex(r, hex_fn_inv)) goto err; ++j;
+	sm9_z256_modn_add(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_add)) goto err; ++j;
+	sm9_z256_modn_sub(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_sub)) goto err; ++j;
+	sm9_z256_modn_sub(r, y, x); if (!sm9_z256_equ_hex(r, hex_fn_nsub)) goto err; ++j;
+	sm9_z256_modn_mul(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_mul)) goto err; ++j;
+	sm9_z256_modn_pow(r, x, y); if (!sm9_z256_equ_hex(r, hex_fn_pow)) goto err; ++j;
+	sm9_z256_modn_inv(r, x);    if (!sm9_z256_equ_hex(r, hex_fn_inv)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -128,7 +128,7 @@ err:
 #define hex_fp2_sqr_u	"16bd622a907d7a92e475ed336e8ebca2cc1e38dd2ae69aaf2a96208eba0ee06e-5b52579f25e413c717eb438cc69bc7d0e40a4518be8032dddb7e4385c8a693d4"
 #define hex_fp2_inv	"93ceda7dddd537eb9307a06313598e650a568d931d16ab98ca0a7483c3b502e2-6face8b958e2bdc0771fd9d700f2703f881ef0d13509f16937f0a0c344647175"
 #define hex_fp2_div	"ad68ff7c507f2d4e1cc6cd973c6b821906b9f5937a04fdedc84af1f75f97d00b-8a84a35da11d401c8dca50a572ce7a8c99e7117c45d251f57a2418613dab16bb"
-#define hex_fp2_div2	"0ba84d8497422e09335d0693165f7376839b54b7d1a3e45ec2b6e3b5c275f5cb-af07946a8e30f24c1a9a8db2995b2b9bb4f126f1e0ca7b76a3c2ab66d67576a2"
+#define hex_fp2_haf	"0ba84d8497422e09335d0693165f7376839b54b7d1a3e45ec2b6e3b5c275f5cb-af07946a8e30f24c1a9a8db2995b2b9bb4f126f1e0ca7b76a3c2ab66d67576a2"
 
 int test_sm9_z256_fp2() {
 	const SM9_Z256_TWIST_POINT _P2 = {
@@ -158,11 +158,11 @@ int test_sm9_z256_fp2() {
 	sm9_z256_fp2_copy(y, Ppubs->X);
 	sm9_z256_from_hex(k, hex_iv);
 	
-	sm9_z256_fp_to_mont(x[0], x[0]);
-	sm9_z256_fp_to_mont(x[1], x[1]);
-	sm9_z256_fp_to_mont(y[0], y[0]);
-	sm9_z256_fp_to_mont(y[1], y[1]);
-	sm9_z256_fp_to_mont(k, k);
+	sm9_z256_modp_to_mont(x[0], x[0]);
+	sm9_z256_modp_to_mont(x[1], x[1]);
+	sm9_z256_modp_to_mont(y[0], y[0]);
+	sm9_z256_modp_to_mont(y[1], y[1]);
+	sm9_z256_modp_to_mont(k, k);
 
 	sm9_z256_fp2_t iv2 = {{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
 	                    {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}};
@@ -180,7 +180,7 @@ int test_sm9_z256_fp2() {
 	sm9_z256_fp2_sqr_u(r, x);     sm9_z256_fp2_from_hex(s, hex_fp2_sqr_u); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
 	sm9_z256_fp2_inv(r, x);       sm9_z256_fp2_from_hex(s, hex_fp2_inv); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
 	sm9_z256_fp2_div(r, x, y);    sm9_z256_fp2_from_hex(s, hex_fp2_div); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
-	sm9_z256_fp2_div2(r, x);      sm9_z256_fp2_from_hex(s, hex_fp2_div2); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
+	sm9_z256_fp2_haf(r, x);      sm9_z256_fp2_from_hex(s, hex_fp2_haf); if (!sm9_z256_fp2_equ(r, s)) goto err; ++j;
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -253,10 +253,10 @@ int test_sm9_z256_fp4() {
 	sm9_z256_fp2_from_hex(y[0], hex_fp2_add);
 	sm9_z256_fp2_from_hex(y[1], hex_fp2_tri);
 	sm9_z256_from_hex(k, hex_iv);
-	sm9_z256_fp_to_mont(k, k);
+	sm9_z256_modp_to_mont(k, k);
 	sm9_z256_fp2_copy(q, Ppubs->X);
-	sm9_z256_fp_to_mont(q[0], q[0]);
-	sm9_z256_fp_to_mont(q[1], q[1]);
+	sm9_z256_modp_to_mont(q[0], q[0]);
+	sm9_z256_modp_to_mont(q[1], q[1]);
 
 	sm9_z256_fp4_t iv4 = {{{0xf1fdd299c9bb073c, 0xd632457dd14f49a9, 0x6e492768664a2b72, 0xa39654024e243d80},
 	                     {0x0fedcba987654321, 0x123456789abcdef0, 0x0fedcba987654321, 0x123456789abcdef0}},
@@ -562,21 +562,21 @@ int test_sm9_z256_pairing()
 	sm9_z256_t k;
 	int j = 1;
 	
-	sm9_z256_fp_to_mont(P1->X, P1->X);
-	sm9_z256_fp_to_mont(P1->Y, P1->Y);
-	sm9_z256_fp_to_mont(P1->Z, P1->Z);
-	sm9_z256_fp_to_mont(P2->X[0], P2->X[0]);
-	sm9_z256_fp_to_mont(P2->Y[0], P2->Y[0]);
-	sm9_z256_fp_to_mont(P2->Z[0], P2->Z[0]);
-	sm9_z256_fp_to_mont(P2->X[1], P2->X[1]);
-	sm9_z256_fp_to_mont(P2->Y[1], P2->Y[1]);
-	sm9_z256_fp_to_mont(P2->Z[1], P2->Z[1]);
-	sm9_z256_fp_to_mont(Ppubs->X[0], Ppubs->X[0]);
-	sm9_z256_fp_to_mont(Ppubs->Y[0], Ppubs->Y[0]);
-	sm9_z256_fp_to_mont(Ppubs->Z[0], Ppubs->Z[0]);
-	sm9_z256_fp_to_mont(Ppubs->X[1], Ppubs->X[1]);
-	sm9_z256_fp_to_mont(Ppubs->Y[1], Ppubs->Y[1]);
-	sm9_z256_fp_to_mont(Ppubs->Z[1], Ppubs->Z[1]);
+	sm9_z256_modp_to_mont(P1->X, P1->X);
+	sm9_z256_modp_to_mont(P1->Y, P1->Y);
+	sm9_z256_modp_to_mont(P1->Z, P1->Z);
+	sm9_z256_modp_to_mont(P2->X[0], P2->X[0]);
+	sm9_z256_modp_to_mont(P2->Y[0], P2->Y[0]);
+	sm9_z256_modp_to_mont(P2->Z[0], P2->Z[0]);
+	sm9_z256_modp_to_mont(P2->X[1], P2->X[1]);
+	sm9_z256_modp_to_mont(P2->Y[1], P2->Y[1]);
+	sm9_z256_modp_to_mont(P2->Z[1], P2->Z[1]);
+	sm9_z256_modp_to_mont(Ppubs->X[0], Ppubs->X[0]);
+	sm9_z256_modp_to_mont(Ppubs->Y[0], Ppubs->Y[0]);
+	sm9_z256_modp_to_mont(Ppubs->Z[0], Ppubs->Z[0]);
+	sm9_z256_modp_to_mont(Ppubs->X[1], Ppubs->X[1]);
+	sm9_z256_modp_to_mont(Ppubs->Y[1], Ppubs->Y[1]);
+	sm9_z256_modp_to_mont(Ppubs->Z[1], Ppubs->Z[1]);
 
 	sm9_z256_pairing(r, Ppubs, P1); sm9_z256_fp12_from_hex(s, hex_pairing1); if (!sm9_z256_fp12_equ(r, s)) goto err; ++j;
 
@@ -647,9 +647,9 @@ int test_sm9_z256_ciphertext()
 	};
 	SM9_Z256_POINT *P1 = &_P1;
 	
-	sm9_z256_fp_to_mont(P1->X, P1->X);
-	sm9_z256_fp_to_mont(P1->Y, P1->Y);
-	sm9_z256_fp_to_mont(P1->Z, P1->Z);
+	sm9_z256_modp_to_mont(P1->X, P1->X);
+	sm9_z256_modp_to_mont(P1->Y, P1->Y);
+	sm9_z256_modp_to_mont(P1->Z, P1->Z);
 
 	SM9_Z256_POINT C1;
 	uint8_t c2[SM9_MAX_PLAINTEXT_SIZE];
