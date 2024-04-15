@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -54,9 +54,12 @@ extern int tls12_client_main(int argc, char **argv);
 extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
+#ifdef ENABLE_SDF
 extern int sdfutil_main(int argc, char **argv);
+#endif
+#ifdef ENABLE_SKF
 extern int skfutil_main(int argc, char **argv);
-
+#endif
 
 static const char *options =
 	"command [options]\n"
@@ -99,8 +102,12 @@ static const char *options =
 	"  cmsdecrypt      Decrypt CMS EnvelopedData\n"
 	"  cmssign         Generate CMS SignedData\n"
 	"  cmsverify       Verify CMS SignedData\n"
+#ifdef ENABLE_SDF
 	"  sdfutil         SDF crypto device utility\n"
+#endif
+#ifdef ENABLE_SKF
 	"  skfutil         SKF crypto device utility\n"
+#endif
 	"  tlcp_client     TLCP client\n"
 	"  tlcp_server     TLCP server\n"
 	"  tls12_client    TLS 1.2 client\n"
@@ -211,9 +218,11 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
-#ifndef WIN32
+#ifdef ENABLE_SDF
 		} else if (!strcmp(*argv, "sdfutil")) {
 			return sdfutil_main(argc, argv);
+#endif
+#ifdef ENABLE_SKF
 		} else if (!strcmp(*argv, "skfutil")) {
 			return skfutil_main(argc, argv);
 #endif

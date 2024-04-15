@@ -72,17 +72,6 @@ set(src
 	src/x509_crl.c
 	src/x509_new.c
 	src/cms.c
-	src/sdf/sdf.c
-	src/sdf/sdf_lib.c
-	src/sdf/sdf_meth.c
-	src/sdf/sdf_ext.c
-	src/sdf/sdf_sansec.c
-	src/skf/skf.c
-	src/skf/skf_lib.c
-	src/skf/skf_meth.c
-	src/skf/skf_ext.c
-	src/skf/skf_prn.c
-	src/skf/skf_wisec.c
 	src/socket.c
 	src/tls.c
 	src/tls_ext.c
@@ -130,8 +119,6 @@ set(tools
 	tools/cmsencrypt.c
 	tools/cmsdecrypt.c
 	tools/cmsparse.c
-	tools/sdfutil.c
-	tools/skfutil.c
 	tools/tlcp_client.c
 	tools/tlcp_server.c
 	tools/tls12_client.c
@@ -529,7 +516,9 @@ add_library(gmssl ${src})
 if (WIN32)
 	target_link_libraries(gmssl -lws2_32)
 elseif (APPLE)
-	target_link_libraries(gmssl dl)
+	if (ENABLE_SDF)
+		target_link_libraries(gmssl dl)
+	endif()
 	target_link_libraries(gmssl "-framework Security")
 	if (ENABLE_SM4_CL)
 		# FIXME: different rules for cl and OpenCL framework
@@ -539,7 +528,9 @@ elseif (APPLE)
 elseif (MINGW)
 	target_link_libraries(gmssl PRIVATE wsock32)
 else()
-	target_link_libraries(gmssl dl)
+	if (ENABLE_SDF)
+		target_link_libraries(gmssl dl)
+	endif()
 endif()
 
 
@@ -550,6 +541,37 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
+
+
+option(ENABLE_SDF "Enable SDF module" OFF)
+if (ENABLE_SDF)
+	message(STATUS "ENABLE_SDF is ON")
+	list(APPEND src
+		src/sdf/sdf.c
+		src/sdf/sdf_lib.c
+		src/sdf/sdf_meth.c
+		src/sdf/sdf_ext.c
+		src/sdf/sdf_sansec.c)
+	list(APPEND tools tools/sdfutil.c)
+	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
+	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
+endif()
+
+
+option(ENABLE_SKF "Enable SKF module" OFF)
+if (ENABLE_SKF)
+	message(STATUS "ENABLE_SKF is ON")
+	list(APPEND src
+		src/skf/skf.c
+		src/skf/skf_lib.c
+		src/skf/skf_meth.c
+		src/skf/skf_ext.c
+		src/skf/skf_prn.c
+		src/skf/skf_wisec.c)
+	list(APPEND tools tools/skfutil.c)
+	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
+	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
+endif()
 
 
 option(ENABLE_SOFT_SDF "Enable Software SDF Implementation" OFF)
@@ -563,13 +585,6 @@ endif()
 
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
-
-	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
-
-	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
-
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries(gmssl-bin LINK_PUBLIC gmssl)
 	set_target_properties(gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
