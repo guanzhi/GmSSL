@@ -1394,16 +1394,16 @@ int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM
 }
 
 
-void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT_AFFINE *P)
+void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *P)
 {
-	memcpy(R, P, sizeof(SM2_Z256_POINT_AFFINE));
+	memcpy(R, P, sizeof(SM2_Z256_AFFINE_POINT));
 	sm2_z256_copy(R->Z, SM2_Z256_MODP_MONT_ONE);
 }
 
 // 这是一个比较容易并行的算法
 // r, a, b 都转换为实际输入的值
 #ifndef ENABLE_SM2_Z256_ARMV8
-void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT_AFFINE *b)
+void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_AFFINE_POINT *b)
 {
 	uint64_t U2[4], S2[4];
 	uint64_t Z1sqr[4];
@@ -1486,9 +1486,9 @@ void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const
 #endif
 
 void sm2_z256_point_sub_affine(SM2_Z256_POINT *R,
-	const SM2_Z256_POINT *A, const SM2_Z256_POINT_AFFINE *B)
+	const SM2_Z256_POINT *A, const SM2_Z256_AFFINE_POINT *B)
 {
-	SM2_Z256_POINT_AFFINE neg_B;
+	SM2_Z256_AFFINE_POINT neg_B;
 
 	sm2_z256_copy(neg_B.x, B->x);
 	sm2_z256_modp_neg(neg_B.y, B->y);
@@ -1496,7 +1496,7 @@ void sm2_z256_point_sub_affine(SM2_Z256_POINT *R,
 	sm2_z256_point_add_affine(R, A, &neg_B);
 }
 
-int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT_AFFINE *P)
+int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_AFFINE_POINT *P)
 {
 	uint8_t affine[64];
 	uint64_t a[4];
@@ -1512,7 +1512,7 @@ int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, c
 }
 
 extern const uint64_t sm2_z256_pre_comp[37][64 * 4 * 2];
-static SM2_Z256_POINT_AFFINE (*g_pre_comp)[64] = (SM2_Z256_POINT_AFFINE (*)[64])sm2_z256_pre_comp;
+static SM2_Z256_AFFINE_POINT (*g_pre_comp)[64] = (SM2_Z256_AFFINE_POINT (*)[64])sm2_z256_pre_comp;
 
 
 /*

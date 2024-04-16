@@ -102,12 +102,12 @@ int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM
 typedef struct {
 	uint64_t x[4];
 	uint64_t y[4];
-} SM2_Z256_POINT_AFFINE;
+} SM2_Z256_AFFINE_POINT;
 
-void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT_AFFINE *P);
-void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT_AFFINE *b);
-void sm2_z256_point_sub_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT *A, const SM2_Z256_POINT_AFFINE *B);
-int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT_AFFINE *P);
+void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *P);
+void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_AFFINE_POINT *b);
+void sm2_z256_point_sub_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT *A, const SM2_Z256_AFFINE_POINT *B);
+int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_AFFINE_POINT *P);
 
 void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const uint64_t k[4]);
 void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT *P);

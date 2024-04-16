@@ -187,6 +187,16 @@ int  sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t oc
 
 
 typedef struct {
+	uint64_t X[4];
+	uint64_t Y[4];
+} SM9_Z256_AFFINE_POINT;
+
+void sm9_z256_point_copy_affine(SM9_Z256_POINT *R, const SM9_Z256_AFFINE_POINT *P);
+void sm9_z256_point_add_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_AFFINE_POINT *Q);
+void sm9_z256_point_sub_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_AFFINE_POINT *Q);
+
+
+typedef struct {
 	sm9_z256_fp2_t X;
 	sm9_z256_fp2_t Y;
 	sm9_z256_fp2_t Z;
