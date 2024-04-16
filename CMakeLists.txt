@@ -38,8 +38,8 @@ set(src
 	src/sm3_digest.c
 	src/sm2_z256.c
 	src/sm2_z256_table.c
-	src/sm2_z256_key.c
-	src/sm2_z256_sign.c
+	src/sm2_key.c
+	src/sm2_sign.c
 	src/sm2_lib.c
 	src/sm2_ctx.c
 	src/sm9_z256.c
