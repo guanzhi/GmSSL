@@ -24,14 +24,14 @@
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT _P, *P = &_P;
-	SM2_Z256 d;
-	SM2_Z256 d_inv;
-	SM2_Z256 e;
-	SM2_Z256 k;
-	SM2_Z256 x;
-	SM2_Z256 t;
-	SM2_Z256 r;
-	SM2_Z256 s;
+	sm2_z256_t d;
+	sm2_z256_t d_inv;
+	sm2_z256_t e;
+	sm2_z256_t k;
+	sm2_z256_t x;
+	sm2_z256_t t;
+	sm2_z256_t r;
+	sm2_z256_t s;
 
 	const uint64_t *one = sm2_z256_one();
 	const uint64_t *order = sm2_z256_order();
@@ -170,11 +170,11 @@ int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t
 int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT R;
-	SM2_Z256 e;
-	SM2_Z256 k;
-	SM2_Z256 x1;
-	SM2_Z256 r;
-	SM2_Z256 s;
+	sm2_z256_t e;
+	sm2_z256_t k;
+	sm2_z256_t x1;
+	sm2_z256_t r;
+	sm2_z256_t s;
 
 	const uint64_t *order = sm2_z256_order();
 
@@ -224,11 +224,11 @@ int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE 
 int sm2_do_verify_fast(const SM2_Z256_POINT *P, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT R;
-	SM2_Z256 r;
-	SM2_Z256 s;
-	SM2_Z256 e;
-	SM2_Z256 x;
-	SM2_Z256 t;
+	sm2_z256_t r;
+	sm2_z256_t s;
+	sm2_z256_t e;
+	sm2_z256_t x;
+	sm2_z256_t t;
 
 	const uint64_t *order = sm2_z256_order();
 
@@ -289,11 +289,11 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 {
 	SM2_Z256_POINT _P, *P = &_P;
 	SM2_Z256_POINT _R, *R = &_R;
-	SM2_Z256 r;
-	SM2_Z256 s;
-	SM2_Z256 e;
-	SM2_Z256 x;
-	SM2_Z256 t;
+	sm2_z256_t r;
+	sm2_z256_t s;
+	sm2_z256_t e;
+	sm2_z256_t x;
+	sm2_z256_t t;
 
 	const uint64_t *order = sm2_z256_order();
 
@@ -403,7 +403,7 @@ int sm2_do_encrypt_pre_compute(uint64_t k[4], uint8_t C1[64])
 // 其中k是要参与计算的，但是 (x1, y1) 不参与计算，输出为 bytes 就可以了
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
 {
-	SM2_Z256 k;
+	sm2_z256_t k;
 	SM2_Z256_POINT _P, *P = &_P;
 	SM2_Z256_POINT _C1, *C1 = &_C1;
 	SM2_Z256_POINT _kP, *kP = &_kP;
@@ -467,7 +467,7 @@ retry:
 int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, SM2_CIPHERTEXT *out)
 {
 	unsigned int trys = 200;
-	SM2_Z256 k;
+	sm2_z256_t k;
 	SM2_Z256_POINT _P, *P = &_P;
 	SM2_Z256_POINT _C1, *C1 = &_C1;
 	SM2_Z256_POINT _kP, *kP = &_kP;
@@ -555,7 +555,7 @@ retry:
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
 {
 	int ret = -1;
-	SM2_Z256 d;
+	sm2_z256_t d;
 	SM2_Z256_POINT _C1, *C1 = &_C1;
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;

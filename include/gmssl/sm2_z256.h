@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-typedef uint64_t SM2_Z256[4];
+typedef uint64_t sm2_z256_t[4];
 
 int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4]);
 void sm2_z256_copy(uint64_t r[4], const uint64_t a[4]);

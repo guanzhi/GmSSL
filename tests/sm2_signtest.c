@@ -102,30 +102,22 @@ static int test_sm2_do_sign(void)
 	return 1;
 }
 
-#define SM2_U256		SM2_Z256
-#define sm2_u256_one		sm2_z256_one
-#define sm2_u256_is_zero	sm2_z256_is_zero
-#define sm2_u256_from_bytes	sm2_z256_from_bytes
-#define sm2_u256_modn_add	sm2_z256_modn_add
-#define sm2_u256_modn_inv	sm2_z256_modn_inv
-
-
 static int test_sm2_do_sign_fast(void)
 {
 	SM2_KEY sm2_key;
-	SM2_U256 d;
+	sm2_z256_t d;
 	uint8_t dgst[32];
 	SM2_SIGNATURE sig;
 	size_t i;
 
 	// d' = (d + 1)^-1 (mod n)
-	const uint64_t *one = sm2_u256_one();
+	const uint64_t *one = sm2_z256_one();
 	do {
 		sm2_key_generate(&sm2_key);
-		sm2_u256_from_bytes(d, sm2_key.private_key);
-		sm2_u256_modn_add(d, d, one);
-		sm2_u256_modn_inv(d, d);
-	} while (sm2_u256_is_zero(d));
+		sm2_z256_from_bytes(d, sm2_key.private_key);
+		sm2_z256_modn_add(d, d, one);
+		sm2_z256_modn_inv(d, d);
+	} while (sm2_z256_is_zero(d));
 
 	for (i = 0; i < TEST_COUNT; i++) {
 		if (sm2_do_sign_fast(d, dgst, &sig) != 1) {
