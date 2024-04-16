@@ -45,9 +45,9 @@ int sm2_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t
 void sm2_z256_modp_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_modp_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_modp_neg(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_mul_by_2(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_mul_by_3(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_div_by_2(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_dbl(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_tri(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_haf(uint64_t r[4], const uint64_t a[4]);
 
 void sm2_z256_modp_to_mont(const uint64_t a[4], uint64_t r[4]);
 void sm2_z256_modp_from_mont(uint64_t r[4], const uint64_t a[4]);
