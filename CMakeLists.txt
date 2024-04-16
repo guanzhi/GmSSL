@@ -42,10 +42,10 @@ set(src
 	src/sm2_z256_sign.c
 	src/sm2_lib.c
 	src/sm2_ctx.c
-	src/sm9_z256_alg.c
-	src/sm9_z256_key.c
-	src/sm9_z256_lib.c
+	src/sm9_z256.c
 	src/sm9_z256_table.c
+	src/sm9_key.c
+	src/sm9_lib.c
 	src/zuc.c
 	src/zuc_modes.c
 	src/hash_drbg.c
