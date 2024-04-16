@@ -35,6 +35,7 @@ set(src
 	src/sm3.c
 	src/sm3_hmac.c
 	src/sm3_kdf.c
+	src/sm3_pbkdf2.c
 	src/sm3_digest.c
 	src/sm2_z256.c
 	src/sm2_z256_table.c
