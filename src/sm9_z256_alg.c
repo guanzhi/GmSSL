@@ -177,10 +177,10 @@ void sm9_z256_to_bytes(const sm9_z256_t a, uint8_t out[32])
 
 void sm9_z256_copy(sm9_z256_t r, const sm9_z256_t a)
 {
-	r[3] = a[3];
-	r[2] = a[2];
-	r[1] = a[1];
 	r[0] = a[0];
+	r[1] = a[1];
+	r[2] = a[2];
+	r[3] = a[3];
 }
 
 void sm9_z256_copy_conditional(sm9_z256_t dst, const sm9_z256_t src, uint64_t move)
@@ -305,7 +305,6 @@ uint64_t sm9_z256_sub(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 	return c;
 }
 
-#ifndef ENABLE_SM9_Z256_ARMV8
 void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b)
 {
 	uint64_t a_[8];
@@ -335,8 +334,6 @@ void sm9_z256_mul(uint64_t r[8], const sm9_z256_t a, const sm9_z256_t b)
 		r[i] = (s[2 * i + 1] << 32) | s[2 * i];
 	}
 }
-#endif
-
 
 int sm9_z256_get_booth(const uint64_t a[4], uint64_t window_size, int i)
 {
@@ -749,10 +746,6 @@ void sm9_z256_modp_to_hex(const sm9_z256_t r, char hex[64])
 	}
 }
 
-
-//const sm9_z256_fp2_t SM9_Z256_FP2_ZERO = {{0,0,0,0},{0,0,0,0}};
-//const sm9_z256_fp2_t SM9_Z256_FP2_ONE = {{1,0,0,0},{0,0,0,0}};
-//const sm9_z256_fp2_t SM9_Z256_FP2_U = {{0,0,0,0},{1,0,0,0}};
 static const sm9_z256_fp2_t SM9_Z256_FP2_MONT_5U = {{0,0,0,0},{0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63}};
 
 
