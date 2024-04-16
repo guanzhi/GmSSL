@@ -150,18 +150,16 @@ void sm9_z256_to_bits(const sm9_z256_t a, char bits[256])
 int sm9_z256_rand_range(sm9_z256_t r, const sm9_z256_t range)
 {
 	unsigned int max_tries = 100;
-	uint8_t buf[256];
 
 	do {
 		if (!max_tries) {
+			// caller call this function again if return zero
+			return 0;
+		}
+		if (rand_bytes((uint8_t *)r, 32) != 1) {
 			error_print();
 			return -1;
 		}
-		if (rand_bytes(buf, sizeof(buf)) != 1) {
-			error_print();
-			return -1;
-		}
-		sm9_z256_from_bytes(r, buf);
 		max_tries--;
 
 	} while (sm9_z256_cmp(r, range) >= 0);
@@ -2007,26 +2005,21 @@ void sm9_z256_point_mul(SM9_Z256_POINT *R, const sm9_z256_t k, const SM9_Z256_PO
 	}
 }
 
-typedef struct {
-	uint64_t X[4];
-	uint64_t Y[4];
-} SM9_Z256_POINT_AFFINE;
-
-void sm9_z256_point_copy_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT_AFFINE *P)
+void sm9_z256_point_copy_affine(SM9_Z256_POINT *R, const SM9_Z256_AFFINE_POINT *P)
 {
 	sm9_z256_copy(R->X, P->X);
 	sm9_z256_copy(R->Y, P->Y);
 	sm9_z256_copy(R->Z, SM9_Z256_MODP_MONT_ONE);
 }
 
-void sm9_z256_point_add_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_POINT_AFFINE *Q)
+void sm9_z256_point_add_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_AFFINE_POINT *Q)
 {
 	SM9_Z256_POINT _S, *S = &_S;
 	sm9_z256_point_copy_affine(S, Q);
 	sm9_z256_point_add(R, P, S);
 }
 
-void sm9_z256_point_sub_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_POINT_AFFINE *Q)
+void sm9_z256_point_sub_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_AFFINE_POINT *Q)
 {
 	SM9_Z256_POINT _S, *S = &_S;
 	sm9_z256_point_copy_affine(S, Q);
@@ -2034,7 +2027,7 @@ void sm9_z256_point_sub_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const
 }
 
 extern const uint64_t sm9_z256_pre_comp[37][64 * 4 * 2];
-static SM9_Z256_POINT_AFFINE (*g_pre_comp)[64] = (SM9_Z256_POINT_AFFINE (*)[64])sm9_z256_pre_comp;
+static SM9_Z256_AFFINE_POINT (*g_pre_comp)[64] = (SM9_Z256_AFFINE_POINT (*)[64])sm9_z256_pre_comp;
 
 void sm9_z256_point_mul_generator(SM9_Z256_POINT *R, const sm9_z256_t k)
 {

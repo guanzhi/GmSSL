@@ -80,12 +80,21 @@ void sm2_z256_set_zero(uint64_t a[4])
 
 int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4])
 {
+	unsigned int max_tries = 100;
+
 	do {
+		if (!max_tries) {
+			// caller call this function again if return zero
+			return 0;
+		}
 		if (rand_bytes((uint8_t *)r, 32) != 1) {
 			error_print();
 			return -1;
 		}
+		max_tries--;
+
 	} while (sm2_z256_cmp(r, range) >= 0);
+
 	return 1;
 }
 
