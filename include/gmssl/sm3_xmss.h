@@ -10,6 +10,7 @@
 #ifndef GMSSL_SM3_XMSS_H
 #define GMSSL_SM3_XMSS_H
 
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <gmssl/sm3.h>
