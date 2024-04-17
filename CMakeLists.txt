@@ -483,6 +483,7 @@ endif()
 
 check_symbol_exists(getentropy "unistd.h" HAVE_GETENTROPY)
 if (WIN32)
+	add_definitions(-D_WINSOCK_DEPRECATED_NO_WARNINGS)
 	list(APPEND src src/rand_win.c src/http_win.c)
 elseif (APPLE)
 	list(APPEND src src/rand_apple.c src/http.c)
