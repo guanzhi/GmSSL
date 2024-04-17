@@ -20,10 +20,9 @@
 #include <gmssl/endian.h>
 
 
-
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
-	SM2_Z256_POINT _P, *P = &_P;
+	SM2_Z256_POINT P;
 	sm2_z256_t d;
 	sm2_z256_t d_inv;
 	sm2_z256_t e;
@@ -33,26 +32,20 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 	sm2_z256_t r;
 	sm2_z256_t s;
 
-	const uint64_t *one = sm2_z256_one();
-	const uint64_t *order = sm2_z256_order();
-
 	sm2_z256_from_bytes(d, key->private_key);
 
 	// compute (d + 1)^-1 (mod n)
-	sm2_z256_modn_add(d_inv, d, one);	//sm2_bn_print(stderr, 0, 4, "(1+d)", d_inv);
+	sm2_z256_modn_add(d_inv, d, sm2_z256_one());
 	if (sm2_z256_is_zero(d_inv)) {
 		error_print();
 		return -1;
 	}
-	sm2_z256_modn_inv(d_inv, d_inv);	//sm2_bn_print(stderr, 0, 4, "(1+d)^-1", d_inv);
+	sm2_z256_modn_inv(d_inv, d_inv);
 
 	// e = H(M)
-	sm2_z256_from_bytes(e, dgst);	//sm2_bn_print(stderr, 0, 4, "e", e);
+	sm2_z256_from_bytes(e, dgst);
 
 retry:
-
-	// >>>>>>>>>> BEGIN PRECOMP
-
 
 	// rand k in [1, n - 1]
 	do {
@@ -60,56 +53,47 @@ retry:
 			error_print();
 			return -1;
 		}
-	} while (sm2_z256_is_zero(k));	//sm2_bn_print(stderr, 0, 4, "k", k);
+	} while (sm2_z256_is_zero(k));
 
 	// (x, y) = kG
-	sm2_z256_point_mul_generator(P, k);
-	sm2_z256_point_get_xy(P, x, NULL);
-					//sm2_bn_print(stderr, 0, 4, "x", x);
-
-
-	// 如果我们提前计算了 (k, x) 那么我们在真正做签名的时候就可以利用到这个与计算的表了，直接从表中读取 (k, x)
-	// 当然这些计算都可以放在sign_fast里面
-
-	// >>>>>>>>>>> END PRECOMP
+	sm2_z256_point_mul_generator(&P, k);
+	sm2_z256_point_get_xy(&P, x, NULL);
 
 	// r = e + x (mod n)
-	if (sm2_z256_cmp(e, order) >= 0) {
-		sm2_z256_sub(e, e, order);
+	if (sm2_z256_cmp(e, sm2_z256_order()) >= 0) {
+		sm2_z256_sub(e, e, sm2_z256_order());
 	}
-	if (sm2_z256_cmp(x, order) >= 0) {
-		sm2_z256_sub(x, x, order);
+	if (sm2_z256_cmp(x, sm2_z256_order()) >= 0) {
+		sm2_z256_sub(x, x, sm2_z256_order());
 	}
-	sm2_z256_modn_add(r, e, x);		//sm2_bn_print(stderr, 0, 4, "r = e + x (mod n)", r);
+	sm2_z256_modn_add(r, e, x);
 
 	// if r == 0 or r + k == n re-generate k
 	sm2_z256_add(t, r, k);
-	if (sm2_z256_is_zero(r) || sm2_z256_cmp(t, order) == 0) {
-					//sm2_bn_print(stderr, 0, 4, "r + k", t);
+	if (sm2_z256_is_zero(r) || sm2_z256_cmp(t, sm2_z256_order()) == 0) {
 		goto retry;
 	}
 
 	// s = ((1 + d)^-1 * (k - r * d)) mod n
-	sm2_z256_modn_mul(t, r, d);		//sm2_bn_print(stderr, 0, 4, "r*d", t);
-	sm2_z256_modn_sub(k, k, t);		//sm2_bn_print(stderr, 0, 4, "k-r*d", k);
-	sm2_z256_modn_mul(s, d_inv, k);	//sm2_bn_print(stderr, 0, 4, "s = ((1 + d)^-1 * (k - r * d)) mod n", s);
+	sm2_z256_modn_mul(t, r, d);
+	sm2_z256_modn_sub(k, k, t);
+	sm2_z256_modn_mul(s, d_inv, k);
 
 	// check s != 0
 	if (sm2_z256_is_zero(s)) {
 		goto retry;
 	}
 
-	sm2_z256_to_bytes(r, sig->r);	//sm2_bn_print_bn(stderr, 0, 4, "r", r);
-	sm2_z256_to_bytes(s, sig->s);	//sm2_bn_print_bn(stderr, 0, 4, "s", s);
+	sm2_z256_to_bytes(r, sig->r);
+	sm2_z256_to_bytes(s, sig->s);
 
 	gmssl_secure_clear(d, sizeof(d));
-	gmssl_secure_clear(d_inv, sizeof(d_inv ));
+	gmssl_secure_clear(d_inv, sizeof(d_inv));
 	gmssl_secure_clear(k, sizeof(k));
 	gmssl_secure_clear(t, sizeof(t));
 	return 1;
 }
 
-// k 和 x1 都是要参与计算的，因此我们返回的是内部格式
 int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4])
 {
 	SM2_Z256_POINT P;
@@ -123,26 +107,23 @@ int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4])
 	} while (sm2_z256_is_zero(k));
 
 	// (x1, y1) = kG
-	sm2_z256_point_mul_generator(&P, k); // 这个函数要粗力度并行，这要怎么做？
+	sm2_z256_point_mul_generator(&P, k);
 	sm2_z256_point_get_xy(&P, x1, NULL);
 
 	return 1;
 }
 
-// 实际上这里只有一次mod n的乘法，用barret就可以了
 int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t x1[4], const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT R;
-	uint64_t e[4];
-	uint64_t r[4];
-	uint64_t s[4];
-
-	const uint64_t *order = sm2_z256_order();
+	sm2_z256_t e;
+	sm2_z256_t r;
+	sm2_z256_t s;
 
 	// e = H(M)
 	sm2_z256_from_bytes(e, dgst);
-	if (sm2_z256_cmp(e, order) >= 0) {
-		sm2_z256_sub(e, e, order);
+	if (sm2_z256_cmp(e, sm2_z256_order()) >= 0) {
+		sm2_z256_sub(e, e, sm2_z256_order());
 	}
 
 	// r = e + x1 (mod n)
@@ -165,8 +146,6 @@ int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t
 // s = (k - r * d)/(1 + d) = (k +r - r * d - r)/(1 + d) = (k + r - r(1 +d))/(1 + d) = (k + r)/(1 + d) - r
 //	= -r + (k + r)*(1 + d)^-1
 //	= -r + (k + r) * d'
-
-// 这个函数是我们真正要调用的，甚至可以替代原来的函数
 int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT R;
@@ -369,241 +348,374 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	return 1;
 }
 
-static int all_zero(const uint8_t *buf, size_t len)
+int sm2_signature_to_der(const SM2_SIGNATURE *sig, uint8_t **out, size_t *outlen)
 {
-	size_t i;
-	for (i = 0; i < len; i++) {
-		if (buf[i]) {
-			return 0;
-		}
+	size_t len = 0;
+	if (!sig) {
+		return 0;
+	}
+	if (asn1_integer_to_der(sig->r, 32, NULL, &len) != 1
+		|| asn1_integer_to_der(sig->s, 32, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_integer_to_der(sig->r, 32, out, outlen) != 1
+		|| asn1_integer_to_der(sig->s, 32, out, outlen) != 1) {
+		error_print();
+		return -1;
 	}
 	return 1;
 }
 
-int sm2_do_encrypt_pre_compute(uint64_t k[4], uint8_t C1[64])
+int sm2_signature_from_der(SM2_SIGNATURE *sig, const uint8_t **in, size_t *inlen)
 {
-	SM2_Z256_POINT P;
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *r;
+	size_t rlen;
+	const uint8_t *s;
+	size_t slen;
 
-	// rand k in [1, n - 1]
-	do {
-		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
-			error_print();
-			return -1;
-		}
-	} while (sm2_z256_is_zero(k));
-
-	// output C1 = k * G = (x1, y1)
-	sm2_z256_point_mul_generator(&P, k);
-	sm2_z256_point_to_bytes(&P, C1);
-
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_integer_from_der(&r, &rlen, &d, &dlen) != 1
+		|| asn1_integer_from_der(&s, &slen, &d, &dlen) != 1
+		|| asn1_length_le(rlen, 32) != 1
+		|| asn1_length_le(slen, 32) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(sig, 0, sizeof(*sig));
+	memcpy(sig->r + 32 - rlen, r, rlen);
+	memcpy(sig->s + 32 - slen, s, slen);
 	return 1;
 }
 
-// 和签名不一样，加密的时候要生成 (k, (x1, y1)) ，也就是y坐标也是需要的
-// 其中k是要参与计算的，但是 (x1, y1) 不参与计算，输出为 bytes 就可以了
-int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
+int sm2_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
 {
-	sm2_z256_t k;
-	SM2_Z256_POINT _P, *P = &_P;
-	SM2_Z256_POINT _C1, *C1 = &_C1;
-	SM2_Z256_POINT _kP, *kP = &_kP;
-	uint8_t x2y2[64];
-	SM3_CTX sm3_ctx;
+	SM2_SIGNATURE sig;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	if (sm2_signature_from_der(&sig, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_bytes(fp, fmt, ind, "r", sig.r, 32);
+	format_bytes(fp, fmt, ind, "s", sig.s, 32);
+	return 1;
+}
 
-	if (!(SM2_MIN_PLAINTEXT_SIZE <= inlen && inlen <= SM2_MAX_PLAINTEXT_SIZE)) {
+int sm2_sign(const SM2_KEY *key, const uint8_t dgst[32], uint8_t *sigbuf, size_t *siglen)
+{
+	SM2_SIGNATURE sig;
+
+	if (!key || !dgst || !sigbuf || !siglen) {
 		error_print();
 		return -1;
 	}
 
-	sm2_z256_point_from_bytes(P, (uint8_t *)&key->public_key);
-
-	// S = h * P, check S != O
-	// for sm2 curve, h == 1 and S == P
-	// SM2_POINT can not present point at infinity, do do nothing here
-
-retry:
-	// rand k in [1, n - 1]
-	// TODO: set rand_bytes output for testing		
-	do {
-		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
-			error_print();
-			return -1;
-		}
-	} while (sm2_z256_is_zero(k));	//sm2_bn_print(stderr, 0, 4, "k", k);
-
-	// output C1 = k * G = (x1, y1)
-	sm2_z256_point_mul_generator(C1, k);
-	sm2_z256_point_to_bytes(C1, (uint8_t *)&out->point);
-
-	// k * P = (x2, y2)
-	sm2_z256_point_mul(kP, k, P);
-	sm2_z256_point_to_bytes(kP, x2y2);
-
-	// t = KDF(x2 || y2, inlen)
-	sm2_kdf(x2y2, 64, inlen, out->ciphertext);
-
-	// if t is all zero, retry
-	if (all_zero(out->ciphertext, inlen)) {
-		goto retry;
-	}
-
-	// output C2 = M xor t
-	gmssl_memxor(out->ciphertext, out->ciphertext, in, inlen);
-	out->ciphertext_size = (uint32_t)inlen;
-
-	// output C3 = Hash(x2 || m || y2)
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, x2y2, 32);
-	sm3_update(&sm3_ctx, in, inlen);
-	sm3_update(&sm3_ctx, x2y2 + 32, 32);
-	sm3_finish(&sm3_ctx, out->hash);
-
-	gmssl_secure_clear(k, sizeof(k));
-	gmssl_secure_clear(kP, sizeof(SM2_Z256_POINT));
-	gmssl_secure_clear(x2y2, sizeof(x2y2));
-	return 1;
-}
-
-int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, SM2_CIPHERTEXT *out)
-{
-	unsigned int trys = 200;
-	sm2_z256_t k;
-	SM2_Z256_POINT _P, *P = &_P;
-	SM2_Z256_POINT _C1, *C1 = &_C1;
-	SM2_Z256_POINT _kP, *kP = &_kP;
-	uint8_t x2y2[64];
-	SM3_CTX sm3_ctx;
-
-	if (!(SM2_MIN_PLAINTEXT_SIZE <= inlen && inlen <= SM2_MAX_PLAINTEXT_SIZE)) {
+	if (sm2_do_sign(key, dgst, &sig) != 1) {
 		error_print();
 		return -1;
 	}
 
-	switch (point_size) {
-	case SM2_ciphertext_compact_point_size:
-	case SM2_ciphertext_typical_point_size:
-	case SM2_ciphertext_max_point_size:
+	*siglen = 0;
+	if (sm2_signature_to_der(&sig, &sigbuf, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_sign_fixlen(const SM2_KEY *key, const uint8_t dgst[32], size_t siglen, uint8_t *sig)
+{
+	unsigned int trys = 200; // 200 trys is engouh
+	uint8_t buf[SM2_MAX_SIGNATURE_SIZE];
+	size_t len;
+
+	switch (siglen) {
+	case SM2_signature_compact_size:
+	case SM2_signature_typical_size:
+	case SM2_signature_max_size:
 		break;
 	default:
 		error_print();
 		return -1;
 	}
 
-	sm2_z256_point_from_bytes(P, (uint8_t *)&key->public_key);
-
-	// S = h * P, check S != O
-	// for sm2 curve, h == 1 and S == P
-	// SM2_POINT can not present point at infinity, do do nothing here
-
-retry:
-	// rand k in [1, n - 1]
-	do {
-		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
+	while (trys--) {
+		if (sm2_sign(key, dgst, buf, &len) != 1) {
 			error_print();
 			return -1;
 		}
-	} while (sm2_z256_is_zero(k));	//sm2_bn_print(stderr, 0, 4, "k", k);
-
-	// output C1 = k * G = (x1, y1)
-	sm2_z256_point_mul_generator(C1, k);
-	sm2_z256_point_to_bytes(C1, (uint8_t *)&out->point);
-
-	// check fixlen
-	if (trys) {
-		size_t len = 0;
-		asn1_integer_to_der(out->point.x, 32, NULL, &len);
-		asn1_integer_to_der(out->point.y, 32, NULL, &len);
-		if (len != point_size) {
-			trys--;
-			goto retry;
+		if (len == siglen) {
+			memcpy(sig, buf, len);
+			return 1;
 		}
-	} else {
-		gmssl_secure_clear(k, sizeof(k));
+	}
+
+	// might caused by bad randomness
+	error_print();
+	return -1;
+}
+
+int sm2_verify(const SM2_KEY *key, const uint8_t dgst[32], const uint8_t *sigbuf, size_t siglen)
+{
+	SM2_SIGNATURE sig;
+
+	if (!key || !dgst || !sigbuf || !siglen) {
 		error_print();
 		return -1;
 	}
 
-	// k * P = (x2, y2)
-	sm2_z256_point_mul(kP, k, P);
-	sm2_z256_point_to_bytes(kP, x2y2);
-
-	// t = KDF(x2 || y2, inlen)
-	sm2_kdf(x2y2, 64, inlen, out->ciphertext);
-
-	// if t is all zero, retry
-	if (all_zero(out->ciphertext, inlen)) {
-		goto retry;
+	if (sm2_signature_from_der(&sig, &sigbuf, &siglen) != 1
+		|| asn1_length_is_zero(siglen) != 1) {
+		error_print();
+		return -1;
 	}
-
-	// output C2 = M xor t
-	gmssl_memxor(out->ciphertext, out->ciphertext, in, inlen);
-	out->ciphertext_size = (uint32_t)inlen;
-
-	// output C3 = Hash(x2 || m || y2)
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, x2y2, 32);
-	sm3_update(&sm3_ctx, in, inlen);
-	sm3_update(&sm3_ctx, x2y2 + 32, 32);
-	sm3_finish(&sm3_ctx, out->hash);
-
-	gmssl_secure_clear(k, sizeof(k));
-	gmssl_secure_clear(kP, sizeof(SM2_Z256_POINT));
-	gmssl_secure_clear(x2y2, sizeof(x2y2));
+	if (sm2_do_verify(key, dgst, &sig) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
-int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
+int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t idlen)
 {
-	int ret = -1;
-	sm2_z256_t d;
-	SM2_Z256_POINT _C1, *C1 = &_C1;
-	uint8_t x2y2[64];
-	SM3_CTX sm3_ctx;
-	uint8_t hash[32];
+	SM3_CTX ctx;
+	uint8_t zin[18 + 32 * 6] = {
+		0x00, 0x80,
+		0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,
+		0xFF,0xFF,0xFF,0xFE,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+		0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFC,
+		0x28,0xE9,0xFA,0x9E,0x9D,0x9F,0x5E,0x34,0x4D,0x5A,0x9E,0x4B,0xCF,0x65,0x09,0xA7,
+		0xF3,0x97,0x89,0xF5,0x15,0xAB,0x8F,0x92,0xDD,0xBC,0xBD,0x41,0x4D,0x94,0x0E,0x93,
+       		0x32,0xC4,0xAE,0x2C,0x1F,0x19,0x81,0x19,0x5F,0x99,0x04,0x46,0x6A,0x39,0xC9,0x94,
+		0x8F,0xE3,0x0B,0xBF,0xF2,0x66,0x0B,0xE1,0x71,0x5A,0x45,0x89,0x33,0x4C,0x74,0xC7,
+		0xBC,0x37,0x36,0xA2,0xF4,0xF6,0x77,0x9C,0x59,0xBD,0xCE,0xE3,0x6B,0x69,0x21,0x53,
+		0xD0,0xA9,0x87,0x7C,0xC6,0x2A,0x47,0x40,0x02,0xDF,0x32,0xE5,0x21,0x39,0xF0,0xA0,
+	};
 
-	// check C1 is on sm2 curve
-	sm2_z256_point_from_bytes(C1, (uint8_t *)&in->point);
-	if (!sm2_z256_point_is_on_curve(C1)) {
+	if (!z || !pub || !id) {
 		error_print();
 		return -1;
 	}
 
-	// check if S = h * C1 is point at infinity
-	// this will not happen, as SM2_POINT can not present point at infinity
+	memcpy(&zin[18 + 32 * 4], pub->x, 32);
+	memcpy(&zin[18 + 32 * 5], pub->y, 32);
 
-	// d * C1 = (x2, y2)
-	sm2_z256_from_bytes(d, key->private_key);
-	sm2_z256_point_mul(C1, d, C1);
+	sm3_init(&ctx);
+	if (strcmp(id, SM2_DEFAULT_ID) == 0) {
+		sm3_update(&ctx, zin, sizeof(zin));
+	} else {
+		uint8_t idbits[2];
+		idbits[0] = (uint8_t)(idlen >> 5);
+		idbits[1] = (uint8_t)(idlen << 3);
+		sm3_update(&ctx, idbits, 2);
+		sm3_update(&ctx, (uint8_t *)id, idlen);
+		sm3_update(&ctx, zin + 18, 32 * 6);
+	}
+	sm3_finish(&ctx, z);
+	return 1;
+}
 
-	// t = KDF(x2 || y2, klen) and check t is not all zeros
-	sm2_z256_point_to_bytes(C1, x2y2);
-	sm2_kdf(x2y2, 64, in->ciphertext_size, out);
-	if (all_zero(out, in->ciphertext_size)) {
-		error_print();
-		goto end;
+int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out)
+{
+	SM3_CTX ctx;
+	uint8_t counter_be[4];
+	uint8_t dgst[SM3_DIGEST_SIZE];
+	uint32_t counter = 1;
+	size_t len;
+
+	while (outlen) {
+		PUTU32(counter_be, counter);
+		counter++;
+
+		sm3_init(&ctx);
+		sm3_update(&ctx, in, inlen);
+		sm3_update(&ctx, counter_be, sizeof(counter_be));
+		sm3_finish(&ctx, dgst);
+
+		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;
+		memcpy(out, dgst, len);
+		out += len;
+		outlen -= len;
 	}
 
-	// M = C2 xor t
-	gmssl_memxor(out, out, in->ciphertext, in->ciphertext_size);
-	*outlen = in->ciphertext_size;
+	memset(&ctx, 0, sizeof(SM3_CTX));
+	memset(dgst, 0, sizeof(dgst));
+	return 1;
+}
 
-	// u = Hash(x2 || M || y2)
-	sm3_init(&sm3_ctx);
-	sm3_update(&sm3_ctx, x2y2, 32);
-	sm3_update(&sm3_ctx, out, in->ciphertext_size);
-	sm3_update(&sm3_ctx, x2y2 + 32, 32);
-	sm3_finish(&sm3_ctx, hash);
+int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
+{
+	size_t i;
 
-	// check if u == C3
-	if (memcmp(in->hash, hash, sizeof(hash)) != 0) {
+	if (!ctx || !key) {
 		error_print();
-		goto end;
+		return -1;
 	}
-	ret = 1;
+	ctx->key = *key;
 
-end:
-	gmssl_secure_clear(d, sizeof(d));
-	gmssl_secure_clear(C1, sizeof(SM2_Z256_POINT));
-	gmssl_secure_clear(x2y2, sizeof(x2y2));
-	return ret;
+	// d' = (d + 1)^-1 (mod n)
+	sm2_z256_from_bytes(ctx->sign_key, key->private_key);
+	sm2_z256_modn_add(ctx->sign_key, ctx->sign_key, sm2_z256_one());
+	sm2_z256_modn_inv(ctx->sign_key, ctx->sign_key);
+
+	sm3_init(&ctx->sm3_ctx);
+
+	if (id) {
+		uint8_t z[SM3_DIGEST_SIZE];
+		if (idlen <= 0 || idlen > SM2_MAX_ID_LENGTH) {
+			error_print();
+			return -1;
+		}
+		sm2_compute_z(z, &key->public_key, id, idlen);
+		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
+	}
+
+	ctx->inited_sm3_ctx = ctx->sm3_ctx;
+
+	// pre compute (k, x = [k]G.x)
+	for (i = 0; i < 32; i++) {
+		if (sm2_do_sign_pre_compute(ctx->pre_comp[i].k, ctx->pre_comp[i].x1) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	ctx->num_pre_comp = 32;
+
+	return 1;
+}
+
+int sm2_sign_ctx_reset(SM2_SIGN_CTX *ctx)
+{
+	ctx->sm3_ctx = ctx->inited_sm3_ctx;
+	return 1;
+}
+
+int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (data && datalen > 0) {
+		sm3_update(&ctx->sm3_ctx, data, datalen);
+	}
+	return 1;
+}
+
+int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
+{
+	uint8_t dgst[SM3_DIGEST_SIZE];
+	SM2_SIGNATURE signature;
+
+	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	sm3_finish(&ctx->sm3_ctx, dgst);
+
+	if (ctx->num_pre_comp == 0) {
+		size_t i;
+		for (i = 0; i < 32; i++) {
+			if (sm2_do_sign_pre_compute(ctx->pre_comp[i].k, ctx->pre_comp[i].x1) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		ctx->num_pre_comp = 32;
+	}
+
+	ctx->num_pre_comp--;
+	if (sm2_do_sign_fast_ex(ctx->sign_key,
+		ctx->pre_comp[ctx->num_pre_comp].k, ctx->pre_comp[ctx->num_pre_comp].x1,
+		dgst, &signature) != 1) {
+		error_print();
+		return -1;
+	}
+
+	*siglen = 0;
+	if (sm2_signature_to_der(&signature, &sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
+{
+	uint8_t dgst[SM3_DIGEST_SIZE];
+
+	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	sm3_finish(&ctx->sm3_ctx, dgst);
+	if (sm2_sign_fixlen(&ctx->key, dgst, siglen, sig) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
+{
+	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->key.public_key = key->public_key;
+
+	sm2_z256_point_from_bytes((SM2_Z256_POINT *)&ctx->public_key, (const uint8_t *)&key->public_key);
+
+	sm3_init(&ctx->sm3_ctx);
+
+	if (id) {
+		uint8_t z[SM3_DIGEST_SIZE];
+		if (idlen <= 0 || idlen > SM2_MAX_ID_LENGTH) {
+			error_print();
+			return -1;
+		}
+		sm2_compute_z(z, &key->public_key, id, idlen);
+		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
+	}
+
+	ctx->inited_sm3_ctx = ctx->sm3_ctx;
+
+	return 1;
+}
+
+int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (data && datalen > 0) {
+		sm3_update(&ctx->sm3_ctx, data, datalen);
+	}
+	return 1;
+}
+
+int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
+{
+	uint8_t dgst[SM3_DIGEST_SIZE];
+
+	if (!ctx || !sig) {
+		error_print();
+		return -1;
+	}
+	sm3_finish(&ctx->sm3_ctx, dgst);
+	if (sm2_verify(&ctx->key, dgst, sig, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }

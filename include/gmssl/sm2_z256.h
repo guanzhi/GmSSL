@@ -63,6 +63,7 @@ void sm2_z256_modn_sqr(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modn_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
 void sm2_z256_modn_inv(uint64_t r[4], const uint64_t a[4]);
 
+// 这些函数可能没有必要，因为mont几乎只需要用于modn_inv
 void sm2_z256_modn_to_mont(const uint64_t a[4], uint64_t r[4]);
 void sm2_z256_modn_from_mont(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
@@ -85,6 +86,7 @@ int  sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P);
 int  sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P);
 int  sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q); // 这个要声明一下，Jacobian坐标系上一个点有不同的表示
 void sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]);
+
 
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A);
 void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT *b);
@@ -127,7 +129,6 @@ enum {
 
 int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], int y_is_odd);
 int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t datalen, int y_is_odd);
-
 int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
 
 

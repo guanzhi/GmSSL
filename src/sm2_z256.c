@@ -1594,6 +1594,29 @@ void sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64])
 	sm2_z256_copy(P->Z, SM2_Z256_MODP_MONT_ONE);
 }
 
+int sm2_z256_point_set_xy(SM2_Z256_POINT *R, const sm2_z256_t x, const sm2_z256_t y)
+{
+	if (sm2_z256_cmp(x, sm2_z256_prime()) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	if (sm2_z256_cmp(y, sm2_z256_prime()) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	sm2_z256_modp_to_mont(x, R->X);
+	sm2_z256_modp_to_mont(y, R->Y);
+	sm2_z256_copy(R->Z, SM2_Z256_MODP_MONT_ONE);
+
+	if (sm2_z256_point_is_on_curve(R) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 void sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex)
 {
 	uint8_t bytes[64];
