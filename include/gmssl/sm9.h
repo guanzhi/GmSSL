@@ -169,7 +169,7 @@ typedef struct {
 
 const SM9_Z256_POINT *sm9_z256_generator(void);
 
-void sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2]);
+int  sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2]);
 int  sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P);
 void sm9_z256_point_set_infinity(SM9_Z256_POINT *R);
 void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y);

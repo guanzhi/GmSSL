@@ -729,30 +729,6 @@ void sm9_z256_modp_mont_inv(sm9_z256_t r, const sm9_z256_t a)
 	sm9_z256_modp_mont_pow(r, a, SM9_Z256_P_MINUS_TWO);
 }
 
-int sm9_z256_modp_from_hex(sm9_z256_t r, const char hex[64])
-{
-	if (sm9_z256_from_hex(r, hex) != 1) {
-		error_print();
-		return -1;
-	}
-	if (sm9_z256_cmp(r, SM9_Z256_P) >= 0) {
-		error_print();
-		return -1;
-	}
-	sm9_z256_modp_to_mont(r, r);
-	return 1;
-}
-
-void sm9_z256_modp_to_hex(const sm9_z256_t r, char hex[64])
-{
-	sm9_z256_t t;
-	sm9_z256_modp_from_mont(t, r);
-	int i;
-	for (i = 3; i >= 0; i--) {
-		(void)sprintf(hex + 16*(3-i), "%016llx", t[i]);
-	}
-}
-
 static const sm9_z256_fp2_t SM9_Z256_FP2_MONT_5U = {{0,0,0,0},{0xb9f2c1e8c8c71995, 0x125df8f246a377fc, 0x25e650d049188d1c, 0x43fffffed866f63}};
 
 
@@ -834,25 +810,45 @@ int sm9_z256_fp2_from_bytes(sm9_z256_fp2_t r, const uint8_t buf[64])
 
 int sm9_z256_fp2_from_hex(sm9_z256_fp2_t r, const char hex[129])
 {
-	if (sm9_z256_modp_from_hex(r[1], hex) != 1
-		|| sm9_z256_modp_from_hex(r[0], hex + 65) != 1) {
+	if (sm9_z256_from_hex(r[1], hex) != 1) {
 		error_print();
 		return -1;
 	}
+	if (sm9_z256_cmp(r[1], SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(r[1], r[1]);
+
 	/*
 	if (hex[64] != SM9_Z256_HEX_SEP) {
 		error_print();
 		return -1;
 	}
 	*/
+
+	if (sm9_z256_from_hex(r[0], hex + 65) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_cmp(r[0], SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(r[0], r[0]);
+
 	return 1;
 }
 
 void sm9_z256_fp2_to_hex(const sm9_z256_fp2_t a, char hex[129])
 {
-	sm9_z256_modp_to_hex(a[1], hex);
+	sm9_z256_t z;
+
+	sm9_z256_modp_from_mont(z, a[1]);
+	sm9_z256_to_hex(z, hex);
 	hex[64] = SM9_Z256_HEX_SEP;
-	sm9_z256_modp_to_hex(a[0], hex + 65);
+	sm9_z256_modp_from_mont(z, a[0]);
+	sm9_z256_to_hex(z, hex + 65);
 }
 
 void sm9_z256_fp2_add(sm9_z256_fp2_t r, const sm9_z256_fp2_t a, const sm9_z256_fp2_t b)
@@ -1744,13 +1740,33 @@ void sm9_z256_fp12_frobenius6(sm9_z256_fp12_t r, const sm9_z256_fp12_t x)
 	sm9_z256_fp4_copy(r[2], c);
 }
 
-
-
-void sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2])
+int sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[65 * 2])
 {
-	sm9_z256_modp_from_hex(R->X, hex);
-	sm9_z256_modp_from_hex(R->Y, hex + 65);
+	if (sm9_z256_from_hex(R->X, hex) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_cmp(R->X, SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(R->X, R->X);
+
+	// 检查分隔符
+
+	if (sm9_z256_from_hex(R->Y, hex + 65) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm9_z256_cmp(R->Y, SM9_Z256_P) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm9_z256_modp_to_mont(R->Y, R->Y);
+
 	sm9_z256_copy(R->Z, SM9_Z256_MODP_MONT_ONE);
+
+	return 1;
 }
 
 int sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P)
@@ -1765,9 +1781,6 @@ void sm9_z256_point_set_infinity(SM9_Z256_POINT *R)
 	sm9_z256_set_zero(R->Z);
 }
 
-// xy from this function are still mont
-// 这里应该把输出改为常规类型
-// 所有调用sm9_z256_point_get_xy的函数都应该处理这个问题			
 void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y)
 {
 	sm9_z256_t z_inv;
@@ -1785,10 +1798,10 @@ void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y)
 	}
 	sm9_z256_modp_mont_sqr(z_inv, z_inv);
 	sm9_z256_modp_mont_mul(x, P->X, z_inv);
-	sm9_z256_modp_from_mont(x, x); // 应该输出常规模式，但是有其他函数依赖这个mont输出
+	sm9_z256_modp_from_mont(x, x);
 	if (y) {
 		sm9_z256_modp_mont_mul(y, y, z_inv);
-		sm9_z256_modp_from_mont(y, y); // 应该输出常规模式，但是有其他函数依赖这个mont输出
+		sm9_z256_modp_from_mont(y, y);
 	}
 }
 
@@ -1872,6 +1885,7 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 	sm9_z256_t x;
 	sm9_z256_t y;
 
+	// FIXME: use full formula
 	sm9_z256_point_get_xy(Q, x, y);
 	sm9_z256_modp_to_mont(x, x);
 	sm9_z256_modp_to_mont(y, y);
@@ -2338,6 +2352,7 @@ void sm9_z256_eval_g_tangent(sm9_z256_fp12_t num, sm9_z256_fp12_t den,
 	sm9_z256_t x;
 	sm9_z256_t y;
 
+	// FIXME: use full formula
 	sm9_z256_point_get_xy(Q, x, y);
 	sm9_z256_modp_to_mont(x, x);
 	sm9_z256_modp_to_mont(y, y);
@@ -2386,6 +2401,7 @@ void sm9_z256_eval_g_line(sm9_z256_fp12_t num, sm9_z256_fp12_t den,
 	sm9_z256_t x;
 	sm9_z256_t y;
 
+	// FIXME: use full formula
 	sm9_z256_point_get_xy(Q, x, y);
 	sm9_z256_modp_to_mont(x, x);
 	sm9_z256_modp_to_mont(y, y);
