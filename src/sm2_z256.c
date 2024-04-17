@@ -274,7 +274,7 @@ void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4])
 	}
 }
 
-uint64_t sm2_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8])
+static uint64_t sm2_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8])
 {
 	uint64_t t, c = 0;
 
@@ -368,12 +368,14 @@ int sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t
 	return 1;
 }
 
-int sm2_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8])
+/*
+static int sm2_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8])
 {
 	format_print(fp, ind, fmt, "%s: %016llx%016llx%016llx%016llx%016llx%016llx%016llx%016llx\n",
 		label, a[7], a[6], a[5], a[4], a[3], a[2], a[1], a[0]);
 	return 1;
 }
+*/
 
 // GF(p)
 
@@ -673,6 +675,7 @@ int sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4])
 	return 1;
 }
 
+/*
 int sm2_z256_modp_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4])
 {
 	uint64_t r[4];
@@ -680,6 +683,7 @@ int sm2_z256_modp_mont_print(FILE *fp, int ind, int fmt, const char *label, cons
 	sm2_z256_print(fp, ind, fmt, label, r);
 	return 1;
 }
+*/
 
 // GF(n)
 
@@ -698,6 +702,7 @@ const uint64_t SM2_Z256_NEG_N[4] = {
 	0xac440bf6c62abedd, 0x8dfc2094de39fad4, 0x0000000000000000, 0x0000000100000000,
 };
 
+/*
 int sm2_z256_modn_rand(uint64_t r[4])
 {
 	if (sm2_z256_rand_range(r, SM2_Z256_N) != 1) {
@@ -706,6 +711,7 @@ int sm2_z256_modn_rand(uint64_t r[4])
 	}
 	return 1;
 }
+*/
 
 #ifndef ENABLE_SM2_Z256_ARMV8
 void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
@@ -938,6 +944,7 @@ void sm2_z256_modn_to_mont(const uint64_t a[4], uint64_t r[4])
 }
 #endif
 
+/*
 int sm2_z256_modn_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4])
 {
 	uint64_t r[4];
@@ -945,6 +952,7 @@ int sm2_z256_modn_mont_print(FILE *fp, int ind, int fmt, const char *label, cons
 	sm2_z256_print(fp, ind, fmt, label, r);
 	return 1;
 }
+*/
 
 
 // Jacobian Point with Montgomery coordinates
@@ -2004,6 +2012,7 @@ int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
+// 这个需要保留吗？似乎也没有必要保留
 int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
 {
 	return 1;

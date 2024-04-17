@@ -46,7 +46,7 @@ static int test_sm2_z256_rshift(void)
 	uint64_t b[4];
 	unsigned int i;
 
-	sm2_z256_modn_rand(a);
+	sm2_z256_rand_range(a, sm2_z256_order());
 
 	sm2_z256_rshift(r, a, 0);
 	sm2_z256_copy(b, a);
@@ -79,7 +79,7 @@ static int test_sm2_z256_modp_mont_sqrt(void)
 	int i;
 
 	for (i = 0; i < 6; i++) {
-		sm2_z256_modn_rand(a);
+		sm2_z256_rand_range(a, sm2_z256_order());
 		sm2_z256_modp_neg(neg_a, a);
 
 		sm2_z256_modp_to_mont(a, mont_a);

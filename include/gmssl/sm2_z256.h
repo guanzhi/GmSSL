@@ -23,30 +23,28 @@ extern "C" {
 
 typedef uint64_t sm2_z256_t[4];
 
-int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4]);
+int  sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4]);
 void sm2_z256_copy(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_copy_conditional(uint64_t dst[4], const uint64_t src[4], uint64_t move);
 void sm2_z256_from_bytes(uint64_t r[4], const uint8_t in[32]);
 void sm2_z256_to_bytes(const uint64_t a[4], uint8_t out[32]);
-int sm2_z256_cmp(const uint64_t a[4], const uint64_t b[4]);
+int  sm2_z256_cmp(const uint64_t a[4], const uint64_t b[4]);
 uint64_t sm2_z256_is_zero(const uint64_t a[4]);
 uint64_t sm2_z256_equ(const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_rshift(uint64_t r[4], const uint64_t a[4], unsigned int nbits);
 uint64_t sm2_z256_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 uint64_t sm2_z256_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4]);
-uint64_t sm2_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8]);
-int sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i);
+int  sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i);
 void sm2_z256_from_hex(uint64_t r[4], const char *hex);
-int sm2_z256_equ_hex(const uint64_t a[4], const char *hex);
-int sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
-int sm2_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8]);
+int  sm2_z256_equ_hex(const uint64_t a[4], const char *hex);
+int  sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
 
 void sm2_z256_modp_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modp_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modp_neg(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_dbl(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_tri(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
+void sm2_z256_modp_neg(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_haf(uint64_t r[4], const uint64_t a[4]);
 
 void sm2_z256_modp_to_mont(const uint64_t a[4], uint64_t r[4]);
@@ -55,10 +53,8 @@ void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 void sm2_z256_modp_mont_sqr(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
 void sm2_z256_modp_mont_inv(uint64_t r[4], const uint64_t a[4]);
-int sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4]);
-int sm2_z256_modp_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
+int  sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4]);
 
-int sm2_z256_modn_rand(uint64_t r[4]);
 void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_modn_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_modn_neg(uint64_t r[4], const uint64_t a[4]);
@@ -73,7 +69,6 @@ void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 void sm2_z256_modn_mont_sqr(uint64_t r[4], const uint64_t a[4]);
 void sm2_z256_modn_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
 void sm2_z256_modn_mont_inv(uint64_t r[4], const uint64_t a[4]);
-int sm2_z256_modn_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
 
 
 typedef struct {
@@ -83,12 +78,12 @@ typedef struct {
 } SM2_Z256_POINT;
 
 void sm2_z256_point_set_infinity(SM2_Z256_POINT *P);
-void sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]);
+void sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]); // 检查is_on_curve			
 void sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64]);
 
-int sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P);
-int sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P);
-int sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q);
+int  sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P);
+int  sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P);
+int  sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q); // 这个要声明一下，Jacobian坐标系上一个点有不同的表示
 void sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]);
 
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A);
@@ -96,7 +91,7 @@ void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z2
 void sm2_z256_point_neg(SM2_Z256_POINT *R, const SM2_Z256_POINT *P);
 void sm2_z256_point_sub(SM2_Z256_POINT *R, const SM2_Z256_POINT *A, const SM2_Z256_POINT *B);
 void sm2_z256_point_get_affine(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]);
-int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P);
+int  sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P);
 
 
 typedef struct {
@@ -135,8 +130,8 @@ int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t data
 
 int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
 
-// 这些函数的问题是依赖于sm2.h 这些接口的，最好是不要有这些依赖
-// 这些接口和底层的SM2曲线实现是相关的
+
+// 这些函数还是放到sm2_sign里面好了，反正这个依赖关系是处理不了的
 int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4]);
 int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t x1[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);

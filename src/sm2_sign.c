@@ -56,7 +56,7 @@ retry:
 
 	// rand k in [1, n - 1]
 	do {
-		if (sm2_z256_modn_rand(k) != 1) {
+		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -116,7 +116,7 @@ int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4])
 
 	// rand k in [1, n - 1]
 	do {
-		if (sm2_z256_modn_rand(k) != 1) {
+		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -188,7 +188,7 @@ int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE 
 
 	// rand k in [1, n - 1]
 	do {
-		if (sm2_z256_modn_rand(k) != 1) {
+		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -386,7 +386,7 @@ int sm2_do_encrypt_pre_compute(uint64_t k[4], uint8_t C1[64])
 
 	// rand k in [1, n - 1]
 	do {
-		if (sm2_z256_modn_rand(k) != 1) {
+		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -425,7 +425,7 @@ retry:
 	// rand k in [1, n - 1]
 	// TODO: set rand_bytes output for testing		
 	do {
-		if (sm2_z256_modn_rand(k) != 1) {
+		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
@@ -498,7 +498,7 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 retry:
 	// rand k in [1, n - 1]
 	do {
-		if (sm2_z256_modn_rand(k) != 1) {
+		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
