@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <gmssl/error.h>
 
-int OPENSSL_hexchar2int(unsigned char c)
+static int OPENSSL_hexchar2int(unsigned char c)
 {
     switch (c) {
     case '0':
@@ -55,7 +55,7 @@ int OPENSSL_hexchar2int(unsigned char c)
     return -1;
 }
 
-unsigned char *OPENSSL_hexstr2buf(const char *str, size_t *len)
+static unsigned char *OPENSSL_hexstr2buf(const char *str, size_t *len)
 {
     unsigned char *hexbuf, *q;
     unsigned char ch, cl;
