@@ -134,8 +134,8 @@ set(tests
 	sm4
 	sm3
 	sm4_sm3_hmac
-#	sm2
 	sm2_z256
+	sm2_key
 	sm2_sign
 	sm2_enc
 	sm9
