@@ -20,36 +20,30 @@
 #include <gmssl/endian.h>
 
 
-int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out)
+int sm2_do_ecdh(const SM2_KEY *key, const SM2_Z256_POINT *peer_public, SM2_Z256_POINT *out)
 {
-	/*
-	if (sm2_point_is_on_curve(peer_public) != 1) {
-		error_print();
-		return -1;
-	}
-	*/
-	if (sm2_point_mul(out, key->private_key, peer_public) != 1) {
-		error_print();
-		return -1;
-	}
+	sm2_z256_point_mul(out, key->private_key, peer_public);
 	return 1;
 }
 
-int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out)
+// FIXME: 输入(octets)和输出(bytes)格式不一致		
+int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, uint8_t out[64])
 {
-	SM2_POINT point;
+	SM2_Z256_POINT point;
 
 	if (!key || !peer_public || !peer_public_len || !out) {
 		error_print();
 		return -1;
 	}
-	if (sm2_point_from_octets(&point, peer_public, peer_public_len) != 1) {
+	if (sm2_z256_point_from_octets(&point, peer_public, peer_public_len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm2_do_ecdh(key, &point, out) != 1) {
+	if (sm2_do_ecdh(key, &point, &point) != 1) {
 		error_print();
 		return -1;
 	}
+
+	sm2_z256_point_to_bytes(&point, out);
 	return 1;
 }

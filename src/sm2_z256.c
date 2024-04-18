@@ -73,6 +73,14 @@ const uint64_t *sm2_z256_one(void) {
 	return &SM2_Z256_ONE[0];
 }
 
+void sm2_z256_set_one(sm2_z256_t r)
+{
+	r[0] = 1;
+	r[1] = 0;
+	r[2] = 0;
+	r[3] = 0;
+}
+
 void sm2_z256_set_zero(uint64_t a[4])
 {
 	a[0] = a[1] = a[2] = a[3] = 0;
@@ -944,16 +952,6 @@ void sm2_z256_modn_to_mont(const uint64_t a[4], uint64_t r[4])
 }
 #endif
 
-/*
-int sm2_z256_modn_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4])
-{
-	uint64_t r[4];
-	sm2_z256_modn_from_mont(r, a);
-	sm2_z256_print(fp, ind, fmt, label, r);
-	return 1;
-}
-*/
-
 
 // Jacobian Point with Montgomery coordinates
 
@@ -1024,8 +1022,7 @@ int sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P)
 	}
 
 	if (sm2_z256_cmp(t0, t1) != 0) {
-		error_print();
-		return -1;
+		return 0;
 	}
 	return 1;
 }
@@ -1585,13 +1582,28 @@ void sm2_z256_point_mul_sum(SM2_Z256_POINT *R, const uint64_t t[4], const SM2_Z2
 	sm2_z256_point_add(R, R, &Q);
 }
 
-void sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64])
+// point_at_infinity can not be encoded/decoded to/from bytes
+int sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64])
 {
 	sm2_z256_from_bytes(P->X, in);
+	if (sm2_z256_cmp(P->X, sm2_z256_prime()) >= 0) {
+		error_print();
+		return -1;
+	}
 	sm2_z256_from_bytes(P->Y, in + 32);
+	if (sm2_z256_cmp(P->Y, sm2_z256_prime()) >= 0) {
+		error_print();
+		return -1;
+	}
 	sm2_z256_modp_to_mont(P->X, P->X);
 	sm2_z256_modp_to_mont(P->Y, P->Y);
 	sm2_z256_copy(P->Z, SM2_Z256_MODP_MONT_ONE);
+
+	if (sm2_z256_point_is_on_curve(P) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int sm2_z256_point_set_xy(SM2_Z256_POINT *R, const sm2_z256_t x, const sm2_z256_t y)
@@ -1649,7 +1661,6 @@ int sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q)
 	sm2_z256_modp_mont_mul(V1, P->X, Z2);
 	sm2_z256_modp_mont_mul(V2, Q->X, Z1);
 	if (sm2_z256_cmp(V1, V2) != 0) {
-		error_print();
 		return 0;
 	}
 
@@ -1659,7 +1670,6 @@ int sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q)
 	sm2_z256_modp_mont_mul(V1, P->Y, Z2);
 	sm2_z256_modp_mont_mul(V2, Q->Y, Z1);
 	if (sm2_z256_cmp(V1, V2) != 0) {
-		error_print();
 		return 0;
 	}
 
@@ -1687,25 +1697,25 @@ int sm2_z256_is_odd(const uint64_t a[4])
 	return a[0] & 0x01;
 }
 
+// return 0 if no point for given x coordinate
 int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], int y_is_odd)
 {
+	// mont(3), i.e. mont(-b)
+	const uint64_t SM2_Z256_MODP_MONT_THREE[4] = {
+		0x0000000000000003, 0x00000002fffffffd, 0x0000000000000000, 0x0000000300000000
+	};
+
 	uint64_t x[4];
 	uint64_t y_sqr[4];
 	uint64_t y[4];
 	int ret;
-
-	uint64_t SM2_Z256_MODP_MONT_THREE[4] = { 3,0,0,0 };
-
-	sm2_z256_modp_to_mont(SM2_Z256_MODP_MONT_THREE, SM2_Z256_MODP_MONT_THREE);
 
 	sm2_z256_from_bytes(x, x_bytes);
 	if (sm2_z256_cmp(x, SM2_Z256_P) >= 0) {
 		error_print();
 		return -1;
 	}
-
 	sm2_z256_modp_to_mont(x, x);
-
 	sm2_z256_copy(P->X, x);
 
 	// y^2 = x^3 - 3x + b = (x^2 - 3)*x + b
@@ -1773,163 +1783,39 @@ int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t data
 	return 1;
 }
 
-int sm2_point_is_on_curve(const SM2_POINT *P)
+// return -1 given point_at_infinity
+int sm2_z256_point_to_compressed_octets(const SM2_Z256_POINT *P, uint8_t out[33])
 {
-	SM2_Z256_POINT T;
-	sm2_z256_point_from_bytes(&T, (const uint8_t *)P);
+	sm2_z256_t x;
+	sm2_z256_t y;
 
-	if (sm2_z256_point_is_on_curve(&T) == 1) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-// 应该测试这个函数
-int sm2_point_is_at_infinity(const SM2_POINT *P)
-{
-	SM2_Z256_POINT T;
-
-	sm2_z256_point_from_bytes(&T, (const uint8_t *)P);
-	if (sm2_z256_point_is_at_infinity(&T)) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y_is_odd)
-{
-
-	SM2_Z256_POINT T;
-
-	if (sm2_z256_point_from_x_bytes(&T, x, y_is_odd) != 1) {
+	if (sm2_z256_point_is_at_infinity(P)) {
 		error_print();
 		return -1;
 	}
 
-	sm2_z256_point_to_bytes(&T, (uint8_t *)P);
-	return 1;
-}
+	sm2_z256_point_get_xy(P, x, y);
 
-int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32])
-{
-	memcpy(P->x, x, 32);
-	memcpy(P->y, y, 32);
-	return sm2_point_is_on_curve(P);
-}
-
-int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
-{
-	SM2_Z256_POINT P_;
-	SM2_Z256_POINT Q_;
-
-	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
-	sm2_z256_point_from_bytes(&Q_, (uint8_t *)Q);
-	sm2_z256_point_add(&P_, &P_, &Q_);
-	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
+	if (sm2_z256_is_odd(y)) {
+		out[0] = SM2_point_compressed_y_odd;
+	} else {
+		out[0] = SM2_point_compressed_y_even;
+	}
+	sm2_z256_to_bytes(y, out + 1);
 
 	return 1;
 }
 
-int sm2_point_sub(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q)
+// return -1 given point_at_infinity
+int sm2_z256_point_to_uncompressed_octets(const SM2_Z256_POINT *P, uint8_t out[65])
 {
-	SM2_Z256_POINT P_;
-	SM2_Z256_POINT Q_;
-
-	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
-	sm2_z256_point_from_bytes(&Q_, (uint8_t *)Q);
-	sm2_z256_point_sub(&P_, &P_, &Q_);
-	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
-
+	if (sm2_z256_point_is_at_infinity(P)) {
+		error_print();
+		return -1;
+	}
+	out[0] = SM2_point_uncompressed;
+	sm2_z256_point_to_bytes(P, out + 1);
 	return 1;
-}
-
-int sm2_point_neg(SM2_POINT *R, const SM2_POINT *P)
-{
-	SM2_Z256_POINT P_;
-
-	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
-	sm2_z256_point_neg(&P_, &P_);
-	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
-
-	return 1;
-}
-
-int sm2_point_dbl(SM2_POINT *R, const SM2_POINT *P)
-{
-	SM2_Z256_POINT P_;
-
-	sm2_z256_point_from_bytes(&P_, (uint8_t *)P);
-	sm2_z256_point_dbl(&P_, &P_);
-	sm2_z256_point_to_bytes(&P_, (uint8_t *)R);
-
-	return 1;
-}
-
-int sm2_point_mul(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P)
-{
-	uint64_t _k[4];
-	SM2_Z256_POINT _P;
-
-	sm2_z256_from_bytes(_k, k);
-	sm2_z256_point_from_bytes(&_P, (uint8_t *)P);
-	sm2_z256_point_mul(&_P, _k, &_P);
-	sm2_z256_point_to_bytes(&_P, (uint8_t *)R);
-
-	memset(_k, 0, sizeof(_k));
-	return 1;
-}
-
-int sm2_point_mul_generator(SM2_POINT *R, const uint8_t k[32])
-{
-	uint64_t _k[4];
-	SM2_Z256_POINT _R;
-
-	sm2_z256_from_bytes(_k, k);
-	sm2_z256_point_mul_generator(&_R, _k);
-	sm2_z256_point_to_bytes(&_R, (uint8_t *)R);
-
-	memset(_k, 0, sizeof(_k));
-	return 1;
-}
-
-int sm2_point_mul_sum(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P, const uint8_t s[32])
-{
-	uint64_t _k[4];
-	SM2_Z256_POINT _P;
-	uint64_t _s[4];
-
-	sm2_z256_from_bytes(_k, k);
-	sm2_z256_point_from_bytes(&_P, (uint8_t *)P);
-	sm2_z256_from_bytes(_s, s);
-	sm2_z256_point_mul_sum(&_P, _k, &_P, _s);
-	sm2_z256_point_to_bytes(&_P, (uint8_t *)R);
-
-	memset(_k, 0, sizeof(_k));
-	memset(_s, 0, sizeof(_s));
-	return 1;
-}
-
-int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P)
-{
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	format_bytes(fp, fmt, ind, "x", P->x, 32);
-	format_bytes(fp, fmt, ind, "y", P->y, 32);
-	return 1;
-}
-
-void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33])
-{
-	*out++ = (P->y[31] & 0x01) ? 0x03 : 0x02;
-	memcpy(out, P->x, 32);
-}
-
-void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65])
-{
-	*out++ = 0x04;
-	memcpy(out, P, 64);
 }
 
 int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen)
@@ -1981,32 +1867,16 @@ int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inle
 	return 1;
 }
 
-int sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen)
-{
-	if ((*in == 0x02 || *in == 0x03) && inlen == 33) {
-		if (sm2_point_from_x(P, in + 1, *in) != 1) {
-			error_print();
-			return -1;
-		}
-	} else if (*in == 0x04 && inlen == 65) {
-		if (sm2_point_from_xy(P, in + 1, in + 33) != 1) {
-			error_print();
-			return -1;
-		}
-	} else {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen)
+int sm2_z256_point_to_der(const SM2_Z256_POINT *P, uint8_t **out, size_t *outlen)
 {
 	uint8_t octets[65];
 	if (!P) {
 		return 0;
 	}
-	sm2_point_to_uncompressed_octets(P, octets);
+	if (sm2_z256_point_to_uncompressed_octets(P, octets) != 1) {
+		error_print();
+		return -1;
+	}
 	if (asn1_octet_string_to_der(octets, sizeof(octets), out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -2014,7 +1884,7 @@ int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
-int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen)
+int sm2_z256_point_from_der(SM2_Z256_POINT *P, const uint8_t **in, size_t *inlen)
 {
 	int ret;
 	const uint8_t *d;
@@ -2028,16 +1898,9 @@ int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen)
 		error_print();
 		return -1;
 	}
-	if (sm2_point_from_octets(P, d, dlen) != 1) {
+	if (sm2_z256_point_from_octets(P, d, dlen) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
-
-// 这个需要保留吗？似乎也没有必要保留
-int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen)
-{
-	return 1;
-}
-

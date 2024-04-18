@@ -9,6 +9,8 @@
 /demos/scripts/*.bin
 /demos/scripts/*.sig
 
+/examples/*
+
 # Object files
 *.o
 *.obj
@@ -40,4 +42,7 @@
 .#*
 \#*#
 *~
+
+/docs/*
+
 

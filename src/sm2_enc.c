@@ -31,7 +31,7 @@ static int all_zero(const uint8_t *buf, size_t len)
 	return 1;
 }
 
-int sm2_do_encrypt_pre_compute(uint64_t k[4], uint8_t C1[64])
+int sm2_do_encrypt_pre_compute(sm2_z256_t k, uint8_t C1[64])
 {
 	SM2_Z256_POINT P;
 
@@ -50,14 +50,13 @@ int sm2_do_encrypt_pre_compute(uint64_t k[4], uint8_t C1[64])
 	return 1;
 }
 
-// 和签名不一样，加密的时候要生成 (k, (x1, y1)) ，也就是y坐标也是需要的
-// 其中k是要参与计算的，但是 (x1, y1) 不参与计算，输出为 bytes 就可以了
+
+// key->public_key will not be point_at_infinity when decoded from_bytes/octets/der
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)
 {
 	sm2_z256_t k;
-	SM2_Z256_POINT _P, *P = &_P;
-	SM2_Z256_POINT _C1, *C1 = &_C1;
-	SM2_Z256_POINT _kP, *kP = &_kP;
+	SM2_Z256_POINT C1;
+	SM2_Z256_POINT kP;
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 
@@ -66,29 +65,22 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 		return -1;
 	}
 
-	sm2_z256_point_from_bytes(P, (uint8_t *)&key->public_key);
-
-	// S = h * P, check S != O
-	// for sm2 curve, h == 1 and S == P
-	// SM2_POINT can not present point at infinity, do do nothing here
-
 retry:
 	// rand k in [1, n - 1]
-	// TODO: set rand_bytes output for testing		
 	do {
 		if (sm2_z256_rand_range(k, sm2_z256_order()) != 1) {
 			error_print();
 			return -1;
 		}
-	} while (sm2_z256_is_zero(k));	//sm2_bn_print(stderr, 0, 4, "k", k);
+	} while (sm2_z256_is_zero(k));
 
 	// output C1 = k * G = (x1, y1)
-	sm2_z256_point_mul_generator(C1, k);
-	sm2_z256_point_to_bytes(C1, (uint8_t *)&out->point);
+	sm2_z256_point_mul_generator(&C1, k);
+	sm2_z256_point_to_bytes(&C1, (uint8_t *)&out->point);
 
 	// k * P = (x2, y2)
-	sm2_z256_point_mul(kP, k, P);
-	sm2_z256_point_to_bytes(kP, x2y2);
+	sm2_z256_point_mul(&kP, k, &key->public_key);
+	sm2_z256_point_to_bytes(&kP, x2y2);
 
 	// t = KDF(x2 || y2, inlen)
 	sm2_kdf(x2y2, 64, inlen, out->ciphertext);
@@ -110,7 +102,7 @@ retry:
 	sm3_finish(&sm3_ctx, out->hash);
 
 	gmssl_secure_clear(k, sizeof(k));
-	gmssl_secure_clear(kP, sizeof(SM2_Z256_POINT));
+	gmssl_secure_clear(&kP, sizeof(SM2_Z256_POINT));
 	gmssl_secure_clear(x2y2, sizeof(x2y2));
 	return 1;
 }
@@ -119,9 +111,8 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 {
 	unsigned int trys = 200;
 	sm2_z256_t k;
-	SM2_Z256_POINT _P, *P = &_P;
-	SM2_Z256_POINT _C1, *C1 = &_C1;
-	SM2_Z256_POINT _kP, *kP = &_kP;
+	SM2_Z256_POINT C1;
+	SM2_Z256_POINT kP;
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 
@@ -140,12 +131,6 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 		return -1;
 	}
 
-	sm2_z256_point_from_bytes(P, (uint8_t *)&key->public_key);
-
-	// S = h * P, check S != O
-	// for sm2 curve, h == 1 and S == P
-	// SM2_POINT can not present point at infinity, do do nothing here
-
 retry:
 	// rand k in [1, n - 1]
 	do {
@@ -153,11 +138,11 @@ retry:
 			error_print();
 			return -1;
 		}
-	} while (sm2_z256_is_zero(k));	//sm2_bn_print(stderr, 0, 4, "k", k);
+	} while (sm2_z256_is_zero(k));
 
 	// output C1 = k * G = (x1, y1)
-	sm2_z256_point_mul_generator(C1, k);
-	sm2_z256_point_to_bytes(C1, (uint8_t *)&out->point);
+	sm2_z256_point_mul_generator(&C1, k);
+	sm2_z256_point_to_bytes(&C1, (uint8_t *)&out->point);
 
 	// check fixlen
 	if (trys) {
@@ -175,8 +160,8 @@ retry:
 	}
 
 	// k * P = (x2, y2)
-	sm2_z256_point_mul(kP, k, P);
-	sm2_z256_point_to_bytes(kP, x2y2);
+	sm2_z256_point_mul(&kP, k, &key->public_key);
+	sm2_z256_point_to_bytes(&kP, x2y2);
 
 	// t = KDF(x2 || y2, inlen)
 	sm2_kdf(x2y2, 64, inlen, out->ciphertext);
@@ -198,7 +183,7 @@ retry:
 	sm3_finish(&sm3_ctx, out->hash);
 
 	gmssl_secure_clear(k, sizeof(k));
-	gmssl_secure_clear(kP, sizeof(SM2_Z256_POINT));
+	gmssl_secure_clear(&kP, sizeof(SM2_Z256_POINT));
 	gmssl_secure_clear(x2y2, sizeof(x2y2));
 	return 1;
 }
@@ -206,28 +191,22 @@ retry:
 int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, size_t *outlen)
 {
 	int ret = -1;
-	sm2_z256_t d;
-	SM2_Z256_POINT _C1, *C1 = &_C1;
+	SM2_Z256_POINT C1;
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 	uint8_t hash[32];
 
 	// check C1 is on sm2 curve
-	sm2_z256_point_from_bytes(C1, (uint8_t *)&in->point);
-	if (!sm2_z256_point_is_on_curve(C1)) {
+	if (sm2_z256_point_from_bytes(&C1, (uint8_t *)&in->point) != 1) {
 		error_print();
 		return -1;
 	}
 
-	// check if S = h * C1 is point at infinity
-	// this will not happen, as SM2_POINT can not present point at infinity
-
 	// d * C1 = (x2, y2)
-	sm2_z256_from_bytes(d, key->private_key);
-	sm2_z256_point_mul(C1, d, C1);
+	sm2_z256_point_mul(&C1, key->private_key, &C1);
 
 	// t = KDF(x2 || y2, klen) and check t is not all zeros
-	sm2_z256_point_to_bytes(C1, x2y2);
+	sm2_z256_point_to_bytes(&C1, x2y2);
 	sm2_kdf(x2y2, 64, in->ciphertext_size, out);
 	if (all_zero(out, in->ciphertext_size)) {
 		error_print();
@@ -253,8 +232,7 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 	ret = 1;
 
 end:
-	gmssl_secure_clear(d, sizeof(d));
-	gmssl_secure_clear(C1, sizeof(SM2_Z256_POINT));
+	gmssl_secure_clear(&C1, sizeof(SM2_Z256_POINT));
 	gmssl_secure_clear(x2y2, sizeof(x2y2));
 	return ret;
 }
@@ -312,7 +290,7 @@ int sm2_ciphertext_from_der(SM2_CIPHERTEXT *C, const uint8_t **in, size_t *inlen
 		return -1;
 	}
 	if (asn1_octet_string_from_der(&c, &clen, &d, &dlen) != 1
-	//	|| asn1_length_is_zero(clen) == 1
+	//	|| asn1_length_is_zero(clen) == 1				
 		|| asn1_length_le(clen, SM2_MAX_PLAINTEXT_SIZE) != 1) {
 		error_print();
 		return -1;
@@ -324,10 +302,6 @@ int sm2_ciphertext_from_der(SM2_CIPHERTEXT *C, const uint8_t **in, size_t *inlen
 	memset(C, 0, sizeof(SM2_CIPHERTEXT));
 	memcpy(C->point.x + 32 - xlen, x, xlen);
 	memcpy(C->point.y + 32 - ylen, y, ylen);
-	if (sm2_point_is_on_curve(&C->point) != 1) {
-		error_print();
-		return -1;
-	}
 	memcpy(C->hash, hash, hashlen);
 	memcpy(C->ciphertext, c, clen);
 	C->ciphertext_size = (uint8_t)clen;

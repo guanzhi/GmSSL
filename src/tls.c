@@ -537,7 +537,7 @@ int tls_cert_type_from_oid(int oid)
 // 这两个函数没有对应的TLCP版本
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
-	int curve, const SM2_POINT *point, uint8_t *sig, size_t *siglen)
+	int curve, const SM2_Z256_POINT *point, uint8_t *sig, size_t *siglen)
 {
 	uint8_t server_ecdh_params[69];
 	SM2_SIGN_CTX sign_ctx;
@@ -551,7 +551,7 @@ int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	server_ecdh_params[1] = (uint8_t)(curve >> 8);
 	server_ecdh_params[2] = (uint8_t)curve;
 	server_ecdh_params[3] = 65;
-	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
+	sm2_z256_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 
 	sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	sm2_sign_update(&sign_ctx, client_random, 32);
@@ -564,7 +564,7 @@ int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 
 int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
-	int curve, const SM2_POINT *point, const uint8_t *sig, size_t siglen)
+	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen)
 {
 	int ret;
 	uint8_t server_ecdh_params[69];
@@ -580,7 +580,7 @@ int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 	server_ecdh_params[1] = (uint8_t)(curve >> 8);
 	server_ecdh_params[2] = (uint8_t)(curve);
 	server_ecdh_params[3] = 65;
-	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
+	sm2_z256_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 
 	sm2_verify_init(&verify_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
 	sm2_verify_update(&verify_ctx, client_random, 32);

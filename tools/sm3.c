@@ -186,12 +186,12 @@ bad:
 		}
 
 		if (id_hex) {
-			sm2_compute_z(z, (SM2_POINT *)&sm2_key, (char *)id_bin, id_bin_len);
+			sm2_compute_z(z, &sm2_key.public_key, (char *)id_bin, id_bin_len);
 		} else {
 			if (!id) {
 				id = SM2_DEFAULT_ID;
 			}
-			sm2_compute_z(z, (SM2_POINT *)&sm2_key, id, strlen(id));
+			sm2_compute_z(z, &sm2_key.public_key, id, strlen(id));
 		}
 
 		if (sm3_digest_update(&sm3_ctx, z, sizeof(z)) != 1) {

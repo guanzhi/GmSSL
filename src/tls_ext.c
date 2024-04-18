@@ -623,7 +623,7 @@ err:
 	return -1;
 }
 
-int tls13_key_share_entry_to_bytes(const SM2_POINT *point, uint8_t **out, size_t *outlen)
+int tls13_key_share_entry_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen)
 {
 	uint16_t group = TLS_curve_sm2p256v1;
 	uint8_t key_exchange[65];
@@ -632,13 +632,13 @@ int tls13_key_share_entry_to_bytes(const SM2_POINT *point, uint8_t **out, size_t
 		error_print();
 		return -1;
 	}
-	sm2_point_to_uncompressed_octets(point, key_exchange);
+	sm2_z256_point_to_uncompressed_octets(point, key_exchange);
 	tls_uint16_to_bytes(group, out, outlen);
 	tls_uint16array_to_bytes(key_exchange, 65, out, outlen);
 	return 1;
 }
 
-int tls13_server_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, size_t *outlen)
+int tls13_server_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen)
 {
 	uint16_t ext_type = TLS_extension_key_share;
 	size_t ext_datalen = 0;
@@ -654,7 +654,7 @@ int tls13_server_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, s
 	return 1;
 }
 
-int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_POINT *point)
+int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_Z256_POINT *point)
 {
 	uint16_t group;
 	const uint8_t *key_exchange;
@@ -678,14 +678,14 @@ int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, 
 		error_print();
 		return -1;
 	}
-	if (sm2_point_from_octets(point, key_exchange, key_exchange_len) != 1) {
+	if (sm2_z256_point_from_octets(point, key_exchange, key_exchange_len) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-int tls13_client_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, size_t *outlen)
+int tls13_client_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen)
 {
 	uint16_t ext_type = TLS_extension_key_share;
 	size_t ext_datalen;
@@ -706,7 +706,7 @@ int tls13_client_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, s
 }
 
 int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
-	const SM2_KEY *server_ecdhe_key, SM2_POINT *client_ecdhe_public,
+	const SM2_KEY *server_ecdhe_key, SM2_Z256_POINT *client_ecdhe_public,
 	uint8_t **out, size_t *outlen)
 {
 	const uint8_t *client_shares;
@@ -743,7 +743,7 @@ int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
 				error_print();
 				return -1;
 			}
-			if (sm2_point_from_octets(client_ecdhe_public, key_exchange, key_exchange_len) != 1) {
+			if (sm2_z256_point_from_octets(client_ecdhe_public, key_exchange, key_exchange_len) != 1) {
 				error_print();
 				return -1;
 			}

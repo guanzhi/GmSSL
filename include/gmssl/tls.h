@@ -502,13 +502,13 @@ int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_
 
 int tls13_process_server_supported_versions(const uint8_t *ext_data, size_t ext_datalen);
 
-int tls13_key_share_entry_to_bytes(const SM2_POINT *point, uint8_t **out, size_t *outlen);
-int tls13_client_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, size_t *outlen);
-int tls13_server_key_share_ext_to_bytes(const SM2_POINT *point, uint8_t **out, size_t *outlen);
+int tls13_key_share_entry_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen);
+int tls13_client_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen);
+int tls13_server_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen);
 int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
-	const SM2_KEY *server_ecdhe_key, SM2_POINT *client_ecdhe_public,
+	const SM2_KEY *server_ecdhe_key, SM2_Z256_POINT *client_ecdhe_public,
 	uint8_t **out, size_t *outlen);
-int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_POINT *point);
+int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_Z256_POINT *point);
 
 
 int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
@@ -533,14 +533,14 @@ int tls_server_key_exchange_print(FILE *fp, const uint8_t *ske, size_t skelen, i
 #define TLS_MAX_SIGNATURE_SIZE	SM2_MAX_SIGNATURE_SIZE
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
-	int curve, const SM2_POINT *point, uint8_t *sig, size_t *siglen);
+	int curve, const SM2_Z256_POINT *point, uint8_t *sig, size_t *siglen);
 int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
-	int curve, const SM2_POINT *point, const uint8_t *sig, size_t siglen);
+	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen);
 int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
-	int curve, const SM2_POINT *point, const uint8_t *sig, size_t siglen);
+	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen);
 int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
-	int *curve, SM2_POINT *point, const uint8_t **sig, size_t *siglen);
+	int *curve, SM2_Z256_POINT *point, const uint8_t **sig, size_t *siglen);
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
 
@@ -583,8 +583,8 @@ int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *cke, size_t ckele
 int tls_client_key_exchange_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
 
 int tls_record_set_handshake_client_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
-	const SM2_POINT *point); // 这里不应该支持SM2_POINT类型						
-int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_POINT *point);			
+	const SM2_Z256_POINT *point); // 这里不应该支持SM2_POINT类型						
+int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_Z256_POINT *point);			
 int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
 

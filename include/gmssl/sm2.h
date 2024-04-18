@@ -17,63 +17,25 @@
 #include <stdlib.h>
 #include <gmssl/api.h>
 #include <gmssl/sm3.h>
+#include <gmssl/sm2_z256.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-typedef uint8_t sm2_bn_t[32];
 
 typedef struct {
-	uint8_t x[32];
-	uint8_t y[32];
-} SM2_POINT;
-
-#define sm2_point_init(P) memset((P),0,sizeof(SM2_POINT))
-#define sm2_point_set_infinity(P) sm2_point_init(P)
-
-
-int  sm2_point_from_octets(SM2_POINT *P, const uint8_t *in, size_t inlen);
-void sm2_point_to_compressed_octets(const SM2_POINT *P, uint8_t out[33]);
-void sm2_point_to_uncompressed_octets(const SM2_POINT *P, uint8_t out[65]);
-
-int sm2_point_from_x(SM2_POINT *P, const uint8_t x[32], int y);
-int sm2_point_from_xy(SM2_POINT *P, const uint8_t x[32], const uint8_t y[32]);
-int sm2_point_is_on_curve(const SM2_POINT *P);
-int sm2_point_is_at_infinity(const SM2_POINT *P);
-int sm2_point_add(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
-int sm2_point_sub(SM2_POINT *R, const SM2_POINT *P, const SM2_POINT *Q);
-int sm2_point_neg(SM2_POINT *R, const SM2_POINT *P);
-int sm2_point_dbl(SM2_POINT *R, const SM2_POINT *P);
-int sm2_point_mul(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P);
-int sm2_point_mul_generator(SM2_POINT *R, const uint8_t k[32]);
-int sm2_point_mul_sum(SM2_POINT *R, const uint8_t k[32], const SM2_POINT *P, const uint8_t s[32]); // R = k * P + s * G
-
-
-/*
-RFC 5480 Elliptic Curve Cryptography Subject Public Key Information
-ECPoint ::= OCTET STRING
-*/
-#define SM2_POINT_MAX_SIZE (2 + 65)
-int sm2_point_to_der(const SM2_POINT *P, uint8_t **out, size_t *outlen);
-int sm2_point_from_der(SM2_POINT *P, const uint8_t **in, size_t *inlen);
-int sm2_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_POINT *P);
-int sm2_point_from_hash(SM2_POINT *R, const uint8_t *data, size_t datalen);
-
-
-typedef struct {
-	SM2_POINT public_key;
-	uint8_t private_key[32];
+	SM2_Z256_POINT public_key;
+	sm2_z256_t private_key;
 } SM2_KEY;
 
 _gmssl_export int sm2_key_generate(SM2_KEY *key);
-int sm2_key_set_private_key(SM2_KEY *key, const uint8_t private_key[32]); // key->public_key will be replaced
-int sm2_key_set_public_key(SM2_KEY *key, const SM2_POINT *public_key); // key->private_key will be cleared // FIXME: support octets as input?
+int sm2_key_set_private_key(SM2_KEY *key, const sm2_z256_t private_key);
+int sm2_key_set_public_key(SM2_KEY *key, const SM2_Z256_POINT *public_key);
 int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
 
 int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key);
-//int sm2_public_key_copy(SM2_KEY *sm2_key, const SM2_KEY *pub_key); // do we need this?
 int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
 int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
 
@@ -156,6 +118,12 @@ _gmssl_export int sm2_private_key_info_encrypt_to_pem(const SM2_KEY *key, const 
 _gmssl_export int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char *pass, FILE *fp);
 
 
+
+
+
+
+
+
 typedef struct {
 	uint8_t r[32];
 	uint8_t s[32];
@@ -164,6 +132,10 @@ typedef struct {
 int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
+int sm2_fast_sign_compute_key(const SM2_KEY *key, sm2_z256_t fast_private);
+int sm2_fast_sign_pre_compute(sm2_z256_t k, sm2_z256_t x1_modn);
+int sm2_fast_sign(const sm2_z256_t fast_private, const sm2_z256_t k, const sm2_z256_t x1,
+	const uint8_t dgst[32], SM2_SIGNATURE *sig);
 
 
 
@@ -190,30 +162,24 @@ int sm2_sign_fixlen(const SM2_KEY *key, const uint8_t dgst[32], size_t siglen, u
 #define SM2_MAX_ID_BITS		65535
 #define SM2_MAX_ID_LENGTH	(SM2_MAX_ID_BITS/8)
 
-int sm2_compute_z(uint8_t z[32], const SM2_POINT *pub, const char *id, size_t idlen);
+int sm2_compute_z(uint8_t z[32], const SM2_Z256_POINT *pub, const char *id, size_t idlen);
 
 
 typedef struct {
-	uint64_t k[4];
-	uint64_t x1[4];
+	sm2_z256_t k;
+	sm2_z256_t x1; // x1 (mod n)
 } SM2_SIGN_PRE_COMP;
 
+#define SM2_SIGN_PRE_COMP_COUNT 32
 
 typedef struct {
 	SM3_CTX sm3_ctx;
+	SM3_CTX saved_sm3_ctx;
 	SM2_KEY key;
-	// FIXME: change `key` to SM2_Z256_POINT and uint64_t[4], inner type, faster sign/verify
-
-	uint64_t public_key[3][8]; // enough to hold point in Jacobian format
-
-	uint64_t sign_key[8]; // u64[8] to support SM2_BN
-	SM3_CTX inited_sm3_ctx;
-
-	SM2_SIGN_PRE_COMP pre_comp[32];
+	sm2_z256_t fast_sign_private;
+	SM2_SIGN_PRE_COMP pre_comp[SM2_SIGN_PRE_COMP_COUNT];
 	unsigned int num_pre_comp;
 } SM2_SIGN_CTX;
-
-
 
 _gmssl_export int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
 _gmssl_export int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
@@ -237,11 +203,17 @@ SM2Cipher ::= SEQUENCE {
 #define SM2_MAX_PLAINTEXT_SIZE	255 // re-compute SM2_MAX_CIPHERTEXT_SIZE when modify
 
 typedef struct {
+	uint8_t x[32];
+	uint8_t y[32];
+} SM2_POINT;
+
+typedef struct {
 	SM2_POINT point;
 	uint8_t hash[32];
 	uint8_t ciphertext_size;
 	uint8_t ciphertext[SM2_MAX_PLAINTEXT_SIZE];
 } SM2_CIPHERTEXT;
+
 
 int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out);
 
@@ -265,8 +237,8 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, uint8_t *out, size_t *outlen);
 
 
-int sm2_do_ecdh(const SM2_KEY *key, const SM2_POINT *peer_public, SM2_POINT *out);
-_gmssl_export int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, SM2_POINT *out);
+int sm2_do_ecdh(const SM2_KEY *key, const SM2_Z256_POINT *peer_public, SM2_Z256_POINT *out);
+_gmssl_export int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, uint8_t out[64]);
 
 
 typedef struct {

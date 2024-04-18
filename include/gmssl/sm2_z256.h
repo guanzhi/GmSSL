@@ -15,13 +15,18 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <gmssl/sm2.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
+// z256 means compact presentation of uint256
 typedef uint64_t sm2_z256_t[4];
+
+
+void sm2_z256_set_one(sm2_z256_t r);
+void sm2_z256_set_zero(sm2_z256_t r);
 
 int  sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4]);
 void sm2_z256_copy(uint64_t r[4], const uint64_t a[4]);
@@ -38,7 +43,7 @@ void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4]);
 int  sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i);
 void sm2_z256_from_hex(uint64_t r[4], const char *hex);
 int  sm2_z256_equ_hex(const uint64_t a[4], const char *hex);
-int  sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4]);
+int  sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm2_z256_t a);
 
 void sm2_z256_modp_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_modp_dbl(uint64_t r[4], const uint64_t a[4]);
@@ -79,7 +84,7 @@ typedef struct {
 } SM2_Z256_POINT;
 
 void sm2_z256_point_set_infinity(SM2_Z256_POINT *P);
-void sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]); // 检查is_on_curve			
+int  sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]);
 void sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64]);
 
 int  sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P);
@@ -131,12 +136,20 @@ int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], in
 int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t datalen, int y_is_odd);
 int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
 
+int sm2_z256_point_to_uncompressed_octets(const SM2_Z256_POINT *P, uint8_t out[65]);
+int sm2_z256_point_to_compressed_octets(const SM2_Z256_POINT *P, uint8_t out[33]);
+int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
 
-// 这些函数还是放到sm2_sign里面好了，反正这个依赖关系是处理不了的
-int sm2_do_sign_fast(const uint64_t d[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
-int sm2_do_sign_pre_compute(uint64_t k[4], uint64_t x1[4]);
-int sm2_do_sign_fast_ex(const uint64_t d[4], const uint64_t k[4], const uint64_t x1[4], const uint8_t dgst[32], SM2_SIGNATURE *sig);
-int sm2_do_verify_fast(const SM2_Z256_POINT *P, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
+/*
+RFC 5480 Elliptic Curve Cryptography Subject Public Key Information
+ECPoint ::= OCTET STRING
+*/
+#define SM2_POINT_MAX_SIZE (2 + 65)
+int sm2_z256_point_to_der(const SM2_Z256_POINT *P, uint8_t **out, size_t *outlen);
+int sm2_z256_point_from_der(SM2_Z256_POINT *P, const uint8_t **in, size_t *inlen);
+int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P);
+
+
 
 #ifdef __cplusplus
 }

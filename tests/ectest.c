@@ -72,7 +72,7 @@ static int test_ec_point_print(void)
 		error_print();
 		return -1;
 	}
-	if (sm2_point_to_der(&(sm2_key.public_key), &p, &len) != 1) {
+	if (sm2_z256_point_to_der(&(sm2_key.public_key), &p, &len) != 1) {
 		error_print();
 		return -1;
 	}

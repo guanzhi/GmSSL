@@ -46,7 +46,8 @@ static int test_sm2_ciphertext(void)
 			error_print();
 			return -1;
 		}
-		C.point = sm2_key.public_key;
+
+		sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&(C.point));
 		C.ciphertext_size = tests[i].ciphertext_size;
 
 		if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {

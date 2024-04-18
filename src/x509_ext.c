@@ -357,7 +357,7 @@ int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extsle
 	if (!public_key) {
 		return 0;
 	}
-	sm2_point_to_uncompressed_octets(&public_key->public_key, buf);
+	sm2_z256_point_to_uncompressed_octets(&public_key->public_key, buf);
 	sm3_digest(buf, sizeof(buf), id);
 
 	if (x509_exts_add_authority_key_identifier(exts, extslen, maxlen, critical,
@@ -406,7 +406,7 @@ int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size
 	if (!subject_key) {
 		return 0;
 	}
-	sm2_point_to_uncompressed_octets(&subject_key->public_key, buf);
+	sm2_z256_point_to_uncompressed_octets(&subject_key->public_key, buf);
 	sm3_digest(buf, sizeof(buf), id);
 
 	if (x509_exts_add_subject_key_identifier(exts, extslen, maxlen, critical, id, 32) != 1) {

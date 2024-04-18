@@ -42,7 +42,7 @@ int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int f
 
 
 int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
-	int curve, const SM2_POINT *point, const uint8_t *sig, size_t siglen)
+	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen)
 {
 	int type = TLS_handshake_server_key_exchange;
 	uint8_t *server_ecdh_params = record + 9;
@@ -58,16 +58,16 @@ int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *
 	server_ecdh_params[1] = curve >> 8;
 	server_ecdh_params[2] = curve;
 	server_ecdh_params[3] = 65;
-	sm2_point_to_uncompressed_octets(point, server_ecdh_params + 4);
+	sm2_z256_point_to_uncompressed_octets(point, server_ecdh_params + 4);
 	tls_uint16_to_bytes(TLS_sig_sm2sig_sm3, &p, &len);
 	tls_uint16array_to_bytes(sig, siglen, &p, &len);
 	tls_record_set_handshake(record, recordlen, type, NULL, len);
 	return 1;
 }
 
-// 这里返回的应该是一个SM2_POINT吗？
+// 这里返回的应该是一个SM2_Z256_POINT吗？
 int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
-	int *curve, SM2_POINT *point, const uint8_t **sig, size_t *siglen)
+	int *curve, SM2_Z256_POINT *point, const uint8_t **sig, size_t *siglen)
 {
 	int type;
 	const uint8_t *p;
@@ -106,7 +106,7 @@ int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 	}
 	*curve = named_curve;
 	if (octetslen != 65
-		|| sm2_point_from_octets(point, octets, octetslen) != 1) {
+		|| sm2_z256_point_from_octets(point, octets, octetslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -118,16 +118,16 @@ int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 }
 
 int tls_record_set_handshake_client_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
-	const SM2_POINT *point)
+	const SM2_Z256_POINT *point)
 {
 	int type = TLS_handshake_client_key_exchange;
 	record[9] = 65;
-	sm2_point_to_uncompressed_octets(point, record + 9 + 1);
+	sm2_z256_point_to_uncompressed_octets(point, record + 9 + 1);
 	tls_record_set_handshake(record, recordlen, type, NULL, 1 + 65);
 	return 1;
 }
 
-int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_POINT *point)
+int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_Z256_POINT *point)
 {
 	int type;
 	const uint8_t *p;
@@ -146,7 +146,7 @@ int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM
 		return -1;
 	}
 	if (octetslen != 65
-		|| sm2_point_from_octets(point, octets, octetslen) != 1) {
+		|| sm2_z256_point_from_octets(point, octets, octetslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -356,7 +356,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	tls12_record_trace(stderr, record, recordlen, 0, 0);
 
 	int curve;
-	SM2_POINT server_ecdhe_public;
+	SM2_Z256_POINT server_ecdhe_public;
 	if (tls_record_get_handshake_server_key_exchange_ecdhe(record, &curve, &server_ecdhe_public, &sig, &siglen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -687,7 +687,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	int verify_result;
 
 	// ClientKeyExchange
-	SM2_POINT client_ecdhe_point;
+	SM2_Z256_POINT client_ecdhe_point;
 	uint8_t pre_master_secret[SM2_MAX_PLAINTEXT_SIZE]; // sm2_decrypt 保证输出不会溢出
 
 	// Finished
