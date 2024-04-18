@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <gmssl/hex.h>
 #include <gmssl/mem.h>
-#include <gmssl/sm9.h>
+#include <gmssl/sm9_z256.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/rand.h>
