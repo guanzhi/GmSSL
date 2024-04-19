@@ -65,6 +65,11 @@ void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out);
 void sm3_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out);
 
 
+#define SM3_PBKDF2_MIN_ITER		10000
+#define SM3_PBKDF2_MAX_ITER		(16777216-1)
+#define SM3_PBKDF2_MAX_SALT_SIZE	64
+#define SM3_PBKDF2_DEFAULT_SALT_SIZE	8
+
 int sm3_pbkdf2(const char *pass, size_t passlen,
 	const uint8_t *salt, size_t saltlen, size_t count,
 	size_t outlen, uint8_t *out);

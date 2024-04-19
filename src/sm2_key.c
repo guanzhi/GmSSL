@@ -13,9 +13,9 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/pem.h>
+#include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
 #include <gmssl/rand.h>
-#include <gmssl/pbkdf2.h>
 #include <gmssl/pkcs8.h>
 #include <gmssl/error.h>
 #include <gmssl/ec.h>
@@ -552,8 +552,7 @@ int sm2_private_key_info_encrypt_to_der(const SM2_KEY *sm2_key, const char *pass
 	if (sm2_private_key_info_to_der(sm2_key, &p, &pkey_info_len) != 1
 		|| rand_bytes(salt, sizeof(salt)) != 1
 		|| rand_bytes(iv, sizeof(iv)) != 1
-		|| pbkdf2_genkey(DIGEST_sm3(), pass, strlen(pass),
-			salt, sizeof(salt), iter, sizeof(key), key) != 1) {
+		|| sm3_pbkdf2(pass, strlen(pass), salt, sizeof(salt), iter, sizeof(key), key) != 1) {
 		error_print();
 		goto end;
 	}
@@ -618,7 +617,7 @@ int sm2_private_key_info_decrypt_from_der(SM2_KEY *sm2,
 		error_print();
 		return -1;
 	}
-	if (pbkdf2_genkey(DIGEST_sm3(), pass, strlen(pass), salt, saltlen, iter, sizeof(key), key) != 1) {
+	if (sm3_pbkdf2(pass, strlen(pass), salt, saltlen, iter, sizeof(key), key) != 1) {
 		error_print();
 		goto end;
 	}

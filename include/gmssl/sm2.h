@@ -134,7 +134,7 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 
 int sm2_fast_sign_compute_key(const SM2_KEY *key, sm2_z256_t fast_private);
 int sm2_fast_sign_pre_compute(sm2_z256_t k, sm2_z256_t x1_modn);
-int sm2_fast_sign(const sm2_z256_t fast_private, const sm2_z256_t k, const sm2_z256_t x1,
+int sm2_fast_sign(const sm2_z256_t fast_private, const sm2_z256_t k, const sm2_z256_t x1_modn,
 	const uint8_t dgst[32], SM2_SIGNATURE *sig);
 
 

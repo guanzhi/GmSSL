@@ -19,7 +19,6 @@
 #include <gmssl/rand.h>
 #include <gmssl/asn1.h>
 #include <gmssl/pkcs8.h>
-#include <gmssl/pbkdf2.h>
 #include <gmssl/error.h>
 
 
@@ -627,7 +626,7 @@ static int sm9_private_key_info_encrypt_to_der(int alg, int params, const uint8_
 	if (sm9_private_key_info_to_der(alg, params, prikey, prikey_len, &p, &pkey_info_len) != 1
 		|| rand_bytes(salt, sizeof(salt)) != 1
 		|| rand_bytes(iv, sizeof(iv)) != 1
-		|| pbkdf2_hmac_sm3_genkey(pass, strlen(pass), salt, sizeof(salt), iter, sizeof(key), key) != 1) {
+		|| sm3_pbkdf2(pass, strlen(pass), salt, sizeof(salt), iter, sizeof(key), key) != 1) {
 		error_print();
 		goto end;
 	}
@@ -680,7 +679,7 @@ static int sm9_private_key_info_decrypt_from_der(int *alg, int *params, uint8_t 
 		error_print();
 		return -1;
 	}
-	if (pbkdf2_genkey(DIGEST_sm3(), pass, strlen(pass), salt, saltlen, iter, sizeof(key), key) != 1) {
+	if (sm3_pbkdf2(pass, strlen(pass), salt, saltlen, iter, sizeof(key), key) != 1) {
 		error_print();
 		goto end;
 	}

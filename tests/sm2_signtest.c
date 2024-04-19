@@ -102,36 +102,42 @@ static int test_sm2_do_sign(void)
 	return 1;
 }
 
-static int test_sm2_do_sign_fast(void)
+static int test_sm2_fast_sign(void)
 {
-// sm2_do_sign_fast函数没有了，要重新实现			
-/*
 	SM2_KEY sm2_key;
-	sm2_z256_t d;
+	sm2_z256_t fast_private;
 	uint8_t dgst[32];
 	SM2_SIGNATURE sig;
 	size_t i;
 
-	// d' = (d + 1)^-1 (mod n)
-	const uint64_t *one = sm2_z256_one();
-	do {
-		sm2_key_generate(&sm2_key);
-		sm2_z256_copy(d, sm2_key.private_key);
-		sm2_z256_modn_add(d, d, one);
-		sm2_z256_modn_inv(d, d);
-	} while (sm2_z256_is_zero(d));
+	if (sm2_key_generate(&sm2_key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_fast_sign_compute_key(&sm2_key, fast_private) != 1) {
+		error_print();
+		return -1;
+	}
+	rand_bytes(dgst, sizeof(dgst));
 
 	for (i = 0; i < TEST_COUNT; i++) {
-		if (sm2_do_sign_fast(d, dgst, &sig) != 1) {
+		sm2_z256_t k;
+		sm2_z256_t x1_modn;
+
+		if (sm2_fast_sign_pre_compute(k, x1_modn) != 1) {
 			error_print();
 			return -1;
 		}
+		if (sm2_fast_sign(fast_private, k, x1_modn, dgst, &sig) != 1) {
+			error_print();
+			return -1;
+		}
+
 		if (sm2_do_verify(&sm2_key, dgst, &sig) != 1) {
 			error_print();
 			return -1;
 		}
 	}
-*/
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -326,10 +332,10 @@ static int test_sm2_sign_ctx_reset(void)
 
 int main(void)
 {
-	if (test_sm2_do_sign_fast() != 1) goto err;
 	if (test_sm2_signature() != 1) goto err;
 	if (test_sm2_do_sign() != 1) goto err;
 	if (test_sm2_do_sign_pre_compute() != 1) goto err;
+	if (test_sm2_fast_sign() != 1) goto err;
 	if (test_sm2_sign() != 1) goto err;
 	if (test_sm2_sign_ctx() != 1) goto err;
 	if (test_sm2_sign_ctx_reset() != 1) goto err;

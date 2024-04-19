@@ -40,7 +40,7 @@ void sm2_z256_rshift(uint64_t r[4], const uint64_t a[4], unsigned int nbits);
 uint64_t sm2_z256_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 uint64_t sm2_z256_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
 void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4]);
-int  sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i);
+uint64_t sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i);
 void sm2_z256_from_hex(uint64_t r[4], const char *hex);
 int  sm2_z256_equ_hex(const uint64_t a[4], const char *hex);
 int  sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm2_z256_t a);

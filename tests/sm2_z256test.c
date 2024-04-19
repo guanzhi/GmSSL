@@ -869,8 +869,6 @@ static int test_sm2_z256_point_from_hash(void)
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
-
-
 }
 
 

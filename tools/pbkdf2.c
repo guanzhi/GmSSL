@@ -14,7 +14,7 @@
 #include <string.h>
 #include <gmssl/mem.h>
 #include <gmssl/hex.h>
-#include <gmssl/pbkdf2.h>
+#include <gmssl/sm3.h>
 
 
 static const char *options = "-pass str -salt hex -iter num -outlen num [-bin|-hex] [-out file]";
@@ -25,7 +25,7 @@ int pbkdf2_main(int argc, char **argv)
 	char *prog = argv[0];
 	char *pass = NULL;
 	char *salthex = NULL;
-	uint8_t salt[PBKDF2_MAX_SALT_SIZE];
+	uint8_t salt[SM3_PBKDF2_MAX_SALT_SIZE];
 	size_t saltlen;
 	int iter = 0;
 	int outlen = 0;
@@ -65,7 +65,7 @@ int pbkdf2_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-iter")) {
 			if (--argc < 1) goto bad;
 			iter = atoi(*(++argv));
-			if (iter < PBKDF2_MIN_ITER || iter > INT_MAX) {
+			if (iter < SM3_PBKDF2_MIN_ITER || iter > SM3_PBKDF2_MAX_ITER) {
 				fprintf(stderr, "%s: invalid '-iter' value\n", prog);
 				goto end;
 			}
@@ -116,7 +116,7 @@ bad:
 		goto end;
 	}
 
-	if (pbkdf2_hmac_sm3_genkey(pass, strlen(pass), salt, saltlen, iter, outlen, outbuf) != 1) {
+	if (sm3_pbkdf2(pass, strlen(pass), salt, saltlen, iter, outlen, outbuf) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
 	}

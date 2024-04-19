@@ -56,7 +56,7 @@ set(src
 	src/digest.c
 	src/hmac.c
 	src/hkdf.c
-	src/pbkdf2.c
+#	src/pbkdf2.c
 	src/gf128.c
 	src/ghash.c
 	src/sm4_cbc_sm3_hmac.c

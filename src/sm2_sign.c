@@ -93,6 +93,10 @@ retry:
 // d' = (d + 1)^-1 (mod n)
 int sm2_fast_sign_compute_key(const SM2_KEY *key, sm2_z256_t fast_private)
 {
+	if (sm2_z256_cmp(key->private_key, sm2_z256_order_minus_one()) >= 0) {
+		error_print();
+		return -1;
+	}
 	sm2_z256_modn_add(fast_private, key->private_key, sm2_z256_one());
 	sm2_z256_modn_inv(fast_private, fast_private);
 	return 1;
@@ -126,7 +130,7 @@ int sm2_fast_sign_pre_compute(sm2_z256_t k, sm2_z256_t x1_modn)
 //	= -r + (k + r)*(1 + d)^-1
 //	= -r + (k + r) * d'
 int sm2_fast_sign(const sm2_z256_t fast_private,
-	const sm2_z256_t k, const sm2_z256_t x1,
+	const sm2_z256_t k, const sm2_z256_t x1_modn,
 	const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT R;
@@ -141,7 +145,7 @@ int sm2_fast_sign(const sm2_z256_t fast_private,
 	}
 
 	// r = e + x1 (mod n)
-	sm2_z256_modn_add(r, e, x1);
+	sm2_z256_modn_add(r, e, x1_modn);
 
 	// s = (k + r) * d' - r
 	sm2_z256_modn_add(s, k, r);

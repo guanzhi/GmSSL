@@ -67,7 +67,7 @@ n = 0xfffffffeffffffffffffffffffffffff7203df6b21c6052b53bbf40939d54123
 h = 0x1
 */
 
-const uint64_t SM2_Z256_ONE[4] = { 1,0,0,0 };
+const sm2_z256_t SM2_Z256_ONE = { 1,0,0,0 };
 
 const uint64_t *sm2_z256_one(void) {
 	return &SM2_Z256_ONE[0];
@@ -83,15 +83,18 @@ void sm2_z256_set_one(sm2_z256_t r)
 
 void sm2_z256_set_zero(uint64_t a[4])
 {
-	a[0] = a[1] = a[2] = a[3] = 0;
+	a[0] = 0;
+	a[1] = 0;
+	a[2] = 0;
+	a[3] = 0;
 }
 
 int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4])
 {
-	unsigned int max_tries = 100;
+	unsigned int tries = 100;
 
 	do {
-		if (!max_tries) {
+		if (!tries) {
 			// caller call this function again if return zero
 			return 0;
 		}
@@ -99,7 +102,7 @@ int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4])
 			error_print();
 			return -1;
 		}
-		max_tries--;
+		tries--;
 
 	} while (sm2_z256_cmp(r, range) >= 0);
 
@@ -328,7 +331,7 @@ static uint64_t sm2_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t 
 	return c;
 }
 
-int sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i)
+uint64_t sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i)
 {
 	uint64_t mask = (1 << window_size) - 1;
 	uint64_t wbits;
@@ -369,21 +372,12 @@ int sm2_z256_equ_hex(const uint64_t a[4], const char *hex)
 	}
 }
 
-
 int sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4])
 {
 	format_print(fp, ind, fmt, "%s: %016llx%016llx%016llx%016llx\n", label, a[3], a[2], a[1], a[0]);
 	return 1;
 }
 
-/*
-static int sm2_z512_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[8])
-{
-	format_print(fp, ind, fmt, "%s: %016llx%016llx%016llx%016llx%016llx%016llx%016llx%016llx\n",
-		label, a[7], a[6], a[5], a[4], a[3], a[2], a[1], a[0]);
-	return 1;
-}
-*/
 
 // GF(p)
 
@@ -683,16 +677,6 @@ int sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4])
 	return 1;
 }
 
-/*
-int sm2_z256_modp_mont_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4])
-{
-	uint64_t r[4];
-	sm2_z256_modp_from_mont(r, a);
-	sm2_z256_print(fp, ind, fmt, label, r);
-	return 1;
-}
-*/
-
 // GF(n)
 
 // n = 0xfffffffeffffffffffffffffffffffff7203df6b21c6052b53bbf40939d54123
@@ -709,17 +693,6 @@ const uint64_t SM2_Z256_N_MINUS_ONE[4] = {
 const uint64_t SM2_Z256_NEG_N[4] = {
 	0xac440bf6c62abedd, 0x8dfc2094de39fad4, 0x0000000000000000, 0x0000000100000000,
 };
-
-/*
-int sm2_z256_modn_rand(uint64_t r[4])
-{
-	if (sm2_z256_rand_range(r, SM2_Z256_N) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
 
 #ifndef ENABLE_SM2_Z256_ARMV8
 void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
@@ -783,9 +756,6 @@ void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 	uint64_t z[8];
 	uint64_t t[8];
 	uint64_t c;
-
-	//sm2_z256_print(stderr, 0, 0, "a", a);
-	//sm2_z256_print(stderr, 0, 0, "b", b);
 
 	// z = a * b
 	sm2_z256_mul(z, a, b);
@@ -1095,47 +1065,47 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 
 	// S = 2*Y1
 	sm2_z256_modp_dbl(S, Y1);
-	sm2_z256_print(stderr, 0, 0, "1. S = 2*Y1", S);
+	//sm2_z256_print(stderr, 0, 0, "1. S = 2*Y1", S);
 
 	// Zsqr = Z1^2
 	sm2_z256_modp_mont_sqr(Zsqr, Z1);
-	sm2_z256_print(stderr, 0, 0, "2. Zsqr = Z1^2", Zsqr);
+	//sm2_z256_print(stderr, 0, 0, "2. Zsqr = Z1^2", Zsqr);
 
 	// S = S^2 = 4*Y1^2
 	sm2_z256_modp_mont_sqr(S, S);
-	sm2_z256_print(stderr, 0, 0, "3. S = S^2 = 4*Y1^2", S);
+	//sm2_z256_print(stderr, 0, 0, "3. S = S^2 = 4*Y1^2", S);
 
 	// Z3 = Z1 * Y1
 	sm2_z256_modp_mont_mul(Z3, Z1, Y1);
-	sm2_z256_print(stderr, 0, 0, "4. Z3 = Z1 * Y1", Z3);
+	//sm2_z256_print(stderr, 0, 0, "4. Z3 = Z1 * Y1", Z3);
 
 	// Z3 = 2 * Z3 = 2*Y1*Z1
 	sm2_z256_modp_dbl(Z3, Z3);
-	sm2_z256_print(stderr, 0, 0, "5. Z3 = 2 * Z3 = 2*Y1*Z1", Z3);
+	//sm2_z256_print(stderr, 0, 0, "5. Z3 = 2 * Z3 = 2*Y1*Z1", Z3);
 
 	// M = X1 + Zsqr = X1 + Z1^2
 	sm2_z256_modp_add(M, X1, Zsqr);
-	sm2_z256_print(stderr, 0, 0, "6. M = X1 + Zsqr = X1 + Z1^2", M);
+	//sm2_z256_print(stderr, 0, 0, "6. M = X1 + Zsqr = X1 + Z1^2", M);
 
 	// Zsqr = X1 - Zsqr = X1 - Z1^2
 	sm2_z256_modp_sub(Zsqr, X1, Zsqr);
-	sm2_z256_print(stderr, 0, 0, "7. Zsqr = X1 - Zsqr = X1 - Z1^2", Zsqr);
+	//sm2_z256_print(stderr, 0, 0, "7. Zsqr = X1 - Zsqr = X1 - Z1^2", Zsqr);
 
 	// Y3 = S^2 = 16 * Y1^4
 	sm2_z256_modp_mont_sqr(Y3, S);
-	sm2_z256_print(stderr, 0, 0, "8. Y3 = S^2 = 16 * Y1^4", Y3);
+	//sm2_z256_print(stderr, 0, 0, "8. Y3 = S^2 = 16 * Y1^4", Y3);
 
 	// Y3 = Y3/2 = 8 * Y1^4
 	sm2_z256_modp_haf(Y3, Y3);
-	sm2_z256_print(stderr, 0, 0, "9. Y3 = Y3/2 = 8 * Y1^4", Y3);
+	//sm2_z256_print(stderr, 0, 0, "9. Y3 = Y3/2 = 8 * Y1^4", Y3);
 
 	// M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)
 	sm2_z256_modp_mont_mul(M, M, Zsqr);
-	sm2_z256_print(stderr, 0, 0, "10. M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)", M);
+	//sm2_z256_print(stderr, 0, 0, "10. M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)", M);
 
 	// M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)
 	sm2_z256_modp_tri(M, M);
-	sm2_z256_print(stderr, 0, 0, "11. M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)", M);
+	//sm2_z256_print(stderr, 0, 0, "11. M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)", M);
 
 	// S = S * X1 = 4 * X1 * Y1^2
 	sm2_z256_modp_mont_mul(S, S, X1);
@@ -1143,27 +1113,27 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 
 	// tmp0 = 2 * S = 8 * X1 * Y1^2
 	sm2_z256_modp_dbl(tmp0, S);
-	sm2_z256_print(stderr, 0, 0, "13. tmp0 = 2 * S = 8 * X1 * Y1^2", tmp0);
+	//sm2_z256_print(stderr, 0, 0, "13. tmp0 = 2 * S = 8 * X1 * Y1^2", tmp0);
 
 	// X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2
 	sm2_z256_modp_mont_sqr(X3, M);
-	sm2_z256_print(stderr, 0, 0, "14. X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2", X3);
+	//sm2_z256_print(stderr, 0, 0, "14. X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2", X3);
 
 	// X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2
 	sm2_z256_modp_sub(X3, X3, tmp0);
-	sm2_z256_print(stderr, 0, 0, "15. X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2", X3);
+	//sm2_z256_print(stderr, 0, 0, "15. X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2", X3);
 
 	// S = S - X3 = 4 * X1 * Y1^2 - X3
 	sm2_z256_modp_sub(S, S, X3);
-	sm2_z256_print(stderr, 0, 0, "16. S = S - X3 = 4 * X1 * Y1^2 - X3", S);
+	//sm2_z256_print(stderr, 0, 0, "16. S = S - X3 = 4 * X1 * Y1^2 - X3", S);
 
 	// S = S * M = 3(X1 + Z1^2)(X1 - Z1^2)(4 * X1 * Y1^2 - X3)
 	sm2_z256_modp_mont_mul(S, S, M);
-	sm2_z256_print(stderr, 0, 0, "17. S = S * M", S);
+	//sm2_z256_print(stderr, 0, 0, "17. S = S * M", S);
 
 	// Y3 = S - Y3 = 3(X1 + Z1^2)(X1 - Z1^2)(4 * X1 * Y1^2 - X3) - 8 * Y1^4
 	sm2_z256_modp_sub(Y3, S, Y3);
-	sm2_z256_print(stderr, 0, 0, "18. Y3", Y3);
+	//sm2_z256_print(stderr, 0, 0, "18. Y3", Y3);
 }
 
 /*
@@ -1178,8 +1148,6 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 	Z3 = B * Z1 * Z2
 
   P + (-P) = (X:Y:Z) + (k^2*X : k^3*Y : k*Z) => (0:0:0)
-
-感觉点加也有很好的并行性
 */
 void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT *b)
 {
@@ -1265,13 +1233,13 @@ void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z2
 
 	sm2_z256_modp_sub(res_y, res_y, S2);
 
-	sm2_z256_copy_conditional(res_x, in2_x, in1infty);			
-	sm2_z256_copy_conditional(res_y, in2_y, in1infty);			
-	sm2_z256_copy_conditional(res_z, in2_z, in1infty);			
+	sm2_z256_copy_conditional(res_x, in2_x, in1infty);
+	sm2_z256_copy_conditional(res_y, in2_y, in1infty);
+	sm2_z256_copy_conditional(res_z, in2_z, in1infty);
 
-	sm2_z256_copy_conditional(res_x, in1_x, in2infty);			
-	sm2_z256_copy_conditional(res_y, in1_y, in2infty);			
-	sm2_z256_copy_conditional(res_z, in1_z, in2infty);			
+	sm2_z256_copy_conditional(res_x, in1_x, in2infty);
+	sm2_z256_copy_conditional(res_y, in1_y, in2infty);
+	sm2_z256_copy_conditional(res_z, in1_z, in2infty);
 
 	memcpy(r->X, res_x, sizeof(res_x));
 	memcpy(r->Y, res_y, sizeof(res_y));
@@ -1301,27 +1269,9 @@ void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_P
 	int n = (256 + window_size - 1)/window_size;
 	int i;
 
-	// 这相当于做了一个预计算表
-	/*
-	P  2P  4P   8P // 这实际上是一个连续的dbl
-
-	3P  6P, 12P
-
-	5P, 10P,
-
-	7P, 14P
-
-	15P
-	...
-
-	// 如果一次能并行计算4组点加法，那么这部分与计算表的计算量可以降低
-	// 这个连续计算中，dbl的数量越多，计算量越低
-	*/
-
 	// T[i] = (i + 1) * P
 	memcpy(&T[0], P, sizeof(SM2_Z256_POINT));
 
-	// 这个计算大概是有并行能力的！
 	/*
 	sm2_z256_point_dbl(&T[ 1], &T[ 0]);
 	sm2_z256_point_add(&T[ 2], &T[ 1], P);
@@ -1366,8 +1316,6 @@ void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_P
 				R_infinity = 0;
 			}
 		} else {
-			// 这个重复dbl的计算可以适当降低吗？
-			// 这说明对dbl的优化还是很有意义的，因为这里面dbl的数量最多
 			sm2_z256_point_dbl_x5(R, R);
 
 			if (booth > 0) {
@@ -1383,7 +1331,6 @@ void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_P
 	}
 }
 
-// 这个函数对吗？这个似乎是不对的
 int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P)
 {
 	uint64_t x[4];
@@ -1405,8 +1352,6 @@ void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *
 	sm2_z256_copy(R->Z, SM2_Z256_MODP_MONT_ONE);
 }
 
-// 这是一个比较容易并行的算法
-// r, a, b 都转换为实际输入的值
 #ifndef ENABLE_SM2_Z256_ARMV8
 void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_AFFINE_POINT *b)
 {
@@ -1475,14 +1420,14 @@ void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const
 	sm2_z256_modp_mont_mul(H, H, R);
 	sm2_z256_modp_sub(res_y, H, S2);
 
-	sm2_z256_copy_conditional(res_x, in2_x, in1infty);			
-	sm2_z256_copy_conditional(res_x, in1_x, in2infty);			
+	sm2_z256_copy_conditional(res_x, in2_x, in1infty);
+	sm2_z256_copy_conditional(res_x, in1_x, in2infty);
 
-	sm2_z256_copy_conditional(res_y, in2_y, in1infty);			
-	sm2_z256_copy_conditional(res_y, in1_y, in2infty);			
+	sm2_z256_copy_conditional(res_y, in2_y, in1infty);
+	sm2_z256_copy_conditional(res_y, in1_y, in2infty);
 
-	sm2_z256_copy_conditional(res_z, SM2_Z256_MODP_MONT_ONE, in1infty);		
-	sm2_z256_copy_conditional(res_z, in1_z, in2infty);			
+	sm2_z256_copy_conditional(res_z, SM2_Z256_MODP_MONT_ONE, in1infty);
+	sm2_z256_copy_conditional(res_z, in1_z, in2infty);
 
 	memcpy(r->X, res_x, sizeof(res_x));
 	memcpy(r->Y, res_y, sizeof(res_y));
@@ -1519,52 +1464,28 @@ int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, c
 extern const uint64_t sm2_z256_pre_comp[37][64 * 4 * 2];
 static SM2_Z256_AFFINE_POINT (*g_pre_comp)[64] = (SM2_Z256_AFFINE_POINT (*)[64])sm2_z256_pre_comp;
 
-
-/*
-这个函数的粗粒度并行算法
-
-	输出的R应该有多个，输入的k也有多个
-
-	轮数是一样的
-
-	需要用一个数组表示这个值是否还是无穷远点
-
-在签名、加密的时候，参与计算的k都是秘密值，因此需要考虑cache攻击的问题
-
-但是在验签的时候，其中s*G计算，其中s是公开值，因此不需要考虑cache攻击
-
-应该提供一个专用的常量时间的gather函数
-
-*/
+// FIXME: remove if/else
 void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const uint64_t k[4])
 {
 	size_t window_size = 7;
-	int R_infinity = 1; // 开始的时候点
+	int R_infinity = 1;
 	int n = (256 + window_size - 1)/window_size;
 	int i;
 
 	for (i = n - 1; i >= 0; i--) {
 		int booth = sm2_z256_get_booth(k, window_size, i);
 
-		// 下面的计算应该改为并行化
 		if (R_infinity) {
 			if (booth != 0) {
 				sm2_z256_point_copy_affine(R, &g_pre_comp[i][booth - 1]);
 				R_infinity = 0;
 			}
 		} else {
-
-			// 可以先把那个点从内存复制到当前空间中
-			// 如果booth < 0，则把这个点改为 -P
-			// 然后再加上这个点，得到一个新的结果
 			if (booth > 0) {
 				sm2_z256_point_add_affine(R, R, &g_pre_comp[i][booth - 1]);
 			} else if (booth < 0) {
 				sm2_z256_point_sub_affine(R, R, &g_pre_comp[i][-booth - 1]);
 			}
-
-			// booth == 0的时候意味应该加入的affine是一个无穷远点
-			// 如果是无穷远点，读入的值，以及计算结果就没有用了。
 		}
 	}
 
