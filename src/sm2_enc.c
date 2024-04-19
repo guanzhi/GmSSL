@@ -11,10 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gmssl/mem.h>
 #include <gmssl/sm2.h>
-#include <gmssl/sm2_z256.h>
 #include <gmssl/sm3.h>
+#include <gmssl/mem.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
@@ -28,6 +27,34 @@ static int all_zero(const uint8_t *buf, size_t len)
 			return 0;
 		}
 	}
+	return 1;
+}
+
+int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out)
+{
+	SM3_CTX ctx;
+	uint8_t counter_be[4];
+	uint8_t dgst[SM3_DIGEST_SIZE];
+	uint32_t counter = 1;
+	size_t len;
+
+	while (outlen) {
+		PUTU32(counter_be, counter);
+		counter++;
+
+		sm3_init(&ctx);
+		sm3_update(&ctx, in, inlen);
+		sm3_update(&ctx, counter_be, sizeof(counter_be));
+		sm3_finish(&ctx, dgst);
+
+		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;
+		memcpy(out, dgst, len);
+		out += len;
+		outlen -= len;
+	}
+
+	memset(&ctx, 0, sizeof(SM3_CTX));
+	memset(dgst, 0, sizeof(dgst));
 	return 1;
 }
 
@@ -49,7 +76,6 @@ int sm2_do_encrypt_pre_compute(sm2_z256_t k, uint8_t C1[64])
 
 	return 1;
 }
-
 
 // key->public_key will not be point_at_infinity when decoded from_bytes/octets/der
 int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out)

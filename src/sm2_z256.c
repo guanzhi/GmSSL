@@ -569,6 +569,7 @@ void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e
 	sm2_z256_copy(r, t);
 }
 
+// caller should check a != 0
 void sm2_z256_modp_mont_inv(uint64_t r[4], const uint64_t a[4])
 {
 	uint64_t a1[4];
@@ -997,9 +998,16 @@ int sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P)
 	return 1;
 }
 
-// 当Z == 0时会怎么样
-void sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4])
+int sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4])
 {
+	if (sm2_z256_point_is_at_infinity(P) == 1) {
+		sm2_z256_set_zero(x);
+		if (y) {
+			sm2_z256_set_zero(y);
+		}
+		return 0;
+	}
+
 	if (sm2_z256_cmp(P->Z, SM2_Z256_MODP_MONT_ONE) == 0) {
 		sm2_z256_modp_from_mont(x, P->X);
 		if (y) {
@@ -1019,6 +1027,8 @@ void sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]
 			sm2_z256_modp_from_mont(y, y);
 		}
 	}
+
+	return 1;
 }
 
 // impl with modified jacobian coordinates
@@ -1030,23 +1040,6 @@ void sm2_z256_point_dbl_x5(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 	sm2_z256_point_dbl(R, R);
 	sm2_z256_point_dbl(R, R);
 	sm2_z256_point_dbl(R, R);
-}
-
-void sm2_z256_point_multi_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *P, unsigned int i)
-{
-	const uint64_t *X1 = P->X;
-	const uint64_t *Y1 = P->Y;
-	const uint64_t *Z1 = P->Z;
-	uint64_t *X3 = R->X;
-	uint64_t *Y3 = R->Y;
-	uint64_t *Z3 = R->Z;
-	uint64_t A[4];
-	uint64_t B[4];
-	uint64_t C[4];
-	uint64_t D[4];
-	uint64_t E[4];
-
-	// A = Z1^2
 }
 
 #ifndef ENABLE_SM2_Z256_ARMV8
@@ -1337,14 +1330,16 @@ int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM
 	uint64_t y[4];
 	uint8_t affine[64];
 
-	sm2_z256_point_get_xy(P, x, y);
-	sm2_z256_to_bytes(x, affine);
-	sm2_z256_to_bytes(y, affine + 32);
 
-	format_bytes(fp, fmt, ind, label, affine, 64);
+	if (sm2_z256_point_is_at_infinity(P) == 1) {
+		format_print(fp, fmt, ind, "%s: point_at_infinity\n", label);
+	} else {
+		uint8_t bytes[64];
+		sm2_z256_point_to_bytes(P, bytes);
+		format_bytes(fp, fmt, ind, label, bytes, 64);
+	}
 	return 1;
 }
-
 
 void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *P)
 {
@@ -1516,6 +1511,13 @@ int sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64])
 		error_print();
 		return -1;
 	}
+
+	// point_at_infinity
+	if (sm2_z256_is_zero(P->X) == 1 && sm2_z256_is_zero(P->Y) == 1) {
+		sm2_z256_point_set_infinity(P);
+		return 0;
+	}
+
 	sm2_z256_modp_to_mont(P->X, P->X);
 	sm2_z256_modp_to_mont(P->Y, P->Y);
 	sm2_z256_copy(P->Z, SM2_Z256_MODP_MONT_ONE);
@@ -1533,7 +1535,6 @@ int sm2_z256_point_set_xy(SM2_Z256_POINT *R, const sm2_z256_t x, const sm2_z256_
 		error_print();
 		return -1;
 	}
-
 	if (sm2_z256_cmp(y, sm2_z256_prime()) >= 0) {
 		error_print();
 		return -1;
@@ -1550,23 +1551,34 @@ int sm2_z256_point_set_xy(SM2_Z256_POINT *R, const sm2_z256_t x, const sm2_z256_
 	return 1;
 }
 
-void sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex)
+int sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex)
 {
 	uint8_t bytes[64];
 	size_t len;
+	int ret;
 
 	hex_to_bytes(hex, 128, bytes, &len);
-	sm2_z256_point_from_bytes(P, bytes);
+	if ((ret = sm2_z256_point_from_bytes(P, bytes)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
 }
 
-void sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64])
+// point_at_infinity should not to_bytes
+int sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64])
 {
 	uint64_t x[4];
 	uint64_t y[4];
+	int ret;
 
-	sm2_z256_point_get_xy(P, x, y);
+	if ((ret = sm2_z256_point_get_xy(P, x, y)) < 0) {
+		error_print();
+		return -1;
+	}
 	sm2_z256_to_bytes(x, out);
 	sm2_z256_to_bytes(y, out + 32);
+	return ret;
 }
 
 int sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q)
@@ -1603,11 +1615,14 @@ int sm2_z256_point_equ_hex(const SM2_Z256_POINT *P, const char *hex)
 	uint8_t hex_bytes[64];
 	size_t len;
 
-	sm2_z256_point_to_bytes(P, P_bytes);
+	if (sm2_z256_point_to_bytes(P, P_bytes) < 0) {
+		error_print();
+		return 0;
+	}
+
 	hex_to_bytes(hex, 128, hex_bytes, &len);
 
 	if (memcmp(P_bytes, hex_bytes, 64) != 0) {
-		error_print();
 		return 0;
 	}
 	return 1;
@@ -1710,12 +1725,10 @@ int sm2_z256_point_to_compressed_octets(const SM2_Z256_POINT *P, uint8_t out[33]
 	sm2_z256_t x;
 	sm2_z256_t y;
 
-	if (sm2_z256_point_is_at_infinity(P)) {
+	if (sm2_z256_point_get_xy(P, x, y) != 1) {
 		error_print();
 		return -1;
 	}
-
-	sm2_z256_point_get_xy(P, x, y);
 
 	if (sm2_z256_is_odd(y)) {
 		out[0] = SM2_point_compressed_y_odd;
@@ -1735,7 +1748,7 @@ int sm2_z256_point_to_uncompressed_octets(const SM2_Z256_POINT *P, uint8_t out[6
 		return -1;
 	}
 	out[0] = SM2_point_uncompressed;
-	sm2_z256_point_to_bytes(P, out + 1);
+	(void)sm2_z256_point_to_bytes(P, out + 1);
 	return 1;
 }
 

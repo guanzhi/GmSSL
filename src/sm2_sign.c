@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm2.h>
-#include <gmssl/sm2_z256.h>
 #include <gmssl/sm3.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
@@ -390,35 +389,6 @@ int sm2_compute_z(uint8_t z[32], const SM2_Z256_POINT *pub, const char *id, size
 	sm3_finish(&ctx, z);
 	return 1;
 }
-
-int sm2_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out)
-{
-	SM3_CTX ctx;
-	uint8_t counter_be[4];
-	uint8_t dgst[SM3_DIGEST_SIZE];
-	uint32_t counter = 1;
-	size_t len;
-
-	while (outlen) {
-		PUTU32(counter_be, counter);
-		counter++;
-
-		sm3_init(&ctx);
-		sm3_update(&ctx, in, inlen);
-		sm3_update(&ctx, counter_be, sizeof(counter_be));
-		sm3_finish(&ctx, dgst);
-
-		len = outlen < SM3_DIGEST_SIZE ? outlen : SM3_DIGEST_SIZE;
-		memcpy(out, dgst, len);
-		out += len;
-		outlen -= len;
-	}
-
-	memset(&ctx, 0, sizeof(SM3_CTX));
-	memset(dgst, 0, sizeof(dgst));
-	return 1;
-}
-
 
 int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {

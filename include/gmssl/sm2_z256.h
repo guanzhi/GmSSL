@@ -8,7 +8,6 @@
  */
 
 
-
 #ifndef GMSSL_SM2_Z256_H
 #define GMSSL_SM2_Z256_H
 
@@ -83,14 +82,14 @@ typedef struct {
 } SM2_Z256_POINT;
 
 void sm2_z256_point_set_infinity(SM2_Z256_POINT *P);
-int  sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]);
-void sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64]);
-
 int  sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P);
+int  sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64]);
+int  sm2_z256_point_from_bytes(SM2_Z256_POINT *P, const uint8_t in[64]);
+int  sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex);
+int  sm2_z256_point_equ_hex(const SM2_Z256_POINT *P, const char *hex);
 int  sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P);
 int  sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q); // equivalent jacobian points
-void sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]);
-
+int  sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4]);
 
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A);
 void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT *b);
@@ -119,8 +118,6 @@ const uint64_t *sm2_z256_order(void);
 const uint64_t *sm2_z256_order_minus_one(void);
 const uint64_t *sm2_z256_one(void);
 
-void sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex);
-int sm2_z256_point_equ_hex(const SM2_Z256_POINT *P, const char *hex);
 
 enum {
 	SM2_point_at_infinity = 0x00,

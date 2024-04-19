@@ -21,16 +21,20 @@
 #include <gmssl/error.h>
 
 
-/*
-TODO: 验证点加、倍点等计算是否支持无穷远点、共轭点等特殊形势
+// 计算中如何涉及无穷远点会怎么样
+static int test_sm2_z256_point_at_infinity(void)
+{
+	return 1;
+}
 
-*/
 
 enum {
 	OP_ADD,
 	OP_DBL,
+	OP_TRI,
 	OP_SUB,
 	OP_NEG,
+	OP_HAF,
 	OP_MUL,
 	OP_SQR,
 	OP_EXP,
@@ -60,6 +64,30 @@ static int test_sm2_z256_rshift(void)
 		sm2_z256_rshift(a, a, 1);
 	}
 	if (sm2_z256_cmp(r, a) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm2_z256_from_bytes(void)
+{
+	const uint8_t be[32] = {
+		0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,0x10,
+		0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20,
+	};
+
+	// 应该选一个to_bytes和一个from_bytes
+
+	sm2_z256_t a;
+	uint8_t buf[32];
+
+	sm2_z256_from_bytes(a, be);
+	sm2_z256_to_bytes(a, buf);
+
+	if (memcmp(buf, be, sizeof(be)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -114,6 +142,18 @@ static int test_sm2_z256_modp(void)
 		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0",
 		},
 		{
+		"2*y (mod p)", OP_DBL,
+		"786e6d46e9ecef38b37b9dc6d6d242a7a1530efa8c548e7f05be65ca4273e141",
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0",
+		NULL,
+		},
+		{
+		"3*y (mod p)", OP_TRI,
+		"34a5a3eadee366d50d396caa423b63fb71fc9678527ed5be089d98af63add1e2",
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0",
+		NULL,
+		},
+		{
 		"x - y (mod p)", OP_SUB,
 		"768d77882a23097d05db3562fed0a840bf3984422c3bc4a26e7b12a412128426",
 		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7",
@@ -129,6 +169,18 @@ static int test_sm2_z256_modp(void)
 		"-x (mod p)", OP_NEG,
 		"cd3b51d2e0e67ee6a066fbb995c6366b701cf43f0d99f41f8ea5ba76ccb38b38",
 		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7",
+		NULL,
+		},
+		{
+		"x/2 (mod p)", OP_HAF,
+		"996257158f8cc08cafcc8223351ce4ca47f185df793305f138ad22c499a63a63",
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7",
+		NULL,
+		},
+		{
+		"y/2 (mod p)", OP_HAF,
+		"5e1b9b517a7b3bce2cdee771b5b490a9e854c3be631523a0016f9972909cf850",
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0",
 		NULL,
 		},
 		{
@@ -175,11 +227,20 @@ static int test_sm2_z256_modp(void)
 		case OP_ADD:
 			sm2_z256_modp_add(c, a, b);
 			break;
+		case OP_DBL:
+			sm2_z256_modp_dbl(c, a);
+			break;
+		case OP_TRI:
+			sm2_z256_modp_tri(c, a);
+			break;
 		case OP_SUB:
 			sm2_z256_modp_sub(c, a, b);
 			break;
 		case OP_NEG:
 			sm2_z256_modp_neg(c, a);
+			break;
+		case OP_HAF:
+			sm2_z256_modp_haf(c, a);
 			break;
 		case OP_MUL:
 			sm2_z256_modp_to_mont(a, a);
@@ -362,6 +423,14 @@ static int test_sm2_z256_point_is_on_curve(void)
 		"0000000100000000000000000000000000000000ffffffff0000000000000001", // mont(1)
 		"0000000000000000000000000000000000000000000000000000000000000000", // 0
 		},
+		/*
+		{
+		"Point at Infinity (X:Y:0) invalid format (might fail)",
+		"0000000000000000000000000000000000000000000000000000000000000002", // 2
+		"0000000000000000000000000000000000000000000000000000000000000003", // 3
+		"0000000000000000000000000000000000000000000000000000000000000000", // 0
+		},
+		*/
 		{
 		"Affine Point [1]G with Montgomery Coordinates",
 		"91167a5ee1c13b05d6a1ed99ac24c3c33e7981eddca6c05061328990f418029e", // mont(x)
@@ -442,7 +511,11 @@ static int test_sm2_z256_point_get_xy(void)
 		sm2_z256_from_hex(P.Y, tests[i].mont_Y);
 		sm2_z256_from_hex(P.Z, tests[i].mont_Z);
 
-		sm2_z256_point_get_xy(&P, x, NULL);
+		if (sm2_z256_point_get_xy(&P, x, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+
 		if (sm2_z256_equ_hex(x, tests[i].x) != 1) {
 			error_print();
 			return -1;
@@ -541,6 +614,7 @@ static int test_sm2_z256_point_add_conjugate(void)
 	return 1;
 }
 
+// 无穷远点相加应该还是无穷远点
 static int test_sm2_z256_point_dbl_infinity(void)
 {
 	SM2_Z256_POINT P_infinity;
@@ -557,7 +631,6 @@ static int test_sm2_z256_point_dbl_infinity(void)
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
-
 }
 
 
@@ -874,12 +947,15 @@ static int test_sm2_z256_point_from_hash(void)
 
 int main(void)
 {
-	if (test_sm2_z256_point_dbl_infinity() != 1) goto err;
-	if (test_sm2_z256_point_ops() != 1) goto err;
-
 	if (test_sm2_z256_rshift() != 1) goto err;
+
+	if (test_sm2_z256_from_bytes() != 1) goto err;
+
+
 	if (test_sm2_z256_modp() != 1) goto err;
+	if (test_sm2_z256_modp_mont_sqrt() != 1) goto err;
 	if (test_sm2_z256_modn() != 1) goto err;
+
 	if (test_sm2_z256_point_is_on_curve() != 1) goto err;
 	if (test_sm2_z256_point_equ() != 1) goto err;
 	if (test_sm2_z256_point_get_xy() != 1) goto err;
@@ -887,7 +963,10 @@ int main(void)
 	if (test_sm2_z256_point_mul_generator() != 1) goto err;
 	if (test_sm2_z256_point_from_hash() != 1) goto err;
 	if (test_sm2_z256_point_from_x_bytes() != 1) goto err;
-	if (test_sm2_z256_modp_mont_sqrt() != 1) goto err;
+
+
+	if (test_sm2_z256_point_dbl_infinity() != 1) goto err;
+	if (test_sm2_z256_point_ops() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
