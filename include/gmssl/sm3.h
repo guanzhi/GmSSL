@@ -32,12 +32,11 @@ typedef struct {
 	size_t num;
 } SM3_CTX;
 
+void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks);
+
 void sm3_init(SM3_CTX *ctx);
 void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t datalen);
 void sm3_finish(SM3_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
-void sm3_digest(const uint8_t *data, size_t datalen, uint8_t dgst[SM3_DIGEST_SIZE]);
-
-void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks);
 
 
 #define SM3_HMAC_SIZE		(SM3_DIGEST_SIZE)
@@ -50,9 +49,6 @@ typedef struct {
 void sm3_hmac_init(SM3_HMAC_CTX *ctx, const uint8_t *key, size_t keylen);
 void sm3_hmac_update(SM3_HMAC_CTX *ctx, const uint8_t *data, size_t datalen);
 void sm3_hmac_finish(SM3_HMAC_CTX *ctx, uint8_t mac[SM3_HMAC_SIZE]);
-void sm3_hmac(const uint8_t *key, size_t keylen,
-	const uint8_t *data, size_t datalen,
-	uint8_t mac[SM3_HMAC_SIZE]);
 
 
 typedef struct {
@@ -63,7 +59,6 @@ typedef struct {
 void sm3_kdf_init(SM3_KDF_CTX *ctx, size_t outlen);
 void sm3_kdf_update(SM3_KDF_CTX *ctx, const uint8_t *in, size_t inlen);
 void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out);
-void sm3_kdf(const uint8_t *in, size_t inlen, size_t outlen, uint8_t *out);
 
 
 #define SM3_PBKDF2_MIN_ITER		10000

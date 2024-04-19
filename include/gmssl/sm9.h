@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <gmssl/api.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm9_z256.h>

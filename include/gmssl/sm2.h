@@ -31,13 +31,13 @@ typedef struct {
 } SM2_KEY;
 
 _gmssl_export int sm2_key_generate(SM2_KEY *key);
+_gmssl_export int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
 int sm2_key_set_private_key(SM2_KEY *key, const sm2_z256_t private_key);
 int sm2_key_set_public_key(SM2_KEY *key, const SM2_Z256_POINT *public_key);
-int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
 
-int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key);
-int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
-int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
+_gmssl_export int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key);
+_gmssl_export int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
+_gmssl_export int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
 
 
 /*
@@ -119,11 +119,6 @@ _gmssl_export int sm2_private_key_info_decrypt_from_pem(SM2_KEY *key, const char
 
 
 
-
-
-
-
-
 typedef struct {
 	uint8_t r[32];
 	uint8_t s[32];
@@ -136,7 +131,6 @@ int sm2_fast_sign_compute_key(const SM2_KEY *key, sm2_z256_t fast_private);
 int sm2_fast_sign_pre_compute(sm2_z256_t k, sm2_z256_t x1_modn);
 int sm2_fast_sign(const sm2_z256_t fast_private, const sm2_z256_t k, const sm2_z256_t x1_modn,
 	const uint8_t dgst[32], SM2_SIGNATURE *sig);
-
 
 
 #define SM2_MIN_SIGNATURE_SIZE 8
@@ -253,6 +247,7 @@ _gmssl_export int sm2_encrypt_finish(SM2_ENC_CTX *ctx, const uint8_t *in, size_t
 _gmssl_export int sm2_decrypt_init(SM2_ENC_CTX *ctx, const SM2_KEY *sm2_key);
 _gmssl_export int sm2_decrypt_update(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 _gmssl_export int sm2_decrypt_finish(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+
 
 #ifdef __cplusplus
 }

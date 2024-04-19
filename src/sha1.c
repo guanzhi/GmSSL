@@ -159,13 +159,3 @@ void sha1_finish(SHA1_CTX *ctx, unsigned char *dgst)
 		PUTU32(dgst + i*4, ctx->state[i]);
 	}
 }
-
-void sha1_digest(const unsigned char *data, size_t datalen,
-	unsigned char dgst[SHA1_DIGEST_SIZE])
-{
-	SHA1_CTX ctx;
-	sha1_init(&ctx);
-	sha1_update(&ctx, data, datalen);
-	sha1_finish(&ctx, dgst);
-	memset(&ctx, 0, sizeof(ctx));
-}

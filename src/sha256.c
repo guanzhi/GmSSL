@@ -169,16 +169,6 @@ void sha256_finish(SHA256_CTX *ctx, unsigned char dgst[SHA256_DIGEST_SIZE])
 	}
 }
 
-void sha256_digest(const unsigned char *data, size_t datalen,
-	unsigned char dgst[SHA256_DIGEST_SIZE])
-{
-	SHA256_CTX ctx;
-	sha256_init(&ctx);
-	sha256_update(&ctx, data, datalen);
-	sha256_finish(&ctx, dgst);
-	memset(&ctx, 0, sizeof(ctx));
-}
-
 
 void sha224_init(SHA224_CTX *ctx)
 {
@@ -204,14 +194,4 @@ void sha224_finish(SHA224_CTX *ctx, unsigned char dgst[SHA224_DIGEST_SIZE])
 	sha256_finish((SHA256_CTX *)ctx, buf);
 	memcpy(dgst, buf, SHA224_DIGEST_SIZE);
 	memset(buf, 0, sizeof(buf));
-}
-
-void sha224_digest(const unsigned char *data, size_t datalen,
-	unsigned char dgst[SHA224_DIGEST_SIZE])
-{
-	SHA224_CTX ctx;
-	sha224_init(&ctx);
-	sha224_update(&ctx, data, datalen);
-	sha224_finish(&ctx, dgst);
-	memset(&ctx, 0, sizeof(ctx));
 }

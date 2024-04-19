@@ -175,21 +175,6 @@ static void sha512_compress_blocks(uint64_t state[8],
 	}
 }
 
-void sha512_compress(uint64_t state[8], const unsigned char block[64])
-{
-	sha512_compress_blocks(state, block, 1);
-}
-
-void sha512_digest(const unsigned char *data, size_t datalen,
-	unsigned char dgst[SHA512_DIGEST_SIZE])
-{
-	SHA512_CTX ctx;
-	sha512_init(&ctx);
-	sha512_update(&ctx, data, datalen);
-	sha512_finish(&ctx, dgst);
-	memset(&ctx, 0, sizeof(ctx));
-}
-
 
 void sha384_init(SHA384_CTX *ctx)
 {
@@ -216,19 +201,3 @@ void sha384_finish(SHA384_CTX *ctx, unsigned char dgst[SHA384_DIGEST_SIZE])
 	memcpy(dgst, buf, SHA384_DIGEST_SIZE);
 	memset(buf, 0, sizeof(buf));
 }
-
-void sha384_compress(uint64_t state[8], const unsigned char block[64])
-{
-	sha512_compress_blocks(state, block, 1);
-}
-
-void sha384_digest(const unsigned char *data, size_t datalen,
-	unsigned char dgst[SHA384_DIGEST_SIZE])
-{
-	SHA384_CTX ctx;
-	sha384_init(&ctx);
-	sha384_update(&ctx, data, datalen);
-	sha384_finish(&ctx, dgst);
-	memset(&ctx, 0, sizeof(ctx));
-}
-
