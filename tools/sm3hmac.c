@@ -14,7 +14,7 @@
 #include <string.h>
 #include <gmssl/mem.h>
 #include <gmssl/hex.h>
-#include <gmssl/sm3_digest.h>
+#include <gmssl/sm3.h>
 
 
 static const char *usage = "-key hex [-in file | -in_str str] [-bin|-hex] [-out file]";

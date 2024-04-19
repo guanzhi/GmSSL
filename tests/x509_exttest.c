@@ -204,7 +204,11 @@ static int test_x509_authority_key_identifier(void)
 	const uint8_t *serialp;
 	size_t seriallen;
 
-	sm3_digest((uint8_t *)"abc", 3, keyid);
+	SM3_CTX sm3_ctx;
+	sm3_init(&sm3_ctx);
+	sm3_update(&sm3_ctx, (uint8_t *)"abc", 3);
+	sm3_finish(&sm3_ctx, keyid);
+
 	rand_bytes(serial, sizeof(serial));
 
 	if (x509_authority_key_identifier_to_der(
@@ -796,7 +800,8 @@ static int test_x509_cert_with_exts(void)
 	time(&not_before);
 	x509_validity_add_days(&not_after, not_before, 365);
 	sm2_key_generate(&sm2_key);
-	sm3_digest((uint8_t *)&(sm2_key.public_key), sizeof(SM2_POINT), uniq_id);
+
+	sm2_public_key_digest(&sm2_key, uniq_id);
 
 	if (x509_exts_add_authority_key_identifier(exts, &extslen, sizeof(exts), 1,
 			keyid, sizeof(keyid),

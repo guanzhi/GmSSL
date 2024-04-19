@@ -525,8 +525,15 @@ int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key)
 int sm2_public_key_digest(const SM2_KEY *sm2_key, uint8_t dgst[32])
 {
 	uint8_t bits[65];
-	sm2_z256_point_to_uncompressed_octets(&sm2_key->public_key, bits);
-	sm3_digest(bits, sizeof(bits), dgst);
+	SM3_CTX sm3_ctx;
+
+	if (sm2_z256_point_to_uncompressed_octets(&sm2_key->public_key, bits) != 1) {
+		error_print();
+		return -1;
+	}
+	sm3_init(&sm3_ctx);
+	sm3_update(&sm3_ctx, bits, sizeof(bits));
+	sm3_finish(&sm3_ctx, dgst);
 	return 1;
 }
 

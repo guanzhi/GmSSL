@@ -1693,7 +1693,10 @@ int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t data
 
 	do {
 		// x = sm3(data) mod p
-		sm3_digest(data, datalen, dgst);
+		SM3_CTX sm3_ctx;
+		sm3_init(&sm3_ctx);
+		sm3_update(&sm3_ctx, data, datalen);
+		sm3_finish(&sm3_ctx, dgst);
 
 		sm2_z256_from_bytes(x, dgst);
 		if (sm2_z256_cmp(x, SM2_Z256_P) >= 0) {

@@ -118,7 +118,7 @@ const DIGEST *digest_from_name(const char *name)
 	return NULL;
 }
 
-static int sm3_digest_init(DIGEST_CTX *ctx)
+static int _sm3_digest_init(DIGEST_CTX *ctx)
 {
 	if (!ctx) {
 		error_print();
@@ -128,7 +128,7 @@ static int sm3_digest_init(DIGEST_CTX *ctx)
 	return 1;
 }
 
-static int sm3_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
+static int _sm3_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
 		error_print();
@@ -138,7 +138,7 @@ static int sm3_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 	return 1;
 }
 
-static int sm3_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
+static int _sm3_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 {
 	if (!ctx || !dgst) {
 		error_print();
@@ -153,9 +153,9 @@ static const DIGEST sm3_digest_object = {
 	SM3_DIGEST_SIZE,
 	SM3_BLOCK_SIZE,
 	sizeof(SM3_CTX),
-	sm3_digest_init,
-	sm3_digest_update,
-	sm3_digest_finish,
+	_sm3_digest_init,
+	_sm3_digest_update,
+	_sm3_digest_finish,
 };
 
 const DIGEST *DIGEST_sm3(void)

@@ -9,7 +9,7 @@
 
 
 #include <string.h>
-#include <gmssl/sm3_digest.h>
+#include <gmssl/sm3.h>
 #include <gmssl/error.h>
 
 

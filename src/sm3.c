@@ -203,6 +203,7 @@ void sm3_finish(SM3_CTX *ctx, uint8_t *digest)
 	}
 }
 
+/*
 void sm3_digest(const uint8_t *msg, size_t msglen,
 	uint8_t dgst[SM3_DIGEST_SIZE])
 {
@@ -212,3 +213,4 @@ void sm3_digest(const uint8_t *msg, size_t msglen,
 	sm3_finish(&ctx, dgst);
 	memset(&ctx, 0, sizeof(ctx));
 }
+*/

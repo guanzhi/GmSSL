@@ -12,10 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmssl/sm2.h>
 #include <gmssl/sm2_z256.h>
 #include <gmssl/sm3.h>
-#include <gmssl/sm3_digest.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>

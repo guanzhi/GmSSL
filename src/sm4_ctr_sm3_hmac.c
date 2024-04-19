@@ -83,7 +83,7 @@ int sm4_ctr_sm3_hmac_decrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
 		return -1;
 	}
 	memset(ctx, 0, sizeof(*ctx));
-	if (sm4_ctr_decrypt_init(&ctx->enc_ctx, key, iv) != 1) {
+	if (sm4_ctr_encrypt_init(&ctx->enc_ctx, key, iv) != 1) {
 		error_print();
 		return -1;
 	}
@@ -124,7 +124,7 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 	if (inlen <= SM3_HMAC_SIZE) {
 		uint8_t tmp[SM3_HMAC_SIZE];
 		sm3_hmac_update(&ctx->mac_ctx, ctx->mac, inlen);
-		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
+		if (sm4_ctr_encrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -134,7 +134,7 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 		memcpy(ctx->mac, tmp, SM3_HMAC_SIZE);
 	} else {
 		sm3_hmac_update(&ctx->mac_ctx, ctx->mac, SM3_HMAC_SIZE);
-		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, SM3_HMAC_SIZE, out, outlen) != 1) {
+		if (sm4_ctr_encrypt_update(&ctx->enc_ctx, ctx->mac, SM3_HMAC_SIZE, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -142,7 +142,7 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 
 		inlen -= SM3_HMAC_SIZE;
 		sm3_hmac_update(&ctx->mac_ctx, in, inlen);
-		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, in, inlen, out, &len) != 1) {
+		if (sm4_ctr_encrypt_update(&ctx->enc_ctx, in, inlen, out, &len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -165,7 +165,7 @@ int sm4_ctr_sm3_hmac_decrypt_finish(SM4_CTR_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 		return -1;
 	}
 	sm3_hmac_finish(&ctx->mac_ctx, mac);
-	if (sm4_ctr_decrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
+	if (sm4_ctr_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}

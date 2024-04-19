@@ -80,7 +80,7 @@ static int test_sm4(void)
 	memset(&key, 0, sizeof(key));
 	memset(buf, 0, sizeof(buf));
 	sm4_set_decrypt_key(&key, user_key);
-	sm4_decrypt(&key, ciphertext, buf);
+	sm4_encrypt(&key, ciphertext, buf);
 	if (memcmp(buf, plaintext, sizeof(plaintext)) != 0) {
 		fprintf(stderr, "sm4 decrypt not pass!\n");
 		return -1;
@@ -185,7 +185,7 @@ static int test_sm4_ctr(void)
 	sm4_ctr_encrypt(&sm4_key, ctr, buf1, sizeof(buf1), buf2);
 
 	memset(ctr, 0, sizeof(ctr));
-	sm4_ctr_decrypt(&sm4_key, ctr, buf2, sizeof(buf2), buf3);
+	sm4_ctr_encrypt(&sm4_key, ctr, buf2, sizeof(buf2), buf3);
 
 	if (memcmp(buf1, buf3, sizeof(buf3)) != 0) {
 		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
@@ -229,7 +229,7 @@ static int test_sm4_ctr_with_carray(void)
 	}
 
 	hex_to_bytes(hex_ctr, strlen(hex_ctr), ctr, &ctrlen);
-	sm4_ctr_decrypt(&sm4_key, ctr, buf3, sizeof(buf3), buf2);
+	sm4_ctr_encrypt(&sm4_key, ctr, buf3, sizeof(buf3), buf2);
 
 	if (memcmp(buf2, buf1, sizeof(buf1)) != 0) {
 		error_print();
@@ -690,7 +690,7 @@ static int test_sm4_ctr_update_multi_times(void)
 	in = cbuf;
 	out = pbuf;
 	for (i = 0; i < sizeof(lens)/sizeof(lens[0]); i++) {
-		if (sm4_ctr_decrypt_update(&dec_ctx, in, lens[i], out, &len) != 1) {
+		if (sm4_ctr_encrypt_update(&dec_ctx, in, lens[i], out, &len) != 1) {
 			error_print();
 			return -1;
 		}

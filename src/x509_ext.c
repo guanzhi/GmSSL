@@ -350,16 +350,17 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
 	const SM2_KEY *public_key)
 {
-	uint8_t buf[65];
 	uint8_t id[32];
 	int critical = -1;
 
 	if (!public_key) {
 		return 0;
 	}
-	sm2_z256_point_to_uncompressed_octets(&public_key->public_key, buf);
-	sm3_digest(buf, sizeof(buf), id);
 
+	if (sm2_public_key_digest(public_key, id) != 1) {
+		error_print();
+		return -1;
+	}
 	if (x509_exts_add_authority_key_identifier(exts, extslen, maxlen, critical,
 		id, sizeof(id), NULL, 0, NULL, 0) != 1) {
 		error_print();
@@ -400,15 +401,16 @@ int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t 
 int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical, const SM2_KEY *subject_key)
 {
-	uint8_t buf[65];
 	uint8_t id[32];
 
 	if (!subject_key) {
 		return 0;
 	}
-	sm2_z256_point_to_uncompressed_octets(&subject_key->public_key, buf);
-	sm3_digest(buf, sizeof(buf), id);
 
+	if (sm2_public_key_digest(subject_key, id) != 1) {
+		error_print();
+		return -1;
+	}
 	if (x509_exts_add_subject_key_identifier(exts, extslen, maxlen, critical, id, 32) != 1) {
 		error_print();
 		return -1;

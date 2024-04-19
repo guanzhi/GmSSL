@@ -217,7 +217,7 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 	if (inlen <= ctx->taglen) {
 		uint8_t tmp[GHASH_SIZE];
 		ghash_update(&ctx->mac_ctx, ctx->mac, inlen);
-		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
+		if (sm4_ctr_encrypt_update(&ctx->enc_ctx, ctx->mac, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -227,7 +227,7 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 		memcpy(ctx->mac, tmp, GHASH_SIZE);
 	} else {
 		ghash_update(&ctx->mac_ctx, ctx->mac, ctx->taglen);
-		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, ctx->mac, ctx->taglen, out, outlen) != 1) {
+		if (sm4_ctr_encrypt_update(&ctx->enc_ctx, ctx->mac, ctx->taglen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -235,7 +235,7 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 
 		inlen -= ctx->taglen;
 		ghash_update(&ctx->mac_ctx, in, inlen);
-		if (sm4_ctr_decrypt_update(&ctx->enc_ctx, in, inlen, out, &len) != 1) {
+		if (sm4_ctr_encrypt_update(&ctx->enc_ctx, in, inlen, out, &len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -258,7 +258,7 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 		return -1;
 	}
 	ghash_finish(&ctx->mac_ctx, mac);
-	if (sm4_ctr_decrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
+	if (sm4_ctr_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}

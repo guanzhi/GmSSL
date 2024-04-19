@@ -144,14 +144,18 @@ static int test_sm3(void)
 	uint8_t testbuf[sizeof(testhex)/2 + 1000];
 	uint8_t dgstbuf[32];
 	size_t testbuflen, dgstbuflen;
+	SM3_CTX sm3_ctx;
 	uint8_t dgst[32];
 	size_t i;
 
 	for (i = 0; i < sizeof(testhex)/sizeof(testhex[0]); i++) {
+
 		hex_to_bytes(testhex[i], strlen(testhex[i]), testbuf, &testbuflen);
 		hex_to_bytes(dgsthex[i], strlen(dgsthex[i]), dgstbuf, &dgstbuflen);
 
-		sm3_digest(testbuf, testbuflen, dgst);
+		sm3_init(&sm3_ctx);
+		sm3_update(&sm3_ctx, testbuf, testbuflen);
+		sm3_finish(&sm3_ctx, dgst);
 
 		if (memcmp(dgstbuf, dgst, sizeof(dgst)) != 0) {
 			int n;

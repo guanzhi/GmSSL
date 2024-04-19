@@ -13,7 +13,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/sm2.h>
-#include <gmssl/sm3_digest.h>
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
 
