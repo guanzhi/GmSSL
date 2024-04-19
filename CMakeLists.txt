@@ -267,6 +267,12 @@ if (ENABLE_SM2_Z256_ARMV8)
 	list(APPEND src src/sm2_z256_armv8.S)
 endif()
 
+option(ENABLE_SM2_NEON "Enable SM2 NEON intrinsics" OFF)
+if (ENABLE_SM2_NEON)
+	message(STATUS "ENABLE_SM2_NEON is ON")
+	add_definitions(-DENABLE_SM2_NEON)
+endif()
+
 option(ENABLE_SM9_Z256_ARMV8 "Enable SM9_Z256 ARMv8 assembly" OFF)
 if (ENABLE_SM9_Z256_ARMV8)
 	message(STATUS "ENABLE_SM9_Z256_ARMV8 is ON")
