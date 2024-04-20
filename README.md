@@ -1,6 +1,7 @@
 # GmSSL
 
-[![CMake](https://github.com/guanzhi/GmSSL/workflows/CMake/badge.svg)](https://github.com/guanzhi/GmSSL/actions/workflows/cmake.yml)
+[![CMake-Ubuntu/macOS](https://github.com/guanzhi/GmSSL/workflows/CMake/badge.svg)](https://github.com/guanzhi/GmSSL/actions/workflows/cmake.yml)
+[![CMake-Windows](https://github.com/guanzhi/GmSSL/workflows/CMake-windows/badge.svg)](https://github.com/guanzhi/GmSSL/actions/workflows/cmake-windows.yml)
 [![CMake-Android](https://github.com/guanzhi/GmSSL/actions/workflows/android-ci.yml/badge.svg)](https://github.com/guanzhi/GmSSL/actions/workflows/android-ci.yml)
 [![CMake-iOS](https://github.com/guanzhi/GmSSL/actions/workflows/ios.yml/badge.svg)](https://github.com/guanzhi/GmSSL/actions/workflows/ios.yml)
 
@@ -40,7 +41,7 @@ sudo make install
 ```bash
 mkdir build
 cd build
-cmake .. -G "NMake Makefiles"
+cmake .. -G "NMake Makefiles" -DWIN32=ON
 nmake
 ```
 
