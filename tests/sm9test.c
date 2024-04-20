@@ -757,8 +757,8 @@ int test_sm9_z256_exchange()
 	uint8_t idA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
 	uint8_t idB[3] = {0x42, 0x6F, 0x62};
 	size_t klen = 0x10;
-	uint8_t skA[200] = {}, skB[200] = {};
-
+	uint8_t skA[200];
+	uint8_t skB[200];
 	sm9_z256_from_hex(msk.ke, hex_kex);
 	sm9_z256_point_mul_generator(&(msk.Ppube), msk.ke);
 	if (sm9_exch_master_key_extract_key(&msk, (char *)idA, sizeof(idA), &keyA) < 0) goto err; ++j;
