@@ -2320,7 +2320,7 @@ void tls_cleanup(TLS_CONNECT *conn)
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
 	int flags;
-
+#ifndef WIN32
 	if ((flags = fcntl(sock, F_GETFL)) == -1) {
 		error_print();
 		perror("fcntl error");
@@ -2331,6 +2331,7 @@ int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 		//nginx will pass a socket in non-blocking mode
 		//return -1;
 	}
+#endif
 	conn->sock = sock;
 	return 1;
 }
