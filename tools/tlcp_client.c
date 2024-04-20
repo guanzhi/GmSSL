@@ -254,14 +254,21 @@ bad:
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
 		if (read_stdin)
+#ifdef WIN32
+			FD_SET(_fileno, &fds);
+#else
 			FD_SET(STDIN_FILENO, &fds);
-
+#endif
 		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select error\n", prog);
 			goto end;
 		}
 
+#ifdef WIN32
+		if (read_stdin && FD_ISSET(_fileno, &fds)) {
+#else
 		if (read_stdin && FD_ISSET(STDIN_FILENO, &fds)) {
+#endif
 
 			if (fgets(buf, sizeof(buf), stdin)) {
 				if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
