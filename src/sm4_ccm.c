@@ -18,7 +18,7 @@
 
 static void length_to_bytes(size_t len, size_t nbytes, uint8_t *out)
 {
-	uint8_t *p = out + nbytes;
+	uint8_t *p = out + nbytes - 1;
 	while (nbytes--) {
 		*p-- = len & 0xff;
 		len >>= 8;
