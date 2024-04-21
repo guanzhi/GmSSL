@@ -47,7 +47,7 @@ static int test_sm4_ecb(void)
 	return 1;
 }
 
-static int test_sm4_ecb_testvec(void)
+static int test_sm4_ecb_test_vectors(void)
 {
 	SM4_KEY sm4_key;
 	uint8_t key[16] = {
@@ -180,11 +180,10 @@ static int test_sm4_ecb_ctx(void)
 	return 1;
 }
 
-
 int main(void)
 {
 	if (test_sm4_ecb() != 1) goto err;
-	if (test_sm4_ecb_testvec() != 1) goto err;
+	if (test_sm4_ecb_test_vectors() != 1) goto err;
 	if (test_sm4_ecb_ctx() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

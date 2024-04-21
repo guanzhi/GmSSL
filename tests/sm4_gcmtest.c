@@ -196,7 +196,7 @@ static int test_sm4_gcm_gbt36624_2(void)
 	return 1;
 }
 
-static int test_sm4_gcm_update(void)
+static int test_sm4_gcm_ctx(void)
 {
 	SM4_GCM_CTX aead_ctx;
 	uint8_t key[16];
@@ -317,7 +317,7 @@ int main(void)
 	if (test_sm4_gcm() != 1) goto err;
 	if (test_sm4_gcm_gbt36624_1() != 1) goto err;
 	if (test_sm4_gcm_gbt36624_2() != 1) goto err;
-	if (test_sm4_gcm_update() != 1) goto err;
+	if (test_sm4_gcm_ctx() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

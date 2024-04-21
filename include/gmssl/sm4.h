@@ -175,8 +175,13 @@ _gmssl_export int sm4_ofb_encrypt_finish(SM4_OFB_CTX *ctx, uint8_t *out, size_t 
 
 
 #ifdef ENABLE_SM4_CFB
-#define SM4_CFB_MIN_SBYTES 1
-#define SM4_CFB_MAX_SBYTES 16
+#define SM4_CFB_MIN_SBYTES 	1
+#define SM4_CFB_MAX_SBYTES	16
+
+// pre-defined values for `sbytes`
+#define SM4_CFB_8		1
+#define SM4_CFB_64		8
+#define SM4_CFB_128		16
 
 // always call `sm4_set_encrypt_key` before encrypt/decrypt
 // `sm4_cfb_encrypt/decrypt` will change the param `iv`

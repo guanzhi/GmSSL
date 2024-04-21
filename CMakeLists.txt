@@ -131,6 +131,8 @@ set(tools
 
 set(tests
 	sm4
+	sm4_cbc
+	sm4_ctr
 	sm3
 	sm4_sm3_hmac
 	sm2_z256
