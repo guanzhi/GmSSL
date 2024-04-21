@@ -121,6 +121,32 @@ void aes_ctr_encrypt(const AES_KEY *key, uint8_t ctr[16], const uint8_t *in, siz
 	}
 }
 
+
+static void ctr32_incr(uint8_t a[16])
+{
+	int i;
+	for (i = 15; i >= 12; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
+static void aes_ctr32_encrypt(const AES_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	uint8_t block[16];
+	size_t len;
+
+	while (inlen) {
+		len = inlen < 16 ? inlen : 16;
+		aes_encrypt(key, ctr, block);
+		gmssl_memxor(out, in, block, len);
+		ctr32_incr(ctr);
+		in += len;
+		out += len;
+		inlen -= len;
+	}
+}
+
 int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t taglen, uint8_t *tag)
@@ -149,8 +175,8 @@ int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 
 	aes_encrypt(key, Y, T);
 
-	ctr_incr(Y);
-	aes_ctr_encrypt(key, Y, in, inlen, out);
+	ctr32_incr(Y);
+	aes_ctr32_encrypt(key, Y, in, inlen, out);
 
 	ghash(H, aad, aadlen, out, inlen, H);
 	gmssl_memxor(tag, T, H, taglen);
@@ -186,8 +212,8 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 		return -1;
 	}
 
-	ctr_incr(Y);
-	aes_ctr_encrypt(key, Y, in, inlen, out);
+	ctr32_incr(Y);
+	aes_ctr32_encrypt(key, Y, in, inlen, out);
 
 	return 1;
 }
