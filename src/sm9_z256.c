@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <gmssl/hex.h>
 #include <gmssl/mem.h>
-#include <gmssl/sm9_z256.h>
+#include <gmssl/sm9.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/rand.h>
@@ -1811,8 +1811,9 @@ void sm9_z256_point_get_xy(const SM9_Z256_POINT *P, sm9_z256_t x, sm9_z256_t y)
 	assert(!sm9_z256_is_zero(P->Z));
 
 	if (sm9_z256_equ(P->Z, SM9_Z256_MODP_MONT_ONE)) {
-		sm9_z256_copy(x, P->X);
-		sm9_z256_copy(y, P->Y);
+		sm9_z256_modp_from_mont(x, P->X);
+		sm9_z256_modp_from_mont(y, P->Y);
+		return;
 	}
 
 	sm9_z256_modp_mont_inv(z_inv, P->Z);
@@ -1875,6 +1876,7 @@ void sm9_z256_point_dbl(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
 	const uint64_t *X1 = P->X;
 	const uint64_t *Y1 = P->Y;
 	const uint64_t *Z1 = P->Z;
+	
 	sm9_z256_t X3, Y3, Z3, T1, T2, T3;
 
 	if (sm9_z256_point_is_at_infinity(P)) {
@@ -1902,26 +1904,8 @@ void sm9_z256_point_dbl(SM9_Z256_POINT *R, const SM9_Z256_POINT *P)
 	sm9_z256_copy(R->Z, Z3);
 }
 
-// TODO: use the full formula with the full X,Y,Z coordinates of Q
 void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q)
 {
-	sm9_z256_t x;
-	sm9_z256_t y;
-
-	// FIXME: use full formula
-	sm9_z256_point_get_xy(Q, x, y);
-	sm9_z256_modp_to_mont(x, x);
-	sm9_z256_modp_to_mont(y, y);
-
-	const uint64_t *X1 = P->X;
-	const uint64_t *Y1 = P->Y;
-	const uint64_t *Z1 = P->Z;
-	const uint64_t *x2 = x;
-	const uint64_t *y2 = y;
-	sm9_z256_t X3, Y3, Z3, T1, T2, T3, T4;
-
-
-
 	if (sm9_z256_point_is_at_infinity(Q)) {
 		*R = *P;
 		return;
@@ -1931,15 +1915,31 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 		return;
 	}
 
-	sm9_z256_modp_mont_sqr(T1, Z1);
-	sm9_z256_modp_mont_mul(T2, T1, Z1);
-	sm9_z256_modp_mont_mul(T1, T1, x2);
-	sm9_z256_modp_mont_mul(T2, T2, y2);
-	sm9_z256_modp_sub(T1, T1, X1);
-	sm9_z256_modp_sub(T2, T2, Y1);
+	const uint64_t *X1 = P->X;
+	const uint64_t *Y1 = P->Y;
+	const uint64_t *Z1 = P->Z;
+	const uint64_t *X2 = Q->X;
+	const uint64_t *Y2 = Q->Y;
+	const uint64_t *Z2 = Q->Z;
+	
+	sm9_z256_t X3, Y3, Z3, T1, T2, U1, U2, S1, S2, H, I;
 
-	if (sm9_z256_is_zero(T1)) {
-		if (sm9_z256_is_zero(T2)) {
+	sm9_z256_modp_mont_sqr(T1, Z1);
+	sm9_z256_modp_mont_sqr(T2, Z2);
+	sm9_z256_modp_mont_mul(U1, X1, T2);
+	sm9_z256_modp_mont_mul(U2, X2, T1);
+	sm9_z256_modp_add(Z3, Z1, Z2);
+	sm9_z256_modp_mont_sqr(Z3, Z3);
+	sm9_z256_modp_sub(Z3, Z3, T1);
+	sm9_z256_modp_sub(Z3, Z3, T2);
+	sm9_z256_modp_mont_mul(T1, T1, Z1);
+	sm9_z256_modp_mont_mul(T2, T2, Z2);
+	sm9_z256_modp_mont_mul(S1, Y1, T2);
+	sm9_z256_modp_mont_mul(S2, Y2, T1);
+	sm9_z256_modp_sub(H, U2, U1);
+	sm9_z256_modp_sub(U2, S2, S1);
+	if (sm9_z256_is_zero(H)) {
+		if (sm9_z256_is_zero(U2)) {
 			sm9_z256_point_dbl(R, Q);
 			return;
 		} else {
@@ -1947,19 +1947,21 @@ void sm9_z256_point_add(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z2
 			return;
 		}
 	}
-
-	sm9_z256_modp_mont_mul(Z3, Z1, T1);
-	sm9_z256_modp_mont_sqr(T3, T1);
-	sm9_z256_modp_mont_mul(T4, T3, T1);
-	sm9_z256_modp_mont_mul(T3, T3, X1);
-	sm9_z256_modp_dbl(T1, T3);
-	sm9_z256_modp_mont_sqr(X3, T2);
-	sm9_z256_modp_sub(X3, X3, T1);
-	sm9_z256_modp_sub(X3, X3, T4);
-	sm9_z256_modp_sub(T3, T3, X3);
-	sm9_z256_modp_mont_mul(T3, T3, T2);
-	sm9_z256_modp_mont_mul(T4, T4, Y1);
-	sm9_z256_modp_sub(Y3, T3, T4);
+	sm9_z256_modp_mont_mul(Z3, Z3, H);
+	sm9_z256_modp_dbl(I, H);
+	sm9_z256_modp_mont_sqr(I, I);
+	sm9_z256_modp_mont_mul(H, H, I); // J is H
+	sm9_z256_modp_mont_mul(I, U1, I); // V is I
+	sm9_z256_modp_dbl(U2, U2); // r is U2
+	sm9_z256_modp_mont_sqr(X3, U2);
+	sm9_z256_modp_sub(X3, H, X3);
+	sm9_z256_modp_tri(Y3, I);
+	sm9_z256_modp_add(X3, Y3, X3);
+	sm9_z256_modp_mont_mul(Y3, U2, X3);
+	sm9_z256_modp_mont_mul(S1, S1, H);
+	sm9_z256_modp_dbl(S1, S1);
+	sm9_z256_modp_sub(Y3, Y3, S1);
+	sm9_z256_modp_sub(X3, I, X3);
 
 	sm9_z256_copy(R->X, X3);
 	sm9_z256_copy(R->Y, Y3);
@@ -2051,16 +2053,51 @@ void sm9_z256_point_copy_affine(SM9_Z256_POINT *R, const SM9_Z256_AFFINE_POINT *
 
 void sm9_z256_point_add_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_AFFINE_POINT *Q)
 {
-	SM9_Z256_POINT T;
-	sm9_z256_point_copy_affine(&T, Q);
-	sm9_z256_point_add(R, P, &T);
+	const uint64_t *X1 = P->X;
+	const uint64_t *Y1 = P->Y;
+	const uint64_t *Z1 = P->Z;
+	const uint64_t *X2 = Q->X;
+	const uint64_t *Y2 = Q->Y;
+	
+	sm9_z256_t X3, Y3, Z3, T1, S2, H, I;
+
+	sm9_z256_modp_mont_sqr(T1, Z1);
+	sm9_z256_modp_mont_mul(H, X2, T1);
+	sm9_z256_modp_sub(H, H, X1);
+	sm9_z256_modp_add(Z3, Z1, H);
+	sm9_z256_modp_mont_sqr(Z3, Z3);
+	sm9_z256_modp_sub(Z3, Z3, T1);
+	sm9_z256_modp_mont_mul(T1, T1, Z1);
+	sm9_z256_modp_mont_mul(S2, Y2, T1);
+	sm9_z256_modp_mont_sqr(T1, H); // HH is T1
+	sm9_z256_modp_sub(Z3, Z3, T1);
+	sm9_z256_modp_dbl(I, T1);
+	sm9_z256_modp_dbl(I, I);
+	sm9_z256_modp_mont_mul(H, H, I); // J is H
+	sm9_z256_modp_mont_mul(I, X1, I); // V is I
+	sm9_z256_modp_sub(S2, S2, Y1);
+	sm9_z256_modp_dbl(S2, S2); // r is S2
+	sm9_z256_modp_mont_sqr(X3, S2);
+	sm9_z256_modp_sub(X3, H, X3);
+	sm9_z256_modp_tri(Y3, I);
+	sm9_z256_modp_add(X3, Y3, X3);
+	sm9_z256_modp_mont_mul(Y3, S2, X3);
+	sm9_z256_modp_mont_mul(H, H, Y1);
+	sm9_z256_modp_dbl(H, H);
+	sm9_z256_modp_sub(Y3, Y3, H);
+	sm9_z256_modp_sub(X3, I, X3);
+
+	sm9_z256_copy(R->X, X3);
+	sm9_z256_copy(R->Y, Y3);
+	sm9_z256_copy(R->Z, Z3);
 }
 
 void sm9_z256_point_sub_affine(SM9_Z256_POINT *R, const SM9_Z256_POINT *P, const SM9_Z256_AFFINE_POINT *Q)
 {
-	SM9_Z256_POINT T;
-	sm9_z256_point_copy_affine(&T, Q);
-	sm9_z256_point_sub(R, P, &T);
+	SM9_Z256_AFFINE_POINT _T, *T = &_T;
+	sm9_z256_copy(T->X, Q->X);
+	sm9_z256_modp_neg(T->Y, Q->Y);
+	sm9_z256_point_add_affine(R, P, T);
 }
 
 extern const uint64_t sm9_z256_pre_comp[37][64 * 4 * 2];
@@ -2620,6 +2657,299 @@ void sm9_z256_pairing(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM
 
 	sm9_z256_final_exponent(r, r);
 }
+
+////////////////////////////////////
+
+void sm9_z256_point_to_affine(SM9_Z256_AFFINE_POINT *Q, const SM9_Z256_POINT *P)
+{
+	sm9_z256_t z_inv;
+
+	assert(!sm9_z256_is_zero(P->Z));
+
+	if (sm9_z256_equ(P->Z, SM9_Z256_MODP_MONT_ONE)) {
+		sm9_z256_copy(Q->X, P->X);
+		sm9_z256_copy(Q->Y, P->Y);
+		return;
+	}
+
+	sm9_z256_modp_mont_inv(z_inv, P->Z);
+	if (Q->Y) {
+		sm9_z256_modp_mont_mul(Q->Y, P->Y, z_inv);
+	}
+	sm9_z256_modp_mont_sqr(z_inv, z_inv);
+	sm9_z256_modp_mont_mul(Q->X, P->X, z_inv);
+	if (Q->Y) {
+		sm9_z256_modp_mont_mul(Q->Y, Q->Y, z_inv);
+	}
+}
+
+// g_line = lw[0] + lw[1] * w^2 + lw[2] * w^3, R = 2P
+void sm9_z256_eval_g_tangent_fast(SM9_Z256_TWIST_POINT *R, sm9_z256_fp2_t lw[3],
+	const SM9_Z256_TWIST_POINT *P, const SM9_Z256_AFFINE_POINT *Q)
+{
+	const sm9_z256_t *X1 = P->X;
+	const sm9_z256_t *Y1 = P->Y;
+	const sm9_z256_t *Z1 = P->Z;
+	
+	sm9_z256_fp2_t X3, Y3, Z3, A, B, C, D, T1;
+	
+	sm9_z256_fp2_sqr(T1, Z1);
+	sm9_z256_fp2_sqr(A, X1);
+	sm9_z256_fp2_sqr(B, Y1);
+	sm9_z256_fp2_sqr(C, B);
+	sm9_z256_fp2_add(D, X1, B);
+	sm9_z256_fp2_sqr(D, D);
+	sm9_z256_fp2_sub(D, D, A);
+	sm9_z256_fp2_sub(D, D, C);
+	sm9_z256_fp2_dbl(D, D);
+	sm9_z256_fp2_add(Z3, Y1, Z1);
+	sm9_z256_fp2_sqr(Z3, Z3);
+	sm9_z256_fp2_sub(Z3, Z3, B);
+	sm9_z256_fp2_sub(Z3, Z3, T1);
+	sm9_z256_fp2_dbl(lw[0], B);
+	sm9_z256_fp2_dbl(lw[0], lw[0]);
+	sm9_z256_fp2_add(lw[0], lw[0], A);
+	sm9_z256_fp2_tri(A, A);
+	sm9_z256_fp2_sqr(B, A);
+	sm9_z256_fp2_dbl(X3, D);
+	sm9_z256_fp2_sub(X3, B, X3);
+	sm9_z256_fp2_add(lw[0], lw[0], B);
+	sm9_z256_fp2_sub(Y3, D, X3);
+	sm9_z256_fp2_mul(Y3, Y3, A);
+	sm9_z256_fp2_dbl(C, C);
+	sm9_z256_fp2_dbl(C, C);
+	sm9_z256_fp2_dbl(C, C);
+	sm9_z256_fp2_sub(Y3, Y3, C);
+	sm9_z256_fp2_mul(lw[2], Z3, T1);
+	sm9_z256_fp2_dbl(lw[2], lw[2]);
+	sm9_z256_fp2_mul(lw[1], A, T1);
+	sm9_z256_fp2_dbl(lw[1], lw[1]);
+	sm9_z256_fp2_neg(lw[1], lw[1]);
+	sm9_z256_fp2_add(A, X1, A);
+	sm9_z256_fp2_sqr(A, A);
+	sm9_z256_fp2_sub(lw[0], A, lw[0]);
+	sm9_z256_fp2_mul_fp(lw[1], lw[1], Q->X);
+	sm9_z256_fp2_mul_fp(lw[2], lw[2], Q->Y);
+	
+	sm9_z256_fp2_copy(R->X, X3);
+	sm9_z256_fp2_copy(R->Y, Y3);
+	sm9_z256_fp2_copy(R->Z, Z3);
+}
+
+// g_line = lw[0] + lw[1] * w^2 + lw[2] * w^3, R = P+T
+void sm9_z256_eval_g_line_fast(SM9_Z256_TWIST_POINT *R, sm9_z256_fp2_t lw[3], sm9_z256_fp2_t pre[5],
+	const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_AFFINE_POINT *Q)
+{
+	const sm9_z256_t *X1 = P->X;
+	const sm9_z256_t *Y1 = P->Y;
+	const sm9_z256_t *Z1 = P->Z;
+	const sm9_z256_t *X2 = T->X;
+	const sm9_z256_t *Y2 = T->Y;
+	const sm9_z256_t *Z2 = T->Z;
+	
+	sm9_z256_fp2_t X3, Y3, Z3, T1, T2, A, B, C, D;
+	
+	sm9_z256_fp2_sqr(T1, Z1);
+	sm9_z256_fp2_sqr(T2, Z2);
+	sm9_z256_fp2_add(Z3, Z1, Z2);
+	sm9_z256_fp2_sqr(Z3, Z3);
+	sm9_z256_fp2_sub(Z3, Z3, T1);
+	sm9_z256_fp2_sub(Z3, Z3, T2);
+	sm9_z256_fp2_mul(A, X1, T2);
+	sm9_z256_fp2_mul(B, X2, T1);
+	sm9_z256_fp2_mul(C, Y1, pre[1]);
+	sm9_z256_fp2_dbl(C, C);
+	sm9_z256_fp2_add(D, Y2, Z1);
+	sm9_z256_fp2_sqr(D, D);
+	sm9_z256_fp2_sub(D, D, pre[0]);
+	sm9_z256_fp2_sub(D, D, T1);
+	sm9_z256_fp2_mul(D, D, T1);
+	sm9_z256_fp2_sub(B, B, A);
+	sm9_z256_fp2_mul(Z3, Z3, B);
+	sm9_z256_fp2_dbl(T1, B);
+	sm9_z256_fp2_sqr(T1, T1);
+	sm9_z256_fp2_mul(X3, B, T1);
+	sm9_z256_fp2_mul(Y3, C, X3);
+	sm9_z256_fp2_mul(A, A, T1);
+	sm9_z256_fp2_sub(B, D, C);
+	sm9_z256_fp2_dbl(T2, A);
+	sm9_z256_fp2_add(X3, X3, T2);
+	sm9_z256_fp2_sqr(T2, B);
+	sm9_z256_fp2_sub(X3, T2, X3);
+	sm9_z256_fp2_sub(T2, A, X3);
+	sm9_z256_fp2_mul(T2, T2, B);
+	sm9_z256_fp2_sub(Y3, T2, Y3);
+	sm9_z256_fp2_mul(lw[2], Z3, pre[2]);
+	sm9_z256_fp2_mul(lw[1], B, pre[3]);
+	sm9_z256_fp2_mul(B, B, pre[4]);
+	sm9_z256_fp2_mul(lw[0], Y2, Z3);
+	sm9_z256_fp2_dbl(lw[0], lw[0]);
+	sm9_z256_fp2_sub(lw[0], B, lw[0]);
+	
+	sm9_z256_fp2_copy(R->X, X3);
+	sm9_z256_fp2_copy(R->Y, Y3);
+	sm9_z256_fp2_copy(R->Z, Z3);
+}
+
+void sm9_z256_eval_g_line_fast_no_pre(SM9_Z256_TWIST_POINT *R, sm9_z256_fp2_t lw[3],
+	const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_AFFINE_POINT *Q)
+{
+	const sm9_z256_t *X1 = P->X;
+	const sm9_z256_t *Y1 = P->Y;
+	const sm9_z256_t *Z1 = P->Z;
+	const sm9_z256_t *X2 = T->X;
+	const sm9_z256_t *Y2 = T->Y;
+	const sm9_z256_t *Z2 = T->Z;
+	
+	sm9_z256_fp2_t pre[5];
+	sm9_z256_fp2_sqr(pre[0], T->Y);
+	sm9_z256_fp2_mul(pre[4], T->X, T->Z);
+	sm9_z256_fp2_dbl(pre[4], pre[4]);
+	sm9_z256_fp2_sqr(pre[1], T->Z);
+	sm9_z256_fp2_mul(pre[1], pre[1], T->Z);
+	sm9_z256_fp2_mul_fp(pre[2], pre[1], Q->Y);
+	sm9_z256_fp2_dbl(pre[2], pre[2]);
+	sm9_z256_fp2_mul_fp(pre[3], pre[1], Q->X);
+	sm9_z256_fp2_dbl(pre[3], pre[3]);
+	sm9_z256_fp2_neg(pre[3], pre[3]);
+	
+	sm9_z256_fp2_t X3, Y3, Z3, T1, T2, A, B, C, D;
+	
+	sm9_z256_fp2_sqr(T1, Z1);
+	sm9_z256_fp2_sqr(T2, Z2);
+	sm9_z256_fp2_add(Z3, Z1, Z2);
+	sm9_z256_fp2_sqr(Z3, Z3);
+	sm9_z256_fp2_sub(Z3, Z3, T1);
+	sm9_z256_fp2_sub(Z3, Z3, T2);
+	sm9_z256_fp2_mul(A, X1, T2);
+	sm9_z256_fp2_mul(B, X2, T1);
+	sm9_z256_fp2_mul(C, Y1, pre[1]);
+	sm9_z256_fp2_dbl(C, C);
+	sm9_z256_fp2_add(D, Y2, Z1);
+	sm9_z256_fp2_sqr(D, D);
+	sm9_z256_fp2_sub(D, D, pre[0]);
+	sm9_z256_fp2_sub(D, D, T1);
+	sm9_z256_fp2_mul(D, D, T1);
+	sm9_z256_fp2_sub(B, B, A);
+	sm9_z256_fp2_mul(Z3, Z3, B);
+	sm9_z256_fp2_dbl(T1, B);
+	sm9_z256_fp2_sqr(T1, T1);
+	sm9_z256_fp2_mul(X3, B, T1);
+	sm9_z256_fp2_mul(Y3, C, X3);
+	sm9_z256_fp2_mul(A, A, T1);
+	sm9_z256_fp2_sub(B, D, C);
+	sm9_z256_fp2_dbl(T2, A);
+	sm9_z256_fp2_add(X3, X3, T2);
+	sm9_z256_fp2_sqr(T2, B);
+	sm9_z256_fp2_sub(X3, T2, X3);
+	sm9_z256_fp2_sub(T2, A, X3);
+	sm9_z256_fp2_mul(T2, T2, B);
+	sm9_z256_fp2_sub(Y3, T2, Y3);
+	sm9_z256_fp2_mul(lw[2], Z3, pre[2]);
+	sm9_z256_fp2_mul(lw[1], B, pre[3]);
+	sm9_z256_fp2_mul(B, B, pre[4]);
+	sm9_z256_fp2_mul(lw[0], Y2, Z3);
+	sm9_z256_fp2_dbl(lw[0], lw[0]);
+	sm9_z256_fp2_sub(lw[0], B, lw[0]);
+	
+	sm9_z256_fp2_copy(R->X, X3);
+	sm9_z256_fp2_copy(R->Y, Y3);
+	sm9_z256_fp2_copy(R->Z, Z3);
+}
+
+void sm9_z256_fp12_line_mul(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp2_t lw[3])
+{
+	sm9_z256_fp4_t r0, r1, r2;
+	sm9_z256_fp2_t t;
+	
+	sm9_z256_fp4_t lw4;
+	sm9_z256_fp2_copy(lw4[0], lw[0]);
+	sm9_z256_fp2_copy(lw4[1], lw[2]);
+	
+	sm9_z256_fp4_mul(r0, a[0], lw4);
+	sm9_z256_fp4_mul(r1, a[1], lw4);
+	sm9_z256_fp4_mul(r2, a[2], lw4);
+	
+	sm9_z256_fp2_mul  (t, a[0][0], lw[1]);
+	sm9_z256_fp2_add  (r2[0], r2[0], t);
+	sm9_z256_fp2_mul  (t, a[0][1], lw[1]);
+	sm9_z256_fp2_add  (r2[1], r2[1], t);
+	sm9_z256_fp2_mul  (t, a[1][0], lw[1]);
+	sm9_z256_fp2_add  (r0[1], r0[1], t);
+	sm9_z256_fp2_mul_u(t, a[1][1], lw[1]);
+	sm9_z256_fp2_add  (r0[0], r0[0], t);
+	sm9_z256_fp2_mul  (t, a[2][0], lw[1]);
+	sm9_z256_fp2_add  (r1[1], r1[1], t);
+	sm9_z256_fp2_mul_u(t, a[2][1], lw[1]);
+	sm9_z256_fp2_add  (r1[0], r1[0], t);
+	
+	sm9_z256_fp4_copy(r[0], r0);
+	sm9_z256_fp4_copy(r[1], r1);
+	sm9_z256_fp4_copy(r[2], r2);
+}
+
+void sm9_z256_pairing_fast(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM9_Z256_POINT *P)
+{
+	const char *abits = "00100000000000000000000000000000000000010000101100020200101000020";
+
+	SM9_Z256_TWIST_POINT T;
+	SM9_Z256_TWIST_POINT Q1;
+	SM9_Z256_TWIST_POINT Q2;
+	
+	sm9_z256_fp2_copy(T.X, Q->X);
+	sm9_z256_fp2_copy(T.Y, Q->Y);
+	sm9_z256_fp2_copy(T.Z, Q->Z);
+	
+	SM9_Z256_AFFINE_POINT P_;
+	sm9_z256_point_to_affine(&P_, P);
+	sm9_z256_twist_point_neg(&Q1, Q);
+	
+	sm9_z256_fp2_t lw[3];
+	sm9_z256_fp2_t pre[5]; // same for Q and -Q
+	
+	sm9_z256_fp2_sqr(pre[0], Q->Y);
+	sm9_z256_fp2_mul(pre[4], Q->X, Q->Z);
+	sm9_z256_fp2_dbl(pre[4], pre[4]);
+	sm9_z256_fp2_sqr(pre[1], Q->Z);
+	sm9_z256_fp2_mul(pre[1], pre[1], Q->Z);
+	sm9_z256_fp2_mul_fp(pre[2], pre[1], P_.Y);
+	sm9_z256_fp2_dbl(pre[2], pre[2]);
+	sm9_z256_fp2_mul_fp(pre[3], pre[1], P_.X);
+	sm9_z256_fp2_dbl(pre[3], pre[3]);
+	sm9_z256_fp2_neg(pre[3], pre[3]);
+
+	sm9_z256_fp12_set_one(r);
+
+	int i;
+	for (i = 0; i < strlen(abits); i++) {
+		sm9_z256_fp12_sqr(r, r);
+		sm9_z256_eval_g_tangent_fast(&T, lw, &T, &P_);
+		sm9_z256_fp12_line_mul(r, r, lw);
+
+		if (abits[i] == '1') {
+			//sm9_z256_eval_g_line_fast_no_pre(&T, lw, &T, Q, &P_);
+			sm9_z256_eval_g_line_fast(&T, lw, pre, &T, Q, &P_);
+			sm9_z256_fp12_line_mul(r, r, lw);
+		} else if (abits[i] == '2') {
+			//sm9_z256_eval_g_line_fast_no_pre(&T, lw, &T, &Q1, &P_);
+			sm9_z256_eval_g_line_fast(&T, lw, pre, &T, &Q1, &P_);
+			sm9_z256_fp12_line_mul(r, r, lw);
+		}
+	}
+
+	sm9_z256_twist_point_pi1(&Q1, Q);
+	sm9_z256_twist_point_neg_pi2(&Q2, Q);
+
+	sm9_z256_eval_g_line_fast_no_pre(&T, lw, &T, &Q1, &P_);
+	sm9_z256_fp12_line_mul(r, r, lw);
+
+	sm9_z256_eval_g_line_fast_no_pre(&T, lw, &T, &Q2, &P_);
+	sm9_z256_fp12_line_mul(r, r, lw);
+	
+	sm9_z256_final_exponent(r, r);
+}
+
+////////////////////////////////////
 
 void sm9_z256_modn_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 {
