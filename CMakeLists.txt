@@ -13,6 +13,7 @@ include_directories(include)
 option(ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
 option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
+option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
 
 option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
 option(ENABLE_SM4_OFB "Enable SM4 OFB mode" OFF)
