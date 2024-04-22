@@ -223,8 +223,16 @@ void sm9_z256_twist_point_mul(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k, const
 void sm9_z256_twist_point_mul_generator(SM9_Z256_TWIST_POINT *R, const sm9_z256_t k);
 
 
-void sm9_z256_eval_g_tangent(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
-void sm9_z256_eval_g_line(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
+void sm9_z256_point_to_affine(SM9_Z256_AFFINE_POINT *Q, const SM9_Z256_POINT *P);
+void sm9_z256_eval_g_tangent(SM9_Z256_TWIST_POINT *R, sm9_z256_fp2_t lw[3],
+	const SM9_Z256_TWIST_POINT *P, const SM9_Z256_AFFINE_POINT *Q);
+void sm9_z256_eval_g_line(SM9_Z256_TWIST_POINT *R, sm9_z256_fp2_t lw[3], sm9_z256_fp2_t pre[5],
+	const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_AFFINE_POINT *Q);
+void sm9_z256_eval_g_line_no_pre(SM9_Z256_TWIST_POINT *R, sm9_z256_fp2_t lw[3],
+	const SM9_Z256_TWIST_POINT *P, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_AFFINE_POINT *Q);
+void sm9_z256_fp12_line_mul(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm9_z256_fp2_t lw[3]);
+//void sm9_z256_eval_g_tangent(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
+//void sm9_z256_eval_g_line(sm9_z256_fp12_t num, sm9_z256_fp12_t den, const SM9_Z256_TWIST_POINT *T, const SM9_Z256_TWIST_POINT *P, const SM9_Z256_POINT *Q);
 void sm9_z256_twist_point_pi1(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_pi2(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
 void sm9_z256_twist_point_neg_pi2(SM9_Z256_TWIST_POINT *R, const SM9_Z256_TWIST_POINT *P);
