@@ -1219,7 +1219,7 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 
 	// S = S * X1 = 4 * X1 * Y1^2
 	sm2_z256_modp_mont_mul(S, S, X1);
-	sm2_z256_print(stderr, 0, 0, "12. S = S * X1 = 4 * X1 * Y1^2", S);
+	//sm2_z256_print(stderr, 0, 0, "12. S = S * X1 = 4 * X1 * Y1^2", S);
 
 	// tmp0 = 2 * S = 8 * X1 * Y1^2
 	sm2_z256_modp_dbl(tmp0, S);

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm4.h>
 #include <gmssl/error.h>
@@ -91,12 +92,37 @@ static int test_sm4(void)
 }
 
 
+static int test_sm4_speed(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t block[16] = {0};
+	clock_t start, end;
+	double seconds;
+	int i;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	start = clock();
+	for (i = 0; i < 1024*1024; i++) {
+		sm4_encrypt(&sm4_key, block, block);
+	}
+	end = clock();
+
+	seconds = (double)(end - start)/ CLOCKS_PER_SEC;
+
+	fprintf(stderr, "sm4_encrypt: %f-MiB per seconds\n", 16/seconds);
+
+	return 1;
+}
 
 
 int main(void)
 {
-	
 	if (test_sm4() != 1) goto err;
+	if (test_sm4_speed() != 1) goto err;
+
+
 	/*
 	if (test_sm4_cbc() != 1) goto err;
 	if (test_sm4_cbc_padding() != 1) goto err;

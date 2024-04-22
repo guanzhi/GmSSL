@@ -172,6 +172,48 @@ static int test_sm2_sign(void)
 	return 1;
 }
 
+static int test_sm2_sign_ctx_speed(void)
+{
+	SM2_KEY sm2_key;
+	SM2_SIGN_CTX sign_ctx;
+	uint8_t msg[64 - 32 - 8];
+	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
+	size_t siglen;
+	clock_t start, end;
+	double seconds;
+	int i;
+
+	sm2_key_generate(&sm2_key);
+
+	if (sm2_sign_init(&sign_ctx, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1) {
+		error_print();
+		return -1;
+	}
+
+	start = clock();
+	for (i = 0; i < 4096; i++) {
+
+		if (sm2_sign_update(&sign_ctx, msg, sizeof(msg)) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sm2_sign_finish(&sign_ctx, sig, &siglen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		sm2_sign_ctx_reset(&sign_ctx);
+	}
+	end = clock();
+
+	seconds = (double)(end - start)/CLOCKS_PER_SEC;
+
+	fprintf(stderr, "sm2_sign_ctx speed : 4096 signs time %f seconds, %f signs per second\n", seconds, 4096/seconds);
+
+	return 1;
+
+}
+
 static int test_sm2_sign_ctx(void)
 {
 	int ret;
@@ -298,6 +340,7 @@ int main(void)
 	if (test_sm2_sign() != 1) goto err;
 	if (test_sm2_sign_ctx() != 1) goto err;
 	if (test_sm2_sign_ctx_reset() != 1) goto err;
+	if (test_sm2_sign_ctx_speed() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

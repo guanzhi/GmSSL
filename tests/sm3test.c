@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 #include <gmssl/sm3.h>
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
@@ -175,10 +176,36 @@ static int test_sm3(void)
 	return 1;
 }
 
+static int test_sm3_speed(void)
+{
+	SM3_CTX sm3_ctx;
+	uint8_t blocks[4096];
+	uint8_t dgst[32];
+	clock_t start, end;
+	double seconds;
+	int i;
+
+	start = clock();
+	sm3_init(&sm3_ctx);
+	for (i = 0; i < 4096; i++) {
+		sm3_update(&sm3_ctx, blocks, sizeof(blocks));
+	}
+	sm3_finish(&sm3_ctx, dgst);
+	end = clock();
+
+	seconds = (double)(end - start)/CLOCKS_PER_SEC;
+
+	fprintf(stderr, "sm3 on 16-MiB : time %f seconds : %f MiB per second\n", seconds, 16/seconds);
+
+	return 1;
+
+}
+
 
 int main(void)
 {
 	if (test_sm3() != 1) goto err;
+	if (test_sm3_speed() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
