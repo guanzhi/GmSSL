@@ -408,6 +408,8 @@ int test_sm9_z256_point() {
 	sm9_z256_point_from_hex(&q, hex_point2); if (!sm9_z256_point_is_on_curve(&q)) goto err; ++j;
 	sm9_z256_point_dbl(&r, &p);     sm9_z256_point_from_hex(&s, hex_point_dbl); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
 	sm9_z256_point_add(&r, &p, &q); sm9_z256_point_from_hex(&s, hex_point_add); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
+	SM9_Z256_AFFINE_POINT ap; sm9_z256_point_get_xy(&q, ap.X, ap.Y); sm9_z256_modp_to_mont(ap.X, ap.X); sm9_z256_modp_to_mont(ap.Y, ap.Y);
+	sm9_z256_point_add_affine(&r, &p, &ap); sm9_z256_point_from_hex(&s, hex_point_add); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
 	sm9_z256_point_neg(&r, &p);     sm9_z256_point_from_hex(&s, hex_point_neg); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
 	sm9_z256_point_sub(&r, &p, &q); sm9_z256_point_from_hex(&s, hex_point_sub); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
 	sm9_z256_point_mul(&r, k, &p);  sm9_z256_point_from_hex(&s, hex_point_mul); if (!sm9_z256_point_equ(&r, &s)) goto err; ++j;
