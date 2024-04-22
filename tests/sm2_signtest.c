@@ -106,6 +106,7 @@ static int test_sm2_fast_sign(void)
 {
 	SM2_KEY sm2_key;
 	sm2_z256_t fast_private;
+	SM2_SIGN_PRE_COMP pre_comp[32];
 	uint8_t dgst[32];
 	SM2_SIGNATURE sig;
 	size_t i;
@@ -118,17 +119,15 @@ static int test_sm2_fast_sign(void)
 		error_print();
 		return -1;
 	}
+	if (sm2_fast_sign_pre_compute(pre_comp) != 1) {
+		error_print();
+		return -1;
+	}
 	rand_bytes(dgst, sizeof(dgst));
 
-	for (i = 0; i < TEST_COUNT; i++) {
-		sm2_z256_t k;
-		sm2_z256_t x1_modn;
+	for (i = 0; i < TEST_COUNT && i < sizeof(pre_comp)/sizeof(pre_comp[0]); i++) {
 
-		if (sm2_fast_sign_pre_compute(k, x1_modn) != 1) {
-			error_print();
-			return -1;
-		}
-		if (sm2_fast_sign(fast_private, k, x1_modn, dgst, &sig) != 1) {
+		if (sm2_fast_sign(fast_private, &pre_comp[i], dgst, &sig) != 1) {
 			error_print();
 			return -1;
 		}
@@ -137,45 +136,6 @@ static int test_sm2_fast_sign(void)
 			error_print();
 			return -1;
 		}
-	}
-
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_sm2_do_sign_pre_compute(void)
-{
-	SM2_KEY sm2_key;
-	uint64_t d[4];
-
-	uint64_t k[4];
-	uint64_t x1[4];
-	uint8_t dgst[32];
-	SM2_SIGNATURE sig;
-
-
-	sm2_key_generate(&sm2_key);
-
-		const uint64_t *one = sm2_z256_one();
-		sm2_z256_copy(d, sm2_key.private_key);
-		sm2_z256_modn_add(d, d, one);
-		sm2_z256_modn_inv(d, d);
-
-	if (sm2_fast_sign_pre_compute(k, x1) != 1) {
-		error_print();
-		return -1;
-	}
-
-	rand_bytes(dgst, sizeof(dgst));
-
-	if (sm2_fast_sign(d, k, x1, dgst, &sig) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (sm2_do_verify(&sm2_key, dgst, &sig) != 1) {
-		error_print();
-		return -1;
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -334,7 +294,6 @@ int main(void)
 {
 	if (test_sm2_signature() != 1) goto err;
 	if (test_sm2_do_sign() != 1) goto err;
-	if (test_sm2_do_sign_pre_compute() != 1) goto err;
 	if (test_sm2_fast_sign() != 1) goto err;
 	if (test_sm2_sign() != 1) goto err;
 	if (test_sm2_sign_ctx() != 1) goto err;

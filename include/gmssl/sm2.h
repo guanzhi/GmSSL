@@ -128,8 +128,16 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig);
 int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
 int sm2_fast_sign_compute_key(const SM2_KEY *key, sm2_z256_t fast_private);
-int sm2_fast_sign_pre_compute(sm2_z256_t k, sm2_z256_t x1_modn);
-int sm2_fast_sign(const sm2_z256_t fast_private, const sm2_z256_t k, const sm2_z256_t x1_modn,
+
+typedef struct {
+	sm2_z256_t k;
+	sm2_z256_t x1_modn;
+} SM2_SIGN_PRE_COMP;
+
+#define SM2_SIGN_PRE_COMP_COUNT 32
+
+int sm2_fast_sign_pre_compute(SM2_SIGN_PRE_COMP pre_comp[32]);
+int sm2_fast_sign(const sm2_z256_t fast_private, SM2_SIGN_PRE_COMP *pre_comp,
 	const uint8_t dgst[32], SM2_SIGNATURE *sig);
 
 
@@ -159,12 +167,6 @@ int sm2_sign_fixlen(const SM2_KEY *key, const uint8_t dgst[32], size_t siglen, u
 int sm2_compute_z(uint8_t z[32], const SM2_Z256_POINT *pub, const char *id, size_t idlen);
 
 
-typedef struct {
-	sm2_z256_t k;
-	sm2_z256_t x1; // x1 (mod n)
-} SM2_SIGN_PRE_COMP;
-
-#define SM2_SIGN_PRE_COMP_COUNT 32
 
 typedef struct {
 	SM3_CTX sm3_ctx;
