@@ -9,6 +9,7 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include_directories(include)
 
+add_compile_options(-O3)
 
 option(ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
 option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)

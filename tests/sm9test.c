@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
 #include <gmssl/rand.h>
@@ -553,6 +554,50 @@ err:
 	"934FDDA6D3AB48C8571CE2354B79742AA498CB8CDDE6BD1FA5946345A1A652F6"
 
 
+static int test_sm9_z256_pairing_speed(void)
+{
+	SM9_Z256_TWIST_POINT Ppubs = {
+		{{0x8F14D65696EA5E32, 0x414D2177386A92DD, 0x6CE843ED24A3B573, 0x29DBA116152D1F78},
+		 {0x0AB1B6791B94C408, 0x1CE0711C5E392CFB, 0xE48AFF4B41B56501, 0x9F64080B3084F733}},
+		{{0x0E75C05FB4E3216D, 0x1006E85F5CDFF073, 0x1A7CE027B7A46F74, 0x41E00A53DDA532DA},
+		 {0xE89E1408D0EF1C25, 0xAD3E2FDB1A77F335, 0xB57329F447E3A0CB, 0x69850938ABEA0112}},
+		{{1,0,0,0}, {0,0,0,0}},
+	};
+	SM9_Z256_POINT P1 = {
+		{0xe8c4e4817c66dddd, 0xe1e4086909dc3280, 0xf5ed0704487d01d6, 0x93de051d62bf718f},
+		{0x0c464cd70a3ea616, 0x1c1c00cbfa602435, 0x631065125c395bbc, 0x21fe8dda4f21e607},
+		{1,0,0,0},
+	};
+	sm9_z256_fp12_t r;
+
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm9_z256_modp_to_mont(Ppubs.X[0], Ppubs.X[0]);
+	sm9_z256_modp_to_mont(Ppubs.Y[0], Ppubs.Y[0]);
+	sm9_z256_modp_to_mont(Ppubs.Z[0], Ppubs.Z[0]);
+	sm9_z256_modp_to_mont(Ppubs.X[1], Ppubs.X[1]);
+	sm9_z256_modp_to_mont(Ppubs.Y[1], Ppubs.Y[1]);
+	sm9_z256_modp_to_mont(Ppubs.Z[1], Ppubs.Z[1]);
+
+	sm9_z256_modp_to_mont(P1.X, P1.X);
+	sm9_z256_modp_to_mont(P1.Y, P1.Y);
+	sm9_z256_modp_to_mont(P1.Z, P1.Z);
+
+	begin = clock();
+	for (i = 0; i < 256; i++) {
+		sm9_z256_pairing(r, &Ppubs, &P1);
+	}
+	end = clock();
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
+
+	printf("%s: %d pairings per seconds\n", __FUNCTION__, (int)(256/seconds));
+	return 1;
+}
+
+
+
 int test_sm9_z256_pairing()
 {
 	SM9_Z256_POINT _P1 = {
@@ -800,6 +845,7 @@ int main(void) {
 	if (test_sm9_z256_ciphertext() != 1) goto err;
 	if (test_sm9_z256_encrypt() != 1) goto err;
 	if (test_sm9_z256_exchange() != 1) goto err;
+	if (test_sm9_z256_pairing_speed() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
