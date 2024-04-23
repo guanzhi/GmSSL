@@ -28,7 +28,7 @@ extern "C" {
 
 typedef struct {
 	uint32_t rk[32];
-	size_t workgroup_size;
+	//size_t workgroup_size;
 	cl_context context;
 	cl_command_queue queue;
 	cl_program program;
@@ -40,7 +40,7 @@ typedef struct {
 
 int sm4_cl_set_encrypt_key(SM4_CL_CTX *ctx, const uint8_t key[16]);
 int sm4_cl_set_decrypt_key(SM4_CL_CTX *ctx, const uint8_t key[16]);
-int sm4_cl_encrypt(SM4_CL_CTX *ctx, const uint8_t *in, size_t nblocks, uint8_t *out);
+int sm4_cl_ctr32_encrypt(SM4_CL_CTX *ctx, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
 void sm4_cl_cleanup(SM4_CL_CTX *ctx);
 
 

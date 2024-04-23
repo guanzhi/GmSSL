@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <gmssl/sm4_cl.h>
+#include <gmssl/endian.h>
 #include <gmssl/error.h>
 
 
@@ -197,15 +198,18 @@ static int sm4_cl_set_key(SM4_CL_CTX *ctx, const uint8_t key[16], int enc)
 		free(log);
 		goto end;
 	}
-	if (!(ctx->kernel = clCreateKernel(ctx->program, "sm4_encrypt", &err))) {
+	if (!(ctx->kernel = clCreateKernel(ctx->program, "sm4_ctr32_encrypt", &err))) {
 		cl_error_print(err);
 		goto end;
 	}
+	/*
+	// Apple M2 the CL_KERNEL_WORK_GROUP_SIZE is 256, but the valid work_group_size is 32
 	if ((err = clGetKernelWorkGroupInfo(ctx->kernel, device, CL_KERNEL_WORK_GROUP_SIZE,
 		sizeof(ctx->workgroup_size), &ctx->workgroup_size, NULL)) != CL_SUCCESS) {
 		cl_error_print(err);
 		goto end;
 	}
+	*/
 
 	if (enc) {
 		sm4_set_encrypt_key((SM4_KEY *)ctx->rk, key);
@@ -239,50 +243,70 @@ int sm4_cl_set_decrypt_key(SM4_CL_CTX *ctx, const uint8_t key[16])
 	return sm4_cl_set_key(ctx, key, 0);
 }
 
-int sm4_cl_encrypt(SM4_CL_CTX *ctx, const uint8_t *in, size_t nblocks, uint8_t *out)
+int sm4_cl_ctr32_encrypt(SM4_CL_CTX *ctx, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	int ret = -1;
-	cl_mem mem;
 	cl_int err;
-	size_t len = 16 * nblocks;
+	uint32_t ctr[4];
+	cl_mem mem_ctr = NULL;
+	size_t inlen = SM4_BLOCK_SIZE * nblocks;
+	cl_mem mem_buf = NULL;
 	cl_uint dim = 1;
 	size_t global_work_size = nblocks;
-	size_t local_work_size = 32; //ctx->workgroup_size;
-	void *p;
+	size_t local_work_size = 32;
 
-	if (out != in)
-		memcpy(out, in, len);
+	if (global_work_size % local_work_size) {
+		error_print();
+		return -1;
+	}
 
-	if (!(mem = clCreateBuffer(ctx->context, CL_MEM_READ_WRITE|CL_MEM_USE_HOST_PTR, len, out, &err))) {
+	ctr[0] = GETU32(iv);
+	ctr[1] = GETU32(iv + 4);
+	ctr[2] = GETU32(iv + 8);
+	ctr[3] = GETU32(iv + 12);
+
+	if (!(mem_ctr = clCreateBuffer(ctx->context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR, sizeof(ctr), ctr, &err))) {
 		cl_error_print(err);
 		return -1;
 	}
-	if ((err = clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &mem)) != CL_SUCCESS) {
+	if ((err = clSetKernelArg(ctx->kernel, 1, sizeof(cl_mem), &mem_ctr)) != CL_SUCCESS) {
 		cl_error_print(err);
 		goto end;
 	}
+
+	if (out != in) {
+		memcpy(out, in, inlen);
+	}
+	if (!(mem_buf = clCreateBuffer(ctx->context, CL_MEM_READ_WRITE|CL_MEM_USE_HOST_PTR, inlen, out, &err))) {
+		cl_error_print(err);
+		return -1;
+	}
+	if ((err = clSetKernelArg(ctx->kernel, 2, sizeof(cl_mem), &mem_buf)) != CL_SUCCESS) {
+		cl_error_print(err);
+		goto end;
+	}
+
 	// on Apple M2, CL_KERNEL_WORK_GROUP_SIZE = 256
 	// but kernel will fail when local_work_size > 32.
+	// local_work_size might be restricted by the resources the kernel used.
 	if ((err = clEnqueueNDRangeKernel(ctx->queue, ctx->kernel,
 		dim, NULL, &global_work_size, &local_work_size, 0, NULL, NULL)) != CL_SUCCESS) {
 		cl_error_print(err);
 		goto end;
 	}
-	if (!(p = clEnqueueMapBuffer(ctx->queue, mem, CL_TRUE, 0, 0, len, 0, NULL, NULL, &err))) {
+	if (!clEnqueueMapBuffer(ctx->queue, mem_buf, CL_TRUE, 0, 0, inlen, 0, NULL, NULL, &err)) {
 		cl_error_print(err);
 		goto end;
 	}
-	if (p != out) {
-		fprintf(stderr, "%s %d: shit\n", __FILE__, __LINE__);
-		goto end;
-	}
+
+	ctr[3] += (uint32_t)nblocks;
+	PUTU32(iv + 12, ctr[3]);
 	ret = 1;
 end:
-	clReleaseMemObject(mem);
+	if (mem_ctr) clReleaseMemObject(mem_ctr);
+	if (mem_buf) clReleaseMemObject(mem_buf);
 	return ret;
 }
-
-
 
 #define KERNEL(...) #__VA_ARGS__
 static const char *sm4_cl_src = KERNEL(
@@ -306,16 +330,14 @@ __constant unsigned char SBOX[256] = {
 	0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48,
 };
 
-__kernel void sm4_encrypt(__global const unsigned int *rkey, __global unsigned char *data)
+__kernel void sm4_ctr32_encrypt(__global const unsigned int *rkey, __global const unsigned int *ctr, __global unsigned char *data)
 {
 	__local unsigned char S[256];
 	__local unsigned int rk[32];
 
 	unsigned int x0, x1, x2, x3, x4, i, t;
 	uint global_id = get_global_id(0);
-	__global unsigned char *p = data + 16 * global_id;
-	__global unsigned int *in = (__global unsigned int *)p;
-	__global unsigned int *out = (__global unsigned int *)p;
+	__global unsigned int *out = (__global unsigned int *)(data + 16 * global_id);
 
 	if (get_local_id(0) == 0) {
 		for (i = 0; i < 256; i++) {
@@ -326,10 +348,10 @@ __kernel void sm4_encrypt(__global const unsigned int *rkey, __global unsigned c
 		}
 	}
 
-	x0 = (in[0] >> 24) | ((in[0] >> 8) & 0xff00) | ((in[0] << 8) & 0xff0000) | (in[0] << 24);
-	x1 = (in[1] >> 24) | ((in[1] >> 8) & 0xff00) | ((in[1] << 8) & 0xff0000) | (in[1] << 24);
-	x2 = (in[2] >> 24) | ((in[2] >> 8) & 0xff00) | ((in[2] << 8) & 0xff0000) | (in[2] << 24);
-	x3 = (in[3] >> 24) | ((in[3] >> 8) & 0xff00) | ((in[3] << 8) & 0xff0000) | (in[3] << 24);
+	x0 = ctr[0];
+	x1 = ctr[1];
+	x2 = ctr[2];
+	x3 = ctr[3] + global_id;
 
 	for (i = 0; i < 31; i++) {
 		x4 = x1 ^ x2 ^ x3 ^ rk[i];
@@ -357,10 +379,10 @@ __kernel void sm4_encrypt(__global const unsigned int *rkey, __global unsigned c
 		((x4 << 18) | (x4 >> (32 - 18))) ^
 		((x4 << 24) | (x4 >> (32 - 24))));
 
-	out[0] = (x4 >> 24) | ((x4 >> 8) & 0xff00) | ((x4 << 8) & 0xff0000) | (x4 << 24);
-	out[1] = (x3 >> 24) | ((x3 >> 8) & 0xff00) | ((x3 << 8) & 0xff0000) | (x3 << 24);
-	out[2] = (x2 >> 24) | ((x2 >> 8) & 0xff00) | ((x2 << 8) & 0xff0000) | (x2 << 24);
-	out[3] = (x1 >> 24) | ((x1 >> 8) & 0xff00) | ((x1 << 8) & 0xff0000) | (x1 << 24);
+	out[0] ^= (x4 >> 24) | ((x4 >> 8) & 0xff00) | ((x4 << 8) & 0xff0000) | (x4 << 24);
+	out[1] ^= (x3 >> 24) | ((x3 >> 8) & 0xff00) | ((x3 << 8) & 0xff0000) | (x3 << 24);
+	out[2] ^= (x2 >> 24) | ((x2 >> 8) & 0xff00) | ((x2 << 8) & 0xff0000) | (x2 << 24);
+	out[3] ^= (x1 >> 24) | ((x1 >> 8) & 0xff00) | ((x1 << 8) & 0xff0000) | (x1 << 24);
 }
 
 );
