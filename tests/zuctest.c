@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/zuc.h>
 #include <gmssl/error.h>
 
@@ -25,7 +26,7 @@ static void bswap_buf(uint32_t *buf, size_t nwords)
 	}
 }
 
-int zuc_test(void)
+static int zuc_test(void)
 {
 	unsigned char key[][16] = {
 	{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
@@ -57,6 +58,30 @@ int zuc_test(void)
 			fprintf(stderr, "zuc test %d ok\n", i);
 		}
 	}
+
+	return 1;
+}
+
+static int test_zuc_encrypt_speed(void)
+{
+	ZUC_STATE zuc_state;
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint8_t buf[4096];
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	zuc_init(&zuc_state, key, iv);
+
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		zuc_encrypt(&zuc_state, buf, sizeof(buf), buf);
+	}
+	end = clock();
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
+
+	fprintf(stderr, "speed zuc_encrypt: %f-MiB per seconds\n", 16/seconds);
 
 	return 1;
 }
@@ -284,7 +309,7 @@ static int zuc_eia_test(void)
 }
 
 /* from ZUC256 draft */
-int zuc256_test(void)
+static int zuc256_test(void)
 {
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -335,7 +360,7 @@ int zuc256_test(void)
 	return 1;
 }
 
-int zuc256_mac_test(void)
+static int zuc256_mac_test(void)
 {
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -479,5 +504,6 @@ int main(void)
 	if (zuc_eia_test() != 1) { error_print(); return -1; }
 	if (zuc256_test() != 1) { error_print(); return -1; }
 	if (zuc256_mac_test() != 1) { error_print(); return -1; }
+	if (test_zuc_encrypt_speed() != 1) { error_print(); return -1; }
 	return 0;
 }
