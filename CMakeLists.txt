@@ -333,6 +333,7 @@ endif()
 
 if (ENABLE_SM4_CL)
 	message(STATUS "ENABLE_SM4_CL is ON")
+	add_definitions(-DENABLE_SM4_CL)
 	if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		add_definitions(-DMACOS) # to include <OpenCL/OpenCL.h>
 	endif()
