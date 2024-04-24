@@ -332,12 +332,14 @@ __constant unsigned char SBOX[256] = {
 
 __kernel void sm4_ctr32_encrypt(__global const unsigned int *rkey, __global const unsigned int *ctr, __global unsigned char *data)
 {
-	__local unsigned char S[256];
-	__local unsigned int rk[32];
-
 	unsigned int x0, x1, x2, x3, x4, i, t;
 	uint global_id = get_global_id(0);
 	__global unsigned int *out = (__global unsigned int *)(data + 16 * global_id);
+
+#if 0
+	// use local mem is little slower on Apple M2
+	__local unsigned char S[256];
+	__local unsigned int rk[32];
 
 	if (get_local_id(0) == 0) {
 		for (i = 0; i < 256; i++) {
@@ -347,6 +349,10 @@ __kernel void sm4_ctr32_encrypt(__global const unsigned int *rkey, __global cons
 			rk[i] = rkey[i];
 		}
 	}
+#else
+	__constant unsigned char *S = SBOX;
+	__global const unsigned int *rk = rkey;
+#endif
 
 	x0 = ctr[0];
 	x1 = ctr[1];
