@@ -30,7 +30,7 @@ int sm2decrypt_main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
 	SM2_KEY key;
-	SM2_ENC_CTX ctx;
+	SM2_DEC_CTX ctx;
 	uint8_t inbuf[SM2_MAX_CIPHERTEXT_SIZE];
 	uint8_t outbuf[SM2_MAX_CIPHERTEXT_SIZE];
 	size_t inlen, outlen;
@@ -103,11 +103,15 @@ bad:
 		goto end;
 	}
 
-	if (sm2_decrypt_init(&ctx, &key) != 1) {
+	if (sm2_decrypt_init(&ctx) != 1) {
 		fprintf(stderr, "%s: sm2_decrypt_init failed\n", prog);
 		goto end;
 	}
-	if (sm2_decrypt_finish(&ctx, inbuf, inlen, outbuf, &outlen) != 1) {
+	if (sm2_decrypt_update(&ctx, inbuf, inlen) != 1) {
+		fprintf(stderr, "%s: sm2_decyrpt_update failed\n", prog);
+		goto end;
+	}
+	if (sm2_decrypt_finish(&ctx, &key, outbuf, &outlen) != 1) {
 		fprintf(stderr, "%s: decryption failure\n", prog);
 		goto end;
 	}

@@ -251,17 +251,36 @@ _gmssl_export int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_
 
 
 typedef struct {
-	SM2_KEY sm2_key;
-	uint8_t buf[SM2_MAX_CIPHERTEXT_SIZE];
+	sm2_z256_t k;
+	SM2_POINT C1;
+} SM2_ENC_PRE_COMP;
+
+#define SM2_ENC_PRE_COMP_NUM 8
+int sm2_encrypt_pre_compute(SM2_ENC_PRE_COMP pre_comp[SM2_ENC_PRE_COMP_NUM]);
+int sm2_do_encrypt_ex(const SM2_KEY *key, const SM2_ENC_PRE_COMP *pre_comp,
+	const uint8_t *in, size_t inlen, SM2_CIPHERTEXT *out);
+
+typedef struct {
+	SM2_ENC_PRE_COMP pre_comp[SM2_ENC_PRE_COMP_NUM];
+	size_t pre_comp_num;
+	uint8_t buf[SM2_MAX_PLAINTEXT_SIZE];
 	size_t buf_size;
 } SM2_ENC_CTX;
 
-_gmssl_export int sm2_encrypt_init(SM2_ENC_CTX *ctx, const SM2_KEY *sm2_key);
-_gmssl_export int sm2_encrypt_update(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-_gmssl_export int sm2_encrypt_finish(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-_gmssl_export int sm2_decrypt_init(SM2_ENC_CTX *ctx, const SM2_KEY *sm2_key);
-_gmssl_export int sm2_decrypt_update(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-_gmssl_export int sm2_decrypt_finish(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_encrypt_init(SM2_ENC_CTX *ctx);
+_gmssl_export int sm2_encrypt_update(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen);
+_gmssl_export int sm2_encrypt_finish(SM2_ENC_CTX *ctx, const SM2_KEY *public_key, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_encrypt_reset(SM2_ENC_CTX *ctx);
+
+typedef struct {
+	uint8_t buf[SM2_MAX_CIPHERTEXT_SIZE];
+	size_t buf_size;
+} SM2_DEC_CTX;
+
+_gmssl_export int sm2_decrypt_init(SM2_DEC_CTX *ctx);
+_gmssl_export int sm2_decrypt_update(SM2_DEC_CTX *ctx, const uint8_t *in, size_t inlen);
+_gmssl_export int sm2_decrypt_finish(SM2_DEC_CTX *ctx, const SM2_KEY *key, uint8_t *out, size_t *outlen);
+_gmssl_export int sm2_decrypt_reset(SM2_DEC_CTX *ctx);
 
 
 #ifdef __cplusplus

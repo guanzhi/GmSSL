@@ -125,11 +125,15 @@ bad:
 		goto end;
 	}
 
-	if (sm2_encrypt_init(&ctx, &key) != 1) {
+	if (sm2_encrypt_init(&ctx) != 1) {
 		fprintf(stderr, "%s: sm2_encrypt_init failed\n", prog);
 		goto end;
 	}
-	if (sm2_encrypt_finish(&ctx, inbuf, inlen, outbuf, &outlen) != 1) {
+	if (sm2_encrypt_update(&ctx, inbuf, inlen) != 1) {
+		fprintf(stderr, "%s: sm2_encrypt_update failed\n", prog);
+		return -1;
+	}
+	if (sm2_encrypt_finish(&ctx, &key, outbuf, &outlen) != 1) {
 		fprintf(stderr, "%s: sm2_encrypt_finish error\n", prog);
 		goto end;
 	}

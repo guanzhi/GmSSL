@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/rand.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
@@ -280,6 +281,42 @@ static int test_sm2_encrypt(void)
 	return 1;
 }
 
+static int test_sm2_encrypt_ctx_speed(void)
+{
+	SM2_KEY sm2_key;
+	SM2_ENC_CTX enc_ctx;
+	uint8_t plaintext[32];
+	uint8_t ciphertext[SM2_MAX_CIPHERTEXT_SIZE];
+	size_t ciphertext_len;
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm2_key_generate(&sm2_key);
+
+	if (sm2_encrypt_init(&enc_ctx) != 1) {
+		error_print();
+		return -1;
+	}
+
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		if (sm2_encrypt_update(&enc_ctx, plaintext, sizeof(plaintext)) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sm2_encrypt_finish(&enc_ctx, &sm2_key, ciphertext, &ciphertext_len) != 1) {
+			error_print();
+			return -1;
+		}
+		sm2_encrypt_reset(&enc_ctx);
+	}
+	end = clock();
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
+
+	printf("%s: %f encryptions per second\n", __FUNCTION__, 4096/seconds);
+	return 1;
+}
 
 
 int main(void)
@@ -289,6 +326,7 @@ int main(void)
 	if (test_sm2_do_encrypt_fixlen() != 1) goto err;
 	if (test_sm2_encrypt() != 1) goto err;
 	if (test_sm2_encrypt_fixlen() != 1) goto err;
+	if (test_sm2_encrypt_ctx_speed() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
