@@ -32,7 +32,7 @@ int sm2verify_main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *sigfp = NULL;
 	SM2_KEY key;
-	SM2_SIGN_CTX verify_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 	uint8_t cert[1024];
 	size_t certlen;
 	uint8_t buf[4096];

@@ -568,7 +568,7 @@ int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 {
 	int ret;
 	uint8_t server_ecdh_params[69];
-	SM2_SIGN_CTX verify_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 
 	if (!server_sign_key || !client_random || !server_random
 		|| curve != TLS_curve_sm2p256v1 || !point || !sig || !siglen
@@ -1973,7 +1973,7 @@ int tls_client_verify_update(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *handshak
 int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, size_t siglen, const SM2_KEY *public_key)
 {
 	int ret;
-	SM2_SIGN_CTX sm2_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 	int i;
 
 	if (!ctx || !sig || !siglen || !public_key) {
@@ -1985,17 +1985,17 @@ int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, siz
 		error_print();
 		return -1;
 	}
-	if (sm2_verify_init(&sm2_ctx, public_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+	if (sm2_verify_init(&verify_ctx, public_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 		error_print();
 		return -1;
 	}
 	for (i = 0; i < 8; i++) {
-		if (sm2_verify_update(&sm2_ctx, ctx->handshake[i], ctx->handshake_len[i]) != 1) {
+		if (sm2_verify_update(&verify_ctx, ctx->handshake[i], ctx->handshake_len[i]) != 1) {
 			error_print();
 			return -1;
 		}
 	}
-	if ((ret = sm2_verify_finish(&sm2_ctx, sig, siglen)) < 0) {
+	if ((ret = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
 		error_print();
 		return -1;
 	}

@@ -139,6 +139,8 @@ typedef struct {
 int sm2_fast_sign_pre_compute(SM2_SIGN_PRE_COMP pre_comp[32]);
 int sm2_fast_sign(const sm2_z256_t fast_private, SM2_SIGN_PRE_COMP *pre_comp,
 	const uint8_t dgst[32], SM2_SIGNATURE *sig);
+int sm2_fast_verify(const SM2_Z256_POINT point_table[16],
+	const uint8_t dgst[32], const SM2_SIGNATURE *sig);
 
 
 #define SM2_MIN_SIGNATURE_SIZE 8
@@ -175,18 +177,29 @@ typedef struct {
 	sm2_z256_t fast_sign_private;
 	SM2_SIGN_PRE_COMP pre_comp[SM2_SIGN_PRE_COMP_COUNT];
 	unsigned int num_pre_comp;
+
+	// verify public point table, P, 2P, ..., 16P
+	SM2_Z256_POINT public_point_table[16];
 } SM2_SIGN_CTX;
 
 _gmssl_export int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
 _gmssl_export int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 _gmssl_export int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
+_gmssl_export int sm2_sign_reset(SM2_SIGN_CTX *ctx);
 int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig);
 
-_gmssl_export int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
-_gmssl_export int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-_gmssl_export int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen);
+typedef struct {
+	SM3_CTX sm3_ctx;
+	SM3_CTX saved_sm3_ctx;
+	SM2_KEY key;
+	SM2_Z256_POINT public_point_table[16];
+} SM2_VERIFY_CTX;
 
-_gmssl_export int sm2_sign_ctx_reset(SM2_SIGN_CTX *ctx);
+_gmssl_export int sm2_verify_init(SM2_VERIFY_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen);
+_gmssl_export int sm2_verify_update(SM2_VERIFY_CTX *ctx, const uint8_t *data, size_t datalen);
+_gmssl_export int sm2_verify_finish(SM2_VERIFY_CTX *ctx, const uint8_t *sig, size_t siglen);
+_gmssl_export int sm2_verify_reset(SM2_VERIFY_CTX *ctx);
+
 
 /*
 SM2Cipher ::= SEQUENCE {

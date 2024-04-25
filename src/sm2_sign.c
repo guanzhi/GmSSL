@@ -203,9 +203,10 @@ int sm2_fast_sign(const sm2_z256_t fast_private, SM2_SIGN_PRE_COMP *pre_comp,
 	return 1;
 }
 
-int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
+int sm2_fast_verify(const SM2_Z256_POINT point_table[16], const uint8_t dgst[32], const SM2_SIGNATURE *sig)
 {
 	SM2_Z256_POINT R;
+	SM2_Z256_POINT T;
 	sm2_z256_t r;
 	sm2_z256_t s;
 	sm2_z256_t e;
@@ -240,7 +241,72 @@ int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATUR
 	}
 
 	// Q(x,y) = s * G + t * P
-	sm2_z256_point_mul_sum(&R, t, &key->public_key, s);
+	sm2_z256_point_mul_generator(&R, s);
+	sm2_z256_point_mul_ex(&T, t, point_table);
+	sm2_z256_point_add(&R, &R, &T);
+	sm2_z256_point_get_xy(&R, x, NULL);
+
+	// e = H(M)
+	sm2_z256_from_bytes(e, dgst);
+	if (sm2_z256_cmp(e, sm2_z256_order()) >= 0) {
+		sm2_z256_sub(e, e, sm2_z256_order());
+	}
+
+	// r' = e + x (mod n)
+	if (sm2_z256_cmp(x, sm2_z256_order()) >= 0) {
+		sm2_z256_sub(x, x, sm2_z256_order());
+	}
+	sm2_z256_modn_add(e, e, x);
+
+	// check if r == r'
+	if (sm2_z256_cmp(e, r) != 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm2_do_verify(const SM2_KEY *key, const uint8_t dgst[32], const SM2_SIGNATURE *sig)
+{
+	SM2_Z256_POINT R;
+	SM2_Z256_POINT T;
+	sm2_z256_t r;
+	sm2_z256_t s;
+	sm2_z256_t e;
+	sm2_z256_t x;
+	sm2_z256_t t;
+
+	// check r, s in [1, n-1]
+	sm2_z256_from_bytes(r, sig->r);
+	if (sm2_z256_is_zero(r) == 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_z256_cmp(r, sm2_z256_order()) >= 0) {
+		error_print();
+		return -1;
+	}
+	sm2_z256_from_bytes(s, sig->s);
+	if (sm2_z256_is_zero(s) == 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_z256_cmp(s, sm2_z256_order()) >= 0) {
+		error_print();
+		return -1;
+	}
+
+	// t = r + s (mod n), check t != 0
+	sm2_z256_modn_add(t, r, s);
+	if (sm2_z256_is_zero(t)) {
+		error_print();
+		return -1;
+	}
+
+	// Q(x,y) = s * G + t * P
+	sm2_z256_point_mul_generator(&R, s);
+	sm2_z256_point_mul(&T, t, &key->public_key);
+	sm2_z256_point_add(&R, &R, &T);
 	sm2_z256_point_get_xy(&R, x, NULL);
 
 	// e = H(M)
@@ -471,7 +537,7 @@ int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t 
 	return 1;
 }
 
-int sm2_sign_ctx_reset(SM2_SIGN_CTX *ctx)
+int sm2_sign_reset(SM2_SIGN_CTX *ctx)
 {
 	ctx->sm3_ctx = ctx->saved_sm3_ctx;
 	return 1;
@@ -541,7 +607,7 @@ int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig)
 	return 1;
 }
 
-int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
+int sm2_verify_init(SM2_VERIFY_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
 	if (!ctx || !key) {
 		error_print();
@@ -565,14 +631,13 @@ int sm2_verify_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_
 		error_print();
 		return -1;
 	}
-	sm2_z256_set_zero(ctx->fast_sign_private);
 
-	memset(ctx->pre_comp, 0, sizeof(SM2_SIGN_PRE_COMP) * SM2_SIGN_PRE_COMP_COUNT);
+	sm2_z256_point_mul_pre_compute(&key->public_key, ctx->public_point_table);
 
 	return 1;
 }
 
-int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+int sm2_verify_update(SM2_VERIFY_CTX *ctx, const uint8_t *data, size_t datalen)
 {
 	if (!ctx) {
 		error_print();
@@ -584,18 +649,36 @@ int sm2_verify_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
-int sm2_verify_finish(SM2_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen)
+int sm2_verify_finish(SM2_VERIFY_CTX *ctx, const uint8_t *sigbuf, size_t siglen)
 {
 	uint8_t dgst[SM3_DIGEST_SIZE];
+	SM2_SIGNATURE sig;
 
-	if (!ctx || !sig) {
+	if (!ctx || !sigbuf) {
 		error_print();
 		return -1;
 	}
+
+	if (sm2_signature_from_der(&sig, &sigbuf, &siglen) != 1
+		|| asn1_length_is_zero(siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
 	sm3_finish(&ctx->sm3_ctx, dgst);
-	if (sm2_verify(&ctx->key, dgst, sig, siglen) != 1) {
+
+	if (sm2_fast_verify(ctx->public_point_table, dgst, &sig) != 1) {
 		error_print();
 		return -1;
 	}
+
 	return 1;
 }
+
+int sm2_verify_reset(SM2_VERIFY_CTX *ctx)
+{
+	ctx->sm3_ctx = ctx->saved_sm3_ctx;
+	return 1;
+}
+
+

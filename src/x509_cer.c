@@ -1204,7 +1204,7 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 	int sig_alg;
 	const uint8_t *sig;
 	size_t siglen;
-	SM2_SIGN_CTX verify_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 
 	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {

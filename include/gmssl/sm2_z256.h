@@ -110,8 +110,11 @@ void sm2_z256_point_sub_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT *A, const
 int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_AFFINE_POINT *P);
 
 void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const uint64_t k[4]);
+void sm2_z256_point_mul_pre_compute(const SM2_Z256_POINT *P, SM2_Z256_POINT T[16]);
+void sm2_z256_point_mul_ex(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT P_table[16]);
 void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT *P);
 void sm2_z256_point_mul_sum(SM2_Z256_POINT *R, const uint64_t t[4], const SM2_Z256_POINT *P, const uint64_t s[4]);
+
 
 const uint64_t *sm2_z256_prime(void);
 const uint64_t *sm2_z256_order(void);

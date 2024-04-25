@@ -526,7 +526,7 @@ int tls13_verify_certificate_verify(int tls_mode,
 	const DIGEST_CTX *tbs_dgst_ctx, const uint8_t *sig, size_t siglen)
 {
 	int ret;
-	SM2_SIGN_CTX verify_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 	uint8_t prefix[64];
 	const uint8_t *context_str_and_zero;
 	size_t context_str_and_zero_len;

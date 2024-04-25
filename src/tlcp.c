@@ -147,7 +147,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 	SM2_KEY server_sign_key;
 	SM2_KEY server_enc_key;
-	SM2_SIGN_CTX verify_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 	SM2_SIGN_CTX sign_ctx;
 	const uint8_t *sig;
 	size_t siglen;
@@ -605,7 +605,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 
 	// ClientCertificate, CertificateVerify
 	SM2_KEY client_sign_key;
-	SM2_SIGN_CTX verify_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 	const uint8_t *sig;
 	const int verify_depth = 5;
 	int verify_result;

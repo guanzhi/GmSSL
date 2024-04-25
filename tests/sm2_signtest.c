@@ -202,7 +202,7 @@ static int test_sm2_sign_ctx_speed(void)
 			return -1;
 		}
 
-		sm2_sign_ctx_reset(&sign_ctx);
+		sm2_sign_reset(&sign_ctx);
 	}
 	end = clock();
 
@@ -219,6 +219,7 @@ static int test_sm2_sign_ctx(void)
 	int ret;
 	SM2_KEY sm2_key;
 	SM2_SIGN_CTX sign_ctx;
+	SM2_VERIFY_CTX verify_ctx;
 	uint8_t msg[] = "Hello World!";
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE] = {0};
 	size_t siglen;
@@ -238,9 +239,9 @@ static int test_sm2_sign_ctx(void)
 	format_bytes(stderr, 0, 4, "signature", sig, siglen);
 	sm2_signature_print(stderr, 0, 4, "signature", sig, siglen);
 
-	if (sm2_verify_init(&sign_ctx, &sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
-		|| sm2_verify_update(&sign_ctx, msg, sizeof(msg)) != 1
-		|| (ret = sm2_verify_finish(&sign_ctx, sig, siglen)) != 1) {
+	if (sm2_verify_init(&verify_ctx, &sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+		|| sm2_verify_update(&verify_ctx, msg, sizeof(msg)) != 1
+		|| (ret = sm2_verify_finish(&verify_ctx, sig, siglen)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -252,11 +253,11 @@ static int test_sm2_sign_ctx(void)
 	return 1;
 }
 
-static int test_sm2_sign_ctx_reset(void)
+static int test_sm2_sign_reset(void)
 {
 	SM2_KEY sm2_key;
 	SM2_SIGN_CTX sign_ctx;
-	SM2_SIGN_CTX vrfy_ctx;
+	SM2_VERIFY_CTX vrfy_ctx;
 	uint8_t msg[64];
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
@@ -285,7 +286,7 @@ static int test_sm2_sign_ctx_reset(void)
 	// reset sign_ctx and sign another message
 	rand_bytes(msg, sizeof(msg));
 
-	if (sm2_sign_ctx_reset(&sign_ctx) != 1) {
+	if (sm2_sign_reset(&sign_ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -314,7 +315,7 @@ static int test_sm2_sign_ctx_reset(void)
 	}
 
 	// reset ctx and verify again
-	if (sm2_sign_ctx_reset(&vrfy_ctx) != 1) {
+	if (sm2_verify_reset(&vrfy_ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -339,7 +340,7 @@ int main(void)
 	if (test_sm2_fast_sign() != 1) goto err;
 	if (test_sm2_sign() != 1) goto err;
 	if (test_sm2_sign_ctx() != 1) goto err;
-	if (test_sm2_sign_ctx_reset() != 1) goto err;
+	if (test_sm2_sign_reset() != 1) goto err;
 	if (test_sm2_sign_ctx_speed() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
