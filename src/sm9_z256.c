@@ -2849,14 +2849,10 @@ void sm9_z256_point_to_affine(SM9_Z256_AFFINE_POINT *Q, const SM9_Z256_POINT *P)
 	}
 
 	sm9_z256_modp_mont_inv(z_inv, P->Z);
-	if (Q->Y) {
-		sm9_z256_modp_mont_mul(Q->Y, P->Y, z_inv);
-	}
+	sm9_z256_modp_mont_mul(Q->Y, P->Y, z_inv);
 	sm9_z256_modp_mont_sqr(z_inv, z_inv);
 	sm9_z256_modp_mont_mul(Q->X, P->X, z_inv);
-	if (Q->Y) {
-		sm9_z256_modp_mont_mul(Q->Y, Q->Y, z_inv);
-	}
+	sm9_z256_modp_mont_mul(Q->Y, Q->Y, z_inv);
 }
 
 // Multiplication with lw[0] + lw[1] * w^2 + lw[2] * w^3
