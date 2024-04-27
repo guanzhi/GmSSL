@@ -129,7 +129,6 @@ static const uint8_t S1[256] = {
 	 ((uint32_t)(c) <<  8) |			\
 	 ((uint32_t)(d)))
 
-#if 0
 #define F_(X1,X2)					\
 	W1 = R1 + X1;					\
 	W2 = R2 ^ X2;					\
@@ -143,24 +142,6 @@ static const uint8_t S1[256] = {
 			S1[(V >> 16) & 0xFF],		\
 			S0[(V >> 8) & 0xFF],		\
 			S1[V & 0xFF])
-#else
-#define F_(X1,X2)					\
-	W1 = R1 + X1;					\
-	W2 = R2 ^ X2;					\
-	U = L1((W1 << 16) | (W2 >> 16));		\
-	V = L2((W2 << 16) | (W1 >> 16));		\
-	T0 = S0[(U >> 24)       ];			\
-	T2 = S0[(U >>  8) & 0xFF];			\
-	T4 = S0[(V >> 24)       ];			\
-	T6 = S0[(V >>  8) & 0xFF];			\
-	T1 = S1[(U >> 16) & 0xFF];			\
-	T3 = S1[(U      ) & 0xFF];			\
-	T5 = S1[(V >> 16) & 0xFF];			\
-	T7 = S1[(V      ) & 0xFF];			\
-	R1 = MAKEU32(T0, T1, T2, T3);			\
-	R2 = MAKEU32(T4, T5, T6, T7)
-#endif
-
 
 #define F(X0,X1,X2)					\
 	(X0 ^ R1) + R2;					\
@@ -172,7 +153,6 @@ void zuc_init(ZUC_STATE *state, const uint8_t *user_key, const uint8_t *iv)
 	uint32_t R1, R2;
 	uint32_t X0, X1, X2;
 	uint32_t W, W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	int i;
 
 
@@ -204,7 +184,6 @@ uint32_t zuc_generate_keyword(ZUC_STATE *state)
 	uint32_t R2 = state->R2;
 	uint32_t X0, X1, X2, X3;
 	uint32_t W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	uint32_t Z;
 
 	BitReconstruction4(X0, X1, X2, X3);
@@ -224,13 +203,61 @@ void zuc_generate_keystream(ZUC_STATE *state, size_t nwords, uint32_t *keystream
 	uint32_t R2 = state->R2;
 	uint32_t X0, X1, X2, X3;
 	uint32_t W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	size_t i;
 
 	for (i = 0; i < nwords; i ++) {
+		/*
 		BitReconstruction4(X0, X1, X2, X3);
 		keystream[i] = X3 ^ F(X0, X1, X2);
 		LFSRWithWorkMode();
+		*/
+		uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
+		uint64_t a;
+		int j;
+
+		// expand BitReconstruction4(X0, X1, X2, X3)
+		X0 = ((LFSR[15] & 0x7FFF8000) <<  1) | (LFSR[14] & 0xFFFF);
+		X1 = ((LFSR[11] & 0x0000FFFF) << 16) | (LFSR[ 9] >> 15);
+		X2 = ((LFSR[ 7] & 0x0000FFFF) << 16) | (LFSR[ 5] >> 15);
+		X3 = ((LFSR[ 2] & 0x0000FFFF) << 16) | (LFSR[ 0] >> 15);
+
+		//keystream[i] = X3 ^ F(X0, X1, X2);
+		keystream[i] = X3 ^ ((X0 ^ R1) + R2);
+
+
+		W1 = R1 + X1;
+		W2 = R2 ^ X2;
+		U = L1((W1 << 16) | (W2 >> 16));
+		V = L2((W2 << 16) | (W1 >> 16));
+
+		// table lookup together makes 10% faster
+		T0 = S0[(U >> 24)       ];
+		T2 = S0[(U >>  8) & 0xFF];
+		T4 = S0[(V >> 24)       ];
+		T6 = S0[(V >>  8) & 0xFF];
+
+		T1 = S1[(U >> 16) & 0xFF];
+		T3 = S1[(U      ) & 0xFF];
+		T5 = S1[(V >> 16) & 0xFF];
+		T7 = S1[(V      ) & 0xFF];
+
+		R1 = MAKEU32(T0, T1, T2, T3);
+		R2 = MAKEU32(T4, T5, T6, T7);
+
+		// expand LFSRWithWorkMode()
+		a = LFSR[0];
+		a += ((uint64_t)LFSR[ 0]) <<  8;
+		a += ((uint64_t)LFSR[ 4]) << 20;
+		a += ((uint64_t)LFSR[10]) << 21;
+		a += ((uint64_t)LFSR[13]) << 17;
+		a += ((uint64_t)LFSR[15]) << 15;
+		a = (a & 0x7fffffff) + (a >> 31);
+		V = (uint32_t)((a & 0x7fffffff) + (a >> 31));
+
+		for (j = 0; j < 15; j++) {
+			LFSR[j] = LFSR[j+1];
+		}
+		LFSR[15] = V;
 	}
 
 	state->R1 = R1;
@@ -244,28 +271,81 @@ void zuc_encrypt(ZUC_STATE *state, const uint8_t *in, size_t inlen, uint8_t *out
 	uint32_t R2 = state->R2;
 	uint32_t X0, X1, X2, X3;
 	uint32_t W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	uint32_t Z;
-	uint8_t block[4];
-	size_t nwords = inlen / sizeof(uint32_t);
-	size_t i;
 
-	for (i = 0; i < nwords; i ++) {
+	while (inlen) {
+		/*
 		BitReconstruction4(X0, X1, X2, X3);
 		Z = X3 ^ F(X0, X1, X2);
 		LFSRWithWorkMode();
-		PUTU32(block, Z);
-		gmssl_memxor(out, in, block, sizeof(block));
-		in += sizeof(block);
-		out += sizeof(block);
-	}
-	if (inlen % 4) {
-		// TODO: use assert to make sure this branch should not be arrived
-		BitReconstruction4(X0, X1, X2, X3);
-		Z = X3 ^ F(X0, X1, X2);
-		LFSRWithWorkMode();
-		PUTU32(block, Z);
-		gmssl_memxor(out, in, block, inlen % 4);
+		*/
+		uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
+		uint64_t a;
+		int j;
+
+		// expand BitReconstruction4(X0, X1, X2, X3)
+		X0 = ((LFSR[15] & 0x7FFF8000) <<  1) | (LFSR[14] & 0xFFFF);
+		X1 = ((LFSR[11] & 0x0000FFFF) << 16) | (LFSR[ 9] >> 15);
+		X2 = ((LFSR[ 7] & 0x0000FFFF) << 16) | (LFSR[ 5] >> 15);
+		X3 = ((LFSR[ 2] & 0x0000FFFF) << 16) | (LFSR[ 0] >> 15);
+
+		//keystream[i] = X3 ^ F(X0, X1, X2);
+		Z = X3 ^ ((X0 ^ R1) + R2);
+
+		W1 = R1 + X1;
+		W2 = R2 ^ X2;
+		U = L1((W1 << 16) | (W2 >> 16));
+		V = L2((W2 << 16) | (W1 >> 16));
+
+		// table lookup together makes 10% faster
+		T0 = S0[(U >> 24)       ];
+		T0 = S0[(U >> 24)       ];
+		T2 = S0[(U >>  8) & 0xFF];
+		T4 = S0[(V >> 24)       ];
+		T6 = S0[(V >>  8) & 0xFF];
+
+		T1 = S1[(U >> 16) & 0xFF];
+		T3 = S1[(U      ) & 0xFF];
+		T5 = S1[(V >> 16) & 0xFF];
+		T7 = S1[(V      ) & 0xFF];
+
+		R1 = MAKEU32(T0, T1, T2, T3);
+		R2 = MAKEU32(T4, T5, T6, T7);
+
+		// expand LFSRWithWorkMode()
+		a = LFSR[0];
+		a += ((uint64_t)LFSR[ 0]) <<  8;
+		a += ((uint64_t)LFSR[ 4]) << 20;
+		a += ((uint64_t)LFSR[10]) << 21;
+		a += ((uint64_t)LFSR[13]) << 17;
+		a += ((uint64_t)LFSR[15]) << 15;
+		a = (a & 0x7fffffff) + (a >> 31);
+		V = (uint32_t)((a & 0x7fffffff) + (a >> 31));
+
+		for (j = 0; j < 15; j++) {
+			LFSR[j] = LFSR[j+1];
+		}
+		LFSR[15] = V;
+
+		// xor with plaintext
+		Z ^= GETU32(in);
+
+		// output ciphertext
+		if (inlen >= 4) {
+			PUTU32(out, Z);
+			inlen -= 4;
+			in += 4;
+			out += 4;
+		} else {
+			uint8_t word[4];
+			size_t i;
+
+			PUTU32(word, Z);
+			for (i = 0; i < inlen; i++) {
+				out[i] = word[i];
+			}
+			break;
+		}
 	}
 
 	state->R1 = R1;
@@ -289,7 +369,6 @@ void zuc_mac_update(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t len)
 	ZUC_UINT32 R2 = ctx->R2;
 	ZUC_UINT32 X0, X1, X2, X3;
 	ZUC_UINT32 W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	size_t i;
 
 	if (!data || !len) {
@@ -365,7 +444,6 @@ void zuc_mac_finish(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t
 	ZUC_UINT32 R2 = ctx->R2;
 	ZUC_UINT32 X0, X1, X2, X3;
 	ZUC_UINT32 W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	size_t i;
 
 	if (!data)
@@ -444,7 +522,6 @@ static void zuc256_set_mac_key(ZUC_STATE *key, const uint8_t K[32],
 	uint32_t R1, R2;
 	uint32_t X0, X1, X2;
 	uint32_t W, W1, W2, U, V;
-	uint32_t T0, T1, T2, T3, T4, T5, T6, T7;
 	const ZUC_UINT7 *D;
 	int i;
 
