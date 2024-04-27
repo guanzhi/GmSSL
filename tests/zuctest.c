@@ -26,39 +26,40 @@ static void bswap_buf(uint32_t *buf, size_t nwords)
 	}
 }
 
-static int zuc_test(void)
+static int test_zuc_generate_keystream(void)
 {
 	unsigned char key[][16] = {
-	{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
-	{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},
-	{0x3d,0x4c,0x4b,0xe9,0x6a,0x82,0xfd,0xae,0xb5,0x8f,0x64,0x1d,0xb1,0x7b,0x45,0x5b},
+		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
+		{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},
+		{0x3d,0x4c,0x4b,0xe9,0x6a,0x82,0xfd,0xae,0xb5,0x8f,0x64,0x1d,0xb1,0x7b,0x45,0x5b},
 	};
 	unsigned char iv[][16] = {
-	{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
-	{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},
-	{0x84,0x31,0x9a,0xa8,0xde,0x69,0x15,0xca,0x1f,0x6b,0xda,0x6b,0xfb,0xd8,0xc7,0x66},
+		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
+		{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},
+		{0x84,0x31,0x9a,0xa8,0xde,0x69,0x15,0xca,0x1f,0x6b,0xda,0x6b,0xfb,0xd8,0xc7,0x66},
 	};
 	uint32_t ciphertext[][2] = {
 		{0x27bede74, 0x018082da},
 		{0x0657cfa0, 0x7096398b},
 		{0x14f1c272, 0x3279c419},
 	};
+
+
+	ZUC_STATE zuc_state;
+	uint32_t buf[2];
 	int i;
 
 	for (i = 0; i < 3; i++) {
-		ZUC_STATE zuc = {{0}};
-		uint32_t buf[3] = {0};
-		zuc_init(&zuc, key[i], iv[i]);
-		zuc_generate_keystream(&zuc, 2, buf);
+		zuc_init(&zuc_state, key[i], iv[i]);
+		zuc_generate_keystream(&zuc_state, 2, buf);
+
 		if (buf[0] != ciphertext[i][0] || buf[1] != ciphertext[i][1]) {
-			fprintf(stderr, "error generating ZUC key stream on test vector %d\n", i);
 			error_print();
 			return -1;
-		} else {
-			fprintf(stderr, "zuc test %d ok\n", i);
 		}
 	}
 
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
@@ -79,15 +80,15 @@ static int test_zuc_encrypt_speed(void)
 		zuc_encrypt(&zuc_state, buf, sizeof(buf), buf);
 	}
 	end = clock();
-	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
 
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
 	fprintf(stderr, "speed zuc_encrypt: %f-MiB per seconds\n", 16/seconds);
 
 	return 1;
 }
 
 /* test vector from GM/T 0001.2-2012 */
-static int zuc_eea_test(void)
+static int test_zuc_eea(void)
 {
 	unsigned char key[][16] = {
 		{0x17, 0x3d, 0x14, 0xba, 0x50, 0x03, 0x73, 0x1d,
@@ -203,19 +204,17 @@ static int zuc_eea_test(void)
 	for (i = 0; i < sizeof(key)/sizeof(key[i]); i++) {
 		zuc_eea_encrypt(ibs[i], buf, bits[i], key[i], count[i], bearer[i], direction[i]);
 		if (memcmp(buf, obs[i], ZUC_EEA_ENCRYPT_NBYTES(bits[i])) != 0) {
-			printf("zuc eea test %zu failed\n", i);
 			error_print();
 			return -1;
-		} else {
-			printf("zuc eea test %zu ok\n", i);
 		}
 	}
 
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
 /* test vector from GM/T 0001.3-2012 */
-static int zuc_eia_test(void)
+static int test_zuc_eia(void)
 {
 	unsigned char key[][16] = {
 		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -296,20 +295,19 @@ static int zuc_eia_test(void)
 		ZUC_UINT32 T;
 		T = zuc_eia_generate_mac(mesg[i], bits[i], key[i],
 			count[i], bearer[i], direction[i]);
+
 		if (T != mac[i]) {
-			printf("zuc eia test %zu failed\n", i);
 			error_print();
 			return -1;
-		} else {
-			printf("zuc eia test %zu ok\n", i);
 		}
 	}
 
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
 /* from ZUC256 draft */
-static int zuc256_test(void)
+static int test_zuc256_generate_keystream(void)
 {
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -357,10 +355,11 @@ static int zuc256_test(void)
 		}
 	}
 
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
-static int zuc256_mac_test(void)
+static int test_zuc256_mac(void)
 {
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -463,8 +462,6 @@ static int zuc256_mac_test(void)
 			printf("zuc256 mac test %d 32-bit failed\n", i);
 			error_print();
 			return -1;
-		} else {
-			printf("zuc256 mac test %d 32-bit ok\n", i);
 		}
 
 		zuc256_mac_init(&ctx, key[i], iv[i], 64);
@@ -476,8 +473,6 @@ static int zuc256_mac_test(void)
 			printf("zuc256 mac test %d 64-bit failed\n", i);
 			error_print();
 			return -1;
-		} else {
-			printf("zuc256 mac test %d 64-bit ok\n", i);
 		}
 
 		zuc256_mac_init(&ctx, key[i], iv[i], 128);
@@ -489,21 +484,26 @@ static int zuc256_mac_test(void)
 			printf("zuc256 mac test %d 128-bit failed\n", i);
 			error_print();
 			return -1;
-		} else {
-			printf("zuc256 mac test %d 128-bit ok\n", i);
 		}
 	}
 
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
 int main(void)
 {
-	if (zuc_test() != 1) { error_print(); return -1; }
-	if (zuc_eea_test() != 1) { error_print(); return -1; }
-	if (zuc_eia_test() != 1) { error_print(); return -1; }
-	if (zuc256_test() != 1) { error_print(); return -1; }
-	if (zuc256_mac_test() != 1) { error_print(); return -1; }
-	if (test_zuc_encrypt_speed() != 1) { error_print(); return -1; }
+	if (test_zuc_generate_keystream() != 1) goto err;
+	if (test_zuc_eea() != 1) goto err;
+	if (test_zuc_eia() != 1) goto err;
+	if (test_zuc256_generate_keystream() != 1) goto err;
+	if (test_zuc256_mac() != 1) goto err;
+#if ENABLE_TEST_SPEED
+	if (test_zuc_encrypt_speed() != 1) goto err;
+#endif
+	printf("%s all tests passed\n", __FILE__);
 	return 0;
+err:
+	error_print();
+	return 1;
 }
