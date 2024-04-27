@@ -26,7 +26,7 @@ static void bswap_buf(uint32_t *buf, size_t nwords)
 	}
 }
 
-static int test_zuc_generate_keystream(void)
+static int test_zuc(void)
 {
 	unsigned char key[][16] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},
@@ -60,30 +60,6 @@ static int test_zuc_generate_keystream(void)
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
-	return 1;
-}
-
-static int test_zuc_encrypt_speed(void)
-{
-	ZUC_STATE zuc_state;
-	uint8_t key[16];
-	uint8_t iv[16];
-	uint8_t buf[4096];
-	clock_t begin, end;
-	double seconds;
-	int i;
-
-	zuc_init(&zuc_state, key, iv);
-
-	begin = clock();
-	for (i = 0; i < 4096; i++) {
-		zuc_encrypt(&zuc_state, buf, sizeof(buf), buf);
-	}
-	end = clock();
-
-	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
-	fprintf(stderr, "speed zuc_encrypt: %f-MiB per seconds\n", 16/seconds);
-
 	return 1;
 }
 
@@ -307,7 +283,7 @@ static int test_zuc_eia(void)
 }
 
 /* from ZUC256 draft */
-static int test_zuc256_generate_keystream(void)
+static int test_zuc256(void)
 {
 	unsigned char key[][32] = {
 		{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -491,14 +467,74 @@ static int test_zuc256_mac(void)
 	return 1;
 }
 
+static int test_zuc_generate_keystream_speed(void)
+{
+	ZUC_STATE zuc_state;
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint32_t buf[1024]; // aligned
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	zuc_init(&zuc_state, key, iv);
+
+	// warm up
+	for (i = 0; i < 4096; i++) {
+		zuc_generate_keystream(&zuc_state, 1024, buf);
+	}
+
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		zuc_generate_keystream(&zuc_state, 1024, buf);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
+	fprintf(stderr, "speed zuc_generate_keystream: %f-MiB per seconds\n", 16/seconds);
+
+	return 1;
+}
+
+static int test_zuc_encrypt_speed(void)
+{
+	ZUC_STATE zuc_state;
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint32_t align_buf[1024];
+	uint8_t *buf = (uint8_t *)align_buf;
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	zuc_init(&zuc_state, key, iv);
+
+	// warm up
+	for (i = 0; i < 4096; i++) {
+		zuc_encrypt(&zuc_state, buf, 4096, buf);
+	}
+
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		zuc_encrypt(&zuc_state, buf, 4096, buf);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
+	fprintf(stderr, "speed zuc_encrypt: %f-MiB per seconds\n", 16/seconds);
+
+	return 1;
+}
+
 int main(void)
 {
-	if (test_zuc_generate_keystream() != 1) goto err;
+	if (test_zuc() != 1) goto err;
 	if (test_zuc_eea() != 1) goto err;
 	if (test_zuc_eia() != 1) goto err;
-	if (test_zuc256_generate_keystream() != 1) goto err;
+	if (test_zuc256() != 1) goto err;
 	if (test_zuc256_mac() != 1) goto err;
 #if ENABLE_TEST_SPEED
+	if (test_zuc_generate_keystream_speed() != 1) goto err;
 	if (test_zuc_encrypt_speed() != 1) goto err;
 #endif
 	printf("%s all tests passed\n", __FILE__);
