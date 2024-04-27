@@ -65,6 +65,8 @@ _gmssl_export int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t 
 
 void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen, uint8_t *out);
+void sm4_ctr32_encrypt(const SM4_KEY *key, uint8_t ctr[SM4_BLOCK_SIZE],
+	const uint8_t *in, size_t inlen, uint8_t *out);
 
 typedef struct {
 	union {
@@ -79,6 +81,9 @@ typedef struct {
 _gmssl_export int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx, const uint8_t key[SM4_KEY_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE]);
 _gmssl_export int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 _gmssl_export int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen);
+int sm4_ctr32_encrypt_init(SM4_CTR_CTX *ctx, const uint8_t key[SM4_KEY_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE]);
+int sm4_ctr32_encrypt_update(SM4_CTR_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sm4_ctr32_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen);
 
 
 #define NIST_SP800_GCM_MAX_IV_SIZE	(((uint64_t)1 << (64-3)) - 1) // 2305843009213693951
@@ -134,7 +139,7 @@ _gmssl_export int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx,
 
 #ifdef ENABLE_SM4_ECB
 // call `sm4_set_decrypt_key` before decrypt
-void sm4_ecb_encrypt(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
+void sm4_ecb_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
 
 typedef struct {
 	SM4_KEY sm4_key;

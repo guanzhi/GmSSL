@@ -11,6 +11,8 @@ include_directories(include)
 
 add_compile_options(-O3)
 
+option(ENABLE_TEST_SPEED "Enable test speed" ON)
+
 option(ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
 option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
@@ -30,7 +32,7 @@ option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OF
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4.c
+	src/sm4_arm_neon.c
 	src/sm4_cbc.c
 	src/sm4_ctr.c
 	src/sm4_gcm.c
@@ -83,6 +85,7 @@ set(src
 	src/tlcp.c
 	src/tls12.c
 	src/tls13.c
+	src/file.c
 	src/file.c
 )
 
@@ -244,6 +247,12 @@ include(CheckSymbolExists)
 
 # when an option has been enabled, `cmake ..` will not refresh the value
 # use `cmake .. -DENABLE_XXX=OFF` to disable the option
+
+
+if (ENABLE_TEST_SPEED)
+	message(STATUS "ENABLE_TEST_SPEED is ON")
+	add_definitions(-DENABLE_TEST_SPEED)
+endif()
 
 option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable AlgorithmIdenifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
 if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)

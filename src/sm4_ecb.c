@@ -13,7 +13,7 @@
 #include <gmssl/error.h>
 
 
-void sm4_ecb_encrypt(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out)
+void sm4_ecb_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	while (nblocks--) {
 		sm4_encrypt(key, in, out);
@@ -50,7 +50,7 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 			return 1;
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
-		sm4_ecb_encrypt(&ctx->sm4_key, ctx->block, 1, out);
+		sm4_ecb_encrypt_blocks(&ctx->sm4_key, ctx->block, 1, out);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -59,7 +59,7 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 	if (inlen >= SM4_BLOCK_SIZE) {
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
-		sm4_ecb_encrypt(&ctx->sm4_key, in, nblocks, out);
+		sm4_ecb_encrypt_blocks(&ctx->sm4_key, in, nblocks, out);
 		in += len;
 		inlen -= len;
 		out += len;
