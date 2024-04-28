@@ -358,37 +358,6 @@ static int test_sm4_ctr_ctx_multi_updates(void)
 	return 1;
 }
 
-extern void sm4_ctr32_encrypt_4blocks(const SM4_KEY *key, uint8_t iv[16], const uint8_t *in, size_t num_4blocks, uint8_t *out);
-
-
-static int test_sm4_ctr32_encrypt_blocks_speed(void)
-{
-	SM4_KEY sm4_key;
-	uint8_t key[16];
-	uint8_t ctr[16];
-	uint8_t buf[4096];
-	clock_t begin, end;
-	double seconds;
-	int i;
-
-	memset(key, 0, sizeof(key));
-	memset(ctr, 0, sizeof(ctr));
-	memset(buf, 0, sizeof(buf));
-
-	sm4_set_encrypt_key(&sm4_key, key);
-
-	begin = clock();
-	for (i = 0; i < 4096; i++) {
-		sm4_ctr32_encrypt_4blocks(&sm4_key, ctr, buf, sizeof(buf)/64, buf);
-	}
-	end = clock();
-
-	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
-	printf("%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
-
-	return 1;
-}
-
 int main(void)
 {
 	if (test_sm4_ctr() != 1) goto err;
@@ -396,8 +365,6 @@ int main(void)
 	if (test_sm4_ctr_with_carray() != 1) goto err;
 	if (test_sm4_ctr_ctx() != 1) goto err;
 	if (test_sm4_ctr_ctx_multi_updates() != 1) goto err;
-
-	if (test_sm4_ctr32_encrypt_blocks_speed() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
