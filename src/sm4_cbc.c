@@ -12,7 +12,8 @@
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
 
-void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16],
+
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	while (nblocks--) {
@@ -24,7 +25,7 @@ void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16],
 	}
 }
 
-void sm4_cbc_decrypt(const SM4_KEY *key, const uint8_t iv[16],
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	while (nblocks >= 8) {
@@ -63,11 +64,11 @@ int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[16],
 	}
 	memset(block + rem, padding, padding);
 	if (inlen/16) {
-		sm4_cbc_encrypt(key, iv, in, inlen/16, out);
+		sm4_cbc_encrypt_blocks(key, iv, in, inlen/16, out);
 		out += inlen - rem;
 		iv = out - 16;
 	}
-	sm4_cbc_encrypt(key, iv, block, 1, out);
+	sm4_cbc_encrypt_blocks(key, iv, block, 1, out);
 	*outlen = inlen - rem + 16;
 	return 1;
 }
@@ -89,10 +90,10 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 		return -1;
 	}
 	if (inlen > 16) {
-		sm4_cbc_decrypt(key, iv, in, inlen/16 - 1, out);
+		sm4_cbc_decrypt_blocks(key, iv, in, inlen/16 - 1, out);
 		iv = in + inlen - 32;
 	}
-	sm4_cbc_decrypt(key, iv, in + inlen - 16, 1, block);
+	sm4_cbc_decrypt_blocks(key, iv, in + inlen - 16, 1, block);
 
 	padding = block[15];
 	if (padding < 1 || padding > 16) {
@@ -135,7 +136,7 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 			return 1;
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
-		sm4_cbc_encrypt(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
+		sm4_cbc_encrypt_blocks(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
 		memcpy(ctx->iv, out, SM4_BLOCK_SIZE);
 		in += left;
 		inlen -= left;
@@ -145,7 +146,7 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 	if (inlen >= SM4_BLOCK_SIZE) {
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
-		sm4_cbc_encrypt(&ctx->sm4_key, ctx->iv, in, nblocks, out);
+		sm4_cbc_encrypt_blocks(&ctx->sm4_key, ctx->iv, in, nblocks, out);
 		memcpy(ctx->iv, out + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
 		in += len;
 		inlen -= len;
@@ -201,7 +202,7 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 			return 1;
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
-		sm4_cbc_decrypt(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
+		sm4_cbc_decrypt_blocks(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
 		memcpy(ctx->iv, ctx->block, SM4_BLOCK_SIZE);
 		in += left;
 		inlen -= left;
@@ -211,7 +212,7 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 	if (inlen > SM4_BLOCK_SIZE) {
 		nblocks = (inlen-1) / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
-		sm4_cbc_decrypt(&ctx->sm4_key, ctx->iv, in, nblocks, out);
+		sm4_cbc_decrypt_blocks(&ctx->sm4_key, ctx->iv, in, nblocks, out);
 		memcpy(ctx->iv, in + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
 		in += len;
 		inlen -= len;

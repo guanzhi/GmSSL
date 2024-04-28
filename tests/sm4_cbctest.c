@@ -28,9 +28,9 @@ static int test_sm4_cbc(void)
 	uint8_t buf3[32] = {0};
 
 	sm4_set_encrypt_key(&sm4_key, key);
-	sm4_cbc_encrypt(&sm4_key, iv, buf1, 2, buf2);
+	sm4_cbc_encrypt_blocks(&sm4_key, iv, buf1, 2, buf2);
 	sm4_set_decrypt_key(&sm4_key, key);
-	sm4_cbc_decrypt(&sm4_key, iv, buf2, 2, buf3);
+	sm4_cbc_decrypt_blocks(&sm4_key, iv, buf2, 2, buf3);
 
 	if (memcmp(buf1, buf3, sizeof(buf3)) != 0) {
 		fprintf(stderr, "%s %d: error\n", __FILE__, __LINE__);
@@ -107,7 +107,7 @@ static int test_sm4_cbc_test_vectors(void)
 		}
 
 		sm4_set_encrypt_key(&sm4_key, key);
-		sm4_cbc_encrypt(&sm4_key, iv, plaintext, plaintext_len/16, encrypted);
+		sm4_cbc_encrypt_blocks(&sm4_key, iv, plaintext, plaintext_len/16, encrypted);
 
 		if (memcmp(encrypted, ciphertext, ciphertext_len) != 0) {
 			error_print();
