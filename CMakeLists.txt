@@ -32,7 +32,7 @@ option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OF
 set(src
 	src/version.c
 	src/debug.c
-	src/sm4_arm_neon.c
+	src/sm4.c
 	src/sm4_cbc.c
 	src/sm4_ctr.c
 	src/sm4_gcm.c
@@ -323,6 +323,12 @@ if (ENABLE_SM3_SSE)
 	list(INSERT src ${sm3_index} src/sm3_sse.c)
 endif()
 
+if (ENABLE_SM4_TBOX)
+	message(STATUS "ENABLE_SM4_TBOX is ON")
+	list(FIND src src/sm4.c sm4_index)
+	list(REMOVE_AT src ${sm4_index})
+	list(INSERT src ${sm4_index} src/sm4_tbox.c)
+endif()
 
 if (ENABLE_SM4_AARCH64)
 	message(STATUS "ENABLE_SM4_AARCH64 is ON")
