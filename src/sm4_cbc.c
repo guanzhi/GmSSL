@@ -27,6 +27,20 @@ void sm4_cbc_encrypt(const SM4_KEY *key, const uint8_t iv[16],
 void sm4_cbc_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
+	while (nblocks >= 8) {
+		uint8_t buf[16 * 8];
+
+		sm4_encrypt_blocks(key, in, 8, buf);
+
+		gmssl_memxor(out, buf, iv, 16);
+		gmssl_memxor(out + 16, buf + 16, in, 16 * (8 - 1));
+
+		iv = in + 16 * (8 - 1);
+		in += 16 * 8;
+		out += 16 * 8;
+		nblocks -= 8;
+	}
+
 	while (nblocks--) {
 		sm4_encrypt(key, in, out);
 		memxor(out, iv, 16);
