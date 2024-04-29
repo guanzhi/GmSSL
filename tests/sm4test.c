@@ -133,7 +133,7 @@ static int test_sm4_encrypt_blocks(void)
 	return 1;
 }
 
-static int test_sm4_encrypt_speed(void)
+static int speed_sm4_encrypt(void)
 {
 	SM4_KEY sm4_key;
 	uint8_t key[16] = {0};
@@ -155,49 +155,160 @@ static int test_sm4_encrypt_speed(void)
 	end = clock();
 
 	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
-	fprintf(stderr, "sm4_encrypt: %f MiB per second\n", nbytes/(1024 * 1024 *seconds));
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, nbytes/(1024 * 1024 *seconds));
 
 	return 1;
 }
 
-static int test_sm4_encrypt_blocks_speed(void)
+static int speed_sm4_encrypt_blocks(void)
 {
 	SM4_KEY sm4_key;
 	uint8_t key[16] = {0};
-	//uint32_t buf[1024];
-	uint8_t buf[4096 + 100] __attribute__((aligned(16)));
+	uint32_t buf[1024];
 	clock_t begin, end;
 	double seconds;
 	int i;
 
 	sm4_set_encrypt_key(&sm4_key, key);
 	for (i = 0; i < 4096; i++) {
-	//	fprintf(stderr, ".");
 		sm4_encrypt_blocks(&sm4_key, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
 	}
-
-	//fprintf(stderr, "start\n");
 
 	begin = clock();
 	for (i = 0; i < 4096; i++) {
 		sm4_encrypt_blocks(&sm4_key, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
-	//	fprintf(stderr, ".");
 	}
 	end = clock();
 
 	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
-	fprintf(stderr, "sm4_encrypt_blocks: %f MiB per second\n", 16/seconds);
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
 
 	return 1;
 }
+
+static int speed_sm4_cbc_encrypt_blocks(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t iv[16];
+	uint32_t buf[1024];
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	for (i = 0; i < 4096; i++) {
+		sm4_cbc_encrypt_blocks(&sm4_key, iv, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		sm4_cbc_encrypt_blocks(&sm4_key, iv, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+
+	return 1;
+}
+
+static int speed_sm4_cbc_decrypt_blocks(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t iv[16];
+	uint32_t buf[1024];
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm4_set_decrypt_key(&sm4_key, key);
+
+	for (i = 0; i < 4096; i++) {
+		sm4_cbc_decrypt_blocks(&sm4_key, iv, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		sm4_cbc_decrypt_blocks(&sm4_key, iv, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+
+	return 1;
+}
+
+static int speed_sm4_ctr_encrypt_blocks(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t ctr[16];
+	uint32_t buf[1024];
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+	rand_bytes(ctr, sizeof(ctr));
+
+	for (i = 0; i < 4096; i++) {
+		sm4_ctr_encrypt_blocks(&sm4_key, ctr, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		sm4_ctr_encrypt_blocks(&sm4_key, ctr, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+
+	return 1;
+}
+
+static int speed_sm4_ctr32_encrypt_blocks(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t ctr[16];
+	uint32_t buf[1024];
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+	rand_bytes(ctr, sizeof(ctr));
+
+	for (i = 0; i < 4096; i++) {
+		sm4_ctr32_encrypt_blocks(&sm4_key, ctr, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		sm4_ctr32_encrypt_blocks(&sm4_key, ctr, (uint8_t *)buf, sizeof(buf)/16, (uint8_t *)buf);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+
+	return 1;
+}
+
+
 
 int main(void)
 {
 	if (test_sm4() != 1) goto err;
 	if (test_sm4_encrypt_blocks() != 1) goto err;
 #if ENABLE_TEST_SPEED
-	if (test_sm4_encrypt_speed() != 1) goto err;
-	if (test_sm4_encrypt_blocks_speed() != 1) goto err;
+	if (speed_sm4_encrypt() != 1) goto err;
+	if (speed_sm4_encrypt_blocks() != 1) goto err;
+	if (speed_sm4_cbc_encrypt_blocks() != 1) goto err;
+	if (speed_sm4_cbc_decrypt_blocks() != 1) goto err;
+	if (speed_sm4_ctr_encrypt_blocks() != 1) goto err;
+	if (speed_sm4_ctr32_encrypt_blocks() != 1) goto err;
 #endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

@@ -13,17 +13,12 @@
 #include <gmssl/error.h>
 
 
-void sm4_ecb_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	while (nblocks--) {
-		sm4_encrypt(key, in, out);
-		in += SM4_BLOCK_SIZE;
-		out += SM4_BLOCK_SIZE;
-	}
-}
-
 int sm4_ecb_encrypt_init(SM4_ECB_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
 	sm4_set_encrypt_key(&ctx->sm4_key, key);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
 	ctx->block_nbytes = 0;
@@ -37,6 +32,10 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -50,7 +49,7 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 			return 1;
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
-		sm4_ecb_encrypt_blocks(&ctx->sm4_key, ctx->block, 1, out);
+		sm4_encrypt_blocks(&ctx->sm4_key, ctx->block, 1, out);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -59,7 +58,7 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 	if (inlen >= SM4_BLOCK_SIZE) {
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
-		sm4_ecb_encrypt_blocks(&ctx->sm4_key, in, nblocks, out);
+		sm4_encrypt_blocks(&ctx->sm4_key, in, nblocks, out);
 		in += len;
 		inlen -= len;
 		out += len;
@@ -74,6 +73,10 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 
 int sm4_ecb_encrypt_finish(SM4_ECB_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -88,6 +91,10 @@ int sm4_ecb_encrypt_finish(SM4_ECB_CTX *ctx, uint8_t *out, size_t *outlen)
 
 int sm4_ecb_decrypt_init(SM4_ECB_CTX *ctx, const uint8_t key[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
 	sm4_set_decrypt_key(&ctx->sm4_key, key);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
 	ctx->block_nbytes = 0;

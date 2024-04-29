@@ -13,44 +13,6 @@
 #include <gmssl/error.h>
 
 
-void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
-	const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	while (nblocks--) {
-		gmssl_memxor(out, in, iv, 16);
-		sm4_encrypt(key, out, out);
-		iv = out;
-		in += 16;
-		out += 16;
-	}
-}
-
-void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
-	const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	while (nblocks >= 8) {
-		uint8_t buf[16 * 8];
-
-		sm4_encrypt_blocks(key, in, 8, buf);
-
-		gmssl_memxor(out, buf, iv, 16);
-		gmssl_memxor(out + 16, buf + 16, in, 16 * (8 - 1));
-
-		iv = in + 16 * (8 - 1);
-		in += 16 * 8;
-		out += 16 * 8;
-		nblocks -= 8;
-	}
-
-	while (nblocks--) {
-		sm4_encrypt(key, in, out);
-		memxor(out, iv, 16);
-		iv = in;
-		in += 16;
-		out += 16;
-	}
-}
-
 int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
@@ -109,6 +71,10 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 int sm4_cbc_encrypt_init(SM4_CBC_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
 	sm4_set_encrypt_key(&ctx->sm4_key, key);
 	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
@@ -123,6 +89,10 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -162,6 +132,10 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 
 int sm4_cbc_encrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -176,6 +150,10 @@ int sm4_cbc_encrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
 int sm4_cbc_decrypt_init(SM4_CBC_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
 	sm4_set_decrypt_key(&ctx->sm4_key, key);
 	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
@@ -188,6 +166,10 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 {
 	size_t left, len, nblocks;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes > SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -226,6 +208,10 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 
 int sm4_cbc_decrypt_finish(SM4_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes != SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;

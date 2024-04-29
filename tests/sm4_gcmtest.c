@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm4.h>
 #include <gmssl/error.h>
@@ -312,12 +313,45 @@ static int test_sm4_gcm_ctx(void)
 	return 1;
 }
 
+static int speed_sm4_gcm_encrypt(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t iv[12];
+	uint8_t aad[16];
+	uint8_t tag[16];
+	uint32_t buf[1024];
+	clock_t begin, end;
+	double seconds;
+	int i;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	for (i = 0; i < 4096; i++) {
+		sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), (uint8_t *)buf, sizeof(buf), (uint8_t *)buf, 16, tag);
+	}
+	begin = clock();
+	for (i = 0; i < 4096; i++) {
+		sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), (uint8_t *)buf, sizeof(buf), (uint8_t *)buf, 16, tag);
+	}
+	end = clock();
+
+	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+
+	return 1;
+}
+
+
 int main(void)
 {
 	if (test_sm4_gcm() != 1) goto err;
 	if (test_sm4_gcm_gbt36624_1() != 1) goto err;
 	if (test_sm4_gcm_gbt36624_2() != 1) goto err;
 	if (test_sm4_gcm_ctx() != 1) goto err;
+#if ENABLE_TEST_SPEED
+	if (speed_sm4_gcm_encrypt() != 1) goto err;
+#endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

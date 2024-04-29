@@ -9,7 +9,7 @@
 
 
 #include <gmssl/sm4.h>
-
+#include <gmssl/endian.h>
 
 static uint32_t FK[4] = {
 	0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc,
@@ -61,7 +61,7 @@ const uint8_t S[256] = {
 	0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48,
 };
 
-
+/*
 #define GETU32(ptr)				\
 	((uint32_t)(ptr)[0] << 24 |		\
 	 (uint32_t)(ptr)[1] << 16 | 		\
@@ -75,6 +75,7 @@ const uint8_t S[256] = {
 	 (ptr)[3] = (uint8_t)(X))
 
 #define ROL32(X,n)  (((X)<<(n)) | ((X)>>(32-(n))))
+*/
 
 #define L32(X)					\
 	((X) ^					\
@@ -526,3 +527,270 @@ void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, u
 		out += 16;
 	}
 }
+
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	const uint32_t *rk = key->rk;
+	uint32_t X0, X1, X2, X3, X4;
+	uint32_t X5;
+
+	X0 = GETU32(iv     ); // X0 = IV0
+	X4 = GETU32(iv +  4); // X4 = IV1
+	X3 = GETU32(iv +  8); // X3 = IV2
+	X5 = GETU32(iv + 12); // X5 = IV3
+
+	while (nblocks--) {
+
+		X0 = X0 ^ GETU32(in     );
+		X1 = X4 ^ GETU32(in +  4);
+		X2 = X3 ^ GETU32(in +  8);
+		X3 = X5 ^ GETU32(in + 12);
+
+		ROUND( 0, X0, X1, X2, X3, X4);
+		ROUND( 1, X1, X2, X3, X4, X0);
+		ROUND( 2, X2, X3, X4, X0, X1);
+		ROUND( 3, X3, X4, X0, X1, X2);
+		ROUND( 4, X4, X0, X1, X2, X3);
+		ROUND( 5, X0, X1, X2, X3, X4);
+		ROUND( 6, X1, X2, X3, X4, X0);
+		ROUND( 7, X2, X3, X4, X0, X1);
+		ROUND( 8, X3, X4, X0, X1, X2);
+		ROUND( 9, X4, X0, X1, X2, X3);
+		ROUND(10, X0, X1, X2, X3, X4);
+		ROUND(11, X1, X2, X3, X4, X0);
+		ROUND(12, X2, X3, X4, X0, X1);
+		ROUND(13, X3, X4, X0, X1, X2);
+		ROUND(14, X4, X0, X1, X2, X3);
+		ROUND(15, X0, X1, X2, X3, X4);
+		ROUND(16, X1, X2, X3, X4, X0);
+		ROUND(17, X2, X3, X4, X0, X1);
+		ROUND(18, X3, X4, X0, X1, X2);
+		ROUND(19, X4, X0, X1, X2, X3);
+		ROUND(20, X0, X1, X2, X3, X4);
+		ROUND(21, X1, X2, X3, X4, X0);
+		ROUND(22, X2, X3, X4, X0, X1);
+		ROUND(23, X3, X4, X0, X1, X2);
+		ROUND(24, X4, X0, X1, X2, X3);
+		ROUND(25, X0, X1, X2, X3, X4);
+		ROUND(26, X1, X2, X3, X4, X0);
+		ROUND(27, X2, X3, X4, X0, X1);
+		ROUND(28, X3, X4, X0, X1, X2);
+		PUTU32(out + 12,          X2);
+		ROUND(29, X4, X0, X1, X2, X3);
+		PUTU32(out + 8,           X3);
+		ROUND(30, X0, X1, X2, X3, X4);
+		PUTU32(out + 4,           X4);
+		ROUND(31, X1, X2, X3, X4, X0);
+		PUTU32(out,               X0);
+
+		X5 = X2;
+
+		in += 16;
+		out += 16;
+	}
+}
+
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	const uint32_t *rk = key->rk;
+	uint32_t IV0, IV1, IV2, IV3;
+	uint32_t X0, X1, X2, X3, X4;
+	uint32_t C0, C1, C2, C3;
+
+	IV0 = GETU32(iv     ); // X0 = IV0
+	IV1 = GETU32(iv +  4); // X4 = IV1
+	IV2 = GETU32(iv +  8); // X3 = IV2
+	IV3 = GETU32(iv + 12); // X5 = IV3
+
+	while (nblocks--) {
+
+		X0 = C0 = GETU32(in     );
+		X1 = C1 = GETU32(in +  4);
+		X2 = C2 = GETU32(in +  8);
+		X3 = C3 = GETU32(in + 12);
+
+		ROUND( 0, X0, X1, X2, X3, X4);
+		ROUND( 1, X1, X2, X3, X4, X0);
+		ROUND( 2, X2, X3, X4, X0, X1);
+		ROUND( 3, X3, X4, X0, X1, X2);
+		ROUND( 4, X4, X0, X1, X2, X3);
+		ROUND( 5, X0, X1, X2, X3, X4);
+		ROUND( 6, X1, X2, X3, X4, X0);
+		ROUND( 7, X2, X3, X4, X0, X1);
+		ROUND( 8, X3, X4, X0, X1, X2);
+		ROUND( 9, X4, X0, X1, X2, X3);
+		ROUND(10, X0, X1, X2, X3, X4);
+		ROUND(11, X1, X2, X3, X4, X0);
+		ROUND(12, X2, X3, X4, X0, X1);
+		ROUND(13, X3, X4, X0, X1, X2);
+		ROUND(14, X4, X0, X1, X2, X3);
+		ROUND(15, X0, X1, X2, X3, X4);
+		ROUND(16, X1, X2, X3, X4, X0);
+		ROUND(17, X2, X3, X4, X0, X1);
+		ROUND(18, X3, X4, X0, X1, X2);
+		ROUND(19, X4, X0, X1, X2, X3);
+		ROUND(20, X0, X1, X2, X3, X4);
+		ROUND(21, X1, X2, X3, X4, X0);
+		ROUND(22, X2, X3, X4, X0, X1);
+		ROUND(23, X3, X4, X0, X1, X2);
+		ROUND(24, X4, X0, X1, X2, X3);
+		ROUND(25, X0, X1, X2, X3, X4);
+		ROUND(26, X1, X2, X3, X4, X0);
+		ROUND(27, X2, X3, X4, X0, X1);
+		ROUND(28, X3, X4, X0, X1, X2);
+		PUTU32(out + 12,    IV3 ^ X2);
+		ROUND(29, X4, X0, X1, X2, X3);
+		PUTU32(out + 8,     IV2 ^ X3);
+		ROUND(30, X0, X1, X2, X3, X4);
+		PUTU32(out + 4,     IV1 ^ X4);
+		ROUND(31, X1, X2, X3, X4, X0);
+		PUTU32(out,         IV0 ^ X0);
+
+		IV0 = C0;
+		IV1 = C1;
+		IV2 = C2;
+		IV3 = C3;
+
+		in += 16;
+		out += 16;
+	}
+}
+
+void sm4_ctr_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	const uint32_t *rk = key->rk;
+	uint32_t X0, X1, X2, X3, X4;
+	uint64_t C0, C1;
+	uint32_t D0, D1, D2, D3;
+
+	C0 = GETU64(ctr    );
+	C1 = GETU64(ctr + 8);
+
+	while (nblocks--) {
+
+		X0 = (uint32_t)(C0 >> 32);
+		X1 = (uint32_t)(C0      );
+		X2 = (uint32_t)(C1 >> 32);
+		X3 = (uint32_t)(C1      );
+
+		D0 = GETU32(in     );
+		D1 = GETU32(in +  4);
+		D2 = GETU32(in +  8);
+		D3 = GETU32(in + 12);
+
+		ROUND( 0, X0, X1, X2, X3, X4);
+		ROUND( 1, X1, X2, X3, X4, X0);
+		ROUND( 2, X2, X3, X4, X0, X1);
+		ROUND( 3, X3, X4, X0, X1, X2);
+		ROUND( 4, X4, X0, X1, X2, X3);
+		ROUND( 5, X0, X1, X2, X3, X4);
+		ROUND( 6, X1, X2, X3, X4, X0);
+		ROUND( 7, X2, X3, X4, X0, X1);
+		ROUND( 8, X3, X4, X0, X1, X2);
+		ROUND( 9, X4, X0, X1, X2, X3);
+		ROUND(10, X0, X1, X2, X3, X4);
+		ROUND(11, X1, X2, X3, X4, X0);
+		ROUND(12, X2, X3, X4, X0, X1);
+		ROUND(13, X3, X4, X0, X1, X2);
+		ROUND(14, X4, X0, X1, X2, X3);
+		ROUND(15, X0, X1, X2, X3, X4);
+		ROUND(16, X1, X2, X3, X4, X0);
+		ROUND(17, X2, X3, X4, X0, X1);
+		ROUND(18, X3, X4, X0, X1, X2);
+		ROUND(19, X4, X0, X1, X2, X3);
+		ROUND(20, X0, X1, X2, X3, X4);
+		ROUND(21, X1, X2, X3, X4, X0);
+		ROUND(22, X2, X3, X4, X0, X1);
+		ROUND(23, X3, X4, X0, X1, X2);
+		ROUND(24, X4, X0, X1, X2, X3);
+		ROUND(25, X0, X1, X2, X3, X4);
+		ROUND(26, X1, X2, X3, X4, X0);
+		ROUND(27, X2, X3, X4, X0, X1);
+		ROUND(28, X3, X4, X0, X1, X2);
+		PUTU32(out + 12,     D3 ^ X2);
+		ROUND(29, X4, X0, X1, X2, X3);
+		PUTU32(out +  8,     D2 ^ X3);
+		ROUND(30, X0, X1, X2, X3, X4);
+		PUTU32(out +  4,     D1 ^ X4);
+		ROUND(31, X1, X2, X3, X4, X0);
+		PUTU32(out,          D0 ^ X0);
+
+		C1++;
+		C0 = (C1 == 0) ? C0 + 1 : C0;
+
+		in += 16;
+		out += 16;
+	}
+
+	PUTU64(ctr    , C0);
+	PUTU64(ctr + 8, C1);
+}
+
+void sm4_ctr32_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	const uint32_t *rk = key->rk;
+	uint32_t X0, X1, X2, X3, X4;
+	uint32_t C0, C1, C2, C3;
+	uint32_t D0, D1, D2, D3;
+
+	C0 = GETU32(ctr     );
+	C1 = GETU32(ctr +  4);
+	C2 = GETU32(ctr +  8);
+	C3 = GETU32(ctr + 12);
+
+	while (nblocks--) {
+
+		X0 = C0;
+		X1 = C1;
+		X2 = C2;
+		X3 = C3++;
+
+		D0 = GETU32(in     );
+		D1 = GETU32(in +  4);
+		D2 = GETU32(in +  8);
+		D3 = GETU32(in + 12);
+
+		ROUND( 0, X0, X1, X2, X3, X4);
+		ROUND( 1, X1, X2, X3, X4, X0);
+		ROUND( 2, X2, X3, X4, X0, X1);
+		ROUND( 3, X3, X4, X0, X1, X2);
+		ROUND( 4, X4, X0, X1, X2, X3);
+		ROUND( 5, X0, X1, X2, X3, X4);
+		ROUND( 6, X1, X2, X3, X4, X0);
+		ROUND( 7, X2, X3, X4, X0, X1);
+		ROUND( 8, X3, X4, X0, X1, X2);
+		ROUND( 9, X4, X0, X1, X2, X3);
+		ROUND(10, X0, X1, X2, X3, X4);
+		ROUND(11, X1, X2, X3, X4, X0);
+		ROUND(12, X2, X3, X4, X0, X1);
+		ROUND(13, X3, X4, X0, X1, X2);
+		ROUND(14, X4, X0, X1, X2, X3);
+		ROUND(15, X0, X1, X2, X3, X4);
+		ROUND(16, X1, X2, X3, X4, X0);
+		ROUND(17, X2, X3, X4, X0, X1);
+		ROUND(18, X3, X4, X0, X1, X2);
+		ROUND(19, X4, X0, X1, X2, X3);
+		ROUND(20, X0, X1, X2, X3, X4);
+		ROUND(21, X1, X2, X3, X4, X0);
+		ROUND(22, X2, X3, X4, X0, X1);
+		ROUND(23, X3, X4, X0, X1, X2);
+		ROUND(24, X4, X0, X1, X2, X3);
+		ROUND(25, X0, X1, X2, X3, X4);
+		ROUND(26, X1, X2, X3, X4, X0);
+		ROUND(27, X2, X3, X4, X0, X1);
+		ROUND(28, X3, X4, X0, X1, X2);
+		PUTU32(out + 12,     D3 ^ X2);
+		ROUND(29, X4, X0, X1, X2, X3);
+		PUTU32(out +  8,     D2 ^ X3);
+		ROUND(30, X0, X1, X2, X3, X4);
+		PUTU32(out +  4,     D1 ^ X4);
+		ROUND(31, X1, X2, X3, X4, X0);
+		PUTU32(out,          D0 ^ X0);
+
+		in += 16;
+		out += 16;
+	}
+
+	PUTU32(ctr + 12, C3);
+}
+

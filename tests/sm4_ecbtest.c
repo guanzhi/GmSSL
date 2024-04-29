@@ -32,10 +32,10 @@ static int test_sm4_ecb(void)
 		rand_bytes(plaintext, sizeof(plaintext));
 
 		sm4_set_encrypt_key(&sm4_key, key);
-		sm4_ecb_encrypt_blocks(&sm4_key, plaintext, sizeof(plaintext)/16, encrypted);
+		sm4_encrypt_blocks(&sm4_key, plaintext, sizeof(plaintext)/16, encrypted);
 
 		sm4_set_decrypt_key(&sm4_key, key);
-		sm4_ecb_encrypt_blocks(&sm4_key, encrypted, sizeof(encrypted)/16, decrypted);
+		sm4_encrypt_blocks(&sm4_key, encrypted, sizeof(encrypted)/16, decrypted);
 
 		if (memcmp(decrypted, plaintext, sizeof(plaintext)) != 0) {
 			error_print();
@@ -69,7 +69,7 @@ static int test_sm4_ecb_test_vectors(void)
 	uint8_t decrypted[sizeof(plaintext)] = {0};
 
 	sm4_set_encrypt_key(&sm4_key, key);
-	sm4_ecb_encrypt_blocks(&sm4_key, plaintext, sizeof(plaintext)/16, encrypted);
+	sm4_encrypt_blocks(&sm4_key, plaintext, sizeof(plaintext)/16, encrypted);
 
 	format_bytes(stderr, 0, 0, "", encrypted, sizeof(encrypted));
 
@@ -79,7 +79,7 @@ static int test_sm4_ecb_test_vectors(void)
 	}
 
 	sm4_set_decrypt_key(&sm4_key, key);
-	sm4_ecb_encrypt_blocks(&sm4_key, encrypted, sizeof(encrypted)/16, decrypted);
+	sm4_encrypt_blocks(&sm4_key, encrypted, sizeof(encrypted)/16, decrypted);
 
 	if (memcmp(decrypted, plaintext, sizeof(plaintext)) != 0) {
 		error_print();

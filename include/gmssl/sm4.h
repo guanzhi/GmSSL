@@ -33,18 +33,22 @@ typedef struct {
 void sm4_set_encrypt_key(SM4_KEY *key, const uint8_t raw_key[SM4_KEY_SIZE]);
 void sm4_set_decrypt_key(SM4_KEY *key, const uint8_t raw_key[SM4_KEY_SIZE]);
 void sm4_encrypt(const SM4_KEY *key, const uint8_t in[SM4_BLOCK_SIZE], uint8_t out[SM4_BLOCK_SIZE]);
+
 void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
-
-
 void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t nblocks, uint8_t *out);
 void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t nblocks, uint8_t *out);
+void sm4_ctr_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out);
+void sm4_ctr32_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out);
 
-int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
+int  sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
+int  sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out);
+void sm4_ctr32_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out);
+
 
 typedef struct {
 	union {
@@ -140,7 +144,7 @@ _gmssl_export int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx,
 
 #ifdef ENABLE_SM4_ECB
 // call `sm4_set_decrypt_key` before decrypt
-void sm4_ecb_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
+//void sm4_ecb_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
 
 typedef struct {
 	SM4_KEY sm4_key;

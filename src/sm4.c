@@ -180,3 +180,86 @@ void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, u
 		out += 16;
 	}
 }
+
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	while (nblocks--) {
+		size_t i;
+		for (i = 0; i < 16; i++) {
+			out[i] = in[i] ^ iv[i];
+		}
+		sm4_encrypt(key, out, out);
+		iv = out;
+		in += 16;
+		out += 16;
+	}
+}
+
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	while (nblocks--) {
+		size_t i;
+		sm4_encrypt(key, in, out);
+		for (i = 0; i < 16; i++) {
+			out[i] ^= iv[i];
+		}
+		iv = in;
+		in += 16;
+		out += 16;
+	}
+}
+
+static void ctr_incr(uint8_t a[16]) {
+	int i;
+	for (i = 15; i >= 0; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
+void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	uint8_t block[16];
+	size_t len, i;
+
+	while (inlen) {
+		len = inlen < 16 ? inlen : 16;
+		sm4_encrypt(key, ctr, block);
+		for (i = 0; i < len; i++) {
+			out[i] = in[i] ^ block[i];
+		}
+		ctr_incr(ctr);
+		in += len;
+		out += len;
+		inlen -= len;
+	}
+}
+
+// inc32() in nist-sp800-38d
+static void ctr32_incr(uint8_t a[16]) {
+	int i;
+	for (i = 15; i >= 12; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
+void sm4_ctr32_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	uint8_t block[16];
+	size_t len, i;
+
+	while (inlen) {
+		len = inlen < 16 ? inlen : 16;
+		sm4_encrypt(key, ctr, block);
+		for (i = 0; i < len; i++) {
+			out[i] = in[i] ^ block[i];
+		}
+		ctr32_incr(ctr);
+		in += len;
+		out += len;
+		inlen -= len;
+	}
+}

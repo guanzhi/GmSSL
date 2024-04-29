@@ -13,34 +13,49 @@
 #include <gmssl/error.h>
 
 
-static void ctr_incr(uint8_t a[16])
-{
-	int i;
-	for (i = 15; i >= 0; i--) {
-		a[i]++;
-		if (a[i]) break;
-	}
-}
-
 void sm4_ctr_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
 {
-	uint8_t block[16];
-	size_t len;
-
-	while (inlen) {
-		len = inlen < 16 ? inlen : 16;
-		sm4_encrypt(key, ctr, block);
-		gmssl_memxor(out, in, block, len);
-		ctr_incr(ctr);
+	if (inlen >= 16) {
+		size_t nblocks = inlen / 16;
+		size_t len = nblocks * 16;
+		sm4_ctr_encrypt_blocks(key, ctr, in, nblocks, out);
 		in += len;
 		out += len;
 		inlen -= len;
+	}
+	if (inlen) {
+		uint8_t block[16] = {0};
+		memcpy(block, in, inlen);
+		sm4_ctr_encrypt_blocks(key, ctr, block, 1, block);
+		memcpy(out, block, inlen);
+	}
+}
+
+void sm4_ctr32_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	if (inlen >= 16) {
+		size_t nblocks = inlen / 16;
+		size_t len = nblocks * 16;
+		sm4_ctr32_encrypt_blocks(key, ctr, in, nblocks, out);
+		in += len;
+		out += len;
+		inlen -= len;
+	}
+	if (inlen) {
+		uint8_t block[16] = {0};
+		memcpy(block, in, inlen);
+		sm4_ctr32_encrypt_blocks(key, ctr, block, 1, block);
+		memcpy(out, block, inlen);
 	}
 }
 
 int sm4_ctr_encrypt_init(SM4_CTR_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !ctr) {
+		error_print();
+		return -1;
+	}
 	sm4_set_encrypt_key(&ctx->sm4_key, key);
 	memcpy(ctx->ctr, ctr, SM4_BLOCK_SIZE);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
@@ -55,6 +70,10 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -68,7 +87,7 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 			return 1;
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
-		sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, SM4_BLOCK_SIZE, out);
+		sm4_ctr_encrypt_blocks(&ctx->sm4_key, ctx->ctr, ctx->block, 1, out);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -77,7 +96,7 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 	if (inlen >= SM4_BLOCK_SIZE) {
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
-		sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, in, len, out);
+		sm4_ctr_encrypt_blocks(&ctx->sm4_key, ctx->ctr, in, nblocks, out);
 		in += len;
 		inlen -= len;
 		out += len;
@@ -92,44 +111,27 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 
 int sm4_ctr_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
 	}
-	sm4_ctr_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, ctx->block_nbytes, out);
+	sm4_ctr_encrypt_blocks(&ctx->sm4_key, ctx->ctr, ctx->block, 1, ctx->block);
+	memcpy(out, ctx->block, ctx->block_nbytes);
 	*outlen = ctx->block_nbytes;
 	return 1;
-}
-
-// inc32() in nist-sp800-38d
-static void ctr32_incr(uint8_t a[16])
-{
-	int i;
-	for (i = 15; i >= 12; i--) {
-		a[i]++;
-		if (a[i]) break;
-	}
-}
-
-void sm4_ctr32_encrypt(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
-{
-	uint8_t block[16];
-	size_t len;
-
-	while (inlen) {
-		len = inlen < 16 ? inlen : 16;
-		sm4_encrypt(key, ctr, block);
-		gmssl_memxor(out, in, block, len);
-		ctr32_incr(ctr);
-		in += len;
-		out += len;
-		inlen -= len;
-	}
 }
 
 int sm4_ctr32_encrypt_init(SM4_CTR_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t ctr[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !ctr) {
+		error_print();
+		return -1;
+	}
 	sm4_set_encrypt_key(&ctx->sm4_key, key);
 	memcpy(ctx->ctr, ctr, SM4_BLOCK_SIZE);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
@@ -157,7 +159,7 @@ int sm4_ctr32_encrypt_update(SM4_CTR_CTX *ctx,
 			return 1;
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
-		sm4_ctr32_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, SM4_BLOCK_SIZE, out);
+		sm4_ctr32_encrypt_blocks(&ctx->sm4_key, ctx->ctr, ctx->block, 1, out);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -166,7 +168,7 @@ int sm4_ctr32_encrypt_update(SM4_CTR_CTX *ctx,
 	if (inlen >= SM4_BLOCK_SIZE) {
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
-		sm4_ctr32_encrypt(&ctx->sm4_key, ctx->ctr, in, len, out);
+		sm4_ctr32_encrypt_blocks(&ctx->sm4_key, ctx->ctr, in, nblocks, out);
 		in += len;
 		inlen -= len;
 		out += len;
@@ -185,7 +187,8 @@ int sm4_ctr32_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen)
 		error_print();
 		return -1;
 	}
-	sm4_ctr32_encrypt(&ctx->sm4_key, ctx->ctr, ctx->block, ctx->block_nbytes, out);
+	sm4_ctr32_encrypt_blocks(&ctx->sm4_key, ctx->ctr, ctx->block, 1, ctx->block);
+	memcpy(out, ctx->block, ctx->block_nbytes);
 	*outlen = ctx->block_nbytes;
 	return 1;
 }
