@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -467,7 +467,7 @@ static int test_zuc256_mac(void)
 	return 1;
 }
 
-static int test_zuc_generate_keystream_speed(void)
+static int speed_zuc_generate_keystream(void)
 {
 	ZUC_STATE zuc_state;
 	uint8_t key[16];
@@ -478,8 +478,6 @@ static int test_zuc_generate_keystream_speed(void)
 	int i;
 
 	zuc_init(&zuc_state, key, iv);
-
-	// warm up
 	for (i = 0; i < 4096; i++) {
 		zuc_generate_keystream(&zuc_state, 1024, buf);
 	}
@@ -491,12 +489,12 @@ static int test_zuc_generate_keystream_speed(void)
 	end = clock();
 
 	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
-	fprintf(stderr, "speed zuc_generate_keystream: %f-MiB per seconds\n", 16/seconds);
+	fprintf(stderr, "%s: %f-MiB per second\n", __FUNCTION__, 16/seconds);
 
 	return 1;
 }
 
-static int test_zuc_encrypt_speed(void)
+static int speed_zuc_encrypt(void)
 {
 	ZUC_STATE zuc_state;
 	uint8_t key[16];
@@ -508,8 +506,6 @@ static int test_zuc_encrypt_speed(void)
 	int i;
 
 	zuc_init(&zuc_state, key, iv);
-
-	// warm up
 	for (i = 0; i < 4096; i++) {
 		zuc_encrypt(&zuc_state, buf, 4096, buf);
 	}
@@ -521,7 +517,7 @@ static int test_zuc_encrypt_speed(void)
 	end = clock();
 
 	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
-	fprintf(stderr, "speed zuc_encrypt: %f-MiB per seconds\n", 16/seconds);
+	fprintf(stderr, "%s: %f-MiB per second\n", __FUNCTION__, 16/seconds);
 
 	return 1;
 }
@@ -534,8 +530,8 @@ int main(void)
 	if (test_zuc256() != 1) goto err;
 	if (test_zuc256_mac() != 1) goto err;
 #if ENABLE_TEST_SPEED
-	if (test_zuc_generate_keystream_speed() != 1) goto err;
-	if (test_zuc_encrypt_speed() != 1) goto err;
+	if (speed_zuc_generate_keystream() != 1) goto err;
+	if (speed_zuc_encrypt() != 1) goto err;
 #endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -223,7 +223,6 @@ void zuc_generate_keystream(ZUC_STATE *state, size_t nwords, uint32_t *keystream
 
 		//keystream[i] = X3 ^ F(X0, X1, X2);
 		keystream[i] = X3 ^ ((X0 ^ R1) + R2);
-
 
 		W1 = R1 + X1;
 		W2 = R2 ^ X2;
@@ -573,6 +572,14 @@ void zuc256_init(ZUC_STATE *key, const uint8_t K[32],
 	const uint8_t IV[23])
 {
 	zuc256_set_mac_key(key, K, IV, 0);
+}
+
+uint32_t zuc256_generate_keyword(ZUC_STATE *state) {
+	return zuc_generate_keyword(state);
+}
+
+void zuc256_generate_keystream(ZUC_STATE *state, size_t nwords, uint32_t *keystream) {
+	zuc_generate_keystream(state, nwords, keystream);
 }
 
 void zuc256_mac_init(ZUC256_MAC_CTX *ctx, const uint8_t key[32],
