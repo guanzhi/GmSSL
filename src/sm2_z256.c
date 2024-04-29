@@ -81,15 +81,15 @@ void sm2_z256_set_one(sm2_z256_t r)
 	r[3] = 0;
 }
 
-void sm2_z256_set_zero(uint64_t a[4])
+void sm2_z256_set_zero(sm2_z256_t r)
 {
-	a[0] = 0;
-	a[1] = 0;
-	a[2] = 0;
-	a[3] = 0;
+	r[0] = 0;
+	r[1] = 0;
+	r[2] = 0;
+	r[3] = 0;
 }
 
-int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4])
+int sm2_z256_rand_range(sm2_z256_t r, const sm2_z256_t range)
 {
 	unsigned int tries = 100;
 
@@ -109,7 +109,7 @@ int sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4])
 	return 1;
 }
 
-void sm2_z256_from_bytes(uint64_t r[4], const uint8_t in[32])
+void sm2_z256_from_bytes(sm2_z256_t r, const uint8_t in[32])
 {
 	r[3] = GETU64(in);
 	r[2] = GETU64(in + 8);
@@ -117,7 +117,7 @@ void sm2_z256_from_bytes(uint64_t r[4], const uint8_t in[32])
 	r[0] = GETU64(in + 24);
 }
 
-void sm2_z256_to_bytes(const uint64_t a[4], uint8_t out[32])
+void sm2_z256_to_bytes(const sm2_z256_t a, uint8_t out[32])
 {
 	PUTU64(out, a[3]);
 	PUTU64(out + 8, a[2]);
@@ -125,7 +125,7 @@ void sm2_z256_to_bytes(const uint64_t a[4], uint8_t out[32])
 	PUTU64(out + 24, a[0]);
 }
 
-void sm2_z256_copy(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_copy(sm2_z256_t r, const sm2_z256_t a)
 {
 	r[3] = a[3];
 	r[2] = a[2];
@@ -133,7 +133,7 @@ void sm2_z256_copy(uint64_t r[4], const uint64_t a[4])
 	r[0] = a[0];
 }
 
-void sm2_z256_copy_conditional(uint64_t dst[4], const uint64_t src[4], uint64_t move)
+void sm2_z256_copy_conditional(sm2_z256_t dst, const sm2_z256_t src, uint64_t move)
 {
 	uint64_t mask1 = 0-move;
 	uint64_t mask2 = ~mask1;
@@ -152,7 +152,7 @@ static uint64_t is_zero(uint64_t in)
 	return in;
 }
 
-uint64_t sm2_z256_equ(const uint64_t a[4], const uint64_t b[4])
+uint64_t sm2_z256_equ(const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t res;
 
@@ -164,7 +164,7 @@ uint64_t sm2_z256_equ(const uint64_t a[4], const uint64_t b[4])
 	return is_zero(res);
 }
 
-int sm2_z256_cmp(const uint64_t a[4], const uint64_t b[4])
+int sm2_z256_cmp(const sm2_z256_t a, const sm2_z256_t b)
 {
 	if (a[3] > b[3]) return 1;
 	else if (a[3] < b[3]) return -1;
@@ -177,7 +177,7 @@ int sm2_z256_cmp(const uint64_t a[4], const uint64_t b[4])
 	return 0;
 }
 
-uint64_t sm2_z256_is_zero(const uint64_t a[4])
+uint64_t sm2_z256_is_zero(const sm2_z256_t a)
 {
 	return
 		is_zero(a[0]) &
@@ -186,7 +186,7 @@ uint64_t sm2_z256_is_zero(const uint64_t a[4])
 		is_zero(a[3]);
 }
 
-void sm2_z256_rshift(uint64_t r[4], const uint64_t a[4], unsigned int nbits)
+void sm2_z256_rshift(sm2_z256_t r, const sm2_z256_t a, unsigned int nbits)
 {
 	nbits &= 0x3f;
 
@@ -203,7 +203,7 @@ void sm2_z256_rshift(uint64_t r[4], const uint64_t a[4], unsigned int nbits)
 	}
 }
 
-uint64_t sm2_z256_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+uint64_t sm2_z256_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t t, c = 0;
 
@@ -229,7 +229,7 @@ uint64_t sm2_z256_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 	return c;
 }
 
-uint64_t sm2_z256_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+uint64_t sm2_z256_sub(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t t, c = 0;
 
@@ -255,7 +255,7 @@ uint64_t sm2_z256_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 	return c;
 }
 
-void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_mul(sm2_z512_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t a_[8];
 	uint64_t b_[8];
@@ -285,7 +285,7 @@ void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4])
 	}
 }
 
-static uint64_t sm2_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t b[8])
+static uint64_t sm2_z512_add(sm2_z512_t r, const sm2_z512_t a, const sm2_z512_t b)
 {
 	uint64_t t, c = 0;
 
@@ -331,7 +331,7 @@ static uint64_t sm2_z512_add(uint64_t r[8], const uint64_t a[8], const uint64_t 
 	return c;
 }
 
-uint64_t sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i)
+uint64_t sm2_z256_get_booth(const sm2_z256_t a, unsigned int window_size, int i)
 {
 	uint64_t mask = (1 << window_size) - 1;
 	uint64_t wbits;
@@ -352,7 +352,7 @@ uint64_t sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i
 	return (wbits & mask) - ((wbits >> 1) & mask);
 }
 
-void sm2_z256_from_hex(uint64_t r[4], const char *hex)
+void sm2_z256_from_hex(sm2_z256_t r, const char *hex)
 {
 	uint8_t bytes[32];
 	size_t len;
@@ -361,9 +361,9 @@ void sm2_z256_from_hex(uint64_t r[4], const char *hex)
 	sm2_z256_from_bytes(r, bytes);
 }
 
-int sm2_z256_equ_hex(const uint64_t a[4], const char *hex)
+int sm2_z256_equ_hex(const sm2_z256_t a, const char *hex)
 {
-	uint64_t b[4];
+	sm2_z256_t b;
 	sm2_z256_from_hex(b, hex);
 	if (sm2_z256_cmp(a, b) == 0) {
 		return 1;
@@ -372,7 +372,7 @@ int sm2_z256_equ_hex(const uint64_t a[4], const char *hex)
 	}
 }
 
-int sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const uint64_t a[4])
+int sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm2_z256_t a)
 {
 	format_print(fp, ind, fmt, "%s: %016llx%016llx%016llx%016llx\n", label, a[3], a[2], a[1], a[0]);
 	return 1;
@@ -401,7 +401,7 @@ const uint64_t SM2_Z256_NEG_P[4] = {
 };
 
 #ifndef ENABLE_SM2_Z256_ARMV8
-void sm2_z256_modp_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modp_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
 
@@ -419,7 +419,7 @@ void sm2_z256_modp_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 	}
 }
 
-void sm2_z256_modp_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modp_sub(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
 
@@ -431,24 +431,24 @@ void sm2_z256_modp_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 	}
 }
 
-void sm2_z256_modp_dbl(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_dbl(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modp_add(r, a, a);
 }
 
-void sm2_z256_modp_tri(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_tri(sm2_z256_t r, const sm2_z256_t a)
 {
-	uint64_t t[4];
+	sm2_z256_t t;
 	sm2_z256_modp_add(t, a, a);
 	sm2_z256_modp_add(r, t, a);
 }
 
-void sm2_z256_modp_neg(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_neg(sm2_z256_t r, const sm2_z256_t a)
 {
 	(void)sm2_z256_sub(r, SM2_Z256_P, a);
 }
 
-void sm2_z256_modp_haf(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_haf(sm2_z256_t r, const sm2_z256_t a)
 {
 	uint64_t c = 0;
 
@@ -495,10 +495,10 @@ const uint64_t SM2_Z256_P_LEFT_32[8] = {
 
 //const uint32_t SM2_Z256_MU_32 = 0xffffffff; // -1
 
-void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modp_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	int i;
-	uint32_t a_[8], b_[8];
+	sm2_z512_t a_, b_;
 
 	for (i = 0; i < 4; ++i) {
 		a_[2 * i]     = a[i] & 0xffffffff;
@@ -586,7 +586,7 @@ void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 	vst1q_u64(d + 12, d6);
 	vst1q_u64(d + 14, d7);
 
-	uint64_t e[4], f[4];
+	sm2_z256_t e, f;
 	for (i = 0; i < 4; ++i) {
 		e[i] = d[4 * i]     | d[4 * i + 2] << 32;
 		f[i] = d[4 * i + 1] | d[4 * i + 3] << 32;
@@ -601,10 +601,10 @@ void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 
 // z = a*b
 // c = (z + (z * p' mod 2^256) * p)/2^256
-void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modp_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
-	uint64_t z[8];
-	uint64_t t[8];
+	sm2_z512_t z;
+	sm2_z512_t t;
 	uint64_t c;
 
 	//sm2_z256_print(stderr, 0, 0, "a", a);
@@ -640,13 +640,13 @@ void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 	}
 }
 
-void sm2_z256_modp_mont_sqr(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_mont_sqr(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modp_mont_mul(r, a, a);
 }
 
 // mont(mont(a), 1) = aR * 1 * R^-1 (mod p) = a (mod p)
-void sm2_z256_modp_from_mont(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_from_mont(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modp_mont_mul(r, a, SM2_Z256_ONE);
 }
@@ -657,15 +657,15 @@ const uint64_t SM2_Z256_2e512modp[4] = {
 };
 
 // mont(a) = a * 2^256 (mod p) = mont_mul(a, 2^512 mod p)
-void sm2_z256_modp_to_mont(const uint64_t a[4], uint64_t r[4])
+void sm2_z256_modp_to_mont(const sm2_z256_t a, uint64_t r[4])
 {
 	sm2_z256_modp_mont_mul(r, a, SM2_Z256_2e512modp);
 }
 #endif
 
-void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4])
+void sm2_z256_modp_mont_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e)
 {
-	uint64_t t[4];
+	sm2_z256_t t;
 	uint64_t w;
 	int i, j;
 
@@ -687,13 +687,13 @@ void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e
 }
 
 // caller should check a != 0
-void sm2_z256_modp_mont_inv(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modp_mont_inv(sm2_z256_t r, const sm2_z256_t a)
 {
-	uint64_t a1[4];
-	uint64_t a2[4];
-	uint64_t a3[4];
-	uint64_t a4[4];
-	uint64_t a5[4];
+	sm2_z256_t a1;
+	sm2_z256_t a2;
+	sm2_z256_t a3;
+	sm2_z256_t a4;
+	sm2_z256_t a5;
 	int i;
 
 	sm2_z256_modp_mont_sqr(a1, a);
@@ -775,7 +775,7 @@ const uint64_t SM2_Z256_SQRT_EXP[4] = {
 };
 
 // -r (mod p), i.e. (p - r) is also a square root of a
-int sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4])
+int sm2_z256_modp_mont_sqrt(sm2_z256_t r, const sm2_z256_t a)
 {
 	uint64_t a_[4];
 	uint64_t r_[4]; // temp result, prevent call sm2_fp_sqrt(a, a)
@@ -813,7 +813,7 @@ const uint64_t SM2_Z256_NEG_N[4] = {
 };
 
 #ifndef ENABLE_SM2_Z256_ARMV8
-void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modn_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
 
@@ -830,7 +830,7 @@ void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 	}
 }
 
-void sm2_z256_modn_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modn_sub(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
 
@@ -842,7 +842,7 @@ void sm2_z256_modn_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 	}
 }
 
-void sm2_z256_modn_neg(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modn_neg(sm2_z256_t r, const sm2_z256_t a)
 {
 	(void)sm2_z256_sub(r, SM2_Z256_N, a);
 }
@@ -869,10 +869,10 @@ const uint64_t *SM2_Z256_MODN_MONT_ONE = SM2_Z256_NEG_N;
 
 
 #ifndef ENABLE_SM2_Z256_ARMV8
-void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modn_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
-	uint64_t z[8];
-	uint64_t t[8];
+	sm2_z512_t z;
+	sm2_z512_t t;
 	uint64_t c;
 
 	// z = a * b
@@ -906,10 +906,12 @@ void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 }
 #endif
 
-void sm2_z256_modn_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
+void sm2_z256_modn_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
-	uint64_t mont_a[4];
-	uint64_t mont_b[4];
+	sm2_z256_t mont_a;
+	sm2_z256_t mont_b;
+//	uint64_t mont_a[4];
+//	uint64_t mont_b[4];
 
 	sm2_z256_modn_to_mont(a, mont_a);
 	sm2_z256_modn_to_mont(b, mont_b);
@@ -918,13 +920,13 @@ void sm2_z256_modn_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4])
 }
 
 #ifndef ENABLE_SM2_Z256_ARMV8
-void sm2_z256_modn_mont_sqr(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modn_mont_sqr(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modn_mont_mul(r, a, a);
 }
 #endif
 
-void sm2_z256_modn_sqr(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modn_sqr(sm2_z256_t r, const sm2_z256_t a)
 {
 	uint64_t mont_a[4];
 
@@ -933,7 +935,7 @@ void sm2_z256_modn_sqr(uint64_t r[4], const uint64_t a[4])
 	sm2_z256_modn_from_mont(r, r);
 }
 
-void sm2_z256_modn_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4])
+void sm2_z256_modn_mont_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e)
 {
 	uint64_t t[4];
 	uint64_t w;
@@ -956,7 +958,7 @@ void sm2_z256_modn_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e
 	sm2_z256_copy(r, t);
 }
 
-void sm2_z256_modn_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4])
+void sm2_z256_modn_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e)
 {
 	uint64_t mont_a[4];
 
@@ -971,7 +973,7 @@ const uint64_t SM2_Z256_N_MINUS_TWO[4] = {
 };
 // exp都是从高位开始的，如果都是1的话，那么就是都要平方和乘
 
-void sm2_z256_modn_mont_inv(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modn_mont_inv(sm2_z256_t r, const sm2_z256_t a)
 {
 	// expand sm2_z256_modn_mont_exp(r, a, SM2_Z256_N_MINUS_TWO)
 	uint64_t t[4];
@@ -1010,7 +1012,7 @@ void sm2_z256_modn_mont_inv(uint64_t r[4], const uint64_t a[4])
 	sm2_z256_copy(r, t);
 }
 
-void sm2_z256_modn_inv(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modn_inv(sm2_z256_t r, const sm2_z256_t a)
 {
 	uint64_t mont_a[4];
 
@@ -1023,7 +1025,7 @@ void sm2_z256_modn_inv(uint64_t r[4], const uint64_t a[4])
 #ifndef ENABLE_SM2_Z256_ARMV8
 
 // mont(mont(a), 1) = aR * 1 * R^-1 (mod n) = a (mod p)
-void sm2_z256_modn_from_mont(uint64_t r[4], const uint64_t a[4])
+void sm2_z256_modn_from_mont(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modn_mont_mul(r, a, SM2_Z256_ONE);
 }
@@ -1034,7 +1036,7 @@ const uint64_t SM2_Z256_2e512modn[4] = {
 };
 
 // mont(a) = a * 2^256 (mod n) = mont_mul(a, 2^512 mod n)
-void sm2_z256_modn_to_mont(const uint64_t a[4], uint64_t r[4])
+void sm2_z256_modn_to_mont(const sm2_z256_t a, uint64_t r[4])
 {
 	sm2_z256_modn_mont_mul(r, a, SM2_Z256_2e512modn);
 }
@@ -1162,77 +1164,59 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 	uint64_t Zsqr[4];
 	uint64_t tmp0[4];
 
-	// S = 2*Y1
+	// 1. S = 2Y
 	sm2_z256_modp_dbl(S, Y1);
-	//sm2_z256_print(stderr, 0, 0, "1. S = 2*Y1", S);
 
-	// Zsqr = Z1^2
+	// 2. Zsqr = Z^2
 	sm2_z256_modp_mont_sqr(Zsqr, Z1);
-	//sm2_z256_print(stderr, 0, 0, "2. Zsqr = Z1^2", Zsqr);
 
-	// S = S^2 = 4*Y1^2
+	// 3. S = S^2 = 4Y^2
 	sm2_z256_modp_mont_sqr(S, S);
-	//sm2_z256_print(stderr, 0, 0, "3. S = S^2 = 4*Y1^2", S);
 
-	// Z3 = Z1 * Y1
+	// 4. Z = Z*Y
 	sm2_z256_modp_mont_mul(Z3, Z1, Y1);
-	//sm2_z256_print(stderr, 0, 0, "4. Z3 = Z1 * Y1", Z3);
 
-	// Z3 = 2 * Z3 = 2*Y1*Z1
+	// 5. Z = 2*Z = 2*Y*Z ===> Z3
 	sm2_z256_modp_dbl(Z3, Z3);
-	//sm2_z256_print(stderr, 0, 0, "5. Z3 = 2 * Z3 = 2*Y1*Z1", Z3);
 
-	// M = X1 + Zsqr = X1 + Z1^2
+	// 6. M = X + Zsqr = X + Z^2
 	sm2_z256_modp_add(M, X1, Zsqr);
-	//sm2_z256_print(stderr, 0, 0, "6. M = X1 + Zsqr = X1 + Z1^2", M);
 
-	// Zsqr = X1 - Zsqr = X1 - Z1^2
+	// 7. Zsqr = X - Zsqr = X - Z^2
 	sm2_z256_modp_sub(Zsqr, X1, Zsqr);
-	//sm2_z256_print(stderr, 0, 0, "7. Zsqr = X1 - Zsqr = X1 - Z1^2", Zsqr);
 
-	// Y3 = S^2 = 16 * Y1^4
+	// 8. Y = S^2 = 16Y^4
 	sm2_z256_modp_mont_sqr(Y3, S);
-	//sm2_z256_print(stderr, 0, 0, "8. Y3 = S^2 = 16 * Y1^4", Y3);
 
-	// Y3 = Y3/2 = 8 * Y1^4
+	// 9. Y = Y/2 = 8Y^4
 	sm2_z256_modp_haf(Y3, Y3);
-	//sm2_z256_print(stderr, 0, 0, "9. Y3 = Y3/2 = 8 * Y1^4", Y3);
 
-	// M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)
+	// 10. M = M * Zsqr = (X + Z^2)*(X - Z^2) = X^2 - Z^4
 	sm2_z256_modp_mont_mul(M, M, Zsqr);
-	//sm2_z256_print(stderr, 0, 0, "10. M = M * Zsqr = (X1 + Z1^2)(X1 - Z1^2)", M);
 
-	// M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)
+	// 11. M = 3M = 3X^2 - 3Z^4
 	sm2_z256_modp_tri(M, M);
-	//sm2_z256_print(stderr, 0, 0, "11. M = 3*M = 3(X1 + Z1^2)(X1 - Z1^2)", M);
 
-	// S = S * X1 = 4 * X1 * Y1^2
+	// 12. S = S * X = 4X*Y^2
 	sm2_z256_modp_mont_mul(S, S, X1);
-	//sm2_z256_print(stderr, 0, 0, "12. S = S * X1 = 4 * X1 * Y1^2", S);
 
-	// tmp0 = 2 * S = 8 * X1 * Y1^2
+	// 13. tmp0 = 2 * S = 8X*Y^2
 	sm2_z256_modp_dbl(tmp0, S);
-	//sm2_z256_print(stderr, 0, 0, "13. tmp0 = 2 * S = 8 * X1 * Y1^2", tmp0);
 
-	// X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2
+	// 14. X = M^2 = (3X^2 - 3Z^4)^2
 	sm2_z256_modp_mont_sqr(X3, M);
-	//sm2_z256_print(stderr, 0, 0, "14. X3 = M^2 = (3(X1 + Z1^2)(X1 - Z1^2))^2", X3);
 
-	// X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2
+	// 15. X = X - tmp0 = (3X^2 - 3Z^4)^2 - 8X*Y^2 ===> X3
 	sm2_z256_modp_sub(X3, X3, tmp0);
-	//sm2_z256_print(stderr, 0, 0, "15. X3 = X3 - tmp0 = (3(X1 + Z1^2)(X1 - Z1^2))^2 - 8 * X1 * Y1^2", X3);
 
-	// S = S - X3 = 4 * X1 * Y1^2 - X3
+	// 16. S = S - X3 = 4X*Y^2 - X3
 	sm2_z256_modp_sub(S, S, X3);
-	//sm2_z256_print(stderr, 0, 0, "16. S = S - X3 = 4 * X1 * Y1^2 - X3", S);
 
-	// S = S * M = 3(X1 + Z1^2)(X1 - Z1^2)(4 * X1 * Y1^2 - X3)
+	// 17. S = S * M = (3X^2 - 3Z^4)*(4X*Y^2 - X3)
 	sm2_z256_modp_mont_mul(S, S, M);
-	//sm2_z256_print(stderr, 0, 0, "17. S = S * M", S);
 
-	// Y3 = S - Y3 = 3(X1 + Z1^2)(X1 - Z1^2)(4 * X1 * Y1^2 - X3) - 8 * Y1^4
+	// 18. Y = S - Y = (3X^2 - 3Z^4)*(4X*Y^2 - X3) - 8Y^4 ===> Y3
 	sm2_z256_modp_sub(Y3, S, Y3);
-	//sm2_z256_print(stderr, 0, 0, "18. Y3", Y3);
 }
 
 /*
@@ -1436,7 +1420,7 @@ void sm2_z256_point_mul_ex(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z25
 
 }
 
-void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT *P)
+void sm2_z256_point_mul(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_POINT *P)
 {
 	int window_size = 5;
 	SM2_Z256_POINT T[16];
@@ -1610,7 +1594,7 @@ extern const uint64_t sm2_z256_pre_comp[37][64 * 4 * 2];
 static SM2_Z256_AFFINE_POINT (*g_pre_comp)[64] = (SM2_Z256_AFFINE_POINT (*)[64])sm2_z256_pre_comp;
 
 // FIXME: remove if/else
-void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const uint64_t k[4])
+void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const sm2_z256_t k)
 {
 	size_t window_size = 7;
 	int R_infinity = 1;
@@ -1778,7 +1762,7 @@ int sm2_z256_point_equ_hex(const SM2_Z256_POINT *P, const char *hex)
 	return 1;
 }
 
-int sm2_z256_is_odd(const uint64_t a[4])
+int sm2_z256_is_odd(const sm2_z256_t a)
 {
 	return a[0] & 0x01;
 }
