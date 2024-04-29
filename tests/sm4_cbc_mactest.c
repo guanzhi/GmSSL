@@ -34,7 +34,7 @@ static int test_sm4_cbc_mac(void)
 	sm4_set_encrypt_key(&sm4_key, key);
 
 	// test 1
-	sm4_cbc_encrypt(&sm4_key, iv, m, sizeof(m)/16, c);
+	sm4_cbc_encrypt_blocks(&sm4_key, iv, m, sizeof(m)/16, c);
 	memcpy(mac1, c + sizeof(m) - 16, 16);
 
 	sm4_cbc_mac_init(&ctx, key);
@@ -56,7 +56,7 @@ static int test_sm4_cbc_mac(void)
 
 	// test 2
 	m[sizeof(m) - 1] = 0;
-	sm4_cbc_encrypt(&sm4_key, iv, m, sizeof(m)/16, c);
+	sm4_cbc_encrypt_blocks(&sm4_key, iv, m, sizeof(m)/16, c);
 	memcpy(mac1, c + sizeof(m) - 16, 16);
 
 	sm4_cbc_mac_init(&ctx, key);
