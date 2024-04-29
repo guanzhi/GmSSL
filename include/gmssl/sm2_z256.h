@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -22,63 +22,64 @@ extern "C" {
 
 // z256 means compact presentation of uint256
 typedef uint64_t sm2_z256_t[4];
+typedef uint64_t sm2_z512_t[8];
 
 
 void sm2_z256_set_one(sm2_z256_t r);
 void sm2_z256_set_zero(sm2_z256_t r);
 
-int  sm2_z256_rand_range(uint64_t r[4], const uint64_t range[4]);
-void sm2_z256_copy(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_copy_conditional(uint64_t dst[4], const uint64_t src[4], uint64_t move);
-void sm2_z256_from_bytes(uint64_t r[4], const uint8_t in[32]);
-void sm2_z256_to_bytes(const uint64_t a[4], uint8_t out[32]);
-int  sm2_z256_cmp(const uint64_t a[4], const uint64_t b[4]);
-uint64_t sm2_z256_is_zero(const uint64_t a[4]);
-uint64_t sm2_z256_equ(const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_rshift(uint64_t r[4], const uint64_t a[4], unsigned int nbits);
-uint64_t sm2_z256_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-uint64_t sm2_z256_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_mul(uint64_t r[8], const uint64_t a[4], const uint64_t b[4]);
-uint64_t sm2_z256_get_booth(const uint64_t a[4], unsigned int window_size, int i);
-void sm2_z256_from_hex(uint64_t r[4], const char *hex);
-int  sm2_z256_equ_hex(const uint64_t a[4], const char *hex);
+int  sm2_z256_rand_range(sm2_z256_t r, const sm2_z256_t range);
+void sm2_z256_copy(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_copy_conditional(sm2_z256_t dst, const sm2_z256_t src, uint64_t move);
+void sm2_z256_from_bytes(sm2_z256_t r, const uint8_t in[32]);
+void sm2_z256_to_bytes(const sm2_z256_t a, uint8_t out[32]);
+int  sm2_z256_cmp(const sm2_z256_t a, const sm2_z256_t b);
+uint64_t sm2_z256_is_zero(const sm2_z256_t a);
+uint64_t sm2_z256_equ(const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_rshift(sm2_z256_t r, const sm2_z256_t a, unsigned int nbits);
+uint64_t sm2_z256_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+uint64_t sm2_z256_sub(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_mul(sm2_z512_t r, const sm2_z256_t a, const sm2_z256_t b);
+uint64_t sm2_z256_get_booth(const sm2_z256_t a, unsigned int window_size, int i);
+void sm2_z256_from_hex(sm2_z256_t r, const char *hex);
+int  sm2_z256_equ_hex(const sm2_z256_t a, const char *hex);
 int  sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm2_z256_t a);
 
-void sm2_z256_modp_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modp_dbl(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_tri(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modp_neg(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_haf(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modp_dbl(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modp_tri(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modp_sub(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modp_neg(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modp_haf(sm2_z256_t r, const sm2_z256_t a);
 
-void sm2_z256_modp_to_mont(const uint64_t a[4], uint64_t r[4]);
-void sm2_z256_modp_from_mont(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modp_mont_sqr(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modp_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
-void sm2_z256_modp_mont_inv(uint64_t r[4], const uint64_t a[4]);
-int  sm2_z256_modp_mont_sqrt(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modp_to_mont(const sm2_z256_t a, sm2_z256_t r);
+void sm2_z256_modp_from_mont(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modp_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modp_mont_sqr(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modp_mont_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e);
+void sm2_z256_modp_mont_inv(sm2_z256_t r, const sm2_z256_t a);
+int  sm2_z256_modp_mont_sqrt(sm2_z256_t r, const sm2_z256_t a);
 
-void sm2_z256_modn_add(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modn_sub(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modn_neg(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modn_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modn_sqr(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modn_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
-void sm2_z256_modn_inv(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modn_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modn_sub(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modn_neg(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modn_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modn_sqr(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modn_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e);
+void sm2_z256_modn_inv(sm2_z256_t r, const sm2_z256_t a);
 
-void sm2_z256_modn_to_mont(const uint64_t a[4], uint64_t r[4]);
-void sm2_z256_modn_from_mont(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modn_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b[4]);
-void sm2_z256_modn_mont_sqr(uint64_t r[4], const uint64_t a[4]);
-void sm2_z256_modn_mont_exp(uint64_t r[4], const uint64_t a[4], const uint64_t e[4]);
-void sm2_z256_modn_mont_inv(uint64_t r[4], const uint64_t a[4]);
+void sm2_z256_modn_to_mont(const sm2_z256_t a, sm2_z256_t r);
+void sm2_z256_modn_from_mont(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modn_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b);
+void sm2_z256_modn_mont_sqr(sm2_z256_t r, const sm2_z256_t a);
+void sm2_z256_modn_mont_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e);
+void sm2_z256_modn_mont_inv(sm2_z256_t r, const sm2_z256_t a);
 
 
 typedef struct {
-	uint64_t X[4];
-	uint64_t Y[4];
-	uint64_t Z[4];
+	sm2_z256_t X;
+	sm2_z256_t Y;
+	sm2_z256_t Z;
 } SM2_Z256_POINT;
 
 void sm2_z256_point_set_infinity(SM2_Z256_POINT *P);
@@ -100,8 +101,8 @@ int  sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const S
 
 
 typedef struct {
-	uint64_t x[4];
-	uint64_t y[4];
+	sm2_z256_t x;
+	sm2_z256_t y;
 } SM2_Z256_AFFINE_POINT;
 
 void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *P);
@@ -109,11 +110,11 @@ void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const
 void sm2_z256_point_sub_affine(SM2_Z256_POINT *R, const SM2_Z256_POINT *A, const SM2_Z256_AFFINE_POINT *B);
 int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_AFFINE_POINT *P);
 
-void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const uint64_t k[4]);
+void sm2_z256_point_mul_generator(SM2_Z256_POINT *R, const sm2_z256_t k);
 void sm2_z256_point_mul_pre_compute(const SM2_Z256_POINT *P, SM2_Z256_POINT T[16]);
-void sm2_z256_point_mul_ex(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT P_table[16]);
-void sm2_z256_point_mul(SM2_Z256_POINT *R, const uint64_t k[4], const SM2_Z256_POINT *P);
-void sm2_z256_point_mul_sum(SM2_Z256_POINT *R, const uint64_t t[4], const SM2_Z256_POINT *P, const uint64_t s[4]);
+void sm2_z256_point_mul_ex(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_POINT P_table[16]);
+void sm2_z256_point_mul(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_POINT *P);
+void sm2_z256_point_mul_sum(SM2_Z256_POINT *R, const sm2_z256_t t, const SM2_Z256_POINT *P, const sm2_z256_t s);
 
 
 const uint64_t *sm2_z256_prime(void);
