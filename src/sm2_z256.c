@@ -777,8 +777,8 @@ const uint64_t SM2_Z256_SQRT_EXP[4] = {
 // -r (mod p), i.e. (p - r) is also a square root of a
 int sm2_z256_modp_mont_sqrt(sm2_z256_t r, const sm2_z256_t a)
 {
-	uint64_t a_[4];
-	uint64_t r_[4]; // temp result, prevent call sm2_fp_sqrt(a, a)
+	sm2_z256_t a_;
+	sm2_z256_t r_; // temp result, prevent call sm2_fp_sqrt(a, a)
 
 	// r = a^((p + 1)/4) when p = 3 (mod 4)
 	sm2_z256_modp_mont_exp(r_, a, SM2_Z256_SQRT_EXP);
@@ -910,8 +910,6 @@ void sm2_z256_modn_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	sm2_z256_t mont_a;
 	sm2_z256_t mont_b;
-//	uint64_t mont_a[4];
-//	uint64_t mont_b[4];
 
 	sm2_z256_modn_to_mont(a, mont_a);
 	sm2_z256_modn_to_mont(b, mont_b);
@@ -928,7 +926,7 @@ void sm2_z256_modn_mont_sqr(sm2_z256_t r, const sm2_z256_t a)
 
 void sm2_z256_modn_sqr(sm2_z256_t r, const sm2_z256_t a)
 {
-	uint64_t mont_a[4];
+	sm2_z256_t mont_a;
 
 	sm2_z256_modn_to_mont(a, mont_a);
 	sm2_z256_modn_mont_sqr(r, mont_a);
@@ -937,7 +935,7 @@ void sm2_z256_modn_sqr(sm2_z256_t r, const sm2_z256_t a)
 
 void sm2_z256_modn_mont_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e)
 {
-	uint64_t t[4];
+	sm2_z256_t t;
 	uint64_t w;
 	int i, j;
 
@@ -960,7 +958,7 @@ void sm2_z256_modn_mont_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e
 
 void sm2_z256_modn_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e)
 {
-	uint64_t mont_a[4];
+	sm2_z256_t mont_a;
 
 	sm2_z256_modn_to_mont(a, mont_a);
 	sm2_z256_modn_mont_exp(r, mont_a, e);
@@ -976,7 +974,7 @@ const uint64_t SM2_Z256_N_MINUS_TWO[4] = {
 void sm2_z256_modn_mont_inv(sm2_z256_t r, const sm2_z256_t a)
 {
 	// expand sm2_z256_modn_mont_exp(r, a, SM2_Z256_N_MINUS_TWO)
-	uint64_t t[4];
+	sm2_z256_t t;
 	uint64_t w;
 	int i;
 	int k = 0;
@@ -1014,7 +1012,7 @@ void sm2_z256_modn_mont_inv(sm2_z256_t r, const sm2_z256_t a)
 
 void sm2_z256_modn_inv(sm2_z256_t r, const sm2_z256_t a)
 {
-	uint64_t mont_a[4];
+	sm2_z256_t mont_a;
 
 	sm2_z256_modn_to_mont(a, mont_a);
 	sm2_z256_modn_mont_inv(r, mont_a);
@@ -1056,8 +1054,8 @@ void sm2_z256_point_set_infinity(SM2_Z256_POINT *P)
 int sm2_z256_point_is_at_infinity(const SM2_Z256_POINT *P)
 {
 	if (sm2_z256_is_zero(P->Z)) {
-		uint64_t X_cub[4];
-		uint64_t Y_sqr[4];
+		sm2_z256_t X_cub;
+		sm2_z256_t Y_sqr;
 
 		sm2_z256_modp_mont_sqr(X_cub, P->X);
 		sm2_z256_modp_mont_mul(X_cub, X_cub, P->X);
@@ -1081,9 +1079,9 @@ const uint64_t SM2_Z256_MODP_MONT_B[4] = {
 
 int sm2_z256_point_is_on_curve(const SM2_Z256_POINT *P)
 {
-	uint64_t t0[4];
-	uint64_t t1[4];
-	uint64_t t2[4];
+	sm2_z256_t t0;
+	sm2_z256_t t1;
+	sm2_z256_t t2;
 
 	if (sm2_z256_cmp(P->Z, SM2_Z256_MODP_MONT_ONE) == 0) {
 		// if Z == 1, check y^2 + 3*x == x^3 + b
@@ -1133,7 +1131,8 @@ int sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4])
 			sm2_z256_modp_from_mont(y, P->Y);
 		}
 	} else {
-		uint64_t z_inv[4];
+		sm2_z256_t z_inv;
+
 		sm2_z256_modp_mont_inv(z_inv, P->Z);
 		if (y) {
 			sm2_z256_modp_mont_mul(y, P->Y, z_inv);
@@ -1159,10 +1158,10 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 	uint64_t *X3 = R->X;
 	uint64_t *Y3 = R->Y;
 	uint64_t *Z3 = R->Z;
-	uint64_t S[4];
-	uint64_t M[4];
-	uint64_t Zsqr[4];
-	uint64_t tmp0[4];
+	sm2_z256_t S;
+	sm2_z256_t M;
+	sm2_z256_t Zsqr;
+	sm2_z256_t tmp0;
 
 	// 1. S = 2Y
 	sm2_z256_modp_dbl(S, Y1);
@@ -1234,18 +1233,18 @@ void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 */
 void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_POINT *b)
 {
-	uint64_t U2[4], S2[4];
-	uint64_t U1[4], S1[4];
-	uint64_t Z1sqr[4];
-	uint64_t Z2sqr[4];
-	uint64_t H[4], R[4];
-	uint64_t Hsqr[4];
-	uint64_t Rsqr[4];
-	uint64_t Hcub[4];
+	sm2_z256_t U2, S2;
+	sm2_z256_t U1, S1;
+	sm2_z256_t Z1sqr;
+	sm2_z256_t Z2sqr;
+	sm2_z256_t H, R;
+	sm2_z256_t Hsqr;
+	sm2_z256_t Rsqr;
+	sm2_z256_t Hcub;
 
-	uint64_t res_x[4];
-	uint64_t res_y[4];
-	uint64_t res_z[4];
+	sm2_z256_t res_x;
+	sm2_z256_t res_y;
+	sm2_z256_t res_z;
 
 	uint64_t in1infty, in2infty;
 
@@ -1460,8 +1459,8 @@ void sm2_z256_point_mul(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_PO
 
 int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P)
 {
-	uint64_t x[4];
-	uint64_t y[4];
+	sm2_z256_t x;
+	sm2_z256_t y;
 	uint8_t affine[64];
 
 
@@ -1484,16 +1483,16 @@ void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *
 #ifndef ENABLE_SM2_Z256_ARMV8
 void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_AFFINE_POINT *b)
 {
-	uint64_t U2[4], S2[4];
-	uint64_t Z1sqr[4];
-	uint64_t H[4], R[4];
-	uint64_t Hsqr[4];
-	uint64_t Rsqr[4];
-	uint64_t Hcub[4];
+	sm2_z256_t U2, S2;
+	sm2_z256_t Z1sqr;
+	sm2_z256_t H, R;
+	sm2_z256_t Hsqr;
+	sm2_z256_t Rsqr;
+	sm2_z256_t Hcub;
 
-	uint64_t res_x[4];
-	uint64_t res_y[4];
-	uint64_t res_z[4];
+	sm2_z256_t res_x;
+	sm2_z256_t res_y;
+	sm2_z256_t res_z;
 
 	uint64_t in1infty, in2infty;
 
@@ -1577,8 +1576,8 @@ void sm2_z256_point_sub_affine(SM2_Z256_POINT *R,
 
 int sm2_z256_point_affine_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_AFFINE_POINT *P)
 {
+	sm2_z256_t a;
 	uint8_t affine[64];
-	uint64_t a[4];
 
 	sm2_z256_modp_from_mont(a, P->x);
 	sm2_z256_to_bytes(a, affine);
@@ -1702,8 +1701,8 @@ int sm2_z256_point_from_hex(SM2_Z256_POINT *P, const char *hex)
 // point_at_infinity should not to_bytes
 int sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64])
 {
-	uint64_t x[4];
-	uint64_t y[4];
+	sm2_z256_t x;
+	sm2_z256_t y;
 	int ret;
 
 	if ((ret = sm2_z256_point_get_xy(P, x, y)) < 0) {
@@ -1717,10 +1716,10 @@ int sm2_z256_point_to_bytes(const SM2_Z256_POINT *P, uint8_t out[64])
 
 int sm2_z256_point_equ(const SM2_Z256_POINT *P, const SM2_Z256_POINT *Q)
 {
-	uint64_t Z1[4] = {0};
-	uint64_t Z2[4] = {0};
-	uint64_t V1[4] = {0};
-	uint64_t V2[4] = {0};
+	sm2_z256_t Z1;
+	sm2_z256_t Z2;
+	sm2_z256_t V1;
+	sm2_z256_t V2;
 
 	// X1 * Z2^2 == X2 * Z1^2
 	sm2_z256_modp_mont_sqr(Z1, P->Z);
@@ -1775,9 +1774,9 @@ int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], in
 		0x0000000000000003, 0x00000002fffffffd, 0x0000000000000000, 0x0000000300000000
 	};
 
-	uint64_t x[4];
-	uint64_t y_sqr[4];
-	uint64_t y[4];
+	sm2_z256_t x;
+	sm2_z256_t y;
+	sm2_z256_t y_sqr;
 	int ret;
 
 	sm2_z256_from_bytes(x, x_bytes);
@@ -1820,7 +1819,7 @@ int sm2_z256_point_from_x_bytes(SM2_Z256_POINT *P, const uint8_t x_bytes[32], in
 
 int sm2_z256_point_from_hash(SM2_Z256_POINT *R, const uint8_t *data, size_t datalen, int y_is_odd)
 {
-	uint64_t x[4];
+	sm2_z256_t x;
 	uint8_t x_bytes[32];
 	uint8_t dgst[32];
 	int ret;
