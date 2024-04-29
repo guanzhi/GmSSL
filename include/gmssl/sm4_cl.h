@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ typedef struct {
 
 int sm4_cl_set_encrypt_key(SM4_CL_CTX *ctx, const uint8_t key[16]);
 int sm4_cl_set_decrypt_key(SM4_CL_CTX *ctx, const uint8_t key[16]);
-int sm4_cl_ctr32_encrypt(SM4_CL_CTX *ctx, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
+int sm4_cl_ctr32_encrypt_blocks(SM4_CL_CTX *ctx, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out);
 void sm4_cl_cleanup(SM4_CL_CTX *ctx);
 
 

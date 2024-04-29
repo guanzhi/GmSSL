@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-static int test_sm4_cl_ctr32_encrypt(void)
+static int test_sm4_cl_ctr32_encrypt_blocks(void)
 {
 	const char *key_hex = "0123456789abcdeffedcba9876543210";
 	const char *iv_hex =  "0123456789abcdeffedcba9876543210";
@@ -56,7 +56,7 @@ static int test_sm4_cl_ctr32_encrypt(void)
 	}
 
 	memcpy(ctr, iv, sizeof(iv));
-	if (sm4_cl_ctr32_encrypt(&ctx, ctr, buf, nblocks, buf) != 1) {
+	if (sm4_cl_ctr32_encrypt_blocks(&ctx, ctr, buf, nblocks, buf) != 1) {
 		error_print();
 		goto end;
 	}
@@ -75,7 +75,7 @@ end:
 	return ret;
 }
 
-static int test_sm4_cl_ctr32_encrypt_speed(void)
+static int speed_sm4_cl_ctr32_encrypt_blocks(void)
 {
 	const uint8_t key[16] = {
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
@@ -96,7 +96,7 @@ static int test_sm4_cl_ctr32_encrypt_speed(void)
 	uint8_t ctr[16];
 	size_t nblocks = 1024*1024;
 	uint8_t *buf = NULL;
-	clock_t start, end;
+	clock_t begin, end;
 	double seconds;
 	size_t i;
 
@@ -113,15 +113,15 @@ static int test_sm4_cl_ctr32_encrypt_speed(void)
 		goto end;
 	}
 
-	start = clock();
-	if (sm4_cl_ctr32_encrypt(&ctx, ctr, buf, nblocks, buf) != 1) {
+	begin = clock();
+	if (sm4_cl_ctr32_encrypt_blocks(&ctx, ctr, buf, nblocks, buf) != 1) {
 		error_print();
 		goto end;
 	}
 	end = clock();
 
-	seconds = (double)(end - start)/CLOCKS_PER_SEC;
-	fprintf(stderr, "sm4_cl_encrypt: %f-MiB per seconds\n", 16/seconds);
+	seconds = (double)(end - begin)/CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f-MiB per seconds\n", __FUNCTION__, 16/seconds);
 
 	ret = 1;
 end:
@@ -132,8 +132,10 @@ end:
 
 int main(void)
 {
-	if (test_sm4_cl_ctr32_encrypt() != 1) goto err;
-	if (test_sm4_cl_ctr32_encrypt_speed() != 1) goto err;
+	if (test_sm4_cl_ctr32_encrypt_blocks() != 1) goto err;
+#if ENABLE_TEST_SPEED
+	if (speed_sm4_cl_ctr32_encrypt_blocks() != 1) goto err;
+#endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

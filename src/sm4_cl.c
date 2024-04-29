@@ -198,7 +198,7 @@ static int sm4_cl_set_key(SM4_CL_CTX *ctx, const uint8_t key[16], int enc)
 		free(log);
 		goto end;
 	}
-	if (!(ctx->kernel = clCreateKernel(ctx->program, "sm4_ctr32_encrypt", &err))) {
+	if (!(ctx->kernel = clCreateKernel(ctx->program, "sm4_ctr32_encrypt_blocks", &err))) {
 		cl_error_print(err);
 		goto end;
 	}
@@ -243,7 +243,7 @@ int sm4_cl_set_decrypt_key(SM4_CL_CTX *ctx, const uint8_t key[16])
 	return sm4_cl_set_key(ctx, key, 0);
 }
 
-int sm4_cl_ctr32_encrypt(SM4_CL_CTX *ctx, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+int sm4_cl_ctr32_encrypt_blocks(SM4_CL_CTX *ctx, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	int ret = -1;
 	cl_int err;
@@ -330,7 +330,7 @@ __constant unsigned char SBOX[256] = {
 	0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48,
 };
 
-__kernel void sm4_ctr32_encrypt(__global const unsigned int *rkey, __global const unsigned int *ctr, __global unsigned char *data)
+__kernel void sm4_ctr32_encrypt_blocks(__global const unsigned int *rkey, __global const unsigned int *ctr, __global unsigned char *data)
 {
 	unsigned int x0, x1, x2, x3, x4, i, t;
 	uint global_id = get_global_id(0);
