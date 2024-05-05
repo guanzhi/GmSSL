@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -23,7 +23,8 @@ static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
 
 static int SDF_ECCrefPublicKey_to_SM2_KEY(const ECCrefPublicKey *ref, SM2_KEY *sm2_key)
 {
-	SM2_POINT point;
+	uint8_t bytes[64] = {0};
+	SM2_Z256_POINT point;
 
 	if (ref->bits != 256) {
 		error_print();
@@ -35,11 +36,19 @@ static int SDF_ECCrefPublicKey_to_SM2_KEY(const ECCrefPublicKey *ref, SM2_KEY *s
 		return -1;
 	}
 
-	if (sm2_point_from_xy(&point, ref->x + ECCref_MAX_LEN - 32, ref->y + ECCref_MAX_LEN - 32) != 1
-		|| sm2_key_set_public_key(sm2_key, &point) != 1) {
+	memcpy(bytes     , ref->x + ECCref_MAX_LEN - 32, 32);
+	memcpy(bytes + 32, ref->y + ECCref_MAX_LEN - 32, 32);
+
+	if (sm2_z256_point_from_bytes(&point, bytes) != 1) {
 		error_print();
 		return -1;
 	}
+
+	if (sm2_key_set_public_key(sm2_key, &point) != 1) {
+		error_print();
+		return -1;
+	}
+
 	return SDR_OK;
 }
 

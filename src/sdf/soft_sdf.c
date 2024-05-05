@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -61,6 +61,17 @@ SOFTSDF_DEVICE *deviceHandle = NULL;
 
 #define FILENAME_MAX_LEN 256
 
+
+// 应该有一个初始化函数
+// 创建第一个KEK， kek-1.key，这应该就是一个明文的文件，其中是二进制的对称密钥
+// 其他的密钥是可以导入的，但是要检查不能出现重复的。
+// 也就是
+
+
+// Create key files as a SDF device
+//	gmssl rand -bin -num 16 > kek-1.key
+//	gmssl sm2keygen -pass 123456 -out sm2sign-1.pem  -pubout sm2signpub-1.pem
+//	gmssl sm2keygen -pass 123456 -out sm2enc-1.pem  -pubout sm2encpub-1.pem
 
 
 int SDF_OpenDevice(
@@ -369,7 +380,6 @@ int SDF_GetPrivateKeyAccessRight(
 	snprintf(filename, FILENAME_MAX_LEN, "sm2sign-%u.pem", uiKeyIndex);
 	file = fopen(filename, "r");
 	if (file == NULL) {
-		error_print();
 		perror("Error opening file");
 		fprintf(stderr, "open failure %s\n", filename);
 		ret = SDR_KEYNOTEXIST;
@@ -546,14 +556,16 @@ int SDF_ExchangeDigitEnvelopeBaseOnRSA(
 	return SDR_NOTSUPPORT;
 }
 
-
 int SDF_ExportSignPublicKey_ECC(
 	void *hSessionHandle,
 	unsigned int uiKeyIndex,
 	ECCrefPublicKey *pucPublicKey)
 {
 	SOFTSDF_SESSION *session;
-	SOFTSDF_CONTAINER *container;
+	char filename[FILENAME_MAX_LEN];
+	FILE *file = NULL;
+	SM2_KEY sm2_key;
+	SM2_POINT point;
 
 	if (deviceHandle == NULL) {
 		error_print();
@@ -573,24 +585,31 @@ int SDF_ExportSignPublicKey_ECC(
 		return SDR_INARGERR;
 	}
 
-	container = session->container_list;
-	while (container != NULL && container->key_index != uiKeyIndex) {
-		container = container->next;
-	}
-	if (container == NULL) {
+	snprintf(filename, FILENAME_MAX_LEN, "sm2signpub-%u.pem", uiKeyIndex);
+	file = fopen(filename, "rb");
+	if (file == NULL) {
 		error_print();
-		return SDR_INARGERR;
+		return SDR_KEYNOTEXIST;
 	}
+	if (sm2_public_key_info_from_pem(&sm2_key, file) != 1) {
+		error_print();
+		fclose(file);
+		return SDR_KEYNOTEXIST;
+	}
+	fclose(file);
 
 	if (pucPublicKey == NULL) {
 		error_print();
 		return SDR_INARGERR;
 	}
 
-	memset(pucPublicKey, 0, sizeof(*pucPublicKey));
+	sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&point);
+
 	pucPublicKey->bits = 256;
-	memcpy(pucPublicKey->x + ECCref_MAX_LEN - 32, container->sign_key.public_key.x, 32);
-	memcpy(pucPublicKey->y + ECCref_MAX_LEN - 32, container->sign_key.public_key.y, 32);
+	memset(pucPublicKey->x, 0, ECCref_MAX_LEN - 32);
+	memcpy(pucPublicKey->x + ECCref_MAX_LEN - 32, point.x, 32);
+	memset(pucPublicKey->y, 0, ECCref_MAX_LEN - 32);
+	memcpy(pucPublicKey->y + ECCref_MAX_LEN - 32, point.y, 32);
 
 	return SDR_OK;
 }
@@ -601,7 +620,10 @@ int SDF_ExportEncPublicKey_ECC(
 	ECCrefPublicKey *pucPublicKey)
 {
 	SOFTSDF_SESSION *session;
-	SOFTSDF_CONTAINER *container;
+	char filename[FILENAME_MAX_LEN];
+	FILE *file = NULL;
+	SM2_KEY sm2_key;
+	SM2_POINT point;
 
 	if (deviceHandle == NULL) {
 		error_print();
@@ -621,24 +643,31 @@ int SDF_ExportEncPublicKey_ECC(
 		return SDR_INARGERR;
 	}
 
-	container = session->container_list;
-	while (container != NULL && container->key_index != uiKeyIndex) {
-		container = container->next;
-	}
-	if (container == NULL) {
+	snprintf(filename, FILENAME_MAX_LEN, "sm2encpub-%u.pem", uiKeyIndex);
+	file = fopen(filename, "rb");
+	if (file == NULL) {
 		error_print();
-		return SDR_INARGERR;
+		return SDR_KEYNOTEXIST;
 	}
+	if (sm2_public_key_info_from_pem(&sm2_key, file) != 1) {
+		error_print();
+		fclose(file);
+		return SDR_KEYNOTEXIST;
+	}
+	fclose(file);
 
 	if (pucPublicKey == NULL) {
 		error_print();
 		return SDR_INARGERR;
 	}
 
-	memset(pucPublicKey, 0, sizeof(*pucPublicKey));
+	sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&point);
+
 	pucPublicKey->bits = 256;
-	memcpy(pucPublicKey->x + ECCref_MAX_LEN - 32, container->enc_key.public_key.x, 32);
-	memcpy(pucPublicKey->y + ECCref_MAX_LEN - 32, container->enc_key.public_key.y, 32);
+	memset(pucPublicKey->x, 0, ECCref_MAX_LEN - 32);
+	memcpy(pucPublicKey->x + ECCref_MAX_LEN - 32, point.x, 32);
+	memset(pucPublicKey->y, 0, ECCref_MAX_LEN - 32);
+	memcpy(pucPublicKey->y + ECCref_MAX_LEN - 32, point.y, 32);
 
 	return SDR_OK;
 }
@@ -652,6 +681,8 @@ int SDF_GenerateKeyPair_ECC(
 {
 	SOFTSDF_SESSION *session;
 	SM2_KEY sm2_key;
+	SM2_POINT public_key;
+	uint8_t private_key[32];
 
 	if (deviceHandle == NULL) {
 		error_print();
@@ -691,16 +722,20 @@ int SDF_GenerateKeyPair_ECC(
 		return SDR_GMSSLERR;
 	}
 
+	sm2_z256_to_bytes(sm2_key.private_key, private_key);
+	sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&public_key);
+
 	memset(pucPublicKey, 0, sizeof(*pucPublicKey));
 	pucPublicKey->bits = 256;
-	memcpy(pucPublicKey->x + ECCref_MAX_LEN - 32, sm2_key.public_key.x, 32);
-	memcpy(pucPublicKey->y + ECCref_MAX_LEN - 32, sm2_key.public_key.y, 32);
+	memcpy(pucPublicKey->x + ECCref_MAX_LEN - 32, public_key.x, 32);
+	memcpy(pucPublicKey->y + ECCref_MAX_LEN - 32, public_key.y, 32);
 
 	memset(pucPrivateKey, 0, sizeof(*pucPrivateKey));
 	pucPrivateKey->bits = 256;
-	memcpy(pucPrivateKey->K + ECCref_MAX_LEN - 32, sm2_key.private_key, 32);
+	memcpy(pucPrivateKey->K + ECCref_MAX_LEN - 32, private_key, 32);
 
 	memset(&sm2_key, 0, sizeof(sm2_key));
+	memset(private_key, 0, sizeof(private_key));
 	return SDR_OK;
 }
 
@@ -712,7 +747,9 @@ int SDF_GenerateKeyWithIPK_ECC(
 	void **phKeyHandle)
 {
 	SOFTSDF_SESSION *session;
-	SOFTSDF_CONTAINER *container;
+	char filename[FILENAME_MAX_LEN];
+	FILE *file;
+	SM2_KEY sm2_key;
 	SOFTSDF_KEY *key;
 	SM2_CIPHERTEXT ctxt;
 
@@ -734,14 +771,18 @@ int SDF_GenerateKeyWithIPK_ECC(
 		return SDR_INARGERR;
 	}
 
-	container = session->container_list;
-	while (container != NULL && container->key_index != uiIPKIndex) {
-		container = container->next;
-	}
-	if (container == NULL) {
+	snprintf(filename, FILENAME_MAX_LEN, "sm2signpub-%u.pem", uiIPKIndex);
+	file = fopen(filename, "rb");
+	if (file == NULL) {
 		error_print();
-		return SDR_INARGERR;
+		return SDR_KEYNOTEXIST;
 	}
+	if (sm2_public_key_info_from_pem(&sm2_key, file) != 1) {
+		error_print();
+		fclose(file);
+		return SDR_KEYNOTEXIST;
+	}
+	fclose(file);
 
 	if (uiKeyBits%8 != 0 || uiKeyBits/8 > SOFTSDF_MAX_KEY_SIZE) {
 		error_print();
@@ -773,7 +814,7 @@ int SDF_GenerateKeyWithIPK_ECC(
 	key->key_size = uiKeyBits/8;
 
 	// encrypt key with container
-	if (sm2_do_encrypt(&container->enc_key, key->key, key->key_size, &ctxt) != 1) {
+	if (sm2_do_encrypt(&sm2_key, key->key, key->key_size, &ctxt) != 1) {
 		error_print();
 		free(key);
 		return SDR_GMSSLERR;
@@ -809,6 +850,8 @@ int SDF_GenerateKeyWithEPK_ECC(
 	void **phKeyHandle)
 {
 	SOFTSDF_SESSION *session;
+	SM2_POINT point;
+	SM2_Z256_POINT public_key;
 	SM2_KEY sm2_key;
 	SOFTSDF_KEY *key;
 	SM2_CIPHERTEXT ctxt;
@@ -847,10 +890,14 @@ int SDF_GenerateKeyWithEPK_ECC(
 	}
 
 	// load public key
-	memset(&sm2_key, 0, sizeof(sm2_key));
-	memcpy(sm2_key.public_key.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
-	memcpy(sm2_key.public_key.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
-	if (sm2_point_is_on_curve(&sm2_key.public_key) != 1) {
+	memset(&point, 0, sizeof(point));
+	memcpy(point.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
+	memcpy(point.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
+	if (sm2_z256_point_from_bytes(&public_key, (uint8_t *)&point) != 1) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	if (sm2_key_set_public_key(&sm2_key, &public_key) != 1) {
 		error_print();
 		return SDR_INARGERR;
 	}
@@ -882,10 +929,26 @@ int SDF_GenerateKeyWithEPK_ECC(
 	pucKey->L = ctxt.ciphertext_size;
 	memcpy(pucKey->C, ctxt.ciphertext, ctxt.ciphertext_size);
 
+
+
+
+	// append key to key_list
+	if (session->key_list == NULL) {
+		session->key_list = key;
+	} else {
+		SOFTSDF_KEY *current = session->key_list;
+		while (current->next != NULL) {
+			current = current->next;
+		}
+		current->next = key;
+	}
+
 	*phKeyHandle = key;
 	return SDR_OK;
 }
 
+
+// 这个必须配合  SDF_GenerateKeyWithEPK_ECC 一起用，也就是传入的cipher来自于 SDF_GenerateKeyWithEPK_ECC
 int SDF_ImportKeyWithISK_ECC(
 	void *hSessionHandle,
 	unsigned int uiISKIndex,
@@ -958,11 +1021,16 @@ int SDF_ImportKeyWithISK_ECC(
 	memcpy(ctxt.ciphertext, pucKey->C, pucKey->L);
 	ctxt.ciphertext_size = pucKey->L;
 
+	// 这里出错了												
+	// 这里我们要输出密文，而不是解密
 	if (sm2_do_decrypt(&container->enc_key, &ctxt, key->key, &key->key_size) != 1) {
 		error_print();
 		free(key);
 		return SDR_GMSSLERR;
 	}
+
+
+
 
 	// append key to key_list
 	if (session->key_list == NULL) {
@@ -1087,10 +1155,17 @@ int SDF_GenerateKeyWithKEK(
 	snprintf(filename, FILENAME_MAX_LEN, "kek-%u.key", uiKEKIndex);
 	file = fopen(filename, "rb");
 	if (file == NULL) {
+		fprintf(stderr, "open file: %s\n", filename);
 		error_print();
 		return SDR_KEYNOTEXIST;
 	}
-	if (fread(kek, 1, sizeof(kek), file) != sizeof(kek)) {
+
+	size_t rlen;
+	if ((rlen = fread(kek, 1, sizeof(kek), file)) != sizeof(kek)) {
+
+
+		printf("rlen = %zu\n", rlen);
+		perror("fread");
 		error_print();
 		fclose(file);
 		return SDR_INARGERR;
@@ -1288,13 +1363,22 @@ int SDF_DestroyKey(
 	}
 
 	current = session->key_list;
+	{
+		if (current == NULL) {
+			// 这里果然出错了，按道理不应该啊
+			error_print();
+			error_print();
+			error_print();
+			error_print();
+		}
+	}
 	prev = NULL;
 	while (current != NULL && current != (SOFTSDF_KEY *)hKeyHandle) {
 		prev = current;
 		current = current->next;
 	}
 	if (current == NULL) {
-		error_print();
+		error_print(); // 这里出错了				
 		return SDR_KEYNOTEXIST;
 	}
 	if (prev == NULL) {
@@ -1353,6 +1437,8 @@ int SDF_ExternalVerify_ECC(
 	ECCSignature *pucSignature)
 {
 	SOFTSDF_SESSION *session;
+	SM2_POINT point;
+	SM2_Z256_POINT public_key;
 	SM2_KEY sm2_key;
 	SM2_SIGNATURE sig;
 	unsigned int i;
@@ -1390,10 +1476,15 @@ int SDF_ExternalVerify_ECC(
 		return SDR_INARGERR;
 	}
 
-	memset(&sm2_key, 0, sizeof(sm2_key));
-	memcpy(sm2_key.public_key.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
-	memcpy(sm2_key.public_key.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
-	if (sm2_point_is_on_curve(&sm2_key.public_key) != 1) {
+	// load public key
+	memset(&point, 0, sizeof(point));
+	memcpy(point.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
+	memcpy(point.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
+	if (sm2_z256_point_from_bytes(&public_key, (uint8_t *)&point) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm2_key_set_public_key(&sm2_key, &public_key) != 1) {
 		error_print();
 		return SDR_INARGERR;
 	}
@@ -1492,6 +1583,8 @@ int SDF_InternalSign_ECC(
 	return SDR_OK;
 }
 
+
+// 这个函数应该读取文件，而不是访问container
 int SDF_InternalVerify_ECC(
 	void *hSessionHandle,
 	unsigned int uiIPKIndex,
@@ -1501,6 +1594,9 @@ int SDF_InternalVerify_ECC(
 {
 	SOFTSDF_SESSION *session;
 	SOFTSDF_CONTAINER *container;
+	char filename[FILENAME_MAX_LEN];
+	FILE *file = NULL;
+	SM2_KEY sm2_key;
 	SM2_SIGNATURE sig;
 	unsigned int i;
 
@@ -1522,15 +1618,19 @@ int SDF_InternalVerify_ECC(
 		return SDR_INARGERR;
 	}
 
-	// find container with key index
-	container = session->container_list;
-	while (container != NULL && container->key_index != uiIPKIndex) {
-		container = container->next;
-	}
-	if (container == NULL) {
+	// load public key from file
+	snprintf(filename, FILENAME_MAX_LEN, "sm2signpub-%u.pem", uiIPKIndex);
+	file = fopen(filename, "rb");
+	if (file == NULL) {
 		error_print();
-		return SDR_INARGERR;
+		return SDR_KEYNOTEXIST;
 	}
+	if (sm2_public_key_info_from_pem(&sm2_key, file) != 1) {
+		error_print();
+		fclose(file);
+		return SDR_KEYNOTEXIST;
+	}
+	fclose(file);
 
 	if (pucData == NULL || uiDataLength != SM3_DIGEST_SIZE) {
 		error_print();
@@ -1557,7 +1657,7 @@ int SDF_InternalVerify_ECC(
 	memcpy(sig.r, pucSignature->r + ECCref_MAX_LEN - 32, 32);
 	memcpy(sig.s, pucSignature->s + ECCref_MAX_LEN - 32, 32);
 
-	if (sm2_do_verify(&container->sign_key, pucData, &sig) != 1) {
+	if (sm2_do_verify(&sm2_key, pucData, &sig) != 1) {
 		error_print();
 		return SDR_VERIFYERR;
 	}
@@ -1574,6 +1674,8 @@ int SDF_ExternalEncrypt_ECC(
 	ECCCipher *pucEncData)
 {
 	SOFTSDF_SESSION *session;
+	SM2_POINT point;
+	SM2_Z256_POINT public_key;
 	SM2_KEY sm2_key;
 	SM2_CIPHERTEXT ctxt;
 	unsigned int i;
@@ -1623,9 +1725,18 @@ int SDF_ExternalEncrypt_ECC(
 		}
 	}
 
-	memset(&sm2_key, 0, sizeof(sm2_key));
-	memcpy(sm2_key.public_key.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
-	memcpy(sm2_key.public_key.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
+	// parse public key
+	memset(&point, 0, sizeof(point));
+	memcpy(point.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
+	memcpy(point.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
+	if (sm2_z256_point_from_bytes(&public_key, (uint8_t *)&point) != 1) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	if (sm2_key_set_public_key(&sm2_key, &public_key) != 1) {
+		error_print();
+		return SDR_INARGERR;
+	}
 
 	if (!pucData) {
 		error_print();
@@ -1935,7 +2046,6 @@ int SDF_CalculateMAC(
 	return SDR_OK;
 }
 
-// 这个函数真正涉及Session！
 int SDF_HashInit(
 	void *hSessionHandle,
 	unsigned int uiAlgID,
@@ -1972,7 +2082,9 @@ int SDF_HashInit(
 	sm3_init(&session->sm3_ctx);
 
 	if (pucPublicKey != NULL) {
+
 		SM2_POINT point;
+		SM2_Z256_POINT public_key;
 		uint8_t z[32];
 
 		if (pucID == NULL || uiIDLength <= 0) {
@@ -1980,7 +2092,15 @@ int SDF_HashInit(
 			return SDR_INARGERR;
 		}
 
-		if (sm2_compute_z(z, &point, (const char *)pucID, uiIDLength) != 1) {
+		memset(&point, 0, sizeof(point));
+		memcpy(point.x, pucPublicKey->x + ECCref_MAX_LEN - 32, 32);
+		memcpy(point.y, pucPublicKey->y + ECCref_MAX_LEN - 32, 32);
+		if (sm2_z256_point_from_bytes(&public_key, (uint8_t *)&point) != 1) {
+			error_print();
+			return SDR_INARGERR;
+		}
+
+		if (sm2_compute_z(z, &public_key, (const char *)pucID, uiIDLength) != 1) {
 			error_print();
 			return SDR_GMSSLERR;
 		}

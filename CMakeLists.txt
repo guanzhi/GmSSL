@@ -522,6 +522,43 @@ else()
 endif()
 
 
+option(ENABLE_SKF "Enable SKF module" OFF)
+if (ENABLE_SKF)
+	message(STATUS "ENABLE_SKF is ON")
+	list(APPEND src
+		src/skf/skf.c
+		src/skf/skf_lib.c
+		src/skf/skf_meth.c
+		src/skf/skf_ext.c
+		src/skf/skf_prn.c
+		src/skf/skf_wisec.c)
+	list(APPEND tools tools/skfutil.c)
+	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
+	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
+endif()
+
+
+
+option(ENABLE_SDF "Enable SDF module" OFF)
+if (ENABLE_SDF)
+	message(STATUS "ENABLE_SDF is ON")
+	list(APPEND src
+		src/sdf/sdf.c
+		src/sdf/sdf_lib.c
+		src/sdf/sdf_meth.c
+		src/sdf/sdf_ext.c
+		src/sdf/sdf_sansec.c)
+	list(APPEND tools tools/sdfutil.c)
+	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
+	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
+endif()
+
+
+
+
+
+
+
 option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
 if (ENABLE_HTTP_TESTS)
 	message(STATUS "ENABLE_HTTP_TESTS")
@@ -572,37 +609,6 @@ install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DE
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 
 
-option(ENABLE_SDF "Enable SDF module" OFF)
-if (ENABLE_SDF)
-	message(STATUS "ENABLE_SDF is ON")
-	list(APPEND src
-		src/sdf/sdf.c
-		src/sdf/sdf_lib.c
-		src/sdf/sdf_meth.c
-		src/sdf/sdf_ext.c
-		src/sdf/sdf_sansec.c)
-	list(APPEND tools tools/sdfutil.c)
-	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
-endif()
-
-
-option(ENABLE_SKF "Enable SKF module" OFF)
-if (ENABLE_SKF)
-	message(STATUS "ENABLE_SKF is ON")
-	list(APPEND src
-		src/skf/skf.c
-		src/skf/skf_lib.c
-		src/skf/skf_meth.c
-		src/skf/skf_ext.c
-		src/skf/skf_prn.c
-		src/skf/skf_wisec.c)
-	list(APPEND tools tools/skfutil.c)
-	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
-endif()
-
-
 option(ENABLE_SOFT_SDF "Enable Software SDF Implementation" OFF)
 if (ENABLE_SOFT_SDF)
 	message(STATUS "ENABLE_SOFT_SDF is ON")
@@ -611,6 +617,9 @@ if (ENABLE_SOFT_SDF)
 	target_link_libraries(soft_sdf PRIVATE gmssl)
 	set_target_properties(soft_sdf PROPERTIES VERSION 3.1 SOVERSION 3)
 endif()
+
+
+
 
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
