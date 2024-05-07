@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <gmssl/hex.h>
 #include <gmssl/sm2.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
@@ -25,7 +26,8 @@
 #define TEST_SM2_KEY_PASS	"123456"
 
 
-// 这几个函数应该不依赖于gmssl
+// TODO: move soft_sdf init functions into soft_sdf.c
+
 static int generate_kek(unsigned int uiKEKIndex)
 {
 	char filename[256];
@@ -52,9 +54,6 @@ static int generate_kek(unsigned int uiKEKIndex)
 	return 1;
 }
 
-
-// 要把公钥直接按ECCrefPublicKey的格式输出出出来
-// 还应该生成元一个签名
 static int generate_sign_key(unsigned int uiKeyIndex, const char *pass)
 {
 	SM2_KEY sm2_key;
@@ -130,10 +129,6 @@ static int generate_sign_key(unsigned int uiKeyIndex, const char *pass)
 
 
 
-
-
-
-
 	// print to be signed data
 	rand_bytes(data, sizeof(data));
 	printf("unsigned char ucData[] = {\n");
@@ -176,29 +171,6 @@ static int generate_sign_key(unsigned int uiKeyIndex, const char *pass)
 
 	return 1;
 }
-
-/*
-eccSignature.r[32]
-typedef struct ECCCipher_st {
-	unsigned char x[ECCref_MAX_LEN];
-	unsigned char y[ECCref_MAX_LEN];
-	unsigned char M[32];
-	unsigned int L;
-	unsigned char C[1];
-	// Extend sizeof(C) to SM2_MAX_PLAINTEXT_SIZE
-	// gmssl/sm2.h: SM2_MAX_PLAINTEXT_SIZE = 255
-	unsigned char C_[254];
-} ECCCipher;
-
-
-首先需要打印出公钥
-
-然后用这个公钥去加密一个消息 48 字节好了，然后输出密文
-
-
-*/
-
-
 
 static int generate_enc_key(unsigned int uiKeyIndex, const char *pass)
 {
@@ -353,38 +325,43 @@ static int test_SDF_GetDeviceInfo(void)
 	rv = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
 	if (rv != SDR_OK) {
 		printf("SDF_OpenSession failed with error: 0x%X\n", rv);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
 	rv = SDF_GetDeviceInfo(hSessionHandle, &deviceInfo);
 	if (rv != SDR_OK) {
 		printf("SDF_GetDeviceInfo failed with error: 0x%X\n", rv);
-		SDF_CloseSession(hSessionHandle);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
-	// FIXME: 支持的算法应该打印出具体的算法名称，而不是只打印一个整数
-	// 所有的打印信息应该是stderr，只有最后一个才是stdout
-
-	/*
-	printf("Device Info:\n");
-	printf("\tIssuerName: %s\n", deviceInfo.IssuerName);
-	printf("\tDeviceName: %s\n", deviceInfo.DeviceName);
-	printf("\tDeviceSerial: %s\n", deviceInfo.DeviceSerial);
-	printf("\tDeviceVersion: %u\n", deviceInfo.DeviceVersion);
-	printf("\tStandardVersion: %u\n", deviceInfo.StandardVersion);
-	printf("\tAsymAlgAbility: %08x %08x\n", deviceInfo.AsymAlgAbility[0], deviceInfo.AsymAlgAbility[1]);		
-	printf("\tSymAlgAbility: %08x\n", deviceInfo.SymAlgAbility);			
-	printf("\tHashAlgAbility: %u\n", deviceInfo.HashAlgAbility);			
-	printf("\tBufferSize: %u\n", deviceInfo.BufferSize);
-	*/
+	fprintf(stderr, "Device Info:\n");
+	fprintf(stderr, "    IssuerName: %s\n", deviceInfo.IssuerName);
+	fprintf(stderr, "    DeviceName: %s\n", deviceInfo.DeviceName);
+	fprintf(stderr, "    DeviceSerial: %s\n", deviceInfo.DeviceSerial);
+	fprintf(stderr, "    DeviceVersion: %u\n", deviceInfo.DeviceVersion);
+	fprintf(stderr, "    StandardVersion: %u\n", deviceInfo.StandardVersion);
+	fprintf(stderr, "    AsymAlgAbility: 0x%08X 0x%08X\n", deviceInfo.AsymAlgAbility[0], deviceInfo.AsymAlgAbility[1]);
+	fprintf(stderr, "    SymAlgAbility:");
+	if (deviceInfo.SymAlgAbility & SGD_SM1) fprintf(stderr, " SM1");
+	if (deviceInfo.SymAlgAbility & SGD_SM4) fprintf(stderr, " SM4");
+	if (deviceInfo.SymAlgAbility & SGD_ZUC) fprintf(stderr, " ZUC");
+	if (deviceInfo.SymAlgAbility & SGD_SSF33) fprintf(stderr, " SSF33");
+	if (deviceInfo.SymAlgAbility & SGD_ECB) fprintf(stderr, " ECB");
+	if (deviceInfo.SymAlgAbility & SGD_CBC) fprintf(stderr, " CBC");
+	if (deviceInfo.SymAlgAbility & SGD_CFB) fprintf(stderr, " CFB");
+	if (deviceInfo.SymAlgAbility & SGD_OFB) fprintf(stderr, " OFB");
+	if (deviceInfo.SymAlgAbility & SGD_MAC) fprintf(stderr, " MAC");
+	fprintf(stderr, " (0x%08X)\n", deviceInfo.SymAlgAbility);
+	fprintf(stderr, "    HashAlgAbility:");
+	if (deviceInfo.HashAlgAbility & SGD_SM3) fprintf(stderr, " SM3");
+	if (deviceInfo.HashAlgAbility & SGD_SHA1) fprintf(stderr, " SHA1");
+	if (deviceInfo.HashAlgAbility & SGD_SHA256) fprintf(stderr, " SHA256");
+	fprintf(stderr, " (0x%08X)\n", deviceInfo.HashAlgAbility);
+	fprintf(stderr, "    BufferSize: %u\n", deviceInfo.BufferSize);
 
 	rv = SDF_CloseSession(hSessionHandle);
 	if (rv != SDR_OK) {
 		printf("SDF_CloseSession failed with error: 0x%X\n", rv);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
@@ -416,11 +393,11 @@ static int test_SDF_GenerateRandom(void)
 		return -1;
 	}
 
-	// Test with different lengths
-	int lengths[] = {/*0*/2, 8, 128};
+	int lengths[] = { 1, 8, 128 };
 	for (int i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
 		unsigned int uiLength = lengths[i];
-		unsigned char pucRandom[128] = {0};  // Assuming max length
+		unsigned char pucRandom[128] = {0}; // Assuming max length
+		unsigned char zeros[sizeof(pucRandom)] = {0};
 
 		ret = SDF_GenerateRandom(hSessionHandle, uiLength, pucRandom);
 		if (ret != SDR_OK) {
@@ -429,11 +406,9 @@ static int test_SDF_GenerateRandom(void)
 		}
 
 		// Check if the output is not all zeros
-		int nonZeroCount = 0;
-		for (unsigned int j = 0; j < uiLength; j++) {
-			if (pucRandom[j] != 0) {
-				nonZeroCount++;
-			}
+		if (memcmp(pucRandom, zeros, uiLength) == 0) {
+			error_print();
+			return -1;
 		}
 	}
 
@@ -444,6 +419,7 @@ static int test_SDF_GenerateRandom(void)
 	return 1;
 }
 
+// FIXME: check generated public key is not [n-1]G, i.e. -G
 int test_SDF_ExportSignPublicKey_ECC(void)
 {
 	void *hDeviceHandle = NULL;
@@ -467,14 +443,6 @@ int test_SDF_ExportSignPublicKey_ECC(void)
 		fprintf(stderr, "SDF_OpenSession failed with error: 0x%X\n", ret);
 		return -1;
 	}
-
-	/*
-	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiKeyIndex, pucPassword, (unsigned int)strlen(TEST_SM2_KEY_PASS));
-	if (ret != SDR_OK) {
-		fprintf(stderr, "SDF_GetPrivateKeyAccessRight failed with error: 0x%X\n", ret);
-		return -1;
-	}
-	*/
 
 	ret = SDF_ExportSignPublicKey_ECC(hSessionHandle, uiKeyIndex, &eccPublicKey);
 	if (ret != SDR_OK) {
@@ -533,14 +501,6 @@ int test_SDF_ExportEncPublicKey_ECC(void)
 		return -1;
 	}
 
-	/*
-	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiKeyIndex, pucPassword, (unsigned int)strlen(TEST_SM2_KEY_PASS));
-	if (ret != SDR_OK) {
-		fprintf(stderr, "SDF_GetPrivateKeyAccessRight failed with error: 0x%X\n", ret);
-		return -1;
-	}
-	*/
-
 	ret = SDF_ExportEncPublicKey_ECC(hSessionHandle, uiKeyIndex, &eccPublicKey);
 	if (ret != SDR_OK) {
 		printf("SDF_ExportEncPublicKey_ECC failed with error: 0x%X\n", ret);
@@ -574,43 +534,7 @@ int test_SDF_ExportEncPublicKey_ECC(void)
 	return 1;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// FIXME: use format_bytes
 void printECCPublicKey(const ECCrefPublicKey *publicKey)
 {
 	int i;
@@ -642,9 +566,7 @@ void printECCPrivateKey(const ECCrefPrivateKey *eccRefPrivateKey)
 	printf("\n");
 }
 
-
-
-
+// FIXME: check generated public key is not [n-1]G, i.e. -G
 static int test_SDF_GenerateKeyPair_ECC(void)
 {
 	void *hDeviceHandle = NULL;
@@ -724,7 +646,6 @@ static int test_SDF_GenerateKeyPair_ECC(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
-
 
 static int test_SDF_ExternalVerify_ECC(void)
 {
@@ -863,6 +784,7 @@ static int test_SDF_ExternalEncrypt_ECC(void)
 	}
 
 	// generate SM2_KEY and convert public key to ECCrefPublicKey
+	// Note: when testing SDF_ExternalEncrypt_ECC, we should not assume IPK exists
 	if (sm2_key_generate(&sm2_key) != 1) {
 		error_print();
 		return -1;
@@ -930,10 +852,6 @@ static int test_SDF_ExternalEncrypt_ECC(void)
 	return 1;
 }
 
-
-
-
-
 void printECCCipher(const ECCCipher *cipher)
 {
 	printf("ECCCipher:\n");
@@ -964,7 +882,6 @@ void printECCCipher(const ECCCipher *cipher)
 	printf("\n");
 }
 
-// 没有验证输出
 int test_SDF_GenerateKeyWithEPK_ECC(void)
 {
 	void *hDeviceHandle = NULL;
@@ -1009,7 +926,6 @@ int test_SDF_GenerateKeyWithEPK_ECC(void)
 		return -1;
 	}
 
-	// 这里的输出可能是有问题的，返回的keyHandle有问题			
 	ret = SDF_GenerateKeyWithEPK_ECC(hSessionHandle, 128, SGD_SM2_3, &eccPublicKey, &eccCipher, &hKeyHandle);
 	if (ret != SDR_OK) {
 		printf("Error: SDF_GenerateKeyWithEPK_ECC returned 0x%X\n", ret);
@@ -1021,7 +937,6 @@ int test_SDF_GenerateKeyWithEPK_ECC(void)
 		return -1;
 	}
 
-	// 这里出现了问题，这说明这个keyHandle是有问题的
 	if (SDF_DestroyKey(hSessionHandle, hKeyHandle) != SDR_OK) {
 		error_print();
 		return -1;
@@ -1041,8 +956,8 @@ int test_SDF_GenerateKeyWithKEK(void)
 	void *hKeyHandle = NULL;
 	unsigned int uiKeyBits = 128;
 	unsigned int uiKEKIndex = TEST_KEK_INDEX;
-	unsigned char pucKey[64];
-	unsigned int uiKeyLength = (unsigned int)sizeof(pucKey);
+	unsigned char ucKey[64]; // encrypted key with SGD_SM4_CBC
+	unsigned int uiKeyLength;
 	int ret;
 
 	ret = SDF_OpenDevice(&hDeviceHandle);
@@ -1054,13 +969,37 @@ int test_SDF_GenerateKeyWithKEK(void)
 	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
 	if (ret != SDR_OK) {
 		printf("Error: SDF_OpenSession returned 0x%X\n", ret);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
-	ret = SDF_GenerateKeyWithKEK(hSessionHandle, uiKeyBits, SGD_SM4_CBC, uiKEKIndex, pucKey, &uiKeyLength, &hKeyHandle);
+	uiKeyLength = (unsigned int)sizeof(ucKey); // SDF_GenerateKeyWithKEK might check output buffer size
+
+	ret = SDF_GenerateKeyWithKEK(hSessionHandle, uiKeyBits, SGD_SM4_CBC, uiKEKIndex, ucKey, &uiKeyLength, &hKeyHandle);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_GenerateKeyWithKEK: 0x%X\n", ret);
+		return -1;
+	}
+	if (hKeyHandle == NULL) {
+		error_print();
+		return -1;
+	}
+	// encrpyted key size should be larger
+	if (uiKeyLength < uiKeyBits/8) {
+		error_print();
+		return -1;
+	}
+
+	SDF_DestroyKey(hSessionHandle, hKeyHandle);
+	hKeyHandle = NULL;
+
+	ret = SDF_ImportKeyWithKEK(hSessionHandle, SGD_SM4_CBC, uiKEKIndex, ucKey, uiKeyLength, &hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		fprintf(stderr, "Error: SDF_ImportKeyWithKEK: 0x%X\n", ret);
+		return -1;
+	}
+	if (hKeyHandle == NULL) {
+		error_print();
 		return -1;
 	}
 
@@ -1071,8 +1010,6 @@ int test_SDF_GenerateKeyWithKEK(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
-
-
 
 static int test_SDF_Hash(void)
 {
@@ -1137,6 +1074,7 @@ static int test_SDF_Hash(void)
 	return 1;
 }
 
+// TODO: change test vectors
 static int test_SDF_Hash_Z(void)
 {
 	void *hDeviceHandle = NULL;
@@ -1228,8 +1166,6 @@ static int test_SDF_Hash_Z(void)
 	return 1;
 }
 
-
-// 这个也是有问题的
 static int test_SDF_GenerateKeyWithIPK_ECC(void)
 {
 	void *hDeviceHandle = NULL;
@@ -1263,7 +1199,6 @@ static int test_SDF_GenerateKeyWithIPK_ECC(void)
 	}
 
 	// generate symmetric key and encrypt
-	// 这里我们要保证输出的eccCipher是能够解密的才行
 	ret = SDF_GenerateKeyWithIPK_ECC(hSessionHandle, uiIPKIndex, uiKeyBits, &eccCipher, &hKeyHandle);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_GenerateKeyWithIPK_ECC return 0x%X\n", ret);
@@ -1337,66 +1272,78 @@ static int test_SDF_GenerateKeyWithIPK_ECC(void)
 	return 1;
 }
 
-static int test_SDF_Encrypt(void)
+static int test_SDF_Encrypt_SM4_CBC(void)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	void *hKeyHandle = NULL;
-	unsigned int uiKeyBits = 128;
-	unsigned int uiKEKIndex = 1;
-	unsigned char pucKey[64];
-	unsigned int uiKeyLength = (unsigned int)sizeof(pucKey);
+	unsigned char pucKey[16];
 	unsigned char pucIV[16];
-	unsigned char pucData[28];
-	unsigned int uiDataLength = sizeof(pucData);
-	unsigned char pucEncData[128];
+	unsigned char pucData[32];
+	unsigned char pucEncData[64];
 	unsigned int uiEncDataLength = (unsigned int)sizeof(pucEncData);
-	unsigned char pucDecData[128];
-	unsigned int uiDecDataLength = (unsigned int)sizeof(pucDecData);
+	unsigned char pucCiphertext[64];
 
-
+	unsigned int uiIPKIndex = TEST_SM2_KEY_INDEX;
+	unsigned char *pucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
+	unsigned int uiPwdLength = (unsigned int)strlen((char *)pucPassword);
+	ECCCipher eccCipher;
 	int ret;
-	unsigned int i;
+
+	{
+		char *key = "0123456789abcdeffedcba9876543210";
+		char *iv  = "0123456789abcdeffedcba9876543210";
+		char *plain = "0123456789abcdeffedcba98765432100123456789abcdeffedcba9876543210";
+		char *cipher = "2677f46b09c122cc975533105bd4a22af6125f7275ce552c3a2bbcf533de8a3b"; // ciphertext without padding
+		size_t len;
+
+		hex_to_bytes(key, strlen(key), pucKey, &len);
+		hex_to_bytes(iv, strlen(iv), pucIV, &len);
+		hex_to_bytes(plain, strlen(plain), pucData, &len);
+		hex_to_bytes(cipher, strlen(cipher), pucCiphertext, &len);
+	}
+
 
 	ret = SDF_OpenDevice(&hDeviceHandle);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_OpenDevice: 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
 	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_OpenSession: 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
-	// generate key handle
-	ret = SDF_GenerateKeyWithKEK(hSessionHandle, uiKeyBits, SGD_SM4_CBC, uiKEKIndex, pucKey, &uiKeyLength, &hKeyHandle);
+	// SDF_ImportKey
+
+	ret = SDF_InternalEncrypt_ECC(hSessionHandle, uiIPKIndex, SGD_SM2_3, pucKey, sizeof(pucKey), &eccCipher);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_GenerateKeyWithKEK: 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
-
-	// encrypt and decrypt
-	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucData, uiDataLength, pucEncData, &uiEncDataLength);
+	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiIPKIndex, pucPassword, uiPwdLength);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_Encrypt: 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
-
-	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucEncData, uiEncDataLength, pucDecData, &uiDecDataLength);
+	ret = SDF_ImportKeyWithISK_ECC(hSessionHandle, uiIPKIndex, &eccCipher, &hKeyHandle);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_Decrypt: 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
-	// check
-	if (uiDecDataLength != uiDataLength) {
-		fprintf(stderr, "Error: uiDecDataLength != uiDataLength\n");
+	// encrypt
+	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucData, sizeof(pucData), pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
-	if (memcmp(pucDecData, pucData, uiDataLength) != 0) {
-		fprintf(stderr, "Error: pucDecData != pucData\n");
+
+	// compare ciphertext-without-padding, compatible with padding
+	if (memcmp(pucEncData, pucCiphertext, 32) != 0) {
+		error_print();
 		return -1;
 	}
 
@@ -1408,12 +1355,84 @@ static int test_SDF_Encrypt(void)
 	return 1;
 }
 
+static int test_SDF_Encrypt(void)
+{
+	void *hDeviceHandle = NULL;
+	void *hSessionHandle = NULL;
+	void *hKeyHandle = NULL;
+	unsigned int uiKeyBits = 128;
+	unsigned int uiKEKIndex = TEST_KEK_INDEX;
+	unsigned char pucKey[64];
+	unsigned int uiKeyLength = (unsigned int)sizeof(pucKey);
+	unsigned char pucIV[16];
+	unsigned char pucData[32];
+	unsigned int uiDataLength = sizeof(pucData);
+	unsigned char pucEncData[128];
+	unsigned int uiEncDataLength = (unsigned int)sizeof(pucEncData);
+	unsigned char pucDecData[128];
+	unsigned int uiDecDataLength = (unsigned int)sizeof(pucDecData);
+	int ret;
 
-// FIXME: ImportKeyWithISK_ECC
-// 可以先导出IPK，获得一个加密的公钥
-// 用这个公钥加密我们的对称密钥
-// 然后再ImportKeyWithISK_ECC导入对称密钥，这样就确定MAC的密钥了
-// 然后指定数据，就可以保证产生的MAC是正确的
+	ret = SDF_OpenDevice(&hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print_msg("SDF library: 0x%08X\n", ret);
+		return -1;
+	}
+
+	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print_msg("SDF library: 0x%08X\n", ret);
+		return -1;
+	}
+
+	ret = SDF_GenerateKeyWithKEK(hSessionHandle, uiKeyBits, SGD_SM4_CBC, uiKEKIndex, pucKey, &uiKeyLength, &hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print_msg("SDF library: 0x%08X\n", ret);
+		return -1;
+	}
+
+	// encrypt and decrypt
+	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucData, uiDataLength, pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print_msg("SDF library: 0x%08X\n", ret);
+		return -1;
+	}
+
+	// check SDF_Encrypt do Padding or Not
+	/*
+	if (uiEncDataLength == uiDataLength) {
+		error_puts("SDF implement SM4-CBC without padding");
+	} else if (uiEncDataLength == uiDataLength + 16) {
+		error_puts("SDF implement SM4-CBC with padding");
+	} else {
+		error_print();
+		return -1;
+	}
+	*/
+
+	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucEncData, uiEncDataLength, pucDecData, &uiDecDataLength);
+	if (ret != SDR_OK) {
+		error_print_msg("SDF library: 0x%08X\n", ret);
+		return -1;
+	}
+
+	// check
+	if (uiDecDataLength != uiDataLength) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucDecData, pucData, uiDataLength) != 0) {
+		error_print();
+		return -1;
+	}
+
+	SDF_DestroyKey(hSessionHandle, hKeyHandle);
+	SDF_CloseSession(hSessionHandle);
+	SDF_CloseDevice(hDeviceHandle);
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 static int test_SDF_CalculateMAC(void)
 {
@@ -1442,7 +1461,6 @@ static int test_SDF_CalculateMAC(void)
 	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_OpenSession returned 0x%X\n", ret);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
@@ -1450,16 +1468,12 @@ static int test_SDF_CalculateMAC(void)
 	ret = SDF_GenerateKeyWithKEK(hSessionHandle, uiHMACKeyBits, uiKeyEncAlgID, uiKEKIndex, ucEncedKey, &uiEncedKeyLength, &hKeyHandle);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_GenerateKeyWithKEK returned 0x%X\n", ret);
-		SDF_CloseSession(hSessionHandle);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
 	ret = SDF_CalculateMAC(hSessionHandle, hKeyHandle, uiMACAlgID, NULL, ucData, uiDataLength, ucMAC, &uiMACLength);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_CalculateMAC return 0x%X\n", ret);
-		SDF_CloseSession(hSessionHandle);
-		SDF_CloseDevice(hDeviceHandle);
 		return -1;
 	}
 
@@ -1473,19 +1487,6 @@ static int test_SDF_CalculateMAC(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static int test_SDF_InternalSign_ECC(void)
 {
@@ -1501,39 +1502,39 @@ static int test_SDF_InternalSign_ECC(void)
 
 	ret = SDF_OpenDevice(&hDeviceHandle);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_OpenDevice returned 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
 	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_OpenSession returned 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
 	// sign
 	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiIPKIndex, ucPassword, uiPwdLength);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_GetPrivateKeyAccessRight failed with error: 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
 	ret = SDF_InternalSign_ECC(hSessionHandle, uiIPKIndex, ucData, uiDataLength, &eccSignature);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_InternalSign_ECC return 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
 	ret = SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_ReleasePrivateKeyAccessRight return 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
 	// verify
 	ret = SDF_InternalVerify_ECC(hSessionHandle, uiIPKIndex, ucData, uiDataLength, &eccSignature);
 	if (ret != SDR_OK) {
-		fprintf(stderr, "Error: SDF_InternalVerify_ECC return 0x%X\n", ret);
+		error_print_msg("SDF library: 0x%08X\n", ret);
 		return -1;
 	}
 
@@ -1545,29 +1546,6 @@ static int test_SDF_InternalSign_ECC(void)
 
 }
 
-
-
-/*
-int SDF_InternalEncrypt_ECC(
-	void *hSessionHandle,
-	unsigned int uiIPKIndex,
-	unsigned int uiAlgID,
-	unsigned char *pucData,
-	unsigned int uiDataLength,
-	ECCCipher *pucEncData);
-
-int SDF_InternalDecrypt_ECC(
-	void *hSessionHandle,
-	unsigned int uiISKIndex,
-	unsigned int uiAlgID,
-	ECCCipher *pucEncData,
-	unsigned char *pucData,
-	unsigned int *uiDataLength);
-
-这里也是一样的，我们可以构造一个密文，让SDF解密，然后判断SDF是否正确。
-*/
-// SoftSDF中居然没有实现SDF_InternalEncrypt_ECC					
-// 并且在载入的时候也没有出现任何问题				
 static int test_SDF_InternalEncrypt_ECC(void)
 {
 	void *hDeviceHandle = NULL;
@@ -1595,14 +1573,12 @@ static int test_SDF_InternalEncrypt_ECC(void)
 	}
 
 	// encrypt
-	// 这个是有问题的，有segment erro
 	ret = SDF_InternalEncrypt_ECC(hSessionHandle, uiIPKIndex, SGD_SM2_3, ucData, uiDataLength, &eccCipher);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_InternalEncrypt_ECC return 0x%X\n", ret);
 		return -1;
 	}
 
-	/*
 
 	// decrypt
 	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiIPKIndex, ucPassword, uiPwdLength);
@@ -1632,7 +1608,6 @@ static int test_SDF_InternalEncrypt_ECC(void)
 		fprintf(stderr, "Error: invalid ucDecData\n");
 		return -1;
 	}
-	*/
 
 	SDF_CloseSession(hSessionHandle);
 	SDF_CloseDevice(hDeviceHandle);
@@ -1641,13 +1616,9 @@ static int test_SDF_InternalEncrypt_ECC(void)
 	return 1;
 }
 
-// SDF_ImportKeyWithISK_ECC
-
-
-
-
 int main(void)
 {
+	/*
 	if (generate_kek(TEST_KEK_INDEX) != 1) {
 		error_print();
 		goto err;
@@ -1660,6 +1631,7 @@ int main(void)
 		error_print();
 		goto err;
 	}
+	*/
 
 	if (SDF_LoadLibrary("libsoft_sdf.dylib", NULL) != SDR_OK) {
 		error_print();
@@ -1671,23 +1643,18 @@ int main(void)
 	if (test_SDF_Hash() != 1) goto err;
 	if (test_SDF_Hash_Z() != 1) goto err;
 	if (test_SDF_GenerateKeyWithKEK() != 1) goto err;
+	if (test_SDF_CalculateMAC() != 1) goto err;
 	if (test_SDF_Encrypt() != 1) goto err;
+	if (test_SDF_Encrypt_SM4_CBC() != 1) goto err;
 	if (test_SDF_GenerateKeyPair_ECC() != 1) goto err;
 	if (test_SDF_ExportSignPublicKey_ECC() != 1) goto err;
 	if (test_SDF_ExportEncPublicKey_ECC() != 1) goto err;
-	if (test_SDF_ExternalVerify_ECC() != 1) goto err;
-	if (test_SDF_ExternalEncrypt_ECC() != 1) goto err;
-	if (test_SDF_InternalSign_ECC() != 1) goto err;
-
-	if (test_SDF_CalculateMAC() != 1) goto err;
-
 	if (test_SDF_GenerateKeyWithEPK_ECC() != 1) goto err;
-//	if (test_SDF_GenerateKeyWithIPK_ECC() != 1) goto err;
-
-
-
-//	if (test_SDF_InternalEncrypt_ECC() != 1) goto err;
-
+	if (test_SDF_GenerateKeyWithIPK_ECC() != 1) goto err;
+	if (test_SDF_ExternalVerify_ECC() != 1) goto err;
+	if (test_SDF_ExternalEncrypt_ECC() != 1) goto err; //FIXME: test this before any ECCCipher used
+	if (test_SDF_InternalSign_ECC() != 1) goto err;
+	if (test_SDF_InternalEncrypt_ECC() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
