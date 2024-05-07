@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
 #include <gmssl/sm4_cbc_mac.h>
@@ -21,6 +22,7 @@
 
 #define SDR_GMSSLERR	(SDR_BASE + 0x00000100)
 
+static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
 
 
 #define SOFTSDF_MAX_KEY_SIZE	64
@@ -771,7 +773,7 @@ int SDF_GenerateKeyWithIPK_ECC(
 		return SDR_INARGERR;
 	}
 
-	snprintf(filename, FILENAME_MAX_LEN, "sm2signpub-%u.pem", uiIPKIndex);
+	snprintf(filename, FILENAME_MAX_LEN, "sm2encpub-%u.pem", uiIPKIndex);
 	file = fopen(filename, "rb");
 	if (file == NULL) {
 		error_print();
@@ -947,8 +949,6 @@ int SDF_GenerateKeyWithEPK_ECC(
 	return SDR_OK;
 }
 
-
-// 这个必须配合  SDF_GenerateKeyWithEPK_ECC 一起用，也就是传入的cipher来自于 SDF_GenerateKeyWithEPK_ECC
 int SDF_ImportKeyWithISK_ECC(
 	void *hSessionHandle,
 	unsigned int uiISKIndex,
@@ -983,6 +983,7 @@ int SDF_ImportKeyWithISK_ECC(
 		container = container->next;
 	}
 	if (container == NULL) {
+		// 没有找到container意味着可能之前没有调用GetPrivateKeyAccess				
 		error_print();
 		return SDR_INARGERR;
 	}
@@ -1021,16 +1022,11 @@ int SDF_ImportKeyWithISK_ECC(
 	memcpy(ctxt.ciphertext, pucKey->C, pucKey->L);
 	ctxt.ciphertext_size = pucKey->L;
 
-	// 这里出错了												
-	// 这里我们要输出密文，而不是解密
 	if (sm2_do_decrypt(&container->enc_key, &ctxt, key->key, &key->key_size) != 1) {
 		error_print();
 		free(key);
 		return SDR_GMSSLERR;
 	}
-
-
-
 
 	// append key to key_list
 	if (session->key_list == NULL) {
@@ -1107,9 +1103,9 @@ int SDF_ExchangeDigitEnvelopeBaseOnECC(
 int SDF_GenerateKeyWithKEK(
 	void *hSessionHandle,
 	unsigned int uiKeyBits,
-	unsigned int uiAlgID, // SGD_SM4_CBC, 用于加密生成的密钥
-	unsigned int uiKEKIndex, // 这是一个本地文件
-	unsigned char *pucKey, // CBC秘闻
+	unsigned int uiAlgID,
+	unsigned int uiKEKIndex,
+	unsigned char *pucKey,
 	unsigned int *puiKeyLength,
 	void **phKeyHandle)
 {
@@ -1213,7 +1209,7 @@ int SDF_GenerateKeyWithKEK(
 		return SDR_GMSSLERR;
 	}
 	memset(&sm4_key, 0, sizeof(sm4_key));
-	*puiKeyLength = enced_len;
+	*puiKeyLength = 16 + enced_len;
 
 	// append key to key_list
 	if (session->key_list == NULL) {
@@ -1232,7 +1228,7 @@ int SDF_GenerateKeyWithKEK(
 
 int SDF_ImportKeyWithKEK(
 	void *hSessionHandle,
-	unsigned int uiAlgID, // 这是对称加密算法，应该使用什么算法呢？实际上我们整个只支持一个带填充的SM4_CBC
+	unsigned int uiAlgID,
 	unsigned int uiKEKIndex,
 	unsigned char *pucKey,
 	unsigned int uiKeyLength,
@@ -1364,13 +1360,7 @@ int SDF_DestroyKey(
 
 	current = session->key_list;
 	{
-		if (current == NULL) {
-			// 这里果然出错了，按道理不应该啊
-			error_print();
-			error_print();
-			error_print();
-			error_print();
-		}
+		assert(current != NULL);
 	}
 	prev = NULL;
 	while (current != NULL && current != (SOFTSDF_KEY *)hKeyHandle) {
@@ -1378,7 +1368,7 @@ int SDF_DestroyKey(
 		current = current->next;
 	}
 	if (current == NULL) {
-		error_print(); // 这里出错了				
+		error_print();
 		return SDR_KEYNOTEXIST;
 	}
 	if (prev == NULL) {
@@ -1583,8 +1573,6 @@ int SDF_InternalSign_ECC(
 	return SDR_OK;
 }
 
-
-// 这个函数应该读取文件，而不是访问container
 int SDF_InternalVerify_ECC(
 	void *hSessionHandle,
 	unsigned int uiIPKIndex,
@@ -2453,5 +2441,181 @@ int SDF_DeleteFile(
 		return SDR_GMSSLERR;
 	}
 
+	return SDR_OK;
+}
+
+int SDF_InternalEncrypt_ECC(
+	void *hSessionHandle,
+	unsigned int uiIPKIndex,
+	unsigned int uiAlgID,
+	unsigned char *pucData,
+	unsigned int uiDataLength,
+	ECCCipher *pucEncData)
+{
+	SOFTSDF_SESSION *session;
+	SOFTSDF_CONTAINER *container;
+	char filename[FILENAME_MAX_LEN];
+	FILE *file = NULL;
+	SM2_KEY sm2_key;
+	SM2_CIPHERTEXT ciphertext;
+	size_t plaintext_len;
+	unsigned int i;
+
+	if (deviceHandle == NULL) {
+		error_print();
+		return SDR_STEPERR;
+	}
+
+	if (!hSessionHandle) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	session = deviceHandle->session_list;
+	while (session != NULL && session != hSessionHandle) {
+		session = session->next;
+	}
+	if (session == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	// load public key by uiISKIndex
+	snprintf(filename, FILENAME_MAX_LEN, "sm2encpub-%u.pem", uiIPKIndex);
+	file = fopen(filename, "rb");
+	if (file == NULL) {
+		error_print();
+		return SDR_KEYNOTEXIST;
+	}
+	if (sm2_public_key_info_from_pem(&sm2_key, file) != 1) {
+		error_print();
+		fclose(file);
+		return SDR_KEYNOTEXIST;
+	}
+	fclose(file);
+
+	// check uiAlgID
+	if (uiAlgID != SGD_SM2_3) {
+		error_print();
+		return SDR_ALGNOTSUPPORT;
+	}
+
+	if (pucData == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	if (uiDataLength > SM2_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	if (pucEncData == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	// encrypt
+	if (sm2_do_encrypt(&sm2_key, pucData, uiDataLength, &ciphertext) != 1) {
+		error_print();
+		return SDR_PKOPERR;
+	}
+	memset(pucEncData->x, 0, ECCref_MAX_LEN - 32);
+	memcpy(pucEncData->x + ECCref_MAX_LEN - 32, ciphertext.point.x, 32);
+	memset(pucEncData->y, 0, ECCref_MAX_LEN - 32);
+	memcpy(pucEncData->y + ECCref_MAX_LEN - 32, ciphertext.point.y, 32);
+	memcpy(pucEncData->M, ciphertext.hash, 32);
+	memcpy(pucEncData->C, ciphertext.ciphertext, ciphertext.ciphertext_size);
+	pucEncData->L = (unsigned int)ciphertext.ciphertext_size;
+
+	return SDR_OK;
+}
+
+int SDF_InternalDecrypt_ECC(
+	void *hSessionHandle,
+	unsigned int uiISKIndex,
+	unsigned int uiAlgID,
+	ECCCipher *pucEncData,
+	unsigned char *pucData,
+	unsigned int *puiDataLength)
+{
+	SOFTSDF_SESSION *session;
+	SOFTSDF_CONTAINER *container;
+	SM2_CIPHERTEXT ciphertext;
+	size_t plaintext_len;
+	unsigned int i;
+
+	if (deviceHandle == NULL) {
+		error_print();
+		return SDR_STEPERR;
+	}
+
+	if (!hSessionHandle) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	session = deviceHandle->session_list;
+	while (session != NULL && session != hSessionHandle) {
+		session = session->next;
+	}
+	if (session == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	// load public key by uiISKIndex
+	container = session->container_list;
+	while (container != NULL && container->key_index != uiISKIndex) {
+		container = container->next;
+	}
+	if (container == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	// check uiAlgID
+	if (uiAlgID != SGD_SM2_3) {
+		error_print();
+		return SDR_ALGNOTSUPPORT;
+	}
+
+	// check ciphertext
+	if (pucEncData == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	if (pucEncData->L > SM2_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	// convert ECCCipher to SM2_CIPHERTEXT
+	if (memcmp(pucEncData->x, zeros, ECCref_MAX_LEN - 32) != 0) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	if (memcmp(pucEncData->y, zeros, ECCref_MAX_LEN - 32) != 0) {
+		error_print();
+		return SDR_INARGERR;
+	}
+	memcpy(ciphertext.point.x, pucEncData->x + ECCref_MAX_LEN - 32, 32);
+	memcpy(ciphertext.point.y, pucEncData->y + ECCref_MAX_LEN - 32, 32);
+	memcpy(ciphertext.hash, pucEncData->M, 32);
+	memcpy(ciphertext.ciphertext, pucEncData->C, pucEncData->L);
+	ciphertext.ciphertext_size = pucEncData->L;
+
+	if (puiDataLength == NULL) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	if (pucData == NULL) {
+		*puiDataLength = pucEncData->L;
+		return SDR_OK;
+	}
+
+	if (sm2_do_decrypt(&container->enc_key, &ciphertext, pucData, &plaintext_len) != 1) {
+		error_print();
+		return SDR_PKOPERR;
+	}
+
+	*puiDataLength = (unsigned int)plaintext_len;
 	return SDR_OK;
 }
