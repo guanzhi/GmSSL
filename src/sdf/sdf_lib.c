@@ -1048,11 +1048,6 @@ int SDF_InternalEncrypt_ECC(
 		return SDR_NOTSUPPORT;
 	}
 
-	if (pucEncData->L < uiDataLength) {
-		SDFerr(SDF_R_BUFFER_TOO_SMALL);
-		return SDR_NOBUFFER;
-	}
-
 	if (sdf_vendor && sdf_vendor->decode_ecccipher) {
 		if (SDF_NewECCCipher(&buf, uiDataLength) != SDR_OK) {
 			SDFerr(ERR_R_SDF_LIB);
