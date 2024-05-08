@@ -538,6 +538,26 @@ if (ENABLE_SKF)
 endif()
 
 
+option(ENABLE_CRYPTO_SDF "Enable SDF as default crypto implementation" OFF)
+if (ENABLE_CRYPTO_SDF)
+	message(STATUS "ENABLE_CRYPTO_SDF is ON")
+	add_definitions(-DENABLE_CRYPTO_SDF)
+	list(FIND src src/sm3_digest.c sm3_digest_index)
+	list(REMOVE_AT src ${sm3_digest_index})
+	list(INSERT src ${sm3_digest_index} src/sdf/sdf_sm3.c)
+
+	list(FIND src src/sm4_cbc.c index)
+	list(REMOVE_AT src ${index})
+	list(INSERT src ${index} src/sdf/sdf_sm4_cbc.c)
+
+	list(FIND src src/sm2_sign.c index)
+	list(REMOVE_AT src ${index})
+	list(INSERT src ${index} src/sdf/sdf_sm2_sign.c)
+
+	list(FIND src src/sm2_enc.c index)
+	list(REMOVE_AT src ${index})
+	list(INSERT src ${index} src/sdf/sdf_sm2_enc.c)
+endif()
 
 option(ENABLE_SDF "Enable SDF module" OFF)
 if (ENABLE_SDF)

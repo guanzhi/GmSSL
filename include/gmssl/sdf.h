@@ -34,6 +34,27 @@ typedef struct {
 	int index;
 } SDF_KEY;
 
+typedef struct {
+	void *hSession;
+} SDF_SM3_CTX;
+
+typedef struct {
+	void *hSession;
+	void *hKey;
+} SDF_SM4_KEY;
+
+typedef struct {
+	uint32_t index;
+	uint8_t passlen;
+	unsigned char pass[26 + 1];
+} SDF_ENC_PRIVATE_KEY;
+
+typedef struct {
+	uint32_t index;
+	uint8_t passlen;
+	unsigned char pass[26 + 1];
+} SDF_PRIVATE_KEY;
+
 
 int sdf_load_library(const char *so_path, const char *vendor);
 int sdf_open_device(SDF_DEVICE *dev);

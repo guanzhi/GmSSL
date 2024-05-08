@@ -75,7 +75,6 @@ typedef struct {
 	union {
 		SM3_CTX sm3_ctx;
 		SM3_HMAC_CTX hmac_ctx;
-		void *handle;
 	};
 	int state;
 } SM3_DIGEST_CTX;
