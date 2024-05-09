@@ -568,15 +568,9 @@ if (ENABLE_SDF)
 		src/sdf/sdf_meth.c
 		src/sdf/sdf_ext.c
 		src/sdf/sdf_sansec.c)
+	list(APPEND tests sdf)
 	list(APPEND tools tools/sdfutil.c)
-	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
 endif()
-
-
-
-
-
 
 
 option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
@@ -627,19 +621,6 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
-
-
-option(ENABLE_SOFT_SDF "Enable Software SDF Implementation" OFF)
-if (ENABLE_SOFT_SDF)
-	message(STATUS "ENABLE_SOFT_SDF is ON")
-	list(APPEND tests soft_sdf)
-	add_library(soft_sdf SHARED src/sdf/soft_sdf.c)
-	target_link_libraries(soft_sdf PRIVATE gmssl)
-	set_target_properties(soft_sdf PROPERTIES VERSION 3.1 SOVERSION 3)
-endif()
-
-
-
 
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
