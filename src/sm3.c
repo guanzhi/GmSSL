@@ -55,6 +55,7 @@ static uint32_t K[64] = {
 	0xa7a879d8U, 0x4f50f3b1U, 0x9ea1e762U, 0x3d43cec5U,
 };
 
+#if ENABLE_SMALL_FOOTPRINT
 void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 {
 	uint32_t A;
@@ -131,6 +132,145 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 		data += 64;
 	}
 }
+#else
+
+#define SM3_ROUND_0(j,A,B,C,D,E,F,G,H)			\
+	SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);	\
+	SS2 = SS1 ^ ROTL(A, 12);			\
+	D += FF00(A, B, C) + SS2 + (W[j] ^ W[j + 4]);	\
+	SS1 += GG00(E, F, G) + H + W[j];		\
+	B = ROTL(B, 9);					\
+	H = P0(SS1);					\
+	F = ROTL(F, 19);				\
+	W[j+16] = P1(W[j] ^ W[j+7] ^ ROTL(W[j+13], 15)) ^ ROTL(W[j+3], 7) ^ W[j+10];
+
+#define SM3_ROUND_1(j,A,B,C,D,E,F,G,H)			\
+	SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);	\
+	SS2 = SS1 ^ ROTL(A, 12);			\
+	D += FF16(A, B, C) + SS2 + (W[j] ^ W[j + 4]);	\
+	SS1 += GG16(E, F, G) + H + W[j];		\
+	B = ROTL(B, 9);					\
+	H = P0(SS1);					\
+	F = ROTL(F, 19);				\
+	W[j+16] = P1(W[j] ^ W[j+7] ^ ROTL(W[j+13], 15)) ^ ROTL(W[j+3], 7) ^ W[j+10];
+
+
+#define SM3_ROUND_2(j,A,B,C,D,E,F,G,H)			\
+	SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);	\
+	SS2 = SS1 ^ ROTL(A, 12);			\
+	D += FF16(A, B, C) + SS2 + (W[j] ^ W[j + 4]);	\
+	SS1 += GG16(E, F, G) + H + W[j];		\
+	B = ROTL(B, 9);					\
+	H = P0(SS1);					\
+	F = ROTL(F, 19);
+
+void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
+{
+	uint32_t A;
+	uint32_t B;
+	uint32_t C;
+	uint32_t D;
+	uint32_t E;
+	uint32_t F;
+	uint32_t G;
+	uint32_t H;
+	uint32_t W[68];
+	uint32_t SS1, SS2;
+	int j;
+
+	while (blocks--) {
+
+		A = digest[0];
+		B = digest[1];
+		C = digest[2];
+		D = digest[3];
+		E = digest[4];
+		F = digest[5];
+		G = digest[6];
+		H = digest[7];
+
+		for (j = 0; j < 16; j++) {
+			W[j] = GETU32(data + j*4);
+		}
+
+		SM3_ROUND_0( 0, A,B,C,D, E,F,G,H);
+		SM3_ROUND_0( 1, D,A,B,C, H,E,F,G);
+		SM3_ROUND_0( 2, C,D,A,B, G,H,E,F);
+		SM3_ROUND_0( 3, B,C,D,A, F,G,H,E);
+		SM3_ROUND_0( 4, A,B,C,D, E,F,G,H);
+		SM3_ROUND_0( 5, D,A,B,C, H,E,F,G);
+		SM3_ROUND_0( 6, C,D,A,B, G,H,E,F);
+		SM3_ROUND_0( 7, B,C,D,A, F,G,H,E);
+		SM3_ROUND_0( 8, A,B,C,D, E,F,G,H);
+		SM3_ROUND_0( 9, D,A,B,C, H,E,F,G);
+		SM3_ROUND_0(10, C,D,A,B, G,H,E,F);
+		SM3_ROUND_0(11, B,C,D,A, F,G,H,E);
+		SM3_ROUND_0(12, A,B,C,D, E,F,G,H);
+		SM3_ROUND_0(13, D,A,B,C, H,E,F,G);
+		SM3_ROUND_0(14, C,D,A,B, G,H,E,F);
+		SM3_ROUND_0(15, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(16, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(17, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(18, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(19, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(20, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(21, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(22, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(23, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(24, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(25, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(26, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(27, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(28, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(29, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(30, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(31, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(32, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(33, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(34, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(35, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(36, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(37, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(38, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(39, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(40, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(41, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(42, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(43, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(44, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(45, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(46, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(47, B,C,D,A, F,G,H,E);
+		SM3_ROUND_1(48, A,B,C,D, E,F,G,H);
+		SM3_ROUND_1(49, D,A,B,C, H,E,F,G);
+		SM3_ROUND_1(50, C,D,A,B, G,H,E,F);
+		SM3_ROUND_1(51, B,C,D,A, F,G,H,E);
+		SM3_ROUND_2(52, A,B,C,D, E,F,G,H);
+		SM3_ROUND_2(53, D,A,B,C, H,E,F,G);
+		SM3_ROUND_2(54, C,D,A,B, G,H,E,F);
+		SM3_ROUND_2(55, B,C,D,A, F,G,H,E);
+		SM3_ROUND_2(56, A,B,C,D, E,F,G,H);
+		SM3_ROUND_2(57, D,A,B,C, H,E,F,G);
+		SM3_ROUND_2(58, C,D,A,B, G,H,E,F);
+		SM3_ROUND_2(59, B,C,D,A, F,G,H,E);
+		SM3_ROUND_2(60, A,B,C,D, E,F,G,H);
+		SM3_ROUND_2(61, D,A,B,C, H,E,F,G);
+		SM3_ROUND_2(62, C,D,A,B, G,H,E,F);
+		SM3_ROUND_2(63, B,C,D,A, F,G,H,E);
+
+		digest[0] ^= A;
+		digest[1] ^= B;
+		digest[2] ^= C;
+		digest[3] ^= D;
+		digest[4] ^= E;
+		digest[5] ^= F;
+		digest[6] ^= G;
+		digest[7] ^= H;
+
+		data += 64;
+	}
+}
+#endif
 
 void sm3_init(SM3_CTX *ctx)
 {
@@ -202,15 +342,3 @@ void sm3_finish(SM3_CTX *ctx, uint8_t *digest)
 		PUTU32(digest + i*4, ctx->digest[i]);
 	}
 }
-
-/*
-void sm3_digest(const uint8_t *msg, size_t msglen,
-	uint8_t dgst[SM3_DIGEST_SIZE])
-{
-	SM3_CTX ctx;
-	sm3_init(&ctx);
-	sm3_update(&ctx, msg, msglen);
-	sm3_finish(&ctx, dgst);
-	memset(&ctx, 0, sizeof(ctx));
-}
-*/
