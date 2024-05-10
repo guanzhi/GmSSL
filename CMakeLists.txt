@@ -93,6 +93,7 @@ set(tools
 	tools/gmssl.c
 	tools/version.c
 	tools/sm4.c
+	tools/sm4_ctr.c
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm3xmss_keygen.c
@@ -322,6 +323,14 @@ if (ENABLE_SM3_SSE)
 	list(FIND src src/sm3.c sm3_index)
 	list(REMOVE_AT src ${sm3_index})
 	list(INSERT src ${sm3_index} src/sm3_sse.c)
+endif()
+
+option(ENABLE_SM3_ARM_NEON "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" OFF)
+if (ENABLE_SM3_ARM_NEON)
+	message(STATUS "ENABLE_SM3_ARM_NEON is ON")
+	list(FIND src src/sm3.c index)
+	list(REMOVE_AT src ${index})
+	list(INSERT src ${index} src/sm3_arm_neon.c)
 endif()
 
 if (ENABLE_SM4_TBOX)
