@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -11,24 +11,11 @@
 #include <string.h>
 #include <gmssl/sm3.h>
 #include <gmssl/error.h>
+#include <gmssl/endian.h>
 
 
-#define GETU32(ptr) \
-	((uint32_t)(ptr)[0] << 24 | \
-	 (uint32_t)(ptr)[1] << 16 | \
-	 (uint32_t)(ptr)[2] <<  8 | \
-	 (uint32_t)(ptr)[3])
-
-#define PUTU32(ptr,a) \
-	((ptr)[0] = (uint8_t)((a) >> 24), \
-	 (ptr)[1] = (uint8_t)((a) >> 16), \
-	 (ptr)[2] = (uint8_t)((a) >>  8), \
-	 (ptr)[3] = (uint8_t)(a))
-
-#define ROTL(x,n)  (((x)<<(n)) | ((x)>>(32-(n))))
-
-#define P0(x) ((x) ^ ROTL((x), 9) ^ ROTL((x),17))
-#define P1(x) ((x) ^ ROTL((x),15) ^ ROTL((x),23))
+#define P0(x) ((x) ^ ROL32((x), 9) ^ ROL32((x),17))
+#define P1(x) ((x) ^ ROL32((x),15) ^ ROL32((x),23))
 
 #define FF00(x,y,z)  ((x) ^ (y) ^ (z))
 #define FF16(x,y,z)  (((x)&(y)) | ((x)&(z)) | ((y)&(z)))
@@ -86,36 +73,36 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 		}
 
 		for (; j < 68; j++) {
-			W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROTL(W[j - 3], 15))
-				^ ROTL(W[j - 13], 7) ^ W[j - 6];
+			W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROL32(W[j - 3], 15))
+				^ ROL32(W[j - 13], 7) ^ W[j - 6];
 		}
 
 		for (j = 0; j < 16; j++) {
-			SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);
-			SS2 = SS1 ^ ROTL(A, 12);
+			SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
+			SS2 = SS1 ^ ROL32(A, 12);
 			TT1 = FF00(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
 			TT2 = GG00(E, F, G) + H + SS1 + W[j];
 			D = C;
-			C = ROTL(B, 9);
+			C = ROL32(B, 9);
 			B = A;
 			A = TT1;
 			H = G;
-			G = ROTL(F, 19);
+			G = ROL32(F, 19);
 			F = E;
 			E = P0(TT2);
 		}
 
 		for (; j < 64; j++) {
-			SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);
-			SS2 = SS1 ^ ROTL(A, 12);
+			SS1 = ROL32((ROL32(A, 12) + E + K[j]), 7);
+			SS2 = SS1 ^ ROL32(A, 12);
 			TT1 = FF16(A, B, C) + D + SS2 + (W[j] ^ W[j + 4]);
 			TT2 = GG16(E, F, G) + H + SS1 + W[j];
 			D = C;
-			C = ROTL(B, 9);
+			C = ROL32(B, 9);
 			B = A;
 			A = TT1;
 			H = G;
-			G = ROTL(F, 19);
+			G = ROL32(F, 19);
 			F = E;
 			E = P0(TT2);
 		}
@@ -135,34 +122,37 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 #else
 
 #define SM3_ROUND_0(j,A,B,C,D,E,F,G,H)			\
-	SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);	\
-	SS2 = SS1 ^ ROTL(A, 12);			\
+	SS0 = ROL32(A, 12);				\
+	SS1 = ROL32(SS0 + E + K[j], 7);			\
+	SS2 = SS1 ^ SS0;				\
 	D += FF00(A, B, C) + SS2 + (W[j] ^ W[j + 4]);	\
 	SS1 += GG00(E, F, G) + H + W[j];		\
-	B = ROTL(B, 9);					\
+	B = ROL32(B, 9);				\
 	H = P0(SS1);					\
-	F = ROTL(F, 19);				\
-	W[j+16] = P1(W[j] ^ W[j+7] ^ ROTL(W[j+13], 15)) ^ ROTL(W[j+3], 7) ^ W[j+10];
+	F = ROL32(F, 19);				\
+	W[j+16] = P1(W[j] ^ W[j+7] ^ ROL32(W[j+13], 15)) ^ ROL32(W[j+3], 7) ^ W[j+10];
 
 #define SM3_ROUND_1(j,A,B,C,D,E,F,G,H)			\
-	SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);	\
-	SS2 = SS1 ^ ROTL(A, 12);			\
+	SS0 = ROL32(A, 12);				\
+	SS1 = ROL32(SS0 + E + K[j], 7);			\
+	SS2 = SS1 ^ SS0;				\
 	D += FF16(A, B, C) + SS2 + (W[j] ^ W[j + 4]);	\
 	SS1 += GG16(E, F, G) + H + W[j];		\
-	B = ROTL(B, 9);					\
+	B = ROL32(B, 9);					\
 	H = P0(SS1);					\
-	F = ROTL(F, 19);				\
-	W[j+16] = P1(W[j] ^ W[j+7] ^ ROTL(W[j+13], 15)) ^ ROTL(W[j+3], 7) ^ W[j+10];
+	F = ROL32(F, 19);				\
+	W[j+16] = P1(W[j] ^ W[j+7] ^ ROL32(W[j+13], 15)) ^ ROL32(W[j+3], 7) ^ W[j+10];
 
 
 #define SM3_ROUND_2(j,A,B,C,D,E,F,G,H)			\
-	SS1 = ROTL((ROTL(A, 12) + E + K[j]), 7);	\
-	SS2 = SS1 ^ ROTL(A, 12);			\
+	SS0 = ROL32(A, 12);				\
+	SS1 = ROL32(SS0 + E + K[j], 7);			\
+	SS2 = SS1 ^ SS0;				\
 	D += FF16(A, B, C) + SS2 + (W[j] ^ W[j + 4]);	\
 	SS1 += GG16(E, F, G) + H + W[j];		\
-	B = ROTL(B, 9);					\
+	B = ROL32(B, 9);				\
 	H = P0(SS1);					\
-	F = ROTL(F, 19);
+	F = ROL32(F, 19);
 
 void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 {
@@ -175,7 +165,7 @@ void sm3_compress_blocks(uint32_t digest[8], const uint8_t *data, size_t blocks)
 	uint32_t G;
 	uint32_t H;
 	uint32_t W[68];
-	uint32_t SS1, SS2;
+	uint32_t SS0, SS1, SS2;
 	int j;
 
 	while (blocks--) {
