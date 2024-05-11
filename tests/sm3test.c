@@ -185,6 +185,9 @@ static int test_sm3_speed(void)
 	double seconds;
 	int i;
 
+	for (i = 0; i < 4096; i++) {
+		sm3_update(&sm3_ctx, blocks, sizeof(blocks));
+	}
 	start = clock();
 	sm3_init(&sm3_ctx);
 	for (i = 0; i < 4096; i++) {
@@ -195,17 +198,17 @@ static int test_sm3_speed(void)
 
 	seconds = (double)(end - start)/CLOCKS_PER_SEC;
 
-	fprintf(stderr, "sm3 on 16-MiB : time %f seconds : %f MiB per second\n", seconds, 16/seconds);
-
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
 	return 1;
-
 }
 
 
 int main(void)
 {
 	if (test_sm3() != 1) goto err;
+#if ENABLE_TEST_SPEED
 	if (test_sm3_speed() != 1) goto err;
+#endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

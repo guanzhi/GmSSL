@@ -64,17 +64,128 @@ SOFTSDF_DEVICE *deviceHandle = NULL;
 #define FILENAME_MAX_LEN 256
 
 
-// 应该有一个初始化函数
-// 创建第一个KEK， kek-1.key，这应该就是一个明文的文件，其中是二进制的对称密钥
-// 其他的密钥是可以导入的，但是要检查不能出现重复的。
-// 也就是
+static int generate_kek(unsigned int uiKEKIndex)
+{
+	char filename[256];
+	uint8_t kek[16];
+	FILE *file;
 
+	if (rand_bytes(kek, sizeof(kek)) != 1) {
+		error_print();
+		return -1;
+	}
 
-// Create key files as a SDF device
-//	gmssl rand -bin -num 16 > kek-1.key
-//	gmssl sm2keygen -pass 123456 -out sm2sign-1.pem  -pubout sm2signpub-1.pem
-//	gmssl sm2keygen -pass 123456 -out sm2enc-1.pem  -pubout sm2encpub-1.pem
+	snprintf(filename, sizeof(filename), "kek-%u.key", uiKEKIndex);
+	if (!(file = fopen(filename, "wb"))) {
+		error_print();
+		return -1;
+	}
+	if (fwrite(kek, 1, sizeof(kek), file) != sizeof(kek)) {
+		fclose(file);
+		error_print();
+		return -1;
+	}
+	fclose(file);
 
+	return 1;
+}
+
+static int generate_sign_key(unsigned int uiKeyIndex, const char *pass)
+{
+	SM2_KEY sm2_key;
+	char filename[256];
+	FILE *file;
+
+	if (sm2_key_generate(&sm2_key) != 1) {
+		error_print();
+		return -1;
+	}
+
+	snprintf(filename, sizeof(filename), "sm2sign-%u.pem", uiKeyIndex);
+	if ((file = fopen(filename, "wb")) == NULL) {
+		fclose(file);
+		error_print();
+		return -1;
+	}
+	if (sm2_private_key_info_encrypt_to_pem(&sm2_key, pass, file) != 1) {
+		error_print();
+		return -1;
+	}
+	fclose(file);
+
+	snprintf(filename, sizeof(filename), "sm2signpub-%u.pem", uiKeyIndex);
+	if ((file = fopen(filename, "wb")) == NULL) {
+		fclose(file);
+		error_print();
+		return -1;
+	}
+	if (sm2_public_key_info_to_pem(&sm2_key, file) != 1) {
+		error_print();
+		return -1;
+	}
+	fclose(file);
+
+	return 1;
+}
+
+static int generate_enc_key(unsigned int uiKeyIndex, const char *pass)
+{
+	SM2_KEY sm2_key;
+	char filename[256];
+	FILE *file;
+
+	if (sm2_key_generate(&sm2_key) != 1) {
+		error_print();
+		return -1;
+	}
+
+	snprintf(filename, sizeof(filename), "sm2enc-%u.pem", uiKeyIndex);
+	if ((file = fopen(filename, "wb")) == NULL) {
+		fclose(file);
+		error_print();
+		return -1;
+	}
+	if (sm2_private_key_info_encrypt_to_pem(&sm2_key, pass, file) != 1) {
+		error_print();
+		return -1;
+	}
+	fclose(file);
+
+	snprintf(filename, sizeof(filename), "sm2encpub-%u.pem", uiKeyIndex);
+	if ((file = fopen(filename, "wb")) == NULL) {
+		fclose(file);
+		error_print();
+		return -1;
+	}
+	if (sm2_public_key_info_to_pem(&sm2_key, file) != 1) {
+		error_print();
+		return -1;
+	}
+	fclose(file);
+
+	return 1;
+}
+
+int softSDF_CreateDevice(unsigned char *pucPassword, unsigned int uiPwdLength)
+{
+	if (strlen((char *)pucPassword) != uiPwdLength) {
+		error_print();
+		return SDR_INARGERR;
+	}
+
+	// generate system keypairs
+	generate_sign_key(0, (char *)pucPassword);
+	generate_enc_key(0, (char *)pucPassword);
+
+	// generate user keypairs
+	generate_sign_key(1, (char *)pucPassword);
+	generate_enc_key(1, (char *)pucPassword);
+
+	// generate user KEK
+	generate_kek(1);
+
+	return SDR_OK;
+}
 
 int SDF_OpenDevice(
 	void **phDeviceHandle)
@@ -165,7 +276,6 @@ int SDF_CloseSession(
 	void *hSessionHandle)
 {
 	SOFTSDF_SESSION *current_session;
-	SOFTSDF_SESSION *next_session;
 	SOFTSDF_SESSION *prev_session;
 	SOFTSDF_CONTAINER *current_container;
 	SOFTSDF_CONTAINER *next_container;
@@ -1581,7 +1691,6 @@ int SDF_InternalVerify_ECC(
 	ECCSignature *pucSignature)
 {
 	SOFTSDF_SESSION *session;
-	SOFTSDF_CONTAINER *container;
 	char filename[FILENAME_MAX_LEN];
 	FILE *file = NULL;
 	SM2_KEY sm2_key;
@@ -2453,13 +2562,10 @@ int SDF_InternalEncrypt_ECC(
 	ECCCipher *pucEncData)
 {
 	SOFTSDF_SESSION *session;
-	SOFTSDF_CONTAINER *container;
 	char filename[FILENAME_MAX_LEN];
 	FILE *file = NULL;
 	SM2_KEY sm2_key;
 	SM2_CIPHERTEXT ciphertext;
-	size_t plaintext_len;
-	unsigned int i;
 
 	if (deviceHandle == NULL) {
 		error_print();
@@ -2540,7 +2646,6 @@ int SDF_InternalDecrypt_ECC(
 	SOFTSDF_CONTAINER *container;
 	SM2_CIPHERTEXT ciphertext;
 	size_t plaintext_len;
-	unsigned int i;
 
 	if (deviceHandle == NULL) {
 		error_print();
@@ -2618,4 +2723,16 @@ int SDF_InternalDecrypt_ECC(
 
 	*puiDataLength = (unsigned int)plaintext_len;
 	return SDR_OK;
+}
+
+int SDF_InternalPublicKeyOperation_RSA(
+	void *hSessionHandle,
+	unsigned int uiKeyIndex,
+	unsigned char *pucDataInput,
+	unsigned int uiInputLength,
+	unsigned char *pucDataOutput,
+	unsigned int *puiOutputLength)
+{
+	error_print();
+	return SDR_NOTSUPPORT;
 }

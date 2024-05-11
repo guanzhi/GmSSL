@@ -93,6 +93,7 @@ set(tools
 	tools/gmssl.c
 	tools/version.c
 	tools/sm4.c
+	tools/sm4_ctr.c
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm3xmss_keygen.c
@@ -322,6 +323,14 @@ if (ENABLE_SM3_SSE)
 	list(FIND src src/sm3.c sm3_index)
 	list(REMOVE_AT src ${sm3_index})
 	list(INSERT src ${sm3_index} src/sm3_sse.c)
+endif()
+
+option(ENABLE_SM3_ARM_NEON "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" OFF)
+if (ENABLE_SM3_ARM_NEON)
+	message(STATUS "ENABLE_SM3_ARM_NEON is ON")
+	list(FIND src src/sm3.c index)
+	list(REMOVE_AT src ${index})
+	list(INSERT src ${index} src/sm3_arm_neon.c)
 endif()
 
 if (ENABLE_SM4_TBOX)
@@ -568,15 +577,9 @@ if (ENABLE_SDF)
 		src/sdf/sdf_meth.c
 		src/sdf/sdf_ext.c
 		src/sdf/sdf_sansec.c)
+	list(APPEND tests sdf)
 	list(APPEND tools tools/sdfutil.c)
-	add_library(sdf_dummy SHARED src/sdf/sdf_dummy.c)
-	set_target_properties(sdf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
 endif()
-
-
-
-
-
 
 
 option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
@@ -627,19 +630,6 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
-
-
-option(ENABLE_SOFT_SDF "Enable Software SDF Implementation" OFF)
-if (ENABLE_SOFT_SDF)
-	message(STATUS "ENABLE_SOFT_SDF is ON")
-	list(APPEND tests soft_sdf)
-	add_library(soft_sdf SHARED src/sdf/soft_sdf.c)
-	target_link_libraries(soft_sdf PRIVATE gmssl)
-	set_target_properties(soft_sdf PROPERTIES VERSION 3.1 SOVERSION 3)
-endif()
-
-
-
 
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")

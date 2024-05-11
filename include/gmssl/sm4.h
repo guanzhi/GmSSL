@@ -71,10 +71,7 @@ void sm4_ctr32_encrypt(const SM4_KEY *key, uint8_t ctr[SM4_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen, uint8_t *out);
 
 typedef struct {
-	union {
-		SM4_KEY sm4_key;
-		void *handle;
-	};
+	SM4_KEY sm4_key;
 	uint8_t ctr[SM4_BLOCK_SIZE];
 	uint8_t block[SM4_BLOCK_SIZE];
 	size_t block_nbytes;
