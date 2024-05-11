@@ -11,6 +11,7 @@
 #include <string.h>
 #include <gmssl/sm3.h>
 #include <gmssl/error.h>
+#include <gmssl/endian.h>
 #include <immintrin.h>
 //#include <x86intrin.h>
 
@@ -34,7 +35,6 @@
 #define _mm_rotl_epi32(X,i) \
 	_mm_xor_si128(_mm_slli_epi32((X),(i)), _mm_srli_epi32((X),32-(i)))
 
-#define ROL32(x,n)  (((x)<<(n)) | ((x)>>(32-(n))))
 #define P0(x) ((x) ^ ROL32((x), 9) ^ ROL32((x),17))
 #define P1(x) ((x) ^ ROL32((x),15) ^ ROL32((x),23))
 

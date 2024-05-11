@@ -11,13 +11,8 @@
 #include <string.h>
 #include <gmssl/sm3.h>
 #include <gmssl/error.h>
+#include <gmssl/endian.h>
 
-
-#define PUTU32(ptr,a) \
-	((ptr)[0] = (uint8_t)((a) >> 24), \
-	 (ptr)[1] = (uint8_t)((a) >> 16), \
-	 (ptr)[2] = (uint8_t)((a) >>  8), \
-	 (ptr)[3] = (uint8_t)(a))
 
 void sm3_kdf_init(SM3_KDF_CTX *ctx, size_t outlen)
 {
