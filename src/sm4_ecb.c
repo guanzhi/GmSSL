@@ -32,9 +32,13 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
-	if (!ctx || !in || !out || !outlen) {
+	if (!ctx || !in || !outlen) {
 		error_print();
 		return -1;
+	}
+	if (!out) {
+		*outlen = 16 * ((inlen + 15)/16);
+		return 1;
 	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
@@ -76,6 +80,10 @@ int sm4_ecb_encrypt_finish(SM4_ECB_CTX *ctx, uint8_t *out, size_t *outlen)
 	if (!ctx || !outlen) {
 		error_print();
 		return -1;
+	}
+	if (!out) {
+		*outlen = SM4_BLOCK_SIZE; // anyway, caller should prepare a block buffer to support any length input
+		return 1;
 	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();

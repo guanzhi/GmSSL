@@ -148,9 +148,13 @@ int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 
 int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	if (!ctx || !in || !out || !outlen) {
+	if (!ctx || !in || !outlen) {
 		error_print();
 		return -1;
+	}
+	if (!out) {
+		*outlen = 16 * ((inlen + 15)/16);
+		return 1;
 	}
 	if (sm4_ctr32_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
 		error_print();
@@ -164,9 +168,13 @@ int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	uint8_t mac[16];
 
-	if (!ctx || !out || !outlen) {
+	if (!ctx || !outlen) {
 		error_print();
 		return -1;
+	}
+	if (!out) {
+		*outlen = SM4_BLOCK_SIZE * 2; // GCM output extra mac tag
+		return 1;
 	}
 	if (sm4_ctr32_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
@@ -193,9 +201,13 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 {
 	size_t len;
 
-	if (!ctx || !in || !out || !outlen) {
+	if (!ctx || !in || !outlen) {
 		error_print();
 		return -1;
+	}
+	if (!out) {
+		*outlen = 16 * ((inlen + 15)/16);
+		return 1;
 	}
 	if (ctx->maclen > ctx->taglen) {
 		error_print();
@@ -251,9 +263,13 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	uint8_t mac[GHASH_SIZE];
 
-	if (!ctx || !out || !outlen) {
+	if (!ctx || !outlen) {
 		error_print();
 		return -1;
+	}
+	if (!out) {
+		*outlen = SM4_BLOCK_SIZE;
+		return 1;
 	}
 	if (ctx->maclen != ctx->taglen) {
 		error_print();

@@ -66,6 +66,10 @@ void sm4_cfb_decrypt(const SM4_KEY *key, size_t sbytes, uint8_t iv[16],
 int sm4_cfb_encrypt_init(SM4_CFB_CTX *ctx, size_t sbytes,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
 	if (sbytes < 1 || sbytes > 16) {
 		error_print();
 		return -1;
@@ -85,6 +89,14 @@ int sm4_cfb_encrypt_update(SM4_CFB_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
+	if (!ctx || !in || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = 16 * ((inlen + 15)/16);
+		return 1;
+	}
 	if (ctx->block_nbytes >= ctx->sbytes) {
 		error_print();
 		return -1;
@@ -122,6 +134,14 @@ int sm4_cfb_encrypt_update(SM4_CFB_CTX *ctx,
 
 int sm4_cfb_encrypt_finish(SM4_CFB_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = SM4_BLOCK_SIZE;
+		return 1;
+	}
 	if (ctx->block_nbytes >= ctx->sbytes) {
 		error_print();
 		return -1;
@@ -134,6 +154,10 @@ int sm4_cfb_encrypt_finish(SM4_CFB_CTX *ctx, uint8_t *out, size_t *outlen)
 int sm4_cfb_decrypt_init(SM4_CFB_CTX *ctx, size_t sbytes,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
 	if (sbytes < 1 || sbytes > 16) {
 		error_print();
 		return -1;
@@ -153,6 +177,14 @@ int sm4_cfb_decrypt_update(SM4_CFB_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
+	if (!ctx || !in || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = 16 * ((inlen + 15)/16);
+		return 1;
+	}
 	if (ctx->block_nbytes >= ctx->sbytes) {
 		error_print();
 		return -1;
@@ -190,6 +222,14 @@ int sm4_cfb_decrypt_update(SM4_CFB_CTX *ctx,
 
 int sm4_cfb_decrypt_finish(SM4_CFB_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = SM4_BLOCK_SIZE;
+		return 1;
+	}
 	if (ctx->block_nbytes >= ctx->sbytes) {
 		error_print();
 		return -1;
@@ -198,4 +238,3 @@ int sm4_cfb_decrypt_finish(SM4_CFB_CTX *ctx, uint8_t *out, size_t *outlen)
 	*outlen = ctx->block_nbytes;
 	return 1;
 }
-

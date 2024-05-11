@@ -30,6 +30,10 @@ void sm4_ofb_encrypt(const SM4_KEY *key, uint8_t iv[16], const uint8_t *in, size
 int sm4_ofb_encrypt_init(SM4_OFB_CTX *ctx,
 	const uint8_t key[SM4_BLOCK_SIZE], const uint8_t iv[SM4_BLOCK_SIZE])
 {
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
 	sm4_set_encrypt_key(&ctx->sm4_key, key);
 	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
 	memset(ctx->block, 0, SM4_BLOCK_SIZE);
@@ -44,6 +48,14 @@ int sm4_ofb_encrypt_update(SM4_OFB_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
+	if (!ctx || !in || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = 16 * ((inlen + 15)/16);
+		return 1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
@@ -81,6 +93,14 @@ int sm4_ofb_encrypt_update(SM4_OFB_CTX *ctx,
 
 int sm4_ofb_encrypt_finish(SM4_OFB_CTX *ctx, uint8_t *out, size_t *outlen)
 {
+	if (!ctx || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = SM4_BLOCK_SIZE;
+		return 1;
+	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
