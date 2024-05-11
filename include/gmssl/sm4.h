@@ -219,8 +219,9 @@ _gmssl_export int sm4_cfb_decrypt_finish(SM4_CFB_CTX *ctx, uint8_t *out, size_t 
 #ifdef ENABLE_SM4_CCM
 #define SM4_CCM_MIN_IV_SIZE 7
 #define SM4_CCM_MAX_IV_SIZE 13
-#define SM4_CCM_MIN_MAC_SIZE 4
-#define SM4_CCM_MAX_MAC_SIZE 16
+#define SM4_CCM_MIN_TAG_SIZE 4
+#define SM4_CCM_MAX_TAG_SIZE 16
+#define SM4_CCM_DEFAULT_TAG_SIZE 16
 
 // make sure inlen < 2^((15 - ivlen) * 8)
 _gmssl_export int sm4_ccm_encrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,

@@ -17,14 +17,10 @@
 
 
 int sm4_cbc_sm3_hmac_encrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
-	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
+	const uint8_t key[48], const uint8_t iv[16],
 	const uint8_t *aad, size_t aadlen)
 {
 	if (!ctx || !key || !iv || (!aad && aadlen)) {
-		error_print();
-		return -1;
-	}
-	if (keylen != 48 || ivlen != 16) {
 		error_print();
 		return -1;
 	}
@@ -71,14 +67,10 @@ int sm4_cbc_sm3_hmac_encrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 }
 
 int sm4_cbc_sm3_hmac_decrypt_init(SM4_CBC_SM3_HMAC_CTX *ctx,
-	const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen,
+	const uint8_t key[48], const uint8_t iv[16],
 	const uint8_t *aad, size_t aadlen)
 {
 	if (!ctx || !key || !iv || (!aad && aadlen)) {
-		error_print();
-		return -1;
-	}
-	if (keylen != 48 || ivlen != 16) {
 		error_print();
 		return -1;
 	}

@@ -111,9 +111,9 @@ static int sm4_ccm_crypt(const uint8_t *key, size_t keylen, const uint8_t *iv, s
 			prog, SM4_CCM_MIN_IV_SIZE, SM4_CCM_MAX_IV_SIZE);
 		return -1;
 	}
-	if (taglen < SM4_CCM_MIN_MAC_SIZE || taglen > SM4_CCM_MAX_MAC_SIZE) {
+	if (taglen < SM4_CCM_MIN_TAG_SIZE || taglen > SM4_CCM_MAX_TAG_SIZE) {
 		fprintf(stderr, "%s: invalid SM4-CCM MAC tag length, should be in [%d, %d]\n",
-			prog, SM4_CCM_MIN_MAC_SIZE, SM4_CCM_MAX_MAC_SIZE);
+			prog, SM4_CCM_MIN_TAG_SIZE, SM4_CCM_MAX_TAG_SIZE);
 		return -1;
 	}
 	if (enc < 0) {
@@ -585,8 +585,8 @@ bad:
 		case SM4_MODE_XTS: rv = sm4_xts_encrypt_init(&sm4_ctx.xts, key, iv, xts_data_unit_size); break;
 #endif
 		case SM4_MODE_GCM: rv = sm4_gcm_encrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
+		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_encrypt_init(&sm4_ctx.cbc_sm3_hmac, key, iv, aad, aadlen); break;
+		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_encrypt_init(&sm4_ctx.ctr_sm3_hmac, key, iv, aad, aadlen); break;
 		}
 		if (rv != 1) {
 			error_print();
@@ -665,8 +665,8 @@ bad:
 		case SM4_MODE_XTS: rv = sm4_xts_decrypt_init(&sm4_ctx.xts, key, iv, xts_data_unit_size); break;
 #endif
 		case SM4_MODE_GCM: rv = sm4_gcm_decrypt_init(&sm4_ctx.gcm, key, keylen, iv, ivlen, aad, aadlen, GHASH_SIZE); break;
-		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_init(&sm4_ctx.cbc_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
-		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_init(&sm4_ctx.ctr_sm3_hmac, key, keylen, iv, ivlen, aad, aadlen); break;
+		case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_init(&sm4_ctx.cbc_sm3_hmac, key, iv, aad, aadlen); break;
+		case SM4_MODE_CTR_SM3_HMAC: rv = sm4_ctr_sm3_hmac_decrypt_init(&sm4_ctx.ctr_sm3_hmac, key, iv, aad, aadlen); break;
 		}
 		if (rv != 1) {
 			error_print();

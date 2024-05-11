@@ -93,7 +93,14 @@ set(tools
 	tools/gmssl.c
 	tools/version.c
 	tools/sm4.c
+	tools/sm4_ecb.c
+	tools/sm4_cbc.c
 	tools/sm4_ctr.c
+	tools/sm4_cfb.c
+	tools/sm4_ofb.c
+	tools/sm4_gcm.c
+	tools/sm4_cbc_sm3_hmac.c
+	tools/sm4_ctr_sm3_hmac.c
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm3xmss_keygen.c

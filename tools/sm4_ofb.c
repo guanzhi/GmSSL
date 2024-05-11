@@ -32,10 +32,10 @@ static const char *options =
 "\n"
 "Examples"
 "\n"
-"  echo \"hello\" | gmssl sm4_ctr -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
+"  echo \"hello\" | gmssl sm4_ofb -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
 "\n";
 
-int sm4_ctr_main(int argc, char **argv)
+int sm4_ofb_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -49,7 +49,7 @@ int sm4_ctr_main(int argc, char **argv)
 	size_t ivlen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM4_CTR_CTX ctx;
+	SM4_OFB_CTX ctx;
 	uint8_t buf[4096];
 	size_t inlen;
 	size_t outlen;
@@ -129,13 +129,13 @@ bad:
 		goto end;
 	}
 
-	if (sm4_ctr_encrypt_init(&ctx, key, iv) != 1) {
+	if (sm4_ofb_encrypt_init(&ctx, key, iv) != 1) {
 		error_print();
 		goto end;
 	}
 
 	while ((inlen = fread(buf, 1, sizeof(buf), infp)) > 0) {
-		if (sm4_ctr_encrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
+		if (sm4_ofb_encrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
 			error_print();
 			goto end;
 		}
@@ -145,7 +145,7 @@ bad:
 		}
 	}
 
-	if (sm4_ctr_encrypt_finish(&ctx, buf, &outlen) != 1) {
+	if (sm4_ofb_encrypt_finish(&ctx, buf, &outlen) != 1) {
 		error_print();
 		goto end;
 	}

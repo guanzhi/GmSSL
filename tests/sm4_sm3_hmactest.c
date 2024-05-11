@@ -43,7 +43,7 @@ static int test_sm4_cbc_sm3_hmac(void)
 	rand_bytes(aad, sizeof(aad));
 	rand_bytes(plain, plainlen);
 
-	if (sm4_cbc_sm3_hmac_encrypt_init(&aead_ctx, key, sizeof(key), iv, sizeof(iv), aad, sizeof(aad)) != 1) {
+	if (sm4_cbc_sm3_hmac_encrypt_init(&aead_ctx, key, iv, aad, sizeof(aad)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -100,7 +100,7 @@ static int test_sm4_cbc_sm3_hmac(void)
 	in = cipher;
 	out = buf;
 
-	if (sm4_cbc_sm3_hmac_decrypt_init(&aead_ctx, key, sizeof(key), iv, sizeof(iv), aad, sizeof(aad)) != 1) {
+	if (sm4_cbc_sm3_hmac_decrypt_init(&aead_ctx, key, iv, aad, sizeof(aad)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -162,7 +162,7 @@ static int test_sm4_ctr_sm3_hmac(void)
 	rand_bytes(aad, sizeof(aad));
 	rand_bytes(plain, plainlen);
 
-	if (sm4_ctr_sm3_hmac_encrypt_init(&aead_ctx, key, sizeof(key), iv, sizeof(iv), aad, sizeof(aad)) != 1) {
+	if (sm4_ctr_sm3_hmac_encrypt_init(&aead_ctx, key, iv, aad, sizeof(aad)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -221,7 +221,7 @@ static int test_sm4_ctr_sm3_hmac(void)
 	in = cipher;
 	out = buf;
 
-	if (sm4_ctr_sm3_hmac_decrypt_init(&aead_ctx, key, sizeof(key), iv, sizeof(iv), aad, sizeof(aad)) != 1) {
+	if (sm4_ctr_sm3_hmac_decrypt_init(&aead_ctx, key, iv, aad, sizeof(aad)) != 1) {
 		error_print();
 		return -1;
 	}

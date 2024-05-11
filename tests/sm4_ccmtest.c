@@ -31,8 +31,8 @@ static int test_sm4_ccm(void)
 	size_t len[] = { 4, 16, 36, 64 };
 	uint8_t encrypted[sizeof(plaintext)];
 	uint8_t decrypted[sizeof(plaintext)];
-	uint8_t mac[SM4_CCM_MAX_MAC_SIZE];
-	size_t maclen[] = { SM4_CCM_MIN_MAC_SIZE, SM4_CCM_MAX_MAC_SIZE };
+	uint8_t mac[SM4_CCM_MAX_TAG_SIZE];
+	size_t maclen[] = { SM4_CCM_MIN_TAG_SIZE, SM4_CCM_MAX_TAG_SIZE };
 	size_t i;
 
 	rand_bytes(key, sizeof(key));

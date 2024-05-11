@@ -36,7 +36,14 @@ extern int sm3_main(int argc, char **argv);
 extern int sm3hmac_main(int argc, char **argv);
 extern int sm3xmss_keygen_main(int argc, char **argv);
 extern int sm4_main(int argc, char **argv);
+extern int sm4_ecb_main(int argc, char **argv);
+extern int sm4_cbc_main(int argc, char **argv);
 extern int sm4_ctr_main(int argc, char **argv);
+extern int sm4_cfb_main(int argc, char **argv);
+extern int sm4_ofb_main(int argc, char **argv);
+extern int sm4_gcm_main(int argc, char **argv);
+extern int sm4_cbc_sm3_hmac_main(int argc, char **argv);
+extern int sm4_ctr_sm3_hmac_main(int argc, char **argv);
 extern int zuc_main(int argc, char **argv);
 extern int sm9setup_main(int argc, char **argv);
 extern int sm9keygen_main(int argc, char **argv);
@@ -67,55 +74,62 @@ static const char *options =
 	"command -help\n"
 	"\n"
 	"Commands:\n"
-	"  help            Print this help message\n"
-	"  version         Print version\n"
-	"  rand            Generate random bytes\n"
-	"  sm2keygen       Generate SM2 keypair\n"
-	"  sm2sign         Generate SM2 signature\n"
-	"  sm2verify       Verify SM2 signature\n"
-	"  sm2encrypt      Encrypt with SM2 public key\n"
-	"  sm2decrypt      Decrypt with SM2 private key\n"
-	"  sm3             Generate SM3 hash\n"
-	"  sm3hmac         Generate SM3 HMAC tag\n"
-	"  sm3xmss_keygen  Generate SM3-XMSS keypair\n"
-	"  sm4             Encrypt or decrypt with SM4\n"
-	"  sm4_ctr         Encrypt or decrypt with SM4 CTR\n"
-	"  zuc             Encrypt or decrypt with ZUC\n"
-	"  sm9setup        Generate SM9 master secret\n"
-	"  sm9keygen       Generate SM9 private key\n"
-	"  sm9sign         Generate SM9 signature\n"
-	"  sm9verify       Verify SM9 signature\n"
-	"  sm9encrypt      SM9 public key encryption\n"
-	"  sm9decrypt      SM9 decryption\n"
-	"  pbkdf2          Generate key from password\n"
-	"  reqgen          Generate certificate signing request (CSR)\n"
-	"  reqsign         Generate certificate from CSR\n"
-	"  reqparse        Parse and print a CSR\n"
-	"  crlget          Download the CRL of given certificate\n"
-	"  crlgen          Sign a CRL with CA certificate and private key\n"
-	"  crlverify       Verify a CRL with issuer's certificate\n"
-	"  crlparse        Parse and print CRL\n"
-	"  certgen         Generate a self-signed certificate\n"
-	"  certparse       Parse and print certificates\n"
-	"  certverify      Verify certificate chain\n"
-	"  certrevoke      Revoke certificate and output RevokedCertificate record\n"
-	"  cmsparse        Parse CMS (cryptographic message syntax) file\n"
-	"  cmsencrypt      Generate CMS EnvelopedData\n"
-	"  cmsdecrypt      Decrypt CMS EnvelopedData\n"
-	"  cmssign         Generate CMS SignedData\n"
-	"  cmsverify       Verify CMS SignedData\n"
+	"  help              Print this help message\n"
+	"  version           Print version\n"
+	"  rand              Generate random bytes\n"
+	"  sm2keygen         Generate SM2 keypair\n"
+	"  sm2sign           Generate SM2 signature\n"
+	"  sm2verify         Verify SM2 signature\n"
+	"  sm2encrypt        Encrypt with SM2 public key\n"
+	"  sm2decrypt        Decrypt with SM2 private key\n"
+	"  sm3               Generate SM3 hash\n"
+	"  sm3hmac           Generate SM3 HMAC tag\n"
+	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
+	"  sm4               Encrypt or decrypt with SM4\n"
+	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
+	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
+	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
+	"  sm4_cfb           Encrypt or decrypt with SM4 CFB\n"
+	"  sm4_ofb           Encrypt or decrypt with SM4 OFB\n"
+	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
+	"  sm4_cbc_sm3_hmac  Encrypt or decrypt with SM4 CBC with SM3-HMAC\n"
+	"  sm4_ctr_sm3_hmac  Encrypt or decrypt with SM4 CTR with SM3-HMAC\n"
+	"  zuc               Encrypt or decrypt with ZUC\n"
+	"  sm9setup          Generate SM9 master secret\n"
+	"  sm9keygen         Generate SM9 private key\n"
+	"  sm9sign           Generate SM9 signature\n"
+	"  sm9verify         Verify SM9 signature\n"
+	"  sm9encrypt        SM9 public key encryption\n"
+	"  sm9decrypt        SM9 decryption\n"
+	"  pbkdf2            Generate key from password\n"
+	"  reqgen            Generate certificate signing request (CSR)\n"
+	"  reqsign           Generate certificate from CSR\n"
+	"  reqparse          Parse and print a CSR\n"
+	"  crlget            Download the CRL of given certificate\n"
+	"  crlgen            Sign a CRL with CA certificate and private key\n"
+	"  crlverify         Verify a CRL with issuer's certificate\n"
+	"  crlparse          Parse and print CRL\n"
+	"  certgen           Generate a self-signed certificate\n"
+	"  certparse         Parse and print certificates\n"
+	"  certverify        Verify certificate chain\n"
+	"  certrevoke        Revoke certificate and output RevokedCertificate record\n"
+	"  cmsparse          Parse CMS (cryptographic message syntax) file\n"
+	"  cmsencrypt        Generate CMS EnvelopedData\n"
+	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
+	"  cmssign           Generate CMS SignedData\n"
+	"  cmsverify         Verify CMS SignedData\n"
 #ifdef ENABLE_SDF
-	"  sdfutil         SDF crypto device utility\n"
+	"  sdfutil           SDF crypto device utility\n"
 #endif
 #ifdef ENABLE_SKF
-	"  skfutil         SKF crypto device utility\n"
+	"  skfutil           SKF crypto device utility\n"
 #endif
-	"  tlcp_client     TLCP client\n"
-	"  tlcp_server     TLCP server\n"
-	"  tls12_client    TLS 1.2 client\n"
-	"  tls12_server    TLS 1.2 server\n"
-	"  tls13_client    TLS 1.3 client\n"
-	"  tls13_server    TLS 1.3 server\n"
+	"  tlcp_client       TLCP client\n"
+	"  tlcp_server       TLCP server\n"
+	"  tls12_client      TLS 1.2 client\n"
+	"  tls12_server      TLS 1.2 server\n"
+	"  tls13_client      TLS 1.3 client\n"
+	"  tls13_server      TLS 1.3 server\n"
 	"\n"
 	"run `gmssl <command> -help` to print help of the given command\n"
 	"\n";
@@ -184,8 +198,22 @@ int main(int argc, char **argv)
 			return sm3xmss_keygen_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4")) {
 			return sm4_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_ecb")) {
+			return sm4_ecb_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_cbc")) {
+			return sm4_cbc_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4_ctr")) {
 			return sm4_ctr_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_cfb")) {
+			return sm4_cfb_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_ofb")) {
+			return sm4_ofb_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_gcm")) {
+			return sm4_gcm_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_cbc_sm3_hmac")) {
+			return sm4_cbc_sm3_hmac_main(argc, argv);
+		} else if (!strcmp(*argv, "sm4_ctr_sm3_hmac")) {
+			return sm4_ctr_sm3_hmac_main(argc, argv);
 		} else if (!strcmp(*argv, "zuc")) {
 			return zuc_main(argc, argv);
 		} else if (!strcmp(*argv, "sm9setup")) {
