@@ -15,11 +15,11 @@ option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 
 
 
-option(ENABLE_SM2_ARM64 "Enable SM2_Z256 ARMv8 assembly" ON)
-option(ENABLE_SM3_ARM64 "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" ON)
+option(ENABLE_SM2_ARM64 "Enable SM2_Z256 ARMv8 assembly" OFF)
+option(ENABLE_SM3_ARM64 "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" OFF)
 option(ENABLE_SM4_ARM64 "Enable SM4 AARCH64 assembly implementation" OFF)
-option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" ON)
-option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" ON)
+option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" OFF)
+option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
 
 option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
