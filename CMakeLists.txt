@@ -25,8 +25,7 @@ option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
 
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
-option(ENABLE_SM4_CL "Enable SM4 OpenCL" ON)
-
+option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
 
 
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
