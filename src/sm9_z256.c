@@ -414,7 +414,7 @@ int sm9_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm9_z256
 }
 
 
-#ifndef ENABLE_SM9_Z256_ARMV8
+#ifndef ENABLE_SM9_ARM64
 void sm9_z256_modp_add(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 {
 	uint64_t c;
@@ -487,7 +487,7 @@ const uint64_t SM9_Z256_P_PRIME[4] = {
 };
 
 
-#if defined(ENABLE_SM9_Z256_ARMV8)
+#if defined(ENABLE_SM9_ARM64)
 	// src/sm9_z256_armv8.S
 #elif defined(ENABLE_SM9_Z256_NEON)
 #include <arm_neon.h>
@@ -681,10 +681,10 @@ void sm9_z256_modp_mont_mul(uint64_t r[4], const uint64_t a[4], const uint64_t b
 		(void)sm9_z256_sub(r, r, SM9_Z256_P);
 	}
 }
-#endif // ENABLE_SM9_Z256_ARMV8
+#endif // ENABLE_SM9_ARM64
 
 
-#ifndef ENABLE_SM9_Z256_ARMV8
+#ifndef ENABLE_SM9_ARM64
 void sm9_z256_modp_to_mont(sm9_z256_t r, const sm9_z256_t a)
 {
 	sm9_z256_modp_mont_mul(r, a, SM9_Z256_MODP_2e512);

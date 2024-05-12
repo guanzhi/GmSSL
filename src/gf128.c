@@ -95,7 +95,7 @@ void gf128_add(gf128_t r, const gf128_t a, const gf128_t b)
 	r[1] = a[1] ^ b[1];
 }
 
-#ifndef ENABLE_GMUL_AARCH64
+#ifndef ENABLE_GMUL_ARM64
 void gf128_mul(gf128_t r, const gf128_t a, const gf128_t b)
 {
 	const uint64_t mask = (uint64_t)1 << 63;

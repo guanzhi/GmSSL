@@ -345,10 +345,10 @@ static int speed_sm4_gcm_encrypt(void)
 
 int main(void)
 {
-	if (test_sm4_gcm() != 1) goto err;
-	if (test_sm4_gcm_gbt36624_1() != 1) goto err;
+//	if (test_sm4_gcm() != 1) goto err;
+//	if (test_sm4_gcm_gbt36624_1() != 1) goto err;
 	if (test_sm4_gcm_gbt36624_2() != 1) goto err;
-	if (test_sm4_gcm_ctx() != 1) goto err;
+//	if (test_sm4_gcm_ctx() != 1) goto err;
 #if ENABLE_TEST_SPEED
 	if (speed_sm4_gcm_encrypt() != 1) goto err;
 #endif

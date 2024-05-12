@@ -198,16 +198,22 @@ int main(int argc, char **argv)
 			return sm3xmss_keygen_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4")) {
 			return sm4_main(argc, argv);
+#if ENABLE_SM4_ECB
 		} else if (!strcmp(*argv, "sm4_ecb")) {
 			return sm4_ecb_main(argc, argv);
+#endif
 		} else if (!strcmp(*argv, "sm4_cbc")) {
 			return sm4_cbc_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4_ctr")) {
 			return sm4_ctr_main(argc, argv);
+#if ENABLE_SM4_CFB
 		} else if (!strcmp(*argv, "sm4_cfb")) {
 			return sm4_cfb_main(argc, argv);
+#endif
+#if ENABLE_SM4_OFB
 		} else if (!strcmp(*argv, "sm4_ofb")) {
 			return sm4_ofb_main(argc, argv);
+#endif
 		} else if (!strcmp(*argv, "sm4_gcm")) {
 			return sm4_gcm_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4_cbc_sm3_hmac")) {

@@ -11,21 +11,51 @@ include_directories(include)
 
 add_compile_options(-O3)
 
-option(ENABLE_TEST_SPEED "Enable test speed" ON)
+option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 
-option(ENABLE_SM4_TBOX "Enable SM4 merged S-Box implementation" ON)
-option(ENABLE_SM4_AARCH64 "Enable SM4 AARCH64 assembly implementation" OFF)
+
+
+option(ENABLE_SM2_ARM64 "Enable SM2_Z256 ARMv8 assembly" ON)
+option(ENABLE_SM3_ARM64 "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" ON)
+option(ENABLE_SM4_ARM64 "Enable SM4 AARCH64 assembly implementation" OFF)
+option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" ON)
+option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" ON)
+
+
+option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
+
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
-option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
+option(ENABLE_SM4_CL "Enable SM4 OpenCL" ON)
 
-option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
-option(ENABLE_SM4_OFB "Enable SM4 OFB mode" OFF)
-option(ENABLE_SM4_CFB "Enable SM4 CFB mode" OFF)
-option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
-option(ENABLE_SM4_CCM "Enable SM4 CCM mode" OFF)
+
+
+option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
+option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
+
+option(ENABLE_SM4_ECB "Enable SM4 ECB mode" ON)
+option(ENABLE_SM4_OFB "Enable SM4 OFB mode" ON)
+option(ENABLE_SM4_CFB "Enable SM4 CFB mode" ON)
+option(ENABLE_SM4_CCM "Enable SM4 CCM mode" ON)
+option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
+option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
+
+option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
+option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" ON)
+
+option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
+
+option(ENABLE_SHA1 "Enable SHA1" ON)
+option(ENABLE_SHA2 "Enable SHA2" ON)
+option(ENABLE_AES "Enable AES" ON)
+option(ENABLE_CHACHA20 "Enable Chacha20" ON)
+
+option(ENABLE_SKF "Enable SKF module" OFF)
+option(ENABLE_SDF "Enable SDF module" ON)
+option(ENABLE_CRYPTO_SDF "Enable SDF as default crypto implementation" OFF)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
-option(ENABLE_GMUL_AARCH64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
+
+option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
 
 
@@ -93,11 +123,8 @@ set(tools
 	tools/gmssl.c
 	tools/version.c
 	tools/sm4.c
-	tools/sm4_ecb.c
 	tools/sm4_cbc.c
 	tools/sm4_ctr.c
-	tools/sm4_cfb.c
-	tools/sm4_ofb.c
 	tools/sm4_gcm.c
 	tools/sm4_cbc_sm3_hmac.c
 	tools/sm4_ctr_sm3_hmac.c
@@ -180,88 +207,25 @@ set(tests
 	tls13
 )
 
-set(demos
-	asn1_oid_from_der_demo
-	asn1_oid_to_der_demo
-	base64_demo
-	http_get_demo
-	password_to_key_demo
-	pem_from_der_demo
-	pem_to_der_demo
-	rand_demo
-	sdf_info_demo
-	sdf_rand_demo
-	sdf_sign_demo
-	#sm2_ciphertext_to_der_demo
-	sm2_ecdh_demo
-	sm2_encrypt_demo
-	sm2_encrypt_fixlen_demo
-	sm2_id_demo
-	sm2_keygen_demo
-	sm2_keyparse_demo
-	sm2_point_demo
-	sm2_point_from_bin_demo
-	sm2_point_from_hash_demo
-	sm2_point_from_octets_demo
-	sm2_point_to_bin_demo
-	sm2_point_to_octets_demo
-	sm2_private_key_demo
-	sm2_private_key_parse_demo
-	sm2_public_key_demo
-	sm2_sig_from_bin_demo
-	#sm2_sig_from_der_demo
-	sm2_sig_to_der_demo
-	sm2_sign_ctx_demo
-	sm2_sign_ctx_fixlen_demo
-	sm2_sign_demo
-	#sm2_sign_digest_demo
-	sm3_ctx_demo
-	sm3_ctx_stdin_demo
-	sm3_demo
-	sm3_hmac_ctx_demo
-	sm3_hmac_demo
-	sm4_cbc_ctx_decrypt_stdin_demo
-	sm4_cbc_ctx_encrypt_stdin_demo
-	sm4_cbc_demo
-	sm4_cbc_padding_demo
-	sm4_cbc_sm3_hmac_demo
-	sm4_consts_demo
-	sm4_ctr_demo
-	sm4_ctr_encrypt_update_demo
-	sm4_ctr_sm3_hmac_demo
-	sm4_demo
-	sm4_ecb_demo
-	sm4_gcm_ctx_demo
-	sm4_gcm_demo
-	sm4_key_demo
-	sm9_encrypt_demo
-	sm9_keygen_demo
-	sm9_sign_demo
-	#tlcp_get_demo
-	#tlcp_post_demo
-	version_demo
-	x509_cert_check_demo
-	x509_cert_parse_demo
-	x509_cert_print_demo
-	x509_cert_verify_demo
-	x509_crl_download_demo
-	#x509_crl_find_revoked_cert_demo
-	x509_crl_print_demo
-	#x509_crl_verify_demo
-	zuc_demo
-	zuc_encrypt_stdin_demo
-)
+
+
 
 include(CheckSymbolExists)
 
-# when an option has been enabled, `cmake ..` will not refresh the value
-# use `cmake .. -DENABLE_XXX=OFF` to disable the option
+
+option(ENABLE_SMALL_FOOTPRINT "Enable small code size" OFF)
+if (ENABLE_SMALL_FOOTPRINT)
+	message(STATUS "ENABLE_SMALL_FOOTPRINT is ON")
+	add_definitions(-DENABLE_SMALL_FOOTPRINT)
+endif()
+
 
 
 if (ENABLE_TEST_SPEED)
 	message(STATUS "ENABLE_TEST_SPEED is ON")
 	add_definitions(-DENABLE_TEST_SPEED)
 endif()
+
 
 option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable AlgorithmIdenifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
 if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
@@ -274,57 +238,41 @@ if (ENABLE_ASM_UNDERSCORE_PREFIX)
 	add_definitions(-DENABLE_ASM_UNDERSCORE_PREFIX)
 endif()
 
-if (ENABLE_GMUL_AARCH64)
-	message(STATUS "ENABLE_GMUL_AARCH64 is ON")
-	add_definitions(-DENABLE_GMUL_AARCH64)
+if (ENABLE_GMUL_ARM64)
+	message(STATUS "ENABLE_GMUL_ARM64 is ON")
+	add_definitions(-DENABLE_GMUL_ARM64)
 	enable_language(ASM)
-	list(APPEND src src/gf128_aarch64.S)
+	list(APPEND src src/gf128_arm64.S)
 endif()
 
-option(ENABLE_SM2_Z256_ARMV8 "Enable SM2_Z256 ARMv8 assembly" OFF)
-if (ENABLE_SM2_Z256_ARMV8)
-	message(STATUS "ENABLE_SM2_Z256_ARMV8 is ON")
-	add_definitions(-DENABLE_SM2_Z256_ARMV8)
+
+
+if (ENABLE_SM2_ARM64)
+	message(STATUS "ENABLE_SM2_ARM64 is ON")
+	add_definitions(-DENABLE_SM2_ARM64)
 	enable_language(ASM)
-	list(APPEND src src/sm2_z256_armv8.S)
+	list(APPEND src src/sm2_z256_arm64.S)
 endif()
 
-option(ENABLE_SM2_NEON "Enable SM2 NEON intrinsics" OFF)
 if (ENABLE_SM2_NEON)
 	message(STATUS "ENABLE_SM2_NEON is ON")
 	add_definitions(-DENABLE_SM2_NEON)
 endif()
 
-option(ENABLE_SM9_Z256_ARMV8 "Enable SM9_Z256 ARMv8 assembly" OFF)
-if (ENABLE_SM9_Z256_ARMV8)
-	message(STATUS "ENABLE_SM9_Z256_ARMV8 is ON")
-	add_definitions(-DENABLE_SM9_Z256_ARMV8)
+if (ENABLE_SM9_ARM64)
+	message(STATUS "ENABLE_SM9_ARM64 is ON")
+	add_definitions(-DENABLE_SM9_ARM64)
 	enable_language(ASM)
-	list(APPEND src src/sm9_z256_armv8.S)
-endif()
-
-option(ENABLE_SM9_NEON "Enable SM9 NEON intrinsics" OFF)
-if (ENABLE_SM9_NEON)
-	message(STATUS "ENABLE_SM9_NEON is ON")
-	add_definitions(-DENABLE_SM9_NEON)
-endif()
-
-option(ENABLE_SM2_PRIVATE_KEY_EXPORT "Enable export un-encrypted SM2 private key" OFF)
-if (ENABLE_SM2_PRIVATE_KEY_EXPORT)
-	message(STATUS "ENABLE_SM2_PRIVATE_KEY_EXPORT is ON")
-	add_definitions(-DENABLE_SM2_PRIVATE_KEY_EXPORT)
-	list(APPEND demos sm2_key_export_demo)
+	list(APPEND src src/sm9_z256_arm64.S)
 endif()
 
 
-option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 if (ENABLE_TLS_DEBUG)
 	message(STATUS "ENABLE_TLS_DEBUG is ON")
 	add_definitions(-DENABLE_TLS_DEBUG)
 endif()
 
 
-option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
 if (ENABLE_SM3_SSE)
 	message(STATUS "ENABLE_SM3_SSE is ON")
 	list(FIND src src/sm3.c sm3_index)
@@ -332,26 +280,18 @@ if (ENABLE_SM3_SSE)
 	list(INSERT src ${sm3_index} src/sm3_sse.c)
 endif()
 
-option(ENABLE_SM3_ARM_NEON "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" OFF)
-if (ENABLE_SM3_ARM_NEON)
-	message(STATUS "ENABLE_SM3_ARM_NEON is ON")
+if (ENABLE_SM3_ARM64)
+	message(STATUS "ENABLE_SM3_ARM64 is ON")
 	list(FIND src src/sm3.c index)
 	list(REMOVE_AT src ${index})
-	list(INSERT src ${index} src/sm3_arm_neon.c)
+	list(INSERT src ${index} src/sm3_arm64.c)
 endif()
 
-if (ENABLE_SM4_TBOX)
-	message(STATUS "ENABLE_SM4_TBOX is ON")
+if (ENABLE_SM4_ARM64)
+	message(STATUS "ENABLE_SM4_ARM64 is ON")
 	list(FIND src src/sm4.c sm4_index)
 	list(REMOVE_AT src ${sm4_index})
-	list(INSERT src ${sm4_index} src/sm4_tbox.c)
-endif()
-
-if (ENABLE_SM4_AARCH64)
-	message(STATUS "ENABLE_SM4_AARCH64 is ON")
-	list(FIND src src/sm4.c sm4_index)
-	list(REMOVE_AT src ${sm4_index})
-	list(INSERT src ${sm4_index} src/sm4_aarch64.S)
+	list(INSERT src ${sm4_index} src/sm4_arm64.c)
 	enable_language(ASM)
 endif()
 
@@ -377,6 +317,7 @@ if (ENABLE_SM4_ECB)
 	message(STATUS "ENABLE_SM4_ECB is ON")
 	add_definitions(-DENABLE_SM4_ECB)
 	list(APPEND src src/sm4_ecb.c)
+	list(APPEND tools tools/sm4_ecb.c)
 	list(APPEND tests sm4_ecb)
 endif()
 
@@ -384,6 +325,7 @@ if (ENABLE_SM4_OFB)
 	message(STATUS "ENABLE_SM4_OFB is ON")
 	add_definitions(-DENABLE_SM4_OFB)
 	list(APPEND src src/sm4_ofb.c)
+	list(APPEND tools tools/sm4_ofb.c)
 	list(APPEND tests sm4_ofb)
 endif()
 
@@ -391,9 +333,9 @@ if (ENABLE_SM4_CFB)
 	message(STATUS "ENABLE_SM4_CFB is ON")
 	add_definitions(-DENABLE_SM4_CFB)
 	list(APPEND src src/sm4_cfb.c)
+	list(APPEND tools tools/sm4_cfb.c)
 	list(APPEND tests sm4_cfb)
 endif()
-
 
 if (ENABLE_SM4_CCM)
 	message(STATUS "ENABLE_SM4_CCM is ON")
@@ -403,7 +345,6 @@ if (ENABLE_SM4_CCM)
 	list(APPEND tests sm4_ccm)
 endif()
 
-option(ENABLE_SM4_XTS "Enable SM4 XTS mode" OFF)
 if (ENABLE_SM4_XTS)
 	message(STATUS "ENABLE_SM4_XTS is ON")
 	add_definitions(-DENABLE_SM4_XTS)
@@ -412,7 +353,6 @@ if (ENABLE_SM4_XTS)
 endif()
 
 
-option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 if (ENABLE_SM2_EXTS)
 	message(STATUS "ENABLE_SM4_AESNI_AVX")
 	list(APPEND src
@@ -426,7 +366,6 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
-option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" ON)
 if (ENABLE_SM3_XMSS)
 	message(STATUS "ENABLE_SM3_XMSS is ON")
 	list(APPEND src src/sm3_xmss.c)
@@ -440,28 +379,22 @@ if (ENABLE_SM3_XMSS)
 endif()
 
 
-option(ENABLE_SHA1 "Enable SHA1" OFF)
 if (ENABLE_SHA1)
 	message(STATUS "ENABLE_SHA1 is ON")
 	add_definitions(-DENABLE_SHA1)
 	list(APPEND src src/sha1.c)
 	list(APPEND tests sha1)
-	list(APPEND demos sha1_digest_demo)
 endif()
 
 
-# TODO: pbkdf, hkdf and tls13 rely on sha2
-option(ENABLE_SHA2 "Enable SHA2" ON)
 if (ENABLE_SHA2)
 	message(STATUS "ENABLE_SHA2 is ON")
 	add_definitions(-DENABLE_SHA2)
 	list(APPEND src src/sha256.c src/sha512.c)
 	list(APPEND tests sha224 sha256 sha384 sha512)
-	list(APPEND demos sha256_digest_demo sha512_digest_demo sha512_256_digest_demo)
 endif()
 
 
-option(ENABLE_AES "Enable AES" ON)
 if (ENABLE_AES)
 	message(STATUS "ENABLE_AES is ON")
 	list(APPEND src src/aes.c src/aes_modes.c)
@@ -469,17 +402,12 @@ if (ENABLE_AES)
 endif()
 
 
-option(ENABLE_CHACHA20 "Enable Chacha20" OFF)
 if (ENABLE_CHACHA20)
 	message(STATUS "ENABLE_CHACHA20 is ON")
 	list(APPEND src src/chacha20.c)
 	list(APPEND tests chacha20)
 endif()
 
-
-
-option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
-option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
 
 if (ENABLE_INTEL_RDRAND)
 	include(CheckSourceCompiles)
@@ -491,7 +419,6 @@ if (ENABLE_INTEL_RDRAND)
 		message(STATUS "ENABLE_INTEL_RDRAND")
 		add_definitions(-DENABLE_INTEL_RDRAND)
 		list(APPEND src src/rdrand.c)
-		list(APPEND demos rdrand_demo)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd")
 	endif()
 	if (ENABLE_INTEL_RDSEED)
@@ -512,11 +439,9 @@ if (ENABLE_SM4_CBC_MAC)
 	message(STATUS "ENABLE_SM4_CBC_MAC is ON")
 	list(APPEND src src/sm4_cbc_mac.c)
 	list(APPEND tests sm4_cbc_mac)
-	list(APPEND demos sm4_cbc_mac_demo)
 endif()
 
 
-option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
 if (ENABLE_GMT_0105_RNG)
 	message(STATUS "ENABLE_GMT_0105_RNG is ON")
 	list(APPEND src src/sm3_rng.c src/sm4_rng.c)
@@ -538,7 +463,6 @@ else()
 endif()
 
 
-option(ENABLE_SKF "Enable SKF module" OFF)
 if (ENABLE_SKF)
 	message(STATUS "ENABLE_SKF is ON")
 	list(APPEND src
@@ -554,7 +478,6 @@ if (ENABLE_SKF)
 endif()
 
 
-option(ENABLE_CRYPTO_SDF "Enable SDF as default crypto implementation" OFF)
 if (ENABLE_CRYPTO_SDF)
 	message(STATUS "ENABLE_CRYPTO_SDF is ON")
 	add_definitions(-DENABLE_CRYPTO_SDF)
@@ -575,7 +498,6 @@ if (ENABLE_CRYPTO_SDF)
 	list(INSERT src ${index} src/sdf/sdf_sm2_enc.c)
 endif()
 
-option(ENABLE_SDF "Enable SDF module" OFF)
 if (ENABLE_SDF)
 	message(STATUS "ENABLE_SDF is ON")
 	list(APPEND src
@@ -584,7 +506,6 @@ if (ENABLE_SDF)
 		src/sdf/sdf_meth.c
 		src/sdf/sdf_ext.c
 		src/sdf/sdf_sansec.c)
-	list(APPEND tests sdf)
 	list(APPEND tools tools/sdfutil.c)
 endif()
 
@@ -670,15 +591,6 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 #	target_compile_options(gmssl-bin PRIVATE /wd4996)
 endif()
 
-# cmake .. -DENABLE_DEMOS=ON
-option(ENABLE_DEMOS "Build demos" OFF)
-if (ENABLE_DEMOS)
-	message(STATUS "ENABLE_DEMOS is ON")
-	foreach(name ${demos})
-		add_executable(${name} demos/src/${name}.c)
-		target_link_libraries(${name} gmssl)
-	endforeach()
-endif()
 
 # Generate install package with cpack
 #	cpack -G TGZ
