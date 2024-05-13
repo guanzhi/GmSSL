@@ -10,7 +10,7 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include_directories(include)
 
 if(MSVC)
-	add_compile_options(/O2)
+	#add_compile_options(/O2) # conflict with CI /0d (not optimized)
 else()
 	add_compile_options(-O3)
 endif()
