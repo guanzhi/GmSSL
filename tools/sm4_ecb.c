@@ -21,6 +21,7 @@
 static const char *usage = "{-encrypt|-decrypt} -key hex [-in file] [-out file]";
 
 static const char *options =
+"\n"
 "Options\n"
 "\n"
 "    -encrypt            Encrypt\n"
@@ -29,9 +30,12 @@ static const char *options =
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
-"Examples"
+"Examples\n"
 "\n"
-"  echo \"hello\" | gmssl sm4_ecb -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
+"  $ TEXT=`gmssl rand -outlen 32 -hex`\n"
+"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
+"  $ echo -n $TEXT | gmssl sm4_ecb -encrypt -key $KEY -out sm4_ecb_ciphertext.bin\n"
+"  $ gmssl sm4_ecb -decrypt -key $KEY -in sm4_ecb_ciphertext.bin\n"
 "\n";
 
 int sm4_ecb_main(int argc, char **argv)
@@ -40,7 +44,6 @@ int sm4_ecb_main(int argc, char **argv)
 	char *prog = argv[0];
 	int enc = -1;
 	char *keyhex = NULL;
-	char *ivhex = NULL;
 	char *infile = NULL;
 	char *outfile = NULL;
 	uint8_t key[16];
@@ -121,10 +124,6 @@ bad:
 	}
 	if (!keyhex) {
 		fprintf(stderr, "gmssl %s: option `-key` missing\n", prog);
-		goto end;
-	}
-	if (!ivhex) {
-		fprintf(stderr, "gmssl %s: option `-iv` missing\n", prog);
 		goto end;
 	}
 

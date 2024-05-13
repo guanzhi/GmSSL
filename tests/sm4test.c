@@ -168,9 +168,8 @@ static int test_sm4_ctr32_encrypt_blocks(void)
 	sm4_set_encrypt_key(&sm4_key, key);
 	sm4_ctr32_encrypt_blocks(&sm4_key, ctr, plaintext, 4, encrypted);
 
-	format_bytes(stderr, 0, 0, "sm4_ctr32", encrypted, 64);
-
 	/*
+	// FIXME: relace the corrent ciphertext
 	if (memcmp(encrypted, ciphertext, sizeof(ciphertext)) != 0) {
 		error_print();
 		return -1;

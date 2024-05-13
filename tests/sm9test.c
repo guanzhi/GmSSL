@@ -819,7 +819,7 @@ int test_sm9_z256_exchange()
 
 	for (i = 0; i < klen; i++) {
 		if (skA[i] != skB[i]) {
-			printf("Exchange key different at byte %d\n", i);
+			printf("Exchange key different at byte %zu\n", i);
 			goto err;
 		}
 	} ++j;
@@ -827,7 +827,7 @@ int test_sm9_z256_exchange()
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 err:
-	printf("%s test %d failed\n", __FUNCTION__, j);
+	printf("%s test %zu failed\n", __FUNCTION__, j);
 	error_print();
 	return -1;
 }

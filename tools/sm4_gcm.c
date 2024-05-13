@@ -33,10 +33,14 @@ static const char *options =
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
-"Examples"
+"Examples\n"
 "\n"
-"  echo \"hello\" | gmssl sm4_gcm -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
-"  gmssl sm4_gcm -decrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -in ciphertext.bin\n"
+"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
+"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
+"  $ IV=`gmssl rand -outlen 12 -hex`\n"
+"  $ AAD=\"The AAD Data\"\n"
+"  $ echo -n $TEXT | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad $AAD -out sm4_gcm_ciphertext.bin\n"
+"  $ gmssl sm4_gcm -decrypt -key $KEY -iv $IV -in sm4_gcm_ciphertext.bin\n"
 "\n";
 
 int sm4_gcm_main(int argc, char **argv)
