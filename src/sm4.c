@@ -171,7 +171,7 @@ void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, u
 void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
-	uint8_t *piv = iv;
+	const uint8_t *piv = iv;
 
 	while (nblocks--) {
 		size_t i;
@@ -190,7 +190,7 @@ void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 void sm4_cbc_decrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
-	uint8_t *piv = iv;
+	const uint8_t *piv = iv;
 
 	while (nblocks--) {
 		size_t i;

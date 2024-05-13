@@ -21,7 +21,8 @@ static int test_sm4_cbc_mac(void)
 	SM4_KEY sm4_key;
 	SM4_CBC_MAC_CTX ctx;
 	uint8_t key[16];
-	uint8_t iv[16] = {0};
+	const uint8_t civ[16] = {0};
+	uint8_t iv[16];
 	uint8_t m[128];
 	uint8_t c[128];
 	uint8_t mac1[16];
@@ -34,6 +35,7 @@ static int test_sm4_cbc_mac(void)
 	sm4_set_encrypt_key(&sm4_key, key);
 
 	// test 1
+	memcpy(iv, civ, 16);
 	sm4_cbc_encrypt_blocks(&sm4_key, iv, m, sizeof(m)/16, c);
 	memcpy(mac1, c + sizeof(m) - 16, 16);
 
@@ -56,6 +58,7 @@ static int test_sm4_cbc_mac(void)
 
 	// test 2
 	m[sizeof(m) - 1] = 0;
+	memcpy(iv, civ, 16);
 	sm4_cbc_encrypt_blocks(&sm4_key, iv, m, sizeof(m)/16, c);
 	memcpy(mac1, c + sizeof(m) - 16, 16);
 

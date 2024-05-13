@@ -184,34 +184,42 @@ void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, u
 	}
 }
 
-void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
+	const uint8_t *piv = iv;
+
 	while (nblocks--) {
 		size_t i;
 		for (i = 0; i < 16; i++) {
-			out[i] = in[i] ^ iv[i];
+			out[i] = in[i] ^ piv[i];
 		}
 		sm4_encrypt(key, out, out);
-		iv = out;
+		piv = out;
 		in += 16;
 		out += 16;
 	}
+
+	memcpy(iv, piv, 16);
 }
 
-void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
+	const uint8_t *piv = iv;
+
 	while (nblocks--) {
 		size_t i;
 		sm4_encrypt(key, in, out);
 		for (i = 0; i < 16; i++) {
-			out[i] ^= iv[i];
+			out[i] ^= piv[i];
 		}
-		iv = in;
+		piv = in;
 		in += 16;
 		out += 16;
 	}
+
+	memcpy(iv, piv, 16);
 }
 
 static void ctr_incr(uint8_t a[16]) {
