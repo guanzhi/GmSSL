@@ -178,7 +178,6 @@ int sm2_fast_sign_pre_compute(SM2_SIGN_PRE_COMP pre_comp[32])
 int sm2_fast_sign(const sm2_z256_t fast_private, SM2_SIGN_PRE_COMP *pre_comp,
 	const uint8_t dgst[32], SM2_SIGNATURE *sig)
 {
-	SM2_Z256_POINT R;
 	sm2_z256_t e;
 	sm2_z256_t r;
 	sm2_z256_t s;
@@ -504,8 +503,6 @@ int sm2_compute_z(uint8_t z[32], const SM2_Z256_POINT *pub, const char *id, size
 
 int sm2_sign_init(SM2_SIGN_CTX *ctx, const SM2_KEY *key, const char *id, size_t idlen)
 {
-	size_t i;
-
 	if (!ctx || !key) {
 		error_print();
 		return -1;

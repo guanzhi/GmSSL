@@ -49,7 +49,7 @@ static int test_sm2_ciphertext(void)
 		}
 
 		sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&(C.point));
-		C.ciphertext_size = tests[i].ciphertext_size;
+		C.ciphertext_size = (uint8_t)tests[i].ciphertext_size;
 
 		if (sm2_ciphertext_to_der(&C, &p, &len) != 1) {
 			error_print();
@@ -176,7 +176,6 @@ static int test_sm2_encrypt_fixlen(void)
 	};
 
 	SM2_KEY sm2_key;
-	size_t point_size;
 	uint8_t plaintext[SM2_MAX_PLAINTEXT_SIZE];
 	uint8_t encrypted[SM2_MAX_CIPHERTEXT_SIZE];
 	uint8_t decrypted[SM2_MAX_PLAINTEXT_SIZE];

@@ -93,19 +93,13 @@ static int test_sm4_xts_test_vectors(void)
 	size_t key_len;
 	uint8_t iv[16];
 	size_t iv_len;
-	uint8_t *aad;
-	size_t aad_len;
-	uint8_t tag[16];
-	size_t tag_len;
 	uint8_t *plaintext;
 	size_t plaintext_len;
 	uint8_t *ciphertext;
 	size_t ciphertext_len;
 
 	uint8_t *encrypted;
-	size_t encrypted_len;
 	uint8_t *decrypted;
-	size_t decrypted_len;
 	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {

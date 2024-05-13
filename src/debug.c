@@ -59,7 +59,7 @@ int format_print(FILE *fp, int format, int indent, const char *str, ...)
 
 int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_t *data, size_t datalen)
 {
-	int i;
+	size_t i;
 
 	if (datalen > (1<<24)) {
 		error_print();

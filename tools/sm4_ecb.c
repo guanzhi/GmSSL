@@ -45,8 +45,6 @@ int sm4_ecb_main(int argc, char **argv)
 	char *outfile = NULL;
 	uint8_t key[16];
 	size_t keylen;
-	uint8_t iv[16];
-	size_t ivlen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
 	SM4_ECB_CTX ctx;
@@ -182,7 +180,6 @@ bad:
 
 end:
 	gmssl_secure_clear(key, sizeof(key));
-	gmssl_secure_clear(iv, sizeof(iv));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	gmssl_secure_clear(buf, sizeof(buf));
 	if (infile && infp) fclose(infp);

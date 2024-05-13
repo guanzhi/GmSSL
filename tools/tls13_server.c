@@ -38,7 +38,6 @@ int tls13_server_main(int argc , char **argv)
 	tls_socket_t conn_sock;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
-	tls_socklen_t client_addrlen;
 
 	argc--;
 	argv++;

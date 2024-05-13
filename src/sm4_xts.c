@@ -165,10 +165,7 @@ int sm4_xts_encrypt_update(SM4_XTS_CTX *ctx,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	size_t DATA_UNIT_SIZE = ctx->data_unit_size;
-
 	size_t left;
-	size_t nblocks;
-	size_t len;
 
 	if (ctx->block_nbytes >= DATA_UNIT_SIZE) {
 		error_print();
@@ -253,10 +250,7 @@ int sm4_xts_decrypt_update(SM4_XTS_CTX *ctx,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	size_t DATA_UNIT_SIZE = ctx->data_unit_size;
-
 	size_t left;
-	size_t nblocks;
-	size_t len;
 
 	if (ctx->block_nbytes >= DATA_UNIT_SIZE) {
 		error_print();

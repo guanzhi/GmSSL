@@ -103,9 +103,7 @@ static int test_sm4_ccm_test_vectors(void)
 
 	SM4_KEY sm4_key;
 	uint8_t *encrypted;
-	size_t encrypted_len;
 	uint8_t *decrypted;
-	size_t decrypted_len;
 	uint8_t mac[16];
 	size_t i;
 

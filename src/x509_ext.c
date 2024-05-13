@@ -1216,7 +1216,7 @@ static size_t x509_key_usages_count =
 
 const char *x509_key_usage_name(int flag)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < x509_key_usages_count; i++) {
 		if (flag & 1) {
 			if (flag >> 1) {
@@ -1233,7 +1233,7 @@ const char *x509_key_usage_name(int flag)
 
 int x509_key_usage_from_name(int *flag, const char *name)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < x509_key_usages_count; i++) {
 		if (strcmp(name, x509_key_usages[i]) == 0) {
 			*flag = 1 << i;
@@ -2527,7 +2527,7 @@ static size_t x509_revoke_reason_flags_count =
 
 const char *x509_revoke_reason_flag_name(int flag)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < x509_revoke_reason_flags_count; i++) {
 		if (flag & 1) {
 			if (flag >> 1) {
@@ -2543,7 +2543,7 @@ const char *x509_revoke_reason_flag_name(int flag)
 
 int x509_revoke_reason_flag_from_name(int *flag, const char *name)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < x509_revoke_reason_flags_count; i++) {
 		if (strcmp(name, x509_revoke_reason_flags[i]) == 0) {
 			*flag = 1 << i;

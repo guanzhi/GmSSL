@@ -799,7 +799,7 @@ int test_sm9_z256_exchange()
 	SM9_Z256_TWIST_POINT de;
 	SM9_Z256_POINT RA, RB;
 	sm9_z256_t rA;
-	int i, j = 1;
+	size_t i, j = 1;
 
 	uint8_t idA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
 	uint8_t idB[3] = {0x42, 0x6F, 0x62};

@@ -142,6 +142,11 @@ int sm2_do_encrypt_ex(const SM2_KEY *key, const SM2_ENC_PRE_COMP *pre_comp,
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 
+	if (inlen < 1 || inlen > SM2_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
+
 	// output C1
 	out->point = pre_comp->C1;
 
@@ -159,7 +164,7 @@ int sm2_do_encrypt_ex(const SM2_KEY *key, const SM2_ENC_PRE_COMP *pre_comp,
 
 	// output C2 = M xor t
 	gmssl_memxor(out->ciphertext, out->ciphertext, in, inlen);
-	out->ciphertext_size = (uint32_t)inlen;
+	out->ciphertext_size = (uint8_t)inlen;
 
 	// output C3 = Hash(x2 || m || y2)
 	sm3_init(&sm3_ctx);
@@ -182,7 +187,7 @@ int sm2_do_encrypt(const SM2_KEY *key, const uint8_t *in, size_t inlen, SM2_CIPH
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 
-	if (!(SM2_MIN_PLAINTEXT_SIZE <= inlen && inlen <= SM2_MAX_PLAINTEXT_SIZE)) {
+	if (inlen < 1 || inlen > SM2_MAX_PLAINTEXT_SIZE) {
 		error_print();
 		return -1;
 	}
@@ -214,7 +219,7 @@ retry:
 
 	// output C2 = M xor t
 	gmssl_memxor(out->ciphertext, out->ciphertext, in, inlen);
-	out->ciphertext_size = (uint32_t)inlen;
+	out->ciphertext_size = (uint8_t)inlen;
 
 	// output C3 = Hash(x2 || m || y2)
 	sm3_init(&sm3_ctx);
@@ -238,7 +243,7 @@ int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, i
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 
-	if (!(SM2_MIN_PLAINTEXT_SIZE <= inlen && inlen <= SM2_MAX_PLAINTEXT_SIZE)) {
+	if (inlen < 1 || inlen > SM2_MAX_PLAINTEXT_SIZE) {
 		error_print();
 		return -1;
 	}
@@ -295,7 +300,7 @@ retry:
 
 	// output C2 = M xor t
 	gmssl_memxor(out->ciphertext, out->ciphertext, in, inlen);
-	out->ciphertext_size = (uint32_t)inlen;
+	out->ciphertext_size = (uint8_t)inlen;
 
 	// output C3 = Hash(x2 || m || y2)
 	sm3_init(&sm3_ctx);

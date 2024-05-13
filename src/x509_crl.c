@@ -42,7 +42,7 @@ static const size_t x509_crl_reason_names_count =
 
 const char *x509_crl_reason_name(int reason)
 {
-	if (reason < 0 || reason >= x509_crl_reason_names_count) {
+	if (reason < 0 || reason >= (int)x509_crl_reason_names_count) {
 		error_print();
 		return NULL;
 	}
@@ -51,7 +51,7 @@ const char *x509_crl_reason_name(int reason)
 
 int x509_crl_reason_from_name(int *reason, const char *name)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < x509_crl_reason_names_count; i++) {
 		if (strcmp(name, x509_crl_reason_names[i]) == 0) {
 			*reason = i;
