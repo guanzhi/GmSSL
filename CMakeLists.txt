@@ -9,7 +9,11 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include_directories(include)
 
-add_compile_options(-O3)
+if(MSVC)
+	add_compile_options(/O2)
+else()
+	add_compile_options(-O3)
+endif()
 
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 
