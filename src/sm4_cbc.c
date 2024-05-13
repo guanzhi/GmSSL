@@ -13,35 +13,41 @@
 #include <gmssl/error.h>
 
 
-int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t iv[16],
+int sm4_cbc_padding_encrypt(const SM4_KEY *key, const uint8_t piv[16],
 	const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
+	uint8_t iv[16];
 	uint8_t block[16];
 	size_t rem = inlen % 16;
 	int padding = 16 - inlen % 16;
+
+	memcpy(iv, piv, 16);
 
 	if (in) {
 		memcpy(block, in + inlen - rem, rem);
 	}
 	memset(block + rem, padding, padding);
+
 	if (inlen/16) {
 		sm4_cbc_encrypt_blocks(key, iv, in, inlen/16, out);
 		out += inlen - rem;
-		iv = out - 16;
 	}
 	sm4_cbc_encrypt_blocks(key, iv, block, 1, out);
 	*outlen = inlen - rem + 16;
 	return 1;
 }
 
-int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
+int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t piv[16],
 	const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
+	uint8_t iv[16];
 	uint8_t block[16];
 	size_t len = sizeof(block);
 	int padding;
+
+	memcpy(iv, piv, 16);
 
 	if (inlen == 0) {
 		error_puts("warning: input lenght = 0");
@@ -53,8 +59,8 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t iv[16],
 	}
 	if (inlen > 16) {
 		sm4_cbc_decrypt_blocks(key, iv, in, inlen/16 - 1, out);
-		iv = in + inlen - 32;
 	}
+
 	sm4_cbc_decrypt_blocks(key, iv, in + inlen - 16, 1, block);
 
 	padding = block[15];
@@ -111,7 +117,7 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
 		sm4_cbc_encrypt_blocks(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
-		memcpy(ctx->iv, out, SM4_BLOCK_SIZE);
+		//memcpy(ctx->iv, out, SM4_BLOCK_SIZE);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -121,7 +127,7 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
 		sm4_cbc_encrypt_blocks(&ctx->sm4_key, ctx->iv, in, nblocks, out);
-		memcpy(ctx->iv, out + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
+		//memcpy(ctx->iv, out + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
 		in += len;
 		inlen -= len;
 		out += len;
@@ -197,7 +203,6 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
 		sm4_cbc_decrypt_blocks(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
-		memcpy(ctx->iv, ctx->block, SM4_BLOCK_SIZE);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -207,7 +212,6 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 		nblocks = (inlen-1) / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
 		sm4_cbc_decrypt_blocks(&ctx->sm4_key, ctx->iv, in, nblocks, out);
-		memcpy(ctx->iv, in + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
 		in += len;
 		inlen -= len;
 		out += len;

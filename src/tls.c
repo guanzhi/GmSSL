@@ -326,7 +326,7 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	SM3_HMAC_CTX hmac_ctx;
-	const uint8_t *iv;
+	uint8_t iv[16];
 	const uint8_t *padding;
 	const uint8_t *mac;
 	uint8_t header[5];
@@ -345,7 +345,7 @@ int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 		return -1;
 	}
 
-	iv = in;
+	memcpy(iv, in, 16);
 	in += 16;
 	inlen -= 16;
 

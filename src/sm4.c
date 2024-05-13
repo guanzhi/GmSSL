@@ -168,34 +168,42 @@ void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, u
 	}
 }
 
-void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
+	uint8_t *piv = iv;
+
 	while (nblocks--) {
 		size_t i;
 		for (i = 0; i < 16; i++) {
-			out[i] = in[i] ^ iv[i];
+			out[i] = in[i] ^ piv[i];
 		}
 		sm4_encrypt(key, out, out);
-		iv = out;
+		piv = out;
 		in += 16;
 		out += 16;
 	}
+
+	memcpy(iv, piv, 16);
 }
 
-void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16],
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
+	uint8_t *piv = iv;
+
 	while (nblocks--) {
 		size_t i;
 		sm4_encrypt(key, in, out);
 		for (i = 0; i < 16; i++) {
-			out[i] ^= iv[i];
+			out[i] ^= piv[i];
 		}
-		iv = in;
+		piv = in;
 		in += 16;
 		out += 16;
 	}
+
+	memcpy(iv, piv, 16);
 }
 
 static void ctr_incr(uint8_t a[16]) {
@@ -630,7 +638,7 @@ void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, u
 	}
 }
 
-void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	const uint32_t *rk = key->rk;
 	uint32_t X0, X1, X2, X3, X4;
@@ -690,9 +698,14 @@ void sm4_cbc_encrypt_blocks(const SM4_KEY *key, const uint8_t iv[16], const uint
 		in += 16;
 		out += 16;
 	}
+
+	PUTU32(iv     , X0);
+	PUTU32(iv +  4, X4);
+	PUTU32(iv +  8, X3);
+	PUTU32(iv + 12, X2);
 }
 
-void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	const uint32_t *rk = key->rk;
 	uint32_t IV0, IV1, IV2, IV3;
@@ -756,6 +769,11 @@ void sm4_cbc_decrypt_blocks(const SM4_KEY *key, const uint8_t iv[16], const uint
 		in += 16;
 		out += 16;
 	}
+
+	PUTU32(iv     , IV0);
+	PUTU32(iv +  4, IV1);
+	PUTU32(iv +  8, IV2);
+	PUTU32(iv + 12, IV3);
 }
 
 void sm4_ctr_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out)
