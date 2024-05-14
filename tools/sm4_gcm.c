@@ -40,7 +40,7 @@ static const char *options =
 "  $ IV=`gmssl rand -outlen 12 -hex`\n"
 "  $ AAD=\"The AAD Data\"\n"
 "  $ echo -n $TEXT | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad $AAD -out sm4_gcm_ciphertext.bin\n"
-"  $ gmssl sm4_gcm -decrypt -key $KEY -iv $IV -in sm4_gcm_ciphertext.bin\n"
+"  $ gmssl sm4_gcm -decrypt -key $KEY -iv $IV -aad $AAD -in sm4_gcm_ciphertext.bin\n"
 "\n";
 
 int sm4_gcm_main(int argc, char **argv)

@@ -18,9 +18,6 @@
 #include <gmssl/error.h>
 
 
-// 这个要对照sm4.c中的再修改一下
-
-
 static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex [-aad str| -aad_hex hex] [-taglen num] [-in file] [-out file]";
 
 static const char *options =
@@ -36,12 +33,15 @@ static const char *options =
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
-"Examples"
+"Examples\n"
 "\n"
-"  echo \"hello\" | gmssl sm4_ccm -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
-"  gmssl sm4_ccm -decrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -in ciphertext.bin\n"
+"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
+"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
+"  $ IV=`gmssl rand -outlen 12 -hex`\n"
+"  $ AAD=\"The AAD Data\"\n"
+"  $ echo -n $TEXT | gmssl sm4_ccm -encrypt -key $KEY -iv $IV -aad $AAD -out sm4_ccm_ciphertext.bin\n"
+"  $ gmssl sm4_ccm -decrypt -key $KEY -iv $IV -aad $AAD -in sm4_ccm_ciphertext.bin\n"
 "\n";
-
 
 static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
 {
@@ -52,7 +52,7 @@ static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
 	size_t total_read = 0;
 
 	if (!(buffer = (uint8_t *)malloc(INITIAL_BUFFER_SIZE))) {
-		fprintf(stderr, "%s: malloc failure\n", prog);
+		fprintf(stderr, "gmssl %s: malloc failure\n", prog);
 		return NULL;
 	}
 
@@ -63,7 +63,7 @@ static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
 			uint8_t *new_buffer;
 
 			if (buffer_size >= MAX_BUFFER_SIZE) {
-				fprintf(stderr, "%s: input too long, should be less than %zu\n", prog, MAX_BUFFER_SIZE);
+				fprintf(stderr, "gmssl %s: input too long, should be less than %zu\n", prog, MAX_BUFFER_SIZE);
 				free(buffer);
 				return NULL;
 			}
@@ -73,7 +73,7 @@ static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
 			}
 
 			if (!(new_buffer = (uint8_t *)realloc(buffer, buffer_size))) {
-				fprintf(stderr, "%s: realloc failure\n", prog);
+				fprintf(stderr, "gmssl %s: realloc failure\n", prog);
 				free(buffer);
 				return NULL;
 			}
@@ -88,7 +88,7 @@ static uint8_t *read_content(FILE *infp, size_t *outlen, const char *prog)
 		}
 
 		if (ferror(infp)) {
-			fprintf(stderr, "%s: fread error\n", prog);
+			fprintf(stderr, "gmssl %s: fread error\n", prog);
 			perror("error reading input");
 			free(buffer);
 			return NULL;
@@ -110,7 +110,7 @@ int sm4_ccm_main(int argc, char **argv)
 	uint8_t *aad = NULL;
 	uint8_t *aad_buf = NULL;
 	size_t aadlen = 0;
-	int taglen = SM4_CCM_DEFAULT_MAC_SIZE;
+	int taglen = SM4_CCM_DEFAULT_TAG_SIZE;
 	char *infile = NULL;
 	char *outfile = NULL;
 	uint8_t key[16];
@@ -120,9 +120,11 @@ int sm4_ccm_main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
 	SM4_KEY sm4_key;
-	uint8_t buf[4096]; // CCM不是update 模式的，因此输出可能比输入长
+	uint8_t *inbuf = NULL;
 	size_t inlen;
+	uint8_t *outbuf = NULL;
 	size_t outlen;
+	uint8_t *tag;
 
 	argc--;
 	argv++;
@@ -203,7 +205,7 @@ int sm4_ccm_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-taglen")) {
 			if (--argc < 1) goto bad;
 			taglen = atoi(*(++argv));
-			if (taglen < SM4_CCM_MIN_MAC_SIZE || taglen > SM4_CCM_MAX_MAC_SIZE) {
+			if (taglen < SM4_CCM_MIN_TAG_SIZE || taglen > SM4_CCM_MAX_TAG_SIZE) {
 				fprintf(stderr, "%s: `-taglen` invalid integer argument\n", prog);
 				goto end;
 			}
@@ -263,9 +265,10 @@ bad:
 			error_print();
 			goto end;
 		}
+
 	} else {
 		if (inlen < taglen) {
-			fprintf(stderr, "%s: input length (%zu bytes) shorter than tag length (%zu bytes)\n",
+			fprintf(stderr, "%s: input length (%zu bytes) shorter than tag length (%d bytes)\n",
 				prog, inlen, taglen);
 			goto end;
 		}
@@ -282,6 +285,7 @@ bad:
 		}
 	}
 
+
 	if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
 		fprintf(stderr, "%s: fwrite error\n", prog);
 		goto end;
@@ -292,9 +296,10 @@ bad:
 end:
 	gmssl_secure_clear(key, sizeof(key));
 	gmssl_secure_clear(iv, sizeof(iv));
-	gmssl_secure_clear(&ctx, sizeof(ctx));
-	gmssl_secure_clear(buf, sizeof(buf));
+	gmssl_secure_clear(&sm4_key, sizeof(sm4_key));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
+	if (inbuf) free(inbuf);
+	if (outbuf) free(outbuf);
 	return ret;
 }
