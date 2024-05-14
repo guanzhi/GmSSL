@@ -32,11 +32,15 @@ static const char *options =
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
-"Examples"
+"Examples\n"
 "\n"
-"  echo \"hello\" | gmssl sm4_ctr_sm3_hmac -encrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -out ciphertext.bin\n"
-"  gmssl sm4_ctr_sm3_hmac -decrypt -key 11223344556677881122334455667788 -iv 112233445566778811223344 -in ciphertext.bin\n"
+"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
+"  $ KEY=`gmssl rand -outlen 48 -hex`\n"
+"  $ IV=`gmssl rand -outlen 16 -hex`\n"
+"  $ echo -n $TEXT | gmssl sm4_ctr_sm3_hmac -encrypt -key $KEY -iv $IV -out sm4_ctr_sm3_hmac_ciphertext.bin\n"
+"  $ gmssl sm4_ctr_sm3_hmac -decrypt -key $KEY -iv $IV -in sm4_ctr_sm3_hmac_ciphertext.bin\n"
 "\n";
+
 
 int sm4_ctr_sm3_hmac_main(int argc, char **argv)
 {
