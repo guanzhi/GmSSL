@@ -18,12 +18,13 @@
 #include <gmssl/error.h>
 
 
-static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex [-in file] [-out file]";
+static const char *usage = "{-encrypt|-decrypt} -sbytes num -key hex -iv hex [-in file] [-out file]";
 
 static const char *options =
 "\n"
 "Options\n"
 "\n"
+"    -sbytes num         Parameter sbytes of CFB mode, should be 1, 8 or 16, 16 by default\n"
 "    -encrypt            Encrypt\n"
 "    -decrypt            Decrypt\n"
 "    -key hex            Symmetric key in HEX format\n"
@@ -36,8 +37,14 @@ static const char *options =
 "  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
 "  $ KEY=`gmssl rand -outlen 16 -hex`\n"
 "  $ IV=`gmssl rand -outlen 16 -hex`\n"
-"  $ echo -n $TEXT | gmssl sm4_cfb -encrypt -key $KEY -iv $IV -out sm4_cfb_ciphertext.bin\n"
-"  $ gmssl sm4_cfb -decrypt -key $KEY -iv $IV -in sm4_cfb_ciphertext.bin\n"
+"  $ echo -n $TEXT | gmssl sm4_cfb -encrypt -key $KEY -iv $IV -out sm4_cfb128_ciphertext.bin\n"
+"  $ gmssl sm4_cfb -decrypt -key $KEY -iv $IV -in sm4_cfb128_ciphertext.bin\n"
+"\n"
+"  $ echo -n $TEXT | gmssl sm4_cfb -sbytes 1 -encrypt -key $KEY -iv $IV -out sm4_cfb8_ciphertext.bin\n"
+"  $ gmssl sm4_cfb -sbytes 1 -decrypt -key $KEY -iv $IV -in sm4_cfb8_ciphertext.bin\n"
+"\n"
+"  $ echo -n $TEXT | gmssl sm4_cfb -sbytes 8 -encrypt -key $KEY -iv $IV -out sm4_cfb64_ciphertext.bin\n"
+"  $ gmssl sm4_cfb -sbytes 8 -decrypt -key $KEY -iv $IV -in sm4_cfb64_ciphertext.bin\n"
 "\n";
 
 int sm4_cfb_main(int argc, char **argv)
@@ -45,6 +52,7 @@ int sm4_cfb_main(int argc, char **argv)
 	int ret = 1;
 	char *prog = argv[0];
 	int enc = -1;
+	int sbytes = SM4_CFB_128;
 	char *keyhex = NULL;
 	char *ivhex = NULL;
 	char *infile = NULL;
@@ -86,6 +94,14 @@ int sm4_cfb_main(int argc, char **argv)
 				goto end;
 			}
 			enc = 0;
+		} else if (!strcmp(*argv, "-sbytes")) {
+			if (--argc < 1) goto bad;
+			sbytes = atoi(*(++argv));
+			if (sbytes != SM4_CFB_8 && sbytes != SM4_CFB_64 && sbytes != SM4_CFB_128) {
+				fprintf(stderr, "%s: value of `-sbytes` should be %d, %d or %d\n", prog,
+					SM4_CFB_8, SM4_CFB_64, SM4_CFB_128);
+				goto end;
+			}
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyhex = *(++argv);
@@ -148,12 +164,12 @@ bad:
 	}
 
 	if (enc) {
-		if (sm4_cfb_encrypt_init(&ctx, 16, key, iv) != 1) {
+		if (sm4_cfb_encrypt_init(&ctx, sbytes, key, iv) != 1) {
 			error_print();
 			goto end;
 		}
 	} else {
-		if (sm4_cfb_decrypt_init(&ctx, 16, key, iv) != 1) {
+		if (sm4_cfb_decrypt_init(&ctx, sbytes, key, iv) != 1) {
 			error_print();
 			goto end;
 		}

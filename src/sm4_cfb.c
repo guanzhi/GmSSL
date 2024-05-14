@@ -13,24 +13,25 @@
 #include <gmssl/error.h>
 
 
+// sm4_cfb_encrypt iv type is not compatible with sm4_cbc_encrypt, carefull if inlen % sbytes != 0
 void sm4_cfb_encrypt(const SM4_KEY *key, size_t sbytes, uint8_t iv[16],
 	const uint8_t *in, size_t inlen, uint8_t *out)
 {
 	uint8_t block[16];
 	size_t len, i;
 
-	// assert(1 <= sbytes && sbytes <= 16);
-
 	while (inlen) {
 		len = inlen < sbytes ? inlen : sbytes;
+
 		sm4_encrypt(key, iv, block);
+
 		gmssl_memxor(out, in, block, len);
 
 		// iv = (iv << sbytes) | out
 		for (i = 0; i < 16 - sbytes; i++) {
 			iv[i] = iv[sbytes + i];
 		}
-		memcpy(iv + i, out, len);
+		memcpy(iv + 16 - sbytes, out, len);
 
 		in += len;
 		out += len;
@@ -44,18 +45,19 @@ void sm4_cfb_decrypt(const SM4_KEY *key, size_t sbytes, uint8_t iv[16],
 	uint8_t block[16];
 	size_t len, i;
 
-	// assert(1 <= sbytes && sbytes <= 16);
-
 	while (inlen) {
 		len = inlen < sbytes ? inlen : sbytes;
+
 		sm4_encrypt(key, iv, block);
-		gmssl_memxor(out, in, block, len);
 
 		// iv = (iv << sbytes) | in
 		for (i = 0; i < 16 - sbytes; i++) {
 			iv[i] = iv[sbytes + i];
 		}
-		memcpy(iv + i, in, len);
+		memcpy(iv + 16 - sbytes, in, len);
+
+		// NOTE: must update before output, in might be changed if in == out
+		gmssl_memxor(out, in, block, len);
 
 		in += len;
 		out += len;
@@ -191,6 +193,8 @@ int sm4_cfb_decrypt_update(SM4_CFB_CTX *ctx,
 	}
 	*outlen = 0;
 	if (ctx->block_nbytes) {
+		error_print();
+
 		left = ctx->sbytes - ctx->block_nbytes;
 		if (inlen < left) {
 			memcpy(ctx->block + ctx->block_nbytes, in, inlen);

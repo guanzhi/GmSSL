@@ -13,6 +13,7 @@
 #include <gmssl/error.h>
 
 
+// sm4_ofb_encrypt iv type is not compatible with sm4_cbc_encrypt, careful if inlen % 16 != 0
 void sm4_ofb_encrypt(const SM4_KEY *key, uint8_t iv[16], const uint8_t *in, size_t inlen, uint8_t *out)
 {
 	size_t len;
