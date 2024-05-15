@@ -311,5 +311,3 @@ int sm4_xts_decrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen)
 	*outlen = 0;
 	return 1;
 }
-
-

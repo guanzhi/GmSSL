@@ -18,52 +18,47 @@
 #include <gmssl/error.h>
 
 
-static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex [-aad str| -aad_hex hex] [-taglen num] [-in file] [-out file]";
+static const char *usage = "{-encrypt|-decrypt} -key hex -iv hex -data_unit_size num [-in file] [-out file]";
 
 static const char *options =
 "Options\n"
 "\n"
-"    -encrypt            Encrypt\n"
-"    -decrypt            Decrypt\n"
-"    -key hex            Symmetric key in HEX format\n"
-"    -iv hex             IV in HEX format, 12 bytes (24 hex digits) is recommended\n"
-"    -aad str            Authenticated-only message\n"
-"    -aad_hex hex        Authenticated-only data in HEX format\n"
-"    -taglen num         MAC tag length, default 16 bytes\n"
-"    -in file | stdin    Input data\n"
-"    -out file | stdout  Output data\n"
+"    -encrypt              Encrypt\n"
+"    -decrypt              Decrypt\n"
+"    -key hex              Symmetric key in HEX format, 32 bytes\n"
+"    -iv hex               IV (tweak in XTS), 16 bytes\n"
+"    -data_unit_size num   Encrypted disk sector size, typically 512 or 4096 bytes\n"
+"    -in file | stdin      Input data\n"
+"    -out file | stdout    Output data\n"
 "\n"
 "Examples\n"
 "\n"
-"  $ TEXT=`gmssl rand -outlen 20 -hex`\n"
-"  $ KEY=`gmssl rand -outlen 16 -hex`\n"
-"  $ IV=`gmssl rand -outlen 12 -hex`\n"
-"  $ AAD=\"The AAD Data\"\n"
-"  $ echo -n $TEXT | gmssl sm4_gcm -encrypt -key $KEY -iv $IV -aad $AAD -out sm4_gcm_ciphertext.bin\n"
-"  $ gmssl sm4_gcm -decrypt -key $KEY -iv $IV -aad $AAD -in sm4_gcm_ciphertext.bin\n"
+"  $ DATA=`gmssl rand -outlen 2048`\n"
+"  $ KEY=`gmssl rand -outlen 32 -hex`\n"
+"  $ IV=`gmssl rand -outlen 16 -hex`\n"
+"  $ echo -n $DATA | gmssl sm4_xts -encrypt -key $KEY -iv $IV -data_unit_size 512 -out sm4_xts_ciphertext.bin\n"
+"  $ gmssl sm4_xts -decrypt -key $KEY -iv $IV -data_unit_size 512 -in sm4_xts_ciphertext.bin\n"
 "\n";
 
-int sm4_gcm_main(int argc, char **argv)
+int sm4_xts_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
 	int enc = -1;
 	char *keyhex = NULL;
 	char *ivhex = NULL;
-	uint8_t *aad = NULL;
-	uint8_t *aad_buf = NULL;
-	size_t aadlen = 0;
-	int taglen = SM4_GCM_DEFAULT_TAG_SIZE;
+	int data_unit_size = 512;
 	char *infile = NULL;
 	char *outfile = NULL;
-	uint8_t key[16];
+	uint8_t key[32];
 	size_t keylen;
-	uint8_t iv[SM4_GCM_MAX_IV_SIZE];
+	uint8_t iv[16];
 	size_t ivlen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM4_GCM_CTX ctx;
-	uint8_t buf[4096];
+	SM4_XTS_CTX ctx;
+	uint8_t *buf = NULL;
+	size_t buflen;
 	size_t inlen;
 	size_t outlen;
 
@@ -107,7 +102,7 @@ int sm4_gcm_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-iv")) {
 			if (--argc < 1) goto bad;
 			ivhex = *(++argv);
-			if (strlen(ivhex) > sizeof(iv) * 2) {
+			if (strlen(ivhex) != sizeof(iv) * 2) {
 				fprintf(stderr, "gmssl %s: invalid IV length\n", prog);
 				goto end;
 			}
@@ -115,35 +110,11 @@ int sm4_gcm_main(int argc, char **argv)
 				fprintf(stderr, "gmssl %s: invalid IV hex digits\n", prog);
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-aad")) {
+		} else if (!strcmp(*argv, "-data_unit_size")) {
 			if (--argc < 1) goto bad;
-			if (aad) {
-				fprintf(stderr, "gmssl %s: `-aad` or `aad_hex` has been specified\n", prog);
-				goto bad;
-			}
-			aad = (uint8_t *)(*(++argv));
-			aadlen = strlen((char *)aad);
-		} else if (!strcmp(*argv, "-aad_hex")) {
-			if (--argc < 1) goto bad;
-			if (aad) {
-				fprintf(stderr, "gmssl %s: `-aad` or `aad_hex` has been specified\n", prog);
-				goto bad;
-			}
-			aad = (uint8_t *)(*(++argv));
-			if (!(aad_buf = malloc(strlen((char *)aad)/2 + 1))) {
-				fprintf(stderr, "gmssl %s: malloc failure\n", prog);
-				goto end;
-			}
-			if (hex_to_bytes((char *)aad, strlen((char *)aad), aad_buf, &aadlen) != 1) {
-				fprintf(stderr, "gmssl %s: `-aad_hex` invalid HEX format argument\n", prog);
-				goto end;
-			}
-			aad = aad_buf;
-		} else if (!strcmp(*argv, "-taglen")) {
-			if (--argc < 1) goto bad;
-			taglen = atoi(*(++argv));
-			if (taglen < SM4_GCM_MIN_TAG_SIZE || taglen > SM4_GCM_MAX_TAG_SIZE) {
-				fprintf(stderr, "gmssl %s: `-taglen` invalid integer argument\n", prog);
+			data_unit_size = atoi(*(++argv));
+			if (data_unit_size < 16) {
+				fprintf(stderr, "gmssl %s: `-data_unit_size` should be larger than SM4 block size\n", prog);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-in")) {
@@ -186,25 +157,31 @@ bad:
 	}
 
 	if (enc) {
-		if (sm4_gcm_encrypt_init(&ctx, key, keylen, iv, ivlen, aad, aadlen, taglen) != 1) {
+		if (sm4_xts_encrypt_init(&ctx, key, iv, data_unit_size) != 1) {
 			error_print();
 			goto end;
 		}
 	} else {
-		if (sm4_gcm_decrypt_init(&ctx, key, keylen, iv, ivlen, aad, aadlen, taglen) != 1) {
+		if (sm4_xts_decrypt_init(&ctx, key, iv, data_unit_size) != 1) {
 			error_print();
 			goto end;
 		}
 	}
 
-	while ((inlen = fread(buf, 1, sizeof(buf), infp)) > 0) {
+	buflen = data_unit_size * 16;
+	if (!(buf = (uint8_t *)malloc(buflen))) {
+		fprintf(stderr, "gmssl %s: malloc failure\n", prog);
+		goto end;
+	}
+
+	while ((inlen = fread(buf, 1, buflen, infp)) > 0) {
 		if (enc) {
-			if (sm4_gcm_encrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
+			if (sm4_xts_encrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
 				error_print();
 				goto end;
 			}
 		} else {
-			if (sm4_gcm_decrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
+			if (sm4_xts_decrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
 				error_print();
 				goto end;
 			}
@@ -216,12 +193,12 @@ bad:
 	}
 
 	if (enc) {
-		if (sm4_gcm_encrypt_finish(&ctx, buf, &outlen) != 1) {
+		if (sm4_xts_encrypt_finish(&ctx, buf, &outlen) != 1) {
 			error_print();
 			goto end;
 		}
 	} else {
-		if (sm4_gcm_decrypt_finish(&ctx, buf, &outlen) != 1) {
+		if (sm4_xts_decrypt_finish(&ctx, buf, &outlen) != 1) {
 			error_print();
 			goto end;
 		}
@@ -231,14 +208,15 @@ bad:
 		goto end;
 	}
 
+
 	ret = 0;
 
 end:
 	gmssl_secure_clear(key, sizeof(key));
 	gmssl_secure_clear(iv, sizeof(iv));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
-	gmssl_secure_clear(buf, sizeof(buf));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
+	if (buf) free(buf);
 	return ret;
 }

@@ -43,10 +43,12 @@ extern int sm4_cfb_main(int argc, char **argv);
 extern int sm4_ofb_main(int argc, char **argv);
 extern int sm4_ccm_main(int argc, char **argv);
 extern int sm4_gcm_main(int argc, char **argv);
+extern int sm4_xts_main(int argc, char **argv);
 extern int sm4_cbc_sm3_hmac_main(int argc, char **argv);
 extern int sm4_ctr_sm3_hmac_main(int argc, char **argv);
 extern int sm4_cbc_mac_main(int argc, char **argv);
 extern int zuc_main(int argc, char **argv);
+extern int ghash_main(int argc, char **argv);
 extern int sm9setup_main(int argc, char **argv);
 extern int sm9keygen_main(int argc, char **argv);
 extern int sm9sign_main(int argc, char **argv);
@@ -95,9 +97,11 @@ static const char *options =
 	"  sm4_ofb           Encrypt or decrypt with SM4 OFB\n"
 	"  sm4_ccm           Encrypt or decrypt with SM4 CCM\n"
 	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
+	"  sm4_xts           Encrypt or decrypt with SM4 XTS\n"
 	"  sm4_cbc_sm3_hmac  Encrypt or decrypt with SM4 CBC with SM3-HMAC\n"
 	"  sm4_ctr_sm3_hmac  Encrypt or decrypt with SM4 CTR with SM3-HMAC\n"
 	"  sm4_cbc_mac       Generate SM4 CBC-MAC\n"
+	"  ghash             Generate GHASH\n"
 	"  zuc               Encrypt or decrypt with ZUC\n"
 	"  sm9setup          Generate SM9 master secret\n"
 	"  sm9keygen         Generate SM9 private key\n"
@@ -224,12 +228,20 @@ int main(int argc, char **argv)
 #endif
 		} else if (!strcmp(*argv, "sm4_gcm")) {
 			return sm4_gcm_main(argc, argv);
+#if ENABLE_SM4_XTS
+		} else if (!strcmp(*argv, "sm4_xts")) {
+			return sm4_xts_main(argc, argv);
+#endif
 		} else if (!strcmp(*argv, "sm4_cbc_sm3_hmac")) {
 			return sm4_cbc_sm3_hmac_main(argc, argv);
 		} else if (!strcmp(*argv, "sm4_ctr_sm3_hmac")) {
 			return sm4_ctr_sm3_hmac_main(argc, argv);
+		} else if (!strcmp(*argv, "ghash")) {
+			return ghash_main(argc, argv);
+#if ENABLE_SM4_CBC_MAC
 		} else if (!strcmp(*argv, "sm4_cbc_mac")) {
 			return sm4_cbc_mac_main(argc, argv);
+#endif
 		} else if (!strcmp(*argv, "zuc")) {
 			return zuc_main(argc, argv);
 		} else if (!strcmp(*argv, "sm9setup")) {

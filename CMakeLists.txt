@@ -147,6 +147,7 @@ set(tools
 	tools/sm9decrypt.c
 	tools/zuc.c
 	tools/rand.c
+	tools/ghash.c
 	tools/pbkdf2.c
 	tools/certgen.c
 	tools/certparse.c
@@ -353,6 +354,7 @@ if (ENABLE_SM4_XTS)
 	message(STATUS "ENABLE_SM4_XTS is ON")
 	add_definitions(-DENABLE_SM4_XTS)
 	list(APPEND src src/sm4_xts.c)
+	list(APPEND tools tools/sm4_xts.c)
 	list(APPEND tests sm4_xts)
 endif()
 

@@ -257,7 +257,7 @@ bad:
 	if (enc) {
 		outlen = inlen + taglen;
 		if (!(outbuf = (uint8_t *)malloc(outlen))) {
-			fprintf(stderr, "%s: malloc failure\n", prog);
+			fprintf(stderr, "gmssl %s: malloc failure\n", prog);
 			goto end;
 		}
 		tag = outbuf + inlen;
@@ -268,14 +268,14 @@ bad:
 
 	} else {
 		if (inlen < taglen) {
-			fprintf(stderr, "%s: input length (%zu bytes) shorter than tag length (%d bytes)\n",
+			fprintf(stderr, "gmssl %s: input length (%zu bytes) shorter than tag length (%d bytes)\n",
 				prog, inlen, taglen);
 			goto end;
 		}
 		outlen = inlen - taglen;
 		tag = inbuf + inlen - taglen;
 		if (!(outbuf = (uint8_t *)malloc(outlen))) {
-			fprintf(stderr, "%s: malloc failure\n", prog);
+			fprintf(stderr, "gmssl %s: malloc failure\n", prog);
 			goto end;
 		}
 		if (sm4_ccm_decrypt(&sm4_key, iv, ivlen, aad, aadlen, inbuf, inlen - taglen,

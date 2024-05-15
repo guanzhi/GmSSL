@@ -25,6 +25,7 @@ extern "C" {
 #define GHASH_SIZE		(16)
 
 
+// h = ENC_k(0^128)
 void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen,
 	const uint8_t *c, size_t clen, uint8_t out[16]);
 
