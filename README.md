@@ -85,20 +85,15 @@ GmSSL通过子项目提供多种多种编程语言绑定
 
 GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3) 项目。
 
-## Roadmap
+## ChangeLog
 
-- [X] Add Windows Visual Studio support
-- [X] Add Windows Cygwin support
-- [X] Add iOS support
-- [X] Add Android support
-- [x] **Version 3.1.0 release**
-- [ ] Add GCC specific optimization
-- [ ] Add X86_64 assembly implementation
-- [ ] Add GPU implementation
-- [ ] Add performance benchmark tool
-- [ ] Add GCM cipher suites
-- [ ] Release official open interfaces
-- [ ] **Version 3.2.0 release**
+自从3.1.1版本以来
+
+* 提升了全部国密算法的性能，并在`tests`测试程序中增加了国密算法的性能测试
+* 增加了SM4 ECB/CFB/OFB/CCM/XTS加密模式，带SM3-HMAC的SM4 CBC/CTR模式，并且在`gmssl`命令行工具中增加了所有SM4加密模式的选项
+* 在`gmssl`命令行中增加了GHASH计算的选项
+* 增加了`sdftest`正确性和兼容性测试命令，以独立子项目的形式提供了SDF的软件实现SoftSDF
+* 移除了RC4, MD5等已被攻破的密码算法
 
 ## 开发者们
 <a href="https://github.com/guanzhi/GmSSL/graphs/contributors">
