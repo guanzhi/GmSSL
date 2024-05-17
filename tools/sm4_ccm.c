@@ -267,7 +267,7 @@ bad:
 		}
 
 	} else {
-		if (inlen < taglen) {
+		if (inlen < (size_t)taglen) {
 			fprintf(stderr, "gmssl %s: input length (%zu bytes) shorter than tag length (%d bytes)\n",
 				prog, inlen, taglen);
 			goto end;

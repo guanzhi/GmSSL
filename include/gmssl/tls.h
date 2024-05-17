@@ -408,7 +408,7 @@ typedef struct {
 #define tls_record_protocol(record)	(((uint16_t)((record)[1]) << 8) | (record)[2])
 #define tls_record_data(record)		((record)+TLS_RECORD_HEADER_SIZE)
 #define tls_record_data_length(record)	(((uint16_t)((record)[3]) << 8) | (record)[4])
-#define tls_record_length(record)	(TLS_RECORD_HEADER_SIZE + tls_record_data_length(record))
+#define tls_record_length(record)	((size_t)(TLS_RECORD_HEADER_SIZE + tls_record_data_length(record)))
 
 int tls_record_set_type(uint8_t *record, int type);
 int tls_record_set_protocol(uint8_t *record, int protocol);

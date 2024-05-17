@@ -22,7 +22,7 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t ke
 	uint8_t i_key[DIGEST_MAX_BLOCK_SIZE] = {0};
 	uint8_t o_key[DIGEST_MAX_BLOCK_SIZE] = {0};
 	size_t blocksize;
-	int i;
+	size_t i;
 
 	if (!ctx || !digest || !key || !keylen) {
 		error_print();

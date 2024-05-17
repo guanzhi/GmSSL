@@ -96,7 +96,7 @@ int sm4_ccm_encrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 		if (aadlen < ((1<<16) - (1<<8))) {
 			length_to_bytes(aadlen, 2, block);
 			alen = 2;
-		} else if (aadlen < ((size_t)1<<32)) {
+		} else if ((uint64_t)aadlen < ((uint64_t)1<<32)) {
 			block[0] = 0xff;
 			block[1] = 0xfe;
 			length_to_bytes(aadlen, 4, block + 2);

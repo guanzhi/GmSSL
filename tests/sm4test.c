@@ -192,7 +192,7 @@ static int speed_sm4_encrypt(void)
 	size_t nbytes = 16 * 1024 * 1024;
 	clock_t begin, end;
 	double seconds;
-	int i;
+	size_t i;
 
 	sm4_set_encrypt_key(&sm4_key, key);
 	for (i = 0; i < nbytes/sizeof(buf); i++) {

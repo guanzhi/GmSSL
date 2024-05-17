@@ -21,294 +21,24 @@
 
 
 
-#define TEST_KEK_INDEX		1
-#define TEST_SM2_KEY_INDEX	1
-#define TEST_SM2_KEY_PASS	"123456"
+static const char *usage = "-lib so_path -kek num -key num -pass str";
+
+static const char *options =
+"\n"
+"Options\n"
+"\n"
+"    -lib so_path        Path to vendor's SDF dynamic lib (.so or .dylib)\n"
+"    -kek num            KEK index\n"
+"    -key num            Private key index\n"
+"    -pass str           Password for accessing the private key\n"
+"\n"
+"Examples\n"
+"\n"
+"  $ gmssl sdftest -lib soft_sdf.so -kek 1 -key 1 -pass P@ssw0rd\n"
+"\n";
 
 
-// TODO: move soft_sdf init functions into soft_sdf.c
-
-static int generate_kek(unsigned int uiKEKIndex)
-{
-	char filename[256];
-	uint8_t kek[16];
-	FILE *file;
-
-	if (rand_bytes(kek, sizeof(kek)) != 1) {
-		error_print();
-		return -1;
-	}
-
-	snprintf(filename, sizeof(filename), "kek-%u.key", uiKEKIndex);
-	if (!(file = fopen(filename, "wb"))) {
-		error_print();
-		return -1;
-	}
-	if (fwrite(kek, 1, sizeof(kek), file) != sizeof(kek)) {
-		fclose(file);
-		error_print();
-		return -1;
-	}
-	fclose(file);
-
-	return 1;
-}
-
-static int generate_sign_key(unsigned int uiKeyIndex, const char *pass)
-{
-	SM2_KEY sm2_key;
-	SM2_POINT point;
-
-	uint8_t data[32];
-	SM2_SIGNATURE sig;
-	char filename[256];
-	FILE *file;
-	int i;
-
-	if (sm2_key_generate(&sm2_key) != 1) {
-		error_print();
-		return -1;
-	}
-
-	sm2_key_print(stderr, 0, 0, "SDF SignKey", &sm2_key);
-
-	snprintf(filename, sizeof(filename), "sm2sign-%u.pem", uiKeyIndex);
-	if ((file = fopen(filename, "wb")) == NULL) {
-		fclose(file);
-		error_print();
-		return -1;
-	}
-	if (sm2_private_key_info_encrypt_to_pem(&sm2_key, pass, file) != 1) {
-		error_print();
-		return -1;
-	}
-	fclose(file);
-
-	snprintf(filename, sizeof(filename), "sm2signpub-%u.pem", uiKeyIndex);
-	if ((file = fopen(filename, "wb")) == NULL) {
-		fclose(file);
-		error_print();
-		return -1;
-	}
-	if (sm2_public_key_info_to_pem(&sm2_key, file) != 1) {
-		error_print();
-		return -1;
-	}
-	fclose(file);
-
-
-	// print public key as ECCrefPublicKey
-	sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&point);
-
-	printf("ECCrefPublicKey eccPublicKey = {\n");
-	printf("256,\n");
-
-	printf("{\n");
-	for (i = 0; i < 32; i++) {
-		printf("0x00,");
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	for (i = 0; i < 32; i++) {
-		printf("0x%02x,", point.x[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("},\n");
-
-	printf("{\n");
-	for (i = 0; i < 32; i++) {
-		printf("0x00,");
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	for (i = 0; i < 32; i++) {
-		printf("0x%02x,", point.y[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("},\n");
-
-	printf("};\n");
-
-
-
-	// print to be signed data
-	rand_bytes(data, sizeof(data));
-	printf("unsigned char ucData[] = {\n");
-	for (i = 0; i < sizeof(data); i++) {
-		printf("0x%02x,", data[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("};\n");
-
-	sm2_do_sign(&sm2_key, data, &sig);
-
-	// print ECCSignature
-
-	printf("ECCSignature eccSignature = {\n");
-
-	printf("{\n");
-	for (i = 0; i < 32; i++) {
-		printf("0x00,");
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	for (i = 0; i < 32; i++) {
-		printf("0x%02x,", sig.r[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("},\n");
-
-	printf("{\n");
-	for (i = 0; i < 32; i++) {
-		printf("0x00,");
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	for (i = 0; i < 32; i++) {
-		printf("0x%02x,", sig.s[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("},\n");
-
-	printf("};\n");
-
-
-	return 1;
-}
-
-static int generate_enc_key(unsigned int uiKeyIndex, const char *pass)
-{
-	SM2_KEY sm2_key;
-	char filename[256];
-	FILE *file;
-	size_t i;
-
-	if (sm2_key_generate(&sm2_key) != 1) {
-		error_print();
-		return -1;
-	}
-
-	snprintf(filename, sizeof(filename), "sm2enc-%u.pem", uiKeyIndex);
-	if ((file = fopen(filename, "wb")) == NULL) {
-		fclose(file);
-		error_print();
-		return -1;
-	}
-	if (sm2_private_key_info_encrypt_to_pem(&sm2_key, pass, file) != 1) {
-		error_print();
-		return -1;
-	}
-	fclose(file);
-
-	snprintf(filename, sizeof(filename), "sm2encpub-%u.pem", uiKeyIndex);
-	if ((file = fopen(filename, "wb")) == NULL) {
-		fclose(file);
-		error_print();
-		return -1;
-	}
-	if (sm2_public_key_info_to_pem(&sm2_key, file) != 1) {
-		error_print();
-		return -1;
-	}
-	fclose(file);
-
-	SM2_POINT point;
-
-	// print public key as ECCrefPublicKey
-	sm2_z256_point_to_bytes(&sm2_key.public_key, (uint8_t *)&point);
-
-	printf("ECCrefPublicKey eccPublicKey = {\n");
-	printf("256,\n");
-
-	printf("{\n");
-	for (i = 0; i < 32; i++) {
-		printf("0x00,");
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	for (i = 0; i < 32; i++) {
-		printf("0x%02x,", point.x[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("},\n");
-
-	printf("{\n");
-	for (i = 0; i < 32; i++) {
-		printf("0x00,");
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	for (i = 0; i < 32; i++) {
-		printf("0x%02x,", point.y[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("},\n");
-
-	printf("};\n");
-
-
-	// 准备待加密的数据
-	uint8_t data[48];
-
-	rand_bytes(data, sizeof(data));
-
-	printf("unsigned char ucData[] = {\n");
-	for (i = 0; i < sizeof(data); i++) {
-		printf("0x%02x,", data[i]);
-		printf("%s", (i + 1) % 8 ? " " : "\n");
-	}
-	printf("};\n");
-
-
-	// 现在要加密了
-	SM2_CIPHERTEXT ciphertext;
-
-	sm2_do_encrypt(&sm2_key, data, sizeof(data), &ciphertext);
-
-
-	// 打印CIPHERTEXT
-
-	printf("ECCCipher eccCipher = {\n");
-
-		printf("{\n");
-		for (i = 0; i < ECCref_MAX_LEN - 32; i++) {
-			printf("0x00,");
-			printf("%s", (i + 1) % 8 ? " " : "\n");
-		}
-		for (i = 0; i < 32; i++) {
-			printf("0x%02x,", ciphertext.point.x[i]);
-			printf("%s", (i + 1) % 8 ? " " : "\n");
-		}
-		printf("},\n");
-
-		printf("{\n");
-		for (i = 0; i < ECCref_MAX_LEN - 32; i++) {
-			printf("0x00,");
-			printf("%s", (i + 1) % 8 ? " " : "\n");
-		}
-		for (i = 0; i < 32; i++) {
-			printf("0x%02x,", ciphertext.point.y[i]);
-			printf("%s", (i + 1) % 8 ? " " : "\n");
-		}
-		printf("},\n");
-
-		printf("{\n");
-		for (i = 0; i < 32; i++) {
-			printf("0x%02x,", ciphertext.hash[i]);
-			printf("%s", (i + 1) % 8 ? " " : "\n");
-		}
-		printf("},\n");
-
-		printf("%u,\n", ciphertext.ciphertext_size);
-
-		printf("{\n");
-		for (i = 0; i < ciphertext.ciphertext_size; i++) {
-			printf("0x%02x,", ciphertext.ciphertext[i]);
-			printf("%s", (i + 1) % 8 ? " " : "\n");
-		}
-		printf("},\n");
-
-
-	printf("};\n");
-
-
-	return 1;
-}
-
+/*
 static int test_SDF_GetDeviceInfo(void)
 {
 	void *hDeviceHandle = NULL;
@@ -374,6 +104,7 @@ static int test_SDF_GetDeviceInfo(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+*/
 
 static int test_SDF_GenerateRandom(void)
 {
@@ -420,12 +151,11 @@ static int test_SDF_GenerateRandom(void)
 }
 
 // FIXME: check generated public key is not [n-1]G, i.e. -G
-int test_SDF_ExportSignPublicKey_ECC(void)
+int test_SDF_ExportSignPublicKey_ECC(int key)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
-	unsigned int uiKeyIndex = TEST_SM2_KEY_INDEX;
-	unsigned char *pucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
+	unsigned int uiKeyIndex = (unsigned int)key;
 	ECCrefPublicKey eccPublicKey;
 	uint8_t zeros[ECCref_MAX_LEN] = {0};
 	SM2_POINT point;
@@ -477,12 +207,11 @@ int test_SDF_ExportSignPublicKey_ECC(void)
 	return 1;
 }
 
-int test_SDF_ExportEncPublicKey_ECC(void)
+int test_SDF_ExportEncPublicKey_ECC(int key)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
-	unsigned int uiKeyIndex = TEST_SM2_KEY_INDEX;
-	unsigned char *pucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
+	unsigned int uiKeyIndex = (unsigned int)key;
 	ECCrefPublicKey eccPublicKey;
 	uint8_t zeros[ECCref_MAX_LEN] = {0};
 	SM2_POINT point;
@@ -532,38 +261,6 @@ int test_SDF_ExportEncPublicKey_ECC(void)
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
-}
-
-// FIXME: use format_bytes
-void printECCPublicKey(const ECCrefPublicKey *publicKey)
-{
-	int i;
-	printf("ECC Public Key:\n");
-	printf("Bits: %u\n", publicKey->bits);
-
-	printf("X: ");
-	for (int i = 0; i < ECCref_MAX_LEN; i++) {
-		printf("%02X", publicKey->x[i]);
-	}
-	printf("\n");
-
-	printf("Y: ");
-	for (i = 0; i < ECCref_MAX_LEN; i++) {
-		printf("%02X", publicKey->y[i]);
-	}
-	printf("\n");
-}
-
-void printECCPrivateKey(const ECCrefPrivateKey *eccRefPrivateKey)
-{
-	int i;
-	printf("ECC Private Key:\n");
-	printf("Bits: %u\n", eccRefPrivateKey->bits);
-	printf("K Value: ");
-	for (i = 0; i < ECCref_MAX_LEN; i++) {
-		printf("%02X", eccRefPrivateKey->K[i]);
-	}
-	printf("\n");
 }
 
 // FIXME: check generated public key is not [n-1]G, i.e. -G
@@ -852,6 +549,7 @@ static int test_SDF_ExternalEncrypt_ECC(void)
 	return 1;
 }
 
+/*
 void printECCCipher(const ECCCipher *cipher)
 {
 	printf("ECCCipher:\n");
@@ -881,6 +579,7 @@ void printECCCipher(const ECCCipher *cipher)
 	}
 	printf("\n");
 }
+*/
 
 int test_SDF_GenerateKeyWithEPK_ECC(void)
 {
@@ -949,13 +648,13 @@ int test_SDF_GenerateKeyWithEPK_ECC(void)
 	return 1;
 }
 
-int test_SDF_GenerateKeyWithKEK(void)
+int test_SDF_GenerateKeyWithKEK(int kek)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	void *hKeyHandle = NULL;
 	unsigned int uiKeyBits = 128;
-	unsigned int uiKEKIndex = TEST_KEK_INDEX;
+	unsigned int uiKEKIndex = (unsigned int)kek;
 	unsigned char ucKey[64]; // encrypted key with SGD_SM4_CBC
 	unsigned int uiKeyLength;
 	int ret;
@@ -1166,14 +865,15 @@ static int test_SDF_Hash_Z(void)
 	return 1;
 }
 
-static int test_SDF_GenerateKeyWithIPK_ECC(void)
+// 这个函数是否做的太多了？			
+static int test_SDF_GenerateKeyWithIPK_ECC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	void *hKeyHandle = NULL;
-	unsigned int uiIPKIndex = TEST_SM2_KEY_INDEX;
-	unsigned char *pucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
-	unsigned int uiPwdLength = (unsigned int)strlen((char *)pucPassword);
+	unsigned int uiIPKIndex =(unsigned int)key;
+	unsigned char *pucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
 	unsigned int uiKeyBits = 128;
 	ECCCipher eccCipher;
 	unsigned char ucIV[16];
@@ -1272,7 +972,7 @@ static int test_SDF_GenerateKeyWithIPK_ECC(void)
 	return 1;
 }
 
-static int test_SDF_Encrypt_SM4_CBC(void)
+static int test_SDF_Encrypt_SM4_CBC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
@@ -1284,9 +984,9 @@ static int test_SDF_Encrypt_SM4_CBC(void)
 	unsigned int uiEncDataLength = (unsigned int)sizeof(pucEncData);
 	unsigned char pucCiphertext[64];
 
-	unsigned int uiIPKIndex = TEST_SM2_KEY_INDEX;
-	unsigned char *pucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
-	unsigned int uiPwdLength = (unsigned int)strlen((char *)pucPassword);
+	unsigned int uiIPKIndex = (unsigned int)key;
+	unsigned char *pucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
 	ECCCipher eccCipher;
 	int ret;
 
@@ -1355,13 +1055,13 @@ static int test_SDF_Encrypt_SM4_CBC(void)
 	return 1;
 }
 
-static int test_SDF_Encrypt(void)
+static int test_SDF_Encrypt(int kek)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	void *hKeyHandle = NULL;
 	unsigned int uiKeyBits = 128;
-	unsigned int uiKEKIndex = TEST_KEK_INDEX;
+	unsigned int uiKEKIndex = (unsigned int)kek;
 	unsigned char pucKey[64];
 	unsigned int uiKeyLength = (unsigned int)sizeof(pucKey);
 	unsigned char pucIV[16];
@@ -1434,14 +1134,14 @@ static int test_SDF_Encrypt(void)
 	return 1;
 }
 
-static int test_SDF_CalculateMAC(void)
+static int test_SDF_CalculateMAC(int kek)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	void *hKeyHandle = NULL;
 	unsigned int uiHMACKeyBits = 256;
 	unsigned int uiKeyEncAlgID = SGD_SM4_CBC;
-	unsigned int uiKEKIndex = TEST_KEK_INDEX;
+	unsigned int uiKEKIndex = (unsigned int)kek;
 	unsigned char ucEncedKey[256];
 	unsigned int uiEncedKeyLength = (unsigned int)sizeof(ucEncedKey);
 	unsigned int uiMACAlgID = SGD_SM3;
@@ -1488,13 +1188,13 @@ static int test_SDF_CalculateMAC(void)
 	return 1;
 }
 
-static int test_SDF_InternalSign_ECC(void)
+static int test_SDF_InternalSign_ECC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
-	unsigned int uiIPKIndex = TEST_SM2_KEY_INDEX;
-	unsigned char *ucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
-	unsigned int uiPwdLength = (unsigned int)strlen((char *)ucPassword);
+	unsigned int uiIPKIndex = (unsigned int)key;
+	unsigned char *ucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
 	unsigned char ucData[32] = { 1,2,3,4 };
 	unsigned int uiDataLength = 32;
 	ECCSignature eccSignature;
@@ -1546,13 +1246,13 @@ static int test_SDF_InternalSign_ECC(void)
 
 }
 
-static int test_SDF_InternalEncrypt_ECC(void)
+static int test_SDF_InternalEncrypt_ECC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
-	unsigned int uiIPKIndex = TEST_SM2_KEY_INDEX;
-	unsigned char *ucPassword = (unsigned char *)TEST_SM2_KEY_PASS;
-	unsigned int uiPwdLength = (unsigned int)strlen((char *)ucPassword);
+	unsigned int uiIPKIndex = (unsigned int)key;
+	unsigned char *ucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
 	unsigned char ucData[48] = { 1,2,3,4 };
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCCipher eccCipher;
@@ -1616,49 +1316,98 @@ static int test_SDF_InternalEncrypt_ECC(void)
 	return 1;
 }
 
-int main(void)
+int sdftest_main(int argc, char **argv)
 {
-	/*
-	if (generate_kek(TEST_KEK_INDEX) != 1) {
-		error_print();
-		goto err;
-	}
-	if (generate_sign_key(TEST_SM2_KEY_INDEX, TEST_SM2_KEY_PASS) != 1) {
-		error_print();
-		goto err;
-	}
-	if (generate_enc_key(TEST_SM2_KEY_INDEX, TEST_SM2_KEY_PASS) != 1) {
-		error_print();
-		goto err;
-	}
-	*/
+	int ret = 1;
+	char *prog = argv[0];
+	char *so_path = NULL;
+	int kek = 1;
+	int key = 1;
+	char *pass = NULL;
 
-	if (SDF_LoadLibrary("libsoft_sdf.dylib", NULL) != SDR_OK) {
-		error_print();
-		goto err;
+	argc--;
+	argv++;
+
+	if (argc < 1) {
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
+		return 1;
 	}
 
-	if (test_SDF_GetDeviceInfo() != 1) goto err;
+	while (argc > 0) {
+		if (!strcmp(*argv, "-help")) {
+			printf("usage: gmssl %s %s\n", prog, usage);
+			printf("%s\n", options);
+			ret = 0;
+			goto end;
+		} else if (!strcmp(*argv, "-lib")) {
+			if (--argc < 1) goto bad;
+			so_path = *(++argv);
+		} else if (!strcmp(*argv, "-kek")) {
+			if (--argc < 1) goto bad;
+			kek = atoi(*(++argv));
+			if (kek < 1 || kek > 4096) {
+				fprintf(stderr, "gmssl %s: `-kek` invalid index\n", prog);
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-key")) {
+			if (--argc < 1) goto bad;
+			key = atoi(*(++argv));
+			if (key < 0 || key > 4096) {
+				fprintf(stderr, "gmssl %s: `-key` invalid index\n", prog);
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-pass")) {
+			if (--argc < 1) goto bad;
+			pass = *(++argv);
+		} else {
+			fprintf(stderr, "gmssl %s: illegal option `%s`\n", prog, *argv);
+			goto end;
+bad:
+			fprintf(stderr, "gmssl %s: `%s` option value missing\n", prog, *argv);
+			goto end;
+		}
+
+		argc--;
+		argv++;
+	}
+
+	if (!so_path) {
+		fprintf(stderr, "gmssl %s: option `-lib` missing\n", prog);
+		goto end;
+	}
+	if (!pass) {
+		fprintf(stderr, "gmssl %s: option `-pass` missing\n", prog);
+		goto end;
+	}
+
+	if (SDF_LoadLibrary(so_path, NULL) != SDR_OK) {
+		error_print();
+		goto err;
+	}
+
 	if (test_SDF_GenerateRandom() != 1) goto err;
 	if (test_SDF_Hash() != 1) goto err;
 	if (test_SDF_Hash_Z() != 1) goto err;
-	if (test_SDF_GenerateKeyWithKEK() != 1) goto err;
-	if (test_SDF_CalculateMAC() != 1) goto err;
-	if (test_SDF_Encrypt() != 1) goto err;
-	if (test_SDF_Encrypt_SM4_CBC() != 1) goto err;
+	if (test_SDF_GenerateKeyWithKEK(kek) != 1) goto err;
+	if (test_SDF_CalculateMAC(kek) != 1) goto err;
+	if (test_SDF_Encrypt(kek) != 1) goto err;
+	if (test_SDF_Encrypt_SM4_CBC(key, pass) != 1) goto err;
 	if (test_SDF_GenerateKeyPair_ECC() != 1) goto err;
-	if (test_SDF_ExportSignPublicKey_ECC() != 1) goto err;
-	if (test_SDF_ExportEncPublicKey_ECC() != 1) goto err;
+	if (test_SDF_ExportSignPublicKey_ECC(key) != 1) goto err;
+	if (test_SDF_ExportEncPublicKey_ECC(key) != 1) goto err;
 	if (test_SDF_GenerateKeyWithEPK_ECC() != 1) goto err;
-	if (test_SDF_GenerateKeyWithIPK_ECC() != 1) goto err;
+	if (test_SDF_GenerateKeyWithIPK_ECC(key, pass) != 1) goto err;
 	if (test_SDF_ExternalVerify_ECC() != 1) goto err;
 	if (test_SDF_ExternalEncrypt_ECC() != 1) goto err; //FIXME: test this before any ECCCipher used
-	if (test_SDF_InternalSign_ECC() != 1) goto err;
-	if (test_SDF_InternalEncrypt_ECC() != 1) goto err;
+	if (test_SDF_InternalSign_ECC(key, pass) != 1) goto err;
+	if (test_SDF_InternalEncrypt_ECC(key, pass) != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
+
 err:
 	error_print();
 	return 1;
+end:
+	return ret;
 }

@@ -69,7 +69,6 @@ int tlcp_client_main(int argc, char *argv[])
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
-	size_t sentlen;
 	int read_stdin = 1;
 
 	argc--;

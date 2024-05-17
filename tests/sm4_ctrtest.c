@@ -87,9 +87,7 @@ static int test_sm4_ctr_test_vectors(void)
 
 	SM4_KEY sm4_key;
 	uint8_t *encrypted;
-	size_t encrypted_len;
 	uint8_t *decrypted;
-	size_t decrypted_len;
 	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {

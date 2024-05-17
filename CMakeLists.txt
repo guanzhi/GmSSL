@@ -133,6 +133,7 @@ set(tools
 	tools/sm4_ctr_sm3_hmac.c
 	tools/sm3.c
 	tools/sm3hmac.c
+	tools/sm3_pbkdf2.c
 	tools/sm3xmss_keygen.c
 	tools/sm2keygen.c
 	tools/sm2sign.c
@@ -148,7 +149,6 @@ set(tools
 	tools/zuc.c
 	tools/rand.c
 	tools/ghash.c
-	tools/pbkdf2.c
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c
@@ -507,13 +507,14 @@ endif()
 
 if (ENABLE_SDF)
 	message(STATUS "ENABLE_SDF is ON")
+	add_definitions(-DENABLE_SDF)
 	list(APPEND src
 		src/sdf/sdf.c
 		src/sdf/sdf_lib.c
 		src/sdf/sdf_meth.c
 		src/sdf/sdf_ext.c
 		src/sdf/sdf_sansec.c)
-	list(APPEND tools tools/sdfutil.c)
+	list(APPEND tools tools/sdfutil.c tools/sdftest.c)
 endif()
 
 

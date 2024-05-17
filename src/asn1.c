@@ -191,7 +191,7 @@ int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen)
 
 	} else {
 		uint8_t buf[4] = {0};
-		int nbytes  = *(*in)++ & 0x7f;
+		size_t nbytes  = *(*in)++ & 0x7f;
 		(*inlen)--;
 
 		if (nbytes < 1 || nbytes > 4) {

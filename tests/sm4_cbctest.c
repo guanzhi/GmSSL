@@ -87,7 +87,6 @@ static int test_sm4_cbc_test_vectors(void)
 	uint8_t *ciphertext;
 	size_t ciphertext_len;
 	uint8_t *encrypted;
-	size_t encrypted_len;
 	size_t i;
 
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {

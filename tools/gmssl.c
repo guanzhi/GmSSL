@@ -23,7 +23,6 @@ extern int crlget_main(int argc, char **argv);
 extern int crlgen_main(int argc, char **argv);
 extern int crlparse_main(int argc, char **argv);
 extern int crlverify_main(int argc, char **argv);
-extern int pbkdf2_main(int argc, char **argv);
 extern int reqgen_main(int argc, char **argv);
 extern int reqparse_main(int argc, char **argv);
 extern int reqsign_main(int argc, char **argv);
@@ -34,8 +33,8 @@ extern int sm2encrypt_main(int argc, char **argv);
 extern int sm2decrypt_main(int argc, char **argv);
 extern int sm3_main(int argc, char **argv);
 extern int sm3hmac_main(int argc, char **argv);
+extern int sm3_pbkdf2_main(int argc, char **argv);
 extern int sm3xmss_keygen_main(int argc, char **argv);
-extern int sm4_main(int argc, char **argv);
 extern int sm4_ecb_main(int argc, char **argv);
 extern int sm4_cbc_main(int argc, char **argv);
 extern int sm4_ctr_main(int argc, char **argv);
@@ -68,6 +67,7 @@ extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
 #ifdef ENABLE_SDF
 extern int sdfutil_main(int argc, char **argv);
+extern int sdftest_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_SKF
 extern int skfutil_main(int argc, char **argv);
@@ -88,8 +88,8 @@ static const char *options =
 	"  sm2decrypt        Decrypt with SM2 private key\n"
 	"  sm3               Generate SM3 hash\n"
 	"  sm3hmac           Generate SM3 HMAC tag\n"
+	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
 	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
-	"  sm4               Encrypt or decrypt with SM4\n"
 	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
 	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
 	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
@@ -109,7 +109,6 @@ static const char *options =
 	"  sm9verify         Verify SM9 signature\n"
 	"  sm9encrypt        SM9 public key encryption\n"
 	"  sm9decrypt        SM9 decryption\n"
-	"  pbkdf2            Generate key from password\n"
 	"  reqgen            Generate certificate signing request (CSR)\n"
 	"  reqsign           Generate certificate from CSR\n"
 	"  reqparse          Parse and print a CSR\n"
@@ -128,6 +127,7 @@ static const char *options =
 	"  cmsverify         Verify CMS SignedData\n"
 #ifdef ENABLE_SDF
 	"  sdfutil           SDF crypto device utility\n"
+	"  sdftest           Test vendor's SDF library and device\n"
 #endif
 #ifdef ENABLE_SKF
 	"  skfutil           SKF crypto device utility\n"
@@ -186,8 +186,6 @@ int main(int argc, char **argv)
 			return reqparse_main(argc, argv);
 		} else if (!strcmp(*argv, "reqsign")) {
 			return reqsign_main(argc, argv);
-		} else if (!strcmp(*argv, "pbkdf2")) {
-			return pbkdf2_main(argc, argv);
 		} else if (!strcmp(*argv, "sm2keygen")) {
 			return sm2keygen_main(argc, argv);
 		} else if (!strcmp(*argv, "sm2sign")) {
@@ -202,10 +200,10 @@ int main(int argc, char **argv)
 			return sm3_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3hmac")) {
 			return sm3hmac_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3_pbkdf2")) {
+			return sm3_pbkdf2_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3xmss_keygen")) {
 			return sm3xmss_keygen_main(argc, argv);
-		} else if (!strcmp(*argv, "sm4")) {
-			return sm4_main(argc, argv);
 #if ENABLE_SM4_ECB
 		} else if (!strcmp(*argv, "sm4_ecb")) {
 			return sm4_ecb_main(argc, argv);
@@ -281,6 +279,8 @@ int main(int argc, char **argv)
 #ifdef ENABLE_SDF
 		} else if (!strcmp(*argv, "sdfutil")) {
 			return sdfutil_main(argc, argv);
+		} else if (!strcmp(*argv, "sdftest")) {
+			return sdftest_main(argc, argv);
 #endif
 #ifdef ENABLE_SKF
 		} else if (!strcmp(*argv, "skfutil")) {

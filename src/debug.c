@@ -66,7 +66,7 @@ int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_
 		return -1;
 	}
 
-	for (i = 0; i < indent; i++) {
+	for (i = 0; i < (size_t)indent; i++) {
 		fprintf(fp, " ");
 	}
 	fprintf(fp, "%s: ", str);
