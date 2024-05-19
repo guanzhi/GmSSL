@@ -85,7 +85,7 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 
 	if (!fgets(line, sizeof(line), fp)) {
 		if (feof(fp)) {
-			error_print();
+			//error_print();
 			return 0;
 		} else {
 			error_print();
@@ -95,8 +95,8 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 	remove_newline(line);
 
 	if (strcmp(line, begin_line) != 0) {
-		fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, line);
-		fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, begin_line);
+		//fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, line);
+		//fprintf(stderr, "%s %d: %s\n", __FILE__, __LINE__, begin_line);
 		error_print();
 		return -1;
 	}
