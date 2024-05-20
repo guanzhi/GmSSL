@@ -271,7 +271,8 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 {
 	SM3_HMAC_CTX hmac_ctx;
 	uint8_t last_blocks[32 + 16] = {0};
-	uint8_t *mac, *padding, *iv;
+	uint8_t iv[16];
+	uint8_t *mac, *padding;
 	int rem, padding_len;
 	int i;
 
@@ -304,17 +305,16 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 		padding[i] = (uint8_t)padding_len;
 	}
 
-	iv = out;
 	if (rand_bytes(iv, 16) != 1) {
 		error_print();
 		return -1;
 	}
+	memcpy(out, iv, 16);
 	out += 16;
 
 	if (inlen >= 16) {
 		sm4_cbc_encrypt_blocks(enc_key, iv, in, inlen/16, out);
 		out += inlen - rem;
-		iv = out - 16;
 	}
 	sm4_cbc_encrypt_blocks(enc_key, iv, last_blocks, sizeof(last_blocks)/16, out);
 	*outlen = 16 + inlen - rem + sizeof(last_blocks);
