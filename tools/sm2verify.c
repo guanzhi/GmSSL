@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,7 +16,25 @@
 #include <gmssl/x509.h>
 
 
-static const char *options = "(-pubkey pem | -cert pem) [-id str] [-in file] -sig file";
+static const char *usage = "(-pubkey pem | -cert pem) [-id str] [-in file] -sig file";
+
+static const char *options =
+"\n"
+"Options\n"
+"\n"
+"    -pubkey pem         Signer's public key file in PEM format\n"
+"    -cert pem           Signer's certificate in PEM format\n"
+"    -id str             Signer's identity string, '1234567812345678' by default\n"
+"    -in file | stdin    Signed file or data\n"
+"    -sig file           Signature in binary DER encoding\n"
+"\n"
+"Examples\n"
+"\n"
+"    $ gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem\n"
+"    $ echo -n 'message to be signed' | gmssl sm2sign -key sm2.pem -pass P@ssw0rd -out sm2.sig\n"
+"    $ echo -n 'message to be signed' | gmssl sm2verify -pubkey sm2pub.pem -sig sm2.sig\n"
+"\n";
+
 
 int sm2verify_main(int argc, char **argv)
 {
@@ -45,35 +63,36 @@ int sm2verify_main(int argc, char **argv)
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, options);
+			printf("usage: gmssl %s %s\n", prog, usage);
+			printf("%s\n", options);
 			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-pubkey")) {
 			if (certfile) {
-				fprintf(stderr, "%s: options '-pubkey' '-cert' conflict\n", prog);
+				fprintf(stderr, "gmssl %s: options '-pubkey' '-cert' conflict\n", prog);
 				goto end;
 			}
 			if (--argc < 1) goto bad;
 			pubkeyfile = *(++argv);
 			if (!(pubkeyfp = fopen(pubkeyfile, "rb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-cert")) {
 			if (pubkeyfile) {
-				fprintf(stderr, "%s: options '-pubkey' '-cert' conflict\n", prog);
+				fprintf(stderr, "gmssl %s: options '-pubkey' '-cert' conflict\n", prog);
 				goto end;
 			}
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
 			if (!(certfp = fopen(certfile, "rb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-id")) {
@@ -83,22 +102,22 @@ int sm2verify_main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
 			if (!(infp = fopen(infile, "rb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-sig")) {
 			if (--argc < 1) goto bad;
 			sigfile = *(++argv);
 			if (!(sigfp = fopen(sigfile, "rb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, sigfile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, sigfile, strerror(errno));
 				goto end;
 			}
 
 		} else {
-			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
 			goto end;
 bad:
-			fprintf(stderr, "%s: '%s' option value missing\n", prog, *argv);
+			fprintf(stderr, "gmssl %s: '%s' option value missing\n", prog, *argv);
 			goto end;
 		}
 
@@ -107,43 +126,43 @@ bad:
 	}
 
 	if (!sigfile) {
-		fprintf(stderr, "%s: '-sig' option required\n", prog);
+		fprintf(stderr, "gmssl %s: '-sig' option required\n", prog);
 		goto end;
 	}
 	if ((siglen = fread(sig, 1, sizeof(sig), sigfp)) <= 0) {
-		fprintf(stderr, "%s: read signature error : %s\n", prog, strerror(errno));
+		fprintf(stderr, "gmssl %s: read signature error : %s\n", prog, strerror(errno));
 		goto end;
 	}
 
 	if (pubkeyfile) {
 		if (sm2_public_key_info_from_pem(&key, pubkeyfp) != 1) {
-			fprintf(stderr, "%s: parse public key failed\n", prog);
+			fprintf(stderr, "gmssl %s: parse public key failed\n", prog);
 			goto end;
 		}
 	} else if (certfile) {
 		if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1
 			|| x509_cert_get_subject_public_key(cert, certlen, &key) != 1) {
-			fprintf(stderr, "%s: parse certificate failed\n", prog);
+			fprintf(stderr, "gmssl %s: parse certificate failed\n", prog);
 			goto end;
 		}
 	} else {
-		fprintf(stderr, "%s: '-pubkey' or '-cert' option required\n", prog);
+		fprintf(stderr, "gmssl %s: '-pubkey' or '-cert' option required\n", prog);
 		goto end;
 	}
 
 
 	if (sm2_verify_init(&verify_ctx, &key, id, strlen(id)) != 1) {
-		fprintf(stderr, "%s: inner error\n", prog);
+		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}
 	while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 		if (sm2_verify_update(&verify_ctx, buf, len) != 1) {
-			fprintf(stderr, "%s: inner error\n", prog);
+			fprintf(stderr, "gmssl %s: inner error\n", prog);
 			goto end;
 		}
 	}
 	if ((vr = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
-		fprintf(stderr, "%s: inner error\n", prog);
+		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}
 

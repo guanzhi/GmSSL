@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -20,9 +20,15 @@ static const char *usage = "-pass str [-out pem] [-pubout pem]\n";
 
 static const char *options =
 "Options\n"
+"\n"
 "    -pass pass                  Password to encrypt the private key\n"
 "    -out pem                    Output password-encrypted PKCS #8 private key in PEM format\n"
 "    -pubout pem                 Output public key in PEM format\n"
+"\n"
+"Examples\n"
+"\n"
+"    $ gmssl sm2keygen -pass P@ssw0rd -out sm2.pem\n"
+"    $ gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem\n"
 "\n";
 
 int sm2keygen_main(int argc, char **argv)
@@ -40,13 +46,13 @@ int sm2keygen_main(int argc, char **argv)
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, usage);
+			printf("usage: gmssl %s %s\n", prog, usage);
 			printf("%s\n", options);
 			ret = 0;
 			goto end;
@@ -57,21 +63,21 @@ int sm2keygen_main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			outfile = *(++argv);
 			if (!(outfp = fopen(outfile, "wb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-pubout")) {
 			if (--argc < 1) goto bad;
 			puboutfile = *(++argv);
 			if (!(puboutfp = fopen(puboutfile, "wb"))) {
-				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
 		} else {
-			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
 			goto end;
 bad:
-			fprintf(stderr, "%s: `%s` option value missing\n", prog, *argv);
+			fprintf(stderr, "gmssl %s: `%s` option value missing\n", prog, *argv);
 			goto end;
 		}
 
@@ -80,14 +86,14 @@ bad:
 	}
 
 	if (!pass) {
-		fprintf(stderr, "%s: `-pass` option required\n", prog);
+		fprintf(stderr, "gmssl %s: `-pass` option required\n", prog);
 		goto end;
 	}
 
 	if (sm2_key_generate(&key) != 1
 		|| sm2_private_key_info_encrypt_to_pem(&key, pass, outfp) != 1
 		|| sm2_public_key_info_to_pem(&key, puboutfp) != 1) {
-		fprintf(stderr, "%s: inner failure\n", prog);
+		fprintf(stderr, "gmssl %s: inner failure\n", prog);
 		goto end;
 	}
 	ret = 0;
