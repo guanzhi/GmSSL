@@ -338,7 +338,7 @@ int sm2_z256_get_booth(const sm2_z256_t a, unsigned int window_size, int i)
 	int n, j;
 
 	if (i == 0) {
-		return ((a[0] << 1) & mask) - (a[0] & mask);
+		return (int)((a[0] << 1) & mask) - (int)(a[0] & mask);
 	}
 
 	j = i * window_size - 1;
@@ -1459,8 +1459,6 @@ void sm2_z256_point_mul(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_PO
 
 int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P)
 {
-	uint8_t affine[64];
-
 	if (sm2_z256_point_is_at_infinity(P) == 1) {
 		format_print(fp, fmt, ind, "%s: point_at_infinity\n", label);
 	} else {
