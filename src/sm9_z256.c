@@ -2864,15 +2864,15 @@ void sm9_z256_fp12_line_mul(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm
 {
 	sm9_z256_fp4_t r0, r1, r2;
 	sm9_z256_fp2_t t;
-	
+
 	sm9_z256_fp4_t lw4;
 	sm9_z256_fp2_copy(lw4[0], lw[0]);
 	sm9_z256_fp2_copy(lw4[1], lw[2]);
-	
+
 	sm9_z256_fp4_mul(r0, a[0], lw4);
 	sm9_z256_fp4_mul(r1, a[1], lw4);
 	sm9_z256_fp4_mul(r2, a[2], lw4);
-	
+
 	sm9_z256_fp2_mul  (t, a[0][0], lw[1]);
 	sm9_z256_fp2_add  (r2[0], r2[0], t);
 	sm9_z256_fp2_mul  (t, a[0][1], lw[1]);
@@ -2885,7 +2885,7 @@ void sm9_z256_fp12_line_mul(sm9_z256_fp12_t r, const sm9_z256_fp12_t a, const sm
 	sm9_z256_fp2_add  (r1[1], r1[1], t);
 	sm9_z256_fp2_mul_u(t, a[2][1], lw[1]);
 	sm9_z256_fp2_add  (r1[0], r1[0], t);
-	
+
 	sm9_z256_fp4_copy(r[0], r0);
 	sm9_z256_fp4_copy(r[1], r1);
 	sm9_z256_fp4_copy(r[2], r2);
@@ -2898,18 +2898,18 @@ void sm9_z256_pairing(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM
 	SM9_Z256_TWIST_POINT T;
 	SM9_Z256_TWIST_POINT Q1;
 	SM9_Z256_TWIST_POINT Q2;
-	
+	SM9_Z256_AFFINE_POINT P_;
+	sm9_z256_fp2_t lw[3];
+	sm9_z256_fp2_t pre[5]; // same for Q and -Q
+	size_t i;
+
 	sm9_z256_fp2_copy(T.X, Q->X);
 	sm9_z256_fp2_copy(T.Y, Q->Y);
 	sm9_z256_fp2_copy(T.Z, Q->Z);
-	
-	SM9_Z256_AFFINE_POINT P_;
+
 	sm9_z256_point_to_affine(&P_, P);
 	sm9_z256_twist_point_neg(&Q1, Q);
-	
-	sm9_z256_fp2_t lw[3];
-	sm9_z256_fp2_t pre[5]; // same for Q and -Q
-	
+
 	sm9_z256_fp2_sqr(pre[0], Q->Y);
 	sm9_z256_fp2_mul(pre[4], Q->X, Q->Z);
 	sm9_z256_fp2_dbl(pre[4], pre[4]);
@@ -2923,7 +2923,6 @@ void sm9_z256_pairing(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM
 
 	sm9_z256_fp12_set_one(r);
 
-	int i;
 	for (i = 0; i < strlen(abits); i++) {
 		sm9_z256_fp12_sqr(r, r);
 		sm9_z256_eval_g_tangent(&T, lw, &T, &P_);
@@ -2948,7 +2947,7 @@ void sm9_z256_pairing(sm9_z256_fp12_t r, const SM9_Z256_TWIST_POINT *Q, const SM
 
 	sm9_z256_eval_g_line_no_pre(&T, lw, &T, &Q2, &P_);
 	sm9_z256_fp12_line_mul(r, r, lw);
-	
+
 	sm9_z256_final_exponent(r, r);
 }
 

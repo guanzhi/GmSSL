@@ -63,7 +63,7 @@ static void adrs_set_tree_index(uint8_t adrs[32], uint32_t index) {
 }
 
 static void adrs_set_key_and_mask(uint8_t adrs[32], uint8_t key_and_mask) {
-	uint32_to_bytes(key_and_mask, adrs + 4*7);
+	uint32_to_bytes((uint32_t)key_and_mask, adrs + 4*7);
 }
 
 /*
@@ -327,7 +327,7 @@ static void build_ltree(const hash256_bytes_t in_pk[67],
 	adrs_set_tree_height(adrs, tree_height++);
 
 	while (len > 1) {
-		for (i = 0; i < len/2; i++) {
+		for (i = 0; i < (uint32_t)len/2; i++) {
 			adrs_set_tree_index(adrs, i);
 			randomized_hash(pk[2 * i], pk[2 * i + 1], prf_seed_ctx, adrs, pk[i]);
 		}
@@ -382,8 +382,7 @@ void sm3_xmss_derive_root(const uint8_t xmss_secret[32], int height,
 
 	// generate all the wots pk[]
 	for (i = 0; i < (1<<height); i++) {
-		HASH256_CTX prf_ctx = prf_keygen_ctx;
-		uint8_t wots_secret[32];
+		//HASH256_CTX prf_ctx = prf_keygen_ctx;
 		hash256_bytes_t wots_sk[67];
 		hash256_bytes_t wots_pk[67];
 
@@ -612,7 +611,7 @@ int sm3_xmss_key_from_bytes(SM3_XMSS_KEY *key, const uint8_t *in, size_t inlen)
 	memcpy(key->prf_key, p, 32); p += 32;
 
 	key->index = uint32_from_bytes(p); p += 4;
-	if (key->index >= (1 << height)) {
+	if (key->index >= (uint32_t)(1 << height)) {
 		error_print();
 		return -1;
 	}
