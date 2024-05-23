@@ -1847,7 +1847,7 @@ int sm9_z256_point_equ(const SM9_Z256_POINT *P, const SM9_Z256_POINT *Q)
 	sm9_z256_modp_mont_mul(t2, t2, Q->Z);
 	sm9_z256_modp_mont_mul(t3, P->Y, t2);
 	sm9_z256_modp_mont_mul(t4, Q->Y, t1);
-	return sm9_z256_equ(t3, t4);
+	return (int)sm9_z256_equ(t3, t4);
 }
 
 int sm9_z256_point_is_on_curve(const SM9_Z256_POINT *P)
@@ -2001,7 +2001,7 @@ void sm9_z256_point_mul(SM9_Z256_POINT *R, const sm9_z256_t k, const SM9_Z256_PO
 	uint64_t window_size = 5;
 	SM9_Z256_POINT T[16];
 	int R_infinity = 1;
-	int n = (256 + window_size - 1)/window_size;
+	int n = (int)(256 + window_size - 1)/window_size;
 	int i;
 
 	// T[i] = (i + 1) * P
@@ -2111,7 +2111,7 @@ void sm9_z256_point_mul_generator(SM9_Z256_POINT *R, const sm9_z256_t k)
 {
 	size_t window_size = 7;
 	int R_infinity = 1;
-	int n = (256 + window_size - 1) / window_size;
+	int n = (int)(256 + window_size - 1) / window_size;
 	int i;
 
 	for (i = n - 1; i >= 0; i--) {
@@ -3014,7 +3014,6 @@ static const uint64_t SM9_Z256_N_BARRETT_MU[5] = {
 
 void sm9_z256_modn_mul(sm9_z256_t r, const sm9_z256_t a, const sm9_z256_t b)
 {
-	sm9_z256_t x, y;
 	uint64_t z[8], h[10], s[8];
 	uint64_t t, c = 0;
 
