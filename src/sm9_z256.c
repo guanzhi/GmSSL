@@ -350,10 +350,10 @@ int sm9_z256_get_booth(const uint64_t a[4], uint64_t window_size, int i)
 	int n, j;
 
 	if (i == 0) {
-		return ((a[0] << 1) & mask) - (a[0] & mask);
+		return (int)((a[0] << 1) & mask) - (int)(a[0] & mask);
 	}
 
-	j = i * window_size - 1;
+	j = i * (int)window_size - 1;
 	n = j / 64;
 	j = j % 64;
 
@@ -361,7 +361,7 @@ int sm9_z256_get_booth(const uint64_t a[4], uint64_t window_size, int i)
 	if ((64 - j) < (window_size + 1) && n < 3) {
 		wbits |= a[n + 1] << (64 - j);
 	}
-	return (wbits & mask) - ((wbits >> 1) & mask);
+	return (int)(wbits & mask) - (int)((wbits >> 1) & mask);
 }
 
 int sm9_z256_from_hex(sm9_z256_t r, const char *hex)
@@ -385,7 +385,7 @@ void sm9_z256_to_hex(const sm9_z256_t r, char hex[64])
 {
 	int i;
 	for (i = 3; i >= 0; i--) {
-		(void)sprintf(hex + 16*(3-i), "%016lx", r[i]);
+		(void)sprintf(hex + 16*(3-i), "%016llx", (unsigned long long)r[i]);
 	}
 }
 
@@ -1794,7 +1794,11 @@ int sm9_z256_point_from_hex(SM9_Z256_POINT *R, const char hex[64 * 2 + 1])
 
 int sm9_z256_point_is_at_infinity(const SM9_Z256_POINT *P)
 {
-	return sm9_z256_is_zero(P->Z);
+	if (sm9_z256_is_zero(P->Z)) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 void sm9_z256_point_set_infinity(SM9_Z256_POINT *R)
