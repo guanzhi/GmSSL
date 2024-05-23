@@ -85,6 +85,25 @@ GmSSL通过子项目提供多种多种编程语言绑定
 
 GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3) 项目。
 
+## Benchmark
+
+MacBook Pro 13-inch 2018: 2.7 GHz Quad-Core Intel Core i7, Intel  Iris Plus Graphics 655. 8 GB 2133 HMz LPDDR3. macOS Sonoma 14.3.
+
+```
+speed_sm4_encrypt: 164.826108 MiB per second
+speed_sm4_encrypt_blocks: 163.120495 MiB per second
+speed_sm4_cbc_encrypt_blocks: 156.870435 MiB per second
+speed_sm4_cbc_decrypt_blocks: 174.701097 MiB per second
+speed_sm4_ctr_encrypt_blocks: 178.457901 MiB per second
+speed_sm4_ctr32_encrypt_blocks: 185.007458 MiB per second
+speed_zuc_generate_keystream: 337.403260-MiB per second
+speed_zuc_encrypt: 356.315696-MiB per second
+test_sm3_speed: 273.551034 MiB per second
+sm2_sign_ctx speed : 4096 signs time 0.236611 seconds, 17311.114023 signs per second
+test_sm2_encrypt_ctx_speed: 1869.314131 encryptions per second
+test_sm9_z256_pairing_speed: 173 pairings per second
+``` 
+
 ## ChangeLog
 
 自从3.1.1版本以来
