@@ -381,7 +381,7 @@ void sm3_xmss_derive_root(const uint8_t xmss_secret[32], int height,
 	hash256_prf_init(&prf_seed_ctx, seed);
 
 	// generate all the wots pk[]
-	for (i = 0; i < (1<<height); i++) {
+	for (i = 0; i < (uint32_t)(1<<height); i++) {
 		//HASH256_CTX prf_ctx = prf_keygen_ctx;
 		hash256_bytes_t wots_sk[67];
 		hash256_bytes_t wots_pk[67];

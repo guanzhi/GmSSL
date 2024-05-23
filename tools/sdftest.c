@@ -399,7 +399,6 @@ static int test_SDF_ExternalVerify_ECC(void)
 		0x3e, 0xb4, 0xb6, 0x66, 0x20, 0x52, 0x0c, 0xf4,
 		},
 	};
-	unsigned char saved_byte;
 	int ret;
 
 	ret = SDF_OpenDevice(&hDeviceHandle);

@@ -2001,7 +2001,7 @@ void sm9_z256_point_mul(SM9_Z256_POINT *R, const sm9_z256_t k, const SM9_Z256_PO
 	uint64_t window_size = 5;
 	SM9_Z256_POINT T[16];
 	int R_infinity = 1;
-	int n = (int)(256 + window_size - 1)/window_size;
+	int n = (int)((256 + window_size - 1)/window_size);
 	int i;
 
 	// T[i] = (i + 1) * P
