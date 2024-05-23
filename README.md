@@ -87,6 +87,12 @@ GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-G
 
 ## Benchmark
 
+```
+cmake .. -DENABLE_TEST_SPEED=ON
+make
+./bin/sm4test; ./bin/sm3test; ./bin/sm2_signtest; ./bin/sm2_enctest; ./bin/sm9test; ./bin/zuctest
+```
+
 MacBook Pro 13-inch 2018: 2.7 GHz Quad-Core Intel Core i7, Intel  Iris Plus Graphics 655. 8 GB 2133 HMz LPDDR3. macOS Sonoma 14.3.
 
 ```
@@ -102,7 +108,24 @@ test_sm3_speed: 273.551034 MiB per second
 sm2_sign_ctx speed : 4096 signs time 0.236611 seconds, 17311.114023 signs per second
 test_sm2_encrypt_ctx_speed: 1869.314131 encryptions per second
 test_sm9_z256_pairing_speed: 173 pairings per second
-``` 
+```
+
+MacBook Air M2 2022. Apple M2. 16 GB. Sonoma 14.5.
+
+```
+speed_sm4_encrypt: 143.180578 MiB per second
+speed_sm4_encrypt_blocks: 190.928509 MiB per second
+speed_sm4_cbc_encrypt_blocks: 148.519447 MiB per second
+speed_sm4_cbc_decrypt_blocks: 187.305378 MiB per second
+speed_sm4_ctr_encrypt_blocks: 191.195450 MiB per second
+speed_sm4_ctr32_encrypt_blocks: 191.522725 MiB per second
+speed_zuc_generate_keystream: 344.604781-MiB per second
+speed_zuc_encrypt: 344.723575-MiB per second
+test_sm3_speed: 327.298762 MiB per second
+sm2_sign_ctx speed : 4096 signs time 0.290709 seconds, 14089.691066 signs per second
+test_sm2_encrypt_ctx_speed: 1518.575861 encryptions per second
+test_sm9_z256_pairing_speed: 141 pairings per seconds
+```
 
 ## ChangeLog
 
