@@ -331,7 +331,7 @@ static uint64_t sm2_z512_add(sm2_z512_t r, const sm2_z512_t a, const sm2_z512_t 
 	return c;
 }
 
-uint64_t sm2_z256_get_booth(const sm2_z256_t a, unsigned int window_size, int i)
+int sm2_z256_get_booth(const sm2_z256_t a, unsigned int window_size, int i)
 {
 	uint64_t mask = (1 << window_size) - 1;
 	uint64_t wbits;
@@ -346,10 +346,10 @@ uint64_t sm2_z256_get_booth(const sm2_z256_t a, unsigned int window_size, int i)
 	j = j % 64;
 
 	wbits = a[n] >> j;
-	if ((64 - j) < (window_size + 1) && n < 3) {
+	if ((64 - j) < (int)(window_size + 1) && n < 3) {
 		wbits |= a[n + 1] << (64 - j);
 	}
-	return (wbits & mask) - ((wbits >> 1) & mask);
+	return (int)(wbits & mask) - (int)((wbits >> 1) & mask);
 }
 
 void sm2_z256_from_hex(sm2_z256_t r, const char *hex)
@@ -1459,10 +1459,7 @@ void sm2_z256_point_mul(SM2_Z256_POINT *R, const sm2_z256_t k, const SM2_Z256_PO
 
 int sm2_z256_point_print(FILE *fp, int fmt, int ind, const char *label, const SM2_Z256_POINT *P)
 {
-	sm2_z256_t x;
-	sm2_z256_t y;
 	uint8_t affine[64];
-
 
 	if (sm2_z256_point_is_at_infinity(P) == 1) {
 		format_print(fp, fmt, ind, "%s: point_at_infinity\n", label);

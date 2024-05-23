@@ -385,7 +385,7 @@ void sm9_z256_to_hex(const sm9_z256_t r, char hex[64])
 {
 	int i;
 	for (i = 3; i >= 0; i--) {
-		(void)sprintf(hex + 16*(3-i), "%016llx", r[i]);
+		(void)sprintf(hex + 16*(3-i), "%016lx", r[i]);
 	}
 }
 
