@@ -27,6 +27,7 @@ option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" OFF)
 option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
 
+option(ENABLE_SM4_AVX2 "Enable SM4 AVX2 8x implementation" OFF)
 option(ENABLE_SM2_AMD64 "Enable SM2_Z256 X86_64 assembly" OFF)
 
 
@@ -310,6 +311,17 @@ if (ENABLE_SM4_ARM64)
 	enable_language(ASM)
 endif()
 
+if (ENABLE_SM4_AVX2)
+	message(STATUS "ENABLE_SM4_AVX2 is ON")
+	list(FIND src src/sm4.c sm4_index)
+	list(REMOVE_AT src ${sm4_index})
+	list(INSERT src ${sm4_index} src/sm4_avx2.c)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+endif()
+
+
+
+
 if (ENABLE_SM4_CE)
 	message(STATUS "ENABLE_SM4_CE is ON")
 	list(FIND src src/sm4.c sm4_index)
@@ -326,6 +338,8 @@ if (ENABLE_SM4_CTR_AESNI_AVX)
 	list(INSERT src ${sm4_ctr_index} src/sm4_ctr_aesni_avx.c)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
 endif()
+
+
 
 if (ENABLE_SM4_CL)
 	message(STATUS "ENABLE_SM4_CL is ON")
