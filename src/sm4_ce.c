@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <arm_neon.h>
 #include <gmssl/sm4.h>
+#include <gmssl/mem.h>
 
 
 static const uint32_t FK[4] = {
@@ -35,7 +36,7 @@ void sm4_set_encrypt_key(SM4_KEY *sm4_key, const uint8_t key[16])
 	uint32x4_t rk;
 	uint32x4_t fk;
 
-	rk = vrev32q_u8(vld1q_u8(key));
+	rk = (uint32x4_t)vrev32q_u8(vld1q_u8(key));
 	rk = veorq_u32(rk, vld1q_u32(FK));
 
 	rk = vsm4ekeyq_u32(rk, vld1q_u32(CK));
@@ -56,12 +57,23 @@ void sm4_set_encrypt_key(SM4_KEY *sm4_key, const uint8_t key[16])
 	vst1q_u32(sm4_key->rk + 28, rk);
 }
 
+void sm4_set_decrypt_key(SM4_KEY *sm4_key, const uint8_t key[16])
+{
+	SM4_KEY enc_key;
+	int i;
+
+	sm4_set_encrypt_key(&enc_key, key);
+	for (i = 0; i < 32; i++) {
+		sm4_key->rk[i] = enc_key.rk[31 - i];
+	}
+	gmssl_secure_clear(&enc_key, sizeof(SM4_KEY));
+}
+
 void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char out[16])
 {
 	uint32x4_t x4, rk;
 
-	x4 = vld1q_u8(in);
-	x4 = vrev32q_u8(x4);
+	x4 = (uint32x4_t)vrev32q_u8(vld1q_u8(in));
 
 	rk = vld1q_u32(key->rk);
 	x4 = vsm4eq_u32(x4, rk);
@@ -82,7 +94,128 @@ void sm4_encrypt(const SM4_KEY *key, const unsigned char in[16], unsigned char o
 
 	x4 = vrev64q_u32(x4);
 	x4 = vextq_u32(x4, x4, 2);
-	x4 = vrev32q_u8(x4);
 
-	vst1q_u8(out, x4);
+	vst1q_u8(out, vrev32q_u8((uint8x16_t)x4));
+}
+
+void sm4_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	uint32x4_t x4, rk;
+
+	while (nblocks--) {
+
+		x4 = (uint32x4_t)vrev32q_u8(vld1q_u8(in));
+
+		rk = vld1q_u32(key->rk);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 4);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 8);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 12);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 16);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 20);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 24);
+		x4 = vsm4eq_u32(x4, rk);
+		rk = vld1q_u32(key->rk + 28);
+		x4 = vsm4eq_u32(x4, rk);
+
+		x4 = vrev64q_u32(x4);
+		x4 = vextq_u32(x4, x4, 2);
+
+		vst1q_u8(out, vrev32q_u8((uint8x16_t)x4));
+
+		in += 16;
+		out += 16;
+	}
+}
+
+void sm4_cbc_encrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	const uint8_t *piv = iv;
+
+	while (nblocks--) {
+		size_t i;
+		for (i = 0; i < 16; i++) {
+			out[i] = in[i] ^ piv[i];
+		}
+		sm4_encrypt(key, out, out);
+		piv = out;
+		in += 16;
+		out += 16;
+	}
+
+	memcpy(iv, piv, 16);
+}
+
+void sm4_cbc_decrypt_blocks(const SM4_KEY *key, uint8_t iv[16],
+	const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	const uint8_t *piv = iv;
+
+	while (nblocks--) {
+		size_t i;
+		sm4_encrypt(key, in, out);
+		for (i = 0; i < 16; i++) {
+			out[i] ^= piv[i];
+		}
+		piv = in;
+		in += 16;
+		out += 16;
+	}
+
+	memcpy(iv, piv, 16);
+}
+
+static void ctr_incr(uint8_t a[16]) {
+	int i;
+	for (i = 15; i >= 0; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
+void sm4_ctr_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	uint8_t block[16];
+	int i;
+
+	while (nblocks--) {
+		sm4_encrypt(key, ctr, block);
+		ctr_incr(ctr);
+		for (i = 0; i < 16; i++) {
+			out[i] = in[i] ^ block[i];
+		}
+		in += 16;
+		out += 16;
+	}
+}
+
+// inc32() in nist-sp800-38d
+static void ctr32_incr(uint8_t a[16]) {
+	int i;
+	for (i = 15; i >= 12; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
+void sm4_ctr32_encrypt_blocks(const SM4_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	uint8_t block[16];
+	int i;
+
+	while (nblocks--) {
+		sm4_encrypt(key, ctr, block);
+		ctr32_incr(ctr);
+		for (i = 0; i < 16; i++) {
+			out[i] = in[i] ^ block[i];
+		}
+		in += 16;
+		out += 16;
+	}
 }

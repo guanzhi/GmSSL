@@ -22,6 +22,7 @@ option(ENABLE_TEST_SPEED "Enable test speed" OFF)
 option(ENABLE_SM2_ARM64 "Enable SM2_Z256 ARMv8 assembly" OFF)
 option(ENABLE_SM3_ARM64 "Enable SM3 Arm Neon implementation (10% faster on Apple M2)" OFF)
 option(ENABLE_SM4_ARM64 "Enable SM4 AARCH64 assembly implementation" OFF)
+option(ENABLE_SM4_CE "Enable SM4 ARM CE assembly implementation" OFF)
 option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" OFF)
 option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
@@ -298,6 +299,15 @@ if (ENABLE_SM4_ARM64)
 	list(INSERT src ${sm4_index} src/sm4_arm64.c)
 	enable_language(ASM)
 endif()
+
+if (ENABLE_SM4_CE)
+	message(STATUS "ENABLE_SM4_CE is ON")
+	list(FIND src src/sm4.c sm4_index)
+	list(REMOVE_AT src ${sm4_index})
+	list(INSERT src ${sm4_index} src/sm4_ce.c)
+	set_source_files_properties(src/sm4_ce.c PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sm4")
+endif()
+
 
 if (ENABLE_SM4_CTR_AESNI_AVX)
 	message(STATUS "ENABLE_SM4_CTR_AESNI_AVX is ON")
