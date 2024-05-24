@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,7 +16,21 @@
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
 
-static const char *options = "-alg (sm9sign|sm9encrypt) [-pass password] [-out pem] [-pubout pem]";
+static const char *usage = "-alg (sm9sign|sm9encrypt) [-pass password] [-out pem] [-pubout pem]";
+
+static const char *options =
+"Options\n"
+"\n"
+"    -alg sm9sign|sm9encrypt     Generate maeter key for sm9sign or sm9encrypt\n"
+"    -pass pass                  Password to encrypt the master private key\n"
+"    -out pem                    Output password-encrypted master private key in PEM format\n"
+"    -pubout pem                 Output master public key in PEM format\n"
+"\n"
+"Examples\n"
+"\n"
+"    $ gmssl sm9setup -alg sm9sign -pass P@ssw0rd -out sm9sign_msk.pem -pubout sm9sign_mpk.pem\n"
+"    $ gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem -pubout sm9enc_mpk.pem\n"
+"\n";
 
 int sm9setup_main(int argc, char **argv)
 {
@@ -36,19 +50,20 @@ int sm9setup_main(int argc, char **argv)
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			fprintf(stdout, "usage: %s %s\n", prog, options);
+			printf("usage: gmssl %s %s\n", prog, usage);
+			printf("%s\n", options);
 			return 0;
 		} else if (!strcmp(*argv, "-alg")) {
 			if (--argc < 1) goto bad;
 			alg = *(++argv);
 			if ((oid = sm9_oid_from_name(alg)) < 1) {
-				fprintf(stdout, "%s: invalid alg '%s', should be sm9sign or sm9encrypt\n", prog, alg);
+				fprintf(stdout, "gmssl %s: invalid alg '%s', should be sm9sign or sm9encrypt\n", prog, alg);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-pass")) {
@@ -70,7 +85,7 @@ int sm9setup_main(int argc, char **argv)
 			}
 		} else {
 bad:
-			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
 			return 1;
 		}
 

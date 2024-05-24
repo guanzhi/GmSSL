@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,7 +16,25 @@
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
 
-static const char *options = "-alg (sm9sign|sm9encrypt) -in master_key.pem -inpass str -id str [-out pem] -outpass str";
+
+static const char *usage = "-alg (sm9sign|sm9encrypt) -in master_key.pem -inpass str -id str [-out pem] -outpass str";
+
+static const char *options =
+"Options\n"
+"\n"
+"    -alg sm9sign|sm9encrypt     Generate maeter key for sm9sign or sm9encrypt\n"
+"    -pass pass                  Password to encrypt the master private key\n"
+"    -out pem                    Output password-encrypted master private key in PEM format\n"
+"    -pubout pem                 Output master public key in PEM format\n"
+"\n"
+"Examples\n"
+"\n"
+"    $ gmssl sm9setup -alg sm9sign -pass P@ssw0rd -out sm9sign_msk.pem\n"
+"    $ gmssl sm9keygen -alg sm9sign -in sm9sign_msk.pem -inpass P@ssw0rd -id Alice -out sm9sign.pem -outpass 123456\n"
+"\n"
+"    $ gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem\n"
+"    $ gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
+"\n";
 
 int sm9keygen_main(int argc, char **argv)
 {

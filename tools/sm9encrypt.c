@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -15,8 +15,24 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "-pubmaster file -id str [-in file] [-out file]";
+static const char *usage = "-pubmaster file -id str [-in file] [-out file]";
 
+static const char *options =
+"Options\n"
+"\n"
+"    -pubmaster pem      Master public key in PEM format\n"
+"    -in file | stdin    To be encrypted file or data\n"
+"    -id str             Recipient's identity string\n"
+"    -out file | stdout  Output signature in binary DER encoding\n"
+"\n"
+"Examples\n"
+"\n"
+"    $ gmssl sm9setup -alg sm9encrypt -pass P@ssw0rd -out sm9enc_msk.pem -pubout sm9enc_mpk.pem\n"
+"    $ gmssl sm9keygen -alg sm9encrypt -in sm9enc_msk.pem -inpass P@ssw0rd -id Alice -out sm9enc.pem -outpass 123456\n"
+"\n"
+"    $ echo 'Secret text' | gmssl sm9encrypt -pubmaster sm9enc_mpk.pem -id Alice -out sm9_ciphertext.der\n"
+"    $ gmssl sm9decrypt -key sm9enc.pem -pass 123456 -id Alice -in sm9_ciphertext.der\n"
+"\n";
 
 int sm9encrypt_main(int argc, char **argv)
 {
@@ -38,13 +54,14 @@ int sm9encrypt_main(int argc, char **argv)
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, options);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			fprintf(stdout, "usage: %s %s\n", prog, options);
+			printf("usage: gmssl %s %s\n", prog, usage);
+			printf("%s\n", options);
 			return 0;
 		} else if (!strcmp(*argv, "-pubmaster")) {
 			if (--argc < 1) goto bad;
@@ -72,7 +89,7 @@ int sm9encrypt_main(int argc, char **argv)
 			}
 		} else {
 bad:
-			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
+			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
 			return 1;
 		}
 
