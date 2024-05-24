@@ -400,7 +400,7 @@ const uint64_t SM2_Z256_NEG_P[4] = {
 	1, ((uint64_t)1 << 32) - 1, 0, ((uint64_t)1 << 32),
 };
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 void sm2_z256_modp_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
@@ -481,7 +481,7 @@ const uint64_t SM2_Z256_P_PRIME[4] = {
 // mont(1) (mod p) = 2^256 mod p = 2^256 - p
 const uint64_t *SM2_Z256_MODP_MONT_ONE = SM2_Z256_NEG_P;
 
-#if defined(ENABLE_SM2_ARM64)
+#if defined(ENABLE_SM2_ARM64) || defined(ENABLE_SM2_AMD64)
 	// src/sm2_z256_armv8.S
 #elif defined(ENABLE_SM2_Z256_NEON)
 #include <arm_neon.h>
@@ -812,7 +812,7 @@ const uint64_t SM2_Z256_NEG_N[4] = {
 	0xac440bf6c62abedd, 0x8dfc2094de39fad4, 0x0000000000000000, 0x0000000100000000,
 };
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 void sm2_z256_modn_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
@@ -868,7 +868,7 @@ const uint64_t *sm2_z256_order_minus_one(void) {
 const uint64_t *SM2_Z256_MODN_MONT_ONE = SM2_Z256_NEG_N;
 
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 void sm2_z256_modn_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	sm2_z512_t z;
@@ -917,7 +917,7 @@ void sm2_z256_modn_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 	sm2_z256_modn_from_mont(r, r);
 }
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 void sm2_z256_modn_mont_sqr(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modn_mont_mul(r, a, a);
@@ -1020,7 +1020,7 @@ void sm2_z256_modn_inv(sm2_z256_t r, const sm2_z256_t a)
 }
 
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 
 // mont(mont(a), 1) = aR * 1 * R^-1 (mod n) = a (mod p)
 void sm2_z256_modn_from_mont(sm2_z256_t r, const sm2_z256_t a)
@@ -1149,7 +1149,7 @@ int sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4])
 	return 1;
 }
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 {
 	const uint64_t *X1 = A->X;
@@ -1475,7 +1475,7 @@ void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *
 	sm2_z256_copy(R->Z, SM2_Z256_MODP_MONT_ONE);
 }
 
-#ifndef ENABLE_SM2_ARM64
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
 void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_AFFINE_POINT *b)
 {
 	sm2_z256_t U2, S2;

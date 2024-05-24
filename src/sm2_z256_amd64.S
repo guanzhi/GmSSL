@@ -31,10 +31,10 @@ L$Three:
 L$ONE_mont:
 .quad	0x0000000000000001, 0x00000000ffffffff, 0x0000000000000000, 0x0000000100000000
 
-.globl	_ecp_sm2z256_mul_by_2
+.globl	func(sm2_z256_modp_dbl)
 
 .p2align	6
-_ecp_sm2z256_mul_by_2:
+func(sm2_z256_modp_dbl):
 	pushq	%r12
 	pushq	%r13
 
@@ -76,10 +76,10 @@ _ecp_sm2z256_mul_by_2:
 
 
 
-.globl	_ecp_sm2z256_div_by_2
+.globl	func(sm2_z256_modp_haf)
 
 .p2align	5
-_ecp_sm2z256_div_by_2:
+func(sm2_z256_modp_haf):
 	pushq	%r12
 	pushq	%r13
 
@@ -136,10 +136,10 @@ _ecp_sm2z256_div_by_2:
 
 
 
-.globl	_ecp_sm2z256_mul_by_3
+.globl	func(sm2_z256_modp_tri)
 
 .p2align	5
-_ecp_sm2z256_mul_by_3:
+func(sm2_z256_modp_tri):
 	pushq	%r12
 	pushq	%r13
 
@@ -202,10 +202,10 @@ _ecp_sm2z256_mul_by_3:
 
 
 
-.globl	_ecp_sm2z256_add
+.globl	func(sm2_z256_modp_add)
 
 .p2align	5
-_ecp_sm2z256_add:
+func(sm2_z256_modp_add):
 	pushq	%r12
 	pushq	%r13
 
@@ -248,10 +248,10 @@ _ecp_sm2z256_add:
 
 
 
-.globl	_ecp_sm2z256_sub
+.globl	func(sm2_z256_modp_sub)
 
 .p2align	5
-_ecp_sm2z256_sub:
+func(sm2_z256_modp_sub):
 	pushq	%r12
 	pushq	%r13
 
@@ -294,10 +294,10 @@ _ecp_sm2z256_sub:
 
 
 
-.globl	_ecp_sm2z256_neg
+.globl	func(sm2_z256_modp_neg)
 
 .p2align	5
-_ecp_sm2z256_neg:
+func(sm2_z256_modp_neg):
 	pushq	%r12
 	pushq	%r13
 
@@ -341,10 +341,11 @@ _ecp_sm2z256_neg:
 
 
 
-.globl	_ecp_sm2z256_to_mont
+.globl	func(sm2_z256_modp_to_mont)
 
 .p2align	5
-_ecp_sm2z256_to_mont:
+func(sm2_z256_modp_to_mont):
+	// FIXME: swap arg1 arg2
 	leaq	L$RR(%rip),%rdx
 	jmp	L$mul_mont
 
@@ -355,10 +356,10 @@ _ecp_sm2z256_to_mont:
 
 
 
-.globl	_ecp_sm2z256_mul_mont
+.globl	func(sm2_z256_modp_mont_mul)
 
 .p2align	5
-_ecp_sm2z256_mul_mont:
+func(sm2_z256_modp_mont_mul):
 L$mul_mont:
 	pushq	%rbp
 	pushq	%rbx
@@ -633,10 +634,10 @@ __ecp_sm2z256_mul_montq:
 
 
 
-.globl	_ecp_sm2z256_sqr_mont
+.globl	func(sm2_z256_modp_mont_sqr)
 
 .p2align	5
-_ecp_sm2z256_sqr_mont:
+func(sm2_z256_modp_mont_mul):
 	pushq	%rbp
 	pushq	%rbx
 	pushq	%r12
@@ -842,10 +843,10 @@ __ecp_sm2z256_sqr_montq:
 
 
 
-.globl	_ecp_sm2z256_from_mont
+.globl	func(sm2_z256_modp_from_mont)
 
 .p2align	5
-_ecp_sm2z256_from_mont:
+func(sm2_z256_modp_from_mont):
 	pushq	%r12
 	pushq	%r13
 
@@ -1218,10 +1219,16 @@ __ecp_sm2z256_mul_by_2q:
 
 	.byte	0xf3,0xc3
 
-.globl	_ecp_sm2z256_point_double
+
+
+
+
+
+
+.globl	func(sm2_z256_point_dbl)
 
 .p2align	5
-_ecp_sm2z256_point_double:
+func(sm2_z256_point_dbl):
 	pushq	%rbp
 	pushq	%rbx
 	pushq	%r12
@@ -1420,10 +1427,17 @@ L$point_double_shortcutq:
 	popq	%rbp
 	.byte	0xf3,0xc3
 
-.globl	_ecp_sm2z256_point_add
+
+
+
+
+
+
+
+.globl	func(sm2_z256_point_add)
 
 .p2align	5
-_ecp_sm2z256_point_add:
+func(sm2_z256_point_add):
 	pushq	%rbp
 	pushq	%rbx
 	pushq	%r12
@@ -1816,10 +1830,14 @@ L$add_doneq:
 	popq	%rbp
 	.byte	0xf3,0xc3
 
-.globl	_ecp_sm2z256_point_add_affine
+
+
+
+
+.globl	func(sm2_z256_point_add_affine)
 
 .p2align	5
-_ecp_sm2z256_point_add_affine:
+func(sm2_z256_point_add_affine):
 	pushq	%rbp
 	pushq	%rbx
 	pushq	%r12

@@ -27,6 +27,9 @@ option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" OFF)
 option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
 
+option(ENABLE_SM2_AMD64 "Enable SM2_Z256 X86_64 assembly" OFF)
+
+
 option(ENABLE_SM3_SSE "Enable SM3 SSE assembly implementation" OFF)
 
 option(ENABLE_SM4_CTR_AESNI_AVX "Enable SM4 CTR AESNI+AVX assembly implementation" OFF)
@@ -257,6 +260,13 @@ if (ENABLE_SM2_ARM64)
 	add_definitions(-DENABLE_SM2_ARM64)
 	enable_language(ASM)
 	list(APPEND src src/sm2_z256_arm64.S)
+endif()
+
+if (ENABLE_SM2_AMD64)
+	message(STATUS "ENABLE_SM2_AMD64 is ON")
+	add_definitions(-DENABLE_SM2_AMD64)
+	enable_language(ASM)
+	list(APPEND src src/sm2_z256_amd64.S)
 endif()
 
 if (ENABLE_SM2_NEON)
