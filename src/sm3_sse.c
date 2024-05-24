@@ -30,7 +30,7 @@
 */
 
 
-#define PUTU32(p,V)  _storebe_i32((p),(V))
+//#define PUTU32(p,V)  _storebe_i32((p),(V))
 
 #define _mm_rotl_epi32(X,i) \
 	_mm_xor_si128(_mm_slli_epi32((X),(i)), _mm_srli_epi32((X),32-(i)))
