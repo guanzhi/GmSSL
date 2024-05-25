@@ -87,6 +87,8 @@ GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-G
 
 ## Benchmark
 
+性能测试结果是在单核单线程且未修改处理器默认配置下5次测试中取最好效果。由于未关闭睿频或进行大小核设置，这个成绩通常会略高于多核多线程中每核心的平均成绩。
+
 ```
 cmake .. -DENABLE_TEST_SPEED=ON
 make
@@ -105,7 +107,9 @@ speed_sm4_ctr32_encrypt_blocks: 185.007458 MiB per second
 speed_zuc_generate_keystream: 337.403260-MiB per second
 speed_zuc_encrypt: 356.315696-MiB per second
 test_sm3_speed: 273.551034 MiB per second
+sm2_sign_ctx speed (ENABLE_SM2_AMD64): 4096 signs time 0.036916 seconds, 110954.599632 signs per second
 sm2_sign_ctx speed : 4096 signs time 0.236611 seconds, 17311.114023 signs per second
+test_sm2_encrypt_ctx_speed (ENABLE_SM2_AMD64): 17879.592122 encryptions per second
 test_sm2_encrypt_ctx_speed: 1869.314131 encryptions per second
 test_sm9_z256_pairing_speed: 173 pairings per second
 ```
