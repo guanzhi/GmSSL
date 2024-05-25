@@ -1,4 +1,8 @@
-cmake_minimum_required(VERSION 3.6)
+if (CMAKE_VERSION VERSION_LESS "3.0")
+	cmake_minimum_required(VERSION 2.8)
+else()
+	cmake_minimum_required(VERSION 3.6)
+endif()
 project(GmSSL C)
 
 SET(CMAKE_PROJECT_HOMEPAGE_URL "http://gmssl.org")
@@ -664,9 +668,5 @@ set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
 set(CPACK_PACKAGE_VERSION "3.1.2-Dev")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
-string(CONCAT CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "GmSSL is an open source cryptographic toolbox that supports SM2 / SM3 / SM4 / SM9 "
-    "and other national secret (national commercial password) algorithm. ")
-set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
