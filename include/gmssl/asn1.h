@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -86,8 +86,8 @@ int asn1_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t *
 int asn1_nonempty_type_to_der(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_nonempty_type_from_der(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
-int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen); // 调用方应保证a,alen为TLV
-int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen); // 该函数会检查输入是否为TLV
+int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen); // NOTE: a,alen MUST be TLV
+int asn1_any_from_der(const uint8_t **a, size_t *alen, const uint8_t **in, size_t *inlen); // asn1_any_from_der check if input is TLV
 
 #define ASN1_TRUE 0xff
 #define ASN1_FALSE 0x00
@@ -101,7 +101,7 @@ int asn1_boolean_from_der_ex(int tag, int *val, const uint8_t **in, size_t *inle
 #define asn1_implicit_boolean_to_der(i,val,out,outlen) asn1_boolean_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
 #define asn1_implicit_boolean_from_der(i,val,in,inlen) asn1_boolean_from_der_ex(ASN1_TAG_IMPLICIT(i),val,in,inlen)
 
-// asn1_integer_ 不支持负数编解码
+// asn1_integer_ does not support negative value
 int asn1_integer_to_der_ex(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_integer_from_der_ex(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 #define asn1_integer_to_der(d,dlen,out,outlen) asn1_integer_to_der_ex(ASN1_TAG_INTEGER,d,dlen,out,outlen)
@@ -109,15 +109,15 @@ int asn1_integer_from_der_ex(int tag, const uint8_t **d, size_t *dlen, const uin
 #define asn1_implicit_integer_to_der(i,d,dlen,out,outlen) asn1_integer_to_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_integer_from_der(i,d,dlen,in,inlen) asn1_integer_from_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
-// asn1_int_ 只支持小的无符号整数的编解码，不支持负数
-int asn1_int_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen); // 当 val == -1 时，不输出，返回 0
-int asn1_int_from_der_ex(int tag, int *val, const uint8_t **in, size_t *inlen); // 不支持负数，返回0时 *val 设置为 -1
+// asn1_int_ only support small unsigned int, does not support negative integer
+int asn1_int_to_der_ex(int tag, int val, uint8_t **out, size_t *outlen); // when val == -1, return 0 and no output
+int asn1_int_from_der_ex(int tag, int *val, const uint8_t **in, size_t *inlen); // when return 0, *val is set to -1
 #define asn1_int_to_der(val,out,outlen) asn1_int_to_der_ex(ASN1_TAG_INTEGER,val,out,outlen)
 #define asn1_int_from_der(val,in,inlen) asn1_int_from_der_ex(ASN1_TAG_INTEGER,val,in,inlen)
 #define asn1_implicit_int_to_der(i,val,out,outlen) asn1_int_to_der_ex(ASN1_TAG_IMPLICIT(i),val,out,outlen)
 #define asn1_implicit_int_from_der(i,val,in,inlen) asn1_int_from_der_ex(ASN1_TAG_IMPLICIT(i),val,in,inlen)
 
-// 比特长度不必须为8的整数倍
+// bit_string can be any length
 int asn1_bit_string_to_der_ex(int tag, const uint8_t *d, size_t nbits, uint8_t **out, size_t *outlen);
 int asn1_bit_string_from_der_ex(int tag, const uint8_t **d, size_t *nbits, const uint8_t **in, size_t *inlen);
 #define asn1_bit_string_to_der(d,nbits,out,outlen) asn1_bit_string_to_der_ex(ASN1_TAG_BIT_STRING,d,nbits,out,outlen)
@@ -125,7 +125,7 @@ int asn1_bit_string_from_der_ex(int tag, const uint8_t **d, size_t *nbits, const
 #define asn1_implicit_bit_string_to_der(i,d,nbits,out,outlen) asn1_bit_string_to_der_ex(ASN1_TAG_IMPLICIT(i),d,nbits,out,outlen)
 #define asn1_implicit_bit_string_from_der(i,d,nbits,in,inlen) asn1_bit_string_from_der_ex(ASN1_TAG_IMPLICIT(i),d,nbits,in,inlen)
 
-// 比特长度必须为8的整数倍，因此使用字节长度
+// bit string MUST be multiple 8 bits
 int asn1_bit_octets_to_der_ex(int tag, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_bit_octets_from_der_ex(int tag, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 #define asn1_bit_octets_to_der(d,dlen,out,outlen) asn1_bit_octets_to_der_ex(ASN1_TAG_BIT_STRING,d,dlen,out,outlen)
@@ -133,14 +133,14 @@ int asn1_bit_octets_from_der_ex(int tag, const uint8_t **d, size_t *dlen, const 
 #define asn1_implicit_bit_octets_to_der(i,d,dlen,out,outlen) asn1_bit_octets_to_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_bit_octets_from_der(i,d,dlen,in,inlen) asn1_bit_octets_from_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
-// bits == -1 不编码，只支持较少的比特数量
+// bits == -1 means no input
 int asn1_bits_to_der_ex(int tag, int bits, uint8_t **out, size_t *outlen);
 int asn1_bits_from_der_ex(int tag, int *bits, const uint8_t **in, size_t *inlen);
 #define asn1_bits_to_der(bits,out,outlen) asn1_bits_to_der_ex(ASN1_TAG_BIT_STRING,bits,out,outlen)
 #define asn1_bits_from_der(bits,in,inlen) asn1_bits_from_der_ex(ASN1_TAG_BIT_STRING,bits,in,inlen)
 #define asn1_implicit_bits_to_der(i,bits,out,outlen) asn1_bits_to_der_ex(ASN1_TAG_IMPLICIT(i),bits,out,outlen)
 #define asn1_implicit_bits_from_der(i,bits,in,inlen) asn1_bits_from_der_ex(ASN1_TAG_IMPLICIT(i),bits,in,inlen)
-// names[i]对应第i个比特
+// names[i] is the i-th bit
 int asn1_bits_print(FILE *fp, int fmt, int ind, const char *label, const char **names, size_t names_cnt, int bits);
 
 #define asn1_octet_string_to_der_ex(tag,d,dlen,out,outlen) asn1_type_to_der(tag,d,dlen,out,outlen)
@@ -182,7 +182,8 @@ typedef struct {
 
 const ASN1_OID_INFO *asn1_oid_info_from_name(const ASN1_OID_INFO *infos, size_t count, const char *name);
 const ASN1_OID_INFO *asn1_oid_info_from_oid(const ASN1_OID_INFO *infos, size_t count, int oid);
-// 如果一个正确解析的OID并不在infos列表中，那么仍然返回1，但是调用方必须检查返回的info是否为空
+
+// well-formed but unknown OID will return 1, caller should check if *info == NULL when return 1
 int asn1_oid_info_from_der_ex(const ASN1_OID_INFO **info, uint32_t *nodes, size_t *nodes_cnt,
 	const ASN1_OID_INFO *infos, size_t count, const uint8_t **in, size_t *inlen);
 int asn1_oid_info_from_der(const ASN1_OID_INFO **info,
@@ -283,7 +284,7 @@ int asn1_header_to_der(int tag, size_t dlen, uint8_t **out, size_t *outlen);
 #define asn1_explicit_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
 #define asn1_explicit_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
 
-// d,dlen 是 SEQUENCE OF, SET OF 中的值
+// d,dlen is the V (of TLV) of SEQUENCE OF, SET OF
 int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, size_t *cnt);
 int asn1_types_get_item_by_index(const uint8_t *d, size_t dlen, int tag,
 	int index, const uint8_t **item_d, size_t *item_dlen);

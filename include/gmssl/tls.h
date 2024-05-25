@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -413,7 +413,8 @@ int tls_record_set_protocol(uint8_t *record, int protocol);
 int tls_record_set_data_length(uint8_t *record, size_t length);
 int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen);
 
-// 握手消息ServerKeyExchange, ClientKeyExchange的解析依赖当前密码套件
+
+// parse ServerKeyExchange, ClientKeyExchange depends on current cipher_suite		
 #define tls_format_set_cipher_suite(fmt,cipher)	do {(fmt)|=((cipher)<<8);} while (0)
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
 int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
@@ -521,8 +522,8 @@ int tls_process_server_exts(const uint8_t *exts, size_t extslen,
 // Certificate
 int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 	const uint8_t *certs, size_t certslen);
-// 这个函数比较特殊，是直接解析了证书链，而不是返回指针
-// 应该提供一个独立的解析函数来解析TLS的证书链
+// see the impl of tls_record_get_handshake_certificate			
+// a standalone cert-chain parsing function should be given			
 int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen);
 
 // ServerKeyExchange
@@ -581,7 +582,7 @@ int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *cke, size_t ckele
 int tls_client_key_exchange_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
 
 int tls_record_set_handshake_client_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
-	const SM2_Z256_POINT *point); // 这里不应该支持SM2_POINT类型						
+	const SM2_Z256_POINT *point); // shoulde we use SM2_Z256_POITN?						
 int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_Z256_POINT *point);			
 int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
@@ -616,8 +617,8 @@ int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, siz
 void tls_client_verify_cleanup(TLS_CLIENT_VERIFY_CTX *ctx);
 
 // Finished
-// FIXME: 支持TLS 1.3 提供MIN, MAX或TLS12, TLS13, TLCP...
-#define TLS_VERIFY_DATA_SIZE 12 // TLS 1.3或者其他版本支持更长的verify_data
+// FIXME: to support TLS 1.3  need MIN, MAX or TLS12, TLS13, TLCP...			
+#define TLS_VERIFY_DATA_SIZE 12 // TLS 1.3 use longer verify_data (>= 12 bytes)		
 #define TLS_FINISHED_RECORD_SIZE	(TLS_RECORD_HEADER_SIZE + TLS_HANDSHAKE_HEADER_SIZE + TLS_VERIFY_DATA_SIZE) // 21
 #define TLS_MAX_PADDING_SIZE		(1 + 255)
 #define TLS_MAC_SIZE			SM3_HMAC_SIZE
@@ -723,7 +724,7 @@ typedef struct {
 	int cipher_suite;
 	uint8_t session_id[32];
 	size_t session_id_len;
-	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; // 动态的可能会好一点
+	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; // TODO: use ptr and malloc			
 	size_t server_certs_len;
 	uint8_t client_certs[TLS_MAX_CERTIFICATES_SIZE];
 	size_t client_certs_len;
@@ -754,7 +755,7 @@ typedef struct {
 } TLS_CONNECT;
 
 
-#define TLS_MAX_EXTENSIONS_SIZE 512 // 这个应该再考虑一下数值，是否可以用其他的缓冲区装载？
+#define TLS_MAX_EXTENSIONS_SIZE 512 // FIXME: no reason to give fixed max length			
 
 
 int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx);
