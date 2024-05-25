@@ -109,7 +109,8 @@ static int test_SDF_GenerateRandom(void)
 {
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
-	int ret;
+	int lengths[] = { 1, 8, 128 };
+	int ret, i;
 
 	ret = SDF_OpenDevice(&hDeviceHandle);
 	if (ret != SDR_OK) {
@@ -123,8 +124,7 @@ static int test_SDF_GenerateRandom(void)
 		return -1;
 	}
 
-	int lengths[] = { 1, 8, 128 };
-	for (int i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
+	for (i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
 		unsigned int uiLength = lengths[i];
 		unsigned char pucRandom[128] = {0}; // Assuming max length
 		unsigned char zeros[sizeof(pucRandom)] = {0};
