@@ -345,7 +345,10 @@ func(sm2_z256_modp_neg):
 
 .p2align	5
 func(sm2_z256_modp_to_mont):
-	// FIXME: swap arg1 arg2
+	// swap(arg1, arg2)
+	movq	%rdi, %rax
+	movq	%rsi, %rdi
+	movq	%rax, %rsi
 	leaq	L$RR(%rip),%rdx
 	jmp	L$mul_mont
 
@@ -637,7 +640,7 @@ __ecp_sm2z256_mul_montq:
 .globl	func(sm2_z256_modp_mont_sqr)
 
 .p2align	5
-func(sm2_z256_modp_mont_mul):
+func(sm2_z256_modp_mont_sqr):
 	pushq	%rbp
 	pushq	%rbx
 	pushq	%r12
