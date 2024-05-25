@@ -20,7 +20,6 @@
 #include "../src/sdf/sdf_ext.h"
 
 
-
 static const char *usage = "-lib so_path -kek num -key num -pass str";
 
 static const char *options =
@@ -864,7 +863,7 @@ static int test_SDF_Hash_Z(void)
 	return 1;
 }
 
-// 这个函数是否做的太多了？			
+// FIXME: make test_SDF_GenerateKeyWithIPK_ECC test less APIs		
 static int test_SDF_GenerateKeyWithIPK_ECC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
@@ -1144,7 +1143,7 @@ static int test_SDF_CalculateMAC(int kek)
 	unsigned char ucEncedKey[256];
 	unsigned int uiEncedKeyLength = (unsigned int)sizeof(ucEncedKey);
 	unsigned int uiMACAlgID = SGD_SM3;
-	unsigned char ucData[50] = {0}; // FIXME: 这里给出实际测试数据
+	unsigned char ucData[50] = {0}; // FIXME: put real test data			
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	unsigned char ucMAC[32];
 	unsigned int uiMACLength = (unsigned int)sizeof(ucMAC);
@@ -1163,7 +1162,7 @@ static int test_SDF_CalculateMAC(int kek)
 		return -1;
 	}
 
-	// 这个实际上无法测试正确性！因为你都不知道生成的密钥是什么
+	// FIXME: can not test correctness here		
 	ret = SDF_GenerateKeyWithKEK(hSessionHandle, uiHMACKeyBits, uiKeyEncAlgID, uiKEKIndex, ucEncedKey, &uiEncedKeyLength, &hKeyHandle);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_GenerateKeyWithKEK returned 0x%X\n", ret);

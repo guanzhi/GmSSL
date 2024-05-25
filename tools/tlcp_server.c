@@ -164,7 +164,7 @@ restart:
 	}
 
 	if (tls_do_handshake(&conn) != 1) {
-		error_print(); // 为什么这个会触发呢？
+		error_print();
 		return -1;
 	}
 

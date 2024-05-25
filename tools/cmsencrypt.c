@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -17,38 +17,6 @@
 #include <gmssl/x509.h>
 #include <gmssl/rand.h>
 
-
-/*
-
-签名的时候要提供签名者的证书，并且提供签名私钥
-但是验证的时候假定CMS中已经包含签名者的证书了，但是我们要提供CA证书库
-
-加密的时候要指定接收者的证书，并且可以有多个接收者
-解密的时候只提供一个解密私钥，但是最好配合解密者的证书，从这个证书中找到解密者的名字
-
-如果即加密又签名，那么输出的是SignedAndEnveloped
-
-CMS有PEM吗？
-
-cms -encrypt -rcpt a.pem -rcpt b.pem -rcpt c.pem -in file -sign -signcert a.pem -signcert b.pem
-	-rcptcert -rcpt_cert -sign_cert b.pem -signkey
-
-首先接收者可以有多个证书
-
-这里面有个问题，因为我们要输出一个加密的对象，因此我们必须把输入的内容读取进来。
-
-
-EnvelopedData 是一个封装的SEQUENCE中，因此必须读取所有的内容。
-如果是一个文件，就需要读取所有的文件内容，如果是一个stream ,也需要读取完整的内容到一个足够大的buffer中，如何设置这个buffer的大小呢
-
-
-
-对于输入文件，如果输入有文件名的话，可以直接通过stat获取文件长度
-但是如果对于stream的话，实际上我们是没有办法获得输入长度的，那么就直接准备一个buffer好了。
-不要给自己找麻烦了，直接只支持文件输入吧
-encrypt
-
-*/
 
 static const char *options = "-encrypt (-rcptcert pem)* -in file -out file";
 
@@ -116,7 +84,7 @@ int cmsencrypt_main(int argc, char **argv)
 		return 1;
 	}
 
-	// 预先统计证书缓冲大小和输入大小
+	// prepare cert buffer length?		
 	if (get_files_size(argc, argv, "-rcptcert", &rcpt_certs_len) != 1) {
 		goto end;
 	}

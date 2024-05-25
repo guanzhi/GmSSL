@@ -26,9 +26,6 @@
 306 } CMS_CERTS_AND_KEY;
 
 
-
-输出长度主要由输入长度和
-
 */
 
 static const char *options = "-key file -pass str -cert file -in file [-out file]";
@@ -165,7 +162,7 @@ bad:
 		goto end;
 	}
 
-	cms_maxlen = (inlen * 4)/3 + 4096; // 主要由SignerInfos，其中的DN长度决定
+	cms_maxlen = (inlen * 4)/3 + 4096; // SignerInfos decide DN length		
 	if (!(cms = malloc(cms_maxlen))) {
 		fprintf(stderr, "%s: malloc failure\n", prog);
 		goto end;

@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -15,8 +15,6 @@
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
-
-// TLSv1.2客户单和TLCP客户端可能没有什么区别
 
 static int client_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3 };
 
@@ -180,7 +178,7 @@ bad:
 				fwrite(buf, 1, len, stdout);
 				fflush(stdout);
 
-				// 应该调整tls_recv 逻辑、API或者其他方式			
+				// FIXME: change `tls_recv` API or functions			
 				if (conn.datalen == 0) {
 					break;
 				}
