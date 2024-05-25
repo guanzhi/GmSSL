@@ -610,6 +610,15 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 
+if(UNIX AND NOT APPLE)
+	message(STATUS "Detected Linux, configuring /etc/ld.so.conf.d/gmssl.conf")
+	install(CODE "
+		execute_process(COMMAND mkdir -p /etc/ld.so.conf.d)
+		execute_process(COMMAND bash -c \"echo /usr/local/lib > /etc/ld.so.conf.d/gmssl.conf\")
+		execute_process(COMMAND ldconfig)
+	")
+endif()
+
 
 if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	add_executable(gmssl-bin ${tools})
