@@ -17,7 +17,9 @@
 #include <gmssl/sm2.h>
 #include <gmssl/pkcs8.h>
 
-// 应该整理出不同编码长度的椭圆曲线点，可以由x求出y
+
+// TODO: prepare POINT with different length		
+
 static int test_sm2_ciphertext(void)
 {
 	struct {

@@ -19,7 +19,7 @@
 #include <gmssl/error.h>
 
 
-// 计算中如何涉及无穷远点会怎么样
+// TODO:		
 static int test_sm2_z256_point_at_infinity(void)
 {
 	return 1;
@@ -77,7 +77,7 @@ static int test_sm2_z256_from_bytes(void)
 		0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20,
 	};
 
-	// 应该选一个to_bytes和一个from_bytes
+	// TODO: choose both `to_bytes` and `from_bytes`		
 
 	sm2_z256_t a;
 	uint8_t buf[32];
@@ -588,14 +588,13 @@ static int test_sm2_z256_point_add_conjugate(void)
 	sm2_z256_point_from_hex(&Q, hex_negG);
 	sm2_z256_point_add(&R, &P, &Q);
 
-	// 汇编代码在实现点加的时候，为什么会出现X, Y != 0的情况呢？
 	sm2_z256_print(stderr, 0, 0, "R.X", R.X);
 	sm2_z256_print(stderr, 0, 0, "R.Y", R.Y);
 	sm2_z256_print(stderr, 0, 0, "R.Z", R.Z);
 
 	// P + (-P) = (0:0:0)
 	/*
-	// 有可能在计算的时候，已经发现这是共轭点，那就不做进一步的计算了
+	//FIXME:				 
 	if (!sm2_z256_is_zero(R.X)
 		|| !sm2_z256_is_zero(R.Y)) {
 		error_print();
@@ -612,14 +611,14 @@ static int test_sm2_z256_point_add_conjugate(void)
 	return 1;
 }
 
-// 无穷远点相加应该还是无穷远点
+// TODO: check O + O == O
 static int test_sm2_z256_point_dbl_infinity(void)
 {
 	SM2_Z256_POINT P_infinity;
 	SM2_Z256_POINT R;
 
 	sm2_z256_point_set_infinity(&P_infinity);
-	sm2_z256_point_dbl(&R, &P_infinity); // 显然这个计算就会出错了！
+	sm2_z256_point_dbl(&R, &P_infinity);
 	sm2_z256_print(stderr, 0, 0, "ret", R.X);
 
 	if (!sm2_z256_point_is_at_infinity(&R)) {

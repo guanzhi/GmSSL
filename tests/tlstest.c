@@ -174,9 +174,6 @@ static int test_tls_certificate(void)
 	size_t recordlen = 0;
 	FILE *fp = NULL;
 
-	// 测试函数不要有外部的依赖
-	// TODO: 输出一些握手过程的record字节数组和handshake字节数组，作为后续测试的测试数据
-
 	/*
 	if (!(fp = fopen("cacert.pem", "r"))) {
 		error_print();

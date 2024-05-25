@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -80,7 +80,7 @@ static int test_cms_content_info(void)
 	cp = buf;
 	len = 0;
 
-// 当类型为OID_cms_data, 数据是OCTET STRING，需要再解析一次
+// When type is OID_cms_data, value is OCTET STRING, we need to parse the value again	
 
 	if (cms_content_info_to_der(OID_cms_data, data, sizeof(data), &p, &len) != 1
 		|| cms_content_info_from_der(&oid, &d, &dlen, &cp, &len) != 1
@@ -203,7 +203,7 @@ static int test_cms_enced_content_info_encrypt(void)
 			NULL, 0,
 			NULL, 0,
 			&p, &len) != 1
-		// 显然这个解密函数是有问题的，在from_der的时候不知道密文的长度，因此无法知道需要的输出缓冲长度				
+		// FIXME: we do not know the ciphertext length when `from_der`, so can not know the output buffer length		
 		|| cms_enced_content_info_decrypt_from_der(
 			&cipher,
 			key, sizeof(key),

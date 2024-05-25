@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -183,7 +183,7 @@ static int test_asn1_int(void)
 		}
 		format_bytes(stderr, 0, 4, "", buf, len);
 	}
-	// 测试 -1 表示默认不编码
+	// integer == -1 (similar as NULL for other types) means do not encode
 	if (asn1_int_to_der(-1, &p, &len) != 0) {
 		error_print();
 		return -1;
@@ -202,7 +202,7 @@ static int test_asn1_int(void)
 		return -1;
 	}
 
-	// 测试返回0时是否对val值做初始化
+	// test if val has been inited when return 0
 	if (asn1_int_from_der(&val, &cp, &len) != 0) {
 		error_print();
 		return -1;

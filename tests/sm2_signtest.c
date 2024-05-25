@@ -247,8 +247,7 @@ static int test_sm2_sign_ctx(void)
 	}
 	format_print(stderr, 0, 4, "verification: %s\n", ret ? "success" : "failed");
 
-	// FIXME: 还应该增加验证不通过的测试
-	// 还应该增加底层的参数
+	// FIXME: add some test vectors that can not pass verificate 			
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }

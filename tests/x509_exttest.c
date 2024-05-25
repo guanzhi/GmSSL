@@ -468,7 +468,6 @@ static int test_x509_policy_mapping(void)
 	return 1;
 }
 
-// 这里的一些OID应该在RFC中有，但是我们不实现
 static int test_x509_attribute(void)
 {
 	// TODO
