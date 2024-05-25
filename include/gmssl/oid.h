@@ -147,7 +147,7 @@ enum {
 	OID_aes192_cbc,
 	OID_aes256_cbc,
 
-	OID_aes128, // 没有OID
+	OID_aes128, // No OID
 
 	OID_ecdsa_with_sha1,
 	OID_ecdsa_with_sha224,

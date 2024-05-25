@@ -802,14 +802,14 @@ int x509_issuing_distribution_point_to_der(
 	if (x509_uri_as_explicit_distribution_point_name_to_der(0, dist_point_uri, dist_point_uri_len, NULL, &len) < 0
 		|| asn1_implicit_boolean_to_der(1, only_contains_user_certs, NULL, &len) < 0
 		|| asn1_implicit_boolean_to_der(2, only_contains_ca_certs, NULL, &len) < 0
-		|| asn1_implicit_bits_to_der(3, only_some_reasons, NULL, &len) < 0 // TODO: 特化的类型
+		|| asn1_implicit_bits_to_der(3, only_some_reasons, NULL, &len) < 0 // TODO: create a new type, instead of use bits		
 		|| asn1_implicit_boolean_to_der(4, indirect_crl, NULL, &len) < 0
 		|| asn1_implicit_boolean_to_der(5, only_contains_attr_certs, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| x509_uri_as_explicit_distribution_point_name_to_der(0, dist_point_uri, dist_point_uri_len, out, outlen) < 0
 		|| asn1_implicit_boolean_to_der(1, only_contains_user_certs, out, outlen) < 0
 		|| asn1_implicit_boolean_to_der(2, only_contains_ca_certs, out, outlen) < 0
-		|| asn1_implicit_bits_to_der(3, only_some_reasons, out, outlen) < 0 // TODO: 特化的类型
+		|| asn1_implicit_bits_to_der(3, only_some_reasons, out, outlen) < 0 // TODO: create a new type, instead of use bits              
 		|| asn1_implicit_boolean_to_der(4, indirect_crl, out, outlen) < 0
 		|| asn1_implicit_boolean_to_der(5, only_contains_attr_certs, out, outlen) < 0) {
 		error_print();

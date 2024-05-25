@@ -386,8 +386,7 @@ int sm2_z256_print(FILE *fp, int ind, int fmt, const char *label, const sm2_z256
 const uint64_t SM2_Z256_P[4] = {
 	0xffffffffffffffff, 0xffffffff00000000, 0xffffffffffffffff, 0xfffffffeffffffff,
 };
-// 注意这里 SM2_Z256_P[0] 和 SM2_Z256_P[2] 是特殊值，在汇编中可以根据这个特殊值做特定的实现
-
+// TODO: SM2_Z256_P[0] and SM2_Z256_P[2] are special values (fff...f), use this to optimize the ASM code	
 
 
 const uint64_t *sm2_z256_prime(void) {
@@ -969,7 +968,7 @@ void sm2_z256_modn_exp(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t e)
 const uint64_t SM2_Z256_N_MINUS_TWO[4] = {
 	0x53bbf40939d54121, 0x7203df6b21c6052b, 0xffffffffffffffff, 0xfffffffeffffffff,
 };
-// exp都是从高位开始的，如果都是1的话，那么就是都要平方和乘
+// TODO: use the special form of SM2_Z256_N_MINUS_TWO[2, 3]		
 
 void sm2_z256_modn_mont_inv(sm2_z256_t r, const sm2_z256_t a)
 {
@@ -1266,7 +1265,7 @@ void sm2_z256_point_add(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z2
 	in1infty = is_zero(in1infty);
 	in2infty = is_zero(in2infty);
 
-	// 这里很明显有极好的并行性
+	// TODO: can we parallel on the following code?		
 	sm2_z256_modp_mont_sqr(Z2sqr, in2_z);        /* Z2^2 */
 	sm2_z256_modp_mont_sqr(Z1sqr, in1_z);        /* Z1^2 */
 

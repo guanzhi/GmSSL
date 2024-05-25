@@ -75,7 +75,7 @@ typedef enum {
 	TLS_cipher_sm4_ccm_sm3			= 0x00c7,
 
 	// TLCP, GB/T 38636-2020, GM/T 0024-2012
-	TLS_cipher_ecdhe_sm4_cbc_sm3		= 0xe011, // 可以让TLSv1.2使用这个
+	TLS_cipher_ecdhe_sm4_cbc_sm3		= 0xe011, // TODO: let TLSv1.2 use this as default cipher suite
 	TLS_cipher_ecdhe_sm4_gcm_sm3		= 0xe051,
 	TLS_cipher_ecc_sm4_cbc_sm3		= 0xe013,
 	TLS_cipher_ecc_sm4_gcm_sm3		= 0xe053,
@@ -252,8 +252,6 @@ typedef enum {
 
 const char *tls_curve_type_name(int type);
 
-
-// 与其支持v2，还不如直接修改v2，让v2和v3兼容
 
 typedef enum {
 	TLS_curve_secp256k1			= 22,

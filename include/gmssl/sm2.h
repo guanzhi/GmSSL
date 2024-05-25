@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -45,7 +45,7 @@ from RFC 5915
 
 ECPrivateKey ::= SEQUENCE {
 	version		INTEGER,	-- value MUST be (1)
-	privateKey	OCTET STRING,	-- big endian encoding of integer 这里不是以INTEGER编码的，因此长度固定
+	privateKey	OCTET STRING,	-- big endian encoding of integer, fixed length
 	parameters	[0] EXPLICIT ECParameters OPTIONAL,
 					-- ONLY namedCurve OID is permitted, by RFC 5480
 					-- MUST always include this field, by RFC 5915

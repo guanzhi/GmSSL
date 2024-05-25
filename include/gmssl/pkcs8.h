@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -34,7 +34,7 @@ PBKDF2-params ::= SEQUENCE {
 		otherSource	AlgorithmIdentifier {{PBKDF2-SaltSources}}
 	},
 	iterationCount		INTEGER (1..MAX),
-	keyLength		INTEGER (1..MAX) OPTIONAL, -- 这个参数可以由函数指定
+	keyLength		INTEGER (1..MAX) OPTIONAL,
 	prf			AlgorithmIdentifier {{PBKDF2-PRFs}} DEFAULT algid-hmacWithSHA1
 }
 

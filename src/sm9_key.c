@@ -389,7 +389,7 @@ int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, si
 	sm9_z256_hash1(t, id, idlen, SM9_HID_SIGN);
 	sm9_z256_modn_add(t, t, msk->ks);
 	if (sm9_z256_is_zero(t)) {
-		// 这是一个严重问题，意味着整个msk都需要作废了
+		// TODO: when this happen, the admin should re-generate the MSK. Some speciall error/warning should return on this!			
 		error_print();
 		return -1;
 	}
@@ -494,7 +494,7 @@ int sm9_oid_to_der(int oid, uint8_t **out, size_t *outlen)
 {
 	const ASN1_OID_INFO *info;
 	if (oid == -1) {
-		// TODO: 检查其他的oid_to_der是否支持这个default == -1 的特性
+		// FIXME: check if other oid_to_der support this default == -1 behavior				
 		return 0;
 	}
 	if (!(info = asn1_oid_info_from_oid(sm9_oids, sm9_oids_count, oid))) {
@@ -686,7 +686,7 @@ static int sm9_private_key_info_decrypt_from_der(int *alg, int *params, uint8_t 
 	sm4_set_decrypt_key(&sm4_key, key);
 	if (sm4_cbc_padding_decrypt(&sm4_key, iv, enced_pkey_info, enced_pkey_info_len,
 			pkey_info, &pkey_info_len) != 1
-		|| sm9_private_key_info_from_der(alg, params, &cp_prikey, prikey_len, // 注意这里的是const uint8_t *，必须拷贝到外面
+		|| sm9_private_key_info_from_der(alg, params, &cp_prikey, prikey_len, // the const uint8_t *, must be copy outside			
 			&cp, &pkey_info_len) != 1
 		|| asn1_length_is_zero(pkey_info_len) != 1) {
 		error_print();
