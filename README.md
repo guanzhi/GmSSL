@@ -49,11 +49,11 @@ nmake
 
 ### 密码算法
 
-* 分组密码：SM4 (CBC/CTR/GCM), AES (CBC/CTR/GCM)
-* 序列密码：ZUC/ZUC-256, ChaCha20, RC4
-* 哈希函数: SM3, SHA-224/256/384/512, SHA-1, MD5
+* 分组密码：SM4 (CBC/CTR/GCM/ECB/CFB/OFB/CCM/XTS), AES (CBC/CTR/GCM)
+* 序列密码：ZUC/ZUC-256, ChaCha20
+* 哈希函数: SM3, SHA-1, SHA-224/256/384/512
 * 公钥密码：SM2加密/签名, SM9加密/签名
-* MAC算法：HMAC, GHASH
+* MAC算法：HMAC, GHASH, CBC-MAC
 * 密钥导出函数：PBKDF2、HKDF
 * 随机数生成器：Intel RDRAND, HASH_DRBG (NIST.SP.800-90A)
 
@@ -79,11 +79,17 @@ GmSSL通过子项目提供多种多种编程语言绑定
  * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) 以ctypes方式实现的Python语言绑定
  * [GmSSL-JS](https://github.com/guanzhi/GmSSL-JS) 纯JavaScript实现的国密算法库
 
-## 典型应用
+### 支持国密硬件
 
-#### Nginx-with-GmSSL3.0
+GmSSL内置支持国密SDF密码硬件（通常为PCI-E接口的密码卡或者服务器密码机）和SKF密码硬件（通常为小型USB密码钥匙）。经过测试的密码产品型号包括：
 
-GmSSL支持Nginx的适配，并提供了Docker实现，具体参见[Nginx-with-GmSSL3.0](https://github.com/zhaoxiaomeng/Nginx-with-GmSSLv3) 项目。
+* to be added.
+
+开发者也可以用GmSSL的子项目SoftSDF(https://github.com/GmSSL/SoftSDF) ，用功能等效（但是不具备密码硬件密钥保护等价的安全性）的软件SDF模块来进行开发和测试，正式部署的时候再替换为硬件SDF。
+
+### OpenSSL兼容性
+
+GmSSL 3.0版本重写了所有的代码并改变了原有API，因此当前GmSSL版本和OpenSSL不兼容，无法直接用GmSSL替换OpenSSL进行编译。GmSSL提供了子项目 OpenSSL-Compatibility-Layer (https://github.com/GmSSL/OpenSSL-Compatibility-Layer) 提供了OpenSSL的兼容层，Nginx等应用可以通过OpenSSL-Compatibility-Layer调用GmSSL功能。经过测试目前兼容层可以兼容Nginx 1.16 ~ 1.25 之间的版本。
 
 ## Benchmark
 
