@@ -710,7 +710,6 @@ int sm2_encrypt_init(SM2_ENC_CTX *ctx)
 		return -1;
 	}
 
-#define ENABLE_SM2_ENC_PRE_COMPUTE 1
 #if ENABLE_SM2_ENC_PRE_COMPUTE
 	if (sm2_encrypt_pre_compute(ctx->pre_comp) != 1) {
 		error_print();

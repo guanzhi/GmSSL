@@ -70,7 +70,7 @@ option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
-
+option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
 
 set(src
 	src/version.c
