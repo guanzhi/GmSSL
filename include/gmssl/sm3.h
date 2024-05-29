@@ -13,7 +13,6 @@
 
 #include <string.h>
 #include <stdint.h>
-#include <gmssl/api.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,7 +65,7 @@ void sm3_kdf_finish(SM3_KDF_CTX *ctx, uint8_t *out);
 #define SM3_PBKDF2_MAX_SALT_SIZE	64
 #define SM3_PBKDF2_DEFAULT_SALT_SIZE	8
 
-_gmssl_export int sm3_pbkdf2(const char *pass, size_t passlen,
+int sm3_pbkdf2(const char *pass, size_t passlen,
 	const uint8_t *salt, size_t saltlen, size_t count,
 	size_t outlen, uint8_t *out);
 
@@ -79,9 +78,9 @@ typedef struct {
 	int state;
 } SM3_DIGEST_CTX;
 
-_gmssl_export int sm3_digest_init(SM3_DIGEST_CTX *ctx, const uint8_t *key, size_t keylen);
-_gmssl_export int sm3_digest_update(SM3_DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
-_gmssl_export int sm3_digest_finish(SM3_DIGEST_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
+int sm3_digest_init(SM3_DIGEST_CTX *ctx, const uint8_t *key, size_t keylen);
+int sm3_digest_update(SM3_DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
+int sm3_digest_finish(SM3_DIGEST_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
 
 
 #ifdef __cplusplus

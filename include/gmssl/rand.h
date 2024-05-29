@@ -13,7 +13,6 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <gmssl/api.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,7 +21,7 @@ extern "C" {
 
 #define RAND_BYTES_MAX_SIZE	(256)
 
-_gmssl_export int rand_bytes(uint8_t *buf, size_t buflen);
+int rand_bytes(uint8_t *buf, size_t buflen);
 
 
 #ifdef __cplusplus

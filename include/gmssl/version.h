@@ -12,8 +12,6 @@
 #ifndef GMSSL_VERSION_H
 #define GMSSL_VERSION_H
 
-#include <gmssl/api.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,8 +21,8 @@ extern "C" {
 #define GMSSL_VERSION_NUM	30102
 #define GMSSL_VERSION_STR	"GmSSL 3.1.2 Dev"
 
-_gmssl_export int gmssl_version_num(void);
-_gmssl_export const char *gmssl_version_str(void);
+int gmssl_version_num(void);
+const char *gmssl_version_str(void);
 
 #ifdef __cplusplus
 }

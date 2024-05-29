@@ -11,12 +11,10 @@
 #ifndef GMSSL_EC_H
 #define GMSSL_EC_H
 
-
 #include <time.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <gmssl/api.h>
 #include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
@@ -57,7 +55,7 @@ enum {
 	EC_private_key_version = 1,
 };
 
-_gmssl_export int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 #ifdef __cplusplus
 }

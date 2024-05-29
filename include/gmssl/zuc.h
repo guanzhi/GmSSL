@@ -11,11 +11,8 @@
 #ifndef GMSSL_ZUC_H
 #define GMSSL_ZUC_H
 
-
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmssl/api.h>
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,9 +103,9 @@ typedef struct {
 	size_t block_nbytes;
 } ZUC_CTX;
 
-_gmssl_export int zuc_encrypt_init(ZUC_CTX *ctx, const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE]);
-_gmssl_export int zuc_encrypt_update(ZUC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-_gmssl_export int zuc_encrypt_finish(ZUC_CTX *ctx, uint8_t *out, size_t *outlen);
+int zuc_encrypt_init(ZUC_CTX *ctx, const uint8_t key[ZUC_KEY_SIZE], const uint8_t iv[ZUC_IV_SIZE]);
+int zuc_encrypt_update(ZUC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int zuc_encrypt_finish(ZUC_CTX *ctx, uint8_t *out, size_t *outlen);
 
 
 #ifdef __cplusplus
