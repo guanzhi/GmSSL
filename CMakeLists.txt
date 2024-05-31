@@ -256,7 +256,8 @@ if (ENABLE_GMUL_ARM64)
 	message(STATUS "ENABLE_GMUL_ARM64 is ON")
 	add_definitions(-DENABLE_GMUL_ARM64)
 	enable_language(ASM)
-	list(APPEND src src/gf128_arm64.S)
+	#list(APPEND src src/gf128_arm64.S)
+	list(APPEND src src/gf128_arm64.c)
 endif()
 
 

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/ghash.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
@@ -180,10 +181,44 @@ int test_gcm(void)
 }
 #endif
 
+static int speed_ghash(void)
+{
+	GHASH_CTX ghash_ctx;
+	uint8_t h[16] = {0};
+	uint8_t aad[20] = {0};
+	uint8_t blocks[4096];
+	uint8_t ghash[16];
+	clock_t start, end;
+	double seconds;
+	int i;
+
+	ghash_init(&ghash_ctx, h, aad, sizeof(aad));
+	for (i = 0; i < 4096; i++) {
+		ghash_update(&ghash_ctx, blocks, sizeof(blocks));
+	}
+	start = clock();
+	ghash_init(&ghash_ctx, h, aad, sizeof(aad));
+	for (i = 0; i < 4096; i++) {
+		ghash_update(&ghash_ctx, blocks, sizeof(blocks));
+	}
+	ghash_finish(&ghash_ctx, ghash);
+	end = clock();
+
+	seconds = (double)(end - start)/CLOCKS_PER_SEC;
+	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+
+	return 1;
+}
+
 
 int main(int argc, char **argv)
 {
 	if (test_ghash() != 1) goto err;
+
+#if ENABLE_TEST_SPEED
+	speed_ghash();
+#endif
+
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
