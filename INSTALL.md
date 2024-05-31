@@ -252,3 +252,29 @@ cpack -G DEB
 make package
 ```
 
+## 生成二进制包
+
+为了保证兼容性，发布的二进制包不包含针对特定指令集的优化代码，并且不启用编译器的`-O3`优化。
+
+在正式发布之前，需要在测试平台上编译、测试、安装。验证`gmssl`命令行可以正确使用，验证`sm3_demo.c`可以正确和`-lgmssl`编译，并且可以正确输出哈希值。
+
+完成编译和测试后，在`build`目录下执行如下操作
+
+``` bash
+#!/bin/bash -x
+VERSION=3.2.0
+OS=macos
+ARCH=arm64
+mkdir build; cd build; cmake ..; make
+cmake .. -DBUILD_SHARED_LIBS=OFF; make
+mkdir gmssl-$VERSION
+cd gmssl-$VERSION
+mkdir bin; mkdir lib; mkdir include
+cp ../bin/gmssl bin
+cp -P ../bin/libgmssl* lib
+cp -r ../../include/gmssl include
+cd ..
+tar czvf gmssl-$VERSION-$OS-$ARCH.tar.gz gmssl-$VERSION
+```
+
+其中`cmake .. -DBUILD_SHARED_LIBS=OFF; make`重新生成了静态库，以及和静态库连接的`gmssl`二进制程序，因此最终打包的`gmssl`命令行不依赖系统库之外的动态库。

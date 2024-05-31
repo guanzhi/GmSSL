@@ -212,7 +212,7 @@ int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen)
 	// check if the left input is enough for reading (d,dlen)
 	if (*inlen < *len) {
 		error_print();
-		return -2; // 特殊错误值用于 test_asn1_length() 的测试 // TODO: 修改 asn1test.c 的测试向量
+		return -2; // Special error for test_asn1_length() // TODO: fix asn1test.c test vector 			
 	}
 	return 1;
 }

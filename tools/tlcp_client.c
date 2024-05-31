@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -254,9 +254,9 @@ bad:
 		FD_SET(conn.sock, &fds);
 		if (read_stdin)
 #ifdef WIN32
-			FD_SET(_fileno, &fds);
+			FD_SET(_fileno, &fds); // in WIN32, first arg type is SOCKET, maybe typedef of uint 
 #else
-			FD_SET(STDIN_FILENO, &fds);
+			FD_SET(STDIN_FILENO, &fds); // in POSIX, first arg type is int
 #endif
 		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select error\n", prog);
