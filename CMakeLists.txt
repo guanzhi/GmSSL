@@ -657,9 +657,10 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 endif()
 
 
-add_test(NAME gmssl_sm3
-         COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_sm3.cmake")
-
+add_test(NAME gmssl_sm3 COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_sm3.cmake")
+add_test(NAME gmssl_sm2 COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_sm2.cmake")
+add_test(NAME gmssl_cert COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_cert.cmake")
+add_test(NAME gmssl_tlcp COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_tlcp.cmake")
 
 # Generate install package with cpack
 #	cpack -G TGZ
