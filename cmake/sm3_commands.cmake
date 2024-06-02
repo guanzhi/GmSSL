@@ -1,5 +1,5 @@
 execute_process(
-	COMMAND gmssl sm3 -in_str abc
+	COMMAND bin/gmssl sm3 -in_str abc
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 	OUTPUT_VARIABLE TEST_OUTPUT
