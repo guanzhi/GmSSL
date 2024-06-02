@@ -657,10 +657,12 @@ if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 endif()
 
 
-add_test(NAME gmssl_sm3 COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_sm3.cmake")
-add_test(NAME gmssl_sm2 COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_sm2.cmake")
-add_test(NAME gmssl_cert COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_cert.cmake")
-add_test(NAME gmssl_tlcp COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/gmssl_tlcp.cmake")
+add_test(NAME sm3_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm3_commands.cmake")
+add_test(NAME sm2_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm2_commands.cmake")
+add_test(NAME cert_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/cert_commands.cmake")
+add_test(NAME tlcp_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+add_test(NAME tls12_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+add_test(NAME tls13_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 
 # Generate install package with cpack
 #	cpack -G TGZ
