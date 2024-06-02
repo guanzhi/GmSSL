@@ -138,7 +138,6 @@ int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inle
 
 int sm2_z256_point_to_uncompressed_octets(const SM2_Z256_POINT *P, uint8_t out[65]);
 int sm2_z256_point_to_compressed_octets(const SM2_Z256_POINT *P, uint8_t out[33]);
-int sm2_z256_point_from_octets(SM2_Z256_POINT *P, const uint8_t *in, size_t inlen);
 
 /*
 RFC 5480 Elliptic Curve Cryptography Subject Public Key Information

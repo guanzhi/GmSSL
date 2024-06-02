@@ -66,6 +66,8 @@ int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *
 }
 
 // 这里返回的应该是一个SM2_Z256_POINT吗？
+// 首先得问题就是这里面我们是否有必要去检查这个值是否是椭圆曲线上的一个点，还是把这个值传递给后面
+// 如果在这里直接检查，那么意味着这个函数不兼容其他的椭圆曲线点
 int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 	int *curve, SM2_Z256_POINT *point, const uint8_t **sig, size_t *siglen)
 {
@@ -467,7 +469,12 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	SM2_KEY client_ecdh;
 	sm2_key_generate(&client_ecdh);
 	sm2_do_ecdh(&client_ecdh, &server_ecdhe_public, &server_ecdhe_public);
-	memcpy(pre_master_secret, &server_ecdhe_public, 32); // 这个做法很不优雅
+
+	// 需要重新考虑在TLS中是用sm2_do_ecdh还是sm2_ecdh，sm2_ecdh对nistp256的兼容性更好			
+	uint8_t point_bytes[64];						
+	sm2_z256_point_to_bytes(&server_ecdhe_public, point_bytes);			
+
+	memcpy(pre_master_secret, point_bytes, 32); // 这个做法很不优雅
 	// ECDHE和ECC的PMS结构是不一样的吗？
 
 	if (tls_prf(pre_master_secret, 32, "master secret",
@@ -484,14 +491,13 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_encrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_decrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
-	/*
+
 	tls_secrets_print(stderr,
 		pre_master_secret, 48,
 		client_random, server_random,
 		conn->master_secret,
 		conn->key_block, 96,
 		0, 4);
-	*/
 
 	// send ClientKeyExchange
 	tls_trace("send ClientKeyExchange\n");
@@ -938,7 +944,11 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	// generate secrets
 	tls_trace("generate secrets\n");
 	sm2_do_ecdh(&server_ecdhe_key, &client_ecdhe_point, &client_ecdhe_point);
-	memcpy(pre_master_secret, (uint8_t *)&client_ecdhe_point, 32); // 这里应该修改一下表示方式，比如get_xy()
+
+	uint8_t point_bytes[64];
+	sm2_z256_point_to_bytes(&client_ecdhe_point, point_bytes);
+	memcpy(pre_master_secret, point_bytes, 32); // 这里应该修改一下表示方式，比如get_xy()
+
 	tls_prf(pre_master_secret, 32, "master secret",
 		client_random, 32, server_random, 32,
 		48, conn->master_secret);
@@ -949,10 +959,9 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
 	sm4_set_decrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
 	sm4_set_encrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
-	/*
-	tls_secrets_print(stderr, pre_master_secret, 32, client_random, server_random,
+
+	tls_secrets_print(stderr, pre_master_secret, 48, client_random, server_random,
 		conn->master_secret, conn->key_block, 96, 0, 4);
-	*/
 
 	// recv [ChangeCipherSpec]
 	tls_trace("recv [ChangeCipherSpec]\n");

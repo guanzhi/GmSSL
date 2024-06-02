@@ -1600,10 +1600,12 @@ int tls13_do_connect(TLS_CONNECT *conn)
 		uint8_t client_write_iv[12]
 		uint8_t server_write_iv[12]
 	*/
-	sm2_do_ecdh(&client_ecdhe, &server_ecdhe_public, &server_ecdhe_public);
+	sm2_do_ecdh(&client_ecdhe, &server_ecdhe_public, &server_ecdhe_public);		
+	uint8_t share_point[64];							
+	sm2_z256_point_to_bytes(&server_ecdhe_public, share_point);			
 	/* [1]  */ tls13_hkdf_extract(digest, zeros, psk, early_secret);
 	/* [5]  */ tls13_derive_secret(early_secret, "derived", &null_dgst_ctx, handshake_secret);
-	/* [6]  */ tls13_hkdf_extract(digest, handshake_secret, (uint8_t *)&server_ecdhe_public, handshake_secret);
+	/* [6]  */ tls13_hkdf_extract(digest, handshake_secret, share_point, handshake_secret);
 	/* [7]  */ tls13_derive_secret(handshake_secret, "c hs traffic", &dgst_ctx, client_handshake_traffic_secret);
 	/* [8]  */ tls13_derive_secret(handshake_secret, "s hs traffic", &dgst_ctx, server_handshake_traffic_secret);
 	/* [9]  */ tls13_derive_secret(handshake_secret, "derived", &null_dgst_ctx, master_secret);
@@ -2081,10 +2083,13 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	digest_update(&dgst_ctx, record + 5, recordlen - 5);
 
 
-	sm2_do_ecdh(&server_ecdhe, &client_ecdhe_public, &client_ecdhe_public);
+	sm2_do_ecdh(&server_ecdhe, &client_ecdhe_public, &client_ecdhe_public);				
+	uint8_t share_point[64];//FIXME: 应该重新考虑TLS中如何使用sm2_do_ecdh还是sm2_ecdh						
+	sm2_z256_point_to_bytes(&client_ecdhe_public, share_point);			
+
 	/* 1  */ tls13_hkdf_extract(digest, zeros, psk, early_secret);
 	/* 5  */ tls13_derive_secret(early_secret, "derived", &null_dgst_ctx, handshake_secret);
-	/* 6  */ tls13_hkdf_extract(digest, handshake_secret, (uint8_t *)&client_ecdhe_public, handshake_secret);
+	/* 6  */ tls13_hkdf_extract(digest, handshake_secret, share_point, handshake_secret);
 	/* 7  */ tls13_derive_secret(handshake_secret, "c hs traffic", &dgst_ctx, client_handshake_traffic_secret);
 	/* 8  */ tls13_derive_secret(handshake_secret, "s hs traffic", &dgst_ctx, server_handshake_traffic_secret);
 	/* 9  */ tls13_derive_secret(handshake_secret, "derived", &null_dgst_ctx, master_secret);
