@@ -98,7 +98,6 @@ set(src
 	src/sm9_exch.c
 	src/zuc.c
 	src/zuc_modes.c
-	src/hash_drbg.c
 	src/block_cipher.c
 	src/digest.c
 	src/hmac.c
@@ -196,7 +195,6 @@ set(tests
 	sm2_enc
 	sm9
 	zuc
-	hash_drbg
 	block_cipher
 	digest
 	hmac
