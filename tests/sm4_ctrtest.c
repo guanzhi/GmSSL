@@ -186,6 +186,75 @@ static int test_sm4_ctr_with_carray(void)
 	return 1;
 }
 
+static int test_sm4_ctr_iv_overflow(void)
+{
+	struct {
+		char *label;
+		char *key;
+		char *iv;
+		char *plaintext;
+		char *ciphertext;
+	} tests[] = {
+		{
+		"8-bit overflow",
+		"0123456789abcdeffedcba9876543210",
+		"000000000000000000000000000000ff",
+		"abcdefghijklmnopkrstuvwxyz123456",
+		"0c52aa1703982654be4a61a73beecefa688c23b123d5ac77b3d6c495f2f1399f",
+		},
+		{
+		"32-bit overflow",
+		"0123456789abcdeffedcba9876543210",
+		"000000000000000000000000ffffffff",
+		"abcdefghijklmnopkrstuvwxyz123456",
+		"77569603146f352a68f2a2060ef5869f34cd12f510f4b598cfed42984f33e0c0",
+		},
+		{
+		"64-bit overflow",
+		"0123456789abcdeffedcba9876543210",
+		"0000000000000000ffffffffffffffff",
+		"abcdefghijklmnopkrstuvwxyz123456",
+		"024ffdc1b9b510f6968205b42f6dd15505e5e399e54b08aae25a9298dc9590a1",
+		},
+		{
+		"128-bit overflow",
+		"0123456789abcdeffedcba9876543210",
+		"ffffffffffffffffffffffffffffffff",
+		"abcdefghijklmnopkrstuvwxyz123456",
+		"0973cc1a6c15038fef912ea230f40f804d05871f7cb755b4ee2f022268e0971c",
+		},
+	};
+
+
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint8_t plaintext[32];
+	uint8_t ciphertext[32];
+
+	SM4_KEY sm4_key;
+	uint8_t encrypted[32];
+	size_t len, i;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		hex_to_bytes(tests[i].key, strlen(tests[i].key), key, &len);
+		hex_to_bytes(tests[i].iv, strlen(tests[i].iv), iv, &len);
+		memcpy(plaintext, tests[i].plaintext, strlen(tests[i].plaintext));
+		hex_to_bytes(tests[i].ciphertext, strlen(tests[i].ciphertext), ciphertext, &len);
+
+		sm4_set_encrypt_key(&sm4_key, key);
+		sm4_ctr_encrypt(&sm4_key, iv, plaintext, sizeof(plaintext), encrypted);
+
+		if (memcmp(encrypted, ciphertext, sizeof(ciphertext)) != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 /*
  * NOTE:
  * There is an compiler bug on Tencent Cloud/Windows Server 2022/Visual Studio 2022 and GitHub CI Windows env.
@@ -361,6 +430,7 @@ int main(void)
 	if (test_sm4_ctr() != 1) goto err;
 	if (test_sm4_ctr_test_vectors() != 1) goto err;
 	if (test_sm4_ctr_with_carray() != 1) goto err;
+	if (test_sm4_ctr_iv_overflow() != 1) goto err;
 	if (test_sm4_ctr_ctx() != 1) goto err;
 	if (test_sm4_ctr_ctx_multi_updates() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);

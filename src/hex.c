@@ -111,7 +111,7 @@ int hex2bin(const char *in, size_t inlen, uint8_t *out)
 
 	while (inlen) {
 		if ((c = hexchar2int(*in++)) < 0) {
-			error_print_msg("%d", 5);
+			error_print();
 			return -1;
 		}
 		*out = (uint8_t)c << 4;
