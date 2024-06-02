@@ -55,7 +55,6 @@ option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" ON)
 
-option(ENABLE_GMT_0105_RNG "Enable GM/T 0105 Software RNG" OFF)
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
 option(ENABLE_SHA2 "Enable SHA2" ON)
@@ -492,13 +491,6 @@ if (ENABLE_SM4_CBC_MAC)
 	list(APPEND src src/sm4_cbc_mac.c)
 	list(APPEND tools tools/sm4_cbc_mac.c)
 	list(APPEND tests sm4_cbc_mac)
-endif()
-
-
-if (ENABLE_GMT_0105_RNG)
-	message(STATUS "ENABLE_GMT_0105_RNG is ON")
-	list(APPEND src src/sm3_rng.c src/sm4_rng.c)
-	list(APPEND tests sm3_rng sm4_rng)
 endif()
 
 
