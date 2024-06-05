@@ -1195,7 +1195,7 @@ static int test_SDF_InternalSign_ECC(int key, char *pass)
 	unsigned char *ucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
 	unsigned char ucData[32] = { 1,2,3,4 };
-	unsigned int uiDataLength = 32;
+	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCSignature eccSignature;
 	int ret;
 
@@ -1549,8 +1549,8 @@ static int speed_SDF_InternalSign_ECC(int key, char *pass)
 	unsigned int uiIPKIndex = (unsigned int)key;
 	unsigned char *ucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
-	unsigned char ucData[32] = { 1,2,3,4 };
-	unsigned int uiDataLength = 32;
+	unsigned char ucData[64 - 32 - 8] = {1}; // same length as sm2_signtest.c
+	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCSignature eccSignature;
 	clock_t begin, end;
 	double seconds;
@@ -1609,8 +1609,8 @@ static int speed_SDF_InternalVerify_ECC(int key, char *pass)
 	unsigned int uiIPKIndex = (unsigned int)key;
 	unsigned char *ucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
-	unsigned char ucData[32] = { 1,2,3,4 };
-	unsigned int uiDataLength = 32;
+	unsigned char ucData[64 - 32 - 8] = {1}; // same length as sm2_signtest.c
+	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCSignature eccSignature;
 	clock_t begin, end;
 	double seconds;
@@ -1676,7 +1676,7 @@ static int speed_SDF_InternalEncrypt_ECC(int key)
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	unsigned int uiIPKIndex = (unsigned int)key;
-	unsigned char ucData[48] = { 1,2,3,4 };
+	unsigned char ucData[32] = {1}; // same as sm2_enctest.c
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCCipher eccCipher;
 	unsigned char ucDecData[256];
@@ -1728,7 +1728,7 @@ static int speed_SDF_InternalDecrypt_ECC(int key, char *pass)
 	unsigned int uiIPKIndex = (unsigned int)key;
 	unsigned char *ucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
-	unsigned char ucData[48] = { 1,2,3,4 };
+	unsigned char ucData[32] = {1}; // same as sm2_enctest.c
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCCipher eccCipher;
 	unsigned char ucDecData[256];
