@@ -176,7 +176,7 @@ static int test_sm3(void)
 	return 1;
 }
 
-static int test_sm3_speed(void)
+static int speed_sm3(void)
 {
 	SM3_CTX sm3_ctx;
 	uint8_t blocks[4096];
@@ -198,7 +198,7 @@ static int test_sm3_speed(void)
 
 	seconds = (double)(end - start)/CLOCKS_PER_SEC;
 
-	fprintf(stderr, "%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
+	printf("%s: %f MiB per second\n", __FUNCTION__, 16/seconds);
 	return 1;
 }
 
@@ -207,7 +207,7 @@ int main(void)
 {
 	if (test_sm3() != 1) goto err;
 #if ENABLE_TEST_SPEED
-	if (test_sm3_speed() != 1) goto err;
+	if (speed_sm3() != 1) goto err;
 #endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

@@ -219,7 +219,6 @@ static int test_sm2_encrypt_fixlen(void)
 				error_print();
 				return -1;
 			}
-			printf("plaintext len = %zu, ciphertext len = %zu\n", tests[i].plaintext_len, encrypted_len);
 			if (encrypted_len != encrypted_fixlen) {
 				error_print();
 				return -1;
@@ -282,7 +281,7 @@ static int test_sm2_encrypt(void)
 	return 1;
 }
 
-static int test_sm2_encrypt_ctx_speed(void)
+static int speed_sm2_encrypt_ctx(void)
 {
 	SM2_KEY sm2_key;
 	SM2_ENC_CTX enc_ctx;
@@ -327,7 +326,9 @@ int main(void)
 	if (test_sm2_do_encrypt_fixlen() != 1) goto err;
 	if (test_sm2_encrypt() != 1) goto err;
 	if (test_sm2_encrypt_fixlen() != 1) goto err;
-	if (test_sm2_encrypt_ctx_speed() != 1) goto err;
+#if ENABLE_TEST_SPEED
+	if (speed_sm2_encrypt_ctx() != 1) goto err;
+#endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

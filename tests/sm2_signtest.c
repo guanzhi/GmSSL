@@ -172,7 +172,7 @@ static int test_sm2_sign(void)
 	return 1;
 }
 
-static int test_sm2_sign_ctx_speed(void)
+static int speed_sm2_sign_ctx(void)
 {
 	SM2_KEY sm2_key;
 	SM2_SIGN_CTX sign_ctx;
@@ -205,13 +205,10 @@ static int test_sm2_sign_ctx_speed(void)
 		sm2_sign_reset(&sign_ctx);
 	}
 	end = clock();
-
 	seconds = (double)(end - start)/CLOCKS_PER_SEC;
 
-	fprintf(stderr, "sm2_sign_ctx speed : 4096 signs time %f seconds, %f signs per second\n", seconds, 4096/seconds);
-
+	printf("%s: %f signs per second\n", __FUNCTION__, 4096/seconds);
 	return 1;
-
 }
 
 static int test_sm2_sign_ctx(void)
@@ -340,7 +337,9 @@ int main(void)
 	if (test_sm2_sign() != 1) goto err;
 	if (test_sm2_sign_ctx() != 1) goto err;
 	if (test_sm2_sign_reset() != 1) goto err;
-	if (test_sm2_sign_ctx_speed() != 1) goto err;
+#if ENABLE_TEST_SPEED
+	if (speed_sm2_sign_ctx() != 1) goto err;
+#endif
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
