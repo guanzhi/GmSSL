@@ -60,6 +60,8 @@ int sdf_load_library(const char *so_path, const char *vendor);
 int sdf_open_device(SDF_DEVICE *dev);
 int sdf_print_device_info(FILE *fp, int fmt, int ind, const char *lable, SDF_DEVICE *dev);
 int sdf_rand_bytes(SDF_DEVICE *dev, uint8_t *buf, size_t len);
+int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key);
+int sdf_export_enc_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key);
 int sdf_load_sign_key(SDF_DEVICE *dev, SDF_KEY *key, int index, const char *pass);
 int sdf_sign(SDF_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
 int sdf_release_key(SDF_KEY *key);

@@ -144,6 +144,72 @@ end:
 	return ret;
 }
 
+int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key)
+{
+	void *hSession;
+	ECCrefPublicKey eccPublicKey;
+
+	if (!dev || !public_key) {
+		error_print();
+		return -1;
+	}
+
+	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (SDF_ExportSignPublicKey_ECC(hSession, key_index, &eccPublicKey) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	(void)SDF_CloseSession(hSession);
+
+	if (SDF_ECCrefPublicKey_to_SM2_KEY(&eccPublicKey, public_key) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int sdf_export_enc_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key)
+{
+	void *hSession;
+	ECCrefPublicKey eccPublicKey;
+
+	if (!dev || !public_key) {
+		error_print();
+		return -1;
+	}
+
+	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (SDF_ExportEncPublicKey_ECC(hSession, key_index, &eccPublicKey) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	(void)SDF_CloseSession(hSession);
+
+	if (SDF_ECCrefPublicKey_to_SM2_KEY(&eccPublicKey, public_key) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+
+
+
+
+
+
+
+
 int sdf_load_sign_key(SDF_DEVICE *dev, SDF_KEY *key, int index, const char *pass)
 {
 	int ret = -1;
