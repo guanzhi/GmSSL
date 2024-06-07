@@ -552,7 +552,7 @@ if (ENABLE_SDF)
 		src/sdf/sdf_meth.c
 		src/sdf/sdf_ext.c
 		src/sdf/sdf_sansec.c)
-	list(APPEND tools tools/sdfutil.c tools/sdfinfo.c tools/sdfexport.c tools/sdftest.c)
+	list(APPEND tools tools/sdfinfo.c tools/sdfexport.c tools/sdfsign.c tools/sdftest.c)
 endif()
 
 

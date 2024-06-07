@@ -66,9 +66,9 @@ extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
 #ifdef ENABLE_SDF
-extern int sdfutil_main(int argc, char **argv);
 extern int sdfinfo_main(int argc, char **argv);
 extern int sdfexport_main(int argc, char **argv);
+extern int sdfsign_main(int argc, char **argv);
 extern int sdftest_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_SKF
@@ -128,9 +128,9 @@ static const char *options =
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
 #ifdef ENABLE_SDF
-	"  sdfutil           SDF crypto device utility\n"
 	"  sdfinfo           Print SDF device info\n"
-	"  sdfexport         Export public key from SDF device\n"
+	"  sdfexport         Export SM2 signing public key from SDF device\n"
+	"  sdfsign           Generate SM2 signature with SDF internal private key\n"
 	"  sdftest           Test vendor's SDF library and device\n"
 #endif
 #ifdef ENABLE_SKF
@@ -285,8 +285,8 @@ int main(int argc, char **argv)
 			return sdfinfo_main(argc, argv);
 		} else if (!strcmp(*argv, "sdfexport")) {
 			return sdfexport_main(argc, argv);
-		} else if (!strcmp(*argv, "sdfutil")) {
-			return sdfutil_main(argc, argv);
+		} else if (!strcmp(*argv, "sdfsign")) {
+			return sdfsign_main(argc, argv);
 		} else if (!strcmp(*argv, "sdftest")) {
 			return sdftest_main(argc, argv);
 #endif
