@@ -19,6 +19,11 @@
 extern void *globalDeviceHandle;
 
 
+typedef struct {
+	void *hSession;
+	void *hKey;
+} SDF_SM4_KEY;
+
 
 static int sdf_sm4_cbc_encrypt_blocks(SDF_SM4_KEY *key,
 	const uint8_t iv[16], const uint8_t *in, size_t inlen, uint8_t *out)

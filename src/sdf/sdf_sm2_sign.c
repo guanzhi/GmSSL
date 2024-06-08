@@ -22,6 +22,19 @@
 
 extern void *globalDeviceHandle;
 
+typedef struct {
+	uint32_t index;
+	uint8_t passlen;
+	unsigned char pass[26 + 1];
+} SDF_ENC_PRIVATE_KEY;
+
+typedef struct {
+	uint32_t index;
+	uint8_t passlen;
+	unsigned char pass[26 + 1];
+} SDF_PRIVATE_KEY;
+
+
 static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
 
 // hSession is from HashInit/Update/Final, also means the uiISKIndex key has been opened with password

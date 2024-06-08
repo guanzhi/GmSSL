@@ -17,14 +17,13 @@
 #include "sdf.h"
 #include "sdf_ext.h"
 
-/*
- * TODO:
- *  1. SM3-HMAC
-
-
-*/
 
 void *globalDeviceHandle = NULL;
+
+
+typedef struct {
+	void *hSession;
+} SDF_SM3_CTX;
 
 
 int sm3_digest_init(SM3_DIGEST_CTX *ctx, const uint8_t *key, size_t keylen)

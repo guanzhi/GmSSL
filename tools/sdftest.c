@@ -15,6 +15,7 @@
 #include <time.h>
 #include <gmssl/hex.h>
 #include <gmssl/sm2.h>
+#include <gmssl/sm3.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include "../src/sdf/sdf.h"
@@ -870,6 +871,7 @@ static int test_SDF_GenerateKeyWithIPK_ECC(int key, char *pass)
 	void *hDeviceHandle = NULL;
 	void *hSessionHandle = NULL;
 	void *hKeyHandle = NULL;
+	uint8_t iv[16] = {1};
 	unsigned int uiIPKIndex =(unsigned int)key;
 	unsigned char *pucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
@@ -906,6 +908,7 @@ static int test_SDF_GenerateKeyWithIPK_ECC(int key, char *pass)
 		return -1;
 	}
 
+	memcpy(ucIV, iv, 16);
 	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, ucIV, ucData, uiDataLength, ucEncData, &uiEncDataLength);
 	if (ret != SDR_OK) {
 		fprintf(stderr, "Error: SDF_Encrypt return 0x%X\n", ret);
@@ -941,6 +944,7 @@ static int test_SDF_GenerateKeyWithIPK_ECC(int key, char *pass)
 		return -1;
 	}
 
+	memcpy(ucIV, iv, 16);
 	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, ucIV, ucEncData, uiEncDataLength, ucDecData, &uiDecDataLength);
 	if (ret != SDR_OK) {
 		printf("Error: SDF_Encrypt returned 0x%X\n", ret);
@@ -1063,6 +1067,7 @@ static int test_SDF_Encrypt(int kek)
 	unsigned int uiKEKIndex = (unsigned int)kek;
 	unsigned char pucKey[64];
 	unsigned int uiKeyLength = (unsigned int)sizeof(pucKey);
+	unsigned char ucIV[16] = {1};
 	unsigned char pucIV[16];
 	unsigned char pucData[32];
 	unsigned int uiDataLength = sizeof(pucData);
@@ -1091,6 +1096,7 @@ static int test_SDF_Encrypt(int kek)
 	}
 
 	// encrypt and decrypt
+	memcpy(pucIV, ucIV, 16);
 	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucData, uiDataLength, pucEncData, &uiEncDataLength);
 	if (ret != SDR_OK) {
 		error_print_msg("SDF library: 0x%08X\n", ret);
@@ -1109,6 +1115,7 @@ static int test_SDF_Encrypt(int kek)
 	}
 	*/
 
+	memcpy(pucIV, ucIV, 16);
 	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucEncData, uiEncDataLength, pucDecData, &uiDecDataLength);
 	if (ret != SDR_OK) {
 		error_print_msg("SDF library: 0x%08X\n", ret);
@@ -1542,6 +1549,7 @@ static int speed_SDF_GenerateKeyPair_ECC(void)
 	return 1;
 }
 
+// XXX: speed of `SDF_InternalSign_ECC` should be compared with `sm2_do_sign`
 static int speed_SDF_InternalSign_ECC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
@@ -1549,7 +1557,7 @@ static int speed_SDF_InternalSign_ECC(int key, char *pass)
 	unsigned int uiIPKIndex = (unsigned int)key;
 	unsigned char *ucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
-	unsigned char ucData[64 - 32 - 8] = {1}; // same length as sm2_signtest.c
+	unsigned char ucData[SM3_DIGEST_SIZE] = {1}; // XXX: `SDF_InternalSign_ECC` can only handle 32 bytes digest
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCSignature eccSignature;
 	clock_t begin, end;
@@ -1602,6 +1610,7 @@ static int speed_SDF_InternalSign_ECC(int key, char *pass)
 	return 1;
 }
 
+// XXX: speed of `SDF_InternalVerify_ECC` should be compared with `sm2_do_verify`
 static int speed_SDF_InternalVerify_ECC(int key, char *pass)
 {
 	void *hDeviceHandle = NULL;
@@ -1609,7 +1618,7 @@ static int speed_SDF_InternalVerify_ECC(int key, char *pass)
 	unsigned int uiIPKIndex = (unsigned int)key;
 	unsigned char *ucPassword = (unsigned char *)pass;
 	unsigned int uiPwdLength = (unsigned int)strlen(pass);
-	unsigned char ucData[64 - 32 - 8] = {1}; // same length as sm2_signtest.c
+	unsigned char ucData[32] = {1}; // XXX: `SDF_InternalVerify_ECC` can only handle 32 bytes digest
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCSignature eccSignature;
 	clock_t begin, end;
@@ -1636,7 +1645,6 @@ static int speed_SDF_InternalVerify_ECC(int key, char *pass)
 		error_print();
 		return -1;
 	}
-
 	ret = SDF_InternalSign_ECC(hSessionHandle, uiIPKIndex, ucData, uiDataLength, &eccSignature);
 	if (ret != SDR_OK) {
 		(void)SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
@@ -1645,7 +1653,7 @@ static int speed_SDF_InternalVerify_ECC(int key, char *pass)
 		error_print();
 		return -1;
 	}
-	//(void)SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex); // FIXME: error on calling this				
+	(void)SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
 
 	begin = clock();
 	for (i = 0; i < 16; i++) {
@@ -1663,7 +1671,6 @@ static int speed_SDF_InternalVerify_ECC(int key, char *pass)
 	end = clock();
 	seconds = (double)(end - begin)/ CLOCKS_PER_SEC;
 
-	(void)SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
 	(void)SDF_CloseSession(hSessionHandle);
 	(void)SDF_CloseDevice(hDeviceHandle);
 
@@ -1879,7 +1886,7 @@ bad:
 #if ENABLE_TEST_SPEED
 	if (speed_SDF_Hash() != 1) goto err;
 	if (speed_SDF_Encrypt_SM4_CBC(kek) != 1) goto err;
-	//if (speed_SDF_Decrypt_SM4_CBC(kek) != 1) goto err; // FIXME: should implement CBC without padding in SoftSDF				
+	if (speed_SDF_Decrypt_SM4_CBC(kek) != 1) goto err; // FIXME: should implement CBC without padding in SoftSDF				
 	if (speed_SDF_GenerateKeyPair_ECC() != 1) goto err;
 	if (speed_SDF_InternalSign_ECC(key, pass) != 1) goto err;
 	if (speed_SDF_InternalVerify_ECC(key, pass) != 1) goto err;
