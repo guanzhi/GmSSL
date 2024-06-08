@@ -29,6 +29,10 @@ typedef struct {
 } SDF_DEVICE;
 
 typedef struct {
+	void *session;
+} SDF_DIGEST_CTX;
+
+typedef struct {
 	SM2_Z256_POINT public_key;
 	void *session;
 	int index;
@@ -43,6 +47,11 @@ typedef struct {
 int sdf_load_library(const char *so_path, const char *vendor);
 int sdf_open_device(SDF_DEVICE *dev);
 int sdf_print_device_info(FILE *fp, int fmt, int ind, const char *lable, SDF_DEVICE *dev);
+int sdf_digest_init(SDF_DIGEST_CTX *ctx, SDF_DEVICE *dev);
+int sdf_digest_update(SDF_DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
+int sdf_digest_finish(SDF_DIGEST_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
+int sdf_digest_reset(SDF_DIGEST_CTX *ctx);
+void sdf_digest_cleanup(SDF_DIGEST_CTX *ctx);
 int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key);
 int sdf_load_sign_key(SDF_DEVICE *dev, SDF_SIGN_KEY *key, int key_index, const char *pass);
 int sdf_sign(SDF_SIGN_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);

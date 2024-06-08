@@ -1140,6 +1140,7 @@ static int test_SDF_Encrypt(int kek)
 	return 1;
 }
 
+// FIXME: correctness is not tested!			
 static int test_SDF_CalculateMAC(int kek)
 {
 	void *hDeviceHandle = NULL;
@@ -1151,7 +1152,7 @@ static int test_SDF_CalculateMAC(int kek)
 	unsigned char ucEncedKey[256];
 	unsigned int uiEncedKeyLength = (unsigned int)sizeof(ucEncedKey);
 	unsigned int uiMACAlgID = SGD_SM3;
-	unsigned char ucData[50] = {0}; // FIXME: put real test data			
+	unsigned char ucData[50]; // FIXME: put real test data			
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	unsigned char ucMAC[32];
 	unsigned int uiMACLength = (unsigned int)sizeof(ucMAC);
@@ -1886,7 +1887,7 @@ bad:
 #if ENABLE_TEST_SPEED
 	if (speed_SDF_Hash() != 1) goto err;
 	if (speed_SDF_Encrypt_SM4_CBC(kek) != 1) goto err;
-	if (speed_SDF_Decrypt_SM4_CBC(kek) != 1) goto err; // FIXME: should implement CBC without padding in SoftSDF				
+	if (speed_SDF_Decrypt_SM4_CBC(kek) != 1) goto err;
 	if (speed_SDF_GenerateKeyPair_ECC() != 1) goto err;
 	if (speed_SDF_InternalSign_ECC(key, pass) != 1) goto err;
 	if (speed_SDF_InternalVerify_ECC(key, pass) != 1) goto err;

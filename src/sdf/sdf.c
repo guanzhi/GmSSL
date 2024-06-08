@@ -127,6 +127,105 @@ int sdf_print_device_info(FILE *fp, int fmt, int ind, const char *lable, SDF_DEV
 	return 1;
 }
 
+int sdf_digest_init(SDF_DIGEST_CTX *ctx, SDF_DEVICE *dev)
+{
+	void *hSession;
+	int ret;
+
+	if (!dev || !ctx) {
+		error_print();
+		return -1;
+	}
+	if (!dev->handle) {
+		error_print();
+		return -1;
+	}
+	if ((ret = SDF_OpenSession(dev->handle, &hSession)) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if ((ret = SDF_HashInit(hSession, SGD_SM3, NULL, NULL, 0)) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	ctx->session = hSession;
+	return 1;
+}
+
+int sdf_digest_update(SDF_DIGEST_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	int ret;
+
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->session) {
+		error_print();
+		return -1;
+	}
+	if ((ret = SDF_HashUpdate(ctx->session, (uint8_t *)data, (unsigned int)datalen)) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sdf_digest_finish(SDF_DIGEST_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE])
+{
+	unsigned int dgstlen;
+	int ret;
+
+	if (!ctx || !dgst) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->session) {
+		error_print();
+		return -1;
+	}
+	if ((ret = SDF_HashFinal(ctx->session, dgst, &dgstlen)) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (dgstlen != 32) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sdf_digest_reset(SDF_DIGEST_CTX *ctx)
+{
+	int ret;
+
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->session) {
+		error_print();
+		return -1;
+	}
+	if ((ret = SDF_HashInit(ctx->session, SGD_SM3, NULL, NULL, 0)) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+void sdf_digest_cleanup(SDF_DIGEST_CTX *ctx)
+{
+	if (ctx && ctx->session) {
+		int ret;
+		if ((ret = SDF_CloseSession(ctx->session)) != SDR_OK) {
+			error_print();
+		}
+		ctx->session = NULL;
+	}
+}
+
 int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_key)
 {
 	void *hSession;
