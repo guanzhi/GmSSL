@@ -85,6 +85,7 @@ int sdf_sign_init(SDF_SIGN_CTX *ctx, const SDF_SIGN_KEY *key, const char *id, si
 int sdf_sign_update(SDF_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sdf_sign_finish(SDF_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
 int sdf_sign_reset(SDF_SIGN_CTX *ctx);
+int sdf_sm2_decrypt(const SDF_SIGN_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sdf_release_sign_key(SDF_SIGN_KEY *key);
 int sdf_close_device(SDF_DEVICE *dev);
 void sdf_unload_library(void);

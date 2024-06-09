@@ -21,15 +21,15 @@
 #include <gmssl/error.h>
 
 
-static const char *usage = "-lib so_path (-pubkey pem | -cert pem) [-in file] [-out file]";
+static const char *usage = "-lib so_path -key num -pass str [-in file] [-out file]";
 
 static const char *options =
 "\n"
 "Options\n"
 "\n"
 "    -lib so_path        Vendor's SDF dynamic library\n"
-"    -pubkey pem         Recepient's public key file in PEM format\n"
-"    -cert pem           Recipient's certificate in PEM format\n"
+"    -key num            Decryption private key index number\n"
+"    -pass str           Password to get the private key access right\n"
 "    -in file | stdin    Input data\n"
 "    -out file | stdout  Output data\n"
 "\n"
@@ -40,22 +40,18 @@ static const char *options =
 "    $ gmssl sdfdecrypt -lib libsoftsdf.so -key 1 -pass P@ssw0rd -in sdf_ciphertext.bin\n"
 "\n";
 
-int sdfencrypt_main(int argc, char **argv)
+int sdfdecrypt_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
 	char *lib = NULL;
-	char *pubkeyfile = NULL;
-	char *certfile = NULL;
+	int key_index = -1;
+	char *pass = NULL;
 	char *infile = NULL;
 	char *outfile = NULL;
-	FILE *pubkeyfp = NULL;
-	FILE *certfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM2_KEY sm2_pub;
-	uint8_t cert[1024];
-	size_t certlen;
+
 	uint8_t iv[16];
 	uint8_t buf[4096];
 	size_t inlen;
@@ -63,6 +59,10 @@ int sdfencrypt_main(int argc, char **argv)
 	SDF_DEVICE dev;
 	SDF_KEY key;
 	SDF_CBC_CTX ctx;
+	const uint8_t *p;
+	SM2_CIPHERTEXT ciphertext;
+	uint8_t *wrappedkey;
+	size_t wrappedkey_len;
 
 	memset(&dev, 0, sizeof(dev));
 	memset(&key, 0, sizeof(key));
@@ -86,28 +86,16 @@ int sdfencrypt_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-lib")) {
 			if (--argc < 1) goto bad;
 			lib = *(++argv);
-		} else if (!strcmp(*argv, "-pubkey")) {
-			if (certfile) {
-				fprintf(stderr, "gmssl %s: options '-pubkey' '-cert' conflict\n", prog);
-				goto end;
-			}
+		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
-			pubkeyfile = *(++argv);
-			if (!(pubkeyfp = fopen(pubkeyfile, "rb"))) {
-				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, pubkeyfile, strerror(errno));
+			key_index = atoi(*(++argv));
+			if (key_index < 0) {
+				fprintf(stderr, "gmssl %s: illegal key index %d\n", prog, key_index);
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-cert")) {
-			if (pubkeyfile) {
-				fprintf(stderr, "gmssl %s: options '-pubkey' '-cert' conflict\n", prog);
-				goto end;
-			}
+		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
-			certfile = *(++argv);
-			if (!(certfp = fopen(certfile, "rb"))) {
-				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, certfile, strerror(errno));
-				goto end;
-			}
+			pass = *(++argv);
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
@@ -148,50 +136,65 @@ bad:
 		goto end;
 	}
 
-	// get public key
-	if (pubkeyfile) {
-		if (sm2_public_key_info_from_pem(&sm2_pub, pubkeyfp) != 1) {
-			fprintf(stderr, "gmssl %s: parse public key failed\n", prog);
-			goto end;
-		}
-	} else if (certfile) {
-		if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
-			fprintf(stderr, "gmssl %s: parse certificate from PEM failed\n", prog);
-			goto end;
-		}
-		if (x509_cert_get_subject_public_key(cert, certlen, &sm2_pub) != 1) {
-			fprintf(stderr, "gmssl %s: parse certificate failed\n", prog);
-			goto end;
-		}
-	} else {
-		fprintf(stderr, "gmssl %s: '-pubkey' or '-cert' option required\n", prog);
+	if (key_index < 0) {
+		fprintf(stderr, "gmssl %s: '-key' option required\n", prog);
+		goto end;
+	}
+	if (!pass) {
+		fprintf(stderr, "gmssl %s: '-pass' option required\n", prog);
 		goto end;
 	}
 
-	// generate key and output wrapped key in DER(SM2_CIPHERTEXT) format
-	if (sdf_generate_key(&dev, &key, &sm2_pub, buf, &outlen) != 1) {
+	// read DER(SM2_CIPHERTEXT) and following bytes
+	if ((inlen = fread(buf, 1, sizeof(buf), infp)) <= 0) {
+		fprintf(stderr, "gmssl %s: read failure : %s\n", prog, strerror(errno));
+		goto end;
+	}
+	wrappedkey_len = inlen;
+
+	p = buf;
+	if (sm2_ciphertext_from_der(&ciphertext, &p, &inlen) != 1) {
 		error_print();
 		goto end;
 	}
-	if (fwrite(buf, 1, outlen, outfp) != outlen) {
-		fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
-		goto end;
+	wrappedkey_len -= inlen;
+
+	sm2_ciphertext_print(stderr, 0, 0, "Ciphertext", buf, wrappedkey_len);
+
+
+	// read IV
+	if (inlen >= 16) {
+		memcpy(iv, p, 16);
+		p += 16;
+		inlen -= 16;
+	} else {
+		memcpy(iv, p, inlen);
+		if (fread(iv + inlen, 1, 16 - inlen, infp) != 16 - inlen) {
+			error_print();
+			goto end;
+		}
+		inlen = 0;
 	}
 
-	// output IV
-	rand_bytes(iv, 16);
-	if (fwrite(iv, 1, 16, outfp) != 16) {
-		fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
-		goto end;
+	// import key
+	if (sdf_import_key(&dev, key_index, pass, buf, wrappedkey_len, &key) != 1) {
+		error_print();
+		return -1;
 	}
 
 	// encrypt and output ciphertext
-	if (sdf_cbc_encrypt_init(&ctx, &key, iv) != 1) {
+	if (sdf_cbc_decrypt_init(&ctx, &key, iv) != 1) {
 		error_print();
 		goto end;
 	}
+	if (inlen) {
+		if (sdf_cbc_decrypt_update(&ctx, p, inlen, buf, &outlen) != 1) {
+			error_print();
+			goto end;
+		}
+	}
 	while ((inlen = fread(buf, 1, sizeof(buf), infp)) > 0) {
-		if (sdf_cbc_encrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
+		if (sdf_cbc_decrypt_update(&ctx, buf, inlen, buf, &outlen) != 1) {
 			error_print();
 			goto end;
 		}
@@ -200,7 +203,7 @@ bad:
 			goto end;
 		}
 	}
-	if (sdf_cbc_encrypt_finish(&ctx, buf, &outlen) != 1) {
+	if (sdf_cbc_decrypt_finish(&ctx, buf, &outlen) != 1) {
 		error_print();
 		goto end;
 	}

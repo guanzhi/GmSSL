@@ -74,16 +74,6 @@ int sdfsign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-lib")) {
 			if (--argc < 1) goto bad;
 			lib = *(++argv);
-		} else if (!strcmp(*argv, "-key")) {
-			if (--argc < 1) goto bad;
-			key_index = atoi(*(++argv));
-			if (key_index < 0) {
-				fprintf(stderr, "gmssl %s: illegal key index %d\n", prog, key_index);
-				goto end;
-			}
-		} else if (!strcmp(*argv, "-pass")) {
-			if (--argc < 1) goto bad;
-			pass = *(++argv);
 		} else if (!strcmp(*argv, "-id")) {
 			if (--argc < 1) goto bad;
 			id = *(++argv);

@@ -19,20 +19,25 @@
 #include "sdf_ext.h"
 
 
-static int SDF_ECCrefPublicKey_to_SM2_Z256_POINT(const ECCrefPublicKey *ref, SM2_Z256_POINT *z256_point)
-{
-	static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
-	SM2_POINT point;
+static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
 
-	if (ref->bits != 256) {
-		error_print();
-		return -1;
-	}
-	if (memcmp(ref->x, zeros, sizeof(zeros)) != 0) {
-		error_print();
-		return -1;
-	}
-	if (memcmp(ref->y, zeros, sizeof(zeros)) != 0) {
+static void ECCrefPublicKey_from_SM2_Z256_POINT(ECCrefPublicKey *ref, const SM2_Z256_POINT *z256_point)
+{
+	SM2_POINT point;
+	sm2_z256_point_to_bytes(z256_point, (uint8_t *)&point);
+	ref->bits = 256;
+	memcpy(ref->x, zeros, sizeof(zeros));
+	memcpy(ref->x + sizeof(zeros), point.x, 32);
+	memcpy(ref->y, zeros, sizeof(zeros));
+	memcpy(ref->y + sizeof(zeros), point.y, 32);
+}
+
+static int ECCrefPublicKey_to_SM2_Z256_POINT(const ECCrefPublicKey *ref, SM2_Z256_POINT *z256_point)
+{
+	SM2_POINT point;
+	if (ref->bits != 256
+		|| memcmp(ref->x, zeros, sizeof(zeros)) != 0
+		|| memcmp(ref->y, zeros, sizeof(zeros)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -42,25 +47,59 @@ static int SDF_ECCrefPublicKey_to_SM2_Z256_POINT(const ECCrefPublicKey *ref, SM2
 		error_print();
 		return -1;
 	}
-	return SDR_OK;
+	return 1;
 }
 
-static int SDF_ECCSignature_to_SM2_SIGNATURE(const ECCSignature *ref, SM2_SIGNATURE *sig)
+static void ECCSignature_from_SM2_SIGNATURE(ECCSignature *ref, const SM2_SIGNATURE *sig)
 {
-	static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
+	memcpy(ref->r, zeros, sizeof(zeros));
+	memcpy(ref->r + sizeof(zeros), sig->r, 32);
+	memcpy(ref->s, zeros, sizeof(zeros));
+	memcpy(ref->s + sizeof(zeros), sig->s, 32);
+}
 
-	if (memcmp(ref->r, zeros, sizeof(zeros)) != 0) {
-		error_print();
-		return -1;
-	}
-	if (memcmp(ref->s, zeros, sizeof(zeros)) != 0) {
+static int ECCSignature_to_SM2_SIGNATURE(const ECCSignature *ref, SM2_SIGNATURE *sig)
+{
+	if (memcmp(ref->r, zeros, sizeof(zeros)) != 0
+		|| memcmp(ref->s, zeros, sizeof(zeros)) != 0) {
 		error_print();
 		return -1;
 	}
 	memcpy(sig->r, ref->r + sizeof(zeros), 32);
 	memcpy(sig->s, ref->s + sizeof(zeros), 32);
-	return SDR_OK;
+	return 1;
 }
+
+static void ECCCipher_from_SM2_CIPHERTEXT(ECCCipher *eccCipher, const SM2_CIPHERTEXT *ciphertext)
+{
+	memcpy(eccCipher->x, zeros, sizeof(zeros));
+	memcpy(eccCipher->x + sizeof(zeros), ciphertext->point.x, 32);
+	memcpy(eccCipher->y, zeros, sizeof(zeros));
+	memcpy(eccCipher->y + sizeof(zeros), ciphertext->point.y, 32);
+	memcpy(eccCipher->M, ciphertext->hash, 32);
+	memcpy(eccCipher->C, ciphertext->ciphertext, ciphertext->ciphertext_size);
+	eccCipher->L = ciphertext->ciphertext_size;
+}
+
+static int ECCCipher_to_SM2_CIPHERTEXT(const ECCCipher *eccCipher, SM2_CIPHERTEXT *ciphertext)
+{
+	static const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
+	if (eccCipher->L > SM2_MAX_PLAINTEXT_SIZE
+		|| memcmp(eccCipher->x, zeros, sizeof(zeros)) != 0
+		|| memcmp(eccCipher->y, zeros, sizeof(zeros)) != 0) {
+		error_print();
+		return -1;
+	}
+	memcpy(ciphertext->point.x, eccCipher->x + sizeof(zeros), 32);
+	memcpy(ciphertext->point.y, eccCipher->y + sizeof(zeros), 32);
+	memcpy(ciphertext->hash, eccCipher->M, 32);
+	memcpy(ciphertext->ciphertext, eccCipher->C, eccCipher->L);
+	ciphertext->ciphertext_size = eccCipher->L;
+	return 1;
+}
+
+
+
 
 int sdf_load_library(const char *so_path, const char *vendor)
 {
@@ -348,8 +387,6 @@ int sdf_generate_key(SDF_DEVICE *dev, SDF_KEY *key,
 	void *hKey;
 	ECCrefPublicKey eccPublicKey;
 	ECCCipher eccCipher;
-	const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
-	SM2_POINT point;
 	SM2_CIPHERTEXT ciphertext;
 	int ret;
 
@@ -366,13 +403,8 @@ int sdf_generate_key(SDF_DEVICE *dev, SDF_KEY *key,
 		return 1;
 	}
 
-	// SM2_KEY => ECCrefPublicKey
-	sm2_z256_point_to_bytes(&sm2_key->public_key, (uint8_t *)&point);
-	eccPublicKey.bits = 256;
-	memset(eccPublicKey.x, 0, sizeof(zeros));
-	memcpy(eccPublicKey.x + sizeof(zeros), point.x, 32);
-	memset(eccPublicKey.y, 0, sizeof(zeros));
-	memcpy(eccPublicKey.y + sizeof(zeros), point.y, 32);
+	// ECCrefPublicKey <= SM2_KEY
+	ECCrefPublicKey_from_SM2_Z256_POINT(&eccPublicKey, &sm2_key->public_key);
 
 	// SDF_GenerateKeyWithEPK_ECC
 	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
@@ -385,22 +417,13 @@ int sdf_generate_key(SDF_DEVICE *dev, SDF_KEY *key,
 		return -1;
 	}
 
-	// ECCCipher => SM2_CIPHERTEXT
-	if (eccCipher.L > SM2_MAX_PLAINTEXT_SIZE
-		|| memcmp(eccCipher.x, zeros, sizeof(zeros)) != 0
-		|| memcmp(eccCipher.y, zeros, sizeof(zeros)) != 0) {
+	// ECCCipher => SM2_CIPHERTEXT => DER
+	if (ECCCipher_to_SM2_CIPHERTEXT(&eccCipher, &ciphertext) != 1) {
 		(void)SDF_DestroyKey(hSession, hKey);
 		(void)SDF_CloseSession(hSession);
 		error_print();
 		return -1;
 	}
-	memcpy(ciphertext.point.x, eccCipher.x + sizeof(zeros), 32);
-	memcpy(ciphertext.point.y, eccCipher.y + sizeof(zeros), 32);
-	memcpy(ciphertext.hash, eccCipher.M, 32);
-	memcpy(ciphertext.ciphertext, eccCipher.C, eccCipher.L);
-	ciphertext.ciphertext_size = eccCipher.L;
-
-	// SM2_CIPHERTEXT => DER
 	*wrappedkey_len = 0;
 	if (sm2_ciphertext_to_der(&ciphertext, &wrappedkey, wrappedkey_len) != 1) {
 		(void)SDF_DestroyKey(hSession, hKey);
@@ -439,10 +462,7 @@ int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass,
 	void *hSession;
 	void *hKey;
 	ECCCipher eccCipher;
-	const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
-	SM2_POINT point;
 	SM2_CIPHERTEXT ciphertext;
-	int ret;
 
 	if (!dev || !pass || !wrappedkey || !wrappedkey_len) {
 		error_print();
@@ -464,12 +484,7 @@ int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass,
 	}
 
 	// ECCCipher <= SM2_CIPHERTEXT
-	memset(eccCipher.x, 0, sizeof(zeros));
-	memcpy(eccCipher.x + sizeof(zeros), ciphertext.point.x, 32);
-	memset(eccCipher.y, 0, sizeof(zeros));
-	memcpy(eccCipher.y + sizeof(zeros), ciphertext.point.y, 32);
-	memcpy(eccCipher.C, ciphertext.ciphertext, ciphertext.ciphertext_size);
-	eccCipher.L = ciphertext.ciphertext_size;
+	ECCCipher_from_SM2_CIPHERTEXT(&eccCipher, &ciphertext);
 
 	// SDF_ImportKeyWithISK_ECC
 	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
@@ -688,7 +703,7 @@ int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_key)
 	(void)SDF_CloseSession(hSession);
 
 	memset(sm2_key, 0, sizeof(SM2_KEY));
-	if (SDF_ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &sm2_key->public_key) != SDR_OK) {
+	if (ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &sm2_key->public_key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -717,13 +732,14 @@ int sdf_export_encrypt_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_k
 	(void)SDF_CloseSession(hSession);
 
 	memset(sm2_key, 0, sizeof(SM2_KEY));
-	if (SDF_ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &sm2_key->public_key) != SDR_OK) {
+	if (ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &sm2_key->public_key) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
+// 这个要改为load_key
 int sdf_load_sign_key(SDF_DEVICE *dev, SDF_SIGN_KEY *key, int key_index, const char *pass)
 {
 	void *hSession = NULL;
@@ -753,7 +769,7 @@ int sdf_load_sign_key(SDF_DEVICE *dev, SDF_SIGN_KEY *key, int key_index, const c
 		return -1;
 	}
 
-	if (SDF_ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &key->public_key) != SDR_OK) {
+	if (ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &key->public_key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -775,7 +791,7 @@ int sdf_sign(SDF_SIGN_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *si
 		error_print();
 		return -1;
 	}
-	if (SDF_ECCSignature_to_SM2_SIGNATURE(&ecc_sig, &sm2_sig) != SDR_OK) {
+	if (ECCSignature_to_SM2_SIGNATURE(&ecc_sig, &sm2_sig) != 1) {
 		error_print();
 		return -1;
 	}
@@ -784,6 +800,45 @@ int sdf_sign(SDF_SIGN_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *si
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+int sdf_sm2_decrypt(const SDF_SIGN_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	ECCCipher eccCipher;
+	SM2_CIPHERTEXT ciphertext;
+	unsigned int uiLength = 0;
+
+	if (!key || !in || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!key->session || key->index < 0) {
+		error_print();
+		return -1;
+	}
+	if (!out) {
+		*outlen = SM2_MAX_PLAINTEXT_SIZE;
+		return 1;
+	}
+
+	if (sm2_ciphertext_from_der(&ciphertext, &in, &inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (inlen != 0) {
+		error_print();
+		return -1;
+	}
+
+	ECCCipher_from_SM2_CIPHERTEXT(&eccCipher, &ciphertext);
+
+	if (SDF_InternalDecrypt_ECC(key->session, key->index, SGD_SM2_3, &eccCipher, out, &uiLength) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	*outlen = uiLength;
 	return 1;
 }
 
