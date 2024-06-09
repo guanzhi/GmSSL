@@ -63,7 +63,6 @@ option(ENABLE_CHACHA20 "Enable Chacha20" ON)
 
 option(ENABLE_SKF "Enable SKF module" OFF)
 option(ENABLE_SDF "Enable SDF module" ON)
-option(ENABLE_CRYPTO_SDF "Enable SDF as default crypto implementation" OFF)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
@@ -520,27 +519,6 @@ if (ENABLE_SKF)
 	list(APPEND tools tools/skfutil.c)
 	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
 	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
-endif()
-
-
-if (ENABLE_CRYPTO_SDF)
-	message(STATUS "ENABLE_CRYPTO_SDF is ON")
-	add_definitions(-DENABLE_CRYPTO_SDF)
-	list(FIND src src/sm3_digest.c sm3_digest_index)
-	list(REMOVE_AT src ${sm3_digest_index})
-	list(INSERT src ${sm3_digest_index} src/sdf/sdf_sm3.c)
-
-	list(FIND src src/sm4_cbc.c index)
-	list(REMOVE_AT src ${index})
-	list(INSERT src ${index} src/sdf/sdf_sm4_cbc.c)
-
-	list(FIND src src/sm2_sign.c index)
-	list(REMOVE_AT src ${index})
-	list(INSERT src ${index} src/sdf/sdf_sm2_sign.c)
-
-	list(FIND src src/sm2_enc.c index)
-	list(REMOVE_AT src ${index})
-	list(INSERT src ${index} src/sdf/sdf_sm2_enc.c)
 endif()
 
 if (ENABLE_SDF)
