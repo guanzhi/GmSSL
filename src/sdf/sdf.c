@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <gmssl/sdf.h>
 #include <gmssl/sm2.h>
+#include <gmssl/sm4.h>
 #include <gmssl/error.h>
 #include "sdf.h"
 #include "sdf_ext.h"
@@ -226,6 +227,445 @@ void sdf_digest_cleanup(SDF_DIGEST_CTX *ctx)
 	}
 }
 
+static int sdf_cbc_encrypt_blocks(SDF_KEY *key, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	unsigned int inlen = (unsigned int)(nblocks * 16);
+	unsigned int outlen = 0;
+
+	if (SDF_Encrypt(key->session, key->handle, SGD_SM4_CBC, iv,
+		(unsigned char *)in, inlen, out, &outlen) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (outlen != inlen) {
+		error_print();
+		return -1;
+	}
+	if (outlen) {
+		if (memcmp(iv, out + outlen - 16, 16) != 0) {
+			memcpy(iv, out + outlen - 16, 16);
+		}
+	}
+	return 1;
+}
+
+static int sdf_cbc_decrypt_blocks(SDF_KEY *key, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
+{
+	unsigned int inlen = (unsigned int)(nblocks * 16);
+	unsigned int outlen = 0;
+
+	if (SDF_Decrypt(key->session, key->handle, SGD_SM4_CBC,
+		iv, (unsigned char *)in, inlen, out, &outlen) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (outlen != inlen) {
+		error_print();
+		return -1;
+	}
+	if (inlen) {
+		if (memcmp(iv, in + inlen - 16, 16) != 0) {
+			memcmp(iv, in + inlen - 16, 16);
+		}
+	}
+	return 1;
+}
+
+static int sdf_cbc_padding_encrypt(SDF_KEY *key,
+	const uint8_t piv[16], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen)
+{
+	uint8_t iv[16];
+	uint8_t block[16];
+	size_t rem = inlen % 16;
+	int padding = 16 - inlen % 16;
+
+	memcpy(iv, piv, 16);
+	if (in) {
+		memcpy(block, in + inlen - rem, rem);
+	}
+	memset(block + rem, padding, padding);
+
+	if (inlen/16) {
+		if (sdf_cbc_encrypt_blocks(key, iv, in, inlen/16, out) != 1) {
+			error_print();
+			return -1;
+		}
+		out += inlen - rem;
+	}
+
+	if (sdf_cbc_encrypt_blocks(key, iv, block, 1, out) != 1) {
+		error_print();
+		return -1;
+	}
+	*outlen = inlen - rem + 16;
+	return 1;
+}
+
+static int sdf_cbc_padding_decrypt(SDF_KEY *key,
+	const uint8_t piv[16], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen)
+{
+	uint8_t iv[16];
+	uint8_t block[16];
+	size_t len = sizeof(block);
+	int padding;
+
+	if (inlen%16 != 0 || inlen < 16) {
+		error_print();
+		return -1;
+	}
+
+	memcpy(iv, piv, 16);
+
+	if (inlen > 16) {
+		if (sdf_cbc_decrypt_blocks(key, iv, in, inlen/16 - 1, out) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (sdf_cbc_decrypt_blocks(key, iv, in + inlen - 16, 1, block) != 1) {
+		error_print();
+		return -1;
+	}
+
+	padding = block[15];
+	if (padding < 1 || padding > 16) {
+		error_print();
+		return -1;
+	}
+	len -= padding;
+	memcpy(out + inlen - 16, block, len);
+	*outlen = inlen - padding;
+	return 1;
+}
+
+int sdf_generate_key(SDF_DEVICE *dev, SDF_KEY *key,
+	const SM2_KEY *sm2_key, uint8_t *wrappedkey, size_t *wrappedkey_len)
+{
+	void *hSession;
+	void *hKey;
+	ECCrefPublicKey eccPublicKey;
+	ECCCipher eccCipher;
+	const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
+	SM2_POINT point;
+	SM2_CIPHERTEXT ciphertext;
+	int ret;
+
+	if (!dev || !key || !sm2_key || !wrappedkey_len) {
+		error_print();
+		return -1;
+	}
+	if (!dev->handle) {
+		error_print();
+		return -1;
+	}
+	if (!wrappedkey) {
+		*wrappedkey_len = SM2_MAX_CIPHERTEXT_SIZE;
+		return 1;
+	}
+
+	// SM2_KEY => ECCrefPublicKey
+	sm2_z256_point_to_bytes(&sm2_key->public_key, (uint8_t *)&point);
+	eccPublicKey.bits = 256;
+	memset(eccPublicKey.x, 0, sizeof(zeros));
+	memcpy(eccPublicKey.x + sizeof(zeros), point.x, 32);
+	memset(eccPublicKey.y, 0, sizeof(zeros));
+	memcpy(eccPublicKey.y + sizeof(zeros), point.y, 32);
+
+	// SDF_GenerateKeyWithEPK_ECC
+	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (SDF_GenerateKeyWithEPK_ECC(hSession, 128, SGD_SM2_3, &eccPublicKey, &eccCipher, &hKey) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+
+	// ECCCipher => SM2_CIPHERTEXT
+	if (eccCipher.L > SM2_MAX_PLAINTEXT_SIZE
+		|| memcmp(eccCipher.x, zeros, sizeof(zeros)) != 0
+		|| memcmp(eccCipher.y, zeros, sizeof(zeros)) != 0) {
+		(void)SDF_DestroyKey(hSession, hKey);
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	memcpy(ciphertext.point.x, eccCipher.x + sizeof(zeros), 32);
+	memcpy(ciphertext.point.y, eccCipher.y + sizeof(zeros), 32);
+	memcpy(ciphertext.hash, eccCipher.M, 32);
+	memcpy(ciphertext.ciphertext, eccCipher.C, eccCipher.L);
+	ciphertext.ciphertext_size = eccCipher.L;
+
+	// SM2_CIPHERTEXT => DER
+	*wrappedkey_len = 0;
+	if (sm2_ciphertext_to_der(&ciphertext, &wrappedkey, wrappedkey_len) != 1) {
+		(void)SDF_DestroyKey(hSession, hKey);
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+
+	key->session = hSession;
+	key->handle = hKey;
+	return 1;
+}
+
+int sdf_destroy_key(SDF_KEY *key)
+{
+	if (key) {
+		if (key->session && key->handle) {
+			if (SDF_DestroyKey(key->session, key->handle) != SDR_OK) {
+				error_print();
+				return -1;
+			}
+			key->session = NULL;
+			key->handle = NULL;
+		}
+		if (key->session || key->handle) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass,
+	const uint8_t *wrappedkey, size_t wrappedkey_len, SDF_KEY *key)
+{
+	void *hSession;
+	void *hKey;
+	ECCCipher eccCipher;
+	const uint8_t zeros[ECCref_MAX_LEN - 32] = {0};
+	SM2_POINT point;
+	SM2_CIPHERTEXT ciphertext;
+	int ret;
+
+	if (!dev || !pass || !wrappedkey || !wrappedkey_len) {
+		error_print();
+		return -1;
+	}
+	if (!dev->handle) {
+		error_print();
+		return -1;
+	}
+
+	// SM2_CIPHERTEXT <= DER
+	if (sm2_ciphertext_from_der(&ciphertext, &wrappedkey, &wrappedkey_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (wrappedkey_len != 0) {
+		error_print();
+		return -1;
+	}
+
+	// ECCCipher <= SM2_CIPHERTEXT
+	memset(eccCipher.x, 0, sizeof(zeros));
+	memcpy(eccCipher.x + sizeof(zeros), ciphertext.point.x, 32);
+	memset(eccCipher.y, 0, sizeof(zeros));
+	memcpy(eccCipher.y + sizeof(zeros), ciphertext.point.y, 32);
+	memcpy(eccCipher.C, ciphertext.ciphertext, ciphertext.ciphertext_size);
+	eccCipher.L = ciphertext.ciphertext_size;
+
+	// SDF_ImportKeyWithISK_ECC
+	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (SDF_GetPrivateKeyAccessRight(hSession, key_index, (unsigned char *)pass, (unsigned int)strlen(pass)) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	if (SDF_ImportKeyWithISK_ECC(hSession, key_index, &eccCipher, &hKey) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	if (SDF_ReleasePrivateKeyAccessRight(hSession, (unsigned int)key_index) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+
+	key->session = hSession;
+	key->handle = hKey;
+	return 1;
+}
+
+int sdf_cbc_encrypt_init(SDF_CBC_CTX *ctx, const SDF_KEY *key, const uint8_t iv[16])
+{
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
+	if (!key->session || !key->handle) {
+		error_print();
+		return -1;
+	}
+	ctx->key = *key;
+	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
+	memset(ctx->block, 0, SM4_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
+}
+
+int sdf_cbc_encrypt_update(SDF_CBC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	size_t left;
+	size_t nblocks;
+	size_t len;
+
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	*outlen = 0;
+	if (ctx->block_nbytes) {
+		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
+		if (inlen < left) {
+			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
+			ctx->block_nbytes += inlen;
+			return 1;
+		}
+		memcpy(ctx->block + ctx->block_nbytes, in, left);
+		if (sdf_cbc_encrypt_blocks(&ctx->key, ctx->iv, ctx->block, 1, out) != 1) {
+			error_print();
+			return -1;
+		}
+		in += left;
+		inlen -= left;
+		out += SM4_BLOCK_SIZE;
+		*outlen += SM4_BLOCK_SIZE;
+	}
+	if (inlen >= SM4_BLOCK_SIZE) {
+		nblocks = inlen / SM4_BLOCK_SIZE;
+		len = nblocks * SM4_BLOCK_SIZE;
+		if (sdf_cbc_encrypt_blocks(&ctx->key, ctx->iv, in, nblocks, out) != 1) {
+			error_print();
+			return -1;
+		}
+		in += len;
+		inlen -= len;
+		out += len;
+		*outlen += len;
+	}
+	if (inlen) {
+		memcpy(ctx->block, in, inlen);
+	}
+	ctx->block_nbytes = inlen;
+	return 1;
+}
+
+int sdf_cbc_encrypt_finish(SDF_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (sdf_cbc_padding_encrypt(&ctx->key, ctx->iv, ctx->block, ctx->block_nbytes, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sdf_cbc_decrypt_init(SDF_CBC_CTX *ctx, const SDF_KEY *key, const uint8_t iv[16])
+{
+	if (!ctx || !key || !iv) {
+		error_print();
+		return -1;
+	}
+	if (!key->session || !key->handle) {
+		error_print();
+		return -1;
+	}
+	ctx->key = *key;
+	memcpy(ctx->iv, iv, SM4_BLOCK_SIZE);
+	memset(ctx->block, 0, SM4_BLOCK_SIZE);
+	ctx->block_nbytes = 0;
+	return 1;
+}
+
+int sdf_cbc_decrypt_update(SDF_CBC_CTX *ctx,
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	size_t left, len, nblocks;
+
+	if (!ctx || !in || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (ctx->block_nbytes > SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	*outlen = 0;
+	if (ctx->block_nbytes) {
+		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
+		if (inlen <= left) {
+			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
+			ctx->block_nbytes += inlen;
+			return 1;
+		}
+		memcpy(ctx->block + ctx->block_nbytes, in, left);
+		if (sdf_cbc_decrypt_blocks(&ctx->key, ctx->iv, ctx->block, 1, out) != 1) {
+			error_print();
+			return -1;
+		}
+		in += left;
+		inlen -= left;
+		out += SM4_BLOCK_SIZE;
+		*outlen += SM4_BLOCK_SIZE;
+	}
+	if (inlen > SM4_BLOCK_SIZE) {
+		nblocks = (inlen-1) / SM4_BLOCK_SIZE;
+		len = nblocks * SM4_BLOCK_SIZE;
+		if (sdf_cbc_decrypt_blocks(&ctx->key, ctx->iv, in, nblocks, out) != 1) {
+			error_print();
+			return -1;
+		}
+		in += len;
+		inlen -= len;
+		out += len;
+		*outlen += len;
+	}
+	memcpy(ctx->block, in, inlen);
+	ctx->block_nbytes = inlen;
+	return 1;
+}
+
+int sdf_cbc_decrypt_finish(SDF_CBC_CTX *ctx, uint8_t *out, size_t *outlen)
+{
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (ctx->block_nbytes != SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (sdf_cbc_padding_decrypt(&ctx->key, ctx->iv, ctx->block, SM4_BLOCK_SIZE, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_key)
 {
 	void *hSession;
@@ -241,6 +681,35 @@ int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_key)
 		return -1;
 	}
 	if (SDF_ExportSignPublicKey_ECC(hSession, key_index, &eccPublicKey) != SDR_OK) {
+		(void)SDF_CloseSession(hSession);
+		error_print();
+		return -1;
+	}
+	(void)SDF_CloseSession(hSession);
+
+	memset(sm2_key, 0, sizeof(SM2_KEY));
+	if (SDF_ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &sm2_key->public_key) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sdf_export_encrypt_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_key)
+{
+	void *hSession;
+	ECCrefPublicKey eccPublicKey;
+
+	if (!dev || !sm2_key) {
+		error_print();
+		return -1;
+	}
+
+	if (SDF_OpenSession(dev->handle, &hSession) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (SDF_ExportEncPublicKey_ECC(hSession, key_index, &eccPublicKey) != SDR_OK) {
 		(void)SDF_CloseSession(hSession);
 		error_print();
 		return -1;
@@ -396,10 +865,14 @@ int sdf_release_key(SDF_SIGN_KEY *key)
 
 int sdf_close_device(SDF_DEVICE *dev)
 {
-	if (SDF_CloseDevice(dev->handle) != SDR_OK) {
-		error_print();
-		return -1;
+	if (dev) {
+		if (dev->handle) {
+			if (SDF_CloseDevice(dev->handle) != SDR_OK) {
+				error_print();
+				return -1;
+			}
+			memset(dev, 0, sizeof(*dev));
+		}
 	}
-	memset(dev, 0, sizeof(SDF_DEVICE));
 	return 1;
 }
