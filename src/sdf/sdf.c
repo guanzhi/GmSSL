@@ -255,15 +255,16 @@ int sdf_digest_reset(SDF_DIGEST_CTX *ctx)
 	return 1;
 }
 
-void sdf_digest_cleanup(SDF_DIGEST_CTX *ctx)
+int sdf_digest_cleanup(SDF_DIGEST_CTX *ctx)
 {
 	if (ctx && ctx->session) {
-		int ret;
-		if ((ret = SDF_CloseSession(ctx->session)) != SDR_OK) {
+		if (SDF_CloseSession(ctx->session) != SDR_OK) {
 			error_print();
+			return -1;
 		}
 		ctx->session = NULL;
 	}
+	return 1;
 }
 
 static int sdf_cbc_encrypt_blocks(SDF_KEY *key, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
@@ -456,6 +457,10 @@ int sdf_destroy_key(SDF_KEY *key)
 	return 1;
 }
 
+// FIXME:
+// If SDF_ImportKeyWithISK_ECC does not need the GetPrivateKeyAccessRight
+// then we can use `key_index` or `SDF_PRIVATE_KEY` as arg
+// It's not secure to keep `pass` in memory
 int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass,
 	const uint8_t *wrappedkey, size_t wrappedkey_len, SDF_KEY *key)
 {
@@ -491,6 +496,7 @@ int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass,
 		error_print();
 		return -1;
 	}
+	// XXX: does import_key need the right?
 	if (SDF_GetPrivateKeyAccessRight(hSession, key_index, (unsigned char *)pass, (unsigned int)strlen(pass)) != SDR_OK) {
 		(void)SDF_CloseSession(hSession);
 		error_print();
@@ -739,8 +745,7 @@ int sdf_export_encrypt_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_k
 	return 1;
 }
 
-// 这个要改为load_key
-int sdf_load_sign_key(SDF_DEVICE *dev, SDF_SIGN_KEY *key, int key_index, const char *pass)
+int sdf_load_private_key(SDF_DEVICE *dev, SDF_PRIVATE_KEY *key, int key_index, const char *pass)
 {
 	void *hSession = NULL;
 	ECCrefPublicKey eccPublicKey;
@@ -758,27 +763,18 @@ int sdf_load_sign_key(SDF_DEVICE *dev, SDF_SIGN_KEY *key, int key_index, const c
 		error_print();
 		return -1;
 	}
-	if (SDF_ExportSignPublicKey_ECC(hSession, key_index, &eccPublicKey) != SDR_OK) {
-		(void)SDF_CloseSession(hSession);
-		error_print();
-		return -1;
-	}
 	if (SDF_GetPrivateKeyAccessRight(hSession, key_index, (unsigned char *)pass, (unsigned int)strlen(pass)) != SDR_OK) {
 		(void)SDF_CloseSession(hSession);
 		error_print();
 		return -1;
 	}
 
-	if (ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &key->public_key) != 1) {
-		error_print();
-		return -1;
-	}
 	key->session = hSession;
 	key->index = key_index;
 	return 1;
 }
 
-int sdf_sign(SDF_SIGN_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
+int sdf_sign(const SDF_PRIVATE_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen)
 {
 	ECCSignature ecc_sig;
 	SM2_SIGNATURE sm2_sig;
@@ -803,7 +799,7 @@ int sdf_sign(SDF_SIGN_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *si
 	return 1;
 }
 
-int sdf_sm2_decrypt(const SDF_SIGN_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+int sdf_decrypt(const SDF_PRIVATE_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	ECCCipher eccCipher;
 	SM2_CIPHERTEXT ciphertext;
@@ -842,9 +838,25 @@ int sdf_sm2_decrypt(const SDF_SIGN_KEY *key, const uint8_t *in, size_t inlen, ui
 	return 1;
 }
 
-int sdf_sign_init(SDF_SIGN_CTX *ctx, const SDF_SIGN_KEY *key, const char *id, size_t idlen)
+int sdf_sign_init(SDF_SIGN_CTX *ctx, const SDF_PRIVATE_KEY *key, const char *id, size_t idlen)
 {
+	ECCrefPublicKey eccPublicKey;
+	SM2_Z256_POINT z256_point;
+
 	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
+	if (!key->session) {
+		error_print();
+		return -1;
+	}
+
+	if (SDF_ExportSignPublicKey_ECC(key->session, key->index, &eccPublicKey) != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	if (ECCrefPublicKey_to_SM2_Z256_POINT(&eccPublicKey, &z256_point) != 1) {
 		error_print();
 		return -1;
 	}
@@ -857,7 +869,7 @@ int sdf_sign_init(SDF_SIGN_CTX *ctx, const SDF_SIGN_KEY *key, const char *id, si
 			error_print();
 			return -1;
 		}
-		sm2_compute_z(z, &key->public_key, id, idlen);
+		sm2_compute_z(z, &z256_point, id, idlen);
 		sm3_update(&ctx->sm3_ctx, z, sizeof(z));
 	}
 	ctx->saved_sm3_ctx = ctx->sm3_ctx;
@@ -906,7 +918,7 @@ int sdf_sign_reset(SDF_SIGN_CTX *ctx)
 	return 1;
 }
 
-int sdf_release_key(SDF_SIGN_KEY *key)
+int sdf_release_key(SDF_PRIVATE_KEY *key)
 {
 	if (SDF_ReleasePrivateKeyAccessRight(key->session, key->index) != SDR_OK) {
 		error_print();

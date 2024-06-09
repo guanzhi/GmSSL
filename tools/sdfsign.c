@@ -54,7 +54,7 @@ int sdfsign_main(int argc, char **argv)
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
 	SDF_DEVICE dev;
-	SDF_SIGN_KEY key;
+	SDF_PRIVATE_KEY key;
 	SDF_SIGN_CTX ctx;
 
 	argc--;
@@ -125,7 +125,7 @@ bad:
 		goto end;
 	}
 
-	if (sdf_load_sign_key(&dev, &key, key_index, pass) != 1) {
+	if (sdf_load_private_key(&dev, &key, key_index, pass) != 1) {
 		(void)sdf_close_device(&dev);
 		fprintf(stderr,  "gmssl %s: load signing key #%d failure\n", prog, key_index);
 		goto end;

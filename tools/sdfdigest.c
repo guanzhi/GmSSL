@@ -256,7 +256,7 @@ bad:
 	}
 	ret = 0;
 end:
-	sdf_digest_cleanup(&ctx);
+	(void)sdf_digest_cleanup(&ctx);
 	if (pubkeyfp) fclose(pubkeyfp);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);

@@ -46,18 +46,15 @@ typedef struct {
 } SDF_CBC_CTX;
 
 typedef struct {
-	SM2_Z256_POINT public_key;
 	void *session;
 	int index;
-} SDF_SIGN_KEY;
+} SDF_PRIVATE_KEY;
 
 typedef struct {
 	SM3_CTX sm3_ctx;
 	SM3_CTX saved_sm3_ctx;
-	SDF_SIGN_KEY key;
+	SDF_PRIVATE_KEY key;
 } SDF_SIGN_CTX;
-
-
 
 
 int sdf_load_library(const char *so_path, const char *vendor);
@@ -67,9 +64,9 @@ int sdf_digest_init(SDF_DIGEST_CTX *ctx, SDF_DEVICE *dev);
 int sdf_digest_update(SDF_DIGEST_CTX *ctx, const uint8_t *data, size_t datalen);
 int sdf_digest_finish(SDF_DIGEST_CTX *ctx, uint8_t dgst[SM3_DIGEST_SIZE]);
 int sdf_digest_reset(SDF_DIGEST_CTX *ctx);
-void sdf_digest_cleanup(SDF_DIGEST_CTX *ctx);
+int sdf_digest_cleanup(SDF_DIGEST_CTX *ctx);
 int sdf_generate_key(SDF_DEVICE *dev, SDF_KEY *key, const SM2_KEY *sm2_key, uint8_t *wrappedkey, size_t *wrappedkey_len);
-int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass, const uint8_t *wrappedkey, size_t wrappedkey_len, SDF_KEY *key);
+int sdf_import_key(SDF_DEVICE *dev, unsigned int key_index, const char *pass, const uint8_t *wrappedkey, size_t wrappedkey_len, SDF_KEY *key); // XXX: Is `pass` needed? see impl in sdf.c
 int sdf_cbc_encrypt_init(SDF_CBC_CTX *ctx, const SDF_KEY *key, const uint8_t iv[16]);
 int sdf_cbc_encrypt_update(SDF_CBC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int sdf_cbc_encrypt_finish(SDF_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
@@ -79,14 +76,14 @@ int sdf_cbc_decrypt_finish(SDF_CBC_CTX *ctx, uint8_t *out, size_t *outlen);
 int sdf_destroy_key(SDF_KEY *key);
 int sdf_export_sign_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key);
 int sdf_export_encrypt_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *public_key);
-int sdf_load_sign_key(SDF_DEVICE *dev, SDF_SIGN_KEY *key, int key_index, const char *pass);
-int sdf_sign(SDF_SIGN_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
-int sdf_sign_init(SDF_SIGN_CTX *ctx, const SDF_SIGN_KEY *key, const char *id, size_t idlen);
+int sdf_load_private_key(SDF_DEVICE *dev, SDF_PRIVATE_KEY *key, int key_index, const char *pass);
+int sdf_decrypt(const SDF_PRIVATE_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int sdf_sign(const SDF_PRIVATE_KEY *key, const uint8_t dgst[32], uint8_t *sig, size_t *siglen);
+int sdf_sign_init(SDF_SIGN_CTX *ctx, const SDF_PRIVATE_KEY *key, const char *id, size_t idlen);
 int sdf_sign_update(SDF_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sdf_sign_finish(SDF_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
 int sdf_sign_reset(SDF_SIGN_CTX *ctx);
-int sdf_sm2_decrypt(const SDF_SIGN_KEY *key, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int sdf_release_sign_key(SDF_SIGN_KEY *key);
+int sdf_release_private_key(SDF_PRIVATE_KEY *key);
 int sdf_close_device(SDF_DEVICE *dev);
 void sdf_unload_library(void);
 
