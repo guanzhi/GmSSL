@@ -36,7 +36,8 @@ int sm2_do_sign(const SM2_KEY *key, const uint8_t dgst[32], SM2_SIGNATURE *sig)
 		error_print();
 		return -1;
 	}
-	sm2_z256_modn_inv(d_inv, d_inv);
+	sm2_z256_modn_to_mont(d_inv, d_inv);
+	sm2_z256_modn_mont_inv(d_inv, d_inv);
 
 	// e = H(M)
 	sm2_z256_from_bytes(e, dgst);
@@ -71,9 +72,10 @@ retry:
 	}
 
 	// s = ((1 + d)^-1 * (k - r * d)) mod n
-	sm2_z256_modn_mul(t, r, key->private_key);
+	sm2_z256_modn_to_mont(r, t);
+	sm2_z256_modn_mont_mul(t, t, key->private_key);
 	sm2_z256_modn_sub(k, k, t);
-	sm2_z256_modn_mul(s, d_inv, k);
+	sm2_z256_modn_mont_mul(s, d_inv, k);
 
 	// check s != 0
 	if (sm2_z256_is_zero(s)) {
@@ -193,7 +195,8 @@ int sm2_fast_sign(const sm2_z256_t fast_private, SM2_SIGN_PRE_COMP *pre_comp,
 
 	// s = (k + r) * d' - r
 	sm2_z256_modn_add(s, pre_comp->k, r);
-	sm2_z256_modn_mul(s, s, fast_private);
+	sm2_z256_modn_to_mont(s, s);
+	sm2_z256_modn_mont_mul(s, s, fast_private); // mont(s) * d = s * R^-1 * d * R = s * d
 	sm2_z256_modn_sub(s, s, r);
 
 	sm2_z256_to_bytes(r, sig->r);
@@ -677,5 +680,3 @@ int sm2_verify_reset(SM2_VERIFY_CTX *ctx)
 	ctx->sm3_ctx = ctx->saved_sm3_ctx;
 	return 1;
 }
-
-
