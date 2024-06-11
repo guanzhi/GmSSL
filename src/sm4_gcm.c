@@ -8,6 +8,7 @@
  */
 
 
+#include <limits.h>
 #include <gmssl/sm4.h>
 #include <gmssl/mem.h>
 #include <gmssl/ghash.h>
@@ -33,7 +34,15 @@ int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t Y[16];
 	uint8_t T[16];
 
-	if (taglen > SM4_GCM_MAX_TAG_SIZE) {
+	if (ivlen < SM4_GCM_MIN_IV_SIZE || ivlen > SM4_GCM_MAX_IV_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (taglen < SM4_GCM_MIN_TAG_SIZE || taglen > SM4_GCM_MAX_TAG_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (inlen > SM4_GCM_MAX_PLAINTEXT_SIZE) {
 		error_print();
 		return -1;
 	}
@@ -66,6 +75,19 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t H[16] = {0};
 	uint8_t Y[16];
 	uint8_t T[16];
+
+	if (ivlen < SM4_GCM_MIN_IV_SIZE || ivlen > SM4_GCM_MAX_IV_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (taglen < SM4_GCM_MIN_TAG_SIZE || taglen > SM4_GCM_MAX_TAG_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (inlen > SM4_GCM_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
 
 	sm4_encrypt(key, H, H);
 
@@ -111,7 +133,7 @@ int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 		error_print();
 		return -1;
 	}
-	if (taglen < 8 || taglen > 16) {
+	if (taglen < SM4_GCM_MIN_TAG_SIZE || taglen > SM4_GCM_MAX_TAG_SIZE) {
 		error_print();
 		return -1;
 	}
@@ -152,15 +174,27 @@ int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 		error_print();
 		return -1;
 	}
+	if (inlen > INT_MAX) {
+		error_print();
+		return -1;
+	}
+	if (inlen > SM4_GCM_MAX_PLAINTEXT_SIZE - ctx->encedlen) {
+		error_print();
+		return -1;
+	}
 	if (!out) {
 		*outlen = 16 * ((inlen + 15)/16);
 		return 1;
 	}
+
 	if (sm4_ctr32_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
+
 	ghash_update(&ctx->mac_ctx, out, *outlen);
+
+	ctx->encedlen += inlen;
 	return 1;
 }
 
@@ -205,6 +239,15 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 		error_print();
 		return -1;
 	}
+	if (inlen > INT_MAX) {
+		error_print();
+		return -1;
+	}
+	if (inlen > SM4_GCM_MAX_PLAINTEXT_SIZE - ctx->encedlen) {
+		error_print();
+		return -1;
+	}
+
 	if (!out) {
 		*outlen = 16 * ((inlen + 15)/16);
 		return 1;
@@ -256,6 +299,8 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 		*outlen += len;
 		memcpy(ctx->mac, in + inlen, GHASH_SIZE);
 	}
+
+	ctx->encedlen += inlen;
 	return 1;
 }
 

@@ -94,7 +94,8 @@ int sm4_ctr32_encrypt_finish(SM4_CTR_CTX *ctx, uint8_t *out, size_t *outlen);
 #define SM4_GCM_MAX_AAD_SIZE		(1<<24) // 16MiB
 
 #define SM4_GCM_MIN_PLAINTEXT_SIZE	0
-#define SM4_GCM_MAX_PLAINTEXT_SIZE	((((uint64_t)1 << 39) - 256) >> 3) // 68719476704
+#define SM4_GCM_MAX_PLAINTEXT_NBLOCKS	(((uint64_t)1 << 32) - 2)
+#define SM4_GCM_MAX_PLAINTEXT_SIZE	(SM4_GCM_MAX_PLAINTEXT_NBLOCKS * 16) // 68719476704
 
 #define SM4_GCM_MAX_TAG_SIZE		16
 #define SM4_GCM_MIN_TAG_SIZE		12
@@ -117,6 +118,7 @@ typedef struct {
 	size_t taglen;
 	uint8_t mac[16];
 	size_t maclen;
+	uint64_t encedlen;
 } SM4_GCM_CTX;
 
 int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
