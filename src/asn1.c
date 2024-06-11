@@ -202,6 +202,15 @@ int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen)
 			error_print();
 			return -1;
 		}
+		// make sure length is not in BER long presentation
+		if (nbytes == 1 && **in < 0x80) {
+			error_print();
+			return -1;
+		}
+		if (nbytes > 1 && **in == 0) {
+			error_print();
+			return -1;
+		}
 
 		memcpy(buf + 4 - nbytes, *in, nbytes);
 		*len = (size_t)GETU32(buf);

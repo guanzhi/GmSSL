@@ -13,6 +13,7 @@
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
+#include <gmssl/hex.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 
@@ -115,6 +116,37 @@ static int test_asn1_length(void)
 	if (len != 0) {
 		error_print();
 		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_asn1_length_from_ber(void)
+{
+	char *tests[] = {
+		"80",
+		"8100",
+		"8101",
+		"820000",
+		"820001",
+		"8200ff",
+		"83001122",
+		"8400ffffff",
+		"850100000000",
+	};
+	uint8_t buf[16];
+	const uint8_t *p;
+	size_t a, len, i;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[i]); i++) {
+		hex_to_bytes(tests[i], strlen(tests[i]), buf, &len);
+		p = buf;
+		len = (size_t)((uint64_t)1 << 33);
+		if (asn1_length_from_der(&a, &p, &len) != -1) {
+			error_print();
+			return -1;
+		}
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -807,6 +839,7 @@ int main(void)
 {
 	if (test_asn1_tag() != 1) goto err;
 	if (test_asn1_length() != 1) goto err;
+	if (test_asn1_length_from_ber() != 1) goto err;
 	if (test_asn1_boolean() != 1) goto err;
 	if (test_asn1_int() != 1) goto err;
 	if (test_asn1_bits() != 1) goto err;
