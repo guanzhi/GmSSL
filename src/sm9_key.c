@@ -932,7 +932,7 @@ int sm9_enc_master_key_info_decrypt_from_der(SM9_ENC_MASTER_KEY *msk, const char
 	ret = 1;
 end:
 	gmssl_secure_clear(prikey, sizeof(prikey));
-	return 1;
+	return ret;
 }
 
 int sm9_enc_master_key_info_encrypt_to_pem(const SM9_ENC_MASTER_KEY *msk, const char *pass, FILE *fp)
