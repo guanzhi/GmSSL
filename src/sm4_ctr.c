@@ -103,7 +103,6 @@ int sm4_ctr_encrypt_update(SM4_CTR_CTX *ctx,
 		sm4_ctr_encrypt_blocks(&ctx->sm4_key, ctx->ctr, in, nblocks, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {
@@ -187,7 +186,6 @@ int sm4_ctr32_encrypt_update(SM4_CTR_CTX *ctx,
 		sm4_ctr32_encrypt_blocks(&ctx->sm4_key, ctx->ctr, in, nblocks, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {

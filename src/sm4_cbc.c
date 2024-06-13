@@ -117,7 +117,6 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 		}
 		memcpy(ctx->block + ctx->block_nbytes, in, left);
 		sm4_cbc_encrypt_blocks(&ctx->sm4_key, ctx->iv, ctx->block, 1, out);
-		//memcpy(ctx->iv, out, SM4_BLOCK_SIZE);
 		in += left;
 		inlen -= left;
 		out += SM4_BLOCK_SIZE;
@@ -127,10 +126,8 @@ int sm4_cbc_encrypt_update(SM4_CBC_CTX *ctx,
 		nblocks = inlen / SM4_BLOCK_SIZE;
 		len = nblocks * SM4_BLOCK_SIZE;
 		sm4_cbc_encrypt_blocks(&ctx->sm4_key, ctx->iv, in, nblocks, out);
-		//memcpy(ctx->iv, out + len - SM4_BLOCK_SIZE, SM4_BLOCK_SIZE);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {
@@ -214,7 +211,6 @@ int sm4_cbc_decrypt_update(SM4_CBC_CTX *ctx,
 		sm4_cbc_decrypt_blocks(&ctx->sm4_key, ctx->iv, in, nblocks, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	memcpy(ctx->block, in, inlen);
