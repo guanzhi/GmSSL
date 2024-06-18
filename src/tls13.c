@@ -1308,7 +1308,10 @@ int tls13_record_get_handshake_finished(const uint8_t *record,
 		return -1;
 	}
 	if (*verify_data_len != SM3_DIGEST_SIZE
-		&& *verify_data_len != SHA384_DIGEST_SIZE) {
+#if ENABLE_SHA2
+		&& *verify_data_len != SHA384_DIGEST_SIZE
+#endif
+		) {
 		error_print();
 		return -1;
 	}
@@ -1973,8 +1976,8 @@ int tls13_do_accept(TLS_CONNECT *conn)
 	SM2_KEY server_ecdhe;
 	SM2_Z256_POINT client_ecdhe_public;
 	SM2_KEY client_sign_key;
-	const BLOCK_CIPHER *cipher;
-	const DIGEST *digest;
+	const BLOCK_CIPHER *cipher = NULL;
+	const DIGEST *digest = NULL;
 	DIGEST_CTX dgst_ctx;
 	DIGEST_CTX null_dgst_ctx;
 	size_t padding_len;
