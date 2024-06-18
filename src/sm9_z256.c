@@ -3149,7 +3149,7 @@ int sm9_z256_point_from_uncompressed_octets(SM9_Z256_POINT *P, const uint8_t oct
 	sm9_z256_modp_to_mont(P->X, P->X);
 
 	sm9_z256_from_bytes(P->Y, octets + 32 + 1);
-	if (sm9_z256_cmp(P->X, SM9_Z256_P) >= 0) {
+	if (sm9_z256_cmp(P->Y, SM9_Z256_P) >= 0) {
 		error_print();
 		return -1;
 	}
