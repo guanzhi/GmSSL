@@ -245,6 +245,8 @@ bad:
 				goto end;
 			}
 		}
+
+		read_stdin = 0;
 	}
 
 	for (;;) {
@@ -252,22 +254,33 @@ bad:
 
 		FD_ZERO(&fds);
 		FD_SET(conn.sock, &fds);
-		if (read_stdin)
+
+		if (read_stdin) {
 #ifdef WIN32
-			FD_SET(_fileno, &fds); // in WIN32, first arg type is SOCKET, maybe typedef of uint 
+			if (fgets(buf, sizeof(buf), stdin)) {
+				if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
+					fprintf(stderr, "%s: send error\n", prog);
+					goto end;
+				}
+			} else {
+				if (!feof(stdin)) {
+					fprintf(stderr, "%s: length of input line exceeds buffer size\n", prog);
+					goto end;
+				}	
+				read_stdin = 0;
+			}	
 #else
 			FD_SET(STDIN_FILENO, &fds); // in POSIX, first arg type is int
 #endif
+		}
 		if (select(conn.sock + 1, &fds, NULL, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select error\n", prog);
 			goto end;
 		}
 
 #ifdef WIN32
-		if (read_stdin && FD_ISSET(_fileno, &fds)) {
 #else
 		if (read_stdin && FD_ISSET(STDIN_FILENO, &fds)) {
-#endif
 
 			if (fgets(buf, sizeof(buf), stdin)) {
 				if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
@@ -282,6 +295,7 @@ bad:
 				read_stdin = 0;
 			}
 		}
+#endif
 
 		if (FD_ISSET(conn.sock, &fds)) {
 			int rv;
