@@ -124,7 +124,6 @@ int sm4_cfb_encrypt_update(SM4_CFB_CTX *ctx,
 		sm4_cfb_encrypt(&ctx->sm4_key, ctx->sbytes, ctx->iv, in, len, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {
@@ -214,7 +213,6 @@ int sm4_cfb_decrypt_update(SM4_CFB_CTX *ctx,
 		sm4_cfb_decrypt(&ctx->sm4_key, ctx->sbytes, ctx->iv, in, len, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {

@@ -82,7 +82,6 @@ int sm4_ofb_encrypt_update(SM4_OFB_CTX *ctx,
 		sm4_ofb_encrypt(&ctx->sm4_key, ctx->iv, in, len, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {

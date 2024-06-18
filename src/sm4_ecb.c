@@ -65,7 +65,6 @@ int sm4_ecb_encrypt_update(SM4_ECB_CTX *ctx,
 		sm4_encrypt_blocks(&ctx->sm4_key, in, nblocks, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {

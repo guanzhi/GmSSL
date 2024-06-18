@@ -1535,7 +1535,7 @@ int asn1_time_from_str(int utc_time, time_t *timestamp, const char *str)
 	day	= val(p[0]) * 10 + val(p[1]); p += 2;
 	hour	= val(p[0]) * 10 + val(p[1]); p += 2;
 	minute	= val(p[0]) * 10 + val(p[1]); p += 2;
-	second	= val(p[0]) * 10 + val(p[1]); p += 2;
+	second	= val(p[0]) * 10 + val(p[1]);
 
 	if (year < 1970
 		|| month < 1 || month > 12

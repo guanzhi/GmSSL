@@ -1011,7 +1011,7 @@ int cms_signed_data_print(FILE *fp, int fmt, int ind, const char *label, const u
 	cms_content_info_print(fp, fmt, ind, "contentInfo", p, len);
 	if ((ret = asn1_implicit_set_from_der(0, &p, &len, &d, &dlen)) < 0) goto err;
 	if (ret) x509_certs_print(fp, fmt, ind, "certificates", p, len);
-	if ((ret = asn1_implicit_set_from_der(1, &p, &len, &d, &dlen)) < 0) goto err;
+	if (asn1_implicit_set_from_der(1, &p, &len, &d, &dlen) < 0) goto err;
 	if (asn1_set_from_der(&p, &len, &d, &dlen) != 1) goto err;
 	cms_signer_infos_print(fp, fmt, ind, "signerInfos", p, len);
 	if (asn1_length_is_zero(dlen) != 1) goto err;
@@ -1857,11 +1857,11 @@ int cms_signed_and_enveloped_data_decipher_from_der(
 	const uint8_t *extra_crls, size_t extra_crls_len,
 	const uint8_t **in, size_t *inlen)
 {
-	int ret;
+	int ret = 0;
 	int version;
 	const uint8_t *rcpt_infos;
 	size_t rcpt_infos_len;
-	int digest_algors[4];
+	int digest_algors[4] = {0};
 	size_t digest_algors_cnt;
 	const uint8_t *enced_content_info;
 	size_t enced_content_info_len;
