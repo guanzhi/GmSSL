@@ -533,7 +533,6 @@ int tls_extensions_print(FILE *fp, const uint8_t *exts, size_t extslen, int form
 int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	format_print(fp, format, indent, "HelloRequest\n");
-	indent += 4;
 	if (data || datalen > 0) {
 		error_print();
 		return -1;

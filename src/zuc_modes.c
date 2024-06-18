@@ -119,7 +119,6 @@ int zuc_encrypt_update(ZUC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *o
 		zuc_encrypt(&ctx->zuc_state, in, len, out);
 		in += len;
 		inlen -= len;
-		out += len;
 		*outlen += len;
 	}
 	if (inlen) {

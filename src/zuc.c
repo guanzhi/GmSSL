@@ -298,7 +298,6 @@ void zuc_encrypt(ZUC_STATE *state, const uint8_t *in, size_t inlen, uint8_t *out
 
 		// table lookup together makes 10% faster
 		T0 = S0[(U >> 24)       ];
-		T0 = S0[(U >> 24)       ];
 		T2 = S0[(U >>  8) & 0xFF];
 		T4 = S0[(V >> 24)       ];
 		T6 = S0[(V >>  8) & 0xFF];
@@ -435,12 +434,12 @@ void zuc_mac_update(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t len)
 
 void zuc_mac_finish(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t mac[4])
 {
-	ZUC_UINT32 T = ctx->T;
-	ZUC_UINT32 K0 = ctx->K0;
+	ZUC_UINT32 T;
+	ZUC_UINT32 K0;
 	ZUC_UINT32 K1, M;
 	ZUC_UINT31 *LFSR = ctx->LFSR;
-	ZUC_UINT32 R1 = ctx->R1;
-	ZUC_UINT32 R2 = ctx->R2;
+	ZUC_UINT32 R1;
+	ZUC_UINT32 R2;
 	ZUC_UINT32 X0, X1, X2, X3;
 	ZUC_UINT32 W1, W2, U, V;
 	size_t i;
@@ -456,10 +455,8 @@ void zuc_mac_finish(ZUC_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t
 
 	T = ctx->T;
 	K0 = ctx->K0;
-	LFSR = ctx->LFSR;
 	R1 = ctx->R1;
 	R2 = ctx->R2;
-
 
 	if (nbits)
 		ctx->buf[ctx->buflen] = *data;

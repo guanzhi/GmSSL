@@ -1426,7 +1426,7 @@ int x509_crl_sign_to_der(
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
-	uint8_t *tbs;
+	uint8_t *tbs = NULL;
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen = SM2_signature_typical_size;
 
