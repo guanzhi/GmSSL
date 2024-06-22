@@ -139,7 +139,6 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx,
 
 #ifdef ENABLE_SM4_ECB
 // call `sm4_set_decrypt_key` before decrypt
-//void sm4_ecb_encrypt_blocks(const SM4_KEY *key, const uint8_t *in, size_t nblocks, uint8_t *out);
 
 typedef struct {
 	SM4_KEY sm4_key;
