@@ -16,6 +16,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/sm2.h>
 #include <gmssl/sm3.h>
+#include <gmssl/sm4.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include "../src/sdf/sdf.h"
@@ -1006,7 +1007,6 @@ static int test_SDF_Encrypt_SM4_CBC(int key, char *pass)
 		hex_to_bytes(cipher, strlen(cipher), pucCiphertext, &len);
 	}
 
-
 	ret = SDF_OpenDevice(&hDeviceHandle);
 	if (ret != SDR_OK) {
 		error_print_msg("SDF library: 0x%08X\n", ret);
@@ -1057,6 +1057,352 @@ static int test_SDF_Encrypt_SM4_CBC(int key, char *pass)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+
+static int test_SDF_Encrypt_SM4_ECB(int key, char *pass)
+{
+	void *hDeviceHandle = NULL;
+	void *hSessionHandle = NULL;
+	void *hKeyHandle = NULL;
+	unsigned char pucKey[16];
+	unsigned char pucData[32];
+	unsigned char pucEncData[sizeof(pucData)];
+	unsigned int uiEncDataLength = (unsigned int)sizeof(pucEncData);
+	unsigned char pucCiphertext[sizeof(pucData)];
+	unsigned int uiIPKIndex = (unsigned int)key;
+	unsigned char *pucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
+	ECCCipher eccCipher;
+	int ret;
+
+	SM4_KEY sm4_key;
+	rand_bytes(pucKey, sizeof(pucKey));
+	rand_bytes(pucData, sizeof(pucData));
+	sm4_set_encrypt_key(&sm4_key, pucKey);
+	sm4_encrypt_blocks(&sm4_key, pucData, sizeof(pucData)/16, pucCiphertext);
+
+	ret = SDF_OpenDevice(&hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	// SDF_ImportKey
+
+	ret = SDF_InternalEncrypt_ECC(hSessionHandle, uiIPKIndex, SGD_SM2_3, pucKey, sizeof(pucKey), &eccCipher);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiIPKIndex, pucPassword, uiPwdLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_ImportKeyWithISK_ECC(hSessionHandle, uiIPKIndex, &eccCipher, &hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	// encrypt
+	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, NULL, pucData, (unsigned int)sizeof(pucData), pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	// compare
+	if ((size_t)uiEncDataLength != sizeof(pucData)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucEncData, pucCiphertext, sizeof(pucCiphertext)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// decrypt
+	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, NULL, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	// compare
+	if ((size_t)uiEncDataLength != sizeof(pucData)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucEncData, pucData, sizeof(pucData)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// cleanup
+	ret = SDF_DestroyKey(hSessionHandle, hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_CloseSession(hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_CloseDevice(hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+#if ENABLE_SM4_CFB
+static int test_SDF_Encrypt_SM4_CFB(int key, char *pass)
+{
+	void *hDeviceHandle = NULL;
+	void *hSessionHandle = NULL;
+	void *hKeyHandle = NULL;
+	unsigned char pucKey[16];
+	unsigned char pucIV[16];
+	unsigned char pucData[41];
+	unsigned char pucEncData[sizeof(pucData)];
+	unsigned int uiEncDataLength = (unsigned int)sizeof(pucEncData);
+	unsigned char pucCiphertext[sizeof(pucData)];
+	unsigned int uiIPKIndex = (unsigned int)key;
+	unsigned char *pucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
+	ECCCipher eccCipher;
+	int ret;
+
+	SM4_KEY sm4_key;
+	uint8_t iv[16];
+	rand_bytes(pucKey, sizeof(pucKey));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(pucData, sizeof(pucData));
+	sm4_set_encrypt_key(&sm4_key, pucKey);
+	memcpy(pucIV, iv, sizeof(iv));
+	sm4_cfb_encrypt(&sm4_key, SM4_CFB_128, pucIV, pucData, sizeof(pucData), pucCiphertext);
+
+	ret = SDF_OpenDevice(&hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	// SDF_ImportKey
+
+	ret = SDF_InternalEncrypt_ECC(hSessionHandle, uiIPKIndex, SGD_SM2_3, pucKey, sizeof(pucKey), &eccCipher);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiIPKIndex, pucPassword, uiPwdLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_ImportKeyWithISK_ECC(hSessionHandle, uiIPKIndex, &eccCipher, &hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	// encrypt
+	memcpy(pucIV, iv, sizeof(iv));
+	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CFB, pucIV, pucData, (unsigned int)sizeof(pucData), pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	// compare
+	if ((size_t)uiEncDataLength != sizeof(pucData)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucEncData, pucCiphertext, sizeof(pucCiphertext)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// decrypt
+	memcpy(pucIV, iv, sizeof(iv));
+	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	// compare
+	if ((size_t)uiEncDataLength != sizeof(pucData)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucEncData, pucData, sizeof(pucData)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// cleanup
+	ret = SDF_DestroyKey(hSessionHandle, hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_CloseSession(hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_CloseDevice(hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
+
+#if ENABLE_SM4_OFB
+static int test_SDF_Encrypt_SM4_OFB(int key, char *pass)
+{
+	void *hDeviceHandle = NULL;
+	void *hSessionHandle = NULL;
+	void *hKeyHandle = NULL;
+	unsigned char pucKey[16];
+	unsigned char pucIV[16];
+	unsigned char pucData[41];
+	unsigned char pucEncData[sizeof(pucData)];
+	unsigned int uiEncDataLength = (unsigned int)sizeof(pucEncData);
+	unsigned char pucCiphertext[sizeof(pucData)];
+	unsigned int uiIPKIndex = (unsigned int)key;
+	unsigned char *pucPassword = (unsigned char *)pass;
+	unsigned int uiPwdLength = (unsigned int)strlen(pass);
+	ECCCipher eccCipher;
+	int ret;
+
+	SM4_KEY sm4_key;
+	uint8_t iv[16];
+	rand_bytes(pucKey, sizeof(pucKey));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(pucData, sizeof(pucData));
+	sm4_set_encrypt_key(&sm4_key, pucKey);
+	memcpy(pucIV, iv, sizeof(iv));
+	sm4_ofb_encrypt(&sm4_key, pucIV, pucData, sizeof(pucData), pucCiphertext);
+
+	ret = SDF_OpenDevice(&hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	ret = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	// SDF_ImportKey
+
+	ret = SDF_InternalEncrypt_ECC(hSessionHandle, uiIPKIndex, SGD_SM2_3, pucKey, sizeof(pucKey), &eccCipher);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_GetPrivateKeyAccessRight(hSessionHandle, uiIPKIndex, pucPassword, uiPwdLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_ImportKeyWithISK_ECC(hSessionHandle, uiIPKIndex, &eccCipher, &hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_ReleasePrivateKeyAccessRight(hSessionHandle, uiIPKIndex);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	// encrypt
+	memcpy(pucIV, iv, sizeof(iv));
+	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_OFB, pucIV, pucData, (unsigned int)sizeof(pucData), pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	// compare
+	if ((size_t)uiEncDataLength != sizeof(pucData)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucEncData, pucCiphertext, sizeof(pucCiphertext)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// decrypt
+	memcpy(pucIV, iv, sizeof(iv));
+	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_OFB, pucIV, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	// compare
+	if ((size_t)uiEncDataLength != sizeof(pucData)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(pucEncData, pucData, sizeof(pucData)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	// cleanup
+	ret = SDF_DestroyKey(hSessionHandle, hKeyHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_CloseSession(hSessionHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+	ret = SDF_CloseDevice(hDeviceHandle);
+	if (ret != SDR_OK) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
 
 static int test_SDF_Encrypt(int kek)
 {
@@ -1874,6 +2220,13 @@ bad:
 	if (test_SDF_CalculateMAC(kek) != 1) goto err;
 	if (test_SDF_Encrypt(kek) != 1) goto err;
 	if (test_SDF_Encrypt_SM4_CBC(key, pass) != 1) goto err;
+	if (test_SDF_Encrypt_SM4_ECB(key, pass) != 1) goto err;
+#if ENABLE_SM4_CFB
+	if (test_SDF_Encrypt_SM4_CFB(key, pass) != 1) goto err;
+#endif
+#if ENABLE_SM4_OFB
+	if (test_SDF_Encrypt_SM4_OFB(key, pass) != 1) goto err;
+#endif
 	if (test_SDF_GenerateKeyPair_ECC() != 1) goto err;
 	if (test_SDF_ExportSignPublicKey_ECC(key) != 1) goto err;
 	if (test_SDF_ExportEncPublicKey_ECC(key) != 1) goto err;
