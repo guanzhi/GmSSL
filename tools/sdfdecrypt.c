@@ -159,9 +159,6 @@ bad:
 	}
 	wrappedkey_len -= inlen;
 
-	sm2_ciphertext_print(stderr, 0, 0, "Ciphertext", buf, wrappedkey_len);
-
-
 	// read IV
 	if (inlen >= 16) {
 		memcpy(iv, p, 16);
