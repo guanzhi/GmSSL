@@ -162,7 +162,9 @@ typedef struct {
 } SM9_ENC_KEY;
 
 _gmssl_export int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master);
+_gmssl_export int tv_sm9_enc_master_key_generate(uint8_t *pri, uint8_t *pub);
 _gmssl_export int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen, SM9_ENC_KEY *key);
+_gmssl_export int tv_sm9_enc_master_key_extract_key(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen, uint8_t *userPri);
 
 // algorithm,parameters = sm9,sm9encrypt
 #define SM9_ENC_MASTER_KEY_MAX_SIZE 105
@@ -206,10 +208,16 @@ SM9Cipher ::= SEQUENCE {
 
 int sm9_kem_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen, size_t klen, uint8_t *kbuf, SM9_Z256_POINT *C);
 int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const SM9_Z256_POINT *C, size_t klen, uint8_t *kbuf);
+
 int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, SM9_Z256_POINT *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE]);
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const SM9_Z256_POINT *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE], uint8_t *out);
+
+int tv_sm9_do_encrypt(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen,
+	const uint8_t *in, size_t inlen, uint8_t *c1, uint8_t *c2, uint8_t *c3);
+int tv_sm9_do_decrypt(uint8_t *masterPub, uint8_t *userPri, const char *id, size_t idlen,
+	const uint8_t *c1, const uint8_t *c2, size_t c2len, const uint8_t *c3, uint8_t *out);
 
 #define SM9_MAX_PLAINTEXT_SIZE 255
 #define SM9_MAX_CIPHERTEXT_SIZE 367 // calculated in test_sm9_ciphertext()

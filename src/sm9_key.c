@@ -369,6 +369,17 @@ int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 	return 1;
 }
 
+int tv_sm9_enc_master_key_generate(uint8_t *pri, uint8_t *pub)
+{
+	SM9_ENC_MASTER_KEY encMasterKey;
+	if(sm9_enc_master_key_generate(&encMasterKey) != 1){
+		return -1;
+	}
+	sm9_z256_to_bytes(encMasterKey.ke, pri);
+	sm9_z256_point_to_uncompressed_octets(&encMasterKey.Ppube, pub);
+	return 1;
+}
+
 int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
 {
 	// k = rand(1, n-1)
@@ -402,6 +413,20 @@ int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, si
 	sm9_z256_point_mul_generator(&key->ds, t);
 	key->Ppubs = msk->Ppubs;
 
+	return 1;
+}
+
+int tv_sm9_enc_master_key_extract_key(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen, uint8_t *userPri)
+{
+	SM9_ENC_MASTER_KEY masterKey;
+	SM9_ENC_KEY userKey;
+	
+	sm9_z256_from_bytes(masterKey.ke, masterPri);
+	sm9_z256_point_from_uncompressed_octets(&masterKey.Ppube, masterPub);
+	if(sm9_enc_master_key_extract_key(&masterKey, id, idlen, &userKey) != 1){
+		return -1;
+	}
+	sm9_z256_twist_point_to_uncompressed_octets(&userKey.de, userPri);
 	return 1;
 }
 

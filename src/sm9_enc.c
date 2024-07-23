@@ -104,6 +104,21 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 	return 1;
 }
 
+int tv_sm9_do_encrypt(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen, const uint8_t *in, size_t inlen, uint8_t *c1, uint8_t *c2, uint8_t *c3)
+{
+	SM9_ENC_MASTER_KEY masterKey;
+	SM9_Z256_POINT C1;
+	
+	sm9_z256_from_bytes(masterKey.ke, masterPri);
+	sm9_z256_point_from_uncompressed_octets(&masterKey.Ppube, masterPub);
+	
+	if(sm9_do_encrypt(&masterKey, id, idlen, in, inlen, &C1, c2, c3) != 1){
+		return -1;
+	}
+	sm9_z256_point_to_uncompressed_octets(&C1, c1);
+	return 1;
+}
+
 int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen,
 	SM9_Z256_POINT *C1, uint8_t *c2, uint8_t c3[SM3_HMAC_SIZE])
@@ -123,6 +138,22 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	sm3_hmac_finish(&hmac_ctx, c3);
 	gmssl_secure_clear(&hmac_ctx, sizeof(hmac_ctx));
 	return 1;
+}
+
+int tv_sm9_do_decrypt(uint8_t *masterPub, uint8_t *userPri, const char *id, size_t idlen, const uint8_t *c1, const uint8_t *c2, size_t c2len, const uint8_t *c3, uint8_t *out)
+{
+	SM9_ENC_KEY encKey;
+	SM9_Z256_POINT C1;
+	
+	sm9_z256_point_from_uncompressed_octets(&C1, c1);
+	
+	sm9_z256_twist_point_from_uncompressed_octets(&encKey.de, userPri);
+	sm9_z256_point_from_uncompressed_octets(&encKey.Ppube, masterPub);
+	
+	if(sm9_do_decrypt(&encKey, id, idlen, &C1, c2, c2len, c3, out) != 1){
+		return -1;
+	}
+	return sizeof(out);
 }
 
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,

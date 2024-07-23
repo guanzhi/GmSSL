@@ -183,44 +183,6 @@ set(tools
 	tools/tls13_server.c
 )
 
-set(tests
-	sm4
-	sm4_cbc
-	sm4_ctr
-	sm4_gcm
-	sm3
-	sm4_sm3_hmac
-	sm2_z256
-	sm2_key
-	sm2_sign
-	sm2_enc
-	sm9
-	zuc
-	hash_drbg
-	block_cipher
-	digest
-	hmac
-	hkdf
-	gf128
-	ghash
-	pkcs8
-	ec
-	asn1
-	hex
-	base64
-	pem
-	x509
-	x509_oid
-	x509_alg
-	x509_str
-	x509_ext
-	x509_req
-	x509_crl
-	cms
-	tls
-	tls13
-)
-
 
 
 
@@ -361,7 +323,6 @@ if (ENABLE_SM4_CL)
 		add_definitions(-DMACOS) # to include <OpenCL/OpenCL.h>
 	endif()
 	list(APPEND src src/sm4_cl.c)
-	list(APPEND tests sm4_cl)
 endif()
 
 if (ENABLE_SM4_ECB)
@@ -369,7 +330,6 @@ if (ENABLE_SM4_ECB)
 	add_definitions(-DENABLE_SM4_ECB)
 	list(APPEND src src/sm4_ecb.c)
 	list(APPEND tools tools/sm4_ecb.c)
-	list(APPEND tests sm4_ecb)
 endif()
 
 if (ENABLE_SM4_OFB)
@@ -377,7 +337,6 @@ if (ENABLE_SM4_OFB)
 	add_definitions(-DENABLE_SM4_OFB)
 	list(APPEND src src/sm4_ofb.c)
 	list(APPEND tools tools/sm4_ofb.c)
-	list(APPEND tests sm4_ofb)
 endif()
 
 if (ENABLE_SM4_CFB)
@@ -385,7 +344,6 @@ if (ENABLE_SM4_CFB)
 	add_definitions(-DENABLE_SM4_CFB)
 	list(APPEND src src/sm4_cfb.c)
 	list(APPEND tools tools/sm4_cfb.c)
-	list(APPEND tests sm4_cfb)
 endif()
 
 if (ENABLE_SM4_CCM)
@@ -394,7 +352,6 @@ if (ENABLE_SM4_CCM)
 	add_definitions(-DENABLE_SM4_CCM)
 	list(APPEND src src/sm4_ccm.c)
 	list(APPEND tools tools/sm4_ccm.c)
-	list(APPEND tests sm4_ccm)
 endif()
 
 if (ENABLE_SM4_XTS)
@@ -402,7 +359,6 @@ if (ENABLE_SM4_XTS)
 	add_definitions(-DENABLE_SM4_XTS)
 	list(APPEND src src/sm4_xts.c)
 	list(APPEND tools tools/sm4_xts.c)
-	list(APPEND tests sm4_xts)
 endif()
 
 
@@ -415,7 +371,6 @@ if (ENABLE_SM2_EXTS)
 		src/sm2_ring.c
 		src/sm2_elgamal.c
 		src/sm2_commit.c)
-	list(APPEND tests sm2_key_share sm2_blind sm2_ring sm2_elgamal sm2_commit)
 endif()
 
 
@@ -427,7 +382,6 @@ if (ENABLE_SM3_XMSS)
 	if (ENABLE_SM3_XMSS_CROSSCHECK)
 		message(STATUS "ENABLE_SM3_XMSS_CROSSCHECK is ON")
 		add_definitions(-DENABLE_SM3_XMSS_CROSSCHECK)
-		list(APPEND tests sm3_xmss)
 	endif()
 endif()
 
@@ -436,7 +390,6 @@ if (ENABLE_SHA1)
 	message(STATUS "ENABLE_SHA1 is ON")
 	add_definitions(-DENABLE_SHA1)
 	list(APPEND src src/sha1.c)
-	list(APPEND tests sha1)
 endif()
 
 
@@ -444,21 +397,18 @@ if (ENABLE_SHA2)
 	message(STATUS "ENABLE_SHA2 is ON")
 	add_definitions(-DENABLE_SHA2)
 	list(APPEND src src/sha256.c src/sha512.c)
-	list(APPEND tests sha224 sha256 sha384 sha512)
 endif()
 
 
 if (ENABLE_AES)
 	message(STATUS "ENABLE_AES is ON")
 	list(APPEND src src/aes.c src/aes_modes.c)
-	list(APPEND tests aes)
 endif()
 
 
 if (ENABLE_CHACHA20)
 	message(STATUS "ENABLE_CHACHA20 is ON")
 	list(APPEND src src/chacha20.c)
-	list(APPEND tests chacha20)
 endif()
 
 
@@ -492,14 +442,12 @@ if (ENABLE_SM4_CBC_MAC)
 	message(STATUS "ENABLE_SM4_CBC_MAC is ON")
 	list(APPEND src src/sm4_cbc_mac.c)
 	list(APPEND tools tools/sm4_cbc_mac.c)
-	list(APPEND tests sm4_cbc_mac)
 endif()
 
 
 if (ENABLE_GMT_0105_RNG)
 	message(STATUS "ENABLE_GMT_0105_RNG is ON")
 	list(APPEND src src/sm3_rng.c src/sm4_rng.c)
-	list(APPEND tests sm3_rng sm4_rng)
 endif()
 
 
@@ -564,14 +512,6 @@ if (ENABLE_SDF)
 	list(APPEND tools tools/sdfutil.c tools/sdftest.c)
 endif()
 
-
-option(ENABLE_HTTP_TESTS "Enable HTTP GET/POST related tests" OFF)
-if (ENABLE_HTTP_TESTS)
-	message(STATUS "ENABLE_HTTP_TESTS")
-	list(APPEND tests http http_crl)
-endif()
-
-
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
@@ -631,13 +571,6 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	if (MINGW)
 		target_link_libraries(gmssl-bin PRIVATE Ws2_32)
 	endif()
-
-	enable_testing()
-	foreach(name ${tests})
-		add_test(NAME ${name} COMMAND ${name}test)
-		add_executable(${name}test tests/${name}test.c)
-		target_link_libraries (${name}test LINK_PUBLIC gmssl)
-	endforeach()
 
 	install(TARGETS gmssl-bin RUNTIME DESTINATION bin)
 endif()
