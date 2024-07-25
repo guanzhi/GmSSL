@@ -105,6 +105,27 @@ int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, si
 	return 1;
 }
 
+int tv_sm9_sign(const uint8_t *masterPub, const uint8_t *userPri, const uint8_t *data, size_t datalen, uint8_t *h, uint8_t *S)
+{
+	SM9_SIGN_CTX ctx;
+	
+	sm9_sign_init(&ctx);
+	sm9_sign_update(&ctx, data, datalen);
+	
+	SM9_SIGNATURE signature;
+	SM9_SIGN_KEY key;
+	
+	sm9_z256_twist_point_from_uncompressed_octets(&key.Ppubs, masterPub);
+	sm9_z256_point_from_uncompressed_octets(&key.ds, userPri);
+
+	if (sm9_do_sign(&key, &ctx.sm3_ctx, &signature) != 1) {
+		return -1;
+	}
+	sm9_z256_to_bytes(signature.h, h);
+	sm9_z256_point_to_uncompressed_octets(&signature.S, S);
+	return 1;
+}
+
 int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *sig)
 {
 	sm9_z256_t r;
@@ -173,8 +194,7 @@ int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
-int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
-	const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen)
+int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen, const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen)
 {
 	int ret;
 	SM9_SIGNATURE signature;
@@ -187,6 +207,27 @@ int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
 
 	if ((ret = sm9_do_verify(mpk, id, idlen, &ctx->sm3_ctx, &signature)) < 0) {
 		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+int tv_sm9_verify(const uint8_t *h, const uint8_t *S, const uint8_t *masterPub, const uint8_t *data, size_t datalen, const char *id, size_t idlen)
+{
+	int ret;
+	SM9_SIGN_CTX ctx;
+	sm9_verify_init(&ctx);
+	sm9_verify_update(&ctx, data, datalen);
+	
+	SM9_SIGN_MASTER_KEY msk;
+	SM9_SIGNATURE signature;
+	
+	sm9_z256_twist_point_from_uncompressed_octets(&msk.Ppubs, masterPub);
+	
+	sm9_z256_from_bytes(signature.h, h);
+	sm9_z256_point_from_uncompressed_octets(&signature.S, S);
+	
+	if ((ret = sm9_do_verify(&msk, id, idlen, &ctx.sm3_ctx, &signature)) < 0) {
 		return -1;
 	}
 	return ret;

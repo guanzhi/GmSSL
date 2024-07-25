@@ -77,6 +77,8 @@ typedef struct {
 
 _gmssl_export int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *master);
 _gmssl_export int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *master, const char *id, size_t idlen, SM9_SIGN_KEY *key);
+_gmssl_export int tv_sm9_sign_master_key_generate(uint8_t *pri, uint8_t *pub);
+_gmssl_export int tv_sm9_sign_master_key_extract_key(uint8_t *masterPri, const char *id, size_t idlen, uint8_t *userPri);
 
 // algorthm,parameters = sm9,sm9sign
 #define SM9_SIGN_MASTER_KEY_MAX_SIZE 171
@@ -131,10 +133,12 @@ typedef struct {
 _gmssl_export int sm9_sign_init(SM9_SIGN_CTX *ctx);
 _gmssl_export int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 _gmssl_export int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, size_t *siglen);
+_gmssl_export int tv_sm9_sign(const uint8_t *masterPub, const uint8_t *userPri, const uint8_t *data, size_t datalen, uint8_t *h, uint8_t *S);
+
 _gmssl_export int sm9_verify_init(SM9_SIGN_CTX *ctx);
 _gmssl_export int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
-_gmssl_export int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
-	const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen);
+_gmssl_export int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen, const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen);
+_gmssl_export int tv_sm9_verify(const uint8_t *h, const uint8_t *S, const uint8_t *masterPub, const uint8_t *data, size_t datalen, const char *id, size_t idlen);
 
 
 
@@ -164,7 +168,7 @@ typedef struct {
 _gmssl_export int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *master);
 _gmssl_export int tv_sm9_enc_master_key_generate(uint8_t *pri, uint8_t *pub);
 _gmssl_export int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *master, const char *id, size_t idlen, SM9_ENC_KEY *key);
-_gmssl_export int tv_sm9_enc_master_key_extract_key(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen, uint8_t *userPri);
+_gmssl_export int tv_sm9_enc_master_key_extract_key(uint8_t *masterPri, const char *id, size_t idlen, uint8_t *userPri);
 
 // algorithm,parameters = sm9,sm9encrypt
 #define SM9_ENC_MASTER_KEY_MAX_SIZE 105
@@ -214,9 +218,9 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 int sm9_do_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const SM9_Z256_POINT *C1, const uint8_t *c2, size_t c2len, const uint8_t c3[SM3_HMAC_SIZE], uint8_t *out);
 
-int tv_sm9_do_encrypt(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen,
+int tv_sm9_do_encrypt(uint8_t *masterPub, const char *id, size_t idlen,
 	const uint8_t *in, size_t inlen, uint8_t *c1, uint8_t *c2, uint8_t *c3);
-int tv_sm9_do_decrypt(uint8_t *masterPub, uint8_t *userPri, const char *id, size_t idlen,
+int tv_sm9_do_decrypt(uint8_t *userPri, const char *id, size_t idlen,
 	const uint8_t *c1, const uint8_t *c2, size_t c2len, const uint8_t *c3, uint8_t *out);
 
 #define SM9_MAX_PLAINTEXT_SIZE 255
@@ -237,6 +241,7 @@ _gmssl_export int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idl
 #define SM9_EXCH_KEY SM9_ENC_KEY
 #define sm9_exch_master_key_generate(msk) sm9_enc_master_key_generate(msk)
 int sm9_exch_master_key_extract_key(SM9_EXCH_MASTER_KEY *master, const char *id, size_t idlen, SM9_EXCH_KEY *key);
+int tv_sm9_exch_master_key_extract_key(uint8_t *masterPri, const char *id, size_t idlen, uint8_t *userPri);
 
 int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idBlen, SM9_Z256_POINT *RA, sm9_z256_t rA);
 int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idAlen, const char *idB, size_t idBlen,

@@ -353,6 +353,17 @@ int sm9_enc_key_from_der(SM9_ENC_KEY *key, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
+int tv_sm9_sign_master_key_generate(uint8_t *pri, uint8_t *pub)
+{
+	SM9_SIGN_MASTER_KEY msk;
+	if(sm9_sign_master_key_generate(&msk) != 1){
+		return -1;
+	}
+	sm9_z256_to_bytes(msk.ks, pri);
+	sm9_z256_twist_point_to_uncompressed_octets(&msk.Ppubs, pub);
+	return 1;
+}
+
 int sm9_sign_master_key_generate(SM9_SIGN_MASTER_KEY *msk)
 {
 	if (!msk) {
@@ -392,6 +403,19 @@ int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
 	return 1;
 }
 
+int tv_sm9_sign_master_key_extract_key(uint8_t *masterPri, const char *id, size_t idlen, uint8_t *userPri)
+{
+	SM9_SIGN_MASTER_KEY masterKey;
+	SM9_SIGN_KEY userKey;
+	
+	sm9_z256_from_bytes(masterKey.ks, masterPri);
+	if(sm9_sign_master_key_extract_key(&masterKey, id, idlen, &userKey) != 1){
+		return -1;
+	}
+	sm9_z256_point_to_uncompressed_octets(&userKey.ds, userPri);
+	return 1;
+}
+
 int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, size_t idlen, SM9_SIGN_KEY *key)
 {
 	sm9_z256_t t;
@@ -416,13 +440,12 @@ int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, si
 	return 1;
 }
 
-int tv_sm9_enc_master_key_extract_key(uint8_t *masterPri, uint8_t *masterPub, const char *id, size_t idlen, uint8_t *userPri)
+int tv_sm9_enc_master_key_extract_key(uint8_t *masterPri, const char *id, size_t idlen, uint8_t *userPri)
 {
 	SM9_ENC_MASTER_KEY masterKey;
 	SM9_ENC_KEY userKey;
 	
 	sm9_z256_from_bytes(masterKey.ke, masterPri);
-	sm9_z256_point_from_uncompressed_octets(&masterKey.Ppube, masterPub);
 	if(sm9_enc_master_key_extract_key(&masterKey, id, idlen, &userKey) != 1){
 		return -1;
 	}
@@ -451,6 +474,19 @@ int sm9_enc_master_key_extract_key(SM9_ENC_MASTER_KEY *msk, const char *id, size
 	sm9_z256_twist_point_mul_generator(&key->de, t);
 	key->Ppube = msk->Ppube;
 
+	return 1;
+}
+
+int tv_sm9_exch_master_key_extract_key(uint8_t *masterPri, const char *id, size_t idlen, uint8_t *userPri)
+{
+	SM9_EXCH_MASTER_KEY masterKey;
+	SM9_EXCH_KEY userKey;
+	
+	sm9_z256_from_bytes(masterKey.ke, masterPri);
+	if(sm9_exch_master_key_extract_key(&masterKey, id, idlen, &userKey) != 1){
+		return -1;
+	}
+	sm9_z256_twist_point_to_uncompressed_octets(&userKey.de, userPri);
 	return 1;
 }
 
