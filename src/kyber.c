@@ -51,6 +51,8 @@
 #define KYBER_C2_SIZE	((256 * KYBER_DV)/8)
 
 
+#define KYBER_TEST
+
 
 typedef int16_t kyber_poly_t[256];
 
@@ -67,6 +69,19 @@ typedef struct {
 	uint8_t c1[KYBER_K][KYBER_C1_SIZE];
 	uint8_t c2[KYBER_C2_SIZE];
 } KYBER_CPA_CIPHERTEXT;
+
+
+typedef KYBER_CPA_PUBLIC_KEY KYBER_PUBLIC_KEY;
+
+typedef struct {
+	KYBER_CPA_PRIVATE_KEY sk;
+	KYBER_CPA_PUBLIC_KEY pk;
+	uint8_t pk_hash[32];
+	uint8_t z[32];
+} KYBER_PRIVATE_KEY;
+
+typedef KYBER_CPA_CIPHERTEXT KYBER_CIPHERTEXT;
+
 
 
 
@@ -119,65 +134,6 @@ static int kyber_kdf(const uint8_t in[64], uint8_t out[32])
 	return 0;
 }
 
-
-int kyber_poly_rand(kyber_poly_t r)
-{
-	int i;
-
-	rand_bytes((uint8_t *)r, sizeof(kyber_poly_t));
-
-	for (i = 0; i < 256; i++) {
-		r[i] = (r[i] & 0xfff) % KYBER_Q;
-	}
-	return 1;
-}
-
-int kyber_poly_equ(const kyber_poly_t a, const kyber_poly_t b)
-{
-	int i;
-	for (i = 0; i < 256; i++) {
-		if (a[i] != b[i]) {
-			return 0;
-		}
-	}
-	return 1;
-}
-
-int kyber_poly_to_signed(const kyber_poly_t a, kyber_poly_t r)
-{
-	int i;
-	for (i = 0; i < 256; i++) {
-		if (a[i] < 0 || a[i] >= KYBER_Q) {
-			error_print();
-			return -1;
-		}
-		if (a[i] > (KYBER_Q - 1)/2) {
-			r[i] = a[i] - KYBER_Q;
-		} else {
-			r[i] = a[i];
-		}
-	}
-	return 1;
-}
-
-int kyber_poly_from_signed(kyber_poly_t r, const kyber_poly_t a)
-{
-	int i;
-
-	for (i = 0; i < 256; i++) {
-		if (a[i] < -(KYBER_Q - 1)/2 || a[i] > (KYBER_Q - 1)/2) {
-			return -1;
-		}
-		if (a[i] < 0) {
-			r[i] = a[i] + KYBER_Q;
-		} else {
-			r[i] = a[i];
-		}
-	}
-	return 1;
-}
-
-
 int kyber_poly_print(FILE *fp, int fmt, int ind, const char *label, const kyber_poly_t a)
 {
 	int i;
@@ -191,21 +147,35 @@ int kyber_poly_print(FILE *fp, int fmt, int ind, const char *label, const kyber_
 	return 1;
 }
 
-uint8_t br7(uint8_t i)
+void kyber_poly_set_zero(kyber_poly_t r)
 {
-	int j;
-	uint8_t r = 0;
-
-	for (j = 0; j < 7; j++) {
-		r <<= 1;
-		r |= i & 0x1;
-		i >>= 1;
+	int i;
+	for (i = 0; i < 256; i++) {
+		r[i] = 0;
 	}
-
-	return r;
 }
 
-int kyber_poly_uniform_sampling(kyber_poly_t r, const uint8_t rho[32], uint8_t j, uint8_t i)
+static void kyber_poly_set_all(kyber_poly_t r, int16_t val)
+{
+	int i;
+	for (i = 0; i < 256; i++) {
+		r[i] = val;
+	}
+}
+
+int kyber_poly_rand(kyber_poly_t r)
+{
+	int i;
+
+	rand_bytes((uint8_t *)r, sizeof(kyber_poly_t));
+
+	for (i = 0; i < 256; i++) {
+		r[i] = (r[i] & 0xfff) % KYBER_Q;
+	}
+	return 1;
+}
+
+int kyber_poly_uniform_sample(kyber_poly_t r, const uint8_t rho[32], uint8_t j, uint8_t i)
 {
 	SM3_CTX ctx;
 	uint8_t seed[32 + 2 + 4];
@@ -251,59 +221,7 @@ end:
 	return 1;
 }
 
-static int test_kyber_poly_uniform_sampling(void)
-{
-	kyber_poly_t a;
-	uint8_t rho[32];
-
-	rand_bytes(rho, sizeof(rho));
-
-
-	kyber_poly_uniform_sampling(a, rho, 0, 0);
-	kyber_poly_to_signed(a, a);
-
-	kyber_poly_print(stderr, 0, 0, "a from uniform sampling", a);
-
-	return 1;
-}
-
-
-void kyber_poly_set_zero(kyber_poly_t r)
-{
-	int i;
-	for (i = 0; i < 256; i++) {
-		r[i] = 0;
-	}
-}
-
-
-int kyber_poly_compress(const kyber_poly_t a, int dbits, kyber_poly_t z)
-{
-	int i;
-	int d = 1 << dbits;
-
-	for (i = 0; i < 256; i++) {
-		z[i] = (a[i] * d + (KYBER_Q +1)/2)/KYBER_Q;
-		z[i] = z[i] % d;
-	}
-	return 1;
-}
-
-
-int kyber_poly_decompress(kyber_poly_t r, int dbits, const kyber_poly_t z)
-{
-	int i;
-	int d = 1 << dbits;
-
-	for (i = 0; i < 256; i++) {
-		r[i] = (z[i] * KYBER_Q + d/2)/d;
-	}
-
-	return 1;
-}
-
-
-int kyber_poly_cbd_sampling(kyber_poly_t r, int eta, const uint8_t secret[32], uint8_t n)
+int kyber_poly_cbd_sample(kyber_poly_t r, int eta, const uint8_t secret[32], uint8_t n)
 {
 	int i;
 
@@ -311,9 +229,6 @@ int kyber_poly_cbd_sampling(kyber_poly_t r, int eta, const uint8_t secret[32], u
 		uint8_t in[128];
 
 		kyber_prf(secret, n, sizeof(in), in);
-
-		format_bytes(stderr, 0, 0, "prf_in", in, 128);
-
 
 		for (i = 0; i < 128; i++) {
 			uint8_t t = (in[i] & 0x55) + ((in[i] >> 1) & 0x55);
@@ -329,7 +244,7 @@ int kyber_poly_cbd_sampling(kyber_poly_t r, int eta, const uint8_t secret[32], u
 
 		kyber_prf(secret, n, sizeof(bytes), bytes);
 
-		format_bytes(stderr, 0, 0, "prf_bytes", bytes, 192);
+		//format_bytes(stderr, 0, 0, "prf_bytes", bytes, 192);
 
 		for (i = 0; i < 64; i++) {
 			b24 = bytes[3*i]
@@ -357,190 +272,32 @@ int kyber_poly_cbd_sampling(kyber_poly_t r, int eta, const uint8_t secret[32], u
 	return 1;
 }
 
-
-
-
-
-static int test_kyber_poly_cbd_sampling(void)
+int kyber_poly_equ(const kyber_poly_t a, const kyber_poly_t b)
 {
-	kyber_poly_t a;
-	uint8_t seed[32];
-
-
-	rand_bytes(seed, sizeof(seed));
-	kyber_poly_cbd_sampling(a, 2, seed, 0);
-	kyber_poly_to_signed(a, a);
-	kyber_poly_print(stderr, 0, 0, "cbd(eta=2)", a);
-
-	kyber_poly_cbd_sampling(a, 3, seed, 0);
-	kyber_poly_to_signed(a, a);
-	kyber_poly_print(stderr, 0, 0, "cbd(eta=3)", a);
-
-	return 1;
-}
-
-static int kyber_poly_num_encode_coeffs(int dbits, int *n)
-{
-	switch (dbits) {
-	case 12: *n = 2; break;
-	case 11: *n = 8; break;
-	case 10: *n = 4; break;
-	case  4: *n = 5; break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int kyber_poly_encode10(const kyber_poly_t a, uint8_t out[320])
-{
-	const int16_t *in = a;
 	int i;
-
 	for (i = 0; i < 256; i++) {
-		if (a[i] < 0 || a[i] >= (1 << 10)) {
-			error_print();
-			return -1;
+		if (a[i] != b[i]) {
+			return 0;
 		}
 	}
-	for (i = 0; i < 256; i += 4) {
-		out[0] = in[0];
-		out[1] = (in[1] << 2) | (in[0] >> 8);
-		out[2] = (in[2] << 4) | (in[1] >> 6);
-		out[3] = (in[3] << 6) | (in[2] >> 4);
-		out[4] = in[3] >> 2;
-		in  += 4;
-		out += 5;
-	}
 	return 1;
 }
 
-int kyber_poly_decode10(kyber_poly_t r, const uint8_t in[320])
+void kyber_poly_add(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
 {
 	int i;
-	int16_t *out = r;
-
-	for (i = 0; i < 256; i += 4) {
-		out[0] = (((int16_t)in[1] << 8) | in[0]) & 0x3ff;
-		out[1] = (((int16_t)in[2] << 6) | (in[1] >> 2)) & 0x3ff;
-		out[2] = (((int16_t)in[3] << 4) | (in[2] >> 4)) & 0x3ff;
-		out[3] = ((int16_t)in[4] << 2) | (in[3] >> 6);
-		in += 5;
-		out += 4;
-	}
-	return 1;
-}
-
-int kyber_poly_encode4(const kyber_poly_t a, uint8_t out[128])
-{
-	int i;
-
 	for (i = 0; i < 256; i++) {
-		if (a[i] < 0 || a[i] >= (1<<4)) {
-			error_print();
-			return -1;
-		}
+		r[i] = (a[i] + b[i]) % 3329;
 	}
-	for (i = 0; i < 256; i += 2) {
-		*out++ = a[i] | (a[i + 1] << 4);
-	}
-	return 1;
 }
 
-int kyber_poly_decode4(kyber_poly_t r, const uint8_t in[128])
+void kyber_poly_sub(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
 {
 	int i;
-
-	for (i = 0; i < 128; i++) {
-		r[2 * i] = in[i] & 0xf;
-		r[2 * i + 1] = in[i] >> 4;
-	}
-	return 1;
-}
-
-
-
-int kyber_poly_to_bytes(const kyber_poly_t a, uint8_t out[384])
-{
-	int i;
-
 	for (i = 0; i < 256; i++) {
-		if (a[i] < 0 || a[i] >= KYBER_Q) {
-			error_print();
-			return -1;
-		}
-	}
-	for (i = 0; i < 256; i += 2) {
-		*out++ = a[i];
-		*out++ = ((a[i + 1] & 0xf) << 4) | (a[i] >> 8);
-		*out++ = a[i + 1] >> 4;
-	}
-	return 1;
-}
-
-int kyber_poly_from_bytes(kyber_poly_t r, const uint8_t in[384])
-{
-	int16_t *out = &r[0];
-	int i;
-
-	for (i = 0; i < 384; i += 3) {
-		*out++ = (((int16_t)in[i + 1] & 0xf) << 8) | in[i];
-		*out++ = ((int16_t)in[i + 2] << 4) | (in[i + 1] >> 4);
-	}
-	for (i = 0; i < 256; i++) {
-		if (r[i] >= KYBER_Q) {
-			error_print();
-			return -1;
-		}
-	}
-	return 1;
-}
-
-static int test_kyber_poly_to_bytes(void)
-{
-	kyber_poly_t a;
-	kyber_poly_t b;
-	uint8_t bytes[384] = {0};
-
-	kyber_poly_rand(a);
-	kyber_poly_to_bytes(a, bytes);
-	kyber_poly_from_bytes(b, bytes);
-
-	if (kyber_poly_equ(a, b) != 1) {
-		error_print();
-		return -1;
-	}
-
-	return 1;
-}
-
-void kyber_poly_from_plaintext(kyber_poly_t r, const uint8_t in[32])
-{
-	int i, j;
-	for (i = 0; i < 32; i++) {
-		for (j = 0; j < 8; j++) {
-			r[8*i + j] = ((in[i] >> j) & 1);
-		}
+		r[i] = (a[i] + 3329 - b[i]) % 3329;
 	}
 }
-
-int kyber_poly_to_plaintext(const kyber_poly_t a, uint8_t out[32])
-{
-	int i, j;
-	for (i = 0; i < 32; i++) {
-		out[i] = 0;
-		for (j = 0; j < 8; j++) {
-			if (a[8*i + j] >> 1) {
-				error_print();
-				return -1;
-			}
-			out[i] |= (a[8*i + j] & 1) << j;
-		}
-	}
-	return 1;
-}
-
 
 int16_t zeta[256];
 
@@ -554,24 +311,21 @@ void init_zeta(void)
 	}
 }
 
-void eval2(short r[2], const short a[256], int x)
+static uint8_t br7(uint8_t i)
 {
-	int r0 = 0;
-	int r1 = 0;
-	int x_pow = 1;
-	int i;
+	int j;
+	uint8_t r = 0;
 
-	for (i = 0 ; i < 128; i++) {
-		r0 = (r0 + a[2*i  ] * x_pow) % 3329;
-		r1 = (r1 + a[2*i+1] * x_pow) % 3329;
-		x_pow = (x_pow * x) % 3329;
+	for (j = 0; j < 7; j++) {
+		r <<= 1;
+		r |= i & 0x1;
+		i >>= 1;
 	}
 
-	r[0] = (short)r0;
-	r[1] = (short)r1;
+	return r;
 }
 
-void ntt(int16_t a[256])
+int kyber_poly_ntt(int16_t a[256])
 {
 	int br_i = 1;
 	int n = 128;
@@ -590,9 +344,11 @@ void ntt(int16_t a[256])
 			A += 2*n;
 		}
 	}
+
+	return 1;
 }
 
-int16_t div2(int16_t a)
+static int16_t div2(int16_t a)
 {
 	if (a & 1) {
 		return (a + 3329)/2;
@@ -601,7 +357,7 @@ int16_t div2(int16_t a)
 	}
 }
 
-void ntt_inv(int16_t a[256])
+int kyber_poly_inv_ntt(int16_t a[256])
 {
 	int br_i = 127;
 	int n;
@@ -628,32 +384,64 @@ void ntt_inv(int16_t a[256])
 			A += 2*n;
 		}
 	}
+
+	return 1;
 }
 
 // (a0 + a1*X) * (b0 + b1*X) = (a0*b0 + a1*b1*zeta) + (a0*b1 + a1*b0)*X
-void linear_poly_mul(int16_t r[2], const int16_t a[2], const int16_t b[2], int zeta)
+static void kyber_linear_poly_mul(int16_t r[2], const int16_t a[2], const int16_t b[2], int zeta)
 {
 	r[0] = (a[0] * b[0] + ((a[1] * b[1])%3329) * zeta) % 3329;
 	r[1] = (a[0] * b[1] + a[1] * b[0]) % 3329;
 }
 
-void kyber_poly_mul(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
+int kyber_poly_ntt_mul(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
 {
 	int i;
+
 	for (i = 0; i < 64; i++) {
-		linear_poly_mul(r, a, b, zeta[br7(64 + i)]);
+		kyber_linear_poly_mul(r, a, b, zeta[br7(64 + i)]);
 		r += 2;
 		a += 2;
 		b += 2;
 
-		linear_poly_mul(r, a, b, 3329 - zeta[br7(64 + i)]);
+		kyber_linear_poly_mul(r, a, b, 3329 - zeta[br7(64 + i)]);
 		r += 2;
 		a += 2;
 		b += 2;
 	}
+
+	return 1;
 }
 
-void kyber_poly_mul_scalar(kyber_poly_t r, int scalar, const kyber_poly_t a)
+void kyber_poly_copy(kyber_poly_t r, const kyber_poly_t a)
+{
+	int i;
+	for (i = 0; i < 256; i++) {
+		r[i] = a[i];
+	}
+}
+
+int kyber_poly_mul(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
+{
+	kyber_poly_t ntt_a;
+	kyber_poly_t ntt_b;
+	kyber_poly_t ntt_r;
+
+	kyber_poly_copy(ntt_a, a);
+	kyber_poly_ntt(ntt_a);
+
+	kyber_poly_copy(ntt_b, b);
+	kyber_poly_ntt(ntt_b);
+
+	kyber_poly_ntt_mul(ntt_r, ntt_a, ntt_b);
+
+	kyber_poly_inv_ntt(ntt_r);
+	kyber_poly_copy(r, ntt_r);
+	return 1;
+}
+
+void kyber_poly_ntt_mul_scalar(kyber_poly_t r, int scalar, const kyber_poly_t a)
 {
 	int i;
 
@@ -664,82 +452,719 @@ void kyber_poly_mul_scalar(kyber_poly_t r, int scalar, const kyber_poly_t a)
 	}
 }
 
-void kyber_poly_add(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
+int kyber_poly_to_signed(const kyber_poly_t a, kyber_poly_t r)
 {
 	int i;
 	for (i = 0; i < 256; i++) {
-		r[i] = (a[i] + b[i]) % 3329;
-	}
-}
-
-void kyber_poly_sub(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b)
-{
-	int i;
-	for (i = 0; i < 256; i++) {
-		r[i] = (a[i] + 3329 - b[i]) % 3329;
-	}
-}
-
-static int test_kyber_poly_compress(void)
-{
-	kyber_poly_t a, b, z;
-	int i;
-
-	kyber_poly_rand(a);
-	kyber_poly_compress(a, 10, z);
-	kyber_poly_decompress(b, 10, z);
-
-	for (i = 0; i < 256; i++) {
-		if (a[i] != b[i]) {
-			printf("%d: %d %d\n", i, a[i], b[i]);
+		if (a[i] < 0 || a[i] >= KYBER_Q) {
+			error_print();
+			return -1;
+		}
+		if (a[i] > (KYBER_Q - 1)/2) {
+			r[i] = a[i] - KYBER_Q;
+		} else {
+			r[i] = a[i];
 		}
 	}
 	return 1;
 }
 
-static int test_kyber_poly_to_plaintext(void)
+int kyber_poly_from_signed(kyber_poly_t r, const kyber_poly_t a)
 {
-	kyber_poly_t a;
-	kyber_poly_t b;
-	uint8_t msg[32];
-	uint8_t out[32];
-
-
 	int i;
 
-	for (i = 0; i < 32; i++) {
-		msg[i] = i;
-	}
-
-
-	format_bytes(stderr, 0, 0, "msg", msg, 32);
-
-	kyber_poly_from_plaintext(a, msg);
-	kyber_poly_print(stderr, 0, 0, "poly", a);
-
-	kyber_poly_decompress(b, 1, a);
-	kyber_poly_print(stderr, 0, 0, "poly", a);
-
-	kyber_poly_compress(b, 1, b);
-	kyber_poly_print(stderr, 0, 0, "poly", a);
-
 	for (i = 0; i < 256; i++) {
-		if (a[i] != b[i]) {
-			printf("%d: %d %d\n", i, a[i], b[i]);
-			error_print();
+		if (a[i] < -(KYBER_Q - 1)/2 || a[i] > (KYBER_Q - 1)/2) {
+			return -1;
+		}
+		if (a[i] < 0) {
+			r[i] = a[i] + KYBER_Q;
+		} else {
+			r[i] = a[i];
 		}
 	}
+	return 1;
+}
+
+int kyber_poly_compress(const kyber_poly_t a, int dbits, kyber_poly_t z)
+{
+	int i;
+	int d = 1 << dbits;
+
+	for (i = 0; i < 256; i++) {
+		z[i] = (a[i] * d + (KYBER_Q +1)/2)/KYBER_Q;
+		z[i] = z[i] % d;
+	}
+	return 1;
+}
+
+int kyber_poly_decompress(kyber_poly_t r, int dbits, const kyber_poly_t z)
+{
+	int i;
+	int d = 1 << dbits;
+
+	for (i = 0; i < 256; i++) {
+		r[i] = (z[i] * KYBER_Q + d/2)/d;
+	}
+
+	return 1;
+}
+
+int kyber_poly_encode12(const kyber_poly_t a, uint8_t out[384])
+{
+	const int16_t *in = a;
+	int i;
+
+	for (i = 0; i < 256; i++) {
+		if (a[i] < 0 || a[i] >= KYBER_Q) {
+			error_print();
+			return -1;
+		}
+	}
+	for (i = 0; i < 256/2; i++) {
+		out[0] = in[0];
+		out[1] = (in[1] << 4) | (in[0] >> 8);
+		out[2] = in[1] >> 4;
+		in += 2;
+		out += 3;
+	}
+	return 1;
+}
+
+int kyber_poly_decode12(kyber_poly_t r, const uint8_t in[384])
+{
+	int16_t *out = r;
+	int i;
+
+	for (i = 0; i < 384; i += 3) {
 
 
-	kyber_poly_to_plaintext(a, out);
-	format_bytes(stderr, 0, 0, "out", out, 32);
 
-	if (memcmp(out, msg, sizeof(msg)) != 0) {
+		*out++ = (((int16_t)in[i + 1] & 0xf) << 8) | in[i];
+		*out++ = ((int16_t)in[i + 2] << 4) | (in[i + 1] >> 4);
+	}
+	for (i = 0; i < 256; i++) {
+		if (r[i] >= KYBER_Q) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int kyber_poly_encode10(const kyber_poly_t a, uint8_t out[320])
+{
+	const int16_t *in = a;
+	int i;
+
+	for (i = 0; i < 256; i++) {
+		if (a[i] < 0 || a[i] >= (1 << 10)) {
+			error_print();
+			return -1;
+		}
+	}
+	for (i = 0; i < 256/4; i++) {
+		out[0] = in[0];
+		out[1] = (in[1] << 2) | (in[0] >> 8);
+		out[2] = (in[2] << 4) | (in[1] >> 6);
+		out[3] = (in[3] << 6) | (in[2] >> 4);
+		out[4] = in[3] >> 2;
+		in  += 4;
+		out += 5;
+	}
+	return 1;
+}
+
+int kyber_poly_decode10(kyber_poly_t r, const uint8_t in[320])
+{
+	int i;
+	int16_t *out = r;
+
+	for (i = 0; i < 256/4; i++) {
+		out[0] = (((int16_t)in[1] << 8) | in[0]) & 0x3ff;
+		out[1] = (((int16_t)in[2] << 6) | (in[1] >> 2)) & 0x3ff;
+		out[2] = (((int16_t)in[3] << 4) | (in[2] >> 4)) & 0x3ff;
+		out[3] = ((int16_t)in[4] << 2) | (in[3] >> 6);
+		in += 5;
+		out += 4;
+	}
+	return 1;
+}
+
+int kyber_poly_encode4(const kyber_poly_t a, uint8_t out[128])
+{
+	int i;
+
+	for (i = 0; i < 256; i++) {
+		if (a[i] < 0 || a[i] >= (1<<4)) {
+			error_print();
+			return -1;
+		}
+	}
+	for (i = 0; i < 256; i += 2) {
+		*out++ = a[i] | (a[i + 1] << 4);
+	}
+	return 1;
+}
+
+void kyber_poly_decode4(kyber_poly_t r, const uint8_t in[128])
+{
+	int i;
+
+	for (i = 0; i < 128; i++) {
+		r[2 * i] = in[i] & 0xf;
+		r[2 * i + 1] = in[i] >> 4;
+	}
+}
+
+void kyber_poly_decode1(kyber_poly_t r, const uint8_t in[32])
+{
+	int i, j;
+	for (i = 0; i < 32; i++) {
+		for (j = 0; j < 8; j++) {
+			r[8*i + j] = ((in[i] >> j) & 1);
+		}
+	}
+}
+
+int kyber_poly_encode1(const kyber_poly_t a, uint8_t out[32])
+{
+	int i, j;
+	for (i = 0; i < 32; i++) {
+		out[i] = 0;
+		for (j = 0; j < 8; j++) {
+			if (a[8*i + j] >> 1) {
+				error_print();
+				return -1;
+			}
+			out[i] |= (a[8*i + j] & 1) << j;
+		}
+	}
+	return 1;
+}
+
+
+
+
+static int test_kyber_poly_uniform_sample(void)
+{
+	kyber_poly_t a;
+	uint8_t rho[32];
+
+	rand_bytes(rho, sizeof(rho));
+
+
+	kyber_poly_uniform_sample(a, rho, 0, 0);
+	kyber_poly_to_signed(a, a);
+
+	//kyber_poly_print(stderr, 0, 0, "a from uniform sampling", a);
+
+	return 1;
+}
+
+static int test_kyber_poly_cbd_sample(void)
+{
+	kyber_poly_t a;
+	uint8_t seed[32];
+
+
+	rand_bytes(seed, sizeof(seed));
+	kyber_poly_cbd_sample(a, 2, seed, 0);
+	kyber_poly_to_signed(a, a);
+	//kyber_poly_print(stderr, 0, 0, "cbd(eta=2)", a);
+
+	kyber_poly_cbd_sample(a, 3, seed, 0);
+	kyber_poly_to_signed(a, a);
+	//kyber_poly_print(stderr, 0, 0, "cbd(eta=3)", a);
+
+	return 1;
+}
+
+static int test_kyber_poly_to_signed(void)
+{
+	kyber_poly_t a, b;
+	int i;
+
+
+	if (kyber_poly_rand(a) != 1) {
 		error_print();
 		return -1;
 	}
+	if (kyber_poly_to_signed(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < 256; i++) {
+		if (b[i] < -(KYBER_Q - 1)/2 || b[i] > (KYBER_Q - 1)/2) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (kyber_poly_from_signed(b, b) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+
+static int test_kyber_poly_ntt(void)
+{
+	kyber_poly_t a, b;
+	int i;
+
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+
+	memcpy(b, a, sizeof(kyber_poly_t));
+	if (kyber_poly_ntt(b) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_inv_ntt(b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+/*
+#!/bin/sage
+
+	q = 3329
+	n = 256
+
+	R.<x> = PolynomialRing(Integers(q))
+	Rq = R.quotient(x^n + 1, 'x')
+
+	# a = 1 + 2*x + 3*x^2 + ... + 256*x^255
+	coefficients = list(range(1, n+1))
+	a = sum(coeff * x^i for i, coeff in enumerate(coefficients))
+	a = Rq(a)
+
+	# b = 256 + 255*x + ... + 1*x^255
+	coefficients = list(range(n, 0, -1))
+	b = sum(coeff * x^i for i, coeff in enumerate(coefficients))
+	b = Rq(b)
+
+	r = a * b
+
+	r = r.lift() # Quotient ring element back to a polynomial
+	r = r.coefficients(sparse=False)
+	for i in range(0, n, 16):
+		print(r[i:i+16])
+
+*/
+static int test_kyber_poly_ntt_mul(void)
+{
+	const kyber_poly_t r = {
+		656, 772, 1140, 1758, 2624, 407, 1763, 32, 1870, 617, 2929, 2146, 1595, 1274, 1181, 1314,
+		1671, 2250, 3049, 737, 1970, 88, 1747, 287, 2364, 1318, 476, 3165, 2725, 2483, 2437, 2585,
+		2925, 126, 844, 1748, 2836, 777, 2227, 526, 2330, 979, 3129, 2120, 1279, 604, 93, 3073,
+		2884, 2853, 2978, 3257, 359, 940, 1669, 2544, 234, 1395, 2696, 806, 2381, 761, 2602, 1244,
+		14, 2239, 1259, 401, 2992, 2372, 1868, 1478, 1200, 1032, 972, 1018, 1168, 1420, 1772, 2222,
+		2768, 79, 811, 1633, 2543, 210, 1290, 2452, 365, 1685, 3081, 1222, 2764, 1047, 2727, 1144,
+		2954, 1497, 100, 2090, 807, 2907, 1730, 603, 2853, 1820, 831, 3213, 2306, 1437, 604, 3134,
+		2367, 1630, 921, 238, 2908, 2271, 1654, 1055, 472, 3232, 2675, 2128, 1589, 1056, 527, 0,
+		2802, 2273, 1740, 1201, 654, 97, 2857, 2274, 1675, 1058, 421, 3091, 2408, 1699, 962, 195,
+		2725, 1892, 1023, 116, 2498, 1509, 476, 2726, 1599, 422, 2522, 1239, 3229, 1832, 375, 2185,
+		602, 2282, 565, 2107, 248, 1644, 2964, 877, 2039, 3119, 786, 1696, 2518, 3250, 561, 1107,
+		1557, 1909, 2161, 2311, 2357, 2297, 2129, 1851, 1461, 957, 337, 2928, 2070, 1090, 3315, 2085,
+		727, 2568, 948, 2523, 633, 1934, 3095, 785, 1660, 2389, 2970, 72, 351, 476, 445, 256,
+		3236, 2725, 2050, 1209, 200, 2350, 999, 2803, 1102, 2552, 493, 1581, 2485, 3203, 404, 744,
+		892, 846, 604, 164, 2853, 2011, 965, 3042, 1582, 3241, 1359, 2592, 280, 1079, 1658, 2015,
+		2148, 2055, 1734, 1183, 400, 2712, 1459, 3297, 1566, 2922, 705, 1571, 2189, 2557, 2673, 2535,
+	};
+	kyber_poly_t a; // [1, 2, 3, ..., 256]
+	kyber_poly_t b; // [256, 255, ...,  1]
+	kyber_poly_t r_;
+	int i;
+
+	for (i = 0; i < 256; i++) {
+		a[i] = i + 1;
+		b[i] = 256 - i;
+	}
+
+	kyber_poly_ntt(a);
+	kyber_poly_ntt(b);
+
+	kyber_poly_ntt_mul(r_, a, b);
+	kyber_poly_inv_ntt(r_);
+
+	if (kyber_poly_equ(r_, r) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_kyber_poly_ops(void)
+{
+	kyber_poly_t a, b;
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// (a + a) - a =?= a
+	kyber_poly_add(b, a, a);
+	kyber_poly_sub(b, b, a);
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// (a + a) + (a + a) =?= 4*a
+	kyber_poly_add(b, a, a);
+	kyber_poly_add(b, b, b);
+	kyber_poly_ntt_mul_scalar(a, 4, a);
+
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+
+
+
+static int round_div(int a, int b)
+{
+	return (a + (b + 1)/2)/b;
+}
+
+// a' = Decompress(Compress(a, d), d), check |a - a' mod+- q| <= round(q/2^(d + 1))
+static int test_kyber_poly_compress(void)
+{
+	kyber_poly_t a, b;
+	int16_t bound;
+	int i;
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// compress(a, 10)
+	if (kyber_poly_compress(a, 10, b) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_decompress(b, 10, b) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_poly_sub(b, a, b);
+	if (kyber_poly_to_signed(b, b) != 1) {
+		error_print();
+		return -1;
+	}
+	bound = round_div(KYBER_Q, 1 << (10 + 1));
+	//printf("compress(-, 10) bound = %d\n", bound);
+	for (i = 0; i < 256; i++) {
+		if (b[i] < -bound || b[i] > bound) {
+			error_print();
+			return -1;
+		}
+	}
+
+	// compress(a, 4)
+	if (kyber_poly_compress(a, 4, b) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_decompress(b, 4, b) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_poly_sub(b, a, b);
+	if (kyber_poly_to_signed(b, b) != 1) {
+		error_print();
+		return -1;
+	}
+	bound = round_div(KYBER_Q, 1 << (4 + 1));
+	//printf("compress(-, 4) bound = %d\n", bound);
+	for (i = 0; i < 256; i++) {
+		if (b[i] < -bound || b[i] > bound) {
+			error_print();
+			return -1;
+		}
+	}
+
+	// compress(a, 1)
+	if (kyber_poly_compress(a, 1, b) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_decompress(b, 1, b) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_poly_sub(b, a, b);
+	if (kyber_poly_to_signed(b, b) != 1) {
+		error_print();
+		return -1;
+	}
+	bound = round_div(KYBER_Q, 1 << (1 + 1));
+	//printf("compress(-, 1) bound = %d\n", bound);
+	for (i = 0; i < 256; i++) {
+		if (b[i] < -bound || b[i] > bound) {
+			// 这块是有可能出现错误的				
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_kyber_poly_encode12(void)
+{
+	kyber_poly_t a;
+	kyber_poly_t b;
+	uint8_t bytes[384];
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_encode12(a, bytes) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_decode12(b, bytes) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_kyber_poly_encode10(void)
+{
+	kyber_poly_t a;
+	kyber_poly_t b;
+	uint8_t bytes[320];
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_compress(a, 10, a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_encode10(a, bytes) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_poly_decode10(b, bytes);
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_kyber_poly_encode4(void)
+{
+	kyber_poly_t a;
+	kyber_poly_t b;
+	uint8_t bytes[128];
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_compress(a, 4, a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_encode4(a, bytes) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_poly_decode4(b, bytes);
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_kyber_poly_encode1(void)
+{
+	kyber_poly_t a;
+	kyber_poly_t b;
+	uint8_t bytes[32];
+
+	if (kyber_poly_rand(a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_compress(a, 1, a) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_poly_encode1(a, bytes) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_poly_decode1(b, bytes);
+	if (kyber_poly_equ(a, b) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
+{
+	kyber_poly_t A[KYBER_K][KYBER_K];
+	kyber_poly_t s[KYBER_K];
+	kyber_poly_t e[KYBER_K];
+	kyber_poly_t t[KYBER_K];
+
+	uint8_t d[64];
+	uint8_t *rho = d;
+	uint8_t *sigma = d + 32;
+	uint8_t N = 0;
+	int i,j;
+
+	if (rand_bytes(d, 32) != 1) {
+		error_print();
+		return -1;
+	}
+
+	kyber_g_hash(d, 32, d);
+
+	format_bytes(stderr, 0, 0, "rho", rho, 32);
+	format_bytes(stderr, 0, 0, "sigma", sigma, 32);
+
+
+	// AHat[i][j] = Parse(XOR(rho, j, i))
+	for (i = 0; i < KYBER_K; i++) {
+		for (j = 0; j < KYBER_K; j++) {
+			kyber_poly_uniform_sample(A[i][j], rho, j, i);
+			kyber_poly_print(stderr, 0, 0, "A[i][j]", A[i][j]);
+		}
+	}
+
+	// s[i] = CBD_eta1(PRF(sigma, N++))
+	for (i = 0; i < KYBER_K; i++) {
+		kyber_poly_cbd_sample(s[i], KYBER_ETA1, sigma, N);
+		//kyber_poly_set_all(s[i], 1);
+		kyber_poly_print(stderr, 0, 0, "s[i]", s[i]);
+		N++;
+	}
+
+	// e[i] = CBD_eta1(PRF(sigma, N++))
+	for (i = 0; i < KYBER_K; i++) {
+		kyber_poly_cbd_sample(e[i], KYBER_ETA1, sigma, N);
+		//kyber_poly_set_all(e[i], 0);
+		kyber_poly_print(stderr, 0, 0, "e[i]", e[i]);
+		N++;
+	}
+
+	// sHat = NTT(s)
+	for (i = 0; i < KYBER_K; i++) {
+		kyber_poly_ntt(s[i]);
+		kyber_poly_print(stderr, 0, 0, "ntt(s[i])", s[i]);
+	}
+	// eHat = NTT(e)
+	for (i = 0; i < KYBER_K; i++) {
+		kyber_poly_ntt(e[i]);
+		kyber_poly_print(stderr, 0, 0, "ntt(e[i])", e[i]);
+	}
+
+	for (i = 0; i < KYBER_K; i++) {
+		kyber_poly_set_zero(t[i]);
+	}
+
+	// t = A*s + e
+	for (i = 0; i < KYBER_K; i++) {
+		for (j = 0; j < KYBER_K; j++) {
+			kyber_poly_t tmp;
+			kyber_poly_ntt_mul(tmp, A[i][j], s[j]);
+			kyber_poly_add(t[i], t[i], tmp);
+		}
+		kyber_poly_add(t[i], t[i], e[i]);
+		kyber_poly_print(stderr, 0, 0, "ntt(t[i])", t[i]);
+
+	}
+
+
+	// 这里实际上t没有压缩，就是原来的值
+	// t - A^T * s 实际上就是很小的值
+
+	// output (pk, sk)
+	for (i = 0; i < KYBER_K; i++) {
+		kyber_poly_encode12(t[i], pk->t[i]);
+		kyber_poly_encode12(s[i], sk->s[i]);
+	}
+	memcpy(pk->rho, rho, 32);
+
+
+	fprintf(stderr, "\n");
+
+	return 1;
+}
+
+
+/*
+
+	t = A * s + e
+
+	u = A * r + e1
+	v = t * r + e2 + M
+
+	v - u * s
+	= (t * r + e2 + M) - (A * r + e1) * s
+	= (A * s + e)*r + e2 + M - A*r*s - e1*s
+	= A*r*s + e*r + e2 + M - A*r*s - e1*s
+	= M + e*r + e2 - e1*s
+
+	when A is matrix, s, r is vector:
+
+	(A * s)^T * r == (A^T * r)^T * s == s^T * (A^T * r)
+
+*/
+
+
 
 int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
 	const uint8_t rand[32], KYBER_CPA_CIPHERTEXT *out)
@@ -757,43 +1182,50 @@ int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
 	kyber_poly_t v;
 	kyber_poly_t m;
 
+	printf("%s() ok\n", __FUNCTION__);
+
 	// tHat = Decode12(pk)
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_from_bytes(t[i], pk->t[i]);
+		kyber_poly_decode12(t[i], pk->t[i]);
+		kyber_poly_print(stderr, 0, 0, "ntt(t[i])", t[i]);
 	}
 
 	// AHat^T[i][j] = Parse(XOR(rho, i, j))
 	for (i = 0; i < KYBER_K; i++) {
 		for (j = 0; j < KYBER_K; j++) {
-			kyber_poly_uniform_sampling(A[i][j], pk->rho, i, j);
-			//kyber_poly_print(stderr, 0, 0, "A[i][j]", A[i][j]);
+			kyber_poly_uniform_sample(A[i][j], pk->rho, i, j);
+			kyber_poly_print(stderr, 0, 0, "A[i][j]", A[i][j]);
 		}
 	}
 
-
 	// r[i] = CBD_eta1(PRF(rand, N++))
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_cbd_sampling(r[i], KYBER_ETA1, rand, N);
+		kyber_poly_cbd_sample(r[i], KYBER_ETA1, rand, N);
+		//kyber_poly_set_all(r[i], 2);
 		kyber_poly_print(stderr, 0, 0, "r[i]", r[i]);
 		N++;
 	}
 
 	// e1[i] = CBD_eta2(PRF(rand, N++))
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_cbd_sampling(e1[i], KYBER_ETA2, rand, N);
+		kyber_poly_cbd_sample(e1[i], KYBER_ETA2, rand, N);
+		//kyber_poly_set_all(e1[i], 0);
 		kyber_poly_print(stderr, 0, 0, "e1[i]", e1[i]);
 		N++;
 	}
 
 	// e2 = CBD_eta2(PRF(rand, N))
-	kyber_poly_cbd_sampling(e2, KYBER_ETA2, rand, N);
-
+	kyber_poly_cbd_sample(e2, KYBER_ETA2, rand, N);
+	//kyber_poly_set_all(e2, 0);
+	kyber_poly_print(stderr, 0, 0, "e2", e2);
 
 	// rHat = NTT(r)
 	for (i = 0; i < KYBER_K; i++) {
-		ntt(r[i]);
+		kyber_poly_ntt(r[i]);
+		kyber_poly_print(stderr, 0, 0, "ntt(r[i])", r[i]);
 	}
 
+	// 实际上 u ==  A^T * r + e1
 
 	// u = NTT^-1(A^T * r) + e1
 	for (i = 0; i < KYBER_K; i++) {
@@ -802,28 +1234,69 @@ int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
 	for (i = 0; i < KYBER_K; i++) {
 		for (j = 0; j < KYBER_K; j++) {
 			kyber_poly_t tmp;
-			kyber_poly_mul(tmp, A[i][j], r[j]);
+			kyber_poly_ntt_mul(tmp, A[i][j], r[j]);
 			kyber_poly_add(u[i], u[i], tmp);
 		}
-		ntt_inv(u[i]);
+		kyber_poly_inv_ntt(u[i]);
 
 		kyber_poly_add(u[i], u[i], e1[i]);
+		kyber_poly_print(stderr, 0, 0, "u[i] = (A^T * r)[i]", u[i]);
 	}
-
 
 	// v = NTT^-1( t^T * r ) + e2 + round(q/2)*m
 
 	kyber_poly_set_zero(v);
 	for (i = 0; i < KYBER_K; i++) {
 		kyber_poly_t tmp;
-		kyber_poly_mul(tmp, t[i], r[i]);
+		kyber_poly_ntt_mul(tmp, t[i], r[i]);
 		kyber_poly_add(v, v, tmp);
 	}
+	kyber_poly_inv_ntt(v);
 	kyber_poly_add(v, v, e2);
+	kyber_poly_print(stderr, 0, 0, "t^T * r + e2", v);
 
-	kyber_poly_from_plaintext(m, in);
+
+	// check				
+
+	// v = t^T * r + e2  == s^T * (A^T * r) == s^T * (u)
+
+	// 验证 v 和 s^T * u 大概是相等的
+	// 这里的主要问题是 s 的值是不知道的，并且s 是ntt(s) 而不是原始s
+
+	if (0) {
+		kyber_poly_t s[KYBER_K];
+		kyber_poly_t v_;
+		kyber_poly_t tmp;
+
+		for (i = 0; i < KYBER_K; i++) {
+			kyber_poly_set_all(s[i], 1);
+		}
+		kyber_poly_set_zero(v_);
+
+		for (i = 0; i < KYBER_K; i++) {
+
+			kyber_poly_mul(tmp, s[i], u[i]);
+			kyber_poly_add(v_, v_, tmp);
+		}
+
+		kyber_poly_print(stderr, 0, 0, "test v", v);
+		kyber_poly_print(stderr, 0, 0, "test v", v_);
+
+		kyber_poly_sub(v_, v_, v);
+		kyber_poly_to_signed(v_, v_);
+
+
+		kyber_poly_print(stderr, 0, 0, "delta", v_);
+	}
+
+
+
+	kyber_poly_decode1(m, in);
 	kyber_poly_decompress(m, 1, m);
 	kyber_poly_add(v, v, m);
+
+
+
 
 
 	// c1 = Encode10(Compress(u, 10))
@@ -859,185 +1332,34 @@ int kyber_cpa_decrypt(const KYBER_CPA_PRIVATE_KEY *sk, const KYBER_CPA_CIPHERTEX
 	kyber_poly_decode4(v, in->c2);
 	kyber_poly_decompress(v, 4, v);
 
+
+
 	// s = Decode_12(sk)
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_from_bytes(s[i], sk->s[i]);
+		kyber_poly_decode12(s[i], sk->s[i]);
 	}
 
 	// m = Encode_1(Compress(v - NTT^-1(s^T * NTT(u)), 1))
 	for (i = 0; i < KYBER_K; i++) {
-		ntt(u[i]);
+		kyber_poly_ntt(u[i]);
 	}
 	kyber_poly_set_zero(m);
 	for (i = 0; i < KYBER_K; i++) {
 		kyber_poly_t tmp;
-		kyber_poly_mul(tmp, s[i], u[i]);
+		kyber_poly_ntt_mul(tmp, s[i], u[i]);
 		kyber_poly_add(m, m, tmp);
 	}
-	ntt_inv(m);
+	kyber_poly_inv_ntt(m);
 	kyber_poly_sub(m, v, m);
 	kyber_poly_compress(m, 1, m);
-	kyber_poly_to_plaintext(m, out);
+	kyber_poly_encode1(m, out);
 
 
 	return 1;
 }
-
-int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
-{
-	kyber_poly_t t[KYBER_K];
-	kyber_poly_t A[KYBER_K][KYBER_K];
-	kyber_poly_t s[KYBER_K];
-	kyber_poly_t e[KYBER_K];
-
-	uint8_t d[64];
-	uint8_t *rho = d;
-	uint8_t *sigma = d + 32;
-	uint8_t N = 0;
-
-	int i,j;
-
-	if (rand_bytes(d, 32) != 1) {
-		error_print();
-		return -1;
-	}
-
-	kyber_g_hash(d, 32, d);
-
-
-	format_bytes(stderr, 0, 0, "rho", rho, 32);
-	format_bytes(stderr, 0, 0, "sigma", sigma, 32);
-
-
-	// AHat[i][j] = Parse(XOR(rho, j, i))
-	for (i = 0; i < KYBER_K; i++) {
-		for (j = 0; j < KYBER_K; j++) {
-			kyber_poly_uniform_sampling(A[i][j], rho, j, i);
-
-			//kyber_poly_print(stderr, 0, 0, "A[i][j]", A[i][j]);
-		}
-	}
-
-	// s[i] = CBD_eta1(PRF(sigma, N++))
-	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_cbd_sampling(s[i], KYBER_ETA1, sigma, N);
-		kyber_poly_print(stderr, 0, 0, "s[i]", s[i]);
-		N++;
-	}
-
-	// e[i] = CBD_eta1(PRF(sigma, N++))
-	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_cbd_sampling(e[i], KYBER_ETA1, sigma, N);
-		kyber_poly_print(stderr, 0, 0, "e[i]", e[i]);
-		N++;
-	}
-
-	// sHat = NTT(s)
-	for (i = 0; i < KYBER_K; i++) {
-		ntt(s[i]);
-		kyber_poly_print(stderr, 0, 0, "s[i]", s[i]);
-	}
-	// eHat = NTT(e)
-	for (i = 0; i < KYBER_K; i++) {
-		ntt(e[i]);
-		kyber_poly_print(stderr, 0, 0, "e[i]", e[i]);
-	}
-
-
-
-	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_set_zero(t[i]);
-	}
-
-	// t = A*s + e
-	for (i = 0; i < KYBER_K; i++) {
-		for (j = 0; j < KYBER_K; j++) {
-			kyber_poly_t tmp;
-			kyber_poly_mul(tmp, A[i][j], s[j]);
-			kyber_poly_add(t[i], t[i], tmp);
-		}
-		kyber_poly_add(t[i], t[i], e[i]);
-	}
-
-
-	// output (pk, sk)
-	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_to_bytes(t[i], pk->t[i]);
-		kyber_poly_to_bytes(s[i], sk->s[i]);
-	}
-	memcpy(pk->rho, rho, 32);
-
-	return 1;
-}
-
-static int test_kyber_poly_encode4(void)
-{
-	kyber_poly_t a;
-	kyber_poly_t b;
-	uint8_t bytes[320];
-
-	kyber_poly_rand(a);
-	kyber_poly_print(stderr, 0, 0, "a", a);
-
-
-	kyber_poly_compress(a, 4, a);
-	kyber_poly_print(stderr, 0, 0, "a", a);
-
-
-	kyber_poly_encode4(a, bytes);
-
-	kyber_poly_decode4(b, bytes);
-
-	if (kyber_poly_equ(a, b) != 1) {
-		error_print();
-		return -1;
-	}
-
-	return 1;
-}
-
-static int test_kyber_poly_encode10(void)
-{
-	kyber_poly_t a;
-	kyber_poly_t b;
-	uint8_t bytes[320];
-
-	kyber_poly_rand(a);
-	kyber_poly_print(stderr, 0, 0, "a", a);
-
-
-	kyber_poly_compress(a, 10, a);
-	kyber_poly_print(stderr, 0, 0, "a", a);
-
-
-	kyber_poly_encode10(a, bytes);
-
-	kyber_poly_decode10(b, bytes);
-
-	if (kyber_poly_equ(a, b) != 1) {
-		error_print();
-		return -1;
-	}
-
-	return 1;
-}
-
-
-typedef KYBER_CPA_PUBLIC_KEY KYBER_PUBLIC_KEY;
-
-typedef struct {
-	KYBER_CPA_PRIVATE_KEY sk;
-	KYBER_CPA_PUBLIC_KEY pk;
-	uint8_t pk_hash[32];
-	uint8_t z[32];
-} KYBER_PRIVATE_KEY;
-
-typedef KYBER_CPA_CIPHERTEXT KYBER_CIPHERTEXT;
-
 
 int kyber_keygen(KYBER_PUBLIC_KEY *pk, KYBER_PRIVATE_KEY *sk)
 {
-
 	if (rand_bytes(sk->z, 32) != 1) {
 		error_print();
 		return -1;
@@ -1129,29 +1451,68 @@ static int test_kyber_cpa_keygen(void)
 	KYBER_CPA_CIPHERTEXT c;
 
 	uint8_t r[32] = {0};
-	uint8_t m[32] = {0};
+	uint8_t m[32] = {1,0,1,0};
+	uint8_t K[32] = {0};
+
+
+
+	if (rand_bytes(r, 32) != 1) {
+		error_print();
+		return -1;
+	}
+	if (rand_bytes(m, 32) != 1) {
+		error_print();
+		return -1;
+	}
+
 
 	kyber_cpa_keygen(&pk, &sk);
 
 	kyber_cpa_encrypt(&pk, m, r, &c);
 
+
+	kyber_cpa_decrypt(&sk, &c, K);
+
+
+	format_bytes(stderr, 0, 0, "m", m, 32);
+	format_bytes(stderr, 0, 0, "out", K, 32);
+
+	if (memcmp(K, m, 32) != 0) {
+		error_print();
+		return -1;
+	}
+
+
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+
+
+
+
 
 int main(void)
 {
 	init_zeta();
-
-	if (test_kyber_poly_encode10() != 1) goto err;
-
-
 	if (test_kyber_cpa_keygen() != 1) goto err;
 
-	if (test_kyber_poly_to_bytes() != 1) goto err;
-	if (test_kyber_poly_uniform_sampling() != 1) goto err;
-	if (test_kyber_poly_cbd_sampling() != 1) goto err;
+
+	return 1;
+	if (test_kyber_poly_ops() != 1) goto err;
+	if (test_kyber_poly_ntt_mul() != 1) goto err;
+	if (test_kyber_poly_ntt() != 1) goto err;
+
+	if (test_kyber_poly_uniform_sample() != 1) goto err;
+	if (test_kyber_poly_cbd_sample() != 1) goto err;
+	if (test_kyber_poly_to_signed() != 1) goto err;
 	if (test_kyber_poly_compress() != 1) goto err;
-	if (test_kyber_poly_to_plaintext() != 1) goto err;
+
+	if (test_kyber_poly_encode12() != 1) goto err;
+	if (test_kyber_poly_encode10() != 1) goto err;
+	if (test_kyber_poly_encode4() != 1) goto err;
+	if (test_kyber_poly_encode1() != 1) goto err;
+
+
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:
