@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -24,6 +24,49 @@ static struct {
 	char *prk;
 	char *okm;
 } hkdf_tests[] = {
+	{
+		// test 1
+		"sm3",
+		"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+		"000102030405060708090a0b0c",
+		"f0f1f2f3f4f5f6f7f8f9",
+		42,
+		"E0D6F7B0BD056327B7659F1F39AD850561FBCF4FB10FB58E88EAFA55CF7CD01E",
+		"C69FE91B7AAEE2DD5718D72DCAEE0CCE93F1B8E41F792DA51261B6A517E68B36ED2C595572B01DFA359B",
+	},
+	{
+		// test 2
+		"sm3",
+		"000102030405060708090a0b0c0d0e0f"
+		"101112131415161718191a1b1c1d1e1f"
+		"202122232425262728292a2b2c2d2e2f"
+		"303132333435363738393a3b3c3d3e3f"
+		"404142434445464748494a4b4c4d4e4f",
+		"606162636465666768696a6b6c6d6e6f"
+		"707172737475767778797a7b7c7d7e7f"
+		"808182838485868788898a8b8c8d8e8f"
+		"909192939495969798999a9b9c9d9e9f"
+		"a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+		"b0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+		"c0c1c2c3c4c5c6c7c8c9cacbcccdcecf"
+		"d0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+		"e0e1e2e3e4e5e6e7e8e9eaebecedeeef"
+		"f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+		82,
+		"1A43A7FEDB2D111EB33BABD0D256C272AA3262CDB12E6B43D4321AE8888485D5",
+		"C1226236BBDEFA7921F9FEBE27B864F33E449201B436D8844EA53F58170DD6426DEFBD22ED1F3C5960F35523E62E3B6C0D657F2C61893436F539013199BFAEF25AAFD1E7726EDE927623A9F5CBB8885C7E5D",
+	},
+	{
+		// test 3
+		"sm3",
+		"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+		"",
+		"",
+		42,
+		"004FC37143377D072D74E82FF480E8D7937EC607411BC1EC65DD34401871FF9C",
+		"C8C91A38AE2FB3B023A7C38CE9F0748F28230D59B6B950BA3BA949BF0D713A5774815778801741CB2034",
+	},
+
 #ifdef ENABLE_SHA2 // FIXME: add SM3 test suites, if neither SHA1, SHA2 enabled, build failure
 	{
 		// test 1
@@ -148,7 +191,7 @@ static struct {
 #endif // ENABLE_SHA1
 };
 
-int test_hkdf(void)
+static int test_hkdf(void)
 {
 	int i;
 	const DIGEST *digest;
@@ -210,12 +253,116 @@ int test_hkdf(void)
 		printf("\n");
 
 	}
-	return 0;
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm3_hkdf(void)
+{
+	const struct {
+		char *label;
+		char *ikm;
+		char *salt;
+		char *info;
+		char *prk;
+		int okmlen;
+		char *okm;
+	} tests[] = {
+		{
+		// test1
+		"sm3-hkdf from sha256-hkdf test1",
+		"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+		"000102030405060708090a0b0c",
+		"f0f1f2f3f4f5f6f7f8f9",
+		"E0D6F7B0BD056327B7659F1F39AD850561FBCF4FB10FB58E88EAFA55CF7CD01E",
+		42,
+		"C69FE91B7AAEE2DD5718D72DCAEE0CCE93F1B8E41F792DA51261B6A517E68B36ED2C595572B01DFA359B",
+		},
+		{
+		// test2
+		"sm3-hkdf from sha256-hkdf test2",
+		"000102030405060708090a0b0c0d0e0f"
+		"101112131415161718191a1b1c1d1e1f"
+		"202122232425262728292a2b2c2d2e2f"
+		"303132333435363738393a3b3c3d3e3f"
+		"404142434445464748494a4b4c4d4e4f",
+		"606162636465666768696a6b6c6d6e6f"
+		"707172737475767778797a7b7c7d7e7f"
+		"808182838485868788898a8b8c8d8e8f"
+		"909192939495969798999a9b9c9d9e9f"
+		"a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+		"b0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+		"c0c1c2c3c4c5c6c7c8c9cacbcccdcecf"
+		"d0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+		"e0e1e2e3e4e5e6e7e8e9eaebecedeeef"
+		"f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+		"1A43A7FEDB2D111EB33BABD0D256C272AA3262CDB12E6B43D4321AE8888485D5",
+		82,
+		"C1226236BBDEFA7921F9FEBE27B864F33E449201B436D8844EA53F58170DD6426DEFBD22ED1F3C5960F35523E62E3B6C0D657F2C61893436F539013199BFAEF25AAFD1E7726EDE927623A9F5CBB8885C7E5D",
+		},
+		{
+		// test3
+		"sm3-hkdf from sha256-hkdf test3",
+		"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+		"",
+		"",
+		"004FC37143377D072D74E82FF480E8D7937EC607411BC1EC65DD34401871FF9C",
+		42,
+		"C8C91A38AE2FB3B023A7C38CE9F0748F28230D59B6B950BA3BA949BF0D713A5774815778801741CB2034",
+		},
+	};
+
+	int i;
+	uint8_t ikm[512];
+	uint8_t salt[512];
+	uint8_t info[512];
+	uint8_t prk[512];
+	uint8_t okm[512];
+	size_t ikmlen, saltlen, infolen, prklen, okmlen;
+	uint8_t sm3_prk[32];
+	uint8_t sm3_okm[512];
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+
+		hex_to_bytes(hkdf_tests[i].ikm, strlen(hkdf_tests[i].ikm), ikm, &ikmlen);
+		hex_to_bytes(hkdf_tests[i].salt, strlen(hkdf_tests[i].salt), salt, &saltlen);
+		hex_to_bytes(hkdf_tests[i].info, strlen(hkdf_tests[i].info), info, &infolen);
+		hex_to_bytes(hkdf_tests[i].prk, strlen(hkdf_tests[i].prk), prk, &prklen);
+		hex_to_bytes(hkdf_tests[i].okm, strlen(hkdf_tests[i].okm), okm, &okmlen);
+
+		if (sm3_hkdf_extract(salt, saltlen, ikm, ikmlen, sm3_prk) != 1) {
+			error_print();
+			return -1;
+		}
+		if (memcmp(sm3_prk, prk, prklen) != 0) {
+			error_print();
+			return -1;
+		}
+		if (sm3_hkdf_expand(prk, info, infolen, okmlen, sm3_okm) != 1) {
+			error_print();
+			return -1;
+		}
+		if (memcmp(sm3_okm, okm, okmlen) != 0) {
+			error_print();
+			return -1;
+		}
+
+		printf("\n");
+
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
 }
 
 int main(void)
 {
-	int err = 0;
-	err += test_hkdf();
-	return err;
+	if (test_hkdf() != 1) goto err;
+	if (test_sm3_hkdf() != 1) goto err;
+	printf("%s all tests passed\n", __FILE__);
+	return 0;
+err:
+	error_print();
+	return 1;
 }
