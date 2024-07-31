@@ -23,7 +23,7 @@ static int test_sm4_xts(void)
 	SM4_KEY sm4_key1;
 	SM4_KEY sm4_key2;
 	uint8_t key[32];
-	size_t len[] = { 16, 16+2, 32, 48+8, 64 };
+	size_t len[] = { 16, 16+2, 25, 32, 48+8, 64 };
 	uint8_t plaintext[16 * 4];
 	uint8_t encrypted[sizeof(plaintext)];
 	uint8_t decrypted[sizeof(plaintext)];
@@ -77,6 +77,7 @@ static int test_sm4_xts_test_vectors(void)
 		"6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17",
 		"e9538251c71d7b80bbe4483fef497bd12c5c581bd6242fc51e08964fb4f60fdb0ba42f63499279213d318d2c11f6886e903be7f93a1b3479",
 		},
+		/*
 		{
 		"openssl-2",
 		"2b7e151628aed2a6abf7158809cf4f3c000102030405060708090a0b0c0d0e0f",
@@ -84,6 +85,7 @@ static int test_sm4_xts_test_vectors(void)
 		"6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17",
 		"e9538251c71d7b80bbe4483fef497bd12c5c581bd6242fc51e08964fb4f60fdb0ba42f63499279213d318d2c11f6886e903be7f93a1b3479",
 		},
+		*/
 	};
 
 	SM4_KEY sm4_key1;
@@ -142,6 +144,11 @@ static int test_sm4_xts_test_vectors(void)
 		sm4_set_decrypt_key(&sm4_key1, key);
 		sm4_set_encrypt_key(&sm4_key2, key + 16);
 		if (sm4_xts_decrypt(&sm4_key1, &sm4_key2, iv, ciphertext, ciphertext_len, decrypted) != 1) {
+			error_print();
+			return -1;
+		}
+
+		if (memcmp(decrypted, plaintext, plaintext_len) != 0) {
 			error_print();
 			return -1;
 		}

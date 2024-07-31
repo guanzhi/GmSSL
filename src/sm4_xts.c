@@ -51,9 +51,9 @@ int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 		gmssl_memxor(out, block, T, 16);
 
 	} else {
-		gmssl_memxor(block, in, T, 16);
-		sm4_encrypt(key1, block, block);
-		gmssl_memxor(block, block, T, 16);
+		gmssl_memxor(out, in, T, 16);
+		sm4_encrypt(key1, out, out);
+		gmssl_memxor(out, out, T, 16);
 
 		gf128_from_bytes(a, T);
 		gf128_mul_by_2(a, a);
@@ -62,12 +62,14 @@ int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 		in += 16;
 		inlen -= 16;
 
-		memcpy(out + 16, block, inlen);
-		memcpy(block, in, inlen);
+		memcpy(block, out, inlen); // backup last part of ciphertext
 
-		gmssl_memxor(block, block, T, 16);
-		sm4_encrypt(key1, block, block);
-		gmssl_memxor(out, block, T, 16);
+		memcpy(out, in, inlen);
+		gmssl_memxor(out, out, T, 16);
+		sm4_encrypt(key1, out, out);
+		gmssl_memxor(out, out, T, 16);
+
+		memcpy(out + 16, block, inlen);
 	}
 
 	return 1;
@@ -116,19 +118,21 @@ int sm4_xts_decrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 		gf128_mul_by_2(a, a);
 		gf128_to_bytes(a, T1);
 
-		gmssl_memxor(block, in, T1, 16);
-		sm4_encrypt(key1, block, block);
-		gmssl_memxor(block, block, T1, 16);
+		gmssl_memxor(out, in, T1, 16);
+		sm4_encrypt(key1, out, out);
+		gmssl_memxor(out, out, T1, 16);
 
 		in += 16;
 		inlen -= 16;
 
-		memcpy(out + 16, block, inlen);
-		memcpy(block, in, inlen);
+		memcpy(block, out, inlen); // backup last part of plaintext
 
-		gmssl_memxor(block, block, T, 16);
-		sm4_encrypt(key1, block, block);
-		gmssl_memxor(out, block, T, 16);
+		memcpy(out, in, inlen);
+		gmssl_memxor(out, out, T, 16);
+		sm4_encrypt(key1, out, out);
+		gmssl_memxor(out, out, T, 16);
+
+		memcpy(out + 16, block, inlen);
 	}
 
 	return 1;
@@ -258,6 +262,7 @@ int sm4_xts_decrypt_update(SM4_XTS_CTX *ctx,
 	}
 	*outlen = 0;
 	if (ctx->block_nbytes) {
+		error_print();
 		left = DATA_UNIT_SIZE - ctx->block_nbytes;
 		if (inlen < left) {
 			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
