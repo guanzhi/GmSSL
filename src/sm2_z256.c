@@ -811,7 +811,7 @@ const uint64_t SM2_Z256_NEG_N[4] = {
 	0xac440bf6c62abedd, 0x8dfc2094de39fad4, 0x0000000000000000, 0x0000000100000000,
 };
 
-#if !defined(ENABLE_SM2_ARM64)
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_LOONGARCH64)
 void sm2_z256_modn_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
@@ -867,7 +867,7 @@ const uint64_t *sm2_z256_order_minus_one(void) {
 const uint64_t *SM2_Z256_MODN_MONT_ONE = SM2_Z256_NEG_N;
 
 
-#if !defined(ENABLE_SM2_ARM64) 
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_LOONGARCH64)
 void sm2_z256_modn_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	sm2_z512_t z;
@@ -916,7 +916,7 @@ void sm2_z256_modn_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 	sm2_z256_modn_from_mont(r, r);
 }
 
-#if !defined(ENABLE_SM2_ARM64)
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_LOONGARCH64)
 void sm2_z256_modn_mont_sqr(sm2_z256_t r, const sm2_z256_t a)
 {
 	sm2_z256_modn_mont_mul(r, a, a);
@@ -1019,7 +1019,7 @@ void sm2_z256_modn_inv(sm2_z256_t r, const sm2_z256_t a)
 }
 
 
-#if !defined(ENABLE_SM2_ARM64)
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_LOONGARCH64)
 
 // mont(mont(a), 1) = aR * 1 * R^-1 (mod n) = a (mod p)
 void sm2_z256_modn_from_mont(sm2_z256_t r, const sm2_z256_t a)
