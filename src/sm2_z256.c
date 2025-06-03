@@ -399,7 +399,7 @@ const uint64_t SM2_Z256_NEG_P[4] = {
 	1, ((uint64_t)1 << 32) - 1, 0, ((uint64_t)1 << 32),
 };
 
-#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64) && !defined(ENABLE_SM2_LOONGARCH64)
 void sm2_z256_modp_add(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b)
 {
 	uint64_t c;
@@ -480,7 +480,7 @@ const uint64_t SM2_Z256_P_PRIME[4] = {
 // mont(1) (mod p) = 2^256 mod p = 2^256 - p
 const uint64_t *SM2_Z256_MODP_MONT_ONE = SM2_Z256_NEG_P;
 
-#if defined(ENABLE_SM2_ARM64) || defined(ENABLE_SM2_AMD64)
+#if defined(ENABLE_SM2_ARM64) || defined(ENABLE_SM2_AMD64) || defined(ENABLE_SM2_LOONGARCH64)
 	// src/sm2_z256_armv8.S
 #elif defined(ENABLE_SM2_Z256_NEON)
 #include <arm_neon.h>
