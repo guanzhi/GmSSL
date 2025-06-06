@@ -1148,7 +1148,7 @@ int sm2_z256_point_get_xy(const SM2_Z256_POINT *P, uint64_t x[4], uint64_t y[4])
 	return 1;
 }
 
-#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64) && !defined(ENABLE_SM2_LOONGARCH64)
 void sm2_z256_point_dbl(SM2_Z256_POINT *R, const SM2_Z256_POINT *A)
 {
 	const uint64_t *X1 = A->X;
@@ -1474,7 +1474,7 @@ void sm2_z256_point_copy_affine(SM2_Z256_POINT *R, const SM2_Z256_AFFINE_POINT *
 	sm2_z256_copy(R->Z, SM2_Z256_MODP_MONT_ONE);
 }
 
-#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64)
+#if !defined(ENABLE_SM2_ARM64) && !defined(ENABLE_SM2_AMD64) && !defined(ENABLE_SM2_LOONGARCH64)
 void sm2_z256_point_add_affine(SM2_Z256_POINT *r, const SM2_Z256_POINT *a, const SM2_Z256_AFFINE_POINT *b)
 {
 	sm2_z256_t U2, S2;

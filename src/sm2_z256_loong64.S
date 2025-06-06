@@ -1237,6 +1237,1155 @@ func(sm2_z256_modp_haf):
 
 	jr	$ra
 
+.globl	func(sm2_z256_point_dbl)
+
+.align	5
+func(sm2_z256_point_dbl):
+	addi.d	$sp, $sp, -208
+	li.d	$a3, -1
+	st.d	$ra, $sp, 200
+	st.d	$s0, $sp, 192
+
+	srli.d	$t8, $a3, 32
+	st.d	$s1, $sp, 184
+	st.d	$s2, $sp, 176
+	st.d	$s3, $sp, 168
+
+	addi.d	$a3, $t8, 1
+	st.d	$s4, $sp, 160
+	move	$s4, $a1
+	st.d	$s5, $sp, 152
+
+	st.d	$s6, $sp, 144
+	st.d	$s7, $sp, 136
+	st.d	$s8, $sp, 128
+.Ldbl_sct:
+	ld.d	$a4, $s4, 32
+
+	ld.d	$a5, $s4, 40
+	ld.d	$a6, $s4, 48
+	ld.d	$a7, $s4, 56
+	ld.d	$t0, $s4, 64
+
+	ld.d	$t1, $s4, 72
+	ld.d	$t2, $s4, 80
+	ld.d	$t3, $s4, 88
+
+	// Y1=(a4, a5, a6, a7)
+
+	// Z1 = (s5,s6,s7,s8)
+	move	$s5, $t0
+	move	$s6, $t1
+
+	move	$s7, $t2
+	move	$s8, $t3
+
+	//4. Z3 = (t0,t1,t2,t3) = Z1*Y1
+	bl	__sm2_z256_modp_mont_mul
+
+	//5. Z3 = (t0,t1,t2,t3) = 2*Z1*Y1
+	bl	__sm2_z256_modp_dbl
+
+	//save Z3
+	st.d	$t0, $a0, 64
+	st.d	$t1, $a0, 72
+	//move Y1
+	move	$t0, $a4
+	move	$t1, $a5
+
+	st.d	$t2, $a0, 80
+	st.d	$t3, $a0, 88
+	move	$t2, $a6
+	move	$t3, $a7
+
+	//move Z1
+	move	$a4, $s5
+	move	$a5, $s6
+	move	$a6, $s7
+	move	$a7, $s8
+
+	//1. S = (t0,t1,t2,t3) = Y1*2
+	bl	__sm2_z256_modp_dbl
+
+	//3. S = (t0,t1,t2,t3) = S^2 = 4Y1^2
+	bl	__sm2_z256_modp_mont_sqr
+	//save S
+	st.d	$t0, $sp, 0
+	st.d	$t1, $sp, 8
+	st.d	$t2, $sp, 16
+	st.d	$t3, $sp, 24
+
+	//8. S = (t0,t1,t2,t3) = S^2 = 16Y1^4
+	bl	__sm2_z256_modp_mont_sqr
+
+	//9. S = (t0,t1,t2,t3) = 8Y1^4
+	bl	__sm2_z256_modp_haf
+	//save Y3, done
+	st.d	$t0, $a0, 32
+	st.d	$t1, $a0, 40
+	st.d	$t2, $a0, 48
+	st.d	$t3, $a0, 56
+
+	//reload Z1
+	move	$t0, $s5
+	move	$t1, $s6
+	move	$t2, $s7
+	move	$t3, $s8
+
+	//2. Zsqr = (t0,t1,t2,t3) = Z1^2
+	bl	__sm2_z256_modp_mont_sqr
+
+	move	$s5, $t0
+	ld.d	$a4, $s4, 0
+	move	$s6, $t1
+	ld.d	$a5, $s4, 8
+
+	move	$s7, $t2
+	ld.d	$a6, $s4, 16
+	move	$s8, $t3
+	ld.d	$a7, $s4, 24
+
+	// X1 = (a4,a5,a6,a7)
+	//6. M = (t0,t1,t2,t3) = X1+Zsqr
+	bl	__sm2_z256_modp_add
+
+	//save M
+	st.d	$t0, $sp, 32
+	//reload Zsqr
+	move	$t0, $s5
+	st.d	$t1, $sp, 40
+	move	$t1, $s6
+
+	st.d	$t2, $sp, 48
+	move	$t2, $s7
+	st.d	$t3, $sp, 56
+	move	$t3, $s8
+
+	//7. Zsqr = (t0,t1,t2,t3)= X1-Zsqr
+
+	bl	__sm2_z256_modp_neg_sub
+
+	//save Zsqr
+	st.d	$t0, $sp, 64
+	st.d	$t1, $sp, 72
+	//reload S
+	ld.d	$t0, $sp, 0
+	ld.d	$t1, $sp, 8
+
+	st.d	$t2, $sp, 80
+	st.d	$t3, $sp, 88
+	ld.d	$t2, $sp, 16
+	ld.d	$t3, $sp, 24
+
+	//12. S = S*X1 = 4*X1*Y1^2
+	bl	__sm2_z256_modp_mont_mul
+	//save S
+	st.d	$t0, $sp, 0
+	st.d	$t1, $sp, 8
+	st.d	$t2, $sp, 16
+	st.d	$t3, $sp, 24
+
+
+	//13. tmp0 = 2*S = 8*X1*Y1^2
+	bl	__sm2_z256_modp_dbl
+	//save tmp0
+	st.d	$t0, $sp, 96
+	st.d	$t1, $sp, 104
+	//load M
+	ld.d	$a4, $sp, 32
+	ld.d	$a5, $sp, 40
+	st.d	$t2, $sp, 112
+	st.d	$t3, $sp, 120
+	ld.d	$a6, $sp, 48
+	ld.d	$a7, $sp, 56
+	//load Zsqr
+	ld.d	$t0, $sp, 64
+	ld.d	$t1, $sp, 72
+	ld.d	$t2, $sp, 80
+	ld.d	$t3, $sp, 88
+
+	//10. M = (t0,t1,t2,t3) = M*Zsqr = X1^2-Z1^4
+	bl	__sm2_z256_modp_mont_mul
+
+	move	$a4, $t0
+	move	$a5, $t1
+	move	$a6, $t2
+	move	$a7, $t3
+
+
+	bl	__sm2_z256_modp_dbl
+	//11. M = (t0,t1,t2,t3) = 3*(X1^2-Z1^4)
+	bl	__sm2_z256_modp_add
+	st.d	$t0, $sp, 32
+	st.d	$t1, $sp, 40
+	st.d	$t2, $sp, 48
+	st.d	$t3, $sp, 56
+
+	//14. X3 = M^2 = (3*(X1^2-Z1^4))^2
+	bl	__sm2_z256_modp_mont_sqr
+	//load tmp0
+	ld.d	$a4, $sp, 96
+	ld.d	$a5, $sp, 104
+	ld.d	$a6, $sp, 112
+	ld.d	$a7, $sp, 120
+
+	//15. X3 = X3-tmp0 = (3*(X1^2-Z1^4))^2 - 8*X1*Y1^2
+	bl	__sm2_z256_modp_sub
+
+	st.d	$t0, $a0, 0
+	st.d	$t1, $a0, 8
+	st.d	$t2, $a0, 16
+	st.d	$t3, $a0, 24
+
+	//reload S
+	ld.d	$a4, $sp, 0
+	ld.d	$a5, $sp, 8
+	ld.d	$a6, $sp, 16
+	ld.d	$a7, $sp, 24
+
+	//16. S = S - X3 = 4*X1*Y1^2 - X3
+	bl	__sm2_z256_modp_neg_sub
+
+	//reload M
+	ld.d	$a4, $sp, 32
+	ld.d	$a5, $sp, 40
+	ld.d	$a6, $sp, 48
+	ld.d	$a7, $sp, 56
+
+	//17. S = S * M = 3* (*X1^2 - Z^4)*(4*X1*Y1^2 - X3)
+	bl	__sm2_z256_modp_mont_mul
+
+	ld.d	$a4, $a0, 32
+	ld.d	$a5, $a0, 40
+	ld.d	$a6, $a0, 48
+	ld.d	$a7, $a0, 56
+
+	bl	__sm2_z256_modp_sub
+
+	st.d	$t0, $a0, 32
+	st.d	$t1, $a0, 40
+	st.d	$t2, $a0, 48
+	st.d	$t3, $a0, 56
+
+
+	ld.d	$ra, $sp, 200
+	ld.d	$s0, $sp, 192
+	ld.d	$s1, $sp, 184
+	ld.d	$s2, $sp, 176
+
+	ld.d	$s3, $sp, 168
+	ld.d	$s4, $sp, 160
+	ld.d	$s5, $sp, 152
+
+	ld.d	$s6, $sp, 144
+	ld.d	$s7, $sp, 136
+	ld.d	$s8, $sp, 128
+
+	addi.d	$sp, $sp, 208
+	jr	$ra
+
+.globl	func(sm2_z256_point_add_affine)
+.align	5
+
+func(sm2_z256_point_add_affine):
+	addi.d	$sp, $sp, -272
+
+	//in1_z
+	ld.d	$t0, $a1, 64
+	ld.d	$t1, $a1, 72
+	ld.d	$t2, $a1, 80
+	ld.d	$t3, $a1, 88
+
+	st.d	$ra, $sp, 0
+	st.d	$s0, $sp, 8
+	st.d	$s1, $sp, 16
+	st.d	$s2, $sp, 24
+	st.d	$s3, $sp, 32
+	st.d	$s4, $sp, 40
+	st.d	$s5, $sp, 48
+	st.d	$s6, $sp, 56
+	st.d	$s7, $sp, 64
+	st.d	$s8, $sp, 72
+	st.d	$fp, $sp, 80
+
+	li.d	$a3, -1
+	move	$s8, $a1
+	move	$fp, $a2
+	or	$s0, $t0, $t1
+
+	or	$s1, $t2, $t3
+	srli.d	$t8, $a3, 32
+	move	$s4, $t0
+	move	$s5, $t1
+
+	or		$a1, $s0, $s1  // zero or not, used in maskeqz and masknez.
+	move	$s6, $t2
+	move	$s7, $t3
+	addi.d	$a3, $t8, 1
+
+	st.d	$a1, $sp, 256
+	bl	__sm2_z256_modp_mont_sqr  // p256_sqr_mont(Z1sqr, in1_z);
+	move	$a4, $t0
+	move	$a5, $t1
+	move	$a6, $t2
+	move	$a7, $t3
+
+	# in1_z
+	move	$t0, $s4
+	move	$t1, $s5
+	move	$t2, $s6
+	move	$t3, $s7
+
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(S2, Z1sqr, in1_z);
+
+	ld.d	$t4, $fp, 32
+	ld.d	$t5, $fp, 40
+	ld.d	$t6, $fp, 48
+	ld.d	$t7, $fp, 56
+
+	// store S2 and load in2_x
+	st.d	$t0, $sp, 96
+	ld.d	$t0, $fp, 0
+	st.d	$t1, $sp, 104
+	ld.d	$t1, $fp, 8
+
+	st.d	$t2, $sp, 112
+	ld.d	$t2, $fp, 16
+	st.d	$t3, $sp, 120
+	ld.d	$t3, $fp, 24
+
+	or	$t4, $t4, $t5
+	or	$t5, $t6, $t7
+	or	$s0, $t0, $t1
+	or	$s1, $t2, $t3
+
+	or 	$t4, $t4, $t5
+	or	$t5, $s0, $s1
+	or	$a2, $t4, $t5
+	st.d	$a2, $sp, 264
+
+	bl	__sm2_z256_modp_mont_mul // p256_mul_mont(U2, Z1sqr, in2_x);
+
+	// in1_x
+	ld.d	$a4, $s8, 0
+	ld.d	$a5, $s8, 8
+	ld.d	$a6, $s8, 16
+	ld.d	$a7, $s8, 24
+
+	bl	__sm2_z256_modp_sub // p256_sub(H, U2, in1_x);
+
+	// in1_z
+	move	$a4, $s4
+	move	$a5, $s5
+	move	$a6, $s6
+	move	$a7, $s7
+
+	move	$s4, $t0
+	move	$s5, $t1
+	move	$s6, $t2
+	move	$s7, $t3
+
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(res_z, H, in1_z);
+
+	ld.d	$a1, $sp, 256
+	ld.d	$a2, $sp, 264
+	li.d	$t4, 1
+
+	// store res_z
+	st.d	$t0, $sp, 128
+	st.d	$t1, $sp, 136
+	st.d	$t2, $sp, 144
+	st.d	$t3, $sp, 152
+
+	// SM2_Z256_MODP_MONT_ONE {0x1, 0xffffffff, 0x0, 0x100000000}
+	maskeqz	$t0, $t0, $a1
+	masknez	$t4, $t4, $a1
+	maskeqz	$t1, $t1, $a1
+	masknez	$t5, $t8, $a1
+
+	maskeqz	$t2, $t2, $a1
+	maskeqz	$t3, $t3, $a1
+	masknez	$t7, $a3, $a1
+
+	or	$t0, $t0, $t4
+	or	$t1, $t1, $t5
+	or	$t3, $t3, $t7
+
+	maskeqz	$t0, $t0, $a2
+	masknez	$t4, $a4, $a2
+	maskeqz	$t1, $t1, $a2
+	masknez	$t5, $a5, $a2
+
+	maskeqz	$t2, $t2, $a2
+	masknez	$t6, $a6, $a2
+	maskeqz	$t3, $t3, $a2
+	masknez	$t7, $a7, $a2
+
+	or	$t0, $t0, $t4
+	or	$t1, $t1, $t5
+	or	$t2, $t2, $t6
+	or	$t3, $t3, $t7
+
+	// store r->Z
+	st.d	$t0, $a0, 64
+	st.d	$t1, $a0, 72
+	st.d	$t2, $a0, 80
+	st.d	$t3, $a0, 88
+
+	// H
+	move	$t0, $s4
+	move	$t1, $s5
+	move	$t2, $s6
+	move	$t3, $s7
+
+	bl	__sm2_z256_modp_mont_sqr  // p256_sqr_mont(Hsqr, H);
+
+	// Hsqr
+	move	$a4, $t0
+	move	$a5, $t1
+	move	$a6, $t2
+	move	$a7, $t3
+
+	// H
+	move	$t0, $s4
+	move	$t1, $s5
+	move	$t2, $s6
+	move	$t3, $s7
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(Hcub, Hsqr, H);
+
+	//store Hcub and load in1_x
+	st.d	$t0, $sp, 160
+	st.d	$t1, $sp, 168
+	ld.d	$t0, $s8, 0
+	ld.d	$t1, $s8, 8
+
+	st.d	$t2, $sp, 176
+	st.d	$t3, $sp, 184
+	ld.d	$t2, $s8, 16
+	ld.d	$t3, $s8, 24
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(U2, in1_x, Hsqr);
+
+	// store U2
+	st.d	$t0, $sp, 192
+	st.d	$t1, $sp, 200
+	move	$a4, $t0
+	move	$a5, $t1
+
+	st.d	$t2, $sp, 208
+	st.d	$t3, $sp, 216
+	move	$a6, $t2
+	move	$a7, $t3
+
+	bl	__sm2_z256_modp_add	// p256_mul_by_2(Hsqr, U2);
+
+	// store Hsqr and load S2
+	move	$s4, $t0
+	move	$s5, $t1
+	ld.d	$t0, $sp, 96
+	ld.d	$t1, $sp, 104
+
+	move	$s6, $t2
+	move	$s7, $t3
+	ld.d	$t2, $sp, 112
+	ld.d	$t3, $sp, 120
+
+	// in2_y
+	ld.d	$a4, $fp, 32
+	ld.d	$a5, $fp, 40
+	ld.d	$a6, $fp, 48
+	ld.d	$a7, $fp, 56
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(S2, S2, in2_y);
+
+	// in1_y
+	ld.d	$a4, $s8, 32
+	ld.d	$a5, $s8, 40
+	ld.d	$a6, $s8, 48
+	ld.d	$a7, $s8, 56
+	bl	__sm2_z256_modp_sub	// p256_sub(R, S2, in1_y);
+
+	//store R
+	st.d	$t0, $sp, 224
+	st.d	$t1, $sp, 232
+	st.d	$t2, $sp, 240
+	st.d	$t3, $sp, 248
+
+	bl	__sm2_z256_modp_mont_sqr  // p256_sqr_mont(Rsqr, R);
+
+	// Rsrq
+	move	$a4, $t0
+	move	$a5, $t1
+	move	$a6, $t2
+	move	$a7, $t3
+
+	// Hsqr
+	move	$t0, $s4
+	move	$t1, $s5
+	move	$t2, $s6
+	move	$t3, $s7
+
+	bl	__sm2_z256_modp_neg_sub	// p256_sub(res_x, Rsqr, Hsqr);
+
+	// Hcub
+	ld.d	$a4, $sp, 160
+	ld.d	$a5, $sp, 168
+	ld.d	$a6, $sp, 176
+	ld.d	$a7, $sp, 184
+	bl	__sm2_z256_modp_sub	//  p256_sub(res_x, res_x, Hcub);
+	// Store res_x
+	move	$s4, $t0
+	move	$s5, $t1
+	move	$s6, $t2
+	move	$s7, $t3
+
+	// in1_y
+	ld.d	$t0, $s8, 32
+	ld.d	$t1, $s8, 40
+	ld.d	$t2, $s8, 48
+	ld.d	$t3, $s8, 56
+
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(S2, in1_y, Hcub);
+	// load U2
+	ld.d	$a4, $sp, 192
+	ld.d	$a5, $sp, 200
+	ld.d	$a6, $sp, 208
+	ld.d	$a7, $sp, 216
+
+	// Store S2 and get res_x
+	st.d	$t0, $sp, 96
+	st.d	$t1, $sp, 104
+	move 	$t0, $s4
+	move	$t1, $s5
+
+	st.d	$t2, $sp, 112
+	st.d	$t3, $sp, 120
+	move	$t2, $s6
+	move	$t3, $s7
+
+	bl	__sm2_z256_modp_neg_sub	// p256_sub(res_y, U2, res_x);
+
+	// R
+	ld.d	$a4, $sp, 224
+	ld.d	$a5, $sp, 232
+	ld.d	$a6, $sp, 240
+	ld.d	$a7, $sp, 248
+	bl	__sm2_z256_modp_mont_mul  // p256_mul_mont(res_y, res_y, R);
+
+	// S2
+	ld.d	$a4, $sp, 96
+	ld.d	$a5, $sp, 104
+	ld.d	$a6, $sp, 112
+	ld.d	$a7, $sp, 120
+
+	bl	__sm2_z256_modp_sub	// p256_sub(res_y, res_y, S2);
+	// directly use res_y stored t0-t3
+
+	ld.d	$a1, $sp, 256
+	ld.d	$a2, $sp, 264
+
+	// in2
+	ld.d	$a4, $fp, 0
+	ld.d	$a5, $fp, 8
+	ld.d	$a6, $fp, 16
+	ld.d	$a7, $fp, 24
+
+	// in1
+	ld.d	$t4, $s8, 0
+	ld.d	$t5, $s8, 8
+	ld.d	$t6, $s8, 16
+	ld.d	$t7, $s8, 24
+
+	// res_x is stored in s4-s7
+	maskeqz	$s0, $s4, $a1
+	masknez	$a4, $a4, $a1
+	maskeqz	$s1, $s5, $a1
+	masknez	$a5, $a5, $a1
+
+	maskeqz	$s2, $s6, $a1
+	masknez	$a6, $a6, $a1
+	maskeqz	$s3, $s7, $a1
+	masknez	$a7, $a7, $a1
+
+	or	$s0, $s0, $a4
+	or	$s1, $s1, $a5
+	or	$s2, $s2, $a6
+	or	$s3, $s3, $a7
+
+	// in2
+	ld.d	$a4, $fp, 32
+	ld.d	$a5, $fp, 40
+	ld.d	$a6, $fp, 48
+	ld.d	$a7, $fp, 56
+
+	maskeqz	$s0, $s0, $a2
+	masknez	$t4, $t4, $a2
+	maskeqz	$s1, $s1, $a2
+	masknez	$t5, $t5, $a2
+
+	maskeqz	$s2, $s2, $a2
+	masknez	$t6, $t6, $a2
+	maskeqz	$s3, $s3, $a2
+	masknez	$t7, $t7, $a2
+
+	or	$s0, $s0, $t4
+	or	$s1, $s1, $t5
+	or	$s2, $s2, $t6
+	or	$s3, $s3, $t7
+
+	// in1
+	ld.d	$t4, $s8, 32
+	ld.d	$t5, $s8, 40
+	ld.d	$t6, $s8, 48
+	ld.d	$t7, $s8, 56
+
+	st.d	$s0, $a0, 0
+	st.d	$s1, $a0, 8
+	st.d	$s2, $a0, 16
+	st.d	$s3, $a0, 24
+
+	maskeqz	$t0, $t0, $a1
+	masknez	$a4, $a4, $a1
+	maskeqz	$t1, $t1, $a1
+	masknez	$a5, $a5, $a1
+
+	maskeqz	$t2, $t2, $a1
+	masknez	$a6, $a6, $a1
+	maskeqz	$t3, $t3, $a1
+	masknez	$a7, $a7, $a1
+
+	or	$t0, $t0, $a4
+	or	$t1, $t1, $a5
+	or	$t2, $t2, $a6
+	or	$t3, $t3, $a7
+
+	maskeqz	$t0, $t0, $a2
+	masknez	$t4, $t4, $a2
+	maskeqz	$t1, $t1, $a2
+	masknez	$t5, $t5, $a2
+
+	maskeqz	$t2, $t2, $a2
+	masknez	$t6, $t6, $a2
+	maskeqz	$t3, $t3, $a2
+	masknez	$t7, $t7, $a2
+
+	or	$t0, $t0, $t4
+	or	$t1, $t1, $t5
+	or	$t2, $t2, $t6
+	or	$t3, $t3, $t7
+
+	st.d	$t0, $a0, 32
+	st.d	$t1, $a0, 40
+	st.d	$t2, $a0, 48
+	st.d	$t3, $a0, 56
+
+	ld.d	$ra, $sp, 0
+	ld.d	$s0, $sp, 8
+	ld.d	$s1, $sp, 16
+	ld.d	$s2, $sp, 24
+	ld.d	$s3, $sp, 32
+	ld.d	$s4, $sp, 40
+	ld.d	$s5, $sp, 48
+	ld.d	$s6, $sp, 56
+	ld.d	$s7, $sp, 64
+	ld.d	$s8, $sp, 72
+	ld.d	$fp, $sp, 80
+	addi.d	$sp, $sp, 272
+
+	jr	$ra
+
+.globl	func(sm2_z256_point_add)
+.align	5
+
+func(sm2_z256_point_add):
+	addi.d	$sp, $sp, -464
+	li.d	$a3, -1
+	ld.d	$t0, $a2, 64
+	ld.d	$t1, $a2, 72
+
+	ld.d	$t2, $a2, 80
+	ld.d	$t3, $a2, 88
+	srli.d	$t8, $a3, 32
+	st.d	$ra, $sp, 456
+
+	st.d	$s0, $sp, 448
+	st.d	$s1, $sp, 440
+	st.d	$s2, $sp, 432
+	addi.d	$a3, $t8, 1
+
+	st.d	$s3, $sp, 424
+	st.d	$s4, $sp, 416
+	st.d	$s5, $sp, 408
+	st.d	$s6, $sp, 400
+
+	move	$s4, $a1
+	move	$s5, $a2
+	or	$t4, $t0, $t1
+	or	$t5, $t2, $t3
+
+	or	$s6, $t4, $t5			//in2infty
+	st.d	$s7, $sp, 392
+	st.d	$s8, $sp, 384
+	bl	__sm2_z256_modp_mont_sqr	// p256_sqr_mont(Z2sqr, in2_z);
+
+	// save Z2sqr
+	st.d	$t0, $sp, 192
+	st.d	$t1, $sp, 200
+	st.d	$t2, $sp, 208
+	st.d	$t3, $sp, 216
+
+	//reload in2_z
+	ld.d	$a4, $s5, 64
+	ld.d	$a5, $s5, 72
+	ld.d	$a6, $s5, 80
+	ld.d	$a7, $s5, 88
+
+	bl	__sm2_z256_modp_mont_mul	// p256_mul_mont(S1, Z2sqr, in2_z)
+
+	//load in1_y
+	ld.d	$a4, $s4, 32
+	ld.d	$a5, $s4, 40
+	ld.d	$a6, $s4, 48
+	ld.d	$a7, $s4, 56
+
+	bl	__sm2_z256_modp_mont_mul	// p256_mul_mont(S1, $S1, in1_y)
+
+	//save S1
+	st.d	$t0, $sp, 320
+	st.d	$t1, $sp, 328
+	st.d	$t2, $sp, 336
+	st.d	$t3, $sp, 344
+
+
+	ld.d	$t0, $s4, 64
+	ld.d	$t1, $s4, 72
+	ld.d	$t2, $s4, 80
+	ld.d	$t3, $s4, 88
+
+	or	$t4, $t0, $t1
+	or	$t5, $t2, $t3
+	or	$s7, $t4, $t5			//in1infty
+	bl	__sm2_z256_modp_mont_sqr	// p256_sqr_mont(Z1sqr, in1_z);
+
+	// save Z1sqr
+	st.d	$t0, $sp, 128
+	st.d	$t1, $sp, 136
+	st.d	$t2, $sp, 144
+	st.d	$t3, $sp, 152
+
+	//reload in1_z
+	ld.d	$a4, $s4, 64
+	ld.d	$a5, $s4, 72
+	ld.d	$a6, $s4, 80
+	ld.d	$a7, $s4, 88
+
+	bl	__sm2_z256_modp_mont_mul	// p256_mul_mont(S2, Z1sqr, in1_z)
+
+	//load in2_y
+	ld.d	$a4, $s5, 32
+	ld.d	$a5, $s5, 40
+	ld.d	$a6, $s5, 48
+	ld.d	$a7, $s5, 56
+
+	bl	__sm2_z256_modp_mont_mul	// p256_mul_mont(S2, S2, in2_y)
+
+	//save S2
+	st.d	$t0, $sp, 352
+	st.d	$t1, $sp, 360
+	st.d	$t2, $sp, 368
+	st.d	$t3, $sp, 376
+
+	//reload S1
+	ld.d	$a4, $sp, 320
+	ld.d	$a5, $sp, 328
+	ld.d	$a6, $sp, 336
+	ld.d	$a7, $sp, 344
+
+	bl	__sm2_z256_modp_sub		//p256_sub(R, S2, S1)
+
+	//save R
+	st.d	$t0, $sp, 160
+	st.d	$t1, $sp, 168
+	st.d	$t2, $sp, 176
+	st.d	$t3, $sp, 184
+
+	or	$t4, $t0, $t1
+	or	$t5, $t2, $t3
+	or	$s8, $t4, $t5
+
+	ld.d	$t0, $s4, 0
+	ld.d	$t1, $s4, 8
+	ld.d	$t2, $s4, 16
+	ld.d	$t3, $s4, 24
+
+	ld.d	$a4, $sp, 192
+	ld.d	$a5, $sp, 200
+	ld.d	$a6, $sp, 208
+	ld.d	$a7, $sp, 216
+
+	bl	__sm2_z256_modp_mont_mul		//p256_mul_mont(U1, in1_x, Z2sqr)
+
+	//save U1
+	st.d	$t0, $sp, 256
+	st.d	$t1, $sp, 264
+	st.d	$t2, $sp, 272
+	st.d	$t3, $sp, 280
+
+	ld.d	$t0, $s5, 0
+	ld.d	$t1, $s5, 8
+	ld.d	$t2, $s5, 16
+	ld.d	$t3, $s5, 24
+
+	ld.d	$a4, $sp, 128
+	ld.d	$a5, $sp, 136
+	ld.d	$a6, $sp, 144
+	ld.d	$a7, $sp, 152
+
+	bl	__sm2_z256_modp_mont_mul		//p256_mul_mont(U2, in2_x, Z1sqr)
+
+	//save U2
+	st.d	$t0, $sp, 288
+	st.d	$t1, $sp, 296
+	st.d	$t2, $sp, 304
+	st.d	$t3, $sp, 312
+
+	//reload U1
+	ld.d	$a4, $sp, 256
+	ld.d	$a5, $sp, 264
+	ld.d	$a6, $sp, 272
+	ld.d	$a7, $sp, 280
+
+	bl	__sm2_z256_modp_sub			//p256_sub(H, U2, U1)
+
+	//save H
+	st.d	$t0, $sp, 96
+	st.d	$t1, $sp, 104
+	or	$t4, $t0, $t1
+	or	$t5, $t2, $t3
+
+	st.d	$t2, $sp, 112
+	st.d	$t3, $sp, 120
+	or	$t6, $s6, $s7
+	or	$t4, $t4, $t5
+
+	or	$t6, $t6, $s8
+	or	$t4, $t4, $t6
+	bne	$t6, $zero, .Lpadd
+.Lpadd_dbl:
+	addi.d	$sp, $sp, 248
+	b	.Ldbl_sct
+
+.Lpadd:
+	bl	__sm2_z256_modp_mont_sqr		//p256_sqr_mont(Hsqr, H)
+	//save Hsqr
+	st.d	$t0, $sp, 128
+	st.d	$t1, $sp, 136
+	st.d	$t2, $sp, 144
+	st.d	$t3, $sp, 152
+
+	//reload R
+	ld.d	$t0, $sp, 160
+	ld.d	$t1, $sp, 168
+	ld.d	$t2, $sp, 176
+	ld.d	$t3, $sp, 184
+
+	bl	__sm2_z256_modp_mont_sqr		//p256_sqr_mont(Rsqr, R)
+
+	//store Rsqr
+	st.d	$t0, $sp, 192
+	st.d	$t1, $sp, 200
+	st.d	$t2, $sp, 208
+	st.d	$t3, $sp, 216
+
+	//reload H
+	ld.d	$a4, $sp, 96
+	ld.d	$a5, $sp, 104
+	ld.d	$a6, $sp, 112
+	ld.d	$a7, $sp, 120
+
+	//reload Hsqr
+	ld.d	$t0, $sp, 128
+	ld.d	$t1, $sp, 136
+	ld.d	$t2, $sp, 144
+	ld.d	$t3, $sp, 152
+
+	bl	__sm2_z256_modp_mont_mul		//p256_mul_mont(Hcub, Hsqr, H)
+
+	//save Hcub
+	st.d	$t0, $sp, 224
+	st.d	$t1, $sp, 232
+	st.d	$t2, $sp, 240
+	st.d	$t3, $sp, 248
+
+	//reload in1_z
+	ld.d	$t0, $s4, 64
+	ld.d	$t1, $s4, 72
+	ld.d	$t2, $s4, 80
+	ld.d	$t3, $s4, 88
+
+	bl	__sm2_z256_modp_mont_mul		//p256_mul_mont(res_z, H, in1_z)
+
+	//reload in2_z
+	ld.d	$a4, $s5, 64
+	ld.d	$a5, $s5, 72
+	ld.d	$a6, $s5, 80
+	ld.d	$a7, $s5, 88
+
+	bl	__sm2_z256_modp_mont_mul		//p256_mul_mont(res_z, res_z, in2_z)
+
+	//reload in2_z
+	ld.d	$t4, $s5, 64
+	ld.d	$t5, $s5, 72
+	maskeqz	$t0, $t0, $s7
+	maskeqz	$t1, $t1, $s7
+
+	ld.d	$t6, $s5, 80
+	ld.d	$t7, $s5, 88
+	maskeqz	$t2, $t2, $s7
+	maskeqz	$t3, $t3, $s7
+
+
+	//reload in1_z
+	ld.d	$a4, $s4, 64
+	ld.d	$a5, $s4, 72
+	masknez	$t4, $t4, $s7
+	masknez	$t5, $t5, $s7
+
+	ld.d	$a6, $s4, 80
+	ld.d	$a7, $s4, 88
+	or	$t0, $t0, $t4
+	or	$t1, $t1, $t5
+
+	masknez	$t6, $t6, $s7
+	masknez	$t7, $t7, $s7
+	or	$t2, $t2, $t6
+	or	$t3, $t3, $t7
+
+
+	maskeqz	$t0, $t0, $s6
+	masknez	$a4, $a4, $s6
+	maskeqz	$t1, $t1, $s6
+	masknez	$a5, $a5, $s6
+
+	or	$t0, $t0, $a4
+	or	$t1, $t1, $a5
+	//reload Hsqr
+	ld.d	$a4, $sp, 128
+	ld.d	$a5, $sp, 136
+
+	maskeqz	$t2, $t2, $s6
+	masknez	$a6, $a6, $s6
+
+	st.d	$t0, $a0, 64
+	st.d	$t1, $a0, 72
+	maskeqz	$t3, $t3, $s6
+	masknez	$a7, $a7, $s6
+
+	//reload U1
+	ld.d	$t0, $sp, 256
+	ld.d	$t1, $sp, 264
+	or	$t2, $t2, $a6
+	or	$t3, $t3, $a7
+
+	st.d	$t2, $a0, 80
+	st.d	$t3, $a0, 88
+	ld.d	$a6, $sp, 144
+	ld.d	$a7, $sp, 152
+
+	ld.d	$t2, $sp, 272
+	ld.d	$t3, $sp, 280
+
+	bl	__sm2_z256_modp_mont_mul		//p256_mul_mont(U2, U1, Hsqr)
+
+	//store U2
+	st.d	$t0, $sp, 288
+	st.d	$t1, $sp, 296
+	st.d	$t2, $sp, 304
+	st.d	$t3, $sp, 312
+
+
+	bl	__sm2_z256_modp_dbl	//p256_mul_by_2(Hsqr, U2)
+
+	//reload Rsqr
+	ld.d	$a4, $sp, 192
+	ld.d	$a5, $sp, 200
+	ld.d	$a6, $sp, 208
+	ld.d	$a7, $sp, 216
+
+	bl	__sm2_z256_modp_neg_sub	//p256_sub(res_x, Rsqr, Hsqr)
+
+
+	//reload Hcub
+	ld.d	$a4, $sp, 224
+	ld.d	$a5, $sp, 232
+	ld.d	$a6, $sp, 240
+	ld.d	$a7, $sp, 248
+
+	bl	__sm2_z256_modp_sub	//p256_sub(res_x, res_x, Hcub)
+
+	//reload in2_x
+	ld.d	$t4, $s5, 0
+	ld.d	$t5, $s5, 8
+	//store res_x
+	st.d	$t0, $sp, 0
+	st.d	$t1, $sp, 8
+	maskeqz	$t0, $t0, $s7
+	maskeqz	$t1, $t1, $s7
+
+	ld.d	$t6, $s5, 16
+	ld.d	$t7, $s5, 24
+	st.d	$t2, $sp, 16
+	st.d	$t3, $sp, 24
+	maskeqz	$t2, $t2, $s7
+	maskeqz	$t3, $t3, $s7
+
+	//reload in1_x
+	ld.d	$a4, $s4, 0
+	ld.d	$a5, $s4, 8
+	masknez	$t4, $t4, $s7
+	masknez	$t5, $t5, $s7
+
+	ld.d	$a6, $s4, 16
+	ld.d	$a7, $s4, 24
+	or	$t0, $t0, $t4
+	or	$t1, $t1, $t5
+	masknez	$t6, $t6, $s7
+	masknez	$t7, $t7, $s7
+
+	or	$t2, $t2, $t6
+	or	$t3, $t3, $t7
+	maskeqz	$t0, $t0, $s6
+	maskeqz	$t1, $t1, $s6
+
+	masknez	$a4, $a4, $s6
+	masknez	$a5, $a5, $s6
+
+	or	$t0, $t0, $a4
+	or	$t1, $t1, $a5
+	st.d	$t0, $a0, 0
+	st.d	$t1, $a0, 8
+	maskeqz	$t2, $t2, $s6
+	maskeqz	$t3, $t3, $s6
+	//reload U2
+	ld.d	$a4, $sp, 288
+	ld.d	$a5, $sp, 296
+	//reload res_x
+	ld.d	$t0, $sp, 0
+	ld.d	$t1, $sp, 8
+
+	masknez	$a6, $a6, $s6
+	masknez	$a7, $a7, $s6
+	or	$t2, $t2, $a6
+	or	$t3, $t3, $a7
+	ld.d	$a6, $sp, 304
+	ld.d	$a7, $sp, 312
+	st.d	$t2, $a0, 16
+	st.d	$t3, $a0, 24
+
+	ld.d	$t2, $sp, 16
+	ld.d	$t3, $sp, 24
+
+
+	bl	__sm2_z256_modp_neg_sub	//p256_sub(res_y, U2, res_x);
+
+	//reload R
+	ld.d	$a4, $sp, 160
+	ld.d	$a5, $sp, 168
+	ld.d	$a6, $sp, 176
+	ld.d	$a7, $sp, 184
+
+	bl	__sm2_z256_modp_mont_mul	//p256_mul_mont(res_y, res_y, R)
+
+	//store res_y
+	st.d	$t0, $sp, 32
+	st.d	$t1, $sp, 40
+	st.d	$t2, $sp, 48
+	st.d	$t3, $sp, 56
+
+	//reload Hcub
+	ld.d	$a4, $sp, 224
+	ld.d	$a5, $sp, 232
+	ld.d	$a6, $sp, 240
+	ld.d	$a7, $sp, 248
+
+	//reload S1
+	ld.d	$t0, $sp, 320
+	ld.d	$t1, $sp, 328
+	ld.d	$t2, $sp, 336
+	ld.d	$t3, $sp, 344
+
+	bl	__sm2_z256_modp_mont_mul	//p256_mul_mont(S2, S1, Hcub)
+
+	//reload res_y
+
+	ld.d	$a4, $sp, 32
+	ld.d	$a5, $sp, 40
+	ld.d	$a6, $sp, 48
+	ld.d	$a7, $sp, 56
+
+
+	bl	__sm2_z256_modp_neg_sub	//p256_sub(res_y, res_y, S2)
+
+	//reload in2_y
+	ld.d	$t4, $s5, 32
+	ld.d	$t5, $s5, 40
+	maskeqz	$t0, $t0, $s7
+	maskeqz	$t1, $t1, $s7
+
+	ld.d	$t6, $s5, 48
+	ld.d	$t7, $s5, 56
+	maskeqz	$t2, $t2, $s7
+	maskeqz	$t3, $t3, $s7
+
+
+	//reload in1_y
+	ld.d	$a4, $s4, 32
+	ld.d	$a5, $s4, 40
+	masknez	$t4, $t4, $s7
+	masknez	$t5, $t5, $s7
+
+	ld.d	$a6, $s4, 48
+	ld.d	$a7, $s4, 56
+	or	$t0, $t0, $t4
+	or	$t1, $t1, $t5
+
+	masknez	$t6, $t6, $s7
+	masknez	$t7, $t7, $s7
+	or	$t2, $t2, $t6
+	or	$t3, $t3, $t7
+
+	maskeqz	$t0, $t0, $s6
+	masknez	$a4, $a4, $s6
+	maskeqz	$t1, $t1, $s6
+	masknez	$a5, $a5, $s6
+
+	or	$t0, $t0, $a4
+	or	$t1, $t1, $a5
+	maskeqz	$t2, $t2, $s6
+	masknez	$a6, $a6, $s6
+	st.d	$t0, $a0, 32
+	st.d	$t1, $a0, 40
+
+	maskeqz	$t3, $t3, $s6
+	masknez	$a7, $a7, $s6
+	or	$t2, $t2, $a6
+	or	$t3, $t3, $a7
+	st.d	$t2, $a0, 48
+	st.d	$t3, $a0, 56
+
+	ld.d	$ra, $sp, 456
+	ld.d	$s0, $sp, 448
+	ld.d	$s1, $sp, 440
+	ld.d	$s2, $sp, 432
+
+	ld.d	$s3, $sp, 424
+	ld.d	$s4, $sp, 416
+	ld.d	$s5, $sp, 408
+
+	ld.d	$s6, $sp, 400
+	ld.d	$s7, $sp, 392
+	ld.d	$s8, $sp, 384
+	addi.d	$sp, $sp, 464
+
+	jr	$ra
 .globl	func(sm2_z256_modn_add)
 
 .align	5
