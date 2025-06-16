@@ -16,9 +16,9 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
     - name: Get ios-cmake
-      uses: sudosubin/git-clone-action@v1.0.1
+      uses: sudosubin/git-clone-action@8a93ce24d47782e30077508cccacf8a05a891bae # v1.0.1
       with:
         # Repository owner and name. Ex: sudosubin/git-clone-action
         repository: leetal/ios-cmake
