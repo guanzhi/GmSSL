@@ -237,7 +237,7 @@ if (ENABLE_TEST_SPEED)
 endif()
 
 
-option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable AlgorithmIdenifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
+option(ENABLE_SM2_ALGOR_ID_ENCODE_NULL "Enable Algorithm Identifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters" OFF)
 if (ENABLE_SM2_ALGOR_ID_ENCODE_NULL)
 	message(STATUS "ENABLE_SM2_ALGOR_ID_ENCODE_NULL is ON")
 	add_definitions(-DENABLE_SM2_ALGOR_ID_ENCODE_NULL)
