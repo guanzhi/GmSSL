@@ -1,7 +1,7 @@
 if (CMAKE_VERSION VERSION_LESS "3.0")
 	cmake_minimum_required(VERSION 2.8)
 else()
-	cmake_minimum_required(VERSION 3.6)
+	cmake_minimum_required(VERSION 3.10)
 endif()
 project(GmSSL C)
 
