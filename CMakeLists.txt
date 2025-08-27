@@ -635,6 +635,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 		target_link_libraries(gmssl-bin PRIVATE Ws2_32)
 	endif()
 
+	include(CTest)
 	enable_testing()
 	foreach(name ${tests})
 		add_test(NAME ${name} COMMAND ${name}test)
