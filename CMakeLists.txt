@@ -659,13 +659,15 @@ if (MSVC)
 endif()
 
 
-add_test(NAME sm3_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm3_commands.cmake")
-add_test(NAME sm2_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm2_commands.cmake")
-add_test(NAME cert_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/cert_commands.cmake")
+add_test(NAME sm3_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm3_commands.cmake" WORKING_DIRECTORY "$<TARGET_FILE_DIR:gmssl-bin>")
+add_test(NAME sm2_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm2_commands.cmake"  WORKING_DIRECTORY "$<TARGET_FILE_DIR:gmssl-bin>")
+add_test(NAME cert_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/cert_commands.cmake" WORKING_DIRECTORY "$<TARGET_FILE_DIR:gmssl-bin>")
+set_tests_properties(sm3_commands sm2_commands cert_commands PROPERTIES ENVIRONMENT "PATH=$<TARGET_FILE_DIR:gmssl-bin>:$ENV{PATH}")
 if(NOT WIN32)
-	add_test(NAME tlcp_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
-	add_test(NAME tls12_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
-	add_test(NAME tls13_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tlcp_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake" WORKING_DIRECTORY "$<TARGET_FILE_DIR:gmssl-bin>")
+	add_test(NAME tls12_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake" WORKING_DIRECTORY "$<TARGET_FILE_DIR:gmssl-bin>")
+	add_test(NAME tls13_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake" WORKING_DIRECTORY "$<TARGET_FILE_DIR:gmssl-bin>")
+	set_tests_properties(tlcp_commands tls12_commands tls13_commands PROPERTIES ENVIRONMENT "PATH=$<TARGET_FILE_DIR:gmssl-bin>:$ENV{PATH}")
 endif()
 
 # Generate install package with cpack

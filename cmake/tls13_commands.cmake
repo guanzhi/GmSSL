@@ -16,7 +16,7 @@ if(NOT EXISTS enckey.pem)
 endif()
 
 execute_process(
-	COMMAND bash -c "sudo nohup bin/gmssl tls13_server -port 4443 -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd > tls13_server.log 2>&1 &"
+	COMMAND bash -c "sudo nohup gmssl tls13_server -port 4443 -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd > tls13_server.log 2>&1 &"
 	RESULT_VARIABLE SERVER_RESULT
 	TIMEOUT 5
 )
@@ -27,7 +27,7 @@ endif()
 execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 2)
 
 execute_process(
-	COMMAND bash -c "bin/gmssl tls13_client -host localhost -port 4443 -cacert rootcacert.pem > tls13_client.log 2>&1"
+	COMMAND bash -c "gmssl tls13_client -host localhost -port 4443 -cacert rootcacert.pem > tls13_client.log 2>&1"
 	RESULT_VARIABLE CLIENT_RESULT
 	TIMEOUT 5
 )
