@@ -75,11 +75,7 @@ if(CONFIG_GMSSL)
   endif()
 
   # Platform-specific random sources
-  if(CONFIG_SOC_FAMILY_NRF)
-    zephyr_library_sources(${ZEPHYR_CURRENT_MODULE_DIR}/src/rand.c)
-  else()
-    zephyr_library_sources(${ZEPHYR_CURRENT_MODULE_DIR}/src/rand.c)
-  endif()
+  zephyr_library_sources(${ZEPHYR_CURRENT_MODULE_DIR}/zephyr/rand_ze.c)
 
   # Conditional sources based on Kconfig
   zephyr_library_sources_ifdef(CONFIG_GMSSL_SM4_ECB ${ZEPHYR_CURRENT_MODULE_DIR}/src/sm4_ecb.c)
