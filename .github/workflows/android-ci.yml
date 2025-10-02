@@ -1,4 +1,4 @@
-name: CMake-Android
+name: Android
 
 on:
   push:
@@ -7,8 +7,9 @@ on:
     branches: [ master ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
+  # Specifies the available build types (configurations), e.g. Debug, Release, RelWithDebInfo, MinSizeRel, etc.
+  # https://cmake.org/cmake/help/latest/variable/CMAKE_CONFIGURATION_TYPES.html
+  CMAKE_CONFIGURATION_TYPES: "Release;Debug;RelWithDebInfo;MinSizeRel"
 
 jobs:
   build:
@@ -18,6 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
+        config: [ Release, Debug, RelWithDebInfo, MinSizeRel ]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -26,20 +28,20 @@ jobs:
     - uses: nttld/setup-ndk@v1
       id: setup-ndk
       with:
-        ndk-version: r25
+        ndk-version: r27
         add-to-path: false
     - run: echo ${{env.ANDROID_NDK_HOME}}
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
-
-   # - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-   #   run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-
-    - name: Build
-      # Build your program with the given configuration
-      run: mkdir ${{github.workspace}}/build; cd ${{github.workspace}}/build; cmake .. -DCMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23;make
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -G "Ninja Multi-Config" -DCMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=23
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.config }}
+
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: cpack -C ${{ matrix.config }}
