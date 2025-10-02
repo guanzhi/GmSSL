@@ -16,7 +16,7 @@ if(NOT EXISTS enckey.pem)
 endif()
 
 execute_process(
-	COMMAND bash -c "sudo nohup gmssl tls12_server -port 4333 -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd > tls12_server.log 2>&1 &"
+	COMMAND bash -c "nohup gmssl tls12_server -port 4333 -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd > tls12_server.log 2>&1 &"
 	RESULT_VARIABLE SERVER_RESULT
 	TIMEOUT 5
 )
@@ -40,6 +40,6 @@ if(${FOUND_INDEX} EQUAL -1)
 endif()
 
 execute_process(
-	COMMAND sudo pkill -f "gmssl"
+	COMMAND pkill -f "gmssl"
 )
 
