@@ -1,5 +1,5 @@
 execute_process(
-	COMMAND bin/gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem
+	COMMAND gmssl sm2keygen -pass P@ssw0rd -out sm2.pem -pubout sm2pub.pem
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 )
@@ -17,7 +17,7 @@ set(SECRET_MESSAGE "Secret message")
 file(WRITE message.txt "${SECRET_MESSAGE}")
 
 execute_process(
-	COMMAND bin/gmssl sm2sign -key sm2.pem -pass P@ssw0rd -in message.txt -out sm2.sig
+	COMMAND gmssl sm2sign -key sm2.pem -pass P@ssw0rd -in message.txt -out sm2.sig
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 )
@@ -27,7 +27,7 @@ endif()
 
 
 execute_process(
-	COMMAND bin/gmssl sm2verify -pubkey sm2pub.pem -in message.txt -sig sm2.sig
+	COMMAND gmssl sm2verify -pubkey sm2pub.pem -in message.txt -sig sm2.sig
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 	OUTPUT_VARIABLE TEST_STDOUT
@@ -42,7 +42,7 @@ endif()
 
 
 execute_process(
-	COMMAND bin/gmssl sm2encrypt -pubkey sm2pub.pem -in message.txt -out sm2.der
+	COMMAND gmssl sm2encrypt -pubkey sm2pub.pem -in message.txt -out sm2.der
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 	OUTPUT_VARIABLE TEST_STDOUT
@@ -52,7 +52,7 @@ if(NOT ${TEST_RESULT} EQUAL 0)
 endif()
 
 execute_process(
-	COMMAND bin/gmssl sm2decrypt -key sm2.pem -pass P@ssw0rd -in sm2.der
+	COMMAND gmssl sm2decrypt -key sm2.pem -pass P@ssw0rd -in sm2.der
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 	OUTPUT_VARIABLE TEST_STDOUT

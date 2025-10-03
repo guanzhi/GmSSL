@@ -2319,14 +2319,15 @@ void tls_cleanup(TLS_CONNECT *conn)
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
-	int flags = 0;
-#ifdef WIN32
-    	if( ioctlsocket(sock, FIONBIO, &flags) != 0)   {
+#ifdef _WIN32
+	u_long flags = 0;
+	if (ioctlsocket(sock, FIONBIO, &flags) != 0) {
 		error_puts("socket in non-blocking mode");
 		//nginx will pass a socket in non-blocking mode
 		//return -1;
 	}
 #else
+	int flags = 0;
 	if ((flags = fcntl(sock, F_GETFL)) == -1) {
 		error_print();
 		perror("fcntl error");

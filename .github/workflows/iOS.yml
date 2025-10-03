@@ -1,4 +1,4 @@
-name: CMake-iOS
+name: iOS
 
 on:
   push:
@@ -7,12 +7,15 @@ on:
     branches: [ "master" ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
+  # Specifies the available build types (configurations), e.g. Debug, Release, RelWithDebInfo, MinSizeRel, etc.
+  # https://cmake.org/cmake/help/latest/variable/CMAKE_CONFIGURATION_TYPES.html
+  CMAKE_CONFIGURATION_TYPES: "Release;Debug;RelWithDebInfo;MinSizeRel"
 
 jobs:
   build:
-
+    strategy:
+      matrix:
+        config: [ Release, Debug, RelWithDebInfo, MinSizeRel ]
     runs-on: macos-latest
 
     steps:
@@ -29,11 +32,11 @@ jobs:
 
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake -B ${{github.workspace}}/build -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DBUILD_SHARED_LIBS=OFF
 
     - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.config }}
 
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: cpack -C ${{ matrix.config }}
