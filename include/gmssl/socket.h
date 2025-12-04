@@ -38,6 +38,21 @@ typedef int tls_socklen_t;
 #define tls_socket_close(sock)			closesocket(sock)
 #define tls_socket_wait()			Sleep(1)
 
+#elif defined(__ZEPHYR__)
+
+/* Zephyr-specific socket definitions - minimal for crypto-only usage */
+#include <zephyr/kernel.h>
+
+typedef int tls_socket_t;
+typedef ssize_t tls_ret_t;
+typedef int tls_socklen_t;
+
+/* Stub implementations - not functional for actual networking */
+#define tls_socket_send(sock,buf,len,flags)	(-1)
+#define tls_socket_recv(sock,buf,len,flags)	(-1)
+#define tls_socket_close(sock)			(-1)
+#define tls_socket_wait()			k_sleep(K_MSEC(1))
+
 #else
 
 #include <fcntl.h>
