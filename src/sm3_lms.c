@@ -12,6 +12,7 @@
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/sm3_lms.h>
+#include <gmssl/x509_alg.h>
 
 /*
  * TODO:
@@ -1935,3 +1936,120 @@ int sm3_hss_private_key_size(const int *lms_types, size_t levels, size_t *len)
 
 	return 1;
 }
+
+// X.509 related
+int sm3_hss_public_key_to_der(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen)
+{
+	uint8_t octets[SM3_HSS_PUBLIC_KEY_SIZE];
+	uint8_t *p = octets;
+	size_t len = 0;
+
+	if (!key) {
+		return 0;
+	}
+
+	if (sm3_hss_public_key_to_bytes(key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len != sizeof(octets)) {
+		error_print();
+		return -1;
+	}
+	if (asn1_bit_octets_to_der(octets, sizeof(octets), out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm3_hss_public_key_from_der(SM3_HSS_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_bit_octets_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (dlen != SM3_HSS_PUBLIC_KEY_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	if (sm3_hss_public_key_from_bytes(key, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (dlen) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int sm3_hss_public_key_algor_to_der(uint8_t **out, size_t *outlen)
+{
+	if (x509_public_key_algor_to_der(OID_hss_lms_hashsig, OID_undef, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm3_hss_public_key_algor_from_der(const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	int oid;
+	int param = OID_undef;
+
+	if ((ret = x509_public_key_algor_from_der(&oid, &param, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (oid != OID_hss_lms_hashsig) {
+		error_print();
+		return -1;
+	}
+	// param == 0: parameter is empty
+	// param == 1: parameter is null object
+	// param == other values, x509_public_key_algor_from_der fail
+	return 1;
+}
+
+int sm3_hss_public_key_info_to_der(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+	if (sm3_hss_public_key_algor_to_der(NULL, &len) != 1
+		|| sm3_hss_public_key_to_der(key, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| sm3_hss_public_key_algor_to_der(out, outlen) != 1
+		|| sm3_hss_public_key_to_der(key, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sm3_hss_public_key_info_from_der(SM3_HSS_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (sm3_hss_public_key_algor_from_der(&d, &dlen) != 1
+		|| sm3_hss_public_key_from_der(key, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+

@@ -875,6 +875,79 @@ static int test_sm3_hss_sign(void)
 	return 1;
 }
 
+static int test_sm3_hss_public_key_algor(void)
+{
+	int lms_types[] = {
+		LMS_HASH256_M32_H5
+	};
+	SM3_HSS_KEY key;
+	uint8_t buf[512];
+	const uint8_t *cp;
+	uint8_t *p;
+	size_t len;
+
+
+	if (sm3_hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
+		error_print();
+		return -1;
+	}
+
+	cp = p = buf;
+	len = 0;
+	if (sm3_hss_public_key_to_der(&key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(&key, 0, sizeof(SM3_HSS_KEY));
+	if (sm3_hss_public_key_from_der(&key, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+
+
+	cp = p = buf;
+	len = 0;
+	if (sm3_hss_public_key_algor_to_der(&p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sm3_hss_public_key_algor_from_der(&cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+
+
+	cp = p = buf;
+	len = 0;
+	if (sm3_hss_public_key_info_to_der(&key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	memset(&key, 0, sizeof(SM3_HSS_KEY));
+	if (sm3_hss_public_key_info_from_der(&key, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+
+}
+
+
 int main(void)
 {
 #if defined(ENABLE_SM3_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
@@ -894,6 +967,7 @@ int main(void)
 	if (test_sm3_hss_sign_level1() != 1) goto err;
 	if (test_sm3_hss_sign_level2() != 1) goto err;
 	if (test_sm3_hss_sign() != 1) goto err;
+	if (test_sm3_hss_public_key_algor() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

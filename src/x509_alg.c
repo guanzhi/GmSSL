@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 #include <gmssl/x509_alg.h>
-
+#ifdef ENABLE_SM3_LMS
+#include <gmssl/sm3_lms.h>
+#endif
 
 static uint32_t oid_sm3[] = { 1,2,156,10197,1,401 };
 static uint32_t oid_md5[] = { 1,2,840,113549,2,5 };
@@ -558,10 +560,22 @@ err:
 
 
 static uint32_t oid_ec_public_key[] = { oid_x9_62,2,1 };
+/*
+from RFC 9708
+
+id-alg-hss-lms-hashsig OBJECT IDENTIFIER ::= {
+	iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1)
+	pkcs-9(9) smime(16) alg(3) 17
+}
+*/
+static uint32_t  oid_hss_lms_hashsig[] = { oid_pkcs,9,16,3,17 };
 
 static const ASN1_OID_INFO x509_public_key_algors[] = {
 	{ OID_ec_public_key, "ecPublicKey", oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), 0, "X9.62 ecPublicKey" },
 	{ OID_rsa_encryption, "rsaEncryption", oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), 0, "RSAEncryption" },
+#ifdef ENABLE_SM3_LMS
+	{ OID_hss_lms_hashsig, "hsslmsHashSig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
+#endif
 };
 
 static const int x509_public_key_algors_count =
@@ -612,6 +626,18 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SM3_LMS
+	case OID_hss_lms_hashsig:
+		if (asn1_object_identifier_to_der(oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -646,6 +672,9 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 		}
 		break;
 	case OID_rsa_encryption:
+#ifdef ENABLE_SM3_LMS
+	case OID_hss_lms_hashsig:
+#endif
 		if ((*curve_or_null = asn1_null_from_der(&d, &dlen)) < 0
 			|| asn1_length_is_zero(dlen) != 1) {
 			error_print();
@@ -676,6 +705,9 @@ int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, c
 		format_print(fp, fmt, ind, "namedCurve: %s\n", ec_named_curve_name(val));
 		break;
 	case OID_rsa_encryption:
+#ifdef ENABLE_SM3_LMS
+	case OID_hss_lms_hashsig:
+#endif
 		if ((val = asn1_null_from_der(&d, &dlen)) < 0) goto err;
 		else if (val) format_print(fp, fmt, ind, "parameters: %s\n", asn1_null_name());
 		break;

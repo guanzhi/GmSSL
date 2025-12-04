@@ -279,18 +279,13 @@ int sm3_hss_verify_update(SM3_HSS_SIGN_CTX *ctx, const uint8_t *data, size_t dat
 int sm3_hss_verify_finish(SM3_HSS_SIGN_CTX *ctx);
 
 
-/*
-from RFC 9708
-
-id-alg-hss-lms-hashsig OBJECT IDENTIFIER ::= {
-	iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1)
-	pkcs-9(9) smime(16) alg(3) 17
-}
-*/
-#include <gmssl/oid.h>
-
-#define oid_hss_lms_hashsig	oid_pkcs,9,16,3,17
-
+// X.509 related
+int sm3_hss_public_key_to_der(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen);
+int sm3_hss_public_key_from_der(SM3_HSS_KEY *key, const uint8_t **in, size_t *inlen);
+int sm3_hss_public_key_algor_to_der(uint8_t **out, size_t *outlen);
+int sm3_hss_public_key_algor_from_der(const uint8_t **in, size_t *inlen);
+int sm3_hss_public_key_info_to_der(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen);
+int sm3_hss_public_key_info_from_der(SM3_HSS_KEY *key, const uint8_t **in, size_t *inlen);
 
 
 #ifdef __cplusplus
