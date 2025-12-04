@@ -18,8 +18,8 @@ extern "C" {
 
 
 // Also update CPACK_PACKAGE_VERSION in CMakeLists.txt
-#define GMSSL_VERSION_NUM	30102
-#define GMSSL_VERSION_STR	"GmSSL 3.1.2 Dev"
+#define GMSSL_VERSION_NUM	30103
+#define GMSSL_VERSION_STR	"GmSSL 3.1.3 Dev"
 
 int gmssl_version_num(void);
 const char *gmssl_version_str(void);

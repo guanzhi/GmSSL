@@ -53,7 +53,8 @@ option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
-option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" ON)
+option(ENABLE_SM3_LMS "Enable SM3-LMS signature" ON)
+option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" OFF)
 
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
@@ -141,7 +142,6 @@ set(tools
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm3_pbkdf2.c
-	tools/sm3xmss_keygen.c
 	tools/sm2keygen.c
 	tools/sm2sign.c
 	tools/sm2verify.c
@@ -416,8 +416,25 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
+if (ENABLE_SM3_LMS)
+	message(STATUS "ENABLE_SM3_LMS is ON")
+	add_definitions(-DENABLE_SM3_LMS)
+	list(APPEND src src/sm3_lms.c)
+	list(APPEND tools tools/sm3lmskeygen.c tools/sm3lmssign.c tools/sm3lmsverify.c)
+	list(APPEND tools tools/sm3hsskeygen.c tools/sm3hsssign.c tools/sm3hssverify.c)
+	list(APPEND tests sm3_lms)
+
+	option(ENABLE_SM3_LMS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
+	if (ENABLE_SM3_LMS_CROSSCHECK)
+		message(STATUS "ENABLE_SM3_LMS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_SM3_LMS_CROSSCHECK)
+	endif()
+endif()
+
+
 if (ENABLE_SM3_XMSS)
 	message(STATUS "ENABLE_SM3_XMSS is ON")
+	add_definitions(-DENABLE_SM3_XMSS)
 	list(APPEND src src/sm3_xmss.c)
 
 	option(ENABLE_SM3_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" OFF)
@@ -644,7 +661,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.1.2-Dev")
+set(CPACK_PACKAGE_VERSION "3.1.3-Dev")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

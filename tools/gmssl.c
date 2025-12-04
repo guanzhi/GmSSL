@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ extern int sm2decrypt_main(int argc, char **argv);
 extern int sm3_main(int argc, char **argv);
 extern int sm3hmac_main(int argc, char **argv);
 extern int sm3_pbkdf2_main(int argc, char **argv);
-extern int sm3xmss_keygen_main(int argc, char **argv);
 extern int sm4_ecb_main(int argc, char **argv);
 extern int sm4_cbc_main(int argc, char **argv);
 extern int sm4_ctr_main(int argc, char **argv);
@@ -65,6 +64,17 @@ extern int tls12_client_main(int argc, char **argv);
 extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
+#ifdef ENABLE_SM3_LMS
+extern int sm3lmskeygen_main(int argc, char **argv);
+extern int sm3lmssign_main(int argc, char **argv);
+extern int sm3lmsverify_main(int argc, char **argv);
+extern int sm3hsskeygen_main(int argc, char **argv);
+extern int sm3hsssign_main(int argc, char **argv);
+extern int sm3hssverify_main(int argc, char **argv);
+#endif
+#ifdef ENABLE_SM3_XMSS
+extern int sm3xmss_keygen_main(int argc, char **argv);
+#endif
 #ifdef ENABLE_SDF
 extern int sdfinfo_main(int argc, char **argv);
 extern int sdfdigest_main(int argc, char **argv);
@@ -94,7 +104,6 @@ static const char *options =
 	"  sm3               Generate SM3 hash\n"
 	"  sm3hmac           Generate SM3 HMAC tag\n"
 	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
-	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
 	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
 	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
 	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
@@ -130,6 +139,17 @@ static const char *options =
 	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
+#ifdef ENABLE_SM3_LMS
+	"  sm3lmskeygen      Generate SM3-LMS keypair\n"
+	"  sm3lmssign        Generate LMS signature\n"
+	"  sm3lmsverify      Verify LMS signature\n"
+	"  sm3hsskeygen      Generate SM3-HSS keypair\n"
+	"  sm3hsssign        Generate HSS signature\n"
+	"  sm3hssverify      Verify HSS signature\n"
+#endif
+#ifdef ENABLE_SM3_XMSS
+	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
+#endif
 #ifdef ENABLE_SDF
 	"  sdfinfo           Print SDF device info\n"
 	"  sdfdigest         Generate SM3 hash with SDF device\n"
@@ -212,8 +232,6 @@ int main(int argc, char **argv)
 			return sm3hmac_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3_pbkdf2")) {
 			return sm3_pbkdf2_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3xmss_keygen")) {
-			return sm3xmss_keygen_main(argc, argv);
 #if ENABLE_SM4_ECB
 		} else if (!strcmp(*argv, "sm4_ecb")) {
 			return sm4_ecb_main(argc, argv);
@@ -286,6 +304,24 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
+#ifdef ENABLE_SM3_LMS
+		} else if (!strcmp(*argv, "sm3lmskeygen")) {
+			return sm3lmskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3lmssign")) {
+			return sm3lmssign_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3lmsverify")) {
+			return sm3lmsverify_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3hsskeygen")) {
+			return sm3hsskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3hsssign")) {
+			return sm3hsssign_main(argc, argv);
+		} else if (!strcmp(*argv, "sm3hssverify")) {
+			return sm3hssverify_main(argc, argv);
+#endif
+#ifdef ENABLE_SM3_XMSS
+		} else if (!strcmp(*argv, "sm3xmss_keygen")) {
+			return sm3xmss_keygen_main(argc, argv);
+#endif
 #ifdef ENABLE_SDF
 		} else if (!strcmp(*argv, "sdfinfo")) {
 			return sdfinfo_main(argc, argv);
