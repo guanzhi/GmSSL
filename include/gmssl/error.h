@@ -30,7 +30,9 @@ extern "C" {
 
 
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
 
 #define warning_print() \
 	do { if (DEBUG) fprintf(stderr, "%s:%d:%s():\n",__FILE__, __LINE__, __FUNCTION__); } while (0)
