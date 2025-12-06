@@ -1409,7 +1409,7 @@ int sm3_hss_signature_size(const int *lms_types, size_t levels, size_t *siglen)
 	}
 
 	*siglen = 4;
-	for (i = 0; i < levels - 1; i++) {
+	for (i = 0; i < levels; i++) {
 		size_t lms_siglen;
 		if (sm3_lms_signature_size(lms_types[i], &lms_siglen) != 1) {
 			error_print();
