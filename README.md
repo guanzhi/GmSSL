@@ -53,6 +53,7 @@ nmake
 * 序列密码：ZUC/ZUC-256, ChaCha20
 * 哈希函数: SM3, SHA-1, SHA-224/256/384/512
 * 公钥密码：SM2加密/签名, SM9加密/签名
+* 后量子密码：LMS/HSS签名
 * MAC算法：HMAC, GHASH, CBC-MAC
 * 密钥导出函数：PBKDF2、HKDF
 * 随机数生成器：Intel RDRAND, HASH_DRBG (NIST.SP.800-90A)
