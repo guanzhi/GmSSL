@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -35,6 +35,8 @@ int sm2_key_set_public_key(SM2_KEY *key, const SM2_Z256_POINT *public_key);
 
 int sm2_public_key_equ(const SM2_KEY *sm2_key, const SM2_KEY *pub_key);
 int sm2_public_key_digest(const SM2_KEY *key, uint8_t dgst[32]);
+int sm2_public_key_to_der(const SM2_KEY *key, uint8_t **out, size_t *outlen);
+int sm2_public_key_from_der(SM2_KEY *key, const uint8_t **in, size_t *inlen);
 int sm2_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *pub_key);
 
 
