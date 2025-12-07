@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_lms.h>
+#include <gmssl/lms.h>
 
 
 static const char *usage = "-lms_type type -out file [-pubout file] [-verbose]\n";
@@ -32,7 +32,7 @@ static const char *options =
 "    -verbose                    Print public key\n"
 "\n";
 
-int sm3lmskeygen_main(int argc, char **argv)
+int lmskeygen_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -43,9 +43,9 @@ int sm3lmskeygen_main(int argc, char **argv)
 	int verbose = 0;
 	FILE *outfp = NULL;
 	FILE *puboutfp = stdout;
-	SM3_LMS_KEY key;
-	uint8_t out[SM3_LMS_PRIVATE_KEY_SIZE];
-	uint8_t pubout[SM3_LMS_PUBLIC_KEY_SIZE];
+	LMS_KEY key;
+	uint8_t out[LMS_PRIVATE_KEY_SIZE];
+	uint8_t pubout[LMS_PUBLIC_KEY_SIZE];
 	uint8_t *pout = out;
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
@@ -67,7 +67,7 @@ int sm3lmskeygen_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-lms_type")) {
 			if (--argc < 1) goto bad;
 			lms_type = *(++argv);
-			if (!(lms_type_val = sm3_lms_type_from_name(lms_type))) {
+			if (!(lms_type_val = lms_type_from_name(lms_type))) {
 				fprintf(stderr, "%s: invalid lms_type `%s`\n", prog, lms_type);
 				goto end;
 			}
@@ -108,15 +108,15 @@ bad:
 		goto end;
 	}
 
-	if (sm3_lms_key_generate(&key, lms_type_val) != 1) {
+	if (lms_key_generate(&key, lms_type_val) != 1) {
 		error_print();
 		return -1;
 	}
 	if (verbose) {
-		sm3_lms_public_key_print(stderr, 0, 0, "lms_public_key", &key.public_key);
+		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key.public_key);
 	}
 
-	if (sm3_lms_private_key_to_bytes(&key, &pout, &outlen) != 1) {
+	if (lms_private_key_to_bytes(&key, &pout, &outlen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -125,7 +125,7 @@ bad:
 		goto end;
 	}
 
-	if (sm3_lms_public_key_to_bytes(&key, &ppubout, &puboutlen) != 1) {
+	if (lms_public_key_to_bytes(&key, &ppubout, &puboutlen) != 1) {
 		error_print();
 		goto end;
 	}

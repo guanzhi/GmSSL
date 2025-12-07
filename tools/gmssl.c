@@ -64,13 +64,13 @@ extern int tls12_client_main(int argc, char **argv);
 extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
-#ifdef ENABLE_SM3_LMS
-extern int sm3lmskeygen_main(int argc, char **argv);
-extern int sm3lmssign_main(int argc, char **argv);
-extern int sm3lmsverify_main(int argc, char **argv);
-extern int sm3hsskeygen_main(int argc, char **argv);
-extern int sm3hsssign_main(int argc, char **argv);
-extern int sm3hssverify_main(int argc, char **argv);
+#ifdef ENABLE_LMS_HSS
+extern int lmskeygen_main(int argc, char **argv);
+extern int lmssign_main(int argc, char **argv);
+extern int lmsverify_main(int argc, char **argv);
+extern int hsskeygen_main(int argc, char **argv);
+extern int hsssign_main(int argc, char **argv);
+extern int hssverify_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_SM3_XMSS
 extern int sm3xmss_keygen_main(int argc, char **argv);
@@ -139,13 +139,13 @@ static const char *options =
 	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
-#ifdef ENABLE_SM3_LMS
-	"  sm3lmskeygen      Generate SM3-LMS keypair\n"
-	"  sm3lmssign        Generate LMS signature\n"
-	"  sm3lmsverify      Verify LMS signature\n"
-	"  sm3hsskeygen      Generate SM3-HSS keypair\n"
-	"  sm3hsssign        Generate HSS signature\n"
-	"  sm3hssverify      Verify HSS signature\n"
+#ifdef ENABLE_LMS_HSS
+	"  lmskeygen         Generate SM3-LMS keypair\n"
+	"  lmssign           Generate LMS signature\n"
+	"  lmsverify         Verify LMS signature\n"
+	"  hsskeygen         Generate SM3-HSS keypair\n"
+	"  hsssign           Generate HSS signature\n"
+	"  hssverify         Verify HSS signature\n"
 #endif
 #ifdef ENABLE_SM3_XMSS
 	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
@@ -304,19 +304,19 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
-#ifdef ENABLE_SM3_LMS
-		} else if (!strcmp(*argv, "sm3lmskeygen")) {
-			return sm3lmskeygen_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3lmssign")) {
-			return sm3lmssign_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3lmsverify")) {
-			return sm3lmsverify_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3hsskeygen")) {
-			return sm3hsskeygen_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3hsssign")) {
-			return sm3hsssign_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3hssverify")) {
-			return sm3hssverify_main(argc, argv);
+#ifdef ENABLE_LMS_HSS
+		} else if (!strcmp(*argv, "lmskeygen")) {
+			return lmskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "lmssign")) {
+			return lmssign_main(argc, argv);
+		} else if (!strcmp(*argv, "lmsverify")) {
+			return lmsverify_main(argc, argv);
+		} else if (!strcmp(*argv, "hsskeygen")) {
+			return hsskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "hsssign")) {
+			return hsssign_main(argc, argv);
+		} else if (!strcmp(*argv, "hssverify")) {
+			return hssverify_main(argc, argv);
 #endif
 #ifdef ENABLE_SM3_XMSS
 		} else if (!strcmp(*argv, "sm3xmss_keygen")) {

@@ -53,7 +53,7 @@ option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
-option(ENABLE_SM3_LMS "Enable SM3-LMS signature" ON)
+option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
 option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" OFF)
 
 
@@ -416,18 +416,18 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
-if (ENABLE_SM3_LMS)
-	message(STATUS "ENABLE_SM3_LMS is ON")
-	add_definitions(-DENABLE_SM3_LMS)
-	list(APPEND src src/sm3_lms.c)
-	list(APPEND tools tools/sm3lmskeygen.c tools/sm3lmssign.c tools/sm3lmsverify.c)
-	list(APPEND tools tools/sm3hsskeygen.c tools/sm3hsssign.c tools/sm3hssverify.c)
-	list(APPEND tests sm3_lms)
+if (ENABLE_LMS_HSS)
+	message(STATUS "ENABLE_LMS_HSS is ON")
+	add_definitions(-DENABLE_LMS_HSS)
+	list(APPEND src src/lms.c)
+	list(APPEND tools tools/lmskeygen.c tools/lmssign.c tools/lmsverify.c)
+	list(APPEND tools tools/hsskeygen.c tools/hsssign.c tools/hssverify.c)
+	list(APPEND tests lms)
 
-	option(ENABLE_SM3_LMS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
-	if (ENABLE_SM3_LMS_CROSSCHECK)
-		message(STATUS "ENABLE_SM3_LMS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_SM3_LMS_CROSSCHECK)
+	option(ENABLE_LMS_HSS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
+	if (ENABLE_LMS_HSS_CROSSCHECK)
+		message(STATUS "ENABLE_LMS_HSS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_LMS_HSS_CROSSCHECK)
 	endif()
 endif()
 

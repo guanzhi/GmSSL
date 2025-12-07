@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_lms.h>
+#include <gmssl/lms.h>
 
 static const char *usage = "-pubkey file [-in file] -sig file [-verbose]\n";
 
@@ -26,7 +26,7 @@ static const char *options =
 "    -verbose                    Print public key and signature\n"
 "\n";
 
-int sm3hssverify_main(int argc, char **argv)
+int hssverify_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -37,13 +37,13 @@ int sm3hssverify_main(int argc, char **argv)
 	FILE *pubkeyfp = NULL;
 	FILE *infp = stdin;
 	FILE *sigfp = NULL;
-	uint8_t pubkeybuf[SM3_HSS_PUBLIC_KEY_SIZE];
-	size_t pubkeylen = SM3_HSS_PUBLIC_KEY_SIZE;
+	uint8_t pubkeybuf[HSS_PUBLIC_KEY_SIZE];
+	size_t pubkeylen = HSS_PUBLIC_KEY_SIZE;
 	const uint8_t *cp = pubkeybuf;
-	uint8_t sig[SM3_HSS_SIGNATURE_MAX_SIZE];
+	uint8_t sig[HSS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
-	SM3_HSS_KEY key;
-	SM3_HSS_SIGN_CTX ctx;
+	HSS_KEY key;
+	HSS_SIGN_CTX ctx;
 	int vr;
 
 	argc--;
@@ -108,23 +108,23 @@ bad:
 		fprintf(stderr, "%s: read public key failure\n", prog);
 		goto end;
 	}
-	if (sm3_hss_public_key_from_bytes(&key, &cp, &pubkeylen) != 1) {
+	if (hss_public_key_from_bytes(&key, &cp, &pubkeylen) != 1) {
 		error_print();
 		goto end;
 	}
 	if (verbose) {
-		sm3_hss_public_key_print(stderr, 0, 0, "lms_public_key", &key);
+		hss_public_key_print(stderr, 0, 0, "lms_public_key", &key);
 	}
 
 	// read signature even if signature not compatible with the public key
-	if ((siglen = fread(sig, 1, SM3_HSS_SIGNATURE_MAX_SIZE, sigfp)) <= 0) {
+	if ((siglen = fread(sig, 1, HSS_SIGNATURE_MAX_SIZE, sigfp)) <= 0) {
 		fprintf(stderr, "%s: read signature failure\n", prog);
 		goto end;
 	}
 	if (verbose) {
-		sm3_hss_signature_print(stderr, 0, 0, "lms_signature", sig, siglen);
+		hss_signature_print(stderr, 0, 0, "lms_signature", sig, siglen);
 	}
-	if (sm3_hss_verify_init(&ctx, &key, sig, siglen) != 1) {
+	if (hss_verify_init(&ctx, &key, sig, siglen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -135,12 +135,12 @@ bad:
 		if (len == 0) {
 			break;
 		}
-		if (sm3_hss_verify_update(&ctx, buf, len) != 1) {
+		if (hss_verify_update(&ctx, buf, len) != 1) {
 			error_print();
 			goto end;
 		}
 	}
-	if ((vr = sm3_hss_verify_finish(&ctx)) < 0) {
+	if ((vr = hss_verify_finish(&ctx)) < 0) {
 		error_print();
 		goto end;
 	}

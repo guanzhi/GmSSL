@@ -13,7 +13,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_lms.h>
+#include <gmssl/lms.h>
 
 
 static int lms_types[] = {
@@ -23,7 +23,7 @@ static int lms_types[] = {
 };
 
 
-#if defined(ENABLE_SM3_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
+#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
 static int test_rfc8554_test1(void)
 {
 	size_t i;
@@ -150,10 +150,10 @@ static int test_rfc8554_test1(void)
 		"09ab3034911fe125631051df0408b3946b0bde790911e8978ba07dd56c73e7ee",
 	};
 
-	SM3_HSS_KEY key;
-	SM3_HSS_SIGNATURE sig;
-	SM3_LMS_SIGNATURE *lms_sig;
-	SM3_LMS_PUBLIC_KEY *lms_pub;
+	HSS_KEY key;
+	HSS_SIGNATURE sig;
+	LMS_SIGNATURE *lms_sig;
+	LMS_PUBLIC_KEY *lms_pub;
 	size_t len;
 
 	// hss public key
@@ -202,25 +202,25 @@ static int test_rfc8554_test1(void)
 		hex_to_bytes(sig1_path[i], 64, lms_sig->path[i], &len);
 	}
 
-	sm3_hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
+	hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
 
-	sm3_hss_signature_print_ex(stderr, 0, 0, "hss_signature", &sig);
+	hss_signature_print_ex(stderr, 0, 0, "hss_signature", &sig);
 
 
-	SM3_HSS_SIGN_CTX ctx;
+	HSS_SIGN_CTX ctx;
 	uint8_t data[162];
 
 	hex_to_bytes(msg, strlen(msg), data, &len);
 
-	if (sm3_hss_verify_init_ex(&ctx, &key, &sig) != 1) {
+	if (hss_verify_init_ex(&ctx, &key, &sig) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_update(&ctx, data, len) != 1) {
+	if (hss_verify_update(&ctx, data, len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_finish(&ctx) != 1) {
+	if (hss_verify_finish(&ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -242,11 +242,11 @@ static int test_sm3_lmots(void)
 	hash256_t pub;
 	hash256_t pub2;
 
-	sm3_lmots_derive_secrets(seed, I, q, x); // TODO: compare results with test vector
-	sm3_lmots_secrets_to_public_hash(I, q, x, pub); // TODO: compare results with test vector
+	lmots_derive_secrets(seed, I, q, x); // TODO: compare results with test vector
+	lmots_secrets_to_public_hash(I, q, x, pub); // TODO: compare results with test vector
 
-	sm3_lmots_compute_signature(I, q, dgst, x, y); // TODO: compare results with test vector
-	sm3_lmots_signature_to_public_hash(I, q, y, dgst, pub2);
+	lmots_compute_signature(I, q, dgst, x, y); // TODO: compare results with test vector
+	lmots_signature_to_public_hash(I, q, y, dgst, pub2);
 
 	if (memcmp(pub, pub2, 32) != 0) {
 		error_print();
@@ -257,7 +257,7 @@ static int test_sm3_lmots(void)
 	return 1;
 }
 
-static int test_sm3_lms_derive_merkle_root(void)
+static int test_lms_derive_merkle_root(void)
 {
 	hash256_t seed = {0}; // TODO: change to test vector
 	uint8_t I[16] = {0};
@@ -271,8 +271,8 @@ static int test_sm3_lms_derive_merkle_root(void)
 		return -1;
 	}
 
-	sm3_lms_derive_merkle_tree(seed, I, h, tree);
-	sm3_lms_derive_merkle_root(seed, I, h, root);
+	lms_derive_merkle_tree(seed, I, h, tree);
+	lms_derive_merkle_root(seed, I, h, root);
 
 	if (memcmp(tree[0], root, 32) != 0) {
 		free(tree);
@@ -285,69 +285,69 @@ static int test_sm3_lms_derive_merkle_root(void)
 	return 1;
 }
 
-static int test_sm3_lms_key_generate(void)
+static int test_lms_key_generate(void)
 {
-	SM3_LMS_KEY lms_key;
+	LMS_KEY lms_key;
 	int lms_type = lms_types[0];
 
-	if (sm3_lms_key_generate(&lms_key, lms_type) != 1) {
+	if (lms_key_generate(&lms_key, lms_type) != 1) {
 		error_print();
 		return -1;
 	}
-	//sm3_lms_key_print(stdout, 0, 0, "lms_key", &lms_key);
+	//lms_key_print(stdout, 0, 0, "lms_key", &lms_key);
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
 
-static int test_sm3_lms_key_to_bytes(void)
+static int test_lms_key_to_bytes(void)
 {
-	SM3_LMS_KEY key;
+	LMS_KEY key;
 	int lms_type = lms_types[0];
 
-	uint8_t buf[sizeof(SM3_LMS_KEY) * 2];
+	uint8_t buf[sizeof(LMS_KEY) * 2];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len;
 
 
-	if (sm3_lms_key_generate(&key, lms_type) != 1) {
+	if (lms_key_generate(&key, lms_type) != 1) {
 		error_print();
 		return -1;
 	}
 
 	p = buf;
 	len = 0;
-	if (sm3_lms_public_key_to_bytes(&key, &p, &len) != 1) {
+	if (lms_public_key_to_bytes(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (len != SM3_LMS_PUBLIC_KEY_SIZE) {
+	if (len != LMS_PUBLIC_KEY_SIZE) {
 		error_print();
 		return -1;
 	}
 
-	if (sm3_lms_private_key_to_bytes(&key, &p, &len) != 1) {
+	if (lms_private_key_to_bytes(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (len != SM3_LMS_PUBLIC_KEY_SIZE + SM3_LMS_PRIVATE_KEY_SIZE) {
+	if (len != LMS_PUBLIC_KEY_SIZE + LMS_PRIVATE_KEY_SIZE) {
 		error_print();
 		return -1;
 	}
 
 	cp = buf;
-	if (sm3_lms_public_key_from_bytes(&key, &cp, &len) != 1) {
+	if (lms_public_key_from_bytes(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_lms_key_print(stdout, 0, 4, "lms_public_key", &key);
+	lms_key_print(stdout, 0, 4, "lms_public_key", &key);
 
-	if (sm3_lms_private_key_from_bytes(&key, &cp, &len) != 1) {
+	if (lms_private_key_from_bytes(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_lms_key_print(stdout, 0, 4, "lms_private_key", &key);
+	lms_key_print(stdout, 0, 4, "lms_private_key", &key);
 	if (len != 0) {
 		error_print();
 		return -1;
@@ -357,7 +357,7 @@ static int test_sm3_lms_key_to_bytes(void)
 	return 1;
 }
 
-static int test_sm3_lms_signature_size(void)
+static int test_lms_signature_size(void)
 {
 	int lms_types[] = {
 		LMS_HASH256_M32_H5,
@@ -377,7 +377,7 @@ static int test_sm3_lms_signature_size(void)
 	size_t i;
 
 	for (i = 0; i < sizeof(lms_types)/sizeof(lms_types[0]); i++) {
-		if (sm3_lms_signature_size(lms_types[i], &siglen) != 1) {
+		if (lms_signature_size(lms_types[i], &siglen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -391,7 +391,7 @@ static int test_sm3_lms_signature_size(void)
 	return 1;
 }
 
-static int test_sm3_hss_signature_size(void)
+static int test_hss_signature_size(void)
 {
 	int lms_types[] = {
 		LMS_HASH256_M32_H5,
@@ -402,17 +402,17 @@ static int test_sm3_hss_signature_size(void)
 	};
 	size_t siglens[] = {
 		4 + 1292,
-		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*1 + 1452,
-		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*2 + 1452 + 1612,
-		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*3 + 1452 + 1612 + 1772,
-		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*4 + 1452 + 1612 + 1772 + 1932,
+		4 + 1292 + LMS_PUBLIC_KEY_SIZE*1 + 1452,
+		4 + 1292 + LMS_PUBLIC_KEY_SIZE*2 + 1452 + 1612,
+		4 + 1292 + LMS_PUBLIC_KEY_SIZE*3 + 1452 + 1612 + 1772,
+		4 + 1292 + LMS_PUBLIC_KEY_SIZE*4 + 1452 + 1612 + 1772 + 1932,
 	};
 	size_t siglen;
 	size_t i;
 
 	for (i = 0; i < sizeof(lms_types)/sizeof(lms_types[0]); i++) {
 
-		if (sm3_hss_signature_size(lms_types, i+1, &siglen) != 1) {
+		if (hss_signature_size(lms_types, i+1, &siglen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -431,17 +431,17 @@ static int test_sm3_hss_signature_size(void)
 	return 1;
 }
 
-static int test_sm3_lms_sign(void)
+static int test_lms_sign(void)
 {
 	int lms_type = lms_types[0];
-	SM3_LMS_KEY key;
-	SM3_LMS_SIGN_CTX ctx;
+	LMS_KEY key;
+	LMS_SIGN_CTX ctx;
 	uint8_t msg[200];
-	uint8_t sig[SM3_LMS_SIGNATURE_MAX_SIZE];
+	uint8_t sig[LMS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 	int ret;
 
-	if (sm3_lms_key_generate(&key, lms_type) != 1) {
+	if (lms_key_generate(&key, lms_type) != 1) {
 		error_print();
 		return -1;
 	}
@@ -449,33 +449,33 @@ static int test_sm3_lms_sign(void)
 	memset(&ctx, 0, sizeof(ctx));
 	memset(sig, 0, sizeof(sig));
 
-	if (sm3_lms_sign_init(&ctx, &key) != 1) {
+	if (lms_sign_init(&ctx, &key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_lms_sign_update(&ctx, msg, 100) != 1) {
+	if (lms_sign_update(&ctx, msg, 100) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_lms_sign_update(&ctx, msg + 100, 100) != 1) {
+	if (lms_sign_update(&ctx, msg + 100, 100) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_lms_sign_finish(&ctx, sig, &siglen) != 1) {
+	if (lms_sign_finish(&ctx, sig, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
 
 	if (1) {
-		SM3_LMS_SIGNATURE signature;
+		LMS_SIGNATURE signature;
 		const uint8_t *cp = sig;
 		size_t len = siglen;
 
-		if (sm3_lms_signature_from_bytes(&signature, &cp, &len) != 1) {
+		if (lms_signature_from_bytes(&signature, &cp, &len) != 1) {
 			error_print();
 			return -1;
 		}
-		sm3_lms_signature_print_ex(stderr, 0, 4, "lms_signature", &signature);
+		lms_signature_print_ex(stderr, 0, 4, "lms_signature", &signature);
 		if (len) {
 			error_print();
 			return -1;
@@ -484,19 +484,19 @@ static int test_sm3_lms_sign(void)
 
 	memset(&ctx, 0, sizeof(ctx));
 
-	if (sm3_lms_verify_init(&ctx, &key, sig, siglen) != 1) {
+	if (lms_verify_init(&ctx, &key, sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_lms_verify_update(&ctx, msg, 100) != 1) {
+	if (lms_verify_update(&ctx, msg, 100) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_lms_verify_update(&ctx, msg + 100, 100) != 1) {
+	if (lms_verify_update(&ctx, msg + 100, 100) != 1) {
 		error_print();
 		return -1;
 	}
-	if ((ret = sm3_lms_verify_finish(&ctx)) != 1) {
+	if ((ret = lms_verify_finish(&ctx)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -505,22 +505,22 @@ static int test_sm3_lms_sign(void)
 	return 1;
 }
 
-static int test_sm3_lms_max_sigs(void)
+static int test_lms_max_sigs(void)
 {
 	int lms_type = LMS_HASH256_M32_H5;
 	int height = 5;
-	SM3_LMS_KEY key;
-	SM3_LMS_SIGN_CTX ctx;
+	LMS_KEY key;
+	LMS_SIGN_CTX ctx;
 	int i;
 
-	if (sm3_lms_key_generate(&key, lms_type) != 1) {
+	if (lms_key_generate(&key, lms_type) != 1) {
 		error_print();
 		return -1;
 	}
 
 	key.q = 1 << height;
 
-	if (sm3_lms_sign_init(&ctx, &key) == 1) {
+	if (lms_sign_init(&ctx, &key) == 1) {
 		error_print();
 		return -1;
 	}
@@ -529,17 +529,17 @@ static int test_sm3_lms_max_sigs(void)
 	return 1;
 }
 
-static int test_sm3_hss_key_generate(void)
+static int test_hss_key_generate(void)
 {
-	SM3_HSS_KEY key;
+	HSS_KEY key;
 
-	if (sm3_hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
+	if (hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
 		error_print();
 		return -1;
 	}
 
-	sm3_hss_public_key_print(stdout, 0, 4, "sm3_hss_public_key", &key);
-	sm3_hss_key_print(stdout, 0, 4, "sm3_hss_key", &key);
+	hss_public_key_print(stdout, 0, 4, "hss_public_key", &key);
+	hss_key_print(stdout, 0, 4, "hss_key", &key);
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -547,11 +547,11 @@ static int test_sm3_hss_key_generate(void)
 
 
 
-static int test_sm3_hss_key_update_level1(void)
+static int test_hss_key_update_level1(void)
 {
-	SM3_HSS_KEY key;
+	HSS_KEY key;
 
-	memset(&key, 0, sizeof(SM3_HSS_KEY));
+	memset(&key, 0, sizeof(HSS_KEY));
 
 	key.levels = 1;
 	key.lms_key[0].public_key.lms_type = LMS_HASH256_M32_H25;
@@ -559,7 +559,7 @@ static int test_sm3_hss_key_update_level1(void)
 	key.lms_key[0].q = (1 << 25);
 
 	// out of keys
-	if (sm3_hss_key_update(&key) != 0) {
+	if (hss_key_update(&key) != 0) {
 		error_print();
 		return -1;
 	}
@@ -568,23 +568,23 @@ static int test_sm3_hss_key_update_level1(void)
 	return 1;
 }
 
-static int test_sm3_hss_key_update_level2(void)
+static int test_hss_key_update_level2(void)
 {
 	int lms_types[] = {
 		LMS_HASH256_M32_H5,
 		LMS_HASH256_M32_H5,
 	};
-	SM3_HSS_KEY key;
+	HSS_KEY key;
 	int i;
 
-	if (sm3_hss_key_generate(&key, lms_types, 2) != 1) {
+	if (hss_key_generate(&key, lms_types, 2) != 1) {
 		error_print();
 		return -1;
 	}
 	key.lms_key[1].q = 32;
 
 	// update 1
-	if (sm3_hss_key_update(&key) != 1) {
+	if (hss_key_update(&key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -597,7 +597,7 @@ static int test_sm3_hss_key_update_level2(void)
 
 	// update 2
 	key.lms_key[1].q = 32;
-	if (sm3_hss_key_update(&key) != 1) {
+	if (hss_key_update(&key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -611,7 +611,7 @@ static int test_sm3_hss_key_update_level2(void)
 	// update 31
 	key.lms_key[0].q = 31;
 	key.lms_key[1].q = 32;
-	if (sm3_hss_key_update(&key) != 1) {
+	if (hss_key_update(&key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -624,7 +624,7 @@ static int test_sm3_hss_key_update_level2(void)
 
 	// update 32, key space exhausted, return 0
 	key.lms_key[1].q = 32;
-	if (sm3_hss_key_update(&key) != 0) {
+	if (hss_key_update(&key) != 0) {
 		error_print();
 		return -1;
 	}
@@ -635,7 +635,7 @@ static int test_sm3_hss_key_update_level2(void)
 
 
 
-static int test_sm3_hss_key_update_level5(void)
+static int test_hss_key_update_level5(void)
 {
 	int lms_types[] = {
 		LMS_HASH256_M32_H5,
@@ -644,10 +644,10 @@ static int test_sm3_hss_key_update_level5(void)
 		LMS_HASH256_M32_H5,
 		LMS_HASH256_M32_H5,
 	};
-	SM3_HSS_KEY key;
+	HSS_KEY key;
 	int i;
 
-	if (sm3_hss_key_generate(&key, lms_types, 5) != 1) {
+	if (hss_key_generate(&key, lms_types, 5) != 1) {
 		error_print();
 		return -1;
 	}
@@ -667,7 +667,7 @@ static int test_sm3_hss_key_update_level5(void)
 
 	// level-4 update
 	key.lms_key[4].q = 32;
-	if (sm3_hss_key_update(&key) != 1) {
+	if (hss_key_update(&key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -694,7 +694,7 @@ static int test_sm3_hss_key_update_level5(void)
 	key.lms_key[3].q = 32;
 	key.lms_sig[3].q = 31;
 	key.lms_key[4].q = 32;
-	if (sm3_hss_key_update(&key) != 1) {
+	if (hss_key_update(&key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -721,7 +721,7 @@ static int test_sm3_hss_key_update_level5(void)
 	key.lms_key[3].q = 32;
 	key.lms_sig[3].q = 31;
 	key.lms_key[4].q = 32;
-	if (sm3_hss_key_update(&key) != 1) {
+	if (hss_key_update(&key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -748,7 +748,7 @@ static int test_sm3_hss_key_update_level5(void)
 	key.lms_key[3].q = 32;
 	key.lms_sig[3].q = 31;
 	key.lms_key[4].q = 32;
-	if (sm3_hss_key_update(&key) != 0) {
+	if (hss_key_update(&key) != 0) {
 		error_print();
 		return -1;
 	}
@@ -757,16 +757,16 @@ static int test_sm3_hss_key_update_level5(void)
 	return 1;
 }
 
-static int test_sm3_hss_key_to_bytes(void)
+static int test_hss_key_to_bytes(void)
 {
-	SM3_HSS_KEY key;
+	HSS_KEY key;
 
-	uint8_t buf[SM3_HSS_PUBLIC_KEY_SIZE + sizeof(SM3_HSS_KEY)];
+	uint8_t buf[HSS_PUBLIC_KEY_SIZE + sizeof(HSS_KEY)];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len;
 
-	if (sm3_hss_key_generate(&key,
+	if (hss_key_generate(&key,
 		lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
 		error_print();
 		return -1;
@@ -774,32 +774,32 @@ static int test_sm3_hss_key_to_bytes(void)
 
 	p = buf;
 	len = 0;
-	if (sm3_hss_public_key_to_bytes(&key, &p, &len) != 1) {
+	if (hss_public_key_to_bytes(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (len != SM3_HSS_PUBLIC_KEY_SIZE) {
+	if (len != HSS_PUBLIC_KEY_SIZE) {
 		error_print();
 		return -1;
 	}
 
-	if (sm3_hss_private_key_to_bytes(&key, &p, &len) != 1) {
+	if (hss_private_key_to_bytes(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
 
 	cp = buf;
-	if (sm3_hss_public_key_from_bytes(&key, &cp, &len) != 1) {
+	if (hss_public_key_from_bytes(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hss_public_key_print(stdout, 0, 4, "lms_public_key", &key);
+	hss_public_key_print(stdout, 0, 4, "lms_public_key", &key);
 
-	if (sm3_hss_private_key_from_bytes(&key, &cp, &len) != 1) {
+	if (hss_private_key_from_bytes(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hss_key_print(stdout, 0, 4, "lms_private_key", &key);
+	hss_key_print(stdout, 0, 4, "lms_private_key", &key);
 	if (len != 0) {
 		error_print();
 		return -1;
@@ -809,43 +809,43 @@ static int test_sm3_hss_key_to_bytes(void)
 	return 1;
 }
 
-static int test_sm3_hss_sign_level1(void)
+static int test_hss_sign_level1(void)
 {
 	int levels = 1;
-	SM3_HSS_KEY key;
-	SM3_HSS_SIGN_CTX ctx;
-	SM3_HSS_SIGNATURE sig;
+	HSS_KEY key;
+	HSS_SIGN_CTX ctx;
+	HSS_SIGNATURE sig;
 	uint8_t msg[200];
-	uint8_t buf[sizeof(SM3_HSS_SIGNATURE)];
+	uint8_t buf[sizeof(HSS_SIGNATURE)];
 	size_t len;
 
-	if (sm3_hss_key_generate(&key, lms_types, levels) != 1) {
+	if (hss_key_generate(&key, lms_types, levels) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (sm3_hss_sign_init(&ctx, &key) != 1) {
+	if (hss_sign_init(&ctx, &key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_sign_update(&ctx, msg, sizeof(msg)) != 1) {
+	if (hss_sign_update(&ctx, msg, sizeof(msg)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_sign_finish(&ctx, buf, &len) != 1) {
+	if (hss_sign_finish(&ctx, buf, &len) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (sm3_hss_verify_init(&ctx, &key, buf, len) != 1) {
+	if (hss_verify_init(&ctx, &key, buf, len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_update(&ctx, msg, sizeof(msg)) != 1) {
+	if (hss_verify_update(&ctx, msg, sizeof(msg)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_finish(&ctx) != 1) {
+	if (hss_verify_finish(&ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -854,47 +854,47 @@ static int test_sm3_hss_sign_level1(void)
 	return 1;
 }
 
-static int test_sm3_hss_sign_level2(void)
+static int test_hss_sign_level2(void)
 {
 	int levels = 2;
-	SM3_HSS_KEY key;
-	SM3_HSS_SIGN_CTX ctx;
-	SM3_HSS_SIGNATURE sig;
+	HSS_KEY key;
+	HSS_SIGN_CTX ctx;
+	HSS_SIGNATURE sig;
 	uint8_t msg[200];
-	uint8_t buf[sizeof(SM3_HSS_SIGNATURE)];
+	uint8_t buf[sizeof(HSS_SIGNATURE)];
 	size_t len;
 
-	if (sm3_hss_key_generate(&key, lms_types, levels) != 1) {
+	if (hss_key_generate(&key, lms_types, levels) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hss_key_print(stderr, 0, 4, "sm3_hss_key", &key);
+	hss_key_print(stderr, 0, 4, "hss_key", &key);
 
 
-	if (sm3_hss_sign_init(&ctx, &key) != 1) {
+	if (hss_sign_init(&ctx, &key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_sign_update(&ctx, msg, sizeof(msg)) != 1) {
+	if (hss_sign_update(&ctx, msg, sizeof(msg)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_sign_finish(&ctx, buf, &len) != 1) {
+	if (hss_sign_finish(&ctx, buf, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hss_signature_print(stderr, 0, 4, "sm3_hss_signature", buf, len);
+	hss_signature_print(stderr, 0, 4, "hss_signature", buf, len);
 
 
-	if (sm3_hss_verify_init(&ctx, &key, buf, len) != 1) {
+	if (hss_verify_init(&ctx, &key, buf, len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_update(&ctx, msg, sizeof(msg)) != 1) {
+	if (hss_verify_update(&ctx, msg, sizeof(msg)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_finish(&ctx) != 1) {
+	if (hss_verify_finish(&ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -903,46 +903,46 @@ static int test_sm3_hss_sign_level2(void)
 	return 1;
 }
 
-static int test_sm3_hss_sign(void)
+static int test_hss_sign(void)
 {
-	SM3_HSS_KEY key;
-	SM3_HSS_SIGN_CTX ctx;
-	SM3_HSS_SIGNATURE sig;
+	HSS_KEY key;
+	HSS_SIGN_CTX ctx;
+	HSS_SIGNATURE sig;
 	uint8_t msg[200];
-	uint8_t buf[sizeof(SM3_HSS_SIGNATURE)];
+	uint8_t buf[sizeof(HSS_SIGNATURE)];
 	size_t len;
 
-	if (sm3_hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
+	if (hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hss_key_print(stderr, 0, 4, "sm3_hss_key", &key);
+	hss_key_print(stderr, 0, 4, "hss_key", &key);
 
 
-	if (sm3_hss_sign_init(&ctx, &key) != 1) {
+	if (hss_sign_init(&ctx, &key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_sign_update(&ctx, msg, sizeof(msg)) != 1) {
+	if (hss_sign_update(&ctx, msg, sizeof(msg)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_sign_finish(&ctx, buf, &len) != 1) {
+	if (hss_sign_finish(&ctx, buf, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	sm3_hss_signature_print(stderr, 0, 4, "sm3_hss_signature", buf, len);
+	hss_signature_print(stderr, 0, 4, "hss_signature", buf, len);
 
 
-	if (sm3_hss_verify_init(&ctx, &key, buf, len) != 1) {
+	if (hss_verify_init(&ctx, &key, buf, len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_update(&ctx, msg, sizeof(msg)) != 1) {
+	if (hss_verify_update(&ctx, msg, sizeof(msg)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_verify_finish(&ctx) != 1) {
+	if (hss_verify_finish(&ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -951,33 +951,33 @@ static int test_sm3_hss_sign(void)
 	return 1;
 }
 
-static int test_sm3_hss_public_key_algor(void)
+static int test_hss_public_key_algor(void)
 {
 	int lms_types[] = {
 		LMS_HASH256_M32_H5
 	};
-	SM3_HSS_KEY key;
+	HSS_KEY key;
 	uint8_t buf[512];
 	const uint8_t *cp;
 	uint8_t *p;
 	size_t len;
 
 
-	if (sm3_hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
+	if (hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
 		error_print();
 		return -1;
 	}
 
 	cp = p = buf;
 	len = 0;
-	if (sm3_hss_public_key_to_der(&key, &p, &len) != 1) {
+	if (hss_public_key_to_der(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
 	fprintf(stderr, "HSS-LMS-HashSig-PublicKey ::= OCTET STRING\n");
 	fprintf(stderr, "hss_public_key der size = %zu\n", len);
-	memset(&key, 0, sizeof(SM3_HSS_KEY));
-	if (sm3_hss_public_key_from_der(&key, &cp, &len) != 1) {
+	memset(&key, 0, sizeof(HSS_KEY));
+	if (hss_public_key_from_der(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -989,11 +989,11 @@ static int test_sm3_hss_public_key_algor(void)
 
 	cp = p = buf;
 	len = 0;
-	if (sm3_hss_public_key_algor_to_der(&p, &len) != 1) {
+	if (hss_public_key_algor_to_der(&p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm3_hss_public_key_algor_from_der(&cp, &len) != 1) {
+	if (hss_public_key_algor_from_der(&cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1005,13 +1005,13 @@ static int test_sm3_hss_public_key_algor(void)
 
 	cp = p = buf;
 	len = 0;
-	if (sm3_hss_public_key_info_to_der(&key, &p, &len) != 1) {
+	if (hss_public_key_info_to_der(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
 	fprintf(stderr, "HSSPublicKeyInfo DER size = %zu\n", len);
-	memset(&key, 0, sizeof(SM3_HSS_KEY));
-	if (sm3_hss_public_key_info_from_der(&key, &cp, &len) != 1) {
+	memset(&key, 0, sizeof(HSS_KEY));
+	if (hss_public_key_info_from_der(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1029,26 +1029,26 @@ static int test_sm3_hss_public_key_algor(void)
 
 int main(void)
 {
-#if defined(ENABLE_SM3_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
+#if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
 	if (test_rfc8554_test1() != 1) goto err;
 #endif
 	if (test_sm3_lmots() != 1) goto err;
-	if (test_sm3_lms_derive_merkle_root() != 1) goto err;
-	if (test_sm3_lms_key_generate() != 1) goto err;
-	if (test_sm3_lms_key_to_bytes() != 1) goto err;
-	if (test_sm3_lms_signature_size() != 1) goto err;
-	if (test_sm3_lms_sign() != 1) goto err;
-	if (test_sm3_lms_max_sigs() != 1) goto err;
-	if (test_sm3_hss_key_generate() != 1) goto err;
-	if (test_sm3_hss_key_to_bytes() != 1) goto err;
-	if (test_sm3_hss_key_update_level1() != 1) goto err;
-	if (test_sm3_hss_key_update_level2() != 1) goto err;
-	if (test_sm3_hss_key_update_level5() != 1) goto err;
-	if (test_sm3_hss_signature_size() != 1) goto err;
-	if (test_sm3_hss_sign_level1() != 1) goto err;
-	if (test_sm3_hss_sign_level2() != 1) goto err;
-	if (test_sm3_hss_sign() != 1) goto err;
-	if (test_sm3_hss_public_key_algor() != 1) goto err;
+	if (test_lms_derive_merkle_root() != 1) goto err;
+	if (test_lms_key_generate() != 1) goto err;
+	if (test_lms_key_to_bytes() != 1) goto err;
+	if (test_lms_signature_size() != 1) goto err;
+	if (test_lms_sign() != 1) goto err;
+	if (test_lms_max_sigs() != 1) goto err;
+	if (test_hss_key_generate() != 1) goto err;
+	if (test_hss_key_to_bytes() != 1) goto err;
+	if (test_hss_key_update_level1() != 1) goto err;
+	if (test_hss_key_update_level2() != 1) goto err;
+	if (test_hss_key_update_level5() != 1) goto err;
+	if (test_hss_signature_size() != 1) goto err;
+	if (test_hss_sign_level1() != 1) goto err;
+	if (test_hss_sign_level2() != 1) goto err;
+	if (test_hss_sign() != 1) goto err;
+	if (test_hss_public_key_algor() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

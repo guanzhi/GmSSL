@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_lms.h>
+#include <gmssl/lms.h>
 
 static const char *usage = "-key file [-in file] [-out file] [-verbose]\n";
 
@@ -26,7 +26,7 @@ static const char *options =
 "    -verbose                    Print public key and signature\n"
 "\n";
 
-int sm3hsssign_main(int argc, char **argv)
+int hsssign_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -37,13 +37,13 @@ int sm3hsssign_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	uint8_t keybuf[SM3_HSS_PRIVATE_KEY_MAX_SIZE];
-	size_t keylen = SM3_HSS_PRIVATE_KEY_MAX_SIZE;
+	uint8_t keybuf[HSS_PRIVATE_KEY_MAX_SIZE];
+	size_t keylen = HSS_PRIVATE_KEY_MAX_SIZE;
 	const uint8_t *cp = keybuf;
 	uint8_t *p = keybuf;
-	SM3_HSS_KEY key;
-	SM3_HSS_SIGN_CTX ctx;
-	uint8_t sig[SM3_HSS_SIGNATURE_MAX_SIZE];
+	HSS_KEY key;
+	HSS_SIGN_CTX ctx;
+	uint8_t sig[HSS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 
 	argc--;
@@ -104,7 +104,7 @@ bad:
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
 	}
-	if (sm3_hss_private_key_from_bytes(&key, &cp, &keylen) != 1) {
+	if (hss_private_key_from_bytes(&key, &cp, &keylen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -114,17 +114,17 @@ bad:
 	}
 
 	if (verbose) {
-		sm3_hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
+		hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
 	}
 
-	if (sm3_hss_sign_init(&ctx, &key) != 1) {
+	if (hss_sign_init(&ctx, &key) != 1) {
 		error_print();
 		goto end;
 	}
 
 	// write updated key back to file
 	// TODO: write back `q` only
-	if (sm3_hss_private_key_to_bytes(&key, &p, &keylen) != 1) {
+	if (hss_private_key_to_bytes(&key, &p, &keylen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -140,12 +140,12 @@ bad:
 		if (len == 0) {
 			break;
 		}
-		if (sm3_hss_sign_update(&ctx, buf, len) != 1) {
+		if (hss_sign_update(&ctx, buf, len) != 1) {
 			error_print();
 			goto end;
 		}
 	}
-	if (sm3_hss_sign_finish(&ctx, sig, &siglen) != 1) {
+	if (hss_sign_finish(&ctx, sig, &siglen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -154,7 +154,7 @@ bad:
 		goto end;
 	}
 	if (verbose) {
-		sm3_hss_signature_print(stderr, 0, 0, "hss_signature", sig, siglen);
+		hss_signature_print(stderr, 0, 0, "hss_signature", sig, siglen);
 	}
 
 	ret = 0;

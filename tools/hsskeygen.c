@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_lms.h>
+#include <gmssl/lms.h>
 
 
 static const char *usage = "-lms_types types -out file [-pubout file] [-verbose]\n";
@@ -36,7 +36,7 @@ static const char *options =
 
 #define LMS_TYPES_STR_MAX_SIZE	(sizeof("LMS_SM3_M32_H20_NAME") * 5)
 
-int sm3hsskeygen_main(int argc, char **argv)
+int hsskeygen_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -49,9 +49,9 @@ int sm3hsskeygen_main(int argc, char **argv)
 	int levels = 0;
 	FILE *outfp = NULL;
 	FILE *puboutfp = stdout;
-	SM3_HSS_KEY key;
-	uint8_t out[SM3_HSS_PRIVATE_KEY_MAX_SIZE];
-	uint8_t pubout[SM3_HSS_PUBLIC_KEY_SIZE];
+	HSS_KEY key;
+	uint8_t out[HSS_PRIVATE_KEY_MAX_SIZE];
+	uint8_t pubout[HSS_PUBLIC_KEY_SIZE];
 	uint8_t *pout = out;
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
@@ -78,7 +78,7 @@ int sm3hsskeygen_main(int argc, char **argv)
 
 			tok = strtok(lms_types_str, ":");
 			while (tok) {
-				if (!(lms_types_val[levels] = sm3_lms_type_from_name(tok))) {
+				if (!(lms_types_val[levels] = lms_type_from_name(tok))) {
 					fprintf(stderr, "%s: invalid lms_type `%s`\n", prog, tok);
 					goto end;
 				}
@@ -122,15 +122,15 @@ bad:
 		goto end;
 	}
 
-	if (sm3_hss_key_generate(&key, lms_types_val, levels) != 1) {
+	if (hss_key_generate(&key, lms_types_val, levels) != 1) {
 		error_print();
 		return -1;
 	}
 	if (verbose) {
-		sm3_hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
+		hss_public_key_print(stderr, 0, 0, "hss_public_key", &key);
 	}
 
-	if (sm3_hss_private_key_to_bytes(&key, &pout, &outlen) != 1) {
+	if (hss_private_key_to_bytes(&key, &pout, &outlen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -139,7 +139,7 @@ bad:
 		goto end;
 	}
 
-	if (sm3_hss_public_key_to_bytes(&key, &ppubout, &puboutlen) != 1) {
+	if (hss_public_key_to_bytes(&key, &ppubout, &puboutlen) != 1) {
 		error_print();
 		goto end;
 	}
