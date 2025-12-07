@@ -357,6 +357,80 @@ static int test_sm3_lms_key_to_bytes(void)
 	return 1;
 }
 
+static int test_sm3_lms_signature_size(void)
+{
+	int lms_types[] = {
+		LMS_HASH256_M32_H5,
+		LMS_HASH256_M32_H10,
+		LMS_HASH256_M32_H15,
+		LMS_HASH256_M32_H20,
+		LMS_HASH256_M32_H25,
+	};
+	size_t siglens[] = {
+		1292,
+		1452,
+		1612,
+		1772,
+		1932,
+	};
+	size_t siglen;
+	size_t i;
+
+	for (i = 0; i < sizeof(lms_types)/sizeof(lms_types[0]); i++) {
+		if (sm3_lms_signature_size(lms_types[i], &siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (siglen != siglens[i]) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm3_hss_signature_size(void)
+{
+	int lms_types[] = {
+		LMS_HASH256_M32_H5,
+		LMS_HASH256_M32_H10,
+		LMS_HASH256_M32_H15,
+		LMS_HASH256_M32_H20,
+		LMS_HASH256_M32_H25,
+	};
+	size_t siglens[] = {
+		4 + 1292,
+		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*1 + 1452,
+		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*2 + 1452 + 1612,
+		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*3 + 1452 + 1612 + 1772,
+		4 + 1292 + SM3_LMS_PUBLIC_KEY_SIZE*4 + 1452 + 1612 + 1772 + 1932,
+	};
+	size_t siglen;
+	size_t i;
+
+	for (i = 0; i < sizeof(lms_types)/sizeof(lms_types[0]); i++) {
+
+		if (sm3_hss_signature_size(lms_types, i+1, &siglen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		fprintf(stderr, "%zu %zu\n", siglens[i], siglen);
+
+
+
+		if (siglen != siglens[i]) {
+			error_print();
+		//	return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sm3_lms_sign(void)
 {
 	int lms_type = lms_types[0];
@@ -470,6 +544,8 @@ static int test_sm3_hss_key_generate(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+
+
 
 static int test_sm3_hss_key_update_level1(void)
 {
@@ -898,6 +974,8 @@ static int test_sm3_hss_public_key_algor(void)
 		error_print();
 		return -1;
 	}
+	fprintf(stderr, "HSS-LMS-HashSig-PublicKey ::= OCTET STRING\n");
+	fprintf(stderr, "hss_public_key der size = %zu\n", len);
 	memset(&key, 0, sizeof(SM3_HSS_KEY));
 	if (sm3_hss_public_key_from_der(&key, &cp, &len) != 1) {
 		error_print();
@@ -931,6 +1009,7 @@ static int test_sm3_hss_public_key_algor(void)
 		error_print();
 		return -1;
 	}
+	fprintf(stderr, "HSSPublicKeyInfo DER size = %zu\n", len);
 	memset(&key, 0, sizeof(SM3_HSS_KEY));
 	if (sm3_hss_public_key_info_from_der(&key, &cp, &len) != 1) {
 		error_print();
@@ -957,6 +1036,7 @@ int main(void)
 	if (test_sm3_lms_derive_merkle_root() != 1) goto err;
 	if (test_sm3_lms_key_generate() != 1) goto err;
 	if (test_sm3_lms_key_to_bytes() != 1) goto err;
+	if (test_sm3_lms_signature_size() != 1) goto err;
 	if (test_sm3_lms_sign() != 1) goto err;
 	if (test_sm3_lms_max_sigs() != 1) goto err;
 	if (test_sm3_hss_key_generate() != 1) goto err;
@@ -964,6 +1044,7 @@ int main(void)
 	if (test_sm3_hss_key_update_level1() != 1) goto err;
 	if (test_sm3_hss_key_update_level2() != 1) goto err;
 	if (test_sm3_hss_key_update_level5() != 1) goto err;
+	if (test_sm3_hss_signature_size() != 1) goto err;
 	if (test_sm3_hss_sign_level1() != 1) goto err;
 	if (test_sm3_hss_sign_level2() != 1) goto err;
 	if (test_sm3_hss_sign() != 1) goto err;

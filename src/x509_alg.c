@@ -261,6 +261,16 @@ static uint32_t oid_rsasign_with_sha256[] = { 1,2,840,113549,1,1,11 };
 static uint32_t oid_rsasign_with_sha384[] = { 1,2,840,113549,1,1,12 };
 static uint32_t oid_rsasign_with_sha512[] = { 1,2,840,113549,1,1,13 };
 
+/*
+from RFC 9708
+
+id-alg-hss-lms-hashsig OBJECT IDENTIFIER ::= {
+	iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1)
+	pkcs-9(9) smime(16) alg(3) 17
+}
+*/
+static uint32_t  oid_hss_lms_hashsig[] = { oid_pkcs,9,16,3,17 };
+
 
 /*
 from RFC 3447 Public-Key Cryptography Standards (PKCS) #1: RSA Cryptography
@@ -347,6 +357,9 @@ static const ASN1_OID_INFO x509_sign_algors[] = {
 	{ OID_rsasign_with_sha256, "sha256WithRSAEncryption", oid_rsasign_with_sha256, sizeof(oid_rsasign_with_sha256)/sizeof(int), 1 },
 	{ OID_rsasign_with_sha384, "sha384WithRSAEncryption", oid_rsasign_with_sha384, sizeof(oid_rsasign_with_sha384)/sizeof(int), 1 },
 	{ OID_rsasign_with_sha512, "sha512WithRSAEncryption", oid_rsasign_with_sha512, sizeof(oid_rsasign_with_sha512)/sizeof(int), 1 },
+#ifdef ENABLE_SM3_LMS
+	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 1 },
+#endif
 };
 
 static const int x509_sign_algors_count =
@@ -560,21 +573,12 @@ err:
 
 
 static uint32_t oid_ec_public_key[] = { oid_x9_62,2,1 };
-/*
-from RFC 9708
-
-id-alg-hss-lms-hashsig OBJECT IDENTIFIER ::= {
-	iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1)
-	pkcs-9(9) smime(16) alg(3) 17
-}
-*/
-static uint32_t  oid_hss_lms_hashsig[] = { oid_pkcs,9,16,3,17 };
 
 static const ASN1_OID_INFO x509_public_key_algors[] = {
 	{ OID_ec_public_key, "ecPublicKey", oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), 0, "X9.62 ecPublicKey" },
 	{ OID_rsa_encryption, "rsaEncryption", oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), 0, "RSAEncryption" },
 #ifdef ENABLE_SM3_LMS
-	{ OID_hss_lms_hashsig, "hsslmsHashSig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
+	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
 #endif
 };
 

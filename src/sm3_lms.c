@@ -1119,6 +1119,23 @@ int sm3_lms_verify_finish(SM3_LMS_SIGN_CTX *ctx)
 	}
 }
 
+int sm3_hss_public_key_digest(const SM3_HSS_KEY *key, uint8_t dgst[32])
+{
+	SM3_CTX ctx;
+	uint8_t bytes[SM3_HSS_PUBLIC_KEY_SIZE];
+	uint8_t *p = bytes;
+	size_t len;
+
+	if (sm3_hss_public_key_to_bytes(key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	sm3_init(&ctx);
+	sm3_update(&ctx, bytes, sizeof(bytes));
+	sm3_finish(&ctx, dgst);
+	return 1;
+}
+
 int sm3_hss_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM3_HSS_KEY *key)
 {
 	format_print(fp, fmt, ind, "%s\n", label);

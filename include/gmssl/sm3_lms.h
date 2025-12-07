@@ -174,8 +174,16 @@ int sm3_lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
 	const hash256_t y[34], const hash256_t *path,
 	const hash256_t dgst, hash256_t root);
 
-int sm3_lms_key_get_signature_size(const SM3_LMS_KEY *key, size_t *siglen);
+
+/*
+ * LMS_HASH256_M32_H5	1292
+ * LMS_HASH256_M32_H10	1452
+ * LMS_HASH256_M32_H15	1612
+ * LMS_HASH256_M32_H20	1772
+ * LMS_HASH256_M32_H25	1932
+ */
 int sm3_lms_signature_size(int lms_type, size_t *siglen);
+int sm3_lms_key_get_signature_size(const SM3_LMS_KEY *key, size_t *siglen);
 
 int sm3_lms_signature_to_bytes(const SM3_LMS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sm3_lms_signature_from_bytes_ex(const SM3_LMS_SIGNATURE **sig, size_t *siglen, const uint8_t **in, size_t *inlen);
@@ -231,6 +239,7 @@ int sm3_hss_private_key_size(const int *lms_types, size_t levels, size_t *len);
 int sm3_hss_key_generate(SM3_HSS_KEY *key, const int *lms_types, size_t levels);
 int sm3_hss_key_update(SM3_HSS_KEY *key);
 
+int sm3_hss_public_key_digest(const SM3_HSS_KEY *key, uint8_t dgst[32]);
 int sm3_hss_public_key_to_bytes(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen);
 int sm3_hss_private_key_to_bytes(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen);
 int sm3_hss_public_key_from_bytes(SM3_HSS_KEY *key, const uint8_t **in, size_t *inlen);
@@ -238,7 +247,6 @@ int sm3_hss_private_key_from_bytes(SM3_HSS_KEY *key, const uint8_t **in, size_t 
 int sm3_hss_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SM3_HSS_KEY *key);
 int sm3_hss_key_print(FILE *fp, int fmt, int ind, const char *label, const SM3_HSS_KEY *key);
 void sm3_hss_key_cleanup(SM3_HSS_KEY *key);
-
 
 
 typedef struct {
@@ -280,6 +288,9 @@ int sm3_hss_verify_finish(SM3_HSS_SIGN_CTX *ctx);
 
 
 // X.509 related
+#define SM3_HSS_PUBLIC_KEY_DER_SIZE	63
+#define SM3_HSS_PUBLIC_KEY_INFO_SIZE	82
+
 int sm3_hss_public_key_to_der(const SM3_HSS_KEY *key, uint8_t **out, size_t *outlen);
 int sm3_hss_public_key_from_der(SM3_HSS_KEY *key, const uint8_t **in, size_t *inlen);
 int sm3_hss_public_key_algor_to_der(uint8_t **out, size_t *outlen);
