@@ -72,8 +72,10 @@ extern int hsskeygen_main(int argc, char **argv);
 extern int hsssign_main(int argc, char **argv);
 extern int hssverify_main(int argc, char **argv);
 #endif
-#ifdef ENABLE_SM3_XMSS
-extern int sm3xmss_keygen_main(int argc, char **argv);
+#ifdef ENABLE_XMSS
+extern int xmsskeygen_main(int argc, char **argv);
+extern int xmsssign_main(int argc, char **argv);
+extern int xmssverify_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_SDF
 extern int sdfinfo_main(int argc, char **argv);
@@ -140,15 +142,17 @@ static const char *options =
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
 #ifdef ENABLE_LMS_HSS
-	"  lmskeygen         Generate SM3-LMS keypair\n"
-	"  lmssign           Generate LMS signature\n"
-	"  lmsverify         Verify LMS signature\n"
-	"  hsskeygen         Generate SM3-HSS keypair\n"
-	"  hsssign           Generate HSS signature\n"
-	"  hssverify         Verify HSS signature\n"
+	"  lmskeygen         Generate LMS-SM3 (Leighton-Micali Signature) keypair\n"
+	"  lmssign           Generate LMS-SM3 signature\n"
+	"  lmsverify         Verify LMS-SM3 signature\n"
+	"  hsskeygen         Generate HSS-SM3 keypair\n"
+	"  hsssign           Generate HSS-SM3 signature\n"
+	"  hssverify         Verify HSS-SM3 signature\n"
 #endif
-#ifdef ENABLE_SM3_XMSS
-	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
+#ifdef ENABLE_XMSS
+	"  xmsskeygen        Generate XMSS-SM3 keypair\n"
+	"  xmsssign          Generate XMSS-SM3 signature\n"
+	"  xmssverify        Verify XMSS-SM3 signature\n"
 #endif
 #ifdef ENABLE_SDF
 	"  sdfinfo           Print SDF device info\n"
@@ -318,9 +322,13 @@ int main(int argc, char **argv)
 		} else if (!strcmp(*argv, "hssverify")) {
 			return hssverify_main(argc, argv);
 #endif
-#ifdef ENABLE_SM3_XMSS
-		} else if (!strcmp(*argv, "sm3xmss_keygen")) {
-			return sm3xmss_keygen_main(argc, argv);
+#ifdef ENABLE_XMSS
+		} else if (!strcmp(*argv, "xmsskeygen")) {
+			return xmsskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "xmsssign")) {
+			return xmsssign_main(argc, argv);
+		} else if (!strcmp(*argv, "xmssverify")) {
+			return xmssverify_main(argc, argv);
 #endif
 #ifdef ENABLE_SDF
 		} else if (!strcmp(*argv, "sdfinfo")) {

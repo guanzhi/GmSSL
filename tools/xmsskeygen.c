@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_xmss.h>
+#include <gmssl/xmss.h>
 
 
 static const char *usage = "-oid oid [-out file] [-pubout file]\n";
@@ -29,7 +29,7 @@ static const char *help =
 "    -pubout file                Output public key\n"
 "\n";
 
-int sm3xmss_keygen_main(int argc, char **argv)
+int xmsskeygen_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -39,7 +39,7 @@ int sm3xmss_keygen_main(int argc, char **argv)
 	char *puboutfile = NULL;
 	FILE *outfp = stdout;
 	FILE *puboutfp = stdout;
-	SM3_XMSS_KEY key;
+	XMSS_KEY key;
 	uint8_t *out = NULL;
 	uint8_t *pubout = NULL;
 	size_t outlen, puboutlen;
@@ -103,12 +103,12 @@ bad:
 	}
 
 
-	if (sm3_xmss_key_generate(&key, oid_val) != 1) {
+	if (xmss_key_generate(&key, oid_val) != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (sm3_xmss_key_to_bytes(&key, NULL, &outlen) != 1) {
+	if (xmss_key_to_bytes(&key, NULL, &outlen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -116,11 +116,11 @@ bad:
 		error_print();
 		goto end;
 	}
-	if (sm3_xmss_key_to_bytes(&key, out, &outlen) != 1) {
+	if (xmss_key_to_bytes(&key, out, &outlen) != 1) {
 		error_print();
 	}
 
-	if (sm3_xmss_public_key_to_bytes(&key, NULL, &puboutlen) != 1) {
+	if (xmss_public_key_to_bytes(&key, NULL, &puboutlen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -128,7 +128,7 @@ bad:
 		error_print();
 		goto end;
 	}
-	if (sm3_xmss_public_key_to_bytes(&key, pubout, &puboutlen) != 1) {
+	if (xmss_public_key_to_bytes(&key, pubout, &puboutlen) != 1) {
 		error_print();
 		goto end;
 	}

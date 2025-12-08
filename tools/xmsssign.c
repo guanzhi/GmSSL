@@ -12,8 +12,10 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
+#include <gmssl/file.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_xmss.h>
+#include <gmssl/xmss.h>
 
 static const char *usage = "-key file [-in file] [-out file]\n";
 
@@ -24,7 +26,7 @@ static const char *help =
 "    -out file                   Output signature file\n"
 "\n";
 
-int sm3xmss_sign_main(int argc, char **argv)
+int xmsssign_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
@@ -34,8 +36,10 @@ int sm3xmss_sign_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM3_XMSS_KEY key;
-	SM3_XMSS_SIGN_CTX sign_ctx;
+	uint8_t *keybuf = NULL;
+	size_t keylen;
+	XMSS_KEY key;
+	XMSS_SIGN_CTX sign_ctx;
 	uint8_t *sigbuf = NULL;
 	size_t siglen;
 
@@ -56,8 +60,14 @@ int sm3xmss_sign_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
+			/*
 			if (!(keyfp = fopen(keyfile, "rb"))) {
 				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, keyfile, strerror(errno));
+				goto end;
+			}
+			*/
+			if (file_read_all(keyfile, &keybuf, &keylen) != 1) {
+				error_print();
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-in")) {
@@ -91,17 +101,13 @@ bad:
 		goto end;
 	}
 
-	if (sm3_xmss_key_from_bytes(&key, NULL, 0) != 1) {
+
+	if (xmss_key_from_bytes(&key, keybuf, keylen) != 1) {
 		error_print();
 		goto end;
 	}
 
-	if (fread(&key, 1, sizeof(key), keyfp) != sizeof(key)) {
-		fprintf(stderr, "%s: read private key failure\n", prog);
-		goto end;
-	}
-
-	if (sm3_xmss_sign_init(&sign_ctx, &key) != 1) {
+	if (xmss_sign_init(&sign_ctx, &key) != 1) {
 		error_print();
 		goto end;
 	}
@@ -112,13 +118,13 @@ bad:
 		if (len == 0) {
 			break;
 		}
-		if (sm3_xmss_sign_update(&sign_ctx, buf, len) != 1) {
+		if (xmss_sign_update(&sign_ctx, buf, len) != 1) {
 			error_print();
 			goto end;
 		}
 	}
 
-	if (sm3_xmss_sign_finish(&sign_ctx, &key, NULL, &siglen) != 1) {
+	if (xmss_sign_finish(&sign_ctx, &key, NULL, &siglen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -128,7 +134,7 @@ bad:
 		goto end;
 	}
 
-	if (sm3_xmss_sign_finish(&sign_ctx, &key, sigbuf, &siglen) != 1) {
+	if (xmss_sign_finish(&sign_ctx, &key, sigbuf, &siglen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -147,7 +153,11 @@ end:
 		gmssl_secure_clear(sigbuf, siglen);
 		free(sigbuf);
 	}
-	if (keyfp) fclose(keyfp);
+	if (keybuf) {
+		gmssl_secure_clear(keybuf, keylen);
+		free(keybuf);
+	}
+	//if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);
 	if (outfp && outfp != stdout) fclose(outfp);
 	return ret;

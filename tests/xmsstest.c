@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_xmss.h>
+#include <gmssl/xmss.h>
 
 
 // copy this static function from src/sm3_xmss.c
@@ -31,8 +31,8 @@ static int test_sm3_wots_derive_sk(void)
 	uint8_t wots_secret[32] = {0};
 	uint8_t seed[32] = {0};
 	uint8_t adrs[32] = {0};
-	hash256_bytes_t wots_sk[67];
-	hash256_bytes_t test_sk[67];
+	hash256_t wots_sk[67];
+	hash256_t test_sk[67];
 	size_t len;
 
 	// sha256 test 1
@@ -76,9 +76,9 @@ static int test_sm3_wots_derive_pk(void)
 	uint8_t wots_secret[32] = {0};
 	uint8_t seed[32] = {0};
 	uint8_t adrs[32] = {0};
-	hash256_bytes_t wots_sk[67];
-	hash256_bytes_t wots_pk[67];
-	hash256_bytes_t test_pk[67];
+	hash256_t wots_sk[67];
+	hash256_t wots_pk[67];
+	hash256_t test_pk[67];
 	HASH256_CTX prf_seed_ctx;
 	size_t len;
 
@@ -111,11 +111,11 @@ static int test_sm3_wots_do_sign(void)
 	uint8_t seed[32] = {0};
 	uint8_t adrs[32] = {0};
 	uint8_t dgst[32] = {0};
-	hash256_bytes_t wots_sk[67];
-	hash256_bytes_t wots_pk[67];
-	hash256_bytes_t wots_sig[67];
-	hash256_bytes_t test_sig[67];
-	hash256_bytes_t sig_pk[67];
+	hash256_t wots_sk[67];
+	hash256_t wots_pk[67];
+	hash256_t wots_sig[67];
+	hash256_t test_sig[67];
+	hash256_t sig_pk[67];
 	HASH256_CTX prf_seed_ctx;
 	size_t len;
 	int i;
@@ -154,12 +154,12 @@ static int test_sm3_wots_do_sign(void)
 	return 1;
 }
 
-static int test_sm3_xmss_derive_root(void)
+static int test_xmss_derive_root(void)
 {
 	uint8_t xmss_secret[32];
 	uint8_t seed[32];
 	int height = 10;
-	hash256_bytes_t *tree = malloc(32 * (1<<height) * 2);
+	hash256_t *tree = malloc(32 * (1<<height) * 2);
 	uint8_t xmss_root[32];
 	uint8_t test_root[32];
 	size_t len;
@@ -168,7 +168,7 @@ static int test_sm3_xmss_derive_root(void)
 	memset(seed, 0xab, 32);
 	hex_to_bytes("f0415ed807c8f8c2ee8ca3a00178bff37e1ccb2836e02607d06131c9341e52ca", 64, test_root, &len);
 
-	sm3_xmss_derive_root(xmss_secret, height, seed, tree, xmss_root);
+	xmss_derive_root(xmss_secret, height, seed, tree, xmss_root);
 
 	if (memcmp(xmss_root, test_root, 32)) {
 		error_print();
@@ -180,7 +180,7 @@ static int test_sm3_xmss_derive_root(void)
 }
 
 
-static int test_sm3_xmss_do_sign(void)
+static int test_xmss_do_sign(void)
 {
 	uint8_t xmss_secret[32];
 	uint8_t xmss_root[32];
@@ -188,9 +188,9 @@ static int test_sm3_xmss_do_sign(void)
 	uint8_t dgst[32];
 	uint8_t seed[32];
 	uint8_t adrs[32] = {0};
-	hash256_bytes_t wots_sig[67];
-	hash256_bytes_t *auth_path = malloc(32 * h);
-	hash256_bytes_t *tree = malloc(32 * (1<<h) * 2);
+	hash256_t wots_sig[67];
+	hash256_t *auth_path = malloc(32 * h);
+	hash256_t *tree = malloc(32 * (1<<h) * 2);
 	uint32_t index = 0;
 	uint8_t i;
 
@@ -200,12 +200,12 @@ static int test_sm3_xmss_do_sign(void)
 		dgst[i] = i;
 	}
 
-	sm3_xmss_derive_root(xmss_secret, h, seed, tree, xmss_root);
+	xmss_derive_root(xmss_secret, h, seed, tree, xmss_root);
 
 	for (index = 0; index < (1<<h); index++) {
 		uint8_t root_from_sig[32];
-		sm3_xmss_do_sign(xmss_secret, index, seed, adrs, h, tree, dgst, wots_sig, auth_path);
-		sm3_xmss_sig_to_root(wots_sig, index, auth_path, seed, adrs, h, dgst, root_from_sig);
+		xmss_do_sign(xmss_secret, index, seed, adrs, h, tree, dgst, wots_sig, auth_path);
+		xmss_sig_to_root(wots_sig, index, auth_path, seed, adrs, h, dgst, root_from_sig);
 		if (memcmp(xmss_root, root_from_sig, 32) != 0) {
 			printf("xmss_sig_to_root failed\n");
 			return -1;
@@ -216,40 +216,40 @@ static int test_sm3_xmss_do_sign(void)
 	return 1;
 }
 
-static int test_sm3_xmss_sign(void)
+static int test_xmss_sign(void)
 {
-#if defined(ENABLE_SHA2) && defined(ENABLE_SM3_XMSS_CROSSCHECK)
+#if defined(ENABLE_SHA2) && defined(ENABLE_XMSS_CROSSCHECK)
 	uint32_t oid = XMSS_SHA256_10;
 #else
 	uint32_t oid = XMSS_SM3_10;
 #endif
-	SM3_XMSS_KEY key;
-	SM3_XMSS_SIGN_CTX sign_ctx;
-	uint8_t sig[sizeof(SM3_XMSS_SIGNATURE)];
+	XMSS_KEY key;
+	XMSS_SIGN_CTX sign_ctx;
+	uint8_t sig[sizeof(XMSS_SIGNATURE)];
 	size_t siglen;
 	uint8_t msg[100] = {0};
 	int i;
 
-	sm3_xmss_key_generate(&key, oid);
-	sm3_xmss_key_print(stderr, 0, 0, "XMSS Key", &key);
+	xmss_key_generate(&key, oid);
+	xmss_key_print(stderr, 0, 0, "XMSS Key", &key);
 
 	for (i = 0; i < 3; i++) {
-		sm3_xmss_sign_init(&sign_ctx, &key);
-		sm3_xmss_sign_update(&sign_ctx, msg, sizeof(msg));
-		sm3_xmss_sign_finish(&sign_ctx, &key, sig, &siglen);
+		xmss_sign_init(&sign_ctx, &key);
+		xmss_sign_update(&sign_ctx, msg, sizeof(msg));
+		xmss_sign_finish(&sign_ctx, &key, sig, &siglen);
 
 		(key.index)++;
 
-		sm3_xmss_signature_print(stderr, 0, 0, "XMSS Signature", sig, siglen);
+		xmss_signature_print(stderr, 0, 0, "XMSS Signature", sig, siglen);
 
-		sm3_xmss_verify_init(&sign_ctx, &key, sig, siglen);
-		sm3_xmss_verify_update(&sign_ctx, msg, sizeof(msg));
-		if (sm3_xmss_verify_finish(&sign_ctx, &key, sig, siglen) != 1) {
+		xmss_verify_init(&sign_ctx, &key, sig, siglen);
+		xmss_verify_update(&sign_ctx, msg, sizeof(msg));
+		if (xmss_verify_finish(&sign_ctx, &key, sig, siglen) != 1) {
 			error_print();
 			return -1;
 		}
 	}
-	sm3_xmss_key_cleanup(&key);
+	xmss_key_cleanup(&key);
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -260,9 +260,9 @@ int main(void)
 	if (test_sm3_wots_derive_sk() != 1) goto err;
 	if (test_sm3_wots_derive_pk() != 1) goto err;
 	if (test_sm3_wots_do_sign() != 1) goto err;
-	if (test_sm3_xmss_derive_root() != 1) goto err;
-	if (test_sm3_xmss_do_sign() != 1) goto err;
-	if (test_sm3_xmss_sign() != 1) goto err;
+	if (test_xmss_derive_root() != 1) goto err;
+	if (test_xmss_do_sign() != 1) goto err;
+	if (test_xmss_sign() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

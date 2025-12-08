@@ -10,26 +10,20 @@
 #ifndef GMSSL_LMS_H
 #define GMSSL_LMS_H
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
-
 
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <gmssl/sm3.h>
+#include <gmssl/hash256.h>
 #ifdef ENABLE_SHA2
 #include <gmssl/sha2.h>
 #endif
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-typedef uint8_t hash256_t[32];
 
 
 #define HSS_MAX_LEVELS 5

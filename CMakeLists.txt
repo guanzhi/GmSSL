@@ -54,7 +54,7 @@ option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
-option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" OFF)
+option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" OFF)
 
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
@@ -432,16 +432,17 @@ if (ENABLE_LMS_HSS)
 endif()
 
 
-if (ENABLE_SM3_XMSS)
-	message(STATUS "ENABLE_SM3_XMSS is ON")
-	add_definitions(-DENABLE_SM3_XMSS)
-	list(APPEND src src/sm3_xmss.c)
+if (ENABLE_XMSS)
+	message(STATUS "ENABLE_XMSS is ON")
+	add_definitions(-DENABLE_XMSS)
+	list(APPEND src src/xmss.c)
+	list(APPEND tools tools/xmsskeygen.c tools/xmsssign.c tools/xmssverify.c)
+	list(APPEND tests xmss)
 
-	option(ENABLE_SM3_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" OFF)
-	if (ENABLE_SM3_XMSS_CROSSCHECK)
-		message(STATUS "ENABLE_SM3_XMSS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_SM3_XMSS_CROSSCHECK)
-		list(APPEND tests sm3_xmss)
+	option(ENABLE_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" ON)
+	if (ENABLE_XMSS_CROSSCHECK)
+		message(STATUS "ENABLE_XMSS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_XMSS_CROSSCHECK)
 	endif()
 endif()
 
