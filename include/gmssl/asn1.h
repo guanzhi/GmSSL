@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ extern "C" {
 
 
 enum ASN1_TAG {
+	ASN1_TAG_END_OF_CONTENTS	= 0,
 	ASN1_TAG_BOOLEAN		= 1,
 	ASN1_TAG_INTEGER		= 2,
 	ASN1_TAG_BIT_STRING		= 3,
@@ -68,6 +69,10 @@ enum ASN1_TAG {
 	ASN1_TAG_EXPLICIT		= 0xa0,
 };
 
+#define ASN1_R_OK		 1
+#define ASN1_R_EOF		 0
+#define ASN1_R_ERROR		-1
+#define ASN1_R_TRUNCATED_DATA	-2
 
 const char *asn1_tag_name(int tag);
 int asn1_tag_is_cstring(int tag);

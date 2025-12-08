@@ -103,7 +103,8 @@ static int test_asn1_length(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		int ret;
 		ret = asn1_length_from_der(&length, &cp, &len);
-		if (ret != 1 && ret != -2) {
+		// TLV in test vectors have no Value, asn1_length_from_der will return ASN1_R_TRUNCATED_DATA (-2)
+		if (ret != 1 && ret != ASN1_R_TRUNCATED_DATA) {
 			error_print();
 			return -1;
 		}
