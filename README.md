@@ -99,7 +99,12 @@ GmSSL 3.0版本重写了所有的代码并改变了原有API，因此当前GmSSL
 ```
 cmake .. -DENABLE_TEST_SPEED=ON
 make
-./bin/sm4test; ./bin/sm3test; ./bin/sm2_signtest; ./bin/sm2_enctest; ./bin/sm9test; ./bin/zuctest
+./bin/sm4_cltest; ./bin/sm4test; ./bin/sm3test; ./bin/sm2_signtest; ./bin/sm2_enctest; ./bin/sm9test; ./bin/zuctest
+```
+
+MacBook Air M2 2022. Apple M2. 16 GB. Tahoe 26.1.
+```
+speed_sm4_cl_ctr32_encrypt_blocks: 15340.364334-MiB per seconds
 ```
 
 MacBook Pro 13-inch 2018: 2.7 GHz Quad-Core Intel Core i7, Intel  Iris Plus Graphics 655. 8 GB 2133 HMz LPDDR3. macOS Sonoma 14.3.
