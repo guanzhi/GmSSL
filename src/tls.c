@@ -2320,8 +2320,8 @@ void tls_cleanup(TLS_CONNECT *conn)
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
 #ifdef WIN32
-	u_long flags = 0;
-    	if( ioctlsocket(sock, FIONBIO, &flags) != 0)   {
+	u_long flags = 0; // TODO: 0 == blocking, 1 == non-blocking
+    	if(ioctlsocket(sock, FIONBIO, &flags) != 0)   {
 		error_puts("socket in non-blocking mode");
 		//nginx will pass a socket in non-blocking mode
 		//return -1; // FIXME
