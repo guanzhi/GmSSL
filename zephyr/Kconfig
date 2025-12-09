@@ -1,0 +1,199 @@
+# Copyright (c) 2025 SysFly Co.
+
+menuconfig GMSSL
+	bool "GmSSL support"
+	help
+	  This option enables the GmSSL cryptography library.
+
+if GMSSL
+
+config GMSSL_SMALL_FOOTPRINT
+	bool "Enable small code size"
+	help
+	  Enable small code size optimization for GmSSL.
+
+config GMSSL_TEST_SPEED
+	bool "Enable test speed"
+	help
+	  Enable test speed benchmarks.
+
+config GMSSL_SM2_ALGOR_ID_ENCODE_NULL
+	bool "Enable SM2 AlgorithmIdentifier encode NULL"
+	help
+	  Enable AlgorithmIdentifier with algorithm sm2sign_with_sm3 encode a NULL object as parameters.
+
+config GMSSL_ASM_UNDERSCORE_PREFIX
+	bool "Add prefix underscore to assembly symbols"
+	default y
+	help
+	  Add prefix `_` to assembly symbols.
+
+config GMSSL_TLS_DEBUG
+	bool "Enable TLS debug"
+	help
+	  Enable TLS and TLCP print debug messages.
+
+config GMSSL_SM2_ENC_PRE_COMPUTE
+	bool "Enable SM2 encryption precomputing"
+	default y
+	help
+	  Enable SM2 encryption precomputing optimization.
+
+# Architecture-specific optimizations
+config GMSSL_SM2_ARM64
+	bool "Enable SM2 ARM64 assembly"
+	depends on ARM64
+	help
+	  Enable SM2_Z256 ARMv8 assembly implementation.
+
+config GMSSL_SM3_ARM64
+	bool "Enable SM3 ARM64 optimization"
+	depends on ARM64
+	help
+	  Enable SM3 Arm Neon implementation (10% faster on Apple M2).
+
+config GMSSL_SM4_ARM64
+	bool "Enable SM4 ARM64 assembly"
+	depends on ARM64
+	help
+	  Enable SM4 AARCH64 assembly implementation.
+
+config GMSSL_SM4_CE
+	bool "Enable SM4 ARM CE assembly"
+	depends on ARM64
+	help
+	  Enable SM4 ARM CE assembly implementation.
+
+config GMSSL_SM9_ARM64
+	bool "Enable SM9 ARM64 assembly"
+	depends on ARM64
+	help
+	  Enable SM9_Z256 ARMv8 assembly implementation.
+
+config GMSSL_GMUL_ARM64
+	bool "Enable GF(2^128) multiplication ARM64"
+	depends on ARM64
+	help
+	  Enable GF(2^128) Multiplication AArch64 assembly.
+
+# x86_64 optimizations
+config GMSSL_SM4_AVX2
+	bool "Enable SM4 AVX2 implementation"
+	depends on X86_64
+	help
+	  Enable SM4 AVX2 8x implementation.
+
+config GMSSL_SM4_AESNI
+	bool "Enable SM4 AES-NI implementation"
+	depends on X86_64
+	help
+	  Enable SM4 AES-NI (4x) implementation.
+
+config GMSSL_SM2_AMD64
+	bool "Enable SM2 AMD64 assembly"
+	depends on X86_64
+	help
+	  Enable SM2_Z256 X86_64 assembly implementation.
+
+config GMSSL_SM3_SSE
+	bool "Enable SM3 SSE assembly"
+	depends on X86_64
+	help
+	  Enable SM3 SSE assembly implementation.
+
+config GMSSL_SM4_CTR_AESNI_AVX
+	bool "Enable SM4 CTR AESNI+AVX assembly"
+	depends on X86_64
+	help
+	  Enable SM4 CTR AESNI+AVX assembly implementation.
+
+# SM4 modes
+config GMSSL_SM4_ECB
+	bool "Enable SM4 ECB mode"
+	default y
+	help
+	  Enable SM4 ECB mode support.
+
+config GMSSL_SM4_OFB
+	bool "Enable SM4 OFB mode"
+	default y
+	help
+	  Enable SM4 OFB mode support.
+
+config GMSSL_SM4_CFB
+	bool "Enable SM4 CFB mode"
+	default y
+	help
+	  Enable SM4 CFB mode support.
+
+config GMSSL_SM4_CCM
+	bool "Enable SM4 CCM mode"
+	default y
+	help
+	  Enable SM4 CCM mode support.
+
+config GMSSL_SM4_XTS
+	bool "Enable SM4 XTS mode"
+	default y
+	help
+	  Enable SM4 XTS mode support.
+
+config GMSSL_SM4_CBC_MAC
+	bool "Enable SM4-CBC-MAC"
+	default y
+	help
+	  Enable SM4-CBC-MAC support.
+
+# Extensions
+config GMSSL_SM2_EXTS
+	bool "Enable SM2 Extensions"
+	help
+	  Enable SM2 Extensions support.
+
+config GMSSL_SM3_XMSS
+	bool "Enable SM3-XMSS signature"
+	default y
+	help
+	  Enable SM3-XMSS signature support.
+
+# Additional algorithms
+config GMSSL_SHA1
+	bool "Enable SHA1"
+	default y
+	help
+	  Enable SHA1 hash algorithm.
+
+config GMSSL_SHA2
+	bool "Enable SHA2"
+	default y
+	help
+	  Enable SHA2 family hash algorithms.
+
+config GMSSL_AES
+	bool "Enable AES"
+	default y
+	help
+	  Enable AES encryption algorithm.
+
+config GMSSL_CHACHA20
+	bool "Enable ChaCha20"
+	default y
+	help
+	  Enable ChaCha20 encryption algorithm.
+
+# Hardware support
+config GMSSL_SDF
+	bool "Enable SDF module"
+	default y
+	help
+	  Enable SDF (Secure Data Format) module.
+
+config GMSSL_TLS
+	bool "Enable TLS and networking support"
+	default n
+	help
+	  Enable TLS, TLCP, and networking functionality.
+	  Requires POSIX networking headers.
+
+endif # GMSSL
+
