@@ -264,11 +264,19 @@ from RFC 9708
 
 id-alg-hss-lms-hashsig OBJECT IDENTIFIER ::= {
 	iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1)
-	pkcs-9(9) smime(16) alg(3) 17
-}
+	pkcs-9(9) smime(16) alg(3) 17 }
+
+id-alg-xmss-hashsig  OBJECT IDENTIFIER ::= {
+	iso(1) identified-organization(3) dod(6) internet(1)
+	security(5) mechanisms(5) pkix(7) algorithms(6) 34 }
+
+id-alg-xmssmt-hashsig OBJECT IDENTIFIER ::= {
+	iso(1) identified-organization(3) dod(6) internet(1)
+	security(5) mechanisms(5) pkix(7) algorithms(6) 35 }
 */
 static uint32_t  oid_hss_lms_hashsig[] = { oid_pkcs,9,16,3,17 };
-
+static uint32_t  oid_xmss_hashsig[] = { oid_alg, 34 };
+static uint32_t  oid_xmssmt_hashsig[] = { oid_alg, 35 };
 
 /*
 from RFC 3447 Public-Key Cryptography Standards (PKCS) #1: RSA Cryptography
@@ -357,6 +365,10 @@ static const ASN1_OID_INFO x509_sign_algors[] = {
 	{ OID_rsasign_with_sha512, "sha512WithRSAEncryption", oid_rsasign_with_sha512, sizeof(oid_rsasign_with_sha512)/sizeof(int), 1 },
 #ifdef ENABLE_LMS_HSS
 	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 1 },
+#endif
+#ifdef ENABLE_XMSS
+	{ OID_xmss_hashsig, "xmss-hashsig", oid_xmss_hashsig, sizeof(oid_xmss_hashsig)/sizeof(int), 1 },
+	{ OID_xmssmt_hashsig, "xmssmt-hashsig", oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), 1 },
 #endif
 };
 
@@ -578,6 +590,10 @@ static const ASN1_OID_INFO x509_public_key_algors[] = {
 #ifdef ENABLE_LMS_HSS
 	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
 #endif
+#ifdef ENABLE_XMSS
+	{ OID_xmss_hashsig, "xmss-hashsig", oid_xmss_hashsig, sizeof(oid_xmss_hashsig)/sizeof(int), 1 },
+	{ OID_xmssmt_hashsig, "xmssmt-hashsig", oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), 1 },
+#endif
 };
 
 static const int x509_public_key_algors_count =
@@ -629,11 +645,34 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 		}
 		break;
 #ifdef ENABLE_LMS_HSS
+	// TODO: rsa, hss/lms, xmss/xmss^mt OID encoding is similar, reduce code size
 	case OID_hss_lms_hashsig:
 		if (asn1_object_identifier_to_der(oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), NULL, &len) != 1
 			|| asn1_null_to_der(NULL, &len) != 1
 			|| asn1_sequence_header_to_der(len, out, outlen) != 1
 			|| asn1_object_identifier_to_der(oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+#ifdef ENABLE_XMSS
+	case OID_xmss_hashsig:
+		if (asn1_object_identifier_to_der(oid_xmss_hashsig, sizeof(oid_xmss_hashsig)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_xmss_hashsig, sizeof(oid_xmss_hashsig)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (asn1_object_identifier_to_der(oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), out, outlen) != 1
 			|| asn1_null_to_der(out, outlen) != 1) {
 			error_print();
 			return -1;
@@ -677,6 +716,10 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 #ifdef ENABLE_LMS_HSS
 	case OID_hss_lms_hashsig:
 #endif
+#ifdef ENABLE_XMSS
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+#endif
 		if ((*curve_or_null = asn1_null_from_der(&d, &dlen)) < 0
 			|| asn1_length_is_zero(dlen) != 1) {
 			error_print();
@@ -709,6 +752,10 @@ int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, c
 	case OID_rsa_encryption:
 #ifdef ENABLE_LMS_HSS
 	case OID_hss_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
 #endif
 		if ((val = asn1_null_from_der(&d, &dlen)) < 0) goto err;
 		else if (val) format_print(fp, fmt, ind, "parameters: %s\n", asn1_null_name());
