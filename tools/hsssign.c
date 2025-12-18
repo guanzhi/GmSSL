@@ -46,6 +46,8 @@ int hsssign_main(int argc, char **argv)
 	uint8_t sig[HSS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 
+	memset(&key, 0, sizeof(key));
+
 	argc--;
 	argv++;
 
@@ -160,8 +162,8 @@ bad:
 	ret = 0;
 
 end:
+	hss_key_cleanup(&key);
 	gmssl_secure_clear(keybuf, sizeof(keybuf));
-	gmssl_secure_clear(&key, sizeof(key));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);

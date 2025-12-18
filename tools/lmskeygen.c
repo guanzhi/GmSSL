@@ -50,6 +50,8 @@ int lmskeygen_main(int argc, char **argv)
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
 
+	memset(&key, 0, sizeof(key));
+
 	argc--;
 	argv++;
 
@@ -136,7 +138,7 @@ bad:
 
 	ret = 0;
 end:
-	gmssl_secure_clear(&key, sizeof(key));
+	lms_key_cleanup(&key);
 	gmssl_secure_clear(out, outlen);
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
