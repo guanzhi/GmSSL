@@ -108,13 +108,13 @@ bad:
 		fprintf(stderr, "%s: read public key failure\n", prog);
 		goto end;
 	}
-	if (xmss_public_key_from_bytes(&key, cp, pubkeylen) != 1) {
+	if (xmss_public_key_from_bytes(&key, &cp, &pubkeylen) != 1) {
 		error_print();
 		fprintf(stderr, "%s: invalid public key data\n", prog);
 		goto end;
 	}
 	if (verbose) {
-		xmss_key_print(stderr, 0, 0, "xmss_public_key", &key);
+		xmss_public_key_print(stderr, 0, 0, "xmss_public_key", &key);
 	}
 
 	// read signature even if signature not compatible with the public key
@@ -141,7 +141,7 @@ bad:
 			goto end;
 		}
 	}
-	if ((vr = xmss_verify_finish(&ctx, &key, sig, siglen)) < 0) {
+	if ((vr = xmss_verify_finish(&ctx)) < 0) {
 		error_print();
 		goto end;
 	}

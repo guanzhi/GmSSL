@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -17,58 +17,58 @@
 #include <gmssl/xmss.h>
 
 
-static const char *usage = "-oid oid [-out file] [-pubout file]\n";
+static const char *usage = "-xmss_type type -out file [-pubout file] [-verbose]\n";
 
-static const char *help =
+static const char *options =
 "Options\n"
-"    -oid oid                    XMSS algorithm OID\n"
-"                                 XMSS_SM3_10\n"
-"                                 XMSS_SM3_16\n"
-"                                 XMSS_SM3_20\n"
+"    -xmss_type type             XMSS Algorithm Type\n"
+"                                 "XMSS_HASH256_10_256_NAME"\n"
+"                                 "XMSS_HASH256_16_256_NAME"\n"
+"                                 "XMSS_HASH256_20_256_NAME"\n"
 "    -out file                   Output private key\n"
 "    -pubout file                Output public key\n"
+"    -verbose                    Print public key\n"
 "\n";
 
 int xmsskeygen_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
-	char *oid = NULL;
-	uint32_t oid_val = 0;
+	char *xmss_type = NULL;
+	int xmss_type_val = 0;
 	char *outfile = NULL;
 	char *puboutfile = NULL;
-	FILE *outfp = stdout;
+	int verbose = 0;
+	FILE *outfp = NULL;
 	FILE *puboutfp = stdout;
 	XMSS_KEY key;
-	uint8_t *out = NULL;
-	uint8_t *pubout = NULL;
-	size_t outlen, puboutlen;
+	uint8_t out[XMSS_PRIVATE_KEY_SIZE];
+	uint8_t pubout[XMSS_PUBLIC_KEY_SIZE];
+	uint8_t *pout = out;
+	uint8_t *ppubout = pubout;
+	size_t outlen = 0, puboutlen = 0;
+
+	memset(&key, 0, sizeof(key));
 
 	argc--;
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, help);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
-			printf("usage: %s %s\n", prog, usage);
-			printf("%s\n", help);
+			printf("usage: gmssl %s %s\n", prog, usage);
+			printf("%s\n", options);
 			ret = 0;
 			goto end;
-		} else if (!strcmp(*argv, "-oid")) {
+		} else if (!strcmp(*argv, "-xmss_type")) {
 			if (--argc < 1) goto bad;
-			oid = *(++argv);
-			if (strcmp(oid, "XMSS_SM3_10") == 0) {
-				oid_val = XMSS_SM3_10;
-			} else if (strcmp(oid, "XMSS_SM3_16") == 0) {
-				oid_val = XMSS_SM3_16;
-			} else if (strcmp(oid, "XMSS_SM3_20") == 0) {
-				oid_val = XMSS_SM3_20;
-			} else {
-				fprintf(stderr, "%s: invalid XMSS algor ID `%s`\n", prog, oid);
+			xmss_type = *(++argv);
+			if (!(xmss_type_val = xmss_type_from_name(xmss_type))) {
+				fprintf(stderr, "%s: invalid xmss_type `%s`\n", prog, xmss_type);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-out")) {
@@ -85,6 +85,8 @@ int xmsskeygen_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
@@ -97,43 +99,33 @@ bad:
 		argv++;
 	}
 
-	if (!oid) {
-		fprintf(stderr, "%s: `-oid` option required\n", prog);
+	if (!xmss_type) {
+		fprintf(stderr, "%s: `-xmss_type` option required\n", prog);
+		goto end;
+	}
+	if (!outfp) {
+		fprintf(stderr, "%s: `-out` option required\n", prog);
 		goto end;
 	}
 
-
-	if (xmss_key_generate(&key, oid_val) != 1) {
+	if (xmss_key_generate(&key, xmss_type_val) != 1) {
 		error_print();
 		return -1;
 	}
-
-	if (xmss_key_to_bytes(&key, NULL, &outlen) != 1) {
-		error_print();
-		goto end;
-	}
-	if (!(out = malloc(outlen))) {
-		error_print();
-		goto end;
-	}
-	if (xmss_key_to_bytes(&key, out, &outlen) != 1) {
-		error_print();
+	if (verbose) {
+		xmss_public_key_print(stderr, 0, 0, "xmss_public_key", &key);
 	}
 
-	if (xmss_public_key_to_bytes(&key, NULL, &puboutlen) != 1) {
+	if (xmss_private_key_to_bytes(&key, &pout, &outlen) != 1) {
 		error_print();
 		goto end;
 	}
-	if (!(pubout = malloc(puboutlen))) {
-		error_print();
-		goto end;
-	}
-	if (xmss_public_key_to_bytes(&key, pubout, &puboutlen) != 1) {
-		error_print();
-		goto end;
-	}
-
 	if (fwrite(out, 1, outlen, outfp) != outlen) {
+		error_print();
+		goto end;
+	}
+
+	if (xmss_public_key_to_bytes(&key, &ppubout, &puboutlen) != 1) {
 		error_print();
 		goto end;
 	}
@@ -144,15 +136,8 @@ bad:
 
 	ret = 0;
 end:
-	gmssl_secure_clear(&key, sizeof(key));
-	if (out) {
-		gmssl_secure_clear(out, outlen);
-		free(out);
-	}
-	if (pubout) {
-		gmssl_secure_clear(pubout, puboutlen);
-		free(pubout);
-	}
+	xmss_key_cleanup(&key);
+	gmssl_secure_clear(out, outlen);
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
 	return ret;
