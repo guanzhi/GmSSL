@@ -147,6 +147,7 @@ test_sm9_z256_pairing_speed: 141 pairings per seconds
 
 自从3.1.1版本以来
 
+* 增加了基于SM3的LMS/HSS和XMSS后量子哈希签名算法及命令行选项
 * 提升了全部国密算法的性能，并在`tests`测试程序中增加了国密算法的性能测试
 * 增加了SM4 ECB/CFB/OFB/CCM/XTS加密模式，带SM3-HMAC的SM4 CBC/CTR模式，并且在`gmssl`命令行工具中增加了所有SM4加密模式的选项
 * 在`gmssl`命令行中增加了GHASH计算的选项
