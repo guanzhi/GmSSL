@@ -31,6 +31,17 @@ typedef HMODULE dylib_handle_t;
 #define dylib_error_str()		""
 
 
+#elif defined(__ZEPHYR__)
+
+/* Zephyr RTOS doesn't support dynamic loading */
+typedef void *dylib_handle_t;
+
+#define dylib_load_library(so_path)	NULL
+#define dylib_get_function(handle,name)	NULL
+#define dylib_close_library(handle)
+#define dylib_error_str()		"Dynamic loading not supported on Zephyr"
+
+
 #else
 
 #include <dlfcn.h>
