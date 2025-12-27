@@ -61,6 +61,7 @@ option(ENABLE_SHA1 "Enable SHA1" ON)
 option(ENABLE_SHA2 "Enable SHA2" ON)
 option(ENABLE_AES "Enable AES" ON)
 option(ENABLE_CHACHA20 "Enable Chacha20" ON)
+option(ENABLE_KYBER "Enable Kyber" ON)
 
 option(ENABLE_SKF "Enable SKF module" OFF)
 option(ENABLE_SDF "Enable SDF module" ON)
@@ -474,6 +475,13 @@ if (ENABLE_CHACHA20)
 	message(STATUS "ENABLE_CHACHA20 is ON")
 	list(APPEND src src/chacha20.c)
 	list(APPEND tests chacha20)
+endif()
+
+
+if (ENABLE_KYBER)
+	message(STATUS "ENABLE_KYBER is ON")
+	list(APPEND src src/kyber.c)
+	list(APPEND tests kyber)
 endif()
 
 
