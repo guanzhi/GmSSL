@@ -404,21 +404,6 @@ static int test_xmss_key_to_bytes(void)
 	return 1;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // XMSS_SM3_10_256	2500 bytes
 // XMSS_SM3_16_256	2692 bytes
 // XMSS_SM3_20_256	2820 bytes
@@ -743,6 +728,16 @@ static int test_xmssmt_signature_to_bytes(void)
 	return 1;
 }
 
+/*
+XMSSMT_SHA2_20_2_256: 133287		133KB
+XMSSMT_SHA2_20_4_256: 14631		 14KB
+XMSSMT_SHA2_40_2_256: 134219945		134MB
+XMSSMT_SHA2_40_4_256: 268585		268KB
+XMSSMT_SHA2_40_8_256: 31273		 31KB
+XMSSMT_SHA2_60_3_256: 201330924		201MB
+XMSSMT_SHA2_60_6_256: 403884		403KB
+XMSSMT_SHA2_60_12_256: 47916		 47KB
+*/
 static int test_xmssmt_private_key_size(void)
 {
 	uint32_t xmssmt_types[] = {
@@ -764,7 +759,7 @@ static int test_xmssmt_private_key_size(void)
 			error_print();
 			return -1;
 		}
-		fprintf(stderr, "%s: %zu\n", xmssmt_type_name(xmssmt_types[i]), len);
+		fprintf(stderr, "    %s: %zu\n", xmssmt_type_name(xmssmt_types[i]), len);
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -993,6 +988,7 @@ static int test_xmssmt_sign(void)
 	hash256_update(&ctx->hash256_ctx, ctx->xmssmt_sig.random, sizeof(hash256_t));
 	hash256_update(&ctx->hash256_ctx, key->public_key.root, sizeof(hash256_t));
 	hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, msg, sizeof(msg));
 	hash256_finish(&ctx->hash256_ctx, dgst);
 
 	// generate message wots_sig as wots_sigs[0]
@@ -1046,6 +1042,51 @@ static int test_xmssmt_sign(void)
 	return 1;
 }
 
+static int test_xmssmt_sign_update(void)
+{
+	uint32_t xmssmt_type = XMSSMT_HASH256_20_4_256;
+	XMSSMT_KEY key;
+	XMSSMT_SIGN_CTX ctx;
+	XMSSMT_SIGNATURE sig;
+	uint8_t msg[100] = {0};
+
+
+	if (xmssmt_key_generate(&key, xmssmt_type) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+	if (xmssmt_sign_init(&ctx, &key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_sign_update(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_sign_finish_ex(&ctx, &sig) != 1) {
+		error_print();
+		return -1;
+	}
+
+	memset(&ctx, 0, sizeof(ctx));
+	if (xmssmt_verify_init_ex(&ctx, &key, &sig) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_verify_update(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_verify_finish(&ctx) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 int main(void)
 {
@@ -1075,7 +1116,7 @@ int main(void)
 	if (test_xmssmt_public_key_to_bytes() != 1) goto err;
 	if (test_xmssmt_private_key_to_bytes() != 1) goto err;
 	if (test_xmssmt_sign() != 1) goto err;
-
+	if (test_xmssmt_sign_update() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

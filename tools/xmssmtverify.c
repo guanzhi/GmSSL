@@ -16,37 +16,35 @@
 #include <gmssl/error.h>
 #include <gmssl/xmss.h>
 
-static const char *usage = "-key file [-in file] [-out file] [-verbose]\n";
+static const char *usage = "-pubkey file [-in file] -sig file [-verbose]\n";
 
 static const char *options =
 "Options\n"
-"    -key file                   Input private key file\n"
+"    -pubkey file                Input public key file\n"
 "    -in file                    Input data file (if not using stdin)\n"
-"    -out file                   Output signature file\n"
+"    -sig file                   Input signature file\n"
 "    -verbose                    Print public key and signature\n"
 "\n";
 
-int xmsssign_main(int argc, char **argv)
+int xmssmtverify_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
-	char *keyfile = NULL;
+	char *pubkeyfile = NULL;
 	char *infile = NULL;
-	char *outfile = NULL;
+	char *sigfile = NULL;
 	int verbose = 0;
-	FILE *keyfp = NULL;
+	FILE *pubkeyfp = NULL;
 	FILE *infp = stdin;
-	FILE *outfp = stdout;
-	uint8_t keybuf[XMSS_PRIVATE_KEY_SIZE];
-	size_t keylen = XMSS_PRIVATE_KEY_SIZE;
-	const uint8_t *cp = keybuf;
-	uint8_t *p = keybuf;
-	XMSS_KEY key;
-	XMSS_SIGN_CTX ctx;
-	uint8_t sig[XMSS_SIGNATURE_MAX_SIZE];
+	FILE *sigfp = NULL;
+	uint8_t pubkeybuf[XMSSMT_PUBLIC_KEY_SIZE];
+	size_t pubkeylen = XMSSMT_PUBLIC_KEY_SIZE;
+	const uint8_t *cp = pubkeybuf;
+	uint8_t sig[XMSSMT_SIGNATURE_MAX_SIZE];
 	size_t siglen;
-
-	memset(&key, 0, sizeof(key));
+	XMSSMT_KEY key;
+	XMSSMT_SIGN_CTX ctx;
+	int vr;
 
 	argc--;
 	argv++;
@@ -62,11 +60,11 @@ int xmsssign_main(int argc, char **argv)
 			printf("%s\n", options);
 			ret = 0;
 			goto end;
-		} else if (!strcmp(*argv, "-key")) {
+		} else if (!strcmp(*argv, "-pubkey")) {
 			if (--argc < 1) goto bad;
-			keyfile = *(++argv);
-			if (!(keyfp = fopen(keyfile, "rb+"))) {
-				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, keyfile, strerror(errno));
+			pubkeyfile = *(++argv);
+			if (!(pubkeyfp = fopen(pubkeyfile, "rb"))) {
+				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, pubkeyfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-in")) {
@@ -76,11 +74,11 @@ int xmsssign_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
-		} else if (!strcmp(*argv, "-out")) {
+		} else if (!strcmp(*argv, "-sig")) {
 			if (--argc < 1) goto bad;
-			outfile = *(++argv);
-			if (!(outfp = fopen(outfile, "wb"))) {
-				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, outfile, strerror(errno));
+			sigfile = *(++argv);
+			if (!(sigfp = fopen(sigfile, "rb"))) {
+				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, sigfile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-verbose")) {
@@ -97,43 +95,39 @@ bad:
 		argv++;
 	}
 
-	if (!keyfile) {
+	if (!pubkeyfile) {
 		fprintf(stderr, "%s: `-key` option required\n", prog);
 		goto end;
 	}
-
-	if (fread(keybuf, 1, keylen, keyfp) != keylen) {
-		fprintf(stderr, "%s: read private key failure\n", prog);
+	if (!sigfile) {
+		fprintf(stderr, "%s: `-sig` option required\n", prog);
 		goto end;
 	}
-	if (xmss_private_key_from_bytes(&key, &cp, &keylen) != 1) {
-		error_print();
+
+	if (fread(pubkeybuf, 1, pubkeylen, pubkeyfp) != pubkeylen)  {
+		fprintf(stderr, "%s: read public key failure\n", prog);
 		goto end;
 	}
-	if (keylen) {
+	if (xmssmt_public_key_from_bytes(&key, &cp, &pubkeylen) != 1) {
 		error_print();
-		return -1;
+		fprintf(stderr, "%s: invalid public key data\n", prog);
+		goto end;
 	}
-
 	if (verbose) {
-		xmss_public_key_print(stderr, 0, 0, "lms_public_key", &key);
+		xmssmt_public_key_print(stderr, 0, 0, "xmssmt_public_key", &key);
 	}
 
-	if (xmss_sign_init(&ctx, &key) != 1) {
-		error_print();
+	// read signature even if signature not compatible with the public key
+	if ((siglen = fread(sig, 1, XMSSMT_SIGNATURE_MAX_SIZE, sigfp)) <= 0) {
+		fprintf(stderr, "%s: read signature failure\n", prog);
 		goto end;
 	}
-
-	// write updated key back to file
-	// TODO: write back `q` only
-	if (xmss_private_key_to_bytes(&key, &p, &keylen) != 1) {
-		error_print();
-		return -1;
+	if (verbose) {
+		xmssmt_signature_print(stderr, 0, 0, "xmssmt_signature", sig, siglen, key.public_key.xmssmt_type);
 	}
-	rewind(keyfp);
-	if (fwrite(keybuf, 1, keylen, keyfp) != keylen) {
+	if (xmssmt_verify_init(&ctx, &key, sig, siglen) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
 
 	while (1) {
@@ -142,31 +136,23 @@ bad:
 		if (len == 0) {
 			break;
 		}
-		if (xmss_sign_update(&ctx, buf, len) != 1) {
+		if (xmssmt_verify_update(&ctx, buf, len) != 1) {
 			error_print();
 			goto end;
 		}
 	}
-	if (xmss_sign_finish(&ctx, sig, &siglen) != 1) {
+	if ((vr = xmssmt_verify_finish(&ctx)) < 0) {
 		error_print();
 		goto end;
 	}
-	if (fwrite(sig, 1, siglen, outfp) != siglen) {
-		error_print();
-		goto end;
+	fprintf(stdout, "verify : %s\n", vr == 1 ? "success" : "failure");
+	if (vr == 1) {
+		ret = 0;
 	}
-	if (verbose) {
-		xmss_signature_print(stderr, 0, 0, "xmss_signature", sig, siglen);
-	}
-
-	ret = 0;
 
 end:
-	xmss_key_cleanup(&key);
-	gmssl_secure_clear(keybuf, sizeof(keybuf));
-	gmssl_secure_clear(&ctx, sizeof(ctx));
-	if (keyfp) fclose(keyfp);
+	if (pubkeyfp) fclose(pubkeyfp);
 	if (infp && infp != stdin) fclose(infp);
-	if (outfp && outfp != stdout) fclose(outfp);
+	if (sigfp) fclose(sigfp);
 	return ret;
 }

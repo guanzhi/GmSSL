@@ -76,6 +76,9 @@ extern int hssverify_main(int argc, char **argv);
 extern int xmsskeygen_main(int argc, char **argv);
 extern int xmsssign_main(int argc, char **argv);
 extern int xmssverify_main(int argc, char **argv);
+extern int xmssmtkeygen_main(int argc, char **argv);
+extern int xmssmtsign_main(int argc, char **argv);
+extern int xmssmtverify_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_KYBER
 extern int kyberkeygen_main(int argc, char **argv);
@@ -158,6 +161,9 @@ static const char *options =
 	"  xmsskeygen        Generate XMSS-SM3 keypair\n"
 	"  xmsssign          Generate XMSS-SM3 signature\n"
 	"  xmssverify        Verify XMSS-SM3 signature\n"
+	"  xmssmtkeygen      Generate XMSS^MT-SM3 keypair\n"
+	"  xmssmtsign        Generate XMSS^MT-SM3 signature\n"
+	"  xmssmtverify      Verify XMSS^MT-SM3 signature\n"
 #endif
 #ifdef ENABLE_KYBER
 	"  kyberkeygen       Generate Kyber keypair\n"
@@ -339,6 +345,12 @@ int main(int argc, char **argv)
 			return xmsssign_main(argc, argv);
 		} else if (!strcmp(*argv, "xmssverify")) {
 			return xmssverify_main(argc, argv);
+		} else if (!strcmp(*argv, "xmssmtkeygen")) {
+			return xmssmtkeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "xmssmtsign")) {
+			return xmssmtsign_main(argc, argv);
+		} else if (!strcmp(*argv, "xmssmtverify")) {
+			return xmssmtverify_main(argc, argv);
 #endif
 #ifdef ENABLE_KYBER
 		} else if (!strcmp(*argv, "kyberkeygen")) {

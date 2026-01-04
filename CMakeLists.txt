@@ -438,6 +438,7 @@ if (ENABLE_XMSS)
 	add_definitions(-DENABLE_XMSS)
 	list(APPEND src src/xmss.c)
 	list(APPEND tools tools/xmsskeygen.c tools/xmsssign.c tools/xmssverify.c)
+	list(APPEND tools tools/xmssmtkeygen.c tools/xmssmtsign.c tools/xmssmtverify.c)
 	list(APPEND tests xmss)
 
 	option(ENABLE_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" ON)
