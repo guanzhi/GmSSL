@@ -36,7 +36,6 @@ extern "C" {
 # define hash256_init	sha256_init
 # define hash256_update	sha256_update
 # define hash256_finish	sha256_finish
-# define hash256_digest	sha256_digest
 # define LMOTS_HASH256_N32_W8		LMOTS_SHA256_N32_W8
 # define LMOTS_HASH256_N32_W8_NAME	"LMOTS_SHA256_N32_W8"
 # define LMS_HASH256_M32_H5		LMS_SHA256_M32_H5
@@ -54,7 +53,6 @@ extern "C" {
 # define hash256_init	sm3_init
 # define hash256_update	sm3_update
 # define hash256_finish	sm3_finish
-# define hash256_digest	sm3_digest
 # define LMOTS_HASH256_N32_W8		LMOTS_SM3_N32_W8
 # define LMOTS_HASH256_N32_W8_NAME	"LMOTS_SM3_N32_W8"
 # define LMS_HASH256_M32_H5		LMS_SM3_M32_H5
