@@ -37,7 +37,7 @@ static const uint8_t bn256_one[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 };
 
-static const uint8_t bn256_two[] = {
+static const uint8_t hash256_two[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1188,7 +1188,7 @@ int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key)
 
 	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
 	hash256_init(&ctx->hash256_ctx);
-	hash256_update(&ctx->hash256_ctx, bn256_two, 32);
+	hash256_update(&ctx->hash256_ctx, hash256_two, 32);
 	hash256_update(&ctx->hash256_ctx, ctx->xmss_sig.random, 32);
 	hash256_update(&ctx->hash256_ctx, key->public_key.root, 32);
 	hash256_update(&ctx->hash256_ctx, index_buf, 32);
@@ -1254,7 +1254,7 @@ int xmss_verify_init(XMSS_SIGN_CTX *ctx, const XMSS_KEY *key, const uint8_t *sig
 	PUTU32(sig_index + 28, ctx->xmss_sig.index);
 
 	hash256_init(&ctx->hash256_ctx);
-	hash256_update(&ctx->hash256_ctx, bn256_two, 32);
+	hash256_update(&ctx->hash256_ctx, hash256_two, 32);
 	hash256_update(&ctx->hash256_ctx, ctx->xmss_sig.random, 32);
 	hash256_update(&ctx->hash256_ctx, key->public_key.root, 32);
 	hash256_update(&ctx->hash256_ctx, sig_index, 32);
@@ -1539,6 +1539,10 @@ int xmssmt_private_key_from_bytes(XMSSMT_KEY *key, const uint8_t **in, size_t *i
 	return 1;
 }
 
+// XMSSMT的密钥生成和密钥更新都是完全一样的，
+// 密钥生成的区别是需要生成最高层
+
+
 int xmssmt_key_generate(XMSSMT_KEY *key, uint32_t xmssmt_type)
 {
 	size_t height;
@@ -1547,6 +1551,14 @@ int xmssmt_key_generate(XMSSMT_KEY *key, uint32_t xmssmt_type)
 	xmss_adrs_t adrs;
 	hash256_t *tree;
 	uint8_t *xmss_root;
+
+
+	uint64_t index = 0;
+
+
+	uint64_t tree_address;
+	uint32_t tree_index;
+
 
 	if (!key) {
 		error_print();
@@ -1586,35 +1598,42 @@ int xmssmt_key_generate(XMSSMT_KEY *key, uint32_t xmssmt_type)
 		error_print();
 		return -1;
 	}
+
+
 	tree = key->trees;
 
-	for (layer = 0; layer < layers - 1; layer++) {
-		// generate the leftmost tree of the level
+
+
+	for (layer = 0; layer < layers; layer++) {
+
+		// generate tree of the layer
 		adrs_set_layer_address(adrs, layer);
-		adrs_set_tree_address(adrs, 0);
+		adrs_set_tree_address(adrs, xmssmt_tree_address(index, height, layers, layer));
 		xmss_build_tree(key->secret, key->public_key.seed, adrs, height/layers, tree);
-		xmss_root = tree[tree_root_offset(height/layers)];
 
-		adrs_set_layer_address(adrs, layer + 1);
-		adrs_set_tree_address(adrs, 0);
-		adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
-		adrs_set_ots_address(adrs, 0); // 具体值由index决定！
+		// sign xmss_root with higher layer
+		if (layer < layers - 1) {
 
-		wots_derive_sk(key->secret, key->public_key.seed, adrs, key->wots_sigs[layer]);
-		wots_sign(key->wots_sigs[layer], key->public_key.seed, adrs, xmss_root, key->wots_sigs[layer]);
-		tree += tree_root_offset(height/layers) + 1;
+			adrs_set_layer_address(adrs, layer + 1);
+			adrs_set_tree_address(adrs, xmssmt_tree_address(index, height, layers, layer + 1));
+			adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
+			adrs_set_ots_address(adrs, xmssmt_tree_index(index, height, layers, layer + 1));
+
+			wots_derive_sk(key->secret, key->public_key.seed, adrs, key->wots_sigs[layer]);
+
+			//tree = key->trees + xmss_tree_num_nodes(height/layers) * layer;
+			xmss_root = tree[tree_root_offset(height/layers)];
+			wots_sign(key->wots_sigs[layer], key->public_key.seed, adrs, xmss_root, key->wots_sigs[layer]);
+
+			tree += xmss_tree_num_nodes(height/layers);
+		}
 	}
 
-	// highest layer (without signatures)
-	adrs_set_layer_address(adrs, layer);
-	adrs_set_tree_address(adrs, 0);
-	xmss_build_tree(key->secret, key->public_key.seed, adrs, height/layers, tree);
-	xmss_root = tree[tree_root_offset(height/layers)];
+
+
 
 	// copy the top-level root
 	memcpy(key->public_key.root, xmss_root, sizeof(hash256_t));
-
-
 
 
 	tree = key->trees;
@@ -1622,23 +1641,24 @@ int xmssmt_key_generate(XMSSMT_KEY *key, uint32_t xmssmt_type)
 
 	hash256_t root;
 
-	size_t i;
 	wots_key_t wots_pk;
 
-	for (i = 0; i < layers - 1; i++) {
-
-		adrs_set_layer_address(adrs, i + 1);
-		adrs_set_tree_address(adrs, 0); //				
-		adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
-		adrs_set_ots_address(adrs, 0);  // FIXME: value from index			
-
+	for (layer = 0; layer < layers - 1; layer++) {
 		uint8_t *dgst = tree[tree_root_offset(height/layers)];
 
-		wots_sig_to_pk(key->wots_sigs[i], key->public_key.seed, adrs, dgst, wots_pk);
+		tree_address = xmssmt_tree_address(index, height, layers, layer + 1);
+		tree_index = xmssmt_tree_index(index, height, layers, layer + 1);
+
+		adrs_set_layer_address(adrs, layer + 1);
+		adrs_set_tree_address(adrs, tree_address);
+		adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
+		adrs_set_ots_address(adrs, tree_index);
+
+		wots_sig_to_pk(key->wots_sigs[layer], key->public_key.seed, adrs, dgst, wots_pk);
 
 
 		adrs_set_type(adrs, XMSS_ADRS_TYPE_LTREE);
-		adrs_set_tree_index(adrs, 0); // 				
+		adrs_set_tree_index(adrs, tree_index);
 		wots_pk_to_root(wots_pk, key->public_key.seed, adrs, root);
 
 		tree += xmss_tree_num_nodes(height/layers);
@@ -2007,12 +2027,62 @@ int xmssmt_signature_print(FILE *fp, int fmt, int ind, const char *label, const 
 	return 1;
 }
 
-int xmssmt_sign_init(XMSSMT_SIGN_CTX *ctx, XMSSMT_KEY *key)
+
+int xmssmt_key_update(XMSSMT_KEY *key)
 {
-	hash256_t hash256_index = {0};
-	xmss_adrs_t adrs;
+
 	size_t height;
 	size_t layers;
+	size_t layer;
+
+
+	if (xmssmt_type_to_height_and_layers(key->public_key.xmssmt_type, &height, &layers) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+	// 这里我们要检查当前的layer
+	for (layer = layers - 1; layer > 0; layer--) {
+
+		
+
+	}
+
+
+	if (layer >= layers ) {
+
+
+	}
+
+
+	if (layer == 0) {
+		return 0;
+	}
+
+
+	for (; layer < layers; layer++) {
+
+
+
+
+	}
+
+
+
+	return 1;
+}
+
+
+int xmssmt_sign_init(XMSSMT_SIGN_CTX *ctx, XMSSMT_KEY *key)
+{
+	size_t height;
+	size_t layers;
+	size_t layer;
+	uint64_t tree_address;
+	uint32_t tree_index;
+	hash256_t hash256_index;
+	xmss_adrs_t adrs;
 
 	if (!ctx || !key) {
 		error_print();
@@ -2022,56 +2092,67 @@ int xmssmt_sign_init(XMSSMT_SIGN_CTX *ctx, XMSSMT_KEY *key)
 		error_print();
 		return -1;
 	}
-	memset(ctx, 0, sizeof(*ctx));
 
-	// cache public key
+	// init sign ctx
+	memset(ctx, 0, sizeof(XMSSMT_SIGN_CTX));
+
+	// set ctx->xmssmt_public_key
 	ctx->xmssmt_public_key = key->public_key;
 
-	// key->index => xmssmt_sig.index
+	// copy index
 	ctx->xmssmt_sig.index = key->index;
 
+	// copy wots_sigs[1] to wots_sig[layers - 1] from key
+	for (layer = 1; layer < layers; layer++) {
+		memcpy(ctx->xmssmt_sig.wots_sigs[layer], key->wots_sigs[layer - 1], sizeof(wots_sig_t));
+	}
+
+	// build auth_path
+	for (layer = 0; layer < layers; layer++) {
+		hash256_t *tree;
+		hash256_t *auth_path;
+		tree = key->trees + xmss_tree_num_nodes(height/layers) * layer;
+		tree_index = xmssmt_tree_index(ctx->xmssmt_sig.index, height, layers, layer);
+		auth_path = ctx->xmssmt_sig.auth_path + (height/layers) * layer;
+		xmss_build_auth_path(tree, height/layers, tree_index, auth_path);
+	}
+
 	// derive ctx->xmssmt_sig.random
-	PUTU64(hash256_index + 24, key->index);
-	// r = PRF(SK_PRF, toByte(idx_sig, 32));
+	memset(hash256_index, 0, 24);
+	PUTU64(hash256_index + 24, ctx->xmssmt_sig.index);
 	hash256_init(&ctx->hash256_ctx);
-	hash256_update(&ctx->hash256_ctx, hash256_three, 32);
-	hash256_update(&ctx->hash256_ctx, key->sk_prf, 32);
-	hash256_update(&ctx->hash256_ctx, hash256_index, 32);
+	hash256_update(&ctx->hash256_ctx, hash256_three, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, key->sk_prf, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(hash256_t));
 	hash256_finish(&ctx->hash256_ctx, ctx->xmssmt_sig.random);
 
-	// wots_sk => ctx->xmss_sig.wots_sig
-	adrs_set_layer_address(adrs, 0);
-	adrs_set_tree_address(adrs, 0); // 				
+	// derive wots_sk and save to wots_sigs[0]
+	layer = 0;
+	tree_address = xmssmt_tree_address(ctx->xmssmt_sig.index, height, layers, layer);
+	tree_index = xmssmt_tree_index(ctx->xmssmt_sig.index, height, layers, layer);
+	adrs_set_layer_address(adrs, layer);
+	adrs_set_tree_address(adrs, tree_address);
 	adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
-	adrs_set_ots_address(adrs, key->index); // 				
+	adrs_set_ots_address(adrs, tree_index);
 	wots_derive_sk(key->secret, key->public_key.seed, adrs, ctx->xmssmt_sig.wots_sigs[0]);
-
-	// 				
-	// xmss_sig.auth_path
-	xmss_build_auth_path(key->trees, height, key->index, ctx->xmssmt_sig.auth_path);
-
-
-	// update key->index
-	key->index++;
 
 	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
 	hash256_init(&ctx->hash256_ctx);
-	hash256_update(&ctx->hash256_ctx, bn256_two, 32);
-	hash256_update(&ctx->hash256_ctx, ctx->xmssmt_sig.random, 32);
-	hash256_update(&ctx->hash256_ctx, key->public_key.root, 32);
-	hash256_update(&ctx->hash256_ctx, hash256_index, 32);
+	hash256_update(&ctx->hash256_ctx, hash256_two, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, ctx->xmssmt_sig.random, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, key->public_key.root, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(hash256_t));
 
+	size_t remaining_signs;
 
-	size_t i;
+	// 增加key_update
+	if (remaining_signs == 0) {
 
-	for (i = 0; i < layers; i++) {
-
-
+					
 	}
 
 
-	return -1;
-
+	return 1;
 }
 
 int xmssmt_sign_update(XMSSMT_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
@@ -2088,44 +2169,51 @@ int xmssmt_sign_update(XMSSMT_SIGN_CTX *ctx, const uint8_t *data, size_t datalen
 
 int xmssmt_sign_finish_ex(XMSSMT_SIGN_CTX *ctx, XMSSMT_SIGNATURE *sig)
 {
-	xmss_adrs_t adrs;
+	// generate message wots_sig as wots_sigs[0]
 	size_t height;
 	size_t layers;
-
+	size_t layer = 0;
 	uint64_t tree_address;
-
-	uint8_t dgst[32];
+	uint32_t tree_index;
+	xmss_adrs_t adrs;
+	hash256_t dgst;
 
 	if (!ctx || !sig) {
 		error_print();
 		return -1;
 	}
 
+	hash256_finish(&ctx->hash256_ctx, dgst);
 
 	if (xmssmt_type_to_height_and_layers(ctx->xmssmt_public_key.xmssmt_type, &height, &layers) != 1) {
 		error_print();
 		return -1;
 	}
+	tree_address = xmssmt_tree_address(ctx->xmssmt_sig.index, height, layers, layer);
+	tree_index = xmssmt_tree_index(ctx->xmssmt_sig.index, height, layers, layer);
 
-	tree_address = sig->index / layers;
-
-
-	hash256_finish(&ctx->hash256_ctx, dgst);
-
-	adrs_set_layer_address(adrs, 0);
+	adrs_set_layer_address(adrs, layer);
 	adrs_set_tree_address(adrs, tree_address);
 	adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
-	adrs_set_ots_address(adrs, ctx->xmssmt_sig.index);
-
+	adrs_set_ots_address(adrs, tree_index);
 	wots_sign(ctx->xmssmt_sig.wots_sigs[0], ctx->xmssmt_public_key.seed, adrs, dgst,
 		ctx->xmssmt_sig.wots_sigs[0]);
 
+
+	*sig = ctx->xmssmt_sig;
 	return 1;
 }
 
 int xmssmt_sign_finish(XMSSMT_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 {
+	XMSSMT_SIGNATURE signature;
+
 	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+
+	if (xmssmt_sign_finish_ex(ctx, &signature) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2135,30 +2223,138 @@ int xmssmt_sign_finish(XMSSMT_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 		error_print();
 		return -1;
 	}
-	return -1;
+	return 1;
 }
 
 int xmssmt_verify_init_ex(XMSSMT_SIGN_CTX *ctx, const XMSSMT_KEY *key, const XMSSMT_SIGNATURE *sig)
 {
+	hash256_t hash256_index;
+	xmss_adrs_t adrs;
+
 	if (!ctx || !key || !sig) {
 		error_print();
 		return -1;
 	}
 
-	return -1;
+	// init sign ctx
+	memset(ctx, 0, sizeof(XMSSMT_SIGN_CTX));
+
+	// set ctx->xmssmt_public_key
+	ctx->xmssmt_public_key = key->public_key;
+
+	// copy ctx->xmssmt_sig
+	ctx->xmssmt_sig = *sig;
+
+	memset(hash256_index, 0, 24);
+	PUTU64(hash256_index + 24, ctx->xmssmt_sig.index);
+
+	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
+	hash256_init(&ctx->hash256_ctx);
+	hash256_update(&ctx->hash256_ctx, hash256_two, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, ctx->xmssmt_sig.random, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, key->public_key.root, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(hash256_t));
+
+	return 1;
 }
 
 int xmssmt_verify_init(XMSSMT_SIGN_CTX *ctx, const XMSSMT_KEY *key, const uint8_t *sig, size_t siglen)
 {
-	return -1;
+	hash256_t hash256_index;
+	xmss_adrs_t adrs;
+	if (!ctx || !key || !sig) {
+		error_print();
+		return -1;
+	}
+
+	// init sign ctx
+	memset(ctx, 0, sizeof(XMSSMT_SIGN_CTX));
+
+	// set ctx->xmssmt_public_key
+	ctx->xmssmt_public_key = key->public_key;
+
+
+	if (xmssmt_signature_from_bytes(&ctx->xmssmt_sig, key->public_key.xmssmt_type, &sig, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (siglen) {
+		error_print();
+		return -1;
+	}
+
+
+	memset(hash256_index, 0, 24);
+	PUTU64(hash256_index + 24, ctx->xmssmt_sig.index);
+
+	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
+	hash256_init(&ctx->hash256_ctx);
+	hash256_update(&ctx->hash256_ctx, hash256_two, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, ctx->xmssmt_sig.random, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, key->public_key.root, sizeof(hash256_t));
+	hash256_update(&ctx->hash256_ctx, hash256_index, sizeof(hash256_t));
+
+	return 1;
 }
 
 int xmssmt_verify_update(XMSSMT_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	return -1;
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (data && datalen) {
+		hash256_update(&ctx->hash256_ctx, data, datalen);
+	}
+	return 1;
 }
 
 int xmssmt_verify_finish(XMSSMT_SIGN_CTX *ctx)
 {
-	return -1;
+	size_t height;
+	size_t layers;
+	size_t layer;
+	xmss_adrs_t adrs;
+	hash256_t dgst;
+
+	hash256_finish(&ctx->hash256_ctx, dgst);
+
+	if (xmssmt_type_to_height_and_layers(ctx->xmssmt_public_key.xmssmt_type, &height, &layers) != 1) {
+		error_print();
+		return -1;
+	}
+
+	for (layer = 0; layer < layers; layer++) {
+		uint64_t tree_address = xmssmt_tree_address(ctx->xmssmt_sig.index, height, layers, layer);
+		uint32_t tree_index = xmssmt_tree_index(ctx->xmssmt_sig.index, height, layers, layer);
+		wots_key_t wots_pk;
+
+		// wots_sig, dgst => wots_pk
+		adrs_set_layer_address(adrs, layer);
+		adrs_set_tree_address(adrs, tree_address);
+		adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
+		adrs_set_ots_address(adrs, tree_index);
+		wots_sig_to_pk(ctx->xmssmt_sig.wots_sigs[layer], ctx->xmssmt_public_key.seed, adrs, dgst, wots_pk);
+
+		// wots_pk => wots_root
+		adrs_set_type(adrs, XMSS_ADRS_TYPE_LTREE);
+		adrs_set_ltree_address(adrs, tree_index);
+		wots_pk_to_root(wots_pk, ctx->xmssmt_public_key.seed, adrs, dgst);
+
+		// wots_root, auth_path => xmss_root (as dgst)
+		adrs_set_type(adrs, XMSS_ADRS_TYPE_HASHTREE);
+		adrs_set_padding(adrs, 0);
+		xmss_build_root(dgst, tree_index,
+			ctx->xmssmt_public_key.seed, adrs,
+			ctx->xmssmt_sig.auth_path + (height/layers) * layer, height/layers,
+			dgst);
+	}
+
+	// verify xmssmt_root (save in dgst)
+	if (memcmp(dgst, ctx->xmssmt_public_key.root, sizeof(hash256_t)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
 }
