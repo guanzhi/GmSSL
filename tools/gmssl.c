@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ extern int sm2decrypt_main(int argc, char **argv);
 extern int sm3_main(int argc, char **argv);
 extern int sm3hmac_main(int argc, char **argv);
 extern int sm3_pbkdf2_main(int argc, char **argv);
-extern int sm3xmss_keygen_main(int argc, char **argv);
 extern int sm4_ecb_main(int argc, char **argv);
 extern int sm4_cbc_main(int argc, char **argv);
 extern int sm4_ctr_main(int argc, char **argv);
@@ -65,6 +64,19 @@ extern int tls12_client_main(int argc, char **argv);
 extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
+#ifdef ENABLE_LMS_HSS
+extern int lmskeygen_main(int argc, char **argv);
+extern int lmssign_main(int argc, char **argv);
+extern int lmsverify_main(int argc, char **argv);
+extern int hsskeygen_main(int argc, char **argv);
+extern int hsssign_main(int argc, char **argv);
+extern int hssverify_main(int argc, char **argv);
+#endif
+#ifdef ENABLE_XMSS
+extern int xmsskeygen_main(int argc, char **argv);
+extern int xmsssign_main(int argc, char **argv);
+extern int xmssverify_main(int argc, char **argv);
+#endif
 #ifdef ENABLE_SDF
 extern int sdfinfo_main(int argc, char **argv);
 extern int sdfdigest_main(int argc, char **argv);
@@ -94,7 +106,6 @@ static const char *options =
 	"  sm3               Generate SM3 hash\n"
 	"  sm3hmac           Generate SM3 HMAC tag\n"
 	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
-	"  sm3xmss_keygen    Generate SM3-XMSS keypair\n"
 	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
 	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
 	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
@@ -130,6 +141,19 @@ static const char *options =
 	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
+#ifdef ENABLE_LMS_HSS
+	"  lmskeygen         Generate LMS-SM3 (Leighton-Micali Signature) keypair\n"
+	"  lmssign           Generate LMS-SM3 signature\n"
+	"  lmsverify         Verify LMS-SM3 signature\n"
+	"  hsskeygen         Generate HSS-SM3 keypair\n"
+	"  hsssign           Generate HSS-SM3 signature\n"
+	"  hssverify         Verify HSS-SM3 signature\n"
+#endif
+#ifdef ENABLE_XMSS
+	"  xmsskeygen        Generate XMSS-SM3 keypair\n"
+	"  xmsssign          Generate XMSS-SM3 signature\n"
+	"  xmssverify        Verify XMSS-SM3 signature\n"
+#endif
 #ifdef ENABLE_SDF
 	"  sdfinfo           Print SDF device info\n"
 	"  sdfdigest         Generate SM3 hash with SDF device\n"
@@ -212,8 +236,6 @@ int main(int argc, char **argv)
 			return sm3hmac_main(argc, argv);
 		} else if (!strcmp(*argv, "sm3_pbkdf2")) {
 			return sm3_pbkdf2_main(argc, argv);
-		} else if (!strcmp(*argv, "sm3xmss_keygen")) {
-			return sm3xmss_keygen_main(argc, argv);
 #if ENABLE_SM4_ECB
 		} else if (!strcmp(*argv, "sm4_ecb")) {
 			return sm4_ecb_main(argc, argv);
@@ -286,6 +308,28 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
+#ifdef ENABLE_LMS_HSS
+		} else if (!strcmp(*argv, "lmskeygen")) {
+			return lmskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "lmssign")) {
+			return lmssign_main(argc, argv);
+		} else if (!strcmp(*argv, "lmsverify")) {
+			return lmsverify_main(argc, argv);
+		} else if (!strcmp(*argv, "hsskeygen")) {
+			return hsskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "hsssign")) {
+			return hsssign_main(argc, argv);
+		} else if (!strcmp(*argv, "hssverify")) {
+			return hssverify_main(argc, argv);
+#endif
+#ifdef ENABLE_XMSS
+		} else if (!strcmp(*argv, "xmsskeygen")) {
+			return xmsskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "xmsssign")) {
+			return xmsssign_main(argc, argv);
+		} else if (!strcmp(*argv, "xmssverify")) {
+			return xmssverify_main(argc, argv);
+#endif
 #ifdef ENABLE_SDF
 		} else if (!strcmp(*argv, "sdfinfo")) {
 			return sdfinfo_main(argc, argv);

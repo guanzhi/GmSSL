@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -173,6 +173,10 @@ enum {
 	OID_cms_signed_and_enveloped_data,
 	OID_cms_encrypted_data,
 	OID_cms_key_agreement_info,
+
+	OID_hss_lms_hashsig, // LMS/HSS public key
+	OID_xmss_hashsig,
+	OID_xmssmt_hashsig,
 };
 
 // {iso(1) org(3) dod(6) internet(1) security(5) mechanisms(5) pkix(7)}
@@ -181,6 +185,7 @@ enum {
 #define oid_pe		oid_pkix,1
 #define oid_qt		oid_pkix,2
 #define oid_kp		oid_pkix,3
+#define oid_alg		oid_pkix,6
 #define oid_ad		oid_pkix,48
 
 // {iso(1) member-body(2) us(840) rsadsi(113549)}

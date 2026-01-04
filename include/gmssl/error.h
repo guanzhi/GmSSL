@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdint.h>
+#include <inttypes.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,7 +32,9 @@ extern "C" {
 
 
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
 
 #define warning_print() \
 	do { if (DEBUG) fprintf(stderr, "%s:%d:%s():\n",__FILE__, __LINE__, __FUNCTION__); } while (0)

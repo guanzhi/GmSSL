@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -38,12 +38,13 @@ const char *asn1_tag_name(int tag)
 	}
 
 	switch (tag & 0xc0) {
-	case ASN1_TAG_CONTENT_SPECIFIC: return asn1_tag_index[tag & 0xe0];
+	case ASN1_TAG_CONTENT_SPECIFIC: return asn1_tag_index[tag & 0x1f];
 	case ASN1_TAG_APPLICATION: return "Application";
 	case ASN1_TAG_PRIVATE: return "Private";
 	}
 
 	switch (tag) {
+	case ASN1_TAG_END_OF_CONTENTS: return "End-of-contents";
 	case ASN1_TAG_BOOLEAN: return "BOOLEAN";
 	case ASN1_TAG_INTEGER: return "INTEGER";
 	case ASN1_TAG_BIT_STRING: return "BIT STRING";
@@ -221,7 +222,7 @@ int asn1_length_from_der(size_t *len, const uint8_t **in, size_t *inlen)
 	// check if the left input is enough for reading (d,dlen)
 	if (*inlen < *len) {
 		error_print();
-		return -2; // Special error for test_asn1_length() // TODO: fix asn1test.c test vector 			
+		return ASN1_R_TRUNCATED_DATA;
 	}
 	return 1;
 }
@@ -382,7 +383,7 @@ int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint
 	}
 
 	if (*inlen == 0) {
-		*tag = - 1;
+		*tag = -1; // -1 means not initialized
 		*d = NULL;
 		*dlen = 0;
 		return 0;
@@ -402,7 +403,7 @@ int asn1_any_type_from_der(int *tag, const uint8_t **d, size_t *dlen, const uint
 	return 1;
 }
 
-// we need to check this is an asn.1 type
+// caller gaurantees (a, alen) is an asn.1 object (tlv)
 int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen)
 {
 	if (!outlen) {
@@ -410,12 +411,12 @@ int asn1_any_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen
 		return -1;
 	}
 
-	if (!a) {
-		if (a) {
-			error_print();
-			return -1;
-		}
+	if (!alen) {
 		return 0;
+	}
+	if (!a) {
+		error_print();
+		return -1;
 	}
 
 	if (out && *out) {
@@ -1157,7 +1158,7 @@ int asn1_object_identifier_print(FILE *fp, int format, int indent, const char *l
 		for (i = 0; i < nodes_cnt - 1; i++) {
 			fprintf(fp, "%d.", (int)nodes[i]);
 		}
-		fprintf(fp, "%d)", nodes[i]);
+		fprintf(fp, "%d)", (int)nodes[i]);
 	}
 	fprintf(fp, "\n");
 	return 1;

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -208,30 +208,26 @@ static void inv_sub_bytes(uint8_t state[4][4])
  */
 static void shift_rows(uint8_t state[4][4])
 {
-	uint8_t tmp[4][4];
+	uint8_t tmp;
 
-	tmp[0][0] = state[0][0];
-	tmp[0][1] = state[0][1];
-	tmp[0][2] = state[0][2];
-	tmp[0][3] = state[0][3];
+	tmp = state[1][0];
+	state[1][0] = state[1][1];
+	state[1][1] = state[1][2];
+	state[1][2] = state[1][3];
+	state[1][3] = tmp;
 
-	tmp[1][0] = state[1][1];
-	tmp[1][1] = state[1][2];
-	tmp[1][2] = state[1][3];
-	tmp[1][3] = state[1][0];
+	tmp = state[2][0];
+	state[2][0] = state[2][2];
+	state[2][2] = tmp;
+	tmp = state[2][1];
+	state[2][1] = state[2][3];
+	state[2][3] = tmp;
 
-	tmp[2][0] = state[2][2];
-	tmp[2][1] = state[2][3];
-	tmp[2][2] = state[2][0];
-	tmp[2][3] = state[2][1];
-
-	tmp[3][0] = state[3][3];
-	tmp[3][1] = state[3][0];
-	tmp[3][2] = state[3][1];
-	tmp[3][3] = state[3][2];
-
-	memcpy(state, tmp, sizeof(tmp));
-	memset(tmp, 0, sizeof(tmp));
+	tmp = state[3][3];
+	state[3][3] = state[3][2];
+	state[3][2] = state[3][1];
+	state[3][1] = state[3][0];
+	state[3][0] = tmp;
 }
 
 
@@ -243,30 +239,26 @@ static void shift_rows(uint8_t state[4][4])
  */
 static void inv_shift_rows(uint8_t state[4][4])
 {
-	uint8_t tmp[4][4];
+	uint8_t tmp;
 
-	tmp[0][0] = state[0][0];
-	tmp[0][1] = state[0][1];
-	tmp[0][2] = state[0][2];
-	tmp[0][3] = state[0][3];
+	tmp = state[1][3];
+	state[1][3] = state[1][2];
+	state[1][2] = state[1][1];
+	state[1][1] = state[1][0];
+	state[1][0] = tmp;
 
-	tmp[1][0] = state[1][3];
-	tmp[1][1] = state[1][0];
-	tmp[1][2] = state[1][1];
-	tmp[1][3] = state[1][2];
+	tmp = state[2][0];
+	state[2][0] = state[2][2];
+	state[2][2] = tmp;
+	tmp = state[2][1];
+	state[2][1] = state[2][3];
+	state[2][3] = tmp;
 
-	tmp[2][0] = state[2][2];
-	tmp[2][1] = state[2][3];
-	tmp[2][2] = state[2][0];
-	tmp[2][3] = state[2][1];
-
-	tmp[3][0] = state[3][1];
-	tmp[3][1] = state[3][2];
-	tmp[3][2] = state[3][3];
-	tmp[3][3] = state[3][0];
-
-	memcpy(state, tmp, sizeof(tmp));
-	memset(tmp, 0, sizeof(tmp));
+	tmp = state[3][0];
+	state[3][0] = state[3][1];
+	state[3][1] = state[3][2];
+	state[3][2] = state[3][3];
+	state[3][3] = tmp;
 }
 
 /*
@@ -312,19 +304,21 @@ static uint8_t xe(uint8_t a) {
  */
 static void mix_columns(uint8_t S[4][4])
 {
-	uint8_t tmp[4][4];
+	uint8_t tmp0, tmp1, tmp2, tmp3;
 	int i;
 
 	/* i-th column */
 	for (i = 0; i < 4; i++) {
-		tmp[0][i] = x2(S[0][i]) ^ x3(S[1][i]) ^ x1(S[2][i]) ^ x1(S[3][i]);
-		tmp[1][i] = x1(S[0][i]) ^ x2(S[1][i]) ^ x3(S[2][i]) ^ x1(S[3][i]);
-		tmp[2][i] = x1(S[0][i]) ^ x1(S[1][i]) ^ x2(S[2][i]) ^ x3(S[3][i]);
-		tmp[3][i] = x3(S[0][i]) ^ x1(S[1][i]) ^ x1(S[2][i]) ^ x2(S[3][i]);
+		tmp0 = x2(S[0][i]) ^ x3(S[1][i]) ^ x1(S[2][i]) ^ x1(S[3][i]);
+		tmp1 = x1(S[0][i]) ^ x2(S[1][i]) ^ x3(S[2][i]) ^ x1(S[3][i]);
+		tmp2 = x1(S[0][i]) ^ x1(S[1][i]) ^ x2(S[2][i]) ^ x3(S[3][i]);
+		tmp3 = x3(S[0][i]) ^ x1(S[1][i]) ^ x1(S[2][i]) ^ x2(S[3][i]);
+		S[0][i] = tmp0;
+		S[1][i] = tmp1;
+		S[2][i] = tmp2;
+		S[3][i] = tmp3;
 	}
 
-	memcpy(S, tmp, sizeof(tmp));
-	memset(tmp, 0, sizeof(tmp));
 }
 
 /*
@@ -336,19 +330,20 @@ static void mix_columns(uint8_t S[4][4])
  */
 static void inv_mix_columns(uint8_t S[4][4])
 {
-	uint8_t tmp[4][4];
+	uint8_t tmp0, tmp1, tmp2, tmp3;
 	int i;
 
 	/* i-th column */
 	for (i = 0; i < 4; i++) {
-		tmp[0][i] = xe(S[0][i]) ^ xb(S[1][i]) ^ xd(S[2][i]) ^ x9(S[3][i]);
-		tmp[1][i] = x9(S[0][i]) ^ xe(S[1][i]) ^ xb(S[2][i]) ^ xd(S[3][i]);
-		tmp[2][i] = xd(S[0][i]) ^ x9(S[1][i]) ^ xe(S[2][i]) ^ xb(S[3][i]);
-		tmp[3][i] = xb(S[0][i]) ^ xd(S[1][i]) ^ x9(S[2][i]) ^ xe(S[3][i]);
+		tmp0 = xe(S[0][i]) ^ xb(S[1][i]) ^ xd(S[2][i]) ^ x9(S[3][i]);
+		tmp1 = x9(S[0][i]) ^ xe(S[1][i]) ^ xb(S[2][i]) ^ xd(S[3][i]);
+		tmp2 = xd(S[0][i]) ^ x9(S[1][i]) ^ xe(S[2][i]) ^ xb(S[3][i]);
+		tmp3 = xb(S[0][i]) ^ xd(S[1][i]) ^ x9(S[2][i]) ^ xe(S[3][i]);
+		S[0][i] = tmp0;
+		S[1][i] = tmp1;
+		S[2][i] = tmp2;
+		S[3][i] = tmp3;
 	}
-
-	memcpy(S, tmp, sizeof(tmp));
-	memset(tmp, 0, sizeof(tmp));
 }
 
 #ifdef CRYPTO_INFO

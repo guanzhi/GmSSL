@@ -1,7 +1,7 @@
 if (CMAKE_VERSION VERSION_LESS "3.0")
 	cmake_minimum_required(VERSION 2.8)
 else()
-	cmake_minimum_required(VERSION 3.6)
+	cmake_minimum_required(VERSION 3.10)
 endif()
 project(GmSSL C)
 
@@ -53,13 +53,15 @@ option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
-option(ENABLE_SM3_XMSS "Enable SM3-XMSS signature" ON)
+option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
+option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" OFF)
 
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
 option(ENABLE_SHA2 "Enable SHA2" ON)
 option(ENABLE_AES "Enable AES" ON)
 option(ENABLE_CHACHA20 "Enable Chacha20" ON)
+option(ENABLE_KYBER "Enable Kyber" ON)
 
 option(ENABLE_SKF "Enable SKF module" OFF)
 option(ENABLE_SDF "Enable SDF module" ON)
@@ -141,7 +143,6 @@ set(tools
 	tools/sm3.c
 	tools/sm3hmac.c
 	tools/sm3_pbkdf2.c
-	tools/sm3xmss_keygen.c
 	tools/sm2keygen.c
 	tools/sm2sign.c
 	tools/sm2verify.c
@@ -416,15 +417,33 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
-if (ENABLE_SM3_XMSS)
-	message(STATUS "ENABLE_SM3_XMSS is ON")
-	list(APPEND src src/sm3_xmss.c)
+if (ENABLE_LMS_HSS)
+	message(STATUS "ENABLE_LMS_HSS is ON")
+	add_definitions(-DENABLE_LMS_HSS)
+	list(APPEND src src/lms.c)
+	list(APPEND tools tools/lmskeygen.c tools/lmssign.c tools/lmsverify.c)
+	list(APPEND tools tools/hsskeygen.c tools/hsssign.c tools/hssverify.c)
+	list(APPEND tests lms)
 
-	option(ENABLE_SM3_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" OFF)
-	if (ENABLE_SM3_XMSS_CROSSCHECK)
-		message(STATUS "ENABLE_SM3_XMSS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_SM3_XMSS_CROSSCHECK)
-		list(APPEND tests sm3_xmss)
+	option(ENABLE_LMS_HSS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
+	if (ENABLE_LMS_HSS_CROSSCHECK)
+		message(STATUS "ENABLE_LMS_HSS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_LMS_HSS_CROSSCHECK)
+	endif()
+endif()
+
+
+if (ENABLE_XMSS)
+	message(STATUS "ENABLE_XMSS is ON")
+	add_definitions(-DENABLE_XMSS)
+	list(APPEND src src/xmss.c)
+	list(APPEND tools tools/xmsskeygen.c tools/xmsssign.c tools/xmssverify.c)
+	list(APPEND tests xmss)
+
+	option(ENABLE_XMSS_CROSSCHECK "Enable XMSS SHA-256 cross-check" ON)
+	if (ENABLE_XMSS_CROSSCHECK)
+		message(STATUS "ENABLE_XMSS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_XMSS_CROSSCHECK)
 	endif()
 endif()
 
@@ -456,6 +475,13 @@ if (ENABLE_CHACHA20)
 	message(STATUS "ENABLE_CHACHA20 is ON")
 	list(APPEND src src/chacha20.c)
 	list(APPEND tests chacha20)
+endif()
+
+
+if (ENABLE_KYBER)
+	message(STATUS "ENABLE_KYBER is ON")
+	list(APPEND src src/kyber.c)
+	list(APPEND tests kyber)
 endif()
 
 
@@ -644,7 +670,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.1.2-Dev")
+set(CPACK_PACKAGE_VERSION "3.1.3-Dev")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

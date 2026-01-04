@@ -53,6 +53,7 @@ nmake
 * 序列密码：ZUC/ZUC-256, ChaCha20
 * 哈希函数: SM3, SHA-1, SHA-224/256/384/512
 * 公钥密码：SM2加密/签名, SM9加密/签名
+* 后量子密码：LMS/HSS签名
 * MAC算法：HMAC, GHASH, CBC-MAC
 * 密钥导出函数：PBKDF2、HKDF
 * 随机数生成器：Intel RDRAND, HASH_DRBG (NIST.SP.800-90A)
@@ -98,7 +99,12 @@ GmSSL 3.0版本重写了所有的代码并改变了原有API，因此当前GmSSL
 ```
 cmake .. -DENABLE_TEST_SPEED=ON
 make
-./bin/sm4test; ./bin/sm3test; ./bin/sm2_signtest; ./bin/sm2_enctest; ./bin/sm9test; ./bin/zuctest
+./bin/sm4_cltest; ./bin/sm4test; ./bin/sm3test; ./bin/sm2_signtest; ./bin/sm2_enctest; ./bin/sm9test; ./bin/zuctest
+```
+
+MacBook Air M2 2022. Apple M2. 16 GB. Tahoe 26.1.
+```
+speed_sm4_cl_ctr32_encrypt_blocks: 15340.364334-MiB per seconds
 ```
 
 MacBook Pro 13-inch 2018: 2.7 GHz Quad-Core Intel Core i7, Intel  Iris Plus Graphics 655. 8 GB 2133 HMz LPDDR3. macOS Sonoma 14.3.
@@ -141,6 +147,7 @@ test_sm9_z256_pairing_speed: 141 pairings per seconds
 
 自从3.1.1版本以来
 
+* 增加了基于SM3的LMS/HSS和XMSS后量子哈希签名算法及命令行选项
 * 提升了全部国密算法的性能，并在`tests`测试程序中增加了国密算法的性能测试
 * 增加了SM4 ECB/CFB/OFB/CCM/XTS加密模式，带SM3-HMAC的SM4 CBC/CTR模式，并且在`gmssl`命令行工具中增加了所有SM4加密模式的选项
 * 在`gmssl`命令行中增加了GHASH计算的选项

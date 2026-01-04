@@ -59,16 +59,18 @@ static void print_octets(const uint8_t *o, size_t olen)
 
 static int test_asn1_tag(void)
 {
-	int i;
-	format_print(stderr, 0, 0, "Tags:\n");
-	for (i = 1; i <= 13; i++) {
-		format_print(stderr, 0, 4, "%s (0x%02x)\n", asn1_tag_name(i), i);
-	}
-	for (i = 18; i <= 30; i++) {
-		format_print(stderr, 0, 4, "%s (0x%02x)\n", asn1_tag_name(i), i);
-	}
-	printf("%s() ok\n", __FUNCTION__);
-	return 1;
+    int tag;
+    format_print(stderr, 0, 0, "Testing all tag values from 0 to 255:\n");
+    for (tag = 0; tag <= 255; tag++) {
+        const char *name = asn1_tag_name(tag);
+        if (name) {
+            format_print(stderr, 0, 4, "%s (0x%02x)\n", name, tag);
+        } else {
+            format_print(stderr, 0, 4, "Unknown Tag (0x%02x)\n", tag);
+        }
+    }
+    printf("%s() ok\n", __FUNCTION__);
+    return 1;
 }
 
 static int test_asn1_length(void)
@@ -103,7 +105,8 @@ static int test_asn1_length(void)
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		int ret;
 		ret = asn1_length_from_der(&length, &cp, &len);
-		if (ret != 1 && ret != -2) {
+		// TLV in test vectors have no Value, asn1_length_from_der will return ASN1_R_TRUNCATED_DATA (-2)
+		if (ret != 1 && ret != ASN1_R_TRUNCATED_DATA) {
 			error_print();
 			return -1;
 		}

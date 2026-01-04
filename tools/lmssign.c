@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -12,51 +12,60 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/mem.h>
 #include <gmssl/error.h>
-#include <gmssl/sm3_xmss.h>
+#include <gmssl/lms.h>
 
-static const char *usage = "-key file [-in file] [-out file]\n";
+static const char *usage = "-key file [-in file] [-out file] [-verbose]\n";
 
-static const char *help =
+static const char *options =
 "Options\n"
 "    -key file                   Input private key file\n"
 "    -in file                    Input data file (if not using stdin)\n"
 "    -out file                   Output signature file\n"
+"    -verbose                    Print public key and signature\n"
 "\n";
 
-int sm3xmss_sign_main(int argc, char **argv)
+int lmssign_main(int argc, char **argv)
 {
 	int ret = 1;
 	char *prog = argv[0];
 	char *keyfile = NULL;
 	char *infile = NULL;
 	char *outfile = NULL;
+	int verbose = 0;
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM3_XMSS_KEY key;
-	SM3_XMSS_SIGN_CTX sign_ctx;
-	uint8_t *sigbuf = NULL;
+	uint8_t keybuf[LMS_PRIVATE_KEY_SIZE];
+	size_t keylen = LMS_PRIVATE_KEY_SIZE;
+	const uint8_t *cp = keybuf;
+	uint8_t *p = keybuf;
+	LMS_KEY key;
+	LMS_SIGN_CTX ctx;
+	uint8_t sig[LMS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
+
+	memset(&key, 0, sizeof(key));
 
 	argc--;
 	argv++;
 
 	if (argc < 1) {
-		fprintf(stderr, "usage: %s %s\n", prog, usage);
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		return 1;
 	}
 
 	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, usage);
-			printf("%s\n", help);
+			printf("%s\n", options);
 			ret = 0;
 			goto end;
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
-			if (!(keyfp = fopen(keyfile, "rb"))) {
+			if (!(keyfp = fopen(keyfile, "rb+"))) {
 				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, keyfile, strerror(errno));
 				goto end;
 			}
@@ -74,6 +83,8 @@ int sm3xmss_sign_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure: %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
 			goto end;
@@ -91,19 +102,38 @@ bad:
 		goto end;
 	}
 
-	if (sm3_xmss_key_from_bytes(&key, NULL, 0) != 1) {
-		error_print();
-		goto end;
-	}
-
-	if (fread(&key, 1, sizeof(key), keyfp) != sizeof(key)) {
+	if (fread(keybuf, 1, keylen, keyfp) != keylen) {
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
 	}
-
-	if (sm3_xmss_sign_init(&sign_ctx, &key) != 1) {
+	if (lms_private_key_from_bytes(&key, &cp, &keylen) != 1) {
 		error_print();
 		goto end;
+	}
+	if (keylen) {
+		error_print();
+		return -1;
+	}
+
+	if (verbose) {
+		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key.public_key);
+	}
+
+	if (lms_sign_init(&ctx, &key) != 1) {
+		error_print();
+		goto end;
+	}
+
+	// write updated key back to file
+	// TODO: write back `q` only
+	if (lms_private_key_to_bytes(&key, &p, &keylen) != 1) {
+		error_print();
+		return -1;
+	}
+	rewind(keyfp);
+	if (fwrite(keybuf, 1, keylen, keyfp) != keylen) {
+		error_print();
+		return -1;
 	}
 
 	while (1) {
@@ -112,41 +142,29 @@ bad:
 		if (len == 0) {
 			break;
 		}
-		if (sm3_xmss_sign_update(&sign_ctx, buf, len) != 1) {
+		if (lms_sign_update(&ctx, buf, len) != 1) {
 			error_print();
 			goto end;
 		}
 	}
-
-	if (sm3_xmss_sign_finish(&sign_ctx, &key, NULL, &siglen) != 1) {
+	if (lms_sign_finish(&ctx, sig, &siglen) != 1) {
 		error_print();
 		goto end;
 	}
-
-	if (!(sigbuf = malloc(siglen))) {
-		fprintf(stderr, "%s: malloc failure\n", prog);
-		goto end;
-	}
-
-	if (sm3_xmss_sign_finish(&sign_ctx, &key, sigbuf, &siglen) != 1) {
+	if (fwrite(sig, 1, siglen, outfp) != siglen) {
 		error_print();
 		goto end;
 	}
-
-	if (fwrite(sigbuf, 1, siglen, outfp) != siglen) {
-		error_print();
-		goto end;
+	if (verbose) {
+		lms_signature_print(stderr, 0, 0, "lms_signature", sig, siglen);
 	}
 
 	ret = 0;
 
 end:
-	gmssl_secure_clear(&key, sizeof(key));
-	gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
-	if (sigbuf) {
-		gmssl_secure_clear(sigbuf, siglen);
-		free(sigbuf);
-	}
+	lms_key_cleanup(&key);
+	gmssl_secure_clear(keybuf, sizeof(keybuf));
+	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);
 	if (outfp && outfp != stdout) fclose(outfp);
