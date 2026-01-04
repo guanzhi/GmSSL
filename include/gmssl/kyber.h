@@ -15,12 +15,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <gmssl/hex.h>
-#include <gmssl/mem.h>
-#include <gmssl/rand.h>
-#include <gmssl/hkdf.h>
-#include <gmssl/error.h>
-#include <gmssl/endian.h>
 
 
 #ifdef __cplusplus
@@ -79,7 +73,6 @@ CRYSTALS-Kyber Algorithm Specifications and Supporing Documentation (version 3.0
 */
 
 
-
 typedef int16_t kyber_poly_t[256];
 
 typedef struct {
@@ -88,6 +81,7 @@ typedef struct {
 } KYBER_CPA_PUBLIC_KEY;
 
 typedef struct {
+	KYBER_CPA_PUBLIC_KEY public_key;
 	uint8_t s[KYBER_K][384];
 } KYBER_CPA_PRIVATE_KEY;
 
@@ -96,19 +90,13 @@ typedef struct {
 	uint8_t c2[KYBER_C2_SIZE];
 } KYBER_CPA_CIPHERTEXT;
 
+int kyber_cpa_public_key_to_bytes(const KYBER_CPA_PUBLIC_KEY *key, uint8_t **out, size_t *outlen);
+int kyber_cpa_public_key_from_bytes(KYBER_CPA_PUBLIC_KEY *key, const uint8_t **in, size_t *inlen);
+int kyber_cpa_private_key_to_bytes(const KYBER_CPA_PRIVATE_KEY *key, uint8_t **out, size_t *outlen);
+int kyber_cpa_private_key_from_bytes(KYBER_CPA_PRIVATE_KEY *key, const uint8_t **in, size_t *inlen);
 
-typedef KYBER_CPA_PUBLIC_KEY KYBER_PUBLIC_KEY;
-
-typedef struct {
-	KYBER_CPA_PRIVATE_KEY sk;
-	KYBER_CPA_PUBLIC_KEY pk;
-	uint8_t pk_hash[32];
-	uint8_t z[32];
-} KYBER_PRIVATE_KEY;
-
-typedef KYBER_CPA_CIPHERTEXT KYBER_CIPHERTEXT;
-
-
+int kyber_cpa_ciphertext_to_bytes(const KYBER_CPA_CIPHERTEXT *ciphertext, uint8_t **out, size_t *outlen);
+int kyber_cpa_ciphertext_from_bytes(KYBER_CPA_CIPHERTEXT *ciphertext, const uint8_t **in, size_t *inlen);
 
 void kyber_h_hash(const uint8_t *in, size_t inlen, uint8_t out[32]);
 void kyber_g_hash(const uint8_t *in, size_t inlen, uint8_t out[64]);
@@ -165,17 +153,55 @@ int kyber_poly_encode1(const kyber_poly_t a, uint8_t out[32]);
 
 int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk);
 int kyber_cpa_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_CIPHERTEXT *c);
-int kyber_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_CIPHERTEXT *c);
+int kyber_cpa_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_CIPHERTEXT *c);
 int kyber_cpa_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_PUBLIC_KEY *pk);
 int kyber_cpa_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_PRIVATE_KEY *sk);
 int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
 	const uint8_t rand[32], KYBER_CPA_CIPHERTEXT *out);
 int kyber_cpa_decrypt(const KYBER_CPA_PRIVATE_KEY *sk, const KYBER_CPA_CIPHERTEXT *in, uint8_t out[32]);
+
+
+typedef KYBER_CPA_PUBLIC_KEY KYBER_PUBLIC_KEY;
+
+
+typedef struct {
+	KYBER_CPA_PUBLIC_KEY pk;
+	KYBER_CPA_PRIVATE_KEY sk;
+	uint8_t pk_hash[32];
+	uint8_t z[32];
+} KYBER_PRIVATE_KEY;
+
+
+#define KYBER_PUBLIC_KEY_SIZE	sizeof(KYBER_PUBLIC_KEY)
+#define KYBER_PRIVATE_KEY_SIZE	sizeof(KYBER_PRIVATE_KEY)
+
+
+
+typedef KYBER_CPA_CIPHERTEXT KYBER_CIPHERTEXT;
+
+int kyber_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CIPHERTEXT *c);
+
+int kyber_ciphertext_to_bytes(const KYBER_CIPHERTEXT *ciphertext, uint8_t **out, size_t *outlen);
+int kyber_ciphertext_from_bytes(KYBER_CIPHERTEXT *ciphertext, const uint8_t **in, size_t *inlen);
+
+void kyber_key_cleanup(KYBER_PRIVATE_KEY *key);
+
+int kyber_key_generate(KYBER_PRIVATE_KEY *key);
+
+// generate a single key
 int kyber_keygen(KYBER_PUBLIC_KEY *pk, KYBER_PRIVATE_KEY *sk);
+
+
 int kyber_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_PRIVATE_KEY *sk);
-int kyber_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_PUBLIC_KEY *pk);
+
+int kyber_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_PRIVATE_KEY *pk);
 int kyber_encap(const KYBER_PUBLIC_KEY *pk, KYBER_CIPHERTEXT *c, uint8_t K[32]);
 int kyber_decap(const KYBER_PRIVATE_KEY *sk, const KYBER_CIPHERTEXT *c, uint8_t K[32]);
+
+int kyber_public_key_to_bytes(const KYBER_PRIVATE_KEY *key, uint8_t **out, size_t *outlen);
+int kyber_public_key_from_bytes(KYBER_PRIVATE_KEY *key, const uint8_t **in, size_t *inlen);
+int kyber_private_key_to_bytes(const KYBER_PRIVATE_KEY *key, uint8_t **out, size_t *outlen);
+int kyber_private_key_from_bytes(KYBER_PRIVATE_KEY *key, const uint8_t **in, size_t *inlen);
 
 
 #ifdef __cplusplus

@@ -483,9 +483,8 @@ static int test_kyber_kem(void)
 		return -1;
 	}
 
-	kyber_public_key_print(stderr, 0, 0, "pk", &pk);
+	kyber_public_key_print(stderr, 0, 0, "pk", &sk);
 	kyber_private_key_print(stderr, 0, 0, "sk", &sk);
-
 
 	if (kyber_encap(&pk, &c, K) != 1) {
 		error_print();
@@ -500,8 +499,135 @@ static int test_kyber_kem(void)
 	}
 	format_bytes(stderr, 0, 0, "DEC_K", K_, 32);
 
-
 	if (memcmp(K_, K, 32) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_kyber_cpa_key_to_bytes(void)
+{
+	KYBER_CPA_PUBLIC_KEY pk;
+	KYBER_CPA_PRIVATE_KEY sk;
+	uint8_t buf[30000];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	if (kyber_cpa_keygen(&pk, &sk) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_public_key_to_bytes(&pk, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_private_key_to_bytes(&sk, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_public_key_from_bytes(&pk, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_private_key_from_bytes(&sk, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+
+static int test_kyber_key_to_bytes(void)
+{
+	KYBER_PRIVATE_KEY key;
+	uint8_t buf[sizeof(KYBER_PRIVATE_KEY) + sizeof(KYBER_PRIVATE_KEY)];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	if (kyber_key_generate(&key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_public_key_to_bytes(&key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_private_key_to_bytes(&key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_public_key_from_bytes(&key, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_private_key_from_bytes(&key, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+
+static int test_kyber_cpa_ciphertext_to_bytes(void)
+{
+	KYBER_CPA_PUBLIC_KEY pk;
+	KYBER_CPA_PRIVATE_KEY sk;
+	KYBER_CPA_CIPHERTEXT c;
+	uint8_t m[32];
+	uint8_t r[32];
+	uint8_t m_[32];
+
+
+	uint8_t buf[sizeof(KYBER_CPA_CIPHERTEXT)];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+
+	if (rand_bytes(m, 32) != 1) {
+		error_print();
+		return -1;
+	}
+	if (rand_bytes(r, 32) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (kyber_cpa_keygen(&pk, &sk) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_encrypt(&pk, m, r, &c) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (kyber_cpa_ciphertext_to_bytes(&c, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_ciphertext_from_bytes(&c, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
 		error_print();
 		return -1;
 	}
@@ -527,6 +653,9 @@ int main(void)
 	if (test_kyber_poly_ntt_mul() != 1) goto err;
 	if (test_kyber_cpa() != 1) goto err;
 	if (test_kyber_kem() != 1) goto err;
+	if (test_kyber_cpa_key_to_bytes() != 1) goto err;
+	if (test_kyber_key_to_bytes() != 1) goto err;
+	if (test_kyber_cpa_ciphertext_to_bytes() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

@@ -54,7 +54,7 @@ option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
-option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" OFF)
+option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
 
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
@@ -448,6 +448,15 @@ if (ENABLE_XMSS)
 endif()
 
 
+if (ENABLE_KYBER)
+	message(STATUS "ENABLE_KYBER is ON")
+	add_definitions(-DENABLE_KYBER)
+	list(APPEND src src/kyber.c)
+	list(APPEND tools tools/kyberkeygen.c tools/kyberencap.c tools/kyberdecap.c)
+	list(APPEND tests kyber)
+endif()
+
+
 if (ENABLE_SHA1)
 	message(STATUS "ENABLE_SHA1 is ON")
 	add_definitions(-DENABLE_SHA1)
@@ -475,13 +484,6 @@ if (ENABLE_CHACHA20)
 	message(STATUS "ENABLE_CHACHA20 is ON")
 	list(APPEND src src/chacha20.c)
 	list(APPEND tests chacha20)
-endif()
-
-
-if (ENABLE_KYBER)
-	message(STATUS "ENABLE_KYBER is ON")
-	list(APPEND src src/kyber.c)
-	list(APPEND tests kyber)
 endif()
 
 

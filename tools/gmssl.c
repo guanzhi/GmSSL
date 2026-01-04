@@ -77,6 +77,11 @@ extern int xmsskeygen_main(int argc, char **argv);
 extern int xmsssign_main(int argc, char **argv);
 extern int xmssverify_main(int argc, char **argv);
 #endif
+#ifdef ENABLE_KYBER
+extern int kyberkeygen_main(int argc, char **argv);
+extern int kyberencap_main(int argc, char **argv);
+extern int kyberdecap_main(int argc, char **argv);
+#endif
 #ifdef ENABLE_SDF
 extern int sdfinfo_main(int argc, char **argv);
 extern int sdfdigest_main(int argc, char **argv);
@@ -153,6 +158,11 @@ static const char *options =
 	"  xmsskeygen        Generate XMSS-SM3 keypair\n"
 	"  xmsssign          Generate XMSS-SM3 signature\n"
 	"  xmssverify        Verify XMSS-SM3 signature\n"
+#endif
+#ifdef ENABLE_KYBER
+	"  kyberkeygen       Generate Kyber keypair\n"
+	"  kyberencap        Kyber KEM encap\n"
+	"  kyberdecap        Kyber KEM decap\n"
 #endif
 #ifdef ENABLE_SDF
 	"  sdfinfo           Print SDF device info\n"
@@ -329,6 +339,14 @@ int main(int argc, char **argv)
 			return xmsssign_main(argc, argv);
 		} else if (!strcmp(*argv, "xmssverify")) {
 			return xmssverify_main(argc, argv);
+#endif
+#ifdef ENABLE_KYBER
+		} else if (!strcmp(*argv, "kyberkeygen")) {
+			return kyberkeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "kyberencap")) {
+			return kyberencap_main(argc, argv);
+		} else if (!strcmp(*argv, "kyberdecap")) {
+			return kyberdecap_main(argc, argv);
 #endif
 #ifdef ENABLE_SDF
 		} else if (!strcmp(*argv, "sdfinfo")) {
