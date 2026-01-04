@@ -958,7 +958,7 @@ static int test_xmssmt_sign(void)
 	// build auth_path
 	for (layer = 0; layer < layers; layer++) {
 		uint32_t tree_index = xmssmt_tree_index(ctx->xmssmt_sig.index, height, layers, layer);
-		hash256_t *tree = key->trees + xmss_tree_num_nodes(height/layers) * layer;
+		hash256_t *tree = key->trees + xmss_num_tree_nodes(height/layers) * layer;
 		hash256_t *auth_path = ctx->xmssmt_sig.auth_path + (height/layers) * layer;
 		xmss_build_auth_path(tree, height/layers, tree_index, auth_path);
 	}
