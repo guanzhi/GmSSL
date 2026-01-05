@@ -237,8 +237,8 @@ int xmss_private_key_print(FILE *fp, int fmt, int ind, const char *label, const 
 
 typedef struct {
 	uint32_t index; // < 2^(XMSS_MAX_HEIGHT) = 2^20, always encode to 4 bytes
-	uint8_t random[32];
-	hash256_t wots_sig[67];
+	hash256_t random;
+	wots_sig_t wots_sig;
 	hash256_t auth_path[XMSS_MAX_HEIGHT];
 } XMSS_SIGNATURE;
 
@@ -248,9 +248,10 @@ typedef struct {
 #define XMSS_SIGNATURE_MIN_SIZE	(4 + 32 + 32*67 + 32 * XMSS_MIN_HEIGHT) // = 2500 bytes
 #define XMSS_SIGNATURE_MAX_SIZE	(4 + 32 + 32*67 + 32 * XMSS_MAX_HEIGHT) // = 2820 bytes
 int xmss_signature_size(uint32_t xmss_type, size_t *siglen);
+int xmss_signature_to_bytes(const XMSS_SIGNATURE *sig, uint32_t xmss_type, uint8_t **out, size_t *outlen);
+int xmss_signature_from_bytes(XMSS_SIGNATURE *sig, uint32_t xmss_type, const uint8_t **in, size_t *inlen);
 int xmss_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *in, size_t inlen);
 int xmss_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const XMSS_SIGNATURE *sig);
-
 
 typedef struct {
 	XMSS_PUBLIC_KEY xmss_public_key;
@@ -258,13 +259,13 @@ typedef struct {
 	HASH256_CTX hash256_ctx;
 } XMSS_SIGN_CTX;
 
-
 int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key);
 int xmss_sign_update(XMSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int xmss_sign_finish(XMSS_SIGN_CTX *ctx, uint8_t *sigbuf, size_t *siglen);
 int xmss_verify_init(XMSS_SIGN_CTX *ctx, const XMSS_KEY *key, const uint8_t *sigbuf, size_t siglen);
 int xmss_verify_update(XMSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int xmss_verify_finish(XMSS_SIGN_CTX *ctx);
+void xmss_sign_ctx_cleanup(XMSS_SIGN_CTX *ctx);
 
 
 enum {
@@ -412,7 +413,7 @@ int xmssmt_verify_init_ex(XMSSMT_SIGN_CTX *ctx, const XMSSMT_KEY *key, const XMS
 int xmssmt_verify_init(XMSSMT_SIGN_CTX *ctx, const XMSSMT_KEY *key, const uint8_t *sig, size_t siglen);
 int xmssmt_verify_update(XMSSMT_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int xmssmt_verify_finish(XMSSMT_SIGN_CTX *ctx);
-
+void xmssmt_sign_ctx_cleanup(XMSSMT_SIGN_CTX *ctx);
 
 #ifdef __cplusplus
 }
