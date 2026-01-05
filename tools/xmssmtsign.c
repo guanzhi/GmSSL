@@ -149,6 +149,7 @@ bad:
 		goto end;
 	}
 
+#if 0
 	// write updated key back to file
 	// TODO: write back `q` only
 	p = keybuf;
@@ -162,6 +163,17 @@ bad:
 		error_print();
 		return -1;
 	}
+#else
+	if (fseek(keyfp, XMSSMT_PUBLIC_KEY_SIZE, SEEK_SET) != 0) {
+		error_print();
+		goto end;
+	}
+	uint8_t index_buf[8];
+	uint8_t *pindex = index_buf;
+	size_t index_len = 0;
+	xmssmt_index_to_bytes(key.index, key.public_key.xmssmt_type, &pindex, &index_len);
+	fwrite(index_buf, 1, index_len, keyfp);
+#endif
 
 	while (1) {
 		uint8_t buf[1024];
@@ -189,7 +201,7 @@ bad:
 	ret = 0;
 
 end:
-	//xmss_key_cleanup(&key);
+	xmssmt_key_cleanup(&key);
 	gmssl_secure_clear(keybuf, keylen);
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (keyfp) fclose(keyfp);

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/mem.h>
 #include <gmssl/error.h>
+#include <gmssl/endian.h>
 #include <gmssl/xmss.h>
 
 static const char *usage = "-key file [-in file] [-out file] [-verbose]\n";
@@ -37,10 +38,12 @@ int xmsssign_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	uint8_t keybuf[XMSS_PRIVATE_KEY_SIZE];
-	size_t keylen = XMSS_PRIVATE_KEY_SIZE;
-	const uint8_t *cp = keybuf;
-	uint8_t *p = keybuf;
+	uint8_t pubkeybuf[XMSS_PUBLIC_KEY_SIZE];
+	uint8_t *keybuf = NULL;
+	size_t keylen;
+	const uint8_t *cp;
+	uint8_t *p;
+	size_t len;
 	XMSS_KEY key;
 	XMSS_SIGN_CTX ctx;
 	uint8_t sig[XMSS_SIGNATURE_MAX_SIZE];
@@ -102,10 +105,40 @@ bad:
 		goto end;
 	}
 
-	if (fread(keybuf, 1, keylen, keyfp) != keylen) {
+	// load xmss_public_key
+	if (fread(pubkeybuf, 1, sizeof(pubkeybuf), keyfp) != sizeof(pubkeybuf)) {
+		error_print();
+		goto end;
+	}
+	cp = pubkeybuf;
+	len = sizeof(pubkeybuf);
+	if (xmss_public_key_from_bytes(&key, &cp, &len) != 1) {
+		error_print();
+		goto end;
+	}
+	if (len) {
+		error_print();
+		goto end;
+	}
+
+	// xmss_private_key_size
+	if (xmss_private_key_size(key.public_key.xmss_type, &keylen) != 1) {
+		error_print();
+		goto end;
+	}
+	if (!(keybuf = malloc(keylen))) {
+		error_print();
+		goto end;
+	}
+	memcpy(keybuf, pubkeybuf, sizeof(pubkeybuf));
+
+	len = keylen - sizeof(pubkeybuf);
+	if (fread(keybuf + sizeof(pubkeybuf), 1, len, keyfp) != len) {
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
 	}
+
+	cp = keybuf;
 	if (xmss_private_key_from_bytes(&key, &cp, &keylen) != 1) {
 		error_print();
 		goto end;
@@ -124,8 +157,10 @@ bad:
 		goto end;
 	}
 
+#if 0
 	// write updated key back to file
 	// TODO: write back `q` only
+	p = keybuf;
 	if (xmss_private_key_to_bytes(&key, &p, &keylen) != 1) {
 		error_print();
 		return -1;
@@ -135,6 +170,16 @@ bad:
 		error_print();
 		return -1;
 	}
+#else
+	// write index only
+	if (fseek(keyfp, XMSS_PUBLIC_KEY_SIZE, SEEK_SET) != 0) {
+		error_print();
+		goto end;
+	}
+	uint8_t index_buf[4];
+	PUTU32(index_buf, key.index);
+	fwrite(index_buf, 1, 4, keyfp);
+#endif
 
 	while (1) {
 		uint8_t buf[1024];
@@ -163,8 +208,11 @@ bad:
 
 end:
 	xmss_key_cleanup(&key);
-	gmssl_secure_clear(keybuf, sizeof(keybuf));
 	gmssl_secure_clear(&ctx, sizeof(ctx));
+	if (keybuf) {
+		gmssl_secure_clear(keybuf, keylen);
+		free(keybuf);
+	}
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);
 	if (outfp && outfp != stdout) fclose(outfp);

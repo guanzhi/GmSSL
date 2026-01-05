@@ -149,19 +149,9 @@ int  wots_verify(const hash256_t wots_root,
 
 // from RFC 8391 table 7
 enum {
-	XMSS_RESERVED		= 0x00000000,
 	XMSS_SHA2_10_256	= 0x00000001,
 	XMSS_SHA2_16_256	= 0x00000002,
 	XMSS_SHA2_20_256	= 0x00000003,
-	XMSS_SHA2_10_512	= 0x00000004,
-	XMSS_SHA2_16_512	= 0x00000005,
-	XMSS_SHA2_20_512	= 0x00000006,
-	XMSS_SHAKE_10_256	= 0x00000007,
-	XMSS_SHAKE_16_256	= 0x00000008,
-	XMSS_SHAKE_20_256	= 0x00000009,
-	XMSS_SHAKE_10_512	= 0x0000000A,
-	XMSS_SHAKE_16_512	= 0x0000000B,
-	XMSS_SHAKE_20_512	= 0x0000000C,
 };
 
 enum {
@@ -216,23 +206,28 @@ typedef struct {
 
 typedef struct {
 	XMSS_PUBLIC_KEY public_key;
+	uint32_t index;
 	hash256_t secret;
 	hash256_t sk_prf;
-	uint32_t index;
 	hash256_t *tree; // hash256_t[2^(h + 1) - 1]
 } XMSS_KEY;
 
-#define XMSS_PRIVATE_KEY_SIZE	(XMSS_PUBLIC_KEY_SIZE + 32 + 32 + 4) // = 136
+// XMSS_SHA2_10_256:     65,640
+// XMSS_SHA2_16_256:  4,194,408
+// XMSS_SHA2_20_256: 67,108,968
+int xmss_private_key_size(uint32_t xmss_type, size_t *keysize);
+
+//#define XMSS_PRIVATE_KEY_SIZE	(XMSS_PUBLIC_KEY_SIZE + 32 + 32 + 4) // = 136
 
 int xmss_key_generate(XMSS_KEY *key, uint32_t xmss_type);
 int xmss_key_remaining_signs(const XMSS_KEY *key, size_t *count);
-void xmss_key_cleanup(XMSS_KEY *key);
 int xmss_public_key_to_bytes(const XMSS_KEY *key, uint8_t **out, size_t *outlen);
 int xmss_public_key_from_bytes(XMSS_KEY *key, const uint8_t **in, size_t *inlen);
 int xmss_public_key_print(FILE *fp, int fmt, int ind, const char *label, const XMSS_KEY *key);
 int xmss_private_key_to_bytes(const XMSS_KEY *key, uint8_t **out, size_t *outlen);
 int xmss_private_key_from_bytes(XMSS_KEY *key, const uint8_t **in, size_t *inlen);
 int xmss_private_key_print(FILE *fp, int fmt, int ind, const char *label, const XMSS_KEY *key);
+void xmss_key_cleanup(XMSS_KEY *key);
 
 
 typedef struct {
@@ -348,9 +343,9 @@ typedef struct {
 
 typedef struct {
 	XMSSMT_PUBLIC_KEY public_key;
+	uint64_t index; // in [0, 2^60 - 1]
 	hash256_t secret;
 	hash256_t sk_prf;
-	uint64_t index; // in [0, 2^60 - 1]
 	hash256_t *trees;
 	wots_sig_t wots_sigs[XMSSMT_MAX_LAYERS - 1];
 } XMSSMT_KEY;

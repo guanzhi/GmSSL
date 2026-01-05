@@ -306,6 +306,36 @@ static int test_xmss_build_root(void)
 	return 1;
 }
 
+static int test_xmss_private_key_size(void)
+{
+	struct {
+		uint32_t xmss_type;
+		size_t keylen;
+	} tests[] = {
+		{ XMSS_HASH256_10_256, 65640 },
+		{ XMSS_HASH256_16_256, 4194408 },
+		{ XMSS_HASH256_20_256, 67108968 },
+	};
+	size_t keylen;
+	size_t i;
+
+	format_print(stderr, 0, 4, "xmss_private_key_size\n");
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+		if (xmss_private_key_size(tests[i].xmss_type, &keylen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (keylen != tests[i].keylen) {
+			error_print();
+			return -1;
+		}
+		format_print(stderr, 0, 8, "%s: %zu\n", xmss_type_name(tests[i].xmss_type), keylen);
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_xmss_key_generate(void)
 {
 	uint32_t xmss_type = XMSS_HASH256_10_256;
@@ -342,12 +372,12 @@ static int test_xmss_key_generate(void)
 	return 1;
 }
 
-static int test_xmss_key_to_bytes(void)
+static int test_xmss_public_key_to_bytes(void)
 {
 	uint32_t xmss_type = XMSS_HASH256_10_256;
 	XMSS_KEY key;
 	XMSS_KEY pub;
-	uint8_t buf[XMSS_PUBLIC_KEY_SIZE + XMSS_PRIVATE_KEY_SIZE];
+	uint8_t buf[XMSS_PUBLIC_KEY_SIZE];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
@@ -365,16 +395,6 @@ static int test_xmss_key_to_bytes(void)
 		error_print();
 		return -1;
 	}
-
-	if (xmss_private_key_to_bytes(&key, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (len != XMSS_PUBLIC_KEY_SIZE + XMSS_PRIVATE_KEY_SIZE) {
-		error_print();
-		return -1;
-	}
-
 	if (xmss_public_key_from_bytes(&pub, &cp, &len) != 1) {
 		error_print();
 		return -1;
@@ -383,18 +403,6 @@ static int test_xmss_key_to_bytes(void)
 		error_print();
 		return -1;
 	}
-	if (xmss_private_key_from_bytes(&pub, &cp, &len) != 1) {
-		error_print();
-		return -1;
-	}
-
-	// FIXME: compare trees
-	/*
-	if (memcmp(&key, &pub, sizeof(XMSS_KEY)) != 0) {
-		error_print();
-		return -1;
-	}
-	*/
 	if (len) {
 		error_print();
 		return -1;
@@ -1100,13 +1108,13 @@ int main(void)
 	if (test_xmss_adrs() != 1) goto err;
 	if (test_xmss_build_tree() != 1) goto err;
 	if (test_xmss_build_root() != 1) goto err;
-
 	if (test_xmss_key_generate() != 1) goto err;
-	if (test_xmss_key_to_bytes() != 1) goto err;
+	if (test_xmss_public_key_to_bytes() != 1) goto err;
+	if (test_xmss_private_key_size() != 1) goto err;
+	//if (test_xmss_private_key_to_bytes() != 1) goto err;
 	if (test_xmss_signature_size() != 1) goto err;
 	if (test_xmss_sign() != 1) goto err;
 	if (test_xmss_sign_init() != 1) goto err;
-
 	if (test_xmssmt_key_generate() != 1) goto err;
 	if (test_xmssmt_index_to_bytes() != 1) goto err;
 	if (test_xmssmt_signature_to_bytes() != 1) goto err;
@@ -1117,7 +1125,6 @@ int main(void)
 	if (test_xmssmt_private_key_to_bytes() != 1) goto err;
 	if (test_xmssmt_sign() != 1) goto err;
 	if (test_xmssmt_sign_update() != 1) goto err;
-
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

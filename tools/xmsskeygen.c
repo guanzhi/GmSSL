@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -42,11 +42,12 @@ int xmsskeygen_main(int argc, char **argv)
 	FILE *outfp = NULL;
 	FILE *puboutfp = stdout;
 	XMSS_KEY key;
-	uint8_t out[XMSS_PRIVATE_KEY_SIZE];
+	uint8_t *out = NULL;
+	uint8_t *pout;
+	size_t outlen;
 	uint8_t pubout[XMSS_PUBLIC_KEY_SIZE];
-	uint8_t *pout = out;
-	uint8_t *ppubout = pubout;
-	size_t outlen = 0, puboutlen = 0;
+	uint8_t *ppubout;
+	size_t puboutlen ;
 
 	memset(&key, 0, sizeof(key));
 
@@ -116,6 +117,17 @@ bad:
 		xmss_public_key_print(stderr, 0, 0, "xmss_public_key", &key);
 	}
 
+	outlen = 0;
+	if (xmss_private_key_to_bytes(&key, NULL, &outlen) != 1) {
+		error_print();
+		goto end;
+	}
+	if (!(out = malloc(outlen))) {
+		error_print();
+		goto end;
+	}
+	pout = out;
+	outlen = 0;
 	if (xmss_private_key_to_bytes(&key, &pout, &outlen) != 1) {
 		error_print();
 		goto end;
@@ -125,7 +137,13 @@ bad:
 		goto end;
 	}
 
+	ppubout = pubout;
+	puboutlen = 0;
 	if (xmss_public_key_to_bytes(&key, &ppubout, &puboutlen) != 1) {
+		error_print();
+		goto end;
+	}
+	if (puboutlen != sizeof(pubout)) {
 		error_print();
 		goto end;
 	}
@@ -137,7 +155,10 @@ bad:
 	ret = 0;
 end:
 	xmss_key_cleanup(&key);
-	gmssl_secure_clear(out, outlen);
+	if (out) {
+		gmssl_secure_clear(out, outlen);
+		free(out);
+	}
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
 	return ret;

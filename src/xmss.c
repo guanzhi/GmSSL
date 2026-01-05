@@ -672,6 +672,26 @@ uint32_t xmss_type_from_name(const char *name)
 	return 0;
 }
 
+int xmss_private_key_size(uint32_t xmss_type, size_t *keysize)
+{
+	size_t height;
+
+	if (!keysize) {
+		error_print();
+		return -1;
+	}
+	if (xmss_type_to_height(xmss_type, &height) != 1) {
+		error_print();
+		return -1;
+	}
+	*keysize = XMSS_PUBLIC_KEY_SIZE
+		+ sizeof(hash256_t)
+		+ sizeof(hash256_t)
+		+ sizeof(uint32_t)
+		+ sizeof(hash256_t) * xmss_num_tree_nodes(height);
+	return 1;
+}
+
 int xmss_key_generate_ex(XMSS_KEY *key, uint32_t xmss_type,
 	const hash256_t seed, const hash256_t secret, const hash256_t sk_prf)
 {
@@ -838,6 +858,9 @@ int xmss_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 
 int xmss_private_key_to_bytes(const XMSS_KEY *key, uint8_t **out, size_t *outlen)
 {
+	size_t height;
+	size_t tree_size;
+
 	if (!key || !outlen) {
 		error_print();
 		return -1;
@@ -849,29 +872,52 @@ int xmss_private_key_to_bytes(const XMSS_KEY *key, uint8_t **out, size_t *outlen
 	uint32_to_bytes(key->index, out, outlen);
 	hash256_to_bytes(key->secret, out, outlen);
 	hash256_to_bytes(key->sk_prf, out, outlen);
+
+	if (key->tree == NULL) {
+		error_print();
+		return -1;
+	}
+	if (xmss_type_to_height(key->public_key.xmss_type, &height) != 1) {
+		error_print();
+		return -1;
+	}
+	tree_size = sizeof(hash256_t) * xmss_num_tree_nodes(height);
+	if (out && *out) {
+		memcpy(*out, key->tree, tree_size);
+		*out += tree_size;
+	}
+	*outlen += tree_size;
 	return 1;
 }
 
 int xmss_private_key_from_bytes(XMSS_KEY *key, const uint8_t **in, size_t *inlen)
 {
 	size_t height;
-	size_t tree_nodes;
+	size_t tree_size;
 	xmss_adrs_t adrs;
 
 	if (!key || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
 	}
-	if (*inlen < XMSS_PRIVATE_KEY_SIZE) {
-		error_print();
-		return -1;
-	}
-
 	if (xmss_public_key_from_bytes(key, in, inlen) != 1) {
 		error_print();
 		return -1;
 	}
+	// check inlen without tree
+	if (*inlen < sizeof(uint32_t) + sizeof(hash256_t)*2) {
+		error_print();
+		return -1;
+	}
+
 	if (xmss_type_to_height(key->public_key.xmss_type, &height) != 1) {
+		error_print();
+		return -1;
+	}
+	tree_size = sizeof(hash256_t) * xmss_num_tree_nodes(height);
+
+	// prepare buffer (might failure ops) before load secrets
+	if (!(key->tree = malloc(tree_size))) {
 		error_print();
 		return -1;
 	}
@@ -882,22 +928,25 @@ int xmss_private_key_from_bytes(XMSS_KEY *key, const uint8_t **in, size_t *inlen
 		error_print();
 		return -1;
 	}
-	// prepare buffer (might failure ops) before load secrets
-	tree_nodes = (1 << (height + 1)) - 1;
-	if (!(key->tree = malloc(sizeof(hash256_t) * tree_nodes))) {
-		error_print();
-		return -1;
-	}
-
-	// secret
 	hash256_from_bytes(key->secret, in, inlen);
-	// sk_prf
 	hash256_from_bytes(key->sk_prf, in, inlen);
 
-	// build_tree
-	adrs_set_layer_address(adrs, 0);
-	adrs_set_tree_address(adrs, 0);
-	xmss_build_tree(key->secret, key->public_key.seed, adrs, height, key->tree);
+	if (*inlen) {
+		// load tree
+		if (*inlen < tree_size) {
+			error_print();
+			return -1;
+		}
+		memcpy(key->tree, *in, tree_size);
+		*in += tree_size;
+		*inlen -= tree_size;
+	} else {
+		// build_tree
+		adrs_set_layer_address(adrs, 0);
+		adrs_set_tree_address(adrs, 0);
+		xmss_build_tree(key->secret, key->public_key.seed, adrs, height, key->tree);
+	}
+
 	// check
 	if (memcmp(key->tree[xmss_tree_root_offset(height)],
 		key->public_key.root, sizeof(hash256_t)) != 0) {
