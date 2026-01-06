@@ -371,7 +371,7 @@ void wots_sign(const wots_key_t sk,
 	const hash256_t seed, const xmss_adrs_t ots_adrs,
 	const hash256_t dgst, wots_key_t sig)
 {
-	hash256_t adrs;
+	xmss_adrs_t adrs;
 	const int start = 0;
 	int steps[WOTS_NUM_CHAINS];
 	int chain;
