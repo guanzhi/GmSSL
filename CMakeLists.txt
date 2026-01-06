@@ -53,15 +53,16 @@ option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
+
 option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
 option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
-
+option(ENABLE_SPHINCS "Enable SPHINCS+ signature" OFF)
+option(ENABLE_KYBER "Enable Kyber" OFF)
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
 option(ENABLE_SHA2 "Enable SHA2" ON)
 option(ENABLE_AES "Enable AES" ON)
 option(ENABLE_CHACHA20 "Enable Chacha20" ON)
-option(ENABLE_KYBER "Enable Kyber" ON)
 
 option(ENABLE_SKF "Enable SKF module" OFF)
 option(ENABLE_SDF "Enable SDF module" ON)
@@ -445,6 +446,21 @@ if (ENABLE_XMSS)
 	if (ENABLE_XMSS_CROSSCHECK)
 		message(STATUS "ENABLE_XMSS_CROSSCHECK is ON")
 		add_definitions(-DENABLE_XMSS_CROSSCHECK)
+	endif()
+endif()
+
+
+if (ENABLE_SPHINCS)
+	message(STATUS "ENABLE_SPHINCS is ON")
+	add_definitions(-DENABLE_SPHINCS)
+	list(APPEND src src/sphincs.c)
+	#list(APPEND tools tools/sphincskeygen.c tools/sphincssign.c tools/sphincsverify.c)
+	#list(APPEND tests sphincs)
+
+	option(ENABLE_SPHINCS_CROSSCHECK "Enable SPHINCS SHA-256 cross-check" ON)
+	if (ENABLE_SPHINCS_CROSSCHECK)
+		message(STATUS "ENABLE_SPHINCS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_SPHINCS_CROSSCHECK)
 	endif()
 endif()
 
