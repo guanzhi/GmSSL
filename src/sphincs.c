@@ -22,6 +22,8 @@
 #include <gmssl/sphincs.h>
 
 
+
+
 static const SPHINCS_PARAMS sphincs_params[] = {
 	//                  n   h  d  lg(t) k   w         siglen
 	{ "SPHINCS+_128s", 16, 63,  7, 12, 14, 16, 133, 1,  7856 },
@@ -307,9 +309,20 @@ void sphincs_wots_sig_to_pk(const sphincs_wots_sig_t sig,
 }
 
 void sphincs_xmss_tree_hash(const sphincs_secret_t left_child, const sphincs_secret_t right_child,
-	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	const sphincs_secret_t seed, const sphincs_adrs_t adrs,
 	hash256_t parent)
 {
+	HASH256_CTX ctx;
+	hash256_t dgst;
+
+	hash256_init(&ctx);
+	hash256_update(&ctx, seed, sizeof(sphincs_secret_t));
+	hash256_update(&ctx, adrs, sizeof(sphincs_adrs_t));
+	hash256_update(&ctx, left_child, sizeof(sphincs_secret_t));
+	hash256_update(&ctx, right_child, sizeof(sphincs_secret_t));
+	hash256_finish(&ctx, dgst);
+
+	memcpy(parent, dgst, sizeof(sphincs_secret_t));
 }
 
 void sphincs_xmss_build_tree(const sphincs_secret_t secret,
@@ -351,18 +364,110 @@ void sphincs_xmss_build_tree(const sphincs_secret_t secret,
 	}
 }
 
-
-
-void fors_tree_hash(const sphincs_secret_t seed, const sphincs_secret_t secret,
-	int start, int height, const sphincs_adrs_t adrs)
+// auth_path[height]
+void sphincs_xmss_build_auth_path(const sphincs_secret_t *tree, size_t height,
+	uint32_t tree_index, sphincs_secret_t *auth_path)
 {
+	size_t h;
+	for (h = 0; h < height; h++) {
+		memcpy(auth_path[h], tree[tree_index ^ 1], sizeof(sphincs_secret_t));
+		tree += (1 << (height - h));
+		tree_index >>= 1;
+	}
+}
+
+void sphincs_xmss_build_root(const sphincs_secret_t wots_root, uint32_t tree_index,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	const sphincs_secret_t *auth_path, size_t height,
+	hash256_t root)
+{
+	sphincs_adrs_t adrs;
+	uint32_t h;
+
+	sphincs_adrs_copy_layer_address(adrs, in_adrs);
+	sphincs_adrs_copy_tree_address(adrs, in_adrs);
+	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_HASHTREE);
+	//sphincs_adrs_set_padding(adrs, 0);
+
+	memcpy(root, wots_root, sizeof(sphincs_secret_t));
+
+
+	for (h = 0; h < height; h++) {
+		int right_child = tree_index & 1;
+		tree_index >>= 1;
+		sphincs_adrs_set_tree_height(adrs, h + 1);
+		sphincs_adrs_set_tree_index(adrs, tree_index);
+
+		if (right_child)
+			sphincs_xmss_tree_hash(auth_path[h], root, seed, adrs, root);
+		else	sphincs_xmss_tree_hash(root, auth_path[h], seed, adrs, root);
+	}
+}
+
+// TODO: index or tree_index?
+void sphincs_xmss_sign(const sphincs_secret_t secret, uint32_t index,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	const sphincs_secret_t dgst, SPHINCS_XMSS_SIGNATURE *sig)
+{
+	size_t height = SPHINCS_XMSS_HEIGHT;
+	sphincs_adrs_t adrs;
+	sphincs_wots_key_t wots_sk;
+	sphincs_secret_t tree[(1 << (SPHINCS_XMSS_HEIGHT + 1)) - 1];
+
+	// generate wots_sig
+	sphincs_wots_derive_sk(secret, seed, adrs, wots_sk);
+	sphincs_wots_sign(wots_sk, seed, adrs, dgst, sig->wots_sig);
+
+	// build xmss_tree, then build auth_path
+	sphincs_xmss_build_tree(secret, seed, adrs, height, tree);
+	sphincs_xmss_build_auth_path(tree, height, index, sig->auth_path);
+}
+
+void sphincs_xmss_sig_to_root(const SPHINCS_XMSS_SIGNATURE *sig,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	const sphincs_secret_t dgst, sphincs_secret_t xmss_root)
+{
+	sphincs_adrs_t adrs;
+	sphincs_wots_key_t wots_pk;
+	sphincs_secret_t wots_root;
+	size_t height = SPHINCS_XMSS_HEIGHT;
+
+
+	sphincs_wots_sig_to_pk(sig->wots_sig, seed, adrs, dgst, wots_pk);
+	sphincs_wots_pk_to_root(wots_pk, seed, adrs, wots_root);
+
+
+	sphincs_xmss_build_root(wots_root, sig->index, seed, adrs,
+		sig->auth_path, height,
+		xmss_root);
+}
+
+// generate the highest layer xmss_tree root
+void sphincs_hypertree_derive_root(const sphincs_secret_t secret, const sphincs_secret_t seed,
+	sphincs_secret_t root)
+{
+	sphincs_adrs_t adrs;
+	sphincs_secret_t tree[(1 << (SPHINCS_XMSS_HEIGHT + 1)) - 1];
+	sphincs_adrs_set_layer_address(adrs, SPHINCS_HYPERTREE_LAYERS - 1);
+	sphincs_adrs_set_tree_address(adrs, 0);
+	sphincs_xmss_build_tree(secret, seed, adrs, SPHINCS_XMSS_HEIGHT, tree);
+	root = tree[(1 << (SPHINCS_XMSS_HEIGHT + 1)) - 2];
+}
+
+// FIXME: uint64_t for leaf_index?
+void sphincs_hypertree_sign(const sphincs_secret_t secret, const sphincs_secret_t seed,
+	uint32_t tree_index, uint32_t leaf_index,
+	SPHINCS_XMSS_SIGNATURE sig[SPHINCS_HYPERTREE_LAYERS])
+{
+	sphincs_adrs_t adrs = {0};
+
 }
 
 
 
-
-void fors_derive_secret(const sphincs_secret_t seed, const sphincs_secret_t secret,
-	const sphincs_adrs_t in_adrs, uint32_t fors_index, sphincs_secret_t sk)
+void sphincs_fors_derive_sk(const sphincs_secret_t secret,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	uint32_t fors_index, sphincs_secret_t sk)
 {
 	uint8_t block[HASH256_BLOCK_SIZE] = {0};
 	sphincs_adrs_t adrs;
@@ -394,96 +499,41 @@ void fors_derive_secret(const sphincs_secret_t seed, const sphincs_secret_t secr
 	gmssl_secure_clear(dgst, sizeof(dgst));
 }
 
-
-
-
-
-
-/*
-int fors_derive_merkle_tree(const sphincs_hash_t sk_seed, const sphincs_adrs_t adrs, sphincs_hash_t *tree)
+void sphincs_fors_derive_root_ex(const sphincs_secret_t secret,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	size_t fors_height, size_t fors_trees,
+	sphincs_secret_t root)
 {
-	int r;
+}
 
-	int a = 12;
-	int t = (1 << a);
+void sphincs_fors_derive_root(const sphincs_secret_t secret,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	sphincs_secret_t root)
+{
+	size_t fors_height = SPHINCS_FORS_HEIGHT;
+	size_t fors_trees = SPHINCS_FORS_NUM_TREES;
 
-
-	uint8_t rbytes[4];
-	HASH256_CTX ctx;
-	hash256_t x[34];
-	hash256_t pub;
-	hash256_t *T = tree - 1;
-
-	for (r = 2*t - 1; r >= 1; r--) {
-
-		PUTU32(rbytes, r);
-
-		if (r >= t) {
-			int q = r - n;
-
-
-			sm3_lmots_derive_secrets(seed, I, q, x);
-			sm3_lmots_secrets_to_public_hash(I, q, x, pub);
-
-
-
-			// H(I||u32str(r)||u16str(D_LEAF)||OTS_PUB_HASH[r-2^h])
-			hash256_init(&ctx);
-			hash256_update(&ctx, I, 16);
-			hash256_update(&ctx, rbytes, 4);
-			hash256_update(&ctx, D_LEAF, 2);
-			hash256_update(&ctx, pub, 32);
-			hash256_finish(&ctx, T[r]);
-
-		} else {
-			// H(I||u32str(r)||u16str(D_INTR)||T[2*r]||T[2*r+1])
-			hash256_init(&ctx);
-			hash256_update(&ctx, I, 16);
-			hash256_update(&ctx, rbytes, 4);
-			hash256_update(&ctx, D_INTR, 2);
-			hash256_update(&ctx, T[2*r], 32);
-			hash256_update(&ctx, T[2*r + 1], 32);
-			hash256_finish(&ctx, T[r]);
-		}
-	}
+	sphincs_fors_derive_root_ex(secret, seed, in_adrs, fors_height, fors_trees, root);
 }
 
 
-
-int fors_derive_secrets(const sphincs_hash_t sk_seed, const sphincs_adrs_t adrs, uint32_t index, sphincs_hash_t sk[14 * 4096])
+void sphincs_fors_sign(const sphincs_secret_t secret,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	const uint8_t dgst[SPHINCS_FORS_DIGEST_SIZE],
+	SPHINCS_FORS_SIGNATURE *sig)
 {
-	sphincs_adrs_t sk_adrs;
-	uint32_t i;
+	sphincs_adrs_t adrs;
+	sphincs_secret_t fors_sk;
+	size_t i;
 
-	memcpy(sk_adrs, adrs, sizeof(sphincs_adrs_t));
-	sphincs_adrs_set_type(sk_adrs, SPHINCSX_ADRS_TYPE_FORS_KEYGEN);
-	sphincs_adrs_set_tree_height(sk_adrs, 0);
-	sphincs_adrs_set_tree_index(sk_adrs, index);
+	for (i = 0; i < SPHINCS_FORS_NUM_TREES; i++) {
 
-	for (i = 0; i < SPHINCSX_FORS_NUM_SK; i++) {
-		sphincs_adrs_set_keypair_addrss(sk_adrs, i);
-		sphincs_prf(sk_seed, sk_adrs, sk[i]);
+
+		//sphincs_fors_derive_sk(secret, seed, adrs, fors_index, fors_sk);
+
+
+
 	}
 
-	return 1;
 }
-
-
-void fors_treehash(const sphincs_hash_t sk_seed, const sphincs_hash_t pk_seed)
-{
-}
-
-void fors_secrets_to_public_root(const sphincs_hash_t sk[SPHINCSX_FORS_NUM_SK],
-	const sphincs_adrs_t pk_seed, const sphincs_adrs_t adrs,
-	sphincs_hash_t pub)
-{
-
-}
-
-int fors_treehash(const sphincs_adrs_t sk_seed, cosnt sphincs_adrs_t pk_seed,
-	unsigned int s, unsigned int z, const sphincs_adrs_t fors_adrs,
-	uint8_t out[16])
-{
-}
-*/
 

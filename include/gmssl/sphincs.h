@@ -143,11 +143,10 @@ typedef uint8_t sphincs_adrsc_t[22];
 
 void sphincs_adrs_compress(const sphincs_adrs_t adrs, sphincs_adrsc_t adrsc);
 
-// 这里比较奇怪的是，fors的参数以及哈希值是多少？
-// 哈希值被分成两部分，一部分用来从hypertree上找到树的地址，一个是用于fors的输入
+// TODO: remove this!
 typedef struct {
 	char *name;
-	size_t secret_size; // 这个是n，当sm3/sha256时n==16
+	size_t secret_size;
 	size_t height;
 	size_t layers;
 	size_t fors_height;
@@ -175,6 +174,79 @@ typedef sphincs_secret_t sphincs_wots_sig_t[35];
 void sphincs_wots_derive_sk(const sphincs_secret_t secret,
 	const sphincs_secret_t seed, const sphincs_adrs_t adrs,
 	sphincs_wots_key_t sk);
+
+
+typedef struct {
+	uint32_t index;
+	sphincs_wots_sig_t wots_sig;
+	sphincs_secret_t auth_path[22]; // sphincs+_128f height = 22
+} SPHINCS_XMSS_SIGNATURE;
+
+
+#if 1 // SPHINCS+_128s
+# define SPHINCS_HYPERTREE_HEIGHT 63
+# define SPHINCS_HYPERTREE_LAYERS 7
+# define SPHINCS_FORS_HEIGHT 12
+# define SPHINCS_FORS_NUM_TREES 14
+# define SPHINCS_FORS_DIGEST_SIZE 21
+#else
+# define SPHINCS_HYPERTREE_HEIGHT 66
+# define SPHINCS_HYPERTREE_LAYERS 22
+# define SPHINCS_FORS_HEIGHT 6
+# define SPHINCS_FORS_NUM_TREES 33
+#endif
+
+#define SPHINCS_XMSS_HEIGHT (SPHINCS_HYPERTREE_HEIGHT/SPHINCS_HYPERTREE_LAYERS)
+
+
+
+
+typedef struct {
+	sphincs_secret_t fors_sk[SPHINCS_FORS_HEIGHT];
+	sphincs_secret_t auth_path[SPHINCS_FORS_NUM_TREES][SPHINCS_FORS_HEIGHT];
+} SPHINCS_FORS_SIGNATURE;
+
+#define SPHINCS_FORS_SIGNATURE_SIZE sizeof(SPHINCS_FORS_SIGNATURE)
+int sphincs_fors_signature_to_bytes(const SPHINCS_FORS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
+int sphincs_fors_signature_from_bytes(SPHINCS_FORS_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
+int sphincs_fors_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_FORS_SIGNATURE *sig);
+int sphincs_fors_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
+
+
+typedef struct {
+	sphincs_secret_t seed;
+	sphincs_secret_t root;
+} SPHINCS_PUBLIC_KEY;
+
+typedef struct {
+	SPHINCS_PUBLIC_KEY public_key;
+	sphincs_secret_t secret;
+	sphincs_secret_t sk_prf;
+} SPHINCS_KEY;
+
+#define SPHINCS_PUBLIC_KEY_SIZE sizeof(SPHINCS_PUBLIC_KEY)
+#define SPHINCS_PRIVATE_KEY_SIZE sizeof(SPHINCS_KEY)
+
+int sphincs_public_key_to_bytes(const SPHINCS_KEY *key, uint8_t **out, size_t *outlen);
+int sphincs_public_key_from_bytes(SPHINCS_KEY *key, const uint8_t **in, size_t *inlen);
+int sphincs_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_KEY *key);
+int sphincs_private_key_to_bytes(const SPHINCS_KEY *key, uint8_t **out, size_t *outlen);
+int sphincs_private_key_from_bytes(SPHINCS_KEY *key, const uint8_t **in, size_t *inlen);
+int sphincs_private_key_print(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_KEY *key);
+void sphincs_key_cleanup(SPHINCS_KEY *key);
+
+
+typedef struct {
+	sphincs_secret_t random;
+	SPHINCS_FORS_SIGNATURE fors_sig;
+	SPHINCS_XMSS_SIGNATURE xmss_sigs[SPHINCS_HYPERTREE_LAYERS];
+} SPHINCS_SIGNATURE;
+
+int sphincs_signature_to_bytes(const SPHINCS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
+int sphincs_signature_from_bytes(SPHINCS_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
+int sphincs_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_SIGNATURE *sig);
+int sphincs_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
+
 
 
 #ifdef __cplusplus
