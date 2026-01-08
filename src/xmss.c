@@ -159,7 +159,7 @@ void adrs_set_key_and_mask(uint8_t adrs[32], uint32_t key_and_mask) {
 	PUTU32(adrs + 4*7, key_and_mask);
 }
 
-int xmss_adrs_print(FILE *fp, int fmt, int ind, const char *label, const hash256_t adrs)
+int xmss_adrs_print(FILE *fp, int fmt, int ind, const char *label, const xmss_adrs_t adrs)
 {
 	uint32_t layer_address;
 	uint64_t tree_address;
