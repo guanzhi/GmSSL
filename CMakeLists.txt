@@ -455,7 +455,7 @@ if (ENABLE_SPHINCS)
 	add_definitions(-DENABLE_SPHINCS)
 	list(APPEND src src/sphincs.c)
 	#list(APPEND tools tools/sphincskeygen.c tools/sphincssign.c tools/sphincsverify.c)
-	#list(APPEND tests sphincs)
+	list(APPEND tests sphincs)
 
 	option(ENABLE_SPHINCS_CROSSCHECK "Enable SPHINCS SHA-256 cross-check" ON)
 	if (ENABLE_SPHINCS_CROSSCHECK)

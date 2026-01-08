@@ -40,23 +40,17 @@ extern "C" {
 # define HASH256_BLOCK_SIZE	SM3_BLOCK_SIZE
 #endif
 
-/*
-In order to make keeping track of the types easier throughout the pseudo-code in the rest of
-this document, we refer to them respectively using the constants WOTS_HASH, WOTS_PK, TREE,
-FORS_TREE, FORS_ROOTS, WOTS_PRF, and FORS_PRF.
-*/
+
 
 enum {
-	SPHINCS_ADRS_TYPE_WOTS_PRF	= 0,
+	SPHINCS_ADRS_TYPE_WOTS_HASH	= 0,
 	SPHINCS_ADRS_TYPE_WOTS_PK	= 1,
-	SPHINCS_ADRS_TYPE_HASHTREE	= 2,
+	SPHINCS_ADRS_TYPE_TREE		= 2,
 	SPHINCS_ADRS_TYPE_FORS_TREE	= 3,
-	SPHINCS_ADRS_TYPE_FORS_ROOT	= 4,
-	SPHINCS_ADRS_TYPE_WOTS_KEYGEN	= 5,
-	SPHINCS_ADRS_TYPE_FORS_KEYGEN	= 6,
+	SPHINCS_ADRS_TYPE_FORS_ROOTS	= 4,
+	SPHINCS_ADRS_TYPE_WOTS_PRF	= 5,
+	SPHINCS_ADRS_TYPE_FORS_PRF	= 6,
 };
-
-typedef uint8_t sphincs_adrs_t[32];
 
 typedef struct {
 	uint32_t layer_address;
@@ -67,28 +61,13 @@ typedef struct {
 	uint32_t hash_address;
 } SPHINCS_ADRS_WOTS_HASH;
 
-void sphincs_adrs_copy_layer_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_copy_tree_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_copy_type(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_copy_keypair_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_copy_chain_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_copy_hash_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
-
-void sphincs_adrs_set_layer_address(sphincs_adrs_t adrs, const uint32_t address);
-void sphincs_adrs_set_tree_address(sphincs_adrs_t adrs, const uint64_t address);
-void sphincs_adrs_set_type(sphincs_adrs_t adrs, const uint32_t type);
-void sphincs_adrs_set_keypair_address(sphincs_adrs_t adrs, const uint32_t address);
-void sphincs_adrs_set_chain_address(sphincs_adrs_t adrs, const uint32_t address);
-void sphincs_adrs_set_hash_address(sphincs_adrs_t adrs, const uint32_t address);
-
-// 所有的padding都在最后，是否意味着可以不用padding?
 typedef struct {
 	uint32_t layer_address;
 	uint32_t tree_address[3];
 	uint32_t type; // = 1
 	uint32_t keypair_address;
-	uint32_t padding[3]; // = {0,0,0}
-} SPHINCS_ADRS_WOTS_PK_COMP;
+	uint32_t padding[2];
+} SPHINCS_ADRS_WOTS_PK;
 
 typedef struct {
 	uint32_t layer_address;
@@ -97,12 +76,7 @@ typedef struct {
 	uint32_t padding; // = 0
 	uint32_t tree_height;
 	uint32_t tree_index;
-} SPHINCS_ADRS_HASHTREE;
-
-void sphincs_adrs_copy_tree_height(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_copy_tree_index(sphincs_adrs_t dst, const sphincs_adrs_t src);
-void sphincs_adrs_set_tree_height(sphincs_adrs_t adrs, uint32_t height);
-void sphincs_adrs_set_tree_index(sphincs_adrs_t adrs, uint32_t index);
+} SPHINCS_ADRS_TREE;
 
 typedef struct {
 	uint32_t layer_address;
@@ -118,8 +92,8 @@ typedef struct {
 	uint32_t tree_address[3];
 	uint32_t type; // = 4
 	uint32_t keypair_address;
-	uint32_t padding[2]; // = {0,0}
-} SPHINCS_ADRS_FORS_ROOT;
+	uint32_t padding[2];
+} SPHINCS_ADRS_FORS_ROOTS;
 
 typedef struct {
 	uint32_t layer_address;
@@ -128,7 +102,7 @@ typedef struct {
 	uint32_t keypair_address;
 	uint32_t chain_address;
 	uint32_t hash_address; // = 0
-} SPHINCS_ADRS_WOTS_KEYGEN;
+} SPHINCS_ADRS_WOTS_PRF;
 
 typedef struct {
 	uint32_t layer_address;
@@ -137,7 +111,36 @@ typedef struct {
 	uint32_t keypair_address;
 	uint32_t tree_height; // = 0
 	uint32_t tree_index;
-} SPHINCS_ADRS_FORS_KEYGEN;
+} SPHINCS_ADRS_FORS_PRF;
+
+typedef uint8_t sphincs_adrs_t[32];
+
+void sphincs_adrs_copy_layer_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_tree_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_type(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_keypair_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_chain_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_hash_address(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_tree_height(sphincs_adrs_t dst, const sphincs_adrs_t src);
+void sphincs_adrs_copy_tree_index(sphincs_adrs_t dst, const sphincs_adrs_t src);
+
+void sphincs_adrs_set_layer_address(sphincs_adrs_t adrs, const uint32_t address);
+void sphincs_adrs_set_tree_address(sphincs_adrs_t adrs, const uint64_t address);
+void sphincs_adrs_set_type(sphincs_adrs_t adrs, const uint32_t type);
+void sphincs_adrs_set_keypair_address(sphincs_adrs_t adrs, const uint32_t address);
+void sphincs_adrs_set_chain_address(sphincs_adrs_t adrs, const uint32_t address);
+void sphincs_adrs_set_hash_address(sphincs_adrs_t adrs, const uint32_t address);
+void sphincs_adrs_set_tree_height(sphincs_adrs_t adrs, uint32_t height);
+void sphincs_adrs_set_tree_index(sphincs_adrs_t adrs, uint32_t index);
+
+typedef struct {
+	uint8_t layer_address;
+	uint64_t tree_address;
+	uint8_t type;
+	uint32_t others[3];
+} SPHINCS_ADRSC;
+
+#define SPHINCS_ADRSC_SIZE 22
 
 typedef uint8_t sphincs_adrsc_t[22];
 
@@ -160,20 +163,33 @@ typedef struct {
 // sizeof(sphincs_secret_t) == n, when sm3/sha256, n == 16
 typedef uint8_t sphincs_secret_t[16];
 
-
-
-void sphincs_wots_chain(const sphincs_secret_t x,
-	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
-	int start, int steps, sphincs_secret_t y);
-
-
 typedef sphincs_secret_t sphincs_wots_key_t[35];
 typedef sphincs_secret_t sphincs_wots_sig_t[35];
 
+int sphincs_wots_key_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_wots_key_t key);
+int sphincs_wots_sig_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_wots_sig_t sig);
 
 void sphincs_wots_derive_sk(const sphincs_secret_t secret,
-	const sphincs_secret_t seed, const sphincs_adrs_t adrs,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
 	sphincs_wots_key_t sk);
+void sphincs_wots_chain(const sphincs_secret_t x,
+	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
+	int start, int steps, sphincs_secret_t y);
+void sphincs_wots_sk_to_pk(const sphincs_wots_key_t sk,
+	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
+	sphincs_wots_key_t pk);
+void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	sphincs_secret_t root);
+void sphincs_base_w_and_checksum(const sphincs_secret_t dgst, int steps[35]);
+void sphincs_wots_sign(const sphincs_wots_key_t sk,
+	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
+	const sphincs_secret_t dgst, sphincs_wots_sig_t sig);
+void sphincs_wots_sig_to_pk(const sphincs_wots_sig_t sig,
+	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
+	const sphincs_secret_t dgst, sphincs_wots_key_t pk);
+
+
 
 
 typedef struct {

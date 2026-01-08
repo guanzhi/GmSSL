@@ -21,9 +21,6 @@
 #include <gmssl/endian.h>
 #include <gmssl/sphincs.h>
 
-
-
-
 static const SPHINCS_PARAMS sphincs_params[] = {
 	//                  n   h  d  lg(t) k   w         siglen
 	{ "SPHINCS+_128s", 16, 63,  7, 12, 14, 16, 133, 1,  7856 },
@@ -102,11 +99,203 @@ void sphincs_adrs_set_tree_index(sphincs_adrs_t adrs, uint32_t index) {
 }
 
 
-void sphincs_adrs_compress(const sphincs_adrs_t adrs, sphincs_adrsc_t adrsc)
+int sphincs_adrs_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_adrs_t adrs)
 {
-	memcpy(adrsc, adrs, 22);
+	uint32_t layer_address;
+	uint32_t tree_address_hi32;
+	uint64_t tree_address_lo64;
+	uint32_t type;
+	uint32_t keypair_address;
+	uint32_t chain_address;
+	uint32_t hash_address;
+	uint32_t tree_height;
+	uint32_t tree_index;
+	uint32_t padding;
+
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	layer_address = GETU32(adrs);
+	format_print(fp, fmt, ind, "layer_address: %"PRIu32"\n", layer_address);
+	adrs += 4;
+	tree_address_hi32 = GETU32(adrs);
+	format_print(fp, fmt, ind, "tree_address : %"PRIu32"\n", tree_address_hi32);
+	adrs += 4;
+	tree_address_lo64 = GETU64(adrs);
+	format_print(fp, fmt, ind, "tree_address : %"PRIu64"\n", tree_address_lo64);
+	adrs += 8;
+	type = GETU32(adrs);
+	format_print(fp, fmt, ind, "type         : %"PRIu32"\n", type);
+	adrs += 4;
+
+
+	switch (type) {
+	case SPHINCS_ADRS_TYPE_WOTS_HASH:
+		keypair_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "keypair_address  : %"PRIu32"\n", keypair_address);
+		adrs += 4;
+		chain_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "chain_address: %"PRIu32"\n", chain_address);
+		adrs += 4;
+		hash_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "hash_address : %"PRIu32"\n", hash_address);
+		adrs += 4;
+		break;
+	case SPHINCS_ADRS_TYPE_WOTS_PK:
+		keypair_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "keypair_address  : %"PRIu32"\n", keypair_address);
+		adrs += 4;
+		padding = GETU32(adrs);
+		format_print(fp, fmt, ind, "padding      : %"PRIu32"\n", padding);
+		adrs += 4;
+		padding = GETU32(adrs);
+		format_print(fp, fmt, ind, "padding      : %"PRIu32"\n", padding);
+		adrs += 4;
+		break;
+	case SPHINCS_ADRS_TYPE_TREE:
+		padding = GETU32(adrs);
+		format_print(fp, fmt, ind, "padding      : %"PRIu32"\n", padding);
+		adrs += 4;
+		tree_height = GETU32(adrs);
+		format_print(fp, fmt, ind, "tree_height  : %"PRIu32"\n", tree_height);
+		adrs += 4;
+		tree_index = GETU32(adrs);
+		format_print(fp, fmt, ind, "tree_index   : %"PRIu32"\n", tree_index);
+		adrs += 4;
+		break;
+	case SPHINCS_ADRS_TYPE_FORS_TREE:
+		keypair_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "keypair_address  : %"PRIu32"\n", keypair_address);
+		adrs += 4;
+		tree_height = GETU32(adrs);
+		format_print(fp, fmt, ind, "tree_height  : %"PRIu32"\n", tree_height);
+		adrs += 4;
+		tree_index = GETU32(adrs);
+		format_print(fp, fmt, ind, "tree_index   : %"PRIu32"\n", tree_index);
+		adrs += 4;
+		break;
+		break;
+	case SPHINCS_ADRS_TYPE_FORS_ROOTS:
+		keypair_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "keypair_address  : %"PRIu32"\n", keypair_address);
+		adrs += 4;
+		padding = GETU32(adrs);
+		format_print(fp, fmt, ind, "padding      : %"PRIu32"\n", padding);
+		adrs += 4;
+		padding = GETU32(adrs);
+		format_print(fp, fmt, ind, "padding      : %"PRIu32"\n", padding);
+		adrs += 4;
+		break;
+	case SPHINCS_ADRS_TYPE_WOTS_PRF:
+		keypair_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "keypair_address  : %"PRIu32"\n", keypair_address);
+		adrs += 4;
+		chain_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "chain_address: %"PRIu32"\n", chain_address);
+		adrs += 4;
+		hash_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "hash_address : %"PRIu32"\n", hash_address);
+		adrs += 4;
+		break;
+	case SPHINCS_ADRS_TYPE_FORS_PRF:
+		keypair_address = GETU32(adrs);
+		format_print(fp, fmt, ind, "keypair_address  : %"PRIu32"\n", keypair_address);
+		adrs += 4;
+		tree_height = GETU32(adrs);
+		format_print(fp, fmt, ind, "tree_height  : %"PRIu32"\n", tree_height);
+		adrs += 4;
+		tree_index = GETU32(adrs);
+		format_print(fp, fmt, ind, "tree_index   : %"PRIu32"\n", tree_index);
+		adrs += 4;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
 }
 
+void sphincs_adrs_compress(const sphincs_adrs_t adrs, sphincs_adrsc_t adrsc)
+{
+	// copy layer_address
+	memcpy(adrsc, adrs + 3, 1);
+	adrsc += 1;
+	adrs += 4;
+
+	// copy tree_address
+	memcpy(adrsc, adrs + 4, 8);
+	adrsc += 8;
+	adrs += 12;
+
+	// copy type
+	memcpy(adrsc, adrs + 3, 1);
+	adrsc += 1;
+	adrs += 4;
+
+	// copy others
+	memcpy(adrsc, adrs, 12);
+}
+
+int sphincs_wots_key_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_wots_key_t key)
+{
+	int i;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	for (i = 0; i < 35; i++) {
+		format_print(fp, fmt, ind, "%d", i);
+		format_bytes(fp, fmt, ind, "", key[i], sizeof(sphincs_secret_t));
+	}
+	return 1;
+}
+
+int sphincs_wots_sig_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_wots_sig_t sig)
+{
+	int i;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	for (i = 0; i < 35; i++) {
+		format_print(fp, fmt, ind, "%d", i);
+		format_bytes(fp, fmt, ind, "", sig[i], sizeof(sphincs_secret_t));
+	}
+	return 1;
+}
+
+void sphincs_wots_derive_sk(const sphincs_secret_t secret,
+	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+	sphincs_wots_key_t sk)
+{
+	uint8_t block[HASH256_BLOCK_SIZE] = {0};
+	sphincs_adrs_t adrs;
+	sphincs_adrsc_t adrsc;
+	HASH256_CTX ctx;
+	hash256_t dgst;
+	int i;
+
+	memcpy(block, seed, sizeof(sphincs_secret_t));
+
+	sphincs_adrs_copy_layer_address(adrs, in_adrs);
+	sphincs_adrs_copy_tree_address(adrs, in_adrs);
+	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_WOTS_PRF);
+
+	for (i = 0; i < 35; i++) {
+		sphincs_adrs_set_chain_address(adrs, i);
+		sphincs_adrs_set_hash_address(adrs, 0);
+		sphincs_adrs_compress(adrs, adrsc);
+
+		// sk[i]
+		hash256_init(&ctx);
+		hash256_update(&ctx, block, sizeof(block));
+		hash256_update(&ctx, adrsc, sizeof(adrsc));
+		hash256_update(&ctx, secret, sizeof(sphincs_secret_t));
+		hash256_finish(&ctx, dgst);
+
+		format_bytes(stderr, 0, 0, "wots_sk[i]", dgst, 32);
+
+		memcpy(sk[i], dgst, sizeof(sphincs_secret_t));
+	}
+}
 
 void sphincs_wots_chain(const sphincs_secret_t x,
 	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
@@ -151,38 +340,6 @@ void sphincs_wots_chain(const sphincs_secret_t x,
 		hash256_finish(&ctx, dgst);
 
 		memcpy(y, dgst, sizeof(sphincs_secret_t));
-	}
-}
-
-void sphincs_wots_derive_sk(const sphincs_secret_t secret,
-	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
-	sphincs_wots_key_t sk)
-{
-	uint8_t block[HASH256_BLOCK_SIZE] = {0};
-	sphincs_adrs_t adrs;
-	sphincs_adrsc_t adrsc;
-	HASH256_CTX ctx;
-	hash256_t dgst;
-	int i;
-
-	memcpy(block, seed, sizeof(sphincs_secret_t));
-
-	sphincs_adrs_copy_layer_address(adrs, in_adrs);
-	sphincs_adrs_copy_tree_address(adrs, in_adrs);
-	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_WOTS_PRF);
-
-	for (i = 0; i < 35; i++) {
-		sphincs_adrs_set_chain_address(adrs, i);
-		sphincs_adrs_set_hash_address(adrs, 0);
-		sphincs_adrs_compress(adrs, adrsc);
-
-		// sk[i]
-		hash256_init(&ctx);
-		hash256_update(&ctx, block, sizeof(block));
-		hash256_update(&ctx, adrsc, sizeof(adrsc));
-		hash256_update(&ctx, secret, sizeof(sphincs_secret_t));
-		hash256_finish(&ctx, dgst);
-		memcpy(sk, dgst, sizeof(sphincs_secret_t));
 	}
 }
 
@@ -347,7 +504,7 @@ void sphincs_xmss_build_tree(const sphincs_secret_t secret,
 	}
 
 	// build xmss tree
-	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_HASHTREE);
+	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_TREE);
 	//sphincs_adrs_set_padding(adrs, 0);
 
 	children = tree;
@@ -386,7 +543,7 @@ void sphincs_xmss_build_root(const sphincs_secret_t wots_root, uint32_t tree_ind
 
 	sphincs_adrs_copy_layer_address(adrs, in_adrs);
 	sphincs_adrs_copy_tree_address(adrs, in_adrs);
-	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_HASHTREE);
+	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_TREE);
 	//sphincs_adrs_set_padding(adrs, 0);
 
 	memcpy(root, wots_root, sizeof(sphincs_secret_t));
@@ -480,7 +637,7 @@ void sphincs_fors_derive_sk(const sphincs_secret_t secret,
 
 	sphincs_adrs_copy_layer_address(adrs, in_adrs);
 	sphincs_adrs_copy_tree_address(adrs, in_adrs);
-	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_FORS_KEYGEN);
+	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_FORS_PRF);
 	sphincs_adrs_copy_keypair_address(adrs, in_adrs);
 	sphincs_adrs_set_tree_height(adrs, 0);
 	sphincs_adrs_set_tree_index(adrs, fors_index);
@@ -516,7 +673,6 @@ void sphincs_fors_derive_root(const sphincs_secret_t secret,
 	sphincs_fors_derive_root_ex(secret, seed, in_adrs, fors_height, fors_trees, root);
 }
 
-
 void sphincs_fors_sign(const sphincs_secret_t secret,
 	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
 	const uint8_t dgst[SPHINCS_FORS_DIGEST_SIZE],
@@ -527,13 +683,162 @@ void sphincs_fors_sign(const sphincs_secret_t secret,
 	size_t i;
 
 	for (i = 0; i < SPHINCS_FORS_NUM_TREES; i++) {
-
-
 		//sphincs_fors_derive_sk(secret, seed, adrs, fors_index, fors_sk);
-
-
-
 	}
+}
 
+int sphincs_fors_signature_to_bytes(const SPHINCS_FORS_SIGNATURE *sig, uint8_t **out, size_t *outlen)
+{
+	if (!sig || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (out && *out) {
+		memcpy(*out, sig->fors_sk, sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT);
+		*out += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT;
+		memcpy(*out, sig->auth_path, sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT * SPHINCS_FORS_NUM_TREES);
+		*out += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT * SPHINCS_FORS_NUM_TREES;
+	}
+	*outlen += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT;
+	*outlen += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT * SPHINCS_FORS_NUM_TREES;
+	return 1;
+}
+
+int sphincs_fors_signature_from_bytes(SPHINCS_FORS_SIGNATURE *sig, const uint8_t **in, size_t *inlen)
+{
+	if (!sig || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (*inlen < SPHINCS_FORS_SIGNATURE_SIZE) {
+		error_print();
+		return -1;
+	}
+	memcpy(sig->fors_sk, *in, sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT);
+	*in += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT;
+	*inlen += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT;
+	memcpy(sig->auth_path, *in, sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT * SPHINCS_FORS_NUM_TREES);
+	*in += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT * SPHINCS_FORS_NUM_TREES;
+	*inlen += sizeof(sphincs_secret_t) * SPHINCS_FORS_HEIGHT * SPHINCS_FORS_NUM_TREES;
+	return 1;
+}
+
+int sphincs_fors_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_FORS_SIGNATURE *sig)
+{
+	int i, j;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	for (i = 0; i < SPHINCS_FORS_HEIGHT; i++) {
+		format_bytes(fp, fmt, 0, "fork_sk", sig->fors_sk[i], sizeof(sphincs_secret_t));
+		format_print(fp, fmt, ind, "auth_path\n");
+		for (j = 0; i < SPHINCS_FORS_NUM_TREES; i++) {
+		}
+	}
+	return 1;
+}
+
+int sphincs_fors_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen)
+{
+	return -1;
+}
+
+int sphincs_public_key_to_bytes(const SPHINCS_KEY *key, uint8_t **out, size_t *outlen)
+{
+	if (!key || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (out && *out) {
+		memcpy(*out, key->public_key.seed, sizeof(sphincs_secret_t));
+		*out += sizeof(sphincs_secret_t);
+		memcpy(*out, key->public_key.root, sizeof(sphincs_secret_t));
+		*out += sizeof(sphincs_secret_t);
+	}
+	*outlen += sizeof(sphincs_secret_t) * 2;
+	return 1;
+}
+
+int sphincs_public_key_from_bytes(SPHINCS_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	if (!key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (*inlen < sizeof(sphincs_secret_t) * 2) {
+		error_print();
+		return -1;
+	}
+	memcpy(key->public_key.seed, *in, sizeof(sphincs_secret_t));
+	*in += sizeof(sphincs_secret_t);
+	*inlen -= sizeof(sphincs_secret_t);
+	memcpy(key->public_key.root, *in, sizeof(sphincs_secret_t));
+	*in += sizeof(sphincs_secret_t);
+	*inlen -= sizeof(sphincs_secret_t);
+	return 1;
+}
+
+int sphincs_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_KEY *key)
+{
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	format_bytes(fp, fmt, ind, "seed", key->public_key.seed, sizeof(sphincs_secret_t));
+	format_bytes(fp, fmt, ind, "root", key->public_key.root, sizeof(sphincs_secret_t));
+	return 1;
+}
+
+int sphincs_private_key_to_bytes(const SPHINCS_KEY *key, uint8_t **out, size_t *outlen)
+{
+	if (!key || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_public_key_to_bytes(key, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (out && *out) {
+		memcpy(*out, key->secret, sizeof(sphincs_secret_t));
+		*out += sizeof(sphincs_secret_t);
+		memcpy(*out, key->sk_prf, sizeof(sphincs_secret_t));
+		*out += sizeof(sphincs_secret_t);
+	}
+	*outlen += sizeof(sphincs_secret_t) * 2;
+	return 1;
+}
+
+int sphincs_private_key_from_bytes(SPHINCS_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	if (!key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (*inlen < SPHINCS_PRIVATE_KEY_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_public_key_from_bytes(key, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int sphincs_private_key_print(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_KEY *key)
+{
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	sphincs_public_key_print(fp, fmt, ind, "public_key", key);
+	format_bytes(fp, fmt, ind, "secret", key->secret, sizeof(sphincs_secret_t));
+	format_bytes(fp, fmt, ind, "sk_prf", key->sk_prf, sizeof(sphincs_secret_t));
+	return 1;
+}
+
+void sphincs_key_cleanup(SPHINCS_KEY *key)
+{
+	if (key) {
+		gmssl_secure_clear(key->secret, sizeof(sphincs_secret_t));
+		gmssl_secure_clear(key->sk_prf, sizeof(sphincs_secret_t));
+	}
 }
 
