@@ -133,6 +133,8 @@ void sphincs_adrs_set_hash_address(sphincs_adrs_t adrs, const uint32_t address);
 void sphincs_adrs_set_tree_height(sphincs_adrs_t adrs, uint32_t height);
 void sphincs_adrs_set_tree_index(sphincs_adrs_t adrs, uint32_t index);
 
+int sphincs_adrs_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_adrs_t adrs);
+
 typedef struct {
 	uint8_t layer_address;
 	uint64_t tree_address;
@@ -160,43 +162,37 @@ typedef struct {
 	size_t siglen;
 } SPHINCS_PARAMS;
 
-// sizeof(sphincs_secret_t) == n, when sm3/sha256, n == 16
-typedef uint8_t sphincs_secret_t[16];
+// sizeof(sphincs_hash128_t) == n, when sm3/sha256, n == 16
+typedef uint8_t sphincs_hash128_t[16];
 
-typedef sphincs_secret_t sphincs_wots_key_t[35];
-typedef sphincs_secret_t sphincs_wots_sig_t[35];
+
+
+#define SPHINCS_WOTS_NUM_CHAINS 35
+
+typedef sphincs_hash128_t sphincs_wots_key_t[35];
+typedef sphincs_hash128_t sphincs_wots_sig_t[35];
 
 int sphincs_wots_key_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_wots_key_t key);
 int sphincs_wots_sig_print(FILE *fp, int fmt, int ind, const char *label, const sphincs_wots_sig_t sig);
 
-void sphincs_wots_derive_sk(const sphincs_secret_t secret,
-	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
+void sphincs_wots_derive_sk(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	sphincs_wots_key_t sk);
-void sphincs_wots_chain(const sphincs_secret_t x,
-	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
-	int start, int steps, sphincs_secret_t y);
+void sphincs_wots_chain(const sphincs_hash128_t x,
+	const sphincs_hash128_t seed, const sphincs_adrs_t ots_adrs,
+	int start, int steps, sphincs_hash128_t y);
 void sphincs_wots_sk_to_pk(const sphincs_wots_key_t sk,
-	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
+	const sphincs_hash128_t seed, const sphincs_adrs_t ots_adrs,
 	sphincs_wots_key_t pk);
-void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
-	const sphincs_secret_t seed, const sphincs_adrs_t in_adrs,
-	sphincs_secret_t root);
-void sphincs_base_w_and_checksum(const sphincs_secret_t dgst, int steps[35]);
 void sphincs_wots_sign(const sphincs_wots_key_t sk,
-	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
-	const sphincs_secret_t dgst, sphincs_wots_sig_t sig);
+	const sphincs_hash128_t seed, const sphincs_adrs_t ots_adrs,
+	const sphincs_hash128_t dgst, sphincs_wots_sig_t sig);
 void sphincs_wots_sig_to_pk(const sphincs_wots_sig_t sig,
-	const sphincs_secret_t seed, const sphincs_adrs_t ots_adrs,
-	const sphincs_secret_t dgst, sphincs_wots_key_t pk);
-
-
-
-
-typedef struct {
-	uint32_t index;
-	sphincs_wots_sig_t wots_sig;
-	sphincs_secret_t auth_path[22]; // sphincs+_128f height = 22
-} SPHINCS_XMSS_SIGNATURE;
+	const sphincs_hash128_t seed, const sphincs_adrs_t ots_adrs,
+	const sphincs_hash128_t dgst, sphincs_wots_key_t pk);
+void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
+	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
+	sphincs_hash128_t root);
 
 
 #if 1 // SPHINCS+_128s
@@ -212,15 +208,137 @@ typedef struct {
 # define SPHINCS_FORS_NUM_TREES 33
 #endif
 
+
+
+#define SPHINCS_FORS_TREE_HEIGHT 12
+#define SPHINCS_FORS_TREE_NUM_NODES ((1 << (SPHINCS_FORS_TREE_HEIGHT + 1)) - 1)
+
+
+#define SPHINCS_FORS_NUM_NODES (SPHINCS_FORS_TREE_NUM_NODES * SPHINCS_FORS_NUM_TRESS + 1)
+
+
+
+
+
+// FORS (Forest Of Random Subsets)
+
+// fors_tree
+// fors_tree_height
+// fors_tree_root
+// fors_forest
+// fors_num_trees
+// fors_root
+
 #define SPHINCS_XMSS_HEIGHT (SPHINCS_HYPERTREE_HEIGHT/SPHINCS_HYPERTREE_LAYERS)
+#define SPHINCS_XMSS_NUM_NODES	((1 << (SPHINCS_XMSS_HEIGHT + 1)) - 1)
 
 
+
+
+
+
+
+/*
+
+  SPHINCS+_128s/SM3
+
+
+	H_msg(R, PK.seed, PK.root, M)
+		= MGF1-SM3(R
+			||PK.seed
+			||SM3(R||PK.seed||PK.root||M),
+			m),
+
+
+	1. fors_index: 12 * 14 = 168 bits = 21 bytes
+	2. tree_index: 63 - 63/7 = 54 bits = 7 bytes
+	3. leaf_index: 9 bits = 2 bytes
+	total: 30 bytes, 1 MGF1-SM3 output
+
+
+
+  SPHINCS+_128f/SM3
+
+	1. fors_index: 6 * 33 = 198 bits = 25 bytes
+	2. tree_address: 66 - 66/22 = 63 bits = 8 bytes
+	3. keypair_address (leaf_index): 3 bits = 1 byte
+	total: 34 bytes, so need 2 MGF1-SM3 output
+
+*/
+
+
+
+void sphincs_xmss_tree_hash(
+	const sphincs_hash128_t left_child, const sphincs_hash128_t right_child,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
+	hash256_t parent);
+void sphincs_xmss_build_tree(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
+	sphincs_hash128_t tree[SPHINCS_XMSS_NUM_NODES]);
+void sphincs_xmss_build_auth_path(const sphincs_hash128_t tree[SPHINCS_XMSS_NUM_NODES],
+	uint32_t tree_index, sphincs_hash128_t auth_path[SPHINCS_XMSS_HEIGHT]);
+void sphincs_xmss_build_root(const sphincs_hash128_t wots_root, uint32_t tree_index,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
+	const sphincs_hash128_t auth_path[SPHINCS_XMSS_HEIGHT],
+	hash256_t root);
 
 
 typedef struct {
-	sphincs_secret_t fors_sk[SPHINCS_FORS_HEIGHT];
-	sphincs_secret_t auth_path[SPHINCS_FORS_NUM_TREES][SPHINCS_FORS_HEIGHT];
+	sphincs_wots_sig_t wots_sig;
+	sphincs_hash128_t auth_path[22]; // sphincs+_128f height = 22
+} SPHINCS_XMSS_SIGNATURE;
+
+void sphincs_xmss_sign(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs, uint32_t keypair_address,
+	const sphincs_hash128_t tbs_root, // to be signed xmss_root or fors_forest_root
+	SPHINCS_XMSS_SIGNATURE *sig);
+void sphincs_xmss_sig_to_root(const SPHINCS_XMSS_SIGNATURE *sig,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs, uint32_t keypair_address,
+	const sphincs_hash128_t tbs_root, // to be signed xmss_root or fors_forest_root
+	sphincs_hash128_t xmss_root);
+
+
+void sphincs_hypertree_derive_root(const sphincs_hash128_t secret, const sphincs_hash128_t seed,
+	sphincs_hash128_t root);
+void sphincs_hypertree_sign(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, uint64_t tree_address, uint32_t keypair_address,
+	const sphincs_hash128_t tbs_fors_forest_root,
+	SPHINCS_XMSS_SIGNATURE sig[SPHINCS_HYPERTREE_LAYERS]);
+int sphincs_hypertree_verify(const sphincs_hash128_t top_xmss_root,
+	const sphincs_hash128_t seed, uint64_t tree_address, uint32_t keypair_address,
+	const sphincs_hash128_t tbs_fors_forest_root,
+	const SPHINCS_XMSS_SIGNATURE sig[SPHINCS_HYPERTREE_LAYERS]);
+
+
+
+typedef uint8_t sphincs_fors_digest_t[21];
+
+
+void sphincs_fors_derive_sk(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
+	uint32_t fors_index, sphincs_hash128_t sk);
+
+void sphincs_fors_build_tree(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs, int tree_addr,
+	sphincs_hash128_t tree[SPHINCS_FORS_TREE_NUM_NODES]);;
+void sphincs_fors_derive_root(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
+	sphincs_hash128_t root);
+
+
+typedef struct {
+	sphincs_hash128_t fors_sk[SPHINCS_FORS_NUM_TREES];
+	sphincs_hash128_t auth_path[SPHINCS_FORS_NUM_TREES][SPHINCS_FORS_HEIGHT];
 } SPHINCS_FORS_SIGNATURE;
+
+void sphincs_fors_sign(const sphincs_hash128_t secret,
+	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
+	const uint8_t dgst[21],
+	SPHINCS_FORS_SIGNATURE *sig);
+void sphincs_fors_sig_to_root(const SPHINCS_FORS_SIGNATURE *sig,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
+	const uint8_t dgst[21], sphincs_hash128_t root);
+
 
 #define SPHINCS_FORS_SIGNATURE_SIZE sizeof(SPHINCS_FORS_SIGNATURE)
 int sphincs_fors_signature_to_bytes(const SPHINCS_FORS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
@@ -230,14 +348,14 @@ int sphincs_fors_signature_print(FILE *fp, int fmt, int ind, const char *label, 
 
 
 typedef struct {
-	sphincs_secret_t seed;
-	sphincs_secret_t root;
+	sphincs_hash128_t seed;
+	sphincs_hash128_t root;
 } SPHINCS_PUBLIC_KEY;
 
 typedef struct {
 	SPHINCS_PUBLIC_KEY public_key;
-	sphincs_secret_t secret;
-	sphincs_secret_t sk_prf;
+	sphincs_hash128_t secret;
+	sphincs_hash128_t sk_prf;
 } SPHINCS_KEY;
 
 #define SPHINCS_PUBLIC_KEY_SIZE sizeof(SPHINCS_PUBLIC_KEY)
@@ -253,7 +371,7 @@ void sphincs_key_cleanup(SPHINCS_KEY *key);
 
 
 typedef struct {
-	sphincs_secret_t random;
+	sphincs_hash128_t random;
 	SPHINCS_FORS_SIGNATURE fors_sig;
 	SPHINCS_XMSS_SIGNATURE xmss_sigs[SPHINCS_HYPERTREE_LAYERS];
 } SPHINCS_SIGNATURE;
