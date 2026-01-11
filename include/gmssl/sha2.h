@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -86,6 +86,18 @@ typedef struct {
 void sha512_init(SHA512_CTX *ctx);
 void sha512_update(SHA512_CTX *ctx, const uint8_t* data, size_t datalen);
 void sha512_finish(SHA512_CTX *ctx, uint8_t dgst[SHA512_DIGEST_SIZE]);
+
+
+#define SHA256_HMAC_SIZE	(SHA256_DIGEST_SIZE)
+
+typedef struct {
+	SHA256_CTX sha256_ctx;
+	uint8_t key[SHA256_BLOCK_SIZE];
+} SHA256_HMAC_CTX;
+
+void sha256_hmac_init(SHA256_HMAC_CTX *ctx, const uint8_t *key, size_t keylen);
+void sha256_hmac_update(SHA256_HMAC_CTX *ctx, const uint8_t *data, size_t datalen);
+void sha256_hmac_finish(SHA256_HMAC_CTX *ctx, uint8_t mac[SHA256_HMAC_SIZE]);
 
 
 #ifdef __cplusplus
