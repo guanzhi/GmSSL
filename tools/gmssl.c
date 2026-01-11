@@ -80,6 +80,11 @@ extern int xmssmtkeygen_main(int argc, char **argv);
 extern int xmssmtsign_main(int argc, char **argv);
 extern int xmssmtverify_main(int argc, char **argv);
 #endif
+#ifdef ENABLE_SPHINCS
+extern int sphincskeygen_main(int argc, char **argv);
+extern int sphincssign_main(int argc, char **argv);
+extern int sphincsverify_main(int argc, char **argv);
+#endif
 #ifdef ENABLE_KYBER
 extern int kyberkeygen_main(int argc, char **argv);
 extern int kyberencap_main(int argc, char **argv);
@@ -164,6 +169,11 @@ static const char *options =
 	"  xmssmtkeygen      Generate XMSS^MT-SM3 keypair\n"
 	"  xmssmtsign        Generate XMSS^MT-SM3 signature\n"
 	"  xmssmtverify      Verify XMSS^MT-SM3 signature\n"
+#endif
+#ifdef ENABLE_SPHINCS
+	"  sphincskeygen     Generate SPHINCS+_128s-SM3 keypair\n"
+	"  sphincssign       Generate SPHINCS+_128s-SM3 signature\n"
+	"  sphincsverify     Verify SPHINCS+_128s-SM3 signature\n"
 #endif
 #ifdef ENABLE_KYBER
 	"  kyberkeygen       Generate Kyber keypair\n"
@@ -351,6 +361,14 @@ int main(int argc, char **argv)
 			return xmssmtsign_main(argc, argv);
 		} else if (!strcmp(*argv, "xmssmtverify")) {
 			return xmssmtverify_main(argc, argv);
+#endif
+#ifdef ENABLE_SPHINCS
+		} else if (!strcmp(*argv, "sphincskeygen")) {
+			return sphincskeygen_main(argc, argv);
+		} else if (!strcmp(*argv, "sphincssign")) {
+			return sphincssign_main(argc, argv);
+		} else if (!strcmp(*argv, "sphincsverify")) {
+			return sphincsverify_main(argc, argv);
 #endif
 #ifdef ENABLE_KYBER
 		} else if (!strcmp(*argv, "kyberkeygen")) {

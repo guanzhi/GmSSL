@@ -32,12 +32,20 @@ extern "C" {
 # define hash256_update		sha256_update
 # define hash256_finish		sha256_finish
 # define HASH256_BLOCK_SIZE	SHA256_BLOCK_SIZE
+# define HASH256_HMAC_CTX	SHA256_HMAC_CTX
+# define hash256_hmac_init	sha256_hmac_init
+# define hash256_hmac_update	sha256_hmac_update
+# define hash256_hmac_finish	sha256_hmac_finish
 #else
 # define HASH256_CTX		SM3_CTX
 # define hash256_init		sm3_init
 # define hash256_update		sm3_update
 # define hash256_finish		sm3_finish
 # define HASH256_BLOCK_SIZE	SM3_BLOCK_SIZE
+# define HASH256_HMAC_CTX	SM3_HMAC_CTX
+# define hash256_hmac_init	sm3_hmac_init
+# define hash256_hmac_update	sm3_hmac_update
+# define hash256_hmac_finish	sm3_hmac_finish
 #endif
 
 
@@ -256,7 +264,6 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 	total: 30 bytes, 1 MGF1-SM3 output
 
 
-
   SPHINCS+_128f/SM3
 
 	1. fors_index: 6 * 33 = 198 bits = 25 bytes
@@ -266,6 +273,14 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 
 */
 
+#define SPHINCS_TBS_SIZE 30 // sphincs+_128s
+
+#define SPHINCS_TBS_FORS_SIZE	21
+#define SPHINCS_TBS_TREE_ADDRESS_SIZE	7
+#define SPHINCS_TBS_KEYPAIR_ADDRESS_SIZE 2
+
+
+// #define SPHINCS_TBS_SIZE	34 // sphincs+_128f
 
 
 void sphincs_xmss_tree_hash(
@@ -285,8 +300,14 @@ void sphincs_xmss_build_root(const sphincs_hash128_t wots_root, uint32_t tree_in
 
 typedef struct {
 	sphincs_wots_sig_t wots_sig;
-	sphincs_hash128_t auth_path[22]; // sphincs+_128f height = 22
+	sphincs_hash128_t auth_path[SPHINCS_XMSS_HEIGHT];
 } SPHINCS_XMSS_SIGNATURE;
+
+int sphincs_xmss_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_XMSS_SIGNATURE *sig);
+int sphincs_xmss_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
+int sphincs_xmss_signature_to_bytes(const SPHINCS_XMSS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
+int sphincs_xmss_signature_from_bytes(SPHINCS_XMSS_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
+
 
 void sphincs_xmss_sign(const sphincs_hash128_t secret,
 	const sphincs_hash128_t seed, const sphincs_adrs_t adrs, uint32_t keypair_address,
@@ -361,6 +382,8 @@ typedef struct {
 #define SPHINCS_PUBLIC_KEY_SIZE sizeof(SPHINCS_PUBLIC_KEY)
 #define SPHINCS_PRIVATE_KEY_SIZE sizeof(SPHINCS_KEY)
 
+int sphincs_key_generate(SPHINCS_KEY *key);
+
 int sphincs_public_key_to_bytes(const SPHINCS_KEY *key, uint8_t **out, size_t *outlen);
 int sphincs_public_key_from_bytes(SPHINCS_KEY *key, const uint8_t **in, size_t *inlen);
 int sphincs_public_key_print(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_KEY *key);
@@ -370,16 +393,54 @@ int sphincs_private_key_print(FILE *fp, int fmt, int ind, const char *label, con
 void sphincs_key_cleanup(SPHINCS_KEY *key);
 
 
+
+
 typedef struct {
 	sphincs_hash128_t random;
 	SPHINCS_FORS_SIGNATURE fors_sig;
 	SPHINCS_XMSS_SIGNATURE xmss_sigs[SPHINCS_HYPERTREE_LAYERS];
 } SPHINCS_SIGNATURE;
 
+#define SPHINCS_SIGNATURE_SIZE sizeof(SPHINCS_SIGNATURE)
 int sphincs_signature_to_bytes(const SPHINCS_SIGNATURE *sig, uint8_t **out, size_t *outlen);
 int sphincs_signature_from_bytes(SPHINCS_SIGNATURE *sig, const uint8_t **in, size_t *inlen);
 int sphincs_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const SPHINCS_SIGNATURE *sig);
 int sphincs_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen);
+
+
+
+
+typedef struct {
+	HASH256_HMAC_CTX hmac_ctx;
+	HASH256_CTX hash_ctx;
+	SPHINCS_SIGNATURE sig;
+	int state; // after init 0, after prepare 1, after update 2
+	size_t round1_msglen;
+	size_t round2_msglen;
+	SPHINCS_KEY key;
+} SPHINCS_SIGN_CTX;
+
+int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, int randomize);
+int sphincs_sign_init(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key);
+int sphincs_sign_prepare(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int sphincs_sign_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int sphincs_sign_finish_ex(SPHINCS_SIGN_CTX *ctx, SPHINCS_SIGNATURE *sig);
+int sphincs_sign_finish(SPHINCS_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
+int sphincs_verify_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const SPHINCS_SIGNATURE *sig);
+int sphincs_verify_init(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const uint8_t *sig, size_t siglen);
+int sphincs_verify_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int sphincs_verify_finish(SPHINCS_SIGN_CTX *ctx);
+
+
+
+
+
+
+
+
+
+
+
 
 
 
