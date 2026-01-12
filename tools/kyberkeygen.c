@@ -35,9 +35,9 @@ int kyberkeygen_main(int argc, char **argv)
 	int verbose = 0;
 	FILE *outfp = NULL;
 	FILE *puboutfp = stdout;
-	KYBER_PRIVATE_KEY key;
-	uint8_t out[sizeof(KYBER_PRIVATE_KEY)];
-	uint8_t pubout[sizeof(KYBER_PUBLIC_KEY)];
+	KYBER_KEY key;
+	uint8_t out[KYBER_PRIVATE_KEY_SIZE];
+	uint8_t pubout[KYBER_PUBLIC_KEY_SIZE];
 	uint8_t *pout = out;
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
@@ -91,7 +91,7 @@ bad:
 		goto end;
 	}
 
-	if (kyber_key_generate(&key) != 1) {
+	if (kyber_key_generate_ex(&key, NULL) != 1) {
 		error_print();
 		return -1;
 	}

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,24 +18,6 @@
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/kyber.h>
-
-
-
-/*
-CRYSTALS-Kyber Algorithm Specifications and Supporing Documentation (version 3.02)
-
-
-			FIPS-202		90s
-
-	XOF		SHAKE-128		AES256-CTR		MGF1-SM3
-	H		SHA3-256		SHA256			SM3
-	G		SHA3-512		SHA512			MGF1-SM3
-	PRF(s,b)	SHAKE-256(s||b)		AES256-CTR		HKDF-SM3
-	KDF		SHAKE-256		SHA256			HKDF-SM3
-
-*/
-
-
 
 
 void kyber_h_hash(const uint8_t *in, size_t inlen, uint8_t out[32])
@@ -598,102 +580,7 @@ int kyber_poly_encode1(const kyber_poly_t a, uint8_t out[32])
 	return 1;
 }
 
-/*
- 78 typedef struct {
- 79         uint8_t t[KYBER_K][384];
- 80         uint8_t rho[32];
- 81 } KYBER_CPA_PUBLIC_KEY;
- 82 
- 83 typedef struct {
- 84         // should add public key
- 85         uint8_t s[KYBER_K][384];
- 86 } KYBER_CPA_PRIVATE_KEY;
-*/
-
-int kyber_cpa_public_key_to_bytes(const KYBER_CPA_PUBLIC_KEY *key, uint8_t **out, size_t *outlen)
-{
-	if (!key || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (out && *out) {
-		memcpy(*out, key->t, sizeof(key->t));
-		*out += sizeof(key->t);
-		memcpy(*out, key->rho, sizeof(key->rho));
-		*out += sizeof(key->rho);
-	}
-	*outlen += sizeof(key->t);
-	*outlen += sizeof(key->rho);
-	return 1;
-}
-
-int kyber_cpa_public_key_from_bytes(KYBER_CPA_PUBLIC_KEY *key, const uint8_t **in, size_t *inlen)
-{
-	if (!key || !in || !(*in) || !inlen) {
-		error_print();
-		return -1;
-	}
-	if (*inlen < sizeof(key->t) + sizeof(key->rho)) {
-		error_print();
-		return -1;
-	}
-	memset(key, 0, sizeof(*key));
-	memcpy(key->t, *in, sizeof(key->t));
-	*in += sizeof(key->t);
-	*inlen -= sizeof(key->t);
-	memcpy(key->rho, *in, sizeof(key->rho));
-	*in += sizeof(key->rho);
-	*inlen -= sizeof(key->rho);
-	return 1;
-}
-
-int kyber_cpa_private_key_to_bytes(const KYBER_CPA_PRIVATE_KEY *key, uint8_t **out, size_t *outlen)
-{
-	if (!key || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (kyber_cpa_public_key_to_bytes(&key->public_key, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (out && *out) {
-		memcpy(*out, key->s, sizeof(key->s));
-	}
-	*outlen += sizeof(key->s);
-	return 1;
-}
-
-int kyber_cpa_private_key_from_bytes(KYBER_CPA_PRIVATE_KEY *key, const uint8_t **in, size_t *inlen)
-{
-	if (!key || !in || !(*in) || !inlen) {
-		error_print();
-		return -1;
-	}
-	/*
-	if (*inlen < sizeof(key->s)) {
-		error_print();
-		return -1;
-	}
-	*/
-	memset(key, 0, sizeof(*key));
-	if (kyber_cpa_public_key_from_bytes(&key->public_key, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	memcpy(key->s, *in, sizeof(key->s));
-	*in += sizeof(key->s);
-	*inlen -= sizeof(key->s);
-	return 1;
-}
-
-int kyber_cpa_key_generate(KYBER_CPA_PRIVATE_KEY *key)
-{
-	kyber_cpa_keygen(&key->public_key, key);
-	return 1;
-}
-
-int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
+int kyber_cpa_key_generate_ex(KYBER_CPA_KEY *key, const uint8_t random[32])
 {
 	kyber_poly_t A[KYBER_K][KYBER_K];
 	kyber_poly_t s[KYBER_K];
@@ -705,10 +592,13 @@ int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
 	uint8_t N = 0;
 	int i,j;
 
-	// 应该支持这个函数是由确定的值导出的					
-	if (rand_bytes(d, 32) != 1) {
-		error_print();
-		return -1;
+	if (random) {
+		memcpy(d, random, 32);
+	} else {
+		if (rand_bytes(d, 32) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 
 	kyber_g_hash(d, 32, d);
@@ -757,10 +647,10 @@ int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
 
 	// output (pk, sk)
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_encode12(t[i], pk->t[i]);
-		kyber_poly_encode12(s[i], sk->s[i]);
+		kyber_poly_encode12(t[i], key->public_key.t[i]);
+		kyber_poly_encode12(s[i], key->s[i]);
 	}
-	memcpy(pk->rho, rho, 32);
+	memcpy(key->public_key.rho, rho, 32);
 
 	gmssl_secure_clear(d, sizeof(d));
 	gmssl_secure_clear(s, sizeof(s));
@@ -769,6 +659,115 @@ int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
 	return 1;
 }
 
+void kyber_cpa_key_cleanup(KYBER_CPA_KEY *key)
+{
+	if (key) {
+		gmssl_secure_clear(key->s, sizeof(key->s));
+	}
+}
+
+int kyber_cpa_public_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size_t *outlen)
+{
+	if (!key || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (out && *out) {
+		memcpy(*out, key->public_key.t, sizeof(key->public_key.t));
+		*out += sizeof(key->public_key.t);
+		memcpy(*out, key->public_key.rho, sizeof(key->public_key.rho));
+		*out += sizeof(key->public_key.rho);
+	}
+	*outlen += sizeof(key->public_key.t);
+	*outlen += sizeof(key->public_key.rho);
+	return 1;
+}
+
+int kyber_cpa_public_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	if (!key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (*inlen < sizeof(key->public_key.t) + sizeof(key->public_key.rho)) {
+		error_print();
+		return -1;
+	}
+	memset(key, 0, sizeof(*key));
+	memcpy(key->public_key.t, *in, sizeof(key->public_key.t));
+	*in += sizeof(key->public_key.t);
+	*inlen -= sizeof(key->public_key.t);
+	memcpy(key->public_key.rho, *in, sizeof(key->public_key.rho));
+	*in += sizeof(key->public_key.rho);
+	*inlen -= sizeof(key->public_key.rho);
+	return 1;
+}
+
+int kyber_cpa_private_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size_t *outlen)
+{
+	if (!key || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_public_key_to_bytes(key, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (out && *out) {
+		memcpy(*out, key->s, sizeof(key->s));
+	}
+	*outlen += sizeof(key->s);
+	return 1;
+}
+
+int kyber_cpa_private_key_from_bytes(KYBER_CPA_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	if (!key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	memset(key, 0, sizeof(*key));
+	if (kyber_cpa_public_key_from_bytes(key, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (*inlen < sizeof(key->s)) {
+		error_print();
+		return -1;
+	}
+	memcpy(key->s, *in, sizeof(key->s));
+	*in += sizeof(key->s);
+	*inlen -= sizeof(key->s);
+	return 1;
+}
+
+int kyber_cpa_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_KEY *key)
+{
+	int i;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	for (i = 0; i < KYBER_K; i++) {
+		format_print(fp, fmt, ind, "ntt(t[%d])", i);
+		format_bytes(fp, fmt, 0, "", key->public_key.t[i], 384);
+	}
+	format_bytes(fp, fmt, ind, "rho", key->public_key.rho, 32);
+	return 1;
+}
+
+int kyber_cpa_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_KEY *key)
+{
+	int i;
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	kyber_cpa_public_key_print(fp, fmt, ind, "public_key", key);
+
+	for (i = 0; i < KYBER_K; i++) {
+		format_print(fp, fmt, ind, "ntt(s[%d])", i);
+		format_bytes(fp, fmt, 0, "", key->s[i], 384);
+	}
+	return 1;
+}
 
 /*
 
@@ -789,11 +788,45 @@ int kyber_cpa_keygen(KYBER_CPA_PUBLIC_KEY *pk, KYBER_CPA_PRIVATE_KEY *sk)
 
 */
 
+int kyber_cpa_ciphertext_to_bytes(const KYBER_CPA_CIPHERTEXT *ciphertext, uint8_t **out, size_t *outlen)
+{
+	if (!ciphertext || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (out && *out) {
+		memcpy(*out, ciphertext->c1, sizeof(ciphertext->c1));
+		*out += sizeof(ciphertext->c1);
+		memcpy(*out, ciphertext->c2, sizeof(ciphertext->c2));
+		*out += sizeof(ciphertext->c2);
+	}
+	*outlen += sizeof(ciphertext->c1);
+	*outlen += sizeof(ciphertext->c2);
+	return 1;
+}
+
+int kyber_cpa_ciphertext_from_bytes(KYBER_CPA_CIPHERTEXT *ciphertext, const uint8_t **in, size_t *inlen)
+{
+	if (!ciphertext || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (*inlen < sizeof(ciphertext->c1) + sizeof(ciphertext->c2)) {
+		error_print();
+		return -1;
+	}
+	memcpy(ciphertext->c1, *in, sizeof(ciphertext->c1));
+	*in += sizeof(ciphertext->c1);
+	*inlen -= sizeof(ciphertext->c1);
+	memcpy(ciphertext->c2, *in, sizeof(ciphertext->c2));
+	*in += sizeof(ciphertext->c2);
+	*inlen -= sizeof(ciphertext->c2);
+	return 1;
+}
 
 int kyber_cpa_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_CIPHERTEXT *c)
 {
 	int i;
-
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 	for (i = 0; i < KYBER_K; i++) {
@@ -804,44 +837,7 @@ int kyber_cpa_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, co
 	return 1;
 }
 
-int kyber_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CIPHERTEXT *c)
-{
-	return kyber_cpa_ciphertext_print(fp, fmt, ind, label, c);
-}
-
-int kyber_cpa_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_PUBLIC_KEY *pk)
-{
-	int i;
-
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-	for (i = 0; i < KYBER_K; i++) {
-		format_print(fp, fmt, ind, "ntt(t[%d])", i);
-		format_bytes(fp, fmt, 0, "", pk->t[i], 384);
-	}
-	format_bytes(fp, fmt, ind, "rho", pk->rho, 32);
-	return 1;
-}
-
-
-
-int kyber_cpa_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CPA_PRIVATE_KEY *sk)
-{
-	int i;
-	format_print(fp, fmt, ind, "%s\n", label);
-	ind += 4;
-
-	kyber_cpa_public_key_print(fp, fmt, ind, "public_key", &sk->public_key);
-
-	for (i = 0; i < KYBER_K; i++) {
-		format_print(fp, fmt, ind, "ntt(s[%d])", i);
-		format_bytes(fp, fmt, 0, "", sk->s[i], 384);
-	}
-	return 1;
-}
-
-
-int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
+int kyber_cpa_encrypt(const KYBER_CPA_KEY *key, const uint8_t in[32],
 	const uint8_t rand[32], KYBER_CPA_CIPHERTEXT *out)
 {
 	kyber_poly_t A[KYBER_K][KYBER_K];
@@ -857,13 +853,13 @@ int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
 
 	// tHat = Decode12(pk)
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_decode12(t[i], pk->t[i]);
+		kyber_poly_decode12(t[i], key->public_key.t[i]);
 	}
 
 	// AHat^T[i][j] = Parse(XOR(rho, i, j))
 	for (i = 0; i < KYBER_K; i++) {
 		for (j = 0; j < KYBER_K; j++) {
-			kyber_poly_uniform_sample(A[i][j], pk->rho, i, j);
+			kyber_poly_uniform_sample(A[i][j], key->public_key.rho, i, j);
 		}
 	}
 
@@ -955,7 +951,7 @@ int kyber_cpa_encrypt(const KYBER_CPA_PUBLIC_KEY *pk, const uint8_t in[32],
 	return 1;
 }
 
-int kyber_cpa_decrypt(const KYBER_CPA_PRIVATE_KEY *sk, const KYBER_CPA_CIPHERTEXT *in, uint8_t out[32])
+int kyber_cpa_decrypt(const KYBER_CPA_KEY *key, const KYBER_CPA_CIPHERTEXT *in, uint8_t out[32])
 {
 	kyber_poly_t u[KYBER_K];
 	kyber_poly_t s[KYBER_K];
@@ -976,10 +972,9 @@ int kyber_cpa_decrypt(const KYBER_CPA_PRIVATE_KEY *sk, const KYBER_CPA_CIPHERTEX
 	kyber_poly_decompress(v, 4, v);
 
 
-
 	// s = Decode_12(sk)
 	for (i = 0; i < KYBER_K; i++) {
-		kyber_poly_decode12(s[i], sk->s[i]);
+		kyber_poly_decode12(s[i], key->s[i]);
 	}
 
 	// m = Encode_1(Compress(v - NTT^-1(s^T * NTT(u)), 1))
@@ -1004,53 +999,70 @@ int kyber_cpa_decrypt(const KYBER_CPA_PRIVATE_KEY *sk, const KYBER_CPA_CIPHERTEX
 }
 
 
-int kyber_key_generate(KYBER_PRIVATE_KEY *sk)
+
+
+
+int kyber_key_generate_ex(KYBER_KEY *key, const uint8_t random[32])
 {
-	KYBER_PUBLIC_KEY pk;
-	if (kyber_keygen(&pk, sk) != 1) {
+	if (!key) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_key_generate_ex(&key->cpa_key, random) != 1) {
+		error_print();
+		return -1;
+	}
+	kyber_h_hash((uint8_t *)key, sizeof(KYBER_CPA_PUBLIC_KEY), key->pk_hash);
+	if (rand_bytes(key->z, 32) != 1) {
+		kyber_cpa_key_cleanup(&key->cpa_key);
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-void kyber_key_cleanup(KYBER_PRIVATE_KEY *key)
+void kyber_key_cleanup(KYBER_KEY *key)
 {
-	gmssl_secure_clear(key, sizeof(*key));
+	if (key) {
+		kyber_cpa_key_cleanup(&key->cpa_key);
+		gmssl_secure_clear(key->z, sizeof(key->z));
+	}
 }
 
-
-int kyber_public_key_to_bytes(const KYBER_PRIVATE_KEY *key, uint8_t **out, size_t *outlen)
-{
-	return kyber_cpa_public_key_to_bytes(&key->pk, out, outlen);
-}
-
-int kyber_public_key_from_bytes(KYBER_PRIVATE_KEY *key, const uint8_t **in, size_t *inlen)
-{
-	memset(key, 0, sizeof(*key));
-	return kyber_cpa_public_key_from_bytes(&key->pk, in, inlen);
-}
-
-/*
-165 typedef struct {
-166         KYBER_CPA_PUBLIC_KEY pk;
-167         KYBER_CPA_PRIVATE_KEY sk;
-168         uint8_t pk_hash[32];
-169         uint8_t z[32];
-170 } KYBER_PRIVATE_KEY;
-*/
-
-int kyber_private_key_to_bytes(const KYBER_PRIVATE_KEY *key, uint8_t **out, size_t *outlen)
+int kyber_public_key_to_bytes(const KYBER_KEY *key, uint8_t **out, size_t *outlen)
 {
 	if (!key || !outlen) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_public_key_to_bytes(&key->pk, out, outlen) != 1) {
+	if (kyber_cpa_public_key_to_bytes(&key->cpa_key, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_private_key_to_bytes(&key->sk, out, outlen) != 1) {
+	return 1;
+}
+
+int kyber_public_key_from_bytes(KYBER_KEY *key, const uint8_t **in, size_t *inlen)
+{
+	if (!key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	memset(key, 0, sizeof(*key));
+	if (kyber_cpa_public_key_from_bytes(&key->cpa_key, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int kyber_private_key_to_bytes(const KYBER_KEY *key, uint8_t **out, size_t *outlen)
+{
+	if (!key || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (kyber_cpa_private_key_to_bytes(&key->cpa_key, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1065,21 +1077,19 @@ int kyber_private_key_to_bytes(const KYBER_PRIVATE_KEY *key, uint8_t **out, size
 	return 1;
 }
 
-int kyber_private_key_from_bytes(KYBER_PRIVATE_KEY *key, const uint8_t **in, size_t *inlen)
+int kyber_private_key_from_bytes(KYBER_KEY *key, const uint8_t **in, size_t *inlen)
 {
 	if (!key || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
 	}
-	if (*inlen < sizeof(*key)) {
+	memset(key, 0, sizeof(*key));
+
+	if (kyber_cpa_private_key_from_bytes(&key->cpa_key, in, inlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_public_key_from_bytes(&key->pk, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (kyber_cpa_private_key_from_bytes(&key->sk, in, inlen) != 1) {
+	if (*inlen < sizeof(key->pk_hash) + sizeof(key->z)) {
 		error_print();
 		return -1;
 	}
@@ -1089,49 +1099,24 @@ int kyber_private_key_from_bytes(KYBER_PRIVATE_KEY *key, const uint8_t **in, siz
 	memcpy(key->z, *in, sizeof(key->z));
 	*in += sizeof(key->z);
 	*inlen -= sizeof(key->z);
-
 	return 1;
 }
 
-int kyber_keygen(KYBER_PUBLIC_KEY *pk, KYBER_PRIVATE_KEY *sk)
+int kyber_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_KEY *key)
 {
-	if (kyber_cpa_keygen(pk, &sk->sk) != 1) {
-		error_print();
-		return -1;
-	}
-
-	memcpy(&sk->pk, pk, sizeof(KYBER_PUBLIC_KEY));
-
-	kyber_h_hash((uint8_t *)pk, sizeof(KYBER_CPA_PUBLIC_KEY), sk->pk_hash);
-
-	if (rand_bytes(sk->z, 32) != 1) {
-		error_print();
-		return -1;
-	}
-
-	return 1;
+	return kyber_cpa_public_key_print(fp, fmt, ind, label, &key->cpa_key);
 }
 
-int kyber_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_PRIVATE_KEY *sk)
+int kyber_private_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_KEY *key)
 {
-	format_print(fp, fmt, ind, "%s\n", label);
+	kyber_cpa_private_key_print(fp, fmt, ind, label, &key->cpa_key);
 	ind += 4;
-
-	kyber_cpa_private_key_print(fp, fmt, ind, "privateKey", &sk->sk);
-	kyber_cpa_public_key_print(fp, fmt, ind, "publicKey", &sk->pk);
-	format_bytes(fp, fmt, ind, "publicKeyHash", sk->pk_hash, 32);
-	format_bytes(fp, fmt, ind, "z", sk->z, 32);
+	format_bytes(fp, fmt, ind, "publicKeyHash", key->pk_hash, 32);
+	format_bytes(fp, fmt, ind, "z", key->z, 32);
 	return 1;
 }
 
-
-int kyber_public_key_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_PRIVATE_KEY *key)
-{
-	return kyber_cpa_public_key_print(fp, fmt, ind, label, &key->pk);
-}
-
-
-int kyber_encap(const KYBER_PUBLIC_KEY *pk, KYBER_CIPHERTEXT *c, uint8_t K[32])
+int kyber_encap(const KYBER_KEY *key, KYBER_CIPHERTEXT *c, uint8_t K[32])
 {
 	uint8_t m_h[64];
 	uint8_t K_r[64];
@@ -1150,13 +1135,13 @@ int kyber_encap(const KYBER_PUBLIC_KEY *pk, KYBER_CIPHERTEXT *c, uint8_t K[32])
 	kyber_h_hash(m, 32, m);
 
 	// h = H(pk)
-	kyber_h_hash((const uint8_t *)pk, sizeof(KYBER_PUBLIC_KEY), h);
+	kyber_h_hash((const uint8_t *)key, sizeof(KYBER_PUBLIC_KEY), h);
 
 	// (K_, r) = G(m || H(pk))
 	kyber_g_hash(m_h, 64, K_r);
 
 	// c = Kyber.CPA.Enc(pk, m, r)
-	if (kyber_cpa_encrypt(pk, m, r, c) != 1) {
+	if (kyber_cpa_encrypt(&key->cpa_key, m, r, c) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1172,7 +1157,7 @@ int kyber_encap(const KYBER_PUBLIC_KEY *pk, KYBER_CIPHERTEXT *c, uint8_t K[32])
 	return 1;
 }
 
-int kyber_decap(const KYBER_PRIVATE_KEY *sk, const KYBER_CIPHERTEXT *c, uint8_t K[32])
+int kyber_decap(const KYBER_KEY *key, const KYBER_CIPHERTEXT *c, uint8_t K[32])
 {
 	uint8_t m_h[64];
 	uint8_t K_r[64];
@@ -1185,19 +1170,19 @@ int kyber_decap(const KYBER_PRIVATE_KEY *sk, const KYBER_CIPHERTEXT *c, uint8_t 
 
 
 	// m' = Dec(sk, c)
-	if (kyber_cpa_decrypt(&sk->sk, c, m) != 1) {
+	if (kyber_cpa_decrypt(&key->cpa_key, c, m) != 1) {
 		error_print();
 		return -1;
 	}
 
 	// h = H(pk)
-	memcpy(h, sk->pk_hash, 32);
+	memcpy(h, key->pk_hash, 32);
 
 	// (K_, r) = G(m || h)
 	kyber_g_hash(m_h, 64, K_r);
 
 	// c_ = CPA.Enc(pk, m, r)
-	if (kyber_cpa_encrypt(&sk->pk, m, r, &c_) != 1) {
+	if (kyber_cpa_encrypt(&key->cpa_key, m, r, &c_) != 1) {
 		gmssl_secure_clear(m_h, sizeof(m_h));
 		gmssl_secure_clear(K_r, sizeof(K_r));
 		error_print();
@@ -1212,7 +1197,7 @@ int kyber_decap(const KYBER_PRIVATE_KEY *sk, const KYBER_CIPHERTEXT *c, uint8_t 
 		kyber_kdf(K_r, K);
 	} else {
 		error_print();
-		memcpy(K_r, sk->z, 32); // TODO: const time
+		memcpy(K_r, key->z, 32); // TODO: const time
 		kyber_kdf(K_r, K);
 	}
 
@@ -1221,49 +1206,25 @@ int kyber_decap(const KYBER_PRIVATE_KEY *sk, const KYBER_CIPHERTEXT *c, uint8_t 
 	return 1;
 }
 
-int kyber_cpa_ciphertext_to_bytes(const KYBER_CPA_CIPHERTEXT *ciphertext, uint8_t **out, size_t *outlen)
-{
-	if (!ciphertext || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (out && *out) {
-		memcpy(*out, ciphertext->c1, sizeof(ciphertext->c1));
-		*out += sizeof(ciphertext->c1);
-		memcpy(*out, ciphertext->c2, sizeof(ciphertext->c2));
-		*out += sizeof(ciphertext->c2);
-	}
-	*outlen += sizeof(ciphertext->c1);
-	*outlen += sizeof(ciphertext->c2);
-	return 1;
-}
-
-int kyber_cpa_ciphertext_from_bytes(KYBER_CPA_CIPHERTEXT *ciphertext, const uint8_t **in, size_t *inlen)
-{
-	if (!ciphertext || !in || !(*in) || !inlen) {
-		error_print();
-		return -1;
-	}
-	if (*inlen < sizeof(ciphertext->c1) + sizeof(ciphertext->c2)) {
-		error_print();
-		return -1;
-	}
-	memcpy(ciphertext->c1, *in, sizeof(ciphertext->c1));
-	*in += sizeof(ciphertext->c1);
-	*inlen -= sizeof(ciphertext->c1);
-	memcpy(ciphertext->c2, *in, sizeof(ciphertext->c2));
-	*in += sizeof(ciphertext->c2);
-	*inlen -= sizeof(ciphertext->c2);
-	return 1;
-}
-
 int kyber_ciphertext_to_bytes(const KYBER_CIPHERTEXT *ciphertext, uint8_t **out, size_t *outlen)
 {
-	return kyber_cpa_ciphertext_to_bytes(ciphertext, out, outlen);
+	if (kyber_cpa_ciphertext_to_bytes(ciphertext, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int kyber_ciphertext_from_bytes(KYBER_CIPHERTEXT *ciphertext, const uint8_t **in, size_t *inlen)
 {
-	return kyber_cpa_ciphertext_from_bytes(ciphertext, in, inlen);
+	if (kyber_cpa_ciphertext_from_bytes(ciphertext, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
+int kyber_ciphertext_print(FILE *fp, int fmt, int ind, const char *label, const KYBER_CIPHERTEXT *c)
+{
+	return kyber_cpa_ciphertext_print(fp, fmt, ind, label, c);
+}

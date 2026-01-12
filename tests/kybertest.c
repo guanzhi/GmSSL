@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,9 +16,6 @@
 #include <gmssl/kyber.h>
 
 
-
-
-
 static int test_kyber_poly_uniform_sample(void)
 {
 	kyber_poly_t a;
@@ -30,7 +27,7 @@ static int test_kyber_poly_uniform_sample(void)
 	kyber_poly_uniform_sample(a, rho, 0, 0);
 	kyber_poly_to_signed(a, a);
 
-	//kyber_poly_print(stderr, 0, 0, "a from uniform sampling", a);
+	kyber_poly_print(stderr, 0, 4, "a from uniform sampling", a);
 
 	return 1;
 }
@@ -44,11 +41,11 @@ static int test_kyber_poly_cbd_sample(void)
 	rand_bytes(seed, sizeof(seed));
 	kyber_poly_cbd_sample(a, 2, seed, 0);
 	kyber_poly_to_signed(a, a);
-	//kyber_poly_print(stderr, 0, 0, "cbd(eta=2)", a);
+	//kyber_poly_print(stderr, 0, 4, "cbd(eta=2)", a);
 
 	kyber_poly_cbd_sample(a, 3, seed, 0);
 	kyber_poly_to_signed(a, a);
-	//kyber_poly_print(stderr, 0, 0, "cbd(eta=3)", a);
+	//kyber_poly_print(stderr, 0, 4, "cbd(eta=3)", a);
 
 	return 1;
 }
@@ -428,8 +425,7 @@ static int test_kyber_poly_encode1(void)
 
 static int test_kyber_cpa(void)
 {
-	KYBER_CPA_PUBLIC_KEY pk;
-	KYBER_CPA_PRIVATE_KEY sk;
+	KYBER_CPA_KEY key;
 	KYBER_CPA_CIPHERTEXT c;
 	uint8_t m[32];
 	uint8_t r[32];
@@ -444,20 +440,20 @@ static int test_kyber_cpa(void)
 		return -1;
 	}
 
-	if (kyber_cpa_keygen(&pk, &sk) != 1) {
+	if (kyber_cpa_key_generate_ex(&key, NULL) != 1) {
 		error_print();
 		return -1;
 	}
-	kyber_cpa_public_key_print(stderr, 0, 0, "publicKey", &pk);
-	kyber_cpa_private_key_print(stderr, 0, 0, "privateKey", &sk);
+	kyber_cpa_public_key_print(stderr, 0, 0, "publicKey", &key);
+	kyber_cpa_private_key_print(stderr, 0, 0, "privateKey", &key);
 
-	if (kyber_cpa_encrypt(&pk, m, r, &c) != 1) {
+	if (kyber_cpa_encrypt(&key, m, r, &c) != 1) {
 		error_print();
 		return -1;
 	}
 	kyber_cpa_ciphertext_print(stderr, 0, 0, "ciphertext", &c);
 
-	if (kyber_cpa_decrypt(&sk, &c, m_) != 1) {
+	if (kyber_cpa_decrypt(&key, &c, m_) != 1) {
 		error_print();
 		return -1;
 	}
@@ -472,28 +468,27 @@ static int test_kyber_cpa(void)
 
 static int test_kyber_kem(void)
 {
-	KYBER_PRIVATE_KEY sk;
-	KYBER_PUBLIC_KEY pk;
+	KYBER_KEY key;
 	KYBER_CIPHERTEXT c;
 	uint8_t K[32];
 	uint8_t K_[32];
 
-	if (kyber_keygen(&pk, &sk) != 1) {
+	if (kyber_key_generate_ex(&key, NULL) != 1) {
 		error_print();
 		return -1;
 	}
 
-	kyber_public_key_print(stderr, 0, 0, "pk", &sk);
-	kyber_private_key_print(stderr, 0, 0, "sk", &sk);
+	kyber_public_key_print(stderr, 0, 0, "pk", &key);
+	kyber_private_key_print(stderr, 0, 0, "sk", &key);
 
-	if (kyber_encap(&pk, &c, K) != 1) {
+	if (kyber_encap(&key, &c, K) != 1) {
 		error_print();
 		return -1;
 	}
 	kyber_ciphertext_print(stderr, 0, 0, "ciphertext", &c);
 	format_bytes(stderr, 0, 0, "KEM_K", K, 32);
 
-	if (kyber_decap(&sk, &c, K_) != 1) {
+	if (kyber_decap(&key, &c, K_) != 1) {
 		error_print();
 		return -1;
 	}
@@ -510,30 +505,29 @@ static int test_kyber_kem(void)
 
 static int test_kyber_cpa_key_to_bytes(void)
 {
-	KYBER_CPA_PUBLIC_KEY pk;
-	KYBER_CPA_PRIVATE_KEY sk;
+	KYBER_CPA_KEY key;
 	uint8_t buf[30000];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
 
-	if (kyber_cpa_keygen(&pk, &sk) != 1) {
+	if (kyber_cpa_key_generate_ex(&key, NULL) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_public_key_to_bytes(&pk, &p, &len) != 1) {
+	if (kyber_cpa_public_key_to_bytes(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_private_key_to_bytes(&sk, &p, &len) != 1) {
+	if (kyber_cpa_private_key_to_bytes(&key, &p, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_public_key_from_bytes(&pk, &cp, &len) != 1) {
+	if (kyber_cpa_public_key_from_bytes(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_private_key_from_bytes(&sk, &cp, &len) != 1) {
+	if (kyber_cpa_private_key_from_bytes(&key, &cp, &len) != 1) {
 		error_print();
 		return -1;
 	}
@@ -549,13 +543,13 @@ static int test_kyber_cpa_key_to_bytes(void)
 
 static int test_kyber_key_to_bytes(void)
 {
-	KYBER_PRIVATE_KEY key;
-	uint8_t buf[sizeof(KYBER_PRIVATE_KEY) + sizeof(KYBER_PRIVATE_KEY)];
+	KYBER_KEY key;
+	uint8_t buf[KYBER_PUBLIC_KEY_SIZE + KYBER_PRIVATE_KEY_SIZE];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
 	size_t len = 0;
 
-	if (kyber_key_generate(&key) != 1) {
+	if (kyber_key_generate_ex(&key, NULL) != 1) {
 		error_print();
 		return -1;
 	}
@@ -587,8 +581,7 @@ static int test_kyber_key_to_bytes(void)
 
 static int test_kyber_cpa_ciphertext_to_bytes(void)
 {
-	KYBER_CPA_PUBLIC_KEY pk;
-	KYBER_CPA_PRIVATE_KEY sk;
+	KYBER_CPA_KEY key;
 	KYBER_CPA_CIPHERTEXT c;
 	uint8_t m[32];
 	uint8_t r[32];
@@ -610,11 +603,11 @@ static int test_kyber_cpa_ciphertext_to_bytes(void)
 		return -1;
 	}
 
-	if (kyber_cpa_keygen(&pk, &sk) != 1) {
+	if (kyber_cpa_key_generate_ex(&key, NULL) != 1) {
 		error_print();
 		return -1;
 	}
-	if (kyber_cpa_encrypt(&pk, m, r, &c) != 1) {
+	if (kyber_cpa_encrypt(&key, m, r, &c) != 1) {
 		error_print();
 		return -1;
 	}

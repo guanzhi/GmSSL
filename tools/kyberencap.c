@@ -47,7 +47,7 @@ int kyberencap_main(int argc, char **argv)
 	const uint8_t *cp = pubkeybuf;
 	uint8_t outbuf[sizeof(KYBER_CIPHERTEXT)];
 	size_t outlen;
-	KYBER_PRIVATE_KEY key;
+	KYBER_KEY key;
 	KYBER_CIPHERTEXT ciphertext;
 
 	uint8_t outkey[32];
@@ -124,7 +124,7 @@ bad:
 	}
 
 
-	if (kyber_encap(&key.pk, &ciphertext, outkey) != 1) {
+	if (kyber_encap(&key, &ciphertext, outkey) != 1) {
 		error_print();
 		return -1;
 	}

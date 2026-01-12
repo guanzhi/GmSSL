@@ -42,7 +42,7 @@ int kyberdecap_main(int argc, char **argv)
 	size_t keylen = KYBER_PRIVATE_KEY_SIZE;
 	const uint8_t *cp = keybuf;
 	uint8_t *p = keybuf;
-	KYBER_PRIVATE_KEY key;
+	KYBER_KEY key;
 
 	uint8_t inbuf[sizeof(KYBER_CIPHERTEXT)];
 	uint8_t outbuf[32];
@@ -162,7 +162,7 @@ bad:
 	ret = 0;
 
 end:
-	//kyber_key_cleanup(&key);
+	kyber_key_cleanup(&key);
 	gmssl_secure_clear(keybuf, sizeof(keybuf));
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);
