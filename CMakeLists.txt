@@ -57,7 +57,7 @@ option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
 option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
 option(ENABLE_SPHINCS "Enable SPHINCS+ signature" ON)
-option(ENABLE_KYBER "Enable Kyber" OFF)
+option(ENABLE_KYBER "Enable Kyber" ON)
 
 option(ENABLE_SHA1 "Enable SHA1" ON)
 option(ENABLE_SHA2 "Enable SHA2" ON)
