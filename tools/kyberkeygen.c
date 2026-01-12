@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -41,6 +41,8 @@ int kyberkeygen_main(int argc, char **argv)
 	uint8_t *pout = out;
 	uint8_t *ppubout = pubout;
 	size_t outlen = 0, puboutlen = 0;
+
+	init_zeta();
 
 	memset(&key, 0, sizeof(key));
 

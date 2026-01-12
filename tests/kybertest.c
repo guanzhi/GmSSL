@@ -468,31 +468,34 @@ static int test_kyber_cpa(void)
 
 static int test_kyber_kem(void)
 {
+	uint8_t random[32] = {0};
 	KYBER_KEY key;
 	KYBER_CIPHERTEXT c;
 	uint8_t K[32];
 	uint8_t K_[32];
 
-	if (kyber_key_generate_ex(&key, NULL) != 1) {
+	memset(&key, 0, sizeof(key));
+
+	if (kyber_key_generate_ex(&key, random) != 1) {
 		error_print();
 		return -1;
 	}
 
-	kyber_public_key_print(stderr, 0, 0, "pk", &key);
-	kyber_private_key_print(stderr, 0, 0, "sk", &key);
+	kyber_public_key_print(stderr, 0, 4, "kyber_public_key", &key);
+	kyber_private_key_print(stderr, 0, 4, "kyber_private_key", &key);
 
 	if (kyber_encap(&key, &c, K) != 1) {
 		error_print();
 		return -1;
 	}
-	kyber_ciphertext_print(stderr, 0, 0, "ciphertext", &c);
-	format_bytes(stderr, 0, 0, "KEM_K", K, 32);
+	kyber_ciphertext_print(stderr, 0, 4, "kyber_kem_ciphertext", &c);
+	format_bytes(stderr, 0, 4, "KEM_K", K, 32);
 
 	if (kyber_decap(&key, &c, K_) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, "DEC_K", K_, 32);
+	format_bytes(stderr, 0, 4, "DEC_K", K_, 32);
 
 	if (memcmp(K_, K, 32) != 0) {
 		error_print();
@@ -645,10 +648,10 @@ int main(void)
 	if (test_kyber_poly_ntt() != 1) goto err;
 	if (test_kyber_poly_ntt_mul() != 1) goto err;
 	if (test_kyber_cpa() != 1) goto err;
-	if (test_kyber_kem() != 1) goto err;
 	if (test_kyber_cpa_key_to_bytes() != 1) goto err;
 	if (test_kyber_key_to_bytes() != 1) goto err;
 	if (test_kyber_cpa_ciphertext_to_bytes() != 1) goto err;
+	if (test_kyber_kem() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

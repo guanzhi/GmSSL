@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,10 +18,6 @@
 
 
 static const char *usage = "-pubkey file [-out file] -outkey file [-verbose]\n";
-
-
-// decap 中的out一定是secret，而in 一定是ciphertext
-// encap 中的out 是decap的in，因此encap中的out是ciphertext，而输出的secret是特殊的
 
 static const char *options =
 "Options\n"
@@ -52,6 +48,7 @@ int kyberencap_main(int argc, char **argv)
 
 	uint8_t outkey[32];
 
+	init_zeta();
 
 	argc--;
 	argv++;

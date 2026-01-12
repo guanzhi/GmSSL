@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ int kyberdecap_main(int argc, char **argv)
 	uint8_t outbuf[32];
 
 	KYBER_CIPHERTEXT ciphertext;
+
+	init_zeta();
 
 	memset(&key, 0, sizeof(key));
 

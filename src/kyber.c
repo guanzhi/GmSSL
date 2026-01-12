@@ -715,6 +715,7 @@ int kyber_cpa_private_key_to_bytes(const KYBER_CPA_KEY *key, uint8_t **out, size
 	}
 	if (out && *out) {
 		memcpy(*out, key->s, sizeof(key->s));
+		*out += sizeof(key->s);
 	}
 	*outlen += sizeof(key->s);
 	return 1;
