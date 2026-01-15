@@ -233,14 +233,14 @@ static int test_rfc8554_test1(void)
 
 static int test_sm3_lmots(void)
 {
-	hash256_t seed = {0}; // TODO: change to test vector
+	lms_hash256_t seed = {0}; // TODO: change to test vector
 	uint8_t I[16] = {0};
 	int q = 0;
-	hash256_t dgst = {0};
-	hash256_t x[34];
-	hash256_t y[34];
-	hash256_t pub;
-	hash256_t pub2;
+	lms_hash256_t dgst = {0};
+	lms_hash256_t x[34];
+	lms_hash256_t y[34];
+	lms_hash256_t pub;
+	lms_hash256_t pub2;
 
 	lmots_derive_secrets(seed, I, q, x); // TODO: compare results with test vector
 	lmots_secrets_to_public_hash(I, q, x, pub); // TODO: compare results with test vector
@@ -259,14 +259,14 @@ static int test_sm3_lmots(void)
 
 static int test_lms_derive_merkle_root(void)
 {
-	hash256_t seed = {0}; // TODO: change to test vector
+	lms_hash256_t seed = {0}; // TODO: change to test vector
 	uint8_t I[16] = {0};
 	int h = 5;
 	int n = 1<<h;
-	hash256_t *tree = NULL;
-	hash256_t root;
+	lms_hash256_t *tree = NULL;
+	lms_hash256_t root;
 
-	if (!(tree = (hash256_t *)malloc(sizeof(hash256_t)*(2*n - 1)))) {
+	if (!(tree = (lms_hash256_t *)malloc(sizeof(lms_hash256_t)*(2*n - 1)))) {
 		error_print();
 		return -1;
 	}
