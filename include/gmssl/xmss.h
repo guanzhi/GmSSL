@@ -15,7 +15,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <gmssl/sm3.h>
-#include <gmssl/hash256.h>
 #ifdef ENABLE_SHA2
 #include <gmssl/sha2.h>
 #endif
@@ -25,18 +24,22 @@
 extern "C" {
 #endif
 
+typedef uint8_t xmss_hash256_t[32];
+
 
 // Crosscheck with data from xmss-reference (SHA-256), except the XMSS signature.
-#if defined(ENABLE_XMSS_CROSSCHECK) && defined(ENABLE_SHA2)
-# define HASH256_CTX		SHA256_CTX
-# define hash256_init		sha256_init
-# define hash256_update		sha256_update
-# define hash256_finish		sha256_finish
+#if defined(ENABLE_XMSS_CROSSCHECK) && defined(ENABLE_SHA2) && !defined(HASH256_CTX)
+# define XMSS_HASH256_CTX		SHA256_CTX
+# define xmss_hash256_init		sha256_init
+# define xmss_hash256_update		sha256_update
+# define xmss_hash256_finish		sha256_finish
+# define XMSS_HASH256_BLOCK_SIZE	SHA256_BLOCK_SIZE
 #else
-# define HASH256_CTX		SM3_CTX
-# define hash256_init		sm3_init
-# define hash256_update		sm3_update
-# define hash256_finish		sm3_finish
+# define XMSS_HASH256_CTX		SM3_CTX
+# define xmss_hash256_init		sm3_init
+# define xmss_hash256_update		sm3_update
+# define xmss_hash256_finish		sm3_finish
+# define XMSS_HASH256_BLOCK_SIZE	SM3_BLOCK_SIZE
 #endif
 
 
@@ -85,65 +88,65 @@ typedef struct {
 
 typedef uint8_t xmss_adrs_t[32];
 
-void adrs_copy_layer_address(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_tree_address(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_type(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_ots_address(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_ltree_address(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_padding(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_chain_address(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_tree_height(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_hash_address(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_tree_index(xmss_adrs_t dst, const xmss_adrs_t src);
-void adrs_copy_key_and_mask(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_layer_address(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_tree_address(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_type(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_ots_address(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_ltree_address(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_padding(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_chain_address(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_tree_height(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_hash_address(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_tree_index(xmss_adrs_t dst, const xmss_adrs_t src);
+void xmss_adrs_copy_key_and_mask(xmss_adrs_t dst, const xmss_adrs_t src);
 
-void adrs_set_layer_address(xmss_adrs_t adrs, uint32_t layer);
-void adrs_set_tree_address(xmss_adrs_t adrs, uint64_t tree_addr);
-void adrs_set_type(xmss_adrs_t adrs, uint32_t type);
-void adrs_set_ots_address(xmss_adrs_t adrs, uint32_t address);
-void adrs_set_ltree_address(xmss_adrs_t adrs, uint32_t address);
-void adrs_set_padding(xmss_adrs_t adrs, uint32_t padding);
-void adrs_set_chain_address(xmss_adrs_t adrs, uint32_t address);
-void adrs_set_tree_height(xmss_adrs_t adrs, uint32_t height);
-void adrs_set_hash_address(xmss_adrs_t adrs, uint32_t address);
-void adrs_set_tree_index(xmss_adrs_t adrs, uint32_t index);
-void adrs_set_key_and_mask(xmss_adrs_t adrs, uint32_t key_and_mask);
+void xmss_adrs_set_layer_address(xmss_adrs_t adrs, uint32_t layer);
+void xmss_adrs_set_tree_address(xmss_adrs_t adrs, uint64_t tree_addr);
+void xmss_adrs_set_type(xmss_adrs_t adrs, uint32_t type);
+void xmss_adrs_set_ots_address(xmss_adrs_t adrs, uint32_t address);
+void xmss_adrs_set_ltree_address(xmss_adrs_t adrs, uint32_t address);
+void xmss_adrs_set_padding(xmss_adrs_t adrs, uint32_t padding);
+void xmss_adrs_set_chain_address(xmss_adrs_t adrs, uint32_t address);
+void xmss_adrs_set_tree_height(xmss_adrs_t adrs, uint32_t height);
+void xmss_adrs_set_hash_address(xmss_adrs_t adrs, uint32_t address);
+void xmss_adrs_set_tree_index(xmss_adrs_t adrs, uint32_t index);
+void xmss_adrs_set_key_and_mask(xmss_adrs_t adrs, uint32_t key_and_mask);
 
-int xmss_adrs_print(FILE *fp, int fmt, int ind, const char *label, const hash256_t adrs);
+int xmss_adrs_print(FILE *fp, int fmt, int ind, const char *label, const xmss_hash256_t adrs);
 
 // WOTS+ with SM3/SHA256
 
-#define WOTS_WINTERNITZ_W 16 // rfc 8391 named algors only support w = 2^4 = 16
-#define WOTS_NUM_CHAINS	67
+#define XMSS_WOTS_WINTERNITZ_W 16 // rfc 8391 named algors only support w = 2^4 = 16
+#define XMSS_WOTS_NUM_CHAINS	67
 
-typedef hash256_t wots_key_t[WOTS_NUM_CHAINS];
-typedef hash256_t wots_sig_t[WOTS_NUM_CHAINS];
+typedef xmss_hash256_t xmss_wots_key_t[XMSS_WOTS_NUM_CHAINS];
+typedef xmss_hash256_t xmss_wots_sig_t[XMSS_WOTS_NUM_CHAINS];
 
 
-void wots_derive_sk(const hash256_t secret,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	wots_key_t sk);
-void wots_chain(const hash256_t x,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	int start, int steps, hash256_t y);
-void wots_sk_to_pk(const wots_key_t sk,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	wots_key_t pk);
-void wots_sign(const wots_key_t sk,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	const hash256_t dgst, wots_sig_t sig);
-void wots_sig_to_pk(const wots_sig_t sig,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	const hash256_t dgst, wots_key_t pk);
-void wots_pk_to_root(const wots_key_t pk,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	hash256_t wots_root);
-void wots_derive_root(const hash256_t secret,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	hash256_t wots_root);
-int  wots_verify(const hash256_t wots_root,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	const hash256_t dgst, const wots_sig_t sig);
+void xmss_wots_derive_sk(const xmss_hash256_t secret,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	xmss_wots_key_t sk);
+void xmss_wots_chain(const xmss_hash256_t x,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	int start, int steps, xmss_hash256_t y);
+void xmss_wots_sk_to_pk(const xmss_wots_key_t sk,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	xmss_wots_key_t pk);
+void xmss_wots_sign(const xmss_wots_key_t sk,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	const xmss_hash256_t dgst, xmss_wots_sig_t sig);
+void xmss_wots_sig_to_pk(const xmss_wots_sig_t sig,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	const xmss_hash256_t dgst, xmss_wots_key_t pk);
+void xmss_wots_pk_to_root(const xmss_wots_key_t pk,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	xmss_hash256_t wots_root);
+void xmss_wots_derive_root(const xmss_hash256_t secret,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	xmss_hash256_t wots_root);
+int  xmss_wots_verify(const xmss_hash256_t wots_root,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	const xmss_hash256_t dgst, const xmss_wots_sig_t sig);
 
 
 
@@ -185,21 +188,21 @@ uint32_t xmss_type_from_name(const char *name);
 int xmss_type_to_height(uint32_t xmss_type, size_t *height);
 
 size_t xmss_num_tree_nodes(size_t height);
-void xmss_build_tree(const hash256_t secret,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	size_t height, hash256_t *tree); // tree[xmss_num_tree_nodes(height)]
-void xmss_build_auth_path(const hash256_t *tree, size_t height,
-	uint32_t index, hash256_t *auth_path); // auth_path[height]
-void xmss_build_root(const hash256_t wots_root, uint32_t index,
-	const hash256_t seed, const xmss_adrs_t adrs,
-	const hash256_t *auth_path, size_t height,
-	hash256_t xmss_root);
+void xmss_build_tree(const xmss_hash256_t secret,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	size_t height, xmss_hash256_t *tree); // tree[xmss_num_tree_nodes(height)]
+void xmss_build_auth_path(const xmss_hash256_t *tree, size_t height,
+	uint32_t index, xmss_hash256_t *auth_path); // auth_path[height]
+void xmss_build_root(const xmss_hash256_t wots_root, uint32_t index,
+	const xmss_hash256_t seed, const xmss_adrs_t adrs,
+	const xmss_hash256_t *auth_path, size_t height,
+	xmss_hash256_t xmss_root);
 
 
 typedef struct {
 	uint32_t xmss_type;
-	hash256_t seed;
-	hash256_t root;
+	xmss_hash256_t seed;
+	xmss_hash256_t root;
 } XMSS_PUBLIC_KEY;
 
 #define XMSS_PUBLIC_KEY_SIZE	(4 + 32 + 32) // = 68
@@ -207,9 +210,9 @@ typedef struct {
 typedef struct {
 	XMSS_PUBLIC_KEY public_key;
 	uint32_t index;
-	hash256_t secret;
-	hash256_t sk_prf;
-	hash256_t *tree; // hash256_t[2^(h + 1) - 1]
+	xmss_hash256_t secret;
+	xmss_hash256_t sk_prf;
+	xmss_hash256_t *tree; // xmss_hash256_t[2^(h + 1) - 1]
 } XMSS_KEY;
 
 // XMSS_SHA2_10_256:     65,640
@@ -232,9 +235,9 @@ void xmss_key_cleanup(XMSS_KEY *key);
 
 typedef struct {
 	uint32_t index; // < 2^(XMSS_MAX_HEIGHT) = 2^20, always encode to 4 bytes
-	hash256_t random;
-	wots_sig_t wots_sig;
-	hash256_t auth_path[XMSS_MAX_HEIGHT];
+	xmss_hash256_t random;
+	xmss_wots_sig_t wots_sig;
+	xmss_hash256_t auth_path[XMSS_MAX_HEIGHT];
 } XMSS_SIGNATURE;
 
 // XMSS_SM3_10_256	2500 bytes
@@ -243,6 +246,7 @@ typedef struct {
 #define XMSS_SIGNATURE_MIN_SIZE	(4 + 32 + 32*67 + 32 * XMSS_MIN_HEIGHT) // = 2500 bytes
 #define XMSS_SIGNATURE_MAX_SIZE	(4 + 32 + 32*67 + 32 * XMSS_MAX_HEIGHT) // = 2820 bytes
 int xmss_signature_size(uint32_t xmss_type, size_t *siglen);
+int xmss_key_get_signature_size(const XMSS_KEY *key, size_t *siglen);
 int xmss_signature_to_bytes(const XMSS_SIGNATURE *sig, uint32_t xmss_type, uint8_t **out, size_t *outlen);
 int xmss_signature_from_bytes(XMSS_SIGNATURE *sig, uint32_t xmss_type, const uint8_t **in, size_t *inlen);
 int xmss_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *in, size_t inlen);
@@ -251,7 +255,7 @@ int xmss_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const
 typedef struct {
 	XMSS_PUBLIC_KEY xmss_public_key;
 	XMSS_SIGNATURE xmss_sig;
-	HASH256_CTX hash256_ctx;
+	XMSS_HASH256_CTX hash256_ctx;
 } XMSS_SIGN_CTX;
 
 int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key);
@@ -335,19 +339,19 @@ size_t xmssmt_num_trees_nodes(size_t height, size_t layers);
 
 typedef struct {
 	uint32_t xmssmt_type;
-	hash256_t seed;
-	hash256_t root;
+	xmss_hash256_t seed;
+	xmss_hash256_t root;
 } XMSSMT_PUBLIC_KEY;
 
-#define XMSSMT_PUBLIC_KEY_SIZE (4 + sizeof(hash256_t) + sizeof(hash256_t)) // = 68 bytes
+#define XMSSMT_PUBLIC_KEY_SIZE (4 + sizeof(xmss_hash256_t) + sizeof(xmss_hash256_t)) // = 68 bytes
 
 typedef struct {
 	XMSSMT_PUBLIC_KEY public_key;
 	uint64_t index; // in [0, 2^60 - 1]
-	hash256_t secret;
-	hash256_t sk_prf;
-	hash256_t *trees;
-	wots_sig_t wots_sigs[XMSSMT_MAX_LAYERS - 1];
+	xmss_hash256_t secret;
+	xmss_hash256_t sk_prf;
+	xmss_hash256_t *trees;
+	xmss_wots_sig_t wots_sigs[XMSSMT_MAX_LAYERS - 1];
 } XMSSMT_KEY;
 
 /*
@@ -361,7 +365,7 @@ typedef struct {
     XMSSMT_SM3_60_12_256:     47,916 bytes
 */
 int xmssmt_private_key_size(uint32_t xmssmt_type, size_t *len);
-int xmssmt_build_auth_path(const hash256_t *tree, size_t height, size_t layers, uint64_t index, hash256_t *auth_path);
+int xmssmt_build_auth_path(const xmss_hash256_t *tree, size_t height, size_t layers, uint64_t index, xmss_hash256_t *auth_path);
 
 int xmssmt_key_generate(XMSSMT_KEY *key, uint32_t xmssmt_type);
 int xmssmt_key_update(XMSSMT_KEY *key);
@@ -376,17 +380,18 @@ void xmssmt_key_cleanup(XMSSMT_KEY *key);
 
 typedef struct {
 	uint64_t index;
-	hash256_t random;
-	wots_sig_t wots_sigs[XMSSMT_MAX_LAYERS];
-	hash256_t auth_path[XMSSMT_MAX_HEIGHT];
+	xmss_hash256_t random;
+	xmss_wots_sig_t wots_sigs[XMSSMT_MAX_LAYERS];
+	xmss_hash256_t auth_path[XMSSMT_MAX_HEIGHT];
 } XMSSMT_SIGNATURE;
 
 int xmssmt_index_to_bytes(uint64_t index, uint32_t xmssmt_type, uint8_t **out, size_t *outlen);
 int xmssmt_index_from_bytes(uint64_t *index, uint32_t xmssmt_type, const uint8_t **in, size_t *inlen);
 
 #define XMSSMT_SIGNATURE_MAX_SIZE \
-	(sizeof(uint64_t) + sizeof(hash256_t) + sizeof(wots_sig_t)*XMSSMT_MAX_LAYERS + sizeof(hash256_t)*XMSSMT_MAX_HEIGHT) // = 27688 bytes
+	(sizeof(uint64_t) + sizeof(xmss_hash256_t) + sizeof(xmss_wots_sig_t)*XMSSMT_MAX_LAYERS + sizeof(xmss_hash256_t)*XMSSMT_MAX_HEIGHT) // = 27688 bytes
 
+int xmssmt_key_get_signature_size(const XMSSMT_KEY *key, size_t *siglen);
 int xmssmt_signature_size(uint32_t xmssmt_type, size_t *siglen);
 int xmssmt_signature_to_bytes(const XMSSMT_SIGNATURE *sig, uint32_t xmssmt_type, uint8_t **out, size_t *outlen);
 int xmssmt_signature_from_bytes(XMSSMT_SIGNATURE *sig, uint32_t xmssmt_type, const uint8_t **in, size_t *inlen);
@@ -397,7 +402,7 @@ int xmssmt_signature_print(FILE *fp, int fmt, int ind, const char *label, const 
 typedef struct {
 	XMSSMT_PUBLIC_KEY xmssmt_public_key;
 	XMSSMT_SIGNATURE xmssmt_sig;
-	HASH256_CTX hash256_ctx;
+	XMSS_HASH256_CTX hash256_ctx;
 } XMSSMT_SIGN_CTX;
 
 int xmssmt_sign_init(XMSSMT_SIGN_CTX *ctx, XMSSMT_KEY *key);
