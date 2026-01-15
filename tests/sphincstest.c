@@ -17,6 +17,68 @@
 #include <gmssl/sphincs.h>
 
 
+typedef struct {
+	char *name;
+	size_t secret_size;
+	size_t hypertree_height;
+	size_t hypertree_layers;
+	size_t fors_tree_height;
+	size_t fors_num_trees;
+	int winternitz_w;
+	int bitsec;
+	int sec_level;
+	size_t siglen;
+} SPHINCS_PARAMS;
+
+static const SPHINCS_PARAMS sphincs_params[] = {
+	//                  n   h  d  lg(t) k   w         siglen
+	{ "SPHINCS+_128s", 16, 63,  7, 12, 14, 16, 133, 1,  7856 },
+	{ "SPHINCS+_128f", 16, 66, 22,  6, 33, 16, 128, 1, 17088 },
+	{ "SPHINCS+_192s", 24, 64,  7, 14, 17, 16, 193, 3, 16244 },
+	{ "SPHINCS+_192f", 24, 66, 22,  8, 33, 16, 194, 3, 35644 },
+	{ "SPHINCS+_256s", 32, 64,  8, 14, 22, 16, 255, 5, 29792 },
+	{ "SPHINCS+_256f", 32, 68, 17,  9, 35, 16, 255, 5, 49856 },
+};
+
+static int test_sphincs_print_params(void)
+{
+	size_t i;
+
+	for (i = 0; i < sizeof(sphincs_params)/sizeof(sphincs_params[0]); i++) {
+		format_print(stderr, 0, 4, "%s\n", sphincs_params[i].name);
+		format_print(stderr, 0, 8, "secret_size: %zu\n", sphincs_params[i].secret_size);
+		format_print(stderr, 0, 8, "hypertree_height: %zu\n", sphincs_params[i].hypertree_height);
+		format_print(stderr, 0, 8, "fors_tree_height: %zu\n", sphincs_params[i].fors_tree_height);
+		format_print(stderr, 0, 8, "fors_num_trees: %zu\n", sphincs_params[i].fors_num_trees);
+		format_print(stderr, 0, 8, "winternitz_w: %d\n", sphincs_params[i].winternitz_w);
+		format_print(stderr, 0, 8, "bitsec: %d\n", sphincs_params[i].bitsec);
+		format_print(stderr, 0, 8, "sec_level: %d\n", sphincs_params[i].sec_level);
+		format_print(stderr, 0, 8, "siglen: %zu\n", sphincs_params[i].siglen);
+	}
+
+	format_print(stderr, 0, 4, "const\n");
+	format_print(stderr, 0, 8, "SPHINCS_WOTS_NUM_CHAINS: %d\n", SPHINCS_WOTS_NUM_CHAINS);
+	format_print(stderr, 0, 8, "SPHINCS_HYPERTREE_HEIGHT: %d\n", SPHINCS_HYPERTREE_HEIGHT);
+	format_print(stderr, 0, 8, "SPHINCS_HYPERTREE_LAYERS: %d\n", SPHINCS_HYPERTREE_LAYERS);
+	format_print(stderr, 0, 8, "SPHINCS_FORS_TREE_HEIGHT: %d\n", SPHINCS_FORS_TREE_HEIGHT);
+	format_print(stderr, 0, 8, "SPHINCS_FORS_NUM_TREES: %d\n", SPHINCS_FORS_NUM_TREES);
+	format_print(stderr, 0, 8, "SPHINCS_XMSS_HEIGHT: %d\n", SPHINCS_XMSS_HEIGHT);
+	format_print(stderr, 0, 8, "SPHINCS_XMSS_NUM_NODES: %d\n", SPHINCS_XMSS_NUM_NODES);
+	format_print(stderr, 0, 8, "SPHINCS_FORS_TREE_NUM_NODES: %d\n", SPHINCS_FORS_TREE_NUM_NODES);
+	format_print(stderr, 0, 8, "SPHINCS_TBS_FORS_SIZE: %d\n", SPHINCS_TBS_FORS_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_TBS_TREE_ADDRESS_SIZE: %d\n", SPHINCS_TBS_TREE_ADDRESS_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_TBS_KEYPAIR_ADDRESS_SIZE: %d\n", SPHINCS_TBS_KEYPAIR_ADDRESS_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_TBS_SIZE: %d\n", SPHINCS_TBS_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_FORS_SIGNATURE_SIZE: %d\n", SPHINCS_FORS_SIGNATURE_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_PUBLIC_KEY_SIZE: %d\n", SPHINCS_PUBLIC_KEY_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_PRIVATE_KEY_SIZE: %d\n", SPHINCS_PRIVATE_KEY_SIZE);
+	format_print(stderr, 0, 8, "SPHINCS_SIGNATURE_SIZE: %d\n", SPHINCS_SIGNATURE_SIZE);
+
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sphincs_wots_derive_sk(void)
 {
 	sphincs_hash128_t secret;
@@ -433,9 +495,9 @@ static int test_sphincs_sign(void)
 	uint8_t msg[100] = {1, 2, 3, 0};
 	SPHINCS_SIGNATURE _sig;
 	SPHINCS_SIGNATURE *sig = &_sig;
-	HASH256_CTX hash_ctx;
-	HASH256_HMAC_CTX hmac_ctx;
-	hash256_t dgst;
+	SPHINCS_HASH256_CTX hash_ctx;
+	SPHINCS_HMAC256_CTX hmac_ctx;
+	sphincs_hash256_t dgst;
 
 
 	sphincs_hash128_t opt_rand;
@@ -473,30 +535,30 @@ static int test_sphincs_sign(void)
 	// 如果R是用M生成的，这意味着M要读取2遍，这就没办法用init/update范式了
 
 	// R = PRF_msg(sk_prf, optrand, M) = HMAC(sk_prf, opt_rand|M)
-	hash256_hmac_init(&hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
-	hash256_hmac_update(&hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
-	hash256_hmac_update(&hmac_ctx, msg, sizeof(msg));
-	hash256_hmac_finish(&hmac_ctx, dgst);
+	sphincs_hmac256_init(&hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
+	sphincs_hmac256_update(&hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
+	sphincs_hmac256_update(&hmac_ctx, msg, sizeof(msg));
+	sphincs_hmac256_finish(&hmac_ctx, dgst);
 	memcpy(sig->random, dgst, sizeof(sphincs_hash128_t));
 
 	// dgst = HASH256(R|seed|root|M)
-	hash256_init(&hash_ctx);
-	hash256_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
-	hash256_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
-	hash256_update(&hash_ctx, key->public_key.root, sizeof(sphincs_hash128_t));
-	hash256_update(&hash_ctx, msg, sizeof(msg));
-	hash256_finish(&hash_ctx, dgst);
+	sphincs_hash256_init(&hash_ctx);
+	sphincs_hash256_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
+	sphincs_hash256_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
+	sphincs_hash256_update(&hash_ctx, key->public_key.root, sizeof(sphincs_hash128_t));
+	sphincs_hash256_update(&hash_ctx, msg, sizeof(msg));
+	sphincs_hash256_finish(&hash_ctx, dgst);
 
 	// tbs = H_msg(R, seed, root, M) = MGF1(R|seed|dgst, tbs_len)
 	for (i = 0; i < (SPHINCS_TBS_SIZE + 31)/32; i++) {
 		uint8_t count[4];
 		PUTU32(count, i);
-		hash256_init(&hash_ctx);
-		hash256_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
-		hash256_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
-		hash256_update(&hash_ctx, dgst, sizeof(dgst));
-		hash256_update(&hash_ctx, count, sizeof(count));
-		hash256_finish(&hash_ctx, tbs + sizeof(dgst) * i);
+		sphincs_hash256_init(&hash_ctx);
+		sphincs_hash256_update(&hash_ctx, sig->random, sizeof(sphincs_hash128_t));
+		sphincs_hash256_update(&hash_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
+		sphincs_hash256_update(&hash_ctx, dgst, sizeof(dgst));
+		sphincs_hash256_update(&hash_ctx, count, sizeof(count));
+		sphincs_hash256_finish(&hash_ctx, tbs + sizeof(dgst) * i);
 	}
 
 
@@ -535,7 +597,6 @@ static int test_sphincs_sign(void)
 	sphincs_fors_sig_to_root(&sig->fors_sig, key->public_key.seed, adrs, tbs, fors_forest_root);
 
 
-	error_print();
 
 
 
@@ -543,10 +604,6 @@ static int test_sphincs_sign(void)
 	sphincs_adrs_set_type(adrs, SPHINCS_ADRS_TYPE_TREE);
 	sphincs_hypertree_sign(key->secret, key->public_key.seed, tree_address, keypair_address,
 		fors_forest_root, sig->xmss_sigs);
-
-
-	error_print();
-
 
 
 	// sphincs_verify
@@ -628,14 +685,9 @@ static int test_sphincs_sign_update(void)
 
 int main(void)
 {
-	if (test_sphincs_sign_update() != 1) goto err;
-//	if (test_sphincs_sign() != 1) goto err;
-//	if (test_sphincs_fors_sign() != 1) goto err;
-	//if (test_sphincs_xmss_build_tree() != 1) goto err;
-	//if (test_sphincs_hypertree() != 1) goto err;
-//	if (test_sphincs_hypertree_sign() != 1) goto err;
-	//if (test_sphincs_wots_sign_verify() != 1) goto err;
-	/*
+	if (test_sphincs_print_params() != 1) goto err;
+
+	if (test_sphincs_wots_sign_verify() != 1) goto err;
 	if (test_sphincs_wots_derive_sk() != 1) goto err;
 	if (test_sphincs_wots_chain() != 1) goto err;
 	if (test_sphincs_wots_sk_to_pk() != 1) goto err;
@@ -643,12 +695,18 @@ int main(void)
 	if (test_sphincs_wots_sign() != 1) goto err;
 	if (test_sphincs_wots_sig_to_pk() != 1) goto err;
 
+	if (test_sphincs_xmss_build_tree() != 1) goto err;
 	if (test_sphincs_xmss_build_auth_path() != 1) goto err;
-	*/
+	if (test_sphincs_xmss_build_root() != 1) goto err;
+	if (test_sphincs_xmss_sign() != 1) goto err;
 
-	//if (test_sphincs_xmss_build_root() != 1) goto err;
-	//if (test_sphincs_xmss_sign() != 1) goto err;
+	if (test_sphincs_hypertree() != 1) goto err;
+	if (test_sphincs_hypertree_sign() != 1) goto err;
 
+	if (test_sphincs_fors_sign() != 1) goto err;
+
+	if (test_sphincs_sign() != 1) goto err;
+	if (test_sphincs_sign_update() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
