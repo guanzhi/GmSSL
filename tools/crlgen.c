@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <gmssl/hex.h>
 #include <gmssl/pem.h>
+#include <gmssl/mem.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_crl.h>
@@ -75,7 +76,8 @@ int crlgen_main(int argc, char **argv)
 	size_t cacert_len = 0;
 	FILE *keyfp = NULL;
 	char *pass = NULL;
-	SM2_KEY sign_key;
+	SM2_KEY sm2_key;
+	X509_KEY sign_key;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
 
@@ -234,13 +236,17 @@ bad:
 		fprintf(stderr, "%s: `-pass` option required\n", prog);
 		goto end;
 	}
-	if (sm2_private_key_info_decrypt_from_pem(&sign_key, pass, keyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load private key failure\n", prog);
 		goto end;
 	}
 	if (!signer_id_len) {
 		strcpy(signer_id, SM2_DEFAULT_ID);
 		signer_id_len = strlen(SM2_DEFAULT_ID);
+	}
+	if (x509_key_set_sm2_key(&sign_key, &sm2_key) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (x509_cert_get_subject(cacert, cacert_len, &issuer, &issuer_len) != 1) {
@@ -317,6 +323,8 @@ bad:
 	ret = 0;
 
 end:
+	gmssl_secure_clear(&sm2_key, sizeof(SM2_KEY)); // FIXME: sm2_clean?
+	gmssl_secure_clear(&sign_key, sizeof(X509_KEY)); // x509_key_clean?
 	if (revoked_certs) free(revoked_certs);
 	if (keyfp) fclose(keyfp);
 	if (cacert) free(cacert);

@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -202,7 +202,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	int signature_algor = -1;
 
 
-	SM2_KEY server_sign_key;
+	X509_KEY server_sign_key;
 	SM2_SIGN_CTX sign_ctx;
 	const uint8_t *sig;
 	size_t siglen;
@@ -380,7 +380,13 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		goto end;
 	}
-	if (tls_verify_server_ecdh_params(&server_sign_key, // 这应该是签名公钥
+	if (server_sign_key.algor != OID_ec_public_key
+		|| server_sign_key.algor_param != OID_sm2) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		goto end;
+	}
+	if (tls_verify_server_ecdh_params(&server_sign_key.u.sm2_key, // 这应该是签名公钥
 		client_random, server_random, curve, &server_ecdhe_public, sig, siglen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
@@ -687,7 +693,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 	// ClientCertificate, CertificateVerify
 	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
-	SM2_KEY client_sign_key;
+	X509_KEY client_sign_key;
 	const uint8_t *sig;
 	const int verify_depth = 5;
 	int verify_result;
@@ -933,7 +939,13 @@ int tls12_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			goto end;
 		}
-		if (tls_client_verify_finish(&client_verify_ctx, sig, siglen, &client_sign_key) != 1) {
+		if (client_sign_key.algor != OID_ec_public_key
+			|| client_sign_key.algor_param != OID_sm2) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			goto end;
+		}
+		if (tls_client_verify_finish(&client_verify_ctx, sig, siglen, &client_sign_key.u.sm2_key) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_decrypt_error);
 			goto end;

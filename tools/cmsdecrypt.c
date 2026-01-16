@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 #include <gmssl/file.h>
 #include <gmssl/x509.h>
 #include <gmssl/cms.h>
-
+#include <gmssl/error.h>
 
 
 static const char *options = "-key file -pass str -cert file -in file [-out file]";
@@ -38,7 +38,8 @@ int cmsdecrypt_main(int argc, char **argv)
 	size_t inlen;
 	uint8_t *cms = NULL;
 	size_t cmslen, cms_maxlen;
-	SM2_KEY key;
+	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 	int content_type;
 	uint8_t *content = NULL;
 	size_t content_len;
@@ -121,10 +122,15 @@ bad:
 		goto end;
 	}
 
-	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: private key decryption failure\n", prog);
 		goto end;
 	}
+	if (x509_key_set_sm2_key(&x509_key, &sm2_key) != 1) {
+		error_print();
+		goto end;
+	}
+
 	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
 		fprintf(stderr, "%s: load certificate failure\n", prog);
 		goto end;
@@ -150,7 +156,7 @@ bad:
 	}
 
 	if (cms_deenvelop(cms, cmslen,
-		&key, cert, certlen,
+		&x509_key, cert, certlen,
 		&content_type, content, &content_len,
 		&rcpt_infos, &rcpt_infos_len,
 		&shared_info1, &shared_info1_len,

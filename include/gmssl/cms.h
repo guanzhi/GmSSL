@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ References:
 #include <stdint.h>
 #include <sys/types.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_key.h>
 
 
 #ifdef __cplusplus
@@ -200,7 +201,7 @@ int cms_signer_info_from_der(
 int cms_signer_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 int cms_signer_info_sign_to_der(
-	const SM3_CTX *sm3_ctx, const SM2_KEY *sm2_key,
+	const SM3_CTX *sm3_ctx, const X509_KEY *x509_key,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial_number, size_t serial_number_len,
 	const uint8_t *authed_attrs, size_t authed_attrs_len,
@@ -219,7 +220,7 @@ SignerInfos ::= SET OF SignerInfo;
 */
 int cms_signer_infos_add_signer_info(
 	uint8_t *d, size_t *dlen, size_t maxlen,
-	const SM3_CTX *sm3_ctx, const SM2_KEY *sign_key,
+	const SM3_CTX *sm3_ctx, const X509_KEY *sign_key,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial_number, size_t serial_number_len,
 	const uint8_t *authed_attrs, size_t authed_attrs_len,
@@ -264,7 +265,7 @@ int cms_signed_data_print(FILE *fp, int fmt, int ind, const char *label, const u
 typedef struct {
 	uint8_t *certs;
 	size_t certs_len;
-	SM2_KEY *sign_key;
+	X509_KEY *sign_key;
 } CMS_CERTS_AND_KEY;
 
 int cms_signed_data_sign_to_der(
@@ -310,13 +311,13 @@ int cms_recipient_info_print(FILE *fp, int fmt, int ind, const char *label, cons
 
 
 int cms_recipient_info_encrypt_to_der(
-	const SM2_KEY *public_key,
+	const X509_KEY *public_key,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len,
 	const uint8_t *in, size_t inlen,
 	uint8_t **out, size_t *outlen);
 int cms_recipient_info_decrypt_from_der(
-	const SM2_KEY *sm2_key,
+	const X509_KEY *sm2_key,
 	const uint8_t *rcpt_issuer, size_t rcpt_issuer_len,
 	const uint8_t *rcpt_serial, size_t rcpt_serial_len,
 	uint8_t *out, size_t *outlen, size_t maxlen,
@@ -324,7 +325,7 @@ int cms_recipient_info_decrypt_from_der(
 
 int cms_recipient_infos_add_recipient_info(
 	uint8_t *d, size_t *dlen, size_t maxlen,
-	const SM2_KEY *public_key,
+	const X509_KEY *public_key,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len,
 	const uint8_t *in, size_t inlen);
@@ -362,7 +363,7 @@ int cms_enveloped_data_encrypt_to_der(
 	const uint8_t *shared_info2, size_t shared_info2_len,
 	uint8_t **out, size_t *outlen);
 int cms_enveloped_data_decrypt_from_der(
-	const SM2_KEY *sm2_key,
+	const X509_KEY *sm2_key,
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial_number, size_t serial_number_len,
 	int *content_type, uint8_t *content, size_t *content_len,
@@ -415,7 +416,7 @@ int cms_signed_and_enveloped_data_encipher_to_der(
 	const uint8_t *shared_info2, size_t shared_info2_len,
 	uint8_t **out, size_t *outlen);
 int cms_signed_and_enveloped_data_decipher_from_der(
-	const SM2_KEY *rcpt_key,
+	const X509_KEY *rcpt_key,
 	const uint8_t *rcpt_issuer, size_t rcpt_issuer_len,
 	const uint8_t *rcpt_serial, size_t rcpt_serial_len,
 	int *content_type, uint8_t *content, size_t *content_len,
@@ -438,13 +439,13 @@ KeyAgreementInfo ::= SEQUENCE {
 */
 int cms_key_agreement_info_to_der(
 	int version,
-	const SM2_KEY *temp_public_key_r,
+	const X509_KEY *temp_public_key_r,
 	const uint8_t *user_cert, size_t user_cert_len,
 	const uint8_t *user_id, size_t user_id_len,
 	uint8_t **out, size_t *outlen);
 int cms_key_agreement_info_from_der(
 	int *version,
-	SM2_KEY *temp_public_key_r,
+	X509_KEY *temp_public_key_r,
 	const uint8_t **user_cert, size_t *user_cert_len,
 	const uint8_t **user_id, size_t *user_id_len,
 	const uint8_t **in, size_t *inlen);
@@ -496,7 +497,7 @@ int cms_envelop(
 
 int cms_deenvelop(
 	const uint8_t *cms, size_t cms_len,
-	const SM2_KEY *rcpt_key, const uint8_t *rcpt_cert, size_t rcpt_cert_len,
+	const X509_KEY *rcpt_key, const uint8_t *rcpt_cert, size_t rcpt_cert_len,
 	int *content_type, uint8_t *content, size_t *content_len,
 	const uint8_t **rcpt_infos, size_t *rcpt_infos_len,
 	const uint8_t **shared_info1, size_t *shared_info1_len,
@@ -514,7 +515,7 @@ int cms_sign_and_envelop(
 
 int cms_deenvelop_and_verify(
 	const uint8_t *cms, size_t cms_len,
-	const SM2_KEY *rcpt_key, const uint8_t *rcpt_cert, size_t rcpt_cert_len,
+	const X509_KEY *rcpt_key, const uint8_t *rcpt_cert, size_t rcpt_cert_len,
 	const uint8_t *extra_signer_certs, size_t extra_signer_certs_len,
 	const uint8_t *extra_signer_crls, size_t extra_signer_crls_len,
 	int *content_type, uint8_t *content, size_t *content_len,
@@ -528,7 +529,7 @@ int cms_deenvelop_and_verify(
 // create ContentInfo, type == keyAgreementInfo
 int cms_set_key_agreement_info(
 	uint8_t *cms, size_t *cms_len,
-	const SM2_KEY *temp_public_key_r,
+	const X509_KEY *temp_public_key_r,
 	const uint8_t *user_cert, size_t user_cert_len,
 	const uint8_t *user_id, size_t user_id_len);
 

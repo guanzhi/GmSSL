@@ -54,7 +54,7 @@ option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 
-option(ENABLE_LMS_HSS "Enable LMS/HSS signature" ON)
+option(ENABLE_LMS "Enable LMS/HSS signature" ON)
 option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
 option(ENABLE_SPHINCS "Enable SPHINCS+ signature" ON)
 option(ENABLE_KYBER "Enable Kyber" ON)
@@ -120,6 +120,7 @@ set(src
 	src/x509_req.c
 	src/x509_crl.c
 	src/x509_new.c
+	src/x509_key.c
 	src/cms.c
 	src/socket.c
 	src/tls.c
@@ -418,18 +419,18 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
-if (ENABLE_LMS_HSS)
-	message(STATUS "ENABLE_LMS_HSS is ON")
-	add_definitions(-DENABLE_LMS_HSS)
+if (ENABLE_LMS)
+	message(STATUS "ENABLE_LMS is ON")
+	add_definitions(-DENABLE_LMS)
 	list(APPEND src src/lms.c)
 	list(APPEND tools tools/lmskeygen.c tools/lmssign.c tools/lmsverify.c)
 	list(APPEND tools tools/hsskeygen.c tools/hsssign.c tools/hssverify.c)
 	list(APPEND tests lms)
 
-	option(ENABLE_LMS_HSS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
-	if (ENABLE_LMS_HSS_CROSSCHECK)
-		message(STATUS "ENABLE_LMS_HSS_CROSSCHECK is ON")
-		add_definitions(-DENABLE_LMS_HSS_CROSSCHECK)
+	option(ENABLE_LMS_CROSSCHECK "Enable LMS SHA-256 cross-check" OFF)
+	if (ENABLE_LMS_CROSSCHECK)
+		message(STATUS "ENABLE_LMS_CROSSCHECK is ON")
+		add_definitions(-DENABLE_LMS_CROSSCHECK)
 	endif()
 endif()
 

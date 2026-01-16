@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <gmssl/sm2.h>
+#include <gmssl/x509_key.h>
 
 
 #ifdef __cplusplus
@@ -174,7 +175,7 @@ int x509_crl_exts_add_authority_key_identifier(
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len);
 int x509_crl_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
-	const SM2_KEY *public_key);
+	const X509_KEY *public_key);
 int x509_crl_exts_add_issuer_alt_name(
 	uint8_t *exts, size_t *extslen, size_t maxlen,
 	int critical,
@@ -262,7 +263,7 @@ int x509_crl_sign_to_der(
 	time_t this_update, time_t next_update,
 	const uint8_t *revoked_certs, size_t revoked_certs_len,
 	const uint8_t *crl_exts, size_t crl_exts_len,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen);
 int x509_crl_from_der_ex(
 	int *version,
@@ -275,7 +276,7 @@ int x509_crl_from_der_ex(
 	const uint8_t **in, size_t *inlen);
 int x509_crl_check(const uint8_t *a, size_t alen, time_t now);
 int x509_crl_verify(const uint8_t *a, size_t alen,
-	const SM2_KEY *sign_pub_key, const char *signer_id, size_t signer_id_len);
+	const X509_KEY *sign_pub_key, const char *signer_id, size_t signer_id_len);
 int x509_crl_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len);
 int x509_crl_get_details(const uint8_t *crl, size_t crl_len,

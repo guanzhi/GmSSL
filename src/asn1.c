@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ const char *asn1_tag_name(int tag)
 	}
 
 	switch (tag) {
-	case ASN1_TAG_END_OF_CONTENTS: return "End-of-contents";
+	//case ASN1_TAG_END_OF_CONTENTS: return "End-of-contents";
 	case ASN1_TAG_BOOLEAN: return "BOOLEAN";
 	case ASN1_TAG_INTEGER: return "INTEGER";
 	case ASN1_TAG_BIT_STRING: return "BIT STRING";

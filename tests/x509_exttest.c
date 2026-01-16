@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -787,7 +787,7 @@ static int test_x509_cert_with_exts(void)
 	uint8_t name[256];
 	size_t namelen;
 	time_t not_before, not_after;
-	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 	uint8_t uniq_id[32];
 	uint8_t exts[512];
 	size_t extslen = 0;
@@ -798,9 +798,16 @@ static int test_x509_cert_with_exts(void)
 	x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "CA");
 	time(&not_before);
 	x509_validity_add_days(&not_after, not_before, 365);
-	sm2_key_generate(&sm2_key);
 
-	sm2_public_key_digest(&sm2_key, uniq_id);
+
+	if (x509_key_generate(&x509_key, OID_ec_public_key, OID_sm2) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_public_key_digest(&x509_key, uniq_id) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (x509_exts_add_authority_key_identifier(exts, &extslen, sizeof(exts), 1,
 			keyid, sizeof(keyid),
@@ -821,11 +828,11 @@ static int test_x509_cert_with_exts(void)
 		name, namelen,
 		not_before, not_after,
 		name, namelen,
-		&sm2_key,
+		&x509_key,
 		uniq_id, sizeof(uniq_id),
 		uniq_id, sizeof(uniq_id),
 		exts, extslen,
-		&sm2_key,
+		&x509_key,
 		SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
 		&p, &certlen) != 1) {
 		error_print();

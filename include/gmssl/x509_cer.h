@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
+#include <gmssl/x509_key.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -164,8 +165,8 @@ algorithm.algorithm = OID_ec_public_key;
 algorithm.parameters = OID_sm2;
 subjectPublicKey = ECPoint
 */
-#define x509_public_key_info_to_der(key,out,outlen) sm2_public_key_info_to_der(key,out,outlen)
-#define x509_public_key_info_from_der(key,in,inlen) sm2_public_key_info_from_der(key,in,inlen)
+int x509_public_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *outlen);
+int x509_public_key_info_from_der(X509_KEY *key, const uint8_t **in, size_t *inlen);
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 /*
@@ -238,7 +239,7 @@ int x509_tbs_cert_to_der(
 	const uint8_t *issuer, size_t issuer_len,
 	time_t not_before, time_t not_after,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
 	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
 	const uint8_t *exts, size_t exts_len,
@@ -250,7 +251,7 @@ int x509_tbs_cert_from_der(
 	const uint8_t **issuer, size_t *issuer_len,
 	time_t *not_before, time_t *not_after,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **issuer_unique_id, size_t *issuer_unique_id_len,
 	const uint8_t **subject_unique_id, size_t *subject_unique_id_len,
 	const uint8_t **exts, size_t *exts_len,
@@ -279,7 +280,7 @@ int x509_signed_from_der(
 	int *signature_algor,
 	const uint8_t **sig, size_t *siglen,
 	const uint8_t **in, size_t *inlen);
-int x509_signed_verify(const uint8_t *a, size_t alen, const SM2_KEY *pub_key,
+int x509_signed_verify(const uint8_t *a, size_t alen, const X509_KEY *pub_key,
 	const char *signer_id, size_t signer_id_len);
 int x509_signed_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len);
@@ -292,11 +293,11 @@ int x509_cert_sign_to_der(
 	const uint8_t *issuer, size_t issuer_len,
 	time_t not_before, time_t not_after,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
 	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
 	const uint8_t *exts, size_t exts_len,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen);
 
 int x509_cert_to_der(const uint8_t *a, size_t alen, uint8_t **out, size_t *outlen);
@@ -316,7 +317,7 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	const uint8_t **issuer, size_t *issuer_len,
 	time_t *not_before, time_t *not_after,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **issuer_unique_id, size_t *issuer_unique_id_len,
 	const uint8_t **subject_unique_id, size_t *subject_unique_id_len,
 	const uint8_t **extensions, size_t *extensions_len,
@@ -346,7 +347,7 @@ int x509_cert_get_issuer_and_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t **serial_number, size_t *serial_number_len);
 int x509_cert_get_issuer(const uint8_t *a, size_t alen, const uint8_t **name, size_t *namelen);
 int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **subj, size_t *subj_len);
-int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, SM2_KEY *public_key);
+int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, X509_KEY *public_key);
 int x509_cert_get_exts(const uint8_t *a, size_t alen, const uint8_t **d, size_t *dlen);
 
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp);

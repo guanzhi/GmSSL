@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -20,6 +20,8 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_key.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,10 +37,10 @@ CertificationRequestInfo ::= SEQUENCE {
 	attributes                [0] IMPLICIT SET OF Attribute }
 */
 int x509_request_info_to_der(int version, const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key, const uint8_t *attrs, size_t attrs_len,
+	const X509_KEY *subject_public_key, const uint8_t *attrs, size_t attrs_len,
 	uint8_t **out, size_t *outlen);
 int x509_request_info_from_der(int *version, const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key, const uint8_t **attrs, size_t *attrs_len,
+	X509_KEY *subject_public_key, const uint8_t **attrs, size_t *attrs_len,
 	const uint8_t **in, size_t *inlen);
 int x509_request_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
@@ -51,17 +53,17 @@ CertificationRequest ::= SEQUENCE {
 int x509_req_sign_to_der(
 	int version,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *attrs, size_t attrs_len,
 	int signature_algor,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen);
 int x509_req_verify(const uint8_t *req, size_t reqlen,
 	const char *signer_id, size_t signer_id_len);
 int x509_req_get_details(const uint8_t *req, size_t reqlen,
 	int *verison,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **attributes, size_t *attributes_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len);

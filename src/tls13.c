@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -510,7 +510,7 @@ int tls13_sign_certificate_verify(int tls_mode,
 }
 
 int tls13_verify_certificate_verify(int tls_mode,
-	const SM2_KEY *public_key, const char *signer_id, size_t signer_id_len,
+	const X509_KEY *public_key, const char *signer_id, size_t signer_id_len,
 	const DIGEST_CTX *tbs_dgst_ctx, const uint8_t *sig, size_t siglen)
 {
 	int ret;
@@ -541,7 +541,13 @@ int tls13_verify_certificate_verify(int tls_mode,
 	dgst_ctx = *tbs_dgst_ctx;
 	digest_finish(&dgst_ctx, dgst, &dgstlen);
 
-	sm2_verify_init(&verify_ctx, public_key, signer_id, signer_id_len);
+	// FIXME: use x509_verify_init/update/finish			
+	if (public_key->algor != OID_ec_public_key
+		|| public_key->algor_param != OID_sm2) {
+		error_print();
+		return -1;
+	}
+	sm2_verify_init(&verify_ctx, &public_key->u.sm2_key, signer_id, signer_id_len);
 	sm2_verify_update(&verify_ctx, prefix, 64);
 	sm2_verify_update(&verify_ctx, context_str_and_zero, context_str_and_zero_len);
 	sm2_verify_update(&verify_ctx, dgst, dgstlen);
@@ -1497,7 +1503,7 @@ int tls13_do_connect(TLS_CONNECT *conn)
 
 	SM2_KEY client_ecdhe;
 	SM2_Z256_POINT server_ecdhe_public;
-	SM2_KEY server_sign_key;
+	X509_KEY server_sign_key;
 
 	const DIGEST *digest = DIGEST_sm3();
 	DIGEST_CTX dgst_ctx; // secret generation过程中需要ClientHello等数据输入的
@@ -1725,6 +1731,12 @@ int tls13_do_connect(TLS_CONNECT *conn)
 	}
 	if (x509_certs_get_cert_by_index(conn->server_certs, conn->server_certs_len, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &server_sign_key) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_unexpected_message);
+		goto end;
+	}
+	if (server_sign_key.algor != OID_ec_public_key
+		|| server_sign_key.algor_param != OID_sm2) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
@@ -1975,7 +1987,7 @@ int tls13_do_accept(TLS_CONNECT *conn)
 
 	SM2_KEY server_ecdhe;
 	SM2_Z256_POINT client_ecdhe_public;
-	SM2_KEY client_sign_key;
+	X509_KEY client_sign_key;
 	const BLOCK_CIPHER *cipher = NULL;
 	const DIGEST *digest = NULL;
 	DIGEST_CTX dgst_ctx;
@@ -2285,9 +2297,16 @@ int tls13_do_accept(TLS_CONNECT *conn)
 		}
 		if (x509_cert_get_subject_public_key(cert, certlen, &client_sign_key) != 1) {
 			error_print();
-			tls_send_alert(conn, TLS_alert_unexpected_message);
+			tls_send_alert(conn, TLS_alert_bad_certificate);
 			goto end;
 		}
+		if (client_sign_key.algor != OID_ec_public_key
+			|| client_sign_key.algor_param != OID_sm2) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			goto end;
+		}
+
 		digest_update(&dgst_ctx, record + 5, recordlen - 5);
 		tls_seq_num_incr(conn->client_seq_num);
 

@@ -19,6 +19,7 @@
 #include <gmssl/asn1.h>
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
+#include <gmssl/x509_key.h>
 #include <gmssl/error.h>
 
 
@@ -348,7 +349,7 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 }
 
 int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
-	const SM2_KEY *public_key)
+	const X509_KEY *public_key)
 {
 	uint8_t id[32];
 	int critical = -1;
@@ -357,7 +358,7 @@ int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extsle
 		return 0;
 	}
 
-	if (sm2_public_key_digest(public_key, id) != 1) {
+	if (x509_public_key_digest(public_key, id) != 1) {
 		error_print();
 		return -1;
 	}
@@ -399,7 +400,7 @@ int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t 
 }
 
 int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen,
-	int critical, const SM2_KEY *subject_key)
+	int critical, const X509_KEY *subject_key)
 {
 	uint8_t id[32];
 
@@ -407,7 +408,7 @@ int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size
 		return 0;
 	}
 
-	if (sm2_public_key_digest(subject_key, id) != 1) {
+	if (x509_public_key_digest(subject_key, id) != 1) {
 		error_print();
 		return -1;
 	}

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,16 +18,6 @@
 #include <gmssl/error.h>
 
 
-/*
-302 typedef struct {
-303         uint8_t *certs;
-304         size_t certs_len;
-305         SM2_KEY *sign_key;
-306 } CMS_CERTS_AND_KEY;
-
-
-*/
-
 static const char *options = "-key file -pass str -cert file -in file [-out file]";
 
 int cmssign_main(int argc, char **argv)
@@ -43,7 +33,8 @@ int cmssign_main(int argc, char **argv)
 	FILE *certfp = NULL;
 	FILE *infp = NULL;
 	FILE *outfp = stdout;
-	SM2_KEY key;
+	SM2_KEY sm2_key;
+	X509_KEY public_key;
 	uint8_t cert[1024];
 	size_t certlen;
 	uint8_t *in = NULL;
@@ -125,29 +116,29 @@ bad:
 		goto end;
 	}
 
-	if (sm2_private_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
+	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: private key decryption failure\n", prog);
 		goto end;
 	}
+
 	if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1) {
 		fprintf(stderr, "%s: load certificate failure\n", prog);
 		goto end;
 	}
-	{
-		SM2_KEY public_key;
-		if (x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
-			fprintf(stderr, "%s: parse certficate failure\n", prog);
-			goto end;
-		}
-		if (sm2_public_key_equ(&key, &public_key) != 1) {
-			fprintf(stderr, "%s: key and cert are not match!\n", prog);
-			goto end;
-		}
+
+	if (x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
+		fprintf(stderr, "%s: parse certficate failure\n", prog);
+		goto end;
 	}
+	if (sm2_public_key_equ(&sm2_key, &public_key.u.sm2_key) != 1) {
+		fprintf(stderr, "%s: key and cert are not match!\n", prog);
+		goto end;
+	}
+
 
 	cert_and_key.certs = cert;
 	cert_and_key.certs_len = certlen;
-	cert_and_key.sign_key = &key;
+	cert_and_key.sign_key = &public_key;
 
 	if (file_size(infp, &inlen) != 1) {
 		fprintf(stderr, "%s: get input length failed\n", prog);

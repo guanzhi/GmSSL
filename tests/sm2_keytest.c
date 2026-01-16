@@ -32,7 +32,7 @@ static int test_sm2_private_key(void)
 		error_print();
 		return -1;
 	}
-	sm2_key_print(stderr, 0, 4, "SM2_KEY", &sm2_key);
+	sm2_key_print(stderr, 0, 4, "sm2_key", &sm2_key);
 
 	if (sm2_private_key_to_der(&sm2_key, &p, &len) != 1) {
 		error_print();
@@ -46,12 +46,7 @@ static int test_sm2_private_key(void)
 		return -1;
 	}
 
-	if (memcmp(&tmp_key, &sm2_key, sizeof(SM2_KEY)) != 0) {
-
-		sm2_key_print(stderr, 0, 0, "sm2_key", &sm2_key);
-		sm2_key_print(stderr, 0, 0, "tmp_key", &tmp_key);
-
-
+	if (memcmp(&tmp_key, &sm2_key, SM2_PRIVATE_KEY_SIZE) != 0) {
 		error_print();
 		return -1;
 	}

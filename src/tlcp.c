@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -145,8 +145,8 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	const uint8_t *exts;
 	size_t exts_len;
 
-	SM2_KEY server_sign_key;
-	SM2_KEY server_enc_key;
+	X509_KEY server_sign_key;
+	X509_KEY server_enc_key;
 	SM2_VERIFY_CTX verify_ctx;
 	SM2_SIGN_CTX sign_ctx;
 	const uint8_t *sig;
@@ -292,9 +292,17 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		goto end;
 	}
+	if (server_sign_key.algor != OID_ec_public_key
+		|| server_sign_key.algor_param != OID_sm2
+		|| server_enc_key.algor != OID_ec_public_key
+		|| server_enc_key.algor_param != OID_sm2) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		goto end;
+	}
 	p = server_enc_cert_lenbuf; len = 0;
 	tls_uint24_to_bytes((uint24_t)server_enc_cert_len, &p, &len);
-	if (sm2_verify_init(&verify_ctx, &server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+	if (sm2_verify_init(&verify_ctx, &server_sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_verify_update(&verify_ctx, client_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, server_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, server_enc_cert_lenbuf, 3) != 1
@@ -411,7 +419,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 	// send ClientKeyExchange
 	tls_trace("send ClientKeyExchange\n");
-	if (sm2_encrypt(&server_enc_key, pre_master_secret, 48,
+	if (sm2_encrypt(&server_enc_key.u.sm2_key, pre_master_secret, 48,
 			enced_pre_master_secret, &enced_pre_master_secret_len) != 1
 		|| tls_record_set_handshake_client_key_exchange_pke(record, &recordlen,
 			enced_pre_master_secret, enced_pre_master_secret_len) != 1) {
@@ -604,7 +612,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	size_t siglen;
 
 	// ClientCertificate, CertificateVerify
-	SM2_KEY client_sign_key;
+	X509_KEY client_sign_key;
 	SM2_VERIFY_CTX verify_ctx;
 	const uint8_t *sig;
 	const int verify_depth = 5;
@@ -853,9 +861,15 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			goto end;
 		}
+		if (client_sign_key.algor != OID_ec_public_key
+			|| client_sign_key.algor_param != OID_sm2) {
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			error_print();
+			goto end;
+		}
 
 		sm3_finish(&cert_verify_sm3_ctx, cert_verify_hash);
-		if (sm2_verify_init(&verify_ctx, &client_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+		if (sm2_verify_init(&verify_ctx, &client_sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 			|| sm2_verify_update(&verify_ctx, cert_verify_hash, SM3_DIGEST_SIZE) != 1
 			|| sm2_verify_finish(&verify_ctx, sig, siglen) != 1) {
 			error_print();

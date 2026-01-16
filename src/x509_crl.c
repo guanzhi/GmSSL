@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <gmssl/x509_crl.h>
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
+#include <gmssl/x509_key.h>
 #include <gmssl/pem.h>
 #include <gmssl/mem.h>
 #include <gmssl/http.h>
@@ -1046,7 +1047,7 @@ int x509_crl_exts_add_authority_key_identifier(
 }
 
 int x509_crl_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
-	const SM2_KEY *public_key)
+	const X509_KEY *public_key)
 {
 	int ret;
 	if ((ret = x509_exts_add_default_authority_key_identifier(exts, extslen, maxlen, public_key)) != 1) {
@@ -1422,15 +1423,24 @@ int x509_crl_sign_to_der(
 	time_t this_update, time_t next_update,
 	const uint8_t *revoked_certs, size_t revoked_certs_len,
 	const uint8_t *crl_exts, size_t crl_exts_len,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen)
 {
+	int key_sig_alg;
 	size_t len = 0;
 	uint8_t *tbs = NULL;
-	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen = SM2_signature_typical_size;
+	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
+	size_t siglen;
 
-	if (sig_alg != OID_sm2sign_with_sm3) {
+	if (x509_key_get_sign_algor(sign_key, &key_sig_alg) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sig_alg != key_sig_alg) {
+		error_print();
+		return -1;
+	}
+	if (x509_key_get_signature_size(sign_key, &siglen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1454,10 +1464,10 @@ int x509_crl_sign_to_der(
 		return -1;
 	}
 	if (out && *out) {
-		SM2_SIGN_CTX sign_ctx;
-		if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
-			|| sm2_sign_update(&sign_ctx, tbs, *out - tbs) != 1
-			|| sm2_sign_finish_fixlen(&sign_ctx, siglen, sig) != 1) {
+		X509_SIGN_CTX sign_ctx;
+		if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
+			|| x509_sign_update(&sign_ctx, tbs, *out - tbs) != 1
+			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();
 			return -1;

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -21,9 +21,11 @@
 
 static int test_x509_request_info(void)
 {
+	int algor = OID_ec_public_key;
+	int algor_param = OID_sm2;
 	uint8_t subject[256];
 	size_t subject_len;
-	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 
 	uint8_t attrs_buf[512];
 	size_t attrs_len = 0;
@@ -38,12 +40,16 @@ static int test_x509_request_info(void)
 	int version;
 	const uint8_t *subj;
 	size_t subj_len;
-	SM2_KEY pub_key;
+	X509_KEY pub_key;
 	const uint8_t *attrs;
 
-	if (sm2_key_generate(&sm2_key) != 1
-		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
-		|| x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, attrs_buf, attrs_len, &p, &len) != 1
+	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
+		|| x509_request_info_to_der(X509_version_v1, subject, subject_len, &x509_key, attrs_buf, attrs_len, &p, &len) != 1
 		|| asn1_sequence_from_der(&d, &dlen, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -55,7 +61,7 @@ static int test_x509_request_info(void)
 	cp = buf;
 	len = 0;
 
-	if (x509_request_info_to_der(X509_version_v1, subject, subject_len, &sm2_key, attrs_buf, attrs_len, &p, &len) != 1
+	if (x509_request_info_to_der(X509_version_v1, subject, subject_len, &x509_key, attrs_buf, attrs_len, &p, &len) != 1
 		|| x509_request_info_from_der(&version, &subj, &subj_len, &pub_key, &attrs, &attrs_len, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
 		error_print();
@@ -64,7 +70,7 @@ static int test_x509_request_info(void)
 	format_print(stderr, 0, 0, "CertificationRequestInfo\n");
 	format_print(stderr, 0, 4, "version: %d\n", version);
 	x509_name_print(stderr, 0, 4, "subject", subj, subj_len);
-	sm2_public_key_print(stderr, 0, 4, "publicKey", &pub_key);
+	sm2_public_key_print(stderr, 0, 4, "publicKey", &pub_key.u.sm2_key); // FIXME: replace with x509_public_key_print
 	format_bytes(stderr, 0, 4, "attributes", attrs, attrs_len);
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -134,9 +140,11 @@ static int test_x509_request(void)
 
 static int test_x509_req(void)
 {
+	int algor = OID_ec_public_key;
+	int algor_param = OID_sm2;
+	X509_KEY x509_key;
 	uint8_t subject[256];
 	size_t subject_len;
-	SM2_KEY sm2_key;
 	uint8_t attrs[256];
 	size_t attrs_len = 0;
 
@@ -144,11 +152,14 @@ static int test_x509_req(void)
 	uint8_t *p = req;
 	size_t reqlen = 0;
 
-	if (sm2_key_generate(&sm2_key) != 1
-		|| x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
+	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_name_set(subject, &subject_len, sizeof(subject), "CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
 		|| x509_req_sign_to_der(
-			X509_version_v1, subject, subject_len, &sm2_key, attrs, attrs_len,
-			OID_sm2sign_with_sm3, &sm2_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
+			X509_version_v1, subject, subject_len, &x509_key, attrs, attrs_len,
+			OID_sm2sign_with_sm3, &x509_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
 			&p, &reqlen) != 1) {
 		error_print();
 		return -1;

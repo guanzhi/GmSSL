@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -2143,7 +2143,7 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	SM2_KEY key;
 	const uint8_t *cert;
 	size_t certlen;
-	SM2_KEY public_key;
+	X509_KEY public_key;
 
 	if (!ctx || !chainfile || !keyfile || !keypass) {
 		error_print();
@@ -2175,7 +2175,12 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 		error_print();
 		return -1;
 	}
-	if (sm2_public_key_equ(&key, &public_key) != 1) {
+	if (public_key.algor != OID_ec_public_key
+		|| public_key.algor_param != OID_sm2) {
+		error_print();
+		return -1;
+	}
+	if (sm2_public_key_equ(&key, &public_key.u.sm2_key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2206,7 +2211,7 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 
 	const uint8_t *cert;
 	size_t certlen;
-	SM2_KEY public_key;
+	X509_KEY public_key;
 
 	if (!ctx || !chainfile || !signkeyfile || !signkeypass || !kenckeyfile || !kenckeypass) {
 		error_print();
@@ -2235,8 +2240,16 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		goto end;
 	}
 	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
-		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1
-		|| sm2_public_key_equ(&signkey, &public_key) != 1) {
+		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (public_key.algor != OID_ec_public_key
+		|| public_key.algor_param != OID_sm2) {
+		error_print();
+		return -1;
+	}
+	if (sm2_public_key_equ(&signkey, &public_key.u.sm2_key) != 1) {
 		error_print();
 		goto end;
 	}
@@ -2250,8 +2263,16 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		goto end;
 	}
 	if (x509_certs_get_cert_by_index(certs, certslen, 1, &cert, &certlen) != 1
-		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1
-		|| sm2_public_key_equ(&kenckey, &public_key) != 1) {
+		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (public_key.algor != OID_ec_public_key
+		|| public_key.algor_param != OID_sm2) {
+		error_print();
+		return -1;
+	}
+	if (sm2_public_key_equ(&kenckey, &public_key.u.sm2_key) != 1) {
 		error_print();
 		goto end;
 	}

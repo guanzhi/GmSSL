@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -24,12 +24,13 @@
 #include <gmssl/x509_req.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_alg.h>
+#include <gmssl/x509_key.h>
 
 
 int x509_request_info_to_der(
 	int version,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *attrs, size_t attrs_len,
 	uint8_t **out, size_t *outlen)
 {
@@ -56,7 +57,7 @@ int x509_request_info_to_der(
 int x509_request_info_from_der(
 	int *version,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **attrs, size_t *attrs_len,
 	const uint8_t **in, size_t *inlen)
 {
@@ -110,7 +111,7 @@ err:
 static int x509_request_from_der(
 	int *version,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **attrs, size_t *attrs_len,
 	int *signature_algor,
 	const uint8_t **sig, size_t *siglen,
@@ -159,17 +160,26 @@ err:
 int x509_req_sign_to_der(
 	int version,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *attrs, size_t attrs_len,
 	int signature_algor,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
 	uint8_t *tbs = NULL;
-	int sig_alg = OID_sm2sign_with_sm3;
-	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen = SM2_signature_typical_size;
+	int sig_alg;
+	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
+	size_t siglen;
+
+	if (x509_key_get_sign_algor(sign_key, &sig_alg) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_key_get_signature_size(sign_key, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (x509_request_info_to_der(version, subject, subject_len, subject_public_key,
 			attrs, attrs_len, NULL, &len) != 1
@@ -188,10 +198,10 @@ int x509_req_sign_to_der(
 		return -1;
 	}
 	if (out && *out) {
-		SM2_SIGN_CTX sign_ctx;
-		if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
-			|| sm2_sign_update(&sign_ctx, tbs, *out - tbs) != 1
-			|| sm2_sign_finish_fixlen(&sign_ctx, siglen, sig) != 1) {
+		X509_SIGN_CTX sign_ctx;
+		if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
+			|| x509_sign_update(&sign_ctx, tbs, *out - tbs) != 1
+			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();
 			return -1;
@@ -208,7 +218,7 @@ int x509_req_sign_to_der(
 
 int x509_req_verify(const uint8_t *a, size_t alen, const char *signer_id, size_t signer_id_len)
 {
-	SM2_KEY public_key;
+	X509_KEY public_key;
 
 	if (x509_req_get_details(a, alen,
 		NULL, NULL, NULL, &public_key, NULL, NULL, NULL, NULL, NULL) != 1) {
@@ -225,7 +235,7 @@ int x509_req_verify(const uint8_t *a, size_t alen, const char *signer_id, size_t
 int x509_req_get_details(const uint8_t *a, size_t alen,
 	int *version,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **attributes, size_t *attributes_len,
 	int *signature_algor,
 	const uint8_t **signature, size_t *signature_len)
@@ -233,7 +243,7 @@ int x509_req_get_details(const uint8_t *a, size_t alen,
 	int ver;
 	const uint8_t *subj;
 	size_t subj_len;
-	SM2_KEY pub_key;
+	X509_KEY pub_key;
 	const uint8_t *attrs;
 	size_t attrs_len;
 	int sig_alg;

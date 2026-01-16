@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -47,10 +47,14 @@ enum ASN1_TAG {
 	ASN1_TAG_ObjectDescriptor	= 7,
 	ASN1_TAG_EXTERNAL		= 8,
 	ASN1_TAG_REAL			= 9,
-	ASN1_TAG_ENUMERATED		= 10, // 0x0A
-	ASN1_TAG_EMBEDDED		= 11, // 0x0B
-	ASN1_TAG_UTF8String		= 12, // 0x0C
-	ASN1_TAG_RELATIVE_OID		= 13, // 0x0D
+	ASN1_TAG_ENUMERATED		= 10, // 0x0a
+	ASN1_TAG_EMBEDDED		= 11, // 0x0b
+	ASN1_TAG_UTF8String		= 12, // 0x0c
+	ASN1_TAG_RELATIVE_OID		= 13, // 0x0d
+	// 14 reserved
+	// 15 reserved
+	// 16 SEQUENCE, SEQUENCE OF without CONSTRUCTED bit
+	// 17 SET, SET OF without CONSTRUCTED bit
 	ASN1_TAG_NumericString		= 18, // 0x12
 	ASN1_TAG_PrintableString	= 19, // 0x13, printable subset of ascii
 	ASN1_TAG_TeletexString		= 20, // 0x14, T61String
@@ -59,14 +63,22 @@ enum ASN1_TAG {
 	ASN1_TAG_UTCTime		= 23, // 0x17
 	ASN1_TAG_GeneralizedTime	= 24, // 0x18
 	ASN1_TAG_GraphicString		= 25, // 0x19
-	ASN1_TAG_VisibleString		= 26, // 0x20
-	ASN1_TAG_GeneralString		= 27, // 0x21
-	ASN1_TAG_UniversalString	= 28, // 0x22
-	ASN1_TAG_CHARACTER_STRING	= 29, // 0x23
-	ASN1_TAG_BMPString		= 30, // 0x24, 2-byte unicode with zeros
+	ASN1_TAG_VisibleString		= 26, // 0x1a
+	ASN1_TAG_GeneralString		= 27, // 0x1b
+	ASN1_TAG_UniversalString	= 28, // 0x1c
+	ASN1_TAG_CHARACTER_STRING	= 29, // 0x1d
+	ASN1_TAG_BMPString		= 30, // 0x1e, 2-byte unicode with zeros
+	// 31 (0x1f) means tag is multi-bytes, not supported yet
+	// UNIVERAL + CONSTRUCTED (0x20 - 0x3f): only SEQUENCE and TAG
 	ASN1_TAG_SEQUENCE		= 0x30,
 	ASN1_TAG_SET			= 0x31,
-	ASN1_TAG_EXPLICIT		= 0xa0,
+	// APPLICATION (0x40 - 0x7f) all avaiable
+	// CONTENT_SPECIFIC (0x40 - 0xbf)
+	ASN1_TAG_EXPLICIT		= 0xa0, // 这里有问题了，已经有一个同名的宏了，不要设置这个了
+
+
+
+	// PRIVATE: 0xC0 - 0xDE, 0xE0 - 0xFE
 };
 
 #define ASN1_R_OK		 1

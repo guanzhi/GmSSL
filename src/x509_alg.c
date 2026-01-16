@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -363,7 +363,7 @@ static const ASN1_OID_INFO x509_sign_algors[] = {
 	{ OID_rsasign_with_sha256, "sha256WithRSAEncryption", oid_rsasign_with_sha256, sizeof(oid_rsasign_with_sha256)/sizeof(int), 1 },
 	{ OID_rsasign_with_sha384, "sha384WithRSAEncryption", oid_rsasign_with_sha384, sizeof(oid_rsasign_with_sha384)/sizeof(int), 1 },
 	{ OID_rsasign_with_sha512, "sha512WithRSAEncryption", oid_rsasign_with_sha512, sizeof(oid_rsasign_with_sha512)/sizeof(int), 1 },
-#ifdef ENABLE_LMS_HSS
+#ifdef ENABLE_LMS
 	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 1 },
 #endif
 #ifdef ENABLE_XMSS
@@ -587,7 +587,7 @@ static uint32_t oid_ec_public_key[] = { oid_x9_62,2,1 };
 static const ASN1_OID_INFO x509_public_key_algors[] = {
 	{ OID_ec_public_key, "ecPublicKey", oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), 0, "X9.62 ecPublicKey" },
 	{ OID_rsa_encryption, "rsaEncryption", oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), 0, "RSAEncryption" },
-#ifdef ENABLE_LMS_HSS
+#ifdef ENABLE_LMS
 	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
 #endif
 #ifdef ENABLE_XMSS
@@ -644,7 +644,7 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 			return -1;
 		}
 		break;
-#ifdef ENABLE_LMS_HSS
+#ifdef ENABLE_LMS
 	// TODO: rsa, hss/lms, xmss/xmss^mt OID encoding is similar, reduce code size
 	case OID_hss_lms_hashsig:
 		if (asn1_object_identifier_to_der(oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), NULL, &len) != 1
@@ -713,7 +713,7 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 		}
 		break;
 	case OID_rsa_encryption:
-#ifdef ENABLE_LMS_HSS
+#ifdef ENABLE_LMS
 	case OID_hss_lms_hashsig:
 #endif
 #ifdef ENABLE_XMSS
@@ -750,7 +750,7 @@ int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, c
 		format_print(fp, fmt, ind, "namedCurve: %s\n", ec_named_curve_name(val));
 		break;
 	case OID_rsa_encryption:
-#ifdef ENABLE_LMS_HSS
+#ifdef ENABLE_LMS
 	case OID_hss_lms_hashsig:
 #endif
 #ifdef ENABLE_XMSS

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -155,6 +155,7 @@ int certgen_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	char *pass = NULL;
 	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
 
@@ -403,6 +404,10 @@ bad:
 		strcpy(signer_id, SM2_DEFAULT_ID);
 		signer_id_len = strlen(SM2_DEFAULT_ID);
 	}
+	if (x509_key_set_sm2_key(&x509_key, &sm2_key) != 1) {
+		//			
+		goto end;
+	}
 
 	// Serial
 	if (rand_bytes(serial, sizeof(serial)) != 1) {
@@ -425,13 +430,13 @@ bad:
 
 	// Extensions
 	if (gen_authority_key_id) {
-		if (x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sm2_key) != 1) {
+		if (x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &x509_key) != 1) {
 			fprintf(stderr, "%s: set AuthorityKeyIdentifier extension failure\n", prog);
 			goto end;
 		}
 	}
 	if (gen_subject_key_id) {
-		if (x509_exts_add_subject_key_identifier_ex(exts, &extslen, sizeof(exts), -1, &sm2_key) != 1) {
+		if (x509_exts_add_subject_key_identifier_ex(exts, &extslen, sizeof(exts), -1, &x509_key) != 1) {
 			fprintf(stderr, "%s: set SubjectKeyIdentifier extension failure\n", prog);
 			goto end;
 		}
@@ -507,11 +512,11 @@ bad:
 		name, namelen,
 		not_before, not_after,
 		name, namelen,
-		&sm2_key,
+		&x509_key,
 		NULL, 0,
 		NULL, 0,
 		exts, extslen,
-		&sm2_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		NULL, &certlen) != 1) {
 		fprintf(stderr, "%s: certificate generation failure\n", prog);
 		goto end;
@@ -529,11 +534,11 @@ bad:
 		name, namelen,
 		not_before, not_after,
 		name, namelen,
-		&sm2_key,
+		&x509_key,
 		NULL, 0,
 		NULL, 0,
 		exts, extslen,
-		&sm2_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		&p, &certlen) != 1) {
 		fprintf(stderr, "%s: certificate generation failure\n", prog);
 		goto end;

@@ -165,7 +165,7 @@ int reqsign_main(int argc, char **argv)
 	// Subject from Req
 	const uint8_t *subject;
 	size_t subject_len;
-	SM2_KEY subject_public_key;
+	X509_KEY subject_public_key;
 
 	// CA certficate and Private Key
 	uint8_t *cacert = NULL;
@@ -173,13 +173,15 @@ int reqsign_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	char *pass = NULL;
 	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
 
 	// Issuer from CA certificate
 	const uint8_t *issuer;
 	size_t issuer_len;
-	SM2_KEY issuer_public_key;
+	SM2_KEY sm2_issuer_public_key;
+	X509_KEY issuer_public_key;
 
 	// Output
 	char *outfile = NULL;
@@ -461,13 +463,18 @@ bad:
 		fprintf(stderr, "%s: load private key failure\n", prog);
 		goto end;
 	}
-	if (sm2_public_key_equ(&sm2_key, &issuer_public_key) != 1) {
+	// 这里可能需要修改一下，x509_key和sm2_key对比			
+	if (sm2_public_key_equ(&sm2_key, &issuer_public_key.u.sm2_key) != 1) {
 		fprintf(stderr, "%s: private key and CA certificate not match\n", prog);
 		goto end;
 	}
 	if (!signer_id_len) {
 		strcpy(signer_id, SM2_DEFAULT_ID);
 		signer_id_len = strlen(SM2_DEFAULT_ID);
+	}
+	if (x509_key_set_sm2_key(&x509_key, &sm2_key) != 1) {
+		//fprint 			
+		goto end;
 	}
 
 	if (rand_bytes(serial, serial_len) != 1) {
@@ -484,7 +491,7 @@ bad:
 	// following code copy from certgen.c
 	// Extensions
 	if (gen_authority_key_id) {
-		if (x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sm2_key) != 1) {
+		if (x509_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &x509_key) != 1) {
 			fprintf(stderr, "%s: set AuthorityKeyIdentifier extension failure\n", prog);
 			goto end;
 		}
@@ -570,7 +577,7 @@ bad:
 		NULL, 0,
 		NULL, 0,
 		exts, extslen,
-		&sm2_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		NULL, &certlen) != 1) {
 		fprintf(stderr, "%s: certificate generation failure\n", prog);
 		goto end;
@@ -592,7 +599,7 @@ bad:
 		NULL, 0,
 		NULL, 0,
 		exts, extslen,
-		&sm2_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		&p, &certlen) != 1) {
 		fprintf(stderr, "%s: certificate generation failure\n", prog);
 		goto end;
@@ -604,7 +611,7 @@ bad:
 	}
 	ret = 0;
 end:
-	gmssl_secure_clear(&sm2_key, sizeof(SM2_KEY));
+	gmssl_secure_clear(&x509_key, sizeof(SM2_KEY));
 	if (cert) free(cert);
 	if (keyfp) fclose(keyfp);
 	if (infile && infp) fclose(infp);

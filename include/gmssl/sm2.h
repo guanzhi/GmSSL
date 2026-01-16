@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ typedef struct {
 	sm2_z256_t private_key;
 } SM2_KEY;
 
+#define SM2_PUBLIC_KEY_SIZE 64
+#define SM2_PRIVATE_KEY_SIZE 96
+
 int sm2_key_generate(SM2_KEY *key);
 int sm2_key_print(FILE *fp, int fmt, int ind, const char *label, const SM2_KEY *key);
 int sm2_key_set_private_key(SM2_KEY *key, const sm2_z256_t private_key);
@@ -54,6 +57,7 @@ ECPrivateKey ::= SEQUENCE {
 
 ECParameters ::= CHOICE { namedCurve OBJECT IDENTIFIER }
 */
+// FIXME: change to XXX_DER_SIZE ...
 #define SM2_PRIVATE_KEY_DEFAULT_SIZE 120 // generated
 #define SM2_PRIVATE_KEY_BUF_SIZE 512 // MUST >= SM2_PRIVATE_KEY_DEFAULT_SIZE
 

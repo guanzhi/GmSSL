@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -53,7 +53,8 @@ int sdfencrypt_main(int argc, char **argv)
 	FILE *certfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM2_KEY sm2_pub;
+	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 	uint8_t cert[1024];
 	size_t certlen;
 	uint8_t iv[16];
@@ -150,7 +151,7 @@ bad:
 
 	// get public key
 	if (pubkeyfile) {
-		if (sm2_public_key_info_from_pem(&sm2_pub, pubkeyfp) != 1) {
+		if (sm2_public_key_info_from_pem(&sm2_key, pubkeyfp) != 1) {
 			fprintf(stderr, "gmssl %s: parse public key failed\n", prog);
 			goto end;
 		}
@@ -159,17 +160,23 @@ bad:
 			fprintf(stderr, "gmssl %s: parse certificate from PEM failed\n", prog);
 			goto end;
 		}
-		if (x509_cert_get_subject_public_key(cert, certlen, &sm2_pub) != 1) {
+		if (x509_cert_get_subject_public_key(cert, certlen, &x509_key) != 1) {
 			fprintf(stderr, "gmssl %s: parse certificate failed\n", prog);
 			goto end;
 		}
+		if (x509_key.algor != OID_ec_public_key
+			|| x509_key.algor_param != OID_sm2) {
+			fprintf(stderr, "gmssl %s: invalid certificate type\n", prog);
+			goto end;
+		}
+		sm2_key = x509_key.u.sm2_key;
 	} else {
 		fprintf(stderr, "gmssl %s: '-pubkey' or '-cert' option required\n", prog);
 		goto end;
 	}
 
 	// generate key and output wrapped key in DER(SM2_CIPHERTEXT) format
-	if (sdf_generate_key(&dev, &key, &sm2_pub, buf, &outlen) != 1) {
+	if (sdf_generate_key(&dev, &key, &sm2_key, buf, &outlen) != 1) {
 		error_print();
 		goto end;
 	}

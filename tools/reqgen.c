@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -82,6 +82,7 @@ int reqgen_main(int argc, char **argv)
 	SM2_KEY sm2_key;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
+	X509_KEY x509_key;
 
 	// Output
 	char *outfile = NULL;
@@ -197,6 +198,11 @@ bad:
 		strcpy(signer_id, SM2_DEFAULT_ID);
 		signer_id_len = strlen(SM2_DEFAULT_ID);
 	}
+	if (x509_key_set_sm2_key(&x509_key, &sm2_key) != 1) {
+		// output error message				
+		//error_print();
+		goto end;
+	}
 
 	if (x509_name_set(name, &namelen, sizeof(name), country, state, locality, org, org_unit, common_name) != 1) {
 		fprintf(stderr, "%s: set Subject Name error\n", prog);
@@ -206,10 +212,10 @@ bad:
 	if (x509_req_sign_to_der(
 		X509_version_v1,
 		name, namelen,
-		&sm2_key,
+		&x509_key,
 		attrs, attrs_len,
 		OID_sm2sign_with_sm3,
-		&sm2_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		&p, &reqlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;

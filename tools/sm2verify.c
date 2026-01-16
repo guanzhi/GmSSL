@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -49,7 +49,8 @@ int sm2verify_main(int argc, char **argv)
 	FILE *certfp = NULL;
 	FILE *infp = stdin;
 	FILE *sigfp = NULL;
-	SM2_KEY key;
+	SM2_KEY sm2_key;
+	X509_KEY x509_key;
 	SM2_VERIFY_CTX verify_ctx;
 	uint8_t cert[1024];
 	size_t certlen;
@@ -135,23 +136,28 @@ bad:
 	}
 
 	if (pubkeyfile) {
-		if (sm2_public_key_info_from_pem(&key, pubkeyfp) != 1) {
+		if (sm2_public_key_info_from_pem(&sm2_key, pubkeyfp) != 1) {
 			fprintf(stderr, "gmssl %s: parse public key failed\n", prog);
 			goto end;
 		}
 	} else if (certfile) {
 		if (x509_cert_from_pem(cert, &certlen, sizeof(cert), certfp) != 1
-			|| x509_cert_get_subject_public_key(cert, certlen, &key) != 1) {
+			|| x509_cert_get_subject_public_key(cert, certlen, &x509_key) != 1) {
 			fprintf(stderr, "gmssl %s: parse certificate failed\n", prog);
 			goto end;
 		}
+		if (x509_key.algor != OID_ec_public_key
+			|| x509_key.algor_param != OID_sm2) {
+			fprintf(stderr, "gmssl %s: invalid cert type\n", prog);
+			goto end;
+		}
+		sm2_key = x509_key.u.sm2_key;
 	} else {
 		fprintf(stderr, "gmssl %s: '-pubkey' or '-cert' option required\n", prog);
 		goto end;
 	}
 
-
-	if (sm2_verify_init(&verify_ctx, &key, id, strlen(id)) != 1) {
+	if (sm2_verify_init(&verify_ctx, &sm2_key, id, strlen(id)) != 1) {
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}

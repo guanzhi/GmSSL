@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -983,7 +983,7 @@ int x509_tbs_cert_to_der(
 	const uint8_t *issuer, size_t issuer_len,
 	time_t not_before, time_t not_after,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
 	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
 	const uint8_t *exts, size_t exts_len,
@@ -1024,7 +1024,7 @@ int x509_tbs_cert_from_der(
 	const uint8_t **issuer, size_t *issuer_len,
 	time_t *not_before, time_t *not_after,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **issuer_unique_id, size_t *issuer_unique_id_len,
 	const uint8_t **subject_unique_id, size_t *subject_unique_id_len,
 	const uint8_t **exts, size_t *exts_len,
@@ -1098,18 +1098,27 @@ int x509_cert_sign_to_der(
 	const uint8_t *issuer, size_t issuer_len,
 	time_t not_before, time_t not_after,
 	const uint8_t *subject, size_t subject_len,
-	const SM2_KEY *subject_public_key,
+	const X509_KEY *subject_public_key,
 	const uint8_t *issuer_unique_id, size_t issuer_unique_id_len,
 	const uint8_t *subject_unique_id, size_t subject_unique_id_len,
 	const uint8_t *exts, size_t exts_len,
-	const SM2_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
 	uint8_t *tbs = NULL;
-	int sig_alg = OID_sm2sign_with_sm3;
-	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen = SM2_signature_typical_size;
+	int sig_alg;
+	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
+	size_t siglen;
+
+	if (x509_key_get_sign_algor(sign_key, &sig_alg) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_key_get_signature_size(sign_key, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (x509_tbs_cert_to_der(
 		version,
@@ -1150,10 +1159,10 @@ int x509_cert_sign_to_der(
 	}
 
 	if (out && *out) {
-		SM2_SIGN_CTX sign_ctx;
-		if (sm2_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
-			|| sm2_sign_update(&sign_ctx, tbs, *out - tbs) != 1
-			|| sm2_sign_finish_fixlen(&sign_ctx, siglen, sig) != 1) {
+		X509_SIGN_CTX sign_ctx;
+		if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
+			|| x509_sign_update(&sign_ctx, tbs, *out - tbs) != 1
+			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();
 			return -1;
@@ -1197,27 +1206,34 @@ int x509_signed_from_der(const uint8_t **tbs, size_t *tbslen,
 }
 
 int x509_signed_verify(const uint8_t *a, size_t alen,
-	const SM2_KEY *pub_key, const char *signer_id, size_t signer_id_len)
+	const X509_KEY *key, const char *signer_id, size_t signer_id_len)
 {
 	const uint8_t *tbs;
 	size_t tbslen;
 	int sig_alg;
 	const uint8_t *sig;
 	size_t siglen;
-	SM2_VERIFY_CTX verify_ctx;
+	int key_sig_alg;
+	X509_SIGN_CTX verify_ctx;
+
+	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
 		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sig_alg != OID_sm2sign_with_sm3) {
+	if (sig_alg != key_sig_alg) {
 		error_print();
 		return -1;
 	}
-	if (sm2_verify_init(&verify_ctx, pub_key, signer_id, signer_id_len) != 1
-		|| sm2_verify_update(&verify_ctx, tbs, tbslen) != 1
-		|| sm2_verify_finish(&verify_ctx, sig, siglen) != 1) {
+
+	if (x509_verify_init(&verify_ctx, key, signer_id, signer_id_len, sig, siglen) != 1
+		|| x509_verify_update(&verify_ctx, tbs, tbslen) != 1
+		|| x509_verify_finish(&verify_ctx) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1229,7 +1245,7 @@ int x509_signed_verify_by_ca_cert(const uint8_t *a, size_t alen,
 	const char *signer_id, size_t signer_id_len)
 {
 	int ret;
-	SM2_KEY public_key;
+	X509_KEY public_key;
 
 	if (x509_cert_get_subject_public_key(cacert, cacertlen, &public_key) != 1
 		|| (ret = x509_signed_verify(a, alen, &public_key, signer_id, signer_id_len)) < 0) {
@@ -1387,7 +1403,7 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 	const uint8_t **issuer, size_t *issuer_len,
 	time_t *not_before, time_t *not_after,
 	const uint8_t **subject, size_t *subject_len,
-	SM2_KEY *subject_public_key,
+	X509_KEY *subject_public_key,
 	const uint8_t **issuer_unique_id, size_t *issuer_unique_id_len,
 	const uint8_t **subject_unique_id, size_t *subject_unique_id_len,
 	const uint8_t **extensions, size_t *extensions_len,
@@ -1407,7 +1423,7 @@ int x509_cert_get_details(const uint8_t *a, size_t alen,
 		const uint8_t *issuer; size_t issuer_len;
 		time_t not_before; time_t not_after;
 		const uint8_t *subject; size_t subject_len;
-		SM2_KEY subject_public_key;
+		X509_KEY subject_public_key;
 		const uint8_t *issuer_unique_id; size_t issuer_unique_id_len;
 		const uint8_t *subject_unique_id; size_t subject_unique_id_len;
 		const uint8_t *exts; size_t exts_len;
@@ -1475,7 +1491,7 @@ int x509_cert_get_issuer_and_serial_number(const uint8_t *a, size_t alen,
 		NULL, NULL); // signature
 }
 
-int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, SM2_KEY *public_key)
+int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, X509_KEY *public_key)
 {
 	return x509_cert_get_details(a, alen,
 		NULL, // version

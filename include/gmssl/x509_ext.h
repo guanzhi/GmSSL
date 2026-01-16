@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
+#include <gmssl/x509_key.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,9 +57,9 @@ int x509_exts_add_authority_key_identifier(uint8_t *exts, size_t *extslen, size_
 	const uint8_t *issuer, size_t issuer_len,
 	const uint8_t *serial, size_t serial_len);
 int x509_exts_add_default_authority_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen,
-	const SM2_KEY *public_key);
+	const X509_KEY *public_key);
 int x509_exts_add_subject_key_identifier(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
-int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const SM2_KEY *subject_key);
+int x509_exts_add_subject_key_identifier_ex(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const X509_KEY *subject_key);
 int x509_exts_add_key_usage(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, int bits);
 int x509_exts_add_certificate_policies(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
 int x509_exts_add_policy_mappings(uint8_t *exts, size_t *extslen, size_t maxlen, int critical, const uint8_t *d, size_t dlen);
