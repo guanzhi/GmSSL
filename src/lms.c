@@ -14,12 +14,6 @@
 #include <gmssl/lms.h>
 #include <gmssl/x509_alg.h>
 
-/*
- * TODO:
- *  1. add key_update callback
- *  2. only update q, and updated elments of hss key of files
- *  3. consider append only mode of files
- */
 
 static const uint8_t D_PBLC[2] = { 0x80, 0x80 };
 static const uint8_t D_MESG[2] = { 0x81, 0x81 };
@@ -207,8 +201,8 @@ void lmots_compute_signature(const uint8_t I[16], int q, const lms_hash256_t dgs
 
 void lmots_signature_to_public_hash(const uint8_t I[16], int q, const lms_hash256_t y[34], const lms_hash256_t dgst, lms_hash256_t pub)
 {
-	uint8_t checksum[2];
 	LMS_HASH256_CTX ctx;
+	uint8_t checksum[2];
 	lms_hash256_t z[34];
 	uint8_t qbytes[4];
 	uint8_t ibytes[2];
@@ -339,19 +333,6 @@ void lms_derive_merkle_root(const lms_hash256_t seed, const uint8_t I[16], int h
 	memcpy(root, stack[0], 32);
 }
 
-int lms_public_key_to_bytes(const LMS_KEY *key, uint8_t **out, size_t *outlen)
-{
-	if (!key) {
-		error_print();
-		return -1;
-	}
-	if (lms_public_key_to_bytes_ex(&key->public_key, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 int lms_public_key_to_bytes_ex(const LMS_PUBLIC_KEY *public_key, uint8_t **out, size_t *outlen)
 {
 	if (!public_key || !outlen) {
@@ -372,22 +353,6 @@ int lms_public_key_to_bytes_ex(const LMS_PUBLIC_KEY *public_key, uint8_t **out, 
 	return 1;
 }
 
-int lms_private_key_to_bytes(const LMS_KEY *key, uint8_t **out, size_t *outlen)
-{
-	if (lms_public_key_to_bytes(key, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (out && *out) {
-		memcpy(*out, key->seed, 32);
-		*out += 32;
-		PUTU32(*out, key->q);
-		*out += 4;
-	}
-	*outlen += 32 + 4;
-	return 1;
-}
-
 int lms_public_key_from_bytes_ex(LMS_PUBLIC_KEY *public_key, const uint8_t **in, size_t *inlen)
 {
 	if (!public_key || !in || !(*in) || !inlen) {
@@ -398,7 +363,6 @@ int lms_public_key_from_bytes_ex(LMS_PUBLIC_KEY *public_key, const uint8_t **in,
 		error_print();
 		return -1;
 	}
-
 	memset(public_key, 0, sizeof(LMS_PUBLIC_KEY));
 
 	public_key->lms_type = GETU32(*in);
@@ -428,6 +392,19 @@ int lms_public_key_from_bytes_ex(LMS_PUBLIC_KEY *public_key, const uint8_t **in,
 	return 1;
 }
 
+int lms_public_key_to_bytes(const LMS_KEY *key, uint8_t **out, size_t *outlen)
+{
+	if (!key) {
+		error_print();
+		return -1;
+	}
+	if (lms_public_key_to_bytes_ex(&key->public_key, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int lms_public_key_from_bytes(LMS_KEY *key, const uint8_t **in, size_t *inlen)
 {
 	if (!key) {
@@ -442,31 +419,19 @@ int lms_public_key_from_bytes(LMS_KEY *key, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-int lms_key_check(const LMS_KEY *key, const LMS_PUBLIC_KEY *pub)
+int lms_private_key_to_bytes(const LMS_KEY *key, uint8_t **out, size_t *outlen)
 {
-	// FIXME: implement this
-	return 1;
-}
-
-int lms_key_remaining_signs(const LMS_KEY *key, size_t *count)
-{
-	size_t height;
-	size_t n;
-
-	if (!key || !count) {
+	if (lms_public_key_to_bytes(key, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (lms_type_to_height(key->public_key.lms_type, &height) != 1) {
-		error_print();
-		return -1;
+	if (out && *out) {
+		memcpy(*out, key->seed, 32);
+		*out += 32;
+		PUTU32(*out, key->q);
+		*out += 4;
 	}
-	n = 1 << height;
-	if (key->q > n) {
-		error_print();
-		return -1;
-	}
-	*count = n - key->q;
+	*outlen += 32 + 4;
 	return 1;
 }
 
@@ -660,6 +625,29 @@ int lms_key_update(LMS_KEY *key)
 	}
 	return 1;
 }
+
+int lms_key_remaining_signs(const LMS_KEY *key, size_t *count)
+{
+	size_t height;
+	size_t n;
+
+	if (!key || !count) {
+		error_print();
+		return -1;
+	}
+	if (lms_type_to_height(key->public_key.lms_type, &height) != 1) {
+		error_print();
+		return -1;
+	}
+	n = 1 << height;
+	if (key->q > n) {
+		error_print();
+		return -1;
+	}
+	*count = n - key->q;
+	return 1;
+}
+
 
 int lms_signature_size(int lms_type, size_t *len)
 {

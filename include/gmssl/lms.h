@@ -33,7 +33,7 @@ typedef uint8_t lms_hash256_t[32];
 
 // Crosscheck with data from LMS-reference (SHA-256), except the LMS signature.
 #if defined(ENABLE_LMS_CROSSCHECK) && defined(ENABLE_SHA2)
-#define LMS_HASH256_CTX	SHA256_CTX
+#define LMS_HASH256_CTX		SHA256_CTX
 #define lms_hash256_init	sha256_init
 #define lms_hash256_update	sha256_update
 #define lms_hash256_finish	sha256_finish
@@ -52,7 +52,7 @@ enum {
 	//LMOTS_SHA256_N32_W4	= 3,
 	LMOTS_SHA256_N32_W8	= 4,
 };
-#define LMOTS_HASH256_N32_W8		LMOTS_SHA256_N32_W8
+#define LMOTS_HASH256_N32_W8		 LMOTS_SHA256_N32_W8
 #define LMOTS_HASH256_N32_W8_NAME	"LMOTS_SHA256_N32_W8"
 #else
 enum {
@@ -61,7 +61,7 @@ enum {
 	//LMOTS_SM3_N32_W4	= 13,
 	LMOTS_SM3_N32_W8	= 14,
 };
-#define LMOTS_HASH256_N32_W8		LMOTS_SM3_N32_W8
+#define LMOTS_HASH256_N32_W8		 LMOTS_SM3_N32_W8
 #define LMOTS_HASH256_N32_W8_NAME	"LMOTS_SM3_N32_W8"
 #endif
 
@@ -145,8 +145,9 @@ typedef int (*lms_key_update_callback)(LMS_KEY *key);
 
 typedef struct LMS_KEY_st {
 	LMS_PUBLIC_KEY public_key;
-	lms_hash256_t seed;
+	lms_hash256_t seed; // secret seed
 	uint32_t q; // key index
+
 	lms_hash256_t *tree;
 	lms_key_update_callback update_callback;
 	void *update_param;
@@ -160,11 +161,10 @@ int lms_key_set_update_callback(LMS_KEY *key, lms_key_update_callback update_cb,
 int lms_key_update(LMS_KEY *key);
 int lms_key_remaining_signs(const LMS_KEY *key, size_t *count);
 int lms_key_get_signature_size(const LMS_KEY *key, size_t *siglen);
-int lms_key_check(const LMS_KEY *key, const LMS_PUBLIC_KEY *pub);
 void lms_key_cleanup(LMS_KEY *key);
 
-int lms_public_key_to_bytes_ex(const LMS_PUBLIC_KEY *public_key, uint8_t **out, size_t *outlen);
-int lms_public_key_from_bytes_ex(LMS_PUBLIC_KEY *public_key, const uint8_t **in, size_t *inlen);
+int lms_public_key_to_bytes_ex(const LMS_PUBLIC_KEY *public_key, uint8_t **out, size_t *outlen); // called by signature_to_bytes
+int lms_public_key_from_bytes_ex(LMS_PUBLIC_KEY *public_key, const uint8_t **in, size_t *inlen); // called by signature_from_bytes
 int lms_public_key_to_bytes(const LMS_KEY *key, uint8_t **out, size_t *outlen);
 int lms_public_key_from_bytes(LMS_KEY *key, const uint8_t **in, size_t *inlen);
 int lms_public_key_print(FILE *fp, int fmt, int ind, const char *label, const LMS_KEY *pub);
@@ -174,7 +174,7 @@ int lms_private_key_print(FILE *fp, int fmt, int ind, const char *label, const L
 
 
 typedef struct {
-	int q; // key index
+	uint32_t q; // key index
 	struct {
 		int lmots_type;
 		lms_hash256_t C; // signature random
