@@ -113,7 +113,7 @@ bad:
 		goto end;
 	}
 	if (verbose) {
-		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key.public_key);
+		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key);
 	}
 
 	// read signature even if signature not compatible with the public key

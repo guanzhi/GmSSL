@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -25,6 +25,36 @@ static const char *options =
 "    -out file                   Output signature file\n"
 "    -verbose                    Print public key and signature\n"
 "\n";
+
+static int key_update_cb(LMS_KEY *key)
+{
+	FILE *fp;
+	uint8_t buf[LMS_PRIVATE_KEY_SIZE];
+	uint8_t *p = buf;
+	size_t len = 0;
+
+	if (!key->update_param) {
+		error_print();
+		return -1;
+	}
+	fp = (FILE *)key->update_param;
+
+	if (lms_private_key_to_bytes(key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	rewind(fp);
+	if (fwrite(buf, 1, len, fp) != len
+		|| fflush(fp) != 0) {
+		gmssl_secure_clear(buf, sizeof(buf));
+		error_print();
+		return -1;
+	}
+	// TODO: need fsync to make sure data is written to disk
+	// but fsync need <unistd.h>, not std C
+	gmssl_secure_clear(buf, sizeof(buf));
+	return 1;
+}
 
 int lmssign_main(int argc, char **argv)
 {
@@ -116,24 +146,17 @@ bad:
 	}
 
 	if (verbose) {
-		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key.public_key);
+		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key);
+	}
+
+	if (lms_key_set_update_callback(&key, key_update_cb, keyfp) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (lms_sign_init(&ctx, &key) != 1) {
 		error_print();
 		goto end;
-	}
-
-	// write updated key back to file
-	// TODO: write back `q` only
-	if (lms_private_key_to_bytes(&key, &p, &keylen) != 1) {
-		error_print();
-		return -1;
-	}
-	rewind(keyfp);
-	if (fwrite(keybuf, 1, keylen, keyfp) != keylen) {
-		error_print();
-		return -1;
 	}
 
 	while (1) {

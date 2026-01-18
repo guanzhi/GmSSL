@@ -115,7 +115,7 @@ bad:
 		return -1;
 	}
 	if (verbose) {
-		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key.public_key);
+		lms_public_key_print(stderr, 0, 0, "lms_public_key", &key);
 	}
 
 	if (lms_private_key_to_bytes(&key, &pout, &outlen) != 1) {

@@ -162,7 +162,7 @@ int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 		}
 		break;
 	case OID_lms_hashsig:
-		if (lms_public_key_print(fp, fmt, ind, label, &key->u.lms_key.public_key) != 1) {
+		if (lms_public_key_print(fp, fmt, ind, label, &key->u.lms_key) != 1) {
 			error_print();
 			return -1;
 		}
