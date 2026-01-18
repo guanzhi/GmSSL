@@ -27,6 +27,32 @@ static const char *options =
 "    -verbose                    Print public key and signature\n"
 "\n";
 
+static int key_update_cb(XMSS_KEY *key)
+{
+	FILE *fp;
+	uint8_t index_buf[4];
+
+	if (!key->update_param) {
+		error_print();
+		return -1;
+	}
+	fp = (FILE *)key->update_param;
+
+	// write index only
+	PUTU32(index_buf, key->index);
+
+	if (fseek(fp, XMSS_PUBLIC_KEY_SIZE, SEEK_SET) != 0) {
+		error_print();
+		return -1;
+	}
+	if (fwrite(index_buf, 1, sizeof(index_buf), fp) != sizeof(index_buf)
+		|| fflush(fp) != 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int xmsssign_main(int argc, char **argv)
 {
 	int ret = 1;
@@ -38,12 +64,6 @@ int xmsssign_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	uint8_t pubkeybuf[XMSS_PUBLIC_KEY_SIZE];
-	uint8_t *keybuf = NULL;
-	size_t keylen;
-	const uint8_t *cp;
-	uint8_t *p;
-	size_t len;
 	XMSS_KEY key;
 	XMSS_SIGN_CTX ctx;
 	uint8_t sig[XMSS_SIGNATURE_MAX_SIZE];
@@ -105,81 +125,24 @@ bad:
 		goto end;
 	}
 
-	// load xmss_public_key
-	if (fread(pubkeybuf, 1, sizeof(pubkeybuf), keyfp) != sizeof(pubkeybuf)) {
-		error_print();
-		goto end;
-	}
-	cp = pubkeybuf;
-	len = sizeof(pubkeybuf);
-	if (xmss_public_key_from_bytes(&key, &cp, &len) != 1) {
-		error_print();
-		goto end;
-	}
-	if (len) {
-		error_print();
-		goto end;
-	}
-
-	// xmss_private_key_size
-	if (xmss_private_key_size(key.public_key.xmss_type, &keylen) != 1) {
-		error_print();
-		goto end;
-	}
-	if (!(keybuf = malloc(keylen))) {
-		error_print();
-		goto end;
-	}
-	memcpy(keybuf, pubkeybuf, sizeof(pubkeybuf));
-
-	len = keylen - sizeof(pubkeybuf);
-	if (fread(keybuf + sizeof(pubkeybuf), 1, len, keyfp) != len) {
+	if (xmss_private_key_from_file(&key, keyfp) != 1) {
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
-	}
-
-	cp = keybuf;
-	if (xmss_private_key_from_bytes(&key, &cp, &keylen) != 1) {
-		error_print();
-		goto end;
-	}
-	if (keylen) {
-		error_print();
-		return -1;
 	}
 
 	if (verbose) {
 		xmss_public_key_print(stderr, 0, 0, "lms_public_key", &key);
 	}
 
-	if (xmss_sign_init(&ctx, &key) != 1) {
+	if (xmss_key_set_update_callback(&key, key_update_cb, keyfp) != 1) {
 		error_print();
 		goto end;
 	}
 
-#if 0
-	// write updated key back to file
-	// TODO: write back `q` only
-	p = keybuf;
-	if (xmss_private_key_to_bytes(&key, &p, &keylen) != 1) {
-		error_print();
-		return -1;
-	}
-	rewind(keyfp);
-	if (fwrite(keybuf, 1, keylen, keyfp) != keylen) {
-		error_print();
-		return -1;
-	}
-#else
-	// write index only
-	if (fseek(keyfp, XMSS_PUBLIC_KEY_SIZE, SEEK_SET) != 0) {
+	if (xmss_sign_init(&ctx, &key) != 1) {
 		error_print();
 		goto end;
 	}
-	uint8_t index_buf[4];
-	PUTU32(index_buf, key.index);
-	fwrite(index_buf, 1, 4, keyfp);
-#endif
 
 	while (1) {
 		uint8_t buf[1024];
@@ -209,10 +172,6 @@ bad:
 end:
 	xmss_key_cleanup(&key);
 	gmssl_secure_clear(&ctx, sizeof(ctx));
-	if (keybuf) {
-		gmssl_secure_clear(keybuf, keylen);
-		free(keybuf);
-	}
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);
 	if (outfp && outfp != stdout) fclose(outfp);

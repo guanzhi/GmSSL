@@ -26,6 +26,34 @@ static const char *options =
 "    -verbose                    Print public key and signature\n"
 "\n";
 
+static int key_update_cb(XMSSMT_KEY *key)
+{
+	FILE *fp;
+	uint8_t index_buf[8];
+	uint8_t *p = index_buf;
+	size_t len = 0;
+
+	if (!key->update_param) {
+		error_print();
+		return -1;
+	}
+	fp = (FILE *)key->update_param;
+
+	// write index only
+	xmssmt_index_to_bytes(key->index, key->public_key.xmssmt_type, &p, &len);
+
+	if (fseek(fp, XMSSMT_PUBLIC_KEY_SIZE, SEEK_SET) != 0) {
+		error_print();
+		return -1;
+	}
+	if (fwrite(index_buf, 1, len, fp) != len
+		|| fflush(fp) != 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int xmssmtsign_main(int argc, char **argv)
 {
 	int ret = 1;
@@ -37,11 +65,6 @@ int xmssmtsign_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	uint8_t pubkey[XMSSMT_PUBLIC_KEY_SIZE];
-	uint8_t *keybuf = NULL;
-	size_t keylen;
-	const uint8_t *cp;
-	uint8_t *p;
 	XMSSMT_KEY key;
 	XMSSMT_SIGN_CTX ctx;
 	uint8_t sig[XMSSMT_SIGNATURE_MAX_SIZE];
@@ -103,77 +126,24 @@ bad:
 		goto end;
 	}
 
-	if (fread(pubkey, 1, sizeof(pubkey), keyfp) != sizeof(pubkey)) {
-		error_print();
-		goto end;
-	}
-	cp = pubkey;
-	keylen = sizeof(pubkey);
-	if (xmssmt_public_key_from_bytes(&key, &cp, &keylen) != 1 ) {
-		error_print();
-		goto end;
-	}
-
-
-	if (xmssmt_private_key_size(key.public_key.xmssmt_type, &keylen) != 1) {
-		error_print();
-		goto end;
-	}
-	if (!(keybuf = malloc(keylen))) {
-		error_print();
-		goto end;
-	}
-	memcpy(keybuf, pubkey, sizeof(pubkey));
-
-
-	if (fread(keybuf + sizeof(pubkey), 1, keylen - sizeof(pubkey), keyfp) != keylen - sizeof(pubkey)) {
+	if (xmssmt_private_key_from_file(&key, keyfp) != 1) {
 		fprintf(stderr, "%s: read private key failure\n", prog);
 		goto end;
-	}
-	cp = keybuf;
-	if (xmssmt_private_key_from_bytes(&key, &cp, &keylen) != 1) {
-		error_print();
-		goto end;
-	}
-	if (keylen) {
-		error_print();
-		return -1;
 	}
 
 	if (verbose) {
 		xmssmt_public_key_print(stderr, 0, 0, "lms_public_key", &key);
 	}
 
-	if (xmssmt_sign_init(&ctx, &key) != 1) {
+	if (xmssmt_key_set_update_callback(&key, key_update_cb, keyfp) != 1) {
 		error_print();
 		goto end;
 	}
 
-#if 0
-	// write updated key back to file
-	// TODO: write back `q` only
-	p = keybuf;
-	keylen = 0;
-	if (xmssmt_private_key_to_bytes(&key, &p, &keylen) != 1) {
-		error_print();
-		return -1;
-	}
-	rewind(keyfp);
-	if (fwrite(keybuf, 1, keylen, keyfp) != keylen) {
-		error_print();
-		return -1;
-	}
-#else
-	if (fseek(keyfp, XMSSMT_PUBLIC_KEY_SIZE, SEEK_SET) != 0) {
+	if (xmssmt_sign_init(&ctx, &key) != 1) {
 		error_print();
 		goto end;
 	}
-	uint8_t index_buf[8];
-	uint8_t *pindex = index_buf;
-	size_t index_len = 0;
-	xmssmt_index_to_bytes(key.index, key.public_key.xmssmt_type, &pindex, &index_len);
-	fwrite(index_buf, 1, index_len, keyfp);
-#endif
 
 	while (1) {
 		uint8_t buf[1024];
@@ -202,7 +172,6 @@ bad:
 
 end:
 	xmssmt_key_cleanup(&key);
-	gmssl_secure_clear(keybuf, keylen);
 	gmssl_secure_clear(&ctx, sizeof(ctx));
 	if (keyfp) fclose(keyfp);
 	if (infp && infp != stdin) fclose(infp);

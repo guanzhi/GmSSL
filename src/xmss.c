@@ -754,6 +754,17 @@ end:
 	return ret;
 }
 
+int xmss_key_set_update_callback(XMSS_KEY *key, xmss_key_update_callback update_cb, void *param)
+{
+	if (!key) {
+		error_print();
+		return -1;
+	}
+	key->update_callback = update_cb;
+	key->update_param = param;
+	return 1;
+}
+
 int xmss_key_update(XMSS_KEY *key)
 {
 	size_t height;
@@ -774,6 +785,13 @@ int xmss_key_update(XMSS_KEY *key)
 		return 0;
 	}
 	key->index++;
+
+	if (key->update_callback) {
+		if (key->update_callback(key) != 1) {
+			error_print();
+			return -1;
+		}
+	}
 	return 1;
 }
 
@@ -1186,11 +1204,14 @@ int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key)
 	xmss_adrs_set_ots_address(adrs, key->index);
 	xmss_wots_derive_sk(key->secret, key->public_key.seed, adrs, ctx->xmss_sig.wots_sig);
 
+	// update key->index
+	if (xmss_key_update(key) != 1) {
+		error_print();
+		return -1;
+	}
+
 	// xmss_sig.auth_path
 	xmss_build_auth_path(key->tree, height, key->index, ctx->xmss_sig.auth_path);
-
-	// update key->index
-	key->index++;
 
 	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
 	xmss_hash256_init(&ctx->hash256_ctx);
@@ -1575,6 +1596,17 @@ int xmssmt_private_key_from_bytes(XMSSMT_KEY *key, const uint8_t **in, size_t *i
 	return 1;
 }
 
+int xmssmt_key_set_update_callback(XMSSMT_KEY *key, xmssmt_key_update_callback update_cb, void *param)
+{
+	if (!key) {
+		error_print();
+		return -1;
+	}
+	key->update_callback = update_cb;
+	key->update_param = param;
+	return 1;
+}
+
 int xmssmt_key_update(XMSSMT_KEY *key)
 {
 	size_t height;
@@ -1628,6 +1660,12 @@ int xmssmt_key_update(XMSSMT_KEY *key)
 
 	key->index++;
 
+	if (key->update_callback) {
+		if (key->update_callback(key) != 1) {
+			error_print();
+			return -1;
+		}
+	}
 	return 1;
 }
 
@@ -2447,3 +2485,138 @@ int xmssmt_verify_finish(XMSSMT_SIGN_CTX *ctx)
 
 	return 1;
 }
+
+int xmss_private_key_from_file(XMSS_KEY *key, FILE *fp)
+{
+	uint8_t pubkeybuf[XMSS_PUBLIC_KEY_SIZE];
+	uint8_t *keybuf = NULL;
+	size_t keylen;
+	const uint8_t *cp;
+	size_t len;
+
+	if (!key || !fp) {
+		error_print();
+		return -1;
+	}
+
+	// load xmss_public_key and get xmss_private_key_size
+	len = sizeof(pubkeybuf);
+	if (fread(pubkeybuf, 1, len, fp) != len) {
+		error_print();
+		return -1;
+	}
+	cp = pubkeybuf;
+	if (xmss_public_key_from_bytes(key, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+	if (xmss_private_key_size(key->public_key.xmss_type, &keylen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (keylen <= sizeof(pubkeybuf)) {
+		error_print();
+		return -1;
+	}
+
+	// malloc and load full xmss_private_key
+	if (!(keybuf = malloc(keylen))) {
+		error_print();
+		return -1;
+	}
+	memcpy(keybuf, pubkeybuf, sizeof(pubkeybuf));
+
+	len = keylen - sizeof(pubkeybuf);
+	if (fread(keybuf + sizeof(pubkeybuf), 1, len, fp) != len) {
+		free(keybuf);
+		error_print();
+		return -1;
+	}
+
+	cp = keybuf;
+	if (xmss_private_key_from_bytes(key, &cp, &keylen) != 1) {
+		free(keybuf);
+		error_print();
+		return -1;
+	}
+	if (keylen) {
+		free(keybuf);
+		error_print();
+		return -1;
+	}
+
+	free(keybuf);
+	return 1;
+}
+
+int xmssmt_private_key_from_file(XMSSMT_KEY *key, FILE *fp)
+{
+	uint8_t pubkeybuf[XMSSMT_PUBLIC_KEY_SIZE];
+	uint8_t *keybuf = NULL;
+	size_t keylen;
+	const uint8_t *cp;
+	size_t len;
+
+	if (!key || !fp) {
+		error_print();
+		return -1;
+	}
+
+	// load xmss_public_key and get xmss_private_key_size
+	len = sizeof(pubkeybuf);
+	if (fread(pubkeybuf, 1, len, fp) != len) {
+		error_print();
+		return -1;
+	}
+	cp = pubkeybuf;
+	if (xmssmt_public_key_from_bytes(key, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_private_key_size(key->public_key.xmssmt_type, &keylen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (keylen <= sizeof(pubkeybuf)) {
+		error_print();
+		return -1;
+	}
+
+	// malloc and load full xmss_private_key
+	if (!(keybuf = malloc(keylen))) {
+		error_print();
+		return -1;
+	}
+	memcpy(keybuf, pubkeybuf, sizeof(pubkeybuf));
+
+	len = keylen - sizeof(pubkeybuf);
+	if (fread(keybuf + sizeof(pubkeybuf), 1, len, fp) != len) {
+		free(keybuf);
+		error_print();
+		return -1;
+	}
+
+	cp = keybuf;
+	if (xmssmt_private_key_from_bytes(key, &cp, &keylen) != 1) {
+		free(keybuf);
+		error_print();
+		return -1;
+	}
+	if (keylen) {
+		free(keybuf);
+		error_print();
+		return -1;
+	}
+
+	free(keybuf);
+	return 1;
+}
+

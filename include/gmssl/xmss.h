@@ -207,12 +207,18 @@ typedef struct {
 
 #define XMSS_PUBLIC_KEY_SIZE	(4 + 32 + 32) // = 68
 
-typedef struct {
+typedef struct XMSS_KEY_st XMSS_KEY;
+
+typedef int (*xmss_key_update_callback)(XMSS_KEY *key);
+
+typedef struct XMSS_KEY_st {
 	XMSS_PUBLIC_KEY public_key;
 	uint32_t index;
 	xmss_hash256_t secret;
 	xmss_hash256_t sk_prf;
 	xmss_hash256_t *tree; // xmss_hash256_t[2^(h + 1) - 1]
+	xmss_key_update_callback update_callback;
+	void *update_param;
 } XMSS_KEY;
 
 // XMSS_SHA2_10_256:     65,640
@@ -224,13 +230,17 @@ int xmss_private_key_size(uint32_t xmss_type, size_t *keysize);
 
 int xmss_key_generate(XMSS_KEY *key, uint32_t xmss_type);
 int xmss_key_remaining_signs(const XMSS_KEY *key, size_t *count);
+int xmss_key_set_update_callback(XMSS_KEY *key, xmss_key_update_callback update_cb, void *param);
+int xmss_key_update(XMSS_KEY *key);
+void xmss_key_cleanup(XMSS_KEY *key);
+
 int xmss_public_key_to_bytes(const XMSS_KEY *key, uint8_t **out, size_t *outlen);
 int xmss_public_key_from_bytes(XMSS_KEY *key, const uint8_t **in, size_t *inlen);
 int xmss_public_key_print(FILE *fp, int fmt, int ind, const char *label, const XMSS_KEY *key);
 int xmss_private_key_to_bytes(const XMSS_KEY *key, uint8_t **out, size_t *outlen);
 int xmss_private_key_from_bytes(XMSS_KEY *key, const uint8_t **in, size_t *inlen);
+int xmss_private_key_from_file(XMSS_KEY *key, FILE *fp);
 int xmss_private_key_print(FILE *fp, int fmt, int ind, const char *label, const XMSS_KEY *key);
-void xmss_key_cleanup(XMSS_KEY *key);
 
 
 typedef struct {
@@ -345,13 +355,19 @@ typedef struct {
 
 #define XMSSMT_PUBLIC_KEY_SIZE (4 + sizeof(xmss_hash256_t) + sizeof(xmss_hash256_t)) // = 68 bytes
 
-typedef struct {
+typedef struct XMSSMT_KEY_st XMSSMT_KEY;
+
+typedef int (*xmssmt_key_update_callback)(XMSSMT_KEY *key);
+
+typedef struct XMSSMT_KEY_st {
 	XMSSMT_PUBLIC_KEY public_key;
 	uint64_t index; // in [0, 2^60 - 1]
 	xmss_hash256_t secret;
 	xmss_hash256_t sk_prf;
 	xmss_hash256_t *trees;
 	xmss_wots_sig_t wots_sigs[XMSSMT_MAX_LAYERS - 1];
+	xmssmt_key_update_callback update_callback;
+	void *update_param;
 } XMSSMT_KEY;
 
 /*
@@ -368,12 +384,14 @@ int xmssmt_private_key_size(uint32_t xmssmt_type, size_t *len);
 int xmssmt_build_auth_path(const xmss_hash256_t *tree, size_t height, size_t layers, uint64_t index, xmss_hash256_t *auth_path);
 
 int xmssmt_key_generate(XMSSMT_KEY *key, uint32_t xmssmt_type);
+int xmssmt_key_set_update_callback(XMSSMT_KEY *key, xmssmt_key_update_callback update_cb, void *param);
 int xmssmt_key_update(XMSSMT_KEY *key);
 int xmssmt_public_key_to_bytes(const XMSSMT_KEY *key, uint8_t **out, size_t *outlen);
 int xmssmt_public_key_from_bytes(XMSSMT_KEY *key, const uint8_t **in, size_t *inlen);
 int xmssmt_public_key_print(FILE *fp, int fmt, int ind, const char *label, const XMSSMT_KEY *key);
 int xmssmt_private_key_to_bytes(const XMSSMT_KEY *key, uint8_t **out, size_t *outlen);
 int xmssmt_private_key_from_bytes(XMSSMT_KEY *key, const uint8_t **in, size_t *inlen);
+int xmssmt_private_key_from_file(XMSSMT_KEY *key, FILE *fp);
 int xmssmt_private_key_print(FILE *fp, int fmt, int ind, const char *label, const XMSSMT_KEY *key);
 void xmssmt_key_cleanup(XMSSMT_KEY *key);
 
@@ -388,8 +406,7 @@ typedef struct {
 int xmssmt_index_to_bytes(uint64_t index, uint32_t xmssmt_type, uint8_t **out, size_t *outlen);
 int xmssmt_index_from_bytes(uint64_t *index, uint32_t xmssmt_type, const uint8_t **in, size_t *inlen);
 
-#define XMSSMT_SIGNATURE_MAX_SIZE \
-	(sizeof(uint64_t) + sizeof(xmss_hash256_t) + sizeof(xmss_wots_sig_t)*XMSSMT_MAX_LAYERS + sizeof(xmss_hash256_t)*XMSSMT_MAX_HEIGHT) // = 27688 bytes
+#define XMSSMT_SIGNATURE_MAX_SIZE sizeof(XMSSMT_SIGNATURE) // >= 27688 bytes
 
 int xmssmt_key_get_signature_size(const XMSSMT_KEY *key, size_t *siglen);
 int xmssmt_signature_size(uint32_t xmssmt_type, size_t *siglen);
