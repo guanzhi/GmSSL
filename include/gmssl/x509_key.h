@@ -63,10 +63,23 @@ int x509_key_set_xmss_key(X509_KEY *x509_key, XMSS_KEY *xmss_key);
 int x509_key_set_xmssmt_key(X509_KEY *x509_key, XMSSMT_KEY *xmssmt_key);
 int x509_key_set_sphincs_key(X509_KEY *x509_key, SPHINCS_KEY *sphincs_key);
 
-
 int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32]);
 
+/*
+SubjectPublicKeyInfo  ::=  SEQUENCE  {
+	algorithm            AlgorithmIdentifier,
+	subjectPublicKey     BIT STRING  }
+
+algorithm.algorithm = OID_ec_public_key;
+algorithm.parameters = OID_sm2;
+subjectPublicKey = ECPoint
+*/
+int x509_public_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *outlen);
+int x509_public_key_info_from_der(X509_KEY *key, const uint8_t **in, size_t *inlen);
+int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int x509_private_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key);
 int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key);
+int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE *fp);
 
 
 typedef union {

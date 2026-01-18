@@ -204,7 +204,9 @@ int x509_key_set_sm2_key(X509_KEY *x509_key, SM2_KEY *sm2_key)
 	memset(x509_key, 0, sizeof(X509_KEY));
 	x509_key->algor = OID_ec_public_key;
 	x509_key->algor_param = OID_sm2;
-	x509_key->u.sm2_key = *sm2_key;
+	if (&x509_key->u.sm2_key != sm2_key) {
+		x509_key->u.sm2_key = *sm2_key;
+	}
 	return 1;
 }
 
@@ -213,8 +215,10 @@ int x509_key_set_lms_key(X509_KEY *x509_key, LMS_KEY *lms_key)
 	memset(x509_key, 0, sizeof(X509_KEY));
 	x509_key->algor = OID_lms_hashsig;
 	x509_key->algor_param = OID_undef;
-	x509_key->u.lms_key = *lms_key;
-	return -1;
+	if (&x509_key->u.lms_key != lms_key) {
+		x509_key->u.lms_key = *lms_key;
+	}
+	return 1;
 }
 
 int x509_key_set_hss_key(X509_KEY *x509_key, HSS_KEY *hss_key)
@@ -222,7 +226,9 @@ int x509_key_set_hss_key(X509_KEY *x509_key, HSS_KEY *hss_key)
 	memset(x509_key, 0, sizeof(X509_KEY));
 	x509_key->algor = OID_hss_lms_hashsig;
 	x509_key->algor_param = OID_undef;
-	x509_key->u.hss_key = *hss_key;
+	if (&x509_key->u.hss_key != hss_key) {
+		x509_key->u.hss_key = *hss_key;
+	}
 	return 1;
 }
 
@@ -231,7 +237,9 @@ int x509_key_set_xmss_key(X509_KEY *x509_key, XMSS_KEY *xmss_key)
 	memset(x509_key, 0, sizeof(X509_KEY));
 	x509_key->algor = OID_xmss_hashsig;
 	x509_key->algor_param = OID_undef;
-	x509_key->u.xmss_key = *xmss_key;
+	if (&x509_key->u.xmss_key != xmss_key) {
+		x509_key->u.xmss_key = *xmss_key;
+	}
 	return 1;
 }
 
@@ -240,7 +248,9 @@ int x509_key_set_xmssmt_key(X509_KEY *x509_key, XMSSMT_KEY *xmssmt_key)
 	memset(x509_key, 0, sizeof(X509_KEY));
 	x509_key->algor = OID_xmssmt_hashsig;
 	x509_key->algor_param = OID_undef;
-	x509_key->u.xmssmt_key = *xmssmt_key;
+	if (&x509_key->u.xmssmt_key != xmssmt_key) {
+		x509_key->u.xmssmt_key = *xmssmt_key;
+	}
 	return 1;
 }
 
@@ -249,7 +259,9 @@ int x509_key_set_sphincs_key(X509_KEY *x509_key, SPHINCS_KEY *sphincs_key)
 	memset(x509_key, 0, sizeof(X509_KEY));
 	x509_key->algor = OID_sphincs_hashsig;
 	x509_key->algor_param = OID_undef;
-	x509_key->u.sphincs_key = *sphincs_key;
+	if (&x509_key->u.sphincs_key != sphincs_key) {
+		x509_key->u.sphincs_key = *sphincs_key;
+	}
 	return 1;
 }
 
@@ -735,3 +747,112 @@ int x509_public_key_info_from_der(X509_KEY *x509_key, const uint8_t **in, size_t
 	return 1;
 }
 
+int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE *fp)
+{
+	if (!key || !fp) {
+		error_print();
+		return -1;
+	}
+
+	if (algor == OID_ec_public_key) {
+		if (!pass) {
+			error_print();
+			return -1;
+		}
+		if (sm2_private_key_info_decrypt_from_pem(&key->u.sm2_key, pass, fp) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_set_sm2_key(key, &key->u.sm2_key) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (algor == OID_lms_hashsig) {
+		uint8_t buf[LMS_PRIVATE_KEY_SIZE];
+		const uint8_t *cp = buf;
+		size_t len = sizeof(buf);
+
+		if (fread(buf, 1, len, fp) != len) {
+			error_print();
+			return -1;
+		}
+		if (lms_private_key_from_bytes(&key->u.lms_key, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (len) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_set_lms_key(key, &key->u.lms_key) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (algor == OID_hss_lms_hashsig) {
+		uint8_t buf[HSS_PRIVATE_KEY_MAX_SIZE];
+		const uint8_t *cp = buf;
+		size_t len = sizeof(buf);
+
+		if ((len = fread(buf, 1, len, fp)) <= 0) {
+			error_print();
+			return -1;
+		}
+		if (hss_private_key_from_bytes(&key->u.hss_key, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (len) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_set_hss_key(key, &key->u.hss_key) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (algor == OID_xmss_hashsig) {
+		if (xmss_private_key_from_file(&key->u.xmss_key, fp) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_set_xmss_key(key, &key->u.xmss_key) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (algor == OID_xmssmt_hashsig) {
+		if (xmssmt_private_key_from_file(&key->u.xmssmt_key, fp) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_set_xmssmt_key(key, &key->u.xmssmt_key) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (algor == OID_sphincs_hashsig) {
+		uint8_t buf[SPHINCS_PRIVATE_KEY_SIZE];
+		const uint8_t *cp = buf;
+		size_t len = sizeof(buf);
+
+		if (fread(buf, 1, len, fp) != len) {
+			error_print();
+			return -1;
+		}
+		if (sphincs_private_key_from_bytes(&key->u.sphincs_key, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (len) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_set_sphincs_key(key, &key->u.sphincs_key) != 1) {
+			error_print();
+			return -1;
+		}
+	} else {
+		error_print();
+		return -1;
+	}
+
+
+	return 1;
+}
