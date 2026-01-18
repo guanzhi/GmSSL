@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_req.h>
+#include <gmssl/x509_alg.h>
+#include <gmssl/x509_key.h>
+#include <gmssl/error.h>
 
 
 static const char *options =
@@ -25,7 +28,7 @@ static const char *options =
 	" [-req_sm2_id str | -req_sm2_id_hex hex]"
 	" [-serial_len num]"
 	" -days num"
-	" -cacert pem -key file -pass pass"
+	" -cacert pem -key file [-pass pass]"
 	" [-sm2_id str | -sm2_id_hex hex]"
 	" [-gen_authority_key_id]"
 	" [-gen_subject_key_id]"
@@ -172,15 +175,17 @@ int reqsign_main(int argc, char **argv)
 	size_t cacertlen;
 	FILE *keyfp = NULL;
 	char *pass = NULL;
-	SM2_KEY sm2_key;
 	X509_KEY x509_key;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
 
+	// Algor
+	int sign_algor = OID_undef;
+
 	// Issuer from CA certificate
 	const uint8_t *issuer;
 	size_t issuer_len;
-	SM2_KEY sm2_issuer_public_key;
+	//SM2_KEY sm2_issuer_public_key;
 	X509_KEY issuer_public_key;
 
 	// Output
@@ -429,11 +434,6 @@ bad:
 		printf("usage: gmssl %s %s\n\n", prog, options);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
-		printf("usage: gmssl %s %s\n\n", prog, options);
-		goto end;
-	}
 
 	if (x509_req_from_pem(req, &reqlen, sizeof(req), infp) != 1) {
 		fprintf(stderr, "%s: parse CSR failure\n", prog);
@@ -459,22 +459,27 @@ bad:
 		fprintf(stderr, "%s: parse CA certificate failure\n", prog);
 		goto end;
 	}
-	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
+	if (!pass && issuer_public_key.algor == OID_ec_public_key) {
+		fprintf(stderr, "%s: '-pass' option required\n", prog);
+		printf("usage: gmssl %s %s\n\n", prog, options);
+		goto end;
+	}
+
+	if (x509_private_key_from_file(&x509_key, issuer_public_key.algor, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load private key failure\n", prog);
 		goto end;
 	}
-	// 这里可能需要修改一下，x509_key和sm2_key对比			
-	if (sm2_public_key_equ(&sm2_key, &issuer_public_key.u.sm2_key) != 1) {
+	if (x509_public_key_equ(&x509_key, &issuer_public_key) != 1) {
 		fprintf(stderr, "%s: private key and CA certificate not match\n", prog);
+		goto end;
+	}
+	if (x509_key_get_sign_algor(&x509_key, &sign_algor) != 1) {
+		error_print();
 		goto end;
 	}
 	if (!signer_id_len) {
 		strcpy(signer_id, SM2_DEFAULT_ID);
 		signer_id_len = strlen(SM2_DEFAULT_ID);
-	}
-	if (x509_key_set_sm2_key(&x509_key, &sm2_key) != 1) {
-		//fprint 			
-		goto end;
 	}
 
 	if (rand_bytes(serial, serial_len) != 1) {
@@ -569,7 +574,7 @@ bad:
 	if (x509_cert_sign_to_der(
 		X509_version_v3,
 		serial, serial_len,
-		OID_sm2sign_with_sm3,
+		sign_algor,
 		issuer, issuer_len,
 		not_before, not_after,
 		subject, subject_len,
@@ -591,7 +596,7 @@ bad:
 	if (x509_cert_sign_to_der(
 		X509_version_v3,
 		serial, serial_len,
-		OID_sm2sign_with_sm3,
+		sign_algor,
 		issuer, issuer_len,
 		not_before, not_after,
 		subject, subject_len,
@@ -611,7 +616,7 @@ bad:
 	}
 	ret = 0;
 end:
-	gmssl_secure_clear(&x509_key, sizeof(SM2_KEY));
+	x509_key_cleanup(&x509_key);
 	if (cert) free(cert);
 	if (keyfp) fclose(keyfp);
 	if (infile && infp) fclose(infp);

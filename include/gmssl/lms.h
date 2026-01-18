@@ -249,6 +249,7 @@ int hss_key_update(HSS_KEY *key);
 int hss_key_get_signature_size(const HSS_KEY *key, size_t *siglen);
 void hss_key_cleanup(HSS_KEY *key);
 
+int hss_public_key_equ(const HSS_KEY *key, const HSS_KEY *pub);
 int hss_public_key_to_bytes(const HSS_KEY *key, uint8_t **out, size_t *outlen);
 int hss_private_key_to_bytes(const HSS_KEY *key, uint8_t **out, size_t *outlen);
 int hss_public_key_from_bytes(HSS_KEY *key, const uint8_t **in, size_t *inlen);

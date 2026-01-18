@@ -24,7 +24,7 @@
 
 static const char *usage =
 	" -in revoked_certs"
-	" -cacert pem -key pem -pass pass [-sm2_id str | -sm2_id_hex hex]"
+	" -cacert pem -key pem [-pass pass] [-sm2_id str | -sm2_id_hex hex]"
 	" [-next_update time] "
 	" [-gen_authority_key_id]"
 	" [-crl_num num]"
@@ -76,10 +76,12 @@ int crlgen_main(int argc, char **argv)
 	size_t cacert_len = 0;
 	FILE *keyfp = NULL;
 	char *pass = NULL;
-	SM2_KEY sm2_key;
-	X509_KEY sign_key;
+	X509_KEY x509_key;
+	X509_KEY x509_pub;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
+
+	int sign_algor = OID_undef;
 
 	const uint8_t *issuer;
 	size_t issuer_len;
@@ -231,32 +233,44 @@ bad:
 		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
 		goto end;
 	}
-	if (!pass) {
-		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
-		fprintf(stderr, "%s: `-pass` option required\n", prog);
-		goto end;
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&sm2_key, pass, keyfp) != 1) {
-		fprintf(stderr, "%s: load private key failure\n", prog);
-		goto end;
-	}
-	if (!signer_id_len) {
-		strcpy(signer_id, SM2_DEFAULT_ID);
-		signer_id_len = strlen(SM2_DEFAULT_ID);
-	}
-	if (x509_key_set_sm2_key(&sign_key, &sm2_key) != 1) {
-		error_print();
-		goto end;
-	}
+
 
 	if (x509_cert_get_subject(cacert, cacert_len, &issuer, &issuer_len) != 1) {
 		fprintf(stderr, "%s: parse CA certificate failure\n", prog);
 		goto end;
 	}
+	if (x509_cert_get_subject_public_key(cacert, cacert_len, &x509_pub) != 1) {
+		fprintf(stderr, "%s: parse CA certificate failure\n", prog);
+		goto end;
+	}
+
+	if (!pass && x509_pub.algor == OID_ec_public_key) {
+		fprintf(stderr, "usage: gmssl %s %s\n", prog, usage);
+		fprintf(stderr, "%s: `-pass` option required\n", prog);
+		goto end;
+	}
+	if (x509_private_key_from_file(&x509_key, x509_pub.algor, pass, keyfp) != 1) {
+		fprintf(stderr, "%s: load private key failure\n", prog);
+		goto end;
+	}
+	if (x509_public_key_equ(&x509_key, &x509_pub) != 1) {
+		fprintf(stderr, "%s: certificate and private key not match\n", prog);
+		goto end;
+	}
+	if (x509_key_get_sign_algor(&x509_key, &sign_algor) != 1) {
+		fprintf(stderr, "%s: inner error\n", prog);
+		goto end;
+	}
+
+	if (!signer_id_len) {
+		strcpy(signer_id, SM2_DEFAULT_ID);
+		signer_id_len = strlen(SM2_DEFAULT_ID);
+	}
+
 
 	// Extensions
 	if (gen_authority_key_id) {
-		if (x509_crl_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &sign_key) != 1) {
+		if (x509_crl_exts_add_default_authority_key_identifier(exts, &extslen, sizeof(exts), &x509_key) != 1) {
 			fprintf(stderr, "%s: inner error\n", prog);
 			goto end;
 		}
@@ -288,12 +302,12 @@ bad:
 
 	if (x509_crl_sign_to_der(
 		X509_version_v2,
-		OID_sm2sign_with_sm3,
+		sign_algor,
 		issuer, issuer_len,
 		this_update, next_update,
 		revoked_certs, revoked_certs_len,
 		extslen ? exts : NULL, extslen,
-		&sign_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		NULL, &outlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
@@ -306,12 +320,12 @@ bad:
 	outlen = 0;
 	if (x509_crl_sign_to_der(
 		X509_version_v2,
-		OID_sm2sign_with_sm3,
+		sign_algor,
 		issuer, issuer_len,
 		this_update, next_update,
 		revoked_certs, revoked_certs_len,
 		extslen ? exts : NULL, extslen,
-		&sign_key, signer_id, signer_id_len,
+		&x509_key, signer_id, signer_id_len,
 		&out, &outlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
@@ -323,8 +337,7 @@ bad:
 	ret = 0;
 
 end:
-	gmssl_secure_clear(&sm2_key, sizeof(SM2_KEY)); // FIXME: sm2_clean?
-	gmssl_secure_clear(&sign_key, sizeof(X509_KEY)); // x509_key_clean?
+	x509_key_cleanup(&x509_key);
 	if (revoked_certs) free(revoked_certs);
 	if (keyfp) fclose(keyfp);
 	if (cacert) free(cacert);

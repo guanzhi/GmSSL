@@ -1189,6 +1189,24 @@ int hss_public_key_print(FILE *fp, int fmt, int ind, const char *label, const HS
 	return 1;
 }
 
+int hss_public_key_equ(const HSS_KEY *key, const HSS_KEY *pub)
+{
+	if (!key || !pub) {
+		error_print();
+		return -1;
+	}
+	if (key->levels != pub->levels) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(&key->lms_key[0].public_key,
+		&pub->lms_key[0].public_key, LMS_PUBLIC_KEY_SIZE) != 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int hss_public_key_to_bytes(const HSS_KEY *key, uint8_t **out, size_t *outlen)
 {
 	if (!key || !outlen) {

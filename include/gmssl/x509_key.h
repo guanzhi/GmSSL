@@ -54,16 +54,21 @@ typedef struct {
 	} u;
 } X509_KEY;
 
+
+int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key);
+int x509_key_set_lms_key(X509_KEY *x509_key, const LMS_KEY *lms_key);
+int x509_key_set_hss_key(X509_KEY *x509_key, const HSS_KEY *hss_key);
+int x509_key_set_xmss_key(X509_KEY *x509_key, const XMSS_KEY *xmss_key);
+int x509_key_set_xmssmt_key(X509_KEY *x509_key, const XMSSMT_KEY *xmssmt_key);
+int x509_key_set_sphincs_key(X509_KEY *x509_key, const SPHINCS_KEY *sphincs_key);
+
 int x509_key_generate(X509_KEY *key, int algor, int algor_param);
-
-int x509_key_set_sm2_key(X509_KEY *x509_key, SM2_KEY *sm2_key);
-int x509_key_set_lms_key(X509_KEY *x509_key, LMS_KEY *lms_key);
-int x509_key_set_hss_key(X509_KEY *x509_key, HSS_KEY *hss_key);
-int x509_key_set_xmss_key(X509_KEY *x509_key, XMSS_KEY *xmss_key);
-int x509_key_set_xmssmt_key(X509_KEY *x509_key, XMSSMT_KEY *xmssmt_key);
-int x509_key_set_sphincs_key(X509_KEY *x509_key, SPHINCS_KEY *sphincs_key);
-
+int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE *fp);
 int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32]);
+int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub);
+int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub);
+void x509_key_cleanup(X509_KEY *key);
+
 
 /*
 SubjectPublicKeyInfo  ::=  SEQUENCE  {
@@ -79,7 +84,6 @@ int x509_public_key_info_from_der(X509_KEY *key, const uint8_t **in, size_t *inl
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 int x509_private_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key);
 int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key);
-int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE *fp);
 
 
 typedef union {
