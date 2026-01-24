@@ -210,6 +210,7 @@ enum {
 
 
 
+#define OID_secp256r1 OID_prime256v1
 
 
 #define oid_cnt(nodes)	(sizeof(nodes)/sizeof((nodes)[0]))

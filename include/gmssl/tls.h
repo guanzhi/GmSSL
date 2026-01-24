@@ -752,6 +752,11 @@ typedef struct {
 	BLOCK_CIPHER_KEY server_write_key;
 
 	int quiet;
+
+	// handshake state for state machine
+	int state;
+	SM3_CTX sm3_ctx;
+	SM2_SIGN_CTX sign_ctx;
 } TLS_CONNECT;
 
 

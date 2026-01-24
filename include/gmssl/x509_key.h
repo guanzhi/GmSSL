@@ -19,6 +19,8 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/sm2.h>
+#include <gmssl/secp256r1_key.h>
+#include <gmssl/ecdsa.h>
 #include <gmssl/lms.h>
 #include <gmssl/xmss.h>
 #include <gmssl/sphincs.h>
@@ -51,11 +53,13 @@ typedef struct {
 		XMSS_KEY xmss_key;
 		XMSSMT_KEY xmssmt_key;
 		SPHINCS_KEY sphincs_key;
+		SECP256R1_KEY secp256r1_key;
 	} u;
 } X509_KEY;
 
 
 int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key);
+int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r1_key);
 int x509_key_set_lms_key(X509_KEY *x509_key, const LMS_KEY *lms_key);
 int x509_key_set_hss_key(X509_KEY *x509_key, const HSS_KEY *hss_key);
 int x509_key_set_xmss_key(X509_KEY *x509_key, const XMSS_KEY *xmss_key);
@@ -107,6 +111,7 @@ typedef union {
 typedef struct {
 	union {
 		SM2_SIGN_CTX sm2_sign_ctx;
+		ECDSA_SIGN_CTX ecdsa_sign_ctx;
 		SM2_VERIFY_CTX sm2_verify_ctx;
 		HSS_SIGN_CTX hss_sign_ctx;
 		XMSS_SIGN_CTX xmss_sign_ctx;

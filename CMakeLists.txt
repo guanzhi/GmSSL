@@ -54,6 +54,8 @@ option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 
+option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" ON)
+
 option(ENABLE_LMS "Enable LMS/HSS signature" ON)
 option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
 option(ENABLE_SPHINCS "Enable SPHINCS+ signature" ON)
@@ -108,6 +110,7 @@ set(src
 	src/sm4_cbc_sm3_hmac.c
 	src/sm4_ctr_sm3_hmac.c
 	src/pkcs8.c
+	src/bn.c
 	src/ec.c
 	src/rsa.c
 	src/asn1.c
@@ -128,6 +131,7 @@ set(src
 	src/tls_trace.c
 	src/tlcp.c
 	src/tls12.c
+	src/tls12_handshake.c
 	src/tls13.c
 	src/file.c
 	src/file.c
@@ -203,6 +207,7 @@ set(tests
 	gf128
 	ghash
 	pkcs8
+	bn
 	ec
 	asn1
 	hex
@@ -416,6 +421,14 @@ if (ENABLE_SM2_EXTS)
 		src/sm2_elgamal.c
 		src/sm2_commit.c)
 	list(APPEND tests sm2_key_share sm2_blind sm2_ring sm2_elgamal sm2_commit)
+endif()
+
+
+if (ENABLE_SECP256R1)
+	message(STATUS "ENABLE_SECP256R1 is ON")
+	add_definitions(-DENABLE_SECP256R1)
+	list(APPEND src src/secp256r1.c src/secp256r1_key.c src/ecdsa.c)
+	list(APPEND tests secp256r1 secp256r1_key ecdsa)
 endif()
 
 
