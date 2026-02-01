@@ -1418,12 +1418,8 @@ int sphincs_signature_print(FILE *fp, int fmt, int ind, const char *label, const
 	return 1;
 }
 
-
-
-int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, int randomize)
+int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const sphincs_hash128_t opt_rand)
 {
-	sphincs_hash128_t opt_rand;
-
 	if (!ctx || !key) {
 		error_print();
 		return -1;
@@ -1433,18 +1429,11 @@ int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, int rand
 	// cache signing key
 	ctx->key = *key;
 
-	// set opt_rand
-	memcpy(opt_rand, key->public_key.seed, sizeof(sphincs_hash128_t));
-	if (randomize) {
-		if (rand_bytes(opt_rand, sizeof(opt_rand)) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
 	// R = PRF_msg(sk_prf, optrand, M) = HMAC(sk_prf, opt_rand|M)
 	sphincs_hmac256_init(&ctx->hmac_ctx, key->sk_prf, sizeof(sphincs_hash128_t));
-	sphincs_hmac256_update(&ctx->hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
+	if (opt_rand)
+		sphincs_hmac256_update(&ctx->hmac_ctx, opt_rand, sizeof(sphincs_hash128_t));
+	else	sphincs_hmac256_update(&ctx->hmac_ctx, key->public_key.seed, sizeof(sphincs_hash128_t));
 
 	// state
 	ctx->state = 1;
@@ -1454,8 +1443,13 @@ int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, int rand
 
 int sphincs_sign_init(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key)
 {
-	int randomize = 1;
-	if (sphincs_sign_init_ex(ctx, key, randomize) != 1) {
+	sphincs_hash128_t opt_rand;
+
+	if (rand_bytes(opt_rand, sizeof(sphincs_hash128_t)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_sign_init_ex(ctx, key, opt_rand) != 1) {
 		error_print();
 		return -1;
 	}

@@ -71,7 +71,7 @@ option(ENABLE_SDF "Enable SDF module" ON)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
-option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
+option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" ON)
 
 option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
 
@@ -131,9 +131,7 @@ set(src
 	src/tls_trace.c
 	src/tlcp.c
 	src/tls12.c
-	src/tls12_handshake.c
 	src/tls13.c
-	src/file.c
 	src/file.c
 )
 
@@ -220,6 +218,7 @@ set(tests
 	x509_ext
 	x509_req
 	x509_crl
+	x509_key
 	cms
 	tls
 	tls13
@@ -427,7 +426,7 @@ endif()
 if (ENABLE_SECP256R1)
 	message(STATUS "ENABLE_SECP256R1 is ON")
 	add_definitions(-DENABLE_SECP256R1)
-	list(APPEND src src/secp256r1.c src/secp256r1_key.c src/ecdsa.c)
+	list(APPEND src src/secp256r1.c src/secp256r1_key.c src/ecdsa.c src/ecdh.c)
 	list(APPEND tests secp256r1 secp256r1_key ecdsa)
 endif()
 

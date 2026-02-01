@@ -499,6 +499,48 @@ end:
 	return ret;
 }
 
+int secp256r1_private_key_info_encrypt_to_pem(const SECP256R1_KEY *key, const char *pass, FILE *fp)
+{
+	uint8_t buf[1024];
+	uint8_t *p = buf;
+	size_t len = 0;
+
+	if (!fp) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_private_key_info_encrypt_to_der(key, pass, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pem_write(fp, "ENCRYPTED PRIVATE KEY", buf, len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int secp256r1_private_key_info_decrypt_from_pem(SECP256R1_KEY *key, const char *pass, FILE *fp)
+{
+	uint8_t buf[512];
+	const uint8_t *cp = buf;
+	size_t len;
+	const uint8_t *attrs;
+	size_t attrs_len;
+
+	if (!key || !pass || !fp) {
+		error_print();
+		return -1;
+	}
+	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf)) != 1
+		|| secp256r1_private_key_info_decrypt_from_der(key, &attrs, &attrs_len, pass, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 
 
 

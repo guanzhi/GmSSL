@@ -321,6 +321,8 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 	return 1;
 }
 
+
+// 这个函数应该把所有的输入的dgst都打印出来！这样就可以容易判断出到底是哪个输入错了
 int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	const uint8_t seq_num[8], const uint8_t enced_header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
@@ -534,7 +536,7 @@ int tls_cert_type_from_oid(int oid)
 	return 0;
 }
 
-// 这两个函数没有对应的TLCP版本
+// 这两个函数没有对应的TLCP版本， 这个现在已经有了ex版本了
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
 	int curve, const SM2_Z256_POINT *point, uint8_t *sig, size_t *siglen)
@@ -1453,6 +1455,18 @@ int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
 	return 0;
 }
 
+/*
+尽可能的发送数据，直到发送完整的报文，或者send 返回错误
+如果send 返回EAGAIN，那么向上层返回WANT_WRITE
+
+正常情况下，一方总是可以发送任意数量的数据，当发送方缓冲区已经满了的时候
+send会返回EAGIN，那么如果底层没处理完，那就没有任何办法
+
+如果这个函数在获得EAGAIN之后就返回给上层了，那么还需要标明到底发送出去了多少数据
+
+
+
+*/
 int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 {
 	tls_ret_t n;
@@ -1948,6 +1962,7 @@ int tls_client_verify_init(TLS_CLIENT_VERIFY_CTX *ctx)
 	return 1;
 }
 
+// FIXME: remove malloc!				
 int tls_client_verify_update(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *handshake, size_t handshake_len)
 {
 	uint8_t *buf;
@@ -1985,6 +2000,7 @@ int tls_client_verify_finish(TLS_CLIENT_VERIFY_CTX *ctx, const uint8_t *sig, siz
 		error_print();
 		return -1;
 	}
+	// 这里的主要困难是，SM2的签名验证需要以Z作为输入，但是在没有拿到客户端的公钥之前，无法启动验证
 	if (sm2_verify_init(&verify_ctx, public_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 		error_print();
 		return -1;
@@ -2074,6 +2090,9 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 		return -1;
 	}
 	ctx->is_client = is_client ? 1 : 0;
+
+
+	ctx->verify_depth = 5;
 	return 1;
 }
 
@@ -2133,6 +2152,8 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 	return 1;
 }
 
+
+// 这个函数要独立出去
 int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass)
 {
@@ -2140,7 +2161,6 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	uint8_t *certs = NULL;
 	size_t certslen;
 	FILE *keyfp = NULL;
-	SM2_KEY key;
 	const uint8_t *cert;
 	size_t certlen;
 	X509_KEY public_key;
@@ -2162,56 +2182,61 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 		error_print();
 		goto end;
 	}
-	if (!(keyfp = fopen(keyfile, "r"))) {
-		error_print();
-		goto end;
-	}
-	if (sm2_private_key_info_decrypt_from_pem(&key, keypass, keyfp) != 1) {
-		error_print();
-		goto end;
-	}
 	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (public_key.algor != OID_ec_public_key
-		|| public_key.algor_param != OID_sm2) {
+
+	if (public_key.algor == OID_ec_public_key) {
+		if (!(keyfp = fopen(keyfile, "r"))) {
+			error_print();
+			return -1;
+		}
+	} else {
+		if (!(keyfp = fopen(keyfile, "rb+"))) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (x509_private_key_from_file(&ctx->signkey, public_key.algor, keypass, keyfp) != 1) {
 		error_print();
 		return -1;
 	}
-	if (sm2_public_key_equ(&key, &public_key.u.sm2_key) != 1) {
+	if (x509_public_key_equ(&ctx->signkey, &public_key) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
+
 	ctx->certs = certs;
 	ctx->certslen = certslen;
-	ctx->signkey = key;
 	certs = NULL;
 	ret = 1;
 
 end:
-	gmssl_secure_clear(&key, sizeof(key));
 	if (certs) free(certs);
 	if (keyfp) fclose(keyfp);
 	return ret;
 }
+
 
 int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *signkeyfile, const char *signkeypass,
 	const char *kenckeyfile, const char *kenckeypass)
 {
 	int ret = -1;
+	const int algor = OID_ec_public_key;
+	const int algor_param = OID_sm2;
 	uint8_t *certs = NULL;
 	size_t certslen;
 	FILE *signkeyfp = NULL;
 	FILE *kenckeyfp = NULL;
-	SM2_KEY signkey;
-	SM2_KEY kenckey;
 
 	const uint8_t *cert;
 	size_t certlen;
 	X509_KEY public_key;
+
 
 	if (!ctx || !chainfile || !signkeyfile || !signkeypass || !kenckeyfile || !kenckeypass) {
 		error_print();
@@ -2231,62 +2256,53 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		return -1;
 	}
 
+
+	// load sign key
 	if (!(signkeyfp = fopen(signkeyfile, "r"))) {
 		error_print();
 		goto end;
 	}
-	if (sm2_private_key_info_decrypt_from_pem(&signkey, signkeypass, signkeyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->signkey, algor, signkeypass, signkeyfp) != 1) {
 		error_print();
 		goto end;
 	}
 	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
-	if (public_key.algor != OID_ec_public_key
-		|| public_key.algor_param != OID_sm2) {
-		error_print();
-		return -1;
-	}
-	if (sm2_public_key_equ(&signkey, &public_key.u.sm2_key) != 1) {
+	if (x509_public_key_equ(&ctx->signkey, &public_key) != 1) {
 		error_print();
 		goto end;
 	}
 
+	// load enc key
 	if (!(kenckeyfp = fopen(kenckeyfile, "r"))) {
 		error_print();
 		goto end;
 	}
-	if (sm2_private_key_info_decrypt_from_pem(&kenckey, kenckeypass, kenckeyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->kenckey, algor, kenckeypass, kenckeyfp) != 1) {
 		error_print();
 		goto end;
 	}
 	if (x509_certs_get_cert_by_index(certs, certslen, 1, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
-	if (public_key.algor != OID_ec_public_key
-		|| public_key.algor_param != OID_sm2) {
-		error_print();
-		return -1;
-	}
-	if (sm2_public_key_equ(&kenckey, &public_key.u.sm2_key) != 1) {
+	if (x509_public_key_equ(&ctx->kenckey, &public_key) != 1) {
 		error_print();
 		goto end;
 	}
 
 	ctx->certs = certs;
 	ctx->certslen = certslen;
-	ctx->signkey = signkey;
-	ctx->kenckey = kenckey;
 	certs = NULL;
 	ret = 1;
 
 end:
-	gmssl_secure_clear(&signkey, sizeof(signkey));
-	gmssl_secure_clear(&kenckey, sizeof(kenckey));
+	if (ret != 1) x509_key_cleanup(&ctx->signkey);
+	if (ret != 1) x509_key_cleanup(&ctx->kenckey);
 	if (certs) free(certs);
 	if (signkeyfp) fclose(signkeyfp);
 	if (kenckeyfp) fclose(kenckeyfp);
@@ -2330,6 +2346,8 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 
 	conn->quiet = ctx->quiet;
 
+
+	conn->verify_depth = ctx->verify_depth;
 	return 1;
 }
 

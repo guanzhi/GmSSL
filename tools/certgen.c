@@ -405,7 +405,6 @@ bad:
 		printf("usage: gmssl %s %s\n\n", prog, options);
 		goto end;
 	}
-
 	if (x509_private_key_from_file(&x509_key, algor, pass, keyfp) != 1) {
 		fprintf(stderr, "%s: load private key failed\n", prog);
 		goto end;

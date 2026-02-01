@@ -249,9 +249,9 @@ enum {
 int sm2_do_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, SM2_CIPHERTEXT *out);
 int sm2_encrypt_fixlen(const SM2_KEY *key, const uint8_t *in, size_t inlen, int point_size, uint8_t *out, size_t *outlen);
 
-
-int sm2_do_ecdh(const SM2_KEY *key, const SM2_Z256_POINT *peer_public, SM2_Z256_POINT *out);
-int sm2_ecdh(const SM2_KEY *key, const uint8_t *peer_public, size_t peer_public_len, uint8_t out[64]);
+// ECDH in TLS, SECG SEC1, NIST SP800-56A
+int sm2_do_ecdh(const SM2_KEY *key, const SM2_KEY *peer_key, uint8_t out[32]);
+int sm2_ecdh(const SM2_KEY *key, const uint8_t uncompressed_point[65], uint8_t out[32]);
 
 
 typedef struct {

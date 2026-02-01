@@ -176,7 +176,7 @@ int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
 	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
 	tls_uint16_to_bytes((uint16_t)named_group_list_len, out, outlen);
 	for (i = 0; i < groups_cnt; i++) {
-		if (!tls_curve_name(groups[i])) {
+		if (!tls_named_curve_name(groups[i])) {
 			error_print();
 			return -1;
 		}
@@ -204,7 +204,7 @@ int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_data
 			error_print();
 			return -1;
 		}
-		if (!tls_curve_name(group)) {
+		if (!tls_named_curve_name(group)) {
 			error_print();
 			return -1;
 		}
@@ -599,7 +599,7 @@ int tls13_key_share_ext_print(FILE *fp, int fmt, int ind, int handshake_type, co
 		ind += 4;
 		while (client_shares_len) {
 			if (tls_uint16_from_bytes(&group, &client_shares, &client_shares_len) != 1) goto err;
-			format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_curve_name(group), group);
+			format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_named_curve_name(group), group);
 			if (tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &client_shares, &client_shares_len) != 1) goto err;
 			format_bytes(fp, fmt, ind, "key_exchange", key_exchange, key_exchange_len);
 		}
@@ -608,7 +608,7 @@ int tls13_key_share_ext_print(FILE *fp, int fmt, int ind, int handshake_type, co
 		format_print(fp, fmt, ind, "server_share\n");
 		ind += 4;
 		if (tls_uint16_from_bytes(&group, &data, &datalen) != 1) goto err;
-		format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_curve_name(group), group);
+		format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_named_curve_name(group), group);
 		if (tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &data, &datalen) != 1) goto err;
 		format_bytes(fp, fmt, ind, "key_exchange", key_exchange, key_exchange_len);
 		break;
@@ -730,7 +730,7 @@ int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
 			error_print();
 			return -1;
 		}
-		if (!tls_curve_name(group)) {
+		if (!tls_named_curve_name(group)) {
 			error_print();
 			return -1;
 		}

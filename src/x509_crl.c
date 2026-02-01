@@ -1465,7 +1465,14 @@ int x509_crl_sign_to_der(
 	}
 	if (out && *out) {
 		X509_SIGN_CTX sign_ctx;
-		if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
+		void *sign_args = NULL;
+		size_t sign_argslen = 0;
+
+		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
+			sign_args = SM2_DEFAULT_ID;
+			sign_argslen = SM2_DEFAULT_ID_LENGTH;
+		}
+		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1
 			|| x509_sign_update(&sign_ctx, tbs, *out - tbs) != 1
 			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));

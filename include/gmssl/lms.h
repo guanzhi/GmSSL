@@ -226,7 +226,7 @@ typedef struct {
 	LMS_PUBLIC_KEY lms_public_key;
 } HSS_PUBLIC_KEY;
 
-#define HSS_PUBLIC_KEY_SIZE (4 + LMS_PUBLIC_KEY_SIZE)
+#define HSS_PUBLIC_KEY_SIZE (4 + LMS_PUBLIC_KEY_SIZE) // = 60 bytes
 
 typedef struct HSS_KEY_st HSS_KEY;
 

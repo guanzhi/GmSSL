@@ -20,6 +20,7 @@
 #include <gmssl/digest.h>
 #include <gmssl/block_cipher.h>
 #include <gmssl/socket.h>
+#include <gmssl/x509_key.h>
 
 
 #ifdef __cplusplus
@@ -94,6 +95,8 @@ typedef enum {
 	TLS_cipher_chacha20_poly1305_sha256	= 0x1303, // SHOULD implement
 	TLS_cipher_aes_128_ccm_sha256		= 0x1304,
 	TLS_cipher_aes_128_ccm_8_sha256		= 0x1305,
+
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256 = 0xc023,
 
 	TLS_cipher_empty_renegotiation_info_scsv = 0x00ff,
 } TLS_CIPHER_SUITE;
@@ -269,7 +272,8 @@ typedef enum {
 	TLS_curve_sm2p256v1			= 41, // GmSSLv2: 30
 } TLS_NAMED_CURVE;
 
-const char *tls_curve_name(int curve);
+const char *tls_named_curve_name(int named_curve);
+int tls_named_curve_oid(int named_curve);
 
 
 typedef enum {
@@ -299,6 +303,7 @@ typedef enum {
 } TLS_SIGNATURE_SCHEME;
 
 const char *tls_signature_scheme_name(int scheme);
+int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite); 
 
 
 typedef enum {
@@ -605,6 +610,21 @@ typedef enum {
 	TLS_client_verify_client_key_exchange	= 7,
 } TLS_CLIENT_VERIFY_INDEX;
 
+
+/*
+SM2验签要求首先提供Z值，Z值需要公钥
+而在客户端提供 client_certificate 之前，服务器都不知道客户端的公钥
+因此没有办法获得客户端的公钥
+直到客户端发出client_certificate之后，才能够启动验证
+
+现在的实现缓冲了所有被签名的握手消息
+
+由于除了ClientHello之外，其他所有的消息实际上都是服务器发出的
+因此服务器只需要缓存ClientHello即可
+
+实际上只有SM2签名才需要这么复杂！
+*/
+
 typedef struct {
 	TLS_CLIENT_VERIFY_INDEX index;
 	uint8_t *handshake[8]; // Record data only, no record header
@@ -680,8 +700,10 @@ typedef struct {
 	size_t cacertslen;
 	uint8_t *certs;
 	size_t certslen;
-	SM2_KEY signkey;
-	SM2_KEY kenckey;
+
+	X509_KEY signkey;
+	X509_KEY kenckey;
+
 	int verify_depth;
 
 	int quiet;
@@ -704,9 +726,25 @@ void tls_ctx_cleanup(TLS_CTX *ctx);
 #define TLS_MAX_VERIFY_DEPTH		5
 
 
+
+#define SSL_ERROR_WANT_READ		-1001 // 是否考虑把这两个错误以0的方式返回去
+#define SSL_ERROR_WANT_WRITE		-1002 // 同上
+#define SSL_ERROR_ZERO_RETURN		-1003
+#define SSL_ERROR_SYSCALL		-1004
+
+
+#define TLS_ERROR_RECV_AGAIN		-1000	// SSL_ERROR_WANT_READ
+#define TLS_ERROR_SEND_AGAIN		-1001	// SSL_ERROR_WANT_WRITE
+#define TLS_ERROR_TCP_CLOSED		-1002	// SSL_ERROR_ZERO_RETURN
+#define TLS_ERROR_SYSCALL		-1003	// SSL_ERROR_SYSCALL
+
+
+
 typedef struct {
 	int protocol;
 	int is_client;
+
+
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
 	tls_socket_t sock;
@@ -716,6 +754,11 @@ typedef struct {
 
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];
+	size_t record_offset; // offset of processed record
+
+	int record_state;
+
+	size_t recordlen;
 
 	uint8_t databuf[TLS_MAX_RECORD_SIZE];
 	uint8_t *data;
@@ -731,11 +774,10 @@ typedef struct {
 	uint8_t ca_certs[2048];
 	size_t ca_certs_len;
 
-	SM2_KEY sign_key;
-	SM2_KEY kenc_key;
+	X509_KEY sign_key;
+	X509_KEY kenc_key;
 
 	int verify_result;
-
 	uint8_t master_secret[48];
 	uint8_t key_block[96];
 
@@ -753,10 +795,38 @@ typedef struct {
 
 	int quiet;
 
+
 	// handshake state for state machine
 	int state;
 	SM3_CTX sm3_ctx;
 	SM2_SIGN_CTX sign_ctx;
+	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
+	uint8_t client_random[32];
+	uint8_t server_random[32];
+	uint8_t server_exts[512]; // TODO
+	size_t server_exts_len;
+
+
+	// 在TLS中，密钥交换的密钥是不在证书中的？
+	uint16_t sig_alg;
+
+	// TLS中客户端和服务器端可以使用不同的签名算法，但是最好是一致的
+	// 这个算法是由cipher_suite和服务器证书决定的（其中是服务器AUTH算法）
+	// 但是客户端的签名算法不是由cipher_suite决定
+	uint16_t server_sig_alg;
+
+
+
+	uint16_t ecdh_named_curve;
+
+	X509_KEY ecdh_key;
+	uint8_t peer_ecdh_point[65];
+	size_t peer_ecdh_point_len;
+
+	int client_certificate_verify; // 是否验证客户端证书
+
+	int verify_depth; // 这个可能没有被设置				
+
 } TLS_CONNECT;
 
 

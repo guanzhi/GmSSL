@@ -275,8 +275,14 @@ id-alg-xmssmt-hashsig OBJECT IDENTIFIER ::= {
 	security(5) mechanisms(5) pkix(7) algorithms(6) 35 }
 */
 static uint32_t  oid_hss_lms_hashsig[] = { oid_pkcs,9,16,3,17 };
+static uint32_t  oid_lms_hashsig[] = { oid_pkcs,9,16,3,17,1 }; // TODO: not officially defined
 static uint32_t  oid_xmss_hashsig[] = { oid_alg, 34 };
 static uint32_t  oid_xmssmt_hashsig[] = { oid_alg, 35 };
+
+// joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistAlgorithms(4)
+#define oid_nist_algs       2,16,840,1,101,3,4
+static uint32_t oid_sphincs_hashsig[] = { oid_nist_algs,3,20 }; // TODO: sphincs+ 128s with sha256, not officially defined
+
 
 /*
 from RFC 3447 Public-Key Cryptography Standards (PKCS) #1: RSA Cryptography
@@ -364,12 +370,14 @@ static const ASN1_OID_INFO x509_sign_algors[] = {
 	{ OID_rsasign_with_sha384, "sha384WithRSAEncryption", oid_rsasign_with_sha384, sizeof(oid_rsasign_with_sha384)/sizeof(int), 1 },
 	{ OID_rsasign_with_sha512, "sha512WithRSAEncryption", oid_rsasign_with_sha512, sizeof(oid_rsasign_with_sha512)/sizeof(int), 1 },
 #ifdef ENABLE_LMS
+	{ OID_lms_hashsig, "lms-hashsig", oid_lms_hashsig, sizeof(oid_lms_hashsig)/sizeof(int), 1 },
 	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 1 },
 #endif
 #ifdef ENABLE_XMSS
 	{ OID_xmss_hashsig, "xmss-hashsig", oid_xmss_hashsig, sizeof(oid_xmss_hashsig)/sizeof(int), 1 },
 	{ OID_xmssmt_hashsig, "xmssmt-hashsig", oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), 1 },
 #endif
+	{ OID_sphincs_hashsig, "sphincs-hashsig", oid_sphincs_hashsig, sizeof(oid_sphincs_hashsig)/sizeof(int), 1 },
 };
 
 static const int x509_sign_algors_count =
@@ -588,11 +596,15 @@ static const ASN1_OID_INFO x509_public_key_algors[] = {
 	{ OID_ec_public_key, "ecPublicKey", oid_ec_public_key, sizeof(oid_ec_public_key)/sizeof(int), 0, "X9.62 ecPublicKey" },
 	{ OID_rsa_encryption, "rsaEncryption", oid_rsa_encryption, sizeof(oid_rsa_encryption)/sizeof(int), 0, "RSAEncryption" },
 #ifdef ENABLE_LMS
+	{ OID_lms_hashsig, "lms-hashsig", oid_lms_hashsig, sizeof(oid_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
 	{ OID_hss_lms_hashsig, "hss-lms-hashsig", oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), 0, "HSS/LMS HashSig" },
 #endif
 #ifdef ENABLE_XMSS
 	{ OID_xmss_hashsig, "xmss-hashsig", oid_xmss_hashsig, sizeof(oid_xmss_hashsig)/sizeof(int), 1 },
 	{ OID_xmssmt_hashsig, "xmssmt-hashsig", oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), 1 },
+#endif
+#ifdef ENABLE_SPHINCS
+	{ OID_sphincs_hashsig, "sphincs-hashsig", oid_sphincs_hashsig, sizeof(oid_sphincs_hashsig)/sizeof(int), 1 },
 #endif
 };
 
@@ -645,7 +657,16 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 		}
 		break;
 #ifdef ENABLE_LMS
-	// TODO: rsa, hss/lms, xmss/xmss^mt OID encoding is similar, reduce code size
+	case OID_lms_hashsig:
+		if (asn1_object_identifier_to_der(oid_lms_hashsig, sizeof(oid_lms_hashsig)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_lms_hashsig, sizeof(oid_lms_hashsig)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	case OID_hss_lms_hashsig:
 		if (asn1_object_identifier_to_der(oid_hss_lms_hashsig, sizeof(oid_hss_lms_hashsig)/sizeof(int), NULL, &len) != 1
 			|| asn1_null_to_der(NULL, &len) != 1
@@ -656,6 +677,8 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 			return -1;
 		}
 		break;
+
+
 #endif
 #ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
@@ -673,6 +696,18 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 			|| asn1_null_to_der(NULL, &len) != 1
 			|| asn1_sequence_header_to_der(len, out, outlen) != 1
 			|| asn1_object_identifier_to_der(oid_xmssmt_hashsig, sizeof(oid_xmssmt_hashsig)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+#ifdef ENABLE_SPHINCS
+	case OID_sphincs_hashsig:
+		if (asn1_object_identifier_to_der(oid_sphincs_hashsig, sizeof(oid_sphincs_hashsig)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_sphincs_hashsig, sizeof(oid_sphincs_hashsig)/sizeof(int), out, outlen) != 1
 			|| asn1_null_to_der(out, outlen) != 1) {
 			error_print();
 			return -1;
@@ -713,18 +748,40 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 		}
 		break;
 	case OID_rsa_encryption:
+		// AlgorithmIdentifier.parameters must be explicitly set be NULL object
+		// asn1_null_from_der return 1 when NULL object exists, return 0 if paramters is empty.
+		if ((ret = asn1_null_from_der(&d, &dlen)) < 0
+			|| asn1_length_is_zero(dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			// As some legacy code might omit the NULL object, we tolerate this error
+			error_print();
+		}
+		// present the parameters (NULL object) as OID_undef(0).
+		*curve_or_null = OID_undef;
+		break;
+
 #ifdef ENABLE_LMS
+	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
 #endif
 #ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
 #endif
-		if ((*curve_or_null = asn1_null_from_der(&d, &dlen)) < 0
+	case OID_sphincs_hashsig:
+		// for hashsigs, parmaeters is set to empty
+		if ((ret = asn1_null_from_der(&d, &dlen)) < 0
 			|| asn1_length_is_zero(dlen) != 1) {
 			error_print();
 			return -1;
 		}
+		if (ret == 1) {
+			error_print();
+		}
+		*curve_or_null = OID_undef;
 		break;
 	default:
 		error_print();
@@ -751,12 +808,14 @@ int x509_public_key_algor_print(FILE *fp, int fmt, int ind, const char *label, c
 		break;
 	case OID_rsa_encryption:
 #ifdef ENABLE_LMS
+	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
 #endif
 #ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
 #endif
+	case OID_sphincs_hashsig:
 		if ((val = asn1_null_from_der(&d, &dlen)) < 0) goto err;
 		else if (val) format_print(fp, fmt, ind, "parameters: %s\n", asn1_null_name());
 		break;

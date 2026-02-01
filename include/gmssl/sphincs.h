@@ -314,7 +314,7 @@ typedef struct {
 	sphincs_hash128_t root;
 } SPHINCS_PUBLIC_KEY;
 
-#define SPHINCS_PUBLIC_KEY_SIZE sizeof(SPHINCS_PUBLIC_KEY)
+#define SPHINCS_PUBLIC_KEY_SIZE sizeof(SPHINCS_PUBLIC_KEY) // = 32 bytes
 
 typedef struct {
 	SPHINCS_PUBLIC_KEY public_key;
@@ -356,7 +356,8 @@ typedef struct {
 	SPHINCS_KEY key;
 } SPHINCS_SIGN_CTX;
 
-int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, int randomize);
+// when optional_random is NULL, sphincs use public_key.seed, generate deterministic signature
+int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const sphincs_hash128_t optional_random);
 int sphincs_sign_init(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key);
 int sphincs_sign_prepare(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sphincs_sign_update(SPHINCS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);

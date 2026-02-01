@@ -279,6 +279,10 @@ void sm3_update(SM3_CTX *ctx, const uint8_t *data, size_t data_len)
 {
 	size_t blocks;
 
+	if (!data || !data_len) {
+		return;
+	}
+
 	ctx->num &= 0x3f;
 	if (ctx->num) {
 		size_t left = SM3_BLOCK_SIZE - ctx->num;

@@ -443,7 +443,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 		uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
 
 		sm3_finish(&cert_verify_sm3_ctx, cert_verify_hash);
-		if (sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+		if (sm2_sign_init(&sign_ctx, &conn->sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 			|| sm2_sign_update(&sign_ctx, cert_verify_hash, SM3_DIGEST_SIZE) != 1
 			|| sm2_sign_finish(&sign_ctx, sigbuf, &siglen) != 1) {
 			error_print();
@@ -728,7 +728,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	}
 	p = server_enc_cert_lenbuf; len = 0;
 	tls_uint24_to_bytes((uint24_t)server_enc_cert_len, &p, &len);
-	if (sm2_sign_init(&sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+	if (sm2_sign_init(&sign_ctx, &conn->sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_sign_update(&sign_ctx, client_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_random, 32) != 1
 		|| sm2_sign_update(&sign_ctx, server_enc_cert_lenbuf, 3) != 1
@@ -824,7 +824,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		goto end;
 	}
-	if (sm2_decrypt(&conn->kenc_key, enced_pms, enced_pms_len,
+	if (sm2_decrypt(&conn->kenc_key.u.sm2_key, enced_pms, enced_pms_len,
 		pre_master_secret, &pre_master_secret_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_decrypt_error);

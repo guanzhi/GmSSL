@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -67,6 +67,7 @@ const char *tls_cipher_suite_name(int cipher)
 	case TLS_cipher_chacha20_poly1305_sha256: return "TLS_CHACHA20_POLY1305_SHA256";
 	case TLS_cipher_aes_128_ccm_sha256: return "TLS_AES_128_CCM_SHA256";
 	case TLS_cipher_aes_128_ccm_8_sha256: return "TLS_AES_128_CCM_8_SHA256";
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256: return "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256";
 	case TLS_cipher_empty_renegotiation_info_scsv: return "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 	}
 	return NULL;
@@ -270,7 +271,7 @@ const char *tls_curve_type_name(int type)
 	return NULL;
 }
 
-const char *tls_curve_name(int curve)
+const char *tls_named_curve_name(int curve)
 {
 	switch (curve) {
 	case TLS_curve_secp256k1: return "secp256k1";
@@ -396,7 +397,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 			uint16_t curve;
 			tls_uint16_from_bytes(&curve, &p, &len);
 			format_print(fp, format, indent, "%s (%d)\n",
-				tls_curve_name(curve), curve);
+				tls_named_curve_name(curve), curve);
 		}
 		break;
 	case TLS_extension_ec_point_formats:
@@ -442,7 +443,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 				error_print();
 				return -1;
 			}
-			format_print(fp, format, indent, "group: %s (%d)\n", tls_curve_name(group), group);
+			format_print(fp, format, indent, "group: %s (%d)\n", tls_named_curve_name(group), group);
 			format_bytes(fp, format, indent, "key_exchange", key_exch, key_exch_len);
 		}
 		break;
@@ -682,7 +683,7 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 		return -1;
 	}
 	format_print(fp, format, indent + 8, "named_curve: %s (%d)\n",
-		tls_curve_name(curve), curve);
+		tls_named_curve_name(curve), curve);
 	if (tls_uint8array_from_bytes(&octets, &octetslen, &data, &datalen) != 1) {
 		error_print();
 		return -1;

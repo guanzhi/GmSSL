@@ -1160,7 +1160,14 @@ int x509_cert_sign_to_der(
 
 	if (out && *out) {
 		X509_SIGN_CTX sign_ctx;
-		if (x509_sign_init(&sign_ctx, sign_key, signer_id, signer_id_len) != 1
+		void *sign_args = NULL;
+		size_t sign_argslen = 0;
+
+		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
+			sign_args = SM2_DEFAULT_ID;
+			sign_argslen = SM2_DEFAULT_ID_LENGTH;
+		}
+		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1
 			|| x509_sign_update(&sign_ctx, tbs, *out - tbs) != 1
 			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
@@ -1214,6 +1221,8 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 	const uint8_t *sig;
 	size_t siglen;
 	int key_sig_alg;
+	void *sign_args = NULL;
+	size_t sign_argslen = 0;
 	X509_SIGN_CTX verify_ctx;
 
 	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
@@ -1231,7 +1240,11 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 		return -1;
 	}
 
-	if (x509_verify_init(&verify_ctx, key, signer_id, signer_id_len, sig, siglen) != 1
+	if (key->algor == OID_ec_public_key && key->algor_param == OID_sm2) {
+		sign_args = SM2_DEFAULT_ID;
+		sign_argslen = SM2_DEFAULT_ID_LENGTH;
+	}
+	if (x509_verify_init(&verify_ctx, key, sign_args, sign_argslen, sig, siglen) != 1
 		|| x509_verify_update(&verify_ctx, tbs, tbslen) != 1
 		|| x509_verify_finish(&verify_ctx) != 1) {
 		error_print();
