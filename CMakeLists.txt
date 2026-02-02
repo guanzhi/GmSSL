@@ -281,7 +281,7 @@ endif()
 
 if (ENABLE_SM2_NEON)
 	message(STATUS "ENABLE_SM2_NEON is ON")
-	add_definitions(-DENABLE_SM2_NEON)
+	add_definitions(-DENABLE_SM2_Z256_NEON)
 endif()
 
 if (ENABLE_SM9_ARM64)
