@@ -781,11 +781,10 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 
 	tls_trace("send ServerKeyExchange\n");
 
-
 	if (conn->recordlen == 0) {
+		int curve_oid = tls_named_curve_oid(conn->ecdh_named_curve);
 		// generate server ecdh_key
-		if (x509_key_generate(&conn->ecdh_key,
-			OID_ec_public_key, tls_named_curve_oid(conn->ecdh_named_curve)) != 1) {
+		if (x509_key_generate(&conn->ecdh_key, OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1371,8 +1370,8 @@ int tls_send_client_key_exchange(TLS_CONNECT *conn)
 	// 因此在接收到服务器的公钥之后，应该保存这个信息
 
 	if (conn->recordlen == 0) {
-		if (x509_key_generate(&conn->ecdh_key,
-			OID_ec_public_key, tls_named_curve_oid(conn->ecdh_named_curve)) != 1) {
+		int curve_oid = tls_named_curve_oid(conn->ecdh_named_curve);
+		if (x509_key_generate(&conn->ecdh_key, OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
 			error_print();
 			return -1;
 		}

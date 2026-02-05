@@ -639,6 +639,8 @@ static int test_sphincs_sign_update(void)
 	SPHINCS_SIGN_CTX ctx;
 	SPHINCS_SIGNATURE sig;
 	uint8_t msg[100] = { 1,2,3 };
+	uint8_t sigbuf[SPHINCS_SIGNATURE_SIZE];
+	size_t siglen;
 
 	if (sphincs_key_generate(&key) != 1) {
 		error_print();
@@ -676,6 +678,51 @@ static int test_sphincs_sign_update(void)
 		error_print();
 		return -1;
 	}
+
+
+
+
+
+
+
+
+
+
+	// sign/verify sigbuf
+
+	if (sphincs_sign_init(&ctx, &key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_sign_prepare(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_sign_update(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_sign_finish(&ctx, sigbuf, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// verify
+
+	if (sphincs_verify_init(&ctx, &key, sigbuf, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_verify_update(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sphincs_verify_finish(&ctx) != 1) {
+		error_print();
+		return -1;
+	}
+
+
 
 
 	printf("%s() ok\n", __FUNCTION__);

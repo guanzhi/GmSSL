@@ -298,8 +298,13 @@ int asn1_header_to_der(int tag, size_t dlen, uint8_t **out, size_t *outlen);
 
 #define asn1_explicit_header_to_der(i,dlen,out,outlen) asn1_header_to_der(ASN1_TAG_EXPLICIT(i),dlen,out,outlen)
 
+#if 0 // TODO: why nonempty ?
 #define asn1_explicit_to_der(i,d,dlen,out,outlen) asn1_nonempty_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
 #define asn1_explicit_from_der(i,d,dlen,in,inlen) asn1_nonempty_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+#else
+#define asn1_explicit_to_der(i,d,dlen,out,outlen) asn1_type_to_der(ASN1_TAG_EXPLICIT(i),d,dlen,out,outlen)
+#define asn1_explicit_from_der(i,d,dlen,in,inlen) asn1_type_from_der(ASN1_TAG_EXPLICIT(i),d,dlen,in,inlen)
+#endif
 
 // d,dlen is the V (of TLV) of SEQUENCE OF, SET OF
 int asn1_types_get_count(const uint8_t *d, size_t dlen, int tag, size_t *cnt);

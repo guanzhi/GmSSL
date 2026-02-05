@@ -279,10 +279,8 @@ static uint32_t  oid_lms_hashsig[] = { oid_pkcs,9,16,3,17,1 }; // TODO: not offi
 static uint32_t  oid_xmss_hashsig[] = { oid_alg, 34 };
 static uint32_t  oid_xmssmt_hashsig[] = { oid_alg, 35 };
 
-// joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistAlgorithms(4)
-#define oid_nist_algs       2,16,840,1,101,3,4
 static uint32_t oid_sphincs_hashsig[] = { oid_nist_algs,3,20 }; // TODO: sphincs+ 128s with sha256, not officially defined
-
+static uint32_t oid_kyber_kem[] = { oid_nist_algs,22,4 };
 
 /*
 from RFC 3447 Public-Key Cryptography Standards (PKCS) #1: RSA Cryptography
@@ -606,6 +604,7 @@ static const ASN1_OID_INFO x509_public_key_algors[] = {
 #ifdef ENABLE_SPHINCS
 	{ OID_sphincs_hashsig, "sphincs-hashsig", oid_sphincs_hashsig, sizeof(oid_sphincs_hashsig)/sizeof(int), 1 },
 #endif
+	{ OID_kyber_kem, "kyber-kem", oid_kyber_kem, sizeof(oid_kyber_kem)/sizeof(int), 1 },
 };
 
 static const int x509_public_key_algors_count =
@@ -631,6 +630,7 @@ int x509_public_key_algor_from_name(const char *name)
 	return info->oid;
 }
 
+// FIXME: add kyber, and use same code for LMS/XMSS/SPHINCS...
 int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size_t *outlen)
 {
 	size_t len = 0;
@@ -714,6 +714,16 @@ int x509_public_key_algor_to_der(int oid, int curve_or_null, uint8_t **out, size
 		}
 		break;
 #endif
+	case OID_kyber_kem:
+		if (asn1_object_identifier_to_der(oid_kyber_kem, sizeof(oid_kyber_kem)/sizeof(int), NULL, &len) != 1
+			|| asn1_null_to_der(NULL, &len) != 1
+			|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			|| asn1_object_identifier_to_der(oid_kyber_kem, sizeof(oid_kyber_kem)/sizeof(int), out, outlen) != 1
+			|| asn1_null_to_der(out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	default:
 		error_print();
 		return -1;
@@ -772,6 +782,7 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 	case OID_xmssmt_hashsig:
 #endif
 	case OID_sphincs_hashsig:
+	case OID_kyber_kem:
 		// for hashsigs, parmaeters is set to empty
 		if ((ret = asn1_null_from_der(&d, &dlen)) < 0
 			|| asn1_length_is_zero(dlen) != 1) {
@@ -779,7 +790,7 @@ int x509_public_key_algor_from_der(int *oid , int *curve_or_null, const uint8_t 
 			return -1;
 		}
 		if (ret == 1) {
-			error_print();
+			//error_print();				
 		}
 		*curve_or_null = OID_undef;
 		break;

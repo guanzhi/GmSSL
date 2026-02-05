@@ -180,6 +180,9 @@ int x509_req_sign_to_der(
 		error_print();
 		return -1;
 	}
+	if (sign_key->algor == OID_ec_public_key) {
+		siglen = SM2_signature_typical_size;
+	}
 
 	if (x509_request_info_to_der(version, subject, subject_len, subject_public_key,
 			attrs, attrs_len, NULL, &len) != 1
@@ -206,9 +209,18 @@ int x509_req_sign_to_der(
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
-		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1
-			|| x509_sign_update(&sign_ctx, tbs, *out - tbs) != 1
-			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
+		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sign_key->algor == OID_ec_public_key) {
+			if (x509_sign_set_signature_size(&sign_ctx, siglen) != 1) {
+				gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
+				error_print();
+				return -1;
+			}
+		}
+		if (x509_sign(&sign_ctx, tbs, *out - tbs, sig, &siglen) != 1) {
 			gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 			error_print();
 			return -1;

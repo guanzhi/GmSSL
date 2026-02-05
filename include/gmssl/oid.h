@@ -179,6 +179,7 @@ enum {
 	OID_xmss_hashsig,
 	OID_xmssmt_hashsig,
 	OID_sphincs_hashsig, // OID not defined in RFC, so no oid[]
+	OID_kyber_kem,
 };
 
 // {iso(1) org(3) dod(6) internet(1) security(5) mechanisms(5) pkix(7)}
@@ -198,6 +199,8 @@ enum {
 // {iso(1) member-body(2) us(840) ansi-x962(10045)}
 #define oid_x9_62	1,2,840,10045
 
+// {joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistAlgorithms(4)}
+#define oid_nist_algs	2,16,840,1,101,3,4
 
 
 #define oid_at	2,5,4

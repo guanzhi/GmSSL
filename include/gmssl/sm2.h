@@ -191,6 +191,7 @@ int sm2_sign_update(SM2_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen);
 int sm2_sign_reset(SM2_SIGN_CTX *ctx);
 int sm2_sign_finish_fixlen(SM2_SIGN_CTX *ctx, size_t siglen, uint8_t *sig);
+// TODO sign_ctx_cleanup!
 
 typedef struct {
 	SM3_CTX sm3_ctx;

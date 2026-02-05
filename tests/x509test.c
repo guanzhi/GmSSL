@@ -230,7 +230,7 @@ static int test_x509_public_key_info(void)
 	const uint8_t *d;
 	size_t dlen;
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -242,7 +242,7 @@ static int test_x509_public_key_info(void)
 	}
 	x509_public_key_info_print(stdout, 0, 4, "PublicKeyInfo", d, dlen);
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -296,7 +296,7 @@ static int test_x509_tbs_cert(void)
 	x509_validity_add_days(&not_after, not_before, 365);
 	set_x509_name(subject, &subject_len, sizeof(subject));
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -374,7 +374,7 @@ static int test_x509_cert(void)
 	x509_validity_add_days(&not_after, not_before, 365);
 	set_x509_name(subject, &subject_len, sizeof(subject));
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}

@@ -787,6 +787,8 @@ static int test_x509_cert_with_exts(void)
 	uint8_t name[256];
 	size_t namelen;
 	time_t not_before, not_after;
+	int algor = OID_ec_public_key;
+	int algor_param = OID_sm2;
 	X509_KEY x509_key;
 	uint8_t uniq_id[32];
 	uint8_t exts[512];
@@ -800,7 +802,7 @@ static int test_x509_cert_with_exts(void)
 	x509_validity_add_days(&not_after, not_before, 365);
 
 
-	if (x509_key_generate(&x509_key, OID_ec_public_key, OID_sm2) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}

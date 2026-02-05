@@ -502,23 +502,26 @@ void secp256r1_point_sub(SECP256R1_POINT *R, const SECP256R1_POINT *P, const SEC
 
 void secp256r1_point_mul(SECP256R1_POINT *R, const secp256r1_t k, const SECP256R1_POINT *P)
 {
+	SECP256R1_POINT T;
 	uint32_t bits;
 	int nbits;
 	int i;
 
-	secp256r1_point_set_infinity(R);
+	secp256r1_point_set_infinity(&T);
 
 	for (i = 7; i >= 0; i--) {
 		bits = k[i];
 		nbits = 32;
 		while (nbits-- > 0) {
-			secp256r1_point_dbl(R, R);
+			secp256r1_point_dbl(&T, &T);
 			if (bits & 0x80000000) {
-				secp256r1_point_add(R, R, P);
+				secp256r1_point_add(&T, &T, P);
 			}
 			bits <<= 1;
 		}
 	}
+
+	secp256r1_point_copy(R, &T);
 }
 
 void secp256r1_point_mul_generator(SECP256R1_POINT *R, const secp256r1_t k)

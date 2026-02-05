@@ -549,12 +549,12 @@ static int test_xmss_sign(void)
 }
 
 
-
-static int test_xmss_sign_init(void)
+static int test_xmss_sign_update(void)
 {
 	uint32_t xmss_type = XMSS_HASH256_10_256;
 	XMSS_KEY key;
 	XMSS_SIGN_CTX sign_ctx;
+	XMSS_SIGNATURE signature;
 	uint8_t sig[XMSS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 	uint8_t msg[100] = {0};
@@ -573,12 +573,14 @@ static int test_xmss_sign_init(void)
 		error_print();
 		return -1;
 	}
-	if (xmss_sign_finish(&sign_ctx, sig, &siglen) != 1) {
+	if (xmss_sign_finish_ex(&sign_ctx, &signature) != 1) {
 		error_print();
 		return -1;
 	}
+	xmss_signature_print_ex(stderr, (int)xmss_type, 4, "xmss_signature", &signature);
 
-	if (xmss_verify_init(&sign_ctx, &key, sig, siglen) != 1) {
+
+	if (xmss_verify_init_ex(&sign_ctx, &key, &signature) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1057,7 +1059,8 @@ static int test_xmssmt_sign_update(void)
 	XMSSMT_SIGN_CTX ctx;
 	XMSSMT_SIGNATURE sig;
 	uint8_t msg[100] = {0};
-
+	uint8_t sigbuf[sizeof(XMSSMT_SIGNATURE) *2 ];
+	size_t siglen;
 
 	if (xmssmt_key_generate(&key, xmssmt_type) != 1) {
 		error_print();
@@ -1092,6 +1095,44 @@ static int test_xmssmt_sign_update(void)
 		return -1;
 	}
 
+
+	// sigbuf
+
+	if (xmssmt_sign_init(&ctx, &key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_sign_update(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_sign_finish(&ctx, sigbuf, &siglen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	memset(&ctx, 0, sizeof(ctx));
+	if (xmssmt_verify_init(&ctx, &key, sigbuf, siglen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_verify_update(&ctx, msg, sizeof(msg)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (xmssmt_verify_finish(&ctx) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+
+
+
+
+
+
+
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -1114,7 +1155,7 @@ int main(void)
 	//if (test_xmss_private_key_to_bytes() != 1) goto err;
 	if (test_xmss_signature_size() != 1) goto err;
 	if (test_xmss_sign() != 1) goto err;
-	if (test_xmss_sign_init() != 1) goto err;
+	if (test_xmss_sign_update() != 1) goto err;
 	if (test_xmssmt_key_generate() != 1) goto err;
 	if (test_xmssmt_index_to_bytes() != 1) goto err;
 	if (test_xmssmt_signature_to_bytes() != 1) goto err;

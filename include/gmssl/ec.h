@@ -18,6 +18,8 @@
 #include <gmssl/sm2.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
+#include <gmssl/x509_key.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +52,12 @@ ECPrivateKey ::= SEQUENCE {
 	publicKey	[1] EXPLICIT BIT STRING OPTIONAL -- ECPoint
 }
 */
+// ECPrivateKey when key->algor == OID_ec_public_key
+int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pubkey, uint8_t **out, size_t *outlen);
+int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, size_t *inlen);
+int ec_private_key_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen); // from <gmssl/ec.h>
+// X509_KEY lost some information of ECPrivateKey. so no ec_private_key_print_ex(X509_KEY)
+
 
 enum {
 	EC_private_key_version = 1,

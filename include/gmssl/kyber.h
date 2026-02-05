@@ -118,6 +118,9 @@ void kyber_poly_decode1(kyber_poly_t r, const uint8_t in[32]);
 int  kyber_poly_encode1(const kyber_poly_t a, uint8_t out[32]);
 
 
+// kyber-512 : 2 * 384 + 32 = 800
+// kyber-768 : 3 * 384 + 32 = 1184
+// kyber-1024: 4 * 384 + 32 = 1568
 typedef struct {
 	uint8_t t[KYBER_K][384];
 	uint8_t rho[32];

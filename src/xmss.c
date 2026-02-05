@@ -1204,14 +1204,16 @@ int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key)
 	xmss_adrs_set_ots_address(adrs, key->index);
 	xmss_wots_derive_sk(key->secret, key->public_key.seed, adrs, ctx->xmss_sig.wots_sig);
 
+	// xmss_sig.auth_path
+	xmss_build_auth_path(key->tree, height, key->index, ctx->xmss_sig.auth_path);
+
+
 	// update key->index
 	if (xmss_key_update(key) != 1) {
 		error_print();
 		return -1;
 	}
 
-	// xmss_sig.auth_path
-	xmss_build_auth_path(key->tree, height, key->index, ctx->xmss_sig.auth_path);
 
 	// H_msg(M) := HASH256(toByte(2, 32) || r || XMSS_ROOT || toByte(idx_sig, 32) || M)
 	xmss_hash256_init(&ctx->hash256_ctx);
@@ -1232,6 +1234,30 @@ int xmss_sign_update(XMSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	if (data && datalen) {
 		xmss_hash256_update(&ctx->hash256_ctx, data, datalen);
 	}
+	return 1;
+}
+
+int xmss_sign_finish_ex(XMSS_SIGN_CTX *ctx, XMSS_SIGNATURE *sig)
+{
+	xmss_adrs_t adrs;
+	xmss_hash256_t dgst;
+
+	if (!ctx || !sig) {
+		error_print();
+		return -1;
+	}
+
+	xmss_hash256_finish(&ctx->hash256_ctx, dgst);
+
+	xmss_adrs_set_layer_address(adrs, 0);
+	xmss_adrs_set_tree_address(adrs, 0);
+	xmss_adrs_set_type(adrs, XMSS_ADRS_TYPE_OTS);
+	xmss_adrs_set_ots_address(adrs, ctx->xmss_sig.index);
+
+	xmss_wots_sign(ctx->xmss_sig.wots_sig, ctx->xmss_public_key.seed, adrs, dgst,
+		ctx->xmss_sig.wots_sig);
+
+	*sig = ctx->xmss_sig;
 	return 1;
 }
 
@@ -1365,8 +1391,10 @@ int xmss_verify_finish(XMSS_SIGN_CTX *ctx)
 	xmss_wots_pk_to_root(ctx->xmss_sig.wots_sig, ctx->xmss_public_key.seed, adrs, root);
 
 	// wots_root (index), auth_path => xmss_root
+	/*
 	xmss_adrs_set_type(adrs, XMSS_ADRS_TYPE_HASHTREE);
 	xmss_adrs_set_padding(adrs, 0);
+	xmss_adrs_set_key_and_mask(adrs, 0);
 	for (h = 0; h < height; h++) {
 		int right_child = index & 1;
 		index >>= 1;
@@ -1376,6 +1404,8 @@ int xmss_verify_finish(XMSS_SIGN_CTX *ctx)
 			xmss_tree_hash(ctx->xmss_sig.auth_path[h], root, ctx->xmss_public_key.seed, adrs, root);
 		else	xmss_tree_hash(root, ctx->xmss_sig.auth_path[h], ctx->xmss_public_key.seed, adrs, root);
 	}
+	*/
+	xmss_build_root(root, index, ctx->xmss_public_key.seed, adrs, ctx->xmss_sig.auth_path, height, root);
 
 	if (memcmp(root, ctx->xmss_public_key.root, 32) != 0) {
 		error_print();
@@ -2330,6 +2360,7 @@ int xmssmt_sign_finish_ex(XMSSMT_SIGN_CTX *ctx, XMSSMT_SIGNATURE *sig)
 	return 1;
 }
 
+// TODO: use ctx->xmssmt_sig				
 int xmssmt_sign_finish(XMSSMT_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 {
 	XMSSMT_SIGNATURE signature;
@@ -2345,7 +2376,7 @@ int xmssmt_sign_finish(XMSSMT_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 	}
 
 	*siglen = 0;
-	if (xmssmt_signature_to_bytes(&ctx->xmssmt_sig, ctx->xmssmt_public_key.xmssmt_type, &sig, siglen) != 1) {
+	if (xmssmt_signature_to_bytes(&signature, ctx->xmssmt_public_key.xmssmt_type, &sig, siglen) != 1) {
 		error_print();
 		return -1;
 	}

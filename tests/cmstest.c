@@ -367,6 +367,8 @@ static int test_cms_signer_info_sign(void)
 	const uint8_t *d;
 	size_t dlen;
 
+	int algor = OID_ec_public_key;
+	int algor_param = OID_sm2;
 	X509_KEY x509_key;
 	uint8_t serial_buf[20];
 	uint8_t name[256];
@@ -386,7 +388,7 @@ static int test_cms_signer_info_sign(void)
 	const uint8_t *unauth_attrs;
 	size_t serial_len, issuer_len, auth_attrs_len, unauth_attrs_len;
 
-	if (x509_key_generate(&x509_key, OID_ec_public_key, OID_sm2) != 1
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1
 		|| rand_bytes(serial_buf, sizeof(serial_buf)) != 1
 		|| x509_name_set(name, &namelen, sizeof(name), "CN", "Beijing", "Haidian", "PKU", "CS", "Alice") != 1
 		|| time(&not_before) == -1
@@ -456,13 +458,16 @@ static int test_cms_signer_infos(void)
 	size_t signer_infos_len = 0;
 
 	SM3_CTX sm3_ctx;
+
+	int algor = OID_ec_public_key;
+	int algor_param = OID_sm2;
 	X509_KEY x509_key;
 
 	uint8_t issuer_buf[256];
 	size_t issuer_len;
 	uint8_t serial_buf[20];
 
-	if (x509_key_generate(&x509_key, OID_ec_public_key, OID_sm2) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -563,7 +568,7 @@ static int test_cms_signed_data(void)
 	const uint8_t *d;
 	size_t dlen;
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -683,7 +688,7 @@ static int test_cms_recipient_info(void)
 	uint8_t out[sizeof(in)];
 	size_t outlen;
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -795,7 +800,7 @@ int test_cms_enveloped_data(void)
 	p = certs;
 	certslen = 0;
 
-	if (x509_key_generate(&x509_key1, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key1, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -816,7 +821,7 @@ int test_cms_enveloped_data(void)
 		return -1;
 	}
 
-	if (x509_key_generate(&x509_key2, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key2, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -938,7 +943,7 @@ static int test_cms_key_agreement_info(void)
 	size_t idlen;
 
 	p = cert;
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}

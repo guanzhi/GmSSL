@@ -567,8 +567,6 @@ int sm2_sign_finish(SM2_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 
 	sm3_finish(&ctx->sm3_ctx, dgst);
 
-	format_bytes(stderr, 0, 4, "signed dgst", dgst, 32);
-
 	if (ctx->num_pre_comp == 0) {
 		if (sm2_fast_sign_pre_compute(ctx->pre_comp) != 1) {
 			error_print();
@@ -671,8 +669,6 @@ int sm2_verify_finish(SM2_VERIFY_CTX *ctx, const uint8_t *sigbuf, size_t siglen)
 	}
 
 	sm3_finish(&ctx->sm3_ctx, dgst);
-
-	format_bytes(stderr, 0, 4, "verify dgst", dgst, 32);
 
 	if (sm2_fast_verify(ctx->public_point_table, dgst, &sig) != 1) {
 		error_print();

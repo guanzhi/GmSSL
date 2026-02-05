@@ -1418,6 +1418,7 @@ int sphincs_signature_print(FILE *fp, int fmt, int ind, const char *label, const
 	return 1;
 }
 
+// when opt_rand is null, generate a determistic signature (without random)
 int sphincs_sign_init_ex(SPHINCS_SIGN_CTX *ctx, const SPHINCS_KEY *key, const sphincs_hash128_t opt_rand)
 {
 	if (!ctx || !key) {

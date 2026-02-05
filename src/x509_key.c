@@ -15,6 +15,7 @@
 #include <gmssl/oid.h>
 #include <gmssl/mem.h>
 #include <gmssl/sm4.h>
+#include <gmssl/rsa.h>
 #include <gmssl/asn1.h>
 #include <gmssl/rand.h>
 #include <gmssl/pkcs8.h>
@@ -35,8 +36,19 @@ int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key)
 	x509_key->algor = OID_ec_public_key;
 	x509_key->algor_param = OID_sm2;
 	x509_key->u.sm2_key = *sm2_key;
-	x509_key->signer_id = SM2_DEFAULT_ID;
-	x509_key->signer_idlen = SM2_DEFAULT_ID_LENGTH;
+	return 1;
+}
+
+int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r1_key)
+{
+	if (!x509_key || !secp256r1_key) {
+		error_print();
+		return -1;
+	}
+	memset(x509_key, 0, sizeof(X509_KEY));
+	x509_key->algor = OID_ec_public_key;
+	x509_key->algor_param = OID_secp256r1;
+	x509_key->u.secp256r1_key = *secp256r1_key;
 	return 1;
 }
 
@@ -105,500 +117,131 @@ int x509_key_set_sphincs_key(X509_KEY *x509_key, const SPHINCS_KEY *sphincs_key)
 	return 1;
 }
 
-int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r1_key)
+int x509_key_set_kyber_key(X509_KEY *x509_key, const KYBER_KEY *kyber_key)
 {
-	if (!x509_key || !secp256r1_key) {
+	if (!x509_key || !kyber_key) {
 		error_print();
 		return -1;
 	}
 	memset(x509_key, 0, sizeof(X509_KEY));
-	x509_key->algor = OID_ec_public_key;
-	x509_key->algor_param = OID_secp256r1;
-	x509_key->u.secp256r1_key = *secp256r1_key;
+	x509_key->algor = OID_kyber_kem;
+	x509_key->algor_param = OID_undef;
+	x509_key->u.kyber_key = *kyber_key;
 	return 1;
 }
 
-// currently the lms_type(s) of SHA-256 and SM3 are smaller than 4-bit
-// so we encode the lms_types into 4-bit array and int value
-// TODO: if max lms_type > 15, this function must be change!
-int x509_algor_param_from_lms_types(int *algor_param, const int *lms_types, size_t num)
+int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paramlen)
 {
-	if (!algor_param || !lms_types || !num) {
-		error_print();
-		return -1;
-	}
-	if (num > HSS_MAX_LEVELS) {
-		error_print();
-		return -1;
-	}
+	int param_val;
 
-	*algor_param = 0;
-	while (num--) {
-		if (lms_types[num] < 0 || lms_types[num] > 15) {
-			error_print();
-			return -1;
-		}
-		*algor_param <<= 4;
-		*algor_param |= lms_types[num] & 0x0f;
-	}
-	return 1;
-}
-
-int x509_algor_param_to_lms_types(int algor_param, int lms_types[5], size_t *num)
-{
-	if (!lms_types || !num) {
-		error_print();
-		return -1;
-	}
-	for (*num = 0; *num < 5; (*num)++) {
-		if (!algor_param) {
-			break;
-		}
-		lms_types[*num] = algor_param & 0x0f;
-		if (!lms_type_name(lms_types[*num])) {
-			error_print();
-			return -1;
-		}
-		algor_param >>= 4;
-	}
-	return 1;
-}
-
-int x509_key_generate(X509_KEY *key, int algor, int algor_param)
-{
 	if (!key) {
 		error_print();
 		return -1;
 	}
-	memset(key, 0, sizeof(X509_KEY));
 
+	memset(key, 0, sizeof(X509_KEY));
 	key->algor = algor;
 	key->algor_param = OID_undef;
 
 	switch (algor) {
 	case OID_ec_public_key:
-		if (algor_param == OID_sm2) {
-			if (sm2_key_generate(&key->u.sm2_key) != 1) {
-				error_print();
-				return -1;
-			}
-			key->signer_id = SM2_DEFAULT_ID;
-			key->signer_idlen = SM2_DEFAULT_ID_LENGTH;
-		} else if (algor_param == OID_secp256r1) {
-			if (secp256r1_key_generate(&key->u.secp256r1_key) != 1) {
-				error_print();
-				return -1;
-			}
-		} else {
-			error_print();
-			return -1;
-		}
-		key->algor_param = algor_param; // only OID_ec_public_key has parameters
-		break;
 	case OID_lms_hashsig:
-		if (!lms_type_name(algor_param)) {
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+		if (!param) {
 			error_print();
 			return -1;
 		}
-		if (lms_key_generate(&key->u.lms_key, algor_param) != 1) {
+		if (paramlen != sizeof(int)) {
 			error_print();
 			return -1;
 		}
+		param_val = *(const int *)param;
 		break;
 	case OID_hss_lms_hashsig:
-		{
-			int lms_types[5];
-			size_t num;
-			if (x509_algor_param_to_lms_types(algor_param, lms_types, &num) != 1) {
-				error_print();
-				return -1;
-			}
-			if (hss_key_generate(&key->u.hss_key, lms_types, num) != 1) {
-				error_print();
-				return -1;
-			}
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (!xmss_type_name((uint32_t)algor_param)) {
+		if (!param) {
 			error_print();
 			return -1;
 		}
-		if (xmss_key_generate(&key->u.xmss_key, (uint32_t)algor_param) != 1) {
+		if (paramlen < sizeof(int)) {
 			error_print();
 			return -1;
 		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (!xmssmt_type_name((uint32_t)algor_param)) {
-			error_print();
-			return -1;
-		}
-		if (xmssmt_key_generate(&key->u.xmssmt_key, (uint32_t)algor_param) != 1) {
+		if (paramlen % sizeof(int)) {
 			error_print();
 			return -1;
 		}
 		break;
 	case OID_sphincs_hashsig:
-		if (algor_param != OID_undef) {
+		if (param || paramlen) {
 			error_print();
 			return -1;
 		}
+		break;
+	case OID_kyber_kem:
+		if (param && paramlen != 32) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	switch (algor) {
+	case OID_ec_public_key:
+		switch (param_val) {
+		case OID_sm2:
+			if (sm2_key_generate(&key->u.sm2_key) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		case OID_secp256r1:
+			if (secp256r1_key_generate(&key->u.secp256r1_key) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		key->algor_param = param_val;
+		break;
+	case OID_lms_hashsig:
+		if (lms_key_generate(&key->u.lms_key, param_val) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_key_generate(&key->u.hss_key, (int *)param, paramlen/sizeof(int)) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_key_generate(&key->u.xmss_key, param_val) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_key_generate(&key->u.xmssmt_key, param_val) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
 		if (sphincs_key_generate(&key->u.sphincs_key) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
-	default:
-		error_print();
-		return -1;
-	}
-
-	return 1;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key)
-{
-	switch (key->algor) {
-	case OID_ec_public_key:
-		if (key->algor_param == OID_sm2) {
-			if (sm2_public_key_print(fp, fmt, ind, label, &key->u.sm2_key) != 1) {
-				error_print();
-				return -1;
-			}
-		} else if (key->algor_param == OID_secp256r1) {
-			if (secp256r1_public_key_print(fp, fmt, ind, label, &key->u.secp256r1_key) != 1) {
-				error_print();
-				return -1;
-			}
-		} else {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_lms_hashsig:
-		if (lms_public_key_print(fp, fmt, ind, label, &key->u.lms_key) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_hss_lms_hashsig:
-		if (hss_public_key_print(fp, fmt, ind, label, &key->u.hss_key) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_public_key_print(fp, fmt, ind, label, &key->u.xmss_key) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_public_key_print(fp, fmt, ind, label, &key->u.xmssmt_key) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sphincs_hashsig:
-		if (sphincs_public_key_print(fp, fmt, ind, label, &key->u.sphincs_key) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
-{
-	if (!key || !algor) {
-		error_print();
-		return -1;
-	}
-
-	if (key->algor == OID_ec_public_key) {
-		if (key->algor_param == OID_sm2) {
-			*algor = OID_sm2sign_with_sm3;
-			return 1;
-		} else if (key->algor_param == OID_secp256r1) {
-			*algor = OID_ecdsa_with_sha256;
-			return 1;
-		} else {
-			error_print();
-			return -1;
-		}
-	}
-
-	switch (key->algor) {
-	case OID_lms_hashsig:
-	case OID_hss_lms_hashsig:
-	case OID_xmss_hashsig:
-	case OID_xmssmt_hashsig:
-	case OID_sphincs_hashsig:
-		*algor = key->algor;
-		break;
-	default:
-		fprintf(stderr, "key->algor = %d\n", key->algor);
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32])
-{
-	SM3_CTX ctx;
-	uint8_t bits[X509_PUBLIC_KEY_MAX_SIZE];
-	uint8_t *p = bits;
-	size_t len = 0;
-
-	if (x509_public_key_to_bytes(key, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	sm3_init(&ctx);
-	sm3_update(&ctx, bits, len);
-	sm3_finish(&ctx, dgst);
-	return 1;
-}
-
-int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
-{
-	if (!key || !pub) {
-		error_print();
-		return -1;
-	}
-	if (key->algor != pub->algor) {
-		error_print();
-		return -1;
-	}
-	if (key->algor_param != pub->algor_param) {
-		error_print();
-		return -1;
-	}
-	switch (key->algor) {
-	case OID_ec_public_key:
-		if (key->algor_param == OID_sm2) {
-			if (sm2_public_key_equ(&key->u.sm2_key, &pub->u.sm2_key) != 1) {
-				error_print();
-				return -1;
-			}
-		} else if (key->algor_param == OID_secp256r1) {
-			if (secp256r1_public_key_equ(&key->u.secp256r1_key, &pub->u.secp256r1_key) != 1) {
-				error_print();
-				return -1;
-			}
-		} else {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_lms_hashsig:
-		if (memcmp(&key->u.lms_key.public_key,
-			&pub->u.lms_key.public_key, LMS_PUBLIC_KEY_SIZE) != 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_hss_lms_hashsig:
-		if (hss_public_key_equ(&key->u.hss_key, &pub->u.hss_key) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (memcmp(&key->u.xmss_key.public_key,
-			&pub->u.xmss_key.public_key, XMSS_PUBLIC_KEY_SIZE) != 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (memcmp(&key->u.xmssmt_key.public_key,
-			&pub->u.xmssmt_key.public_key, XMSSMT_PUBLIC_KEY_SIZE) != 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sphincs_hashsig:
-		if (memcmp(&key->u.sphincs_key.public_key,
-			&pub->u.sphincs_key.public_key, SPHINCS_PUBLIC_KEY_SIZE) != 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
-{
-	switch (key->algor) {
-	case OID_ec_public_key:
-		*siglen = SM2_signature_typical_size;
-		break;
-	case OID_lms_hashsig:
-		if (lms_key_get_signature_size(&key->u.lms_key, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_hss_lms_hashsig:
-		if (hss_key_get_signature_size(&key->u.hss_key, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_key_get_signature_size(&key->u.xmss_key, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_key_get_signature_size(&key->u.xmssmt_key, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sphincs_hashsig:
-		*siglen = SPHINCS_SIGNATURE_SIZE;
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-// 现在还不支持SPHINCS+呢！
-int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t argslen)
-{
-	if (!ctx || !key) {
-		error_print();
-		return -1;
-	}
-	if (args && !argslen) {
-		error_print();
-		return -1;
-	}
-
-	switch (key->algor) {
-	case OID_hss_lms_hashsig:
-		if (hss_sign_init(&ctx->u.hss_sign_ctx, &key->u.hss_key) != 1) {
-			error_print();
-			return -1;
-		}
-		ctx->sign_algor = key->algor;
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_sign_init(&ctx->u.xmss_sign_ctx, &key->u.xmss_key) != 1) {
-			error_print();
-			return -1;
-		}
-		ctx->sign_algor = key->algor;
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_sign_init(&ctx->u.xmssmt_sign_ctx, &key->u.xmssmt_key) != 1) {
-			error_print();
-			return -1;
-		}
-		ctx->sign_algor = key->algor;
-		break;
-	case OID_ec_public_key:
-		if (key->algor_param == OID_sm2) {
-			const char *signer_id = SM2_DEFAULT_ID;
-			size_t signer_idlen = SM2_DEFAULT_ID_LENGTH;
-			if (args) {
-				signer_id = (char *)args;
-				signer_idlen = argslen;
-			}
-			if (sm2_sign_init(&ctx->u.sm2_sign_ctx, &key->u.sm2_key, signer_id, signer_idlen) != 1) {
-				error_print();
-				return -1;
-			}
-			ctx->sign_algor = OID_sm2sign_with_sm3;
-		} else if (key->algor_param == OID_secp256r1) {
-			if (ecdsa_sign_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key) != 1) {
-				error_print();
-				return -1;
-			}
-			ctx->sign_algor = OID_ecdsa_with_sha256;
-		} else {
+	case OID_kyber_kem:
+		if (kyber_key_generate_ex(&key->u.kyber_key, (uint8_t *)param) != 1) {
 			error_print();
 			return -1;
 		}
@@ -610,488 +253,22 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 
 	return 1;
 }
-
-int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
-{
-	switch (ctx->sign_algor) {
-	case OID_hss_lms_hashsig:
-		if (hss_sign_update(&ctx->u.hss_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_sign_update(&ctx->u.xmss_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_sign_update(&ctx->u.xmssmt_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sm2sign_with_sm3:
-		if (sm2_sign_update(&ctx->u.sm2_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_ecdsa_with_sha256:
-		if (ecdsa_sign_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
-{
-	if (!ctx || !sig || !siglen) {
-		error_print();
-		return -1;
-	}
-	switch (ctx->sign_algor) {
-	case OID_hss_lms_hashsig:
-		if (hss_sign_finish(&ctx->u.hss_sign_ctx, sig, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_sign_finish(&ctx->u.xmss_sign_ctx, sig, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_sign_finish(&ctx->u.xmssmt_sign_ctx, sig, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sm2sign_with_sm3:
-		*siglen = SM2_signature_typical_size;
-		if (sm2_sign_finish_fixlen(&ctx->u.sm2_sign_ctx, *siglen, sig) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_ecdsa_with_sha256:
-		*siglen = ECDSA_SIGNATURE_TYPICAL_SIZE;
-		if (ecdsa_sign_finish_fixlen(&ctx->u.ecdsa_sign_ctx, *siglen, sig) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, size_t argslen,
-	const uint8_t *sig, size_t siglen)
-{
-	if (!ctx || !key || !sig || !siglen) {
-		error_print();
-		return -1;
-	}
-	if (args && !argslen) {
-		error_print();
-		return -1;
-	}
-
-	switch (key->algor) {
-	case OID_hss_lms_hashsig:
-		if (hss_verify_init(&ctx->u.hss_sign_ctx, &key->u.hss_key, sig, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		ctx->sign_algor = key->algor;
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_verify_init(&ctx->u.xmss_sign_ctx, &key->u.xmss_key, sig, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		ctx->sign_algor = key->algor;
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_verify_init(&ctx->u.xmssmt_sign_ctx, &key->u.xmssmt_key, sig, siglen) != 1) {
-			error_print();
-			return -1;
-		}
-		ctx->sign_algor = key->algor;
-		break;
-	case OID_ec_public_key:
-		if (key->algor_param == OID_sm2) {
-			const char *signer_id = SM2_DEFAULT_ID;
-			size_t signer_idlen = SM2_DEFAULT_ID_LENGTH;
-			if (args) {
-				signer_id = (char *)args;
-				signer_idlen = argslen;
-			}
-			if (sm2_verify_init(&ctx->u.sm2_verify_ctx, &key->u.sm2_key, signer_id, signer_idlen) != 1) {
-				error_print();
-				return -1;
-			}
-			ctx->sign_algor = OID_sm2sign_with_sm3;
-			if (siglen > sizeof(ctx->sig)) {
-				error_print();
-				return -1;
-			}
-			memcpy(ctx->sig, sig, siglen);
-			ctx->siglen = siglen;
-		} else if (key->algor_param == OID_secp256r1) {
-			if (ecdsa_verify_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key, sig, siglen) != 1) {
-				error_print();
-				return -1;
-			}
-			ctx->sign_algor = OID_ecdsa_with_sha256;
-		} else {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
-{
-	switch (ctx->sign_algor) {
-	case OID_hss_lms_hashsig:
-		if (hss_verify_update(&ctx->u.hss_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_verify_update(&ctx->u.xmss_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_verify_update(&ctx->u.xmssmt_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sm2sign_with_sm3:
-		if (sm2_verify_update(&ctx->u.sm2_verify_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_ecdsa_with_sha256:
-		if (ecdsa_verify_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-
-	return 1;
-}
-
-int x509_verify_finish(X509_SIGN_CTX *ctx)
-{
-	int ret;
-
-	switch (ctx->sign_algor) {
-	case OID_hss_lms_hashsig:
-		if ((ret = hss_verify_finish(&ctx->u.hss_sign_ctx)) < 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if ((ret = xmss_verify_finish(&ctx->u.xmss_sign_ctx)) < 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if ((ret = xmssmt_verify_finish(&ctx->u.xmssmt_sign_ctx)) < 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sm2sign_with_sm3:
-		if ((ret = sm2_verify_finish(&ctx->u.sm2_verify_ctx, ctx->sig, ctx->siglen)) < 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_ecdsa_with_sha256:
-		if ((ret = ecdsa_verify_finish(&ctx->u.ecdsa_sign_ctx)) < 0) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-
-
-	return 1;
-}
-
-int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *pub, uint8_t *out, size_t *outlen)
-{
-	if (!key || !pub || !out || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (key->algor != pub->algor || key->algor_param != pub->algor_param) {
-		error_print();
-		return -1;
-	}
-	if (key->algor != OID_ec_public_key) {
-		error_print();
-		return -1;
-	}
-
-	switch (key->algor_param) {
-	case OID_sm2:
-		if (sm2_do_ecdh(&key->u.sm2_key, &pub->u.sm2_key, out) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_secp256r1:
-		if (secp256r1_do_ecdh(&key->u.secp256r1_key, &pub->u.secp256r1_key, out) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	*outlen = 32;
-	return 1;
-}
-
-int x509_key_exchange(const X509_KEY *key, const uint8_t *peer_pub, size_t peer_publen, uint8_t *out, size_t *outlen)
-{
-	if (!key || !peer_pub || !out || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (key->algor != OID_ec_public_key) {
-		error_print();
-		return -1;
-	}
-	if (peer_publen != 65) {
-		error_print();
-		return -1;
-	}
-	switch (key->algor_param) {
-	case OID_sm2:
-		if (sm2_ecdh(&key->u.sm2_key, peer_pub, out) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_secp256r1:
-		if (secp256r1_ecdh(&key->u.secp256r1_key, peer_pub, out) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	*outlen = 32;
-	return 1;
-}
-
-
-
-int x509_public_key_info_to_der(const X509_KEY *x509_key, uint8_t **out, size_t *outlen)
-{
-	uint8_t keybuf[300];
-	uint8_t *p = keybuf;
-	size_t keylen = 0;
-	size_t len = 0;
-
-	if (!x509_key || !outlen) {
-		error_print();
-		return -1;
-	}
-
-	if (x509_public_key_to_bytes(x509_key, &p, &keylen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	// 这几个函数需要合并到一起
-	if (x509_public_key_algor_to_der(x509_key->algor, x509_key->algor_param, NULL, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (asn1_bit_octets_to_der(keybuf, keylen, NULL, &len) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (asn1_sequence_header_to_der(len, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (x509_public_key_algor_to_der(x509_key->algor, x509_key->algor_param, out, outlen) != 1
-		|| asn1_bit_octets_to_der(keybuf, keylen, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int x509_public_key_info_from_der(X509_KEY *x509_key, const uint8_t **in, size_t *inlen)
-{
-	int ret;
-	const uint8_t *d;
-	size_t dlen;
-	int algor;
-	int algor_param;
-	const uint8_t *pub;
-	size_t publen;
-
-	if (!x509_key || !in || !(*in) || !inlen) {
-		error_print();
-		return -1;
-	}
-
-	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	if (x509_public_key_algor_from_der(&algor, &algor_param, &d, &dlen) != 1
-		|| asn1_bit_octets_from_der(&pub, &publen, &d, &dlen) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	memset(x509_key, 0, sizeof(X509_KEY));
-
-	switch (algor) {
-	case OID_ec_public_key:
-		if (publen != 65) {
-			error_print();
-			return -1;
-		}
-		if (algor_param == OID_sm2) {
-			if (sm2_z256_point_from_octets(&x509_key->u.sm2_key.public_key, pub, publen) != 1) {
-				error_print();
-				return -1;
-			}
-			publen = 0;
-		} else if (algor_param == OID_secp256r1) {
-			if (secp256r1_public_key_from_bytes(&x509_key->u.secp256r1_key, &pub, &publen) != 1) {
-				error_print();
-				return -1;
-			}
-		} else {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_lms_hashsig:
-		if (lms_public_key_from_bytes(&x509_key->u.lms_key, &pub, &publen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_hss_lms_hashsig:
-		if (hss_public_key_from_bytes(&x509_key->u.hss_key, &pub, &publen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmss_hashsig:
-		if (xmss_public_key_from_bytes(&x509_key->u.xmss_key, &pub, &publen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_xmssmt_hashsig:
-		if (xmssmt_public_key_from_bytes(&x509_key->u.xmssmt_key, &pub, &publen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case OID_sphincs_hashsig:
-		if (sphincs_public_key_from_bytes(&x509_key->u.sphincs_key, &pub, &publen) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	x509_key->algor = algor;
-	x509_key->algor_param = algor_param;
-
-	if (publen) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void x509_key_cleanup(X509_KEY *key)
 {
 	if (key) {
 		switch (key->algor) {
 		case OID_ec_public_key:
-			if (key->algor_param == OID_sm2) {
-				//sm2_key_cleanup(&key->u.sm2_key);
+			switch (key->algor_param) {
+			case OID_sm2:
 				gmssl_secure_clear(&key->u.sm2_key, sizeof(SM2_KEY));
-			} else if (key->algor_param == OID_secp256r1) {
+				break;
+			case OID_secp256r1:
 				secp256r1_key_cleanup(&key->u.secp256r1_key);
+				break;
+			default:
+				error_print();
+				return;
 			}
 			break;
 		case OID_lms_hashsig:
@@ -1109,9 +286,13 @@ void x509_key_cleanup(X509_KEY *key)
 		case OID_sphincs_hashsig:
 			sphincs_key_cleanup(&key->u.sphincs_key);
 			break;
+		case OID_kyber_kem:
+			kyber_key_cleanup(&key->u.kyber_key);
+			break;
 		default:
 			error_print();
 		}
+		memset(key, 0, sizeof(X509_KEY));
 	}
 }
 
@@ -1173,6 +354,12 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 			return -1;
 		}
 		break;
+	case OID_kyber_kem:
+		if (kyber_public_key_to_bytes(&key->u.kyber_key, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	default:
 		error_print();
 		return -1;
@@ -1180,40 +367,370 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 	return 1;
 }
 
-void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx)
+int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const uint8_t **in, size_t *inlen)
 {
-	if (ctx) {
-		gmssl_secure_clear(ctx, sizeof(X509_SIGN_CTX));
-		memset(ctx, 0, sizeof(X509_SIGN_CTX));
+	if (!key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
 	}
+
+	memset(key, 0, sizeof(X509_KEY));
+	key->algor = algor;
+	key->algor_param = algor_param;
+
+	switch (algor) {
+	case OID_ec_public_key:
+		if (*inlen < 65) {
+			error_print();
+			return -1;
+		}
+		switch (algor_param) {
+		case OID_sm2:
+			if (sm2_z256_point_from_octets(&key->u.sm2_key.public_key, *in, 65) != 1) {
+				error_print();
+				return -1;
+			}
+			*in += 65;
+			*inlen -= 65;
+			break;
+		case OID_secp256r1:
+			if (secp256r1_public_key_from_bytes(&key->u.secp256r1_key, in, inlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		return 1;
+	}
+	if (algor_param != OID_undef) {
+		error_print();
+		return -1;
+	}
+	switch (algor) {
+	case OID_lms_hashsig:
+		if (lms_public_key_from_bytes(&key->u.lms_key, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_public_key_from_bytes(&key->u.hss_key, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_public_key_from_bytes(&key->u.xmss_key, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_public_key_from_bytes(&key->u.xmssmt_key, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		if (sphincs_public_key_from_bytes(&key->u.sphincs_key, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_kyber_kem:
+		if (kyber_public_key_from_bytes(&key->u.kyber_key, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
 }
 
+int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32])
+{
+	SM3_CTX ctx;
+	uint8_t bits[X509_PUBLIC_KEY_MAX_SIZE];
+	uint8_t *p = bits;
+	size_t len = 0;
 
+	if (x509_public_key_to_bytes(key, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	sm3_init(&ctx);
+	sm3_update(&ctx, bits, len);
+	sm3_finish(&ctx, dgst);
+	return 1;
+}
 
+int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
+{
+	int ret;
 
+	if (!key || !pub) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != pub->algor) {
+		error_print();
+		return 0;
+	}
+	if (key->algor_param != pub->algor_param) {
+		error_print();
+		return 0;
+	}
+	switch (key->algor) {
+	case OID_ec_public_key:
+		if (key->algor_param == OID_sm2) {
+			if ((ret = sm2_public_key_equ(&key->u.sm2_key, &pub->u.sm2_key)) != 1) {
+				error_print();
+				return ret;
+			}
+		} else if (key->algor_param == OID_secp256r1) {
+			if ((ret = secp256r1_public_key_equ(&key->u.secp256r1_key, &pub->u.secp256r1_key)) != 1) {
+				error_print();
+				return ret;
+			}
+		} else {
+			error_print();
+			return -1;
+		}
+		return 1;
+	case OID_hss_lms_hashsig:
+		if ((ret = hss_public_key_equ(&key->u.hss_key, &pub->u.hss_key)) != 1) {
+			error_print();
+			return ret;
+		}
+		return 1;
+	}
 
+	// sizeof(XXX_PUBLIC_KEY) >= XXX_PUBLIC_KEY_SIZE, depends on compiler
+	switch (key->algor) {
+	case OID_lms_hashsig:
+		if (memcmp(&key->u.lms_key, &pub->u.lms_key, sizeof(LMS_PUBLIC_KEY)) != 0) {
+			error_print();
+			return 0;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (memcmp(&key->u.xmss_key, &pub->u.xmss_key, sizeof(XMSS_PUBLIC_KEY)) != 0) {
+			error_print();
+			return 0;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (memcmp(&key->u.xmssmt_key, &pub->u.xmssmt_key, sizeof(XMSSMT_PUBLIC_KEY)) != 0) {
+			error_print();
+			return 0;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		if (memcmp(&key->u.sphincs_key, &pub->u.sphincs_key, sizeof(SPHINCS_PUBLIC_KEY)) != 0) {
+			error_print();
+			return 0;
+		}
+		break;
+	case OID_kyber_kem:
+		if (memcmp(&key->u.kyber_key, &pub->u.kyber_key, sizeof(KYBER_PUBLIC_KEY)) != 0) {
+			error_print();
+			return 0;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key)
+{
+	switch (key->algor) {
+	case OID_ec_public_key:
+		if (key->algor_param == OID_sm2) {
+			if (sm2_public_key_print(fp, fmt, ind, label, &key->u.sm2_key) != 1) {
+				error_print();
+				return -1;
+			}
+		} else if (key->algor_param == OID_secp256r1) {
+			if (secp256r1_public_key_print(fp, fmt, ind, label, &key->u.secp256r1_key) != 1) {
+				error_print();
+				return -1;
+			}
+		} else {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+		if (lms_public_key_print(fp, fmt, ind, label, &key->u.lms_key) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_public_key_print(fp, fmt, ind, label, &key->u.hss_key) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_public_key_print(fp, fmt, ind, label, &key->u.xmss_key) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_public_key_print(fp, fmt, ind, label, &key->u.xmssmt_key) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		if (sphincs_public_key_print(fp, fmt, ind, label, &key->u.sphincs_key) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_kyber_kem:
+		if (kyber_public_key_print(fp, fmt, ind, label, &key->u.kyber_key) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+int x509_public_key_info_to_der(const X509_KEY *x509_key, uint8_t **out, size_t *outlen)
+{
+	uint8_t keybuf[X509_PUBLIC_KEY_MAX_SIZE];
+	uint8_t *p = keybuf;
+	size_t keylen = 0;
+	size_t len = 0;
 
+	if (!x509_key || !outlen) {
+		error_print();
+		return -1;
+	}
 
+	if (x509_public_key_to_bytes(x509_key, &p, &keylen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_public_key_algor_to_der(x509_key->algor, x509_key->algor_param, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(keybuf, keylen, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| x509_public_key_algor_to_der(x509_key->algor, x509_key->algor_param, out, outlen) != 1
+		|| asn1_bit_octets_to_der(keybuf, keylen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+int x509_public_key_info_from_der(X509_KEY *x509_key, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	int algor;
+	int algor_param;
+	const uint8_t *pub;
+	size_t publen;
 
+	if (!x509_key || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
 
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_public_key_algor_from_der(&algor, &algor_param, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(&pub, &publen, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_public_key_from_bytes(x509_key, algor, algor_param, &pub, &publen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (publen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p = d;
+	size_t len = dlen;
+	int alg;
+	int params;
 
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
 
+	if (x509_public_key_algor_from_der(&alg, &params, &p, &len) != 1) goto err;
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	x509_public_key_algor_print(fp, fmt, ind, "algorithm", p, len);
+	format_print(fp, fmt, ind, "subjectPublicKey\n");
+	ind += 4;
+	if (asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) goto err;
+	switch (alg) {
+	case OID_ec_public_key:
+		format_bytes(fp, fmt, ind, "ECPoint", p, len);
+		break;
+	case OID_rsa_encryption:
+		rsa_public_key_print(fp, fmt, ind, "RSAPublicKey", p, len);
+		break;
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+	case OID_sphincs_hashsig:
+	case OID_kyber_kem:
+		// TODO: print public key without too much details
+	default:
+		format_bytes(fp, fmt, ind, "raw_data", p, len);
+	}
+	if (asn1_length_is_zero(dlen) != 1) goto err;
+	return 1;
+err:
+	error_print();
+	return -1;
+}
 
-
+int x509_private_key_print_ex(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key)
+{
+	// TODO: change lms_private_key_print to lms_private_key_print_ex and xmss ...
+	error_print();
+	return -1;
+}
 
 #define SM2_PRIVATE_KEY_DER_SIZE 121
-
 int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pubkey,
 	uint8_t **out, size_t *outlen)
 {
-	uint8_t params[64];
-	uint8_t pubkey[128];
-	uint8_t *params_ptr = params;
-	uint8_t *pubkey_ptr = pubkey;
+	uint8_t params_buf[16]; // = 10 for sm2, p256
+	uint8_t pubkey_buf[68]; // = 68 for sm2, p256
+	uint8_t *params = NULL;
+	uint8_t *pubkey = NULL;
 	size_t params_len = 0;
 	size_t pubkey_len = 0;
 	uint8_t prikey[32];
@@ -1229,28 +746,34 @@ int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pub
 	}
 
 	if (encode_params) {
-		if (ec_named_curve_to_der(key->algor_param, &params_ptr, &params_len) != 1) {
+		params = params_buf;
+		if (ec_named_curve_to_der(key->algor_param, &params, &params_len) != 1) {
 			gmssl_secure_clear(prikey, 32);
 			error_print();
 			return -1;
 		}
+		params = params_buf;
 	}
 	switch (key->algor_param) {
 	case OID_sm2:
 		if (encode_pubkey) {
-			if (sm2_public_key_to_der(&key->u.sm2_key, &pubkey_ptr, &pubkey_len) != 1) {
+			pubkey = pubkey_buf;
+			if (sm2_public_key_to_der(&key->u.sm2_key, &pubkey, &pubkey_len) != 1) {
 				error_print();
 				return -1;
 			}
+			pubkey = pubkey_buf;
 		}
 		sm2_z256_to_bytes(key->u.sm2_key.private_key, prikey);
 		break;
 	case OID_secp256r1:
 		if (encode_pubkey) {
-			if (secp256r1_public_key_to_der(&key->u.secp256r1_key, &pubkey_ptr, &pubkey_len) != 1) {
+			pubkey = pubkey_buf;
+			if (secp256r1_public_key_to_der(&key->u.secp256r1_key, &pubkey, &pubkey_len) != 1) {
 				error_print();
 				return -1;
 			}
+			pubkey = pubkey_buf;
 		}
 		secp256r1_to_32bytes(key->u.secp256r1_key.private_key, prikey);
 		break;
@@ -1259,16 +782,15 @@ int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pub
 		return -1;
 	}
 
-	// 这里有严重的问题，explicit项目提供的数据不能为空，但是我们这的params，pubkey是可以为空的
 	if (asn1_int_to_der(EC_private_key_version, NULL, &len) != 1
 		|| asn1_octet_string_to_der(prikey, 32, NULL, &len) != 1
-		|| asn1_explicit_to_der(0, params, params_len, NULL, &len) != 1
-		|| asn1_explicit_to_der(1, pubkey, pubkey_len, NULL, &len) != 1
+		|| asn1_explicit_to_der(0, params, params_len, NULL, &len) < 0
+		|| asn1_explicit_to_der(1, pubkey, pubkey_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_int_to_der(EC_private_key_version, out, outlen) != 1
 		|| asn1_octet_string_to_der(prikey, 32, out, outlen) != 1
-		|| asn1_explicit_to_der(0, params, params_len, out, outlen) != 1
-		|| asn1_explicit_to_der(1, pubkey, pubkey_len, out, outlen) != 1) {
+		|| asn1_explicit_to_der(0, params, params_len, out, outlen) < 0
+		|| asn1_explicit_to_der(1, pubkey, pubkey_len, out, outlen) < 0) {
 		gmssl_secure_clear(prikey, 32);
 		error_print();
 		return -1;
@@ -1301,8 +823,8 @@ int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, si
 	}
 	if (asn1_int_from_der(&ver, &d, &dlen) != 1
 		|| asn1_octet_string_from_der(&prikey, &prikey_len, &d, &dlen) != 1
-		|| asn1_explicit_from_der(0, &params, &params_len, &d, &dlen) != 1
-		|| asn1_explicit_from_der(1, &pubkey, &pubkey_len, &d, &dlen) != 1
+		|| asn1_explicit_from_der(0, &params, &params_len, &d, &dlen) < 0
+		|| asn1_explicit_from_der(1, &pubkey, &pubkey_len, &d, &dlen) < 0
 		|| asn1_check(ver == EC_private_key_version) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
@@ -1390,9 +912,18 @@ int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, si
 	return 1;
 }
 
+int x509_private_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	if (sm2_private_key_info_print(fp, fmt, ind, label, d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_private_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *outlen)
 {
-	uint8_t private_key[256]; // 缓冲大小取决于编译器支持哪些公钥类型
+	uint8_t private_key[128]; // 121
 	uint8_t *p = private_key;
 	size_t private_key_len = 0;
 	size_t len = 0;
@@ -1411,6 +942,13 @@ int x509_private_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *out
 			return -1;
 		}
 		break;
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+	case OID_sphincs_hashsig:
+	case OID_kyber_kem:
+	// TODO: support these algors, (MUST change private_key[] size)!
 	default:
 		error_print();
 		return -1;
@@ -1450,9 +988,6 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		if (ret == 0) error_print();
-
-		format_bytes(stderr, 0, 0, "private_key_info", *in, *inlen);
-
 		return ret;
 	}
 	if (asn1_int_from_der(&version, &d, &dlen) != 1
@@ -1477,6 +1012,7 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
 	case OID_sphincs_hashsig:
+	case OID_kyber_kem:
 	default:
 		error_print();
 		return -1;
@@ -1488,7 +1024,7 @@ int x509_private_key_info_encrypt_to_der(const X509_KEY *x509_key, const char *p
 	uint8_t **out, size_t *outlen)
 {
 	int ret = -1;
-	uint8_t private_key_info[512]; // 设置更合理的大小
+	uint8_t private_key_info[168]; // 150
 	uint8_t *p = private_key_info;
 	size_t private_key_info_len = 0;
 	uint8_t salt[16];
@@ -1557,8 +1093,8 @@ int x509_private_key_info_decrypt_from_der(X509_KEY *x509_key,
 	uint8_t key[16];
 	SM4_KEY sm4_key;
 	const uint8_t *enced_private_key_info;
-	size_t enced_private_key_info_len;
-	uint8_t private_key_info[256];
+	size_t enced_private_key_info_len; // 160
+	uint8_t private_key_info[168];
 	const uint8_t *cp = private_key_info;
 	size_t private_key_info_len;
 
@@ -1573,6 +1109,11 @@ int x509_private_key_info_decrypt_from_der(X509_KEY *x509_key,
 		|| asn1_check(cipher == OID_sm4_cbc) != 1
 		|| asn1_check(ivlen == 16) != 1
 		|| asn1_length_le(enced_private_key_info_len, sizeof(private_key_info)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (enced_private_key_info_len > sizeof(private_key_info)) {
+		// sm4_cbc_padding_decrypt might buffer overflow
 		error_print();
 		return -1;
 	}
@@ -1725,6 +1266,23 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 			error_print();
 			return -1;
 		}
+	} else if (algor == OID_kyber_kem) {
+		uint8_t buf[KYBER_PRIVATE_KEY_SIZE];
+		const uint8_t *cp = buf;
+		size_t len = sizeof(buf);
+
+		if (fread(buf, 1, len, fp) != len) {
+			error_print();
+			return -1;
+		}
+		if (kyber_private_key_from_bytes(&key->u.kyber_key, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (len) {
+			error_print();
+			return -1;
+		}
 	} else {
 		error_print();
 		return -1;
@@ -1732,3 +1290,749 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 	return 1;
 }
 
+int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
+{
+	if (!key || !algor) {
+		error_print();
+		return -1;
+	}
+
+	switch (key->algor) {
+	case OID_ec_public_key:
+		switch (key->algor_param) {
+		case OID_sm2:
+			*algor = OID_sm2sign_with_sm3;
+			break;
+		case OID_secp256r1:
+			*algor = OID_ecdsa_with_sha256;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+	case OID_sphincs_hashsig:
+		*algor = key->algor;
+		break;
+	case OID_kyber_kem:
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
+{
+	switch (key->algor) {
+	case OID_ec_public_key:
+		*siglen = SM2_signature_max_size;
+		break;
+	case OID_lms_hashsig:
+		if (lms_key_get_signature_size(&key->u.lms_key, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_key_get_signature_size(&key->u.hss_key, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_key_get_signature_size(&key->u.xmss_key, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_key_get_signature_size(&key->u.xmssmt_key, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		*siglen = SPHINCS_SIGNATURE_SIZE;
+		break;
+	case OID_kyber_kem:
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t argslen)
+{
+	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
+	switch (key->algor) {
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+		if (args) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
+
+	memset(ctx, 0, sizeof(X509_SIGN_CTX));
+
+	switch (key->algor) {
+	case OID_ec_public_key:
+		switch (key->algor_param) {
+		case OID_sm2:
+			if (!args) {
+				args = SM2_DEFAULT_ID;
+				argslen = SM2_DEFAULT_ID_LENGTH;
+			}
+			if (!argslen) {
+				error_print();
+				return -1;
+			}
+			if (sm2_sign_init(&ctx->u.sm2_sign_ctx, &key->u.sm2_key, args, argslen) != 1) {
+				error_print();
+				return -1;
+			}
+			ctx->sign_algor = OID_sm2sign_with_sm3;
+			break;
+		case OID_secp256r1:
+			if (ecdsa_sign_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key) != 1) {
+				error_print();
+				return -1;
+			}
+			ctx->sign_algor = OID_ecdsa_with_sha256;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+		if (lms_sign_init(&ctx->u.lms_sign_ctx, &key->u.lms_key) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_sign_init(&ctx->u.hss_sign_ctx, &key->u.hss_key) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_sign_init(&ctx->u.xmss_sign_ctx, &key->u.xmss_key) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_sign_init(&ctx->u.xmssmt_sign_ctx, &key->u.xmssmt_key) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+
+	// to generate a random signature (instead of a deterministic one), caller should prepare uint8_t rand[16]
+	case OID_sphincs_hashsig:
+		if (args) {
+			if (argslen != sizeof(sphincs_hash128_t)) {
+				error_print();
+				return -1;
+			}
+		}
+		if (sphincs_sign_init_ex(&ctx->u.sphincs_sign_ctx, &key->u.sphincs_key, args) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int x509_sign_set_signature_size(X509_SIGN_CTX *ctx, size_t siglen)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+	case OID_ecdsa_with_sha256:
+		switch (siglen) {
+		case SM2_signature_compact_size:
+		case SM2_signature_typical_size:
+		case SM2_signature_max_size:
+			ctx->fixed_siglen = siglen;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+		if (sm2_sign_update(&ctx->u.sm2_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ecdsa_with_sha256:
+		if (ecdsa_sign_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+		if (lms_sign_update(&ctx->u.lms_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_sign_update(&ctx->u.hss_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_sign_update(&ctx->u.xmss_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_sign_update(&ctx->u.xmssmt_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		error_print();
+		return -1;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
+{
+	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+		if (ctx->fixed_siglen) {
+			if (sm2_sign_finish_fixlen(&ctx->u.sm2_sign_ctx, ctx->fixed_siglen, sig) != 1) {
+				error_print();
+				return -1;
+			}
+			*siglen = ctx->fixed_siglen;
+		} else {
+			if (sm2_sign_finish(&ctx->u.sm2_sign_ctx, sig, siglen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		break;
+	case OID_ecdsa_with_sha256:
+		if (ctx->fixed_siglen) {
+			if (ecdsa_sign_finish_fixlen(&ctx->u.ecdsa_sign_ctx, ctx->fixed_siglen, sig) != 1) {
+				error_print();
+				return -1;
+			}
+			*siglen = ctx->fixed_siglen;
+		} else {
+			if (ecdsa_sign_finish(&ctx->u.ecdsa_sign_ctx, sig, siglen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		break;
+	case OID_lms_hashsig:
+		if (lms_sign_finish(&ctx->u.lms_sign_ctx, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_sign_finish(&ctx->u.hss_sign_ctx, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_sign_finish(&ctx->u.xmss_sign_ctx, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_sign_finish(&ctx->u.xmssmt_sign_ctx, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		error_print();
+		return -1;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *sig, size_t *siglen)
+{
+	if (!ctx || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (!data || !datalen) {
+		error_print();
+		return -1;
+	}
+
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+	case OID_ecdsa_with_sha256:
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+		if (x509_sign_update(ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_sign_finish(ctx, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		if (sphincs_sign_prepare(&ctx->u.sphincs_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sphincs_sign_update(&ctx->u.sphincs_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (sphincs_sign_finish(&ctx->u.sphincs_sign_ctx, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, size_t argslen,
+	const uint8_t *sig, size_t siglen)
+{
+	if (!ctx || !key || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (args && key->algor != OID_ec_public_key) {
+		error_print();
+		return -1;
+	}
+
+	switch (key->algor) {
+	case OID_ec_public_key:
+		switch (key->algor_param) {
+		case OID_sm2:
+			if (!args) {
+				args = SM2_DEFAULT_ID;
+				argslen = SM2_DEFAULT_ID_LENGTH;
+			}
+			if (!argslen) {
+				error_print();
+				return -1;
+			}
+			if (sm2_verify_init(&ctx->u.sm2_verify_ctx, &key->u.sm2_key, args, argslen) != 1) {
+				error_print();
+				return -1;
+			}
+			ctx->sign_algor = OID_sm2sign_with_sm3;
+			if (siglen > sizeof(ctx->sig)) {
+				error_print();
+				return -1;
+			}
+			memcpy(ctx->sig, sig, siglen);
+			ctx->siglen = siglen;
+			break;
+		case OID_secp256r1:
+			if (ecdsa_verify_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key, sig, siglen) != 1) {
+				error_print();
+				return -1;
+			}
+			ctx->sign_algor = OID_ecdsa_with_sha256;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+		if (lms_verify_init(&ctx->u.lms_sign_ctx, &key->u.lms_key, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_verify_init(&ctx->u.hss_sign_ctx, &key->u.hss_key, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_verify_init(&ctx->u.xmss_sign_ctx, &key->u.xmss_key, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_verify_init(&ctx->u.xmssmt_sign_ctx, &key->u.xmssmt_key, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	case OID_sphincs_hashsig:
+		if (sphincs_verify_init(&ctx->u.sphincs_sign_ctx, &key->u.sphincs_key, sig, siglen) != 1) {
+			error_print();
+			return -1;
+		}
+		ctx->sign_algor = key->algor;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+		if (sm2_verify_update(&ctx->u.sm2_verify_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ecdsa_with_sha256:
+		if (ecdsa_verify_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+		if (lms_verify_update(&ctx->u.lms_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if (hss_verify_update(&ctx->u.hss_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if (xmss_verify_update(&ctx->u.xmss_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if (xmssmt_verify_update(&ctx->u.xmssmt_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		error_print();
+		return -1;
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int x509_verify_finish(X509_SIGN_CTX *ctx)
+{
+	int ret;
+
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+		if ((ret = sm2_verify_finish(&ctx->u.sm2_verify_ctx, ctx->sig, ctx->siglen)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_ecdsa_with_sha256:
+		if ((ret = ecdsa_verify_finish(&ctx->u.ecdsa_sign_ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_lms_hashsig:
+		if ((ret = lms_verify_finish(&ctx->u.lms_sign_ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_hss_lms_hashsig:
+		if ((ret = hss_verify_finish(&ctx->u.hss_sign_ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmss_hashsig:
+		if ((ret = xmss_verify_finish(&ctx->u.xmss_sign_ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_xmssmt_hashsig:
+		if ((ret = xmssmt_verify_finish(&ctx->u.xmssmt_sign_ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		error_print();
+		return -1;
+	default:
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
+{
+	int ret;
+
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	switch (ctx->sign_algor) {
+	case OID_sm2sign_with_sm3:
+	case OID_ecdsa_with_sha256:
+	case OID_lms_hashsig:
+	case OID_hss_lms_hashsig:
+	case OID_xmss_hashsig:
+	case OID_xmssmt_hashsig:
+		if (x509_verify_update(ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_verify_finish(ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_sphincs_hashsig:
+		if (sphincs_verify_update(&ctx->u.sphincs_sign_ctx, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = sphincs_verify_finish(&ctx->u.sphincs_sign_ctx)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx)
+{
+	if (ctx) {
+		switch (ctx->sign_algor) {
+		case OID_sm2sign_with_sm3:
+			gmssl_secure_clear(&ctx->u.sm2_sign_ctx, sizeof(SM2_SIGN_CTX));
+			break;
+		case OID_ecdsa_with_sha256:
+			gmssl_secure_clear(&ctx->u.ecdsa_sign_ctx, sizeof(ECDSA_SIGN_CTX));
+			break;
+		case OID_lms_hashsig:
+			lms_sign_ctx_cleanup(&ctx->u.lms_sign_ctx);
+			break;
+		case OID_hss_lms_hashsig:
+			hss_sign_ctx_cleanup(&ctx->u.hss_sign_ctx);
+			break;
+		case OID_xmss_hashsig:
+			xmss_sign_ctx_cleanup(&ctx->u.xmss_sign_ctx);
+			break;
+		case OID_xmssmt_hashsig:
+			xmssmt_sign_ctx_cleanup(&ctx->u.xmssmt_sign_ctx);
+			break;
+		case OID_sphincs_hashsig:
+			sphincs_sign_ctx_cleanup(&ctx->u.sphincs_sign_ctx);
+			break;
+		}
+		memset(ctx, 0, sizeof(X509_SIGN_CTX));
+	}
+}
+
+int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *pub, uint8_t *out, size_t *outlen)
+{
+	if (!key || !pub || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != pub->algor || key->algor_param != pub->algor_param) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != OID_ec_public_key) {
+		error_print();
+		return -1;
+	}
+
+	switch (key->algor_param) {
+	case OID_sm2:
+		if (sm2_do_ecdh(&key->u.sm2_key, &pub->u.sm2_key, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_secp256r1:
+		if (secp256r1_do_ecdh(&key->u.secp256r1_key, &pub->u.secp256r1_key, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	*outlen = 32;
+	return 1;
+}
+
+int x509_key_exchange(const X509_KEY *key, const uint8_t *peer_pub, size_t peer_publen, uint8_t *out, size_t *outlen)
+{
+	if (!key || !peer_pub || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != OID_ec_public_key) {
+		error_print();
+		return -1;
+	}
+	if (peer_publen != 65) {
+		error_print();
+		return -1;
+	}
+	switch (key->algor_param) {
+	case OID_sm2:
+		if (sm2_ecdh(&key->u.sm2_key, peer_pub, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_secp256r1:
+		if (secp256r1_ecdh(&key->u.secp256r1_key, peer_pub, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	*outlen = 32;
+	return 1;
+}
+
+int x509_key_encapsulate(const X509_KEY *key, uint8_t *ciphertext, size_t *ciphertext_len, uint8_t secret[32])
+{
+	if (!key || !ciphertext || !ciphertext_len || !secret) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != OID_kyber_kem) {
+		error_print();
+		return -1;
+	}
+	if (kyber_encap(&key->u.kyber_key, (KYBER_CIPHERTEXT *)ciphertext, secret) != 1) {
+		error_print();
+		return -1;
+	}
+	*ciphertext_len = sizeof(KYBER_CIPHERTEXT);
+	return 1;
+}
+
+int x509_key_decapsulate(const X509_KEY *key, const uint8_t *ciphertext, size_t ciphertext_len, uint8_t secret[32])
+{
+	if (!key || !ciphertext || !secret) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != OID_kyber_kem) {
+		error_print();
+		return -1;
+	}
+	if (ciphertext_len != sizeof(KYBER_CIPHERTEXT)) {
+		error_print();
+		return -1;
+	}
+	if (kyber_decap(&key->u.kyber_key, (KYBER_CIPHERTEXT *)ciphertext, secret) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}

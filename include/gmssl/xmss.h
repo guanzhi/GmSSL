@@ -270,7 +270,9 @@ typedef struct {
 
 int xmss_sign_init(XMSS_SIGN_CTX *ctx, XMSS_KEY *key);
 int xmss_sign_update(XMSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
+int xmss_sign_finish_ex(XMSS_SIGN_CTX *ctx, XMSS_SIGNATURE *sig);
 int xmss_sign_finish(XMSS_SIGN_CTX *ctx, uint8_t *sigbuf, size_t *siglen);
+int xmss_verify_init_ex(XMSS_SIGN_CTX *ctx, const XMSS_KEY *key, const XMSS_SIGNATURE *sig);
 int xmss_verify_init(XMSS_SIGN_CTX *ctx, const XMSS_KEY *key, const uint8_t *sigbuf, size_t siglen);
 int xmss_verify_update(XMSS_SIGN_CTX *ctx, const uint8_t *data, size_t datalen);
 int xmss_verify_finish(XMSS_SIGN_CTX *ctx);

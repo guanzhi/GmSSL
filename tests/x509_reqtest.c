@@ -43,7 +43,7 @@ static int test_x509_request_info(void)
 	X509_KEY pub_key;
 	const uint8_t *attrs;
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -152,7 +152,7 @@ static int test_x509_req(void)
 	uint8_t *p = req;
 	size_t reqlen = 0;
 
-	if (x509_key_generate(&x509_key, algor, algor_param) != 1) {
+	if (x509_key_generate(&x509_key, algor, &algor_param, sizeof(algor_param)) != 1) {
 		error_print();
 		return -1;
 	}
