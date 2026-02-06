@@ -28,7 +28,7 @@ jobs:
         uses: openharmony-rs/setup-ohos-sdk@v0.1
         id: setup-ohos
         with:
-          version: "5.0"
+          version: "5.0.0"
 
       - name: Build
         # Build your program with the given configuration
