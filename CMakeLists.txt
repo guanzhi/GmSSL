@@ -30,6 +30,7 @@ option(ENABLE_SM4_CE "Enable SM4 ARM CE assembly implementation" OFF)
 option(ENABLE_SM9_ARM64 "Enable SM9_Z256 ARMv8 assembly" OFF)
 option(ENABLE_GMUL_ARM64 "Enable GF(2^128) Multiplication AArch64 assembly" OFF)
 
+option(ENABLE_SM2_LOONGARCH64 "Enable SM2_Z256 LoongArch assembly" OFF)
 
 option(ENABLE_SM4_AVX2 "Enable SM4 AVX2 8x implementation" OFF)
 option(ENABLE_SM4_AESNI "Enable SM4 AES-NI (4x) implementation" OFF)
@@ -277,6 +278,13 @@ if (ENABLE_SM2_AMD64)
 	add_definitions(-DENABLE_SM2_AMD64)
 	enable_language(ASM)
 	list(APPEND src src/sm2_z256_amd64.S)
+endif()
+
+if (ENABLE_SM2_LOONGARCH64)
+	message(STATUS "ENABLE_SM2_LOONGARCH64 is ON")
+	add_definitions(-DENABLE_SM2_LOONGARCH64)
+	enable_language(ASM)
+	list(APPEND src src/sm2_z256_loong64.S)
 endif()
 
 if (ENABLE_SM2_NEON)
