@@ -36,7 +36,6 @@ typedef int tls_socklen_t;
 #define tls_socket_send(sock,buf,len,flags)	send(sock,buf,(int)(len),flags)
 #define tls_socket_recv(sock,buf,len,flags)	recv(sock,buf,(int)(len),flags)
 #define tls_socket_close(sock)			closesocket(sock)
-#define tls_socket_wait()			Sleep(1)
 
 #else
 
@@ -57,7 +56,6 @@ typedef socklen_t tls_socklen_t;
 #define tls_socket_send(sock,buf,len,flags)	send(sock,buf,len,flags)
 #define tls_socket_recv(sock,buf,len,flags)	recv(sock,buf,len,flags)
 #define tls_socket_close(sock)			close(sock)
-#define tls_socket_wait()			usleep(1000)
 
 #endif
 
@@ -68,7 +66,8 @@ int tls_socket_connect(tls_socket_t sock, const struct sockaddr_in *addr);
 int tls_socket_bind(tls_socket_t sock, const struct sockaddr_in *addr);
 int tls_socket_listen(tls_socket_t sock, int backlog);
 int tls_socket_accept(tls_socket_t sock, struct sockaddr_in *addr, tls_socket_t *conn_sock);
-
+int tls_socket_wait_recv(tls_socket_t sock);
+int tls_socket_wait_send(tls_socket_t sock);
 
 #ifdef __cplusplus
 }
