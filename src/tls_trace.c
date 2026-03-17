@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -454,61 +454,6 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 	return 1;
 }
 
-int tls13_extension_print(FILE *fp, int fmt, int ind,
-	int handshake_type, int ext_type, const uint8_t *ext_data, size_t ext_datalen)
-{
-	switch (ext_type) {
-	case TLS_extension_supported_groups:
-	case TLS_extension_ec_point_formats:
-	case TLS_extension_signature_algorithms:
-		return tls_extension_print(fp, ext_type, ext_data, ext_datalen, fmt, ind);
-	}
-
-	format_print(fp, fmt, ind, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
-	ind += 4;
-
-	switch (ext_type) {
-	case TLS_extension_supported_versions:
-		tls13_supported_versions_ext_print(fp, fmt, ind, handshake_type, ext_data, ext_datalen);
-		break;
-	case TLS_extension_key_share:
-		tls13_key_share_ext_print(fp, fmt, ind, handshake_type, ext_data, ext_datalen);
-		break;
-	default:
-		format_bytes(fp, fmt, ind, "raw_data", ext_data, ext_datalen);
-	}
-	return 1;
-}
-
-int tls13_extensions_print(FILE *fp, int fmt, int ind,
-	int handshake_type, const uint8_t *exts, size_t extslen)
-{
-	uint16_t ext_type;
-	const uint8_t *ext_data;
-	size_t ext_datalen;
-
-	if (!exts) {
-		format_print(fp, fmt, ind, "Extensions: (null)\n");
-		return 1;
-	}
-
-	format_print(fp, fmt, ind, "Extensions\n");
-	ind += 4;
-
-	while (extslen > 0) {
-		if (tls_uint16_from_bytes(&ext_type, &exts, &extslen) != 1
-			|| tls_uint16array_from_bytes(&ext_data, &ext_datalen, &exts, &extslen) != 1) {
-			error_print();
-			return -1;
-		}
-		if (tls13_extension_print(fp, fmt, ind, handshake_type, ext_type, ext_data, ext_datalen) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-	return 1;
-}
-
 int tls_extensions_print(FILE *fp, const uint8_t *exts, size_t extslen, int format, int indent)
 {
 	uint16_t ext_type;
@@ -581,9 +526,27 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	}
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto end;
-		//tls_extensions_print(fp, exts, exts_len, format, indent);
-		tls13_extensions_print(fp, format, indent, TLS_handshake_client_hello, exts, exts_len);
+		format_print(fp, format, indent, "Extensions\n");
+		indent += 4;
 	}
+	// 打印扩展
+	while (exts_len > 0) {
+		uint16_t ext_type;
+		const uint8_t *ext_data;
+		size_t ext_datalen;
+
+		if (tls_uint16_from_bytes(&ext_type, &exts, &exts_len) != 1
+			|| tls_uint16array_from_bytes(&ext_data, &ext_datalen, &exts, &exts_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+		format_print(fp, format, indent, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
+		indent += 4;
+
+		tls_extensions_print(fp, exts, exts_len, format, indent);
+	}
+
 	if (datalen > 0) {
 		error_print();
 		return -1;
@@ -592,6 +555,23 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 end:
 	return ret;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
@@ -622,7 +602,7 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto bad;
 		//format_bytes(fp, format, indent, "Extensions : ", exts, exts_len); // FIXME: extensions_print		
 		//tls_extensions_print(fp, exts, exts_len, format, indent);
-		tls13_extensions_print(fp, format, indent, TLS_handshake_server_hello, exts, exts_len);
+		//tls13_extensions_print(fp, format, indent, TLS_handshake_server_hello, exts, exts_len);
 	}
 	return 1;
 bad:
@@ -854,6 +834,13 @@ int tls_client_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 	return 1;
 }
 
+// 这个格式似乎是不对的				
+/*
+struct {
+    SignatureAndHashAlgorithm algorithm;
+    opaque signature<0..2^16-1>;
+} DigitallySigned;
+*/
 int tls_certificate_verify_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	format_print(fp, format, indent, "CertificateVerify\n");
@@ -869,43 +856,6 @@ int tls_finished_print(FILE *fp, const uint8_t *data, size_t datalen, int format
 	return 1;
 }
 
-// FIXME: 应该将这个函数融合到 tls_handshake_print 中
-int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, size_t handshake_len)
-{
-	const uint8_t *p = handshake;
-	size_t len = handshake_len;
-	uint8_t type;
-	const uint8_t *data;
-	size_t datalen;
-
-	if (tls_uint8_from_bytes(&type, &handshake, &handshake_len) != 1
-		|| tls_uint24array_from_bytes(&data, &datalen, &handshake, &handshake_len) != 1
-		|| tls_length_is_zero(handshake_len) != 1) {
-		error_print();
-		return -1;
-	}
-
-	switch (type) {
-	case TLS_handshake_certificate:
-	case TLS_handshake_certificate_request:
-	case TLS_handshake_certificate_verify:
-		format_print(fp, fmt, ind, "Handshake\n");
-		ind += 4;
-		format_print(fp, fmt, ind, "Type: %s (%d)\n", tls_handshake_type_name(type), type);
-		format_print(fp, fmt, ind, "Length: %zu\n", datalen);
-		break;
-	}
-	switch (type) {
-	case TLS_handshake_certificate:
-		return tls13_certificate_print(fp, fmt, ind, data, datalen);
-	case TLS_handshake_certificate_request:
-		return tls13_certificate_request_print(fp, fmt, ind, data, datalen);
-	case TLS_handshake_certificate_verify:
-		return tls13_certificate_verify_print(fp, fmt, ind, data, datalen);
-	}
-
-	return tls_handshake_print(fp, p, len, fmt, ind);
-}
 
 // 这个是有问题的，因为TLS 1.3的证书和TLS 1.2是不一样的
 int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent)
@@ -1006,75 +956,10 @@ int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, in
 	return 1;
 }
 
-int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen)
-{
-	const uint8_t *data;
-	size_t datalen;
-	int protocol;
 
-	format |= TLS_cipher_sm4_gcm_sm3 << 8;
 
-	if (!fp || !record || recordlen < 5) {
-		error_print();
-		return -1;
-	}
-	protocol = tls_record_protocol(record);
-	format_print(fp, format, indent, "Record\n"); indent += 4;
-	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
-	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
 
-	data = tls_record_data(record);
-	datalen = tls_record_data_length(record);
 
-	if (recordlen < tls_record_length(record)) {
-		error_print();
-		return -1;
-	}
-
-	// 最高字节设置后强制打印记录原始数据
-	if (format >> 24) {
-		format_bytes(fp, format, indent, "Data", data, datalen);
-		fprintf(fp, "\n");
-		return 1;
-	}
-
-	switch (record[0]) {
-	case TLS_record_handshake:
-		tls13_handshake_print(fp, format, indent, data, datalen);
-		break;
-	case TLS_record_alert:
-		if (tls_alert_print(fp, data, datalen, format, indent) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case TLS_record_change_cipher_spec:
-		if (tls_change_cipher_spec_print(fp, data, datalen, format, indent) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	case TLS_record_application_data:
-		if (tls_application_data_print(fp, data, datalen, format, indent) != 1) {
-			error_print();
-			return -1;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-
-	recordlen -= tls_record_length(record);
-	if (recordlen) {
-		format_print(fp, 0, 0, "DataLeftInRecord: %zu\n", recordlen);
-	}
-
-	fprintf(fp, "\n");
-	return 1;
-
-}
 
 // FIXME: 根据RFC来考虑这个函数的参数,从底向上逐步修改每个函数的接口参数
 

@@ -107,6 +107,9 @@ int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_cipher
 int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count);
 int tls_cipher_suite_support_protocol(int cipher, int protocol);
 
+int tls_type_is_in_list(int cipher, const int *list, size_t list_count);
+
+
 typedef enum {
 	TLS_compression_null	= 0,
 	TLS_compression_default	= 1,
@@ -274,7 +277,7 @@ typedef enum {
 
 const char *tls_named_curve_name(int named_curve);
 int tls_named_curve_oid(int named_curve);
-
+int tls_named_curve_from_oid(int oid);
 
 typedef enum {
 	TLS_sig_rsa_pkcs1_sha1			= 0x0201,
@@ -288,7 +291,7 @@ typedef enum {
 	TLS_sig_rsa_pkcs1_sha512		= 0x0601,
 	TLS_sig_ecdsa_secp521r1_sha512		= 0x0603,
 	TLS_sig_rsa_pkcs1_sha512_legacy		= 0x0620,
-	TLS_sig_sm2sig_sm3			= 0x0708, // GmSSLv2: 0x0707
+	TLS_sig_sm2sig_sm3			= 0x0708,
 	TLS_sig_rsa_pss_rsae_sha256		= 0x0804,
 	TLS_sig_rsa_pss_rsae_sha384		= 0x0805,
 	TLS_sig_rsa_pss_rsae_sha512		= 0x0806,
@@ -303,7 +306,7 @@ typedef enum {
 } TLS_SIGNATURE_SCHEME;
 
 const char *tls_signature_scheme_name(int scheme);
-int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite); 
+int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite);
 
 
 typedef enum {
@@ -345,6 +348,7 @@ typedef enum {
 	TLS_alert_internal_error		= 80,
 	TLS_alert_user_canceled			= 90,
 	TLS_alert_no_renegotiation		= 100,
+	TLS_alert_missing_extension		= 109, // 查以下RFC
 	TLS_alert_unsupported_extension		= 110,
 	TLS_alert_unsupported_site2site		= 200,
 	TLS_alert_no_area			= 201,
@@ -442,6 +446,8 @@ typedef struct {
 //#define tls_handshake_data_length(p)
 
 
+int tls_record_set_handshake_header(uint8_t *record, size_t *recordlen,
+	int type, int length);
 int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	int type, const uint8_t *data, size_t datalen);
 int tls_record_get_handshake(const uint8_t *record,
@@ -483,22 +489,33 @@ int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_data
 	uint8_t **out, size_t *outlen);
 int tls_process_server_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen);
 
+
+int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
 	uint8_t **out, size_t *outlen);
 int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
 	uint8_t **out, size_t *outlen);
 int tls_process_server_supported_groups(const uint8_t *ext_data, size_t ext_datalen);
 
+int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
+	const int *local_groups, size_t local_groups_cnt,
+	int *common_groups, size_t *common_groups_cnt, size_t max_cnt);
+
+
+// 这里有个问题，为什么这里面我们都不给出名字呢？
+int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen);
 int tls_signature_algorithms_ext_to_bytes(const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen);
 int tls13_signature_algorithms_cert_ext_to_bytes(const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen);
-int tls_process_client_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen);
-int tls_process_server_signature_algors(const uint8_t *ext_data, size_t ext_datalen);
+int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen,
+	const int *local_sig_algs, size_t local_sig_algs_cnt,
+	int *common_sig_algs, size_t *common_sig_algs_cnt, size_t max_cnt);
 
+
+/*
 int tls13_supported_versions_ext_to_bytes(int handshake_type, const int *protos, size_t protos_cnt,
 	uint8_t **out, size_t *outlen);
 int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_datalen,
@@ -517,6 +534,7 @@ int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, 
 
 int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
 	uint8_t **out, size_t *outlen);
+*/
 
 int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_process_client_exts(const uint8_t *exts, size_t extslen, uint8_t *out, size_t *outlen, size_t maxlen);
@@ -694,18 +712,44 @@ enum {
 
 typedef struct {
 	int protocol;
+
+
 	int is_client;
+
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
+
 	uint8_t *cacerts;
 	size_t cacertslen;
 	uint8_t *certs;
 	size_t certslen;
 
+
+	// extensions
+	int supported_versions[4];
+	size_t supported_versions_cnt;
+
+	int supported_groups[32];
+	size_t supported_groups_cnt;
+
+	int signature_algorithms[2];
+	size_t signature_algorithms_cnt;
+
+	int protocols[4];
+	size_t protocols_cnt;
+
+
 	X509_KEY signkey;
 	X509_KEY kenckey;
 
 	int verify_depth;
+
+	// 这个应该是和服务器证书相关的
+	const uint8_t *certificate_status;
+	size_t certificate_status_len;
+
+	const uint8_t *signed_certificate_timestamp;
+	size_t signed_certificate_timestamp_len;
 
 	int quiet;
 } TLS_CTX;
@@ -744,6 +788,7 @@ enum {
 	TLS_state_handshake_init = 0,
 	TLS_state_client_hello,
 	TLS_state_server_hello,
+	TLS_state_encrypted_extensions,
 	TLS_state_server_certificate,
 	TLS_state_server_key_exchange,
 	TLS_state_certificate_request,
@@ -751,6 +796,7 @@ enum {
 	TLS_state_client_certificate,
 	TLS_state_client_key_exchange,
 	TLS_state_certificate_verify,
+	TLS_state_client_certificate_verify,
 	TLS_state_generate_keys,
 	TLS_state_client_change_cipher_spec,
 	TLS_state_client_finished,
@@ -785,7 +831,8 @@ typedef struct {
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
 	int cipher_suite;
-
+	const DIGEST *digest;
+	const BLOCK_CIPHER *cipher;
 
 
 	tls_socket_t sock;
@@ -796,10 +843,14 @@ typedef struct {
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];
 	size_t record_offset; // offset of processed record
+	size_t recordlen;
+
+
+	uint8_t plain_record[TLS_MAX_RECORD_SIZE];
+	size_t plain_recordlen;
 
 	int record_state;
 
-	size_t recordlen;
 
 	uint8_t databuf[TLS_MAX_RECORD_SIZE];
 	uint8_t *data;
@@ -819,9 +870,9 @@ typedef struct {
 	X509_KEY server_enc_key;
 
 	int verify_result;
-	uint8_t pre_master_secret[48]; // 是否可以重用master_secret作为pre_master_secret呢？			
-	uint8_t master_secret[48];
-	uint8_t key_block[96];
+
+
+
 
 	SM3_HMAC_CTX client_write_mac_ctx;
 	SM3_HMAC_CTX server_write_mac_ctx;
@@ -840,7 +891,14 @@ typedef struct {
 
 	// handshake state for state machine
 	int state;
+
+
+
 	SM3_CTX sm3_ctx;
+
+	DIGEST_CTX dgst_ctx;
+
+
 	SM2_SIGN_CTX sign_ctx;
 	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
 	uint8_t client_random[32];
@@ -861,20 +919,54 @@ typedef struct {
 
 	uint16_t ecdh_named_curve;
 
+
+	X509_KEY ecdh_keys[2];
+	size_t ecdh_keys_cnt;
+
 	X509_KEY ecdh_key;
+
+	int peer_group;
 	uint8_t peer_ecdh_point[65];
 	size_t peer_ecdh_point_len;
+
+
+
+	// tls13 需要提前生成每一种曲线的密钥
+	SM2_KEY sm2_ecdhe;
+	SECP256R1_KEY p256_ecdhe;
+	uint8_t peer_sm2_ecdhe[65];
+	uint8_t peer_p256_ecdhe[65];
 
 	int client_certificate_verify; // 是否验证客户端证书
 
 	int verify_depth; // 这个可能没有被设置				
 
+	const TLS_CTX *ctx;
+
+	uint8_t pre_master_secret[48]; // 是否可以重用master_secret作为pre_master_secret呢？			
+	uint8_t master_secret[48];
+	uint8_t key_block[96];
+
+	uint8_t early_secret[32];
+	uint8_t handshake_secret[32];
+	uint8_t client_handshake_traffic_secret[32];
+	uint8_t server_handshake_traffic_secret[32];
+	uint8_t client_application_traffic_secret[32];
+	uint8_t server_application_traffic_secret[32];
+
+
+	int hello_retry_request;
+
+	int key_exchange_group;
 } TLS_CONNECT;
 
 
 #define TLS_MAX_EXTENSIONS_SIZE 512 // FIXME: no reason to give fixed max length			
 
 
+
+int tls_send_record(TLS_CONNECT *conn);
+int tls_recv_record(TLS_CONNECT *conn);
 
 
 int tls_send_client_hello(TLS_CONNECT *conn);
@@ -1000,13 +1092,43 @@ int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordle
 
 
 
+// supported_groups
+int tls13_client_supported_versions_ext_to_bytes(const int *versions, size_t versions_cnt,
+	uint8_t **out, size_t *outlen);
+int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_datalen,
+	const int *server_versions, size_t server_versions_cnt,
+	int *common_versions, size_t *common_versions_cnt, size_t max_cnt);
+int tls13_client_supported_versions_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_server_supported_versions_ext_to_bytes(int selected_version, uint8_t **out, size_t *outlen);
+int tls13_server_supported_versions_from_bytes(int *selected_version, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_process_server_supported_versions(const int *client_versions, size_t client_versions_cnt,
+	const uint8_t *server_ext_data, size_t server_ext_datalen,
+	int *selected_version);
+int tls13_server_supported_versions_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
 
 
+// key_share
+int tls13_key_share_entry_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
+int tls13_key_share_entry_from_bytes(int *group, const uint8_t **key_exchange, size_t *key_exchange_len,
+	const uint8_t **in, size_t *inlen);
+
+int tls13_key_share_client_hello_ext_to_bytes(const X509_KEY *keys, size_t keys_cnt, uint8_t **out, size_t *outlen);
+int tls13_process_key_share_client_hello(const uint8_t *ext_data, size_t ext_datalen,
+	const int *common_groups, size_t common_groups_cnt,
+	int *group, const uint8_t **key_exchange, size_t *key_exchange_len);
+int tls13_key_share_client_hello_print(FILE *fp, int fmt, int ind,
+	const uint8_t *data, size_t datalen);
+
+int tls13_key_share_server_hello_ext_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
+int tls13_key_share_server_hello_from_bytes(int *group, const uint8_t **key_exchange, size_t *key_exchange_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_key_share_server_hello_print(FILE *fp, int fmt, int ind,
+	const uint8_t *data, size_t datalen);
 
 
-
-
-
+int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 
 
 #ifdef  __cplusplus

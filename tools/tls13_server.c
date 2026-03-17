@@ -143,7 +143,6 @@ bad:
 		}
 	}
 
-
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		fprintf(stderr, "%s: socket create error\n", prog);
 		goto end;

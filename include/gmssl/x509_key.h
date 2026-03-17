@@ -186,7 +186,7 @@ typedef struct {
 /*
    algor:
 	OID_sm2sign_with_sm3
-	OID_ecdss_with_sha256
+	OID_ecdsa_with_sha256
 	OID_lms_hashsig
 	OID_hss_lms_hashsig
 	OID_xmss_hashsig

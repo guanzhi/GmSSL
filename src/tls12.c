@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -197,8 +197,6 @@ int tls_named_curve_from_oid(int oid)
 
 
 
-
-
 // 这个是必选的
 const int ec_point_formats[] = { TLS_point_uncompressed };
 size_t ec_point_formats_cnt = sizeof(ec_point_formats)/sizeof(ec_point_formats[0]);
@@ -352,6 +350,8 @@ int tls_handshake_init(TLS_CONNECT *conn)
 {
 
 	sm3_init(&conn->sm3_ctx);
+	digest_init(&conn->dgst_ctx, DIGEST_sm3());
+
 
 	if (conn->client_certs_len) {
 		//sm2_sign_init(&conn->sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
@@ -476,6 +476,16 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 	return 1;
 }
 
+
+
+
+
+
+
+
+
+
+
 int tlcp_recv_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
@@ -493,7 +503,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	const uint8_t *client_exts;
 	size_t client_exts_len;
 
-	sm3_init(&conn->sm3_ctx);
+	//sm3_init(&conn->sm3_ctx);
 
 
 	// 服务器端如果设置了CA
@@ -785,11 +795,14 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_protocol_version);
 		return -1;
 	}
+		
+	/*
 	if (tls_cipher_suite_in_list(cipher_suite, conn->cipher_suites, conn->cipher_suites_cnt) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_handshake_failure);
 		return -1;
 	}
+	*/
 
 	/*
 	对于扩展的处理
@@ -2402,6 +2415,9 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
       Application Data             <------->     Application Data
 
 
+
+
+
 */
 
 int tls12_do_client_handshake(TLS_CONNECT *conn)
@@ -2671,6 +2687,9 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	conn->state = TLS_state_client_hello;
 	sm3_init(&conn->sm3_ctx);
 
+
+	digest_init(&conn->dgst_ctx, DIGEST_sm3());
+
 	while (1) {
 
 		ret = tls12_client_handshake(conn);
@@ -2707,6 +2726,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	conn->state = TLS_state_client_hello;
 
 	sm3_init(&conn->sm3_ctx);
+	digest_init(&conn->dgst_ctx, DIGEST_sm3());
 
 	while (1) {
 

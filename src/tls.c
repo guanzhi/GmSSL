@@ -630,6 +630,16 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
+int tls_record_set_handshake_header(uint8_t *record, size_t *recordlen,
+	int type, int length)
+{
+	if (tls_record_set_handshake(record, recordlen, type, NULL, length) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tls_record_get_handshake(const uint8_t *record,
 	int *type, const uint8_t **data, size_t *datalen)
 {
@@ -893,6 +903,13 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
+
+/*
+如果报文的结构正确，但是数据不合法的时候，应该返回TLS_alert_illegal_parameter
+例如服务器的选择不在ClientHello提供的列表中
+因此涉及到语义错误的，应该返回这个错误。
+如果语义我们不能理解，但是格式正确，那么应该忽略
+*/
 int tls_record_get_handshake_server_hello(const uint8_t *record,
 	int *protocol, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
 	int *cipher_suite, const uint8_t **exts, size_t *exts_len)
@@ -915,7 +932,7 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	}
 	if (type != TLS_handshake_server_hello) {
 		error_print();
-		return -1;
+		return 0;
 	}
 	if (tls_uint16_from_bytes(&ver, &p, &len) != 1
 		|| tls_array_from_bytes(random, 32, &p, &len) != 1
@@ -951,6 +968,7 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	}
 	*cipher_suite = cipher;
 
+	// 这个值应该返回给上一层，这样上面才能够返回正确的错误值
 	if (comp_meth != TLS_compression_null) {
 		error_print();
 		return -1;
@@ -1056,6 +1074,13 @@ int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, 
 	return 1;
 }
 
+/*
+struct {
+	ClientCertificateType certificate_types<1..2^8-1>;
+	SignatureAndHashAlgorithm supported_signature_algorithms<2^16-1>; // 可能缺少这个参数		
+	DistinguishedName certificate_authorities<0..2^16-1>;
+} CertificateRequest;
+*/
 int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
 	const uint8_t *cert_types, size_t cert_types_len,
 	const uint8_t *ca_names, size_t ca_names_len)
@@ -1291,6 +1316,7 @@ int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
+// 这个应该改为只支持TLS 1.2的12字节长度判断
 int tls_record_get_handshake_finished(const uint8_t *record, const uint8_t **verify_data, size_t *verify_data_len)
 {
 	int type;
@@ -1440,13 +1466,9 @@ int tls_record_get_application_data(uint8_t *record,
 	return 1;
 }
 
-int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
+int tls_type_is_in_list(int cipher, const int *list, size_t list_count)
 {
 	size_t i;
-	if (!list || !list_count) {
-		error_print();
-		return -1;
-	}
 	for (i = 0; i < list_count; i++) {
 		if (cipher == list[i]) {
 			return 1;
@@ -1454,6 +1476,15 @@ int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count)
 	}
 	return 0;
 }
+
+
+
+
+
+
+
+
+
 
 static const int tlcp_ciphers[] = {
 	TLS_cipher_ecc_sm4_cbc_sm3,
@@ -1496,10 +1527,13 @@ int tls_cipher_suite_support_protocol(int cipher, int protocol)
 		return -1;
 	}
 
+	/*
+			
 	if (!tls_cipher_suite_in_list(cipher, ciphers, ciphers_cnt)) {
 		error_print();
 		return 0;
 	}
+	*/
 	return 1;
 }
 
@@ -2082,6 +2116,8 @@ void tls_client_verify_cleanup(TLS_CLIENT_VERIFY_CTX *ctx)
 	}
 }
 
+
+// 这个函数不对啊，应该以服务器优先来选择参数
 int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_ciphers_len,
 	const int *server_ciphers, size_t server_ciphers_cnt,
 	int *selected_cipher)
@@ -2121,8 +2157,118 @@ void tls_ctx_cleanup(TLS_CTX *ctx)
 	}
 }
 
+
+
+
+
+int tls_ctx_set_supported_versions(TLS_CTX *ctx, const int *versions, size_t versions_cnt)
+{
+	size_t i;
+
+	if (!ctx || !versions || !versions_cnt) {
+		error_print();
+		return -1;
+	}
+	if (versions_cnt > sizeof(ctx->supported_versions)/sizeof(ctx->supported_versions[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < versions_cnt; i++) {
+		switch (versions[i]) {
+		case TLS_protocol_tls13:
+		case TLS_protocol_tls12:
+		case TLS_protocol_tlcp:
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		ctx->supported_versions[i] = versions[i];
+	}
+	ctx->supported_versions_cnt = versions_cnt;
+	return 1;
+}
+
+int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_cnt)
+{
+	size_t i;
+
+	if (!ctx || !groups || !groups_cnt) {
+		error_print();
+		return -1;
+	}
+	if (groups_cnt > sizeof(ctx->supported_groups)/sizeof(ctx->supported_groups[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < groups_cnt; i++) {
+		switch (groups[i]) {
+		case TLS_curve_sm2p256v1:
+		case TLS_curve_secp256r1:
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		ctx->supported_groups[i] = groups[i];
+	}
+	ctx->supported_groups_cnt = groups_cnt;
+	return 1;
+}
+
+int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t sig_algs_cnt)
+{
+	size_t i;
+
+	if (!ctx || !sig_algs || !sig_algs_cnt) {
+		error_print();
+		return -1;
+	}
+	if (sig_algs_cnt > sizeof(ctx->signature_algorithms)/sizeof(ctx->signature_algorithms[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < sig_algs_cnt; i++) {
+		switch (sig_algs[i]) {
+		case TLS_sig_sm2sig_sm3:
+		case TLS_sig_ecdsa_secp256r1_sha256:
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		ctx->signature_algorithms[i] = sig_algs[i];
+	}
+	ctx->signature_algorithms_cnt = sig_algs_cnt;
+	return 1;
+}
+
+
+
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 {
+
+
+	const int supported_versions[] = {
+		TLS_protocol_tls13,
+		TLS_protocol_tls12,
+		TLS_protocol_tlcp,
+	};
+	size_t supported_versions_cnt = sizeof(supported_versions)/sizeof(supported_versions[0]);
+
+	const int supported_groups[] = {
+		TLS_curve_sm2p256v1,
+		TLS_curve_secp256r1,
+	};
+	size_t supported_groups_cnt = sizeof(supported_groups)/sizeof(supported_groups[0]);
+
+	const int signature_algorithms[] = {
+		TLS_sig_sm2sig_sm3,
+		TLS_sig_ecdsa_secp256r1_sha256,
+	};
+	size_t signature_algorithms_cnt = sizeof(signature_algorithms)/sizeof(signature_algorithms[0]);
+
+
 	if (!ctx) {
 		error_print();
 		return -1;
@@ -2142,9 +2288,21 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	ctx->is_client = is_client ? 1 : 0;
 
 
+	if (tls_ctx_set_supported_versions(ctx, supported_versions, supported_versions_cnt) != 1
+		|| tls_ctx_set_supported_groups(ctx, supported_groups, supported_groups_cnt) != 1
+		|| tls_ctx_set_signature_algorithms(ctx, signature_algorithms, signature_algorithms_cnt) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+
 	ctx->verify_depth = 5;
 	return 1;
 }
+
+
+
 
 int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cipher_suites_cnt)
 {
@@ -2406,6 +2564,8 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 
 
 	conn->verify_depth = ctx->verify_depth;
+
+	conn->ctx = ctx;
 
 	return 1;
 }

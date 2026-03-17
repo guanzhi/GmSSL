@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -38,6 +38,7 @@ Example:
 	ec_point_format_list: 0x00 (uncompressed)
 
 */
+
 int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	uint8_t **out, size_t *outlen)
 {
@@ -70,6 +71,7 @@ int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	return 1;
 }
 
+// 似乎不应该保留process函数
 int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen,
 	uint8_t **out, size_t *outlen)
 {
@@ -185,22 +187,61 @@ int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
 	return 1;
 }
 
-int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen)
+int tls_supported_groups_from_bytes(int *groups, size_t *groups_cnt, size_t max_cnt,
+	const uint8_t *ext_data, size_t ext_datalen)
 {
-	int shared_groups[] = { TLS_curve_sm2p256v1 };
-	size_t shared_groups_cnt = 0;
-	const uint8_t *p;
-	size_t len;
+	const uint8_t *named_group_list;
+	size_t named_group_list_len;
+	size_t i = 0;
 
-	if (tls_uint16array_from_bytes(&p, &len, &ext_data, &ext_datalen) != 1
+	if (tls_uint16array_from_bytes(&named_group_list, &named_group_list_len, &ext_data, &ext_datalen) != 1
 		|| tls_length_is_zero(ext_datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	while (len) {
+	if (named_group_list_len < 2) {
+		error_print();
+		return -1;
+	}
+	while (named_group_list_len) {
 		uint16_t group;
-		if (tls_uint16_from_bytes(&group, &p, &len) != 1) {
+		if (tls_uint16_from_bytes(&group, &named_group_list, &named_group_list_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!tls_named_curve_name(group)) {
+			warning_print();
+		}
+		if (i < max_cnt) {
+			groups[i] = group;
+			i++;
+		}
+	}
+	*groups_cnt = i;
+	return 1;
+}
+
+int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
+	const int *local_groups, size_t local_groups_cnt,
+	int *common_groups, size_t *common_groups_cnt, size_t max_cnt)
+{
+	const uint8_t *named_group_list;
+	size_t named_group_list_len;
+	const uint8_t *cp;
+	size_t len;
+	uint16_t group;
+	size_t i, j = 0;
+
+	if (tls_uint16array_from_bytes(&named_group_list, &named_group_list_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	cp = named_group_list;
+	len = named_group_list_len;
+	while (len) {
+		if (tls_uint16_from_bytes(&group, &cp, &len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -208,43 +249,57 @@ int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_data
 			error_print();
 			return -1;
 		}
-		if (group == shared_groups[0]) {
-			shared_groups_cnt = 1;
+		if (group == local_groups[0] && j < max_cnt) {
+			common_groups[j++] = group;
 		}
 	}
-	if (!shared_groups_cnt) {
-		error_print();
-		return -1;
+
+	for (i = 1; i < local_groups_cnt && j < max_cnt; i++) {
+		cp = named_group_list;
+		len = named_group_list_len;
+		while (len) {
+			tls_uint16_from_bytes(&group, &cp, &len);
+			if (group == local_groups[i]) {
+				common_groups[j++] = group;
+				break;
+			}
+		}
 	}
-	if (tls_supported_groups_ext_to_bytes(shared_groups, shared_groups_cnt, out, outlen) != 1) {
-		error_print();
-		return -1;
+	*common_groups_cnt = j;
+
+	if (*common_groups_cnt == 0) {
+		return 0;
 	}
 	return 1;
 }
 
-int tls_process_server_supported_groups(const uint8_t *ext_data, size_t ext_datalen)
+int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
-	const uint8_t *p;
-	size_t len;
-	uint16_t group;
+	const uint8_t *groups;
+	size_t groups_len;
 
-	if (tls_uint16array_from_bytes(&p, &len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
+	format_print(fp, fmt, ind, "named_group_list\n");
+	ind += 4;
+
+	if (tls_uint16array_from_bytes(&groups, &groups_len, &d, &dlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint16_from_bytes(&group, &p, &len) != 1
-		|| tls_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
+	while (groups_len) {
+		uint16_t group;
+		if (tls_uint16_from_bytes(&group, &groups, &groups_len) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, ind, "%s (%04x)\n", tls_named_curve_name(group), group);
 	}
-	if (group != TLS_curve_sm2p256v1) {
+	if (dlen) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
+
 
 
 
@@ -264,7 +319,67 @@ Example:
 	0x00,0x02, // supported_signature_algorithms_length
 	0x07,0x07, // supported_signature_algorithms = [ sm2sig_sm3 ]
 
+
+在tls12中，只有ClientHello可以包含这个扩展，ServerHello不允许包含这个扩展
+服务器在接收到这个扩展之后，如果
+在 TLS 1.2 中，如果服务器收到客户端的 signature_algorithms 扩展，但发现其中没有自己支持的算法
+服务器必须中止握手，并返回一个致命的 handshake_failure 警报
+
 */
+
+int tls_signature_algorithms_print_ex(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+{
+	const uint8_t *sig_algs;
+	size_t sig_algs_len;
+
+	if (tls_uint16array_from_bytes(&sig_algs, &sig_algs_len, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	format_print(fp, fmt, ind, "supported_signature_algorithms\n");
+	ind += 4;
+	while (sig_algs_len) {
+		uint16_t sig_alg;
+		if (tls_uint16_from_bytes(&sig_alg, &sig_algs, &sig_algs_len) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, ind, "%s (%04x)\n", tls_signature_scheme_name(sig_alg), sig_alg);
+	}
+
+	if (dlen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
+{
+	if (tls_signature_algorithms_print_ex(fp, fmt, ind, "signature_algorithms", d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
+{
+	if (tls_signature_algorithms_print_ex(fp, fmt, ind, "signature_algorithms_cert", d, dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+
+
+
+
+
+
 int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen)
 {
@@ -318,342 +433,120 @@ int tls13_signature_algorithms_cert_ext_to_bytes(const int *algs, size_t algs_cn
 	return 1;
 }
 
-int tls_process_client_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen)
+int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen,
+	const int *local_sig_algs, size_t local_sig_algs_cnt,
+	int *common_sig_algs, size_t *common_sig_algs_cnt, size_t max_cnt)
 {
-	int shared_algs[1] = { TLS_sig_sm2sig_sm3 };
-	size_t shared_algs_cnt = 0;
-	const uint8_t *p;
+	const uint8_t *supported_sig_algs;
+	size_t supported_sig_algs_len;
+	const uint8_t *cp;
 	size_t len;
+	uint16_t sig_alg;
+	size_t i, j = 0;
 
-	if (!ext_data || !ext_datalen || !outlen) {
+	if (!common_sig_algs || !common_sig_algs_cnt || !max_cnt) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint16array_from_bytes(&p, &len, &ext_data, &ext_datalen) != 1
+	if (tls_uint16array_from_bytes(&supported_sig_algs, &supported_sig_algs_len, &ext_data, &ext_datalen) != 1
 		|| tls_length_is_zero(ext_datalen) != 1) {
 		error_print();
 		return -1;
 	}
+	if (supported_sig_algs_len < 2) {
+		error_print();
+		return -1;
+	}
+
+	cp = supported_sig_algs;
+	len = supported_sig_algs_len;
 	while (len) {
+		if (tls_uint16_from_bytes(&sig_alg, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!tls_signature_scheme_name(sig_alg)) {
+			error_print();
+			return -1;
+		}
+		if (sig_alg == local_sig_algs[0] && j < max_cnt) {
+			common_sig_algs[j++] = sig_alg;
+		}
+	}
+
+	for (i = 1; i < local_sig_algs_cnt && j < max_cnt; i++) {
+		cp = supported_sig_algs;
+		len = supported_sig_algs_len;
+		while (len) {
+			tls_uint16_from_bytes(&sig_alg, &cp, &len);
+			if (sig_alg == local_sig_algs[i]) {
+				common_sig_algs[j++] = sig_alg;
+				break;
+			}
+		}
+	}
+	*common_sig_algs_cnt = j;
+
+	if (!(*common_sig_algs_cnt)) {
+		warning_print();
+		return 0;
+	}
+	return 1;
+}
+
+int tls_signature_algorithms_ext_from_bytes(int *algs, size_t *algs_cnt, size_t max_cnt,
+	const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *cp;
+	size_t len;
+	size_t i;
+
+	if (tls_uint16array_from_bytes(&cp, &len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < max_cnt && len; i++) {
 		uint16_t alg;
-		if (tls_uint16_from_bytes(&alg, &p, &len) != 1) {
+		if (tls_uint16_from_bytes(&alg, &cp, &len) != 1) {
 			error_print();
 			return -1;
 		}
 		if (!tls_signature_scheme_name(alg)) {
-			error_print_msg("unknown TLS signature scheme %04x\n", alg);
-			continue;
-		}
-		if (alg == shared_algs[0]) {
-			shared_algs_cnt = 1;
-			break;
-		}
-	}
-	if (!shared_algs_cnt) {
-		error_print();
-		return -1;
-	}
-	if (tls_signature_algorithms_ext_to_bytes(shared_algs, shared_algs_cnt, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls_process_server_signature_algors(const uint8_t *ext_data, size_t ext_datalen)
-{
-	const uint8_t *p;
-	size_t len;
-	uint16_t alg;
-
-	if (tls_uint16array_from_bytes(&p, &len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint16_from_bytes(&alg, &p, &len) != 1
-		|| tls_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (alg != TLS_sig_sm2sig_sm3) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-/*
-supported_versions
-
-  struct {
-	select (Handshake.msg_type) {
-		case client_hello:
-			ProtocolVersion versions<2..254>;
-		case server_hello: -- and HelloRetryRequest
-			ProtocolVersion selected_version;
-	};
-  } SupportedVersions;
-*/
-
-int tls13_supported_versions_ext_print(FILE *fp, int fmt, int ind,
-	int handshake_type, const uint8_t *data, size_t datalen)
-{
-	const uint8_t *versions;
-	size_t versions_len;
-	uint16_t version;
-
-	switch (handshake_type) {
-	case TLS_handshake_client_hello:
-		format_print(fp, fmt, ind, "versions\n");
-		ind += 4;
-
-		if (tls_uint8array_from_bytes(&versions, &versions_len, &data, &datalen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (versions_len < 2 || versions_len > 254) {
-			error_print();
-			return -1;
-		}
-		while (versions_len) {
-			if (tls_uint16_from_bytes(&version, &versions, &versions_len) != 1) {
-				error_print();
-				return -1;
+		algs[i] = alg;
+	}
+	*algs_cnt = i;
+	return 1;
+}
+
+
+static int tls_server_parameter_select(const int *server_params, size_t server_params_cnt,
+	const int *client_params, size_t client_params_cnt,
+	int *selected)
+{
+	size_t i, j;
+
+	for (i = 0; i < server_params_cnt; i++) {
+		*selected = server_params[i];
+		for (j = 0; j < client_params_cnt; j++) {
+			if (client_params[j] == *selected) {
+				return 1;
 			}
-			format_print(fp, fmt, ind, "%s (0x%04x)\n", tls_protocol_name(version), version);
-		}
-		break;
-
-	case TLS_handshake_server_hello:
-	case TLS_handshake_hello_retry_request:
-		if (tls_uint16_from_bytes(&version, &data, &datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		format_print(fp, fmt, ind, "selected_version: %s (0x%04x)\n", tls_protocol_name(version), version);
-		break;
-
-	default:
-		error_print();
-		return -1;
-	}
-
-	if (datalen) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_supported_versions_ext_to_bytes(int handshake_type, const int *protos, size_t protos_cnt,
-	uint8_t **out, size_t *outlen)
-{
-	uint16_t ext_type = TLS_extension_supported_versions;
-	size_t ext_datalen;
-	size_t i;
-
-	if (!protos || !protos_cnt || !outlen) {
-		error_print();
-		return -1;
-	}
-	switch (handshake_type) {
-	case TLS_handshake_client_hello:
-		{
-		size_t versions_len;
-		if (protos_cnt > 254/2) {
-			error_print();
-			return -1;
-		}
- 		versions_len = tls_uint16_size() * protos_cnt;
-		ext_datalen = tls_uint8_size() + versions_len;
-		tls_uint16_to_bytes(ext_type, out, outlen);
-		tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
-		tls_uint8_to_bytes((uint8_t)versions_len, out, outlen);
-		for (i = 0; i < protos_cnt; i++) {
-			if (!tls_protocol_name(protos[i])) {
-				error_print();
-				return -1;
-			}
-			tls_uint16_to_bytes((uint16_t)protos[i], out, outlen);
-		}
-		break;
-		}
-	case TLS_handshake_server_hello:
-	case TLS_handshake_hello_retry_request:
-		{
-		uint16_t selected_version;
-		if (protos_cnt > 1) {
-			error_print();
-			return -1;
-		}
-		selected_version = protos[0];
-		ext_datalen = tls_uint16_size();
-		tls_uint16_to_bytes(ext_type, out, outlen);
-		tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
-		tls_uint16_to_bytes(selected_version, out, outlen);
-		break;
-		}
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen)
-{
-	const uint8_t *versions;
-	size_t versions_len;
-	int selected_version = -1;
-
-	if (tls_uint8array_from_bytes(&versions, &versions_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (versions_len < 2 || versions_len > 254) {
-		error_print();
-		return -1;
-	}
-	while (versions_len) {
-		uint16_t proto;
-		if (tls_uint16_from_bytes(&proto, &versions, &versions_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (!tls_protocol_name(proto)) {
-			error_print();
-			return -1;
-		}
-		if (proto == TLS_protocol_tls13) {
-			selected_version = proto;
 		}
 	}
-	if (selected_version < 0) {
-		error_print();
-		return -1;
-	}
-	if (tls13_supported_versions_ext_to_bytes(TLS_handshake_server_hello, &selected_version, 1, out, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_process_server_supported_versions(const uint8_t *ext_data, size_t ext_datalen)
-{
-	uint16_t selected_version;
-
-	if (tls_uint16_from_bytes(&selected_version, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (selected_version != TLS_protocol_tls13) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-/*
-key_share
-
-实际上这个 key_share 也存在相同的问题
-
-
-  struct {
-	NamedGroup group;
-	opaque key_exchange<1..2^16-1>;
-  } KeyShareEntry;
-
-  struct {
-	KeyShareEntry client_shares<0..2^16-1>;
-  } KeyShareClientHello;
-
-  struct {
-	KeyShareEntry server_share;
-  } KeyShareServerHello;
-*/
-
-int tls13_key_share_ext_print(FILE *fp, int fmt, int ind, int handshake_type, const uint8_t *data, size_t datalen)
-{
-	const uint8_t *client_shares;
-	size_t client_shares_len;
-	uint16_t group;
-	const uint8_t *key_exchange;
-	size_t key_exchange_len;
-
-	switch (handshake_type) {
-	case TLS_handshake_client_hello:
-		format_print(fp, fmt, ind, "client_shares\n");
-		ind += 4;
-		if (tls_uint16array_from_bytes(&client_shares, &client_shares_len, &data, &datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		format_print(fp, fmt, ind, "KeyShareEntry\n");
-		ind += 4;
-		while (client_shares_len) {
-			if (tls_uint16_from_bytes(&group, &client_shares, &client_shares_len) != 1) goto err;
-			format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_named_curve_name(group), group);
-			if (tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &client_shares, &client_shares_len) != 1) goto err;
-			format_bytes(fp, fmt, ind, "key_exchange", key_exchange, key_exchange_len);
-		}
-		break;
-	case TLS_handshake_server_hello:
-		format_print(fp, fmt, ind, "server_share\n");
-		ind += 4;
-		if (tls_uint16_from_bytes(&group, &data, &datalen) != 1) goto err;
-		format_print(fp, fmt, ind, "group: %s (0x%04x)\n", tls_named_curve_name(group), group);
-		if (tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &data, &datalen) != 1) goto err;
-		format_bytes(fp, fmt, ind, "key_exchange", key_exchange, key_exchange_len);
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	if (tls_length_is_zero(datalen) != 1) goto err;
-	return 1;
-err:
 	error_print();
-	return -1;
+	return 0;
 }
 
-int tls13_key_share_entry_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen)
-{
-	uint16_t group = TLS_curve_sm2p256v1;
-	uint8_t key_exchange[65];
 
-	if (!point || !outlen) {
-		error_print();
-		return -1;
-	}
-	sm2_z256_point_to_uncompressed_octets(point, key_exchange);
-	tls_uint16_to_bytes(group, out, outlen);
-	tls_uint16array_to_bytes(key_exchange, 65, out, outlen);
-	return 1;
-}
 
-int tls13_server_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen)
-{
-	uint16_t ext_type = TLS_extension_key_share;
-	size_t ext_datalen = 0;
 
-	if (!point || !outlen) {
-		error_print();
-		return -1;
-	}
-	tls13_key_share_entry_to_bytes(point, NULL, &ext_datalen);
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
-	tls13_key_share_entry_to_bytes(point, out, outlen);
-	return 1;
-}
 
+
+/*
 int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_Z256_POINT *point)
 {
 	uint16_t group;
@@ -685,29 +578,16 @@ int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, 
 	return 1;
 }
 
-int tls13_client_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen)
-{
-	uint16_t ext_type = TLS_extension_key_share;
-	size_t ext_datalen;
-	size_t client_shares_len = 0;
+*/
 
-	if (!point || !outlen) {
-		error_print();
-		return -1;
-	}
-	tls13_key_share_entry_to_bytes(point, NULL, &client_shares_len);
-	ext_datalen = tls_uint16_size() + client_shares_len;
-
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen); // FIXME: do we need to check length < UINT16_MAX?
-	tls_uint16_to_bytes((uint16_t)client_shares_len, out, outlen);
-	tls13_key_share_entry_to_bytes(point, out, outlen);
-	return 1;
-}
-
-int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
-	const SM2_KEY *server_ecdhe_key, SM2_KEY *client_ecdhe_public,
-	uint8_t **out, size_t *outlen)
+/*
+如果客户端提供的key_share满足服务器支持的group，那么就缓存这个key_share，任务完成
+否则，如果客户端的groups和服务器的groups找到了共同的group，那么服务器可以发送HelloRetryRequest
+*/
+/*
+int tls13_process_client_key_share(const int *server_groups, size_t server_groups_cnt,
+	const uint8_t *client_ext_data, size_t client_ext_datalen,
+	int *client_group, uint8_t *client_key_exchange, size_t client_key_exchange_len)
 {
 	const uint8_t *client_shares;
 	size_t client_shares_len;
@@ -758,53 +638,7 @@ int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
 	error_print();
 	return -1;
 }
-
-/*
-certificate_authorities
-
-  opaque DistinguishedName<1..2^16-1>;
-
-  struct {
-	DistinguishedName authorities<3..2^16-1>;
-  } CertificateAuthoritiesExtension;
 */
-
-int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
-	uint8_t **out, size_t *outlen)
-{
-	int ext_type = TLS_extension_certificate_authorities;
-	size_t ext_datalen;
-	size_t authorities_len;
-	const uint8_t *name;
-	size_t namelen;
-	const uint8_t *p;
-	size_t len;
-
-	p = ca_names;
-	len = ca_names_len;
-	authorities_len = 0;
-	while (len) {
-		if (x509_name_from_der(&name, &namelen, &p, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		tls_uint16array_to_bytes(name, namelen, NULL, &authorities_len);
-	}
-	if (authorities_len < 3 || authorities_len > (1 << 16) - 1) {
-		error_print();
-		return -1;
-	}
-	ext_datalen = tls_uint16_size() + authorities_len;
-
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
-	tls_uint16_to_bytes((uint16_t)authorities_len, out, outlen);
-	while (ca_names_len) {
-		x509_name_from_der(&name, &namelen, &ca_names, &ca_names_len);
-		tls_uint16array_to_bytes(name, namelen, out, outlen);
-	}
-	return 1;
-}
 
 
 int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen)
@@ -843,6 +677,7 @@ int tls_process_client_hello_exts(const uint8_t *exts, size_t extslen, uint8_t *
 			}
 			break;
 		case TLS_extension_signature_algorithms:
+			/*				
 			if (tls_process_client_signature_algorithms(data, datalen, &out, outlen) != 1) {
 				error_print();
 				return -1;
@@ -853,6 +688,7 @@ int tls_process_client_hello_exts(const uint8_t *exts, size_t extslen, uint8_t *
 				error_print();
 				return -1;
 			}
+			*/
 			break;
 		default:
 			error_print();
@@ -888,6 +724,8 @@ int tls_process_server_hello_exts(const uint8_t *exts, size_t extslen,
 			*ec_point_format = TLS_point_uncompressed;
 			break;
 		case TLS_extension_signature_algorithms:
+				
+			/*
 			if (tls_process_server_signature_algors(data, datalen) != 1) {
 				error_print();
 				return -1;
@@ -899,6 +737,7 @@ int tls_process_server_hello_exts(const uint8_t *exts, size_t extslen,
 				error_print();
 				return -1;
 			}
+			*/
 			*signature_algor = TLS_sig_sm2sig_sm3;
 			break;
 		default:
@@ -953,33 +792,5 @@ static int tls13_hello_retry_request_exts[] = {
 	TLS_extension_cookie,
 	TLS_extension_supported_versions,
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

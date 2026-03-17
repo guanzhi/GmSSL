@@ -244,11 +244,14 @@ int _tlcp_do_connect(TLS_CONNECT *conn)
 		error_print();
 		goto end;
 	}
+			
+	/*
 	if (tls_cipher_suite_in_list(cipher_suite, tlcp_ciphers, tlcp_ciphers_count) != 1) {
 		tls_send_alert(conn, TLS_alert_handshake_failure);
 		error_print();
 		goto end;
 	}
+	*/
 	if (exts) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
