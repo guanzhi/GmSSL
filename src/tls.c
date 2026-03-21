@@ -1670,6 +1670,11 @@ int tls_seq_num_incr(uint8_t seq_num[8])
 	return 1;
 }
 
+void tls_seq_num_reset(uint8_t seq_num[8])
+{
+	memset(seq_num, 0, 8);
+}
+
 int tls_compression_methods_has_null_compression(const uint8_t *meths, size_t methslen)
 {
 	if (!meths || !methslen) {
@@ -2247,8 +2252,6 @@ int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t s
 
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 {
-
-
 	const int supported_versions[] = {
 		TLS_protocol_tls13,
 		TLS_protocol_tls12,
@@ -2257,10 +2260,12 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	size_t supported_versions_cnt = sizeof(supported_versions)/sizeof(supported_versions[0]);
 
 	const int supported_groups[] = {
-		TLS_curve_sm2p256v1,
 		TLS_curve_secp256r1,
+		TLS_curve_sm2p256v1,
 	};
 	size_t supported_groups_cnt = sizeof(supported_groups)/sizeof(supported_groups[0]);
+
+
 
 	const int signature_algorithms[] = {
 		TLS_sig_sm2sig_sm3,
@@ -2295,9 +2300,16 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 		return -1;
 	}
 
+	// test HelloRetryRequest
+	if (!is_client)	{
+		tls_ctx_set_supported_groups(ctx, supported_groups + 1, supported_groups_cnt - 1);
+	}
 
 
 	ctx->verify_depth = 5;
+
+	ctx->new_session_ticket = 1;
+
 	return 1;
 }
 
@@ -2566,6 +2578,11 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 	conn->verify_depth = ctx->verify_depth;
 
 	conn->ctx = ctx;
+
+
+	conn->key_exchanges_cnt = 1;
+
+	conn->new_session_ticket = ctx->new_session_ticket;
 
 	return 1;
 }

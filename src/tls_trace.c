@@ -321,6 +321,24 @@ const char *tls_signature_scheme_name(int scheme)
 	return NULL;
 }
 
+int tls_signature_scheme_oid(int sig_alg)
+{
+	switch (sig_alg) {
+	case TLS_sig_sm2sig_sm3: return OID_sm2sign_with_sm3;
+	case TLS_sig_ecdsa_secp256r1_sha256: return OID_ecdsa_with_sha256;
+	}
+	return 0;
+}
+
+int tls_signature_scheme_from_oid(int sig_alg_oid)
+{
+	switch (sig_alg_oid) {
+	case OID_sm2sign_with_sm3: return TLS_sig_sm2sig_sm3;
+	case OID_ecdsa_with_sha256: return TLS_sig_ecdsa_secp256r1_sha256;
+	}
+	return 0;
+}
+
 int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent)
 {
 	time_t gmt_unix_time = 0;
@@ -382,7 +400,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint16_t proto;
 			tls_uint16_from_bytes(&proto, &p, &len);
-			format_print(fp, format, indent, "%s (0x%04x)\n",
+			format_print(fp, format, indent, "%s (%04x)\n",
 				tls_protocol_name(proto), proto);
 		}
 		break;
@@ -423,7 +441,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint16_t sig_alg;
 			tls_uint16_from_bytes(&sig_alg, &p, &len);
-			format_print(fp, format, indent, "%s (0x%04x)\n",
+			format_print(fp, format, indent, "%s (%04x)\n",
 				tls_signature_scheme_name(sig_alg), sig_alg);
 		}
 		break;
@@ -500,8 +518,8 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 
 	format_print(fp, format, indent, "ClientHello\n"); indent += 4;
 	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto end;
-	format_print(fp, format, indent, "Version: %s (%d.%d)\n",
-		tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
+	format_print(fp, format, indent, "Version: %s (%04x)\n",
+		tls_protocol_name(protocol), protocol);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto end;
 	tls_random_print(fp, random, format, indent);
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &data, &datalen) != 1) goto end;
@@ -511,7 +529,7 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	while (cipher_suites_len >= 2) {
 		uint16_t cipher;
 		if (tls_uint16_from_bytes(&cipher, &cipher_suites, &cipher_suites_len) != 1) goto end;
-		format_print(fp, format, indent + 4, "%s (0x%04x)\n",
+		format_print(fp, format, indent + 4, "%s (%04x)\n",
 			tls_cipher_suite_name(cipher), cipher);
 	}
 	if (cipher_suites_len) {
@@ -586,14 +604,14 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 
 	format_print(fp, format, indent, "ServerHello\n"); indent += 4;
 	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto bad;
-	format_print(fp, format, indent, "Version: %s (%d.%d)\n",
-		tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
+	format_print(fp, format, indent, "Version: %s (%04x)\n",
+		tls_protocol_name(protocol), protocol);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto bad;
 	tls_random_print(fp, random, format, indent);
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &data, &datalen) != 1) goto bad;
 	format_bytes(fp, format, indent, "SessionID", session_id, session_id_len);
 	if (tls_uint16_from_bytes(&cipher_suite, &data, &datalen) != 1) goto bad;
-	format_print(fp, format, indent, "CipherSuite: %s (0x%04x)\n",
+	format_print(fp, format, indent, "CipherSuite: %s (%04x)\n",
 		tls_cipher_suite_name(cipher_suite), cipher_suite);
 	if (tls_uint8_from_bytes(&comp_meth, &data, &datalen) != 1) goto bad;
 	format_print(fp, format, indent, "CompressionMethod: %s (%d)\n",
@@ -673,7 +691,7 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "SignatureScheme: %s (0x%04x)\n",
+	format_print(fp, format, indent, "SignatureScheme: %s (%04x)\n",
 		tls_signature_scheme_name(sig_alg), sig_alg);
 	if (tls_uint16array_from_bytes(&sig, &siglen, &data, &datalen) != 1) {
 		error_print();
@@ -990,7 +1008,7 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 	protocol = tls_record_protocol(record);
 	format_print(fp, format, indent, "Record\n"); indent += 4;
 	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
+	format_print(fp, format, indent, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
 	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
 
 	data = tls_record_data(record);
@@ -1075,7 +1093,7 @@ int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordle
 	protocol = tls_record_protocol(record);
 	format_print(fp, format, indent, "EncryptedRecord\n"); indent += 4;
 	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%d.%d)\n", tls_protocol_name(protocol), protocol >> 8, protocol & 0xff);
+	format_print(fp, format, indent, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
 	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
 	format_bytes(fp, format, indent, "EncryptedData", tls_record_data(record), tls_record_data_length(record));
 

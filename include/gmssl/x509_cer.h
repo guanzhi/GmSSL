@@ -337,6 +337,7 @@ int x509_cert_get_issuer(const uint8_t *a, size_t alen, const uint8_t **name, si
 int x509_cert_get_subject(const uint8_t *a, size_t alen, const uint8_t **subj, size_t *subj_len);
 int x509_cert_get_subject_public_key(const uint8_t *a, size_t alen, X509_KEY *public_key);
 int x509_cert_get_exts(const uint8_t *a, size_t alen, const uint8_t **d, size_t *dlen);
+int x509_cert_get_signature_algor(const uint8_t *a, size_t alen, int *oid);
 
 int x509_certs_to_pem(const uint8_t *d, size_t dlen, FILE *fp);
 int x509_certs_from_pem(uint8_t *d, size_t *dlen, size_t maxlen, FILE *fp);

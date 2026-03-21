@@ -306,6 +306,8 @@ typedef enum {
 } TLS_SIGNATURE_SCHEME;
 
 const char *tls_signature_scheme_name(int scheme);
+int tls_signature_scheme_oid(int sig_alg);
+int tls_signature_scheme_from_oid(int sig_alg_oid);
 int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite);
 
 
@@ -350,6 +352,7 @@ typedef enum {
 	TLS_alert_no_renegotiation		= 100,
 	TLS_alert_missing_extension		= 109, // 查以下RFC
 	TLS_alert_unsupported_extension		= 110,
+	TLS_alert_certificate_unobtainable	= 111,
 	TLS_alert_unsupported_site2site		= 200,
 	TLS_alert_no_area			= 201,
 	TLS_alert_unsupported_areatype		= 202,
@@ -385,6 +388,7 @@ int tls_record_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 	uint8_t *out, size_t *outlen);
 
 int tls_seq_num_incr(uint8_t seq_num[8]);
+void tls_seq_num_reset(uint8_t seq_num[8]);
 int tls_random_generate(uint8_t random[32]);
 int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent);
 int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int protocol);
@@ -710,6 +714,16 @@ enum {
 
 #define TLS_MAX_CIPHER_SUITES_COUNT	64
 
+
+typedef struct {
+	int sig_alg;
+	uint8_t *name;
+	size_t namelen;
+	uint8_t *certs;
+	size_t certslen;
+} TLS_CERTS;
+
+
 typedef struct {
 	int protocol;
 
@@ -721,8 +735,12 @@ typedef struct {
 
 	uint8_t *cacerts;
 	size_t cacertslen;
+
 	uint8_t *certs;
 	size_t certslen;
+
+	TLS_CERTS extra_certs[16];
+	size_t extra_certs_cnt;
 
 
 	// extensions
@@ -750,6 +768,12 @@ typedef struct {
 
 	const uint8_t *signed_certificate_timestamp;
 	size_t signed_certificate_timestamp_len;
+
+
+	// 用于加密和解密session ticket
+	SM4_KEY server_session_ticket_key;
+
+	int new_session_ticket;
 
 	int quiet;
 } TLS_CTX;
@@ -802,6 +826,7 @@ enum {
 	TLS_state_client_finished,
 	TLS_state_server_change_cipher_spec,
 	TLS_state_server_finished,
+	TLS_state_new_session_ticket,
 	TLS_state_handshake_over,
 };
 
@@ -810,23 +835,7 @@ typedef struct {
 
 	int protocol;
 
-	/*
-	服务器端在初始化之后，会创建一个server_ciphers列表
-	在接收到client_ciphers之后，和自己的server_ciphers对比，选择出conn->cipher
-	也可能没有找到一致的cipher，那么就失败了
-	实际上服务器端的ciphers可以完全来自CTX，并不需要缓存
 
-	客户端在初始化之后，创建client_ciphers，发送给服务器
-	在接收到服务器的cipher后，要判断这个cipher是否在自己的client_ciphers之中
-	但是客户端是需要缓存ciphers的，这样才能够判断返回的cipher是否在自己的ciphers之中
-
-
-
-
-
-
-	下面的问题是在CONN中要维护哪些信息？
-	*/
 
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
@@ -916,19 +925,26 @@ typedef struct {
 	uint16_t server_sig_alg;
 
 
-
 	uint16_t ecdh_named_curve;
 
-
 	X509_KEY ecdh_keys[2];
+
+
 	size_t ecdh_keys_cnt;
 
 	X509_KEY ecdh_key;
 
-	int peer_group;
 	uint8_t peer_ecdh_point[65];
 	size_t peer_ecdh_point_len;
 
+
+	X509_KEY key_exchanges[2];
+	size_t key_exchanges_cnt;
+	size_t key_exchange_idx;
+
+	int key_exchange_group;
+	uint8_t peer_key_exchange[65];
+	size_t peer_key_exchange_len;
 
 
 	// tls13 需要提前生成每一种曲线的密钥
@@ -937,7 +953,14 @@ typedef struct {
 	uint8_t peer_sm2_ecdhe[65];
 	uint8_t peer_p256_ecdhe[65];
 
-	int client_certificate_verify; // 是否验证客户端证书
+
+	// 服务器在接收到ClientHello中，计算出双方算法的交集，并保存
+	// 服务器在发送CertificateRequest的时候，需要把这个集合发送给客户端
+	// 客户端在使用的时候实际上使用CTX中的集合发送
+	int signature_algorithms[2];
+	size_t signature_algorithms_cnt;
+
+
 
 	int verify_depth; // 这个可能没有被设置				
 
@@ -955,9 +978,19 @@ typedef struct {
 	uint8_t server_application_traffic_secret[32];
 
 
-	int hello_retry_request;
 
-	int key_exchange_group;
+	int hello_retry_request;
+	int certificate_request;
+	int early_data;
+	int new_session_ticket;
+
+	int client_certificate_verify; // TLS1.2 TLCP需要这个
+
+	uint8_t cookie[512];
+	size_t cookielen;
+
+
+
 } TLS_CONNECT;
 
 
@@ -1129,6 +1162,21 @@ int tls13_key_share_server_hello_print(FILE *fp, int fmt, int ind,
 
 
 int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+
+// NewSessionTicket
+int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_secret[48],
+	int protocol_version, int cipher_suite, uint32_t ticket_issue_time,  uint32_t ticket_lifetime,
+	uint8_t *out, size_t *outlen);
+int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
+	uint8_t resumption_master_secret[48], int *protocol_version, int *cipher_suite,
+	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime);
+
+
+
+
 
 
 #ifdef  __cplusplus

@@ -436,8 +436,67 @@ static int test_tls13_signature_algorithms_cert_ext(void)
 }
 
 
+int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_secret[48],
+	int protocol_version, int cipher_suite, uint32_t ticket_issue_time,  uint32_t ticket_lifetime,
+	uint8_t *out, size_t *outlen);
+int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
+	uint8_t resumption_master_secret[48], int *protocol_version, int *cipher_suite,
+	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime);
 
 
+
+static int test_tls13_ticket(void)
+{
+	SM4_KEY server_session_ticket_key;
+	uint8_t raw_key[16] = {0};
+
+	uint8_t resumption_master_secret[48] = { 1, 2, 3, };
+	int protocol_version = TLS_protocol_tls13;
+	int cipher_suite = TLS_cipher_sm4_gcm_sm3;
+	uint32_t ticket_issue_time = time(NULL);
+	uint32_t ticket_lifetime = 60 * 60 * 24;
+
+	uint8_t ticket[12 + 60 + 16];
+	size_t ticketlen;
+
+	uint8_t _resumption_master_secret[48];
+	int _protocol_version;
+	int _cipher_suite;
+	uint32_t _ticket_issue_time;
+	uint32_t _ticket_lifetime;
+
+	sm4_set_encrypt_key(&server_session_ticket_key, raw_key);
+
+	if (tls13_encrypt_ticket(&server_session_ticket_key,
+		resumption_master_secret, protocol_version, cipher_suite,
+		ticket_issue_time, ticket_lifetime,
+		ticket, &ticketlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (tls13_decrypt_ticket(&server_session_ticket_key,
+		ticket, ticketlen,
+		_resumption_master_secret, &_protocol_version, &_cipher_suite,
+		&_ticket_issue_time, &_ticket_lifetime) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (memcmp(_resumption_master_secret, resumption_master_secret, 48) != 0
+		|| _protocol_version != protocol_version
+		|| _cipher_suite != cipher_suite
+		|| _ticket_issue_time != ticket_issue_time
+		|| _ticket_lifetime != ticket_lifetime) {
+		error_print();
+		return -1;
+	}
+
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 
 
@@ -488,6 +547,8 @@ int main(void)
 	if (test_tls_supported_groups_ext() != 1) goto err;
 	if (test_tls_signature_algorithms_ext() != 1) goto err;
 	if (test_tls13_signature_algorithms_cert_ext() != 1) goto err;
+	if (test_tls13_ticket() != 1) goto err;
+
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
