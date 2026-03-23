@@ -51,6 +51,7 @@ int tls_uint8array_from_bytes(const uint8_t **data, size_t *datalen, const uint8
 int tls_uint16array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_uint24array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_length_is_zero(size_t len);
+int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE *fp);
 
 
 typedef enum {
@@ -724,6 +725,28 @@ typedef struct {
 } TLS_CERTS;
 
 
+
+typedef struct {
+	char hostname[256];
+
+	uint8_t pre_shared_key[32];
+	uint16_t protocol_version;
+	uint16_t cipher_suite;
+	uint32_t ticket_issue_time;
+	uint32_t ticket_lifetime;
+
+	uint32_t ticket_age_add;
+	uint8_t ticket[256];
+	size_t ticketlen;
+
+
+	// TODO: SNI, ALPN, client_certificate (dgst or subject), ticket_age_add, max_early_data_size
+} TLS_SESSION;
+
+
+
+
+
 typedef struct {
 	int protocol;
 
@@ -775,6 +798,13 @@ typedef struct {
 
 	int new_session_ticket;
 
+
+	// 设置客户端是否启用PSK模式
+	int pre_shared_key;
+
+	TLS_SESSION session;
+
+
 	int quiet;
 } TLS_CTX;
 
@@ -811,6 +841,8 @@ void tls_ctx_cleanup(TLS_CTX *ctx);
 enum {
 	TLS_state_handshake_init = 0,
 	TLS_state_client_hello,
+	TLS_state_hello_retry_request,
+	TLS_state_client_hello_again,
 	TLS_state_server_hello,
 	TLS_state_encrypted_extensions,
 	TLS_state_server_certificate,
@@ -832,6 +864,8 @@ enum {
 
 typedef struct {
 	int is_client;
+
+	const char *hostname;
 
 	int protocol;
 
@@ -968,6 +1002,8 @@ typedef struct {
 
 	uint8_t pre_master_secret[48]; // 是否可以重用master_secret作为pre_master_secret呢？			
 	uint8_t master_secret[48];
+	uint8_t resumption_master_secret[48];
+
 	uint8_t key_block[96];
 
 	uint8_t early_secret[32];
@@ -983,11 +1019,18 @@ typedef struct {
 	int certificate_request;
 	int early_data;
 	int new_session_ticket;
+	int pre_shared_key;
+	uint8_t psk[32];
+
+	int selected_psk_identity;
 
 	int client_certificate_verify; // TLS1.2 TLCP需要这个
 
 	uint8_t cookie[512];
 	size_t cookielen;
+
+	FILE *out_session;
+	FILE *in_session;
 
 
 
@@ -1041,6 +1084,7 @@ void tls_clean_record(TLS_CONNECT *conn);
 int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT *conn);
 
 int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx);
+int tls_set_hostname(TLS_CONNECT *conn, const char *hostname);
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock);
 int tls_do_handshake(TLS_CONNECT *conn);
 int tls_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen);

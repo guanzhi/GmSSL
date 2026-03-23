@@ -34,8 +34,6 @@ static int tls13_client_hello_exts[] = {
 	TLS_extension_padding,
 };
 
-#define TLS_state_hello_retry_request 111111
-#define TLS_state_client_hello_again 12222
 
 int tls13_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest)
 {
@@ -438,6 +436,7 @@ int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
 	return 1;
 }
 
+// 输入参数都需要提供长度			
 int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32])
 {
 	DIGEST_CTX ctx = *dgst_ctx;
@@ -1274,6 +1273,132 @@ int tls13_certificate_authorities_print(FILE *fp, int fmt, int ind,
 
 
 
+
+int tls13_session_to_bytes(int protocol_version, int cipher_suite,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	uint32_t ticket_issue_time, uint32_t ticket_lifetime, uint32_t ticket_age_add,
+	const uint8_t *ticket, size_t ticketlen, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+
+	tls_uint16_to_bytes((uint16_t)protocol_version, NULL, &len);
+	tls_uint16_to_bytes((uint16_t)cipher_suite, NULL, &len);
+	tls_uint8array_to_bytes(pre_shared_key, pre_shared_key_len, NULL, &len);
+	tls_uint32_to_bytes(ticket_issue_time, NULL, &len);
+	tls_uint32_to_bytes(ticket_lifetime, NULL, &len);
+	tls_uint32_to_bytes(ticket_age_add, NULL, &len);
+	tls_uint16array_to_bytes(ticket, ticketlen, NULL, &len);
+
+	tls_uint16_to_bytes(len, out, outlen);
+
+	tls_uint16_to_bytes((uint16_t)protocol_version, out, outlen);
+	tls_uint16_to_bytes((uint16_t)cipher_suite, out, outlen);
+	tls_uint8array_to_bytes(pre_shared_key, pre_shared_key_len, out, outlen);
+	tls_uint32_to_bytes(ticket_issue_time, out, outlen);
+	tls_uint32_to_bytes(ticket_lifetime, out, outlen);
+	tls_uint32_to_bytes(ticket_age_add, out, outlen);
+	tls_uint16array_to_bytes(ticket, ticketlen, out, outlen);
+
+	return 1;
+}
+
+int tls13_session_from_bytes(int *protocol_version, int *cipher_suite,
+	const uint8_t **pre_shared_key, size_t *pre_shared_key_len,
+	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime, uint32_t *ticket_age_add,
+	const uint8_t **ticket, size_t *ticketlen,
+	const uint8_t **in, size_t *inlen)
+{
+	const uint8_t *cp;
+	size_t len;
+	uint16_t version;
+	uint16_t cipher;
+
+	if (tls_uint16array_from_bytes(&cp, &len, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16_from_bytes(&version, &cp, &len) != 1
+		|| tls_uint16_from_bytes(&cipher, &cp, &len) != 1
+		|| tls_uint8array_from_bytes(pre_shared_key, pre_shared_key_len, &cp, &len) != 1
+		|| tls_uint32_from_bytes(ticket_issue_time, &cp, &len) != 1
+		|| tls_uint32_from_bytes(ticket_lifetime, &cp, &len) != 1
+		|| tls_uint32_from_bytes(ticket_age_add, &cp, &len) != 1
+		|| tls_uint16array_from_bytes(ticket, ticketlen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!tls_protocol_name(version)) {
+		error_print();
+		return -1;
+	}
+	*protocol_version = version;
+	if (!tls_cipher_suite_name(cipher)) {
+		error_print();
+		return -1;
+	}
+	*cipher_suite = cipher;
+	if (*pre_shared_key_len != 32) {
+		error_print();
+		return -1;
+	}
+	if (*ticket_lifetime > 60 * 60 * 24 * 7) {
+		error_print();
+		return -1;
+	}
+	if (!ticketlen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_session_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *a, size_t alen)
+{
+	const uint8_t *cp;
+	size_t len;
+	uint16_t protocol_version;
+	uint16_t cipher_suite;
+	const uint8_t *pre_shared_key;
+	size_t pre_shared_key_len;
+	uint32_t ticket_issue_time;
+	uint32_t ticket_lifetime;
+	uint32_t ticket_age_add;
+	const uint8_t *ticket;
+	size_t ticketlen;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+	if (tls_uint16array_from_bytes(&cp, &len, &a, &alen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16_from_bytes(&protocol_version, &cp, &len) != 1
+		|| tls_uint16_from_bytes(&cipher_suite, &cp, &len) != 1
+		|| tls_uint8array_from_bytes(&pre_shared_key, &pre_shared_key_len, &cp, &len) != 1
+		|| tls_uint32_from_bytes(&ticket_issue_time, &cp, &len) != 1
+		|| tls_uint32_from_bytes(&ticket_lifetime, &cp, &len) != 1
+		|| tls_uint32_from_bytes(&ticket_age_add, &cp, &len) != 1
+		|| tls_uint16array_from_bytes(&ticket, &ticketlen, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "protocol_version: %s (%04x)\n", tls_protocol_name(protocol_version), protocol_version);
+	format_print(fp, fmt, ind, "cipher_suite: %s (%04x)\n", tls_cipher_suite_name(cipher_suite), cipher_suite);
+	format_bytes(fp, fmt, ind, "pre_shared_key", pre_shared_key, pre_shared_key_len);
+	format_print(fp, fmt, ind, "ticket_issue_time: %"PRIu32"\n", ticket_issue_time);
+	format_print(fp, fmt, ind, "ticket_lifetime: %"PRIu32"\n", ticket_lifetime);
+	format_print(fp, fmt, ind, "ticket_age_add: %"PRIu32"\n", ticket_age_add);
+	format_bytes(fp, fmt, ind, "ticket", ticket, ticketlen);
+	if (tls_length_is_zero(alen) != 1 || tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+
 /*
       struct {} Empty;
 
@@ -1336,83 +1461,282 @@ int tls13_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, 
 
 
 
+
+
+
+
 /*
-Extension: pre_shared_key
-
-
-      struct {
-          opaque identity<1..2^16-1>;
-          uint32 obfuscated_ticket_age;
-      } PskIdentity;
-
-
-	每个psk_identity包含一个identity字符串（可能是一个哈希值或者随机值）
-	还有一个uint32_t 的时间
-
-	在每个pre_shared_key 扩展中，首先包含一组PskIdentity
-
-	然后包含一组binder，每个binder是一个
-
-
-      opaque PskBinderEntry<32..255>;
-
-
-
-      struct {
-          PskIdentity identities<7..2^16-1>;
-          PskBinderEntry binders<33..2^16-1>;
-      } OfferedPsks;
-
-
-      struct {
-          select (Handshake.msg_type) {
-              case client_hello: OfferedPsks;
-              case server_hello: uint16 selected_identity;
-          };
-      } PreSharedKeyExtension;
-
-
-
-	客户端在pre_shared_key扩展中提供一组预设的密钥，让服务器从中选择
-		这个密钥可能来自于系统外部预设的
-		或者来自于之前的NewSessionTicket
-
-	每个密钥除了密钥的ID之外，还包含一个密钥的MAC，客户端通过这个MAC证明自己拥有密钥ID对应的密钥
-
-		这个mac命名为binder
-
-		binder = HMAC(binder_key, transcript_hash)
-
-		因为这个binder是在ClientHello（也就是第一个消息中发送的）
-		因此在计算ClientHello的哈希的时候显然存在一个死锁
-		因此我们需要先准备好ClientHello（其中binder字段添全0，长度由HMAC算法决定）
-		然后调用binder_key生成binder
-
-
-		binder_key = HKDF-Expand-Label(early_secret, "res binder", "", Hash.length)
-
-		这里的early_secret是什么？		
-
-
-
-	客户端在完成Full Handshake之后可以缓冲？
-
-	我们可以缓冲在CTX中，按域名 / SNI / ALPN”等维度索引
-
-)
-
-
+struct {
+	opaque identity<1..2^16-1>;
+	uint32 obfuscated_ticket_age;
+} PskIdentity;
 */
+int tls13_psk_identity_to_bytes(const uint8_t *ticket, size_t ticketlen, uint32_t obfuscated_ticket_age,
+	uint8_t **out, size_t *outlen)
+{
+	if (!ticket || !ticketlen || ticketlen > 65535) {
+		error_print();
+		return -1;
+	}
 
+	tls_uint16array_to_bytes(ticket, ticketlen, out, outlen);
+	tls_uint32_to_bytes(obfuscated_ticket_age, out, outlen);
+	return 1;
+}
+
+int tls13_psk_identity_from_bytes(const uint8_t **ticket, size_t *ticketlen, uint32_t *obfuscated_ticket_age,
+	const uint8_t **in, size_t *inlen)
+{
+	if (tls_uint16array_from_bytes(ticket, ticketlen, in, inlen) != 1
+		|| tls_uint32_from_bytes(obfuscated_ticket_age, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_client_pre_shared_key_ext_to_bytes(const uint8_t *identities, size_t identitieslen,
+	const uint8_t *binders, size_t binderslen, uint8_t **out, size_t *outlen)
+{
+	int ext_type = TLS_extension_pre_shared_key;
+	uint8_t *ext_data = *out + 4;
+	size_t ext_datalen = 0;
+
+	tls_uint16array_to_bytes(identities, identitieslen, &ext_data, &ext_datalen);
+	tls_uint16array_to_bytes(binders, binderslen, &ext_data, &ext_datalen);
+	tls_ext_to_bytes(ext_type, NULL, ext_datalen, out, outlen); // tls_ext_to_bytes 逻辑不一定对啊			
+
+	return 1;
+}
+
+int tls13_client_pre_shared_key_from_bytes(const uint8_t **identities, size_t *identitieslen,
+	const uint8_t **binders, size_t *binderslen, const uint8_t *ext_data, size_t ext_datalen)
+{
+	if (tls_uint16array_from_bytes(identities, identitieslen, &ext_data, &ext_datalen) != 1
+		|| tls_uint16array_from_bytes(binders, binderslen, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+
+int tls13_process_client_pre_shared_key(TLS_CONNECT *conn, const uint8_t *ext_data, size_t ext_datalen,
+	int *selected_psk_identity)
+{
+	const uint8_t *identities;
+	size_t identitieslen;
+	const uint8_t *binders;
+	size_t binderslen;
+	DIGEST_CTX null_dgst_ctx;
+	DIGEST_CTX truncated_dgst_ctx;
+	size_t i = 0;
+
+	if (tls_uint16array_from_bytes(&identities, &identitieslen, &ext_data, &ext_datalen) != 1
+		|| tls_uint16array_from_bytes(&binders, &binderslen, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	digest_init(&null_dgst_ctx, conn->digest);
+
+	// truncated_client_hello
+	memcpy(conn->plain_record, conn->record, conn->recordlen);
+	conn->plain_recordlen = conn->recordlen;
+
+
+	const uint8_t *truncated_binders = conn->plain_record + (binders - conn->record);
+	size_t truncated_binderslen = binderslen;
+
+
+	while (truncated_binderslen) {
+		const uint8_t *truncated_binder;
+		size_t truncated_binderlen;
+		if (tls_uint8array_from_bytes(&truncated_binder, &truncated_binderlen, &truncated_binders, &truncated_binderslen) != 1) {
+			error_print();
+			return -1;
+		}
+		memset((uint8_t *)truncated_binder, 0, truncated_binderlen);
+	}
+
+
+
+	*selected_psk_identity = -1;
+
+	for (i = 0; identitieslen; i++) {
+		const uint8_t *ticket;
+		size_t ticketlen;
+		uint32_t obfuscated_ticket_age;
+		const uint8_t *binder;
+		size_t binderlen;
+
+		// ticket content
+		uint8_t pre_shared_key[32];
+		int protocol_version;
+		int cipher_suite;
+		uint32_t ticket_issue_time;
+		uint32_t ticket_lifetime;
+
+		// check binder
+		uint8_t zeros[32] = {0};
+		uint8_t early_secret[32];
+		uint8_t binder_key[32];
+		uint8_t local_binder[32];
+		size_t local_binderlen;
+
+
+		if (tls13_psk_identity_from_bytes(&ticket, &ticketlen, &obfuscated_ticket_age,
+			&identities, &identitieslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls_uint8array_from_bytes(&binder, &binderlen, &binders, &binderslen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		// decrypt ticket
+		if (tls13_decrypt_ticket(&conn->ctx->server_session_ticket_key, ticket, ticketlen,
+			pre_shared_key, &protocol_version, &cipher_suite,
+			&ticket_issue_time, &ticket_lifetime) != 1) {
+			error_print();
+			return -1;
+		}
+		format_bytes(stderr, 0, 0, ">>>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
+
+		// check time
+		uint32_t current_time = time(NULL);
+		if (ticket_issue_time > current_time) {
+			error_print();
+			continue;
+		}
+		if (current_time - ticket_issue_time > ticket_lifetime) {
+			error_print();
+			continue;
+		}
+
+		// pre_shared_key => binder_key
+		// [1]
+		tls13_hkdf_extract(conn->digest, zeros, pre_shared_key, early_secret);
+
+		format_bytes(stderr, 0, 0, ">>>>> early_secret", early_secret, 32);
+
+
+
+		// [2]
+		tls13_derive_secret(early_secret, "res binder", &null_dgst_ctx, binder_key);
+
+		format_bytes(stderr, 0, 0, ">>>>> binder_key", binder_key, 32);
+
+
+		// compute local binder
+		truncated_dgst_ctx = null_dgst_ctx;
+		digest_update(&truncated_dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5);
+
+
+			DIGEST_CTX _ctx = truncated_dgst_ctx;
+			uint8_t _dgst[32];
+			size_t _dgstlen;
+			digest_finish(&_ctx, _dgst, &_dgstlen);
+			format_bytes(stderr, 0, 0, ">>>>> dgst", _dgst, 32);
+
+
+
+		tls13_compute_verify_data(binder_key, &truncated_dgst_ctx, local_binder, &local_binderlen);
+
+		// check binder
+		if (binderlen != local_binderlen
+			|| memcmp(binder, local_binder, local_binderlen) != 0) {
+			error_print();
+			return -1;
+		}
+		*selected_psk_identity = i;
+
+		memcpy(conn->psk, pre_shared_key, 32);
+
+		break;
+	}
+
+	if (*selected_psk_identity < 0) {
+		error_print();
+		return 0;
+	}
+	return 1;
+}
+
+int tls13_client_pre_shared_key_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *identities;
+	size_t identitieslen;
+	const uint8_t *binders;
+	size_t binderslen;
+
+	format_print(fp, fmt, ind, "pre_shared_key\n");
+	ind += 4;
+
+	if (tls_uint16array_from_bytes(&identities, &identitieslen, &ext_data, &ext_datalen) != 1
+		|| tls_uint16array_from_bytes(&binders, &binderslen, &ext_data, &ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	format_print(fp, fmt, ind, "identities\n");
+	if (!identitieslen) {
+		format_print(fp, fmt, ind + 4, "(null)\n");
+	}
+	while (identitieslen) {
+		int indent = ind + 4;
+		const uint8_t *ticket;
+		size_t ticketlen;
+		uint32_t obfuscated_ticket_age;
+
+		if (tls13_psk_identity_from_bytes(&ticket, &ticketlen, &obfuscated_ticket_age, &identities, &identitieslen) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, indent, "PskIdentity\n");
+		indent += 4;
+		format_bytes(fp, fmt, indent, "identity", ticket, ticketlen);
+		format_print(fp, fmt, indent, "obfuscated_ticket_age: %"PRIu32"\n", obfuscated_ticket_age);
+	}
+
+	format_print(fp, fmt, ind, "binders\n");
+	if (!binderslen) {
+		format_print(fp, fmt, ind + 4, "(null)\n");
+	}
+	while (binderslen) {
+		int indent = ind + 4;
+		const uint8_t *binder;
+		size_t binderlen;
+
+		if (tls_uint8array_from_bytes(&binder, &binderlen, &binders, &binderslen) != 1) {
+			error_print();
+			return -1;
+		}
+		format_bytes(fp, fmt, indent, "PskBinderEntry", binder, binderlen);
+	}
+
+
+	return 1;
+}
 
 
 int tls13_server_pre_shared_key_ext_to_bytes(int selected_identity, uint8_t **out, size_t *outlen)
 {
-	if (selected_identity > 65535) {
+	int ext_type = TLS_extension_pre_shared_key;
+	uint8_t ext_data[2];
+	uint8_t *p = ext_data;
+	size_t ext_datalen = 0;
+
+	if (selected_identity < 0 || selected_identity > 65535) {
 		error_print();
 		return -1;
 	}
-	tls_uint16_to_bytes((uint16_t)selected_identity, out, outlen);
+	tls_uint16_to_bytes((uint16_t)selected_identity, &p, &ext_datalen);
+	tls_ext_to_bytes(ext_type, ext_data, sizeof(ext_data), out, outlen);
 	return 1;
 }
 
@@ -1555,9 +1879,11 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 		case TLS_extension_early_data:
 			tls13_early_data_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
+		case TLS_extension_pre_shared_key:
+			tls13_client_pre_shared_key_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			break;
 
 		case TLS_extension_psk_key_exchange_modes:
-		case TLS_extension_pre_shared_key:
 		case TLS_extension_server_name:
 		case TLS_extension_application_layer_protocol_negotiation:
 		case TLS_extension_padding:
@@ -1645,13 +1971,13 @@ int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			tls13_key_share_server_hello_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_pre_shared_key:
-			//tls13_pre_shared_key_print(fp, fmt, ind, ext_data, ext_datalen);
+			tls13_server_pre_shared_key_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_cookie:
-			tls13_cookie_print(fp, fmt, ind, ext_data, ext_datalen);
+			tls13_cookie_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		default:
-			format_bytes(fp, fmt, ind, "raw_data", ext_data, ext_datalen);
+			format_bytes(fp, fmt, ind + 4, "raw_data", ext_data, ext_datalen);
 			return -1;
 		}
 	}
@@ -2498,20 +2824,12 @@ NewSessionTicket
           opaque ticket<1..2^16-1>;
           Extension extensions<0..2^16-2>;
       } NewSessionTicket;
-
-
-
 */
 
 
-typedef struct {
-	uint8_t resumption_master_secret[48];
-	uint16_t protocol_version;
-	uint16_t cipher_suite;
-	uint32_t ticket_issue_time;
-	uint32_t ticket_lifetime;
-	// TODO: SNI, ALPN, client_certificate (dgst or subject), ticket_age_add, max_early_data_size
-} TLS_TICKET;
+
+
+// 对于客户端来说，只要多存储一个server_session_ticket就可以了
 
 
 int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
@@ -2542,11 +2860,11 @@ int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint
 }
 
 
-int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_secret[48],
+int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t pre_shared_key[32],
 	int protocol_version, int cipher_suite, uint32_t ticket_issue_time,  uint32_t ticket_lifetime,
 	uint8_t *out, size_t *outlen)
 {
-	uint8_t ticket[60];
+	uint8_t ticket[32 + 2 + 2 + 4 + 4];
 	uint8_t *p = ticket;
 	size_t ticketlen = 0;
 
@@ -2560,7 +2878,7 @@ int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_sec
 	out += ivlen;
 	tag = out + sizeof(ticket);
 
-	tls_array_to_bytes(resumption_master_secret, 48, &p, &ticketlen);
+	tls_array_to_bytes(pre_shared_key, 32, &p, &ticketlen);
 	tls_uint16_to_bytes(protocol_version, &p, &ticketlen);
 	tls_uint16_to_bytes(cipher_suite, &p, &ticketlen);
 	tls_uint32_to_bytes(ticket_issue_time, &p, &ticketlen);
@@ -2581,12 +2899,11 @@ int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_sec
 	}
 
 	*outlen = ivlen + sizeof(ticket) + taglen;
-
 	return 1;
 }
 
 int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
-	uint8_t resumption_master_secret[48], int *protocol_version, int *cipher_suite,
+	uint8_t pre_shared_key[32], int *protocol_version, int *cipher_suite,
 	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime)
 {
 	const uint8_t *iv;
@@ -2596,9 +2913,9 @@ int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
 	const uint8_t *tag;
 	size_t taglen = 16;
 
-	uint8_t ticket[60];
+	uint8_t ticket[32 + 2 + 2 + 4 + 4];
 	const uint8_t *cp = ticket;
-	const uint8_t *master_secret;
+	const uint8_t *psk;
 	uint16_t version;
 	uint16_t cipher;
 
@@ -2621,7 +2938,7 @@ int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
 	}
 
 
-	if (tls_array_from_bytes(&master_secret, 48, &cp, &inlen) != 1
+	if (tls_array_from_bytes(&psk, 32, &cp, &inlen) != 1
 		|| tls_uint16_from_bytes(&version, &cp, &inlen) != 1
 		|| tls_uint16_from_bytes(&cipher, &cp, &inlen) != 1
 		|| tls_uint32_from_bytes(ticket_issue_time, &cp, &inlen) != 1
@@ -2630,7 +2947,7 @@ int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
 		error_print();
 		return -1;
 	}
-	memcpy(resumption_master_secret, master_secret, 48);
+	memcpy(pre_shared_key, psk, 32);
 	*protocol_version = version;
 	*cipher_suite = cipher;
 	return 1;
@@ -3182,6 +3499,44 @@ Auth | {CertificateVerify*}
 
 */
 
+
+
+/*
+如果执行0-RTT（前提是CTX，CONN中准备了session)
+
+那么ClientHello中必须包含
+	pre_shared_key (从session中获得1个活着多个）
+	early_data (empty)
+	key_share 虽然是可选的，但是我们强制实现
+
+客户端发送完ClientHello之后，就可以先发送一个ApplicationData，因此这个流程和默认的是不一样的
+
+然后接收：
+	ServerHello
+		必须包含key_share
+	EncryptedExtensions
+		(必须包含early_data，否则和常规的是一样的）
+		也就是说获得了EE才知道后续的状态
+	Finished 采用0-RTT时状态变了
+
+
+客户端如何决定是否用PSK模式？
+
+	我们可以在TLS_CTX中设定psk模式，并且psk就存储在CTX中
+
+
+
+客户端通过ClientHello.pre_shared_key 来请求启用PSK模式
+服务器通过ServerHello.pre_shared_key 来响应，或者不包含pre_shared_key来拒绝，以回到完整握手
+PSK模式的握手过程和Full握手是不同的
+
+
+客户端通过ClientHello.early_data(empty)来请求启动0-RTT
+服务器在EncryptedExtensions.early_data来响应
+如果响应了early_data，那么握手过程在PSK模式上又增加了消息
+
+
+*/
 int tls13_send_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
@@ -3190,7 +3545,7 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 		const uint8_t *legacy_session_id = NULL;
 		size_t legacy_session_id_len = 0;
 		uint8_t exts[TLS_MAX_EXTENSIONS_SIZE];
-		uint8_t *p = exts;
+		uint8_t *pexts = exts;
 		size_t extslen = 0;
 		size_t i;
 
@@ -3225,16 +3580,156 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 
 		// extensions
 		if (tls13_client_supported_versions_ext_to_bytes(conn->ctx->supported_versions,
-			conn->ctx->supported_versions_cnt, &p, &extslen) != 1
+			conn->ctx->supported_versions_cnt, &pexts, &extslen) != 1
 			|| tls_supported_groups_ext_to_bytes(conn->ctx->supported_groups,
-			conn->ctx->supported_groups_cnt, &p, &extslen) != 1
+			conn->ctx->supported_groups_cnt, &pexts, &extslen) != 1
 			|| tls13_key_share_client_hello_ext_to_bytes(conn->key_exchanges,
-			conn->key_exchanges_cnt, &p, &extslen) != 1
+			conn->key_exchanges_cnt, &pexts, &extslen) != 1
 			|| tls_signature_algorithms_ext_to_bytes(conn->ctx->signature_algorithms,
-			conn->ctx->signature_algorithms_cnt, &p, &extslen) != 1) {
+			conn->ctx->signature_algorithms_cnt, &pexts, &extslen) != 1) {
 			error_print();
 			return -1;
 		}
+
+		// PSK mode
+		if (conn->pre_shared_key) {
+
+			uint8_t *ptruncated_exts = pexts;
+			size_t truncated_extslen = extslen;
+
+			// session
+			uint8_t session[512];
+			size_t sessionlen = 0;
+			const uint8_t *cpsession = session;
+			int protocol_version;
+			int cipher_suite;
+			const uint8_t *pre_shared_key;
+			size_t pre_shared_key_len;
+			uint32_t ticket_issue_time;
+			uint32_t ticket_lifetime;
+			uint32_t ticket_age_add;
+			const uint8_t *ticket;
+			size_t ticketlen;
+
+			uint32_t current_time = time(NULL);
+			uint32_t ticket_age = current_time - ticket_issue_time;
+			uint32_t obfuscated_ticket_age = ticket_age + ticket_age_add;
+
+			// pre_shared_key extension
+			uint8_t identities[512];
+			uint8_t *pidentities = identities;
+			size_t identitieslen = 0;
+			uint8_t binders[256];
+			uint8_t *pbinders = binders;
+			size_t binderslen = 0;
+
+			uint8_t zeros[32] = {0};
+			uint8_t early_secret[32];
+			uint8_t binder_key[32];
+			uint8_t binder[32] = {0};
+			size_t binderlen;
+
+
+			if (!(conn->in_session = fopen("session.bin", "rb"))) {
+				error_print();
+				return -1;
+			}
+
+
+			// load session ticket
+			if (tls_uint16array_from_file(session, &sessionlen, sizeof(session), conn->in_session) != 1) {
+				error_print();
+				return -1;
+			}
+			if (tls13_session_from_bytes(&protocol_version, &cipher_suite,
+				&pre_shared_key, &pre_shared_key_len,
+				&ticket_issue_time, &ticket_lifetime, &ticket_age_add,
+				&ticket, &ticketlen, &cpsession, &sessionlen) != 1
+				|| tls_length_is_zero(sessionlen) != 1) {
+				error_print();
+				return -1;
+			}
+			format_bytes(stderr, 0, 0, "pre_shared_key", pre_shared_key, pre_shared_key_len);
+
+			// save pre_shared_key
+			memcpy(conn->psk, pre_shared_key, 32);
+			// 这里其实是有问题的，如果服务器不选择PSK模式，那么PSK用的就是全0
+
+
+
+			// compute obfuscated_ticket_age
+			current_time = time(NULL);
+			ticket_age = current_time - ticket_issue_time;
+			obfuscated_ticket_age = ticket_age + ticket_age_add;
+
+			// output pre_shared_key.identities
+			if (tls13_psk_identity_to_bytes(ticket, ticketlen, obfuscated_ticket_age, &pidentities, &identitieslen) != 1) {
+				error_print();
+				return -1;
+			}
+
+			binderslen = 0;
+			tls_uint8array_to_bytes(binder, sizeof(binder), &pbinders, &binderslen);
+
+			// output pre_shared_key ext with empty binders
+			if (tls13_client_pre_shared_key_ext_to_bytes(identities, identitieslen, binders, binderslen,
+				&ptruncated_exts, &truncated_extslen) != 1) {
+				error_print();
+				return -1;
+			}
+
+			// truncate(ClientHello)
+			if (tls_record_set_handshake_client_hello(conn->record, &conn->recordlen,
+				TLS_protocol_tls12, conn->client_random,
+				legacy_session_id, legacy_session_id_len,
+				conn->ctx->cipher_suites, conn->ctx->cipher_suites_cnt,
+				exts, truncated_extslen) != 1) {
+				error_print();
+				return -1;
+			}
+			tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
+			conn->digest = DIGEST_sm3();
+
+			DIGEST_CTX tmp_dgst_ctx;
+
+			digest_init(&tmp_dgst_ctx, conn->digest);
+
+
+			// [1]
+			tls13_hkdf_extract(conn->digest, zeros, pre_shared_key, early_secret);
+			format_bytes(stderr, 0, 0, ">>>>> early_secret", early_secret, 32);
+
+			// [2]
+			tls13_derive_secret(early_secret, "res binder", &tmp_dgst_ctx, binder_key);
+			format_bytes(stderr, 0, 0, ">>>>> binder_key", binder_key, 32);
+
+			digest_update(&tmp_dgst_ctx, conn->record + 5, conn->recordlen - 5);
+
+			DIGEST_CTX _ctx = tmp_dgst_ctx;
+			uint8_t _dgst[32];
+			size_t _dgstlen;
+			digest_finish(&_ctx, _dgst, &_dgstlen);
+			format_bytes(stderr, 0, 0, ">>>>> dgst", _dgst, 32);
+
+
+			tls13_compute_verify_data(binder_key, &tmp_dgst_ctx, binder, &binderlen);
+
+
+			pbinders = binders;
+			binderslen = 0;
+			tls_uint8array_to_bytes(binder, binderlen, &pbinders, &binderslen);
+
+
+			// output final pre_shared_key ext
+			if (tls13_client_pre_shared_key_ext_to_bytes(identities, identitieslen, binders, binderslen, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+
+			conn->recordlen = 0;
+		}
+
 		if (tls_record_set_handshake_client_hello(conn->record, &conn->recordlen,
 			TLS_protocol_tls12, conn->client_random,
 			legacy_session_id, legacy_session_id_len,
@@ -3243,6 +3738,8 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+
+
 		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 	}
 
@@ -3717,6 +4214,11 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 			conn->peer_key_exchange_len = 65;
 			break;
 
+		// extensions can be ignored
+		case TLS_extension_pre_shared_key:
+			error_print();
+			break;
+
 		// extensions MUST NOT exist
 		case TLS_extension_supported_groups:
 		case TLS_extension_signature_algorithms:
@@ -3725,8 +4227,7 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_illegal_parameter);
 			break;
 
-		// extensions can be ignored
-		case TLS_extension_pre_shared_key:
+
 		default:
 			warning_print();
 		}
@@ -3816,7 +4317,7 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 int tls13_generate_keys(TLS_CONNECT *conn)
 {
 	uint8_t zeros[32] = {0};
-	uint8_t psk[32] = {0};
+	//uint8_t psk[32] = {0}; // 在PSK模式中，PSK需要从conn中读取			
 	uint8_t early_secret[32];
 	uint8_t handshake_secret[32];
 	uint8_t pre_master_secret[32];
@@ -3826,6 +4327,12 @@ int tls13_generate_keys(TLS_CONNECT *conn)
 	DIGEST_CTX null_dgst_ctx;
 
 	printf("generate handshake secrets\n");
+
+
+	if (!conn->pre_shared_key) {
+		memset(conn->psk, 0, 32);
+	}
+
 
 	/*
 	generate handshake keys
@@ -3856,7 +4363,7 @@ int tls13_generate_keys(TLS_CONNECT *conn)
 
 
 
-	/* [1]  */ tls13_hkdf_extract(conn->digest, zeros, psk, early_secret);
+	/* [1]  */ tls13_hkdf_extract(conn->digest, zeros, conn->psk, early_secret);
 	/* [5]  */ tls13_derive_secret(early_secret, "derived", &null_dgst_ctx, handshake_secret);
 	/* [6]  */ tls13_hkdf_extract(conn->digest, handshake_secret, pre_master_secret, handshake_secret);
 	/* [7]  */ tls13_derive_secret(handshake_secret, "c hs traffic", &conn->dgst_ctx, conn->client_handshake_traffic_secret);
@@ -4469,6 +4976,7 @@ int tls13_recv_server_finished(TLS_CONNECT *conn)
 	// generate server_application_traffic_secret
 	/* [12] */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
 
+
 	// update server_write_key, server_write_iv, reset server_seq_num
 	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
 	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
@@ -4481,8 +4989,8 @@ int tls13_recv_server_finished(TLS_CONNECT *conn)
 	format_print(stderr, 0, 0, "\n");
 
 
-	tls_seq_num_reset(conn->server_seq_num);
 
+	tls_seq_num_reset(conn->server_seq_num);
 
 	return 1;
 }
@@ -4703,6 +5211,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	size_t key_exchange_len = 0;
 
 
+
 	// 这个判断应该改为一个函数
 	/*
 	if (client_verify)
@@ -4860,6 +5369,20 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 				tls_send_alert(conn, TLS_alert_handshake_failure);
 				return -1;
 			}
+			break;
+
+		case TLS_extension_pre_shared_key:
+
+			if (tls13_process_client_pre_shared_key(conn, ext_data, ext_datalen, &conn->selected_psk_identity) < 0) {
+				error_print();
+				return -1;
+			}
+
+			if (conn->selected_psk_identity >= 0) {
+				conn->pre_shared_key = 1;
+				// ServerHello依赖这个标志
+			}
+
 			break;
 
 		default:
@@ -5299,6 +5822,14 @@ int tls13_send_server_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+
+		if (conn->pre_shared_key) {
+			if (tls13_server_pre_shared_key_ext_to_bytes(conn->selected_psk_identity, &p, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
 			TLS_protocol_tls12, conn->server_random, NULL, 0,
 			conn->cipher_suite, exts, extslen) != 1) {
@@ -5966,7 +6497,7 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		uint32_t ticket_lifetime = 60 * 60 * 24 * 2; // = 2 days
 		uint32_t ticket_age_add;
 		uint8_t ticket_nonce[8];
-		uint8_t ticket[12 + 60 + 16];
+		uint8_t ticket[12 + (32 + 2 + 2 + 4 + 4) + 16];
 		size_t ticketlen;
 		uint8_t exts[16];
 		size_t extslen = 0;
@@ -5983,8 +6514,23 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+
+		uint8_t resumption_master_secret[48];
+		size_t dgstlen = 32;
+		uint8_t pre_shared_key[32];
+
+		// generate resumption_master_secret
+		/* [14] */ tls13_derive_secret(conn->master_secret, "res master", &conn->dgst_ctx, resumption_master_secret);
+
+		// pre_shared_key = HKDF-Expand-Label(resumption_master_secret, "resumption", ticket_nonce, Hash.length)
+		tls13_hkdf_expand_label(conn->digest, resumption_master_secret, "resumption",
+			ticket_nonce, sizeof(ticket_nonce), dgstlen, pre_shared_key);
+
+
+		format_bytes(stderr, 0, 0, ">>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
+
 		if (tls13_encrypt_ticket(&conn->ctx->server_session_ticket_key,
-			conn->master_secret, conn->protocol, conn->cipher_suite,
+			pre_shared_key, conn->protocol, conn->cipher_suite,
 			ticket_issue_time, ticket_lifetime, ticket, &ticketlen) != 1) {
 			error_print();
 			return -1;
@@ -6032,10 +6578,9 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 	return 1;
 }
 
-int tls13_save_session_ticket(TLS_CONNECT *conn, const uint8_t *new_session_ticket, size_t new_session_ticket_len)
-{
-	tls13_ticket_print(stderr, 0, 0, "save SessionTicket", new_session_ticket, new_session_ticket_len);
 
+int tls13_load_session_ticket(TLS_CONNECT *conn, const uint8_t *session, size_t sessionlen)
+{
 	return 1;
 }
 
@@ -6049,9 +6594,11 @@ int tls13_recv_new_session_ticket(TLS_CONNECT *conn)
 	uint32_t ticket_lifetime;
 	uint32_t ticket_age_add;
 	const uint8_t *ticket_nonce;
+	size_t ticket_nonce_len;
 	const uint8_t *ticket;
+	size_t ticketlen;
 	const uint8_t *exts;
-	size_t ticket_nonce_len, ticketlen, extslen;
+	size_t extslen;
 	size_t max_early_data_size;
 	const uint8_t *cp;
 	size_t len;
@@ -6121,15 +6668,46 @@ int tls13_recv_new_session_ticket(TLS_CONNECT *conn)
 		}
 	}
 
-	// save ticket
-	if (tls13_save_session_ticket(conn, handshake_data, handshake_datalen) != 1) {
+	uint8_t resumption_master_secret[48];
+	size_t dgstlen = 32;
+	uint8_t pre_shared_key[32];
+
+	// generate resumption_master_secret
+	/* [14] */ tls13_derive_secret(conn->master_secret, "res master", &conn->dgst_ctx, resumption_master_secret);
+
+	// pre_shared_key = HKDF-Expand-Label(resumption_master_secret, "resumption", ticket_nonce, Hash.length)
+	tls13_hkdf_expand_label(conn->digest, resumption_master_secret, "resumption",
+		ticket_nonce, ticket_nonce_len, dgstlen, pre_shared_key);
+
+
+	uint8_t session[512];
+	uint8_t *p = session;
+	size_t sessionlen = 0;
+
+	uint32_t ticket_issue_time = time(NULL);
+
+	if (tls13_session_to_bytes(conn->protocol, conn->cipher_suite, pre_shared_key, 32,
+		ticket_issue_time, ticket_lifetime, ticket_age_add, ticket, ticketlen,
+		&p, &sessionlen) != 1) {
 		error_print();
 		return -1;
 	}
 
+	tls13_session_print(stderr, 0, 0, "SESSION", session, sessionlen);
+
+	if (!(conn->out_session = fopen("session.bin", "wb"))) {
+		error_print();
+		return -1;
+	}
+	if (fwrite(session, 1, sessionlen, conn->out_session) != sessionlen) {
+		error_print();
+		return -1;
+	}
+	fclose(conn->out_session);
+
+
 	return 1;
 }
-
 
 
 /*
@@ -6185,7 +6763,9 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_encrypted_extensions:
 		ret = tls13_recv_encrypted_extensions(conn);
-		next_state = TLS_state_certificate_request;
+		if (conn->pre_shared_key)
+			next_state = TLS_state_server_finished;
+		else	next_state = TLS_state_certificate_request;
 		break;
 
 	case TLS_state_certificate_request: // optional
@@ -6289,7 +6869,9 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_encrypted_extensions:
 		ret = tls13_send_encrypted_extensions(conn);
-		if (conn->certificate_request)
+		if (conn->pre_shared_key)
+			next_state = TLS_state_server_finished;
+		else if (conn->certificate_request)
 			next_state = TLS_state_certificate_request;
 		else	next_state = TLS_state_server_certificate;
 		break;

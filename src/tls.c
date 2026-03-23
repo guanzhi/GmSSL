@@ -2260,11 +2260,10 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	size_t supported_versions_cnt = sizeof(supported_versions)/sizeof(supported_versions[0]);
 
 	const int supported_groups[] = {
-		TLS_curve_secp256r1,
 		TLS_curve_sm2p256v1,
+		TLS_curve_secp256r1,
 	};
 	size_t supported_groups_cnt = sizeof(supported_groups)/sizeof(supported_groups[0]);
-
 
 
 	const int signature_algorithms[] = {
@@ -2310,10 +2309,12 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 
 	ctx->new_session_ticket = 1;
 
+
+	// TODO: 需要通过函数或者其他设置来启用这个开关
+	ctx->pre_shared_key = 1;
+
 	return 1;
 }
-
-
 
 
 int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cipher_suites_cnt)
@@ -2580,9 +2581,11 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 	conn->ctx = ctx;
 
 
-	conn->key_exchanges_cnt = 1;
+	conn->key_exchanges_cnt = 2;
 
 	conn->new_session_ticket = ctx->new_session_ticket;
+
+	conn->pre_shared_key = ctx->pre_shared_key;
 
 	return 1;
 }
@@ -2590,6 +2593,16 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 void tls_cleanup(TLS_CONNECT *conn)
 {
 	gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
+}
+
+int tls_set_hostname(TLS_CONNECT *conn, const char *hostname)
+{
+	if (strlen(hostname) > 255) {
+		error_print();
+		return -1;
+	}
+	conn->hostname = hostname;
+	return 1;
 }
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
@@ -2640,3 +2653,46 @@ int tls_get_verify_result(TLS_CONNECT *conn, int *result)
 	*result = conn->verify_result;
 	return 1;
 }
+
+
+
+int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE *fp)
+{
+	uint16_t datalen;
+	const uint8_t *cp;
+	size_t len = 2;
+
+	if (!arr || !arrlen || !fp) {
+		error_print();
+		return -1;
+	}
+	if (maxlen < 2) {
+		error_print();
+		return -1;
+	}
+
+	if (fread(arr, 1, 2, fp) != 2) {
+		error_print();
+		return -1;
+	}
+	cp = arr;
+	len = 2;
+	if (tls_uint16_from_bytes(&datalen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	*arrlen = 2 + datalen;
+	if (2 + datalen > maxlen) {
+		error_print();
+		return 0;
+	}
+	if (fread(arr + 2, 1, datalen, fp) != datalen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+
