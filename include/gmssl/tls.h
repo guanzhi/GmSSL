@@ -841,6 +841,8 @@ void tls_ctx_cleanup(TLS_CTX *ctx);
 enum {
 	TLS_state_handshake_init = 0,
 	TLS_state_client_hello,
+	TLS_state_early_data,
+	TLS_state_end_of_early_data,
 	TLS_state_hello_retry_request,
 	TLS_state_client_hello_again,
 	TLS_state_server_hello,
@@ -1033,6 +1035,8 @@ typedef struct {
 	FILE *in_session;
 
 
+	uint8_t early_data_buf[8192];
+	size_t early_data_len;
 
 } TLS_CONNECT;
 
