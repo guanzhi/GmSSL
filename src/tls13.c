@@ -321,8 +321,15 @@ int tls13_send_early_data(TLS_CONNECT *conn)
 
 	tls_trace("send EarlyData\n");
 
-	conn->early_data_len = 66; //xxx 先用来测试吧
-	if (tls13_send(conn, conn->early_data_buf, conn->early_data_len, &sentlen) != 1) {
+	if (!conn->early_data_enabled) {
+		error_print();
+		return -1;
+	}
+	if (!conn->early_data_len) {
+		error_print();
+		return -1;
+	}
+	if (tls13_send(conn, conn->early_data, conn->early_data_len, &sentlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -401,6 +408,8 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 	return 1;
 }
 
+
+// 这里需要考虑max_early_data_size的问题
 int tls13_recv_early_data(TLS_CONNECT *conn)
 {
 	tls_trace("recv EarlyData\n");
@@ -409,10 +418,10 @@ int tls13_recv_early_data(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	memcpy(conn->early_data_buf, conn->data, conn->datalen);
+	memcpy(conn->early_data, conn->data, conn->datalen);
 	conn->early_data_len = conn->datalen;
 
-	format_bytes(stderr, 0, 4, "EarlyData", conn->early_data_buf, conn->early_data_len);
+	format_bytes(stderr, 0, 4, "EarlyData", conn->early_data, conn->early_data_len);
 
 	return 1;
 }
@@ -1303,6 +1312,12 @@ int tls13_certificate_authorities_print(FILE *fp, int fmt, int ind,
 
 
 
+
+/*
+NewSessionTicket的扩展也需要存储起来，用于判断是否0-RTT
+	1. early_data 标识，这是必须的
+	2. max_early_data_size 如果early_data == 1, 不一定包含这个扩展
+*/
 int tls13_session_to_bytes(int protocol_version, int cipher_suite,
 	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
 	uint32_t ticket_issue_time, uint32_t ticket_lifetime, uint32_t ticket_age_add,
@@ -1330,6 +1345,47 @@ int tls13_session_to_bytes(int protocol_version, int cipher_suite,
 
 	return 1;
 }
+
+/*
+int tls13_session_from_file(uint8_t *session, size_t *sessionlen, size_t session_maxlen,
+	int *protocol_version, int *cipher_suite,
+	const uint8_t **pre_shared_key, size_t *pre_shared_key_len,
+	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime, uint32_t *ticket_age_add,
+	const uint8_t **ticket, size_t *ticketlen,
+	const char *file)
+{
+	const uint8_t *cpsession = session;
+
+	FILE *fp;
+
+	if (!(fp = fopen(file, "rb"))) {
+		error_print();
+		return -1;
+	}
+	// load session ticket
+	if (tls_uint16array_from_file(session, sessionlen, session_maxlen, fp) != 1) {
+		error_print();
+		fclose(fp);
+		return -1;
+	}
+	fclose(fp);
+
+	if (tls13_session_from_bytes(protocol_version, cipher_suite,
+		pre_shared_key, pre_shared_key_len,
+		ticket_issue_time, ticket_lifetime, ticket_age_add,
+		ticket, ticketlen, cpsession, sessionlen) != 1
+		|| tls_length_is_zero(sessionlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pre_shared_key_len != 32) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+*/
 
 int tls13_session_from_bytes(int *protocol_version, int *cipher_suite,
 	const uint8_t **pre_shared_key, size_t *pre_shared_key_len,
@@ -1426,6 +1482,16 @@ int tls13_session_print(FILE *fp, int fmt, int ind, const char *label, const uin
 	return 1;
 }
 
+/*
+到底提取了什么内容
+	* protocol 这个必须是TLS 1.3
+	* pre_shared_key 应该赋值给conn->psk
+	* ticket 这个需要提供给pre_shared_key 中的identity，但是现在最好让上面提供一个buffer
+	* obfuscated_ticket_age 这个是计算出拉来的
+	* binder 我们就干不了了，因为如果要载入多个session的时候，肯定要最后才能做
+
+*/
+
 
 
 /*
@@ -1471,7 +1537,7 @@ int tls13_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, 
 	uint32_t max_early_data_size;
 
 	if (!ext_data || !ext_datalen) {
-		format_print(fp, fmt, ind, "(empty)\n");
+		format_print(fp, fmt, ind, "(null)\n");
 	} else {
 		if (tls_uint32_from_bytes(&max_early_data_size, &ext_data, &ext_datalen) != 1) {
 			error_print();
@@ -1486,13 +1552,146 @@ int tls13_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, 
 	return 1;
 }
 
+int tls13_empty_early_data_ext_to_bytes(uint8_t **out, size_t *outlen)
+{
+	if (tls_ext_to_bytes(TLS_extension_early_data, NULL, 0, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_empty_early_data_from_bytes(const uint8_t *ext_data, size_t ext_datalen)
+{
+	if (ext_data || ext_datalen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_empty_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
+{
+	if (ext_data || ext_datalen) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "(null)\n");
+	return 1;
+}
 
 
+/*
+enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
 
+struct {
+	PskKeyExchangeMode ke_modes<1..255>;
+} PskKeyExchangeModes;
+*/
 
+int tls13_set_psk_key_exchange_modes(TLS_CONNECT *conn, int psk_ke, int psk_dhe_ke)
+{
+	conn->psk_ke = psk_ke ? 1 : 0;
+	conn->psk_dhe_ke = psk_dhe_ke ? 1 : 0;
+	return 1;
+}
 
+const char *tls13_psk_key_exchange_mode_name(int mode)
+{
+	switch (mode) {
+	case TLS_psk_ke: return "psk_ke";
+	case TLS_psk_dhe_ke: return "psk_dhe_ke";
+	}
+	return NULL;
+}
 
+int tls13_psk_key_exchange_modes_ext_to_bytes(int ke, int dhe_ke, uint8_t **out, size_t *outlen)
+{
+	int type = TLS_extension_psk_key_exchange_modes;
+	uint8_t ext_data[3];
+	size_t ext_datalen = 0;
 
+	uint8_t ke_modes[2];
+	size_t ke_modes_len = 0;
+	uint8_t *p;
+
+	p = ke_modes;
+	if (ke)
+		tls_uint8_to_bytes(TLS_psk_ke, &p, &ke_modes_len);
+	if (dhe_ke)
+		tls_uint8_to_bytes(TLS_psk_dhe_ke, &p, &ke_modes_len);
+	if (!ke_modes_len) {
+		error_print();
+		return -1;
+	}
+	p = ext_data;
+	tls_uint8array_to_bytes(ke_modes, ke_modes_len, &p, &ext_datalen);
+
+	if (tls_ext_to_bytes(type, ext_data, ext_datalen, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_psk_key_exchange_modes_from_bytes(int *ke, int *dhe_ke, const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *ke_modes;
+	size_t ke_modes_len;
+
+	if (tls_uint8array_from_bytes(&ke_modes, &ke_modes_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	*ke = 0;
+	*dhe_ke = 0;
+	while (ext_datalen) {
+		uint8_t mode;
+		if (tls_uint8_from_bytes(&mode, &ext_data, &ext_datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		switch (mode) {
+		case TLS_psk_ke:
+			*ke = 1;
+			break;
+		case TLS_psk_dhe_ke:
+			*dhe_ke = 1;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int tls13_psk_key_exchange_modes_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *ke_modes;
+	size_t ke_modes_len;
+
+	format_print(fp, fmt, ind, "ke_modes\n");
+	ind += 4;
+	if (tls_uint8array_from_bytes(&ke_modes, &ke_modes_len, &ext_data, &ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!ke_modes_len) {
+		format_print(fp, fmt, ind, "(null)\n");
+	}
+	while (ke_modes_len) {
+		uint8_t mode;
+		tls_uint8_from_bytes(&mode, &ke_modes, &ke_modes_len);
+		format_print(fp, fmt, ind, "%s (%d)\n", tls13_psk_key_exchange_mode_name(mode), mode);
+	}
+	if (ext_datalen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 /*
 struct {
@@ -1524,6 +1723,168 @@ int tls13_psk_identity_from_bytes(const uint8_t **ticket, size_t *ticketlen, uin
 	return 1;
 }
 
+int tls13_search_psk(const uint8_t *psk_identities, size_t psk_identities_len,
+	const uint8_t *psk_keys, size_t psk_keys_len,
+	const uint8_t *psk_identity, size_t psk_identity_len,
+	const uint8_t **psk_key, size_t *psk_key_len)
+{
+	while (psk_identities_len) {
+		const uint8_t *id;
+		size_t idlen;
+		uint32_t ticket_age;
+		const uint8_t *key;
+		size_t keylen;
+
+		if (tls13_psk_identity_from_bytes(&id, &idlen, &ticket_age, &psk_identities, &psk_identities_len) != 1
+			|| tls_uint8array_from_bytes(&key, &keylen, &psk_keys, &psk_keys_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (idlen == psk_identity_len && memcmp(id, psk_identity, psk_identity_len) == 0) {
+			*psk_key = key;
+			*psk_key_len = keylen;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+PSK必须和某一个确定的哈希函数绑定
+*/
+int tls13_add_pre_shared_key(TLS_CONNECT *conn, const DIGEST *digest,
+	const uint8_t *identity, size_t identity_len,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	uint32_t obfuscated_ticket_age)
+{
+	uint8_t *psk_identities;
+	size_t psk_identities_len;
+	uint8_t *psk_keys;
+	size_t psk_keys_len;
+
+	if (!conn || !identity || !identity_len || !pre_shared_key || !pre_shared_key_len) {
+		error_print();
+		return -1;
+	}
+	if (pre_shared_key_len != 32) {
+		error_print();
+		return -1;
+	}
+
+	if (conn->psk_identities_len) {
+		if (digest != conn->digest) {
+			error_print();
+			return -1;
+		}
+	}
+	psk_identities = conn->psk_identities + conn->psk_identities_len;
+	psk_identities_len = conn->psk_identities_len;
+	psk_keys = conn->psk_keys + conn->psk_keys_len;
+	psk_keys_len = conn->psk_keys_len;
+
+
+	if (tls13_psk_identity_to_bytes(identity, identity_len, obfuscated_ticket_age, NULL, &psk_identities_len) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_uint8array_to_bytes(pre_shared_key, pre_shared_key_len, NULL, &psk_keys_len);
+
+	if (psk_identities_len > sizeof(conn->psk_identities)
+		|| psk_keys_len > sizeof(conn->psk_keys)) {
+		error_print();
+		return -1;
+	}
+
+	format_print(stderr, 0, 0, "conn->psk_identities_len: %zu\n", conn->psk_identities_len);
+
+	tls13_psk_identity_to_bytes(identity, identity_len, obfuscated_ticket_age, &psk_identities, &conn->psk_identities_len);
+	tls_uint8array_to_bytes(pre_shared_key, pre_shared_key_len, &psk_keys, &conn->psk_keys_len);
+
+	format_print(stderr, 0, 0, "conn->psk_identities_len: %zu\n", conn->psk_identities_len);
+
+
+
+
+	// 这个是否要检查一下，和之前的是否匹配等等
+	conn->digest = digest;
+	return 1;
+}
+
+int tls13_add_pre_shared_key_from_file(TLS_CONNECT *conn, const char *file)
+{
+	FILE *fp;
+	uint8_t buf[512];
+	const uint8_t *cp = buf;
+	size_t len;
+
+	int protocol_version;
+	int cipher_suite;
+	const uint8_t *pre_shared_key;
+	size_t pre_shared_key_len;
+	uint32_t ticket_issue_time;
+	uint32_t ticket_lifetime;
+	uint32_t ticket_age_add;
+	const uint8_t *ticket;
+	size_t ticketlen;
+
+	const BLOCK_CIPHER *cipher;
+	const DIGEST *digest;
+	uint32_t obfuscated_ticket_age;
+
+	if (!(fp = fopen(file, "rb"))) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16array_from_file(buf, &len, sizeof(buf), fp) != 1) {
+		error_print();
+		fclose(fp);
+		return -1;
+	}
+	fclose(fp);
+
+	if (tls13_session_from_bytes(&protocol_version, &cipher_suite,
+		&pre_shared_key, &pre_shared_key_len,
+		&ticket_issue_time, &ticket_lifetime, &ticket_age_add,
+		&ticket, &ticketlen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pre_shared_key_len != 32) {
+		error_print();
+		return -1;
+	}
+
+	if (tls13_cipher_suite_get(cipher_suite, &cipher, &digest) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// 计算出age
+
+	if (tls13_add_pre_shared_key(conn, digest, ticket, ticketlen,
+		pre_shared_key, pre_shared_key_len, obfuscated_ticket_age) != 1) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+
+
+
+
+
+/*
+      struct {
+          PskIdentity identities<7..2^16-1>;
+          PskBinderEntry binders<33..2^16-1>;
+      } OfferedPsks;
+*/
+
+
+
 int tls13_client_pre_shared_key_ext_to_bytes(const uint8_t *identities, size_t identitieslen,
 	const uint8_t *binders, size_t binderslen, uint8_t **out, size_t *outlen)
 {
@@ -1550,11 +1911,19 @@ int tls13_client_pre_shared_key_from_bytes(const uint8_t **identities, size_t *i
 	return 1;
 }
 
+// 如果没有能够利用的pre_shared_key并不代表是错误，这个是可以忽略的
+// 这种情况下应该返回0
+/*
+
+	处理的逻辑取决于conn->pre_shared_keys
 
 
-int tls13_process_client_pre_shared_key(TLS_CONNECT *conn, const uint8_t *ext_data, size_t ext_datalen,
-	int *selected_psk_identity)
+
+*/
+int tls13_process_client_pre_shared_key(TLS_CONNECT *conn,
+	const uint8_t *ext_data, size_t ext_datalen, int *selected_psk_identity)
 {
+	int ret;
 	const uint8_t *identities;
 	size_t identitieslen;
 	const uint8_t *binders;
@@ -1562,6 +1931,11 @@ int tls13_process_client_pre_shared_key(TLS_CONNECT *conn, const uint8_t *ext_da
 	DIGEST_CTX null_dgst_ctx;
 	DIGEST_CTX truncated_dgst_ctx;
 	size_t i = 0;
+
+	if (!conn || !ext_data || !ext_datalen || !selected_psk_identity) {
+		error_print();
+		return -1;
+	}
 
 	if (tls_uint16array_from_bytes(&identities, &identitieslen, &ext_data, &ext_datalen) != 1
 		|| tls_uint16array_from_bytes(&binders, &binderslen, &ext_data, &ext_datalen) != 1
@@ -1592,6 +1966,13 @@ int tls13_process_client_pre_shared_key(TLS_CONNECT *conn, const uint8_t *ext_da
 
 	*selected_psk_identity = -1;
 
+
+	// 这里就是判断服务器已经设置了psk了，那么就要先从这里面去寻找密钥
+
+	// 这个查找逻辑是什么？
+	// 用每一个pre_shared_key中的identity，去我们本地的identities中查找，看看有没有
+	// conn中有一组identities, exts中也有一组
+
 	for (i = 0; identitieslen; i++) {
 		const uint8_t *ticket;
 		size_t ticketlen;
@@ -1613,7 +1994,7 @@ int tls13_process_client_pre_shared_key(TLS_CONNECT *conn, const uint8_t *ext_da
 		uint8_t local_binder[32];
 		size_t local_binderlen;
 
-
+		// 这里的ticket不对，这里应该是identities
 		if (tls13_psk_identity_from_bytes(&ticket, &ticketlen, &obfuscated_ticket_age,
 			&identities, &identitieslen) != 1) {
 			error_print();
@@ -1624,61 +2005,67 @@ int tls13_process_client_pre_shared_key(TLS_CONNECT *conn, const uint8_t *ext_da
 			return -1;
 		}
 
-		// decrypt ticket
-		if (tls13_decrypt_ticket(&conn->ctx->server_session_ticket_key, ticket, ticketlen,
-			pre_shared_key, &protocol_version, &cipher_suite,
-			&ticket_issue_time, &ticket_lifetime) != 1) {
-			error_print();
-			return -1;
+
+		if (conn->psk_identities_len) {
+			const uint8_t *key;
+			size_t keylen;
+
+			if ((ret = tls13_search_psk(conn->psk_identities, conn->psk_identities_len,
+				conn->psk_keys, conn->psk_keys_len,
+				ticket, ticketlen,
+				&key, &keylen)) < 0) {
+				error_print();
+				return -1;
+			} else if (ret == 0) {
+				continue;
+			}
+
+			if (keylen != 32) {
+				error_print();
+				return -1;
+			}
+			memcpy(pre_shared_key, key, 32);
+
+		} else {
+			// decrypt ticket
+			if (!conn->ctx->session_ticket_key) {
+				error_print();
+				return -1;
+			}
+			if (tls13_decrypt_ticket(conn->ctx->session_ticket_key, ticket, ticketlen,
+				pre_shared_key, &protocol_version, &cipher_suite,
+				&ticket_issue_time, &ticket_lifetime) != 1) {
+				error_print();
+				return -1;
+			}
+			format_bytes(stderr, 0, 0, ">>>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
+
+			// check time
+			uint32_t current_time = time(NULL);
+			if (ticket_issue_time > current_time) {
+				error_print();
+				continue;
+			}
+			if (current_time - ticket_issue_time > ticket_lifetime) {
+				error_print();
+				continue;
+			}
 		}
-		format_bytes(stderr, 0, 0, ">>>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
-
-		// check time
-		uint32_t current_time = time(NULL);
-		if (ticket_issue_time > current_time) {
-			error_print();
-			continue;
-		}
-		if (current_time - ticket_issue_time > ticket_lifetime) {
-			error_print();
-			continue;
-		}
-
-		// pre_shared_key => binder_key
-		// [1]
-		tls13_hkdf_extract(conn->digest, zeros, pre_shared_key, early_secret);
-
-		format_bytes(stderr, 0, 0, ">>>>> early_secret", early_secret, 32);
-
-
-
-		// [2]
-		tls13_derive_secret(early_secret, "res binder", &null_dgst_ctx, binder_key);
-
-		format_bytes(stderr, 0, 0, ">>>>> binder_key", binder_key, 32);
-
 
 		// compute local binder
 		truncated_dgst_ctx = null_dgst_ctx;
 		digest_update(&truncated_dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5);
 
 
-			DIGEST_CTX _ctx = truncated_dgst_ctx;
-			uint8_t _dgst[32];
-			size_t _dgstlen;
-			digest_finish(&_ctx, _dgst, &_dgstlen);
-			format_bytes(stderr, 0, 0, ">>>>> dgst", _dgst, 32);
-
-
-
-		tls13_compute_verify_data(binder_key, &truncated_dgst_ctx, local_binder, &local_binderlen);
-
-		// check binder
-		if (binderlen != local_binderlen
-			|| memcmp(binder, local_binder, local_binderlen) != 0) {
+		if ((ret = tls13_verify_psk_binder(conn->digest,
+			pre_shared_key, sizeof(pre_shared_key),
+			&truncated_dgst_ctx, binder, binderlen)) != 1) {
 			error_print();
 			return -1;
+		} else if (ret == 0) {
+			continue;
 		}
+
 		*selected_psk_identity = i;
 
 		memcpy(conn->psk, pre_shared_key, 32);
@@ -1911,8 +2298,10 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 		case TLS_extension_pre_shared_key:
 			tls13_client_pre_shared_key_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
-
 		case TLS_extension_psk_key_exchange_modes:
+			tls13_psk_key_exchange_modes_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			break;
+
 		case TLS_extension_server_name:
 		case TLS_extension_application_layer_protocol_negotiation:
 		case TLS_extension_padding:
@@ -2889,6 +3278,12 @@ int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint
 }
 
 
+/*
+OpenSSL的s_server自动的生成一个ticket加密密钥
+因此s_server的ticket有效期只能保证在一次启动的时间内
+重启之后密钥就丢失了
+*/
+
 int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t pre_shared_key[32],
 	int protocol_version, int cipher_suite, uint32_t ticket_issue_time,  uint32_t ticket_lifetime,
 	uint8_t *out, size_t *outlen)
@@ -2903,6 +3298,12 @@ int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t pre_shared_key[32],
 	size_t aadlen = 0;
 	uint8_t *tag;
 	size_t taglen = 16;
+
+	if (!key || !pre_shared_key || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+
 
 	out += ivlen;
 	tag = out + sizeof(ticket);
@@ -2960,13 +3361,10 @@ int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
 	tag = in + sizeof(ticket);
 	inlen -= taglen;
 
-
 	if (sm4_gcm_decrypt(key, iv, ivlen, aad, aadlen, in, sizeof(ticket), tag, taglen, ticket) != 1) {
 		error_print();
 		return -1;
 	}
-
-
 	if (tls_array_from_bytes(&psk, 32, &cp, &inlen) != 1
 		|| tls_uint16_from_bytes(&version, &cp, &inlen) != 1
 		|| tls_uint16_from_bytes(&cipher, &cp, &inlen) != 1
@@ -3553,8 +3951,6 @@ Auth | {CertificateVerify*}
 
 	我们可以在TLS_CTX中设定psk模式，并且psk就存储在CTX中
 
-
-
 客户端通过ClientHello.pre_shared_key 来请求启用PSK模式
 服务器通过ServerHello.pre_shared_key 来响应，或者不包含pre_shared_key来拒绝，以回到完整握手
 PSK模式的握手过程和Full握手是不同的
@@ -3563,9 +3959,128 @@ PSK模式的握手过程和Full握手是不同的
 客户端通过ClientHello.early_data(empty)来请求启动0-RTT
 服务器在EncryptedExtensions.early_data来响应
 如果响应了early_data，那么握手过程在PSK模式上又增加了消息
+*/
 
+int tls13_verify_psk_binder(const DIGEST *digest,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	const DIGEST_CTX *truncated_client_hello_dgst_ctx,
+	const uint8_t *binder, size_t binderlen)
+{
+	uint8_t secret[32] = {0};
+	uint8_t *zeros = secret;
+	uint8_t *early_secret = secret;
+	uint8_t *binder_key = secret;
+	uint8_t *local_binder = secret;
+	DIGEST_CTX null_dgst_ctx;
+	size_t local_binder_len;
+
+	if (digest_init(&null_dgst_ctx, digest) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// [1]
+	tls13_hkdf_extract(digest, zeros, pre_shared_key, early_secret);
+	// [2]
+	tls13_derive_secret(early_secret, "res binder", &null_dgst_ctx, binder_key);
+
+	tls13_compute_verify_data(binder_key, truncated_client_hello_dgst_ctx, local_binder, &local_binder_len);
+
+	if (binderlen != local_binder_len || memcmp(local_binder, binder, binderlen) != 0) {
+		return 0;
+	}
+
+	return 1;
+}
+
+int tls13_generate_psk_binders(const DIGEST *digest,
+	const uint8_t *psk_keys, size_t psk_keys_len,
+	const uint8_t *truncated_client_hello, size_t truncated_client_hello_len,
+	uint8_t *binders, size_t *binders_len)
+{
+	const uint8_t zeros[32] = {0};
+	DIGEST_CTX null_dgst_ctx;
+	DIGEST_CTX dgst_ctx;
+	const uint8_t *pre_shared_key;
+	size_t pre_shared_key_len;
+	uint8_t secret[32];
+	uint8_t *early_secret = secret;
+	uint8_t *binder_key = secret;
+	uint8_t *binder = secret;
+	size_t binderlen;
+
+	if (digest_init(&null_dgst_ctx, digest) != 1
+		|| digest_init(&dgst_ctx, digest) != 1
+		|| digest_update(&dgst_ctx, truncated_client_hello, truncated_client_hello_len) != 1) {
+		error_print();
+		return -1;
+	}
+	*binders_len = 0;
+
+	while (psk_keys_len) {
+		if (tls_uint8array_from_bytes(&pre_shared_key, &pre_shared_key_len, &psk_keys, &psk_keys_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (pre_shared_key_len != 32) {
+			gmssl_secure_clear(early_secret, sizeof(early_secret));
+			error_print();
+			return -1;
+		}
+		// [1]
+		tls13_hkdf_extract(digest, zeros, pre_shared_key, early_secret);
+		// [2]
+		tls13_derive_secret(early_secret, "res binder", &null_dgst_ctx, binder_key);
+
+		tls13_compute_verify_data(binder_key, &dgst_ctx, binder, &binderlen);
+
+		tls_uint8array_to_bytes(binder, binderlen, &binders, binders_len);
+	}
+
+	gmssl_secure_clear(early_secret, sizeof(early_secret));
+	return 1;
+}
+
+
+/*
+
+	客户端如果提供多个pre_shared_key，并且客户端也要发送early_data
+	那么early_data只能使用第一个PSK去加密
+
+	但是服务器仍然可以选择其他有效的PSK，这些PSK用于导出握手的密钥，用于加密后续的消息
 
 */
+
+
+int tls13_psk_keys_get_first(const uint8_t *keys, size_t keyslen, const uint8_t **key, size_t *keylen)
+{
+	if (tls_uint8array_from_bytes(key, keylen, &keys, &keyslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_get_pre_shared_key_by_index(const uint8_t *psk_keys, size_t psk_keys_len, int index,
+	const uint8_t **psk_key, size_t *psk_key_len)
+{
+	const uint8_t *key;
+	size_t keylen;
+	int i;
+
+	for (i = 0; i <= index; i++) {
+		if (tls_uint8array_from_bytes(&key, &keylen, &psk_keys, &psk_keys_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	*psk_key = key;
+	*psk_key_len = keylen;
+	return 1;
+}
+
+
+
 int tls13_send_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
@@ -3620,8 +4135,36 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 
+		if (conn->pre_shared_key_enabled) {
+			if (tls13_psk_key_exchange_modes_ext_to_bytes(conn->psk_ke, conn->psk_dhe_ke, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
+
+		// early_data
+		if (conn->early_data_enabled) {
+			if (!conn->pre_shared_key_enabled) { //这两个关系不太对啊！				
+				error_print();
+				return -1;
+			}
+			if (tls13_empty_early_data_ext_to_bytes(&pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
+
+
 		// PSK mode
-		if (conn->pre_shared_key) {
+
+		// 客户端实际上可以提供多个 psk，每个有不同的psk_identity，但是cipehr_suite都是一样的
+		// 然后服务器从多个psk中选择一个（或者不选）
+		// 因为我们应该准备两个缓冲，一个是用来存放psk_identity(包含age)
+		// 还有一个缓冲是psk的key
+
+		if (conn->pre_shared_key_enabled) {
 
 			uint8_t *ptruncated_exts = pexts;
 			size_t truncated_extslen = extslen;
@@ -3645,9 +4188,6 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			uint32_t obfuscated_ticket_age = ticket_age + ticket_age_add;
 
 			// pre_shared_key extension
-			uint8_t identities[512];
-			uint8_t *pidentities = identities;
-			size_t identitieslen = 0;
 			uint8_t binders[256];
 			uint8_t *pbinders = binders;
 			size_t binderslen = 0;
@@ -3658,51 +4198,35 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			uint8_t binder[32] = {0};
 			size_t binderlen;
 
+			FILE *session_infp;
 
-			if (!(conn->in_session = fopen("session.bin", "rb"))) {
+
+			if (!conn->psk_identities_len || !conn->psk_keys_len) {
+				error_print();
+				return -1;
+			}
+			if (!conn->digest) {
 				error_print();
 				return -1;
 			}
 
-
-			// load session ticket
-			if (tls_uint16array_from_file(session, &sessionlen, sizeof(session), conn->in_session) != 1) {
-				error_print();
-				return -1;
-			}
-			if (tls13_session_from_bytes(&protocol_version, &cipher_suite,
-				&pre_shared_key, &pre_shared_key_len,
-				&ticket_issue_time, &ticket_lifetime, &ticket_age_add,
-				&ticket, &ticketlen, &cpsession, &sessionlen) != 1
-				|| tls_length_is_zero(sessionlen) != 1) {
-				error_print();
-				return -1;
-			}
-			format_bytes(stderr, 0, 0, "pre_shared_key", pre_shared_key, pre_shared_key_len);
-
-			// save pre_shared_key
-			memcpy(conn->psk, pre_shared_key, 32);
-			// 这里其实是有问题的，如果服务器不选择PSK模式，那么PSK用的就是全0
-
-
-
-			// compute obfuscated_ticket_age
-			current_time = time(NULL);
-			ticket_age = current_time - ticket_issue_time;
-			obfuscated_ticket_age = ticket_age + ticket_age_add;
-
-			// output pre_shared_key.identities
-			if (tls13_psk_identity_to_bytes(ticket, ticketlen, obfuscated_ticket_age, &pidentities, &identitieslen) != 1) {
-				error_print();
-				return -1;
-			}
-
+			// prepare binders as zeros
+			const uint8_t *psk_keys = conn->psk_keys;
+			size_t psk_keys_len = conn->psk_keys_len;
 			binderslen = 0;
-			tls_uint8array_to_bytes(binder, sizeof(binder), &pbinders, &binderslen);
+			while (psk_keys_len) {
+				const uint8_t *psk_key;
+				size_t psk_key_len;
+				if (tls_uint8array_from_bytes(&psk_key, &psk_key_len, &psk_keys, &psk_keys_len) != 1) {
+					error_print();
+					return -1;
+				}
+				tls_uint8array_to_bytes(zeros, psk_key_len, &pbinders, &binderslen);
+			}
 
 			// output pre_shared_key ext with empty binders
-			if (tls13_client_pre_shared_key_ext_to_bytes(identities, identitieslen, binders, binderslen,
-				&ptruncated_exts, &truncated_extslen) != 1) {
+			if (tls13_client_pre_shared_key_ext_to_bytes(conn->psk_identities, conn->psk_identities_len,
+				binders, binderslen, &ptruncated_exts, &truncated_extslen) != 1) {
 				error_print();
 				return -1;
 			}
@@ -3718,42 +4242,19 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			}
 			tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
-			conn->digest = DIGEST_sm3();
 			conn->cipher = BLOCK_CIPHER_sm4();
 
-
-			DIGEST_CTX tmp_dgst_ctx;
-
-			digest_init(&tmp_dgst_ctx, conn->digest);
-
-
-			// [1]
-			tls13_hkdf_extract(conn->digest, zeros, pre_shared_key, early_secret);
-			format_bytes(stderr, 0, 0, ">>>>> early_secret", early_secret, 32);
-
-			// [2]
-			tls13_derive_secret(early_secret, "res binder", &tmp_dgst_ctx, binder_key);
-			format_bytes(stderr, 0, 0, ">>>>> binder_key", binder_key, 32);
-
-			digest_update(&tmp_dgst_ctx, conn->record + 5, conn->recordlen - 5);
-
-			DIGEST_CTX _ctx = tmp_dgst_ctx;
-			uint8_t _dgst[32];
-			size_t _dgstlen;
-			digest_finish(&_ctx, _dgst, &_dgstlen);
-			format_bytes(stderr, 0, 0, ">>>>> dgst", _dgst, 32);
-
-
-			tls13_compute_verify_data(binder_key, &tmp_dgst_ctx, binder, &binderlen);
-
-
-			pbinders = binders;
-			binderslen = 0;
-			tls_uint8array_to_bytes(binder, binderlen, &pbinders, &binderslen);
-
+			if (tls13_generate_psk_binders(conn->digest,
+				conn->psk_keys, conn->psk_keys_len,
+				conn->record + 5, conn->recordlen - 5,
+				binders, &binderslen) != 1) {
+				error_print();
+				return -1;
+			}
 
 			// output final pre_shared_key ext
-			if (tls13_client_pre_shared_key_ext_to_bytes(identities, identitieslen, binders, binderslen, &pexts, &extslen) != 1) {
+			if (tls13_client_pre_shared_key_ext_to_bytes(conn->psk_identities, conn->psk_identities_len,
+				binders, binderslen, &pexts, &extslen) != 1) {
 				error_print();
 				return -1;
 			}
@@ -3761,7 +4262,8 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			conn->recordlen = 0;
 
 
-			conn->early_data = 1;
+			// 用同一的函数来设置状态！
+			conn->early_data_enabled = 1;
 		}
 
 		if (tls_record_set_handshake_client_hello(conn->record, &conn->recordlen,
@@ -3775,8 +4277,7 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 
-
-		if (conn->early_data) {
+		if (conn->early_data_enabled) {
 
 			DIGEST_CTX early_dgst_ctx;
 			uint8_t client_early_traffic_secret[32];
@@ -3788,8 +4289,21 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			uint8_t early_secret[32];
 			uint8_t client_write_key[16];
 
+
+			const uint8_t *early_data_psk;
+			size_t early_data_psk_len;
+
+
+			// 如果客户端要发送EarlyData，那么client_early_traffic_secret在ClientHello就需要设定好，这不依赖于服务器端的反馈
+			// 并且因为我们马上就要发送early_data，因此客户端的密钥也要设定完成
+
+			if (tls13_psk_keys_get_first(conn->psk_keys, conn->psk_keys_len, &early_data_psk, &early_data_psk_len) != 1) {
+				error_print();
+				return -1;
+			}
+
 			// [1]
-			tls13_hkdf_extract(conn->digest, zeros, conn->psk, early_secret);
+			tls13_hkdf_extract(conn->digest, zeros, early_data_psk, early_secret);
 			// [2]
 			tls13_derive_secret(early_secret, "c e traffic", &early_dgst_ctx, client_early_traffic_secret);
 
@@ -3803,7 +4317,6 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			format_bytes(stderr, 0, 4, "client_early_traffic_secret", client_early_traffic_secret, 32);
 			format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 			format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-
 		}
 	}
 
@@ -4146,6 +4659,8 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 	const uint8_t *key_exchange = NULL;
 	size_t key_exchange_len = 0;
 
+	int selected_identity = -1;
+
 	tls_trace("recv ServerHello\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
@@ -4280,7 +4795,25 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 
 		// extensions can be ignored
 		case TLS_extension_pre_shared_key:
-			error_print();
+
+			// 这里生成的psk是真正用于握手的
+			const uint8_t *key;
+			size_t keylen;
+			if (tls13_server_pre_shared_key_from_bytes(&selected_identity, ext_data, ext_datalen) != 1) {
+				error_print();
+				return -1;
+			}
+			if (tls13_get_pre_shared_key_by_index(conn->psk_keys, conn->psk_keys_len, selected_identity,
+				&key, &keylen) != 1) {
+				error_print();
+				return -1;
+			}
+
+			memcpy(conn->psk, key, keylen);
+			conn->psk_len = keylen;
+
+			format_print(stderr, 0, 0, ">>> selected_identity: %d\n", selected_identity);
+			format_bytes(stderr, 0, 4, "psk", conn->psk, conn->psk_len);
 			break;
 
 		// extensions MUST NOT exist
@@ -4322,6 +4855,10 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 	if (conn->client_certs_len) {
 		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
 	}
+
+	// 接受到ServerHello之后，双方已经可以确定握手阶段的密钥了
+	// 但是服务器端的握手密钥可以初始化了，客户端的必须等到send_end_of_early_data完成的时候才能变更
+
 
 	return 1;
 }
@@ -4368,10 +4905,9 @@ int tls13_send_end_of_early_data(TLS_CONNECT *conn)
 
 	// client_early_traffic_secret 用来加密early_data, end_of_early_data
 	format_print(stderr, 0, 0, "client_write_key/iv <= client_handshake_traffic_secret\n");
-	format_bytes(stderr, 0, 4, "client_early_traffic_secret", conn->client_handshake_traffic_secret, 32);
+	format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 32);
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-
 
 	tls_clean_record(conn);
 	return 1;
@@ -4482,21 +5018,15 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 int tls13_generate_keys(TLS_CONNECT *conn)
 {
 	uint8_t zeros[32] = {0};
-	//uint8_t psk[32] = {0}; // 在PSK模式中，PSK需要从conn中读取			
 	uint8_t early_secret[32];
 	uint8_t handshake_secret[32];
 	uint8_t pre_master_secret[32];
 	size_t pre_master_secret_len;
-	uint8_t client_write_key[16];
-	uint8_t server_write_key[16];
+	uint8_t client_write_key[16] = {0};
+	uint8_t server_write_key[16] = {0};
 	DIGEST_CTX null_dgst_ctx;
 
 	printf("generate handshake secrets\n");
-
-
-	if (!conn->pre_shared_key) {
-		memset(conn->psk, 0, 32);
-	}
 
 
 	/*
@@ -4526,13 +5056,12 @@ int tls13_generate_keys(TLS_CONNECT *conn)
 		format_bytes(stderr, 0, 0, "dgst_ctx", dgst, dgstlen);
 	}
 
-
-
 	/* [1]  */ tls13_hkdf_extract(conn->digest, zeros, conn->psk, early_secret);
 	/* [5]  */ tls13_derive_secret(early_secret, "derived", &null_dgst_ctx, handshake_secret);
 	/* [6]  */ tls13_hkdf_extract(conn->digest, handshake_secret, pre_master_secret, handshake_secret);
 	/* [7]  */ tls13_derive_secret(handshake_secret, "c hs traffic", &conn->dgst_ctx, conn->client_handshake_traffic_secret);
 	/* [8]  */ tls13_derive_secret(handshake_secret, "s hs traffic", &conn->dgst_ctx, conn->server_handshake_traffic_secret);
+
 	/* [9]  */ tls13_derive_secret(handshake_secret, "derived", &null_dgst_ctx, conn->master_secret);
 	/* [10] */ tls13_hkdf_extract(conn->digest, conn->master_secret, zeros, conn->master_secret);
 
@@ -4544,18 +5073,23 @@ int tls13_generate_keys(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
 	tls_seq_num_reset(conn->server_seq_num);
 
-	if (!conn->early_data) {
+	format_bytes(stderr, 0, 0, "server_handshake_traffic_secret", conn->server_handshake_traffic_secret, 48);
+	format_bytes(stderr, 0, 0, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 48);
+
+	if (!conn->early_data_enabled) {
+		format_print(stderr, 0, 0, "update client_write_key, client_write_iv\n");
+
 		tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "key", NULL, 0, 16, client_write_key);
 		block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
 		tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
 		tls_seq_num_reset(conn->client_seq_num);
 	}
 
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
-	format_print(stderr, 0, 0, "\n");
+
+	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
+	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 
 	return 1;
 }
@@ -4630,7 +5164,14 @@ int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
-			conn->early_data = 1;
+			// 这里可能需要发送一个alert				
+			// 确定一下启动early_data的逻辑
+			// 并且把启动early_data的控制放在一个函数中，并且做检查
+			if (!conn->pre_shared_key_enabled) {
+				error_print();
+				return -1;
+			}
+			conn->early_data_enabled = 1;
 			break;
 
 		// extensions must not be included
@@ -5150,6 +5691,7 @@ int tls13_recv_server_finished(TLS_CONNECT *conn)
 	tls_seq_num_reset(conn->server_seq_num);
 
 	format_print(stderr, 0, 0, "update server secrets\n");
+	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
@@ -5323,6 +5865,7 @@ int tls13_send_client_finished(TLS_CONNECT *conn)
 	tls_seq_num_reset(conn->client_seq_num);
 
 	format_print(stderr, 0, 0, "update client secrets\n");
+	format_bytes(stderr, 0, 4, "client_application_traffic_secret", conn->client_application_traffic_secret, 48);
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
@@ -5375,6 +5918,15 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	int group = 0;
 	const uint8_t *key_exchange = NULL;
 	size_t key_exchange_len = 0;
+
+
+	// 还是应该用一个单一的元素来表示
+	int psk_ke;
+	int psk_dhe_ke;
+
+
+	// 记录客户端是否发送了early_data
+	int early_data = 0;
 
 
 
@@ -5439,8 +5991,9 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_handshake_failure);
 		return -1;
 	}
-	format_print(stderr, 0, 0, "cipher_suite: %s\n", tls_cipher_suite_name(conn->cipher_suite));
+	//format_print(stderr, 0, 0, "cipher_suite: %s\n", tls_cipher_suite_name(conn->cipher_suite));
 	tls13_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest);
+
 
 	while (extslen) {
 		int ext_type;
@@ -5452,12 +6005,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_decode_error);
 			return -1;
 		}
-		if (!ext_datalen) {
-			// following extensions should not be empty
-			error_print();
-			tls_send_alert(conn, TLS_alert_decode_error);
-			return -1;
-		}
+		//format_print(stderr, 0, 0, "extension: %s (%d)\n", tls_extension_name(ext_type), ext_type);
 
 		switch (ext_type) {
 		case TLS_extension_supported_versions:
@@ -5537,25 +6085,24 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			}
 			break;
 
-		case TLS_extension_pre_shared_key:
-
-			if (tls13_process_client_pre_shared_key(conn, ext_data, ext_datalen, &conn->selected_psk_identity) < 0) {
+		case TLS_extension_psk_key_exchange_modes:
+			if (tls13_psk_key_exchange_modes_from_bytes(&psk_ke, &psk_dhe_ke, ext_data, ext_datalen) != 1) {
 				error_print();
 				return -1;
 			}
+			break;
 
-			if (conn->selected_psk_identity >= 0) {
-				conn->pre_shared_key = 1;
-				// ServerHello依赖这个标志
+		case TLS_extension_pre_shared_key:
+
+			if ((ret = tls13_process_client_pre_shared_key(conn, ext_data, ext_datalen, &conn->selected_psk_identity)) < 0) {
+				error_print();
+				// return -1;
+				// 这里要再看看，是否判断ret == 0
+				return -1;
+			} else if (ret == 0) {
+				break;
 			}
 
-
-			conn->early_data = 1;
-
-
-
-			// 这部分应该单独放在一个括号里面
-			// 这里是设置early_data的加密密钥，这个加密密钥几乎完全是用PSK生成的
 
 			DIGEST_CTX early_dgst_ctx;
 			uint8_t client_early_traffic_secret[32];
@@ -5567,8 +6114,17 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			uint8_t early_secret[32];
 			uint8_t client_write_key[16];
 
+
+			const uint8_t *first_psk;
+			size_t first_psk_len;
+
+			if (tls13_psk_keys_get_first(conn->psk_keys, conn->psk_keys_len, &first_psk, &first_psk_len) != 1) {
+				error_print();
+				return -1;
+			}
+
 			// [1]
-			tls13_hkdf_extract(conn->digest, zeros, conn->psk, early_secret);
+			tls13_hkdf_extract(conn->digest, zeros, first_psk, early_secret);
 			// [2]
 			tls13_derive_secret(early_secret, "c e traffic", &early_dgst_ctx, client_early_traffic_secret);
 
@@ -5582,6 +6138,21 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 			format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 
+			tls13_enable_pre_shared_key(conn, 1);
+
+			break;
+
+		case TLS_extension_early_data:
+			if (early_data) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			if (tls13_empty_early_data_from_bytes(ext_data, ext_datalen) != 1) {
+				error_print();
+				return -1;
+			}
+			early_data = 1;
 			break;
 
 		default:
@@ -5667,6 +6238,26 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
 
 	tls_clean_record(conn);
+
+
+	/*
+	format_print(stderr, 0, 0, "server state\n");
+	format_print(stderr, 0, 4, "hello_retry_request: %d\n", conn->hello_retry_request);
+	format_print(stderr, 0, 4, "pre_shared_key: %d\n", conn->pre_shared_key_enabled);
+	format_print(stderr, 0, 4, "new_session_ticket: %d\n", conn->new_session_ticket);
+	format_print(stderr, 0, 4, "new_session_ticket_cnt: %d\n", conn->new_session_ticket_cnt);
+	format_print(stderr, 0, 4, "selected_psk_identity: %d\n", conn->selected_psk_identity);
+	*/
+
+
+
+	// early_data
+	if (conn->early_data_enabled) {
+		tls13_enable_early_data(conn, early_data);
+	}
+	format_print(stderr, 0, 4, "early_data_enabled: %d\n", conn->early_data_enabled);
+
+
 
 	return 1;
 }
@@ -6022,7 +6613,7 @@ int tls13_send_server_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		if (conn->pre_shared_key) {
+		if (conn->pre_shared_key_enabled) {
 			if (tls13_server_pre_shared_key_ext_to_bytes(conn->selected_psk_identity, &p, &extslen) != 1) {
 				error_print();
 				return -1;
@@ -6074,11 +6665,12 @@ int tls13_send_encrypted_extensions(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		// empty early_data
-		// 需要根据系统的配置决定是否支持0-RTT
-		if (tls_ext_to_bytes(TLS_extension_early_data, NULL, 0, &p, &extslen) != 1) {
-			error_print();
-			return -1;
+
+		if (conn->early_data_enabled) {
+			if (tls13_empty_early_data_ext_to_bytes(&p, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 
 		if (tls13_record_set_handshake_encrypted_extensions(
@@ -6408,6 +7000,7 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 		tls_seq_num_reset(conn->server_seq_num);
 
 		format_print(stderr, 0, 0, "update server secrets\n");
+		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
 		format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 		format_print(stderr, 0, 0, "\n");
@@ -6725,10 +7318,9 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		tls13_hkdf_expand_label(conn->digest, resumption_master_secret, "resumption",
 			ticket_nonce, sizeof(ticket_nonce), dgstlen, pre_shared_key);
 
-
 		format_bytes(stderr, 0, 0, ">>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
 
-		if (tls13_encrypt_ticket(&conn->ctx->server_session_ticket_key,
+		if (tls13_encrypt_ticket(conn->ctx->session_ticket_key,
 			pre_shared_key, conn->protocol, conn->cipher_suite,
 			ticket_issue_time, ticket_lifetime, ticket, &ticketlen) != 1) {
 			error_print();
@@ -6778,7 +7370,8 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 }
 
 
-int tls13_load_session_ticket(TLS_CONNECT *conn, const uint8_t *session, size_t sessionlen)
+// 这个具体要干什么
+int tls13_load_session_file(TLS_CONNECT *conn, const char *file)
 {
 	return 1;
 }
@@ -6878,7 +7471,6 @@ int tls13_recv_new_session_ticket(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(conn->digest, resumption_master_secret, "resumption",
 		ticket_nonce, ticket_nonce_len, dgstlen, pre_shared_key);
 
-
 	uint8_t session[512];
 	uint8_t *p = session;
 	size_t sessionlen = 0;
@@ -6891,19 +7483,21 @@ int tls13_recv_new_session_ticket(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-
 	tls13_session_print(stderr, 0, 0, "SESSION", session, sessionlen);
 
-	if (!(conn->out_session = fopen("session.bin", "wb"))) {
-		error_print();
-		return -1;
+	if (conn->session_out) {
+		FILE *fp;
+		if (!(fp = fopen(conn->session_out, "wb"))) {
+			error_print();
+			return -1;
+		}
+		if (fwrite(session, 1, sessionlen, fp) != sessionlen) {
+			error_print();
+			fclose(fp);
+			return -1;
+		}
+		fclose(fp);
 	}
-	if (fwrite(session, 1, sessionlen, conn->out_session) != sessionlen) {
-		error_print();
-		return -1;
-	}
-	fclose(conn->out_session);
-
 
 	return 1;
 }
@@ -6947,6 +7541,48 @@ PSK模式
 	也就是说这两个状态是可以并发的
 
 
+这个状态机在0-RTT时存在问题
+
+	在client send_client_hello 之后
+	状态机的当前状态可以：
+		发送early_data
+		接收 server_hello, encrypted_extensions, server_finished 的一个串行的过程
+
+
+	因此可能需要同时在conn中保存常规的串行state，以及 early_data = 1的状态
+	当early_data == 1时，进入状态机后，可以尝试同时发送数据，以及完成 recv_server_hello等状态
+
+PSK-only
+
+	服务器和客户端必须事先设置好PSK，这需要我们有一个独立的接口来设置PSK
+	而PSK + ECDHE模式中，客户端是从SESSION中载入的，服务器是从session_ticket中解密的
+
+	PSK需要有identiy，这个session_ticket中，我们用ticket作为PSK的identity
+
+	必须有事先协商好的加密套件
+
+	如果是PSK-only模式，客户端和服务器端需要分别独立设置PSK
+
+
+客户端如何设置PSK-only模式
+
+	如果客户端在设置psk_modes中，只包含了ke，那么就是psk-only
+
+
+	如果客户端设置了psk_identiy和psk，那么显然应该包含psk_ke模式
+
+服务器如何响应
+
+	服务器不发送psk_key_exchange_modes
+
+	但是服务器会在pre_shared_key中回复selected_identity
+
+psk_key_exchange_modes
+
+
+
+
+
 */
 
 
@@ -6955,17 +7591,43 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 	int ret;
 	int next_state;
 
+
+
+	switch (conn->state) {
+	case TLS_state_hello_retry_request:
+	case TLS_state_client_hello_again:
+	case TLS_state_server_hello:
+	case TLS_state_generate_keys:
+	case TLS_state_encrypted_extensions:
+		if (conn->early_data_enabled && conn->early_data_len) {
+			tls_trace("send EarlyData\n");
+			if (tls13_send_early_data(conn) != 1) {
+				error_print();
+				return -1;
+			}
+			conn->early_data_len = 0;
+		}
+		break;
+	}
+
+
 	switch (conn->state) {
 	case TLS_state_client_hello:
 		ret = tls13_send_client_hello(conn);
+		/*
 		if (conn->early_data)
 			next_state = TLS_state_early_data;
 		else	next_state = TLS_state_hello_retry_request;
+		*/
+		next_state = TLS_state_hello_retry_request;
 		break;
 
+	/*
 	case TLS_state_early_data:
 		ret = tls13_send_early_data(conn);
 		next_state = TLS_state_hello_retry_request;
+		break;
+	*/
 
 	case TLS_state_hello_retry_request: // optional
 		ret = tls13_recv_hello_retry_request(conn);
@@ -6991,7 +7653,7 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_encrypted_extensions:
 		ret = tls13_recv_encrypted_extensions(conn);
-		if (conn->pre_shared_key)
+		if (conn->pre_shared_key_enabled)
 			next_state = TLS_state_server_finished;
 		else	next_state = TLS_state_certificate_request;
 		break;
@@ -7013,7 +7675,7 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_server_finished:
 		ret = tls13_recv_server_finished(conn);
-		if (conn->early_data)
+		if (conn->early_data_enabled)
 			next_state = TLS_state_end_of_early_data;
 		else if (conn->client_certificate_verify)
 			next_state = TLS_state_client_certificate;
@@ -7070,6 +7732,34 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 	return 1;
 }
 
+
+/*
+服务器的early_data的状态逻辑
+
+
+	recv_client_hello
+		如果收到early_data，表示客户端想要发送 early_data
+		但是early_data依赖pre_shared_key
+
+		如果客户端没有PSK就设置了early_data，那么就是逻辑错误
+
+		服务器如果处理好了pre_shared_key, 并且设置好了psk_identity >= 0
+
+		服务器之前在发送NewSessionTicket的时候可能包含了max_early_data_size扩展
+		但是我觉得这个参数对当前服务器没有什么参考意义
+		因为服务器能接受多少early_data取决于当前的buf_size
+
+		那么服务器就启动了early_data_enable
+
+	send_encrypted_extensions
+		添加early_data扩展
+
+
+这个逻辑应该放到独立的函数中
+
+*/
+
+
 int tls13_do_server_handshake(TLS_CONNECT *conn)
 {
 	int ret;
@@ -7078,7 +7768,7 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 	switch (conn->state) {
 	case TLS_state_client_hello:
 		ret = tls13_recv_client_hello(conn);
-		if (conn->early_data)
+		if (conn->early_data_enabled)
 			next_state = TLS_state_early_data;
 		else if (conn->hello_retry_request)
 			next_state = TLS_state_hello_retry_request;
@@ -7111,7 +7801,7 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_encrypted_extensions:
 		ret = tls13_send_encrypted_extensions(conn);
-		if (conn->pre_shared_key)
+		if (conn->pre_shared_key_enabled)
 			next_state = TLS_state_server_finished;
 		else if (conn->certificate_request)
 			next_state = TLS_state_certificate_request;
@@ -7135,7 +7825,7 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_server_finished:
 		ret = tls13_send_server_finished(conn);
-		if (conn->early_data)
+		if (conn->early_data_enabled)
 			next_state = TLS_state_end_of_early_data;
 		else if (conn->certificate_request)
 			next_state = TLS_state_client_certificate;
@@ -7165,8 +7855,13 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_new_session_ticket:
-		ret = tls13_send_new_session_ticket(conn);
-		next_state = TLS_state_handshake_over;
+		if (conn->new_session_ticket) {
+			ret = tls13_send_new_session_ticket(conn);
+			next_state = TLS_state_new_session_ticket;
+		} else {
+			ret = 1;
+			next_state = TLS_state_handshake_over;
+		}
 		break;
 
 	default:
@@ -7314,4 +8009,170 @@ int tls13_do_accept(TLS_CONNECT *conn)
 
 	return 1;
 }
+
+// 客户端通过设置early_data隐式的启用early_data
+int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen)
+{
+	size_t len;
+
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (!conn->is_client) {
+		error_print();
+		return -1;
+	}
+	if (!data || !datalen || datalen > sizeof(conn->early_data)) {
+		error_print();
+		return -1;
+	}
+	memcpy(conn->early_data, data, datalen);
+	conn->early_data_len = datalen;
+	conn->early_data_enabled = 1;
+	return 1;
+}
+
+// 服务器通过max_early_data_size是否能够隐式的启用呢？
+// 我觉得是可以隐式启用的？TLS_CTX可以不管这个功能
+// 如果CTX将max_early_data_size设置为0，那么根本不会发送new_session_ticket
+// 是否发送new_session_ticket
+int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	// 是否有必要在CTX中做过多的状态触发？
+	ctx->max_early_data_size = max_early_data_size;
+	return 1;
+}
+
+int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (conn->is_client) {
+		error_print();
+		return -1;
+	}
+	if (max_early_data_size > sizeof(conn->early_data)) {
+		error_print();
+		return -1;
+	}
+	conn->max_early_data_size = max_early_data_size;
+	conn->early_data_enabled = max_early_data_size ? 1 : 0;
+	return 1;
+}
+
+
+// 有了这个服务器可以发送NewSessionTicket，以及可以解密pre_shared_key
+// 但是是否发送NewSessionTicket是由new_session_ticket决定的
+int tls13_ctx_set_session_ticket_key(TLS_CTX *ctx, const uint8_t *key, size_t keylen)
+{
+	if (!ctx || !key || !keylen) {
+		error_print();
+		return -1;
+	}
+	if (keylen != 16) {
+		error_print();
+		return -1;
+	}
+	sm4_set_encrypt_key(&ctx->_session_ticket_key, key);
+	ctx->session_ticket_key = &ctx->_session_ticket_key;
+	return 1;
+}
+
+int tls13_ctx_set_new_session_ticket(TLS_CTX *ctx, size_t new_session_ticket_cnt)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (new_session_ticket_cnt > 20) {
+		error_print();
+		return -1;
+	}
+	ctx->new_session_ticket = (int)new_session_ticket_cnt;
+	return 1;
+}
+
+int tls13_set_new_session_ticket(TLS_CONNECT *conn, size_t new_session_ticket_cnt)
+{
+	conn->new_session_ticket = new_session_ticket_cnt;
+	return 1;
+}
+
+int tls13_set_session_infile(TLS_CONNECT *conn, const char *file)
+{
+	if (!conn || !file) {
+		error_print();
+		return -1;
+	}
+	if (!conn->is_client) {
+		error_print();
+		return -1;
+	}
+
+	conn->session_in = file;
+
+	// 载入SESSION，隐含意味着客户端要进行PSK模式
+	conn->pre_shared_key_enabled = 1;
+	return 1;
+}
+
+int tls13_set_session_outfile(TLS_CONNECT *conn, const char *file)
+{
+	if (!conn || !file) {
+		error_print();
+		return -1;
+	}
+	if (!conn->is_client) {
+		error_print();
+		return -1;
+	}
+	conn->session_out = file;
+	return 1;
+}
+
+int tls13_enable_pre_shared_key(TLS_CONNECT *conn, int enable)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	conn->pre_shared_key_enabled = enable ? 1 : 0;
+	return 1;
+}
+
+int tls13_enable_early_data(TLS_CONNECT *conn, int enable)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	conn->early_data_enabled = enable ? 1 : 0;
+	return 1;
+}
+
+// 判断ClientHello是否发送pre_shared_key扩展，依赖哪些条件
+
+/*
+	1. 客户端应该显示的表明的确要发送pre_shared_key
+	2. 至少设置了psk_ke 或者 psk_dhe_ke 这两个模式之一
+	3. psk_ke模式依赖预设的pre_shared_key已经设定好了
+	4. psk_dhe_ke模式
+
+TLS_pse_ke 模式都依赖什么？
+
+	不同的模式和ke, dhe_ke没有关系，只是如何获得psk的区别，但是如果是直接设定的psk，那么还需要设定psk_identity以及cipher_suite
+	不管是预先设定的PSK
+	还是载入SESSION中得到的PSK
+	这两种情况都意味着
+
+*/
+
+
 

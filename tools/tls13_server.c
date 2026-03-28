@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/mem.h>
+#include <gmssl/hex.h>
 #include <gmssl/sm2.h>
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
@@ -23,11 +24,17 @@ static const char *options = "[-port num] -cert file -key file -pass str [-cacer
 static const char *help =
 "Options\n"
 "\n"
-"    -port num              Listening port number, default 443\n"
-"    -cert file             Server's certificate chain in PEM format\n"
-"    -key file              Server's encrypted private key in PEM format\n"
-"    -pass str              Password to decrypt private key\n"
-"    -cacert file           CA certificate for client certificate verification\n"
+"    -port num                 Listening port number, default 443\n"
+"    -cert file                Server's certificate chain in PEM format\n"
+"    -key file                 Server's encrypted private key in PEM format\n"
+"    -pass str                 Password to decrypt private key\n"
+"    -cacert file              CA certificate for client certificate verification\n"
+"    -new_session_ticket num   Send NewSessionTicket <num> times\n"
+"    -ticket_key hex           Session ticket encrypt/decrypt key in HEX format\n"
+"    -psk_identity str         Identity of pre_shared_key\n"
+"    -psk hex                  Pre-shared key in HEX format\n"
+"    -early_data               Accept EarlyData, support 0-RTT\n"
+"    -max_early_data_size num  Set extension max_early_data_size\n"
 "\n"
 "Examples\n"
 "\n"
@@ -72,6 +79,19 @@ int tls13_server_main(int argc , char **argv)
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
 
+	int new_session_ticket = 0;
+	char *ticket_key = NULL;
+	uint8_t ticket_key_buf[16];
+
+	// TODO: clean
+	char *psk_identity = NULL;
+	char *psk = NULL;
+	uint8_t psk_buf[32];
+	size_t psk_len;
+
+	int early_data = 0;
+	int max_early_data_size = 0;
+
 	argc--;
 	argv++;
 
@@ -100,6 +120,23 @@ int tls13_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
+		} else if (!strcmp(*argv, "-new_session_ticket")) {
+			if (--argc < 1) goto bad;
+			new_session_ticket = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-ticket_key")) {
+			if (--argc < 1) goto bad;
+			ticket_key = *(++argv);
+		} else if (!strcmp(*argv, "-psk_identity")) {
+			if (--argc < 1) goto bad;
+			psk_identity = *(++argv);
+		} else if (!strcmp(*argv, "-psk")) {
+			if (--argc < 1) goto bad;
+			psk = *(++argv);
+		} else if (!strcmp(*argv, "-early_data")) {
+			early_data = 1;
+		} else if (!strcmp(*argv, "-max_early_data_size")) {
+			if (--argc < 1) goto bad;
+			max_early_data_size = atoi(*(++argv));
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -110,6 +147,7 @@ bad:
 		argc--;
 		argv++;
 	}
+	/*
 	if (!certfile) {
 		fprintf(stderr, "%s: '-cert' option required\n", prog);
 		return 1;
@@ -122,6 +160,8 @@ bad:
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
+	*/
+
 	if (tls_socket_lib_init() != 1) {
 		error_print();
 		return -1;
@@ -141,6 +181,40 @@ bad:
 			error_print();
 			return -1;
 		}
+	}
+
+	// NewSessionTicket
+	if (new_session_ticket < 0) {
+		error_print();
+		return -1;
+	}
+	if (new_session_ticket > 0) {
+		if (!ticket_key) {
+			error_print();
+			return -1;
+		}
+		if (tls13_ctx_set_new_session_ticket(&ctx, new_session_ticket) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (ticket_key) {
+		size_t ticket_key_len;
+		if (strlen(ticket_key) != sizeof(ticket_key_buf) * 2) {
+			error_print();
+			return -1;
+		}
+		if (hex_to_bytes(ticket_key, strlen(ticket_key), ticket_key_buf, &ticket_key_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls13_ctx_set_session_ticket_key(&ctx, ticket_key_buf, ticket_key_len) != 1) {
+			error_print();
+			return -1;
+		}
+		tls13_enable_pre_shared_key(&conn, 1);
+		tls13_set_psk_key_exchange_modes(&conn, 1, 1);
 	}
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
@@ -173,6 +247,44 @@ restart:
 		error_print();
 		return -1;
 	}
+
+
+	if (psk) {
+		if (!psk_identity) {
+			error_print();
+			return -1;
+		}
+		if (strlen(psk) != sizeof(psk_buf) * 2) {
+			error_print();
+			return -1;
+		}
+		if (hex_to_bytes(psk, strlen(psk), psk_buf, &psk_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls13_add_pre_shared_key(&conn, DIGEST_sm3(), (uint8_t *)psk_identity, strlen(psk_identity), psk_buf, psk_len, 0) != 1) {
+			error_print();
+			return -1;
+		}
+
+		tls13_enable_pre_shared_key(&conn, 1);
+		tls13_set_psk_key_exchange_modes(&conn, 1, 1);
+	}
+
+	if (max_early_data_size > 0) {
+		if (tls13_set_max_early_data_size(&conn, max_early_data_size) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (early_data) {
+		if (tls13_enable_early_data(&conn, 1) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
 
 	if (tls_do_handshake(&conn) != 1) {
 		error_print();

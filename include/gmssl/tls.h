@@ -792,18 +792,21 @@ typedef struct {
 	const uint8_t *signed_certificate_timestamp;
 	size_t signed_certificate_timestamp_len;
 
-
-	// 用于加密和解密session ticket
-	SM4_KEY server_session_ticket_key;
+	SM4_KEY *session_ticket_key;
+	SM4_KEY _session_ticket_key;
 
 	int new_session_ticket;
+	int new_session_ticket_cnt;
 
 
 	// 设置客户端是否启用PSK模式
-	int pre_shared_key;
+	int pre_shared_key_enabled;
+
 
 	TLS_SESSION session;
 
+	int early_data_enabled;
+	int max_early_data_size;
 
 	int quiet;
 } TLS_CTX;
@@ -1019,10 +1022,33 @@ typedef struct {
 
 	int hello_retry_request;
 	int certificate_request;
-	int early_data;
 	int new_session_ticket;
-	int pre_shared_key;
+
+
+	int pre_shared_key_enabled;
+
+
+	// 客户端和服务器端都可以直接指定若干psk
+	// 服务器端也可能通过解密客户端发出
+	uint8_t psk_identities[512];
+	size_t psk_identities_len;
+	uint8_t psk_keys[32 * 8];
+	size_t psk_keys_len;
+
 	uint8_t psk[32];
+	size_t psk_len;
+
+	const uint8_t *psk_identity;
+	size_t psk_identity_len;
+
+
+
+	// psk_key_exchange_modes
+	int psk_ke;
+	int psk_dhe_ke;
+
+	int new_session_ticket_cnt;
+
 
 	int selected_psk_identity;
 
@@ -1031,13 +1057,13 @@ typedef struct {
 	uint8_t cookie[512];
 	size_t cookielen;
 
-	FILE *out_session;
-	FILE *in_session;
-
-
-	uint8_t early_data_buf[8192];
+	int early_data_enabled;
+	uint8_t early_data[8192];
 	size_t early_data_len;
+	size_t max_early_data_size;
 
+	const char *session_in;
+	const char *session_out;
 } TLS_CONNECT;
 
 
@@ -1090,7 +1116,10 @@ int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT 
 int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx);
 int tls_set_hostname(TLS_CONNECT *conn, const char *hostname);
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock);
+
+
 int tls_do_handshake(TLS_CONNECT *conn);
+
 int tls_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen);
 int tls_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen);
 int tls_shutdown(TLS_CONNECT *conn);
@@ -1224,7 +1253,94 @@ int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
 
 
 
+/*
+EarlyData (0-RTT)
+	client: tls13_set_early_data 隐式的启用客户端EarlyData
+	server: tls13_set_max_early_data_size 隐式的启用服务器的early_data接收，以及如果发送NewSessionTicket，会把这个信息加上去
+*/
+int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
 
+int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size);
+int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size);
+
+
+
+/*
+PSK 模式
+
+	客户端：关键是要载入SESSION，采用发送PSK，所以
+		tls13_set_session_infile
+
+		这个函数没有明确的和PSK建立关联
+
+	服务器：是否允许PSK，依赖是否设置session_ticket_key
+*/
+
+// enable PSK, enable ClientHello.exts.pre_shared_key
+int tls13_set_session_infile(TLS_CONNECT *conn, const char *file);
+
+int tls13_set_session_resumption(TLS_CONNECT *conn, const char *session_file);
+
+
+// TLS 1.3有静态PSK的模式，这种模式下又有不同的交互
+// 我们应该在支持这个模式之后，再调整接口
+
+
+/* 服务器发送NewSessionTicket
+
+	取决于是否准备了session_ticket_key
+
+	以及到底要发送多少个new_session_tickets，这有明确的对应
+*/
+
+
+#define TLS_NEW_SESSION_TICKET_MAX_COUNT 5
+
+
+
+int tls13_ctx_set_session_ticket_key(TLS_CTX *ctx, const uint8_t *key, size_t keylen);
+int tls13_ctx_set_new_session_ticket(TLS_CTX *ctx, size_t new_session_ticket_cnt);
+int tls13_set_new_session_ticket(TLS_CONNECT *conn, size_t new_session_ticket_cnt);
+
+
+
+// 只是意味着保存NewSessionTicket
+int tls13_set_session_outfile(TLS_CONNECT *conn, const char *file);
+
+
+
+// psk_key_exchange_modes extension
+enum {
+	TLS_psk_ke		= 0,
+	TLS_psk_dhe_ke		= 1,
+	TLS_psk_preserved_max	= 255,
+};
+
+enum {
+	TLS_psk_mode_null	= 0,
+	TLS_psk_mode_ke		= 1,
+	TLS_psk_mode_dhe_ke	= 2,
+	TLS_psk_mode_both	= 3,
+};
+
+const char *tls13_psk_key_exchange_mode_name(int mode);
+int tls13_psk_key_exchange_modes_ext_to_bytes(int ke, int dhe_ke, uint8_t **out, size_t *outlen);
+int tls13_psk_key_exchange_modes_from_bytes(int *ke, int *dhe_ke, const uint8_t *ext_data, size_t ext_datalen);
+
+int tls13_enable_pre_shared_key(TLS_CONNECT *conn, int enable);
+int tls13_enable_early_data(TLS_CONNECT *conn, int enable);
+
+
+int tls13_add_pre_shared_key(TLS_CONNECT *conn, const DIGEST *digest, const uint8_t *identity, size_t identitylen,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len, uint32_t tls13_add_pre_shared_key);
+int tls13_add_pre_shared_key_from_file(TLS_CONNECT *conn, const char *file);
+
+int tls13_set_psk_key_exchange_modes(TLS_CONNECT *conn, int psk_ke, int psk_dhe_ke);
+
+int tls13_verify_psk_binder(const DIGEST *digest,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	const DIGEST_CTX *truncated_client_hello_dgst_ctx,
+	const uint8_t *binder, size_t binderlen);
 
 
 #ifdef  __cplusplus

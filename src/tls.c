@@ -2307,11 +2307,9 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 
 	ctx->verify_depth = 5;
 
-	ctx->new_session_ticket = 1;
-
 
 	// TODO: 需要通过函数或者其他设置来启用这个开关
-	ctx->pre_shared_key = 1;
+	ctx->pre_shared_key_enabled = 1;
 
 	return 1;
 }
@@ -2535,6 +2533,70 @@ end:
 	return ret;
 }
 
+/*
+服务器的控制开关
+
+	* 是否验证客户端，这可能依赖很多条件
+		服务器至少需要提供CA证书
+		状态certificate_request = on
+
+	* 是否发送NewSessionTicket
+		这和是否采用PSK模式实际上是没有关系的
+		本次启动服务器可能不支持PSK模式，但是仍然可以提供session_ticket
+		服务器需要设置session的加密密钥
+
+		是否要设置可以发送ticket的次数
+
+		以及ticket有关的信息（有效期之类）
+
+		自动化设置max_early_data_size
+
+	* 是否支持pre_shared_key (1-RTT)
+		TLS 1.3有好几种PSK的模式，比如PSK之后是否进行ECDH
+		服务器需要设置session的加密密钥
+
+	// ok
+	* 是否支持early_data
+		这是一个独立的开关
+
+
+
+客户端的控制开关
+
+	* 初始设置客户端的证书（这和服务器无关）
+
+	* 是否发送pre_shared_key
+
+		需要提供session_ticket的文件，载入信息
+		并且需要开关
+
+	* 是否发送early_data
+
+		是否已经准备了session
+		是否已经准备了early_data数据（这个无所谓，只要指定了这个状态，有没有数据都发送一个early_data报文）
+		如果有max_early_data_size，要判断一下大小
+
+		我们可以延迟到开始发送early_data的时候再检查
+
+
+服务器是否支持PSK，客户端是否发送PSK实际上是两个独立的功能。
+
+	如果我们打开服务器支持PSK的开关，但是没有设置session_ticket的密钥，那么就会出问题
+	我们还是延迟检查比较好
+
+	因为PSK对于服务器来说是一个隐含的，不是主动的，服务器是被动的
+	如果服务器准备好了session_ticket_key，那么就意味着允许
+
+
+	对于客户端来说，如果要在ClientHello中提供pre_shared_key，那么就必须要提供session_infile
+	或者说，set_session_in 就说明我们一定是要发送pre_shared_key的，并且就来自于session_in
+	但是如果设置了session_out ，那么意味着我们会保存信息，但是不一定会发送psk，这两个是独立的
+
+	因此对于客户端来说，pre_shared_key的状态是否有必要的
+
+
+*/
+
 int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 {
 	size_t i;
@@ -2580,12 +2642,20 @@ int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx)
 
 	conn->ctx = ctx;
 
-
 	conn->key_exchanges_cnt = 2;
 
 	conn->new_session_ticket = ctx->new_session_ticket;
 
-	conn->pre_shared_key = ctx->pre_shared_key;
+	conn->pre_shared_key_enabled = ctx->pre_shared_key_enabled;
+
+	// 仅仅用于测试0-RTT
+	/*
+	conn->early_data_enabled = 1;
+	tls13_set_early_data(conn, (uint8_t *)"Early data", strlen("Early data"));
+	*/
+
+	tls13_set_max_early_data_size(conn, ctx->max_early_data_size);
+
 
 	return 1;
 }
