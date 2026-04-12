@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <gmssl/ec.h>
 #include <gmssl/tls.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
@@ -44,6 +45,18 @@ const char *tls_protocol_name(int protocol)
 	return NULL;
 }
 
+int tls_protocol_from_name(const char *name)
+{
+	if (!strcmp(name, "TLS1.3")) {
+		return TLS_protocol_tls13;
+	} else if (!strcmp(name, "TLS1.2")) {
+		return TLS_protocol_tls12;
+	} else if (!strcmp(name, "TLCP")) {
+		return TLS_protocol_tlcp;
+	}
+	return 0;
+}
+
 const char *tls_cipher_suite_name(int cipher)
 {
 	switch (cipher) {
@@ -71,6 +84,23 @@ const char *tls_cipher_suite_name(int cipher)
 	case TLS_cipher_empty_renegotiation_info_scsv: return "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 	}
 	return NULL;
+}
+
+int tls_cipher_suite_from_name(const char *name)
+{
+	if (!strcmp(name, "TLS_SM4_GCM_SM3")) {
+		return TLS_cipher_sm4_gcm_sm3;
+	} else if (!strcmp(name, "TLS_AES_128_GCM_SHA256")) {
+		return TLS_cipher_aes_128_gcm_sha256;
+	} else if (!strcmp(name, "TLS_ECDHE_SM4_CBC_SM3")) {
+		return TLS_cipher_ecdhe_sm4_cbc_sm3;
+	} else if (!strcmp(name, "TLS_ECC_SM4_CBC_SM3")) {
+		return TLS_cipher_ecc_sm4_cbc_sm3;
+	} else if (!strcmp(name, "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256")) {
+		return TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256;
+	}
+	error_print();
+	return 0;
 }
 
 const char *tls_compression_method_name(int meth)
@@ -238,6 +268,7 @@ const char *tls_alert_description_text(int description)
 	case TLS_alert_bad_ibcparam: return "bad_ibcparam";
 	case TLS_alert_unsupported_ibcparam: return "unsupported_ibcparam";
 	case TLS_alert_identity_need: return "identity_need";
+	case TLS_alert_missing_extension: return "missing_extension";
 	}
 	error_print_msg("unknown alert description %d", description);
 	return NULL;
@@ -291,6 +322,20 @@ const char *tls_named_curve_name(int curve)
 	return NULL;
 }
 
+int tls_named_curve_from_name(const char *name)
+{
+	int oid;
+	if ((oid = ec_named_curve_from_name(name)) == OID_undef) {
+		return 0;
+	}
+	switch (oid) {
+	case OID_sm2:
+	case OID_secp256r1:
+		return tls_named_curve_from_oid(oid);
+	}
+	return 0;
+}
+
 const char *tls_signature_scheme_name(int scheme)
 {
 	switch (scheme) {
@@ -321,6 +366,35 @@ const char *tls_signature_scheme_name(int scheme)
 	return NULL;
 }
 
+int tls_signature_scheme_from_name(const char *name)
+{
+	if (!strcmp(name, "ecdsa_secp256r1_sha256")) {
+		return TLS_sig_ecdsa_secp256r1_sha256;
+	} else if (!strcmp(name, "sm2sig_sm3")) {
+		return TLS_sig_sm2sig_sm3;
+	}
+	return 0;
+}
+
+int tls_signature_scheme_algorithm_oid(int sig_alg)
+{
+	switch (sig_alg) {
+	case TLS_sig_sm2sig_sm3: return OID_sm2sign_with_sm3;
+	case TLS_sig_ecdsa_secp256r1_sha256: return OID_ecdsa_with_sha256;
+	}
+	return 0;
+}
+
+int tls_signature_scheme_group_oid(int sig_alg)
+{
+	switch (sig_alg) {
+	case TLS_sig_sm2sig_sm3: return OID_sm2;
+	case TLS_sig_ecdsa_secp256r1_sha256: return OID_secp256r1;
+	}
+	return 0;
+}
+
+// 这个函数去掉
 int tls_signature_scheme_oid(int sig_alg)
 {
 	switch (sig_alg) {
@@ -330,6 +404,7 @@ int tls_signature_scheme_oid(int sig_alg)
 	return 0;
 }
 
+// 这个函数也应该修改，必须同时提供算法/group
 int tls_signature_scheme_from_oid(int sig_alg_oid)
 {
 	switch (sig_alg_oid) {

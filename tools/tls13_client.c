@@ -17,8 +17,6 @@
 #include <gmssl/error.h>
 
 
-static int client_ciphers[] = { TLS_cipher_sm4_gcm_sm3 };
-
 static const char *http_get =
 	"GET / HTTP/1.1\r\n"
 	"Hostname: aaa\r\n"
@@ -29,18 +27,34 @@ static const char *options = "-host str [-port num] [-cacert file] [-cert file -
 static const char *help =
 "Options\n"
 "\n"
-"    -host str              Server's hostname\n"
-"    -port num              Server's port number, default 443\n"
-"    -cacert file           Root CA certificate\n"
-"    -cert file             Client's certificate chain in PEM format\n"
-"    -key file              Client's encrypted private key in PEM format\n"
-"    -pass str              Password to decrypt private key\n"
-"    -sess_in               Load server's session ticket file\n"
-"    -sess_out              Save server's session ticket file\n"
-"    -psk_identity str      Identity of pre_shared_key\n"
-"    -psk hex               Pre-shared key in HEX format\n"
-"    -early_data file       Send early data\n"
+"    -host str                Server's hostname\n"
+"    -port num                Server's port number, default 443\n"
+"    -cipher_suite str        Supported cipher suites, may appear multiple times, higher priority first\n"
+"    -supported_group str     Supported elliptic curves, may appear multiple times, higher priority first\n"
+"    -sig_alg str             Supported signature algorithms\n"
+"    -max_key_exchanges num   Number of key exchanges in key_share extension\n"
+"    -cacert file             Root CA certificate\n"
+"    -cert file               Client's certificate chain in PEM format\n"
+"    -key file                Client's encrypted private key in PEM format\n"
+"    -pass str                Password to decrypt private key\n"
+"    -psk_ke                  Support PSK-only key exchange\n"
+"    -psk_dhe_ke              Support PSK with (EC)DHE key exchange\n"
+"    -psk_identity str        Identity of pre_shared_key\n"
+"    -psk hex                 Pre-shared key in HEX format\n"
+"    -sess_in                 Load server's session ticket file\n"
+"    -sess_out                Save server's session ticket file\n"
+"    -early_data file         Send early data, -psk_ke and/or -psk_dhe_ke should be set\n"
 "\n"
+"CipherSuites\n"
+"    TLS_SM4_GCM_SM3        TLS 1.3\n"
+"    TLS_AES_128_GCM_SHA256 TLS 1.3\n"
+"    TLS_ECC_SM4_CBC_SM3    TLCP\n"
+"    TLS_ECDHE_SM4_CBC_SM3  TLCP TLS 1.2\n"
+"    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 TLS 1.2\n"
+"\n"
+" -supported_group\n"
+"    sm2p256v1\n"
+"    prime256v1\n"
 "Examples\n"
 "\n"
 "    gmssl sm2keygen -pass 1234 -out rootcakey.pem\n"
@@ -96,6 +110,29 @@ int tls13_client_main(int argc, char *argv[])
 	FILE *early_data_fp = NULL;
 	int max_early_data_size = 0;
 
+	char *cipher_suite;
+	int cipher;
+	int cipher_suites[4];
+	size_t cipher_suites_cnt = 0;
+
+	char *supported_group_name;
+	int supported_group;
+	int supported_groups[4];
+	size_t supported_groups_cnt = 0;
+
+	char  *max_key_exchanges = NULL;
+	int max_key_exchanges_cnt;
+
+	char *sig_alg_name;
+	int sig_alg;
+	int sig_algs[4];
+	size_t sig_algs_cnt = 0;
+
+
+	int psk_ke = 0;
+	int psk_dhe_ke = 0;
+
+
 	argc--;
 	argv++;
 	if (argc < 1) {
@@ -137,12 +174,67 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-psk")) {
 			if (--argc < 1) goto bad;
 			psk = *(++argv);
+		} else if (!strcmp(*argv, "-psk_ke")) {
+			psk_ke = 1;
+		} else if (!strcmp(*argv, "-psk_dhe_ke")) {
+			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-early_data")) {
 			if (--argc < 1) goto bad;
 			early_data_file = *(++argv);
 		} else if (!strcmp(*argv, "-max_early_data_size")) {
 			if (--argc < 1) goto bad;
 			max_early_data_size = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-cipher_suite")) {
+			if (--argc < 1) goto bad;
+			cipher_suite = *(++argv);
+			if ((cipher = tls_cipher_suite_from_name(cipher_suite)) == 0) {
+				error_print();
+				fprintf(stderr, "%s: cipher suite '%s' not supported\n", prog, cipher_suite);
+				return -1;
+			}
+			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
+				error_print();
+				fprintf(stderr, "%s: too much cipher suites\n", prog);
+				return -1;
+			}
+			cipher_suites[cipher_suites_cnt] = cipher;
+			cipher_suites_cnt++;
+		} else if (!strcmp(*argv, "-supported_group")) {
+			if (--argc < 1) goto bad;
+			supported_group_name = *(++argv);
+			if ((supported_group = tls_named_curve_from_name(supported_group_name)) == 0) {
+				error_print();
+				fprintf(stderr, "%s: supported_group '%s' not supported\n", prog, supported_group_name);
+				return -1;
+			}
+			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
+				error_print();
+				fprintf(stderr, "%s: too much supported_group\n", prog);
+				return -1;
+			}
+			supported_groups[supported_groups_cnt++] = supported_group;
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			sig_alg_name = *(++argv);
+			if ((sig_alg = tls_signature_scheme_from_name(sig_alg_name)) == 0) {
+				error_print();
+				fprintf(stderr, "%s: sig_alg '%s' not supported\n", prog, sig_alg_name);
+				return -1;
+			}
+			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
+				error_print();
+				fprintf(stderr, "%s: too much sig_algs\n", prog);
+				return -1;
+			}
+			sig_algs[sig_algs_cnt++] = sig_alg;
+		} else if (!strcmp(*argv, "-max_key_exchanges")) {
+			if (--argc < 1) goto bad;
+			max_key_exchanges = *(++argv);
+			max_key_exchanges_cnt = atoi(max_key_exchanges);
+			if (max_key_exchanges_cnt < 0) {
+				error_print();
+				return -1;
+			}
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -168,8 +260,6 @@ bad:
 		goto end;
 	}
 
-
-
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
@@ -186,11 +276,41 @@ bad:
 		goto end;
 	}
 
-	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_client_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
+	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_client_mode) != 1) {
 		fprintf(stderr, "%s: context init error\n", prog);
 		goto end;
 	}
+
+	if (!cipher_suites_cnt) {
+		error_print();
+		fprintf(stderr, "%s: option '-cipher_suite' required\n", prog);
+		goto end;
+	}
+
+	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
+		fprintf(stderr, "%s: context init error\n", prog);
+		goto end;
+	}
+
+	if (supported_groups_cnt > 0) {
+		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (max_key_exchanges) {
+		tls13_ctx_set_max_key_exchanges(&ctx, max_key_exchanges_cnt);
+	}
+
+
+	if (sig_algs_cnt > 0) {
+		if (tls_ctx_set_signature_algorithms(&ctx, sig_algs, sig_algs_cnt) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
 	if (cacertfile) {
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
 			fprintf(stderr, "%s: context init error\n", prog);
@@ -215,16 +335,31 @@ bad:
 			return -1;
 		}
 		tls13_enable_pre_shared_key(&conn, 1);
-		tls13_set_psk_key_exchange_modes(&conn, 1, 1);
 	}
+
 	if (sess_out) {
 		if (tls13_set_session_outfile(&conn, sess_out) != 1) {
 			error_print();
 			goto end;
 		}
 	}
+
+	if (psk_ke || psk_dhe_ke) {
+		if (!sess_in && !psk) {
+			fprintf(stderr, "%s: -sess_in or -psk is required\n", prog);
+			error_print();
+			return -1;
+		}
+		tls13_set_psk_key_exchange_modes(&conn, psk_ke, psk_dhe_ke);
+
+		fprintf(stderr, "conn->psk_key_exchange_modes: %d\n", conn.key_exchange_modes);
+
+	}
+
+
 	if (psk) {
 		if (!psk_identity) {
+			fprintf(stderr, "%s: -psk_identity is required for every -psk\n", prog);
 			error_print();
 			return -1;
 		}
@@ -236,20 +371,26 @@ bad:
 			error_print();
 			return -1;
 		}
+
+		// support multiple pairs
 		if (tls13_add_pre_shared_key(&conn, DIGEST_sm3(), (uint8_t *)psk_identity, strlen(psk_identity), psk_buf, psk_len, 0) != 1) {
 			error_print();
 			return -1;
 		}
 
 		tls13_enable_pre_shared_key(&conn, 1);
-		tls13_set_psk_key_exchange_modes(&conn, 1, 1);
-
 	}
 
 
 	if (early_data_file) {
 		uint8_t early_data[8192];
 		size_t early_data_len;
+
+		if (!psk_ke && !psk_dhe_ke) {
+			error_print();
+			fprintf(stderr, "%s: -early_data need -psk_ke and/or -psk_dhe_ke set\n", prog);
+			return -1;
+		}
 
 		if (!(early_data_fp = fopen(early_data_file, "rb"))) {
 			error_print();

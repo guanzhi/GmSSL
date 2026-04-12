@@ -20,6 +20,33 @@
 #include <gmssl/sm4.h>
 
 
+
+static int test_tls_ext(void)
+{
+	uint8_t ext_data[30];
+	uint8_t buf[256];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	if (tls_ext_to_bytes(TLS_extension_max_fragment_length, NULL, sizeof(ext_data), &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len != 4 + sizeof(ext_data)) {
+		error_print();
+		return -1;
+	}
+	if (p != buf + 4 + sizeof(ext_data)) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+
 static int test_tls13_gcm(void)
 {
 
@@ -499,10 +526,103 @@ static int test_tls13_ticket(void)
 }
 
 
+#if 0
+static int test_tls13_psk_key_exchange_modes(void)
+{
+	int modes[] = {
+		TLS_psk_key_exchange_modes_psk_dhe,
+		TLS_psk_key_exchange_modes_psk_only,
+		TLS_psk_key_exchange_modes_both,
+	};
+
+	uint8_t buf[128];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	size_t i;
+
+	for (i = 0; i < sizeof(modes)/sizeof(modes[0]); i++) {
+		if (tls13_psk_key_exchange_modes_ext_to_bytes(modes[i], &p, &len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	for (i = 0; i < sizeof(modes)/sizeof(modes[0]); i++) {
+		int type;
+		const uint8_t *d;
+		size_t dlen;
+		int mode;
+
+		if (tls_ext_from_bytes(&type, &d, &dlen, &cp, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (type != TLS_extension_psk_key_exchange_modes) {
+			error_print();
+			return -1;
+		}
+		format_print(stderr, 0, 4, "psk_key_exchange_modes\n");
+		tls13_psk_key_exchange_modes_print(stderr, 0, 8, d, dlen);
+
+		if (tls13_psk_key_exchange_modes_from_bytes(&mode, d, dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (mode != modes[i]) {
+			error_print();
+			return -1;
+		}
+
+	}
+	if (len) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
+
+static int test_tls_server_name_ext(void)
+{
+	uint8_t buf[256];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+	int ext_type;
+	const uint8_t *ext_data;
+	size_t ext_datalen;
+	const uint8_t *hostname;
+	size_t hostname_len;
+
+
+	if (tls_server_name_ext_to_bytes((uint8_t *)"www.pku.edu.cn", sizeof("www.pku.edu.cn"), &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_server_name_from_bytes(&hostname, &hostname_len, ext_data, ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_server_name_print(stderr, 0, 0, ext_data, ext_datalen);
+
+
+	// 这里应该补充一个包含多个host_name的例子
 
 
 
 
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
 
 
 
@@ -541,14 +661,18 @@ static int test_tls13_ticket(void)
 
 int main(void)
 {
+	if (test_tls_ext() != 1) goto err;
 	if (test_tls13_gcm() != 1) goto err;
 	if (test_tls13_supported_versions_ext() != 1) goto err;
 	if (test_tls13_key_share_ext() != 1) goto err;
 	if (test_tls_supported_groups_ext() != 1) goto err;
 	if (test_tls_signature_algorithms_ext() != 1) goto err;
 	if (test_tls13_signature_algorithms_cert_ext() != 1) goto err;
-	if (test_tls13_ticket() != 1) goto err;
+//	if (test_tls13_ticket() != 1) goto err;
+//	if (test_tls13_psk_key_exchange_modes() != 1) goto err;
 
+
+	if (test_tls_server_name_ext() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

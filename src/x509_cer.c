@@ -1594,6 +1594,47 @@ int x509_cert_get_exts(const uint8_t *a, size_t alen, const uint8_t **d, size_t 
 	return 1;
 }
 
+// compre host_name of server_name (SNI) extension with SubjectAltName.dnsName
+int x509_cert_get_subject_alt_name_dns_name(const uint8_t *a, size_t alen, const uint8_t **dns_name, size_t *dns_name_len)
+{
+	const uint8_t *exts;
+	size_t extslen;
+	const uint8_t *general_names;
+	size_t general_names_len;
+	int choice = X509_gn_dns_name;
+	int critical;
+	int ret;
+
+	if (!a || !alen || !dns_name || !dns_name_len) {
+		error_print();
+		return -1;
+	}
+	*dns_name = NULL;
+	*dns_name_len = 0;
+
+	if ((ret = x509_cert_get_exts(a, alen, &exts, &extslen)) < 0) {
+		error_print();
+		return -1;
+	} else if (ret == 0) {
+		return 0;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_subject_alt_name,
+		&critical, &general_names, &general_names_len)) < 0) {
+		error_print();
+		return -1;
+	} else if (ret == 0) {
+		return 0;
+	}
+	if ((ret = x509_general_names_get_first(general_names, general_names_len,
+		NULL, choice, dns_name, dns_name_len)) < 0) {
+		error_print();
+		return -1;
+	} else if (ret == 0) {
+		return 0;
+	}
+	return 1;
+}
+
 int x509_cert_get_signature_algor(const uint8_t *a, size_t alen, int *oid)
 {
 	int inner_alg;

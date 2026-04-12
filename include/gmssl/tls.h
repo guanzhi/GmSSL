@@ -38,6 +38,7 @@ void tls_uint8_to_bytes(uint8_t a, uint8_t **out, size_t *outlen);
 void tls_uint16_to_bytes(uint16_t a, uint8_t **out, size_t *outlen);
 void tls_uint24_to_bytes(uint24_t a, uint8_t **out, size_t *outlen);
 void tls_uint32_to_bytes(uint32_t a, uint8_t **out, size_t *outlen);
+void tls_uint64_to_bytes(uint64_t a, uint8_t **out, size_t *outlen);
 void tls_array_to_bytes(const uint8_t *data, size_t len, uint8_t **out, size_t *outlen);
 void tls_uint8array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen);
 void tls_uint16array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen);
@@ -46,6 +47,7 @@ int tls_uint8_from_bytes(uint8_t *a, const uint8_t **in, size_t *inlen);
 int tls_uint16_from_bytes(uint16_t *a, const uint8_t **in, size_t *inlen);
 int tls_uint24_from_bytes(uint24_t *a, const uint8_t **in, size_t *inlen);
 int tls_uint32_from_bytes(uint32_t *a, const uint8_t **in, size_t *inlen);
+int tls_uint64_from_bytes(uint64_t *a, const uint8_t **in, size_t *inlen);
 int tls_array_from_bytes(const uint8_t **data, size_t datalen, const uint8_t **in, size_t *inlen);
 int tls_uint8array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_uint16array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
@@ -67,7 +69,7 @@ typedef enum {
 } TLS_PROTOCOL;
 
 const char *tls_protocol_name(int proto);
-
+int tls_protocol_from_name(const char *name);
 
 typedef enum {
 	TLS_cipher_null_with_null_null		= 0x0000,
@@ -103,6 +105,7 @@ typedef enum {
 } TLS_CIPHER_SUITE;
 
 const char *tls_cipher_suite_name(int cipher);
+int tls_cipher_suite_from_name(const char *name);
 int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_ciphers_len,
 	const int *server_ciphers, size_t server_ciphers_cnt, int *selected_cipher);
 int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count);
@@ -258,7 +261,7 @@ typedef enum {
 } TLS_CURVE_TYPE;
 
 const char *tls_curve_type_name(int type);
-
+int tls_named_curve_from_name(const char *name);
 
 typedef enum {
 	TLS_curve_secp256k1			= 22,
@@ -307,6 +310,12 @@ typedef enum {
 } TLS_SIGNATURE_SCHEME;
 
 const char *tls_signature_scheme_name(int scheme);
+int tls_signature_scheme_from_name(const char *name);
+
+int tls_signature_scheme_algorithm_oid(int sig_alg);
+int tls_signature_scheme_group_oid(int sig_alg);
+
+
 int tls_signature_scheme_oid(int sig_alg);
 int tls_signature_scheme_from_oid(int sig_alg_oid);
 int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite);
@@ -725,94 +734,135 @@ typedef struct {
 } TLS_CERTS;
 
 
-
-typedef struct {
-	char hostname[256];
-
-	uint8_t pre_shared_key[32];
-	uint16_t protocol_version;
-	uint16_t cipher_suite;
-	uint32_t ticket_issue_time;
-	uint32_t ticket_lifetime;
-
-	uint32_t ticket_age_add;
-	uint8_t ticket[256];
-	size_t ticketlen;
-
-
-	// TODO: SNI, ALPN, client_certificate (dgst or subject), ticket_age_add, max_early_data_size
-} TLS_SESSION;
-
+#define TLS13_SCT_MAX_SIZE  (32 + 8 + 2 + SM2_MAX_SIGNATURE_SIZE) // = 114
 
 
 
 
 typedef struct {
+	int is_client;
+
+	int quiet;
+
 	int protocol;
 
 
-	int is_client;
-
+	// 客户端和服务器端协商出公共的cipher_suite
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
 
-	uint8_t *cacerts;
-	size_t cacertslen;
+	int key_exchange_modes;
 
-	uint8_t *certs;
+
+	// 服务器端需要根据客户端提供的SNI来选择证书链
+	// 客户端需要根据服务器提供的CA以及算法限定来选择证书链，因此双方都需要准备多个证书链
+
+
+	// 在TLS 1.3中，证书链是 CertificateEntry certificate_list
+	// 这意味着其中每个证书都可能有附带的扩展，
+	/*
+
+	status_request 这个信息主要是最近的OCSP的信息，表明证书的状态
+	signed_certificate_timestamp 这个信息是长期的，CT的信息，一般是不变的
+
+	因此客户端在提供证书的时候，实际上可以将这个信息直接附在上面
+
+	我们在保存的时候也应该保存完整的certificate_list，而不是单独的信息
+	也许我们需要一个信息来标注里面存储的格式
+
+	*/
+
+
+	// 允许设定多个证书链，每个证书链对应一个x509_key，或者一个附加的enc_key
+
+	uint8_t cert_chains[8192];
+	size_t cert_chains_len;
+	size_t cert_chains_cnt; // 这是一个多余的值，不应该存储多余的值
+	size_t cert_chain_idx;
+	uint8_t *certs;	// 这里应该改为cert_chain，我们将certs表示为互相独立的证书
 	size_t certslen;
 
-	TLS_CERTS extra_certs[16];
-	size_t extra_certs_cnt;
+	// 每个证书链都应该有附带的status_request和sct信息
+	// status_request_ocsp_response
+	// sct_list 证书透明有关的信息，这是一个长期的信息
+	// 这两个信息实际上都是证书链的扩展，因此这里我们需要准备相应的数据了
+	// 这里还是暂时不给出好了
 
 
-	// extensions
-	int supported_versions[4];
-	size_t supported_versions_cnt;
+	// 这里面需要解决的是，TLCP和TLS中证书链和密钥数量不对等的问题，一个TLCP证书链需要2个密钥
+	X509_KEY x509_keys[4];
+	X509_KEY enc_keys[4];
 
-	int supported_groups[32];
-	size_t supported_groups_cnt;
-
-	int signature_algorithms[2];
-	size_t signature_algorithms_cnt;
-
-	int protocols[4];
-	size_t protocols_cnt;
-
-
+	size_t x509_keys_cnt;
 	X509_KEY signkey;
 	X509_KEY kenckey;
 
+	// 对于客户端来说，需要提供所有的CA证书，注意这里不是证书链，而是一个个独立的证书
+	// 对于服务器来说，在certificate_request中，需要从这些证书中提取dn_names，并发送给客户端，然后再验证客户端证书
+	uint8_t *cacerts;
+	size_t cacertslen;
 	int verify_depth;
 
-	// 这个应该是和服务器证书相关的
-	const uint8_t *certificate_status;
-	size_t certificate_status_len;
+	// 这是一个系统参数，决定了客户端在ClientHello中发送多少个key_exchanges
+	// CTX中这个参数应该是没有意义的，服务器应该总是1，客户端应该>=1
+	// 是否可以设置为0呢？
+	size_t key_exchanges_cnt;
 
-	const uint8_t *signed_certificate_timestamp;
-	size_t signed_certificate_timestamp_len;
 
+	// extensions
+
+	// 5. status_request
+	int status_request;
+	const uint8_t *status_request_responder_id_list;
+	size_t status_request_responder_id_list_len;
+	const uint8_t *status_request_exts;
+	size_t status_request_exts_len;
+	const uint8_t *status_request_ocsp_response;
+	size_t status_request_ocsp_response_len;
+
+
+	// 10. supported_gruops
+	int supported_groups[32];
+	size_t supported_groups_cnt;
+
+
+	// 13. signature_algorithms
+	int signature_algorithms[2];
+	size_t signature_algorithms_cnt;
+
+	// 18. signed_certificate_timestamp
+	int signed_certificate_timestamp;
+	const uint8_t *signed_certificate_timestamp_list;
+	size_t signed_certificate_timestamp_list_len;
+
+	// 35. session_ticket
+	// NewSessionTicket
+	int new_session_ticket;
+	int new_session_ticket_cnt;
 	SM4_KEY *session_ticket_key;
 	SM4_KEY _session_ticket_key;
 
-	int new_session_ticket;
-	int new_session_ticket_cnt;
-
-
-	// 设置客户端是否启用PSK模式
-	int pre_shared_key_enabled;
-
-
-	TLS_SESSION session;
-
-	int early_data_enabled;
+	// 42. early_data
+	int early_data;
 	int max_early_data_size;
 
-	int quiet;
+	// 43. supported_versions
+	int supported_versions[4];
+	size_t supported_versions_cnt;
+
+	// 44. cookie
+	int cookie;
+	SM4_KEY cookie_key;
+
+
+	// 46. psk_key_exchange_modes
+
+
 } TLS_CTX;
 
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client);
 int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cipher_suites_cnt);
+int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t sig_algs_cnt);
 int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth);
 int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
@@ -821,6 +871,8 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 	const char *kenckeyfile, const char *kenckeypass);
 void tls_ctx_cleanup(TLS_CTX *ctx);
 
+int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass);
 
 
 #define TLS_MAX_CERTIFICATES_SIZE	2048
@@ -867,51 +919,68 @@ enum {
 	TLS_state_handshake_over,
 };
 
+
+
 typedef struct {
-	int is_client;
+	int is_client; // 这个在CTX中应该是有的
 
-	const char *hostname;
-
-	int protocol;
-
-
-
-	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
-	size_t cipher_suites_cnt;
-	int cipher_suite;
-	const DIGEST *digest;
-	const BLOCK_CIPHER *cipher;
-
+	int quiet;
 
 	tls_socket_t sock;
 
-	uint8_t enced_record[TLS_MAX_RECORD_SIZE];
-	size_t enced_record_len;
+	TLS_CTX *ctx;
+
+	// handshake state for state machine
+	int state;
 
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];
 	size_t record_offset; // offset of processed record
 	size_t recordlen;
-
-
 	uint8_t plain_record[TLS_MAX_RECORD_SIZE];
 	size_t plain_recordlen;
 
-	int record_state;
 
-
-	uint8_t databuf[TLS_MAX_RECORD_SIZE];
+	uint8_t databuf[TLS_MAX_RECORD_SIZE]; // 需要替换为plain_record
 	uint8_t *data;
 	size_t datalen;
 
+
+
+
+	int protocol;
+
+	int key_exchange_modes;
+
+	int cipher_suite;
+	const DIGEST *digest;
+	const BLOCK_CIPHER *cipher;
+
+
 	uint8_t session_id[32];
 	size_t session_id_len;
+	uint8_t client_random[32];
+	uint8_t server_random[32];
+
+
+	// 一般来说我们只要保存对方发过来的证书，因为己方的证书都在CTX中，对吗？
 	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; // TODO: use ptr and malloc			
 	size_t server_certs_len;
 	uint8_t client_certs[TLS_MAX_CERTIFICATES_SIZE];
 	size_t client_certs_len;
-	uint8_t ca_certs[2048];
-	size_t ca_certs_len;
+
+
+	// 己方的证书链，指向TLS_CTX中的cert_chains
+	const uint8_t *cert_chain;
+	size_t cert_chain_len;
+	int cert_chain_idx; // 这样就指向了CTX中的密钥
+
+	int sig_alg;
+
+
+	uint8_t peer_cert_chain[TLS_MAX_CERTIFICATES_SIZE];
+	size_t peer_cert_chain_len;
+
 
 	X509_KEY sign_key;
 	X509_KEY kenc_key; // 应该作为服务器的SM2加密
@@ -920,8 +989,12 @@ typedef struct {
 	int verify_result;
 
 
+	// transcript hash
+	SM3_CTX sm3_ctx;
+	DIGEST_CTX dgst_ctx;
 
 
+	// secrets
 	SM3_HMAC_CTX client_write_mac_ctx;
 	SM3_HMAC_CTX server_write_mac_ctx;
 	SM4_KEY client_write_enc_key;
@@ -933,77 +1006,6 @@ typedef struct {
 	uint8_t server_write_iv[12]; // tls13
 	BLOCK_CIPHER_KEY client_write_key;
 	BLOCK_CIPHER_KEY server_write_key;
-
-	int quiet;
-
-
-	// handshake state for state machine
-	int state;
-
-
-
-	SM3_CTX sm3_ctx;
-
-	DIGEST_CTX dgst_ctx;
-
-
-	SM2_SIGN_CTX sign_ctx;
-	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
-	uint8_t client_random[32];
-	uint8_t server_random[32];
-	uint8_t server_exts[512]; // TODO
-	size_t server_exts_len;
-
-
-	// 在TLS中，密钥交换的密钥是不在证书中的？
-	uint16_t sig_alg;
-
-	// TLS中客户端和服务器端可以使用不同的签名算法，但是最好是一致的
-	// 这个算法是由cipher_suite和服务器证书决定的（其中是服务器AUTH算法）
-	// 但是客户端的签名算法不是由cipher_suite决定
-	uint16_t server_sig_alg;
-
-
-	uint16_t ecdh_named_curve;
-
-	X509_KEY ecdh_keys[2];
-
-
-	size_t ecdh_keys_cnt;
-
-	X509_KEY ecdh_key;
-
-	uint8_t peer_ecdh_point[65];
-	size_t peer_ecdh_point_len;
-
-
-	X509_KEY key_exchanges[2];
-	size_t key_exchanges_cnt;
-	size_t key_exchange_idx;
-
-	int key_exchange_group;
-	uint8_t peer_key_exchange[65];
-	size_t peer_key_exchange_len;
-
-
-	// tls13 需要提前生成每一种曲线的密钥
-	SM2_KEY sm2_ecdhe;
-	SECP256R1_KEY p256_ecdhe;
-	uint8_t peer_sm2_ecdhe[65];
-	uint8_t peer_p256_ecdhe[65];
-
-
-	// 服务器在接收到ClientHello中，计算出双方算法的交集，并保存
-	// 服务器在发送CertificateRequest的时候，需要把这个集合发送给客户端
-	// 客户端在使用的时候实际上使用CTX中的集合发送
-	int signature_algorithms[2];
-	size_t signature_algorithms_cnt;
-
-
-
-	int verify_depth; // 这个可能没有被设置				
-
-	const TLS_CTX *ctx;
 
 	uint8_t pre_master_secret[48]; // 是否可以重用master_secret作为pre_master_secret呢？			
 	uint8_t master_secret[48];
@@ -1019,51 +1021,92 @@ typedef struct {
 	uint8_t server_application_traffic_secret[32];
 
 
+	SM2_SIGN_CTX sign_ctx;
+	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
 
+
+
+	// 所有这些命名为ecdh的都需要替换掉
+	uint16_t ecdh_named_curve;
+	X509_KEY ecdh_keys[2];
+	size_t ecdh_keys_cnt;
+	X509_KEY ecdh_key;
+	uint8_t peer_ecdh_point[65];
+	size_t peer_ecdh_point_len;
+
+
+	// key_share
+	int key_share;
+	X509_KEY key_exchanges[2];
+	size_t key_exchanges_cnt;
+	size_t key_exchange_idx;
+	int key_exchange_group;
+	uint8_t peer_key_exchange[65]; //这个似乎应该替换掉
+	size_t peer_key_exchange_len;
+
+
+
+	// CertificateRequest.signature_algorithms =
+	//   common(ClientHello.signature_algorithms, ctx->signature_algorithms)
+	int signature_algorithms[2];
+	size_t signature_algorithms_cnt;
+
+
+	// handshake messages
 	int hello_retry_request;
 	int certificate_request;
 	int new_session_ticket;
 
 
-	int pre_shared_key_enabled;
 
+	// extensions
 
-	// 客户端和服务器端都可以直接指定若干psk
-	// 服务器端也可能通过解密客户端发出
+	// 0. server_name
+	uint8_t server_name[256];
+	size_t server_name_len;
+
+	// 5. status_request
+	int status_request;
+
+	// 18. signed_certificate_timestamp
+	int signed_certificate_timestamp;
+
+	// 41. pre_shared_key
+	int pre_shared_key;
+	const DIGEST *psk_digests[8];
+	size_t psk_digests_cnt;
 	uint8_t psk_identities[512];
 	size_t psk_identities_len;
 	uint8_t psk_keys[32 * 8];
 	size_t psk_keys_len;
 
-	uint8_t psk[32];
-	size_t psk_len;
-
 	const uint8_t *psk_identity;
 	size_t psk_identity_len;
-
-
-
-	// psk_key_exchange_modes
-	int psk_ke;
-	int psk_dhe_ke;
-
-	int new_session_ticket_cnt;
-
-
+	uint8_t psk[32]; // 这应该改为一个指针
+	size_t psk_len;
 	int selected_psk_identity;
+
+
+	// session_ticket
+	const char *session_in;
+	const char *session_out;
 
 	int client_certificate_verify; // TLS1.2 TLCP需要这个
 
-	uint8_t cookie[512];
-	size_t cookielen;
 
-	int early_data_enabled;
-	uint8_t early_data[8192];
-	size_t early_data_len;
+
+	// 42. early_data
+	int early_data;
 	size_t max_early_data_size;
+	uint8_t early_data_buf[8192];
+	size_t early_data_len;
 
-	const char *session_in;
-	const char *session_out;
+	// 44. cookie
+	uint8_t cookie_buf[256];
+	size_t cookie_len;
+
+
+
 } TLS_CONNECT;
 
 
@@ -1113,7 +1156,7 @@ void tls_clean_record(TLS_CONNECT *conn);
 
 int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT *conn);
 
-int tls_init(TLS_CONNECT *conn, const TLS_CTX *ctx);
+int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx);
 int tls_set_hostname(TLS_CONNECT *conn, const char *hostname);
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock);
 
@@ -1260,6 +1303,7 @@ EarlyData (0-RTT)
 */
 int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
 
+int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt);
 int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size);
 int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size);
 
@@ -1277,7 +1321,7 @@ PSK 模式
 */
 
 // enable PSK, enable ClientHello.exts.pre_shared_key
-int tls13_set_session_infile(TLS_CONNECT *conn, const char *file);
+//int tls13_set_session_infile(TLS_CONNECT *conn, const char *file);
 
 int tls13_set_session_resumption(TLS_CONNECT *conn, const char *session_file);
 
@@ -1294,7 +1338,6 @@ int tls13_set_session_resumption(TLS_CONNECT *conn, const char *session_file);
 */
 
 
-#define TLS_NEW_SESSION_TICKET_MAX_COUNT 5
 
 
 
@@ -1316,16 +1359,23 @@ enum {
 	TLS_psk_preserved_max	= 255,
 };
 
+
+#define TLS_KE_CERT_DHE		1
+#define TLS_KE_PSK_DHE		2
+#define TLS_KE_PSK		4
+
+/*
 enum {
-	TLS_psk_mode_null	= 0,
-	TLS_psk_mode_ke		= 1,
-	TLS_psk_mode_dhe_ke	= 2,
-	TLS_psk_mode_both	= 3,
+	TLS_psk_key_exchange_modes_none		= 0,
+	TLS_psk_key_exchange_modes_psk_only	= 1,
+	TLS_psk_key_exchange_modes_psk_dhe	= 2,
+	TLS_psk_key_exchange_modes_both		= 3,
 };
+*/
 
 const char *tls13_psk_key_exchange_mode_name(int mode);
-int tls13_psk_key_exchange_modes_ext_to_bytes(int ke, int dhe_ke, uint8_t **out, size_t *outlen);
-int tls13_psk_key_exchange_modes_from_bytes(int *ke, int *dhe_ke, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_psk_key_exchange_modes_ext_to_bytes(int modes, uint8_t **out, size_t *outlen);
+int tls13_psk_key_exchange_modes_from_bytes(int *modes, const uint8_t *ext_data, size_t ext_datalen);
 
 int tls13_enable_pre_shared_key(TLS_CONNECT *conn, int enable);
 int tls13_enable_early_data(TLS_CONNECT *conn, int enable);
@@ -1337,10 +1387,89 @@ int tls13_add_pre_shared_key_from_file(TLS_CONNECT *conn, const char *file);
 
 int tls13_set_psk_key_exchange_modes(TLS_CONNECT *conn, int psk_ke, int psk_dhe_ke);
 
+
 int tls13_verify_psk_binder(const DIGEST *digest,
 	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
 	const DIGEST_CTX *truncated_client_hello_dgst_ctx,
 	const uint8_t *binder, size_t binderlen);
+
+int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_cnt);
+int tls13_set_psk_key_exchange_modes(TLS_CONNECT *conn, int psk_ke, int psk_dhe_ke);
+
+int tls13_psk_key_exchange_modes_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+
+
+enum {
+	TLS_name_type_host_name		= 0,
+	TLS_name_type_preserved_max	= 255,
+};
+
+
+#define tls_ext_data(ext)	((ext) + 4)
+
+int tls_ext_to_bytes(int ext_type, const uint8_t *ext_data, size_t ext_datalen,
+	uint8_t **out, size_t *outlen);
+
+int tls_server_name_ext_to_bytes(const uint8_t *host_name, size_t host_name_len, uint8_t **out, size_t *outlen);
+int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+
+int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len);
+
+int tls_status_request_ext_to_bytes(const uint8_t *ocsp_response, size_t ocsp_response_len,
+	uint8_t **out, size_t *outlen);
+
+
+enum {
+	TLS_certificate_status_type_ocsp = 1,
+};
+
+int tls_ocsp_status_request_to_bytes(
+	const uint8_t *responder_id_list, size_t responder_id_list_len,
+	const uint8_t *request_exts, size_t request_exts_len,
+	uint8_t **out, size_t *outlen);
+int tls_ocsp_status_request_from_bytes(
+	const uint8_t **responder_id_list, size_t *responder_id_list_len,
+	const uint8_t **request_exts, size_t *request_exts_len,
+	const uint8_t **in, size_t *inlen);
+int tls_ocsp_status_request_print(FILE *fp, int fmt, int ind,
+	const char *label, const uint8_t *ext_data, size_t ext_datalen);
+
+int tls_client_status_request_ext_to_bytes(int status_type,
+	const uint8_t *responder_id_list, size_t responder_id_list_len,
+	const uint8_t *request_exts, size_t request_exts_len,
+	uint8_t **out, size_t *outlen);
+int tls_client_status_request_from_bytes(int *status_type,
+	const uint8_t **responder_id_list, size_t *responder_id_list_len,
+	const uint8_t **request_exts, size_t *request_exts_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls_client_status_request_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
+
+int tls_server_status_request_ext_to_bytes(const uint8_t *ocsp_response, size_t ocsp_response_len,
+	uint8_t **out, size_t *outlen);
+int tls_server_status_request_from_bytes(const uint8_t **ocsp_response, size_t *ocsp_response_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls_server_status_request_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
+
+
+int tls_signed_certificate_timestamp_entry_to_bytes(const uint8_t key_id[32],
+	uint64_t timestamp, const uint8_t *signature, size_t signature_len,
+	uint8_t **out, size_t *outlen);
+int tls_signed_certificate_timestamp_entry_from_bytes(const uint8_t **key_id,
+	uint64_t *timestamp, const uint8_t **signature, size_t *signature_len,
+	const uint8_t **in, size_t *inlen);
+int tls_signed_certificate_timestamp_ext_to_bytes(const uint8_t *sct_list, size_t sct_list_len,
+	uint8_t **out, size_t *outlen);
+int tls_signed_certificate_timestamp_from_bytes(const uint8_t **sct_list, size_t *sct_list_len,
+	const uint8_t **in, size_t *inlen);
+int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
+	const char *label, const uint8_t *d, size_t dlen);
+
+int ocsp_response_verify(const uint8_t *ocsp_response, size_t ocsp_response_len,
+	const uint8_t *ca_certs, size_t ca_certs_len);
 
 
 #ifdef  __cplusplus

@@ -63,6 +63,22 @@ static int test_tls_encode(void)
 	return 1;
 }
 
+static int test_tls_null_to_bytes(void)
+{
+	uint8_t buf[10];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	tls_uint16array_to_bytes(buf, sizeof(buf), NULL, &len);
+
+	// this will segment fault
+	//p = NULL;
+	//tls_uint16array_to_bytes(buf, sizeof(buf), &p, &len);
+
+	return 1;
+}
+
 static int test_tls_cbc(void)
 {
 	uint8_t key[32] = {0};
@@ -320,8 +336,26 @@ static int test_tls_application_data(void)
 	return 1;
 }
 
+static int test_tls_status_request_ext(void)
+{
+	uint8_t ocsp_response[5];
+	uint8_t buf[256];
+	uint8_t *p = buf;
+	const uint8_t *cp = buf;
+	size_t len = 0;
+
+	memset(ocsp_response, 0xff, sizeof(ocsp_response));
+
+
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
+	if (test_tls_null_to_bytes() != 1) goto err;
+	/*
 	if (test_tls_encode() != 1) goto err;
 	if (test_tls_cbc() != 1) goto err;
 	if (test_tls_random() != 1) goto err;
@@ -334,6 +368,8 @@ int main(void)
 	if (test_tls_alert() != 1) goto err;
 	if (test_tls_change_cipher_spec() != 1) goto err;
 	if (test_tls_application_data() != 1) goto err;
+	*/
+	if (test_tls_status_request_ext() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

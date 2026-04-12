@@ -137,7 +137,8 @@ int x509_private_key_info_decrypt_from_der(X509_KEY *x509_key,
 int x509_private_key_info_encrypt_to_pem(const X509_KEY *key, const char *pass, FILE *fp);
 int x509_private_key_info_decrypt_from_pem(X509_KEY *key, const uint8_t **attrs, size_t *attrslen, const char *pass, FILE *fp);
 int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE *fp);
-
+int x509_private_keys_from_file(X509_KEY *keys, size_t *keys_cnt, size_t max_cnt,
+	int algor, const char *pass, FILE *fp);
 
 
 // SM2_SIGNATURE_MAX_SIZE = 72

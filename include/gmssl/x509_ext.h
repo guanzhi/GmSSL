@@ -142,7 +142,10 @@ typedef enum {
 
 int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen);
 int x509_general_name_from_der(int *choice, const uint8_t **d, size_t *dlen, const uint8_t **in, size_t *inlen);
+int x509_general_names_get_first(const uint8_t *gns, size_t gns_len, const uint8_t **ptr, int choice, const uint8_t **d, size_t *dlen);
+int x509_general_names_get_next(const uint8_t *gns, size_t gns_len, const uint8_t **ptr, int choice, const uint8_t **d, size_t *dlen);
 int x509_general_name_print(FILE *fp, int fmt, int ind, const char *label, int choice, const uint8_t *d, size_t dlen);
+
 
 /*
 GeneralNames ::= SEQUENCE OF GeneralName

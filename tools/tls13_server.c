@@ -25,16 +25,36 @@ static const char *help =
 "Options\n"
 "\n"
 "    -port num                 Listening port number, default 443\n"
+"    -cipher_suite str         Client's cipher suites, may appear multiple times, higher priority first\n"
+"    -supported_group str      Supported elliptic curves, may appear multiple times, higher priority first\n"
+"    -sig_alg str              Supported signature algorithms\n"
 "    -cert file                Server's certificate chain in PEM format\n"
 "    -key file                 Server's encrypted private key in PEM format\n"
 "    -pass str                 Password to decrypt private key\n"
 "    -cacert file              CA certificate for client certificate verification\n"
 "    -new_session_ticket num   Send NewSessionTicket <num> times\n"
 "    -ticket_key hex           Session ticket encrypt/decrypt key in HEX format\n"
+"    -psk_ke                   Support PSK-only key exchange\n"
+"    -psk_dhe_ke               Support PSK with (EC)DHE key exchange\n"
 "    -psk_identity str         Identity of pre_shared_key\n"
 "    -psk hex                  Pre-shared key in HEX format\n"
 "    -early_data               Accept EarlyData, support 0-RTT\n"
 "    -max_early_data_size num  Set extension max_early_data_size\n"
+"\n"
+"    -cipher_suite options\n"
+"      TLS_SM4_GCM_SM3         TLS 1.3\n"
+"      TLS_AES_128_GCM_SHA256  TLS 1.3\n"
+"      TLS_ECC_SM4_CBC_SM3     TLCP\n"
+"      TLS_ECDHE_SM4_CBC_SM3   TLCP TLS 1.2\n"
+"      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 TLS 1.2\n"
+"\n"
+"    -supported_group options\n"
+"      sm2p256v1\n"
+"      prime256v1\n"
+"\n"
+"    -sig_alg options\n"
+"      sm2sig_sm3\n"
+"      ecdsa_secp256r1_sha256\n"
 "\n"
 "Examples\n"
 "\n"
@@ -83,6 +103,9 @@ int tls13_server_main(int argc , char **argv)
 	char *ticket_key = NULL;
 	uint8_t ticket_key_buf[16];
 
+	int psk_ke = 0;
+	int psk_dhe_ke = 0;
+
 	// TODO: clean
 	char *psk_identity = NULL;
 	char *psk = NULL;
@@ -91,6 +114,21 @@ int tls13_server_main(int argc , char **argv)
 
 	int early_data = 0;
 	int max_early_data_size = 0;
+
+	char *cipher_suite_name;
+	int cipher_suite;
+	int cipher_suites[4];
+	size_t cipher_suites_cnt = 0;
+
+	char *supported_group_name;
+	int supported_group;
+	int supported_groups[4];
+	size_t supported_groups_cnt = 0;
+
+	char *sig_alg_name;
+	int sig_alg;
+	int sig_algs[4];
+	size_t sig_algs_cnt = 0;
 
 	argc--;
 	argv++;
@@ -126,6 +164,10 @@ int tls13_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-ticket_key")) {
 			if (--argc < 1) goto bad;
 			ticket_key = *(++argv);
+		} else if (!strcmp(*argv, "-psk_ke")) {
+			psk_ke = 1;
+		} else if (!strcmp(*argv, "-psk_dhe_ke")) {
+			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-psk_identity")) {
 			if (--argc < 1) goto bad;
 			psk_identity = *(++argv);
@@ -137,6 +179,49 @@ int tls13_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-max_early_data_size")) {
 			if (--argc < 1) goto bad;
 			max_early_data_size = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-cipher_suite")) {
+			if (--argc < 1) goto bad;
+			cipher_suite_name = *(++argv);
+			if ((cipher_suite = tls_cipher_suite_from_name(cipher_suite_name)) == 0) {
+				error_print();
+				fprintf(stderr, "%s: cipher suite '%s' not supported\n", prog, cipher_suite_name);
+				return -1;
+			}
+			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
+				error_print();
+				fprintf(stderr, "%s: too much cipher suites\n", prog);
+				return -1;
+			}
+			cipher_suites[cipher_suites_cnt] = cipher_suite;
+			cipher_suites_cnt++;
+		} else if (!strcmp(*argv, "-supported_group")) {
+			if (--argc < 1) goto bad;
+			supported_group_name = *(++argv);
+			if ((supported_group = tls_named_curve_from_name(supported_group_name)) == 0) {
+				error_print();
+				fprintf(stderr, "%s: supported_group '%s' not supported\n", prog, supported_group_name);
+				return -1;
+			}
+			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
+				error_print();
+				fprintf(stderr, "%s: too much supported_group\n", prog);
+				return -1;
+			}
+			supported_groups[supported_groups_cnt++] = supported_group;
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			if (--argc < 1) goto bad;
+			sig_alg_name = *(++argv);
+			if ((sig_alg = tls_signature_scheme_from_name(sig_alg_name)) == 0) {
+				error_print();
+				fprintf(stderr, "%s: sig_alg '%s' not supported\n", prog, sig_alg_name);
+				return -1;
+			}
+			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
+				error_print();
+				fprintf(stderr, "%s: too much sig_algs\n", prog);
+				return -1;
+			}
+			sig_algs[sig_algs_cnt++] = sig_alg;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -147,17 +232,13 @@ bad:
 		argc--;
 		argv++;
 	}
+
+
+
 	/*
+	// 服务器的证书
 	if (!certfile) {
 		fprintf(stderr, "%s: '-cert' option required\n", prog);
-		return 1;
-	}
-	if (!keyfile) {
-		fprintf(stderr, "%s: '-key' option required\n", prog);
-		return 1;
-	}
-	if (!pass) {
-		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
 	*/
@@ -170,12 +251,51 @@ bad:
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
-	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_server_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
-		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_server_mode) != 1) {
 		error_print();
 		return -1;
 	}
+
+	// 应该判断有cert的时候才载入
+
+	if (certfile) {
+		if (!keyfile) {
+			fprintf(stderr, "%s: '-key' option required\n", prog);
+			return 1;
+		}
+		if (!pass) {
+			fprintf(stderr, "%s: '-pass' option required\n", prog);
+			return 1;
+		}
+		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (!cipher_suites_cnt) {
+		error_print();
+		goto end;
+	}
+
+	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
+		fprintf(stderr, "%s: context init error\n", prog);
+		goto end;
+	}
+	if (supported_groups_cnt > 0) {
+		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (sig_algs_cnt > 0) {
+		if (tls_ctx_set_signature_algorithms(&ctx, sig_algs, sig_algs_cnt) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
 	if (cacertfile) {
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
 			error_print();
@@ -246,6 +366,11 @@ restart:
 		|| tls_set_socket(&conn, conn_sock) != 1) {
 		error_print();
 		return -1;
+	}
+
+	if (psk_ke || psk_dhe_ke) {
+		// 对于服务器来说只是允许进行这些模式
+		tls13_set_psk_key_exchange_modes(&conn, psk_ke, psk_dhe_ke);
 	}
 
 

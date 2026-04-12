@@ -1297,6 +1297,7 @@ int x509_private_key_info_encrypt_to_pem(const X509_KEY *key, const char *pass, 
 
 int x509_private_key_info_decrypt_from_pem(X509_KEY *key, const uint8_t **attrs, size_t *attrslen, const char *pass, FILE *fp)
 {
+	int ret;
 	uint8_t buf[512];
 	const uint8_t *cp = buf;
 	size_t len;
@@ -1305,9 +1306,11 @@ int x509_private_key_info_decrypt_from_pem(X509_KEY *key, const uint8_t **attrs,
 		error_print();
 		return -1;
 	}
-	if (pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf)) != 1) {
+	if ((ret = pem_read(fp, "ENCRYPTED PRIVATE KEY", buf, &len, sizeof(buf))) < 0) {
 		error_print();
 		return -1;
+	} else if (ret == 0) {
+		return 0;
 	}
 	if (x509_private_key_info_decrypt_from_der(key, attrs, attrslen, pass, &cp, &len) != 1
 		|| asn1_length_is_zero(len) != 1) {
@@ -1325,15 +1328,18 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 	}
 
 	if (algor == OID_ec_public_key) {
+		int ret;
 		const uint8_t *attrs;
 		size_t attrslen;
 		if (!pass) {
 			error_print();
 			return -1;
 		}
-		if (x509_private_key_info_decrypt_from_pem(key, &attrs, &attrslen, pass, fp) != 1) {
+		if ((ret = x509_private_key_info_decrypt_from_pem(key, &attrs, &attrslen, pass, fp)) < 0) {
 			error_print();
 			return -1;
+		} else if (ret == 0) {
+			return 0; // TODO: support return 0 for other algors
 		}
 	} else if (algor == OID_lms_hashsig) {
 		uint8_t buf[LMS_PRIVATE_KEY_SIZE];
@@ -1416,6 +1422,32 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 	} else {
 		error_print();
 		return -1;
+	}
+	return 1;
+}
+
+int x509_private_keys_from_file(X509_KEY *keys, size_t *keys_cnt, size_t max_cnt,
+	int algor, const char *pass, FILE *fp)
+{
+	size_t i;
+
+	if (!keys || !keys_cnt || !pass || !fp) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < max_cnt; i++) {
+		int ret;
+		if ((ret = x509_private_key_from_file(&keys[i], algor, pass, fp)) < 0) {
+			error_print();
+			return -1;
+		} else if (ret == 0) {
+			break;
+		}
+	}
+	*keys_cnt = i;
+
+	if (i == 0) {
+		return 0;
 	}
 	return 1;
 }

@@ -352,6 +352,49 @@ static int test_x509_private_key_info_encrypt_to_pem(void)
 	return 1;
 }
 
+static int test_x509_private_key_info_decrypt_from_pem(void)
+{
+	const char *file = "test_x509_private_key_info_decrypt_from_pem.pem";
+	const char *pass = "P@ssw0rd";
+	FILE *fp;
+	int i;
+
+	if (!(fp = fopen(file, "w"))) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]) && tests[i].algor == OID_ec_public_key; i++) {
+		if (x509_private_key_info_encrypt_to_pem(&x509_keys[i], pass, fp) != 1) {
+			error_print();
+			return -1;
+		}
+
+	}
+	fclose(fp);
+
+	if (!(fp = fopen(file, "r"))) {
+		error_print();
+		return -1;
+	}
+	while (1) {
+		int ret;
+		X509_KEY key;
+		const uint8_t *attrs;
+		size_t attrslen;
+
+		if ((ret = x509_private_key_info_decrypt_from_pem(&key, &attrs, &attrslen, pass, fp)) < 0) {
+			error_print();
+			return -1;
+		} else if (ret == 0) {
+			break;
+		}
+	}
+	fclose(fp);
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_x509_sign(void)
 {
 	size_t i;
@@ -559,7 +602,6 @@ static int test_x509_kem(void)
 	return 1;
 }
 
-
 int main(void)
 {
 	if (test_x509_key_generate() != 1) goto err;
@@ -569,6 +611,7 @@ int main(void)
 	if (test_x509_private_key_info_to_der() != 1) goto err;
 	if (test_x509_private_key_info_encrypt_to_der() != 1) goto err;
 	if (test_x509_private_key_info_encrypt_to_pem() != 1) goto err;
+	if (test_x509_private_key_info_decrypt_from_pem() != 1) goto err;
 	if (test_x509_sign() != 1) goto err;
 	if (test_x509_sign_sm9() != 1) goto err;
 	if (test_x509_key_exchange() != 1) goto err;

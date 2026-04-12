@@ -150,6 +150,7 @@ int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t dat
 	return 1;
 }
 
+#if 0
 int _tlcp_do_connect(TLS_CONNECT *conn)
 {
 	int ret = -1;
@@ -1056,6 +1057,7 @@ end:
 	return ret;
 }
 
+#endif
 /*
 	SM9_SM4_CBC_SM3
 
