@@ -2242,9 +2242,6 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	ctx->supported_versions_cnt = sizeof(supported_versions)/sizeof(supported_versions[0]);
 
 
-	// key_exchange_modes
-	ctx->key_exchange_modes = TLS_KE_CERT_DHE;
-
 
 	ctx->verify_depth = 5;
 

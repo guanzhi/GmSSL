@@ -746,34 +746,10 @@ typedef struct {
 
 	int protocol;
 
-
-	// 客户端和服务器端协商出公共的cipher_suite
-	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
-	size_t cipher_suites_cnt;
-
 	int key_exchange_modes;
 
-
-	// 服务器端需要根据客户端提供的SNI来选择证书链
-	// 客户端需要根据服务器提供的CA以及算法限定来选择证书链，因此双方都需要准备多个证书链
-
-
-	// 在TLS 1.3中，证书链是 CertificateEntry certificate_list
-	// 这意味着其中每个证书都可能有附带的扩展，
-	/*
-
-	status_request 这个信息主要是最近的OCSP的信息，表明证书的状态
-	signed_certificate_timestamp 这个信息是长期的，CT的信息，一般是不变的
-
-	因此客户端在提供证书的时候，实际上可以将这个信息直接附在上面
-
-	我们在保存的时候也应该保存完整的certificate_list，而不是单独的信息
-	也许我们需要一个信息来标注里面存储的格式
-
-	*/
-
-
-	// 允许设定多个证书链，每个证书链对应一个x509_key，或者一个附加的enc_key
+	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
+	size_t cipher_suites_cnt;
 
 	uint8_t cert_chains[8192];
 	size_t cert_chains_len;
@@ -942,7 +918,7 @@ typedef struct {
 
 
 	uint8_t databuf[TLS_MAX_RECORD_SIZE]; // 需要替换为plain_record
-	uint8_t *data;
+	uint8_t *data; // 让data指向plain_record
 	size_t datalen;
 
 
@@ -1073,12 +1049,14 @@ typedef struct {
 
 	// 41. pre_shared_key
 	int pre_shared_key;
-	const DIGEST *psk_digests[8];
-	size_t psk_digests_cnt;
 	uint8_t psk_identities[512];
 	size_t psk_identities_len;
+	int psk_cipher_suites[8];
+	size_t psk_cipher_suites_cnt;
 	uint8_t psk_keys[32 * 8];
 	size_t psk_keys_len;
+
+
 
 	const uint8_t *psk_identity;
 	size_t psk_identity_len;
@@ -1381,11 +1359,15 @@ int tls13_enable_pre_shared_key(TLS_CONNECT *conn, int enable);
 int tls13_enable_early_data(TLS_CONNECT *conn, int enable);
 
 
-int tls13_add_pre_shared_key(TLS_CONNECT *conn, const DIGEST *digest, const uint8_t *identity, size_t identitylen,
-	const uint8_t *pre_shared_key, size_t pre_shared_key_len, uint32_t tls13_add_pre_shared_key);
+int tls13_add_pre_shared_key(TLS_CONNECT *conn, const uint8_t *identity, size_t identitylen,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	int cipher_suite,
+	uint32_t age);
+
+
 int tls13_add_pre_shared_key_from_file(TLS_CONNECT *conn, const char *file);
 
-int tls13_set_psk_key_exchange_modes(TLS_CONNECT *conn, int psk_ke, int psk_dhe_ke);
+int tls13_ctx_set_psk_key_exchange_modes(TLS_CTX *ctx, int psk_ke, int psk_dhe_ke);
 
 
 int tls13_verify_psk_binder(const DIGEST *digest,
@@ -1471,6 +1453,7 @@ int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
 int ocsp_response_verify(const uint8_t *ocsp_response, size_t ocsp_response_len,
 	const uint8_t *ca_certs, size_t ca_certs_len);
 
+int tls13_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest);
 
 #ifdef  __cplusplus
 }

@@ -36,8 +36,9 @@ static const char *help =
 "    -ticket_key hex           Session ticket encrypt/decrypt key in HEX format\n"
 "    -psk_ke                   Support PSK-only key exchange\n"
 "    -psk_dhe_ke               Support PSK with (EC)DHE key exchange\n"
-"    -psk_identity str         Identity of pre_shared_key\n"
-"    -psk hex                  Pre-shared key in HEX format\n"
+"    -psk_identity str         PSK Identity\n"
+"    -psk_cipher_suite str     PSK cipher suite\n"
+"    -psk_key hex              PSK key in HEX format, of PSK hash length\n"
 "    -early_data               Accept EarlyData, support 0-RTT\n"
 "    -max_early_data_size num  Set extension max_early_data_size\n"
 "\n"
@@ -78,6 +79,20 @@ static const char *help =
 "\n"
 "    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem\n"
+"\n"
+"   sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 \n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \n"
+"       -supported_group sm2p256v1 -supported_group prime256v1\n"
+"       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256\n"
+"\n"
+"  PSK=1122334455667788112233445566778811223344556677881122334455667788\n"
+"  sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"  gmssl tls13_cliet -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"\n"
+"  sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data\n"
+"  gmssl tls13_cliet -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data early_data.txt\n"
+"\n"
+"  sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -new_session_ticket 2\n"
 "\n";
 
 int tls13_server_main(int argc , char **argv)
@@ -106,11 +121,15 @@ int tls13_server_main(int argc , char **argv)
 	int psk_ke = 0;
 	int psk_dhe_ke = 0;
 
-	// TODO: clean
-	char *psk_identity = NULL;
-	char *psk = NULL;
-	uint8_t psk_buf[32];
-	size_t psk_len;
+
+	// external psk
+	char *psk_identities[16];
+	size_t psk_identities_cnt = 0;
+	char *psk_cipher_suites[16];
+	size_t psk_cipher_suites_cnt = 0;
+	char *psk_keys[16];
+	size_t psk_keys_cnt = 0;
+
 
 	int early_data = 0;
 	int max_early_data_size = 0;
@@ -170,10 +189,25 @@ int tls13_server_main(int argc , char **argv)
 			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-psk_identity")) {
 			if (--argc < 1) goto bad;
-			psk_identity = *(++argv);
-		} else if (!strcmp(*argv, "-psk")) {
+			if (psk_identities_cnt > sizeof(psk_identities)/sizeof(psk_identities[0])) {
+				error_print();
+				return -1;
+			}
+			psk_identities[psk_identities_cnt++] = *(++argv);
+		} else if (!strcmp(*argv, "-psk_cipher_suite")) {
 			if (--argc < 1) goto bad;
-			psk = *(++argv);
+			if (psk_cipher_suites_cnt > sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
+				error_print();
+				return -1;
+			}
+			psk_cipher_suites[psk_cipher_suites_cnt++] = *(++argv);
+		} else if (!strcmp(*argv, "-psk_key")) {
+			if (--argc < 1) goto bad;
+			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
+				error_print();
+				return -1;
+			}
+			psk_keys[psk_keys_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-early_data")) {
 			early_data = 1;
 		} else if (!strcmp(*argv, "-max_early_data_size")) {
@@ -233,15 +267,10 @@ bad:
 		argv++;
 	}
 
-
-
-	/*
-	// 服务器的证书
-	if (!certfile) {
-		fprintf(stderr, "%s: '-cert' option required\n", prog);
-		return 1;
+	if (!cipher_suites_cnt) {
+		error_print();
+		goto end;
 	}
-	*/
 
 	if (tls_socket_lib_init() != 1) {
 		error_print();
@@ -256,7 +285,10 @@ bad:
 		return -1;
 	}
 
-	// 应该判断有cert的时候才载入
+	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
+		fprintf(stderr, "%s: context init error\n", prog);
+		goto end;
+	}
 
 	if (certfile) {
 		if (!keyfile) {
@@ -273,15 +305,6 @@ bad:
 		}
 	}
 
-	if (!cipher_suites_cnt) {
-		error_print();
-		goto end;
-	}
-
-	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
-		fprintf(stderr, "%s: context init error\n", prog);
-		goto end;
-	}
 	if (supported_groups_cnt > 0) {
 		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
 			error_print();
@@ -303,7 +326,13 @@ bad:
 		}
 	}
 
-	// NewSessionTicket
+	if (psk_ke || psk_dhe_ke) {
+		if (tls13_ctx_set_psk_key_exchange_modes(&ctx, psk_ke, psk_dhe_ke) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
 	if (new_session_ticket < 0) {
 		error_print();
 		return -1;
@@ -334,8 +363,20 @@ bad:
 			return -1;
 		}
 		tls13_enable_pre_shared_key(&conn, 1);
-		tls13_set_psk_key_exchange_modes(&conn, 1, 1);
 	}
+
+	if (early_data) {
+		ctx.early_data = 1;
+	}
+
+
+	if (max_early_data_size > 0) {
+		if (tls13_ctx_set_max_early_data_size(&ctx, max_early_data_size) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		fprintf(stderr, "%s: socket create error\n", prog);
@@ -368,48 +409,46 @@ restart:
 		return -1;
 	}
 
-	if (psk_ke || psk_dhe_ke) {
-		// 对于服务器来说只是允许进行这些模式
-		tls13_set_psk_key_exchange_modes(&conn, psk_ke, psk_dhe_ke);
-	}
+	if (psk_keys_cnt) {
+		const uint32_t obfuscated_ticket_age = 0;
+		size_t i;
 
+		if (psk_identities_cnt != psk_keys_cnt || psk_cipher_suites_cnt != psk_keys_cnt) {
+			error_print();
+			return -1;
+		}
+		for (i = 0; i < psk_keys_cnt; i++) {
+			int psk_cipher_suite;
+			const BLOCK_CIPHER *psk_cipher;
+			const DIGEST *psk_digest;
+			uint8_t psk_key[64];
+			size_t psk_key_len;
 
-	if (psk) {
-		if (!psk_identity) {
-			error_print();
-			return -1;
-		}
-		if (strlen(psk) != sizeof(psk_buf) * 2) {
-			error_print();
-			return -1;
-		}
-		if (hex_to_bytes(psk, strlen(psk), psk_buf, &psk_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (tls13_add_pre_shared_key(&conn, DIGEST_sm3(), (uint8_t *)psk_identity, strlen(psk_identity), psk_buf, psk_len, 0) != 1) {
-			error_print();
-			return -1;
+			if (!(psk_cipher_suite = tls_cipher_suite_from_name(psk_cipher_suites[i]))) {
+				error_print();
+				return -1;
+			}
+			if (tls13_cipher_suite_get(psk_cipher_suite, &psk_cipher, &psk_digest) != 1) {
+				error_print();
+				return -1;
+			}
+			if (strlen(psk_keys[i]) != psk_digest->digest_size * 2) {
+				error_print();
+				return -1;
+			}
+			if (hex_to_bytes(psk_keys[i], strlen(psk_keys[i]), psk_key, &psk_key_len) != 1) {
+				error_print();
+				return -1;
+			}
+			if (tls13_add_pre_shared_key(&conn, (uint8_t *)psk_identities[i], strlen(psk_identities[i]),
+				psk_key, psk_key_len, psk_cipher_suite, obfuscated_ticket_age) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 
 		tls13_enable_pre_shared_key(&conn, 1);
-		tls13_set_psk_key_exchange_modes(&conn, 1, 1);
 	}
-
-	if (max_early_data_size > 0) {
-		if (tls13_set_max_early_data_size(&conn, max_early_data_size) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
-	if (early_data) {
-		if (tls13_enable_early_data(&conn, 1) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
 
 	if (tls_do_handshake(&conn) != 1) {
 		error_print();

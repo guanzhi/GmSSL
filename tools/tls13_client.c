@@ -27,23 +27,24 @@ static const char *options = "-host str [-port num] [-cacert file] [-cert file -
 static const char *help =
 "Options\n"
 "\n"
-"    -host str                Server's hostname\n"
-"    -port num                Server's port number, default 443\n"
-"    -cipher_suite str        Supported cipher suites, may appear multiple times, higher priority first\n"
-"    -supported_group str     Supported elliptic curves, may appear multiple times, higher priority first\n"
-"    -sig_alg str             Supported signature algorithms\n"
-"    -max_key_exchanges num   Number of key exchanges in key_share extension\n"
-"    -cacert file             Root CA certificate\n"
-"    -cert file               Client's certificate chain in PEM format\n"
-"    -key file                Client's encrypted private key in PEM format\n"
-"    -pass str                Password to decrypt private key\n"
-"    -psk_ke                  Support PSK-only key exchange\n"
-"    -psk_dhe_ke              Support PSK with (EC)DHE key exchange\n"
-"    -psk_identity str        Identity of pre_shared_key\n"
-"    -psk hex                 Pre-shared key in HEX format\n"
-"    -sess_in                 Load server's session ticket file\n"
-"    -sess_out                Save server's session ticket file\n"
-"    -early_data file         Send early data, -psk_ke and/or -psk_dhe_ke should be set\n"
+"    -host str                 Server's hostname\n"
+"    -port num                 Server's port number, default 443\n"
+"    -cipher_suite str         Supported cipher suites, may appear multiple times, higher priority first\n"
+"    -supported_group str      Supported elliptic curves, may appear multiple times, higher priority first\n"
+"    -sig_alg str              Supported signature algorithms\n"
+"    -max_key_exchanges num    Number of key exchanges in key_share extension\n"
+"    -cacert file              Root CA certificate\n"
+"    -cert file                Client's certificate chain in PEM format\n"
+"    -key file                 Client's encrypted private key in PEM format\n"
+"    -pass str                 Password to decrypt private key\n"
+"    -psk_ke                   Support PSK-only key exchange\n"
+"    -psk_dhe_ke               Support PSK with (EC)DHE key exchange\n"
+"    -psk_identity str         PSK Identity\n"
+"    -psk_cipher_suite str     PSK cipher suite\n"
+"    -psk_key hex              PSK key in HEX format, of PSK hash length\n"
+"    -sess_in                  Load server's session ticket file\n"
+"    -sess_out                 Save server's session ticket file\n"
+"    -early_data file          Send early data, -psk_ke and/or -psk_dhe_ke should be set\n"
 "\n"
 "CipherSuites\n"
 "    TLS_SM4_GCM_SM3        TLS 1.3\n"
@@ -101,10 +102,18 @@ int tls13_client_main(int argc, char *argv[])
 
 	char *sess_in = NULL;
 	char *sess_out = NULL;
-	char *psk_identity = NULL;
-	char *psk = NULL;
-	uint8_t psk_buf[32];
-	size_t psk_len;
+
+	int psk_ke = 0;
+	int psk_dhe_ke = 0;
+
+	// psk external
+	char *psk_identities[16];
+	size_t psk_identities_cnt = 0;
+	char *psk_cipher_suites[16];
+	size_t psk_cipher_suites_cnt = 0;
+	char *psk_keys[16];
+	size_t psk_keys_cnt = 0;
+
 
 	char *early_data_file = NULL;
 	FILE *early_data_fp = NULL;
@@ -129,8 +138,6 @@ int tls13_client_main(int argc, char *argv[])
 	size_t sig_algs_cnt = 0;
 
 
-	int psk_ke = 0;
-	int psk_dhe_ke = 0;
 
 
 	argc--;
@@ -168,16 +175,32 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-sess_out")) {
 			if (--argc < 1) goto bad;
 			sess_out = *(++argv);
-		} else if (!strcmp(*argv, "-psk_identity")) {
-			if (--argc < 1) goto bad;
-			psk_identity = *(++argv);
-		} else if (!strcmp(*argv, "-psk")) {
-			if (--argc < 1) goto bad;
-			psk = *(++argv);
+
 		} else if (!strcmp(*argv, "-psk_ke")) {
 			psk_ke = 1;
 		} else if (!strcmp(*argv, "-psk_dhe_ke")) {
 			psk_dhe_ke = 1;
+		} else if (!strcmp(*argv, "-psk_identity")) {
+			if (--argc < 1) goto bad;
+			if (psk_identities_cnt > sizeof(psk_identities)/sizeof(psk_identities[0])) {
+				error_print();
+				return -1;
+			}
+			psk_identities[psk_identities_cnt++] = *(++argv);
+		} else if (!strcmp(*argv, "-psk_cipher_suite")) {
+			if (--argc < 1) goto bad;
+			if (psk_cipher_suites_cnt > sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
+				error_print();
+				return -1;
+			}
+			psk_cipher_suites[psk_cipher_suites_cnt++] = *(++argv);
+		} else if (!strcmp(*argv, "-psk_key")) {
+			if (--argc < 1) goto bad;
+			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
+				error_print();
+				return -1;
+			}
+			psk_keys[psk_keys_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-early_data")) {
 			if (--argc < 1) goto bad;
 			early_data_file = *(++argv);
@@ -323,6 +346,24 @@ bad:
 			goto end;
 		}
 	}
+
+	if (psk_ke || psk_dhe_ke) {
+		if (!sess_in && !psk_keys_cnt) {
+			fprintf(stderr, "%s: -sess_in or -psk is required\n", prog);
+			error_print();
+			return -1;
+		}
+		tls13_ctx_set_psk_key_exchange_modes(&ctx, psk_ke, psk_dhe_ke);
+
+
+	}
+
+
+
+
+
+
+							
 	if (tls_init(&conn, &ctx) != 1) {
 		fprintf(stderr, "%s: error\n", prog);
 		goto end;
@@ -344,43 +385,46 @@ bad:
 		}
 	}
 
-	if (psk_ke || psk_dhe_ke) {
-		if (!sess_in && !psk) {
-			fprintf(stderr, "%s: -sess_in or -psk is required\n", prog);
+	if (psk_keys_cnt) {
+		const uint32_t obfuscated_ticket_age = 0;
+		size_t i;
+
+		if (psk_identities_cnt != psk_keys_cnt || psk_cipher_suites_cnt != psk_keys_cnt) {
 			error_print();
 			return -1;
 		}
-		tls13_set_psk_key_exchange_modes(&conn, psk_ke, psk_dhe_ke);
+		for (i = 0; i < psk_keys_cnt; i++) {
+			int psk_cipher_suite;
+			const BLOCK_CIPHER *psk_cipher;
+			const DIGEST *psk_digest;
+			uint8_t psk_key[64];
+			size_t psk_key_len;
 
-		fprintf(stderr, "conn->psk_key_exchange_modes: %d\n", conn.key_exchange_modes);
-
-	}
-
-
-	if (psk) {
-		if (!psk_identity) {
-			fprintf(stderr, "%s: -psk_identity is required for every -psk\n", prog);
-			error_print();
-			return -1;
-		}
-		if (strlen(psk) != sizeof(psk_buf) * 2) {
-			error_print();
-			return -1;
-		}
-		if (hex_to_bytes(psk, strlen(psk), psk_buf, &psk_len) != 1) {
-			error_print();
-			return -1;
-		}
-
-		// support multiple pairs
-		if (tls13_add_pre_shared_key(&conn, DIGEST_sm3(), (uint8_t *)psk_identity, strlen(psk_identity), psk_buf, psk_len, 0) != 1) {
-			error_print();
-			return -1;
+			if (!(psk_cipher_suite = tls_cipher_suite_from_name(psk_cipher_suites[i]))) {
+				error_print();
+				return -1;
+			}
+			if (tls13_cipher_suite_get(psk_cipher_suite, &psk_cipher, &psk_digest) != 1) {
+				error_print();
+				return -1;
+			}
+			if (strlen(psk_keys[i]) != psk_digest->digest_size * 2) {
+				error_print();
+				return -1;
+			}
+			if (hex_to_bytes(psk_keys[i], strlen(psk_keys[i]), psk_key, &psk_key_len) != 1) {
+				error_print();
+				return -1;
+			}
+			if (tls13_add_pre_shared_key(&conn, (uint8_t *)psk_identities[i], strlen(psk_identities[i]),
+				psk_key, psk_key_len, psk_cipher_suite, obfuscated_ticket_age) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 
 		tls13_enable_pre_shared_key(&conn, 1);
 	}
-
 
 	if (early_data_file) {
 		uint8_t early_data[8192];
