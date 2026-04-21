@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -264,7 +264,7 @@ int tls_record_set_protocol(uint8_t *record, int protocol)
 	return 1;
 }
 
-int tls_record_set_length(uint8_t *record, size_t length)
+int tls_record_set_data_length(uint8_t *record, size_t length)
 {
 	uint8_t *p = record + 3;
 	size_t len;
@@ -278,7 +278,7 @@ int tls_record_set_length(uint8_t *record, size_t length)
 
 int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen)
 {
-	if (tls_record_set_length(record, datalen) != 1) {
+	if (tls_record_set_data_length(record, datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1558,8 +1558,6 @@ int tls_cipher_suite_support_protocol(int cipher, int protocol)
 	return 1;
 }
 
-
-
 /*
 尽可能的发送数据，直到发送完整的报文，或者send 返回错误
 如果send 返回EAGAIN，那么向上层返回WANT_WRITE
@@ -1568,9 +1566,6 @@ int tls_cipher_suite_support_protocol(int cipher, int protocol)
 send会返回EAGIN，那么如果底层没处理完，那就没有任何办法
 
 如果这个函数在获得EAGAIN之后就返回给上层了，那么还需要标明到底发送出去了多少数据
-
-
-
 */
 int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 {
@@ -2241,13 +2236,9 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	memcpy(ctx->supported_versions, supported_versions, sizeof(supported_versions));
 	ctx->supported_versions_cnt = sizeof(supported_versions)/sizeof(supported_versions[0]);
 
-
-
+	// 这个参数应该在设置证书的时候再设定
 	ctx->verify_depth = 5;
 
-
-	// key_share
-	ctx->key_exchanges_cnt = 2;
 
 	return 1;
 }
@@ -2307,6 +2298,7 @@ int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cip
 	return 1;
 }
 
+/*
 int tls_ctx_set_key_exchange_modes(TLS_CTX *ctx, int modes)
 {
 	if (!ctx) {
@@ -2322,6 +2314,7 @@ int tls_ctx_set_key_exchange_modes(TLS_CTX *ctx, int modes)
 
 	return 1;
 }
+*/
 
 // 这个函数不是很好，直接提供的是一个文件名
 int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth)
@@ -2355,12 +2348,9 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 	return 1;
 }
 
-
-// 这个函数需要设置一个默认的证书链
-// 这个函数实际上是有问题的，没有给这个证书链提供status_request和sct_list
-// cert_chain的格式到底是什么呢？			
-// 是单独的证书链，还是也包含扩展呢？
-int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
+int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
+	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len, // optional
+	const uint8_t *entity_signed_certificate_timestamp_list, size_t entity_signed_certificate_timestamp_list_len, // optional
 	const char *keyfile, const char *keypass)
 {
 	uint8_t *cert_chain;
@@ -2371,39 +2361,73 @@ int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 	X509_KEY public_key;
 	FILE *keyfp = NULL;
 
+	uint8_t *ocsp_responses;
+	size_t ocsp_responses_len;
+	uint8_t *sct_lists;
+	size_t sct_lists_len;
+
 	if (!ctx || !chainfile || !keyfile || !keypass) {
 		error_print();
 		return -1;
 	}
 
-	// no space in ctx->cert_chains[]
+	// status_request
+	ocsp_responses_len = ctx->status_request_ocsp_responses_len;
+	tls_uint24array_to_bytes(
+		entity_status_request_ocsp_response,
+		entity_status_request_ocsp_response_len,
+		NULL, &ocsp_responses_len);
+	if (ocsp_responses_len > sizeof(ctx->status_request_ocsp_responses)) {
+		error_print();
+		return -1;
+	}
+	ocsp_responses = ctx->status_request_ocsp_responses;
+	tls_uint24array_to_bytes(
+		entity_status_request_ocsp_response,
+		entity_status_request_ocsp_response_len,
+		&ocsp_responses,
+		&ctx->status_request_ocsp_responses_len);
+
+	// signed_certificate_timestamp
+	sct_lists_len = ctx->signed_certificate_timestamp_lists_len;
+	tls_uint16array_to_bytes(
+		entity_signed_certificate_timestamp_list,
+		entity_signed_certificate_timestamp_list_len,
+		NULL, &sct_lists_len);
+	if (sct_lists_len > sizeof(ctx->signed_certificate_timestamp_lists)) {
+		error_print();
+		return -1;
+	}
+	sct_lists = ctx->signed_certificate_timestamp_lists;
+	tls_uint16array_to_bytes(
+		entity_signed_certificate_timestamp_list,
+		entity_signed_certificate_timestamp_list_len,
+		&sct_lists, &ctx->signed_certificate_timestamp_lists_len);
+
+
+	// add cert_chain to ctx->cert_chains
 	if (sizeof(ctx->cert_chains) <= ctx->cert_chains_len + tls_uint24_size()) {
 		error_print();
 		return -1;
 	}
-	// no space in ctx->x509_keys[]
-	if (sizeof(ctx->x509_keys)/sizeof(ctx->x509_keys[0]) <= ctx->x509_keys_cnt) {
-		error_print();
-		return -1;
-	}
-
 	if (!(certfp = fopen(chainfile, "r"))) {
 		error_print();
 		return -1;
 	}
-
-	// read and save cert_chain as uint24array
-	cert_chain = ctx->cert_chains + ctx->cert_chains_len;
+	cert_chain = ctx->cert_chains + ctx->cert_chains_len ;
 	if (x509_certs_from_pem(cert_chain + tls_uint24_size(), &cert_chain_len,
-		sizeof(ctx->cert_chains) - ctx->cert_chains_len - tls_uint24_size(),
-		certfp) != 1) {
+		sizeof(ctx->cert_chains) - ctx->cert_chains_len - tls_uint24_size(), certfp) != 1) {
 		error_print();
 		return -1;
 	}
 	tls_uint24_to_bytes(cert_chain_len, &cert_chain, &cert_chain_len);
 	ctx->cert_chains_len += cert_chain_len;
 
-	cert_chain_len -= tls_uint24_size();
+	// add private key to ctx->x509_keys
+	if (sizeof(ctx->x509_keys)/sizeof(ctx->x509_keys[0]) <= ctx->x509_keys_cnt) {
+		error_print();
+		return -1;
+	}
 	if (x509_certs_get_cert_by_index(cert_chain, cert_chain_len, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		fclose(certfp);
@@ -2423,8 +2447,6 @@ int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 			return -1;
 		}
 	}
-
-	// read and save at most two keys as uint16array
 	if (x509_private_key_from_file(&ctx->x509_keys[ctx->x509_keys_cnt], public_key.algor, keypass, keyfp) != 1) {
 		fclose(certfp);
 		fclose(keyfp);
@@ -2433,10 +2455,24 @@ int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 	}
 	ctx->x509_keys_cnt++;
 
+	// TODO: if the second cert is entity's sm2 encryption cert, try to read private key from keyfp
+
 	fclose(certfp);
 	fclose(keyfp);
 	return 1;
 }
+
+
+int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
+	const char *keyfile, const char *keypass)
+{
+	if (tls_ctx_add_certificate_list_and_key(ctx, chainfile, NULL, 0, NULL, 0, keyfile, keypass) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 
 // 保留这个函数，相当于是对证书链的初始化
 int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
@@ -2615,6 +2651,8 @@ int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_
 	}
 	ctx->supported_groups_cnt = groups_cnt;
 
+	ctx->key_exchanges_cnt = (groups_cnt >= 2) ? 2 : 1;
+
 	return 1;
 }
 
@@ -2676,6 +2714,8 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	memset(conn, 0, sizeof(*conn));
 
 
+
+
 	conn->is_client = ctx->is_client;
 
 	conn->protocol = ctx->protocol;
@@ -2725,13 +2765,32 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	conn->new_session_ticket = ctx->new_session_ticket;
 
 
-	conn->key_exchange_modes = ctx->key_exchange_modes;
+	// init key_exchange_modes
+	conn->key_exchange_modes = ctx->psk_key_exchange_modes;
+	if (ctx->supported_groups_cnt && ctx->signature_algorithms_cnt) {
+		conn->key_exchange_modes |= TLS_KE_CERT_DHE;
+	}
+	if (!conn->key_exchange_modes) {
+		error_print();
+		return -1;
+	}
 
 
+	if (conn->key_exchange_modes & (TLS_KE_CERT_DHE|TLS_KE_PSK_DHE)) {
+		conn->key_share = 1;
+	}
+
+	conn->signed_certificate_timestamp = ctx->signed_certificate_timestamp;
 
 	// early_data
 	conn->early_data = ctx->early_data;
 	conn->max_early_data_size = ctx->max_early_data_size;
+
+
+	// pre_shared_key
+	if (conn->key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK)) {
+		conn->pre_shared_key = 1;
+	}
 
 
 	return 1;
@@ -2819,8 +2878,12 @@ int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE 
 	}
 
 	if (fread(arr, 1, 2, fp) != 2) {
-		error_print();
-		return -1;
+		if (feof(fp)) {
+			return 0;
+		} else {
+			error_print();
+			return -1;
+		}
 	}
 	cp = arr;
 	len = 2;
@@ -2841,23 +2904,5 @@ int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE 
 	return 1;
 }
 
-int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len)
-{
-	if (!conn || !host_name || !host_name_len) {
-		error_print();
-		return -1;
-	}
-	if (!conn->is_client) {
-		error_print();
-		return -1;
-	}
-	if (host_name_len >= sizeof(conn->server_name)) {
-		error_print();
-		return -1;
-	}
-	memcpy(conn->server_name, host_name, host_name_len);
-	conn->server_name[host_name_len] = 0;
-	conn->server_name_len = host_name_len;
-	return 1;
-}
+
 

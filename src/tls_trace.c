@@ -376,6 +376,16 @@ int tls_signature_scheme_from_name(const char *name)
 	return 0;
 }
 
+int tls_signature_scheme_from_algorithm_and_group_oid(int alg_oid, int group_oid)
+{
+	if (alg_oid == OID_sm2sign_with_sm3 && group_oid == OID_sm2) {
+		return TLS_sig_sm2sig_sm3;
+	} else if (alg_oid == OID_ecdsa_with_sha256 && group_oid == OID_secp256r1) {
+		return TLS_sig_ecdsa_secp256r1_sha256;
+	}
+	return 0;
+}
+
 int tls_signature_scheme_algorithm_oid(int sig_alg)
 {
 	switch (sig_alg) {
@@ -390,26 +400,6 @@ int tls_signature_scheme_group_oid(int sig_alg)
 	switch (sig_alg) {
 	case TLS_sig_sm2sig_sm3: return OID_sm2;
 	case TLS_sig_ecdsa_secp256r1_sha256: return OID_secp256r1;
-	}
-	return 0;
-}
-
-// 这个函数去掉
-int tls_signature_scheme_oid(int sig_alg)
-{
-	switch (sig_alg) {
-	case TLS_sig_sm2sig_sm3: return OID_sm2sign_with_sm3;
-	case TLS_sig_ecdsa_secp256r1_sha256: return OID_ecdsa_with_sha256;
-	}
-	return 0;
-}
-
-// 这个函数也应该修改，必须同时提供算法/group
-int tls_signature_scheme_from_oid(int sig_alg_oid)
-{
-	switch (sig_alg_oid) {
-	case OID_sm2sign_with_sm3: return TLS_sig_sm2sig_sm3;
-	case OID_ecdsa_with_sha256: return TLS_sig_ecdsa_secp256r1_sha256;
 	}
 	return 0;
 }

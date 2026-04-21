@@ -128,6 +128,11 @@ set(src
 	src/socket.c
 	src/tls.c
 	src/tls_ext.c
+	src/tls_psk.c
+	src/tls_sni.c
+	src/tls_sct.c
+	src/tls_ocsp.c
+	src/tls_cookie.c
 	src/tls_trace.c
 	src/tlcp.c
 	src/tls12.c

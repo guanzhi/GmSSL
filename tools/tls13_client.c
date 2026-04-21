@@ -370,12 +370,28 @@ bad:
 	}
 
 	if (sess_in) {
+		FILE *sess_infp;
+		int enable_psk = 0;
+		int psk_ret = 1;
 
-		if (tls13_add_pre_shared_key_from_file(&conn, sess_in) != 1) {
+		if (!(sess_infp = fopen(sess_in, "rb"))) {
 			error_print();
-			return -1;
+			goto end;
 		}
-		tls13_enable_pre_shared_key(&conn, 1);
+
+		while (psk_ret) {
+			if ((psk_ret = tls13_add_pre_shared_key_from_session_file(&conn, sess_infp)) < 0) {
+				error_print();
+				fclose(sess_infp);
+				return -1;
+			}
+		}
+		fclose(sess_infp);
+
+
+		// 客户端是否发送pre_shared_key是由什么决定的？需要显式的支持吗
+		// 我觉得应该是不需要的，因为如果设置了psk_key_exchange_mode，那么自然要发送pre_shared_key
+		tls13_enable_pre_shared_key(&conn, enable_psk);
 	}
 
 	if (sess_out) {
@@ -462,10 +478,34 @@ bad:
 		goto end;
 	}
 
+
+	fprintf(stderr, ">>>>>>>>>>>>\n");
+
+
+
 	for (;;) {
 		fd_set fds;
 		size_t sentlen;
 
+
+		FD_ZERO(&fds);
+
+
+		// listen socket
+		FD_SET(conn.sock, &fds);
+
+		// listen stdin
+		FD_SET(fileno(stdin), &fds);
+
+
+		// 等待阻塞
+		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
+			&fds, NULL, NULL, NULL) < 0) {
+			fprintf(stderr, "%s: select failed\n", prog);
+			goto end;
+		}
+
+		/*
 		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
 			if (feof(stdin)) {
 				tls_shutdown(&conn);
@@ -478,20 +518,8 @@ bad:
 			fprintf(stderr, "%s: send error\n", prog);
 			goto end;
 		}
+		*/
 
-
-		FD_ZERO(&fds);
-		FD_SET(conn.sock, &fds);
-#ifdef WIN32
-#else
-		FD_SET(fileno(stdin), &fds);
-#endif
-
-		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
-			&fds, NULL, NULL, NULL) < 0) {
-			fprintf(stderr, "%s: select failed\n", prog);
-			goto end;
-		}
 
 		if (FD_ISSET(conn.sock, &fds)) {
 			for (;;) {
@@ -507,10 +535,8 @@ bad:
 					break;
 				}
 			}
-
 		}
-#ifdef WIN32
-#else
+
 		if (FD_ISSET(fileno(stdin), &fds)) {
 			memset(send_buf, 0, sizeof(send_buf));
 
@@ -527,7 +553,6 @@ bad:
 				goto end;
 			}
 		}
-#endif
 	}
 
 end:

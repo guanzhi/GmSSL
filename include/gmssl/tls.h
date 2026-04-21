@@ -56,6 +56,11 @@ int tls_length_is_zero(size_t len);
 int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE *fp);
 
 
+int tls_type_is_in_list(int cipher, const int *list, size_t list_count);
+
+
+// https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
+
 typedef enum {
 	TLS_protocol_tlcp			= 0x0101,
 	TLS_protocol_ssl2			= 0x0002,
@@ -108,10 +113,6 @@ const char *tls_cipher_suite_name(int cipher);
 int tls_cipher_suite_from_name(const char *name);
 int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_ciphers_len,
 	const int *server_ciphers, size_t server_ciphers_cnt, int *selected_cipher);
-int tls_cipher_suite_in_list(int cipher, const int *list, size_t list_count);
-int tls_cipher_suite_support_protocol(int cipher, int protocol);
-
-int tls_type_is_in_list(int cipher, const int *list, size_t list_count);
 
 
 typedef enum {
@@ -311,14 +312,18 @@ typedef enum {
 
 const char *tls_signature_scheme_name(int scheme);
 int tls_signature_scheme_from_name(const char *name);
+int tls_signature_scheme_from_algorithm_and_group_oid(int alg_oid, int group_oid);
 
-int tls_signature_scheme_algorithm_oid(int sig_alg);
-int tls_signature_scheme_group_oid(int sig_alg);
+int tls_signature_scheme_group_oid(int sig_alg); // return OID_sm2, OID_prime256v1(OID_secp256r1), OID_undef
+int tls_signature_scheme_algorithm_oid(int sig_alg); // return OID_sm2sign_with_sm3, OID_ecdsa_with_sha256, OID_undef
 
 
-int tls_signature_scheme_oid(int sig_alg);
-int tls_signature_scheme_from_oid(int sig_alg_oid);
-int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite);
+
+
+
+// in tls12/tlcp, relation of sig_alg and cipher is decided by cipher_suite
+// in tls13, no restriction (implementation can check)
+int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite); // only called in tls12
 
 
 typedef enum {
@@ -360,7 +365,7 @@ typedef enum {
 	TLS_alert_internal_error		= 80,
 	TLS_alert_user_canceled			= 90,
 	TLS_alert_no_renegotiation		= 100,
-	TLS_alert_missing_extension		= 109, // 查以下RFC
+	TLS_alert_missing_extension		= 109,
 	TLS_alert_unsupported_extension		= 110,
 	TLS_alert_certificate_unobtainable	= 111,
 	TLS_alert_unsupported_site2site		= 200,
@@ -374,15 +379,12 @@ typedef enum {
 const char *tls_alert_description_text(int description);
 
 
+// Key and Crypto
+
 int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
 	const uint8_t *seed, size_t seedlen,
 	const uint8_t *more, size_t morelen,
 	size_t outlen, uint8_t *out);
-int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
-int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
-	const char *label, const uint8_t *context, size_t context_len,
-	size_t outlen, uint8_t *out);
-int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32]);
 
 int tls_cbc_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
@@ -399,6 +401,7 @@ int tls_record_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
 
 int tls_seq_num_incr(uint8_t seq_num[8]);
 void tls_seq_num_reset(uint8_t seq_num[8]);
+
 int tls_random_generate(uint8_t random[32]);
 int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent);
 int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int protocol);
@@ -411,6 +414,18 @@ int tls_secrets_print(FILE *fp,
 	const uint8_t *key_block, size_t key_block_len,
 	int format, int indent);
 
+
+int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
+int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
+	const char *label, const uint8_t *context, size_t context_len,
+	size_t outlen, uint8_t *out);
+int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32]);
+
+
+
+
+
+// Record Layer
 
 typedef struct {
 	uint8_t type;
@@ -447,6 +462,7 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock);
 int tls12_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock);
 
 
+
 // Handshake
 typedef struct {
 	uint8_t type;
@@ -468,13 +484,53 @@ int tls_record_get_handshake(const uint8_t *record,
 	int *type, const uint8_t **data, size_t *datalen);
 int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent);
 
+
+// Alert
+typedef struct {
+	uint8_t level;
+	uint8_t description;
+} TLS_ALERT;
+
+#define TLS_ALERT_RECORD_SIZE (TLS_RECORD_HEADER_SIZE + 2)
+
+int tls_record_set_alert(uint8_t *record, size_t *recordlen, int alert_level, int alert_description);
+int tls_record_get_alert(const uint8_t *record, int *alert_level, int *alert_description);
+int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+
+// ChangeCipherSpec
+
+typedef struct {
+	uint8_t type;
+} TLS_CHANGE_CIPHER_SPEC;
+
+const char *tls_change_cipher_spec_text(int change_cipher_spec);
+int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_record_set_change_cipher_spec(uint8_t *record, size_t *recordlen);
+int tls_record_get_change_cipher_spec(const uint8_t *record);
+
+
+// ApplicationData
+
+int tls_record_set_application_data(uint8_t *record, size_t *recordlen,
+	const uint8_t *data, size_t datalen);
+int tls_record_get_application_data(uint8_t *record,
+	const uint8_t **data, size_t *datalen);
+int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+
+// Handshakes
+
 // HelloRequest
 int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
 
 // ClientHello, ServerHello
 #define TLS_MIN_SESSION_ID_SIZE		0
 #define TLS_MAX_SESSION_ID_SIZE		32
 
+
+// ClientHello
 int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 	int client_protocol, const uint8_t random[32],
 	const uint8_t *session_id, size_t session_id_len,
@@ -487,6 +543,8 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 	const uint8_t **exts, size_t *exts_len);
 int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
 
+
+// ServerHello
 int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	int server_protocol, const uint8_t random[32],
 	const uint8_t *session_id, size_t session_id_len,
@@ -496,59 +554,9 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	int *cipher_suite, const uint8_t **exts, size_t *exts_len);
 int tls_server_hello_print(FILE *fp, const uint8_t *server_hello, size_t len, int format, int indent);
 
-// Extensions
-int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
-	uint8_t **out, size_t *outlen);
-int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen);
-int tls_process_server_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen);
 
 
-int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
-int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
-	uint8_t **out, size_t *outlen);
-int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen);
-int tls_process_server_supported_groups(const uint8_t *ext_data, size_t ext_datalen);
 
-int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
-	const int *local_groups, size_t local_groups_cnt,
-	int *common_groups, size_t *common_groups_cnt, size_t max_cnt);
-
-
-// 这里有个问题，为什么这里面我们都不给出名字呢？
-int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
-int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
-	uint8_t **out, size_t *outlen);
-int tls_signature_algorithms_ext_to_bytes(const int *algs, size_t algs_cnt,
-	uint8_t **out, size_t *outlen);
-int tls13_signature_algorithms_cert_ext_to_bytes(const int *algs, size_t algs_cnt,
-	uint8_t **out, size_t *outlen);
-int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen,
-	const int *local_sig_algs, size_t local_sig_algs_cnt,
-	int *common_sig_algs, size_t *common_sig_algs_cnt, size_t max_cnt);
-
-
-/*
-int tls13_supported_versions_ext_to_bytes(int handshake_type, const int *protos, size_t protos_cnt,
-	uint8_t **out, size_t *outlen);
-int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen);
-
-int tls13_process_server_supported_versions(const uint8_t *ext_data, size_t ext_datalen);
-
-int tls13_key_share_entry_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen);
-int tls13_client_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen);
-int tls13_server_key_share_ext_to_bytes(const SM2_Z256_POINT *point, uint8_t **out, size_t *outlen);
-int tls13_process_client_key_share(const uint8_t *ext_data, size_t ext_datalen,
-	const SM2_KEY *server_ecdhe_key, SM2_KEY *client_ecdhe_public,
-	uint8_t **out, size_t *outlen);
-int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_Z256_POINT *point);
-
-
-int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
-	uint8_t **out, size_t *outlen);
-*/
 
 int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_process_client_exts(const uint8_t *exts, size_t extslen, uint8_t *out, size_t *outlen, size_t maxlen);
@@ -606,11 +614,13 @@ int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen,
 
 
 // ServerHelloDone
+
 int tls_record_set_handshake_server_hello_done(uint8_t *record, size_t *recordlen);
 int tls_record_get_handshake_server_hello_done(const uint8_t *record);
 int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
 
 // ClientKeyExchange
+
 int tls_record_set_handshake_client_key_exchange_pke(uint8_t *record, size_t *recordlen,
 	const uint8_t *enced_pms, size_t enced_pms_len);
 int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
@@ -625,6 +635,7 @@ int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 	int format, int indent);
 
 // CertificateVerify
+
 int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
 	const uint8_t *sig, size_t siglen);
 int tls_record_get_handshake_certificate_verify(const uint8_t *record,
@@ -685,35 +696,15 @@ int tls_finished_print(FILE *fp, const uint8_t *a, size_t len, int format, int i
 
 
 
-// Alert
-typedef struct {
-	uint8_t level;
-	uint8_t description;
-} TLS_ALERT;
 
-#define TLS_ALERT_RECORD_SIZE (TLS_RECORD_HEADER_SIZE + 2)
-
-int tls_record_set_alert(uint8_t *record, size_t *recordlen, int alert_level, int alert_description);
-int tls_record_get_alert(const uint8_t *record, int *alert_level, int *alert_description);
-int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+// KeyUpdate
+enum {
+	TLS_key_update_requested	= 0,
+	TLS_key_update_not_requested	= 1,
+	TLS_key_update_reserved_max	= 255,
+};
 
 
-// ChangeCipherSpec
-typedef struct {
-	uint8_t type;
-} TLS_CHANGE_CIPHER_SPEC;
-
-const char *tls_change_cipher_spec_text(int change_cipher_spec);
-int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
-int tls_record_set_change_cipher_spec(uint8_t *record, size_t *recordlen);
-int tls_record_get_change_cipher_spec(const uint8_t *record);
-
-// ApplicationData
-int tls_record_set_application_data(uint8_t *record, size_t *recordlen,
-	const uint8_t *data, size_t datalen);
-int tls_record_get_application_data(uint8_t *record,
-	const uint8_t **data, size_t *datalen);
-int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
 
 
 
@@ -746,7 +737,6 @@ typedef struct {
 
 	int protocol;
 
-	int key_exchange_modes;
 
 	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t cipher_suites_cnt;
@@ -757,6 +747,7 @@ typedef struct {
 	size_t cert_chain_idx;
 	uint8_t *certs;	// 这里应该改为cert_chain，我们将certs表示为互相独立的证书
 	size_t certslen;
+
 
 	// 每个证书链都应该有附带的status_request和sct信息
 	// status_request_ocsp_response
@@ -779,28 +770,37 @@ typedef struct {
 	size_t cacertslen;
 	int verify_depth;
 
-	// 这是一个系统参数，决定了客户端在ClientHello中发送多少个key_exchanges
-	// CTX中这个参数应该是没有意义的，服务器应该总是1，客户端应该>=1
-	// 是否可以设置为0呢？
-	size_t key_exchanges_cnt;
+
+
+
+
+
+
+	// NewSessionTicket
+	int new_session_ticket;
+	int new_session_ticket_cnt;
+	SM4_KEY *session_ticket_key;
+	SM4_KEY _session_ticket_key;
+
+
+	// KeyUpdate
+	size_t key_update_seq_num_limit;
+	size_t key_update_data_size_limit;
 
 
 	// extensions
 
-	// 5. status_request
-	int status_request;
-	const uint8_t *status_request_responder_id_list;
-	size_t status_request_responder_id_list_len;
-	const uint8_t *status_request_exts;
-	size_t status_request_exts_len;
-	const uint8_t *status_request_ocsp_response;
-	size_t status_request_ocsp_response_len;
+	// 0. server_name (SNI)
+	// server_name is connection only
 
+	// 5. status_request
+	// list of (uint24array)CertificateEntry.extensions.status_request.response
+	uint8_t status_request_ocsp_responses[512];
+	size_t status_request_ocsp_responses_len;
 
 	// 10. supported_gruops
 	int supported_groups[32];
 	size_t supported_groups_cnt;
-
 
 	// 13. signature_algorithms
 	int signature_algorithms[2];
@@ -808,15 +808,14 @@ typedef struct {
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
-	const uint8_t *signed_certificate_timestamp_list;
-	size_t signed_certificate_timestamp_list_len;
+	uint8_t signed_certificate_timestamp_lists[512];
+	size_t signed_certificate_timestamp_lists_len;
 
 	// 35. session_ticket
-	// NewSessionTicket
-	int new_session_ticket;
-	int new_session_ticket_cnt;
-	SM4_KEY *session_ticket_key;
-	SM4_KEY _session_ticket_key;
+	// session_ticket only supported in tls12
+
+	// 41. pre_shared_key
+	//	no flag
 
 	// 42. early_data
 	int early_data;
@@ -830,11 +829,16 @@ typedef struct {
 	int cookie;
 	SM4_KEY cookie_key;
 
-
 	// 46. psk_key_exchange_modes
+	int psk_key_exchange_modes;
 
+	// 51. key_share
+	size_t key_exchanges_cnt;
 
 } TLS_CTX;
+
+
+
 
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client);
 int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cipher_suites_cnt);
@@ -850,6 +854,13 @@ void tls_ctx_cleanup(TLS_CTX *ctx);
 int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
 
+int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
+	const uint8_t *entity_status_request_ocsp_responses, size_t entity_status_request_ocsp_responses_len, // optional
+	const uint8_t *entity_signed_certificate_timestamp_list, size_t entity_signed_certificate_timestamp_list_len, // optional
+	const char *keyfile, const char *keypass);
+
+
+
 
 #define TLS_MAX_CERTIFICATES_SIZE	2048
 #define TLS_DEFAULT_VERIFY_DEPTH	4
@@ -857,16 +868,26 @@ int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 
 
 
+/*
 #define SSL_ERROR_WANT_READ		-1001 // 是否考虑把这两个错误以0的方式返回去
 #define SSL_ERROR_WANT_WRITE		-1002 // 同上
 #define SSL_ERROR_ZERO_RETURN		-1003
 #define SSL_ERROR_SYSCALL		-1004
-
+*/
 
 #define TLS_ERROR_RECV_AGAIN		-1000	// SSL_ERROR_WANT_READ
 #define TLS_ERROR_SEND_AGAIN		-1001	// SSL_ERROR_WANT_WRITE
 #define TLS_ERROR_TCP_CLOSED		-1002	// SSL_ERROR_ZERO_RETURN
 #define TLS_ERROR_SYSCALL		-1003	// SSL_ERROR_SYSCALL
+
+
+/*
+#define TLS_ERR_WANT_READ		-1000
+#define TLS_ERR_WANT_WRITE		-1001
+#define TLS_ERR_TCP_CLOSED		-1002
+#define TLS_ERR_SYSCALL			-1003
+*/
+
 
 
 enum {
@@ -893,6 +914,10 @@ enum {
 	TLS_state_server_finished,
 	TLS_state_new_session_ticket,
 	TLS_state_handshake_over,
+
+
+	TLS_state_recv_record_header,
+	TLS_state_recv_record_data,
 };
 
 
@@ -1011,41 +1036,64 @@ typedef struct {
 	size_t peer_ecdh_point_len;
 
 
-	// key_share
-	int key_share;
-	X509_KEY key_exchanges[2];
-	size_t key_exchanges_cnt;
-	size_t key_exchange_idx;
-	int key_exchange_group;
-	uint8_t peer_key_exchange[65]; //这个似乎应该替换掉
-	size_t peer_key_exchange_len;
-
-
 
 	// CertificateRequest.signature_algorithms =
 	//   common(ClientHello.signature_algorithms, ctx->signature_algorithms)
+	/*
 	int signature_algorithms[2];
 	size_t signature_algorithms_cnt;
+	*/
 
 
 	// handshake messages
 	int hello_retry_request;
 	int certificate_request;
-	int new_session_ticket;
+	//int new_session_ticket;
 
-
+	// KeyUpdate
+	size_t client_data_size;
+	size_t server_data_size;
 
 	// extensions
 
 	// 0. server_name
-	uint8_t server_name[256];
-	size_t server_name_len;
+	// server_name is client only, server should not response server_name ext
+	int server_name;
+	uint8_t host_name[256];
+	size_t host_name_len;
 
 	// 5. status_request
 	int status_request;
+	// ClientHello.status_request set by app
+	const uint8_t *status_request_responder_id_list;
+	size_t status_request_responder_id_list_len;
+	const uint8_t *status_request_exts;
+	size_t status_request_exts_len;
+	// ServerCertificate.CertificateEntry.status_request
+	// 在选择好证书之后，这些值应该指向ctx->status_request_ocsp_responses
+	// 但是有可能指针为空或者长度为0
+	// 如果客户端发送了status_request，还需要进一步检查是否匹配，如果不匹配，需要设置为0
+	const uint8_t *status_request_ocsp_response;
+	size_t status_request_ocsp_response_len;
+
+	// 10. supported_gruops
+	int supported_groups[32];
+	size_t supported_groups_cnt;
+
+
+	// 13. signature_algorithms
+	int signature_algorithms[2];
+	size_t signature_algorithms_cnt;
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
+	const uint8_t *signed_certificate_timestamp_list;
+	size_t signed_certificate_timestamp_list_len;
+
+	// 35. session_ticket
+	// NewSessionTicket
+	int new_session_ticket;
+	int new_session_ticket_cnt;
 
 	// 41. pre_shared_key
 	int pre_shared_key;
@@ -1055,7 +1103,6 @@ typedef struct {
 	size_t psk_cipher_suites_cnt;
 	uint8_t psk_keys[32 * 8];
 	size_t psk_keys_len;
-
 
 
 	const uint8_t *psk_identity;
@@ -1072,7 +1119,6 @@ typedef struct {
 	int client_certificate_verify; // TLS1.2 TLCP需要这个
 
 
-
 	// 42. early_data
 	int early_data;
 	size_t max_early_data_size;
@@ -1080,10 +1126,18 @@ typedef struct {
 	size_t early_data_len;
 
 	// 44. cookie
+	int cookie;
 	uint8_t cookie_buf[256];
 	size_t cookie_len;
 
-
+	// 51. key_share
+	int key_share;
+	X509_KEY key_exchanges[2];
+	size_t key_exchanges_cnt;
+	size_t key_exchange_idx;
+	int key_exchange_group;
+	uint8_t peer_key_exchange[65]; //这个似乎应该替换掉
+	size_t peer_key_exchange_len;
 
 } TLS_CONNECT;
 
@@ -1096,31 +1150,167 @@ int tls_send_record(TLS_CONNECT *conn);
 int tls_recv_record(TLS_CONNECT *conn);
 
 
+// TLS 1.3 Handshake messages
+
+// ClientHello/ServerHello
+//	set/get functions use tls_ functions
+int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+// HelloRetryRequest
+
+int tls13_record_set_handshake_hello_retry_request(uint8_t *record, size_t *recordlen,
+	int legacy_version, const uint8_t random[32],
+	const uint8_t *legacy_session_id_echo, size_t legacy_session_id_echo_len,
+	int cipher_suite, int legacy_compress_meth,
+	const uint8_t *exts, size_t extslen);
+int tls13_record_get_handshake_hello_retry_request(uint8_t *record,
+	int *legacy_version, const uint8_t **random,
+	const uint8_t **legacy_session_id_echo, size_t *legacy_session_id_echo_len,
+	int *cipher_suite, int *legacy_compress_meth,
+	const uint8_t **exts, size_t *extslen);
+int tls13_hello_retry_request_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+// Certificate
+
+int tls13_certificate_entry_to_bytes(const uint8_t *cert, size_t certlen,
+	const uint8_t *status_request_ocsp_response, size_t status_request_ocsp_response_len,
+	const uint8_t *signed_certificate_timestamp, size_t signed_certificate_timestamp_len,
+	uint8_t **out, size_t *outlen);
+int tls13_certificate_entry_from_bytes(const uint8_t **cert, size_t *certlen,
+	const uint8_t **status_request_ocsp_response, size_t *status_request_ocsp_response_len,
+	const uint8_t **signed_certificate_timestamp, size_t *signed_certificate_timestamp_len,
+	const uint8_t **in, size_t *inlen);
+int tls13_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
+	const uint8_t *request_context, size_t request_context_len,
+	const uint8_t *certs, size_t certslen,
+	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len,
+	const uint8_t *entity_signed_certificate_timestamp, size_t entity_signed_certificate_timestamp_len);
+int tls13_record_get_handshake_certificate(const uint8_t *record,
+	const uint8_t **request_context, size_t *request_context_len,
+	uint8_t *cert_chain, size_t *cert_chain_len, size_t cert_chain_maxlen,
+	const uint8_t **entity_status_request_ocsp_response, size_t *entity_status_request_ocsp_response_len,
+	const uint8_t **entity_signed_certificate_timestamp, size_t *entity_signed_certificate_timestamp_len);
+int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+// CertificateVerify
+
+int tls13_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
+	int sig_alg, const uint8_t *sig, size_t siglen);
+int tls13_record_get_handshake_certificate_verify(const uint8_t *record,
+	int *sig_alg, const uint8_t **sig, size_t *siglen);
+int tls13_certificate_verify_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+// CertificateRequest
+
+int tls13_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
+	const uint8_t *request_context, size_t request_context_len,
+	const uint8_t *exts, size_t extslen);
+int tls13_record_set_handshake_certificate_request_default(uint8_t *record, size_t *recordlen);
+int tls13_record_get_handshake_certificate_request(const uint8_t *record,
+	const uint8_t **requst_context, size_t *request_context_len,
+	const uint8_t **exts, size_t *exts_len);
+int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+// EndOfEarlyData
+
+int tls13_record_set_handshake_end_of_early_data(uint8_t *record, size_t *recordlen);
+int tls13_record_get_handshake_end_of_early_data(uint8_t *record);
+int tls13_end_of_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+// Finished
+
+int tls13_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
+	const uint8_t *verify_data, size_t verify_data_len);
+int tls13_record_get_handshake_finished(const uint8_t *record,
+	const uint8_t **verify_data, size_t *verify_data_len);
+int tls13_finished_print(FILE *fp, int fmt, int ind, const uint8_t *data, size_t datalen);
+
+
+// KeyUpdate
+
+int tls13_record_set_handshake_key_update(uint8_t *record, size_t *recordlen,
+	int request_update);
+int tls13_record_get_handshake_key_update(uint8_t *record, int *request_update);
+int tls13_key_update_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+
+
+// NewSessionTicket
+
+int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_secret[48],
+	int protocol_version, int cipher_suite, uint32_t ticket_issue_time,  uint32_t ticket_lifetime,
+	uint8_t *out, size_t *outlen);
+int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
+	uint8_t resumption_master_secret[48], int *protocol_version, int *cipher_suite,
+	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime);
+int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
+int tls13_record_set_handshake_new_session_ticket(uint8_t *record, size_t *recordlen,
+	uint32_t ticket_lifetime, uint32_t ticket_age_add,
+	const uint8_t *ticket_nonce, size_t ticket_nonce_len,
+	const uint8_t *ticket, size_t ticketlen,
+	const uint8_t *exts, size_t extslen);
+int tls13_record_get_handshake_new_session_ticket(uint8_t *record,
+	uint32_t *ticket_lifetime, uint32_t *ticket_age_add,
+	const uint8_t **ticket_nonce, size_t *ticket_nonce_len,
+	const uint8_t **ticket, size_t *ticketlen,
+	const uint8_t **exts, size_t *extslen);
+int tls13_new_session_ticket_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+
+
+
+
+
+
+
+
+
+int tls_generate_keys(TLS_CONNECT *conn);
+
+int tls13_update_client_application_keys(TLS_CONNECT *conn);
+int tls13_update_server_application_keys(TLS_CONNECT *conn);
+
+
+
+
+
+// tls12 client
 int tls_send_client_hello(TLS_CONNECT *conn);
-int tls_recv_client_hello(TLS_CONNECT *conn);
-int tls_send_server_hello(TLS_CONNECT *conn);
 int tls_recv_server_hello(TLS_CONNECT *conn);
-int tls_send_server_certificate(TLS_CONNECT *conn);
 int tls_recv_server_certificate(TLS_CONNECT *conn);
-int tls_send_server_key_exchange(TLS_CONNECT *conn);
 int tls_recv_server_key_exchange(TLS_CONNECT *conn);
-int tls_send_certificate_request(TLS_CONNECT *conn);
 int tls_recv_certificate_request(TLS_CONNECT *conn);
-int tls_send_server_hello_done(TLS_CONNECT *conn);
 int tls_recv_server_hello_done(TLS_CONNECT *conn);
 int tls_send_client_certificate(TLS_CONNECT *conn);
-int tls_recv_client_certificate(TLS_CONNECT *conn);
-int tls_generate_keys(TLS_CONNECT *conn);
 int tls_send_client_key_exchange(TLS_CONNECT *conn);
-int tls_recv_client_key_exchange(TLS_CONNECT *conn);
 int tls_send_certificate_verify(TLS_CONNECT *conn);
-int tls_recv_certificate_verify(TLS_CONNECT *conn);
 int tls_send_change_cipher_spec(TLS_CONNECT *conn);
 int tls_recv_change_cipher_spec(TLS_CONNECT *conn);
 int tls_send_client_finished(TLS_CONNECT *conn);
+int tls_recv_server_finished(TLS_CONNECT *conn);
+
+
+// tls12 server
+int tls_recv_client_hello(TLS_CONNECT *conn);
+int tls_send_server_hello(TLS_CONNECT *conn);
+int tls_send_server_certificate(TLS_CONNECT *conn);
+int tls_send_server_key_exchange(TLS_CONNECT *conn);
+int tls_send_certificate_request(TLS_CONNECT *conn);
+int tls_send_server_hello_done(TLS_CONNECT *conn);
+int tls_recv_client_certificate(TLS_CONNECT *conn);
+int tls_recv_client_key_exchange(TLS_CONNECT *conn);
+int tls_recv_certificate_verify(TLS_CONNECT *conn);
 int tls_recv_client_finished(TLS_CONNECT *conn);
 int tls_send_server_finished(TLS_CONNECT *conn);
-int tls_recv_server_finished(TLS_CONNECT *conn);
+
 
 int tlcp_send_client_hello(TLS_CONNECT *conn);
 int tlcp_recv_client_hello(TLS_CONNECT *conn);
@@ -1129,6 +1319,48 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn);
 int tlcp_generate_keys(TLS_CONNECT *conn);
 int tlcp_send_client_key_exchange(TLS_CONNECT *conn);
 int tlcp_recv_client_key_exchange(TLS_CONNECT *conn);
+
+
+
+
+
+
+// tls13 client
+int tls13_send_client_hello(TLS_CONNECT *conn);
+int tls13_recv_hello_retry_request(TLS_CONNECT *conn);
+int tls13_send_client_hello_again(TLS_CONNECT *conn);
+int tls13_recv_server_hello(TLS_CONNECT *conn);
+int tls13_recv_encrypted_extensions(TLS_CONNECT *conn);
+int tls13_recv_certificate_request(TLS_CONNECT *conn);
+int tls13_recv_server_certificate(TLS_CONNECT *conn);
+int tls13_recv_certificate_verify(TLS_CONNECT *conn);
+int tls13_recv_server_finished(TLS_CONNECT *conn);
+int tls13_send_client_certificate(TLS_CONNECT *conn);
+int tls13_send_client_certificate_verify(TLS_CONNECT *conn);
+int tls13_send_end_of_early_data(TLS_CONNECT *conn);
+int tls13_send_client_finished(TLS_CONNECT *conn);
+int tls13_recv_new_session_ticket(TLS_CONNECT *conn);
+
+// tls13 server
+int tls13_recv_client_hello(TLS_CONNECT *conn);
+int tls13_send_hello_retry_request(TLS_CONNECT *conn);
+int tls13_recv_client_hello_again(TLS_CONNECT *conn);
+int tls13_send_server_hello(TLS_CONNECT *conn);
+int tls13_send_encrypted_extensions(TLS_CONNECT *conn);
+int tls13_send_certificate_request(TLS_CONNECT *conn);
+int tls13_send_server_certificate(TLS_CONNECT *conn);
+int tls13_send_server_certificate_verify(TLS_CONNECT *conn);
+int tls13_send_server_finished(TLS_CONNECT *conn);
+int tls13_recv_client_certificate(TLS_CONNECT *conn);
+int tls13_recv_end_of_early_data(TLS_CONNECT *conn);
+int tls13_recv_client_finished(TLS_CONNECT *conn);
+int tls13_send_new_session_ticket(TLS_CONNECT *conn);
+
+
+// tls13 client/server
+int tls13_send_key_update(TLS_CONNECT *conn, int request_update);
+int tls13_recv_key_update(TLS_CONNECT *conn);
+
 
 void tls_clean_record(TLS_CONNECT *conn);
 
@@ -1152,28 +1384,34 @@ int tls12_do_connect(TLS_CONNECT *conn);
 int tls12_do_accept(TLS_CONNECT *conn);
 
 
-#define TLS13_SM2_ID		"TLSv1.3+GM+Cipher+Suite"
-#define TLS13_SM2_ID_LENGTH	(sizeof(TLS13_SM2_ID)-1)
 
 int tls13_do_connect(TLS_CONNECT *conn);
 int tls13_do_accept(TLS_CONNECT *conn);
-
-int tls_send_alert(TLS_CONNECT *conn, int alert);
-int tls_send_warning(TLS_CONNECT *conn, int alert);
-
-int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen);
-int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen);
-
 
 int tls13_connect(TLS_CONNECT *conn, const char *hostname, int port, FILE *server_cacerts_fp,
 	FILE *client_certs_fp, const SM2_KEY *client_sign_key);
 int tls13_accept(TLS_CONNECT *conn, int port,
 	FILE *server_certs_fp, const SM2_KEY *server_sign_key,
 	FILE *client_cacerts_fp);
+int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen);
+int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen);
 
 
-int tls13_supported_versions_ext_print(FILE *fp, int fmt, int ind, int handshake_type, const uint8_t *data, size_t datalen);
-int tls13_key_share_ext_print(FILE *fp, int fmt, int ind, int handshake_type, const uint8_t *data, size_t datalen);
+
+
+#define TLS13_SM2_ID		"TLSv1.3+GM+Cipher+Suite"
+#define TLS13_SM2_ID_LENGTH	(sizeof(TLS13_SM2_ID)-1)
+
+
+
+
+int tls_send_alert(TLS_CONNECT *conn, int alert);
+int tls_send_warning(TLS_CONNECT *conn, int alert);
+
+
+int tls13_send_alert(TLS_CONNECT *conn, int alert);
+
+
 
 
 int tls_process_client_hello_exts(const uint8_t *exts, size_t extslen, uint8_t *out, size_t *outlen, size_t maxlen);
@@ -1192,6 +1430,15 @@ int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *cert, siz
 int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *cert, size_t certlen);
 int tls13_certificate_verify_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen);
+
+
+
+
+
+
+
+
+
 
 
 int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
@@ -1223,105 +1470,23 @@ int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordle
 
 
 
-// supported_groups
-int tls13_client_supported_versions_ext_to_bytes(const int *versions, size_t versions_cnt,
-	uint8_t **out, size_t *outlen);
-int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_datalen,
-	const int *server_versions, size_t server_versions_cnt,
-	int *common_versions, size_t *common_versions_cnt, size_t max_cnt);
-int tls13_client_supported_versions_print(FILE *fp, int fmt, int ind,
-	const uint8_t *ext_data, size_t ext_datalen);
-int tls13_server_supported_versions_ext_to_bytes(int selected_version, uint8_t **out, size_t *outlen);
-int tls13_server_supported_versions_from_bytes(int *selected_version, const uint8_t *ext_data, size_t ext_datalen);
-int tls13_process_server_supported_versions(const int *client_versions, size_t client_versions_cnt,
-	const uint8_t *server_ext_data, size_t server_ext_datalen,
-	int *selected_version);
-int tls13_server_supported_versions_print(FILE *fp, int fmt, int ind,
-	const uint8_t *ext_data, size_t ext_datalen);
-
-
-// key_share
-int tls13_key_share_entry_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
-int tls13_key_share_entry_from_bytes(int *group, const uint8_t **key_exchange, size_t *key_exchange_len,
-	const uint8_t **in, size_t *inlen);
-
-int tls13_key_share_client_hello_ext_to_bytes(const X509_KEY *keys, size_t keys_cnt, uint8_t **out, size_t *outlen);
-int tls13_process_key_share_client_hello(const uint8_t *ext_data, size_t ext_datalen,
-	const int *common_groups, size_t common_groups_cnt,
-	int *group, const uint8_t **key_exchange, size_t *key_exchange_len);
-int tls13_key_share_client_hello_print(FILE *fp, int fmt, int ind,
-	const uint8_t *data, size_t datalen);
-
-int tls13_key_share_server_hello_ext_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
-int tls13_key_share_server_hello_from_bytes(int *group, const uint8_t **key_exchange, size_t *key_exchange_len,
-	const uint8_t *ext_data, size_t ext_datalen);
-int tls13_key_share_server_hello_print(FILE *fp, int fmt, int ind,
-	const uint8_t *data, size_t datalen);
-
-
-int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 
 
 
-// NewSessionTicket
-int tls13_ticket_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
-int tls13_encrypt_ticket(const SM4_KEY *key, const uint8_t resumption_master_secret[48],
-	int protocol_version, int cipher_suite, uint32_t ticket_issue_time,  uint32_t ticket_lifetime,
-	uint8_t *out, size_t *outlen);
-int tls13_decrypt_ticket(const SM4_KEY *key, const uint8_t *in, size_t inlen,
-	uint8_t resumption_master_secret[48], int *protocol_version, int *cipher_suite,
-	uint32_t *ticket_issue_time, uint32_t *ticket_lifetime);
 
 
 
-/*
-EarlyData (0-RTT)
-	client: tls13_set_early_data 隐式的启用客户端EarlyData
-	server: tls13_set_max_early_data_size 隐式的启用服务器的early_data接收，以及如果发送NewSessionTicket，会把这个信息加上去
-*/
-int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
 
-int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt);
-int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size);
-int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size);
-
-
-
-/*
-PSK 模式
-
-	客户端：关键是要载入SESSION，采用发送PSK，所以
-		tls13_set_session_infile
-
-		这个函数没有明确的和PSK建立关联
-
-	服务器：是否允许PSK，依赖是否设置session_ticket_key
-*/
-
-// enable PSK, enable ClientHello.exts.pre_shared_key
-//int tls13_set_session_infile(TLS_CONNECT *conn, const char *file);
 
 int tls13_set_session_resumption(TLS_CONNECT *conn, const char *session_file);
-
-
-// TLS 1.3有静态PSK的模式，这种模式下又有不同的交互
-// 我们应该在支持这个模式之后，再调整接口
-
-
-/* 服务器发送NewSessionTicket
-
-	取决于是否准备了session_ticket_key
-
-	以及到底要发送多少个new_session_tickets，这有明确的对应
-*/
 
 
 
 
 
 int tls13_ctx_set_session_ticket_key(TLS_CTX *ctx, const uint8_t *key, size_t keylen);
-int tls13_ctx_set_new_session_ticket(TLS_CTX *ctx, size_t new_session_ticket_cnt);
-int tls13_set_new_session_ticket(TLS_CONNECT *conn, size_t new_session_ticket_cnt);
+int tls13_ctx_enable_new_session_ticket(TLS_CTX *ctx, size_t new_session_ticket_cnt);
+int tls13_enable_new_session_ticket(TLS_CONNECT *conn, size_t new_session_ticket_cnt);
 
 
 
@@ -1330,33 +1495,14 @@ int tls13_set_session_outfile(TLS_CONNECT *conn, const char *file);
 
 
 
-// psk_key_exchange_modes extension
-enum {
-	TLS_psk_ke		= 0,
-	TLS_psk_dhe_ke		= 1,
-	TLS_psk_preserved_max	= 255,
-};
 
 
-#define TLS_KE_CERT_DHE		1
-#define TLS_KE_PSK_DHE		2
-#define TLS_KE_PSK		4
 
-/*
-enum {
-	TLS_psk_key_exchange_modes_none		= 0,
-	TLS_psk_key_exchange_modes_psk_only	= 1,
-	TLS_psk_key_exchange_modes_psk_dhe	= 2,
-	TLS_psk_key_exchange_modes_both		= 3,
-};
-*/
 
-const char *tls13_psk_key_exchange_mode_name(int mode);
-int tls13_psk_key_exchange_modes_ext_to_bytes(int modes, uint8_t **out, size_t *outlen);
-int tls13_psk_key_exchange_modes_from_bytes(int *modes, const uint8_t *ext_data, size_t ext_datalen);
+
+
 
 int tls13_enable_pre_shared_key(TLS_CONNECT *conn, int enable);
-int tls13_enable_early_data(TLS_CONNECT *conn, int enable);
 
 
 int tls13_add_pre_shared_key(TLS_CONNECT *conn, const uint8_t *identity, size_t identitylen,
@@ -1365,7 +1511,7 @@ int tls13_add_pre_shared_key(TLS_CONNECT *conn, const uint8_t *identity, size_t 
 	uint32_t age);
 
 
-int tls13_add_pre_shared_key_from_file(TLS_CONNECT *conn, const char *file);
+int tls13_add_pre_shared_key_from_session_file(TLS_CONNECT *conn, FILE *fp);
 
 int tls13_ctx_set_psk_key_exchange_modes(TLS_CTX *ctx, int psk_ke, int psk_dhe_ke);
 
@@ -1392,20 +1538,86 @@ enum {
 int tls_ext_to_bytes(int ext_type, const uint8_t *ext_data, size_t ext_datalen,
 	uint8_t **out, size_t *outlen);
 
+
+
+
+
+
+
+// TLS 1.3 cipher/key related
+
+int tls13_random_generate(uint8_t random[32]);
+int tls13_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest);
+int tls13_padding_len_rand(size_t *padding_len);
+
+int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t taglen, uint8_t *tag);
+int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out);
+int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+	const uint8_t seq_num[8], int record_type,
+	const uint8_t *in, size_t inlen, size_t padding_len, // TLSInnerPlaintext.content
+	uint8_t *out, size_t *outlen); // TLSCiphertext.encrypted_record;
+int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	int *record_type, uint8_t *out, size_t *outlen);
+int tls13_record_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+	const uint8_t seq_num[8], const uint8_t *record, size_t recordlen, size_t padding_len,
+	uint8_t *enced_record, size_t *enced_recordlen);
+int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+	const uint8_t seq_num[8], const uint8_t *enced_record, size_t enced_recordlen,
+	uint8_t *record, size_t *recordlen);
+
+
+int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
+int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
+	const char *label, const uint8_t *context, size_t context_len,
+	size_t outlen, uint8_t *out);
+int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32]);
+
+int tls13_sign_certificate_verify(int tls_mode, int sig_alg,
+	X509_KEY *sign_key, const DIGEST_CTX *tbs_dgst_ctx,
+	uint8_t *sig, size_t *siglen);
+int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
+	const X509_KEY *public_key, const DIGEST_CTX *tbs_dgst_ctx,
+	const uint8_t *sig, size_t siglen);
+
+int tls13_compute_verify_data(const uint8_t *handshake_traffic_secret,
+	const DIGEST_CTX *dgst_ctx, uint8_t *verify_data, size_t *verify_data_len);
+
+int tls13_generate_early_data_keys(TLS_CONNECT *conn);
+
+
+
+
+
+
+int tls13_process_new_session_ticket(TLS_CONNECT *conn);
+
+
+
+
+
+// Extensions
+
+
+
+// 0. server_name (sni)
 int tls_server_name_ext_to_bytes(const uint8_t *host_name, size_t host_name_len, uint8_t **out, size_t *outlen);
 int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	const uint8_t *ext_data, size_t ext_datalen);
 int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
-
 int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len);
 
-int tls_status_request_ext_to_bytes(const uint8_t *ocsp_response, size_t ocsp_response_len,
-	uint8_t **out, size_t *outlen);
-
-
+// 5. status_request (ocsp stapling)
 enum {
 	TLS_certificate_status_type_ocsp = 1,
 };
+
+int ocsp_response_verify(const uint8_t *ocsp_response, size_t ocsp_response_len,
+	const uint8_t *ca_certs, size_t ca_certs_len);
 
 int tls_ocsp_status_request_to_bytes(
 	const uint8_t *responder_id_list, size_t responder_id_list_len,
@@ -1417,7 +1629,6 @@ int tls_ocsp_status_request_from_bytes(
 	const uint8_t **in, size_t *inlen);
 int tls_ocsp_status_request_print(FILE *fp, int fmt, int ind,
 	const char *label, const uint8_t *ext_data, size_t ext_datalen);
-
 int tls_client_status_request_ext_to_bytes(int status_type,
 	const uint8_t *responder_id_list, size_t responder_id_list_len,
 	const uint8_t *request_exts, size_t request_exts_len,
@@ -1428,6 +1639,9 @@ int tls_client_status_request_from_bytes(int *status_type,
 	const uint8_t *ext_data, size_t ext_datalen);
 int tls_client_status_request_print(FILE *fp, int fmt, int ind,
 	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_set_client_status_request(TLS_CONNECT *conn,
+	const uint8_t *status_request_responder_id_list, size_t status_request_responder_id_list_len, // optional
+	const uint8_t *status_request_exts, size_t status_request_exts_len); // optional
 
 int tls_server_status_request_ext_to_bytes(const uint8_t *ocsp_response, size_t ocsp_response_len,
 	uint8_t **out, size_t *outlen);
@@ -1436,7 +1650,42 @@ int tls_server_status_request_from_bytes(const uint8_t **ocsp_response, size_t *
 int tls_server_status_request_print(FILE *fp, int fmt, int ind,
 	const uint8_t *ext_data, size_t ext_datalen);
 
+int tls_ocsp_response_match_status_request(
+	const uint8_t *status_request_ocsp_response, size_t status_request_ocsp_response_len,
+	const uint8_t *responder_id_list, size_t responder_id_list_len,
+	const uint8_t *request_exts, size_t request_exts_len);
 
+// 10. supported_groups
+int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
+	uint8_t **out, size_t *outlen);
+int tls_process_client_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
+	uint8_t **out, size_t *outlen);
+int tls_process_server_supported_groups(const uint8_t *ext_data, size_t ext_datalen);
+
+int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
+	const int *local_groups, size_t local_groups_cnt,
+	int *common_groups, size_t *common_groups_cnt, size_t max_cnt);
+
+// 11. ec_point_format
+int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
+	uint8_t **out, size_t *outlen);
+int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen,
+	uint8_t **out, size_t *outlen);
+int tls_process_server_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen);
+
+// 13. signature_algorithms
+int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
+	uint8_t **out, size_t *outlen);
+int tls_signature_algorithms_ext_to_bytes(const int *algs, size_t algs_cnt,
+	uint8_t **out, size_t *outlen);
+// 这个扩展不解码，直接就处理了
+int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen,
+	const int *local_sig_algs, size_t local_sig_algs_cnt,
+	int *common_sig_algs, size_t *common_sig_algs_cnt, size_t max_cnt);
+
+// 18. signed_certificate_timestamp (certificate transparency, CT)
 int tls_signed_certificate_timestamp_entry_to_bytes(const uint8_t key_id[32],
 	uint64_t timestamp, const uint8_t *signature, size_t signature_len,
 	uint8_t **out, size_t *outlen);
@@ -1449,11 +1698,132 @@ int tls_signed_certificate_timestamp_from_bytes(const uint8_t **sct_list, size_t
 	const uint8_t **in, size_t *inlen);
 int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
 	const char *label, const uint8_t *d, size_t dlen);
+int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx);
+int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn);
 
-int ocsp_response_verify(const uint8_t *ocsp_response, size_t ocsp_response_len,
-	const uint8_t *ca_certs, size_t ca_certs_len);
+// 41. pre_shared_key
+int tls13_psk_identity_to_bytes(const uint8_t *ticket, size_t ticketlen, uint32_t obfuscated_ticket_age,
+	uint8_t **out, size_t *outlen);
+int tls13_psk_identity_from_bytes(const uint8_t **ticket, size_t *ticketlen, uint32_t *obfuscated_ticket_age,
+	const uint8_t **in, size_t *inlen);
 
-int tls13_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest);
+int tls13_psk_binders_generate_empty(const int *psk_cipher_suites, size_t psk_cipher_suites_cnt,
+	uint8_t *binders, size_t *binders_len);
+int tls13_psk_binders_generate(
+	const int *psk_cipher_suites, size_t psk_cipher_suites_cnt,
+	const uint8_t *psk_keys, size_t psk_keys_len,
+	const uint8_t *truncated_client_hello, size_t truncated_client_hello_len,
+	uint8_t *binders, size_t *binders_len);
+int tls13_psk_binder_verify(const DIGEST *digest,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	const DIGEST_CTX *truncated_client_hello_dgst_ctx,
+	const uint8_t *binder, size_t binderlen);
+//	ClientHello.exts.pre_shared_key
+int tls13_client_pre_shared_key_ext_to_bytes(const uint8_t *identities, size_t identitieslen,
+	const uint8_t *binders, size_t binderslen, uint8_t **out, size_t *outlen);
+int tls13_client_pre_shared_key_from_bytes(const uint8_t **identities, size_t *identitieslen,
+	const uint8_t **binders, size_t *binderslen, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_client_pre_shared_key_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+//	ServerHello.exts.pre_shared_key
+int tls13_server_pre_shared_key_ext_to_bytes(int selected_identity, uint8_t **out, size_t *outlen);
+int tls13_server_pre_shared_key_from_bytes(int *selected_identity, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_server_pre_shared_key_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_add_pre_shared_key(TLS_CONNECT *conn,
+	const uint8_t *psk_identity, size_t psk_identity_len,
+	const uint8_t *psk_key, size_t psk_key_len,
+	int psk_cipher_suite, uint32_t obfuscated_ticket_age);
+int tls13_process_client_pre_shared_key_external(TLS_CONNECT *conn,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_process_client_pre_shared_key_from_ticket(TLS_CONNECT *conn,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_enable_pre_shared_key(TLS_CONNECT *conn, int enable);
+
+// 42. early_data
+int tls13_early_data_ext_to_bytes(size_t max_early_data_size, uint8_t **out, size_t *outlen);
+int tls13_early_data_from_bytes(size_t *max_early_data_size, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
+int tls13_enable_early_data(TLS_CONNECT *conn, int enable);
+int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size);
+int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size);
+
+// 43. supported_versions
+int tls13_client_supported_versions_ext_to_bytes(const int *versions, size_t versions_cnt,
+	uint8_t **out, size_t *outlen);
+int tls13_process_client_supported_versions(const uint8_t *ext_data, size_t ext_datalen,
+	const int *server_versions, size_t server_versions_cnt,
+	int *common_versions, size_t *common_versions_cnt, size_t max_cnt);
+int tls13_client_supported_versions_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_server_supported_versions_ext_to_bytes(int selected_version, uint8_t **out, size_t *outlen);
+int tls13_server_supported_versions_from_bytes(int *selected_version, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_process_server_supported_versions(const int *client_versions, size_t client_versions_cnt,
+	const uint8_t *server_ext_data, size_t server_ext_datalen,
+	int *selected_version);
+int tls13_server_supported_versions_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
+
+int tls13_supported_versions_ext_print(FILE *fp, int fmt, int ind, int handshake_type, const uint8_t *data, size_t datalen);
+
+// 44. cookie
+int tls13_cookie_generate(const SM4_KEY *cookie_key, // server_ctx->cookie_key
+	const uint8_t *client_info, size_t client_info_len,
+	uint8_t *cookie, size_t *cookie_len);
+int tls13_cookie_verify(const SM4_KEY *cookie_key, // server_ctx->cookie_key
+	const uint8_t *client_info, size_t client_info_len,
+	const uint8_t *cookie, size_t cookie_len);
+int tls13_cookie_ext_to_bytes(const uint8_t *cookie, size_t cookielen, uint8_t **out, size_t *outlen);
+int tls13_cookie_from_bytes(const uint8_t **cookie, size_t *cookielen, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_cookie_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_ctx_set_cookie_key(TLS_CTX *ctx, const uint8_t *cookie_key, size_t cookie_key_len);
+
+
+// 46. psk_key_exchange_modes
+
+enum {
+	TLS_psk_ke		= 0,
+	TLS_psk_dhe_ke		= 1,
+	TLS_psk_preserved_max	= 255,
+};
+
+#define TLS_KE_CERT_DHE		1
+#define TLS_KE_PSK_DHE		2
+#define TLS_KE_PSK		4
+
+const char *tls13_psk_key_exchange_mode_name(int mode);
+int tls13_psk_key_exchange_modes_ext_to_bytes(int modes, uint8_t **out, size_t *outlen);
+int tls13_psk_key_exchange_modes_from_bytes(int *modes, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_psk_key_exchange_modes_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+int tls13_ctx_set_psk_key_exchange_modes(TLS_CTX *ctx, int psk_ke, int psk_dhe_ke);
+
+
+// 50. signature_algorithms_cert
+int tls13_signature_algorithms_cert_ext_to_bytes(const int *algs, size_t algs_cnt,
+	uint8_t **out, size_t *outlen);
+int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+// 用这个处理，tls_process_signature_algorithms
+
+
+// 51. key_share
+int tls13_key_share_entry_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
+int tls13_key_share_entry_from_bytes(int *group, const uint8_t **key_exchange, size_t *key_exchange_len,
+	const uint8_t **in, size_t *inlen);
+int tls13_key_share_client_hello_ext_to_bytes(const X509_KEY *keys, size_t keys_cnt, uint8_t **out, size_t *outlen);
+int tls13_process_key_share_client_hello(const uint8_t *ext_data, size_t ext_datalen,
+	const int *common_groups, size_t common_groups_cnt,
+	int *group, const uint8_t **key_exchange, size_t *key_exchange_len);
+int tls13_key_share_client_hello_print(FILE *fp, int fmt, int ind,
+	const uint8_t *data, size_t datalen);
+int tls13_key_share_server_hello_ext_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
+int tls13_key_share_server_hello_from_bytes(int *group, const uint8_t **key_exchange, size_t *key_exchange_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_key_share_server_hello_print(FILE *fp, int fmt, int ind,
+	const uint8_t *data, size_t datalen);
+
+int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt);
+
+
+
 
 #ifdef  __cplusplus
 }

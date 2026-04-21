@@ -80,19 +80,28 @@ static const char *help =
 "    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem\n"
 "\n"
-"   sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 \n"
+"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 \n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \n"
 "       -supported_group sm2p256v1 -supported_group prime256v1\n"
 "       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256\n"
 "\n"
-"  PSK=1122334455667788112233445566778811223344556677881122334455667788\n"
-"  sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
-"  gmssl tls13_cliet -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"    PSK=1122334455667788112233445566778811223344556677881122334455667788\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
 "\n"
-"  sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data\n"
-"  gmssl tls13_cliet -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data early_data.txt\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data early_data.txt\n"
 "\n"
-"  sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -new_session_ticket 2\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -new_session_ticket 2\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_dhe_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_dhe_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data early_data.txt\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -new_session_ticket 2 -ticket_key $TICKET_KEY\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_dhe_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -sess_out session.bin\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -ticket_key $TICKET_KEY\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -sess_in session.bin\n"
+
 "\n";
 
 int tls13_server_main(int argc , char **argv)
@@ -342,7 +351,7 @@ bad:
 			error_print();
 			return -1;
 		}
-		if (tls13_ctx_set_new_session_ticket(&ctx, new_session_ticket) != 1) {
+		if (tls13_ctx_enable_new_session_ticket(&ctx, new_session_ticket) != 1) {
 			error_print();
 			return -1;
 		}
