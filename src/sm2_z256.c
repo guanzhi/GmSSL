@@ -1865,7 +1865,7 @@ int sm2_z256_point_to_compressed_octets(const SM2_Z256_POINT *P, uint8_t out[33]
 	} else {
 		out[0] = SM2_point_compressed_y_even;
 	}
-	sm2_z256_to_bytes(y, out + 1);
+	sm2_z256_to_bytes(x, out + 1);
 
 	return 1;
 }
