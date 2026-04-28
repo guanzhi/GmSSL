@@ -735,6 +735,7 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 	return 1;
 }
 
+// 这个函数是有点问题的，还是应该改为recv_new_session_ticket
 int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 {
 	int ret;
@@ -756,7 +757,6 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 	const uint8_t *cp;
 	size_t len;
 
-
 	// only cheching encoding
 	if ((ret = tls13_record_get_handshake_new_session_ticket(conn->plain_record,
 		&ticket_lifetime, &ticket_age_add, &ticket_nonce, &ticket_nonce_len,
@@ -774,6 +774,9 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 		int ext_type;
 		const uint8_t *ext_data;
 		size_t ext_datalen;
+
+		// exts in NST
+		//  * early_data
 
 		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
 			error_print();

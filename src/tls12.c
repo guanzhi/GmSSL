@@ -172,6 +172,10 @@ int tls_recv_record(TLS_CONNECT *conn)
 	}
 
 	conn->recordlen = conn->record_offset;
+
+
+	// 应该判断是否为Alert这种异常状况
+
 	return 1;
 }
 
@@ -2407,7 +2411,7 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (!conn->quiet)
+	if (!conn->ctx->quiet)
 		fprintf(stderr, "Connection established!\n");
 
 	return 1;

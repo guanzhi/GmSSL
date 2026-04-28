@@ -37,6 +37,10 @@ static const char *help =
 "    -cert file                Client's certificate chain in PEM format\n"
 "    -key file                 Client's encrypted private key in PEM format\n"
 "    -pass str                 Password to decrypt private key\n"
+"    -server_name              Send server_name (SNI) request\n"
+"    -signature_algorithms_cert Send signature_algorithms_cert extension\n"
+"    -status_request           Send status_request (OCSP Stapling) request\n"
+"    -ct                       Send signed_certificate_timestamp (SCT) request\n"
 "    -psk_ke                   Support PSK-only key exchange\n"
 "    -psk_dhe_ke               Support PSK with (EC)DHE key exchange\n"
 "    -psk_identity str         PSK Identity\n"
@@ -45,6 +49,7 @@ static const char *help =
 "    -sess_in                  Load server's session ticket file\n"
 "    -sess_out                 Save server's session ticket file\n"
 "    -early_data file          Send early data, -psk_ke and/or -psk_dhe_ke should be set\n"
+"    -post_handshake_auth      Support post_handshake_auth\n"
 "\n"
 "CipherSuites\n"
 "    TLS_SM4_GCM_SM3        TLS 1.3\n"
@@ -138,7 +143,11 @@ int tls13_client_main(int argc, char *argv[])
 	size_t sig_algs_cnt = 0;
 
 
-
+	int server_name = 0;
+	int signature_algorithms_cert = 0;
+	int status_request = 0;
+	int signed_certificate_timestamp = 0;
+	int post_handshake_auth = 0;
 
 	argc--;
 	argv++;
@@ -169,6 +178,16 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-server_name")) {
+			server_name = 1;
+		} else if (!strcmp(*argv, "-signature_algorithms_cert")) {
+			signature_algorithms_cert = 1;
+		} else if (!strcmp(*argv, "-status_request")) {
+			status_request = 1;
+		} else if (!strcmp(*argv, "-ct")) {
+			signed_certificate_timestamp = 1;
+		} else if (!strcmp(*argv, "-post_handshake_auth")) {
+			post_handshake_auth = 1;
 		} else if (!strcmp(*argv, "-sess_in")) {
 			if (--argc < 1) goto bad;
 			sess_in = *(++argv);
@@ -286,29 +305,22 @@ bad:
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
-	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
 
-	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
-		fprintf(stderr, "%s: socket create error\n", prog);
-		goto end;
-	}
-	if (tls_socket_connect(sock, &server) != 1) {
-		fprintf(stderr, "%s: socket connect error\n", prog);
-		goto end;
-	}
+
+
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_client_mode) != 1) {
 		fprintf(stderr, "%s: context init error\n", prog);
 		goto end;
 	}
 
+	/*
 	if (!cipher_suites_cnt) {
 		error_print();
 		fprintf(stderr, "%s: option '-cipher_suite' required\n", prog);
 		goto end;
 	}
+	*/
 
 	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
 		fprintf(stderr, "%s: context init error\n", prog);
@@ -364,9 +376,37 @@ bad:
 
 
 							
-	if (tls_init(&conn, &ctx) != 1) {
+	if (tls13_init(&conn, &ctx) != 1) {
 		fprintf(stderr, "%s: error\n", prog);
 		goto end;
+	}
+
+
+	if (server_name) {
+		if (tls_set_server_name(&conn, (uint8_t *)host, strlen(host)) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	if (signature_algorithms_cert) {
+		if (tls_enable_signature_algorithms_cert(&conn) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (status_request) {
+		if (tls13_set_client_status_request(&conn, NULL, 0, NULL, 0) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+	if (signed_certificate_timestamp) {
+		if (tls_enable_signed_certificate_timestamp(&conn) != 1) {
+			error_print();
+			goto end;
+		}
 	}
 
 	if (sess_in) {
@@ -470,6 +510,23 @@ bad:
 		fclose(early_data_fp);
 	}
 
+	if (post_handshake_auth) {
+	}
+
+
+
+	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(port);
+
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
+		fprintf(stderr, "%s: socket create error\n", prog);
+		goto end;
+	}
+	if (tls_socket_connect(sock, &server) != 1) {
+		fprintf(stderr, "%s: socket connect error\n", prog);
+		goto end;
+	}
 
 
 	if (tls_set_socket(&conn, sock) != 1

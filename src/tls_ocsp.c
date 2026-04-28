@@ -28,7 +28,6 @@
 #include <sys/select.h>
 
 
-
 /*
 status_request(5)
 
@@ -46,7 +45,6 @@ ClientHello.status_request
 	} OCSPStatusRequest;
 */
 
-// 如果两个参数都为空的话，我们应该提供一个空的request			
 int tls_ocsp_status_request_to_bytes(
 	const uint8_t *responder_id_list, size_t responder_id_list_len, // optional
 	const uint8_t *request_exts, size_t request_exts_len, // optinoal
@@ -302,11 +300,11 @@ int tls13_set_client_status_request(TLS_CONNECT *conn,
 		error_print();
 		return -1;
 	}
-	conn->status_request = 1;
 	conn->status_request_responder_id_list = status_request_responder_id_list;
 	conn->status_request_responder_id_list_len = status_request_responder_id_list_len;
 	conn->status_request_exts = status_request_exts;
 	conn->status_request_exts_len = status_request_exts_len;
+	conn->status_request = 1;
 	return 1;
 }
 

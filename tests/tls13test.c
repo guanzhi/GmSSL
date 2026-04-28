@@ -448,7 +448,7 @@ static int test_tls13_signature_algorithms_cert_ext(void)
 		error_print();
 		return -1;
 	}
-	tls13_signature_algorithms_cert_print(stderr, 0, 4, ext_data, ext_datalen);
+	tls_signature_algorithms_print(stderr, 0, 4, ext_data, ext_datalen);
 
 	if (tls_process_signature_algorithms(ext_data, ext_datalen,
 		server_sig_algs, server_sig_algs_cnt,

@@ -744,7 +744,7 @@ typedef struct {
 	uint8_t cert_chains[8192];
 	size_t cert_chains_len;
 	size_t cert_chains_cnt; // 这是一个多余的值，不应该存储多余的值
-	size_t cert_chain_idx;
+//	size_t cert_chain_idx; // == 1 mean the first certificate
 	uint8_t *certs;	// 这里应该改为cert_chain，我们将certs表示为互相独立的证书
 	size_t certslen;
 
@@ -770,12 +770,6 @@ typedef struct {
 	size_t cacertslen;
 	int verify_depth;
 
-
-
-
-
-
-
 	// NewSessionTicket
 	int new_session_ticket;
 	int new_session_ticket_cnt;
@@ -794,9 +788,11 @@ typedef struct {
 	// server_name is connection only
 
 	// 5. status_request
+	int status_request; // if send in ClientHello, CertificateRequest
 	// list of (uint24array)CertificateEntry.extensions.status_request.response
 	uint8_t status_request_ocsp_responses[512];
 	size_t status_request_ocsp_responses_len;
+
 
 	// 10. supported_gruops
 	int supported_groups[32];
@@ -808,7 +804,7 @@ typedef struct {
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
-	uint8_t signed_certificate_timestamp_lists[512];
+	uint8_t signed_certificate_timestamp_lists[512]; // list of uint16array
 	size_t signed_certificate_timestamp_lists_len;
 
 	// 35. session_ticket
@@ -832,11 +828,27 @@ typedef struct {
 	// 46. psk_key_exchange_modes
 	int psk_key_exchange_modes;
 
+	// 47. certificate_authorities
+	//int certificate_authorities;
+	uint8_t ca_names[512];
+	size_t ca_names_len;
+
+	// 48. oid_filters
+	// ClientHello, CertificateRequest中是否包含这个扩展
+	const uint8_t *oid_filters;
+	size_t oid_filters_len;
+
+
+	// 49. post_handshake_auth
+	int post_handshake_auth;
+
+	// 50. signature_algorithms_cert
+	int signature_algorithms_cert; // 我方是否在ClientHello, CertificateRequest 中包含这个扩展
+
 	// 51. key_share
 	size_t key_exchanges_cnt;
 
 } TLS_CTX;
-
 
 
 
@@ -925,8 +937,6 @@ enum {
 typedef struct {
 	int is_client; // 这个在CTX中应该是有的
 
-	int quiet;
-
 	tls_socket_t sock;
 
 	TLS_CTX *ctx;
@@ -974,9 +984,20 @@ typedef struct {
 	// 己方的证书链，指向TLS_CTX中的cert_chains
 	const uint8_t *cert_chain;
 	size_t cert_chain_len;
-	int cert_chain_idx; // 这样就指向了CTX中的密钥
+	size_t cert_chain_idx;
 
-	int sig_alg;
+	int sig_alg; // 这个算法是和cert_chain中的end_entity_cert的公钥绑定的，并且是从客户端的signature_algorithms中
+
+
+
+
+	/*
+	客户端和服务器端的签名算法是没有关系的
+	服务器和客户端都是在选择自己的证书链的同时确定了自己的签名算法
+	这个签名算法是通过CertificateVerify通知给对方的
+
+	*/
+
 
 
 	uint8_t peer_cert_chain[TLS_MAX_CERTIFICATES_SIZE];
@@ -1025,8 +1046,6 @@ typedef struct {
 	SM2_SIGN_CTX sign_ctx;
 	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
 
-
-
 	// 所有这些命名为ecdh的都需要替换掉
 	uint16_t ecdh_named_curve;
 	X509_KEY ecdh_keys[2];
@@ -1036,75 +1055,74 @@ typedef struct {
 	size_t peer_ecdh_point_len;
 
 
-
-	// CertificateRequest.signature_algorithms =
-	//   common(ClientHello.signature_algorithms, ctx->signature_algorithms)
-	/*
-	int signature_algorithms[2];
-	size_t signature_algorithms_cnt;
-	*/
-
-
-	// handshake messages
+	// HelloRetryRequest
 	int hello_retry_request;
+
+	// CertificateRequest
 	int certificate_request;
-	//int new_session_ticket;
+
+	// NewSessionTicket
+	int new_session_ticket;
+	int new_session_ticket_cnt;
+	const char *session_in;
+	const char *session_out;
 
 	// KeyUpdate
 	size_t client_data_size;
 	size_t server_data_size;
 
-	// extensions
+	// Extensions
 
 	// 0. server_name
-	// server_name is client only, server should not response server_name ext
 	int server_name;
+	// ClientHello.server_name
 	uint8_t host_name[256];
 	size_t host_name_len;
+	// EncryptedExtensions.server_name (emtpy)
 
 	// 5. status_request
 	int status_request;
-	// ClientHello.status_request set by app
+	// ClientHello.status_request
 	const uint8_t *status_request_responder_id_list;
 	size_t status_request_responder_id_list_len;
 	const uint8_t *status_request_exts;
 	size_t status_request_exts_len;
-	// ServerCertificate.CertificateEntry.status_request
-	// 在选择好证书之后，这些值应该指向ctx->status_request_ocsp_responses
-	// 但是有可能指针为空或者长度为0
-	// 如果客户端发送了status_request，还需要进一步检查是否匹配，如果不匹配，需要设置为0
+	// CertificateRequest.status_request (empty)
+	// Certificate.CertificateEntry.status_request
 	const uint8_t *status_request_ocsp_response;
 	size_t status_request_ocsp_response_len;
 
-	// 10. supported_gruops
+	// 10. supported_groups
+	// in ClientHello; EncryptedExtensions
 	int supported_groups[32];
 	size_t supported_groups_cnt;
 
 
 	// 13. signature_algorithms
+	// in ClientHello, CertificateRequest;
 	int signature_algorithms[2];
 	size_t signature_algorithms_cnt;
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
+	// ClientHello.signed_certificate_timestamp (empty)
+	// CertificateRequest.signed_certificate_timestamp (empty)
+	// Certificate.CertificateEntry.signed_certificate_timestamp
 	const uint8_t *signed_certificate_timestamp_list;
 	size_t signed_certificate_timestamp_list_len;
 
-	// 35. session_ticket
-	// NewSessionTicket
-	int new_session_ticket;
-	int new_session_ticket_cnt;
+	// 35. session_ticket (TLS12_ONLY)
 
 	// 41. pre_shared_key
+	// in ClientHello; ServerHello
 	int pre_shared_key;
-	uint8_t psk_identities[512];
+	uint8_t psk_identities[512]; // list of PskIdentity objects
 	size_t psk_identities_len;
 	int psk_cipher_suites[8];
 	size_t psk_cipher_suites_cnt;
-	uint8_t psk_keys[32 * 8];
+	uint8_t psk_keys[32 * 8]; // uint8array
 	size_t psk_keys_len;
-
-
+	//	selected
 	const uint8_t *psk_identity;
 	size_t psk_identity_len;
 	uint8_t psk[32]; // 这应该改为一个指针
@@ -1112,25 +1130,47 @@ typedef struct {
 	int selected_psk_identity;
 
 
-	// session_ticket
-	const char *session_in;
-	const char *session_out;
-
 	int client_certificate_verify; // TLS1.2 TLCP需要这个
 
 
 	// 42. early_data
+	// in NewSessionTicket, ClientHello1; EncryptedExtensions
 	int early_data;
 	size_t max_early_data_size;
 	uint8_t early_data_buf[8192];
+	size_t early_data_offset;
 	size_t early_data_len;
 
+	// 43. supported_versions
+	// in ClientHello; ServerHello, HelloRetryRequest
+	// not optional
+
 	// 44. cookie
+	// in HelloRetryRequest; ClientHello2
 	int cookie;
 	uint8_t cookie_buf[256];
 	size_t cookie_len;
 
+	// 46. psk_key_exchange_modes
+	// in ClientHello;
+
+	// 47. certificate_authorities
+	// in ClientHello, CertificateRequest;
+	int certificate_authorities;
+
+	// 48. oid_filters
+	int oid_filters;
+
+	// 49. post_handshake_auth
+	int post_handshake_auth;
+	// in ClientHello;
+
+	// 50. signature_algorithms_cert
+	// in ClientHello, CertificateRequest;
+	int signature_algorithms_cert;
+
 	// 51. key_share
+	// in ClientHello; HelloRetryRequest, ServerHello
 	int key_share;
 	X509_KEY key_exchanges[2];
 	size_t key_exchanges_cnt;
@@ -1358,7 +1398,8 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn);
 
 
 // tls13 client/server
-int tls13_send_key_update(TLS_CONNECT *conn, int request_update);
+int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update);
+int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update);
 int tls13_recv_key_update(TLS_CONNECT *conn);
 
 
@@ -1383,6 +1424,8 @@ int tlcp_do_accept(TLS_CONNECT *conn);
 int tls12_do_connect(TLS_CONNECT *conn);
 int tls12_do_accept(TLS_CONNECT *conn);
 
+
+int tls13_init(TLS_CONNECT *conn, TLS_CTX *ctx);
 
 
 int tls13_do_connect(TLS_CONNECT *conn);
@@ -1598,27 +1641,86 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn);
 
 
 
+int tls_cert_match_signature_algorithms(const uint8_t *cert, size_t certlen,
+	const int *signature_algorithms, size_t signature_algorithms_cnt,
+	int *first_matched_sig_alg);
+
+int tls_cert_chain_match_signature_algorithms_cert(
+	const uint8_t *cert_chain, size_t cert_chain_len,
+	const int *signature_algorithms_cert, size_t signature_algorithms_cert_cnt);
+
+
+
+// if cert has on subject_alt_name to match tls server_name extension
+// return error (0) or success (1) to ignore the server_name
+#define TLS_CERT_VERIFY_NO_SUBJECT_ALT_NAME 1
+
+int tls_cert_match_server_name(const uint8_t *cert, size_t certlen, const uint8_t *host_name, size_t host_name_len);
+
+int tls_cert_chain_match_extensions(
+	const uint8_t *cert_chain, size_t cert_chain_len,
+	const int *signature_algorithms, size_t signature_algorithms_cnt,
+	const int *signature_algorithms_cert, size_t signature_algorithms_cert_cnt, // optional
+	const uint8_t *ca_names, size_t ca_names_len, // optional
+	const uint8_t *oid_filters, size_t oid_filters_len, // optional
+	const uint8_t *host_name, size_t host_name_len, // optional
+	int *prefered_sig_alg);
+
+
+int tls13_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
+	const int *signature_algorithms, size_t signature_algorithms_cnt,
+	const int *signature_algorithms_cert, size_t signature_algorithms_cert_cnt, // optional
+	const uint8_t *ca_names, size_t ca_names_len, // certificate_authorities optional
+	const uint8_t *oid_filters, size_t oid_filters_len, // optional, only in CertificateRequest
+	const uint8_t *host_name, size_t host_name_len, // optional, only in ClientHello
+	const uint8_t **certs, size_t *certs_len, size_t *certs_idx, // optional
+	int *prefered_sig_alg);
+
 
 
 // Extensions
 
 
 
-// 0. server_name (sni)
+// 0. server_name (SNI): in ClientHello, EncryptedExtensions
+int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len); // client only
 int tls_server_name_ext_to_bytes(const uint8_t *host_name, size_t host_name_len, uint8_t **out, size_t *outlen);
 int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	const uint8_t *ext_data, size_t ext_datalen);
 int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
-int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len);
 
-// 5. status_request (ocsp stapling)
+
+
+
+
+
+
+
+
+// 5. status_request (OCSP stapling)
 enum {
 	TLS_certificate_status_type_ocsp = 1,
 };
 
+// set ClientHello.status_request
+// server CertifcateRequest.status_request only if ClientHello.status_request send
+int tls13_set_client_status_request(TLS_CONNECT *conn,
+	const uint8_t *status_request_responder_id_list, size_t status_request_responder_id_list_len, // optional
+	const uint8_t *status_request_exts, size_t status_request_exts_len); // optional
+// ocsp_response is set by tls_ctx_add_certificate_list_and_key()
+
+// status_request in CertificateRequest
+//   depends on ClientHello.status_request, can not be set explicitly
+
 int ocsp_response_verify(const uint8_t *ocsp_response, size_t ocsp_response_len,
 	const uint8_t *ca_certs, size_t ca_certs_len);
 
+int tls_ocsp_response_match_status_request(
+	const uint8_t *status_request_ocsp_response, size_t status_request_ocsp_response_len,
+	const uint8_t *responder_id_list, size_t responder_id_list_len,
+	const uint8_t *request_exts, size_t request_exts_len);
+
+// status_request in ClientHello
 int tls_ocsp_status_request_to_bytes(
 	const uint8_t *responder_id_list, size_t responder_id_list_len,
 	const uint8_t *request_exts, size_t request_exts_len,
@@ -1639,10 +1741,7 @@ int tls_client_status_request_from_bytes(int *status_type,
 	const uint8_t *ext_data, size_t ext_datalen);
 int tls_client_status_request_print(FILE *fp, int fmt, int ind,
 	const uint8_t *ext_data, size_t ext_datalen);
-int tls13_set_client_status_request(TLS_CONNECT *conn,
-	const uint8_t *status_request_responder_id_list, size_t status_request_responder_id_list_len, // optional
-	const uint8_t *status_request_exts, size_t status_request_exts_len); // optional
-
+// Certificate 这个命名有问题，客户端证书也可以包含status_request，应该以client_hello, certificate结尾来标注函数名				
 int tls_server_status_request_ext_to_bytes(const uint8_t *ocsp_response, size_t ocsp_response_len,
 	uint8_t **out, size_t *outlen);
 int tls_server_status_request_from_bytes(const uint8_t **ocsp_response, size_t *ocsp_response_len,
@@ -1650,10 +1749,10 @@ int tls_server_status_request_from_bytes(const uint8_t **ocsp_response, size_t *
 int tls_server_status_request_print(FILE *fp, int fmt, int ind,
 	const uint8_t *ext_data, size_t ext_datalen);
 
-int tls_ocsp_response_match_status_request(
-	const uint8_t *status_request_ocsp_response, size_t status_request_ocsp_response_len,
-	const uint8_t *responder_id_list, size_t responder_id_list_len,
-	const uint8_t *request_exts, size_t request_exts_len);
+
+
+
+
 
 // 10. supported_groups
 int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
@@ -1675,6 +1774,9 @@ int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_data
 int tls_process_server_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen);
 
 // 13. signature_algorithms
+
+int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn);
+
 int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen);
@@ -1685,7 +1787,18 @@ int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen
 	const int *local_sig_algs, size_t local_sig_algs_cnt,
 	int *common_sig_algs, size_t *common_sig_algs_cnt, size_t max_cnt);
 
+
 // 18. signed_certificate_timestamp (certificate transparency, CT)
+// signed_certificate_timestamp response is set by tls_ctx_add_certificate_list_and_key()
+int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx); // 这里enable的是什么？是否请求吗？
+int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn);
+
+
+
+// 客户端需要一组SCT服务器的公钥列表才能够去验证SCT，我们假定这个公钥列表在CTX中
+
+int tls13_signed_certificate_timestamp_verify(const uint8_t *sct_list, size_t sct_list_len);
+
 int tls_signed_certificate_timestamp_entry_to_bytes(const uint8_t key_id[32],
 	uint64_t timestamp, const uint8_t *signature, size_t signature_len,
 	uint8_t **out, size_t *outlen);
@@ -1698,8 +1811,12 @@ int tls_signed_certificate_timestamp_from_bytes(const uint8_t **sct_list, size_t
 	const uint8_t **in, size_t *inlen);
 int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
 	const char *label, const uint8_t *d, size_t dlen);
-int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx);
-int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn);
+
+
+
+
+
+
 
 // 41. pre_shared_key
 int tls13_psk_identity_to_bytes(const uint8_t *ticket, size_t ticketlen, uint32_t obfuscated_ticket_age,
@@ -1795,6 +1912,26 @@ int tls13_psk_key_exchange_modes_ext_to_bytes(int modes, uint8_t **out, size_t *
 int tls13_psk_key_exchange_modes_from_bytes(int *modes, const uint8_t *ext_data, size_t ext_datalen);
 int tls13_psk_key_exchange_modes_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 int tls13_ctx_set_psk_key_exchange_modes(TLS_CTX *ctx, int psk_ke, int psk_dhe_ke);
+
+
+// 47. certificate_authorities
+int tls13_enable_certificate_authorities(TLS_CONNECT *conn);
+int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
+	uint8_t **out, size_t *outlen);
+int tls13_certificate_authorities_from_bytes(const uint8_t **ca_names, size_t *ca_names_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls13_certificate_authorities_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
+
+// 48. oid_filters
+
+
+
+
+// 49. post_handshake_auth
+
+int tls13_enable_post_handshake_auth(TLS_CONNECT *conn);
+
 
 
 // 50. signature_algorithms_cert

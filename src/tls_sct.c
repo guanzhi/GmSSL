@@ -163,3 +163,13 @@ int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx)
 	ctx->signed_certificate_timestamp = 1;
 	return 1;
 }
+
+
+int tls13_signed_certificate_timestamp_verify(const uint8_t *sct_list, size_t sct_list_len)
+{
+	//error_print();
+	return 1;
+}
+
+
+

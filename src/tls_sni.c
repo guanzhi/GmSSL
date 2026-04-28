@@ -130,7 +130,7 @@ int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, s
 			return -1;
 		}
 		format_print(fp, fmt, ind, "name_type: %s (%d)\n", name_type == 0 ? "host_name" : "(unknown)", name_type);
-		format_bytes(fp, fmt, ind, "host_name", host_name, host_name_len); // TODO: print string
+		format_string(fp, fmt, ind, "host_name", host_name, host_name_len); // TODO: print string
 	}
 	if (ext_datalen) {
 		error_print();

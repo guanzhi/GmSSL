@@ -77,13 +77,23 @@ static const char *help =
 "    cat signcert.pem > certs.pem\n"
 "    cat cacert.pem >> certs.pem\n"
 "\n"
-"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem\n"
+"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
 "\n"
-"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 \n"
-"       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \n"
-"       -supported_group sm2p256v1 -supported_group prime256v1\n"
+"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
+"       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
 "       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
+"       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
+"       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256 \\\n"
+"       -max_key_exchanges 2 \\\n"
+"       -server_name \\\n"
+"       -signature_algorithms_cert \\\n"
+"       -status_request \\\n"
+"       -post_handshake_auth \\\n"
+"       -ct\n"
 "\n"
 "    PSK=1122334455667788112233445566778811223344556677881122334455667788\n"
 "    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
@@ -276,10 +286,12 @@ bad:
 		argv++;
 	}
 
+	/*
 	if (!cipher_suites_cnt) {
 		error_print();
 		goto end;
 	}
+	*/
 
 	if (tls_socket_lib_init() != 1) {
 		error_print();
@@ -398,8 +410,15 @@ bad:
 		fprintf(stderr, "%s: socket bind error\n", prog);
 		goto end;
 	}
+
+	if (tls13_init(&conn, &ctx) != 1) {
+		error_print();
+		return -1;
+	}
+
 	puts("start listen ...\n");
 	tls_socket_listen(sock, 1);
+
 
 
 
@@ -412,8 +431,7 @@ restart:
 	}
 	puts("socket connected\n");
 
-	if (tls_init(&conn, &ctx) != 1
-		|| tls_set_socket(&conn, conn_sock) != 1) {
+	if (tls_set_socket(&conn, conn_sock) != 1) {
 		error_print();
 		return -1;
 	}

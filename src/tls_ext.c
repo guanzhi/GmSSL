@@ -327,7 +327,7 @@ Example:
 
 */
 
-int tls_signature_algorithms_print_ex(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
+int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *sig_algs;
 	size_t sig_algs_len;
@@ -355,6 +355,23 @@ int tls_signature_algorithms_print_ex(FILE *fp, int fmt, int ind, const char *la
 	return 1;
 }
 
+
+int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (!conn->ctx->signature_algorithms_cnt) {
+		error_print();
+		return -1;
+	}
+	conn->signature_algorithms_cert = 1;
+	return 1;
+}
+
+
+/*
 int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
 	if (tls_signature_algorithms_print_ex(fp, fmt, ind, "signature_algorithms", d, dlen) != 1) {
@@ -372,7 +389,7 @@ int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint
 	}
 	return 1;
 }
-
+*/
 
 
 

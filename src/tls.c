@@ -1999,6 +1999,8 @@ int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, 
 	return 1;
 }
 
+// 这个函数在语义上有问题:
+//	首先我们判断的是证书链，因此函数名上应该是一个cert_chain
 int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_names_len, const uint8_t *certs, size_t certslen)
 {
 	const uint8_t *cert;
@@ -2240,6 +2242,10 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	ctx->verify_depth = 5;
 
 
+	// 默认就发送一个，因为只要发送key_share，那么至少有一个group
+	ctx->key_exchanges_cnt = 1;
+
+
 	return 1;
 }
 
@@ -2340,6 +2346,11 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 		return -1;
 	}
 	if (ctx->cacertslen == 0) {
+		error_print();
+		return -1;
+	}
+	if (tls_authorities_from_certs(ctx->ca_names, &ctx->ca_names_len, sizeof(ctx->ca_names),
+		ctx->cacerts, ctx->cacertslen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2651,8 +2662,6 @@ int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_
 	}
 	ctx->supported_groups_cnt = groups_cnt;
 
-	ctx->key_exchanges_cnt = (groups_cnt >= 2) ? 2 : 1;
-
 	return 1;
 }
 
@@ -2716,7 +2725,7 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 
 
-	conn->is_client = ctx->is_client;
+	//conn->is_client = ctx->is_client;
 
 	conn->protocol = ctx->protocol;
 
@@ -2752,10 +2761,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 	conn->sign_key = ctx->signkey;
 	conn->kenc_key = ctx->kenckey;
-
-	conn->quiet = ctx->quiet;
-
-
 
 	conn->ctx = ctx;
 
