@@ -101,8 +101,7 @@ int tls_signed_certificate_timestamp_from_bytes(const uint8_t **sct_list, size_t
 	return 1;
 }
 
-int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
-	const char *label, const uint8_t *d, size_t dlen)
+int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *sct_list;
 	size_t sct_list_len;

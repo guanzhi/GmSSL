@@ -227,6 +227,7 @@ set(tests
 	cms
 	tls
 	tls13
+	tls_ocsp
 )
 
 

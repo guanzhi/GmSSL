@@ -50,18 +50,12 @@ int tls_ocsp_status_request_to_bytes(
 	const uint8_t *request_exts, size_t request_exts_len, // optinoal
 	uint8_t **out, size_t *outlen)
 {
-	uint8_t **pp = out;
-	size_t request_len = 0;
-	size_t len;
-
 	if (!outlen) {
 		error_print();
 		return -1;
 	}
-	tls_uint16_to_bytes(0, out, &len);
-	tls_uint16array_to_bytes(responder_id_list, responder_id_list_len, out, &request_len);
-	tls_uint16array_to_bytes(request_exts, request_exts_len, out, &request_len);
-	tls_uint16array_to_bytes(NULL, request_len, pp, outlen);
+	tls_uint16array_to_bytes(responder_id_list, responder_id_list_len, out, outlen);
+	tls_uint16array_to_bytes(request_exts, request_exts_len, out, outlen);
 	return 1;
 }
 
@@ -73,35 +67,20 @@ int tls_ocsp_status_request_from_bytes(
 	const uint8_t *request;
 	size_t request_len;
 
-	if (!responder_id_list || !responder_id_list_len || !request_exts || !request_exts_len
-		|| !in || !(*in) || !inlen) {
+	if (!in || !(*in) || !inlen) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint16array_from_bytes(&request, &request_len, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (!request) {
-		*responder_id_list = NULL;
-		*responder_id_list_len = 0;
-		*request_exts = NULL;
-		*request_exts_len = 0;
-		return 1;
-	}
-	if (tls_uint16array_from_bytes(responder_id_list, responder_id_list_len, &request, &request_len) != 1
-		|| tls_uint16array_from_bytes(request_exts, request_exts_len, &request, &request_len) != 1
-		|| tls_length_is_zero(request_len) != 1) {
+	if (tls_uint16array_from_bytes(responder_id_list, responder_id_list_len, in, inlen) != 1
+		|| tls_uint16array_from_bytes(request_exts, request_exts_len, in, inlen) != 1) {
 		error_print();
 		return -1;
 	}
 	return 1;
 }
 
-int tls_ocsp_status_request_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *ext_data, size_t ext_datalen)
+int tls_ocsp_status_request_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *request, size_t request_len)
 {
-	const uint8_t *request;
-	size_t request_len;
 	const uint8_t *responder_id_list;
 	size_t responder_id_list_len;
 	const uint8_t *request_exts;
@@ -110,16 +89,8 @@ int tls_ocsp_status_request_print(FILE *fp, int fmt, int ind, const char *label,
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	if (tls_uint16array_from_bytes(&request, &request_len, &ext_data, &ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
 	if (!request) {
 		format_print(fp, fmt, ind, "(null)\n");
-		if (ext_datalen) {
-			format_print(fp, fmt, ind, "error: left %zu bytes\n", ext_datalen);
-			return -1;
-		}
 		return 1;
 	}
 
@@ -148,7 +119,7 @@ int tls_ocsp_status_request_print(FILE *fp, int fmt, int ind, const char *label,
 			error_print();
 			return -1;
 		}
-		// print
+		// TODO: print
 	}
 	return 1;
 }
@@ -160,8 +131,12 @@ int tls_client_status_request_ext_to_bytes(int status_type,
 {
 	int ext_type = TLS_extension_status_request;
 	size_t ext_datalen = 0;
-	uint8_t **pp = out;
+	uint8_t request[256];
+	size_t request_len = 0;
+	uint8_t *p;
+	uint8_t **pp = NULL;
 	size_t len;
+
 
 	if (!outlen) {
 		error_print();
@@ -171,10 +146,36 @@ int tls_client_status_request_ext_to_bytes(int status_type,
 		error_print();
 		return -1;
 	}
+
+	if (responder_id_list && responder_id_list_len
+		&& request_exts && request_exts_len) {
+		if (tls_ocsp_status_request_to_bytes(
+			responder_id_list, responder_id_list_len,
+			request_exts, request_exts_len, NULL, &request_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (request_len > sizeof(request)) {
+			error_print();
+			return -1;
+		}
+		p = request;
+		request_len = 0;
+		if (tls_ocsp_status_request_to_bytes(
+			responder_id_list, responder_id_list_len,
+			request_exts, request_exts_len, &p, &request_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (out) {
+		p = *out;
+		pp = &p;
+	}
 	tls_ext_to_bytes(ext_type, NULL, 0, out, &len);
 	tls_uint8_to_bytes(status_type, out, &ext_datalen);
-	tls_ocsp_status_request_to_bytes(responder_id_list, responder_id_list_len,
-		request_exts, request_exts_len, out, &ext_datalen);
+	tls_uint16array_to_bytes(request, request_len, out, &ext_datalen);
 	tls_ext_to_bytes(ext_type, NULL, ext_datalen, pp, outlen);
 	return 1;
 }
@@ -185,13 +186,21 @@ int tls_client_status_request_from_bytes(int *status_type,
 	const uint8_t *ext_data, size_t ext_datalen)
 {
 	uint8_t status;
+	const uint8_t *request;
+	size_t request_len;
 
 	if (!status_type || !responder_id_list || !responder_id_list_len
-		|| !request_exts || !request_exts_len || !ext_data || !ext_datalen) {
+		|| !request_exts || !request_exts_len) {
 		error_print();
 		return -1;
 	}
-	if (tls_uint8_from_bytes(&status, &ext_data, &ext_datalen) != 1) {
+	if (!ext_data || !ext_datalen) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint8_from_bytes(&status, &ext_data, &ext_datalen) != 1
+		|| tls_uint16array_from_bytes(&request, &request_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -200,11 +209,18 @@ int tls_client_status_request_from_bytes(int *status_type,
 		return -1;
 	}
 	*status_type = status;
-	if (tls_ocsp_status_request_from_bytes(responder_id_list, responder_id_list_len,
-		request_exts, request_exts_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
+	*responder_id_list = NULL;
+	*responder_id_list_len = 0;
+	*request_exts = NULL;
+	*request_exts_len = 0;
+	if (request) {
+		if (tls_ocsp_status_request_from_bytes(
+			responder_id_list, responder_id_list_len,
+			request_exts, request_exts_len, &request, &request_len) != 1
+			|| tls_length_is_zero(request_len) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	return 1;
 }
@@ -221,11 +237,10 @@ int tls_client_status_request_print(FILE *fp, int fmt, int ind, const uint8_t *e
 		return -1;
 	}
 	format_print(fp, fmt, ind, "status_type: %s (%d)\n", status_type == TLS_certificate_status_type_ocsp ? "ocsp" : NULL, status_type);
-
-	request -= tls_uint16_size();
-	request_len += tls_uint16_size();
 	tls_ocsp_status_request_print(fp, fmt, ind, "request", request, request_len);
-
+	if (ext_datalen) {
+		format_print(fp, fmt, ind, "left: %zu bytes\n", ext_datalen);
+	}
 	return 1;
 }
 

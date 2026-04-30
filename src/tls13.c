@@ -1789,10 +1789,9 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			tls_server_name_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_status_request:
-		//	tls_client_status_request_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			tls_client_status_request_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_signed_certificate_timestamp:
-			format_print(fp, fmt, ind + 4, "signed_certificate_timestamp\n");
 			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen); // should be empty
 			break;
 		case TLS_extension_supported_groups:
@@ -1828,7 +1827,7 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			break;
 		default:
 			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen);
-			//error_print();
+			error_print();
 			//return -1;
 		}
 	}
@@ -1917,6 +1916,7 @@ int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			break;
 		default:
 			format_bytes(fp, fmt, ind + 4, "raw_data", ext_data, ext_datalen);
+			error_print();
 			return -1;
 		}
 	}
@@ -2176,8 +2176,11 @@ int tls13_encrypted_extensions_print(FILE *fp, int fmt, int ind, const uint8_t *
 		case TLS_extension_heartbeat:
 		case TLS_extension_application_layer_protocol_negotiation:
 		case TLS_extension_record_size_limit:
+			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen);
+			break;
 		default:
-			format_bytes(fp, fmt, ind, "raw_data", ext_data, ext_datalen);
+			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen);
+			error_print();
 		}
 	}
 	if (dlen) {
@@ -2247,13 +2250,19 @@ int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t
 
 			switch (ext_type) {
 			case TLS_extension_status_request:
+				tls_server_status_request_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+				break;
 			case TLS_extension_signed_certificate_timestamp:
+				tls_signed_certificate_timestamp_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+				break;
 			case TLS_extension_server_certificate_type:
 			case TLS_extension_client_certificate_type:
+				format_bytes(fp, fmt, ind, "data", ext_data, ext_datalen);
 				break;
 			default:
+				format_bytes(fp, fmt, ind, "data", ext_data, ext_datalen);
 				error_print();
-				return -1;
+				//return -1;
 			}
 		}
 	}
