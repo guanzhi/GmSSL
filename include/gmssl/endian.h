@@ -11,6 +11,7 @@
 #ifndef GMSSL_ENDIAN_H
 #define GMSSL_ENDIAN_H
 
+#include <stdint.h>
 
 /* Big Endian R/W */
 

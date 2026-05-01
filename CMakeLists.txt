@@ -608,7 +608,7 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
-if (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+if (WIN32 AND CMAKE_C_COMPILER_ID MATCHES "MSVC|Clang")
 	message(STATUS "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS")
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON) # set before add_library
 endif()

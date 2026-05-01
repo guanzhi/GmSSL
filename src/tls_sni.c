@@ -23,9 +23,11 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
 #include <errno.h>
+#ifndef WIN32
+#include <fcntl.h>
 #include <sys/select.h>
+#endif
 
 /*
 server_name (SNI)
