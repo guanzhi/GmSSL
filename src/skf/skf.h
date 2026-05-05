@@ -14,9 +14,7 @@
 #ifndef SKFUTIL_SKF_H
 #define SKFUTIL_SKF_H
 
-
 #include "../sgd.h"
-
 
 #ifdef __cplusplus
 extern "C" {
