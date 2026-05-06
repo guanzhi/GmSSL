@@ -1116,7 +1116,7 @@ static int test_SDF_Encrypt_SM4_ECB(int key, char *pass)
 	}
 
 	// encrypt
-	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, NULL, pucData, (unsigned int)sizeof(pucData), pucEncData, &uiEncDataLength);
+	ret = SDF_Encrypt(hSessionHandle, hKeyHandle, SGD_SM4_ECB, NULL, pucData, (unsigned int)sizeof(pucData), pucEncData, &uiEncDataLength);
 	if (ret != SDR_OK) {
 		error_print();
 		return -1;
@@ -1132,7 +1132,7 @@ static int test_SDF_Encrypt_SM4_ECB(int key, char *pass)
 	}
 
 	// decrypt
-	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, NULL, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
+	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_ECB, NULL, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
 	if (ret != SDR_OK) {
 		error_print();
 		return -1;
@@ -1249,7 +1249,7 @@ static int test_SDF_Encrypt_SM4_CFB(int key, char *pass)
 
 	// decrypt
 	memcpy(pucIV, iv, sizeof(iv));
-	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CBC, pucIV, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
+	ret = SDF_Decrypt(hSessionHandle, hKeyHandle, SGD_SM4_CFB, pucIV, pucEncData, uiEncDataLength, pucEncData, &uiEncDataLength);
 	if (ret != SDR_OK) {
 		error_print();
 		return -1;
