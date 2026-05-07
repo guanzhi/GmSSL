@@ -581,6 +581,8 @@ int tls13_session_print(FILE *fp, int fmt, int ind, const char *label, const uin
 	return 1;
 }
 
+// 需要检查一下加入的SESSION的cipher_suite是否和conn的匹配				
+
 // client only
 int tls13_add_pre_shared_key_from_session_file(TLS_CONNECT *conn, FILE *fp)
 {
@@ -664,20 +666,24 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		uint32_t max_early_data_size = 256 * 1024; // 256 KB
 		uint32_t ticket_issue_time = time(NULL);
 
+		uint8_t resumption_master_secret[48];
+		size_t dgstlen = 32;
+		uint8_t pre_shared_key[32];
+
 		if (rand_bytes((uint8_t *)&ticket_age_add, sizeof(ticket_age_add)) != 1) {
 			error_print();
 			return -1;
 		}
+
 		if (rand_bytes(ticket_nonce, sizeof(ticket_nonce)) != 1) {
 			error_print();
 			return -1;
 		}
 
-		uint8_t resumption_master_secret[48];
-		size_t dgstlen = 32;
-		uint8_t pre_shared_key[32];
-
 		// generate resumption_master_secret
+
+		digest_init(&conn->dgst_ctx, conn->digest);
+
 		/* [14] */ tls13_derive_secret(conn->master_secret, "res master", &conn->dgst_ctx, resumption_master_secret);
 
 		// pre_shared_key = HKDF-Expand-Label(resumption_master_secret, "resumption", ticket_nonce, Hash.length)
@@ -712,6 +718,12 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 			return -1;
 		}
 		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+
+		format_print(stderr, 0, 0, "update server secrets\n");
+		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
+		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
+		format_bytes(stderr, 0, 4, "server_seq_num", conn->server_seq_num, 8);
+		format_print(stderr, 0, 0, "\n");
 
 		tls13_padding_len_rand(&padding_len);
 		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
@@ -798,6 +810,8 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 	uint8_t resumption_master_secret[48];
 	size_t dgstlen = 32;
 	uint8_t pre_shared_key[32];
+
+	digest_init(&conn->dgst_ctx, conn->digest);
 
 	// generate resumption_master_secret
 	/* [14] */ tls13_derive_secret(conn->master_secret, "res master", &conn->dgst_ctx, resumption_master_secret);
@@ -1942,4 +1956,5 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 
 	return 1;
 }
+
 

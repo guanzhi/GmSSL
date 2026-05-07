@@ -365,9 +365,8 @@ bad:
 			error_print();
 			return -1;
 		}
+		error_print();
 		tls13_ctx_set_psk_key_exchange_modes(&ctx, psk_ke, psk_dhe_ke);
-
-
 	}
 
 
@@ -411,7 +410,6 @@ bad:
 
 	if (sess_in) {
 		FILE *sess_infp;
-		int enable_psk = 0;
 		int psk_ret = 1;
 
 		if (!(sess_infp = fopen(sess_in, "rb"))) {
@@ -431,7 +429,7 @@ bad:
 
 		// 客户端是否发送pre_shared_key是由什么决定的？需要显式的支持吗
 		// 我觉得应该是不需要的，因为如果设置了psk_key_exchange_mode，那么自然要发送pre_shared_key
-		tls13_enable_pre_shared_key(&conn, enable_psk);
+		tls13_enable_pre_shared_key(&conn, 1);
 	}
 
 	if (sess_out) {

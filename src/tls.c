@@ -2780,6 +2780,8 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 		return -1;
 	}
 
+	fprintf(stderr, "%s %d: conn->key_exchange_modes = %d\n", __FILE__, __LINE__, conn->key_exchange_modes);
+
 
 	if (conn->key_exchange_modes & (TLS_KE_CERT_DHE|TLS_KE_PSK_DHE)) {
 		conn->key_share = 1;

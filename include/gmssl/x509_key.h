@@ -107,6 +107,8 @@ int x509_private_key_print_ex(FILE *fp, int fmt, int ind, const char *label, con
 #define X509_PUBLIC_KEY_INFO_MAX_SIZE 1280 // for kyber and 91 for others
 int x509_public_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *outlen);
 int x509_public_key_info_from_der(X509_KEY *key, const uint8_t **in, size_t *inlen);
+int x509_public_key_info_to_pem(const X509_KEY *a, FILE *fp);
+int x509_public_key_info_from_pem(X509_KEY *a, FILE *fp);
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
 

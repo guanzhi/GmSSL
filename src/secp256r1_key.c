@@ -199,8 +199,8 @@ int secp256r1_public_key_from_der(SECP256R1_KEY *key, const uint8_t **in, size_t
 }
 
 
-
-
+// 这里应该提供public_key_info_to_pem 和SM2完全一样的功能
+// 这样才可以生成证书
 
 
 

@@ -787,6 +787,41 @@ int x509_public_key_info_from_der(X509_KEY *x509_key, const uint8_t **in, size_t
 	return 1;
 }
 
+int x509_public_key_info_to_pem(const X509_KEY *a, FILE *fp)
+{
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	size_t len = 0;
+
+	if (x509_public_key_info_to_der(a, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pem_write(fp, "PUBLIC KEY", buf, len) <= 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_public_key_info_from_pem(X509_KEY *a, FILE *fp)
+{
+	uint8_t buf[512];
+	const uint8_t *cp = buf;
+	size_t len;
+
+	if (pem_read(fp, "PUBLIC KEY", buf, &len, sizeof(buf)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_public_key_info_from_der(a, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p = d;

@@ -58,8 +58,11 @@ static char *usage =
 "\n"
 "Examples\n"
 "\n"
-"    gmssl sm2keygen -pass P@ssw0rd -out key.pem\n"
-"    gmssl reqgen -CN www.gmssl.org -key key.pem -pass P@ssw0rd -out req.pem\n"
+"    gmssl sm2keygen -pass P@ssw0rd -out sm2key.pem\n"
+"    gmssl reqgen -CN www.gmssl.org -key sm2key.pem -pass P@ssw0rd -out sm2req.pem\n"
+"\n"
+"    gmssl p256keygen -pass P@ssw0rd -out p256key.pem\n"
+"    gmssl reqgen -CN www.gmssl.org -key p256key.pem -pass P@ssw0rd -out p256req.pem\n"
 "\n";
 
 

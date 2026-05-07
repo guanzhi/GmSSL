@@ -433,6 +433,7 @@ if (ENABLE_SECP256R1)
 	message(STATUS "ENABLE_SECP256R1 is ON")
 	add_definitions(-DENABLE_SECP256R1)
 	list(APPEND src src/secp256r1.c src/secp256r1_key.c src/ecdsa.c src/ecdh.c)
+	list(APPEND tools tools/p256keygen.c)
 	list(APPEND tests secp256r1 secp256r1_key ecdsa)
 endif()
 

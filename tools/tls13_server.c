@@ -19,6 +19,19 @@
 #include <gmssl/error.h>
 
 
+/*
+如果采用PSK模式并且是外部密钥，那么意味着每个预置密钥关联一个cipher_suite
+那么ClientHello中的cipher_suites应该是这些套件的集合
+但是ClientHello也可能支持PSK之外的套件，因此最终是常规cipher_suite + psk_cipher_suite的合集
+
+
+我们需要多组证书，也就是   -cert -key -pass 构成一组，我们可以用一个数组把这些放到一起
+
+
+
+*/
+
+
 static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
 
 static const char *help =
@@ -59,32 +72,34 @@ static const char *help =
 "\n"
 "Examples\n"
 "\n"
-"    gmssl sm2keygen -pass 1234 -out rootcakey.pem\n"
+"    gmssl sm2keygen -pass 1234 -out sm2rootcakey.pem\n"
 "    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \\\n"
-"            -key rootcakey.pem -pass 1234 -out rootcacert.pem \\\n"
+"            -key sm2rootcakey.pem -pass 1234 -out sm2rootcacert.pem \\\n"
 "            -key_usage keyCertSign -key_usage cRLSign -ca\n"
 "\n"
-"    gmssl sm2keygen -pass 1234 -out cakey.pem\n"
+"    gmssl sm2keygen -pass 1234 -out sm2cakey.pem\n"
 "    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN \"Sub CA\" \\\n"
-"            -key cakey.pem -pass 1234 -out careq.pem\n"
-"    gmssl reqsign -in careq.pem -days 365 -key_usage keyCertSign -cacert rootcacert.pem -key rootcakey.pem -pass 1234 \\\n"
-"            -out cacert.pem -ca -path_len_constraint 0\n"
+"            -key sm2cakey.pem -pass 1234 -out sm2careq.pem\n"
+"    gmssl reqsign -in sm2careq.pem -days 365 -key_usage keyCertSign -cacert rootcacert.pem -key rootcakey.pem -pass 1234 \\\n"
+"            -out sm2cacert.pem -ca -path_len_constraint 0\n"
 "\n"
-"    gmssl sm2keygen -pass 1234 -out signkey.pem\n"
-"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key signkey.pem -pass 1234 -out signreq.pem\n"
-"    gmssl reqsign -in signreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out signcert.pem\n"
+"    gmssl sm2keygen -pass 1234 -out sm2signkey.pem\n"
+"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key sm2signkey.pem -pass 1234 -out sm2signreq.pem\n"
+"    gmssl reqsign -in sm2signreq.pem -days 365 -key_usage digitalSignature -cacert sm2cacert.pem -key sm2cakey.pem -pass 1234 -out sm2signcert.pem\n"
 "\n"
-"    cat signcert.pem > certs.pem\n"
-"    cat cacert.pem >> certs.pem\n"
+"    cat sm2signcert.pem > sm2certs.pem\n"
+"    cat sm2cacert.pem >> sm2certs.pem\n"
 "\n"
-"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
+"    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
 "\n"
-"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234 \\\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
 "       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
 "       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem \\\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
 "       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
 "       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256 \\\n"
@@ -95,23 +110,31 @@ static const char *help =
 "       -post_handshake_auth \\\n"
 "       -ct\n"
 "\n"
+"\n"
+"    TICKET_KEY=11223344556677881122334455667788\n"
+"    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -new_session_ticket 2 -ticket_key $TICKET_KEY\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -sess_out session.bin\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 \\\n"
+"       -psk_dhe_ke -ticket_key $TICKET_KEY\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 \\\n"
+"       -psk_dhe_ke -sess_in session.bin\n"
+"\n"
+"\n"
 "    PSK=1122334455667788112233445566778811223344556677881122334455667788\n"
-"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
+"       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
+"       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
 "\n"
-"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data early_data.txt\n"
-"\n"
-"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -new_session_ticket 2\n"
-"\n"
-"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_dhe_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_dhe_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -early_data early_data.txt\n"
-"\n"
-"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -new_session_ticket 2 -ticket_key $TICKET_KEY\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_dhe_ke -supported_group sm2p256v1 -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK -sess_out session.bin\n"
-"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -ticket_key $TICKET_KEY\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 -psk_ke -sess_in session.bin\n"
-
 "\n";
 
 int tls13_server_main(int argc , char **argv)
@@ -122,6 +145,17 @@ int tls13_server_main(int argc , char **argv)
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+
+
+	char *certfiles[4];
+	char *keyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
+	char *passes[sizeof(certfiles)/sizeof(certfiles[0])];
+	size_t certfiles_cnt = 0;
+	size_t keyfiles_cnt = 0;
+	size_t passes_cnt = 0;
+
+
+
 	char *cacertfile = NULL;
 	int server_ciphers[] = { TLS_cipher_sm4_gcm_sm3, };
 	TLS_CTX ctx;
@@ -168,6 +202,9 @@ int tls13_server_main(int argc , char **argv)
 	int sig_algs[4];
 	size_t sig_algs_cnt = 0;
 
+	size_t i;
+
+
 	argc--;
 	argv++;
 
@@ -184,15 +221,37 @@ int tls13_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
+
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
+
+			if (certfiles_cnt >= sizeof(certfiles)/sizeof(certfiles[0])) {
+				error_print();
+				return -1;
+			}
+			certfiles[certfiles_cnt++] = certfile;
+
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyfile = *(++argv);
+
+			if (keyfiles_cnt >= sizeof(keyfiles)/sizeof(keyfiles[0])) {
+				error_print();
+				return -1;
+			}
+			keyfiles[keyfiles_cnt++] = keyfile;
+
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+
+			if (passes_cnt >= sizeof(passes)/sizeof(passes[0])) {
+				error_print();
+				return -1;
+			}
+			passes[passes_cnt++] = pass;
+
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -286,6 +345,11 @@ bad:
 		argv++;
 	}
 
+	if (certfiles_cnt != keyfiles_cnt || keyfiles_cnt != passes_cnt) {
+		error_print();
+		return -1;
+	}
+
 	/*
 	if (!cipher_suites_cnt) {
 		error_print();
@@ -311,6 +375,16 @@ bad:
 		goto end;
 	}
 
+	for (i = 0; i < certfiles_cnt; i++) {
+
+		fprintf(stderr, "add_certificate_chain_and_key\n");
+		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfiles[i], keyfiles[i], passes[i]) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	/*
 	if (certfile) {
 		if (!keyfile) {
 			fprintf(stderr, "%s: '-key' option required\n", prog);
@@ -325,6 +399,7 @@ bad:
 			return -1;
 		}
 	}
+	*/
 
 	if (supported_groups_cnt > 0) {
 		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
@@ -355,12 +430,13 @@ bad:
 	}
 
 	if (new_session_ticket < 0) {
-		error_print();
+		fprintf(stderr, "%s: '-ticket_key' is required by '-new_session_ticket'\n", prog);
 		return -1;
 	}
 	if (new_session_ticket > 0) {
 		if (!ticket_key) {
 			error_print();
+
 			return -1;
 		}
 		if (tls13_ctx_enable_new_session_ticket(&ctx, new_session_ticket) != 1) {
@@ -481,6 +557,51 @@ restart:
 		error_print();
 		return -1;
 	}
+
+
+	for (;;) {
+
+		fd_set fds;
+		size_t sentlen;
+
+		FD_ZERO(&fds);
+
+		// listen socket
+		FD_SET(conn.sock, &fds);
+
+		// 等待阻塞
+		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
+			&fds, NULL, NULL, NULL) < 0) {
+			fprintf(stderr, "%s: select failed\n", prog);
+			goto end;
+		}
+
+		if (FD_ISSET(conn.sock, &fds)) {
+			for (;;) {
+				memset(buf, 0, sizeof(buf));
+				if (tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
+					goto end;
+				}
+				fwrite(buf, 1, len, stdout);
+				fflush(stdout);
+
+				// FIXME: change tls13_recv API			
+				if (conn.datalen == 0) {
+					break;
+				}
+			}
+
+			fprintf(stderr, ">>>>>>>> send back\n");
+
+			if (tls13_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
+				fprintf(stderr, "%s: send error\n", prog);
+				goto end;
+			}
+		}
+	}
+
+
+
 
 	for (;;) {
 

@@ -64,6 +64,9 @@ extern int tls12_client_main(int argc, char **argv);
 extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
+#ifdef ENABLE_SECP256R1
+extern int p256keygen_main(int argc, char **argv);
+#endif
 #ifdef ENABLE_LMS
 extern int lmskeygen_main(int argc, char **argv);
 extern int lmssign_main(int argc, char **argv);
@@ -154,6 +157,9 @@ static const char *options =
 	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
+#ifdef ENABLE_SECP256R1
+	"  p256keygen         Generate P-256 (secp256r1, prime256v1) keypair\n"
+#endif
 #ifdef ENABLE_LMS
 	"  lmskeygen         Generate LMS-SM3 (Leighton-Micali Signature) keypair\n"
 	"  lmssign           Generate LMS-SM3 signature\n"
@@ -334,6 +340,10 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
+#ifdef ENABLE_SECP256R1
+		} else if (!strcmp(*argv, "p256keygen")) {
+			return p256keygen_main(argc, argv);
+#endif
 #ifdef ENABLE_LMS
 		} else if (!strcmp(*argv, "lmskeygen")) {
 			return lmskeygen_main(argc, argv);
