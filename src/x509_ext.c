@@ -1060,7 +1060,7 @@ int x509_general_names_get_first(const uint8_t *gns, size_t gns_len, const uint8
 
 	if ((ret = x509_general_names_get_next(gns, gns_len, &p, choice, d, dlen)) < 0) {
 		error_print();
-		return - 1;
+		return -1;
 	}
 
 	if (ptr) {
@@ -1119,6 +1119,8 @@ int x509_general_names_print(FILE *fp, int fmt, int ind, const char *label, cons
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
+
+	format_bytes(fp, 0, 0, "der", d, dlen);
 
 	while (dlen) {
 		if (x509_general_name_from_der(&choice, &p, &len, &d, &dlen) != 1) {

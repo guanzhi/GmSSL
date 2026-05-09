@@ -513,6 +513,7 @@ endif()
 
 if (ENABLE_AES)
 	message(STATUS "ENABLE_AES is ON")
+	add_definitions(-DENABLE_AES)
 	list(APPEND src src/aes.c src/aes_modes.c)
 	list(APPEND tests aes)
 endif()

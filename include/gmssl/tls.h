@@ -956,7 +956,7 @@ typedef struct {
 	uint8_t *data; // 让data指向plain_record
 	size_t datalen;
 
-
+	size_t sentlen; // 用于tls13_send
 
 
 	int protocol;
@@ -1649,12 +1649,6 @@ int tls_cert_chain_match_signature_algorithms_cert(
 	const uint8_t *cert_chain, size_t cert_chain_len,
 	const int *signature_algorithms_cert, size_t signature_algorithms_cert_cnt);
 
-
-
-// if cert has on subject_alt_name to match tls server_name extension
-// return error (0) or success (1) to ignore the server_name
-#define TLS_CERT_VERIFY_NO_SUBJECT_ALT_NAME 1
-
 int tls_cert_match_server_name(const uint8_t *cert, size_t certlen, const uint8_t *host_name, size_t host_name_len);
 
 int tls_cert_chain_match_extensions(
@@ -1959,7 +1953,7 @@ int tls13_key_share_server_hello_print(FILE *fp, int fmt, int ind,
 
 int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt);
 
-
+#define TLS_DEFAULT_KEY_EXCHANGES_CNT 1
 
 
 #ifdef  __cplusplus

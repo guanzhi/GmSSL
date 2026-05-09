@@ -16,6 +16,9 @@
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
+// 检查密码参数和CA根证书是否适配
+// 检查密码参数和客户端证书是否适配
+
 
 static const char *http_get =
 	"GET / HTTP/1.1\r\n"
@@ -365,7 +368,6 @@ bad:
 			error_print();
 			return -1;
 		}
-		error_print();
 		tls13_ctx_set_psk_key_exchange_modes(&ctx, psk_ke, psk_dhe_ke);
 	}
 
@@ -382,10 +384,12 @@ bad:
 
 
 	if (server_name) {
+		error_print();
 		if (tls_set_server_name(&conn, (uint8_t *)host, strlen(host)) != 1) {
 			error_print();
 			goto end;
 		}
+		fprintf(stderr, "conn->server_name= %d\n", conn.server_name);
 	}
 
 	if (signature_algorithms_cert) {

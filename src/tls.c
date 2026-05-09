@@ -2243,7 +2243,7 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 
 
 	// 默认就发送一个，因为只要发送key_share，那么至少有一个group
-	ctx->key_exchanges_cnt = 1;
+	ctx->key_exchanges_cnt = TLS_DEFAULT_KEY_EXCHANGES_CNT;
 
 
 	return 1;

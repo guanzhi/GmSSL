@@ -19,17 +19,9 @@
 #include <gmssl/error.h>
 
 
-/*
-如果采用PSK模式并且是外部密钥，那么意味着每个预置密钥关联一个cipher_suite
-那么ClientHello中的cipher_suites应该是这些套件的集合
-但是ClientHello也可能支持PSK之外的套件，因此最终是常规cipher_suite + psk_cipher_suite的合集
-
-
-我们需要多组证书，也就是   -cert -key -pass 构成一组，我们可以用一个数组把这些放到一起
-
-
-
-*/
+// 服务器在启动时是否检查密码参数和证书适配的问题
+// 服务器设置 -psk_dhe_ke，启动的时候没有检查是否提供了 supported_group 参数
+// psk_cipher_suite 和 cipher_suite 是冗余的
 
 
 static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
@@ -70,7 +62,7 @@ static const char *help =
 "      sm2sig_sm3\n"
 "      ecdsa_secp256r1_sha256\n"
 "\n"
-"Examples\n"
+"Generate SM2 certificates\n"
 "\n"
 "    gmssl sm2keygen -pass 1234 -out sm2rootcakey.pem\n"
 "    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \\\n"
@@ -80,26 +72,99 @@ static const char *help =
 "    gmssl sm2keygen -pass 1234 -out sm2cakey.pem\n"
 "    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN \"Sub CA\" \\\n"
 "            -key sm2cakey.pem -pass 1234 -out sm2careq.pem\n"
-"    gmssl reqsign -in sm2careq.pem -days 365 -key_usage keyCertSign -cacert rootcacert.pem -key rootcakey.pem -pass 1234 \\\n"
-"            -out sm2cacert.pem -ca -path_len_constraint 0\n"
+"    gmssl reqsign -in sm2careq.pem -days 365 -key_usage keyCertSign \\\n"
+"            -cacert sm2rootcacert.pem -key sm2rootcakey.pem -pass 1234 \\\n"
+"            -ca -path_len_constraint 0 \\\n"
+"            -out sm2cacert.pem\n"
 "\n"
 "    gmssl sm2keygen -pass 1234 -out sm2signkey.pem\n"
-"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key sm2signkey.pem -pass 1234 -out sm2signreq.pem\n"
-"    gmssl reqsign -in sm2signreq.pem -days 365 -key_usage digitalSignature -cacert sm2cacert.pem -key sm2cakey.pem -pass 1234 -out sm2signcert.pem\n"
+"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost \\\n"
+"           -key sm2signkey.pem -pass 1234 -out sm2signreq.pem\n"
+"    gmssl reqsign -in sm2signreq.pem -days 365 -key_usage digitalSignature \\\n"
+"           -cacert sm2cacert.pem -key sm2cakey.pem -pass 1234 \\\n"
+"           -out sm2signcert.pem\n"
 "\n"
 "    cat sm2signcert.pem > sm2certs.pem\n"
 "    cat sm2cacert.pem >> sm2certs.pem\n"
 "\n"
-"    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
-"\n"
+"TLS 1.3 with TLS_SM4_GCM_SM3 cipher suite\n"
 "\n"
 "    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
-"       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
-"       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
-"       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
 "\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
+"\n"
+"Generate P-256 certificates\n"
+"\n"
+"    gmssl p256keygen -pass 1234 -out p256rootcakey.pem\n"
+"    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN P256ROOTCA -days 3650 \\\n"
+"            -key p256rootcakey.pem -pass 1234 -out p256rootcacert.pem \\\n"
+"            -key_usage keyCertSign -key_usage cRLSign -ca\n"
+"\n"
+"    gmssl p256keygen -pass 1234 -out p256cakey.pem\n"
+"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN \"P256 Sub CA\" \\\n"
+"            -key p256cakey.pem -pass 1234 -out p256careq.pem\n"
+"    gmssl reqsign -in p256careq.pem -days 365 -key_usage keyCertSign \\\n"
+"            -cacert p256rootcacert.pem -key p256rootcakey.pem -pass 1234 \\\n"
+"            -ca -path_len_constraint 0 \\\n"
+"            -out p256cacert.pem\n"
+"\n"
+"    gmssl p256keygen -pass 1234 -out p256signkey.pem\n"
+"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN 127.0.0.1 \\\n"
+"           -key p256signkey.pem -pass 1234 -out p256signreq.pem\n"
+"    gmssl reqsign -in p256signreq.pem -days 365 -key_usage digitalSignature \\\n"
+"           -cacert p256cacert.pem -key p256cakey.pem -pass 1234 \\\n"
+"           -subject_dns_name 127.0.0.1 \\\n"
+"           -out p256signcert.pem\n"
+"\n"
+"    cat p256signcert.pem > p256certs.pem\n"
+"    cat p256cacert.pem >> p256certs.pem\n"
+"\n"
+"    cat sm2rootcacert.pem > rootcacerts.pem\n"
+"    cat p256rootcacert.pem >> rootcacerts.pem\n"
+"\n"
+"TLS 1.3 with TLS_AES_128_GCM_SHA256\n"
+"    sudo gmssl tls13_server -port 4430 \\\n"
+"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
+"       -cert p256certs.pem -key p256signkey.pem -pass 1234\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
+"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
+"\n"
+"TLS 1.3 SNI\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
+"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
+"       -cert p256certs.pem -key p256signkey.pem -pass 1234 \\\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
+"       -server_name\n"
+"\n"
+"HelloRetryRequest\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -cert sm2certs.pem -key sm2signkey.pem -pass 1234\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
+"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -max_key_exchanges 1 # or -max_key_exchanges 0 \n"
+"\n"
+"ClientHello with OCSP request, CT, and other extensions\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
+"       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
+"       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256 \\\n"
+"       -cert sm2certs.pem -key sm2signkey.pem -pass 1234\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -cipher_suite TLS_AES_128_GCM_SHA256 \\\n"
 "       -supported_group sm2p256v1 -supported_group prime256v1 \\\n"
 "       -sig_alg sm2sig_sm3 -sig_alg ecdsa_secp256r1_sha256 \\\n"
@@ -110,15 +175,19 @@ static const char *help =
 "       -post_handshake_auth \\\n"
 "       -ct\n"
 "\n"
+"NewSessionTicket\n"
 "\n"
 "    TICKET_KEY=11223344556677881122334455667788\n"
+"\n"
 "    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
 "       -new_session_ticket 2 -ticket_key $TICKET_KEY\n"
 "\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
 "       -sess_out session.bin\n"
+"\n"
+"PSK-DHE from session ticket\n"
 "\n"
 "    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 \\\n"
@@ -128,13 +197,33 @@ static const char *help =
 "       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 \\\n"
 "       -psk_dhe_ke -sess_in session.bin\n"
 "\n"
+"PSK-DHE/PSK from external\n"
 "\n"
 "    PSK=1122334455667788112233445566778811223344556677881122334455667788\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
+"       -supported_group sm2p256v1 -psk_dhe_ke \\\n"
+"       -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
+"       -supported_group sm2p256v1 -psk_dhe_ke \\\n"
+"       -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"\n"
 "    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
 "       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
+"\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
 "       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK\n"
 "\n"
+"EarlyData (0-RTT)\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
+"       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK \\\n"
+"       -early_data\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
+"       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK \\\n"
+"       -early_data early_data.txt\n"
 "\n";
 
 int tls13_server_main(int argc , char **argv)
@@ -558,6 +647,10 @@ restart:
 		return -1;
 	}
 
+	if (conn.early_data && conn.early_data_len) {
+		format_string(stderr, 0, 0, "EarlyData", conn.early_data_buf, conn.early_data_len);
+	}
+
 
 	for (;;) {
 
@@ -599,8 +692,6 @@ restart:
 			}
 		}
 	}
-
-
 
 
 	for (;;) {

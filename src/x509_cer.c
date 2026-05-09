@@ -1599,6 +1599,8 @@ int x509_cert_get_subject_alt_name_dns_name(const uint8_t *a, size_t alen, const
 {
 	const uint8_t *exts;
 	size_t extslen;
+	const uint8_t *cp;
+	size_t len;
 	const uint8_t *general_names;
 	size_t general_names_len;
 	int choice = X509_gn_dns_name;
@@ -1619,12 +1621,23 @@ int x509_cert_get_subject_alt_name_dns_name(const uint8_t *a, size_t alen, const
 		return 0;
 	}
 	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_subject_alt_name,
-		&critical, &general_names, &general_names_len)) < 0) {
+		&critical, &cp, &len)) < 0) {
 		error_print();
 		return -1;
 	} else if (ret == 0) {
 		return 0;
 	}
+
+	if (asn1_sequence_from_der(&general_names, &general_names_len, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// x509_exts_get_ext_by_oid 这里取出的数据是一个SEQUENCE 的 TLV
+	// 然后x509_general_names_get_first 需要提供的是其中的V
+
+	format_bytes(stderr, 0, 0, "general_names", general_names, general_names_len);
+
 	if ((ret = x509_general_names_get_first(general_names, general_names_len,
 		NULL, choice, dns_name, dns_name_len)) < 0) {
 		error_print();
@@ -1938,6 +1951,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			return -1;
 		}
 
+		// 这个函数有点问题，如果不是SM2，那么是不需要signer_id的
 		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
@@ -1953,6 +1967,10 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		error_print();
 		return -1;
 	}
+	// 函数提供了一组根证书，我们要从根证书中找到和被验证的证书链匹配的那个根证书
+	// 如果没有找到对应的根证书，那么就会出错
+	// 但是这个错误隐藏在这个函数中并不合适！这说明这个函数的接口有问题
+	// 					
 	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen,
 		&cacert, &cacertlen) != 1) {
 		error_print();
