@@ -147,6 +147,12 @@ test_sm9_z256_pairing_speed: 141 pairings per seconds
 
 自从3.1.1版本以来
 
+* 增加了TLS 1.3的PSK-DHE和PSK-only握手模式，支持0-RTT
+* 增加了TLS 1.3 HelloRetryRequest协商机制
+* 增加了TLS 1.3的SNI扩展
+* 增加了TLS 1.3的CT、OCSP Stapling扩展
+* 增加了P-256 + AES128 + SHA256密码套件
+* 以状态机方式实现TLS协议栈，支持非阻塞模式
 * 增加了CRYSTALS-Kyber后量子密钥封装算法及命令行选项
 * 增加了基于SM3的SPHINCS+后量子哈希签名算法(无状态)及命令行选项
 * 增加了基于SM3的XMSS后量子哈希签名算法(有状态)及命令行选项
