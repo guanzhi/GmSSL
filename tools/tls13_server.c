@@ -229,11 +229,6 @@ static const char *help =
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
 "       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK \\\n"
 "       -early_data early_data.txt\n"
-
-// 有一种情况需要验证，就是服务器发送证书请求，但是客户端只是发送一个空的证书，但是不提供CertificateVerify
-
-// 客户端证书暂时用服务器一样的证书吧
-
 "\n"
 "CertificateRequest\n"
 "\n"
@@ -243,8 +238,12 @@ static const char *help =
 "\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
 "       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
-// 客户端也需要支持载入多个证书
 "       -cert sm2certs.pem -key sm2signkey.pem -pass 1234\n"
+"\n"
+"CertificateRequest without CertificateVerify\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3\n"
 "\n";
 
 

@@ -456,10 +456,8 @@ int tls13_do_recv(TLS_CONNECT *conn)
 		conn->record_offset = 0;
 		conn->recordlen = TLS_RECORD_HEADER_SIZE;
 		conn->state = TLS_state_recv_record_header;
-		error_print();
 
 	case TLS_state_recv_record_header:
-		error_print();
 		while (conn->recordlen) {
 			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -484,8 +482,6 @@ int tls13_do_recv(TLS_CONNECT *conn)
 		conn->state = TLS_state_recv_record_data;
 
 	case TLS_state_recv_record_data:
-		error_print();
-
 		while (conn->recordlen) {
 			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -2997,6 +2993,8 @@ int _tls13_record_get_handshake_certificate(const uint8_t *record,
 */
 
 
+// FIMXE： 这里 entity_status_request_ocsp_response 改为 leaf_xxxx			
+
 // even if status_request, signed_certificate_timestamp not requested
 // server/client can still return certificate with these two extensions
 int tls13_record_get_handshake_certificate(const uint8_t *record,
@@ -3032,6 +3030,19 @@ int tls13_record_get_handshake_certificate(const uint8_t *record,
 		error_print();
 		return -1;
 	}
+
+	// 客户端的证书链中的cert_list 可能为空
+	if (!cert_list) {
+		*cert_chain_len = 0;
+		*entity_status_request_ocsp_response = NULL;
+		*entity_status_request_ocsp_response_len = 0;
+		*entity_signed_certificate_timestamp = NULL;
+		*entity_signed_certificate_timestamp_len = 0;
+		return 1;
+	}
+
+
+
 
 	if (tls13_certificate_entry_from_bytes(&cert, &certlen,
 		entity_status_request_ocsp_response, entity_status_request_ocsp_response_len,
@@ -5627,7 +5638,15 @@ int tls13_recv_certificate_request(TLS_CONNECT *conn)
 	//	* [oid_filter]
 	//
 	if (client_cert) {
-		if ((ret = tls13_cert_chains_select(conn->ctx->cert_chains, conn->ctx->cert_chains_len,
+		// client provides no certificate
+		if (!conn->ctx->cert_chains_len) {
+			warning_print();
+			conn->cert_chain = NULL;
+			conn->cert_chain_len = 0;
+			conn->cert_chain_idx = 0;
+			ret = 0;
+		} else  if ((ret = tls13_cert_chains_select(
+			conn->ctx->cert_chains, conn->ctx->cert_chains_len,
 			common_sig_algs, common_sig_algs_cnt,
 			common_sig_algs_cert, common_sig_algs_cert_cnt,
 			ca_names, ca_names_len,
@@ -7993,6 +8012,9 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 		return ret;
 	}
 
+	conn->record_offset = 0;
+	conn->recordlen = 0;
+
 	return 1;
 }
 
@@ -8016,7 +8038,7 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 
 	int verify_result;
 
-	tls_trace("recv {Certificate*}\n");
+	tls_trace("recv client {Certificate*}\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -8024,7 +8046,6 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tls12) {
 		error_print();
@@ -8069,10 +8090,14 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		tls13_send_alert(conn, TLS_alert_illegal_parameter);
 		return -1;
 	}
+
+	// 即使服务器发送CertificateRequest，客户端可能没有合适的证书
+	// 客户端可能发送一个空的Certificate，并且不发送CertificateVerify
 	if (!conn->peer_cert_chain_len) {
-		error_print();
-		tls13_send_alert(conn, TLS_alert_illegal_parameter);
-		return -1;
+		warning_print();
+		//tls13_send_alert(conn, TLS_alert_illegal_parameter);
+		//return -1;
+		return 0;
 	}
 
 	// client cert_chain match CertificateRequest extensions
@@ -8607,7 +8632,9 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_client_certificate:
 		ret = tls13_recv_client_certificate(conn);
-		next_state = TLS_state_client_certificate_verify;
+		if (ret == 0) // 客户端提供了一个空的Certificate消息
+			next_state = TLS_state_client_finished;
+		else	next_state = TLS_state_client_certificate_verify;
 		break;
 
 	case TLS_state_client_certificate_verify:
