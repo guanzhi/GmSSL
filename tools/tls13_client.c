@@ -42,6 +42,7 @@ static const char *help =
 "    -pass str                 Password to decrypt private key\n"
 "    -server_name              Send server_name (SNI) request\n"
 "    -signature_algorithms_cert Send signature_algorithms_cert extension\n"
+"    -certificate_authorities  Send certificate_authorities extension\n"
 "    -status_request           Send status_request (OCSP Stapling) request\n"
 "    -ct                       Send signed_certificate_timestamp (SCT) request\n"
 "    -psk_ke                   Support PSK-only key exchange\n"
@@ -146,6 +147,8 @@ int tls13_client_main(int argc, char *argv[])
 	size_t sig_algs_cnt = 0;
 
 
+	int certificate_authorities = 0;
+
 	int server_name = 0;
 	int signature_algorithms_cert = 0;
 	int status_request = 0;
@@ -185,6 +188,8 @@ int tls13_client_main(int argc, char *argv[])
 			server_name = 1;
 		} else if (!strcmp(*argv, "-signature_algorithms_cert")) {
 			signature_algorithms_cert = 1;
+		} else if (!strcmp(*argv, "-certificate_authorities")) {
+			certificate_authorities = 1;
 		} else if (!strcmp(*argv, "-status_request")) {
 			status_request = 1;
 		} else if (!strcmp(*argv, "-ct")) {
@@ -354,9 +359,12 @@ bad:
 			fprintf(stderr, "%s: context init error\n", prog);
 			goto end;
 		}
+
+
+
 	}
 	if (certfile) {
-		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
 			fprintf(stderr, "%s: context init error\n", prog);
 			goto end;
 		}
@@ -409,6 +417,13 @@ bad:
 		if (tls_enable_signed_certificate_timestamp(&conn) != 1) {
 			error_print();
 			goto end;
+		}
+	}
+
+	if (certificate_authorities) {
+		if (tls13_enable_certificate_authorities(&conn, 1) != 1) {
+			error_print();
+			return -1;
 		}
 	}
 

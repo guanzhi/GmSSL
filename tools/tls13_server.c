@@ -24,6 +24,10 @@
 // psk_cipher_suite 和 cipher_suite 是冗余的
 
 
+// 现在我要尝试CertificateRequest
+//
+
+
 static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
 
 static const char *help =
@@ -36,7 +40,6 @@ static const char *help =
 "    -cert file                Server's certificate chain in PEM format\n"
 "    -key file                 Server's encrypted private key in PEM format\n"
 "    -pass str                 Password to decrypt private key\n"
-"    -cacert file              CA certificate for client certificate verification\n"
 "    -new_session_ticket num   Send NewSessionTicket <num> times\n"
 "    -ticket_key hex           Session ticket encrypt/decrypt key in HEX format\n"
 "    -psk_ke                   Support PSK-only key exchange\n"
@@ -46,6 +49,8 @@ static const char *help =
 "    -psk_key hex              PSK key in HEX format, of PSK hash length\n"
 "    -early_data               Accept EarlyData, support 0-RTT\n"
 "    -max_early_data_size num  Set extension max_early_data_size\n"
+"    -cert_request             Client certificate request\n"
+"    -cacert file              CA certificate for client certificate verification\n"
 "\n"
 "    -cipher_suite options\n"
 "      TLS_SM4_GCM_SM3         TLS 1.3\n"
@@ -224,7 +229,28 @@ static const char *help =
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_SM4_GCM_SM3 \\\n"
 "       -psk_ke -psk_identity 001 -psk_cipher_suite TLS_SM4_GCM_SM3 -psk_key $PSK \\\n"
 "       -early_data early_data.txt\n"
+
+// 有一种情况需要验证，就是服务器发送证书请求，但是客户端只是发送一个空的证书，但是不提供CertificateVerify
+
+// 客户端证书暂时用服务器一样的证书吧
+
+"\n"
+"CertificateRequest\n"
+"\n"
+"    sudo gmssl tls13_server -port 4430 -cert sm2certs.pem -key sm2signkey.pem -pass 1234 \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+"       -cert_request -cacert sm2rootcacert.pem\n"
+"\n"
+"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert sm2rootcacert.pem \\\n"
+"       -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 \\\n"
+// 客户端也需要支持载入多个证书
+"       -cert sm2certs.pem -key sm2signkey.pem -pass 1234\n"
 "\n";
+
+
+
+
+
 
 int tls13_server_main(int argc , char **argv)
 {
@@ -245,7 +271,6 @@ int tls13_server_main(int argc , char **argv)
 
 
 
-	char *cacertfile = NULL;
 	int server_ciphers[] = { TLS_cipher_sm4_gcm_sm3, };
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
@@ -294,6 +319,10 @@ int tls13_server_main(int argc , char **argv)
 	size_t i;
 
 
+
+	int cert_request = 0;
+	char *cacertfile = NULL;
+
 	argc--;
 	argv++;
 
@@ -341,6 +370,8 @@ int tls13_server_main(int argc , char **argv)
 			}
 			passes[passes_cnt++] = pass;
 
+		} else if (!strcmp(*argv, "-cert_request")) {
+			cert_request = 1;
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -473,23 +504,6 @@ bad:
 		}
 	}
 
-	/*
-	if (certfile) {
-		if (!keyfile) {
-			fprintf(stderr, "%s: '-key' option required\n", prog);
-			return 1;
-		}
-		if (!pass) {
-			fprintf(stderr, "%s: '-pass' option required\n", prog);
-			return 1;
-		}
-		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-	*/
-
 	if (supported_groups_cnt > 0) {
 		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
 			error_print();
@@ -504,8 +518,21 @@ bad:
 		}
 	}
 
-	if (cacertfile) {
+	if (cert_request) {
+
+		if (!cacertfile) {
+			error_print();
+			return -1;
+		}
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
+			error_print();
+			return -1;
+		}
+
+		// 在发送CertificateRequest的时候，需要把CA的DN发送给客户端
+		// 这里dn_names是在什么时候设置好的？
+
+		if (tls_ctx_enable_certificate_request(&ctx, 1) != 1) {
 			error_print();
 			return -1;
 		}

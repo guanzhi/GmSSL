@@ -770,6 +770,10 @@ typedef struct {
 	size_t cacertslen;
 	int verify_depth;
 
+	// CertificateRequest
+	int certificate_request;
+
+
 	// NewSessionTicket
 	int new_session_ticket;
 	int new_session_ticket_cnt;
@@ -1100,6 +1104,7 @@ typedef struct {
 
 	// 13. signature_algorithms
 	// in ClientHello, CertificateRequest;
+	// 这两个变量应该删除，目前仅在TLS12实现中使用
 	int signature_algorithms[2];
 	size_t signature_algorithms_cnt;
 
@@ -1671,6 +1676,10 @@ int tls13_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
 	int *prefered_sig_alg);
 
 
+// CertificateRequest
+int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable);
+
+
 
 // Extensions
 
@@ -1909,7 +1918,7 @@ int tls13_ctx_set_psk_key_exchange_modes(TLS_CTX *ctx, int psk_ke, int psk_dhe_k
 
 
 // 47. certificate_authorities
-int tls13_enable_certificate_authorities(TLS_CONNECT *conn);
+int tls13_enable_certificate_authorities(TLS_CONNECT *conn, int enable);
 int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
 	uint8_t **out, size_t *outlen);
 int tls13_certificate_authorities_from_bytes(const uint8_t **ca_names, size_t *ca_names_len,

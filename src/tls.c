@@ -1965,6 +1965,8 @@ int tls_shutdown(TLS_CONNECT *conn)
 	return 1;
 }
 
+// ca_names中存储的是什么结构的数据？
+// 看来这个函数是有问题的，这里面存储的应该是GeneralNames类型的数据，subject是什么结构？
 int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, const uint8_t *certs, size_t certslen)
 {
 	const uint8_t *cert;
@@ -1989,7 +1991,10 @@ int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, 
 			error_print();
 			return -1;
 		}
-		tls_uint16_to_bytes((uint16_t)alen, &names, nameslen);
+
+		tls_uint16_to_bytes(alen, &names, nameslen);
+		maxlen -= tls_uint16_size();
+
 		if (asn1_sequence_to_der(name, namelen, &names, nameslen) != 1) {
 			error_print();
 			return -1;
@@ -2001,6 +2006,7 @@ int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, 
 
 // 这个函数在语义上有问题:
 //	首先我们判断的是证书链，因此函数名上应该是一个cert_chain
+// 调用这个函数传进来的就不是一个证书链
 int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_names_len, const uint8_t *certs, size_t certslen)
 {
 	const uint8_t *cert;
@@ -2008,11 +2014,20 @@ int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_names_
 	const uint8_t *issuer;
 	size_t issuer_len;
 
+
+	//x509_certs_print(stderr, 0, 0, "cert_chain", certs, certslen);
+
+
 	if (x509_certs_get_last(certs, certslen, &cert, &certlen) != 1
 		|| x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1) {
 		error_print();
 		return -1;
 	}
+
+	//x509_cert_print(stderr, 0, 0, "last cert", cert, certlen);
+
+	//x509_name_print(stderr, 0, 0, "issuer", issuer, issuer_len);
+
 	while (ca_names_len) {
 		const uint8_t *p;
 		size_t len;
@@ -2028,6 +2043,10 @@ int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_names_
 			error_print();
 			return -1;
 		}
+
+		//x509_name_print(stderr, 0, 0, "ca", name, namelen);
+
+
 		if (x509_name_equ(name, namelen, issuer, issuer_len) == 1) {
 			return 1;
 		}
@@ -2349,6 +2368,8 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 		error_print();
 		return -1;
 	}
+
+	// 在读取CA证书的时候，提取了证书的名字
 	if (tls_authorities_from_certs(ctx->ca_names, &ctx->ca_names_len, sizeof(ctx->ca_names),
 		ctx->cacerts, ctx->cacertslen) != 1) {
 		error_print();
@@ -2358,6 +2379,24 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 	ctx->verify_depth = depth;
 	return 1;
 }
+
+
+int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+
+	if (ctx->is_client) {
+		error_print();
+		return -1;
+	}
+
+	ctx->certificate_request = enable ? 1 : 0;
+	return 1;
+}
+
 
 int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len, // optional

@@ -102,12 +102,9 @@ int tls_recv_record(TLS_CONNECT *conn)
 	size_t left;
 	tls_ret_t n;
 
-	// 说明报文已经完整的读取到了
 	if (conn->recordlen) {
 		return 1;
 	}
-
-	fprintf(stderr, "110 conn->record_offset = %zu\n", conn->record_offset);
 
 	if (conn->record_offset < 5) {
 		left = 5 - conn->record_offset;
@@ -132,7 +129,6 @@ int tls_recv_record(TLS_CONNECT *conn)
 			left -= n;
 		}
 	}
-	fprintf(stderr, "135 conn->record_offset = %zu\n", conn->record_offset);
 
 	if (conn->record_offset == 5) {
 		if (!tls_record_type_name(tls_record_type(conn->record))) {
@@ -148,9 +144,6 @@ int tls_recv_record(TLS_CONNECT *conn)
 			return -1;
 		}
 	}
-
-	fprintf(stderr, "152 conn->record_offset = %zu\n", conn->record_offset);
-	fprintf(stderr, "153 conn->recordlen = %zu\n", tls_record_length(conn->record));
 
 	if (conn->record_offset >= tls_record_length(conn->record)) {
 		error_print();
