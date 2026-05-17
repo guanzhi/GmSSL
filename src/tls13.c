@@ -70,6 +70,9 @@ int tls13_padding_len_rand(size_t *padding_len)
 	uint8_t val;
 	rand_bytes(&val, 1);
 	*padding_len = val % 128;
+
+
+	*padding_len = 0;
 	return 1;
 }
 
@@ -280,7 +283,6 @@ int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 /*
 KeyUpate的流程
 
-
 	客户端发现需要KeyUpdate （可能是C->S 或者C <- S某个方向需要）
 	如果是自己方向的需要更新，或者对方需要更新，那么就一定要发送KeyUpdate
 	如果对方不需要更新，那么不要求对方更新
@@ -298,18 +300,28 @@ KeyUpate的流程
 	这里一个主要的状态判断是，
 	某一方在接收到对方的KeyUpdate请求后，是否响。
 
+
+发送过程本身也是个状态机
+
+
+	判断发送方向的seq_num是否已经到达了上限，如果到达上限
+		构造KeyUpdate记录
+		加密KeyUpdate记录，并写入缓冲区
+		更新发送方向的key和seq_num
+		发送缓冲区记录，或返回SEND_AGAIN
+	构造AppData消息
+	加密AppData消息并写入缓冲区
+	发送缓冲区记录，或返回SEND_AGAIN
 */
 
 
 int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen)
 {
+	int ret = 1;
 	int key_update = 0;
-
-	tls_trace("send {ApplicationData}\n");
 
 	*sentlen = 0;
 
-	// 当前的发送缓冲区是空的，没有之前剩余的数据
 	if (!conn->recordlen) {
 		const BLOCK_CIPHER_KEY *key;
 		const uint8_t *iv;
@@ -318,9 +330,11 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 		size_t record_datalen;
 
 		if (!data || !datalen) {
+			error_print();
 			return 0;
 		}
 
+		// 这个应该放在后面
 		if (datalen > TLS_MAX_PLAINTEXT_SIZE) {
 			datalen = TLS_MAX_PLAINTEXT_SIZE;
 		}
@@ -342,17 +356,105 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 			//format_print(stderr, 0, 0, "\n");
 		}
 
+
+		fprintf(stderr, "conn->key_update = %d\n", conn->key_update);
+
+		format_bytes(stderr, 0, 0, "seq_num", seq_num, 8);
+
+
+		// check if KeyUpdate
+		if (GETU64(seq_num) >= conn->ctx->key_update_seq_num_limit) {
+			conn->key_update = 1;
+		}
+		fprintf(stderr, "conn->key_update = %d\n", conn->key_update);
+
+		if (conn->key_update) {
+
+			int ret;
+
+
+			tls_trace("send {KeyUpdate}\n");
+
+
+			int request_update = 1;
+
+
+			// 这个显然是不对的，这里要根据请求方设置
+			if (conn->is_client) {
+				ret = tls13_send_client_key_update(conn, request_update);
+				fprintf(stderr, "tls13_send_client_key_update ret = %d\n", ret);
+			} else {
+				ret = tls13_send_server_key_update(conn, request_update);
+			}
+
+
+			if (ret != 1) {
+				error_print();
+			}
+
+			conn->key_update = 0;
+
+			return ret;
+
+
+			// 直接在这里面发送KeyUpdate
+			if (tls13_record_set_handshake_key_update(conn->plain_record, &conn->plain_recordlen,
+				request_update) != 1) {
+				error_print();
+				return -1;
+			}
+			tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+
+
+
+
+			key_update = 1;
+
+
+		} else {
+			tls_trace("send {ApplicationData}\n");
+		}
+
 		tls13_padding_len_rand(&padding_len);
 
 
-		// 这个其实不太好，最好是直接加密一个record，这样我们可以打印出record
-		if (tls13_gcm_encrypt(key, iv,
-			seq_num, TLS_record_application_data, data, datalen, padding_len,
-			conn->record + 5, &record_datalen) != 1) {
-			error_print();
-			return -1;
+		if (key_update) {
+			if (tls13_gcm_encrypt(key, iv,
+				seq_num, TLS_record_handshake,
+				conn->plain_record + 5, conn->plain_recordlen - 5, padding_len,
+				conn->record + 5, &record_datalen) != 1) {
+				error_print();
+				return -1;
+			}
+
+			if (conn->is_client) {
+				tls13_update_client_application_keys(conn);
+			} else {
+				tls13_update_server_application_keys(conn);
+			}
+
+			ret = TLS_ERROR_SEND_AGAIN;
+
+		} else {
+
+			if (datalen > 8) {
+				datalen = 8;
+			}
+
+			format_bytes(stderr, 0, 0, "send hex", data, datalen);
+
+			if (tls13_gcm_encrypt(key, iv,
+				seq_num, TLS_record_application_data, data, datalen, padding_len,
+				conn->record + 5, &record_datalen) != 1) {
+				error_print();
+				return -1;
+			}
+
+			tls_seq_num_incr(seq_num);
+
+			ret = 1;
+
 		}
-		tls_seq_num_incr(seq_num);
 		tls_record_set_type(conn->record, TLS_record_application_data);
 		tls_record_set_protocol(conn->record, TLS_protocol_tls12);
 		tls_record_set_data_length(conn->record, record_datalen);
@@ -360,29 +462,13 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 		conn->recordlen = 5 + record_datalen;
 		conn->record_offset = 0;
 
+
 		// 需要记录密文对应的明文是什么，当完整的报文发送之后，这些信息要返回给调用方
 		//conn->plain_recordlen = datalen + 5;
 		conn->sentlen = datalen;
 
-
 		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
-
-
-		/*
-		KeyUpdate有两个原因
-			* 我们自己检查，应该KeyUpdate了，那么发送KeyUpdate并且要求对方也Update
-			* 对方要求KeyUpdate，那么我们只是通知对方，我方KeyUPdate，不要求对方再次Update
-
-		*/
-
-		// check if KeyUpdate
-		/*
-		// key_update_seq_num_limit 似乎还没有设置
-		if (GETU64(seq_num) >= conn->ctx->key_update_seq_num_limit) {
-			key_update = 1;
-		}
-		*/
 	}
 
 	while (conn->recordlen) {
@@ -390,7 +476,7 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 
 		if ((n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				return EAGAIN;
+				return TLS_ERROR_SEND_AGAIN;
 			} else {
 				if (n == 0) {
 					error_puts("TCP connection closed");
@@ -403,39 +489,16 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 		conn->record_offset += n;
 	}
 
-	/*
-	if (key_update) {
-		int ret;
 
-		if (conn->is_client) {
-			if ((ret = tls13_send_client_key_update(conn, 1)) <= 0) {
-				if (ret == TLS_ERROR_SEND_AGAIN) {
-					return ret;
-				}
-			} else {
-				error_print();
-				return -1;
-			}
+	// 这里有一种可能是，用户输入的消息长度比较长，超出了我们的长度限制
 
-		} else {
-			if ((ret = tls13_send_server_key_update(conn, 1)) <= 0) {
-				if (ret == TLS_ERROR_SEND_AGAIN) {
-					return ret;
-				}
-			} else {
-				error_print();
-				return -1;
-			}
-
-
-		}
-	}
-	*/
 
 	//*sentlen = conn->plain_recordlen - 5;
 	*sentlen = conn->sentlen;
 
-	return 1;
+
+	fprintf(stderr, "tls13_send last ret = %d\n", ret);
+	return ret;
 }
 
 int tls13_do_recv(TLS_CONNECT *conn)
@@ -459,6 +522,10 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 	case TLS_state_recv_record_header:
 		while (conn->recordlen) {
+
+			fprintf(stderr, "conn->record_offet = %zu\n", conn->record_offset);
+			fprintf(stderr, "len = %zu \n", conn->recordlen);
+
 			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
 					return TLS_ERROR_RECV_AGAIN;
@@ -467,8 +534,13 @@ int tls13_do_recv(TLS_CONNECT *conn)
 					return -1;
 				}
 			}
+			fprintf(stderr, "len = %zu %zu\n", conn->recordlen, n);
+
 			conn->recordlen -= n;
 			conn->record_offset += n;
+
+			format_bytes(stderr, 0, 0, "recv record", conn->record, conn->record_offset);
+
 		}
 		if (tls_record_type(conn->record) != TLS_record_application_data) {
 			error_print();
@@ -506,7 +578,9 @@ int tls13_do_recv(TLS_CONNECT *conn)
 	conn->recordlen = tls_record_length(conn->record);
 
 
-	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	fprintf(stderr, "tls13_do_recv\n");
+
+	tls13_record_print(stderr, 0, 4, conn->record, conn->recordlen);
 
 
 	if (conn->is_client) {
@@ -536,12 +610,18 @@ int tls13_do_recv(TLS_CONNECT *conn)
 	}
 	tls_seq_num_incr(seq_num);
 
-	tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+	fprintf(stderr, "   plain\n");
+	tls13_record_print(stderr, 0, 4, conn->plain_record, conn->plain_recordlen);
+
 
 	switch (tls_record_type(conn->plain_record)) {
 	case TLS_record_application_data:
 		conn->data = conn->plain_record + 5;
 		conn->datalen = conn->plain_recordlen - 5;
+
+
+		format_bytes(stderr, 0, 0, "recv record", conn->data, conn->datalen);
+
 		break;
 
 	case TLS_record_handshake:
@@ -572,8 +652,11 @@ int tls13_do_recv(TLS_CONNECT *conn)
 				return -1;
 			}
 
-			// 对方的密钥已经更新了，我方必须更新
-			// 但是我方密钥是否更新（以及发送KeyUpdate通知呢？），要看当前密钥使用了多久
+			// 如果对方要求KeyUpdate，并且也满足我方KeyUpdate的最低条件
+			// 那么我们就设置key_update标志位
+			// 下次发送的时候就启动KeyUpdate
+
+
 			if (conn->is_client) {
 				uint64_t seq_num;
 				int ret;
@@ -582,13 +665,9 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 				seq_num = GETU64(conn->client_seq_num);
 
-				if (seq_num > 1 && update_requested) {
 
-					if ((ret = tls13_send_client_key_update(conn, 0)) <= 0) {
-						if (ret == TLS_ERROR_SEND_AGAIN) {
-							return ret;
-						}
-					}
+				if (seq_num > 2 && update_requested) {
+					conn->key_update = 1;
 				}
 
 
@@ -596,20 +675,14 @@ int tls13_do_recv(TLS_CONNECT *conn)
 				uint64_t seq_num;
 				int ret;
 
+				fprintf(stderr, "%%%%%%%%%%555 tls13_update_client_application_keys\n");
+
 				tls13_update_client_application_keys(conn);
 
 
 				seq_num = GETU64(conn->server_seq_num);
-
-				if (seq_num > 1 && update_requested) {
-					if ((ret = tls13_send_server_key_update(conn, 0)) <= 0) {
-						if (ret == TLS_ERROR_SEND_AGAIN) {
-							return ret;
-						} else {
-							error_print();
-							return -1;
-						}
-					}
+				if (seq_num > 2 && update_requested) {
+					conn->key_update = 1;
 				}
 			}
 
@@ -654,7 +727,9 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 	if (conn->datalen == 0) {
 		int ret;
 		if ((ret = tls13_do_recv(conn)) != 1) {
-			if (ret) error_print();
+			if (ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
+				error_print();
+			}
 			return ret;
 		}
 	}
@@ -8313,6 +8388,17 @@ int tls13_update_server_application_keys(TLS_CONNECT *conn)
 }
 
 // 参数request_update应该根据当前状态设置
+
+
+/*
+如果我方是首先发送KeyUpdate一方，那么默认设置要求对方也更新密钥
+
+
+如果我们接收到对方的要求，并且满足我方的一个最低限度，那么就设置key_update的标志位，下次send的时候就会启动更新
+
+
+*/
+
 int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 {
 	int ret;
@@ -8320,7 +8406,7 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 	if (conn->recordlen == 0) {
 		size_t padding_len = 0;
 
-		tls_trace("send {KeyUpdate}\n");
+		tls_trace("send client {KeyUpdate}\n");
 
 		if (tls13_record_set_handshake_key_update(conn->plain_record, &conn->plain_recordlen,
 			request_update) != 1) {
@@ -8330,6 +8416,7 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 		tls13_padding_len_rand(&padding_len);
+
 		if (tls13_record_encrypt(&conn->client_write_key, conn->client_write_iv,
 			conn->client_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
 			conn->record, &conn->recordlen) != 1) {
@@ -8337,15 +8424,57 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 			return -1;
 		}
 
+		// 这个很重要啊，但是record_encrypt没有设置这个值，这是很奇怪的				
+		// xxxxxxxx
+		conn->record_offset = 0;
+
+		format_bytes(stderr, 0, 0, "KeyUpdate record", conn->record, conn->recordlen);
+		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
 		tls13_update_client_application_keys(conn);
+
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
-		if (ret != TLS_ERROR_SEND_AGAIN) {
+		if (ret != TLS_ERROR_SEND_AGAIN && ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
 		}
-		return ret;
 	}
+
+	if (ret == 1) {
+
+		// 首先我们在发送数据的时候，应该根据offset是否已经达到末尾来判断数据是否完全发送
+		// 其次在记录已经完全发送之后，应该自动的清空recordlen, offset这个数据
+
+		conn->record_offset = 0;
+		conn->recordlen = 0;
+	}
+
+	return ret;
+
+
+
+
+	while (conn->recordlen) {
+		tls_ret_t n;
+
+		if ((n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				return TLS_ERROR_SEND_AGAIN;
+			} else {
+				if (n == 0) {
+					error_puts("TCP connection closed");
+				}
+				error_print();
+				return -1;
+			}
+		}
+		conn->recordlen -= n;
+		conn->record_offset += n;
+	}
+
+
+
 	return 1;
 }
 
@@ -8356,7 +8485,7 @@ int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
 	if (conn->recordlen == 0) {
 		size_t padding_len = 0;
 
-		tls_trace("send {KeyUpdate}\n");
+		tls_trace("send server {KeyUpdate}\n");
 
 		if (tls13_record_set_handshake_key_update(conn->plain_record, &conn->plain_recordlen,
 			request_update) != 1) {
@@ -8373,16 +8502,36 @@ int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
 			return -1;
 		}
 
+		conn->record_offset = 0;
+
 		tls13_update_server_application_keys(conn);
 	}
 
+
 	if ((ret = tls_send_record(conn)) != 1) {
-		if (ret != TLS_ERROR_SEND_AGAIN) {
+		if (ret != TLS_ERROR_SEND_AGAIN && ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
 		}
-		return ret;
 	}
-	return 1;
+
+	if (ret == 1) {
+
+		// 首先我们在发送数据的时候，应该根据offset是否已经达到末尾来判断数据是否完全发送
+		// 其次在记录已经完全发送之后，应该自动的清空recordlen, offset这个数据
+
+		conn->record_offset = 0;
+		conn->recordlen = 0;
+	}
+
+	return ret;
+
+
+
+
+
+
+
+
 }
 
 

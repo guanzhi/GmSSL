@@ -82,11 +82,16 @@ int tls_send_record(TLS_CONNECT *conn)
 	while (left) {
 		n = tls_socket_send(conn->sock, conn->record + conn->record_offset, left, 0);
 		if (n < 0) {
+
+			fprintf(stderr, "send() return %d\n", n);
+			fprintf(stderr, "send() errno %d\n", errno);
+
 			if (errno == EAGAIN && errno == EWOULDBLOCK) {
 				return TLS_ERROR_SEND_AGAIN;
 			} else if (errno == EINTR) {
 				continue;
 			} else {
+				fprintf(stderr, "%s %d: send() error: %s\n", __FILE__, __LINE__, strerror(errno));
 				error_print();
 				return -1;
 			}

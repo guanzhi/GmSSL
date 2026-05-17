@@ -75,7 +75,7 @@ int format_bytes(FILE *fp, int format, int indent, const char *str, const uint8_
 		return 1;
 	}
 	for (i = 0; i < datalen; i++) {
-		fprintf(fp, "%02X", data[i]);
+		fprintf(fp, "%02x", data[i]);
 	}
 	fprintf(fp, "\n");
 	return 1;

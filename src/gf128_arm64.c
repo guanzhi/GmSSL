@@ -11,6 +11,7 @@
 #include <arm_neon.h>
 #include <gmssl/gf128.h>
 
+	= a0 * b0 + ((a0 + a1)*(b0 + b1) - a0*b0 - a1*b1) * x^64 + a1 * b1 * x^128
 // this version is converted from the gf128_arm64.S by ChatGPT 4
 // a little slower than the asm version
 

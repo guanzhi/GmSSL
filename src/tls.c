@@ -2736,6 +2736,17 @@ int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t s
 	return 1;
 }
 
+int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->key_update_seq_num_limit = max_seq_num;
+	return 1;
+}
+
+
 int tls13_ctx_set_client_hello_key_exchanges_cnt(TLS_CTX *ctx, size_t cnt)
 {
 	if (!ctx) {

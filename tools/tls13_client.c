@@ -53,6 +53,7 @@ static const char *help =
 "    -sess_in                  Load server's session ticket file\n"
 "    -sess_out                 Save server's session ticket file\n"
 "    -early_data file          Send early data, -psk_ke and/or -psk_dhe_ke should be set\n"
+"    -key_update_seq_num num   Send KeyUpdate handshake after sending/receiving <num> records\n"
 "    -post_handshake_auth      Support post_handshake_auth\n"
 "\n"
 "CipherSuites\n"
@@ -108,6 +109,9 @@ int tls13_client_main(int argc, char *argv[])
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
+	size_t sent_len = 0;
+	size_t sent_offset = 0;
+
 
 	char *sess_in = NULL;
 	char *sess_out = NULL;
@@ -153,7 +157,13 @@ int tls13_client_main(int argc, char *argv[])
 	int signature_algorithms_cert = 0;
 	int status_request = 0;
 	int signed_certificate_timestamp = 0;
+
+	int key_update_seq_num = 0;
+
 	int post_handshake_auth = 0;
+
+	int send_again = 0;
+
 
 	argc--;
 	argv++;
@@ -285,6 +295,14 @@ int tls13_client_main(int argc, char *argv[])
 				error_print();
 				return -1;
 			}
+		} else if (!strcmp(*argv, "-key_update_seq_num")) {
+			if (--argc < 1) goto bad;
+			key_update_seq_num = atoi(*(++argv));
+			if (key_update_seq_num < 0) {
+				error_print();
+				fprintf(stderr, "%s: invalid '-key_update_seq_num' value\n", prog);
+				return -1;
+			}
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -381,8 +399,12 @@ bad:
 
 
 
-
-
+	if (key_update_seq_num > 0) {
+		if (tls_ctx_set_key_update_seq_num_limit(&ctx, key_update_seq_num) != 1) {
+			error_print();
+			return -1;
+		}
+	}
 
 							
 	if (tls13_init(&conn, &ctx) != 1) {
@@ -558,75 +580,112 @@ bad:
 
 
 	for (;;) {
-		fd_set fds;
+
+		fd_set fds_send;
+		fd_set fds_recv;
+
 		size_t sentlen;
 
-
-		FD_ZERO(&fds);
+		FD_ZERO(&fds_send);
+		FD_ZERO(&fds_recv);
 
 
 		// listen socket
-		FD_SET(conn.sock, &fds);
+		FD_SET(conn.sock, &fds_recv);
 
 		// listen stdin
-		FD_SET(fileno(stdin), &fds);
+		FD_SET(fileno(stdin), &fds_recv);
 
+
+		if (sent_len > 0) {
+			FD_SET(conn.sock, &fds_send);
+		}
 
 		// 等待阻塞
 		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
-			&fds, NULL, NULL, NULL) < 0) {
+			&fds_recv, &fds_send, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
 			goto end;
 		}
 
-		/*
-		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
-			if (feof(stdin)) {
-				tls_shutdown(&conn);
-				goto end;
-			} else {
-				continue;
-			}
-		}
-		if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
-			fprintf(stderr, "%s: send error\n", prog);
-			goto end;
-		}
-		*/
+		// 读socket
+		if (FD_ISSET(conn.sock, &fds_recv)) {
 
-
-		if (FD_ISSET(conn.sock, &fds)) {
-			for (;;) {
-				memset(buf, 0, sizeof(buf));
-				if (tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
+			memset(buf, 0, sizeof(buf));
+			if ((ret = tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
+					continue;
+				} else {
+					error_print();
 					goto end;
 				}
-				fwrite(buf, 1, len, stdout);
-				fflush(stdout);
-
-				// FIXME: change tls13_recv API			
-				if (conn.datalen == 0) {
-					break;
-				}
 			}
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
+
+
+			format_bytes(stderr, 0, 0, "tls13_recv return", buf, len);
+
+
+			// FIXME: change tls13_recv API			
+			/*
+			if (conn.datalen == 0) {
+				error_print();
+				break;
+			}
+			*/
 		}
 
-		if (FD_ISSET(fileno(stdin), &fds)) {
+		// 读用户输入
+		if (FD_ISSET(fileno(stdin), &fds_recv)) {
+
 			memset(send_buf, 0, sizeof(send_buf));
 
 			if (!fgets(send_buf, sizeof(send_buf), stdin)) {
 				if (feof(stdin)) {
+					error_print();
+					fprintf(stderr, "client shutdown\n");
 					tls_shutdown(&conn);
 					goto end;
 				} else {
 					continue;
 				}
 			}
-			if (tls13_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
-				fprintf(stderr, "%s: send error\n", prog);
-				goto end;
-			}
+			sent_len = strlen(send_buf) + 1;
+			sent_offset = 0;
+
+			fprintf(stderr, "###############################\n");
+			fprintf(stderr, "sentlen = %zu\n", sentlen);
+			format_bytes(stderr, 0, 0, "send hex", send_buf, sent_len);
+			fprintf(stderr, "sent_len = %zu\n", sent_len);
+			fprintf(stderr, "sent_offset = %zu\n", sent_offset);
 		}
+
+		if (sent_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
+
+
+			// tls13_send 会返回一个 -1 , 但是没有打印错误信息！！！！			
+			if ((ret = tls13_send(&conn, (uint8_t *)send_buf + sent_offset, sent_len, &sentlen)) != 1) {
+				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
+					continue;
+				} else {
+					fprintf(stderr, "ret = %d\n", ret);
+					fprintf(stderr, "%s: send error\n", prog);
+					goto end;
+				}
+			}
+
+			sent_offset += sentlen;
+			sent_len -= sentlen;
+			fprintf(stderr, "###############################\n");
+			fprintf(stderr, "sentlen = %zu\n", sentlen);
+			fprintf(stderr, "sent_len = %zu\n", sent_len);
+			fprintf(stderr, "sent_offset = %zu\n", sent_offset);
+		}
+
+		fprintf(stderr, "\n\n\n\n");
+
+
 	}
 
 end:

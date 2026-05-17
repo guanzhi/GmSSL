@@ -875,6 +875,7 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const uint8_t *entity_signed_certificate_timestamp_list, size_t entity_signed_certificate_timestamp_list_len, // optional
 	const char *keyfile, const char *keypass);
 
+int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num);
 
 
 
@@ -1072,6 +1073,7 @@ typedef struct {
 	const char *session_out;
 
 	// KeyUpdate
+	int key_update; // 标志位，send之前看这个值，如果为1的话就先做keyUpdate
 	size_t client_data_size;
 	size_t server_data_size;
 

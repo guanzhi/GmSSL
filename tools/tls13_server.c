@@ -24,8 +24,10 @@
 // psk_cipher_suite 和 cipher_suite 是冗余的
 
 
-// 现在我要尝试CertificateRequest
-//
+
+// 重新思考一下，各个层次如何将各自的输入输出打印出来，特别是在record层
+// 每个报文包括密文和明文，应该将两者紧密连在一起，没有空格
+// 在报文层，只显示明文的16进制，但是在上层，应该显示明文的ASCII和HEX，能够看清楚消息
 
 
 static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
@@ -51,6 +53,7 @@ static const char *help =
 "    -max_early_data_size num  Set extension max_early_data_size\n"
 "    -cert_request             Client certificate request\n"
 "    -cacert file              CA certificate for client certificate verification\n"
+"    -key_update_seq_num num   Send KeyUpdate handshake after sending/receiving <num> records\n"
 "\n"
 "    -cipher_suite options\n"
 "      TLS_SM4_GCM_SM3         TLS 1.3\n"
@@ -315,7 +318,11 @@ int tls13_server_main(int argc , char **argv)
 	int sig_algs[4];
 	size_t sig_algs_cnt = 0;
 
+	int key_update_seq_num = 0;
+
+
 	size_t i;
+
 
 
 
@@ -453,6 +460,14 @@ int tls13_server_main(int argc , char **argv)
 				return -1;
 			}
 			sig_algs[sig_algs_cnt++] = sig_alg;
+		} else if (!strcmp(*argv, "-key_update_seq_num")) {
+			if (--argc < 1) goto bad;
+			key_update_seq_num = atoi(*(++argv));
+			if (key_update_seq_num < 0) {
+				error_print();
+				fprintf(stderr, "%s: invalid '-key_update_seq_num' value\n", prog);
+				return -1;
+			}
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -589,6 +604,12 @@ bad:
 		}
 	}
 
+	if (key_update_seq_num > 0) {
+		if (tls_ctx_set_key_update_seq_num_limit(&ctx, key_update_seq_num) != 1) {
+			error_print();
+			return -1;
+		}
+	}
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		fprintf(stderr, "%s: socket create error\n", prog);
@@ -677,72 +698,96 @@ restart:
 		format_string(stderr, 0, 0, "EarlyData", conn.early_data_buf, conn.early_data_len);
 	}
 
+	size_t send_len = 0;
+	size_t send_offset = 0;
+
+
+
+	// 如果客户端发送的数据比较长，会被切分为多个record
+	// 服务器在接收到record之后，必须做同步，就是每收到一个record必须返回一个record
+	// 也就是server必须有一个同步机制
 
 	for (;;) {
+		fd_set fds_recv;
 
-		fd_set fds;
+		fd_set fds_send; // 只有在接收数据之后才需要设置
+
 		size_t sentlen;
 
-		FD_ZERO(&fds);
+		FD_ZERO(&fds_recv);
+		FD_ZERO(&fds_send);
 
 		// listen socket
-		FD_SET(conn.sock, &fds);
+		FD_SET(conn.sock, &fds_recv);
 
-		// 等待阻塞
+		if (send_len > 0) {
+			FD_SET(conn.sock, &fds_send);
+		}
+
 		if (select((int)(conn.sock + 1), // In WinSock2, select() ignore the this arg
-			&fds, NULL, NULL, NULL) < 0) {
+			&fds_recv, &fds_send, NULL, NULL) < 0) {
 			fprintf(stderr, "%s: select failed\n", prog);
 			goto end;
 		}
 
-		if (FD_ISSET(conn.sock, &fds)) {
-			for (;;) {
-				memset(buf, 0, sizeof(buf));
-				if (tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len) != 1) {
-					goto end;
-				}
-				fwrite(buf, 1, len, stdout);
-				fflush(stdout);
-
-				// FIXME: change tls13_recv API			
-				if (conn.datalen == 0) {
-					break;
-				}
-			}
-
+		if (send_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
 			fprintf(stderr, ">>>>>>>> send back\n");
 
-			if (tls13_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
+
+			format_bytes(stderr, 0, 0, "tls13_send", buf + send_offset, send_len);
+
+
+			if ((ret = tls13_send(&conn, (uint8_t *)buf + send_offset, send_len, &sentlen)) != 1) {
+				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
+					continue;
+				}
 				fprintf(stderr, "%s: send error\n", prog);
 				goto end;
 			}
+
+			send_offset += sentlen;
+			send_len -= sentlen;
+
+			fprintf(stderr, "---------------\n");
+
+			//memset(conn.record, 0, sizeof(conn.record));
+			//memset(conn.plain_record, 0, sizeof(conn.plain_record));
 		}
-	}
 
 
-	for (;;) {
+		if (FD_ISSET(conn.sock, &fds_recv)) {
 
-		int rv;
-		size_t sentlen;
+			memset(buf, 0, sizeof(buf));
 
-		do {
-			len = sizeof(buf);
-			if ((rv = tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
-				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
-				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
-
-				//close(conn.sock);
-				tls_cleanup(&conn);
-				goto restart;
+			if ((ret = tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
+					continue;
+				}
+				error_print();
+				goto end;
 			}
-		} while (!len);
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
 
-		if (tls13_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
-			fprintf(stderr, "%s: send failure, close connection\n", prog);
-			tls_socket_close(conn.sock);
-			goto end;
+			send_len = len;
+			send_offset = 0;
+			/*
+			// FIXME: change tls13_recv API			
+			if (conn.datalen == 0) {
+				break;
+			}
+			*/
 		}
+
+
+
+
+
+
+
+		fprintf(stderr, "\n\n\n\n");
 	}
+
 
 
 end:
