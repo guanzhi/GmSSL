@@ -624,8 +624,6 @@ bad:
 			fflush(stdout);
 
 
-			format_bytes(stderr, 0, 0, "tls13_recv return", buf, len);
-
 
 			// FIXME: change tls13_recv API			
 			/*
@@ -654,11 +652,6 @@ bad:
 			sent_len = strlen(send_buf) + 1;
 			sent_offset = 0;
 
-			fprintf(stderr, "###############################\n");
-			fprintf(stderr, "sentlen = %zu\n", sentlen);
-			format_bytes(stderr, 0, 0, "send hex", send_buf, sent_len);
-			fprintf(stderr, "sent_len = %zu\n", sent_len);
-			fprintf(stderr, "sent_offset = %zu\n", sent_offset);
 		}
 
 		if (sent_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
@@ -677,14 +670,9 @@ bad:
 
 			sent_offset += sentlen;
 			sent_len -= sentlen;
-			fprintf(stderr, "###############################\n");
-			fprintf(stderr, "sentlen = %zu\n", sentlen);
-			fprintf(stderr, "sent_len = %zu\n", sent_len);
-			fprintf(stderr, "sent_offset = %zu\n", sent_offset);
 		}
 
-		fprintf(stderr, "\n\n\n\n");
-
+		fprintf(stderr, "\n");
 
 	}
 

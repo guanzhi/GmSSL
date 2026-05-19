@@ -280,498 +280,6 @@ int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	return 1;
 }
 
-/*
-KeyUpate的流程
-
-	客户端发现需要KeyUpdate （可能是C->S 或者C <- S某个方向需要）
-	如果是自己方向的需要更新，或者对方需要更新，那么就一定要发送KeyUpdate
-	如果对方不需要更新，那么不要求对方更新
-
-	客户端更新自己的密钥
-
-	服务器端在收到通知后，更新客户端的密钥
-	服务器端查看是否要求自己也更新密钥，如果要求
-		因此向客户端发送KeyUpdate
-	注意因为客户端的密钥刚更新过，作为响应方的服务器一定不能要求对方再更新了
-
-	客户端接受到服务器的请求，如果自己才刚刚更新过，就不再发送反馈了
-
-
-	这里一个主要的状态判断是，
-	某一方在接收到对方的KeyUpdate请求后，是否响。
-
-
-发送过程本身也是个状态机
-
-
-	判断发送方向的seq_num是否已经到达了上限，如果到达上限
-		构造KeyUpdate记录
-		加密KeyUpdate记录，并写入缓冲区
-		更新发送方向的key和seq_num
-		发送缓冲区记录，或返回SEND_AGAIN
-	构造AppData消息
-	加密AppData消息并写入缓冲区
-	发送缓冲区记录，或返回SEND_AGAIN
-*/
-
-
-int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen)
-{
-	int ret = 1;
-	int key_update = 0;
-
-	*sentlen = 0;
-
-	if (!conn->recordlen) {
-		const BLOCK_CIPHER_KEY *key;
-		const uint8_t *iv;
-		uint8_t *seq_num;
-		size_t padding_len = 0;
-		size_t record_datalen;
-
-		if (!data || !datalen) {
-			error_print();
-			return 0;
-		}
-
-		// 这个应该放在后面
-		if (datalen > TLS_MAX_PLAINTEXT_SIZE) {
-			datalen = TLS_MAX_PLAINTEXT_SIZE;
-		}
-
-		if (conn->is_client) {
-			key = &conn->client_write_key;
-			iv = conn->client_write_iv;
-			seq_num = conn->client_seq_num;
-			//format_bytes(stderr, 0, 4, "client_write_iv", iv, 12);
-			//format_bytes(stderr, 0, 4, "client_seq_num", seq_num, 8);
-			//format_print(stderr, 0, 0, "\n");
-
-		} else {
-			key = &conn->server_write_key;
-			iv = conn->server_write_iv;
-			seq_num = conn->server_seq_num;
-			//format_bytes(stderr, 0, 4, "server_write_iv", iv, 12);
-			//format_bytes(stderr, 0, 4, "server_seq_num", seq_num, 8);
-			//format_print(stderr, 0, 0, "\n");
-		}
-
-
-		fprintf(stderr, "conn->key_update = %d\n", conn->key_update);
-
-		format_bytes(stderr, 0, 0, "seq_num", seq_num, 8);
-
-
-		// check if KeyUpdate
-		if (GETU64(seq_num) >= conn->ctx->key_update_seq_num_limit) {
-			conn->key_update = 1;
-		}
-		fprintf(stderr, "conn->key_update = %d\n", conn->key_update);
-
-		if (conn->key_update) {
-
-			int ret;
-
-
-			tls_trace("send {KeyUpdate}\n");
-
-
-			int request_update = 1;
-
-
-			// 这个显然是不对的，这里要根据请求方设置
-			if (conn->is_client) {
-				ret = tls13_send_client_key_update(conn, request_update);
-				fprintf(stderr, "tls13_send_client_key_update ret = %d\n", ret);
-			} else {
-				ret = tls13_send_server_key_update(conn, request_update);
-			}
-
-
-			if (ret != 1) {
-				error_print();
-			}
-
-			conn->key_update = 0;
-
-			return ret;
-
-
-			// 直接在这里面发送KeyUpdate
-			if (tls13_record_set_handshake_key_update(conn->plain_record, &conn->plain_recordlen,
-				request_update) != 1) {
-				error_print();
-				return -1;
-			}
-			tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
-
-
-
-
-			key_update = 1;
-
-
-		} else {
-			tls_trace("send {ApplicationData}\n");
-		}
-
-		tls13_padding_len_rand(&padding_len);
-
-
-		if (key_update) {
-			if (tls13_gcm_encrypt(key, iv,
-				seq_num, TLS_record_handshake,
-				conn->plain_record + 5, conn->plain_recordlen - 5, padding_len,
-				conn->record + 5, &record_datalen) != 1) {
-				error_print();
-				return -1;
-			}
-
-			if (conn->is_client) {
-				tls13_update_client_application_keys(conn);
-			} else {
-				tls13_update_server_application_keys(conn);
-			}
-
-			ret = TLS_ERROR_SEND_AGAIN;
-
-		} else {
-
-			if (datalen > 8) {
-				datalen = 8;
-			}
-
-			format_bytes(stderr, 0, 0, "send hex", data, datalen);
-
-			if (tls13_gcm_encrypt(key, iv,
-				seq_num, TLS_record_application_data, data, datalen, padding_len,
-				conn->record + 5, &record_datalen) != 1) {
-				error_print();
-				return -1;
-			}
-
-			tls_seq_num_incr(seq_num);
-
-			ret = 1;
-
-		}
-		tls_record_set_type(conn->record, TLS_record_application_data);
-		tls_record_set_protocol(conn->record, TLS_protocol_tls12);
-		tls_record_set_data_length(conn->record, record_datalen);
-
-		conn->recordlen = 5 + record_datalen;
-		conn->record_offset = 0;
-
-
-		// 需要记录密文对应的明文是什么，当完整的报文发送之后，这些信息要返回给调用方
-		//conn->plain_recordlen = datalen + 5;
-		conn->sentlen = datalen;
-
-		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
-
-	}
-
-	while (conn->recordlen) {
-		tls_ret_t n;
-
-		if ((n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				return TLS_ERROR_SEND_AGAIN;
-			} else {
-				if (n == 0) {
-					error_puts("TCP connection closed");
-				}
-				error_print();
-				return -1;
-			}
-		}
-		conn->recordlen -= n;
-		conn->record_offset += n;
-	}
-
-
-	// 这里有一种可能是，用户输入的消息长度比较长，超出了我们的长度限制
-
-
-	//*sentlen = conn->plain_recordlen - 5;
-	*sentlen = conn->sentlen;
-
-
-	fprintf(stderr, "tls13_send last ret = %d\n", ret);
-	return ret;
-}
-
-int tls13_do_recv(TLS_CONNECT *conn)
-{
-	tls_ret_t n;
-	const BLOCK_CIPHER_KEY *key;
-	const uint8_t *iv;
-	uint8_t *seq_num;
-
-	tls_trace("recv {ApplicationData}\n");
-
-	// 在接收EarlyData的时候，当前的状态有问题啊
-
-
-	switch (conn->state) {
-	case 0:
-	case TLS_state_early_data:
-		conn->record_offset = 0;
-		conn->recordlen = TLS_RECORD_HEADER_SIZE;
-		conn->state = TLS_state_recv_record_header;
-
-	case TLS_state_recv_record_header:
-		while (conn->recordlen) {
-
-			fprintf(stderr, "conn->record_offet = %zu\n", conn->record_offset);
-			fprintf(stderr, "len = %zu \n", conn->recordlen);
-
-			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					return TLS_ERROR_RECV_AGAIN;
-				} else {
-					error_print();
-					return -1;
-				}
-			}
-			fprintf(stderr, "len = %zu %zu\n", conn->recordlen, n);
-
-			conn->recordlen -= n;
-			conn->record_offset += n;
-
-			format_bytes(stderr, 0, 0, "recv record", conn->record, conn->record_offset);
-
-		}
-		if (tls_record_type(conn->record) != TLS_record_application_data) {
-			error_print();
-			return -1;
-		}
-		if (tls_record_protocol(conn->record) != TLS_protocol_tls12) {
-			error_print();
-			return -1;
-		}
-		conn->recordlen = tls_record_data_length(conn->record);
-		conn->state = TLS_state_recv_record_data;
-
-	case TLS_state_recv_record_data:
-		while (conn->recordlen) {
-			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					return TLS_ERROR_RECV_AGAIN;
-				} else {
-					error_print();
-					return -1;
-				}
-			}
-			conn->recordlen -= n;
-			conn->record_offset += n;
-		}
-		conn->state = 0;
-		break;
-
-	default:
-		fprintf(stderr, "conn->state = %d\n", conn->state);
-		error_print();
-		return -1;
-	}
-
-	conn->recordlen = tls_record_length(conn->record);
-
-
-	fprintf(stderr, "tls13_do_recv\n");
-
-	tls13_record_print(stderr, 0, 4, conn->record, conn->recordlen);
-
-
-	if (conn->is_client) {
-		key = &conn->server_write_key;
-		iv = conn->server_write_iv;
-		seq_num = conn->server_seq_num;
-
-		//format_bytes(stderr, 0, 4, "server_write_iv", iv, 12);
-		//format_bytes(stderr, 0, 4, "server_seq_num", seq_num, 8);
-		//format_print(stderr, 0, 0, "\n");
-
-
-	} else {
-		key = &conn->client_write_key;
-		iv = conn->client_write_iv;
-		seq_num = conn->client_seq_num;
-		//format_bytes(stderr, 0, 4, "client_write_iv", iv, 12);
-		//format_bytes(stderr, 0, 4, "client_seq_num", seq_num, 8);
-		//format_print(stderr, 0, 0, "\n");
-	}
-
-
-	if (tls13_record_decrypt(key, iv, seq_num, conn->record, conn->recordlen,
-		conn->plain_record, &conn->plain_recordlen) != 1) {
-		error_print();
-		return -1;
-	}
-	tls_seq_num_incr(seq_num);
-
-	fprintf(stderr, "   plain\n");
-	tls13_record_print(stderr, 0, 4, conn->plain_record, conn->plain_recordlen);
-
-
-	switch (tls_record_type(conn->plain_record)) {
-	case TLS_record_application_data:
-		conn->data = conn->plain_record + 5;
-		conn->datalen = conn->plain_recordlen - 5;
-
-
-		format_bytes(stderr, 0, 0, "recv record", conn->data, conn->datalen);
-
-		break;
-
-	case TLS_record_handshake:
-		{
-		int handshake_type;
-		const uint8_t *handshake_data;
-		size_t handshake_datalen;
-		int update_requested;
-
-		if (tls_record_get_handshake(conn->plain_record, &handshake_type, &handshake_data, &handshake_datalen) != 1) {
-			error_print();
-			return -1;
-		}
-		switch (handshake_type) {
-
-		// NewSessionTicket 也不应该是被单独接收的，只能在解密并解析了handshake之后才可以
-		case TLS_handshake_new_session_ticket:
-			if (tls13_process_new_session_ticket(conn) != 1) {
-				error_print();
-				return -1;
-			}
-			break;
-
-
-		case TLS_handshake_key_update:
-			if (tls13_record_get_handshake_key_update(conn->plain_record, &update_requested) != 1) {
-				error_print();
-				return -1;
-			}
-
-			// 如果对方要求KeyUpdate，并且也满足我方KeyUpdate的最低条件
-			// 那么我们就设置key_update标志位
-			// 下次发送的时候就启动KeyUpdate
-
-
-			if (conn->is_client) {
-				uint64_t seq_num;
-				int ret;
-
-				tls13_update_server_application_keys(conn);
-
-				seq_num = GETU64(conn->client_seq_num);
-
-
-				if (seq_num > 2 && update_requested) {
-					conn->key_update = 1;
-				}
-
-
-			} else {
-				uint64_t seq_num;
-				int ret;
-
-				fprintf(stderr, "%%%%%%%%%%555 tls13_update_client_application_keys\n");
-
-				tls13_update_client_application_keys(conn);
-
-
-				seq_num = GETU64(conn->server_seq_num);
-				if (seq_num > 2 && update_requested) {
-					conn->key_update = 1;
-				}
-			}
-
-			break;
-		default:
-			error_print();
-			return -1;
-		}
-		}
-		break;
-
-	case TLS_record_alert:
-		{
-		int alert_level;
-		int alert_description;
-
-		if (tls_record_get_alert(conn->plain_record, &alert_level, &alert_description) != 1) {
-			error_print();
-			return -1;
-		}
-		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
-		}
-		return -1;
-
-	default:
-		error_print();
-		return -1;
-	}
-
-	return 1;
-}
-
-int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
-{
-	if (!conn || !out || !outlen || !recvlen) {
-		error_print();
-		return -1;
-	}
-	fprintf(stderr, "%d: conn->state %d\n", __LINE__, conn->state);
-
-
-	if (conn->datalen == 0) {
-		int ret;
-		if ((ret = tls13_do_recv(conn)) != 1) {
-			if (ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
-				error_print();
-			}
-			return ret;
-		}
-	}
-	*recvlen = outlen <= conn->datalen ? outlen : conn->datalen;
-	memcpy(out, conn->data, *recvlen);
-	conn->data += *recvlen;
-	conn->datalen -= *recvlen;
-
-	// 这里接受完成之后，应该recordlen = 0
-
-	conn->recordlen = 0;
-
-
-	return 1;
-}
-
-// 这里需要考虑max_early_data_size的问题
-int tls13_recv_early_data(TLS_CONNECT *conn)
-{
-	tls_trace("recv EarlyData\n");
-
-	if (tls13_do_recv(conn) != 1) {
-		error_print();
-		return -1;
-	}
-	memcpy(conn->early_data_buf, conn->data, conn->datalen);
-	conn->early_data_len = conn->datalen;
-
-	format_string(stderr, 0, 4, "EarlyData", conn->early_data_buf, conn->early_data_len);
-
-
-	// 清空记录，防止后续的握手处理过程出现问题			
-	// 需要考虑统一的record状态更新
-	// 还需要考虑 tls13_recv 如何消费掉 early_data
-
-	conn->record_offset = 0;
-	conn->recordlen = 0;
-	conn->plain_recordlen = 0;
-
-	return 1;
-}
-
 
 /*
 HKDF-Expand-Label(Secret, Label, Context, Length) =
@@ -787,6 +295,13 @@ Derive-Secret(Secret, Label, Messages) =
 
 */
 
+
+// TLS 1.3 的密钥生成过程都是通过HKDF-Extract和Derive-Secret这两个函数实现的
+// HKDF-Extract 的输出长度完全是由哈希长度决定的，输出是 Derive-Secret 的输入
+// Derive-Secret 的输出长度也是由哈希长度决定的
+
+
+// 这个函数掩盖了hkdf_extract，并且假定使用的哈希函数的哈希值的长度是32，这个没有必要，并且不清晰
 int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32])
 {
 	size_t dgstlen;
@@ -799,6 +314,8 @@ int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8
 	return 1;
 }
 
+// 增加secret_len作为输入的参数
+// Expand-Label
 int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
 	const char *label, const uint8_t *context, size_t context_len,
 	size_t outlen, uint8_t *out)
@@ -820,7 +337,8 @@ int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
 	return 1;
 }
 
-// 输入参数都需要提供长度			
+// 增加secret_len
+// 输出长度是由digest决定的，应该提供一个输出长度 outlen
 int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32])
 {
 	DIGEST_CTX ctx = *dgst_ctx;
@@ -838,6 +356,294 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 	}
 	return 1;
 }
+
+
+
+/*
+
+             0
+             |
+             v
+[1]  PSK ->  HKDF-Extract = Early Secret
+             |
+[2]          +-----> Derive-Secret(., "ext binder" | "res binder", "")
+             |                     = binder_key
+             |
+[3]          +-----> Derive-Secret(., "c e traffic", ClientHello)
+             |                     = client_early_traffic_secret
+             |
+[4]          +-----> Derive-Secret(., "e exp master", ClientHello)
+             |                     = early_exporter_master_secret
+             v
+[5]    Derive-Secret(., "derived", "")
+             |
+             v
+[6]  (EC)DHE -> HKDF-Extract = Handshake Secret
+             |
+[7]          +-----> Derive-Secret(., "c hs traffic",
+             |                     ClientHello...ServerHello)
+             |                     = client_handshake_traffic_secret
+             |
+[8]          +-----> Derive-Secret(., "s hs traffic",
+             |                     ClientHello...ServerHello)
+             |                     = server_handshake_traffic_secret
+             v
+[9]    Derive-Secret(., "derived", "")
+             |
+             v
+[10]   0 -> HKDF-Extract = Master Secret
+             |
+[11]         +-----> Derive-Secret(., "c ap traffic",
+             |                     ClientHello...server Finished)
+             |                     = client_application_traffic_secret_0
+             |
+[12]         +-----> Derive-Secret(., "s ap traffic",
+             |                     ClientHello...server Finished)
+             |                     = server_application_traffic_secret_0
+             |
+[13]         +-----> Derive-Secret(., "exp master",
+             |                     ClientHello...server Finished)
+             |                     = exporter_master_secret
+             |
+[14]         +-----> Derive-Secret(., "res master",
+                                   ClientHello...client Finished)
+                                   = resumption_master_secret
+
+*/
+
+// 不应该弄一个独立的函数
+int tls13_psk_keys_get_first(const uint8_t *keys, size_t keyslen, const uint8_t **key, size_t *keylen)
+{
+	if (tls_uint8array_from_bytes(key, keylen, &keys, &keyslen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+// generate early_secret, client_early_traffic_secret, client_write_key, client_write_iv
+// reset client_seq_num
+int tls13_generate_early_keys(TLS_CONNECT *conn)
+{
+	uint8_t zeros[32] = {0};
+	const uint8_t *first_psk;
+	size_t first_psk_len;
+	uint8_t early_secret[32];
+	uint8_t client_early_traffic_secret[32];
+	uint8_t client_write_key[16];
+
+	if (tls13_cipher_suite_get(conn->psk_cipher_suites[0], &conn->cipher, &conn->digest) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (digest_init(&conn->dgst_ctx, conn->digest) != 1
+		|| digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// early_data always encrypted with the first psk
+	if (tls13_psk_keys_get_first(conn->psk_keys, conn->psk_keys_len, &first_psk, &first_psk_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	// psk => client_early_traffic_secret
+	tls13_hkdf_extract(conn->digest, zeros, first_psk, early_secret);
+	tls13_derive_secret(early_secret, "c e traffic", &conn->dgst_ctx, client_early_traffic_secret);
+	tls13_hkdf_expand_label(conn->digest, client_early_traffic_secret, "key", NULL, 0, 16, client_write_key);
+	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
+	tls13_hkdf_expand_label(conn->digest, client_early_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
+	tls_seq_num_reset(conn->client_seq_num);
+
+	format_print(stderr, 0, 0, "client_write_key/iv <= client_early_traffic_secret\n");
+	format_bytes(stderr, 0, 4, "client_early_traffic_secret", client_early_traffic_secret, 32);
+	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
+	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+
+	return 1;
+}
+
+// generate client_handshake_traffic_secret, server_handshake_traffic_secret
+int tls13_generate_handshake_secrets(TLS_CONNECT *conn)
+{
+	uint8_t zeros[32] = {0};
+	uint8_t early_secret[32];
+	uint8_t handshake_secret[32];
+	uint8_t pre_master_secret[32] = {0};
+	size_t pre_master_secret_len;
+	uint8_t client_write_key[16] = {0};
+	uint8_t server_write_key[16] = {0};
+	DIGEST_CTX null_dgst_ctx;
+
+	printf("generate handshake secrets\n");
+
+	// PSK-only的时候没有(EC)DHE，这里用的是全0（32字节）参与计算
+
+	// (EC)DHE
+	if (conn->key_exchange_modes != TLS_KE_PSK) {
+		if (conn->key_exchange_idx >= conn->key_exchanges_cnt) {
+			error_print();
+			return -1;
+		}
+		if (x509_key_exchange(&conn->key_exchanges[conn->key_exchange_idx],
+			conn->peer_key_exchange, conn->peer_key_exchange_len,
+			pre_master_secret, &pre_master_secret_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	digest_init(&null_dgst_ctx, conn->digest);
+
+	/* [1]  */ tls13_hkdf_extract(conn->digest, zeros, conn->psk, conn->early_secret);
+	/* [5]  */ tls13_derive_secret(conn->early_secret, "derived", &null_dgst_ctx, conn->handshake_secret);
+	/* [6]  */ tls13_hkdf_extract(conn->digest, conn->handshake_secret, conn->pre_master_secret, conn->handshake_secret);
+	/* [7]  */ tls13_derive_secret(conn->handshake_secret, "c hs traffic", &conn->dgst_ctx, conn->client_handshake_traffic_secret);
+	/* [8]  */ tls13_derive_secret(conn->handshake_secret, "s hs traffic", &conn->dgst_ctx, conn->server_handshake_traffic_secret);
+
+
+	return 1;
+}
+
+int tls13_generate_master_secret(TLS_CONNECT *conn)
+{
+	uint8_t zeros[32] = {0};
+	DIGEST_CTX null_dgst_ctx;
+
+	digest_init(&null_dgst_ctx, conn->digest);
+
+	/* [9]  */ tls13_derive_secret(conn->handshake_secret, "derived", &null_dgst_ctx, conn->master_secret);
+	/* [10] */ tls13_hkdf_extract(conn->digest, conn->master_secret, zeros, conn->master_secret);
+	return 1;
+}
+
+
+// generate client_write_key, client_write_iv, reset client_seq_num
+int tls13_generate_client_handshake_keys(TLS_CONNECT *conn)
+{
+	uint8_t key[16];
+
+	tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "key", NULL, 0, sizeof(key), key);
+	tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv);
+	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, key);
+	tls_seq_num_reset(conn->client_seq_num);
+
+	format_print(stderr, 0, 0, "update_client_handshake_keys\n");
+	format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 32);
+	format_bytes(stderr, 0, 4, "client_write_key", key, 16);
+	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, TLS13_IV_SIZE);
+	return 1;
+}
+
+// generate server_write_key, server_write_iv, reset server_seq_num
+int tls13_generate_server_handshake_keys(TLS_CONNECT *conn)
+{
+	uint8_t key[16];
+
+	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "key", NULL, 0, sizeof(key), key);
+	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->server_write_iv);
+	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, key);
+	tls_seq_num_reset(conn->server_seq_num);
+
+	format_print(stderr, 0, 0, "update_server_handshake_keys\n");
+	format_bytes(stderr, 0, 4, "server_handshake_traffic_secret", conn->server_handshake_traffic_secret, 32);
+	format_bytes(stderr, 0, 4, "server_write_key", key, 16);
+	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
+	return 1;
+}
+
+// update client_application_traffic_secret
+int tls13_update_client_application_secret(TLS_CONNECT *conn)
+{
+	uint8_t key[16];
+
+	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "traffic upd", NULL, 0,
+		conn->digest->digest_size, conn->client_application_traffic_secret);
+
+	return 1;
+}
+
+// generate client_application_traffic_secret, server_application_traffic_secret
+int tls13_generate_application_secrets(TLS_CONNECT *conn)
+{
+	// Generate client_application_traffic_secret
+	/* 11 */ tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret);
+
+	// generate server_application_traffic_secret
+	/* 12 */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
+
+	return 1;
+}
+
+// update server_application_traffic_secret
+int tls13_update_server_application_secret(TLS_CONNECT *conn)
+{
+	uint8_t key[16];
+
+	format_print(stderr, 0, 0, "update server secrets\n");
+	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 32);
+
+	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "traffic upd", NULL, 0,
+		conn->digest->digest_size, conn->server_application_traffic_secret);
+
+	return 1;
+}
+
+int tls13_generate_client_application_keys(TLS_CONNECT *conn)
+{
+	uint8_t key[16];
+
+	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, sizeof(key), key);
+	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv);
+	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, key);
+	tls_seq_num_reset(conn->client_seq_num);
+
+	format_print(stderr, 0, 0, "update_client_application_keys\n");
+	format_bytes(stderr, 0, 4, "client application_traffic_secret",
+		conn->client_application_traffic_secret, sizeof(conn->client_application_traffic_secret));
+	format_bytes(stderr, 0, 4, "client_write_key", key, 16);
+	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	return 1;
+}
+
+int tls13_generate_server_application_keys(TLS_CONNECT *conn)
+{
+	uint8_t key[16];
+
+	format_print(stderr, 0, 0, "update server secrets\n");
+	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 32);
+
+	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, sizeof(key), key);
+	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->server_write_iv);
+	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, key);
+	tls_seq_num_reset(conn->server_seq_num);
+
+	format_bytes(stderr, 0, 4, "server_application_traffic_secret",
+		conn->server_application_traffic_secret, sizeof(conn->server_application_traffic_secret));
+	format_bytes(stderr, 0, 4, "server_write_key", key, 16);
+	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
+	format_print(stderr, 0, 0, "\n");
+
+	return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static const uint8_t TLS13_client_context_str_and_zero[] = "TLS 1.3, client CertificateVerify";
 static const uint8_t TLS13_server_context_str_and_zero[] = "TLS 1.3, server CertificateVerify";
@@ -1057,6 +863,414 @@ int tls13_compute_verify_data(const uint8_t *handshake_traffic_secret,
 	hmac(dgst_ctx->digest, finished_key, finished_key_len, dgst, dgstlen, verify_data, verify_data_len);
 	return 1;
 }
+
+
+
+
+
+
+int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen)
+{
+	int ret = 1;
+
+	if (!data || !datalen) {
+		error_print();
+		return 0;
+	}
+
+	*sentlen = 0;
+
+	if (!conn->recordlen) {
+		const BLOCK_CIPHER_KEY *key;
+		const uint8_t *iv;
+		uint8_t *seq_num;
+		size_t padding_len = 0;
+		size_t record_datalen;
+
+		int request_update = 0;
+
+		if (conn->is_client) {
+			key = &conn->client_write_key;
+			iv = conn->client_write_iv;
+			seq_num = conn->client_seq_num;
+			//format_bytes(stderr, 0, 4, "client_write_iv", iv, 12);
+			//format_bytes(stderr, 0, 4, "client_seq_num", seq_num, 8);
+			//format_print(stderr, 0, 0, "\n");
+
+		} else {
+			key = &conn->server_write_key;
+			iv = conn->server_write_iv;
+			seq_num = conn->server_seq_num;
+			//format_bytes(stderr, 0, 4, "server_write_iv", iv, 12);
+			//format_bytes(stderr, 0, 4, "server_seq_num", seq_num, 8);
+			//format_print(stderr, 0, 0, "\n");
+		}
+
+		// check if KeyUpdate
+		if (GETU64(seq_num) >= conn->ctx->key_update_seq_num_limit) {
+			if (!conn->key_update) {
+				conn->key_update = 1;
+				request_update = 1;
+			}
+		}
+		if (conn->key_update) {
+			if (conn->is_client) {
+				ret = tls13_send_client_key_update(conn, request_update);
+			} else {
+				ret = tls13_send_server_key_update(conn, request_update);
+			}
+
+			if (ret == 1) {
+				ret = TLS_ERROR_SEND_AGAIN;
+			}
+			return ret;
+		}
+
+
+		if (datalen > TLS_MAX_PLAINTEXT_SIZE) {
+			datalen = TLS_MAX_PLAINTEXT_SIZE;
+		}
+		if (datalen > 8) {
+			datalen = 8;
+		}
+
+		format_bytes(stderr, 0, 0, "send", data, datalen);
+
+
+		tls13_padding_len_rand(&padding_len);
+		if (tls13_gcm_encrypt(key, iv,
+			seq_num, TLS_record_application_data, data, datalen, padding_len,
+			conn->record + 5, &record_datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_seq_num_incr(seq_num);
+
+		ret = 1;
+
+		tls_record_set_type(conn->record, TLS_record_application_data);
+		tls_record_set_protocol(conn->record, TLS_protocol_tls12);
+		tls_record_set_data_length(conn->record, record_datalen);
+
+		conn->recordlen = 5 + record_datalen;
+		conn->record_offset = 0;
+
+		// 需要记录密文对应的明文是什么，当完整的报文发送之后，这些信息要返回给调用方
+		//conn->plain_recordlen = datalen + 5;
+		conn->sentlen = datalen;
+
+
+		tls_trace("send {ApplicationData}\n");
+		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
+	}
+
+	while (conn->recordlen) {
+		tls_ret_t n;
+
+		if ((n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				return TLS_ERROR_SEND_AGAIN;
+			} else {
+				if (n == 0) {
+					error_puts("TCP connection closed");
+				}
+				error_print();
+				return -1;
+			}
+		}
+		conn->recordlen -= n;
+		conn->record_offset += n;
+	}
+
+
+	//*sentlen = conn->plain_recordlen - 5;
+	*sentlen = conn->sentlen;
+
+	return ret;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int tls13_do_recv(TLS_CONNECT *conn)
+{
+	tls_ret_t n;
+	const BLOCK_CIPHER_KEY *key;
+	const uint8_t *iv;
+	uint8_t *seq_num;
+
+
+	// 在接收EarlyData的时候，当前的状态有问题啊
+
+	switch (conn->state) {
+	case 0:
+	case TLS_state_early_data:
+		conn->record_offset = 0;
+		conn->recordlen = TLS_RECORD_HEADER_SIZE;
+		conn->state = TLS_state_recv_record_header;
+
+	case TLS_state_recv_record_header:
+		while (conn->recordlen) {
+
+			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					return TLS_ERROR_RECV_AGAIN;
+				} else {
+					error_print();
+					return -1;
+				}
+			}
+			conn->recordlen -= n;
+			conn->record_offset += n;
+		}
+		if (tls_record_type(conn->record) != TLS_record_application_data) {
+			error_print();
+			return -1;
+		}
+		if (tls_record_protocol(conn->record) != TLS_protocol_tls12) {
+			error_print();
+			return -1;
+		}
+		conn->recordlen = tls_record_data_length(conn->record);
+		conn->state = TLS_state_recv_record_data;
+
+	case TLS_state_recv_record_data:
+		while (conn->recordlen) {
+			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					return TLS_ERROR_RECV_AGAIN;
+				} else {
+					error_print();
+					return -1;
+				}
+			}
+			conn->recordlen -= n;
+			conn->record_offset += n;
+		}
+		conn->state = 0;
+		break;
+
+	default:
+		fprintf(stderr, "conn->state = %d\n", conn->state);
+		error_print();
+		return -1;
+	}
+
+	conn->recordlen = tls_record_length(conn->record);
+
+	tls_trace("recv {ApplicationData}\n");
+	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
+
+	if (conn->is_client) {
+		key = &conn->server_write_key;
+		iv = conn->server_write_iv;
+		seq_num = conn->server_seq_num;
+
+		//format_bytes(stderr, 0, 4, "server_write_iv", iv, 12);
+		//format_bytes(stderr, 0, 4, "server_seq_num", seq_num, 8);
+		//format_print(stderr, 0, 0, "\n");
+
+
+	} else {
+		key = &conn->client_write_key;
+		iv = conn->client_write_iv;
+		seq_num = conn->client_seq_num;
+		//format_bytes(stderr, 0, 4, "client_write_iv", iv, 12);
+		//format_bytes(stderr, 0, 4, "client_seq_num", seq_num, 8);
+		//format_print(stderr, 0, 0, "\n");
+	}
+
+	if (tls13_record_decrypt(key, iv, seq_num, conn->record, conn->recordlen,
+		conn->plain_record, &conn->plain_recordlen) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_seq_num_incr(seq_num);
+
+	tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+
+
+	switch (tls_record_type(conn->plain_record)) {
+	case TLS_record_application_data:
+		conn->data = conn->plain_record + 5;
+		conn->datalen = conn->plain_recordlen - 5;
+		break;
+
+	case TLS_record_handshake:
+		{
+		int handshake_type;
+		const uint8_t *handshake_data;
+		size_t handshake_datalen;
+		int update_requested;
+
+		if (tls_record_get_handshake(conn->plain_record, &handshake_type, &handshake_data, &handshake_datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		switch (handshake_type) {
+
+		// NewSessionTicket 也不应该是被单独接收的，只能在解密并解析了handshake之后才可以
+		case TLS_handshake_new_session_ticket:
+			if (tls13_process_new_session_ticket(conn) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+
+
+		case TLS_handshake_key_update:
+			if (tls13_record_get_handshake_key_update(conn->plain_record, &update_requested) != 1) {
+				error_print();
+				return -1;
+			}
+
+			// 如果对方要求KeyUpdate，并且也满足我方KeyUpdate的最低条件
+			// 那么我们就设置key_update标志位
+			// 下次发送的时候就启动KeyUpdate
+
+
+			if (conn->is_client) {
+				uint64_t seq_num;
+				int ret;
+
+				tls13_update_server_application_secret(conn);
+				tls13_generate_server_application_keys(conn);
+
+
+				seq_num = GETU64(conn->client_seq_num);
+
+				if (seq_num > 2 && update_requested) {
+					conn->key_update = 1;
+				}
+
+
+			} else {
+				uint64_t seq_num;
+				int ret;
+
+				tls13_update_client_application_secret(conn);
+				tls13_generate_client_application_keys(conn);
+
+				seq_num = GETU64(conn->server_seq_num);
+
+				if (seq_num > 2 && update_requested) {
+					fprintf(stderr, "server prepare key_update\n");
+					conn->key_update = 1;
+				}
+			}
+
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+		}
+		break;
+
+	case TLS_record_alert:
+		{
+		int alert_level;
+		int alert_description;
+
+		if (tls_record_get_alert(conn->plain_record, &alert_level, &alert_description) != 1) {
+			error_print();
+			return -1;
+		}
+		}
+		return -1;
+
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
+{
+	if (!conn || !out || !outlen || !recvlen) {
+		error_print();
+		return -1;
+	}
+
+	if (conn->datalen == 0) {
+		int ret;
+		if ((ret = tls13_do_recv(conn)) != 1) {
+			if (ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
+				error_print();
+			}
+			return ret;
+		}
+	}
+	*recvlen = outlen <= conn->datalen ? outlen : conn->datalen;
+	memcpy(out, conn->data, *recvlen);
+	conn->data += *recvlen;
+	conn->datalen -= *recvlen;
+
+	// 这里接受完成之后，应该recordlen = 0
+
+	conn->recordlen = 0;
+
+
+	return 1;
+}
+
+// 这里需要考虑max_early_data_size的问题
+int tls13_recv_early_data(TLS_CONNECT *conn)
+{
+	tls_trace("recv EarlyData\n");
+
+	if (tls13_do_recv(conn) != 1) {
+		error_print();
+		return -1;
+	}
+	memcpy(conn->early_data_buf, conn->data, conn->datalen);
+	conn->early_data_len = conn->datalen;
+
+	format_string(stderr, 0, 4, "EarlyData", conn->early_data_buf, conn->early_data_len);
+
+
+	// 清空记录，防止后续的握手处理过程出现问题			
+	// 需要考虑统一的record状态更新
+	// 还需要考虑 tls13_recv 如何消费掉 early_data
+
+	conn->record_offset = 0;
+	conn->recordlen = 0;
+	conn->plain_recordlen = 0;
+
+	return 1;
+}
+
+
+
+
+
+
 
 
 
@@ -2689,7 +2903,7 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 		format_print(fp, 0, 0, "DataLeftInRecord: %zu\n", recordlen);
 	}
 
-	fprintf(fp, "\n");
+	//fprintf(fp, "\n");
 	return 1;
 }
 
@@ -2840,9 +3054,6 @@ NewSessionTicket
           Extension extensions<0..2^16-2>;
       } NewSessionTicket;
 */
-
-
-
 
 
 // 8. encrypted_extensions
@@ -3491,139 +3702,42 @@ int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, 
 	return 1;
 }
 
-
 /*
 
-             0
-             |
-             v
-[1]  PSK ->  HKDF-Extract = Early Secret
-             |
-[2]          +-----> Derive-Secret(., "ext binder" | "res binder", "")
-             |                     = binder_key
-             |
-[3]          +-----> Derive-Secret(., "c e traffic", ClientHello)
-             |                     = client_early_traffic_secret
-             |
-[4]          +-----> Derive-Secret(., "e exp master", ClientHello)
-             |                     = early_exporter_master_secret
-             v
-[5]    Derive-Secret(., "derived", "")
-             |
-             v
-[6]  (EC)DHE -> HKDF-Extract = Handshake Secret
-             |
-[7]          +-----> Derive-Secret(., "c hs traffic",
-             |                     ClientHello...ServerHello)
-             |                     = client_handshake_traffic_secret
-             |
-[8]          +-----> Derive-Secret(., "s hs traffic",
-             |                     ClientHello...ServerHello)
-             |                     = server_handshake_traffic_secret
-             v
-[9]    Derive-Secret(., "derived", "")
-             |
-             v
-[10]   0 -> HKDF-Extract = Master Secret
-             |
-[11]         +-----> Derive-Secret(., "c ap traffic",
-             |                     ClientHello...server Finished)
-             |                     = client_application_traffic_secret_0
-             |
-[12]         +-----> Derive-Secret(., "s ap traffic",
-             |                     ClientHello...server Finished)
-             |                     = server_application_traffic_secret_0
-             |
-[13]         +-----> Derive-Secret(., "exp master",
-             |                     ClientHello...server Finished)
-             |                     = exporter_master_secret
-             |
-[14]         +-----> Derive-Secret(., "res master",
-                                   ClientHello...client Finished)
-                                   = resumption_master_secret
+这些密钥能够生成取决于密码套件是否确认下来
+
+客户端：
+
+yyyyy
+
+	生成 early_secret
+
+	构造 ClientHello
+		生成 client_early_traffic_secret
+		设置 client_write_key, client_write_iv
+	接受 ServerHello
+	计算 pre_master_secret
+	生成 handshake_secret
+		从 handshake_secret 导出 client_handshake_traffic_secret
+		从 handshake_secret 导出 server_handshake_traffic_secret
+	握手，直到收到 ServerFinished
+	生成 master_secret
+		导出 client_application_traffic_secret_0
+		导出 server_application_traffic_secret_0
+	发送 client Finished
+		导出 resumption_master_secret
+
 
 */
 
 
-// 这个函数实际上是生成握手过程的密钥
-int tls13_generate_handshake_keys(TLS_CONNECT *conn)
-{
-	uint8_t zeros[32] = {0};
-	uint8_t early_secret[32];
-	uint8_t handshake_secret[32];
-	uint8_t pre_master_secret[32] = {0};
-	size_t pre_master_secret_len;
-	uint8_t client_write_key[16] = {0};
-	uint8_t server_write_key[16] = {0};
-	DIGEST_CTX null_dgst_ctx;
-
-	printf("generate handshake secrets\n");
-
-
-	/*
-	generate handshake keys
-		uint8_t client_write_key[32]
-		uint8_t server_write_key[32]
-		uint8_t client_write_iv[12]
-		uint8_t server_write_iv[12]
-	*/
 
 
 
-	// 计算ECDHE
-	if (conn->key_exchange_modes != TLS_KE_PSK) {
-		if (conn->key_exchange_idx >= conn->key_exchanges_cnt) {
-			error_print();
-			return -1;
-		}
-		if (x509_key_exchange(&conn->key_exchanges[conn->key_exchange_idx],
-			conn->peer_key_exchange, conn->peer_key_exchange_len,
-			pre_master_secret, &pre_master_secret_len) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-
-	digest_init(&null_dgst_ctx, conn->digest);
 
 
-	/* [1]  */ tls13_hkdf_extract(conn->digest, zeros, conn->psk, early_secret);
-	/* [5]  */ tls13_derive_secret(early_secret, "derived", &null_dgst_ctx, handshake_secret);
-	/* [6]  */ tls13_hkdf_extract(conn->digest, handshake_secret, pre_master_secret, handshake_secret);
-	/* [7]  */ tls13_derive_secret(handshake_secret, "c hs traffic", &conn->dgst_ctx, conn->client_handshake_traffic_secret);
-	/* [8]  */ tls13_derive_secret(handshake_secret, "s hs traffic", &conn->dgst_ctx, conn->server_handshake_traffic_secret);
 
-	/* [9]  */ tls13_derive_secret(handshake_secret, "derived", &null_dgst_ctx, conn->master_secret);
-	/* [10] */ tls13_hkdf_extract(conn->digest, conn->master_secret, zeros, conn->master_secret);
 
-	//[sender]_write_key = HKDF-Expand-Label(Secret, "key", "", key_length)
-	//[sender]_write_iv  = HKDF-Expand-Label(Secret, "iv", "", iv_length)
-	//[sender] in {server, client}
-	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "key", NULL, 0, 16, server_write_key);
-	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-	tls_seq_num_reset(conn->server_seq_num);
-
-	format_bytes(stderr, 0, 0, "server_handshake_traffic_secret", conn->server_handshake_traffic_secret, 48);
-	format_bytes(stderr, 0, 0, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 48);
-
-	if (!conn->early_data) {
-		format_print(stderr, 0, 0, "update client_write_key, client_write_iv\n");
-
-		tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "key", NULL, 0, 16, client_write_key);
-		block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
-		tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
-		tls_seq_num_reset(conn->client_seq_num);
-	}
-
-	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
-	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
-
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-
-	return 1;
-}
 
 int tls13_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
@@ -3739,7 +3853,6 @@ ClientHello中的很多扩展是和证书有关的
 5. 客户端接收 ServerHello
 6. 客户端设置 handshake_secret
 7. 客户端接收 {EncryptedExtensions}
-
 
 
 
@@ -3990,11 +4103,10 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 
 		// early_data encryption keys depends on the full client_hello
 		if (conn->early_data) {
-			if (tls13_generate_early_data_keys(conn) != 1) {
+			if (tls13_generate_early_keys(conn) != 1) {
 				error_print();
 				return -1;
 			}
-
 		}
 
 		// backup client_hello
@@ -5011,9 +5123,22 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
 	}
 
-	if (tls13_generate_handshake_keys(conn) != 1) {
+	if (tls13_generate_handshake_secrets(conn) != 1) {
 		error_print();
 		return -1;
+	}
+
+	tls13_generate_master_secret(conn);
+
+	if (tls13_generate_server_handshake_keys(conn) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!conn->early_data) {
+		if (tls13_generate_client_handshake_keys(conn) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 
 	return 1;
@@ -6110,24 +6235,9 @@ int tls13_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	// generate client_application_traffic_secret
-	/* [11] */ tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret);
-	// generate server_application_traffic_secret
-	/* [12] */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
 
-	// update server_write_key, server_write_iv, reset server_seq_num
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
-	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-	tls_seq_num_reset(conn->server_seq_num);
-
-	format_print(stderr, 0, 0, "update server secrets\n");
-	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
-	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
-	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
-	format_bytes(stderr, 0, 4, "server_seq_num", conn->server_seq_num, 8);
-
-	format_print(stderr, 0, 0, "\n");
+	tls13_generate_application_secrets(conn);
+	tls13_generate_server_application_keys(conn);
 
 
 	return 1;
@@ -6307,18 +6417,8 @@ int tls13_send_client_finished(TLS_CONNECT *conn)
 		return ret;
 	}
 
-	//update client_write_key, client_write_iv, reset client_seq_num
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, 16, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
-	tls_seq_num_reset(conn->client_seq_num);
 
-	format_print(stderr, 0, 0, "update client secrets\n");
-	format_bytes(stderr, 0, 4, "client_application_traffic_secret", conn->client_application_traffic_secret, 48);
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-	format_print(stderr, 0, 0, "\n");
-
+	tls13_generate_client_application_keys(conn);
 
 	return 1;
 }
@@ -7103,7 +7203,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 
 	// generate early_data keys
 	if (conn->early_data) {
-		if (tls13_generate_early_data_keys(conn) != 1) {
+		if (tls13_generate_early_keys(conn) != 1) {
 			error_print();
 			return -1;
 		}
@@ -7628,9 +7728,22 @@ int tls13_send_server_hello(TLS_CONNECT *conn)
 		format_bytes(stderr, 0, 0, "ServerHello data", conn->record + 5, conn->recordlen - 5);
 		tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
 
-		if (tls13_generate_handshake_keys(conn) != 1) {
+
+		if (tls13_generate_handshake_secrets(conn) != 1) {
 			error_print();
 			return -1;
+		}
+		tls13_generate_master_secret(conn);
+
+		if (tls13_generate_server_handshake_keys(conn) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!conn->early_data) {
+			if (tls13_generate_client_handshake_keys(conn) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 	}
 
@@ -8061,23 +8174,38 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 		}
 		tls_seq_num_incr(conn->server_seq_num);
 
+		// 必须在这里生成client_application_traffic_secret，否则dgst_ctx就变了
+		// 但是必须在ClientFinished之后再更新密钥
+		// 因此application_secrets是可以同时生成的
+
+
+		tls13_generate_application_secrets(conn);
+
 		// Generate client_application_traffic_secret
-		/* 11 */ tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret);
+		///* 11 */ tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret);
 		// generate server_application_traffic_secret
-		/* 12 */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
+		///* 12 */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
+
+
+		// 这里只生成服务器端的密钥
+
+		tls13_generate_server_application_keys(conn);
 
 		// update server_write_key, server_write_iv, reset server_seq_num
+		/*
 		tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
 		block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
 		tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
 		tls_seq_num_reset(conn->server_seq_num);
 
 		format_print(stderr, 0, 0, "update server secrets\n");
-		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
+		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 32);
 		format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
 		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
 		format_bytes(stderr, 0, 4, "server_seq_num", conn->server_seq_num, 8);
 		format_print(stderr, 0, 0, "\n");
+		*/
+
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -8303,6 +8431,9 @@ int tls13_recv_client_finished(TLS_CONNECT *conn)
 	}
 
 
+	tls13_generate_client_application_keys(conn);
+
+	/*
 	// update client_write_key, client_write_iv, reset client_seq_num
 	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, 16, client_write_key);
 	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
@@ -8313,6 +8444,7 @@ int tls13_recv_client_finished(TLS_CONNECT *conn)
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 	format_print(stderr, 0, 0, "\n");
+	*/
 
 	return 1;
 }
@@ -8349,43 +8481,13 @@ int tls13_send_early_data(TLS_CONNECT *conn)
 	return 1;
 }
 
-int tls13_update_client_application_keys(TLS_CONNECT *conn)
-{
-	uint8_t client_write_key[16];
 
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "traffic upd", NULL, 0, 48, conn->client_application_traffic_secret);
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, 16, client_write_key);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
-	tls_seq_num_reset(conn->client_seq_num);
 
-	format_print(stderr, 0, 0, "update client secrets\n");
-	format_bytes(stderr, 0, 4, "client application_traffic_secret", conn->client_application_traffic_secret, 48);
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-	format_print(stderr, 0, 0, "\n");
 
-	return 1;
-}
 
-int tls13_update_server_application_keys(TLS_CONNECT *conn)
-{
-	uint8_t server_write_key[16];
 
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "traffic upd", NULL, 0, 48, conn->server_application_traffic_secret);
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
-	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-	tls_seq_num_reset(conn->server_seq_num);
 
-	format_print(stderr, 0, 0, "update server secrets\n");
-	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
-	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
-	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
-	format_print(stderr, 0, 0, "\n");
 
-	return 1;
-}
 
 // 参数request_update应该根据当前状态设置
 
@@ -8395,7 +8497,6 @@ int tls13_update_server_application_keys(TLS_CONNECT *conn)
 
 
 如果我们接收到对方的要求，并且满足我方的一个最低限度，那么就设置key_update的标志位，下次send的时候就会启动更新
-
 
 */
 
@@ -8428,10 +8529,12 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 		// xxxxxxxx
 		conn->record_offset = 0;
 
-		format_bytes(stderr, 0, 0, "KeyUpdate record", conn->record, conn->recordlen);
 		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
-		tls13_update_client_application_keys(conn);
+		tls13_update_client_application_secret(conn);
+		tls13_generate_client_application_keys(conn);
+
+		conn->key_update = 0;
 
 	}
 
@@ -8454,7 +8557,7 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 
 
 
-
+	/*
 	while (conn->recordlen) {
 		tls_ret_t n;
 
@@ -8472,7 +8575,7 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 		conn->recordlen -= n;
 		conn->record_offset += n;
 	}
-
+	*/
 
 
 	return 1;
@@ -8501,10 +8604,15 @@ int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
 			error_print();
 			return -1;
 		}
+		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 		conn->record_offset = 0;
 
-		tls13_update_server_application_keys(conn);
+		tls13_update_server_application_secret(conn);
+		tls13_generate_server_application_keys(conn);
+
+		conn->key_update = 0;
+
 	}
 
 
@@ -8524,12 +8632,6 @@ int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
 	}
 
 	return ret;
-
-
-
-
-
-
 
 
 }

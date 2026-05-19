@@ -1040,12 +1040,16 @@ typedef struct {
 
 	uint8_t key_block[96];
 
+
 	uint8_t early_secret[32];
+	uint8_t client_early_traffic_secret[32];
+
 	uint8_t handshake_secret[32];
 	uint8_t client_handshake_traffic_secret[32];
 	uint8_t server_handshake_traffic_secret[32];
 	uint8_t client_application_traffic_secret[32];
 	uint8_t server_application_traffic_secret[32];
+
 
 
 	SM2_SIGN_CTX sign_ctx;
@@ -1483,10 +1487,7 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 
 
 
-
-
-
-
+#define TLS13_IV_SIZE 12
 
 
 
@@ -1637,8 +1638,10 @@ int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
 int tls13_compute_verify_data(const uint8_t *handshake_traffic_secret,
 	const DIGEST_CTX *dgst_ctx, uint8_t *verify_data, size_t *verify_data_len);
 
-int tls13_generate_early_data_keys(TLS_CONNECT *conn);
+int tls13_generate_early_secrets(TLS_CONNECT *conn);
 
+int tls13_update_client_handshake_keys(TLS_CONNECT *conn);
+int tls13_update_server_handshake_keys(TLS_CONNECT *conn);
 
 
 

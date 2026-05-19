@@ -1758,59 +1758,6 @@ int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size)
 }
 
 
-// 不应该弄一个独立的函数
-int tls13_psk_keys_get_first(const uint8_t *keys, size_t keyslen, const uint8_t **key, size_t *keylen)
-{
-	if (tls_uint8array_from_bytes(key, keylen, &keys, &keyslen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-// 这个函数和密码计算有关，应该放到外面
-int tls13_generate_early_data_keys(TLS_CONNECT *conn)
-{
-	uint8_t zeros[32] = {0};
-	const uint8_t *first_psk;
-	size_t first_psk_len;
-	uint8_t early_secret[32];
-	uint8_t client_early_traffic_secret[32];
-	uint8_t client_write_key[16];
-
-	if (tls13_cipher_suite_get(conn->psk_cipher_suites[0], &conn->cipher, &conn->digest) != 1) {
-		error_print();
-		return -1;
-	}
-
-	if (digest_init(&conn->dgst_ctx, conn->digest) != 1
-		|| digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
-		error_print();
-		return -1;
-	}
-
-	// early_data always encrypted with the first psk
-	if (tls13_psk_keys_get_first(conn->psk_keys, conn->psk_keys_len, &first_psk, &first_psk_len) != 1) {
-		error_print();
-		return -1;
-	}
-
-	// psk => client_early_traffic_secret
-	tls13_hkdf_extract(conn->digest, zeros, first_psk, early_secret);
-	tls13_derive_secret(early_secret, "c e traffic", &conn->dgst_ctx, client_early_traffic_secret);
-	tls13_hkdf_expand_label(conn->digest, client_early_traffic_secret, "key", NULL, 0, 16, client_write_key);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, client_early_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
-	tls_seq_num_reset(conn->client_seq_num);
-
-	format_print(stderr, 0, 0, "client_write_key/iv <= client_early_traffic_secret\n");
-	format_bytes(stderr, 0, 4, "client_early_traffic_secret", client_early_traffic_secret, 32);
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-
-	return 1;
-}
-
-
 
 
 

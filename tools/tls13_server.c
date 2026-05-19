@@ -785,7 +785,7 @@ restart:
 
 
 
-		fprintf(stderr, "\n\n\n\n");
+		fprintf(stderr, "\n");
 	}
 
 
