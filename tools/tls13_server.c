@@ -24,10 +24,14 @@
 // psk_cipher_suite 和 cipher_suite 是冗余的
 
 
-
 // 重新思考一下，各个层次如何将各自的输入输出打印出来，特别是在record层
 // 每个报文包括密文和明文，应该将两者紧密连在一起，没有空格
 // 在报文层，只显示明文的16进制，但是在上层，应该显示明文的ASCII和HEX，能够看清楚消息
+
+
+// 为了保证能够和openssl互通，需要将PKCS8的私钥导出为openssl可以识别的格式。
+// 或者P256的私钥应该用AES-128 + SHA-256加密
+
 
 
 static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
@@ -778,11 +782,6 @@ restart:
 			}
 			*/
 		}
-
-
-
-
-
 
 
 		fprintf(stderr, "\n");
