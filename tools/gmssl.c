@@ -158,7 +158,7 @@ static const char *options =
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
 #ifdef ENABLE_SECP256R1
-	"  p256keygen         Generate P-256 (secp256r1, prime256v1) keypair\n"
+	"  p256keygen        Generate P-256 (secp256r1, prime256v1) keypair\n"
 #endif
 #ifdef ENABLE_LMS
 	"  lmskeygen         Generate LMS-SM3 (Leighton-Micali Signature) keypair\n"

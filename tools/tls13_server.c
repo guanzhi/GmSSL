@@ -33,6 +33,8 @@
 // 或者P256的私钥应该用AES-128 + SHA-256加密
 
 
+// 应该首先打印openssl的密钥序列，early_secret, pre_master_secret, 以及 handshake_secret 等
+
 
 static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
 
@@ -109,12 +111,12 @@ static const char *help =
 "\n"
 "Generate P-256 certificates\n"
 "\n"
-"    gmssl p256keygen -pass 1234 -out p256rootcakey.pem\n"
+"    gmssl p256keygen -pass 1234 -out p256rootcakey.pem -export p256rootcakey.exp\n"
 "    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN P256ROOTCA -days 3650 \\\n"
 "            -key p256rootcakey.pem -pass 1234 -out p256rootcacert.pem \\\n"
 "            -key_usage keyCertSign -key_usage cRLSign -ca\n"
 "\n"
-"    gmssl p256keygen -pass 1234 -out p256cakey.pem\n"
+"    gmssl p256keygen -pass 1234 -out p256cakey.pem -export p256cakey.exp\n"
 "    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN \"P256 Sub CA\" \\\n"
 "            -key p256cakey.pem -pass 1234 -out p256careq.pem\n"
 "    gmssl reqsign -in p256careq.pem -days 365 -key_usage keyCertSign \\\n"
@@ -122,7 +124,7 @@ static const char *help =
 "            -ca -path_len_constraint 0 \\\n"
 "            -out p256cacert.pem\n"
 "\n"
-"    gmssl p256keygen -pass 1234 -out p256signkey.pem\n"
+"    gmssl p256keygen -pass 1234 -out p256signkey.pem -export p256signkey.exp\n"
 "    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN 127.0.0.1 \\\n"
 "           -key p256signkey.pem -pass 1234 -out p256signreq.pem\n"
 "    gmssl reqsign -in p256signreq.pem -days 365 -key_usage digitalSignature \\\n"
@@ -143,6 +145,11 @@ static const char *help =
 "\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
 "       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
+"\n"
+"    add `SSL_CTX_clear_options(ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);` to openssl apps/s_server.c\n"
+"    /usr/local/bin/openssl s_server -accept 4430 -cert p256signcert.pem -cert_chain p256cacert.pem -key p256signkey.exp \\\n"
+"       -tls1_3 -ciphersuites TLS_AES_128_GCM_SHA256 -named_curve prime256v1 \\\n"
+"       -trace -keylogfile sslkeys.log\n"
 "\n"
 "TLS 1.3 SNI\n"
 "\n"

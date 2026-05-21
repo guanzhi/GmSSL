@@ -541,8 +541,38 @@ int secp256r1_private_key_info_decrypt_from_pem(SECP256R1_KEY *key, const char *
 	return 1;
 }
 
+// FIXME: side-channel of Base64
+int secp256r1_private_key_to_pem(const SECP256R1_KEY *a, FILE *fp)
+{
+	uint8_t buf[512];
+	uint8_t *p = buf;
+	size_t len = 0;
 
+	if (secp256r1_private_key_to_der(a, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (pem_write(fp, "EC PRIVATE KEY", buf, len) <= 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+int secp256r1_private_key_from_pem(SECP256R1_KEY *a, FILE *fp)
+{
+	uint8_t buf[512];
+	const uint8_t *cp = buf;
+	size_t len;
 
-
-
+	if (pem_read(fp, "EC PRIVATE KEY", buf, &len, sizeof(buf)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (secp256r1_private_key_from_der(a, &cp, &len) != 1
+		|| len > 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}

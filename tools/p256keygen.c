@@ -24,6 +24,7 @@ static const char *options =
 "    -pass pass                  Password to encrypt the private key\n"
 "    -out pem                    Output password-encrypted PKCS #8 private key in PEM format\n"
 "    -pubout pem                 Output public key in PEM format\n"
+"    -export pem                 Output non-encrypted PKCS#8 private key in PEM format\n"
 "\n"
 "Examples\n"
 "\n"
@@ -38,8 +39,10 @@ int p256keygen_main(int argc, char **argv)
 	char *pass = NULL;
 	char *outfile = NULL;
 	char *puboutfile = NULL;
+	char *exportfile = NULL;
 	FILE *outfp = stdout;
 	FILE *puboutfp = stdout;
+	FILE *exportfp = NULL;
 	int curve_oid = OID_secp256r1;
 	X509_KEY key;
 
@@ -71,7 +74,14 @@ int p256keygen_main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			puboutfile = *(++argv);
 			if (!(puboutfp = fopen(puboutfile, "wb"))) {
-				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, puboutfile, strerror(errno));
+				goto end;
+			}
+		} else if (!strcmp(*argv, "-export")) {
+			if (--argc < 1) goto bad;
+			exportfile = *(++argv);
+			if (!(exportfp = fopen(exportfile, "wb"))) {
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, exportfile, strerror(errno));
 				goto end;
 			}
 		} else {
@@ -91,7 +101,6 @@ bad:
 		goto end;
 	}
 
-
 	if (x509_key_generate(&key, OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
 		fprintf(stderr, "gmssl %s: inner failure\n", prog);
 		return -1;
@@ -104,6 +113,13 @@ bad:
 		fprintf(stderr, "gmssl %s: inner failure\n", prog);
 		goto end;
 	}
+	if (exportfp) {
+		if (secp256r1_private_key_to_pem(&key.u.secp256r1_key, exportfp) != 1) {
+			fprintf(stderr, "gmssl %s: inner failure\n", prog);
+			goto end;
+		}
+	}
+
 	ret = 0;
 
 end:

@@ -1890,6 +1890,8 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type,
 	return 1;
 }
 
+// 这个函数应该打印到底是哪个证书验证出错了
+				
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
 {

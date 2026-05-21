@@ -49,6 +49,8 @@ int secp256r1_private_key_info_decrypt_from_der(SECP256R1_KEY *ec_key,
 	const uint8_t **attrs, size_t *attrs_len,
 	const char *pass, const uint8_t **in, size_t *inlen);
 
+int secp256r1_private_key_to_pem(const SECP256R1_KEY *key, FILE *fp);
+int secp256r1_private_key_from_pem(SECP256R1_KEY *key, FILE *fp);
 int secp256r1_private_key_info_encrypt_to_pem(const SECP256R1_KEY *key, const char *pass, FILE *fp);
 int secp256r1_private_key_info_decrypt_from_pem(SECP256R1_KEY *key, const char *pass, FILE *fp);
 
