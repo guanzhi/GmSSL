@@ -1706,12 +1706,13 @@ int tls13_key_share_entry_from_bytes(int *group, const uint8_t **key_exchange, s
 	}
 	*group = named_curve;
 	if (!tls_named_curve_name(named_curve)) {
-		error_print();
-		return -1;
+		warning_print();
+		//return -1;
 	}
 	if (*key_exchange_len != 65) {
-		error_print();
-		return -1;
+		// 只有SM2/P256才满足，但是对方可能发送其他类型的key_share
+		warning_print(); // FIXME:
+		//return -1;
 	}
 	return 1;
 }
@@ -2286,7 +2287,7 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			break;
 		default:
 			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen);
-			error_print();
+			//error_print();
 			//return -1;
 		}
 	}
@@ -6863,9 +6864,9 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_cookie:
 			error_print();
 		default:
-			error_print();
-			tls13_send_alert(conn, TLS_alert_illegal_parameter);
-			return -1;
+			warning_print();
+			//tls13_send_alert(conn, TLS_alert_illegal_parameter);
+			//return -1;
 		}
 	}
 
@@ -7002,6 +7003,15 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	if (common_key_exchange_modes & TLS_KE_CERT_DHE) {
 		int common_cipher_suites[4];
 		size_t common_cipher_suites_cnt;
+
+		if (!conn->ctx->cert_chains) {
+			error_print();
+			return -1;
+		}
+		if (!conn->ctx->cert_chains_len) {
+			error_print();
+			return -1;
+		}
 
 		if ((ret = tls13_cert_chains_select(
 			conn->ctx->cert_chains, conn->ctx->cert_chains_len,

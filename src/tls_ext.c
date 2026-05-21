@@ -246,8 +246,8 @@ int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
 			return -1;
 		}
 		if (!tls_named_curve_name(group)) {
-			error_print();
-			return -1;
+			warning_print();
+			//return -1;
 		}
 		if (group == local_groups[0] && j < max_cnt) {
 			common_groups[j++] = group;
@@ -483,8 +483,8 @@ int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen
 			return -1;
 		}
 		if (!tls_signature_scheme_name(sig_alg)) {
-			error_print();
-			return -1;
+			warning_print(); // FIXME
+			//return -1;
 		}
 		if (sig_alg == local_sig_algs[0] && j < max_cnt) {
 			common_sig_algs[j++] = sig_alg;
@@ -667,9 +667,11 @@ int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const u
 		return -1;
 	}
 	*type = ext_type;
+
+	// FIXME: handle unkonwn ext
 	if (!tls_extension_name(ext_type)) {
-		error_print();
-		return -1;
+		warning_print();
+		//return -1;
 	}
 	return 1;
 }

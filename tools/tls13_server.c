@@ -140,16 +140,20 @@ static const char *help =
 "\n"
 "TLS 1.3 with TLS_AES_128_GCM_SHA256\n"
 "    sudo gmssl tls13_server -port 4430 \\\n"
-"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
+"       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 \\\n"
 "       -cert p256certs.pem -key p256signkey.pem -pass 1234\n"
 "\n"
 "    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacerts.pem \\\n"
 "       -cipher_suite TLS_AES_128_GCM_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256\n"
 "\n"
 "    add `SSL_CTX_clear_options(ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);` to openssl apps/s_server.c\n"
+"    add `SSL_CTX_clear_options(ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);` to openssl apps/s_client.c\n"
+"\n"
 "    /usr/local/bin/openssl s_server -accept 4430 -cert p256signcert.pem -cert_chain p256cacert.pem -key p256signkey.exp \\\n"
 "       -tls1_3 -ciphersuites TLS_AES_128_GCM_SHA256 -named_curve prime256v1 \\\n"
 "       -trace -keylogfile sslkeys.log\n"
+"\n"
+"    /usr/local/bin/openssl s_client -connect 127.0.0.1:4430 -tls1_3 -CAfile p256rootcacert.pem -groups prime256v1 -trace\n"
 "\n"
 "TLS 1.3 SNI\n"
 "\n"
@@ -361,11 +365,16 @@ int tls13_server_main(int argc , char **argv)
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
 
+			error_print();
+
 			if (certfiles_cnt >= sizeof(certfiles)/sizeof(certfiles[0])) {
 				error_print();
 				return -1;
 			}
 			certfiles[certfiles_cnt++] = certfile;
+
+
+			fprintf(stderr, "111certfiles_cnt = %zu\n", certfiles_cnt);
 
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
@@ -520,9 +529,8 @@ bad:
 		goto end;
 	}
 
+	// FIXME: 打印载入的证书信息
 	for (i = 0; i < certfiles_cnt; i++) {
-
-		fprintf(stderr, "add_certificate_chain_and_key\n");
 		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfiles[i], keyfiles[i], passes[i]) != 1) {
 			error_print();
 			return -1;
