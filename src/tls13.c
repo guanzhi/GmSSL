@@ -29,10 +29,6 @@
 
 
 
-// 在接收到对方的报文的时候，没有检查对方的报文是否为Alert
-
-
-
 
 int tls13_random_generate(uint8_t random[32])
 {
@@ -75,6 +71,7 @@ int tls13_padding_len_rand(size_t *padding_len)
 	*padding_len = 0;
 	return 1;
 }
+
 
 
 
@@ -280,7 +277,6 @@ int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	return 1;
 }
 
-
 int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32])
 {
 	size_t saltlen;
@@ -343,9 +339,6 @@ int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
 	tls_array_to_bytes((uint8_t *)label, strlen(label), &p, &hkdf_label_len);
 	tls_uint8array_to_bytes(context, context_len, &p, &hkdf_label_len);
 
-//	format_bytes(stderr, 0, 0, "HkdfLabel", hkdf_label, hkdf_label_len);
-
-
 	hkdf_expand(digest, secret, secret_len, hkdf_label, hkdf_label_len, outlen, out);
 
 	return 1;
@@ -354,9 +347,6 @@ int tls13_hkdf_expand_label(const DIGEST *digest, const uint8_t secret[32],
 /*
 Derive-Secret(Secret, Label, Messages) =
 	HKDF-Expand-Label(Secret, Label, Hash(Messages), Hash.length)
-
-一般来说derive_secret的输入是message，但是传递给下面的是hash，但是我们这里直接传递了hash
-
 */
 int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32])
 {
@@ -365,15 +355,14 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 	uint8_t context[32];
 	size_t context_len;
 
+	if (!secret || !label || !dgst_ctx || !out) {
+		error_print();
+		return -1;
+	}
 	if (digest_finish(&ctx, context, &context_len) != 1) {
 		error_print();
 		return -1;
 	}
-
-	// 这个值是对的
-
-	//context_len = 0;					
-
 	if (tls13_hkdf_expand_label(dgst_ctx->digest, secret, label, context, context_len, outlen, out) != 1) {
 		error_print();
 		return -1;
@@ -381,17 +370,23 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 	return 1;
 }
 
+int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx)
+{
+	DIGEST_CTX tmp_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	tmp_ctx = *dgst_ctx;
+
+	//digest_finish(&tmp_ctx, dgst, &dgstlen);
+	//format_print(fp, fmt, ind, "Transcript-Hash ");
+	//format_bytes(fp, 0, 0, label, dgst, dgstlen);
+
+	return 1;
+}
 
 
 /*
-
-如果early_secret是对的，那么应该首先从early_secret 生成一个derived_secret
-
-然后再用derived_secret和ecdhe生成handshake_secret
-
-但是在openssl中这两个步骤被合并到一起了，不知道具体是怎么做的
-
-
 
              0
              |
@@ -447,12 +442,17 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 int tls13_generate_early_keys(TLS_CONNECT *conn)
 {
 	const uint8_t zeros[32] = {0};
-	const uint8_t *first_psk_key;
-	size_t first_psk_key_len;
 	const uint8_t *psk_keys;
 	size_t psk_keys_len;
+	const uint8_t *first_psk_key;
+	size_t first_psk_key_len;
 	uint8_t client_write_key[16];
 	size_t client_write_key_len;
+
+	if (!conn) {
+		error_print();
+		return -1;
+	}
 
 	if (tls13_cipher_suite_get(conn->psk_cipher_suites[0], &conn->cipher, &conn->digest) != 1) {
 		error_print();
@@ -479,24 +479,28 @@ int tls13_generate_early_keys(TLS_CONNECT *conn)
 	}
 
 	// first_psk_key => client_early_traffic_secret
-	tls13_hkdf_extract(conn->digest, zeros, first_psk_key, conn->early_secret);
-	tls13_derive_secret(conn->early_secret, "c e traffic", &conn->dgst_ctx, conn->client_early_traffic_secret);
-	tls13_hkdf_expand_label(conn->digest, conn->client_early_traffic_secret, "key", NULL, 0, client_write_key_len, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->client_early_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
+	if (tls13_hkdf_extract(conn->digest, zeros, first_psk_key, conn->early_secret) != 1
+		|| tls13_derive_secret(conn->early_secret, "c e traffic", &conn->dgst_ctx, conn->client_early_traffic_secret) != 1
+		|| tls13_hkdf_expand_label(conn->digest, conn->client_early_traffic_secret, "key", NULL, 0, client_write_key_len, client_write_key) != 1
+		|| tls13_hkdf_expand_label(conn->digest, conn->client_early_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv) != 1
+		|| block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_seq_num_reset(conn->client_seq_num);
 
+	/*
 	format_print(stderr, 0, 0, "generate_early_keys\n");
 	format_bytes(stderr, 0, 4, "early_secret", conn->early_secret, conn->digest->digest_size);
 	format_bytes(stderr, 0, 4, "client_early_traffic_secret", conn->client_early_traffic_secret, conn->digest->digest_size);
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, client_write_key_len);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, TLS13_IV_SIZE);
+	*/
 
 	gmssl_secure_clear(client_write_key, sizeof(client_write_key));
 	return 1;
 }
 
-// generate client_handshake_traffic_secret, server_handshake_traffic_secret
 int tls13_generate_handshake_secrets(TLS_CONNECT *conn)
 {
 	const uint8_t zeros[32] = {0};
@@ -529,12 +533,16 @@ int tls13_generate_handshake_secrets(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	/* [1] */ tls13_hkdf_extract(conn->digest, zeros, conn->psk, conn->early_secret);
-	/* [5] */ tls13_derive_secret(conn->early_secret, "derived", &null_dgst_ctx, derived_secret);
-	/* [6] */ tls13_hkdf_extract(conn->digest, derived_secret, ecdhe_shared_secret, conn->handshake_secret);
-	/* [7] */ tls13_derive_secret(conn->handshake_secret, "c hs traffic", &conn->dgst_ctx, conn->client_handshake_traffic_secret);
-	/* [8] */ tls13_derive_secret(conn->handshake_secret, "s hs traffic", &conn->dgst_ctx, conn->server_handshake_traffic_secret);
+	if (tls13_hkdf_extract(conn->digest, zeros, conn->psk, conn->early_secret) != 1
+		|| tls13_derive_secret(conn->early_secret, "derived", &null_dgst_ctx, derived_secret) != 1
+		|| tls13_hkdf_extract(conn->digest, derived_secret, ecdhe_shared_secret, conn->handshake_secret) != 1
+		|| tls13_derive_secret(conn->handshake_secret, "c hs traffic", &conn->dgst_ctx, conn->client_handshake_traffic_secret) != 1
+		|| tls13_derive_secret(conn->handshake_secret, "s hs traffic", &conn->dgst_ctx, conn->server_handshake_traffic_secret) != 1) {
+		error_print();
+		return -1;
+	}
 
+	/*
 	format_print(stderr, 0, 0, "generate_handshake_secrets\n");
 	format_bytes(stderr, 0, 4, "early_secret", conn->early_secret, conn->digest->digest_size);
 	format_bytes(stderr, 0, 4, "derived_secret", derived_secret, conn->digest->digest_size);
@@ -542,6 +550,7 @@ int tls13_generate_handshake_secrets(TLS_CONNECT *conn)
 	format_bytes(stderr, 0, 4, "handshake_secret",conn->handshake_secret, conn->digest->digest_size);
 	format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, conn->digest->digest_size);
 	format_bytes(stderr, 0, 4, "server_handshake_traffic_secret", conn->server_handshake_traffic_secret, conn->digest->digest_size);
+	*/
 
 	gmssl_secure_clear(ecdhe_shared_secret, sizeof(ecdhe_shared_secret));
 	gmssl_secure_clear(derived_secret, sizeof(derived_secret));
@@ -563,11 +572,15 @@ int tls13_generate_master_secret(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	/* [9]  */ tls13_derive_secret(conn->handshake_secret, "derived", &null_dgst_ctx, conn->master_secret);
-	/* [10] */ tls13_hkdf_extract(conn->digest, conn->master_secret, zeros, conn->master_secret);
-
+	if (tls13_derive_secret(conn->handshake_secret, "derived", &null_dgst_ctx, conn->master_secret) != 1
+		|| tls13_hkdf_extract(conn->digest, conn->master_secret, zeros, conn->master_secret) != 1) {
+		error_print();
+		return -1;
+	}
+	/*
 	format_print(stderr, 0, 0, "generate_master_secret\n");
 	format_bytes(stderr, 0, 4, "master_secret", conn->master_secret, conn->digest->digest_size);
+	*/
 	return 1;
 }
 
@@ -583,15 +596,20 @@ int tls13_generate_client_handshake_keys(TLS_CONNECT *conn)
 
 	client_write_key_len = conn->cipher->key_size;
 
-	tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "key", NULL, 0, client_write_key_len, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
+	if (tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "key", NULL, 0, client_write_key_len, client_write_key) != 1
+		|| tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv) != 1
+		|| block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_seq_num_reset(conn->client_seq_num);
 
+	/*
 	format_print(stderr, 0, 0, "generate_client_handshake_keys\n");
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, client_write_key_len);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, TLS13_IV_SIZE);
 	format_print(stderr, 0, 4, "client_seq_num: %"PRIu64"\n", GETU64(conn->client_seq_num));
+	*/
 
 	gmssl_secure_clear(client_write_key, sizeof(client_write_key));
 	return 1;
@@ -609,15 +627,20 @@ int tls13_generate_server_handshake_keys(TLS_CONNECT *conn)
 
 	server_write_key_len = conn->cipher->key_size;
 
-	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "key", NULL, 0, server_write_key_len, server_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->server_write_iv);
-	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
+	if (tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "key", NULL, 0, server_write_key_len, server_write_key) != 1
+		|| tls13_hkdf_expand_label(conn->digest, conn->server_handshake_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->server_write_iv) != 1
+		|| block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_seq_num_reset(conn->server_seq_num);
 
+	/*
 	format_print(stderr, 0, 0, "generate_server_handshake_keys\n");
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, server_write_key_len);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, TLS13_IV_SIZE);
 	format_print(stderr, 0, 4, "server_seq_num: %"PRIu64"\n", GETU64(conn->server_seq_num));
+	*/
 
 	gmssl_secure_clear(server_write_key, sizeof(server_write_key));
 	return 1;
@@ -629,13 +652,16 @@ int tls13_generate_application_secrets(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-
-	/* 11 */ tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret);
-	/* 12 */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
-
+	if (tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret) != 1
+		|| tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret) != 1) {
+		error_print();
+		return -1;
+	}
+	/*
 	format_print(stderr, 0, 0, "generate_application_secrets\n");
 	format_bytes(stderr, 0, 4, "client_application_traffic_secret", conn->client_application_traffic_secret, conn->dgst_ctx.digest->digest_size);
 	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, conn->dgst_ctx.digest->digest_size);
+	*/
 	return 1;
 }
 
@@ -645,12 +671,16 @@ int tls13_update_client_application_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "traffic upd", NULL, 0,
-		conn->digest->digest_size, conn->client_application_traffic_secret);
-
+	if (tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "traffic upd", NULL, 0,
+		conn->digest->digest_size, conn->client_application_traffic_secret) != 1) {
+		error_print();
+		return -1;
+	}
+	/*
 	format_print(stderr, 0, 0, "update_client_application_secret\n");
-	format_bytes(stderr, 0, 4, "client_application_traffic_secret", conn->client_application_traffic_secret, conn->digest->digest_size);
+	format_bytes(stderr, 0, 4, "client_application_traffic_secret",
+		conn->client_application_traffic_secret, conn->digest->digest_size);
+	*/
 	return 1;
 }
 
@@ -660,12 +690,16 @@ int tls13_update_server_application_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "traffic upd", NULL, 0,
-		conn->digest->digest_size, conn->server_application_traffic_secret);
-
+	if (tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "traffic upd", NULL, 0,
+		conn->digest->digest_size, conn->server_application_traffic_secret) != 1) {
+		error_print();
+		return -1;
+	}
+	/*
 	format_print(stderr, 0, 0, "update_server_application_secret\n");
-	format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, conn->digest->digest_size);
+	format_bytes(stderr, 0, 4, "server_application_traffic_secret",
+		conn->server_application_traffic_secret, conn->digest->digest_size);
+	*/
 	return 1;
 }
 
@@ -681,15 +715,20 @@ int tls13_generate_client_application_keys(TLS_CONNECT *conn)
 
 	client_write_key_len = conn->cipher->key_size;
 
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, client_write_key_len, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
+	if (tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, client_write_key_len, client_write_key) != 1
+		|| tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->client_write_iv) != 1
+		|| block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_seq_num_reset(conn->client_seq_num);
 
+	/*
 	format_print(stderr, 0, 0, "update_client_application_keys\n");
 	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, client_write_key_len);
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, TLS13_IV_SIZE);
 	format_print(stderr, 0, 4, "client_seq_num: %"PRIu64"\n", GETU64(conn->client_seq_num));
+	*/
 
 	gmssl_secure_clear(client_write_key, sizeof(client_write_key));
 	return 1;
@@ -707,28 +746,29 @@ int tls13_generate_server_application_keys(TLS_CONNECT *conn)
 
 	server_write_key_len = conn->cipher->key_size;
 
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, server_write_key_len, server_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->server_write_iv);
-	block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
+	if (tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, server_write_key_len, server_write_key) != 1
+		|| tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, TLS13_IV_SIZE, conn->server_write_iv) != 1
+		|| block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_seq_num_reset(conn->server_seq_num);
 
+	/*
 	format_print(stderr, 0, 0, "update_server_application_keys\n");
 	format_bytes(stderr, 0, 4, "server_write_key", server_write_key, server_write_key_len);
 	format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, TLS13_IV_SIZE);
 	format_print(stderr, 0, 4, "server_seq_num: %"PRIu64"\n", GETU64(conn->server_seq_num));
+	*/
 
 	gmssl_secure_clear(server_write_key, sizeof(server_write_key));
 	return 1;
 }
 
-
-
-
 static const uint8_t TLS13_client_context_str_and_zero[] = "TLS 1.3, client CertificateVerify";
 static const uint8_t TLS13_server_context_str_and_zero[] = "TLS 1.3, server CertificateVerify";
 static size_t TLS13_client_context_str_and_zero_size = sizeof(TLS13_client_context_str_and_zero);
 static size_t TLS13_server_context_str_and_zero_size = sizeof(TLS13_server_context_str_and_zero);
-
 
 int tls13_sign_certificate_verify(int tls_mode, int sig_alg,
 	X509_KEY *sign_key, const DIGEST_CTX *tbs_dgst_ctx,
@@ -813,6 +853,12 @@ int tls13_sign_certificate_verify(int tls_mode, int sig_alg,
 		return -1;
 	}
 
+	/*
+	format_print(stderr, 0, 0, "sign_certificate_verify\n");
+	format_bytes(stderr, 0, 4, "transcript_hash", dgst, dgstlen);
+	format_bytes(stderr, 0, 4, "signature", sig, *siglen);
+	*/
+
 	gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 	return 1;
 }
@@ -891,6 +937,12 @@ int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
 		return -1;
 	}
 
+	/*
+	format_print(stderr, 0, 0, "verify_certificate_verify\n");
+	format_bytes(stderr, 0, 4, "transcript_hash", dgst, dgstlen);
+	format_bytes(stderr, 0, 4, "signature", sig, siglen);
+	*/
+
 	if (x509_verify_init(&sign_ctx, public_key, signer_id, signer_id_len, sig, siglen) != 1
 		|| x509_verify_update(&sign_ctx, prefix, 64) != 1
 		|| x509_verify_update(&sign_ctx, context_str_and_zero, context_str_and_zero_len) != 1
@@ -909,42 +961,60 @@ int tls13_verify_certificate_verify(int tls_mode, int sig_alg,
 }
 
 /*
- verify_data in Finished
+Finished.verify_data
 
-   finished_key =
-       HKDF-Expand-Label(BaseKey, "finished", "", Hash.length)
-   Structure of this message:
-      struct {
-          opaque verify_data[Hash.length];
-      } Finished;
-   The verify_data value is computed as follows:
-      verify_data =
-          HMAC(finished_key,
-               Transcript-Hash(Handshake Context,
-                               Certificate*, CertificateVerify*))
+finished_key =
+	HKDF-Expand-Label(BaseKey, "finished", "", Hash.length)
+
+verify_data =
+	HMAC(finished_key, Transcript-Hash(Handshake Context, Certificate*, CertificateVerify*))
+
 */
 int tls13_compute_verify_data(const uint8_t *handshake_traffic_secret,
 	const DIGEST_CTX *dgst_ctx, uint8_t *verify_data, size_t *verify_data_len)
 {
-	DIGEST_CTX temp_dgst_ctx;
+	DIGEST_CTX tmp_dgst_ctx;
 	uint8_t dgst[64];
 	size_t dgstlen;
 	uint8_t finished_key[64];
 	size_t finished_key_len;
 
-	temp_dgst_ctx = *dgst_ctx;
-	digest_finish(&temp_dgst_ctx, dgst, &dgstlen);
-	finished_key_len = dgstlen;
+	if (!handshake_traffic_secret || !dgst_ctx || !verify_data || !verify_data_len) {
+		error_print();
+		return -1;
+	}
 
-	tls13_hkdf_expand_label(dgst_ctx->digest, handshake_traffic_secret,
-		"finished", NULL, 0, finished_key_len, finished_key);
+	finished_key_len = dgst_ctx->digest->digest_size;
+	if (tls13_hkdf_expand_label(dgst_ctx->digest, handshake_traffic_secret,
+		"finished", NULL, 0, finished_key_len, finished_key) != 1) {
+		error_print();
+		return -1;
+	}
 
-	hmac(dgst_ctx->digest, finished_key, finished_key_len, dgst, dgstlen, verify_data, verify_data_len);
+	tmp_dgst_ctx = *dgst_ctx;
+	if (digest_finish(&tmp_dgst_ctx, dgst, &dgstlen) != 1) {
+		gmssl_secure_clear(finished_key, sizeof(finished_key));
+		error_print();
+		return -1;
+	}
+
+	if (hmac(dgst_ctx->digest, finished_key, finished_key_len, dgst, dgstlen,
+		verify_data, verify_data_len) != 1) {
+		gmssl_secure_clear(finished_key, sizeof(finished_key));
+		error_print();
+		return -1;
+	}
+
+	/*
+	format_print(stderr, 0, 0, "compute_verify_data\n");
+	format_bytes(stderr, 0, 4, "finished_key", finished_key, finished_key_len);
+	format_bytes(stderr, 0, 4, "transcript_hash", dgst, dgstlen);
+	format_bytes(stderr, 0, 4, "verify_data", verify_data, *verify_data_len);
+	*/
+
+	gmssl_secure_clear(finished_key, sizeof(finished_key));
 	return 1;
 }
-
-
-
 
 
 
@@ -1068,31 +1138,6 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 
 	return ret;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int tls13_do_recv(TLS_CONNECT *conn)
 {
@@ -1319,6 +1364,7 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 	return 1;
 }
 
+
 // 这里需要考虑max_early_data_size的问题
 int tls13_recv_early_data(TLS_CONNECT *conn)
 {
@@ -1349,60 +1395,29 @@ int tls13_recv_early_data(TLS_CONNECT *conn)
 
 
 
-
-
-
-
-/*
-CertificateEntry {
-    select (certificate_type) {
-        case X509: opaque cert_data<1..2^24-1>;    // DER编码的X.509证书
-    };
-    Extension extensions<0..2^16-1>;               // 这个证书的扩展列表
-}
-*/
-
-int tls13_cert_list_get_count(const uint8_t *d, size_t dlen, size_t *cnt)
+int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt)
 {
-	int ret;
-	ret = asn1_types_get_count(d, dlen, ASN1_TAG_SEQUENCE, cnt);
-	if (ret < 0) error_print();
-	return ret;
-}
+	size_t key_exchanges_capacity
+		= sizeof(((TLS_CONNECT *)0)->key_exchanges)/sizeof(((TLS_CONNECT *)0)->key_exchanges[0]);
 
-int tls13_cert_list_get_cert_by_index(const uint8_t *d, size_t dlen, int index, const uint8_t **cert, size_t *certlen)
-{
-	int i = 0;
-
-	if (index < 0) {
+	if (!ctx) {
 		error_print();
 		return -1;
 	}
-	while (dlen) {
-		if (x509_cert_from_der(cert, certlen, &d, &dlen) != 1) {
-			error_print();
-			return -1;
-		}
-		if (i++ == index) {
-			return 1;
-		}
+	if (cnt > key_exchanges_capacity) {
+		cnt = key_exchanges_capacity;
 	}
-	*cert = NULL;
-	*certlen = 0;
-	return 0;
+	ctx->key_exchanges_cnt = cnt;
+	return 1;
 }
 
-int tls13_cert_list_get_last(const uint8_t *d, size_t dlen, const uint8_t **cert, size_t *certlen)
+int tls13_enable_post_handshake_auth(TLS_CONNECT *conn)
 {
-	if (dlen == 0) {
-		return 0;
+	if (!conn) {
+		error_print();
+		return -1;
 	}
-	while (dlen) {
-		if (x509_cert_from_der(cert, certlen, &d, &dlen) != 1) {
-			error_print();
-			return -1;
-		}
-	}
+	conn->post_handshake_auth = 1;
 	return 1;
 }
 
@@ -1415,39 +1430,14 @@ int tls13_cert_list_get_last(const uint8_t *d, size_t dlen, const uint8_t **cert
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// extensions
-
-
-// 这个函数需要测试一下，看看是否支持ext_data == NULL， ext_datalen != 0时，可以只输出头部，并正确的修改输出长度
-int tls_ext_to_bytes(int ext_type, const uint8_t *ext_data, size_t ext_datalen,
-	uint8_t **out, size_t *outlen)
-{
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16array_to_bytes(ext_data, ext_datalen, out, outlen);
-	return 1;
-}
-
-
+// Extensions
 
 /*
+43. supported_versions
+
 struct {
 	ProtocolVersion versions<2..254>;
-} SupportedVersions; -- in ClientHello
+} SupportedVersions; -- in ClientHello, ClientHello2
 */
 int tls13_client_supported_versions_ext_to_bytes(const int *versions, size_t versions_cnt,
 	uint8_t **out, size_t *outlen)
@@ -1573,7 +1563,7 @@ int tls13_client_supported_versions_print(FILE *fp, int fmt, int ind,
 /*
 struct {
 	ProtocolVersion selected_version;
-} SupportedVersions; // in ServerHello and HelloRetryRequest
+} SupportedVersions; -- in ServerHello and HelloRetryRequest
 */
 int tls13_server_supported_versions_ext_to_bytes(int selected_version, uint8_t **out, size_t *outlen)
 {
@@ -1596,7 +1586,6 @@ int tls13_server_supported_versions_ext_to_bytes(int selected_version, uint8_t *
 	return 1;
 }
 
-// 这个函数可能用不上
 int tls13_server_supported_versions_from_bytes(int *selected_version, const uint8_t *ext_data, size_t ext_datalen)
 {
 	uint16_t version;
@@ -1610,23 +1599,6 @@ int tls13_server_supported_versions_from_bytes(int *selected_version, const uint
 		return -1;
 	}
 	*selected_version = version;
-	return 1;
-}
-
-int tls13_server_supported_versions_print(FILE *fp, int fmt, int ind,
-	const uint8_t *ext_data, size_t ext_datalen)
-{
-	uint16_t version;
-
-	if (tls_uint16_from_bytes(&version, &ext_data, &ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	format_print(fp, fmt, ind, "selected_version: %s (%04x)\n", tls_protocol_name(version), version);
-	if (ext_datalen) {
-		error_print();
-		return -1;
-	}
 	return 1;
 }
 
@@ -1652,9 +1624,170 @@ int tls13_process_server_supported_versions(const int *client_versions, size_t c
 	return -1;
 }
 
+int tls13_server_supported_versions_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen)
+{
+	uint16_t version;
 
+	if (tls_uint16_from_bytes(&version, &ext_data, &ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "selected_version: %s (%04x)\n", tls_protocol_name(version), version);
+	if (ext_datalen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 /*
+47. certificate_authorities
+
+opaque DistinguishedName<1..2^16-1>;
+
+struct {
+	DistinguishedName authorities<3..2^16-1>;
+} CertificateAuthoritiesExtension;
+*/
+
+int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
+	uint8_t **out, size_t *outlen)
+{
+	int ext_type = TLS_extension_certificate_authorities;
+	size_t ext_datalen;
+	size_t authorities_len;
+	const uint8_t *name;
+	size_t namelen;
+	const uint8_t *p;
+	size_t len;
+
+	if (!ca_names || !ca_names_len || !outlen) {
+		error_print();
+		return -1;
+	}
+
+	tls_uint16_to_bytes(ext_type, out, outlen);
+	tls_uint16_to_bytes(tls_uint16_size() + ca_names_len, out, outlen);
+	tls_uint16array_to_bytes(ca_names, ca_names_len, out, outlen);
+
+	return 1;
+}
+
+int tls13_certificate_authorities_from_bytes(const uint8_t **ca_names, size_t *ca_names_len,
+	const uint8_t *ext_data, size_t ext_datalen)
+{
+	if (tls_uint16array_from_bytes(ca_names, ca_names_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (*ca_names == NULL) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_enable_certificate_authorities(TLS_CONNECT *conn, int enable)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (!conn->ctx->cacertslen) {
+		error_print();
+		return -1;
+	}
+	conn->certificate_authorities = enable ? 1 : 0;
+	return 1;
+}
+
+int tls13_certificate_authorities_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *authorities;
+	size_t authorities_len;
+
+	format_print(fp, fmt, ind, "authorities\n");
+	ind += 4;
+
+	if (tls_uint16array_from_bytes(&authorities, &authorities_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	while (authorities_len) {
+		const uint8_t *name;
+		size_t namelen;
+		const uint8_t *d;
+		size_t dlen;
+
+		if (tls_uint16array_from_bytes(&name, &namelen, &authorities, &authorities_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (asn1_sequence_from_der(&d, &dlen, &name, &namelen) != 1
+			|| asn1_length_is_zero(namelen) != 1) {
+			error_print();
+			return -1;
+		}
+		x509_name_print(fp, fmt, ind, "DistinguishedName", d, dlen);
+	}
+	return 1;
+}
+
+/*
+48. oid_filters
+
+struct {
+	OIDFilter filters<0..2^16-1>;
+} OIDFilterExtension;
+
+struct {
+	opaque certificate_extension_oid<1..2^8-1>;
+	opaque certificate_extension_values<0..2^16-1>;
+} OIDFilter;
+*/
+
+int tls13_oid_filters_ext_to_bytes(const uint8_t *filters, size_t filters_len, uint8_t **out, size_t *outlen)
+{
+	uint16_t ext_type = TLS_extension_oid_filters;
+	size_t ext_datalen;
+
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
+
+	ext_datalen = tls_uint16_size() + filters_len;
+	tls_uint16_to_bytes(ext_type, out, outlen);
+	tls_uint16_to_bytes(ext_datalen, out, outlen);
+	tls_uint16array_to_bytes(filters, filters_len, out, outlen);
+
+	return 1;
+}
+
+int tls13_oid_filters_from_bytes(const uint8_t **filters, size_t *filters_len,
+	const uint8_t *ext_data, size_t ext_datalen)
+{
+	if (tls_uint16array_from_bytes(filters, filters_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_oid_filters_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
+{
+	format_bytes(fp, fmt, ind, "data", d, dlen);
+	return 1;
+}
+
+/*
+51. key_share
+
 struct {
 	NamedGroup group;
 	opaque key_exchange<1..2^16-1>;
@@ -1704,16 +1837,18 @@ int tls13_key_share_entry_from_bytes(int *group, const uint8_t **key_exchange, s
 		error_print();
 		return -1;
 	}
+
+	switch (named_curve) {
+	case TLS_curve_secp256r1:
+	case TLS_curve_sm2p256v1:
+		if (*key_exchange_len != 65) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
+
 	*group = named_curve;
-	if (!tls_named_curve_name(named_curve)) {
-		warning_print();
-		//return -1;
-	}
-	if (*key_exchange_len != 65) {
-		// 只有SM2/P256才满足，但是对方可能发送其他类型的key_share
-		warning_print(); // FIXME:
-		//return -1;
-	}
 	return 1;
 }
 
@@ -1846,10 +1981,6 @@ int tls13_key_share_client_hello_print(FILE *fp, int fmt, int ind,
 	return 1;
 }
 
-
-
-
-
 /*
 struct {
 	KeyShareEntry server_share;
@@ -1960,200 +2091,41 @@ int tls13_key_share_hello_retry_request_print(FILE *fp, int fmt, int ind,
 }
 
 
-
-/*
-certificate_authorities
-
-  opaque DistinguishedName<1..2^16-1>;
-
-  struct {
-	DistinguishedName authorities<3..2^16-1>;
-  } CertificateAuthoritiesExtension;
-*/
-
-int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t ca_names_len,
-	uint8_t **out, size_t *outlen)
-{
-	int ext_type = TLS_extension_certificate_authorities;
-	size_t ext_datalen;
-	size_t authorities_len;
-	const uint8_t *name;
-	size_t namelen;
-	const uint8_t *p;
-	size_t len;
-
-	if (!ca_names || !ca_names_len || !outlen) {
-		error_print();
-		return -1;
-	}
+static const unsigned char TLS13_HELLO_RETRY_REQUEST_RANDOM[32] = {
+	0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11,
+	0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
+	0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E,
+	0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
+};
 
 
-	/*
-	p = ca_names;
-	len = ca_names_len;
-	authorities_len = 0;
-	while (len) {
-
-
-		if (x509_name_from_der(&name, &namelen, &p, &len) != 1) {
-			error_print();
-			return -1;
-		}
-		// 这里应该首先把name封装为一个sequence，然后再封装为一个uint16array
-
-
-		tls_uint16array_to_bytes(name, namelen, NULL, &authorities_len);
-	}
-	if (authorities_len < 3 || authorities_len > (1 << 16) - 1) {
-		error_print();
-		return -1;
-	}
-	ext_datalen = tls_uint16_size() + authorities_len;
-
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
-	tls_uint16_to_bytes((uint16_t)authorities_len, out, outlen);
-	while (ca_names_len) {
-		x509_name_from_der(&name, &namelen, &ca_names, &ca_names_len);
-		tls_uint16array_to_bytes(name, namelen, out, outlen);
-	}
-	*/
-
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(tls_uint16_size() + ca_names_len, out, outlen);
-	tls_uint16array_to_bytes(ca_names, ca_names_len, out, outlen);
-
-	return 1;
-}
-
-int tls13_certificate_authorities_from_bytes(const uint8_t **ca_names, size_t *ca_names_len,
-	const uint8_t *ext_data, size_t ext_datalen)
-{
-	if (tls_uint16array_from_bytes(ca_names, ca_names_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (*ca_names == NULL) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_enable_certificate_authorities(TLS_CONNECT *conn, int enable)
-{
-	if (!conn) {
-		error_print();
-		return -1;
-	}
-	if (!conn->ctx->cacertslen) {
-		error_print();
-		return -1;
-	}
-	conn->certificate_authorities = enable ? 1 : 0;
-	return 1;
-}
-
-int tls13_certificate_authorities_print(FILE *fp, int fmt, int ind,
-	const uint8_t *ext_data, size_t ext_datalen)
-{
-	const uint8_t *authorities;
-	size_t authorities_len;
-
-	format_print(fp, fmt, ind, "authorities\n");
-	ind += 4;
-
-	if (tls_uint16array_from_bytes(&authorities, &authorities_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	while (authorities_len) {
-		const uint8_t *name;
-		size_t namelen;
-		const uint8_t *d;
-		size_t dlen;
-
-		if (tls_uint16array_from_bytes(&name, &namelen, &authorities, &authorities_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (asn1_sequence_from_der(&d, &dlen, &name, &namelen) != 1
-			|| asn1_length_is_zero(namelen) != 1) {
-			error_print();
-			return -1;
-		}
-		x509_name_print(fp, fmt, ind, "DistinguishedName", d, dlen);
-	}
-	return 1;
-}
+// Handshakes
+//	ClientHello
+//	ServerHello
+//	HelloRetryRequest
+//	EncryptedExtensions
+//	Certificate
+//	CertificateRequest
+//	CertificateVerify
+//	Finished
+//	KeyUpdate
 
 
 /*
-48. oid_filters
+ClientHello
 
 struct {
-	OIDFilter filters<0..2^16-1>;
-} OIDFilterExtension;
+	ProtocolVersion legacy_version = 0x0303;
+	Random random;
+	opaque legacy_session_id<0..32>;
+	CipherSuite cipher_suites<2..2^16-2>;
+	opaque legacy_compression_methods<1..2^8-1>;
+	Extension extensions<8..2^16-1>;
+} ClientHello;
 
-struct {
-	opaque certificate_extension_oid<1..2^8-1>;
-	opaque certificate_extension_values<0..2^16-1>;
-} OIDFilter;
-*/
-
-int tls13_oid_filters_ext_to_bytes(const uint8_t *filters, size_t filters_len, uint8_t **out, size_t *outlen)
-{
-	uint16_t ext_type = TLS_extension_oid_filters;
-	size_t ext_datalen;
-
-	if (!outlen) {
-		error_print();
-		return -1;
-	}
-
-	ext_datalen = tls_uint16_size() + filters_len;
-	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(ext_datalen, out, outlen);
-	tls_uint16array_to_bytes(filters, filters_len, out, outlen);
-
-	return 1;
-}
-
-int tls13_oid_filters_from_bytes(const uint8_t **filters, size_t *filters_len,
-	const uint8_t *ext_data, size_t ext_datalen)
-{
-	if (tls_uint16array_from_bytes(filters, filters_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_oid_filters_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
-{
-	return 1;
-}
-
-
-
-
-
-
-
-
-
-
-/*
-struct {
-	opaque certificate_request_context<0..2^8-1>;
-	Extension extensions<2..2^16-1>;
-} CertificateRequest;
-
-certificate_request_context 用于 Post-handshake Authentication，否则应该长度为0
-
+uint16 ProtocolVersion;
+opaque Random[32];
+uint8 CipherSuite[2];
 */
 
 int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
@@ -2221,6 +2193,7 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 	}
 	while (extslen) {
 		uint16_t ext_type;
+		const char *ext_name;
 		const uint8_t *ext_data;
 		size_t ext_datalen;
 
@@ -2230,7 +2203,11 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			error_print();
 			return -1;
 		}
-		format_print(fp, fmt, ind, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
+		ext_name = tls_extension_name(ext_type);
+		if (!ext_name) {
+			ext_name = "(unknown)";
+		}
+		format_print(fp, fmt, ind, "%s (%d)\n", ext_name, ext_type);
 
 		switch (ext_type) {
 		case TLS_extension_supported_versions:
@@ -2275,6 +2252,9 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 		case TLS_extension_post_handshake_auth:
 			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen); // should be empty
 			break;
+		case TLS_extension_ec_point_formats:
+			tls_ec_point_formats_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			break;
 		case TLS_extension_max_fragment_length:
 		case TLS_extension_use_srtp:
 		case TLS_extension_heartbeat:
@@ -2287,8 +2267,6 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			break;
 		default:
 			format_bytes(fp, fmt, ind + 4, "data", ext_data, ext_datalen);
-			//error_print();
-			//return -1;
 		}
 	}
 	if (dlen) {
@@ -2298,8 +2276,21 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 	return 1;
 }
 
+/*
+ServerHello
+
+struct {
+	ProtocolVersion legacy_version = 0x0303;
+	Random random;
+	opaque legacy_session_id_echo<0..32>;
+	CipherSuite cipher_suite;
+	uint8 legacy_compression_method = 0;
+	Extension extensions<6..2^16-1>;
+} ServerHello;
+*/
 int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
+	int hello_retry_request = 0;
 	uint16_t protocol;
 	const uint8_t *random;
 	const uint8_t *session_id;
@@ -2323,6 +2314,11 @@ int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 		return -1;
 	}
 	format_bytes(fp, fmt, ind, "random", random, 32);
+
+	// if ServerHello is HelloRetryRequest
+	if (memcmp(random, TLS13_HELLO_RETRY_REQUEST_RANDOM, 32) == 0) {
+		hello_retry_request = 1;
+	}
 
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &d, &dlen) != 1) {
 		error_print();
@@ -2366,7 +2362,9 @@ int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 			tls13_server_supported_versions_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_key_share:
-			tls13_key_share_server_hello_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			if (hello_retry_request)
+				tls13_key_share_hello_retry_request_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			else	tls13_key_share_server_hello_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_pre_shared_key:
 			tls13_server_pre_shared_key_print(fp, fmt, ind + 4, ext_data, ext_datalen);
@@ -2387,7 +2385,33 @@ int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 	return 1;
 }
 
+/*
+HelloRetryReqeust
 
+	For reasons of backward compatibility with middleboxes (see
+	Appendix D.4), the HelloRetryRequest message uses the same structure
+	as the ServerHello, but with Random set to the special value of the
+	SHA-256 of "HelloRetryRequest":
+
+	CF 21 AD 74 E5 9A 61 11 BE 1D 8C 02 1E 65 B8 91
+	C2 A2 11 16 7A BB 8C 5E 07 9E 09 E2 C8 A8 33 9C
+
+	TLS 1.3 has a downgrade protection mechanism embedded in the server's
+	random value.  TLS 1.3 servers which negotiate TLS 1.2 or below in
+	response to a ClientHello MUST set the last 8 bytes of their Random
+	value specially in their ServerHello.
+
+	If negotiating TLS 1.2, TLS 1.3 servers MUST set the last 8 bytes of
+	their Random value to the bytes:
+
+	44 4F 57 4E 47 52 44 01
+
+	If negotiating TLS 1.1 or below, TLS 1.3 servers MUST, and TLS 1.2
+	servers SHOULD, set the last 8 bytes of their ServerHello.Random
+	value to the bytes:
+
+	44 4F 57 4E 47 52 44 00
+*/
 
 int tls13_record_set_handshake_hello_retry_request(uint8_t *record, size_t *recordlen,
 	int legacy_version, const uint8_t random[32],
@@ -2395,7 +2419,8 @@ int tls13_record_set_handshake_hello_retry_request(uint8_t *record, size_t *reco
 	int cipher_suite, int legacy_compress_meth,
 	const uint8_t *exts, size_t extslen)
 {
-	int type = TLS_handshake_hello_retry_request;
+	//int type = TLS_handshake_hello_retry_request;
+	int type = TLS_handshake_server_hello;
 	uint8_t *p;
 	size_t len;
 
@@ -2570,7 +2595,7 @@ int tls13_hello_retry_request_print(FILE *fp, int fmt, int ind, const uint8_t *d
 			tls13_key_share_hello_retry_request_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_pre_shared_key:
-			//tls13_pre_shared_key_print(fp, fmt, ind + 4, ext_data, ext_datalen);
+			tls13_client_pre_shared_key_print(fp, fmt, ind + 4, ext_data, ext_datalen);
 			break;
 		case TLS_extension_cookie:
 			tls13_cookie_print(fp, fmt, ind + 4, ext_data, ext_datalen);
@@ -2588,9 +2613,48 @@ int tls13_hello_retry_request_print(FILE *fp, int fmt, int ind, const uint8_t *d
 	return 1;
 }
 
+/*
+EncrypytedExtensions
 
+struct {
+	Extension extensions<0..2^16-1>;
+} EncryptedExtensions;
+*/
 
+int tls13_record_set_handshake_encrypted_extensions(uint8_t *record, size_t *recordlen,
+	const uint8_t *exts, size_t extslen)
+{
+	int type = TLS_handshake_encrypted_extensions;
+	uint8_t *p = record + 5 + 4;
+	size_t len = 0;
 
+	tls_uint16array_to_bytes(exts, extslen, &p, &len);
+	tls_record_set_handshake(record, recordlen, type, NULL, len);
+	return 1;
+}
+
+int tls13_record_get_handshake_encrypted_extensions(const uint8_t *record,
+	const uint8_t **exts, size_t *extslen)
+{
+	int type;
+	const uint8_t *cp;
+	size_t len;
+
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_encrypted_extensions) {
+		error_print();
+		return 0;
+	}
+	if (tls_uint16array_from_bytes(exts, extslen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
 int tls13_encrypted_extensions_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
@@ -2647,6 +2711,309 @@ int tls13_encrypted_extensions_print(FILE *fp, int fmt, int ind, const uint8_t *
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+/*
+Certificate
+
+Certificate {
+	opaque certificate_request_context<0..2^8-1>;
+	CertificateEntry certificate_list<0..2^24-1>;
+}
+
+CertificateEntry {
+	opaque cert_data<1..2^24-1>;
+	Extension extensions<0..2^16-1>;
+}
+*/
+int tls13_certificate_entry_to_bytes(const uint8_t *cert, size_t certlen,
+	const uint8_t *status_request_ocsp_response, size_t status_request_ocsp_response_len,
+	const uint8_t *signed_certificate_timestamp, size_t signed_certificate_timestamp_len,
+	uint8_t **out, size_t *outlen)
+{
+	size_t extslen = 0;
+
+	if (status_request_ocsp_response && status_request_ocsp_response_len) {
+		tls_server_status_request_ext_to_bytes(status_request_ocsp_response, status_request_ocsp_response_len, NULL, &extslen);
+	}
+	if (signed_certificate_timestamp && signed_certificate_timestamp_len) {
+		tls_signed_certificate_timestamp_ext_to_bytes(signed_certificate_timestamp, signed_certificate_timestamp_len, NULL, &extslen);
+	}
+
+	tls_uint24array_to_bytes(cert, certlen, out, outlen);
+	tls_uint16_to_bytes(extslen, out, outlen);
+	if (status_request_ocsp_response && status_request_ocsp_response_len) {
+		tls_server_status_request_ext_to_bytes(status_request_ocsp_response, status_request_ocsp_response_len, out, outlen);
+	}
+	if (signed_certificate_timestamp && signed_certificate_timestamp_len) {
+		tls_signed_certificate_timestamp_ext_to_bytes(signed_certificate_timestamp, signed_certificate_timestamp_len, out, outlen);
+	}
+	return 1;
+}
+
+int tls13_certificate_entry_from_bytes(const uint8_t **cert, size_t *certlen,
+	const uint8_t **status_request_ocsp_response, size_t *status_request_ocsp_response_len,
+	const uint8_t **signed_certificate_timestamp, size_t *signed_certificate_timestamp_len,
+	const uint8_t **in, size_t *inlen)
+{
+	const uint8_t *exts;
+	size_t extslen;
+
+	if (!cert || !certlen
+		|| !status_request_ocsp_response || !status_request_ocsp_response_len
+		|| !signed_certificate_timestamp || !signed_certificate_timestamp_len
+		|| !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint24array_from_bytes(cert, certlen, in, inlen) != 1
+		|| tls_uint16array_from_bytes(&exts, &extslen, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	while (extslen) {
+		int ext_type;
+		const uint8_t *ext_data;
+		size_t ext_datalen;
+
+		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		switch (ext_type) {
+		case TLS_extension_status_request:
+			*status_request_ocsp_response = ext_data;
+			*status_request_ocsp_response_len = ext_datalen;
+			break;
+		case TLS_extension_signed_certificate_timestamp:
+			*signed_certificate_timestamp = ext_data;
+			*signed_certificate_timestamp_len = ext_datalen;
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int tls13_certificate_list_to_bytes(const uint8_t *certs, size_t certslen,
+	uint8_t **out, size_t *outlen)
+{
+	uint8_t *p = NULL;
+	size_t cert_list_len = 0;
+
+	if (out && *out) {
+		p = (*out) + tls_uint24_size();
+	}
+	while (certslen) {
+		const uint8_t *cert;
+		size_t certlen;
+		const uint8_t *entry_exts = NULL;
+		size_t entry_exts_len = 0;
+
+		if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_uint24array_to_bytes(cert, certlen, &p, &cert_list_len);
+		tls_uint16array_to_bytes(entry_exts, entry_exts_len, &p, &cert_list_len);
+
+	}
+	tls_uint24array_to_bytes(NULL, cert_list_len, out, outlen);
+	return 1;
+}
+
+int tls13_process_certificate_list(const uint8_t *cert_list, size_t cert_list_len,
+	uint8_t *certs, size_t *certs_len)
+{
+	*certs_len = 0;
+
+	while (cert_list_len) {
+		const uint8_t *cert_data;
+		size_t cert_data_len;
+		const uint8_t *exts;
+		size_t exts_len;
+		const uint8_t *cert;
+		size_t cert_len;
+
+		if (tls_uint24array_from_bytes(&cert_data, &cert_data_len, &cert_list, &cert_list_len) != 1
+			|| tls_uint16array_from_bytes(&exts, &exts_len, &cert_list, &cert_list_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_cert_from_der(&cert, &cert_len, &cert_data, &cert_data_len) != 1
+			|| asn1_length_is_zero(cert_data_len) != 1
+			|| x509_cert_to_der(cert, cert_len, &certs, certs_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+		while (exts_len) {
+			int ext_type;
+			const uint8_t *ext_data;
+			size_t ext_data_len;
+
+			if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_data_len, &exts, &exts_len) != 1) {
+				error_print();
+				return -1;
+			}
+			switch (ext_type) {
+			case TLS_extension_status_request:
+			case TLS_extension_signed_certificate_timestamp:
+				error_print();
+				return -1;
+			default:
+				error_print();
+				return -1;
+			}
+		}
+	}
+	return 1;
+}
+
+int tls13_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
+	const uint8_t *request_context, size_t request_context_len,
+	const uint8_t *certs, size_t certslen,
+	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len,
+	const uint8_t *entity_signed_certificate_timestamp, size_t entity_signed_certificate_timestamp_len)
+{
+	int type = TLS_handshake_certificate;
+	uint8_t *data;
+	size_t datalen = 0;
+	uint8_t *cert_list;
+	size_t cert_list_len = 0;
+	const uint8_t *cert;
+	size_t certlen;
+	size_t len;
+
+	if (!record || !recordlen) {
+		error_print();
+		return -1;
+	}
+
+	data = tls_handshake_data(tls_record_data(record));
+
+	// certificate_request_context<0..2^8-1>
+	tls_uint8array_to_bytes(request_context, request_context_len, &data, &datalen);
+
+	// certificate_list<0..2^24-1>
+	cert_list = data;
+	tls_uint24_to_bytes(0, &data, &len);
+
+	// client might send null certificate_list
+	if (certs && certslen) {
+		// first (entity) cert entry
+		if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls13_certificate_entry_to_bytes(cert, certlen,
+			entity_status_request_ocsp_response, entity_status_request_ocsp_response_len,
+			entity_signed_certificate_timestamp, entity_signed_certificate_timestamp_len,
+			&data, &cert_list_len) != 1) {
+			error_print();
+			return -1;
+		}
+		// ca certs entries
+		while (certslen) {
+			if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+				error_print();
+				return -1;
+			}
+			if (tls13_certificate_entry_to_bytes(cert, certlen, NULL, 0, NULL, 0, &data, &cert_list_len) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+	}
+	tls_uint24array_to_bytes(NULL, cert_list_len, &cert_list, &datalen);
+	if (tls_record_set_handshake(record, recordlen, type, NULL, datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+// even if status_request, signed_certificate_timestamp not requested
+// server/client can still return certificate with these two extensions
+int tls13_record_get_handshake_certificate(const uint8_t *record,
+	const uint8_t **request_context, size_t *request_context_len,
+	uint8_t *cert_chain, size_t *cert_chain_len, size_t cert_chain_maxlen,
+	const uint8_t **entity_status_request_ocsp_response, size_t *entity_status_request_ocsp_response_len,
+	const uint8_t **entity_signed_certificate_timestamp, size_t *entity_signed_certificate_timestamp_len)
+{
+	int type;
+	const uint8_t *p;
+	size_t len;
+	const uint8_t *cert_list;
+	size_t cert_list_len;
+	const uint8_t *cert;
+	size_t certlen;
+
+
+	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_certificate) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint8array_from_bytes(request_context, request_context_len, &p, &len) != 1
+		|| tls_uint24array_from_bytes(&cert_list, &cert_list_len, &p, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (cert_list_len > cert_chain_maxlen) {
+		error_print();
+		return -1;
+	}
+
+	// 客户端的证书链中的cert_list 可能为空
+	if (!cert_list) {
+		*cert_chain_len = 0;
+		*entity_status_request_ocsp_response = NULL;
+		*entity_status_request_ocsp_response_len = 0;
+		*entity_signed_certificate_timestamp = NULL;
+		*entity_signed_certificate_timestamp_len = 0;
+		return 1;
+	}
+
+	if (tls13_certificate_entry_from_bytes(&cert, &certlen,
+		entity_status_request_ocsp_response, entity_status_request_ocsp_response_len,
+		entity_signed_certificate_timestamp, entity_signed_certificate_timestamp_len,
+		&cert_list, &cert_list_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	*cert_chain_len = 0;
+
+	x509_cert_to_der(cert, certlen, &cert_chain, cert_chain_len);
+
+	while (cert_list_len) {
+		const uint8_t *status_request_ocsp_response;
+		size_t status_request_ocsp_response_len;
+		const uint8_t *signed_certificate_timestamp;
+		size_t signed_certificate_timestamp_len;
+
+		if (tls13_certificate_entry_from_bytes(&cert, &certlen,
+			&status_request_ocsp_response, &status_request_ocsp_response_len,
+			&signed_certificate_timestamp, &signed_certificate_timestamp_len,
+			&cert_list, &cert_list_len) != 1) {
+			error_print();
+			return -1;
+		}
+			// 这里的解析可能是有问题的				
+
+
+		x509_cert_to_der(cert, certlen, &cert_chain, cert_chain_len);
+	}
+
 	return 1;
 }
 
@@ -2733,6 +3100,61 @@ int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t
 	return 1;
 }
 
+/*
+CertificateRequest
+
+struct {
+	opaque certificate_request_context<0..2^8-1>;
+	Extension extensions<2..2^16-1>;
+} CertificateRequest;
+
+extensiosns:
+	signature_algorithms MUST be specified  这个应该放在代码中
+*/
+int tls13_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
+	const uint8_t *request_context, size_t request_context_len,
+	const uint8_t *exts, size_t extslen)
+{
+	int type = TLS_handshake_certificate_request;
+	uint8_t *data;
+	size_t datalen = 0;
+
+	if (!record || !recordlen) {
+		error_print();
+		return -1;
+	}
+	data = tls_handshake_data(tls_record_data(record));
+	tls_uint8array_to_bytes(request_context, request_context_len, &data, &datalen);
+	tls_uint16array_to_bytes(exts, extslen, &data, &datalen);
+	tls_record_set_handshake(record, recordlen, type, NULL, datalen);
+	return 1;
+}
+
+int tls13_record_get_handshake_certificate_request(const uint8_t *record,
+	const uint8_t **requst_context, size_t *request_context_len,
+	const uint8_t **exts, size_t *exts_len)
+{
+	int type;
+	const uint8_t *p;
+	size_t len;
+
+	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_certificate_request) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint8array_from_bytes(requst_context, request_context_len, &p, &len) != 1
+		|| tls_uint16array_from_bytes(exts, exts_len, &p, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *req_context;
@@ -2793,6 +3215,63 @@ int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d
 	return 1;
 }
 
+/*
+CertificateVerify
+
+struct {
+	SignatureScheme algorithm;
+	opaque signature<0..2^16-1>;
+} CertificateVerify;
+*/
+
+int tls13_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
+	int sig_alg, const uint8_t *sig, size_t siglen)
+{
+	int type = TLS_handshake_certificate_verify;
+	uint8_t *p = record + 5 + 4; // 这里都应该改为tls_record_handshake_data			
+	size_t len = 0;
+
+	if (!tls_signature_scheme_name(sig_alg)) {
+		error_print();
+		return -1;
+	}
+	tls_uint16_to_bytes((uint16_t)sig_alg, &p, &len);
+	tls_uint16array_to_bytes(sig, siglen, &p, &len);
+	if (tls_record_set_handshake_header(record, recordlen, type, len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_record_get_handshake_certificate_verify(const uint8_t *record,
+	int *sig_alg, const uint8_t **sig, size_t *siglen)
+{
+	int type;
+	const uint8_t *cp;
+	size_t len ;
+	uint16_t alg;
+
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_certificate_verify) {
+		return 0;
+	}
+	if (tls_uint16_from_bytes(&alg, &cp, &len) != 1
+		|| tls_uint16array_from_bytes(sig, siglen, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!tls_signature_scheme_name(alg)) {
+		error_print();
+		return -1;
+	}
+	*sig_alg = alg;
+	return 1;
+}
+
 int tls13_certificate_verify_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
 	uint16_t sig_alg;
@@ -2813,6 +3292,120 @@ int tls13_certificate_verify_print(FILE *fp, int fmt, int ind, const uint8_t *d,
 	}
 	format_bytes(fp, fmt, ind, "signature", sig, siglen);
 	if (tls_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+/*
+Finished
+
+struct {
+	opaque verify_data[Hash.length];
+} Finished;
+*/
+
+
+int tls13_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
+	const uint8_t *verify_data, size_t verify_data_len)
+{
+	int type = TLS_handshake_finished;
+
+	if (!verify_data || !verify_data_len) {
+		error_print();
+		return -1;
+	}
+	if (verify_data_len != 32) {
+		error_print();
+		return -1;
+	}
+	if (tls_record_set_handshake(record, recordlen, type, verify_data, verify_data_len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_record_get_handshake_finished(const uint8_t *record,
+	const uint8_t **verify_data, size_t *verify_data_len)
+{
+	int type;
+
+	if (tls_record_get_handshake(record, &type, verify_data, verify_data_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_finished) {
+		return 0;
+	}
+	if (*verify_data_len == 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_finished_print(FILE *fp, int fmt, int ind, const uint8_t *data, size_t datalen)
+{
+	format_print(fp, fmt, ind, "Finished\n");
+	ind += 4;
+	format_bytes(fp, fmt, ind, "verify_data", data, datalen);
+	return 1;
+}
+
+/*
+KeyUpdate
+
+struct {
+	KeyUpdateRequest request_update;
+} KeyUpdate;
+
+enum {
+	update_not_requested(0), update_requested(1), (255)
+} KeyUpdateRequest;
+*/
+
+int tls13_record_set_handshake_key_update(uint8_t *record, size_t *recordlen,
+	int request_update)
+{
+	int type = TLS_handshake_key_update;
+	uint8_t data[1]; // 这个值不太好
+
+	data[0] = request_update ? 1 : 0;
+	if (tls_record_set_handshake(record, recordlen, type, data, sizeof(data)) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls13_record_get_handshake_key_update(uint8_t *record, int *request_update)
+{
+	int type;
+	const uint8_t *cp;
+	size_t len;
+
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_key_update) {
+		return 0;
+	}
+
+	if (len != 1) {
+		error_print();
+		return -1;
+	}
+	switch (cp[0]) {
+	case 0:
+		*request_update = 0;
+		break;
+	case 1:
+		*request_update = 1;
+		break;
+	default:
 		error_print();
 		return -1;
 	}
@@ -2840,18 +3433,6 @@ int tls13_key_update_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t 
 	return 1;
 }
 
-int tls13_message_hash_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
-{
-	return 1;
-}
-
-int tls13_finished_print(FILE *fp, int fmt, int ind, const uint8_t *data, size_t datalen)
-{
-	format_print(fp, fmt, ind, "Finished\n");
-	ind += 4;
-	format_bytes(fp, fmt, ind, "verify_data", data, datalen);
-	return 1;
-}
 
 
 int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, size_t handshake_len)
@@ -2906,9 +3487,6 @@ int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, 
 		break;
 	case TLS_handshake_key_update:
 		tls13_key_update_print(fp, fmt, ind, data, datalen);
-		break;
-	case TLS_handshake_message_hash:
-		tls13_message_hash_print(fp, fmt, ind, data, datalen);
 		break;
 	default:
 		error_print();
@@ -2990,720 +3568,8 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 
 
 
-int tls13_certificate_list_to_bytes(const uint8_t *certs, size_t certslen,
-	uint8_t **out, size_t *outlen)
-{
-	uint8_t *p = NULL;
-	size_t cert_list_len = 0;
 
-	if (out && *out) {
-		p = (*out) + tls_uint24_size();
-	}
-	while (certslen) {
-		const uint8_t *cert;
-		size_t certlen;
-		const uint8_t *entry_exts = NULL;
-		size_t entry_exts_len = 0;
 
-		if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
-			error_print();
-			return -1;
-		}
-		tls_uint24array_to_bytes(cert, certlen, &p, &cert_list_len);
-		tls_uint16array_to_bytes(entry_exts, entry_exts_len, &p, &cert_list_len);
-
-	}
-	tls_uint24array_to_bytes(NULL, cert_list_len, out, outlen);
-	return 1;
-}
-
-int tls13_process_certificate_list(const uint8_t *cert_list, size_t cert_list_len,
-	uint8_t *certs, size_t *certs_len)
-{
-	*certs_len = 0;
-
-	while (cert_list_len) {
-		const uint8_t *cert_data;
-		size_t cert_data_len;
-		const uint8_t *exts;
-		size_t exts_len;
-		const uint8_t *cert;
-		size_t cert_len;
-
-		if (tls_uint24array_from_bytes(&cert_data, &cert_data_len, &cert_list, &cert_list_len) != 1
-			|| tls_uint16array_from_bytes(&exts, &exts_len, &cert_list, &cert_list_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (x509_cert_from_der(&cert, &cert_len, &cert_data, &cert_data_len) != 1
-			|| asn1_length_is_zero(cert_data_len) != 1
-			|| x509_cert_to_der(cert, cert_len, &certs, certs_len) != 1) {
-			error_print();
-			return -1;
-		}
-
-		while (exts_len) {
-			int ext_type;
-			const uint8_t *ext_data;
-			size_t ext_data_len;
-
-			if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_data_len, &exts, &exts_len) != 1) {
-				error_print();
-				return -1;
-			}
-			switch (ext_type) {
-			case TLS_extension_status_request:
-			case TLS_extension_signed_certificate_timestamp:
-				error_print();
-				return -1;
-			default:
-				error_print();
-				return -1;
-			}
-		}
-	}
-	return 1;
-}
-
-
-// 1. client_hello
-// 2. server_hello
-
-/*
-int tls13_record_set_handshake_hello_retry_request(uint8_t *record, size_t *recordlen,
-	int protocol, const uint8_t random[32],
-	const uint8_t *session_id, size_t session_id_len, int cipher_suite,
-	const uint8_t *exts, size_t exts_len)
-{
-	uint8_t type = TLS_handshake_hello_retry_request;
-	uint8_t *p;
-	size_t len;
-
-	if (!record || !recordlen || !random) {
-		error_print();
-		return -1;
-	}
-	if (session_id) {
-		if (session_id_len == 0
-			|| session_id_len < TLS_MIN_SESSION_ID_SIZE
-			|| session_id_len > TLS_MAX_SESSION_ID_SIZE) {
-			error_print();
-			return -1;
-		}
-	}
-	if (!tls_protocol_name(protocol)) {
-		error_print();
-		return -1;
-	}
-	if (!tls_cipher_suite_name(cipher_suite)) {
-		error_print();
-		return -1;
-	}
-
-	p = tls_handshake_data(tls_record_data(record));
-	len = 0;
-
-	tls_uint16_to_bytes((uint16_t)protocol, &p, &len);
-	tls_array_to_bytes(random, 32, &p, &len);
-	tls_uint8array_to_bytes(session_id, session_id_len, &p, &len);
-	tls_uint16_to_bytes((uint16_t)cipher_suite, &p, &len);
-	tls_uint8_to_bytes((uint8_t)TLS_compression_null, &p, &len);
-	if (exts) {
-		if (protocol < TLS_protocol_tls12) {
-			error_print();
-			return -1;
-		}
-		tls_uint16array_to_bytes(exts, exts_len, &p, &len);
-	}
-	if (tls_record_set_handshake(record, recordlen, type, NULL, len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
-
-/*
-NewSessionTicket
-
-      struct {
-          uint32 ticket_lifetime;
-          uint32 ticket_age_add;
-          opaque ticket_nonce<0..255>;
-          opaque ticket<1..2^16-1>;
-          Extension extensions<0..2^16-2>;
-      } NewSessionTicket;
-*/
-
-
-// 8. encrypted_extensions
-int tls13_record_set_handshake_encrypted_extensions(uint8_t *record, size_t *recordlen,
-	const uint8_t *exts, size_t extslen)
-{
-	int type = TLS_handshake_encrypted_extensions;
-	uint8_t *p = record + 5 + 4;
-	size_t len = 0;
-
-	tls_uint16array_to_bytes(exts, extslen, &p, &len);
-	tls_record_set_handshake(record, recordlen, type, NULL, len);
-	return 1;
-}
-
-int tls13_record_get_handshake_encrypted_extensions(const uint8_t *record,
-	const uint8_t **exts, size_t *extslen)
-{
-	int type;
-	const uint8_t *cp;
-	size_t len;
-
-	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_encrypted_extensions) {
-		error_print();
-		return 0;
-	}
-	if (tls_uint16array_from_bytes(exts, extslen, &cp, &len) != 1
-		|| tls_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-
-// 11. certificate
-
-/*
-Certificate {
-    opaque certificate_request_context<0..2^8-1>;
-    CertificateEntry certificate_list<0..2^24-1>;
-}
-
-CertificateEntry {
-	opaque cert_data<1..2^24-1>;
-	Extension extensions<0..2^16-1>;
-}
-*/
-
-int tls13_certificate_entry_to_bytes(const uint8_t *cert, size_t certlen,
-	const uint8_t *status_request_ocsp_response, size_t status_request_ocsp_response_len,
-	const uint8_t *signed_certificate_timestamp, size_t signed_certificate_timestamp_len,
-	uint8_t **out, size_t *outlen)
-{
-	size_t extslen = 0;
-
-	if (status_request_ocsp_response && status_request_ocsp_response_len) {
-		tls_server_status_request_ext_to_bytes(status_request_ocsp_response, status_request_ocsp_response_len, NULL, &extslen);
-	}
-	if (signed_certificate_timestamp && signed_certificate_timestamp_len) {
-		tls_signed_certificate_timestamp_ext_to_bytes(signed_certificate_timestamp, signed_certificate_timestamp_len, NULL, &extslen);
-	}
-
-	tls_uint24array_to_bytes(cert, certlen, out, outlen);
-	tls_uint16_to_bytes(extslen, out, outlen);
-	if (status_request_ocsp_response && status_request_ocsp_response_len) {
-		tls_server_status_request_ext_to_bytes(status_request_ocsp_response, status_request_ocsp_response_len, out, outlen);
-	}
-	if (signed_certificate_timestamp && signed_certificate_timestamp_len) {
-		tls_signed_certificate_timestamp_ext_to_bytes(signed_certificate_timestamp, signed_certificate_timestamp_len, out, outlen);
-	}
-	return 1;
-}
-
-int tls13_certificate_entry_from_bytes(const uint8_t **cert, size_t *certlen,
-	const uint8_t **status_request_ocsp_response, size_t *status_request_ocsp_response_len,
-	const uint8_t **signed_certificate_timestamp, size_t *signed_certificate_timestamp_len,
-	const uint8_t **in, size_t *inlen)
-{
-	const uint8_t *exts;
-	size_t extslen;
-
-	if (!cert || !certlen
-		|| !status_request_ocsp_response || !status_request_ocsp_response_len
-		|| !signed_certificate_timestamp || !signed_certificate_timestamp_len
-		|| !in || !(*in) || !inlen) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint24array_from_bytes(cert, certlen, in, inlen) != 1
-		|| tls_uint16array_from_bytes(&exts, &extslen, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	while (extslen) {
-		int ext_type;
-		const uint8_t *ext_data;
-		size_t ext_datalen;
-
-		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
-			error_print();
-			return -1;
-		}
-
-		switch (ext_type) {
-		case TLS_extension_status_request:
-			*status_request_ocsp_response = ext_data;
-			*status_request_ocsp_response_len = ext_datalen;
-			break;
-		case TLS_extension_signed_certificate_timestamp:
-			*signed_certificate_timestamp = ext_data;
-			*signed_certificate_timestamp_len = ext_datalen;
-			break;
-		default:
-			error_print();
-			return -1;
-		}
-	}
-	return 1;
-}
-
-/*
-struct {
-	opaque certificate_request_context<0..2^8-1>;
-	CertificateEntry certificate_list<0..2^24-1>;
-} Certificate;
-
-if has no proper certificate chain
-the client should send the Certificate with empty certificate_list content
-*/
-int tls13_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
-	const uint8_t *request_context, size_t request_context_len,
-	const uint8_t *certs, size_t certslen,
-	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len,
-	const uint8_t *entity_signed_certificate_timestamp, size_t entity_signed_certificate_timestamp_len)
-{
-	int type = TLS_handshake_certificate;
-	uint8_t *data;
-	size_t datalen = 0;
-	uint8_t *cert_list;
-	size_t cert_list_len = 0;
-	const uint8_t *cert;
-	size_t certlen;
-	size_t len;
-
-	if (!record || !recordlen) {
-		error_print();
-		return -1;
-	}
-
-	data = tls_handshake_data(tls_record_data(record));
-
-	// certificate_request_context<0..2^8-1>
-	tls_uint8array_to_bytes(request_context, request_context_len, &data, &datalen);
-
-	// certificate_list<0..2^24-1>
-	cert_list = data;
-	tls_uint24_to_bytes(0, &data, &len);
-
-	// client might send null certificate_list
-	if (certs && certslen) {
-		// first (entity) cert entry
-		if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
-			error_print();
-			return -1;
-		}
-		if (tls13_certificate_entry_to_bytes(cert, certlen,
-			entity_status_request_ocsp_response, entity_status_request_ocsp_response_len,
-			entity_signed_certificate_timestamp, entity_signed_certificate_timestamp_len,
-			&data, &cert_list_len) != 1) {
-			error_print();
-			return -1;
-		}
-		// ca certs entries
-		while (certslen) {
-			if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
-				error_print();
-				return -1;
-			}
-			if (tls13_certificate_entry_to_bytes(cert, certlen, NULL, 0, NULL, 0, &data, &cert_list_len) != 1) {
-				error_print();
-				return -1;
-			}
-		}
-	}
-	tls_uint24array_to_bytes(NULL, cert_list_len, &cert_list, &datalen);
-	if (tls_record_set_handshake(record, recordlen, type, NULL, datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-/*
-int _tls13_record_get_handshake_certificate(const uint8_t *record,
-	const uint8_t **request_context, size_t *request_context_len,
-	const uint8_t **cert_list, size_t *cert_list_len)
-{
-	int type;
-	const uint8_t *p;
-	size_t len;
-
-	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_certificate) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint8array_from_bytes(request_context, request_context_len, &p, &len) != 1
-		|| tls_uint24array_from_bytes(cert_list, cert_list_len, &p, &len) != 1
-		|| tls_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
-
-
-// FIMXE： 这里 entity_status_request_ocsp_response 改为 leaf_xxxx			
-
-// even if status_request, signed_certificate_timestamp not requested
-// server/client can still return certificate with these two extensions
-int tls13_record_get_handshake_certificate(const uint8_t *record,
-	const uint8_t **request_context, size_t *request_context_len,
-	uint8_t *cert_chain, size_t *cert_chain_len, size_t cert_chain_maxlen,
-	const uint8_t **entity_status_request_ocsp_response, size_t *entity_status_request_ocsp_response_len,
-	const uint8_t **entity_signed_certificate_timestamp, size_t *entity_signed_certificate_timestamp_len)
-{
-	int type;
-	const uint8_t *p;
-	size_t len;
-	const uint8_t *cert_list;
-	size_t cert_list_len;
-	const uint8_t *cert;
-	size_t certlen;
-
-
-	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_certificate) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint8array_from_bytes(request_context, request_context_len, &p, &len) != 1
-		|| tls_uint24array_from_bytes(&cert_list, &cert_list_len, &p, &len) != 1
-		|| tls_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (cert_list_len > cert_chain_maxlen) {
-		error_print();
-		return -1;
-	}
-
-	// 客户端的证书链中的cert_list 可能为空
-	if (!cert_list) {
-		*cert_chain_len = 0;
-		*entity_status_request_ocsp_response = NULL;
-		*entity_status_request_ocsp_response_len = 0;
-		*entity_signed_certificate_timestamp = NULL;
-		*entity_signed_certificate_timestamp_len = 0;
-		return 1;
-	}
-
-
-
-
-	if (tls13_certificate_entry_from_bytes(&cert, &certlen,
-		entity_status_request_ocsp_response, entity_status_request_ocsp_response_len,
-		entity_signed_certificate_timestamp, entity_signed_certificate_timestamp_len,
-		&cert_list, &cert_list_len) != 1) {
-		error_print();
-		return -1;
-	}
-
-	*cert_chain_len = 0;
-
-	x509_cert_to_der(cert, certlen, &cert_chain, cert_chain_len);
-
-	while (cert_list_len) {
-		const uint8_t *status_request_ocsp_response;
-		size_t status_request_ocsp_response_len;
-		const uint8_t *signed_certificate_timestamp;
-		size_t signed_certificate_timestamp_len;
-
-		if (tls13_certificate_entry_from_bytes(&cert, &certlen,
-			&status_request_ocsp_response, &status_request_ocsp_response_len,
-			&signed_certificate_timestamp, &signed_certificate_timestamp_len,
-			&cert_list, &cert_list_len) != 1) {
-			error_print();
-			return -1;
-		}
-			// 这里的解析可能是有问题的				
-
-
-		x509_cert_to_der(cert, certlen, &cert_chain, cert_chain_len);
-	}
-
-	return 1;
-}
-
-
-
-
-// 13. certificate_request
-/*
-struct {
-	opaque certificate_request_context<0..2^8-1>;
-	Extension extensions<2..2^16-1>;
-} CertificateRequest;
-
-extensiosns:
-	Extension signature_algorithms MUST be specified
-*/
-int tls13_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
-	const uint8_t *request_context, size_t request_context_len,
-	const uint8_t *exts, size_t extslen)
-{
-	int type = TLS_handshake_certificate_request;
-	uint8_t *data;
-	size_t datalen = 0;
-
-	if (!record || !recordlen) {
-		error_print();
-		return -1;
-	}
-	data = tls_handshake_data(tls_record_data(record));
-	tls_uint8array_to_bytes(request_context, request_context_len, &data, &datalen);
-	tls_uint16array_to_bytes(exts, extslen, &data, &datalen);
-	tls_record_set_handshake(record, recordlen, type, NULL, datalen);
-	return 1;
-}
-
-int tls13_record_set_handshake_certificate_request_default(uint8_t *record, size_t *recordlen)
-{
-	int sig_algs[] = { TLS_sig_sm2sig_sm3 };
-	uint8_t exts[256];
-	uint8_t *p = exts;
-	size_t extslen = 0;
-
-	tls_signature_algorithms_ext_to_bytes(sig_algs, sizeof(sig_algs)/sizeof(int), &p, &extslen);
-	tls13_record_set_handshake_certificate_request(record, recordlen, NULL, 0, exts, extslen);
-	return 1;
-}
-
-int tls13_record_get_handshake_certificate_request(const uint8_t *record,
-	const uint8_t **requst_context, size_t *request_context_len,
-	const uint8_t **exts, size_t *exts_len)
-{
-	int type;
-	const uint8_t *p;
-	size_t len;
-
-	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_certificate_request) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint8array_from_bytes(requst_context, request_context_len, &p, &len) != 1
-		|| tls_uint16array_from_bytes(exts, exts_len, &p, &len) != 1
-		|| tls_length_is_zero(len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-/*
-handshake #15
-
-struct {
-	SignatureScheme algorithm;
-	opaque signature<0..2^16-1>;
-} CertificateVerify;
-*/
-int tls13_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
-	int sig_alg, const uint8_t *sig, size_t siglen)
-{
-	int type = TLS_handshake_certificate_verify;
-	uint8_t *p = record + 5 + 4; // 这里都应该改为tls_record_handshake_data			
-	size_t len = 0;
-
-	if (!tls_signature_scheme_name(sig_alg)) {
-		error_print();
-		return -1;
-	}
-	tls_uint16_to_bytes((uint16_t)sig_alg, &p, &len);
-	tls_uint16array_to_bytes(sig, siglen, &p, &len);
-	if (tls_record_set_handshake_header(record, recordlen, type, len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_record_get_handshake_certificate_verify(const uint8_t *record,
-	int *sig_alg, const uint8_t **sig, size_t *siglen)
-{
-	int type;
-	const uint8_t *cp;
-	size_t len ;
-	uint16_t alg;
-
-	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_certificate_verify) {
-		return 0;
-	}
-	if (tls_uint16_from_bytes(&alg, &cp, &len) != 1
-		|| tls_uint16array_from_bytes(sig, siglen, &cp, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (!tls_signature_scheme_name(alg)) {
-		error_print();
-		return -1;
-	}
-	*sig_alg = alg;
-	return 1;
-}
-
-
-// 20. finished
-
-
-/*
-finished_key = HKDF-Expand-Label(BaseKey, "finished", "", Hash.length)
-
-struct {
-          opaque verify_data[Hash.length];
-} Finished;
-
-verify_data = HMAC(finished_key, Hash(Handshake Context, Certificate*, CertificateVerify*))
-Hash = SM3, SHA256 or SHA384
-*/
-
-
-int tls13_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
-	const uint8_t *verify_data, size_t verify_data_len)
-{
-	int type = TLS_handshake_finished;
-
-	if (!verify_data || !verify_data_len) {
-		error_print();
-		return -1;
-	}
-	if (verify_data_len != 32) {
-		error_print();
-		return -1;
-	}
-	if (tls_record_set_handshake(record, recordlen, type, verify_data, verify_data_len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_record_get_handshake_finished(const uint8_t *record,
-	const uint8_t **verify_data, size_t *verify_data_len)
-{
-	int type;
-
-	if (tls_record_get_handshake(record, &type, verify_data, verify_data_len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_finished) {
-		return 0;
-	}
-	if (*verify_data_len == 0) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-// 24. key_update
-int tls13_record_set_handshake_key_update(uint8_t *record, size_t *recordlen,
-	int request_update)
-{
-	int type = TLS_handshake_key_update;
-	uint8_t data[1]; // 这个值不太好
-
-	data[0] = request_update ? 1 : 0;
-	if (tls_record_set_handshake(record, recordlen, type, data, sizeof(data)) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_record_get_handshake_key_update(uint8_t *record, int *request_update)
-{
-	int type;
-	const uint8_t *cp;
-	size_t len;
-
-	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_key_update) {
-		return 0;
-	}
-
-	if (len != 1) {
-		error_print();
-		return -1;
-	}
-	switch (cp[0]) {
-	case 0:
-		*request_update = 0;
-		break;
-	case 1:
-		*request_update = 1;
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-
-
-// 254. message_hash
-int tls13_record_set_message_hash(uint8_t *record, size_t *recordlen)
-{
-	return -1;
-}
-
-int tls13_record_get_message_hash(uint8_t *record, size_t *recordlen)
-{
-	return -1;
-}
-
-
-
-
-
-
-int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx)
-{
-	DIGEST_CTX tmp_ctx;
-	uint8_t dgst[64];
-	size_t dgstlen;
-
-	tmp_ctx = *dgst_ctx;
-
-	digest_finish(&tmp_ctx, dgst, &dgstlen);
-
-	format_print(fp, fmt, ind, "Transcript-Hash ");
-	format_bytes(fp, 0, 0, label, dgst, dgstlen);
-
-	return 1;
-}
 
 
 
@@ -3754,65 +3620,6 @@ Auth | {CertificateVerify*}
 
 
 */
-
-
-
-int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, int modes)
-{
-	int first = 1;
-
-	format_print(fp, fmt, ind, "%s:", label);
-
-	if (modes & TLS_KE_CERT_DHE) {
-		fprintf(fp, " CERT_DHE");
-		first = 0;
-	}
-	if (modes & TLS_KE_PSK_DHE) {
-		if (first)
-			fprintf(fp, " PSK_DHE");
-		else	fprintf(fp, "|PSK_DHE");
-		first = 0;
-	}
-	if (modes & TLS_KE_PSK) {
-		if (first)
-			fprintf(fp, " PSK");
-		else	fprintf(fp, "|PSK");
-	}
-	fprintf(fp, "\n");
-	return 1;
-}
-
-/*
-
-这些密钥能够生成取决于密码套件是否确认下来
-
-客户端：
-
-yyyyy
-
-	生成 early_secret
-
-	构造 ClientHello
-		生成 client_early_traffic_secret
-		设置 client_write_key, client_write_iv
-	接受 ServerHello
-	计算 pre_master_secret
-	生成 handshake_secret
-		从 handshake_secret 导出 client_handshake_traffic_secret
-		从 handshake_secret 导出 server_handshake_traffic_secret
-	握手，直到收到 ServerFinished
-	生成 master_secret
-		导出 client_application_traffic_secret_0
-		导出 server_application_traffic_secret_0
-	发送 client Finished
-		导出 resumption_master_secret
-
-
-*/
-
-
-
-
 
 
 
@@ -5224,6 +5031,58 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 	return 1;
 }
 
+int tls13_send_change_cipher_spec(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if (!conn->recordlen) {
+
+		tls_trace("send [ChangeCipherSpec]\n");
+		if (tls_record_set_change_cipher_spec(conn->record, &conn->recordlen) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	}
+
+	if ((ret = tls_send_record(conn)) != 1) {
+		if (ret != TLS_ERROR_SEND_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+
+	return 1;
+}
+
+int tls13_recv_change_cipher_spec(TLS_CONNECT *conn)
+{
+	int ret;
+
+	tls_trace("recv [ChangeCipherSpec]\n");
+
+	if ((ret = tls_recv_record(conn)) != 1) {
+		if (ret != TLS_ERROR_RECV_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
+	if ((ret = tls_record_get_change_cipher_spec(conn->record)) < 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_decode_error);
+		return -1;
+	} else if (ret == 0) {
+		error_print();
+		tls13_send_alert(conn, TLS_alert_unexpected_message);
+		return -1;
+	}
+
+	return 1;
+}
+
 int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 {
 	int ret;
@@ -5244,6 +5103,7 @@ int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
+	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls13_record_decrypt(&conn->server_write_key, conn->server_write_iv,
 		conn->server_seq_num, conn->record, conn->recordlen,
@@ -6229,9 +6089,7 @@ int tls13_recv_client_certificate_verify(TLS_CONNECT *conn)
 		return -1;
 	}
 
-
 	// verify signature
-	//tls_handshake_digest_print(stderr, 0, 0, "signed client CertificateVerify", &conn->dgst_ctx);
 	if (tls13_verify_certificate_verify(TLS_client_mode, sig_alg, &public_key,
 		&conn->dgst_ctx, sig, siglen) != 1) {
 		error_print();
@@ -6243,7 +6101,7 @@ int tls13_recv_client_certificate_verify(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "after client CertificateVerify", &conn->dgst_ctx);
+	tls_handshake_digest_print(stderr, 0, 0, "CertificateVerify", &conn->dgst_ctx);
 
 	return 1;
 }
@@ -6367,7 +6225,7 @@ int tls13_send_client_certificate(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "after client Certficate", &conn->dgst_ctx);
+		tls_handshake_digest_print(stderr, 0, 0, "client Certficate", &conn->dgst_ctx);
 
 
 		tls13_padding_len_rand(&padding_len);
@@ -6402,7 +6260,6 @@ int tls13_send_client_certificate_verify(TLS_CONNECT *conn)
 		size_t siglen;
 		size_t padding_len;
 
-		//tls_handshake_digest_print(stderr, 0, 0, "signed client CertificateVerify", &conn->dgst_ctx);
 		if (tls13_sign_certificate_verify(TLS_client_mode, conn->sig_alg,
 			sign_key, &conn->dgst_ctx, sig, &siglen) != 1) {
 			error_print();
@@ -6457,9 +6314,6 @@ int tls13_send_client_finished(TLS_CONNECT *conn)
 		size_t verify_data_len;
 		size_t padding_len;
 
-
-		//tls_handshake_digest_print(stderr, 0, 0, "before ClientFinished", &conn->dgst_ctx);
-
 		tls13_compute_verify_data(conn->client_handshake_traffic_secret, &conn->dgst_ctx,
 			verify_data, &verify_data_len);
 
@@ -6474,8 +6328,7 @@ int tls13_send_client_finished(TLS_CONNECT *conn)
 		}
 		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
-
-		format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
+		//format_print(stderr, 0, 0, "client_seq_num: "PRIu64"\n", GETU64(conn->client_seq_num));
 
 		tls13_padding_len_rand(&padding_len);
 		if (tls13_record_encrypt(&conn->client_write_key, conn->client_write_iv,
@@ -6656,6 +6509,9 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	if (legacy_session_id_len) {
 		// tls13 server ignore legacy_session_id
 		warning_print();
+
+		memcpy(conn->session_id, legacy_session_id, legacy_session_id_len);
+		conn->session_id_len = legacy_session_id_len;
 	}
 
 	// cipher_suites
@@ -6851,6 +6707,12 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			early_data = 1;
 			break;
 
+		case TLS_extension_cookie:
+			error_print();
+			tls13_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
+
+		/*
 		case TLS_extension_max_fragment_length:
 		case TLS_extension_use_srtp:
 		case TLS_extension_heartbeat:
@@ -6859,14 +6721,10 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_client_certificate_type:
 		case TLS_extension_padding:
 		case TLS_extension_post_handshake_auth:
-			break;
-
-		case TLS_extension_cookie:
-			error_print();
 		default:
-			warning_print();
-			//tls13_send_alert(conn, TLS_alert_illegal_parameter);
-			//return -1;
+			format_print(stderr, 0, 4, "%s: %d: unsupported extension: %s (%04x)\n",
+				__FILE__, __LINE__, tls_extension_name(ext_type), ext_type);
+		*/
 		}
 	}
 
@@ -6894,8 +6752,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		tls13_send_alert(conn, TLS_alert_missing_extension);
 		return -1;
 	}
-	if ((psk_key_exchange_modes && !pre_shared_key)
-		|| (!psk_key_exchange_modes && pre_shared_key)) {
+	if (pre_shared_key && !psk_key_exchange_modes) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_missing_extension);
 		return -1;
@@ -7244,7 +7101,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	tls_key_exchange_modes_print(stderr, 0, 0, "server key_exchange_mode", conn->key_exchange_modes);
+	//tls_key_exchange_modes_print(stderr, 0, 0, "server key_exchange_mode", conn->key_exchange_modes);
 
 	// hello_retry_request
 	if (conn->hello_retry_request) {
@@ -7279,7 +7136,6 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		format_bytes(stderr, 0, 0, "ClientHello", conn->record + 5, conn->recordlen - 5);
 		tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
 	}
 
@@ -7325,11 +7181,7 @@ int tls13_send_hello_retry_request(TLS_CONNECT *conn)
 
 		tls_record_set_protocol(conn->record, TLS_protocol_tls12);
 
-		if (tls13_random_generate(conn->server_random) != 1) {
-			error_print();
-			tls13_send_alert(conn, TLS_alert_internal_error);
-			return -1;
-		}
+		memcpy(conn->server_random, TLS13_HELLO_RETRY_REQUEST_RANDOM, 32);
 
 		if (conn->session_id_len) {
 			legacy_session_id_echo = conn->session_id;
@@ -7458,7 +7310,7 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 	}
 	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
-	if (tls_record_protocol(record) != TLS_protocol_tls1) {
+	if (tls_record_protocol(record) != TLS_protocol_tls12) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_protocol_version);
 		return -1;
@@ -7497,8 +7349,8 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 		tls13_send_alert(conn, TLS_alert_illegal_parameter);
 		return -1;
 	}
-	// client random, should not send the same random
-	if (memcmp(random, conn->client_random, 32) == 0) {
+	// client random, should send the same random
+	if (memcmp(random, conn->client_random, 32) != 0) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_illegal_parameter);
 		return -1;
@@ -7803,7 +7655,8 @@ int tls13_send_server_hello(TLS_CONNECT *conn)
 		}
 
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
-			TLS_protocol_tls12, conn->server_random, NULL, 0,
+			TLS_protocol_tls12, conn->server_random,
+			conn->session_id, conn->session_id_len,
 			conn->cipher_suite, exts, extslen) != 1) {
 			error_print();
 			return -1;
@@ -7814,7 +7667,6 @@ int tls13_send_server_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		format_bytes(stderr, 0, 0, "ServerHello data", conn->record + 5, conn->recordlen - 5);
 		tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
 
 
@@ -7959,7 +7811,8 @@ int tls13_send_encrypted_extensions(TLS_CONNECT *conn)
 
 		tls13_padding_len_rand(&padding_len);
 
-		format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
+		//format_print(stderr, 0, 0, "server_seq_num: "PRIu64"\n", GETU64(conn->server_seq_num));
+
 		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
 			conn->server_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
 			conn->record, &conn->recordlen) != 1) {
@@ -8082,7 +7935,7 @@ int tls13_send_certificate_request(TLS_CONNECT *conn)
 		tls_handshake_digest_print(stderr, 0, 0, "after CertificateRequest", &conn->dgst_ctx);
 
 
-		format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
+		//format_print(stderr, 0, 0, "server_seq_num: "PRIu64"\n", GETU64(conn->server_seq_num));
 		tls13_padding_len_rand(&padding_len);
 		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
 			conn->server_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
@@ -8253,7 +8106,7 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 		tls_handshake_digest_print(stderr, 0, 0, "ServerFinished", &conn->dgst_ctx);
 
 
-		format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
+		//format_print(stderr, 0, 0, "server_seq_num: "PRIu64"\n", GETU64(conn->server_seq_num));
 		tls13_padding_len_rand(&padding_len);
 		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
 			conn->server_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
@@ -8345,7 +8198,8 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
+	//format_print(stderr, 0, 0, "client_seq_num: "PRIu64"\n", GETU64(conn->client_seq_num));
+
 	if (tls13_record_decrypt(&conn->client_write_key, conn->client_write_iv,
 		conn->client_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
@@ -8383,12 +8237,12 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	// 即使服务器发送CertificateRequest，客户端可能没有合适的证书
-	// 客户端可能发送一个空的Certificate，并且不发送CertificateVerify
 	if (!conn->peer_cert_chain_len) {
-		warning_print();
-		//tls13_send_alert(conn, TLS_alert_illegal_parameter);
-		//return -1;
+		if (!conn->ctx->client_certificate_optional) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_certificate_required);
+			return -1;
+		}
 		return 0;
 	}
 
@@ -8474,7 +8328,8 @@ int tls13_recv_client_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
+	//format_print(stderr, 0, 0, "client_seq_num: "PRIu64"\n", GETU64(conn->client_seq_num));
+
 	if (tls13_record_decrypt(&conn->client_write_key, conn->client_write_iv,
 		conn->client_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
@@ -8774,9 +8629,6 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 	int ret;
 	int next_state;
 
-
-	// 客户端的状态机可能还是有问题的
-
 	switch (conn->state) {
 	case TLS_state_hello_retry_request:
 	case TLS_state_client_hello_again:
@@ -8812,6 +8664,13 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_server_hello:
 		ret = tls13_recv_server_hello(conn);
+		if (conn->ctx->change_cipher_spec)
+			next_state = TLS_state_server_change_cipher_spec;
+		else	next_state = TLS_state_encrypted_extensions;
+		break;
+
+	case TLS_state_server_change_cipher_spec:
+		ret = tls13_recv_change_cipher_spec(conn);
 		next_state = TLS_state_encrypted_extensions;
 		break;
 
@@ -8843,12 +8702,12 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 			next_state = TLS_state_end_of_early_data;
 		else if (conn->certificate_request)
 			next_state = TLS_state_client_certificate;
-		else	next_state = TLS_state_client_finished;
+		else	next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_end_of_early_data:
 		ret = tls13_send_end_of_early_data(conn);
-		next_state = TLS_state_client_finished;
+		next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_client_certificate:
@@ -8858,11 +8717,18 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 		ret = tls13_send_client_certificate(conn);
 		if (conn->cert_chain)
 			next_state = TLS_state_client_certificate_verify;
-		else	next_state = TLS_state_client_finished;
+		else	next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_client_certificate_verify:
 		ret = tls13_send_client_certificate_verify(conn);
+		next_state = TLS_state_client_change_cipher_spec;
+		break;
+
+	case TLS_state_client_change_cipher_spec:
+		if (conn->ctx->change_cipher_spec)
+			ret = tls13_send_change_cipher_spec(conn);
+		else	ret = 1;
 		next_state = TLS_state_client_finished;
 		break;
 
@@ -8928,6 +8794,13 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_server_hello:
 		ret = tls13_send_server_hello(conn);
+		if (conn->ctx->change_cipher_spec)
+			next_state = TLS_state_server_change_cipher_spec;
+		else	next_state = TLS_state_encrypted_extensions;
+		break;
+
+	case TLS_state_server_change_cipher_spec:
+		ret = tls13_send_change_cipher_spec(conn);
 		next_state = TLS_state_encrypted_extensions;
 		break;
 
@@ -8962,23 +8835,30 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 			next_state = TLS_state_end_of_early_data;
 		else if (conn->certificate_request)
 			next_state = TLS_state_client_certificate;
-		else	next_state = TLS_state_client_finished;
+		else	next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_end_of_early_data:
 		ret = tls13_recv_end_of_early_data(conn);
-		next_state = TLS_state_client_finished;
+		next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_client_certificate:
 		ret = tls13_recv_client_certificate(conn);
 		if (ret == 0) // 客户端提供了一个空的Certificate消息
-			next_state = TLS_state_client_finished;
+			next_state = TLS_state_client_change_cipher_spec;
 		else	next_state = TLS_state_client_certificate_verify;
 		break;
 
 	case TLS_state_client_certificate_verify:
 		ret = tls13_recv_client_certificate_verify(conn);
+		next_state = TLS_state_client_change_cipher_spec;
+		break;
+
+	case TLS_state_client_change_cipher_spec:
+		if (conn->ctx->change_cipher_spec)
+			ret = tls13_recv_change_cipher_spec(conn);
+		else	ret = 1;
 		next_state = TLS_state_client_finished;
 		break;
 
@@ -9038,7 +8918,6 @@ int tls13_client_handshake(TLS_CONNECT *conn)
 
 
 	}
-
 
 	conn->state = 0;
 
@@ -9150,33 +9029,6 @@ int tls13_do_accept(TLS_CONNECT *conn)
 
 	fprintf(stderr, "tls13_do_accept: connected\n");
 
-	return 1;
-}
-
-// 这个函数应该是属于key_share的，不要放在这个函数里面
-int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt)
-{
-	size_t key_exchanges_capacity
-		= sizeof(((TLS_CONNECT *)0)->key_exchanges)/sizeof(((TLS_CONNECT *)0)->key_exchanges[0]);
-
-	if (!ctx) {
-		error_print();
-		return -1;
-	}
-	if (cnt > key_exchanges_capacity) {
-		cnt = key_exchanges_capacity;
-	}
-	ctx->key_exchanges_cnt = cnt;
-	return 1;
-}
-
-int tls13_enable_post_handshake_auth(TLS_CONNECT *conn)
-{
-	if (!conn) {
-		error_print();
-		return -1;
-	}
-	conn->post_handshake_auth = 1;
 	return 1;
 }
 

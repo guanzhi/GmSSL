@@ -151,7 +151,7 @@ static const char *help =
 "\n"
 "    /usr/local/bin/openssl s_server -accept 4430 -cert p256signcert.pem -cert_chain p256cacert.pem -key p256signkey.exp \\\n"
 "       -tls1_3 -ciphersuites TLS_AES_128_GCM_SHA256 -named_curve prime256v1 \\\n"
-"       -trace -keylogfile sslkeys.log\n"
+"       -trace\n"
 "\n"
 "    /usr/local/bin/openssl s_client -connect 127.0.0.1:4430 -tls1_3 -CAfile p256rootcacert.pem -groups prime256v1 -trace\n"
 "\n"
@@ -364,17 +364,11 @@ int tls13_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
-
-			error_print();
-
 			if (certfiles_cnt >= sizeof(certfiles)/sizeof(certfiles[0])) {
 				error_print();
 				return -1;
 			}
 			certfiles[certfiles_cnt++] = certfile;
-
-
-			fprintf(stderr, "111certfiles_cnt = %zu\n", certfiles_cnt);
 
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;

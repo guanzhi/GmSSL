@@ -259,9 +259,16 @@ const char *tls_alert_description_text(int description)
 	case TLS_alert_protocol_version: return "protocol_version";
 	case TLS_alert_insufficient_security: return "insufficient_security";
 	case TLS_alert_internal_error: return "internal_error";
+	case TLS_alert_inappropriate_fallback: return "inappropriate_fallback";
 	case TLS_alert_user_canceled: return "user_canceled";
 	case TLS_alert_no_renegotiation: return "no_renegotiation";
 	case TLS_alert_unsupported_extension: return "unsupported_extension";
+	case TLS_alert_certificate_unobtainable: return "certificate_unobtainable";
+	case TLS_alert_unrecognized_name: return "unrecognized_name";
+	case TLS_alert_bad_certificate_status_response: return "bad_certificate_status_response";
+	case TLS_alert_unknown_psk_identity: return "unknown_psk_identity";
+	case TLS_alert_certificate_required: return "certificate_required";
+	case TLS_alert_no_application_protocol: return "no_application_protocol";
 	case TLS_alert_unsupported_site2site: return "unsupported_site2site";
 	case TLS_alert_no_area: return "no_area";
 	case TLS_alert_unsupported_areatype: return "unsupported_areatype";
@@ -318,6 +325,13 @@ const char *tls_named_curve_name(int curve)
 	case TLS_curve_brainpoolp384r1tls13: return "brainpoolp384r1tls13";
 	case TLS_curve_brainpoolp512r1tls13: return "brainpoolp512r1tls13";
 	case TLS_curve_sm2p256v1: return "sm2p256v1";
+	case TLS_curve_secp256r1mlkem768: return "SecP256r1MLKEM768";
+	case TLS_curve_x25519mlkem768: return "X25519MLKEM768";
+	case TLS_curve_secp384r1mlkem1024: return "SecP384r1MLKEM1024";
+	case TLS_curve_sm22mlkem768: return "curveSM2MLKEM768";
+	case TLS_curve_ffdhe2048: return "ffdhe2048";
+	case TLS_curve_ffdhe3072: return "ffdhe3072";
+	case TLS_curve_ffdhe4096: return "ffdhe4096";
 	}
 	return NULL;
 }
@@ -362,6 +376,9 @@ const char *tls_signature_scheme_name(int scheme)
 	case TLS_sig_ecdsa_brainpoolP256r1tls13_sha256: return "ecdsa_brainpoolP256r1tls13_sha256";
 	case TLS_sig_ecdsa_brainpoolP384r1tls13_sha384: return "ecdsa_brainpoolP384r1tls13_sha384";
 	case TLS_sig_ecdsa_brainpoolP512r1tls13_sha512: return "ecdsa_brainpoolP512r1tls13_sha512";
+	case TLS_sig_mldsa44: return "mldsa44";
+	case TLS_sig_mldsa65: return "mldsa65";
+	case TLS_sig_mldsa87: return "mldsa87";
 	}
 	return NULL;
 }

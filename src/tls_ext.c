@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -24,20 +24,78 @@
 #include <gmssl/tls.h>
 
 
-/*
-ec_point_formats
+int tls_ext_to_bytes(int ext_type, const uint8_t *ext_data, size_t ext_datalen,
+	uint8_t **out, size_t *outlen)
+{
+	if (!tls_extension_name(ext_type)) {
+		error_print();
+		return -1;
+	}
 
-  struct {
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
+
+	tls_uint16_to_bytes(ext_type, out, outlen);
+	tls_uint16array_to_bytes(ext_data, ext_datalen, out, outlen);
+	return 1;
+}
+
+int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen)
+{
+	uint16_t ext_type;
+
+	if (!type || !data || !datalen || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16_from_bytes(&ext_type, in, inlen) != 1
+		|| tls_uint16array_from_bytes(data, datalen, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!tls_extension_name(ext_type)) {
+		warning_print();
+	}
+	*type = ext_type;
+	return 1;
+}
+
+
+/*
+11. ec_point_formats
+
+struct {
 	ECPointFormat ec_point_format_list<1..2^8-1>
-  } ECPointFormatList;
+} ECPointFormatList;
 
 Example:
 	ext_type: 0x00,0x0B (ec_point_formats)
 	ext_length: 0x00,0x02
 	ec_point_format_list_len: 0x01
 	ec_point_format_list: 0x00 (uncompressed)
-
 */
+
+int tls_ec_point_formats_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *ec_point_format_list;
+	size_t ec_point_format_list_len;
+	size_t i;
+
+	format_print(fp, fmt, ind, "ec_point_format_list\n");
+	ind += 4;
+
+	if (tls_uint8array_from_bytes(&ec_point_format_list, &ec_point_format_list_len, &ext_data, &ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < ec_point_format_list_len; i++) {
+		format_print(fp, fmt, ind, "%s (%d)\n",
+			tls_ec_point_format_name(ec_point_format_list[i]), ec_point_format_list[i]);
+	}
+	return 1;
+}
 
 int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	uint8_t **out, size_t *outlen)
@@ -287,11 +345,16 @@ int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, siz
 	}
 	while (groups_len) {
 		uint16_t group;
+		const char *name;
 		if (tls_uint16_from_bytes(&group, &groups, &groups_len) != 1) {
 			error_print();
 			return -1;
 		}
-		format_print(fp, fmt, ind, "%s (%04x)\n", tls_named_curve_name(group), group);
+		name = tls_named_curve_name(group);
+		if (!name) {
+			name = "(unknown)";
+		}
+		format_print(fp, fmt, ind, "%s (%04x)\n", name, group);
 	}
 	if (dlen) {
 		error_print();
@@ -369,33 +432,6 @@ int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn)
 	conn->signature_algorithms_cert = 1;
 	return 1;
 }
-
-
-/*
-int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
-{
-	if (tls_signature_algorithms_print_ex(fp, fmt, ind, "signature_algorithms", d, dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
-{
-	if (tls_signature_algorithms_print_ex(fp, fmt, ind, "signature_algorithms_cert", d, dlen) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
-
-
-
-
-
-
 
 int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen)
@@ -558,124 +594,6 @@ static int tls_server_parameter_select(const int *server_params, size_t server_p
 	return 0;
 }
 
-
-
-
-
-
-/*
-int tls13_process_server_key_share(const uint8_t *ext_data, size_t ext_datalen, SM2_Z256_POINT *point)
-{
-	uint16_t group;
-	const uint8_t *key_exchange;
-	size_t key_exchange_len;
-
-	if (!point) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint16_from_bytes(&group, &ext_data, &ext_datalen) != 1
-		|| tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (group != TLS_curve_sm2p256v1) {
-		error_print();
-		return -1;
-	}
-	if (key_exchange_len != 65) {
-		error_print();
-		return -1;
-	}
-	if (sm2_z256_point_from_octets(point, key_exchange, key_exchange_len) != 1) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-*/
-
-/*
-如果客户端提供的key_share满足服务器支持的group，那么就缓存这个key_share，任务完成
-否则，如果客户端的groups和服务器的groups找到了共同的group，那么服务器可以发送HelloRetryRequest
-*/
-/*
-int tls13_process_client_key_share(const int *server_groups, size_t server_groups_cnt,
-	const uint8_t *client_ext_data, size_t client_ext_datalen,
-	int *client_group, uint8_t *client_key_exchange, size_t client_key_exchange_len)
-{
-	const uint8_t *client_shares;
-	size_t client_shares_len;
-	uint16_t group;
-	const uint8_t *key_exchange;
-	size_t key_exchange_len;
-
-	if (!server_ecdhe_key || !client_ecdhe_public || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint16array_from_bytes(&client_shares, &client_shares_len, &ext_data, &ext_datalen) != 1
-		|| tls_length_is_zero(ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	while (client_shares_len) {
-		if (tls_uint16_from_bytes(&group, &client_shares, &client_shares_len) != 1
-			|| tls_uint16array_from_bytes(&key_exchange, &key_exchange_len, &client_shares, &client_shares_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (!tls_named_curve_name(group)) {
-			error_print();
-			return -1;
-		}
-		if (!key_exchange) {
-			error_print();
-			return -1;
-		}
-		if (group == TLS_curve_sm2p256v1) {
-			if (key_exchange_len != 65) {
-				error_print();
-				return -1;
-			}
-			memset(client_ecdhe_public, 0, sizeof(SM2_KEY));
-			if (sm2_z256_point_from_octets(&client_ecdhe_public->public_key, key_exchange, key_exchange_len) != 1) {
-				error_print();
-				return -1;
-			}
-			if (tls13_server_key_share_ext_to_bytes(&server_ecdhe_key->public_key, out, outlen) != 1) {
-				error_print();
-				return -1;
-			}
-			return 1;
-		}
-	}
-	error_print();
-	return -1;
-}
-*/
-
-
-int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen)
-{
-	uint16_t ext_type;
-	if (tls_uint16_from_bytes(&ext_type, in, inlen) != 1
-		|| tls_uint16array_from_bytes(data, datalen, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	*type = ext_type;
-
-	// FIXME: handle unkonwn ext
-	if (!tls_extension_name(ext_type)) {
-		warning_print();
-		//return -1;
-	}
-	return 1;
-}
-
 int tls_process_client_hello_exts(const uint8_t *exts, size_t extslen, uint8_t *out, size_t *outlen, size_t maxlen)
 {
 	int type;
@@ -766,50 +684,3 @@ int tls_process_server_hello_exts(const uint8_t *exts, size_t extslen,
 	}
 	return 1;
 }
-
-
-
-static int tls13_server_hello_exts[] = {
-	TLS_extension_key_share,
-	TLS_extension_pre_shared_key,
-	TLS_extension_supported_versions,
-};
-
-/*
-struct {
-	Extension extensions<0..2^16-1>;
-} EncryptedExtensions;
-*/
-static int tls13_encrypted_extensions_exts[] = {
-	TLS_extension_server_name,
-	TLS_extension_max_fragment_length,
-	TLS_extension_supported_groups, // 必须放在EE中，不能放在SH中
-	TLS_extension_use_srtp,
-	TLS_extension_heartbeat,
-	TLS_extension_application_layer_protocol_negotiation,
-	TLS_extension_client_certificate_type,
-	TLS_extension_server_certificate_type,
-	TLS_extension_early_data,
-};
-
-static int tls13_certificate_exts[] = {
-	TLS_extension_status_request,
-	TLS_extension_signed_certificate_timestamp,
-};
-
-static int tls13_certificate_request_exts[] = {
-	TLS_extension_status_request,
-	TLS_extension_signature_algorithms,
-	TLS_extension_signed_certificate_timestamp,
-	TLS_extension_certificate_authorities,
-	TLS_extension_oid_filters,
-	TLS_extension_signature_algorithms_cert,
-};
-
-static int tls13_hello_retry_request_exts[] = {
-	TLS_extension_key_share,
-	TLS_extension_cookie,
-	TLS_extension_supported_versions,
-};
-
-

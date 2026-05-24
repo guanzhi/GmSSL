@@ -228,7 +228,7 @@ typedef enum {
 	TLS_extension_early_data		= 42,
 	TLS_extension_supported_versions	= 43,
 	TLS_extension_cookie			= 44,
-	TLS_extension_psk_key_exchange_modes	= 46,
+	TLS_extension_psk_key_exchange_modes	= 45,
 	TLS_extension_certificate_authorities	= 47,
 	TLS_extension_oid_filters		= 48,
 	TLS_extension_post_handshake_auth	= 49,
@@ -278,6 +278,13 @@ typedef enum {
 	TLS_curve_brainpoolp384r1tls13		= 32,
 	TLS_curve_brainpoolp512r1tls13		= 33,
 	TLS_curve_sm2p256v1			= 41, // GmSSLv2: 30
+	TLS_curve_ffdhe2048			= 256,
+	TLS_curve_ffdhe3072			= 257,
+	TLS_curve_ffdhe4096			= 258,
+	TLS_curve_secp256r1mlkem768		= 4587,
+	TLS_curve_x25519mlkem768		= 4588,
+	TLS_curve_secp384r1mlkem1024		= 4589,
+	TLS_curve_sm22mlkem768			= 4590,
 } TLS_NAMED_CURVE;
 
 const char *tls_named_curve_name(int named_curve);
@@ -308,6 +315,9 @@ typedef enum {
 	TLS_sig_ecdsa_brainpoolP256r1tls13_sha256 = 0x081A,
 	TLS_sig_ecdsa_brainpoolP384r1tls13_sha384 = 0x081B,
 	TLS_sig_ecdsa_brainpoolP512r1tls13_sha512 = 0x081C,
+	TLS_sig_mldsa44				= 0x0904,
+	TLS_sig_mldsa65				= 0x0905,
+	TLS_sig_mldsa87				= 0x0906,
 } TLS_SIGNATURE_SCHEME;
 
 const char *tls_signature_scheme_name(int scheme);
@@ -339,7 +349,6 @@ typedef enum {
 
 const char *tls_alert_level_name(int level);
 
-
 typedef enum {
 	TLS_alert_close_notify			= 0,
 	TLS_alert_unexpected_message		= 10,
@@ -363,11 +372,17 @@ typedef enum {
 	TLS_alert_protocol_version		= 70,
 	TLS_alert_insufficient_security		= 71,
 	TLS_alert_internal_error		= 80,
+	TLS_alert_inappropriate_fallback	= 86,		
 	TLS_alert_user_canceled			= 90,
 	TLS_alert_no_renegotiation		= 100,
 	TLS_alert_missing_extension		= 109,
 	TLS_alert_unsupported_extension		= 110,
-	TLS_alert_certificate_unobtainable	= 111,
+	TLS_alert_certificate_unobtainable	= 111,	
+	TLS_alert_unrecognized_name		= 112,	
+	TLS_alert_bad_certificate_status_response = 113,	
+	TLS_alert_unknown_psk_identity		= 115,		
+	TLS_alert_certificate_required		= 116,		
+	TLS_alert_no_application_protocol	= 120,			
 	TLS_alert_unsupported_site2site		= 200,
 	TLS_alert_no_area			= 201,
 	TLS_alert_unsupported_areatype		= 202,
@@ -559,9 +574,11 @@ int tls_server_hello_print(FILE *fp, const uint8_t *server_hello, size_t len, in
 
 
 int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
+
 int tls_process_client_exts(const uint8_t *exts, size_t extslen, uint8_t *out, size_t *outlen, size_t maxlen);
 int tls_process_server_exts(const uint8_t *exts, size_t extslen,
 	int *ec_point_format, int *supported_group, int *signature_algor);
+
 
 
 // Certificate
@@ -770,9 +787,14 @@ typedef struct {
 	size_t cacertslen;
 	int verify_depth;
 
+
+	// ChangeCipherSpec in TLS 1.3
+	int change_cipher_spec;
+
 	// CertificateRequest
 	int certificate_request;
-
+	int client_certificate_optional; // if empty client Certificate is allowed
+	// TODO: 还没有设置的函数
 
 	// NewSessionTicket
 	int new_session_ticket;
@@ -829,7 +851,7 @@ typedef struct {
 	int cookie;
 	SM4_KEY cookie_key;
 
-	// 46. psk_key_exchange_modes
+	// 45. psk_key_exchange_modes
 	int psk_key_exchange_modes;
 
 	// 47. certificate_authorities
@@ -1162,7 +1184,7 @@ typedef struct {
 	uint8_t cookie_buf[256];
 	size_t cookie_len;
 
-	// 46. psk_key_exchange_modes
+	// 45. psk_key_exchange_modes
 	// in ClientHello;
 
 	// 47. certificate_authorities
@@ -1777,6 +1799,7 @@ int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
 // 11. ec_point_format
 int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	uint8_t **out, size_t *outlen);
+int tls_ec_point_formats_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen,
 	uint8_t **out, size_t *outlen);
 int tls_process_server_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen);
@@ -1903,7 +1926,7 @@ int tls13_cookie_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size
 int tls13_ctx_set_cookie_key(TLS_CTX *ctx, const uint8_t *cookie_key, size_t cookie_key_len);
 
 
-// 46. psk_key_exchange_modes
+// 45. psk_key_exchange_modes
 
 enum {
 	TLS_psk_ke		= 0,

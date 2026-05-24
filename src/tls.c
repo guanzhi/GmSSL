@@ -2265,6 +2265,9 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	ctx->key_exchanges_cnt = TLS_DEFAULT_KEY_EXCHANGES_CNT;
 
 
+
+	ctx->change_cipher_spec = 1;
+
 	return 1;
 }
 
@@ -2961,5 +2964,30 @@ int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE 
 	return 1;
 }
 
+
+int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, int modes)
+{
+	int first = 1;
+
+	format_print(fp, fmt, ind, "%s:", label);
+
+	if (modes & TLS_KE_CERT_DHE) {
+		fprintf(fp, " CERT_DHE");
+		first = 0;
+	}
+	if (modes & TLS_KE_PSK_DHE) {
+		if (first)
+			fprintf(fp, " PSK_DHE");
+		else	fprintf(fp, "|PSK_DHE");
+		first = 0;
+	}
+	if (modes & TLS_KE_PSK) {
+		if (first)
+			fprintf(fp, " PSK");
+		else	fprintf(fp, "|PSK");
+	}
+	fprintf(fp, "\n");
+	return 1;
+}
 
 
