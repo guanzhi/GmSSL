@@ -101,7 +101,7 @@ static int hexchar2int(char c)
 	else return -1;
 }
 
-int hex2bin(const char *in, size_t inlen, uint8_t *out)
+static int hex2bin(const char *in, size_t inlen, uint8_t *out)
 {
 	int c;
 	if (inlen % 2) {
