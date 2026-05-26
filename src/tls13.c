@@ -1559,7 +1559,6 @@ int tls13_client_supported_versions_print(FILE *fp, int fmt, int ind,
 	return 1;
 }
 
-
 /*
 struct {
 	ProtocolVersion selected_version;
@@ -2091,14 +2090,6 @@ int tls13_key_share_hello_retry_request_print(FILE *fp, int fmt, int ind,
 }
 
 
-static const unsigned char TLS13_HELLO_RETRY_REQUEST_RANDOM[32] = {
-	0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11,
-	0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
-	0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E,
-	0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
-};
-
-
 // Handshakes
 //	ClientHello
 //	ServerHello
@@ -2127,6 +2118,21 @@ uint16 ProtocolVersion;
 opaque Random[32];
 uint8 CipherSuite[2];
 */
+
+int tls13_ctx_set_client_hello_key_exchanges_cnt(TLS_CTX *ctx, size_t cnt)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (cnt > sizeof(((TLS_CONNECT *)NULL)->key_exchanges)/sizeof(((TLS_CONNECT *)NULL)->key_exchanges[0])) {
+		error_print();
+		return -1;
+	}
+
+	ctx->key_exchanges_cnt = cnt;
+	return 1;
+}
 
 int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen)
 {
@@ -2275,6 +2281,14 @@ int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_
 	}
 	return 1;
 }
+
+// ServerHello.random if HelloRetryReqeust
+static const unsigned char TLS13_HELLO_RETRY_REQUEST_RANDOM[32] = {
+	0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11,
+	0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
+	0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E,
+	0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
+};
 
 /*
 ServerHello
@@ -2973,7 +2987,7 @@ int tls13_record_get_handshake_certificate(const uint8_t *record,
 		return -1;
 	}
 
-	// 客户端的证书链中的cert_list 可能为空
+	// client Certificate.certificate_list might be empty/null
 	if (!cert_list) {
 		*cert_chain_len = 0;
 		*entity_status_request_ocsp_response = NULL;
@@ -3009,7 +3023,6 @@ int tls13_record_get_handshake_certificate(const uint8_t *record,
 			return -1;
 		}
 			// 这里的解析可能是有问题的				
-
 
 		x509_cert_to_der(cert, certlen, &cert_chain, cert_chain_len);
 	}
@@ -3107,9 +3120,6 @@ struct {
 	opaque certificate_request_context<0..2^8-1>;
 	Extension extensions<2..2^16-1>;
 } CertificateRequest;
-
-extensiosns:
-	signature_algorithms MUST be specified  这个应该放在代码中
 */
 int tls13_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
 	const uint8_t *request_context, size_t request_context_len,
@@ -3123,6 +3133,12 @@ int tls13_record_set_handshake_certificate_request(uint8_t *record, size_t *reco
 		error_print();
 		return -1;
 	}
+	if (!exts || !extslen) {
+		// signature_algorithms extension must exist
+		error_print();
+		return -1;
+	}
+
 	data = tls_handshake_data(tls_record_data(record));
 	tls_uint8array_to_bytes(request_context, request_context_len, &data, &datalen);
 	tls_uint16array_to_bytes(exts, extslen, &data, &datalen);
@@ -3149,6 +3165,11 @@ int tls13_record_get_handshake_certificate_request(const uint8_t *record,
 	if (tls_uint8array_from_bytes(requst_context, request_context_len, &p, &len) != 1
 		|| tls_uint16array_from_bytes(exts, exts_len, &p, &len) != 1
 		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!exts) {
+		// signature_algorithms extension must exist
 		error_print();
 		return -1;
 	}
@@ -3195,13 +3216,13 @@ int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d
 			tls13_certificate_authorities_print(fp, fmt, ind, ext_data, ext_datalen);
 			break;
 		case TLS_extension_status_request:
-			//tls13_status_request_print(fp, fmt, ind, ext_data, ext_datalen);
+			//tls13_status_request_print(fp, fmt, ind, ext_data, ext_datalen);				
 			break;
 		case TLS_extension_signature_algorithms_cert:
 			tls_signature_algorithms_print(fp, fmt, ind, ext_data, ext_datalen);
 			break;
 		case TLS_extension_client_certificate_type:
-			//tls13_client_certificate_type_print(fp, fmt, ind, ext_data, ext_datalen);
+			//tls13_client_certificate_type_print(fp, fmt, ind, ext_data, ext_datalen);			
 			break;
 		default:
 			error_print();
@@ -3212,6 +3233,16 @@ int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+int tls13_ctx_enable_client_certificate_optional(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->client_certificate_optional = enable ? 1 : 0;
 	return 1;
 }
 
@@ -3306,7 +3337,6 @@ struct {
 } Finished;
 */
 
-
 int tls13_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
 	const uint8_t *verify_data, size_t verify_data_len)
 {
@@ -3367,13 +3397,13 @@ enum {
 */
 
 int tls13_record_set_handshake_key_update(uint8_t *record, size_t *recordlen,
-	int request_update)
+	int req_update)
 {
 	int type = TLS_handshake_key_update;
-	uint8_t data[1]; // 这个值不太好
+	uint8_t request_update;
 
-	data[0] = request_update ? 1 : 0;
-	if (tls_record_set_handshake(record, recordlen, type, data, sizeof(data)) != 1) {
+	request_update = req_update ? 1 : 0;
+	if (tls_record_set_handshake(record, recordlen, type, &request_update, sizeof(request_update)) != 1) {
 		error_print();
 		return -1;
 	}
@@ -3430,6 +3460,18 @@ int tls13_key_update_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t 
 		return -1;
 	}
 	format_print(fp, fmt, ind, "request_update: %d\n", update_requested);
+	return 1;
+}
+
+// ChangeCipherSpec
+
+int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->change_cipher_spec = enable ? 1 : 0;
 	return 1;
 }
 
@@ -3521,12 +3563,7 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 		return -1;
 	}
 
-	// 最高字节设置后强制打印记录原始数据
-	if (format >> 24) {
-		format_bytes(fp, format, indent, "Data", data, datalen);
-		fprintf(fp, "\n");
-		return 1;
-	}
+	//format_bytes(fp, format, indent, "RecordRawData", data, datalen);
 
 	switch (record[0]) {
 	case TLS_record_handshake:
@@ -3564,13 +3601,6 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 	//fprintf(fp, "\n");
 	return 1;
 }
-
-
-
-
-
-
-
 
 
 
@@ -3620,9 +3650,6 @@ Auth | {CertificateVerify*}
 
 
 */
-
-
-
 
 
 
@@ -3722,29 +3749,6 @@ int tls13_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 	return 1;
 }
-
-
-/*
-ClientHello中的很多扩展是和证书有关的
-如果客户端在ClientHello中已经明确不支持证书认证（没有提供group + sig_alg的组合）
-那么就不应该在ClientHello中包含这些扩展
-*/
-
-
-
-/*
-1. 客户端发送 ClientHello，包含 early_data 扩展
-2. 客户端设置 cipher_suite 和 early_secret
-3. 客户端发送 {EarlyData}
-4. 客户端发送 {EndOfEarlyData}
-5. 客户端接收 ServerHello
-6. 客户端设置 handshake_secret
-7. 客户端接收 {EncryptedExtensions}
-
-
-
-*/
-
 
 int tls13_send_client_hello(TLS_CONNECT *conn)
 {
@@ -6106,9 +6110,6 @@ int tls13_recv_client_certificate_verify(TLS_CONNECT *conn)
 	return 1;
 }
 
-
-// ServerFinished消息之前有可能是什么消息？				
-
 int tls13_recv_server_finished(TLS_CONNECT *conn)
 {
 	int ret;
@@ -6180,8 +6181,6 @@ int tls13_recv_server_finished(TLS_CONNECT *conn)
 
 	return 1;
 }
-
-// 需要验证，当cipher_suite为AES，服务器证书为P-256，客户端证书为SM2的情况
 
 int tls13_send_client_certificate(TLS_CONNECT *conn)
 {
@@ -6466,7 +6465,6 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	if (client_verify)
 		tls_client_verify_init(&conn->client_verify_ctx);
 	*/
-
 
 	tls_trace("recv ClientHello\n");
 
@@ -8082,7 +8080,6 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 
 	tls_trace("send server {Finished}\n");
 
-
 	if (conn->recordlen == 0) {
 		uint8_t verify_data[64];
 		size_t verify_data_len;
@@ -8116,38 +8113,9 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 		}
 		tls_seq_num_incr(conn->server_seq_num);
 
-		// 必须在这里生成client_application_traffic_secret，否则dgst_ctx就变了
-		// 但是必须在ClientFinished之后再更新密钥
-		// 因此application_secrets是可以同时生成的
-
-
 		tls13_generate_application_secrets(conn);
 
-		// Generate client_application_traffic_secret
-		///* 11 */ tls13_derive_secret(conn->master_secret, "c ap traffic", &conn->dgst_ctx, conn->client_application_traffic_secret);
-		// generate server_application_traffic_secret
-		///* 12 */ tls13_derive_secret(conn->master_secret, "s ap traffic", &conn->dgst_ctx, conn->server_application_traffic_secret);
-
-
-		// 这里只生成服务器端的密钥
-
 		tls13_generate_server_application_keys(conn);
-
-		// update server_write_key, server_write_iv, reset server_seq_num
-		/*
-		tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "key", NULL, 0, 16, server_write_key);
-		block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, server_write_key);
-		tls13_hkdf_expand_label(conn->digest, conn->server_application_traffic_secret, "iv", NULL, 0, 12, conn->server_write_iv);
-		tls_seq_num_reset(conn->server_seq_num);
-
-		format_print(stderr, 0, 0, "update server secrets\n");
-		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 32);
-		format_bytes(stderr, 0, 4, "server_write_key", server_write_key, 16);
-		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
-		format_bytes(stderr, 0, 4, "server_seq_num", conn->server_seq_num, 8);
-		format_print(stderr, 0, 0, "\n");
-		*/
-
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -8374,21 +8342,7 @@ int tls13_recv_client_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-
 	tls13_generate_client_application_keys(conn);
-
-	/*
-	// update client_write_key, client_write_iv, reset client_seq_num
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "key", NULL, 0, 16, client_write_key);
-	block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, client_write_key);
-	tls13_hkdf_expand_label(conn->digest, conn->client_application_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
-	tls_seq_num_reset(conn->client_seq_num);
-
-	format_print(stderr, 0, 0, "update client secrets\n");
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
-	format_print(stderr, 0, 0, "\n");
-	*/
 
 	return 1;
 }
@@ -8424,25 +8378,6 @@ int tls13_send_early_data(TLS_CONNECT *conn)
 
 	return 1;
 }
-
-
-
-
-
-
-
-
-
-// 参数request_update应该根据当前状态设置
-
-
-/*
-如果我方是首先发送KeyUpdate一方，那么默认设置要求对方也更新密钥
-
-
-如果我们接收到对方的要求，并且满足我方的一个最低限度，那么就设置key_update的标志位，下次send的时候就会启动更新
-
-*/
 
 int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 {
@@ -8498,31 +8433,6 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 	}
 
 	return ret;
-
-
-
-	/*
-	while (conn->recordlen) {
-		tls_ret_t n;
-
-		if ((n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				return TLS_ERROR_SEND_AGAIN;
-			} else {
-				if (n == 0) {
-					error_puts("TCP connection closed");
-				}
-				error_print();
-				return -1;
-			}
-		}
-		conn->recordlen -= n;
-		conn->record_offset += n;
-	}
-	*/
-
-
-	return 1;
 }
 
 int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
@@ -8579,50 +8489,6 @@ int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
 
 
 }
-
-
-/*
-Post-Handshake-Auth
-
-	客户端在 ClientHello 中发送post_handshake_auht说明支持PHA
-
-	在握手完成并进行数据通信时，如果客户端请求一个特殊的地址 比如 GET /admin
-	默认未认证的客户端不能访问此地址，因此服务器端如果发现客户端支持PHA，那么就会给客户端发送一个CertificateRequest
-
-	客户端不需要立即响应，但是如果客户端响应
-	则需要发出连续的 Certificate, CertificateVerify, Finished消息
-
-
-
-这意味着如果客户端开始发送Certificate
-	服务器就必须再次进入到握手的状态机中
-	这意味着SSL再次进入到状态机中
-
-
-是否意味着每次不论上层调用是read/write，SSL都是按照状态机来处理
-
-
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int tls13_do_client_handshake(TLS_CONNECT *conn)
 {

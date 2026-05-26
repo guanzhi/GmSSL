@@ -29,7 +29,7 @@
 
 
 /*
-status_request(5)
+5. status_request
 
 ClientHello.status_request
 	ext_data := CertificateStatusRequest;
@@ -326,6 +326,7 @@ int tls13_set_client_status_request(TLS_CONNECT *conn,
 int ocsp_response_verify(const uint8_t *ocsp_response, size_t ocsp_response_len,
 	const uint8_t *ca_certs, size_t ca_certs_len)
 {
+	error_print();
 	return 1;
 }
 
@@ -334,7 +335,6 @@ int tls_ocsp_response_match_status_request(
 	const uint8_t *responder_id_list, size_t responder_id_list_len,
 	const uint8_t *request_exts, size_t request_exts_len)
 {
+	error_print();
 	return 1;
 }
-
-

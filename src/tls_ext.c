@@ -419,7 +419,7 @@ int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d,
 }
 
 
-int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn)
+int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn, int enable)
 {
 	if (!conn) {
 		error_print();
@@ -429,7 +429,7 @@ int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	conn->signature_algorithms_cert = 1;
+	conn->signature_algorithms_cert = enable ? 1 : 0;
 	return 1;
 }
 

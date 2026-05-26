@@ -84,13 +84,6 @@ void tls_array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size
 	*outlen += datalen;
 }
 
-/*
-这几个函数要区分data = NULL, datalen = 0 和 data = NULL, datalen != 0的情况
-前者意味着数据为空，因此输出的就是一个长度
-后者意味着数据不为空，只是我们不想输出数据，只输出头部的长度，并且更新整个的输出长度。 这种情况应该避免！
-
-*/
-
 void tls_uint8array_to_bytes(const uint8_t *data, size_t datalen, uint8_t **out, size_t *outlen)
 {
 	tls_uint8_to_bytes((uint8_t)datalen, out, outlen);
@@ -302,7 +295,7 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 		return -1;
 	}
 	if (inlen > (1 << 14)) {
-		error_print_msg("invalid tls record data length %zu\n", inlen);
+		error_print();
 		return -1;
 	}
 	if ((((size_t)header[3]) << 8) + header[4] != inlen) {
@@ -342,8 +335,6 @@ int tls_cbc_encrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *enc_key,
 	return 1;
 }
 
-
-// 这个函数应该把所有的输入的dgst都打印出来！这样就可以容易判断出到底是哪个输入错了
 int tls_cbc_decrypt(const SM3_HMAC_CTX *inited_hmac_ctx, const SM4_KEY *dec_key,
 	const uint8_t seq_num[8], const uint8_t enced_header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
@@ -886,9 +877,7 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 		return -1;
 	}
 	if (session_id) {
-		if (session_id_len == 0
-			|| session_id_len < TLS_MIN_SESSION_ID_SIZE
-			|| session_id_len > TLS_MAX_SESSION_ID_SIZE) {
+		if (session_id_len > TLS_MAX_SESSION_ID_SIZE) {
 			error_print();
 			return -1;
 		}
@@ -1337,7 +1326,6 @@ int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
-// 这个应该改为只支持TLS 1.2的12字节长度判断
 int tls_record_get_handshake_finished(const uint8_t *record, const uint8_t **verify_data, size_t *verify_data_len)
 {
 	int type;
@@ -1358,7 +1346,7 @@ int tls_record_get_handshake_finished(const uint8_t *record, const uint8_t **ver
 		error_print();
 		return -1;
 	}
-	if (*verify_data_len != 12 && *verify_data_len != 32) {
+	if (*verify_data_len != 12) {
 		error_print();
 		return -1;
 	}
@@ -1497,13 +1485,6 @@ int tls_type_is_in_list(int type, const int *list, size_t list_count)
 	}
 	return 0;
 }
-
-
-
-
-
-
-
 
 
 
@@ -1682,7 +1663,6 @@ int tls_seq_num_incr(uint8_t seq_num[8])
 		seq_num[i]++;
 		if (seq_num[i]) break;
 	}
-	// FIXME: check overflow
 	return 1;
 }
 
@@ -1965,8 +1945,6 @@ int tls_shutdown(TLS_CONNECT *conn)
 	return 1;
 }
 
-// ca_names中存储的是什么结构的数据？
-// 看来这个函数是有问题的，这里面存储的应该是GeneralNames类型的数据，subject是什么结构？
 int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, const uint8_t *certs, size_t certslen)
 {
 	const uint8_t *cert;
@@ -2004,9 +1982,6 @@ int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, 
 	return 1;
 }
 
-// 这个函数在语义上有问题:
-//	首先我们判断的是证书链，因此函数名上应该是一个cert_chain
-// 调用这个函数传进来的就不是一个证书链
 int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_names_len, const uint8_t *certs, size_t certslen)
 {
 	const uint8_t *cert;
@@ -2188,39 +2163,6 @@ int tls_cipher_suites_select(const uint8_t *client_ciphers, size_t client_cipher
 	return 0;
 }
 
-void tls_ctx_cleanup(TLS_CTX *ctx)
-{
-	if (ctx) {
-		gmssl_secure_clear(&ctx->signkey, sizeof(SM2_KEY));
-		gmssl_secure_clear(&ctx->kenckey, sizeof(SM2_KEY));
-		if (ctx->certs) free(ctx->certs);
-		if (ctx->cacerts) free(ctx->cacerts);
-		memset(ctx, 0, sizeof(TLS_CTX));
-	}
-}
-
-int tls_ctx_print(FILE *fp, int fmt, int ind, const char *label, const TLS_CTX *ctx)
-{
-
-
-	return 0;
-}
-
-
-
-
-
-
-
-
-								
-
-
-
-
-
-
-
 
 
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
@@ -2265,10 +2207,18 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 	ctx->key_exchanges_cnt = TLS_DEFAULT_KEY_EXCHANGES_CNT;
 
 
-
-	ctx->change_cipher_spec = 1;
-
 	return 1;
+}
+
+void tls_ctx_cleanup(TLS_CTX *ctx)
+{
+	if (ctx) {
+		gmssl_secure_clear(&ctx->signkey, sizeof(SM2_KEY));
+		gmssl_secure_clear(&ctx->kenckey, sizeof(SM2_KEY));
+		if (ctx->certs) free(ctx->certs);
+		if (ctx->cacerts) free(ctx->cacerts);
+		memset(ctx, 0, sizeof(TLS_CTX));
+	}
 }
 
 int tls_ctx_set_supported_versions(TLS_CTX *ctx, const int *versions, size_t versions_cnt)
@@ -2326,24 +2276,6 @@ int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cip
 	return 1;
 }
 
-/*
-int tls_ctx_set_key_exchange_modes(TLS_CTX *ctx, int modes)
-{
-	if (!ctx) {
-		error_print();
-		return -1;
-	}
-	if (modes & ~(TLS_KE_CERT_DHE|TLS_KE_PSK_DHE|TLS_KE_PSK)) {
-		error_print();
-		return -1;
-	}
-
-	ctx->key_exchange_modes = modes;
-
-	return 1;
-}
-*/
-
 // 这个函数不是很好，直接提供的是一个文件名
 int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth)
 {
@@ -2383,7 +2315,6 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 	return 1;
 }
 
-
 int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable)
 {
 	if (!ctx) {
@@ -2399,7 +2330,6 @@ int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable)
 	ctx->certificate_request = enable ? 1 : 0;
 	return 1;
 }
-
 
 int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len, // optional
@@ -2514,7 +2444,6 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	fclose(keyfp);
 	return 1;
 }
-
 
 int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass)
@@ -2709,7 +2638,6 @@ int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_
 
 
 
-
 int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t sig_algs_cnt)
 {
 	size_t i;
@@ -2750,21 +2678,6 @@ int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 }
 
 
-int tls13_ctx_set_client_hello_key_exchanges_cnt(TLS_CTX *ctx, size_t cnt)
-{
-	if (!ctx) {
-		error_print();
-		return -1;
-	}
-	if (cnt > sizeof(((TLS_CONNECT *)NULL)->key_exchanges)/sizeof(((TLS_CONNECT *)NULL)->key_exchanges[0])) {
-		error_print();
-		return -1;
-	}
-
-	ctx->key_exchanges_cnt = cnt;
-
-	return 1;
-}
 
 
 
@@ -2773,12 +2686,10 @@ int tls13_ctx_set_client_hello_key_exchanges_cnt(TLS_CTX *ctx, size_t cnt)
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
 	size_t i;
+
+
 	memset(conn, 0, sizeof(*conn));
 
-
-
-
-	//conn->is_client = ctx->is_client;
 
 	conn->protocol = ctx->protocol;
 
@@ -2835,7 +2746,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 	fprintf(stderr, "%s %d: conn->key_exchange_modes = %d\n", __FILE__, __LINE__, conn->key_exchange_modes);
 
-
 	if (conn->key_exchange_modes & (TLS_KE_CERT_DHE|TLS_KE_PSK_DHE)) {
 		conn->key_share = 1;
 	}
@@ -2845,7 +2755,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	// early_data
 	conn->early_data = ctx->early_data;
 	conn->max_early_data_size = ctx->max_early_data_size;
-
 
 	// pre_shared_key
 	if (conn->key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK)) {
@@ -2860,18 +2769,6 @@ void tls_cleanup(TLS_CONNECT *conn)
 {
 	gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
 }
-
-/*
-int tls_set_hostname(TLS_CONNECT *conn, const char *hostname)
-{
-	if (strlen(hostname) > 255) {
-		error_print();
-		return -1;
-	}
-	conn->hostname = hostname;
-	return 1;
-}
-*/
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
@@ -2964,7 +2861,6 @@ int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE 
 	return 1;
 }
 
-
 int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, int modes)
 {
 	int first = 1;
@@ -2989,5 +2885,4 @@ int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, 
 	fprintf(fp, "\n");
 	return 1;
 }
-
 

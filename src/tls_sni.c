@@ -23,12 +23,9 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/select.h>
 
 /*
-server_name (SNI)
+0. server_name (SNI)
 
 ClientHello.server_name
 	ext_data = ServerName server_name_list<1..2^16-1>
@@ -111,34 +108,6 @@ int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	return 1;
 }
 
-int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
-{
-	const uint8_t *server_name_list;
-	size_t server_name_list_len;
-	uint8_t name_type;
-	const uint8_t *host_name;
-	size_t host_name_len;
-
-	if (tls_uint16array_from_bytes(&server_name_list, &server_name_list_len, &ext_data, &ext_datalen) != 1) {
-		error_print();
-		return -1;
-	}
-	while (server_name_list_len) {
-		if (tls_uint8_from_bytes(&name_type, &server_name_list, &server_name_list_len) != 1
-			|| tls_uint16array_from_bytes(&host_name, &host_name_len, &server_name_list, &server_name_list_len) != 1) {
-			error_print();
-			return -1;
-		}
-		format_print(fp, fmt, ind, "name_type: %s (%d)\n", name_type == 0 ? "host_name" : "(unknown)", name_type);
-		format_string(fp, fmt, ind, "host_name", host_name, host_name_len); // TODO: print string
-	}
-	if (ext_datalen) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len)
 {
 	if (!conn || !host_name || !host_name_len) {
@@ -160,4 +129,30 @@ int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host
 	return 1;
 }
 
+int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *server_name_list;
+	size_t server_name_list_len;
+	uint8_t name_type;
+	const uint8_t *host_name;
+	size_t host_name_len;
 
+	if (tls_uint16array_from_bytes(&server_name_list, &server_name_list_len, &ext_data, &ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	while (server_name_list_len) {
+		if (tls_uint8_from_bytes(&name_type, &server_name_list, &server_name_list_len) != 1
+			|| tls_uint16array_from_bytes(&host_name, &host_name_len, &server_name_list, &server_name_list_len) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, ind, "name_type: %s (%d)\n", name_type == 0 ? "host_name" : "(unknown)", name_type);
+		format_string(fp, fmt, ind, "host_name", host_name, host_name_len);
+	}
+	if (ext_datalen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}

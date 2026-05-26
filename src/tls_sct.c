@@ -23,18 +23,14 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/select.h>
-
 
 /*
+18. signed_certificate_timestamp
+
+
 ClientHello.exts.signed_certificate_timestamp
 	ext_data := empty
-*/
 
-
-/*
 Certificate.certificate_list.CertificateEntry.exts.signed_certificate_timestamp
 	ext_data := SignedCertificateTimestamp sct_list<0..2^16-1>;
 	struct {
@@ -142,33 +138,28 @@ int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind, const uin
 	return 1;
 }
 
-// 这个应该改为enable, 服务器也可以设定是否响应这个请求
-int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn)
+int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn, int enable)
 {
 	if (!conn) {
 		error_print();
 		return -1;
 	}
-	conn->signed_certificate_timestamp = 1;
+	conn->signed_certificate_timestamp = enable ? 1 : 0;
 	return 1;
 }
 
-int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx)
+int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx, int enable)
 {
 	if (!ctx) {
 		error_print();
 		return -1;
 	}
-	ctx->signed_certificate_timestamp = 1;
+	ctx->signed_certificate_timestamp = enable ? 1 : 0;
 	return 1;
 }
-
 
 int tls13_signed_certificate_timestamp_verify(const uint8_t *sct_list, size_t sct_list_len)
 {
-	//error_print();
+	error_print();
 	return 1;
 }
-
-
-

@@ -16,9 +16,6 @@
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
-// 检查密码参数和CA根证书是否适配
-// 检查密码参数和客户端证书是否适配
-
 
 static const char *http_get =
 	"GET / HTTP/1.1\r\n"
@@ -37,6 +34,7 @@ static const char *help =
 "    -sig_alg str              Supported signature algorithms\n"
 "    -max_key_exchanges num    Number of key exchanges in key_share extension\n"
 "    -cacert file              Root CA certificate\n"
+"    -verify_depth num         Certificate verification depth\n"
 "    -cert file                Client's certificate chain in PEM format\n"
 "    -key file                 Client's encrypted private key in PEM format\n"
 "    -pass str                 Password to decrypt private key\n"
@@ -55,112 +53,104 @@ static const char *help =
 "    -early_data file          Send early data, -psk_ke and/or -psk_dhe_ke should be set\n"
 "    -key_update_seq_num num   Send KeyUpdate handshake after sending/receiving <num> records\n"
 "    -post_handshake_auth      Support post_handshake_auth\n"
+"    -client_cert_optional     Allow client send empty Certificate\n"
+"    -tls13_change_cipher_spec Support ChangeCipherSpec in TLS 1.3 to be compatible with middlebox\n"
 "\n"
-"CipherSuites\n"
-"    TLS_SM4_GCM_SM3        TLS 1.3\n"
-"    TLS_AES_128_GCM_SHA256 TLS 1.3\n"
-"    TLS_ECC_SM4_CBC_SM3    TLCP\n"
-"    TLS_ECDHE_SM4_CBC_SM3  TLCP TLS 1.2\n"
-"    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 TLS 1.2\n"
-"\n"
-" -supported_group\n"
-"    sm2p256v1\n"
-"    prime256v1\n"
-"Examples\n"
-"\n"
-"    gmssl sm2keygen -pass 1234 -out rootcakey.pem\n"
-"    gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 \\\n"
-"            -key rootcakey.pem -pass 1234 -out rootcacert.pem \\\n"
-"            -key_usage keyCertSign -key_usage cRLSign -ca\n"
-"\n"
-"    gmssl sm2keygen -pass 1234 -out cakey.pem\n"
-"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN \"Sub CA\" \\\n"
-"            -key cakey.pem -pass 1234 -out careq.pem\n"
-"    gmssl reqsign -in careq.pem -days 365 -key_usage keyCertSign -cacert rootcacert.pem -key rootcakey.pem -pass 1234 \\\n"
-"            -out cacert.pem -ca -path_len_constraint 0\n"
-"\n"
-"    gmssl sm2keygen -pass 1234 -out signkey.pem\n"
-"    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key signkey.pem -pass 1234 -out signreq.pem\n"
-"    gmssl reqsign -in signreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass 1234 -out signcert.pem\n"
-"\n"
-"    cat signcert.pem > certs.pem\n"
-"    cat cacert.pem >> certs.pem\n"
-"\n"
-"    sudo gmssl tls13_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234\n"
-"    gmssl tls13_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem\n"
-"            -sess_in session.bin -sess_out session.bin\n"
+#include "tls13_help.h"
 "\n";
 
 int tls13_client_main(int argc, char *argv[])
 {
 	int ret = -1;
 	char *prog = argv[0];
-	char *host = NULL;
-	int port = 443;
-	char *cacertfile = NULL;
-	char *certfile = NULL;
-	char *keyfile = NULL;
-	char *pass = NULL;
+
+	TLS_CTX ctx;
+	TLS_CONNECT conn;
+
 	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = -1;
-	TLS_CTX ctx;
-	TLS_CONNECT conn;
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
 	size_t sent_len = 0;
 	size_t sent_offset = 0;
 
+	char *host = NULL;
+	int port = 443;
 
-	char *sess_in = NULL;
+	// cipher_suites
+	int cipher_suites[4];
+	size_t cipher_suites_cnt = 0;
+
+	// CA certificates
+	char *cacertfile = NULL;
+	int verify_depth = TLS_DEFAULT_VERIFY_DEPTH;
+
+	// CertificateRequest
+	char *certfile = NULL;
+	char *keyfile = NULL;
+	char *pass = NULL;
+	int client_cert_optional = 0;
+
+	// supported_groups
+	int supported_groups[4];
+	size_t supported_groups_cnt = 0;
+
+	// key_share
+	char  *max_key_exchanges = NULL;
+	int max_key_exchanges_cnt;
+
+	// signature_algorithms
+	int sig_algs[4];
+	size_t sig_algs_cnt = 0;
+
+	// server_name
+	int server_name = 0;
+
+	// certificate_authorities
+	int certificate_authorities = 0;
+
+	// signature_algorithms_cert
+	int signature_algorithms_cert = 0;
+
+	// status_request
+	int status_request = 0;
+
+	// signed_certificate_timestamp
+	int signed_certificate_timestamp = 0;
+
+	// post_handshake_auth
+	int post_handshake_auth = 0;
+
+	// NewSessionTicket
 	char *sess_out = NULL;
 
+	// psk_key_exchange_modes
 	int psk_ke = 0;
 	int psk_dhe_ke = 0;
 
-	// psk external
+	// pre_shared_key from NewSessionTicket
+	char *sess_in = NULL;
+
+	// pre_shared_key from external
 	char *psk_identities[16];
 	size_t psk_identities_cnt = 0;
-	char *psk_cipher_suites[16];
+	int psk_cipher_suites[16];
 	size_t psk_cipher_suites_cnt = 0;
 	char *psk_keys[16];
 	size_t psk_keys_cnt = 0;
 
-
+	// EarlyData
 	char *early_data_file = NULL;
 	FILE *early_data_fp = NULL;
 	int max_early_data_size = 0;
 
-	char *cipher_suite;
-	int cipher;
-	int cipher_suites[4];
-	size_t cipher_suites_cnt = 0;
-
-	char *supported_group_name;
-	int supported_group;
-	int supported_groups[4];
-	size_t supported_groups_cnt = 0;
-
-	char  *max_key_exchanges = NULL;
-	int max_key_exchanges_cnt;
-
-	char *sig_alg_name;
-	int sig_alg;
-	int sig_algs[4];
-	size_t sig_algs_cnt = 0;
-
-
-	int certificate_authorities = 0;
-
-	int server_name = 0;
-	int signature_algorithms_cert = 0;
-	int status_request = 0;
-	int signed_certificate_timestamp = 0;
-
+	// KeyUpdate
 	int key_update_seq_num = 0;
 
-	int post_handshake_auth = 0;
+	// ChangeCipherSpec
+	int tls13_change_cipher_spec = 0;
 
 	int send_again = 0;
 
@@ -182,9 +172,31 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-cipher_suite")) {
+			char *cipher_suite_name;
+			int cipher_suite;
+			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
+				fprintf(stderr, "%s: too much -cipher_suite\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			cipher_suite_name = *(++argv);
+			if ((cipher_suite = tls_cipher_suite_from_name(cipher_suite_name)) == 0) {
+				fprintf(stderr, "%s: invalid -cipher_suite '%s' value\n", prog, cipher_suite_name);
+				return -1;
+			}
+			cipher_suites[cipher_suites_cnt] = cipher_suite;
+			cipher_suites_cnt++;
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
+		} else if (!strcmp(*argv, "-verify_depth")) {
+			if (--argc < 1) goto bad;
+			verify_depth = atoi(*(++argv));
+			if (verify_depth < 1) {
+				fprintf(stderr, "%s: invalid -verify_depth value '%d'\n", prog, verify_depth);
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
@@ -212,78 +224,75 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-sess_out")) {
 			if (--argc < 1) goto bad;
 			sess_out = *(++argv);
-
 		} else if (!strcmp(*argv, "-psk_ke")) {
 			psk_ke = 1;
 		} else if (!strcmp(*argv, "-psk_dhe_ke")) {
 			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-psk_identity")) {
-			if (--argc < 1) goto bad;
 			if (psk_identities_cnt > sizeof(psk_identities)/sizeof(psk_identities[0])) {
-				error_print();
+				fprintf(stderr, "%s: too much -psk_identity\n", prog);
 				return -1;
 			}
+			if (--argc < 1) goto bad;
 			psk_identities[psk_identities_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-psk_cipher_suite")) {
-			if (--argc < 1) goto bad;
+			char *cipher_suite_name;
+			int cipher_suite;
 			if (psk_cipher_suites_cnt > sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
-				error_print();
+				fprintf(stderr, "%s: too much -psk_cipher_suite\n", prog);
 				return -1;
 			}
-			psk_cipher_suites[psk_cipher_suites_cnt++] = *(++argv);
-		} else if (!strcmp(*argv, "-psk_key")) {
 			if (--argc < 1) goto bad;
-			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
-				error_print();
+			cipher_suite_name = *(++argv);
+			if ((cipher_suite = tls_cipher_suite_from_name(cipher_suite_name)) == 0) {
+				fprintf(stderr, "%s: -psk_cipher_suite '%s' not supported\n", prog, cipher_suite_name);
 				return -1;
 			}
-			psk_keys[psk_keys_cnt++] = *(++argv);
+			psk_cipher_suites[psk_cipher_suites_cnt++] = cipher_suite;
+		} else if (!strcmp(*argv, "-psk_key")) {
+			char *psk_key_hex;
+			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
+				fprintf(stderr, "%s: too much -psk_key\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			psk_key_hex = *(++argv);
+			if (strlen(psk_key_hex) != 64) {
+				fprintf(stderr, "%s: invalid -psk_key '%s' length\n", prog, psk_key_hex);
+				return -1;
+			}
+			psk_keys[psk_keys_cnt++] = psk_key_hex;
 		} else if (!strcmp(*argv, "-early_data")) {
 			if (--argc < 1) goto bad;
 			early_data_file = *(++argv);
 		} else if (!strcmp(*argv, "-max_early_data_size")) {
 			if (--argc < 1) goto bad;
 			max_early_data_size = atoi(*(++argv));
-		} else if (!strcmp(*argv, "-cipher_suite")) {
-			if (--argc < 1) goto bad;
-			cipher_suite = *(++argv);
-			if ((cipher = tls_cipher_suite_from_name(cipher_suite)) == 0) {
-				error_print();
-				fprintf(stderr, "%s: cipher suite '%s' not supported\n", prog, cipher_suite);
-				return -1;
-			}
-			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
-				error_print();
-				fprintf(stderr, "%s: too much cipher suites\n", prog);
-				return -1;
-			}
-			cipher_suites[cipher_suites_cnt] = cipher;
-			cipher_suites_cnt++;
 		} else if (!strcmp(*argv, "-supported_group")) {
+			char *supported_group_name;
+			int supported_group;
+			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
+				fprintf(stderr, "%s: too much -supported_group\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
 			supported_group_name = *(++argv);
 			if ((supported_group = tls_named_curve_from_name(supported_group_name)) == 0) {
-				error_print();
-				fprintf(stderr, "%s: supported_group '%s' not supported\n", prog, supported_group_name);
-				return -1;
-			}
-			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
-				error_print();
-				fprintf(stderr, "%s: too much supported_group\n", prog);
+				fprintf(stderr, "%s: -supported_group '%s' not supported\n", prog, supported_group_name);
 				return -1;
 			}
 			supported_groups[supported_groups_cnt++] = supported_group;
 		} else if (!strcmp(*argv, "-sig_alg")) {
+			char *sig_alg_name;
+			int sig_alg;
+			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
+				fprintf(stderr, "%s: too much -sig_alg\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
 			sig_alg_name = *(++argv);
 			if ((sig_alg = tls_signature_scheme_from_name(sig_alg_name)) == 0) {
-				error_print();
-				fprintf(stderr, "%s: sig_alg '%s' not supported\n", prog, sig_alg_name);
-				return -1;
-			}
-			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
-				error_print();
-				fprintf(stderr, "%s: too much sig_algs\n", prog);
+				fprintf(stderr, "%s: -sig_alg '%s' not supported\n", prog, sig_alg_name);
 				return -1;
 			}
 			sig_algs[sig_algs_cnt++] = sig_alg;
@@ -292,17 +301,20 @@ int tls13_client_main(int argc, char *argv[])
 			max_key_exchanges = *(++argv);
 			max_key_exchanges_cnt = atoi(max_key_exchanges);
 			if (max_key_exchanges_cnt < 0) {
-				error_print();
+				fprintf(stderr, "%s: -max_key_exchanges value '%s' invalid\n", prog, max_key_exchanges);
 				return -1;
 			}
 		} else if (!strcmp(*argv, "-key_update_seq_num")) {
 			if (--argc < 1) goto bad;
 			key_update_seq_num = atoi(*(++argv));
 			if (key_update_seq_num < 0) {
-				error_print();
-				fprintf(stderr, "%s: invalid '-key_update_seq_num' value\n", prog);
+				fprintf(stderr, "%s: invalid -key_update_seq_num value\n", prog);
 				return -1;
 			}
+		} else if (!strcmp(*argv, "-client_cert_optional")) {
+			client_cert_optional = 1;
+		} else if (!strcmp(*argv, "-tls13_change_cipher_spec")) {
+			tls13_change_cipher_spec = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -315,117 +327,135 @@ bad:
 	}
 
 	if (!host) {
-		fprintf(stderr, "%s: '-in' option required\n", prog);
+		fprintf(stderr, "%s: '-host' option required\n", prog);
 		return -1;
 	}
 
-	if (tls_socket_lib_init() != 1) {
-		error_print();
+	if (!cipher_suites_cnt) {
+		fprintf(stderr, "%s: option '-cipher_suite' required\n", prog);
 		return -1;
 	}
-	if (!(hp = gethostbyname(host))) {
-		//herror("tls13_client: '-host' invalid");			
-		goto end;
-	}
 
-	memset(&ctx, 0, sizeof(ctx));
-	memset(&conn, 0, sizeof(conn));
-
-
-
-
+	// TLS_CTX
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_client_mode) != 1) {
-		fprintf(stderr, "%s: context init error\n", prog);
-		goto end;
-	}
-
-	/*
-	if (!cipher_suites_cnt) {
 		error_print();
-		fprintf(stderr, "%s: option '-cipher_suite' required\n", prog);
-		goto end;
+		return -1;
 	}
-	*/
 
+	// cipher_suites
 	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
-		fprintf(stderr, "%s: context init error\n", prog);
+		error_print();
 		goto end;
 	}
 
+	// supported_groups
 	if (supported_groups_cnt > 0) {
 		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
 			error_print();
-			return -1;
+			goto end;
 		}
 	}
 
-	if (max_key_exchanges) {
-		tls13_ctx_set_max_key_exchanges(&ctx, max_key_exchanges_cnt);
-	}
-
-
+	// signature_algorithms
 	if (sig_algs_cnt > 0) {
 		if (tls_ctx_set_signature_algorithms(&ctx, sig_algs, sig_algs_cnt) != 1) {
 			error_print();
-			return -1;
-		}
-	}
-
-	if (cacertfile) {
-		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
-			fprintf(stderr, "%s: context init error\n", prog);
-			goto end;
-		}
-
-
-
-	}
-	if (certfile) {
-		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
-			fprintf(stderr, "%s: context init error\n", prog);
 			goto end;
 		}
 	}
 
-	if (psk_ke || psk_dhe_ke) {
-		if (!sess_in && !psk_keys_cnt) {
-			fprintf(stderr, "%s: -sess_in or -psk is required\n", prog);
+	// key_share
+	if (max_key_exchanges) {
+		if (tls13_ctx_set_max_key_exchanges(&ctx, max_key_exchanges_cnt) != 1) {
 			error_print();
-			return -1;
+			goto end;
 		}
-		tls13_ctx_set_psk_key_exchange_modes(&ctx, psk_ke, psk_dhe_ke);
 	}
 
+	// CA certificates
+	if (cacertfile) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, verify_depth) != 1) {
+			fprintf(stderr, "%s: load CA certificates file '%s' failure\n", prog, cacertfile);
+			goto end;
+		}
+	}
 
+	// CertificateRequest
+	if (certfile) {
+		if (!keyfile) {
+			fprintf(stderr, "%s: option '-key' required\n", prog);
+			goto end;
+		}
+		if (!pass) {
+			fprintf(stderr, "%s: option '-pass' requried\n", prog);
+			goto end;
+		}
+		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
+			fprintf(stderr, "%s: load certificate chain and key failed\n", prog);
+			goto end;
+		}
+	}
 
+	// psk_key_exchange_modes
+	if (psk_ke || psk_dhe_ke) {
+		// allow ClientHello with psk_key_exchange_modes, but no pre_shared_key
+		if (tls13_ctx_set_psk_key_exchange_modes(&ctx, psk_ke, psk_dhe_ke) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	// KeyUpdate
 	if (key_update_seq_num > 0) {
 		if (tls_ctx_set_key_update_seq_num_limit(&ctx, key_update_seq_num) != 1) {
 			error_print();
-			return -1;
+			goto end;
 		}
 	}
 
-							
-	if (tls13_init(&conn, &ctx) != 1) {
-		fprintf(stderr, "%s: error\n", prog);
-		goto end;
-	}
-
-
-	if (server_name) {
-		error_print();
-		if (tls_set_server_name(&conn, (uint8_t *)host, strlen(host)) != 1) {
+	// CertificateRequest
+	if (client_cert_optional) {
+		if (tls13_ctx_enable_client_certificate_optional(&ctx, 1) != 1) {
 			error_print();
 			goto end;
 		}
-		fprintf(stderr, "conn->server_name= %d\n", conn.server_name);
+	}
+
+	// ChangeCipherSpec
+	if (tls13_change_cipher_spec) {
+		if (tls13_ctx_enable_change_cipher_spec(&ctx, 1) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+
+	// TLS_CONNECT
+
+	if (tls13_init(&conn, &ctx) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (signature_algorithms_cert) {
-		if (tls_enable_signature_algorithms_cert(&conn) != 1) {
+		if (tls_enable_signature_algorithms_cert(&conn, 1) != 1) {
 			error_print();
-			return -1;
+			goto end;
+		}
+	}
+
+	if (certificate_authorities) {
+		if (tls13_enable_certificate_authorities(&conn, 1) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	if (server_name) {
+		if (tls_set_server_name(&conn, (uint8_t *)host, strlen(host)) != 1) {
+			error_print();
+			goto end;
 		}
 	}
 
@@ -435,44 +465,18 @@ bad:
 			goto end;
 		}
 	}
+
 	if (signed_certificate_timestamp) {
-		if (tls_enable_signed_certificate_timestamp(&conn) != 1) {
+		if (tls_enable_signed_certificate_timestamp(&conn, 1) != 1) {
 			error_print();
 			goto end;
 		}
 	}
 
-	if (certificate_authorities) {
-		if (tls13_enable_certificate_authorities(&conn, 1) != 1) {
-			error_print();
-			return -1;
-		}
+	if (post_handshake_auth) {
 	}
 
-	if (sess_in) {
-		FILE *sess_infp;
-		int psk_ret = 1;
-
-		if (!(sess_infp = fopen(sess_in, "rb"))) {
-			error_print();
-			goto end;
-		}
-
-		while (psk_ret) {
-			if ((psk_ret = tls13_add_pre_shared_key_from_session_file(&conn, sess_infp)) < 0) {
-				error_print();
-				fclose(sess_infp);
-				return -1;
-			}
-		}
-		fclose(sess_infp);
-
-
-		// 客户端是否发送pre_shared_key是由什么决定的？需要显式的支持吗
-		// 我觉得应该是不需要的，因为如果设置了psk_key_exchange_mode，那么自然要发送pre_shared_key
-		tls13_enable_pre_shared_key(&conn, 1);
-	}
-
+	// NewSessionTicket
 	if (sess_out) {
 		if (tls13_set_session_outfile(&conn, sess_out) != 1) {
 			error_print();
@@ -480,80 +484,118 @@ bad:
 		}
 	}
 
+	// pre_shared_key from external
 	if (psk_keys_cnt) {
 		const uint32_t obfuscated_ticket_age = 0;
 		size_t i;
 
 		if (psk_identities_cnt != psk_keys_cnt || psk_cipher_suites_cnt != psk_keys_cnt) {
 			error_print();
-			return -1;
+			goto end;
 		}
 		for (i = 0; i < psk_keys_cnt; i++) {
-			int psk_cipher_suite;
 			const BLOCK_CIPHER *psk_cipher;
 			const DIGEST *psk_digest;
 			uint8_t psk_key[64];
 			size_t psk_key_len;
 
-			if (!(psk_cipher_suite = tls_cipher_suite_from_name(psk_cipher_suites[i]))) {
+			if (tls13_cipher_suite_get(psk_cipher_suites[i], &psk_cipher, &psk_digest) != 1) {
 				error_print();
-				return -1;
-			}
-			if (tls13_cipher_suite_get(psk_cipher_suite, &psk_cipher, &psk_digest) != 1) {
-				error_print();
-				return -1;
+				goto end;
 			}
 			if (strlen(psk_keys[i]) != psk_digest->digest_size * 2) {
 				error_print();
-				return -1;
+				goto end;
 			}
 			if (hex_to_bytes(psk_keys[i], strlen(psk_keys[i]), psk_key, &psk_key_len) != 1) {
 				error_print();
-				return -1;
+				goto end;
 			}
 			if (tls13_add_pre_shared_key(&conn, (uint8_t *)psk_identities[i], strlen(psk_identities[i]),
-				psk_key, psk_key_len, psk_cipher_suite, obfuscated_ticket_age) != 1) {
+				psk_key, psk_key_len, psk_cipher_suites[i], obfuscated_ticket_age) != 1) {
 				error_print();
-				return -1;
+				goto end;
 			}
 		}
 
 		tls13_enable_pre_shared_key(&conn, 1);
+
+	// pre_shared_key from NewSessionTicket
+	} else if (sess_in) {
+		FILE *sess_infp;
+
+		if (!psk_dhe_ke && !psk_ke) {
+			fprintf(stderr, "%s: option '-psk_dhe_ke' or '-psk_ke' required\n", prog);
+			goto end;
+		}
+
+		if (!(sess_infp = fopen(sess_in, "rb"))) {
+			fprintf(stderr, "%s: open file '%s' failure\n", prog, sess_in);
+			goto end;
+		}
+
+		do {
+			if ((ret = tls13_add_pre_shared_key_from_session_file(&conn, sess_infp)) < 0) {
+				fclose(sess_infp);
+				fprintf(stderr, "%s: load session file '%s' failure\n", prog, sess_in);
+				goto end;
+			}
+		} while (ret);
+
+		fclose(sess_infp);
+
+		if (tls13_enable_pre_shared_key(&conn, 1) != 1) {
+			error_print();
+			goto end;
+		}
 	}
 
+	// EarlyData
 	if (early_data_file) {
 		uint8_t early_data[8192];
 		size_t early_data_len;
 
-		if (!psk_ke && !psk_dhe_ke) {
-			error_print();
-			fprintf(stderr, "%s: -early_data need -psk_ke and/or -psk_dhe_ke set\n", prog);
-			return -1;
+		if (!psk_keys_cnt && !sess_in) {
+			fprintf(stderr, "%s: -psk_key or -sess_in required by -early_data\n", prog);
+			goto end;
 		}
 
 		if (!(early_data_fp = fopen(early_data_file, "rb"))) {
-			error_print();
-			return -1;
+			fprintf(stderr, "%s: open file '%s' failure\n", prog, early_data_file);
+			goto end;
 		}
 
-		early_data_len = fread(early_data, 1, sizeof(early_data), early_data_fp);
-
-		if (early_data_len) {
-
-			if (tls13_set_early_data(&conn, early_data, early_data_len) != 1) {
+		if (!(early_data_len = fread(early_data, 1, sizeof(early_data), early_data_fp))) {
+			if (feof(early_data_fp)) {
+				fprintf(stderr, "%s: empty file '%s'\n", prog, early_data_file);
+			} else {
+				fprintf(stderr, "%s: read file '%s' failure\n", prog, early_data_file);
 				fclose(early_data_fp);
-				error_print();
-				return -1;
+				goto end;
 			}
 		}
 		fclose(early_data_fp);
+
+		if (early_data_len) {
+			if (tls13_set_early_data(&conn, early_data, early_data_len) != 1) {
+				error_print();
+				goto end;
+			}
+		}
 	}
 
-	if (post_handshake_auth) {
+
+	// socket
+
+	if (tls_socket_lib_init() != 1) {
+		error_print();
+		goto end;
 	}
 
-
-
+	if (!(hp = gethostbyname(host))) {
+		fprintf(stderr, "%s: parse -host value error: %s\n", prog, hstrerror(h_errno));
+		goto end;
+	}
 	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
@@ -567,17 +609,18 @@ bad:
 		goto end;
 	}
 
+	if (tls_set_socket(&conn, sock) != 1) {
+		error_print();
+		goto end;
+	}
 
-	if (tls_set_socket(&conn, sock) != 1
-		|| tls_do_handshake(&conn) != 1) {
+	if (tls_do_handshake(&conn) != 1) {
 		fprintf(stderr, "%s: error\n", prog);
 		goto end;
 	}
 
-
-	fprintf(stderr, ">>>>>>>>>>>>\n");
-
-
+	fprintf(stderr, "connected\n");
+	fprintf(stderr, "\n");
 
 	for (;;) {
 
@@ -624,17 +667,8 @@ bad:
 			fflush(stdout);
 
 
-
-			// FIXME: change tls13_recv API			
-			/*
-			if (conn.datalen == 0) {
-				error_print();
-				break;
-			}
-			*/
 		}
 
-		// 读用户输入
 		if (FD_ISSET(fileno(stdin), &fds_recv)) {
 
 			memset(send_buf, 0, sizeof(send_buf));

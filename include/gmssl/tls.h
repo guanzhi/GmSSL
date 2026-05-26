@@ -372,17 +372,17 @@ typedef enum {
 	TLS_alert_protocol_version		= 70,
 	TLS_alert_insufficient_security		= 71,
 	TLS_alert_internal_error		= 80,
-	TLS_alert_inappropriate_fallback	= 86,		
+	TLS_alert_inappropriate_fallback	= 86,
 	TLS_alert_user_canceled			= 90,
 	TLS_alert_no_renegotiation		= 100,
 	TLS_alert_missing_extension		= 109,
 	TLS_alert_unsupported_extension		= 110,
-	TLS_alert_certificate_unobtainable	= 111,	
-	TLS_alert_unrecognized_name		= 112,	
-	TLS_alert_bad_certificate_status_response = 113,	
-	TLS_alert_unknown_psk_identity		= 115,		
-	TLS_alert_certificate_required		= 116,		
-	TLS_alert_no_application_protocol	= 120,			
+	TLS_alert_certificate_unobtainable	= 111,
+	TLS_alert_unrecognized_name		= 112,
+	TLS_alert_bad_certificate_status_response = 113,
+	TLS_alert_unknown_psk_identity		= 115,
+	TLS_alert_certificate_required		= 116,
+	TLS_alert_no_application_protocol	= 120,
 	TLS_alert_unsupported_site2site		= 200,
 	TLS_alert_no_area			= 201,
 	TLS_alert_unsupported_areatype		= 202,
@@ -794,7 +794,6 @@ typedef struct {
 	// CertificateRequest
 	int certificate_request;
 	int client_certificate_optional; // if empty client Certificate is allowed
-	// TODO: 还没有设置的函数
 
 	// NewSessionTicket
 	int new_session_ticket;
@@ -1227,8 +1226,12 @@ int tls_recv_record(TLS_CONNECT *conn);
 
 // ClientHello/ServerHello
 //	set/get functions use tls_ functions
+
 int tls13_client_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls13_server_hello_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
+
+int tls13_ctx_set_client_hello_key_exchanges_cnt(TLS_CTX *ctx, size_t cnt);
+
 
 
 // HelloRetryRequest
@@ -1289,6 +1292,8 @@ int tls13_record_get_handshake_certificate_request(const uint8_t *record,
 	const uint8_t **exts, size_t *exts_len);
 int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 
+int tls13_ctx_enable_client_certificate_optional(TLS_CTX *ctx, int enable);
+
 
 // EndOfEarlyData
 
@@ -1338,11 +1343,9 @@ int tls13_record_get_handshake_new_session_ticket(uint8_t *record,
 int tls13_new_session_ticket_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 
 
+// ChangeCipherSpec
 
-
-
-
-
+int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable);
 
 
 
@@ -1708,8 +1711,11 @@ int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable);
 
 
 
-// Extensions
 
+
+
+
+// Extensions
 
 
 // 0. server_name (SNI): in ClientHello, EncryptedExtensions
@@ -1718,13 +1724,6 @@ int tls_server_name_ext_to_bytes(const uint8_t *host_name, size_t host_name_len,
 int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	const uint8_t *ext_data, size_t ext_datalen);
 int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
-
-
-
-
-
-
-
 
 
 // 5. status_request (OCSP stapling)
@@ -1780,10 +1779,6 @@ int tls_server_status_request_print(FILE *fp, int fmt, int ind,
 	const uint8_t *ext_data, size_t ext_datalen);
 
 
-
-
-
-
 // 10. supported_groups
 int tls_supported_groups_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls_supported_groups_ext_to_bytes(const int *groups, size_t groups_cnt,
@@ -1796,18 +1791,17 @@ int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
 	const int *local_groups, size_t local_groups_cnt,
 	int *common_groups, size_t *common_groups_cnt, size_t max_cnt);
 
+
 // 11. ec_point_format
 int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	uint8_t **out, size_t *outlen);
-int tls_ec_point_formats_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen,
 	uint8_t **out, size_t *outlen);
 int tls_process_server_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen);
+int tls_ec_point_formats_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 
 // 13. signature_algorithms
-
-int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn);
-
+int tls_enable_signature_algorithms_cert(TLS_CONNECT *conn, int enable);
 int tls_signature_algorithms_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 int tls_signature_algorithms_ext_to_bytes_ex(int ext_type, const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen);
@@ -1821,9 +1815,8 @@ int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen
 
 // 18. signed_certificate_timestamp (certificate transparency, CT)
 // signed_certificate_timestamp response is set by tls_ctx_add_certificate_list_and_key()
-int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx); // 这里enable的是什么？是否请求吗？
-int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn);
-
+int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx, int enable); // 这里enable的是什么？是否请求吗？
+int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn, int enable);
 
 
 // 客户端需要一组SCT服务器的公钥列表才能够去验证SCT，我们假定这个公钥列表在CTX中
@@ -1842,11 +1835,6 @@ int tls_signed_certificate_timestamp_from_bytes(const uint8_t **sct_list, size_t
 	const uint8_t **in, size_t *inlen);
 int tls_signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
 	const uint8_t *d, size_t dlen);
-
-
-
-
-
 
 
 // 41. pre_shared_key
@@ -1891,7 +1879,7 @@ int tls13_early_data_ext_to_bytes(size_t max_early_data_size, uint8_t **out, siz
 int tls13_early_data_from_bytes(size_t *max_early_data_size, const uint8_t *ext_data, size_t ext_datalen);
 int tls13_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen);
-int tls13_enable_early_data(TLS_CONNECT *conn, int enable);
+int tls13_ctx_enable_early_data(TLS_CTX *ctx, int enable);
 int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size);
 int tls13_set_max_early_data_size(TLS_CONNECT *conn, size_t max_early_data_size);
 
@@ -1957,19 +1945,16 @@ int tls13_certificate_authorities_print(FILE *fp, int fmt, int ind,
 // 48. oid_filters
 
 
-
-
 // 49. post_handshake_auth
 
 int tls13_enable_post_handshake_auth(TLS_CONNECT *conn);
-
 
 
 // 50. signature_algorithms_cert
 int tls13_signature_algorithms_cert_ext_to_bytes(const int *algs, size_t algs_cnt,
 	uint8_t **out, size_t *outlen);
 int tls13_signature_algorithms_cert_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
-// 用这个处理，tls_process_signature_algorithms
+#define tls13_process_signature_algorithms_cert(ext_data, ext_datalen, in_sigs, in_sigs_cnt, out_sigs, out_sigs_cnt, max_cnt)
 
 
 // 51. key_share

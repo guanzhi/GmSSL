@@ -23,12 +23,9 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/select.h>
 
 /*
-cookie
+44. cookie
 	* server HelloRetryReqeust
 	* client ClientHello (again)
 

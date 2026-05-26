@@ -23,21 +23,15 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/select.h>
-
-
 
 /*
-psk_key_exchange_modes
+45. psk_key_exchange_modes
 
 enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
 
 struct {
 	PskKeyExchangeMode ke_modes<1..255>;
 } PskKeyExchangeModes;
-
 */
 
 const char *tls13_psk_key_exchange_mode_name(int mode)
@@ -143,48 +137,6 @@ int tls13_ctx_set_psk_key_exchange_modes(TLS_CTX *ctx, int psk_ke, int psk_dhe_k
 
 	return 1;
 }
-
-
-/*
-PSK 功能的关系
-
-							tls13_ctx_set_session_ticket_key
-1. 服务器设定ticket_key
-
-2. 服务器设定发送NewSessionTicket，并且设定数量
-
-3. 服务器 send_new_session_ticket
-
-4. 客户端 recv_new_session_ticket
-
-5. 客户端将session保存到文件中
-
-6. 客户端载入session
-
-7. 客户端发送 pre_shared_key, 其中 ticket 来自session
-
-8. 服务器获取 pre_shared_key, 解密ticket，得到PSK
-
-9. 服务器发送 pre_shared_key, 告知客户端选定的密钥编号
-
-
-
-基于外部预置PSK
-
-1. 服务器添加PSK
-
-2. 客户端添加PSK
-
-3. 客户端发送pre_shared_key
-
-4. 服务器用PSK去pre_shared_key查找是否有满足的
-
-5. 服务器发送pre_shared_key，告知客户端选定的密钥编号
-
-
-
-*/
-
 
 /*
 session_ticket_key
@@ -1719,17 +1671,15 @@ int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
-// 同时影响客户端和服务器吗？
-int tls13_enable_early_data(TLS_CONNECT *conn, int enable)
+int tls13_ctx_enable_early_data(TLS_CTX *ctx, int enable)
 {
-	if (!conn) {
+	if (!ctx) {
 		error_print();
 		return -1;
 	}
-	conn->early_data = enable ? 1 : 0;
+	ctx->early_data = enable ? 1 : 0;
 	return 1;
 }
-
 
 int tls13_ctx_set_max_early_data_size(TLS_CTX *ctx, size_t max_early_data_size)
 {
@@ -1865,7 +1815,6 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 		return ret;
 	}
 
-
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 
 	if (tls13_record_decrypt(&conn->client_write_key, conn->client_write_iv,
@@ -1903,5 +1852,3 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 
 	return 1;
 }
-
-
