@@ -2684,6 +2684,7 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 	memset(conn, 0, sizeof(*conn));
 
+	conn->is_client = ctx->is_client; // TODO: remove conn->is_client
 	conn->protocol = ctx->protocol;
 
 	/*

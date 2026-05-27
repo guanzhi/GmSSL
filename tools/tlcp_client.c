@@ -122,6 +122,15 @@ bad:
 		return -1;
 	}
 
+	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_client_mode) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
+		fprintf(stderr, "%s: context init error\n", prog);
+		goto end;
+	}
+
 	if (tls_socket_lib_init() != 1) {
 		error_print();
 		return -1;
@@ -142,12 +151,6 @@ bad:
 
 	if (tls_socket_connect(sock, &server) != 1) {
 		fprintf(stderr, "%s: socket connect error\n", prog);
-		goto end;
-	}
-
-	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_client_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
-		fprintf(stderr, "%s: context init error\n", prog);
 		goto end;
 	}
 
@@ -198,9 +201,6 @@ bad:
 		}
 		fclose(outcertsfp);
 	}
-
-//	tls_shutdown(&conn);
-//	return 0;
 
 	if (get) {
 		struct timeval timeout;

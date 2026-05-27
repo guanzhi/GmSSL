@@ -82,7 +82,7 @@ int tls_send_record(TLS_CONNECT *conn)
 	while (left) {
 		n = tls_socket_send(conn->sock, conn->record + conn->record_offset, left, 0);
 		if (n < 0) {
-			if (errno == EAGAIN && errno == EWOULDBLOCK) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				return TLS_ERROR_SEND_AGAIN;
 			} else if (errno == EINTR) {
 				continue;
@@ -2722,13 +2722,13 @@ int tls12_do_connect(TLS_CONNECT *conn)
 		} else if (ret == TLS_ERROR_SEND_AGAIN) {
 			FD_ZERO(&rfds);
 			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &rfds);
+			FD_SET(conn->sock, &wfds);
 			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
 
 		} else if (ret == TLS_ERROR_RECV_AGAIN) {
 			FD_ZERO(&rfds);
 			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &wfds);
+			FD_SET(conn->sock, &rfds);
 			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
 
 		} else {
