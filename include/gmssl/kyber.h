@@ -94,7 +94,7 @@ void kyber_poly_add(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b);
 void kyber_poly_sub(kyber_poly_t r, const kyber_poly_t a, const kyber_poly_t b);
 
 
-int16_t zeta[256];
+extern int16_t zeta[256];
 
 void init_zeta(void);
 
