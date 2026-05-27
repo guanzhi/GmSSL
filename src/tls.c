@@ -1970,7 +1970,7 @@ int tls_authorities_from_certs(uint8_t *names, size_t *nameslen, size_t maxlen, 
 			return -1;
 		}
 
-		tls_uint16_to_bytes(alen, &names, nameslen);
+		tls_uint16_to_bytes((uint16_t)alen, &names, nameslen);
 		maxlen -= tls_uint16_size();
 
 		if (asn1_sequence_to_der(name, namelen, &names, nameslen) != 1) {
@@ -2680,8 +2680,6 @@ int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
-	size_t i;
-
 	memset(conn, 0, sizeof(*conn));
 
 	conn->is_client = ctx->is_client; // TODO: remove conn->is_client
@@ -2844,7 +2842,7 @@ int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE 
 		return -1;
 	}
 	*arrlen = 2 + datalen;
-	if (2 + datalen > maxlen) {
+	if ((size_t)datalen + 2 > maxlen) {
 		error_print();
 		return 0;
 	}
@@ -2879,4 +2877,3 @@ int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, 
 	fprintf(fp, "\n");
 	return 1;
 }
-
