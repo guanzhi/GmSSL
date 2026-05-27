@@ -803,6 +803,7 @@ typedef struct {
 
 
 	// KeyUpdate
+	int key_update;
 	size_t key_update_seq_num_limit;
 	size_t key_update_data_size_limit;
 
@@ -896,7 +897,11 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const uint8_t *entity_signed_certificate_timestamp_list, size_t entity_signed_certificate_timestamp_list_len, // optional
 	const char *keyfile, const char *keypass);
 
-int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num);
+
+// KeyUpdate
+#define TLS13_DEFAULT_KEY_UPDATE_SEQ_NUM_LIMIT (1 << 20)
+int tls13_ctx_enable_key_update(TLS_CTX *ctx, int enable);
+int tls13_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num);
 
 
 

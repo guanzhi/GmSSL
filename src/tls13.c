@@ -1058,7 +1058,8 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 		}
 
 		// check if KeyUpdate
-		if (GETU64(seq_num) >= conn->ctx->key_update_seq_num_limit) {
+		if (conn->ctx->key_update
+			&& GETU64(seq_num) >= conn->ctx->key_update_seq_num_limit) {
 			if (!conn->key_update) {
 				conn->key_update = 1;
 				request_update = 1;
@@ -1289,7 +1290,7 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 				seq_num = GETU64(conn->client_seq_num);
 
-				if (seq_num > 2 && update_requested) {
+				if (seq_num > 2 && update_requested && conn->ctx->key_update) {
 					conn->key_update = 1;
 				}
 
@@ -1303,7 +1304,7 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 				seq_num = GETU64(conn->server_seq_num);
 
-				if (seq_num > 2 && update_requested) {
+				if (seq_num > 2 && update_requested && conn->ctx->key_update) {
 					fprintf(stderr, "server prepare key_update\n");
 					conn->key_update = 1;
 				}
@@ -3462,6 +3463,31 @@ int tls13_key_update_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t 
 		return -1;
 	}
 	format_print(fp, fmt, ind, "request_update: %d\n", update_requested);
+	return 1;
+}
+
+int tls13_ctx_enable_key_update(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->key_update = enable ? 1 : 0;
+	ctx->key_update_seq_num_limit = TLS13_DEFAULT_KEY_UPDATE_SEQ_NUM_LIMIT;
+	return 1;
+}
+
+int tls13_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
+{
+	if (!ctx || !max_seq_num) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->key_update) {
+		error_print();
+		return -1;
+	}
+	ctx->key_update_seq_num_limit = max_seq_num;
 	return 1;
 }
 

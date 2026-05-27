@@ -408,7 +408,11 @@ bad:
 
 	// KeyUpdate
 	if (key_update_seq_num > 0) {
-		if (tls_ctx_set_key_update_seq_num_limit(&ctx, key_update_seq_num) != 1) {
+		if (tls13_ctx_enable_key_update(&ctx, 1) != 1) {
+			error_print();
+			goto end;
+		}
+		if (tls13_ctx_set_key_update_seq_num_limit(&ctx, key_update_seq_num) != 1) {
 			error_print();
 			goto end;
 		}
