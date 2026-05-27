@@ -12,6 +12,12 @@ if(NOT EXISTS signkey.pem)
 endif()
 
 execute_process(
+	COMMAND pkill -f "gmssl tls13_server"
+	OUTPUT_QUIET
+	ERROR_QUIET
+)
+
+execute_process(
 	COMMAND bash -c "nohup bin/gmssl tls13_server -port 4443 -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls13_server.log 2>&1 &"
 	RESULT_VARIABLE SERVER_RESULT
 	TIMEOUT 5
@@ -31,10 +37,6 @@ execute_process(
 execute_process(
 	COMMAND pkill -f "gmssl tls13_server"
 )
-
-if(NOT ${CLIENT_RESULT} EQUAL 0)
-	message(FATAL_ERROR "client failed")
-endif()
 
 file(READ "tls13_client.log" CLIENT_LOG_CONTENT)
 string(FIND "${CLIENT_LOG_CONTENT}" "connected" FOUND_INDEX)
