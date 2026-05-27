@@ -61,7 +61,6 @@ int sdfdecrypt_main(int argc, char **argv)
 	SDF_CBC_CTX ctx;
 	const uint8_t *p;
 	SM2_CIPHERTEXT ciphertext;
-	uint8_t *wrappedkey;
 	size_t wrappedkey_len;
 
 	memset(&dev, 0, sizeof(dev));

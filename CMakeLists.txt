@@ -622,7 +622,7 @@ add_library(gmssl ${src})
 
 
 if (WIN32)
-	target_link_libraries(gmssl -lws2_32)
+	target_link_libraries(gmssl PRIVATE Ws2_32)
 elseif (APPLE)
 	if (ENABLE_SDF)
 		target_link_libraries(gmssl dl)
@@ -664,7 +664,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
 	add_executable(gmssl-bin ${tools})
 	target_link_libraries(gmssl-bin LINK_PUBLIC gmssl)
 	set_target_properties(gmssl-bin PROPERTIES RUNTIME_OUTPUT_NAME gmssl)
-	if (MINGW)
+	if (WIN32)
 		target_link_libraries(gmssl-bin PRIVATE Ws2_32)
 	endif()
 

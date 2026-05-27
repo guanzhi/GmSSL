@@ -456,9 +456,6 @@ bad:
 	puts("start listen ...\n");
 	tls_socket_listen(sock, 1);
 
-
-restart:
-
 	//client_addrlen = sizeof(client_addr);
 	if (tls_socket_accept(sock, &client_addr, &conn_sock) != 1) {
 		fprintf(stderr, "%s: socket accept error\n", prog);

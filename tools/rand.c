@@ -110,7 +110,7 @@ bad:
 		}
 
 		if (hex) {
-			int i;
+			size_t i;
 			for (i = 0; i < len; i++) {
 				fprintf(outfp, "%02X", buf[i]);
 			}

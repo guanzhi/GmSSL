@@ -570,7 +570,9 @@ int sm2_encrypt_update(SM2_ENC_CTX *ctx, const uint8_t *in, size_t inlen)
 
 int sm2_encrypt_finish(SM2_ENC_CTX *ctx, const SM2_KEY *public_key, uint8_t *out, size_t *outlen)
 {
+#if ENABLE_SM2_ENC_PRE_COMPUTE
 	SM2_CIPHERTEXT ciphertext;
+#endif
 
 	if (!ctx || !public_key || !outlen) {
 		error_print();

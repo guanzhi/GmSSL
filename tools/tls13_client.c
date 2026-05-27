@@ -597,7 +597,11 @@ bad:
 	}
 
 	if (!(hp = gethostbyname(host))) {
+#ifdef WIN32
+		fprintf(stderr, "%s: parse -host value error: %d\n", prog, WSAGetLastError());
+#else
 		fprintf(stderr, "%s: parse -host value error: %s\n", prog, hstrerror(h_errno));
+#endif
 		goto end;
 	}
 	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);

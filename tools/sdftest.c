@@ -2033,8 +2033,6 @@ static int speed_SDF_InternalEncrypt_ECC(int key)
 	unsigned char ucData[32] = {1}; // same as sm2_enctest.c
 	unsigned int uiDataLength = (unsigned int)sizeof(ucData);
 	ECCCipher eccCipher;
-	unsigned char ucDecData[256];
-	unsigned int uiDecDataLength;
 	clock_t begin, end;
 	double seconds;
 	int i, ret;
