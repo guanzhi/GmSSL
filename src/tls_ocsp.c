@@ -59,9 +59,6 @@ int tls_ocsp_status_request_from_bytes(
 	const uint8_t **request_exts, size_t *request_exts_len,
 	const uint8_t **in, size_t *inlen)
 {
-	const uint8_t *request;
-	size_t request_len;
-
 	if (!in || !(*in) || !inlen) {
 		error_print();
 		return -1;
