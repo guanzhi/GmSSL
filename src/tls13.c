@@ -350,7 +350,7 @@ Derive-Secret(Secret, Label, Messages) =
 */
 int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGEST_CTX *dgst_ctx, uint8_t out[32])
 {
-	DIGEST_CTX ctx = *dgst_ctx;
+	DIGEST_CTX ctx;
 	size_t outlen = 32;
 	uint8_t context[32];
 	size_t context_len;
@@ -359,6 +359,8 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 		error_print();
 		return -1;
 	}
+
+ 	ctx = *dgst_ctx;
 	if (digest_finish(&ctx, context, &context_len) != 1) {
 		error_print();
 		return -1;

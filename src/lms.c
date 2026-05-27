@@ -725,7 +725,7 @@ int lms_signature_print(FILE *fp, int fmt, int ind, const char *label, const uin
 		return -1;
 	}
 	q = GETU32(sig);
-	format_print(fp, fmt, ind, "q: %zu\n", q);
+	format_print(fp, fmt, ind, "q: %"PRIu32"\n", q);
 	sig += 4;
 	siglen -= 4;
 

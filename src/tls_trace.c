@@ -977,7 +977,7 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "Length: %zu\n", datalen);
+	format_print(fp, format, indent, "Length: %"PRIu32"\n", datalen);
 
 	if (tls_array_from_bytes(&data, datalen, &cp, &handshakelen) != 1) {
 		error_print();

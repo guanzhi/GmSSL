@@ -344,7 +344,7 @@ int x509_crl_entry_ext_from_der_ex(int *oid, int *critical,
 			error_print();
 			return -1;
 		}
-		if (!cert_issuer) {
+		if (!(*cert_issuer)) {
 			error_print();
 			return -1;
 		}

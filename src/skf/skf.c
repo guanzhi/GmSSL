@@ -364,7 +364,7 @@ int skf_list_apps(SKF_DEVICE *dev, int fmt, int ind, const char *label, FILE *fp
 
 		(void)format_print(fp, fmt, ind, "Application %d:\n", i);
 		(void)format_print(fp, fmt, ind + 4, "ApplicationName", name);
-		(void)format_print(fp, fmt, ind + 4, "AdminPinMaxRetry: %s\n", adminMaxRetry);
+		(void)format_print(fp, fmt, ind + 4, "AdminPinMaxRetry: %u\n", adminMaxRetry);
 		(void)format_print(fp, fmt, ind + 4, "AdminPinMinRetry: %u\n", adminMinRetry);
 		(void)format_print(fp, fmt, ind + 4, "AdminDefaultPin: %s\n", adminDefaultPin ? "True" : "False");
 		(void)format_print(fp, fmt, ind + 4, "UserPinMaxRetry: %u\n", userMaxRetry);

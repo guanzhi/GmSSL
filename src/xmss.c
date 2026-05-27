@@ -1091,12 +1091,12 @@ int xmss_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const
 	format_bytes(fp, fmt, ind, "random", sig->random, 32);
 	format_print(fp, fmt, ind, "wots_sig\n");
 	for (i = 0; i < 67; i++) {
-		format_print(fp, fmt, ind+4, "%d", i);
+		format_print(fp, fmt, ind+4, "%zu", i);
 		format_bytes(fp, fmt, 0, "", sig->wots_sig[i], 32);
 	}
 	format_print(fp, fmt, ind, "auth_path\n");
 	for (i = 0; i < height; i++) {
-		format_print(fp, fmt, ind+4, "%d", i);
+		format_print(fp, fmt, ind+4, "%zu", i);
 		format_bytes(fp, fmt, 0, "", sig->auth_path[i], 32);
 	}
 	return 1;
@@ -1909,7 +1909,7 @@ int xmssmt_private_key_print(FILE *fp, int fmt, int ind, const char *label, cons
 	xmssmt_public_key_print(fp, fmt, ind, "public_key", key);
 	format_bytes(fp, fmt, ind, "secret", key->secret, 32);
 	format_bytes(fp, fmt, ind, "sk_prf", key->sk_prf, 32);
-	format_print(fp, fmt, ind, "index: %u\n", key->index);
+	format_print(fp, fmt, ind, "index: %"PRIu64"\n", key->index);
 
 	if (xmssmt_type_to_height_and_layers(key->public_key.xmssmt_type, &height, &layers) != 1) {
 		error_print();
@@ -2147,13 +2147,13 @@ int xmssmt_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, con
 		format_print(fp, fmt, ind, "redurced_xmss_signature[%zu]\n", layer);
 		format_print(fp, fmt, ind+4, "wots_sig\n");
 		for (i = 0; i < 67; i++) {
-			format_print(fp, fmt, ind+8, "%d", i);
+			format_print(fp, fmt, ind+8, "%zu", i);
 			format_bytes(fp, fmt, 0, "", sig->wots_sigs[layer][i], 32);
 		}
 
 		format_print(fp, fmt, ind+4, "auth_path\n");
 		for (i = 0; i < height/layers; i++) {
-			format_print(fp, fmt, ind+8, "%d", i);
+			format_print(fp, fmt, ind+8, "%zu", i);
 			format_bytes(fp, fmt, 0, "", sig->auth_path[(height/layers) * layer + i], 32);
 		}
 	}
@@ -2195,7 +2195,7 @@ int xmssmt_signature_print(FILE *fp, int fmt, int ind, const char *label, const 
 		format_print(fp, fmt, ind, "redurced_xmss_signature[%zu]\n", layer);
 		format_print(fp, fmt, ind+4, "wots_sig\n");
 		for (i = 0; i < 67; i++) {
-			format_print(fp, fmt, ind+4, "%d ", i);
+			format_print(fp, fmt, ind+4, "%zu ", i);
 			if (siglen < sizeof(xmss_hash256_t)) {
 				error_print();
 				return -1;
@@ -2206,7 +2206,7 @@ int xmssmt_signature_print(FILE *fp, int fmt, int ind, const char *label, const 
 		}
 		format_print(fp, fmt, ind+4, "auth_path\n");
 		for (i = 0; i < height/layers; i++) {
-			format_print(fp, fmt, ind+8, "%d ", i);
+			format_print(fp, fmt, ind+8, "%zu ", i);
 			if (siglen < sizeof(xmss_hash256_t)) {
 				error_print();
 				return -1;
