@@ -145,21 +145,21 @@ int tls13_server_main(int argc , char **argv)
 			port = atoi(*(++argv));
 		} else if (!strcmp(*argv, "-cert")) {
 			if (certfiles_cnt >= sizeof(certfiles)/sizeof(certfiles[0])) {
-				fprintf(stderr, "%s: too much -cert\n", prog);
+				fprintf(stderr, "%s: too many -cert options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
 			certfiles[certfiles_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-key")) {
 			if (keyfiles_cnt >= sizeof(keyfiles)/sizeof(keyfiles[0])) {
-				fprintf(stderr, "%s: too much -key\n", prog);
+				fprintf(stderr, "%s: too many -key options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
 			keyfiles[keyfiles_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-pass")) {
 			if (passes_cnt >= sizeof(passes)/sizeof(passes[0])) {
-				fprintf(stderr, "%s: too much -pass\n", prog);
+				fprintf(stderr, "%s: too many -pass options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -220,7 +220,7 @@ int tls13_server_main(int argc , char **argv)
 			char *cipher_suite_name;
 			int cipher_suite;
 			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
-				fprintf(stderr, "%s: too much -cipher_suite\n", prog);
+				fprintf(stderr, "%s: too many -cipher_suite options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -235,7 +235,7 @@ int tls13_server_main(int argc , char **argv)
 			char *supported_group_name;
 			int supported_group;
 			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
-				fprintf(stderr, "%s: too much -supported_group\n", prog);
+				fprintf(stderr, "%s: too many -supported_group options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -249,7 +249,7 @@ int tls13_server_main(int argc , char **argv)
 			char *sig_alg_name;
 			int sig_alg;
 			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
-				fprintf(stderr, "%s: too much -sig_alg\n", prog);
+				fprintf(stderr, "%s: too many -sig_alg options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -550,9 +550,7 @@ restart:
 		if (send_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
 			fprintf(stderr, ">>>>>>>> send back\n");
 
-
-			format_bytes(stderr, 0, 0, "tls13_send", buf + send_offset, send_len);
-
+			format_bytes(stderr, 0, 0, "tls13_send", (const uint8_t *)buf + send_offset, send_len);
 
 			if ((ret = tls13_send(&conn, (uint8_t *)buf + send_offset, send_len, &sentlen)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {

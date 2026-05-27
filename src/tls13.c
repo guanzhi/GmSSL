@@ -6859,10 +6859,6 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		int common_cipher_suites[4];
 		size_t common_cipher_suites_cnt;
 
-		if (!conn->ctx->cert_chains) {
-			error_print();
-			return -1;
-		}
 		if (!conn->ctx->cert_chains_len) {
 			error_print();
 			return -1;

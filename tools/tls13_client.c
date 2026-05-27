@@ -176,7 +176,7 @@ int tls13_client_main(int argc, char *argv[])
 			char *cipher_suite_name;
 			int cipher_suite;
 			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
-				fprintf(stderr, "%s: too much -cipher_suite\n", prog);
+				fprintf(stderr, "%s: too many -cipher_suite options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -230,7 +230,7 @@ int tls13_client_main(int argc, char *argv[])
 			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-psk_identity")) {
 			if (psk_identities_cnt > sizeof(psk_identities)/sizeof(psk_identities[0])) {
-				fprintf(stderr, "%s: too much -psk_identity\n", prog);
+				fprintf(stderr, "%s: too many -psk_identity options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -239,7 +239,7 @@ int tls13_client_main(int argc, char *argv[])
 			char *cipher_suite_name;
 			int cipher_suite;
 			if (psk_cipher_suites_cnt > sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
-				fprintf(stderr, "%s: too much -psk_cipher_suite\n", prog);
+				fprintf(stderr, "%s: too many -psk_cipher_suite options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -252,7 +252,7 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-psk_key")) {
 			char *psk_key_hex;
 			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
-				fprintf(stderr, "%s: too much -psk_key\n", prog);
+				fprintf(stderr, "%s: too many -psk_key options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -272,7 +272,7 @@ int tls13_client_main(int argc, char *argv[])
 			char *supported_group_name;
 			int supported_group;
 			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
-				fprintf(stderr, "%s: too much -supported_group\n", prog);
+				fprintf(stderr, "%s: too many -supported_group options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -286,7 +286,7 @@ int tls13_client_main(int argc, char *argv[])
 			char *sig_alg_name;
 			int sig_alg;
 			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
-				fprintf(stderr, "%s: too much -sig_alg\n", prog);
+				fprintf(stderr, "%s: too many -sig_alg options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
@@ -376,7 +376,7 @@ bad:
 	// CA certificates
 	if (cacertfile) {
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, verify_depth) != 1) {
-			fprintf(stderr, "%s: load CA certificates file '%s' failure\n", prog, cacertfile);
+			fprintf(stderr, "%s: failed to load certificate '%s'\n", prog, cacertfile);
 			goto end;
 		}
 	}
@@ -384,11 +384,11 @@ bad:
 	// CertificateRequest
 	if (certfile) {
 		if (!keyfile) {
-			fprintf(stderr, "%s: option '-key' required\n", prog);
+			fprintf(stderr, "%s: option -key is required\n", prog);
 			goto end;
 		}
 		if (!pass) {
-			fprintf(stderr, "%s: option '-pass' requried\n", prog);
+			fprintf(stderr, "%s: option -pass is requried\n", prog);
 			goto end;
 		}
 		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfile, keyfile, pass) != 1) {
@@ -689,7 +689,6 @@ bad:
 		}
 
 		if (sent_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
-
 
 			// tls13_send 会返回一个 -1 , 但是没有打印错误信息！！！！			
 			if ((ret = tls13_send(&conn, (uint8_t *)send_buf + sent_offset, sent_len, &sentlen)) != 1) {
