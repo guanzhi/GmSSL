@@ -1704,13 +1704,20 @@ int sphincs_verify_finish(SPHINCS_SIGN_CTX *ctx)
 	// tbs = H_msg(R, seed, root, M) = MGF1(R|seed|dgst, tbs_len)
 	for (i = 0; i < (SPHINCS_TBS_SIZE + 31)/32; i++) {
 		uint8_t count[4];
+		sphincs_hash256_t h_msg;
+		size_t left;
+
 		PUTU32(count, i);
 		sphincs_hash256_init(&ctx->hash_ctx);
 		sphincs_hash256_update(&ctx->hash_ctx, ctx->sig.random, sizeof(sphincs_hash128_t));
 		sphincs_hash256_update(&ctx->hash_ctx, ctx->key.public_key.seed, sizeof(sphincs_hash128_t));
 		sphincs_hash256_update(&ctx->hash_ctx, dgst, sizeof(dgst));
 		sphincs_hash256_update(&ctx->hash_ctx, count, sizeof(count));
-		sphincs_hash256_finish(&ctx->hash_ctx, tbs + sizeof(dgst) * i);
+		sphincs_hash256_finish(&ctx->hash_ctx, h_msg);
+
+		left = SPHINCS_TBS_SIZE - sizeof(dgst) * i;
+		left = left < sizeof(dgst) ? left : sizeof(dgst);
+		memcpy(tbs + sizeof(dgst) * i, h_msg, left);
 	}
 
 	// get tree_address from tbs
