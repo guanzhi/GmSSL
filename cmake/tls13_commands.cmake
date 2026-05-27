@@ -11,6 +11,9 @@ if(NOT EXISTS signkey.pem)
 	message(FATAL_ERROR "file does not exist")
 endif()
 
+set(TLS13_TEST_PORT 4433)
+file(REMOVE "tls13_client.log" "tls13_server.log")
+
 execute_process(
 	COMMAND pkill -f "gmssl tls13_server"
 	OUTPUT_QUIET
@@ -18,7 +21,7 @@ execute_process(
 )
 
 execute_process(
-	COMMAND bash -c "nohup bin/gmssl tls13_server -port 4443 -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls13_server.log 2>&1 &"
+	COMMAND bash -c "nohup bin/gmssl tls13_server -port ${TLS13_TEST_PORT} -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls13_server.log 2>&1 &"
 	RESULT_VARIABLE SERVER_RESULT
 	TIMEOUT 5
 )
@@ -29,17 +32,33 @@ endif()
 execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 2)
 
 execute_process(
-	COMMAND bash -c "bin/gmssl tls13_client -host localhost -port 4443 -cacert rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls13_client.log 2>&1"
+	COMMAND bash -c "bin/gmssl tls13_client -host localhost -port ${TLS13_TEST_PORT} -cacert rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 < /dev/null > tls13_client.log 2>&1 &"
 	RESULT_VARIABLE CLIENT_RESULT
 	TIMEOUT 5
 )
 
+set(FOUND_INDEX -1)
+foreach(i RANGE 1 15)
+	if(EXISTS "tls13_client.log")
+		file(READ "tls13_client.log" CLIENT_LOG_CONTENT)
+		string(FIND "${CLIENT_LOG_CONTENT}" "connected" FOUND_INDEX)
+		if(NOT ${FOUND_INDEX} EQUAL -1)
+			break()
+		endif()
+	endif()
+	execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
+endforeach()
+
 execute_process(
 	COMMAND pkill -f "gmssl tls13_server"
+	OUTPUT_QUIET
+	ERROR_QUIET
 )
-
-file(READ "tls13_client.log" CLIENT_LOG_CONTENT)
-string(FIND "${CLIENT_LOG_CONTENT}" "connected" FOUND_INDEX)
+execute_process(
+	COMMAND pkill -f "gmssl tls13_client"
+	OUTPUT_QUIET
+	ERROR_QUIET
+)
 
 if(${FOUND_INDEX} EQUAL -1)
 	message(FATAL_ERROR "Client did not establish connection with server.")
