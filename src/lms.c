@@ -466,13 +466,13 @@ int lms_private_key_from_bytes(LMS_KEY *key, const uint8_t **in, size_t *inlen)
 		error_print();
 		return -1;
 	}
-	if (key->q >= (1 << height)) {
+	if (key->q >= ((uint32_t)1 << height)) {
 		error_print();
 		return -1;
 	}
 
 	if (cache_tree) {
-		size_t n = 1 << height;
+		size_t n = (size_t)1 << height;
 		if (!(key->tree = (lms_hash256_t *)malloc(sizeof(lms_hash256_t) * (2*n - 1)))) {
 			error_print();
 			return -1;
@@ -608,11 +608,11 @@ int lms_key_update(LMS_KEY *key)
 		error_print();
 		return -1;
 	}
-	if (key->q < 0 || key->q > (1 << height)) {
+	if (key->q > ((uint32_t)1 << height)) {
 		error_print();
 		return -1;
 	}
-	if (key->q == (1 << height)) {
+	if (key->q == ((uint32_t)1 << height)) {
 		return 0;
 	}
 	key->q++;
@@ -857,7 +857,7 @@ int lms_signature_from_bytes(LMS_SIGNATURE *sig, const uint8_t **in, size_t *inl
 		error_print();
 		return -1;
 	}
-	if (sig->q < 0 || sig->q >= (1 << height)) {
+	if (sig->q >= ((uint32_t)1 << height)) {
 		error_print();
 		return -1;
 	}
@@ -884,7 +884,7 @@ int lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
 	LMS_HASH256_CTX ctx;
 	size_t i;
 
-	n = 1 << h;
+	n = (size_t)1 << h;
 	if (q >= n) {
 		error_print();
 		return -1;
@@ -947,11 +947,11 @@ int lms_sign_init(LMS_SIGN_CTX *ctx, LMS_KEY *key)
 		error_print();
 		return -1;
 	}
-	if (key->q >= (1 << height)) {
+	if (key->q >= ((uint32_t)1 << height)) {
 		error_print();
 		return -1;
 	}
-	r = (1 << height) + key->q;
+	r = ((uint32_t)1 << height) + key->q;
 
 	memset(ctx, 0, sizeof(*ctx));
 	memcpy(ctx->lms_public_key.I, key->public_key.I, 16);
@@ -1359,7 +1359,7 @@ int hss_private_key_from_bytes(HSS_KEY *key, const uint8_t **in, size_t *inlen)
 
 int hss_private_key_print(FILE *fp, int fmt, int ind, const char *label, const HSS_KEY *key)
 {
-	int i;
+	uint32_t i;
 
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
@@ -1369,9 +1369,9 @@ int hss_private_key_print(FILE *fp, int fmt, int ind, const char *label, const H
 
 	for (i = 1; i < key->levels; i++) {
 		char title[64];
-		snprintf(title, sizeof(title), "lms_signature[%d]", i - 1);
+		snprintf(title, sizeof(title), "lms_signature[%u]", i - 1);
 		lms_signature_print_ex(fp, fmt, ind, title, &key->lms_sig[i - 1]);
-		snprintf(title, sizeof(title), "lms_key[%d]", i);
+		snprintf(title, sizeof(title), "lms_key[%u]", i);
 		lms_private_key_print(fp, fmt, ind, title, &key->lms_key[i]);
 	}
 
@@ -1381,7 +1381,7 @@ int hss_private_key_print(FILE *fp, int fmt, int ind, const char *label, const H
 void hss_key_cleanup(HSS_KEY *key)
 {
 	if (key) {
-		int i;
+		uint32_t i;
 		for (i = 0; i < key->levels; i++) {
 			lms_key_cleanup(&key->lms_key[i]);
 		}
@@ -1504,7 +1504,7 @@ int hss_signature_size(const int *lms_types, size_t levels, size_t *siglen)
 int hss_key_get_signature_size(const HSS_KEY *key, size_t *siglen)
 {
 	int lms_types[5];
-	int i;
+	uint32_t i;
 
 	if (!key || !siglen) {
 		error_print();
@@ -1633,7 +1633,7 @@ int hss_key_update(HSS_KEY *key)
 		}
 	}
 	// the lowest level is not out of keys
-	if (level >= key->levels) {
+	if (level >= (int)key->levels) {
 		error_print();
 		return -1;
 	}
@@ -1642,7 +1642,7 @@ int hss_key_update(HSS_KEY *key)
 		return 0;
 	}
 
-	for (; level < key->levels; level++) {
+	for (; level < (int)key->levels; level++) {
 		int lms_type = key->lms_key[level].public_key.lms_type;
 		LMS_SIGN_CTX ctx;
 		uint8_t buf[LMS_PUBLIC_KEY_SIZE];
@@ -1954,7 +1954,6 @@ int hss_signature_print_ex(FILE *fp, int fmt, int ind, const char *label, const 
 int hss_signature_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *sig, size_t siglen)
 {
 	LMS_SIGNATURE lms_sig;
-	size_t lms_siglen;
 	LMS_KEY lms_key;
 
 	int num;

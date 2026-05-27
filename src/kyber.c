@@ -50,7 +50,6 @@ static int kyber_prf(const uint8_t seed[32], uint8_t N, size_t outlen, uint8_t *
 {
 	uint8_t salt[1];
 	uint8_t key[32];
-	size_t len;
 
 	salt[0] = (uint8_t)N;
 
@@ -459,9 +458,9 @@ int kyber_poly_encode12(const kyber_poly_t a, uint8_t out[384])
 		}
 	}
 	for (i = 0; i < 256/2; i++) {
-		out[0] = in[0];
-		out[1] = (in[1] << 4) | (in[0] >> 8);
-		out[2] = in[1] >> 4;
+		out[0] = (uint8_t)in[0];
+		out[1] = (uint8_t)((in[1] << 4) | (in[0] >> 8));
+		out[2] = (uint8_t)(in[1] >> 4);
 		in += 2;
 		out += 3;
 	}
@@ -501,11 +500,11 @@ int kyber_poly_encode10(const kyber_poly_t a, uint8_t out[320])
 		}
 	}
 	for (i = 0; i < 256/4; i++) {
-		out[0] = in[0];
-		out[1] = (in[1] << 2) | (in[0] >> 8);
-		out[2] = (in[2] << 4) | (in[1] >> 6);
-		out[3] = (in[3] << 6) | (in[2] >> 4);
-		out[4] = in[3] >> 2;
+		out[0] = (uint8_t)in[0];
+		out[1] = (uint8_t)((in[1] << 2) | (in[0] >> 8));
+		out[2] = (uint8_t)((in[2] << 4) | (in[1] >> 6));
+		out[3] = (uint8_t)((in[3] << 6) | (in[2] >> 4));
+		out[4] = (uint8_t)(in[3] >> 2);
 		in  += 4;
 		out += 5;
 	}
@@ -1167,7 +1166,6 @@ int kyber_decap(const KYBER_KEY *key, const KYBER_CIPHERTEXT *c, uint8_t K[32])
 	uint8_t *K_ = K_r;
 	uint8_t *r = K_r + 32;
 	KYBER_CIPHERTEXT c_;
-	uint8_t c_hash[32];
 
 
 	// m' = Dec(sk, c)

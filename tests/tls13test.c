@@ -386,7 +386,6 @@ static int test_tls_signature_algorithms_ext(void)
 	int ext_type;
 	const uint8_t *ext_data;
 	size_t ext_datalen;
-	size_t i;
 
 	if (tls_signature_algorithms_ext_to_bytes(client_sig_algs, client_sig_algs_cnt, &p, &len) != 1) {
 		error_print();
@@ -435,7 +434,6 @@ static int test_tls13_signature_algorithms_cert_ext(void)
 	int ext_type;
 	const uint8_t *ext_data;
 	size_t ext_datalen;
-	size_t i;
 
 	if (tls13_signature_algorithms_cert_ext_to_bytes(
 		client_sig_algs, client_sig_algs_cnt, &p, &len) != 1) {
@@ -481,7 +479,7 @@ static int test_tls13_ticket(void)
 	uint8_t resumption_master_secret[48] = { 1, 2, 3, };
 	int protocol_version = TLS_protocol_tls13;
 	int cipher_suite = TLS_cipher_sm4_gcm_sm3;
-	uint32_t ticket_issue_time = time(NULL);
+	uint32_t ticket_issue_time = (uint32_t)time(NULL);
 	uint32_t ticket_lifetime = 60 * 60 * 24;
 
 	uint8_t ticket[12 + 60 + 16];

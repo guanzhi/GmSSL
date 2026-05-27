@@ -375,8 +375,6 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx)
 {
 	DIGEST_CTX tmp_ctx;
-	uint8_t dgst[64];
-	size_t dgstlen;
 
 	tmp_ctx = *dgst_ctx;
 
@@ -1282,7 +1280,6 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 			if (conn->is_client) {
 				uint64_t seq_num;
-				int ret;
 
 				tls13_update_server_application_secret(conn);
 				tls13_generate_server_application_keys(conn);
@@ -1297,7 +1294,6 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 			} else {
 				uint64_t seq_num;
-				int ret;
 
 				tls13_update_client_application_secret(conn);
 				tls13_generate_client_application_keys(conn);
@@ -1571,7 +1567,6 @@ int tls13_server_supported_versions_ext_to_bytes(int selected_version, uint8_t *
 {
 	uint16_t ext_type = TLS_extension_supported_versions;
 	size_t ext_datalen;
-	size_t i;
 
 	if (!outlen) {
 		error_print();
@@ -1657,12 +1652,6 @@ int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t c
 	uint8_t **out, size_t *outlen)
 {
 	int ext_type = TLS_extension_certificate_authorities;
-	size_t ext_datalen;
-	size_t authorities_len;
-	const uint8_t *name;
-	size_t namelen;
-	const uint8_t *p;
-	size_t len;
 
 	if (!ca_names || !ca_names_len || !outlen) {
 		error_print();
@@ -1670,7 +1659,7 @@ int tls13_certificate_authorities_ext_to_bytes(const uint8_t *ca_names, size_t c
 	}
 
 	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(tls_uint16_size() + ca_names_len, out, outlen);
+	tls_uint16_to_bytes((uint16_t)(tls_uint16_size() + ca_names_len), out, outlen);
 	tls_uint16array_to_bytes(ca_names, ca_names_len, out, outlen);
 
 	return 1;
@@ -1764,7 +1753,7 @@ int tls13_oid_filters_ext_to_bytes(const uint8_t *filters, size_t filters_len, u
 
 	ext_datalen = tls_uint16_size() + filters_len;
 	tls_uint16_to_bytes(ext_type, out, outlen);
-	tls_uint16_to_bytes(ext_datalen, out, outlen);
+	tls_uint16_to_bytes((uint16_t)ext_datalen, out, outlen);
 	tls_uint16array_to_bytes(filters, filters_len, out, outlen);
 
 	return 1;
@@ -2759,7 +2748,7 @@ int tls13_certificate_entry_to_bytes(const uint8_t *cert, size_t certlen,
 	}
 
 	tls_uint24array_to_bytes(cert, certlen, out, outlen);
-	tls_uint16_to_bytes(extslen, out, outlen);
+	tls_uint16_to_bytes((uint16_t)extslen, out, outlen);
 	if (status_request_ocsp_response && status_request_ocsp_response_len) {
 		tls_server_status_request_ext_to_bytes(status_request_ocsp_response, status_request_ocsp_response_len, out, outlen);
 	}
@@ -3683,8 +3672,6 @@ Auth | {CertificateVerify*}
 
 int tls13_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
-	size_t i;
-
 	if (!ctx->supported_versions_cnt) {
 		error_print();
 		return -1;
@@ -4992,7 +4979,7 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		for (i = 0; i <= selected_identity; i++) {
+		for (i = 0; i <= (size_t)selected_identity; i++) {
 			if (tls_uint8array_from_bytes(&key, &keylen, &psk_keys, &psk_keys_len) != 1) {
 				error_print();
 				return -1;
@@ -5122,7 +5109,6 @@ int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 	size_t extslen;
 
 	const uint8_t *supported_groups = NULL;
-	size_t supported_groups_len;
 
 	int server_name = 0;
 	int early_data = 0;
@@ -6146,8 +6132,6 @@ int tls13_recv_server_finished(TLS_CONNECT *conn)
 	uint8_t verify_data[64];
 	size_t verify_data_len;
 
-	uint8_t server_write_key[16];
-
 	// compute verify_data before digest_update
 	if (tls13_compute_verify_data(conn->server_handshake_traffic_secret,
 		&conn->dgst_ctx, verify_data, &verify_data_len) != 1) {
@@ -6332,7 +6316,6 @@ int tls13_send_client_certificate_verify(TLS_CONNECT *conn)
 int tls13_send_client_finished(TLS_CONNECT *conn)
 {
 	int ret;
-	uint8_t client_write_key[16];
 
 	tls_trace("send client {Finished}\n");
 
@@ -6428,11 +6411,8 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
 	uint8_t *record = conn->record;
-	size_t recordlen;
 
 	int client_verify = 0;
-
-	int protocol;
 
 	// client_hello
 	int legacy_version;
@@ -6441,8 +6421,6 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	size_t legacy_session_id_len;
 	const uint8_t *cipher_suites;
 	size_t cipher_suites_len;
-	const uint8_t *legacy_comp_methods;
-	size_t legacy_comp_methods_len;
 	const uint8_t *exts;
 	size_t extslen;
 
@@ -7197,7 +7175,6 @@ int tls13_send_hello_retry_request(TLS_CONNECT *conn)
 		uint8_t exts[256];
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
-		int curve_oid;
 		uint8_t cookie[256];
 		size_t cookie_len;
 
@@ -7280,11 +7257,8 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 {
 	int ret;
 	uint8_t *record = conn->record;
-	size_t recordlen;
 
 	int client_verify = 0;
-
-	int protocol;
 
 	// ClientHello1
 	int _legacy_version;
@@ -7293,8 +7267,6 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 	size_t _legacy_session_id_len;
 	const uint8_t *_cipher_suites;
 	size_t _cipher_suites_len;
-	const uint8_t *_legacy_comp_methods;
-	size_t _legacy_comp_methods_len;
 	const uint8_t *_exts;
 	size_t _extslen;
 
@@ -7305,8 +7277,6 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 	size_t legacy_session_id_len;
 	const uint8_t *cipher_suites;
 	size_t cipher_suites_len;
-	const uint8_t *legacy_comp_methods;
-	size_t legacy_comp_methods_len;
 	const uint8_t *exts;
 	size_t extslen;
 
@@ -8107,7 +8077,6 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 	if (conn->recordlen == 0) {
 		uint8_t verify_data[64];
 		size_t verify_data_len;
-		uint8_t server_write_key[16];
 
 		// compute server verify_data before digest_update()
 		tls13_compute_verify_data(conn->server_handshake_traffic_secret,
@@ -8158,7 +8127,6 @@ int tls13_send_server_finished(TLS_CONNECT *conn)
 int tls13_recv_client_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	size_t padding_len;
 	const uint8_t *request_context;
 	size_t request_context_len;
 	const uint8_t *status_request_ocsp_response = NULL;
@@ -8303,8 +8271,6 @@ int tls13_recv_client_finished(TLS_CONNECT *conn)
 	size_t local_verify_data_len;
 	const uint8_t *verify_data;
 	size_t verify_data_len;
-
-	uint8_t client_write_key[16];
 
 	tls_trace("recv client {Finished}\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
@@ -8921,4 +8887,3 @@ int tls13_do_accept(TLS_CONNECT *conn)
 
 	return 1;
 }
-

@@ -28,7 +28,6 @@ static int test_secp256r1(void)
 {
 	secp256r1_t a;
 	secp256r1_t b;
-	secp256r1_t r;
 	uint8_t buf[32];
 
 	secp256r1_set_zero(a);

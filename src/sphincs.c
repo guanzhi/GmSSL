@@ -358,7 +358,6 @@ void sphincs_wots_sk_to_pk(const sphincs_wots_key_t sk,
 static void sphincs_base_w_and_checksum(const sphincs_hash128_t dgst, int steps[35])
 {
 	int csum = 0;
-	int sbits;
 	int i;
 
 	// seperate 128-bit dgst into 32 4-bit base_w numbers
@@ -444,7 +443,6 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 	sphincs_adrsc_t adrsc;
 	SPHINCS_HASH256_CTX ctx;
 	sphincs_hash256_t dgst;
-	int i;
 
 	memcpy(block, seed, sizeof(sphincs_hash128_t));
 

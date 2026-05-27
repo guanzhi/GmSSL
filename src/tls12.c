@@ -507,7 +507,6 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
 	uint8_t *record = conn->record;
-	size_t recordlen;
 
 	int client_verify = 0;
 
@@ -621,7 +620,6 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
 	uint8_t *record = conn->record;
-	size_t recordlen;
 
 	int client_verify = 0;
 
@@ -1092,7 +1090,7 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		// build server_ecdh_params
 		server_ecdh_params[0] = TLS_curve_type_named_curve;
 		server_ecdh_params[1] = conn->ecdh_named_curve >> 8;
-		server_ecdh_params[2] = conn->ecdh_named_curve;
+		server_ecdh_params[2] = (uint8_t)conn->ecdh_named_curve;
 		server_ecdh_params[3] = 65;
 		if (x509_public_key_to_bytes(&conn->ecdh_key, &p, &len) != 1) {
 			error_print();
@@ -1207,7 +1205,6 @@ int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite)
 
 int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 {
-	int ret;
 	uint8_t curve_type;
 	uint16_t named_curve;
 	const uint8_t *point_octets;
@@ -1224,10 +1221,6 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 	int server_cert_index = 0;
 	const uint8_t *server_cert;
 	size_t server_cert_len;
-
-	uint16_t tls_sig_alg; // 这个值没有初始化				
-	// 这属于握手过程中决定的具体算法，因此握手完成之后就应该确定下来了
-	// 这应该是由cipher_suite和服务器证书中公钥（named_curve)共同决定的
 
 	X509_SIGN_CTX sign_ctx;
 	const void *sign_args = NULL;
@@ -1479,7 +1472,6 @@ int tls_recv_certificate_request(TLS_CONNECT *conn)
 {
 	int ret;
 	uint8_t *record = conn->record;
-	size_t recordlen;
 	const uint8_t *cp;
 	size_t len;
 	int handshake_type;
@@ -1703,7 +1695,6 @@ int tls_generate_keys(TLS_CONNECT *conn)
 {
 	uint8_t pre_master_secret[32];
 	size_t pre_master_secret_len;
-	uint8_t key_block[96];
 
 	// 此时已经获得了ServerKeyExchange和ClientKeyExchange
 	// 但是不同密码套件中，这些KeyExchange的数据其实是不一样的
@@ -1762,9 +1753,6 @@ int tls_generate_keys(TLS_CONNECT *conn)
 // 对于客户端，是先发送client_key_exchange在generate_keys
 int tlcp_generate_keys(TLS_CONNECT *conn)
 {
-	uint8_t enced_pre_master_secret[SM2_MAX_CIPHERTEXT_SIZE];
-	size_t enced_pre_master_secret_len;
-
 	tls_trace("generate secrets\n");
 
 

@@ -78,7 +78,6 @@ static int test_x509_key_generate(void)
 
 static int test_x509_public_key_to_bytes(void)
 {
-	X509_KEY key;
 	uint8_t buf[1568]; // kyber-1024
 	uint8_t *p;
 	size_t len;
