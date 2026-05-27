@@ -23,11 +23,6 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/select.h>
-
-
 /*
 5. status_request
 
