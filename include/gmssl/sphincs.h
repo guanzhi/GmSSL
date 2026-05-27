@@ -31,7 +31,7 @@ extern "C" {
 # define SPHINCS_HYPERTREE_LAYERS 7
 # define SPHINCS_FORS_TREE_HEIGHT 12
 # define SPHINCS_FORS_NUM_TREES 14
-#else
+#else // SPHINCS+_128f
 # define SPHINCS_HYPERTREE_HEIGHT 66
 # define SPHINCS_HYPERTREE_LAYERS 22
 # define SPHINCS_FORS_TREE_HEIGHT 6
@@ -224,13 +224,14 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	sphincs_hash128_t root);
 
+// for both XMSS and FORS
+void sphincs_tree_hash(const sphincs_hash128_t left_child, const sphincs_hash128_t right_child,
+	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
+	sphincs_hash128_t parent);
 
 // XMSS
 
-void sphincs_xmss_tree_hash(
-	const sphincs_hash128_t left_child, const sphincs_hash128_t right_child,
-	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
-	sphincs_hash256_t parent);
+#define sphincs_xmss_tree_hash sphincs_tree_hash
 void sphincs_xmss_build_tree(const sphincs_hash128_t secret,
 	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
 	sphincs_hash128_t tree[SPHINCS_XMSS_NUM_NODES]);
@@ -239,7 +240,7 @@ void sphincs_xmss_build_auth_path(const sphincs_hash128_t tree[SPHINCS_XMSS_NUM_
 void sphincs_xmss_build_root(const sphincs_hash128_t wots_root, uint32_t tree_index,
 	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
 	const sphincs_hash128_t auth_path[SPHINCS_XMSS_HEIGHT],
-	sphincs_hash256_t root);
+	sphincs_hash128_t root);
 
 typedef struct {
 	sphincs_wots_sig_t wots_sig;
@@ -282,6 +283,7 @@ int sphincs_hypertree_verify(const sphincs_hash128_t top_xmss_root,
 void sphincs_fors_derive_sk(const sphincs_hash128_t secret,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	uint32_t fors_index, sphincs_hash128_t sk);
+#define sphincs_fors_tree_hash sphincs_tree_hash
 void sphincs_fors_build_tree(const sphincs_hash128_t secret,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs, int tree_addr,
 	sphincs_hash128_t tree[SPHINCS_FORS_TREE_NUM_NODES]);;

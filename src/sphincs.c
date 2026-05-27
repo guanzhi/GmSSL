@@ -463,10 +463,9 @@ void sphincs_wots_pk_to_root(const sphincs_wots_key_t pk,
 	memcpy(root, dgst, sizeof(sphincs_hash128_t));
 }
 
-// for both xmss and fors
 void sphincs_tree_hash(const sphincs_hash128_t left_child, const sphincs_hash128_t right_child,
 	const sphincs_hash128_t seed, const sphincs_adrs_t adrs,
-	sphincs_hash256_t parent)
+	sphincs_hash128_t parent)
 {
 	SPHINCS_HASH256_CTX ctx;
 	sphincs_hash256_t dgst;
@@ -544,7 +543,7 @@ void sphincs_xmss_build_auth_path(const sphincs_hash128_t tree[SPHINCS_XMSS_NUM_
 void sphincs_xmss_build_root(const sphincs_hash128_t wots_root, uint32_t tree_index,
 	const sphincs_hash128_t seed, const sphincs_adrs_t in_adrs,
 	const sphincs_hash128_t auth_path[SPHINCS_XMSS_HEIGHT],
-	sphincs_hash256_t root)
+	sphincs_hash128_t root)
 {
 	sphincs_adrs_t adrs = {0};
 	uint32_t h;
