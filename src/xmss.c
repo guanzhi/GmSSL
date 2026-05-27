@@ -337,7 +337,7 @@ void xmss_wots_sk_to_pk(const xmss_wots_key_t sk,
 	}
 }
 
-// seperate 256 bit digest into 256/4 = 64 step values, generate 3 checksum step values
+// separate 256 bit digest into 256/4 = 64 step values, generate 3 checksum step values
 // output steps[i] in [0, w-1] = [0, 16-1]
 // this implementation is for hash256 and w=16 only!
 static void base_w_and_checksum(const xmss_hash256_t dgst, int steps[67])
