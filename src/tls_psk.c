@@ -425,7 +425,11 @@ int tls13_session_to_bytes(int protocol_version, int cipher_suite,
 	tls_uint32_to_bytes(ticket_age_add, NULL, &len);
 	tls_uint16array_to_bytes(ticket, ticketlen, NULL, &len);
 
-	tls_uint16_to_bytes(len, out, outlen);
+	if (len > UINT16_MAX) {
+		error_print();
+		return -1;
+	}
+	tls_uint16_to_bytes((uint16_t)len, out, outlen);
 
 	tls_uint16_to_bytes((uint16_t)protocol_version, out, outlen);
 	tls_uint16_to_bytes((uint16_t)cipher_suite, out, outlen);
@@ -553,7 +557,8 @@ int tls13_add_pre_shared_key_from_session_file(TLS_CONNECT *conn, FILE *fp)
 	const uint8_t *ticket;
 	size_t ticketlen;
 
-	uint32_t obfuscated_ticket_age;
+	// FIXME: compute obfuscated_ticket_age from ticket_issue_time and ticket_age_add.
+	uint32_t obfuscated_ticket_age = 0;
 
 	format_print(stderr, 0, 0, "read SESSION\n");
 
@@ -616,7 +621,7 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		uint8_t *p = exts;
 		// early_data
 		uint32_t max_early_data_size = 256 * 1024; // 256 KB
-		uint32_t ticket_issue_time = time(NULL);
+		uint32_t ticket_issue_time = (uint32_t)time(NULL);
 
 		uint8_t resumption_master_secret[48];
 		size_t dgstlen = 32;
@@ -718,8 +723,6 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 	const uint8_t *exts;
 	size_t extslen;
 	size_t max_early_data_size;
-	const uint8_t *cp;
-	size_t len;
 
 	// only cheching encoding
 	if ((ret = tls13_record_get_handshake_new_session_ticket(conn->plain_record,
@@ -776,7 +779,7 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 	uint8_t *p = session;
 	size_t sessionlen = 0;
 
-	uint32_t ticket_issue_time = time(NULL);
+	uint32_t ticket_issue_time = (uint32_t)time(NULL);
 
 	if (tls13_session_to_bytes(conn->protocol, conn->cipher_suite, pre_shared_key, 32,
 		ticket_issue_time, ticket_lifetime, ticket_age_add, ticket, ticketlen,
@@ -815,10 +818,6 @@ int tls13_new_session_ticket_print(FILE *fp, int fmt, int ind, const uint8_t *d,
 	size_t ticket_len;
 	const uint8_t *exts;
 	size_t extslen;
-
-	// early_data extension
-	uint32_t max_early_data_size;
-
 
 	format_print(fp, fmt, ind, "NewSessionTicket\n");
 	ind += 4;
@@ -1350,8 +1349,6 @@ int tls13_process_client_pre_shared_key_external(TLS_CONNECT *conn,
 		size_t matched_psk_len;
 		int matched_psk_idx;
 
-		int cipher_suite;
-
 		DIGEST_CTX dgst_ctx;
 
 		// get psk_identity, psk_key, age and binder, age is useless whne psk is external
@@ -1501,7 +1498,7 @@ int tls13_process_client_pre_shared_key_from_ticket(TLS_CONNECT *conn,
 		}
 
 		// check time
-		uint32_t current_time = time(NULL);
+		uint32_t current_time = (uint32_t)time(NULL);
 		if (ticket_issue_time > current_time) {
 			error_print();
 			continue;
@@ -1605,7 +1602,12 @@ int tls13_early_data_ext_to_bytes(size_t max_early_data_size, uint8_t **out, siz
 	uint8_t ext_data[4];
 	uint8_t *p = ext_data;
 	size_t ext_datalen = 0;
-	tls_uint32_to_bytes(max_early_data_size, &p, &ext_datalen);
+
+	if (max_early_data_size > UINT32_MAX) {
+		error_print();
+		return -1;
+	}
+	tls_uint32_to_bytes((uint32_t)max_early_data_size, &p, &ext_datalen);
 	if (tls_ext_to_bytes(TLS_extension_early_data, ext_data, ext_datalen, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -1647,8 +1649,6 @@ int tls13_early_data_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, 
 
 int tls13_set_early_data(TLS_CONNECT *conn, const uint8_t *data, size_t datalen)
 {
-	size_t len;
-
 	if (!conn) {
 		error_print();
 		return -1;
