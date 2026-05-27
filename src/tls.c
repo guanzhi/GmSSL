@@ -2678,18 +2678,11 @@ int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 }
 
 
-
-
-
-
-
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
 	size_t i;
 
-
 	memset(conn, 0, sizeof(*conn));
-
 
 	conn->protocol = ctx->protocol;
 
@@ -2699,7 +2692,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	}
 	conn->cipher_suites_cnt = ctx->cipher_suites_cnt;
 	*/
-
 
 	if (ctx->certslen > TLS_MAX_CERTIFICATES_SIZE) {
 		error_print();
@@ -2722,14 +2714,11 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	conn->ca_certs_len = ctx->cacertslen;
 	*/
 
-
 	conn->sign_key = ctx->signkey;
 	conn->kenc_key = ctx->kenckey;
-
 	conn->ctx = ctx;
 
 	conn->key_exchanges_cnt = ctx->key_exchanges_cnt;
-
 
 	conn->new_session_ticket = ctx->new_session_ticket;
 
@@ -2739,16 +2728,21 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	if (ctx->supported_groups_cnt && ctx->signature_algorithms_cnt) {
 		conn->key_exchange_modes |= TLS_KE_CERT_DHE;
 	}
-	if (!conn->key_exchange_modes) {
-		error_print();
-		return -1;
+
+	if (ctx->protocol == TLS_protocol_tls13) {
+		if (!conn->key_exchange_modes) {
+			error_print();
+			return -1;
+		}
+
+		fprintf(stderr, "%s %d: conn->key_exchange_modes = %d\n", __FILE__, __LINE__, conn->key_exchange_modes);
+
+		if (conn->key_exchange_modes & (TLS_KE_CERT_DHE|TLS_KE_PSK_DHE)) {
+			conn->key_share = 1;
+		}
+
 	}
 
-	fprintf(stderr, "%s %d: conn->key_exchange_modes = %d\n", __FILE__, __LINE__, conn->key_exchange_modes);
-
-	if (conn->key_exchange_modes & (TLS_KE_CERT_DHE|TLS_KE_PSK_DHE)) {
-		conn->key_share = 1;
-	}
 
 	conn->signed_certificate_timestamp = ctx->signed_certificate_timestamp;
 
@@ -2760,7 +2754,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	if (conn->key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK)) {
 		conn->pre_shared_key = 1;
 	}
-
 
 	return 1;
 }
