@@ -23,9 +23,7 @@
 #include <gmssl/mem.h>
 #include <gmssl/tls.h>
 
-#include <fcntl.h>
 #include <errno.h>
-#include <sys/select.h>
 
 
 
@@ -2778,4 +2776,3 @@ int tls12_do_accept(TLS_CONNECT *conn)
 
 	return 1;
 }
-
