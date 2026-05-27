@@ -101,7 +101,7 @@ void bn_mul(uint32_t *r, const uint32_t *a, const uint32_t *b, size_t k)
 			r[i + j] = w & 0xffffffff;
 			w >>= 32;
 		}
-		r[i + k] = w;
+		r[i + k] = (uint32_t)w;
 	}
 }
 
@@ -140,9 +140,10 @@ void bn_from_bytes(uint32_t *a, size_t k, const uint8_t *in)
 
 int bn_print(FILE *fp, int fmt, int ind, const char *label, const uint32_t *a, size_t k)
 {
+	size_t i;
+
 	fprintf(fp, "%s: ", label);
 
-	int i;
 	for (i = 0; i < k; i++) {
 		fprintf(fp, "0x%08x, ", a[i]);
 	}
@@ -370,11 +371,14 @@ void bn_mont_get(uint32_t *r,
 	const uint32_t *a,
 	const uint32_t *p,
 	const uint32_t *p_inv_neg,
-	uint32_t *tmp, // uint32_t tmp[5 * k]
+	uint32_t *tmp, // uint32_t tmp[6 * k]
 	size_t k)
 {
-	uint32_t one[k];
+	uint32_t *one;
+
+	one = tmp;
+	tmp += k;
+
 	bn_set_word(one, 1, k);
 	bn_mont_mod_mul(r, a, one, p, p_inv_neg, tmp, k);
 }
-

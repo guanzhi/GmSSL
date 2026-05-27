@@ -76,7 +76,7 @@ void bn_mont_set(uint32_t *r, const uint32_t *a, const uint32_t *one_sqr, const 
 	uint32_t *tmp, // uint32_t tmp[5 * k]
 	size_t k);
 void bn_mont_get(uint32_t *r, const uint32_t *a, const uint32_t *p, const uint32_t *p_inv_neg,
-	uint32_t *tmp, // uint32_t tmp[5 * k]
+	uint32_t *tmp, // uint32_t tmp[6 * k]
 	size_t k);
 
 
