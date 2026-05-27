@@ -429,7 +429,7 @@ int kyber_poly_compress(const kyber_poly_t a, int dbits, kyber_poly_t z)
 	int d = 1 << dbits;
 
 	for (i = 0; i < 256; i++) {
-		z[i] = (a[i] * d + (KYBER_Q +1)/2)/KYBER_Q;
+		z[i] = (a[i] * d + KYBER_Q/2) / KYBER_Q;
 		z[i] = z[i] % d;
 	}
 	return 1;
