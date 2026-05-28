@@ -82,7 +82,8 @@ typedef struct {
 	secp256r1_t Z;
 } SECP256R1_POINT;
 
-extern const SECP256R1_POINT SECP256R1_POINT_G;
+const SECP256R1_POINT *secp256r1_generator(void);
+#define SECP256R1_POINT_G (*secp256r1_generator())
 
 void secp256r1_point_set_infinity(SECP256R1_POINT *R);
 int  secp256r1_point_is_at_infinity(const SECP256R1_POINT *P);

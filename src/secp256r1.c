@@ -200,13 +200,18 @@ void secp256r1_modn_inv(secp256r1_t r, const secp256r1_t a) {
 }
 
 
-const SECP256R1_POINT SECP256R1_POINT_G = {
+static const SECP256R1_POINT secp256r1_generator_point = {
 	{ 0xd898c296, 0xf4a13945, 0x2deb33a0, 0x77037d81,
 	  0x63a440f2, 0xf8bce6e5, 0xe12c4247, 0x6b17d1f2, },
 	{ 0x37bf51f5, 0xcbb64068, 0x6b315ece, 0x2bce3357,
 	  0x7c0f9e16, 0x8ee7eb4a, 0xfe1a7f9b, 0x4fe342e2, },
 	{ 1,0,0,0,0,0,0,0, },
 };
+
+const SECP256R1_POINT *secp256r1_generator(void)
+{
+	return &secp256r1_generator_point;
+}
 
 void secp256r1_point_set_infinity(SECP256R1_POINT *R)
 {
@@ -526,7 +531,7 @@ void secp256r1_point_mul(SECP256R1_POINT *R, const secp256r1_t k, const SECP256R
 
 void secp256r1_point_mul_generator(SECP256R1_POINT *R, const secp256r1_t k)
 {
-	secp256r1_point_mul(R, k, &SECP256R1_POINT_G);
+	secp256r1_point_mul(R, k, secp256r1_generator());
 }
 
 int secp256r1_point_print(FILE *fp, int fmt, int ind, const char *label, const SECP256R1_POINT *P)
@@ -592,5 +597,3 @@ int secp256r1_point_equ(const SECP256R1_POINT *P, const SECP256R1_POINT *Q)
 		return 0;
 	}
 }
-
-
