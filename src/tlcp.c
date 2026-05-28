@@ -96,7 +96,6 @@ int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *r
 	return 1;
 }
 
-
 int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen)
 {
@@ -150,27 +149,6 @@ int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t dat
 	return 1;
 }
 
-
-/*
-      Client                                               Server
-
-      ClientHello                  -------->
-                                                      ServerHello
-                                                      Certificate
-                                                ServerKeyExchange
-                                              CertificateRequest*
-                                   <--------      ServerHelloDone
-      Certificate*
-      ClientKeyExchange
-      CertificateVerify*
-      [ChangeCipherSpec]
-      Finished                     -------->
-                                               [ChangeCipherSpec]
-                                   <--------             Finished
-      Application Data             <------->     Application Data
-
-*/
-
 int tlcp_send_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
@@ -191,7 +169,6 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		// offset = 0, recordlen > 0
 
 		tls_trace("send ClientHello\n");
 		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
@@ -212,8 +189,6 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 	tls_clean_record(conn);
 	return 1;
 }
-
-
 
 int tlcp_recv_client_hello(TLS_CONNECT *conn)
 {
@@ -569,6 +544,207 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 
 
 
+int tlcp_recv_server_hello(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_server_hello(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_server_certificate(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_server_certificate(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_certificate_request(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_certificate_request(conn)) != 1) {
+		if (ret == 0) {
+			return 0;
+		}
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_server_hello_done(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_server_hello_done(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_client_certificate(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_client_certificate(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_certificate_verify(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_certificate_verify(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_change_cipher_spec(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_change_cipher_spec(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_client_finished(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_client_finished(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_change_cipher_spec(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_change_cipher_spec(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_server_finished(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_server_finished(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_server_hello(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_server_hello(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_server_certificate(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_server_certificate(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_certificate_request(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_certificate_request(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_server_hello_done(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_server_hello_done(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_client_certificate(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_client_certificate(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_certificate_verify(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_certificate_verify(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_recv_client_finished(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_recv_client_finished(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
+int tlcp_send_server_finished(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if ((ret = tls_send_server_finished(conn)) != 1) {
+		error_print();
+		return ret;
+	}
+	return 1;
+}
+
 /*
       Client                                               Server
 
@@ -602,12 +778,12 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_server_hello:
-		ret = tls_recv_server_hello(conn);
+		ret = tlcp_recv_server_hello(conn);
 		next_state = TLS_state_server_certificate;
 		break;
 
 	case TLS_state_server_certificate:
-		ret = tls_recv_server_certificate(conn);
+		ret = tlcp_recv_server_certificate(conn);
 		next_state = TLS_state_server_key_exchange;
 		break;
 
@@ -617,20 +793,20 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_certificate_request:
-		ret = tls_recv_certificate_request(conn);
+		ret = tlcp_recv_certificate_request(conn);
 		if (ret == 1) conn->client_certificate_verify = 1;
 		next_state = TLS_state_server_hello_done;
 		break;
 
 	case TLS_state_server_hello_done:
-		ret = tls_recv_server_hello_done(conn);
+		ret = tlcp_recv_server_hello_done(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_client_certificate;
 		else	next_state = TLS_state_client_key_exchange;
 		break;
 
 	case TLS_state_client_certificate:
-		ret = tls_send_client_certificate(conn);
+		ret = tlcp_send_client_certificate(conn);
 		next_state = TLS_state_client_key_exchange;
 		break;
 
@@ -647,26 +823,26 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_certificate_verify:
-		ret = tls_send_certificate_verify(conn);
+		ret = tlcp_send_certificate_verify(conn);
 		next_state = TLS_state_client_change_cipher_spec;
 
 	case TLS_state_client_change_cipher_spec:
-		ret = tls_send_change_cipher_spec(conn);
+		ret = tlcp_send_change_cipher_spec(conn);
 		next_state = TLS_state_client_finished;
 		break;
 
 	case TLS_state_client_finished:
-		ret = tls_send_client_finished(conn);
+		ret = tlcp_send_client_finished(conn);
 		next_state = TLS_state_server_change_cipher_spec;
 		break;
 
 	case TLS_state_server_change_cipher_spec:
-		ret = tls_recv_change_cipher_spec(conn);
+		ret = tlcp_recv_change_cipher_spec(conn);
 		next_state = TLS_state_server_finished;
 		break;
 
 	case TLS_state_server_finished:
-		ret = tls_recv_server_finished(conn);
+		ret = tlcp_recv_server_finished(conn);
 		next_state = TLS_state_handshake_over;
 		break;
 
@@ -706,12 +882,12 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_server_hello:
-		ret = tls_send_server_hello(conn);
+		ret = tlcp_send_server_hello(conn);
 		next_state = TLS_state_server_certificate;
 		break;
 
 	case TLS_state_server_certificate:
-		ret = tls_send_server_certificate(conn);
+		ret = tlcp_send_server_certificate(conn);
 		next_state = TLS_state_server_key_exchange;
 		break;
 
@@ -723,19 +899,19 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_certificate_request:
-		ret = tls_send_certificate_request(conn);
+		ret = tlcp_send_certificate_request(conn);
 		next_state = TLS_state_server_hello_done;
 		break;
 
 	case TLS_state_server_hello_done:
-		ret = tls_send_server_hello_done(conn);
+		ret = tlcp_send_server_hello_done(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_client_certificate;
 		else	next_state = TLS_state_client_key_exchange;
 		break;
 
 	case TLS_state_client_certificate:
-		ret = tls_recv_client_certificate(conn);
+		ret = tlcp_recv_client_certificate(conn);
 		next_state = TLS_state_client_key_exchange;
 		break;
 
@@ -747,7 +923,7 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_certificate_verify:
-		ret = tls_recv_certificate_verify(conn);
+		ret = tlcp_recv_certificate_verify(conn);
 		next_state = TLS_state_generate_keys;
 		break;
 
@@ -757,22 +933,22 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_client_change_cipher_spec:
-		ret = tls_recv_change_cipher_spec(conn);
+		ret = tlcp_recv_change_cipher_spec(conn);
 		next_state = TLS_state_client_finished;
 		break;
 
 	case TLS_state_client_finished:
-		ret = tls_recv_client_finished(conn);
+		ret = tlcp_recv_client_finished(conn);
 		next_state = TLS_state_server_change_cipher_spec;
 		break;
 
 	case TLS_state_server_change_cipher_spec:
-		ret = tls_send_change_cipher_spec(conn);
+		ret = tlcp_send_change_cipher_spec(conn);
 		next_state = TLS_state_server_finished;
 		break;
 
 	case TLS_state_server_finished:
-		ret = tls_send_server_finished(conn);
+		ret = tlcp_send_server_finished(conn);
 		next_state = TLS_state_handshake_over;
 		break;
 
