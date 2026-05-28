@@ -16,6 +16,12 @@
 #include <gmssl/tls.h>
 #include <gmssl/error.h>
 
+#ifdef _WIN32
+#define tls_stdio_fileno(fp) _fileno(fp)
+#else
+#define tls_stdio_fileno(fp) fileno(fp)
+#endif
+
 
 static const char *http_get =
 	"GET / HTTP/1.1\r\n"
@@ -645,7 +651,7 @@ bad:
 		FD_SET(conn.sock, &fds_recv);
 
 		// listen stdin
-		FD_SET(fileno(stdin), &fds_recv);
+		FD_SET(tls_stdio_fileno(stdin), &fds_recv);
 
 
 		if (sent_len > 0) {
@@ -677,7 +683,7 @@ bad:
 
 		}
 
-		if (FD_ISSET(fileno(stdin), &fds_recv)) {
+		if (FD_ISSET(tls_stdio_fileno(stdin), &fds_recv)) {
 
 			memset(send_buf, 0, sizeof(send_buf));
 
