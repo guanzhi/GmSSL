@@ -1503,39 +1503,31 @@ static const int tls12_ciphers[] = {
 
 static const int tls13_ciphers[] = {
 	TLS_cipher_sm4_gcm_sm3,
+	TLS_cipher_aes_128_gcm_sha256,
 };
 
-int tls_cipher_suite_support_protocol(int cipher, int protocol)
+int tls_cipher_suite_match_protocol(int cipher, int protocol)
 {
-	const int *ciphers;
-	size_t ciphers_cnt;
-
-
 	switch (protocol) {
 	case TLS_protocol_tlcp:
-		ciphers = tlcp_ciphers;
-		ciphers_cnt = sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]);
+		if (!tls_type_is_in_list(cipher, tlcp_ciphers, sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]))) {
+			return 0;
+		}
 		break;
 	case TLS_protocol_tls12:
-		ciphers = tls12_ciphers;
-		ciphers_cnt = sizeof(tls12_ciphers)/sizeof(tls12_ciphers[0]);
+		if (!tls_type_is_in_list(cipher, tls12_ciphers, sizeof(tls12_ciphers)/sizeof(tls12_ciphers[0]))) {
+			return 0;
+		}
 		break;
 	case TLS_protocol_tls13:
-		ciphers = tls13_ciphers;
-		ciphers_cnt = sizeof(tls13_ciphers)/sizeof(tls13_ciphers[0]);
+		if (!tls_type_is_in_list(cipher, tls13_ciphers, sizeof(tls13_ciphers)/sizeof(tls13_ciphers[0]))) {
+			return 0;
+		}
 		break;
 	default:
 		error_print();
 		return -1;
 	}
-
-	/*
-			
-	if (!tls_cipher_suite_in_list(cipher, ciphers, ciphers_cnt)) {
-		error_print();
-		return 0;
-	}
-	*/
 	return 1;
 }
 
