@@ -885,11 +885,11 @@ int lms_signature_to_merkle_root(const uint8_t I[16], size_t h, int q,
 	size_t i;
 
 	n = (size_t)1 << h;
-	if (q >= n) {
+	if (q < 0 || (size_t)q >= n) {
 		error_print();
 		return -1;
 	}
-	r = n + q;
+	r = n + (size_t)q;
 	PUTU32(rbytes, r);
 
 	lmots_signature_to_public_hash(I, q, y, dgst, root);

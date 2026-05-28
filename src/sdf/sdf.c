@@ -389,7 +389,6 @@ int sdf_generate_key(SDF_DEVICE *dev, SDF_KEY *key,
 	ECCrefPublicKey eccPublicKey;
 	ECCCipher eccCipher;
 	SM2_CIPHERTEXT ciphertext;
-	int ret;
 
 	if (!dev || !key || !sm2_key || !wrappedkey_len) {
 		error_print();
@@ -748,7 +747,6 @@ int sdf_export_encrypt_public_key(SDF_DEVICE *dev, int key_index, SM2_KEY *sm2_k
 int sdf_load_private_key(SDF_DEVICE *dev, SDF_PRIVATE_KEY *key, int key_index, const char *pass)
 {
 	void *hSession = NULL;
-	ECCrefPublicKey eccPublicKey;
 
 	if (!dev || !key || !pass) {
 		error_print();

@@ -1878,7 +1878,7 @@ int xmssmt_build_auth_path(const xmss_hash256_t *tree, size_t height, size_t lay
 
 	for (i = 0; i < layers; i++) {
 		uint64_t local_index = index & (((uint64_t)1 << (height/layers)) - 1);
-		xmss_build_auth_path(tree, height/layers, local_index, auth_path);
+		xmss_build_auth_path(tree, height/layers, (uint32_t)local_index, auth_path);
 		auth_path += height/layers;
 		index >>= height/layers;
 		tree += xmss_num_tree_nodes(height/layers);

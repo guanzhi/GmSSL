@@ -95,9 +95,6 @@ int secp256r1_public_key_to_bytes(const SECP256R1_KEY *key, uint8_t **out, size_
 
 int secp256r1_public_key_from_bytes(SECP256R1_KEY *key, const uint8_t **in, size_t *inlen)
 {
-	secp256r1_t x;
-	secp256r1_t y;
-
 	if (!key || !in || !(*in) || !inlen) {
 		error_print();
 		return -1;
