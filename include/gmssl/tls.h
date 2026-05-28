@@ -470,7 +470,7 @@ int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen);
 // parse ServerKeyExchange, ClientKeyExchange depends on current cipher_suite		
 #define tls_format_set_cipher_suite(fmt,cipher)	do {(fmt)|=((cipher)<<8);} while (0)
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
-int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
+int tlcp_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen);
 
 int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock);
 int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock);
@@ -1535,7 +1535,7 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 #	define tls_trace(s) fprintf(stderr,(s))
 #	define tls_record_trace(fp,rec,reclen,fmt,ind)  tls_record_print(fp,rec,reclen,fmt,ind)
 #	define tls_encrypted_record_trace(fp,rec,reclen,fmt,ind)  tls_encrypted_record_print(fp,rec,reclen,fmt,ind)
-#	define tlcp_record_trace(fp,rec,reclen,fmt,ind)  tlcp_record_print(fp,rec,reclen,fmt,ind)
+#	define tlcp_record_trace(fp,rec,reclen,fmt,ind)  tlcp_record_print(fp,fmt,ind,rec,reclen)
 #	define tls12_record_trace(fp,rec,reclen,fmt,ind)  tls12_record_print(fp,rec,reclen,fmt,ind)
 #	define tls13_record_trace(fp,rec,reclen,fmt,ind)  tls13_record_print(fp,fmt,ind,rec,reclen)
 #else

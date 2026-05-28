@@ -44,7 +44,7 @@ static const int tlcp_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3 };
 static const size_t tlcp_ciphers_count = sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]);
 
 
-int tlcp_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
+int tlcp_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen)
 {
 	// 目前只支持TLCP的ECC公钥加密套件，因此不论用哪个套件解析都是一样的
 	// 如果未来支持ECDHE套件，可以将函数改为宏，直接传入 (conn->cipher_suite << 8)
@@ -95,6 +95,7 @@ int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *r
 	tls_record_set_handshake(record, recordlen, type, NULL, len);
 	return 1;
 }
+
 
 int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen)
@@ -193,7 +194,7 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 		// offset = 0, recordlen > 0
 
 		tls_trace("send ClientHello\n");
-		tlcp_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 		sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
 	}
 
@@ -250,7 +251,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tlcp_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 
 	// 这里TLCP和TLS12是不一样的
@@ -355,7 +356,7 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -399,7 +400,7 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tlcp_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tlcp_record_get_handshake_server_key_exchange_pke(conn->record, &sig, &siglen) != 1) {
 		error_print();
@@ -510,7 +511,7 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
-	tlcp_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 	if (tls_record_send(conn->record, conn->recordlen, conn->sock) != 1) {
 		error_print();
 		return -1;
@@ -535,7 +536,7 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tlcp_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls_record_get_handshake_client_key_exchange_pke(conn->record, &enced_pms, &enced_pms_len) != 1) {
 		error_print();
@@ -915,4 +916,3 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 
 	return 1;
 }
-
