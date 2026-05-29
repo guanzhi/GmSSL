@@ -2732,7 +2732,7 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	}
 	
 	if (ctx->protocol == TLS_protocol_tlcp) {
-		sm3_init(&conn->sm3_ctx);
+		//sm3_init(&conn->sm3_ctx);
 	}
 
 

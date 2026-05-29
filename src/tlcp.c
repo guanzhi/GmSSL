@@ -1909,7 +1909,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 	// 应该把protocol_version的初始化放在这里
 
 	conn->state = TLS_state_client_hello;
-	sm3_init(&conn->sm3_ctx);
+	//sm3_init(&conn->sm3_ctx);
 
 	while (1) {
 
@@ -1946,7 +1946,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 
 	conn->state = TLS_state_client_hello;
 
-	sm3_init(&conn->sm3_ctx);
+	//sm3_init(&conn->sm3_ctx);
 
 	while (1) {
 

@@ -28,5 +28,5 @@
 "    cat cacert.pem >> certs.pem\n"
 "\n"
 "    gmssl tls12_server -port 4430 -cert certs.pem -key signkey.pem -pass 1234\n"
-"    gmssl tls12_client -host 127.0.0.1 -port 4430 -cacert rootcacert.pem\n"
+"    gmssl tls12_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 -cacert rootcacert.pem\n"
 

@@ -626,10 +626,10 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	}
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto end;
-		format_print(fp, format, indent, "Extensions\n");
-		indent += 4;
+		tls_extensions_print(fp, exts, exts_len, format, indent);
 	}
-	// 打印扩展
+
+	/*
 	while (exts_len > 0) {
 		uint16_t ext_type;
 		const uint8_t *ext_data;
@@ -642,10 +642,9 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 		}
 
 		format_print(fp, format, indent, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
-		indent += 4;
 
-		tls_extensions_print(fp, exts, exts_len, format, indent);
 	}
+	*/
 
 	if (datalen > 0) {
 		error_print();
@@ -700,9 +699,7 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 		tls_compression_method_name(comp_meth), comp_meth);
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto bad;
-		//format_bytes(fp, format, indent, "Extensions : ", exts, exts_len); // FIXME: extensions_print		
-		//tls_extensions_print(fp, exts, exts_len, format, indent);
-		//tls13_extensions_print(fp, format, indent, TLS_handshake_server_hello, exts, exts_len);
+		tls_extensions_print(fp, exts, exts_len, format, indent);
 	}
 	return 1;
 bad:

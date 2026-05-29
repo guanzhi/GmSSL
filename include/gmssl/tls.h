@@ -18,6 +18,7 @@
 #include <gmssl/sm3.h>
 #include <gmssl/sm4.h>
 #include <gmssl/digest.h>
+#include <gmssl/hmac.h>
 #include <gmssl/block_cipher.h>
 #include <gmssl/socket.h>
 #include <gmssl/x509_key.h>
@@ -1057,15 +1058,21 @@ typedef struct {
 
 
 	// transcript hash
-	SM3_CTX sm3_ctx;
+	//SM3_CTX sm3_ctx;
 	DIGEST_CTX dgst_ctx;
 
 
 	// secrets
-	SM3_HMAC_CTX client_write_mac_ctx;
-	SM3_HMAC_CTX server_write_mac_ctx;
+	HMAC_CTX client_write_mac_ctx;
+	HMAC_CTX server_write_mac_ctx;
+
 	SM4_KEY client_write_enc_key;
 	SM4_KEY server_write_enc_key;
+
+
+
+
+
 	uint8_t client_seq_num[8];
 	uint8_t server_seq_num[8];
 
