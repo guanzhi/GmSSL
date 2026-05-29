@@ -30,10 +30,17 @@ static const char *help =
 "\n"
 "    -host str              Server's hostname\n"
 "    -port num              Server's port number, default 443\n"
+"    -cipher_suite str      Supported cipher suites, may appear multiple times, higher priority first\n"
+"    -supported_group str   Supported elliptic curves, may appear multiple times, higher priority first\n"
+"    -sig_alg str           Supported signature algorithms\n"
 "    -cacert file           Root CA certificate\n"
+"    -verify_depth num      Certificate verification depth\n"
 "    -cert file             Client's certificate chain in PEM format\n"
 "    -key file              Client's encrypted private key in PEM format\n"
 "    -pass str              Password to decrypt private key\n"
+"    -client_cert_optional  Allow client send empty Certificate\n"
+"    -server_name           Send server_name (SNI) request\n"
+"    -status_request        Send status_request (OCSP Stapling) request\n"
 "\n"
 #include "tls12_help.h"
 "\n";
@@ -44,15 +51,23 @@ int tls12_client_main(int argc, char *argv[])
 	char *prog = argv[0];
 	char *host = NULL;
 	int port = 443;
+	int cipher_suites[4];
+	size_t cipher_suites_cnt = 0;
+	int supported_groups[4];
+	size_t supported_groups_cnt = 0;
+	int sig_algs[4];
+	size_t sig_algs_cnt = 0;
 	char *cacertfile = NULL;
+	int verify_depth = TLS_DEFAULT_VERIFY_DEPTH;
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	int client_cert_optional = 0;
+	TLS_CTX ctx;
+	TLS_CONNECT conn;
 	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = -1;
-	TLS_CTX ctx;
-	TLS_CONNECT conn;
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
@@ -74,9 +89,59 @@ int tls12_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
+		} else if (!strcmp(*argv, "-cipher_suite")) {
+			char *cipher_suite_name;
+			int cipher_suite;
+			if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
+				fprintf(stderr, "%s: too many -cipher_suite options\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			cipher_suite_name = *(++argv);
+			if ((cipher_suite = tls_cipher_suite_from_name(cipher_suite_name)) == 0) {
+				fprintf(stderr, "%s: invalid -cipher_suite '%s' value\n", prog, cipher_suite_name);
+				return -1;
+			}
+			cipher_suites[cipher_suites_cnt] = cipher_suite;
+			cipher_suites_cnt++;
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
+		} else if (!strcmp(*argv, "-verify_depth")) {
+			if (--argc < 1) goto bad;
+			verify_depth = atoi(*(++argv));
+			if (verify_depth < 1) {
+				fprintf(stderr, "%s: invalid -verify_depth value '%d'\n", prog, verify_depth);
+				return -1;
+			}
+		} else if (!strcmp(*argv, "-supported_group")) {
+			char *supported_group_name;
+			int supported_group;
+			if (supported_groups_cnt >= sizeof(supported_groups)/sizeof(supported_groups[0])) {
+				fprintf(stderr, "%s: too many -supported_group options\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			supported_group_name = *(++argv);
+			if ((supported_group = tls_named_curve_from_name(supported_group_name)) == 0) {
+				fprintf(stderr, "%s: -supported_group '%s' not supported\n", prog, supported_group_name);
+				return -1;
+			}
+			supported_groups[supported_groups_cnt++] = supported_group;
+		} else if (!strcmp(*argv, "-sig_alg")) {
+			char *sig_alg_name;
+			int sig_alg;
+			if (sig_algs_cnt >= sizeof(sig_algs)/sizeof(sig_algs[0])) {
+				fprintf(stderr, "%s: too many -sig_alg options\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			sig_alg_name = *(++argv);
+			if ((sig_alg = tls_signature_scheme_from_name(sig_alg_name)) == 0) {
+				fprintf(stderr, "%s: -sig_alg '%s' not supported\n", prog, sig_alg_name);
+				return -1;
+			}
+			sig_algs[sig_algs_cnt++] = sig_alg;
 		} else if (!strcmp(*argv, "-cert")) {
 			if (--argc < 1) goto bad;
 			certfile = *(++argv);
@@ -86,6 +151,8 @@ int tls12_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-client_cert_optional")) {
+			client_cert_optional = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -102,54 +169,92 @@ bad:
 		return -1;
 	}
 
+	if (!cipher_suites_cnt) {
+		fprintf(stderr, "%s: option '-cipher_suite' missing\n", prog);
+		return -1;
+	}
+
 	if (tls_socket_lib_init() != 1) {
 		error_print();
 		return -1;
 	}
 
-	if (!(hp = gethostbyname(host))) {
-		//herror("tls12_client: '-host' invalid"); // herror() not in winsock2, use WSAGetLastError() instead
+	if (tls_ctx_init(&ctx, TLS_protocol_tls12, TLS_client_mode) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
+		error_print();
 		goto end;
 	}
 
-	memset(&ctx, 0, sizeof(ctx));
-	memset(&conn, 0, sizeof(conn));
+	if (cacertfile) {
+		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, verify_depth) != 1) {
+			fprintf(stderr, "%s: failed to load CA certificate\n", prog);
+			goto end;
+		}
+	}
+
+	if (supported_groups_cnt > 0) {
+		if (tls_ctx_set_supported_groups(&ctx, supported_groups, supported_groups_cnt) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	if (sig_algs_cnt > 0) {
+		if (tls_ctx_set_signature_algorithms(&ctx, sig_algs, sig_algs_cnt) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	if (certfile) {
+		if (!keyfile) {
+			fprintf(stderr, "%s: option '-key' missing\n", prog);
+			goto end;
+		}
+		if (!pass) {
+			fprintf(stderr, "%s: option '-pass' missing\n", prog);
+			goto end;
+		}
+		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
+			fprintf(stderr, "%s: failed to load client certificate\n", prog);
+			goto end;
+		}
+	}
+
+	if (tls_init(&conn, &ctx) != 1) {
+		error_print();
+		goto end;
+	}
+
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
+		fprintf(stderr, "%s: faild to open socket\n", prog);
+		goto end;
+	}
+
+	if (!(hp = gethostbyname(host))) {
+		fprintf(stderr, "%s: failed to parse host name\n", prog, host);
+		goto end;
+	}
 
 	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
-
-	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
-		fprintf(stderr, "%s: create socket error\n", prog);
-		goto end;
-	}
 	if (tls_socket_connect(sock, &server) != 1) {
 		fprintf(stderr, "%s: socket connect error\n", prog);
 		goto end;
 	}
 
-	if (tls_ctx_init(&ctx, TLS_protocol_tls12, TLS_client_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, client_ciphers, sizeof(client_ciphers)/sizeof(client_ciphers[0])) != 1) {
-		fprintf(stderr, "%s: context init error\n", prog);
+	if (tls_set_socket(&conn, sock) != 1) {
+		error_print();
 		goto end;
 	}
-	if (cacertfile) {
-		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
-			fprintf(stderr, "%s: context init error\n", prog);
-			goto end;
-		}
-	}
-	if (certfile) {
-		if (tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
-			fprintf(stderr, "%s: context init error\n", prog);
-			goto end;
-		}
-	}
 
-	if (tls_init(&conn, &ctx) != 1
-		|| tls_set_socket(&conn, sock) != 1
-		|| tls_do_handshake(&conn) != 1) {
+	if (tls_do_handshake(&conn) != 1) {
 		fprintf(stderr, "%s: error\n", prog);
 		goto end;
 	}
