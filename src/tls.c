@@ -1042,6 +1042,7 @@ int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
+// FIXME: 这个函数没有提供缓冲区的长度限制
 int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen)
 {
 	int type;
@@ -2307,6 +2308,16 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 	return 1;
 }
 
+int tls_ctx_enable_verbose(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->verbose = enable ? 1 : 0;
+	return 1;
+}
+
 int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable)
 {
 	if (!ctx) {
@@ -2677,12 +2688,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	conn->is_client = ctx->is_client; // TODO: remove conn->is_client
 	conn->protocol = ctx->protocol;
 
-	/*
-	for (i = 0; i < ctx->cipher_suites_cnt; i++) {
-		conn->cipher_suites[i] = ctx->cipher_suites[i];
-	}
-	conn->cipher_suites_cnt = ctx->cipher_suites_cnt;
-	*/
 
 	if (ctx->certslen > TLS_MAX_CERTIFICATES_SIZE) {
 		error_print();
@@ -2696,14 +2701,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 		conn->server_certs_len = ctx->certslen;
 	}
 
-	/*
-	if (ctx->cacertslen > TLS_MAX_CERTIFICATES_SIZE) {
-		error_print();
-		return -1;
-	}
-	memcpy(conn->ca_certs, ctx->cacerts, ctx->cacertslen);
-	conn->ca_certs_len = ctx->cacertslen;
-	*/
 
 	conn->sign_key = ctx->signkey;
 	conn->kenc_key = ctx->kenckey;
@@ -2732,6 +2729,10 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 			conn->key_share = 1;
 		}
 
+	}
+	
+	if (ctx->protocol == TLS_protocol_tlcp) {
+		sm3_init(&conn->sm3_ctx);
 	}
 
 
@@ -2869,3 +2870,54 @@ int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, 
 	fprintf(fp, "\n");
 	return 1;
 }
+
+
+int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx)
+{
+	DIGEST_CTX tmp_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	tmp_ctx = *dgst_ctx;
+
+	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	format_print(fp, fmt, ind, "transcript_hash ");
+	format_bytes(fp, 0, 0, label, dgst, dgstlen);
+
+	return 1;
+}
+
+int tls_compute_verify_data(const uint8_t master_secret[48],
+	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12])
+{
+	const size_t master_secret_len = 48;
+	const size_t verify_data_len = 12;
+	DIGEST_CTX tmp_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	if (!master_secret || !dgst_ctx || !verify_data) {
+		error_print();
+		return -1;
+	}
+	tmp_ctx = *dgst_ctx;
+
+	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_prf(master_secret, master_secret_len,
+		label, // "client finished" or "server finished",
+		dgst, dgstlen, NULL, 0,
+		verify_data_len, verify_data) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+

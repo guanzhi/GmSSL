@@ -372,18 +372,8 @@ int tls13_derive_secret(const uint8_t secret[32], const char *label, const DIGES
 	return 1;
 }
 
-int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx)
-{
-	DIGEST_CTX tmp_ctx;
 
-	tmp_ctx = *dgst_ctx;
 
-	//digest_finish(&tmp_ctx, dgst, &dgstlen);
-	//format_print(fp, fmt, ind, "Transcript-Hash ");
-	//format_bytes(fp, 0, 0, label, dgst, dgstlen);
-
-	return 1;
-}
 
 
 /*

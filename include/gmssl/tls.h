@@ -200,7 +200,7 @@ typedef enum {
 	TLS_extension_signature_algorithms	= 13,
 	TLS_extension_use_srtp			= 14,
 	TLS_extension_heartbeat			= 15,
-	TLS_extension_application_layer_protocol_negotiation= 16,
+	TLS_extension_application_layer_protocol_negotiation = 16,
 	TLS_extension_status_request_v2		= 17,
 	TLS_extension_signed_certificate_timestamp = 18,
 	TLS_extension_client_certificate_type	= 19,
@@ -240,6 +240,7 @@ typedef enum {
 	TLS_extension_external_session_id	= 56,
 	TLS_extension_quic_transport_parameters	= 57,
 	TLS_extension_ticket_request		= 58,
+	TLS_extension_client_id			= 66, // TLCP (GM/T 0024-2023) only
 	TLS_extension_renegotiation_info	= 65281,
 } TLS_EXTENSION_TYPE;
 
@@ -751,6 +752,7 @@ typedef struct {
 	int is_client;
 
 	int quiet;
+	int verbose;
 
 	int protocol;
 
@@ -813,6 +815,9 @@ typedef struct {
 	// 0. server_name (SNI)
 	// server_name is connection only
 
+	// 3. trusted_ca_keys
+	int trusted_ca_keys;
+
 	// 5. status_request
 	int status_request; // if send in ClientHello, CertificateRequest
 	// list of (uint24array)CertificateEntry.extensions.status_request.response
@@ -827,6 +832,9 @@ typedef struct {
 	// 13. signature_algorithms
 	int signature_algorithms[2];
 	size_t signature_algorithms_cnt;
+
+	// 16. application_layer_protocol_negotiation
+	int application_layer_protocol_negotiation;
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
@@ -874,6 +882,9 @@ typedef struct {
 	// 51. key_share
 	size_t key_exchanges_cnt;
 
+	// 66. client_id (TLCP only)
+	int client_id;
+
 } TLS_CTX;
 
 
@@ -896,6 +907,9 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const uint8_t *entity_status_request_ocsp_responses, size_t entity_status_request_ocsp_responses_len, // optional
 	const uint8_t *entity_signed_certificate_timestamp_list, size_t entity_signed_certificate_timestamp_list_len, // optional
 	const char *keyfile, const char *keypass);
+
+
+int tls_ctx_enable_verbose(TLS_CTX *ctx, int enable);
 
 
 // KeyUpdate
@@ -1116,6 +1130,9 @@ typedef struct {
 	size_t host_name_len;
 	// EncryptedExtensions.server_name (emtpy)
 
+	// 3. trusted_ca_keys
+	int trusted_ca_keys;
+
 	// 5. status_request
 	int status_request;
 	// ClientHello.status_request
@@ -1139,6 +1156,9 @@ typedef struct {
 	// 这两个变量应该删除，目前仅在TLS12实现中使用
 	int signature_algorithms[2];
 	size_t signature_algorithms_cnt;
+
+	// 16. application_layer_protocol_negotiation
+	int application_layer_protocol_negotiation;
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
@@ -1215,6 +1235,9 @@ typedef struct {
 	int key_exchange_group;
 	uint8_t peer_key_exchange[65]; //这个似乎应该替换掉
 	size_t peer_key_exchange_len;
+
+	// 66. client_id (TLCP only)
+	int client_id;
 
 } TLS_CONNECT;
 
@@ -1355,6 +1378,10 @@ int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable);
 
 
 int tls_generate_keys(TLS_CONNECT *conn);
+
+int tls_compute_verify_data(const uint8_t master_secret[48],
+	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12]);
+
 
 int tls13_update_client_application_keys(TLS_CONNECT *conn);
 int tls13_update_server_application_keys(TLS_CONNECT *conn);
@@ -1979,6 +2006,8 @@ int tls13_key_share_server_hello_print(FILE *fp, int fmt, int ind,
 	const uint8_t *data, size_t datalen);
 
 int tls13_ctx_set_max_key_exchanges(TLS_CTX *ctx, size_t cnt);
+
+int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx);
 
 #define TLS_DEFAULT_KEY_EXCHANGES_CNT 1
 
