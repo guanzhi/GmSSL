@@ -25,6 +25,9 @@
 #include <gmssl/tls.h>
 
 
+// 握手协商cipher_suite, certs等还没有完成
+// master_secret是正确的，但是加密的finished不正确
+
 
 // 实际上这个功能本质上是把缓冲区的数据发出去
 static const int tls12_ciphers[] = {
@@ -592,6 +595,59 @@ int tls_record_get_handshake_client_key_exchange(const uint8_t *record,
 	return 1;
 }
 
+
+// TLS1.2选择证书链的逻辑是什么？
+/*
+我觉得核心应该是看cipher_suite
+然后看server_name
+
+*/
+int tls12_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
+	const int *cipher_suites, size_t cipher_suites_cnt,
+	const int *signature_algorithms, size_t signature_algorithms_cnt,
+	const uint8_t *ca_names, size_t ca_names_len, // certificate_authorities optional
+	const uint8_t *host_name, size_t host_name_len, // optional, only in ClientHello
+	const uint8_t **certs, size_t *certs_len, size_t *certs_idx, int *prefered_sig_alg) // optional
+{
+	size_t i;
+
+	if (!cert_chains || !cert_chains_len) {
+		error_print();
+		return -1;
+	}
+
+	for (i = 1; cert_chains_len; i++) {
+		const uint8_t *cert_chain;
+		size_t cert_chain_len;
+		int sig_alg;
+		int ret;
+
+		if (tls_uint24array_from_bytes(&cert_chain, &cert_chain_len,
+			&cert_chains, &cert_chains_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+		if (certs) *certs = cert_chain;
+		if (certs_len) *certs_len = cert_chain_len;
+		if (certs_idx) *certs_idx = i;
+		if (prefered_sig_alg) *prefered_sig_alg = sig_alg;
+		return 1;
+	}
+
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+						
+
 void tls_clean_record(TLS_CONNECT *conn)
 {
 	conn->record_offset = 0;
@@ -613,6 +669,8 @@ int tls_handshake_init(TLS_CONNECT *conn)
 	return 1;
 }
 
+const int ec_point_formats[] = { TLS_point_uncompressed };
+size_t ec_point_formats_cnt = sizeof(ec_point_formats)/sizeof(ec_point_formats[0]);
 
 
 int tls_send_client_hello(TLS_CONNECT *conn)
@@ -620,8 +678,6 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 	int ret;
 
 	if (!conn->recordlen) {
-		const int ec_point_formats[] = { TLS_point_uncompressed };
-		size_t ec_point_formats_cnt = sizeof(ec_point_formats)/sizeof(ec_point_formats[0]);
 		uint8_t exts[TLS_MAX_EXTENSIONS_SIZE];
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
@@ -775,6 +831,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	*/
 
 	conn->cipher = BLOCK_CIPHER_sm4();
+
 	conn->digest = DIGEST_sm3();
 
 	/*
@@ -812,14 +869,38 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	}
 
 
+	// select server certificate
+	// 这里的逻辑还没有实现，sig_alg也要处理
+
+	if (tls12_cert_chains_select(conn->ctx->cert_chains, conn->ctx->cert_chains_len,
+		NULL, 0,
+		NULL, 0,
+		NULL, 0,
+		NULL, 0,
+		&conn->cert_chain, &conn->cert_chain_len, &conn->cert_chain_idx, &conn->sig_alg) != 1) {
+		error_print();
+		return -1;
+	}
+	// 上面这个逻辑里面根本找不到合适的sig_alg	xxxxx
+	conn->sig_alg = TLS_sig_ecdsa_secp256r1_sha256;
+
+
+	// 还要设置密钥交换的算法
+	conn->key_exchange_group = TLS_curve_secp256r1;
+
+
 	if (digest_init(&conn->dgst_ctx, conn->digest) != 1) {
 		error_print();
 		return -1;
 	}
-	if (digest_update(&conn->dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
+	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
 		return -1;
 	}
+	tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
+
+
+
 
 	/*
 	if (client_verify)
@@ -839,30 +920,61 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 	tls_trace("send ServerHello\n");
 
 	if (conn->recordlen == 0) {
-		const uint8_t *server_exts = NULL;
-		size_t server_exts_len = 0;
+
+		uint8_t exts[512];
+		uint8_t *pexts = exts;
+		size_t extslen = 0;
 
 		tls_record_set_protocol(conn->record, conn->protocol);
+
 		if (tls_random_generate(conn->server_random) != 1) {
 			error_print();
 			return -1;
 		}
-		// 修改处理扩展的逻辑，把ClientHello的每个扩展处理结果分别放在conn的各个变量中
+
+
+		// extensions in ServerHello
+		//	ec_point_formats
+		//	supported_groups
+		//	signature_algorithms
+
+
+		if (tls_ec_point_formats_ext_to_bytes(ec_point_formats, ec_point_formats_cnt, &pexts, &extslen) != 1) {
+			error_print();
+			return -1;
+		}
+
 		/*
-		if (conn->server_exts_len) {
-			server_exts = conn->server_exts;
-			server_exts_len = conn->server_exts_len;
+		if (tls_supported_groups_ext_to_bytes(conn->ctx->supported_groups, conn->ctx->supported_groups_cnt,
+			&pexts, &extslen) != 1) {
+			error_print();
+			return -1;
+		}
+
+		if (tls_signature_algorithms_ext_to_bytes(conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
+			&pexts, &extslen) != 1) {
+			error_print();
+			return -1;
 		}
 		*/
+
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->server_random, NULL, 0,
 			conn->cipher_suite,
-			server_exts, server_exts_len) != 1) {
+			exts, extslen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+
+
+		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
+
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -1072,12 +1184,19 @@ int tls_send_server_certificate(TLS_CONNECT *conn)
 
 	if (conn->recordlen == 0) {
 		if (tls_record_set_handshake_certificate(conn->record, &conn->recordlen,
-			conn->server_certs, conn->server_certs_len) != 1) {
+			conn->cert_chain, conn->cert_chain_len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+
+		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_handshake_digest_print(stderr, 0, 0, "Certificate", &conn->dgst_ctx);
+
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -1087,7 +1206,6 @@ int tls_send_server_certificate(TLS_CONNECT *conn)
 		return ret;
 	}
 
-	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
 	if (conn->client_certificate_verify) {
 		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
 	}
@@ -1222,19 +1340,21 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 	tls_trace("send ServerKeyExchange\n");
 
 	if (conn->recordlen == 0) {
-		int curve_oid = tls_named_curve_oid(conn->ecdh_named_curve);
+		int curve_oid = tls_named_curve_oid(conn->key_exchange_group);
+
+
 		// generate server ecdh_key
-		if (x509_key_generate(&conn->ecdh_key, OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
+		if (x509_key_generate(&conn->key_exchanges[0], OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
 			error_print();
 			return -1;
 		}
 
 		// build server_ecdh_params
 		server_ecdh_params[0] = TLS_curve_type_named_curve;
-		server_ecdh_params[1] = conn->ecdh_named_curve >> 8;
-		server_ecdh_params[2] = (uint8_t)conn->ecdh_named_curve;
+		server_ecdh_params[1] = conn->key_exchange_group >> 8;
+		server_ecdh_params[2] = (uint8_t)conn->key_exchange_group;
 		server_ecdh_params[3] = 65;
-		if (x509_public_key_to_bytes(&conn->ecdh_key, &p, &len) != 1) {
+		if (x509_public_key_to_bytes(&conn->key_exchanges[0], &p, &len) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1243,12 +1363,14 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 
+		X509_KEY *sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
+
 		// sign server_ecdh_params
-		if (conn->sign_key.algor == OID_ec_public_key && conn->sign_key.algor_param == OID_sm2) {
+		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
 			sign_args = SM2_DEFAULT_ID;
 			sign_argslen = SM2_DEFAULT_ID_LENGTH;
 		}
-		if (x509_sign_init(&sign_ctx, &conn->sign_key, sign_args, sign_argslen) != 1
+		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1
 			|| x509_sign_update(&sign_ctx, conn->client_random, 32) != 1
 			|| x509_sign_update(&sign_ctx, conn->server_random, 32) != 1
 			|| x509_sign_update(&sign_ctx, server_ecdh_params, 69) != 1
@@ -1259,14 +1381,24 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		}
 		x509_sign_ctx_cleanup(&sign_ctx);
 
+
 		if (tls_record_set_handshake_server_key_exchange(conn->record, &conn->recordlen,
 			server_ecdh_params, sizeof(server_ecdh_params),
-			conn->signature_algorithms[0], sig, siglen) != 1) {
+			conn->sig_alg, sig, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+
+
+		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
+
+
 	}
 
 
@@ -1648,6 +1780,13 @@ int tls_send_server_hello_done(TLS_CONNECT *conn)
 	if (conn->recordlen == 0) {
 		tls_record_set_handshake_server_hello_done(conn->record, &conn->recordlen);
 		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+
+
+		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_handshake_digest_print(stderr, 0, 0, "ServerHelloDone", &conn->dgst_ctx);
 	}
 
 
@@ -1657,7 +1796,6 @@ int tls_send_server_hello_done(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
 
 	if (conn->client_certs_len) {
 		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
@@ -1964,10 +2102,18 @@ int tls_recv_client_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	memcpy(conn->peer_ecdh_point, point_octets, point_octets_len);
-	conn->peer_ecdh_point_len = point_octets_len;
+	memcpy(conn->peer_key_exchange, point_octets, point_octets_len);
+	conn->peer_key_exchange_len = point_octets_len;
 
-	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
+
+	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
+
+
+
 	if (conn->ctx->cacertslen)
 		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
 

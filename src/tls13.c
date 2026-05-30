@@ -7576,7 +7576,7 @@ int tls13_send_server_hello(TLS_CONNECT *conn)
 	tls_trace("send ServerHello\n");
 
 	if (conn->recordlen == 0) {
-		uint8_t exts[256];
+		uint8_t exts[256];// 256=> 需要的长度			
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
 

@@ -50,28 +50,16 @@ int tls12_server_main(int argc , char **argv)
 	size_t supported_groups_cnt = 0;
 	int sig_algs[4];
 	size_t sig_algs_cnt = 0;
-
-
 	char *certfiles[4];
 	size_t certfiles_cnt = 0;
 	char *keyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
 	size_t keyfiles_cnt = 0;
 	char *passes[sizeof(certfiles)/sizeof(certfiles[0])];
 	size_t passes_cnt = 0;
-
-	/*
-	char *certfile = NULL;
-	char *keyfile = NULL;
-	char *pass = NULL;
-	*/
-
 	int cert_request = 0;
 	char *cacertfile = NULL;
 	int verify_depth = TLS_DEFAULT_VERIFY_DEPTH;
 	int client_cert_optional = 0;
-
-	int server_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3, };
-
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
@@ -142,19 +130,6 @@ int tls12_server_main(int argc , char **argv)
 				return -1;
 			}
 			sig_algs[sig_algs_cnt++] = sig_alg;
-
-		/*
-		} else if (!strcmp(*argv, "-cert")) {
-			if (--argc < 1) goto bad;
-			certfile = *(++argv);
-		} else if (!strcmp(*argv, "-key")) {
-			if (--argc < 1) goto bad;
-			keyfile = *(++argv);
-		} else if (!strcmp(*argv, "-pass")) {
-			if (--argc < 1) goto bad;
-			pass = *(++argv);
-		*/
-
 		} else if (!strcmp(*argv, "-cert")) {
 			if (certfiles_cnt >= sizeof(certfiles)/sizeof(certfiles[0])) {
 				fprintf(stderr, "%s: too many -cert options\n", prog);
@@ -176,8 +151,6 @@ int tls12_server_main(int argc , char **argv)
 			}
 			if (--argc < 1) goto bad;
 			passes[passes_cnt++] = *(++argv);
-
-
 		} else if (!strcmp(*argv, "-cert_request")) {
 			cert_request = 1;
 		} else if (!strcmp(*argv, "-cacert")) {
@@ -215,6 +188,10 @@ bad:
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
+	if (certfiles_cnt != keyfiles_cnt || keyfiles_cnt != passes_cnt) {
+		error_print();
+		return -1;
+	}
 
 	if (tls_socket_lib_init() != 1) {
 		error_print();
@@ -247,11 +224,6 @@ bad:
 		}
 	}
 
-
-	if (certfiles_cnt != keyfiles_cnt || keyfiles_cnt != passes_cnt) {
-		error_print();
-		return -1;
-	}
 	// Certificate
 	for (i = 0; i < certfiles_cnt; i++) {
 		if (tls_ctx_add_certificate_chain_and_key(&ctx, certfiles[i], keyfiles[i], passes[i]) != 1) {
@@ -259,14 +231,6 @@ bad:
 			goto end;;
 		}
 	}
-
-	/*
-	if (tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
-		|| tls_ctx_set_certificate_and_key(&ctx, certfile, keyfile, pass) != 1) {
-		error_print();
-		return -1;
-	}
-	*/
 
 	// CertificateRequest
 	if (cert_request) {
@@ -289,17 +253,6 @@ bad:
 			}
 		}
 	}
-
-	/*
-	if (cacertfile) {
-		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
-			error_print();
-			return -1;
-		}
-	}
-	*/
-
-	// Socket
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		fprintf(stderr, "%s: create socket error\n", prog);
@@ -328,15 +281,19 @@ restart:
 	}
 	puts("socket connected\n");
 
-	if (tls_init(&conn, &ctx) != 1
-		|| tls_set_socket(&conn, conn_sock) != 1) {
+	if (tls_init(&conn, &ctx) != 1) {
 		error_print();
-		return -1;
+		goto end;
+	}
+
+	if (tls_set_socket(&conn, conn_sock) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (tls_do_handshake(&conn) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
 
 	for (;;) {
