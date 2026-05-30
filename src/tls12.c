@@ -29,6 +29,13 @@
 // master_secret是正确的，但是加密的finished不正确
 
 
+// 现在客户端的实现是正确的，但是服务器的实现错了，哈啊哈			
+// 因此可以用客户端来验证服务器的正确性
+
+
+
+
+
 // 实际上这个功能本质上是把缓冲区的数据发出去
 static const int tls12_ciphers[] = {
 	TLS_cipher_ecdhe_sm4_cbc_sm3,
@@ -172,10 +179,17 @@ int tls12_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *d
 	}
 
 	memcpy(iv, in, 16);
+
+	format_bytes(stderr, 0, 0, "itls12_cbc_decrypt: iv", iv, 16);
+
+
 	in += 16;
 	inlen -= 16;
 
 	cbc_decrypt_blocks(dec_key, iv, in, inlen/16, out);
+
+	format_bytes(stderr, 0, 0, "cbc_decrypt out", out, inlen);
+
 
 	padding_len = out[inlen - 1];
 	padding = out + inlen - padding_len - 1;
@@ -264,6 +278,7 @@ int tls12_prf(const DIGEST *digest, const uint8_t *secret, size_t secretlen, con
 	uint8_t A[32];
 	uint8_t hmac[32];
 	size_t len;
+
 
 	if (!secret || !secretlen || !label || !seed || !seedlen
 		|| (!more && morelen) || !outlen || !out) {
@@ -830,9 +845,9 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256
 	*/
 
-	conn->cipher = BLOCK_CIPHER_sm4();
+	conn->cipher = BLOCK_CIPHER_aes128();
 
-	conn->digest = DIGEST_sm3();
+	conn->digest = DIGEST_sha256();
 
 	/*
 	switch (conn->cipher_suite) {
@@ -1391,7 +1406,6 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		}
 		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
-
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
@@ -1937,9 +1951,6 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 SM9相关的密码套件呢？
 
 
-
-
-
 */
 
 int tls_generate_keys(TLS_CONNECT *conn)
@@ -1947,6 +1958,7 @@ int tls_generate_keys(TLS_CONNECT *conn)
 	uint8_t pre_master_secret[32];
 	size_t pre_master_secret_len;
 
+	// 这里密钥是完全用ECDHE生成的
 
 
 	if (x509_key_exchange(&conn->key_exchanges[0],
@@ -1960,13 +1972,24 @@ int tls_generate_keys(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (tls12_prf(conn->digest, pre_master_secret, 32, "master secret",
+	format_bytes(stderr, 0, 0, "pre_master_secret", pre_master_secret, pre_master_secret_len);
+
+	// master_secret和transcript_hash没有任何关系
+	if (tls12_prf(conn->digest,
+			pre_master_secret, 32,
+			"master secret",
 			conn->client_random, 32,
 			conn->server_random, 32,
 			48, conn->master_secret) != 1) {
 		error_print();
 		return -1;
 	}
+
+	format_bytes(stderr, 0, 0, "master_secret", conn->master_secret, 48);
+
+
+	// OpenSSL  tls1_prf 中，这里生成的是128字节，也就是把IV也生成了
+	// 为什么生成IV呢？
 
 	if (tls12_prf(conn->digest, conn->master_secret, 48, "key expansion",
 			conn->server_random, 32,
@@ -1977,6 +2000,15 @@ int tls_generate_keys(TLS_CONNECT *conn)
 		return -1;
 	}
 
+	/*
+	如果这里导出了IV，并且用这个IV去加密数据
+	被加密的数据中包含了一个随机的IV，那么这个随机的IV是干什么用的呢？
+
+
+	*/
+
+	format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, 96);
+
 	if (hmac_init(&conn->client_write_mac_ctx, conn->digest, conn->key_block, 32) != 1) {
 		error_print();
 		return -1;
@@ -1986,12 +2018,18 @@ int tls_generate_keys(TLS_CONNECT *conn)
 		return -1;
 	}
 
+	format_bytes(stderr, 0, 0, "client_write_mac_key", conn->key_block, 32);
+	format_bytes(stderr, 0, 0, "server_write_mac_key", conn->key_block + 32, 32);
+	format_bytes(stderr, 0, 0, "client_write_key", conn->key_block + 64, 16);
+	format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + 80, 16);
+
+
 	if (conn->is_client) {
 		block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, conn->key_block + 64);
 		block_cipher_set_decrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + 80);
 
-
 	} else {
+
 		block_cipher_set_decrypt_key(&conn->client_write_key, conn->cipher, conn->key_block + 64);
 		block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + 80);
 	}
@@ -2001,13 +2039,14 @@ int tls_generate_keys(TLS_CONNECT *conn)
 
 
 
-
+	/*
 	tls_secrets_print(stderr,
-		pre_master_secret, 48,
+		pre_master_secret, 32,
 		conn->client_random, conn->server_random,
 		conn->master_secret,
 		conn->key_block, 96,
 		0, 4);
+	*/
 
 	return 1;
 }
@@ -2305,7 +2344,6 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 
 		tls_record_set_protocol(conn->plain_record, conn->protocol);
 
-		// finished_record是没有问题的
 		if (tls_record_set_handshake_finished(conn->plain_record, &conn->plain_recordlen,
 			local_verify_data, sizeof(local_verify_data)) != 1) {
 			error_print();
@@ -2313,7 +2351,6 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		// 此时finished_record中的头部应该是完整的
 		tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
 
 		if (digest_update(&conn->dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
@@ -2332,6 +2369,7 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 		}
 		tls_seq_num_incr(conn->client_seq_num);
 
+		format_bytes(stderr, 0, 0, "encrypted finsished ..... ", conn->record, conn->recordlen);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -2348,52 +2386,69 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 {
 	int ret;
 
-	uint8_t finished_record[TLS_FINISHED_RECORD_BUF_SIZE];
-	size_t finished_record_len;
 	const uint8_t *verify_data;
 	size_t verify_data_len;
-
 	uint8_t local_verify_data[12];
 
-	SM3_CTX tmp_sm3_ctx;
-	uint8_t sm3_hash[32];
+	DIGEST_CTX tmp_ctx;
+	uint8_t dgst[32];
+	size_t dgstlen;
+
+
+	tmp_ctx = conn->dgst_ctx;
+
+	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls12_prf(conn->digest, conn->master_secret, 48, "client finished", dgst, dgstlen, NULL, 0,
+		sizeof(local_verify_data), local_verify_data) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, "verify_data", local_verify_data, 12);
+
 
 	// recv ClientFinished
-	tls_trace("recv Finished\n");
+	tls_trace("recv client {Finished}\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
 		}
 		return ret;
 	}
+	//tls12_record_print(stderr, conn->record, conn->recordlen, 0, 0);
+
+	format_bytes(stderr, 0, 0, "Finished", conn->record, conn->recordlen);
+
+
 	if (tls_record_protocol(conn->record) != conn->protocol) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	if (conn->recordlen > sizeof(finished_record)) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_unexpected_message);
-		return -1;
-	}
-	tls_encrypted_record_trace(stderr, conn->record, conn->recordlen, (1<<24), 0); // 强制打印密文原数据
 
 	// decrypt ClientFinished
-	tls_trace("decrypt Finished\n");
+	tls_trace(">>>>>>>decrypt Finished\n");
 
+
+	format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
 
 	if (tls12_record_decrypt(&conn->client_write_mac_ctx, &conn->client_write_key,
 		conn->client_seq_num, conn->record, conn->recordlen,
-		finished_record, &finished_record_len) != 1) {
-
-
+		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_record_mac);
 		return -1;
 	}
-	tls12_record_trace(stderr, finished_record, finished_record_len, 0, 0);
 	tls_seq_num_incr(conn->client_seq_num);
-	if (tls_record_get_handshake_finished(finished_record, &verify_data, &verify_data_len) != 1) {
+
+
+
+	tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
+
+	if (tls_record_get_handshake_finished(conn->plain_record, &verify_data, &verify_data_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_record_mac);
 		return -1;
@@ -2404,16 +2459,16 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	// verify ClientFinished
-	//memcpy(&tmp_sm3_ctx, &conn->sm3_ctx, sizeof(SM3_CTX));
-	//sm3_update(&conn->sm3_ctx, finished_record + 5, finished_record_len - 5);
-	//sm3_finish(&tmp_sm3_ctx, sm3_hash);
-	if (tls_prf(conn->master_secret, 48, "client finished", sm3_hash, 32, NULL, 0,
-		sizeof(local_verify_data), local_verify_data) != 1) {
+
+	if (digest_update(&conn->dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
+	tls_handshake_digest_print(stderr, 0, 0, "client Finished", &conn->dgst_ctx);
+
+	// verify ClientFinished
+
+
 	if (memcmp(verify_data, local_verify_data, sizeof(local_verify_data)) != 0) {
 		error_puts("client_finished.verify_data verification failure");
 		tls_send_alert(conn, TLS_alert_decrypt_error);
@@ -2428,35 +2483,44 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 	int ret;
 	uint8_t *record = conn->record;
 	size_t recordlen;
-	uint8_t sm3_hash[32];
 	uint8_t local_verify_data[12];
 
-	uint8_t finished_record[TLS_FINISHED_RECORD_BUF_SIZE];
-	size_t finished_record_len;
 
-	tls_record_set_protocol(finished_record, conn->protocol);
+	tls_record_set_protocol(conn->plain_record, conn->protocol);
 
 	if (conn->recordlen == 0) {
-		tls_trace("send Finished\n");
-	//	sm3_finish(&conn->sm3_ctx, sm3_hash);
-		if (tls_prf(conn->master_secret, 48, "server finished", sm3_hash, 32, NULL, 0,
-				sizeof(local_verify_data), local_verify_data) != 1
-			|| tls_record_set_handshake_finished(finished_record, &finished_record_len,
-				local_verify_data, sizeof(local_verify_data)) != 1) {
+		tls_trace("send server Finished\n");
+
+		uint8_t dgst[32];
+		size_t dgstlen;
+
+		digest_finish(&conn->dgst_ctx, dgst, &dgstlen);
+
+		if (tls12_prf(conn->digest, conn->master_secret, 48, "server finished", dgst, dgstlen, NULL, 0,
+			sizeof(local_verify_data), local_verify_data) != 1) {
+			error_print();
+			return -1;
+		}
+
+		format_bytes(stderr, 0, 0, "server verify_data", local_verify_data, 12);
+
+		if (tls_record_set_handshake_finished(conn->plain_record, &conn->plain_recordlen,
+			local_verify_data, sizeof(local_verify_data)) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, finished_record, finished_record_len, 0, 0);
+		tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
+
 		if (tls12_record_encrypt(&conn->server_write_mac_ctx, &conn->server_write_key,
-			conn->server_seq_num, finished_record, finished_record_len, record, &recordlen) != 1) {
+			conn->server_seq_num, conn->plain_record, conn->plain_recordlen,
+			conn->record, &conn->recordlen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls_trace("encrypt Finished\n");
-		tls_encrypted_record_trace(stderr, record, recordlen, (1<<24), 0); // 强制打印密文原数据
 		tls_seq_num_incr(conn->server_seq_num);
+
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -2465,7 +2529,6 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-
 
 	return 1;
 }
@@ -2484,6 +2547,21 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 	uint8_t local_verify_data[12];
 
 
+
+	if (digest_finish(&conn->dgst_ctx, dgst, &dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls12_prf(conn->digest, conn->master_secret, 48, "server finished",
+		dgst, dgstlen, NULL, 0,
+		sizeof(local_verify_data), local_verify_data) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, ">>> verify_data", local_verify_data, 12);
+
+
 	// Finished
 	tls_trace("recv server Finished\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
@@ -2500,6 +2578,10 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 
 
 	tls_trace("decrypt Finished\n");
+
+
+	format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
+
 	if (tls12_record_decrypt(&conn->server_write_mac_ctx, &conn->server_write_key,
 		conn->server_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
@@ -2511,7 +2593,7 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 
 	tls_seq_num_incr(conn->server_seq_num);
 
-	if (tls_record_get_handshake_finished(finished_record, &verify_data, &verify_data_len) != 1) {
+	if (tls_record_get_handshake_finished(conn->plain_record, &verify_data, &verify_data_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
@@ -2522,18 +2604,7 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (digest_finish(&conn->dgst_ctx, dgst, &dgstlen) != 1) {
-		error_print();
-		return -1;
-	}
 
-	if (tls12_prf(conn->digest, conn->master_secret, 48, "server finished",
-		dgst, dgstlen, NULL, 0,
-		sizeof(local_verify_data), local_verify_data) != 1) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
-	}
 	if (memcmp(verify_data, local_verify_data, sizeof(local_verify_data)) != 0) {
 		error_puts("server_finished.verify_data verification failure");
 		tls_send_alert(conn, TLS_alert_decrypt_error);

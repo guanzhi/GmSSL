@@ -75,7 +75,7 @@ static const BLOCK_CIPHER aes128_block_cipher_object = {
 	(block_cipher_set_encrypt_key_func)aes128_set_encrypt_key,
 	(block_cipher_set_decrypt_key_func)aes128_set_decrypt_key,
 	(block_cipher_encrypt_func)aes_encrypt,
-	(block_cipher_decrypt_func)aes_encrypt,
+	(block_cipher_decrypt_func)aes_decrypt,
 };
 
 const BLOCK_CIPHER *BLOCK_CIPHER_aes128(void) {
