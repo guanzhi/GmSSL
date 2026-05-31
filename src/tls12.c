@@ -25,18 +25,8 @@
 #include <gmssl/tls.h>
 
 
-// 握手协商cipher_suite, certs等还没有完成
-// master_secret是正确的，但是加密的finished不正确
 
 
-// 现在客户端的实现是正确的，但是服务器的实现错了，哈啊哈			
-// 因此可以用客户端来验证服务器的正确性
-
-
-
-
-
-// 实际上这个功能本质上是把缓冲区的数据发出去
 static const int tls12_ciphers[] = {
 	TLS_cipher_ecdhe_sm4_cbc_sm3,
 	TLS_cipher_ecdhe_sm4_gcm_sm3,
@@ -267,7 +257,6 @@ int tls12_record_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_k
 	return 1;
 }
 
-// 这个函数只依赖哈希
 int tls12_prf(const DIGEST *digest, const uint8_t *secret, size_t secretlen, const char *label,
 	const uint8_t *seed, size_t seedlen,
 	const uint8_t *more, size_t morelen,
@@ -611,18 +600,16 @@ int tls_record_get_handshake_client_key_exchange(const uint8_t *record,
 }
 
 
-// TLS1.2选择证书链的逻辑是什么？
-/*
-我觉得核心应该是看cipher_suite
-然后看server_name
 
-*/
+
 int tls12_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
-	const int *cipher_suites, size_t cipher_suites_cnt,
-	const int *signature_algorithms, size_t signature_algorithms_cnt,
+	const int *cipher_suites, size_t cipher_suites_cnt, // 应该是公共的cipher_suites
+	const int *supported_groups, size_t supported_groups_cnt, // optional
+	const int *signature_algorithms, size_t signature_algorithms_cnt, // optional
 	const uint8_t *ca_names, size_t ca_names_len, // certificate_authorities optional
 	const uint8_t *host_name, size_t host_name_len, // optional, only in ClientHello
-	const uint8_t **certs, size_t *certs_len, size_t *certs_idx, int *prefered_sig_alg) // optional
+	const uint8_t **certs, size_t *certs_len, size_t *certs_idx,
+	int *cipher_suite, int *prefered_group, int *prefered_sig_alg) // optional
 {
 	size_t i;
 
@@ -687,6 +674,9 @@ int tls_handshake_init(TLS_CONNECT *conn)
 const int ec_point_formats[] = { TLS_point_uncompressed };
 size_t ec_point_formats_cnt = sizeof(ec_point_formats)/sizeof(ec_point_formats[0]);
 
+
+
+// 有可能需要支持SNI
 
 int tls_send_client_hello(TLS_CONNECT *conn)
 {
@@ -827,6 +817,8 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 
 	memcpy(conn->client_random, client_random, 32);
 
+
+
 	if ((ret = tls_cipher_suites_select(cipher_suites, cipher_suites_len,
 		conn->ctx->cipher_suites, conn->ctx->cipher_suites_cnt,
 		&conn->cipher_suite)) < 0) {
@@ -839,32 +831,11 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	/*
-	TLS_cipher_ecdhe_sm4_cbc_sm3
-	TLS_cipher_ecdhe_sm4_gcm_sm3
-	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256
-	*/
 
 	conn->cipher = BLOCK_CIPHER_aes128();
 
 	conn->digest = DIGEST_sha256();
 
-	/*
-	switch (conn->cipher_suite) {
-	case TLS_cipher_ecdhe_sm4_cbc_sm3:
-	case TLS_cipher_ecdhe_sm4_gcm_sm3:
-		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
-		conn->ecdh_named_curve = TLS_curve_sm2p256v1;
-		break;
-	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-		conn->signature_algorithms[0] = TLS_sig_ecdsa_secp256r1_sha256;
-		conn->ecdh_named_curve = TLS_curve_secp256r1;
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	*/
 
 	while (extslen) {
 		int ext_type;
@@ -879,8 +850,6 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 
 
 		// 这些扩展都不是必须的
-
-
 	}
 
 
@@ -946,7 +915,6 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-
 
 		// extensions in ServerHello
 		//	ec_point_formats
@@ -1935,23 +1903,6 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 
 	return 1;
 }
-
-/*
-不同密码套件中使用的密钥生成方法不一样，需要的输入也不一样。
-应该考虑在CONN中维护union版本的ServerKeyExchange和ClientKeyExchange
-
-			ServerKeyExchange	ClientKeyExchange
-	ECDHE Server	X509_KEY		X509_KEY public
-	ECDHE Client	X509_KEY		X509_KEY public
-	ECC Server	N/A			SM2Cipher
-	ECC Client	N/A			N/A		客户端可能需要服务器公钥的类型
-
-
-我们现在还不支持SM2的ECDH呢！
-SM9相关的密码套件呢？
-
-
-*/
 
 int tls_generate_keys(TLS_CONNECT *conn)
 {
