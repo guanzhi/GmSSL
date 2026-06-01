@@ -201,3 +201,47 @@ void sha384_finish(SHA384_CTX *ctx, unsigned char dgst[SHA384_DIGEST_SIZE])
 	memcpy(dgst, buf, SHA384_DIGEST_SIZE);
 	memset(buf, 0, sizeof(buf));
 }
+
+
+void sha512_256_init(SHA512_CTX *ctx)
+{
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->state[0] = 0x22312194fc2bf72c;
+	ctx->state[1] = 0x9f555fa3c84c64c2;
+	ctx->state[2] = 0x2393b86b6f53b151;
+	ctx->state[3] = 0x963877195940eabd;
+	ctx->state[4] = 0x96283ee2a88effe3;
+	ctx->state[5] = 0xbe5e1e2553863992;
+	ctx->state[6] = 0x2b0199fc2c85b8aa;
+	ctx->state[7] = 0x0eb72ddc81c52ca2;
+}
+
+void sha512_256_finish(SHA512_CTX *ctx, unsigned char dgst[SHA256_DIGEST_SIZE])
+{
+	unsigned char buf[SHA512_DIGEST_SIZE];
+	sha512_finish(ctx, buf);
+	memcpy(dgst, buf, SHA256_DIGEST_SIZE);
+	memset(buf, 0, sizeof(buf));
+}
+
+void sha512_224_init(SHA512_CTX *ctx)
+{
+	memset(ctx, 0, sizeof(*ctx));
+	ctx->state[0] = 0x8c3d37c819544da2;
+	ctx->state[1] = 0x73e1996689dcd4d6;
+	ctx->state[2] = 0x1dfab7ae32ff9c82;
+	ctx->state[3] = 0x679dd514582f9fcf;
+	ctx->state[4] = 0x0f6d2b697bd44da8;
+	ctx->state[5] = 0x77e36f7304c48942;
+	ctx->state[6] = 0x3f9d85a86a1d36c8;
+	ctx->state[7] = 0x1112e6ad91d692a1;
+}
+
+void sha512_224_finish(SHA512_CTX *ctx, unsigned char dgst[SHA224_DIGEST_SIZE])
+{
+	unsigned char buf[SHA512_DIGEST_SIZE];
+	sha512_finish(ctx, buf);
+	memcpy(dgst, buf, SHA224_DIGEST_SIZE);
+	memset(buf, 0, sizeof(buf));
+}
+

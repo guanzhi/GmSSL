@@ -88,6 +88,15 @@ void sha512_update(SHA512_CTX *ctx, const uint8_t* data, size_t datalen);
 void sha512_finish(SHA512_CTX *ctx, uint8_t dgst[SHA512_DIGEST_SIZE]);
 
 
+void sha512_256_init(SHA512_CTX *ctx);
+#define sha512_256_update(ctx,data,datalen) sha512_update(ctx,data,datalen)
+void sha512_256_finish(SHA512_CTX *ctx, uint8_t dgst[SHA256_DIGEST_SIZE]);
+
+void sha512_224_init(SHA512_CTX *ctx);
+#define sha512_224_update(ctx,data,datalen) sha512_update(ctx,data,datalen)
+void sha512_224_finish(SHA512_CTX *ctx, uint8_t dgst[SHA224_DIGEST_SIZE]);
+
+
 #define SHA256_HMAC_SIZE	(SHA256_DIGEST_SIZE)
 
 typedef struct {

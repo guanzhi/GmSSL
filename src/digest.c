@@ -362,6 +362,26 @@ static int sha512_digest_init(DIGEST_CTX *ctx)
 	return 1;
 }
 
+static int sha512_224_digest_init(DIGEST_CTX *ctx)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	sha512_224_init(&ctx->u.sha512_ctx);
+	return 1;
+}
+
+static int sha512_256_digest_init(DIGEST_CTX *ctx)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	sha512_256_init(&ctx->u.sha512_ctx);
+	return 1;
+}
+
 static int sha512_digest_update(DIGEST_CTX *ctx, const uint8_t *in, size_t inlen)
 {
 	if (!ctx || (!in && inlen != 0)) {
@@ -382,6 +402,27 @@ static int sha512_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
 	return 1;
 }
 
+static int sha512_224_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
+{
+	if (!ctx || !dgst) {
+		error_print();
+		return -1;
+	}
+	sha512_224_finish(&ctx->u.sha512_ctx, dgst);
+	return 1;
+}
+
+static int sha512_256_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
+{
+	if (!ctx || !dgst) {
+		error_print();
+		return -1;
+	}
+	sha512_256_finish(&ctx->u.sha512_ctx, dgst);
+	return 1;
+}
+
+
 static const DIGEST sha512_digest_object = {
 	OID_sha512,
 	SHA512_DIGEST_SIZE,
@@ -397,26 +438,12 @@ const DIGEST *DIGEST_sha512(void)
         return &sha512_digest_object;
 }
 
-
-static int sha512_224_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
-{
-	uint8_t buf[SHA512_DIGEST_SIZE];
-	if (!ctx || !dgst) {
-		error_print();
-		return -1;
-	}
-	sha512_finish(&ctx->u.sha512_ctx, buf);
-	memcpy(dgst, buf, SHA224_DIGEST_SIZE);
-	memset(buf, 0, sizeof(buf));
-	return 1;
-}
-
 static const DIGEST sha512_224_digest_object = {
 	OID_sha512_224,
 	SHA224_DIGEST_SIZE,
 	SHA512_BLOCK_SIZE,
 	sizeof(SHA512_CTX),
-	sha512_digest_init,
+	sha512_224_digest_init,
 	sha512_digest_update,
 	sha512_224_digest_finish,
 };
@@ -426,27 +453,12 @@ const DIGEST *DIGEST_sha512_224(void)
         return &sha512_224_digest_object;
 }
 
-
-static int sha512_256_digest_finish(DIGEST_CTX *ctx, uint8_t *dgst)
-{
-	uint8_t buf[SHA512_DIGEST_SIZE];
-	if (!ctx || !dgst) {
-		error_print();
-		return -1;
-	}
-	sha512_finish(&ctx->u.sha512_ctx, buf);
-	memcpy(dgst, buf, SHA256_DIGEST_SIZE);
-	memset(buf, 0, sizeof(buf));
-	return 1;
-}
-
-
 static const DIGEST sha512_256_digest_object = {
 	OID_sha512_256,
 	SHA256_DIGEST_SIZE,
 	SHA512_BLOCK_SIZE,
 	sizeof(SHA512_CTX),
-	sha512_digest_init,
+	sha512_256_digest_init,
 	sha512_digest_update,
 	sha512_256_digest_finish,
 };
