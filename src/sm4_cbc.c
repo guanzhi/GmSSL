@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t piv[16],
 	uint8_t block[16];
 	size_t len = sizeof(block);
 	int padding;
+	int i;
 
 	memcpy(iv, piv, 16);
 
@@ -68,6 +69,13 @@ int sm4_cbc_padding_decrypt(const SM4_KEY *key, const uint8_t piv[16],
 		error_print();
 		return -1;
 	}
+	for (i = 16 - padding; i < 16; i++) {
+		if (block[i] != padding) {
+			error_print();
+			return -1;
+		}
+	}
+
 	len -= padding;
 	memcpy(out + inlen - 16, block, len);
 	*outlen = inlen - padding;
