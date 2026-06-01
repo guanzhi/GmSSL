@@ -603,13 +603,11 @@ int tls_record_get_handshake_client_key_exchange(const uint8_t *record,
 
 
 int tls12_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
-	const int *cipher_suites, size_t cipher_suites_cnt, // 应该是公共的cipher_suites
 	const int *supported_groups, size_t supported_groups_cnt, // optional
 	const int *signature_algorithms, size_t signature_algorithms_cnt, // optional
 	const uint8_t *ca_names, size_t ca_names_len, // certificate_authorities optional
 	const uint8_t *host_name, size_t host_name_len, // optional, only in ClientHello
-	const uint8_t **certs, size_t *certs_len, size_t *certs_idx,
-	int *cipher_suite, int *prefered_group, int *prefered_sig_alg) // optional
+	const uint8_t **certs, size_t *certs_len, size_t *certs_idx, int *prefered_sig_alg) // optional
 {
 	size_t i;
 
