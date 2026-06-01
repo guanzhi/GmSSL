@@ -92,8 +92,10 @@ int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
 		return -1;
 	}
 	for (i = 16 - padding; i < 16; i++) {
-		error_print();
-		return -1;
+		if (block[i] != padding) {
+			error_print();
+			return -1;
+		}
 	}
 
 	len -= padding;
