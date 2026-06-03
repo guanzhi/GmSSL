@@ -83,6 +83,10 @@ int cmsencrypt_main(int argc, char **argv)
 		fprintf(stderr, "usage: %s %s\n", prog, options);
 		return 1;
 	}
+	if (argc == 2 && !strcmp(argv[1], "-help")) {
+		printf("usage: %s %s\n", prog, options);
+		return 0;
+	}
 
 	// prepare cert buffer length?		
 	if (get_files_size(argc, argv, "-rcptcert", &rcpt_certs_len) != 1) {

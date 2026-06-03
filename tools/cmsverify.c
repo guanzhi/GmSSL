@@ -51,7 +51,7 @@ int cmsverify_main(int argc, char **argv)
 		return 1;
 	}
 
-	while (argc > 1) {
+	while (argc > 0) {
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: %s %s\n", prog, options);
 			ret = 0;

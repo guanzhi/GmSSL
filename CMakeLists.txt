@@ -424,6 +424,10 @@ endif()
 
 if (ENABLE_SECP256R1)
 	message(STATUS "ENABLE_SECP256R1 is ON")
+	if (NOT ENABLE_SHA2)
+		message(STATUS "ENABLE_SECP256R1 requires ENABLE_SHA2; enabling ENABLE_SHA2")
+		set(ENABLE_SHA2 ON)
+	endif()
 	add_definitions(-DENABLE_SECP256R1)
 	list(APPEND src src/bn.c src/secp256r1.c src/secp256r1_key.c src/ecdsa.c src/ecdh.c)
 	list(APPEND tools tools/p256keygen.c)
@@ -588,6 +592,7 @@ endif()
 
 if (ENABLE_SM4_CBC_MAC)
 	message(STATUS "ENABLE_SM4_CBC_MAC is ON")
+	add_definitions(-DENABLE_SM4_CBC_MAC)
 	list(APPEND src src/sm4_cbc_mac.c)
 	list(APPEND tools tools/sm4_cbc_mac.c)
 	list(APPEND tests sm4_cbc_mac)
@@ -610,6 +615,7 @@ endif()
 
 if (ENABLE_SKF)
 	message(STATUS "ENABLE_SKF is ON")
+	add_definitions(-DENABLE_SKF)
 	list(APPEND src
 		src/skf/skf.c
 		src/skf/skf_lib.c

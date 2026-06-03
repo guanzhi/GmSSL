@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/skf.h>
+#include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include "../sgd.h"
 #include "skf.h"
@@ -62,7 +63,8 @@ static const uint8_t zeros[ECC_MAX_XCOORDINATE_BITS_LEN/8 - 32] = {0};
 
 static int SKF_ECCPUBLICKEYBLOB_to_SM2_KEY(const ECCPUBLICKEYBLOB *blob, SM2_KEY *sm2_key)
 {
-	SM2_POINT point;
+	SM2_Z256_POINT point;
+	uint8_t buf[64];
 
 	if (blob->BitLen != 256) {
 		error_print();
@@ -73,13 +75,14 @@ static int SKF_ECCPUBLICKEYBLOB_to_SM2_KEY(const ECCPUBLICKEYBLOB *blob, SM2_KEY
 		error_print();
 		return -1;
 	}
-	if (sm2_point_from_xy(&point,
-			blob->XCoordinate + ECC_MAX_XCOORDINATE_BITS_LEN/8 - 32,
-			blob->YCoordinate + ECC_MAX_YCOORDINATE_BITS_LEN/8 - 32) != 1
+	memcpy(buf, blob->XCoordinate + ECC_MAX_XCOORDINATE_BITS_LEN/8 - 32, 32);
+	memcpy(buf + 32, blob->YCoordinate + ECC_MAX_YCOORDINATE_BITS_LEN/8 - 32, 32);
+	if (sm2_z256_point_from_bytes(&point, buf) != 1
 		|| sm2_key_set_public_key(sm2_key, &point) != 1) {
 		error_print();
 		return -1;
 	}
+	gmssl_secure_clear(buf, sizeof(buf));
 	return SAR_OK;
 }
 
