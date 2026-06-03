@@ -19,13 +19,25 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/sm2.h>
+#ifdef ENABLE_SM9
 #include <gmssl/sm9.h>
+#endif
+#ifdef ENABLE_SECP256R1
 #include <gmssl/secp256r1_key.h>
 #include <gmssl/ecdsa.h>
+#endif
+#ifdef ENABLE_LMS
 #include <gmssl/lms.h>
+#endif
+#ifdef ENABLE_XMSS
 #include <gmssl/xmss.h>
+#endif
+#ifdef ENABLE_SPHINCS
 #include <gmssl/sphincs.h>
+#endif
+#ifdef ENABLE_KYBER
 #include <gmssl/kyber.h>
+#endif
 
 
 #ifdef __cplusplus
@@ -38,28 +50,52 @@ typedef struct {
 	int algor_param;
 	union {
 		SM2_KEY sm2_key;
+#ifdef ENABLE_SECP256R1
 		SECP256R1_KEY secp256r1_key;
+#endif
+#ifdef ENABLE_LMS
 		LMS_KEY lms_key;
 		HSS_KEY hss_key;
+#endif
+#ifdef ENABLE_XMSS
 		XMSS_KEY xmss_key;
 		XMSSMT_KEY xmssmt_key;
+#endif
+#ifdef ENABLE_SPHINCS
 		SPHINCS_KEY sphincs_key;
+#endif
+#ifdef ENABLE_KYBER
 		KYBER_KEY kyber_key;
+#endif
+#ifdef ENABLE_SM9
 		SM9_SIGN_MASTER_KEY sm9_sign_master_key; // OID_sm9,OID_sm9sign
 		SM9_SIGN_KEY sm9_sign_key; // OID_sm9sign,OID_undef
+#endif
 	} u;
 } X509_KEY;
 
 int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key);
+#ifdef ENABLE_SECP256R1
 int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r1_key);
+#endif
+#ifdef ENABLE_LMS
 int x509_key_set_lms_key(X509_KEY *x509_key, const LMS_KEY *lms_key);
 int x509_key_set_hss_key(X509_KEY *x509_key, const HSS_KEY *hss_key);
+#endif
+#ifdef ENABLE_XMSS
 int x509_key_set_xmss_key(X509_KEY *x509_key, const XMSS_KEY *xmss_key);
 int x509_key_set_xmssmt_key(X509_KEY *x509_key, const XMSSMT_KEY *xmssmt_key);
+#endif
+#ifdef ENABLE_SPHINCS
 int x509_key_set_sphincs_key(X509_KEY *x509_key, const SPHINCS_KEY *sphincs_key);
+#endif
+#ifdef ENABLE_KYBER
 int x509_key_set_kyber_key(X509_KEY *x509_key, const KYBER_KEY *kyber_key);
+#endif
+#ifdef ENABLE_SM9
 int x509_key_set_sm9_sign_key(X509_KEY *x509_key, const SM9_SIGN_KEY *sm9_sign_key);
 int x509_key_set_sm9_sign_master_key(X509_KEY *x509_key, const SM9_SIGN_MASTER_KEY *sm9_sign_master_key);
+#endif
 
 /*
    algor:			param				paramlen
@@ -153,12 +189,20 @@ int x509_private_keys_from_file(X509_KEY *keys, size_t *keys_cnt, size_t max_cnt
 
 typedef union {
 	uint8_t sm2_sig[SM2_MAX_SIGNATURE_SIZE];
+#ifdef ENABLE_LMS
 	LMS_SIGNATURE lms_sig;
 	HSS_SIGNATURE hss_sig;
+#endif
+#ifdef ENABLE_XMSS
 	XMSS_SIGNATURE xmss_sig;
 	XMSSMT_SIGNATURE xmssmt_sig;
+#endif
+#ifdef ENABLE_SPHINCS
 	SPHINCS_SIGNATURE sphincs_sig;
+#endif
+#ifdef ENABLE_SECP256R1
 	uint8_t ecdsa_sig[SM2_MAX_SIGNATURE_SIZE];
+#endif
 } X509_SIGNATURE;
 
 // FIXME: give sizeof to a number
@@ -168,13 +212,23 @@ typedef struct {
 	union {
 		SM2_SIGN_CTX sm2_sign_ctx;
 		SM2_VERIFY_CTX sm2_verify_ctx;
+#ifdef ENABLE_SECP256R1
 		ECDSA_SIGN_CTX ecdsa_sign_ctx;
+#endif
+#ifdef ENABLE_SM9
 		SM9_SIGN_CTX sm9_sign_ctx;
+#endif
+#ifdef ENABLE_LMS
 		LMS_SIGN_CTX lms_sign_ctx;
 		HSS_SIGN_CTX hss_sign_ctx;
+#endif
+#ifdef ENABLE_XMSS
 		XMSS_SIGN_CTX xmss_sign_ctx;
 		XMSSMT_SIGN_CTX xmssmt_sign_ctx;
+#endif
+#ifdef ENABLE_SPHINCS
 		SPHINCS_SIGN_CTX sphincs_sign_ctx;
+#endif
 	} u;
 	X509_KEY key;
 	const void *args;

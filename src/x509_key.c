@@ -39,6 +39,7 @@ int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key)
 	return 1;
 }
 
+#ifdef ENABLE_SECP256R1
 int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r1_key)
 {
 	if (!x509_key || !secp256r1_key) {
@@ -51,7 +52,9 @@ int x509_key_set_secp256r1_key(X509_KEY *x509_key, const SECP256R1_KEY *secp256r
 	x509_key->u.secp256r1_key = *secp256r1_key;
 	return 1;
 }
+#endif
 
+#ifdef ENABLE_LMS
 int x509_key_set_lms_key(X509_KEY *x509_key, const LMS_KEY *lms_key)
 {
 	if (!x509_key || !lms_key) {
@@ -77,7 +80,9 @@ int x509_key_set_hss_key(X509_KEY *x509_key, const HSS_KEY *hss_key)
 	x509_key->u.hss_key = *hss_key;
 	return 1;
 }
+#endif
 
+#ifdef ENABLE_XMSS
 int x509_key_set_xmss_key(X509_KEY *x509_key, const XMSS_KEY *xmss_key)
 {
 	if (!x509_key || !xmss_key) {
@@ -103,7 +108,9 @@ int x509_key_set_xmssmt_key(X509_KEY *x509_key, const XMSSMT_KEY *xmssmt_key)
 	x509_key->u.xmssmt_key = *xmssmt_key;
 	return 1;
 }
+#endif
 
+#ifdef ENABLE_SPHINCS
 int x509_key_set_sphincs_key(X509_KEY *x509_key, const SPHINCS_KEY *sphincs_key)
 {
 	if (!x509_key || !sphincs_key) {
@@ -116,7 +123,9 @@ int x509_key_set_sphincs_key(X509_KEY *x509_key, const SPHINCS_KEY *sphincs_key)
 	x509_key->u.sphincs_key = *sphincs_key;
 	return 1;
 }
+#endif
 
+#ifdef ENABLE_KYBER
 int x509_key_set_kyber_key(X509_KEY *x509_key, const KYBER_KEY *kyber_key)
 {
 	if (!x509_key || !kyber_key) {
@@ -129,7 +138,9 @@ int x509_key_set_kyber_key(X509_KEY *x509_key, const KYBER_KEY *kyber_key)
 	x509_key->u.kyber_key = *kyber_key;
 	return 1;
 }
+#endif
 
+#ifdef ENABLE_SM9
 int x509_key_set_sm9_sign_master_key(X509_KEY *x509_key, const SM9_SIGN_MASTER_KEY *sm9_sign_master_key)
 {
 	if (!x509_key || !sm9_sign_master_key) {
@@ -155,6 +166,7 @@ int x509_key_set_sm9_sign_key(X509_KEY *x509_key, const SM9_SIGN_KEY *sm9_sign_k
 	x509_key->u.sm9_sign_key = *sm9_sign_key;
 	return 1;
 }
+#endif
 
 int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paramlen)
 {
@@ -171,9 +183,13 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 
 	switch (algor) {
 	case OID_ec_public_key:
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
+#endif
 		if (!param) {
 			error_print();
 			return -1;
@@ -184,6 +200,7 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 		}
 		param_val = *(const int *)param;
 		break;
+#ifdef ENABLE_LMS
 	case OID_hss_lms_hashsig:
 		if (!param) {
 			error_print();
@@ -198,21 +215,23 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (param || paramlen) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		if (param && paramlen != 32) {
 			error_print();
 			return -1;
 		}
 		break;
-	case OID_sm9:
-		error_print();
-		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -227,18 +246,21 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 				return -1;
 			}
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (secp256r1_key_generate(&key->u.secp256r1_key) != 1) {
 				error_print();
 				return -1;
 			}
 			break;
+#endif
 		default:
 			error_print();
 			return -1;
 		}
 		key->algor_param = param_val;
 		break;
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_key_generate(&key->u.lms_key, param_val) != 1) {
 			error_print();
@@ -251,6 +273,8 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_key_generate(&key->u.xmss_key, param_val) != 1) {
 			error_print();
@@ -263,19 +287,23 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_key_generate(&key->u.sphincs_key) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		if (kyber_key_generate_ex(&key->u.kyber_key, (uint8_t *)param) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
-	case OID_sm9:
+#endif
 	default:
 		error_print();
 		return -1;
@@ -293,32 +321,43 @@ void x509_key_cleanup(X509_KEY *key)
 			case OID_sm2:
 				gmssl_secure_clear(&key->u.sm2_key, sizeof(SM2_KEY));
 				break;
+#ifdef ENABLE_SECP256R1
 			case OID_secp256r1:
 				secp256r1_key_cleanup(&key->u.secp256r1_key);
 				break;
+#endif
 			default:
 				error_print();
 				return;
 			}
 			break;
+#ifdef ENABLE_LMS
 		case OID_lms_hashsig:
 			lms_key_cleanup(&key->u.lms_key);
 			break;
 		case OID_hss_lms_hashsig:
 			hss_key_cleanup(&key->u.hss_key);
 			break;
+#endif
+#ifdef ENABLE_XMSS
 		case OID_xmss_hashsig:
 			xmss_key_cleanup(&key->u.xmss_key);
 			break;
 		case OID_xmssmt_hashsig:
 			xmssmt_key_cleanup(&key->u.xmssmt_key);
 			break;
+#endif
+#ifdef ENABLE_SPHINCS
 		case OID_sphincs_hashsig:
 			sphincs_key_cleanup(&key->u.sphincs_key);
 			break;
+#endif
+#ifdef ENABLE_KYBER
 		case OID_kyber_kem:
 			kyber_key_cleanup(&key->u.kyber_key);
 			break;
+#endif
+#ifdef ENABLE_SM9
 		case OID_sm9:
 			switch (key->algor_param) {
 			case OID_sm9sign:
@@ -332,6 +371,7 @@ void x509_key_cleanup(X509_KEY *key)
 		case OID_sm9sign:
 			gmssl_secure_clear(&key->u.sm9_sign_key, sizeof(SM9_SIGN_KEY));
 			break;
+#endif
 		default:
 			error_print();
 		}
@@ -356,17 +396,20 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 			}
 			*outlen += 65;
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (secp256r1_public_key_to_bytes(&key->u.secp256r1_key, out, outlen) != 1) {
 				error_print();
 				return -1;
 			}
 			break;
+#endif
 		default:
 			error_print();
 			return -1;
 		}
 		break;
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_public_key_to_bytes(&key->u.lms_key, out, outlen) != 1) {
 			error_print();
@@ -379,6 +422,8 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_public_key_to_bytes(&key->u.xmss_key, out, outlen) != 1) {
 			error_print();
@@ -391,18 +436,24 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_public_key_to_bytes(&key->u.sphincs_key, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		if (kyber_public_key_to_bytes(&key->u.kyber_key, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		switch (key->algor_param) {
 		case OID_sm9sign:
@@ -419,6 +470,7 @@ int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
 	case OID_sm9sign:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -452,12 +504,14 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 			*in += 65;
 			*inlen -= 65;
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (secp256r1_public_key_from_bytes(&key->u.secp256r1_key, in, inlen) != 1) {
 				error_print();
 				return -1;
 			}
 			break;
+#endif
 		default:
 			error_print();
 			return -1;
@@ -469,6 +523,7 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 		return -1;
 	}
 	switch (algor) {
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_public_key_from_bytes(&key->u.lms_key, in, inlen) != 1) {
 			error_print();
@@ -481,6 +536,8 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_public_key_from_bytes(&key->u.xmss_key, in, inlen) != 1) {
 			error_print();
@@ -493,18 +550,24 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_public_key_from_bytes(&key->u.sphincs_key, in, inlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		if (kyber_public_key_from_bytes(&key->u.kyber_key, in, inlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		switch (key->algor_param) {
 		case OID_sm9sign:
@@ -521,6 +584,7 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 	case OID_sm9sign:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -569,32 +633,39 @@ int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
 				error_print();
 				return ret;
 			}
+#ifdef ENABLE_SECP256R1
 		} else if (key->algor_param == OID_secp256r1) {
 			if ((ret = secp256r1_public_key_equ(&key->u.secp256r1_key, &pub->u.secp256r1_key)) != 1) {
 				error_print();
 				return ret;
 			}
+#endif
 		} else {
 			error_print();
 			return -1;
 		}
 		return 1;
+#ifdef ENABLE_LMS
 	case OID_hss_lms_hashsig:
 		if ((ret = hss_public_key_equ(&key->u.hss_key, &pub->u.hss_key)) != 1) {
 			error_print();
 			return ret;
 		}
 		return 1;
+#endif
 	}
 
 	// sizeof(XXX_PUBLIC_KEY) >= XXX_PUBLIC_KEY_SIZE, depends on compiler
 	switch (key->algor) {
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (memcmp(&key->u.lms_key, &pub->u.lms_key, sizeof(LMS_PUBLIC_KEY)) != 0) {
 			error_print();
 			return 0;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (memcmp(&key->u.xmss_key, &pub->u.xmss_key, sizeof(XMSS_PUBLIC_KEY)) != 0) {
 			error_print();
@@ -607,18 +678,24 @@ int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
 			return 0;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (memcmp(&key->u.sphincs_key, &pub->u.sphincs_key, sizeof(SPHINCS_PUBLIC_KEY)) != 0) {
 			error_print();
 			return 0;
 		}
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		if (memcmp(&key->u.kyber_key, &pub->u.kyber_key, sizeof(KYBER_PUBLIC_KEY)) != 0) {
 			error_print();
 			return 0;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		switch (key->algor_param) {
 		case OID_sm9sign:
@@ -638,6 +715,7 @@ int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub)
 			return 0;
 		}
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -654,16 +732,19 @@ int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 				error_print();
 				return -1;
 			}
+#ifdef ENABLE_SECP256R1
 		} else if (key->algor_param == OID_secp256r1) {
 			if (secp256r1_public_key_print(fp, fmt, ind, label, &key->u.secp256r1_key) != 1) {
 				error_print();
 				return -1;
 			}
+#endif
 		} else {
 			error_print();
 			return -1;
 		}
 		break;
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_public_key_print(fp, fmt, ind, label, &key->u.lms_key) != 1) {
 			error_print();
@@ -676,6 +757,8 @@ int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_public_key_print(fp, fmt, ind, label, &key->u.xmss_key) != 1) {
 			error_print();
@@ -688,18 +771,24 @@ int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_public_key_print(fp, fmt, ind, label, &key->u.sphincs_key) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		if (kyber_public_key_print(fp, fmt, ind, label, &key->u.kyber_key) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		switch (key->algor_param) {
 		case OID_sm9sign:
@@ -717,6 +806,7 @@ int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X
 		// TODO: no public key, do we need print ID?
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -845,15 +935,25 @@ int x509_public_key_info_print(FILE *fp, int fmt, int ind, const char *label, co
 	case OID_rsa_encryption:
 		rsa_public_key_print(fp, fmt, ind, "RSAPublicKey", p, len);
 		break;
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		error_print();
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
+#endif
 		// TODO: print public key without too much details
 	default:
 		format_bytes(fp, fmt, ind, "raw_data", p, len);
@@ -915,6 +1015,7 @@ int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pub
 		}
 		sm2_z256_to_bytes(key->u.sm2_key.private_key, prikey);
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_secp256r1:
 		if (encode_pubkey) {
 			pubkey = pubkey_buf;
@@ -926,6 +1027,7 @@ int ec_private_key_to_der(const X509_KEY *key, int encode_params, int encode_pub
 		}
 		secp256r1_to_32bytes(key->u.secp256r1_key.private_key, prikey);
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1026,7 +1128,9 @@ int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, si
 			}
 		}
 
-	} else if (curve == OID_secp256r1) {
+	}
+#ifdef ENABLE_SECP256R1
+	else if (curve == OID_secp256r1) {
 
 		secp256r1_t p256_private;
 		SECP256R1_KEY p256_pub;
@@ -1051,7 +1155,9 @@ int ec_private_key_from_der(X509_KEY *key, int opt_curve, const uint8_t **in, si
 				return -1;
 			}
 		}
-	} else {
+	}
+#endif
+	else {
 		error_print();
 		return -1;
 	}
@@ -1097,7 +1203,9 @@ int x509_private_key_info_to_der(const X509_KEY *key, uint8_t **out, size_t *out
 	case OID_xmssmt_hashsig:
 	case OID_sphincs_hashsig:
 	case OID_kyber_kem:
+#ifdef ENABLE_SM9
 	case OID_sm9:
+#endif
 	// TODO: support these algors, (MUST change private_key[] size)!
 	default:
 		error_print();
@@ -1157,6 +1265,7 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
 		if (algor_param != OID_undef) {
 			error_print();
@@ -1171,13 +1280,16 @@ int x509_private_key_info_from_der(X509_KEY *key, const uint8_t **attrs, size_t 
 			return -1;
 		}
 		break;
+#endif
 	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
 	case OID_sphincs_hashsig:
 	case OID_kyber_kem:
+#ifdef ENABLE_SM9
 	case OID_sm9:
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1376,7 +1488,9 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 		} else if (ret == 0) {
 			return 0; // TODO: support return 0 for other algors
 		}
-	} else if (algor == OID_lms_hashsig) {
+	}
+#ifdef ENABLE_LMS
+	else if (algor == OID_lms_hashsig) {
 		uint8_t buf[LMS_PRIVATE_KEY_SIZE];
 		const uint8_t *cp = buf;
 		size_t len = sizeof(buf);
@@ -1410,7 +1524,10 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 			error_print();
 			return -1;
 		}
-	} else if (algor == OID_xmss_hashsig) {
+	}
+#endif
+#ifdef ENABLE_XMSS
+	else if (algor == OID_xmss_hashsig) {
 		if (xmss_private_key_from_file(&key->u.xmss_key, fp) != 1) {
 			error_print();
 			return -1;
@@ -1420,7 +1537,10 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 			error_print();
 			return -1;
 		}
-	} else if (algor == OID_sphincs_hashsig) {
+	}
+#endif
+#ifdef ENABLE_SPHINCS
+	else if (algor == OID_sphincs_hashsig) {
 		uint8_t buf[SPHINCS_PRIVATE_KEY_SIZE];
 		const uint8_t *cp = buf;
 		size_t len = sizeof(buf);
@@ -1437,7 +1557,10 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 			error_print();
 			return -1;
 		}
-	} else if (algor == OID_kyber_kem) {
+	}
+#endif
+#ifdef ENABLE_KYBER
+	else if (algor == OID_kyber_kem) {
 		uint8_t buf[KYBER_PRIVATE_KEY_SIZE];
 		const uint8_t *cp = buf;
 		size_t len = sizeof(buf);
@@ -1454,7 +1577,9 @@ int x509_private_key_from_file(X509_KEY *key, int algor, const char *pass, FILE 
 			error_print();
 			return -1;
 		}
-	} else {
+	}
+#endif
+	else {
 		error_print();
 		return -1;
 	}
@@ -1500,14 +1625,17 @@ int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
 		case OID_sm2:
 			*algor = OID_sm2sign_with_sm3;
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			*algor = OID_ecdsa_with_sha256;
 			break;
+#endif
 		default:
 			error_print();
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		switch (key->algor_param) {
 		case OID_sm9sign:
@@ -1518,14 +1646,23 @@ int x509_key_get_sign_algor(const X509_KEY *key, int *algor)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
+#endif
 		*algor = key->algor;
 		break;
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1539,9 +1676,12 @@ int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
 	case OID_ec_public_key:
 		*siglen = SM2_signature_max_size;
 		break;
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		*siglen = SM9_SIGNATURE_SIZE;
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_key_get_signature_size(&key->u.lms_key, siglen) != 1) {
 			error_print();
@@ -1554,6 +1694,8 @@ int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_key_get_signature_size(&key->u.xmss_key, siglen) != 1) {
 			error_print();
@@ -1566,12 +1708,17 @@ int x509_key_get_signature_size(const X509_KEY *key, size_t *siglen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		*siglen = SPHINCS_SIGNATURE_SIZE;
 		break;
+#endif
+#ifdef ENABLE_KYBER
 	case OID_kyber_kem:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1586,11 +1733,17 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 		return -1;
 	}
 	switch (key->algor) {
+#ifdef ENABLE_SM9
 	case OID_sm9:
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
+#endif
 		if (args) {
 			error_print();
 			return -1;
@@ -1618,6 +1771,7 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 			}
 			ctx->sign_algor = OID_sm2sign_with_sm3;
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (ecdsa_sign_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key) != 1) {
 				error_print();
@@ -1625,11 +1779,13 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 			}
 			ctx->sign_algor = OID_ecdsa_with_sha256;
 			break;
+#endif
 		default:
 			error_print();
 			return -1;
 		}
 		break;
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_sign_init(&ctx->u.lms_sign_ctx, &key->u.lms_key) != 1) {
 			error_print();
@@ -1644,6 +1800,8 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 		}
 		ctx->sign_algor = key->algor;
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_sign_init(&ctx->u.xmss_sign_ctx, &key->u.xmss_key) != 1) {
 			error_print();
@@ -1658,8 +1816,10 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 		}
 		ctx->sign_algor = key->algor;
 		break;
+#endif
 
 	// to generate a random signature (instead of a deterministic one), caller should prepare uint8_t rand[16]
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (args) {
 			if (argslen != sizeof(sphincs_hash128_t)) {
@@ -1673,6 +1833,8 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 		}
 		ctx->sign_algor = key->algor;
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
 		if (key->algor_param != OID_undef) {
 			error_print();
@@ -1685,6 +1847,7 @@ int x509_sign_init(X509_SIGN_CTX *ctx, X509_KEY *key, const void *args, size_t a
 		ctx->key = *key;
 		ctx->sign_algor = OID_sm9sign;
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1701,7 +1864,9 @@ int x509_sign_set_signature_size(X509_SIGN_CTX *ctx, size_t siglen)
 	}
 	switch (ctx->sign_algor) {
 	case OID_sm2sign_with_sm3:
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+#endif
 		switch (siglen) {
 		case SM2_signature_compact_size:
 		case SM2_signature_typical_size:
@@ -1734,18 +1899,23 @@ int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
 		if (ecdsa_sign_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
 		if (sm9_sign_update(&ctx->u.sm9_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_sign_update(&ctx->u.lms_sign_ctx, data, datalen) != 1) {
 			error_print();
@@ -1758,6 +1928,8 @@ int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_sign_update(&ctx->u.xmss_sign_ctx, data, datalen) != 1) {
 			error_print();
@@ -1770,9 +1942,12 @@ int x509_sign_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1801,6 +1976,7 @@ int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 			}
 		}
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
 		if (ctx->fixed_siglen) {
 			if (ecdsa_sign_finish_fixlen(&ctx->u.ecdsa_sign_ctx, ctx->fixed_siglen, sig) != 1) {
@@ -1815,12 +1991,16 @@ int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 			}
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
 		if (sm9_sign_finish(&ctx->u.sm9_sign_ctx, &ctx->key.u.sm9_sign_key, sig, siglen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_sign_finish(&ctx->u.lms_sign_ctx, sig, siglen) != 1) {
 			error_print();
@@ -1833,6 +2013,8 @@ int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_sign_finish(&ctx->u.xmss_sign_ctx, sig, siglen) != 1) {
 			error_print();
@@ -1845,9 +2027,12 @@ int x509_sign_finish(X509_SIGN_CTX *ctx, uint8_t *sig, size_t *siglen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1868,12 +2053,20 @@ int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *
 
 	switch (ctx->sign_algor) {
 	case OID_sm2sign_with_sm3:
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
+#endif
 		if (x509_sign_update(ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
@@ -1883,6 +2076,7 @@ int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_sign_prepare(&ctx->u.sphincs_sign_ctx, data, datalen) != 1) {
 			error_print();
@@ -1897,6 +2091,7 @@ int x509_sign(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen, uint8_t *
 			return -1;
 		}
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -1912,12 +2107,14 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 		return -1;
 	}
 	switch (key->algor) {
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		if (!args || !argslen) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
 	case OID_ec_public_key:
 		break;
 	default:
@@ -1947,6 +2144,7 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 			ctx->sig = sig;
 			ctx->siglen = siglen;
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_secp256r1:
 			if (ecdsa_verify_init(&ctx->u.ecdsa_sign_ctx, &key->u.secp256r1_key, sig, siglen) != 1) {
 				error_print();
@@ -1954,11 +2152,13 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 			}
 			ctx->sign_algor = OID_ecdsa_with_sha256;
 			break;
+#endif
 		default:
 			error_print();
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SM9
 	case OID_sm9:
 		if (key->algor_param != OID_sm9sign) {
 			error_print();
@@ -1975,6 +2175,8 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 		ctx->sig = sig;
 		ctx->siglen = siglen;
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_verify_init(&ctx->u.lms_sign_ctx, &key->u.lms_key, sig, siglen) != 1) {
 			error_print();
@@ -1989,6 +2191,8 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 		}
 		ctx->sign_algor = key->algor;
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_verify_init(&ctx->u.xmss_sign_ctx, &key->u.xmss_key, sig, siglen) != 1) {
 			error_print();
@@ -2003,6 +2207,8 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 		}
 		ctx->sign_algor = key->algor;
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_verify_init(&ctx->u.sphincs_sign_ctx, &key->u.sphincs_key, sig, siglen) != 1) {
 			error_print();
@@ -2010,6 +2216,7 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 		}
 		ctx->sign_algor = key->algor;
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -2026,18 +2233,23 @@ int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
 		if (ecdsa_verify_update(&ctx->u.ecdsa_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
 		if (sm9_verify_update(&ctx->u.sm9_sign_ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if (lms_verify_update(&ctx->u.lms_sign_ctx, data, datalen) != 1) {
 			error_print();
@@ -2050,6 +2262,8 @@ int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if (xmss_verify_update(&ctx->u.xmss_sign_ctx, data, datalen) != 1) {
 			error_print();
@@ -2062,9 +2276,12 @@ int x509_verify_update(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -2086,12 +2303,15 @@ int x509_verify_finish(X509_SIGN_CTX *ctx)
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
 		if ((ret = ecdsa_verify_finish(&ctx->u.ecdsa_sign_ctx)) < 0) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
 		id = ctx->args;
 		idlen = ctx->argslen;
@@ -2105,6 +2325,8 @@ int x509_verify_finish(X509_SIGN_CTX *ctx)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 		if ((ret = lms_verify_finish(&ctx->u.lms_sign_ctx)) < 0) {
 			error_print();
@@ -2117,6 +2339,8 @@ int x509_verify_finish(X509_SIGN_CTX *ctx)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 		if ((ret = xmss_verify_finish(&ctx->u.xmss_sign_ctx)) < 0) {
 			error_print();
@@ -2129,9 +2353,12 @@ int x509_verify_finish(X509_SIGN_CTX *ctx)
 			return -1;
 		}
 		break;
+#endif
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		error_print();
 		return -1;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -2149,12 +2376,20 @@ int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 	}
 	switch (ctx->sign_algor) {
 	case OID_sm2sign_with_sm3:
+#ifdef ENABLE_SECP256R1
 	case OID_ecdsa_with_sha256:
+#endif
+#ifdef ENABLE_LMS
 	case OID_lms_hashsig:
 	case OID_hss_lms_hashsig:
+#endif
+#ifdef ENABLE_XMSS
 	case OID_xmss_hashsig:
 	case OID_xmssmt_hashsig:
+#endif
+#ifdef ENABLE_SM9
 	case OID_sm9sign:
+#endif
 		if (x509_verify_update(ctx, data, datalen) != 1) {
 			error_print();
 			return -1;
@@ -2164,6 +2399,7 @@ int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SPHINCS
 	case OID_sphincs_hashsig:
 		if (sphincs_verify_update(&ctx->u.sphincs_sign_ctx, data, datalen) != 1) {
 			error_print();
@@ -2174,6 +2410,7 @@ int x509_verify(X509_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 			return -1;
 		}
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -2188,26 +2425,36 @@ void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx)
 		case OID_sm2sign_with_sm3:
 			gmssl_secure_clear(&ctx->u.sm2_sign_ctx, sizeof(SM2_SIGN_CTX));
 			break;
+#ifdef ENABLE_SECP256R1
 		case OID_ecdsa_with_sha256:
 			gmssl_secure_clear(&ctx->u.ecdsa_sign_ctx, sizeof(ECDSA_SIGN_CTX));
 			break;
+#endif
+#ifdef ENABLE_LMS
 		case OID_lms_hashsig:
 			lms_sign_ctx_cleanup(&ctx->u.lms_sign_ctx);
 			break;
 		case OID_hss_lms_hashsig:
 			hss_sign_ctx_cleanup(&ctx->u.hss_sign_ctx);
 			break;
+#endif
+#ifdef ENABLE_XMSS
 		case OID_xmss_hashsig:
 			xmss_sign_ctx_cleanup(&ctx->u.xmss_sign_ctx);
 			break;
 		case OID_xmssmt_hashsig:
 			xmssmt_sign_ctx_cleanup(&ctx->u.xmssmt_sign_ctx);
 			break;
+#endif
+#ifdef ENABLE_SPHINCS
 		case OID_sphincs_hashsig:
 			sphincs_sign_ctx_cleanup(&ctx->u.sphincs_sign_ctx);
 			break;
+#endif
+#ifdef ENABLE_SM9
 		case OID_sm9sign:
 			gmssl_secure_clear(&ctx->u.sm9_sign_ctx, sizeof(SM9_SIGN_CTX));
+#endif
 		}
 		memset(ctx, 0, sizeof(X509_SIGN_CTX));
 	}
@@ -2235,12 +2482,14 @@ int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *pub, uint8_t *out,
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_secp256r1:
 		if (secp256r1_do_ecdh(&key->u.secp256r1_key, &pub->u.secp256r1_key, out) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -2270,12 +2519,14 @@ int x509_key_exchange(const X509_KEY *key, const uint8_t *peer_pub, size_t peer_
 			return -1;
 		}
 		break;
+#ifdef ENABLE_SECP256R1
 	case OID_secp256r1:
 		if (secp256r1_ecdh(&key->u.secp256r1_key, peer_pub, out) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -2286,6 +2537,7 @@ int x509_key_exchange(const X509_KEY *key, const uint8_t *peer_pub, size_t peer_
 
 int x509_key_encapsulate(const X509_KEY *key, uint8_t *ciphertext, size_t *ciphertext_len, uint8_t secret[32])
 {
+#ifdef ENABLE_KYBER
 	if (!key || !ciphertext || !ciphertext_len || !secret) {
 		error_print();
 		return -1;
@@ -2300,10 +2552,15 @@ int x509_key_encapsulate(const X509_KEY *key, uint8_t *ciphertext, size_t *ciphe
 	}
 	*ciphertext_len = sizeof(KYBER_CIPHERTEXT);
 	return 1;
+#else
+	error_print();
+	return -1;
+#endif
 }
 
 int x509_key_decapsulate(const X509_KEY *key, const uint8_t *ciphertext, size_t ciphertext_len, uint8_t secret[32])
 {
+#ifdef ENABLE_KYBER
 	if (!key || !ciphertext || !secret) {
 		error_print();
 		return -1;
@@ -2321,4 +2578,8 @@ int x509_key_decapsulate(const X509_KEY *key, const uint8_t *ciphertext, size_t 
 		return -1;
 	}
 	return 1;
+#else
+	error_print();
+	return -1;
+#endif
 }

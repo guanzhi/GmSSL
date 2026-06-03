@@ -19,24 +19,36 @@
 #include <gmssl/x509_key.h>
 
 
-int lms_types[] = {
+#ifdef ENABLE_LMS
+static int lms_types[] = {
 	LMS_HASH256_M32_H5,
 	LMS_HASH256_M32_H5,
 	LMS_HASH256_M32_H5,
 };
+#endif
 
 struct {
 	int algor;
 	int algor_param;
 } tests[] = {
 	{ OID_ec_public_key, OID_sm2 },
+#ifdef ENABLE_SECP256R1
 	{ OID_ec_public_key, OID_secp256r1 },
+#endif
+#ifdef ENABLE_LMS
 	{ OID_lms_hashsig, LMS_HASH256_M32_H5 },
 	{ OID_hss_lms_hashsig, OID_undef }, // use lms_types[]
+#endif
+#ifdef ENABLE_XMSS
 	{ OID_xmss_hashsig, XMSS_HASH256_10_256 },
 	{ OID_xmssmt_hashsig, XMSSMT_HASH256_20_4_256 },
+#endif
+#ifdef ENABLE_SPHINCS
 	{ OID_sphincs_hashsig, OID_undef },
+#endif
+#ifdef ENABLE_KYBER
 	{ OID_kyber_kem, OID_undef },
+#endif
 };
 
 X509_KEY x509_keys[sizeof(tests)/sizeof(tests[0])];
@@ -51,15 +63,23 @@ static int test_x509_key_generate(void)
 		size_t paramlen = 0;
 
 		switch (tests[i].algor) {
+#ifdef ENABLE_LMS
 		case OID_hss_lms_hashsig:
 			param = lms_types;
 			paramlen = sizeof(lms_types);
 			break;
+#endif
+#ifdef ENABLE_SPHINCS
 		case OID_sphincs_hashsig:
+#endif
+#ifdef ENABLE_KYBER
 		case OID_kyber_kem:
+#endif
+#if defined(ENABLE_SPHINCS) || defined(ENABLE_KYBER)
 			param = NULL;
 			paramlen = 0;
 			break;
+#endif
 		default:
 			param = &tests[i].algor_param;
 			paramlen = sizeof(tests[i].algor_param);
@@ -432,6 +452,7 @@ static int test_x509_sign(void)
 	return 1;
 }
 
+#ifdef ENABLE_SM9
 static int test_x509_sign_sm9(void)
 {
 	SM9_SIGN_MASTER_KEY sm9_sign_master_key;
@@ -490,6 +511,7 @@ static int test_x509_sign_sm9(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+#endif
 
 static int test_x509_key_exchange(void)
 {
@@ -566,6 +588,7 @@ static int test_x509_key_exchange(void)
 	return 1;
 }
 
+#ifdef ENABLE_KYBER
 static int test_x509_kem(void)
 {
 	uint8_t ciphertext[sizeof(KYBER_CIPHERTEXT)];
@@ -600,6 +623,7 @@ static int test_x509_kem(void)
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+#endif
 
 int main(void)
 {
@@ -612,9 +636,13 @@ int main(void)
 	if (test_x509_private_key_info_encrypt_to_pem() != 1) goto err;
 	if (test_x509_private_key_info_decrypt_from_pem() != 1) goto err;
 	if (test_x509_sign() != 1) goto err;
+#ifdef ENABLE_SM9
 	if (test_x509_sign_sm9() != 1) goto err;
+#endif
 	if (test_x509_key_exchange() != 1) goto err;
+#ifdef ENABLE_KYBER
 	if (test_x509_kem() != 1) goto err;
+#endif
 
 	printf("%s all tests passed!\n", __FILE__);
 	return 0;

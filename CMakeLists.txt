@@ -45,33 +45,38 @@ option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
 option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
 
-option(ENABLE_SM4_ECB "Enable SM4 ECB mode" ON)
-option(ENABLE_SM4_OFB "Enable SM4 OFB mode" ON)
-option(ENABLE_SM4_CFB "Enable SM4 CFB mode" ON)
-option(ENABLE_SM4_CCM "Enable SM4 CCM mode" ON)
-option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
-option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
+option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
+option(ENABLE_SM4_OFB "Enable SM4 OFB mode" OFF)
+option(ENABLE_SM4_CFB "Enable SM4 CFB mode" OFF)
+option(ENABLE_SM4_CCM "Enable SM4 CCM mode" OFF)
+option(ENABLE_SM4_XTS "Enable SM4 XTS mode" OFF)
+option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
+option(ENABLE_SM9 "Enable SM9" OFF)
+option(ENABLE_CMS "Enable CMS" OFF)
 
-option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" ON)
+option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" OFF)
 
-option(ENABLE_LMS "Enable LMS/HSS signature" ON)
-option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
-option(ENABLE_SPHINCS "Enable SPHINCS+ signature" ON)
-option(ENABLE_KYBER "Enable Kyber" ON)
+option(ENABLE_LMS "Enable LMS/HSS signature" OFF)
+option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" OFF)
+option(ENABLE_SPHINCS "Enable SPHINCS+ signature" OFF)
+option(ENABLE_KYBER "Enable Kyber" OFF)
 
-option(ENABLE_SHA1 "Enable SHA1" ON)
-option(ENABLE_SHA2 "Enable SHA2" ON)
-option(ENABLE_AES "Enable AES" ON)
-option(ENABLE_CHACHA20 "Enable Chacha20" ON)
+option(ENABLE_SHA1 "Enable SHA1" OFF)
+option(ENABLE_SHA2 "Enable SHA2" OFF)
+option(ENABLE_AES "Enable AES" OFF)
+option(ENABLE_CHACHA20 "Enable Chacha20" OFF)
+option(ENABLE_ZUC "Enable ZUC" OFF)
+option(ENABLE_GHASH "Enable standalone GHASH command and test" OFF)
 
 option(ENABLE_SKF "Enable SKF module" OFF)
-option(ENABLE_SDF "Enable SDF module" ON)
+option(ENABLE_SDF "Enable SDF module" OFF)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
-option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" ON)
+option(ENABLE_TLS "Enable TLS and TLCP protocol support" OFF)
+option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
 option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
 
@@ -93,14 +98,6 @@ set(src
 	src/sm2_sign.c
 	src/sm2_enc.c
 	src/sm2_exch.c
-	src/sm9_z256.c
-	src/sm9_z256_table.c
-	src/sm9_key.c
-	src/sm9_sign.c
-	src/sm9_enc.c
-	src/sm9_exch.c
-	src/zuc.c
-	src/zuc_modes.c
 	src/block_cipher.c
 	src/digest.c
 	src/hmac.c
@@ -110,9 +107,7 @@ set(src
 	src/sm4_cbc_sm3_hmac.c
 	src/sm4_ctr_sm3_hmac.c
 	src/pkcs8.c
-	src/bn.c
 	src/ec.c
-	src/rsa.c
 	src/asn1.c
 	src/hex.c
 	src/base64.c
@@ -124,19 +119,7 @@ set(src
 	src/x509_crl.c
 	src/x509_new.c
 	src/x509_key.c
-	src/cms.c
-	src/socket.c
-	src/tls.c
-	src/tls_ext.c
-	src/tls_psk.c
-	src/tls_sni.c
-	src/tls_sct.c
-	src/tls_ocsp.c
-	src/tls_cookie.c
-	src/tls_trace.c
-	src/tlcp.c
-	src/tls12.c
-	src/tls13.c
+	src/rsa.c
 	src/file.c
 )
 
@@ -157,15 +140,7 @@ set(tools
 	tools/sm2verify.c
 	tools/sm2encrypt.c
 	tools/sm2decrypt.c
-	tools/sm9setup.c
-	tools/sm9keygen.c
-	tools/sm9sign.c
-	tools/sm9verify.c
-	tools/sm9encrypt.c
-	tools/sm9decrypt.c
-	tools/zuc.c
 	tools/rand.c
-	tools/ghash.c
 	tools/certgen.c
 	tools/certparse.c
 	tools/certverify.c
@@ -177,17 +152,6 @@ set(tools
 	tools/crlget.c
 	tools/crlparse.c
 	tools/crlverify.c
-	tools/cmssign.c
-	tools/cmsverify.c
-	tools/cmsencrypt.c
-	tools/cmsdecrypt.c
-	tools/cmsparse.c
-	tools/tlcp_client.c
-	tools/tlcp_server.c
-	tools/tls12_client.c
-	tools/tls12_server.c
-	tools/tls13_client.c
-	tools/tls13_server.c
 )
 
 set(tests
@@ -201,16 +165,11 @@ set(tests
 	sm2_key
 	sm2_sign
 	sm2_enc
-	sm9
-	zuc
 	block_cipher
 	digest
-	hmac
 	hkdf
 	gf128
-	ghash
 	pkcs8
-	bn
 	ec
 	asn1
 	hex
@@ -224,10 +183,6 @@ set(tests
 	x509_req
 	x509_crl
 	x509_key
-	cms
-	tls
-	tls13
-	tls_ocsp
 )
 
 
@@ -291,6 +246,9 @@ if (ENABLE_SM2_NEON)
 endif()
 
 if (ENABLE_SM9_ARM64)
+	if (NOT ENABLE_SM9)
+		message(FATAL_ERROR "ENABLE_SM9_ARM64 requires ENABLE_SM9")
+	endif()
 	message(STATUS "ENABLE_SM9_ARM64 is ON")
 	add_definitions(-DENABLE_SM9_ARM64)
 	enable_language(ASM)
@@ -429,12 +387,47 @@ if (ENABLE_SM2_EXTS)
 endif()
 
 
+if (ENABLE_SM9)
+	message(STATUS "ENABLE_SM9 is ON")
+	add_definitions(-DENABLE_SM9)
+	list(APPEND src
+		src/sm9_z256.c
+		src/sm9_z256_table.c
+		src/sm9_key.c
+		src/sm9_sign.c
+		src/sm9_enc.c
+		src/sm9_exch.c)
+	list(APPEND tools
+		tools/sm9setup.c
+		tools/sm9keygen.c
+		tools/sm9sign.c
+		tools/sm9verify.c
+		tools/sm9encrypt.c
+		tools/sm9decrypt.c)
+	list(APPEND tests sm9)
+endif()
+
+
+if (ENABLE_CMS)
+	message(STATUS "ENABLE_CMS is ON")
+	add_definitions(-DENABLE_CMS)
+	list(APPEND src src/cms.c)
+	list(APPEND tools
+		tools/cmssign.c
+		tools/cmsverify.c
+		tools/cmsencrypt.c
+		tools/cmsdecrypt.c
+		tools/cmsparse.c)
+	list(APPEND tests cms)
+endif()
+
+
 if (ENABLE_SECP256R1)
 	message(STATUS "ENABLE_SECP256R1 is ON")
 	add_definitions(-DENABLE_SECP256R1)
-	list(APPEND src src/secp256r1.c src/secp256r1_key.c src/ecdsa.c src/ecdh.c)
+	list(APPEND src src/bn.c src/secp256r1.c src/secp256r1_key.c src/ecdsa.c src/ecdh.c)
 	list(APPEND tools tools/p256keygen.c)
-	list(APPEND tests secp256r1 secp256r1_key ecdsa)
+	list(APPEND tests bn secp256r1 secp256r1_key ecdsa)
 endif()
 
 
@@ -507,7 +500,7 @@ if (ENABLE_SHA2)
 	add_definitions(-DENABLE_SHA2)
 	list(APPEND src src/sha256.c src/sha512.c)
 	list(APPEND src src/sha256_hmac.c)
-	list(APPEND tests sha224 sha256 sha384 sha512)
+	list(APPEND tests sha224 sha256 sha384 sha512 hmac)
 endif()
 
 
@@ -523,6 +516,47 @@ if (ENABLE_CHACHA20)
 	message(STATUS "ENABLE_CHACHA20 is ON")
 	list(APPEND src src/chacha20.c)
 	list(APPEND tests chacha20)
+endif()
+
+if (ENABLE_ZUC)
+	message(STATUS "ENABLE_ZUC is ON")
+	add_definitions(-DENABLE_ZUC)
+	list(APPEND src src/zuc.c src/zuc_modes.c)
+	list(APPEND tools tools/zuc.c)
+	list(APPEND tests zuc)
+endif()
+
+if (ENABLE_GHASH)
+	message(STATUS "ENABLE_GHASH is ON")
+	add_definitions(-DENABLE_GHASH)
+	list(APPEND tools tools/ghash.c)
+	list(APPEND tests ghash)
+endif()
+
+if (ENABLE_TLS)
+	message(STATUS "ENABLE_TLS is ON")
+	add_definitions(-DENABLE_TLS)
+	list(APPEND src
+		src/socket.c
+		src/tls.c
+		src/tls_ext.c
+		src/tls_psk.c
+		src/tls_sni.c
+		src/tls_sct.c
+		src/tls_ocsp.c
+		src/tls_cookie.c
+		src/tls_trace.c
+		src/tlcp.c
+		src/tls12.c
+		src/tls13.c)
+	list(APPEND tools
+		tools/tlcp_client.c
+		tools/tlcp_server.c
+		tools/tls12_client.c
+		tools/tls12_server.c
+		tools/tls13_client.c
+		tools/tls13_server.c)
+	list(APPEND tests tls tls13 tls_ocsp)
 endif()
 
 
@@ -695,7 +729,7 @@ endif()
 add_test(NAME sm3_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm3_commands.cmake")
 add_test(NAME sm2_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm2_commands.cmake")
 add_test(NAME cert_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/cert_commands.cmake")
-if(NOT WIN32)
+if(ENABLE_TLS AND NOT WIN32)
 	add_test(NAME tlcp_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tls12_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tls13_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
