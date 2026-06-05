@@ -1,0 +1,1595 @@
+/*
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the License); you may
+ *  not use this file except in compliance with the License.
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+enum {
+	TEST_RESULT_VALID,
+	TEST_RESULT_INVALID,
+	TEST_RESULT_ACCEPTABLE,
+};
+
+typedef struct {
+	int tc_id;
+	const char *comment;
+	const char *flags;
+	const char *key;
+	const char *msg;
+	const char *tag;
+	int result;
+} TEST_SM3_HMAC_VECTOR;
+
+// from https://github.com/C2SP/wycheproof testvectors_v1/hmac_sm3_test.json
+const TEST_SM3_HMAC_VECTOR test_sm3_hmac_vectors[] = {
+	{
+		1,
+		"empty message",
+		"Pseudorandom",
+		"1e225cafb90339bba1b24076d4206c3e79c355805d851682bc818baa4f5a7779",
+		"",
+		"f9938b1b2515117f25dcd636c9a6a0e7f00bccaf5347e0e0df435cfca736cfc1",
+		TEST_RESULT_VALID
+	},
+	{
+		2,
+		"short message",
+		"Pseudorandom",
+		"8159fd15133cd964c9a6964c94f0ea269a806fd9f43f0da58b6cd1b33d189b2a",
+		"77",
+		"51aaf64843b6d2fc7a244ab9cda9b7b57164ce6a865f9808c01931b46195411d",
+		TEST_RESULT_VALID
+	},
+	{
+		3,
+		"short message",
+		"Pseudorandom",
+		"85a7cbaae825bb82c9b6f6c5c2af5ac03d1f6daa63d2a93c189948ec41b9ded9",
+		"a59b",
+		"108e4785c23e3084bc62a1f7e6812931daa97168b4fc20a0357c53e5bcbf2513",
+		TEST_RESULT_VALID
+	},
+	{
+		4,
+		"short message",
+		"Pseudorandom",
+		"48f3029334e55cfbd574ccc765fb2c3685aab1f4837d23370874a3e634c3a76d",
+		"c7b8b2",
+		"b3ec0e003175bd0495292ecf43effb853a74556a5fff9844108651497b2e58e1",
+		TEST_RESULT_VALID
+	},
+	{
+		5,
+		"short message",
+		"Pseudorandom",
+		"de8b5b5b2f09645be47ecb6407a4e1d9c6b33ae3c2d22517d3357da0357a3139",
+		"cc021d65",
+		"126129850a022d65e5f1a64335f615a74fbde4abfec4b400fdc970ed587faba0",
+		TEST_RESULT_VALID
+	},
+	{
+		6,
+		"short message",
+		"Pseudorandom",
+		"b7938910f518f13205ca1492c669001a14ff913c8ab4a0dc3564e7418e91297c",
+		"a4a6ef6ebd",
+		"b3b2dd59ada8c7a344484961bccd163a57fd341d6d3f4ade897ef1656c122d3d",
+		TEST_RESULT_VALID
+	},
+	{
+		7,
+		"short message",
+		"Pseudorandom",
+		"1bb997ff4de8a5a391de5c08a33bc2c7c2891e47ad5b9c63110192f78b98fe78",
+		"667e015df7fc",
+		"d48940f441364a2215292bb6f98ec9df688c1e08d3828a91b86bf3d4c5830439",
+		TEST_RESULT_VALID
+	},
+	{
+		8,
+		"short message",
+		"Pseudorandom",
+		"32fdeda39f98b4f4426c2d2ac00ab5dd4bfabb68f311447256ed6d3d3a51b154",
+		"4163a9f77e41f5",
+		"653a342fdf734e69223f6dfcb45f9e07a31274be026ca96f4b9a5d0ce289abfc",
+		TEST_RESULT_VALID
+	},
+	{
+		9,
+		"short message",
+		"Pseudorandom",
+		"233e4fdee70bcc20235b6977ddfc05b0df66f5635d827c66e5a63cdb16a24938",
+		"fdb2ee4b6d1a0ac2",
+		"6c72360f97cb252a3e673afd51402845f04cc7e41ebbfc0821e7ce77adbb4f0d",
+		TEST_RESULT_VALID
+	},
+	{
+		10,
+		"short message",
+		"Pseudorandom",
+		"b984c6734e0bd12b1737b2fc7a1b3803b4dfec402140a57b9eccc35414ae661b",
+		"dea584d0e2a14ad5fd",
+		"f6a94ff0480c59dc0807ae957caac5060a6a9b986be40db4827549ac9f17c2d0",
+		TEST_RESULT_VALID
+	},
+	{
+		11,
+		"short message",
+		"Pseudorandom",
+		"d0caf1456ac5e255fa6afd61a79dc8c716f5358a298a508271363fe1ff983561",
+		"18261dc806913c534666",
+		"82397de21bb28731d2bd5a71c6698d325f24a536fb555d1b20e62cb44d6ba0ec",
+		TEST_RESULT_VALID
+	},
+	{
+		12,
+		"short message",
+		"Pseudorandom",
+		"835bc8241ed817735ec9d3d0e2df4c173ee4dded4a8ef0c04a96c48f11820463",
+		"26f8083e944bacf04e9a4d",
+		"a8eb43dc04970632ba50eb5114b5e495f3142a5735e717338b4822bf57b228ee",
+		TEST_RESULT_VALID
+	},
+	{
+		13,
+		"short message",
+		"Pseudorandom",
+		"055f95c9461b0809575eccdfa5cdd06275f25d30915c4eb8db40e1acd3ab7591",
+		"bfb7d6a08dbaa5225f320887",
+		"bcaee26c44fbfe3a03b2dcfb3224b062b157077f3fac6087f4226742011b0f2e",
+		TEST_RESULT_VALID
+	},
+	{
+		14,
+		"short message",
+		"Pseudorandom",
+		"e40f7a3eb88ddec4c6347ea4d67610756c82c8ebcc237629bf873ccabc32984a",
+		"7fe43febc78474649e45bf99b2",
+		"eaad34093d09bd4546a0090fcb13b609d692ca76c9e267e65fa3d154efbe2ef1",
+		TEST_RESULT_VALID
+	},
+	{
+		15,
+		"short message",
+		"Pseudorandom",
+		"b020ad1de1c141f7ec615ee5701521773f9b232e4d06376c382894ce51a61f48",
+		"81c7581a194b5e71b41146a582c1",
+		"2fb3e9d5d49327f719f4383a3e8312ff80a947e03b04071cbed8c927917cc14f",
+		TEST_RESULT_VALID
+	},
+	{
+		16,
+		"short message",
+		"Pseudorandom",
+		"9f3fd61a105202648ecff6074c95e502c1c51acd32ec538a5cce89ef841f7989",
+		"2a76f2acdace42e3b779724946912c",
+		"5e78d35ecdd13604119f0480e6a9b82a79eb67add10be7808cac2748a0aa3cf0",
+		TEST_RESULT_VALID
+	},
+	{
+		17,
+		"",
+		"Pseudorandom",
+		"6fa353868c82e5deeedac7f09471a61bf749ab5498239e947e012eee3c82d7c4",
+		"aeed3e4d4cb9bbb60d482e98c126c0f5",
+		"d92d6e7f3f9d0158602c327f075e27226c8591f3a667d768a25e4a6dd491b754",
+		TEST_RESULT_VALID
+	},
+	{
+		18,
+		"",
+		"Pseudorandom",
+		"5300489494ca86221c91d6d953952ae1a5e097139dc9cf1179c2f56433753824",
+		"90fea6cf2bd811b449f333ee9233e57697",
+		"69f3ca71fc875322920462ad45c92d242963810d8f94a0d900368fe81e0dabc5",
+		TEST_RESULT_VALID
+	},
+	{
+		19,
+		"",
+		"Pseudorandom",
+		"383e7c5c13476a62268423ef0500479f9e86e236c5a081c6449189e6afdf2af5",
+		"3202705af89f9555c540b0e1276911d01971abb2c35c78b2",
+		"1c7aeb74872211d037bae0e443e096fb42aa7f84f9e0ac53ab1188ed9c8f7697",
+		TEST_RESULT_VALID
+	},
+	{
+		20,
+		"",
+		"Pseudorandom",
+		"186e248ad824e1eb93329a7fdcd565b6cb4eaf3f85b90b910777128d8c538d27",
+		"92ef9ff52f46eccc7e38b9ee19fd2de3b37726c8e6ce9e1b96db5dda4c317902",
+		"ee692185356cbdb3b5afe83cdcc1e13b9576b333a2b99fd99aad2ea61c251b4c",
+		TEST_RESULT_VALID
+	},
+	{
+		21,
+		"long message",
+		"Pseudorandom",
+		"28855c7efc8532d92567300933cc1ca2d0586f55dcc9f054fcca2f05254fbf7f",
+		"9c09207ff0e6e582cb3747dca954c94d45c05e93f1e6f21179cf0e25b4cede74b5479d32f5166935c86f0441905865",
+		"3ced1794d623cea2d09ab1e9dfd912b3cc53f6a517143d051301287cbf5dce4d",
+		TEST_RESULT_VALID
+	},
+	{
+		22,
+		"long message",
+		"Pseudorandom",
+		"8e540cb30c94836ae2a5950f355d482a7002e255207e94fda3f7ef1a099013a0",
+		"d6500f95e11262e308bf3df4df4b855f33e857563d4543f195639a0a17b442eb9fdcc1367d2eee75c8f805730b89290f",
+		"ffa61dc4752eae1456bf6658b83950d6514888cf48931ddf1c93fda166b7261b",
+		TEST_RESULT_VALID
+	},
+	{
+		23,
+		"long message",
+		"Pseudorandom",
+		"69c50d5274358188cff4c0fae742243d4e8a5e5ba55d94ff40edd90f6a43dd10",
+		"1ac5255aff052828d8ea21b376f1ebdd4bb879949913900405aebce83e48feb6813b5e9c89f94501a8ade41b26b815c521",
+		"7d0ef709116f72ee8bb3dd68275992e1de86843ac210d681107e3dac290b07c2",
+		TEST_RESULT_VALID
+	},
+	{
+		24,
+		"long message",
+		"Pseudorandom",
+		"23209b7c5aadcbd13f7279af1a86d3c7ae8f179d1bcaaad0dff9a15302e78dbf",
+		"84bdac37e1af35d9356404e2787d47ece58348dea76a4a46e8aade3463d4db8c94a051be3733b38d756984865d56c60e8025f15e3f968f093e7fb7ebc7e31189c5692d15ed4256737b9b1894e5809503aaa1c9983fb096aa21916361eeb6ef455b129723a1a1ddf9deddea208529a648",
+		"c41cb3a15df5262fe00a7441b034984b4e77d788e5e4b2bb3629cf8fa764fb81",
+		TEST_RESULT_VALID
+	},
+	{
+		25,
+		"long message",
+		"Pseudorandom",
+		"7c9cc667cae175f448faa96647319633b2d48531373ae7d316c44ddd8b9f69cf",
+		"9233c1d73b498c5106ff88951e07b9652cb0ddae740737ec205c9876d094978bfc947f7dc937119fd6a93915b19b625958a7a22363aa2ac33fb869ed16b303336ab740a0498a2df66a6599da710094481a7b544bd955b6f97135ba4673401db2db144a6e287041e47a51ed9b6ba956c13508c1c0c25310105239ab73629e30",
+		"10426005c3ef7ac04790b5e386ea4db5c5a5e07b8def5a0ea84fbb8dc0aac524",
+		TEST_RESULT_VALID
+	},
+	{
+		26,
+		"long message",
+		"Pseudorandom",
+		"82314540564ea3ce30591e97f68b2602de40fa29f773c2508327471b8348e8c4",
+		"6a6d2f45cebf2757ae16ea33c68617671d77f8fdf80bed8fc5cdc5c8b7086bd28e7eb3eecc7163491104e5309455e67f836579b82a1da3bf5991a8e2b2f189a49e05700e46c409ed5de77780a5f389e3f13dad406c9d55675329c5c921f07034180937c0f6ef34a2308b6ff3e1a0e9dc1ea65f5632730e8744d1db2c40a6595b",
+		"318b7cb9673f5913f7270c1491b596abd2b0026e290bcf7b17cd12706629af06",
+		TEST_RESULT_VALID
+	},
+	{
+		27,
+		"long message",
+		"Pseudorandom",
+		"d115acc9a636915241795f48852052e07b51273ae2448251ec1d0d0f9807f3db",
+		"696d2456de853fa028f486fef437b6b6d1b530a8475e299db3a9005ae9cef8401985b7d31e172e8f439ccd1ad1ec44c9b86b78f3f243c1305b53bc21abad7a8fc5256311bfd34c98e37dfdc649e7ae4bda08cf2994b063c0c7106ed0b02a1f48af9191cbfb0d6a953b7e04327dfe8c93779cb574ba9cba575d01674e83621aa0c5f400d6e6cd24b301e33c9f3303e73bf357408c1be86c2489c09de998ff2ef32df554f1247d9313ce1a7160115d06f4c18d6556ff7986ef8a55e2adcfa27e4c69c71cc2ff01639e9d49bd9ed0687f530ffeb0890132457df2088081bc4a2f7f0a9f4dcea2c80d991db7f3747a1803d7619aaf3dd382c69536a0bcdb931cbe",
+		"90717ae1dbad782ac37e104898177405593ae47f8aa537564888c70ac0ff767a",
+		TEST_RESULT_VALID
+	},
+	{
+		28,
+		"Flipped bit 0 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fca7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		29,
+		"Flipped bit 0 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"67d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		30,
+		"Flipped bit 1 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"ffa7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		31,
+		"Flipped bit 1 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"64d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		32,
+		"Flipped bit 7 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"7da7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		33,
+		"Flipped bit 7 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"e6d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		34,
+		"Flipped bit 8 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda6c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		35,
+		"Flipped bit 8 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d5d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		36,
+		"Flipped bit 31 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c70d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		37,
+		"Flipped bit 31 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d27037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		38,
+		"Flipped bit 32 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d14984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		39,
+		"Flipped bit 32 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f036472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		40,
+		"Flipped bit 33 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d17984d8771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		41,
+		"Flipped bit 33 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f035472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		42,
+		"Flipped bit 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d0771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		43,
+		"Flipped bit 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472891eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		44,
+		"Flipped bit 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8770f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		45,
+		"Flipped bit 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eaa125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		46,
+		"Flipped bit 71 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d87f1f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		47,
+		"Flipped bit 71 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f0374728116ba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		48,
+		"Flipped bit 77 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771d59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		49,
+		"Flipped bit 77 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eb8125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		50,
+		"Flipped bit 80 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59e20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		51,
+		"Flipped bit 80 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba124f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		52,
+		"Flipped bit 96 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a79d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		53,
+		"Flipped bit 96 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2686bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		54,
+		"Flipped bit 97 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a49d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		55,
+		"Flipped bit 97 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f26b6bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		56,
+		"Flipped bit 103 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20269d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		57,
+		"Flipped bit 103 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2e96bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		58,
+		"Flipped bit 248 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433da",
+		TEST_RESULT_INVALID
+	},
+	{
+		59,
+		"Flipped bit 248 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c4",
+		TEST_RESULT_INVALID
+	},
+	{
+		60,
+		"Flipped bit 249 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e517433d9",
+		TEST_RESULT_INVALID
+	},
+	{
+		61,
+		"Flipped bit 249 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c7",
+		TEST_RESULT_INVALID
+	},
+	{
+		62,
+		"Flipped bit 254 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e5174339b",
+		TEST_RESULT_INVALID
+	},
+	{
+		63,
+		"Flipped bit 254 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b362685",
+		TEST_RESULT_INVALID
+	},
+	{
+		64,
+		"Flipped bit 255 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d195c6e237070d37ec962e167326e5174335b",
+		TEST_RESULT_INVALID
+	},
+	{
+		65,
+		"Flipped bit 255 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b362645",
+		TEST_RESULT_INVALID
+	},
+	{
+		66,
+		"Flipped bits 0 and 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fca7c78d15984d8770f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		67,
+		"Flipped bits 0 and 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"67d4d2f037472811eaa125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		68,
+		"Flipped bits 31 and 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c70d15984d0771f59f20a69d195c6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		69,
+		"Flipped bits 31 and 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d27037472891eba125f2696bafd6a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		70,
+		"Flipped bits 63 and 127 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d0771f59f20a69d19dc6e237070d37ec962e167326e517433db",
+		TEST_RESULT_INVALID
+	},
+	{
+		71,
+		"Flipped bits 63 and 127 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472891eba125f2696baf56a7f8f40c8fe91dcc7d7cca538b3626c5",
+		TEST_RESULT_INVALID
+	},
+	{
+		72,
+		"all bits of tag flipped",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"02583872ea67b2788e0a60df5962e6a391dc8f8f2c81369d1e98cd91ae8bcc24",
+		TEST_RESULT_INVALID
+	},
+	{
+		73,
+		"all bits of tag flipped",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"992b2d0fc8b8d7ee145eda0d9694502958070bf37016e233828335ac74c9d93a",
+		TEST_RESULT_INVALID
+	},
+	{
+		74,
+		"Tag changed to all zero",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"0000000000000000000000000000000000000000000000000000000000000000",
+		TEST_RESULT_INVALID
+	},
+	{
+		75,
+		"Tag changed to all zero",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"0000000000000000000000000000000000000000000000000000000000000000",
+		TEST_RESULT_INVALID
+	},
+	{
+		76,
+		"tag changed to all 1",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+		TEST_RESULT_INVALID
+	},
+	{
+		77,
+		"tag changed to all 1",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+		TEST_RESULT_INVALID
+	},
+	{
+		78,
+		"msbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"7d27470d9518cd07f1751fa0261d99dceea3f0f053fe49e261e7b2eed1f4b35b",
+		TEST_RESULT_INVALID
+	},
+	{
+		79,
+		"msbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"e6545270b7c7a8916b21a572e9eb2f562778748c0f699d4cfdfc4ad30bb6a645",
+		TEST_RESULT_INVALID
+	},
+	{
+		80,
+		"lsbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fca6c68c14994c8670f49e21a79c185d6f227171d27fc863e066336f507532da",
+		TEST_RESULT_INVALID
+	},
+	{
+		81,
+		"lsbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"67d5d3f136462910eaa024f3686aaed7a6f9f50d8ee81ccd7c7dcb528a3727c4",
+		TEST_RESULT_INVALID
+	},
+	{
+		82,
+		"empty message",
+		"Pseudorandom",
+		"7bf9e536b66a215c22233fe2daaa743a898b9acb9f7802de70b40e3d6e43ef97",
+		"",
+		"296d36e43fee12399357a2bd05e17435",
+		TEST_RESULT_VALID
+	},
+	{
+		83,
+		"short message",
+		"Pseudorandom",
+		"e754076ceab3fdaf4f9bcab7d4f0df0cbbafbc87731b8f9b7cd2166472e8eebc",
+		"40",
+		"25d9b0474b8d47a233f0d2ea22a6aa68",
+		TEST_RESULT_VALID
+	},
+	{
+		84,
+		"short message",
+		"Pseudorandom",
+		"ea3b016bdd387dd64d837c71683808f335dbdc53598a4ea8c5f952473fafaf5f",
+		"6601",
+		"e104f386fa8fb8da1632d7edc99b0f01",
+		TEST_RESULT_VALID
+	},
+	{
+		85,
+		"short message",
+		"Pseudorandom",
+		"73d4709637857dafab6ad8b2b0a51b06524717fedf100296644f7cfdaae1805b",
+		"f1d300",
+		"a2d9e7ee7687f784f612969208ffa8e7",
+		TEST_RESULT_VALID
+	},
+	{
+		86,
+		"short message",
+		"Pseudorandom",
+		"d5c81b399d4c0d1583a13da56de6d2dc45a66e7b47c24ab1192e246dc961dd77",
+		"2ae63cbf",
+		"b2eafddd9e7850a7c667e2a49c107604",
+		TEST_RESULT_VALID
+	},
+	{
+		87,
+		"short message",
+		"Pseudorandom",
+		"2521203fa0dddf59d837b2830f87b1aa61f958155df3ca4d1df2457cb4284dc8",
+		"af3a015ea1",
+		"547c328a61810c41a9862a668dc3dfd7",
+		TEST_RESULT_VALID
+	},
+	{
+		88,
+		"short message",
+		"Pseudorandom",
+		"665a02bc265a66d01775091da56726b6668bfd903cb7af66fb1b78a8a062e43c",
+		"3f56935def3f",
+		"52de7db32eb16633e5c99853b4f58838",
+		TEST_RESULT_VALID
+	},
+	{
+		89,
+		"short message",
+		"Pseudorandom",
+		"facd75b22221380047305bc981f570e2a1af38928ea7e2059e3af5fc6b82b493",
+		"57bb86beed156f",
+		"f7bff1c632d2ebe08c8df35d244a27a3",
+		TEST_RESULT_VALID
+	},
+	{
+		90,
+		"short message",
+		"Pseudorandom",
+		"505aa98819809ef63b9a368a1e8bc2e922da45b03ce02d9a7966b15006dba2d5",
+		"2e4e7ef728fe11af",
+		"748b184bdc7e977990e41e4796d8b985",
+		TEST_RESULT_VALID
+	},
+	{
+		91,
+		"short message",
+		"Pseudorandom",
+		"f942093842808ba47f64e427f7351dde6b9546e66de4e7d60aa6f328182712cf",
+		"852a21d92848e627c7",
+		"cba545016f97842c7b8fdff3a37212f5",
+		TEST_RESULT_VALID
+	},
+	{
+		92,
+		"short message",
+		"Pseudorandom",
+		"64be162b39c6e5f1fed9c32d9f674d9a8cde6eaa2443214d86bd4a1fb53b81b4",
+		"195a3b292f93baff0a2c",
+		"138442b3b61881846dd94e27f2f6ee5e",
+		TEST_RESULT_VALID
+	},
+	{
+		93,
+		"short message",
+		"Pseudorandom",
+		"b259a555d44b8a20c5489e2f38392ddaa6be9e35b9833b67e1b5fdf6cb3e4c6c",
+		"afd73117330c6e8528a6e4",
+		"74c0d93acc6d1114cb62162b9e3ee7bd",
+		TEST_RESULT_VALID
+	},
+	{
+		94,
+		"short message",
+		"Pseudorandom",
+		"2c6fc62daa77ba8c6881b3dd6989898fef646663cc7b0a3db8228a707b85f2dc",
+		"0ff54d6b6759120c2e8a51e3",
+		"bbbb3552d3612c0b8a177a6bd875ef02",
+		TEST_RESULT_VALID
+	},
+	{
+		95,
+		"short message",
+		"Pseudorandom",
+		"abab815d51df29f740e4e2079fb798e0152836e6ab57d1536ae8929e52c06eb8",
+		"f0058d412a104e53d820b95a7f",
+		"b0fca8273d20f378ec0630ac6def1115",
+		TEST_RESULT_VALID
+	},
+	{
+		96,
+		"short message",
+		"Pseudorandom",
+		"3d5da1af83f7287458bff7a7651ea5d8db72259401333f6b82096996dd7eaf19",
+		"aacc36972f183057919ff57b49e1",
+		"8346bdcd329566e3f684a2a001831349",
+		TEST_RESULT_VALID
+	},
+	{
+		97,
+		"short message",
+		"Pseudorandom",
+		"c19bdf314c6cf64381425467f42aefa17c1cc9358be16ce31b1d214859ce86aa",
+		"5d066a92c300e9b6ddd63a7c13ae33",
+		"2c25ccea5d8557309d52eddcc693f553",
+		TEST_RESULT_VALID
+	},
+	{
+		98,
+		"",
+		"Pseudorandom",
+		"612e837843ceae7f61d49625faa7e7494f9253e20cb3adcea686512b043936cd",
+		"cc37fae15f745a2f40e2c8b192f2b38d",
+		"2a5b955b388c13f69fd6e4363dc8fb25",
+		TEST_RESULT_VALID
+	},
+	{
+		99,
+		"",
+		"Pseudorandom",
+		"73216fafd0022d0d6ee27198b2272578fa8f04dd9f44467fbb6437aa45641bf7",
+		"d5247b8f6c3edcbfb1d591d13ece23d2f5",
+		"5fc40b8c6d1038ee6a97e1830c282f6c",
+		TEST_RESULT_VALID
+	},
+	{
+		100,
+		"",
+		"Pseudorandom",
+		"0427a70e257528f3ab70640bba1a5de12cf3885dd4c8e284fbbb55feb35294a5",
+		"13937f8544f44270d01175a011f7670e93fa6ba7ef02336e",
+		"3e83aa25e3a5a022fea8398636f108d7",
+		TEST_RESULT_VALID
+	},
+	{
+		101,
+		"",
+		"Pseudorandom",
+		"96e1e4896fb2cd05f133a6a100bc5609a7ac3ca6d81721e922dadd69ad07a892",
+		"91a17e4dfcc3166a1add26ff0e7c12056e8a654f28a6de24f4ba739ceb5b5b18",
+		"7a4d36f21e7b0a53b729e812aea61c7b",
+		TEST_RESULT_VALID
+	},
+	{
+		102,
+		"long message",
+		"Pseudorandom",
+		"41201567be4e6ea06de2295fd0e6e8a7d862bb57311894f525d8adeabba4a3e4",
+		"58c8c73bdd3f350c97477816eae4d0789c9369c0e99c248902c700bc29ed986425985eb3fa55709b73bf620cd9b1cb",
+		"55c49dab54d9726d567008e0875052a0",
+		TEST_RESULT_VALID
+	},
+	{
+		103,
+		"long message",
+		"Pseudorandom",
+		"649e373e681ef52e3c10ac265484750932a9918f28fb824f7cb50adab39781fe",
+		"39b447bd3a01983c1cb761b456d69000948ceb870562a536126a0d18a8e7e49b16de8fe672f13d0808d8b7d957899917",
+		"89bd0c097ed2b4004f5e24724e7de9ec",
+		TEST_RESULT_VALID
+	},
+	{
+		104,
+		"long message",
+		"Pseudorandom",
+		"7b0d237f7b536e2c6950990e61b361b384333dda690045c591321a4e3f79747f",
+		"3d6283d11c0219b525620e9bf5b9fd887d3f0f707acb1fbdffab0d97a5c6d07fc547762e0e7dd7c43ad35fab1c790f8047",
+		"43ceabb951e6e2feb21e0ebbb87c0f61",
+		TEST_RESULT_VALID
+	},
+	{
+		105,
+		"long message",
+		"Pseudorandom",
+		"17c92663741f012e5bb6714e614c2d155948617f10936269d954c58aba2ae62d",
+		"7fdd6a15c861d0313f6635d77dc55e115ff18c8ab063b5d03eab472eeca87a378188f25813515cf90b6cffa94a8ff36b29d65603eab3fbd2aa9500b261e184049893dc6ca2010becac163053f211070bdda621b8bd8af77e450268603b52db34c90be836dfebddef42303f724e63bf0f",
+		"282607a8064ac3595a019944e2dbbedd",
+		TEST_RESULT_VALID
+	},
+	{
+		106,
+		"long message",
+		"Pseudorandom",
+		"424c6b22606fcc094ae82fc5d3cbe484174c2211b3ec778091cac34a8e38a152",
+		"d96ff062e2490e8e0c54c5a8b89e85b25a66d93d7c2b93bdfef846b70d38672746a4b988d08f15a5c527ca4f2c80e53f7c6ac0521bc57ebe38209180cbf934e0bbeb58cfb63d75da64af41d09ce174af1896f42522910fced35ea000402e95fd3ac7aa6d5e0a6b533b0879bc466019b3a5e6b16e4bd1ea6cdfc9ccc1d6f0f0",
+		"08010151baa4ab9f097e632b859ccdfc",
+		TEST_RESULT_VALID
+	},
+	{
+		107,
+		"long message",
+		"Pseudorandom",
+		"15d553c8da433d53cdc7f15087a70349caab57b379a4078928ce9b99302e31a6",
+		"d6c0c53b73f74fb426adfdc143d70db7f7a8f8ed32a2faef263cf9ab117537b6b9d1728bd1000c1f28906c6ce6ad21862bfa4d689c1a8ebe3868b992098b7f981b2af5189a6adedff53a6c70c83693f5c8d6385a9a8a4dca017c5716ac4d5b9765c5ca2ab5f9867e02795198c0b9527e07d08af52dbcb91ceb3d8b412a2b2402",
+		"dd501ecd3dde85f69fda6170a2271134",
+		TEST_RESULT_VALID
+	},
+	{
+		108,
+		"long message",
+		"Pseudorandom",
+		"ffe559468a1031dfb3ced2e381e74b5821a36d9abf5f2e59895a7fdca0fa56a0",
+		"238899a84a3cf15202a1fbef4741e133fb24c009a0cd83854c6d1d7c9266d4c3eafe6d1dfc18f13845ccdad7fe277627b5fd5ff2555ce6dfde1ee078540a0a3590c6d9bf2fb63ba9afbe9380e797be7cd017645c5a3613eef38ef89e3b7461e6e700ff2b4deef5636c9d2198b143f797ca1820a3dcc5d462ebf4a8c4c09eb202a23592eb9524082c79adda8fcd56d256041a26bf8f523962ba911ce5a5786570d65be3c4df722ed8830302065febdf944715298a1fbb7d10b68d7da2bf889324314ce51e815c7fbf03aa0a8358aff3a86eb7a33f9a4923660db3047e793bebb0c6918f4395d400381723fdae2832c36efc8e368a68f30f6351c3bc942cd560",
+		"5e3757286a74146d8baf0439fe363ff0",
+		TEST_RESULT_VALID
+	},
+	{
+		109,
+		"Flipped bit 0 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fca7c78d15984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		110,
+		"Flipped bit 0 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"67d4d2f037472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		111,
+		"Flipped bit 1 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"ffa7c78d15984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		112,
+		"Flipped bit 1 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"64d4d2f037472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		113,
+		"Flipped bit 7 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"7da7c78d15984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		114,
+		"Flipped bit 7 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"e6d4d2f037472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		115,
+		"Flipped bit 8 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda6c78d15984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		116,
+		"Flipped bit 8 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d5d2f037472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		117,
+		"Flipped bit 31 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c70d15984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		118,
+		"Flipped bit 31 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d27037472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		119,
+		"Flipped bit 32 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d14984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		120,
+		"Flipped bit 32 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f036472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		121,
+		"Flipped bit 33 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d17984d8771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		122,
+		"Flipped bit 33 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f035472811eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		123,
+		"Flipped bit 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d0771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		124,
+		"Flipped bit 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472891eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		125,
+		"Flipped bit 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8770f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		126,
+		"Flipped bit 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eaa125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		127,
+		"Flipped bit 71 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d87f1f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		128,
+		"Flipped bit 71 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f0374728116ba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		129,
+		"Flipped bit 77 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771d59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		130,
+		"Flipped bit 77 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eb8125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		131,
+		"Flipped bit 80 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59e20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		132,
+		"Flipped bit 80 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba124f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		133,
+		"Flipped bit 96 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a79d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		134,
+		"Flipped bit 96 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2686bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		135,
+		"Flipped bit 97 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a49d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		136,
+		"Flipped bit 97 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f26b6bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		137,
+		"Flipped bit 103 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20269d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		138,
+		"Flipped bit 103 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2e96bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		139,
+		"Flipped bit 120 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d195d",
+		TEST_RESULT_INVALID
+	},
+	{
+		140,
+		"Flipped bit 120 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696bafd7",
+		TEST_RESULT_INVALID
+	},
+	{
+		141,
+		"Flipped bit 121 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d195e",
+		TEST_RESULT_INVALID
+	},
+	{
+		142,
+		"Flipped bit 121 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696bafd4",
+		TEST_RESULT_INVALID
+	},
+	{
+		143,
+		"Flipped bit 126 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d191c",
+		TEST_RESULT_INVALID
+	},
+	{
+		144,
+		"Flipped bit 126 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696baf96",
+		TEST_RESULT_INVALID
+	},
+	{
+		145,
+		"Flipped bit 127 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d8771f59f20a69d19dc",
+		TEST_RESULT_INVALID
+	},
+	{
+		146,
+		"Flipped bit 127 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472811eba125f2696baf56",
+		TEST_RESULT_INVALID
+	},
+	{
+		147,
+		"Flipped bits 0 and 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fca7c78d15984d8770f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		148,
+		"Flipped bits 0 and 64 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"67d4d2f037472811eaa125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		149,
+		"Flipped bits 31 and 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c70d15984d0771f59f20a69d195c",
+		TEST_RESULT_INVALID
+	},
+	{
+		150,
+		"Flipped bits 31 and 63 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d27037472891eba125f2696bafd6",
+		TEST_RESULT_INVALID
+	},
+	{
+		151,
+		"Flipped bits 63 and 127 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fda7c78d15984d0771f59f20a69d19dc",
+		TEST_RESULT_INVALID
+	},
+	{
+		152,
+		"Flipped bits 63 and 127 in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"66d4d2f037472891eba125f2696baf56",
+		TEST_RESULT_INVALID
+	},
+	{
+		153,
+		"all bits of tag flipped",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"02583872ea67b2788e0a60df5962e6a3",
+		TEST_RESULT_INVALID
+	},
+	{
+		154,
+		"all bits of tag flipped",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"992b2d0fc8b8d7ee145eda0d96945029",
+		TEST_RESULT_INVALID
+	},
+	{
+		155,
+		"Tag changed to all zero",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"00000000000000000000000000000000",
+		TEST_RESULT_INVALID
+	},
+	{
+		156,
+		"Tag changed to all zero",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"00000000000000000000000000000000",
+		TEST_RESULT_INVALID
+	},
+	{
+		157,
+		"tag changed to all 1",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"ffffffffffffffffffffffffffffffff",
+		TEST_RESULT_INVALID
+	},
+	{
+		158,
+		"tag changed to all 1",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"ffffffffffffffffffffffffffffffff",
+		TEST_RESULT_INVALID
+	},
+	{
+		159,
+		"msbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"7d27470d9518cd07f1751fa0261d99dc",
+		TEST_RESULT_INVALID
+	},
+	{
+		160,
+		"msbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"e6545270b7c7a8916b21a572e9eb2f56",
+		TEST_RESULT_INVALID
+	},
+	{
+		161,
+		"lsbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"",
+		"fca6c68c14994c8670f49e21a79c185d",
+		TEST_RESULT_INVALID
+	},
+	{
+		162,
+		"lsbs changed in tag",
+		"ModifiedTag",
+		"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+		"000102030405060708090a0b0c0d0e0f",
+		"67d5d3f136462910eaa024f3686aaed7",
+		TEST_RESULT_INVALID
+	},
+	{
+		163,
+		"short key",
+		"Pseudorandom",
+		"a349ac0a9f9f74e48e099cc3dbf9a9c9",
+		"",
+		"38151645fc1dc87175a9481d7aa82d075123075c93e13ed578da3da607229cf0",
+		TEST_RESULT_VALID
+	},
+	{
+		164,
+		"short key",
+		"Pseudorandom",
+		"ac686ba0f1a51b4ec4f0b30492b7f556",
+		"2fa43a14ae500507deb95ab5bd32b0fe",
+		"7f19bf830aeed3fb44216489b998fd9bc7b44114480c544209dbc058cbcbe703",
+		TEST_RESULT_VALID
+	},
+	{
+		165,
+		"short key",
+		"Pseudorandom",
+		"73ef9ef1a4225e51e3c1db3ace1fa24f",
+		"ffad380d9aabb0acede5c1bf112925cdfc3d379fc2376a4fe2644490d0430ac3",
+		"0b2ee63eb7c2a2972d1c22cc190ba3cf5434aedc33ed9afe7ea73f375865c169",
+		TEST_RESULT_VALID
+	},
+	{
+		166,
+		"short key",
+		"Pseudorandom",
+		"e34f15c7bd819930fe9d66e0c166e61c",
+		"",
+		"f4e026029a8ebb6aa0bc814f17488898",
+		TEST_RESULT_VALID
+	},
+	{
+		167,
+		"short key",
+		"Pseudorandom",
+		"e09eaa5a3f5e56d279d5e7a03373f6ea",
+		"ef4eab37181f98423e53e947e7050fd0",
+		"e6f1fae6a17b303104032a86355e09af",
+		TEST_RESULT_VALID
+	},
+	{
+		168,
+		"short key",
+		"Pseudorandom",
+		"9bd3902ed0996c869b572272e76f3889",
+		"a7ba19d49ee1ea02f098aa8e30c740d893a4456ccc294040484ed8a00a55f93e",
+		"da83c810da377e668993c2f536e6ada6",
+		TEST_RESULT_VALID
+	},
+	{
+		169,
+		"long key",
+		"Pseudorandom",
+		"8a0c46eb8a2959e39865330079763341e7439dab149694ee57e0d61ec73d947e1d5301cd974e18a5e0d1cf0d2c37e8aadd9fd589d57ef32e47024a99bc3f70c077",
+		"",
+		"f585ac6070bbdce74a19c2a5db953e4682df5f4d6693fc8182cc4c6ee4be3150",
+		TEST_RESULT_VALID
+	},
+	{
+		170,
+		"long key",
+		"Pseudorandom",
+		"2877ebb81f80334fd00516337446c5cf5ad4a3a2e197269e5b0ad1889dfe2b4b0aaa676fac55b36ce3affc7f1092ab89c53273a837bd5bc94d1a9d9e5b02e9856f",
+		"ba448db88f154f775028fdecf9e6752d",
+		"795b3628975744ea446527dfb957c7f8b110c92b5c5a6922ae5eb523ffbce2e1",
+		TEST_RESULT_VALID
+	},
+	{
+		171,
+		"long key",
+		"Pseudorandom",
+		"21178e26bc28ffc27c06f762ba190a627075856d7ca6feab79ac63149b17126e34fd9e5590e0e90aac801df09505d8af2dd0a2703b352c573ac9d2cb063927f2af",
+		"7d5f1d6b993452b1b53a4375760d10a20d46a0ab9ec3943fc4b07a2ce735e731",
+		"e6ab3bcddbc67d6ad93308b7203c1bdc926a1b8c6fece78a1d74949396787ecf",
+		TEST_RESULT_VALID
+	},
+	{
+		172,
+		"long key",
+		"Pseudorandom",
+		"813e0c078c221375e80590ace6774eafd2d2c242350988d02efa550e05aecbe100c1b8bf154c932cf9e57177015c816c42bc7fbc71ceaa5328c7316b7f0f30330f",
+		"",
+		"b331bd6b461342b43399e393cc5dac51",
+		TEST_RESULT_VALID
+	},
+	{
+		173,
+		"long key",
+		"Pseudorandom",
+		"5713343096b0aaf0562a6b92c1a15535924160475a4e4233589159728c562e3b2ad96f740c6a4da2bc3f768ce98c9bd66bac28d1646ff592028c940d455f35eeb4",
+		"71712de2fac1fb855673bff72af64257",
+		"3a3f14d40c0f0e7ed7a25894c4932fcd",
+		TEST_RESULT_VALID
+	},
+	{
+		174,
+		"long key",
+		"Pseudorandom",
+		"7208afbecf5f1f34828f98b719414e280716de64f5edd1ae1c774153cd2022337bb20fade1b7856f1dbfd40e2b4307f1293ceff1692ee90d8c90b5fdf953ab01a5",
+		"43b53302b604d613e62db002044a4782d572ac8fbd3cd0ece91b43bc52e18e98",
+		"38a5c568e561b70028c324218ca6eddd",
+		TEST_RESULT_VALID
+	},
+};
+

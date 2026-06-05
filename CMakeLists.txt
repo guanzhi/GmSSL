@@ -160,6 +160,7 @@ set(tests
 	sm4_ctr
 	sm4_gcm
 	sm3
+	sm3_hmac
 	sm4_sm3_hmac
 	sm2_z256
 	sm2_key
