@@ -17,6 +17,7 @@
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
+#include "sm4_ccmtest.h"
 
 
 static int test_sm4_ccm(void)
@@ -175,6 +176,72 @@ static int test_sm4_ccm_test_vectors(void)
 	return 1;
 }
 
+
+static int test_sm4_ccm_wycheproof(void)
+{
+	size_t i;
+
+	for (i = 0; i < sizeof(test_sm4_ccm_vectors)/sizeof(test_sm4_ccm_vectors[0]); i++) {
+		const TEST_SM4_CCM_VECTOR *tv = &test_sm4_ccm_vectors[i];
+		SM4_KEY sm4_key;
+		uint8_t key[16];
+		uint8_t iv[268];
+		uint8_t aad[513];
+		uint8_t msg[513];
+		uint8_t ct[513];
+		uint8_t tag[16];
+		uint8_t out[513];
+		uint8_t dec[513];
+		uint8_t mac[16];
+		size_t keylen, ivlen, aadlen, msglen, ctlen, taglen;
+		int enc_ret, dec_ret;
+
+		if (hex_to_bytes(tv->key, strlen(tv->key), key, &keylen) != 1
+			|| hex_to_bytes(tv->iv, strlen(tv->iv), iv, &ivlen) != 1
+			|| hex_to_bytes(tv->aad, strlen(tv->aad), aad, &aadlen) != 1
+			|| hex_to_bytes(tv->msg, strlen(tv->msg), msg, &msglen) != 1
+			|| hex_to_bytes(tv->ct, strlen(tv->ct), ct, &ctlen) != 1
+			|| hex_to_bytes(tv->tag, strlen(tv->tag), tag, &taglen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (keylen != SM4_KEY_SIZE) {
+			error_print();
+			return -1;
+		}
+		if (taglen > sizeof(mac)
+			|| msglen > sizeof(out)
+			|| ctlen > sizeof(dec)) {
+			error_print();
+			return -1;
+		}
+
+		sm4_set_encrypt_key(&sm4_key, key);
+		enc_ret = sm4_ccm_encrypt(&sm4_key, iv, ivlen, aad, aadlen, msg, msglen, out, taglen, mac);
+		dec_ret = sm4_ccm_decrypt(&sm4_key, iv, ivlen, aad, aadlen, ct, ctlen, tag, taglen, dec);
+
+		if (tv->result == TEST_RESULT_VALID) {
+			if (enc_ret != 1 || dec_ret != 1
+				|| ctlen != msglen
+				|| memcmp(out, ct, ctlen) != 0
+				|| memcmp(mac, tag, taglen) != 0
+				|| memcmp(dec, msg, msglen) != 0) {
+				error_print();
+				return -1;
+			}
+		} else {
+			if (dec_ret == 1) {
+				error_print();
+				return -1;
+			}
+			fprintf(stderr, "    error output above is part of the negative test\n");
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int speed_sm4_ccm_encrypt(void)
 {
 	SM4_KEY sm4_key;
@@ -208,6 +275,7 @@ int main(void)
 {
 	if (test_sm4_ccm() != 1) goto err;
 	if (test_sm4_ccm_test_vectors() != 1) goto err;
+	if (test_sm4_ccm_wycheproof() != 1) goto err;
 #if ENABLE_TEST_SPEED
 	if (speed_sm4_ccm_encrypt() != 1) goto err;
 #endif
