@@ -114,10 +114,19 @@ int x509_digest_algor_from_der(int *oid, const uint8_t **in, size_t *inlen)
 		if (ret < 0) error_print();
 		return ret;
 	}
-	if ((ret = asn1_oid_info_from_der(&info, x509_digest_algors, x509_digest_algors_count, &p, &len)) != 1
-		|| asn1_length_is_zero(len) != 1) {
+	if ((ret = asn1_oid_info_from_der(&info, x509_digest_algors, x509_digest_algors_count, &p, &len)) != 1) {
 		error_print();
 		return ret;
+	}
+	if (len) {
+		if (asn1_null_from_der(&p, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	*oid = info->oid;
 	return 1;

@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
+#include <gmssl/digest.h>
 #include <gmssl/sm2.h>
 #ifdef ENABLE_SM9
 #include <gmssl/sm9.h>
@@ -123,6 +124,7 @@ void x509_key_cleanup(X509_KEY *key);
 #define X509_PUBLIC_KEY_MAX_SIZE 1184
 int x509_public_key_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen);
 int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const uint8_t **in, size_t *inlen);
+int x509_public_key_digest_ex(const X509_KEY *key, const DIGEST *digest_algor, uint8_t *dgst, size_t *dgstlen);
 int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32]);
 int x509_public_key_equ(const X509_KEY *key, const X509_KEY *pub);
 int x509_public_key_print(FILE *fp, int fmt, int ind, const char *label, const X509_KEY *key);

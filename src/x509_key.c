@@ -593,20 +593,33 @@ int x509_public_key_from_bytes(X509_KEY *key, int algor, int algor_param, const 
 	return 1;
 }
 
-int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32])
+int x509_public_key_digest_ex(const X509_KEY *key, const DIGEST *digest_algor, uint8_t *dgst, size_t *dgstlen)
 {
-	SM3_CTX ctx;
 	uint8_t bits[X509_PUBLIC_KEY_MAX_SIZE];
 	uint8_t *p = bits;
 	size_t len = 0;
 
-	if (x509_public_key_to_bytes(key, &p, &len) != 1) {
+	if (!digest_algor || !dgst || !dgstlen) {
 		error_print();
 		return -1;
 	}
-	sm3_init(&ctx);
-	sm3_update(&ctx, bits, len);
-	sm3_finish(&ctx, dgst);
+	if (x509_public_key_to_bytes(key, &p, &len) != 1
+		|| digest(digest_algor, bits, len, dgst, dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int x509_public_key_digest(const X509_KEY *key, uint8_t dgst[32])
+{
+	size_t dgstlen;
+
+	if (x509_public_key_digest_ex(key, DIGEST_sm3(), dgst, &dgstlen) != 1
+		|| dgstlen != 32) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 

@@ -118,6 +118,7 @@ set(src
 	src/x509_req.c
 	src/x509_crl.c
 	src/x509_new.c
+	src/ocsp.c
 	src/x509_key.c
 	src/rsa.c
 	src/file.c
@@ -184,6 +185,7 @@ set(tests
 	x509_req
 	x509_crl
 	x509_key
+	ocsp
 )
 
 
