@@ -544,6 +544,7 @@ if (ENABLE_TLS)
 	list(APPEND src
 		src/socket.c
 		src/tls.c
+		src/tls_alpn.c
 		src/tls_ext.c
 		src/tls_psk.c
 		src/tls_sni.c

@@ -836,6 +836,8 @@ typedef struct {
 
 	// 16. application_layer_protocol_negotiation
 	int application_layer_protocol_negotiation;
+	char *alpn_protocols[4];
+	size_t alpn_protocols_cnt;
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
@@ -1166,6 +1168,7 @@ typedef struct {
 
 	// 16. application_layer_protocol_negotiation
 	int application_layer_protocol_negotiation;
+	char *alpn_selected;
 
 	// 18. signed_certificate_timestamp
 	int signed_certificate_timestamp;
@@ -1763,6 +1766,25 @@ int tls_server_name_ext_to_bytes(const uint8_t *host_name, size_t host_name_len,
 int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	const uint8_t *ext_data, size_t ext_datalen);
 int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
+
+// 16. application_layer_protocol_negotiation
+int tls_ctx_set_application_layer_protocol_negotiation(TLS_CTX *ctx,
+	char *protocols[], size_t protocols_cnt);
+int tls_application_layer_protocol_negotiation_ext_to_bytes(
+	char *protocols[], size_t protocols_cnt, uint8_t **out, size_t *outlen);
+int tls_application_layer_protocol_negotiation_selected_ext_to_bytes(
+	char *protocol, uint8_t **out, size_t *outlen);
+int tls_application_layer_protocol_negotiation_from_bytes(
+	const uint8_t **protocol_name_list, size_t *protocol_name_list_len,
+	const uint8_t *ext_data, size_t ext_datalen);
+int tls_application_layer_protocol_negotiation_select(
+	const uint8_t *ext_data, size_t ext_datalen,
+	char *local_protocols[], size_t local_protocols_cnt, char **selected);
+int tls_application_layer_protocol_negotiation_selected_from_bytes(
+	char **selected, const uint8_t *ext_data, size_t ext_datalen,
+	char *local_protocols[], size_t local_protocols_cnt);
+int tls_application_layer_protocol_negotiation_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
 
 
 // 5. status_request (OCSP stapling)

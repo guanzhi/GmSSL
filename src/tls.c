@@ -2670,6 +2670,39 @@ int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t s
 	return 1;
 }
 
+int tls_ctx_set_application_layer_protocol_negotiation(TLS_CTX *ctx,
+	char *protocols[], size_t protocols_cnt)
+{
+	size_t i;
+
+	if (!ctx || !protocols || !protocols_cnt) {
+		error_print();
+		return -1;
+	}
+	if (protocols_cnt > sizeof(ctx->alpn_protocols)/sizeof(ctx->alpn_protocols[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < protocols_cnt; i++) {
+		size_t protocol_len;
+
+		if (!protocols[i]) {
+			error_print();
+			return -1;
+		}
+		protocol_len = strlen(protocols[i]);
+		if (protocol_len < 1 || protocol_len > 255) {
+			error_print();
+			return -1;
+		}
+		ctx->alpn_protocols[i] = protocols[i];
+	}
+	ctx->alpn_protocols_cnt = protocols_cnt;
+	ctx->application_layer_protocol_negotiation = 1;
+
+	return 1;
+}
+
 int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 {
 	if (!ctx) {
@@ -2919,5 +2952,3 @@ int tls_compute_verify_data(const uint8_t master_secret[48],
 	}
 	return 1;
 }
-
-

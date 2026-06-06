@@ -3879,6 +3879,16 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// application_layer_protocol_negotiation
+		if (conn->ctx->alpn_protocols_cnt) {
+			if (tls_application_layer_protocol_negotiation_ext_to_bytes(
+				conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt,
+				&pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		// psk_key_exchange_modes
 		if (conn->key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK)) {
 			if (tls13_psk_key_exchange_modes_ext_to_bytes(
@@ -4468,6 +4478,16 @@ int tls13_send_client_hello_again(TLS_CONNECT *conn)
 		// server_name
 		if (conn->server_name) {
 			if (tls_server_name_ext_to_bytes(conn->host_name, conn->host_name_len, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
+		// application_layer_protocol_negotiation
+		if (conn->ctx->alpn_protocols_cnt) {
+			if (tls_application_layer_protocol_negotiation_ext_to_bytes(
+				conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt,
+				&pexts, &extslen) != 1) {
 				error_print();
 				return -1;
 			}
@@ -5102,6 +5122,7 @@ int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 
 	int server_name = 0;
 	int early_data = 0;
+	int alpn = 0;
 
 	printf("recv {EncryptedExtensions}\n");
 
@@ -5183,6 +5204,13 @@ int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 				return -1;
 			}
 			break;
+		case TLS_extension_application_layer_protocol_negotiation:
+			if (!ext_data) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			break;
 		}
 
 		switch (ext_type) {
@@ -5228,6 +5256,30 @@ int tls13_recv_encrypted_extensions(TLS_CONNECT *conn)
 			break;
 
 		case TLS_extension_application_layer_protocol_negotiation:
+			if (!conn->ctx->alpn_protocols_cnt) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			if (alpn) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			if ((ret = tls_application_layer_protocol_negotiation_selected_from_bytes(
+				&conn->alpn_selected, ext_data, ext_datalen,
+				conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt)) < 0) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			} else if (ret == 0) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			alpn = 1;
+			break;
+
 		case TLS_extension_use_srtp:
 		case TLS_extension_client_certificate_type:
 		case TLS_extension_server_certificate_type:
@@ -6429,6 +6481,8 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	size_t key_share_len;
 	const uint8_t *server_name = NULL;
 	size_t server_name_len;
+	const uint8_t *alpn = NULL;
+	size_t alpn_len;
 	const uint8_t *psk_key_exchange_modes = NULL;
 	size_t psk_key_exchange_modes_len;
 	const uint8_t *pre_shared_key = NULL;
@@ -6565,6 +6619,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_certificate_authorities:
 		case TLS_extension_key_share:
 		case TLS_extension_server_name:
+		case TLS_extension_application_layer_protocol_negotiation:
 		case TLS_extension_psk_key_exchange_modes:
 		case TLS_extension_pre_shared_key:
 		case TLS_extension_status_request:
@@ -6651,6 +6706,16 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			}
 			server_name = ext_data;
 			server_name_len = ext_datalen;
+			break;
+
+		case TLS_extension_application_layer_protocol_negotiation:
+			if (alpn) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			alpn = ext_data;
+			alpn_len = ext_datalen;
 			break;
 
 		case TLS_extension_psk_key_exchange_modes:
@@ -6843,6 +6908,27 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 		conn->server_name = 1;
+	}
+
+	// application_layer_protocol_negotiation
+	if (alpn) {
+		if (!conn->ctx->alpn_protocols_cnt) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_no_application_protocol);
+			return -1;
+		}
+		if ((ret = tls_application_layer_protocol_negotiation_select(
+			alpn, alpn_len,
+			conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt,
+			&conn->alpn_selected)) < 0) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_no_application_protocol);
+			return -1;
+		}
 	}
 
 	// select server cert_chain
@@ -7773,6 +7859,15 @@ int tls13_send_encrypted_extensions(TLS_CONNECT *conn)
 		//	no HelloRetryRequest
 		if (conn->early_data) {
 			if (tls_ext_to_bytes(TLS_extension_early_data, NULL, 0, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
+		// application_layer_protocol_negotiation
+		if (conn->alpn_selected) {
+			if (tls_application_layer_protocol_negotiation_selected_ext_to_bytes(
+				conn->alpn_selected, &pexts, &extslen) != 1) {
 				error_print();
 				return -1;
 			}
