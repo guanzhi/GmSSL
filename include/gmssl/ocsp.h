@@ -13,6 +13,7 @@
 
 
 #include <stdio.h>
+#include <time.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <gmssl/x509.h>
@@ -24,6 +25,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
 
 
 /*
@@ -87,12 +90,61 @@ int ocsp_request_generate(uint8_t *req, size_t *reqlen, size_t maxlen,
 	const uint8_t *issuer_cert, size_t issuer_certlen,
 	const DIGEST *digest);
 
-/*
 
+/*
+SingleResponse ::= SEQUENCE {
+	certID				CertID,
+	certStatus			CertStatus,
+	thisUpdate			GeneralizedTime,
+	nextUpdate			[0] EXPLICIT GeneralizedTime OPTIONAL,
+	singleExtensions		[1] EXPLICIT Extensions OPTIONAL }
+
+CertStatus ::= CHOICE {
+	good				[0] IMPLICIT NULL,
+	revoked				[1] IMPLICIT RevokedInfo,
+	unknown				[2] IMPLICIT UnknownInfo }
+
+RevokedInfo ::= SEQUENCE {
+	revocationTime			GeneralizedTime,
+	revocationReason		[0] EXPLICIT CRLReason OPTIONAL }
+
+UnknownInfo ::= NULL
+*/
+enum {
+	OCSP_cert_status_good,
+	OCSP_cert_status_revoked,
+	OCSP_cert_status_unknown,
+};
+
+int ocsp_single_response_to_der(int hash_algor,
+	const uint8_t *issuer_name_hash, size_t issuer_name_hash_len,
+	const uint8_t *issuer_key_hash, size_t issuer_key_hash_len,
+	const uint8_t *serial_number, size_t serial_number_len,
+	int cert_status, time_t revocation_time, int revocation_reason,
+	time_t this_update, time_t next_update,
+	const uint8_t *exts, size_t extslen,
+	uint8_t **out, size_t *outlen);
+int ocsp_single_response_from_der(int *hash_algor,
+	const uint8_t **issuer_name_hash, size_t *issuer_name_hash_len,
+	const uint8_t **issuer_key_hash, size_t *issuer_key_hash_len,
+	const uint8_t **serial_number, size_t *serial_number_len,
+	int *cert_status, time_t *revocation_time, int *revocation_reason,
+	time_t *this_update, time_t *next_update,
+	const uint8_t **exts, size_t *extslen,
+	const uint8_t **in, size_t *inlen);
+int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen);
+
+
+/*
 OCSPResponse ::= SEQUENCE {
 	responseStatus			OCSPResponseStatus,
 	responseBytes			[0] EXPLICIT ResponseBytes OPTIONAL }
+*/
 
+
+
+/*
 OCSPResponseStatus ::= ENUMERATED {
 	successful			(0),
 	malformedRequest		(1),
@@ -100,7 +152,25 @@ OCSPResponseStatus ::= ENUMERATED {
 	tryLater			(3),
 	sigRequired			(5),
 	unauthorized			(6) }
+*/
+enum {
+	OCSP_response_status_successful		= 0,
+	OCSP_response_status_malformed_request	= 1,
+	OCSP_response_status_internal_error	= 2,
+	OCSP_response_status_try_later		= 3,
+	OCSP_response_status_sig_required	= 5,
+	OCSP_response_status_unauthorized	= 6,
+};
 
+
+#define OCSP_responder_id_by_name			1
+#define OCSP_responder_id_by_key			2
+
+
+
+
+
+/*
 ResponseBytes ::= SEQUENCE {
 	responseType			OBJECT IDENTIFIER,
 	response			OCTET STRING }
@@ -125,44 +195,47 @@ ResponderID ::= CHOICE {
 	byKey				[2] KeyHash }
 
 KeyHash ::= OCTET STRING
+*/
 
-SingleResponse ::= SEQUENCE {
-	certID				CertID,
-	certStatus			CertStatus,
-	thisUpdate			GeneralizedTime,
-	nextUpdate			[0] EXPLICIT GeneralizedTime OPTIONAL,
-	singleExtensions		[1] EXPLICIT Extensions OPTIONAL }
 
-CertStatus ::= CHOICE {
-	good				[0] IMPLICIT NULL,
-	revoked				[1] IMPLICIT RevokedInfo,
-	unknown				[2] IMPLICIT UnknownInfo }
 
-RevokedInfo ::= SEQUENCE {
-	revocationTime			GeneralizedTime,
-	revocationReason		[0] EXPLICIT CRLReason OPTIONAL }
 
-UnknownInfo ::= NULL
 
-ArchiveCutoff ::= GeneralizedTime
 
+
+
+
+
+
+
+/*
 AcceptableResponses ::= SEQUENCE OF OBJECT IDENTIFIER
 
 ServiceLocator ::= SEQUENCE {
 	issuer				Name,
 	locator				AuthorityInfoAccessSyntax OPTIONAL }
 
-CrlID ::= SEQUENCE {
-	crlUrl				[0] EXPLICIT IA5String OPTIONAL,
-	crlNum				[1] EXPLICIT INTEGER OPTIONAL,
-	crlTime				[2] EXPLICIT GeneralizedTime OPTIONAL }
+*/
 
+
+
+/*
 PreferredSignatureAlgorithms ::= SEQUENCE OF PreferredSignatureAlgorithm
 
 PreferredSignatureAlgorithm ::= SEQUENCE {
 	sigIdentifier			AlgorithmIdentifier,
 	certIdentifier			AlgorithmIdentifier OPTIONAL }
+
 */
+
+
+
+
+
+
+
+
+
 
 
 #ifdef __cplusplus

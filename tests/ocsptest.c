@@ -14,6 +14,7 @@
 #include <gmssl/oid.h>
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
+#include <gmssl/x509_crl.h>
 #include <gmssl/ocsp.h>
 
 
@@ -233,8 +234,138 @@ static int test_ocsp_request_vector(void)
 }
 #endif
 
+static int test_ocsp_single_response(void)
+{
+	uint8_t exts[128];
+	uint8_t *p = exts;
+	size_t extslen = 0;
+	uint8_t buf[256];
+	const uint8_t *cp;
+	size_t len;
+	int hash_algor;
+	const uint8_t *name_hash;
+	size_t name_hash_len;
+	const uint8_t *key_hash;
+	size_t key_hash_len;
+	const uint8_t *serial;
+	size_t serial_len;
+	int cert_status;
+	time_t revocation_time;
+	int revocation_reason;
+	time_t this_update;
+	time_t next_update;
+	const uint8_t *single_response_exts;
+	size_t single_response_exts_len;
+
+	/*
+	if (ocsp_crl_id_print(stderr, 0, 0, "CrlID", NULL, 0) != 1) {
+		error_print();
+		return -1;
+	}
+	{
+		uint8_t crl_url[64];
+		uint8_t *crl_url_p = crl_url;
+		size_t crl_url_len = 0;
+		uint8_t crl_id[128];
+		uint8_t *crl_id_p = crl_id;
+		size_t crl_id_len = 0;
+		const char *uri = "http://example.com/root.crl";
+
+		if (asn1_ia5_string_to_der(uri, strlen(uri), &crl_url_p, &crl_url_len) != 1
+			|| asn1_explicit_to_der(0, crl_url, crl_url_len, &crl_id_p, &crl_id_len) != 1
+			|| ocsp_crl_id_print(stderr, 0, 0, "CrlID", crl_id, crl_id_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	*/
+
+	if (x509_crl_reason_ext_to_der(-1, X509_cr_key_compromise, &p, &extslen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	p = buf;
+	len = 0;
+	if (ocsp_single_response_to_der(OID_sm3,
+			issuer_name_hash, sizeof(issuer_name_hash),
+			issuer_key_hash, sizeof(issuer_key_hash),
+			serial_number, sizeof(serial_number),
+			OCSP_cert_status_revoked, 1700000000, X509_cr_key_compromise,
+			1700003600, 1700007200, exts, extslen, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	ocsp_single_response_print(stderr, 0, 0, "SingleResponse", buf, len);
+
+	cp = buf;
+	if (ocsp_single_response_from_der(&hash_algor,
+			&name_hash, &name_hash_len,
+			&key_hash, &key_hash_len,
+			&serial, &serial_len,
+			&cert_status, &revocation_time, &revocation_reason,
+			&this_update, &next_update,
+			&single_response_exts, &single_response_exts_len, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1
+		|| hash_algor != OID_sm3
+		|| name_hash_len != sizeof(issuer_name_hash)
+		|| memcmp(name_hash, issuer_name_hash, sizeof(issuer_name_hash)) != 0
+		|| key_hash_len != sizeof(issuer_key_hash)
+		|| memcmp(key_hash, issuer_key_hash, sizeof(issuer_key_hash)) != 0
+		|| serial_len != sizeof(serial_number)
+		|| memcmp(serial, serial_number, sizeof(serial_number)) != 0
+		|| cert_status != OCSP_cert_status_revoked
+		|| revocation_time != 1700000000
+		|| revocation_reason != X509_cr_key_compromise
+		|| this_update != 1700003600
+		|| next_update != 1700007200
+		|| single_response_exts_len != extslen
+		|| memcmp(single_response_exts, exts, extslen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	p = buf;
+	len = 0;
+	if (ocsp_single_response_to_der(OID_sm3,
+			issuer_name_hash, sizeof(issuer_name_hash),
+			issuer_key_hash, sizeof(issuer_key_hash),
+			serial_number, sizeof(serial_number),
+			OCSP_cert_status_good, -1, -1,
+			1700003600, -1, NULL, 0, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	ocsp_single_response_print(stderr, 0, 0, "SingleResponse", buf, len);
+
+	cp = buf;
+	if (ocsp_single_response_from_der(&hash_algor,
+			&name_hash, &name_hash_len,
+			&key_hash, &key_hash_len,
+			&serial, &serial_len,
+			&cert_status, &revocation_time, &revocation_reason,
+			&this_update, &next_update,
+			&single_response_exts, &single_response_exts_len, &cp, &len) != 1
+		|| asn1_length_is_zero(len) != 1
+		|| hash_algor != OID_sm3
+		|| cert_status != OCSP_cert_status_good
+		|| revocation_time != (time_t)-1
+		|| revocation_reason != -1
+		|| this_update != 1700003600
+		|| next_update != (time_t)-1
+		|| single_response_exts != NULL
+		|| single_response_exts_len != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
+	if (test_ocsp_single_response() != 1) goto err;
 	if (test_ocsp_request_item() != 1) goto err;
 	if (test_ocsp_request() != 1) goto err;
 #ifdef ENABLE_SHA1

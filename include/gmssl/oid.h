@@ -104,6 +104,10 @@ enum {
 	OID_ce_invalidity_date,
 	OID_ce_certificate_issuer,
 
+	// OCSP
+	OID_pkix_ocsp_crl,
+	OID_pkix_ocsp_archive_cutoff,
+
 	// X.509 KeyPropuseID
 	OID_any_extended_key_usage,
 	OID_kp_server_auth,
@@ -217,7 +221,6 @@ enum {
 
 
 #define oid_cnt(nodes)	(sizeof(nodes)/sizeof((nodes)[0]))
-
 
 
 #ifdef __cplusplus
