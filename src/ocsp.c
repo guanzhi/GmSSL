@@ -108,8 +108,6 @@ int ocsp_request_item_from_der(int *hash_algor,
 int ocsp_request_item_print(FILE *fp, int fmt, int ind, const char *label,
 	const uint8_t *d, size_t dlen)
 {
-	const uint8_t *seq;
-	size_t seq_len;
 	const uint8_t *p;
 	size_t len;
 	const uint8_t *cert_id;
@@ -125,12 +123,8 @@ int ocsp_request_item_print(FILE *fp, int fmt, int ind, const char *label,
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	if (asn1_sequence_from_der(&seq, &seq_len, &d, &dlen) != 1) {
-		error_print();
-		return -1;
-	}
 	format_print(fp, fmt, ind, "reqCert\n");
-	if (asn1_sequence_from_der(&cert_id, &cert_id_len, &seq, &seq_len) != 1
+	if (asn1_sequence_from_der(&cert_id, &cert_id_len, &d, &dlen) != 1
 		|| x509_digest_algor_from_der(&hash_algor, &cert_id, &cert_id_len) != 1
 		|| asn1_octet_string_from_der(&issuer_name_hash, &issuer_name_hash_len, &cert_id, &cert_id_len) != 1
 		|| asn1_octet_string_from_der(&issuer_key_hash, &issuer_key_hash_len, &cert_id, &cert_id_len) != 1
@@ -143,7 +137,7 @@ int ocsp_request_item_print(FILE *fp, int fmt, int ind, const char *label,
 	format_bytes(fp, fmt, ind + 4, "issuerKeyHash", issuer_key_hash, issuer_key_hash_len);
 	format_bytes(fp, fmt, ind + 4, "serialNumber", serial, serial_len);
 	if (asn1_length_is_zero(cert_id_len) != 1
-		|| x509_explicit_exts_from_der(0, &p, &len, &seq, &seq_len) < 0) {
+		|| x509_explicit_exts_from_der(0, &p, &len, &d, &dlen) < 0) {
 		error_print();
 		return -1;
 	}
@@ -151,8 +145,7 @@ int ocsp_request_item_print(FILE *fp, int fmt, int ind, const char *label,
 		error_print();
 		return -1;
 	}
-	if (asn1_length_is_zero(seq_len) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
+	if (asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -238,8 +231,6 @@ int ocsp_request_from_der(int *version,
 int ocsp_request_print(FILE *fp, int fmt, int ind, const char *label,
 	const uint8_t *d, size_t dlen)
 {
-	const uint8_t *seq;
-	size_t seq_len;
 	const uint8_t *p;
 	size_t len;
 	const uint8_t *tbs_request;
@@ -252,8 +243,7 @@ int ocsp_request_print(FILE *fp, int fmt, int ind, const char *label,
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	if (asn1_sequence_from_der(&seq, &seq_len, &d, &dlen) != 1
-		|| asn1_sequence_from_der(&tbs_request, &tbs_request_len, &seq, &seq_len) != 1) {
+	if (asn1_sequence_from_der(&tbs_request, &tbs_request_len, &d, &dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -282,7 +272,7 @@ int ocsp_request_print(FILE *fp, int fmt, int ind, const char *label,
 	while (request_list_len) {
 		const uint8_t *request;
 		size_t request_len;
-		if (asn1_any_from_der(&request, &request_len, &request_list, &request_list_len) != 1
+		if (asn1_sequence_from_der(&request, &request_len, &request_list, &request_list_len) != 1
 			|| ocsp_request_item_print(fp, fmt, ind + 4, "Request", request, request_len) != 1) {
 			error_print();
 			return -1;
@@ -301,13 +291,12 @@ int ocsp_request_print(FILE *fp, int fmt, int ind, const char *label,
 		return -1;
 	}
 	ind -= 4;
-	if (asn1_explicit_from_der(0, &p, &len, &seq, &seq_len) < 0) {
+	if (asn1_explicit_from_der(0, &p, &len, &d, &dlen) < 0) {
 		error_print();
 		return -1;
 	}
 	if (p) format_bytes(fp, fmt, ind, "optionalSignature", p, len);
-	if (asn1_length_is_zero(seq_len) != 1
-		|| asn1_length_is_zero(dlen) != 1) {
+	if (asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
@@ -882,8 +871,6 @@ static int ocsp_single_response_ext_print(FILE *fp, int fmt, int ind, const char
 int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 	const uint8_t *d, size_t dlen)
 {
-	const uint8_t *seq;
-	size_t seq_len;
 	const uint8_t *cert_id;
 	size_t cert_id_len;
 	const uint8_t *p;
@@ -902,14 +889,9 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	if (asn1_sequence_from_der(&seq, &seq_len, &d, &dlen) != 1) {
-		error_print();
-		return -1;
-	}
-
 	// certID
 	format_print(fp, fmt, ind, "certID\n");
-	if (asn1_sequence_from_der(&cert_id, &cert_id_len, &seq, &seq_len) != 1
+	if (asn1_sequence_from_der(&cert_id, &cert_id_len, &d, &dlen) != 1
 		|| x509_digest_algor_from_der(&hash_algor, &cert_id, &cert_id_len) != 1
 		|| asn1_octet_string_from_der(&issuer_name_hash, &issuer_name_hash_len, &cert_id, &cert_id_len) != 1
 		|| asn1_octet_string_from_der(&issuer_key_hash, &issuer_key_hash_len, &cert_id, &cert_id_len) != 1
@@ -927,13 +909,13 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 	}
 
 	// certStatus
-	if (asn1_tag_from_der_readonly(&tag, &seq, &seq_len) != 1) {
+	if (asn1_tag_from_der_readonly(&tag, &d, &dlen) != 1) {
 		error_print();
 		return -1;
 	}
 	switch (tag) {
 	case ASN1_TAG_IMPLICIT(0):
-		if (asn1_implicit_from_der(0, &p, &len, &seq, &seq_len) != 1 || len != 0) {
+		if (asn1_implicit_from_der(0, &p, &len, &d, &dlen) != 1 || len != 0) {
 			error_print();
 			return -1;
 		}
@@ -941,7 +923,7 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 		format_print(fp, fmt, ind, "certStatus: %s\n", ocsp_cert_status_name(cert_status));
 		break;
 	case ASN1_TAG_EXPLICIT(1):
-		if (asn1_type_from_der(ASN1_TAG_EXPLICIT(1), &p, &len, &seq, &seq_len) != 1) {
+		if (asn1_type_from_der(ASN1_TAG_EXPLICIT(1), &p, &len, &d, &dlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -953,7 +935,7 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 		}
 		break;
 	case ASN1_TAG_IMPLICIT(2):
-		if (asn1_implicit_from_der(2, &p, &len, &seq, &seq_len) != 1 || len != 0) {
+		if (asn1_implicit_from_der(2, &p, &len, &d, &dlen) != 1 || len != 0) {
 			error_print();
 			return -1;
 		}
@@ -966,14 +948,14 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 	}
 
 	// thisUpdate
-	if (asn1_generalized_time_from_der(&tv, &seq, &seq_len) != 1) {
+	if (asn1_generalized_time_from_der(&tv, &d, &dlen) != 1) {
 		error_print();
 		return -1;
 	}
 	format_print(fp, fmt, ind, "thisUpdate: %s", ctime(&tv));
 
 	// nextUpdate [0]
-	if (asn1_explicit_from_der(0, &p, &len, &seq, &seq_len) < 0) {
+	if (asn1_explicit_from_der(0, &p, &len, &d, &dlen) < 0) {
 		error_print();
 		return -1;
 	}
@@ -987,7 +969,7 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 	}
 
 	// singleExtensions [1]
-	if (x509_explicit_exts_from_der(1, &p, &len, &seq, &seq_len) < 0) {
+	if (x509_explicit_exts_from_der(1, &p, &len, &d, &dlen) < 0) {
 		error_print();
 		return -1;
 	}
@@ -1005,8 +987,632 @@ int ocsp_single_response_print(FILE *fp, int fmt, int ind, const char *label,
 		}
 	}
 
-	if (asn1_length_is_zero(seq_len) != 1
+	if (asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+int ocsp_response_data_to_der(
+	int responder_id_type, const uint8_t *responder_id, size_t responder_id_len,
+	time_t produced_at,
+	const uint8_t *single_response, size_t single_response_len,
+	const uint8_t *response_exts, size_t response_exts_len,
+	uint8_t **out, size_t *outlen)
+{
+	size_t responses_len = 0;
+	size_t len = 0;
+
+
+	// 准备一个responder_id的buf，这样不用充分计算了
+
+	if (!responder_id || !responder_id_len
+		|| !single_response || !single_response_len) {
+		error_print();
+		return -1;
+	}
+	switch (responder_id_type) {
+	case OCSP_responder_id_by_name:
+		if (asn1_explicit_to_der(1, responder_id, responder_id_len, NULL, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OCSP_responder_id_by_key:
+		if (asn1_implicit_octet_string_to_der(2, responder_id, responder_id_len, NULL, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	if (asn1_generalized_time_to_der(produced_at, NULL, &len) != 1
+		|| asn1_any_to_der(single_response, single_response_len, NULL, &responses_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (asn1_sequence_header_to_der(responses_len, NULL, &len) != 1
+		|| x509_explicit_exts_to_der(1, response_exts, response_exts_len, NULL, &len) < 0
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	switch (responder_id_type) {
+	case OCSP_responder_id_by_name:
+		if (asn1_explicit_to_der(1, responder_id, responder_id_len, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OCSP_responder_id_by_key:
+		if (asn1_implicit_octet_string_to_der(2, responder_id, responder_id_len, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
+	if (asn1_generalized_time_to_der(produced_at, out, outlen) != 1
+		|| asn1_sequence_header_to_der(responses_len, out, outlen) != 1
+		|| asn1_any_to_der(single_response, single_response_len, out, outlen) != 1
+		|| x509_explicit_exts_to_der(1, response_exts, response_exts_len, out, outlen) < 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int ocsp_response_data_from_der(
+	int *responder_id_type, const uint8_t **responder_id, size_t *responder_id_len,
+	time_t *produced_at,
+	const uint8_t **single_response_first, size_t *single_response_first_len,
+	const uint8_t **single_response_others, size_t *single_response_others_len,
+	const uint8_t **response_exts, size_t *response_exts_len,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	int version = X509_version_v1;
+	int tag;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *responses;
+	size_t responses_len;
+	const uint8_t *p;
+	size_t len;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (x509_explicit_version_from_der(0, &version, &d, &dlen) < 0) {
+		error_print();
+		return -1;
+	}
+	if (version == -1) {
+		version = X509_version_v1;
+	}
+	if (version != X509_version_v1) {
+		error_print();
+		return -1;
+	}
+
+
+	if (asn1_tag_from_der_readonly(&tag, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	switch (tag) {
+	case ASN1_TAG_EXPLICIT(1):
+		if (asn1_explicit_from_der(1, responder_id, responder_id_len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		*responder_id_type = OCSP_responder_id_by_name;
+		break;
+	case ASN1_TAG_IMPLICIT(2):
+		if (asn1_implicit_octet_string_from_der(2, responder_id, responder_id_len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		*responder_id_type = OCSP_responder_id_by_key;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	if (asn1_generalized_time_from_der(produced_at, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+
+	if (asn1_sequence_from_der(&responses, &responses_len, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!responses) {
+		error_print();
+		return -1;
+	}
+	if (asn1_any_from_der(single_response_first, single_response_first_len, &responses, &responses_len) != 1) {
+		error_print();
+		return -1;
+	}
+	*single_response_others = responses;
+	*single_response_others_len = responses_len;
+	while (responses_len) {
+		if (asn1_sequence_from_der(&p, &len, &responses, &responses_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (x509_explicit_exts_from_der(1, response_exts, response_exts_len, &d, &dlen) < 0) {
+		error_print();
+		return -1;
+	}
+
+
+	if (dlen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int ocsp_response_data_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen)
+{
+	int ret;
+	int version = X509_version_v1;
+	int tag;
+	const uint8_t *p;
+	size_t len;
+	const uint8_t *responses;
+	size_t responses_len;
+	time_t produced_at;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if ((ret = x509_explicit_version_from_der(0, &version, &d, &dlen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (version == -1) {
+		version = X509_version_v1;
+	}
+	if (ret) {
+		format_print(fp, fmt, ind, "version: v1 (%d)\n", version);
+	}
+	if (version != X509_version_v1
+		|| asn1_tag_from_der_readonly(&tag, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	switch (tag) {
+	case ASN1_TAG_EXPLICIT(1):
+		if (asn1_explicit_from_der(1, &p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		{
+			const uint8_t *name = p;
+			size_t name_len = len;
+
+			if (asn1_sequence_from_der(&p, &len, &name, &name_len) != 1
+				|| x509_name_print(fp, fmt, ind, "responderID.byName", p, len) != 1
+				|| asn1_length_is_zero(name_len) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		break;
+	case ASN1_TAG_IMPLICIT(2):
+		if (asn1_implicit_octet_string_from_der(2, &p, &len, &d, &dlen) != 1) {
+			error_print();
+			return -1;
+		}
+		format_bytes(fp, fmt, ind, "responderID.byKey", p, len);
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	if (asn1_generalized_time_from_der(&produced_at, &d, &dlen) != 1
+		|| asn1_sequence_from_der(&responses, &responses_len, &d, &dlen) != 1
+		|| !responses_len) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "producedAt: %s", ctime(&produced_at));
+	format_print(fp, fmt, ind, "responses\n");
+	while (responses_len) {
+		if (asn1_sequence_from_der(&p, &len, &responses, &responses_len) != 1
+			|| ocsp_single_response_print(fp, fmt, ind + 4, "SingleResponse", p, len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (x509_explicit_exts_from_der(1, &p, &len, &d, &dlen) < 0) {
+		error_print();
+		return -1;
+	}
+	if (p && x509_exts_print(fp, fmt, ind, "responseExtensions", p, len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int ocsp_basic_response_to_der(
+	const uint8_t *response_data, size_t response_data_len,
+	int signature_algor,
+	const uint8_t *signature, size_t signature_len,
+	const uint8_t *certs, size_t certs_len,
+	uint8_t **out, size_t *outlen)
+{
+	size_t certs_seq_len = 0;
+	size_t len = 0;
+
+	if (!response_data || !response_data_len
+		|| !signature || !signature_len) {
+		error_print();
+		return -1;
+	}
+	if (!certs && certs_len) {
+		error_print();
+		return -1;
+	}
+	if (certs_len) {
+		if (asn1_sequence_to_der(certs, certs_len, NULL, &certs_seq_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (asn1_any_to_der(response_data, response_data_len, NULL, &len) != 1
+		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
+		|| asn1_bit_octets_to_der(signature, signature_len, NULL, &len) != 1
+		|| (certs_len && asn1_explicit_header_to_der(0, certs_seq_len, NULL, &len) != 1)
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_any_to_der(response_data, response_data_len, out, outlen) != 1
+		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
+		|| asn1_bit_octets_to_der(signature, signature_len, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (certs_len) {
+		if (asn1_explicit_header_to_der(0, certs_seq_len, out, outlen) != 1
+			|| asn1_sequence_to_der(certs, certs_len, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int ocsp_basic_response_from_der(
+	const uint8_t **response_data, size_t *response_data_len,
+	int *signature_algor,
+	const uint8_t **signature, size_t *signature_len,
+	const uint8_t **certs, size_t *certs_len,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *p;
+	size_t len;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_any_from_der(response_data, response_data_len, &d, &dlen) != 1
+		|| x509_signature_algor_from_der(signature_algor, &d, &dlen) != 1
+		|| asn1_bit_octets_from_der(signature, signature_len, &d, &dlen) != 1
+		|| asn1_explicit_from_der(0, &p, &len, &d, &dlen) < 0
 		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (p) {
+		if (asn1_sequence_from_der(certs, certs_len, &p, &len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
+	} else {
+		*certs = NULL;
+		*certs_len = 0;
+	}
+	return 1;
+}
+
+int ocsp_basic_response_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1
+		|| ocsp_response_data_print(fp, fmt, ind, "tbsResponseData", p, len) != 1
+		|| asn1_sequence_from_der(&p, &len, &d, &dlen) != 1
+		|| x509_signature_algor_print(fp, fmt, ind, "signatureAlgorithm", p, len) != 1
+		|| asn1_bit_octets_from_der(&p, &len, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	format_bytes(fp, fmt, ind, "signature", p, len);
+	if (asn1_explicit_from_der(0, &p, &len, &d, &dlen) < 0) {
+		error_print();
+		return -1;
+	}
+	if (p) {
+		const uint8_t *certs_seq = p;
+		size_t certs_seq_len = len;
+
+		if (asn1_sequence_from_der(&p, &len, &certs_seq, &certs_seq_len) != 1
+			|| x509_certs_print(fp, fmt, ind, "certs", p, len) != 1
+			|| asn1_length_is_zero(certs_seq_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+
+
+
+static const uint32_t oid_pkix_ocsp_basic[] = { 1,3,6,1,5,5,7,48,1,1 };
+
+static int ocsp_response_bytes_to_der(const uint8_t *basic_response,
+	size_t basic_response_len, uint8_t **out, size_t *outlen)
+{
+	size_t len = 0;
+
+	if (!basic_response || !basic_response_len) {
+		error_print();
+		return -1;
+	}
+	if (asn1_object_identifier_to_der(oid_pkix_ocsp_basic, oid_cnt(oid_pkix_ocsp_basic), NULL, &len) != 1
+		|| asn1_octet_string_to_der(basic_response, basic_response_len, NULL, &len) != 1
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_object_identifier_to_der(oid_pkix_ocsp_basic, oid_cnt(oid_pkix_ocsp_basic), out, outlen) != 1
+		|| asn1_octet_string_to_der(basic_response, basic_response_len, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int ocsp_response_bytes_from_der(const uint8_t **basic_response,
+	size_t *basic_response_len, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_object_identifier_from_der(nodes, &nodes_cnt, &d, &dlen) != 1
+		|| asn1_object_identifier_equ(nodes, nodes_cnt, oid_pkix_ocsp_basic, oid_cnt(oid_pkix_ocsp_basic)) != 1
+		|| asn1_octet_string_from_der(basic_response, basic_response_len, &d, &dlen) != 1
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int ocsp_response_bytes_print(FILE *fp, int fmt, int ind,
+	const uint8_t *d, size_t dlen)
+{
+	uint32_t nodes[32];
+	size_t nodes_cnt;
+	const uint8_t *basic_response;
+	size_t basic_response_len;
+	const char *name = NULL;
+
+	format_print(fp, fmt, ind, "responseBytes\n");
+	ind += 4;
+
+	if (asn1_object_identifier_from_der(nodes, &nodes_cnt, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_object_identifier_equ(nodes, nodes_cnt, oid_pkix_ocsp_basic, oid_cnt(oid_pkix_ocsp_basic))) {
+		name = "id-pkix-ocsp-basic";
+	}
+	asn1_object_identifier_print(fp, fmt, ind, "responseType", name, nodes, nodes_cnt);
+	if (!name) {
+		error_print();
+		return -1;
+	}
+	if (asn1_octet_string_from_der(&basic_response, &basic_response_len, &d, &dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	{
+		const uint8_t *basic_response_seq;
+		size_t basic_response_seq_len;
+
+		if (asn1_sequence_from_der(&basic_response_seq, &basic_response_seq_len,
+				&basic_response, &basic_response_len) != 1
+			|| ocsp_basic_response_print(fp, fmt, ind, "response",
+				basic_response_seq, basic_response_seq_len) != 1
+			|| asn1_length_is_zero(basic_response_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	if (asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+static const char *ocsp_response_status_name(int status)
+{
+	switch (status) {
+	case OCSP_response_status_successful:
+		return "successful";
+	case OCSP_response_status_malformed_request:
+		return "malformedRequest";
+	case OCSP_response_status_internal_error:
+		return "internalError";
+	case OCSP_response_status_try_later:
+		return "tryLater";
+	case OCSP_response_status_sig_required:
+		return "sigRequired";
+	case OCSP_response_status_unauthorized:
+		return "unauthorized";
+	default:
+		return NULL;
+	}
+}
+
+int ocsp_response_to_der(int response_status,
+	const uint8_t *basic_response, size_t basic_response_len,
+	uint8_t **out, size_t *outlen)
+{
+	size_t response_bytes_len = 0;
+	size_t len = 0;
+
+	if (!ocsp_response_status_name(response_status)) {
+		error_print();
+		return -1;
+	}
+	if (response_status == OCSP_response_status_successful) {
+		if (ocsp_response_bytes_to_der(basic_response, basic_response_len, NULL, &response_bytes_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+
+
+	} else if (basic_response || basic_response_len) {
+		error_print();
+		return -1;
+	}
+	if (asn1_enumerated_to_der(response_status, NULL, &len) != 1
+		|| (response_status == OCSP_response_status_successful
+			&& asn1_explicit_header_to_der(0, response_bytes_len, NULL, &len) != 1)
+		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| asn1_enumerated_to_der(response_status, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (response_status == OCSP_response_status_successful) {
+		if (asn1_explicit_header_to_der(0, response_bytes_len, out, outlen) != 1
+			|| ocsp_response_bytes_to_der(basic_response, basic_response_len, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+int ocsp_response_from_der(int *response_status,
+	const uint8_t **basic_response, size_t *basic_response_len,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *p;
+	size_t len;
+
+	if ((ret = asn1_sequence_from_der(&d, &dlen, in, inlen)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (asn1_enumerated_from_der(response_status, &d, &dlen) != 1
+		|| !ocsp_response_status_name(*response_status)
+		|| asn1_explicit_from_der(0, &p, &len, &d, &dlen) < 0
+		|| asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (*response_status == OCSP_response_status_successful) {
+		if (!p
+			|| ocsp_response_bytes_from_der(basic_response, basic_response_len, &p, &len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
+	} else {
+		if (p) {
+			error_print();
+			return -1;
+		}
+		*basic_response = NULL;
+		*basic_response_len = 0;
+	}
+	return 1;
+}
+
+int ocsp_response_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen)
+{
+	const uint8_t *p;
+	size_t len;
+	int response_status;
+
+	format_print(fp, fmt, ind, "%s\n", label);
+	ind += 4;
+
+	if (asn1_enumerated_from_der(&response_status, &d, &dlen) != 1
+		|| !ocsp_response_status_name(response_status)) {
+		error_print();
+		return -1;
+	}
+	format_print(fp, fmt, ind, "responseStatus: %s (%d)\n",
+		ocsp_response_status_name(response_status), response_status);
+	if (asn1_explicit_from_der(0, &p, &len, &d, &dlen) < 0) {
+		error_print();
+		return -1;
+	}
+	if (response_status == OCSP_response_status_successful) {
+		const uint8_t *response_bytes;
+		size_t response_bytes_len;
+
+		if (!p
+			|| asn1_sequence_from_der(&response_bytes, &response_bytes_len, &p, &len) != 1
+			|| ocsp_response_bytes_print(fp, fmt, ind, response_bytes, response_bytes_len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
+	} else if (p) {
+		error_print();
+		return -1;
+	}
+	if (asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}

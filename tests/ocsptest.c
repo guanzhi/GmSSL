@@ -39,7 +39,11 @@ static int test_ocsp_request_item(void)
 	uint8_t buf[128];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
+	const uint8_t *print = buf;
+	const uint8_t *print_in = buf;
 	size_t len = 0;
+	size_t print_len;
+	size_t left;
 	int hash_algor;
 	const uint8_t *name_hash;
 	size_t name_hash_len;
@@ -57,7 +61,13 @@ static int test_ocsp_request_item(void)
 		error_print();
 		return -1;
 	}
-	ocsp_request_item_print(stderr, 0, 0, "Request", buf, len);
+	left = len;
+	if (asn1_sequence_from_der(&print, &print_len, &print_in, &left) != 1
+		|| asn1_length_is_zero(left) != 1
+		|| ocsp_request_item_print(stderr, 0, 0, "Request", print, print_len) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (ocsp_request_item_from_der(&hash_algor,
 			&name_hash, &name_hash_len,
@@ -89,7 +99,11 @@ static int test_ocsp_request(void)
 	size_t request_item_len = 0;
 	uint8_t req[256];
 	const uint8_t *cp = req;
+	const uint8_t *print = req;
+	const uint8_t *print_in = req;
 	size_t reqlen = 0;
+	size_t print_len;
+	size_t left;
 	int version;
 	const uint8_t *requestor_name;
 	size_t requestor_name_len;
@@ -125,7 +139,13 @@ static int test_ocsp_request(void)
 		error_print();
 		return -1;
 	}
-	ocsp_request_print(stderr, 0, 0, "OCSPRequest", req, reqlen);
+	left = reqlen;
+	if (asn1_sequence_from_der(&print, &print_len, &print_in, &left) != 1
+		|| asn1_length_is_zero(left) != 1
+		|| ocsp_request_print(stderr, 0, 0, "OCSPRequest", print, print_len) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (ocsp_request_from_der(&version,
 			&requestor_name, &requestor_name_len,
@@ -196,7 +216,11 @@ static uint8_t ocsp_request_der[] = {
 static int test_ocsp_request_vector(void)
 {
 	const uint8_t *cp = ocsp_request_der;
+	const uint8_t *print = ocsp_request_der;
+	const uint8_t *print_in = ocsp_request_der;
 	size_t len = sizeof(ocsp_request_der);
+	size_t print_len;
+	size_t left = sizeof(ocsp_request_der);
 	int version;
 	const uint8_t *requestor_name;
 	size_t requestor_name_len;
@@ -207,7 +231,12 @@ static int test_ocsp_request_vector(void)
 	const uint8_t *optional_signature;
 	size_t optional_signature_len;
 
-	ocsp_request_print(stderr, 0, 0, "OCSPRequest", ocsp_request_der, sizeof(ocsp_request_der));
+	if (asn1_sequence_from_der(&print, &print_len, &print_in, &left) != 1
+		|| asn1_length_is_zero(left) != 1
+		|| ocsp_request_print(stderr, 0, 0, "OCSPRequest", print, print_len) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (ocsp_request_from_der(&version,
 			&requestor_name, &requestor_name_len,
@@ -241,7 +270,11 @@ static int test_ocsp_single_response(void)
 	size_t extslen = 0;
 	uint8_t buf[256];
 	const uint8_t *cp;
+	const uint8_t *print;
+	const uint8_t *print_in;
 	size_t len;
+	size_t print_len;
+	size_t left;
 	int hash_algor;
 	const uint8_t *name_hash;
 	size_t name_hash_len;
@@ -296,7 +329,15 @@ static int test_ocsp_single_response(void)
 		error_print();
 		return -1;
 	}
-	ocsp_single_response_print(stderr, 0, 0, "SingleResponse", buf, len);
+	print = buf;
+	print_in = buf;
+	left = len;
+	if (asn1_sequence_from_der(&print, &print_len, &print_in, &left) != 1
+		|| asn1_length_is_zero(left) != 1
+		|| ocsp_single_response_print(stderr, 0, 0, "SingleResponse", print, print_len) != 1) {
+		error_print();
+		return -1;
+	}
 
 	cp = buf;
 	if (ocsp_single_response_from_der(&hash_algor,
@@ -336,7 +377,15 @@ static int test_ocsp_single_response(void)
 		error_print();
 		return -1;
 	}
-	ocsp_single_response_print(stderr, 0, 0, "SingleResponse", buf, len);
+	print = buf;
+	print_in = buf;
+	left = len;
+	if (asn1_sequence_from_der(&print, &print_len, &print_in, &left) != 1
+		|| asn1_length_is_zero(left) != 1
+		|| ocsp_single_response_print(stderr, 0, 0, "SingleResponse", print, print_len) != 1) {
+		error_print();
+		return -1;
+	}
 
 	cp = buf;
 	if (ocsp_single_response_from_der(&hash_algor,

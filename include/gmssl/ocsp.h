@@ -199,6 +199,47 @@ KeyHash ::= OCTET STRING
 
 
 
+int ocsp_response_data_to_der(
+	int responder_id_type, const uint8_t *responder_id, size_t responder_id_len,
+	time_t produced_at,
+	const uint8_t *single_response, size_t single_response_len,
+	const uint8_t *response_exts, size_t response_exts_len,
+	uint8_t **out, size_t *outlen);
+int ocsp_response_data_from_der(
+	int *responder_id_type, const uint8_t **responder_id, size_t *responder_id_len,
+	time_t *produced_at,
+	const uint8_t **single_response_first, size_t *single_response_first_len,
+	const uint8_t **single_response_others, size_t *single_response_others_len,
+	const uint8_t **response_exts, size_t *response_exts_len,
+	const uint8_t **in, size_t *inlen);
+int ocsp_response_data_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen);
+
+
+int ocsp_basic_response_to_der(
+	const uint8_t *response_data, size_t response_data_len,
+	int signature_algor,
+	const uint8_t *signature, size_t signature_len,
+	const uint8_t *certs, size_t certs_len,
+	uint8_t **out, size_t *outlen);
+int ocsp_basic_response_from_der(
+	const uint8_t **response_data, size_t *response_data_len,
+	int *signature_algor,
+	const uint8_t **signature, size_t *signature_len,
+	const uint8_t **certs, size_t *certs_len,
+	const uint8_t **in, size_t *inlen);
+int ocsp_basic_response_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen);
+
+
+int ocsp_response_to_der(int response_status,
+	const uint8_t *basic_response, size_t basic_response_len,
+	uint8_t **out, size_t *outlen);
+int ocsp_response_from_der(int *response_status,
+	const uint8_t **basic_response, size_t *basic_response_len,
+	const uint8_t **in, size_t *inlen);
+int ocsp_response_print(FILE *fp, int fmt, int ind, const char *label,
+	const uint8_t *d, size_t dlen);
 
 
 
@@ -227,6 +268,12 @@ PreferredSignatureAlgorithm ::= SEQUENCE {
 	certIdentifier			AlgorithmIdentifier OPTIONAL }
 
 */
+
+
+
+
+
+
 
 
 

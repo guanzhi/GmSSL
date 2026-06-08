@@ -146,6 +146,7 @@ set(tools
 	tools/certparse.c
 	tools/certverify.c
 	tools/certrevoke.c
+	tools/ocspreq.c
 	tools/reqgen.c
 	tools/reqparse.c
 	tools/reqsign.c
