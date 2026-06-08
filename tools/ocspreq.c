@@ -12,13 +12,14 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gmssl/asn1.h>
 #include <gmssl/digest.h>
 #include <gmssl/x509.h>
 #include <gmssl/ocsp.h>
 #include <gmssl/error.h>
 
 
-static const char *options = "-in pem [-digest name] [-out der]";
+static const char *options = "-in pem [-digest name] [-out der] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -28,10 +29,11 @@ static const char *help =
 "                        The second certificate is its issuer certificate\n"
 "    -digest name        Digest algorithm for CertID, default sm3\n"
 "    -out der | stdout   Output OCSPRequest in DER format\n"
+"    -verbose            Print OCSPRequest to stderr\n"
 "\n"
 "Examples\n"
 "\n"
-"    gmssl ocspreq -in chain.pem -out req.der\n"
+"    gmssl ocspreq -in chain.pem -out req.der -verbose\n"
 "\n";
 
 
@@ -45,12 +47,17 @@ int ocspreq_main(int argc, char **argv)
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
 	const DIGEST *digest;
+	int verbose = 0;
 	uint8_t cert[18192];
 	size_t certlen;
 	uint8_t issuer_cert[18192];
 	size_t issuer_certlen;
 	uint8_t req[1024];
 	size_t reqlen;
+	const uint8_t *request;
+	size_t request_len;
+	const uint8_t *p;
+	size_t len;
 
 	argc--;
 	argv++;
@@ -78,6 +85,8 @@ int ocspreq_main(int argc, char **argv)
 				fprintf(stderr, "%s: open '%s' failure : %s\n", prog, outfile, strerror(errno));
 				goto end;
 			}
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: illegal option `%s`\n", prog, *argv);
 			goto end;
@@ -110,6 +119,16 @@ bad:
 			cert, certlen, issuer_cert, issuer_certlen, digest) != 1) {
 		fprintf(stderr, "%s: generate OCSPRequest failure\n", prog);
 		goto end;
+	}
+	if (verbose) {
+		p = req;
+		len = reqlen;
+		if (asn1_sequence_from_der(&request, &request_len, &p, &len) != 1
+			|| asn1_length_is_zero(len) != 1
+			|| ocsp_request_print(stderr, 0, 0, "OCSPRequest", request, request_len) != 1) {
+			fprintf(stderr, "%s: print OCSPRequest failure\n", prog);
+			goto end;
+		}
 	}
 	if (fwrite(req, 1, reqlen, outfp) != reqlen) {
 		fprintf(stderr, "%s: output failure : %s\n", prog, strerror(errno));
