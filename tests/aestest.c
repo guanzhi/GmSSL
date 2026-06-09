@@ -16,6 +16,31 @@
 #include <gmssl/hex.h>
 #include <gmssl/error.h>
 
+#define TEST_AES_CBC_PKCS5_MAX_KEY_SIZE 32
+#define TEST_AES_CBC_PKCS5_MAX_IV_SIZE 16
+#define TEST_AES_CBC_PKCS5_MAX_MSG_SIZE 80
+#define TEST_AES_CBC_PKCS5_MAX_CT_SIZE 96
+
+enum {
+	TEST_RESULT_VALID,
+	TEST_RESULT_INVALID,
+	TEST_RESULT_ACCEPTABLE,
+};
+
+typedef struct {
+	int tc_id;
+	int key_size;
+	const char *comment;
+	const char *flags;
+	const char *key;
+	const char *iv;
+	const char *msg;
+	const char *ct;
+	int result;
+} TEST_AES_CBC_PKCS5_VECTOR;
+
+#include "aes_cbc_pkcs5test.h"
+
 
 int test_aes(void)
 {
@@ -362,11 +387,85 @@ int test_aes_gcm(void)
 	return 1;
 }
 
+int test_aes_cbc_pkcs5_wycheproof(void)
+{
+	size_t i;
+
+	for (i = 0; i < sizeof(aes_cbc_pkcs5_tests)/sizeof(aes_cbc_pkcs5_tests[0]); i++) {
+		const TEST_AES_CBC_PKCS5_VECTOR *tv = &aes_cbc_pkcs5_tests[i];
+		AES_KEY aes_key;
+		uint8_t key[TEST_AES_CBC_PKCS5_MAX_KEY_SIZE];
+		uint8_t iv[TEST_AES_CBC_PKCS5_MAX_IV_SIZE];
+		uint8_t msg[TEST_AES_CBC_PKCS5_MAX_MSG_SIZE];
+		uint8_t ct[TEST_AES_CBC_PKCS5_MAX_CT_SIZE];
+		uint8_t out[TEST_AES_CBC_PKCS5_MAX_CT_SIZE];
+		size_t keylen, ivlen, msglen, ctlen, outlen;
+		int ret;
+
+		if (strlen(tv->key)/2 > sizeof(key)
+			|| strlen(tv->iv)/2 > sizeof(iv)
+			|| strlen(tv->msg)/2 > sizeof(msg)
+			|| strlen(tv->ct)/2 > sizeof(ct)) {
+			error_print();
+			return -1;
+		}
+		if (hex_to_bytes(tv->key, strlen(tv->key), key, &keylen) != 1
+			|| hex_to_bytes(tv->iv, strlen(tv->iv), iv, &ivlen) != 1
+			|| hex_to_bytes(tv->msg, strlen(tv->msg), msg, &msglen) != 1
+			|| hex_to_bytes(tv->ct, strlen(tv->ct), ct, &ctlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (keylen * 8 != (size_t)tv->key_size || ivlen != AES_BLOCK_SIZE) {
+			error_print();
+			return -1;
+		}
+
+		aes_set_encrypt_key(&aes_key, key, keylen);
+		if (tv->result == TEST_RESULT_VALID) {
+			ret = aes_cbc_padding_encrypt(&aes_key, iv, msglen ? msg : NULL, msglen, out, &outlen);
+			if (ret != 1 || outlen != ctlen || memcmp(out, ct, ctlen) != 0) {
+				fprintf(stderr, "AES-CBC-PKCS5 encrypt tcId %d failed: %s %s\n",
+					tv->tc_id, tv->comment, tv->flags);
+				error_print();
+				return -1;
+			}
+		}
+
+		aes_set_decrypt_key(&aes_key, key, keylen);
+		ret = aes_cbc_padding_decrypt(&aes_key, iv, ctlen ? ct : NULL, ctlen, out, &outlen);
+		if (tv->result == TEST_RESULT_VALID) {
+			if (ret != 1 || outlen != msglen || memcmp(out, msg, msglen) != 0) {
+				fprintf(stderr, "AES-CBC-PKCS5 decrypt tcId %d failed: %s %s\n",
+					tv->tc_id, tv->comment, tv->flags);
+				error_print();
+				return -1;
+			}
+		} else if (tv->result == TEST_RESULT_INVALID) {
+			if (ret == 1) {
+				fprintf(stderr, "AES-CBC-PKCS5 decrypt tcId %d unexpectedly passed: %s %s\n",
+					tv->tc_id, tv->comment, tv->flags);
+				error_print();
+				return -1;
+			}
+		} else {
+			if (ret != 1 && ret != -1 && ret != 0) {
+				error_print();
+				return -1;
+			}
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_aes() != 1) goto err;
 	if (test_aes_ctr() != 1) goto err;
 	if (test_aes_gcm() != 1) goto err;
+	if (test_aes_cbc_pkcs5_wycheproof() != 1) goto err;
 	printf("%s all tests passed!\n", __FILE__);
 	return 0;
 err:
