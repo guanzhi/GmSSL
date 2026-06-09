@@ -111,7 +111,7 @@ static int test_pbkdf2_genkey(void)
 	for (i = 0; i < sizeof(pbkdf2_hmac_sha1_tests)/sizeof(pbkdf2_hmac_sha1_tests[0]); i++) {
 		hex_to_bytes(pbkdf2_hmac_sha1_tests[i].dk, strlen(pbkdf2_hmac_sha1_tests[i].dk), buf, &len);
 
-		if (pbkdf2_genkey(DIGEST_sha1(),
+		if (pbkdf2_hmac_genkey(DIGEST_sha1(),
 			pbkdf2_hmac_sha1_tests[i].pass, strlen(pbkdf2_hmac_sha1_tests[i].pass),
 			(uint8_t *)pbkdf2_hmac_sha1_tests[i].salt, strlen(pbkdf2_hmac_sha1_tests[i].salt),
 			pbkdf2_hmac_sha1_tests[i].iter, pbkdf2_hmac_sha1_tests[i].dklen, key) != 1) {
