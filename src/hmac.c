@@ -20,6 +20,7 @@
 
 int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t keylen)
 {
+	int ret = -1;
 	uint8_t i_key[DIGEST_MAX_BLOCK_SIZE] = {0};
 	uint8_t o_key[sizeof(i_key)] = {0};
 	size_t blocksize;
@@ -50,7 +51,7 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t ke
 				|| digest_update(&ctx->digest_ctx, key, keylen) != 1
 				|| digest_finish(&ctx->digest_ctx, i_key, &keylen) != 1) {
 				error_print();
-				return -1;
+				goto end;
 			}
 			memcpy(o_key, i_key, keylen);
 		} else if (keylen) {
@@ -69,13 +70,15 @@ int hmac_init(HMAC_CTX *ctx, const DIGEST *digest, const uint8_t *key, size_t ke
 		|| digest_init(&ctx->o_ctx, digest) != 1
 		|| digest_update(&ctx->o_ctx, o_key, blocksize) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
 	memcpy(&ctx->digest_ctx, &ctx->i_ctx, sizeof(DIGEST_CTX));
-
+	ret = 1;
+end:
+	if (ret != 1) gmssl_secure_clear(ctx, sizeof(*ctx));
 	gmssl_secure_clear(i_key, sizeof(i_key));
 	gmssl_secure_clear(o_key, sizeof(o_key));
-	return 1;
+	return ret;
 }
 
 int hmac_update(HMAC_CTX *ctx, const uint8_t *data, size_t datalen)
@@ -98,23 +101,31 @@ int hmac_update(HMAC_CTX *ctx, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
-int hmac_finish(HMAC_CTX *ctx, uint8_t *mac, size_t *maclen)
+int hmac_finish(HMAC_CTX *ctx, uint8_t *out, size_t *outlen)
 {
-	if (!ctx || !mac || !maclen) {
+	int ret = -1;
+	uint8_t mac[HMAC_MAX_SIZE];
+	size_t maclen;
+
+	if (!ctx || !out || !outlen) {
 		error_print();
 		return -1;
 	}
-	if (digest_finish(&ctx->digest_ctx, mac, maclen) != 1) {
+	if (digest_finish(&ctx->digest_ctx, mac, &maclen) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
 	memcpy(&ctx->digest_ctx, &ctx->o_ctx, sizeof(DIGEST_CTX));
-	if (digest_update(&ctx->digest_ctx, mac, ctx->digest->digest_size) != 1
-		|| digest_finish(&ctx->digest_ctx, mac, maclen) != 1) {
+	if (digest_update(&ctx->digest_ctx, mac, maclen) != 1
+		|| digest_finish(&ctx->digest_ctx, out, outlen) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
-	return 1;
+	ret = 1;
+end:
+	gmssl_secure_clear(ctx, sizeof(*ctx));
+	gmssl_secure_clear(mac, sizeof(mac));
+	return ret;
 }
 
 int hmac(const DIGEST *digest, const uint8_t *key, size_t keylen,
@@ -128,6 +139,5 @@ int hmac(const DIGEST *digest, const uint8_t *key, size_t keylen,
 		gmssl_secure_clear(&ctx, sizeof(ctx));
 		return -1;
 	}
-	gmssl_secure_clear(&ctx, sizeof(ctx));
 	return 1;
 }
