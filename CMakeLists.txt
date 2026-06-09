@@ -20,6 +20,7 @@ else()
 endif()
 
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
+option(ENABLE_LONG_TEST "Enable long-running tests" OFF)
 
 
 
@@ -173,6 +174,7 @@ set(tests
 	block_cipher
 	digest
 	hkdf
+	pbkdf2
 	gf128
 	pkcs8
 	ec
@@ -208,6 +210,11 @@ endif()
 if (ENABLE_TEST_SPEED)
 	message(STATUS "ENABLE_TEST_SPEED is ON")
 	add_definitions(-DENABLE_TEST_SPEED)
+endif()
+
+if (ENABLE_LONG_TEST)
+	message(STATUS "ENABLE_LONG_TEST is ON")
+	add_definitions(-DENABLE_LONG_TEST)
 endif()
 
 
@@ -512,7 +519,6 @@ if (ENABLE_SHA2)
 	list(APPEND src src/sha256_hmac.c)
 	list(APPEND tests sha224 sha256 sha384 sha512 hmac)
 endif()
-
 
 if (ENABLE_AES)
 	message(STATUS "ENABLE_AES is ON")
