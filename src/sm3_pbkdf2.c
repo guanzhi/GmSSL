@@ -94,6 +94,19 @@ int sm3_pbkdf2(const char *pass, size_t passlen,
 	uint8_t tmp_block[SM3_DIGEST_SIZE];
 	uint8_t key_block[SM3_DIGEST_SIZE];
 
+	if (!salt || !saltlen) {
+		error_print();
+		return -1;
+	}
+	if (saltlen > SM3_PBKDF2_MAX_SALT_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (count < SM3_PBKDF2_MIN_ITER || count > SM3_PBKDF2_MAX_ITER) {
+		error_print();
+		return -1;
+	}
+
 	sm3_hmac_init(&ctx_tmpl, (uint8_t *)pass, passlen);
 
 	while (outlen > 0) {
