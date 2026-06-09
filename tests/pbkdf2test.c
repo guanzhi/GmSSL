@@ -42,6 +42,7 @@ typedef struct {
 	int result;
 } TEST_PBKDF2_VECTOR;
 
+#include "pbkdf2test_sm3.h"
 #ifdef ENABLE_SHA1
 #include "pbkdf2test_sha1.h"
 #endif
@@ -128,6 +129,13 @@ static int test_pbkdf2_hmac_wycheproof(const char *name, const DIGEST *digest,
 	return 1;
 }
 
+static int test_pbkdf2_hmac_sm3_wycheproof(void)
+{
+	return test_pbkdf2_hmac_wycheproof(__FUNCTION__, DIGEST_sm3(),
+		pbkdf2_hmac_sm3_tests,
+		sizeof(pbkdf2_hmac_sm3_tests)/sizeof(pbkdf2_hmac_sm3_tests[0]));
+}
+
 #ifdef ENABLE_SHA1
 static int test_pbkdf2_hmac_sha1_wycheproof(void)
 {
@@ -170,6 +178,7 @@ static int test_pbkdf2_hmac_sha512_wycheproof(void)
 int main(void)
 {
 
+	if (test_pbkdf2_hmac_sm3_wycheproof() != 1) goto err;
 #ifdef ENABLE_SHA1
 	if (test_pbkdf2_hmac_sha1_wycheproof() != 1) goto err;
 #endif
