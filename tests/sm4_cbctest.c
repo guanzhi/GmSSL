@@ -17,6 +17,30 @@
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 
+#define TEST_SM4_CBC_PADDING_MAX_KEY_SIZE 16
+#define TEST_SM4_CBC_PADDING_MAX_IV_SIZE 16
+#define TEST_SM4_CBC_PADDING_MAX_MSG_SIZE 80
+#define TEST_SM4_CBC_PADDING_MAX_CT_SIZE 96
+
+enum {
+	TEST_RESULT_VALID,
+	TEST_RESULT_INVALID,
+	TEST_RESULT_ACCEPTABLE,
+};
+
+typedef struct {
+	int tc_id;
+	const char *comment;
+	const char *flags;
+	const char *key;
+	const char *iv;
+	const char *msg;
+	const char *ct;
+	int result;
+} TEST_SM4_CBC_PADDING_VECTOR;
+
+#include "sm4_cbc_paddingtest.h"
+
 
 static int test_sm4_cbc(void)
 {
@@ -185,6 +209,79 @@ static int test_sm4_cbc_padding(void)
 	return 1;
 }
 
+static int test_sm4_cbc_padding_openssl(void)
+{
+	size_t i;
+
+	for (i = 0; i < sizeof(sm4_cbc_padding_tests)/sizeof(sm4_cbc_padding_tests[0]); i++) {
+		const TEST_SM4_CBC_PADDING_VECTOR *tv = &sm4_cbc_padding_tests[i];
+		SM4_KEY sm4_key;
+		uint8_t key[TEST_SM4_CBC_PADDING_MAX_KEY_SIZE];
+		uint8_t iv[TEST_SM4_CBC_PADDING_MAX_IV_SIZE];
+		uint8_t msg[TEST_SM4_CBC_PADDING_MAX_MSG_SIZE];
+		uint8_t ct[TEST_SM4_CBC_PADDING_MAX_CT_SIZE];
+		uint8_t out[TEST_SM4_CBC_PADDING_MAX_CT_SIZE];
+		size_t keylen, ivlen, msglen, ctlen, outlen;
+		int ret;
+
+		if (strlen(tv->key)/2 > sizeof(key)
+			|| strlen(tv->iv)/2 > sizeof(iv)
+			|| strlen(tv->msg)/2 > sizeof(msg)
+			|| strlen(tv->ct)/2 > sizeof(ct)) {
+			error_print();
+			return -1;
+		}
+		if (hex_to_bytes(tv->key, strlen(tv->key), key, &keylen) != 1
+			|| hex_to_bytes(tv->iv, strlen(tv->iv), iv, &ivlen) != 1
+			|| hex_to_bytes(tv->msg, strlen(tv->msg), msg, &msglen) != 1
+			|| hex_to_bytes(tv->ct, strlen(tv->ct), ct, &ctlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (keylen != SM4_KEY_SIZE || ivlen != SM4_BLOCK_SIZE) {
+			error_print();
+			return -1;
+		}
+
+		sm4_set_encrypt_key(&sm4_key, key);
+		if (tv->result == TEST_RESULT_VALID) {
+			ret = sm4_cbc_padding_encrypt(&sm4_key, iv, msglen ? msg : NULL, msglen, out, &outlen);
+			if (ret != 1 || outlen != ctlen || memcmp(out, ct, ctlen) != 0) {
+				fprintf(stderr, "SM4-CBC-Padding encrypt tcId %d failed: %s %s\n",
+					tv->tc_id, tv->comment, tv->flags);
+				error_print();
+				return -1;
+			}
+		}
+
+		sm4_set_decrypt_key(&sm4_key, key);
+		ret = sm4_cbc_padding_decrypt(&sm4_key, iv, ctlen ? ct : NULL, ctlen, out, &outlen);
+		if (tv->result == TEST_RESULT_VALID) {
+			if (ret != 1 || outlen != msglen || memcmp(out, msg, msglen) != 0) {
+				fprintf(stderr, "SM4-CBC-Padding decrypt tcId %d failed: %s %s\n",
+					tv->tc_id, tv->comment, tv->flags);
+				error_print();
+				return -1;
+			}
+		} else if (tv->result == TEST_RESULT_INVALID) {
+			if (ret == 1) {
+				fprintf(stderr, "SM4-CBC-Padding decrypt tcId %d unexpectedly passed: %s %s\n",
+					tv->tc_id, tv->comment, tv->flags);
+				error_print();
+				return -1;
+			}
+		} else {
+			if (ret != 1 && ret != -1 && ret != 0) {
+				error_print();
+				return -1;
+			}
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sm4_cbc_ctx(void)
 {
 	SM4_KEY sm4_key;
@@ -326,6 +423,7 @@ int main(void)
 	if (test_sm4_cbc() != 1) goto err;
 	if (test_sm4_cbc_test_vectors() != 1) goto err;
 	if (test_sm4_cbc_padding() != 1) goto err;
+	if (test_sm4_cbc_padding_openssl() != 1) goto err;
 	if (test_sm4_cbc_ctx() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
