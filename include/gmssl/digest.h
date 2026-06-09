@@ -33,7 +33,7 @@ typedef struct DIGEST_CTX DIGEST_CTX;
 
 
 #define DIGEST_MAX_SIZE		64
-#define DIGEST_MAX_BLOCK_SIZE (1024/8)
+#define DIGEST_MAX_BLOCK_SIZE	144 // SHA3-224
 
 
 struct DIGEST_CTX {
