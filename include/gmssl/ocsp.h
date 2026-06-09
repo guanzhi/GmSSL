@@ -19,6 +19,7 @@
 #include <gmssl/x509.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_alg.h>
+#include <gmssl/x509_key.h>
 #include <gmssl/digest.h>
 
 
@@ -168,8 +169,6 @@ enum {
 
 
 
-
-
 /*
 ResponseBytes ::= SEQUENCE {
 	responseType			OBJECT IDENTIFIER,
@@ -215,7 +214,6 @@ int ocsp_response_data_from_der(
 int ocsp_response_data_print(FILE *fp, int fmt, int ind, const char *label,
 	const uint8_t *d, size_t dlen);
 
-
 int ocsp_basic_response_to_der(
 	const uint8_t *response_data, size_t response_data_len,
 	int signature_algor,
@@ -231,7 +229,6 @@ int ocsp_basic_response_from_der(
 int ocsp_basic_response_print(FILE *fp, int fmt, int ind, const char *label,
 	const uint8_t *d, size_t dlen);
 
-
 int ocsp_response_to_der(int response_status,
 	const uint8_t *basic_response, size_t basic_response_len,
 	uint8_t **out, size_t *outlen);
@@ -242,47 +239,52 @@ int ocsp_response_print(FILE *fp, int fmt, int ind, const char *label,
 	const uint8_t *d, size_t dlen);
 
 
-
-
-
-
-
-
-
 /*
-AcceptableResponses ::= SEQUENCE OF OBJECT IDENTIFIER
+ * OCSPResponse signing context
+ */
+#define OCSP_MAX_REQUEST_SIZE			65536
+#define OCSP_MAX_CERT_SIZE			65536
+#define OCSP_MAX_EXTS_SIZE			4096
+#define OCSP_MAX_CERTS_SIZE			65536
 
-ServiceLocator ::= SEQUENCE {
-	issuer				Name,
-	locator				AuthorityInfoAccessSyntax OPTIONAL }
+typedef struct {
+	const uint8_t *req;
+	size_t reqlen;
+	const uint8_t *issuer_cert;
+	size_t issuer_cert_len;
 
-*/
+	int response_status;
+	int responder_id_type;
+	time_t produced_at;
+	time_t next_update;
+	int revocation_reason;
 
+	const uint8_t *single_response_exts;
+	size_t single_response_exts_len;
+	const uint8_t *response_exts;
+	size_t response_exts_len;
+	const uint8_t *certs;
+	size_t certs_len;
+} OCSP_SIGN_CTX;
 
+int ocsp_sign_init(OCSP_SIGN_CTX *ctx,
+	const uint8_t *req, size_t reqlen,
+	const uint8_t *issuer_cert, size_t issuer_cert_len);
 
-/*
-PreferredSignatureAlgorithms ::= SEQUENCE OF PreferredSignatureAlgorithm
+int ocsp_sign_set_response_status(OCSP_SIGN_CTX *ctx, int response_status);
+int ocsp_sign_set_responder_id_type(OCSP_SIGN_CTX *ctx, int responder_id_type);
+int ocsp_sign_set_produced_at(OCSP_SIGN_CTX *ctx, time_t produced_at);
+int ocsp_sign_set_next_update(OCSP_SIGN_CTX *ctx, time_t next_update);
+int ocsp_sign_set_revocation_reason(OCSP_SIGN_CTX *ctx, int revocation_reason);
+int ocsp_sign_set_single_response_exts(OCSP_SIGN_CTX *ctx, const uint8_t *exts, size_t extslen);
+int ocsp_sign_set_response_exts(OCSP_SIGN_CTX *ctx, const uint8_t *exts, size_t extslen);
+int ocsp_sign_set_certs(OCSP_SIGN_CTX *ctx, const uint8_t *certs, size_t certs_len);
 
-PreferredSignatureAlgorithm ::= SEQUENCE {
-	sigIdentifier			AlgorithmIdentifier,
-	certIdentifier			AlgorithmIdentifier OPTIONAL }
-
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+int ocsp_sign(OCSP_SIGN_CTX *ctx,
+	int cert_status, time_t revocation_time, time_t this_update,
+	const uint8_t *signer_cert, size_t signer_cert_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	uint8_t **out, size_t *outlen);
 
 
 #ifdef __cplusplus

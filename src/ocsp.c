@@ -1282,8 +1282,14 @@ int ocsp_basic_response_to_der(
 	if (asn1_any_to_der(response_data, response_data_len, NULL, &len) != 1
 		|| x509_signature_algor_to_der(signature_algor, NULL, &len) != 1
 		|| asn1_bit_octets_to_der(signature, signature_len, NULL, &len) != 1
-		|| (certs_len && asn1_explicit_header_to_der(0, certs_seq_len, NULL, &len) != 1)
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+		|| (certs_len && asn1_explicit_header_to_der(0, certs_seq_len, NULL, &len) != 1)) {
+		error_print();
+		return -1;
+	}
+	if (certs_len) {
+		len += certs_seq_len;
+	}
+	if (asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_any_to_der(response_data, response_data_len, out, outlen) != 1
 		|| x509_signature_algor_to_der(signature_algor, out, outlen) != 1
 		|| asn1_bit_octets_to_der(signature, signature_len, out, outlen) != 1) {
@@ -1521,8 +1527,14 @@ int ocsp_response_to_der(int response_status,
 	}
 	if (asn1_enumerated_to_der(response_status, NULL, &len) != 1
 		|| (response_status == OCSP_response_status_successful
-			&& asn1_explicit_header_to_der(0, response_bytes_len, NULL, &len) != 1)
-		|| asn1_sequence_header_to_der(len, out, outlen) != 1
+			&& asn1_explicit_header_to_der(0, response_bytes_len, NULL, &len) != 1)) {
+		error_print();
+		return -1;
+	}
+	if (response_status == OCSP_response_status_successful) {
+		len += response_bytes_len;
+	}
+	if (asn1_sequence_header_to_der(len, out, outlen) != 1
 		|| asn1_enumerated_to_der(response_status, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -1613,6 +1625,518 @@ int ocsp_response_print(FILE *fp, int fmt, int ind, const char *label,
 		return -1;
 	}
 	if (asn1_length_is_zero(dlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static const DIGEST *ocsp_digest_from_oid(int oid)
+{
+	switch (oid) {
+	case OID_sm3:
+		return DIGEST_sm3();
+#ifdef ENABLE_SHA1
+	case OID_sha1:
+		return DIGEST_sha1();
+#endif
+#ifdef ENABLE_SHA2
+	case OID_sha224:
+		return DIGEST_sha224();
+	case OID_sha256:
+		return DIGEST_sha256();
+	case OID_sha384:
+		return DIGEST_sha384();
+	case OID_sha512:
+		return DIGEST_sha512();
+#endif
+	default:
+		return NULL;
+	}
+}
+
+#define OCSP_MAX_RESPONDER_ID_SIZE	OCSP_MAX_CERT_SIZE
+#define OCSP_MAX_SINGLE_RESPONSE_SIZE	(OCSP_MAX_EXTS_SIZE + 1024)
+#define OCSP_MAX_RESPONSE_DATA_SIZE	(OCSP_MAX_RESPONDER_ID_SIZE + OCSP_MAX_SINGLE_RESPONSE_SIZE + OCSP_MAX_EXTS_SIZE + 1024)
+#define OCSP_MAX_BASIC_RESPONSE_SIZE	(OCSP_MAX_RESPONSE_DATA_SIZE + OCSP_MAX_CERTS_SIZE + X509_SIGNATURE_MAX_SIZE + 1024)
+
+static int ocsp_sign_get_request_item(const uint8_t *req, size_t reqlen,
+	int *hash_algor,
+	const uint8_t **issuer_name_hash, size_t *issuer_name_hash_len,
+	const uint8_t **issuer_key_hash, size_t *issuer_key_hash_len,
+	const uint8_t **serial_number, size_t *serial_number_len)
+{
+	const uint8_t *p;
+	size_t len;
+	int version;
+	const uint8_t *requestor_name;
+	size_t requestor_name_len;
+	const uint8_t *request_list;
+	size_t request_list_len;
+	const uint8_t *request_exts;
+	size_t request_exts_len;
+	const uint8_t *optional_signature;
+	size_t optional_signature_len;
+	const uint8_t *request;
+	size_t request_len;
+	const uint8_t *single_request_exts;
+	size_t single_request_exts_len;
+
+	if (!req || !reqlen || !hash_algor
+		|| !issuer_name_hash || !issuer_name_hash_len
+		|| !issuer_key_hash || !issuer_key_hash_len
+		|| !serial_number || !serial_number_len) {
+		error_print();
+		return -1;
+	}
+
+	p = req;
+	len = reqlen;
+	if (ocsp_request_from_der(&version,
+		&requestor_name, &requestor_name_len,
+		&request_list, &request_list_len,
+		&request_exts, &request_exts_len,
+		&optional_signature, &optional_signature_len,
+		&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (asn1_any_from_der(&request, &request_len, &request_list, &request_list_len) != 1) {
+		error_print();
+		return -1;
+	}
+	p = request;
+	len = request_len;
+	if (ocsp_request_item_from_der(hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len,
+		serial_number, serial_number_len,
+		&single_request_exts, &single_request_exts_len,
+		&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	while (request_list_len) {
+		if (asn1_sequence_from_der(&p, &len, &request_list, &request_list_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
+static int ocsp_sign_check_issuer_cert(const uint8_t *issuer_cert, size_t issuer_cert_len,
+	int hash_algor,
+	const uint8_t *issuer_name_hash, size_t issuer_name_hash_len,
+	const uint8_t *issuer_key_hash, size_t issuer_key_hash_len)
+{
+	const DIGEST *digest_algor;
+	const uint8_t *issuer_subject;
+	size_t issuer_subject_len;
+	X509_KEY issuer_public_key;
+	uint8_t issuer_name[OCSP_MAX_CERT_SIZE];
+	uint8_t *p = issuer_name;
+	size_t issuer_name_len = 0;
+	uint8_t name_hash[DIGEST_MAX_SIZE];
+	size_t name_hash_len;
+	uint8_t key_hash[DIGEST_MAX_SIZE];
+	size_t key_hash_len;
+
+	if (!issuer_cert || !issuer_cert_len
+		|| !issuer_name_hash || !issuer_name_hash_len
+		|| !issuer_key_hash || !issuer_key_hash_len) {
+		error_print();
+		return -1;
+	}
+	if (!(digest_algor = ocsp_digest_from_oid(hash_algor))) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_get_subject(issuer_cert, issuer_cert_len, &issuer_subject, &issuer_subject_len) != 1
+		|| x509_cert_get_subject_public_key(issuer_cert, issuer_cert_len, &issuer_public_key) != 1
+		|| asn1_sequence_to_der(issuer_subject, issuer_subject_len, NULL, &issuer_name_len) != 1
+		|| asn1_length_le(issuer_name_len, sizeof(issuer_name)) != 1) {
+		error_print();
+		return -1;
+	}
+	issuer_name_len = 0;
+	if (asn1_sequence_to_der(issuer_subject, issuer_subject_len, &p, &issuer_name_len) != 1
+		|| digest(digest_algor, issuer_name, issuer_name_len, name_hash, &name_hash_len) != 1
+		|| x509_public_key_digest_ex(&issuer_public_key, digest_algor, key_hash, &key_hash_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (issuer_name_hash_len != name_hash_len
+		|| memcmp(issuer_name_hash, name_hash, name_hash_len) != 0
+		|| issuer_key_hash_len != key_hash_len
+		|| memcmp(issuer_key_hash, key_hash, key_hash_len) != 0) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+static int ocsp_sign_get_responder_id(int responder_id_type,
+	const uint8_t *signer_cert, size_t signer_cert_len,
+	uint8_t *responder_id, size_t *responder_id_len, size_t maxlen)
+{
+	const uint8_t *subject;
+	size_t subject_len;
+	X509_KEY public_key;
+	uint8_t *p = responder_id;
+
+	if (!signer_cert || !signer_cert_len || !responder_id || !responder_id_len) {
+		error_print();
+		return -1;
+	}
+	*responder_id_len = 0;
+
+	switch (responder_id_type) {
+	case OCSP_responder_id_by_name:
+		if (x509_cert_get_subject(signer_cert, signer_cert_len, &subject, &subject_len) != 1
+			|| asn1_sequence_to_der(subject, subject_len, NULL, responder_id_len) != 1
+			|| asn1_length_le(*responder_id_len, maxlen) != 1) {
+			error_print();
+			return -1;
+		}
+		*responder_id_len = 0;
+		if (asn1_sequence_to_der(subject, subject_len, &p, responder_id_len) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OCSP_responder_id_by_key:
+#ifdef ENABLE_SHA1
+		if (x509_cert_get_subject_public_key(signer_cert, signer_cert_len, &public_key) != 1) {
+			error_print();
+			return -1;
+		}
+		if (DIGEST_MAX_SIZE > maxlen
+			|| x509_public_key_digest_ex(&public_key, DIGEST_sha1(), responder_id, responder_id_len) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#else
+		error_print();
+		return -1;
+#endif
+	default:
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+int ocsp_sign_init(OCSP_SIGN_CTX *ctx,
+	const uint8_t *req, size_t reqlen,
+	const uint8_t *issuer_cert, size_t issuer_cert_len)
+{
+	int hash_algor;
+	const uint8_t *issuer_name_hash;
+	size_t issuer_name_hash_len;
+	const uint8_t *issuer_key_hash;
+	size_t issuer_key_hash_len;
+	const uint8_t *serial_number;
+	size_t serial_number_len;
+
+	if (!ctx || !req || !reqlen || !issuer_cert || !issuer_cert_len) {
+		error_print();
+		return -1;
+	}
+	memset(ctx, 0, sizeof(*ctx));
+
+	if (ocsp_sign_get_request_item(req, reqlen,
+		&hash_algor,
+		&issuer_name_hash, &issuer_name_hash_len,
+		&issuer_key_hash, &issuer_key_hash_len,
+		&serial_number, &serial_number_len) != 1
+		|| ocsp_sign_check_issuer_cert(issuer_cert, issuer_cert_len,
+		hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	ctx->req = req;
+	ctx->reqlen = reqlen;
+	ctx->issuer_cert = issuer_cert;
+	ctx->issuer_cert_len = issuer_cert_len;
+	ctx->response_status = OCSP_response_status_successful;
+	ctx->responder_id_type = OCSP_responder_id_by_name;
+	ctx->produced_at = time(NULL);
+	ctx->next_update = (time_t)-1;
+	ctx->revocation_reason = -1;
+
+	return 1;
+}
+
+int ocsp_sign_set_response_status(OCSP_SIGN_CTX *ctx, int response_status)
+{
+	if (!ctx || !ocsp_response_status_name(response_status)) {
+		error_print();
+		return -1;
+	}
+	ctx->response_status = response_status;
+	return 1;
+}
+
+int ocsp_sign_set_responder_id_type(OCSP_SIGN_CTX *ctx, int responder_id_type)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	switch (responder_id_type) {
+	case OCSP_responder_id_by_name:
+	case OCSP_responder_id_by_key:
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	ctx->responder_id_type = responder_id_type;
+	return 1;
+}
+
+int ocsp_sign_set_produced_at(OCSP_SIGN_CTX *ctx, time_t produced_at)
+{
+	if (!ctx || produced_at == (time_t)-1) {
+		error_print();
+		return -1;
+	}
+	ctx->produced_at = produced_at;
+	return 1;
+}
+
+int ocsp_sign_set_next_update(OCSP_SIGN_CTX *ctx, time_t next_update)
+{
+	if (!ctx || next_update == (time_t)-1) {
+		error_print();
+		return -1;
+	}
+	ctx->next_update = next_update;
+	return 1;
+}
+
+int ocsp_sign_set_revocation_reason(OCSP_SIGN_CTX *ctx, int revocation_reason)
+{
+	if (!ctx || !x509_crl_reason_name(revocation_reason)) {
+		error_print();
+		return -1;
+	}
+	ctx->revocation_reason = revocation_reason;
+	return 1;
+}
+
+int ocsp_sign_set_single_response_exts(OCSP_SIGN_CTX *ctx, const uint8_t *exts, size_t extslen)
+{
+	if (!ctx || (!exts && extslen) || extslen > OCSP_MAX_EXTS_SIZE) {
+		error_print();
+		return -1;
+	}
+	ctx->single_response_exts = exts;
+	ctx->single_response_exts_len = extslen;
+	return 1;
+}
+
+int ocsp_sign_set_response_exts(OCSP_SIGN_CTX *ctx, const uint8_t *exts, size_t extslen)
+{
+	if (!ctx || (!exts && extslen) || extslen > OCSP_MAX_EXTS_SIZE) {
+		error_print();
+		return -1;
+	}
+	ctx->response_exts = exts;
+	ctx->response_exts_len = extslen;
+	return 1;
+}
+
+int ocsp_sign_set_certs(OCSP_SIGN_CTX *ctx, const uint8_t *certs, size_t certs_len)
+{
+	if (!ctx || (!certs && certs_len) || certs_len > OCSP_MAX_CERTS_SIZE) {
+		error_print();
+		return -1;
+	}
+	ctx->certs = certs;
+	ctx->certs_len = certs_len;
+	return 1;
+}
+
+int ocsp_sign(OCSP_SIGN_CTX *ctx,
+	int cert_status, time_t revocation_time, time_t this_update,
+	const uint8_t *signer_cert, size_t signer_cert_len,
+	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
+	uint8_t **out, size_t *outlen)
+{
+	int hash_algor;
+	const uint8_t *issuer_name_hash;
+	size_t issuer_name_hash_len;
+	const uint8_t *issuer_key_hash;
+	size_t issuer_key_hash_len;
+	const uint8_t *serial_number;
+	size_t serial_number_len;
+	uint8_t responder_id[OCSP_MAX_RESPONDER_ID_SIZE];
+	size_t responder_id_len = 0;
+	uint8_t single_response[OCSP_MAX_SINGLE_RESPONSE_SIZE];
+	size_t single_response_len = 0;
+	uint8_t response_data[OCSP_MAX_RESPONSE_DATA_SIZE];
+	size_t response_data_len = 0;
+	uint8_t signature[X509_SIGNATURE_MAX_SIZE];
+	size_t signature_len;
+	uint8_t basic_response[OCSP_MAX_BASIC_RESPONSE_SIZE];
+	size_t basic_response_len = 0;
+	size_t ocsp_response_len = 0;
+	uint8_t *p;
+	int sign_algor;
+	X509_SIGN_CTX sign_ctx;
+	const void *sign_args = signer_id;
+	size_t sign_args_len = signer_id_len;
+
+	if (!ctx || !ctx->req || !ctx->reqlen
+		|| !ctx->issuer_cert || !ctx->issuer_cert_len
+		|| !outlen) {
+		error_print();
+		return -1;
+	}
+
+	if (ctx->response_status != OCSP_response_status_successful) {
+		return ocsp_response_to_der(ctx->response_status, NULL, 0, out, outlen);
+	}
+
+	if (!signer_cert || !signer_cert_len || !sign_key
+		|| this_update == (time_t)-1
+		|| !ocsp_cert_status_name(cert_status)
+		|| (!signer_id && signer_id_len)
+		|| signer_id_len > SM2_MAX_ID_LENGTH) {
+		error_print();
+		return -1;
+	}
+	if (cert_status == OCSP_cert_status_revoked) {
+		if (revocation_time == (time_t)-1) {
+			error_print();
+			return -1;
+		}
+	} else if (revocation_time != (time_t)-1 || ctx->revocation_reason != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (ocsp_sign_get_request_item(ctx->req, ctx->reqlen,
+		&hash_algor,
+		&issuer_name_hash, &issuer_name_hash_len,
+		&issuer_key_hash, &issuer_key_hash_len,
+		&serial_number, &serial_number_len) != 1
+		|| ocsp_sign_check_issuer_cert(ctx->issuer_cert, ctx->issuer_cert_len,
+		hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len) != 1
+		|| ocsp_sign_get_responder_id(ctx->responder_id_type,
+		signer_cert, signer_cert_len, responder_id, &responder_id_len, sizeof(responder_id)) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (ocsp_single_response_to_der(hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len,
+		serial_number, serial_number_len,
+		cert_status, revocation_time, ctx->revocation_reason,
+		this_update, ctx->next_update,
+		ctx->single_response_exts, ctx->single_response_exts_len,
+		NULL, &single_response_len) != 1
+		|| asn1_length_le(single_response_len, sizeof(single_response)) != 1) {
+		error_print();
+		return -1;
+	}
+	p = single_response;
+	single_response_len = 0;
+	if (ocsp_single_response_to_der(hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len,
+		serial_number, serial_number_len,
+		cert_status, revocation_time, ctx->revocation_reason,
+		this_update, ctx->next_update,
+		ctx->single_response_exts, ctx->single_response_exts_len,
+		&p, &single_response_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (ocsp_response_data_to_der(ctx->responder_id_type,
+		responder_id, responder_id_len,
+		ctx->produced_at,
+		single_response, single_response_len,
+		ctx->response_exts, ctx->response_exts_len,
+		NULL, &response_data_len) != 1
+		|| asn1_length_le(response_data_len, sizeof(response_data)) != 1) {
+		error_print();
+		return -1;
+	}
+	p = response_data;
+	response_data_len = 0;
+	if (ocsp_response_data_to_der(ctx->responder_id_type,
+		responder_id, responder_id_len,
+		ctx->produced_at,
+		single_response, single_response_len,
+		ctx->response_exts, ctx->response_exts_len,
+		&p, &response_data_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_key_get_sign_algor(sign_key, &sign_algor) != 1
+		|| x509_key_get_signature_size(sign_key, &signature_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sign_key->algor == OID_ec_public_key) {
+		signature_len = SM2_signature_typical_size;
+	}
+
+	if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_args_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((sign_key->algor == OID_ec_public_key
+			&& x509_sign_set_signature_size(&sign_ctx, signature_len) != 1)
+		|| x509_sign(&sign_ctx, response_data, response_data_len, signature, &signature_len) != 1) {
+		x509_sign_ctx_cleanup(&sign_ctx);
+		error_print();
+		return -1;
+	}
+	x509_sign_ctx_cleanup(&sign_ctx);
+
+	if (ocsp_basic_response_to_der(response_data, response_data_len,
+		sign_algor, signature, signature_len,
+		ctx->certs, ctx->certs_len,
+		NULL, &basic_response_len) != 1
+		|| asn1_length_le(basic_response_len, sizeof(basic_response)) != 1) {
+		error_print();
+		return -1;
+	}
+	p = basic_response;
+	basic_response_len = 0;
+	if (ocsp_basic_response_to_der(response_data, response_data_len,
+		sign_algor, signature, signature_len,
+		ctx->certs, ctx->certs_len,
+		&p, &basic_response_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (ocsp_response_to_der(OCSP_response_status_successful,
+		basic_response, basic_response_len, NULL, &ocsp_response_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (ocsp_response_to_der(OCSP_response_status_successful,
+		basic_response, basic_response_len, out, outlen) != 1) {
 		error_print();
 		return -1;
 	}
