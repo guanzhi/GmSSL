@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -13,21 +13,84 @@
 #include <stdlib.h>
 #include <gmssl/hex.h>
 #include <gmssl/hmac.h>
+#include <gmssl/error.h>
 
 
-// FIXME: md5, sha1, sm3 test vectors
+static int hmac_test_one(const DIGEST *digest, const char *key_hex, const char *data_hex, const char *hmac_hex)
+{
+	HMAC_CTX ctx;
+	uint8_t key[256];
+	uint8_t data[256];
+	uint8_t expected[64];
+	uint8_t mac[64];
+	size_t keylen, datalen, expected_len, maclen;
 
+	if (hex_to_bytes(key_hex, strlen(key_hex), key, &keylen) != 1
+		|| hex_to_bytes(data_hex, strlen(data_hex), data, &datalen) != 1
+		|| hex_to_bytes(hmac_hex, strlen(hmac_hex), expected, &expected_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (hmac_init(&ctx, digest, key, keylen) != 1
+		|| hmac_update(&ctx, data, datalen) != 1
+		|| hmac_finish(&ctx, mac, &maclen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (maclen != expected_len || memcmp(mac, expected, expected_len) != 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
-struct {
-	char *key;
-	char *data;
-	char *hmac_sha224;
-	char *hmac_sha256;
-	char *hmac_sha384;
-	char *hmac_sha512;
-} hmac_tests[] = {
+static int test_hmac_sm3(void)
+{
+	// Wycheproof hmac_sm3_test.json tcId 1
+	if (hmac_test_one(DIGEST_sm3(),
+		"1e225cafb90339bba1b24076d4206c3e"
+		"79c355805d851682bc818baa4f5a7779",
+		"",
+		"f9938b1b2515117f25dcd636c9a6a0e7"
+		"f00bccaf5347e0e0df435cfca736cfc1") != 1) {
+		error_print();
+		return -1;
+	}
 
-	// rfc 4231 test vectors
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+#ifdef ENABLE_SHA1
+static int test_hmac_sha1(void)
+{
+	// Wycheproof hmac_sha1_test.json tcId 1
+	if (hmac_test_one(DIGEST_sha1(),
+		"06c0dcdc16ff81dce92807fa2c82b44d"
+		"28ac178a",
+		"",
+		"7d91d1b4748077b28911b4509762b6df"
+		"24365810") != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
+
+#ifdef ENABLE_SHA2
+static struct {
+	const char *key;
+	const char *data;
+	const char *hmac_sha224;
+	const char *hmac_sha256;
+	const char *hmac_sha384;
+	const char *hmac_sha512;
+} hmac_sha2_tests[] = {
+
+	// RFC 4231 test vectors
 	{
 		"0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b"
 		"0b0b0b0b",
@@ -81,45 +144,49 @@ struct {
 	},
 };
 
-int test_hmac(const DIGEST *digest, const char *key_hex, const char *data_hex, const char *hmac_hex)
+static int test_hmac_sha2(void)
 {
-	HMAC_CTX ctx;
-	uint8_t *key = (uint8_t *)malloc(strlen(key_hex)/2);
-	uint8_t *data = (uint8_t *)malloc(strlen(data_hex)/2);
-	uint8_t *hmac = (uint8_t *)malloc(strlen(hmac_hex) / 2);
-	size_t keylen, datalen, hmaclen;
-	uint8_t buf[64];
-	size_t buflen;
+	size_t i;
 
-	hex_to_bytes(key_hex, strlen(key_hex), key, &keylen);
-	hex_to_bytes(data_hex, strlen(data_hex), data, &datalen);
-	hex_to_bytes(hmac_hex, strlen(hmac_hex), hmac, &hmaclen);
-
-	hmac_init(&ctx, digest, key, keylen);
-	hmac_update(&ctx, data, datalen);
-	hmac_finish(&ctx, buf, &buflen);
-
-	if (buflen !=  hmaclen || memcmp(buf, hmac, hmaclen) != 0) {
-		printf("failed\n");
-		return 0;
+	for (i = 0; i < sizeof(hmac_sha2_tests)/sizeof(hmac_sha2_tests[0]); i++) {
+		if (hmac_test_one(DIGEST_sha224(),
+				hmac_sha2_tests[i].key,
+				hmac_sha2_tests[i].data,
+				hmac_sha2_tests[i].hmac_sha224) != 1
+			|| hmac_test_one(DIGEST_sha256(),
+				hmac_sha2_tests[i].key,
+				hmac_sha2_tests[i].data,
+				hmac_sha2_tests[i].hmac_sha256) != 1
+			|| hmac_test_one(DIGEST_sha384(),
+				hmac_sha2_tests[i].key,
+				hmac_sha2_tests[i].data,
+				hmac_sha2_tests[i].hmac_sha384) != 1
+			|| hmac_test_one(DIGEST_sha512(),
+				hmac_sha2_tests[i].key,
+				hmac_sha2_tests[i].data,
+				hmac_sha2_tests[i].hmac_sha512) != 1) {
+			error_print();
+			return -1;
+		}
 	}
-	printf("ok\n");
 
-	if (key) free(key);
-	if (data) free(data);
-	if (hmac) free(hmac);
+	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
+#endif
 
 int main(void)
 {
-	int i;
-	for (i = 0; i < sizeof(hmac_tests)/sizeof(hmac_tests[0]); i++) {
-		test_hmac(DIGEST_sha224(), hmac_tests[i].key, hmac_tests[i].data, hmac_tests[i].hmac_sha224);
-		test_hmac(DIGEST_sha256(), hmac_tests[i].key, hmac_tests[i].data, hmac_tests[i].hmac_sha256);
-		test_hmac(DIGEST_sha384(), hmac_tests[i].key, hmac_tests[i].data, hmac_tests[i].hmac_sha384);
-		test_hmac(DIGEST_sha512(), hmac_tests[i].key, hmac_tests[i].data, hmac_tests[i].hmac_sha512);
-	};
-
+	if (test_hmac_sm3() != 1) goto err;
+#ifdef ENABLE_SHA1
+	if (test_hmac_sha1() != 1) goto err;
+#endif
+#ifdef ENABLE_SHA2
+	if (test_hmac_sha2() != 1) goto err;
+#endif
+	printf("%s all tests passed\n", __FILE__);
 	return 0;
-};
+err:
+	error_print();
+	return 1;
+}
