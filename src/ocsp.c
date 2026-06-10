@@ -1872,22 +1872,11 @@ int ocsp_sign_init(OCSP_SIGN_CTX *ctx,
 	ctx->reqlen = reqlen;
 	ctx->issuer_cert = issuer_cert;
 	ctx->issuer_cert_len = issuer_cert_len;
-	ctx->response_status = OCSP_response_status_successful;
 	ctx->responder_id_type = OCSP_responder_id_by_name;
 	ctx->produced_at = time(NULL);
 	ctx->next_update = (time_t)-1;
 	ctx->revocation_reason = -1;
 
-	return 1;
-}
-
-int ocsp_sign_set_response_status(OCSP_SIGN_CTX *ctx, int response_status)
-{
-	if (!ctx || !ocsp_response_status_name(response_status)) {
-		error_print();
-		return -1;
-	}
-	ctx->response_status = response_status;
 	return 1;
 }
 
@@ -2007,10 +1996,6 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		|| !outlen) {
 		error_print();
 		return -1;
-	}
-
-	if (ctx->response_status != OCSP_response_status_successful) {
-		return ocsp_response_to_der(ctx->response_status, NULL, 0, out, outlen);
 	}
 
 	if (!signer_cert || !signer_cert_len || !sign_key
@@ -2145,4 +2130,422 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		return -1;
 	}
 	return 1;
+}
+
+static void ocsp_verify_set_reason(OCSP_SIGN_CTX *ctx, int *reason, int value)
+{
+	if (ctx) {
+		ctx->reason = value;
+	}
+	if (reason) {
+		*reason = value;
+	}
+}
+
+static int ocsp_verify_responder_id(int responder_id_type,
+	const uint8_t *responder_id, size_t responder_id_len,
+	const uint8_t *signer_cert, size_t signer_cert_len)
+{
+	uint8_t expected[OCSP_MAX_RESPONDER_ID_SIZE];
+	size_t expected_len = 0;
+
+	if (!responder_id || !responder_id_len || !signer_cert || !signer_cert_len) {
+		error_print();
+		return -1;
+	}
+	if (ocsp_sign_get_responder_id(responder_id_type, signer_cert, signer_cert_len,
+		expected, &expected_len, sizeof(expected)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (expected_len != responder_id_len
+		|| memcmp(expected, responder_id, responder_id_len) != 0) {
+		return 0;
+	}
+	return 1;
+}
+
+static int ocsp_verify_signature(const uint8_t *response_data, size_t response_data_len,
+	int signature_algor, const uint8_t *signature, size_t signature_len,
+	const uint8_t *signer_cert, size_t signer_cert_len,
+	const char *signer_id, size_t signer_id_len)
+{
+	X509_KEY public_key;
+	X509_SIGN_CTX verify_ctx;
+	int sign_algor;
+	const void *sign_args = signer_id;
+	size_t sign_args_len = signer_id_len;
+
+	if (!response_data || !response_data_len
+		|| !signature || !signature_len
+		|| !signer_cert || !signer_cert_len
+		|| (!signer_id && signer_id_len)
+		|| signer_id_len > SM2_MAX_ID_LENGTH) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_get_subject_public_key(signer_cert, signer_cert_len, &public_key) != 1
+		|| x509_key_get_sign_algor(&public_key, &sign_algor) != 1) {
+		error_print();
+		return -1;
+	}
+	if (signature_algor != sign_algor) {
+		error_print();
+		return -1;
+	}
+	if (!sign_args && public_key.algor == OID_ec_public_key && public_key.algor_param == OID_sm2) {
+		sign_args = SM2_DEFAULT_ID;
+		sign_args_len = SM2_DEFAULT_ID_LENGTH;
+	}
+	if (x509_verify_init(&verify_ctx, &public_key, sign_args, sign_args_len,
+		signature, signature_len) != 1
+		|| x509_verify_update(&verify_ctx, response_data, response_data_len) != 1
+		|| x509_verify_finish(&verify_ctx) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int ocsp_single_response_match_request(const uint8_t *single_response, size_t single_response_len,
+	int req_hash_algor,
+	const uint8_t *req_issuer_name_hash, size_t req_issuer_name_hash_len,
+	const uint8_t *req_issuer_key_hash, size_t req_issuer_key_hash_len,
+	const uint8_t *req_serial_number, size_t req_serial_number_len,
+	int *cert_status, time_t *revocation_time, int *revocation_reason,
+	time_t *this_update, time_t *next_update)
+{
+	const uint8_t *p = single_response;
+	size_t len = single_response_len;
+	int hash_algor;
+	const uint8_t *issuer_name_hash;
+	size_t issuer_name_hash_len;
+	const uint8_t *issuer_key_hash;
+	size_t issuer_key_hash_len;
+	const uint8_t *serial_number;
+	size_t serial_number_len;
+	const uint8_t *exts;
+	size_t extslen;
+
+	if (!single_response || !single_response_len
+		|| !req_issuer_name_hash || !req_issuer_name_hash_len
+		|| !req_issuer_key_hash || !req_issuer_key_hash_len
+		|| !req_serial_number || !req_serial_number_len
+		|| !cert_status || !revocation_time || !revocation_reason
+		|| !this_update || !next_update) {
+		error_print();
+		return -1;
+	}
+	if (ocsp_single_response_from_der(&hash_algor,
+		&issuer_name_hash, &issuer_name_hash_len,
+		&issuer_key_hash, &issuer_key_hash_len,
+		&serial_number, &serial_number_len,
+		cert_status, revocation_time, revocation_reason,
+		this_update, next_update,
+		&exts, &extslen, &p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (hash_algor != req_hash_algor
+		|| issuer_name_hash_len != req_issuer_name_hash_len
+		|| memcmp(issuer_name_hash, req_issuer_name_hash, issuer_name_hash_len) != 0
+		|| issuer_key_hash_len != req_issuer_key_hash_len
+		|| memcmp(issuer_key_hash, req_issuer_key_hash, issuer_key_hash_len) != 0
+		|| serial_number_len != req_serial_number_len
+		|| memcmp(serial_number, req_serial_number, serial_number_len) != 0) {
+		return 0;
+	}
+	return 1;
+}
+
+static int ocsp_verify_find_single_response(
+	const uint8_t *single_response_first, size_t single_response_first_len,
+	const uint8_t *single_response_others, size_t single_response_others_len,
+	int req_hash_algor,
+	const uint8_t *req_issuer_name_hash, size_t req_issuer_name_hash_len,
+	const uint8_t *req_issuer_key_hash, size_t req_issuer_key_hash_len,
+	const uint8_t *req_serial_number, size_t req_serial_number_len,
+	int *cert_status, time_t *revocation_time, int *revocation_reason,
+	time_t *this_update, time_t *next_update)
+{
+	const uint8_t *single_response;
+	size_t single_response_len;
+	int ret;
+
+	ret = ocsp_single_response_match_request(single_response_first, single_response_first_len,
+		req_hash_algor,
+		req_issuer_name_hash, req_issuer_name_hash_len,
+		req_issuer_key_hash, req_issuer_key_hash_len,
+		req_serial_number, req_serial_number_len,
+		cert_status, revocation_time, revocation_reason,
+		this_update, next_update);
+	if (ret != 0) {
+		return ret;
+	}
+	while (single_response_others_len) {
+		if (asn1_any_from_der(&single_response, &single_response_len,
+			&single_response_others, &single_response_others_len) != 1) {
+			error_print();
+			return -1;
+		}
+		ret = ocsp_single_response_match_request(single_response, single_response_len,
+			req_hash_algor,
+			req_issuer_name_hash, req_issuer_name_hash_len,
+			req_issuer_key_hash, req_issuer_key_hash_len,
+			req_serial_number, req_serial_number_len,
+			cert_status, revocation_time, revocation_reason,
+			this_update, next_update);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+	return 0;
+}
+
+int ocsp_verify_init(OCSP_SIGN_CTX *ctx,
+	const uint8_t *req, size_t reqlen,
+	const uint8_t *issuer_cert, size_t issuer_cert_len)
+{
+	int hash_algor;
+	const uint8_t *issuer_name_hash;
+	size_t issuer_name_hash_len;
+	const uint8_t *issuer_key_hash;
+	size_t issuer_key_hash_len;
+	const uint8_t *serial_number;
+	size_t serial_number_len;
+
+	if (!ctx || !req || !reqlen || !issuer_cert || !issuer_cert_len) {
+		error_print();
+		return -1;
+	}
+	memset(ctx, 0, sizeof(*ctx));
+
+	if (ocsp_sign_get_request_item(req, reqlen,
+		&hash_algor,
+		&issuer_name_hash, &issuer_name_hash_len,
+		&issuer_key_hash, &issuer_key_hash_len,
+		&serial_number, &serial_number_len) != 1
+		|| ocsp_sign_check_issuer_cert(issuer_cert, issuer_cert_len,
+		hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	ctx->req = req;
+	ctx->reqlen = reqlen;
+	ctx->issuer_cert = issuer_cert;
+	ctx->issuer_cert_len = issuer_cert_len;
+	ctx->verify_time = time(NULL);
+	ctx->max_clock_skew = 300;
+	ctx->reason = OCSP_VERIFY_REASON_NONE;
+
+	return 1;
+}
+
+int ocsp_verify_set_time(OCSP_SIGN_CTX *ctx, time_t verify_time)
+{
+	if (!ctx || verify_time == (time_t)-1) {
+		error_print();
+		return -1;
+	}
+	ctx->verify_time = verify_time;
+	return 1;
+}
+
+int ocsp_verify_set_clock_skew(OCSP_SIGN_CTX *ctx, int seconds)
+{
+	if (!ctx || seconds < 0) {
+		error_print();
+		return -1;
+	}
+	ctx->max_clock_skew = seconds;
+	return 1;
+}
+
+int ocsp_verify_set_certs(OCSP_SIGN_CTX *ctx, const uint8_t *certs, size_t certs_len)
+{
+	if (!ctx || (!certs && certs_len) || certs_len > OCSP_MAX_CERTS_SIZE) {
+		error_print();
+		return -1;
+	}
+	ctx->certs = certs;
+	ctx->certs_len = certs_len;
+	return 1;
+}
+
+int ocsp_verify(OCSP_SIGN_CTX *ctx,
+	const uint8_t *resp, size_t resplen,
+	const uint8_t *signer_cert, size_t signer_cert_len,
+	const char *signer_id, size_t signer_id_len,
+	int *reason)
+{
+	const uint8_t *p;
+	size_t len;
+	int response_status;
+	const uint8_t *basic_response;
+	size_t basic_response_len;
+	const uint8_t *response_data;
+	size_t response_data_len;
+	int signature_algor;
+	const uint8_t *signature;
+	size_t signature_len;
+	const uint8_t *certs;
+	size_t certs_len;
+	int responder_id_type;
+	const uint8_t *responder_id;
+	size_t responder_id_len;
+	time_t produced_at;
+	const uint8_t *single_response_first;
+	size_t single_response_first_len;
+	const uint8_t *single_response_others;
+	size_t single_response_others_len;
+	const uint8_t *response_exts;
+	size_t response_exts_len;
+	int hash_algor;
+	const uint8_t *issuer_name_hash;
+	size_t issuer_name_hash_len;
+	const uint8_t *issuer_key_hash;
+	size_t issuer_key_hash_len;
+	const uint8_t *serial_number;
+	size_t serial_number_len;
+	int cert_status;
+	time_t revocation_time;
+	int revocation_reason;
+	time_t this_update;
+	time_t next_update;
+	int ret;
+
+	if (!ctx || !ctx->req || !ctx->reqlen
+		|| !ctx->issuer_cert || !ctx->issuer_cert_len
+		|| !resp || !resplen
+		|| !signer_cert || !signer_cert_len
+		|| (!signer_id && signer_id_len)
+		|| signer_id_len > SM2_MAX_ID_LENGTH) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
+	ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_NONE);
+
+	p = resp;
+	len = resplen;
+	if (ocsp_response_from_der(&response_status, &basic_response, &basic_response_len,
+		&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
+	if (response_status != OCSP_response_status_successful) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_RESPONSE_STATUS_NOT_SUCCESSFUL);
+		return -1;
+	}
+
+	p = basic_response;
+	len = basic_response_len;
+	if (ocsp_basic_response_from_der(&response_data, &response_data_len,
+		&signature_algor, &signature, &signature_len,
+		&certs, &certs_len, &p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
+
+	p = response_data;
+	len = response_data_len;
+	if (ocsp_response_data_from_der(&responder_id_type,
+		&responder_id, &responder_id_len,
+		&produced_at,
+		&single_response_first, &single_response_first_len,
+		&single_response_others, &single_response_others_len,
+		&response_exts, &response_exts_len,
+		&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
+
+	ret = ocsp_verify_responder_id(responder_id_type,
+		responder_id, responder_id_len,
+		signer_cert, signer_cert_len);
+	if (ret < 0) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_BAD_RESPONDER_ID);
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_BAD_RESPONDER_ID);
+		return -1;
+	}
+	if (ocsp_verify_signature(response_data, response_data_len,
+		signature_algor, signature, signature_len,
+		signer_cert, signer_cert_len,
+		signer_id, signer_id_len) != 1) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_BAD_SIGNATURE);
+		error_print();
+		return -1;
+	}
+
+	if (ocsp_sign_get_request_item(ctx->req, ctx->reqlen,
+		&hash_algor,
+		&issuer_name_hash, &issuer_name_hash_len,
+		&issuer_key_hash, &issuer_key_hash_len,
+		&serial_number, &serial_number_len) != 1
+		|| ocsp_sign_check_issuer_cert(ctx->issuer_cert, ctx->issuer_cert_len,
+		hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len) != 1) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
+
+	ret = ocsp_verify_find_single_response(single_response_first, single_response_first_len,
+		single_response_others, single_response_others_len,
+		hash_algor,
+		issuer_name_hash, issuer_name_hash_len,
+		issuer_key_hash, issuer_key_hash_len,
+		serial_number, serial_number_len,
+		&cert_status, &revocation_time, &revocation_reason,
+		&this_update, &next_update);
+	if (ret < 0) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_NO_MATCHING_SINGLE_RESPONSE);
+		return -1;
+	}
+
+	if (this_update > ctx->verify_time + ctx->max_clock_skew) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_THIS_UPDATE_IN_FUTURE);
+		return -1;
+	}
+	if (next_update != (time_t)-1
+		&& ctx->verify_time - ctx->max_clock_skew > next_update) {
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_NEXT_UPDATE_EXPIRED);
+		return -1;
+	}
+
+	switch (cert_status) {
+	case OCSP_cert_status_good:
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_NONE);
+		return 1;
+	case OCSP_cert_status_revoked:
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_REVOKED);
+		return 0;
+	case OCSP_cert_status_unknown:
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_UNKNOWN);
+		return 0;
+	default:
+		ocsp_verify_set_reason(ctx, reason, OCSP_VERIFY_REASON_MALFORMED_RESPONSE);
+		error_print();
+		return -1;
+	}
 }

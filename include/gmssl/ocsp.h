@@ -240,12 +240,26 @@ int ocsp_response_print(FILE *fp, int fmt, int ind, const char *label,
 
 
 /*
- * OCSPResponse signing context
+ * OCSP context for signing and verification
  */
 #define OCSP_MAX_REQUEST_SIZE			65536
 #define OCSP_MAX_CERT_SIZE			65536
 #define OCSP_MAX_EXTS_SIZE			4096
 #define OCSP_MAX_CERTS_SIZE			65536
+
+enum {
+	OCSP_VERIFY_REASON_NONE = 0,
+	OCSP_VERIFY_REASON_REVOKED,
+	OCSP_VERIFY_REASON_UNKNOWN,
+	OCSP_VERIFY_REASON_MALFORMED_RESPONSE,
+	OCSP_VERIFY_REASON_RESPONSE_STATUS_NOT_SUCCESSFUL,
+	OCSP_VERIFY_REASON_UNSUPPORTED_RESPONSE_TYPE,
+	OCSP_VERIFY_REASON_BAD_SIGNATURE,
+	OCSP_VERIFY_REASON_BAD_RESPONDER_ID,
+	OCSP_VERIFY_REASON_NO_MATCHING_SINGLE_RESPONSE,
+	OCSP_VERIFY_REASON_THIS_UPDATE_IN_FUTURE,
+	OCSP_VERIFY_REASON_NEXT_UPDATE_EXPIRED,
+};
 
 typedef struct {
 	const uint8_t *req;
@@ -253,7 +267,6 @@ typedef struct {
 	const uint8_t *issuer_cert;
 	size_t issuer_cert_len;
 
-	int response_status;
 	int responder_id_type;
 	time_t produced_at;
 	time_t next_update;
@@ -265,13 +278,16 @@ typedef struct {
 	size_t response_exts_len;
 	const uint8_t *certs;
 	size_t certs_len;
+
+	time_t verify_time;
+	int max_clock_skew;
+	int reason;
 } OCSP_SIGN_CTX;
 
 int ocsp_sign_init(OCSP_SIGN_CTX *ctx,
 	const uint8_t *req, size_t reqlen,
 	const uint8_t *issuer_cert, size_t issuer_cert_len);
 
-int ocsp_sign_set_response_status(OCSP_SIGN_CTX *ctx, int response_status);
 int ocsp_sign_set_responder_id_type(OCSP_SIGN_CTX *ctx, int responder_id_type);
 int ocsp_sign_set_produced_at(OCSP_SIGN_CTX *ctx, time_t produced_at);
 int ocsp_sign_set_next_update(OCSP_SIGN_CTX *ctx, time_t next_update);
@@ -285,6 +301,18 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 	const uint8_t *signer_cert, size_t signer_cert_len,
 	X509_KEY *sign_key, const char *signer_id, size_t signer_id_len,
 	uint8_t **out, size_t *outlen);
+
+int ocsp_verify_init(OCSP_SIGN_CTX *ctx,
+	const uint8_t *req, size_t reqlen,
+	const uint8_t *issuer_cert, size_t issuer_cert_len);
+int ocsp_verify_set_time(OCSP_SIGN_CTX *ctx, time_t verify_time);
+int ocsp_verify_set_clock_skew(OCSP_SIGN_CTX *ctx, int seconds);
+int ocsp_verify_set_certs(OCSP_SIGN_CTX *ctx, const uint8_t *certs, size_t certs_len);
+int ocsp_verify(OCSP_SIGN_CTX *ctx,
+	const uint8_t *resp, size_t resplen,
+	const uint8_t *signer_cert, size_t signer_cert_len,
+	const char *signer_id, size_t signer_id_len,
+	int *reason);
 
 
 #ifdef __cplusplus
