@@ -10,10 +10,10 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <gmssl/pbkdf2.h>
+#include <gmssl/mem.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
-#include <gmssl/mem.h>
+#include <gmssl/pbkdf2.h>
 
 
 int pbkdf2_hmac_genkey(const DIGEST *digest,
