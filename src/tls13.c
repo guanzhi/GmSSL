@@ -1070,9 +1070,6 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 		if (datalen > TLS_MAX_PLAINTEXT_SIZE) {
 			datalen = TLS_MAX_PLAINTEXT_SIZE;
 		}
-		if (datalen > 8) {
-			datalen = 8;
-		}
 
 		format_bytes(stderr, 0, 0, "send", data, datalen);
 
