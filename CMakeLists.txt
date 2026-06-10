@@ -561,6 +561,7 @@ if (ENABLE_TLS)
 		src/tls_ext.c
 		src/tls_psk.c
 		src/tls_sni.c
+		src/sct.c
 		src/tls_sct.c
 		src/tls_ocsp.c
 		src/tls_cookie.c
