@@ -31,20 +31,39 @@ const char *digests[] = {
 
 int main(void)
 {
+	int err = 0;
 	uint8_t dgst[64];
 	size_t dgstlen;
 	size_t i, j;
 
 	for (i = 0; i < sizeof(digests)/sizeof(digests[0]); i++) {
 		const DIGEST *algor = digest_from_name(digests[i]);
-		digest(algor, (uint8_t *)"abc", 3, dgst, &dgstlen);
+		DIGEST_CTX ctx;
+
+		if (digest(algor, (uint8_t *)"abc", 3, dgst, &dgstlen) != 1) {
+			printf("%s digest failed\n", digests[i]);
+			err++;
+			continue;
+		}
 
 		printf("%s (%zu) ", digests[i], dgstlen);
 		for (j = 0; j < dgstlen; j++) {
 			printf("%02x", dgst[j]);
 		}
 		printf("\n");
+
+		if (digest_init(&ctx, algor) != 1
+			|| digest_update(&ctx, NULL, 0) != 1
+			|| digest_finish(&ctx, dgst, &dgstlen) != 1) {
+			printf("%s empty update failed\n", digests[i]);
+			err++;
+		}
+
+		if (digest(algor, NULL, 0, dgst, &dgstlen) != 1) {
+			printf("%s empty digest failed\n", digests[i]);
+			err++;
+		}
 	}
 
-	return 0;
+	return err;
 }
