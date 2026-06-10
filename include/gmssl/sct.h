@@ -24,21 +24,6 @@ extern "C" {
 #endif
 
 
-/*
-Certificate Transparency (RFC 6962) uses TLS-style presentation language for
-Signed Certificate Timestamp (SCT) objects. When SCTs are carried in an X.509
-or OCSP extension, the extension value is an ASN.1 OCTET STRING whose contents
-are the TLS-serialized SignedCertificateTimestampList.
-
-id-ct OBJECT IDENTIFIER ::= { 1 3 6 1 4 1 11129 2 4 }
-
-id-ct-precertificate-scts OBJECT IDENTIFIER ::= { id-ct 2 }
-
-ExtnValue contents ::=
-	SignedCertificateTimestampList
-*/
-
-
 enum {
 	SCT_version_v1 = 0,
 };
@@ -137,11 +122,6 @@ int signed_certificate_timestamp_print(FILE *fp, int fmt, int ind,
 int signed_certificate_timestamp_verify(const uint8_t *sct, size_t sct_len,
 	const uint8_t *signed_data, size_t signed_data_len,
 	X509_KEY *key, const DIGEST *digest);
-
-
-/*
-在验证sct_list的时候，我们需要提供一组公钥的信息，包括X509_KEY, Key_hash, URL , description 这三个是最重要的了
-*/
 
 
 typedef struct {

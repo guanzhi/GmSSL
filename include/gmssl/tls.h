@@ -22,6 +22,7 @@
 #include <gmssl/block_cipher.h>
 #include <gmssl/socket.h>
 #include <gmssl/x509_key.h>
+#include <gmssl/sct.h>
 
 
 #ifdef __cplusplus
@@ -843,6 +844,9 @@ typedef struct {
 	int signed_certificate_timestamp;
 	uint8_t signed_certificate_timestamp_lists[512]; // list of uint16array
 	size_t signed_certificate_timestamp_lists_len;
+	const CT_LOG_INFO *ct_logs;
+	size_t ct_logs_cnt;
+	size_t ct_at_least;
 
 	// 35. session_ticket
 	// session_ticket only supported in tls12
@@ -1878,11 +1882,16 @@ int tls_process_signature_algorithms(const uint8_t *ext_data, size_t ext_datalen
 // signed_certificate_timestamp response is set by tls_ctx_add_certificate_list_and_key()
 int tls_ctx_enable_signed_certificate_timestamp(TLS_CTX *ctx, int enable); // 这里enable的是什么？是否请求吗？
 int tls_enable_signed_certificate_timestamp(TLS_CONNECT *conn, int enable);
+int tls_ctx_set_ct_logs(TLS_CTX *ctx, const CT_LOG_INFO *ct_logs,
+	size_t ct_logs_cnt, size_t at_least);
 
 
 // 客户端需要一组SCT服务器的公钥列表才能够去验证SCT，我们假定这个公钥列表在CTX中
 
-int tls13_signed_certificate_timestamp_verify(const uint8_t *sct_list, size_t sct_list_len);
+int tls13_signed_certificate_timestamp_verify(const uint8_t *sct_list, size_t sct_list_len,
+	int entry_type, const uint8_t issuer_key_hash[SCT_ISSUER_KEY_HASH_SIZE],
+	const uint8_t *entry, size_t entry_len,
+	const CT_LOG_INFO *ct_logs, size_t ct_logs_cnt, size_t at_least);
 
 int tls_signed_certificate_timestamp_entry_to_bytes(const uint8_t key_id[32],
 	uint64_t timestamp, const uint8_t *signature, size_t signature_len,

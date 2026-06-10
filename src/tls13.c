@@ -5881,6 +5881,8 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	size_t leaf_status_request_ocsp_response_len;
 	const uint8_t *leaf_signed_certificate_timestamp;
 	size_t leaf_signed_certificate_timestamp_len;
+	const uint8_t *cert;
+	size_t certlen;
 
 	const int *signature_algorithms_cert = NULL;
 	size_t signature_algorithms_cert_cnt = 0;
@@ -5996,9 +5998,18 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	}
 	// signed_certificate_timestamp
 	if (leaf_signed_certificate_timestamp) {
+		if (x509_certs_get_cert_by_index(conn->peer_cert_chain,
+			conn->peer_cert_chain_len, 0, &cert, &certlen) != 1) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
 		if (tls13_signed_certificate_timestamp_verify(
 			leaf_signed_certificate_timestamp,
-			leaf_signed_certificate_timestamp_len) != 1) {
+			leaf_signed_certificate_timestamp_len,
+			SCT_log_entry_type_x509_entry, NULL, cert, certlen,
+			conn->ctx->ct_logs, conn->ctx->ct_logs_cnt,
+			conn->ctx->ct_at_least) != 1) {
 			error_print();
 			tls13_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
@@ -8215,6 +8226,8 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	size_t status_request_ocsp_response_len;
 	const uint8_t *signed_certificate_timestamp = NULL;
 	size_t signed_certificate_timestamp_len;
+	const uint8_t *cert;
+	size_t certlen;
 
 	const int *signature_algorithms_cert = NULL;
 	size_t signature_algorithms_cert_cnt = 0;
@@ -8333,8 +8346,17 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	}
 	// signed_certificate_timestamp
 	if (signed_certificate_timestamp) {
+		if (x509_certs_get_cert_by_index(conn->peer_cert_chain,
+			conn->peer_cert_chain_len, 0, &cert, &certlen) != 1) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
 		if (tls13_signed_certificate_timestamp_verify(
-			signed_certificate_timestamp, signed_certificate_timestamp_len) != 1) {
+			signed_certificate_timestamp, signed_certificate_timestamp_len,
+			SCT_log_entry_type_x509_entry, NULL, cert, certlen,
+			conn->ctx->ct_logs, conn->ctx->ct_logs_cnt,
+			conn->ctx->ct_at_least) != 1) {
 			error_print();
 			tls13_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
