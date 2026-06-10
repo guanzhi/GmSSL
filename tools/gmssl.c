@@ -88,6 +88,7 @@ extern int tls12_client_main(int argc, char **argv);
 extern int tls12_server_main(int argc, char **argv);
 extern int tls13_client_main(int argc, char **argv);
 extern int tls13_server_main(int argc, char **argv);
+extern int sctverify_main(int argc, char **argv);
 #endif
 #ifdef ENABLE_SECP256R1
 extern int p256keygen_main(int argc, char **argv);
@@ -253,6 +254,7 @@ static const char *options =
 	"  tls12_server      TLS 1.2 server\n"
 	"  tls13_client      TLS 1.3 client\n"
 	"  tls13_server      TLS 1.3 server\n"
+	"  sctverify         Verify Signed Certificate Timestamp list\n"
 #endif
 	"\n"
 	"run `gmssl <command> -help` to print help of the given command\n"
@@ -405,6 +407,8 @@ int main(int argc, char **argv)
 			return tls13_client_main(argc, argv);
 		} else if (!strcmp(*argv, "tls13_server")) {
 			return tls13_server_main(argc, argv);
+		} else if (!strcmp(*argv, "sctverify")) {
+			return sctverify_main(argc, argv);
 #endif
 #ifdef ENABLE_SECP256R1
 		} else if (!strcmp(*argv, "p256keygen")) {

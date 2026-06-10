@@ -575,7 +575,8 @@ if (ENABLE_TLS)
 		tools/tls12_client.c
 		tools/tls12_server.c
 		tools/tls13_client.c
-		tools/tls13_server.c)
+		tools/tls13_server.c
+		tools/sctverify.c)
 	list(APPEND tests tls tls13 tls_ocsp)
 endif()
 
