@@ -20,6 +20,7 @@ extern int certparse_main(int argc, char **argv);
 extern int certverify_main(int argc, char **argv);
 extern int certrevoke_main(int argc, char **argv);
 extern int ocspreq_main(int argc, char **argv);
+extern int ocspsign_main(int argc, char **argv);
 extern int crlget_main(int argc, char **argv);
 extern int crlgen_main(int argc, char **argv);
 extern int crlparse_main(int argc, char **argv);
@@ -194,6 +195,7 @@ static const char *options =
 	"  certverify        Verify certificate chain\n"
 	"  certrevoke        Revoke certificate and output RevokedCertificate record\n"
 	"  ocspreq           Generate OCSPRequest\n"
+	"  ocspsign          Sign OCSPResponse\n"
 #ifdef ENABLE_CMS
 	"  cmsparse          Parse CMS (cryptographic message syntax) file\n"
 	"  cmsencrypt        Generate CMS EnvelopedData\n"
@@ -286,6 +288,8 @@ int main(int argc, char **argv)
 			return certrevoke_main(argc, argv);
 		} else if (!strcmp(*argv, "ocspreq")) {
 			return ocspreq_main(argc, argv);
+		} else if (!strcmp(*argv, "ocspsign")) {
+			return ocspsign_main(argc, argv);
 		} else if (!strcmp(*argv, "crlget")) {
 			return crlget_main(argc, argv);
 		} else if (!strcmp(*argv, "crlgen")) {

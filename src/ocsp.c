@@ -1036,8 +1036,12 @@ int ocsp_response_data_to_der(
 		return -1;
 	}
 
-	if (asn1_sequence_header_to_der(responses_len, NULL, &len) != 1
-		|| x509_explicit_exts_to_der(1, response_exts, response_exts_len, NULL, &len) < 0
+	if (asn1_sequence_header_to_der(responses_len, NULL, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	len += responses_len;
+	if (x509_explicit_exts_to_der(1, response_exts, response_exts_len, NULL, &len) < 0
 		|| asn1_sequence_header_to_der(len, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -2104,7 +2108,7 @@ int ocsp_sign(OCSP_SIGN_CTX *ctx,
 		return -1;
 	}
 	if ((sign_key->algor == OID_ec_public_key
-			&& x509_sign_set_signature_size(&sign_ctx, signature_len) != 1)
+		&& x509_sign_set_signature_size(&sign_ctx, signature_len) != 1)
 		|| x509_sign(&sign_ctx, response_data, response_data_len, signature, &signature_len) != 1) {
 		x509_sign_ctx_cleanup(&sign_ctx);
 		error_print();
