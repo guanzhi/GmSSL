@@ -184,6 +184,9 @@ enum {
 	OID_xmssmt_hashsig,
 	OID_sphincs_hashsig, // OID not defined in RFC, so no oid[]
 	OID_kyber_kem,
+
+	OID_aes192, // No OID
+	OID_aes256, // No OID
 };
 
 // {iso(1) org(3) dod(6) internet(1) security(5) mechanisms(5) pkix(7)}

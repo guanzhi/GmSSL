@@ -43,15 +43,16 @@ struct BLOCK_CIPHER_KEY {
 	const BLOCK_CIPHER *cipher;
 };
 
-typedef void (*block_cipher_set_encrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *raw_key);
-typedef void (*block_cipher_set_decrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *raw_key);
-typedef void (*block_cipher_encrypt_func)(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
-typedef void (*block_cipher_decrypt_func)(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
+typedef int (*block_cipher_set_encrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *raw_key);
+typedef int (*block_cipher_set_decrypt_key_func)(BLOCK_CIPHER_KEY *key, const uint8_t *raw_key);
+typedef int (*block_cipher_encrypt_func)(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
+typedef int (*block_cipher_decrypt_func)(const BLOCK_CIPHER_KEY *key, const uint8_t *in, uint8_t *out);
 
 struct BLOCK_CIPHER {
 	int oid;
 	size_t key_size;
 	size_t block_size;
+	size_t ctx_size;
 	block_cipher_set_encrypt_key_func set_encrypt_key;
 	block_cipher_set_decrypt_key_func set_decrypt_key;
 	block_cipher_encrypt_func encrypt;
@@ -61,6 +62,8 @@ struct BLOCK_CIPHER {
 const BLOCK_CIPHER *BLOCK_CIPHER_sm4(void);
 #ifdef ENABLE_AES
 const BLOCK_CIPHER *BLOCK_CIPHER_aes128(void);
+const BLOCK_CIPHER *BLOCK_CIPHER_aes192(void);
+const BLOCK_CIPHER *BLOCK_CIPHER_aes256(void);
 #endif
 
 const BLOCK_CIPHER *block_cipher_from_name(const char *name);
