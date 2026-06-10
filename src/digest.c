@@ -16,64 +16,102 @@
 #include <gmssl/error.h>
 
 
-typedef struct {
-	int oid;
-	char *short_name;
-	char *display_name;
-} DIGEST_TABLE;
-
-DIGEST_TABLE digest_table[] = {
-	{ OID_sm3, "sm3", "SM3" },
+const DIGEST *digest_from_name(const char *name)
+{
+	if (!name) {
+		error_print();
+		return NULL;
+	}
+	if (!strcmp(name, "sm3")) {
+		return DIGEST_sm3();
 #ifdef ENABLE_SHA1
-	{ OID_sha1, "sha1", "SHA-1" },
+	} else if (!strcmp(name, "sha1")) {
+		return DIGEST_sha1();
 #endif
 #ifdef ENABLE_SHA2
-	{ OID_sha224, "sha224", "SHA-224" },
-	{ OID_sha256, "sha256", "SHA-256" },
-	{ OID_sha384, "sha384", "SHA-384" },
-	{ OID_sha512, "sha512", "SHA-512" },
+	} else if (!strcmp(name, "sha224")) {
+		return DIGEST_sha224();
+	} else if (!strcmp(name, "sha256")) {
+		return DIGEST_sha256();
+	} else if (!strcmp(name, "sha384")) {
+		return DIGEST_sha384();
+	} else if (!strcmp(name, "sha512")) {
+		return DIGEST_sha512();
+	} else if (!strcmp(name, "sha512-224")) {
+		return DIGEST_sha512_224();
+	} else if (!strcmp(name, "sha512-256")) {
+		return DIGEST_sha512_256();
 #endif
-};
+	}
+	error_print();
+	return NULL;
+}
 
 const char *digest_name(const DIGEST *digest)
 {
-	int i;
-	for (i = 0; i < sizeof(digest_table)/sizeof(digest_table[0]); i++) {
-		if (digest->oid == digest_table[i].oid) {
-			return digest_table[i].short_name;
-		}
+	if (!digest) {
+		error_print();
+		return NULL;
 	}
+	switch (digest->oid) {
+	case OID_sm3: return "sm3";
+	case OID_sha1: return "sha1";
+	case OID_sha224: return "sha224";
+	case OID_sha256: return "sha256";
+	case OID_sha384: return "sha384";
+	case OID_sha512: return "sha512";
+	case OID_sha512_224: return "sha512-224";
+	case OID_sha512_256: return "sha512-256";
+	}
+	error_print();
 	return NULL;
 }
 
 int digest_init(DIGEST_CTX *ctx, const DIGEST *algor)
 {
-	memset(ctx, 0, sizeof(DIGEST_CTX));
-	if (algor == NULL) {
+	if (!ctx || !algor || !algor->init) {
 		error_print();
 		return -1;
 	}
+	memset(ctx, 0, sizeof(DIGEST_CTX));
 	ctx->digest = algor;
-	ctx->digest->init(ctx);
+	if (ctx->digest->init(ctx) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
 int digest_update(DIGEST_CTX *ctx, const uint8_t *data, size_t datalen)
 {
-	if (data == NULL || datalen == 0) {
-		return 0;
+	if (!ctx || !ctx->digest || !ctx->digest->update) {
+		error_print();
+		return -1;
 	}
-	ctx->digest->update(ctx, data, datalen);
+	if (!data && datalen) {
+		error_print();
+		return -1;
+	}
+	if (!data || !datalen) {
+		return 1;
+	}
+	if (ctx->digest->update(ctx, data, datalen) != 1) {
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
 int digest_finish(DIGEST_CTX *ctx, uint8_t *dgst, size_t *dgstlen)
 {
-	if (dgst == NULL || dgstlen == NULL) {
+	if (!ctx || !ctx->digest || !ctx->digest->finish || !dgst || !dgstlen) {
 		error_print();
 		return -1;
 	}
-	ctx->digest->finish(ctx, dgst);
+	if (ctx->digest->finish(ctx, dgst) != 1) {
+		error_print();
+		return -1;
+	}
 	*dgstlen = ctx->digest->digest_size;
 	return 1;
 }
@@ -83,40 +121,14 @@ int digest(const DIGEST *digest, const uint8_t *data, size_t datalen,
 {
 	DIGEST_CTX ctx;
 	if (digest_init(&ctx, digest) != 1
-		|| digest_update(&ctx, data, datalen) < 0
+		|| digest_update(&ctx, data, datalen) != 1
 		|| digest_finish(&ctx, dgst, dgstlen) != 1) {
 		error_print();
 		return -1;
 	}
-	memset(&ctx, 0, sizeof(DIGEST_CTX));
 	return 1;
 }
 
-const DIGEST *digest_from_name(const char *name)
-{
-	if (!strcmp(name, "sm3") || !strcmp(name, "SM3")) {
-		return DIGEST_sm3();
-#ifdef ENABLE_SHA1
-	} else if (!strcmp(name, "sha1") || !strcmp(name, "SHA1")) {
-		return DIGEST_sha1();
-#endif
-#ifdef ENABLE_SHA2
-	} else if (!strcmp(name, "sha224") || !strcmp(name, "SHA224")) {
-		return DIGEST_sha224();
-	} else if (!strcmp(name, "sha256") || !strcmp(name, "SHA256")) {
-		return DIGEST_sha256();
-	} else if (!strcmp(name, "sha384") || !strcmp(name, "SHA384")) {
-		return DIGEST_sha384();
-	} else if (!strcmp(name, "sha512") || !strcmp(name, "SHA512")) {
-		return DIGEST_sha512();
-	} else if (!strcmp(name, "sha512-224") || !strcmp(name, "SHA512-224")) {
-		return DIGEST_sha512_224();
-	} else if (!strcmp(name, "sha512-256") || !strcmp(name, "SHA512-256")) {
-		return DIGEST_sha512_256();
-#endif
-	}
-	return NULL;
-}
 
 static int _sm3_digest_init(DIGEST_CTX *ctx)
 {
