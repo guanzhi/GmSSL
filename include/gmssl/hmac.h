@@ -19,7 +19,9 @@
 extern "C" {
 #endif
 
-#define HMAC_MAX_SIZE	(DIGEST_MAX_SIZE)
+
+#define HMAC_MAX_SIZE		DIGEST_MAX_SIZE
+#define HMAC_MAX_BLOCK_SIZE	DIGEST_MAX_BLOCK_SIZE
 
 
 typedef struct hmac_ctx_st {
