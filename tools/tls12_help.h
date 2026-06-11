@@ -7,6 +7,13 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
+"\n"
+"    -cipher_suite options\n"
+"      TLS_ECDHE_SM4_CBC_SM3                      TLS 1.2\n"
+"      TLS_ECDHE_SM4_GCM_SM3                      TLS 1.2\n"
+"      TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256    TLS 1.2\n"
+"      TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256    TLS 1.2\n"
+"\n"
 "Examples\n"
 "\n"
 "Build with TLS 1.2, AES, and P-256 enabled\n"
