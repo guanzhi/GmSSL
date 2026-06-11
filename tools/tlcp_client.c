@@ -259,7 +259,7 @@ bad:
 	}
 
 	if (!(hp = gethostbyname(host))) {
-		fprintf(stderr, "%s: failed to parse host name\n", prog, host);
+		fprintf(stderr, "%s: failed to parse host name '%s'\n", prog, host);
 		goto end;
 	}
 
