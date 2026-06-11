@@ -925,7 +925,7 @@ int tlcp_send_client_finished(TLS_CONNECT *conn)
 		//tlcp_handshake_digest_print(stderr, 0, 0, "client Finished", &conn->sm3_ctx);
 
 
-		if (tls_record_encrypt(&conn->client_write_mac_ctx, &conn->client_write_enc_key,
+		if (tls_record_encrypt(&conn->client_write_mac_ctx, &conn->client_write_key,
 			conn->client_seq_num, conn->plain_record, conn->plain_recordlen,
 			conn->record, &conn->recordlen) != 1) {
 
@@ -976,7 +976,7 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (tls_record_decrypt(&conn->server_write_mac_ctx, &conn->server_write_enc_key,
+	if (tls_record_decrypt(&conn->server_write_mac_ctx, &conn->server_write_key,
 		conn->server_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();
@@ -1467,15 +1467,15 @@ int tlcp_generate_keys(TLS_CONNECT *conn)
 	}
 
 	// 主力这里是不对的，需要为client, server设定不同的加密密钥			
-	sm3_hmac_init(&conn->client_write_mac_ctx, conn->key_block, 32);
-	sm3_hmac_init(&conn->server_write_mac_ctx, conn->key_block + 32, 32);
+	hmac_init(&conn->client_write_mac_ctx, DIGEST_sm3(), conn->key_block, 32);
+	hmac_init(&conn->server_write_mac_ctx, DIGEST_sm3(), conn->key_block + 32, 32);
 
 	if (conn->is_client) {
-		sm4_set_encrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
-		sm4_set_decrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
+		block_cipher_set_encrypt_key(&conn->client_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 64);
+		block_cipher_set_decrypt_key(&conn->server_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 80);
 	} else {
-		sm4_set_decrypt_key(&conn->client_write_enc_key, conn->key_block + 64);
-		sm4_set_encrypt_key(&conn->server_write_enc_key, conn->key_block + 80);
+		block_cipher_set_decrypt_key(&conn->client_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 64);
+		block_cipher_set_encrypt_key(&conn->server_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 80);
 	}
 
 	tls_secrets_print(stderr,

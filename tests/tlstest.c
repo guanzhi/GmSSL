@@ -82,8 +82,8 @@ static int test_tls_null_to_bytes(void)
 static int test_tls_cbc(void)
 {
 	uint8_t key[32] = {0};
-	SM3_HMAC_CTX hmac_ctx;
-	SM4_KEY sm4_key;
+	HMAC_CTX hmac_ctx;
+	BLOCK_CIPHER_KEY sm4_key;
 	uint8_t seq_num[8] = { 0,0,0,0,0,0,0,1 };
 	uint8_t header[5];
 	uint8_t in[] = "hello world";
@@ -98,12 +98,12 @@ static int test_tls_cbc(void)
 	header[3] = sizeof(in) >> 8;
 	header[4] = sizeof(in) & 0xff;
 
-	sm3_hmac_init(&hmac_ctx, key, 32);
-	sm4_set_encrypt_key(&sm4_key, key);
+	hmac_init(&hmac_ctx, DIGEST_sm3(), key, 32);
+	block_cipher_set_encrypt_key(&sm4_key, BLOCK_CIPHER_sm4(), key);
 	tls_cbc_encrypt(&hmac_ctx, &sm4_key, seq_num, header, in, sizeof(in), out, &len);
 
-	sm3_hmac_init(&hmac_ctx, key, 32);
-	sm4_set_decrypt_key(&sm4_key, key);
+	hmac_init(&hmac_ctx, DIGEST_sm3(), key, 32);
+	block_cipher_set_decrypt_key(&sm4_key, BLOCK_CIPHER_sm4(), key);
 
 	tls_cbc_decrypt(&hmac_ctx, &sm4_key, seq_num, header, out, len, buf, &buflen);
 

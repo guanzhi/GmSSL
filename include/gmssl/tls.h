@@ -404,16 +404,16 @@ int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
 	const uint8_t *more, size_t morelen,
 	size_t outlen, uint8_t *out);
 
-int tls_cbc_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *enc_key,
+int tls_cbc_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int tls_cbc_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *dec_key,
+int tls_cbc_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *dec_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int tls_record_encrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
+int tls_record_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
-int tls_record_decrypt(const SM3_HMAC_CTX *hmac_ctx, const SM4_KEY *cbc_key,
+int tls_record_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
 
