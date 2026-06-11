@@ -443,7 +443,7 @@ bad:
 
 	// TLS_CONNECT
 
-	if (tls13_init(&conn, &ctx) != 1) {
+	if (tls_init(&conn, &ctx) != 1) {
 		error_print();
 		goto end;
 	}
@@ -669,7 +669,7 @@ bad:
 		if (FD_ISSET(conn.sock, &fds_recv)) {
 
 			memset(buf, 0, sizeof(buf));
-			if ((ret = tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+			if ((ret = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
 					continue;
 				} else {
@@ -705,7 +705,7 @@ bad:
 		if (sent_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
 
 			// tls13_send 会返回一个 -1 , 但是没有打印错误信息！！！！			
-			if ((ret = tls13_send(&conn, (uint8_t *)send_buf + sent_offset, sent_len, &sentlen)) != 1) {
+			if ((ret = tls_send(&conn, (uint8_t *)send_buf + sent_offset, sent_len, &sentlen)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
 					continue;
 				} else {

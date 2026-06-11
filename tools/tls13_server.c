@@ -448,7 +448,7 @@ bad:
 		goto end;
 	}
 
-	if (tls13_init(&conn, &ctx) != 1) {
+	if (tls_init(&conn, &ctx) != 1) {
 		error_print();
 		goto end;
 	}
@@ -553,7 +553,7 @@ bad:
 
 			format_bytes(stderr, 0, 0, "tls13_send", (const uint8_t *)buf + send_offset, send_len);
 
-			if ((ret = tls13_send(&conn, (uint8_t *)buf + send_offset, send_len, &sentlen)) != 1) {
+			if ((ret = tls_send(&conn, (uint8_t *)buf + send_offset, send_len, &sentlen)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
 					continue;
 				}
@@ -575,7 +575,7 @@ bad:
 
 			memset(buf, 0, sizeof(buf));
 
-			if ((ret = tls13_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+			if ((ret = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
 					continue;
 				}
