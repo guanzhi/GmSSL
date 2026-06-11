@@ -216,7 +216,49 @@ int tls12_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *d
 	return 1;
 }
 
-int tls12_record_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
+int tls12_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	uint8_t nonce[12];
+	uint8_t aad[13];
+	uint8_t *explicit_nonce;
+	uint8_t *gmac;
+
+	if (!key || !fixed_iv || !seq_num || !header || (!in && inlen) || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (inlen > TLS_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
+	if ((((size_t)header[3]) << 8) + header[4] != inlen) {
+		error_print();
+		return -1;
+	}
+
+	memcpy(nonce, fixed_iv, 4);
+	memcpy(nonce + 4, seq_num, 8);
+
+	memcpy(aad, seq_num, 8);
+	memcpy(aad + 8, header, 5);
+
+	explicit_nonce = out;
+	memcpy(explicit_nonce, seq_num, 8);
+	out += 8;
+
+	gmac = out + inlen;
+	if (gcm_encrypt(key, nonce, sizeof(nonce), aad, sizeof(aad), in, inlen, out, GHASH_SIZE, gmac) != 1) {
+		error_print();
+		return -1;
+	}
+
+	*outlen = 8 + inlen + GHASH_SIZE;
+	return 1;
+}
+
+int tls12_record_cbc_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
@@ -233,6 +275,52 @@ int tls12_record_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_k
 	out[3] = (uint8_t)((*outlen) >> 8);
 	out[4] = (uint8_t)(*outlen);
 	(*outlen) += 5;
+	return 1;
+}
+
+int tls12_record_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen)
+{
+	if (tls12_gcm_encrypt(key, fixed_iv, seq_num, in,
+		in + 5, inlen - 5,
+		out + 5, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
+	return 1;
+}
+
+static int tls12_record_encrypt(int cipher_suite,
+	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen)
+{
+	switch (cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+		if (tls12_record_gcm_encrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+		if (tls12_record_cbc_encrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
 	return 1;
 }
 
@@ -2597,50 +2685,90 @@ int tls_generate_keys(TLS_CONNECT *conn)
 	format_bytes(stderr, 0, 0, "master_secret", conn->master_secret, 48);
 
 
-	// OpenSSL  tls1_prf 中，这里生成的是128字节，也就是把IV也生成了
-	// 为什么生成IV呢？
+	switch (conn->cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+	{
+		size_t keylen = conn->cipher->key_size;
+		size_t key_block_len = keylen * 2 + 8;
 
-	if (tls12_prf(conn->digest, conn->master_secret, 48, "key expansion",
-			conn->server_random, 32,
-			conn->client_random, 32,
-			96, conn->key_block) != 1) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
+		if (tls12_prf(conn->digest, conn->master_secret, 48, "key expansion",
+				conn->server_random, 32,
+				conn->client_random, 32,
+				key_block_len, conn->key_block) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+
+		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, key_block_len);
+		format_bytes(stderr, 0, 0, "client_write_key", conn->key_block, keylen);
+		format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + keylen, keylen);
+		format_bytes(stderr, 0, 0, "client_write_iv", conn->key_block + keylen * 2, 4);
+		format_bytes(stderr, 0, 0, "server_write_iv", conn->key_block + keylen * 2 + 4, 4);
+
+		memset(conn->client_write_iv, 0, sizeof(conn->client_write_iv));
+		memset(conn->server_write_iv, 0, sizeof(conn->server_write_iv));
+		memcpy(conn->client_write_iv, conn->key_block + keylen * 2, 4);
+		memcpy(conn->server_write_iv, conn->key_block + keylen * 2 + 4, 4);
+
+		if (block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, conn->key_block) != 1
+			|| block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + keylen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	}
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+		// OpenSSL  tls1_prf 中，这里生成的是128字节，也就是把IV也生成了
+		// 为什么生成IV呢？
 
-	/*
-	如果这里导出了IV，并且用这个IV去加密数据
-	被加密的数据中包含了一个随机的IV，那么这个随机的IV是干什么用的呢？
+		if (tls12_prf(conn->digest, conn->master_secret, 48, "key expansion",
+				conn->server_random, 32,
+				conn->client_random, 32,
+				96, conn->key_block) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+
+		/*
+		如果这里导出了IV，并且用这个IV去加密数据
+		被加密的数据中包含了一个随机的IV，那么这个随机的IV是干什么用的呢？
 
 
-	*/
+		*/
 
-	format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, 96);
+		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, 96);
 
-	if (hmac_init(&conn->client_write_mac_ctx, conn->digest, conn->key_block, 32) != 1) {
+		if (hmac_init(&conn->client_write_mac_ctx, conn->digest, conn->key_block, 32) != 1) {
+			error_print();
+			return -1;
+		}
+		if (hmac_init(&conn->server_write_mac_ctx, conn->digest, conn->key_block + 32, 32) != 1) {
+			error_print();
+			return -1;
+		}
+
+		format_bytes(stderr, 0, 0, "client_write_mac_key", conn->key_block, 32);
+		format_bytes(stderr, 0, 0, "server_write_mac_key", conn->key_block + 32, 32);
+		format_bytes(stderr, 0, 0, "client_write_key", conn->key_block + 64, 16);
+		format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + 80, 16);
+
+
+		if (conn->is_client) {
+			block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, conn->key_block + 64);
+			block_cipher_set_decrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + 80);
+
+		} else {
+
+			block_cipher_set_decrypt_key(&conn->client_write_key, conn->cipher, conn->key_block + 64);
+			block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + 80);
+		}
+		break;
+	default:
 		error_print();
 		return -1;
-	}
-	if (hmac_init(&conn->server_write_mac_ctx, conn->digest, conn->key_block + 32, 32) != 1) {
-		error_print();
-		return -1;
-	}
-
-	format_bytes(stderr, 0, 0, "client_write_mac_key", conn->key_block, 32);
-	format_bytes(stderr, 0, 0, "server_write_mac_key", conn->key_block + 32, 32);
-	format_bytes(stderr, 0, 0, "client_write_key", conn->key_block + 64, 16);
-	format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + 80, 16);
-
-
-	if (conn->is_client) {
-		block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, conn->key_block + 64);
-		block_cipher_set_decrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + 80);
-
-	} else {
-
-		block_cipher_set_decrypt_key(&conn->client_write_key, conn->cipher, conn->key_block + 64);
-		block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + 80);
 	}
 
 	tls_seq_num_reset(conn->client_seq_num);
@@ -2968,7 +3096,8 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 		}
 		tls_handshake_digest_print(stderr, 0, 0, "Finished", &conn->dgst_ctx);
 
-		if (tls12_record_encrypt(&conn->client_write_mac_ctx, &conn->client_write_key,
+		if (tls12_record_encrypt(conn->cipher_suite,
+			&conn->client_write_mac_ctx, &conn->client_write_key, conn->client_write_iv,
 			conn->client_seq_num, conn->plain_record, conn->plain_recordlen,
 			conn->record, &conn->recordlen) != 1) {
 
@@ -3121,7 +3250,8 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 		}
 		tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
 
-		if (tls12_record_encrypt(&conn->server_write_mac_ctx, &conn->server_write_key,
+		if (tls12_record_encrypt(conn->cipher_suite,
+			&conn->server_write_mac_ctx, &conn->server_write_key, conn->server_write_iv,
 			conn->server_seq_num, conn->plain_record, conn->plain_recordlen,
 			conn->record, &conn->recordlen) != 1) {
 			error_print();

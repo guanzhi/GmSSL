@@ -416,6 +416,15 @@ int tls_record_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key
 int tls_record_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
+int tls12_record_cbc_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
+int tls12_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int tls12_record_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
 
 int tls_seq_num_incr(uint8_t seq_num[8]);
 void tls_seq_num_reset(uint8_t seq_num[8]);

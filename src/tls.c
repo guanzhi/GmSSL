@@ -1793,6 +1793,7 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 {
 	const HMAC_CTX *hmac_ctx;
 	const BLOCK_CIPHER_KEY *enc_key;
+	const uint8_t *fixed_iv;
 	uint8_t *seq_num;
 	size_t recordlen;
 
@@ -1817,10 +1818,12 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 	if (conn->is_client) {
 		hmac_ctx = &conn->client_write_mac_ctx;
 		enc_key = &conn->client_write_key;
+		fixed_iv = conn->client_write_iv;
 		seq_num = conn->client_seq_num;
 	} else {
 		hmac_ctx = &conn->server_write_mac_ctx;
 		enc_key = &conn->server_write_key;
+		fixed_iv = conn->server_write_iv;
 		seq_num = conn->server_seq_num;
 	}
 
@@ -1832,11 +1835,36 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 	}
 	tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
 
-	if (tls_record_encrypt(hmac_ctx, enc_key, seq_num,
-		conn->databuf, tls_record_length(conn->databuf),
-		conn->record, &recordlen) != 1) {
-		error_print();
-		return -1;
+	if (conn->protocol == TLS_protocol_tls12) {
+		switch (conn->cipher_suite) {
+		case TLS_cipher_ecdhe_sm4_gcm_sm3:
+			if (tls12_record_gcm_encrypt(enc_key, fixed_iv, seq_num,
+				conn->databuf, tls_record_length(conn->databuf),
+				conn->record, &recordlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		case TLS_cipher_ecdhe_sm4_cbc_sm3:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+			if (tls12_record_cbc_encrypt(hmac_ctx, enc_key, seq_num,
+				conn->databuf, tls_record_length(conn->databuf),
+				conn->record, &recordlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+	} else {
+		if (tls_record_encrypt(hmac_ctx, enc_key, seq_num,
+			conn->databuf, tls_record_length(conn->databuf),
+			conn->record, &recordlen) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	tls_seq_num_incr(seq_num);
 
