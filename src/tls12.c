@@ -1375,28 +1375,12 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 
 		// extensions in ServerHello
 		//	ec_point_formats
-		//	supported_groups
-		//	signature_algorithms
-
-
-		if (tls_ec_point_formats_ext_to_bytes(ec_point_formats, ec_point_formats_cnt, &pexts, &extslen) != 1) {
-			error_print();
-			return -1;
+		if (conn->ec_point_formats) {
+			if (tls_ec_point_formats_ext_to_bytes(ec_point_formats, ec_point_formats_cnt, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
 		}
-
-		/*
-		if (tls_supported_groups_ext_to_bytes(conn->ctx->supported_groups, conn->ctx->supported_groups_cnt,
-			&pexts, &extslen) != 1) {
-			error_print();
-			return -1;
-		}
-
-		if (tls_signature_algorithms_ext_to_bytes(conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
-			&pexts, &extslen) != 1) {
-			error_print();
-			return -1;
-		}
-		*/
 
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->server_random, NULL, 0,
@@ -1424,7 +1408,6 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 		return ret;
 	}
 
-	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
 	if (conn->ctx->cacertslen) {
 		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
 	}
