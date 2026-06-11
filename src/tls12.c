@@ -2916,30 +2916,34 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 	return 1;
 }
 
-int tls_generate_keys(TLS_CONNECT *conn)
+static int tls12_generate_pre_master_secret(TLS_CONNECT *conn,
+	uint8_t *pre_master_secret, size_t *pre_master_secret_len)
 {
-	uint8_t pre_master_secret[32];
-	size_t pre_master_secret_len;
-
-	// 这里密钥是完全用ECDHE生成的
-
-
-	if (x509_key_exchange(&conn->key_exchanges[0],
-		conn->peer_key_exchange, conn->peer_key_exchange_len,
-		pre_master_secret, &pre_master_secret_len) != 1) {
+	if (!conn || !pre_master_secret || !pre_master_secret_len) {
 		error_print();
 		return -1;
 	}
-	if (pre_master_secret_len != sizeof(pre_master_secret)) {
+	if (x509_key_exchange(&conn->key_exchanges[0], conn->peer_key_exchange,
+		conn->peer_key_exchange_len, pre_master_secret, pre_master_secret_len) != 1) {
 		error_print();
 		return -1;
 	}
+	if (*pre_master_secret_len != 32) {
+		error_print();
+		return -1;
+	}
+	format_bytes(stderr, 0, 0, "pre_master_secret", pre_master_secret, *pre_master_secret_len);
+	return 1;
+}
 
-	format_bytes(stderr, 0, 0, "pre_master_secret", pre_master_secret, pre_master_secret_len);
-
-	// master_secret和transcript_hash没有任何关系
-	if (tls12_prf(conn->digest,
-			pre_master_secret, 32,
+static int tls12_generate_master_secret(TLS_CONNECT *conn,
+	const uint8_t *pre_master_secret, size_t pre_master_secret_len)
+{
+	if (!conn || !pre_master_secret || pre_master_secret_len != 32) {
+		error_print();
+		return -1;
+	}
+	if (tls12_prf(conn->digest, pre_master_secret, pre_master_secret_len,
 			"master secret",
 			conn->client_random, 32,
 			conn->server_random, 32,
@@ -2949,8 +2953,11 @@ int tls_generate_keys(TLS_CONNECT *conn)
 	}
 
 	format_bytes(stderr, 0, 0, "master_secret", conn->master_secret, 48);
+	return 1;
+}
 
-
+static int tls12_generate_key_block(TLS_CONNECT *conn)
+{
 	switch (conn->cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
@@ -2968,21 +2975,6 @@ int tls_generate_keys(TLS_CONNECT *conn)
 		}
 
 		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, key_block_len);
-		format_bytes(stderr, 0, 0, "client_write_key", conn->key_block, keylen);
-		format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + keylen, keylen);
-		format_bytes(stderr, 0, 0, "client_write_iv", conn->key_block + keylen * 2, 4);
-		format_bytes(stderr, 0, 0, "server_write_iv", conn->key_block + keylen * 2 + 4, 4);
-
-		memset(conn->client_write_iv, 0, sizeof(conn->client_write_iv));
-		memset(conn->server_write_iv, 0, sizeof(conn->server_write_iv));
-		memcpy(conn->client_write_iv, conn->key_block + keylen * 2, 4);
-		memcpy(conn->server_write_iv, conn->key_block + keylen * 2 + 4, 4);
-
-		if (block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, conn->key_block) != 1
-			|| block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + keylen) != 1) {
-			error_print();
-			return -1;
-		}
 		break;
 	}
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
@@ -3007,7 +2999,41 @@ int tls_generate_keys(TLS_CONNECT *conn)
 		*/
 
 		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, 96);
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+static int tls12_generate_record_keys(TLS_CONNECT *conn)
+{
+	switch (conn->cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+	{
+		size_t keylen = conn->cipher->key_size;
+
+		format_bytes(stderr, 0, 0, "client_write_key", conn->key_block, keylen);
+		format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + keylen, keylen);
+		format_bytes(stderr, 0, 0, "client_write_iv", conn->key_block + keylen * 2, 4);
+		format_bytes(stderr, 0, 0, "server_write_iv", conn->key_block + keylen * 2 + 4, 4);
+
+		memset(conn->client_write_iv, 0, sizeof(conn->client_write_iv));
+		memset(conn->server_write_iv, 0, sizeof(conn->server_write_iv));
+		memcpy(conn->client_write_iv, conn->key_block + keylen * 2, 4);
+		memcpy(conn->server_write_iv, conn->key_block + keylen * 2 + 4, 4);
+
+		if (block_cipher_set_encrypt_key(&conn->client_write_key, conn->cipher, conn->key_block) != 1
+			|| block_cipher_set_encrypt_key(&conn->server_write_key, conn->cipher, conn->key_block + keylen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		if (hmac_init(&conn->client_write_mac_ctx, conn->digest, conn->key_block, 32) != 1) {
 			error_print();
 			return -1;
@@ -3037,21 +3063,35 @@ int tls_generate_keys(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
+	return 1;
+}
 
+int tls_generate_keys(TLS_CONNECT *conn)
+{
+	uint8_t pre_master_secret[32];
+	size_t pre_master_secret_len;
+
+	if (tls12_generate_pre_master_secret(conn, pre_master_secret, &pre_master_secret_len) != 1
+		|| tls12_generate_master_secret(conn, pre_master_secret, pre_master_secret_len) != 1
+		|| tls12_generate_key_block(conn) != 1
+		|| tls12_generate_record_keys(conn) != 1) {
+		error_print();
+		gmssl_secure_clear(pre_master_secret, sizeof(pre_master_secret));
+		return -1;
+	}
 	tls_seq_num_reset(conn->client_seq_num);
 	tls_seq_num_reset(conn->server_seq_num);
 
-
-
 	/*
 	tls_secrets_print(stderr,
-		pre_master_secret, 32,
+		pre_master_secret, pre_master_secret_len,
 		conn->client_random, conn->server_random,
 		conn->master_secret,
 		conn->key_block, 96,
 		0, 4);
 	*/
 
+	gmssl_secure_clear(pre_master_secret, sizeof(pre_master_secret));
 	return 1;
 }
 
@@ -3111,6 +3151,11 @@ int tls_send_client_key_exchange(TLS_CONNECT *conn)
 	if (conn->client_certs_len)
 		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
 
+	if (tls_generate_keys(conn) != 1) {
+		error_print();
+		return -1;
+	}
+
 	return 1;
 }
 
@@ -3159,6 +3204,11 @@ int tls_recv_client_key_exchange(TLS_CONNECT *conn)
 
 	if (conn->ctx->cacertslen)
 		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
+
+	if (tls_generate_keys(conn) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }
@@ -3696,11 +3746,6 @@ int tls12_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_client_key_exchange:
 		ret = tls_send_client_key_exchange(conn);
-		next_state = TLS_state_generate_keys;
-		break;
-
-	case TLS_state_generate_keys:
-		ret = tls_generate_keys(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_certificate_verify;
 		else	next_state = TLS_state_client_change_cipher_spec;
@@ -3709,6 +3754,7 @@ int tls12_do_client_handshake(TLS_CONNECT *conn)
 	case TLS_state_certificate_verify:
 		ret = tls_send_certificate_verify(conn);
 		next_state = TLS_state_client_change_cipher_spec;
+		break;
 
 	case TLS_state_client_change_cipher_spec:
 		ret = tls_send_change_cipher_spec(conn);
@@ -3803,16 +3849,11 @@ int tls12_do_server_handshake(TLS_CONNECT *conn)
 		ret = tls_recv_client_key_exchange(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_certificate_verify;
-		else	next_state = TLS_state_generate_keys;
+		else	next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_certificate_verify:
 		ret = tls_recv_certificate_verify(conn);
-		next_state = TLS_state_generate_keys;
-		break;
-
-	case TLS_state_generate_keys:
-		ret = tls_generate_keys(conn);
 		next_state = TLS_state_client_change_cipher_spec;
 		break;
 
