@@ -1428,11 +1428,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 	size_t extslen;
 
 	const uint8_t *ec_point_formats = NULL;
-	size_t ec_point_formats_len;
-	const uint8_t *supported_groups = NULL;
-	size_t supported_groups_len;
-	const uint8_t *signature_algorithms = NULL;
-	size_t signature_algorithms_len;
+	size_t ec_point_formats_len = 0;
 
 	tls_trace("recv ServerHello\n");
 
@@ -1483,12 +1479,11 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 	}
 	conn->cipher_suite = cipher_suite;
 
-
-	// 初始化digest
-	conn->digest = DIGEST_sha256();
-
-	conn->cipher = BLOCK_CIPHER_aes128();
-
+	if (tls12_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
 
 	if (digest_init(&conn->dgst_ctx, conn->digest) != 1) {
 		error_print();
@@ -1503,27 +1498,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 
 		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
 			error_print();
-			tls13_send_alert(conn, TLS_alert_decode_error);
-			return -1;
-		}
-
-		// extensions in ServerHello
-		//  * ec_point_formats
-		//  * supported_groups
-		//  * signature_algorithms
-
-		switch (ext_type) {
-		case TLS_extension_ec_point_formats:
-		case TLS_extension_supported_groups:
-		case TLS_extension_signature_algorithms:
-			if (!ext_data) {
-				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
-				return -1;
-			}
-			break;
-		default:
-			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
 			return -1;
 		}
 
@@ -1531,48 +1506,30 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 		case TLS_extension_ec_point_formats:
 			if (ec_point_formats) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			ec_point_formats = ext_data;
 			ec_point_formats_len = ext_datalen;
 			break;
-
-		case TLS_extension_supported_groups:
-			if (supported_groups) {
-				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
-				return -1;
-			}
-			supported_groups = ext_data;
-			supported_groups_len = ext_datalen;
-			break;
-
-		case TLS_extension_signature_algorithms:
-			if (signature_algorithms) {
-				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
-				return -1;
-			}
-			signature_algorithms = ext_data;
-			signature_algorithms_len = ext_datalen;
-			break;
+		default:
+			error_print();
+			tls_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
 		}
 	}
 
-	if (!ec_point_formats) {
-		error_print();
-		tls13_send_alert(conn, TLS_alert_missing_extension);
-		return -1;
+	if (ec_point_formats) {
+		if ((ret = tls_ec_point_formats_support_uncompressed(ec_point_formats, ec_point_formats_len)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
+		}
 	}
-
-	if (supported_groups) {
-	}
-
-	if (signature_algorithms) {
-	}
-
-
 
 	if (digest_update(&conn->dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
 		error_print();
