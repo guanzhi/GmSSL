@@ -40,6 +40,9 @@ static const char *help =
 "    -pass str              Password to decrypt private key\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -server_name str       Send server_name (SNI) request\n"
+"    -renegotiation_info    Send renegotiation_info extension\n"
+"    -renegotiation_info_scsv\n"
+"                          Send TLS_EMPTY_RENEGOTIATION_INFO_SCSV\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
 "\n"
 #include "tls12_help.h"
@@ -64,6 +67,8 @@ int tls12_client_main(int argc, char *argv[])
 	char *pass = NULL;
 	int client_cert_optional = 0;
 	char *server_name = NULL;
+	int renegotiation_info = 0;
+	int empty_renegotiation_info_scsv = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	struct hostent *hp;
@@ -155,6 +160,10 @@ int tls12_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-server_name")) {
 			if (--argc < 1) goto bad;
 			server_name = *(++argv);
+		} else if (!strcmp(*argv, "-renegotiation_info")) {
+			renegotiation_info = 1;
+		} else if (!strcmp(*argv, "-renegotiation_info_scsv")) {
+			empty_renegotiation_info_scsv = 1;
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
 		} else {
@@ -209,6 +218,19 @@ bad:
 
 	if (sig_algs_cnt > 0) {
 		if (tls_ctx_set_signature_algorithms(&ctx, sig_algs, sig_algs_cnt) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	if (renegotiation_info) {
+		if (tls12_ctx_set_renegotiation_info(&ctx, 1) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+	if (empty_renegotiation_info_scsv) {
+		if (tls12_ctx_set_empty_renegotiation_info_scsv(&ctx, 1) != 1) {
 			error_print();
 			goto end;
 		}

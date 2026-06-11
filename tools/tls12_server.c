@@ -34,6 +34,7 @@ static const char *help =
 "    -cacert file           CA certificate for client certificate verification\n"
 "    -verify_depth num      Certificate verification depth\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
+"    -renegotiation_info    Send renegotiation_info response when client supports RFC 5746\n"
 "\n"
 #include "tls12_help.h"
 "\n";
@@ -60,6 +61,7 @@ int tls12_server_main(int argc , char **argv)
 	char *cacertfile = NULL;
 	int verify_depth = TLS_DEFAULT_VERIFY_DEPTH;
 	int client_cert_optional = 0;
+	int renegotiation_info = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
@@ -165,6 +167,8 @@ int tls12_server_main(int argc , char **argv)
 			}
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
+		} else if (!strcmp(*argv, "-renegotiation_info")) {
+			renegotiation_info = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -219,6 +223,13 @@ bad:
 	// signature_algorithms
 	if (sig_algs_cnt > 0) {
 		if (tls_ctx_set_signature_algorithms(&ctx, sig_algs, sig_algs_cnt) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
+	if (renegotiation_info) {
+		if (tls12_ctx_set_renegotiation_info(&ctx, 1) != 1) {
 			error_print();
 			goto end;
 		}

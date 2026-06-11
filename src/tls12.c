@@ -888,6 +888,57 @@ int tls_handshake_init(TLS_CONNECT *conn)
 const int ec_point_formats[] = { TLS_point_uncompressed };
 size_t ec_point_formats_cnt = sizeof(ec_point_formats)/sizeof(ec_point_formats[0]);
 
+int tls12_ctx_set_renegotiation_info(TLS_CTX *ctx, int enable)
+{
+	if (!ctx || ctx->protocol != TLS_protocol_tls12) {
+		error_print();
+		return -1;
+	}
+	ctx->renegotiation_info = enable ? 1 : 0;
+	return 1;
+}
+
+int tls12_ctx_set_empty_renegotiation_info_scsv(TLS_CTX *ctx, int enable)
+{
+	if (!ctx || ctx->protocol != TLS_protocol_tls12) {
+		error_print();
+		return -1;
+	}
+	ctx->empty_renegotiation_info_scsv = enable ? 1 : 0;
+	return 1;
+}
+
+static int tls12_renegotiation_info_ext_is_empty(const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *renegotiated_connection;
+	size_t renegotiated_connection_len;
+
+	if (tls_uint8array_from_bytes(&renegotiated_connection, &renegotiated_connection_len,
+		&ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	return renegotiated_connection_len == 0;
+}
+
+static int tls12_cipher_suites_include_empty_renegotiation_info_scsv(
+	const uint8_t *cipher_suites, size_t cipher_suites_len)
+{
+	while (cipher_suites_len) {
+		uint16_t cipher_suite;
+
+		if (tls_uint16_from_bytes(&cipher_suite, &cipher_suites, &cipher_suites_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (cipher_suite == TLS_cipher_empty_renegotiation_info_scsv) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 
 
 // 有可能需要支持SNI
@@ -900,6 +951,9 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 		uint8_t exts[TLS_MAX_EXTENSIONS_SIZE];
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
+		int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT + 1];
+		const int *client_cipher_suites = conn->ctx->cipher_suites;
+		size_t client_cipher_suites_cnt = conn->ctx->cipher_suites_cnt;
 
 		tls_trace("send ClientHello\n");
 
@@ -943,9 +997,33 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// renegotiation_info
+		if (conn->ctx->renegotiation_info) {
+			uint8_t ext_data[1] = { 0 };
+
+			if (conn->ctx->empty_renegotiation_info_scsv) {
+				error_print();
+				return -1;
+			}
+			if (tls_ext_to_bytes(TLS_extension_renegotiation_info,
+				ext_data, sizeof(ext_data), &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
+		// TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+		if (conn->ctx->empty_renegotiation_info_scsv) {
+			memcpy(cipher_suites, conn->ctx->cipher_suites,
+				conn->ctx->cipher_suites_cnt * sizeof(conn->ctx->cipher_suites[0]));
+			cipher_suites[conn->ctx->cipher_suites_cnt] = TLS_cipher_empty_renegotiation_info_scsv;
+			client_cipher_suites = cipher_suites;
+			client_cipher_suites_cnt = conn->ctx->cipher_suites_cnt + 1;
+		}
+
 		if (tls_record_set_handshake_client_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->client_random, NULL, 0,
-			conn->ctx->cipher_suites, conn->ctx->cipher_suites_cnt,
+			client_cipher_suites, client_cipher_suites_cnt,
 			exts, extslen) != 1) {
 			error_print();
 			return -1;
@@ -1315,6 +1393,9 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	size_t signature_algorithms_cert_len = 0;
 	const uint8_t *server_name = NULL;
 	size_t server_name_len = 0;
+	const uint8_t *renegotiation_info = NULL;
+	size_t renegotiation_info_len = 0;
+	int empty_renegotiation_info_scsv = 0;
 	int common_cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
 	size_t common_cipher_suites_cnt = 0;
 	int common_supported_groups[32];
@@ -1388,6 +1469,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_signature_algorithms:
 		case TLS_extension_signature_algorithms_cert:
 		case TLS_extension_server_name:
+		case TLS_extension_renegotiation_info:
 			if (!ext_data) {
 				error_print();
 				tls_send_alert(conn, TLS_alert_decode_error);
@@ -1442,9 +1524,48 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 			server_name = ext_data;
 			server_name_len = ext_datalen;
 			break;
+		case TLS_extension_renegotiation_info:
+			if (renegotiation_info) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			renegotiation_info = ext_data;
+			renegotiation_info_len = ext_datalen;
+			break;
 		default:
 			warning_print();
 		}
+	}
+
+	if ((ret = tls12_cipher_suites_include_empty_renegotiation_info_scsv(
+		cipher_suites, cipher_suites_len)) < 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_decode_error);
+		return -1;
+	} else if (ret == 1) {
+		empty_renegotiation_info_scsv = 1;
+	}
+
+	if (renegotiation_info && empty_renegotiation_info_scsv) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_handshake_failure);
+		return -1;
+	}
+	if (renegotiation_info) {
+		if ((ret = tls12_renegotiation_info_ext_is_empty(
+			renegotiation_info, renegotiation_info_len)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
+		}
+	}
+	if (conn->ctx->renegotiation_info && (renegotiation_info || empty_renegotiation_info_scsv)) {
+		conn->secure_renegotiation = 1;
 	}
 
 	if (ec_point_formats) {
@@ -1631,6 +1752,17 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// renegotiation_info
+		if (conn->secure_renegotiation) {
+			uint8_t ext_data[1] = { 0 };
+
+			if (tls_ext_to_bytes(TLS_extension_renegotiation_info,
+				ext_data, sizeof(ext_data), &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->server_random, NULL, 0,
 			conn->cipher_suite,
@@ -1679,6 +1811,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 	const uint8_t *ec_point_formats = NULL;
 	size_t ec_point_formats_len = 0;
 	int server_name = 0;
+	int renegotiation_info = 0;
 
 	tls_trace("recv ServerHello\n");
 
@@ -1770,11 +1903,37 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 			}
 			server_name = 1;
 			break;
+		case TLS_extension_renegotiation_info:
+			if ((!conn->ctx->renegotiation_info && !conn->ctx->empty_renegotiation_info_scsv)
+				|| renegotiation_info) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			if ((ret = tls12_renegotiation_info_ext_is_empty(ext_data, ext_datalen)) < 0) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			} else if (ret == 0) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			renegotiation_info = 1;
+			conn->secure_renegotiation = 1;
+			break;
 		default:
 			error_print();
 			tls_send_alert(conn, TLS_alert_illegal_parameter);
 			return -1;
 		}
+	}
+
+	if ((conn->ctx->renegotiation_info || conn->ctx->empty_renegotiation_info_scsv)
+		&& !renegotiation_info) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_handshake_failure);
+		return -1;
 	}
 
 	if (ec_point_formats) {
