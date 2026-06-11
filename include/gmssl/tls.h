@@ -1163,6 +1163,8 @@ typedef struct {
 	int supported_groups[32];
 	size_t supported_groups_cnt;
 
+	// 11. ec_point_formats
+	int ec_point_formats;
 
 	// 13. signature_algorithms
 	// in ClientHello, CertificateRequest;

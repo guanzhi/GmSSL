@@ -859,6 +859,45 @@ static int tls12_select_common_cipher_suites(const uint8_t *client_ciphers, size
 	return *common_ciphers_cnt ? 1 : 0;
 }
 
+// support_uncompressed
+static int tls_ec_point_formats_support_uncompressed(const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *formats;
+	size_t formats_len;
+	int uncompressed = 0;
+
+	if (tls_uint8array_from_bytes(&formats, &formats_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!formats_len) {
+		error_print();
+		return -1;
+	}
+
+	while (formats_len) {
+		uint8_t format;
+		if (tls_uint8_from_bytes(&format, &formats, &formats_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!tls_ec_point_format_name(format)) {
+			error_print();
+			return -1;
+		}
+		if (format == TLS_point_uncompressed) {
+			uncompressed = 1;
+		}
+	}
+
+	if (!uncompressed) {
+		error_print();
+		return 0;
+	}
+	return 1;
+}
+
 static int tls12_cert_chain_get_end_entity_group(const uint8_t *cert_chain, size_t cert_chain_len, int *group)
 {
 	const uint8_t *cert;
@@ -1025,6 +1064,8 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	size_t cipher_suites_len;
 	const uint8_t *exts;
 	size_t extslen;
+	const uint8_t *ec_point_formats = NULL;
+	size_t ec_point_formats_len = 0;
 	const uint8_t *supported_groups = NULL;
 	size_t supported_groups_len = 0;
 	const uint8_t *signature_algorithms = NULL;
@@ -1101,6 +1142,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		}
 
 		switch (ext_type) {
+		case TLS_extension_ec_point_formats:
 		case TLS_extension_supported_groups:
 		case TLS_extension_signature_algorithms:
 		case TLS_extension_signature_algorithms_cert:
@@ -1114,6 +1156,15 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		}
 
 		switch (ext_type) {
+		case TLS_extension_ec_point_formats:
+			if (ec_point_formats) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			ec_point_formats = ext_data;
+			ec_point_formats_len = ext_datalen;
+			break;
 		case TLS_extension_supported_groups:
 			if (supported_groups) {
 				error_print();
@@ -1153,6 +1204,19 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		default:
 			warning_print();
 		}
+	}
+
+	if (ec_point_formats) {
+		if ((ret = tls_ec_point_formats_support_uncompressed(ec_point_formats, ec_point_formats_len)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
+		}
+		conn->ec_point_formats = 1;
 	}
 
 	if ((ret = tls12_select_common_cipher_suites(cipher_suites, cipher_suites_len,
