@@ -556,6 +556,38 @@ int tls_record_get_handshake_server_key_exchange(const uint8_t *record,
 	return 1;
 }
 
+static int tls12_server_ecdh_params_to_bytes(const X509_KEY *key, uint8_t **out, size_t *outlen)
+{
+	int named_curve;
+	uint8_t point[256];
+	uint8_t *pp = point;
+	size_t point_len = 0;
+
+	if (!key || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (key->algor != OID_ec_public_key
+		|| !(named_curve = tls_named_curve_from_oid(key->algor_param))) {
+		error_print();
+		return -1;
+	}
+	if (x509_public_key_to_bytes(key, &pp, &point_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (point_len != 65) {
+		error_print();
+		return -1;
+	}
+
+	tls_uint8_to_bytes(TLS_curve_type_named_curve, out, outlen);
+	tls_uint16_to_bytes((uint16_t)named_curve, out, outlen);
+	tls_uint8array_to_bytes(point, point_len, out, outlen);
+
+	return 1;
+}
+
 int tls_record_set_handshake_client_key_exchange(uint8_t *record, size_t *recordlen,
 	const uint8_t *point_octets, size_t point_octets_len)
 {
@@ -1801,20 +1833,20 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 int tls_send_server_key_exchange(TLS_CONNECT *conn)
 {
 	int ret;
-	uint8_t server_ecdh_params[69];
-	uint8_t *p = server_ecdh_params + 4;
-	size_t len = 0;
-	X509_SIGN_CTX sign_ctx;
-	const void *sign_args = NULL;
-	size_t sign_argslen = 0;
-	uint8_t sig[X509_SIGNATURE_MAX_SIZE];
-	size_t siglen;
 
 	tls_trace("send ServerKeyExchange\n");
 
 	if (conn->recordlen == 0) {
 		int curve_oid = tls_named_curve_oid(conn->key_exchange_group);
-
+		X509_KEY *sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
+		uint8_t server_ecdh_params[69];
+		uint8_t *p = server_ecdh_params;
+		size_t server_ecdh_params_len = 0;
+		X509_SIGN_CTX sign_ctx;
+		const void *sign_args = NULL;
+		size_t sign_argslen = 0;
+		uint8_t sig[X509_SIGNATURE_MAX_SIZE];
+		size_t siglen;
 
 		// generate server ecdh_key
 		if (x509_key_generate(&conn->key_exchanges[0], OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
@@ -1822,21 +1854,15 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		// build server_ecdh_params
-		server_ecdh_params[0] = TLS_curve_type_named_curve;
-		server_ecdh_params[1] = conn->key_exchange_group >> 8;
-		server_ecdh_params[2] = (uint8_t)conn->key_exchange_group;
-		server_ecdh_params[3] = 65;
-		if (x509_public_key_to_bytes(&conn->key_exchanges[0], &p, &len) != 1) {
+		if (tls12_server_ecdh_params_to_bytes(&conn->key_exchanges[0],
+			&p, &server_ecdh_params_len) != 1) {
 			error_print();
 			return -1;
 		}
-		if (len != 65) {
+		if (server_ecdh_params_len != sizeof(server_ecdh_params)) {
 			error_print();
 			return -1;
 		}
-
-		X509_KEY *sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
 
 		// sign server_ecdh_params
 		if (sign_key->algor == OID_ec_public_key && sign_key->algor_param == OID_sm2) {
@@ -1846,7 +1872,7 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		if (x509_sign_init(&sign_ctx, sign_key, sign_args, sign_argslen) != 1
 			|| x509_sign_update(&sign_ctx, conn->client_random, 32) != 1
 			|| x509_sign_update(&sign_ctx, conn->server_random, 32) != 1
-			|| x509_sign_update(&sign_ctx, server_ecdh_params, 69) != 1
+			|| x509_sign_update(&sign_ctx, server_ecdh_params, server_ecdh_params_len) != 1
 			|| x509_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 			x509_sign_ctx_cleanup(&sign_ctx);
 			error_print();
@@ -1854,9 +1880,8 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 		}
 		x509_sign_ctx_cleanup(&sign_ctx);
 
-
 		if (tls_record_set_handshake_server_key_exchange(conn->record, &conn->recordlen,
-			server_ecdh_params, sizeof(server_ecdh_params),
+			server_ecdh_params, server_ecdh_params_len,
 			conn->sig_alg, sig, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
