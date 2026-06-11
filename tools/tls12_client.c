@@ -39,7 +39,7 @@ static const char *help =
 "    -key file              Client's encrypted private key in PEM format\n"
 "    -pass str              Password to decrypt private key\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
-"    -server_name           Send server_name (SNI) request\n"
+"    -server_name str       Send server_name (SNI) request\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
 "\n"
 #include "tls12_help.h"
@@ -63,6 +63,7 @@ int tls12_client_main(int argc, char *argv[])
 	char *keyfile = NULL;
 	char *pass = NULL;
 	int client_cert_optional = 0;
+	char *server_name = NULL;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	struct hostent *hp;
@@ -151,6 +152,9 @@ int tls12_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-server_name")) {
+			if (--argc < 1) goto bad;
+			server_name = *(++argv);
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
 		} else {
@@ -158,7 +162,7 @@ int tls12_client_main(int argc, char *argv[])
 			return 1;
 bad:
 			fprintf(stderr, "%s: option '%s' argument required\n", prog, *argv);
-			return 0;
+			return 1;
 		}
 		argc--;
 		argv++;
@@ -228,6 +232,13 @@ bad:
 	if (tls_init(&conn, &ctx) != 1) {
 		error_print();
 		goto end;
+	}
+
+	if (server_name) {
+		if (tls_set_server_name(&conn, (uint8_t *)server_name, strlen(server_name)) != 1) {
+			error_print();
+			goto end;
+		}
 	}
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {

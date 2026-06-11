@@ -847,6 +847,14 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// server_name
+		if (conn->server_name) {
+			if (tls_server_name_ext_to_bytes(conn->host_name, conn->host_name_len, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		if (tls_record_set_handshake_client_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->client_random, NULL, 0,
 			conn->ctx->cipher_suites, conn->ctx->cipher_suites_cnt,
@@ -1527,6 +1535,14 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// server_name
+		if (conn->server_name) {
+			if (tls_ext_to_bytes(TLS_extension_server_name, NULL, 0, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->server_random, NULL, 0,
 			conn->cipher_suite,
@@ -1574,6 +1590,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 
 	const uint8_t *ec_point_formats = NULL;
 	size_t ec_point_formats_len = 0;
+	int server_name = 0;
 
 	tls_trace("recv ServerHello\n");
 
@@ -1656,6 +1673,14 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 			}
 			ec_point_formats = ext_data;
 			ec_point_formats_len = ext_datalen;
+			break;
+		case TLS_extension_server_name:
+			if (!conn->server_name || server_name || ext_datalen) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			server_name = 1;
 			break;
 		default:
 			error_print();

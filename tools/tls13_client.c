@@ -44,7 +44,7 @@ static const char *help =
 "    -cert file                Client's certificate chain in PEM format\n"
 "    -key file                 Client's encrypted private key in PEM format\n"
 "    -pass str                 Password to decrypt private key\n"
-"    -server_name              Send server_name (SNI) request\n"
+"    -server_name str          Send server_name (SNI) request\n"
 "    -signature_algorithms_cert Send signature_algorithms_cert extension\n"
 "    -certificate_authorities  Send certificate_authorities extension\n"
 "    -status_request           Send status_request (OCSP Stapling) request\n"
@@ -112,7 +112,7 @@ int tls13_client_main(int argc, char *argv[])
 	size_t sig_algs_cnt = 0;
 
 	// server_name
-	int server_name = 0;
+	char *server_name = NULL;
 
 	// certificate_authorities
 	int certificate_authorities = 0;
@@ -213,7 +213,8 @@ int tls13_client_main(int argc, char *argv[])
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
 		} else if (!strcmp(*argv, "-server_name")) {
-			server_name = 1;
+			if (--argc < 1) goto bad;
+			server_name = *(++argv);
 		} else if (!strcmp(*argv, "-signature_algorithms_cert")) {
 			signature_algorithms_cert = 1;
 		} else if (!strcmp(*argv, "-certificate_authorities")) {
@@ -326,7 +327,7 @@ int tls13_client_main(int argc, char *argv[])
 			return 1;
 bad:
 			fprintf(stderr, "%s: option '%s' argument required\n", prog, *argv);
-			return 0;
+			return 1;
 		}
 		argc--;
 		argv++;
@@ -463,7 +464,7 @@ bad:
 	}
 
 	if (server_name) {
-		if (tls_set_server_name(&conn, (uint8_t *)host, strlen(host)) != 1) {
+		if (tls_set_server_name(&conn, (uint8_t *)server_name, strlen(server_name)) != 1) {
 			error_print();
 			goto end;
 		}
