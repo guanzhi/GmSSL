@@ -924,6 +924,23 @@ static int tls12_cert_chain_get_end_entity_group(const uint8_t *cert_chain, size
 	return 1;
 }
 
+static int tls12_public_key_get_group(const X509_KEY *public_key, int *group)
+{
+	if (!public_key || !group) {
+		error_print();
+		return -1;
+	}
+	if (public_key->algor != OID_ec_public_key) {
+		error_print();
+		return -1;
+	}
+	if ((*group = tls_named_curve_from_oid(public_key->algor_param)) == 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 static int tls12_select_key_exchange_group(const int *groups, size_t groups_cnt,
 	int cipher_suite, int *selected_group)
 {
@@ -1595,10 +1612,15 @@ int tls_send_server_certificate(TLS_CONNECT *conn)
 int tls_recv_server_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	int verify_result;
+	int verify_result = 0;
 	const uint8_t *server_cert;
 	size_t server_cert_len;
 	X509_KEY server_sign_key;
+	int server_sig_alg = 0;
+	int server_group;
+	int cert_sig_alg = 0;
+	const int *signature_algorithms_cert = NULL;
+	size_t signature_algorithms_cert_cnt = 0;
 
 
 	tls_trace("recv server Certificate\n");
@@ -1627,6 +1649,11 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return 0;
 	}
+	if (!conn->peer_cert_chain_len) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		return -1;
+	}
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
@@ -1635,7 +1662,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 	tls_handshake_digest_print(stderr, 0, 0, "Certificate", &conn->dgst_ctx);
 
 
-	// 这里取服务器证书似乎没有什么用处啊
+	// server_sign_key
 	if (x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len, 0,
 		&server_cert, &server_cert_len) != 1) {
 		error_print();
@@ -1648,13 +1675,16 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		return -1;
 	}
 
-
-	// 这里的逻辑需要统筹考虑				
-	// cipher_suite，扩展，证书之间的关系
-
-	// set conn->server_sig_alg (decided by cipher_suite and server_cert.sign_key.algor, algor_param)
-	if (server_sign_key.algor != OID_ec_public_key) {
+	if (tls12_public_key_get_group(&server_sign_key, &server_group) != 1) {
 		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		return -1;
+	}
+
+	// check server certificate matches negotiated cipher_suite
+	if (!tls12_cipher_suite_match_cert_group(conn->cipher_suite, server_group)) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
 	switch (conn->cipher_suite) {
@@ -1662,24 +1692,88 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecc_sm4_cbc_sm3:
 	case TLS_cipher_ecc_sm4_gcm_sm3:
-		if (server_sign_key.algor_param != OID_sm2) {
-			error_print();
-			return -1;
-		}
-		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
+		server_sig_alg = TLS_sig_sm2sig_sm3;
 		break;
-
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-		if (server_sign_key.algor_param != OID_secp256r1) {
-			error_print();
-			return -1;
-		}
-		conn->signature_algorithms[0] = TLS_sig_ecdsa_secp256r1_sha256;
+		server_sig_alg = TLS_sig_ecdsa_secp256r1_sha256;
 		break;
 	default:
 		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
+
+	// check server certificate matches ClientHello.supported_groups
+	if (conn->ctx->supported_groups_cnt) {
+		if (!tls_type_is_in_list(server_group, conn->ctx->supported_groups,
+			conn->ctx->supported_groups_cnt)) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+	}
+
+	// check server certificate matches ClientHello.signature_algorithms
+	if (conn->ctx->signature_algorithms_cnt) {
+		if ((ret = tls_cert_match_signature_algorithms(server_cert, server_cert_len,
+			conn->ctx->signature_algorithms,
+			conn->ctx->signature_algorithms_cnt,
+			&cert_sig_alg)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+		if (!tls12_signature_scheme_match_cert_group(cert_sig_alg, server_group)
+			|| !tls12_signature_scheme_match_cipher_suite(cert_sig_alg, conn->cipher_suite)) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+		server_sig_alg = cert_sig_alg;
+	}
+
+	// check certificate-chain signatures match ClientHello.signature_algorithms_cert
+	if (conn->signature_algorithms_cert) {
+		signature_algorithms_cert = conn->ctx->signature_algorithms;
+		signature_algorithms_cert_cnt = conn->ctx->signature_algorithms_cnt;
+	} else if (conn->ctx->signature_algorithms_cnt) {
+		signature_algorithms_cert = conn->ctx->signature_algorithms;
+		signature_algorithms_cert_cnt = conn->ctx->signature_algorithms_cnt;
+	}
+	if (signature_algorithms_cert && signature_algorithms_cert_cnt) {
+		if ((ret = tls_cert_chain_match_signature_algorithms_cert(
+			conn->peer_cert_chain, conn->peer_cert_chain_len,
+			signature_algorithms_cert, signature_algorithms_cert_cnt)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+	}
+
+	// check server certificate matches ClientHello.server_name
+	if (conn->server_name) {
+		if ((ret = tls_cert_match_server_name(server_cert, server_cert_len,
+			conn->host_name, conn->host_name_len)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+	}
+
+	conn->signature_algorithms[0] = server_sig_alg;
+	conn->signature_algorithms_cnt = 1;
 
 	if (conn->client_certs_len) {
 		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
@@ -1687,18 +1781,17 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 
 	assert(conn->ctx->verify_depth > 0 && conn->ctx->verify_depth < 10);
 
-	// verify ServerCertificate
-
+	// verify server Certificate
 	if (conn->ctx->cacertslen) {
-
-		// 按道理来说，这只是验证证书，并应该出错啊
-		if (x509_certs_verify_tlcp(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
+		if (x509_certs_verify(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
 			conn->ctx->cacerts, conn->ctx->cacertslen, conn->ctx->verify_depth, &verify_result) != 1) {
 			error_print();
-			//tls_send_alert(conn, TLS_alert_bad_certificate);
-			//return -1;
+			conn->verify_result = verify_result;
+			tls_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
 		}
 	}
+	conn->verify_result = verify_result;
 
 	return 1;
 }
