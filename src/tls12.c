@@ -31,6 +31,7 @@ static const int tls12_ciphers[] = {
 	TLS_cipher_ecdhe_sm4_cbc_sm3,
 	TLS_cipher_ecdhe_sm4_gcm_sm3,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
 };
 
 
@@ -298,6 +299,92 @@ int tls12_record_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv
 	return 1;
 }
 
+static int tls12_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	uint8_t nonce[12];
+	uint8_t aad[13];
+	const uint8_t *explicit_nonce;
+	const uint8_t *gmac;
+	size_t mlen;
+
+	if (inlen < 8 + GHASH_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	explicit_nonce = in;
+	in += 8;
+	inlen -= 8;
+
+	if (inlen < GHASH_SIZE) {
+		error_print();
+		return -1;
+	}
+	mlen = inlen - GHASH_SIZE;
+	gmac = in + mlen;
+
+	memcpy(nonce, fixed_iv, 4);
+	memcpy(nonce + 4, explicit_nonce, 8);
+
+	memcpy(aad, seq_num, 8);
+	memcpy(aad + 8, header, 5);
+	aad[11] = (uint8_t)(mlen >> 8);
+	aad[12] = (uint8_t)mlen;
+
+	if (gcm_decrypt(key, nonce, sizeof(nonce), aad, sizeof(aad),
+		in, mlen, gmac, GHASH_SIZE, out) != 1) {
+		error_print();
+		return -1;
+	}
+
+	*outlen = mlen;
+	return 1;
+}
+
+static int tls12_record_cbc_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen)
+{
+	if (tls12_cbc_decrypt(hmac_ctx, cbc_key, seq_num, in,
+		in + 5, inlen - 5,
+		out + 5, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
+
+	return 1;
+}
+
+static int tls12_record_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen)
+{
+	if (tls12_gcm_decrypt(key, fixed_iv, seq_num, in,
+		in + 5, inlen - 5,
+		out + 5, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
+
+	return 1;
+}
+
 static int tls12_record_encrypt(int cipher_suite,
 	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
@@ -305,6 +392,7 @@ static int tls12_record_encrypt(int cipher_suite,
 {
 	switch (cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		if (tls12_record_gcm_encrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
@@ -324,24 +412,30 @@ static int tls12_record_encrypt(int cipher_suite,
 	return 1;
 }
 
-int tls12_record_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
+int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
+	const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
-	if (tls12_cbc_decrypt(hmac_ctx, cbc_key, seq_num, in,
-		in + 5, inlen - 5,
-		out + 5, outlen) != 1) {
+	switch (cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+		if (tls12_record_gcm_decrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+		if (tls12_record_cbc_decrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
 		error_print();
 		return -1;
 	}
-
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (uint8_t)((*outlen) >> 8);
-	out[4] = (uint8_t)(*outlen);
-	(*outlen) += 5;
-
 	return 1;
 }
 
@@ -636,6 +730,7 @@ static int tls12_server_key_exchange_params_from_bytes(int cipher_suite,
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		{
 			uint8_t curve_type;
 			uint16_t named_curve;
@@ -1068,6 +1163,7 @@ static int tls12_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher,
 		*digest = DIGEST_sm3();
 		break;
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		*cipher = BLOCK_CIPHER_aes128();
 		*digest = DIGEST_sha256();
 		break;
@@ -1085,6 +1181,7 @@ static int tls12_cipher_suite_match_cert_group(int cipher_suite, int cert_group)
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 		return cert_group == TLS_curve_sm2p256v1;
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		return cert_group == TLS_curve_secp256r1;
 	default:
 		return 0;
@@ -1107,7 +1204,9 @@ static int tls12_signature_scheme_match_cipher_suite(int sig_alg, int cipher_sui
 		}
 		break;
 	case TLS_sig_ecdsa_secp256r1_sha256:
-		if (cipher_suite == TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256) {
+		switch (cipher_suite) {
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 			return 1;
 		}
 		break;
@@ -1122,6 +1221,7 @@ static int tls12_key_exchange_group_match_cipher_suite(int group, int cipher_sui
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 		return group == TLS_curve_sm2p256v1;
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		return group == TLS_curve_secp256r1;
 	default:
 		return 0;
@@ -2095,6 +2195,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		server_sig_alg = TLS_sig_sm2sig_sm3;
 		break;
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		server_sig_alg = TLS_sig_ecdsa_secp256r1_sha256;
 		break;
 	default:
@@ -2297,7 +2398,11 @@ int tls_curve_match_cipher_suite(int named_curve, int cipher_suite)
 		}
 		break;
 	case TLS_curve_secp256r1:
-		if (cipher_suite != TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256) {
+		switch (cipher_suite) {
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+			break;
+		default:
 			error_print();
 			return -1;
 		}
@@ -2327,6 +2432,7 @@ int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite)
 	case TLS_sig_ecdsa_secp256r1_sha256:
 		switch (cipher_suite) {
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 			break;
 		default:
 			error_print();
@@ -2402,6 +2508,7 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		{
 			const uint8_t *p = server_ecdh_params;
 			size_t len = server_ecdh_params_len;
@@ -2846,6 +2953,7 @@ int tls_generate_keys(TLS_CONNECT *conn)
 
 	switch (conn->cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 	{
 		size_t keylen = conn->cipher->key_size;
 		size_t key_block_len = keylen * 2 + 8;
@@ -3332,8 +3440,8 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 
 	format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
 
-	if (tls12_record_decrypt(&conn->client_write_mac_ctx, &conn->client_write_key,
-		conn->client_seq_num, conn->record, conn->recordlen,
+	if (tls12_record_decrypt(conn->cipher_suite, &conn->client_write_mac_ctx, &conn->client_write_key,
+		conn->client_write_iv, conn->client_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_record_mac);
@@ -3480,8 +3588,8 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 
 	format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
 
-	if (tls12_record_decrypt(&conn->server_write_mac_ctx, &conn->server_write_key,
-		conn->server_seq_num, conn->record, conn->recordlen,
+	if (tls12_record_decrypt(conn->cipher_suite, &conn->server_write_mac_ctx, &conn->server_write_key,
+		conn->server_write_iv, conn->server_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_record_mac);

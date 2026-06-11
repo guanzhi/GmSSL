@@ -107,6 +107,7 @@ typedef enum {
 	TLS_cipher_aes_128_ccm_8_sha256		= 0x1305,
 
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256 = 0xc023,
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256 = 0xc02b,
 
 	TLS_cipher_empty_renegotiation_info_scsv = 0x00ff,
 } TLS_CIPHER_SUITE;
@@ -423,6 +424,10 @@ int tls12_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int tls12_record_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
+int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
+	const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
 
