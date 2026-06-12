@@ -1108,16 +1108,15 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 	while (conn->recordlen) {
 		tls_ret_t n;
 
-		if ((n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+		n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0);
+		if (n < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				return TLS_ERROR_SEND_AGAIN;
-			} else {
-				if (n == 0) {
-					error_puts("TCP connection closed");
-				}
-				error_print();
-				return -1;
 			}
+			error_print();
+			return -1;
+		} else if (n == 0) {
+			return TLS_ERROR_TCP_CLOSED;
 		}
 		conn->recordlen -= n;
 		conn->record_offset += n;
@@ -1158,7 +1157,6 @@ int tls13_do_recv(TLS_CONNECT *conn)
 					return -1;
 				}
 			} else if (n == 0) {
-				error_print();
 				return TLS_ERROR_TCP_CLOSED;
 			}
 			conn->recordlen -= n;
@@ -1186,7 +1184,6 @@ int tls13_do_recv(TLS_CONNECT *conn)
 					return -1;
 				}
 			} else if (n == 0) {
-				error_print();
 				return TLS_ERROR_TCP_CLOSED;
 			}
 			conn->recordlen -= n;

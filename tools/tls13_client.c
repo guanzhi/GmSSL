@@ -790,7 +790,7 @@ bad:
 					continue;
 				}
 			}
-			sent_len = strlen(send_buf) + 1;
+			sent_len = strlen(send_buf);
 			sent_offset = 0;
 
 		}

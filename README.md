@@ -73,13 +73,14 @@ nmake
 
 ### 多语言接口
 
-GmSSL通过子项目提供多种多种编程语言绑定
+GmSSL通过子项目提供多种编程语言绑定
 
  * [GmSSL-Java](https://github.com/GmSSL/GmSSL-Java) 以JNI方式实现的Java语言绑定
  * [GmSSL-PHP](https://github.com/GmSSL/GmSSL-PHP) 以PHP扩展方式实现的PHP语言绑定
  * [GmSSL-Go](https://github.com/GmSSL/GmSSL-Go) 以CGO方式实现的Go语言绑定
  * [GmSSL-Python](https://github.com/GmSSL/GmSSL-Python) 以ctypes方式实现的Python语言绑定
- * [GmSSL-JS](https://github.com/guanzhi/GmSSL-JS) 纯JavaScript实现的国密算法库
+ * [gmssl-rs](https://github.com/GmSSL/gmssl-rs) GmSSL密码库的Rust语言封装
+ * [GmSSL-Nodejs](https://github.com/GmSSL/GmSSL-Nodejs) GmSSL密码库的Node.js语言绑定
 
 ### 支持国密硬件
 
@@ -172,4 +173,3 @@ test_sm9_z256_pairing_speed: 141 pairings per seconds
 ## Stargazers over time
 
 [![Stargazers over time](https://starchart.cc/guanzhi/GmSSL.svg)](https://starchart.cc/guanzhi/GmSSL)
-

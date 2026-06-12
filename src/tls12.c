@@ -304,7 +304,6 @@ int tls_send_record(TLS_CONNECT *conn)
 				return -1;
 			}
 		} else if (n == 0) {
-			error_print();
 			return TLS_ERROR_TCP_CLOSED;
 		}
 		conn->record_offset += n;
@@ -338,7 +337,6 @@ int tls_recv_record(TLS_CONNECT *conn)
 					return TLS_ERROR_SYSCALL;
 				}
 			} else if (n == 0) {
-				error_print();
 				return TLS_ERROR_TCP_CLOSED;
 			}
 			conn->record_offset += n;
@@ -378,7 +376,6 @@ int tls_recv_record(TLS_CONNECT *conn)
 				return TLS_ERROR_SYSCALL;
 			}
 		} else if (n == 0) {
-			error_print();
 			return TLS_ERROR_TCP_CLOSED;
 		}
 		conn->record_offset += n;

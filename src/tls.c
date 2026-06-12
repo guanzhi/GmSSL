@@ -2166,6 +2166,11 @@ int tls_shutdown(TLS_CONNECT *conn)
 		return -1;
 	}
 
+	if (conn->handshake_state != TLS_state_handshake_over) {
+		conn->shutdown_state = TLS_state_shutdown_over;
+		return 1;
+	}
+
 	if (conn->shutdown_state == TLS_state_shutdown_over) {
 		return 1;
 	}
@@ -2175,6 +2180,10 @@ int tls_shutdown(TLS_CONNECT *conn)
 
 	if (conn->shutdown_state == TLS_state_shutdown_send_close_notify) {
 		if ((ret = tls_send_close_notify(conn)) != 1) {
+			if (ret == TLS_ERROR_TCP_CLOSED) {
+				conn->shutdown_state = TLS_state_shutdown_over;
+				return 1;
+			}
 			return ret;
 		}
 		if (conn->close_notify_received) {
@@ -2186,20 +2195,21 @@ int tls_shutdown(TLS_CONNECT *conn)
 
 	if (conn->shutdown_state == TLS_state_shutdown_recv_close_notify) {
 		if(conn->verbose) tls_trace("recv Alert.close_notify\n");
-		ret = tls_recv(conn, buf, sizeof(buf), &len);
-		if (ret == 0 && conn->close_notify_received) {
-			conn->shutdown_state = TLS_state_shutdown_over;
-			return 1;
+		for (;;) {
+			ret = tls_recv(conn, buf, sizeof(buf), &len);
+			if (ret == 1 && len > 0) {
+				continue;
+			}
+			if (ret == 0 || ret == TLS_ERROR_TCP_CLOSED) {
+				conn->shutdown_state = TLS_state_shutdown_over;
+				return 1;
+			}
+			if (ret == TLS_ERROR_RECV_AGAIN || ret == TLS_ERROR_SEND_AGAIN) {
+				return ret;
+			}
+			error_print();
+			return -1;
 		}
-		if (ret == TLS_ERROR_RECV_AGAIN || ret == TLS_ERROR_SEND_AGAIN) {
-			return ret;
-		}
-		if (ret == TLS_ERROR_TCP_CLOSED) {
-			if(conn->verbose) tls_trace("Connection closed by remote without close_notify\n");
-			return ret;
-		}
-		error_print();
-		return -1;
 	}
 
 	error_print();
