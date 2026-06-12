@@ -7,15 +7,11 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
-"Examples\n"
 "\n"
 "Supported cipher suites:\n"
 "      TLS_ECC_SM4_GCM_SM3\n"
 "      TLS_ECC_SM4_CBC_SM3\n"
 "\n"
-"  gmssl tlcp_client -host www.pbc.gov.cn -get / -certout certs.pem\n"
-"\n"
-"  gmssl tlcp_client -host www.pbc.gov.cn -port 443\n"
 "\n"
 "Examples\n"
 "\n"
