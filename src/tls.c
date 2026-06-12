@@ -804,7 +804,7 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 	tls_uint8_to_bytes((uint8_t)TLS_compression_null, &p, &len);
 	if (exts) {
 		size_t tmp_len = len;
-		if (protocol < TLS_protocol_tls12) {
+		if (protocol != TLS_protocol_tlcp && protocol < TLS_protocol_tls12) {
 			error_print();
 			return -1;
 		}
@@ -940,7 +940,7 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	tls_uint16_to_bytes((uint16_t)cipher_suite, &p, &len);
 	tls_uint8_to_bytes((uint8_t)TLS_compression_null, &p, &len);
 	if (exts) {
-		if (protocol < TLS_protocol_tls12) {
+		if (protocol != TLS_protocol_tlcp && protocol < TLS_protocol_tls12) {
 			error_print();
 			return -1;
 		}
@@ -2391,8 +2391,14 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 void tls_ctx_cleanup(TLS_CTX *ctx)
 {
 	if (ctx) {
-		gmssl_secure_clear(&ctx->signkey, sizeof(SM2_KEY));
-		gmssl_secure_clear(&ctx->kenckey, sizeof(SM2_KEY));
+		size_t i;
+
+		for (i = 0; i < ctx->x509_keys_cnt; i++) {
+			x509_key_cleanup(&ctx->x509_keys[i]);
+			x509_key_cleanup(&ctx->enc_keys[i]);
+		}
+		x509_key_cleanup(&ctx->signkey);
+		x509_key_cleanup(&ctx->kenckey);
 		if (ctx->certs) free(ctx->certs);
 		if (ctx->cacerts) free(ctx->cacerts);
 		memset(ctx, 0, sizeof(TLS_CTX));
@@ -2707,15 +2713,18 @@ end:
 	return ret;
 }
 
-int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *signkeyfile, const char *signkeypass,
 	const char *kenckeyfile, const char *kenckeypass)
 {
 	int ret = -1;
 	const int algor = OID_ec_public_key;
 	const int algor_param = OID_sm2;
-	uint8_t *certs = NULL;
-	size_t certslen;
+	uint8_t *cert_chain;
+	size_t cert_chain_len;
+	size_t cert_chains_len;
+	size_t key_idx;
+	FILE *certfp = NULL;
 	FILE *signkeyfp = NULL;
 	FILE *kenckeyfp = NULL;
 
@@ -2732,32 +2741,50 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		error_print();
 		return -1;
 	}
-	if (ctx->certs) {
+	if (ctx->protocol != TLS_protocol_tlcp || ctx->is_client) {
 		error_print();
 		return -1;
 	}
-
-	if (x509_certs_new_from_file(&certs, &certslen, chainfile) != 1) {
+	if (ctx->x509_keys_cnt >= sizeof(ctx->x509_keys)/sizeof(ctx->x509_keys[0])) {
 		error_print();
 		return -1;
 	}
+	key_idx = ctx->x509_keys_cnt;
 
+	if (sizeof(ctx->cert_chains) <= ctx->cert_chains_len + tls_uint24_size()) {
+		error_print();
+		return -1;
+	}
+	if (!(certfp = fopen(chainfile, "r"))) {
+		error_print();
+		goto end;
+	}
+	cert_chain = ctx->cert_chains + ctx->cert_chains_len;
+	if (x509_certs_from_pem(cert_chain + tls_uint24_size(), &cert_chain_len,
+		sizeof(ctx->cert_chains) - ctx->cert_chains_len - tls_uint24_size(), certfp) != 1) {
+		error_print();
+		goto end;
+	}
+	cert_chains_len = 0;
+	tls_uint24_to_bytes((uint24_t)cert_chain_len, &cert_chain, &cert_chains_len);
+	cert_chains_len += cert_chain_len;
 
 	// load sign key
 	if (!(signkeyfp = fopen(signkeyfile, "r"))) {
 		error_print();
 		goto end;
 	}
-	if (x509_private_key_from_file(&ctx->signkey, algor, signkeypass, signkeyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->x509_keys[key_idx], algor, signkeypass, signkeyfp) != 1) {
 		error_print();
 		goto end;
 	}
-	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
+	if (x509_certs_get_cert_by_index(cert_chain, cert_chain_len, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
 		goto end;
 	}
-	if (x509_public_key_equ(&ctx->signkey, &public_key) != 1) {
+	if (public_key.algor != algor || public_key.algor_param != algor_param
+		|| x509_public_key_equ(&ctx->x509_keys[key_idx], &public_key) != 1) {
 		error_print();
 		goto end;
 	}
@@ -2767,32 +2794,55 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 		error_print();
 		goto end;
 	}
-	if (x509_private_key_from_file(&ctx->kenckey, algor, kenckeypass, kenckeyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->enc_keys[key_idx], algor, kenckeypass, kenckeyfp) != 1) {
 		error_print();
 		goto end;
 	}
-	if (x509_certs_get_cert_by_index(certs, certslen, 1, &cert, &certlen) != 1
+	if (x509_certs_get_cert_by_index(cert_chain, cert_chain_len, 1, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
 		goto end;
 	}
-	if (x509_public_key_equ(&ctx->kenckey, &public_key) != 1) {
+	if (public_key.algor != algor || public_key.algor_param != algor_param
+		|| x509_public_key_equ(&ctx->enc_keys[key_idx], &public_key) != 1) {
 		error_print();
 		goto end;
 	}
 
-	ctx->certs = certs;
-	ctx->certslen = certslen;
-	certs = NULL;
+	ctx->cert_chains_len += cert_chains_len;
+	ctx->cert_chains_cnt++;
+	ctx->x509_keys_cnt++;
+	if (key_idx == 0) {
+		ctx->signkey = ctx->x509_keys[0];
+		ctx->kenckey = ctx->enc_keys[0];
+	}
 	ret = 1;
 
 end:
-	if (ret != 1) x509_key_cleanup(&ctx->signkey);
-	if (ret != 1) x509_key_cleanup(&ctx->kenckey);
-	if (certs) free(certs);
+	if (ret != 1) {
+		x509_key_cleanup(&ctx->x509_keys[key_idx]);
+		x509_key_cleanup(&ctx->enc_keys[key_idx]);
+	}
+	if (certfp) fclose(certfp);
 	if (signkeyfp) fclose(signkeyfp);
 	if (kenckeyfp) fclose(kenckeyfp);
 	return ret;
+}
+
+int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *signkeyfile, const char *signkeypass,
+	const char *kenckeyfile, const char *kenckeypass)
+{
+	if (!ctx || ctx->cert_chains_len || ctx->x509_keys_cnt) {
+		error_print();
+		return -1;
+	}
+	if (tlcp_ctx_add_server_certificate_and_keys(ctx, chainfile,
+		signkeyfile, signkeypass, kenckeyfile, kenckeypass) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }
 
 int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_cnt)

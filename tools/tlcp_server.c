@@ -18,16 +18,18 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert file -key file [-pass str] -ex_key file [-ex_pass str] [-cacert file]";
+static const char *options = "[-port num] -cert file -key file -pass str -ex_key file -ex_pass str [-cacert file]";
 
 
 static const char *help =
 "Options\n"
 "\n"
 "    -port num              Listening port number, default 443\n"
-"    -cert file             Server's certificate chain in PEM format\n"
-"    -key file              Server's encrypted private key in PEM format\n"
-"    -pass str              Password to decrypt private key\n"
+"    -cert file             Server's certificate chain in PEM format, may appear multiple times\n"
+"    -key file              Server's signing private key in PEM format, may appear multiple times\n"
+"    -pass str              Password to decrypt signing private key, may appear multiple times\n"
+"    -ex_key file           Server's encryption private key in PEM format, may appear multiple times\n"
+"    -ex_pass str           Password to decrypt encryption private key, may appear multiple times\n"
 "    -cacert file           CA certificate for client certificate verification\n"
 "\n"
 #include "tlcp_help.h"
@@ -38,11 +40,16 @@ int tlcp_server_main(int argc , char **argv)
 	int ret = 1;
 	char *prog = argv[0];
 	int port = 443;
-	char *certfile = NULL;
-	char *signkeyfile = NULL;
-	char *signpass = NULL;
-	char *enckeyfile = NULL;
-	char *encpass = NULL;
+	char *certfiles[4];
+	size_t certfiles_cnt = 0;
+	char *signkeyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
+	size_t signkeyfiles_cnt = 0;
+	char *signpasses[sizeof(certfiles)/sizeof(certfiles[0])];
+	size_t signpasses_cnt = 0;
+	char *enckeyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
+	size_t enckeyfiles_cnt = 0;
+	char *encpasses[sizeof(certfiles)/sizeof(certfiles[0])];
+	size_t encpasses_cnt = 0;
 	char *cacertfile = NULL;
 
 	int server_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3, };
@@ -56,6 +63,7 @@ int tlcp_server_main(int argc , char **argv)
 	struct sockaddr_in server_addr;
 	struct sockaddr_in client_addr;
 	tls_socklen_t client_addrlen;
+	size_t i;
 
 	argc--;
 	argv++;
@@ -74,20 +82,40 @@ int tlcp_server_main(int argc , char **argv)
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
 		} else if (!strcmp(*argv, "-cert")) {
+			if (certfiles_cnt >= sizeof(certfiles)/sizeof(certfiles[0])) {
+				fprintf(stderr, "%s: too many -cert options\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
-			certfile = *(++argv);
+			certfiles[certfiles_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-key")) {
+			if (signkeyfiles_cnt >= sizeof(signkeyfiles)/sizeof(signkeyfiles[0])) {
+				fprintf(stderr, "%s: too many -key options\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
-			signkeyfile = *(++argv);
+			signkeyfiles[signkeyfiles_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-pass")) {
+			if (signpasses_cnt >= sizeof(signpasses)/sizeof(signpasses[0])) {
+				fprintf(stderr, "%s: too many -pass options\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
-			signpass = *(++argv);
+			signpasses[signpasses_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-ex_key")) {
+			if (enckeyfiles_cnt >= sizeof(enckeyfiles)/sizeof(enckeyfiles[0])) {
+				fprintf(stderr, "%s: too many -ex_key options\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
-			enckeyfile = *(++argv);
+			enckeyfiles[enckeyfiles_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-ex_pass")) {
+			if (encpasses_cnt >= sizeof(encpasses)/sizeof(encpasses[0])) {
+				fprintf(stderr, "%s: too many -ex_pass options\n", prog);
+				return -1;
+			}
 			if (--argc < 1) goto bad;
-			encpass = *(++argv);
+			encpasses[encpasses_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -101,24 +129,29 @@ bad:
 		argc--;
 		argv++;
 	}
-	if (!certfile) {
+	if (!certfiles_cnt) {
 		fprintf(stderr, "%s: '-cert' option required\n", prog);
 		return 1;
 	}
-	if (!signkeyfile) {
+	if (!signkeyfiles_cnt) {
 		fprintf(stderr, "%s: '-key' option required\n", prog);
 		return 1;
 	}
-	if (!signpass) {
+	if (!signpasses_cnt) {
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
-	if (!enckeyfile) {
+	if (!enckeyfiles_cnt) {
 		fprintf(stderr, "%s: '-ex_key' option required\n", prog);
 		return 1;
 	}
-	if (!encpass) {
+	if (!encpasses_cnt) {
 		fprintf(stderr, "%s: '-ex_pass' option required\n", prog);
+		return 1;
+	}
+	if (certfiles_cnt != signkeyfiles_cnt || signkeyfiles_cnt != signpasses_cnt
+		|| signpasses_cnt != enckeyfiles_cnt || enckeyfiles_cnt != encpasses_cnt) {
+		fprintf(stderr, "%s: -cert/-key/-pass/-ex_key/-ex_pass counts mismatch\n", prog);
 		return 1;
 	}
 
@@ -126,10 +159,17 @@ bad:
 	memset(&conn, 0, sizeof(conn));
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_server_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1
-		|| tls_ctx_set_tlcp_server_certificate_and_keys(&ctx, certfile, signkeyfile, signpass, enckeyfile, encpass) != 1) {
+		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1) {
 		error_print();
 		return -1;
+	}
+	for (i = 0; i < certfiles_cnt; i++) {
+		if (tlcp_ctx_add_server_certificate_and_keys(&ctx,
+			certfiles[i], signkeyfiles[i], signpasses[i],
+			enckeyfiles[i], encpasses[i]) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	if (cacertfile) {
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {

@@ -42,7 +42,7 @@ static const char *help =
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -get path              Send a GET request with given path of URI\n"
 "    -outcerts file         Save server certificates to a PEM file\n"
-"    -server_name           Send server_name (SNI) request\n"
+"    -server_name str       Send server_name (SNI) request\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
 "    -quiet                 Without printing any status message\n"
 "\n"
@@ -68,6 +68,7 @@ int tlcp_client_main(int argc, char *argv[])
 	char *certfile = NULL;
 	char *keyfile = NULL;
 	char *pass = NULL;
+	char *server_name = NULL;
 	int client_cert_optional = 0;
 	char *get = NULL;
 	char *outcertsfile = NULL;
@@ -162,6 +163,9 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-pass")) {
 			if (--argc < 1) goto bad;
 			pass = *(++argv);
+		} else if (!strcmp(*argv, "-server_name")) {
+			if (--argc < 1) goto bad;
+			server_name = *(++argv);
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-get")) {
@@ -251,6 +255,12 @@ bad:
 	if (tls_init(&conn, &ctx) != 1) {
 		error_print();
 		goto end;
+	}
+	if (server_name) {
+		if (tls_set_server_name(&conn, (uint8_t *)server_name, strlen(server_name)) != 1) {
+			error_print();
+			goto end;
+		}
 	}
 
 	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {

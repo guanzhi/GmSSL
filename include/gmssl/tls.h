@@ -920,6 +920,9 @@ int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t s
 int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth);
 int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
+int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
+	const char *signkeyfile, const char *signkeypass,
+	const char *kenckeyfile, const char *kenckeypass);
 int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
 	const char *signkeyfile, const char *signkeypass,
 	const char *kenckeyfile, const char *kenckeypass);
