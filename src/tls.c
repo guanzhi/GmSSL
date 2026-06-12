@@ -2455,6 +2455,9 @@ int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client)
 
 	ctx->is_client = is_client ? 1 : 0;
 
+	// TLS 1.3 middlebox compatibility
+	ctx->accept_change_cipher_spec = 1;
+
 
 	// supported_versions
 	memcpy(ctx->supported_versions, supported_versions, sizeof(supported_versions));

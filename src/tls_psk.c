@@ -787,7 +787,7 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls13_session_print(stderr, 0, 0, "SESSION", session, sessionlen);
+	if(conn->verbose) tls13_session_print(stderr, 0, 0, "SESSION", session, sessionlen);
 
 	if (conn->session_out) {
 		FILE *fp;

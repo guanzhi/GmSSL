@@ -1261,6 +1261,8 @@ int tls13_do_recv(TLS_CONNECT *conn)
 				error_print();
 				return -1;
 			}
+			conn->data = NULL;
+			conn->datalen = 0;
 			break;
 
 
@@ -1305,6 +1307,8 @@ int tls13_do_recv(TLS_CONNECT *conn)
 				}
 			}
 
+			conn->data = NULL;
+			conn->datalen = 0;
 			break;
 		default:
 			error_print();
@@ -1350,13 +1354,23 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 		return -1;
 	}
 
+	*recvlen = 0;
+
 	if (conn->datalen == 0) {
 		int ret;
-		if ((ret = tls13_do_recv(conn)) != 1) {
-			if (ret != 0 && ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
-				error_print();
+		for (;;) {
+			if ((ret = tls13_do_recv(conn)) != 1) {
+				if (ret != 0 && ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
+					error_print();
+				}
+				return ret;
 			}
-			return ret;
+			if (conn->datalen) {
+				break;
+			}
+			conn->record_offset = 0;
+			conn->recordlen = 0;
+			conn->plain_recordlen = 0;
 		}
 	}
 	*recvlen = outlen <= conn->datalen ? outlen : conn->datalen;
@@ -3497,13 +3511,71 @@ int tls13_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 
 // ChangeCipherSpec
 
-int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable)
+int tls13_ctx_set_change_cipher_spec_compat(TLS_CTX *ctx, int enable)
 {
 	if (!ctx) {
 		error_print();
 		return -1;
 	}
-	ctx->change_cipher_spec = enable ? 1 : 0;
+	ctx->change_cipher_spec_compat = enable ? 1 : 0;
+	ctx->change_cipher_spec = ctx->change_cipher_spec_compat;
+	return 1;
+}
+
+int tls13_ctx_set_accept_change_cipher_spec(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->accept_change_cipher_spec = enable ? 1 : 0;
+	return 1;
+}
+
+int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable)
+{
+	return tls13_ctx_set_change_cipher_spec_compat(ctx, enable);
+}
+
+static int tls13_ctx_change_cipher_spec_compat(const TLS_CTX *ctx)
+{
+	if (!ctx) {
+		return 0;
+	}
+	return ctx->change_cipher_spec_compat || ctx->change_cipher_spec;
+}
+
+static int tls13_ctx_accept_change_cipher_spec(const TLS_CTX *ctx)
+{
+	if (!ctx) {
+		return 0;
+	}
+	return ctx->accept_change_cipher_spec;
+}
+
+static int tls13_recv_change_cipher_spec_if_present(TLS_CONNECT *conn)
+{
+	int ret;
+
+	if(conn->verbose) tls_trace("recv [ChangeCipherSpec*]\n");
+
+	if ((ret = tls_recv_record(conn)) != 1) {
+		if (ret != TLS_ERROR_RECV_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+	if(conn->verbose) tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
+	if (tls_record_type(conn->record) != TLS_record_change_cipher_spec) {
+		return 0;
+	}
+	if (tls_record_get_change_cipher_spec(conn->record) != 1) {
+		error_print();
+		tls13_send_alert(conn, TLS_alert_decode_error);
+		return -1;
+	}
+
 	return 1;
 }
 
@@ -8656,13 +8728,13 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_server_hello:
 		ret = tls13_recv_server_hello(conn);
-		if (conn->ctx->change_cipher_spec)
+		if (tls13_ctx_accept_change_cipher_spec(conn->ctx))
 			next_state = TLS_state_server_change_cipher_spec;
 		else	next_state = TLS_state_encrypted_extensions;
 		break;
 
 	case TLS_state_server_change_cipher_spec:
-		ret = tls13_recv_change_cipher_spec(conn);
+		ret = tls13_recv_change_cipher_spec_if_present(conn);
 		next_state = TLS_state_encrypted_extensions;
 		break;
 
@@ -8718,7 +8790,7 @@ int tls13_do_client_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_client_change_cipher_spec:
-		if (conn->ctx->change_cipher_spec)
+		if (tls13_ctx_change_cipher_spec_compat(conn->ctx))
 			ret = tls13_send_change_cipher_spec(conn);
 		else	ret = 1;
 		next_state = TLS_state_client_finished;
@@ -8786,7 +8858,7 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_server_hello:
 		ret = tls13_send_server_hello(conn);
-		if (conn->ctx->change_cipher_spec)
+		if (tls13_ctx_change_cipher_spec_compat(conn->ctx))
 			next_state = TLS_state_server_change_cipher_spec;
 		else	next_state = TLS_state_encrypted_extensions;
 		break;
@@ -8848,8 +8920,8 @@ int tls13_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_client_change_cipher_spec:
-		if (conn->ctx->change_cipher_spec)
-			ret = tls13_recv_change_cipher_spec(conn);
+		if (tls13_ctx_accept_change_cipher_spec(conn->ctx))
+			ret = tls13_recv_change_cipher_spec_if_present(conn);
 		else	ret = 1;
 		next_state = TLS_state_client_finished;
 		break;

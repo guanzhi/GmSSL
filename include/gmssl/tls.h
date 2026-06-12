@@ -808,7 +808,9 @@ typedef struct {
 
 
 	// ChangeCipherSpec in TLS 1.3
+	int change_cipher_spec_compat;
 	int change_cipher_spec;
+	int accept_change_cipher_spec;
 
 	// CertificateRequest
 	int certificate_request;
@@ -1411,6 +1413,8 @@ int tls13_new_session_ticket_print(FILE *fp, int fmt, int ind, const uint8_t *d,
 
 // ChangeCipherSpec
 
+int tls13_ctx_set_change_cipher_spec_compat(TLS_CTX *ctx, int enable);
+int tls13_ctx_set_accept_change_cipher_spec(TLS_CTX *ctx, int enable);
 int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable);
 
 

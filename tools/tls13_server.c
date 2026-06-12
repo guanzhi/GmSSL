@@ -513,7 +513,7 @@ bad:
 
 	// ChangeCipherSpec
 	if (tls13_change_cipher_spec) {
-		if (tls13_ctx_enable_change_cipher_spec(&ctx, 1) != 1) {
+		if (tls13_ctx_set_change_cipher_spec_compat(&ctx, 1) != 1) {
 			error_print();
 			goto end;
 		}
