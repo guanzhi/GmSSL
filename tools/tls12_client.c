@@ -23,7 +23,7 @@ static const char *http_get =
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
-static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str]";
+static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str] [-trusted_ca_keys]";
 
 static const char *help =
 "Options\n"
@@ -40,6 +40,7 @@ static const char *help =
 "    -pass str              Password to decrypt private key\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -server_name str       Send server_name (SNI) request\n"
+"    -trusted_ca_keys       Send trusted_ca_keys request\n"
 "    -renegotiation_info    Send renegotiation_info extension\n"
 "    -renegotiation_info_scsv\n"
 "                          Send TLS_EMPTY_RENEGOTIATION_INFO_SCSV\n"
@@ -67,6 +68,7 @@ int tls12_client_main(int argc, char *argv[])
 	char *pass = NULL;
 	int client_cert_optional = 0;
 	char *server_name = NULL;
+	int trusted_ca_keys = 0;
 	int renegotiation_info = 0;
 	int empty_renegotiation_info_scsv = 0;
 	TLS_CTX ctx;
@@ -160,6 +162,8 @@ int tls12_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-server_name")) {
 			if (--argc < 1) goto bad;
 			server_name = *(++argv);
+		} else if (!strcmp(*argv, "-trusted_ca_keys")) {
+			trusted_ca_keys = 1;
 		} else if (!strcmp(*argv, "-renegotiation_info")) {
 			renegotiation_info = 1;
 		} else if (!strcmp(*argv, "-renegotiation_info_scsv")) {
@@ -200,6 +204,13 @@ bad:
 	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
 		error_print();
 		goto end;
+	}
+
+	if (trusted_ca_keys) {
+		if (tls_ctx_enable_trusted_ca_keys(&ctx, 1) != 1) {
+			error_print();
+			goto end;
+		}
 	}
 
 	if (cacertfile) {

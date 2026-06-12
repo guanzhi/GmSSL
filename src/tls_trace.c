@@ -520,6 +520,16 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 				tls_ec_point_format_name(point_form), point_form);
 		}
 		break;
+	case TLS_extension_trusted_ca_keys:
+		if (datalen == 0) {
+			format_bytes(fp, format, indent, "raw_data", data, datalen);
+			break;
+		}
+		if (tls_trusted_authorities_print(fp, format, indent, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	case TLS_extension_signature_algorithms:
 		if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1
 			|| datalen

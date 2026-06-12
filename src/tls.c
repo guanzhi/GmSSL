@@ -2507,6 +2507,11 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 		error_print();
 		return -1;
 	}
+	if (tls_trusted_authorities_from_ca_names(ctx->trusted_authorities, &ctx->trusted_authorities_len,
+		sizeof(ctx->trusted_authorities), ctx->ca_names, ctx->ca_names_len) != 1) {
+		error_print();
+		return -1;
+	}
 
 	ctx->verify_depth = depth;
 	return 1;
@@ -2519,6 +2524,16 @@ int tls_ctx_enable_verbose(TLS_CTX *ctx, int enable)
 		return -1;
 	}
 	ctx->verbose = enable ? 1 : 0;
+	return 1;
+}
+
+int tls_ctx_enable_trusted_ca_keys(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->trusted_ca_keys = enable ? 1 : 0;
 	return 1;
 }
 

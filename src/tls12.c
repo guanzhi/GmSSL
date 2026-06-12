@@ -868,6 +868,15 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// trusted_ca_keys
+		if (conn->ctx->trusted_ca_keys) {
+			if (tls_trusted_ca_keys_ext_to_bytes(conn->ctx->trusted_authorities,
+				conn->ctx->trusted_authorities_len, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		// server_name
 		if (conn->server_name) {
 			if (tls_server_name_ext_to_bytes(conn->host_name, conn->host_name_len, &pexts, &extslen) != 1) {
@@ -1275,6 +1284,9 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	size_t signature_algorithms_len = 0;
 	const uint8_t *signature_algorithms_cert = NULL;
 	size_t signature_algorithms_cert_len = 0;
+	int trusted_ca_keys = 0;
+	const uint8_t *trusted_authorities = NULL;
+	size_t trusted_authorities_len = 0;
 	const uint8_t *server_name = NULL;
 	size_t server_name_len = 0;
 	const uint8_t *renegotiation_info = NULL;
@@ -1352,13 +1364,15 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_supported_groups:
 		case TLS_extension_signature_algorithms:
 		case TLS_extension_signature_algorithms_cert:
-		case TLS_extension_server_name:
 		case TLS_extension_renegotiation_info:
 			if (!ext_data) {
 				error_print();
 				tls_send_alert(conn, TLS_alert_decode_error);
 				return -1;
 			}
+			break;
+		case TLS_extension_trusted_ca_keys:
+		case TLS_extension_server_name:
 			break;
 		}
 
@@ -1398,6 +1412,20 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 			}
 			signature_algorithms_cert = ext_data;
 			signature_algorithms_cert_len = ext_datalen;
+			break;
+		case TLS_extension_trusted_ca_keys:
+			if (trusted_ca_keys) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			if (tls_trusted_authorities_from_bytes(&trusted_authorities,
+				&trusted_authorities_len, ext_data, ext_datalen) != 1) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			}
+			trusted_ca_keys = 1;
 			break;
 		case TLS_extension_server_name:
 			if (server_name) {
@@ -1463,6 +1491,19 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 		conn->ec_point_formats = 1;
+	}
+
+	if (trusted_ca_keys) {
+		conn->trusted_ca_keys = 1;
+		if (trusted_authorities_len > sizeof(conn->trusted_authorities)) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		if (trusted_authorities_len) {
+			memcpy(conn->trusted_authorities, trusted_authorities, trusted_authorities_len);
+		}
+		conn->trusted_authorities_len = trusted_authorities_len;
 	}
 
 	if ((ret = tls12_select_common_cipher_suites(cipher_suites, cipher_suites_len,
@@ -1636,6 +1677,14 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 			}
 		}
 
+		// trusted_ca_keys
+		if (conn->trusted_ca_keys) {
+			if (tls_ext_to_bytes(TLS_extension_trusted_ca_keys, NULL, 0, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+
 		// renegotiation_info
 		if (conn->secure_renegotiation) {
 			uint8_t ext_data[1] = { 0 };
@@ -1695,6 +1744,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 	const uint8_t *ec_point_formats = NULL;
 	size_t ec_point_formats_len = 0;
 	int server_name = 0;
+	int trusted_ca_keys = 0;
 	int renegotiation_info = 0;
 
 	tls_trace("recv ServerHello\n");
@@ -1786,6 +1836,15 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 				return -1;
 			}
 			server_name = 1;
+			break;
+		case TLS_extension_trusted_ca_keys:
+			if (!conn->ctx->trusted_ca_keys || trusted_ca_keys || ext_datalen) {
+				error_print();
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+			trusted_ca_keys = 1;
+			conn->trusted_ca_keys = 1;
 			break;
 		case TLS_extension_renegotiation_info:
 			if ((!conn->ctx->renegotiation_info && !conn->ctx->empty_renegotiation_info_scsv)

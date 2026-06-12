@@ -841,6 +841,8 @@ typedef struct {
 
 	// 3. trusted_ca_keys
 	int trusted_ca_keys;
+	uint8_t trusted_authorities[512];
+	size_t trusted_authorities_len;
 
 	// 5. status_request
 	int status_request; // if send in ClientHello, CertificateRequest
@@ -946,6 +948,7 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 
 
 int tls_ctx_enable_verbose(TLS_CTX *ctx, int enable);
+int tls_ctx_enable_trusted_ca_keys(TLS_CTX *ctx, int enable);
 
 
 // KeyUpdate
@@ -1174,6 +1177,8 @@ typedef struct {
 
 	// 3. trusted_ca_keys
 	int trusted_ca_keys;
+	uint8_t trusted_authorities[512];
+	size_t trusted_authorities_len;
 
 	// 5. status_request
 	int status_request;
@@ -1688,11 +1693,34 @@ enum {
 	TLS_name_type_preserved_max	= 255,
 };
 
+enum {
+	TLS_trusted_authority_pre_agreed		= 0,
+	TLS_trusted_authority_key_sha1_hash	= 1,
+	TLS_trusted_authority_x509_name		= 2,
+	TLS_trusted_authority_cert_sha1_hash	= 3,
+	TLS_trusted_authority_reserved_max	= 255,
+};
+
 
 #define tls_ext_data(ext)	((ext) + 4)
 
 int tls_ext_to_bytes(int ext_type, const uint8_t *ext_data, size_t ext_datalen,
 	uint8_t **out, size_t *outlen);
+
+const char *tls_trusted_authority_type_name(int type);
+int tls_trusted_authority_to_bytes(int type, const uint8_t *data, size_t datalen,
+	uint8_t **out, size_t *outlen);
+int tls_trusted_authority_from_bytes(int *type, const uint8_t **data, size_t *datalen,
+	const uint8_t **in, size_t *inlen);
+int tls_trusted_authorities_to_bytes(const uint8_t *authorities, size_t authorities_len,
+	uint8_t **out, size_t *outlen);
+int tls_trusted_authorities_from_bytes(const uint8_t **authorities, size_t *authorities_len,
+	const uint8_t *data, size_t datalen);
+int tls_trusted_ca_keys_ext_to_bytes(const uint8_t *authorities, size_t authorities_len,
+	uint8_t **out, size_t *outlen);
+int tls_trusted_authorities_from_ca_names(uint8_t *authorities, size_t *authorities_len, size_t maxlen,
+	const uint8_t *ca_names, size_t ca_names_len);
+int tls_trusted_authorities_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 
 
 

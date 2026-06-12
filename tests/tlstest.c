@@ -352,6 +352,90 @@ static int test_tls_status_request_ext(void)
 	return 1;
 }
 
+static int test_tls_trusted_ca_keys_ext(void)
+{
+	uint8_t name[256];
+	size_t namelen = 0;
+	uint8_t der_name[256];
+	uint8_t *p = der_name;
+	size_t der_name_len = 0;
+	uint8_t hash[20];
+	uint8_t authorities[512];
+	uint8_t *pa = authorities;
+	size_t authorities_len = 0;
+	uint8_t ext[512];
+	const uint8_t *ext_data;
+	size_t ext_datalen;
+	int ext_type;
+	const uint8_t *list;
+	size_t list_len;
+	const uint8_t *cp;
+	size_t len;
+
+	memset(hash, 0x5a, sizeof(hash));
+	if (x509_name_set(name, &namelen, sizeof(name),
+		"CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1
+		|| asn1_sequence_to_der(name, namelen, &p, &der_name_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (tls_trusted_authority_to_bytes(TLS_trusted_authority_pre_agreed,
+		NULL, 0, &pa, &authorities_len) != 1
+		|| tls_trusted_authority_to_bytes(TLS_trusted_authority_key_sha1_hash,
+		hash, sizeof(hash), &pa, &authorities_len) != 1
+		|| tls_trusted_authority_to_bytes(TLS_trusted_authority_x509_name,
+		der_name, der_name_len, &pa, &authorities_len) != 1
+		|| tls_trusted_authority_to_bytes(TLS_trusted_authority_cert_sha1_hash,
+		hash, sizeof(hash), &pa, &authorities_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	p = ext;
+	len = 0;
+	if (tls_trusted_ca_keys_ext_to_bytes(authorities, authorities_len, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	cp = ext;
+	if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &cp, &len) != 1
+		|| ext_type != TLS_extension_trusted_ca_keys
+		|| len != 0
+		|| tls_trusted_authorities_from_bytes(&list, &list_len, ext_data, ext_datalen) != 1
+		|| list_len != authorities_len) {
+		error_print();
+		return -1;
+	}
+
+	{
+		int type;
+		const uint8_t *data;
+		size_t datalen;
+
+		if (tls_trusted_authority_from_bytes(&type, &data, &datalen, &list, &list_len) != 1
+			|| type != TLS_trusted_authority_pre_agreed
+			|| data != NULL || datalen != 0
+			|| tls_trusted_authority_from_bytes(&type, &data, &datalen, &list, &list_len) != 1
+			|| type != TLS_trusted_authority_key_sha1_hash
+			|| datalen != sizeof(hash) || memcmp(data, hash, sizeof(hash)) != 0
+			|| tls_trusted_authority_from_bytes(&type, &data, &datalen, &list, &list_len) != 1
+			|| type != TLS_trusted_authority_x509_name
+			|| datalen != der_name_len || memcmp(data, der_name, der_name_len) != 0
+			|| tls_trusted_authority_from_bytes(&type, &data, &datalen, &list, &list_len) != 1
+			|| type != TLS_trusted_authority_cert_sha1_hash
+			|| datalen != sizeof(hash) || memcmp(data, hash, sizeof(hash)) != 0
+			|| list_len != 0) {
+			error_print();
+			return -1;
+		}
+	}
+
+	tls_trusted_authorities_print(stdout, 0, 0, ext_data, ext_datalen);
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_tls_null_to_bytes() != 1) goto err;
@@ -369,6 +453,7 @@ int main(void)
 	if (test_tls_change_cipher_spec() != 1) goto err;
 	if (test_tls_application_data() != 1) goto err;
 	*/
+	if (test_tls_trusted_ca_keys_ext() != 1) goto err;
 	if (test_tls_status_request_ext() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

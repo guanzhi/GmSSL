@@ -329,8 +329,11 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 
 		// trusted_ca_keys
 		if (conn->ctx->trusted_ca_keys) {
-			error_print();
-			return -1;
+			if (tls_trusted_ca_keys_ext_to_bytes(conn->ctx->trusted_authorities,
+				conn->ctx->trusted_authorities_len, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 
 		// status_request (hint only)
@@ -1315,8 +1318,9 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	// extensions
 	const uint8_t *server_name = NULL;
 	size_t server_name_len = 0;
-	const uint8_t *trusted_ca_keys = NULL;
-	size_t trusted_ca_keys_len = 0;
+	int trusted_ca_keys = 0;
+	const uint8_t *trusted_authorities = NULL;
+	size_t trusted_authorities_len = 0;
 	const uint8_t *status_request = NULL;
 	size_t status_request_len = 0;
 	const uint8_t *supported_groups = NULL;
@@ -1434,8 +1438,13 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 				tls13_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
-			trusted_ca_keys = ext_data;
-			trusted_ca_keys_len = ext_datalen;
+			if (tls_trusted_authorities_from_bytes(&trusted_authorities,
+				&trusted_authorities_len, ext_data, ext_datalen) != 1) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			}
+			trusted_ca_keys = 1;
 			break;
 
 		case TLS_extension_status_request:
@@ -1498,6 +1507,19 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
+	}
+
+	if (trusted_ca_keys) {
+		conn->trusted_ca_keys = 1;
+		if (trusted_authorities_len > sizeof(conn->trusted_authorities)) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		if (trusted_authorities_len) {
+			memcpy(conn->trusted_authorities, trusted_authorities, trusted_authorities_len);
+		}
+		conn->trusted_authorities_len = trusted_authorities_len;
 	}
 
 	if (application_layer_protocol_negotiation) {

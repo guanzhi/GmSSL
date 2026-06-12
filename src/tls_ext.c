@@ -62,6 +62,311 @@ int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const u
 	return 1;
 }
 
+/*
+3. trusted_ca_keys
+
+struct {
+	TrustedAuthority trusted_authorities_list<0..2^16-1>;
+} TrustedAuthorities;
+
+struct {
+	IdentifierType identifier_type;
+	select (identifier_type) {
+	case pre_agreed: struct {};
+	case key_sha1_hash: SHA1Hash;
+	case x509_name: DistinguishedName;
+	case cert_sha1_hash: SHA1Hash;
+	} identifier;
+} TrustedAuthority;
+
+enum {
+	pre_agreed(0), key_sha1_hash(1), x509_name(2),
+	cert_sha1_hash(3), (255)
+} IdentifierType;
+
+opaque DistinguishedName<1..2^16-1>;
+*/
+
+const char *tls_trusted_authority_type_name(int type)
+{
+	switch (type) {
+	case TLS_trusted_authority_pre_agreed: return "pre_agreed";
+	case TLS_trusted_authority_key_sha1_hash: return "key_sha1_hash";
+	case TLS_trusted_authority_x509_name: return "x509_name";
+	case TLS_trusted_authority_cert_sha1_hash: return "cert_sha1_hash";
+	default: return NULL;
+	}
+}
+
+int tls_trusted_authority_to_bytes(int type, const uint8_t *data, size_t datalen,
+	uint8_t **out, size_t *outlen)
+{
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
+	if (!tls_trusted_authority_type_name(type)) {
+		error_print();
+		return -1;
+	}
+
+	switch (type) {
+	case TLS_trusted_authority_pre_agreed:
+		if (data || datalen) {
+			error_print();
+			return -1;
+		}
+		tls_uint8_to_bytes((uint8_t)type, out, outlen);
+		break;
+
+	case TLS_trusted_authority_key_sha1_hash:
+	case TLS_trusted_authority_cert_sha1_hash:
+		if (!data || datalen != 20) {
+			error_print();
+			return -1;
+		}
+		tls_uint8_to_bytes((uint8_t)type, out, outlen);
+		tls_array_to_bytes(data, datalen, out, outlen);
+		break;
+
+	case TLS_trusted_authority_x509_name:
+		if (!data || datalen < 1 || datalen > UINT16_MAX) {
+			error_print();
+			return -1;
+		}
+		tls_uint8_to_bytes((uint8_t)type, out, outlen);
+		tls_uint16array_to_bytes(data, datalen, out, outlen);
+		break;
+	}
+
+	return 1;
+}
+
+int tls_trusted_authority_from_bytes(int *type, const uint8_t **data, size_t *datalen,
+	const uint8_t **in, size_t *inlen)
+{
+	uint8_t u8;
+
+	if (!type || !data || !datalen || !in || !(*in) || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint8_from_bytes(&u8, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!tls_trusted_authority_type_name(u8)) {
+		error_print();
+		return -1;
+	}
+
+	*type = u8;
+	switch (u8) {
+	case TLS_trusted_authority_pre_agreed:
+		*data = NULL;
+		*datalen = 0;
+		break;
+
+	case TLS_trusted_authority_key_sha1_hash:
+	case TLS_trusted_authority_cert_sha1_hash:
+		if (*inlen < 20) {
+			error_print();
+			return -1;
+		}
+		*data = *in;
+		*datalen = 20;
+		*in += 20;
+		*inlen -= 20;
+		break;
+
+	case TLS_trusted_authority_x509_name:
+		if (tls_uint16array_from_bytes(data, datalen, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (*datalen < 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	}
+
+	return 1;
+}
+
+int tls_trusted_authorities_to_bytes(const uint8_t *authorities, size_t authorities_len,
+	uint8_t **out, size_t *outlen)
+{
+	if (!outlen) {
+		error_print();
+		return -1;
+	}
+	if (!authorities && authorities_len) {
+		error_print();
+		return -1;
+	}
+	if (authorities_len > UINT16_MAX) {
+		error_print();
+		return -1;
+	}
+	tls_uint16array_to_bytes(authorities, authorities_len, out, outlen);
+	return 1;
+}
+
+int tls_trusted_authorities_from_bytes(const uint8_t **authorities, size_t *authorities_len,
+	const uint8_t *data, size_t datalen)
+{
+	const uint8_t *p;
+	size_t len;
+
+	if (!authorities || !authorities_len) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1
+		|| tls_length_is_zero(datalen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	*authorities = p;
+	*authorities_len = len;
+
+	while (len) {
+		int type;
+		const uint8_t *d;
+		size_t dlen;
+
+		if (tls_trusted_authority_from_bytes(&type, &d, &dlen, &p, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (type == TLS_trusted_authority_x509_name) {
+			const uint8_t *name;
+			size_t namelen;
+			if (asn1_sequence_from_der(&name, &namelen, &d, &dlen) != 1
+				|| asn1_length_is_zero(dlen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+	}
+
+	return 1;
+}
+
+int tls_trusted_ca_keys_ext_to_bytes(const uint8_t *authorities, size_t authorities_len,
+	uint8_t **out, size_t *outlen)
+{
+	uint8_t ext_data[512];
+	uint8_t *p = ext_data;
+	size_t len = 0;
+
+	if (authorities_len > sizeof(ext_data) - tls_uint16_size()) {
+		error_print();
+		return -1;
+	}
+	if (tls_trusted_authorities_to_bytes(authorities, authorities_len, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_ext_to_bytes(TLS_extension_trusted_ca_keys, ext_data, len, out, outlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tls_trusted_authorities_from_ca_names(uint8_t *authorities, size_t *authorities_len, size_t maxlen,
+	const uint8_t *ca_names, size_t ca_names_len)
+{
+	uint8_t *p = authorities;
+
+	if (!authorities || !authorities_len) {
+		error_print();
+		return -1;
+	}
+	if (!ca_names && ca_names_len) {
+		error_print();
+		return -1;
+	}
+	*authorities_len = 0;
+
+	while (ca_names_len) {
+		const uint8_t *name;
+		size_t namelen;
+		size_t len = 0;
+
+		if (tls_uint16array_from_bytes(&name, &namelen, &ca_names, &ca_names_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls_trusted_authority_to_bytes(TLS_trusted_authority_x509_name,
+			name, namelen, NULL, &len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (*authorities_len + len > maxlen) {
+			error_print();
+			return -1;
+		}
+		if (tls_trusted_authority_to_bytes(TLS_trusted_authority_x509_name,
+			name, namelen, &p, authorities_len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
+int tls_trusted_authorities_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *authorities;
+	size_t authorities_len;
+
+	format_print(fp, fmt, ind, "trusted_authorities\n");
+	ind += 4;
+
+	if (tls_trusted_authorities_from_bytes(&authorities, &authorities_len, ext_data, ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	while (authorities_len) {
+		int type;
+		const uint8_t *data;
+		size_t datalen;
+
+		if (tls_trusted_authority_from_bytes(&type, &data, &datalen, &authorities, &authorities_len) != 1) {
+			error_print();
+			return -1;
+		}
+		format_print(fp, fmt, ind, "%s (%d)\n", tls_trusted_authority_type_name(type), type);
+		switch (type) {
+		case TLS_trusted_authority_pre_agreed:
+			break;
+		case TLS_trusted_authority_key_sha1_hash:
+		case TLS_trusted_authority_cert_sha1_hash:
+			format_bytes(fp, fmt, ind + 4, "sha1_hash", data, datalen);
+			break;
+		case TLS_trusted_authority_x509_name:
+			{
+				const uint8_t *name;
+				size_t namelen;
+				if (asn1_sequence_from_der(&name, &namelen, &data, &datalen) != 1
+					|| asn1_length_is_zero(datalen) != 1) {
+					error_print();
+					return -1;
+				}
+				x509_name_print(fp, fmt, ind + 4, "DistinguishedName", name, namelen);
+			}
+			break;
+		}
+	}
+
+	return 1;
+}
+
 
 /*
 11. ec_point_formats
