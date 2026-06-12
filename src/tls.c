@@ -3143,24 +3143,12 @@ int tls_set_verbose(TLS_CONNECT *conn, int verbose)
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
-#ifdef WIN32
-	u_long flags = 0; // TODO: 0 == blocking, 1 == non-blocking
-    	if(ioctlsocket(sock, FIONBIO, &flags) != 0)   {
-		error_puts("socket in non-blocking mode");
-		//nginx will pass a socket in non-blocking mode
-		//return -1; // FIXME
-	}
-#else
+#ifndef WIN32
 	int flags = 0;
 	if ((flags = fcntl(sock, F_GETFL)) == -1) {
 		error_print();
 		perror("fcntl error");
 		return -1;
-	}
-	if (flags & O_NONBLOCK) {
-		error_puts("socket in non-blocking mode");
-		//nginx will pass a socket in non-blocking mode
-		//return -1; // FIXME
 	}
 #endif
 	conn->sock = sock;
