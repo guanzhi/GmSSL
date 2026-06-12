@@ -1004,6 +1004,7 @@ enum {
 	TLS_state_handshake_over,
 
 
+	TLS_state_send_record,
 	TLS_state_recv_record_header,
 	TLS_state_recv_record_data,
 };
@@ -1017,8 +1018,10 @@ typedef struct {
 
 	TLS_CTX *ctx;
 
-	// handshake state for state machine
-	int state;
+	// states for state machines
+	int handshake_state;
+	int send_state;
+	int recv_state;
 
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];

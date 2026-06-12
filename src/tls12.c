@@ -3536,7 +3536,7 @@ int tls12_do_client_handshake(TLS_CONNECT *conn)
 	int ret;
 	int next_state;
 
-	switch (conn->state) {
+	switch (conn->handshake_state) {
 	case TLS_state_client_hello:
 		ret = tls_send_client_hello(conn);
 		next_state = TLS_state_server_hello;
@@ -3626,7 +3626,7 @@ int tls12_do_client_handshake(TLS_CONNECT *conn)
 		}
 	}
 
-	conn->state = next_state;
+	conn->handshake_state = next_state;
 
 	// ret == 0 means this step is bypassed
 	if (ret == 1) {
@@ -3641,7 +3641,7 @@ int tls12_do_server_handshake(TLS_CONNECT *conn)
 	int ret;
 	int next_state;
 
-	switch (conn->state) {
+	switch (conn->handshake_state) {
 	case TLS_state_client_hello:
 		ret = tls_recv_client_hello(conn);
 		next_state = TLS_state_server_hello;
@@ -3728,7 +3728,7 @@ int tls12_do_server_handshake(TLS_CONNECT *conn)
 
 	}
 
-	conn->state = next_state;
+	conn->handshake_state = next_state;
 
 	tls_clean_record(conn);
 
@@ -3741,7 +3741,7 @@ int tls12_client_handshake(TLS_CONNECT *conn)
 {
 	int ret;
 
-	while (conn->state != TLS_state_handshake_over) {
+	while (conn->handshake_state != TLS_state_handshake_over) {
 
 		ret = tls12_do_client_handshake(conn);
 
@@ -3763,7 +3763,7 @@ int tls12_server_handshake(TLS_CONNECT *conn)
 	int ret;
 
 
-	while (conn->state != TLS_state_handshake_over) {
+	while (conn->handshake_state != TLS_state_handshake_over) {
 
 		ret = tls12_do_server_handshake(conn);
 
@@ -3786,7 +3786,7 @@ int tls12_do_connect(TLS_CONNECT *conn)
 	fd_set rfds;
 	fd_set wfds;
 
-	conn->state = TLS_state_client_hello;
+	conn->handshake_state = TLS_state_client_hello;
 	//sm3_init(&conn->sm3_ctx);
 
 
@@ -3825,7 +3825,7 @@ int tls12_do_accept(TLS_CONNECT *conn)
 	fd_set rfds;
 	fd_set wfds;
 
-	conn->state = TLS_state_client_hello;
+	conn->handshake_state = TLS_state_client_hello;
 
 	//sm3_init(&conn->sm3_ctx);
 	digest_init(&conn->dgst_ctx, DIGEST_sm3());

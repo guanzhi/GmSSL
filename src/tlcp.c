@@ -2261,7 +2261,7 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 	int ret;
 	int next_state;
 
-	switch (conn->state) {
+	switch (conn->handshake_state) {
 	case TLS_state_client_hello:
 		ret = tlcp_send_client_hello(conn);
 		next_state = TLS_state_server_hello;
@@ -2346,7 +2346,7 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 		}
 	}
 
-	conn->state = next_state;
+	conn->handshake_state = next_state;
 
 	// ret == 0 means this step is bypassed
 	if (ret == 1) {
@@ -2361,7 +2361,7 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 	int ret;
 	int next_state;
 
-	switch (conn->state) {
+	switch (conn->handshake_state) {
 	case TLS_state_client_hello:
 		ret = tlcp_recv_client_hello(conn);
 		next_state = TLS_state_server_hello;
@@ -2448,7 +2448,7 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 
 	}
 
-	conn->state = next_state;
+	conn->handshake_state = next_state;
 
 	tls_clean_record(conn);
 
@@ -2459,7 +2459,7 @@ int tlcp_client_handshake(TLS_CONNECT *conn)
 {
 	int ret;
 
-	while (conn->state != TLS_state_handshake_over) {
+	while (conn->handshake_state != TLS_state_handshake_over) {
 
 		ret = tlcp_do_client_handshake(conn);
 
@@ -2481,7 +2481,7 @@ int tlcp_server_handshake(TLS_CONNECT *conn)
 	int ret;
 
 
-	while (conn->state != TLS_state_handshake_over) {
+	while (conn->handshake_state != TLS_state_handshake_over) {
 
 		ret = tlcp_do_server_handshake(conn);
 
@@ -2506,7 +2506,7 @@ int tlcp_do_connect(TLS_CONNECT *conn)
 
 	// 应该把protocol_version的初始化放在这里
 
-	conn->state = TLS_state_client_hello;
+	conn->handshake_state = TLS_state_client_hello;
 	//sm3_init(&conn->sm3_ctx);
 
 	while (1) {
@@ -2542,7 +2542,7 @@ int tlcp_do_accept(TLS_CONNECT *conn)
 	fd_set rfds;
 	fd_set wfds;
 
-	conn->state = TLS_state_client_hello;
+	conn->handshake_state = TLS_state_client_hello;
 
 	//sm3_init(&conn->sm3_ctx);
 
