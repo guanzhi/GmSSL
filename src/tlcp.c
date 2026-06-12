@@ -276,7 +276,7 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 		if (tls_record_set_handshake_client_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->client_random, NULL, 0,
 			conn->ctx->cipher_suites, conn->ctx->cipher_suites_cnt,
-			exts, extslen) != 1) {
+			extslen ? exts : NULL, extslen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -844,6 +844,11 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 	}
 	tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
 
+	if (tlcp_generate_keys(conn) != 1) {
+		error_print();
+		return -1;
+	}
+
 	return 1;
 }
 
@@ -1120,15 +1125,13 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	}
 	memcpy(conn->client_random, client_random, 32);
 
-	/*
-	if (tls_cipher_suites_select(client_ciphers, client_ciphers_len,
+	if (tls_cipher_suites_select(cipher_suites, cipher_suites_len,
 		conn->ctx->cipher_suites, conn->ctx->cipher_suites_cnt,
 		&conn->cipher_suite) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_insufficient_security);
 		return -1;
 	}
-	*/
 
 
 	// 在TLS 1.3中，公钥密码算法是用扩展完成的，而在TLS1.2中，算法完全是由cipher_sutie决定的
@@ -1327,7 +1330,7 @@ int tlcp_send_server_hello(TLS_CONNECT *conn)
 		if (tls_record_set_handshake_server_hello(conn->record, &conn->recordlen,
 			conn->protocol, conn->server_random, NULL, 0,
 			conn->cipher_suite,
-			exts, extslen) != 1) {
+			extslen ? exts : NULL, extslen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -1446,37 +1449,83 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 
 
 
-// 对于客户端，是先发送client_key_exchange在generate_keys
-int tlcp_generate_keys(TLS_CONNECT *conn)
+static int tlcp_generate_master_secret(TLS_CONNECT *conn)
 {
-	tls_trace("generate secrets\n");
-
-
-
+	if (!conn) {
+		error_print();
+		return -1;
+	}
 	if (tls_prf(conn->pre_master_secret, 48, "master secret",
 			conn->client_random, 32,
 			conn->server_random, 32,
-			48, conn->master_secret) != 1
-		|| tls_prf(conn->master_secret, 48, "key expansion",
-			conn->server_random, 32, // 这里顺序为什么是反的				
+			48, conn->master_secret) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
+	return 1;
+}
+
+static int tlcp_generate_key_block(TLS_CONNECT *conn)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (tls_prf(conn->master_secret, 48, "key expansion",
+			conn->server_random, 32,
 			conn->client_random, 32,
 			96, conn->key_block) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
+	return 1;
+}
 
-	// 主力这里是不对的，需要为client, server设定不同的加密密钥			
-	hmac_init(&conn->client_write_mac_ctx, DIGEST_sm3(), conn->key_block, 32);
-	hmac_init(&conn->server_write_mac_ctx, DIGEST_sm3(), conn->key_block + 32, 32);
+static int tlcp_generate_record_keys(TLS_CONNECT *conn)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (hmac_init(&conn->client_write_mac_ctx, DIGEST_sm3(), conn->key_block, 32) != 1
+		|| hmac_init(&conn->server_write_mac_ctx, DIGEST_sm3(), conn->key_block + 32, 32) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
 
 	if (conn->is_client) {
-		block_cipher_set_encrypt_key(&conn->client_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 64);
-		block_cipher_set_decrypt_key(&conn->server_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 80);
+		if (block_cipher_set_encrypt_key(&conn->client_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 64) != 1
+			|| block_cipher_set_decrypt_key(&conn->server_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 80) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
 	} else {
-		block_cipher_set_decrypt_key(&conn->client_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 64);
-		block_cipher_set_encrypt_key(&conn->server_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 80);
+		if (block_cipher_set_decrypt_key(&conn->client_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 64) != 1
+			|| block_cipher_set_encrypt_key(&conn->server_write_key, BLOCK_CIPHER_sm4(), conn->key_block + 80) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
 	}
+	return 1;
+}
+
+int tlcp_generate_keys(TLS_CONNECT *conn)
+{
+	tls_trace("generate secrets\n");
+
+	if (tlcp_generate_master_secret(conn) != 1
+		|| tlcp_generate_key_block(conn) != 1
+		|| tlcp_generate_record_keys(conn) != 1) {
+		error_print();
+		return -1;
+	}
+	tls_seq_num_reset(conn->client_seq_num);
+	tls_seq_num_reset(conn->server_seq_num);
 
 	tls_secrets_print(stderr,
 		conn->pre_master_secret, 48,
@@ -1588,6 +1637,10 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
 	//tlcp_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->sm3_ctx);i
 
+	if (tlcp_generate_keys(conn) != 1) {
+		error_print();
+		return -1;
+	}
 
 	return 1;
 }
@@ -1695,11 +1748,6 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 
 	case TLS_state_client_key_exchange:
 		ret = tlcp_send_client_key_exchange(conn);
-		next_state = TLS_state_generate_keys;
-		break;
-
-	case TLS_state_generate_keys:
-		ret = tlcp_generate_keys(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_certificate_verify;
 		else	next_state = TLS_state_client_change_cipher_spec;
@@ -1708,6 +1756,7 @@ int tlcp_do_client_handshake(TLS_CONNECT *conn)
 	case TLS_state_certificate_verify:
 		ret = tlcp_send_certificate_verify(conn);
 		next_state = TLS_state_client_change_cipher_spec;
+		break;
 
 	case TLS_state_client_change_cipher_spec:
 		ret = tls_send_change_cipher_spec(conn);
@@ -1802,16 +1851,11 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 		ret = tlcp_recv_client_key_exchange(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_certificate_verify;
-		else	next_state = TLS_state_generate_keys;
+		else	next_state = TLS_state_client_change_cipher_spec;
 		break;
 
 	case TLS_state_certificate_verify:
 		ret = tlcp_recv_certificate_verify(conn);
-		next_state = TLS_state_generate_keys;
-		break;
-
-	case TLS_state_generate_keys:
-		ret = tlcp_generate_keys(conn);
 		next_state = TLS_state_client_change_cipher_spec;
 		break;
 
