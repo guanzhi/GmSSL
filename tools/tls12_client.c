@@ -18,12 +18,7 @@
 
 static int client_ciphers[] = { TLS_cipher_ecdhe_sm4_cbc_sm3 };
 
-static const char *http_get =
-	"GET / HTTP/1.1\r\n"
-	"Hostname: aaa\r\n"
-	"\r\n\r\n";
-
-static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-trusted_ca_keys] [-verbose]";
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-get path|-in file] [-trusted_ca_keys] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -45,6 +40,8 @@ static const char *help =
 "    -renegotiation_info_scsv\n"
 "                          Send TLS_EMPTY_RENEGOTIATION_INFO_SCSV\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
+"    -get path              Send a HTTP GET request and read response until close or timeout\n"
+"    -in file | stdin       Send input data and read response until close or timeout\n"
 "    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tls12_help.h"
@@ -158,6 +155,65 @@ static int do_send_select(TLS_CONNECT *conn, const uint8_t *buf, size_t len)
 	return 1;
 }
 
+static int do_recv_until_timeout(TLS_CONNECT *conn, char *prog)
+{
+	char buf[1024];
+	size_t len;
+	fd_set fds;
+	struct timeval timeout;
+
+	for (;;) {
+		FD_ZERO(&fds);
+		FD_SET(conn->sock, &fds);
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
+		switch (select((int)(conn->sock + 1), &fds, NULL, NULL, &timeout)) {
+		case -1:
+			fprintf(stderr, "%s: select failed\n", prog);
+			return -1;
+		case 0:
+			do_shutdown_select(conn);
+			return 1;
+		}
+
+		len = sizeof(buf);
+		switch (tls_recv(conn, (uint8_t *)buf, sizeof(buf), &len)) {
+		case 1:
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
+			break;
+		case 0:
+			do_shutdown_select(conn);
+			return 1;
+		case TLS_ERROR_RECV_AGAIN:
+		case TLS_ERROR_SEND_AGAIN:
+		case -EAGAIN:
+			break;
+		default:
+			fprintf(stderr, "%s: tls_recv error\n", prog);
+			return -1;
+		}
+	}
+}
+
+static int do_send_file_select(TLS_CONNECT *conn, FILE *fp)
+{
+	uint8_t buf[4096];
+	size_t len;
+
+	while ((len = fread(buf, 1, sizeof(buf), fp)) > 0) {
+		if (do_send_select(conn, buf, len) != 1) {
+			return -1;
+		}
+	}
+	if (ferror(fp)) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tls12_client_main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -180,6 +236,8 @@ int tls12_client_main(int argc, char *argv[])
 	int trusted_ca_keys = 0;
 	int renegotiation_info = 0;
 	int empty_renegotiation_info_scsv = 0;
+	char *get = NULL;
+	char *infile = NULL;
 	int verbose = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
@@ -280,6 +338,12 @@ int tls12_client_main(int argc, char *argv[])
 			empty_renegotiation_info_scsv = 1;
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
+		} else if (!strcmp(*argv, "-get")) {
+			if (--argc < 1) goto bad;
+			get = *(++argv);
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
 		} else if (!strcmp(*argv, "-verbose")) {
 			verbose = 1;
 		} else {
@@ -294,7 +358,11 @@ bad:
 	}
 
 	if (!host) {
-		fprintf(stderr, "%s: '-in' option required\n", prog);
+		fprintf(stderr, "%s: '-host' option required\n", prog);
+		return -1;
+	}
+	if (get && infile) {
+		fprintf(stderr, "%s: '-get' and '-in' should not be used together\n", prog);
 		return -1;
 	}
 
@@ -421,6 +489,40 @@ bad:
 
 	if (do_handshake_select(&conn) != 1) {
 		fprintf(stderr, "%s: error\n", prog);
+		goto end;
+	}
+
+	if (get) {
+		snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", get, host);
+		if (do_send_select(&conn, (uint8_t *)buf, strlen(buf)) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+		if (do_recv_until_timeout(&conn, prog) != 1) {
+			goto end;
+		}
+		ret = 0;
+		goto end;
+	}
+
+	if (infile) {
+		FILE *infp = stdin;
+		if (strcmp(infile, "-") && strcmp(infile, "stdin")) {
+			if (!(infp = fopen(infile, "rb"))) {
+				fprintf(stderr, "%s: open '%s' failure\n", prog, infile);
+				goto end;
+			}
+		}
+		if (do_send_file_select(&conn, infp) != 1) {
+			if (infp != stdin) fclose(infp);
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+		if (infp != stdin) fclose(infp);
+		if (do_recv_until_timeout(&conn, prog) != 1) {
+			goto end;
+		}
+		ret = 0;
 		goto end;
 	}
 

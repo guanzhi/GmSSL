@@ -98,12 +98,99 @@ static int do_shutdown_select(TLS_CONNECT *conn)
 	}
 }
 
-static const char *http_get =
-	"GET / HTTP/1.1\r\n"
-	"Hostname: aaa\r\n"
-	"\r\n\r\n";
+static int do_send_select(TLS_CONNECT *conn, const uint8_t *buf, size_t len)
+{
+	int ret;
+	size_t offset = 0;
+	fd_set rfds;
+	fd_set wfds;
 
-static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-verbose]";
+	while (offset < len) {
+		size_t sentlen = 0;
+
+		ret = tls_send(conn, buf + offset, len - offset, &sentlen);
+		if (ret == 1) {
+			offset += sentlen;
+			continue;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+static int do_recv_until_timeout(TLS_CONNECT *conn, char *prog)
+{
+	char buf[1024];
+	size_t len;
+	fd_set fds;
+	struct timeval timeout;
+
+	for (;;) {
+		FD_ZERO(&fds);
+		FD_SET(conn->sock, &fds);
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
+		switch (select((int)(conn->sock + 1), &fds, NULL, NULL, &timeout)) {
+		case -1:
+			fprintf(stderr, "%s: select failed\n", prog);
+			return -1;
+		case 0:
+			do_shutdown_select(conn);
+			return 1;
+		}
+
+		len = sizeof(buf);
+		switch (tls_recv(conn, (uint8_t *)buf, sizeof(buf), &len)) {
+		case 1:
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
+			break;
+		case 0:
+			do_shutdown_select(conn);
+			return 1;
+		case TLS_ERROR_RECV_AGAIN:
+		case TLS_ERROR_SEND_AGAIN:
+		case -EAGAIN:
+			break;
+		default:
+			fprintf(stderr, "%s: tls_recv error\n", prog);
+			return -1;
+		}
+	}
+}
+
+static int do_send_file_select(TLS_CONNECT *conn, FILE *fp)
+{
+	uint8_t buf[4096];
+	size_t len;
+
+	while ((len = fread(buf, 1, sizeof(buf), fp)) > 0) {
+		if (do_send_select(conn, buf, len) != 1) {
+			return -1;
+		}
+	}
+	if (ferror(fp)) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-get path|-in file] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -136,6 +223,8 @@ static const char *help =
 "    -post_handshake_auth      Support post_handshake_auth\n"
 "    -client_cert_optional     Allow client send empty Certificate\n"
 "    -tls13_change_cipher_spec Support ChangeCipherSpec in TLS 1.3 to be compatible with middlebox\n"
+"    -get path                 Send a HTTP GET request and read response until close or timeout\n"
+"    -in file | stdin          Send input data and read response until close or timeout\n"
 "    -verbose                  Print TLS handshake messages\n"
 "\n"
 #include "tls13_help.h"
@@ -234,6 +323,8 @@ int tls13_client_main(int argc, char *argv[])
 	// ChangeCipherSpec
 	int tls13_change_cipher_spec = 0;
 	int verbose = 0;
+	char *get = NULL;
+	char *infile = NULL;
 
 	int send_again = 0;
 
@@ -399,6 +490,12 @@ int tls13_client_main(int argc, char *argv[])
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-tls13_change_cipher_spec")) {
 			tls13_change_cipher_spec = 1;
+		} else if (!strcmp(*argv, "-get")) {
+			if (--argc < 1) goto bad;
+			get = *(++argv);
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
 		} else if (!strcmp(*argv, "-verbose")) {
 			verbose = 1;
 		} else {
@@ -419,6 +516,10 @@ bad:
 
 	if (!cipher_suites_cnt) {
 		fprintf(stderr, "%s: option '-cipher_suite' required\n", prog);
+		return -1;
+	}
+	if (get && infile) {
+		fprintf(stderr, "%s: '-get' and '-in' should not be used together\n", prog);
 		return -1;
 	}
 
@@ -724,6 +825,40 @@ bad:
 
 	fprintf(stderr, "connected\n");
 	fprintf(stderr, "\n");
+
+	if (get) {
+		snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", get, host);
+		if (do_send_select(&conn, (uint8_t *)buf, strlen(buf)) != 1) {
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+		if (do_recv_until_timeout(&conn, prog) != 1) {
+			goto end;
+		}
+		ret = 0;
+		goto end;
+	}
+
+	if (infile) {
+		FILE *infp = stdin;
+		if (strcmp(infile, "-") && strcmp(infile, "stdin")) {
+			if (!(infp = fopen(infile, "rb"))) {
+				fprintf(stderr, "%s: open '%s' failure\n", prog, infile);
+				goto end;
+			}
+		}
+		if (do_send_file_select(&conn, infp) != 1) {
+			if (infp != stdin) fclose(infp);
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+		if (infp != stdin) fclose(infp);
+		if (do_recv_until_timeout(&conn, prog) != 1) {
+			goto end;
+		}
+		ret = 0;
+		goto end;
+	}
 
 	for (;;) {
 

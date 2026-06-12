@@ -23,7 +23,7 @@ static const char *usage =
 	"-host str [-port num] [-cacert pem]"
 	" [-cert pem -key pem -pass str]"
 	" [-certout pem]"
-	" [-get path]"
+	" [-get path|-in file]"
 	" [-alpn str]"
 	" [-trusted_ca_keys]"
 	" [-verbose]";
@@ -43,6 +43,7 @@ static const char *help =
 "    -pass password         Password of encrypted private key\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -get path              Send a GET request with given path of URI\n"
+"    -in file | stdin       Send input data and read response until close or timeout\n"
 "    -certout pem           Save server certificates to a PEM file\n"
 "    -server_name str       Send server_name (SNI) request\n"
 "    -trusted_ca_keys       Send trusted_ca_keys request\n"
@@ -162,6 +163,65 @@ static int do_send_select(TLS_CONNECT *conn, const uint8_t *buf, size_t len)
 	return 1;
 }
 
+static int do_recv_until_timeout(TLS_CONNECT *conn, char *prog)
+{
+	char buf[1024];
+	size_t len;
+	fd_set fds;
+	struct timeval timeout;
+
+	for (;;) {
+		FD_ZERO(&fds);
+		FD_SET(conn->sock, &fds);
+		timeout.tv_sec = TIMEOUT_SECONDS;
+		timeout.tv_usec = 0;
+
+		switch (select((int)(conn->sock + 1), &fds, NULL, NULL, &timeout)) {
+		case -1:
+			fprintf(stderr, "%s: select error\n", prog);
+			return -1;
+		case 0:
+			do_shutdown_select(conn);
+			return 1;
+		}
+
+		len = sizeof(buf);
+		switch (tls_recv(conn, (uint8_t *)buf, sizeof(buf), &len)) {
+		case 1:
+			fwrite(buf, 1, len, stdout);
+			fflush(stdout);
+			break;
+		case 0:
+			do_shutdown_select(conn);
+			return 1;
+		case TLS_ERROR_RECV_AGAIN:
+		case TLS_ERROR_SEND_AGAIN:
+		case -EAGAIN:
+			break;
+		default:
+			fprintf(stderr, "%s: tls_recv error\n", prog);
+			return -1;
+		}
+	}
+}
+
+static int do_send_file_select(TLS_CONNECT *conn, FILE *fp)
+{
+	uint8_t buf[4096];
+	size_t len;
+
+	while ((len = fread(buf, 1, sizeof(buf), fp)) > 0) {
+		if (do_send_select(conn, buf, len) != 1) {
+			return -1;
+		}
+	}
+	if (ferror(fp)) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tlcp_client_main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -186,6 +246,7 @@ int tlcp_client_main(int argc, char *argv[])
 	size_t alpn_protocols_cnt = 0;
 	int client_cert_optional = 0;
 	char *get = NULL;
+	char *infile = NULL;
 	char *certoutfile = NULL;
 	int verbose = 0;
 	struct hostent *hp;
@@ -294,6 +355,9 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-get")) {
 			if (--argc < 1) goto bad;
 			get = *(++argv);
+		} else if (!strcmp(*argv, "-in")) {
+			if (--argc < 1) goto bad;
+			infile = *(++argv);
 		} else if (!strcmp(*argv, "-certout")) {
 			if (--argc < 1) goto bad;
 			certoutfile = *(++argv);
@@ -319,6 +383,10 @@ bad:
 
 	if (!cipher_suites_cnt) {
 		fprintf(stderr, "%s: option '-cipher_suite' missing\n", prog);
+		return -1;
+	}
+	if (get && infile) {
+		fprintf(stderr, "%s: '-get' and '-in' should not be used together\n", prog);
 		return -1;
 	}
 
@@ -454,10 +522,6 @@ bad:
 	}
 
 	if (get) {
-		struct timeval timeout;
-		timeout.tv_sec = TIMEOUT_SECONDS;
-		timeout.tv_usec = 0;
-
 		snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", get, host);
 
 		if (do_send_select(&conn, (uint8_t *)buf, strlen(buf)) != 1) {
@@ -465,54 +529,32 @@ bad:
 			goto end;
 		}
 
-		// use timeout to close the HTTP connection
-		if (setsockopt(conn.sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) != 0) {
-			perror("setsockopt");
-			fprintf(stderr, "%s: set socket timeout error\n", prog);
+		if (do_recv_until_timeout(&conn, prog) != 1) {
 			goto end;
 		}
+		ret = 0;
+		goto end;
+	}
 
-		for (;;) {
-			int rv;
-
-			len = sizeof(buf);
-			rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len);
-
-			if (rv == 1) {
-				fwrite(buf, 1, len, stdout);
-				fflush(stdout);
-			} else if (rv == 0) {
-				fprintf(stderr, "%s: TLCP connection is closed by remote host\n", prog);
-				do_shutdown_select(&conn);
-				ret = 0;
-				goto end;
-			} else if (rv == -EAGAIN
-				|| rv == TLS_ERROR_RECV_AGAIN
-				|| rv == TLS_ERROR_SEND_AGAIN) {
-				fd_set fds;
-				struct timeval timeout;
-				int sel;
-
-				timeout.tv_sec = TIMEOUT_SECONDS;
-				timeout.tv_usec = 0;
-				FD_ZERO(&fds);
-				FD_SET(conn.sock, &fds);
-				sel = select(conn.sock + 1, &fds, NULL, NULL, &timeout);
-				if (sel < 0) {
-					fprintf(stderr, "%s: select error\n", prog);
-					goto end;
-				} else if (sel == 0) {
-					do_shutdown_select(&conn);
-					ret = 0;
-					goto end;
-				}
-			} else {
-				fprintf(stderr, "%s: tls_recv error\n", prog);
+	if (infile) {
+		FILE *infp = stdin;
+		if (strcmp(infile, "-") && strcmp(infile, "stdin")) {
+			if (!(infp = fopen(infile, "rb"))) {
+				fprintf(stderr, "%s: open '%s' failure\n", prog, infile);
 				goto end;
 			}
 		}
-
-		read_stdin = 0;
+		if (do_send_file_select(&conn, infp) != 1) {
+			if (infp != stdin) fclose(infp);
+			fprintf(stderr, "%s: send error\n", prog);
+			goto end;
+		}
+		if (infp != stdin) fclose(infp);
+		if (do_recv_until_timeout(&conn, prog) != 1) {
+			goto end;
+		}
+		ret = 0;
+		goto end;
 	}
 
 	for (;;) {
