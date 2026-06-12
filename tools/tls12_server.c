@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert file -key file -pass str [-cacert file]";
+static const char *options = "[-port num] -cert pem -key pem -pass str [-cacert pem]";
 
 static const char *help =
 "Options\n"
@@ -27,11 +27,11 @@ static const char *help =
 "    -cipher_suite str      Supported cipher suites, may appear multiple times, higher priority first\n"
 "    -supported_group str   Supported elliptic curves, may appear multiple times, higher priority first\n"
 "    -sig_alg str           Supported signature algorithms\n"
-"    -cert file             Server's certificate chain in PEM format\n"
-"    -key file              Server's encrypted private key in PEM format\n"
+"    -cert pem              Server's certificate chain in PEM format\n"
+"    -key pem               Server's encrypted private key in PEM format\n"
 "    -pass str              Password to decrypt private key\n"
 "    -cert_request          Client certificate request\n"
-"    -cacert file           CA certificate for client certificate verification\n"
+"    -cacert pem            CA certificate for client certificate verification\n"
 "    -verify_depth num      Certificate verification depth\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -renegotiation_info    Send renegotiation_info response when client supports RFC 5746\n"

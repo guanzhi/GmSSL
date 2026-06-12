@@ -2742,8 +2742,7 @@ end:
 }
 
 int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
-	const char *signkeyfile, const char *signkeypass,
-	const char *kenckeyfile, const char *kenckeypass)
+	const char *keyfile, const char *keypass)
 {
 	int ret = -1;
 	const int algor = OID_ec_public_key;
@@ -2753,15 +2752,14 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 	size_t cert_chains_len;
 	size_t key_idx;
 	FILE *certfp = NULL;
-	FILE *signkeyfp = NULL;
-	FILE *kenckeyfp = NULL;
+	FILE *keyfp = NULL;
 
 	const uint8_t *cert;
 	size_t certlen;
 	X509_KEY public_key;
 
 
-	if (!ctx || !chainfile || !signkeyfile || !signkeypass || !kenckeyfile || !kenckeypass) {
+	if (!ctx || !chainfile || !keyfile || !keypass) {
 		error_print();
 		return -1;
 	}
@@ -2798,11 +2796,11 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 	cert_chains_len += cert_chain_len;
 
 	// load sign key
-	if (!(signkeyfp = fopen(signkeyfile, "r"))) {
+	if (!(keyfp = fopen(keyfile, "r"))) {
 		error_print();
 		goto end;
 	}
-	if (x509_private_key_from_file(&ctx->x509_keys[key_idx], algor, signkeypass, signkeyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->x509_keys[key_idx], algor, keypass, keyfp) != 1) {
 		error_print();
 		goto end;
 	}
@@ -2818,11 +2816,7 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 	}
 
 	// load enc key
-	if (!(kenckeyfp = fopen(kenckeyfile, "r"))) {
-		error_print();
-		goto end;
-	}
-	if (x509_private_key_from_file(&ctx->enc_keys[key_idx], algor, kenckeypass, kenckeyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->enc_keys[key_idx], algor, keypass, keyfp) != 1) {
 		error_print();
 		goto end;
 	}
@@ -2852,21 +2846,19 @@ end:
 		x509_key_cleanup(&ctx->enc_keys[key_idx]);
 	}
 	if (certfp) fclose(certfp);
-	if (signkeyfp) fclose(signkeyfp);
-	if (kenckeyfp) fclose(kenckeyfp);
+	if (keyfp) fclose(keyfp);
 	return ret;
 }
 
 int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
-	const char *signkeyfile, const char *signkeypass,
-	const char *kenckeyfile, const char *kenckeypass)
+	const char *keyfile, const char *keypass)
 {
 	if (!ctx || ctx->cert_chains_len || ctx->x509_keys_cnt) {
 		error_print();
 		return -1;
 	}
 	if (tlcp_ctx_add_server_certificate_and_keys(ctx, chainfile,
-		signkeyfile, signkeypass, kenckeyfile, kenckeypass) != 1) {
+		keyfile, keypass) != 1) {
 		error_print();
 		return -1;
 	}

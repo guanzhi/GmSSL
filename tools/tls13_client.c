@@ -28,7 +28,7 @@ static const char *http_get =
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
-static const char *options = "-host str [-port num] [-cacert file] [-cert file -key file -pass str]";
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str]";
 
 static const char *help =
 "Options\n"
@@ -39,10 +39,10 @@ static const char *help =
 "    -supported_group str      Supported elliptic curves, may appear multiple times, higher priority first\n"
 "    -sig_alg str              Supported signature algorithms\n"
 "    -max_key_exchanges num    Number of key exchanges in key_share extension\n"
-"    -cacert file              Root CA certificate\n"
+"    -cacert pem               Root CA certificate in PEM format\n"
 "    -verify_depth num         Certificate verification depth\n"
-"    -cert file                Client's certificate chain in PEM format\n"
-"    -key file                 Client's encrypted private key in PEM format\n"
+"    -cert pem                 Client's certificate chain in PEM format\n"
+"    -key pem                  Client's encrypted private key in PEM format\n"
 "    -pass str                 Password to decrypt private key\n"
 "    -server_name str          Send server_name (SNI) request\n"
 "    -signature_algorithms_cert Send signature_algorithms_cert extension\n"

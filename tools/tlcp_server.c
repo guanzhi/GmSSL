@@ -18,20 +18,18 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert file -key file -pass str -ex_key file -ex_pass str [-alpn str] [-cacert file]";
+static const char *options = "[-port num] -cert pem -key pem -pass str [-alpn str] [-cacert pem]";
 
 
 static const char *help =
 "Options\n"
 "\n"
 "    -port num              Listening port number, default 443\n"
-"    -cert file             Server's certificate chain in PEM format, may appear multiple times\n"
-"    -key file              Server's signing private key in PEM format, may appear multiple times\n"
-"    -pass str              Password to decrypt signing private key, may appear multiple times\n"
-"    -ex_key file           Server's encryption private key in PEM format, may appear multiple times\n"
-"    -ex_pass str           Password to decrypt encryption private key, may appear multiple times\n"
+"    -cert pem              Server's certificate chain in PEM format, may appear multiple times\n"
+"    -key pem               Server's signing and encryption private keys in PEM format: signing key first, encryption key second, may appear multiple times\n"
+"    -pass str              Password to decrypt both private keys in the same -key PEM, may appear multiple times\n"
 "    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
-"    -cacert file           CA certificate for client certificate verification\n"
+"    -cacert pem            CA certificate for client certificate verification\n"
 "\n"
 #include "tlcp_help.h"
 "\n";
@@ -47,10 +45,6 @@ int tlcp_server_main(int argc , char **argv)
 	size_t signkeyfiles_cnt = 0;
 	char *signpasses[sizeof(certfiles)/sizeof(certfiles[0])];
 	size_t signpasses_cnt = 0;
-	char *enckeyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
-	size_t enckeyfiles_cnt = 0;
-	char *encpasses[sizeof(certfiles)/sizeof(certfiles[0])];
-	size_t encpasses_cnt = 0;
 	char *alpn_protocols[4];
 	size_t alpn_protocols_cnt = 0;
 	char *cacertfile = NULL;
@@ -108,20 +102,6 @@ int tlcp_server_main(int argc , char **argv)
 			}
 			if (--argc < 1) goto bad;
 			signpasses[signpasses_cnt++] = *(++argv);
-		} else if (!strcmp(*argv, "-ex_key")) {
-			if (enckeyfiles_cnt >= sizeof(enckeyfiles)/sizeof(enckeyfiles[0])) {
-				fprintf(stderr, "%s: too many -ex_key options\n", prog);
-				return -1;
-			}
-			if (--argc < 1) goto bad;
-			enckeyfiles[enckeyfiles_cnt++] = *(++argv);
-		} else if (!strcmp(*argv, "-ex_pass")) {
-			if (encpasses_cnt >= sizeof(encpasses)/sizeof(encpasses[0])) {
-				fprintf(stderr, "%s: too many -ex_pass options\n", prog);
-				return -1;
-			}
-			if (--argc < 1) goto bad;
-			encpasses[encpasses_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-alpn")) {
 			if (alpn_protocols_cnt >= sizeof(alpn_protocols)/sizeof(alpn_protocols[0])) {
 				fprintf(stderr, "%s: too many -alpn options\n", prog);
@@ -154,17 +134,8 @@ bad:
 		fprintf(stderr, "%s: '-pass' option required\n", prog);
 		return 1;
 	}
-	if (!enckeyfiles_cnt) {
-		fprintf(stderr, "%s: '-ex_key' option required\n", prog);
-		return 1;
-	}
-	if (!encpasses_cnt) {
-		fprintf(stderr, "%s: '-ex_pass' option required\n", prog);
-		return 1;
-	}
-	if (certfiles_cnt != signkeyfiles_cnt || signkeyfiles_cnt != signpasses_cnt
-		|| signpasses_cnt != enckeyfiles_cnt || enckeyfiles_cnt != encpasses_cnt) {
-		fprintf(stderr, "%s: -cert/-key/-pass/-ex_key/-ex_pass counts mismatch\n", prog);
+	if (certfiles_cnt != signkeyfiles_cnt || signkeyfiles_cnt != signpasses_cnt) {
+		fprintf(stderr, "%s: -cert/-key/-pass counts mismatch\n", prog);
 		return 1;
 	}
 
@@ -185,8 +156,7 @@ bad:
 	}
 	for (i = 0; i < certfiles_cnt; i++) {
 		if (tlcp_ctx_add_server_certificate_and_keys(&ctx,
-			certfiles[i], signkeyfiles[i], signpasses[i],
-			enckeyfiles[i], encpasses[i]) != 1) {
+			certfiles[i], signkeyfiles[i], signpasses[i]) != 1) {
 			error_print();
 			return -1;
 		}

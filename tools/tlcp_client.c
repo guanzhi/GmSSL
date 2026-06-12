@@ -20,9 +20,9 @@
 #define TIMEOUT_SECONDS 1
 
 static const char *usage =
-	"-host str [-port num] [-cacert file]"
-	" [-cert file -key file -pass str]"
-	" [-outcerts file]"
+	"-host str [-port num] [-cacert pem]"
+	" [-cert pem -key pem -pass str]"
+	" [-certout pem]"
 	" [-get path]"
 	" [-alpn str]"
 	" [-trusted_ca_keys]"
@@ -36,14 +36,14 @@ static const char *help =
 "    -cipher_suite str      Supported cipher suites, may appear multiple times, higher priority first\n"
 "    -supported_group str   Supported elliptic curves, may appear multiple times, higher priority first\n"
 "    -sig_alg str           Supported signature algorithms\n"
-"    -cacert file           Trusted CA certificate(s) in PEM format\n"
+"    -cacert pem            Trusted CA certificate(s) in PEM format\n"
 "    -verify_depth num      Certificate verification depth\n"
-"    -cert file             Client certificate(s) in PEM format\n"
-"    -key file              Private key of client certificate\n"
+"    -cert pem              Client certificate(s) in PEM format\n"
+"    -key pem               Private key of client certificate in PEM format\n"
 "    -pass password         Password of encrypted private key\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -get path              Send a GET request with given path of URI\n"
-"    -outcerts file         Save server certificates to a PEM file\n"
+"    -certout pem           Save server certificates to a PEM file\n"
 "    -server_name str       Send server_name (SNI) request\n"
 "    -trusted_ca_keys       Send trusted_ca_keys request\n"
 "    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
@@ -78,7 +78,7 @@ int tlcp_client_main(int argc, char *argv[])
 	size_t alpn_protocols_cnt = 0;
 	int client_cert_optional = 0;
 	char *get = NULL;
-	char *outcertsfile = NULL;
+	char *certoutfile = NULL;
 	int quiet = 0;
 	struct hostent *hp;
 	struct sockaddr_in server;
@@ -186,9 +186,9 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-get")) {
 			if (--argc < 1) goto bad;
 			get = *(++argv);
-		} else if (!strcmp(*argv, "-outcerts")) {
+		} else if (!strcmp(*argv, "-certout")) {
 			if (--argc < 1) goto bad;
-			outcertsfile = *(++argv);
+			certoutfile = *(++argv);
 		} else if (!strcmp(*argv, "-quiet")) {
 			quiet = 1;
 		} else {
@@ -322,19 +322,19 @@ bad:
 		goto end;
 	}
 
-	if (outcertsfile) {
-		FILE *outcertsfp;
-		if (!(outcertsfp = fopen(outcertsfile, "wb"))) {
-			fprintf(stderr, "%s: open '%s' failure\n", prog, outcertsfile);
+	if (certoutfile) {
+		FILE *certoutfp;
+		if (!(certoutfp = fopen(certoutfile, "wb"))) {
+			fprintf(stderr, "%s: open '%s' failure\n", prog, certoutfile);
 			perror("fopen");
 			goto end;
 		}
-		if (x509_certs_to_pem(conn.server_certs, conn.server_certs_len, outcertsfp) != 1) {
+		if (x509_certs_to_pem(conn.server_certs, conn.server_certs_len, certoutfp) != 1) {
 			fprintf(stderr, "%s: x509_certs_to_pem error\n", prog);
-			fclose(outcertsfp);
+			fclose(certoutfp);
 			goto end;
 		}
-		fclose(outcertsfp);
+		fclose(certoutfp);
 	}
 
 	if (get) {
