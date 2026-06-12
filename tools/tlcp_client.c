@@ -93,8 +93,7 @@ int tlcp_client_main(int argc, char *argv[])
 		if (!strcmp(*argv, "-help")) {
 			printf("usage: gmssl %s %s\n\n", prog, usage);
 			printf("%s\n", help);
-			ret = 0;
-			goto end;
+			return 0;
 		} else if (!strcmp(*argv, "-host")) {
 			if (--argc < 1) goto bad;
 			host = *(++argv);

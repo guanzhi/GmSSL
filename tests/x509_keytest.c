@@ -338,22 +338,20 @@ static int test_x509_private_key_info_encrypt_to_pem(void)
 		const uint8_t *attrs;
 		size_t attrslen;
 
-		if (!(fp = fopen("test_x509_private_key_info_encrypt_to_pem.pem", "w"))) {
+		if (!(fp = tmpfile())) {
 			error_print();
 			return -1;
 		}
 		if (x509_private_key_info_encrypt_to_pem(&x509_keys[i], pass, fp) != 1) {
 			error_print();
+			fclose(fp);
 			return -1;
 		}
-		fclose(fp);
+		rewind(fp);
 
-		if (!(fp = fopen("test_x509_private_key_info_encrypt_to_pem.pem", "r"))) {
-			error_print();
-			return -1;
-		}
 		if (x509_private_key_info_decrypt_from_pem(&key, &attrs, &attrslen, pass, fp) != 1) {
 			error_print();
+			fclose(fp);
 			return -1;
 		}
 		fclose(fp);
@@ -373,28 +371,23 @@ static int test_x509_private_key_info_encrypt_to_pem(void)
 
 static int test_x509_private_key_info_decrypt_from_pem(void)
 {
-	const char *file = "test_x509_private_key_info_decrypt_from_pem.pem";
 	const char *pass = "P@ssw0rd";
 	FILE *fp;
 	int i;
 
-	if (!(fp = fopen(file, "w"))) {
+	if (!(fp = tmpfile())) {
 		error_print();
 		return -1;
 	}
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]) && tests[i].algor == OID_ec_public_key; i++) {
 		if (x509_private_key_info_encrypt_to_pem(&x509_keys[i], pass, fp) != 1) {
 			error_print();
+			fclose(fp);
 			return -1;
 		}
 
 	}
-	fclose(fp);
-
-	if (!(fp = fopen(file, "r"))) {
-		error_print();
-		return -1;
-	}
+	rewind(fp);
 	while (1) {
 		int ret;
 		X509_KEY key;
@@ -403,6 +396,7 @@ static int test_x509_private_key_info_decrypt_from_pem(void)
 
 		if ((ret = x509_private_key_info_decrypt_from_pem(&key, &attrs, &attrslen, pass, fp)) < 0) {
 			error_print();
+			fclose(fp);
 			return -1;
 		} else if (ret == 0) {
 			break;

@@ -315,6 +315,9 @@ int x509_key_generate(X509_KEY *key, int algor, const void *param, size_t paraml
 void x509_key_cleanup(X509_KEY *key)
 {
 	if (key) {
+		if (!key->algor) {
+			return;
+		}
 		switch (key->algor) {
 		case OID_ec_public_key:
 			switch (key->algor_param) {
