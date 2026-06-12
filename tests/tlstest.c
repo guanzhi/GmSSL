@@ -215,11 +215,11 @@ static int test_tls_server_key_exchange(void)
 	size_t siglen;
 
 	tls_record_set_protocol(record, TLS_protocol_tlcp);
-	if (tlcp_record_set_handshake_server_key_exchange_pke(record, &recordlen, sig, sizeof(sig)) != 1) {
+	if (tlcp_record_set_handshake_server_key_exchange_ecc(record, &recordlen, sig, sizeof(sig)) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tlcp_record_get_handshake_server_key_exchange_pke(record, &psig, &siglen) != 1) {
+	if (tlcp_record_get_handshake_server_key_exchange_ecc(record, &psig, &siglen) != 1) {
 		error_print();
 		return -1;
 	}

@@ -804,7 +804,7 @@ int tls_server_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 	switch (cipher_suite) {
 	case TLS_cipher_ecc_sm4_cbc_sm3:
 	case TLS_cipher_ecc_sm4_gcm_sm3:
-		if (tlcp_server_key_exchange_pke_print(fp, data, datalen, format, indent) != 1) {
+		if (tlcp_server_key_exchange_ecc_print(fp, data, datalen, format, indent) != 1) {
 			error_print();
 			return -1;
 		}

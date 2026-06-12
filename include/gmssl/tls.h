@@ -630,11 +630,11 @@ int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
 
-int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *recordlen,
+int tlcp_record_set_handshake_server_key_exchange_ecc(uint8_t *record, size_t *recordlen,
 	const uint8_t *sig, size_t siglen);
-int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
+int tlcp_record_get_handshake_server_key_exchange_ecc(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen);
-int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *sig, size_t siglen, int format, int indent);
+int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *sig, size_t siglen, int format, int indent);
 
 
 

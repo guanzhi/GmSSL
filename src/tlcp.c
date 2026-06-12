@@ -144,7 +144,36 @@ select (KeyExchangeAlgorithm) {
 
 `signed_params` is DER signature encoded in uint16array
 sm3_ctx*/
-int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *recordlen,
+static int tlcp_server_ecc_params_to_bytes(const uint8_t *server_enc_cert,
+	size_t server_enc_cert_len, uint8_t **out, size_t *outlen)
+{
+	if (!server_enc_cert || !server_enc_cert_len || !outlen) {
+		error_print();
+		return -1;
+	}
+	tls_uint24array_to_bytes(server_enc_cert, server_enc_cert_len, out, outlen);
+	return 1;
+}
+
+static int tlcp_server_ecc_params_from_bytes(const uint8_t **server_enc_cert,
+	size_t *server_enc_cert_len, const uint8_t **in, size_t *inlen)
+{
+	if (!server_enc_cert || !server_enc_cert_len || !in || !*in || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint24array_from_bytes(server_enc_cert, server_enc_cert_len, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!*server_enc_cert || !*server_enc_cert_len) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+int tlcp_record_set_handshake_server_key_exchange_ecc(uint8_t *record, size_t *recordlen,
 	const uint8_t *sig, size_t siglen)
 {
 	int type = TLS_handshake_server_key_exchange;
@@ -169,7 +198,7 @@ int tlcp_record_set_handshake_server_key_exchange_pke(uint8_t *record, size_t *r
 	return 1;
 }
 
-int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
+int tlcp_record_get_handshake_server_key_exchange_ecc(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen)
 {
 	int type;
@@ -203,7 +232,7 @@ int tlcp_record_get_handshake_server_key_exchange_pke(const uint8_t *record,
 	return 1;
 }
 
-int tlcp_server_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	const uint8_t *sig;
 	size_t siglen;
@@ -670,8 +699,13 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 	const uint8_t *server_enc_cert;
 	size_t server_enc_cert_len;
 
-	uint8_t server_enc_cert_lenbuf[3];
+	uint8_t server_ecc_params[TLS_MAX_CERTIFICATES_SIZE + 3];
 	uint8_t *p;
+	size_t server_ecc_params_len;
+	const uint8_t *q;
+	size_t qlen;
+	const uint8_t *server_ecc_params_cert;
+	size_t server_ecc_params_cert_len;
 
 	SM2_VERIFY_CTX verify_ctx;
 
@@ -692,7 +726,7 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (tlcp_record_get_handshake_server_key_exchange_pke(conn->record, &sig, &siglen) != 1) {
+	if (tlcp_record_get_handshake_server_key_exchange_ecc(conn->record, &sig, &siglen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
@@ -725,14 +759,29 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-	p = server_enc_cert_lenbuf;
-	len = 0;
-	tls_uint24_to_bytes((uint24_t)server_enc_cert_len, &p, &len);
+	p = server_ecc_params;
+	server_ecc_params_len = 0;
+	if (tlcp_server_ecc_params_to_bytes(server_enc_cert, server_enc_cert_len,
+		&p, &server_ecc_params_len) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
+	q = server_ecc_params;
+	qlen = server_ecc_params_len;
+	if (tlcp_server_ecc_params_from_bytes(&server_ecc_params_cert, &server_ecc_params_cert_len,
+		&q, &qlen) != 1
+		|| qlen
+		|| server_ecc_params_cert_len != server_enc_cert_len
+		|| memcmp(server_ecc_params_cert, server_enc_cert, server_enc_cert_len) != 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
 	if (sm2_verify_init(&verify_ctx, &server_sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_verify_update(&verify_ctx, conn->client_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, conn->server_random, 32) != 1
-		|| sm2_verify_update(&verify_ctx, server_enc_cert_lenbuf, 3) != 1
-		|| sm2_verify_update(&verify_ctx, server_enc_cert, server_enc_cert_len) != 1) {
+		|| sm2_verify_update(&verify_ctx, server_ecc_params, server_ecc_params_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -1639,9 +1688,9 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 	size_t siglen;
 	const uint8_t *server_enc_cert;
 	size_t server_enc_cert_len;
-	uint8_t server_enc_cert_lenbuf[3];
+	uint8_t server_ecc_params[TLS_MAX_CERTIFICATES_SIZE + 3];
 	uint8_t *p;
-	size_t len;
+	size_t server_ecc_params_len;
 	int ret;
 
 	tls_trace("send ServerKeyExchange\n");
@@ -1659,22 +1708,26 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		p = server_enc_cert_lenbuf;
-		len = 0;
-		tls_uint24_to_bytes((uint24_t)server_enc_cert_len, &p, &len);
+		p = server_ecc_params;
+		server_ecc_params_len = 0;
+		if (tlcp_server_ecc_params_to_bytes(server_enc_cert, server_enc_cert_len,
+			&p, &server_ecc_params_len) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
 
 		if (sm2_sign_init(&sign_ctx, &conn->sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 			|| sm2_sign_update(&sign_ctx, conn->client_random, 32) != 1
 			|| sm2_sign_update(&sign_ctx, conn->server_random, 32) != 1
-			|| sm2_sign_update(&sign_ctx, server_enc_cert_lenbuf, 3) != 1
-			|| sm2_sign_update(&sign_ctx, server_enc_cert, server_enc_cert_len) != 1
+			|| sm2_sign_update(&sign_ctx, server_ecc_params, server_ecc_params_len) != 1
 			|| sm2_sign_finish(&sign_ctx, sigbuf, &siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 
-		if (tlcp_record_set_handshake_server_key_exchange_pke(conn->record, &conn->recordlen, sigbuf, siglen) != 1) {
+		if (tlcp_record_set_handshake_server_key_exchange_ecc(conn->record, &conn->recordlen, sigbuf, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
