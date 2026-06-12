@@ -23,7 +23,7 @@ static const char *http_get =
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
-static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-trusted_ca_keys]";
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-trusted_ca_keys] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -45,6 +45,7 @@ static const char *help =
 "    -renegotiation_info_scsv\n"
 "                          Send TLS_EMPTY_RENEGOTIATION_INFO_SCSV\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
+"    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tls12_help.h"
 "\n";
@@ -179,6 +180,7 @@ int tls12_client_main(int argc, char *argv[])
 	int trusted_ca_keys = 0;
 	int renegotiation_info = 0;
 	int empty_renegotiation_info_scsv = 0;
+	int verbose = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	struct hostent *hp;
@@ -278,6 +280,8 @@ int tls12_client_main(int argc, char *argv[])
 			empty_renegotiation_info_scsv = 1;
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -307,6 +311,10 @@ bad:
 	if (tls_ctx_init(&ctx, TLS_protocol_tls12, TLS_client_mode) != 1) {
 		error_print();
 		return -1;
+	}
+	if (verbose && tls_ctx_set_verbose(&ctx, verbose) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {

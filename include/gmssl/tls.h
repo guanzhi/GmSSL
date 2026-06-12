@@ -775,7 +775,6 @@ typedef struct {
 typedef struct {
 	int is_client;
 
-	int quiet;
 	int verbose;
 
 	int protocol;
@@ -939,6 +938,7 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass);
 
 
+int tls_ctx_set_verbose(TLS_CTX *ctx, int verbose);
 int tls_ctx_enable_verbose(TLS_CTX *ctx, int enable);
 int tls_ctx_enable_trusted_ca_keys(TLS_CTX *ctx, int enable);
 
@@ -1020,6 +1020,7 @@ typedef struct {
 	tls_socket_t sock;
 
 	TLS_CTX *ctx;
+	int verbose;
 
 	// states for state machines
 	int handshake_state;
@@ -1513,6 +1514,7 @@ void tls_clean_record(TLS_CONNECT *conn);
 int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT *conn);
 
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx);
+int tls_set_verbose(TLS_CONNECT *conn, int verbose);
 int tls_set_hostname(TLS_CONNECT *conn, const char *hostname);
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock);
 

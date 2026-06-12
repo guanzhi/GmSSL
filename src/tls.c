@@ -1636,7 +1636,6 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 			p += n;
 			len -= n;
 		} else if (n == 0) {
-			tls_trace("TCP connection closed");
 			*recordlen = 0;
 			return 0;
 		} else {
@@ -1674,7 +1673,6 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 			p += n;
 			len -= n;
 		} else if (n == 0) {
-			tls_trace("connection closed");
 			*recordlen = 0;
 			return 0;
 		} else {
@@ -1738,7 +1736,7 @@ int tls_send_alert(TLS_CONNECT *conn, int alert)
 		error_print();
 		return -1;
 	}
-	tls_record_trace(stderr, record, sizeof(record), 0, 0);
+	if(conn->verbose) tls_record_trace(stderr, record, sizeof(record), 0, 0);
 	return 1;
 }
 
@@ -1787,7 +1785,7 @@ int tls_send_warning(TLS_CONNECT *conn, int alert)
 		error_print();
 		return -1;
 	}
-	tls_record_trace(stderr, record, sizeof(record), 0, 0);
+	if(conn->verbose) tls_record_trace(stderr, record, sizeof(record), 0, 0);
 	return 1;
 }
 
@@ -1848,7 +1846,7 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 			error_print();
 			return -1;
 		}
-		tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
+		if(conn->verbose) tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
 
 		if (conn->protocol == TLS_protocol_tls12) {
 			switch (conn->cipher_suite) {
@@ -1895,7 +1893,7 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 		conn->record_offset = 0;
 		conn->sentlen = inlen;
 		conn->send_state = TLS_state_send_record;
-		tls_encrypted_record_trace(stderr, conn->record, recordlen, 0, 0);
+		if(conn->verbose) tls_encrypted_record_trace(stderr, conn->record, recordlen, 0, 0);
 	}
 
 	ret = tls_send_record(conn);
@@ -1935,7 +1933,7 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 		seq_num = conn->client_seq_num;
 	}
 
-	tls_trace("recv Encrypted Record\n");
+	if(conn->verbose) tls_trace("recv Encrypted Record\n");
 	if (conn->send_state) {
 		return TLS_ERROR_SEND_AGAIN;
 	}
@@ -1950,7 +1948,7 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 	}
 	conn->recv_state = 0;
 	recordlen = conn->recordlen;
-	tls_encrypted_record_trace(stderr, record, recordlen, 0, 0);
+	if(conn->verbose) tls_encrypted_record_trace(stderr, record, recordlen, 0, 0);
 
 	if (conn->protocol == TLS_protocol_tls12) {
 		if (tls12_record_decrypt(conn->cipher_suite, hmac_ctx, dec_key, fixed_iv, seq_num,
@@ -1977,14 +1975,14 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 	conn->data = tls_record_data(conn->databuf);
 	conn->datalen = tls_record_data_length(conn->databuf);
 
-	tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
+	if(conn->verbose) tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
 
 	return 1;
 }
 
 static int tls12_tlcp_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen)
 {
-	tls_trace("send ApplicationData\n");
+	if(conn->verbose) tls_trace("send ApplicationData\n");
 	return tls_encrypt_send(conn, TLS_record_application_data, in, inlen, sentlen);
 }
 
@@ -2038,14 +2036,14 @@ static int tls12_tlcp_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_
 			int alert;
 			tls_record_get_alert(conn->databuf, &level, &alert);
 			if (alert == TLS_alert_close_notify) {
-				tls_trace("recv Alert.close_notify\n");
+				if(conn->verbose) tls_trace("recv Alert.close_notify\n");
 				conn->close_notify_received = 1;
 				conn->data = NULL;
 				conn->datalen = 0;
 				tls_clean_record(conn);
 				return 0;
 			}
-			tls_trace("alert received\n");
+			if(conn->verbose) tls_trace("alert received\n");
 			conn->data = NULL;
 			conn->datalen = 0;
 			tls_clean_record(conn);
@@ -2109,7 +2107,7 @@ static int tls13_send_close_notify(TLS_CONNECT *conn)
 			seq_num = conn->server_seq_num;
 		}
 
-		tls_trace("send Alert.close_notify\n");
+		if(conn->verbose) tls_trace("send Alert.close_notify\n");
 
 		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen,
 			TLS_alert_level_warning, TLS_alert_close_notify);
@@ -2153,7 +2151,7 @@ static int tls_send_close_notify(TLS_CONNECT *conn)
 
 	alert[0] = TLS_alert_level_warning;
 	alert[1] = TLS_alert_close_notify;
-	tls_trace("send Alert.close_notify\n");
+	if(conn->verbose) tls_trace("send Alert.close_notify\n");
 	return tls_encrypt_send(conn, TLS_record_alert, alert, sizeof(alert), &sentlen);
 }
 
@@ -2187,7 +2185,7 @@ int tls_shutdown(TLS_CONNECT *conn)
 	}
 
 	if (conn->shutdown_state == TLS_state_shutdown_recv_close_notify) {
-		tls_trace("recv Alert.close_notify\n");
+		if(conn->verbose) tls_trace("recv Alert.close_notify\n");
 		ret = tls_recv(conn, buf, sizeof(buf), &len);
 		if (ret == 0 && conn->close_notify_received) {
 			conn->shutdown_state = TLS_state_shutdown_over;
@@ -2197,7 +2195,7 @@ int tls_shutdown(TLS_CONNECT *conn)
 			return ret;
 		}
 		if (ret == TLS_ERROR_TCP_CLOSED) {
-			tls_trace("Connection closed by remote without close_notify\n");
+			if(conn->verbose) tls_trace("Connection closed by remote without close_notify\n");
 			return ret;
 		}
 		error_print();
@@ -2583,6 +2581,20 @@ int tls_ctx_set_ca_certificates(TLS_CTX *ctx, const char *cacertsfile, int depth
 	}
 
 	ctx->verify_depth = depth;
+	return 1;
+}
+
+int tls_ctx_set_verbose(TLS_CTX *ctx, int verbose)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	if (verbose < 0 || verbose > 5) {
+		error_print();
+		return -1;
+	}
+	ctx->verbose = verbose;
 	return 1;
 }
 
@@ -3030,6 +3042,7 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 
 	conn->is_client = ctx->is_client; // TODO: remove conn->is_client
 	conn->protocol = ctx->protocol;
+	conn->verbose = ctx->verbose;
 
 
 	if (conn->is_client && ctx->cert_chains_len) {
@@ -3067,7 +3080,9 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 			return -1;
 		}
 
-		fprintf(stderr, "%s %d: conn->key_exchange_modes = %d\n", __FILE__, __LINE__, conn->key_exchange_modes);
+		if(conn->verbose) {
+			fprintf(stderr, "%s %d: conn->key_exchange_modes = %d\n", __FILE__, __LINE__, conn->key_exchange_modes);
+		}
 
 		if (conn->key_exchange_modes & (TLS_KE_CERT_DHE|TLS_KE_PSK_DHE)) {
 			conn->key_share = 1;
@@ -3097,6 +3112,20 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 void tls_cleanup(TLS_CONNECT *conn)
 {
 	gmssl_secure_clear(conn, sizeof(TLS_CONNECT));
+}
+
+int tls_set_verbose(TLS_CONNECT *conn, int verbose)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (verbose < 0 || verbose > 5) {
+		error_print();
+		return -1;
+	}
+	conn->verbose = verbose;
+	return 1;
 }
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)

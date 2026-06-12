@@ -26,7 +26,7 @@ static const char *usage =
 	" [-get path]"
 	" [-alpn str]"
 	" [-trusted_ca_keys]"
-	" [-quiet]";
+	" [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -48,7 +48,7 @@ static const char *help =
 "    -trusted_ca_keys       Send trusted_ca_keys request\n"
 "    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
-"    -quiet                 Without printing any status message\n"
+"    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tlcp_help.h"
 "\n";
@@ -187,7 +187,7 @@ int tlcp_client_main(int argc, char *argv[])
 	int client_cert_optional = 0;
 	char *get = NULL;
 	char *certoutfile = NULL;
-	int quiet = 0;
+	int verbose = 0;
 	struct hostent *hp;
 	struct sockaddr_in server;
 	tls_socket_t sock = -1;
@@ -297,8 +297,8 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-certout")) {
 			if (--argc < 1) goto bad;
 			certoutfile = *(++argv);
-		} else if (!strcmp(*argv, "-quiet")) {
-			quiet = 1;
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -388,7 +388,10 @@ bad:
 		}
 	}
 
-	// quiet/verbose
+	if (verbose && tls_ctx_set_verbose(&ctx, verbose) != 1) {
+		error_print();
+		goto end;
+	}
 
 	if (tls_init(&conn, &ctx) != 1) {
 		error_print();

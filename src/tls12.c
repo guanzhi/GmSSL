@@ -833,7 +833,7 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 		const int *client_cipher_suites = conn->ctx->cipher_suites;
 		size_t client_cipher_suites_cnt = conn->ctx->cipher_suites_cnt;
 
-		tls_trace("send ClientHello\n");
+		if(conn->verbose) tls_trace("send ClientHello\n");
 
 		tls_record_set_protocol(conn->record, TLS_protocol_tls1);
 
@@ -1310,7 +1310,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	*/
 
 
-	tls_trace("recv ClientHello\n");
+	if(conn->verbose) tls_trace("recv ClientHello\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -1318,7 +1318,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tls1) {
 		error_print();
@@ -1624,7 +1624,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
 
 
 
@@ -1635,7 +1635,9 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 
 	*/
 
-	fprintf(stderr, "end of recv_client_hello\n");
+	if(conn->verbose) {
+		fprintf(stderr, "end of recv_client_hello\n");
+	}
 	tls_clean_record(conn);
 	return 1;
 }
@@ -1644,7 +1646,7 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 {
 	int ret;
 
-	tls_trace("send ServerHello\n");
+	if(conn->verbose) tls_trace("send ServerHello\n");
 
 	if (conn->recordlen == 0) {
 
@@ -1703,14 +1705,14 @@ int tls_send_server_hello(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
+		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
 
 	}
 
@@ -1746,7 +1748,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 	int trusted_ca_keys = 0;
 	int renegotiation_info = 0;
 
-	tls_trace("recv ServerHello\n");
+	if(conn->verbose) tls_trace("recv ServerHello\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -1894,13 +1896,13 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerHello", &conn->dgst_ctx);
 
 
 
@@ -1919,7 +1921,7 @@ int tls_recv_server_hello(TLS_CONNECT *conn)
 int tls_send_server_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	tls_trace("send ServerCertificate\n");
+	if(conn->verbose) tls_trace("send ServerCertificate\n");
 
 	if (conn->recordlen == 0) {
 		if (tls_record_set_handshake_certificate(conn->record, &conn->recordlen,
@@ -1928,13 +1930,13 @@ int tls_send_server_certificate(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "Certificate", &conn->dgst_ctx);
+		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "Certificate", &conn->dgst_ctx);
 
 	}
 
@@ -1965,7 +1967,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 	size_t signature_algorithms_cert_cnt = 0;
 
 
-	tls_trace("recv server Certificate\n");
+	if(conn->verbose) tls_trace("recv server Certificate\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -1973,7 +1975,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 	if (tls_record_protocol(conn->record) != conn->protocol) {
 		error_print();
@@ -2001,7 +2003,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "Certificate", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "Certificate", &conn->dgst_ctx);
 
 
 	// server_sign_key
@@ -2145,7 +2147,7 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 {
 	int ret;
 
-	tls_trace("send ServerKeyExchange\n");
+	if(conn->verbose) tls_trace("send ServerKeyExchange\n");
 
 	if (conn->recordlen == 0) {
 		int curve_oid = tls_named_curve_oid(conn->key_exchange_group);
@@ -2198,13 +2200,13 @@ int tls_send_server_key_exchange(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
+		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
 
 
 	}
@@ -2312,7 +2314,7 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 	const void *sign_args = NULL;
 	size_t sign_argslen = 0;
 
-	tls_trace("recv ServerKeyExchange\n");
+	if(conn->verbose) tls_trace("recv ServerKeyExchange\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -2325,7 +2327,7 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 
 	if ((ret = tls12_record_get_handshake_server_key_exchange(conn->record,
@@ -2344,7 +2346,7 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
 
 	switch (conn->cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
@@ -2472,7 +2474,9 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	fprintf(stderr, ">>>>>> ServerKeyExchange verify success\n");
+	if(conn->verbose) {
+		fprintf(stderr, ">>>>>> ServerKeyExchange verify success\n");
+	}
 
 
 	// xxxx
@@ -2499,7 +2503,7 @@ int tls_send_certificate_request(TLS_CONNECT *conn)
 	}
 
 	if (conn->recordlen == 0) {
-		tls_trace("send CertificateRequest\n");
+		if(conn->verbose) tls_trace("send CertificateRequest\n");
 		if (tls_authorities_from_certs(ca_names, &ca_names_len, sizeof(ca_names),
 			conn->ctx->cacerts, conn->ctx->cacertslen) != 1) {
 			error_print();
@@ -2513,7 +2517,7 @@ int tls_send_certificate_request(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -2542,7 +2546,7 @@ int tls_recv_certificate_request(TLS_CONNECT *conn)
 	const uint8_t *ca_names;
 	size_t ca_names_len;
 
-	tls_trace("recv CertificateRequest*\n");
+	if(conn->verbose) tls_trace("recv CertificateRequest*\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -2563,10 +2567,10 @@ int tls_recv_certificate_request(TLS_CONNECT *conn)
 	}
 
 	if (handshake_type != TLS_handshake_certificate_request) {
-		tls_trace("    no CertificateRequest\n");
+		if(conn->verbose) tls_trace("    no CertificateRequest\n");
 		return 0; // 表明对方没有发送预期的报文
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 
 	if (tls_record_get_handshake_certificate_request(conn->record,
@@ -2607,19 +2611,19 @@ int tls_recv_certificate_request(TLS_CONNECT *conn)
 int tls_send_server_hello_done(TLS_CONNECT *conn)
 {
 	int ret;
-	tls_trace("send ServerHelloDone\n");
+	if(conn->verbose) tls_trace("send ServerHelloDone\n");
 
 
 	if (conn->recordlen == 0) {
 		tls_record_set_handshake_server_hello_done(conn->record, &conn->recordlen);
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "ServerHelloDone", &conn->dgst_ctx);
+		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerHelloDone", &conn->dgst_ctx);
 	}
 
 
@@ -2642,7 +2646,7 @@ int tls_send_server_hello_done(TLS_CONNECT *conn)
 int tls_recv_server_hello_done(TLS_CONNECT *conn)
 {
 	int ret;
-	tls_trace("recv ServerHelloDone\n");
+	if(conn->verbose) tls_trace("recv ServerHelloDone\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -2655,7 +2659,7 @@ int tls_recv_server_hello_done(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 	if (tls_record_get_handshake_server_hello_done(conn->record) != 1) {
 		error_print();
@@ -2667,7 +2671,7 @@ int tls_recv_server_hello_done(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "ServerHelloDone", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerHelloDone", &conn->dgst_ctx);
 
 
 
@@ -2681,7 +2685,7 @@ int tls_recv_server_hello_done(TLS_CONNECT *conn)
 int tls_send_client_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	tls_trace("send ClientCertificate\n");
+	if(conn->verbose) tls_trace("send ClientCertificate\n");
 
 	if (conn->client_certs_len == 0) {
 		error_print();
@@ -2695,7 +2699,7 @@ int tls_send_client_certificate(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -2719,7 +2723,7 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 	const int verify_depth = 5;
 	int verify_result;
 
-	tls_trace("recv ClientCertificate\n");
+	if(conn->verbose) tls_trace("recv ClientCertificate\n");
 
 	if (conn->ctx->cacertslen == 0) {
 		error_print();
@@ -2737,7 +2741,7 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 	if (tls_record_get_handshake_certificate(conn->record, conn->client_certs, &conn->client_certs_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -2771,7 +2775,9 @@ static int tls12_generate_pre_master_secret(TLS_CONNECT *conn,
 		error_print();
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, "pre_master_secret", pre_master_secret, *pre_master_secret_len);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, "pre_master_secret", pre_master_secret, *pre_master_secret_len);
+	}
 	return 1;
 }
 
@@ -2791,7 +2797,9 @@ static int tls12_generate_master_secret(TLS_CONNECT *conn,
 		return -1;
 	}
 
-	format_bytes(stderr, 0, 0, "master_secret", conn->master_secret, 48);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, "master_secret", conn->master_secret, 48);
+	}
 	return 1;
 }
 
@@ -2813,7 +2821,9 @@ static int tls12_generate_key_block(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, key_block_len);
+		if (conn->verbose >= 5) {
+			format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, key_block_len);
+		}
 		break;
 	}
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
@@ -2837,7 +2847,9 @@ static int tls12_generate_key_block(TLS_CONNECT *conn)
 
 		*/
 
-		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, 96);
+		if (conn->verbose >= 5) {
+			format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, 96);
+		}
 		break;
 	default:
 		error_print();
@@ -2854,10 +2866,12 @@ static int tls12_generate_record_keys(TLS_CONNECT *conn)
 	{
 		size_t keylen = conn->cipher->key_size;
 
-		format_bytes(stderr, 0, 0, "client_write_key", conn->key_block, keylen);
-		format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + keylen, keylen);
-		format_bytes(stderr, 0, 0, "client_write_iv", conn->key_block + keylen * 2, 4);
-		format_bytes(stderr, 0, 0, "server_write_iv", conn->key_block + keylen * 2 + 4, 4);
+		if (conn->verbose >= 5) {
+			format_bytes(stderr, 0, 0, "client_write_key", conn->key_block, keylen);
+			format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + keylen, keylen);
+			format_bytes(stderr, 0, 0, "client_write_iv", conn->key_block + keylen * 2, 4);
+			format_bytes(stderr, 0, 0, "server_write_iv", conn->key_block + keylen * 2 + 4, 4);
+		}
 
 		memset(conn->client_write_iv, 0, sizeof(conn->client_write_iv));
 		memset(conn->server_write_iv, 0, sizeof(conn->server_write_iv));
@@ -2882,10 +2896,12 @@ static int tls12_generate_record_keys(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		format_bytes(stderr, 0, 0, "client_write_mac_key", conn->key_block, 32);
-		format_bytes(stderr, 0, 0, "server_write_mac_key", conn->key_block + 32, 32);
-		format_bytes(stderr, 0, 0, "client_write_key", conn->key_block + 64, 16);
-		format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + 80, 16);
+		if (conn->verbose >= 5) {
+			format_bytes(stderr, 0, 0, "client_write_mac_key", conn->key_block, 32);
+			format_bytes(stderr, 0, 0, "server_write_mac_key", conn->key_block + 32, 32);
+			format_bytes(stderr, 0, 0, "client_write_key", conn->key_block + 64, 16);
+			format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + 80, 16);
+		}
 
 
 		if (conn->is_client) {
@@ -2964,20 +2980,20 @@ int tls_send_client_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		tls_trace("send ClientKeyExchange\n");
+		if(conn->verbose) tls_trace("send ClientKeyExchange\n");
 		if (tls_record_set_handshake_client_key_exchange(conn->record, &conn->recordlen,
 			point_octets, len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
+		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -3004,7 +3020,7 @@ int tls_recv_client_key_exchange(TLS_CONNECT *conn)
 	const uint8_t *point_octets;
 	size_t point_octets_len;
 
-	tls_trace("recv ClientKeyExchange\n");
+	if(conn->verbose) tls_trace("recv ClientKeyExchange\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
@@ -3016,7 +3032,7 @@ int tls_recv_client_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 	if (tls_record_get_handshake_client_key_exchange(conn->record,
 		&point_octets, &point_octets_len) != 1) {
@@ -3037,7 +3053,7 @@ int tls_recv_client_key_exchange(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
 
 
 
@@ -3061,7 +3077,7 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 	uint8_t sig[SM2_MAX_SIGNATURE_SIZE];
 	size_t siglen;
 
-	tls_trace("send CertificateVerify\n");
+	if(conn->verbose) tls_trace("send CertificateVerify\n");
 
 	if (!conn->client_certificate_verify) {
 		error_print();
@@ -3078,7 +3094,7 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -3108,7 +3124,7 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	tls_trace("recv CertificateVerify\n");
+	if(conn->verbose) tls_trace("recv CertificateVerify\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
@@ -3120,7 +3136,7 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 
 	// get signature from certificate_verify
 	if (tls_record_get_handshake_certificate_verify(conn->record, &sig, &siglen) != 1) {
@@ -3163,13 +3179,13 @@ int tls_send_change_cipher_spec(TLS_CONNECT *conn)
 {
 	int ret;
 	if (conn->recordlen == 0) {
-		tls_trace("send [ChangeCipherSpec]\n");
+		if(conn->verbose) tls_trace("send [ChangeCipherSpec]\n");
 		if (tls_record_set_change_cipher_spec(conn->record, &conn->recordlen) !=1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 	}
 	if ((ret = tls_send_record(conn)) != 1) {
 		if (ret != TLS_ERROR_SEND_AGAIN) {
@@ -3184,7 +3200,7 @@ int tls_recv_change_cipher_spec(TLS_CONNECT *conn)
 {
 	int ret;
 
-	tls_trace("recv [ChangeCipherSpec]\n");
+	if(conn->verbose) tls_trace("recv [ChangeCipherSpec]\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
@@ -3198,7 +3214,7 @@ int tls_recv_change_cipher_spec(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
 	if (tls_record_get_change_cipher_spec(conn->record) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -3213,7 +3229,7 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 
 
 	if (conn->recordlen == 0) {
-		tls_trace("send client {Finished}\n");
+		if(conn->verbose) tls_trace("send client {Finished}\n");
 
 		uint8_t local_verify_data[12];
 
@@ -3244,13 +3260,13 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
 
 		if (digest_update(&conn->dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		tls_handshake_digest_print(stderr, 0, 0, "Finished", &conn->dgst_ctx);
+		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "Finished", &conn->dgst_ctx);
 
 		if (tls12_record_encrypt(conn->cipher_suite,
 			&conn->client_write_mac_ctx, &conn->client_write_key, conn->client_write_iv,
@@ -3263,7 +3279,9 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 		}
 		tls_seq_num_incr(conn->client_seq_num);
 
-		format_bytes(stderr, 0, 0, "encrypted finsished ..... ", conn->record, conn->recordlen);
+		if (conn->verbose >= 5) {
+			format_bytes(stderr, 0, 0, "encrypted finsished ..... ", conn->record, conn->recordlen);
+		}
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -3301,11 +3319,13 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, "verify_data", local_verify_data, 12);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, "verify_data", local_verify_data, 12);
+	}
 
 
 	// recv ClientFinished
-	tls_trace("recv client {Finished}\n");
+	if(conn->verbose) tls_trace("recv client {Finished}\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
@@ -3314,7 +3334,9 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 	}
 	//tls12_record_print(stderr, conn->record, conn->recordlen, 0, 0);
 
-	format_bytes(stderr, 0, 0, "Finished", conn->record, conn->recordlen);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, "Finished", conn->record, conn->recordlen);
+	}
 
 
 	if (tls_record_protocol(conn->record) != conn->protocol) {
@@ -3324,10 +3346,12 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 	}
 
 	// decrypt ClientFinished
-	tls_trace(">>>>>>>decrypt Finished\n");
+	if(conn->verbose) tls_trace(">>>>>>>decrypt Finished\n");
 
 
-	format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, "client_seq_num", conn->client_seq_num, 8);
+	}
 
 	if (tls12_record_decrypt(conn->cipher_suite, &conn->client_write_mac_ctx, &conn->client_write_key,
 		conn->client_write_iv, conn->client_seq_num, conn->record, conn->recordlen,
@@ -3340,7 +3364,7 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 
 
 
-	tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
+	if(conn->verbose) tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
 
 	if (tls_record_get_handshake_finished(conn->plain_record, &verify_data, &verify_data_len) != 1) {
 		error_print();
@@ -3358,7 +3382,7 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	tls_handshake_digest_print(stderr, 0, 0, "client Finished", &conn->dgst_ctx);
+	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "client Finished", &conn->dgst_ctx);
 
 	// verify ClientFinished
 
@@ -3383,7 +3407,7 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 	tls_record_set_protocol(conn->plain_record, conn->protocol);
 
 	if (conn->recordlen == 0) {
-		tls_trace("send server Finished\n");
+		if(conn->verbose) tls_trace("send server Finished\n");
 
 		uint8_t dgst[32];
 		size_t dgstlen;
@@ -3396,7 +3420,9 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		format_bytes(stderr, 0, 0, "server verify_data", local_verify_data, 12);
+		if (conn->verbose >= 5) {
+			format_bytes(stderr, 0, 0, "server verify_data", local_verify_data, 12);
+		}
 
 		if (tls_record_set_handshake_finished(conn->plain_record, &conn->plain_recordlen,
 			local_verify_data, sizeof(local_verify_data)) != 1) {
@@ -3404,7 +3430,7 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
+		if(conn->verbose) tls12_record_trace(stderr, conn->plain_record, conn->plain_recordlen, 0, 0);
 
 		if (tls12_record_encrypt(conn->cipher_suite,
 			&conn->server_write_mac_ctx, &conn->server_write_key, conn->server_write_iv,
@@ -3454,11 +3480,13 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
-	format_bytes(stderr, 0, 0, ">>> verify_data", local_verify_data, 12);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, ">>> verify_data", local_verify_data, 12);
+	}
 
 
 	// Finished
-	tls_trace("recv server Finished\n");
+	if(conn->verbose) tls_trace("recv server Finished\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
@@ -3472,10 +3500,12 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 	}
 
 
-	tls_trace("decrypt Finished\n");
+	if(conn->verbose) tls_trace("decrypt Finished\n");
 
 
-	format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
+	if (conn->verbose >= 5) {
+		format_bytes(stderr, 0, 0, "server_seq_num", conn->server_seq_num, 8);
+	}
 
 	if (tls12_record_decrypt(conn->cipher_suite, &conn->server_write_mac_ctx, &conn->server_write_key,
 		conn->server_write_iv, conn->server_seq_num, conn->record, conn->recordlen,
@@ -3506,7 +3536,7 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (!conn->ctx->quiet)
+	if(conn->verbose)
 		fprintf(stderr, "Connection established!\n");
 
 	return 1;
@@ -3562,16 +3592,22 @@ int tls12_do_client_handshake(TLS_CONNECT *conn)
 
 	// the only optional state
 	case TLS_state_certificate_request:
-		fprintf(stderr, "TLS_state_certificate_request\n");
+		if(conn->verbose) {
+			fprintf(stderr, "TLS_state_certificate_request\n");
+		}
 		ret = tls_recv_certificate_request(conn);
-		fprintf(stderr, "    ret = %d\n", ret);
+		if(conn->verbose) {
+			fprintf(stderr, "    ret = %d\n", ret);
+		}
 
 		if (ret == 1) conn->client_certificate_verify = 1;
 		next_state = TLS_state_server_hello_done;
 		break;
 
 	case TLS_state_server_hello_done:
-		fprintf(stderr, "TLS_state_server_hello_done\n");
+		if(conn->verbose) {
+			fprintf(stderr, "TLS_state_server_hello_done\n");
+		}
 		ret = tls_recv_server_hello_done(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_client_certificate;

@@ -103,7 +103,7 @@ static const char *http_get =
 	"Hostname: aaa\r\n"
 	"\r\n\r\n";
 
-static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str]";
+static const char *options = "-host str [-port num] [-cacert pem] [-cert pem -key pem -pass str] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -136,6 +136,7 @@ static const char *help =
 "    -post_handshake_auth      Support post_handshake_auth\n"
 "    -client_cert_optional     Allow client send empty Certificate\n"
 "    -tls13_change_cipher_spec Support ChangeCipherSpec in TLS 1.3 to be compatible with middlebox\n"
+"    -verbose                  Print TLS handshake messages\n"
 "\n"
 #include "tls13_help.h"
 "\n";
@@ -232,6 +233,7 @@ int tls13_client_main(int argc, char *argv[])
 
 	// ChangeCipherSpec
 	int tls13_change_cipher_spec = 0;
+	int verbose = 0;
 
 	int send_again = 0;
 
@@ -397,6 +399,8 @@ int tls13_client_main(int argc, char *argv[])
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-tls13_change_cipher_spec")) {
 			tls13_change_cipher_spec = 1;
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -423,6 +427,10 @@ bad:
 	if (tls_ctx_init(&ctx, TLS_protocol_tls13, TLS_client_mode) != 1) {
 		error_print();
 		return -1;
+	}
+	if (verbose && tls_ctx_set_verbose(&ctx, verbose) != 1) {
+		error_print();
+		goto end;
 	}
 
 	// cipher_suites

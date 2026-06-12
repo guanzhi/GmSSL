@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert pem -key pem -pass str [-cacert pem]";
+static const char *options = "[-port num] -cert pem -key pem -pass str [-cacert pem] [-verbose]";
 
 static const char *help =
 "Options\n"
@@ -35,6 +35,7 @@ static const char *help =
 "    -verify_depth num      Certificate verification depth\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
 "    -renegotiation_info    Send renegotiation_info response when client supports RFC 5746\n"
+"    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tls12_help.h"
 "\n";
@@ -170,6 +171,7 @@ int tls12_server_main(int argc , char **argv)
 	int verify_depth = TLS_DEFAULT_VERIFY_DEPTH;
 	int client_cert_optional = 0;
 	int renegotiation_info = 0;
+	int verbose = 0;
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1600] = {0};
@@ -277,6 +279,8 @@ int tls12_server_main(int argc , char **argv)
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-renegotiation_info")) {
 			renegotiation_info = 1;
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -313,6 +317,10 @@ bad:
 	if (tls_ctx_init(&ctx, TLS_protocol_tls12, TLS_server_mode) != 1) {
 		error_print();
 		return -1;
+	}
+	if (verbose && tls_ctx_set_verbose(&ctx, verbose) != 1) {
+		error_print();
+		goto end;
 	}
 
 	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {

@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert pem -key pem -pass str [-alpn str] [-cacert pem]";
+static const char *options = "[-port num] -cert pem -key pem -pass str [-alpn str] [-cacert pem] [-verbose]";
 
 
 static const char *help =
@@ -30,6 +30,7 @@ static const char *help =
 "    -pass str              Password to decrypt both private keys in the same -key PEM, may appear multiple times\n"
 "    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
 "    -cacert pem            CA certificate for client certificate verification\n"
+"    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tlcp_help.h"
 "\n";
@@ -156,6 +157,7 @@ int tlcp_server_main(int argc , char **argv)
 	char *alpn_protocols[4];
 	size_t alpn_protocols_cnt = 0;
 	char *cacertfile = NULL;
+	int verbose = 0;
 
 	int server_ciphers[] = {
 		TLS_cipher_ecc_sm4_gcm_sm3,
@@ -220,6 +222,8 @@ int tlcp_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
+		} else if (!strcmp(*argv, "-verbose")) {
+			verbose = 1;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;
@@ -252,6 +256,10 @@ bad:
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_server_mode) != 1
 		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1) {
+		error_print();
+		return -1;
+	}
+	if (verbose && tls_ctx_set_verbose(&ctx, verbose) != 1) {
 		error_print();
 		return -1;
 	}
