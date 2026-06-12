@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+
+version_num="30200"
+version_base="3.2.0-dev"
+version_file="include/gmssl/version.h"
+cmake_file="CMakeLists.txt"
+
+count=$(git rev-list --count HEAD)
+next=$((count + 1))
+version="${version_base}.${next}"
+
+tmp="${version_file}.tmp"
+sed \
+	-e "s/^#define GMSSL_VERSION_NUM.*/#define GMSSL_VERSION_NUM	${version_num}/" \
+	-e "s/^#define GMSSL_VERSION_STR.*/#define GMSSL_VERSION_STR	\"GmSSL ${version}\"/" \
+	"${version_file}" > "${tmp}"
+mv "${tmp}" "${version_file}"
+
+tmp="${cmake_file}.tmp"
+sed \
+	-e "s/^set(CPACK_PACKAGE_VERSION .*/set(CPACK_PACKAGE_VERSION \"${version}\")/" \
+	"${cmake_file}" > "${tmp}"
+mv "${tmp}" "${cmake_file}"
+
+git add "${version_file}" "${cmake_file}"
