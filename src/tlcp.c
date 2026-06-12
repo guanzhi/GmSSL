@@ -983,33 +983,41 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 {
 	uint8_t enced_pre_master_secret[SM2_MAX_CIPHERTEXT_SIZE];
 	size_t enced_pre_master_secret_len;
+	int ret;
 
 	tls_trace("send ClientKeyExchange\n");
 
-	if (tls_pre_master_secret_generate(conn->pre_master_secret, TLS_protocol_tlcp) != 1) {
-		error_print();
-		return -1;
+	if (!conn->recordlen) {
+		if (tls_pre_master_secret_generate(conn->pre_master_secret, TLS_protocol_tlcp) != 1) {
+			error_print();
+			return -1;
+		}
+
+		if (sm2_encrypt(&conn->server_enc_key.u.sm2_key, conn->pre_master_secret, 48,
+				enced_pre_master_secret, &enced_pre_master_secret_len) != 1
+			|| tls_record_set_handshake_client_key_exchange_pke(conn->record, &conn->recordlen,
+				enced_pre_master_secret, enced_pre_master_secret_len) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+
+		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+			error_print();
+			return -1;
+		}
+		tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
 	}
 
-	if (sm2_encrypt(&conn->server_enc_key.u.sm2_key, conn->pre_master_secret, 48,
-			enced_pre_master_secret, &enced_pre_master_secret_len) != 1
-		|| tls_record_set_handshake_client_key_exchange_pke(conn->record, &conn->recordlen,
-			enced_pre_master_secret, enced_pre_master_secret_len) != 1) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
-	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
-	if (tls_record_send(conn->record, conn->recordlen, conn->sock) != 1) {
-		error_print();
-		return -1;
+	if ((ret = tls_send_record(conn)) != 1) {
+		if (ret != TLS_ERROR_SEND_AGAIN) {
+			error_print();
+		}
+		return ret;
 	}
 
-	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
-		error_print();
-		return -1;
-	}
-	tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
+	tls_clean_record(conn);
 
 	if (tlcp_generate_keys(conn) != 1) {
 		error_print();
@@ -2059,11 +2067,18 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 	size_t enced_pms_len;
 	size_t pre_master_secret_len;
 	X509_KEY *enc_key;
+	int ret;
 
 	tls_trace("recv ClientKeyExchange\n");
 
-	if (tls_record_recv(conn->record, &conn->recordlen, conn->sock) != 1
-		|| tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
+	if ((ret = tls_recv_record(conn)) != 1) {
+		if (ret != TLS_ERROR_RECV_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+
+	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
@@ -2501,75 +2516,45 @@ int tlcp_server_handshake(TLS_CONNECT *conn)
 int tlcp_do_connect(TLS_CONNECT *conn)
 {
 	int ret;
-	fd_set rfds;
-	fd_set wfds;
 
 	// 应该把protocol_version的初始化放在这里
 
-	conn->handshake_state = TLS_state_client_hello;
-	//sm3_init(&conn->sm3_ctx);
-
-	while (1) {
-
-		ret = tlcp_client_handshake(conn);
-		if (ret == 1) {
-			break;
-
-		} else if (ret == TLS_ERROR_SEND_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &rfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else if (ret == TLS_ERROR_RECV_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &wfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else {
-			error_print();
-			return -1;
-		}
+	if (conn->handshake_state == TLS_state_handshake_over) {
+		return 1;
 	}
 
-	return 1;
+	if (conn->handshake_state == TLS_state_handshake_init) {
+		conn->handshake_state = TLS_state_client_hello;
+	}
+
+	ret = tlcp_client_handshake(conn);
+	if (ret == 1
+		|| ret == TLS_ERROR_RECV_AGAIN
+		|| ret == TLS_ERROR_SEND_AGAIN) {
+		return ret;
+	}
+	error_print();
+	return -1;
 }
 
 int tlcp_do_accept(TLS_CONNECT *conn)
 {
 	int ret;
-	fd_set rfds;
-	fd_set wfds;
 
-	conn->handshake_state = TLS_state_client_hello;
-
-	//sm3_init(&conn->sm3_ctx);
-
-	while (1) {
-
-		ret = tlcp_server_handshake(conn);
-
-		if (ret == 1) {
-			break;
-
-		} else if (ret == TLS_ERROR_SEND_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &rfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else if (ret == TLS_ERROR_RECV_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &wfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else {
-			error_print();
-			return -1;
-		}
+	if (conn->handshake_state == TLS_state_handshake_over) {
+		return 1;
 	}
 
-	return 1;
+	if (conn->handshake_state == TLS_state_handshake_init) {
+		conn->handshake_state = TLS_state_client_hello;
+	}
+
+	ret = tlcp_server_handshake(conn);
+	if (ret == 1
+		|| ret == TLS_ERROR_RECV_AGAIN
+		|| ret == TLS_ERROR_SEND_AGAIN) {
+		return ret;
+	}
+	error_print();
+	return -1;
 }

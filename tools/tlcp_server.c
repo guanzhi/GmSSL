@@ -34,6 +34,53 @@ static const char *help =
 #include "tlcp_help.h"
 "\n";
 
+static int set_socket_nonblocking(tls_socket_t sock)
+{
+#ifdef WIN32
+	u_long mode = 1;
+	if (ioctlsocket(sock, FIONBIO, &mode) != 0) {
+		error_print();
+		return -1;
+	}
+#else
+	int flags;
+	if ((flags = fcntl(sock, F_GETFL)) < 0
+		|| fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
+		error_print();
+		return -1;
+	}
+#endif
+	return 1;
+}
+
+static int do_handshake_select(TLS_CONNECT *conn)
+{
+	int ret;
+	fd_set rfds;
+	fd_set wfds;
+
+	for (;;) {
+		ret = tls_do_handshake(conn);
+		if (ret == 1) {
+			return 1;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+}
+
 int tlcp_server_main(int argc , char **argv)
 {
 	int ret = 1;
@@ -207,7 +254,12 @@ restart:
 		return -1;
 	}
 
-	if (tls_do_handshake(&conn) != 1) {
+	if (set_socket_nonblocking(conn_sock) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (do_handshake_select(&conn) != 1) {
 		error_print();
 		return -1;
 	}
@@ -216,10 +268,24 @@ restart:
 
 		int rv;
 		size_t sentlen;
+		fd_set fds;
 
 		do {
+			FD_ZERO(&fds);
+			FD_SET(conn.sock, &fds);
+
+			if (select((int)(conn.sock + 1), &fds, NULL, NULL, NULL) < 0) {
+				fprintf(stderr, "%s: select failed\n", prog);
+				goto end;
+			}
+
 			len = sizeof(buf);
 			if ((rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
+				if (rv == -EAGAIN
+					|| rv == TLS_ERROR_RECV_AGAIN
+					|| rv == TLS_ERROR_SEND_AGAIN) {
+					continue;
+				}
 				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
 				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
 

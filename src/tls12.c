@@ -3783,77 +3783,45 @@ int tls12_server_handshake(TLS_CONNECT *conn)
 int tls12_do_connect(TLS_CONNECT *conn)
 {
 	int ret;
-	fd_set rfds;
-	fd_set wfds;
 
-	conn->handshake_state = TLS_state_client_hello;
-	//sm3_init(&conn->sm3_ctx);
-
-
-	digest_init(&conn->dgst_ctx, DIGEST_sm3());
-
-	while (1) {
-
-		ret = tls12_client_handshake(conn);
-		if (ret == 1) {
-			break;
-
-		} else if (ret == TLS_ERROR_SEND_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &wfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else if (ret == TLS_ERROR_RECV_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &rfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else {
-			error_print();
-			return -1;
-		}
+	if (conn->handshake_state == TLS_state_handshake_over) {
+		return 1;
 	}
 
-	return 1;
+	if (conn->handshake_state == TLS_state_handshake_init) {
+		conn->handshake_state = TLS_state_client_hello;
+		digest_init(&conn->dgst_ctx, DIGEST_sm3());
+	}
+
+	ret = tls12_client_handshake(conn);
+	if (ret == 1
+		|| ret == TLS_ERROR_RECV_AGAIN
+		|| ret == TLS_ERROR_SEND_AGAIN) {
+		return ret;
+	}
+	error_print();
+	return -1;
 }
 
 int tls12_do_accept(TLS_CONNECT *conn)
 {
 	int ret;
-	fd_set rfds;
-	fd_set wfds;
 
-	conn->handshake_state = TLS_state_client_hello;
-
-	//sm3_init(&conn->sm3_ctx);
-	digest_init(&conn->dgst_ctx, DIGEST_sm3());
-
-	while (1) {
-
-		ret = tls12_server_handshake(conn);
-
-		if (ret == 1) {
-			break;
-
-		} else if (ret == TLS_ERROR_SEND_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &rfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else if (ret == TLS_ERROR_RECV_AGAIN) {
-			FD_ZERO(&rfds);
-			FD_ZERO(&wfds);
-			FD_SET(conn->sock, &wfds);
-			select(conn->sock + 1, &rfds, &wfds, NULL, NULL);
-
-		} else {
-			error_print();
-			return -1;
-		}
+	if (conn->handshake_state == TLS_state_handshake_over) {
+		return 1;
 	}
 
-	return 1;
+	if (conn->handshake_state == TLS_state_handshake_init) {
+		conn->handshake_state = TLS_state_client_hello;
+		digest_init(&conn->dgst_ctx, DIGEST_sm3());
+	}
+
+	ret = tls12_server_handshake(conn);
+	if (ret == 1
+		|| ret == TLS_ERROR_RECV_AGAIN
+		|| ret == TLS_ERROR_SEND_AGAIN) {
+		return ret;
+	}
+	error_print();
+	return -1;
 }
