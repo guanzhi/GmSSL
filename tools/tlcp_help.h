@@ -9,6 +9,10 @@
 
 "Examples\n"
 "\n"
+"Supported cipher suites:\n"
+"      TLS_ECC_SM4_GCM_SM3\n"
+"      TLS_ECC_SM4_CBC_SM3\n"
+"\n"
 "  gmssl tlcp_client -host www.pbc.gov.cn -get / -outcerts certs.pem\n"
 "\n"
 "  gmssl tlcp_client -host www.pbc.gov.cn -port 443\n"
@@ -35,4 +39,3 @@
 "\n"
 "    gmssl tlcp_server -port 443 -cert double_certs.pem -key signkey.pem -pass 1234 -ex_key enckey.pem -ex_pass 1234\n"
 "    gmssl tlcp_client -host 127.0.0.1 -cacert rootcacert.pem\n"
-

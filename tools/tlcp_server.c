@@ -52,7 +52,10 @@ int tlcp_server_main(int argc , char **argv)
 	size_t encpasses_cnt = 0;
 	char *cacertfile = NULL;
 
-	int server_ciphers[] = { TLS_cipher_ecc_sm4_cbc_sm3, };
+	int server_ciphers[] = {
+		TLS_cipher_ecc_sm4_gcm_sm3,
+		TLS_cipher_ecc_sm4_cbc_sm3,
+	};
 
 	TLS_CTX ctx;
 	TLS_CONNECT conn;

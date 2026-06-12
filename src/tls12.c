@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <gmssl/rand.h>
 #include <gmssl/x509.h>
 #include <gmssl/error.h>
 #include <gmssl/sm2.h>
@@ -41,180 +40,6 @@ int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int f
 	// 如果未来支持ECDHE套件，可以将函数改为宏，直接传入 (conn->cipher_suite << 8)
 	format |= tls12_ciphers[0] << 8; // 应该是KeyExchange需要这个参数			
 	return tls_record_print(fp, record, recordlen, format, indent);
-}
-
-// 这里主要的问题是我们没有 cbc_encrypt_blocks 这个函数啊
-
-
-void cbc_encrypt_blocks(const BLOCK_CIPHER_KEY *key, uint8_t iv[16],
-	const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	const uint8_t *piv = iv;
-
-	while (nblocks--) {
-		size_t i;
-		for (i = 0; i < 16; i++) {
-			out[i] = in[i] ^ piv[i];
-		}
-		block_cipher_encrypt(key, out, out);
-		piv = out;
-		in += 16;
-		out += 16;
-	}
-
-	memcpy(iv, piv, 16);
-}
-
-void cbc_decrypt_blocks(const BLOCK_CIPHER_KEY *key, uint8_t iv[16],
-	const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	const uint8_t *piv = iv;
-
-	while (nblocks--) {
-		size_t i;
-		block_cipher_decrypt(key, in, out);
-		for (i = 0; i < 16; i++) {
-			out[i] ^= piv[i];
-		}
-		piv = in;
-		in += 16;
-		out += 16;
-	}
-
-	memcpy(iv, piv, 16);
-}
-
-
-// 这个函数只有在哈希函数为HASH256时才是正确的
-int tls12_cbc_encrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *enc_key,
-	const uint8_t seq_num[8], const uint8_t header[5],
-	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	HMAC_CTX hmac_ctx;
-	uint8_t last_blocks[32 + 16] = {0};
-	uint8_t iv[16];
-	uint8_t *mac, *padding;
-	size_t maclen;
-	int rem, padding_len;
-	int i;
-
-	if (!inited_hmac_ctx || !enc_key || !seq_num || !header || (!in && inlen) || !out || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (inlen > (1 << 14)) {
-		error_print();
-		return -1;
-	}
-	if ((((size_t)header[3]) << 8) + header[4] != inlen) {
-		error_print();
-		return -1;
-	}
-
-	rem = (inlen + 32) % 16;
-	memcpy(last_blocks, in + inlen - rem, rem);
-	mac = last_blocks + rem;
-
-	memcpy(&hmac_ctx, inited_hmac_ctx, sizeof(HMAC_CTX));
-	hmac_update(&hmac_ctx, seq_num, 8);
-	hmac_update(&hmac_ctx, header, 5);
-	hmac_update(&hmac_ctx, in, inlen);
-	hmac_finish(&hmac_ctx, mac, &maclen);
-
-	padding = mac + 32;
-	padding_len = 16 - rem - 1;
-	for (i = 0; i <= padding_len; i++) {
-		padding[i] = (uint8_t)padding_len;
-	}
-
-	if (rand_bytes(iv, 16) != 1) {
-		error_print();
-		return -1;
-	}
-	memcpy(out, iv, 16);
-	out += 16;
-
-	if (inlen >= 16) {
-		cbc_encrypt_blocks(enc_key, iv, in, inlen/16, out);
-		out += inlen - rem;
-	}
-	cbc_encrypt_blocks(enc_key, iv, last_blocks, sizeof(last_blocks)/16, out);
-
-	*outlen = 16 + inlen - rem + sizeof(last_blocks);
-	return 1;
-}
-
-int tls12_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *dec_key,
-	const uint8_t seq_num[8], const uint8_t enced_header[5],
-	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	HMAC_CTX hmac_ctx;
-	uint8_t iv[16];
-	const uint8_t *padding;
-	const uint8_t *mac;
-	uint8_t header[5];
-	int padding_len;
-	uint8_t hmac[32];
-	size_t hmaclen;
-	int i;
-
-	if (!inited_hmac_ctx || !dec_key || !seq_num || !enced_header || !in || !inlen || !out || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (inlen % 16
-		|| inlen < (16 + 0 + 32 + 16) // iv + data +  mac + padding
-		|| inlen > (16 + (1<<14) + 32 + 256)) {
-		error_print_msg("invalid tls cbc ciphertext length %zu\n", inlen);
-		return -1;
-	}
-
-	memcpy(iv, in, 16);
-
-	format_bytes(stderr, 0, 0, "itls12_cbc_decrypt: iv", iv, 16);
-
-
-	in += 16;
-	inlen -= 16;
-
-	cbc_decrypt_blocks(dec_key, iv, in, inlen/16, out);
-
-	format_bytes(stderr, 0, 0, "cbc_decrypt out", out, inlen);
-
-
-	padding_len = out[inlen - 1];
-	padding = out + inlen - padding_len - 1;
-	if (padding < out + 32) {
-		error_print();
-		return -1;
-	}
-	for (i = 0; i < padding_len; i++) {
-		if (padding[i] != padding_len) {
-			error_puts("tls ciphertext cbc-padding check failure");
-			return -1;
-		}
-	}
-
-	*outlen = inlen - 32 - padding_len - 1;
-
-	header[0] = enced_header[0];
-	header[1] = enced_header[1];
-	header[2] = enced_header[2];
-	header[3] = (uint8_t)((*outlen) >> 8);
-	header[4] = (uint8_t)(*outlen);
-	mac = padding - 32;
-
-	memcpy(&hmac_ctx, inited_hmac_ctx, sizeof(HMAC_CTX));
-	hmac_update(&hmac_ctx, seq_num, 8);
-	hmac_update(&hmac_ctx, header, 5);
-	hmac_update(&hmac_ctx, out, *outlen);
-	hmac_finish(&hmac_ctx, hmac, &hmaclen);
-
-	if (gmssl_secure_memcmp(mac, hmac, sizeof(hmac)) != 0) {
-		error_puts("tls ciphertext mac check failure\n");
-		return -1;
-	}
-	return 1;
 }
 
 int tls12_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
@@ -256,26 +81,6 @@ int tls12_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	}
 
 	*outlen = 8 + inlen + GHASH_SIZE;
-	return 1;
-}
-
-int tls12_record_cbc_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen)
-{
-	if (tls12_cbc_encrypt(hmac_ctx, cbc_key, seq_num, in,
-		in + 5, inlen - 5,
-		out + 5, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (uint8_t)((*outlen) >> 8);
-	out[4] = (uint8_t)(*outlen);
-	(*outlen) += 5;
 	return 1;
 }
 
@@ -343,28 +148,7 @@ static int tls12_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv
 	return 1;
 }
 
-static int tls12_record_cbc_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen)
-{
-	if (tls12_cbc_decrypt(hmac_ctx, cbc_key, seq_num, in,
-		in + 5, inlen - 5,
-		out + 5, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (uint8_t)((*outlen) >> 8);
-	out[4] = (uint8_t)(*outlen);
-	(*outlen) += 5;
-
-	return 1;
-}
-
-static int tls12_record_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+int tls12_record_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
@@ -400,7 +184,7 @@ static int tls12_record_encrypt(int cipher_suite,
 		break;
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-		if (tls12_record_cbc_encrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_record_cbc_encrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -427,7 +211,7 @@ int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 		break;
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-		if (tls12_record_cbc_decrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_record_cbc_decrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
 			error_print();
 			return -1;
 		}

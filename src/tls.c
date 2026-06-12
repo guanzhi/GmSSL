@@ -439,7 +439,7 @@ int tls_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *dec
 	return 1;
 }
 
-int tls_record_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
+int tls_record_cbc_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
@@ -459,7 +459,7 @@ int tls_record_encrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key
 	return 1;
 }
 
-int tls_record_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
+int tls_record_cbc_decrypt(const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *cbc_key,
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen)
 {
@@ -1849,7 +1849,7 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 			break;
 		case TLS_cipher_ecdhe_sm4_cbc_sm3:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-			if (tls12_record_cbc_encrypt(hmac_ctx, enc_key, seq_num,
+			if (tls_record_cbc_encrypt(hmac_ctx, enc_key, seq_num,
 				conn->databuf, tls_record_length(conn->databuf),
 				conn->record, &recordlen) != 1) {
 				error_print();
@@ -1860,8 +1860,15 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 			error_print();
 			return -1;
 		}
+	} else if (conn->protocol == TLS_protocol_tlcp) {
+		if (tlcp_record_encrypt(conn->cipher_suite, hmac_ctx, enc_key, fixed_iv, seq_num,
+			conn->databuf, tls_record_length(conn->databuf),
+			conn->record, &recordlen) != 1) {
+			error_print();
+			return -1;
+		}
 	} else {
-		if (tls_record_encrypt(hmac_ctx, enc_key, seq_num,
+		if (tls_record_cbc_encrypt(hmac_ctx, enc_key, seq_num,
 			conn->databuf, tls_record_length(conn->databuf),
 			conn->record, &recordlen) != 1) {
 			error_print();
@@ -1916,8 +1923,14 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+	} else if (conn->protocol == TLS_protocol_tlcp) {
+		if (tlcp_record_decrypt(conn->cipher_suite, hmac_ctx, dec_key, fixed_iv, seq_num,
+			record, recordlen, conn->databuf, &conn->datalen) != 1) {
+			error_print();
+			return -1;
+		}
 	} else {
-		if (tls_record_decrypt(hmac_ctx, dec_key, seq_num,
+		if (tls_record_cbc_decrypt(hmac_ctx, dec_key, seq_num,
 			record, recordlen,
 			conn->databuf, &conn->datalen) != 1) {
 			error_print();
