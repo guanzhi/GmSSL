@@ -364,9 +364,13 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 		}
 
 		// application_layer_protocol_negotiation
-		if (conn->ctx->application_layer_protocol_negotiation) {
-			error_print();
-			return -1;
+		if (conn->ctx->alpn_protocols_cnt) {
+			if (tls_application_layer_protocol_negotiation_ext_to_bytes(
+				conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt,
+				&pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 
 		// client_id
@@ -561,7 +565,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 			break;
 
 		case TLS_extension_application_layer_protocol_negotiation:
-			if (!conn->ctx->application_layer_protocol_negotiation) {
+			if (!conn->ctx->alpn_protocols_cnt) {
 				error_print();
 				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
@@ -584,7 +588,19 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 
 	// application_layer_protocol_negotiation
 	if (application_layer_protocol_negotiation) {
-		// 实现ALPN的功能
+		if ((ret = tls_application_layer_protocol_negotiation_selected_from_bytes(
+			&conn->alpn_selected,
+			application_layer_protocol_negotiation, application_layer_protocol_negotiation_len,
+			conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
+		}
+		conn->application_layer_protocol_negotiation = 1;
 	}
 
 
@@ -1484,6 +1500,27 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 
+	if (application_layer_protocol_negotiation) {
+		if (!conn->ctx->alpn_protocols_cnt) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_no_application_protocol);
+			return -1;
+		}
+		if ((ret = tls_application_layer_protocol_negotiation_select(
+			application_layer_protocol_negotiation, application_layer_protocol_negotiation_len,
+			conn->ctx->alpn_protocols, conn->ctx->alpn_protocols_cnt,
+			&conn->alpn_selected)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_no_application_protocol);
+			return -1;
+		}
+		conn->application_layer_protocol_negotiation = 1;
+	}
+
 	if (server_name) {
 		if (tls_server_name_from_bytes(&host_name, &host_name_len, server_name, server_name_len) != 1) {
 			error_print();
@@ -1539,7 +1576,7 @@ int tlcp_send_server_hello(TLS_CONNECT *conn)
 	tls_trace("send ServerHello\n");
 
 	if (conn->recordlen == 0) {
-		uint8_t exts[256];
+		uint8_t exts[TLS_MAX_EXTENSIONS_SIZE];
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
 
@@ -1592,8 +1629,12 @@ int tlcp_send_server_hello(TLS_CONNECT *conn)
 		// signature_algorithms (client only)
 
 		// application_layer_protocol_negotiation
-		if (conn->application_layer_protocol_negotiation) {
-			// 这里应该设置一个协议
+		if (conn->alpn_selected) {
+			if (tls_application_layer_protocol_negotiation_selected_ext_to_bytes(
+				conn->alpn_selected, &pexts, &extslen) != 1) {
+				error_print();
+				return -1;
+			}
 		}
 
 		// client_id (client only)

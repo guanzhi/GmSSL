@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert file -key file -pass str -ex_key file -ex_pass str [-cacert file]";
+static const char *options = "[-port num] -cert file -key file -pass str -ex_key file -ex_pass str [-alpn str] [-cacert file]";
 
 
 static const char *help =
@@ -30,6 +30,7 @@ static const char *help =
 "    -pass str              Password to decrypt signing private key, may appear multiple times\n"
 "    -ex_key file           Server's encryption private key in PEM format, may appear multiple times\n"
 "    -ex_pass str           Password to decrypt encryption private key, may appear multiple times\n"
+"    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
 "    -cacert file           CA certificate for client certificate verification\n"
 "\n"
 #include "tlcp_help.h"
@@ -50,6 +51,8 @@ int tlcp_server_main(int argc , char **argv)
 	size_t enckeyfiles_cnt = 0;
 	char *encpasses[sizeof(certfiles)/sizeof(certfiles[0])];
 	size_t encpasses_cnt = 0;
+	char *alpn_protocols[4];
+	size_t alpn_protocols_cnt = 0;
 	char *cacertfile = NULL;
 
 	int server_ciphers[] = {
@@ -119,6 +122,13 @@ int tlcp_server_main(int argc , char **argv)
 			}
 			if (--argc < 1) goto bad;
 			encpasses[encpasses_cnt++] = *(++argv);
+		} else if (!strcmp(*argv, "-alpn")) {
+			if (alpn_protocols_cnt >= sizeof(alpn_protocols)/sizeof(alpn_protocols[0])) {
+				fprintf(stderr, "%s: too many -alpn options\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			alpn_protocols[alpn_protocols_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -165,6 +175,13 @@ bad:
 		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1) {
 		error_print();
 		return -1;
+	}
+	if (alpn_protocols_cnt) {
+		if (tls_ctx_set_application_layer_protocol_negotiation(&ctx,
+			alpn_protocols, alpn_protocols_cnt) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 	for (i = 0; i < certfiles_cnt; i++) {
 		if (tlcp_ctx_add_server_certificate_and_keys(&ctx,

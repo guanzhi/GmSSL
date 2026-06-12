@@ -24,6 +24,7 @@ static const char *usage =
 	" [-cert file -key file -pass str]"
 	" [-outcerts file]"
 	" [-get path]"
+	" [-alpn str]"
 	" [-quiet]";
 
 static const char *help =
@@ -43,6 +44,7 @@ static const char *help =
 "    -get path              Send a GET request with given path of URI\n"
 "    -outcerts file         Save server certificates to a PEM file\n"
 "    -server_name str       Send server_name (SNI) request\n"
+"    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
 "    -status_request        Send status_request (OCSP Stapling) request\n"
 "    -quiet                 Without printing any status message\n"
 "\n"
@@ -69,6 +71,8 @@ int tlcp_client_main(int argc, char *argv[])
 	char *keyfile = NULL;
 	char *pass = NULL;
 	char *server_name = NULL;
+	char *alpn_protocols[4];
+	size_t alpn_protocols_cnt = 0;
 	int client_cert_optional = 0;
 	char *get = NULL;
 	char *outcertsfile = NULL;
@@ -165,6 +169,13 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-server_name")) {
 			if (--argc < 1) goto bad;
 			server_name = *(++argv);
+		} else if (!strcmp(*argv, "-alpn")) {
+			if (alpn_protocols_cnt >= sizeof(alpn_protocols)/sizeof(alpn_protocols[0])) {
+				fprintf(stderr, "%s: too many -alpn options\n", prog);
+				return -1;
+			}
+			if (--argc < 1) goto bad;
+			alpn_protocols[alpn_protocols_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-client_cert_optional")) {
 			client_cert_optional = 1;
 		} else if (!strcmp(*argv, "-get")) {
@@ -211,6 +222,14 @@ bad:
 	if (tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
 		error_print();
 		goto end;
+	}
+
+	if (alpn_protocols_cnt) {
+		if (tls_ctx_set_application_layer_protocol_negotiation(&ctx,
+			alpn_protocols, alpn_protocols_cnt) != 1) {
+			error_print();
+			goto end;
+		}
 	}
 
 	if (cacertfile) {
