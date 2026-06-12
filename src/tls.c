@@ -2410,9 +2410,6 @@ void tls_ctx_cleanup(TLS_CTX *ctx)
 			x509_key_cleanup(&ctx->x509_keys[i]);
 			x509_key_cleanup(&ctx->enc_keys[i]);
 		}
-		x509_key_cleanup(&ctx->signkey);
-		x509_key_cleanup(&ctx->kenckey);
-		if (ctx->certs) free(ctx->certs);
 		if (ctx->cacerts) free(ctx->cacerts);
 		memset(ctx, 0, sizeof(TLS_CTX));
 	}
@@ -2678,18 +2675,9 @@ int tls_ctx_add_certificate_chain_and_key(TLS_CTX *ctx, const char *chainfile,
 }
 
 
-// 保留这个函数，相当于是对证书链的初始化
 int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 	const char *keyfile, const char *keypass)
 {
-	int ret = -1;
-	uint8_t *certs = NULL;
-	size_t certslen;
-	FILE *keyfp = NULL;
-	const uint8_t *cert;
-	size_t certlen;
-	X509_KEY public_key;
-
 	if (!ctx || !chainfile || !keyfile || !keypass) {
 		error_print();
 		return -1;
@@ -2698,47 +2686,15 @@ int tls_ctx_set_certificate_and_key(TLS_CTX *ctx, const char *chainfile,
 		error_print();
 		return -1;
 	}
-	if (ctx->certs) {
+	if (ctx->cert_chains_len || ctx->x509_keys_cnt) {
 		error_print();
 		return -1;
 	}
-
-	if (x509_certs_new_from_file(&certs, &certslen, chainfile) != 1) {
-		error_print();
-		goto end;
-	}
-	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
-		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
+	if (tls_ctx_add_certificate_chain_and_key(ctx, chainfile, keyfile, keypass) != 1) {
 		error_print();
 		return -1;
 	}
-
-	if (public_key.algor == OID_ec_public_key) {
-		if (!(keyfp = fopen(keyfile, "r"))) {
-			error_print();
-			return -1;
-		}
-	} else {
-		if (!(keyfp = fopen(keyfile, "rb+"))) {
-			error_print();
-			return -1;
-		}
-	}
-
-	if (x509_private_key_from_file(&ctx->signkey, public_key.algor, keypass, keyfp) != 1) {
-		error_print();
-		return -1;
-	}
-
-	ctx->certs = certs;
-	ctx->certslen = certslen;
-	certs = NULL;
-	ret = 1;
-
-end:
-	if (certs) free(certs);
-	if (keyfp) fclose(keyfp);
-	return ret;
+	return 1;
 }
 
 int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile,
@@ -2832,12 +2788,7 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 	}
 
 	ctx->cert_chains_len += cert_chains_len;
-	ctx->cert_chains_cnt++;
 	ctx->x509_keys_cnt++;
-	if (key_idx == 0) {
-		ctx->signkey = ctx->x509_keys[0];
-		ctx->kenckey = ctx->enc_keys[0];
-	}
 	ret = 1;
 
 end:
@@ -2969,6 +2920,29 @@ int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 }
 
 
+static int tls_ctx_get_certificate_chain(const TLS_CTX *ctx, size_t idx,
+	const uint8_t **cert_chain, size_t *cert_chain_len)
+{
+	const uint8_t *p;
+	size_t len;
+	size_t i;
+
+	if (!ctx || !cert_chain || !cert_chain_len || !idx) {
+		error_print();
+		return -1;
+	}
+
+	p = ctx->cert_chains;
+	len = ctx->cert_chains_len;
+	for (i = 1; i <= idx; i++) {
+		if (tls_uint24array_from_bytes(cert_chain, cert_chain_len, &p, &len) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
 	if (!conn || !ctx) {
@@ -2986,21 +2960,22 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	conn->protocol = ctx->protocol;
 
 
-	if (ctx->certslen > TLS_MAX_CERTIFICATES_SIZE) {
-		error_print();
-		return -1;
-	}
-	if (conn->is_client) {
-		memcpy(conn->client_certs, ctx->certs, ctx->certslen);
-		conn->client_certs_len = ctx->certslen;
-	} else {
-		memcpy(conn->server_certs, ctx->certs, ctx->certslen);
-		conn->server_certs_len = ctx->certslen;
+	if (conn->is_client && ctx->cert_chains_len) {
+		if (tls_ctx_get_certificate_chain(ctx, 1,
+			&conn->cert_chain, &conn->cert_chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (conn->cert_chain_len > sizeof(conn->client_certs)) {
+			error_print();
+			return -1;
+		}
+		memcpy(conn->client_certs, conn->cert_chain, conn->cert_chain_len);
+		conn->client_certs_len = conn->cert_chain_len;
+		conn->cert_chain_idx = 1;
 	}
 
 
-	conn->sign_key = ctx->signkey;
-	conn->kenc_key = ctx->kenckey;
 	conn->ctx = ctx;
 
 	conn->key_exchanges_cnt = ctx->key_exchanges_cnt;

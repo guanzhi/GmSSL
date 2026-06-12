@@ -666,13 +666,6 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	if (conn->peer_cert_chain_len > sizeof(conn->server_certs)) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_bad_certificate);
-		return -1;
-	}
-	memcpy(conn->server_certs, conn->peer_cert_chain, conn->peer_cert_chain_len);
-	conn->server_certs_len = conn->peer_cert_chain_len;
 
 	if (x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len,
 		0, &server_cert, &server_cert_len) != 1) {
@@ -1279,18 +1272,9 @@ static int tlcp_cert_chains_select(TLS_CONNECT *conn,
 			}
 		}
 
-		if (cert_chain_len > sizeof(conn->server_certs)) {
-			error_print();
-			return -1;
-		}
-
 		conn->cert_chain = cert_chain;
 		conn->cert_chain_len = cert_chain_len;
 		conn->cert_chain_idx = cert_chain_idx;
-		conn->sign_key = conn->ctx->x509_keys[cert_chain_idx - 1];
-		conn->kenc_key = conn->ctx->enc_keys[cert_chain_idx - 1];
-		memcpy(conn->server_certs, cert_chain, cert_chain_len);
-		conn->server_certs_len = cert_chain_len;
 		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
 		conn->signature_algorithms_cnt = 1;
 		return 1;
@@ -1392,7 +1376,6 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	case TLS_cipher_ecc_sm4_cbc_sm3:
 	case TLS_cipher_ecc_sm4_gcm_sm3:
 		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
-		conn->ecdh_named_curve = 0;
 		break;
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
@@ -1700,7 +1683,21 @@ int tlcp_send_server_hello(TLS_CONNECT *conn)
 }
 
 
-// 因为这个就是发送证书而已，和tls12是没有什么区别的
+/*
+-- IBC_SM4_CBC_SM3 和 IBC_SM4_GCM_SM3 套件的服务器Certificate消息格式
+
+opaque ASN.1IBCParam<1..2^24-1>
+
+struct {
+	opaque ibc_id<1..2^16-1>;
+	ASN.1IBCParam ibc_parameter;
+} Certificate;
+
+其中ibc_id是服务器的SM9的ID，这个ID暂时是一个没有内部结构的字节串，后续有可能是一个DER结构的字节串
+ibc_parameter 是SM9 sm9_enc_master_key_to_der 输出的DER数据
+
+
+*/
 int tlcp_send_server_certificate(TLS_CONNECT *conn)
 {
 	int ret;
@@ -1759,6 +1756,8 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 	tls_trace("send ServerKeyExchange\n");
 
 	if (conn->recordlen == 0) {
+		X509_KEY *sign_key;
+
 		if (!conn->cert_chain || !conn->cert_chain_len || !conn->cert_chain_idx) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
@@ -1780,7 +1779,13 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		if (sm2_sign_init(&sign_ctx, &conn->sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+		sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
+		if (sign_key->algor != OID_ec_public_key || sign_key->algor_param != OID_sm2) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		if (sm2_sign_init(&sign_ctx, &sign_key->u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 			|| sm2_sign_update(&sign_ctx, conn->client_random, 32) != 1
 			|| sm2_sign_update(&sign_ctx, conn->server_random, 32) != 1
 			|| sm2_sign_update(&sign_ctx, server_ecc_params, server_ecc_params_len) != 1
@@ -2053,6 +2058,7 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 	const uint8_t *enced_pms;
 	size_t enced_pms_len;
 	size_t pre_master_secret_len;
+	X509_KEY *enc_key;
 
 	tls_trace("recv ClientKeyExchange\n");
 
@@ -2069,8 +2075,13 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	if (!conn->cert_chain_idx || conn->kenc_key.algor != OID_ec_public_key
-		|| conn->kenc_key.algor_param != OID_sm2) {
+	if (!conn->cert_chain_idx) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_internal_error);
+		return -1;
+	}
+	enc_key = &conn->ctx->enc_keys[conn->cert_chain_idx - 1];
+	if (enc_key->algor != OID_ec_public_key || enc_key->algor_param != OID_sm2) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -2079,7 +2090,7 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 	// FIXME:
 	// 这里需要检查一下密钥的长度，因为输入的长度是确定的，因此输出的密文长度应该也是确定的
 
-	if (sm2_decrypt(&conn->kenc_key.u.sm2_key, enced_pms, enced_pms_len,
+	if (sm2_decrypt(&enc_key->u.sm2_key, enced_pms, enced_pms_len,
 		conn->pre_master_secret, &pre_master_secret_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_decrypt_error);

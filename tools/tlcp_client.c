@@ -329,7 +329,7 @@ bad:
 			perror("fopen");
 			goto end;
 		}
-		if (x509_certs_to_pem(conn.server_certs, conn.server_certs_len, certoutfp) != 1) {
+		if (x509_certs_to_pem(conn.peer_cert_chain, conn.peer_cert_chain_len, certoutfp) != 1) {
 			fprintf(stderr, "%s: x509_certs_to_pem error\n", prog);
 			fclose(certoutfp);
 			goto end;

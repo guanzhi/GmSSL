@@ -757,10 +757,6 @@ int tls_handshake_init(TLS_CONNECT *conn)
 	digest_init(&conn->dgst_ctx, DIGEST_sm3());
 
 
-	if (conn->client_certs_len) {
-		//sm2_sign_init(&conn->sign_ctx, &conn->sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
-	}
-
 	return 1;
 }
 
@@ -2377,9 +2373,6 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 	// named_curve应该在supported_groups里面
-
-	//conn->ecdh_named_curve = named_curve;
-
 
 	conn->key_exchange_group = named_curve;
 	memcpy(conn->peer_key_exchange, point_octets, point_octets_len);

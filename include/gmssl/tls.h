@@ -786,10 +786,6 @@ typedef struct {
 
 	uint8_t cert_chains[8192];
 	size_t cert_chains_len;
-	size_t cert_chains_cnt; // 这是一个多余的值，不应该存储多余的值
-//	size_t cert_chain_idx; // == 1 mean the first certificate
-	uint8_t *certs;	// 这里应该改为cert_chain，我们将certs表示为互相独立的证书
-	size_t certslen;
 
 
 	// 每个证书链都应该有附带的status_request和sct信息
@@ -804,8 +800,6 @@ typedef struct {
 	X509_KEY enc_keys[4];
 
 	size_t x509_keys_cnt;
-	X509_KEY signkey;
-	X509_KEY kenckey;
 
 	// 对于客户端来说，需要提供所有的CA证书，注意这里不是证书链，而是一个个独立的证书
 	// 对于服务器来说，在certificate_request中，需要从这些证书中提取dn_names，并发送给客户端，然后再验证客户端证书
@@ -1057,8 +1051,6 @@ typedef struct {
 
 
 	// 一般来说我们只要保存对方发过来的证书，因为己方的证书都在CTX中，对吗？
-	uint8_t server_certs[TLS_MAX_CERTIFICATES_SIZE]; // TODO: use ptr and malloc			
-	size_t server_certs_len;
 	uint8_t client_certs[TLS_MAX_CERTIFICATES_SIZE];
 	size_t client_certs_len;
 
@@ -1086,8 +1078,6 @@ typedef struct {
 	size_t peer_cert_chain_len;
 
 
-	X509_KEY sign_key;
-	X509_KEY kenc_key; // 应该作为服务器的SM2加密
 	X509_KEY server_enc_key;
 
 	int verify_result;
@@ -1101,9 +1091,6 @@ typedef struct {
 	// secrets
 	HMAC_CTX client_write_mac_ctx;
 	HMAC_CTX server_write_mac_ctx;
-
-	SM4_KEY client_write_enc_key;
-	SM4_KEY server_write_enc_key;
 
 
 
@@ -1137,15 +1124,6 @@ typedef struct {
 
 	SM2_SIGN_CTX sign_ctx;
 	TLS_CLIENT_VERIFY_CTX client_verify_ctx;
-
-	// 所有这些命名为ecdh的都需要替换掉
-	uint16_t ecdh_named_curve;
-	X509_KEY ecdh_keys[2];
-	size_t ecdh_keys_cnt;
-	X509_KEY ecdh_key;
-	uint8_t peer_ecdh_point[65];
-	size_t peer_ecdh_point_len;
-
 
 	// HelloRetryRequest
 	int hello_retry_request;
