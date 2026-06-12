@@ -81,6 +81,67 @@ static int do_handshake_select(TLS_CONNECT *conn)
 	}
 }
 
+static int do_shutdown_select(TLS_CONNECT *conn)
+{
+	int ret;
+	fd_set rfds;
+	fd_set wfds;
+
+	for (;;) {
+		ret = tls_shutdown(conn);
+		if (ret == 1) {
+			return 1;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+}
+
+static int do_send_select(TLS_CONNECT *conn, const uint8_t *buf, size_t len)
+{
+	int ret;
+	size_t offset = 0;
+	fd_set rfds;
+	fd_set wfds;
+
+	while (offset < len) {
+		size_t sentlen = 0;
+
+		ret = tls_send(conn, buf + offset, len - offset, &sentlen);
+		if (ret == 1) {
+			offset += sentlen;
+			continue;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
 int tlcp_server_main(int argc , char **argv)
 {
 	int ret = 1;
@@ -267,7 +328,6 @@ restart:
 	for (;;) {
 
 		int rv;
-		size_t sentlen;
 		fd_set fds;
 
 		do {
@@ -286,8 +346,14 @@ restart:
 					|| rv == TLS_ERROR_SEND_AGAIN) {
 					continue;
 				}
-				if (rv < 0) fprintf(stderr, "%s: recv failure\n", prog);
-				else fprintf(stderr, "%s: Disconnected by remote\n", prog);
+				if (rv < 0) {
+					fprintf(stderr, "%s: recv failure\n", prog);
+				} else {
+					if (do_shutdown_select(&conn) != 1) {
+						fprintf(stderr, "%s: shutdown failure\n", prog);
+					}
+					fprintf(stderr, "%s: Disconnected by remote\n", prog);
+				}
 
 				//tls_socket_close(conn.sock); // FIXME: 		
 				tls_cleanup(&conn);
@@ -295,7 +361,7 @@ restart:
 			}
 		} while (!len);
 
-		if (tls_send(&conn, (uint8_t *)buf, len, &sentlen) != 1) {
+		if (do_send_select(&conn, (uint8_t *)buf, len) != 1) {
 			fprintf(stderr, "%s: send failure, close connection\n", prog);
 			tls_socket_close(conn.sock);
 			goto end;

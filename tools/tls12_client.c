@@ -96,6 +96,67 @@ static int do_handshake_select(TLS_CONNECT *conn)
 	}
 }
 
+static int do_shutdown_select(TLS_CONNECT *conn)
+{
+	int ret;
+	fd_set rfds;
+	fd_set wfds;
+
+	for (;;) {
+		ret = tls_shutdown(conn);
+		if (ret == 1) {
+			return 1;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+}
+
+static int do_send_select(TLS_CONNECT *conn, const uint8_t *buf, size_t len)
+{
+	int ret;
+	size_t offset = 0;
+	fd_set rfds;
+	fd_set wfds;
+
+	while (offset < len) {
+		size_t sentlen = 0;
+
+		ret = tls_send(conn, buf + offset, len - offset, &sentlen);
+		if (ret == 1) {
+			offset += sentlen;
+			continue;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
 int tls12_client_main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -357,17 +418,15 @@ bad:
 
 	for (;;) {
 		fd_set fds;
-		size_t sentlen;
-
 		if (!fgets(send_buf, sizeof(send_buf), stdin)) {
 			if (feof(stdin)) {
-				tls_shutdown(&conn);
+				do_shutdown_select(&conn);
 				goto end;
 			} else {
 				continue;
 			}
 		}
-		if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+		if (do_send_select(&conn, (uint8_t *)send_buf, strlen(send_buf)) != 1) {
 			fprintf(stderr, "%s: send error\n", prog);
 			goto end;
 		}
@@ -396,6 +455,9 @@ bad:
 						|| rv == TLS_ERROR_SEND_AGAIN) {
 						break;
 					}
+					if (rv == 0) {
+						do_shutdown_select(&conn);
+					}
 					goto end;
 				}
 				fwrite(buf, 1, len, stdout);
@@ -415,13 +477,13 @@ bad:
 
 			if (!fgets(send_buf, sizeof(send_buf), stdin)) {
 				if (feof(stdin)) {
-					tls_shutdown(&conn);
+					do_shutdown_select(&conn);
 					goto end;
 				} else {
 					continue;
 				}
 			}
-			if (tls_send(&conn, (uint8_t *)send_buf, strlen(send_buf), &sentlen) != 1) {
+			if (do_send_select(&conn, (uint8_t *)send_buf, strlen(send_buf)) != 1) {
 				fprintf(stderr, "%s: send error\n", prog);
 				goto end;
 			}

@@ -101,6 +101,67 @@ static int do_handshake_select(TLS_CONNECT *conn)
 	}
 }
 
+static int do_shutdown_select(TLS_CONNECT *conn)
+{
+	int ret;
+	fd_set rfds;
+	fd_set wfds;
+
+	for (;;) {
+		ret = tls_shutdown(conn);
+		if (ret == 1) {
+			return 1;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+}
+
+static int do_send_select(TLS_CONNECT *conn, const uint8_t *buf, size_t len)
+{
+	int ret;
+	size_t offset = 0;
+	fd_set rfds;
+	fd_set wfds;
+
+	while (offset < len) {
+		size_t sentlen = 0;
+
+		ret = tls_send(conn, buf + offset, len - offset, &sentlen);
+		if (ret == 1) {
+			offset += sentlen;
+			continue;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
 int tlcp_client_main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -396,7 +457,7 @@ bad:
 
 		snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", get, host);
 
-		if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
+		if (do_send_select(&conn, (uint8_t *)buf, strlen(buf)) != 1) {
 			fprintf(stderr, "%s: send error\n", prog);
 			goto end;
 		}
@@ -419,6 +480,8 @@ bad:
 				fflush(stdout);
 			} else if (rv == 0) {
 				fprintf(stderr, "%s: TLCP connection is closed by remote host\n", prog);
+				do_shutdown_select(&conn);
+				ret = 0;
 				goto end;
 			} else if (rv == -EAGAIN
 				|| rv == TLS_ERROR_RECV_AGAIN
@@ -436,7 +499,7 @@ bad:
 					fprintf(stderr, "%s: select error\n", prog);
 					goto end;
 				} else if (sel == 0) {
-					tls_shutdown(&conn);
+					do_shutdown_select(&conn);
 					ret = 0;
 					goto end;
 				}
@@ -458,7 +521,7 @@ bad:
 		if (read_stdin) {
 #ifdef WIN32
 			if (fgets(buf, sizeof(buf), stdin)) {
-				if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
+				if (do_send_select(&conn, (uint8_t *)buf, strlen(buf)) != 1) {
 					fprintf(stderr, "%s: send error\n", prog);
 					goto end;
 				}
@@ -467,7 +530,9 @@ bad:
 					fprintf(stderr, "%s: length of input line exceeds buffer size\n", prog);
 					goto end;
 				}	
-				read_stdin = 0;
+				do_shutdown_select(&conn);
+				ret = 0;
+				goto end;
 			}	
 #else
 			FD_SET(STDIN_FILENO, &fds); // in POSIX, first arg type is int
@@ -483,7 +548,7 @@ bad:
 		if (read_stdin && FD_ISSET(STDIN_FILENO, &fds)) {
 
 			if (fgets(buf, sizeof(buf), stdin)) {
-				if (tls_send(&conn, (uint8_t *)buf, strlen(buf), &len) != 1) {
+				if (do_send_select(&conn, (uint8_t *)buf, strlen(buf)) != 1) {
 					fprintf(stderr, "%s: send error\n", prog);
 					goto end;
 				}
@@ -492,7 +557,9 @@ bad:
 					fprintf(stderr, "%s: length of input line exceeds buffer size\n", prog);
 					goto end;
 				}
-				read_stdin = 0;
+				do_shutdown_select(&conn);
+				ret = 0;
+				goto end;
 			}
 		}
 #endif
@@ -508,6 +575,8 @@ bad:
 				fflush(stdout);
 			} else if (rv == 0) {
 				fprintf(stderr, "Connection closed by remote host\n");
+				do_shutdown_select(&conn);
+				ret = 0;
 				goto end;
 			} else if (rv == -EAGAIN
 				|| rv == TLS_ERROR_RECV_AGAIN

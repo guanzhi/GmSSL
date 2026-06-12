@@ -99,6 +99,34 @@ static int do_handshake_select(TLS_CONNECT *conn)
 	}
 }
 
+static int do_shutdown_select(TLS_CONNECT *conn)
+{
+	int ret;
+	fd_set rfds;
+	fd_set wfds;
+
+	for (;;) {
+		ret = tls_shutdown(conn);
+		if (ret == 1) {
+			return 1;
+		}
+		FD_ZERO(&rfds);
+		FD_ZERO(&wfds);
+		if (ret == TLS_ERROR_RECV_AGAIN) {
+			FD_SET(conn->sock, &rfds);
+		} else if (ret == TLS_ERROR_SEND_AGAIN) {
+			FD_SET(conn->sock, &wfds);
+		} else {
+			error_print();
+			return -1;
+		}
+		if (select((int)(conn->sock + 1), &rfds, &wfds, NULL, NULL) < 0) {
+			error_print();
+			return -1;
+		}
+	}
+}
+
 
 int tls13_server_main(int argc , char **argv)
 {
@@ -630,6 +658,9 @@ bad:
 			if ((ret = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
 					continue;
+				} else if (ret == 0) {
+					do_shutdown_select(&conn);
+					goto end;
 				}
 				error_print();
 				goto end;

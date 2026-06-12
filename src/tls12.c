@@ -303,6 +303,9 @@ int tls_send_record(TLS_CONNECT *conn)
 				error_print();
 				return -1;
 			}
+		} else if (n == 0) {
+			error_print();
+			return TLS_ERROR_TCP_CLOSED;
 		}
 		conn->record_offset += n;
 		left -= n;

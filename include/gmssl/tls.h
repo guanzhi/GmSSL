@@ -1007,6 +1007,9 @@ enum {
 	TLS_state_send_record,
 	TLS_state_recv_record_header,
 	TLS_state_recv_record_data,
+	TLS_state_shutdown_send_close_notify,
+	TLS_state_shutdown_recv_close_notify,
+	TLS_state_shutdown_over,
 };
 
 
@@ -1022,6 +1025,8 @@ typedef struct {
 	int handshake_state;
 	int send_state;
 	int recv_state;
+	int shutdown_state;
+	int close_notify_received;
 
 
 	uint8_t record[TLS_MAX_RECORD_SIZE];

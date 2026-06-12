@@ -1147,13 +1147,17 @@ int tls13_do_recv(TLS_CONNECT *conn)
 	case TLS_state_recv_record_header:
 		while (conn->recordlen) {
 
-			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+			n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0);
+			if (n < 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
 					return TLS_ERROR_RECV_AGAIN;
 				} else {
 					error_print();
 					return -1;
 				}
+			} else if (n == 0) {
+				error_print();
+				return TLS_ERROR_TCP_CLOSED;
 			}
 			conn->recordlen -= n;
 			conn->record_offset += n;
@@ -1171,13 +1175,17 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 	case TLS_state_recv_record_data:
 		while (conn->recordlen) {
-			if ((n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0)) <= 0) {
+			n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0);
+			if (n < 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
 					return TLS_ERROR_RECV_AGAIN;
 				} else {
 					error_print();
 					return -1;
 				}
+			} else if (n == 0) {
+				error_print();
+				return TLS_ERROR_TCP_CLOSED;
 			}
 			conn->recordlen -= n;
 			conn->record_offset += n;
@@ -1310,6 +1318,16 @@ int tls13_do_recv(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+		if (alert_description == TLS_alert_close_notify) {
+			tls_trace("recv Alert.close_notify\n");
+			conn->close_notify_received = 1;
+			conn->data = NULL;
+			conn->datalen = 0;
+			conn->record_offset = 0;
+			conn->recordlen = 0;
+			conn->plain_recordlen = 0;
+			return 0;
+		}
 		}
 		return -1;
 
@@ -1331,7 +1349,7 @@ int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen)
 	if (conn->datalen == 0) {
 		int ret;
 		if ((ret = tls13_do_recv(conn)) != 1) {
-			if (ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
+			if (ret != 0 && ret != TLS_ERROR_RECV_AGAIN && ret != TLS_ERROR_SEND_AGAIN) {
 				error_print();
 			}
 			return ret;
