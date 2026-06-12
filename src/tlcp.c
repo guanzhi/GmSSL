@@ -398,10 +398,10 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 		tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
-	}
 
-	if (conn->client_certificate_verify) {
-		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
+		if (conn->client_certificate_verify) {
+			sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
+		}
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {

@@ -4027,10 +4027,10 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 
 		memcpy(conn->plain_record, conn->record, conn->recordlen);
 		conn->plain_recordlen = conn->recordlen;
-	}
 
-	if (conn->client_certificate_verify) {
-		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
+		if (conn->client_certificate_verify) {
+			sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
+		}
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -4641,10 +4641,10 @@ int tls13_send_client_hello_again(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-	}
 
-	if (conn->client_certificate_verify) {
-		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
+		if (conn->client_certificate_verify) {
+			sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
+		}
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -7790,36 +7790,40 @@ int tls13_send_alert(TLS_CONNECT *conn, int alert)
 
 	tls_trace("send {Alert}\n");
 
-	tls_record_set_protocol(conn->plain_record, TLS_protocol_tls12);
-	tls_record_set_alert(conn->plain_record, &conn->plain_recordlen, TLS_alert_level_fatal, alert);
+	if (conn->recordlen == 0) {
+		tls_record_set_protocol(conn->plain_record, TLS_protocol_tls12);
+		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen, TLS_alert_level_fatal, alert);
 
-	tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 
-	switch (conn->handshake_state) {
-	case TLS_state_client_hello:
-	case TLS_state_server_hello:
-	case TLS_state_hello_retry_request:
-		tls_socket_send(conn->sock, conn->plain_record, conn->plain_recordlen, 0);
-		break;
-	default:
-		tls13_padding_len_rand(&padding_len);
-		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
-			conn->server_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
-			conn->record, &conn->recordlen) != 1) {
-			error_print();
-			return -1;
-		}
-		tls_seq_num_incr(conn->server_seq_num);
-
-		if ((ret = tls_send_record(conn)) != 1) {
-			if (ret != TLS_ERROR_SEND_AGAIN) {
+		switch (conn->handshake_state) {
+		case TLS_state_client_hello:
+		case TLS_state_server_hello:
+		case TLS_state_hello_retry_request:
+			memcpy(conn->record, conn->plain_record, conn->plain_recordlen);
+			conn->recordlen = conn->plain_recordlen;
+			break;
+		default:
+			tls13_padding_len_rand(&padding_len);
+			if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
+				conn->server_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
+				conn->record, &conn->recordlen) != 1) {
 				error_print();
+				return -1;
 			}
-			return ret;
+			tls_seq_num_incr(conn->server_seq_num);
 		}
 	}
 
+	if ((ret = tls_send_record(conn)) != 1) {
+		if (ret != TLS_ERROR_SEND_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+
+	tls_clean_record(conn);
 	return 1;
 }
 
