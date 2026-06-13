@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2025 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -61,9 +61,9 @@ static const uint8_t Rcon[11] = {
 
 static uint32_t sub_word(uint32_t A)
 {
-	return	S[(A >> 24) & 0xff] << 24 |
-		S[(A >> 16) & 0xff] << 16 |
-		S[(A >>  8) & 0xff] <<  8 |
+	return	((uint32_t)S[(A >> 24) & 0xff] << 24) |
+		((uint32_t)S[(A >> 16) & 0xff] << 16) |
+		((uint32_t)S[(A >>  8) & 0xff] <<  8) |
 		S[A & 0xff];
 }
 
@@ -72,20 +72,6 @@ static uint32_t rot_word(uint32_t A)
 {
 	return ROL32(A, 8);
 }
-
-#ifdef CRYPTO_INFO
-static void print_rk(const AES_KEY *aes_key)
-{
-	size_t i;
-	for (i = 0; i <= aes_key->rounds; i++) {
-		printf("%08x ", aes_key->rk[4 * i]);
-		printf("%08x ", aes_key->rk[4 * i + 1]);
-		printf("%08x ", aes_key->rk[4 * i + 2]);
-		printf("%08x\n", aes_key->rk[4 * i + 3]);
-	}
-	printf("\n");
-}
-#endif
 
 int aes_set_encrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 {
@@ -109,7 +95,7 @@ int aes_set_encrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 		aes_key->rounds = 14;
 		break;
 	default:
-		return 0;
+		return -1;
 	}
 
 	for (i = 0; i < Nk; i++) {
@@ -128,21 +114,17 @@ int aes_set_encrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 		W[i] = W[i - Nk] ^ T;
 	}
 
-#ifdef CRYPTO_INFO
-	print_rk(aes_key);
-#endif
-
 	return 1;
 }
 
 int aes_set_decrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 {
-	int ret = 0;
 	AES_KEY enc_key;
 	size_t i;
 
-	if (!aes_set_encrypt_key(&enc_key, key, keylen)) {
-		goto end;
+	if (aes_set_encrypt_key(&enc_key, key, keylen) != 1) {
+		gmssl_secure_clear(&enc_key, sizeof(enc_key));
+		return -1;
 	}
 
 	for (i = 0; i <= enc_key.rounds; i++) {
@@ -152,15 +134,8 @@ int aes_set_decrypt_key(AES_KEY *aes_key, const uint8_t *key, size_t keylen)
 		aes_key->rk[4*i + 3] = enc_key.rk[4*(enc_key.rounds - i) + 3];
 	}
 	aes_key->rounds = enc_key.rounds;
-	ret = 1;
-
-#ifdef CRYPTO_INFO
-	print_rk(aes_key);
-#endif
-
-end:
-	memset(&enc_key, 0, sizeof(AES_KEY));
-	return ret;
+	gmssl_secure_clear(&enc_key, sizeof(enc_key));
+	return 1;
 }
 
 /*
@@ -346,17 +321,6 @@ static void inv_mix_columns(uint8_t S[4][4])
 	}
 }
 
-#ifdef CRYPTO_INFO
-static void print_state(const uint8_t S[4][4])
-{
-	int i;
-	for (i = 0; i < 4; i++) {
-		printf("%02x %02x %02x %02x\n", S[i][0], S[i][1], S[i][2], S[i][3]);
-	}
-	printf("\n");
-}
-#endif
-
 void aes_encrypt(const AES_KEY *key, const uint8_t in[16], uint8_t out[16])
 {
 	uint8_t state[4][4];
@@ -394,7 +358,7 @@ void aes_encrypt(const AES_KEY *key, const uint8_t in[16], uint8_t out[16])
 		*out++ = state[3][i];
 	}
 
-	memset(state, 0, sizeof(state));
+	gmssl_secure_clear(state, sizeof(state));
 }
 
 void aes_decrypt(const AES_KEY *aes_key, const uint8_t in[16], uint8_t out[16])
@@ -434,5 +398,5 @@ void aes_decrypt(const AES_KEY *aes_key, const uint8_t in[16], uint8_t out[16])
 		*out++ = state[3][i];
 	}
 
-	memset(state, 0, sizeof(state));
+	gmssl_secure_clear(state, sizeof(state));
 }
