@@ -2688,6 +2688,99 @@ int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable)
 	return 1;
 }
 
+static int tls_cert_issuer_match_subject(const uint8_t *cert, size_t certlen,
+	const uint8_t *issuer_cert, size_t issuer_certlen)
+{
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *subject;
+	size_t subject_len;
+
+	if (x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1
+		|| x509_cert_get_subject(issuer_cert, issuer_certlen, &subject, &subject_len) != 1
+		|| x509_name_equ(issuer, issuer_len, subject, subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	return 1;
+}
+
+static int tls_cert_chain_check_order(const uint8_t *certs, size_t certslen)
+{
+	const uint8_t *cert;
+	size_t certlen;
+
+	if (!certs || !certslen) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	while (certslen) {
+		const uint8_t *issuer_cert;
+		size_t issuer_certlen;
+
+		if (x509_cert_from_der(&issuer_cert, &issuer_certlen, &certs, &certslen) != 1
+			|| tls_cert_issuer_match_subject(cert, certlen, issuer_cert, issuer_certlen) != 1) {
+			error_print();
+			return -1;
+		}
+		cert = issuer_cert;
+		certlen = issuer_certlen;
+	}
+
+	return 1;
+}
+
+static int tlcp_cert_chain_check_order(const uint8_t *certs, size_t certslen)
+{
+	const uint8_t *sign_cert;
+	size_t sign_certlen;
+	const uint8_t *enc_cert;
+	size_t enc_certlen;
+	const uint8_t *ca_cert;
+	size_t ca_certlen;
+
+	if (!certs || !certslen) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_from_der(&sign_cert, &sign_certlen, &certs, &certslen) != 1
+		|| x509_cert_from_der(&enc_cert, &enc_certlen, &certs, &certslen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!certslen) {
+		return 1;
+	}
+
+	if (x509_cert_from_der(&ca_cert, &ca_certlen, &certs, &certslen) != 1
+		|| tls_cert_issuer_match_subject(sign_cert, sign_certlen, ca_cert, ca_certlen) != 1
+		|| tls_cert_issuer_match_subject(enc_cert, enc_certlen, ca_cert, ca_certlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	while (certslen) {
+		const uint8_t *issuer_cert;
+		size_t issuer_certlen;
+
+		if (x509_cert_from_der(&issuer_cert, &issuer_certlen, &certs, &certslen) != 1
+			|| tls_cert_issuer_match_subject(ca_cert, ca_certlen, issuer_cert, issuer_certlen) != 1) {
+			error_print();
+			return -1;
+		}
+		ca_cert = issuer_cert;
+		ca_certlen = issuer_certlen;
+	}
+
+	return 1;
+}
+
 int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 	const uint8_t *entity_status_request_ocsp_response, size_t entity_status_request_ocsp_response_len, // optional
 	const uint8_t *entity_signed_certificate_timestamp_list, size_t entity_signed_certificate_timestamp_list_len, // optional
@@ -2695,10 +2788,13 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 {
 	uint8_t *cert_chain;
 	size_t cert_chain_len;
+	uint8_t *certs;
+	size_t certslen;
 	FILE *certfp = NULL;
 	const uint8_t *cert;
 	size_t certlen;
 	X509_KEY public_key;
+	size_t key_idx;
 	FILE *keyfp = NULL;
 
 	uint8_t *ocsp_responses;
@@ -2755,20 +2851,27 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 		return -1;
 	}
 	cert_chain = ctx->cert_chains + ctx->cert_chains_len ;
-	if (x509_certs_from_pem(cert_chain + tls_uint24_size(), &cert_chain_len,
+	certs = cert_chain + tls_uint24_size();
+	if (x509_certs_from_pem(certs, &certslen,
 		sizeof(ctx->cert_chains) - ctx->cert_chains_len - tls_uint24_size(), certfp) != 1) {
+		fclose(certfp);
 		error_print();
 		return -1;
 	}
-	tls_uint24_to_bytes(cert_chain_len, &cert_chain, &cert_chain_len);
-	ctx->cert_chains_len += cert_chain_len;
+	if (tls_cert_chain_check_order(certs, certslen) != 1) {
+		fclose(certfp);
+		error_print();
+		return -1;
+	}
 
 	// add private key to ctx->x509_keys
 	if (sizeof(ctx->x509_keys)/sizeof(ctx->x509_keys[0]) <= ctx->x509_keys_cnt) {
+		fclose(certfp);
 		error_print();
 		return -1;
 	}
-	if (x509_certs_get_cert_by_index(cert_chain, cert_chain_len, 0, &cert, &certlen) != 1
+	key_idx = ctx->x509_keys_cnt;
+	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		fclose(certfp);
 		error_print();
@@ -2787,12 +2890,23 @@ int tls_ctx_add_certificate_list_and_key(TLS_CTX *ctx, const char *chainfile,
 			return -1;
 		}
 	}
-	if (x509_private_key_from_file(&ctx->x509_keys[ctx->x509_keys_cnt], public_key.algor, keypass, keyfp) != 1) {
+	if (x509_private_key_from_file(&ctx->x509_keys[key_idx], public_key.algor, keypass, keyfp) != 1) {
 		fclose(certfp);
 		fclose(keyfp);
 		error_print();
 		return -1;
 	}
+	if (x509_public_key_equ(&ctx->x509_keys[key_idx], &public_key) != 1) {
+		x509_key_cleanup(&ctx->x509_keys[key_idx]);
+		fclose(certfp);
+		fclose(keyfp);
+		error_print();
+		return -1;
+	}
+	cert_chain_len = 0;
+	tls_uint24_to_bytes((uint24_t)certslen, &cert_chain, &cert_chain_len);
+	cert_chain_len += certslen;
+	ctx->cert_chains_len += cert_chain_len;
 	ctx->x509_keys_cnt++;
 
 	// TODO: if the second cert is entity's sm2 encryption cert, try to read private key from keyfp
@@ -2842,7 +2956,8 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 	const int algor = OID_ec_public_key;
 	const int algor_param = OID_sm2;
 	uint8_t *cert_chain;
-	size_t cert_chain_len;
+	uint8_t *certs;
+	size_t certslen;
 	size_t cert_chains_len;
 	size_t key_idx;
 	FILE *certfp = NULL;
@@ -2880,14 +2995,19 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 		goto end;
 	}
 	cert_chain = ctx->cert_chains + ctx->cert_chains_len;
-	if (x509_certs_from_pem(cert_chain + tls_uint24_size(), &cert_chain_len,
+	certs = cert_chain + tls_uint24_size();
+	if (x509_certs_from_pem(certs, &certslen,
 		sizeof(ctx->cert_chains) - ctx->cert_chains_len - tls_uint24_size(), certfp) != 1) {
 		error_print();
 		goto end;
 	}
+	if (tlcp_cert_chain_check_order(certs, certslen) != 1) {
+		error_print();
+		goto end;
+	}
 	cert_chains_len = 0;
-	tls_uint24_to_bytes((uint24_t)cert_chain_len, &cert_chain, &cert_chains_len);
-	cert_chains_len += cert_chain_len;
+	tls_uint24_to_bytes((uint24_t)certslen, &cert_chain, &cert_chains_len);
+	cert_chains_len += certslen;
 
 	// load sign key
 	if (!(keyfp = fopen(keyfile, "r"))) {
@@ -2898,7 +3018,7 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 		error_print();
 		goto end;
 	}
-	if (x509_certs_get_cert_by_index(cert_chain, cert_chain_len, 0, &cert, &certlen) != 1
+	if (x509_certs_get_cert_by_index(certs, certslen, 0, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
 		goto end;
@@ -2914,7 +3034,7 @@ int tlcp_ctx_add_server_certificate_and_keys(TLS_CTX *ctx, const char *chainfile
 		error_print();
 		goto end;
 	}
-	if (x509_certs_get_cert_by_index(cert_chain, cert_chain_len, 1, &cert, &certlen) != 1
+	if (x509_certs_get_cert_by_index(certs, certslen, 1, &cert, &certlen) != 1
 		|| x509_cert_get_subject_public_key(cert, certlen, &public_key) != 1) {
 		error_print();
 		goto end;
