@@ -1281,7 +1281,7 @@ static int asn1_utf8char_from_bytes(uint32_t *c, const uint8_t **pin, size_t *pi
 
 	utf8char = in[0];
 	for (i = 1; i < utf8char_len; i++) {
-		if ((in[i] & 0x60) != 0x80) {
+		if ((in[i] & 0xc0) != 0x80) {
 			//error_print(); // disable error_print for _is_ compare
 			return -1;
 		}

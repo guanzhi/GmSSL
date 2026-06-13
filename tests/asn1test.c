@@ -500,7 +500,10 @@ static int test_asn1_utf8_string(void)
 		"hello",
 		"world",
 		"Just do it!",
+		"J\303\274rgen",
+		"\344\270\255",
 	};
+	const char invalid_utf8[] = { (char)0xc3, 'A' };
 	uint8_t buf[256];
 	uint8_t *p = buf;
 	const uint8_t *cp = buf;
@@ -527,6 +530,10 @@ static int test_asn1_utf8_string(void)
 		format_string(stderr, 0, 4, "", (uint8_t *)d, dlen);
 	}
 	if (len != 0) {
+		error_print();
+		return -1;
+	}
+	if (asn1_string_is_utf8_string(invalid_utf8, sizeof(invalid_utf8)) != 0) {
 		error_print();
 		return -1;
 	}
@@ -841,6 +848,7 @@ static int test_asn1_from_der_null_args(void)
 int main(void)
 {
 	if (test_asn1_tag() != 1) goto err;
+	if (test_asn1_utf8_string() != 1) goto err;
 /*
 	if (test_asn1_length() != 1) goto err;
 	if (test_asn1_length_from_ber() != 1) goto err;
