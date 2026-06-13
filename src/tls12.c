@@ -63,133 +63,6 @@ int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int f
 	return tls_record_print(fp, record, recordlen, format, indent);
 }
 
-int tls12_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
-	const uint8_t seq_num[8], const uint8_t header[5],
-	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	uint8_t nonce[12];
-	uint8_t aad[13];
-	uint8_t *explicit_nonce;
-	uint8_t *gmac;
-
-	if (!key || !fixed_iv || !seq_num || !header || (!in && inlen) || !out || !outlen) {
-		error_print();
-		return -1;
-	}
-	if (inlen > TLS_MAX_PLAINTEXT_SIZE) {
-		error_print();
-		return -1;
-	}
-	if ((((size_t)header[3]) << 8) + header[4] != inlen) {
-		error_print();
-		return -1;
-	}
-
-	memcpy(nonce, fixed_iv, 4);
-	memcpy(nonce + 4, seq_num, 8);
-
-	memcpy(aad, seq_num, 8);
-	memcpy(aad + 8, header, 5);
-
-	explicit_nonce = out;
-	memcpy(explicit_nonce, seq_num, 8);
-	out += 8;
-
-	gmac = out + inlen;
-	if (gcm_encrypt(key, nonce, sizeof(nonce), aad, sizeof(aad), in, inlen, out, GHASH_SIZE, gmac) != 1) {
-		error_print();
-		return -1;
-	}
-
-	*outlen = 8 + inlen + GHASH_SIZE;
-	return 1;
-}
-
-int tls12_record_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen)
-{
-	if (tls12_gcm_encrypt(key, fixed_iv, seq_num, in,
-		in + 5, inlen - 5,
-		out + 5, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (uint8_t)((*outlen) >> 8);
-	out[4] = (uint8_t)(*outlen);
-	(*outlen) += 5;
-	return 1;
-}
-
-static int tls12_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
-	const uint8_t seq_num[8], const uint8_t header[5],
-	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
-{
-	uint8_t nonce[12];
-	uint8_t aad[13];
-	const uint8_t *explicit_nonce;
-	const uint8_t *gmac;
-	size_t mlen;
-
-	if (inlen < 8 + GHASH_SIZE) {
-		error_print();
-		return -1;
-	}
-
-	explicit_nonce = in;
-	in += 8;
-	inlen -= 8;
-
-	if (inlen < GHASH_SIZE) {
-		error_print();
-		return -1;
-	}
-	mlen = inlen - GHASH_SIZE;
-	gmac = in + mlen;
-
-	memcpy(nonce, fixed_iv, 4);
-	memcpy(nonce + 4, explicit_nonce, 8);
-
-	memcpy(aad, seq_num, 8);
-	memcpy(aad + 8, header, 5);
-	aad[11] = (uint8_t)(mlen >> 8);
-	aad[12] = (uint8_t)mlen;
-
-	if (gcm_decrypt(key, nonce, sizeof(nonce), aad, sizeof(aad),
-		in, mlen, gmac, GHASH_SIZE, out) != 1) {
-		error_print();
-		return -1;
-	}
-
-	*outlen = mlen;
-	return 1;
-}
-
-int tls12_record_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen)
-{
-	if (tls12_gcm_decrypt(key, fixed_iv, seq_num, in,
-		in + 5, inlen - 5,
-		out + 5, outlen) != 1) {
-		error_print();
-		return -1;
-	}
-
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-	out[3] = (uint8_t)((*outlen) >> 8);
-	out[4] = (uint8_t)(*outlen);
-	(*outlen) += 5;
-
-	return 1;
-}
-
 static int tls12_record_encrypt(int cipher_suite,
 	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
@@ -198,14 +71,18 @@ static int tls12_record_encrypt(int cipher_suite,
 	switch (cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
-		if (tls12_record_gcm_encrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_gcm_encrypt(key, fixed_iv, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-		if (tls_record_cbc_encrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_cbc_encrypt(hmac_ctx, key, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -214,6 +91,13 @@ static int tls12_record_encrypt(int cipher_suite,
 		error_print();
 		return -1;
 	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
 	return 1;
 }
 
@@ -225,14 +109,18 @@ int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 	switch (cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
-		if (tls12_record_gcm_decrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_gcm_decrypt(key, fixed_iv, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
-		if (tls_record_cbc_decrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_cbc_decrypt(hmac_ctx, key, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -241,6 +129,13 @@ int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 		error_print();
 		return -1;
 	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
 	return 1;
 }
 

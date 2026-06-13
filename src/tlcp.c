@@ -74,13 +74,17 @@ int tlcp_record_encrypt(int cipher_suite,
 {
 	switch (cipher_suite) {
 	case TLS_cipher_ecc_sm4_cbc_sm3:
-		if (tls_record_cbc_encrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_cbc_encrypt(hmac_ctx, key, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_cipher_ecc_sm4_gcm_sm3:
-		if (tls12_record_gcm_encrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_gcm_encrypt(key, fixed_iv, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -89,6 +93,13 @@ int tlcp_record_encrypt(int cipher_suite,
 		error_print();
 		return -1;
 	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
 	return 1;
 }
 
@@ -99,13 +110,17 @@ int tlcp_record_decrypt(int cipher_suite,
 {
 	switch (cipher_suite) {
 	case TLS_cipher_ecc_sm4_cbc_sm3:
-		if (tls_record_cbc_decrypt(hmac_ctx, key, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_cbc_decrypt(hmac_ctx, key, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_cipher_ecc_sm4_gcm_sm3:
-		if (tls12_record_gcm_decrypt(key, fixed_iv, seq_num, in, inlen, out, outlen) != 1) {
+		if (tls_gcm_decrypt(key, fixed_iv, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -114,6 +129,13 @@ int tlcp_record_decrypt(int cipher_suite,
 		error_print();
 		return -1;
 	}
+
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+	out[3] = (uint8_t)((*outlen) >> 8);
+	out[4] = (uint8_t)(*outlen);
+	(*outlen) += 5;
 	return 1;
 }
 

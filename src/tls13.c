@@ -104,53 +104,6 @@ int tls13_padding_len_rand(size_t *padding_len)
 
 
 
-int gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
-	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t taglen, uint8_t *tag)
-{
-	if (key->cipher == BLOCK_CIPHER_sm4()) {
-		if (sm4_gcm_encrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag) != 1) {
-			error_print();
-			return -1;
-		}
-// 避免在tls13.c中引入宏
-#ifdef ENABLE_AES
-	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
-		if (aes_gcm_encrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, out, taglen, tag) != 1) {
-			error_print();
-			return -1;
-		}
-#endif
-	} else {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
-int gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t *iv, size_t ivlen,
-	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
-	const uint8_t *tag, size_t taglen, uint8_t *out)
-{
-	if (key->cipher == BLOCK_CIPHER_sm4()) {
-		if (sm4_gcm_decrypt(&(key->u.sm4_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out) != 1) {
-			error_print();
-			return -1;
-		}
-#ifdef ENABLE_AES
-	} else if (key->cipher == BLOCK_CIPHER_aes128()) {
-		if (aes_gcm_decrypt(&(key->u.aes_key), iv, ivlen, aad, aadlen,  in, inlen, tag, taglen, out) != 1) {
-			error_print();
-			return -1;
-		}
-#endif
-	} else {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 /*
 struct {
 	opaque content[TLSPlaintext.length];
@@ -173,7 +126,7 @@ int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	uint8_t nonce[12];
 	uint8_t aad[5];
 	uint8_t *gmac;
-	uint8_t *mbuf = NULL; // FIXME: update gcm_encrypt API
+	uint8_t *mbuf = NULL;
 	size_t mlen, clen;
 
 	if (!(mbuf = malloc(inlen + 256))) {
@@ -201,7 +154,27 @@ int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	aad[4] = (uint8_t)(clen);
 
 	gmac = out + mlen;
-	if (gcm_encrypt(key, nonce, sizeof(nonce), aad, sizeof(aad), mbuf, mlen, out, 16, gmac) != 1) {
+
+	switch (key->cipher->oid) {
+	case OID_sm4:
+		if (sm4_gcm_encrypt(&(key->u.sm4_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			mbuf, mlen, out, 16, gmac) != 1) {
+			error_print();
+			free(mbuf);
+			return -1;
+		}
+		break;
+#ifdef ENABLE_AES
+	case OID_aes128:
+		if (aes_gcm_encrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			mbuf, mlen, out, 16, gmac) != 1) {
+			error_print();
+			free(mbuf);
+			return -1;
+		}
+		break;
+#endif
+	default:
 		error_print();
 		free(mbuf);
 		return -1;
@@ -240,7 +213,24 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	mlen = inlen - GHASH_SIZE;
 	gmac = in + mlen;
 
-	if (gcm_decrypt(key, nonce, 12, aad, 5, in, mlen, gmac, GHASH_SIZE, out) != 1) {
+	switch (key->cipher->oid) {
+	case OID_sm4:
+		if (sm4_gcm_decrypt(&(key->u.sm4_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			in, mlen, gmac, GHASH_SIZE, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case OID_aes128:
+#ifdef ENABLE_AES
+		if (aes_gcm_decrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			in, mlen, gmac, GHASH_SIZE, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+	default:
 		error_print();
 		return -1;
 	}
