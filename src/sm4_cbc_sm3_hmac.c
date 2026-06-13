@@ -161,7 +161,7 @@ int sm4_cbc_sm3_hmac_decrypt_finish(SM4_CBC_SM3_HMAC_CTX *ctx, uint8_t *out, siz
 		error_print();
 		return -1;
 	}
-	if (memcmp(mac, ctx->mac, SM3_HMAC_SIZE) != 0) {
+	if (gmssl_secure_memcmp(mac, ctx->mac, SM3_HMAC_SIZE) != 0) {
 		error_print();
 		return -1;
 	}

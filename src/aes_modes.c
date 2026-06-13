@@ -215,7 +215,7 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	ghash(H, aad, aadlen, in, inlen, H);
 	aes_encrypt(key, Y, T);
 	gmssl_memxor(T, T, H, taglen);
-	if (memcmp(T, tag, taglen) != 0) {
+	if (gmssl_secure_memcmp(T, tag, taglen) != 0) {
 		error_print();
 		return -1;
 	}
