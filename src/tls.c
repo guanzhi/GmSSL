@@ -3235,9 +3235,237 @@ static int tls_ctx_get_certificate_chain(const TLS_CTX *ctx, size_t idx,
 	return 1;
 }
 
+static int tls_ctx_check(const TLS_CTX *ctx)
+{
+	const int *supported_cipher_suites = NULL;
+	size_t supported_cipher_suites_cnt = 0;
+	const int *supported_groups = NULL;
+	size_t supported_groups_cnt = 0;
+	const int *supported_sig_algs = NULL;
+	size_t supported_sig_algs_cnt = 0;
+	const uint8_t *cert_chains;
+	size_t cert_chains_len;
+	size_t cert_chains_cnt = 0;
+	size_t i;
+
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+
+	switch (ctx->protocol) {
+	case TLS_protocol_tlcp:
+		supported_cipher_suites = tlcp_cipher_suites;
+		supported_cipher_suites_cnt = tlcp_cipher_suites_cnt;
+		supported_groups = tlcp_supported_groups;
+		supported_groups_cnt = tlcp_supported_groups_cnt;
+		supported_sig_algs = tlcp_signature_algorithms;
+		supported_sig_algs_cnt = tlcp_signature_algorithms_cnt;
+		break;
+	case TLS_protocol_tls12:
+		supported_cipher_suites = tls12_cipher_suites;
+		supported_cipher_suites_cnt = tls12_cipher_suites_cnt;
+		supported_groups = tls12_supported_groups;
+		supported_groups_cnt = tls12_supported_groups_cnt;
+		supported_sig_algs = tls12_signature_algorithms;
+		supported_sig_algs_cnt = tls12_signature_algorithms_cnt;
+		break;
+	case TLS_protocol_tls13:
+		supported_cipher_suites = tls13_cipher_suites;
+		supported_cipher_suites_cnt = tls13_cipher_suites_cnt;
+		supported_groups = tls13_supported_groups;
+		supported_groups_cnt = tls13_supported_groups_cnt;
+		supported_sig_algs = tls13_signature_algorithms;
+		supported_sig_algs_cnt = tls13_signature_algorithms_cnt;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	if (!ctx->cipher_suites_cnt
+		|| ctx->cipher_suites_cnt > sizeof(ctx->cipher_suites)/sizeof(ctx->cipher_suites[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < ctx->cipher_suites_cnt; i++) {
+		if (!tls_type_is_in_list(ctx->cipher_suites[i],
+			supported_cipher_suites, supported_cipher_suites_cnt)) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (ctx->supported_groups_cnt > sizeof(ctx->supported_groups)/sizeof(ctx->supported_groups[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < ctx->supported_groups_cnt; i++) {
+		if (!tls_type_is_in_list(ctx->supported_groups[i], supported_groups, supported_groups_cnt)) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (ctx->signature_algorithms_cnt
+		> sizeof(ctx->signature_algorithms)/sizeof(ctx->signature_algorithms[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < ctx->signature_algorithms_cnt; i++) {
+		if (!tls_type_is_in_list(ctx->signature_algorithms[i],
+			supported_sig_algs, supported_sig_algs_cnt)) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (!ctx->supported_versions_cnt
+		|| ctx->supported_versions_cnt > sizeof(ctx->supported_versions)/sizeof(ctx->supported_versions[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < ctx->supported_versions_cnt; i++) {
+		switch (ctx->supported_versions[i]) {
+		case TLS_protocol_tls13:
+		case TLS_protocol_tls12:
+		case TLS_protocol_tlcp:
+			break;
+		default:
+			error_print();
+			return -1;
+		}
+	}
+	if (!tls_type_is_in_list(ctx->protocol, ctx->supported_versions, ctx->supported_versions_cnt)) {
+		error_print();
+		return -1;
+	}
+
+	if (ctx->key_exchanges_cnt > sizeof(ctx->supported_groups)/sizeof(ctx->supported_groups[0])) {
+		error_print();
+		return -1;
+	}
+	if (ctx->supported_groups_cnt && ctx->key_exchanges_cnt > ctx->supported_groups_cnt) {
+		error_print();
+		return -1;
+	}
+
+	if (ctx->application_layer_protocol_negotiation && !ctx->alpn_protocols_cnt) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->application_layer_protocol_negotiation && ctx->alpn_protocols_cnt) {
+		error_print();
+		return -1;
+	}
+	if (ctx->alpn_protocols_cnt > sizeof(ctx->alpn_protocols)/sizeof(ctx->alpn_protocols[0])) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < ctx->alpn_protocols_cnt; i++) {
+		size_t protocol_len;
+
+		if (!ctx->alpn_protocols[i]) {
+			error_print();
+			return -1;
+		}
+		protocol_len = strlen(ctx->alpn_protocols[i]);
+		if (protocol_len < 1 || protocol_len > 255) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (ctx->is_client && ctx->certificate_request) {
+		error_print();
+		return -1;
+	}
+	if (ctx->protocol != TLS_protocol_tls13 && ctx->psk_key_exchange_modes) {
+		error_print();
+		return -1;
+	}
+	if (ctx->protocol != TLS_protocol_tls13 && ctx->early_data) {
+		error_print();
+		return -1;
+	}
+	if (ctx->early_data && !(ctx->psk_key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK))) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->early_data && ctx->max_early_data_size) {
+		error_print();
+		return -1;
+	}
+	if ((ctx->psk_key_exchange_modes & TLS_KE_PSK_DHE) && !ctx->supported_groups_cnt) {
+		error_print();
+		return -1;
+	}
+
+	cert_chains = ctx->cert_chains;
+	cert_chains_len = ctx->cert_chains_len;
+	while (cert_chains_len) {
+		const uint8_t *cert_chain;
+		size_t cert_chain_len;
+		size_t certs_cnt;
+
+		if (tls_uint24array_from_bytes(&cert_chain, &cert_chain_len,
+			&cert_chains, &cert_chains_len) != 1
+			|| x509_certs_get_count(cert_chain, cert_chain_len, &certs_cnt) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!certs_cnt) {
+			error_print();
+			return -1;
+		}
+		if (ctx->protocol == TLS_protocol_tlcp && !ctx->is_client && certs_cnt < 2) {
+			error_print();
+			return -1;
+		}
+		cert_chains_cnt++;
+	}
+
+	if (ctx->protocol == TLS_protocol_tlcp && !ctx->is_client) {
+		if (!ctx->cert_chains_len || !ctx->x509_keys_cnt || cert_chains_cnt != ctx->x509_keys_cnt) {
+			error_print();
+			return -1;
+		}
+	} else if (ctx->cert_chains_len) {
+		if (!ctx->x509_keys_cnt || cert_chains_cnt != ctx->x509_keys_cnt) {
+			error_print();
+			return -1;
+		}
+	} else if (ctx->x509_keys_cnt) {
+		error_print();
+		return -1;
+	}
+
+	if (ctx->protocol == TLS_protocol_tls13) {
+		int key_exchange_modes = ctx->psk_key_exchange_modes;
+
+		if (ctx->supported_groups_cnt && ctx->signature_algorithms_cnt) {
+			key_exchange_modes |= TLS_KE_CERT_DHE;
+		}
+		if (!ctx->supported_groups_cnt) {
+			key_exchange_modes &= ~(TLS_KE_CERT_DHE|TLS_KE_PSK_DHE);
+		}
+		if (!key_exchange_modes) {
+			error_print();
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 {
 	if (!conn || !ctx) {
+		error_print();
+		return -1;
+	}
+
+	if (tls_ctx_check(ctx) != 1) {
 		error_print();
 		return -1;
 	}
