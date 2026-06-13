@@ -387,6 +387,57 @@ int test_aes_gcm(void)
 	return 1;
 }
 
+#ifdef ENABLE_AES_CCM
+int test_aes_ccm(void)
+{
+	AES_KEY aes_key;
+	uint8_t key[16] = {
+		0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
+		0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
+	};
+	uint8_t iv[12] = {
+		0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+		0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+	};
+	uint8_t aad[20] = {
+		0x00, 0x01, 0x02, 0x03, 0x04,
+		0x05, 0x06, 0x07, 0x08, 0x09,
+		0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+		0x0f, 0x10, 0x11, 0x12, 0x13,
+	};
+	uint8_t in[23] = {
+		0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
+		0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b,
+		0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31,
+		0x32, 0x33, 0x34, 0x35, 0x36,
+	};
+	uint8_t out[sizeof(in)];
+	uint8_t buf[sizeof(in)];
+	uint8_t tag[16];
+
+	aes_set_encrypt_key(&aes_key, key, sizeof(key));
+	if (aes_ccm_encrypt(&aes_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in),
+		out, sizeof(tag), tag) != 1) {
+		error_print();
+		return -1;
+	}
+	if (aes_ccm_decrypt(&aes_key, iv, sizeof(iv), aad, sizeof(aad), out, sizeof(out),
+		tag, sizeof(tag), buf) != 1 || memcmp(buf, in, sizeof(in)) != 0) {
+		error_print();
+		return -1;
+	}
+	tag[0] ^= 0x01;
+	if (aes_ccm_decrypt(&aes_key, iv, sizeof(iv), aad, sizeof(aad), out, sizeof(out),
+		tag, sizeof(tag), buf) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
+
 int test_aes_cbc_pkcs5_wycheproof(void)
 {
 	size_t i;
@@ -465,6 +516,9 @@ int main(void)
 	if (test_aes() != 1) goto err;
 	if (test_aes_ctr() != 1) goto err;
 	if (test_aes_gcm() != 1) goto err;
+#ifdef ENABLE_AES_CCM
+	if (test_aes_ccm() != 1) goto err;
+#endif
 	if (test_aes_cbc_pkcs5_wycheproof() != 1) goto err;
 	printf("%s all tests passed!\n", __FILE__);
 	return 0;

@@ -419,6 +419,12 @@ int tls_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 int tls_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int tls_ccm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
+int tls_ccm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
 int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 	const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
@@ -1725,10 +1731,10 @@ int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	int *record_type, uint8_t *out, size_t *outlen);
-int tls13_record_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+int tls13_record_encrypt(int cipher_suite, const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	const uint8_t seq_num[8], const uint8_t *record, size_t recordlen, size_t padding_len,
 	uint8_t *enced_record, size_t *enced_recordlen);
-int tls13_record_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
+int tls13_record_decrypt(int cipher_suite, const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 	const uint8_t seq_num[8], const uint8_t *enced_record, size_t enced_recordlen,
 	uint8_t *record, size_t *recordlen);
 

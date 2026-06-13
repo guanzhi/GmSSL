@@ -91,8 +91,12 @@ int tls_cipher_suite_from_name(const char *name)
 {
 	if (!strcmp(name, "TLS_SM4_GCM_SM3")) {
 		return TLS_cipher_sm4_gcm_sm3;
+	} else if (!strcmp(name, "TLS_SM4_CCM_SM3")) {
+		return TLS_cipher_sm4_ccm_sm3;
 	} else if (!strcmp(name, "TLS_AES_128_GCM_SHA256")) {
 		return TLS_cipher_aes_128_gcm_sha256;
+	} else if (!strcmp(name, "TLS_AES_128_CCM_SHA256")) {
+		return TLS_cipher_aes_128_ccm_sha256;
 	} else if (!strcmp(name, "TLS_ECDHE_SM4_CBC_SM3")) {
 		return TLS_cipher_ecdhe_sm4_cbc_sm3;
 	} else if (!strcmp(name, "TLS_ECDHE_SM4_GCM_SM3")) {

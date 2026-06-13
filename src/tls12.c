@@ -49,6 +49,9 @@ const int tls12_cipher_suites[] = {
 #if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+#ifdef ENABLE_AES_CCM
+	TLS_cipher_aes_128_ccm_sha256,
+#endif
 #endif
 };
 const size_t tls12_cipher_suites_cnt =
@@ -78,6 +81,16 @@ static int tls12_record_encrypt(int cipher_suite,
 			return -1;
 		}
 		break;
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+		if (tls_ccm_encrypt(key, fixed_iv, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		if (tls_cbc_encrypt(hmac_ctx, key, seq_num, in,
@@ -116,6 +129,16 @@ int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 			return -1;
 		}
 		break;
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+		if (tls_ccm_decrypt(key, fixed_iv, seq_num, in,
+			in + 5, inlen - 5,
+			out + 5, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		if (tls_cbc_decrypt(hmac_ctx, key, seq_num, in,
@@ -418,6 +441,9 @@ static int tls12_server_key_exchange_params_from_bytes(int cipher_suite,
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 		{
 			uint8_t curve_type;
 			uint16_t named_curve;
@@ -857,6 +883,9 @@ static int tls12_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher,
 #if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 		*cipher = BLOCK_CIPHER_aes128();
 		*digest = DIGEST_sha256();
 		break;
@@ -877,6 +906,9 @@ static int tls12_cipher_suite_match_cert_group(int cipher_suite, int cert_group)
 #if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 		return cert_group == TLS_curve_secp256r1;
 #endif
 	default:
@@ -904,6 +936,9 @@ static int tls12_signature_scheme_match_cipher_suite(int sig_alg, int cipher_sui
 		switch (cipher_suite) {
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+		case TLS_cipher_aes_128_ccm_sha256:
+#endif
 			return 1;
 		}
 #endif
@@ -921,6 +956,9 @@ static int tls12_key_exchange_group_match_cipher_suite(int group, int cipher_sui
 #if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 		return group == TLS_curve_secp256r1;
 #endif
 	default:
@@ -1948,6 +1986,9 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		break;
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 		server_sig_alg = TLS_sig_ecdsa_secp256r1_sha256;
 		break;
 	default:
@@ -2153,6 +2194,9 @@ int tls_curve_match_cipher_suite(int named_curve, int cipher_suite)
 		switch (cipher_suite) {
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+		case TLS_cipher_aes_128_ccm_sha256:
+#endif
 			break;
 		default:
 			error_print();
@@ -2185,6 +2229,9 @@ int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite)
 		switch (cipher_suite) {
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+		case TLS_cipher_aes_128_ccm_sha256:
+#endif
 			break;
 		default:
 			error_print();
@@ -2261,6 +2308,9 @@ int tls_recv_server_key_exchange(TLS_CONNECT *conn)
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 		{
 			const uint8_t *p = server_ecdh_params;
 			size_t len = server_ecdh_params_len;
@@ -2716,6 +2766,9 @@ static int tls12_generate_key_block(TLS_CONNECT *conn)
 	switch (conn->cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 	{
 		size_t keylen = conn->cipher->key_size;
 		size_t key_block_len = keylen * 2 + 8;
@@ -2771,6 +2824,9 @@ static int tls12_generate_record_keys(TLS_CONNECT *conn)
 	switch (conn->cipher_suite) {
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+#ifdef ENABLE_AES_CCM
+	case TLS_cipher_aes_128_ccm_sha256:
+#endif
 	{
 		size_t keylen = conn->cipher->key_size;
 

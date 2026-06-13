@@ -683,7 +683,7 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		format_print(stderr, 0, 0, "\n");
 
 		tls13_padding_len_rand(&padding_len);
-		if (tls13_record_encrypt(&conn->server_write_key, conn->server_write_iv,
+		if (tls13_record_encrypt(conn->cipher_suite, &conn->server_write_key, conn->server_write_iv,
 			conn->server_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
 			conn->record, &conn->recordlen) != 1) {
 			error_print();
@@ -1766,7 +1766,7 @@ int tls13_send_end_of_early_data(TLS_CONNECT *conn)
 
 		size_t padding_len;
 		tls13_padding_len_rand(&padding_len);
-		if (tls13_record_encrypt(&conn->client_write_key, conn->client_write_iv,
+		if (tls13_record_encrypt(conn->cipher_suite, &conn->client_write_key, conn->client_write_iv,
 			conn->client_seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
 			conn->record, &conn->recordlen) != 1) {
 			error_print();
@@ -1817,7 +1817,7 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 
 	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
 
-	if (tls13_record_decrypt(&conn->client_write_key, conn->client_write_iv,
+	if (tls13_record_decrypt(conn->cipher_suite, &conn->client_write_key, conn->client_write_iv,
 		conn->client_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();

@@ -97,6 +97,56 @@ static int test_tls13_gcm(void)
 	return 1;
 }
 
+#ifdef ENABLE_AES_CCM
+static int test_tls13_ccm(void)
+{
+	BLOCK_CIPHER_KEY block_key;
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t seq_num[8] = {0,0,0,0,0,0,0,1};
+	uint8_t record[5 + 40];
+	size_t recordlen;
+	size_t padding_len = 8;
+	uint8_t enced_record[256];
+	size_t enced_recordlen;
+	uint8_t buf[256];
+	size_t buflen;
+
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(record + 5, 40);
+
+	record[0] = TLS_record_handshake;
+	record[1] = TLS_protocol_tls12 >> 8;
+	record[2] = TLS_protocol_tls12 & 0xff;
+	record[3] = 0;
+	record[4] = 40;
+	recordlen = 5 + 40;
+
+	if (block_cipher_set_encrypt_key(&block_key, BLOCK_CIPHER_aes128(), key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls13_record_encrypt(TLS_cipher_aes_128_ccm_sha256, &block_key, iv,
+		seq_num, record, recordlen, padding_len, enced_record, &enced_recordlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls13_record_decrypt(TLS_cipher_aes_128_ccm_sha256, &block_key, iv,
+		seq_num, enced_record, enced_recordlen, buf, &buflen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (buflen != recordlen || memcmp(buf, record, recordlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
+
 static int test_tls13_supported_versions_ext(void)
 {
 	const int client_versions[] = { TLS_protocol_tls13, TLS_protocol_tls12, TLS_protocol_tlcp };
@@ -661,6 +711,9 @@ int main(void)
 {
 	if (test_tls_ext() != 1) goto err;
 	if (test_tls13_gcm() != 1) goto err;
+#ifdef ENABLE_AES_CCM
+	if (test_tls13_ccm() != 1) goto err;
+#endif
 	if (test_tls13_supported_versions_ext() != 1) goto err;
 	if (test_tls13_key_share_ext() != 1) goto err;
 	if (test_tls_supported_groups_ext() != 1) goto err;

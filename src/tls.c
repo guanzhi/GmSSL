@@ -578,6 +578,130 @@ int tls_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	return 1;
 }
 
+int tls_ccm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	uint8_t nonce[12];
+	uint8_t aad[13];
+	uint8_t *explicit_nonce;
+	uint8_t *tag;
+
+	if (!key || !fixed_iv || !seq_num || !header || (!in && inlen) || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (inlen > TLS_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
+	if ((((size_t)header[3]) << 8) + header[4] != inlen) {
+		error_print();
+		return -1;
+	}
+
+	memcpy(nonce, fixed_iv, 4);
+	memcpy(nonce + 4, seq_num, 8);
+
+	memcpy(aad, seq_num, 8);
+	memcpy(aad + 8, header, 5);
+
+	explicit_nonce = out;
+	memcpy(explicit_nonce, seq_num, 8);
+	out += 8;
+
+	tag = out + inlen;
+
+	switch (key->cipher->oid) {
+#ifdef ENABLE_SM4_CCM
+	case OID_sm4:
+		if (sm4_ccm_encrypt(&(key->u.sm4_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			in, inlen, out, GHASH_SIZE, tag) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+#ifdef ENABLE_AES_CCM
+	case OID_aes128:
+		if (aes_ccm_encrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			in, inlen, out, GHASH_SIZE, tag) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+	default:
+		error_print();
+		return -1;
+	}
+
+	*outlen = 8 + inlen + GHASH_SIZE;
+	return 1;
+}
+
+int tls_ccm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t header[5],
+	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
+{
+	uint8_t nonce[12];
+	uint8_t aad[13];
+	const uint8_t *explicit_nonce;
+	const uint8_t *tag;
+	size_t mlen;
+
+	if (inlen < 8 + GHASH_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	explicit_nonce = in;
+	in += 8;
+	inlen -= 8;
+
+	if (inlen < GHASH_SIZE) {
+		error_print();
+		return -1;
+	}
+	mlen = inlen - GHASH_SIZE;
+	tag = in + mlen;
+
+	memcpy(nonce, fixed_iv, 4);
+	memcpy(nonce + 4, explicit_nonce, 8);
+
+	memcpy(aad, seq_num, 8);
+	memcpy(aad + 8, header, 5);
+	aad[11] = (uint8_t)(mlen >> 8);
+	aad[12] = (uint8_t)mlen;
+
+	switch (key->cipher->oid) {
+#ifdef ENABLE_SM4_CCM
+	case OID_sm4:
+		if (sm4_ccm_decrypt(&(key->u.sm4_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			in, mlen, tag, GHASH_SIZE, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+#ifdef ENABLE_AES_CCM
+	case OID_aes128:
+		if (aes_ccm_decrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
+			in, mlen, tag, GHASH_SIZE, out) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+#endif
+	default:
+		error_print();
+		return -1;
+	}
+
+	*outlen = mlen;
+	return 1;
+}
+
 int tls_random_generate(uint8_t random[32])
 {
 	uint32_t gmt_unix_time = (uint32_t)time(NULL);
@@ -1639,11 +1763,20 @@ static const int tls12_ciphers[] = {
 	TLS_cipher_ecdhe_sm4_gcm_sm3,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+#ifdef ENABLE_AES_CCM
+	TLS_cipher_aes_128_ccm_sha256,
+#endif
 };
 
 static const int tls13_ciphers[] = {
 	TLS_cipher_sm4_gcm_sm3,
+#ifdef ENABLE_SM4_CCM
+	TLS_cipher_sm4_ccm_sm3,
+#endif
 	TLS_cipher_aes_128_gcm_sha256,
+#ifdef ENABLE_AES_CCM
+	TLS_cipher_aes_128_ccm_sha256,
+#endif
 };
 
 int tls_cipher_suite_match_protocol(int cipher, int protocol)
@@ -1962,6 +2095,16 @@ static int tls_encrypt_send(TLS_CONNECT *conn, int record_type, const uint8_t *i
 					return -1;
 				}
 				break;
+#ifdef ENABLE_AES_CCM
+			case TLS_cipher_aes_128_ccm_sha256:
+				if (tls_ccm_encrypt(enc_key, fixed_iv, seq_num, conn->databuf,
+					conn->databuf + 5, tls_record_data_length(conn->databuf),
+					conn->record + 5, &recordlen) != 1) {
+					error_print();
+					return -1;
+				}
+				break;
+#endif
 			case TLS_cipher_ecdhe_sm4_cbc_sm3:
 			case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 				if (tls_cbc_encrypt(hmac_ctx, enc_key, seq_num, conn->databuf,
@@ -2233,7 +2376,7 @@ static int tls13_send_close_notify(TLS_CONNECT *conn)
 		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen,
 			TLS_alert_level_warning, TLS_alert_close_notify);
 		tls13_padding_len_rand(&padding_len);
-		if (tls13_record_encrypt(key, iv, seq_num, conn->plain_record, conn->plain_recordlen,
+		if (tls13_record_encrypt(conn->cipher_suite, key, iv, seq_num, conn->plain_record, conn->plain_recordlen,
 			padding_len, conn->record, &conn->recordlen) != 1) {
 			error_print();
 			return -1;

@@ -111,6 +111,54 @@ static int test_tls_cbc(void)
 	return 1;
 }
 
+#ifdef ENABLE_AES_CCM
+static int test_tls_ccm(void)
+{
+	uint8_t key[16] = {0};
+	BLOCK_CIPHER_KEY aes_key;
+	uint8_t fixed_iv[4] = {0x10, 0x11, 0x12, 0x13};
+	uint8_t seq_num[8] = {0,0,0,0,0,0,0,1};
+	uint8_t record[5 + 32];
+	uint8_t enced_record[256];
+	uint8_t buf[256];
+	size_t recordlen;
+	size_t enced_recordlen;
+	size_t buflen;
+
+	record[0] = TLS_record_handshake;
+	record[1] = TLS_protocol_tls12 >> 8;
+	record[2] = TLS_protocol_tls12 & 0xff;
+	record[3] = 0;
+	record[4] = 12;
+	memcpy(record + 5, "hello world", 12);
+	recordlen = 5 + 12;
+
+	block_cipher_set_encrypt_key(&aes_key, BLOCK_CIPHER_aes128(), key);
+	if (tls_ccm_encrypt(&aes_key, fixed_iv, seq_num, record,
+		record + 5, 12, enced_record + 5, &enced_recordlen) != 1) {
+		error_print();
+		return -1;
+	}
+	enced_record[0] = record[0];
+	enced_record[1] = record[1];
+	enced_record[2] = record[2];
+	enced_record[3] = (uint8_t)(enced_recordlen >> 8);
+	enced_record[4] = (uint8_t)enced_recordlen;
+	enced_recordlen += 5;
+
+	if (tls12_record_decrypt(TLS_cipher_aes_128_ccm_sha256, NULL, &aes_key, fixed_iv, seq_num,
+		enced_record, enced_recordlen, buf, &buflen) != 1
+		|| buflen != recordlen
+		|| memcmp(buf, record, recordlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+#endif
+
 static int test_tls_random(void)
 {
 	uint8_t random[32];
@@ -439,6 +487,9 @@ static int test_tls_trusted_ca_keys_ext(void)
 int main(void)
 {
 	if (test_tls_null_to_bytes() != 1) goto err;
+#ifdef ENABLE_AES_CCM
+	if (test_tls_ccm() != 1) goto err;
+#endif
 	/*
 	if (test_tls_encode() != 1) goto err;
 	if (test_tls_cbc() != 1) goto err;

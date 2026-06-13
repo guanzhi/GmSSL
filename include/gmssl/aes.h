@@ -83,6 +83,21 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
 	const uint8_t *tag, size_t taglen, uint8_t *out);
 
+#ifdef ENABLE_AES_CCM
+#define AES_CCM_MIN_IV_SIZE		7
+#define AES_CCM_MAX_IV_SIZE		13
+#define AES_CCM_MIN_TAG_SIZE		4
+#define AES_CCM_MAX_TAG_SIZE		16
+#define AES_CCM_DEFAULT_TAG_SIZE	16
+
+int aes_ccm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t taglen, uint8_t *tag);
+int aes_ccm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out);
+#endif
+
 
 #ifdef  __cplusplus
 }
