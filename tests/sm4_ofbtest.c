@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -246,11 +246,47 @@ static int test_sm4_ofb_ctx(void)
 	return 1;
 }
 
+static int test_sm4_ofb_args(void)
+{
+	SM4_OFB_CTX ctx;
+	uint8_t key[16] = {0};
+	uint8_t iv[16] = {0};
+	uint8_t in[16] = {0};
+	uint8_t out[16];
+	size_t outlen;
+
+	if (sm4_ofb_encrypt_init(NULL, key, iv) != -1
+		|| sm4_ofb_encrypt_init(&ctx, NULL, iv) != -1
+		|| sm4_ofb_encrypt_init(&ctx, key, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ofb_encrypt_init(&ctx, key, iv) != 1
+		|| sm4_ofb_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_ofb_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_ofb_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_ofb_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_ofb_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_ofb_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_ofb_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_ofb_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_ofb_encrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_sm4_ofb() != 1) goto err;
 	if (test_sm4_ofb_test_vectors() != 1) goto err;
 	if (test_sm4_ofb_ctx() != 1) goto err;
+	if (test_sm4_ofb_args() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

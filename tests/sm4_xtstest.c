@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -163,10 +163,176 @@ static int test_sm4_xts_test_vectors(void)
 	return 1;
 }
 
+static int test_sm4_xts_ctx(void)
+{
+	SM4_XTS_CTX ctx;
+	uint8_t key[32];
+	uint8_t iv[16];
+	uint8_t plaintext[64];
+	uint8_t ciphertext[64];
+	uint8_t decrypted[64];
+	size_t outlen, total;
+
+	rand_bytes(key, sizeof(key));
+	rand_bytes(iv, sizeof(iv));
+	rand_bytes(plaintext, sizeof(plaintext));
+
+	if (sm4_xts_encrypt_init(&ctx, key, iv, 32) != 1
+		|| sm4_xts_encrypt_update(&ctx, plaintext, 7, ciphertext, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_encrypt_update(&ctx, NULL, 0, ciphertext, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_encrypt_update(&ctx, plaintext + 7, 25, ciphertext, &outlen) != 1
+		|| outlen != 32) {
+		error_print();
+		return -1;
+	}
+	total = outlen;
+	if (sm4_xts_encrypt_update(&ctx, plaintext + 32, 32, ciphertext + total, &outlen) != 1
+		|| outlen != 32) {
+		error_print();
+		return -1;
+	}
+	total += outlen;
+	if (sm4_xts_encrypt_finish(&ctx, ciphertext + total, &outlen) != 1
+		|| outlen != 0
+		|| total != sizeof(plaintext)) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_xts_decrypt_init(&ctx, key, iv, 32) != 1
+		|| sm4_xts_decrypt_update(&ctx, ciphertext, 5, decrypted, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_decrypt_update(&ctx, NULL, 0, decrypted, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_decrypt_update(&ctx, ciphertext + 5, 27, decrypted, &outlen) != 1
+		|| outlen != 32) {
+		error_print();
+		return -1;
+	}
+	total = outlen;
+	if (sm4_xts_decrypt_update(&ctx, ciphertext + 32, 32, decrypted + total, &outlen) != 1
+		|| outlen != 32) {
+		error_print();
+		return -1;
+	}
+	total += outlen;
+	if (sm4_xts_decrypt_finish(&ctx, decrypted + total, &outlen) != 1
+		|| outlen != 0
+		|| total != sizeof(plaintext)
+		|| memcmp(decrypted, plaintext, sizeof(plaintext)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_xts_args(void)
+{
+	SM4_KEY key1;
+	SM4_KEY key2;
+	SM4_XTS_CTX ctx;
+	uint8_t key[32] = {0};
+	uint8_t tweak[16] = {0};
+	uint8_t in[32] = {0};
+	uint8_t out[32];
+	size_t outlen;
+
+	sm4_set_encrypt_key(&key1, key);
+	sm4_set_encrypt_key(&key2, key + 16);
+
+	if (sm4_xts_encrypt(NULL, &key2, tweak, in, sizeof(in), out) != -1
+		|| sm4_xts_encrypt(&key1, NULL, tweak, in, sizeof(in), out) != -1
+		|| sm4_xts_encrypt(&key1, &key2, NULL, in, sizeof(in), out) != -1
+		|| sm4_xts_encrypt(&key1, &key2, tweak, NULL, sizeof(in), out) != -1
+		|| sm4_xts_encrypt(&key1, &key2, tweak, in, sizeof(in), NULL) != -1
+		|| sm4_xts_encrypt(&key1, &key2, tweak, NULL, 0, out) != -1
+		|| sm4_xts_encrypt(&key1, &key2, tweak, in, SM4_BLOCK_SIZE - 1, out) != -1) {
+		error_print();
+		return -1;
+	}
+
+	sm4_set_decrypt_key(&key1, key);
+	if (sm4_xts_decrypt(NULL, &key2, tweak, in, sizeof(in), out) != -1
+		|| sm4_xts_decrypt(&key1, NULL, tweak, in, sizeof(in), out) != -1
+		|| sm4_xts_decrypt(&key1, &key2, NULL, in, sizeof(in), out) != -1
+		|| sm4_xts_decrypt(&key1, &key2, tweak, NULL, sizeof(in), out) != -1
+		|| sm4_xts_decrypt(&key1, &key2, tweak, in, sizeof(in), NULL) != -1
+		|| sm4_xts_decrypt(&key1, &key2, tweak, NULL, 0, out) != -1
+		|| sm4_xts_decrypt(&key1, &key2, tweak, in, SM4_BLOCK_SIZE - 1, out) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_xts_encrypt_init(NULL, key, tweak, 32) != -1
+		|| sm4_xts_encrypt_init(&ctx, NULL, tweak, 32) != -1
+		|| sm4_xts_encrypt_init(&ctx, key, NULL, 32) != -1
+		|| sm4_xts_encrypt_init(&ctx, key, tweak, SM4_BLOCK_SIZE - 1) != -1) {
+		error_print();
+		return -1;
+	}
+	if (sm4_xts_encrypt_init(&ctx, key, tweak, 32) != 1
+		|| sm4_xts_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_xts_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_xts_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_xts_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_xts_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_xts_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_xts_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_xts_encrypt_finish(&ctx, out, NULL) != -1
+		|| sm4_xts_encrypt_finish(&ctx, out, &outlen) != 1
+		|| outlen != 0) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_xts_decrypt_init(NULL, key, tweak, 32) != -1
+		|| sm4_xts_decrypt_init(&ctx, NULL, tweak, 32) != -1
+		|| sm4_xts_decrypt_init(&ctx, key, NULL, 32) != -1
+		|| sm4_xts_decrypt_init(&ctx, key, tweak, SM4_BLOCK_SIZE - 1) != -1) {
+		error_print();
+		return -1;
+	}
+	if (sm4_xts_decrypt_init(&ctx, key, tweak, 32) != 1
+		|| sm4_xts_decrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_xts_decrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_xts_decrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_xts_decrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_xts_decrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_decrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_xts_decrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_xts_decrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_xts_decrypt_finish(&ctx, out, NULL) != -1
+		|| sm4_xts_decrypt_finish(&ctx, out, &outlen) != 1
+		|| outlen != 0) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_xts_encrypt_init(&ctx, key, tweak, 32) != 1
+		|| sm4_xts_encrypt_update(&ctx, in, 16, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_xts_encrypt_finish(&ctx, out, &outlen) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_sm4_xts() != 1) goto err;
 	if (test_sm4_xts_test_vectors() != 1) goto err;
+	if (test_sm4_xts_ctx() != 1) goto err;
+	if (test_sm4_xts_args() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

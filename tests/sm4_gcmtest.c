@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -314,6 +314,146 @@ static int test_sm4_gcm_ctx(void)
 	return 1;
 }
 
+static int test_sm4_gcm_args(void)
+{
+	SM4_KEY sm4_key;
+	SM4_GCM_CTX ctx;
+	uint8_t key[16] = {0};
+	uint8_t iv[12] = {0};
+	uint8_t aad[16] = {0};
+	uint8_t in[16] = {0};
+	uint8_t out[64];
+	uint8_t tag[16];
+	size_t outlen;
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	if (sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), NULL, 0, NULL, 0, out, sizeof(tag), tag) != 1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), NULL, 0, NULL, 0, tag, sizeof(tag), out) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_gcm_encrypt(NULL, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, sizeof(tag), tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, NULL, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, sizeof(tag), tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), NULL, sizeof(aad), in, sizeof(in), out, sizeof(tag), tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), NULL, sizeof(in), out, sizeof(tag), tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), NULL, sizeof(tag), tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, sizeof(tag), NULL) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, 0, aad, sizeof(aad), in, sizeof(in), out, sizeof(tag), tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, SM4_GCM_MIN_TAG_SIZE - 1, tag) != -1
+		|| sm4_gcm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, SM4_GCM_MAX_TAG_SIZE + 1, tag) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_gcm_decrypt(NULL, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, sizeof(tag), out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, NULL, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, sizeof(tag), out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), NULL, sizeof(aad), in, sizeof(in), tag, sizeof(tag), out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), NULL, sizeof(in), tag, sizeof(tag), out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), NULL, sizeof(tag), out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, sizeof(tag), NULL) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, 0, aad, sizeof(aad), in, sizeof(in), tag, sizeof(tag), out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, SM4_GCM_MIN_TAG_SIZE - 1, out) != -1
+		|| sm4_gcm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, SM4_GCM_MAX_TAG_SIZE + 1, out) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_gcm_encrypt_init(NULL, key, sizeof(key), iv, sizeof(iv), NULL, 0, sizeof(tag)) != -1
+		|| sm4_gcm_encrypt_init(&ctx, NULL, sizeof(key), iv, sizeof(iv), NULL, 0, sizeof(tag)) != -1
+		|| sm4_gcm_encrypt_init(&ctx, key, sizeof(key), NULL, sizeof(iv), NULL, 0, sizeof(tag)) != -1
+		|| sm4_gcm_encrypt_init(&ctx, key, sizeof(key), iv, sizeof(iv), NULL, 1, sizeof(tag)) != -1
+		|| sm4_gcm_encrypt_init(&ctx, key, sizeof(key) - 1, iv, sizeof(iv), NULL, 0, sizeof(tag)) != -1
+		|| sm4_gcm_encrypt_init(&ctx, key, sizeof(key), iv, 0, NULL, 0, sizeof(tag)) != -1
+		|| sm4_gcm_encrypt_init(&ctx, key, sizeof(key), iv, sizeof(iv), NULL, 0, SM4_GCM_MIN_TAG_SIZE - 1) != -1
+		|| sm4_gcm_encrypt_init(&ctx, key, sizeof(key), iv, sizeof(iv), NULL, 0, SM4_GCM_MAX_TAG_SIZE + 1) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_gcm_encrypt_init(&ctx, key, sizeof(key), iv, sizeof(iv), NULL, 0, sizeof(tag)) != 1
+		|| sm4_gcm_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_gcm_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_gcm_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_gcm_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_gcm_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_gcm_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_gcm_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_gcm_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_gcm_encrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_gcm_decrypt_init(&ctx, key, sizeof(key), iv, sizeof(iv), NULL, 0, sizeof(tag)) != 1
+		|| sm4_gcm_decrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_gcm_decrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_gcm_decrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_gcm_decrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_gcm_decrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_gcm_decrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_gcm_decrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_gcm_decrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_gcm_decrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_gcm_decrypt_encedlen_bug_vector(void)
+{
+	SM4_GCM_CTX ctx;
+	const char *hex_key = "00000000000000000000000000000000";
+	const char *hex_iv = "000000000000000000000000";
+	const char *hex_cipher =
+		"57c880553b3a32a8322c11cb95c147a3"
+		"af411d0d1bd4d64302520d5045e9215c"
+		"dfe541de43b9feb02b9f71be2b1aef91"
+		"d6149e9615aa16680e4c172cc72e5930";
+	const char *hex_tag = "52be9a13d8a91889cf2aa124efee91f5";
+	uint8_t key[16];
+	uint8_t iv[12];
+	uint8_t cipher[64];
+	uint8_t tag[16];
+	uint8_t in[80];
+	uint8_t plain[64];
+	uint8_t out[80];
+	size_t len, keylen, ivlen, cipherlen, taglen, outlen, finlen;
+
+	hex_to_bytes(hex_key, strlen(hex_key), key, &keylen);
+	hex_to_bytes(hex_iv, strlen(hex_iv), iv, &ivlen);
+	hex_to_bytes(hex_cipher, strlen(hex_cipher), cipher, &cipherlen);
+	hex_to_bytes(hex_tag, strlen(hex_tag), tag, &taglen);
+	memset(plain, 0x2a, sizeof(plain));
+	memcpy(in, cipher, cipherlen);
+	memcpy(in + cipherlen, tag, taglen);
+	len = cipherlen + taglen;
+
+	if (keylen != sizeof(key)
+		|| ivlen != sizeof(iv)
+		|| cipherlen != sizeof(plain)
+		|| taglen != SM4_GCM_MAX_TAG_SIZE
+		|| sm4_gcm_decrypt_init(&ctx, key, keylen, iv, ivlen, NULL, 0, taglen) != 1
+		|| sm4_gcm_decrypt_update(&ctx, in, len, out, &outlen) != 1
+		|| outlen != sizeof(plain)
+		|| memcmp(out, plain, sizeof(plain)) != 0
+		|| ctx.encedlen != sizeof(plain)
+		|| sm4_gcm_decrypt_finish(&ctx, out + outlen, &finlen) != 1
+		|| finlen != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 
 static int test_sm4_gcm_has_flag(const TEST_SM4_GCM_VECTOR *tv, const char *flag)
 {
@@ -424,6 +564,8 @@ int main(void)
 	if (test_sm4_gcm_gbt36624_1() != 1) goto err;
 	if (test_sm4_gcm_gbt36624_2() != 1) goto err;
 	if (test_sm4_gcm_ctx() != 1) goto err;
+	if (test_sm4_gcm_args() != 1) goto err;
+	if (test_sm4_gcm_decrypt_encedlen_bug_vector() != 1) goto err;
 	if (test_sm4_gcm_wycheproof() != 1) goto err;
 #if ENABLE_TEST_SPEED
 	if (speed_sm4_gcm_encrypt() != 1) goto err;

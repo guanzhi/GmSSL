@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -425,6 +425,96 @@ static int test_sm4_ctr_ctx_multi_updates(void)
 	return 1;
 }
 
+static int test_sm4_ctr_args(void)
+{
+	SM4_CTR_CTX ctx;
+	uint8_t key[16] = {0};
+	uint8_t ctr[16] = {0};
+	uint8_t in[16] = {0};
+	uint8_t out[16];
+	size_t outlen;
+
+	if (sm4_ctr_encrypt_init(NULL, key, ctr) != -1
+		|| sm4_ctr_encrypt_init(&ctx, NULL, ctr) != -1
+		|| sm4_ctr_encrypt_init(&ctx, key, NULL) != -1
+		|| sm4_ctr32_encrypt_init(NULL, key, ctr) != -1
+		|| sm4_ctr32_encrypt_init(&ctx, NULL, ctr) != -1
+		|| sm4_ctr32_encrypt_init(&ctx, key, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ctr_encrypt_init(&ctx, key, ctr) != 1
+		|| sm4_ctr_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_ctr_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_ctr_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_ctr_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_ctr_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_ctr_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_ctr_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_ctr_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_ctr_encrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ctr32_encrypt_init(&ctx, key, ctr) != 1
+		|| sm4_ctr32_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_ctr32_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_ctr32_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_ctr32_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_ctr32_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_ctr32_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_ctr32_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_ctr32_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_ctr32_encrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_ctr_finish_no_extra_counter(void)
+{
+	SM4_CTR_CTX ctx;
+	uint8_t key[16] = {0};
+	uint8_t ctr[16] = {0};
+	uint8_t in[16] = {0};
+	uint8_t out[16];
+	uint8_t expected_ctr[16];
+	size_t outlen;
+
+	memcpy(expected_ctr, ctr, sizeof(expected_ctr));
+	expected_ctr[15]++;
+
+	if (sm4_ctr_encrypt_init(&ctx, key, ctr) != 1
+		|| sm4_ctr_encrypt_update(&ctx, in, sizeof(in), out, &outlen) != 1
+		|| outlen != sizeof(in)
+		|| sm4_ctr_encrypt_finish(&ctx, out, &outlen) != 1
+		|| outlen != 0
+		|| memcmp(ctx.ctr, expected_ctr, sizeof(expected_ctr)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ctr32_encrypt_init(&ctx, key, ctr) != 1
+		|| sm4_ctr32_encrypt_update(&ctx, in, sizeof(in), out, &outlen) != 1
+		|| outlen != sizeof(in)
+		|| sm4_ctr32_encrypt_finish(&ctx, out, &outlen) != 1
+		|| outlen != 0
+		|| memcmp(ctx.ctr, expected_ctr, sizeof(expected_ctr)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_sm4_ctr() != 1) goto err;
@@ -433,6 +523,8 @@ int main(void)
 	if (test_sm4_ctr_iv_overflow() != 1) goto err;
 	if (test_sm4_ctr_ctx() != 1) goto err;
 	if (test_sm4_ctr_ctx_multi_updates() != 1) goto err;
+	if (test_sm4_ctr_args() != 1) goto err;
+	if (test_sm4_ctr_finish_no_extra_counter() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

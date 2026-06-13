@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ int sm4_xts_main(int argc, char **argv)
 	size_t ivlen;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	SM4_XTS_CTX ctx;
+	SM4_XTS_CTX ctx = {0};
 	uint8_t *buf = NULL;
 	size_t buflen;
 	size_t inlen;
@@ -212,6 +212,7 @@ bad:
 	ret = 0;
 
 end:
+	if (ctx.block) free(ctx.block);
 	gmssl_secure_clear(key, sizeof(key));
 	gmssl_secure_clear(iv, sizeof(iv));
 	gmssl_secure_clear(&ctx, sizeof(ctx));

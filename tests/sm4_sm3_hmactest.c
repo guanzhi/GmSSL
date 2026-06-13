@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -260,10 +260,140 @@ static int test_sm4_ctr_sm3_hmac(void)
 	return 1;
 }
 
+static int test_sm4_cbc_sm3_hmac_args(void)
+{
+	SM4_CBC_SM3_HMAC_CTX ctx;
+	uint8_t key[SM4_CBC_SM3_HMAC_KEY_SIZE] = {0};
+	uint8_t iv[SM4_CBC_SM3_HMAC_IV_SIZE] = {0};
+	uint8_t aad[16] = {0};
+	uint8_t in[64] = {0};
+	uint8_t out[128];
+	size_t outlen;
+
+	if (sm4_cbc_sm3_hmac_encrypt_init(NULL, key, iv, NULL, 0) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_init(&ctx, NULL, iv, NULL, 0) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_init(&ctx, key, NULL, NULL, 0) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_init(&ctx, key, iv, NULL, sizeof(aad)) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_init(NULL, key, iv, NULL, 0) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_init(&ctx, NULL, iv, NULL, 0) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_init(&ctx, key, NULL, NULL, 0) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_init(&ctx, key, iv, NULL, sizeof(aad)) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_cbc_sm3_hmac_encrypt_init(&ctx, key, iv, NULL, 0) != 1
+		|| sm4_cbc_sm3_hmac_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_cbc_sm3_hmac_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_encrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_cbc_sm3_hmac_decrypt_init(&ctx, key, iv, NULL, 0) != 1
+		|| sm4_cbc_sm3_hmac_decrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_cbc_sm3_hmac_decrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_cbc_sm3_hmac_decrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	outlen = 123;
+	if (sm4_cbc_sm3_hmac_decrypt_init(&ctx, key, iv, NULL, 0) != 1
+		|| sm4_cbc_sm3_hmac_decrypt_update(&ctx, in, 1, out, &outlen) != 1
+		|| outlen != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+static int test_sm4_ctr_sm3_hmac_args(void)
+{
+	SM4_CTR_SM3_HMAC_CTX ctx;
+	uint8_t key[SM4_CTR_SM3_HMAC_KEY_SIZE] = {0};
+	uint8_t iv[SM4_CTR_SM3_HMAC_IV_SIZE] = {0};
+	uint8_t aad[16] = {0};
+	uint8_t in[64] = {0};
+	uint8_t out[128];
+	size_t outlen;
+
+	if (sm4_ctr_sm3_hmac_encrypt_init(NULL, key, iv, NULL, 0) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_init(&ctx, NULL, iv, NULL, 0) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_init(&ctx, key, NULL, NULL, 0) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_init(&ctx, key, iv, NULL, sizeof(aad)) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_init(NULL, key, iv, NULL, 0) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_init(&ctx, NULL, iv, NULL, 0) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_init(&ctx, key, NULL, NULL, 0) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_init(&ctx, key, iv, NULL, sizeof(aad)) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ctr_sm3_hmac_encrypt_init(&ctx, key, iv, NULL, 0) != 1
+		|| sm4_ctr_sm3_hmac_encrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_ctr_sm3_hmac_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_encrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ctr_sm3_hmac_decrypt_init(&ctx, key, iv, NULL, 0) != 1
+		|| sm4_ctr_sm3_hmac_decrypt_update(NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_update(&ctx, NULL, 1, out, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_update(&ctx, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_update(&ctx, in, sizeof(in), out, NULL) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_ctr_sm3_hmac_decrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_finish(NULL, out, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_finish(&ctx, NULL, &outlen) != -1
+		|| sm4_ctr_sm3_hmac_decrypt_finish(&ctx, out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	outlen = 123;
+	if (sm4_ctr_sm3_hmac_decrypt_init(&ctx, key, iv, NULL, 0) != 1
+		|| sm4_ctr_sm3_hmac_decrypt_update(&ctx, in, 1, out, &outlen) != 1
+		|| outlen != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_sm4_cbc_sm3_hmac() != 1) goto err;
 	if (test_sm4_ctr_sm3_hmac() != 1) goto err;
+	if (test_sm4_cbc_sm3_hmac_args() != 1) goto err;
+	if (test_sm4_ctr_sm3_hmac_args() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

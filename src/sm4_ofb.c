@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -49,19 +49,19 @@ int sm4_ofb_encrypt_update(SM4_OFB_CTX *ctx,
 	size_t nblocks;
 	size_t len;
 
-	if (!ctx || !in || !outlen) {
+	if (!ctx || (!in && inlen) || !out || !outlen) {
 		error_print();
 		return -1;
-	}
-	if (!out) {
-		*outlen = 16 * ((inlen + 15)/16);
-		return 1;
 	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
 	}
+
 	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
+	}
 	if (ctx->block_nbytes) {
 		left = SM4_BLOCK_SIZE - ctx->block_nbytes;
 		if (inlen < left) {
@@ -93,20 +93,17 @@ int sm4_ofb_encrypt_update(SM4_OFB_CTX *ctx,
 
 int sm4_ofb_encrypt_finish(SM4_OFB_CTX *ctx, uint8_t *out, size_t *outlen)
 {
-	if (!ctx || !outlen) {
+	if (!ctx || !out || !outlen) {
 		error_print();
 		return -1;
-	}
-	if (!out) {
-		*outlen = SM4_BLOCK_SIZE;
-		return 1;
 	}
 	if (ctx->block_nbytes >= SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
 	}
-	sm4_ofb_encrypt(&ctx->sm4_key, ctx->iv, ctx->block, ctx->block_nbytes, out);
+	if (ctx->block_nbytes) {
+		sm4_ofb_encrypt(&ctx->sm4_key, ctx->iv, ctx->block, ctx->block_nbytes, out);
+	}
 	*outlen = ctx->block_nbytes;
 	return 1;
 }
-

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ int sm4_ctr_sm3_hmac_main(int argc, char **argv)
 				goto end;
 			}
 			if (hex_to_bytes(keyhex, strlen(keyhex), key, &keylen) != 1) {
-				fprintf(stderr, "gmssl %s: invalid key hex digits, should be %d bytes\n", prog, SM4_CTR_SM3_HMAC_IV_SIZE);
+				fprintf(stderr, "gmssl %s: invalid key hex digits, should be %d bytes\n", prog, SM4_CTR_SM3_HMAC_KEY_SIZE);
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-iv")) {

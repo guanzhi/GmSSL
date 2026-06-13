@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -209,6 +209,98 @@ static int test_sm4_cbc_padding(void)
 	return 1;
 }
 
+static int test_sm4_cbc_args(void)
+{
+	SM4_KEY enc_key;
+	SM4_KEY dec_key;
+	SM4_CBC_CTX ctx;
+	uint8_t key[16] = {0};
+	uint8_t iv[16] = {0};
+	uint8_t in[16] = {0};
+	uint8_t out[32];
+	size_t outlen;
+
+	sm4_set_encrypt_key(&enc_key, key);
+	sm4_set_decrypt_key(&dec_key, key);
+
+	if (sm4_cbc_padding_encrypt(NULL, iv, in, sizeof(in), out, &outlen) != -1
+		|| sm4_cbc_padding_encrypt(&enc_key, NULL, in, sizeof(in), out, &outlen) != -1
+		|| sm4_cbc_padding_encrypt(&enc_key, iv, NULL, 1, out, &outlen) != -1
+		|| sm4_cbc_padding_encrypt(&enc_key, iv, in, sizeof(in), NULL, &outlen) != -1
+		|| sm4_cbc_padding_encrypt(&enc_key, iv, in, sizeof(in), out, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	outlen = 0;
+	if (sm4_cbc_padding_encrypt(&enc_key, iv, NULL, 0, out, &outlen) != 1
+		|| outlen != SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_cbc_padding_encrypt(&enc_key, iv, in, sizeof(in), out, &outlen) != 1
+		|| outlen != 2 * SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	out[outlen - 1] ^= 1;
+	memset(in, 0xa5, sizeof(in));
+	if (sm4_cbc_padding_decrypt(&dec_key, iv, out, outlen, in, &outlen) == 1) {
+		error_print();
+		return -1;
+	}
+	for (outlen = 0; outlen < sizeof(in); outlen++) {
+		if (in[outlen] != 0xa5) {
+			error_print();
+			return -1;
+		}
+	}
+
+	outlen = 0;
+	if (sm4_cbc_padding_encrypt(&enc_key, iv, NULL, 0, out, &outlen) != 1
+		|| outlen != SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_cbc_padding_decrypt(NULL, iv, out, outlen, in, &outlen) != -1
+		|| sm4_cbc_padding_decrypt(&dec_key, NULL, out, outlen, in, &outlen) != -1
+		|| sm4_cbc_padding_decrypt(&dec_key, iv, NULL, 1, in, &outlen) != -1
+		|| sm4_cbc_padding_decrypt(&dec_key, iv, out, outlen, NULL, &outlen) != -1
+		|| sm4_cbc_padding_decrypt(&dec_key, iv, out, outlen, in, NULL) != -1) {
+		error_print();
+		return -1;
+	}
+
+	outlen = 123;
+	if (sm4_cbc_padding_decrypt(&dec_key, iv, NULL, 0, in, &outlen) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_cbc_encrypt_init(&ctx, key, iv) != 1
+		|| sm4_cbc_encrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_cbc_encrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_cbc_encrypt_update(&ctx, NULL, 1, out, &outlen) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_cbc_decrypt_init(&ctx, key, iv) != 1
+		|| sm4_cbc_decrypt_update(&ctx, NULL, 0, out, &outlen) != 1
+		|| outlen != 0
+		|| sm4_cbc_decrypt_update(&ctx, NULL, 0, NULL, &outlen) != -1
+		|| sm4_cbc_decrypt_update(&ctx, NULL, 1, out, &outlen) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sm4_cbc_padding_openssl(void)
 {
 	size_t i;
@@ -342,6 +434,20 @@ static int test_sm4_cbc_ctx(void)
 		return -1;
 	}
 
+	// check in-place decrypt
+	memcpy(pbuf, cbuf, clen);
+	if (sm4_cbc_decrypt_init(&dec_ctx, key, iv) != 1
+		|| sm4_cbc_decrypt_update(&dec_ctx, pbuf, clen, pbuf, &plen) != 1
+		|| sm4_cbc_decrypt_finish(&dec_ctx, pbuf + plen, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	plen += len;
+	if (plen != mlen || memcmp(pbuf, mbuf, mlen) != 0) {
+		error_print();
+		return -1;
+	}
+
 
 	// second test
 
@@ -423,6 +529,7 @@ int main(void)
 	if (test_sm4_cbc() != 1) goto err;
 	if (test_sm4_cbc_test_vectors() != 1) goto err;
 	if (test_sm4_cbc_padding() != 1) goto err;
+	if (test_sm4_cbc_args() != 1) goto err;
 	if (test_sm4_cbc_padding_openssl() != 1) goto err;
 	if (test_sm4_cbc_ctx() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);

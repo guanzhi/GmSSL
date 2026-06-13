@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -38,9 +38,13 @@ int sm4_ctr_sm3_hmac_encrypt_init(SM4_CTR_SM3_HMAC_CTX *ctx,
 
 int sm4_ctr_sm3_hmac_encrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	if (!ctx || !in || !out || !outlen) {
+	if (!ctx || (!in && inlen) || !out || !outlen) {
 		error_print();
 		return -1;
+	}
+	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
 	}
 	if (sm4_ctr_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
 		error_print();
@@ -90,7 +94,7 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 {
 	size_t len;
 
-	if (!ctx || !in || !out || !outlen) {
+	if (!ctx || (!in && inlen) || !out || !outlen) {
 		error_print();
 		return -1;
 	}
@@ -99,6 +103,10 @@ int sm4_ctr_sm3_hmac_decrypt_update(SM4_CTR_SM3_HMAC_CTX *ctx, const uint8_t *in
 		return -1;
 	}
 
+	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
+	}
 	if (ctx->maclen < SM3_HMAC_SIZE) {
 		len = SM3_HMAC_SIZE - ctx->maclen;
 		if (inlen <= len) {

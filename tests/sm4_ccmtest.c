@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -79,13 +79,22 @@ static int test_sm4_ccm_test_vectors(void)
 		char *ciphertext;
 	} tests[] = {
 		{
-		"rfc8998",
-		"0123456789abcdeffedcba9876543210",
-		"00001234567800000000abcd",
-		"feedfacedeadbeeffeedfacedeadbeefabaddad2",
-		"16842d4fa186f56ab33256971fa110f4",
-		"aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccddddddddddddddddeeeeeeeeeeeeeeeeffffffffffffffffeeeeeeeeeeeeeeeeaaaaaaaaaaaaaaaa",
-		"48af93501fa62adbcd414cce6034d895dda1bf8f132f042098661572e7483094fd12e518ce062c98acee28d95df4416bed31a2f04476c18bb40c84a74b97dc5b",
+			"rfc8998",
+			"0123456789abcdeffedcba9876543210",
+			"00001234567800000000abcd",
+			"feedfacedeadbeeffeedfacedeadbeefabaddad2",
+			"16842d4fa186f56ab33256971fa110f4",
+			"aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbccccccccccccccccddddddddddddddddeeeeeeeeeeeeeeeeffffffffffffffffeeeeeeeeeeeeeeeeaaaaaaaaaaaaaaaa",
+			"48af93501fa62adbcd414cce6034d895dda1bf8f132f042098661572e7483094fd12e518ce062c98acee28d95df4416bed31a2f04476c18bb40c84a74b97dc5b",
+		},
+		{
+			"openssl-sm4-ccm-aad-padding-boundary",
+			"0123456789abcdeffedcba9876543210",
+			"000102030405060708090a0b",
+			"101112131415161718191a1b1c1d",
+			"7290e28b5fa29391036f06a0",
+			"202122232425262728292a2b2c2d2e",
+			"374bfae945b38c4082d62a0b4304a0",
 		},
 	};
 
@@ -177,6 +186,66 @@ static int test_sm4_ccm_test_vectors(void)
 }
 
 
+static int test_sm4_ccm_aad_padding_bug(void)
+{
+	const char *hex_key = "0123456789abcdeffedcba9876543210";
+	const char *hex_iv = "000102030405060708090a0b";
+	const char *hex_aad = "101112131415161718191a1b1c1d";
+	const char *hex_msg = "202122232425262728292a2b2c2d2e";
+	const char *hex_ct = "374bfae945b38c4082d62a0b4304a0";
+	const char *hex_tag = "7290e28b5fa29391036f06a0";
+	SM4_KEY sm4_key;
+	uint8_t key[16];
+	uint8_t iv[16];
+	uint8_t aad[16];
+	uint8_t msg[16];
+	uint8_t ct[16];
+	uint8_t tag[16];
+	uint8_t out[16];
+	uint8_t dec[16];
+	uint8_t mac[16];
+	size_t keylen, ivlen, aadlen, msglen, ctlen, taglen;
+
+	if (hex_to_bytes(hex_key, strlen(hex_key), key, &keylen) != 1
+		|| hex_to_bytes(hex_iv, strlen(hex_iv), iv, &ivlen) != 1
+		|| hex_to_bytes(hex_aad, strlen(hex_aad), aad, &aadlen) != 1
+		|| hex_to_bytes(hex_msg, strlen(hex_msg), msg, &msglen) != 1
+		|| hex_to_bytes(hex_ct, strlen(hex_ct), ct, &ctlen) != 1
+		|| hex_to_bytes(hex_tag, strlen(hex_tag), tag, &taglen) != 1) {
+		error_print();
+		return -1;
+	}
+	/*
+	 * Regression for `alen + aadlen % 16`.
+	 * Short AAD uses alen = 2. Here aadlen = 14, so
+	 * `(alen + aadlen) % 16` is 0 and no zero padding block is added.
+	 */
+	if (aadlen != 14 || (2 + aadlen) % 16 != 0) {
+		error_print();
+		return -1;
+	}
+
+	sm4_set_encrypt_key(&sm4_key, key);
+	if (sm4_ccm_encrypt(&sm4_key, iv, ivlen, aad, aadlen,
+		msg, msglen, out, taglen, mac) != 1
+		|| ctlen != msglen
+		|| memcmp(out, ct, ctlen) != 0
+		|| memcmp(mac, tag, taglen) != 0) {
+		error_print();
+		return -1;
+	}
+	if (sm4_ccm_decrypt(&sm4_key, iv, ivlen, aad, aadlen,
+		ct, ctlen, tag, taglen, dec) != 1
+		|| memcmp(dec, msg, msglen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+
 static int test_sm4_ccm_wycheproof(void)
 {
 	size_t i;
@@ -242,6 +311,59 @@ static int test_sm4_ccm_wycheproof(void)
 	return 1;
 }
 
+static int test_sm4_ccm_args(void)
+{
+	SM4_KEY sm4_key;
+	uint8_t key[16] = {0};
+	uint8_t iv[12] = {0};
+	uint8_t aad[16] = {0};
+	uint8_t in[16] = {0};
+	uint8_t out[16];
+	uint8_t dec[16];
+	uint8_t tag[16];
+
+	sm4_set_encrypt_key(&sm4_key, key);
+
+	if (sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), NULL, 0, NULL, 0, out, 16, tag) != 1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), NULL, 0, NULL, 0, tag, 16, dec) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ccm_encrypt(NULL, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, NULL, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, 6, aad, sizeof(aad), in, sizeof(in), out, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, 14, aad, sizeof(aad), in, sizeof(in), out, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), NULL, 1, in, sizeof(in), out, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), NULL, 1, out, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), NULL, 16, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, 16, NULL) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, 3, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, 17, tag) != -1
+		|| sm4_ccm_encrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), out, 5, tag) != -1) {
+		error_print();
+		return -1;
+	}
+
+	if (sm4_ccm_decrypt(NULL, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, NULL, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, 6, aad, sizeof(aad), in, sizeof(in), tag, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, 14, aad, sizeof(aad), in, sizeof(in), tag, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), NULL, 1, in, sizeof(in), tag, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), NULL, 1, tag, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), NULL, 16, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, 16, NULL) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, 3, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, 17, out) != -1
+		|| sm4_ccm_decrypt(&sm4_key, iv, sizeof(iv), aad, sizeof(aad), in, sizeof(in), tag, 5, out) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int speed_sm4_ccm_encrypt(void)
 {
 	SM4_KEY sm4_key;
@@ -275,7 +397,9 @@ int main(void)
 {
 	if (test_sm4_ccm() != 1) goto err;
 	if (test_sm4_ccm_test_vectors() != 1) goto err;
+	if (test_sm4_ccm_aad_padding_bug() != 1) goto err;
 	if (test_sm4_ccm_wycheproof() != 1) goto err;
+	if (test_sm4_ccm_args() != 1) goto err;
 #if ENABLE_TEST_SPEED
 	if (speed_sm4_ccm_encrypt() != 1) goto err;
 #endif

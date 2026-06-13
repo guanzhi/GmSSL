@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -22,6 +22,10 @@ int sm4_xts_encrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 	size_t nblocks, i;
 	gf128_t a;
 
+	if (!key1 || !key2 || !tweak || (!in && inlen) || !out) {
+		error_print();
+		return -1;
+	}
 	if (inlen < 16) {
 		error_print();
 		return -1;
@@ -83,6 +87,10 @@ int sm4_xts_decrypt(const SM4_KEY *key1, const SM4_KEY *key2, const uint8_t twea
 	size_t nblocks, i;
 	gf128_t a;
 
+	if (!key1 || !key2 || !tweak || (!in && inlen) || !out) {
+		error_print();
+		return -1;
+	}
 	if (inlen < 16) {
 		error_print();
 		return -1;
@@ -149,10 +157,11 @@ static void tweak_incr(uint8_t a[16])
 
 int sm4_xts_encrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t iv[16], size_t data_unit_size)
 {
-	if (data_unit_size < SM4_BLOCK_SIZE) {
+	if (!ctx || !key || !iv || data_unit_size < SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
 	}
+	memset(ctx, 0, sizeof(*ctx));
 	sm4_set_encrypt_key(&ctx->key1, key);
 	sm4_set_encrypt_key(&ctx->key2, key + 16);
 	memcpy(ctx->tweak, iv, 16);
@@ -168,14 +177,26 @@ int sm4_xts_encrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t 
 int sm4_xts_encrypt_update(SM4_XTS_CTX *ctx,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	size_t DATA_UNIT_SIZE = ctx->data_unit_size;
+	size_t DATA_UNIT_SIZE;
 	size_t left;
 
+	if (!ctx || (!in && inlen) || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->block || ctx->data_unit_size < SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	DATA_UNIT_SIZE = ctx->data_unit_size;
 	if (ctx->block_nbytes >= DATA_UNIT_SIZE) {
 		error_print();
 		return -1;
 	}
 	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
+	}
 	if (ctx->block_nbytes) {
 		left = DATA_UNIT_SIZE - ctx->block_nbytes;
 		if (inlen < left) {
@@ -214,7 +235,16 @@ int sm4_xts_encrypt_update(SM4_XTS_CTX *ctx,
 
 int sm4_xts_encrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen)
 {
-	size_t DATA_UNIT_SIZE = ctx->data_unit_size;
+	size_t DATA_UNIT_SIZE;
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->block || ctx->data_unit_size < SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	DATA_UNIT_SIZE = ctx->data_unit_size;
 	if (ctx->block_nbytes >= DATA_UNIT_SIZE) {
 		error_print();
 		return -1;
@@ -234,10 +264,11 @@ int sm4_xts_encrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen)
 
 int sm4_xts_decrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t iv[16], size_t data_unit_size)
 {
-	if (data_unit_size < SM4_BLOCK_SIZE) {
+	if (!ctx || !key || !iv || data_unit_size < SM4_BLOCK_SIZE) {
 		error_print();
 		return -1;
 	}
+	memset(ctx, 0, sizeof(*ctx));
 	sm4_set_decrypt_key(&ctx->key1, key);
 	sm4_set_encrypt_key(&ctx->key2, key + 16);
 	memcpy(ctx->tweak, iv, 16);
@@ -253,16 +284,27 @@ int sm4_xts_decrypt_init(SM4_XTS_CTX *ctx, const uint8_t key[32], const uint8_t 
 int sm4_xts_decrypt_update(SM4_XTS_CTX *ctx,
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	size_t DATA_UNIT_SIZE = ctx->data_unit_size;
+	size_t DATA_UNIT_SIZE;
 	size_t left;
 
+	if (!ctx || (!in && inlen) || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->block || ctx->data_unit_size < SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	DATA_UNIT_SIZE = ctx->data_unit_size;
 	if (ctx->block_nbytes >= DATA_UNIT_SIZE) {
 		error_print();
 		return -1;
 	}
 	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
+	}
 	if (ctx->block_nbytes) {
-		error_print();
 		left = DATA_UNIT_SIZE - ctx->block_nbytes;
 		if (inlen < left) {
 			memcpy(ctx->block + ctx->block_nbytes, in, inlen);
@@ -300,7 +342,16 @@ int sm4_xts_decrypt_update(SM4_XTS_CTX *ctx,
 
 int sm4_xts_decrypt_finish(SM4_XTS_CTX *ctx, uint8_t *out, size_t *outlen)
 {
-	size_t DATA_UNIT_SIZE = ctx->data_unit_size;
+	size_t DATA_UNIT_SIZE;
+	if (!ctx || !out || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (!ctx->block || ctx->data_unit_size < SM4_BLOCK_SIZE) {
+		error_print();
+		return -1;
+	}
+	DATA_UNIT_SIZE = ctx->data_unit_size;
 	if (ctx->block_nbytes >= DATA_UNIT_SIZE) {
 		error_print();
 		return -1;

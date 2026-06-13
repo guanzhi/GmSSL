@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -17,15 +17,31 @@
 #include <gmssl/sm4_cbc_mac.h>
 
 
-void sm4_cbc_mac_init(SM4_CBC_MAC_CTX *ctx, const uint8_t key[16])
+int sm4_cbc_mac_init(SM4_CBC_MAC_CTX *ctx, const uint8_t key[16])
 {
+	if (!ctx || !key) {
+		error_print();
+		return -1;
+	}
 	sm4_set_encrypt_key(&ctx->key, key);
 	memset(ctx->iv, 0, 16);
 	ctx->ivlen = 0;
+	return 1;
 }
 
-void sm4_cbc_mac_update(SM4_CBC_MAC_CTX *ctx, const uint8_t *data, size_t datalen)
+int sm4_cbc_mac_update(SM4_CBC_MAC_CTX *ctx, const uint8_t *data, size_t datalen)
 {
+	if (!ctx || (!data && datalen)) {
+		error_print();
+		return -1;
+	}
+	if (ctx->ivlen >= 16) {
+		error_print();
+		return -1;
+	}
+	if (!data || !datalen) {
+		return 1;
+	}
 	while (datalen) {
 		size_t ivleft = 16 - ctx->ivlen;
 		size_t len = datalen < ivleft ? datalen : ivleft;
@@ -38,12 +54,23 @@ void sm4_cbc_mac_update(SM4_CBC_MAC_CTX *ctx, const uint8_t *data, size_t datale
 		data += len;
 		datalen -= len;
 	}
+	return 1;
 }
 
-void sm4_cbc_mac_finish(SM4_CBC_MAC_CTX *ctx, uint8_t mac[16])
+int sm4_cbc_mac_finish(SM4_CBC_MAC_CTX *ctx, uint8_t mac[16])
 {
+	if (!ctx || !mac) {
+		error_print();
+		return -1;
+	}
+	if (ctx->ivlen >= 16) {
+		error_print();
+		return -1;
+	}
 	if (ctx->ivlen) {
 		sm4_encrypt(&ctx->key, ctx->iv, ctx->iv);
+		ctx->ivlen = 0;
 	}
 	memcpy(mac, ctx->iv, 16);
+	return 1;
 }

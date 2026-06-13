@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -686,7 +686,7 @@ bad:
 			case SM4_MODE_OFB: rv = sm4_ofb_encrypt_update(&sm4_ctx.ofb, inbuf, inlen, outbuf, &outlen); break;
 #endif
 #ifdef ENABLE_SM4_XTS
-			case SM4_MODE_XTS: rv = sm4_xts_encrypt_update(&sm4_ctx.xts, inbuf, inlen, outbuf, &outlen); break;
+			case SM4_MODE_XTS: rv = sm4_xts_decrypt_update(&sm4_ctx.xts, inbuf, inlen, outbuf, &outlen); break;
 #endif
 			case SM4_MODE_GCM: rv = sm4_gcm_decrypt_update(&sm4_ctx.gcm, inbuf, inlen, outbuf, &outlen); break;
 			case SM4_MODE_CBC_SM3_HMAC: rv = sm4_cbc_sm3_hmac_decrypt_update(&sm4_ctx.cbc_sm3_hmac, inbuf, inlen, outbuf, &outlen); break;

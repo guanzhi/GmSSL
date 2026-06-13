@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ int sm4_cbc_mac_main(int argc, char **argv)
 		} else if (!strcmp(*argv, "-key")) {
 			if (--argc < 1) goto bad;
 			keyhex = *(++argv);
-			if (strlen(keyhex) > sizeof(key) * 2) {
+			if (strlen(keyhex) != sizeof(key) * 2) {
 				fprintf(stderr, "gmssl %s: key should be 16 bytes\n", prog);
 				goto end;
 			}
@@ -142,43 +142,31 @@ bad:
 		goto end;
 	}
 
-	sm4_cbc_mac_init(&ctx, key);
-	/*
 	if (sm4_cbc_mac_init(&ctx, key) != 1) {
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}
-	*/
 
 	if (in_str) {
-		sm4_cbc_mac_update(&ctx, (uint8_t *)in_str, strlen(in_str));
-		/*
 		if (sm4_cbc_mac_update(&ctx, (uint8_t *)in_str, strlen(in_str)) != 1) {
 			fprintf(stderr, "gmssl %s: inner error\n", prog);
 			goto end;
 		}
-		*/
 	} else {
 		uint8_t buf[4096];
 		size_t len;
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
-			sm4_cbc_mac_update(&ctx, buf, len);
-			/*
 			if (sm4_cbc_mac_update(&ctx, buf, len) != 1) {
 				fprintf(stderr, "gmssl %s: inner error\n", prog);
 				goto end;
 			}
-			*/
 		}
 		memset(buf, 0, sizeof(buf));
 	}
-	sm4_cbc_mac_finish(&ctx, mac);
-	/*
 	if (sm4_cbc_mac_finish(&ctx, mac) != 1) {
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
 	}
-	*/
 
 	if (outformat > 1) {
 		if (fwrite(mac, 1, sizeof(mac), outfp) != sizeof(mac)) {

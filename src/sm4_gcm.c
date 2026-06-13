@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -34,6 +34,10 @@ int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t Y[16];
 	uint8_t T[16];
 
+	if (!key || !iv || (!aad && aadlen) || (!in && inlen) || !out || !tag) {
+		error_print();
+		return -1;
+	}
 	if (ivlen < SM4_GCM_MIN_IV_SIZE || ivlen > SM4_GCM_MAX_IV_SIZE) {
 		error_print();
 		return -1;
@@ -76,6 +80,10 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t Y[16];
 	uint8_t T[16];
 
+	if (!key || !iv || (!aad && aadlen) || (!in && inlen) || !tag || !out) {
+		error_print();
+		return -1;
+	}
 	if (ivlen < SM4_GCM_MIN_IV_SIZE || ivlen > SM4_GCM_MAX_IV_SIZE) {
 		error_print();
 		return -1;
@@ -170,21 +178,23 @@ int sm4_gcm_encrypt_init(SM4_GCM_CTX *ctx,
 
 int sm4_gcm_encrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
-	if (!ctx || !in || !outlen) {
+	if (!ctx || (!in && inlen) || !out || !outlen) {
 		error_print();
 		return -1;
+	}
+
+	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
 	}
 	if (inlen > INT_MAX) {
 		error_print();
 		return -1;
 	}
-	if (inlen > SM4_GCM_MAX_PLAINTEXT_SIZE - ctx->encedlen) {
+	if (ctx->encedlen > SM4_GCM_MAX_PLAINTEXT_SIZE
+		|| inlen > SM4_GCM_MAX_PLAINTEXT_SIZE - ctx->encedlen) {
 		error_print();
 		return -1;
-	}
-	if (!out) {
-		*outlen = 16 * ((inlen + 15)/16);
-		return 1;
 	}
 
 	if (sm4_ctr32_encrypt_update(&ctx->enc_ctx, in, inlen, out, outlen) != 1) {
@@ -202,13 +212,9 @@ int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	uint8_t mac[16];
 
-	if (!ctx || !outlen) {
+	if (!ctx || !out || !outlen) {
 		error_print();
 		return -1;
-	}
-	if (!out) {
-		*outlen = SM4_BLOCK_SIZE * 2; // GCM output extra mac tag
-		return 1;
 	}
 	if (sm4_ctr32_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
 		error_print();
@@ -234,27 +240,35 @@ int sm4_gcm_decrypt_init(SM4_GCM_CTX *ctx,
 int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
 {
 	size_t len;
+	size_t datalen = 0;
 
-	if (!ctx || !in || !outlen) {
+	if (!ctx || (!in && inlen) || !out || !outlen) {
 		error_print();
 		return -1;
+	}
+
+	*outlen = 0;
+	if (!in || !inlen) {
+		return 1;
 	}
 	if (inlen > INT_MAX) {
 		error_print();
 		return -1;
 	}
-	if (inlen > SM4_GCM_MAX_PLAINTEXT_SIZE - ctx->encedlen) {
-		error_print();
-		return -1;
-	}
-
-	if (!out) {
-		*outlen = 16 * ((inlen + 15)/16);
-		return 1;
-	}
 	if (ctx->maclen > ctx->taglen) {
 		error_print();
 		return -1;
+	}
+	if (ctx->encedlen > SM4_GCM_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (inlen > ctx->taglen - ctx->maclen) {
+		datalen = inlen - (ctx->taglen - ctx->maclen);
+		if (datalen > SM4_GCM_MAX_PLAINTEXT_SIZE - ctx->encedlen) {
+			error_print();
+			return -1;
+		}
 	}
 
 	if (ctx->maclen < ctx->taglen) {
@@ -300,7 +314,7 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 		memcpy(ctx->mac, in + inlen, GHASH_SIZE);
 	}
 
-	ctx->encedlen += inlen;
+	ctx->encedlen += datalen;
 	return 1;
 }
 
@@ -308,13 +322,9 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 {
 	uint8_t mac[GHASH_SIZE];
 
-	if (!ctx || !outlen) {
+	if (!ctx || !out || !outlen) {
 		error_print();
 		return -1;
-	}
-	if (!out) {
-		*outlen = SM4_BLOCK_SIZE;
-		return 1;
 	}
 	if (ctx->maclen != ctx->taglen) {
 		error_print();

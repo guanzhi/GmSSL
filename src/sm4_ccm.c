@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -8,10 +8,10 @@
  */
 
 
-#include <gmssl/sm4.h>
 #include <gmssl/mem.h>
-#include <gmssl/sm4_cbc_mac.h>
 #include <gmssl/error.h>
+#include <gmssl/sm4.h>
+#include <gmssl/sm4_cbc_mac.h>
 
 
 static void length_to_bytes(size_t len, size_t nbytes, uint8_t *out)
@@ -60,11 +60,11 @@ int sm4_ccm_encrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 	uint8_t mac[16];
 	size_t inlen_size;
 
-	if (ivlen < 7 || ivlen > 13) {
+	if (!sm4_key || !iv || (!aad && aadlen) || (!in && inlen) || !out || !tag) {
 		error_print();
 		return -1;
 	}
-	if (!aad && aadlen) {
+	if (ivlen < 7 || ivlen > 13) {
 		error_print();
 		return -1;
 	}
@@ -109,7 +109,7 @@ int sm4_ccm_encrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 		}
 		sm4_cbc_mac_update(&mac_ctx, block, alen);
 		sm4_cbc_mac_update(&mac_ctx, aad, aadlen);
-		if (alen + aadlen % 16) {
+		if ((alen + aadlen) % 16) {
 			sm4_cbc_mac_update(&mac_ctx, zeros, 16 - (alen + aadlen)%16);
 		}
 	}
@@ -145,11 +145,11 @@ int sm4_ccm_decrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 	uint8_t mac[16];
 	size_t inlen_size;
 
-	if (ivlen < 7 || ivlen > 13) {
+	if (!sm4_key || !iv || (!aad && aadlen) || (!in && inlen) || !tag || !out) {
 		error_print();
 		return -1;
 	}
-	if (!aad && aadlen) {
+	if (ivlen < 7 || ivlen > 13) {
 		error_print();
 		return -1;
 	}
@@ -194,7 +194,7 @@ int sm4_ccm_decrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 		}
 		sm4_cbc_mac_update(&mac_ctx, block, alen);
 		sm4_cbc_mac_update(&mac_ctx, aad, aadlen);
-		if (alen + aadlen % 16) {
+		if ((alen + aadlen) % 16) {
 			sm4_cbc_mac_update(&mac_ctx, zeros, 16 - (alen + aadlen)%16);
 		}
 	}
