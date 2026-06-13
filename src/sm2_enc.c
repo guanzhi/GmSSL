@@ -352,7 +352,7 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 	sm3_finish(&sm3_ctx, hash);
 
 	// check if u == C3
-	if (memcmp(in->hash, hash, sizeof(hash)) != 0) {
+	if (gmssl_secure_memcmp(in->hash, hash, sizeof(hash)) != 0) {
 		error_print();
 		goto end;
 	}

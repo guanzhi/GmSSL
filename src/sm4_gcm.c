@@ -103,7 +103,7 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 
 	sm4_encrypt(key, Y, T);
 	gmssl_memxor(T, T, H, taglen);
-	if (memcmp(T, tag, taglen) != 0) {
+	if (gmssl_secure_memcmp(T, tag, taglen) != 0) {
 		error_print();
 		return -1;
 	}
@@ -327,7 +327,7 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 	}
 
 	gmssl_memxor(mac, mac, ctx->Y, ctx->taglen);
-	if (memcmp(mac, ctx->mac, ctx->taglen) != 0) {
+	if (gmssl_secure_memcmp(mac, ctx->mac, ctx->taglen) != 0) {
 		error_print();
 		return -1;
 	}

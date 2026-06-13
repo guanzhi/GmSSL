@@ -216,7 +216,7 @@ int sm4_ccm_decrypt(const SM4_KEY *sm4_key, const uint8_t *iv, size_t ivlen,
 
 	// diff from encrypt
 	gmssl_memxor(mac, mac, block, taglen);
-	if (memcmp(mac, tag, taglen) != 0) {
+	if (gmssl_secure_memcmp(mac, tag, taglen) != 0) {
 		error_print();
 		gmssl_secure_clear(&mac_ctx, sizeof(mac_ctx));
 		return -1;
