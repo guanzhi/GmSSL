@@ -596,6 +596,28 @@ void sm2_z256_modp_mont_mul(sm2_z256_t r, const sm2_z256_t a, const sm2_z256_t b
 	}
 }
 
+void sm2_z256_modp_mont_sqr(sm2_z256_t r, const sm2_z256_t a)
+{
+	sm2_z256_modp_mont_mul(r, a, a);
+}
+
+// mont(mont(a), 1) = aR * 1 * R^-1 (mod p) = a (mod p)
+void sm2_z256_modp_from_mont(sm2_z256_t r, const sm2_z256_t a)
+{
+	sm2_z256_modp_mont_mul(r, a, SM2_Z256_ONE);
+}
+
+// 2^512 (mod p)
+static const uint64_t SM2_Z256_2e512modp_neon[4] = {
+	0x0000000200000003, 0x00000002ffffffff, 0x0000000100000001, 0x0000000400000002
+};
+
+// mont(a) = a * 2^256 (mod p) = mont_mul(a, 2^512 mod p)
+void sm2_z256_modp_to_mont(const sm2_z256_t a, uint64_t r[4])
+{
+	sm2_z256_modp_mont_mul(r, a, SM2_Z256_2e512modp_neon);
+}
+
 #else // ENABLE_SM2_Z256_NEON
 
 // z = a*b
