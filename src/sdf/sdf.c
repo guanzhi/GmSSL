@@ -291,9 +291,13 @@ static int sdf_cbc_encrypt_blocks(SDF_KEY *key, uint8_t iv[16], const uint8_t *i
 
 static int sdf_cbc_decrypt_blocks(SDF_KEY *key, uint8_t iv[16], const uint8_t *in, size_t nblocks, uint8_t *out)
 {
+	uint8_t last_block[16];
 	unsigned int inlen = (unsigned int)(nblocks * 16);
 	unsigned int outlen = 0;
 
+	if (inlen) {
+		memcpy(last_block, in + inlen - 16, 16);
+	}
 	if (SDF_Decrypt(key->session, key->handle, SGD_SM4_CBC,
 		iv, (unsigned char *)in, inlen, out, &outlen) != SDR_OK) {
 		error_print();
@@ -304,9 +308,7 @@ static int sdf_cbc_decrypt_blocks(SDF_KEY *key, uint8_t iv[16], const uint8_t *i
 		return -1;
 	}
 	if (inlen) {
-		if (memcmp(iv, in + inlen - 16, 16) != 0) {
-			memcmp(iv, in + inlen - 16, 16);
-		}
+		memcpy(iv, last_block, 16);
 	}
 	return 1;
 }
