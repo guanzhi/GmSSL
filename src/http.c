@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -50,11 +50,11 @@ int http_parse_uri(const char *uri, char host[128], int *port, char path[256])
 	return 1;
 }
 
-static int socket_recv_all(int sock, uint8_t *buf, size_t len)
+static int socket_recv_all(tls_socket_t sock, uint8_t *buf, size_t len)
 {
-	size_t n;
+	tls_ret_t n;
 	while (len) {
-		if ((n = recv(sock, buf, len, 0)) <= 0) {
+		if ((n = tls_socket_recv(sock, buf, len, 0)) <= 0) {
 			error_print();
 			return -1;
 		}
@@ -116,12 +116,12 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	char path[256];
 	struct hostent *hp;
 	struct sockaddr_in server;
-	tls_socket_t sock;
+	tls_socket_t sock = tls_socket_invalid();
 	char get[sizeof(HTTP_GET_TEMPLATE) + sizeof(host) + sizeof(path)];
 	int getlen;
 	char response[1024];
 	uint8_t *p;
-	size_t len;
+	tls_ret_t len;
 	size_t left;
 
 	// parse uri and compose request
@@ -143,26 +143,26 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		error_print();
 		return -1;
 	}
-	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) < 0) {
+	if (tls_socket_connect(sock, &server) != 1) {
 		error_print();
 		goto end;
 	}
-	if (send(sock, get, strlen(get), 0) != getlen) {
+	if (tls_socket_send(sock, get, strlen(get), 0) != getlen) {
 		error_print();
 		goto end;
 	}
-	if ((len = recv(sock, response, sizeof(response) - 1, 0)) <= 0) {
+	if ((len = tls_socket_recv(sock, response, sizeof(response) - 1, 0)) <= 0) {
 		error_print();
 		goto end;
 	}
 	response[len] = 0;
 
 	// process response header and retrieve left
-	if (http_parse_response(response, len, &p, contentlen, &left) != 1) {
+	if (http_parse_response(response, (size_t)len, &p, contentlen, &left) != 1) {
 		error_print();
 		goto end;
 	}
@@ -180,6 +180,6 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	ret = 1;
 
 end:
-	close(sock);
+	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
 	return ret;
 }

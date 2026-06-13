@@ -11,9 +11,7 @@
 
 #include <time.h>
 #include <stdio.h>
-#include <fcntl.h>
 #include <assert.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gmssl/rand.h>
@@ -1626,18 +1624,18 @@ int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock)
 			recordlen -= n;
 
 		} else if (n == 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				tls_socket_wait();
-			} else {
-				error_puts("TCP connection closed");
-				return 0;
-			}
+			error_puts("TCP connection closed");
+			return TLS_ERROR_TCP_CLOSED;
 		} else {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			int err = tls_socket_get_error();
+			tls_socket_err_t type = tls_socket_get_error_type(err, 0);
+			if (type == TLS_SOCKET_ERR_WANT_WRITE) {
 				tls_socket_wait();
+			} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
+				continue;
 			} else {
 				error_print();
-				return -1;
+				return TLS_ERROR_SYSCALL;
 			}
 		}
 	}
@@ -1659,15 +1657,18 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 			*recordlen = 0;
 			return 0;
 		} else {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			int err = tls_socket_get_error();
+			tls_socket_err_t type = tls_socket_get_error_type(err, 1);
+			if (type == TLS_SOCKET_ERR_WANT_READ) {
 				if (len == 5) {
-					return -EAGAIN;
+					return TLS_ERROR_RECV_AGAIN;
 				}
 				tls_socket_wait();
+			} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
+				continue;
 			} else {
-				perror("recv");
 				error_print();
-				return -1;
+				return TLS_ERROR_SYSCALL;
 			}
 		}
 	}
@@ -1696,12 +1697,15 @@ int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock)
 			*recordlen = 0;
 			return 0;
 		} else {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			int err = tls_socket_get_error();
+			tls_socket_err_t type = tls_socket_get_error_type(err, 1);
+			if (type == TLS_SOCKET_ERR_WANT_READ) {
 				tls_socket_wait();
+			} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
+				continue;
 			} else {
-				perror("recv");
 				error_print();
-				return -1;
+				return TLS_ERROR_SYSCALL;
 			}
 		}
 	}
@@ -3566,14 +3570,10 @@ int tls_set_verbose(TLS_CONNECT *conn, int verbose)
 
 int tls_set_socket(TLS_CONNECT *conn, tls_socket_t sock)
 {
-#ifndef WIN32
-	int flags = 0;
-	if ((flags = fcntl(sock, F_GETFL)) == -1) {
+	if (!conn || !tls_socket_is_valid(sock)) {
 		error_print();
-		perror("fcntl error");
 		return -1;
 	}
-#endif
 	conn->sock = sock;
 	return 1;
 }

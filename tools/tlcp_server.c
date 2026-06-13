@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2022 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -9,7 +9,6 @@
 
 
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/mem.h>
@@ -34,25 +33,6 @@ static const char *help =
 "\n"
 #include "tlcp_help.h"
 "\n";
-
-static int set_socket_nonblocking(tls_socket_t sock)
-{
-#ifdef WIN32
-	u_long mode = 1;
-	if (ioctlsocket(sock, FIONBIO, &mode) != 0) {
-		error_print();
-		return -1;
-	}
-#else
-	int flags;
-	if ((flags = fcntl(sock, F_GETFL)) < 0
-		|| fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
-		error_print();
-		return -1;
-	}
-#endif
-	return 1;
-}
 
 static int do_handshake_select(TLS_CONNECT *conn)
 {
@@ -323,7 +303,7 @@ restart:
 		return -1;
 	}
 
-	if (set_socket_nonblocking(conn_sock) != 1) {
+	if (tls_socket_set_nonblocking(conn_sock, 1) != 1) {
 		error_print();
 		return -1;
 	}
@@ -349,8 +329,7 @@ restart:
 
 			len = sizeof(buf);
 			if ((rv = tls_recv(&conn, (uint8_t *)buf, sizeof(buf), &len)) != 1) {
-				if (rv == -EAGAIN
-					|| rv == TLS_ERROR_RECV_AGAIN
+				if (rv == TLS_ERROR_RECV_AGAIN
 					|| rv == TLS_ERROR_SEND_AGAIN) {
 					continue;
 				}

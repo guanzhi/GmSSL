@@ -9,7 +9,6 @@
 
 
 #include <time.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -316,14 +315,15 @@ int tls_send_record(TLS_CONNECT *conn)
 	while (left) {
 		n = tls_socket_send(conn->sock, conn->record + conn->record_offset, left, 0);
 		if (n < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			int err = tls_socket_get_error();
+			tls_socket_err_t type = tls_socket_get_error_type(err, 0);
+			if (type == TLS_SOCKET_ERR_WANT_WRITE) {
 				return TLS_ERROR_SEND_AGAIN;
-			} else if (errno == EINTR) {
+			} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
 				continue;
 			} else {
-				fprintf(stderr, "%s %d: send() error: %s\n", __FILE__, __LINE__, strerror(errno));
 				error_print();
-				return -1;
+				return TLS_ERROR_SYSCALL;
 			}
 		} else if (n == 0) {
 			return TLS_ERROR_TCP_CLOSED;
@@ -348,9 +348,11 @@ int tls_recv_record(TLS_CONNECT *conn)
 		while (left) {
 			n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, left, 0);
 			if (n < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				int err = tls_socket_get_error();
+				tls_socket_err_t type = tls_socket_get_error_type(err, 1);
+				if (type == TLS_SOCKET_ERR_WANT_READ) {
 					return TLS_ERROR_RECV_AGAIN;
-				} else if (errno == EINTR) {
+				} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
 					continue;
 				} else {
 					error_print();
@@ -389,9 +391,11 @@ int tls_recv_record(TLS_CONNECT *conn)
 	while (left) {
 		n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, left, 0);
 		if (n < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			int err = tls_socket_get_error();
+			tls_socket_err_t type = tls_socket_get_error_type(err, 1);
+			if (type == TLS_SOCKET_ERR_WANT_READ) {
 				return TLS_ERROR_RECV_AGAIN;
-			} else if (errno == EINTR) {
+			} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
 				continue;
 			} else {
 				error_print();

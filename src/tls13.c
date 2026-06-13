@@ -1138,11 +1138,15 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 
 		n = tls_socket_send(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0);
 		if (n < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			int err = tls_socket_get_error();
+			tls_socket_err_t type = tls_socket_get_error_type(err, 0);
+			if (type == TLS_SOCKET_ERR_WANT_WRITE) {
 				return TLS_ERROR_SEND_AGAIN;
+			} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
+				continue;
 			}
 			error_print();
-			return -1;
+			return TLS_ERROR_SYSCALL;
 		} else if (n == 0) {
 			return TLS_ERROR_TCP_CLOSED;
 		}
@@ -1178,12 +1182,15 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 			n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0);
 			if (n < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				int err = tls_socket_get_error();
+				tls_socket_err_t type = tls_socket_get_error_type(err, 1);
+				if (type == TLS_SOCKET_ERR_WANT_READ) {
 					return TLS_ERROR_RECV_AGAIN;
-				} else {
-					error_print();
-					return -1;
+				} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
+					continue;
 				}
+				error_print();
+				return TLS_ERROR_SYSCALL;
 			} else if (n == 0) {
 				return TLS_ERROR_TCP_CLOSED;
 			}
@@ -1205,12 +1212,15 @@ int tls13_do_recv(TLS_CONNECT *conn)
 		while (conn->recordlen) {
 			n = tls_socket_recv(conn->sock, conn->record + conn->record_offset, conn->recordlen, 0);
 			if (n < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				int err = tls_socket_get_error();
+				tls_socket_err_t type = tls_socket_get_error_type(err, 1);
+				if (type == TLS_SOCKET_ERR_WANT_READ) {
 					return TLS_ERROR_RECV_AGAIN;
-				} else {
-					error_print();
-					return -1;
+				} else if (type == TLS_SOCKET_ERR_INTERRUPTED) {
+					continue;
 				}
+				error_print();
+				return TLS_ERROR_SYSCALL;
 			} else if (n == 0) {
 				return TLS_ERROR_TCP_CLOSED;
 			}

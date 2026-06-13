@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -9,7 +9,6 @@
 
 
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/tls.h>
@@ -54,25 +53,6 @@ static const char *help =
 #include "tlcp_help.h"
 "\n";
 
-
-static int set_socket_nonblocking(tls_socket_t sock)
-{
-#ifdef WIN32
-	u_long mode = 1;
-	if (ioctlsocket(sock, FIONBIO, &mode) != 0) {
-		error_print();
-		return -1;
-	}
-#else
-	int flags;
-	if ((flags = fcntl(sock, F_GETFL)) < 0
-		|| fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
-		error_print();
-		return -1;
-	}
-#endif
-	return 1;
-}
 
 static int do_handshake_select(TLS_CONNECT *conn)
 {
@@ -196,7 +176,6 @@ static int do_recv_until_timeout(TLS_CONNECT *conn, char *prog)
 			return 1;
 		case TLS_ERROR_RECV_AGAIN:
 		case TLS_ERROR_SEND_AGAIN:
-		case -EAGAIN:
 			break;
 		default:
 			fprintf(stderr, "%s: tls_recv error\n", prog);
@@ -251,7 +230,7 @@ int tlcp_client_main(int argc, char *argv[])
 	int verbose = 0;
 	struct hostent *hp;
 	struct sockaddr_in server;
-	tls_socket_t sock = -1;
+	tls_socket_t sock = tls_socket_invalid();
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
 	char buf[1024] = {0};
@@ -496,7 +475,7 @@ bad:
 		goto end;
 	}
 
-	if (set_socket_nonblocking(sock) != 1) {
+	if (tls_socket_set_nonblocking(sock, 1) != 1) {
 		error_print();
 		goto end;
 	}
@@ -624,8 +603,7 @@ bad:
 				do_shutdown_select(&conn);
 				ret = 0;
 				goto end;
-			} else if (rv == -EAGAIN
-				|| rv == TLS_ERROR_RECV_AGAIN
+			} else if (rv == TLS_ERROR_RECV_AGAIN
 				|| rv == TLS_ERROR_SEND_AGAIN) {
 				continue;
 			} else {
@@ -638,7 +616,7 @@ bad:
 
 end:
 	// FIXME: clean ctx and connection ASAP, as Ctrl-C is not handled
-	if (sock != -1) tls_socket_close(sock);
+	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return ret;

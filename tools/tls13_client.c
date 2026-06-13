@@ -9,7 +9,6 @@
 
 
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <gmssl/hex.h>
@@ -22,25 +21,6 @@
 #define tls_stdio_fileno(fp) fileno(fp)
 #endif
 
-
-static int set_socket_nonblocking(tls_socket_t sock)
-{
-#ifdef WIN32
-	u_long mode = 1;
-	if (ioctlsocket(sock, FIONBIO, &mode) != 0) {
-		error_print();
-		return -1;
-	}
-#else
-	int flags;
-	if ((flags = fcntl(sock, F_GETFL)) < 0
-		|| fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
-		error_print();
-		return -1;
-	}
-#endif
-	return 1;
-}
 
 static int do_handshake_select(TLS_CONNECT *conn)
 {
@@ -164,7 +144,6 @@ static int do_recv_until_timeout(TLS_CONNECT *conn, char *prog)
 			return 1;
 		case TLS_ERROR_RECV_AGAIN:
 		case TLS_ERROR_SEND_AGAIN:
-		case -EAGAIN:
 			break;
 		default:
 			fprintf(stderr, "%s: tls_recv error\n", prog);
@@ -240,7 +219,7 @@ int tls13_client_main(int argc, char *argv[])
 
 	struct hostent *hp;
 	struct sockaddr_in server;
-	tls_socket_t sock = -1;
+	tls_socket_t sock = tls_socket_invalid();
 	char buf[1024] = {0};
 	size_t len = sizeof(buf);
 	char send_buf[1024] = {0};
@@ -813,7 +792,7 @@ bad:
 		goto end;
 	}
 
-	if (set_socket_nonblocking(sock) != 1) {
+	if (tls_socket_set_nonblocking(sock, 1) != 1) {
 		error_print();
 		goto end;
 	}
@@ -952,7 +931,7 @@ bad:
 	}
 
 end:
-	if (sock != -1) tls_socket_close(sock);
+	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
 	tls_ctx_cleanup(&ctx);
 	tls_cleanup(&conn);
 	return 0;

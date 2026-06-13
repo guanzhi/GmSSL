@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ int http_parse_uri(const char *uri, char host[128], int *port, char path[256])
 
 static int socket_recv_all(tls_socket_t sock, uint8_t *buf, size_t len)
 {
-	size_t n;
+	tls_ret_t n;
 	while (len) {
 		if ((n = tls_socket_recv(sock, buf, len, 0)) <= 0) {
 			error_print();
@@ -116,20 +116,14 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	char path[256];
 	struct hostent *hp;
 	struct sockaddr_in server;
-	tls_socket_t sock;
+	tls_socket_t sock = tls_socket_invalid();
 	char get[sizeof(HTTP_GET_TEMPLATE) + sizeof(host) + sizeof(path)];
 	int getlen;
 	char response[1024];
 	uint8_t *p;
-	size_t len;
+	tls_ret_t len;
 	size_t left;
-
-	// WIN32
-	WORD wVersion;
-	WSADATA wsaData;
-	wVersion = MAKEWORD(2, 2);
-	int err;
-	int sock_inited = 0;
+	int socket_lib_inited = 0;
 
 	// parse uri and compose request
 	if (http_parse_uri(uri, host, &port, path) != 1) {
@@ -141,11 +135,11 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 		return -1;
 	}
 
-	// WIN32
-	if ((err = WSAStartup(wVersion, &wsaData)) != 0) {
-		fprintf(stderr, "WSAStartup error %d\n", err);
+	if (tls_socket_lib_init() != 1) {
+		error_print();
 		return -1;
 	}
+	socket_lib_inited = 1;
 
 	// connect and send request
 	if (!(hp = gethostbyname(host))) {
@@ -156,16 +150,13 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
 		error_print();
-		fprintf(stderr, "%s %d: open socket error : %u\n", __FILE__, __LINE__, WSAGetLastError());
 		goto end;
 	}
-	sock_inited = 1;
 
-	if (connect(sock, (struct sockaddr *)&server , sizeof(server)) == SOCKET_ERROR) {
+	if (tls_socket_connect(sock, &server) != 1) {
 		error_print();
-		fprintf(stderr, "%s %d: connect error : %u\n", __FILE__, __LINE__, WSAGetLastError());
 		goto end;
 	}
 	if (tls_socket_send(sock, get, strlen(get), 0) != getlen) {
@@ -179,7 +170,7 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	response[len] = 0;
 
 	// process response header and retrieve left
-	if (http_parse_response(response, len, &p, contentlen, &left) != 1) {
+	if (http_parse_response(response, (size_t)len, &p, contentlen, &left) != 1) {
 		error_print();
 		goto end;
 	}
@@ -197,7 +188,7 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	ret = 1;
 
 end:
-	if (sock_inited) tls_socket_close(sock);
-	WSACleanup();
+	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
+	if (socket_lib_inited) tls_socket_lib_cleanup();
 	return ret;
 }
