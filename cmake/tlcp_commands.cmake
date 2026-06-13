@@ -7,11 +7,7 @@ if(NOT EXISTS tlcp_server_certs.pem)
 	message(FATAL_ERROR "file does not exist")
 endif()
 
-if(NOT EXISTS signkey.pem)
-	message(FATAL_ERROR "file does not exist")
-endif()
-
-if(NOT EXISTS enckey.pem)
+if(NOT EXISTS tlcp_server_keys.pem)
 	message(FATAL_ERROR "file does not exist")
 endif()
 
@@ -28,13 +24,13 @@ endif()
 
 if(WIN32)
 	execute_process(
-		COMMAND cmd /c "start /B bin\\gmssl tlcp_server -port ${TLCP_TEST_PORT} -cert tlcp_server_certs.pem -key signkey.pem -pass P@ssw0rd -ex_key enckey.pem -ex_pass P@ssw0rd > tlcp_server.log 2>&1"
+		COMMAND cmd /c "start /B bin\\gmssl tlcp_server -port ${TLCP_TEST_PORT} -cert tlcp_server_certs.pem -key tlcp_server_keys.pem -pass P@ssw0rd > tlcp_server.log 2>&1"
 		RESULT_VARIABLE SERVER_RESULT
 		TIMEOUT 5
 	)
 else()
 	execute_process(
-		COMMAND bash -c "nohup bin/gmssl tlcp_server -port ${TLCP_TEST_PORT} -cert tlcp_server_certs.pem -key signkey.pem -pass P@ssw0rd -ex_key enckey.pem -ex_pass P@ssw0rd > tlcp_server.log 2>&1 &"
+		COMMAND bash -c "nohup bin/gmssl tlcp_server -port ${TLCP_TEST_PORT} -cert tlcp_server_certs.pem -key tlcp_server_keys.pem -pass P@ssw0rd > tlcp_server.log 2>&1 &"
 		RESULT_VARIABLE SERVER_RESULT
 		TIMEOUT 5
 	)
@@ -47,13 +43,13 @@ set(FOUND_INDEX -1)
 foreach(i RANGE 1 15)
 	if (WIN32)
 		execute_process(
-			COMMAND cmd /c "start /B bin\\gmssl tlcp_client -host 127.0.0.1 -port ${TLCP_TEST_PORT} -cacert rootcacert.pem > tlcp_client.log 2>&1"
+			COMMAND cmd /c "start /B bin\\gmssl tlcp_client -host 127.0.0.1 -port ${TLCP_TEST_PORT} -cacert rootcacert.pem -cipher_suite TLS_ECC_SM4_CBC_SM3 > tlcp_client.log 2>&1"
 			RESULT_VARIABLE CLIENT_RESULT
 			TIMEOUT 5
 		)
 	else()
 		execute_process(
-			COMMAND bash -c "bin/gmssl tlcp_client -host 127.0.0.1 -port ${TLCP_TEST_PORT} -cacert rootcacert.pem < /dev/null > tlcp_client.log 2>&1 &"
+			COMMAND bash -c "bin/gmssl tlcp_client -host 127.0.0.1 -port ${TLCP_TEST_PORT} -cacert rootcacert.pem -cipher_suite TLS_ECC_SM4_CBC_SM3 < /dev/null > tlcp_client.log 2>&1 &"
 			RESULT_VARIABLE CLIENT_RESULT
 			TIMEOUT 5
 		)

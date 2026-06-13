@@ -147,9 +147,14 @@ file(APPEND tlcp_server_certs.pem "${CERT_CONTENT}")
 file(READ cacert.pem CERT_CONTENT)
 file(APPEND tlcp_server_certs.pem "${CERT_CONTENT}")
 
+file(WRITE tlcp_server_keys.pem "")
+file(READ signkey.pem KEY_CONTENT)
+file(APPEND tlcp_server_keys.pem "${KEY_CONTENT}")
+file(READ enckey.pem KEY_CONTENT)
+file(APPEND tlcp_server_keys.pem "${KEY_CONTENT}")
+
 file(WRITE tls_server_certs.pem "")
 file(READ signcert.pem CERT_CONTENT)
 file(APPEND tls_server_certs.pem "${CERT_CONTENT}")
 file(READ cacert.pem CERT_CONTENT)
 file(APPEND tls_server_certs.pem "${CERT_CONTENT}")
-
