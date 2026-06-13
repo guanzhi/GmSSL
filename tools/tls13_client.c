@@ -823,7 +823,7 @@ bad:
 		goto end;
 	}
 
-	fprintf(stderr, "connected\n");
+	tls_connect_print(stderr, 0, 0, NULL, &conn);
 	fprintf(stderr, "\n");
 
 	if (get) {

@@ -75,6 +75,8 @@ typedef enum {
 	TLS_protocol_dtls12			= 0xfefd, // {254, 253}
 } TLS_PROTOCOL;
 
+#define TLS_CONNECTION_ESTABLISHED_STRING "Connection established"
+
 const char *tls_protocol_name(int proto);
 int tls_protocol_from_name(const char *name);
 
@@ -1516,6 +1518,7 @@ int tls13_recv_key_update(TLS_CONNECT *conn);
 void tls_clean_record(TLS_CONNECT *conn);
 
 int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT *conn);
+int tls_connect_print(FILE *fp, int fmt, int ind, const char *label, const TLS_CONNECT *conn);
 
 int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx);
 int tls_set_verbose(TLS_CONNECT *conn, int verbose);

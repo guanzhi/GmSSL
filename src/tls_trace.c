@@ -1089,6 +1089,44 @@ int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, in
 // supported_versions 的格式由handshake_type 是否为ClientHello, ServerHello 决定
 // record中是包含这个信息的，但是在exts中没有这个信息
 
+int tls_connect_print(FILE *fp, int fmt, int ind, const char *label, const TLS_CONNECT *conn)
+{
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *name;
+	size_t namelen;
+
+	if (!fp || !conn) {
+		error_print();
+		return -1;
+	}
+
+	if (label) {
+		format_print(fp, fmt, ind, "%s\n", label);
+		ind += 4;
+	}
+
+	format_print(fp, fmt, ind, "%s\n", TLS_CONNECTION_ESTABLISHED_STRING);
+	format_print(fp, fmt, ind, "Protocol: %s\n", tls_protocol_name(conn->protocol));
+	format_print(fp, fmt, ind, "Cipher suite: %s\n", tls_cipher_suite_name(conn->cipher_suite));
+	if (conn->alpn_selected) {
+		format_print(fp, fmt, ind, "ALPN protocol: %s\n", conn->alpn_selected);
+	}
+
+	if (conn->peer_cert_chain_len
+		&& x509_certs_get_cert_by_index(conn->peer_cert_chain,
+			conn->peer_cert_chain_len, 0, &cert, &certlen) == 1) {
+		if (x509_cert_get_subject(cert, certlen, &name, &namelen) == 1) {
+			x509_name_print(fp, fmt, ind, "Peer certificate subject", name, namelen);
+		}
+		if (x509_cert_get_issuer(cert, certlen, &name, &namelen) == 1) {
+			x509_name_print(fp, fmt, ind, "Peer certificate issuer", name, namelen);
+		}
+	}
+
+	return 1;
+}
+
 int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT *conn)
 {
 	tls_record_print(fp, conn->record, conn->recordlen, fmt, ind);

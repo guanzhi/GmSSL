@@ -491,6 +491,7 @@ bad:
 		fprintf(stderr, "%s: error\n", prog);
 		goto end;
 	}
+	tls_connect_print(stderr, 0, 0, NULL, &conn);
 
 	if (get) {
 		snprintf(buf, sizeof(buf), "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", get, host);

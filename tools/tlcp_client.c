@@ -505,6 +505,7 @@ bad:
 		fprintf(stderr, "%s: error\n", prog);
 		goto end;
 	}
+	tls_connect_print(stderr, 0, 0, NULL, &conn);
 
 	if (certoutfile) {
 		FILE *certoutfp;

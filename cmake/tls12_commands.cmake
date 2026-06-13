@@ -25,7 +25,7 @@ execute_process(
 )
 
 execute_process(
-	COMMAND bash -c "nohup bin/gmssl tls12_server -port ${TLS12_TEST_PORT} -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd > tls12_server.log 2>&1 &"
+	COMMAND bash -c "nohup bin/gmssl tls12_server -port ${TLS12_TEST_PORT} -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd -cipher_suite TLS_ECDHE_SM4_CBC_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls12_server.log 2>&1 &"
 	RESULT_VARIABLE SERVER_RESULT
 	TIMEOUT 5
 )
@@ -36,7 +36,7 @@ endif()
 execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 2)
 
 execute_process(
-	COMMAND bash -c "bin/gmssl tls12_client -host localhost -port ${TLS12_TEST_PORT} -cacert rootcacert.pem < /dev/null > tls12_client.log 2>&1 &"
+	COMMAND bash -c "bin/gmssl tls12_client -host localhost -port ${TLS12_TEST_PORT} -cacert rootcacert.pem -cipher_suite TLS_ECDHE_SM4_CBC_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 < /dev/null > tls12_client.log 2>&1 &"
 	RESULT_VARIABLE CLIENT_RESULT
 	TIMEOUT 5
 )

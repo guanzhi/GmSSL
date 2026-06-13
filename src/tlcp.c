@@ -1213,11 +1213,6 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if(conn->verbose)
-		fprintf(stderr, "Connection established!\n");
-
-
-
 	return 1;
 }
 
