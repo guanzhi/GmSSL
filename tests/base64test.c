@@ -61,9 +61,78 @@ static int test_base64(void)
 	return 1;
 }
 
+struct base64_one_byte_buffer {
+	uint8_t data[1];
+	uint8_t canary[8];
+};
+
+static int test_base64_decode_update_ex_padding(void)
+{
+	const uint8_t in[] = "AA==";
+	struct base64_one_byte_buffer buf;
+	uint8_t original_canary[sizeof(buf.canary)];
+	BASE64_CTX ctx;
+	int len = 0;
+	int ret;
+
+	memset(&buf, 0xff, sizeof(buf));
+	memset(buf.canary, 0xcc, sizeof(buf.canary));
+	memcpy(original_canary, buf.canary, sizeof(original_canary));
+
+	base64_decode_init(&ctx);
+	ret = base64_decode_update_ex(&ctx, in, sizeof(in) - 1,
+		buf.data, &len, sizeof(buf.data));
+	if (ret != 0 || len != 1 || buf.data[0] != 0) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(buf.canary, original_canary, sizeof(original_canary)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+struct base64_two_byte_buffer {
+	uint8_t data[2];
+	uint8_t canary[8];
+};
+
+static int test_base64_decode_update_ex_maxout(void)
+{
+	const uint8_t in[] = "AAAA";
+	struct base64_two_byte_buffer buf;
+	uint8_t original_canary[sizeof(buf.canary)];
+	BASE64_CTX ctx;
+	int len = 0;
+	int ret;
+
+	memset(&buf, 0xcc, sizeof(buf));
+	memcpy(original_canary, buf.canary, sizeof(original_canary));
+
+	base64_decode_init(&ctx);
+	ret = base64_decode_update_ex(&ctx, in, sizeof(in) - 1,
+		buf.data, &len, sizeof(buf.data));
+	if (ret != -1 || len != 0) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(buf.canary, original_canary, sizeof(original_canary)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_base64() != 1) goto err;
+	if (test_base64_decode_update_ex_padding() != 1) goto err;
+	if (test_base64_decode_update_ex_maxout() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
 err:

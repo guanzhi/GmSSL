@@ -211,10 +211,12 @@ void base64_decode_init(BASE64_CTX *ctx)
  *   - There is extra trailing padding, or data after padding.
  *   - B64_EOF is detected after an incomplete base64 block.
  */
-int base64_decode_update(BASE64_CTX *ctx, const uint8_t *in, int inl, uint8_t *out, int *outl)
+int base64_decode_update_ex(BASE64_CTX *ctx, const uint8_t *in, int inl, uint8_t *out, int *outl, size_t maxout)
 {
-    int seof = 0, eof = 0, rv = -1, ret = 0, i, v, tmp, n, decoded_len;
+    int seof = 0, eof = 0, rv = -1, ret = 0, i, v, tmp, n, decoded_len, block_len, output_len;
     unsigned char *d;
+    unsigned char block[BIN_PER_LINE];
+    unsigned char *p;
 
     n = ctx->num;
     d = ctx->enc_data;
@@ -277,14 +279,27 @@ int base64_decode_update(BASE64_CTX *ctx, const uint8_t *in, int inl, uint8_t *o
         }
 
         if (n == 64) {
-            decoded_len = base64_decode_block(out, d, n);
+            block_len = n / 4 * 3;
+            output_len = block_len - eof;
+            if (eof > block_len
+                || (size_t)ret > maxout
+                || (size_t)output_len > maxout - (size_t)ret) {
+		error_print();
+                rv = -1;
+                goto end;
+            }
+            p = eof ? block : out;
+            decoded_len = base64_decode_block(p, d, n);
             n = 0;
             if (decoded_len < 0 || eof > decoded_len) {
                 rv = -1;
                 goto end;
             }
-            ret += decoded_len - eof;
-            out += decoded_len - eof;
+            if (eof && output_len > 0) {
+                memcpy(out, block, output_len);
+            }
+            ret += output_len;
+            out += output_len;
         }
     }
 
@@ -296,14 +311,28 @@ int base64_decode_update(BASE64_CTX *ctx, const uint8_t *in, int inl, uint8_t *o
 tail:
     if (n > 0) {
         if ((n & 3) == 0) {
-            decoded_len = base64_decode_block(out, d, n);
+            block_len = n / 4 * 3;
+            output_len = block_len - eof;
+            if (eof > block_len
+                || (size_t)ret > maxout
+                || (size_t)output_len > maxout - (size_t)ret) {
+		error_print();
+                rv = -1;
+                goto end;
+            }
+            p = eof ? block : out;
+            decoded_len = base64_decode_block(p, d, n);
             n = 0;
             if (decoded_len < 0 || eof > decoded_len) {
 		error_print();
                 rv = -1;
                 goto end;
             }
-            ret += (decoded_len - eof);
+            if (eof && output_len > 0) {
+                memcpy(out, block, output_len);
+            }
+            ret += output_len;
+            out += output_len;
         } else if (seof) {
             /* EOF in the middle of a base64 block. */
 		error_print();
@@ -318,6 +347,11 @@ end:
     *outl = ret;
     ctx->num = n;
     return (rv);
+}
+
+int base64_decode_update(BASE64_CTX *ctx, const uint8_t *in, int inl, uint8_t *out, int *outl)
+{
+    return base64_decode_update_ex(ctx, in, inl, out, outl, (size_t)-1);
 }
 
 int base64_decode_block(unsigned char *t, const unsigned char *f, int n)
@@ -359,12 +393,17 @@ int base64_decode_block(unsigned char *t, const unsigned char *f, int n)
     return (ret);
 }
 
-int base64_decode_finish(BASE64_CTX *ctx, uint8_t *out, int *outl)
+int base64_decode_finish_ex(BASE64_CTX *ctx, uint8_t *out, int *outl, size_t maxout)
 {
     int i;
 
     *outl = 0;
     if (ctx->num != 0) {
+        if ((ctx->num & 3) != 0
+            || (size_t)(ctx->num / 4 * 3) > maxout) {
+		error_print();
+            return (-1);
+        }
         i = base64_decode_block(out, ctx->enc_data, ctx->num);
         if (i < 0) {
 		error_print();
@@ -375,4 +414,9 @@ int base64_decode_finish(BASE64_CTX *ctx, uint8_t *out, int *outl)
         return (1);
     } else
         return (1);
+}
+
+int base64_decode_finish(BASE64_CTX *ctx, uint8_t *out, int *outl)
+{
+    return base64_decode_finish_ex(ctx, out, outl, (size_t)-1);
 }

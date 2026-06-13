@@ -47,6 +47,8 @@ void base64_encode_finish(BASE64_CTX *ctx, uint8_t *out, int *outlen);
 void base64_decode_init(BASE64_CTX *ctx);
 int  base64_decode_update(BASE64_CTX *ctx, const uint8_t *in, int inlen, uint8_t *out, int *outlen);
 int  base64_decode_finish(BASE64_CTX *ctx, uint8_t *out, int *outlen);
+int  base64_decode_update_ex(BASE64_CTX *ctx, const uint8_t *in, int inlen, uint8_t *out, int *outlen, size_t maxout);
+int  base64_decode_finish_ex(BASE64_CTX *ctx, uint8_t *out, int *outlen, size_t maxout);
 
 
 int base64_encode_block(unsigned char *t, const unsigned char *f, int dlen);
