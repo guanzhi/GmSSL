@@ -235,11 +235,114 @@ static int test_pem_windows_style_without_last_newline(void)
 	return 1;
 }
 
+struct pem_bounded_buffer {
+	uint8_t data[16];
+	uint8_t canary[32];
+};
+
+static int test_pem_read_maxlen(void)
+{
+	FILE *fp;
+	const char *file = "test_pem_read_maxlen.pem";
+	struct pem_bounded_buffer buf;
+	uint8_t original_canary[sizeof(buf.canary)];
+	size_t len = 0;
+	int ret;
+	int i;
+
+	if (!(fp = fopen(file, "wb"))) {
+		error_print();
+		return -1;
+	}
+	fputs("-----BEGIN TEST-----\n", fp);
+	for (i = 0; i < 64; i++) {
+		fputc('A', fp);
+	}
+	fputs("\n-----END TEST-----\n", fp);
+	fclose(fp);
+
+	memset(&buf, 0, sizeof(buf));
+	memset(buf.canary, 0xcc, sizeof(buf.canary));
+	memcpy(original_canary, buf.canary, sizeof(original_canary));
+
+	if (!(fp = fopen(file, "rb"))) {
+		error_print();
+		return -1;
+	}
+	ret = pem_read(fp, "TEST", buf.data, &len, sizeof(buf.data));
+	fclose(fp);
+
+	if (ret == 1) {
+		error_print();
+		return -1;
+	}
+	if (len > sizeof(buf.data)) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(buf.canary, original_canary, sizeof(original_canary)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+struct pem_one_byte_buffer {
+	uint8_t data[1];
+	uint8_t canary[8];
+};
+
+static int test_pem_read_padding_maxlen(void)
+{
+	FILE *fp;
+	const char *file = "test_pem_read_padding_maxlen.pem";
+	struct pem_one_byte_buffer buf;
+	uint8_t original_canary[sizeof(buf.canary)];
+	size_t len = 0;
+	int ret;
+
+	if (!(fp = fopen(file, "wb"))) {
+		error_print();
+		return -1;
+	}
+	fputs("-----BEGIN TEST-----\n", fp);
+	fputs("AA==\n", fp);
+	fputs("-----END TEST-----\n", fp);
+	fclose(fp);
+
+	memset(&buf, 0xff, sizeof(buf));
+	memset(buf.canary, 0xcc, sizeof(buf.canary));
+	memcpy(original_canary, buf.canary, sizeof(original_canary));
+
+	if (!(fp = fopen(file, "rb"))) {
+		error_print();
+		return -1;
+	}
+	ret = pem_read(fp, "TEST", buf.data, &len, sizeof(buf.data));
+	fclose(fp);
+
+	if (ret != 1 || len != sizeof(buf.data) || buf.data[0] != 0) {
+		error_print();
+		return -1;
+	}
+	if (memcmp(buf.canary, original_canary, sizeof(original_canary)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_pem_unix_style() != 1) { error_print(); return 1; }
 	if (test_pem_unix_style_without_last_newline() != 1) { error_print(); return 1; }
 	if (test_pem_windows_style() != 1) { error_print(); return 1; }
 	if (test_pem_windows_style_without_last_newline() != 1) { error_print(); return 1; }
+	if (test_pem_read_maxlen() != 1) { error_print(); return 1; }
+	if (test_pem_read_padding_maxlen() != 1) { error_print(); return 1; }
 	return 0;
 }

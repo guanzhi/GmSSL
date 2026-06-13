@@ -72,8 +72,10 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 	char line[80];
 	char begin_line[80];
 	char end_line[80];
-	int len;
 	BASE64_CTX ctx;
+	size_t linelen;
+	int len;
+	int ret;
 
 	snprintf(begin_line, sizeof(begin_line), "-----BEGIN %s-----", name);
 	snprintf(end_line, sizeof(end_line), "-----END %s-----", name);
@@ -116,12 +118,21 @@ int pem_read(FILE *fp, const char *name, uint8_t *data, size_t *datalen, size_t 
 			break;
 		}
 
-		base64_decode_update(&ctx, (uint8_t *)line, (int)strlen(line), data, &len);
-		data += len;
+		linelen = strlen(line);
+		ret = base64_decode_update_ex(&ctx, (uint8_t *)line, (int)linelen,
+			data + *datalen, &len, maxlen - *datalen);
+		if (ret < 0 || len < 0 || (size_t)len > maxlen - *datalen) {
+			error_print();
+			return -1;
+		}
 		*datalen += len;
 	}
 
-	base64_decode_finish(&ctx, data, &len);
+	if (base64_decode_finish_ex(&ctx, data + *datalen, &len, maxlen - *datalen) != 1
+		|| len < 0 || (size_t)len > maxlen - *datalen) {
+		error_print();
+		return -1;
+	}
 	*datalen += len;
 	return 1;
 }
