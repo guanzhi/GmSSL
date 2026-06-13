@@ -153,6 +153,7 @@ static void aes_ctr32_encrypt(const AES_KEY *key, uint8_t ctr[16], const uint8_t
 		out += len;
 		inlen -= len;
 	}
+	gmssl_secure_clear(block, sizeof(block));
 }
 
 int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
@@ -188,6 +189,10 @@ int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 
 	ghash(H, aad, aadlen, out, inlen, H);
 	gmssl_memxor(tag, T, H, taglen);
+
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(Y, sizeof(Y));
+	gmssl_secure_clear(T, sizeof(T));
 	return 1;
 }
 
@@ -201,6 +206,11 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	uint8_t H[16] = {0};
 	uint8_t Y[16];
 	uint8_t T[16];
+
+	if (taglen > AES_GCM_MAX_TAG_SIZE) {
+		error_print();
+		return -1;
+	}
 
 	aes_encrypt(key, H, H);
 
@@ -216,6 +226,9 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	aes_encrypt(key, Y, T);
 	gmssl_memxor(T, T, H, taglen);
 	if (gmssl_secure_memcmp(T, tag, taglen) != 0) {
+		gmssl_secure_clear(H, sizeof(H));
+		gmssl_secure_clear(Y, sizeof(Y));
+		gmssl_secure_clear(T, sizeof(T));
 		error_print();
 		return -1;
 	}
@@ -223,5 +236,8 @@ int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	ctr32_incr(Y);
 	aes_ctr32_encrypt(key, Y, in, inlen, out);
 
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(Y, sizeof(Y));
+	gmssl_secure_clear(T, sizeof(T));
 	return 1;
 }

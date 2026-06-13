@@ -69,6 +69,9 @@ int sm4_gcm_encrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	ghash(H, aad, aadlen, out, inlen, H);
 	gmssl_memxor(tag, T, H, taglen);
 
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(Y, sizeof(Y));
+	gmssl_secure_clear(T, sizeof(T));
 	return 1;
 }
 
@@ -112,6 +115,9 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	sm4_encrypt(key, Y, T);
 	gmssl_memxor(T, T, H, taglen);
 	if (gmssl_secure_memcmp(T, tag, taglen) != 0) {
+		gmssl_secure_clear(H, sizeof(H));
+		gmssl_secure_clear(Y, sizeof(Y));
+		gmssl_secure_clear(T, sizeof(T));
 		error_print();
 		return -1;
 	}
@@ -119,6 +125,9 @@ int sm4_gcm_decrypt(const SM4_KEY *key, const uint8_t *iv, size_t ivlen,
 	ctr32_incr(Y);
 	sm4_ctr32_encrypt(key, Y, in, inlen, out);
 
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(Y, sizeof(Y));
+	gmssl_secure_clear(T, sizeof(T));
 	return 1;
 }
 
@@ -227,6 +236,7 @@ int sm4_gcm_encrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 	memcpy(out + *outlen, mac, ctx->taglen);
 	*outlen += ctx->taglen;
 
+	gmssl_secure_clear(mac, sizeof(mac));
 	return 1;
 }
 
@@ -311,7 +321,8 @@ int sm4_gcm_decrypt_update(SM4_GCM_CTX *ctx, const uint8_t *in, size_t inlen, ui
 			return -1;
 		}
 		*outlen += len;
-		memcpy(ctx->mac, in + inlen, GHASH_SIZE);
+		memset(ctx->mac, 0, GHASH_SIZE);
+		memcpy(ctx->mac, in + inlen, ctx->taglen);
 	}
 
 	ctx->encedlen += datalen;
@@ -332,16 +343,17 @@ int sm4_gcm_decrypt_finish(SM4_GCM_CTX *ctx, uint8_t *out, size_t *outlen)
 	}
 	ghash_finish(&ctx->mac_ctx, mac);
 	if (sm4_ctr32_encrypt_finish(&ctx->enc_ctx, out, outlen) != 1) {
+		gmssl_secure_clear(mac, sizeof(mac));
 		error_print();
 		return -1;
 	}
 
 	gmssl_memxor(mac, mac, ctx->Y, ctx->taglen);
 	if (gmssl_secure_memcmp(mac, ctx->mac, ctx->taglen) != 0) {
+		gmssl_secure_clear(mac, sizeof(mac));
 		error_print();
 		return -1;
 	}
-	memset(ctx->mac, 0, GHASH_SIZE);
-	ctx->maclen = 0;
+	gmssl_secure_clear(mac, sizeof(mac));
 	return 1;
 }
