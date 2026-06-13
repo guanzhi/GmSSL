@@ -28,6 +28,34 @@
 #include <gmssl/endian.h>
 
 
+const int tls13_supported_groups[] = {
+	TLS_curve_sm2p256v1,
+#ifdef ENABLE_SECP256R1
+	TLS_curve_secp256r1,
+#endif
+};
+const size_t tls13_supported_groups_cnt =
+	sizeof(tls13_supported_groups)/sizeof(tls13_supported_groups[0]);
+
+const int tls13_signature_algorithms[] = {
+	TLS_sig_sm2sig_sm3,
+#if defined(ENABLE_SECP256R1) && defined(ENABLE_SHA2)
+	TLS_sig_ecdsa_secp256r1_sha256,
+#endif
+};
+const size_t tls13_signature_algorithms_cnt =
+	sizeof(tls13_signature_algorithms)/sizeof(tls13_signature_algorithms[0]);
+
+const int tls13_cipher_suites[] = {
+	TLS_cipher_sm4_gcm_sm3,
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
+	TLS_cipher_aes_128_gcm_sha256,
+#endif
+};
+const size_t tls13_cipher_suites_cnt =
+	sizeof(tls13_cipher_suites)/sizeof(tls13_cipher_suites[0]);
+
+
 
 
 int tls13_random_generate(uint8_t random[32])

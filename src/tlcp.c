@@ -24,19 +24,31 @@
 #include <gmssl/tls.h>
 
 
+const int tlcp_supported_groups[] = {
+	TLS_curve_sm2p256v1,
+};
+const size_t tlcp_supported_groups_cnt =
+	sizeof(tlcp_supported_groups)/sizeof(tlcp_supported_groups[0]);
 
-static const int tlcp_ciphers[] = {
+const int tlcp_signature_algorithms[] = {
+	TLS_sig_sm2sig_sm3,
+};
+const size_t tlcp_signature_algorithms_cnt =
+	sizeof(tlcp_signature_algorithms)/sizeof(tlcp_signature_algorithms[0]);
+
+const int tlcp_cipher_suites[] = {
 	TLS_cipher_ecc_sm4_cbc_sm3,
 	TLS_cipher_ecc_sm4_gcm_sm3,
 };
-static const size_t tlcp_ciphers_count = sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]);
+const size_t tlcp_cipher_suites_cnt =
+	sizeof(tlcp_cipher_suites)/sizeof(tlcp_cipher_suites[0]);
 
 
 int tlcp_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen)
 {
 	// 目前只支持TLCP的ECC公钥加密套件，因此不论用CBC/GCM哪个套件解析都是一样的
 	// 如果未来支持ECDHE套件，可以将函数改为宏，直接传入 (conn->cipher_suite << 8)
-	format |= tlcp_ciphers[0] << 8;
+	format |= tlcp_cipher_suites[0] << 8;
 	return tls_record_print(fp, record, recordlen, format, indent);
 }
 

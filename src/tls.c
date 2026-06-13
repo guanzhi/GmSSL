@@ -27,6 +27,26 @@
 #include <gmssl/pem.h>
 #include <gmssl/tls.h>
 
+extern const int tlcp_supported_groups[];
+extern const size_t tlcp_supported_groups_cnt;
+extern const int tlcp_signature_algorithms[];
+extern const size_t tlcp_signature_algorithms_cnt;
+extern const int tlcp_cipher_suites[];
+extern const size_t tlcp_cipher_suites_cnt;
+
+extern const int tls12_supported_groups[];
+extern const size_t tls12_supported_groups_cnt;
+extern const int tls12_signature_algorithms[];
+extern const size_t tls12_signature_algorithms_cnt;
+extern const int tls12_cipher_suites[];
+extern const size_t tls12_cipher_suites_cnt;
+
+extern const int tls13_supported_groups[];
+extern const size_t tls13_supported_groups_cnt;
+extern const int tls13_signature_algorithms[];
+extern const size_t tls13_signature_algorithms_cnt;
+extern const int tls13_cipher_suites[];
+extern const size_t tls13_cipher_suites_cnt;
 
 void tls_uint8_to_bytes(uint8_t a, uint8_t **out, size_t *outlen)
 {
@@ -2530,6 +2550,8 @@ int tls_ctx_set_supported_versions(TLS_CTX *ctx, const int *versions, size_t ver
 
 int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cipher_suites_cnt)
 {
+	const int *supported_cipher_suites;
+	size_t supported_cipher_suites_cnt;
 	size_t i;
 
 	if (!ctx || !cipher_suites || !cipher_suites_cnt) {
@@ -2541,13 +2563,32 @@ int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cip
 		return -1;
 	}
 
+	switch (ctx->protocol) {
+	case TLS_protocol_tlcp:
+		supported_cipher_suites = tlcp_cipher_suites;
+		supported_cipher_suites_cnt = tlcp_cipher_suites_cnt;
+		break;
+	case TLS_protocol_tls12:
+		supported_cipher_suites = tls12_cipher_suites;
+		supported_cipher_suites_cnt = tls12_cipher_suites_cnt;
+		break;
+	case TLS_protocol_tls13:
+		supported_cipher_suites = tls13_cipher_suites;
+		supported_cipher_suites_cnt = tls13_cipher_suites_cnt;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
 	for (i = 0; i < cipher_suites_cnt; i++) {
-		if (!tls_cipher_suite_name(cipher_suites[i])) {
+		if (!tls_type_is_in_list(cipher_suites[i], supported_cipher_suites, supported_cipher_suites_cnt)) {
 			error_print();
 			return -1;
 		}
-		ctx->cipher_suites[i] = cipher_suites[i];
 	}
+
+	memcpy(ctx->cipher_suites, cipher_suites, cipher_suites_cnt * sizeof(cipher_suites[0]));
 	ctx->cipher_suites_cnt = cipher_suites_cnt;
 
 	return 1;
@@ -2915,6 +2956,8 @@ int tls_ctx_set_tlcp_server_certificate_and_keys(TLS_CTX *ctx, const char *chain
 
 int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_cnt)
 {
+	const int *supported_groups;
+	size_t supported_groups_cnt;
 	size_t i;
 
 	if (!ctx || !groups || !groups_cnt) {
@@ -2926,17 +2969,32 @@ int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_
 		return -1;
 	}
 
+	switch (ctx->protocol) {
+	case TLS_protocol_tlcp:
+		supported_groups = tlcp_supported_groups;
+		supported_groups_cnt = tlcp_supported_groups_cnt;
+		break;
+	case TLS_protocol_tls12:
+		supported_groups = tls12_supported_groups;
+		supported_groups_cnt = tls12_supported_groups_cnt;
+		break;
+	case TLS_protocol_tls13:
+		supported_groups = tls13_supported_groups;
+		supported_groups_cnt = tls13_supported_groups_cnt;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
 	for (i = 0; i < groups_cnt; i++) {
-		switch (groups[i]) {
-		case TLS_curve_sm2p256v1:
-		case TLS_curve_secp256r1:
-			break;
-		default:
+		if (!tls_type_is_in_list(groups[i], supported_groups, supported_groups_cnt)) {
 			error_print();
 			return -1;
 		}
-		ctx->supported_groups[i] = groups[i];
 	}
+
+	memcpy(ctx->supported_groups, groups, groups_cnt * sizeof(groups[0]));
 	ctx->supported_groups_cnt = groups_cnt;
 
 	return 1;
@@ -2946,6 +3004,8 @@ int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_
 
 int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t sig_algs_cnt)
 {
+	const int *supported_sig_algs;
+	size_t supported_sig_algs_cnt;
 	size_t i;
 
 	if (!ctx || !sig_algs || !sig_algs_cnt) {
@@ -2957,17 +3017,32 @@ int tls_ctx_set_signature_algorithms(TLS_CTX *ctx, const int *sig_algs, size_t s
 		return -1;
 	}
 
+	switch (ctx->protocol) {
+	case TLS_protocol_tlcp:
+		supported_sig_algs = tlcp_signature_algorithms;
+		supported_sig_algs_cnt = tlcp_signature_algorithms_cnt;
+		break;
+	case TLS_protocol_tls12:
+		supported_sig_algs = tls12_signature_algorithms;
+		supported_sig_algs_cnt = tls12_signature_algorithms_cnt;
+		break;
+	case TLS_protocol_tls13:
+		supported_sig_algs = tls13_signature_algorithms;
+		supported_sig_algs_cnt = tls13_signature_algorithms_cnt;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
 	for (i = 0; i < sig_algs_cnt; i++) {
-		switch (sig_algs[i]) {
-		case TLS_sig_sm2sig_sm3:
-		case TLS_sig_ecdsa_secp256r1_sha256:
-			break;
-		default:
+		if (!tls_type_is_in_list(sig_algs[i], supported_sig_algs, supported_sig_algs_cnt)) {
 			error_print();
 			return -1;
 		}
-		ctx->signature_algorithms[i] = sig_algs[i];
 	}
+
+	memcpy(ctx->signature_algorithms, sig_algs, sig_algs_cnt * sizeof(sig_algs[0]));
 	ctx->signature_algorithms_cnt = sig_algs_cnt;
 
 	return 1;

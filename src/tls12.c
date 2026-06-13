@@ -26,19 +26,41 @@
 
 
 
-static const int tls12_ciphers[] = {
+const int tls12_supported_groups[] = {
+	TLS_curve_sm2p256v1,
+#ifdef ENABLE_SECP256R1
+	TLS_curve_secp256r1,
+#endif
+};
+const size_t tls12_supported_groups_cnt =
+	sizeof(tls12_supported_groups)/sizeof(tls12_supported_groups[0]);
+
+const int tls12_signature_algorithms[] = {
+	TLS_sig_sm2sig_sm3,
+#if defined(ENABLE_SECP256R1) && defined(ENABLE_SHA2)
+	TLS_sig_ecdsa_secp256r1_sha256,
+#endif
+};
+const size_t tls12_signature_algorithms_cnt =
+	sizeof(tls12_signature_algorithms)/sizeof(tls12_signature_algorithms[0]);
+
+const int tls12_cipher_suites[] = {
 	TLS_cipher_ecdhe_sm4_cbc_sm3,
 	TLS_cipher_ecdhe_sm4_gcm_sm3,
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+#endif
 };
+const size_t tls12_cipher_suites_cnt =
+	sizeof(tls12_cipher_suites)/sizeof(tls12_cipher_suites[0]);
 
 
 int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
 {
 	// 目前只支持TLCP的ECC公钥加密套件，因此不论用哪个套件解析都是一样的
 	// 如果未来支持ECDHE套件，可以将函数改为宏，直接传入 (conn->cipher_suite << 8)
-	format |= tls12_ciphers[0] << 8; // 应该是KeyExchange需要这个参数			
+	format |= tls12_cipher_suites[0] << 8; // 应该是KeyExchange需要这个参数			
 	return tls_record_print(fp, record, recordlen, format, indent);
 }
 
@@ -425,24 +447,6 @@ int tls_named_curve_from_oid(int oid)
 
 
 
-
-
-
-// 这个是必选的
-
-// 服务器通常推荐返回这个值
-const int supported_groups[] = {
-	TLS_curve_sm2p256v1,
-	TLS_curve_secp256r1,
-};
-size_t supported_groups_cnt = sizeof(supported_groups)/sizeof(supported_groups[0]);
-
-// 仍旧是不可设置的
-const int signature_algors[] = {
-	TLS_sig_sm2sig_sm3,
-	TLS_sig_ecdsa_secp256r1_sha256,
-};
-size_t signature_algors_cnt = sizeof(signature_algors)/sizeof(signature_algors[0]);
 
 
 
@@ -951,11 +955,13 @@ static int tls12_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher,
 		*cipher = BLOCK_CIPHER_sm4();
 		*digest = DIGEST_sm3();
 		break;
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		*cipher = BLOCK_CIPHER_aes128();
 		*digest = DIGEST_sha256();
 		break;
+#endif
 	default:
 		error_print();
 		return -1;
@@ -969,9 +975,11 @@ static int tls12_cipher_suite_match_cert_group(int cipher_suite, int cert_group)
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 		return cert_group == TLS_curve_sm2p256v1;
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		return cert_group == TLS_curve_secp256r1;
+#endif
 	default:
 		return 0;
 	}
@@ -993,11 +1001,13 @@ static int tls12_signature_scheme_match_cipher_suite(int sig_alg, int cipher_sui
 		}
 		break;
 	case TLS_sig_ecdsa_secp256r1_sha256:
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 		switch (cipher_suite) {
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 			return 1;
 		}
+#endif
 		break;
 	}
 	return 0;
@@ -1009,9 +1019,11 @@ static int tls12_key_exchange_group_match_cipher_suite(int group, int cipher_sui
 	case TLS_cipher_ecdhe_sm4_cbc_sm3:
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 		return group == TLS_curve_sm2p256v1;
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 		return group == TLS_curve_secp256r1;
+#endif
 	default:
 		return 0;
 	}
