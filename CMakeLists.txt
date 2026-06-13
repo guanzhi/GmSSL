@@ -54,10 +54,10 @@ option(ENABLE_SM4_XTS "Enable SM4 XTS mode" OFF)
 option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
-option(ENABLE_SM9 "Enable SM9" OFF)
+option(ENABLE_SM9 "Enable SM9" ON)
 option(ENABLE_CMS "Enable CMS" OFF)
 
-option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" OFF)
+option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" ON)
 
 option(ENABLE_LMS "Enable LMS/HSS signature" OFF)
 option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" OFF)
@@ -65,10 +65,10 @@ option(ENABLE_SPHINCS "Enable SPHINCS+ signature" OFF)
 option(ENABLE_KYBER "Enable Kyber" OFF)
 
 option(ENABLE_SHA1 "Enable SHA1" OFF)
-option(ENABLE_SHA2 "Enable SHA2" OFF)
-option(ENABLE_AES "Enable AES" OFF)
+option(ENABLE_SHA2 "Enable SHA2" ON)
+option(ENABLE_AES "Enable AES" ON)
 option(ENABLE_CHACHA20 "Enable Chacha20" OFF)
-option(ENABLE_ZUC "Enable ZUC" OFF)
+option(ENABLE_ZUC "Enable ZUC" ON)
 option(ENABLE_GHASH "Enable standalone GHASH command and test" OFF)
 
 option(ENABLE_SKF "Enable SKF module" OFF)
@@ -76,7 +76,7 @@ option(ENABLE_SDF "Enable SDF module" OFF)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
-option(ENABLE_TLS "Enable TLS and TLCP protocol support" OFF)
+option(ENABLE_TLS "Enable TLS and TLCP protocol support" ON)
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
 option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
@@ -275,7 +275,6 @@ if (ENABLE_TLS_DEBUG)
 	message(STATUS "ENABLE_TLS_DEBUG is ON")
 	add_definitions(-DENABLE_TLS_DEBUG)
 endif()
-
 
 if (ENABLE_SM3_SSE)
 	message(STATUS "ENABLE_SM3_SSE is ON")
@@ -553,6 +552,7 @@ endif()
 
 if (ENABLE_TLS)
 	message(STATUS "ENABLE_TLS is ON")
+	message(STATUS "TLS ECDHE-ECDSA cipher suites require ENABLE_AES, ENABLE_SHA2 and ENABLE_SECP256R1")
 	add_definitions(-DENABLE_TLS)
 	list(APPEND src
 		src/socket.c
@@ -768,7 +768,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1021")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1022")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
