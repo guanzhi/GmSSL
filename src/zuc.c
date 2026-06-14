@@ -325,11 +325,11 @@ void zuc_encrypt(ZUC_STATE *state, const uint8_t *in, size_t inlen, uint8_t *out
 		}
 		LFSR[15] = V;
 
-		// xor with plaintext
-		Z ^= GETU32(in);
-
 		// output ciphertext
 		if (inlen >= 4) {
+			// xor with plaintext
+			Z ^= GETU32(in);
+
 			PUTU32(out, Z);
 			inlen -= 4;
 			in += 4;
@@ -337,6 +337,11 @@ void zuc_encrypt(ZUC_STATE *state, const uint8_t *in, size_t inlen, uint8_t *out
 		} else {
 			uint8_t word[4];
 			size_t i;
+
+			memcpy(word, in, inlen);
+
+			// xor with plaintext
+			Z ^= GETU32(word);
 
 			PUTU32(word, Z);
 			for (i = 0; i < inlen; i++) {

@@ -92,9 +92,10 @@ typedef struct ZUC256_MAC_CTX_st {
 } ZUC256_MAC_CTX;
 
 void zuc256_mac_init(ZUC256_MAC_CTX *ctx, const uint8_t key[ZUC256_KEY_SIZE],
-	const uint8_t iv[ZUC256_IV_SIZE], int macbits);
+	const uint8_t iv[ZUC256_IV_SIZE], int macbits); // macbits should be 32, 64, or 128
 void zuc256_mac_update(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t len);
-void zuc256_mac_finish(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t nbits, uint8_t mac[ZUC_MAC_SIZE]);
+void zuc256_mac_finish(ZUC256_MAC_CTX *ctx, const uint8_t *data, size_t nbits,
+	uint8_t *mac); // mac size should be 4, 8 or 16
 
 
 typedef struct {
