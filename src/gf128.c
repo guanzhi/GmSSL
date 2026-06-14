@@ -68,12 +68,8 @@ int gf128_print(FILE *fp, int fmt, int ind, const char *label, const gf128_t a)
 	uint8_t be[16];
 	int i;
 
-	printf("%s: ", label);
 	gf128_to_bytes(a, be);
-	for (i = 0; i < 16; i++) {
-		printf("%02x", be[i]);
-	}
-	printf("\n");
+	format_bytes(fp, fmt, ind, label, be, sizeof(be));
 	return 1;
 }
 
@@ -189,4 +185,3 @@ int gf128_equ_hex(const gf128_t a, const char *s)
 	}
 	return 1;
 }
-
