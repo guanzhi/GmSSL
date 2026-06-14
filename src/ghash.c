@@ -1,5 +1,5 @@
 ﻿/*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -36,13 +36,14 @@ void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t
 	gf128_t H;
 	gf128_t X;
 	gf128_t L;
+	uint8_t block[16];
 
 	gf128_from_bytes(H, h);
 	gf128_set_zero(X);
 
-	PUTU64(out, (uint64_t)aadlen << 3);
-	PUTU64(out + 8, (uint64_t)clen << 3);
-	gf128_from_bytes(L, out);
+	PUTU64(block, (uint64_t)aadlen << 3);
+	PUTU64(block + 8, (uint64_t)clen << 3);
+	gf128_from_bytes(L, block);
 
 	while (aadlen) {
 		gf128_t A;
@@ -51,9 +52,9 @@ void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t
 			aad += 16;
 			aadlen -= 16;
 		} else {
-			memset(out, 0, 16);
-			memcpy(out, aad, aadlen);
-			gf128_from_bytes(A, out);
+			memset(block, 0, 16);
+			memcpy(block, aad, aadlen);
+			gf128_from_bytes(A, block);
 			aadlen = 0;
 		}
 		gf128_add(X, X, A);
@@ -67,9 +68,9 @@ void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t
 			c += 16;
 			clen -= 16;
 		} else {
-			memset(out, 0, 16);
-			memcpy(out, c, clen);
-			gf128_from_bytes(C, out);
+			memset(block, 0, 16);
+			memcpy(block, c, clen);
+			gf128_from_bytes(C, block);
 			clen = 0;
 		}
 		gf128_add(X, X, C);
@@ -79,6 +80,11 @@ void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen, const uint8_t
 	gf128_add(X, X, L);
 	gf128_mul(H, X, H); // clear secrets in H
 	gf128_to_bytes(H, out);
+
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(X, sizeof(X));
+	gmssl_secure_clear(L, sizeof(L));
+	gmssl_secure_clear(block, sizeof(block));
 }
 
 void ghash_init(GHASH_CTX *ctx, const uint8_t h[16], const uint8_t *aad, size_t aadlen)
@@ -112,6 +118,10 @@ void ghash_update(GHASH_CTX *ctx, const uint8_t *c, size_t clen)
 	gf128_t C;
 
 	assert(ctx->num < 16);
+
+	if (!clen) {
+		return;
+	}
 
 	ctx->clen += clen;
 

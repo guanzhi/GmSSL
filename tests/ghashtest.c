@@ -108,7 +108,45 @@ int test_ghash(void)
 			format_print(stderr, 0, 2, "C = %s\n", ghash_tests[i].C);
 			format_bytes(stderr, 0, 2, "GHASH(H,A,C) = ", out, 16);
 			format_print(stderr, 0, 2, "             = %s\n\n", ghash_tests[i].T);
+			return -1;
 		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
+int test_ghash_update(void)
+{
+	uint8_t H[16];
+	uint8_t A[32];
+	uint8_t C[80];
+	uint8_t C_alias[80];
+	uint8_t T[16];
+	uint8_t out[16];
+	size_t Hlen, Alen, Clen, Tlen;
+	GHASH_CTX ghash_ctx;
+
+	hex_to_bytes(ghash_tests[3].H, strlen(ghash_tests[3].H), H, &Hlen);
+	hex_to_bytes(ghash_tests[3].A, strlen(ghash_tests[3].A), A, &Alen);
+	hex_to_bytes(ghash_tests[3].C, strlen(ghash_tests[3].C), C, &Clen);
+	hex_to_bytes(ghash_tests[3].T, strlen(ghash_tests[3].T), T, &Tlen);
+
+	ghash_init(&ghash_ctx, H, A, Alen);
+	ghash_update(&ghash_ctx, C, 7);
+	ghash_update(&ghash_ctx, NULL, 0);
+	ghash_update(&ghash_ctx, C + 7, Clen - 7);
+	ghash_finish(&ghash_ctx, out);
+	if (memcmp(out, T, Tlen) != 0) {
+		error_print();
+		return -1;
+	}
+
+	memcpy(C_alias, C, Clen);
+	ghash(H, A, Alen, C_alias, Clen, C_alias);
+	if (memcmp(C_alias, T, Tlen) != 0) {
+		error_print();
+		return -1;
 	}
 
 	printf("%s() ok\n", __FUNCTION__);
@@ -148,6 +186,7 @@ static int speed_ghash(void)
 int main(int argc, char **argv)
 {
 	if (test_ghash() != 1) goto err;
+	if (test_ghash_update() != 1) goto err;
 
 #if ENABLE_TEST_SPEED
 	speed_ghash();

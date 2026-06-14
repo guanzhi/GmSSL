@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2024 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -24,6 +24,13 @@ extern "C" {
 
 #define GHASH_SIZE		(16)
 
+/*
+ * GHASH encodes aadlen and clen as 64-bit bit lengths.
+ * Callers must ensure that each one-shot length, and the accumulated clen
+ * passed to ghash_update(), is no greater than UINT64_MAX/8 bytes.
+ * If aadlen or clen is non-zero, the corresponding input pointer must be
+ * non-NULL.
+ */
 
 // h = ENC_k(0^128)
 void ghash(const uint8_t h[16], const uint8_t *aad, size_t aadlen,
