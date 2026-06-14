@@ -8,7 +8,6 @@
  */
 
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -104,7 +103,7 @@ int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
 	return 1;
 }
 
-static void ctr_incr(uint8_t a[16])
+static void ctr128_incr(uint8_t a[16])
 {
 	int i;
 	for (i = 15; i >= 0; i--) {
@@ -122,11 +121,123 @@ void aes_ctr_encrypt(const AES_KEY *key, uint8_t ctr[16], const uint8_t *in, siz
 		len = inlen < 16 ? inlen : 16;
 		aes_encrypt(key, ctr, block);
 		gmssl_memxor(out, in, block, len);
-		ctr_incr(ctr);
+		ctr128_incr(ctr);
 		in += len;
 		out += len;
 		inlen -= len;
 	}
+}
+
+static void ctr32_incr(uint8_t a[16])
+{
+	int i;
+	for (i = 15; i >= 12; i--) {
+		a[i]++;
+		if (a[i]) break;
+	}
+}
+
+static void aes_ctr32_encrypt(const AES_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
+{
+	uint8_t block[16];
+	size_t len;
+
+	while (inlen) {
+		len = inlen < 16 ? inlen : 16;
+		aes_encrypt(key, ctr, block);
+		gmssl_memxor(out, in, block, len);
+		ctr32_incr(ctr);
+		in += len;
+		out += len;
+		inlen -= len;
+	}
+	gmssl_secure_clear(block, sizeof(block));
+}
+
+int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t taglen, uint8_t *tag)
+{
+	const uint8_t *pin = in;
+	uint8_t *pout = out;
+	size_t left = inlen;
+	uint8_t H[16] = {0};
+	uint8_t Y[16];
+	uint8_t T[16];
+
+	if (taglen > AES_GCM_MAX_TAG_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	aes_encrypt(key, H, H);
+
+	if (ivlen == 12) {
+		memcpy(Y, iv, 12);
+		Y[12] = Y[13] = Y[14] = 0;
+		Y[15] = 1;
+	} else {
+		ghash(H, NULL, 0, iv, ivlen, Y);
+	}
+
+	aes_encrypt(key, Y, T);
+
+	ctr32_incr(Y);
+	aes_ctr32_encrypt(key, Y, in, inlen, out);
+
+	ghash(H, aad, aadlen, out, inlen, H);
+	gmssl_memxor(tag, T, H, taglen);
+
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(Y, sizeof(Y));
+	gmssl_secure_clear(T, sizeof(T));
+	return 1;
+}
+
+int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
+	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
+	const uint8_t *tag, size_t taglen, uint8_t *out)
+{
+	const uint8_t *pin = in;
+	uint8_t *pout = out;
+	size_t left = inlen;
+	uint8_t H[16] = {0};
+	uint8_t Y[16];
+	uint8_t T[16];
+
+	if (taglen > AES_GCM_MAX_TAG_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	aes_encrypt(key, H, H);
+
+	if (ivlen == 12) {
+		memcpy(Y, iv, 12);
+		Y[12] = Y[13] = Y[14] = 0;
+		Y[15] = 1;
+	} else {
+		ghash(H, NULL, 0, iv, ivlen, Y);
+	}
+
+	ghash(H, aad, aadlen, in, inlen, H);
+	aes_encrypt(key, Y, T);
+	gmssl_memxor(T, T, H, taglen);
+	if (gmssl_secure_memcmp(T, tag, taglen) != 0) {
+		gmssl_secure_clear(H, sizeof(H));
+		gmssl_secure_clear(Y, sizeof(Y));
+		gmssl_secure_clear(T, sizeof(T));
+		error_print();
+		return -1;
+	}
+
+	ctr32_incr(Y);
+	aes_ctr32_encrypt(key, Y, in, inlen, out);
+
+	gmssl_secure_clear(H, sizeof(H));
+	gmssl_secure_clear(Y, sizeof(Y));
+	gmssl_secure_clear(T, sizeof(T));
+	return 1;
 }
 
 #ifdef ENABLE_AES_CCM
@@ -390,116 +501,3 @@ int aes_ccm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	return 1;
 }
 #endif
-
-
-static void ctr32_incr(uint8_t a[16])
-{
-	int i;
-	for (i = 15; i >= 12; i--) {
-		a[i]++;
-		if (a[i]) break;
-	}
-}
-
-static void aes_ctr32_encrypt(const AES_KEY *key, uint8_t ctr[16], const uint8_t *in, size_t inlen, uint8_t *out)
-{
-	uint8_t block[16];
-	size_t len;
-
-	while (inlen) {
-		len = inlen < 16 ? inlen : 16;
-		aes_encrypt(key, ctr, block);
-		gmssl_memxor(out, in, block, len);
-		ctr32_incr(ctr);
-		in += len;
-		out += len;
-		inlen -= len;
-	}
-	gmssl_secure_clear(block, sizeof(block));
-}
-
-int aes_gcm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
-	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t taglen, uint8_t *tag)
-{
-	const uint8_t *pin = in;
-	uint8_t *pout = out;
-	size_t left = inlen;
-	uint8_t H[16] = {0};
-	uint8_t Y[16];
-	uint8_t T[16];
-
-	if (taglen > AES_GCM_MAX_TAG_SIZE) {
-		error_print();
-		return -1;
-	}
-
-	aes_encrypt(key, H, H);
-
-	if (ivlen == 12) {
-		memcpy(Y, iv, 12);
-		Y[12] = Y[13] = Y[14] = 0;
-		Y[15] = 1;
-	} else {
-		ghash(H, NULL, 0, iv, ivlen, Y);
-	}
-
-	aes_encrypt(key, Y, T);
-
-	ctr32_incr(Y);
-	aes_ctr32_encrypt(key, Y, in, inlen, out);
-
-	ghash(H, aad, aadlen, out, inlen, H);
-	gmssl_memxor(tag, T, H, taglen);
-
-	gmssl_secure_clear(H, sizeof(H));
-	gmssl_secure_clear(Y, sizeof(Y));
-	gmssl_secure_clear(T, sizeof(T));
-	return 1;
-}
-
-int aes_gcm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
-	const uint8_t *aad, size_t aadlen, const uint8_t *in, size_t inlen,
-	const uint8_t *tag, size_t taglen, uint8_t *out)
-{
-	const uint8_t *pin = in;
-	uint8_t *pout = out;
-	size_t left = inlen;
-	uint8_t H[16] = {0};
-	uint8_t Y[16];
-	uint8_t T[16];
-
-	if (taglen > AES_GCM_MAX_TAG_SIZE) {
-		error_print();
-		return -1;
-	}
-
-	aes_encrypt(key, H, H);
-
-	if (ivlen == 12) {
-		memcpy(Y, iv, 12);
-		Y[12] = Y[13] = Y[14] = 0;
-		Y[15] = 1;
-	} else {
-		ghash(H, NULL, 0, iv, ivlen, Y);
-	}
-
-	ghash(H, aad, aadlen, in, inlen, H);
-	aes_encrypt(key, Y, T);
-	gmssl_memxor(T, T, H, taglen);
-	if (gmssl_secure_memcmp(T, tag, taglen) != 0) {
-		gmssl_secure_clear(H, sizeof(H));
-		gmssl_secure_clear(Y, sizeof(Y));
-		gmssl_secure_clear(T, sizeof(T));
-		error_print();
-		return -1;
-	}
-
-	ctr32_incr(Y);
-	aes_ctr32_encrypt(key, Y, in, inlen, out);
-
-	gmssl_secure_clear(H, sizeof(H));
-	gmssl_secure_clear(Y, sizeof(Y));
-	gmssl_secure_clear(T, sizeof(T));
-	return 1;
-}

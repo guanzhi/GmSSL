@@ -389,19 +389,6 @@ if (ENABLE_SM4_XTS)
 endif()
 
 
-if (ENABLE_SM2_EXTS)
-	message(STATUS "ENABLE_SM4_AESNI_AVX")
-	list(APPEND src
-		src/sm2_key_share.c
-		src/sm2_recover.c
-		src/sm2_blind.c
-		src/sm2_ring.c
-		src/sm2_elgamal.c
-		src/sm2_commit.c)
-	list(APPEND tests sm2_key_share sm2_blind sm2_ring sm2_elgamal sm2_commit)
-endif()
-
-
 if (ENABLE_SM9)
 	message(STATUS "ENABLE_SM9 is ON")
 	add_definitions(-DENABLE_SM9)
@@ -777,7 +764,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1043")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1044")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
