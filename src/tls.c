@@ -809,6 +809,42 @@ int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int protocol)
 	return 1;
 }
 
+int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
+	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12])
+{
+	const size_t master_secret_len = 48;
+	const size_t verify_data_len = 12;
+	DIGEST_CTX tmp_ctx;
+	uint8_t dgst[DIGEST_MAX_SIZE];
+	size_t dgstlen;
+
+	if (!digest || !master_secret || !label || !dgst_ctx || !verify_data) {
+		error_print();
+		return -1;
+	}
+	if (strcmp(label, "client finished") && strcmp(label, "server finished")) {
+		error_print();
+		return -1;
+	}
+
+	tmp_ctx = *dgst_ctx;
+
+	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_prf(digest, master_secret, master_secret_len,
+		label, dgst, dgstlen, NULL, 0,
+		verify_data_len, verify_data) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+
+
 // 用于设置CertificateRequest
 int tls_cert_type_from_oid(int oid)
 {
@@ -830,63 +866,6 @@ int tls_cert_type_from_oid(int oid)
 	}
 	// TLS_cert_type_xxx 中没有为0的值
 	return 0;
-}
-
-// 这两个函数没有对应的TLCP版本， 这个现在已经有了ex版本了
-int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
-	const uint8_t client_random[32], const uint8_t server_random[32],
-	int curve, const SM2_Z256_POINT *point, uint8_t *sig, size_t *siglen)
-{
-	uint8_t server_ecdh_params[69];
-	SM2_SIGN_CTX sign_ctx;
-
-	if (!server_sign_key || !client_random || !server_random
-		|| curve != TLS_curve_sm2p256v1 || !point || !sig || !siglen) {
-		error_print();
-		return -1;
-	}
-	server_ecdh_params[0] = TLS_curve_type_named_curve;
-	server_ecdh_params[1] = (uint8_t)(curve >> 8);
-	server_ecdh_params[2] = (uint8_t)curve;
-	server_ecdh_params[3] = 65;
-	sm2_z256_point_to_uncompressed_octets(point, server_ecdh_params + 4);
-
-	sm2_sign_init(&sign_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
-	sm2_sign_update(&sign_ctx, client_random, 32);
-	sm2_sign_update(&sign_ctx, server_random, 32);
-	sm2_sign_update(&sign_ctx, server_ecdh_params, 69);
-	sm2_sign_finish(&sign_ctx, sig, siglen);
-
-	return 1;
-}
-
-int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
-	const uint8_t client_random[32], const uint8_t server_random[32],
-	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen)
-{
-	int ret;
-	uint8_t server_ecdh_params[69];
-	SM2_VERIFY_CTX verify_ctx;
-
-	if (!server_sign_key || !client_random || !server_random
-		|| curve != TLS_curve_sm2p256v1 || !point || !sig || !siglen
-		|| siglen > SM2_MAX_SIGNATURE_SIZE) {
-		error_print();
-		return -1;
-	}
-	server_ecdh_params[0] = TLS_curve_type_named_curve;
-	server_ecdh_params[1] = (uint8_t)(curve >> 8);
-	server_ecdh_params[2] = (uint8_t)(curve);
-	server_ecdh_params[3] = 65;
-	sm2_z256_point_to_uncompressed_octets(point, server_ecdh_params + 4);
-
-	sm2_verify_init(&verify_ctx, server_sign_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH);
-	sm2_verify_update(&verify_ctx, client_random, 32);
-	sm2_verify_update(&verify_ctx, server_random, 32);
-	sm2_verify_update(&verify_ctx, server_ecdh_params, 69);
-	ret = sm2_verify_finish(&verify_ctx, sig, siglen);
-	if (ret != 1) error_print();
-	return ret;
 }
 
 int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
@@ -1770,62 +1749,6 @@ int tls_type_is_in_list(int type, const int *list, size_t list_count)
 	}
 	return 0;
 }
-
-
-
-static const int tlcp_ciphers[] = {
-	TLS_cipher_ecc_sm4_cbc_sm3,
-	TLS_cipher_ecc_sm4_gcm_sm3,
-	TLS_cipher_ibc_sm4_cbc_sm3,
-	TLS_cipher_ibc_sm4_gcm_sm3,
-};
-
-static const int tls12_ciphers[] = {
-	TLS_cipher_ecdhe_sm4_cbc_sm3,
-	TLS_cipher_ecdhe_sm4_gcm_sm3,
-	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-#ifdef ENABLE_AES_CCM
-	TLS_cipher_aes_128_ccm_sha256,
-#endif
-};
-
-static const int tls13_ciphers[] = {
-	TLS_cipher_sm4_gcm_sm3,
-#ifdef ENABLE_SM4_CCM
-	TLS_cipher_sm4_ccm_sm3,
-#endif
-	TLS_cipher_aes_128_gcm_sha256,
-#ifdef ENABLE_AES_CCM
-	TLS_cipher_aes_128_ccm_sha256,
-#endif
-};
-
-int tls_cipher_suite_match_protocol(int cipher, int protocol)
-{
-	switch (protocol) {
-	case TLS_protocol_tlcp:
-		if (!tls_type_is_in_list(cipher, tlcp_ciphers, sizeof(tlcp_ciphers)/sizeof(tlcp_ciphers[0]))) {
-			return 0;
-		}
-		break;
-	case TLS_protocol_tls12:
-		if (!tls_type_is_in_list(cipher, tls12_ciphers, sizeof(tls12_ciphers)/sizeof(tls12_ciphers[0]))) {
-			return 0;
-		}
-		break;
-	case TLS_protocol_tls13:
-		if (!tls_type_is_in_list(cipher, tls13_ciphers, sizeof(tls13_ciphers)/sizeof(tls13_ciphers[0]))) {
-			return 0;
-		}
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 /*
 尽可能的发送数据，直到发送完整的报文，或者send 返回错误
 如果send 返回EAGAIN，那么向上层返回WANT_WRITE
@@ -3947,34 +3870,5 @@ int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, co
 	format_print(fp, fmt, ind, "transcript_hash ");
 	format_bytes(fp, 0, 0, label, dgst, dgstlen);
 
-	return 1;
-}
-
-int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
-	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12])
-{
-	const size_t master_secret_len = 48;
-	const size_t verify_data_len = 12;
-	DIGEST_CTX tmp_ctx;
-	uint8_t dgst[64];
-	size_t dgstlen;
-
-	if (!digest || !master_secret || !dgst_ctx || !verify_data) {
-		error_print();
-		return -1;
-	}
-	tmp_ctx = *dgst_ctx;
-
-	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (tls_prf(digest, master_secret, master_secret_len,
-		label, // "client finished" or "server finished",
-		dgst, dgstlen, NULL, 0,
-		verify_data_len, verify_data) != 1) {
-		error_print();
-		return -1;
-	}
 	return 1;
 }

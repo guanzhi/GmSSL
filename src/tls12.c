@@ -3136,19 +3136,8 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 
 		uint8_t local_verify_data[12];
 
-
-		DIGEST_CTX tmp_ctx;
-		uint8_t dgst[32];
-		size_t dgstlen;
-
-		tmp_ctx = conn->dgst_ctx;
-
-		digest_finish(&tmp_ctx, dgst, &dgstlen);
-
-		if (tls_prf(conn->digest,
-			conn->master_secret, 48,
-			"client finished", dgst, dgstlen, NULL, 0,
-			sizeof(local_verify_data), local_verify_data) != 1) {
+		if (tls_compute_verify_data(conn->digest, conn->master_secret,
+			"client finished", &conn->dgst_ctx, local_verify_data) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -3205,19 +3194,8 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 	size_t verify_data_len;
 	uint8_t local_verify_data[12];
 
-	DIGEST_CTX tmp_ctx;
-	uint8_t dgst[32];
-	size_t dgstlen;
-
-
-	tmp_ctx = conn->dgst_ctx;
-
-	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (tls_prf(conn->digest, conn->master_secret, 48, "client finished", dgst, dgstlen, NULL, 0,
-		sizeof(local_verify_data), local_verify_data) != 1) {
+	if (tls_compute_verify_data(conn->digest, conn->master_secret, "client finished",
+		&conn->dgst_ctx, local_verify_data) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -3312,13 +3290,8 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 	if (conn->recordlen == 0) {
 		if(conn->verbose) tls_trace("send server Finished\n");
 
-		uint8_t dgst[32];
-		size_t dgstlen;
-
-		digest_finish(&conn->dgst_ctx, dgst, &dgstlen);
-
-		if (tls_prf(conn->digest, conn->master_secret, 48, "server finished", dgst, dgstlen, NULL, 0,
-			sizeof(local_verify_data), local_verify_data) != 1) {
+		if (tls_compute_verify_data(conn->digest, conn->master_secret,
+			"server finished", &conn->dgst_ctx, local_verify_data) != 1) {
 			error_print();
 			return -1;
 		}
@@ -3363,22 +3336,12 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 	uint8_t finished_record[TLS_FINISHED_RECORD_BUF_SIZE];
 	size_t finished_record_len;
 
-	uint8_t dgst[32];
-	size_t dgstlen;
-
 	const uint8_t *verify_data;
 	size_t verify_data_len;
 	uint8_t local_verify_data[12];
 
-
-
-	if (digest_finish(&conn->dgst_ctx, dgst, &dgstlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (tls_prf(conn->digest, conn->master_secret, 48, "server finished",
-		dgst, dgstlen, NULL, 0,
-		sizeof(local_verify_data), local_verify_data) != 1) {
+	if (tls_compute_verify_data(conn->digest, conn->master_secret,
+		"server finished", &conn->dgst_ctx, local_verify_data) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
