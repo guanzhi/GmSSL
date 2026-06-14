@@ -25,26 +25,6 @@
 #include <gmssl/pem.h>
 #include <gmssl/tls.h>
 
-extern const int tlcp_supported_groups[];
-extern const size_t tlcp_supported_groups_cnt;
-extern const int tlcp_signature_algorithms[];
-extern const size_t tlcp_signature_algorithms_cnt;
-extern const int tlcp_cipher_suites[];
-extern const size_t tlcp_cipher_suites_cnt;
-
-extern const int tls12_supported_groups[];
-extern const size_t tls12_supported_groups_cnt;
-extern const int tls12_signature_algorithms[];
-extern const size_t tls12_signature_algorithms_cnt;
-extern const int tls12_cipher_suites[];
-extern const size_t tls12_cipher_suites_cnt;
-
-extern const int tls13_supported_groups[];
-extern const size_t tls13_supported_groups_cnt;
-extern const int tls13_signature_algorithms[];
-extern const size_t tls13_signature_algorithms_cnt;
-extern const int tls13_cipher_suites[];
-extern const size_t tls13_cipher_suites_cnt;
 
 void tls_uint8_to_bytes(uint8_t a, uint8_t **out, size_t *outlen)
 {
@@ -877,7 +857,10 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 		error_print();
 		return -1;
 	}
-	// 由于ServerHelloDone没有负载数据，因此允许 data,datalen = NULL,0
+	if (!data && datalen) {
+		error_print();
+		return -1;
+	}
 	if (datalen > TLS_MAX_PLAINTEXT_SIZE - TLS_HANDSHAKE_HEADER_SIZE) {
 		error_print();
 		return -1;
@@ -898,7 +881,7 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	record[6] = (uint8_t)(datalen >> 16);
 	record[7] = (uint8_t)(datalen >> 8);
 	record[8] = (uint8_t)(datalen);
-	if (data) {
+	if (data && datalen) {
 		memcpy(tls_handshake_data(tls_record_data(record)), data, datalen);
 	}
 	*recordlen = TLS_RECORD_HEADER_SIZE + handshakelen;
@@ -942,7 +925,7 @@ int tls_record_get_handshake(const uint8_t *record,
 		return -1;
 	}
 	if (handshake_len > TLS_MAX_PLAINTEXT_SIZE) {
-		// 不支持证书长度超过记录长度的特殊情况
+		// TODO: only valid when max_fragment_length is set
 		error_print();
 		return -1;
 	}
@@ -1176,13 +1159,6 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
-
-/*
-如果报文的结构正确，但是数据不合法的时候，应该返回TLS_alert_illegal_parameter
-例如服务器的选择不在ClientHello提供的列表中
-因此涉及到语义错误的，应该返回这个错误。
-如果语义我们不能理解，但是格式正确，那么应该忽略
-*/
 int tls_record_get_handshake_server_hello(const uint8_t *record,
 	int *protocol, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
 	int *cipher_suite, const uint8_t **exts, size_t *exts_len)
@@ -1241,7 +1217,6 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 	}
 	*cipher_suite = cipher;
 
-	// 这个值应该返回给上一层，这样上面才能够返回正确的错误值
 	if (comp_meth != TLS_compression_null) {
 		error_print();
 		return -1;
@@ -1252,10 +1227,9 @@ int tls_record_get_handshake_server_hello(const uint8_t *record,
 			error_print();
 			return -1;
 		}
-		if (*exts == NULL) {
-			error_print();
-			return -1;
-		}
+		// ClientHello Extensions in RFC 5246: Extension extensions<0..2^16-1>;
+		// ClientHello Extensions in RFC 8446: Extension extensions<8..2^16-1>;
+		// so exts == NULL is allowed
 	} else {
 		*exts = NULL;
 		*exts_len = 0;

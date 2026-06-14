@@ -917,6 +917,28 @@ typedef struct {
 } TLS_CTX;
 
 
+extern const int tlcp_supported_groups[];
+extern const size_t tlcp_supported_groups_cnt;
+extern const int tlcp_signature_algorithms[];
+extern const size_t tlcp_signature_algorithms_cnt;
+extern const int tlcp_cipher_suites[];
+extern const size_t tlcp_cipher_suites_cnt;
+
+extern const int tls12_supported_groups[];
+extern const size_t tls12_supported_groups_cnt;
+extern const int tls12_signature_algorithms[];
+extern const size_t tls12_signature_algorithms_cnt;
+extern const int tls12_cipher_suites[];
+extern const size_t tls12_cipher_suites_cnt;
+
+extern const int tls13_supported_groups[];
+extern const size_t tls13_supported_groups_cnt;
+extern const int tls13_signature_algorithms[];
+extern const size_t tls13_signature_algorithms_cnt;
+extern const int tls13_cipher_suites[];
+extern const size_t tls13_cipher_suites_cnt;
+
+
 
 int tls_ctx_init(TLS_CTX *ctx, int protocol, int is_client);
 int tls_ctx_set_cipher_suites(TLS_CTX *ctx, const int *cipher_suites, size_t cipher_suites_cnt);
