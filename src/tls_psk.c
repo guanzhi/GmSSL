@@ -537,6 +537,48 @@ int tls13_session_print(FILE *fp, int fmt, int ind, const char *label, const uin
 	return 1;
 }
 
+static int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE *fp)
+{
+	uint16_t datalen;
+	const uint8_t *cp;
+	size_t len = 2;
+
+	if (!arr || !arrlen || !fp) {
+		error_print();
+		return -1;
+	}
+	if (maxlen < 2) {
+		error_print();
+		return -1;
+	}
+
+	if (fread(arr, 1, 2, fp) != 2) {
+		if (feof(fp)) {
+			return 0;
+		} else {
+			error_print();
+			return -1;
+		}
+	}
+	cp = arr;
+	len = 2;
+	if (tls_uint16_from_bytes(&datalen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	*arrlen = 2 + datalen;
+	if ((size_t)datalen + 2 > maxlen) {
+		error_print();
+		return 0;
+	}
+	if (fread(arr + 2, 1, datalen, fp) != datalen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 // 需要检查一下加入的SESSION的cipher_suite是否和conn的匹配				
 
 // client only

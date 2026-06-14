@@ -55,7 +55,6 @@ int tls_uint8array_from_bytes(const uint8_t **data, size_t *datalen, const uint8
 int tls_uint16array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_uint24array_from_bytes(const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
 int tls_length_is_zero(size_t len);
-int tls_uint16array_from_file(uint8_t *arr, size_t *arrlen, size_t maxlen, FILE *fp);
 
 
 int tls_type_is_in_list(int cipher, const int *list, size_t list_count);
@@ -613,6 +612,20 @@ int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen);
 
 // ServerKeyExchange
+
+enum {
+	TLS_server_key_exchange_ecdhe,
+	TLS_server_key_exchange_ecc,
+	TLS_server_key_exchange_ibsdh,
+	TLS_server_key_exchagne_ibc,
+	TLS_server_key_exchange_rsa,
+};
+
+int tls_server_ecdh_params_to_bytes(const X509_KEY *public_key, uint8_t **out, size_t *outlen);
+int tls_server_ecdh_params_from_bytes(int *key_exchange_group,
+	const uint8_t **key_exchange, size_t *key_exchange_len,
+	const uint8_t **in, size_t *inlen);
+
 int tls_server_key_exchange_print(FILE *fp, const uint8_t *ske, size_t skelen, int format, int indent);
 
 #define TLS_MAX_SIGNATURE_SIZE	SM2_MAX_SIGNATURE_SIZE
@@ -622,12 +635,27 @@ int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
 int tls_verify_server_ecdh_params(const SM2_KEY *server_sign_key,
 	const uint8_t client_random[32], const uint8_t server_random[32],
 	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen);
+
+
+int tls_record_set_handshake_server_key_exchange(uint8_t *record, size_t *recordlen,
+	int server_key_exchange_alg,
+	const uint8_t *server_ecdh_params, size_t server_ecdh_params_len,
+	int sig_alg, const uint8_t *sig, size_t siglen);
+int tls_record_get_handshake_server_key_exchange(const uint8_t *record,
+	int server_key_exchange_alg,
+	const uint8_t **server_ecdh_params, size_t *server_ecdh_params_len,
+	int *sig_alg, const uint8_t **sig, size_t *siglen);
+
+
+/*
 int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
 	int curve, const SM2_Z256_POINT *point, const uint8_t *sig, size_t siglen);
 int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 	int *curve, SM2_Z256_POINT *point, const uint8_t **sig, size_t *siglen);
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
 	int format, int indent);
+
+*/
 
 int tlcp_record_set_handshake_server_key_exchange_ecc(uint8_t *record, size_t *recordlen,
 	const uint8_t *sig, size_t siglen);
@@ -643,15 +671,31 @@ int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *sig, size_t sigl
 
 int tls_authorities_from_certs(uint8_t *ca_names, size_t *ca_names_len, size_t maxlen, const uint8_t *certs, size_t certslen);
 int tls_authorities_issued_certificate(const uint8_t *ca_names, size_t ca_namelen, const uint8_t *certs, size_t certslen);
-int tls_cert_types_accepted(const uint8_t *types, size_t types_len, const uint8_t *client_certs, size_t client_certs_len);
 
-int tls_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
+int tls_cert_types_has_ecdsa_sign(const uint8_t *types, size_t types_len);
+
+
+// 这个函数应该提供的是int *, cnt 的输入输出?
+// TLCP沿用了TLS 1.0/1.1的版本，TLS 1.2增加了supported_signature_algorithms
+int tlcp_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
 	const uint8_t *cert_types, size_t cert_types_len,
 	const uint8_t *ca_names, size_t ca_names_len);
-int tls_record_get_handshake_certificate_request(const uint8_t *record,
+int tlcp_record_get_handshake_certificate_request(const uint8_t *record,
 	const uint8_t **cert_types, size_t *cert_types_len,
 	const uint8_t **ca_names, size_t *ca_names_len);
-int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tlcp_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
+
+int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
+	const uint8_t *cert_types, size_t cert_types_len,
+	const uint8_t *sig_algs, size_t sig_algs_len,
+	const uint8_t *ca_names, size_t ca_names_len);
+int tls12_record_get_handshake_certificate_request(const uint8_t *record,
+	const uint8_t **cert_types, size_t *cert_types_len,
+	const uint8_t **sig_algs, size_t *sig_algs_len,
+	const uint8_t **ca_names, size_t *ca_names_len);
+int tls12_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+
 
 
 // ServerHelloDone
@@ -682,6 +726,9 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 int tls_record_get_handshake_certificate_verify(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen);
 int tls_certificate_verify_print(FILE *fp, const uint8_t *p, size_t len, int format, int indent);
+
+
+
 
 typedef enum {
 	TLS_client_verify_client_hello		= 0,

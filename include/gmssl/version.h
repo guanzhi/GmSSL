@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
+ *  Copyright 2014-2026 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
  *  not use this file except in compliance with the License.
@@ -17,9 +17,8 @@ extern "C" {
 #endif
 
 
-// Also update CPACK_PACKAGE_VERSION in CMakeLists.txt
 #define GMSSL_VERSION_NUM	30200
-#define GMSSL_VERSION_STR	"GmSSL 3.2.0-dev.1046"
+#define GMSSL_VERSION_STR	"GmSSL 3.2.0-dev.1047"
 
 int gmssl_version_num(void);
 const char *gmssl_version_str(void);

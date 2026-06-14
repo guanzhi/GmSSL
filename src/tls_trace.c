@@ -1242,3 +1242,47 @@ int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordle
 	fprintf(fp, "\n");
 	return 1;
 }
+
+int tls_key_exchange_modes_print(FILE *fp, int fmt, int ind, const char *label, int modes)
+{
+	int first = 1;
+
+	format_print(fp, fmt, ind, "%s:", label);
+
+	if (modes & TLS_KE_CERT_DHE) {
+		fprintf(fp, " CERT_DHE");
+		first = 0;
+	}
+	if (modes & TLS_KE_PSK_DHE) {
+		if (first)
+			fprintf(fp, " PSK_DHE");
+		else	fprintf(fp, "|PSK_DHE");
+		first = 0;
+	}
+	if (modes & TLS_KE_PSK) {
+		if (first)
+			fprintf(fp, " PSK");
+		else	fprintf(fp, "|PSK");
+	}
+	fprintf(fp, "\n");
+	return 1;
+}
+
+int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, const DIGEST_CTX *dgst_ctx)
+{
+	DIGEST_CTX tmp_ctx;
+	uint8_t dgst[64];
+	size_t dgstlen;
+
+	tmp_ctx = *dgst_ctx;
+
+	if (digest_finish(&tmp_ctx, dgst, &dgstlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	format_print(fp, fmt, ind, "transcript_hash ");
+	format_bytes(fp, 0, 0, label, dgst, dgstlen);
+
+	return 1;
+}

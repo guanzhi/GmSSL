@@ -207,65 +207,6 @@ static int tlcp_server_ecc_params_from_bytes(const uint8_t **server_enc_cert,
 	return 1;
 }
 
-int tlcp_record_set_handshake_server_key_exchange_ecc(uint8_t *record, size_t *recordlen,
-	const uint8_t *sig, size_t siglen)
-{
-	int type = TLS_handshake_server_key_exchange;
-	uint8_t *p;
-	size_t len = 0;
-
-	if (!record || !recordlen || !sig || !siglen) {
-		error_print();
-		return -1;
-	}
-	if (siglen > SM2_MAX_SIGNATURE_SIZE) {
-		error_print();
-		return -1;
-	}
-	if (tls_record_protocol(record) != TLS_protocol_tlcp) {
-		error_print();
-		return -1;
-	}
-	p = tls_handshake_data(tls_record_data(record));
-	tls_uint16array_to_bytes(sig, siglen, &p, &len);
-	tls_record_set_handshake(record, recordlen, type, NULL, len);
-	return 1;
-}
-
-int tlcp_record_get_handshake_server_key_exchange_ecc(const uint8_t *record,
-	const uint8_t **sig, size_t *siglen)
-{
-	int type;
-	const uint8_t *p;
-	size_t len;
-
-	if (!record || !sig || !siglen) {
-		error_print();
-		return -1;
-	}
-	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (type != TLS_handshake_server_key_exchange) {
-		error_print();
-		return -1;
-	}
-	if (tls_record_protocol(record) != TLS_protocol_tlcp) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint16array_from_bytes(sig, siglen, &p, &len) != 1) {
-		error_print();
-		return -1;
-	}
-	if (len) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
 {
 	const uint8_t *sig;
@@ -284,6 +225,151 @@ int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t dat
 	}
 	return 1;
 }
+
+int tlcp_record_set_handshake_client_key_exchange(uint8_t *record, size_t *recordlen,
+	const uint8_t *enced_pms, size_t enced_pms_len)
+{
+	int type = TLS_handshake_client_key_exchange;
+	uint8_t *p;
+	size_t len = 0;
+
+	if (!record || !recordlen || !enced_pms || !enced_pms_len) {
+		error_print();
+		return -1;
+	}
+	if (enced_pms_len > TLS_MAX_HANDSHAKE_DATA_SIZE - tls_uint16_size()) {
+		error_print();
+		return -1;
+	}
+	p = tls_handshake_data(tls_record_data(record));
+	tls_uint16array_to_bytes(enced_pms, enced_pms_len, &p, &len);
+	tls_record_set_handshake(record, recordlen, type, NULL, len);
+	return 1;
+}
+
+int tlcp_record_get_handshake_client_key_exchange(const uint8_t *record,
+	const uint8_t **enced_pms, size_t *enced_pms_len)
+{
+	int type;
+	const uint8_t *cp;
+	size_t len;
+
+	if (!record || !enced_pms || !enced_pms_len) {
+		error_print();
+		return -1;
+	}
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_client_key_exchange) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16array_from_bytes(enced_pms, enced_pms_len, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+/*
+struct {
+	ClientCertificateType certificate_types<1..2^8-1>;
+	SignatureAndHashAlgorithm supported_signature_algorithms<2^16-1>; // TLS 1.2 only
+	DistinguishedName certificate_authorities<0..2^16-1>;
+} CertificateRequest;
+*/
+int tlcp_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
+	const uint8_t *cert_types, size_t cert_types_len,
+	const uint8_t *ca_names, size_t ca_names_len)
+{
+	int type = TLS_handshake_certificate_request;
+	uint8_t *p;
+	size_t len =0;
+	size_t datalen = 0;
+
+	if (!record || !recordlen) {
+		error_print();
+		return -1;
+	}
+	if (cert_types) {
+		if (cert_types_len == 0 || cert_types_len > TLS_MAX_CERTIFICATE_TYPES) {
+			error_print();
+			return -1;
+		}
+	}
+	if (ca_names) {
+		if (ca_names_len == 0 || ca_names_len > TLS_MAX_CA_NAMES_SIZE) {
+			error_print();
+			return -1;
+		}
+	}
+	tls_uint8array_to_bytes(cert_types, cert_types_len, NULL, &datalen);
+	tls_uint16array_to_bytes(ca_names, ca_names_len, NULL, &datalen);
+	if (datalen > TLS_MAX_HANDSHAKE_DATA_SIZE) {
+		error_print();
+		return -1;
+	}
+	p = tls_handshake_data(tls_record_data(record));
+	tls_uint8array_to_bytes(cert_types, cert_types_len, &p, &len);
+	tls_uint16array_to_bytes(ca_names, ca_names_len, &p, &len);
+	tls_record_set_handshake(record, recordlen, type, NULL, datalen);
+	return 1;
+}
+
+int tlcp_record_get_handshake_certificate_request(const uint8_t *record,
+	const uint8_t **cert_types, size_t *cert_types_len,
+	const uint8_t **ca_names, size_t *ca_names_len)
+{
+	int type;
+	const uint8_t *cp;
+	size_t len;
+	size_t i;
+
+	if (!record || !cert_types || !cert_types_len || !ca_names || !ca_names_len) {
+		error_print();
+		return -1;
+	}
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_certificate_request) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint8array_from_bytes(cert_types, cert_types_len, &cp, &len) != 1
+		|| tls_uint16array_from_bytes(ca_names, ca_names_len, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (*cert_types == NULL) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < *cert_types_len; i++) {
+		if (!tls_cert_type_name((*cert_types)[i])) {
+			error_print();
+			return -1;
+		}
+	}
+	if (*ca_names) {
+		const uint8_t *names = *ca_names;
+		size_t nameslen = *ca_names_len;
+		while (nameslen) {
+			if (tls_uint16array_from_bytes(&cp, &len, &names, &nameslen) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+	}
+	return 1;
+}
+
 
 
 /*
@@ -756,6 +842,8 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 	SM2_VERIFY_CTX verify_ctx;
 
 
+
+
 	if(conn->verbose) tls_trace("recv ServerKeyExchange\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
@@ -772,11 +860,20 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (tlcp_record_get_handshake_server_key_exchange_ecc(conn->record, &sig, &siglen) != 1) {
+	if (tls_record_get_handshake_server_key_exchange(conn->record,
+		TLS_server_key_exchange_ecc, NULL, 0,
+		&conn->sig_alg, &sig, &siglen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
+
+	if (conn->sig_alg != TLS_sig_sm2sig_sm3) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_illegal_parameter);
+		return -1;
+	}
+
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
@@ -885,7 +982,7 @@ int tlcp_recv_certificate_request(TLS_CONNECT *conn)
 	if(conn->verbose) tls_trace("recv CertificateRequest\n");
 	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
-	if (tls_record_get_handshake_certificate_request(conn->record,
+	if (tlcp_record_get_handshake_certificate_request(conn->record,
 		&cert_types, &cert_types_len, &ca_names, &ca_names_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -897,8 +994,7 @@ int tlcp_recv_certificate_request(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	// 这里根据cipher_suite判断请求的类型是否合适
-	if (tls_cert_types_accepted(cert_types, cert_types_len, conn->client_certs, conn->client_certs_len) != 1) {
+	if (tls_cert_types_has_ecdsa_sign(cert_types, cert_types_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unsupported_certificate);
 		return -1;
@@ -1030,9 +1126,13 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 		}
 
 		if (sm2_encrypt(&conn->server_enc_key.u.sm2_key, conn->pre_master_secret, 48,
-				enced_pre_master_secret, &enced_pre_master_secret_len) != 1
-			|| tls_record_set_handshake_client_key_exchange_pke(conn->record, &conn->recordlen,
-				enced_pre_master_secret, enced_pre_master_secret_len) != 1) {
+			enced_pre_master_secret, &enced_pre_master_secret_len) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		if (tlcp_record_set_handshake_client_key_exchange(conn->record, &conn->recordlen,
+			enced_pre_master_secret, enced_pre_master_secret_len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -1779,8 +1879,6 @@ int tlcp_send_server_certificate(TLS_CONNECT *conn)
 }
 
 
-
-// 这个也有这个问题，要考虑兼容SM9
 int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 {
 	SM2_SIGN_CTX sign_ctx;
@@ -1835,7 +1933,8 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		if (tlcp_record_set_handshake_server_key_exchange_ecc(conn->record, &conn->recordlen, sigbuf, siglen) != 1) {
+		if (tls_record_set_handshake_server_key_exchange(conn->record, &conn->recordlen,
+			TLS_server_key_exchange_ecc, NULL, 0, conn->sig_alg, sigbuf, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -2042,50 +2141,47 @@ int tlcp_send_certificate_request(TLS_CONNECT *conn)
 {
 	int ret;
 
-	if ((ret = tls_send_certificate_request(conn)) != 1) {
+	// 如果要进行客户端证书验证，服务器要提供验证的证书，但是所有证书的
+	const uint8_t cert_types[] = { TLS_cert_type_ecdsa_sign };
+	uint8_t ca_names[TLS_MAX_CA_NAMES_SIZE] = {0}; // TODO: 根据客户端验证CA证书列计算缓冲大小，或直接输出到record缓冲
+	size_t ca_names_len = 0;
+
+
+	if (!conn->client_certificate_verify) {
 		error_print();
+		return -1;
+	}
+
+	if (conn->recordlen == 0) {
+		if(conn->verbose) tls_trace("send CertificateRequest\n");
+		if (tls_authorities_from_certs(ca_names, &ca_names_len, sizeof(ca_names),
+			conn->ctx->cacerts, conn->ctx->cacertslen) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		if (tlcp_record_set_handshake_certificate_request(conn->record, &conn->recordlen,
+			cert_types, sizeof(cert_types),
+			ca_names, ca_names_len) != 1) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_internal_error);
+			return -1;
+		}
+		if(conn->verbose) tls12_record_trace(stderr, conn->record, conn->recordlen, 0, 0);
+	}
+
+	if ((ret = tls_send_record(conn)) != 1) {
+		if (ret != TLS_ERROR_SEND_AGAIN) {
+			error_print();
+		}
 		return ret;
 	}
+
+	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
+	tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
+
 	return 1;
 }
-
-int tlcp_send_server_hello_done(TLS_CONNECT *conn)
-{
-	int ret;
-
-	if ((ret = tls_send_server_hello_done(conn)) != 1) {
-		error_print();
-		return ret;
-	}
-	return 1;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int tlcp_recv_client_certificate(TLS_CONNECT *conn)
 {
@@ -2121,7 +2217,7 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 	}
 	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
-	if (tls_record_get_handshake_client_key_exchange_pke(conn->record, &enced_pms, &enced_pms_len) != 1) {
+	if (tlcp_record_get_handshake_client_key_exchange(conn->record, &enced_pms, &enced_pms_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
@@ -2441,7 +2537,7 @@ int tlcp_do_server_handshake(TLS_CONNECT *conn)
 		break;
 
 	case TLS_state_server_hello_done:
-		ret = tlcp_send_server_hello_done(conn);
+		ret = tls_send_server_hello_done(conn);
 		if (conn->client_certificate_verify)
 			next_state = TLS_state_client_certificate;
 		else	next_state = TLS_state_client_key_exchange;

@@ -77,7 +77,7 @@ option(ENABLE_SDF "Enable SDF module" OFF)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
-option(ENABLE_TLS "Enable TLS and TLCP protocol support" ON)
+option(ENABLE_TLS "Enable TLS and TLCP protocol support" OFF)
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
 option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
@@ -552,6 +552,7 @@ if (ENABLE_TLS)
 	list(APPEND src
 		src/socket.c
 		src/tls.c
+		src/tls_cert.c
 		src/tls_alpn.c
 		src/tls_ext.c
 		src/tls_psk.c
@@ -763,7 +764,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1046")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1047")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
