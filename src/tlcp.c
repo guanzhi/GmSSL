@@ -1122,7 +1122,7 @@ int tlcp_send_client_finished(TLS_CONNECT *conn)
 		if(conn->verbose) tls_trace("send client {Finished}\n");
 
 
-		if (tls_compute_verify_data(conn->master_secret, "client finished", &conn->dgst_ctx, verify_data) != 1) {
+		if (tls_compute_verify_data(conn->digest, conn->master_secret, "client finished", &conn->dgst_ctx, verify_data) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -1223,7 +1223,7 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (tls_compute_verify_data(conn->master_secret, "server finished", &conn->dgst_ctx, local_verify_data) != 1) {
+	if (tls_compute_verify_data(conn->digest, conn->master_secret, "server finished", &conn->dgst_ctx, local_verify_data) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -1885,7 +1885,7 @@ static int tlcp_generate_master_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (tls_prf(conn->pre_master_secret, 48, "master secret",
+	if (tls_prf(conn->digest, conn->pre_master_secret, 48, "master secret",
 			conn->client_random, 32,
 			conn->server_random, 32,
 			48, conn->master_secret) != 1) {
@@ -1919,7 +1919,7 @@ static int tlcp_generate_key_block(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (tls_prf(conn->master_secret, 48, "key expansion",
+	if (tls_prf(conn->digest, conn->master_secret, 48, "key expansion",
 			conn->server_random, 32,
 			conn->client_random, 32,
 			key_block_len, conn->key_block) != 1) {
@@ -2184,7 +2184,7 @@ int tlcp_recv_client_finished(TLS_CONNECT *conn)
 	size_t verify_data_len;
 	uint8_t local_verify_data[12];
 
-	if (tls_compute_verify_data(conn->master_secret, "client finished",
+	if (tls_compute_verify_data(conn->digest, conn->master_secret, "client finished",
 		&conn->dgst_ctx, local_verify_data) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
@@ -2245,7 +2245,7 @@ int tlcp_send_server_finished(TLS_CONNECT *conn)
 	if (conn->recordlen == 0) {
 		if(conn->verbose) tls_trace("send server {Finished}\n");
 
-		if (tls_compute_verify_data(conn->master_secret, "server finished",
+		if (tls_compute_verify_data(conn->digest, conn->master_secret, "server finished",
 			&conn->dgst_ctx, verify_data) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);

@@ -84,6 +84,13 @@ static int test_tls_cbc(void)
 	uint8_t key[32] = {0};
 	HMAC_CTX hmac_ctx;
 	BLOCK_CIPHER_KEY sm4_key;
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
+	BLOCK_CIPHER_KEY aes_key;
+	uint8_t aes_out[256];
+	uint8_t aes_buf[256] = {0};
+	size_t aes_len;
+	size_t aes_buflen;
+#endif
 	uint8_t seq_num[8] = { 0,0,0,0,0,0,0,1 };
 	uint8_t header[5];
 	uint8_t in[] = "hello world";
@@ -106,6 +113,30 @@ static int test_tls_cbc(void)
 	block_cipher_set_decrypt_key(&sm4_key, BLOCK_CIPHER_sm4(), key);
 
 	tls_cbc_decrypt(&hmac_ctx, &sm4_key, seq_num, header, out, len, buf, &buflen);
+	if (buflen != sizeof(in) || memcmp(buf, in, sizeof(in)) != 0) {
+		error_print();
+		return -1;
+	}
+
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
+	hmac_init(&hmac_ctx, DIGEST_sha256(), key, sizeof(key));
+	block_cipher_set_encrypt_key(&aes_key, BLOCK_CIPHER_aes128(), key);
+	if (tls_cbc_encrypt(&hmac_ctx, &aes_key, seq_num, header, in, sizeof(in), aes_out, &aes_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	hmac_init(&hmac_ctx, DIGEST_sha256(), key, sizeof(key));
+	block_cipher_set_decrypt_key(&aes_key, BLOCK_CIPHER_aes128(), key);
+	if (tls_cbc_decrypt(&hmac_ctx, &aes_key, seq_num, header, aes_out, aes_len, aes_buf, &aes_buflen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (aes_buflen != sizeof(in) || memcmp(aes_buf, in, sizeof(in)) != 0) {
+		error_print();
+		return -1;
+	}
+#endif
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;

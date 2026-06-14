@@ -402,7 +402,7 @@ const char *tls_alert_description_text(int description);
 
 // Key and Crypto
 
-int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
+int tls_prf(const DIGEST *digest, const uint8_t *secret, size_t secretlen, const char *label,
 	const uint8_t *seed, size_t seedlen,
 	const uint8_t *more, size_t morelen,
 	size_t outlen, uint8_t *out);
@@ -1420,7 +1420,7 @@ int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable);
 
 int tls_generate_keys(TLS_CONNECT *conn);
 
-int tls_compute_verify_data(const uint8_t master_secret[48],
+int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
 	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12]);
 
 

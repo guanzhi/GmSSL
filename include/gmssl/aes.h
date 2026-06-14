@@ -47,9 +47,9 @@ void aes_encrypt(const AES_KEY *key, const uint8_t in[AES_BLOCK_SIZE], uint8_t o
 void aes_decrypt(const AES_KEY *key, const uint8_t in[AES_BLOCK_SIZE], uint8_t out[AES_BLOCK_SIZE]);
 
 
-void aes_cbc_encrypt(const AES_KEY *key, const uint8_t iv[AES_BLOCK_SIZE],
+void aes_cbc_encrypt_blocks(const AES_KEY *key, const uint8_t iv[AES_BLOCK_SIZE],
 	const uint8_t *in, size_t nblocks, uint8_t *out);
-void aes_cbc_decrypt(const AES_KEY *key, const uint8_t iv[AES_BLOCK_SIZE],
+void aes_cbc_decrypt_blocks(const AES_KEY *key, const uint8_t iv[AES_BLOCK_SIZE],
 	const uint8_t *in, size_t nblocks, uint8_t *out);
 int aes_cbc_padding_encrypt(const AES_KEY *key, const uint8_t iv[AES_BLOCK_SIZE],
 	const uint8_t *in, size_t inlen,

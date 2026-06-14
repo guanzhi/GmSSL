@@ -18,7 +18,7 @@
 #include <gmssl/error.h>
 
 
-void aes_cbc_encrypt(const AES_KEY *key, const uint8_t iv[16],
+void aes_cbc_encrypt_blocks(const AES_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	while (nblocks--) {
@@ -30,7 +30,7 @@ void aes_cbc_encrypt(const AES_KEY *key, const uint8_t iv[16],
 	}
 }
 
-void aes_cbc_decrypt(const AES_KEY *key, const uint8_t iv[16],
+void aes_cbc_decrypt_blocks(const AES_KEY *key, const uint8_t iv[16],
 	const uint8_t *in, size_t nblocks, uint8_t *out)
 {
 	while (nblocks--) {
@@ -55,11 +55,11 @@ int aes_cbc_padding_encrypt(const AES_KEY *key, const uint8_t iv[16],
 	}
 	memset(block + rem, padding, padding);
 	if (inlen/16) {
-		aes_cbc_encrypt(key, iv, in, inlen/16, out);
+		aes_cbc_encrypt_blocks(key, iv, in, inlen/16, out);
 		out += inlen - rem;
 		iv = out - 16;
 	}
-	aes_cbc_encrypt(key, iv, block, 1, out);
+	aes_cbc_encrypt_blocks(key, iv, block, 1, out);
 	*outlen = inlen - rem + 16;
 	return 1;
 }
@@ -82,10 +82,10 @@ int aes_cbc_padding_decrypt(const AES_KEY *key, const uint8_t iv[16],
 		return -1;
 	}
 	if (inlen > 16) {
-		aes_cbc_decrypt(key, iv, in, inlen/16 - 1, out);
+		aes_cbc_decrypt_blocks(key, iv, in, inlen/16 - 1, out);
 		iv = in + inlen - 32;
 	}
-	aes_cbc_decrypt(key, iv, in + inlen - 16, 1, block);
+	aes_cbc_decrypt_blocks(key, iv, in + inlen - 16, 1, block);
 	padding = block[15];
 	if (padding < 1 || padding > 16) {
 		error_print();

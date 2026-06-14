@@ -298,44 +298,6 @@ int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
-static void tls_cbc_encrypt_blocks(const BLOCK_CIPHER_KEY *key, uint8_t iv[16],
-	const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	const uint8_t *piv = iv;
-
-	while (nblocks--) {
-		size_t i;
-		for (i = 0; i < 16; i++) {
-			out[i] = in[i] ^ piv[i];
-		}
-		block_cipher_encrypt(key, out, out);
-		piv = out;
-		in += 16;
-		out += 16;
-	}
-
-	memcpy(iv, piv, 16);
-}
-
-static void tls_cbc_decrypt_blocks(const BLOCK_CIPHER_KEY *key, uint8_t iv[16],
-	const uint8_t *in, size_t nblocks, uint8_t *out)
-{
-	const uint8_t *piv = iv;
-
-	while (nblocks--) {
-		size_t i;
-		block_cipher_decrypt(key, in, out);
-		for (i = 0; i < 16; i++) {
-			out[i] ^= piv[i];
-		}
-		piv = in;
-		in += 16;
-		out += 16;
-	}
-
-	memcpy(iv, piv, 16);
-}
-
 int tls_cbc_encrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
@@ -348,7 +310,8 @@ int tls_cbc_encrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *enc
 	int rem, padding_len;
 	int i;
 
-	if (!inited_hmac_ctx || !enc_key || !seq_num || !header || (!in && inlen) || !out || !outlen) {
+	if (!inited_hmac_ctx || !enc_key || !enc_key->cipher
+		|| !seq_num || !header || (!in && inlen) || !out || !outlen) {
 		error_print();
 		return -1;
 	}
@@ -385,10 +348,40 @@ int tls_cbc_encrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *enc
 	out += 16;
 
 	if (inlen >= 16) {
-		tls_cbc_encrypt_blocks(enc_key, iv, in, inlen/16, out);
+		size_t nblocks = inlen/16;
+
+		switch (enc_key->cipher->oid) {
+		case OID_sm4:
+			sm4_cbc_encrypt_blocks(&enc_key->u.sm4_key, iv, in, nblocks, out);
+			break;
+#ifdef ENABLE_AES
+		case OID_aes128:
+		case OID_aes256:
+			aes_cbc_encrypt_blocks(&enc_key->u.aes_key, iv, in, nblocks, out);
+			break;
+#endif
+		default:
+			error_print();
+			return -1;
+		}
 		out += inlen - rem;
+		memcpy(iv, out - 16, 16);
 	}
-	tls_cbc_encrypt_blocks(enc_key, iv, last_blocks, sizeof(last_blocks)/16, out);
+	switch (enc_key->cipher->oid) {
+	case OID_sm4:
+		sm4_cbc_encrypt_blocks(&enc_key->u.sm4_key, iv, last_blocks, sizeof(last_blocks)/16, out);
+		break;
+#ifdef ENABLE_AES
+	case OID_aes128:
+	case OID_aes192:
+	case OID_aes256:
+		aes_cbc_encrypt_blocks(&enc_key->u.aes_key, iv, last_blocks, sizeof(last_blocks)/16, out);
+		break;
+#endif
+	default:
+		error_print();
+		return -1;
+	}
 	*outlen = 16 + inlen - rem + sizeof(last_blocks);
 	return 1;
 }
@@ -407,14 +400,15 @@ int tls_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *dec
 	size_t hmaclen;
 	int i;
 
-	if (!inited_hmac_ctx || !dec_key || !seq_num || !enced_header || !in || !inlen || !out || !outlen) {
+	if (!inited_hmac_ctx || !dec_key || !dec_key->cipher
+		|| !seq_num || !enced_header || !in || !inlen || !out || !outlen) {
 		error_print();
 		return -1;
 	}
 	if (inlen % 16
 		|| inlen < (16 + 0 + 32 + 16) // iv + data +  mac + padding
 		|| inlen > (16 + (1<<14) + 32 + 256)) {
-		error_print_msg("invalid tls cbc ciphertext length %zu\n", inlen);
+		error_print();
 		return -1;
 	}
 
@@ -422,7 +416,21 @@ int tls_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *dec
 	in += 16;
 	inlen -= 16;
 
-	tls_cbc_decrypt_blocks(dec_key, iv, in, inlen/16, out);
+	switch (dec_key->cipher->oid) {
+	case OID_sm4:
+		sm4_cbc_decrypt_blocks(&dec_key->u.sm4_key, iv, in, inlen/16, out);
+		break;
+#ifdef ENABLE_AES
+	case OID_aes128:
+	case OID_aes192:
+	case OID_aes256:
+		aes_cbc_decrypt_blocks(&dec_key->u.aes_key, iv, in, inlen/16, out);
+		break;
+#endif
+	default:
+		error_print();
+		return -1;
+	}
 
 	padding_len = out[inlen - 1];
 	padding = out + inlen - padding_len - 1;
@@ -432,7 +440,7 @@ int tls_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *dec
 	}
 	for (i = 0; i < padding_len; i++) {
 		if (padding[i] != padding_len) {
-			error_puts("tls ciphertext cbc-padding check failure");
+			error_print();
 			return -1;
 		}
 	}
@@ -452,7 +460,7 @@ int tls_cbc_decrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *dec
 	hmac_update(&hmac_ctx, out, *outlen);
 	hmac_finish(&hmac_ctx, hmac, &hmaclen);
 	if (gmssl_secure_memcmp(mac, hmac, sizeof(hmac)) != 0) {
-		error_puts("tls ciphertext mac check failure\n");
+		error_print();
 		return -1;
 	}
 	return 1;
@@ -502,6 +510,8 @@ int tls_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 		break;
 #ifdef ENABLE_AES
 	case OID_aes128:
+	case OID_aes192:
+	case OID_aes256:
 		if (aes_gcm_encrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
 			in, inlen, out, GHASH_SIZE, gmac) != 1) {
 			error_print();
@@ -562,6 +572,8 @@ int tls_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 		break;
 #ifdef ENABLE_AES
 	case OID_aes128:
+	case OID_aes192:
+	case OID_aes256:
 		if (aes_gcm_decrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
 			in, mlen, gmac, GHASH_SIZE, out) != 1) {
 			error_print();
@@ -624,6 +636,8 @@ int tls_ccm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 #endif
 #ifdef ENABLE_AES_CCM
 	case OID_aes128:
+	case OID_aes192:
+	case OID_aes256:
 		if (aes_ccm_encrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
 			in, inlen, out, GHASH_SIZE, tag) != 1) {
 			error_print();
@@ -686,6 +700,8 @@ int tls_ccm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 #endif
 #ifdef ENABLE_AES_CCM
 	case OID_aes128:
+	case OID_aes192:
+	case OID_aes256:
 		if (aes_ccm_decrypt(&(key->u.aes_key), nonce, sizeof(nonce), aad, sizeof(aad),
 			in, mlen, tag, GHASH_SIZE, out) != 1) {
 			error_print();
@@ -715,24 +731,30 @@ int tls_random_generate(uint8_t random[32])
 	return 1;
 }
 
-int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
+int tls_prf(const DIGEST *digest, const uint8_t *secret, size_t secretlen, const char *label,
 	const uint8_t *seed, size_t seedlen,
 	const uint8_t *more, size_t morelen,
 	size_t outlen, uint8_t *out)
 {
 	HMAC_CTX inited_hmac_ctx;
 	HMAC_CTX hmac_ctx;
-	uint8_t A[32];
-	uint8_t hmac[32];
+	uint8_t A[DIGEST_MAX_SIZE];
+	uint8_t hmac[DIGEST_MAX_SIZE];
 	size_t len;
+	size_t hmaclen;
 
-	if (!secret || !secretlen || !label || !seed || !seedlen
+	if (!digest || !secret || !secretlen || !label || !seed || !seedlen
 		|| (!more && morelen) || !outlen || !out) {
 		error_print();
 		return -1;
 	}
+	if (digest->digest_size > sizeof(hmac) || !digest->digest_size) {
+		error_print();
+		return -1;
+	}
+	hmaclen = digest->digest_size;
 
-	hmac_init(&inited_hmac_ctx, DIGEST_sm3(), secret, secretlen);
+	hmac_init(&inited_hmac_ctx, digest, secret, secretlen);
 
 	memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
 	hmac_update(&hmac_ctx, (uint8_t *)label, strlen(label));
@@ -741,30 +763,30 @@ int tls_prf(const uint8_t *secret, size_t secretlen, const char *label,
 	hmac_finish(&hmac_ctx, A, &len);
 
 	memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-	hmac_update(&hmac_ctx, A, sizeof(A));
+	hmac_update(&hmac_ctx, A, hmaclen);
 	hmac_update(&hmac_ctx, (uint8_t *)label, strlen(label));
 	hmac_update(&hmac_ctx, seed, seedlen);
 	hmac_update(&hmac_ctx, more, morelen);
 	hmac_finish(&hmac_ctx, hmac, &len);
 
-	len = outlen < sizeof(hmac) ? outlen : sizeof(hmac);
+	len = outlen < hmaclen ? outlen : hmaclen;
 	memcpy(out, hmac, len);
 	out += len;
 	outlen -= len;
 
 	while (outlen) {
 		memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-		hmac_update(&hmac_ctx, A, sizeof(A));
+		hmac_update(&hmac_ctx, A, hmaclen);
 		hmac_finish(&hmac_ctx, A, &len);
 
 		memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-		hmac_update(&hmac_ctx, A, sizeof(A));
+		hmac_update(&hmac_ctx, A, hmaclen);
 		hmac_update(&hmac_ctx, (uint8_t *)label, strlen(label));
 		hmac_update(&hmac_ctx, seed, seedlen);
 		hmac_update(&hmac_ctx, more, morelen);
 		hmac_finish(&hmac_ctx, hmac, &len);
 
-		len = outlen < sizeof(hmac) ? outlen : sizeof(hmac);
+		len = outlen < hmaclen ? outlen : hmaclen;
 		memcpy(out, hmac, len);
 		out += len;
 		outlen -= len;
@@ -3928,7 +3950,7 @@ int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, co
 	return 1;
 }
 
-int tls_compute_verify_data(const uint8_t master_secret[48],
+int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
 	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12])
 {
 	const size_t master_secret_len = 48;
@@ -3937,7 +3959,7 @@ int tls_compute_verify_data(const uint8_t master_secret[48],
 	uint8_t dgst[64];
 	size_t dgstlen;
 
-	if (!master_secret || !dgst_ctx || !verify_data) {
+	if (!digest || !master_secret || !dgst_ctx || !verify_data) {
 		error_print();
 		return -1;
 	}
@@ -3947,7 +3969,7 @@ int tls_compute_verify_data(const uint8_t master_secret[48],
 		error_print();
 		return -1;
 	}
-	if (tls_prf(master_secret, master_secret_len,
+	if (tls_prf(digest, master_secret, master_secret_len,
 		label, // "client finished" or "server finished",
 		dgst, dgstlen, NULL, 0,
 		verify_data_len, verify_data) != 1) {

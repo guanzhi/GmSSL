@@ -162,67 +162,6 @@ int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 	return 1;
 }
 
-int tls12_prf(const DIGEST *digest, const uint8_t *secret, size_t secretlen, const char *label,
-	const uint8_t *seed, size_t seedlen,
-	const uint8_t *more, size_t morelen,
-	size_t outlen, uint8_t *out)
-{
-	HMAC_CTX inited_hmac_ctx;
-	HMAC_CTX hmac_ctx;
-	uint8_t A[32];
-	uint8_t hmac[32];
-	size_t len;
-
-
-	if (!secret || !secretlen || !label || !seed || !seedlen
-		|| (!more && morelen) || !outlen || !out) {
-		error_print();
-		return -1;
-	}
-
-	hmac_init(&inited_hmac_ctx, digest, secret, secretlen);
-
-	memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-	hmac_update(&hmac_ctx, (uint8_t *)label, strlen(label));
-	hmac_update(&hmac_ctx, seed, seedlen);
-	hmac_update(&hmac_ctx, more, morelen);
-	hmac_finish(&hmac_ctx, A, &len); // 检查或者使用长度len
-
-	memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-	hmac_update(&hmac_ctx, A, sizeof(A));
-	hmac_update(&hmac_ctx, (uint8_t *)label, strlen(label));
-	hmac_update(&hmac_ctx, seed, seedlen);
-	hmac_update(&hmac_ctx, more, morelen);
-	hmac_finish(&hmac_ctx, hmac, &len);
-
-	len = outlen < sizeof(hmac) ? outlen : sizeof(hmac);
-	memcpy(out, hmac, len);
-	out += len;
-	outlen -= len;
-
-	while (outlen) {
-		memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-		hmac_update(&hmac_ctx, A, sizeof(A));
-		hmac_finish(&hmac_ctx, A, &len);
-
-		memcpy(&hmac_ctx, &inited_hmac_ctx, sizeof(HMAC_CTX));
-		hmac_update(&hmac_ctx, A, sizeof(A));
-		hmac_update(&hmac_ctx, (uint8_t *)label, strlen(label));
-		hmac_update(&hmac_ctx, seed, seedlen);
-		hmac_update(&hmac_ctx, more, morelen);
-		hmac_finish(&hmac_ctx, hmac, &len);
-
-		len = outlen < sizeof(hmac) ? outlen : sizeof(hmac);
-		memcpy(out, hmac, len);
-		out += len;
-		outlen -= len;
-	}
-	return 1;
-}
-
-
-
-
 // modify: conn->record_offset
 int tls_send_record(TLS_CONNECT *conn)
 {
@@ -2746,7 +2685,7 @@ static int tls12_generate_master_secret(TLS_CONNECT *conn,
 		error_print();
 		return -1;
 	}
-	if (tls12_prf(conn->digest, pre_master_secret, pre_master_secret_len,
+	if (tls_prf(conn->digest, pre_master_secret, pre_master_secret_len,
 			"master secret",
 			conn->client_random, 32,
 			conn->server_random, 32,
@@ -2773,7 +2712,7 @@ static int tls12_generate_key_block(TLS_CONNECT *conn)
 		size_t keylen = conn->cipher->key_size;
 		size_t key_block_len = keylen * 2 + 8;
 
-		if (tls12_prf(conn->digest, conn->master_secret, 48, "key expansion",
+		if (tls_prf(conn->digest, conn->master_secret, 48, "key expansion",
 				conn->server_random, 32,
 				conn->client_random, 32,
 				key_block_len, conn->key_block) != 1) {
@@ -2792,7 +2731,7 @@ static int tls12_generate_key_block(TLS_CONNECT *conn)
 		// OpenSSL  tls1_prf 中，这里生成的是128字节，也就是把IV也生成了
 		// 为什么生成IV呢？
 
-		if (tls12_prf(conn->digest, conn->master_secret, 48, "key expansion",
+		if (tls_prf(conn->digest, conn->master_secret, 48, "key expansion",
 				conn->server_random, 32,
 				conn->client_random, 32,
 				96, conn->key_block) != 1) {
@@ -3206,7 +3145,7 @@ int tls_send_client_finished(TLS_CONNECT *conn)
 
 		digest_finish(&tmp_ctx, dgst, &dgstlen);
 
-		if (tls12_prf(conn->digest,
+		if (tls_prf(conn->digest,
 			conn->master_secret, 48,
 			"client finished", dgst, dgstlen, NULL, 0,
 			sizeof(local_verify_data), local_verify_data) != 1) {
@@ -3277,7 +3216,7 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (tls12_prf(conn->digest, conn->master_secret, 48, "client finished", dgst, dgstlen, NULL, 0,
+	if (tls_prf(conn->digest, conn->master_secret, 48, "client finished", dgst, dgstlen, NULL, 0,
 		sizeof(local_verify_data), local_verify_data) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
@@ -3378,7 +3317,7 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 
 		digest_finish(&conn->dgst_ctx, dgst, &dgstlen);
 
-		if (tls12_prf(conn->digest, conn->master_secret, 48, "server finished", dgst, dgstlen, NULL, 0,
+		if (tls_prf(conn->digest, conn->master_secret, 48, "server finished", dgst, dgstlen, NULL, 0,
 			sizeof(local_verify_data), local_verify_data) != 1) {
 			error_print();
 			return -1;
@@ -3437,7 +3376,7 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (tls12_prf(conn->digest, conn->master_secret, 48, "server finished",
+	if (tls_prf(conn->digest, conn->master_secret, 48, "server finished",
 		dgst, dgstlen, NULL, 0,
 		sizeof(local_verify_data), local_verify_data) != 1) {
 		error_print();
