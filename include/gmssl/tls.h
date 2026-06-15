@@ -442,16 +442,16 @@ int tls_seq_num_incr(uint8_t seq_num[8]);
 void tls_seq_num_reset(uint8_t seq_num[8]);
 
 int tls_random_generate(uint8_t random[32]);
-int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent);
+int tls_random_print(FILE *fp, const uint8_t random[32], int fmt, int ind);
 int tls_pre_master_secret_generate(uint8_t pre_master_secret[48], int protocol);
-int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], int format, int indent);
+int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], int fmt, int ind);
 
 int tls_secrets_print(FILE *fp,
 	const uint8_t *pre_master_secret, size_t pre_master_secret_len,
 	const uint8_t client_random[32], const uint8_t server_random[32],
 	const uint8_t master_secret[48],
 	const uint8_t *key_block, size_t key_block_len,
-	int format, int indent);
+	int fmt, int ind);
 
 
 int tls13_hkdf_extract(const DIGEST *digest, const uint8_t salt[32], const uint8_t in[32], uint8_t out[32]);
@@ -490,12 +490,10 @@ int tls_record_set_protocol(uint8_t *record, int protocol);
 int tls_record_set_data_length(uint8_t *record, size_t length);
 int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen);
 
-
-// parse ServerKeyExchange, ClientKeyExchange depends on current cipher_suite		
-#define tls_format_set_cipher_suite(fmt,cipher)	do {(fmt)|=((cipher)<<8);} while (0)
-int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
-int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
-int tlcp_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen);
+int tls_record_print(FILE *fp, int fmt, int ind, int cipher_suite,
+	const uint8_t *record,  size_t recordlen);
+int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int fmt, int ind);
+int tlcp_record_print(FILE *fp, int fmt, int ind, const uint8_t *record, size_t recordlen);
 
 int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock);
 int tls_record_recv(uint8_t *record, size_t *recordlen, tls_socket_t sock);
@@ -522,7 +520,8 @@ int tls_record_set_handshake(uint8_t *record, size_t *recordlen,
 	int type, const uint8_t *data, size_t datalen);
 int tls_record_get_handshake(const uint8_t *record,
 	int *type, const uint8_t **data, size_t *datalen);
-int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent);
+int tls_handshake_print(FILE *fp, int fmt, int ind, int protocol, int cipher_suite,
+	const uint8_t *handshake, size_t handshake_len);
 
 
 // Alert
@@ -535,7 +534,7 @@ typedef struct {
 
 int tls_record_set_alert(uint8_t *record, size_t *recordlen, int alert_level, int alert_description);
 int tls_record_get_alert(const uint8_t *record, int *alert_level, int *alert_description);
-int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 
 // ChangeCipherSpec
@@ -545,7 +544,7 @@ typedef struct {
 } TLS_CHANGE_CIPHER_SPEC;
 
 const char *tls_change_cipher_spec_text(int change_cipher_spec);
-int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 int tls_record_set_change_cipher_spec(uint8_t *record, size_t *recordlen);
 int tls_record_get_change_cipher_spec(const uint8_t *record);
 
@@ -556,13 +555,13 @@ int tls_record_set_application_data(uint8_t *record, size_t *recordlen,
 	const uint8_t *data, size_t datalen);
 int tls_record_get_application_data(uint8_t *record,
 	const uint8_t **data, size_t *datalen);
-int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 
 // Handshakes
 
 // HelloRequest
-int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 
 // ClientHello, ServerHello
@@ -581,7 +580,7 @@ int tls_record_get_handshake_client_hello(const uint8_t *record,
 	const uint8_t **session_id, size_t *session_id_len,
 	const uint8_t **cipher_suites, size_t *cipher_suites_len,
 	const uint8_t **exts, size_t *exts_len);
-int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 
 // ServerHello
@@ -592,13 +591,15 @@ int tls_record_set_handshake_server_hello(uint8_t *record, size_t *recordlen,
 int tls_record_get_handshake_server_hello(const uint8_t *record,
 	int *protocol, const uint8_t **random, const uint8_t **session_id, size_t *session_id_len,
 	int *cipher_suite, const uint8_t **exts, size_t *exts_len);
-int tls_server_hello_print(FILE *fp, const uint8_t *server_hello, size_t len, int format, int indent);
+int tls_server_hello_print(FILE *fp, const uint8_t *server_hello, size_t len, int fmt, int ind);
 
 
 
 
 
 int tls_ext_from_bytes(int *type, const uint8_t **data, size_t *datalen, const uint8_t **in, size_t *inlen);
+int tls_extension_print(FILE *fp, int fmt, int ind, int handshake_type, int ext_type,
+	const uint8_t *ext_data, size_t ext_datalen);
 
 int tls_process_client_exts(const uint8_t *exts, size_t extslen, uint8_t *out, size_t *outlen, size_t maxlen);
 int tls_process_server_exts(const uint8_t *exts, size_t extslen,
@@ -628,7 +629,8 @@ int tls_server_ecdh_params_from_bytes(int *key_exchange_group,
 	const uint8_t **key_exchange, size_t *key_exchange_len,
 	const uint8_t **in, size_t *inlen);
 
-int tls_server_key_exchange_print(FILE *fp, const uint8_t *ske, size_t skelen, int format, int indent);
+int tls_server_key_exchange_print(FILE *fp, int fmt, int ind, int cipher_suite,
+	const uint8_t *ske, size_t skelen);
 
 #define TLS_MAX_SIGNATURE_SIZE	SM2_MAX_SIGNATURE_SIZE
 int tls_sign_server_ecdh_params(const SM2_KEY *server_sign_key,
@@ -655,7 +657,7 @@ int tls_record_set_handshake_server_key_exchange_ecdhe(uint8_t *record, size_t *
 int tls_record_get_handshake_server_key_exchange_ecdhe(const uint8_t *record,
 	int *curve, SM2_Z256_POINT *point, const uint8_t **sig, size_t *siglen);
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
-	int format, int indent);
+	int fmt, int ind);
 
 */
 
@@ -663,7 +665,7 @@ int tlcp_record_set_handshake_server_key_exchange_ecc(uint8_t *record, size_t *r
 	const uint8_t *sig, size_t siglen);
 int tlcp_record_get_handshake_server_key_exchange_ecc(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen);
-int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *sig, size_t siglen, int format, int indent);
+int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *sig, size_t siglen, int fmt, int ind);
 
 
 
@@ -685,7 +687,7 @@ int tlcp_record_set_handshake_certificate_request(uint8_t *record, size_t *recor
 int tlcp_record_get_handshake_certificate_request(const uint8_t *record,
 	const uint8_t **cert_types, size_t *cert_types_len,
 	const uint8_t **ca_names, size_t *ca_names_len);
-int tlcp_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tlcp_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 
 int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
@@ -696,7 +698,7 @@ int tls12_record_get_handshake_certificate_request(const uint8_t *record,
 	const uint8_t **cert_types, size_t *cert_types_len,
 	const uint8_t **sig_algs, size_t *sig_algs_len,
 	const uint8_t **ca_names, size_t *ca_names_len);
-int tls12_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls12_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 
 
@@ -704,7 +706,7 @@ int tls12_certificate_request_print(FILE *fp, const uint8_t *data, size_t datale
 
 int tls_record_set_handshake_server_hello_done(uint8_t *record, size_t *recordlen);
 int tls_record_get_handshake_server_hello_done(const uint8_t *record);
-int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent);
+int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind);
 
 // ClientKeyExchange
 
@@ -712,14 +714,15 @@ int tls_record_set_handshake_client_key_exchange_pke(uint8_t *record, size_t *re
 	const uint8_t *enced_pms, size_t enced_pms_len);
 int tls_record_get_handshake_client_key_exchange_pke(const uint8_t *record,
 	const uint8_t **enced_pms, size_t *enced_pms_len);
-int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
-int tls_client_key_exchange_print(FILE *fp, const uint8_t *cke, size_t ckelen, int format, int indent);
+int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *cke, size_t ckelen, int fmt, int ind);
+int tls_client_key_exchange_print(FILE *fp, int fmt, int ind, int cipher_suite,
+	const uint8_t *cke, size_t ckelen);
 
 int tls_record_set_handshake_client_key_exchange_ecdhe(uint8_t *record, size_t *recordlen,
 	const SM2_Z256_POINT *point); // shoulde we use SM2_Z256_POITN?						
 int tls_record_get_handshake_client_key_exchange_ecdhe(const uint8_t *record, SM2_Z256_POINT *point);			
 int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
-	int format, int indent);
+	int fmt, int ind);
 
 // CertificateVerify
 
@@ -727,7 +730,7 @@ int tls_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordl
 	const uint8_t *sig, size_t siglen);
 int tls_record_get_handshake_certificate_verify(const uint8_t *record,
 	const uint8_t **sig, size_t *siglen);
-int tls_certificate_verify_print(FILE *fp, const uint8_t *p, size_t len, int format, int indent);
+int tls_certificate_verify_print(FILE *fp, const uint8_t *p, size_t len, int fmt, int ind);
 
 
 
@@ -782,7 +785,7 @@ int tls_record_set_handshake_finished(uint8_t *record, size_t *recordlen,
 	const uint8_t *verify_data, size_t verify_data_len);
 int tls_record_get_handshake_finished(const uint8_t *record,
 	const uint8_t **verify_data, size_t *verify_data_len);
-int tls_finished_print(FILE *fp, const uint8_t *a, size_t len, int format, int indent);
+int tls_finished_print(FILE *fp, const uint8_t *a, size_t len, int fmt, int ind);
 
 
 
@@ -1665,7 +1668,7 @@ int tls13_extensions_print(FILE *fp, int fmt, int ind,
 int tls13_certificate_print(FILE *fp, int fmt, int ind, const uint8_t *cert, size_t certlen);
 int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *cert, size_t certlen);
 int tls13_certificate_verify_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
-int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen);
+int tls13_record_print(FILE *fp, int fmt, int ind, const uint8_t *record, size_t recordlen);
 
 
 
@@ -1685,7 +1688,7 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 
 #ifdef ENABLE_TLS_DEBUG
 #	define tls_trace(s) fprintf(stderr,(s))
-#	define tls_record_trace(fp,rec,reclen,fmt,ind)  tls_record_print(fp,rec,reclen,fmt,ind)
+#	define tls_record_trace(fp,rec,reclen,fmt,ind)  tls_record_print(fp,fmt,ind,0,rec,reclen)
 #	define tls_encrypted_record_trace(fp,rec,reclen,fmt,ind)  tls_encrypted_record_print(fp,rec,reclen,fmt,ind)
 #	define tlcp_record_trace(fp,rec,reclen,fmt,ind)  tlcp_record_print(fp,fmt,ind,rec,reclen)
 #	define tls12_record_trace(fp,rec,reclen,fmt,ind)  tls12_record_print(fp,rec,reclen,fmt,ind)
@@ -1699,7 +1702,7 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 #	define tls13_record_trace(fp,rec,reclen,fmt,ind)
 #endif
 
-int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
+int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int fmt, int ind);
 
 
 

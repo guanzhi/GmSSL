@@ -58,12 +58,10 @@ const size_t tls12_cipher_suites_cnt =
 	sizeof(tls12_cipher_suites)/sizeof(tls12_cipher_suites[0]);
 
 
-int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
+int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int fmt, int ind)
 {
-	// 目前只支持TLCP的ECC公钥加密套件，因此不论用哪个套件解析都是一样的
-	// 如果未来支持ECDHE套件，可以将函数改为宏，直接传入 (conn->cipher_suite << 8)
-	format |= tls12_cipher_suites[0] << 8; // 应该是KeyExchange需要这个参数			
-	return tls_record_print(fp, record, recordlen, format, indent);
+	return tls_record_print(fp, fmt, ind, tls12_cipher_suites[0],
+		record, recordlen);
 }
 
 
@@ -232,19 +230,6 @@ int tls12_record_get_handshake_certificate_request(const uint8_t *record,
 	}
 	return 1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-						
 
 void tls_clean_record(TLS_CONNECT *conn)
 {

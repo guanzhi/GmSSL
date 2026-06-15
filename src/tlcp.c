@@ -44,12 +44,10 @@ const size_t tlcp_cipher_suites_cnt =
 	sizeof(tlcp_cipher_suites)/sizeof(tlcp_cipher_suites[0]);
 
 
-int tlcp_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen)
+int tlcp_record_print(FILE *fp, int fmt, int ind, const uint8_t *record, size_t recordlen)
 {
-	// 目前只支持TLCP的ECC公钥加密套件，因此不论用CBC/GCM哪个套件解析都是一样的
-	// 如果未来支持ECDHE套件，可以将函数改为宏，直接传入 (conn->cipher_suite << 8)
-	format |= tlcp_cipher_suites[0] << 8;
-	return tls_record_print(fp, record, recordlen, format, indent);
+	return tls_record_print(fp, fmt, ind, tlcp_cipher_suites[0],
+		record, recordlen);
 }
 
 static int tlcp_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest)
@@ -207,18 +205,18 @@ static int tlcp_server_ecc_params_from_bytes(const uint8_t **server_enc_cert,
 	return 1;
 }
 
-int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *sig;
 	size_t siglen;
 
-	format_print(fp, format, indent, "ServerKeyExchange\n");
-	indent += 4;
+	format_print(fp, fmt, ind, "ServerKeyExchange\n");
+	ind += 4;
 	if (tls_uint16array_from_bytes(&sig, &siglen, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(fp, format, indent, "signature", sig, siglen);
+	format_bytes(fp, fmt, ind, "signature", sig, siglen);
 	if (datalen) {
 		error_print();
 		return -1;
@@ -2284,7 +2282,7 @@ int tlcp_recv_client_finished(TLS_CONNECT *conn)
 	if (tls_compute_verify_data(conn->digest, conn->master_secret, "client finished",
 		&conn->dgst_ctx, local_verify_data) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
+		tlcp_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
 
@@ -2298,7 +2296,7 @@ int tlcp_recv_client_finished(TLS_CONNECT *conn)
 	}
 	if (tls_record_protocol(conn->record) != conn->protocol) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_unexpected_message);
+		tlcp_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
 	if (tlcp_record_decrypt(conn->cipher_suite,
@@ -2306,7 +2304,7 @@ int tlcp_recv_client_finished(TLS_CONNECT *conn)
 		conn->client_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_bad_record_mac);
+		tlcp_send_alert(conn, TLS_alert_bad_record_mac);
 		return -1;
 	}
 	tls_seq_num_incr(conn->client_seq_num);
@@ -2315,13 +2313,13 @@ int tlcp_recv_client_finished(TLS_CONNECT *conn)
 
 	if (tls_record_get_handshake_finished(conn->plain_record, &verify_data, &verify_data_len) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_unexpected_message);
+		tlcp_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
 	if (verify_data_len != sizeof(local_verify_data)
 		|| memcmp(verify_data, local_verify_data, sizeof(local_verify_data)) != 0) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_decrypt_error);
+		tlcp_send_alert(conn, TLS_alert_decrypt_error);
 		return -1;
 	}
 

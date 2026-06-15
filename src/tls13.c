@@ -3846,23 +3846,23 @@ int tls13_handshake_print(FILE *fp, int fmt, int ind, const uint8_t *handshake, 
 	return 1;
 }
 
-int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen)
+int tls13_record_print(FILE *fp, int fmt, int ind, const uint8_t *record, size_t recordlen)
 {
 	const uint8_t *data;
 	size_t datalen;
 	int protocol;
 
-	format |= TLS_cipher_sm4_gcm_sm3 << 8;
+	fmt |= TLS_cipher_sm4_gcm_sm3 << 8;
 
 	if (!fp || !record || recordlen < 5) {
 		error_print();
 		return -1;
 	}
 	protocol = tls_record_protocol(record);
-	format_print(fp, format, indent, "Record\n"); indent += 4;
-	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
-	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
+	format_print(fp, fmt, ind, "Record\n"); ind += 4;
+	format_print(fp, fmt, ind, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
+	format_print(fp, fmt, ind, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
+	format_print(fp, fmt, ind, "Length: %d\n", tls_record_data_length(record));
 
 	data = tls_record_data(record);
 	datalen = tls_record_data_length(record);
@@ -3872,27 +3872,27 @@ int tls13_record_print(FILE *fp, int format, int indent, const uint8_t *record, 
 		return -1;
 	}
 
-	//format_bytes(fp, format, indent, "RecordRawData", data, datalen);
+	//format_bytes(fp, fmt, ind, "RecordRawData", data, datalen);
 
 	switch (record[0]) {
 	case TLS_record_handshake:
-		tls13_handshake_print(fp, format, indent, data, datalen);
+		tls13_handshake_print(fp, fmt, ind, data, datalen);
 		break;
 
 	case TLS_record_alert:
-		if (tls_alert_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_alert_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_record_change_cipher_spec:
-		if (tls_change_cipher_spec_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_change_cipher_spec_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_record_application_data:
-		if (tls_application_data_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_application_data_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}

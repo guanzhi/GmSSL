@@ -435,27 +435,27 @@ int tls_signature_scheme_group_oid(int sig_alg)
 	return 0;
 }
 
-int tls_random_print(FILE *fp, const uint8_t random[32], int format, int indent)
+int tls_random_print(FILE *fp, const uint8_t random[32], int fmt, int ind)
 {
 	time_t gmt_unix_time = 0;
 	const uint8_t *cp = random;
 	size_t len = 4;
 
 	tls_uint32_from_bytes((uint32_t *)&gmt_unix_time, &cp, &len);
-	format_print(fp, format, indent, "Random\n");
-	indent += 4;
-	format_print(fp, format, indent, "gmt_unix_time : %s", ctime(&gmt_unix_time));
-	format_bytes(fp, format, indent, "random", random + 4, 28);
+	format_print(fp, fmt, ind, "Random\n");
+	ind += 4;
+	format_print(fp, fmt, ind, "gmt_unix_time : %s", ctime(&gmt_unix_time));
+	format_bytes(fp, fmt, ind, "random", random + 4, 28);
 	return 1;
 }
 
-int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], int format, int indent)
+int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], int fmt, int ind)
 {
 	int protocol = ((int)pre_master_secret[0] << 8) | pre_master_secret[1];
-	format_print(fp, format, indent, "PreMasterSecret\n");
-	indent += 4;
-	format_print(fp, format, indent, "protocol : %s\n", tls_protocol_name(protocol));
-	format_bytes(fp, format, indent, "pre_master_secret", pre_master_secret, 48);
+	format_print(fp, fmt, ind, "PreMasterSecret\n");
+	ind += 4;
+	format_print(fp, fmt, ind, "protocol : %s\n", tls_protocol_name(protocol));
+	format_bytes(fp, fmt, ind, "pre_master_secret", pre_master_secret, 48);
 	return 1;
 }
 
@@ -476,13 +476,16 @@ int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], i
 这个函数需要一个参数表示扩展是在ClientHello还是在ServerHello中
 
  */
-int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_extension_print(FILE *fp, int fmt, int ind, int handshake_type, int type,
+	const uint8_t *data, size_t datalen)
 {
 	const uint8_t *p;
 	size_t len;
 
-	format_print(fp, format, indent, "%s (%d)\n", tls_extension_name(type), type);
-	indent += 4;
+	(void)handshake_type;
+
+	format_print(fp, fmt, ind, "%s (%d)\n", tls_extension_name(type), type);
+	ind += 4;
 
 	switch (type) {
 	// FIXME: 不支持ServerHello
@@ -496,7 +499,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint16_t proto;
 			tls_uint16_from_bytes(&proto, &p, &len);
-			format_print(fp, format, indent, "%s (%04x)\n",
+			format_print(fp, fmt, ind, "%s (%04x)\n",
 				tls_protocol_name(proto), proto);
 		}
 		break;
@@ -510,7 +513,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint16_t curve;
 			tls_uint16_from_bytes(&curve, &p, &len);
-			format_print(fp, format, indent, "%s (%d)\n",
+			format_print(fp, fmt, ind, "%s (%d)\n",
 				tls_named_curve_name(curve), curve);
 		}
 		break;
@@ -523,16 +526,16 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint8_t point_form;
 			tls_uint8_from_bytes(&point_form, &p, &len);
-			format_print(fp, format, indent, "%s (%d)\n",
+			format_print(fp, fmt, ind, "%s (%d)\n",
 				tls_ec_point_format_name(point_form), point_form);
 		}
 		break;
 	case TLS_extension_trusted_ca_keys:
 		if (datalen == 0) {
-			format_bytes(fp, format, indent, "raw_data", data, datalen);
+			format_bytes(fp, fmt, ind, "raw_data", data, datalen);
 			break;
 		}
-		if (tls_trusted_authorities_print(fp, format, indent, data, datalen) != 1) {
+		if (tls_trusted_authorities_print(fp, fmt, ind, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -547,7 +550,7 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 		while (len) {
 			uint16_t sig_alg;
 			tls_uint16_from_bytes(&sig_alg, &p, &len);
-			format_print(fp, format, indent, "%s (%04x)\n",
+			format_print(fp, fmt, ind, "%s (%04x)\n",
 				tls_signature_scheme_name(sig_alg), sig_alg);
 		}
 		break;
@@ -567,32 +570,34 @@ int tls_extension_print(FILE *fp, int type, const uint8_t *data, size_t datalen,
 				error_print();
 				return -1;
 			}
-			format_print(fp, format, indent, "group: %s (%d)\n", tls_named_curve_name(group), group);
-			format_bytes(fp, format, indent, "key_exchange", key_exch, key_exch_len);
+			format_print(fp, fmt, ind, "group: %s (%d)\n", tls_named_curve_name(group), group);
+			format_bytes(fp, fmt, ind, "key_exchange", key_exch, key_exch_len);
 		}
 		break;
 
 	default:
-		format_bytes(fp, format, indent, "raw_data", data, datalen);
+		format_bytes(fp, fmt, ind, "raw_data", data, datalen);
 	}
 	return 1;
 }
 
-int tls_extensions_print(FILE *fp, const uint8_t *exts, size_t extslen, int format, int indent)
+int tls_extensions_print(FILE *fp, int fmt, int ind, int handshake_type,
+	const uint8_t *exts, size_t extslen)
 {
 	uint16_t ext_type;
 	const uint8_t *ext_data;
 	size_t ext_datalen;
 
-	format_print(fp, format, indent, "Extensions\n");
-	indent += 4;
+	format_print(fp, fmt, ind, "Extensions\n");
+	ind += 4;
 	while (extslen > 0) {
 		if (tls_uint16_from_bytes(&ext_type, &exts, &extslen) != 1
 			|| tls_uint16array_from_bytes(&ext_data, &ext_datalen, &exts, &extslen) != 1) {
 			error_print();
 			return -1;
 		}
-		if (tls_extension_print(fp, ext_type, ext_data, ext_datalen, format, indent) != 1) {
+		if (tls_extension_print(fp, fmt, ind, handshake_type,
+			ext_type, ext_data, ext_datalen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -600,9 +605,9 @@ int tls_extensions_print(FILE *fp, const uint8_t *exts, size_t extslen, int form
 	return 1;
 }
 
-int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
-	format_print(fp, format, indent, "HelloRequest\n");
+	format_print(fp, fmt, ind, "HelloRequest\n");
 	if (data || datalen > 0) {
 		error_print();
 		return -1;
@@ -610,7 +615,7 @@ int tls_hello_request_print(FILE *fp, const uint8_t *data, size_t datalen, int f
 	return 1;
 }
 
-int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	int ret = -1;
 	uint16_t protocol;
@@ -622,20 +627,20 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	size_t session_id_len, cipher_suites_len, comp_meths_len, exts_len;
 	size_t i;
 
-	format_print(fp, format, indent, "ClientHello\n"); indent += 4;
+	format_print(fp, fmt, ind, "ClientHello\n"); ind += 4;
 	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto end;
-	format_print(fp, format, indent, "Version: %s (%04x)\n",
+	format_print(fp, fmt, ind, "Version: %s (%04x)\n",
 		tls_protocol_name(protocol), protocol);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto end;
-	tls_random_print(fp, random, format, indent);
+	tls_random_print(fp, random, fmt, ind);
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &data, &datalen) != 1) goto end;
-	format_bytes(fp, format, indent, "SessionID", session_id, session_id_len);
+	format_bytes(fp, fmt, ind, "SessionID", session_id, session_id_len);
 	if (tls_uint16array_from_bytes(&cipher_suites, &cipher_suites_len, &data, &datalen) != 1) goto end;
-	format_print(fp, format, indent, "CipherSuites\n");
+	format_print(fp, fmt, ind, "CipherSuites\n");
 	while (cipher_suites_len >= 2) {
 		uint16_t cipher;
 		if (tls_uint16_from_bytes(&cipher, &cipher_suites, &cipher_suites_len) != 1) goto end;
-		format_print(fp, format, indent + 4, "%s (%04x)\n",
+		format_print(fp, fmt, ind + 4, "%s (%04x)\n",
 			tls_cipher_suite_name(cipher), cipher);
 	}
 	if (cipher_suites_len) {
@@ -643,14 +648,14 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 		return -1;
 	}
 	if (tls_uint8array_from_bytes(&comp_meths, &comp_meths_len, &data, &datalen) != 1) goto end;
-	format_print(fp, format, indent, "CompressionMethods\n");
+	format_print(fp, fmt, ind, "CompressionMethods\n");
 	for (i = 0; i < comp_meths_len; i++) {
-		format_print(fp, format, indent + 4, "%s (%d)\n",
+		format_print(fp, fmt, ind + 4, "%s (%d)\n",
 			tls_compression_method_name(comp_meths[i]), comp_meths[i]);
 	}
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto end;
-		tls_extensions_print(fp, exts, exts_len, format, indent);
+		tls_extensions_print(fp, fmt, ind, TLS_handshake_client_hello, exts, exts_len);
 	}
 
 	/*
@@ -665,7 +670,7 @@ int tls_client_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 			return -1;
 		}
 
-		format_print(fp, format, indent, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
+		format_print(fp, fmt, ind, "%s (%d)\n", tls_extension_name(ext_type), ext_type);
 
 	}
 	*/
@@ -696,7 +701,7 @@ end:
 
 
 
-int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	int ret = -1;
 	uint16_t protocol;
@@ -707,23 +712,23 @@ int tls_server_hello_print(FILE *fp, const uint8_t *data, size_t datalen, int fo
 	const uint8_t *exts;
 	size_t session_id_len, exts_len;
 
-	format_print(fp, format, indent, "ServerHello\n"); indent += 4;
+	format_print(fp, fmt, ind, "ServerHello\n"); ind += 4;
 	if (tls_uint16_from_bytes(&protocol, &data, &datalen) != 1) goto bad;
-	format_print(fp, format, indent, "Version: %s (%04x)\n",
+	format_print(fp, fmt, ind, "Version: %s (%04x)\n",
 		tls_protocol_name(protocol), protocol);
 	if (tls_array_from_bytes(&random, 32, &data, &datalen) != 1) goto bad;
-	tls_random_print(fp, random, format, indent);
+	tls_random_print(fp, random, fmt, ind);
 	if (tls_uint8array_from_bytes(&session_id, &session_id_len, &data, &datalen) != 1) goto bad;
-	format_bytes(fp, format, indent, "SessionID", session_id, session_id_len);
+	format_bytes(fp, fmt, ind, "SessionID", session_id, session_id_len);
 	if (tls_uint16_from_bytes(&cipher_suite, &data, &datalen) != 1) goto bad;
-	format_print(fp, format, indent, "CipherSuite: %s (%04x)\n",
+	format_print(fp, fmt, ind, "CipherSuite: %s (%04x)\n",
 		tls_cipher_suite_name(cipher_suite), cipher_suite);
 	if (tls_uint8_from_bytes(&comp_meth, &data, &datalen) != 1) goto bad;
-	format_print(fp, format, indent, "CompressionMethod: %s (%d)\n",
+	format_print(fp, fmt, ind, "CompressionMethod: %s (%d)\n",
 		tls_compression_method_name(comp_meth), comp_meth);
 	if (datalen > 0) {
 		if (tls_uint16array_from_bytes(&exts, &exts_len, &data, &datalen) != 1) goto bad;
-		tls_extensions_print(fp, exts, exts_len, format, indent);
+		tls_extensions_print(fp, fmt, ind, TLS_handshake_server_hello, exts, exts_len);
 	}
 	return 1;
 bad:
@@ -731,7 +736,7 @@ bad:
 	return -1;
 }
 
-int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *certs;
 	size_t certslen;
@@ -747,7 +752,7 @@ int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int for
 			error_print();
 			return -1;
 		}
-		(void)x509_cert_print(fp, format, indent, "Certificate", der, derlen);
+		(void)x509_cert_print(fp, fmt, ind, "Certificate", der, derlen);
 		(void)x509_cert_to_pem(der, derlen, fp);
 	}
 
@@ -759,7 +764,7 @@ int tls_certificate_print(FILE *fp, const uint8_t *data, size_t datalen, int for
 }
 
 int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
-	int format, int indent)
+	int fmt, int ind)
 {
 	uint8_t curve_type;
 	uint16_t curve;
@@ -769,38 +774,38 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 	const uint8_t *sig;
 	size_t siglen;
 
-	format_print(fp, format, indent, "ServerKeyExchange\n");
-	indent += 4;
-	format_print(fp, format, indent, "ServerECDHParams\n");
-	format_print(fp, format, indent + 4, "curve_params\n");
+	format_print(fp, fmt, ind, "ServerKeyExchange\n");
+	ind += 4;
+	format_print(fp, fmt, ind, "ServerECDHParams\n");
+	format_print(fp, fmt, ind + 4, "curve_params\n");
 	if (tls_uint8_from_bytes(&curve_type, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent + 8, "curve_type: %s (%d)\n",
+	format_print(fp, fmt, ind + 8, "curve_type: %s (%d)\n",
 		tls_curve_type_name(curve_type), curve_type);
 	if (tls_uint16_from_bytes(&curve, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent + 8, "named_curve: %s (%d)\n",
+	format_print(fp, fmt, ind + 8, "named_curve: %s (%d)\n",
 		tls_named_curve_name(curve), curve);
 	if (tls_uint8array_from_bytes(&octets, &octetslen, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(fp, format, indent + 4, "point", octets, octetslen);
+	format_bytes(fp, fmt, ind + 4, "point", octets, octetslen);
 	if (tls_uint16_from_bytes(&sig_alg, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "SignatureScheme: %s (%04x)\n",
+	format_print(fp, fmt, ind, "SignatureScheme: %s (%04x)\n",
 		tls_signature_scheme_name(sig_alg), sig_alg);
 	if (tls_uint16array_from_bytes(&sig, &siglen, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(fp, format, indent, "Siganture", sig, siglen);
+	format_bytes(fp, fmt, ind, "Siganture", sig, siglen);
 	if (datalen > 0) {
 		error_print();
 		return -1;
@@ -810,18 +815,17 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 
 //						
 // 这个函数依赖输入的cipher_suite，才能判断如何解析ServerKeyExchange
-// 显然这个信息无法通过基础的format提供了，并且这个底层的信息一直需要从最上层提供，这就非常不好了
+// 显然这个信息无法通过基础的fmt提供了，并且这个底层的信息一直需要从最上层提供，这就非常不好了
 // 目前来看，cipher_suite是否能够提供足够的信息呢？			
 // ServerKeyExchange, ClientKeyExchange的格式是由cipher_suite决定的
 
-int tls_server_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_server_key_exchange_print(FILE *fp, int fmt, int ind, int cipher_suite,
+	const uint8_t *data, size_t datalen)
 {
-	int cipher_suite = (format >> 8) & 0xffff;
-
 	switch (cipher_suite) {
 	case TLS_cipher_ecc_sm4_cbc_sm3:
 	case TLS_cipher_ecc_sm4_gcm_sm3:
-		if (tlcp_server_key_exchange_ecc_print(fp, data, datalen, format, indent) != 1) {
+		if (tlcp_server_key_exchange_ecc_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
@@ -830,7 +834,7 @@ int tls_server_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
-		if (tls_server_key_exchange_ecdhe_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_server_key_exchange_ecdhe_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
@@ -868,21 +872,21 @@ int tls_certificate_subjects_print(FILE *fp, int fmt, int ind, const char *label
 	return 1;
 }
 
-int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *cert_types;
 	const uint8_t *ca_names;
 	size_t cert_types_len, ca_names_len;
 
-	format_print(fp, format, indent, "CertificateRequest\n"); indent += 4;
+	format_print(fp, fmt, ind, "CertificateRequest\n"); ind += 4;
 	if (tls_uint8array_from_bytes(&cert_types, &cert_types_len, &data, &datalen) != 1) goto bad;
-	format_print(fp, format, indent, "cert_types\n");
+	format_print(fp, fmt, ind, "cert_types\n");
 	while (cert_types_len--) {
 		int cert_type = *cert_types++;
-		format_print(fp, format, indent + 4, "%s (%d)\n", tls_cert_type_name(cert_type), cert_type);
+		format_print(fp, fmt, ind + 4, "%s (%d)\n", tls_cert_type_name(cert_type), cert_type);
 	}
 	if (tls_uint16array_from_bytes(&ca_names, &ca_names_len, &data, &datalen) != 1) goto bad;
-	tls_certificate_subjects_print(fp, format, indent, "CAnames", ca_names, ca_names_len);
+	tls_certificate_subjects_print(fp, fmt, ind, "CAnames", ca_names, ca_names_len);
 
 	return 1;
 bad:
@@ -890,7 +894,7 @@ bad:
 	return -1;
 }
 
-int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	if (datalen > 0) {
 		error_print();
@@ -899,7 +903,7 @@ int tls_server_hello_done_print(FILE *fp, const uint8_t *data, size_t datalen, i
 	return 1;
 }
 
-int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *enced_pms;
 	size_t enced_pms_len;
@@ -908,23 +912,23 @@ int tls_client_key_exchange_pke_print(FILE *fp, const uint8_t *data, size_t data
 		error_print();
 		return -1;
 	}
-	format_bytes(fp, format, indent, "EncryptedPreMasterSecret", enced_pms, enced_pms_len);
+	format_bytes(fp, fmt, ind, "EncryptedPreMasterSecret", enced_pms, enced_pms_len);
 	return 1;
 }
 
 int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t datalen,
-	int format, int indent)
+	int fmt, int ind)
 {
 	const uint8_t *octets;
 	size_t octetslen;
 
-	format_print(fp, format, indent, "ClientKeyExchange\n");
-	indent += 4;
+	format_print(fp, fmt, ind, "ClientKeyExchange\n");
+	ind += 4;
 	if (tls_uint8array_from_bytes(&octets, &octetslen, &data, &datalen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_bytes(fp, format, indent, "ecdh_Yc", octets, octetslen);
+	format_bytes(fp, fmt, ind, "ecdh_Yc", octets, octetslen);
 	if (datalen > 0) {
 		error_print();
 		return -1;
@@ -932,13 +936,13 @@ int tls_client_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 	return 1;
 }
 
-int tls_client_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_client_key_exchange_print(FILE *fp, int fmt, int ind, int cipher_suite,
+	const uint8_t *data, size_t datalen)
 {
-	int cipher_suite = (format >> 8) & 0xffff;
 	switch (cipher_suite) {
 	case TLS_cipher_ecc_sm4_cbc_sm3:
 	case TLS_cipher_ecc_sm4_gcm_sm3:
-		if (tls_client_key_exchange_pke_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_client_key_exchange_pke_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
@@ -947,7 +951,7 @@ int tls_client_key_exchange_print(FILE *fp, const uint8_t *data, size_t datalen,
 	case TLS_cipher_ecdhe_sm4_gcm_sm3:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
-		if (tls_client_key_exchange_ecdhe_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_client_key_exchange_ecdhe_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
@@ -966,43 +970,44 @@ struct {
     opaque signature<0..2^16-1>;
 } DigitallySigned;
 */
-int tls_certificate_verify_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_certificate_verify_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
-	format_print(fp, format, indent, "CertificateVerify\n");
-	format_bytes(fp, format, indent + 4, "Signature", data, datalen);
+	format_print(fp, fmt, ind, "CertificateVerify\n");
+	format_bytes(fp, fmt, ind + 4, "Signature", data, datalen);
 	return 1;
 }
 
-int tls_finished_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_finished_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
-	format_print(fp, format, indent, "Finished\n");
-	indent += 4;
-	format_bytes(fp, format, indent, "verify_data", data, datalen);
+	format_print(fp, fmt, ind, "Finished\n");
+	ind += 4;
+	format_bytes(fp, fmt, ind, "verify_data", data, datalen);
 	return 1;
 }
 
-
-// 这个是有问题的，因为TLS 1.3的证书和TLS 1.2是不一样的
-int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen, int format, int indent)
+int tls_handshake_print(FILE *fp, int fmt, int ind, int protocol, int cipher_suite,
+	const uint8_t *handshake, size_t handshakelen)
 {
 	const uint8_t *cp = handshake;
 	uint8_t type;
 	const uint8_t *data;
 	uint24_t datalen;
 
-	format_print(fp, format, indent, "Handshake\n");
-	indent += 4;
+	(void)protocol;
+
+	format_print(fp, fmt, ind, "Handshake\n");
+	ind += 4;
 
 	if (tls_uint8_from_bytes(&type, &cp, &handshakelen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "Type: %s (%d)\n", tls_handshake_type_name(type), type);
+	format_print(fp, fmt, ind, "Type: %s (%d)\n", tls_handshake_type_name(type), type);
 	if (tls_uint24_from_bytes(&datalen, &cp, &handshakelen) != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "Length: %"PRIu32"\n", datalen);
+	format_print(fp, fmt, ind, "Length: %"PRIu32"\n", datalen);
 
 	if (tls_array_from_bytes(&data, datalen, &cp, &handshakelen) != 1) {
 		error_print();
@@ -1010,38 +1015,38 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 	}
 	switch (type) {
 	case TLS_handshake_hello_request:
-		if (tls_hello_request_print(fp, data, datalen, format, indent) != 1)
+		if (tls_hello_request_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_client_hello:
-		if (tls_client_hello_print(fp, data, datalen, format, indent) != 1)
+		if (tls_client_hello_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_server_hello:
-		if (tls_server_hello_print(fp, data, datalen, format, indent) != 1)
+		if (tls_server_hello_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_encrypted_extensions:
-		tls13_encrypted_extensions_print(fp, format, indent, data, datalen);
+		tls13_encrypted_extensions_print(fp, fmt, ind, data, datalen);
 		break;
 
 	case TLS_handshake_certificate:
-		if (tls_certificate_print(fp, data, datalen, format, indent) != 1)
+		if (tls_certificate_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_server_key_exchange:
-		if (tls_server_key_exchange_print(fp, data, datalen, format, indent) != 1)
+		if (tls_server_key_exchange_print(fp, fmt, ind, cipher_suite, data, datalen) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_certificate_request:
-		if (tls_certificate_request_print(fp, data, datalen, format, indent) != 1)
+		if (tls_certificate_request_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_server_hello_done:
-		if (tls_server_hello_done_print(fp, data, datalen, format, indent) != 1)
+		if (tls_server_hello_done_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_client_key_exchange:
-		if (tls_client_key_exchange_print(fp, data, datalen, format, indent) != 1)
+		if (tls_client_key_exchange_print(fp, fmt, ind, cipher_suite, data, datalen) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_certificate_verify:
-		if (tls_certificate_verify_print(fp, data, datalen, format, indent) != 1)
+		if (tls_certificate_verify_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_finished:
-		if (tls_finished_print(fp, data, datalen, format, indent) != 1)
+		if (tls_finished_print(fp, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	default:
 		error_print();
@@ -1050,51 +1055,36 @@ int tls_handshake_print(FILE *fp, const uint8_t *handshake, size_t handshakelen,
 	return 1;
 }
 
-int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_alert_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	if (datalen != 2) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "Alert:\n");
-	indent += 4;
-	format_print(fp, format, indent, "Level: %s (%d)\n", tls_alert_level_name(data[0]), data[0]);
-	format_print(fp, format, indent, "Reason: %s (%d)\n", tls_alert_description_text(data[1]), data[1]);
+	format_print(fp, fmt, ind, "Alert:\n");
+	ind += 4;
+	format_print(fp, fmt, ind, "Level: %s (%d)\n", tls_alert_level_name(data[0]), data[0]);
+	format_print(fp, fmt, ind, "Reason: %s (%d)\n", tls_alert_description_text(data[1]), data[1]);
 	return 1;
 }
 
-int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_change_cipher_spec_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	if (datalen != 1) {
 		error_print();
 		return -1;
 	}
-	format_print(fp, format, indent, "ChangeCipherSpec\n");
-	indent += 4;
-	format_print(fp, format, indent, "type : %s (%d)\n", tls_change_cipher_spec_text(data[0]), data[0]);
+	format_print(fp, fmt, ind, "ChangeCipherSpec\n");
+	ind += 4;
+	format_print(fp, fmt, ind, "type : %s (%d)\n", tls_change_cipher_spec_text(data[0]), data[0]);
 	return 1;
 }
 
-int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int format, int indent)
+int tls_application_data_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
-	format_bytes(fp, format, indent, "ApplicationData", data, datalen);
+	format_bytes(fp, fmt, ind, "ApplicationData", data, datalen);
 	return 1;
 }
-
-
-
-
-
-
-// FIXME: 根据RFC来考虑这个函数的参数,从底向上逐步修改每个函数的接口参数
-
-
-// 当消息为ClientKeyExchange,ServerKeyExchange，需要密码套件中的密钥交换算法信息
-// 当消息为加密的Finished，记录类型为Handshake，但是记录负载数据中没有Handshake头
-// 注意：这里的recordlen 是冗余的，要容忍recordlen的错误
-//
-// supported_versions 的格式由handshake_type 是否为ClientHello, ServerHello 决定
-// record中是包含这个信息的，但是在exts中没有这个信息
 
 int tls_connect_print(FILE *fp, int fmt, int ind, const char *label, const TLS_CONNECT *conn)
 {
@@ -1136,25 +1126,26 @@ int tls_connect_print(FILE *fp, int fmt, int ind, const char *label, const TLS_C
 
 int tls_print_record(FILE *fp, int fmt, int ind, const char *label, TLS_CONNECT *conn)
 {
-	tls_record_print(fp, conn->record, conn->recordlen, fmt, ind);
+	tls_record_print(fp, fmt, ind, conn->cipher_suite, conn->record, conn->recordlen);
 	return 1;
 }
 
-int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
+int tls_record_print(FILE *fp, int fmt, int ind, int cipher_suite,
+	const uint8_t *record,  size_t recordlen)
 {
 	const uint8_t *data;
 	size_t datalen;
-	int protocol;
+	int record_protocol;
 
 	if (!fp || !record || recordlen < 5) {
 		error_print();
 		return -1;
 	}
-	protocol = tls_record_protocol(record);
-	format_print(fp, format, indent, "Record\n"); indent += 4;
-	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
-	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
+	record_protocol = tls_record_protocol(record);
+	format_print(fp, fmt, ind, "Record\n"); ind += 4;
+	format_print(fp, fmt, ind, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
+	format_print(fp, fmt, ind, "Version: %s (%04x)\n", tls_protocol_name(record_protocol), record_protocol);
+	format_print(fp, fmt, ind, "Length: %d\n", tls_record_data_length(record));
 
 	data = tls_record_data(record);
 	datalen = tls_record_data_length(record);
@@ -1166,25 +1157,26 @@ int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int for
 
 	switch (record[0]) {
 	case TLS_record_handshake:
-		if (tls_handshake_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_handshake_print(fp, fmt, ind, record_protocol,
+			cipher_suite, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_record_alert:
-		if (tls_alert_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_alert_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_record_change_cipher_spec:
-		if (tls_change_cipher_spec_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_change_cipher_spec_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
 		break;
 	case TLS_record_application_data:
-		if (tls_application_data_print(fp, data, datalen, format, indent) != 1) {
+		if (tls_application_data_print(fp, data, datalen, fmt, ind) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1208,25 +1200,25 @@ int tls_secrets_print(FILE *fp,
 	const uint8_t client_random[32], const uint8_t server_random[32],
 	const uint8_t master_secret[48],
 	const uint8_t *key_block, size_t key_block_len,
-	int format, int indent)
+	int fmt, int ind)
 {
 	// 应该检查一下key_block_len的值，判断是否支持，或者算法选择, 或者要求输入一个cipher_suite参数
 	// 这个函数不支持GCM模式套件，使用GCM模式时key_block_len更短
 	// 可以考虑通过key_block_len判断CBC还是GCM，或者在参数上增加cipher_suite
 	// FIXME: 如果增加了GCM套件，需要更新这个函数
-	format_bytes(stderr, format, indent, "pre_master_secret", pre_master_secret, pre_master_secret_len);
-	format_bytes(stderr, format, indent, "client_random", client_random, 32);
-	format_bytes(stderr, format, indent, "server_random", server_random, 32);
-	format_bytes(stderr, format, indent, "master_secret", master_secret, 48);
-	format_bytes(stderr, format, indent, "client_write_mac_key", key_block, 32);
-	format_bytes(stderr, format, indent, "server_write_mac_key", key_block + 32, 32);
-	format_bytes(stderr, format, indent, "client_write_enc_key", key_block + 64, 16);
-	format_bytes(stderr, format, indent, "server_write_enc_key", key_block + 80, 16);
-	format_print(stderr, format, indent, "\n");
+	format_bytes(stderr, fmt, ind, "pre_master_secret", pre_master_secret, pre_master_secret_len);
+	format_bytes(stderr, fmt, ind, "client_random", client_random, 32);
+	format_bytes(stderr, fmt, ind, "server_random", server_random, 32);
+	format_bytes(stderr, fmt, ind, "master_secret", master_secret, 48);
+	format_bytes(stderr, fmt, ind, "client_write_mac_key", key_block, 32);
+	format_bytes(stderr, fmt, ind, "server_write_mac_key", key_block + 32, 32);
+	format_bytes(stderr, fmt, ind, "client_write_enc_key", key_block + 64, 16);
+	format_bytes(stderr, fmt, ind, "server_write_enc_key", key_block + 80, 16);
+	format_print(stderr, fmt, ind, "\n");
 	return 1;
 }
 
-int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent)
+int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int fmt, int ind)
 {
 	int protocol;
 
@@ -1236,11 +1228,11 @@ int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordle
 	}
 
 	protocol = tls_record_protocol(record);
-	format_print(fp, format, indent, "EncryptedRecord\n"); indent += 4;
-	format_print(fp, format, indent, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
-	format_print(fp, format, indent, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
-	format_print(fp, format, indent, "Length: %d\n", tls_record_data_length(record));
-	format_bytes(fp, format, indent, "EncryptedData", tls_record_data(record), tls_record_data_length(record));
+	format_print(fp, fmt, ind, "EncryptedRecord\n"); ind += 4;
+	format_print(fp, fmt, ind, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
+	format_print(fp, fmt, ind, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
+	format_print(fp, fmt, ind, "Length: %d\n", tls_record_data_length(record));
+	format_bytes(fp, fmt, ind, "EncryptedData", tls_record_data(record), tls_record_data_length(record));
 
 	fprintf(fp, "\n");
 	return 1;
