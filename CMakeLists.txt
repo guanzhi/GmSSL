@@ -748,10 +748,46 @@ endif()
 add_test(NAME sm3_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm3_commands.cmake")
 add_test(NAME sm2_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/sm2_commands.cmake")
 add_test(NAME cert_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/cert_commands.cmake")
+set_tests_properties(cert_commands PROPERTIES FIXTURES_SETUP gmssl_cert_files)
 if(ENABLE_TLS AND NOT WIN32)
-	add_test(NAME tlcp_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
-	add_test(NAME tls12_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
-	add_test(NAME tls13_commands COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	find_program(OPENSSL_EXECUTABLE openssl)
+	add_test(NAME tlcp_sm4_cbc COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_cbc -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tlcp_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tls12_sm4_cbc COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_cbc -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls12_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls13_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tls13_hrr_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_hrr_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tls13_psk_dhe_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_psk_dhe_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tls13_psk_only_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_psk_only_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tls13_early_data_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_early_data_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	set_tests_properties(
+		tlcp_sm4_cbc
+		tlcp_sm4_gcm
+		tls12_sm4_cbc
+		tls12_sm4_gcm
+		tls13_sm4_gcm
+		tls13_hrr_sm4_gcm
+		tls13_psk_dhe_sm4_gcm
+		tls13_psk_only_sm4_gcm
+		tls13_early_data_sm4_gcm
+		PROPERTIES FIXTURES_REQUIRED gmssl_cert_files)
+	set_tests_properties(
+		tls13_hrr_sm4_gcm
+		tls13_psk_only_sm4_gcm
+		tls13_early_data_sm4_gcm
+		PROPERTIES DISABLED TRUE)
+	if(OPENSSL_EXECUTABLE)
+		add_test(NAME tls12_openssl_server COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_server -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
+		add_test(NAME tls12_openssl_client COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_client -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
+		add_test(NAME tls13_openssl_server COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls13_openssl_server -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
+		add_test(NAME tls13_openssl_client COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls13_openssl_client -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
+		set_tests_properties(
+			tls12_openssl_server
+			tls12_openssl_client
+			tls13_openssl_server
+			tls13_openssl_client
+			PROPERTIES FIXTURES_REQUIRED gmssl_cert_files)
+	endif()
 endif()
 
 # Generate install package with cpack
@@ -764,7 +800,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1056")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1057")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

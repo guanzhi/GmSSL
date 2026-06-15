@@ -1,69 +1,44 @@
+include("${CMAKE_CURRENT_LIST_DIR}/tls_command_test.cmake")
 
-if(NOT EXISTS rootcacert.pem)
-	message(FATAL_ERROR "file does not exist")
+gmssl_require_file(rootcacert.pem)
+gmssl_require_file(tls_server_certs.pem)
+gmssl_require_file(signkey.pem)
+
+if(NOT DEFINED TEST_CASE)
+	set(TEST_CASE tls12_sm4_cbc)
 endif()
 
-if(NOT EXISTS tls_server_certs.pem)
-	message(FATAL_ERROR "file does not exist")
+if(TEST_CASE STREQUAL tls12_sm4_cbc)
+	set(TEST_NAME tls12_sm4_cbc)
+	set(TEST_PORT 4432)
+	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_CBC_SM3)
+elseif(TEST_CASE STREQUAL tls12_sm4_gcm)
+	set(TEST_NAME tls12_sm4_gcm)
+	set(TEST_PORT 4434)
+	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_GCM_SM3)
+else()
+	message(FATAL_ERROR "unknown TLS 1.2 test case: ${TEST_CASE}")
 endif()
 
-if(NOT EXISTS signkey.pem)
-	message(FATAL_ERROR "file does not exist")
-endif()
-
-if(NOT EXISTS enckey.pem)
-	message(FATAL_ERROR "file does not exist")
-endif()
-
-set(TLS12_TEST_PORT 4432)
-file(REMOVE "tls12_client.log" "tls12_server.log")
-
-execute_process(
-	COMMAND pkill -f "gmssl tls12_server"
-	OUTPUT_QUIET
-	ERROR_QUIET
+gmssl_run_tls_command_test(
+	TEST_NAME ${TEST_NAME}
+	PORT ${TEST_PORT}
+	SERVER_ARGS
+		tls12_server
+		-port ${TEST_PORT}
+		-cert tls_server_certs.pem
+		-key signkey.pem
+		-pass P@ssw0rd
+		-cipher_suite ${TEST_CIPHER_SUITE}
+		-supported_group sm2p256v1
+		-sig_alg sm2sig_sm3
+	CLIENT_ARGS
+		tls12_client
+		-host 127.0.0.1
+		-port ${TEST_PORT}
+		-cacert rootcacert.pem
+		-cipher_suite ${TEST_CIPHER_SUITE}
+		-supported_group sm2p256v1
+		-sig_alg sm2sig_sm3
+		-in ${TEST_NAME}_message.txt
 )
-
-execute_process(
-	COMMAND bash -c "nohup bin/gmssl tls12_server -port ${TLS12_TEST_PORT} -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd -cipher_suite TLS_ECDHE_SM4_CBC_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls12_server.log 2>&1 &"
-	RESULT_VARIABLE SERVER_RESULT
-	TIMEOUT 5
-)
-if(NOT ${SERVER_RESULT} EQUAL 0)
-	message(FATAL_ERROR "server failed to start")
-endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 2)
-
-execute_process(
-	COMMAND bash -c "bin/gmssl tls12_client -host localhost -port ${TLS12_TEST_PORT} -cacert rootcacert.pem -cipher_suite TLS_ECDHE_SM4_CBC_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 < /dev/null > tls12_client.log 2>&1 &"
-	RESULT_VARIABLE CLIENT_RESULT
-	TIMEOUT 5
-)
-
-set(FOUND_INDEX -1)
-foreach(i RANGE 1 15)
-	if(EXISTS "tls12_client.log")
-		file(READ "tls12_client.log" CLIENT_LOG_CONTENT)
-		string(FIND "${CLIENT_LOG_CONTENT}" "Connection established" FOUND_INDEX)
-		if(NOT ${FOUND_INDEX} EQUAL -1)
-			break()
-		endif()
-	endif()
-	execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
-endforeach()
-
-execute_process(
-	COMMAND pkill -f "gmssl tls12_server"
-	OUTPUT_QUIET
-	ERROR_QUIET
-)
-execute_process(
-	COMMAND pkill -f "gmssl tls12_client"
-	OUTPUT_QUIET
-	ERROR_QUIET
-)
-
-if(${FOUND_INDEX} EQUAL -1)
-	message(FATAL_ERROR "Client did not establish connection with server.")
-endif()

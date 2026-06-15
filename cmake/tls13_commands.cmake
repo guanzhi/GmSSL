@@ -1,65 +1,149 @@
+include("${CMAKE_CURRENT_LIST_DIR}/tls_command_test.cmake")
 
-if(NOT EXISTS rootcacert.pem)
-	message(FATAL_ERROR "file does not exist")
+gmssl_require_file(rootcacert.pem)
+gmssl_require_file(tls_server_certs.pem)
+gmssl_require_file(signkey.pem)
+
+set(TLS13_PSK 1122334455667788112233445566778811223344556677881122334455667788)
+
+if(NOT DEFINED TEST_CASE)
+	set(TEST_CASE tls13_sm4_gcm)
 endif()
 
-if(NOT EXISTS tls_server_certs.pem)
-	message(FATAL_ERROR "file does not exist")
-endif()
-
-if(NOT EXISTS signkey.pem)
-	message(FATAL_ERROR "file does not exist")
-endif()
-
-set(TLS13_TEST_PORT 4433)
-file(REMOVE "tls13_client.log" "tls13_server.log")
-
-execute_process(
-	COMMAND pkill -f "gmssl tls13_server"
-	OUTPUT_QUIET
-	ERROR_QUIET
-)
-
-execute_process(
-	COMMAND bash -c "nohup bin/gmssl tls13_server -port ${TLS13_TEST_PORT} -cert tls_server_certs.pem -key signkey.pem -pass P@ssw0rd -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 > tls13_server.log 2>&1 &"
-	RESULT_VARIABLE SERVER_RESULT
-	TIMEOUT 5
-)
-if(NOT ${SERVER_RESULT} EQUAL 0)
-	message(FATAL_ERROR "server failed to start")
-endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 2)
-
-execute_process(
-	COMMAND bash -c "bin/gmssl tls13_client -host localhost -port ${TLS13_TEST_PORT} -cacert rootcacert.pem -cipher_suite TLS_SM4_GCM_SM3 -supported_group sm2p256v1 -sig_alg sm2sig_sm3 < /dev/null > tls13_client.log 2>&1 &"
-	RESULT_VARIABLE CLIENT_RESULT
-	TIMEOUT 5
-)
-
-set(FOUND_INDEX -1)
-foreach(i RANGE 1 15)
-	if(EXISTS "tls13_client.log")
-		file(READ "tls13_client.log" CLIENT_LOG_CONTENT)
-		string(FIND "${CLIENT_LOG_CONTENT}" "Connection established" FOUND_INDEX)
-		if(NOT ${FOUND_INDEX} EQUAL -1)
-			break()
-		endif()
-	endif()
-	execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
-endforeach()
-
-execute_process(
-	COMMAND pkill -f "gmssl tls13_server"
-	OUTPUT_QUIET
-	ERROR_QUIET
-)
-execute_process(
-	COMMAND pkill -f "gmssl tls13_client"
-	OUTPUT_QUIET
-	ERROR_QUIET
-)
-
-if(${FOUND_INDEX} EQUAL -1)
-	message(FATAL_ERROR "Client did not establish connection with server.")
+if(TEST_CASE STREQUAL tls13_sm4_gcm)
+	gmssl_run_tls_command_test(
+		TEST_NAME tls13_sm4_gcm
+		PORT 4433
+		SERVER_ARGS
+			tls13_server
+			-port 4433
+			-cert tls_server_certs.pem
+			-key signkey.pem
+			-pass P@ssw0rd
+			-cipher_suite TLS_SM4_GCM_SM3
+			-supported_group sm2p256v1
+			-sig_alg sm2sig_sm3
+		CLIENT_ARGS
+			tls13_client
+			-host 127.0.0.1
+			-port 4433
+			-cacert rootcacert.pem
+			-cipher_suite TLS_SM4_GCM_SM3
+			-supported_group sm2p256v1
+			-sig_alg sm2sig_sm3
+			-in tls13_sm4_gcm_message.txt
+	)
+elseif(TEST_CASE STREQUAL tls13_hrr_sm4_gcm)
+	gmssl_run_tls_command_test(
+		TEST_NAME tls13_hrr_sm4_gcm
+		PORT 4436
+		EXPECT_CLIENT_LOG "selected_group: sm2p256v1"
+		SERVER_ARGS
+			tls13_server
+			-port 4436
+			-cert tls_server_certs.pem
+			-key signkey.pem
+			-pass P@ssw0rd
+			-cipher_suite TLS_SM4_GCM_SM3
+			-supported_group sm2p256v1
+			-sig_alg sm2sig_sm3
+			-verbose
+		CLIENT_ARGS
+			tls13_client
+			-host 127.0.0.1
+			-port 4436
+			-cacert rootcacert.pem
+			-cipher_suite TLS_SM4_GCM_SM3
+			-supported_group prime256v1
+			-supported_group sm2p256v1
+			-sig_alg sm2sig_sm3
+			-max_key_exchanges 1
+			-in tls13_hrr_sm4_gcm_message.txt
+			-verbose
+	)
+elseif(TEST_CASE STREQUAL tls13_psk_dhe_sm4_gcm)
+	gmssl_run_tls_command_test(
+		TEST_NAME tls13_psk_dhe_sm4_gcm
+		PORT 4437
+		SERVER_ARGS
+			tls13_server
+			-port 4437
+			-cert tls_server_certs.pem
+			-key signkey.pem
+			-pass P@ssw0rd
+			-cipher_suite TLS_SM4_GCM_SM3
+			-supported_group sm2p256v1
+			-psk_dhe_ke
+			-psk_identity 001
+			-psk_cipher_suite TLS_SM4_GCM_SM3
+			-psk_key ${TLS13_PSK}
+		CLIENT_ARGS
+			tls13_client
+			-host 127.0.0.1
+			-port 4437
+			-cipher_suite TLS_SM4_GCM_SM3
+			-supported_group sm2p256v1
+			-psk_dhe_ke
+			-psk_identity 001
+			-psk_cipher_suite TLS_SM4_GCM_SM3
+			-psk_key ${TLS13_PSK}
+			-in tls13_psk_dhe_sm4_gcm_message.txt
+	)
+elseif(TEST_CASE STREQUAL tls13_psk_only_sm4_gcm)
+	gmssl_run_tls_command_test(
+		TEST_NAME tls13_psk_only_sm4_gcm
+		PORT 4438
+		SERVER_ARGS
+			tls13_server
+			-port 4438
+			-cert tls_server_certs.pem
+			-key signkey.pem
+			-pass P@ssw0rd
+			-cipher_suite TLS_SM4_GCM_SM3
+			-psk_ke
+			-psk_identity 001
+			-psk_cipher_suite TLS_SM4_GCM_SM3
+			-psk_key ${TLS13_PSK}
+		CLIENT_ARGS
+			tls13_client
+			-host 127.0.0.1
+			-port 4438
+			-cipher_suite TLS_SM4_GCM_SM3
+			-psk_ke
+			-psk_identity 001
+			-psk_cipher_suite TLS_SM4_GCM_SM3
+			-psk_key ${TLS13_PSK}
+			-in tls13_psk_only_sm4_gcm_message.txt
+	)
+elseif(TEST_CASE STREQUAL tls13_early_data_sm4_gcm)
+	gmssl_run_tls_command_test(
+		TEST_NAME tls13_early_data_sm4_gcm
+		PORT 4439
+		EXPECT_SERVER_LOG "EarlyData"
+		SERVER_ARGS
+			tls13_server
+			-port 4439
+			-cert tls_server_certs.pem
+			-key signkey.pem
+			-pass P@ssw0rd
+			-cipher_suite TLS_SM4_GCM_SM3
+			-psk_ke
+			-psk_identity 001
+			-psk_cipher_suite TLS_SM4_GCM_SM3
+			-psk_key ${TLS13_PSK}
+			-early_data
+		CLIENT_ARGS
+			tls13_client
+			-host 127.0.0.1
+			-port 4439
+			-cipher_suite TLS_SM4_GCM_SM3
+			-psk_ke
+			-psk_identity 001
+			-psk_cipher_suite TLS_SM4_GCM_SM3
+			-psk_key ${TLS13_PSK}
+			-early_data tls13_early_data_sm4_gcm_early_data.txt
+			-in tls13_early_data_sm4_gcm_message.txt
+	)
+else()
+	message(FATAL_ERROR "unknown TLS 1.3 test case: ${TEST_CASE}")
 endif()

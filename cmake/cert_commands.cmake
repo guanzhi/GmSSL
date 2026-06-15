@@ -158,3 +158,111 @@ file(READ signcert.pem CERT_CONTENT)
 file(APPEND tls_server_certs.pem "${CERT_CONTENT}")
 file(READ cacert.pem CERT_CONTENT)
 file(APPEND tls_server_certs.pem "${CERT_CONTENT}")
+
+execute_process(
+	COMMAND bin/gmssl p256keygen -pass P@ssw0rd -out p256rootcakey.pem -export p256rootcakey.exp
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256rootcakey.pem OR NOT EXISTS p256rootcakey.exp)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN P256ROOTCA -days 3650 -key p256rootcakey.pem -pass P@ssw0rd -out p256rootcacert.pem -key_usage keyCertSign -key_usage cRLSign -ca
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256rootcacert.pem)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl p256keygen -pass P@ssw0rd -out p256cakey.pem -export p256cakey.exp
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256cakey.pem OR NOT EXISTS p256cakey.exp)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN "P256 Sub CA" -key p256cakey.pem -pass P@ssw0rd -out p256careq.pem
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256careq.pem)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl reqsign -in p256careq.pem -days 365 -key_usage keyCertSign -path_len_constraint 0 -cacert p256rootcacert.pem -key p256rootcakey.pem -pass P@ssw0rd -out p256cacert.pem -ca
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256cacert.pem)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl p256keygen -pass P@ssw0rd -out p256signkey.pem -export p256signkey.exp
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256signkey.pem OR NOT EXISTS p256signkey.exp)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN 127.0.0.1 -key p256signkey.pem -pass P@ssw0rd -out p256signreq.pem
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256signreq.pem)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl reqsign -in p256signreq.pem -days 365 -key_usage digitalSignature -cacert p256cacert.pem -key p256cakey.pem -pass P@ssw0rd -subject_dns_name 127.0.0.1 -out p256signcert.pem
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+if(NOT EXISTS p256signcert.pem)
+	message(FATAL_ERROR "generated file does not exist")
+endif()
+
+file(WRITE p256certs.pem "")
+file(READ p256signcert.pem CERT_CONTENT)
+file(APPEND p256certs.pem "${CERT_CONTENT}")
+file(READ p256cacert.pem CERT_CONTENT)
+file(APPEND p256certs.pem "${CERT_CONTENT}")
+
+file(WRITE rootcacerts.pem "")
+file(READ rootcacert.pem CERT_CONTENT)
+file(APPEND rootcacerts.pem "${CERT_CONTENT}")
+file(READ p256rootcacert.pem CERT_CONTENT)
+file(APPEND rootcacerts.pem "${CERT_CONTENT}")
