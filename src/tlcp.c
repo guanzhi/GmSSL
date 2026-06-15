@@ -2247,6 +2247,12 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_decrypt_error);
 		return -1;
 	}
+	if ((((uint16_t)conn->pre_master_secret[0] << 8) | conn->pre_master_secret[1])
+		!= TLS_protocol_tlcp) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_decrypt_error);
+		return -1;
+	}
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
 		return -1;
