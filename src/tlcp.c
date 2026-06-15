@@ -704,7 +704,20 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 
 	// supported_groups
 	if (supported_groups) {
-		// 检查cipher_suite依赖的SM2/SM9曲线是否在其中，否则报错
+		int common_group;
+		size_t common_groups_cnt = 0;
+
+		if ((ret = tls_process_supported_groups(supported_groups, supported_groups_len,
+			tlcp_supported_groups, tlcp_supported_groups_cnt,
+			&common_group, &common_groups_cnt, 1)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_handshake_failure);
+			return -1;
+		}
 	}
 
 	// application_layer_protocol_negotiation
@@ -1628,6 +1641,40 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
+	}
+
+	if (supported_groups) {
+		int common_group;
+		size_t common_groups_cnt = 0;
+
+		if ((ret = tls_process_supported_groups(supported_groups, supported_groups_len,
+			tlcp_supported_groups, tlcp_supported_groups_cnt,
+			&common_group, &common_groups_cnt, 1)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_handshake_failure);
+			return -1;
+		}
+	}
+
+	if (signature_algorithms) {
+		int common_sig_alg;
+		size_t common_sig_algs_cnt = 0;
+
+		if ((ret = tls_process_signature_algorithms(signature_algorithms, signature_algorithms_len,
+			tlcp_signature_algorithms, tlcp_signature_algorithms_cnt,
+			&common_sig_alg, &common_sig_algs_cnt, 1)) < 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			tls_send_alert(conn, TLS_alert_handshake_failure);
+			return -1;
+		}
 	}
 
 	if (trusted_ca_keys) {
