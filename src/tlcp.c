@@ -160,42 +160,15 @@ select (KeyExchangeAlgorithm) {
 } ServerKeyExchange;
 
 `signed_params` is DER signature encoded in uint16array
-sm3_ctx*/
-static int tlcp_server_ecc_params_to_bytes(const uint8_t *server_enc_cert,
-	size_t server_enc_cert_len, uint8_t **out, size_t *outlen)
-{
-	if (!server_enc_cert || !server_enc_cert_len || !outlen) {
-		error_print();
-		return -1;
-	}
-	tls_uint24array_to_bytes(server_enc_cert, server_enc_cert_len, out, outlen);
-	return 1;
-}
+*/
 
-static int tlcp_server_ecc_params_from_bytes(const uint8_t **server_enc_cert,
-	size_t *server_enc_cert_len, const uint8_t **in, size_t *inlen)
-{
-	if (!server_enc_cert || !server_enc_cert_len || !in || !*in || !inlen) {
-		error_print();
-		return -1;
-	}
-	if (tls_uint24array_from_bytes(server_enc_cert, server_enc_cert_len, in, inlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (!*server_enc_cert || !*server_enc_cert_len) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
 
 int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *sig;
 	size_t siglen;
 
-	format_print(fp, fmt, ind, "ServerKeyExchange\n");
+	format_print(fp, fmt, ind, "ServerKeyExchange.ECC\n");
 	ind += 4;
 	if (tls_uint16array_from_bytes(&sig, &siglen, &data, &datalen) != 1) {
 		error_print();
@@ -209,6 +182,135 @@ int tlcp_server_key_exchange_ecc_print(FILE *fp, const uint8_t *data, size_t dat
 	return 1;
 }
 
+int tlcp_record_set_handshake_server_key_exchange(uint8_t *record, size_t *recordlen,
+	int server_key_exchange_alg, const uint8_t *server_ecdh_params, size_t server_ecdh_params_len,
+	const uint8_t *sig, size_t siglen)
+{
+	const int type = TLS_handshake_server_key_exchange;
+	uint8_t *p = tls_handshake_data(tls_record_data(record));
+	size_t len = 0;
+
+	if (!record || !recordlen || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (siglen > TLS_MAX_SIGNATURE_SIZE) {
+		error_print();
+		return -1;
+	}
+
+	switch (server_key_exchange_alg) {
+	case TLS_server_key_exchange_ecdhe:
+		if (!server_ecdh_params || !server_ecdh_params_len) {
+			error_print();
+			return -1;
+		}
+		tls_array_to_bytes(server_ecdh_params, server_ecdh_params_len, &p, &len);
+		break;
+	case TLS_server_key_exchange_ecc:
+		if (server_ecdh_params || server_ecdh_params_len) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	// TLCP use TLS 1.1 ServerKeyExchange, no signature_algorithm
+	tls_uint16array_to_bytes(sig, siglen, &p, &len);
+
+	tls_record_set_handshake(record, recordlen, type, NULL, len);
+	return 1;
+}
+
+int tlcp_record_get_handshake_server_key_exchange(const uint8_t *record,
+	int server_key_exchange_alg, const uint8_t **server_ecdh_params, size_t *server_ecdh_params_len,
+	const uint8_t **sig, size_t *siglen)
+{
+	int type;
+	const uint8_t *p;
+	size_t len;
+
+	if (!record || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (tls_record_get_handshake(record, &type, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_server_key_exchange) {
+		error_print();
+		return 0;
+	}
+
+	switch (server_key_exchange_alg) {
+	case TLS_server_key_exchange_ecdhe:
+		if (!server_ecdh_params || !server_ecdh_params_len) {
+			error_print();
+			return -1;
+		}
+		*server_ecdh_params = p;
+		*server_ecdh_params_len = len;
+		{
+			int key_exchange_group;
+			const uint8_t *key_exchange;
+			size_t key_exchange_len;
+
+			if (tls_server_ecdh_params_from_bytes(&key_exchange_group,
+				&key_exchange, &key_exchange_len, &p, &len) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		*server_ecdh_params_len -= len;
+		break;
+
+	case TLS_server_key_exchange_ecc:
+		if (server_ecdh_params || server_ecdh_params_len) {
+			error_print();
+			return -1;
+		}
+		break;
+
+	default:
+		error_print();
+		return -1;
+	}
+
+	if (tls_uint16array_from_bytes(sig, siglen, &p, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!siglen) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+
+/*
+struct {
+	select (KeyExchangeAlgorithm) {
+	case ECC:
+		opaque ECCEncryptedPreMasterSecret<0..2^16-1>;
+	case ECDHE:
+		Opaque ClientECDHEParams<1..2^16-1>;
+	case IBSDH:
+		Opaque ClientIBSDHParams<1..2^16-1>;
+	case IBC:
+		opaque IBCEncryptedPreMasterSecret<0..2^16-1>;
+	case RSA:
+		opaque RSAEncryptedPreMasterSecret<0..2^16-1>;
+	} exchange_keys;
+} ClientKeyExchange;
+
+// 不管算法是什么，数据格式都是uint16array				
+*/
 int tlcp_record_set_handshake_client_key_exchange(uint8_t *record, size_t *recordlen,
 	const uint8_t *enced_pms, size_t enced_pms_len)
 {
@@ -354,27 +456,6 @@ int tlcp_record_get_handshake_certificate_request(const uint8_t *record,
 }
 
 
-
-/*
-ClientKeyExchange
-
-struct {
-	select (KeyExchangeAlgorithm) {
-	case ECC:
-		opaque ECCEncryptedPreMasterSecret<0..2^16-1>;
-	case ECDHE:
-		Opaque ClientECDHEParams<1..2^16-1>;
-	case IBSDH:
-		Opaque ClientIBSDHParams<1..2^16-1>;
-	case IBC:
-		opaque IBCEncryptedPreMasterSecret<0..2^16-1>;
-	case RSA:
-		opaque RSAEncryptedPreMasterSecret<0..2^16-1>;
-	} exchange_keys;
-} ClientKeyExchange;
-*/
-
-
 // Handshakes
 
 int tlcp_send_client_hello(TLS_CONNECT *conn)
@@ -382,17 +463,11 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 	int ret;
 
 	if (!conn->recordlen) {
-
 		uint8_t exts[TLS_MAX_EXTENSIONS_SIZE];
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
 
-		if (!conn->ctx->cipher_suites_cnt) {
-			error_print();
-			return -1;
-		}
-
-		// TLCP only use sm4 and sm3
+		conn->sig_alg = TLS_sig_sm2sig_sm3;
 		conn->cipher = BLOCK_CIPHER_sm4();
 		conn->digest = DIGEST_sm3();
 
@@ -400,6 +475,9 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+
+		if (conn->verbose)
+			tls_trace("send ClientHello\n");
 
 		tls_record_set_protocol(conn->record, TLS_protocol_tlcp);
 
@@ -488,9 +566,7 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-
 		if (conn->verbose) {
-			tls_trace("send ClientHello\n");
 			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 		}
 
@@ -500,8 +576,6 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 		}
 		if(conn->verbose)
 			tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
-
-
 
 		if (conn->client_certificate_verify) {
 			sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
@@ -540,14 +614,14 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 	size_t application_layer_protocol_negotiation_len;
 
 
-	if(conn->verbose) tls_trace("recv ServerHello\n");
-
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
 		}
 		return ret;
 	}
+	if (conn->verbose)
+		tls_trace("recv ServerHello\n");
 	if (conn->verbose)
 		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
@@ -740,7 +814,6 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 	const uint8_t *server_cert;
 	size_t server_cert_len;
 
-	if(conn->verbose) tls_trace("recv server Certificate\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -748,6 +821,8 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
+	if (conn->verbose)
+		tls_trace("recv server Certificate\n");
 	if (conn->verbose)
 		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
@@ -812,33 +887,20 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 	return 1;
 }
 
-// 存疑
 int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 {
 	int ret;
 	const uint8_t *sig;
 	size_t siglen;
-	const uint8_t *cp;
-	size_t len;
-	X509_KEY server_sign_key;
-
-	const uint8_t *server_enc_cert;
-	size_t server_enc_cert_len;
-
-	uint8_t server_ecc_params[TLS_MAX_CERTIFICATES_SIZE + 3];
-	uint8_t *p;
-	size_t server_ecc_params_len;
-	const uint8_t *q;
-	size_t qlen;
-	const uint8_t *server_ecc_params_cert;
-	size_t server_ecc_params_cert_len;
-
+	const uint8_t *sign_cert;
+	size_t sign_cert_len;
+	X509_KEY sign_key;
+	const uint8_t *enc_cert;
+	size_t enc_cert_len;
+	uint8_t enc_cert_header[3];
+	uint8_t *enc_cert_header_ptr = enc_cert_header;
+	size_t enc_cert_header_len = 0;
 	SM2_VERIFY_CTX verify_ctx;
-
-
-
-
-	if(conn->verbose) tls_trace("recv ServerKeyExchange\n");
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -846,6 +908,8 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
+	if(conn->verbose)
+		tls_trace("recv ServerKeyExchange\n");
 	if (conn->verbose)
 		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
@@ -854,70 +918,34 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_protocol_version);
 		return -1;
 	}
-
-	if (tls_record_get_handshake_server_key_exchange(conn->record,
-		TLS_server_key_exchange_ecc, NULL, 0,
-		&conn->sig_alg, &sig, &siglen) != 1) {
+	if (tlcp_record_get_handshake_server_key_exchange(conn->record,
+		TLS_server_key_exchange_ecc, NULL, 0, &sig, &siglen) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-
-	if (conn->sig_alg != TLS_sig_sm2sig_sm3) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_illegal_parameter);
-		return -1;
-	}
-
-
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
 		return -1;
 	}
-
-	if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
+	if(conn->verbose)
+		tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
 
 	// verify ServerKeyExchange
-	if (x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len, 0, &cp, &len) != 1
-		|| x509_cert_get_subject_public_key(cp, len, &server_sign_key) != 1
-		|| x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len, 1, &server_enc_cert, &server_enc_cert_len) != 1
-		|| x509_cert_get_subject_public_key(server_enc_cert, server_enc_cert_len, &conn->server_enc_key) != 1) {
+	if (x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len, 0, &sign_cert, &sign_cert_len) != 1
+		|| x509_cert_get_subject_public_key(sign_cert, sign_cert_len, &sign_key) != 1
+		|| x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len, 1, &enc_cert, &enc_cert_len) != 1
+		|| x509_cert_get_subject_public_key(enc_cert, enc_cert_len, &conn->server_enc_key) != 1) {  // 这个不应该在这里取			
 		error_print();
-		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
+	tls_uint24_to_bytes(enc_cert_len, &enc_cert_header_ptr, &enc_cert_header_len);
 
-	if (server_sign_key.algor != OID_ec_public_key
-		|| server_sign_key.algor_param != OID_sm2
-		|| conn->server_enc_key.algor != OID_ec_public_key
-		|| conn->server_enc_key.algor_param != OID_sm2) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_bad_certificate);
-		return -1;
-	}
-	p = server_ecc_params;
-	server_ecc_params_len = 0;
-	if (tlcp_server_ecc_params_to_bytes(server_enc_cert, server_enc_cert_len,
-		&p, &server_ecc_params_len) != 1) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
-	}
-	q = server_ecc_params;
-	qlen = server_ecc_params_len;
-	if (tlcp_server_ecc_params_from_bytes(&server_ecc_params_cert, &server_ecc_params_cert_len,
-		&q, &qlen) != 1
-		|| qlen
-		|| server_ecc_params_cert_len != server_enc_cert_len
-		|| memcmp(server_ecc_params_cert, server_enc_cert, server_enc_cert_len) != 0) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
-	}
-	if (sm2_verify_init(&verify_ctx, &server_sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
+	if (sm2_verify_init(&verify_ctx, &sign_key.u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 		|| sm2_verify_update(&verify_ctx, conn->client_random, 32) != 1
 		|| sm2_verify_update(&verify_ctx, conn->server_random, 32) != 1
-		|| sm2_verify_update(&verify_ctx, server_ecc_params, server_ecc_params_len) != 1) {
+		|| sm2_verify_update(&verify_ctx, enc_cert_header, enc_cert_header_len) != 1
+		|| sm2_verify_update(&verify_ctx, enc_cert, enc_cert_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -927,7 +955,6 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_decrypt_error);
 		return -1;
 	}
-
 	return 1;
 }
 
@@ -963,13 +990,7 @@ int tlcp_recv_certificate_request(TLS_CONNECT *conn)
 	}
 	if (handshake_type != TLS_handshake_certificate_request) {
 		conn->client_certs_len = 0;
-
-		if(conn->verbose) {
-			fprintf(stderr, "%s %d: no certificate_request\n", __FILE__, __LINE__);
-			fprintf(stderr, "recordlen = %zu\n", conn->recordlen);
-		}
-
-		return 0; // 表明对方没有发送预期的报文
+		return 0;
 	}
 
 	if(conn->verbose) tls_trace("recv CertificateRequest\n");
@@ -1109,19 +1130,31 @@ int tlcp_send_client_certificate(TLS_CONNECT *conn)
 
 int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 {
-	uint8_t enced_pre_master_secret[SM2_MAX_CIPHERTEXT_SIZE];
-	size_t enced_pre_master_secret_len;
 	int ret;
 
-	if(conn->verbose) tls_trace("send ClientKeyExchange\n");
-
 	if (!conn->recordlen) {
+		const uint8_t *enc_cert;
+		size_t enc_cert_len;
+		X509_KEY public_key;
+		uint8_t enced_pre_master_secret[SM2_MAX_CIPHERTEXT_SIZE];
+		size_t enced_pre_master_secret_len;
+
+		if (conn->verbose)
+			tls_trace("send ClientKeyExchange\n");
+
+		if (x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len, 1,
+			&enc_cert, &enc_cert_len) != 1
+			|| x509_cert_get_subject_public_key(enc_cert, enc_cert_len, &public_key) != 1) {
+			error_print();
+			return -1;
+		}
+
 		if (tls_pre_master_secret_generate(conn->pre_master_secret, TLS_protocol_tlcp) != 1) {
 			error_print();
 			return -1;
 		}
 
-		if (sm2_encrypt(&conn->server_enc_key.u.sm2_key, conn->pre_master_secret, 48,
+		if (sm2_encrypt(&public_key.u.sm2_key, conn->pre_master_secret, 48,
 			enced_pre_master_secret, &enced_pre_master_secret_len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
@@ -1140,7 +1173,8 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
+		if (conn->verbose)
+			tls_handshake_digest_print(stderr, 0, 0, "ClientKeyExchange", &conn->dgst_ctx);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -1289,8 +1323,7 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 		return ret;
 	}
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
-
+		tls_encrypted_record_print(stderr, conn->record, conn->recordlen, 0, 0);
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
 		error_print();
@@ -1415,7 +1448,6 @@ static int tlcp_cert_chains_select(TLS_CONNECT *conn,
 		conn->cert_chain = cert_chain;
 		conn->cert_chain_len = cert_chain_len;
 		conn->cert_chain_idx = cert_chain_idx;
-		conn->sig_alg = TLS_sig_sm2sig_sm3;
 		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
 		conn->signature_algorithms_cnt = 1;
 		return 1;
@@ -1459,7 +1491,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	const uint8_t *host_name = NULL;
 	size_t host_name_len = 0;
 
-	// TLCP only use sm4 and sm3
+	conn->sig_alg = TLS_sig_sm2sig_sm3;
 	conn->cipher = BLOCK_CIPHER_sm4();
 	conn->digest = DIGEST_sm3();
 
@@ -1914,23 +1946,23 @@ int tlcp_send_server_certificate(TLS_CONNECT *conn)
 	return 1;
 }
 
-
 int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 {
-	SM2_SIGN_CTX sign_ctx;
-	uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
-	size_t siglen;
-	const uint8_t *server_enc_cert;
-	size_t server_enc_cert_len;
-	uint8_t server_ecc_params[TLS_MAX_CERTIFICATES_SIZE + 3];
-	uint8_t *p;
-	size_t server_ecc_params_len;
 	int ret;
 
-	if(conn->verbose) tls_trace("send ServerKeyExchange\n");
-
 	if (conn->recordlen == 0) {
+		const uint8_t *enc_cert;
+		size_t enc_cert_len;
+		uint8_t enc_cert_header[3];
+		uint8_t *enc_cert_header_ptr = enc_cert_header;
+		size_t enc_cert_header_len = 0;
 		X509_KEY *sign_key;
+		SM2_SIGN_CTX sign_ctx;
+		uint8_t sigbuf[SM2_MAX_SIGNATURE_SIZE];
+		size_t siglen;
+
+		if (conn->verbose)
+			tls_trace("send ServerKeyExchange\n");
 
 		if (!conn->cert_chain || !conn->cert_chain_len || !conn->cert_chain_idx) {
 			error_print();
@@ -1939,22 +1971,15 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 		}
 
 		if (x509_certs_get_cert_by_index(conn->cert_chain, conn->cert_chain_len, 1,
-			&server_enc_cert, &server_enc_cert_len) != 1) {
+			&enc_cert, &enc_cert_len) != 1) {
 			error_print();
 			return -1;
 		}
-
-		p = server_ecc_params;
-		server_ecc_params_len = 0;
-		if (tlcp_server_ecc_params_to_bytes(server_enc_cert, server_enc_cert_len,
-			&p, &server_ecc_params_len) != 1) {
-			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
-			return -1;
-		}
+		tls_uint24_to_bytes(enc_cert_len, &enc_cert_header_ptr, &enc_cert_header_len);
 
 		sign_key = &conn->ctx->x509_keys[conn->cert_chain_idx - 1];
-		if (sign_key->algor != OID_ec_public_key || sign_key->algor_param != OID_sm2) {
+		if (sign_key->algor != OID_ec_public_key
+			|| sign_key->algor_param != OID_sm2) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -1962,15 +1987,16 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 		if (sm2_sign_init(&sign_ctx, &sign_key->u.sm2_key, SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1
 			|| sm2_sign_update(&sign_ctx, conn->client_random, 32) != 1
 			|| sm2_sign_update(&sign_ctx, conn->server_random, 32) != 1
-			|| sm2_sign_update(&sign_ctx, server_ecc_params, server_ecc_params_len) != 1
+			|| sm2_sign_update(&sign_ctx, enc_cert_header, enc_cert_header_len) != 1
+			|| sm2_sign_update(&sign_ctx, enc_cert, enc_cert_len) != 1
 			|| sm2_sign_finish(&sign_ctx, sigbuf, &siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 
-		if (tls_record_set_handshake_server_key_exchange(conn->record, &conn->recordlen,
-			TLS_server_key_exchange_ecc, NULL, 0, conn->sig_alg, sigbuf, siglen) != 1) {
+		if (tlcp_record_set_handshake_server_key_exchange(conn->record, &conn->recordlen,
+			TLS_server_key_exchange_ecc, NULL, 0, sigbuf, siglen) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -1982,7 +2008,8 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
+		if (conn->verbose)
+			tls_handshake_digest_print(stderr, 0, 0, "ServerKeyExchange", &conn->dgst_ctx);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {

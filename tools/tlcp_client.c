@@ -290,7 +290,7 @@ int tlcp_client_main(int argc, char *argv[])
 			if (--argc < 1) goto bad;
 			supported_group_name = *(++argv);
 			if ((supported_group = tls_named_curve_from_name(supported_group_name)) == 0) {
-				fprintf(stderr, "%s: -supported_group '%s' not supported\n", prog, supported_group_name);
+				fprintf(stderr, "%s: -supported_group '%s' invalid\n", prog, supported_group_name);
 				return -1;
 			}
 			supported_groups[supported_groups_cnt++] = supported_group;

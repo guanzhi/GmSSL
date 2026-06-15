@@ -813,12 +813,6 @@ int tls_server_key_exchange_ecdhe_print(FILE *fp, const uint8_t *data, size_t da
 	return 1;
 }
 
-//						
-// 这个函数依赖输入的cipher_suite，才能判断如何解析ServerKeyExchange
-// 显然这个信息无法通过基础的fmt提供了，并且这个底层的信息一直需要从最上层提供，这就非常不好了
-// 目前来看，cipher_suite是否能够提供足够的信息呢？			
-// ServerKeyExchange, ClientKeyExchange的格式是由cipher_suite决定的
-
 int tls_server_key_exchange_print(FILE *fp, int fmt, int ind, int cipher_suite,
 	const uint8_t *data, size_t datalen)
 {
