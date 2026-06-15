@@ -82,6 +82,7 @@ const char *tls_cipher_suite_name(int cipher)
 	case TLS_cipher_aes_128_ccm_8_sha256: return "TLS_AES_128_CCM_8_SHA256";
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256: return "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256";
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256: return "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256";
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm: return "TLS_ECDHE_ECDSA_WITH_AES_128_CCM";
 	case TLS_cipher_empty_renegotiation_info_scsv: return "TLS_EMPTY_RENEGOTIATION_INFO_SCSV";
 	}
 	return NULL;
@@ -109,6 +110,8 @@ int tls_cipher_suite_from_name(const char *name)
 		return TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256;
 	} else if (!strcmp(name, "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256")) {
 		return TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+	} else if (!strcmp(name, "TLS_ECDHE_ECDSA_WITH_AES_128_CCM")) {
+		return TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm;
 	}
 	error_print();
 	return 0;

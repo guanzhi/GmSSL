@@ -1154,7 +1154,7 @@ int tls_record_encrypt(int cipher_suite,
 		}
 		break;
 #ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 		if (tls_ccm_encrypt(key, fixed_iv, seq_num, in,
 			in + 5, inlen - 5,
 			out + 5, outlen) != 1) {
@@ -1204,7 +1204,7 @@ int tls_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 		}
 		break;
 #ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 		if (tls_ccm_decrypt(key, fixed_iv, seq_num, in,
 			in + 5, inlen - 5,
 			out + 5, outlen) != 1) {

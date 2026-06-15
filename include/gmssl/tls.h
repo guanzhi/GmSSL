@@ -109,6 +109,7 @@ typedef enum {
 
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256 = 0xc023,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256 = 0xc02b,
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm = 0xc0ac,
 
 	TLS_cipher_empty_renegotiation_info_scsv = 0x00ff,
 } TLS_CIPHER_SUITE;

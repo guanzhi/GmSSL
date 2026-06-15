@@ -50,7 +50,7 @@ const int tls12_cipher_suites[] = {
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
 #ifdef ENABLE_AES_CCM
-	TLS_cipher_aes_128_ccm_sha256,
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm_sha256,
 #endif
 #endif
 };
@@ -458,7 +458,7 @@ static int tls12_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher,
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_aes_128_ccm:
 #endif
 		*cipher = BLOCK_CIPHER_aes128();
 		*digest = DIGEST_sha256();
@@ -481,7 +481,7 @@ static int tls12_cipher_suite_match_cert_group(int cipher_suite, int cert_group)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 #endif
 		return cert_group == TLS_curve_secp256r1;
 #endif
@@ -511,7 +511,7 @@ static int tls12_signature_scheme_match_cipher_suite(int sig_alg, int cipher_sui
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-		case TLS_cipher_aes_128_ccm_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 #endif
 			return 1;
 		}
@@ -531,7 +531,7 @@ static int tls12_key_exchange_group_match_cipher_suite(int group, int cipher_sui
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 #endif
 		return group == TLS_curve_secp256r1;
 #endif
@@ -1566,7 +1566,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 #endif
 		server_sig_alg = TLS_sig_ecdsa_secp256r1_sha256;
 		break;
@@ -1773,7 +1773,7 @@ int tls_curve_match_cipher_suite(int named_curve, int cipher_suite)
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-		case TLS_cipher_aes_128_ccm_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 #endif
 			break;
 		default:
@@ -1808,7 +1808,7 @@ int tls_signature_scheme_match_cipher_suite(int sig_alg, int cipher_suite)
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
 		case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
 #ifdef ENABLE_AES_CCM
-		case TLS_cipher_aes_128_ccm_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 #endif
 			break;
 		default:
