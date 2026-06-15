@@ -2379,7 +2379,117 @@ int tlcp_send_server_finished(TLS_CONNECT *conn)
 	return 1;
 }
 
+int tlcp_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen)
+{
+	const HMAC_CTX *hmac_ctx;
+	const BLOCK_CIPHER_KEY *enc_key;
+	const uint8_t *iv;
+	uint8_t *seq_num;
+	size_t recordlen;
+	int ret;
 
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (!in || !inlen || !sentlen) {
+		error_print();
+		return -1;
+	}
+	if (conn->recv_state) {
+		*sentlen = 0;
+		return TLS_ERROR_RECV_AGAIN;
+	}
+	if (conn->send_state && conn->send_state != TLS_state_send_record) {
+		error_print();
+		return -1;
+	}
+
+	*sentlen = 0;
+
+	if (!conn->recordlen) {
+
+		if (inlen > TLS_MAX_PLAINTEXT_SIZE) {
+			inlen = TLS_MAX_PLAINTEXT_SIZE;
+		}
+
+		if (conn->datalen) {
+			error_puts("recv all buffered data before send");
+			return -1;
+		}
+
+		if (conn->is_client) {
+			hmac_ctx = &conn->client_write_mac_ctx;
+			enc_key = &conn->client_write_key;
+			iv = conn->client_write_iv;
+			seq_num = conn->client_seq_num;
+		} else {
+			hmac_ctx = &conn->server_write_mac_ctx;
+			enc_key = &conn->server_write_key;
+			iv = conn->server_write_iv;
+			seq_num = conn->server_seq_num;
+		}
+
+		if (tls_record_set_type(conn->databuf, TLS_record_application_data) != 1
+			|| tls_record_set_protocol(conn->databuf, conn->protocol) != 1
+			|| tls_record_set_data(conn->databuf, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if(conn->verbose) tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
+
+		switch (conn->cipher_suite) {
+		case TLS_cipher_ecc_sm4_cbc_sm3:
+			if (tls_cbc_encrypt(hmac_ctx, enc_key, seq_num, conn->databuf,
+				conn->databuf + 5, tls_record_data_length(conn->databuf),
+				conn->record + 5, &recordlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+
+		case TLS_cipher_ecc_sm4_gcm_sm3:
+			if (tls_gcm_encrypt(enc_key, iv, seq_num, conn->databuf,
+				conn->databuf + 5, tls_record_data_length(conn->databuf),
+				conn->record + 5, &recordlen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+
+		default:
+			error_print();
+			return -1;
+		}
+		tls_seq_num_incr(seq_num);
+
+		conn->record[0] = conn->databuf[0];
+		conn->record[1] = conn->databuf[1];
+		conn->record[2] = conn->databuf[2];
+		conn->record[3] = (uint8_t)(recordlen >> 8);
+		conn->record[4] = (uint8_t)(recordlen);
+		recordlen += 5;
+
+		conn->recordlen = recordlen;
+		conn->record_offset = 0;
+		conn->sentlen = inlen;
+		conn->send_state = TLS_state_send_record;
+		if(conn->verbose) tls_encrypted_record_trace(stderr, conn->record, recordlen, 0, 0);
+	}
+
+	ret = tls_send_record(conn);
+	if (ret != 1) {
+		if (ret != TLS_ERROR_SEND_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+
+	*sentlen = conn->sentlen;
+	conn->send_state = 0;
+	tls_clean_record(conn);
+	return 1;
+}
 
 
 /*

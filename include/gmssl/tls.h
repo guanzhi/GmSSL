@@ -424,18 +424,18 @@ int tls_ccm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 int tls_ccm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen);
-int tls12_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
+
+
+int tls_record_encrypt(int cipher_suite,
+	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
+	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
+	uint8_t *out, size_t *outlen);
+int tls_record_decrypt(int cipher_suite, const HMAC_CTX *hmac_ctx,
 	const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
 	uint8_t *out, size_t *outlen);
-int tlcp_record_encrypt(int cipher_suite,
-	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen);
-int tlcp_record_decrypt(int cipher_suite,
-	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
-	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
-	uint8_t *out, size_t *outlen);
+
+
 
 int tls_seq_num_incr(uint8_t seq_num[8]);
 void tls_seq_num_reset(uint8_t seq_num[8]);
@@ -493,6 +493,7 @@ int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen);
 // parse ServerKeyExchange, ClientKeyExchange depends on current cipher_suite		
 #define tls_format_set_cipher_suite(fmt,cipher)	do {(fmt)|=((cipher)<<8);} while (0)
 int tls_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
+int tls12_record_print(FILE *fp, const uint8_t *record,  size_t recordlen, int format, int indent);
 int tlcp_record_print(FILE *fp, int format, int indent, const uint8_t *record, size_t recordlen);
 
 int tls_record_send(const uint8_t *record, size_t recordlen, tls_socket_t sock);
@@ -1605,6 +1606,9 @@ int tls12_do_connect(TLS_CONNECT *conn);
 int tls12_do_accept(TLS_CONNECT *conn);
 
 
+
+int tls12_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen);
+
 int tls13_init(TLS_CONNECT *conn, TLS_CTX *ctx);
 
 
@@ -1618,6 +1622,9 @@ int tls13_accept(TLS_CONNECT *conn, int port,
 	FILE *client_cacerts_fp);
 int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *sentlen);
 int tls13_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_t *recvlen);
+
+
+int tlcp_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentlen);
 
 
 
