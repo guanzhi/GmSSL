@@ -97,9 +97,11 @@ static int test_tls13_gcm(void)
 	return 1;
 }
 
-#ifdef ENABLE_AES_CCM
+#if defined(ENABLE_AES_CCM) || defined(ENABLE_SM4_CCM)
 static int test_tls13_ccm(void)
 {
+	const BLOCK_CIPHER *cipher;
+	int cipher_suite;
 	BLOCK_CIPHER_KEY block_key;
 	uint8_t key[16];
 	uint8_t iv[12];
@@ -116,6 +118,14 @@ static int test_tls13_ccm(void)
 	rand_bytes(iv, sizeof(iv));
 	rand_bytes(record + 5, 40);
 
+#ifdef ENABLE_AES_CCM
+	cipher = BLOCK_CIPHER_aes128();
+	cipher_suite = TLS_cipher_aes_128_ccm_sha256;
+#else
+	cipher = BLOCK_CIPHER_sm4();
+	cipher_suite = TLS_cipher_sm4_ccm_sm3;
+#endif
+
 	record[0] = TLS_record_handshake;
 	record[1] = TLS_protocol_tls12 >> 8;
 	record[2] = TLS_protocol_tls12 & 0xff;
@@ -123,16 +133,16 @@ static int test_tls13_ccm(void)
 	record[4] = 40;
 	recordlen = 5 + 40;
 
-	if (block_cipher_set_encrypt_key(&block_key, BLOCK_CIPHER_aes128(), key) != 1) {
+	if (block_cipher_set_encrypt_key(&block_key, cipher, key) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tls13_record_encrypt(TLS_cipher_aes_128_ccm_sha256, &block_key, iv,
+	if (tls13_record_encrypt(cipher_suite, &block_key, iv,
 		seq_num, record, recordlen, padding_len, enced_record, &enced_recordlen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (tls13_record_decrypt(TLS_cipher_aes_128_ccm_sha256, &block_key, iv,
+	if (tls13_record_decrypt(cipher_suite, &block_key, iv,
 		seq_num, enced_record, enced_recordlen, buf, &buflen) != 1) {
 		error_print();
 		return -1;
@@ -141,6 +151,71 @@ static int test_tls13_ccm(void)
 		error_print();
 		return -1;
 	}
+
+#ifndef WIN32
+	{
+		TLS_CTX ctx;
+		TLS_CONNECT conn;
+		tls_socket_t fds[2];
+		uint8_t data[40];
+		size_t sentlen;
+		uint8_t recv_record[256];
+		size_t recv_recordlen;
+		uint8_t decrypt_seq_num[8] = {0};
+		const uint8_t *decrypt_data;
+		size_t decrypt_datalen;
+		tls_ret_t n;
+
+		memset(&ctx, 0, sizeof(ctx));
+		memset(&conn, 0, sizeof(conn));
+		rand_bytes(data, sizeof(data));
+
+		if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds) != 0) {
+			error_print();
+			return -1;
+		}
+		conn.ctx = &ctx;
+		conn.is_client = 1;
+		conn.sock = fds[0];
+		conn.cipher_suite = cipher_suite;
+		memcpy(conn.client_write_iv, iv, sizeof(iv));
+		if (block_cipher_set_encrypt_key(&conn.client_write_key, cipher, key) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls13_send(&conn, data, sizeof(data), &sentlen) != 1 || sentlen != sizeof(data)) {
+			error_print();
+			return -1;
+		}
+		if ((n = tls_socket_recv(fds[1], recv_record, TLS_RECORD_HEADER_SIZE, 0)) != TLS_RECORD_HEADER_SIZE) {
+			error_print();
+			return -1;
+		}
+		recv_recordlen = tls_record_length(recv_record);
+		if (recv_recordlen > sizeof(recv_record)) {
+			error_print();
+			return -1;
+		}
+		if ((n = tls_socket_recv(fds[1], recv_record + TLS_RECORD_HEADER_SIZE,
+			recv_recordlen - TLS_RECORD_HEADER_SIZE, 0)) != (tls_ret_t)(recv_recordlen - TLS_RECORD_HEADER_SIZE)) {
+			error_print();
+			return -1;
+		}
+		if (tls13_record_decrypt(cipher_suite, &block_key, iv,
+			decrypt_seq_num, recv_record, recv_recordlen, buf, &buflen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls_record_get_application_data(buf, &decrypt_data, &decrypt_datalen) != 1
+			|| decrypt_datalen != sizeof(data)
+			|| memcmp(decrypt_data, data, decrypt_datalen) != 0) {
+			error_print();
+			return -1;
+		}
+		tls_socket_close(fds[0]);
+		tls_socket_close(fds[1]);
+	}
+#endif
 
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
@@ -711,7 +786,7 @@ int main(void)
 {
 	if (test_tls_ext() != 1) goto err;
 	if (test_tls13_gcm() != 1) goto err;
-#ifdef ENABLE_AES_CCM
+#if defined(ENABLE_AES_CCM) || defined(ENABLE_SM4_CCM)
 	if (test_tls13_ccm() != 1) goto err;
 #endif
 	if (test_tls13_supported_versions_ext() != 1) goto err;

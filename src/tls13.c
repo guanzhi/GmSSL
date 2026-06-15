@@ -1222,7 +1222,6 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 		const uint8_t *iv;
 		uint8_t *seq_num;
 		size_t padding_len = 0;
-		size_t record_datalen;
 
 		int request_update = 0;
 
@@ -1275,9 +1274,14 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 
 
 		tls13_padding_len_rand(&padding_len);
-		if (tls13_gcm_encrypt(key, iv,
-			seq_num, TLS_record_application_data, data, datalen, padding_len,
-			conn->record + 5, &record_datalen) != 1) {
+		if (tls_record_set_application_data(conn->plain_record, &conn->plain_recordlen,
+			data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tls13_record_encrypt(conn->cipher_suite, key, iv,
+			seq_num, conn->plain_record, conn->plain_recordlen, padding_len,
+			conn->record, &conn->recordlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1285,11 +1289,6 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 
 		ret = 1;
 
-		tls_record_set_type(conn->record, TLS_record_application_data);
-		tls_record_set_protocol(conn->record, TLS_protocol_tls12);
-		tls_record_set_data_length(conn->record, record_datalen);
-
-		conn->recordlen = 5 + record_datalen;
 		conn->record_offset = 0;
 		conn->send_state = TLS_state_send_record;
 
