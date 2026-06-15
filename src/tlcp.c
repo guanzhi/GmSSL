@@ -1414,6 +1414,7 @@ static int tlcp_cert_chains_select(TLS_CONNECT *conn,
 		conn->cert_chain = cert_chain;
 		conn->cert_chain_len = cert_chain_len;
 		conn->cert_chain_idx = cert_chain_idx;
+		conn->sig_alg = TLS_sig_sm2sig_sm3;
 		conn->signature_algorithms[0] = TLS_sig_sm2sig_sm3;
 		conn->signature_algorithms_cnt = 1;
 		return 1;
