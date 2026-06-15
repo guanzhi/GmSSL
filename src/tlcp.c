@@ -509,7 +509,8 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 		}
 
 		if(conn->verbose) tls_trace("send ClientHello\n");
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -562,7 +563,8 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
 		error_print();
@@ -766,7 +768,8 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
 		error_print();
@@ -863,7 +866,8 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
 		error_print();
@@ -902,8 +906,6 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-
-	// 取得加密证书和加密公钥应该是没有用的，TLCP中的ServerKeyExchange是怎么计算的？
 
 	if (server_sign_key.algor != OID_ec_public_key
 		|| server_sign_key.algor_param != OID_sm2
@@ -991,7 +993,8 @@ int tlcp_recv_certificate_request(TLS_CONNECT *conn)
 	}
 
 	if(conn->verbose) tls_trace("recv CertificateRequest\n");
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tlcp_record_get_handshake_certificate_request(conn->record,
 		&cert_types, &cert_types_len, &ca_names, &ca_names_len) != 1) {
@@ -1048,7 +1051,8 @@ int tlcp_recv_server_hello_done(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tls_record_get_handshake_server_hello_done(conn->record) != 1) {
 		error_print();
@@ -1096,7 +1100,8 @@ int tlcp_send_client_certificate(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 
 
@@ -1148,7 +1153,8 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -1207,7 +1213,8 @@ int tlcp_send_certificate_verify(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -1248,7 +1255,8 @@ int tlcp_send_client_finished(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
 			error_print();
@@ -1300,7 +1308,8 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
@@ -1319,7 +1328,8 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 	}
 	tls_seq_num_incr(conn->server_seq_num);
 
-	tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 	// 最后没有必要再计算handshke_digest了
 
@@ -1487,7 +1497,8 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 
 	if (tls_record_protocol(conn->record) != conn->protocol) {
@@ -1902,7 +1913,8 @@ int tlcp_send_server_certificate(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -1985,7 +1997,8 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -2261,7 +2274,8 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 	if (tlcp_record_get_handshake_client_key_exchange(conn->record, &enced_pms, &enced_pms_len) != 1) {
 		error_print();
@@ -2362,7 +2376,8 @@ int tlcp_recv_client_finished(TLS_CONNECT *conn)
 	}
 	tls_seq_num_incr(conn->client_seq_num);
 
-	tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+	if (conn->verbose)
+		tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 	if (tls_record_get_handshake_finished(conn->plain_record, &verify_data, &verify_data_len) != 1) {
 		error_print();
@@ -2408,7 +2423,8 @@ int tlcp_send_server_finished(TLS_CONNECT *conn)
 			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
-		tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+		if (conn->verbose)
+			tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 		if (tlcp_record_encrypt(conn->cipher_suite,
 			&conn->server_write_mac_ctx, &conn->server_write_key, conn->server_write_iv,
