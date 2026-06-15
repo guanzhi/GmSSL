@@ -606,7 +606,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 
 		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
 			error_print();
-			tls13_send_alert(conn, TLS_alert_decode_error);
+			tls_send_alert(conn, TLS_alert_decode_error);
 			return -1;
 		}
 
@@ -616,7 +616,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 		case TLS_extension_status_request:
 			if (ext_data) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			break;
@@ -624,7 +624,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 		case TLS_extension_application_layer_protocol_negotiation:
 			if (!ext_data) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			break;
@@ -680,7 +680,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 		case TLS_extension_supported_groups:
 			if (supported_groups) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			supported_groups = ext_data;
@@ -695,7 +695,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 			}
 			if (application_layer_protocol_negotiation) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			application_layer_protocol_negotiation = ext_data;
@@ -1224,7 +1224,7 @@ int tlcp_send_client_finished(TLS_CONNECT *conn)
 
 		if (tls_compute_verify_data(conn->digest, conn->master_secret, "client finished", &conn->dgst_ctx, verify_data) != 1) {
 			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
+			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 
@@ -1233,7 +1233,7 @@ int tlcp_send_client_finished(TLS_CONNECT *conn)
 		if (tls_record_set_handshake_finished(conn->plain_record, &conn->plain_recordlen,
 			verify_data, sizeof(verify_data)) != 1) {
 			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
+			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 
@@ -1252,7 +1252,7 @@ int tlcp_send_client_finished(TLS_CONNECT *conn)
 			conn->record, &conn->recordlen) != 1) {
 
 			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
+			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 
@@ -1294,7 +1294,7 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 
 	if (tls_record_protocol(conn->record) != TLS_protocol_tlcp) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_unexpected_message);
+		tlcp_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
 
@@ -1303,7 +1303,7 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 		conn->server_seq_num, conn->record, conn->recordlen,
 		conn->plain_record, &conn->plain_recordlen) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_bad_record_mac);
+		tlcp_send_alert(conn, TLS_alert_bad_record_mac);
 		return -1;
 	}
 	tls_seq_num_incr(conn->server_seq_num);
@@ -1314,24 +1314,24 @@ int tlcp_recv_server_finished(TLS_CONNECT *conn)
 
 	if (tls_record_get_handshake_finished(conn->plain_record, &verify_data, &verify_data_len) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_unexpected_message);
+		tlcp_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
 	if (verify_data_len != sizeof(local_verify_data)) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_unexpected_message);
+		tlcp_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
 
 	if (tls_compute_verify_data(conn->digest, conn->master_secret, "server finished", &conn->dgst_ctx, local_verify_data) != 1) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
+		tlcp_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
 
 	if (memcmp(verify_data, local_verify_data, sizeof(local_verify_data)) != 0) {
 		error_print();
-		tls_send_alert(conn, TLS_alert_decrypt_error);
+		tlcp_send_alert(conn, TLS_alert_decrypt_error);
 		return -1;
 	}
 
@@ -1530,7 +1530,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 
 		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
 			error_print();
-			tls13_send_alert(conn, TLS_alert_decode_error);
+			tls_send_alert(conn, TLS_alert_decode_error);
 			return -1;
 		}
 
@@ -1547,7 +1547,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_server_name:
 			if (server_name) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			server_name = ext_data;
@@ -1557,13 +1557,13 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_trusted_ca_keys:
 			if (trusted_ca_keys) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			if (tls_trusted_authorities_from_bytes(&trusted_authorities,
 				&trusted_authorities_len, ext_data, ext_datalen) != 1) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_decode_error);
+				tls_send_alert(conn, TLS_alert_decode_error);
 				return -1;
 			}
 			trusted_ca_keys = 1;
@@ -1572,7 +1572,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_status_request:
 			if (status_request) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			status_request = ext_data;
@@ -1582,7 +1582,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_supported_groups:
 			if (supported_groups) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			supported_groups = ext_data;
@@ -1592,7 +1592,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_signature_algorithms:
 			if (signature_algorithms) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			signature_algorithms = ext_data;
@@ -1602,7 +1602,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_application_layer_protocol_negotiation:
 			if (application_layer_protocol_negotiation) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			application_layer_protocol_negotiation = ext_data;
@@ -1612,7 +1612,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		case TLS_extension_client_id:
 			if (client_id) {
 				error_print();
-				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				tls_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			client_id = ext_data;
@@ -2344,7 +2344,7 @@ int tlcp_send_server_finished(TLS_CONNECT *conn)
 		if (tls_compute_verify_data(conn->digest, conn->master_secret, "server finished",
 			&conn->dgst_ctx, verify_data) != 1) {
 			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
+			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 
@@ -2353,7 +2353,7 @@ int tlcp_send_server_finished(TLS_CONNECT *conn)
 		if (tls_record_set_handshake_finished(conn->plain_record, &conn->plain_recordlen,
 			verify_data, sizeof(verify_data)) != 1) {
 			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
+			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 		tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
@@ -2363,7 +2363,7 @@ int tlcp_send_server_finished(TLS_CONNECT *conn)
 			conn->server_seq_num, conn->plain_record, conn->plain_recordlen,
 			conn->record, &conn->recordlen) != 1) {
 			error_print();
-			tls_send_alert(conn, TLS_alert_internal_error);
+			tlcp_send_alert(conn, TLS_alert_internal_error);
 			return -1;
 		}
 		tls_seq_num_incr(conn->server_seq_num);
@@ -2489,6 +2489,98 @@ int tlcp_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentle
 	conn->send_state = 0;
 	tls_clean_record(conn);
 	return 1;
+}
+
+static int tlcp_send_encrypted_alert(TLS_CONNECT *conn, int level, int alert)
+{
+	const HMAC_CTX *hmac;
+	const BLOCK_CIPHER_KEY *key;
+	const uint8_t *iv;
+	uint8_t *seq_num;
+	int ret;
+
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (!tls_alert_level_name(level) || !tls_alert_description_text(alert)) {
+		error_print();
+		return -1;
+	}
+	if (conn->send_state && conn->send_state != TLS_state_send_record) {
+		error_print();
+		return -1;
+	}
+	if (conn->send_state == TLS_state_send_record
+		&& tls_record_type(conn->record) != TLS_record_alert) {
+		error_print();
+		return -1;
+	}
+
+	if (!conn->send_state) {
+		tls_clean_record(conn);
+		conn->plain_recordlen = 0;
+
+		if (conn->is_client) {
+			hmac = &conn->client_write_mac_ctx;
+			key = &conn->client_write_key;
+			iv = conn->client_write_iv;
+			seq_num = conn->client_seq_num;
+		} else {
+			hmac = &conn->server_write_mac_ctx;
+			key = &conn->server_write_key;
+			iv = conn->server_write_iv;
+			seq_num = conn->server_seq_num;
+		}
+
+		tls_record_set_protocol(conn->plain_record, conn->protocol);
+		if (tls_record_set_alert(conn->plain_record, &conn->plain_recordlen, level, alert) != 1) {
+			error_print();
+			return -1;
+		}
+		if (conn->verbose) {
+			tlcp_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+		}
+
+		if (tlcp_record_encrypt(conn->cipher_suite, hmac, key, iv, seq_num,
+			conn->plain_record, conn->plain_recordlen,
+			conn->record, &conn->recordlen) != 1) {
+			error_print();
+			conn->plain_recordlen = 0;
+			tls_clean_record(conn);
+			return -1;
+		}
+		tls_seq_num_incr(seq_num);
+		conn->record_offset = 0;
+		conn->send_state = TLS_state_send_record;
+
+		if (conn->verbose) {
+			tls_encrypted_record_print(stderr, conn->record, conn->recordlen, 0, 0);
+		}
+	}
+
+	ret = tls_send_record(conn);
+	if (ret != 1) {
+		if (ret != TLS_ERROR_SEND_AGAIN) {
+			error_print();
+		}
+		return ret;
+	}
+
+	conn->send_state = 0;
+	conn->plain_recordlen = 0;
+	tls_clean_record(conn);
+	return 1;
+}
+
+int tlcp_send_alert(TLS_CONNECT *conn, int alert)
+{
+	return tlcp_send_encrypted_alert(conn, TLS_alert_level_fatal, alert);
+}
+
+int tlcp_send_warning(TLS_CONNECT *conn, int alert)
+{
+	return tlcp_send_encrypted_alert(conn, TLS_alert_level_warning, alert);
 }
 
 

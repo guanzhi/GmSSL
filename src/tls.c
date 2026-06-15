@@ -2381,8 +2381,6 @@ int tls_send_warning(TLS_CONNECT *conn, int alert)
 	return 1;
 }
 
-
-
 int tls_decrypt_recv(TLS_CONNECT *conn)
 {
 	int ret;

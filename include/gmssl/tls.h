@@ -1639,6 +1639,11 @@ int tlcp_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentle
 int tls_send_alert(TLS_CONNECT *conn, int alert);
 int tls_send_warning(TLS_CONNECT *conn, int alert);
 
+int tls12_send_alert(TLS_CONNECT *conn, int alert);
+int tls12_send_warning(TLS_CONNECT *conn, int alert);
+int tlcp_send_alert(TLS_CONNECT *conn, int alert);
+int tlcp_send_warning(TLS_CONNECT *conn, int alert);
+
 
 int tls13_send_alert(TLS_CONNECT *conn, int alert);
 
