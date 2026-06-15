@@ -50,21 +50,6 @@ int tlcp_record_print(FILE *fp, int fmt, int ind, const uint8_t *record, size_t 
 		record, recordlen);
 }
 
-static int tlcp_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest)
-{
-	switch (cipher_suite) {
-	case TLS_cipher_ecc_sm4_cbc_sm3:
-	case TLS_cipher_ecc_sm4_gcm_sm3:
-		*cipher = BLOCK_CIPHER_sm4();
-		*digest = DIGEST_sm3();
-		break;
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 int tlcp_record_encrypt(int cipher_suite,
 	const HMAC_CTX *hmac_ctx, const BLOCK_CIPHER_KEY *key, const uint8_t fixed_iv[4],
 	const uint8_t seq_num[8], const uint8_t *in, size_t inlen,
@@ -387,18 +372,11 @@ struct {
 		opaque RSAEncryptedPreMasterSecret<0..2^16-1>;
 	} exchange_keys;
 } ClientKeyExchange;
-
-这里比较特殊的是需要打印一个SM2Ciphertext，也许直接打印二进制就可以了
 */
 
 
 // Handshakes
 
-// 一般来说digest_init是在cipher_suite定下来之后才能设置
-// 但是TLCP中的SM3是确定的，因此可以在ClientHello, ServerHello中设置
-
-
-// 这个一定是要不同的
 int tlcp_send_client_hello(TLS_CONNECT *conn)
 {
 	int ret;
@@ -413,12 +391,15 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		if (tlcp_cipher_suite_get(conn->ctx->cipher_suites[0], &conn->cipher, &conn->digest) != 1
-			|| digest_init(&conn->dgst_ctx, conn->digest) != 1) {
+
+		// TLCP only use sm4 and sm3
+		conn->cipher = BLOCK_CIPHER_sm4();
+		conn->digest = DIGEST_sm3();
+
+		if (digest_init(&conn->dgst_ctx, conn->digest) != 1) {
 			error_print();
 			return -1;
 		}
-
 
 		tls_record_set_protocol(conn->record, TLS_protocol_tlcp);
 
@@ -508,15 +489,19 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		if(conn->verbose) tls_trace("send ClientHello\n");
-		if (conn->verbose)
+		if (conn->verbose) {
+			tls_trace("send ClientHello\n");
 			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		}
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
 			return -1;
 		}
-		if(conn->verbose) tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
+		if(conn->verbose)
+			tls_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->dgst_ctx);
+
+
 
 		if (conn->client_certificate_verify) {
 			sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
@@ -593,11 +578,6 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 	conn->cipher_suite = cipher_suite;
-	if (tlcp_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
-	}
 
 	while (extslen) {
 		int ext_type;
@@ -1479,9 +1459,14 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 	const uint8_t *host_name = NULL;
 	size_t host_name_len = 0;
 
+	// TLCP only use sm4 and sm3
+	conn->cipher = BLOCK_CIPHER_sm4();
+	conn->digest = DIGEST_sm3();
 
-
-
+	if (digest_init(&conn->dgst_ctx, conn->digest) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// 这个判断应该改为一个函数
 	/*
@@ -1648,12 +1633,6 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		}
 	}
 
-	if (tlcp_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
-		error_print();
-		tls_send_alert(conn, TLS_alert_internal_error);
-		return -1;
-	}
-
 	if (supported_groups) {
 		int common_group;
 		size_t common_groups_cnt = 0;
@@ -1748,8 +1727,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (digest_init(&conn->dgst_ctx, conn->digest) != 1
-		|| digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
+	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
 		return -1;
 	}

@@ -36,11 +36,11 @@ if(TEST_CASE STREQUAL tls13_sm4_gcm)
 elseif(TEST_CASE STREQUAL tls13_hrr_sm4_gcm)
 	gmssl_run_tls_command_test(
 		TEST_NAME tls13_hrr_sm4_gcm
-		PORT 4436
+		PORT 4460
 		EXPECT_CLIENT_LOG "selected_group: sm2p256v1"
 		SERVER_ARGS
 			tls13_server
-			-port 4436
+			-port 4460
 			-cert tls_server_certs.pem
 			-key signkey.pem
 			-pass P@ssw0rd
@@ -51,7 +51,7 @@ elseif(TEST_CASE STREQUAL tls13_hrr_sm4_gcm)
 		CLIENT_ARGS
 			tls13_client
 			-host 127.0.0.1
-			-port 4436
+			-port 4460
 			-cacert rootcacert.pem
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group prime256v1
@@ -92,10 +92,10 @@ elseif(TEST_CASE STREQUAL tls13_psk_dhe_sm4_gcm)
 elseif(TEST_CASE STREQUAL tls13_psk_only_sm4_gcm)
 	gmssl_run_tls_command_test(
 		TEST_NAME tls13_psk_only_sm4_gcm
-		PORT 4438
+		PORT 4461
 		SERVER_ARGS
 			tls13_server
-			-port 4438
+			-port 4461
 			-cert tls_server_certs.pem
 			-key signkey.pem
 			-pass P@ssw0rd
@@ -107,7 +107,7 @@ elseif(TEST_CASE STREQUAL tls13_psk_only_sm4_gcm)
 		CLIENT_ARGS
 			tls13_client
 			-host 127.0.0.1
-			-port 4438
+			-port 4461
 			-cipher_suite TLS_SM4_GCM_SM3
 			-psk_ke
 			-psk_identity 001
@@ -118,11 +118,11 @@ elseif(TEST_CASE STREQUAL tls13_psk_only_sm4_gcm)
 elseif(TEST_CASE STREQUAL tls13_early_data_sm4_gcm)
 	gmssl_run_tls_command_test(
 		TEST_NAME tls13_early_data_sm4_gcm
-		PORT 4439
+		PORT 4462
 		EXPECT_SERVER_LOG "EarlyData"
 		SERVER_ARGS
 			tls13_server
-			-port 4439
+			-port 4462
 			-cert tls_server_certs.pem
 			-key signkey.pem
 			-pass P@ssw0rd
@@ -135,7 +135,7 @@ elseif(TEST_CASE STREQUAL tls13_early_data_sm4_gcm)
 		CLIENT_ARGS
 			tls13_client
 			-host 127.0.0.1
-			-port 4439
+			-port 4462
 			-cipher_suite TLS_SM4_GCM_SM3
 			-psk_ke
 			-psk_identity 001

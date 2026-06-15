@@ -1282,10 +1282,13 @@ typedef struct {
 
 	// 41. pre_shared_key
 	// in ClientHello; ServerHello
+#define TLS13_PSK_IDENTITY_EXTERNAL	0
+#define TLS13_PSK_IDENTITY_RESUMPTION	1
 	int pre_shared_key;
 	uint8_t psk_identities[512]; // list of PskIdentity objects
 	size_t psk_identities_len;
 	int psk_cipher_suites[8];
+	uint8_t psk_identity_types[8];
 	size_t psk_cipher_suites_cnt;
 	uint8_t psk_keys[32 * 8]; // uint8array
 	size_t psk_keys_len;
@@ -1694,7 +1697,7 @@ int tls13_gcm_decrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
 #	define tls12_record_trace(fp,rec,reclen,fmt,ind)  tls12_record_print(fp,rec,reclen,fmt,ind)
 #	define tls13_record_trace(fp,rec,reclen,fmt,ind)  tls13_record_print(fp,fmt,ind,rec,reclen)
 #else
-#	define tls_trace(s)
+#	define tls_trace(s) fprintf(stderr,(s))
 #	define tls_record_trace(fp,rec,reclen,fmt,ind)
 #	define tls_encrypted_record_trace(fp,rec,reclen,fmt,ind)
 #	define tlcp_record_trace(fp,rec,reclen,fmt,ind)
@@ -2052,6 +2055,7 @@ int tls13_psk_binders_generate_empty(const int *psk_cipher_suites, size_t psk_ci
 	uint8_t *binders, size_t *binders_len);
 int tls13_psk_binders_generate(
 	const int *psk_cipher_suites, size_t psk_cipher_suites_cnt,
+	const uint8_t *psk_identity_types,
 	const uint8_t *psk_keys, size_t psk_keys_len,
 	const uint8_t *truncated_client_hello, size_t truncated_client_hello_len,
 	uint8_t *binders, size_t *binders_len);

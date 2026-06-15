@@ -629,6 +629,7 @@ int tls13_add_pre_shared_key_from_session_file(TLS_CONNECT *conn, FILE *fp)
 		error_print();
 		return -1;
 	}
+	conn->psk_identity_types[conn->psk_cipher_suites_cnt - 1] = TLS13_PSK_IDENTITY_RESUMPTION;
 
 	conn->pre_shared_key = 1;
 	return 1;
@@ -680,8 +681,6 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		}
 
 		// generate resumption_master_secret
-
-		digest_init(&conn->dgst_ctx, conn->digest);
 
 		/* [14] */ tls13_derive_secret(conn->master_secret, "res master", &conn->dgst_ctx, resumption_master_secret);
 
@@ -807,8 +806,6 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 	uint8_t resumption_master_secret[48];
 	size_t dgstlen = 32;
 	uint8_t pre_shared_key[32];
-
-	digest_init(&conn->dgst_ctx, conn->digest);
 
 	// generate resumption_master_secret
 	/* [14] */ tls13_derive_secret(conn->master_secret, "res master", &conn->dgst_ctx, resumption_master_secret);
@@ -1000,6 +997,7 @@ int tls13_psk_binders_generate_empty(const int *psk_cipher_suites, size_t psk_ci
 
 int tls13_psk_binders_generate(
 	const int *psk_cipher_suites, size_t psk_cipher_suites_cnt,
+	const uint8_t *psk_identity_types,
 	const uint8_t *psk_keys, size_t psk_keys_len,
 	const uint8_t *truncated_client_hello, size_t truncated_client_hello_len,
 	uint8_t *binders, size_t *binders_len)
@@ -1028,10 +1026,15 @@ int tls13_psk_binders_generate(
 		const DIGEST *digest;
 		const uint8_t *psk_key;
 		size_t psk_key_len;
+		const char *binder_label = "ext binder";
 
 		if (tls13_cipher_suite_get(psk_cipher_suites[i], &cipher, &digest) != 1) {
 			error_print();
 			return -1;
+		}
+		if (psk_identity_types
+			&& psk_identity_types[i] == TLS13_PSK_IDENTITY_RESUMPTION) {
+			binder_label = "res binder";
 		}
 
 		if (digest->digest_size != sizeof(secret)) {
@@ -1058,7 +1061,7 @@ int tls13_psk_binders_generate(
 		// [1]
 		tls13_hkdf_extract(digest, zeros, psk_key, early_secret);
 		// [2]
-		tls13_derive_secret(early_secret, "res binder", &null_dgst_ctx, binder_key);
+		tls13_derive_secret(early_secret, binder_label, &null_dgst_ctx, binder_key);
 
 		tls13_compute_verify_data(binder_key, &dgst_ctx, binder, &binderlen);
 
@@ -1069,10 +1072,10 @@ int tls13_psk_binders_generate(
 	return 1;
 }
 
-int tls13_psk_binder_verify(const DIGEST *digest,
+static int tls13_psk_binder_verify_with_label(const DIGEST *digest,
 	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
 	const DIGEST_CTX *truncated_client_hello_dgst_ctx,
-	const uint8_t *binder, size_t binderlen)
+	const uint8_t *binder, size_t binderlen, const char *binder_label)
 {
 	uint8_t secret[32] = {0};
 	uint8_t *zeros = secret;
@@ -1090,7 +1093,7 @@ int tls13_psk_binder_verify(const DIGEST *digest,
 	// [1]
 	tls13_hkdf_extract(digest, zeros, pre_shared_key, early_secret);
 	// [2]
-	tls13_derive_secret(early_secret, "res binder", &null_dgst_ctx, binder_key);
+	tls13_derive_secret(early_secret, binder_label, &null_dgst_ctx, binder_key);
 
 	tls13_compute_verify_data(binder_key, truncated_client_hello_dgst_ctx, local_binder, &local_binder_len);
 
@@ -1099,6 +1102,15 @@ int tls13_psk_binder_verify(const DIGEST *digest,
 	}
 
 	return 1;
+}
+
+int tls13_psk_binder_verify(const DIGEST *digest,
+	const uint8_t *pre_shared_key, size_t pre_shared_key_len,
+	const DIGEST_CTX *truncated_client_hello_dgst_ctx,
+	const uint8_t *binder, size_t binderlen)
+{
+	return tls13_psk_binder_verify_with_label(digest, pre_shared_key, pre_shared_key_len,
+		truncated_client_hello_dgst_ctx, binder, binderlen, "res binder");
 }
 
 int tls13_client_pre_shared_key_ext_to_bytes(const uint8_t *identities, size_t identitieslen,
@@ -1288,7 +1300,9 @@ int tls13_add_pre_shared_key(TLS_CONNECT *conn,
 		error_print();
 		return -1;
 	}
-	conn->psk_cipher_suites[conn->psk_cipher_suites_cnt++] = psk_cipher_suite;
+	conn->psk_cipher_suites[conn->psk_cipher_suites_cnt] = psk_cipher_suite;
+	conn->psk_identity_types[conn->psk_cipher_suites_cnt] = TLS13_PSK_IDENTITY_EXTERNAL;
+	conn->psk_cipher_suites_cnt++;
 
 	return 1;
 }
@@ -1343,8 +1357,8 @@ int tls13_process_client_pre_shared_key_external(TLS_CONNECT *conn,
 	size_t identitieslen;
 	const uint8_t *binders;
 	size_t binderslen;
-	const uint8_t *truncated_binders;
-	size_t truncated_binderslen;
+	const uint8_t *truncated_client_hello;
+	size_t truncated_client_hello_len;
 	size_t i;
 
 	if (!conn || !ext_data || !ext_datalen) {
@@ -1364,21 +1378,12 @@ int tls13_process_client_pre_shared_key_external(TLS_CONNECT *conn,
 		return -1;
 	}
 
-	// truncate client_hello => plain_record
-	memcpy(conn->plain_record, conn->record, conn->recordlen);
-	conn->plain_recordlen = conn->recordlen;
-	truncated_binders = conn->plain_record + (binders - conn->record);
-	truncated_binderslen = binderslen;
-	while (truncated_binderslen) {
-		const uint8_t *truncated_binder;
-		size_t truncated_binderlen;
-		if (tls_uint8array_from_bytes(&truncated_binder, &truncated_binderlen,
-			&truncated_binders, &truncated_binderslen) != 1) {
-			error_print();
-			return -1;
-		}
-		memset((uint8_t *)truncated_binder, 0, truncated_binderlen);
+	if (binders < conn->record + TLS_RECORD_HEADER_SIZE + 2) {
+		error_print();
+		return -1;
 	}
+	truncated_client_hello = conn->record + TLS_RECORD_HEADER_SIZE;
+	truncated_client_hello_len = (size_t)((binders - 2) - truncated_client_hello);
 
 	// search psk
 	for (i = 0; identitieslen; i++) {
@@ -1423,12 +1428,12 @@ int tls13_process_client_pre_shared_key_external(TLS_CONNECT *conn,
 
 		// verify binder
 		if (digest_init(&dgst_ctx, conn->digest) != 1
-			|| digest_update(&dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
+			|| digest_update(&dgst_ctx, truncated_client_hello, truncated_client_hello_len) != 1) {
 			error_print();
 			return -1;
 		}
-		if ((ret = tls13_psk_binder_verify(conn->digest, matched_psk, matched_psk_len,
-			&dgst_ctx, binder, binderlen)) < 0) {
+		if ((ret = tls13_psk_binder_verify_with_label(conn->digest, matched_psk, matched_psk_len,
+			&dgst_ctx, binder, binderlen, "ext binder")) < 0) {
 			error_print();
 			return -1;
 		} else if (ret == 0) {
@@ -1456,8 +1461,8 @@ int tls13_process_client_pre_shared_key_from_ticket(TLS_CONNECT *conn,
 	size_t identitieslen;
 	const uint8_t *binders;
 	size_t binderslen;
-	const uint8_t *truncated_binders;
-	size_t truncated_binderslen;
+	const uint8_t *truncated_client_hello;
+	size_t truncated_client_hello_len;
 	size_t i;
 
 	if (!conn || !ext_data || !ext_datalen) {
@@ -1485,21 +1490,12 @@ int tls13_process_client_pre_shared_key_from_ticket(TLS_CONNECT *conn,
 		return -1;
 	}
 
-	// truncate client_hello
-	memcpy(conn->plain_record, conn->record, conn->recordlen);
-	conn->plain_recordlen = conn->recordlen;
-	truncated_binders = conn->plain_record + (binders - conn->record);
-	truncated_binderslen = binderslen;
-	while (truncated_binderslen) {
-		const uint8_t *truncated_binder;
-		size_t truncated_binderlen;
-		if (tls_uint8array_from_bytes(&truncated_binder, &truncated_binderlen,
-			&truncated_binders, &truncated_binderslen) != 1) {
-			error_print();
-			return -1;
-		}
-		memset((uint8_t *)truncated_binder, 0, truncated_binderlen);
+	if (binders < conn->record + TLS_RECORD_HEADER_SIZE + 2) {
+		error_print();
+		return -1;
 	}
+	truncated_client_hello = conn->record + TLS_RECORD_HEADER_SIZE;
+	truncated_client_hello_len = (size_t)((binders - 2) - truncated_client_hello);
 
 	// search psk
 	for (i = 0; identitieslen; i++) {
@@ -1552,7 +1548,7 @@ int tls13_process_client_pre_shared_key_from_ticket(TLS_CONNECT *conn,
 
 		// verify binder
 		if (digest_init(&dgst_ctx, conn->digest) != 1
-			|| digest_update(&dgst_ctx, conn->plain_record + 5, conn->plain_recordlen - 5) != 1) {
+			|| digest_update(&dgst_ctx, truncated_client_hello, truncated_client_hello_len) != 1) {
 			error_print();
 			return -1;
 		}
