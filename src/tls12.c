@@ -2671,8 +2671,10 @@ int tls_recv_client_key_exchange(TLS_CONNECT *conn)
 int tls_recv_certificate_verify(TLS_CONNECT *conn)
 {
 	int ret;
+	X509_SIGN_CTX sign_ctx;
 	X509_KEY client_sign_key;
-
+	const uint8_t *signer_id = NULL;
+	size_t signer_idlen = 0;
 	const uint8_t *sig;
 	size_t siglen;
 
@@ -2724,8 +2726,16 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-
-
+	if (client_sign_key.algor_param == OID_sm2) {
+		signer_id = (uint8_t *)SM2_DEFAULT_ID;
+		signer_idlen = SM2_DEFAULT_ID_LENGTH;
+	}
+	if (x509_verify_init(&sign_ctx, &client_sign_key, signer_id, signer_idlen, sig, siglen) != 1
+		|| x509_verify_update(&sign_ctx, conn->transcript, conn->transcript_len) != 1
+		|| x509_verify_finish(&sign_ctx) != 1) {
+		error_print();
+		return -1;
+	}
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
