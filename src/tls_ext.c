@@ -382,6 +382,48 @@ Example:
 	ec_point_format_list: 0x00 (uncompressed)
 */
 
+const int ec_point_formats[] = { TLS_point_uncompressed };
+size_t ec_point_formats_cnt = sizeof(ec_point_formats)/sizeof(ec_point_formats[0]);
+
+int tls_ec_point_formats_support_uncompressed(const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *formats;
+	size_t formats_len;
+	int uncompressed = 0;
+
+	if (tls_uint8array_from_bytes(&formats, &formats_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!formats_len) {
+		error_print();
+		return -1;
+	}
+
+	while (formats_len) {
+		uint8_t format;
+		if (tls_uint8_from_bytes(&format, &formats, &formats_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!tls_ec_point_format_name(format)) {
+			error_print();
+			return -1;
+		}
+		if (format == TLS_point_uncompressed) {
+			uncompressed = 1;
+		}
+	}
+
+	if (!uncompressed) {
+		error_print();
+		return 0;
+	}
+	return 1;
+}
+
+
 int tls_ec_point_formats_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen)
 {
 	const uint8_t *ec_point_format_list;

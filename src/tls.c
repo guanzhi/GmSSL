@@ -278,6 +278,32 @@ int tls_record_set_data(uint8_t *record, const uint8_t *data, size_t datalen)
 	return 1;
 }
 
+int tls_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest)
+{
+	switch (cipher_suite) {
+	case TLS_cipher_ecdhe_sm4_cbc_sm3:
+	case TLS_cipher_ecdhe_sm4_gcm_sm3:
+	case TLS_cipher_sm4_gcm_sm3:
+	case TLS_cipher_sm4_ccm_sm3:
+		*cipher = BLOCK_CIPHER_sm4();
+		*digest = DIGEST_sm3();
+		break;
+
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256:
+	case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
+	case TLS_cipher_aes_128_gcm_sha256:
+	case TLS_cipher_aes_128_ccm_sha256:
+		*cipher = BLOCK_CIPHER_aes128();
+		*digest = DIGEST_sha256();
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
 int tls_cbc_encrypt(const HMAC_CTX *inited_hmac_ctx, const BLOCK_CIPHER_KEY *enc_key,
 	const uint8_t seq_num[8], const uint8_t header[5],
 	const uint8_t *in, size_t inlen, uint8_t *out, size_t *outlen)
@@ -3321,8 +3347,6 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	}
 
 
-
-
 	return 1;
 }
 
@@ -3376,4 +3400,10 @@ int tls_get_verify_result(TLS_CONNECT *conn, int *result)
 {
 	*result = conn->verify_result;
 	return 1;
+}
+
+void tls_clean_record(TLS_CONNECT *conn)
+{
+	conn->record_offset = 0;
+	conn->recordlen = 0;
 }

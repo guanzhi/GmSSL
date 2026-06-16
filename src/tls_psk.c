@@ -982,7 +982,7 @@ int tls13_psk_binders_generate_empty(const int *psk_cipher_suites, size_t psk_ci
 		const BLOCK_CIPHER *cipher;
 		const DIGEST *digest;
 
-		if (tls13_cipher_suite_get(psk_cipher_suites[i], &cipher, &digest) != 1) {
+		if (tls_cipher_suite_get(psk_cipher_suites[i], &cipher, &digest) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1028,7 +1028,7 @@ int tls13_psk_binders_generate(
 		size_t psk_key_len;
 		const char *binder_label = "ext binder";
 
-		if (tls13_cipher_suite_get(psk_cipher_suites[i], &cipher, &digest) != 1) {
+		if (tls_cipher_suite_get(psk_cipher_suites[i], &cipher, &digest) != 1) {
 			error_print();
 			return -1;
 		}
@@ -1260,7 +1260,7 @@ int tls13_add_pre_shared_key(TLS_CONNECT *conn,
 		error_print();
 		return -1;
 	}
-	if (tls13_cipher_suite_get(psk_cipher_suite, &cipher, &digest) != 1) {
+	if (tls_cipher_suite_get(psk_cipher_suite, &cipher, &digest) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1421,7 +1421,7 @@ int tls13_process_client_pre_shared_key_external(TLS_CONNECT *conn,
 
 		conn->cipher_suite = conn->psk_cipher_suites[matched_psk_idx];
 
-		if (tls13_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
+		if (tls_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
 			error_print();
 			return -1;
 		}

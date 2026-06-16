@@ -364,6 +364,24 @@ int tls_named_curve_from_name(const char *name)
 	return 0;
 }
 
+int tls_named_curve_oid(int named_curve)
+{
+	switch (named_curve) {
+	case TLS_curve_secp256r1: return OID_secp256r1;
+	case TLS_curve_sm2p256v1: return OID_sm2;
+	}
+	return OID_undef;
+}
+
+int tls_named_curve_from_oid(int oid)
+{
+	switch (oid) {
+	case OID_secp256r1: return TLS_curve_secp256r1;
+	case OID_sm2: return TLS_curve_sm2p256v1;
+	}
+	return 0;
+}
+
 const char *tls_signature_scheme_name(int scheme)
 {
 	switch (scheme) {

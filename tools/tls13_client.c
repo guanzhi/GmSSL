@@ -673,7 +673,7 @@ bad:
 			uint8_t psk_key[64];
 			size_t psk_key_len;
 
-			if (tls13_cipher_suite_get(psk_cipher_suites[i], &psk_cipher, &psk_digest) != 1) {
+			if (tls_cipher_suite_get(psk_cipher_suites[i], &psk_cipher, &psk_digest) != 1) {
 				error_print();
 				goto end;
 			}

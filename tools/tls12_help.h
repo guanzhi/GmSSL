@@ -98,3 +98,8 @@
 "            -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 \\\n"
 "            -cacert rootcacerts.pem\n"
 "\n"
+"    gmssl tls12_server -port 4430 -cipher_suite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 -cert p256certs.pem -key p256signkey.pem -pass 1234 \\\n"
+"                       -cacert p256cacert.pem -verbose -cert_request\n"
+"    gmssl tls12_client -host 127.0.0.1 -port 4430 -cipher_suite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 \\\n"
+"                       -cert p256signcert.pem -key p256signkey.pem -pass 1234 -cacert p256rootcacert.pem -verbose\n"
+"\n"

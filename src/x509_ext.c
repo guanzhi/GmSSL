@@ -1120,8 +1120,6 @@ int x509_general_names_print(FILE *fp, int fmt, int ind, const char *label, cons
 	format_print(fp, fmt, ind, "%s\n", label);
 	ind += 4;
 
-	format_bytes(fp, 0, 0, "der", d, dlen);
-
 	while (dlen) {
 		if (x509_general_name_from_der(&choice, &p, &len, &d, &dlen) != 1) {
 			error_print();

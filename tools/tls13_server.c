@@ -557,7 +557,7 @@ bad:
 				error_print();
 				goto end;
 			}
-			if (tls13_cipher_suite_get(psk_cipher_suite, &psk_cipher, &psk_digest) != 1) {
+			if (tls_cipher_suite_get(psk_cipher_suite, &psk_cipher, &psk_digest) != 1) {
 				error_print();
 				goto end;
 			}

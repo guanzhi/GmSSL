@@ -1816,6 +1816,7 @@ int tls_trusted_authorities_print(FILE *fp, int fmt, int ind, const uint8_t *ext
 
 
 
+int tls_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest);
 
 
 
@@ -1823,7 +1824,6 @@ int tls_trusted_authorities_print(FILE *fp, int fmt, int ind, const uint8_t *ext
 // TLS 1.3 cipher/key related
 
 int tls13_random_generate(uint8_t random[32]);
-int tls13_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest);
 int tls13_padding_len_rand(size_t *padding_len);
 
 int tls13_gcm_encrypt(const BLOCK_CIPHER_KEY *key, const uint8_t iv[12],
@@ -1910,6 +1910,7 @@ int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable);
 
 
 // Extensions
+
 
 
 // 0. server_name (SNI): in ClientHello, EncryptedExtensions
@@ -2010,6 +2011,11 @@ int tls_process_supported_groups(const uint8_t *ext_data, size_t ext_datalen,
 
 
 // 11. ec_point_format
+extern const int ec_point_formats[];
+extern size_t ec_point_formats_cnt;
+
+int tls_ec_point_formats_support_uncompressed(const uint8_t *ext_data, size_t ext_datalen);
+
 int tls_ec_point_formats_ext_to_bytes(const int *formats, size_t formats_cnt,
 	uint8_t **out, size_t *outlen);
 int tls_process_client_ec_point_formats(const uint8_t *ext_data, size_t ext_datalen,

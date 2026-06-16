@@ -74,32 +74,6 @@ int tls13_random_generate(uint8_t random[32])
 }
 
 
-int tls13_cipher_suite_get(int cipher_suite, const BLOCK_CIPHER **cipher, const DIGEST **digest)
-{
-	switch (cipher_suite) {
-	case TLS_cipher_sm4_gcm_sm3:
-#ifdef ENABLE_SM4_CCM
-	case TLS_cipher_sm4_ccm_sm3:
-#endif
-		*digest = DIGEST_sm3();
-		*cipher = BLOCK_CIPHER_sm4();
-		break;
-#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
-	case TLS_cipher_aes_128_gcm_sha256:
-#ifdef ENABLE_AES_CCM
-	case TLS_cipher_aes_128_ccm_sha256:
-#endif
-		*digest = DIGEST_sha256();
-		*cipher = BLOCK_CIPHER_aes128();
-		break;
-#endif
-	default:
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-
 
 int tls13_padding_len_rand(size_t *padding_len)
 {
@@ -642,7 +616,7 @@ int tls13_generate_early_keys(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (tls13_cipher_suite_get(conn->psk_cipher_suites[0], &conn->cipher, &conn->digest) != 1) {
+	if (tls_cipher_suite_get(conn->psk_cipher_suites[0], &conn->cipher, &conn->digest) != 1) {
 		error_print();
 		return -1;
 	}
@@ -4479,7 +4453,7 @@ int tls13_recv_hello_retry_request(TLS_CONNECT *conn)
 		tls13_send_alert(conn, TLS_alert_illegal_parameter);
 		return -1;
 	}
-	if (tls13_cipher_suite_get(cipher_suite, &conn->cipher, &conn->digest) != 1) {
+	if (tls_cipher_suite_get(cipher_suite, &conn->cipher, &conn->digest) != 1) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_internal_error);
 		return -1;
@@ -5075,7 +5049,7 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 		conn->cipher_suite = cipher_suite;
-		if (tls13_cipher_suite_get(cipher_suite, &conn->cipher, &conn->digest) != 1) {
+		if (tls_cipher_suite_get(cipher_suite, &conn->cipher, &conn->digest) != 1) {
 			error_print();
 			tls13_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -6749,7 +6723,7 @@ static int tls13_cipher_suites_match_signature_scheme(
 		const BLOCK_CIPHER *cipher;
 		const DIGEST *digest;
 
-		if (tls13_cipher_suite_get(cipher_suites[i], &cipher, &digest) != 1) {
+		if (tls_cipher_suite_get(cipher_suites[i], &cipher, &digest) != 1) {
 			error_print();
 			return -1;
 		}
@@ -7305,7 +7279,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 
 	// format_print(stderr, 0, 0, "conn->cipher_suite: %s\n", tls_cipher_suite_name(conn->cipher_suite));
 
-	if (tls13_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
+	if (tls_cipher_suite_get(conn->cipher_suite, &conn->cipher, &conn->digest) != 1) {
 		error_print();
 		return -1;
 	}
