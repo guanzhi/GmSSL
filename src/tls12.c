@@ -2141,9 +2141,13 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_handshake_failure);
 			return -1;
 		}
+		// TODO: unify secure memcpy
+		common_supported_groups_cnt = sizeof(common_supported_groups)/sizeof(common_supported_groups[0]);
+		if (conn->ctx->supported_groups_cnt < common_supported_groups_cnt) {
+			common_supported_groups_cnt = conn->ctx->supported_groups_cnt;
+		}
 		memcpy(common_supported_groups, conn->ctx->supported_groups,
-			conn->ctx->supported_groups_cnt * sizeof(conn->ctx->supported_groups[0]));
-		common_supported_groups_cnt = conn->ctx->supported_groups_cnt;
+			common_supported_groups_cnt * sizeof(conn->ctx->supported_groups[0]));
 	}
 
 	if (signature_algorithms) {
@@ -2165,9 +2169,12 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 			tls_send_alert(conn, TLS_alert_handshake_failure);
 			return -1;
 		}
+		// TODO: unify secure memcpy
+		common_signature_algorithms_cnt = sizeof(common_signature_algorithms)/sizeof(common_signature_algorithms[0]);
+		if (conn->ctx->signature_algorithms_cnt < common_signature_algorithms_cnt)
+			common_signature_algorithms_cnt = conn->ctx->signature_algorithms_cnt;
 		memcpy(common_signature_algorithms, conn->ctx->signature_algorithms,
-			conn->ctx->signature_algorithms_cnt * sizeof(conn->ctx->signature_algorithms[0]));
-		common_signature_algorithms_cnt = conn->ctx->signature_algorithms_cnt;
+			common_signature_algorithms_cnt * sizeof(conn->ctx->signature_algorithms[0]));
 	}
 
 	if (signature_algorithms_cert) {

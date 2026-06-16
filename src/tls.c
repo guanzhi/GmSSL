@@ -1739,7 +1739,7 @@ int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, 
 		error_print();
 		return -1;
 	}
-	if (datalen > TLS_MAX_CERTIFICATES_SIZE) {
+	if (len > TLS_MAX_CERTIFICATES_SIZE) {
 		error_print();
 		return -1;
 	}
