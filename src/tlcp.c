@@ -1773,6 +1773,8 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 	int ret;
 	const uint8_t *enced_pms;
 	size_t enced_pms_len;
+	uint8_t pre_master_secret[SM2_MAX_PLAINTEXT_SIZE];
+	size_t pre_master_secret_len;
 	X509_KEY *enc_key;
 
 	if ((ret = tls_recv_record(conn)) != 1) {
@@ -1828,11 +1830,21 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 	if (sm2_decrypt(&enc_key->u.sm2_key, enced_pms, enced_pms_len,
-		conn->pre_master_secret, &conn->pre_master_secret_len) != 1) {
+		pre_master_secret, &pre_master_secret_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_decrypt_error);
 		return -1;
 	}
+	if (pre_master_secret_len != 48) {
+		gmssl_secure_clear(pre_master_secret, pre_master_secret_len);
+		error_print();
+		tls_send_alert(conn, TLS_alert_illegal_parameter);
+		return -1;
+	}
+	memcpy(conn->pre_master_secret, pre_master_secret, pre_master_secret_len);
+	conn->pre_master_secret_len = pre_master_secret_len;
+	gmssl_secure_clear(pre_master_secret, pre_master_secret_len);
+
 	if (tlcp_check_pre_master_secret(conn) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_illegal_parameter);
