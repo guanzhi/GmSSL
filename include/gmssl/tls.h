@@ -1507,9 +1507,10 @@ int tls_derive_key_block(TLS_CONNECT *conn);
 int tls_init_application_keys(TLS_CONNECT *conn);
 
 
+int tls_update_transcript(TLS_CONNECT *conn, const uint8_t *record);
+
 int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
 	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12]);
-
 
 
 

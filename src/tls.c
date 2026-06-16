@@ -789,6 +789,35 @@ int tls_prf(const DIGEST *digest, const uint8_t *secret, size_t secretlen, const
 	return 1;
 }
 
+int tls_update_transcript(TLS_CONNECT *conn, const uint8_t *record)
+{
+	size_t recordlen;
+
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (record == conn->record) {
+		recordlen = conn->recordlen;
+	} else if (record == conn->plain_record) {
+		recordlen = conn->plain_recordlen;
+	} else {
+		error_print();
+		return -1;
+	}
+	if (recordlen < 5 || recordlen > TLS_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
+	if (conn->transcript_len + recordlen > sizeof(conn->transcript)) {
+		error_print();
+		return -1;
+	}
+	memcpy(conn->transcript + conn->transcript_len, record + 5, recordlen - 5);
+	conn->transcript_len += recordlen - 5;
+	return 1;
+}
+
 int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
 	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12])
 {
@@ -2828,10 +2857,9 @@ int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable)
 	}
 
 	ctx->certificate_request = enable ? 1 : 0;
+
 	return 1;
 }
-
-
 
 int tls_ctx_set_supported_groups(TLS_CTX *ctx, const int *groups, size_t groups_cnt)
 {
@@ -3297,6 +3325,15 @@ int tls_init(TLS_CONNECT *conn, TLS_CTX *ctx)
 	if (conn->key_exchange_modes & (TLS_KE_PSK_DHE|TLS_KE_PSK)) {
 		conn->pre_shared_key = 1;
 	}
+
+
+
+	if (ctx->certificate_request) {
+		conn->client_certificate_verify = 1;
+	}
+
+
+
 
 	return 1;
 }

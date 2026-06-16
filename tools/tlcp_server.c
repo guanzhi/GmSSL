@@ -262,6 +262,10 @@ bad:
 			error_print();
 			return -1;
 		}
+		if (tls_ctx_enable_certificate_request(&ctx, 1) != 1) {
+			error_print();
+			return -1;
+		}
 	}
 
 
