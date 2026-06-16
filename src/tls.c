@@ -2231,11 +2231,7 @@ int tls_send_alert(TLS_CONNECT *conn, int alert)
 		return -1;
 	}
 	if (conn->verbose) {
-		if (conn->protocol == TLS_protocol_tls12) {
-			tls12_record_print(stderr, record, sizeof(record), 0, 0);
-		} else {
-			tls_record_trace(stderr, record, sizeof(record), 0, 0);
-		}
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, record, sizeof(record));
 	}
 	return 1;
 }
@@ -2286,11 +2282,7 @@ int tls_send_warning(TLS_CONNECT *conn, int alert)
 		return -1;
 	}
 	if (conn->verbose) {
-		if (conn->protocol == TLS_protocol_tls12) {
-			tls12_record_print(stderr, record, sizeof(record), 0, 0);
-		} else {
-			tls_record_trace(stderr, record, sizeof(record), 0, 0);
-		}
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, record, sizeof(record));
 	}
 	return 1;
 }
@@ -2373,11 +2365,7 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 	conn->datalen = tls_record_data_length(conn->databuf);
 
 	if (conn->verbose) {
-		if (conn->protocol == TLS_protocol_tls12) {
-			tls12_record_print(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
-		} else {
-			tls_record_trace(stderr, conn->databuf, tls_record_length(conn->databuf), 0, 0);
-		}
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->databuf, tls_record_length(conn->databuf));
 	}
 
 	return 1;

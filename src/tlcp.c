@@ -44,11 +44,6 @@ const size_t tlcp_cipher_suites_cnt =
 	sizeof(tlcp_cipher_suites)/sizeof(tlcp_cipher_suites[0]);
 
 
-int tlcp_record_print(FILE *fp, int fmt, int ind, const uint8_t *record, size_t recordlen)
-{
-	return tls_record_print(fp, fmt, ind, tlcp_cipher_suites[0],
-		record, recordlen);
-}
 
 /*
 ServerKeyExchange
@@ -495,7 +490,7 @@ int tlcp_send_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 		if (conn->verbose)
-			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+			tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -555,7 +550,7 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 	if (conn->verbose)
 		tls_trace("recv ServerHello\n");
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
@@ -764,7 +759,7 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 	if (conn->verbose)
 		tls_trace("recv server Certificate\n");
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
@@ -851,7 +846,7 @@ int tlcp_recv_server_key_exchange(TLS_CONNECT *conn)
 	if(conn->verbose)
 		tls_trace("recv ServerKeyExchange\n");
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
@@ -940,7 +935,7 @@ int tlcp_recv_certificate_request(TLS_CONNECT *conn)
 
 	if(conn->verbose) tls_trace("recv CertificateRequest\n");
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 	if (tlcp_record_get_handshake_certificate_request(conn->record,
 		&cert_types, &cert_types_len, &ca_names, &ca_names_len) != 1) {
@@ -1025,7 +1020,7 @@ int tlcp_send_client_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 		if (conn->verbose)
-			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+			tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -1169,7 +1164,7 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		return ret;
 	}
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 
 	if (tls_record_protocol(conn->record) != conn->protocol) {
@@ -1614,7 +1609,7 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 			return -1;
 		}
 		if (conn->verbose)
-			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+			tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 			error_print();
@@ -1746,7 +1741,7 @@ int tlcp_send_certificate_request(TLS_CONNECT *conn)
 			return -1;
 		}
 		if(conn->verbose)
-			tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+			tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
@@ -1795,7 +1790,7 @@ int tlcp_recv_client_key_exchange(TLS_CONNECT *conn)
 		return -1;
 	}
 	if (conn->verbose)
-		tlcp_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
 	if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
