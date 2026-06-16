@@ -929,11 +929,12 @@ int tlcp_recv_certificate_request(TLS_CONNECT *conn)
 		return -1;
 	}
 	if (handshake_type != TLS_handshake_certificate_request) {
-		conn->client_certs_len = 0;
 		return 0;
 	}
 
-	if(conn->verbose) tls_trace("recv CertificateRequest\n");
+	if (conn->verbose)
+		tls_trace("recv CertificateRequest\n");
+
 	if (conn->verbose)
 		tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
@@ -1636,33 +1637,6 @@ int tlcp_send_server_key_exchange(TLS_CONNECT *conn)
 	}
 
 	return 1;
-}
-
-static void tlcp_secrets_print(TLS_CONNECT *conn)
-{
-	if (conn->verbose < 5) {
-		return;
-	}
-
-	if (conn->cipher_suite == TLS_cipher_ecc_sm4_gcm_sm3) {
-		size_t keylen = conn->cipher->key_size;
-
-		format_bytes(stderr, 0, 4, "pre_master_secret", conn->pre_master_secret, 48);
-		format_bytes(stderr, 0, 4, "client_random", conn->client_random, 32);
-		format_bytes(stderr, 0, 4, "server_random", conn->server_random, 32);
-		format_bytes(stderr, 0, 4, "master_secret", conn->master_secret, 48);
-		format_bytes(stderr, 0, 4, "client_write_key", conn->key_block, keylen);
-		format_bytes(stderr, 0, 4, "server_write_key", conn->key_block + keylen, keylen);
-		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 4);
-		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 4);
-	} else {
-		tls_secrets_print(stderr,
-			conn->pre_master_secret, 48,
-			conn->client_random, conn->server_random,
-			conn->master_secret,
-			conn->key_block, 96,
-			0, 4);
-	}
 }
 
 int tlcp_generate_pre_master_secret(TLS_CONNECT *conn)
