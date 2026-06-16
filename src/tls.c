@@ -1717,7 +1717,8 @@ int tls_record_set_handshake_certificate(uint8_t *record, size_t *recordlen,
 	return 1;
 }
 
-// FIXME: 这个函数没有提供缓冲区的长度限制
+// FIXME: 这个函数语义应该修改，只返回 uint24array[] 的证书数组，然后整个库内部都用这个结构来存储证书链、证书数组
+// 目前直接用DER格式拼接到一起的设计不好。这个函数容易发生溢出
 int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, size_t *certslen)
 {
 	int type;
@@ -1735,6 +1736,10 @@ int tls_record_get_handshake_certificate(const uint8_t *record, uint8_t *certs, 
 		return -1;
 	}
 	if (tls_uint24array_from_bytes(&cp, &len, &data, &datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (datalen > TLS_MAX_CERTIFICATES_SIZE) {
 		error_print();
 		return -1;
 	}
