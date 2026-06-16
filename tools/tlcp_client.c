@@ -341,7 +341,7 @@ int tlcp_client_main(int argc, char *argv[])
 			if (--argc < 1) goto bad;
 			certoutfile = *(++argv);
 		} else if (!strcmp(*argv, "-verbose")) {
-			verbose = 1;
+			verbose = 5;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;

@@ -1188,11 +1188,13 @@ typedef struct {
 	BLOCK_CIPHER_KEY client_write_key;
 	BLOCK_CIPHER_KEY server_write_key;
 
-	uint8_t pre_master_secret[48]; // 是否可以重用master_secret作为pre_master_secret呢？			
+	uint8_t pre_master_secret[48];
+	size_t pre_master_secret_len;
 	uint8_t master_secret[48];
 	uint8_t resumption_master_secret[48];
 
 	uint8_t key_block[96];
+	size_t key_block_len;
 
 
 	uint8_t early_secret[32];
@@ -1214,6 +1216,9 @@ typedef struct {
 
 	// CertificateRequest
 	int certificate_request;
+	uint8_t transcript[TLS_MAX_RECORD_SIZE * 2];
+	size_t transcript_len;
+
 
 	// NewSessionTicket
 	int new_session_ticket;
@@ -1493,12 +1498,20 @@ int tls13_ctx_set_change_cipher_spec_compat(TLS_CTX *ctx, int enable);
 int tls13_ctx_set_accept_change_cipher_spec(TLS_CTX *ctx, int enable);
 int tls13_ctx_enable_change_cipher_spec(TLS_CTX *ctx, int enable);
 
+int tlcp_generate_pre_master_secret(TLS_CONNECT *conn);
+int tlcp_check_pre_master_secret(TLS_CONNECT *conn);
 
+int tls_derive_pre_master_secret(TLS_CONNECT *conn);
+int tls_derive_master_secret(TLS_CONNECT *conn);
+int tls_derive_key_block(TLS_CONNECT *conn);
+int tls_init_application_keys(TLS_CONNECT *conn);
 
-int tls_generate_keys(TLS_CONNECT *conn);
 
 int tls_compute_verify_data(const DIGEST *digest, const uint8_t master_secret[48],
 	const char *label, const DIGEST_CTX *dgst_ctx, uint8_t verify_data[12]);
+
+
+
 
 
 int tls13_update_client_application_keys(TLS_CONNECT *conn);
