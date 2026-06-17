@@ -3447,16 +3447,6 @@ int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d
 	return 1;
 }
 
-int tls13_ctx_enable_client_certificate_optional(TLS_CTX *ctx, int enable)
-{
-	if (!ctx) {
-		error_print();
-		return -1;
-	}
-	ctx->client_certificate_optional = enable ? 1 : 0;
-	return 1;
-}
-
 /*
 CertificateVerify
 

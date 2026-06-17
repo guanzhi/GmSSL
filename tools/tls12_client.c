@@ -386,6 +386,13 @@ bad:
 		}
 	}
 
+	if (client_cert_optional) {
+		if (tls_ctx_enable_client_certificate_optional(&ctx, 1) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
 	if (cacertfile) {
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, verify_depth) != 1) {
 			fprintf(stderr, "%s: failed to load CA certificate\n", prog);

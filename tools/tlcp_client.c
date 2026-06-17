@@ -401,6 +401,13 @@ bad:
 		}
 	}
 
+	if (client_cert_optional) {
+		if (tls_ctx_enable_client_certificate_optional(&ctx, 1) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+
 	if (alpn_protocols_cnt) {
 		if (tls_ctx_set_application_layer_protocol_negotiation(&ctx,
 			alpn_protocols, alpn_protocols_cnt) != 1) {

@@ -1441,7 +1441,7 @@ int tls13_record_get_handshake_certificate_request(const uint8_t *record,
 	const uint8_t **exts, size_t *exts_len);
 int tls13_certificate_request_print(FILE *fp, int fmt, int ind, const uint8_t *d, size_t dlen);
 
-int tls13_ctx_enable_client_certificate_optional(TLS_CTX *ctx, int enable);
+int tls_ctx_enable_client_certificate_optional(TLS_CTX *ctx, int enable);
 
 
 // EndOfEarlyData

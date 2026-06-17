@@ -3015,6 +3015,16 @@ int tls_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num)
 	return 1;
 }
 
+int tls_ctx_enable_client_certificate_optional(TLS_CTX *ctx, int enable)
+{
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
+	ctx->client_certificate_optional = enable ? 1 : 0;
+	return 1;
+}
+
 static int tls_ctx_get_certificate_chain(const TLS_CTX *ctx, size_t idx,
 	const uint8_t **cert_chain, size_t *cert_chain_len)
 {

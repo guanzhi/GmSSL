@@ -418,7 +418,7 @@ bad:
 			goto end;
 		}
 		if (client_cert_optional) {
-			if (tls13_ctx_enable_client_certificate_optional(&ctx, 1) != 1) {
+			if (tls_ctx_enable_client_certificate_optional(&ctx, 1) != 1) {
 				error_print();
 				goto end;
 			}
