@@ -137,6 +137,10 @@ bad:
 		}
 	}
 
+	// SPHINCS+ requires two passes over the input data (prepare then update),
+	// so stdin streaming is not directly supported here. If infp == stdin,
+	// input should be buffered into memory with calloc/malloc before the first pass.
+	// TODO: buffer input to support stdin in a future version
 	rewind(infp);
 	while (1) {
 		uint8_t buf[1024];

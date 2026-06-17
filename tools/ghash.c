@@ -171,6 +171,10 @@ bad:
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 			ghash_update(&ghash_ctx, buf, len);
 		}
+		if (ferror(infp)) {
+			fprintf(stderr, "gmssl %s: read failure : %s\n", prog, strerror(errno));
+			goto end;
+		}
 		memset(buf, 0, sizeof(buf));
 	}
 	ghash_finish(&ghash_ctx, dgst);

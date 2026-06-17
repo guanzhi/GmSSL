@@ -123,6 +123,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure : %s\n", prog, strerror(errno));
+		goto end;
+	}
 	if (zuc_encrypt_finish(&zuc_ctx, outbuf, &outlen) != 1) {
 		fprintf(stderr, "%s: inner error\n", prog);
 		goto end;
