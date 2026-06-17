@@ -25,6 +25,14 @@
 #include <gmssl/x509_key.h>
 
 
+/*
+TODO:
+	x509_sign_init/update/finish
+	x509_verify_init/update/finish
+	当使用ECDSA算法时，需要可选多个哈希函数
+	特别是很多CA证书，如icloud.com的证书链，其中CA证书使用的是ecdsa_secp256r1_sha384
+	因此需要x509_sign/verify_init接口中增加一个表示算法的参数
+*/
 
 int x509_key_set_sm2_key(X509_KEY *x509_key, const SM2_KEY *sm2_key)
 {

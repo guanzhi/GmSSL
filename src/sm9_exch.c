@@ -32,8 +32,6 @@ int sm9_exch_step_1A(const SM9_EXCH_MASTER_KEY *mpk, const char *idB, size_t idB
 		error_print();
 		return -1;
 	}
-	// Only for testing
-	sm9_z256_from_hex(rA, "00005879DD1D51E175946F23B1B41E93BA31C584AE59A426EC1046A4D03B06C8");
 
 	// A3: RA = rA * Q
 	sm9_z256_point_mul(RA, rA, RA);
@@ -58,13 +56,12 @@ int sm9_exch_step_1B(const SM9_EXCH_MASTER_KEY *mpk, const char *idA, size_t idA
 
 	do {
 		// B2: rand rB in [1, N-1]
-		// FIXME: check rb != 0			
-		if (sm9_z256_rand_range(rB, sm9_z256_order()) != 1) {
-			error_print();
-			return -1;
-		}
-		// Only for testing
-		sm9_z256_from_hex(rB, "00018B98C44BEF9F8537FB7D071B2C928B3BC65BD3D69E1EEE213564905634FE");
+		do {
+			if (sm9_z256_rand_range(rB, sm9_z256_order()) != 1) {
+				error_print();
+				return -1;
+			}
+		} while (sm9_z256_is_zero(rB));
 
 		// B3: RB = rB * Q
 		sm9_z256_point_mul(RB, rB, RB);

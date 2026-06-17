@@ -78,6 +78,10 @@ int sm9_signature_from_der(SM9_SIGNATURE *sig, const uint8_t **in, size_t *inlen
 int sm9_sign_init(SM9_SIGN_CTX *ctx)
 {
 	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
 	sm3_init(&ctx->sm3_ctx);
 	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
@@ -85,6 +89,13 @@ int sm9_sign_init(SM9_SIGN_CTX *ctx)
 
 int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
+	if (!ctx || (!data && datalen)) {
+		error_print();
+		return -1;
+	}
+	if (!data || !datalen) {
+		return 1;
+	}
 	sm3_update(&ctx->sm3_ctx, data, datalen);
 	return 1;
 }
@@ -92,6 +103,11 @@ int sm9_sign_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, size_t *siglen)
 {
 	SM9_SIGNATURE signature;
+
+	if (!ctx || !key || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
 
 	if (sm9_do_sign(key, &ctx->sm3_ctx, &signature) != 1) {
 		error_print();
@@ -125,9 +141,6 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 			error_print();
 			return -1;
 		}
-		
-		// Only for testing
-		//sm9_z256_from_hex(r, "00033C8616B06704813203DFD00965022ED15975C662337AED648835DC4B1CBE");
 
 		// A3: w = g^r
 		sm9_z256_fp12_pow(g, g, r);
@@ -162,6 +175,10 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 int sm9_verify_init(SM9_SIGN_CTX *ctx)
 {
 	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
+	if (!ctx) {
+		error_print();
+		return -1;
+	}
 	sm3_init(&ctx->sm3_ctx);
 	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
@@ -169,6 +186,13 @@ int sm9_verify_init(SM9_SIGN_CTX *ctx)
 
 int sm9_verify_update(SM9_SIGN_CTX *ctx, const uint8_t *data, size_t datalen)
 {
+	if (!ctx || (!data && datalen)) {
+		error_print();
+		return -1;
+	}
+	if (!data || !datalen) {
+		return 1;
+	}
 	sm3_update(&ctx->sm3_ctx, data, datalen);
 	return 1;
 }
@@ -178,6 +202,11 @@ int sm9_verify_finish(SM9_SIGN_CTX *ctx, const uint8_t *sig, size_t siglen,
 {
 	int ret;
 	SM9_SIGNATURE signature;
+
+	if (!ctx || !sig | !siglen || !mpk || !id || !idlen) {
+		error_print();
+		return -1;
+	}
 
 	if (sm9_signature_from_der(&signature, &sig, &siglen) != 1
 		|| asn1_length_is_zero(siglen) != 1) {
@@ -210,8 +239,16 @@ int sm9_do_verify(const SM9_SIGN_MASTER_KEY *mpk, const char *id, size_t idlen,
 	uint8_t Ha[64];
 
 	// B1: check h in [1, N-1]
+	if (sm9_z256_is_zero(sig->h) || sm9_z256_cmp(sig->h, sm9_z256_order()) >= 0) {
+		error_print();
+		return -1;
+	}
 
 	// B2: check S in G1
+	if (sm9_z256_point_is_on_curve(&sig->S) != 1) {
+		error_print();
+		return -1;
+	}
 
 	// B3: g = e(P1, Ppubs)
 	sm9_z256_pairing(g, &mpk->Ppubs, sm9_z256_generator());

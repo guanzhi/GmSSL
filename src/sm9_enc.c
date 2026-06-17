@@ -78,6 +78,10 @@ int sm9_kem_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen, const 
 	SM3_KDF_CTX kdf_ctx;
 
 	// B1: check C in G1
+	if (sm9_z256_point_is_on_curve(C) != 1) {
+		error_print();
+		return -1;
+	}
 	sm9_z256_point_to_uncompressed_octets(C, cbuf);
 
 	// B2: w = e(C, de);
@@ -110,6 +114,15 @@ int sm9_do_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 {
 	SM3_HMAC_CTX hmac_ctx;
 	uint8_t K[SM9_MAX_PLAINTEXT_SIZE + 32];
+
+	if (!mpk || !id || !idlen || !C1 || !c2 || !c3) {
+		error_print();
+		return -1;
+	}
+	if (inlen > SM9_MAX_PLAINTEXT_SIZE) {
+		error_print();
+		return -1;
+	}
 
 	if (sm9_kem_encrypt(mpk, id, idlen, sizeof(K), K, C1) != 1) {
 		error_print();
@@ -245,6 +258,11 @@ int sm9_encrypt(const SM9_ENC_MASTER_KEY *mpk, const char *id, size_t idlen,
 	uint8_t c2[SM9_MAX_PLAINTEXT_SIZE];
 	uint8_t c3[SM3_HMAC_SIZE];
 
+	// FIXME: 检查应该放在哪一层？还是全检查？
+	if (!mpk || !id || !idlen  || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 	if (inlen > SM9_MAX_PLAINTEXT_SIZE) {
 		error_print();
 		return -1;
@@ -269,6 +287,11 @@ int sm9_decrypt(const SM9_ENC_KEY *key, const char *id, size_t idlen,
 	const uint8_t *c2;
 	size_t c2len;
 	const uint8_t *c3;
+
+	if (!key || !id || !idlen || !in || !inlen || !out || !outlen) {
+		error_print();
+		return -1;
+	}
 
 	if (sm9_ciphertext_from_der(&C1, &c2, &c2len, &c3, &in, &inlen) != 1
 		|| asn1_length_is_zero(inlen) != 1) {
