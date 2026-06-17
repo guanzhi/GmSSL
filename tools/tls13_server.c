@@ -249,21 +249,21 @@ int tls13_server_main(int argc , char **argv)
 			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-psk_identity")) {
 			if (--argc < 1) goto bad;
-			if (psk_identities_cnt > sizeof(psk_identities)/sizeof(psk_identities[0])) {
+			if (psk_identities_cnt >= sizeof(psk_identities)/sizeof(psk_identities[0])) {
 				error_print();
 				return -1;
 			}
 			psk_identities[psk_identities_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-psk_cipher_suite")) {
 			if (--argc < 1) goto bad;
-			if (psk_cipher_suites_cnt > sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
+			if (psk_cipher_suites_cnt >= sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
 				error_print();
 				return -1;
 			}
 			psk_cipher_suites[psk_cipher_suites_cnt++] = *(++argv);
 		} else if (!strcmp(*argv, "-psk_key")) {
 			if (--argc < 1) goto bad;
-			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
+			if (psk_keys_cnt >= sizeof(psk_keys)/sizeof(psk_keys[0])) {
 				error_print();
 				return -1;
 			}
