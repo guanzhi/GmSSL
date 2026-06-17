@@ -72,7 +72,6 @@ static const ASN1_OID_INFO x509_ext_ids[] = {
 	{ OID_pe_authority_info_access, "AuthorityInformationAccess", oid_pe_authority_info_access, sizeof(oid_pe_authority_info_access)/sizeof(int) },
 	{ OID_ct_precertificate_scts, "CT-PrecertificateSCTs", oid_ct_precertificate_scts, sizeof(oid_ct_precertificate_scts)/sizeof(int) },
 };
-
 static const int x509_ext_ids_count =
 	sizeof(x509_ext_ids)/sizeof(x509_ext_ids[0]);
 
@@ -124,6 +123,41 @@ int x509_ext_id_from_der(int *oid, uint32_t *nodes, size_t *nodes_cnt, const uin
 		return ret;
 	}
 	*oid = info ? info->oid : 0;
+	return 1;
+}
+
+typedef struct {
+	int oid;
+	int only_critical_for_ca_certs;
+} X509_EXT_CRITICAL;
+
+#define X509_EXT_ONLY_CRITICAL_FOR_CA_CERTS 1
+
+static const X509_EXT_CRITICAL x509_ext_critical[] = {
+	{ OID_ce_basic_constraints, X509_EXT_ONLY_CRITICAL_FOR_CA_CERTS },
+	{ OID_ce_name_constraints,  0 },
+	{ OID_ce_policy_constraints, 0 },
+	{ OID_ce_inhibit_any_policy, 0 },
+};
+static const size_t x509_ext_critical_cnt =
+	sizeof(x509_ext_critical)/sizeof(x509_ext_critical[0]);
+
+int x509_ext_check_critical(int oid, int is_ca, int critical)
+{
+	size_t i;
+
+	for (i = 0; i < x509_ext_critical_cnt; i++) {
+		if (oid == x509_ext_critical[i].oid) {
+			if (x509_ext_critical[i].only_critical_for_ca_certs && !is_ca) {
+				return 1;
+			}
+			if (critical != X509_critical) {
+				error_print();
+				return -1;
+			}
+			return 1;
+		}
+	}
 	return 1;
 }
 
@@ -2839,11 +2873,16 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 	int key_usage;
 	int ext_key_usages[X509_MAX_KEY_PURPOSES];
 	size_t ext_key_usages_cnt;
+	int is_ca = (cert_type == X509_cert_ca || cert_type == X509_cert_root_ca) ? 1 : 0;
 
 	*path_len_constraint = -1;
 
 	while (extslen) {
 		if (x509_ext_from_der(&oid, nodes, &nodes_cnt, &critical, &val, &vlen, &exts, &extslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_ext_check_critical(oid, is_ca, critical) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2935,7 +2974,6 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 		case OID_ce_crl_distribution_points:
 		case OID_ce_inhibit_any_policy:
 		case OID_ce_freshest_crl:
-
 			break;
 		default:
 			if (critical == X509_critical) {
