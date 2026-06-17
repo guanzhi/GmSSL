@@ -92,6 +92,7 @@ bad:
 			}
 #else
 			fprintf(stderr, "%s: `-rdrand` is not supported on your platform\n", prog);
+			goto end;
 #endif
 		} else if (rdseed) {
 #ifdef ENABLE_INTEL_RDSEED
@@ -101,6 +102,7 @@ bad:
 			}
 #else
 			fprintf(stderr, "%s: `-rdseed` is not supported on your platform\n", prog);
+			goto end;
 #endif
 		} else {
 			if (rand_bytes(buf, len) != 1) {
