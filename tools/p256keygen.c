@@ -103,11 +103,11 @@ bad:
 
 	if (x509_key_generate(&key, OID_ec_public_key, &curve_oid, sizeof(curve_oid)) != 1) {
 		fprintf(stderr, "gmssl %s: inner failure\n", prog);
-		return -1;
+		goto end;
 	}
 	if (x509_private_key_info_encrypt_to_pem(&key, pass, outfp) != 1) {
 		fprintf(stderr, "gmssl %s: inner failure\n", prog);
-		return -1;
+		goto end;
 	}
 	if (x509_public_key_info_to_pem(&key, puboutfp) != 1) {
 		fprintf(stderr, "gmssl %s: inner failure\n", prog);

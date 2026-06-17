@@ -93,7 +93,7 @@ int sm9sign_main(int argc, char **argv)
 		} else {
 bad:
 			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
-			return 1;
+			goto end;
 		}
 
 		argc--;
@@ -107,7 +107,7 @@ bad:
 
 	if (sm9_sign_key_info_decrypt_from_pem(&key, pass, keyfp) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
 
 	if (sm9_sign_init(&ctx) != 1) {

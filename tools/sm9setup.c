@@ -90,7 +90,7 @@ int sm9setup_main(int argc, char **argv)
 		} else {
 bad:
 			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
-			return 1;
+			goto end;
 		}
 
 		argc--;
@@ -142,7 +142,7 @@ end:
 	gmssl_secure_clear(&enc_msk, sizeof(enc_msk));
 	if (outfile && outfp) fclose(outfp);
 	if (puboutfile && puboutfp) fclose(puboutfp);
-	return 1;
+	return ret;
 }
 
 

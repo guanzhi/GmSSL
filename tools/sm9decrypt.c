@@ -96,7 +96,7 @@ int sm9decrypt_main(int argc, char **argv)
 		} else {
 bad:
 			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
-			return 1;
+			goto end;
 		}
 
 		argc--;

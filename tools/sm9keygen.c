@@ -101,7 +101,7 @@ int sm9keygen_main(int argc, char **argv)
 		} else {
 bad:
 			fprintf(stderr, "%s: illegal option '%s'\n", prog, *argv);
-			return 1;
+			goto end;
 		}
 
 
@@ -147,5 +147,5 @@ end:
 	gmssl_secure_clear(&enc_key, sizeof(enc_key));
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
-	return 1;
+	return ret;
 }

@@ -144,12 +144,15 @@ bad:
 		goto end;
 	}
 
-	fwrite(crl, crl_len, 1, outfp);
-
+	if (fwrite(crl, crl_len, 1, outfp) != 1) {
+		error_print();
+		goto end;
+	}
 
 	ret = 0;
 end:
 	if (cert) free(cert);
+	if (crl) free(crl);
 	if (outfile && outfp) fclose(outfp);
 	return ret;
 }

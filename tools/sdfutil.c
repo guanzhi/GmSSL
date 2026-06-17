@@ -178,6 +178,7 @@ bad:
 
 		if ((ret = sdf_sign(&key, dgst, sig, &siglen)) != 1) {
 			fprintf(stderr, "%s: inner error\n", prog);
+			ret = -1;
 			goto end;
 		}
 		if (fwrite(sig, 1, siglen, outfp) != siglen) {

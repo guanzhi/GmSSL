@@ -90,7 +90,7 @@ int sm9encrypt_main(int argc, char **argv)
 		} else {
 bad:
 			fprintf(stderr, "gmssl %s: illegal option '%s'\n", prog, *argv);
-			return 1;
+			goto end;
 		}
 
 		argc--;
@@ -103,7 +103,7 @@ bad:
 	}
 	if (sm9_enc_master_public_key_from_pem(&mpk, mpkfp) != 1) {
 		error_print();
-		return -1;
+		goto end;
 	}
 	if ((inlen = fread(inbuf, 1, sizeof(inbuf), infp)) <= 0) {
 		error_print();

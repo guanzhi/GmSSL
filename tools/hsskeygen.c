@@ -77,6 +77,7 @@ int hsskeygen_main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			lms_types = *(++argv);
 			strncpy(lms_types_str, lms_types, sizeof(lms_types_str));
+			lms_types_str[sizeof(lms_types_str) - 1] = 0;
 
 			tok = strtok(lms_types_str, ":");
 			while (tok) {
