@@ -51,9 +51,9 @@ int certverify_main(int argc, char **argv)
 	char *cacertfile = NULL;
 	FILE *infp = stdin;
 	FILE *cacertfp = NULL;
-	uint8_t cert[1024];
+	uint8_t cert[8192];
 	size_t certlen;
-	uint8_t cacert[1024];
+	uint8_t cacert[8192];
 	size_t cacertlen;
 	char signer_id[SM2_MAX_ID_LENGTH + 1] = {0};
 	size_t signer_id_len = 0;
@@ -73,7 +73,7 @@ int certverify_main(int argc, char **argv)
 	size_t enc_subject_len;
 
 	int double_certs = 0;
-	uint8_t enc_cert[1024];
+	uint8_t enc_cert[8192];
 	size_t enc_cert_len;
 	int rv;
 

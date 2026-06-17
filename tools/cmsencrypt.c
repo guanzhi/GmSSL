@@ -103,6 +103,9 @@ int cmsencrypt_main(int argc, char **argv)
 	}
 	cert = rcpt_certs;
 
+	// FIXME: TOCTOU between file_size measurement and fread. If the file shrinks
+	// after measurement, the buffer is oversized but only actual bytes read are
+	// encrypted (inlen is updated by fread). If the file grows, data is truncated.
 	if (get_files_size(argc, argv, "-in", &inlen) != 1) {
 		goto end;
 	}

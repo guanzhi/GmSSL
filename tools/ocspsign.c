@@ -452,6 +452,9 @@ bad:
 		fprintf(stderr, "%s: generate OCSPResponse failure\n", prog);
 		goto end;
 	}
+	// FIXME: resplen = 0 resets buffer capacity before second ocsp_sign call.
+	// If ocsp_sign() uses *outlen as input buffer capacity, passing 0 may
+	// allow buffer overflow. Proposed fix: resplen = sizeof(resp);
 	resplen = 0;
 	if (ocsp_sign(&ocsp_ctx, cert_status, revocation_time, this_update,
 		signer_cert, signer_cert_len, &sign_key,

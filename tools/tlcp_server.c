@@ -331,17 +331,22 @@ restart:
 	if (tls_init(&conn, &ctx) != 1
 		|| tls_set_socket(&conn, conn_sock) != 1) {
 		error_print();
-		return -1;
+		tls_socket_close(conn_sock);
+		goto restart;
 	}
 
 	if (tls_socket_set_nonblocking(conn_sock, 1) != 1) {
 		error_print();
-		return -1;
+		tls_cleanup(&conn);
+		tls_socket_close(conn_sock);
+		goto restart;
 	}
 
 	if (do_handshake_select(&conn) != 1) {
 		error_print();
-		return -1;
+		tls_cleanup(&conn);
+		tls_socket_close(conn_sock);
+		goto restart;
 	}
 
 	for (;;) {
