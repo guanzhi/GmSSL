@@ -1349,8 +1349,13 @@ int tls13_do_recv(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
+		if (tls_record_data_length(conn->record) > TLS_MAX_RECORD_SIZE - TLS_RECORD_HEADER_SIZE) {
+			error_print();
+			return -1;
+		}
 		conn->recordlen = tls_record_data_length(conn->record);
 		conn->recv_state = TLS_state_recv_record_data;
+		// pass through
 
 	case TLS_state_recv_record_data:
 		while (conn->recordlen) {
@@ -1578,6 +1583,11 @@ int tls13_recv_early_data(TLS_CONNECT *conn)
 			error_print();
 		}
 		return ret;
+	}
+
+	if (conn->datalen > sizeof(conn->early_data_buf)) {
+		error_print();
+		return -1;
 	}
 	memcpy(conn->early_data_buf, conn->data, conn->datalen);
 	conn->early_data_len = conn->datalen;
@@ -4305,10 +4315,6 @@ int tls13_send_client_hello(TLS_CONNECT *conn)
 
 		memcpy(conn->plain_record, conn->record, conn->recordlen);
 		conn->plain_recordlen = conn->recordlen;
-
-		if (conn->client_certificate_verify) {
-			sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
-		}
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -4602,6 +4608,10 @@ int tls13_recv_hello_retry_request(TLS_CONNECT *conn)
 			tls13_send_alert(conn, TLS_alert_decode_error);
 			return -1;
 		}
+		if (cookie_len > sizeof(conn->cookie_buf)) {
+			error_print();
+			return -1;
+		}
 		memcpy(conn->cookie_buf, cookie_data, cookie_datalen);
 		conn->cookie_len = cookie_datalen;
 	}
@@ -4629,10 +4639,6 @@ int tls13_recv_hello_retry_request(TLS_CONNECT *conn)
 		|| digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {
 		error_print();
 		return -1;
-	}
-
-	if (conn->client_certs_len) {
-		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
 	}
 
 	return 1;
@@ -5282,6 +5288,10 @@ int tls13_recv_server_hello(TLS_CONNECT *conn)
 		}
 
 		// TODO: change psk from buf to reference
+		if (keylen > sizeof(conn->psk)) {
+			error_print();
+			return -1;
+		}
 		memcpy(conn->psk, key, keylen);
 		conn->psk_len = keylen;
 	}
@@ -6849,6 +6859,10 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 		// tls13 server ignore legacy_session_id
 		warning_print();
 
+		if (legacy_session_id_len > sizeof(conn->session_id)) {
+			error_print();
+			return -1;
+		}
 		memcpy(conn->session_id, legacy_session_id, legacy_session_id_len);
 		conn->session_id_len = legacy_session_id_len;
 	}

@@ -1226,6 +1226,7 @@ int x509_signed_from_der(const uint8_t **tbs, size_t *tbslen,
 	return 1;
 }
 
+// FIXME: 应该直接把函数接口的signer_id 改为sign_args
 int x509_signed_verify(const uint8_t *a, size_t alen,
 	const X509_KEY *key, const char *signer_id, size_t signer_id_len)
 {
@@ -1254,9 +1255,10 @@ int x509_signed_verify(const uint8_t *a, size_t alen,
 		return -1;
 	}
 
+	// FIXME: 应该直接把函数接口的signer_id 改为sign_args
 	if (key->algor == OID_ec_public_key && key->algor_param == OID_sm2) {
-		sign_args = SM2_DEFAULT_ID;
-		sign_argslen = SM2_DEFAULT_ID_LENGTH;
+		sign_args = (uint8_t *)signer_id;
+		sign_argslen = signer_id_len;
 	}
 	if (x509_verify_init(&verify_ctx, key, sign_args, sign_argslen, sig, siglen) != 1
 		|| x509_verify_update(&verify_ctx, tbs, tbslen) != 1
@@ -1860,6 +1862,7 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type,
 	}
 	if (serial_len < 4) {
 		error_print(); // not enough randomness
+		return -1; // FIXME: 通过宏设置错误？还是返回一个错误原因，让应用判断？
 	}
 
 	time(&now);

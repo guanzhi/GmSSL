@@ -280,7 +280,7 @@ int x509_ext_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t 
 	case OID_ce_policy_constraints: return x509_policy_constraints_print(fp, fmt, ind, name, p, len);
 	case OID_ce_ext_key_usage: return x509_ext_key_usage_print(fp, fmt, ind, name, p, len);
 	case OID_ce_crl_distribution_points: return x509_crl_distribution_points_print(fp, fmt, ind, name, p, len);
-	case OID_ce_inhibit_any_policy: format_print(fp, fmt, ind, "%s: %d\n", name, ival);
+	case OID_ce_inhibit_any_policy: return format_print(fp, fmt, ind, "%s: %d\n", name, ival);
 	case OID_ce_freshest_crl: return x509_freshest_crl_print(fp, fmt, ind, name, p, len);
 	case OID_netscape_cert_type: return x509_netscape_cert_type_print(fp, fmt, ind, name, ival);
 	case OID_netscape_cert_comment: return format_string(fp, fmt, ind, name, p, len);
@@ -1030,7 +1030,7 @@ int x509_general_names_get_next(const uint8_t *gns, size_t gns_len, const uint8_
 		return -1;
 	}
 
-	if (*ptr > gns + gns_len) {
+	if (*ptr < gns  || *ptr > gns + gns_len) {
 		error_print();
 		return -1;
 	}
@@ -2135,7 +2135,7 @@ int x509_general_subtree_from_der(
 		error_print();
 		return -1;
 	}
-	if (*minimum < 0) *minimum = 0;
+	if (minimum && *minimum < 0) *minimum = 0;
 	return 1;
 }
 

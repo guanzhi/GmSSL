@@ -18,7 +18,7 @@ extern "C" {
 
 
 #define GMSSL_VERSION_NUM	30200
-#define GMSSL_VERSION_STR	"GmSSL 3.2.0-dev.1069"
+#define GMSSL_VERSION_STR	"GmSSL 3.2.0-dev.1070"
 
 int gmssl_version_num(void);
 const char *gmssl_version_str(void);

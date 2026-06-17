@@ -2476,6 +2476,7 @@ void x509_sign_ctx_cleanup(X509_SIGN_CTX *ctx)
 	}
 }
 
+// FIXME: add arg max_outlen ?
 int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *pub, uint8_t *out, size_t *outlen)
 {
 	if (!key || !pub || !out || !outlen) {
@@ -2514,6 +2515,7 @@ int x509_key_do_exchange(const X509_KEY *key, const X509_KEY *pub, uint8_t *out,
 	return 1;
 }
 
+// FIXME: add arg max_outlen ?
 int x509_key_exchange(const X509_KEY *key, const uint8_t *peer_pub, size_t peer_publen, uint8_t *out, size_t *outlen)
 {
 	if (!key || !peer_pub || !out || !outlen) {
