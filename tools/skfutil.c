@@ -57,7 +57,7 @@ int skfutil_main(int argc, char **argv)
 	unsigned char buf[4096];
 	size_t len;
 
-	uint8_t authkey[16];
+	uint8_t authkey[16] = {0};
 	size_t authkeylen;
 	SKF_DEVICE dev;
 	SKF_KEY key;
@@ -235,6 +235,10 @@ bad:
 
 		if ((ret = skf_sign(&key, dgst, sig, &siglen)) != 1) {
 			fprintf(stderr, "%s: inner error\n", prog);
+			goto end;
+		}
+		if (fwrite(sig, 1, siglen, outfp) != siglen) {
+			fprintf(stderr, "%s: output failure\n", prog);
 			goto end;
 		}
 		ret = 0;

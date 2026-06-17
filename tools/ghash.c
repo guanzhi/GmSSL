@@ -155,6 +155,11 @@ bad:
 		argv++;
 	}
 
+	if (!hhex) {
+		fprintf(stderr, "gmssl %s: `-h` option is required\n", prog);
+		goto end;
+	}
+
 	ghash_init(&ghash_ctx, h, aad, aadlen);
 
 	if (in_str) {
@@ -184,6 +189,7 @@ bad:
 	}
 	ret = 0;
 end:
+	if (aad_buf) free(aad_buf);
 	if (infile && infp) fclose(infp);
 	if (outfile && outfp) fclose(outfp);
 	return ret;
