@@ -124,6 +124,7 @@ set(src
 	src/ocsp.c
 	src/x509_key.c
 	src/rsa.c
+	src/socket.c
 	src/file.c
 )
 
@@ -550,7 +551,6 @@ if (ENABLE_TLS)
 	message(STATUS "TLS ECDHE-ECDSA cipher suites require ENABLE_AES, ENABLE_SHA2 and ENABLE_SECP256R1")
 	add_definitions(-DENABLE_TLS)
 	list(APPEND src
-		src/socket.c
 		src/tls.c
 		src/tls_cert.c
 		src/tls_alpn.c
@@ -818,7 +818,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1073")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1074")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
