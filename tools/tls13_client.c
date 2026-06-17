@@ -392,7 +392,7 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-psk_cipher_suite")) {
 			char *cipher_suite_name;
 			int cipher_suite;
-			if (psk_cipher_suites_cnt > sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
+			if (psk_cipher_suites_cnt >= sizeof(psk_cipher_suites)/sizeof(psk_cipher_suites[0])) {
 				fprintf(stderr, "%s: too many -psk_cipher_suite options\n", prog);
 				return -1;
 			}
@@ -405,7 +405,7 @@ int tls13_client_main(int argc, char *argv[])
 			psk_cipher_suites[psk_cipher_suites_cnt++] = cipher_suite;
 		} else if (!strcmp(*argv, "-psk_key")) {
 			char *psk_key_hex;
-			if (psk_keys_cnt > sizeof(psk_keys)/sizeof(psk_keys[0])) {
+			if (psk_keys_cnt >= sizeof(psk_keys)/sizeof(psk_keys[0])) {
 				fprintf(stderr, "%s: too many -psk_key options\n", prog);
 				return -1;
 			}
