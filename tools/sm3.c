@@ -214,6 +214,10 @@ bad:
 				goto end;
 			}
 		}
+		if (ferror(infp)) {
+			fprintf(stderr, "%s: read failure\n", prog);
+			goto end;
+		}
 		memset(buf, 0, sizeof(buf));
 	}
 	if (sm3_digest_finish(&sm3_ctx, dgst) != 1) {

@@ -149,6 +149,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 
 	if (sm4_ctr_encrypt_finish(&ctx, buf, &outlen) != 1) {
 		error_print();

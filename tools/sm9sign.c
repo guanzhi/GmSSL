@@ -120,6 +120,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 	if (sm9_sign_finish(&ctx, &key, sig, &siglen) != 1) {
 		error_print();
 		goto end;

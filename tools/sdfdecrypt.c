@@ -199,6 +199,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 	if (sdf_cbc_decrypt_finish(&ctx, buf, &outlen) != 1) {
 		error_print();
 		goto end;

@@ -7,6 +7,21 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
 
+/*
+ * FIXME: 本文件中多处使用 atoi() 解析命令行参数（如 -port），存在安全隐患：
+ *
+ * 1. 错误不可检测：atoi("abc") 和 atoi("0") 均返回 0，无法区分有效值 0 和解析错误。
+ * 2. 溢出是未定义行为：atoi 遇到超出 INT_MAX 的输入时行为未定义，编译器可能产生不可预测的结果。
+ * 3. 负数可绕过边界检查：atoi("-1") 返回 -1，可能绕过只检查下界的验证逻辑。
+ *
+ * 应在后续版本中将 atoi 替换为 strtol()，配合 errno 和 endptr 做完整的错误检查：
+ *   errno = 0;
+ *   long val = strtol(arg, &endptr, 10);
+ *   if (errno || *endptr || val < 0 || val > INT_MAX) { error; }
+ *   port = (int)val;
+ *
+ * 同样的 atoi 问题也存在于其他 tlcp_*.c、tls12_*.c、tls13_*.c 以及 sm4*.c 等工具文件中。
+ */
 
 #include <stdio.h>
 #include <string.h>

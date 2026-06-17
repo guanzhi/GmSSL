@@ -191,6 +191,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 
 	if (enc) {
 		if (sm4_xts_encrypt_finish(&ctx, buf, &outlen) != 1) {

@@ -153,6 +153,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 	if (sdf_sign_finish(&ctx, sig, &siglen) != 1) {
 		(void)sdf_close_device(&dev);
 		fprintf(stderr, "gmssl %s: inner error\n", prog);

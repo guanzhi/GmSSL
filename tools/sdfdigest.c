@@ -152,7 +152,7 @@ int sdfdigest_main(int argc, char **argv)
 			if (--argc < 1) goto bad;
 			infile = *(++argv);
 			if (!(infp = fopen(infile, "rb"))) {
-				fprintf(stderr, "gmssl%s: open '%s' failure : %s\n", prog, infile, strerror(errno));
+				fprintf(stderr, "gmssl %s: open '%s' failure : %s\n", prog, infile, strerror(errno));
 				goto end;
 			}
 		} else if (!strcmp(*argv, "-out")) {
@@ -235,6 +235,10 @@ bad:
 				fprintf(stderr, "gmssl %s: inner error\n", prog);
 				goto end;
 			}
+		}
+		if (ferror(infp)) {
+			fprintf(stderr, "%s: read failure\n", prog);
+			goto end;
 		}
 		memset(buf, 0, sizeof(buf));
 	}

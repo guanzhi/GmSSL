@@ -131,6 +131,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 	if (sm2_sign_finish(&sign_ctx, sig, &siglen) != 1) {
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;

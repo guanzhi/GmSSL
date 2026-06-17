@@ -174,6 +174,10 @@ bad:
 		while ((len = fread(buf, 1, sizeof(buf), infp)) > 0) {
 			sm3_update(&sm3_ctx, buf, len);
 		}
+		if (ferror(infp)) {
+			fprintf(stderr, "%s: read failure\n", prog);
+			goto end;
+		}
 		sm3_finish(&sm3_ctx, dgst);
 
 		if ((ret = sdf_sign(&key, dgst, sig, &siglen)) != 1) {

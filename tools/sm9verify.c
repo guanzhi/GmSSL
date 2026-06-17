@@ -124,6 +124,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 	if ((ret = sm9_verify_finish(&ctx, sig, siglen, &mpk, id, strlen(id))) != 1) {
 		error_print();
 		goto end;

@@ -38,7 +38,7 @@ int kyberdecap_main(int argc, char **argv)
 	FILE *keyfp = NULL;
 	FILE *infp = stdin;
 	FILE *outfp = stdout;
-	uint8_t keybuf[KYBER_PRIVATE_KEY_SIZE];
+	uint8_t keybuf[KYBER_PRIVATE_KEY_SIZE] = {0};
 	size_t keylen = KYBER_PRIVATE_KEY_SIZE;
 	const uint8_t *cp = keybuf;
 	uint8_t *p = keybuf;

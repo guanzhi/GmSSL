@@ -167,6 +167,10 @@ bad:
 			goto end;
 		}
 	}
+	if (ferror(infp)) {
+		fprintf(stderr, "%s: read failure\n", prog);
+		goto end;
+	}
 	if ((vr = sm2_verify_finish(&verify_ctx, sig, siglen)) < 0) {
 		fprintf(stderr, "gmssl %s: inner error\n", prog);
 		goto end;
