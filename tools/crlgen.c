@@ -332,7 +332,7 @@ bad:
 	}
 	if (fwrite(outbuf, 1, outlen, outfp) != outlen) {
 		fprintf(stderr, "%s: output failure\n", prog);
-		return -1;
+		goto end;
 	}
 	ret = 0;
 

@@ -552,7 +552,7 @@ bad:
 			crl_http_uri, crl_http_uri ? strlen(crl_http_uri) : 0,
 			crl_ldap_uri, crl_ldap_uri ? strlen(crl_ldap_uri) : 0) != 1) {
 			fprintf(stderr, "%s: set CRLDistributionPoints extension failure\n", prog);
-			return -1;
+			goto end;
 		}
 	}
 	if (inhibit_any_policy >= 0) {

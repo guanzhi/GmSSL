@@ -155,7 +155,7 @@ bad:
 	}
 	if (sm2_encrypt_update(&ctx, inbuf, inlen) != 1) {
 		fprintf(stderr, "gmssl %s: sm2_encrypt_update failed\n", prog);
-		return -1;
+		goto end;
 	}
 	if (sm2_encrypt_finish(&ctx, &sm2_key, outbuf, &outlen) != 1) {
 		fprintf(stderr, "gmssl %s: sm2_encrypt_finish error\n", prog);
