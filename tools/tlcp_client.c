@@ -252,6 +252,11 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-host")) {
 			if (--argc < 1) goto bad;
 			host = *(++argv);
+			// prevent CRLF injection in http request header
+			if (strchr(host, '\r') || strchr(host, '\n')) {
+				fprintf(stderr, "%s: invalid characters in '-host' value\n", prog);
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-port")) {
 			if (--argc < 1) goto bad;
 			port = atoi(*(++argv));
@@ -334,6 +339,11 @@ int tlcp_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-get")) {
 			if (--argc < 1) goto bad;
 			get = *(++argv);
+			// prevent CRLF injection in http request line
+			if (strchr(get, '\r') || strchr(get, '\n')) {
+				fprintf(stderr, "%s: invalid characters in '-get' value\n", prog);
+				return -1;
+			}
 		} else if (!strcmp(*argv, "-in")) {
 			if (--argc < 1) goto bad;
 			infile = *(++argv);

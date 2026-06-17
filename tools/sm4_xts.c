@@ -168,7 +168,7 @@ bad:
 		}
 	}
 
-	buflen = data_unit_size * 16;
+	buflen = (size_t)data_unit_size * 16;
 	if (!(buf = (uint8_t *)malloc(buflen))) {
 		fprintf(stderr, "gmssl %s: malloc failure\n", prog);
 		goto end;

@@ -35,7 +35,7 @@ int cmssign_main(int argc, char **argv)
 	FILE *outfp = stdout;
 	SM2_KEY sm2_key;
 	X509_KEY public_key;
-	uint8_t cert[1024];
+	uint8_t cert[8192];
 	size_t certlen;
 	uint8_t *in = NULL;
 	size_t inlen;

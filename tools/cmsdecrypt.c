@@ -33,7 +33,7 @@ int cmsdecrypt_main(int argc, char **argv)
 	FILE *certfp = NULL;
 	FILE *infp = NULL;
 	FILE *outfp = stdout;
-	uint8_t cert[1024];
+	uint8_t cert[8192];
 	size_t certlen;
 	size_t inlen;
 	uint8_t *cms = NULL;
