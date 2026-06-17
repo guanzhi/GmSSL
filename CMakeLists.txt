@@ -117,6 +117,7 @@ set(src
 	src/pem.c
 	src/x509_alg.c
 	src/x509_cer.c
+	src/x509_vfy.c
 	src/x509_ext.c
 	src/x509_req.c
 	src/x509_crl.c
@@ -818,7 +819,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1074")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1075")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

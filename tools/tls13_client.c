@@ -383,7 +383,7 @@ int tls13_client_main(int argc, char *argv[])
 		} else if (!strcmp(*argv, "-psk_dhe_ke")) {
 			psk_dhe_ke = 1;
 		} else if (!strcmp(*argv, "-psk_identity")) {
-			if (psk_identities_cnt > sizeof(psk_identities)/sizeof(psk_identities[0])) {
+			if (psk_identities_cnt >= sizeof(psk_identities)/sizeof(psk_identities[0])) {
 				fprintf(stderr, "%s: too many -psk_identity options\n", prog);
 				return -1;
 			}
