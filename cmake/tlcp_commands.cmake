@@ -26,6 +26,7 @@ gmssl_run_tls_command_test(
 	SERVER_ARGS
 		tlcp_server
 		-port ${TEST_PORT}
+		-cipher_suite ${TEST_CIPHER_SUITE}
 		-cert tlcp_server_certs.pem
 		-key tlcp_server_keys.pem
 		-pass P@ssw0rd

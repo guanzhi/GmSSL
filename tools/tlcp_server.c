@@ -17,7 +17,7 @@
 #include <gmssl/error.h>
 
 
-static const char *options = "[-port num] -cert pem -key pem -pass str [-alpn str] [-cacert pem] [-verbose]";
+static const char *options = "[-port num] -cert pem -key pem -pass str [-cipher_suite str] [-alpn str] [-cert_request] [-cacert pem] [-verbose]";
 
 
 static const char *help =
@@ -27,7 +27,9 @@ static const char *help =
 "    -cert pem              Server's certificate chain in PEM format, may appear multiple times\n"
 "    -key pem               Server's signing and encryption private keys in PEM format: signing key first, encryption key second, may appear multiple times\n"
 "    -pass str              Password to decrypt both private keys in the same -key PEM, may appear multiple times\n"
+"    -cipher_suite str      Supported cipher suites, may appear multiple times, higher priority first\n"
 "    -alpn str              Application protocol name, may appear multiple times, higher priority first\n"
+"    -cert_request          Client certificate request\n"
 "    -cacert pem            CA certificate for client certificate verification\n"
 "    -verbose               Print TLS handshake messages\n"
 "\n"
@@ -128,6 +130,8 @@ int tlcp_server_main(int argc , char **argv)
 	int ret = 1;
 	char *prog = argv[0];
 	int port = 443;
+	int cipher_suites[4];
+	size_t cipher_suites_cnt = 0;
 	char *certfiles[4];
 	size_t certfiles_cnt = 0;
 	char *signkeyfiles[sizeof(certfiles)/sizeof(certfiles[0])];
@@ -136,13 +140,9 @@ int tlcp_server_main(int argc , char **argv)
 	size_t signpasses_cnt = 0;
 	char *alpn_protocols[4];
 	size_t alpn_protocols_cnt = 0;
+	int cert_request = 0;
 	char *cacertfile = NULL;
 	int verbose = 0;
-
-	int server_ciphers[] = {
-		TLS_cipher_ecc_sm4_gcm_sm3,
-		TLS_cipher_ecc_sm4_cbc_sm3,
-	};
 
 	TLS_CTX ctx;
 	TLS_CONNECT conn;
@@ -192,13 +192,29 @@ int tlcp_server_main(int argc , char **argv)
 			}
 			if (--argc < 1) goto bad;
 			signpasses[signpasses_cnt++] = *(++argv);
-		} else if (!strcmp(*argv, "-alpn")) {
+		} else if (!strcmp(*argv, "-cipher_suite")) {
+				char *cipher_suite_name;
+				int cipher_suite;
+				if (cipher_suites_cnt >= sizeof(cipher_suites)/sizeof(cipher_suites[0])) {
+					fprintf(stderr, "%s: too many -cipher_suite options\n", prog);
+					return -1;
+				}
+				if (--argc < 1) goto bad;
+				cipher_suite_name = *(++argv);
+				if ((cipher_suite = tls_cipher_suite_from_name(cipher_suite_name)) == 0) {
+					fprintf(stderr, "%s: invalid -cipher_suite '%s' value\n", prog, cipher_suite_name);
+					return -1;
+				}
+				cipher_suites[cipher_suites_cnt++] = cipher_suite;
+			} else if (!strcmp(*argv, "-alpn")) {
 			if (alpn_protocols_cnt >= sizeof(alpn_protocols)/sizeof(alpn_protocols[0])) {
 				fprintf(stderr, "%s: too many -alpn options\n", prog);
 				return -1;
 			}
 			if (--argc < 1) goto bad;
 			alpn_protocols[alpn_protocols_cnt++] = *(++argv);
+		} else if (!strcmp(*argv, "-cert_request")) {
+			cert_request = 1;
 		} else if (!strcmp(*argv, "-cacert")) {
 			if (--argc < 1) goto bad;
 			cacertfile = *(++argv);
@@ -231,11 +247,16 @@ bad:
 		return 1;
 	}
 
+	if (!cipher_suites_cnt) {
+		fprintf(stderr, "%s: '-cipher_suite' option required\n", prog);
+		return 1;
+	}
+
 	memset(&ctx, 0, sizeof(ctx));
 	memset(&conn, 0, sizeof(conn));
 
 	if (tls_ctx_init(&ctx, TLS_protocol_tlcp, TLS_server_mode) != 1
-		|| tls_ctx_set_cipher_suites(&ctx, server_ciphers, sizeof(server_ciphers)/sizeof(int)) != 1) {
+		|| tls_ctx_set_cipher_suites(&ctx, cipher_suites, cipher_suites_cnt) != 1) {
 		error_print();
 		return -1;
 	}
@@ -261,6 +282,12 @@ bad:
 		if (tls_ctx_set_ca_certificates(&ctx, cacertfile, TLS_DEFAULT_VERIFY_DEPTH) != 1) {
 			error_print();
 			return -1;
+		}
+	}
+	if (cert_request) {
+		if (!cacertfile) {
+			fprintf(stderr, "%s: -cacert required by -cert_request\n", prog);
+			return 1;
 		}
 		if (tls_ctx_enable_certificate_request(&ctx, 1) != 1) {
 			error_print();

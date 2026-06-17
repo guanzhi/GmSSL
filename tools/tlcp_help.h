@@ -38,6 +38,6 @@
 "    gmssl tlcp_server -port 4431 -cert tlcpcert.pem -key tlcpkey.pem -pass 1234 -cipher_suite TLS_ECC_SM4_CBC_SM3\n"
 "    gmssl tlcp_client -port 4431 -host 127.0.0.1 -cacert sm2rootcacert.pem -cipher_suite TLS_ECC_SM4_CBC_SM3\n"
 "\n"
-"    gmssl tlcp_server -port 4431 -cert tlcpcert.pem -key tlcpkey.pem -pass 1234 -cacert sm2cacert.pem -verbose\n"
+"    gmssl tlcp_server -port 4431 -cert tlcpcert.pem -key tlcpkey.pem -pass 1234 -cacert sm2cacert.pem -cipher_suite TLS_ECC_SM4_CBC_SM3 -cert_request -verbose\n"
 "    gmssl tlcp_client -port 4431 -host 127.0.0.1 -cacert sm2rootcacert.pem -cipher_suite TLS_ECC_SM4_CBC_SM3 -cert sm2signcert.pem -key sm2signkey.pem -pass 1234 -verbose\n"
 "\n"
