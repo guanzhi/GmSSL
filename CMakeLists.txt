@@ -55,7 +55,7 @@ option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
 
 option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 option(ENABLE_SM9 "Enable SM9" ON)
-option(ENABLE_CMS "Enable CMS" OFF)
+option(ENABLE_CMS "Enable CMS" ON)
 
 option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" ON)
 
@@ -117,7 +117,6 @@ set(src
 	src/pem.c
 	src/x509_alg.c
 	src/x509_cer.c
-	src/x509_vfy.c
 	src/x509_ext.c
 	src/x509_req.c
 	src/x509_crl.c
@@ -819,7 +818,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1086")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1087")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

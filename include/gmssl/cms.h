@@ -362,6 +362,8 @@ int cms_enveloped_data_encrypt_to_der(
 	const uint8_t *shared_info1, size_t shared_info1_len,
 	const uint8_t *shared_info2, size_t shared_info2_len,
 	uint8_t **out, size_t *outlen);
+// issuer/serial must be extracted from cert via x509_cert_get_issuer_and_serial_number()
+// to get canonical DER encoding; raw bytes may differ after ASN.1 INTEGER normalization.
 int cms_enveloped_data_decrypt_from_der(
 	const X509_KEY *sm2_key,
 	const uint8_t *issuer, size_t issuer_len,
@@ -415,6 +417,7 @@ int cms_signed_and_enveloped_data_encipher_to_der(
 	const uint8_t *shared_info1, size_t shared_info1_len,
 	const uint8_t *shared_info2, size_t shared_info2_len,
 	uint8_t **out, size_t *outlen);
+// rcpt_issuer/rcpt_serial must be from x509_cert_get_issuer_and_serial_number() (see above).
 int cms_signed_and_enveloped_data_decipher_from_der(
 	const X509_KEY *rcpt_key,
 	const uint8_t *rcpt_issuer, size_t rcpt_issuer_len,

@@ -101,31 +101,10 @@ int cms_content_type_from_der(int *oid, const uint8_t **in, size_t *inlen)
 	return 1;
 }
 
-/*
-static int cms_content_info_data_header_to_der(size_t dlen, uint8_t **out, size_t *outlen)
-{
-	uint8_t d[1];
-	size_t len = 0;
-	size_t content_len = 0;
-	if (asn1_octet_string_to_der(p, dlen, NULL, &content_len) != 1
-		|| cms_content_type_to_der(OID_cms_data, out, outlen) != 1
-		|| asn1_explicit_header_to_der(0, content_len, out, outlen) < 0
-		|| asn1_octet_string_to_der(dlen, out, outlen) < 0) {
-		error_print();
-		return -1;
-	}
-	return 1;
-}
-*/
 
 int cms_content_info_header_to_der(int content_type, size_t content_len, uint8_t **out, size_t *outlen)
 {
 	size_t len = content_len; // 注意：由于header_to_der没有输出数据，因此需要加上数据的长度，header length 才是正确的值
-	/*
-	if (content_type == OID_cms_data) {
-		return cms_content_info_data_header_to_der(content_len, out, outlen);
-	}
-	*/
 
 	if (cms_content_type_to_der(content_type, NULL, &len) != 1
 		|| asn1_explicit_header_to_der(0, content_len, NULL, &len) < 0
@@ -1112,7 +1091,7 @@ int cms_signed_data_sign_to_der(
 				&issuer, &issuer_len, &serial, &serial_len) != 1
 			|| cms_signer_infos_add_signer_info(
 				signer_infos, &signer_infos_len, sizeof(signer_infos),
-				&sm3_ctx, signers->sign_key,
+				&sm3_ctx, signers[i].sign_key,
 				issuer, issuer_len, serial, serial_len,
 				NULL, 0, NULL, 0) != 1) {
 			error_print();
@@ -1152,7 +1131,7 @@ int cms_signed_data_verify_from_der(
 	int digest_algors[4];
 	size_t digest_algors_cnt;
 	SM3_CTX sm3_ctx;
-	uint8_t content_info_header[128];
+	uint8_t content_info_header[256];
 	size_t content_info_header_len;
 	uint8_t *p = content_info_header;
 	const uint8_t *signer_infos;
@@ -1265,7 +1244,7 @@ int cms_recipient_info_from_der(
 			serial_number, serial_number_len, &d, &dlen) != 1
 		|| x509_public_key_encryption_algor_from_der(pke_algor, params, params_len, &d, &dlen) != 1
 		|| asn1_octet_string_from_der(enced_key, enced_key_len, &d, &dlen) != 1
-	//	|| asn1_length_is_zero(dlen) != 1				
+		|| asn1_length_is_zero(dlen) != 1
 		) {
 		error_print();
 		return -1;
@@ -1839,7 +1818,7 @@ int cms_signed_and_enveloped_data_encipher_to_der(
 				&issuer, &issuer_len, &serial, &serial_len) != 1
 			|| cms_signer_infos_add_signer_info(
 				signer_infos, &signer_infos_len, sizeof(signer_infos),
-				&sm3_ctx, signers->sign_key,
+				&sm3_ctx, signers[i].sign_key,
 				issuer, issuer_len, serial, serial_len,
 				NULL, 0, NULL, 0) != 1) {
 			error_print();
@@ -1871,7 +1850,7 @@ int cms_signed_and_enveloped_data_encipher_to_der(
 			shared_info2, shared_info2_len,
 			out, outlen) != 1
 		|| cms_implicit_signers_certs_to_der(0, signers, signers_cnt, out, outlen) != 1
-		|| asn1_implicit_set_to_der(1, signers_crls, signers_crls_len, out, outlen) != 1
+		|| asn1_implicit_set_to_der(1, signers_crls, signers_crls_len, out, outlen) < 0
 		|| asn1_set_to_der(signer_infos, signer_infos_len, out, outlen) != 1) {
 		error_print();
 		return -1;
@@ -1908,7 +1887,7 @@ int cms_signed_and_enveloped_data_decipher_from_der(
 	uint8_t key[32];
 	size_t keylen;
 	SM3_CTX sm3_ctx;
-	uint8_t content_info_header[128];
+	uint8_t content_info_header[256];
 	size_t content_info_header_len = 0;
 	uint8_t *p = content_info_header;
 
