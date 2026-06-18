@@ -2010,8 +2010,8 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	size_t kenc_certlen;
 	const uint8_t *cacert;
 	size_t cacertlen;
-	const uint8_t *name;
-	size_t namelen;
+	int matched_root = 0;
+	int ret;
 
 	int path_len = 0;
 	int path_len_constraint;
@@ -2085,36 +2085,42 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		path_len++;
 	}
 
-
-	if (x509_cert_get_issuer(cert, certlen, &name, &namelen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (x509_certs_get_cert_by_subject(rootcerts, rootcertslen, name, namelen, &cacert, &cacertlen) != 1) {
-		error_print();
-		return -1;
-	}
-	if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
-		error_print();
-		return -1;
-	}
-	if ((path_len_constraint >= 0 && path_len > path_len_constraint)
-		|| path_len > depth) {
-		error_print();
-		return -1;
-	}
-
-	// when no mid CA certs
-	if (path_len == 0) {
-		if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
-			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+	while (rootcertslen) {
+		if (x509_cert_from_der(&cacert, &cacertlen, &rootcerts, &rootcertslen) != 1) {
 			error_print();
 			return -1;
 		}
+		if ((ret = x509_cert_is_signed_by_root_ca_cert(cert, certlen, cacert, cacertlen,
+			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			continue;
+		}
+		if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((path_len_constraint >= 0 && path_len > path_len_constraint)
+			|| path_len > depth) {
+			error_print();
+			return -1;
+		}
+
+		// when no mid CA certs
+		if (path_len == 0) {
+			if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
+				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		matched_root = 1;
+		break;
 	}
 
-	if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
-		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+	if (!matched_root) {
 		error_print();
 		return -1;
 	}
