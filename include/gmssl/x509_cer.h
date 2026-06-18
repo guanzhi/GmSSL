@@ -324,6 +324,7 @@ typedef enum {
 } X509_CERT_TYPE;
 
 int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraint);
+int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int is_cacert);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {
@@ -363,6 +364,8 @@ typedef enum {
 } X509_CERT_CHAIN_TYPE;
 
 #define X509_MAX_VERIFY_DEPTH	6
+//int x509_cert_chain_verify(const uint8_t *certs, size_t certslen,
+//	const uint8_t *cacerts, size_t cacertslen, int depth, int *verify_result);
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,

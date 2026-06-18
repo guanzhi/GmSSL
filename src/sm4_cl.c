@@ -182,6 +182,7 @@ static int sm4_cl_set_key(SM4_CL_CTX *ctx, const uint8_t key[16], int enc)
 
 		cl_error_print(err);
 
+		// FIXME: sizeof(log) 错误？			
 		if ((err = clGetProgramBuildInfo(ctx->program, device, CL_PROGRAM_BUILD_LOG, sizeof(log), NULL, &loglen)) != CL_SUCCESS) {
 			cl_error_print(err);
 			goto end;
