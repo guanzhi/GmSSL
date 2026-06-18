@@ -217,6 +217,72 @@ static int test_x509_name(void)
 	return 1;
 }
 
+static int test_x509_name_normalized_equ(void)
+{
+	uint8_t name_a[512];
+	uint8_t name_b[512];
+	uint8_t name_c[512];
+	uint8_t ava_a[128];
+	uint8_t ava_b[128];
+	uint8_t rdn_a[256];
+	uint8_t rdn_b[256];
+	uint8_t *p;
+	size_t name_a_len = 0;
+	size_t name_b_len = 0;
+	size_t name_c_len = 0;
+	size_t ava_a_len = 0;
+	size_t ava_b_len = 0;
+	size_t rdn_a_len = 0;
+	size_t rdn_b_len = 0;
+
+	if (x509_name_add_common_name(name_a, &name_a_len, sizeof(name_a),
+			ASN1_TAG_PrintableString, (uint8_t *)"  CA  Test  ", strlen("  CA  Test  ")) != 1
+		|| x509_name_add_common_name(name_b, &name_b_len, sizeof(name_b),
+			ASN1_TAG_UTF8String, (uint8_t *)"ca test", strlen("ca test")) != 1
+		|| x509_name_add_common_name(name_c, &name_c_len, sizeof(name_c),
+			ASN1_TAG_UTF8String, (uint8_t *)"ca test 2", strlen("ca test 2")) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_name_normalized_equ(name_a, name_a_len, name_b, name_b_len) != 1
+		|| x509_name_normalized_equ(name_a, name_a_len, name_c, name_c_len) != 0) {
+		error_print();
+		return -1;
+	}
+
+	p = ava_a;
+	if (x509_attr_type_and_value_to_der(OID_at_organization_name, ASN1_TAG_UTF8String,
+			(uint8_t *)"GmSSL", strlen("GmSSL"), &p, &ava_a_len) != 1) {
+		error_print();
+		return -1;
+	}
+	p = ava_b;
+	if (x509_attr_type_and_value_to_der(OID_at_organizational_unit_name, ASN1_TAG_PrintableString,
+			(uint8_t *)"Test", strlen("Test"), &p, &ava_b_len) != 1) {
+		error_print();
+		return -1;
+	}
+	p = rdn_a;
+	if (x509_rdn_to_der(OID_at_organization_name, ASN1_TAG_UTF8String,
+			(uint8_t *)"GmSSL", strlen("GmSSL"), ava_b, ava_b_len, &p, &rdn_a_len) != 1) {
+		error_print();
+		return -1;
+	}
+	p = rdn_b;
+	if (x509_rdn_to_der(OID_at_organizational_unit_name, ASN1_TAG_PrintableString,
+			(uint8_t *)"Test", strlen("Test"), ava_a, ava_a_len, &p, &rdn_b_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_name_normalized_equ(rdn_a, rdn_a_len, rdn_b, rdn_b_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_x509_public_key_info(void)
 {
 	int algor = OID_ec_public_key;
@@ -445,6 +511,7 @@ int main(void)
 	if (test_x509_attr_type_and_value() != 1) goto err;
 	if (test_x509_rdn() != 1) goto err;
 	if (test_x509_name() != 1) goto err;
+	if (test_x509_name_normalized_equ() != 1) goto err;
 	if (test_x509_public_key_info() != 1) {
 		error_print();
 		goto err;

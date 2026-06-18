@@ -153,6 +153,7 @@ int x509_name_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 int x509_name_get_value_by_type(const uint8_t *d, size_t dlen, int oid, int *tag, const uint8_t **val, size_t *vlen);
 int x509_name_get_common_name(const uint8_t *d, size_t dlen, int *tag, const uint8_t **val, size_t *vlen);
 int x509_name_equ(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen);
+int x509_name_normalized_equ(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen);
 
 int x509_names_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 

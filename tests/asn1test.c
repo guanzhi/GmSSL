@@ -541,6 +541,92 @@ static int test_asn1_utf8_string(void)
 	return 1;
 }
 
+static int test_asn1_string_next_code_point(void)
+{
+	const uint8_t utf8[] = {
+		0x41, 0xe4, 0xb8, 0xad, 0xf0, 0x9f, 0x98, 0x80
+	};
+	const uint8_t invalid_utf8[] = { 0xc3, 0x41 };
+	const uint8_t printable[] = "Az 09?";
+	const uint8_t invalid_printable[] = "*";
+	const uint8_t ia5[] = "abc@example.com";
+	const uint8_t invalid_ia5[] = { 0x80 };
+	const uint8_t bmp[] = { 0x00, 0x41, 0x4e, 0x2d };
+	const uint8_t invalid_bmp[] = { 0x00 };
+	const uint8_t universal[] = {
+		0x00, 0x00, 0x00, 0x41,
+		0x00, 0x00, 0x4e, 0x2d,
+	};
+	const uint8_t invalid_universal[] = { 0x00, 0x00, 0x00 };
+	const uint8_t *p = NULL;
+	uint32_t cp;
+
+	if (asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 1 || cp != 0x41
+		|| asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 1 || cp != 0x4e2d
+		|| asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 1 || cp != 0x1f600
+		|| asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 0) {
+		error_print();
+		return -1;
+	}
+	p = NULL;
+	if (asn1_utf8_string_next_code_point(invalid_utf8, sizeof(invalid_utf8), &p, &cp) != -1) {
+		error_print();
+		return -1;
+	}
+
+	p = NULL;
+	if (asn1_printable_string_next_code_point(printable, sizeof(printable) - 1, &p, &cp) != 1 || cp != 'A'
+		|| asn1_printable_string_next_code_point(printable, sizeof(printable) - 1, &p, &cp) != 1 || cp != 'z') {
+		error_print();
+		return -1;
+	}
+	p = NULL;
+	if (asn1_printable_string_next_code_point(invalid_printable, sizeof(invalid_printable) - 1, &p, &cp) != -1) {
+		error_print();
+		return -1;
+	}
+
+	p = NULL;
+	if (asn1_ia5_string_next_code_point(ia5, sizeof(ia5) - 1, &p, &cp) != 1 || cp != 'a') {
+		error_print();
+		return -1;
+	}
+	p = NULL;
+	if (asn1_ia5_string_next_code_point(invalid_ia5, sizeof(invalid_ia5), &p, &cp) != -1) {
+		error_print();
+		return -1;
+	}
+
+	p = NULL;
+	if (asn1_bmp_string_next_code_point(bmp, sizeof(bmp), &p, &cp) != 1 || cp != 0x41
+		|| asn1_bmp_string_next_code_point(bmp, sizeof(bmp), &p, &cp) != 1 || cp != 0x4e2d
+		|| asn1_bmp_string_next_code_point(bmp, sizeof(bmp), &p, &cp) != 0) {
+		error_print();
+		return -1;
+	}
+	p = NULL;
+	if (asn1_bmp_string_next_code_point(invalid_bmp, sizeof(invalid_bmp), &p, &cp) != -1) {
+		error_print();
+		return -1;
+	}
+
+	p = NULL;
+	if (asn1_universal_string_next_code_point(universal, sizeof(universal), &p, &cp) != 1 || cp != 0x41
+		|| asn1_universal_string_next_code_point(universal, sizeof(universal), &p, &cp) != 1 || cp != 0x4e2d
+		|| asn1_universal_string_next_code_point(universal, sizeof(universal), &p, &cp) != 0) {
+		error_print();
+		return -1;
+	}
+	p = NULL;
+	if (asn1_universal_string_next_code_point(invalid_universal, sizeof(invalid_universal), &p, &cp) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_asn1_ia5_string(void)
 {
 	char *tests[] = {
@@ -849,6 +935,7 @@ int main(void)
 {
 	if (test_asn1_tag() != 1) goto err;
 	if (test_asn1_utf8_string() != 1) goto err;
+	if (test_asn1_string_next_code_point() != 1) goto err;
 /*
 	if (test_asn1_length() != 1) goto err;
 	if (test_asn1_length_from_ber() != 1) goto err;
