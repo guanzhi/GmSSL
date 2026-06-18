@@ -1943,12 +1943,6 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			return -1;
 		}
 
-		if (path_len == 0) {
-			if (path_len_constraint != 0) {
-				error_print();
-				return -1;
-			}
-		}
 		if ((path_len_constraint >= 0 && path_len > path_len_constraint)
 			|| path_len > depth) {
 			error_print();
@@ -2067,11 +2061,6 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		}
 
 		if (path_len == 0) {
-			if (path_len_constraint != 0) {
-				error_print();
-				return -1;
-			}
-
 			// verify entity key encipherment cert
 			if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
 				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
