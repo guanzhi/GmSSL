@@ -870,17 +870,43 @@ err:
 int x509_general_name_to_der(int choice, const uint8_t *d, size_t dlen, uint8_t **out, size_t *outlen)
 {
 	int ret;
+	const uint8_t *p;
+	size_t len;
 
 	if (dlen == 0) {
 		return 0;
 	}
 	switch (choice) {
 	case X509_gn_other_name:
+	case X509_gn_edi_party_name:
+		if ((ret = asn1_type_to_der(ASN1_TAG_EXPLICIT(choice), d, dlen, out, outlen)) != 1) {
+			if (ret < 0) error_print();
+			return ret;
+		}
+		break;
+	case X509_gn_x400_address:
+		p = d;
+		len = dlen;
+		if (asn1_sequence_from_der(&d, &dlen, &p, &len) < 0) {
+			error_print();
+			return -1;
+		}
+		if ((ret = asn1_type_to_der(ASN1_TAG_EXPLICIT(choice), d, dlen, out, outlen)) != 1) {
+			if (ret < 0) error_print();
+			return ret;
+		}
+		break;
+	case X509_gn_directory_name:
+		len = 0;
+		if (asn1_sequence_to_der(d, dlen, NULL, &len) != 1
+			|| asn1_explicit_header_to_der(choice, len, out, outlen) != 1
+			|| asn1_sequence_to_der(d, dlen, out, outlen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
 	case X509_gn_rfc822_name:
 	case X509_gn_dns_name:
-	case X509_gn_x400_address:
-	case X509_gn_directory_name:
-	case X509_gn_edi_party_name:
 	case X509_gn_uniform_resource_identifier:
 	case X509_gn_ip_address:
 	case X509_gn_registered_id:
@@ -900,20 +926,78 @@ int x509_general_name_from_der(int *choice, const uint8_t **d, size_t *dlen, con
 {
 	int ret;
 	int tag;
+	const uint8_t *p;
+	size_t len;
 	if ((ret = asn1_any_type_from_der(&tag, d, dlen, in, inlen)) != 1) {
 		if (ret < 0) error_print();
 		return ret;
 	}
 	switch (tag) {
-	case ASN1_TAG_EXPLICIT(0): *choice = 0; break;
-	case ASN1_TAG_IMPLICIT(1): *choice = 1; break;
-	case ASN1_TAG_IMPLICIT(2): *choice = 2; break;
-	case ASN1_TAG_EXPLICIT(3): *choice = 3; break;
-	case ASN1_TAG_EXPLICIT(4): *choice = 4; break;
-	case ASN1_TAG_EXPLICIT(5): *choice = 5; break;
-	case ASN1_TAG_IMPLICIT(6): *choice = 6; break;
-	case ASN1_TAG_IMPLICIT(7): *choice = 7; break;
-	case ASN1_TAG_IMPLICIT(8): *choice = 8; break;
+	case ASN1_TAG_EXPLICIT(0):
+		*choice = 0;
+		if (*dlen && **d == ASN1_TAG_SEQUENCE) {
+			p = *d;
+			len = *dlen;
+			if (asn1_sequence_from_der(d, dlen, &p, &len) != 1
+				|| asn1_length_is_zero(len) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		break;
+	case ASN1_TAG_IMPLICIT(1):
+		*choice = 1;
+		break;
+	case ASN1_TAG_IMPLICIT(2):
+		*choice = 2;
+		break;
+	case ASN1_TAG_IMPLICIT(3):
+	case ASN1_TAG_EXPLICIT(3):
+		*choice = 3;
+		if (*dlen && **d == ASN1_TAG_SEQUENCE) {
+			p = *d;
+			len = *dlen;
+			if (asn1_sequence_from_der(d, dlen, &p, &len) != 1
+				|| asn1_length_is_zero(len) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		break;
+	case ASN1_TAG_IMPLICIT(4):
+		*choice = 4;
+		break;
+	case ASN1_TAG_EXPLICIT(4):
+		*choice = 4;
+		p = *d;
+		len = *dlen;
+		if (asn1_sequence_from_der(d, dlen, &p, &len) != 1
+			|| asn1_length_is_zero(len) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case ASN1_TAG_EXPLICIT(5):
+		*choice = 5;
+		if (*dlen && **d == ASN1_TAG_SEQUENCE) {
+			p = *d;
+			len = *dlen;
+			if (asn1_sequence_from_der(d, dlen, &p, &len) != 1
+				|| asn1_length_is_zero(len) != 1) {
+				error_print();
+				return -1;
+			}
+		}
+		break;
+	case ASN1_TAG_IMPLICIT(6):
+		*choice = 6;
+		break;
+	case ASN1_TAG_IMPLICIT(7):
+		*choice = 7;
+		break;
+	case ASN1_TAG_IMPLICIT(8):
+		*choice = 8;
+		break;
 	default:
 		fprintf(stderr, "%s %d: tag = %x\n", __FILE__, __LINE__, tag);
 		error_print();
@@ -932,15 +1016,17 @@ int x509_general_name_print(FILE *fp, int fmt, int ind, const char *label, int c
 
 	switch (choice) {
 	case 0:
-	case 3:
 	case 4:
 	case 5:
-		if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1) {
-			error_print();
-			return -1;
+		if (dlen && *d == ASN1_TAG_SEQUENCE) {
+			if (asn1_sequence_from_der(&p, &len, &d, &dlen) != 1
+				|| asn1_length_is_zero(dlen) != 1) {
+				error_print();
+				return -1;
+			}
+			d = p;
+			dlen = len;
 		}
-		d = p;
-		dlen = len;
 	}
 	switch (choice) {
 	case 0: return x509_other_name_print(fp, fmt, ind, "otherName", d, dlen);

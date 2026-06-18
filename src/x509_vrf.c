@@ -62,48 +62,6 @@ static int x509_cert_get_authority_key_identifier_keyid(const uint8_t *cert, siz
 	return 1;
 }
 
-static int x509_general_names_match_directory_name(const uint8_t *general_names, size_t general_names_len,
-	const uint8_t *name, size_t name_len)
-{
-	int tag;
-	const uint8_t *general_name;
-	size_t general_name_len;
-	const uint8_t *directory_name;
-	size_t directory_name_len;
-
-	if (!general_names || !general_names_len || !name || !name_len) {
-		error_print();
-		return -1;
-	}
-
-	while (general_names_len) {
-		if (asn1_any_type_from_der(&tag, &general_name, &general_name_len,
-			&general_names, &general_names_len) != 1) {
-			error_print();
-			return -1;
-		}
-		if (tag == ASN1_TAG_IMPLICIT(X509_gn_directory_name)) {
-			directory_name = general_name;
-			directory_name_len = general_name_len;
-			if (x509_name_equ(directory_name, directory_name_len, name, name_len) == 1) {
-				return 1;
-			}
-		} else if (tag == ASN1_TAG_EXPLICIT(X509_gn_directory_name)) {
-			if (asn1_sequence_from_der(&directory_name, &directory_name_len,
-				&general_name, &general_name_len) != 1
-				|| asn1_length_is_zero(general_name_len) != 1) {
-				error_print();
-				return -1;
-			}
-			if (x509_name_equ(directory_name, directory_name_len, name, name_len) == 1) {
-				return 1;
-			}
-		}
-	}
-
-	return 0;
-}
-
 static int x509_cert_get_subject_key_identifier(const uint8_t *cert, size_t certlen,
 	const uint8_t **keyid, size_t *keyid_len)
 {
@@ -200,6 +158,8 @@ int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 	size_t ski_len;
 	const uint8_t *root_serial;
 	size_t root_serial_len;
+	const uint8_t *directory_name;
+	size_t directory_name_len;
 	int issuer_match;
 	X509_KEY public_key;
 	int ret;
@@ -253,10 +213,18 @@ int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 
 			// aki_issuer AKI 中的Issuer 是一个GeneralNames.directoryName == ROOTCACERT.subject
 
-			if ((ret = x509_general_names_match_directory_name(aki_issuer, aki_issuer_len,
-				subject, subject_len)) != 1) {
+			if ((ret = x509_general_names_get_first(aki_issuer, aki_issuer_len, NULL,
+				X509_gn_directory_name, &directory_name, &directory_name_len)) < 0) {
 				if (ret) error_print();
 				return ret;
+			}
+			if (ret == 0) {
+				return 0;
+			}
+			if ((issuer_match = x509_name_equ(directory_name, directory_name_len,
+				subject, subject_len)) != 1) {
+				if (issuer_match) error_print();
+				return issuer_match;
 			}
 
 			if (aki_serial_len != root_serial_len

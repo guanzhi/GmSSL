@@ -127,9 +127,44 @@ static int test_x509_general_name(void)
 	uint8_t name[512];
 	size_t namelen;
 	uint32_t reg_id[] = { 2,4,6,8 };
+	uint8_t other_name[256];
+	uint8_t *other_name_p = other_name;
+	const uint8_t *other_name_cp = other_name;
+	const uint8_t *other_name_content;
+	size_t other_name_len = 0;
+	size_t other_name_content_len;
+	uint8_t edi_party_name[256];
+	uint8_t *edi_party_name_p = edi_party_name;
+	const uint8_t *edi_party_name_cp = edi_party_name;
+	const uint8_t *edi_party_name_content;
+	size_t edi_party_name_len = 0;
+	size_t edi_party_name_content_len;
+	uint8_t general_name[512];
+	uint8_t *general_name_p = general_name;
+	size_t general_name_len = 0;
+	const uint8_t *gn;
+	size_t gn_len;
 
 	if (x509_name_set(name, &namelen, sizeof(name),
 		"CN", "Beijing", "Haidian", "PKU", "CS", "CA") != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_other_name_to_der(other_id, cnt(other_id), value, sizeof(value),
+			&other_name_p, &other_name_len) != 1
+		|| asn1_sequence_from_der(&other_name_content, &other_name_content_len,
+			&other_name_cp, &other_name_len) != 1
+		|| asn1_length_is_zero(other_name_len) != 1
+		|| x509_edi_party_name_to_der(
+			ASN1_TAG_PrintableString, (uint8_t *)"Assigner", strlen("Assigner"),
+			ASN1_TAG_PrintableString, (uint8_t *)"PartyName", strlen("PartyName"),
+			&edi_party_name_p, &edi_party_name_len) != 1
+		|| asn1_sequence_from_der(&edi_party_name_content, &edi_party_name_content_len,
+			&edi_party_name_cp, &edi_party_name_len) != 1
+		|| asn1_length_is_zero(edi_party_name_len) != 1
+		|| x509_general_name_to_der(X509_gn_directory_name, name, namelen,
+			&general_name_p, &general_name_len) != 1
+		|| general_name[0] != ASN1_TAG_EXPLICIT(X509_gn_directory_name)) {
 		error_print();
 		return -1;
 	}
@@ -153,6 +188,18 @@ static int test_x509_general_name(void)
 		return -1;
 	}
 	x509_general_names_print(stderr, 0, 0, "GeneralNames", d, dlen);
+	if (x509_general_names_get_first(d, dlen, NULL, X509_gn_other_name, &gn, &gn_len) != 1
+		|| gn_len != other_name_content_len
+		|| memcmp(gn, other_name_content, gn_len) != 0
+		|| x509_general_names_get_first(d, dlen, NULL, X509_gn_directory_name, &gn, &gn_len) != 1
+		|| gn_len != namelen
+		|| memcmp(gn, name, namelen) != 0
+		|| x509_general_names_get_first(d, dlen, NULL, X509_gn_edi_party_name, &gn, &gn_len) != 1
+		|| gn_len != edi_party_name_content_len
+		|| memcmp(gn, edi_party_name_content, gn_len) != 0) {
+		error_print();
+		return -1;
+	}
 	{
 		size_t i;
 		printf("uint8_t general_names[%zu] = {", dlen);

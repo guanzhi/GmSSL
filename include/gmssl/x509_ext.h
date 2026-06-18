@@ -118,12 +118,12 @@ int x509_edi_party_name_print(FILE *fp, int fmt, int ind, const char *label, con
 
 /*
 GeneralName ::= CHOICE {
-	otherName			[0] IMPLICIT OtherName,	-- Only in GeneralName
+	otherName			[0] IMPLICIT OtherName,	-- constructed
 	rfc822Name			[1] IMPLICIT IA5String,
 	dNSName				[2] IMPLICIT IA5String,
-	x400Address			[3] IMPLICIT ORAddress,
-	directoryName			[4] IMPLICIT Name,	-- SEQENCE OF
-	ediPartyName			[5] IMPLICIT EDIPartyName, -- Only in GeneralName
+	x400Address			[3] IMPLICIT ORAddress, -- constructed
+	directoryName			[4] EXPLICIT Name,
+	ediPartyName			[5] IMPLICIT EDIPartyName, -- constructed
 	uniformResourceIdentifier	[6] IMPLICIT IA5String,
 	iPAddress			[7] IMPLICIT OCTET STRING, -- 4 bytes or string?
 	registeredID			[8] IMPLICIT OBJECT IDENTIFIER }
@@ -644,4 +644,3 @@ int x509_authority_info_access_print(FILE *fp, int fmt, int ind, const char *lab
 }
 #endif
 #endif
-
