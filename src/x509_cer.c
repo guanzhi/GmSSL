@@ -1833,7 +1833,6 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type,
 	size_t extslen;
 	int sig_algor;
 
-
 	if (x509_cert_get_details(cert, certlen,
 		&version, // version
 		&serial, &serial_len, // serial
@@ -1871,12 +1870,12 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type,
 		return -1;
 	}
 
-	// check issuer and subject not empty
+	// check issuer and subject name requirements
 	if (x509_name_check(issuer, issuer_len) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_name_check(subject, subject_len) != 1) {
+	if (x509_cert_check_subject(cert, certlen, cert_type) != 1) {
 		error_print();
 		return -1;
 	}
