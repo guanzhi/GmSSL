@@ -895,3 +895,6 @@ func(sm9_z256_modp_mont_sqr):
 	ldp	x29,x30,[sp],#64
 	ret
 
+#ifdef __ELF__
+.section .note.GNU-stack,"",@progbits
+#endif

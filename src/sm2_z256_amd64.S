@@ -2139,3 +2139,6 @@ func(sm2_z256_point_add_affine):
 	popq	%rbp
 	.byte	0xf3,0xc3
 
+#if defined(__linux__) && defined(__ELF__)
+.section .note.GNU-stack,"",@progbits
+#endif
