@@ -297,6 +297,9 @@ int x509_cert_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t
 
 int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *cacert, size_t cacertlen,
 	const char *signer_id, size_t signer_id_len);
+int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
+	const uint8_t *rootcacert, size_t rootcacertlen,
+	const char *signer_id, size_t signer_id_len);
 
 int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *version,

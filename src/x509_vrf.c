@@ -18,6 +18,263 @@
 #include <gmssl/error.h>
 
 
+
+static int x509_cert_get_authority_key_identifier_keyid(const uint8_t *cert, size_t certlen,
+	const uint8_t **keyid, size_t *keyid_len,
+	const uint8_t **issuer, size_t *issuer_len,
+	const uint8_t **serial, size_t *serial_len)
+{
+	int ret;
+	int critical;
+	const uint8_t *exts;
+	size_t extslen;
+	const uint8_t *val;
+	size_t vlen;
+
+	if (!cert || !certlen || !keyid || !keyid_len
+		|| !issuer || !issuer_len || !serial || !serial_len) {
+		error_print();
+		return -1;
+	}
+
+	*keyid = NULL;
+	*keyid_len = 0;
+	*issuer = NULL;
+	*issuer_len = 0;
+	*serial = NULL;
+	*serial_len = 0;
+
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_authority_key_identifier,
+		&critical, &val, &vlen)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+	if (x509_authority_key_identifier_from_der(keyid, keyid_len,
+		issuer, issuer_len, serial, serial_len, &val, &vlen) != 1
+		|| asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int x509_general_names_match_directory_name(const uint8_t *general_names, size_t general_names_len,
+	const uint8_t *name, size_t name_len)
+{
+	int tag;
+	const uint8_t *general_name;
+	size_t general_name_len;
+	const uint8_t *directory_name;
+	size_t directory_name_len;
+
+	if (!general_names || !general_names_len || !name || !name_len) {
+		error_print();
+		return -1;
+	}
+
+	while (general_names_len) {
+		if (asn1_any_type_from_der(&tag, &general_name, &general_name_len,
+			&general_names, &general_names_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (tag == ASN1_TAG_IMPLICIT(X509_gn_directory_name)) {
+			directory_name = general_name;
+			directory_name_len = general_name_len;
+			if (x509_name_equ(directory_name, directory_name_len, name, name_len) == 1) {
+				return 1;
+			}
+		} else if (tag == ASN1_TAG_EXPLICIT(X509_gn_directory_name)) {
+			if (asn1_sequence_from_der(&directory_name, &directory_name_len,
+				&general_name, &general_name_len) != 1
+				|| asn1_length_is_zero(general_name_len) != 1) {
+				error_print();
+				return -1;
+			}
+			if (x509_name_equ(directory_name, directory_name_len, name, name_len) == 1) {
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int x509_cert_get_subject_key_identifier(const uint8_t *cert, size_t certlen,
+	const uint8_t **keyid, size_t *keyid_len)
+{
+	int ret;
+	int critical;
+	const uint8_t *exts;
+	size_t extslen;
+	const uint8_t *val;
+	size_t vlen;
+
+	if (!cert || !certlen || !keyid || !keyid_len) {
+		error_print();
+		return -1;
+	}
+
+	*keyid = NULL;
+	*keyid_len = 0;
+
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_subject_key_identifier,
+		&critical, &val, &vlen)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+	if (asn1_octet_string_from_der(keyid, keyid_len, &val, &vlen) != 1
+		|| asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
+	const X509_KEY *key, const char *signer_id, size_t signer_id_len)
+{
+	const uint8_t *tbs;
+	size_t tbslen;
+	int sig_alg;
+	const uint8_t *sig;
+	size_t siglen;
+	int key_sig_alg;
+	void *sign_args = NULL;
+	size_t sign_argslen = 0;
+	X509_SIGN_CTX verify_ctx;
+
+	if (!a || !alen || !key) {
+		error_print();
+		return -1;
+	}
+	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sig_alg != key_sig_alg) {
+		return 0;
+	}
+
+	if (key->algor == OID_ec_public_key && key->algor_param == OID_sm2) {
+		sign_args = (uint8_t *)signer_id;
+		sign_argslen = signer_id_len;
+	}
+	if (x509_verify_init(&verify_ctx, key, sign_args, sign_argslen, sig, siglen) != 1
+		|| x509_verify_update(&verify_ctx, tbs, tbslen) != 1
+		|| x509_verify_finish(&verify_ctx) != 1) {
+		return 0;
+	}
+	return 1;
+}
+
+int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
+	const uint8_t *rootcacert, size_t rootcacertlen,
+	const char *signer_id, size_t signer_id_len)
+{
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *subject;
+	size_t subject_len;
+
+	const uint8_t *aki;
+	size_t aki_len;
+	const uint8_t *aki_issuer;
+	size_t aki_issuer_len;
+	const uint8_t *aki_serial;
+	size_t aki_serial_len;
+	const uint8_t *ski;
+	size_t ski_len;
+	const uint8_t *root_serial;
+	size_t root_serial_len;
+	int issuer_match;
+	X509_KEY public_key;
+	int ret;
+
+	if (!cert || !certlen || !rootcacert || !rootcacertlen) {
+		error_print();
+		return -1;
+	}
+
+	// check issuer == subject
+	if (x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1
+		|| x509_cert_get_subject(rootcacert, rootcacertlen, &subject, &subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_name_equ(issuer, issuer_len, subject, subject_len)) != 1) {
+		if (ret) error_print();
+		return ret;
+	}
+
+	// if AKI not exist
+	if ((ret = x509_cert_get_authority_key_identifier_keyid(cert, certlen,
+		&aki, &aki_len, &aki_issuer, &aki_issuer_len, &aki_serial, &aki_serial_len)) < 0) {
+		error_print();
+		return -1;
+	} else if (ret) {
+		// AKI exist
+
+		// SKI not exist => not_match
+		if ((ret = x509_cert_get_subject_key_identifier(rootcacert, rootcacertlen, &ski, &ski_len)) < 0) {
+			if (ret) error_print();
+			return ret;
+		}
+
+		if (aki_len) {
+			if (aki_len != ski_len || memcmp(aki, ski, ski_len) != 0) {
+				return 0;
+			}
+		}
+
+		if (aki_issuer_len || aki_serial_len) {
+			if (!aki_issuer_len || !aki_serial_len) {
+				error_print();
+				return -1;
+			}
+			if (x509_cert_get_issuer_and_serial_number(rootcacert, rootcacertlen,
+				NULL, NULL, &root_serial, &root_serial_len) != 1) {
+				error_print();
+				return -1;
+			}
+
+			// aki_issuer AKI 中的Issuer 是一个GeneralNames.directoryName == ROOTCACERT.subject
+
+			if ((ret = x509_general_names_match_directory_name(aki_issuer, aki_issuer_len,
+				subject, subject_len)) != 1) {
+				if (ret) error_print();
+				return ret;
+			}
+
+			if (aki_serial_len != root_serial_len
+				|| memcmp(aki_serial, root_serial, root_serial_len) != 0) {
+				return 0;
+			}
+		}
+
+	}
+
+
+	if (x509_cert_get_subject_public_key(rootcacert, rootcacertlen, &public_key) != 1) {
+		error_print();
+		return -1;
+	}
+	return x509_signed_is_verified_by_key(cert, certlen, &public_key, signer_id, signer_id_len);
+}
+
 static int x509_general_name_check(int choice, const uint8_t *d, size_t dlen)
 {
 	const uint8_t *p;
