@@ -92,7 +92,7 @@ if(NOT EXISTS signreq.pem)
 endif()
 
 execute_process(
-	COMMAND bin/gmssl reqsign -in signreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass P@ssw0rd -out signcert.pem
+	COMMAND bin/gmssl reqsign -in signreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass P@ssw0rd -subject_dns_name localhost -out signcert.pem
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 )
@@ -128,7 +128,7 @@ if(NOT EXISTS encreq.pem)
 endif()
 
 execute_process(
-	COMMAND bin/gmssl reqsign -in encreq.pem -days 365 -key_usage keyEncipherment -cacert cacert.pem -key cakey.pem -pass P@ssw0rd -out enccert.pem
+	COMMAND bin/gmssl reqsign -in encreq.pem -days 365 -key_usage keyEncipherment -cacert cacert.pem -key cakey.pem -pass P@ssw0rd -subject_dns_name localhost -out enccert.pem
 	RESULT_VARIABLE TEST_RESULT
 	ERROR_VARIABLE TEST_STDERR
 )

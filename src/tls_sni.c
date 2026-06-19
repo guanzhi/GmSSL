@@ -108,13 +108,20 @@ int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	return 1;
 }
 
-int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len)
+int tls_set_hostname(TLS_CONNECT *conn, const char *host_name)
 {
-	if (!conn || !host_name || !host_name_len) {
+	size_t host_name_len;
+
+	if (!conn || !host_name) {
 		error_print();
 		return -1;
 	}
 	if (!conn->is_client) {
+		error_print();
+		return -1;
+	}
+	host_name_len = strlen(host_name);
+	if (!host_name_len) {
 		error_print();
 		return -1;
 	}
@@ -125,6 +132,23 @@ int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host
 	memcpy(conn->host_name, host_name, host_name_len);
 	conn->host_name[host_name_len] = 0;
 	conn->host_name_len = host_name_len;
+	return 1;
+}
+
+int tls_set_server_name(TLS_CONNECT *conn)
+{
+	if (!conn) {
+		error_print();
+		return -1;
+	}
+	if (!conn->is_client) {
+		error_print();
+		return -1;
+	}
+	if (!conn->host_name_len) {
+		error_print();
+		return -1;
+	}
 	conn->server_name = 1;
 	return 1;
 }

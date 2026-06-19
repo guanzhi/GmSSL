@@ -1235,7 +1235,7 @@ typedef struct {
 
 	// 0. server_name
 	int server_name;
-	// ClientHello.server_name
+	// Hostname used for certificate name verification and ClientHello.server_name
 	uint8_t host_name[256];
 	size_t host_name_len;
 	// EncryptedExtensions.server_name (emtpy)
@@ -1914,7 +1914,7 @@ int tls_ctx_enable_certificate_request(TLS_CTX *ctx, int enable);
 
 
 // 0. server_name (SNI): in ClientHello, EncryptedExtensions
-int tls_set_server_name(TLS_CONNECT *conn, const uint8_t *host_name, size_t host_name_len); // client only
+int tls_set_server_name(TLS_CONNECT *conn); // client only
 int tls_server_name_ext_to_bytes(const uint8_t *host_name, size_t host_name_len, uint8_t **out, size_t *outlen);
 int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 	const uint8_t *ext_data, size_t ext_datalen);

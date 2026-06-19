@@ -1259,8 +1259,8 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		}
 	}
 
-	// check server certificate matches ClientHello.server_name
-	if (conn->server_name) {
+	// check server certificate matches configured hostname
+	if (conn->host_name_len) {
 		if ((ret = tls_cert_match_server_name(server_cert, server_cert_len,
 			conn->host_name, conn->host_name_len)) < 0) {
 			error_print();

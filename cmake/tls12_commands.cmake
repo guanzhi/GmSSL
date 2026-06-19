@@ -36,6 +36,7 @@ gmssl_run_tls_command_test(
 		tls12_client
 		-host 127.0.0.1
 		-port ${TEST_PORT}
+		-server_name localhost
 		-cacert rootcacert.pem
 		-cipher_suite ${TEST_CIPHER_SUITE}
 		-supported_group sm2p256v1

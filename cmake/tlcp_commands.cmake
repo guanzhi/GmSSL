@@ -34,6 +34,7 @@ gmssl_run_tls_command_test(
 		tlcp_client
 		-host 127.0.0.1
 		-port ${TEST_PORT}
+		-server_name localhost
 		-cacert rootcacert.pem
 		-cipher_suite ${TEST_CIPHER_SUITE}
 		-in ${TEST_NAME}_message.txt

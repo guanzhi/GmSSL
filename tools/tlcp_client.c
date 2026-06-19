@@ -461,8 +461,12 @@ bad:
 		error_print();
 		goto end;
 	}
+	if (tls_set_hostname(&conn, server_name ? server_name : host) != 1) {
+		error_print();
+		goto end;
+	}
 	if (server_name) {
-		if (tls_set_server_name(&conn, (uint8_t *)server_name, strlen(server_name)) != 1) {
+		if (tls_set_server_name(&conn) != 1) {
 			error_print();
 			goto end;
 		}

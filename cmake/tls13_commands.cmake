@@ -27,6 +27,7 @@ if(TEST_CASE STREQUAL tls13_sm4_gcm)
 			tls13_client
 			-host 127.0.0.1
 			-port 4433
+			-server_name localhost
 			-cacert rootcacert.pem
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group sm2p256v1
@@ -52,6 +53,7 @@ elseif(TEST_CASE STREQUAL tls13_hrr_sm4_gcm)
 			tls13_client
 			-host 127.0.0.1
 			-port 4460
+			-server_name localhost
 			-cacert rootcacert.pem
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group prime256v1

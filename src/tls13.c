@@ -6237,7 +6237,7 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 		ca_names = conn->ctx->ca_names;
 		ca_names_len = conn->ctx->ca_names_len;
 	}
-	if (conn->server_name) {
+	if (conn->host_name_len) {
 		host_name = conn->host_name;
 		host_name_len = conn->host_name_len;
 	}

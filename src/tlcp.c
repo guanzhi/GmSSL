@@ -791,7 +791,7 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-	if (conn->server_name) {
+	if (conn->host_name_len) {
 		if ((ret = tls_cert_match_server_name(server_cert, server_cert_len,
 			conn->host_name, conn->host_name_len)) < 0) {
 			error_print();
