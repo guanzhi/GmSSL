@@ -380,9 +380,13 @@ typedef enum {
 //int x509_cert_chain_verify(const uint8_t *certs, size_t certslen,
 //	const uint8_t *cacerts, size_t cacertslen, int depth, int *verify_result);
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
-	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
+	const uint8_t *rootcerts, size_t rootcertslen,
+	const uint8_t *crl, size_t crl_len,
+	int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
-	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
+	const uint8_t *rootcerts, size_t rootcertslen,
+	const uint8_t *crl, size_t crl_len,
+	int depth, int *verify_result);
 int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
 	const uint8_t *rootcacert, size_t rootcacertlen);
 int x509_certs_check_basic_constraints(const uint8_t *cert_chain, size_t cert_chain_len,

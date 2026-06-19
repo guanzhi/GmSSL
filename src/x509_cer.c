@@ -23,6 +23,7 @@
 #include <gmssl/x509_alg.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509.h>
+#include <gmssl/x509_crl.h>
 #include <gmssl/error.h>
 
 
@@ -1892,9 +1893,46 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type)
 }
 
 // 这个函数应该打印到底是哪个证书验证出错了
+
+static int x509_cert_check_optional_crl(const uint8_t *cert, size_t certlen,
+	const uint8_t *crl, size_t crl_len)
+{
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *crl_issuer;
+	size_t crl_issuer_len;
+	int ret;
+
+	if (!crl && crl_len == 0) {
+		return 0;
+	}
+	if (!cert || !certlen || !crl || !crl_len) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1
+		|| x509_crl_get_issuer(crl, crl_len, &crl_issuer, &crl_issuer_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_name_equ(issuer, issuer_len, crl_issuer, crl_issuer_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		return 0;
+	}
+	if ((ret = x509_cert_is_revoked_by_crl(cert, certlen, crl, crl_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
 				
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
-	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
+	const uint8_t *rootcerts, size_t rootcertslen,
+	const uint8_t *crl, size_t crl_len,
+	int depth, int *verify_result)
 {
 	int entity_cert_type;
 	const uint8_t *cert_chain = certs;
@@ -1929,6 +1967,14 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		x509_cert_print(stderr, 0, 10, "Invalid Entity Certificate", cert, certlen);
 		return -1;
 	}
+	if ((ret = x509_cert_check_optional_crl(cert, certlen, crl, crl_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 1) {
+		error_print();
+		return 0;
+	}
 
 	while (certslen) {
 
@@ -1940,6 +1986,14 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			error_print();
 			x509_cert_print(stderr, 0, 10, "Invalid CA Certificate", cacert, cacertlen);
 			return -1;
+		}
+		if ((ret = x509_cert_check_optional_crl(cacert, cacertlen, crl, crl_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 1) {
+			error_print();
+			return 0;
 		}
 
 		if (path_len > depth) {
@@ -1997,7 +2051,9 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 }
 
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
-	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result)
+	const uint8_t *rootcerts, size_t rootcertslen,
+	const uint8_t *crl, size_t crl_len,
+	int depth, int *verify_result)
 {
 	int sign_cert_type;
 	int kenc_cert_type;
@@ -2035,6 +2091,14 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
+	if ((ret = x509_cert_check_optional_crl(cert, certlen, crl, crl_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 1) {
+		error_print();
+		return 0;
+	}
 
 	// entity key encipherment cert
 	if (x509_cert_from_der(&kenc_cert, &kenc_certlen, &certs, &certslen) != 1) {
@@ -2044,6 +2108,14 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	if (x509_cert_check(kenc_cert, kenc_certlen, kenc_cert_type) != 1) {
 		error_print();
 		return -1;
+	}
+	if ((ret = x509_cert_check_optional_crl(kenc_cert, kenc_certlen, crl, crl_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 1) {
+		error_print();
+		return 0;
 	}
 	if ((ret = x509_tlcp_cert_pair_entity_match(cert, certlen,
 		kenc_cert, kenc_certlen)) < 0) {
@@ -2064,6 +2136,14 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 			error_print();
 			return -1;
+		}
+		if ((ret = x509_cert_check_optional_crl(cacert, cacertlen, crl, crl_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 1) {
+			error_print();
+			return 0;
 		}
 
 		if (path_len == 0) {

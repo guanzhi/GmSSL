@@ -295,6 +295,8 @@ int x509_crl_get_revoked_certs(const uint8_t *a, size_t alen, const uint8_t **d,
 int x509_crl_find_revoked_cert_by_serial_number(const uint8_t *a, size_t alen,
 	const uint8_t *serial, size_t serial_len, time_t *revoke_date,
 	const uint8_t **entry_exts, size_t *entry_exts_len);
+int x509_cert_is_revoked_by_crl(const uint8_t *cert, size_t certlen,
+	const uint8_t *crl, size_t crl_len);
 
 int x509_crls_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 

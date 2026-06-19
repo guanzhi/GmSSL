@@ -6261,6 +6261,7 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	if (x509_certs_verify(
 		conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
 		conn->ctx->cacerts, conn->ctx->cacertslen,
+		NULL, 0,
 		conn->ctx->verify_depth, &verify_result) != 1) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
@@ -8619,6 +8620,7 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	// verify client cert_chain
 	if (x509_certs_verify(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_client,
 		conn->ctx->cacerts, conn->ctx->cacertslen,
+		NULL, 0,
 		conn->ctx->verify_depth, &verify_result) != 1) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_bad_certificate);

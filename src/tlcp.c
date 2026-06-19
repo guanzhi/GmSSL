@@ -808,7 +808,8 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 
 	if (conn->ctx->cacertslen) {
 		if (x509_certs_verify_tlcp(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
-			conn->ctx->cacerts, conn->ctx->cacertslen, conn->ctx->verify_depth, &verify_result) != 1) {
+			conn->ctx->cacerts, conn->ctx->cacertslen, NULL, 0,
+			conn->ctx->verify_depth, &verify_result) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;

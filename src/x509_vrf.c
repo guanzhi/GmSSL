@@ -10,12 +10,14 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <stdint.h>
 #include <gmssl/asn1.h>
 #include <gmssl/endian.h>
 #include <gmssl/oid.h>
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_cer.h>
+#include <gmssl/x509_crl.h>
 #include <gmssl/error.h>
 
 
@@ -2570,4 +2572,46 @@ int x509_tlcp_cert_pair_entity_match(const uint8_t *sign_cert, size_t sign_certl
 
 	match = 1;
 	return match;
+}
+
+int x509_cert_is_revoked_by_crl(const uint8_t *cert, size_t certlen,
+	const uint8_t *crl, size_t crl_len)
+{
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *serial;
+	size_t serial_len;
+	const uint8_t *crl_issuer;
+	size_t crl_issuer_len;
+	time_t revoke_date;
+	const uint8_t *crl_entry_exts;
+	size_t crl_entry_exts_len;
+	int ret;
+
+	if (!cert || !certlen || !crl || !crl_len) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_get_issuer_and_serial_number(cert, certlen,
+			&issuer, &issuer_len, &serial, &serial_len) != 1
+		|| x509_crl_get_issuer(crl, crl_len, &crl_issuer, &crl_issuer_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_name_equ(issuer, issuer_len, crl_issuer, crl_issuer_len)) != 1) {
+		if (ret < 0) error_print();
+		else error_print();
+		return -1;
+	}
+	if (x509_crl_check(crl, crl_len, time(NULL)) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_crl_find_revoked_cert_by_serial_number(crl, crl_len,
+			serial, serial_len, &revoke_date,
+			&crl_entry_exts, &crl_entry_exts_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
 }

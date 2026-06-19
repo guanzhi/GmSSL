@@ -1285,7 +1285,8 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 	// verify server Certificate
 	if (conn->ctx->cacertslen) {
 		if (x509_certs_verify(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
-			conn->ctx->cacerts, conn->ctx->cacertslen, conn->ctx->verify_depth, &verify_result) != 1) {
+			conn->ctx->cacerts, conn->ctx->cacertslen, NULL, 0,
+			conn->ctx->verify_depth, &verify_result) != 1) {
 			error_print();
 			conn->verify_result = verify_result;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
@@ -2584,7 +2585,8 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 		return -1;
 	}
 	if (x509_certs_verify(conn->client_certs, conn->client_certs_len, X509_cert_chain_client,
-		conn->ctx->cacerts, conn->ctx->cacertslen, verify_depth, &verify_result) != 1) {
+		conn->ctx->cacerts, conn->ctx->cacertslen, NULL, 0,
+		verify_depth, &verify_result) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
