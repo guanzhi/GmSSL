@@ -329,6 +329,7 @@ typedef enum {
 	X509_cert_ca,
 	X509_cert_root_ca,
 	X509_cert_crl_sign,
+	X509_cert_ocsp_signing,
 } X509_CERT_TYPE;
 
 int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type);
@@ -338,6 +339,9 @@ int x509_cert_check_name_constraints(const uint8_t *cert, size_t certlen,
 int x509_cert_is_self_issued(const uint8_t *cert, size_t certlen);
 int x509_tlcp_cert_pair_entity_match(const uint8_t *sign_cert, size_t sign_certlen,
 	const uint8_t *kenc_cert, size_t kenc_certlen);
+int x509_cert_verify_by_ocsp_response(const uint8_t *cert, size_t certlen,
+	const uint8_t *issuer_cert, size_t issuer_certlen,
+	const uint8_t *ocsp, size_t ocsp_len);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {
@@ -382,10 +386,12 @@ typedef enum {
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen,
 	const uint8_t *crl, size_t crl_len,
+	const uint8_t *ocsp, size_t ocsp_len,
 	int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen,
 	const uint8_t *crl, size_t crl_len,
+	const uint8_t *ocsp, size_t ocsp_len,
 	int depth, int *verify_result);
 int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
 	const uint8_t *rootcacert, size_t rootcacertlen);

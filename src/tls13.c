@@ -6158,8 +6158,8 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	int ret;
 	const uint8_t *request_context;
 	size_t request_context_len;
-	const uint8_t *leaf_status_request_ocsp_response;
-	size_t leaf_status_request_ocsp_response_len;
+	const uint8_t *leaf_status_request_ocsp_response = NULL;
+	size_t leaf_status_request_ocsp_response_len = 0;
 	const uint8_t *leaf_signed_certificate_timestamp;
 	size_t leaf_signed_certificate_timestamp_len;
 	const uint8_t *cert;
@@ -6258,25 +6258,21 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	// 验证一个证书链之前，应该首先判断一下这个证书链对应的根证书是否存在
 	// 如果我们没有根证书，那么就根本不能验证
 	// 把查找根证书和验证证书链的函数分开				
-	if (x509_certs_verify(
+	ret = x509_certs_verify(
 		conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
 		conn->ctx->cacerts, conn->ctx->cacertslen,
 		NULL, 0,
-		conn->ctx->verify_depth, &verify_result) != 1) {
+		leaf_status_request_ocsp_response, leaf_status_request_ocsp_response_len,
+		conn->ctx->verify_depth, &verify_result);
+	if (ret < 0) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-	// status_request
-	if (leaf_status_request_ocsp_response) {
-		if (ocsp_response_verify(
-			leaf_status_request_ocsp_response,
-			leaf_status_request_ocsp_response_len,
-			conn->ctx->cacerts, conn->ctx->cacertslen) != 1) {
-			error_print();
-			tls13_send_alert(conn, TLS_alert_certificate_revoked);
-			return -1;
-		}
+	if (ret == 0) {
+		error_print();
+		tls13_send_alert(conn, TLS_alert_certificate_revoked);
+		return -1;
 	}
 	// signed_certificate_timestamp
 	if (leaf_signed_certificate_timestamp) {
@@ -8514,7 +8510,7 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	const uint8_t *request_context;
 	size_t request_context_len;
 	const uint8_t *status_request_ocsp_response = NULL;
-	size_t status_request_ocsp_response_len;
+	size_t status_request_ocsp_response_len = 0;
 	const uint8_t *signed_certificate_timestamp = NULL;
 	size_t signed_certificate_timestamp_len;
 	const uint8_t *cert;
@@ -8618,23 +8614,20 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	}
 
 	// verify client cert_chain
-	if (x509_certs_verify(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_client,
+	ret = x509_certs_verify(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_client,
 		conn->ctx->cacerts, conn->ctx->cacertslen,
 		NULL, 0,
-		conn->ctx->verify_depth, &verify_result) != 1) {
+		status_request_ocsp_response, status_request_ocsp_response_len,
+		conn->ctx->verify_depth, &verify_result);
+	if (ret < 0) {
 		error_print();
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-	// status_request
-	if (status_request_ocsp_response) {
-		if (ocsp_response_verify(
-			status_request_ocsp_response, status_request_ocsp_response_len,
-			conn->ctx->cacerts, conn->ctx->cacertslen) != 1) {
-			error_print();
-			tls13_send_alert(conn, TLS_alert_certificate_revoked);
-			return -1;
-		}
+	if (ret == 0) {
+		error_print();
+		tls13_send_alert(conn, TLS_alert_certificate_revoked);
+		return -1;
 	}
 	// signed_certificate_timestamp
 	if (signed_certificate_timestamp) {

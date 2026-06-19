@@ -1381,6 +1381,7 @@ int x509_key_usage_check(int bits, int cert_type)
 		break;
 	case X509_cert_server_auth:
 	case X509_cert_client_auth:
+	case X509_cert_ocsp_signing:
 		if (!(bits & X509_KU_DIGITAL_SIGNATURE)) {
 			error_print();
 			return -1;
@@ -2170,6 +2171,7 @@ int x509_basic_constraints_check(int ca, int path_len_constraint, int cert_type)
 	case X509_cert_client_auth:
 	case X509_cert_server_key_encipher:
 	case X509_cert_client_key_encipher:
+	case X509_cert_ocsp_signing:
 		if (ca > 0 || path_len_constraint != -1) {
 			error_print();
 			return -1;
@@ -2610,6 +2612,11 @@ int x509_ext_key_usage_check(const int *oids, size_t oids_cnt, int cert_type)
 		case X509_cert_client_auth:
 		case X509_cert_client_key_encipher:
 			if (oids[i] == OID_kp_client_auth) {
+				return 1;
+			}
+			break;
+		case X509_cert_ocsp_signing:
+			if (oids[i] == OID_kp_ocsp_signing) {
 				return 1;
 			}
 			break;

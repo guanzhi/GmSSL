@@ -2549,3 +2549,123 @@ int ocsp_verify(OCSP_SIGN_CTX *ctx,
 		return -1;
 	}
 }
+
+static int ocsp_response_find_signer_cert_in_certs(int responder_id_type,
+	const uint8_t *responder_id, size_t responder_id_len,
+	const uint8_t *certs, size_t certs_len,
+	const uint8_t **signer_cert, size_t *signer_cert_len)
+{
+	const uint8_t *cert;
+	size_t cert_len;
+	int ret;
+
+	if (!responder_id || !responder_id_len || !signer_cert || !signer_cert_len
+		|| (!certs && certs_len)) {
+		error_print();
+		return -1;
+	}
+	while (certs_len) {
+		if (x509_cert_from_der(&cert, &cert_len, &certs, &certs_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = ocsp_verify_responder_id(responder_id_type,
+				responder_id, responder_id_len, cert, cert_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 1) {
+			*signer_cert = cert;
+			*signer_cert_len = cert_len;
+			return 1;
+		}
+	}
+	*signer_cert = NULL;
+	*signer_cert_len = 0;
+	return 0;
+}
+
+int ocsp_response_get_signer_cert(const uint8_t *resp, size_t resplen,
+	const uint8_t *certs, size_t certs_len,
+	const uint8_t **signer_cert, size_t *signer_cert_len)
+{
+	const uint8_t *p;
+	size_t len;
+	int response_status;
+	const uint8_t *basic_response;
+	size_t basic_response_len;
+	const uint8_t *response_data;
+	size_t response_data_len;
+	int signature_algor;
+	const uint8_t *signature;
+	size_t signature_len;
+	const uint8_t *embedded_certs;
+	size_t embedded_certs_len;
+	int responder_id_type;
+	const uint8_t *responder_id;
+	size_t responder_id_len;
+	time_t produced_at;
+	const uint8_t *single_response_first;
+	size_t single_response_first_len;
+	const uint8_t *single_response_others;
+	size_t single_response_others_len;
+	const uint8_t *response_exts;
+	size_t response_exts_len;
+	int ret;
+
+	if (!resp || !resplen || (!certs && certs_len) || !signer_cert || !signer_cert_len) {
+		error_print();
+		return -1;
+	}
+	*signer_cert = NULL;
+	*signer_cert_len = 0;
+
+	p = resp;
+	len = resplen;
+	if (ocsp_response_from_der(&response_status, &basic_response, &basic_response_len,
+			&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (response_status != OCSP_response_status_successful) {
+		return 0;
+	}
+	p = basic_response;
+	len = basic_response_len;
+	if (ocsp_basic_response_from_der(&response_data, &response_data_len,
+			&signature_algor, &signature, &signature_len,
+			&embedded_certs, &embedded_certs_len, &p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	p = response_data;
+	len = response_data_len;
+	if (ocsp_response_data_from_der(&responder_id_type,
+			&responder_id, &responder_id_len,
+			&produced_at,
+			&single_response_first, &single_response_first_len,
+			&single_response_others, &single_response_others_len,
+			&response_exts, &response_exts_len,
+			&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (certs_len) {
+		if ((ret = ocsp_response_find_signer_cert_in_certs(responder_id_type,
+				responder_id, responder_id_len,
+				certs, certs_len,
+				signer_cert, signer_cert_len)) != 0) {
+			return ret;
+		}
+	}
+	if (embedded_certs_len) {
+		return ocsp_response_find_signer_cert_in_certs(responder_id_type,
+			responder_id, responder_id_len,
+			embedded_certs, embedded_certs_len,
+			signer_cert, signer_cert_len);
+	}
+	return 0;
+}

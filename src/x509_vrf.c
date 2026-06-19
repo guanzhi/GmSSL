@@ -18,6 +18,7 @@
 #include <gmssl/x509_ext.h>
 #include <gmssl/x509_cer.h>
 #include <gmssl/x509_crl.h>
+#include <gmssl/ocsp.h>
 #include <gmssl/error.h>
 
 
@@ -418,6 +419,7 @@ int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int cert_type)
 		case X509_cert_client_auth:
 		case X509_cert_server_key_encipher:
 		case X509_cert_client_key_encipher:
+		case X509_cert_ocsp_signing:
 			is_cacert = 0;
 			break;
 		case X509_cert_ca:
@@ -2003,6 +2005,7 @@ static int x509_cert_check_basic_constraints_by_type(const uint8_t *cert, size_t
 	case X509_cert_client_auth:
 	case X509_cert_server_key_encipher:
 	case X509_cert_client_key_encipher:
+	case X509_cert_ocsp_signing:
 		is_ca = 0;
 		break;
 	case X509_cert_ca:
@@ -2614,4 +2617,60 @@ int x509_cert_is_revoked_by_crl(const uint8_t *cert, size_t certlen,
 		return -1;
 	}
 	return ret;
+}
+
+int x509_cert_verify_by_ocsp_response(const uint8_t *cert, size_t certlen,
+	const uint8_t *issuer_cert, size_t issuer_certlen,
+	const uint8_t *ocsp, size_t ocsp_len)
+{
+	uint8_t req[OCSP_MAX_REQUEST_SIZE];
+	size_t reqlen;
+	OCSP_SIGN_CTX ctx;
+	const uint8_t *signer_cert;
+	size_t signer_certlen;
+	int signer_is_issuer;
+	int reason;
+	int ret;
+
+	if (!cert || !certlen || !issuer_cert || !issuer_certlen || !ocsp || !ocsp_len) {
+		error_print();
+		return -1;
+	}
+	if (ocsp_request_generate(req, &reqlen, sizeof(req),
+			cert, certlen, issuer_cert, issuer_certlen, DIGEST_sm3()) != 1
+		|| ocsp_verify_init(&ctx, req, reqlen, issuer_cert, issuer_certlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = ocsp_response_get_signer_cert(ocsp, ocsp_len,
+			issuer_cert, issuer_certlen, &signer_cert, &signer_certlen)) < 0) {
+		error_print();
+		return 0;
+	}
+	if (ret == 0) {
+		return 0;
+	}
+
+	signer_is_issuer = (signer_certlen == issuer_certlen
+		&& memcmp(signer_cert, issuer_cert, issuer_certlen) == 0);
+	if (!signer_is_issuer) {
+		if (x509_cert_verify_by_ca_cert(signer_cert, signer_certlen,
+				issuer_cert, issuer_certlen,
+				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			error_print();
+			return 0;
+		}
+		if (x509_cert_check(signer_cert, signer_certlen, X509_cert_ocsp_signing) != 1) {
+			error_print();
+			return 0;
+		}
+	}
+
+	ret = ocsp_verify(&ctx, ocsp, ocsp_len,
+		signer_cert, signer_certlen,
+		NULL, 0, &reason);
+	if (ret != 1) {
+		return 0;
+	}
+	return 1;
 }

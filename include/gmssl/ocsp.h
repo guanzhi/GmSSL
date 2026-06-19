@@ -313,6 +313,9 @@ int ocsp_verify(OCSP_SIGN_CTX *ctx,
 	const uint8_t *signer_cert, size_t signer_cert_len,
 	const char *signer_id, size_t signer_id_len,
 	int *reason);
+int ocsp_response_get_signer_cert(const uint8_t *resp, size_t resplen,
+	const uint8_t *certs, size_t certs_len,
+	const uint8_t **signer_cert, size_t *signer_cert_len);
 
 
 #ifdef __cplusplus
