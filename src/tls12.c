@@ -52,7 +52,7 @@ const int tls12_cipher_suites[] = {
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
 	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
 #ifdef ENABLE_AES_CCM
-	TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm_sha256,
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm,
 #endif
 #endif
 };
@@ -3168,7 +3168,7 @@ int tls12_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentl
 			break;
 
 #ifdef ENABLE_AES_CCM
-		case TLS_cipher_ecdhe_ecdsa_aes_128_ccm_sha256:
+		case TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm:
 			if (tls_ccm_encrypt(enc_key, fixed_iv, seq_num, conn->databuf,
 				conn->databuf + 5, tls_record_data_length(conn->databuf),
 				conn->record + 5, &recordlen) != 1) {

@@ -20,7 +20,7 @@ else()
 endif()
 
 option(ENABLE_TEST_SPEED "Enable test speed" OFF)
-option(ENABLE_LONG_TEST "Enable long-running tests" OFF)
+option(ENABLE_SLOW_TEST "Enable slow tests" OFF)
 
 
 
@@ -46,38 +46,37 @@ option(ENABLE_SM4_CL "Enable SM4 OpenCL" OFF)
 option(ENABLE_INTEL_RDRAND "Enable Intel RDRAND instructions" OFF)
 option(ENABLE_INTEL_RDSEED "Enable Intel RDSEED instructions" OFF)
 
-option(ENABLE_SM4_ECB "Enable SM4 ECB mode" OFF)
-option(ENABLE_SM4_OFB "Enable SM4 OFB mode" OFF)
-option(ENABLE_SM4_CFB "Enable SM4 CFB mode" OFF)
-option(ENABLE_SM4_CCM "Enable SM4 CCM mode" OFF)
-option(ENABLE_SM4_XTS "Enable SM4 XTS mode" OFF)
-option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" OFF)
+option(ENABLE_SM4_ECB "Enable SM4 ECB mode" ON)
+option(ENABLE_SM4_OFB "Enable SM4 OFB mode" ON)
+option(ENABLE_SM4_CFB "Enable SM4 CFB mode" ON)
+option(ENABLE_SM4_CCM "Enable SM4 CCM mode" ON)
+option(ENABLE_SM4_XTS "Enable SM4 XTS mode" ON)
+option(ENABLE_SM4_CBC_MAC "Enable SM4-CBC-MAC" ON)
 
-option(ENABLE_SM2_EXTS "Enable SM2 Extensions" OFF)
 option(ENABLE_SM9 "Enable SM9" ON)
 option(ENABLE_CMS "Enable CMS" ON)
 
 option(ENABLE_SECP256R1 "Enable ECDH/ECDSA on curve secp256r1" ON)
 
-option(ENABLE_LMS "Enable LMS/HSS signature" OFF)
-option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" OFF)
-option(ENABLE_SPHINCS "Enable SPHINCS+ signature" OFF)
-option(ENABLE_KYBER "Enable Kyber" OFF)
+option(ENABLE_LMS "Enable LMS/HSS signature" ON)
+option(ENABLE_XMSS "Enable XMSS/XMSS^MT signature" ON)
+option(ENABLE_SPHINCS "Enable SPHINCS+ signature" ON)
+option(ENABLE_KYBER "Enable Kyber" ON)
 
-option(ENABLE_SHA1 "Enable SHA1" OFF)
+option(ENABLE_SHA1 "Enable SHA1" ON)
 option(ENABLE_SHA2 "Enable SHA2" ON)
 option(ENABLE_AES "Enable AES" ON)
-option(ENABLE_AES_CCM "Enable AES CCM mode" OFF)
-option(ENABLE_CHACHA20 "Enable Chacha20" OFF)
+option(ENABLE_AES_CCM "Enable AES CCM mode" ON)
+option(ENABLE_CHACHA20 "Enable Chacha20" ON)
 option(ENABLE_ZUC "Enable ZUC" ON)
-option(ENABLE_GHASH "Enable standalone GHASH command and test" OFF)
+option(ENABLE_GHASH "Enable standalone GHASH command and test" ON)
 
-option(ENABLE_SKF "Enable SKF module" OFF)
-option(ENABLE_SDF "Enable SDF module" OFF)
+option(ENABLE_SKF "Enable SKF module" ON)
+option(ENABLE_SDF "Enable SDF module" ON)
 
 option(ENABLE_ASM_UNDERSCORE_PREFIX "Add prefix `_` to assembly symbols" ON)
 
-option(ENABLE_TLS "Enable TLS and TLCP protocol support" OFF)
+option(ENABLE_TLS "Enable TLS and TLCP protocol support" ON)
 option(ENABLE_TLS_DEBUG "Enable TLS and TLCP print debug message" OFF)
 
 option (ENABLE_SM2_ENC_PRE_COMPUTE "Enable SM2 encryption precomputing" ON)
@@ -219,9 +218,9 @@ if (ENABLE_TEST_SPEED)
 	add_definitions(-DENABLE_TEST_SPEED)
 endif()
 
-if (ENABLE_LONG_TEST)
-	message(STATUS "ENABLE_LONG_TEST is ON")
-	add_definitions(-DENABLE_LONG_TEST)
+if (ENABLE_SLOW_TEST)
+	message(STATUS "ENABLE_SLOW_TEST is ON")
+	add_definitions(-DENABLE_SLOW_TEST)
 endif()
 
 
@@ -822,7 +821,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1109")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1110")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

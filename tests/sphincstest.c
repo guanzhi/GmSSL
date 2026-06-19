@@ -10,11 +10,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/sphincs.h>
+
+static void test_print_elapsed(const char *func, clock_t start)
+{
+	printf("    %s() elapsed: %.3f seconds\n",
+		func, (double)(clock() - start)/CLOCKS_PER_SEC);
+}
 
 
 typedef struct {
@@ -157,9 +164,11 @@ static int test_sphincs_wots_sign(void)
 	sphincs_adrs_t adrs;
 	sphincs_hash128_t dgst;
 	sphincs_wots_sig_t wots_sig;
+	clock_t start = clock();
 
 	sphincs_wots_sign(wots_sk, seed, adrs, dgst, wots_sig);
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -191,6 +200,7 @@ static int test_sphincs_wots_sign_verify(void)
 	sphincs_wots_key_t wots_pk2;
 	sphincs_hash128_t wots_root;
 	int i;
+	clock_t start = clock();
 
 	sphincs_adrs_set_layer_address(adrs, 0);
 	sphincs_adrs_set_tree_address(adrs, 0);
@@ -241,6 +251,7 @@ static int test_sphincs_wots_sign_verify(void)
 
 
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -329,6 +340,7 @@ static int test_sphincs_xmss_sign(void)
 	SPHINCS_XMSS_SIGNATURE sig;
 	sphincs_hash128_t xmss_root;
 	sphincs_hash128_t auth_path[SPHINCS_XMSS_HEIGHT];
+	clock_t start = clock();
 
 
 	sphincs_xmss_build_tree(secret, seed, adrs, xmss_tree);
@@ -351,6 +363,7 @@ static int test_sphincs_xmss_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -440,6 +453,7 @@ static int test_sphincs_hypertree_sign(void)
 
 	sphincs_hash128_t ht_root;
 	SPHINCS_XMSS_SIGNATURE ht_sig[SPHINCS_HYPERTREE_LAYERS];
+	clock_t start = clock();
 
 	sphincs_hypertree_derive_root(secret, seed, ht_root);
 	format_bytes(stderr, 0, 4, "hypertree_root", ht_root, 16);
@@ -453,6 +467,7 @@ static int test_sphincs_hypertree_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 
@@ -468,6 +483,7 @@ static int test_sphincs_fors_sign(void)
 	sphincs_hash128_t root;
 	sphincs_hash128_t sig_to_root;
 	SPHINCS_FORS_SIGNATURE sig;
+	clock_t start = clock();
 
 
 
@@ -483,6 +499,7 @@ static int test_sphincs_fors_sign(void)
 	}
 
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -516,6 +533,7 @@ static int test_sphincs_sign(void)
 	uint32_t i;
 
 	uint8_t tbs[SPHINCS_TBS_SIZE];
+	clock_t start = clock();
 
 	if (sphincs_key_generate(key) != 1) {
 		error_print();
@@ -628,6 +646,7 @@ static int test_sphincs_sign(void)
 	}
 
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -641,6 +660,7 @@ static int test_sphincs_sign_update(void)
 	uint8_t msg[100] = { 1,2,3 };
 	uint8_t sigbuf[SPHINCS_SIGNATURE_SIZE];
 	size_t siglen;
+	clock_t start = clock();
 
 	if (sphincs_key_generate(&key) != 1) {
 		error_print();
@@ -725,6 +745,7 @@ static int test_sphincs_sign_update(void)
 
 
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -748,12 +769,16 @@ int main(void)
 	if (test_sphincs_xmss_sign() != 1) goto err;
 
 	if (test_sphincs_hypertree() != 1) goto err;
+#ifdef ENABLE_SLOW_TEST
 	if (test_sphincs_hypertree_sign() != 1) goto err;
+#endif
 
 	if (test_sphincs_fors_sign() != 1) goto err;
 
+#ifdef ENABLE_SLOW_TEST
 	if (test_sphincs_sign() != 1) goto err;
 	if (test_sphincs_sign_update() != 1) goto err;
+#endif
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;

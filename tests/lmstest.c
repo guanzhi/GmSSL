@@ -10,10 +10,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/lms.h>
+
+static void test_print_elapsed(const char *func, clock_t start)
+{
+	printf("    %s() elapsed: %.3f seconds\n",
+		func, (double)(clock() - start)/CLOCKS_PER_SEC);
+}
 
 
 static int lms_types[] = {
@@ -305,6 +312,7 @@ static int test_lms_key_generate(void)
 {
 	LMS_KEY lms_key;
 	int lms_type = lms_types[0];
+	clock_t start = clock();
 
 	if (lms_key_generate(&lms_key, lms_type) != 1) {
 		error_print();
@@ -312,6 +320,7 @@ static int test_lms_key_generate(void)
 	}
 	lms_private_key_print(stdout, 0, 0, "lms_private_key", &lms_key);
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -456,6 +465,7 @@ static int test_lms_sign(void)
 	uint8_t sig[LMS_SIGNATURE_MAX_SIZE];
 	size_t siglen;
 	int ret;
+	clock_t start = clock();
 
 	if (lms_key_generate(&key, lms_type) != 1) {
 		error_print();
@@ -517,6 +527,7 @@ static int test_lms_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -548,6 +559,7 @@ static int test_lms_max_sigs(void)
 static int test_hss_key_generate(void)
 {
 	HSS_KEY key;
+	clock_t start = clock();
 
 	if (hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
 		error_print();
@@ -557,6 +569,7 @@ static int test_hss_key_generate(void)
 	hss_public_key_print(stdout, 0, 4, "hss_public_key", &key);
 	hss_private_key_print(stdout, 0, 4, "hss_key", &key);
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -834,6 +847,7 @@ static int test_hss_sign_level1(void)
 	uint8_t msg[200];
 	uint8_t buf[sizeof(HSS_SIGNATURE)];
 	size_t len;
+	clock_t start = clock();
 
 	if (hss_key_generate(&key, lms_types, levels) != 1) {
 		error_print();
@@ -866,6 +880,7 @@ static int test_hss_sign_level1(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -879,6 +894,7 @@ static int test_hss_sign_level2(void)
 	uint8_t msg[200];
 	uint8_t buf[sizeof(HSS_SIGNATURE)];
 	size_t len;
+	clock_t start = clock();
 
 	if (hss_key_generate(&key, lms_types, levels) != 1) {
 		error_print();
@@ -915,6 +931,7 @@ static int test_hss_sign_level2(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -927,6 +944,7 @@ static int test_hss_sign(void)
 	uint8_t msg[200];
 	uint8_t buf[sizeof(HSS_SIGNATURE)];
 	size_t len;
+	clock_t start = clock();
 
 	if (hss_key_generate(&key, lms_types, sizeof(lms_types)/sizeof(lms_types[0])) != 1) {
 		error_print();
@@ -963,6 +981,7 @@ static int test_hss_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }

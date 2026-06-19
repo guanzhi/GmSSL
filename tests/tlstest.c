@@ -177,7 +177,7 @@ static int test_tls_ccm(void)
 	enced_record[4] = (uint8_t)enced_recordlen;
 	enced_recordlen += 5;
 
-	if (tls12_record_decrypt(TLS_cipher_aes_128_ccm_sha256, NULL, &aes_key, fixed_iv, seq_num,
+	if (tls_record_decrypt(TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm, NULL, &aes_key, fixed_iv, seq_num,
 		enced_record, enced_recordlen, buf, &buflen) != 1
 		|| buflen != recordlen
 		|| memcmp(buf, record, recordlen) != 0) {

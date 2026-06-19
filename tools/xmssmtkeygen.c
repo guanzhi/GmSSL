@@ -151,7 +151,7 @@ bad:
 
 	ret = 0;
 end:
-	xmss_key_cleanup(&key);
+	xmssmt_key_cleanup(&key);
 	if (out) {
 		gmssl_secure_clear(out, outlen);
 		free(out);

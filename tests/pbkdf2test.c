@@ -20,7 +20,7 @@
 #define TEST_PBKDF2_MAX_SALT_SIZE 36
 #define TEST_PBKDF2_MAX_DK_SIZE 65
 
-#ifndef ENABLE_LONG_TEST
+#ifndef ENABLE_SLOW_TEST
 #define TEST_PBKDF2_MAX_ITERATION_COUNT 1000000
 #endif
 
@@ -70,7 +70,7 @@ static int test_pbkdf2_hmac_wycheproof(const char *name, const DIGEST *digest,
 		size_t expected_len;
 		int ret;
 
-#ifndef ENABLE_LONG_TEST
+#ifndef ENABLE_SLOW_TEST
 		if (tv->iteration_count > TEST_PBKDF2_MAX_ITERATION_COUNT) {
 			fprintf(stderr, "%s tcId %d skipped: iteration_count = %zu\n",
 				name, tv->tc_id, tv->iteration_count);

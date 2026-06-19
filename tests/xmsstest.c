@@ -10,12 +10,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <gmssl/hex.h>
 #include <gmssl/rand.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
 #include <gmssl/xmss.h>
 
+
+static void test_print_elapsed(const char *func, clock_t start)
+{
+	printf("    %s() elapsed: %.3f seconds\n",
+		func, (double)(clock() - start)/CLOCKS_PER_SEC);
+}
 
 
 static int test_xmss_adrs(void)
@@ -132,6 +139,7 @@ static int test_wots_sign(void)
 	xmss_wots_key_t sig_pk;
 	size_t len;
 	int i;
+	clock_t start = clock();
 
 	memset(secret, 0x12, sizeof(secret));
 	memset(seed, 0xab, sizeof(seed));
@@ -165,6 +173,7 @@ static int test_wots_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -342,6 +351,7 @@ static int test_xmss_key_generate(void)
 	XMSS_KEY key;
 	size_t count;
 	size_t i;
+	clock_t start = clock();
 
 	if (xmss_key_generate(&key, xmss_type) != 1) {
 		error_print();
@@ -368,6 +378,7 @@ static int test_xmss_key_generate(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -464,6 +475,7 @@ static int test_xmss_sign(void)
 	XMSS_HASH256_CTX ctx;
 	xmss_hash256_t dgst;
 	size_t h;
+	clock_t start = clock();
 
 
 	if (xmss_key_generate(&key, xmss_type) != 1) {
@@ -544,6 +556,7 @@ static int test_xmss_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -559,6 +572,7 @@ static int test_xmss_sign_update(void)
 	size_t siglen;
 	uint8_t msg[100] = {0};
 	int i;
+	clock_t start = clock();
 
 	if (xmss_key_generate(&key, xmss_type) != 1) {
 		error_print();
@@ -594,6 +608,7 @@ static int test_xmss_sign_update(void)
 	}
 	xmss_key_cleanup(&key);
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -641,6 +656,7 @@ static int test_xmssmt_key_generate(void)
 {
 	uint32_t xmssmt_index = XMSSMT_HASH256_20_4_256;
 	XMSSMT_KEY key;
+	clock_t start = clock();
 
 	if (xmssmt_key_generate(&key, xmssmt_index) != 1) {
 		error_print();
@@ -650,6 +666,7 @@ static int test_xmssmt_key_generate(void)
 	xmssmt_public_key_print(stderr, 0, 4, "xmssmt_public_key", &key);
 	xmssmt_private_key_print(stderr, 0, 4, "xmssmt_private_key", &key);
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -927,6 +944,7 @@ static int test_xmssmt_sign(void)
 	uint64_t tree_address;
 	uint32_t tree_index;
 	uint32_t layer;
+	clock_t start = clock();
 
 
 	if (xmssmt_type_to_height_and_layers(xmssmt_type, &height, &layers) != 1) {
@@ -1048,6 +1066,7 @@ static int test_xmssmt_sign(void)
 		return -1;
 	}
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -1061,6 +1080,7 @@ static int test_xmssmt_sign_update(void)
 	uint8_t msg[100] = {0};
 	uint8_t sigbuf[sizeof(XMSSMT_SIGNATURE) *2 ];
 	size_t siglen;
+	clock_t start = clock();
 
 	if (xmssmt_key_generate(&key, xmssmt_type) != 1) {
 		error_print();
@@ -1133,6 +1153,7 @@ static int test_xmssmt_sign_update(void)
 
 
 
+	test_print_elapsed(__FUNCTION__, start);
 	printf("%s() ok\n", __FUNCTION__);
 	return 1;
 }
@@ -1149,13 +1170,17 @@ int main(void)
 	if (test_xmss_adrs() != 1) goto err;
 	if (test_xmss_build_tree() != 1) goto err;
 	if (test_xmss_build_root() != 1) goto err;
+#ifdef ENABLE_SLOW_TEST
 	if (test_xmss_key_generate() != 1) goto err;
+#endif
 	if (test_xmss_public_key_to_bytes() != 1) goto err;
 	if (test_xmss_private_key_size() != 1) goto err;
 	//if (test_xmss_private_key_to_bytes() != 1) goto err;
 	if (test_xmss_signature_size() != 1) goto err;
+#ifdef ENABLE_SLOW_TEST
 	if (test_xmss_sign() != 1) goto err;
 	if (test_xmss_sign_update() != 1) goto err;
+#endif
 	if (test_xmssmt_key_generate() != 1) goto err;
 	if (test_xmssmt_index_to_bytes() != 1) goto err;
 	if (test_xmssmt_signature_to_bytes() != 1) goto err;

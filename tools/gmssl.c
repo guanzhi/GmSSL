@@ -134,10 +134,10 @@ extern int skfutil_main(int argc, char **argv);
 #endif
 
 static const char *options =
-	"command [options]\n"
-	"command -help\n"
+	"<command> [options]\n"
 	"\n"
-	"Commands:\n"
+	"command:\n"
+	"\n"
 	"  help              Print this help message\n"
 	"  version           Print version\n"
 	"  rand              Generate random bytes\n"
@@ -149,26 +149,26 @@ static const char *options =
 	"  sm3               Generate SM3 hash\n"
 	"  sm3hmac           Generate SM3 HMAC tag\n"
 	"  sm3_pbkdf2        Hash password into key using PBKDF2 algoritm\n"
+	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
+	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
+	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
+	"  sm4_cbc_sm3_hmac  Encrypt or decrypt with SM4 CBC with SM3-HMAC\n"
+	"  sm4_ctr_sm3_hmac  Encrypt or decrypt with SM4 CTR with SM3-HMAC\n"
+#ifdef ENABLE_SM4_CCM
+	"  sm4_ccm           Encrypt or decrypt with SM4 CCM\n"
+#endif
+#ifdef ENABLE_SM4_XTS
+	"  sm4_xts           Encrypt or decrypt with SM4 XTS\n"
+#endif
 #ifdef ENABLE_SM4_ECB
 	"  sm4_ecb           Encrypt or decrypt with SM4 ECB\n"
 #endif
-	"  sm4_cbc           Encrypt or decrypt with SM4 CBC\n"
-	"  sm4_ctr           Encrypt or decrypt with SM4 CTR\n"
 #ifdef ENABLE_SM4_CFB
 	"  sm4_cfb           Encrypt or decrypt with SM4 CFB\n"
 #endif
 #ifdef ENABLE_SM4_OFB
 	"  sm4_ofb           Encrypt or decrypt with SM4 OFB\n"
 #endif
-#ifdef ENABLE_SM4_CCM
-	"  sm4_ccm           Encrypt or decrypt with SM4 CCM\n"
-#endif
-	"  sm4_gcm           Encrypt or decrypt with SM4 GCM\n"
-#ifdef ENABLE_SM4_XTS
-	"  sm4_xts           Encrypt or decrypt with SM4 XTS\n"
-#endif
-	"  sm4_cbc_sm3_hmac  Encrypt or decrypt with SM4 CBC with SM3-HMAC\n"
-	"  sm4_ctr_sm3_hmac  Encrypt or decrypt with SM4 CTR with SM3-HMAC\n"
 #ifdef ENABLE_SM4_CBC_MAC
 	"  sm4_cbc_mac       Generate SM4 CBC-MAC\n"
 #endif
@@ -189,24 +189,24 @@ static const char *options =
 	"  reqgen            Generate certificate signing request (CSR)\n"
 	"  reqsign           Generate certificate from CSR\n"
 	"  reqparse          Parse and print a CSR\n"
+	"  certgen           Generate a self-signed certificate\n"
+	"  certverify        Verify certificate chain\n"
+	"  certrevoke        Revoke certificate and output RevokedCertificate record\n"
+	"  certparse         Parse and print certificates\n"
 	"  crlget            Download the CRL of given certificate\n"
 	"  crlgen            Sign a CRL with CA certificate and private key\n"
 	"  crlverify         Verify a CRL with issuer's certificate\n"
 	"  crlparse          Parse and print CRL\n"
-	"  certgen           Generate a self-signed certificate\n"
-	"  certparse         Parse and print certificates\n"
-	"  certverify        Verify certificate chain\n"
-	"  certrevoke        Revoke certificate and output RevokedCertificate record\n"
 	"  ocspreq           Generate OCSPRequest\n"
 	"  ocspget           Download OCSPResponse from OCSP responder\n"
 	"  ocspsign          Sign OCSPResponse\n"
 	"  ocspverify        Verify OCSPResponse\n"
 #ifdef ENABLE_CMS
-	"  cmsparse          Parse CMS (cryptographic message syntax) file\n"
-	"  cmsencrypt        Generate CMS EnvelopedData\n"
-	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
+	"  cmsencrypt        Generate CMS EnvelopedData\n"
+	"  cmsdecrypt        Decrypt CMS EnvelopedData\n"
+	"  cmsparse          Parse CMS (cryptographic message syntax) file\n"
 #endif
 #ifdef ENABLE_SECP256R1
 	"  p256keygen        Generate P-256 (secp256r1, prime256v1) keypair\n"
