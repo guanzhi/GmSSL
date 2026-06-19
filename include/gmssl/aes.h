@@ -64,12 +64,14 @@ void aes_ctr_encrypt(const AES_KEY *key, uint8_t ctr[AES_BLOCK_SIZE],
 
 
 #define AES_GCM_IV_MIN_SIZE		1
-#define AES_GCM_IV_MAX_SIZE		((uint64_t)(1 << (64-3)))
+// WARNING: (size_t)1 << n or (int)1 << n overflows on some systems when n == 32.
+#define AES_GCM_IV_MAX_SIZE		((uint64_t)1 << (64-3))
 #define AES_GCM_IV_DEFAULT_BITS		96
 #define AES_GCM_IV_DEFAULT_SIZE		12
 
 #define AES_GCM_MIN_AAD_SIZE		0
-#define AES_GCM_MAX_AAD_SIZE		((uint64_t)(1 << (64-3)))
+// WARNING: (size_t)1 << n or (int)1 << n overflows on some systems when n == 32.
+#define AES_GCM_MAX_AAD_SIZE		((uint64_t)1 << (64-3))
 
 #define AES_GCM_MIN_PLAINTEXT_SIZE	0
 #define AES_GCM_MAX_PLAINTEXT_SIZE	((((uint64_t)1 << 39) - 256) >> 3)

@@ -352,7 +352,8 @@ int aes_ccm_encrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	}
 
 	inlen_size = 15 - ivlen;
-	if (inlen_size < 8 && inlen >= ((size_t)1 << (inlen_size * 8))) {
+	// WARNING: (size_t)1 << n or (int)1 << n overflows on some systems when n == 32.
+	if (inlen_size < 8 && (uint64_t)inlen >= ((uint64_t)1 << (inlen_size * 8))) {
 		error_print();
 		return -1;
 	}
@@ -436,7 +437,8 @@ int aes_ccm_decrypt(const AES_KEY *key, const uint8_t *iv, size_t ivlen,
 	}
 
 	inlen_size = 15 - ivlen;
-	if (inlen_size < 8 && inlen >= ((size_t)1 << (inlen_size * 8))) {
+	// WARNING: (size_t)1 << n or (int)1 << n overflows on some systems when n == 32.
+	if (inlen_size < 8 && (uint64_t)inlen >= ((uint64_t)1 << (inlen_size * 8))) {
 		error_print();
 		return -1;
 	}
