@@ -2003,13 +2003,14 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 {
 	int sign_cert_type;
 	int kenc_cert_type;
+	const uint8_t *cert_chain = certs;
+	size_t cert_chain_len = certslen;
 	const uint8_t *cert;
 	size_t certlen;
 	const uint8_t *kenc_cert;
 	size_t kenc_certlen;
 	const uint8_t *cacert;
 	size_t cacertlen;
-	int matched_root = 0;
 	int ret;
 
 	int path_len = 0;
@@ -2047,6 +2048,15 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
+	if ((ret = x509_tlcp_cert_pair_entity_match(cert, certlen,
+		kenc_cert, kenc_certlen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		error_print();
+		return -1;
+	}
 
 	while (certslen) {
 
@@ -2067,8 +2077,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 				return -1;
 			}
 		}
-		if ((path_len_constraint >= 0 && path_len > path_len_constraint)
-			|| path_len > depth) {
+		if (path_len > depth) {
 			error_print();
 			return -1;
 		}
@@ -2084,42 +2093,45 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		path_len++;
 	}
 
-	while (rootcertslen) {
-		if (x509_cert_from_der(&cacert, &cacertlen, &rootcerts, &rootcertslen) != 1) {
-			error_print();
-			return -1;
-		}
-		if ((ret = x509_cert_is_signed_by_root_ca_cert(cert, certlen, cacert, cacertlen,
-			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH)) < 0) {
-			error_print();
-			return -1;
-		}
-		if (ret == 0) {
-			continue;
-		}
-		if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
-			error_print();
-			return -1;
-		}
-		if ((path_len_constraint >= 0 && path_len > path_len_constraint)
-			|| path_len > depth) {
-			error_print();
-			return -1;
-		}
-
-		// when no mid CA certs
-		if (path_len == 0) {
-			if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
-				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
-				error_print();
-				return -1;
-			}
-		}
-		matched_root = 1;
-		break;
+	if ((ret = x509_cert_chain_find_root_ca_cert(cert, certlen,
+		rootcerts, rootcertslen, &cacert, &cacertlen,
+		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
+		error_print();
+		return -1;
+	}
+	if (path_len > depth) {
+		error_print();
+		return -1;
 	}
 
-	if (!matched_root) {
+	// when no mid CA certs
+	if (path_len == 0) {
+		if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
+			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	if (x509_certs_check_basic_constraints_tlcp(cert_chain, cert_chain_len,
+		cacert, cacertlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_certs_check_name_constraints_tlcp(cert_chain, cert_chain_len,
+		cacert, cacertlen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
 		error_print();
 		return -1;
 	}

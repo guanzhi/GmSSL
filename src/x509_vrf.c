@@ -2192,3 +2192,382 @@ int x509_cert_chain_find_root_ca_cert(const uint8_t *cert_chain, size_t cert_cha
 	}
 	return found_root;
 }
+
+static int x509_tlcp_certs_get_ca_certs(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t **ca_certs, size_t *ca_certs_len)
+{
+	const uint8_t *cert;
+	size_t certlen;
+
+	if (!cert_chain || !cert_chain_len || !ca_certs || !ca_certs_len) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_cert_from_der(&cert, &certlen, &cert_chain, &cert_chain_len) != 1
+		|| x509_cert_from_der(&cert, &certlen, &cert_chain, &cert_chain_len) != 1) {
+		error_print();
+		return -1;
+	}
+	*ca_certs = cert_chain;
+	*ca_certs_len = cert_chain_len;
+	return 1;
+}
+
+static int x509_tlcp_certs_count_non_self_issued_ca_certs(const uint8_t *cert_chain,
+	size_t cert_chain_len, size_t *count)
+{
+	int ret;
+	const uint8_t *ca_certs;
+	size_t ca_certs_len;
+	const uint8_t *cert;
+	size_t certlen;
+
+	if (!cert_chain || !cert_chain_len || !count) {
+		error_print();
+		return -1;
+	}
+	*count = 0;
+
+	if (x509_tlcp_certs_get_ca_certs(cert_chain, cert_chain_len,
+		&ca_certs, &ca_certs_len) != 1) {
+		error_print();
+		return -1;
+	}
+	while (ca_certs_len) {
+		if (x509_cert_from_der(&cert, &certlen, &ca_certs, &ca_certs_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_cert_is_self_issued(cert, certlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			(*count)++;
+		}
+	}
+	return 1;
+}
+
+int x509_certs_check_basic_constraints_tlcp(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen)
+{
+	const uint8_t *chain;
+	size_t chain_len;
+	const uint8_t *cert;
+	size_t certlen;
+	size_t checked_certs_len;
+	size_t path_len;
+	int path_len_constraint;
+
+	if (!cert_chain || !cert_chain_len
+		|| (!rootcacert && rootcacertlen)
+		|| (rootcacert && !rootcacertlen)) {
+		error_print();
+		return -1;
+	}
+
+	chain = cert_chain;
+	chain_len = cert_chain_len;
+
+	if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_check_basic_constraints_by_type(cert, certlen,
+		X509_cert_server_auth, &path_len_constraint) != 1) {
+		error_print();
+		return -1;
+	}
+	checked_certs_len = certlen;
+
+	if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_check_basic_constraints_by_type(cert, certlen,
+		X509_cert_server_key_encipher, &path_len_constraint) != 1) {
+		error_print();
+		return -1;
+	}
+	checked_certs_len += certlen;
+
+	while (chain_len) {
+		if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_cert_check_basic_constraints_by_type(cert, certlen,
+			X509_cert_ca, &path_len_constraint) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_tlcp_certs_count_non_self_issued_ca_certs(cert_chain,
+			checked_certs_len, &path_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (path_len_constraint >= 0 && path_len > (size_t)path_len_constraint) {
+			error_print();
+			return -1;
+		}
+		checked_certs_len += certlen;
+	}
+
+	if (rootcacert) {
+		if (x509_cert_check_basic_constraints_by_type(rootcacert, rootcacertlen,
+			X509_cert_root_ca, &path_len_constraint) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_tlcp_certs_count_non_self_issued_ca_certs(cert_chain,
+			cert_chain_len, &path_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (path_len_constraint >= 0 && path_len > (size_t)path_len_constraint) {
+			error_print();
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
+int x509_certs_check_name_constraints_tlcp(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen)
+{
+	int ret;
+	const uint8_t *chain;
+	size_t chain_len;
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *sign_cert;
+	size_t sign_certlen;
+	const uint8_t *kenc_cert;
+	size_t kenc_certlen;
+	const uint8_t *name_constraints;
+	size_t name_constraints_len;
+	size_t checked_certs_len;
+
+	if (!cert_chain || !cert_chain_len
+		|| (!rootcacert && rootcacertlen)
+		|| (rootcacert && !rootcacertlen)) {
+		error_print();
+		return -1;
+	}
+
+	chain = cert_chain;
+	chain_len = cert_chain_len;
+	if (x509_cert_from_der(&sign_cert, &sign_certlen, &chain, &chain_len) != 1
+		|| x509_cert_from_der(&kenc_cert, &kenc_certlen, &chain, &chain_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (rootcacert) {
+		if ((ret = x509_cert_get_name_constraints(rootcacert, rootcacertlen,
+			&name_constraints, &name_constraints_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret) {
+			if (chain_len) {
+				if (x509_certs_get_last(chain, chain_len, &cert, &certlen) != 1) {
+					error_print();
+					return -1;
+				}
+				if ((ret = x509_cert_check_name_constraints(cert, certlen,
+					name_constraints, name_constraints_len)) < 0) {
+					error_print();
+					return -1;
+				}
+				if (ret == 0) {
+					return 0;
+				}
+			} else {
+				if ((ret = x509_cert_check_name_constraints(sign_cert, sign_certlen,
+					name_constraints, name_constraints_len)) < 0) {
+					error_print();
+					return -1;
+				}
+				if (ret == 0) {
+					return 0;
+				}
+				if ((ret = x509_cert_check_name_constraints(kenc_cert, kenc_certlen,
+					name_constraints, name_constraints_len)) < 0) {
+					error_print();
+					return -1;
+				}
+				if (ret == 0) {
+					return 0;
+				}
+			}
+		}
+	}
+
+	checked_certs_len = sign_certlen + kenc_certlen;
+	while (chain_len) {
+		if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_cert_get_name_constraints(cert, certlen,
+			&name_constraints, &name_constraints_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret) {
+			if ((ret = x509_certs_check_name_constraints_by_name_constraints(
+				cert_chain, checked_certs_len,
+				name_constraints, name_constraints_len)) < 0) {
+				error_print();
+				return -1;
+			}
+			if (ret == 0) {
+				return 0;
+			}
+		}
+		checked_certs_len += certlen;
+	}
+	return 1;
+}
+
+static int x509_cert_get_subject_alt_name_der(const uint8_t *cert, size_t certlen,
+	int *critical, const uint8_t **subject_alt_name, size_t *subject_alt_name_len)
+{
+	int has_exts;
+	int has_subject_alt_name;
+	const uint8_t *exts;
+	size_t extslen;
+
+	if (!cert || !certlen || !critical || !subject_alt_name || !subject_alt_name_len) {
+		error_print();
+		return -1;
+	}
+	*critical = -1;
+	*subject_alt_name = NULL;
+	*subject_alt_name_len = 0;
+
+	if ((has_exts = x509_cert_get_exts(cert, certlen, &exts, &extslen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (!has_exts) {
+		return 0;
+	}
+	if ((has_subject_alt_name = x509_exts_get_ext_by_oid(exts, extslen,
+		OID_ce_subject_alt_name, critical, subject_alt_name, subject_alt_name_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return has_subject_alt_name;
+}
+
+// TLCP 双证书的名字和算法要求严格匹配，不做 normalized 匹配。
+int x509_tlcp_cert_pair_entity_match(const uint8_t *sign_cert, size_t sign_certlen,
+	const uint8_t *kenc_cert, size_t kenc_certlen)
+{
+	int sign_has_subject_alt_name;
+	int kenc_has_subject_alt_name;
+	const uint8_t *sign_subject;
+	size_t sign_subject_len;
+	const uint8_t *kenc_subject;
+	size_t kenc_subject_len;
+	const uint8_t *sign_subject_alt_name;
+	size_t sign_subject_alt_name_len;
+	int sign_subject_alt_name_critical;
+	const uint8_t *kenc_subject_alt_name;
+	size_t kenc_subject_alt_name_len;
+	int kenc_subject_alt_name_critical;
+	const uint8_t *sign_issuer;
+	size_t sign_issuer_len;
+	const uint8_t *kenc_issuer;
+	size_t kenc_issuer_len;
+	X509_KEY sign_public_key;
+	X509_KEY kenc_public_key;
+	int sign_signature_algor;
+	int kenc_signature_algor;
+	int match = 0;
+
+	if (!sign_cert || !sign_certlen || !kenc_cert || !kenc_certlen) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_cert_get_subject(sign_cert, sign_certlen, &sign_subject, &sign_subject_len) != 1
+		|| x509_cert_get_subject(kenc_cert, kenc_certlen, &kenc_subject, &kenc_subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sign_subject_len != kenc_subject_len) {
+		return 0;
+	}
+	if (sign_subject_len && memcmp(sign_subject, kenc_subject, sign_subject_len) != 0) {
+		return 0;
+	}
+
+	if ((sign_has_subject_alt_name = x509_cert_get_subject_alt_name_der(sign_cert, sign_certlen,
+		&sign_subject_alt_name_critical,
+		&sign_subject_alt_name, &sign_subject_alt_name_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	if ((kenc_has_subject_alt_name = x509_cert_get_subject_alt_name_der(kenc_cert, kenc_certlen,
+		&kenc_subject_alt_name_critical,
+		&kenc_subject_alt_name, &kenc_subject_alt_name_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (sign_has_subject_alt_name != kenc_has_subject_alt_name) {
+		return 0;
+	}
+	if (sign_has_subject_alt_name) {
+		if (sign_subject_alt_name_critical != kenc_subject_alt_name_critical) {
+			return 0;
+		}
+		if (sign_subject_alt_name_len != kenc_subject_alt_name_len) {
+			return 0;
+		}
+		if (sign_subject_alt_name_len
+			&& memcmp(sign_subject_alt_name, kenc_subject_alt_name,
+				sign_subject_alt_name_len) != 0) {
+			return 0;
+		}
+	}
+
+	if (x509_cert_get_issuer(sign_cert, sign_certlen, &sign_issuer, &sign_issuer_len) != 1
+		|| x509_cert_get_issuer(kenc_cert, kenc_certlen, &kenc_issuer, &kenc_issuer_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sign_issuer_len != kenc_issuer_len) {
+		return 0;
+	}
+	if (sign_issuer_len && memcmp(sign_issuer, kenc_issuer, sign_issuer_len) != 0) {
+		return 0;
+	}
+
+	if (x509_cert_get_subject_public_key(sign_cert, sign_certlen, &sign_public_key) != 1
+		|| x509_cert_get_subject_public_key(kenc_cert, kenc_certlen, &kenc_public_key) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sign_public_key.algor != kenc_public_key.algor
+		|| sign_public_key.algor_param != kenc_public_key.algor_param) {
+		return 0;
+	}
+
+	if (x509_cert_get_signature_algor(sign_cert, sign_certlen, &sign_signature_algor) != 1
+		|| x509_cert_get_signature_algor(kenc_cert, kenc_certlen, &kenc_signature_algor) != 1) {
+		error_print();
+		return -1;
+	}
+	if (sign_signature_algor != kenc_signature_algor) {
+		return 0;
+	}
+
+	match = 1;
+	return match;
+}

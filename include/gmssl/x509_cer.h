@@ -336,6 +336,8 @@ int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int is_cacert);
 int x509_cert_check_name_constraints(const uint8_t *cert, size_t certlen,
 	const uint8_t *name_constraints, size_t name_constraints_len);
 int x509_cert_is_self_issued(const uint8_t *cert, size_t certlen);
+int x509_tlcp_cert_pair_entity_match(const uint8_t *sign_cert, size_t sign_certlen,
+	const uint8_t *kenc_cert, size_t kenc_certlen);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {
@@ -384,6 +386,10 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
 	const uint8_t *rootcacert, size_t rootcacertlen);
 int x509_certs_check_basic_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen);
+int x509_certs_check_name_constraints_tlcp(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen);
+int x509_certs_check_basic_constraints_tlcp(const uint8_t *cert_chain, size_t cert_chain_len,
 	const uint8_t *rootcacert, size_t rootcacertlen);
 int x509_certs_get_subjects(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
