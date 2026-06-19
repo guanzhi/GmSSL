@@ -692,7 +692,7 @@ int tlcp_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen
 
 int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
 	const uint8_t *cert_types, size_t cert_types_len,
-	const uint8_t *sig_algs, size_t sig_algs_len,
+	const int *sig_algs, size_t sig_algs_cnt,
 	const uint8_t *ca_names, size_t ca_names_len);
 int tls12_record_get_handshake_certificate_request(const uint8_t *record,
 	const uint8_t **cert_types, size_t *cert_types_len,

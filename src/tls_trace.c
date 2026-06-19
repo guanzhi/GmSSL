@@ -887,8 +887,9 @@ int tls_certificate_subjects_print(FILE *fp, int fmt, int ind, const char *label
 int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *cert_types;
+	const uint8_t *sig_algs;
 	const uint8_t *ca_names;
-	size_t cert_types_len, ca_names_len;
+	size_t cert_types_len, sig_algs_len, ca_names_len;
 
 	format_print(fp, fmt, ind, "CertificateRequest\n"); ind += 4;
 	if (tls_uint8array_from_bytes(&cert_types, &cert_types_len, &data, &datalen) != 1) goto bad;
@@ -897,8 +898,20 @@ int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen,
 		int cert_type = *cert_types++;
 		format_print(fp, fmt, ind + 4, "%s (%d)\n", tls_cert_type_name(cert_type), cert_type);
 	}
+	if (tls_uint16array_from_bytes(&sig_algs, &sig_algs_len, &data, &datalen) != 1) goto bad;
+	format_print(fp, fmt, ind, "signature_algorithms\n");
+	while (sig_algs_len) {
+		const char *sig_alg_name;
+		uint16_t sig_alg;
+
+		if (tls_uint16_from_bytes(&sig_alg, &sig_algs, &sig_algs_len) != 1) goto bad;
+		sig_alg_name = tls_signature_scheme_name(sig_alg);
+		format_print(fp, fmt, ind + 4, "%s (0x%04x)\n",
+			sig_alg_name ? sig_alg_name : "unknown", sig_alg);
+	}
 	if (tls_uint16array_from_bytes(&ca_names, &ca_names_len, &data, &datalen) != 1) goto bad;
 	tls_certificate_subjects_print(fp, fmt, ind, "CAnames", ca_names, ca_names_len);
+	if (datalen) goto bad;
 
 	return 1;
 bad:
@@ -984,7 +997,22 @@ struct {
 */
 int tls_certificate_verify_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
+	const uint8_t *p = data;
+	size_t len = datalen;
+	uint16_t sig_alg;
+	const char *sig_alg_name;
+	const uint8_t *sig;
+	size_t siglen;
+
 	format_print(fp, fmt, ind, "CertificateVerify\n");
+	if (tls_uint16_from_bytes(&sig_alg, &p, &len) == 1
+		&& (sig_alg_name = tls_signature_scheme_name(sig_alg)) != NULL
+		&& tls_uint16array_from_bytes(&sig, &siglen, &p, &len) == 1
+		&& tls_length_is_zero(len) == 1) {
+		format_print(fp, fmt, ind + 4, "algorithm: %s (0x%04x)\n", sig_alg_name, sig_alg);
+		format_bytes(fp, fmt, ind + 4, "Signature", sig, siglen);
+		return 1;
+	}
 	format_bytes(fp, fmt, ind + 4, "Signature", data, datalen);
 	return 1;
 }

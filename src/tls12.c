@@ -192,9 +192,78 @@ struct {
 	DistinguishedName certificate_authorities<0..2^16-1>;
 } CertificateRequest;
 */
+static int tls12_supported_signature_algorithms_to_bytes(const int *sig_algs, size_t sig_algs_cnt,
+	uint8_t **out, size_t *outlen)
+{
+	size_t i;
+
+	if (!sig_algs || !sig_algs_cnt || !outlen) {
+		error_print();
+		return -1;
+	}
+	if (sig_algs_cnt > ((1 << 16) - 2)/2) {
+		error_print();
+		return -1;
+	}
+	tls_uint16_to_bytes((uint16_t)(sig_algs_cnt * tls_uint16_size()), out, outlen);
+	for (i = 0; i < sig_algs_cnt; i++) {
+		if (!tls_signature_scheme_name(sig_algs[i])) {
+			error_print();
+			return -1;
+		}
+		tls_uint16_to_bytes((uint16_t)sig_algs[i], out, outlen);
+	}
+	return 1;
+}
+
+static int tls12_supported_signature_algorithms_from_bytes(const uint8_t **sig_algs, size_t *sig_algs_len,
+	const uint8_t **in, size_t *inlen)
+{
+	const uint8_t *d;
+	size_t dlen;
+	const uint8_t *p;
+	size_t len;
+	const uint8_t *cp;
+	size_t cplen;
+
+	if (!sig_algs || !sig_algs_len || !in || !inlen) {
+		error_print();
+		return -1;
+	}
+
+	d = *in;
+	dlen = *inlen;
+	if (tls_uint16array_from_bytes(&p, &len, in, inlen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (len < tls_uint16_size() || len % tls_uint16_size()) {
+		error_print();
+		return -1;
+	}
+
+	cp = p;
+	cplen = len;
+	while (cplen) {
+		uint16_t sig_alg;
+
+		if (tls_uint16_from_bytes(&sig_alg, &cp, &cplen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (!tls_signature_scheme_name(sig_alg)) {
+			warning_print();
+		}
+	}
+
+	*sig_algs = d;
+	*sig_algs_len = dlen - *inlen;
+	return 1;
+}
+
 int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *recordlen,
 	const uint8_t *cert_types, size_t cert_types_len,
-	const uint8_t *sig_algs, size_t sig_algs_len,
+	const int *sig_algs, size_t sig_algs_cnt,
 	const uint8_t *ca_names, size_t ca_names_len)
 {
 	int type = TLS_handshake_certificate_request;
@@ -203,6 +272,10 @@ int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *reco
 	size_t datalen = 0;
 
 	if (!record || !recordlen) {
+		error_print();
+		return -1;
+	}
+	if (!sig_algs || !sig_algs_cnt) {
 		error_print();
 		return -1;
 	}
@@ -219,6 +292,10 @@ int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *reco
 		}
 	}
 	tls_uint8array_to_bytes(cert_types, cert_types_len, NULL, &datalen);
+	if (tls12_supported_signature_algorithms_to_bytes(sig_algs, sig_algs_cnt, NULL, &datalen) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_uint16array_to_bytes(ca_names, ca_names_len, NULL, &datalen);
 	if (datalen > TLS_MAX_HANDSHAKE_DATA_SIZE) {
 		error_print();
@@ -226,6 +303,10 @@ int tls12_record_set_handshake_certificate_request(uint8_t *record, size_t *reco
 	}
 	p = tls_handshake_data(tls_record_data(record));
 	tls_uint8array_to_bytes(cert_types, cert_types_len, &p, &len);
+	if (tls12_supported_signature_algorithms_to_bytes(sig_algs, sig_algs_cnt, &p, &len) != 1) {
+		error_print();
+		return -1;
+	}
 	tls_uint16array_to_bytes(ca_names, ca_names_len, &p, &len);
 	tls_record_set_handshake(record, recordlen, type, NULL, datalen);
 	return 1;
@@ -241,7 +322,8 @@ int tls12_record_get_handshake_certificate_request(const uint8_t *record,
 	size_t len;
 	size_t i;
 
-	if (!record || !cert_types || !cert_types_len || !ca_names || !ca_names_len) {
+	if (!record || !cert_types || !cert_types_len
+		|| !sig_algs || !sig_algs_len || !ca_names || !ca_names_len) {
 		error_print();
 		return -1;
 	}
@@ -254,6 +336,7 @@ int tls12_record_get_handshake_certificate_request(const uint8_t *record,
 		return -1;
 	}
 	if (tls_uint8array_from_bytes(cert_types, cert_types_len, &cp, &len) != 1
+		|| tls12_supported_signature_algorithms_from_bytes(sig_algs, sig_algs_len, &cp, &len) != 1
 		|| tls_uint16array_from_bytes(ca_names, ca_names_len, &cp, &len) != 1
 		|| tls_length_is_zero(len) != 1) {
 		error_print();
@@ -324,6 +407,66 @@ int tls12_record_get_handshake_client_key_exchange(const uint8_t *record,
 		error_print();
 		return -1;
 	}
+	return 1;
+}
+
+static int tls12_record_set_handshake_certificate_verify(uint8_t *record, size_t *recordlen,
+	int sig_alg, const uint8_t *sig, size_t siglen)
+{
+	int type = TLS_handshake_certificate_verify;
+	uint8_t *p;
+	size_t len = 0;
+
+	if (!record || !recordlen || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (!tls_signature_scheme_name(sig_alg)) {
+		error_print();
+		return -1;
+	}
+	if (siglen > TLS_MAX_SIGNATURE_SIZE) {
+		error_print();
+		return -1;
+	}
+	p = tls_handshake_data(tls_record_data(record));
+	tls_uint16_to_bytes((uint16_t)sig_alg, &p, &len);
+	tls_uint16array_to_bytes(sig, siglen, &p, &len);
+	tls_record_set_handshake(record, recordlen, type, NULL, len);
+	return 1;
+}
+
+static int tls12_record_get_handshake_certificate_verify(const uint8_t *record,
+	int *sig_alg, const uint8_t **sig, size_t *siglen)
+{
+	int type;
+	const uint8_t *cp;
+	size_t len;
+	uint16_t alg;
+
+	if (!record || !sig_alg || !sig || !siglen) {
+		error_print();
+		return -1;
+	}
+	if (tls_record_get_handshake(record, &type, &cp, &len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (type != TLS_handshake_certificate_verify) {
+		error_print();
+		return -1;
+	}
+	if (tls_uint16_from_bytes(&alg, &cp, &len) != 1
+		|| tls_uint16array_from_bytes(sig, siglen, &cp, &len) != 1
+		|| tls_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (!tls_signature_scheme_name(alg)) {
+		error_print();
+		return -1;
+	}
+	*sig_alg = alg;
 	return 1;
 }
 
@@ -1460,8 +1603,15 @@ int tls12_recv_certificate_request(TLS_CONNECT *conn)
 	size_t cert_types_len;
 	const uint8_t *sig_algs;
 	size_t sig_algs_len;
+	const int *local_sig_algs;
+	size_t local_sig_algs_cnt;
+	int common_sig_algs[32];
+	size_t common_sig_algs_cnt = 0;
 	const uint8_t *ca_names;
 	size_t ca_names_len;
+	const uint8_t *client_cert;
+	size_t client_cert_len;
+	int client_sig_alg;
 
 	if(conn->verbose) tls_trace("recv CertificateRequest*\n");
 
@@ -1506,12 +1656,59 @@ int tls12_recv_certificate_request(TLS_CONNECT *conn)
 		return -1;
 	}
 
+	local_sig_algs = conn->ctx->signature_algorithms;
+	local_sig_algs_cnt = conn->ctx->signature_algorithms_cnt;
+	if (!local_sig_algs_cnt) {
+		local_sig_algs = tls12_signature_algorithms;
+		local_sig_algs_cnt = tls12_signature_algorithms_cnt;
+	}
+	if ((ret = tls_process_signature_algorithms(sig_algs, sig_algs_len,
+		local_sig_algs, local_sig_algs_cnt,
+		common_sig_algs, &common_sig_algs_cnt,
+		sizeof(common_sig_algs)/sizeof(common_sig_algs[0]))) < 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_decode_error);
+		return -1;
+	} else if (ret == 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_unsupported_certificate);
+		return -1;
+	}
+
 	if (tls_cert_types_has_ecdsa_sign(cert_types, cert_types_len) != 1
 		|| tls_authorities_issued_certificate(ca_names, ca_names_len, conn->client_certs, conn->client_certs_len) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unsupported_certificate);
 		return -1;
 	}
+	if (x509_certs_get_cert_by_index(conn->client_certs, conn->client_certs_len,
+		0, &client_cert, &client_cert_len) != 1) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		return -1;
+	}
+	if ((ret = tls_cert_match_signature_algorithms(client_cert, client_cert_len,
+		common_sig_algs, common_sig_algs_cnt, &client_sig_alg)) < 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		return -1;
+	} else if (ret == 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_unsupported_certificate);
+		return -1;
+	}
+	if ((ret = tls_cert_chain_match_signature_algorithms_cert(conn->client_certs, conn->client_certs_len,
+		common_sig_algs, common_sig_algs_cnt)) < 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_bad_certificate);
+		return -1;
+	} else if (ret == 0) {
+		error_print();
+		tls_send_alert(conn, TLS_alert_unsupported_certificate);
+		return -1;
+	}
+
+	conn->sig_alg = client_sig_alg;
 
 	sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
 
@@ -1708,7 +1905,13 @@ int tls_send_certificate_verify(TLS_CONNECT *conn)
 		}
 		gmssl_secure_clear(&sign_ctx, sizeof(sign_ctx));
 
-		if (tls_record_set_handshake_certificate_verify(conn->record, &conn->recordlen, sig, siglen) != 1) {
+		if (conn->protocol == TLS_protocol_tls12) {
+			ret = tls12_record_set_handshake_certificate_verify(conn->record, &conn->recordlen,
+				conn->sig_alg, sig, siglen);
+		} else {
+			ret = tls_record_set_handshake_certificate_verify(conn->record, &conn->recordlen, sig, siglen);
+		}
+		if (ret != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
 			return -1;
@@ -2464,6 +2667,8 @@ int tls12_send_certificate_request(TLS_CONNECT *conn)
 
 	// 如果要进行客户端证书验证，服务器要提供验证的证书，但是所有证书的
 	const uint8_t cert_types[] = { TLS_cert_type_ecdsa_sign };
+	const int *sig_algs = conn->ctx->signature_algorithms;
+	size_t sig_algs_cnt = conn->ctx->signature_algorithms_cnt;
 	uint8_t ca_names[TLS_MAX_CA_NAMES_SIZE] = {0}; // TODO: 根据客户端验证CA证书列计算缓冲大小，或直接输出到record缓冲
 	size_t ca_names_len = 0;
 
@@ -2471,6 +2676,10 @@ int tls12_send_certificate_request(TLS_CONNECT *conn)
 	if (!conn->client_certificate_verify) {
 		error_print();
 		return -1;
+	}
+	if (!sig_algs_cnt) {
+		sig_algs = tls12_signature_algorithms;
+		sig_algs_cnt = tls12_signature_algorithms_cnt;
 	}
 
 	if (conn->recordlen == 0) {
@@ -2483,7 +2692,7 @@ int tls12_send_certificate_request(TLS_CONNECT *conn)
 		}
 		if (tls12_record_set_handshake_certificate_request(conn->record, &conn->recordlen,
 			cert_types, sizeof(cert_types),
-			NULL, 0, // TODO: 这里需要至少添加TLS_cert_type_ecdsa_sign					
+			sig_algs, sig_algs_cnt,
 			ca_names, ca_names_len) != 1) {
 			error_print();
 			tls_send_alert(conn, TLS_alert_internal_error);
@@ -2687,6 +2896,9 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 	size_t signer_idlen = 0;
 	const uint8_t *sig;
 	size_t siglen;
+	int sig_alg = 0;
+	const int *local_sig_algs;
+	size_t local_sig_algs_cnt;
 
 	const uint8_t *client_cert;
 	size_t client_cert_len;
@@ -2711,8 +2923,26 @@ int tls_recv_certificate_verify(TLS_CONNECT *conn)
 	}
 	if (conn->verbose) tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
 
+	local_sig_algs = conn->ctx->signature_algorithms;
+	local_sig_algs_cnt = conn->ctx->signature_algorithms_cnt;
+	if (!local_sig_algs_cnt) {
+		local_sig_algs = tls12_signature_algorithms;
+		local_sig_algs_cnt = tls12_signature_algorithms_cnt;
+	}
+
 	// get signature from certificate_verify
-	if (tls_record_get_handshake_certificate_verify(conn->record, &sig, &siglen) != 1) {
+	if (conn->protocol == TLS_protocol_tls12) {
+		if (tls12_record_get_handshake_certificate_verify(conn->record, &sig_alg, &sig, &siglen) != 1) {
+			tls_send_alert(conn, TLS_alert_unexpected_message);
+			error_print();
+			return -1;
+		}
+		if (tls_type_is_in_list(sig_alg, local_sig_algs, local_sig_algs_cnt) != 1) {
+			tls_send_alert(conn, TLS_alert_unsupported_certificate);
+			error_print();
+			return -1;
+		}
+	} else if (tls_record_get_handshake_certificate_verify(conn->record, &sig, &siglen) != 1) {
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		error_print();
 		return -1;
