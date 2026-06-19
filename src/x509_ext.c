@@ -2255,7 +2255,14 @@ int x509_general_subtree_from_der(
 		error_print();
 		return -1;
 	}
-	if (minimum && *minimum < 0) *minimum = 0;
+	/*
+	minimum 是 DEFAULT 0。asn1_implicit_int_from_der() 在字段缺省时输出 -1，
+	这里统一转换为 0，便于调用方直接按 GeneralSubtree 语义判断。
+	注意 maximum 没有默认值，缺省时应继续保持 -1，用来区分 absent 和 present。
+	*/
+	if (minimum && *minimum < 0) {
+		*minimum = 0;
+	}
 	return 1;
 }
 

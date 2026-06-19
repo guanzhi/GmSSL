@@ -1498,9 +1498,12 @@ int x509_general_name_is_in_general_subtree(int name_choice, const uint8_t *name
 	}
 
 	/*
-	 * RFC 5280 的证书路径验证配置中 minimum 必须为 0，maximum 必须缺省。
-	 * 这里先把非 profile 形式作为不支持的错误处理，避免后续误判子树范围。
-	 */
+	当前证书验证只支持 RFC 5280 profile 中的 GeneralSubtree：
+	minimum 必须为 0，maximum 必须缺省。x509_general_subtree_from_der()
+	已经把缺省 minimum 转换为 0，并用 maximum == -1 表示缺省。
+	如果遇到 minimum != 0 或 maximum present，当前实现不能静默忽略，
+	必须作为不支持的语义错误返回 -1。
+	*/
 	if (minimum != 0 || maximum >= 0) {
 		error_print();
 		return -1;
@@ -1543,6 +1546,398 @@ int x509_general_name_is_in_general_subtrees(int name_choice, const uint8_t *nam
 // end of general name in subtree
 
 
+static int x509_general_subtree_from_der_for_verify(int *base_choice,
+	const uint8_t **base, size_t *base_len,
+	const uint8_t *general_subtree, size_t general_subtree_len)
+{
+	int minimum = -1;
+	int maximum = -1;
 
+	if (!base_choice || !base || !base_len || !general_subtree || !general_subtree_len) {
+		error_print();
+		return -1;
+	}
+	if (x509_general_subtree_from_der(base_choice, base, base_len,
+		&minimum, &maximum, &general_subtree, &general_subtree_len) != 1
+		|| asn1_length_is_zero(general_subtree_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (minimum != 0 || maximum >= 0) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
 
+static int x509_general_name_is_permitted_by_general_subtrees(int name_choice,
+	const uint8_t *name, size_t name_len,
+	const uint8_t *general_subtrees, size_t general_subtrees_len)
+{
+	int ret;
+	int base_choice;
+	const uint8_t *general_subtree;
+	size_t general_subtree_len;
+	const uint8_t *base;
+	size_t base_len;
+	int has_base_choice = 0;
 
+	if (!name || !name_len || !general_subtrees || !general_subtrees_len) {
+		error_print();
+		return -1;
+	}
+
+	while (general_subtrees_len) {
+		if (asn1_any_from_der(&general_subtree, &general_subtree_len,
+			&general_subtrees, &general_subtrees_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_general_subtree_from_der_for_verify(&base_choice, &base, &base_len,
+			general_subtree, general_subtree_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (base_choice != name_choice) {
+			continue;
+		}
+		has_base_choice = 1;
+		if ((ret = x509_general_name_is_in_subtree(name_choice, name, name_len,
+			base_choice, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret) {
+			return 1;
+		}
+	}
+	if (has_base_choice) {
+		return 0;
+	}
+	return 1;
+}
+
+static int x509_general_name_check_name_constraints(int choice,
+	const uint8_t *name, size_t name_len,
+	const uint8_t *permitted_subtrees, size_t permitted_subtrees_len,
+	const uint8_t *excluded_subtrees, size_t excluded_subtrees_len)
+{
+	int ret;
+
+	if (!name || !name_len) {
+		error_print();
+		return -1;
+	}
+
+	if (excluded_subtrees_len) {
+		if (!excluded_subtrees) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_general_name_is_in_general_subtrees(choice, name, name_len,
+			excluded_subtrees, excluded_subtrees_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret) {
+			return 0;
+		}
+	}
+
+	if (permitted_subtrees_len) {
+		if (!permitted_subtrees) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_general_name_is_permitted_by_general_subtrees(choice, name, name_len,
+			permitted_subtrees, permitted_subtrees_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	}
+	return 1;
+}
+
+static int x509_cert_subject_alt_name_check_name_constraints(const uint8_t *cert, size_t certlen,
+	const uint8_t *permitted_subtrees, size_t permitted_subtrees_len,
+	const uint8_t *excluded_subtrees, size_t excluded_subtrees_len)
+{
+	int ret;
+	int critical;
+	int choice;
+	const uint8_t *exts;
+	size_t extslen;
+	const uint8_t *val;
+	size_t vlen;
+	const uint8_t *general_names;
+	size_t general_names_len;
+	const uint8_t *name;
+	size_t name_len;
+
+	if (!cert || !certlen) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		/*
+		证书没有扩展时也就没有 subjectAltName 可检查。
+		这里把“未找到扩展”的 0 转换为“没有 SAN 违反约束”的 1。
+		*/
+		return 1;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_subject_alt_name,
+		&critical, &val, &vlen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		/*
+		没有 subjectAltName 扩展时，本函数只负责 SAN 的 NameConstraints 检查。
+		这里把“未找到 SAN”的 0 转换为“SAN 检查通过”的 1。
+		*/
+		return 1;
+	}
+	if (x509_general_names_from_der(&general_names, &general_names_len, &val, &vlen) != 1
+		|| asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	while (general_names_len) {
+		if (x509_general_name_from_der(&choice, &name, &name_len,
+			&general_names, &general_names_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_general_name_check_name_constraints(choice, name, name_len,
+			permitted_subtrees, permitted_subtrees_len,
+			excluded_subtrees, excluded_subtrees_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int x509_cert_check_name_constraints(const uint8_t *cert, size_t certlen,
+	const uint8_t *name_constraints, size_t name_constraints_len)
+{
+	int ret;
+	const uint8_t *p;
+	size_t len;
+	const uint8_t *permitted_subtrees;
+	size_t permitted_subtrees_len;
+	const uint8_t *excluded_subtrees;
+	size_t excluded_subtrees_len;
+	const uint8_t *subject;
+	size_t subject_len;
+
+	if (!cert || !certlen || !name_constraints || !name_constraints_len) {
+		error_print();
+		return -1;
+	}
+
+	p = name_constraints;
+	len = name_constraints_len;
+	if (x509_name_constraints_from_der(&permitted_subtrees, &permitted_subtrees_len,
+		&excluded_subtrees, &excluded_subtrees_len, &p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	if (x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (subject_len) {
+		if ((ret = x509_general_name_check_name_constraints(X509_gn_directory_name,
+			subject, subject_len, permitted_subtrees, permitted_subtrees_len,
+			excluded_subtrees, excluded_subtrees_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			return 0;
+		}
+	}
+
+	if ((ret = x509_cert_subject_alt_name_check_name_constraints(cert, certlen,
+		permitted_subtrees, permitted_subtrees_len,
+		excluded_subtrees, excluded_subtrees_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+static int x509_cert_get_name_constraints(const uint8_t *cert, size_t certlen,
+	const uint8_t **name_constraints, size_t *name_constraints_len)
+{
+	int ret;
+	int critical;
+	const uint8_t *exts;
+	size_t extslen;
+
+	if (!cert || !certlen || !name_constraints || !name_constraints_len) {
+		error_print();
+		return -1;
+	}
+	*name_constraints = NULL;
+	*name_constraints_len = 0;
+
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		return 0;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_name_constraints,
+		&critical, name_constraints, name_constraints_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+static int x509_certs_check_name_constraints_by_name_constraints(
+	const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *name_constraints, size_t name_constraints_len)
+{
+	int ret;
+	const uint8_t *cert;
+	size_t certlen;
+
+	if (!name_constraints || !name_constraints_len) {
+		error_print();
+		return -1;
+	}
+	while (cert_chain_len) {
+		if (x509_cert_from_der(&cert, &certlen, &cert_chain, &cert_chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_cert_check_name_constraints(cert, certlen,
+			name_constraints, name_constraints_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int x509_cert_is_self_issued(const uint8_t *cert, size_t certlen)
+{
+	int ret;
+	const uint8_t *issuer;
+	size_t issuer_len;
+	const uint8_t *subject;
+	size_t subject_len;
+
+	if (!cert || !certlen) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_get_issuer(cert, certlen, &issuer, &issuer_len) != 1
+		|| x509_cert_get_subject(cert, certlen, &subject, &subject_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_name_normalized_equ(issuer, issuer_len, subject, subject_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen)
+{
+	int ret;
+	const uint8_t *chain;
+	size_t chain_len;
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *name_constraints;
+	size_t name_constraints_len;
+	size_t checked_certs_len = 0;
+
+	if (!cert_chain || !cert_chain_len
+		|| (!rootcacert && rootcacertlen)
+		|| (rootcacert && !rootcacertlen)) {
+		error_print();
+		return -1;
+	}
+
+	if (rootcacert) {
+		if ((ret = x509_cert_get_name_constraints(rootcacert, rootcacertlen,
+			&name_constraints, &name_constraints_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret) {
+			/*
+			根 CA 不在 cert_chain 中。传入根 CA 时，它的 NameConstraints
+			只在这里额外约束 cert_chain 中最靠近根的那张下级证书。
+			*/
+			if (x509_certs_get_last(cert_chain, cert_chain_len, &cert, &certlen) != 1) {
+				error_print();
+				return -1;
+			}
+			if ((ret = x509_cert_check_name_constraints(cert, certlen,
+				name_constraints, name_constraints_len)) < 0) {
+				error_print();
+				return -1;
+			}
+			if (ret == 0) {
+				return 0;
+			}
+		}
+	}
+
+	chain = cert_chain;
+	chain_len = cert_chain_len;
+	while (chain_len) {
+		if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+
+		/*
+		证书链按被验证证书到上级 CA 的顺序排列。当前证书中的
+		NameConstraints 只约束它之前已经出现的下级证书，不约束自己。
+		*/
+		if (checked_certs_len) {
+			if ((ret = x509_cert_get_name_constraints(cert, certlen,
+				&name_constraints, &name_constraints_len)) < 0) {
+				error_print();
+				return -1;
+			}
+			if (ret) {
+				if ((ret = x509_certs_check_name_constraints_by_name_constraints(
+					cert_chain, checked_certs_len,
+					name_constraints, name_constraints_len)) < 0) {
+					error_print();
+					return -1;
+				}
+				if (ret == 0) {
+					return 0;
+				}
+			}
+		}
+		checked_certs_len += certlen;
+	}
+	return 1;
+}

@@ -329,6 +329,9 @@ typedef enum {
 
 int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraint);
 int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int is_cacert);
+int x509_cert_check_name_constraints(const uint8_t *cert, size_t certlen,
+	const uint8_t *name_constraints, size_t name_constraints_len);
+int x509_cert_is_self_issued(const uint8_t *cert, size_t certlen);
 
 /*
 IssuerAndSerialNumber ::= SEQUENCE {
@@ -374,6 +377,8 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
+int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen);
 int x509_certs_get_subjects(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);
 
