@@ -301,6 +301,10 @@ int x509_cert_verify_by_ca_cert(const uint8_t *a, size_t alen, const uint8_t *ca
 int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 	const uint8_t *rootcacert, size_t rootcacertlen,
 	const char *signer_id, size_t signer_id_len);
+int x509_cert_chain_find_root_ca_cert(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacerts, size_t rootcacertslen,
+	const uint8_t **rootcacert, size_t *rootcacertlen,
+	const char *signer_id, size_t signer_id_len);
 
 int x509_cert_get_details(const uint8_t *a, size_t alen,
 	int *version,
@@ -378,6 +382,8 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen, int depth, int *verify_result);
 int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen);
+int x509_certs_check_basic_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
 	const uint8_t *rootcacert, size_t rootcacertlen);
 int x509_certs_get_subjects(const uint8_t *certs, size_t certslen, uint8_t *names, size_t *nameslen);
 int x509_certs_print(FILE *fp, int fmt, int ind, const char *label, const uint8_t *d, size_t dlen);

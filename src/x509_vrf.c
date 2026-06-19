@@ -1941,3 +1941,254 @@ int x509_certs_check_name_constraints(const uint8_t *cert_chain, size_t cert_cha
 	}
 	return 1;
 }
+
+static int x509_cert_get_basic_constraints(const uint8_t *cert, size_t certlen,
+	int *critical, int *ca, int *path_len_constraint)
+{
+	int ret;
+	const uint8_t *exts;
+	size_t extslen;
+	const uint8_t *val;
+	size_t vlen;
+
+	if (!cert || !certlen || !critical || !ca || !path_len_constraint) {
+		error_print();
+		return -1;
+	}
+	*critical = -1;
+	*ca = -1;
+	*path_len_constraint = -1;
+
+	if ((ret = x509_cert_get_exts(cert, certlen, &exts, &extslen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		return 0;
+	}
+	if ((ret = x509_exts_get_ext_by_oid(exts, extslen, OID_ce_basic_constraints,
+		critical, &val, &vlen)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (ret == 0) {
+		return 0;
+	}
+	if (x509_basic_constraints_from_der(ca, path_len_constraint, &val, &vlen) != 1
+		|| asn1_length_is_zero(vlen) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
+}
+
+static int x509_cert_check_basic_constraints_by_type(const uint8_t *cert, size_t certlen,
+	int cert_type, int *path_len_constraint)
+{
+	int has_basic_constraints;
+	int is_ca;
+	int critical;
+	int ca;
+
+	if (!cert || !certlen || !path_len_constraint) {
+		error_print();
+		return -1;
+	}
+	*path_len_constraint = -1;
+
+	switch (cert_type) {
+	case X509_cert_server_auth:
+	case X509_cert_client_auth:
+	case X509_cert_server_key_encipher:
+	case X509_cert_client_key_encipher:
+		is_ca = 0;
+		break;
+	case X509_cert_ca:
+	case X509_cert_root_ca:
+	case X509_cert_crl_sign:
+		is_ca = 1;
+		break;
+	default:
+		error_print();
+		return -1;
+	}
+
+	if ((has_basic_constraints = x509_cert_get_basic_constraints(cert, certlen,
+		&critical, &ca, path_len_constraint)) < 0) {
+		error_print();
+		return -1;
+	}
+	if (!has_basic_constraints) {
+		if (is_ca) {
+			error_print();
+			return -1;
+		}
+	} else {
+		if (x509_ext_check_critical(OID_ce_basic_constraints, is_ca, critical) != 1
+			|| x509_basic_constraints_check(ca, *path_len_constraint, cert_type) != 1) {
+			error_print();
+			return -1;
+		}
+	}
+	return 1;
+}
+
+static int x509_certs_count_non_self_issued_ca_certs(const uint8_t *cert_chain,
+	size_t cert_chain_len, size_t *count)
+{
+	int ret;
+	int is_first_cert = 1;
+	const uint8_t *cert;
+	size_t certlen;
+
+	if (!cert_chain || !cert_chain_len || !count) {
+		error_print();
+		return -1;
+	}
+	*count = 0;
+
+	while (cert_chain_len) {
+		if (x509_cert_from_der(&cert, &certlen, &cert_chain, &cert_chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (is_first_cert) {
+			is_first_cert = 0;
+			continue;
+		}
+
+		/*
+		pathLenConstraint 统计的是当前 CA 之下的非 self-issued 中间 CA 数量。
+		链中第一张证书是实体证书，不计入；self-issued CA 也不计入。
+		*/
+		if ((ret = x509_cert_is_self_issued(cert, certlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret == 0) {
+			(*count)++;
+		}
+	}
+	return 1;
+}
+
+int x509_certs_check_basic_constraints(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacert, size_t rootcacertlen)
+{
+	const uint8_t *chain;
+	size_t chain_len;
+	const uint8_t *cert;
+	size_t certlen;
+	size_t checked_certs_len;
+	size_t path_len;
+	int path_len_constraint;
+
+	if (!cert_chain || !cert_chain_len
+		|| (!rootcacert && rootcacertlen)
+		|| (rootcacert && !rootcacertlen)) {
+		error_print();
+		return -1;
+	}
+
+	chain = cert_chain;
+	chain_len = cert_chain_len;
+
+	if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_check_basic_constraints_by_type(cert, certlen,
+		X509_cert_server_auth, &path_len_constraint) != 1) {
+		error_print();
+		return -1;
+	}
+	checked_certs_len = certlen;
+
+	while (chain_len) {
+		if (x509_cert_from_der(&cert, &certlen, &chain, &chain_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_cert_check_basic_constraints_by_type(cert, certlen,
+			X509_cert_ca, &path_len_constraint) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_certs_count_non_self_issued_ca_certs(cert_chain,
+			checked_certs_len, &path_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (path_len_constraint >= 0 && path_len > (size_t)path_len_constraint) {
+			error_print();
+			return -1;
+		}
+		checked_certs_len += certlen;
+	}
+
+	if (rootcacert) {
+		if (x509_cert_check_basic_constraints_by_type(rootcacert, rootcacertlen,
+			X509_cert_root_ca, &path_len_constraint) != 1) {
+			error_print();
+			return -1;
+		}
+		if (x509_certs_count_non_self_issued_ca_certs(cert_chain,
+			cert_chain_len, &path_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if (path_len_constraint >= 0 && path_len > (size_t)path_len_constraint) {
+			error_print();
+			return -1;
+		}
+	}
+
+	return 1;
+}
+
+int x509_cert_chain_find_root_ca_cert(const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *rootcacerts, size_t rootcacertslen,
+	const uint8_t **rootcacert, size_t *rootcacertlen,
+	const char *signer_id, size_t signer_id_len)
+{
+	int ret;
+	const uint8_t *cert;
+	size_t certlen;
+	const uint8_t *cacert;
+	size_t cacertlen;
+	int found_root = 0;
+
+	if (!cert_chain || !cert_chain_len
+		|| (!rootcacerts && rootcacertslen)
+		|| !rootcacert || !rootcacertlen
+		|| (!signer_id && signer_id_len)) {
+		error_print();
+		return -1;
+	}
+	*rootcacert = NULL;
+	*rootcacertlen = 0;
+
+	if (x509_certs_get_last(cert_chain, cert_chain_len, &cert, &certlen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	while (rootcacertslen) {
+		if (x509_cert_from_der(&cacert, &cacertlen, &rootcacerts, &rootcacertslen) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_cert_is_signed_by_root_ca_cert(cert, certlen, cacert, cacertlen,
+			signer_id, signer_id_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		if (ret) {
+			*rootcacert = cacert;
+			*rootcacertlen = cacertlen;
+			found_root = 1;
+			break;
+		}
+	}
+	return found_root;
+}

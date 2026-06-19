@@ -268,6 +268,11 @@ static int test_x509_cert_is_signed_by_root_ca_cert(void)
 	size_t leaf_len;
 	uint8_t leaf_wrong_aki_issuer[2048];
 	size_t leaf_wrong_aki_issuer_len;
+	uint8_t rootcacerts[8192];
+	size_t rootcacertslen;
+	uint8_t *p;
+	const uint8_t *found_root;
+	size_t found_root_len;
 
 	if (set_x509_name_cn(root_name, &root_name_len, sizeof(root_name), "Root CA") != 1
 		|| set_x509_name_cn(other_name, &other_name_len, sizeof(other_name), "Other Root CA") != 1
@@ -328,6 +333,35 @@ static int test_x509_cert_is_signed_by_root_ca_cert(void)
 		|| x509_cert_is_signed_by_root_ca_cert(leaf_wrong_aki_issuer, leaf_wrong_aki_issuer_len,
 			good_root, good_root_len,
 			SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 0) {
+		error_print();
+		return -1;
+	}
+
+	found_root = good_root;
+	found_root_len = good_root_len;
+	if (x509_cert_chain_find_root_ca_cert(leaf, leaf_len,
+			wrong_name_root, wrong_name_root_len,
+			&found_root, &found_root_len,
+			SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 0
+		|| found_root != NULL
+		|| found_root_len != 0) {
+		error_print();
+		return -1;
+	}
+
+	p = rootcacerts;
+	rootcacertslen = 0;
+	if (x509_cert_to_der(wrong_name_root, wrong_name_root_len, &p, &rootcacertslen) != 1
+		|| x509_cert_to_der(good_root, good_root_len, &p, &rootcacertslen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (x509_cert_chain_find_root_ca_cert(leaf, leaf_len,
+			rootcacerts, rootcacertslen,
+			&found_root, &found_root_len,
+			SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID)) != 1
+		|| found_root_len != good_root_len
+		|| memcmp(found_root, good_root, good_root_len) != 0) {
 		error_print();
 		return -1;
 	}
