@@ -1324,6 +1324,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 	// check server certificate matches negotiated cipher_suite
 	if (!tls12_cipher_suite_match_cert_group(conn->cipher_suite, server_group)) {
 		error_print();
+		conn->verify_result = X509_verify_err_tls_extensions;
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
@@ -1343,6 +1344,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		break;
 	default:
 		error_print();
+		conn->verify_result = X509_verify_err_tls_extensions;
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
@@ -1352,6 +1354,7 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		if (!tls_type_is_in_list(server_group, conn->ctx->supported_groups,
 			conn->ctx->supported_groups_cnt)) {
 			error_print();
+			conn->verify_result = X509_verify_err_tls_extensions;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
@@ -1364,16 +1367,19 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 			conn->ctx->signature_algorithms_cnt,
 			&cert_sig_alg)) < 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_tls_extensions;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		} else if (ret == 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_tls_extensions;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
 		if (!tls12_signature_scheme_match_cert_group(cert_sig_alg, server_group)
 			|| !tls12_signature_scheme_match_cipher_suite(cert_sig_alg, conn->cipher_suite)) {
 			error_print();
+			conn->verify_result = X509_verify_err_tls_extensions;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
@@ -1393,10 +1399,12 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 			conn->peer_cert_chain, conn->peer_cert_chain_len,
 			signature_algorithms_cert, signature_algorithms_cert_cnt)) < 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_tls_extensions;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		} else if (ret == 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_tls_extensions;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
@@ -1407,10 +1415,12 @@ int tls_recv_server_certificate(TLS_CONNECT *conn)
 		if ((ret = tls_cert_match_server_name(server_cert, server_cert_len,
 			conn->host_name, conn->host_name_len)) < 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_hostname;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		} else if (ret == 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_hostname;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
@@ -2798,9 +2808,11 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 		NULL, 0,
 		conn->ctx->verify_depth, &verify_result) != 1) {
 		error_print();
+		conn->verify_result = verify_result;
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
+	conn->verify_result = verify_result;
 
 
 		if (digest_update(&conn->dgst_ctx, conn->record + 5, conn->recordlen - 5) != 1) {

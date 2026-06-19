@@ -6172,7 +6172,7 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	const uint8_t *host_name = NULL;
 	size_t host_name_len = 0;
 
-	int verify_result;
+	int verify_result = X509_verify_ok;
 
 	if(conn->verbose) tls_trace("recv server {Certificate}\n");
 
@@ -6224,6 +6224,7 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	}
 	if (!conn->peer_cert_chain_len) {
 		error_print();
+		conn->verify_result = X509_verify_err_certificate;
 		tls13_send_alert(conn, TLS_alert_illegal_parameter);
 		return -1;
 	}
@@ -6241,6 +6242,26 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 		host_name = conn->host_name;
 		host_name_len = conn->host_name_len;
 	}
+	if (host_name && host_name_len) {
+		if (x509_certs_get_cert_by_index(conn->peer_cert_chain,
+			conn->peer_cert_chain_len, 0, &cert, &certlen) != 1) {
+			error_print();
+			conn->verify_result = X509_verify_err_certificate;
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+		if ((ret = tls_cert_match_server_name(cert, certlen, host_name, host_name_len)) < 0) {
+			error_print();
+			conn->verify_result = X509_verify_err_hostname;
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		} else if (ret == 0) {
+			error_print();
+			conn->verify_result = X509_verify_err_hostname;
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+			return -1;
+		}
+	}
 	if (tls_cert_chain_match_extensions(conn->peer_cert_chain, conn->peer_cert_chain_len,
 		conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
 		signature_algorithms_cert, signature_algorithms_cert_cnt,
@@ -6249,6 +6270,7 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 		host_name, host_name_len,
 		NULL) != 1) {
 		error_print();
+		conn->verify_result = X509_verify_err_tls_extensions;
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
@@ -6266,14 +6288,17 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 		conn->ctx->verify_depth, &verify_result);
 	if (ret < 0) {
 		error_print();
+		conn->verify_result = verify_result;
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		conn->verify_result = verify_result;
 		tls13_send_alert(conn, TLS_alert_certificate_revoked);
 		return -1;
 	}
+	conn->verify_result = verify_result;
 	// signed_certificate_timestamp
 	if (leaf_signed_certificate_timestamp) {
 		if (x509_certs_get_cert_by_index(conn->peer_cert_chain,
@@ -8523,7 +8548,7 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	const uint8_t *oid_filters = NULL;
 	size_t oid_filters_len = 0;
 
-	int verify_result;
+	int verify_result = X509_verify_ok;
 
 	if(conn->verbose) tls_trace("recv client {Certificate*}\n");
 
@@ -8609,6 +8634,7 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		NULL, 0, // server_name not in CertificateRequest
 		NULL) != 1) {
 		error_print();
+		conn->verify_result = X509_verify_err_tls_extensions;
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
@@ -8621,14 +8647,17 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		conn->ctx->verify_depth, &verify_result);
 	if (ret < 0) {
 		error_print();
+		conn->verify_result = verify_result;
 		tls13_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		conn->verify_result = verify_result;
 		tls13_send_alert(conn, TLS_alert_certificate_revoked);
 		return -1;
 	}
+	conn->verify_result = verify_result;
 	// signed_certificate_timestamp
 	if (signed_certificate_timestamp) {
 		if (x509_certs_get_cert_by_index(conn->peer_cert_chain,

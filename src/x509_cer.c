@@ -1950,6 +1950,13 @@ static int x509_cert_check_optional_ocsp(const uint8_t *cert, size_t certlen,
 	return ret;
 }
 
+static void x509_verify_set_result(int *verify_result, int result)
+{
+	if (verify_result) {
+		*verify_result = result;
+	}
+}
+
 int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	const uint8_t *rootcerts, size_t rootcertslen,
 	const uint8_t *crl, size_t crl_len,
@@ -1967,6 +1974,8 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 
 	int path_len = 0;
 
+	x509_verify_set_result(verify_result, X509_verify_ok);
+
 	switch (certs_type) {
 	case X509_cert_chain_server:
 		entity_cert_type = X509_cert_server_auth;
@@ -1976,25 +1985,30 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		break;
 	default:
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 
 	// entity cert
 	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if (x509_cert_check(cert, certlen, entity_cert_type) != 1) {
 		error_print();
 		x509_cert_print(stderr, 0, 10, "Invalid Entity Certificate", cert, certlen);
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if ((ret = x509_cert_check_optional_crl(cert, certlen, crl, crl_len)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_crl);
 		return -1;
 	}
 	if (ret == 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_crl);
 		return 0;
 	}
 
@@ -2002,24 +2016,29 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_certificate);
 			return -1;
 		}
 		if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 			error_print();
 			x509_cert_print(stderr, 0, 10, "Invalid CA Certificate", cacert, cacertlen);
+			x509_verify_set_result(verify_result, X509_verify_err_certificate);
 			return -1;
 		}
 		if ((ret = x509_cert_check_optional_crl(cacert, cacertlen, crl, crl_len)) < 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_crl);
 			return -1;
 		}
 		if (ret == 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_crl);
 			return 0;
 		}
 
 		if (path_len > depth) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_depth);
 			return -1;
 		}
 
@@ -2027,16 +2046,19 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_cert_chain);
 			return -1;
 		}
 		if (path_len == 0) {
 			if ((ret = x509_cert_check_optional_ocsp(cert, certlen,
 					cacert, cacertlen, ocsp, ocsp_len)) < 0) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 				return -1;
 			}
 			if (ret == 0) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 				return 0;
 			}
 		}
@@ -2050,28 +2072,34 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		rootcerts, rootcertslen, &cacert, &cacertlen,
 		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_trust_anchor);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_trust_anchor);
 		return -1;
 	}
 	if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if (path_len > depth) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_depth);
 		return -1;
 	}
 	if (path_len == 0) {
 		if ((ret = x509_cert_check_optional_ocsp(cert, certlen,
 				cacert, cacertlen, ocsp, ocsp_len)) < 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 			return -1;
 		}
 		if (ret == 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 			return 0;
 		}
 	}
@@ -2079,15 +2107,18 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	if (x509_certs_check_basic_constraints(cert_chain, cert_chain_len,
 		cacert, cacertlen) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_constraints);
 		return -1;
 	}
 	if ((ret = x509_certs_check_name_constraints(cert_chain, cert_chain_len,
 		cacert, cacertlen)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_constraints);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_constraints);
 		return -1;
 	}
 
@@ -2115,6 +2146,8 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 
 	int path_len = 0;
 
+	x509_verify_set_result(verify_result, X509_verify_ok);
+
 	switch (certs_type) {
 	case X509_cert_chain_server:
 		sign_cert_type = X509_cert_server_auth;
@@ -2122,50 +2155,61 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		break;
 	default:
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 
 	if (x509_cert_from_der(&cert, &certlen, &certs, &certslen) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if (x509_cert_check(cert, certlen, sign_cert_type) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if ((ret = x509_cert_check_optional_crl(cert, certlen, crl, crl_len)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_crl);
 		return -1;
 	}
 	if (ret == 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_crl);
 		return 0;
 	}
 
 	// entity key encipherment cert
 	if (x509_cert_from_der(&kenc_cert, &kenc_certlen, &certs, &certslen) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if (x509_cert_check(kenc_cert, kenc_certlen, kenc_cert_type) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if ((ret = x509_cert_check_optional_crl(kenc_cert, kenc_certlen, crl, crl_len)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_crl);
 		return -1;
 	}
 	if (ret == 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_crl);
 		return 0;
 	}
 	if ((ret = x509_tlcp_cert_pair_entity_match(cert, certlen,
 		kenc_cert, kenc_certlen)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 
@@ -2173,18 +2217,22 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 
 		if (x509_cert_from_der(&cacert, &cacertlen, &certs, &certslen) != 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_certificate);
 			return -1;
 		}
 		if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_certificate);
 			return -1;
 		}
 		if ((ret = x509_cert_check_optional_crl(cacert, cacertlen, crl, crl_len)) < 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_crl);
 			return -1;
 		}
 		if (ret == 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_crl);
 			return 0;
 		}
 
@@ -2193,36 +2241,43 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 			if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
 				SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_cert_chain);
 				return -1;
 			}
 		}
 		if (path_len > depth) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_depth);
 			return -1;
 		}
 
 		if (x509_cert_verify_by_ca_cert(cert, certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_cert_chain);
 			return -1;
 		}
 		if (path_len == 0) {
 			if ((ret = x509_cert_check_optional_ocsp(cert, certlen,
 					cacert, cacertlen, ocsp, ocsp_len)) < 0) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 				return -1;
 			}
 			if (ret == 0) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 				return 0;
 			}
 			if ((ret = x509_cert_check_optional_ocsp(kenc_cert, kenc_certlen,
 					cacert, cacertlen, ocsp, ocsp_len)) < 0) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 				return -1;
 			}
 			if (ret == 0) {
 				error_print();
+				x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 				return 0;
 			}
 		}
@@ -2236,18 +2291,22 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		rootcerts, rootcertslen, &cacert, &cacertlen,
 		SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_trust_anchor);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_trust_anchor);
 		return -1;
 	}
 	if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_certificate);
 		return -1;
 	}
 	if (path_len > depth) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_depth);
 		return -1;
 	}
 
@@ -2256,24 +2315,29 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		if (x509_cert_verify_by_ca_cert(kenc_cert, kenc_certlen, cacert, cacertlen,
 			SM2_DEFAULT_ID, SM2_DEFAULT_ID_LENGTH) != 1) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_cert_chain);
 			return -1;
 		}
 		if ((ret = x509_cert_check_optional_ocsp(cert, certlen,
 				cacert, cacertlen, ocsp, ocsp_len)) < 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 			return -1;
 		}
 		if (ret == 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 			return 0;
 		}
 		if ((ret = x509_cert_check_optional_ocsp(kenc_cert, kenc_certlen,
 				cacert, cacertlen, ocsp, ocsp_len)) < 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 			return -1;
 		}
 		if (ret == 0) {
 			error_print();
+			x509_verify_set_result(verify_result, X509_verify_err_ocsp);
 			return 0;
 		}
 	}
@@ -2281,15 +2345,18 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	if (x509_certs_check_basic_constraints_tlcp(cert_chain, cert_chain_len,
 		cacert, cacertlen) != 1) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_constraints);
 		return -1;
 	}
 	if ((ret = x509_certs_check_name_constraints_tlcp(cert_chain, cert_chain_len,
 		cacert, cacertlen)) < 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_constraints);
 		return -1;
 	}
 	if (ret == 0) {
 		error_print();
+		x509_verify_set_result(verify_result, X509_verify_err_constraints);
 		return -1;
 	}
 	return 1;

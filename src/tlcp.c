@@ -748,7 +748,7 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 	int ret;
 	const uint8_t *server_cert;
 	size_t server_cert_len;
-	int verify_result;
+	int verify_result = X509_verify_ok;
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -795,10 +795,12 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 		if ((ret = tls_cert_match_server_name(server_cert, server_cert_len,
 			conn->host_name, conn->host_name_len)) < 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_hostname;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		} else if (ret == 0) {
 			error_print();
+			conn->verify_result = X509_verify_err_hostname;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
@@ -812,10 +814,12 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 			NULL, 0,
 			conn->ctx->verify_depth, &verify_result) != 1) {
 			error_print();
+			conn->verify_result = verify_result;
 			tls_send_alert(conn, TLS_alert_bad_certificate);
 			return -1;
 		}
 	}
+	conn->verify_result = verify_result;
 
 	if (conn->client_certs_len) {
 		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);

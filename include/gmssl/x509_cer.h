@@ -380,6 +380,19 @@ typedef enum {
 	X509_cert_chain_client,
 } X509_CERT_CHAIN_TYPE;
 
+typedef enum {
+	X509_verify_ok = 0,
+	X509_verify_err_certificate,
+	X509_verify_err_cert_chain,
+	X509_verify_err_trust_anchor,
+	X509_verify_err_depth,
+	X509_verify_err_crl,
+	X509_verify_err_ocsp,
+	X509_verify_err_constraints,
+	X509_verify_err_tls_extensions,
+	X509_verify_err_hostname,
+} X509_VERIFY_RESULT;
+
 #define X509_MAX_VERIFY_DEPTH	6
 //int x509_cert_chain_verify(const uint8_t *certs, size_t certslen,
 //	const uint8_t *cacerts, size_t cacertslen, int depth, int *verify_result);
