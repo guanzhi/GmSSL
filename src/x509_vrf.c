@@ -20,7 +20,7 @@
 
 
 
-static int x509_cert_get_authority_key_identifier_keyid(const uint8_t *cert, size_t certlen,
+static int x509_cert_get_authority_key_identifier(const uint8_t *cert, size_t certlen,
 	const uint8_t **keyid, size_t *keyid_len,
 	const uint8_t **issuer, size_t *issuer_len,
 	const uint8_t **serial, size_t *serial_len)
@@ -115,12 +115,14 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 		error_print();
 		return -1;
 	}
-	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
+	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
+		|| asn1_length_is_zero(alen) != 1) {
 		error_print();
 		return -1;
 	}
-	if (x509_signed_from_der(&tbs, &tbslen, &sig_alg, &sig, &siglen, &a, &alen) != 1
-		|| asn1_length_is_zero(alen) != 1) {
+
+	// FIXME: 改为 x509_key_support_algor
+	if (x509_key_get_sign_algor(key, &key_sig_alg) != 1) {
 		error_print();
 		return -1;
 	}
@@ -128,6 +130,8 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 		return 0;
 	}
 
+
+	// X509_sign/verify 还是默认就使用SM2的默认ID吧
 	if (key->algor == OID_ec_public_key && key->algor_param == OID_sm2) {
 		sign_args = (uint8_t *)signer_id;
 		sign_argslen = signer_id_len;
@@ -140,6 +144,7 @@ static int x509_signed_is_verified_by_key(const uint8_t *a, size_t alen,
 	return 1;
 }
 
+// 其实只要把验证签名的步骤拿出来，就可以重用已有的函数
 int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 	const uint8_t *rootcacert, size_t rootcacertlen,
 	const char *signer_id, size_t signer_id_len)
@@ -182,7 +187,7 @@ int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 	}
 
 	// if AKI not exist
-	if ((ret = x509_cert_get_authority_key_identifier_keyid(cert, certlen,
+	if ((ret = x509_cert_get_authority_key_identifier(cert, certlen,
 		&aki, &aki_len, &aki_issuer, &aki_issuer_len, &aki_serial, &aki_serial_len)) < 0) {
 		error_print();
 		return -1;
@@ -241,6 +246,9 @@ int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 		error_print();
 		return -1;
 	}
+
+	// 最后才是verify
+	// 可以修改一下 x509_signed_verify_ex ，验证失败不都显式打印错误。
 	return x509_signed_is_verified_by_key(cert, certlen, &public_key, signer_id, signer_id_len);
 }
 
@@ -371,36 +379,11 @@ static int x509_general_names_check(const uint8_t *d, size_t dlen)
 
 int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int cert_type)
 {
-	int ret;
-	int is_cacert;
+	int has_subject;
 	const uint8_t *subject;
 	size_t subject_len;
-	const uint8_t *exts;
-	size_t extslen;
-	const uint8_t *val;
-	size_t vlen;
-	const uint8_t *gns;
-	size_t gnslen;
-	int critical;
 
 	if (!cert || !certlen) {
-		error_print();
-		return -1;
-	}
-
-	switch (cert_type) {
-	case X509_cert_server_auth:
-	case X509_cert_client_auth:
-	case X509_cert_server_key_encipher:
-	case X509_cert_client_key_encipher:
-		is_cacert = 0;
-		break;
-	case X509_cert_ca:
-	case X509_cert_root_ca:
-	case X509_cert_crl_sign:
-		is_cacert = 1;
-		break;
-	default:
 		error_print();
 		return -1;
 	}
@@ -409,22 +392,44 @@ int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int cert_type)
 		error_print();
 		return -1;
 	}
-	if ((ret = x509_name_check(subject, subject_len)) < 0) {
+	if ((has_subject = x509_name_check(subject, subject_len)) < 0) {
 		error_print();
 		return -1;
 	}
 
-	if (ret == 0) {
-		if (is_cacert) {
+	if (!has_subject) {
+		int is_cacert;
+		const uint8_t *exts;
+		size_t extslen;
+		int critical;
+		const uint8_t *val;
+		size_t vlen;
+		const uint8_t *gns;
+		size_t gnslen;
+
+		switch (cert_type) {
+		case X509_cert_server_auth:
+		case X509_cert_client_auth:
+		case X509_cert_server_key_encipher:
+		case X509_cert_client_key_encipher:
+			is_cacert = 0;
+			break;
+		case X509_cert_ca:
+		case X509_cert_root_ca:
+		case X509_cert_crl_sign:
+			is_cacert = 1;
+			break;
+		default:
 			error_print();
 			return -1;
 		}
 
-		if (x509_cert_get_exts(cert, certlen, &exts, &extslen) != 1) {
+		if (is_cacert) {
 			error_print();
 			return -1;
 		}
-		if (x509_exts_get_ext_by_oid(exts, extslen, OID_ce_subject_alt_name, &critical, &val, &vlen) != 1) {
+		if (x509_cert_get_exts(cert, certlen, &exts, &extslen) != 1
+			|| x509_exts_get_ext_by_oid(exts, extslen, OID_ce_subject_alt_name, &critical, &val, &vlen) != 1) {
 			error_print();
 			return -1;
 		}
@@ -443,153 +448,122 @@ int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int cert_type)
 	return 1;
 }
 
-static int x509_name_string_char_from_bytes(int tag, const uint8_t **in, size_t *inlen, uint32_t *ch)
+static int x509_name_string_char_from_bytes(int tag, uint32_t *ch, const uint8_t **in, size_t *inlen)
 {
-	int ret = 1;
-	const uint8_t *p;
-	size_t len;
+	int ret;
 
 	if (!in || !*in || !inlen || !ch) {
 		error_print();
 		return -1;
 	}
-	p = *in;
-	len = *inlen;
-
-	if (len == 0) {
-		ret = 0;
-	} else {
-		switch (tag) {
-		case ASN1_TAG_TeletexString:
-			*ch = p[0];
-			p++;
-			len--;
-			break;
-		case ASN1_TAG_PrintableString:
-			if (asn1_printable_string_next_code_point(*in, *inlen, &p, ch) != 1) {
-				error_print();
-				return -1;
-			}
-			len = *inlen - (size_t)(p - *in);
-			break;
-		case ASN1_TAG_IA5String:
-			if (asn1_ia5_string_next_code_point(*in, *inlen, &p, ch) != 1) {
-				error_print();
-				return -1;
-			}
-			len = *inlen - (size_t)(p - *in);
-			break;
-		case ASN1_TAG_UTF8String:
-			if (asn1_utf8_string_next_code_point(*in, *inlen, &p, ch) != 1) {
-				error_print();
-				return -1;
-			}
-			len = *inlen - (size_t)(p - *in);
-			break;
-		case ASN1_TAG_BMPString:
-			if (asn1_bmp_string_next_code_point(*in, *inlen, &p, ch) != 1) {
-				error_print();
-				return -1;
-			}
-			len = *inlen - (size_t)(p - *in);
-			break;
-		case ASN1_TAG_UniversalString:
-			if (asn1_universal_string_next_code_point(*in, *inlen, &p, ch) != 1) {
-				error_print();
-				return -1;
-			}
-			len = *inlen - (size_t)(p - *in);
-			break;
-		default:
-			ret = 0;
-			break;
-		}
-	}
-
-	if (ret == 1) {
-		*in = p;
-		*inlen = len;
-	}
-	return ret;
-}
-
-static int x509_name_string_next_normalized_code_point(int tag,
-	const uint8_t *str, size_t len, const uint8_t **ptr, uint32_t *code_point)
-{
-	int ret;
-	const uint8_t *p;
-	const uint8_t *q;
-	const uint8_t *end;
-	size_t qlen;
-	uint32_t ch;
-
-	if (!ptr || !code_point || (!str && len)) {
-		error_print();
-		return -1;
-	}
-	if (!str) {
-		if (*ptr) {
-			error_print();
-			return -1;
-		}
+	if (*inlen == 0) {
 		return 0;
 	}
 
-	end = str + len;
-	p = *ptr ? *ptr : str;
-	if (p < str || p > end) {
+	switch (tag) {
+	case ASN1_TAG_TeletexString:
+		*ch = *(*in)++;
+		(*inlen)--;
+		ret = 1;
+		break;
+	case ASN1_TAG_PrintableString:
+		if ((ret = asn1_printable_string_code_point_from_bytes(ch, in, inlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case ASN1_TAG_IA5String:
+		if ((ret = asn1_ia5_string_code_point_from_bytes(ch, in, inlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case ASN1_TAG_UTF8String:
+		if ((ret = asn1_utf8_string_code_point_from_bytes(ch, in, inlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case ASN1_TAG_BMPString:
+		if ((ret = asn1_bmp_string_code_point_from_bytes(ch, in, inlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	case ASN1_TAG_UniversalString:
+		if ((ret = asn1_universal_string_code_point_from_bytes(ch, in, inlen)) < 0) {
+			error_print();
+			return -1;
+		}
+		break;
+	default:
 		error_print();
 		return -1;
 	}
 
-	while (p < end) {
-		q = p;
-		qlen = (size_t)(end - q);
-		if ((ret = x509_name_string_char_from_bytes(tag, &q, &qlen, &ch)) != 1) {
-			if (ret == 0) error_print();
-			return -1;
-		}
-		if ('A' <= ch && ch <= 'Z') {
-			ch += 'a' - 'A';
-		}
-		if (ch != ' ') {
-			*code_point = ch;
-			*ptr = q;
-			return 1;
-		}
+	return ret;
+}
 
-		/* Skip leading spaces and collapse repeated spaces. */
-		while (q < end) {
-			const uint8_t *r = q;
-			size_t rlen = (size_t)(end - r);
+static int x509_name_string_skip_spaces(int tag, const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	const uint8_t *p;
+	size_t len;
+	uint32_t ch;
 
-			if ((ret = x509_name_string_char_from_bytes(tag, &r, &rlen, &ch)) != 1) {
-				if (ret == 0) error_print();
-				return -1;
-			}
-			if ('A' <= ch && ch <= 'Z') {
-				ch += 'a' - 'A';
-			}
-			if (ch != ' ') {
-				break;
-			}
-			q = r;
-		}
-		if (q == end) {
-			*ptr = end;
-			return 0;
-		}
-		if (p == str) {
-			p = q;
-			continue;
-		}
-		*code_point = ' ';
-		*ptr = q;
-		return 1;
+	if (!in || !*in || !inlen) {
+		error_print();
+		return -1;
 	}
 
-	*ptr = end;
-	return 0;
+	while (*inlen) {
+		p = *in;
+		len = *inlen;
+		if ((ret = x509_name_string_char_from_bytes(tag, &ch, &p, &len)) != 1) {
+			error_print();
+			return -1;
+		}
+		if (ch != ' ') {
+			return 1;
+		}
+		*in = p;
+		*inlen = len;
+	}
+	return 1;
+}
+
+static int x509_name_string_code_point_from_bytes(int tag, uint32_t *code_point,
+	const uint8_t **in, size_t *inlen)
+{
+	int ret;
+	uint32_t ch;
+
+	if (!code_point || !in || !*in || !inlen) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_name_string_char_from_bytes(tag, &ch, in, inlen)) != 1) {
+		if (ret == 0) {
+			return 0;
+		}
+		error_print();
+		return -1;
+	}
+	if ('A' <= ch && ch <= 'Z') {
+		ch += 'a' - 'A';
+	}
+	if (ch == ' ') {
+		if (x509_name_string_skip_spaces(tag, in, inlen) != 1) {
+			error_print();
+			return -1;
+		}
+		if (*inlen == 0) {
+			return 0;
+		}
+		ch = ' ';
+	}
+	*code_point = ch;
+	return 1;
 }
 
 static int x509_name_string_normalized_equ(int a_tag, const uint8_t *a, size_t alen,
@@ -597,15 +571,30 @@ static int x509_name_string_normalized_equ(int a_tag, const uint8_t *a, size_t a
 {
 	int a_ret;
 	int b_ret;
-	const uint8_t *a_ptr = NULL;
-	const uint8_t *b_ptr = NULL;
 	uint32_t a_ch;
 	uint32_t b_ch;
 
+	if ((!a && alen) || (!b && blen)) {
+		error_print();
+		return -1;
+	}
+	if (alen && x509_name_string_skip_spaces(a_tag, &a, &alen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (blen && x509_name_string_skip_spaces(b_tag, &b, &blen) != 1) {
+		error_print();
+		return -1;
+	}
+
 	for (;;) {
-		a_ret = x509_name_string_next_normalized_code_point(a_tag, a, alen, &a_ptr, &a_ch);
-		b_ret = x509_name_string_next_normalized_code_point(b_tag, b, blen, &b_ptr, &b_ch);
-		if (a_ret < 0 || b_ret < 0) {
+		a_ret = x509_name_string_code_point_from_bytes(a_tag, &a_ch, &a, &alen);
+		if (a_ret < 0) {
+			error_print();
+			return -1;
+		}
+		b_ret = x509_name_string_code_point_from_bytes(b_tag, &b_ch, &b, &blen);
+		if (b_ret < 0) {
 			error_print();
 			return -1;
 		}
@@ -618,24 +607,6 @@ static int x509_name_string_normalized_equ(int a_tag, const uint8_t *a, size_t a
 	}
 }
 
-static int x509_name_string_tag(int tag)
-{
-	int ret = 0;
-
-	switch (tag) {
-	case ASN1_TAG_TeletexString:
-	case ASN1_TAG_PrintableString:
-	case ASN1_TAG_UniversalString:
-	case ASN1_TAG_UTF8String:
-	case ASN1_TAG_BMPString:
-	case ASN1_TAG_IA5String:
-		ret = 1;
-		break;
-	default:
-		break;
-	}
-	return ret;
-}
 
 /*
  * 这个 _ex 版本和 x509_attr_type_and_value_from_der() 的区别是：
@@ -729,9 +700,12 @@ static int x509_attr_type_and_value_normalized_equ(const uint8_t *a, size_t alen
 	} else if (a_val_der_len == b_val_der_len
 		&& memcmp(a_val_der, b_val_der, a_val_der_len) == 0) {
 		ret = 1;
-	} else if (x509_name_string_tag(a_tag) && x509_name_string_tag(b_tag)) {
+	} else if (asn1_tag_is_cstring(a_tag) && asn1_tag_is_cstring(b_tag)) {
 		ret = x509_name_string_normalized_equ(a_tag, a_val, a_val_len, b_tag, b_val, b_val_len);
-		if (ret < 0) error_print();
+		if (ret < 0) {
+			error_print();
+			return -1;
+		}
 	}
 	return ret;
 }
@@ -760,6 +734,16 @@ end:
 	return ret;
 }
 
+/*
+ * 统计一个 RDN SET 中和给定 AttributeTypeAndValue 规范化相等的项数。
+ *
+ * 例如同一个 RDN 允许包含多个 AVA：
+ *     SET {
+ *         commonName = "Alice",
+ *         commonName = " ALICE "
+ *     }
+ * 如果待匹配的 AVA 是 commonName = "alice"，规范化比较会使 count == 2。
+ */
 static int x509_rdn_count_attr_type_and_value(const uint8_t *rdn, size_t rdnlen,
 	const uint8_t *ava, size_t avalen, size_t *count)
 {
@@ -846,7 +830,7 @@ end:
 
 int x509_name_normalized_equ(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen)
 {
-	int ret = 0;
+	int ret;
 	const uint8_t *a_rdn;
 	const uint8_t *b_rdn;
 	size_t a_rdn_len;
@@ -860,54 +844,39 @@ int x509_name_normalized_equ(const uint8_t *a, size_t alen, const uint8_t *b, si
 		if (asn1_set_from_der(&a_rdn, &a_rdn_len, &a, &alen) != 1
 			|| asn1_set_from_der(&b_rdn, &b_rdn_len, &b, &blen) != 1) {
 			error_print();
-			ret = -1;
-			goto end;
+			return -1;
 		}
 		ret = x509_rdn_normalized_equ(a_rdn, a_rdn_len, b_rdn, b_rdn_len);
-		if (ret != 1) {
-			goto end;
-		}
-	}
-	if (alen || blen) {
-		ret = 0;
-	} else {
-		ret = 1;
-	}
-end:
-	return ret;
-}
-
-int asn1_utf8_string_next_code_point(const uint8_t *str, size_t len,
-	const uint8_t **ptr, uint32_t *code_point)
-{
-	const uint8_t *p;
-	const uint8_t *end;
-	size_t rem;
-	uint32_t cp;
-
-	if (!ptr || !code_point || (!str && len)) {
-		error_print();
-		return -1;
-	}
-	if (!str) {
-		if (*ptr) {
+		if (ret < 0) {
 			error_print();
 			return -1;
 		}
+		if (ret == 0) {
+			return 0;
+		}
+	}
+	if (alen || blen) {
 		return 0;
 	}
+	return 1;
+}
 
-	end = str + len;
-	p = *ptr ? *ptr : str;
-	if (p < str || p > end) {
+int asn1_utf8_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen)
+{
+	const uint8_t *p;
+	size_t rem;
+	uint32_t cp;
+
+	if (!code_point || !in || !*in || !inlen) {
 		error_print();
 		return -1;
 	}
-	if (p == end) {
+	if (*inlen == 0) {
 		return 0;
 	}
 
-	rem = (size_t)(end - p);
+	p = *in;
+	rem = *inlen;
 	if (p[0] < 0x80) {
 		cp = p[0];
 		p++;
@@ -953,123 +922,83 @@ int asn1_utf8_string_next_code_point(const uint8_t *str, size_t len,
 	}
 
 	*code_point = cp;
-	*ptr = p;
+	*inlen -= (size_t)(p - *in);
+	*in = p;
 	return 1;
 }
 
-static int asn1_string_next_code_point_ptr(const uint8_t *str, size_t len,
-	const uint8_t **ptr, const uint8_t **p, size_t code_point_len)
+int asn1_printable_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen)
 {
-	const uint8_t *end;
-
-	if (!ptr || !p || !code_point_len || (!str && len)) {
+	if (!code_point || !in || !*in || !inlen) {
 		error_print();
 		return -1;
 	}
-	if (!str) {
-		if (*ptr) {
-			error_print();
-			return -1;
-		}
+	if (*inlen == 0) {
 		return 0;
 	}
-
-	end = str + len;
-	*p = *ptr ? *ptr : str;
-	if (*p < str || *p > end) {
+	if (asn1_string_is_printable_string((const char *)*in, 1) != 1) {
 		error_print();
 		return -1;
 	}
-	if (*p == end) {
+	*code_point = **in;
+	(*in)++;
+	(*inlen)--;
+	return 1;
+}
+
+int asn1_ia5_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen)
+{
+	if (!code_point || !in || !*in || !inlen) {
+		error_print();
+		return -1;
+	}
+	if (*inlen == 0) {
 		return 0;
 	}
-	if ((size_t)(end - *p) < code_point_len) {
+	if (asn1_string_is_ia5_string((const char *)*in, 1) != 1) {
 		error_print();
 		return -1;
 	}
+	*code_point = **in;
+	(*in)++;
+	(*inlen)--;
 	return 1;
 }
 
-int asn1_printable_string_next_code_point(const uint8_t *str, size_t len,
-	const uint8_t **ptr, uint32_t *code_point)
+int asn1_bmp_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen)
 {
-	int ret;
-	const uint8_t *p;
-
-	if (!code_point) {
+	if (!code_point || !in || !*in || !inlen) {
 		error_print();
 		return -1;
 	}
-	if ((ret = asn1_string_next_code_point_ptr(str, len, ptr, &p, 1)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
+	if (*inlen == 0) {
+		return 0;
 	}
-	if (asn1_string_is_printable_string((const char *)p, 1) != 1) {
+	if (*inlen < 2 || *inlen % 2) {
 		error_print();
 		return -1;
 	}
-	*code_point = p[0];
-	*ptr = p + 1;
+	*code_point = GETU16(*in);
+	*in += 2;
+	*inlen -= 2;
 	return 1;
 }
 
-int asn1_ia5_string_next_code_point(const uint8_t *str, size_t len,
-	const uint8_t **ptr, uint32_t *code_point)
+int asn1_universal_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen)
 {
-	int ret;
-	const uint8_t *p;
-
-	if (!code_point) {
+	if (!code_point || !in || !*in || !inlen) {
 		error_print();
 		return -1;
 	}
-	if ((ret = asn1_string_next_code_point_ptr(str, len, ptr, &p, 1)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
+	if (*inlen == 0) {
+		return 0;
 	}
-	if (asn1_string_is_ia5_string((const char *)p, 1) != 1) {
+	if (*inlen < 4 || *inlen % 4) {
 		error_print();
 		return -1;
 	}
-	*code_point = p[0];
-	*ptr = p + 1;
-	return 1;
-}
-
-int asn1_bmp_string_next_code_point(const uint8_t *str, size_t len,
-	const uint8_t **ptr, uint32_t *code_point)
-{
-	int ret;
-	const uint8_t *p;
-
-	if (!code_point || len % 2) {
-		error_print();
-		return -1;
-	}
-	if ((ret = asn1_string_next_code_point_ptr(str, len, ptr, &p, 2)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	*code_point = GETU16(p);
-	*ptr = p + 2;
-	return 1;
-}
-
-int asn1_universal_string_next_code_point(const uint8_t *str, size_t len,
-	const uint8_t **ptr, uint32_t *code_point)
-{
-	int ret;
-	const uint8_t *p;
-
-	if (!code_point || len % 4) {
-		error_print();
-		return -1;
-	}
-	if ((ret = asn1_string_next_code_point_ptr(str, len, ptr, &p, 4)) != 1) {
-		if (ret < 0) error_print();
-		return ret;
-	}
-	*code_point = GETU32(p);
-	*ptr = p + 4;
+	*code_point = GETU32(*in);
+	*in += 4;
+	*inlen -= 4;
 	return 1;
 }

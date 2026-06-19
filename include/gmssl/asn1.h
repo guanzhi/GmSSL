@@ -214,7 +214,7 @@ int asn1_oid_info_from_der(const ASN1_OID_INFO **info,
 #define asn1_implicit_enumerated_from_der(i,val,in,inlen) asn1_int_from_der_ex(ASN1_TAG_IMPLICIT(i),val,in,inlen)
 
 int asn1_string_is_utf8_string(const char *d, size_t dlen);
-int asn1_utf8_string_next_code_point(const uint8_t *str, size_t len, const uint8_t **ptr, uint32_t *code_point);
+int asn1_utf8_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen);
 int asn1_utf8_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_utf8_string_from_der_ex(int tag, const char **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 #define asn1_utf8_string_to_der(d,dlen,out,outlen) asn1_utf8_string_to_der_ex(ASN1_TAG_UTF8String,d,dlen,out,outlen)
@@ -223,7 +223,7 @@ int asn1_utf8_string_from_der_ex(int tag, const char **d, size_t *dlen, const ui
 #define asn1_implicit_utf8_string_from_der(i,d,dlen,in,inlen) asn1_utf8_string_from_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
 int asn1_string_is_printable_string(const char *d, size_t dlen);
-int asn1_printable_string_next_code_point(const uint8_t *str, size_t len, const uint8_t **ptr, uint32_t *code_point);
+int asn1_printable_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen);
 int asn1_printable_string_case_ignore_match(const char *a, size_t alen, const char *b, size_t blen);
 int asn1_printable_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_printable_string_from_der_ex(int tag, const char **d, size_t *dlen, const uint8_t **in, size_t *inlen);
@@ -233,7 +233,7 @@ int asn1_printable_string_from_der_ex(int tag, const char **d, size_t *dlen, con
 #define asn1_implicit_printable_string_from_der(i,d,dlen,in,inlen) asn1_printable_string_from_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
 int asn1_string_is_ia5_string(const char *d, size_t dlen);
-int asn1_ia5_string_next_code_point(const uint8_t *str, size_t len, const uint8_t **ptr, uint32_t *code_point);
+int asn1_ia5_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen);
 int asn1_ia5_string_to_der_ex(int tag, const char *d, size_t dlen, uint8_t **out, size_t *outlen);
 int asn1_ia5_string_from_der_ex(int tag, const char **d, size_t *dlen, const uint8_t **in, size_t *inlen);
 #define asn1_ia5_string_to_der(d,dlen,out,outlen) asn1_ia5_string_to_der_ex(ASN1_TAG_IA5String,d,dlen,out,outlen)
@@ -241,8 +241,8 @@ int asn1_ia5_string_from_der_ex(int tag, const char **d, size_t *dlen, const uin
 #define asn1_implicit_ia5_string_to_der(i,d,dlen,out,outlen) asn1_ia5_string_to_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,out,outlen)
 #define asn1_implicit_ia5_string_from_der(i,d,dlen,in,inlen) asn1_ia5_string_from_der_ex(ASN1_TAG_IMPLICIT(i),d,dlen,in,inlen)
 
-int asn1_bmp_string_next_code_point(const uint8_t *str, size_t len, const uint8_t **ptr, uint32_t *code_point);
-int asn1_universal_string_next_code_point(const uint8_t *str, size_t len, const uint8_t **ptr, uint32_t *code_point);
+int asn1_bmp_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen);
+int asn1_universal_string_code_point_from_bytes(uint32_t *code_point, const uint8_t **in, size_t *inlen);
 
 int asn1_string_print(FILE *fp, int fmt, int ind, const char *label, int tag, const uint8_t *d, size_t dlen);
 

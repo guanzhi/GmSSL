@@ -541,7 +541,7 @@ static int test_asn1_utf8_string(void)
 	return 1;
 }
 
-static int test_asn1_string_next_code_point(void)
+static int test_asn1_string_code_point_from_bytes(void)
 {
 	const uint8_t utf8[] = {
 		0x41, 0xe4, 0xb8, 0xad, 0xf0, 0x9f, 0x98, 0x80
@@ -558,67 +558,79 @@ static int test_asn1_string_next_code_point(void)
 		0x00, 0x00, 0x4e, 0x2d,
 	};
 	const uint8_t invalid_universal[] = { 0x00, 0x00, 0x00 };
-	const uint8_t *p = NULL;
+	const uint8_t *p;
+	size_t len;
 	uint32_t cp;
 
-	if (asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 1 || cp != 0x41
-		|| asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 1 || cp != 0x4e2d
-		|| asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 1 || cp != 0x1f600
-		|| asn1_utf8_string_next_code_point(utf8, sizeof(utf8), &p, &cp) != 0) {
+	p = utf8;
+	len = sizeof(utf8);
+	if (asn1_utf8_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x41
+		|| asn1_utf8_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x4e2d
+		|| asn1_utf8_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x1f600
+		|| asn1_utf8_string_code_point_from_bytes(&cp, &p, &len) != 0) {
 		error_print();
 		return -1;
 	}
-	p = NULL;
-	if (asn1_utf8_string_next_code_point(invalid_utf8, sizeof(invalid_utf8), &p, &cp) != -1) {
-		error_print();
-		return -1;
-	}
-
-	p = NULL;
-	if (asn1_printable_string_next_code_point(printable, sizeof(printable) - 1, &p, &cp) != 1 || cp != 'A'
-		|| asn1_printable_string_next_code_point(printable, sizeof(printable) - 1, &p, &cp) != 1 || cp != 'z') {
-		error_print();
-		return -1;
-	}
-	p = NULL;
-	if (asn1_printable_string_next_code_point(invalid_printable, sizeof(invalid_printable) - 1, &p, &cp) != -1) {
+	p = invalid_utf8;
+	len = sizeof(invalid_utf8);
+	if (asn1_utf8_string_code_point_from_bytes(&cp, &p, &len) != -1) {
 		error_print();
 		return -1;
 	}
 
-	p = NULL;
-	if (asn1_ia5_string_next_code_point(ia5, sizeof(ia5) - 1, &p, &cp) != 1 || cp != 'a') {
+	p = printable;
+	len = sizeof(printable) - 1;
+	if (asn1_printable_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 'A'
+		|| asn1_printable_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 'z') {
 		error_print();
 		return -1;
 	}
-	p = NULL;
-	if (asn1_ia5_string_next_code_point(invalid_ia5, sizeof(invalid_ia5), &p, &cp) != -1) {
-		error_print();
-		return -1;
-	}
-
-	p = NULL;
-	if (asn1_bmp_string_next_code_point(bmp, sizeof(bmp), &p, &cp) != 1 || cp != 0x41
-		|| asn1_bmp_string_next_code_point(bmp, sizeof(bmp), &p, &cp) != 1 || cp != 0x4e2d
-		|| asn1_bmp_string_next_code_point(bmp, sizeof(bmp), &p, &cp) != 0) {
-		error_print();
-		return -1;
-	}
-	p = NULL;
-	if (asn1_bmp_string_next_code_point(invalid_bmp, sizeof(invalid_bmp), &p, &cp) != -1) {
+	p = invalid_printable;
+	len = sizeof(invalid_printable) - 1;
+	if (asn1_printable_string_code_point_from_bytes(&cp, &p, &len) != -1) {
 		error_print();
 		return -1;
 	}
 
-	p = NULL;
-	if (asn1_universal_string_next_code_point(universal, sizeof(universal), &p, &cp) != 1 || cp != 0x41
-		|| asn1_universal_string_next_code_point(universal, sizeof(universal), &p, &cp) != 1 || cp != 0x4e2d
-		|| asn1_universal_string_next_code_point(universal, sizeof(universal), &p, &cp) != 0) {
+	p = ia5;
+	len = sizeof(ia5) - 1;
+	if (asn1_ia5_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 'a') {
 		error_print();
 		return -1;
 	}
-	p = NULL;
-	if (asn1_universal_string_next_code_point(invalid_universal, sizeof(invalid_universal), &p, &cp) != -1) {
+	p = invalid_ia5;
+	len = sizeof(invalid_ia5);
+	if (asn1_ia5_string_code_point_from_bytes(&cp, &p, &len) != -1) {
+		error_print();
+		return -1;
+	}
+
+	p = bmp;
+	len = sizeof(bmp);
+	if (asn1_bmp_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x41
+		|| asn1_bmp_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x4e2d
+		|| asn1_bmp_string_code_point_from_bytes(&cp, &p, &len) != 0) {
+		error_print();
+		return -1;
+	}
+	p = invalid_bmp;
+	len = sizeof(invalid_bmp);
+	if (asn1_bmp_string_code_point_from_bytes(&cp, &p, &len) != -1) {
+		error_print();
+		return -1;
+	}
+
+	p = universal;
+	len = sizeof(universal);
+	if (asn1_universal_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x41
+		|| asn1_universal_string_code_point_from_bytes(&cp, &p, &len) != 1 || cp != 0x4e2d
+		|| asn1_universal_string_code_point_from_bytes(&cp, &p, &len) != 0) {
+		error_print();
+		return -1;
+	}
+	p = invalid_universal;
+	len = sizeof(invalid_universal);
+	if (asn1_universal_string_code_point_from_bytes(&cp, &p, &len) != -1) {
 		error_print();
 		return -1;
 	}
@@ -935,7 +947,7 @@ int main(void)
 {
 	if (test_asn1_tag() != 1) goto err;
 	if (test_asn1_utf8_string() != 1) goto err;
-	if (test_asn1_string_next_code_point() != 1) goto err;
+	if (test_asn1_string_code_point_from_bytes() != 1) goto err;
 /*
 	if (test_asn1_length() != 1) goto err;
 	if (test_asn1_length_from_ber() != 1) goto err;
