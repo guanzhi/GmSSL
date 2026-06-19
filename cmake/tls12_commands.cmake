@@ -1,8 +1,8 @@
 include("${CMAKE_CURRENT_LIST_DIR}/tls_command_test.cmake")
 
-gmssl_require_file(rootcacert.pem)
-gmssl_require_file(tls_server_certs.pem)
-gmssl_require_file(signkey.pem)
+gmssl_require_file(sm2_root_ca_cert.pem)
+gmssl_require_file(sm2_tls_server_certs.pem)
+gmssl_require_file(sm2_tls_server_key.pem)
 
 if(NOT DEFINED TEST_CASE)
 	set(TEST_CASE tls12_sm4_cbc)
@@ -26,8 +26,8 @@ gmssl_run_tls_command_test(
 	SERVER_ARGS
 		tls12_server
 		-port ${TEST_PORT}
-		-cert tls_server_certs.pem
-		-key signkey.pem
+		-cert sm2_tls_server_certs.pem
+		-key sm2_tls_server_key.pem
 		-pass P@ssw0rd
 		-cipher_suite ${TEST_CIPHER_SUITE}
 		-supported_group sm2p256v1
@@ -37,7 +37,7 @@ gmssl_run_tls_command_test(
 		-host 127.0.0.1
 		-port ${TEST_PORT}
 		-server_name localhost
-		-cacert rootcacert.pem
+		-cacert sm2_root_ca_cert.pem
 		-cipher_suite ${TEST_CIPHER_SUITE}
 		-supported_group sm2p256v1
 		-sig_alg sm2sig_sm3

@@ -1,8 +1,8 @@
 include("${CMAKE_CURRENT_LIST_DIR}/tls_command_test.cmake")
 
-gmssl_require_file(rootcacert.pem)
-gmssl_require_file(tlcp_server_certs.pem)
-gmssl_require_file(tlcp_server_keys.pem)
+gmssl_require_file(sm2_root_ca_cert.pem)
+gmssl_require_file(sm2_tlcp_server_certs.pem)
+gmssl_require_file(sm2_tlcp_server_keys.pem)
 
 if(NOT DEFINED TEST_CASE)
 	set(TEST_CASE tlcp_sm4_cbc)
@@ -27,15 +27,15 @@ gmssl_run_tls_command_test(
 		tlcp_server
 		-port ${TEST_PORT}
 		-cipher_suite ${TEST_CIPHER_SUITE}
-		-cert tlcp_server_certs.pem
-		-key tlcp_server_keys.pem
+		-cert sm2_tlcp_server_certs.pem
+		-key sm2_tlcp_server_keys.pem
 		-pass P@ssw0rd
 	CLIENT_ARGS
 		tlcp_client
 		-host 127.0.0.1
 		-port ${TEST_PORT}
 		-server_name localhost
-		-cacert rootcacert.pem
+		-cacert sm2_root_ca_cert.pem
 		-cipher_suite ${TEST_CIPHER_SUITE}
 		-in ${TEST_NAME}_message.txt
 )

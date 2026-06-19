@@ -1,268 +1,205 @@
+set(GMSSL_TEST_PASS P@ssw0rd)
+set(GMSSL_TEST_SUBJECT -C CN -ST Beijing -L Haidian -O GmSSL -OU Test)
 
-execute_process(
-	COMMAND bin/gmssl sm2keygen -pass P@ssw0rd -out rootcakey.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS rootcakey.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_run)
+	execute_process(
+		COMMAND ${ARGN}
+		RESULT_VARIABLE TEST_RESULT
+		ERROR_VARIABLE TEST_STDERR
+	)
+	if(NOT ${TEST_RESULT} EQUAL 0)
+		message(FATAL_ERROR "command failed: ${ARGN}\nstderr: ${TEST_STDERR}")
+	endif()
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN ROOTCA -days 3650 -key rootcakey.pem -pass P@ssw0rd -out rootcacert.pem -key_usage keyCertSign -key_usage cRLSign -ca
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS rootcacert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
-file(READ rootcacert.pem FILE_CONTENT)
-if (NOT FILE_CONTENT MATCHES "^-----BEGIN CERTIFICATE-----")
-	message(FATAL_ERROR "generate file error")
-endif()
+function(gmssl_require_generated_file file)
+	if(NOT EXISTS "${file}")
+		message(FATAL_ERROR "generated file does not exist: ${file}")
+	endif()
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl sm2keygen -pass P@ssw0rd -out cakey.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS cakey.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_read_generated_pem file expected_header)
+	gmssl_require_generated_file("${file}")
+	file(READ "${file}" FILE_CONTENT)
+	if(NOT FILE_CONTENT MATCHES "^${expected_header}")
+		message(FATAL_ERROR "generated file has unexpected PEM header: ${file}")
+	endif()
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN "Sub CA" -key cakey.pem -pass P@ssw0rd -out careq.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS careq.pem)
-    message(FATAL_ERROR "generated file does not exist")
-endif()
-file(READ careq.pem FILE_CONTENT)
-if (NOT FILE_CONTENT MATCHES "^-----BEGIN CERTIFICATE REQUEST-----")
-	message(FATAL_ERROR "generate file error")
-endif()
+function(gmssl_generate_sm2_key key_file)
+	gmssl_run(bin/gmssl sm2keygen -pass ${GMSSL_TEST_PASS} -out "${key_file}")
+	gmssl_require_generated_file("${key_file}")
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl reqsign -in careq.pem -days 365 -key_usage keyCertSign -path_len_constraint 0 -cacert rootcacert.pem -key rootcakey.pem -pass P@ssw0rd -out cacert.pem -ca
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS cacert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_generate_p256_key key_file export_file)
+	if(export_file)
+		gmssl_run(bin/gmssl p256keygen -pass ${GMSSL_TEST_PASS} -out "${key_file}" -export "${export_file}")
+		gmssl_require_generated_file("${export_file}")
+	else()
+		gmssl_run(bin/gmssl p256keygen -pass ${GMSSL_TEST_PASS} -out "${key_file}")
+	endif()
+	gmssl_require_generated_file("${key_file}")
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl sm2keygen -pass P@ssw0rd -out signkey.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS signkey.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_generate_key alg key_file export_file)
+	if(alg STREQUAL SM2)
+		gmssl_generate_sm2_key("${key_file}")
+	elseif(alg STREQUAL P256)
+		gmssl_generate_p256_key("${key_file}" "${export_file}")
+	else()
+		message(FATAL_ERROR "unknown key algorithm: ${alg}")
+	endif()
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key signkey.pem -pass P@ssw0rd -out signreq.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS signreq.pem)
-    message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_generate_root_ca alg prefix common_name)
+	gmssl_generate_key(${alg} "${prefix}_key.pem" "${prefix}_key.exp")
+	gmssl_run(bin/gmssl certgen
+		${GMSSL_TEST_SUBJECT}
+		-CN "${common_name}"
+		-days 3650
+		-key "${prefix}_key.pem"
+		-pass ${GMSSL_TEST_PASS}
+		-out "${prefix}_cert.pem"
+		-key_usage keyCertSign
+		-key_usage cRLSign
+		-ca)
+	gmssl_read_generated_pem("${prefix}_cert.pem" "-----BEGIN CERTIFICATE-----")
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl reqsign -in signreq.pem -days 365 -key_usage digitalSignature -cacert cacert.pem -key cakey.pem -pass P@ssw0rd -subject_dns_name localhost -out signcert.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS signcert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_generate_ca alg prefix common_name issuer_cert issuer_key path_len)
+	gmssl_generate_key(${alg} "${prefix}_key.pem" "${prefix}_key.exp")
+	gmssl_run(bin/gmssl reqgen
+		${GMSSL_TEST_SUBJECT}
+		-CN "${common_name}"
+		-key "${prefix}_key.pem"
+		-pass ${GMSSL_TEST_PASS}
+		-out "${prefix}_req.pem")
+	gmssl_read_generated_pem("${prefix}_req.pem" "-----BEGIN CERTIFICATE REQUEST-----")
+	gmssl_run(bin/gmssl reqsign
+		-in "${prefix}_req.pem"
+		-days 1825
+		-key_usage keyCertSign
+		-key_usage cRLSign
+		-path_len_constraint ${path_len}
+		-cacert "${issuer_cert}"
+		-key "${issuer_key}"
+		-pass ${GMSSL_TEST_PASS}
+		-out "${prefix}_cert.pem"
+		-ca)
+	gmssl_read_generated_pem("${prefix}_cert.pem" "-----BEGIN CERTIFICATE-----")
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl sm2keygen -pass P@ssw0rd -out enckey.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS enckey.pem)
-    message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_generate_end_entity alg prefix common_name issuer_cert issuer_key key_usage ext_key_usage subject_dns_name export_key)
+	if(export_key)
+		set(export_file "${prefix}_key.exp")
+	else()
+		set(export_file "")
+	endif()
+	gmssl_generate_key(${alg} "${prefix}_key.pem" "${export_file}")
+	gmssl_run(bin/gmssl reqgen
+		${GMSSL_TEST_SUBJECT}
+		-CN "${common_name}"
+		-key "${prefix}_key.pem"
+		-pass ${GMSSL_TEST_PASS}
+		-out "${prefix}_req.pem")
+	gmssl_read_generated_pem("${prefix}_req.pem" "-----BEGIN CERTIFICATE REQUEST-----")
 
-execute_process(
-	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key enckey.pem -pass P@ssw0rd -out encreq.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS encreq.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+	set(sign_args
+		-in "${prefix}_req.pem"
+		-days 365
+		-key_usage ${key_usage}
+		-cacert "${issuer_cert}"
+		-key "${issuer_key}"
+		-pass ${GMSSL_TEST_PASS}
+		-out "${prefix}_cert.pem")
+	if(ext_key_usage)
+		list(APPEND sign_args -ext_key_usage ${ext_key_usage})
+	endif()
+	if(subject_dns_name)
+		list(APPEND sign_args -subject_dns_name ${subject_dns_name})
+	endif()
+	gmssl_run(bin/gmssl reqsign ${sign_args})
+	gmssl_read_generated_pem("${prefix}_cert.pem" "-----BEGIN CERTIFICATE-----")
+endfunction()
 
-execute_process(
-	COMMAND bin/gmssl reqsign -in encreq.pem -days 365 -key_usage keyEncipherment -cacert cacert.pem -key cakey.pem -pass P@ssw0rd -subject_dns_name localhost -out enccert.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS enccert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+function(gmssl_write_bundle out_file)
+	file(WRITE "${out_file}" "")
+	foreach(pem_file IN LISTS ARGN)
+		gmssl_require_generated_file("${pem_file}")
+		file(READ "${pem_file}" PEM_CONTENT)
+		file(APPEND "${out_file}" "${PEM_CONTENT}")
+	endforeach()
+	gmssl_require_generated_file("${out_file}")
+endfunction()
 
-file(WRITE tlcp_server_certs.pem "")
-file(READ signcert.pem CERT_CONTENT)
-file(APPEND tlcp_server_certs.pem "${CERT_CONTENT}")
-file(READ enccert.pem CERT_CONTENT)
-file(APPEND tlcp_server_certs.pem "${CERT_CONTENT}")
-file(READ cacert.pem CERT_CONTENT)
-file(APPEND tlcp_server_certs.pem "${CERT_CONTENT}")
+# Root CAs
+gmssl_generate_root_ca(SM2 sm2_root_ca "GmSSL SM2 Test Root CA")
+gmssl_generate_root_ca(P256 p256_root_ca "GmSSL P256 Test Root CA")
 
-file(WRITE tlcp_server_keys.pem "")
-file(READ signkey.pem KEY_CONTENT)
-file(APPEND tlcp_server_keys.pem "${KEY_CONTENT}")
-file(READ enckey.pem KEY_CONTENT)
-file(APPEND tlcp_server_keys.pem "${KEY_CONTENT}")
+# SM2 TLS server chain: root -> server CA 1 -> server CA 2 -> server certificate
+gmssl_generate_ca(SM2 sm2_tls_server_ca1 "GmSSL SM2 TLS Server CA 1"
+	sm2_root_ca_cert.pem sm2_root_ca_key.pem 1)
+gmssl_generate_ca(SM2 sm2_tls_server_ca2 "GmSSL SM2 TLS Server CA 2"
+	sm2_tls_server_ca1_cert.pem sm2_tls_server_ca1_key.pem 0)
+gmssl_generate_end_entity(SM2 sm2_tls_server "GmSSL SM2 TLS Server"
+	sm2_tls_server_ca2_cert.pem sm2_tls_server_ca2_key.pem
+	digitalSignature serverAuth localhost OFF)
+gmssl_write_bundle(sm2_tls_server_certs.pem
+	sm2_tls_server_cert.pem sm2_tls_server_ca2_cert.pem sm2_tls_server_ca1_cert.pem)
 
-file(WRITE tls_server_certs.pem "")
-file(READ signcert.pem CERT_CONTENT)
-file(APPEND tls_server_certs.pem "${CERT_CONTENT}")
-file(READ cacert.pem CERT_CONTENT)
-file(APPEND tls_server_certs.pem "${CERT_CONTENT}")
+# P256 TLS server chain: root -> server CA 1 -> server CA 2 -> server certificate
+gmssl_generate_ca(P256 p256_tls_server_ca1 "GmSSL P256 TLS Server CA 1"
+	p256_root_ca_cert.pem p256_root_ca_key.pem 1)
+gmssl_generate_ca(P256 p256_tls_server_ca2 "GmSSL P256 TLS Server CA 2"
+	p256_tls_server_ca1_cert.pem p256_tls_server_ca1_key.pem 0)
+gmssl_generate_end_entity(P256 p256_tls_server "GmSSL P256 TLS Server"
+	p256_tls_server_ca2_cert.pem p256_tls_server_ca2_key.pem
+	digitalSignature serverAuth localhost ON)
+gmssl_write_bundle(p256_tls_server_certs.pem
+	p256_tls_server_cert.pem p256_tls_server_ca2_cert.pem p256_tls_server_ca1_cert.pem)
+gmssl_write_bundle(p256_tls_server_cert_chain.pem
+	p256_tls_server_ca2_cert.pem p256_tls_server_ca1_cert.pem)
 
-execute_process(
-	COMMAND bin/gmssl p256keygen -pass P@ssw0rd -out p256rootcakey.pem -export p256rootcakey.exp
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256rootcakey.pem OR NOT EXISTS p256rootcakey.exp)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+# SM2 TLS client chain: root -> client CA -> client certificate
+gmssl_generate_ca(SM2 sm2_tls_client_ca "GmSSL SM2 TLS Client CA"
+	sm2_root_ca_cert.pem sm2_root_ca_key.pem 0)
+gmssl_generate_end_entity(SM2 sm2_tls_client "GmSSL SM2 TLS Client"
+	sm2_tls_client_ca_cert.pem sm2_tls_client_ca_key.pem
+	digitalSignature clientAuth "" OFF)
+gmssl_write_bundle(sm2_tls_client_certs.pem
+	sm2_tls_client_cert.pem sm2_tls_client_ca_cert.pem)
 
-execute_process(
-	COMMAND bin/gmssl certgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN P256ROOTCA -days 3650 -key p256rootcakey.pem -pass P@ssw0rd -out p256rootcacert.pem -key_usage keyCertSign -key_usage cRLSign -ca
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256rootcacert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+# P256 TLS client chain: root -> client CA -> client certificate
+gmssl_generate_ca(P256 p256_tls_client_ca "GmSSL P256 TLS Client CA"
+	p256_root_ca_cert.pem p256_root_ca_key.pem 0)
+gmssl_generate_end_entity(P256 p256_tls_client "GmSSL P256 TLS Client"
+	p256_tls_client_ca_cert.pem p256_tls_client_ca_key.pem
+	digitalSignature clientAuth "" ON)
+gmssl_write_bundle(p256_tls_client_certs.pem
+	p256_tls_client_cert.pem p256_tls_client_ca_cert.pem)
 
-execute_process(
-	COMMAND bin/gmssl p256keygen -pass P@ssw0rd -out p256cakey.pem -export p256cakey.exp
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256cakey.pem OR NOT EXISTS p256cakey.exp)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+# OCSP delegated responders for certificates issued by the TLS server CA2s.
+gmssl_generate_end_entity(SM2 sm2_ocsp_responder "GmSSL SM2 OCSP Responder"
+	sm2_tls_server_ca2_cert.pem sm2_tls_server_ca2_key.pem
+	digitalSignature OCSPSigning "" OFF)
+gmssl_generate_end_entity(P256 p256_ocsp_responder "GmSSL P256 OCSP Responder"
+	p256_tls_server_ca2_cert.pem p256_tls_server_ca2_key.pem
+	digitalSignature OCSPSigning "" ON)
 
-execute_process(
-	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN "P256 Sub CA" -key p256cakey.pem -pass P@ssw0rd -out p256careq.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256careq.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
+# TLCP server chain reuses the SM2 TLS server CA chain and adds an encryption certificate.
+gmssl_generate_end_entity(SM2 sm2_tlcp_server_sign "GmSSL SM2 TLCP Server"
+	sm2_tls_server_ca2_cert.pem sm2_tls_server_ca2_key.pem
+	digitalSignature serverAuth localhost OFF)
+gmssl_generate_end_entity(SM2 sm2_tlcp_server_enc "GmSSL SM2 TLCP Server"
+	sm2_tls_server_ca2_cert.pem sm2_tls_server_ca2_key.pem
+	keyEncipherment serverAuth localhost OFF)
+gmssl_write_bundle(sm2_tlcp_server_certs.pem
+	sm2_tlcp_server_sign_cert.pem
+	sm2_tlcp_server_enc_cert.pem
+	sm2_tls_server_ca2_cert.pem
+	sm2_tls_server_ca1_cert.pem)
+gmssl_write_bundle(sm2_tlcp_server_keys.pem
+	sm2_tlcp_server_sign_key.pem sm2_tlcp_server_enc_key.pem)
 
-execute_process(
-	COMMAND bin/gmssl reqsign -in p256careq.pem -days 365 -key_usage keyCertSign -path_len_constraint 0 -cacert p256rootcacert.pem -key p256rootcakey.pem -pass P@ssw0rd -out p256cacert.pem -ca
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256cacert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
-
-execute_process(
-	COMMAND bin/gmssl p256keygen -pass P@ssw0rd -out p256signkey.pem -export p256signkey.exp
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256signkey.pem OR NOT EXISTS p256signkey.exp)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
-
-execute_process(
-	COMMAND bin/gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN 127.0.0.1 -key p256signkey.pem -pass P@ssw0rd -out p256signreq.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256signreq.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
-
-execute_process(
-	COMMAND bin/gmssl reqsign -in p256signreq.pem -days 365 -key_usage digitalSignature -cacert p256cacert.pem -key p256cakey.pem -pass P@ssw0rd -subject_dns_name 127.0.0.1 -out p256signcert.pem
-	RESULT_VARIABLE TEST_RESULT
-	ERROR_VARIABLE TEST_STDERR
-)
-if(NOT ${TEST_RESULT} EQUAL 0)
-	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
-endif()
-if(NOT EXISTS p256signcert.pem)
-	message(FATAL_ERROR "generated file does not exist")
-endif()
-
-file(WRITE p256certs.pem "")
-file(READ p256signcert.pem CERT_CONTENT)
-file(APPEND p256certs.pem "${CERT_CONTENT}")
-file(READ p256cacert.pem CERT_CONTENT)
-file(APPEND p256certs.pem "${CERT_CONTENT}")
-
-file(WRITE rootcacerts.pem "")
-file(READ rootcacert.pem CERT_CONTENT)
-file(APPEND rootcacerts.pem "${CERT_CONTENT}")
-file(READ p256rootcacert.pem CERT_CONTENT)
-file(APPEND rootcacerts.pem "${CERT_CONTENT}")
+gmssl_write_bundle(test_root_certs.pem
+	sm2_root_ca_cert.pem p256_root_ca_cert.pem)

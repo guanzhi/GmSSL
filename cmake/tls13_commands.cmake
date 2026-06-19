@@ -1,8 +1,8 @@
 include("${CMAKE_CURRENT_LIST_DIR}/tls_command_test.cmake")
 
-gmssl_require_file(rootcacert.pem)
-gmssl_require_file(tls_server_certs.pem)
-gmssl_require_file(signkey.pem)
+gmssl_require_file(sm2_root_ca_cert.pem)
+gmssl_require_file(sm2_tls_server_certs.pem)
+gmssl_require_file(sm2_tls_server_key.pem)
 
 set(TLS13_PSK 1122334455667788112233445566778811223344556677881122334455667788)
 
@@ -17,8 +17,8 @@ if(TEST_CASE STREQUAL tls13_sm4_gcm)
 		SERVER_ARGS
 			tls13_server
 			-port 4433
-			-cert tls_server_certs.pem
-			-key signkey.pem
+			-cert sm2_tls_server_certs.pem
+			-key sm2_tls_server_key.pem
 			-pass P@ssw0rd
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group sm2p256v1
@@ -28,7 +28,7 @@ if(TEST_CASE STREQUAL tls13_sm4_gcm)
 			-host 127.0.0.1
 			-port 4433
 			-server_name localhost
-			-cacert rootcacert.pem
+			-cacert sm2_root_ca_cert.pem
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group sm2p256v1
 			-sig_alg sm2sig_sm3
@@ -42,8 +42,8 @@ elseif(TEST_CASE STREQUAL tls13_hrr_sm4_gcm)
 		SERVER_ARGS
 			tls13_server
 			-port 4460
-			-cert tls_server_certs.pem
-			-key signkey.pem
+			-cert sm2_tls_server_certs.pem
+			-key sm2_tls_server_key.pem
 			-pass P@ssw0rd
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group sm2p256v1
@@ -54,7 +54,7 @@ elseif(TEST_CASE STREQUAL tls13_hrr_sm4_gcm)
 			-host 127.0.0.1
 			-port 4460
 			-server_name localhost
-			-cacert rootcacert.pem
+			-cacert sm2_root_ca_cert.pem
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group prime256v1
 			-supported_group sm2p256v1
@@ -70,8 +70,8 @@ elseif(TEST_CASE STREQUAL tls13_psk_dhe_sm4_gcm)
 		SERVER_ARGS
 			tls13_server
 			-port 4437
-			-cert tls_server_certs.pem
-			-key signkey.pem
+			-cert sm2_tls_server_certs.pem
+			-key sm2_tls_server_key.pem
 			-pass P@ssw0rd
 			-cipher_suite TLS_SM4_GCM_SM3
 			-supported_group sm2p256v1
@@ -98,8 +98,8 @@ elseif(TEST_CASE STREQUAL tls13_psk_only_sm4_gcm)
 		SERVER_ARGS
 			tls13_server
 			-port 4461
-			-cert tls_server_certs.pem
-			-key signkey.pem
+			-cert sm2_tls_server_certs.pem
+			-key sm2_tls_server_key.pem
 			-pass P@ssw0rd
 			-cipher_suite TLS_SM4_GCM_SM3
 			-psk_ke
@@ -125,8 +125,8 @@ elseif(TEST_CASE STREQUAL tls13_early_data_sm4_gcm)
 		SERVER_ARGS
 			tls13_server
 			-port 4462
-			-cert tls_server_certs.pem
-			-key signkey.pem
+			-cert sm2_tls_server_certs.pem
+			-key sm2_tls_server_key.pem
 			-pass P@ssw0rd
 			-cipher_suite TLS_SM4_GCM_SM3
 			-psk_ke
