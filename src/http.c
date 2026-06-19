@@ -107,6 +107,12 @@ int http_parse_response(char *buf, size_t buflen, uint8_t **content, size_t *con
 
 
 #define HTTP_GET_TEMPLATE "GET %s HTTP/1.1\r\n" "Host: %s\r\n" "\r\n\r\n"
+#define HTTP_POST_TEMPLATE \
+	"POST %s HTTP/1.1\r\n" \
+	"Host: %s\r\n" \
+	"Content-Type: %s\r\n" \
+	"Content-Length: %zu\r\n" \
+	"\r\n"
 
 int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 {
@@ -162,6 +168,91 @@ int http_get(const char *uri, uint8_t *buf, size_t *contentlen, size_t buflen)
 	response[len] = 0;
 
 	// process response header and retrieve left
+	if (http_parse_response(response, (size_t)len, &p, contentlen, &left) != 1) {
+		error_print();
+		goto end;
+	}
+	if (!buf || buflen < *contentlen) {
+		ret = 0;
+		goto end;
+	}
+	memcpy(buf, p, *contentlen - left);
+	if (left) {
+		if (socket_recv_all(sock, buf + *contentlen - left, left) != 1) {
+			error_print();
+			goto end;
+		}
+	}
+	ret = 1;
+
+end:
+	if (tls_socket_is_valid(sock)) tls_socket_close(sock);
+	return ret;
+}
+
+int http_post(const char *uri, const char *content_type,
+	const uint8_t *req, size_t reqlen,
+	uint8_t *buf, size_t *contentlen, size_t buflen)
+{
+	int ret = -1;
+	char host[128];
+	int port;
+	char path[256];
+	struct hostent *hp;
+	struct sockaddr_in server;
+	tls_socket_t sock = tls_socket_invalid();
+	char post[1024];
+	int postlen;
+	char response[1024];
+	uint8_t *p;
+	tls_ret_t len;
+	size_t left;
+
+	if (!content_type || !req || !reqlen || !contentlen) {
+		error_print();
+		return -1;
+	}
+	if (http_parse_uri(uri, host, &port, path) != 1) {
+		error_print();
+		return -1;
+	}
+	if ((postlen = snprintf(post, sizeof(post), HTTP_POST_TEMPLATE,
+			path, host, content_type, reqlen)) <= 0
+		|| postlen >= (int)sizeof(post)) {
+		error_print();
+		return -1;
+	}
+
+	if (!(hp = gethostbyname(host))) {
+		error_print();
+		return -1;
+	}
+	server.sin_addr = *((struct in_addr *)hp->h_addr_list[0]);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(port);
+
+	if (tls_socket_create(&sock, AF_INET, SOCK_STREAM, 0) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_socket_connect(sock, &server) != 1) {
+		error_print();
+		goto end;
+	}
+	if (tls_socket_send(sock, post, strlen(post), 0) != postlen) {
+		error_print();
+		goto end;
+	}
+	if (tls_socket_send(sock, req, reqlen, 0) != (tls_ret_t)reqlen) {
+		error_print();
+		goto end;
+	}
+	if ((len = tls_socket_recv(sock, response, sizeof(response) - 1, 0)) <= 0) {
+		error_print();
+		goto end;
+	}
+	response[len] = 0;
+
 	if (http_parse_response(response, (size_t)len, &p, contentlen, &left) != 1) {
 		error_print();
 		goto end;

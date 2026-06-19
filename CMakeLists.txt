@@ -152,6 +152,7 @@ set(tools
 	tools/certverify.c
 	tools/certrevoke.c
 	tools/ocspreq.c
+	tools/ocspget.c
 	tools/ocspsign.c
 	tools/ocspverify.c
 	tools/reqgen.c
@@ -820,7 +821,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1103")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1104")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

@@ -16,6 +16,7 @@
 #include <gmssl/asn1.h>
 #include <gmssl/error.h>
 #include <gmssl/x509_crl.h>
+#include <gmssl/http.h>
 #include <gmssl/ocsp.h>
 
 
@@ -2668,4 +2669,40 @@ int ocsp_response_get_signer_cert(const uint8_t *resp, size_t resplen,
 			signer_cert, signer_cert_len);
 	}
 	return 0;
+}
+
+int ocsp_response_get_from_uri(const char *uri, size_t uri_len,
+	const uint8_t *req, size_t req_len,
+	uint8_t *resp, size_t *resp_len, size_t max_resp_len)
+{
+	char uri_buf[2048];
+	const uint8_t *p;
+	size_t len;
+	int response_status;
+	const uint8_t *basic_response;
+	size_t basic_response_len;
+	int ret;
+
+	if (!uri || !uri_len || uri_len >= sizeof(uri_buf)
+		|| !req || !req_len || !resp || !resp_len || !max_resp_len) {
+		error_print();
+		return -1;
+	}
+	memcpy(uri_buf, uri, uri_len);
+	uri_buf[uri_len] = 0;
+
+	if ((ret = http_post(uri_buf, "application/ocsp-request",
+			req, req_len, resp, resp_len, max_resp_len)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	p = resp;
+	len = *resp_len;
+	if (ocsp_response_from_der(&response_status, &basic_response, &basic_response_len,
+			&p, &len) != 1
+		|| asn1_length_is_zero(len) != 1) {
+		error_print();
+		return -1;
+	}
+	return 1;
 }

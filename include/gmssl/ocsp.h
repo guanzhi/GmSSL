@@ -316,6 +316,9 @@ int ocsp_verify(OCSP_SIGN_CTX *ctx,
 int ocsp_response_get_signer_cert(const uint8_t *resp, size_t resplen,
 	const uint8_t *certs, size_t certs_len,
 	const uint8_t **signer_cert, size_t *signer_cert_len);
+int ocsp_response_get_from_uri(const char *uri, size_t uri_len,
+	const uint8_t *req, size_t req_len,
+	uint8_t *resp, size_t *resp_len, size_t max_resp_len);
 
 
 #ifdef __cplusplus
