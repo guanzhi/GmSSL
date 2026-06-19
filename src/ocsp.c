@@ -19,6 +19,35 @@
 #include <gmssl/http.h>
 #include <gmssl/ocsp.h>
 
+/*
+TLS客户端验证OCSPResponse签发证书的逻辑
+
+假定证书链是 EE <= CA1 <= CA2 <= RootCA
+
+	* 如果 OCSPResponse 包含 BasicOCSPResponse.certs，那么优先使用这个证书
+	  这个证书是 Responder 的证书，关系是
+		ResponderCert <= CA1
+	  也就是这个证书和EE是兄弟证书
+	  Responder 证书必须包含扩展  Extended Key Usage: id-kp-OCSPSigning
+
+	* 如果 OCSPResponse 没有包含证书，那么就用 CA1 证书
+
+客户端在验证的时候可以根据 keyHash, IssuerHash, serial等对比确认OCSP的签名证书
+
+
+对于命令行工具
+
+	* OCSPReponder 中包含了 代理Responder证书
+	  那么命令行用网站证书链中的CA1去验证ResponderCert
+	  并且也验证网站证书链保证这个证书链是正确的
+
+	* 如果没包含代理Responder证书，但是命令行参数中提供了一个 Responder证书，那么也是执行相同的逻辑
+
+	* 如果没有Responder证书，就用CA1证书验证
+
+
+
+*/
 
 static const char *ocsp_cert_status_name(int status)
 {
@@ -33,8 +62,6 @@ static const char *ocsp_cert_status_name(int status)
 		return NULL;
 	}
 }
-
-
 
 int ocsp_request_item_to_der(int hash_algor,
 	const uint8_t *issuer_name_hash, size_t issuer_name_hash_len,

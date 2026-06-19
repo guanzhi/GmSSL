@@ -2558,8 +2558,7 @@ int tls_send_server_hello_done(TLS_CONNECT *conn)
 int tls_recv_client_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	const int verify_depth = 5;
-	int verify_result;
+	int verify_result = 0;
 
 	if(conn->verbose) tls_trace("recv ClientCertificate\n");
 
@@ -2588,7 +2587,7 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 	if (x509_certs_verify(conn->client_certs, conn->client_certs_len, X509_cert_chain_client,
 		conn->ctx->cacerts, conn->ctx->cacertslen, NULL, 0,
 		NULL, 0,
-		verify_depth, &verify_result) != 1) {
+		conn->ctx->verify_depth, &verify_result) != 1) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
