@@ -249,7 +249,11 @@ int x509_cert_is_signed_by_root_ca_cert(const uint8_t *cert, size_t certlen,
 
 	// 最后才是verify
 	// 可以修改一下 x509_signed_verify_ex ，验证失败不都显式打印错误。
-	return x509_signed_is_verified_by_key(cert, certlen, &public_key, signer_id, signer_id_len);
+	if ((ret = x509_signed_is_verified_by_key(cert, certlen, &public_key, signer_id, signer_id_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
 }
 
 static int x509_general_name_check(int choice, const uint8_t *d, size_t dlen)
@@ -1002,3 +1006,543 @@ int asn1_universal_string_code_point_from_bytes(uint32_t *code_point, const uint
 	*inlen -= 4;
 	return 1;
 }
+
+// GeneralNames 子树匹配
+
+static int x509_ascii_char_equ_case_insensitive(uint8_t a, uint8_t b)
+{
+	if ('A' <= a && a <= 'Z') {
+		a += 'a' - 'A';
+	}
+	if ('A' <= b && b <= 'Z') {
+		b += 'a' - 'A';
+	}
+	return a == b;
+}
+
+static int x509_ia5_string_equ_case_insensitive(
+	const uint8_t *a, size_t alen, const uint8_t *b, size_t blen)
+{
+	size_t i;
+
+	if ((!a && alen) || (!b && blen)) {
+		error_print();
+		return -1;
+	}
+	if (alen != blen) {
+		return 0;
+	}
+	for (i = 0; i < alen; i++) {
+		if (!x509_ascii_char_equ_case_insensitive(a[i], b[i])) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int x509_ia5_string_has_suffix_case_insensitive(
+	const uint8_t *str, size_t str_len, const uint8_t *suffix, size_t suffix_len)
+{
+	int ret;
+
+	if ((!str && str_len) || (!suffix && suffix_len)) {
+		error_print();
+		return -1;
+	}
+	if (str_len < suffix_len) {
+		return 0;
+	}
+	if ((ret = x509_ia5_string_equ_case_insensitive(
+		str + str_len - suffix_len, suffix_len, suffix, suffix_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+static int x509_dns_name_is_in_subtree(
+	const uint8_t *dns, size_t dns_len, const uint8_t *base, size_t base_len)
+{
+	int ret;
+
+	if (!dns || !dns_len || !base || !base_len) {
+		error_print();
+		return -1;
+	}
+	if (base[0] == '.') {
+		if (dns_len <= base_len) {
+			return 0;
+		}
+		if ((ret = x509_ia5_string_has_suffix_case_insensitive(dns, dns_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	}
+	if ((ret = x509_ia5_string_equ_case_insensitive(dns, dns_len, base, base_len)) != 0) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (dns_len <= base_len || dns[dns_len - base_len - 1] != '.') {
+		return 0;
+	}
+	if ((ret = x509_ia5_string_has_suffix_case_insensitive(dns, dns_len, base, base_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+static int x509_rfc822_name_get_host(
+	const uint8_t *name, size_t name_len, const uint8_t **host, size_t *host_len)
+{
+	size_t i;
+	const uint8_t *p = NULL;
+
+	if (!name || !name_len || !host || !host_len) {
+		error_print();
+		return -1;
+	}
+	*host = NULL;
+	*host_len = 0;
+
+	for (i = 0; i < name_len; i++) {
+		if (name[i] == '@') {
+			p = name + i + 1;
+		}
+	}
+	if (!p || p == name + name_len) {
+		return 0;
+	}
+	*host = p;
+	*host_len = (size_t)(name + name_len - p);
+	return 1;
+}
+
+static int x509_rfc822_name_is_in_subtree(
+	const uint8_t *name, size_t name_len, const uint8_t *base, size_t base_len)
+{
+	int ret;
+	const uint8_t *host;
+	size_t host_len;
+
+	if (!name || !name_len || !base || !base_len) {
+		error_print();
+		return -1;
+	}
+	if (memchr(base, '@', base_len)) {
+		if ((ret = x509_ia5_string_equ_case_insensitive(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	}
+	if ((ret = x509_rfc822_name_get_host(name, name_len, &host, &host_len)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (base[0] == '.') {
+		if (host_len <= base_len) {
+			return 0;
+		}
+		if ((ret = x509_ia5_string_has_suffix_case_insensitive(host, host_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	}
+	if ((ret = x509_ia5_string_equ_case_insensitive(host, host_len, base, base_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+static int x509_uri_get_host(
+	const uint8_t *uri, size_t urilen, const uint8_t **host, size_t *host_len)
+{
+	const uint8_t *p;
+	const uint8_t *end;
+	const uint8_t *authority_end;
+	const uint8_t *last_at = NULL;
+	const uint8_t *q;
+
+	if (!uri || !urilen || !host || !host_len) {
+		error_print();
+		return -1;
+	}
+	*host = NULL;
+	*host_len = 0;
+
+	p = uri;
+	end = uri + urilen;
+	while (p + 2 < end) {
+		if (p[0] == ':' && p[1] == '/' && p[2] == '/') {
+			p += 3;
+			break;
+		}
+		p++;
+	}
+	if (p + 2 >= end) {
+		return 0;
+	}
+
+	authority_end = p;
+	while (authority_end < end
+		&& *authority_end != '/'
+		&& *authority_end != '?'
+		&& *authority_end != '#') {
+		if (*authority_end == '@') {
+			last_at = authority_end;
+		}
+		authority_end++;
+	}
+	if (last_at) {
+		p = last_at + 1;
+	}
+	if (p == authority_end) {
+		return 0;
+	}
+
+	if (*p == '[') {
+		q = p + 1;
+		while (q < authority_end && *q != ']') {
+			q++;
+		}
+		if (q == authority_end || q == p + 1) {
+			return 0;
+		}
+		*host = p + 1;
+		*host_len = (size_t)(q - p - 1);
+		return 1;
+	}
+
+	q = p;
+	while (q < authority_end && *q != ':') {
+		q++;
+	}
+	if (q == p) {
+		return 0;
+	}
+	*host = p;
+	*host_len = (size_t)(q - p);
+	return 1;
+}
+
+static int x509_uri_name_is_in_subtree(
+	const uint8_t *uri, size_t uri_len, const uint8_t *base, size_t base_len)
+{
+	int ret;
+	const uint8_t *host;
+	size_t host_len;
+
+	if (!uri || !uri_len || !base || !base_len) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_uri_get_host(uri, uri_len, &host, &host_len)) != 1) {
+		if (ret < 0) error_print();
+		return ret;
+	}
+	if (base[0] == '.') {
+		if (host_len <= base_len) {
+			return 0;
+		}
+		if ((ret = x509_ia5_string_has_suffix_case_insensitive(host, host_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	}
+	if ((ret = x509_ia5_string_equ_case_insensitive(host, host_len, base, base_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+static int x509_ip_address_is_in_subtree(
+	const uint8_t *ip, size_t ip_len, const uint8_t *base, size_t base_len)
+{
+	const uint8_t *addr;
+	const uint8_t *mask;
+	size_t i;
+
+	if (!ip || !base) {
+		error_print();
+		return -1;
+	}
+	if ((ip_len != 4 && ip_len != 16) || base_len != ip_len * 2) {
+		error_print();
+		return -1;
+	}
+
+	addr = base;
+	mask = base + ip_len;
+	for (i = 0; i < ip_len; i++) {
+		if ((ip[i] & mask[i]) != (addr[i] & mask[i])) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int x509_registered_id_is_in_subtree(
+	const uint8_t *oid, size_t oid_len, const uint8_t *base, size_t base_len)
+{
+	uint32_t oid_nodes[32];
+	uint32_t base_nodes[32];
+	size_t oid_nodes_count;
+	size_t base_nodes_count;
+	size_t i;
+
+	if (!oid || !oid_len || !base || !base_len) {
+		error_print();
+		return -1;
+	}
+	if (asn1_object_identifier_from_octets(oid_nodes, &oid_nodes_count, oid, oid_len) != 1
+		|| asn1_object_identifier_from_octets(base_nodes, &base_nodes_count, base, base_len) != 1) {
+		error_print();
+		return -1;
+	}
+	if (oid_nodes_count < base_nodes_count) {
+		return 0;
+	}
+	for (i = 0; i < base_nodes_count; i++) {
+		if (oid_nodes[i] != base_nodes[i]) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static int x509_name_is_in_subtree(const uint8_t *name, size_t name_len,
+	const uint8_t *base, size_t base_len)
+{
+	int ret;
+	const uint8_t *name_rdn;
+	const uint8_t *base_rdn;
+	size_t name_rdn_len;
+	size_t base_rdn_len;
+
+	if ((!name && name_len) || (!base && base_len)) {
+		error_print();
+		return -1;
+	}
+
+	while (base_len) {
+		if (!name_len) {
+			return 0;
+		}
+		if (asn1_set_from_der(&base_rdn, &base_rdn_len, &base, &base_len) != 1
+			|| asn1_set_from_der(&name_rdn, &name_rdn_len, &name, &name_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_rdn_normalized_equ(name_rdn, name_rdn_len, base_rdn, base_rdn_len)) != 1) {
+			if (ret < 0) error_print();
+			return ret;
+		}
+	}
+	return 1;
+}
+
+int x509_general_name_normalized_equ(int a_choice, const uint8_t *a, size_t alen,
+	int b_choice, const uint8_t *b, size_t blen)
+{
+	int ret;
+
+	if (a_choice != b_choice) {
+		return 0;
+	}
+	if (x509_general_name_check(a_choice, a, alen) != 1
+		|| x509_general_name_check(b_choice, b, blen) != 1) {
+		error_print();
+		return -1;
+	}
+
+	switch (a_choice) {
+	case X509_gn_rfc822_name:
+	case X509_gn_dns_name:
+		if ((ret = x509_ia5_string_equ_case_insensitive(a, alen, b, blen)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_directory_name:
+		if ((ret = x509_name_normalized_equ(a, alen, b, blen)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_other_name:
+	case X509_gn_x400_address:
+	case X509_gn_edi_party_name:
+	case X509_gn_uniform_resource_identifier:
+	case X509_gn_ip_address:
+	case X509_gn_registered_id:
+		if (alen == blen && memcmp(a, b, alen) == 0) {
+			return 1;
+		}
+		return 0;
+	default:
+		error_print();
+		return -1;
+	}
+}
+
+int x509_general_name_is_in_subtree(int name_choice, const uint8_t *name, size_t name_len,
+	int base_choice, const uint8_t *base, size_t base_len)
+{
+	int ret;
+
+	if ((!name && name_len) || (!base && base_len) || !name_len || !base_len) {
+		error_print();
+		return -1;
+	}
+	if (name_choice != base_choice) {
+		return 0;
+	}
+	if (x509_general_name_check(name_choice, name, name_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	switch (name_choice) {
+	case X509_gn_rfc822_name:
+		if (asn1_string_is_ia5_string((const char *)base, base_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_rfc822_name_is_in_subtree(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_dns_name:
+		if (asn1_string_is_ia5_string((const char *)base, base_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_dns_name_is_in_subtree(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_directory_name:
+		if (x509_name_check(base, base_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_name_is_in_subtree(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_uniform_resource_identifier:
+		if (asn1_string_is_ia5_string((const char *)base, base_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_uri_name_is_in_subtree(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_ip_address:
+		if ((ret = x509_ip_address_is_in_subtree(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_registered_id:
+		if ((ret = x509_registered_id_is_in_subtree(name, name_len, base, base_len)) < 0) {
+			error_print();
+			return -1;
+		}
+		return ret;
+	case X509_gn_other_name:
+	case X509_gn_x400_address:
+	case X509_gn_edi_party_name:
+		if ((ret = x509_general_name_normalized_equ(name_choice, name, name_len,
+			base_choice, base, base_len)) != 1) {
+			if (ret < 0) error_print();
+			return ret;
+		}
+		return 1;
+	default:
+		error_print();
+		return -1;
+	}
+}
+
+int x509_general_name_is_in_general_subtree(int name_choice, const uint8_t *name, size_t name_len,
+	const uint8_t *general_subtree, size_t general_subtree_len)
+{
+	int ret;
+	int base_choice;
+	const uint8_t *base;
+	size_t base_len;
+	int minimum = -1;
+	int maximum = -1;
+
+	if (!general_subtree || !general_subtree_len) {
+		error_print();
+		return -1;
+	}
+	if (x509_general_subtree_from_der(&base_choice, &base, &base_len,
+		&minimum, &maximum, &general_subtree, &general_subtree_len) != 1
+		|| asn1_length_is_zero(general_subtree_len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	/*
+	 * RFC 5280 的证书路径验证配置中 minimum 必须为 0，maximum 必须缺省。
+	 * 这里先把非 profile 形式作为不支持的错误处理，避免后续误判子树范围。
+	 */
+	if (minimum != 0 || maximum >= 0) {
+		error_print();
+		return -1;
+	}
+	if ((ret = x509_general_name_is_in_subtree(name_choice, name, name_len,
+		base_choice, base, base_len)) < 0) {
+		error_print();
+		return -1;
+	}
+	return ret;
+}
+
+int x509_general_name_is_in_general_subtrees(int name_choice, const uint8_t *name, size_t name_len,
+	const uint8_t *general_subtrees, size_t general_subtrees_len)
+{
+	int ret;
+	const uint8_t *general_subtree;
+	size_t general_subtree_len;
+
+	if (!general_subtrees || !general_subtrees_len) {
+		error_print();
+		return -1;
+	}
+
+	while (general_subtrees_len) {
+		if (asn1_any_from_der(&general_subtree, &general_subtree_len,
+			&general_subtrees, &general_subtrees_len) != 1) {
+			error_print();
+			return -1;
+		}
+		if ((ret = x509_general_name_is_in_general_subtree(name_choice, name, name_len,
+			general_subtree, general_subtree_len)) != 0) {
+			if (ret < 0) error_print();
+			return ret;
+		}
+	}
+	return 0;
+}
+
+// end of general name in subtree
+
+
+
+
+
