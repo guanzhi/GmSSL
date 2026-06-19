@@ -1025,7 +1025,7 @@ int tls13_ctx_set_key_update_seq_num_limit(TLS_CTX *ctx, size_t max_seq_num);
 
 
 
-#define TLS_MAX_CERTIFICATES_SIZE	2048
+#define TLS_MAX_CERTIFICATES_SIZE	4096
 #define TLS_DEFAULT_VERIFY_DEPTH	4
 #define TLS_MAX_VERIFY_DEPTH		5
 

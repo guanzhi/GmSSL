@@ -760,8 +760,9 @@ if(ENABLE_TLS AND NOT WIN32)
 	else()
 		message(STATUS "OpenSSL TLS interop tests require ENABLE_AES=ON, ENABLE_SHA2=ON and ENABLE_SECP256R1=ON; skipping")
 	endif()
-	add_test(NAME tlcp_sm4_cbc COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_cbc -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
-	add_test(NAME tlcp_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tlcp_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tlcp_sm4_cbc_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_cbc_sni -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
+	add_test(NAME tlcp_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tls12_sm4_cbc COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_cbc -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tls12_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tls13_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
@@ -770,8 +771,9 @@ if(ENABLE_TLS AND NOT WIN32)
 	add_test(NAME tls13_psk_only_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_psk_only_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	add_test(NAME tls13_early_data_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_early_data_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	set_tests_properties(
-		tlcp_sm4_cbc
-		tlcp_sm4_gcm
+		tlcp_sm4_gcm_sni
+		tlcp_sm4_cbc_sni
+		tlcp_sm4_gcm_client_cert
 		tls12_sm4_cbc
 		tls12_sm4_gcm
 		tls13_sm4_gcm
@@ -825,7 +827,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1112")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1113")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
