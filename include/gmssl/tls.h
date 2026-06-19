@@ -1889,6 +1889,23 @@ int tls_cert_chain_match_extensions(
 	const uint8_t *host_name, size_t host_name_len, // optional
 	int *prefered_sig_alg);
 
+int tls_cert_chain_verify(
+	int protocol, int cert_chain_type, int cipher_suite,
+	int verify_chain,
+	const uint8_t *cert_chain, size_t cert_chain_len,
+	const uint8_t *cacerts, size_t cacerts_len,
+	const uint8_t *crl, size_t crl_len,
+	const uint8_t *ocsp, size_t ocsp_len,
+	int verify_depth,
+	const int *supported_groups, size_t supported_groups_cnt,
+	const int *signature_algorithms, size_t signature_algorithms_cnt,
+	const int *signature_algorithms_cert, size_t signature_algorithms_cert_cnt,
+	const uint8_t *ca_names, size_t ca_names_len,
+	const uint8_t *oid_filters, size_t oid_filters_len,
+	const uint8_t *host_name, size_t host_name_len,
+	int *verify_result,
+	int *selected_sig_alg);
+
 
 int tls13_cert_chains_select(const uint8_t *cert_chains, size_t cert_chains_len,
 	const int *signature_algorithms, size_t signature_algorithms_cnt,

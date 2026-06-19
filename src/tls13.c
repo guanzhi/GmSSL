@@ -6242,50 +6242,23 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 		host_name = conn->host_name;
 		host_name_len = conn->host_name_len;
 	}
-	if (host_name && host_name_len) {
-		if (x509_certs_get_cert_by_index(conn->peer_cert_chain,
-			conn->peer_cert_chain_len, 0, &cert, &certlen) != 1) {
-			error_print();
-			conn->verify_result = X509_verify_err_certificate;
-			tls13_send_alert(conn, TLS_alert_bad_certificate);
-			return -1;
-		}
-		if ((ret = tls_cert_match_server_name(cert, certlen, host_name, host_name_len)) < 0) {
-			error_print();
-			conn->verify_result = X509_verify_err_hostname;
-			tls13_send_alert(conn, TLS_alert_bad_certificate);
-			return -1;
-		} else if (ret == 0) {
-			error_print();
-			conn->verify_result = X509_verify_err_hostname;
-			tls13_send_alert(conn, TLS_alert_bad_certificate);
-			return -1;
-		}
-	}
-	if (tls_cert_chain_match_extensions(conn->peer_cert_chain, conn->peer_cert_chain_len,
-		conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
-		signature_algorithms_cert, signature_algorithms_cert_cnt,
-		ca_names, ca_names_len, // certificate_authorities
-		NULL, 0, // oid_filters
-		host_name, host_name_len,
-		NULL) != 1) {
-		error_print();
-		conn->verify_result = X509_verify_err_tls_extensions;
-		tls13_send_alert(conn, TLS_alert_bad_certificate);
-		return -1;
-	}
 
 	// verify server cert_chain
-	// 函数x509_certs_verify的设计有问题
-	// 验证一个证书链之前，应该首先判断一下这个证书链对应的根证书是否存在
-	// 如果我们没有根证书，那么就根本不能验证
-	// 把查找根证书和验证证书链的函数分开				
-	ret = x509_certs_verify(
-		conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
+	ret = tls_cert_chain_verify(
+		conn->protocol, X509_cert_chain_server, conn->cipher_suite,
+		1,
+		conn->peer_cert_chain, conn->peer_cert_chain_len,
 		conn->ctx->cacerts, conn->ctx->cacertslen,
 		NULL, 0,
 		leaf_status_request_ocsp_response, leaf_status_request_ocsp_response_len,
-		conn->ctx->verify_depth, &verify_result);
+		conn->ctx->verify_depth,
+		NULL, 0,
+		conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
+		signature_algorithms_cert, signature_algorithms_cert_cnt,
+		ca_names, ca_names_len,
+		NULL, 0,
+		host_name, host_name_len,
+		&verify_result, NULL);
 	if (ret < 0) {
 		error_print();
 		conn->verify_result = verify_result;
@@ -6295,7 +6268,12 @@ int tls13_recv_server_certificate(TLS_CONNECT *conn)
 	if (ret == 0) {
 		error_print();
 		conn->verify_result = verify_result;
-		tls13_send_alert(conn, TLS_alert_certificate_revoked);
+		if (verify_result == X509_verify_err_crl
+			|| verify_result == X509_verify_err_ocsp) {
+			tls13_send_alert(conn, TLS_alert_certificate_revoked);
+		} else {
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+		}
 		return -1;
 	}
 	conn->verify_result = verify_result;
@@ -8626,25 +8604,22 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 		oid_filters = conn->ctx->oid_filters;
 		oid_filters_len = conn->ctx->oid_filters_len;
 	}
-	if (tls_cert_chain_match_extensions(conn->peer_cert_chain, conn->peer_cert_chain_len,
+	// verify client cert_chain
+	ret = tls_cert_chain_verify(
+		conn->protocol, X509_cert_chain_client, conn->cipher_suite,
+		1,
+		conn->peer_cert_chain, conn->peer_cert_chain_len,
+		conn->ctx->cacerts, conn->ctx->cacertslen,
+		NULL, 0,
+		status_request_ocsp_response, status_request_ocsp_response_len,
+		conn->ctx->verify_depth,
+		NULL, 0,
 		conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
 		signature_algorithms_cert, signature_algorithms_cert_cnt,
 		ca_names, ca_names_len,
 		oid_filters, oid_filters_len,
-		NULL, 0, // server_name not in CertificateRequest
-		NULL) != 1) {
-		error_print();
-		conn->verify_result = X509_verify_err_tls_extensions;
-		tls13_send_alert(conn, TLS_alert_bad_certificate);
-		return -1;
-	}
-
-	// verify client cert_chain
-	ret = x509_certs_verify(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_client,
-		conn->ctx->cacerts, conn->ctx->cacertslen,
 		NULL, 0,
-		status_request_ocsp_response, status_request_ocsp_response_len,
-		conn->ctx->verify_depth, &verify_result);
+		&verify_result, NULL);
 	if (ret < 0) {
 		error_print();
 		conn->verify_result = verify_result;
@@ -8654,7 +8629,12 @@ int tls13_recv_client_certificate(TLS_CONNECT *conn)
 	if (ret == 0) {
 		error_print();
 		conn->verify_result = verify_result;
-		tls13_send_alert(conn, TLS_alert_certificate_revoked);
+		if (verify_result == X509_verify_err_crl
+			|| verify_result == X509_verify_err_ocsp) {
+			tls13_send_alert(conn, TLS_alert_certificate_revoked);
+		} else {
+			tls13_send_alert(conn, TLS_alert_bad_certificate);
+		}
 		return -1;
 	}
 	conn->verify_result = verify_result;

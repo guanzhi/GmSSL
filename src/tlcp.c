@@ -746,9 +746,8 @@ int tlcp_recv_server_hello(TLS_CONNECT *conn)
 int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	const uint8_t *server_cert;
-	size_t server_cert_len;
 	int verify_result = X509_verify_ok;
+	int sig_alg = 0;
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -785,41 +784,28 @@ int tlcp_recv_server_certificate(TLS_CONNECT *conn)
 		tls_send_alert(conn, TLS_alert_unexpected_message);
 		return -1;
 	}
-	if (x509_certs_get_cert_by_index(conn->peer_cert_chain, conn->peer_cert_chain_len,
-		0, &server_cert, &server_cert_len) != 1) {
+	if (tls_cert_chain_verify(conn->protocol, X509_cert_chain_server, conn->cipher_suite,
+		conn->ctx->cacertslen ? 1 : 0,
+		conn->peer_cert_chain, conn->peer_cert_chain_len,
+		conn->ctx->cacerts, conn->ctx->cacertslen,
+		NULL, 0,
+		NULL, 0,
+		conn->ctx->verify_depth,
+		NULL, 0,
+		conn->ctx->signature_algorithms, conn->ctx->signature_algorithms_cnt,
+		NULL, 0,
+		NULL, 0,
+		NULL, 0,
+		conn->host_name, conn->host_name_len,
+		&verify_result, &sig_alg) != 1) {
 		error_print();
+		conn->verify_result = verify_result;
 		tls_send_alert(conn, TLS_alert_bad_certificate);
 		return -1;
 	}
-	if (conn->host_name_len) {
-		if ((ret = tls_cert_match_server_name(server_cert, server_cert_len,
-			conn->host_name, conn->host_name_len)) < 0) {
-			error_print();
-			conn->verify_result = X509_verify_err_hostname;
-			tls_send_alert(conn, TLS_alert_bad_certificate);
-			return -1;
-		} else if (ret == 0) {
-			error_print();
-			conn->verify_result = X509_verify_err_hostname;
-			tls_send_alert(conn, TLS_alert_bad_certificate);
-			return -1;
-		}
-	}
-	// FIXME: 需要根据密码套件、ClientHello扩展等对证书做进一步的验证
-	// x509_certs_verify_tlcp 只是验证证书链有效，不能完全判定服务器证书有效
-
-	if (conn->ctx->cacertslen) {
-		if (x509_certs_verify_tlcp(conn->peer_cert_chain, conn->peer_cert_chain_len, X509_cert_chain_server,
-			conn->ctx->cacerts, conn->ctx->cacertslen, NULL, 0,
-			NULL, 0,
-			conn->ctx->verify_depth, &verify_result) != 1) {
-			error_print();
-			conn->verify_result = verify_result;
-			tls_send_alert(conn, TLS_alert_bad_certificate);
-			return -1;
-		}
-	}
 	conn->verify_result = verify_result;
+	conn->signature_algorithms[0] = sig_alg;
+	conn->signature_algorithms_cnt = 1;
 
 	if (conn->client_certs_len) {
 		sm2_sign_update(&conn->sign_ctx, conn->record + 5, conn->recordlen - 5);
