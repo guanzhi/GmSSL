@@ -1815,8 +1815,7 @@ int x509_certs_get_cert_by_issuer_and_serial_number(const uint8_t *d, size_t dle
 	return 0;
 }
 
-int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type,
-	int *path_len_constraint)
+int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type)
 {
 	int version;
 	const uint8_t *serial;
@@ -1880,7 +1879,7 @@ int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type,
 		return -1;
 	}
 
-	if (x509_exts_check(exts, extslen, cert_type, path_len_constraint) != 1) {
+	if (x509_exts_check(exts, extslen, cert_type) != 1) {
 		error_print();
 		return -1;
 	}
@@ -1907,7 +1906,6 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 	int ret;
 
 	int path_len = 0;
-	int path_len_constraint;
 
 	switch (certs_type) {
 	case X509_cert_chain_server:
@@ -1926,7 +1924,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		error_print();
 		return -1;
 	}
-	if (x509_cert_check(cert, certlen, entity_cert_type, &path_len_constraint) != 1) {
+	if (x509_cert_check(cert, certlen, entity_cert_type) != 1) {
 		error_print();
 		x509_cert_print(stderr, 0, 10, "Invalid Entity Certificate", cert, certlen);
 		return -1;
@@ -1938,7 +1936,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 			error_print();
 			return -1;
 		}
-		if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
+		if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 			error_print();
 			x509_cert_print(stderr, 0, 10, "Invalid CA Certificate", cacert, cacertlen);
 			return -1;
@@ -1971,7 +1969,7 @@ int x509_certs_verify(const uint8_t *certs, size_t certslen, int certs_type,
 		error_print();
 		return -1;
 	}
-	if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
+	if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2014,7 +2012,6 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 	int ret;
 
 	int path_len = 0;
-	int path_len_constraint;
 
 	switch (certs_type) {
 	case X509_cert_chain_server:
@@ -2034,7 +2031,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if (x509_cert_check(cert, certlen, sign_cert_type, &path_len_constraint) != 1) {
+	if (x509_cert_check(cert, certlen, sign_cert_type) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2044,7 +2041,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if (x509_cert_check(kenc_cert, kenc_certlen, kenc_cert_type, &path_len_constraint) != 1) {
+	if (x509_cert_check(kenc_cert, kenc_certlen, kenc_cert_type) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2064,7 +2061,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 			error_print();
 			return -1;
 		}
-		if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
+		if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 			error_print();
 			return -1;
 		}
@@ -2103,7 +2100,7 @@ int x509_certs_verify_tlcp(const uint8_t *certs, size_t certslen, int certs_type
 		error_print();
 		return -1;
 	}
-	if (x509_cert_check(cacert, cacertlen, X509_cert_ca, &path_len_constraint) != 1) {
+	if (x509_cert_check(cacert, cacertlen, X509_cert_ca) != 1) {
 		error_print();
 		return -1;
 	}

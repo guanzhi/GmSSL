@@ -2951,8 +2951,7 @@ int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label,
 		sizeof(netscape_cert_types)/sizeof(netscape_cert_types[0]), bits);
 }
 
-int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
-	int *path_len_constraint)
+int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type)
 {
 	int oid;
 	uint32_t nodes[32];
@@ -2967,8 +2966,6 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 	int ext_key_usages[X509_MAX_KEY_PURPOSES];
 	size_t ext_key_usages_cnt;
 	int is_ca = (cert_type == X509_cert_ca || cert_type == X509_cert_root_ca) ? 1 : 0;
-
-	*path_len_constraint = -1;
 
 	while (extslen) {
 		if (x509_ext_from_der(&oid, nodes, &nodes_cnt, &critical, &val, &vlen, &exts, &extslen) != 1) {
@@ -3022,13 +3019,21 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 			}
 			break;
 		case OID_ce_certificate_policies:
+			if (critical == X509_critical) {
+				error_print();
+				return -1;
+			}
 			break;
 		case OID_ce_policy_mappings:
 			if (critical != X509_critical) {
 				error_print();
 				return -1;
 			}
-			break;
+			/*
+			已识别但证书路径验证尚未实现的 critical 扩展不能被忽略。
+			*/
+			error_print();
+			return -1;
 		case OID_ce_subject_alt_name:
 			break;
 		case OID_ce_issuer_alt_name:
@@ -3050,7 +3055,6 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 				error_print();
 				return -1;
 			}
-			*path_len_constraint = path_len;
 			break;
 
 		case OID_ce_ext_key_usage:
@@ -3063,10 +3067,20 @@ int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
 			break;
 
 		case OID_ce_name_constraints:
+			break;
 		case OID_ce_policy_constraints:
-		case OID_ce_crl_distribution_points:
 		case OID_ce_inhibit_any_policy:
+			/*
+			已识别但证书路径验证尚未实现的 critical 扩展不能被忽略。
+			*/
+			error_print();
+			return -1;
+		case OID_ce_crl_distribution_points:
 		case OID_ce_freshest_crl:
+			if (critical == X509_critical) {
+				error_print();
+				return -1;
+			}
 			break;
 		default:
 			if (critical == X509_critical) {

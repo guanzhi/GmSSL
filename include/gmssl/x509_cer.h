@@ -331,7 +331,7 @@ typedef enum {
 	X509_cert_crl_sign,
 } X509_CERT_TYPE;
 
-int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type, int *path_len_constraint);
+int x509_cert_check(const uint8_t *cert, size_t certlen, int cert_type);
 int x509_cert_check_subject(const uint8_t *cert, size_t certlen, int is_cacert);
 int x509_cert_check_name_constraints(const uint8_t *cert, size_t certlen,
 	const uint8_t *name_constraints, size_t name_constraints_len);

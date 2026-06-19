@@ -606,8 +606,7 @@ NetscapeCertComment ::= IA5String
 int x509_netscape_cert_type_print(FILE *fp, int fmt, int ind, const char *label, int bits);
 
 int x509_ext_check_critical(int oid, int is_ca, int critical);
-int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type,
-	int *path_len_constraints);
+int x509_exts_check(const uint8_t *exts, size_t extslen, int cert_type);
 
 /*
 AuthorityInfoAccessSyntax ::= SEQUENCE OF AccessDescription

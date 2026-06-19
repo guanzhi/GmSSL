@@ -63,7 +63,6 @@ static int test_x509_cert_check_subject(void)
 	uint8_t cert[1024];
 	uint8_t *p;
 	size_t certlen;
-	int path_len_constraint;
 
 	set_x509_name(issuer, &issuer_len, sizeof(issuer));
 	time(&not_before);
@@ -95,7 +94,7 @@ static int test_x509_cert_check_subject(void)
 			&x509_key, SM2_DEFAULT_ID, strlen(SM2_DEFAULT_ID),
 			&p, &certlen) != 1
 		|| x509_cert_check_subject(cert, certlen, 0) != 1
-		|| x509_cert_check(cert, certlen, X509_cert_server_auth, &path_len_constraint) != 1) {
+		|| x509_cert_check(cert, certlen, X509_cert_server_auth) != 1) {
 		error_print();
 		return -1;
 	}
