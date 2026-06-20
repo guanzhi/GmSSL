@@ -99,4 +99,6 @@ func(gf128_mul):
 
 	ret
 
-
+#ifdef __ELF__
+.section .note.GNU-stack,"",@progbits
+#endif
