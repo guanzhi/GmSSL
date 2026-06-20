@@ -617,10 +617,6 @@ bad:
 		}
 
 		if (send_len > 0 && FD_ISSET(conn.sock, &fds_send)) {
-			fprintf(stderr, ">>>>>>>> send back\n");
-
-			format_bytes(stderr, 0, 0, "tls13_send", (const uint8_t *)buf + send_offset, send_len);
-
 			if ((ret = tls_send(&conn, (uint8_t *)buf + send_offset, send_len, &sentlen)) != 1) {
 				if (ret == TLS_ERROR_SEND_AGAIN || ret == TLS_ERROR_RECV_AGAIN) {
 					continue;
@@ -631,8 +627,6 @@ bad:
 
 			send_offset += sentlen;
 			send_len -= sentlen;
-
-			fprintf(stderr, "---------------\n");
 
 			//memset(conn.record, 0, sizeof(conn.record));
 			//memset(conn.plain_record, 0, sizeof(conn.plain_record));
