@@ -1412,17 +1412,6 @@ int tlcp_recv_client_hello(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	//sm3_update(&conn->sm3_ctx, conn->record + 5, conn->recordlen - 5);
-	//tlcp_handshake_digest_print(stderr, 0, 0, "ClientHello", &conn->sm3_ctx);
-
-	/*
-	if (client_verify)
-		tls_client_verify_update(&conn->client_verify_ctx, conn->record + 5, conn->recordlen - 5);
-	*/
-
-	if(conn->verbose) {
-		fprintf(stderr, "end of recv_client_hello\n");
-	}
 	tls_clean_record(conn);
 
 	return 1;

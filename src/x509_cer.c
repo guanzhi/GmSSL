@@ -1639,8 +1639,6 @@ int x509_cert_get_subject_alt_name_dns_name(const uint8_t *a, size_t alen, const
 	// x509_exts_get_ext_by_oid 这里取出的数据是一个SEQUENCE 的 TLV
 	// 然后x509_general_names_get_first 需要提供的是其中的V
 
-	format_bytes(stderr, 0, 0, "general_names", general_names, general_names_len);
-
 	if ((ret = x509_general_names_get_first(general_names, general_names_len,
 		NULL, choice, dns_name, dns_name_len)) < 0) {
 		error_print();

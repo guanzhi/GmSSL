@@ -515,6 +515,45 @@ static int test_tls_trusted_ca_keys_ext(void)
 	return 1;
 }
 
+static int test_tls_certificate_request_print(void)
+{
+	uint8_t tlcp_data[] = {
+		1, TLS_cert_type_ecdsa_sign,
+		0, 0,
+	};
+	uint8_t tls12_data[] = {
+		1, TLS_cert_type_ecdsa_sign,
+		0, 2, TLS_sig_sm2sig_sm3 >> 8, TLS_sig_sm2sig_sm3 & 0xff,
+		0, 0,
+	};
+	uint8_t handshake[32];
+	uint8_t *p;
+	size_t len;
+
+	p = handshake;
+	len = 0;
+	tls_uint8_to_bytes(TLS_handshake_certificate_request, &p, &len);
+	tls_uint24array_to_bytes(tlcp_data, sizeof(tlcp_data), &p, &len);
+	if (tls_handshake_print(stderr, 0, 0, TLS_protocol_tlcp,
+		0, handshake, len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	p = handshake;
+	len = 0;
+	tls_uint8_to_bytes(TLS_handshake_certificate_request, &p, &len);
+	tls_uint24array_to_bytes(tls12_data, sizeof(tls12_data), &p, &len);
+	if (tls_handshake_print(stderr, 0, 0, TLS_protocol_tls12,
+		0, handshake, len) != 1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 int main(void)
 {
 	if (test_tls_null_to_bytes() != 1) goto err;
@@ -535,6 +574,7 @@ int main(void)
 	if (test_tls_change_cipher_spec() != 1) goto err;
 	if (test_tls_application_data() != 1) goto err;
 	*/
+	if (test_tls_certificate_request_print() != 1) goto err;
 	if (test_tls_trusted_ca_keys_ext() != 1) goto err;
 	if (test_tls_status_request_ext() != 1) goto err;
 	printf("%s all tests passed\n", __FILE__);

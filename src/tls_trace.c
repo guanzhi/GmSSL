@@ -901,7 +901,7 @@ int tls_certificate_subjects_print(FILE *fp, int fmt, int ind, const char *label
 	return 1;
 }
 
-int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen, int fmt, int ind)
+int tls_certificate_request_print(FILE *fp, int protocol, const uint8_t *data, size_t datalen, int fmt, int ind)
 {
 	const uint8_t *cert_types;
 	const uint8_t *sig_algs;
@@ -915,16 +915,24 @@ int tls_certificate_request_print(FILE *fp, const uint8_t *data, size_t datalen,
 		int cert_type = *cert_types++;
 		format_print(fp, fmt, ind + 4, "%s (%d)\n", tls_cert_type_name(cert_type), cert_type);
 	}
-	if (tls_uint16array_from_bytes(&sig_algs, &sig_algs_len, &data, &datalen) != 1) goto bad;
-	format_print(fp, fmt, ind, "signature_algorithms\n");
-	while (sig_algs_len) {
-		const char *sig_alg_name;
-		uint16_t sig_alg;
+	switch (protocol) {
+	case TLS_protocol_tls12:
+		if (tls_uint16array_from_bytes(&sig_algs, &sig_algs_len, &data, &datalen) != 1) goto bad;
+		format_print(fp, fmt, ind, "signature_algorithms\n");
+		while (sig_algs_len) {
+			const char *sig_alg_name;
+			uint16_t sig_alg;
 
-		if (tls_uint16_from_bytes(&sig_alg, &sig_algs, &sig_algs_len) != 1) goto bad;
-		sig_alg_name = tls_signature_scheme_name(sig_alg);
-		format_print(fp, fmt, ind + 4, "%s (0x%04x)\n",
-			sig_alg_name ? sig_alg_name : "unknown", sig_alg);
+			if (tls_uint16_from_bytes(&sig_alg, &sig_algs, &sig_algs_len) != 1) goto bad;
+			sig_alg_name = tls_signature_scheme_name(sig_alg);
+			format_print(fp, fmt, ind + 4, "%s (0x%04x)\n",
+				sig_alg_name ? sig_alg_name : "unknown", sig_alg);
+		}
+		break;
+	case TLS_protocol_tlcp:
+		break;
+	default:
+		goto bad;
 	}
 	if (tls_uint16array_from_bytes(&ca_names, &ca_names_len, &data, &datalen) != 1) goto bad;
 	tls_certificate_subjects_print(fp, fmt, ind, "CAnames", ca_names, ca_names_len);
@@ -1050,8 +1058,6 @@ int tls_handshake_print(FILE *fp, int fmt, int ind, int protocol, int cipher_sui
 	const uint8_t *data;
 	uint24_t datalen;
 
-	(void)protocol;
-
 	format_print(fp, fmt, ind, "Handshake\n");
 	ind += 4;
 
@@ -1091,7 +1097,7 @@ int tls_handshake_print(FILE *fp, int fmt, int ind, int protocol, int cipher_sui
 		if (tls_server_key_exchange_print(fp, fmt, ind, cipher_suite, data, datalen) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_certificate_request:
-		if (tls_certificate_request_print(fp, data, datalen, fmt, ind) != 1)
+		if (tls_certificate_request_print(fp, protocol, data, datalen, fmt, ind) != 1)
 			{ error_print(); return -1; } break;
 	case TLS_handshake_server_hello_done:
 		if (tls_server_hello_done_print(fp, data, datalen, fmt, ind) != 1)
