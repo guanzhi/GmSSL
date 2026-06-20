@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <gmssl/sm9.h>
+#include <gmssl/hex.h>
 #include <gmssl/error.h>
 #include <gmssl/rand.h>
 
@@ -778,6 +779,51 @@ err:
 	return -1;
 }
 
+int test_sm9_master_key_from_der_leading_zero()
+{
+	char *enc_master_key_der =
+		"306602200084509d9f11799ba847a142b4c1ed860dd66943ecf79f544d4327882beb229d"
+		"03420004654a84a614e4e3f670152a4253ef8fe5127ad7a5b0d85a6a009b3a95dadfb"
+		"25d407d04cf4d90c3addd3b9829ed92a37d1be32af3ae32e5cb3b6fd5a1ddb8fa2c";
+	char *leading_zero_scalar =
+		"0084509d9f11799ba847a142b4c1ed860dd66943ecf79f544d4327882beb229d";
+	SM9_ENC_MASTER_KEY enc_master;
+	SM9_SIGN_MASTER_KEY sign_master;
+	SM9_SIGN_MASTER_KEY parsed_sign_master;
+	uint8_t der[SM9_SIGN_MASTER_KEY_MAX_SIZE];
+	uint8_t enc_der[SM9_ENC_MASTER_KEY_MAX_SIZE];
+	uint8_t *p = der;
+	const uint8_t *cp;
+	size_t len = 0;
+	size_t derlen;
+	int j = 1;
+
+	if (hex_to_bytes(enc_master_key_der, strlen(enc_master_key_der), enc_der, &derlen) != 1) goto err; ++j;
+	cp = enc_der;
+	len = derlen;
+	if (sm9_enc_master_key_from_der(&enc_master, &cp, &len) != 1
+		|| len != 0
+		|| !sm9_z256_equ_hex(enc_master.ke, leading_zero_scalar)) goto err; ++j;
+
+	sm9_z256_from_hex(sign_master.ks, leading_zero_scalar);
+	sm9_z256_twist_point_mul_generator(&sign_master.Ppubs, sign_master.ks);
+	len = 0;
+	if (sm9_sign_master_key_to_der(&sign_master, &p, &len) != 1) goto err; ++j;
+	cp = der;
+	derlen = len;
+	if (sm9_sign_master_key_from_der(&parsed_sign_master, &cp, &derlen) != 1
+		|| derlen != 0
+		|| sm9_z256_cmp(parsed_sign_master.ks, sign_master.ks) != 0
+		|| !sm9_z256_twist_point_equ(&parsed_sign_master.Ppubs, &sign_master.Ppubs)) goto err; ++j;
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+err:
+	printf("%s test %d failed\n", __FUNCTION__, j);
+	error_print();
+	return -1;
+}
+
 #define hex_kex		"0002E65B0762D042F51F0D23542B13ED8CFA2E9A0E7206361E013A283905E31F"
 
 #define hex_deA \
@@ -844,6 +890,7 @@ int main(void) {
 	if (test_sm9_z256_sign() != 1) goto err;
 	if (test_sm9_z256_ciphertext() != 1) goto err;
 	if (test_sm9_z256_encrypt() != 1) goto err;
+	if (test_sm9_master_key_from_der_leading_zero() != 1) goto err;
 	if (test_sm9_z256_exchange() != 1) goto err;
 	if (test_sm9_z256_pairing_speed() != 1) goto err;
 

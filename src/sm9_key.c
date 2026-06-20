@@ -78,6 +78,7 @@ int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, s
 	size_t dlen;
 	const uint8_t *ks;
 	size_t kslen;
+	uint8_t ksbuf[32];
 	const uint8_t *Ppubs;
 	size_t Ppubslen;
 
@@ -87,14 +88,17 @@ int sm9_sign_master_key_from_der(SM9_SIGN_MASTER_KEY *msk, const uint8_t **in, s
 	}
 	if (asn1_integer_from_der(&ks, &kslen, &d, &dlen) != 1
 		|| asn1_bit_octets_from_der(&Ppubs, &Ppubslen, &d, &dlen) != 1
-		|| asn1_check(kslen == 32) != 1
+		|| asn1_check(kslen > 0 && kslen <= 32) != 1
 		|| asn1_check(Ppubslen == 1 + 32 * 4) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
 		return -1;
 	}
 	memset(msk, 0, sizeof(*msk));
-	sm9_z256_from_bytes(msk->ks, ks);
+	memset(ksbuf, 0, sizeof(ksbuf));
+	memcpy(ksbuf + sizeof(ksbuf) - kslen, ks, kslen);
+	sm9_z256_from_bytes(msk->ks, ksbuf);
+	gmssl_secure_clear(ksbuf, sizeof(ksbuf));
 	if (sm9_z256_cmp(msk->ks, sm9_z256_order()) >= 0) {
 		error_print();
 		return -1;
@@ -263,6 +267,7 @@ int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, siz
 	size_t dlen;
 	const uint8_t *ke;
 	size_t kelen;
+	uint8_t kebuf[32];
 	const uint8_t *Ppube;
 	size_t Ppubelen;
 
@@ -272,7 +277,7 @@ int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, siz
 	}
 	if (asn1_integer_from_der(&ke, &kelen, &d, &dlen) != 1
 		|| asn1_bit_octets_from_der(&Ppube, &Ppubelen, &d, &dlen) != 1
-		|| asn1_check(kelen == 32) != 1
+		|| asn1_check(kelen > 0 && kelen <= 32) != 1
 		|| asn1_check(Ppubelen == 1 + 32 * 2) != 1
 		|| asn1_length_is_zero(dlen) != 1) {
 		error_print();
@@ -280,7 +285,10 @@ int sm9_enc_master_key_from_der(SM9_ENC_MASTER_KEY *msk, const uint8_t **in, siz
 	}
 	memset(msk, 0, sizeof(*msk));
 
-	sm9_z256_from_bytes(msk->ke, ke);
+	memset(kebuf, 0, sizeof(kebuf));
+	memcpy(kebuf + sizeof(kebuf) - kelen, ke, kelen);
+	sm9_z256_from_bytes(msk->ke, kebuf);
+	gmssl_secure_clear(kebuf, sizeof(kebuf));
 	if (sm9_z256_cmp(msk->ke, sm9_z256_order()) >= 0) {
 		error_print();
 		return -1;
