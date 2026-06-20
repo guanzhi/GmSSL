@@ -571,6 +571,54 @@ static int test_sm2_z256_point_from_x_bytes(void)
 	return 1;
 }
 
+static int test_sm2_z256_point_to_compressed_octets(void)
+{
+	struct {
+		char *label;
+		char *point;
+		char *compressed;
+	} tests[] = {
+		{
+		"G",
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7"
+		"bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0",
+		"02"
+		"32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7",
+		},
+		{
+		"2G",
+		"56cefd60d7c87c000d58ef57fa73ba4d9c0dfa08c08a7331495c2e1da3f2bd52"
+		"31b7e7e6cc8189f668535ce0f8eaf1bd6de84c182f6c8e716f780d3a970a23c3",
+		"03"
+		"56cefd60d7c87c000d58ef57fa73ba4d9c0dfa08c08a7331495c2e1da3f2bd52",
+		},
+	};
+
+	SM2_Z256_POINT P;
+	SM2_Z256_POINT Q;
+	uint8_t compressed[33];
+	uint8_t expected[33];
+	size_t len;
+	size_t i;
+
+	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
+		sm2_z256_point_from_hex(&P, tests[i].point);
+		if (hex_to_bytes(tests[i].compressed, strlen(tests[i].compressed), expected, &len) != 1
+			|| len != sizeof(expected)
+			|| sm2_z256_point_to_compressed_octets(&P, compressed) != 1
+			|| memcmp(compressed, expected, sizeof(expected)) != 0
+			|| sm2_z256_point_from_octets(&Q, compressed, sizeof(compressed)) != 1
+			|| sm2_z256_point_equ(&P, &Q) != 1) {
+			fprintf(stderr, "%s\n", tests[i].label);
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sm2_z256_point_add_conjugate(void)
 {
 	char *hex_G =
@@ -960,6 +1008,7 @@ int main(void)
 	if (test_sm2_z256_point_mul_generator() != 1) goto err;
 	if (test_sm2_z256_point_from_hash() != 1) goto err;
 	if (test_sm2_z256_point_from_x_bytes() != 1) goto err;
+	if (test_sm2_z256_point_to_compressed_octets() != 1) goto err;
 
 
 	if (test_sm2_z256_point_dbl_infinity() != 1) goto err;

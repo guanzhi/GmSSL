@@ -402,6 +402,43 @@ static int test_asn1_object_identifier(void)
 	return 1;
 }
 
+static int test_asn1_object_identifier_max_nodes(void)
+{
+	uint8_t octets[ASN1_OID_MAX_NODES];
+	uint32_t nodes[ASN1_OID_MAX_NODES];
+	size_t nodes_cnt;
+	size_t i;
+
+	memset(octets, 0x01, sizeof(octets));
+	octets[0] = 42; // 1.2
+
+	nodes_cnt = 0;
+	if (asn1_object_identifier_from_octets(nodes, &nodes_cnt, octets, ASN1_OID_MAX_NODES - 1) != 1
+		|| nodes_cnt != ASN1_OID_MAX_NODES) {
+		error_print();
+		return -1;
+	}
+	if (nodes[0] != 1 || nodes[1] != 2) {
+		error_print();
+		return -1;
+	}
+	for (i = 2; i < nodes_cnt; i++) {
+		if (nodes[i] != 1) {
+			error_print();
+			return -1;
+		}
+	}
+
+	nodes_cnt = 0;
+	if (asn1_object_identifier_from_octets(nodes, &nodes_cnt, octets, ASN1_OID_MAX_NODES) != -1) {
+		error_print();
+		return -1;
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_asn1_printable_string(void)
 {
 	char *tests[] = {
@@ -948,6 +985,7 @@ int main(void)
 	if (test_asn1_tag() != 1) goto err;
 	if (test_asn1_utf8_string() != 1) goto err;
 	if (test_asn1_string_code_point_from_bytes() != 1) goto err;
+	if (test_asn1_object_identifier_max_nodes() != 1) goto err;
 /*
 	if (test_asn1_length() != 1) goto err;
 	if (test_asn1_length_from_ber() != 1) goto err;
