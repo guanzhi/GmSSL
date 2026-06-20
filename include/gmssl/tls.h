@@ -1946,6 +1946,8 @@ int tls_server_name_from_bytes(const uint8_t **host_name, size_t *host_name_len,
 int tls_server_name_print(FILE *fp, int fmt, int ind, const uint8_t *ext_data, size_t ext_datalen);
 
 // 65281. renegotiation_info (TLS 1.2 only)
+int tls_renegotiation_info_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen);
 int tls12_ctx_set_renegotiation_info(TLS_CTX *ctx, int enable);
 int tls12_ctx_set_empty_renegotiation_info_scsv(TLS_CTX *ctx, int enable);
 

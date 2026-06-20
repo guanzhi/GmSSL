@@ -57,7 +57,7 @@ elseif(TEST_CASE STREQUAL tls12_openssl_server_renegotiation_info_scsv)
 elseif(TEST_CASE STREQUAL tls12_openssl_client)
 	set(TEST_NAME tls12_openssl_client)
 	set(TEST_PORT 4451)
-	set(SERVER_COMMAND "bin/gmssl tls12_server -port ${TEST_PORT} -cert p256_tls_server_certs.pem -key p256_tls_server_key.pem -pass P@ssw0rd -cipher_suite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256")
+	set(SERVER_COMMAND "bin/gmssl tls12_server -port ${TEST_PORT} -cert p256_tls_server_certs.pem -key p256_tls_server_key.pem -pass P@ssw0rd -cipher_suite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 -supported_group prime256v1 -sig_alg ecdsa_secp256r1_sha256 -renegotiation_info")
 	set(CLIENT_COMMAND "printf 'GET / HTTP/1.0\\r\\n\\r\\n' | ${OPENSSL_EXECUTABLE} s_client -connect 127.0.0.1:${TEST_PORT} -tls1_2 -CAfile p256_root_ca_cert.pem -cipher ECDHE-ECDSA-AES128-SHA256 -groups prime256v1 -servername localhost -brief")
 	gmssl_run_command_interop_test(
 		TEST_NAME ${TEST_NAME}

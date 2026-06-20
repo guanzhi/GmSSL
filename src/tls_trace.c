@@ -477,6 +477,26 @@ int tls_pre_master_secret_print(FILE *fp, const uint8_t pre_master_secret[48], i
 	return 1;
 }
 
+int tls_renegotiation_info_print(FILE *fp, int fmt, int ind,
+	const uint8_t *ext_data, size_t ext_datalen)
+{
+	const uint8_t *renegotiated_connection;
+	size_t renegotiated_connection_len;
+
+	if (tls_uint8array_from_bytes(&renegotiated_connection, &renegotiated_connection_len, &ext_data, &ext_datalen) != 1
+		|| tls_length_is_zero(ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (renegotiated_connection_len) {
+		format_bytes(fp, fmt, ind, "renegotiated_connection",
+			renegotiated_connection, renegotiated_connection_len);
+	} else {
+		format_print(fp, fmt, ind, "renegotiated_connection: (empty)\n");
+	}
+	return 1;
+}
+
 /*
  * SupportedVersions Extension (only defined in TLS 1.3)
  *
@@ -571,6 +591,12 @@ int tls_extension_print(FILE *fp, int fmt, int ind, int handshake_type, int type
 			break;
 		}
 		if (tls_trusted_authorities_print(fp, fmt, ind, data, datalen) != 1) {
+			error_print();
+			return -1;
+		}
+		break;
+	case TLS_extension_renegotiation_info:
+		if (tls_renegotiation_info_print(fp, fmt, ind, data, datalen) != 1) {
 			error_print();
 			return -1;
 		}

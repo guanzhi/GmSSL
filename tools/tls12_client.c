@@ -350,6 +350,10 @@ bad:
 		fprintf(stderr, "%s: '-host' option required\n", prog);
 		return -1;
 	}
+	if (renegotiation_info && empty_renegotiation_info_scsv) {
+		fprintf(stderr, "%s: '-renegotiation_info' and '-renegotiation_info_scsv' should not be used together\n", prog);
+		return -1;
+	}
 	if (get && infile) {
 		fprintf(stderr, "%s: '-get' and '-in' should not be used together\n", prog);
 		return -1;

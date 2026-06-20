@@ -63,6 +63,7 @@ set(TEST_CLIENT_ARGS
 	-in ${TEST_NAME}_message.txt)
 
 if(TEST_RENEGOTIATION_ARG)
+	list(APPEND TEST_SERVER_ARGS -renegotiation_info)
 	list(APPEND TEST_CLIENT_ARGS ${TEST_RENEGOTIATION_ARG})
 endif()
 

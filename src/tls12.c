@@ -2181,7 +2181,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 		}
 	}
 	// RFC 5746 signaling is supported for the initial handshake only.
-	if (renegotiation_info || empty_renegotiation_info_scsv) {
+	if (conn->ctx->renegotiation_info && (renegotiation_info || empty_renegotiation_info_scsv)) {
 		conn->secure_renegotiation = 1;
 	}
 
