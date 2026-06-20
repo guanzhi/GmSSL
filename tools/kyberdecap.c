@@ -159,6 +159,10 @@ bad:
 
 
 	}
+	if (fwrite(outbuf, 1, sizeof(outbuf), outfp) != sizeof(outbuf)) {
+		error_print();
+		goto end;
+	}
 
 
 	ret = 0;

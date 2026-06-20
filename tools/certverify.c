@@ -102,7 +102,7 @@ int certverify_main(int argc, char **argv)
 	char *crlfile = NULL;
 	char *ocspfile = NULL;
 	char *hostname = NULL;
-	int chain_type = TLS_cert_chain_tlcp_server;
+	int chain_type = 0;
 	uint8_t *certs = NULL;
 	size_t certslen = 0;
 	uint8_t *cacerts = NULL;
@@ -187,6 +187,9 @@ bad:
 	if (!cacertfile) {
 		fprintf(stderr, "%s: '-cacert' option required\n", prog);
 		goto end;
+	}
+	if (!chain_type) {
+		chain_type = TLS_cert_chain_tlcp_server;
 	}
 	if (hostname && chain_type == TLS_cert_chain_client) {
 		fprintf(stderr, "%s: '-hostname' only allowed with '-tlcp_server' or '-server'\n", prog);

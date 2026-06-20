@@ -64,3 +64,25 @@ if(NOT "${TEST_STDOUT}" STREQUAL "${SECRET_MESSAGE}")
 	message(FATAL_ERROR "stdout: ${TEST_STDOUT}")
 endif()
 
+execute_process(
+	COMMAND bin/gmssl sm2sign -key sm2.pem -pass P@ssw0rd -id Alice -in message.txt -out sm2_id.sig
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+
+execute_process(
+	COMMAND bin/gmssl sm2verify -pubkey sm2pub.pem -id Alice -in message.txt -sig sm2_id.sig
+	RESULT_VARIABLE TEST_RESULT
+	ERROR_VARIABLE TEST_STDERR
+	OUTPUT_VARIABLE TEST_STDOUT
+)
+if(NOT ${TEST_RESULT} EQUAL 0)
+	message(FATAL_ERROR "stderr: ${TEST_STDERR}")
+endif()
+string(FIND "${TEST_STDOUT}" "success" VERIFY_SUCCESS)
+if(VERIFY_SUCCESS EQUAL -1)
+    message(FATAL_ERROR "verify failure")
+endif()

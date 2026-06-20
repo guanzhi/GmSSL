@@ -2298,7 +2298,9 @@ int cms_deenvelop(const uint8_t *cms, size_t cmslen,
 		error_print();
 		return -1;
 	}
-	if (memcmp(&public_key.u.sm2_key, rcpt_key, sizeof(SM2_POINT)) != 0) {
+	if (rcpt_key->algor != OID_ec_public_key
+		|| rcpt_key->algor_param != OID_sm2
+		|| sm2_public_key_equ(&public_key.u.sm2_key, &rcpt_key->u.sm2_key) != 1) {
 		error_print();
 		return -1;
 	}
@@ -2497,5 +2499,4 @@ err:
 	error_print();
 	return -1;
 }
-
 

@@ -1,0 +1,15 @@
+include("${CMAKE_CURRENT_LIST_DIR}/tool_helpers.cmake")
+
+gmssl_run(rand -outlen 16 -out tool_rand.bin)
+file(SIZE tool_rand.bin RAND_BIN_SIZE)
+if(NOT RAND_BIN_SIZE EQUAL 16)
+	message(FATAL_ERROR "unexpected rand output size: ${RAND_BIN_SIZE}")
+endif()
+
+gmssl_run_capture(RAND_HEX rand -hex -outlen 16)
+string(STRIP "${RAND_HEX}" RAND_HEX_STRIPPED)
+string(REGEX MATCH "^[0-9a-fA-F]+$" RAND_HEX_MATCH "${RAND_HEX_STRIPPED}")
+string(LENGTH "${RAND_HEX_STRIPPED}" RAND_HEX_LEN)
+if(NOT RAND_HEX_MATCH OR NOT RAND_HEX_LEN EQUAL 32)
+	message(FATAL_ERROR "unexpected rand hex output: ${RAND_HEX}")
+endif()

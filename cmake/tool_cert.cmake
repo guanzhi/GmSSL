@@ -203,3 +203,23 @@ gmssl_write_bundle(sm2_tlcp_server_keys.pem
 
 gmssl_write_bundle(test_root_certs.pem
 	sm2_root_ca_cert.pem p256_root_ca_cert.pem)
+
+gmssl_run(bin/gmssl certparse -in sm2_tlcp_server_certs.pem -out tool_certparse.txt)
+gmssl_require_generated_file(tool_certparse.txt)
+
+gmssl_run(bin/gmssl certverify
+	-tlcp_server
+	-in sm2_tlcp_server_certs.pem
+	-cacert sm2_root_ca_cert.pem
+	-hostname localhost)
+
+gmssl_run(bin/gmssl certverify
+	-server
+	-in sm2_tls_server_certs.pem
+	-cacert sm2_root_ca_cert.pem
+	-hostname LOCALHOST)
+
+gmssl_run(bin/gmssl certverify
+	-client
+	-in sm2_tls_client_certs.pem
+	-cacert sm2_root_ca_cert.pem)

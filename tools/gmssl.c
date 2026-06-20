@@ -201,6 +201,7 @@ static const char *options =
 	"  ocspget           Download OCSPResponse from OCSP responder\n"
 	"  ocspsign          Sign OCSPResponse\n"
 	"  ocspverify        Verify OCSPResponse\n"
+	"  sctverify         Verify Signed Certificate Timestamp list\n"
 #ifdef ENABLE_CMS
 	"  cmssign           Generate CMS SignedData\n"
 	"  cmsverify         Verify CMS SignedData\n"
@@ -256,7 +257,6 @@ static const char *options =
 	"  tls12_server      TLS 1.2 server\n"
 	"  tls13_client      TLS 1.3 client\n"
 	"  tls13_server      TLS 1.3 server\n"
-	"  sctverify         Verify Signed Certificate Timestamp list\n"
 #endif
 	"\n"
 	"run `gmssl <command> -help` to print help of the given command\n"

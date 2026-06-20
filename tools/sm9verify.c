@@ -128,11 +128,12 @@ bad:
 		fprintf(stderr, "%s: read failure\n", prog);
 		goto end;
 	}
-	if ((ret = sm9_verify_finish(&ctx, sig, siglen, &mpk, id, strlen(id))) != 1) {
+	if (sm9_verify_finish(&ctx, sig, siglen, &mpk, id, strlen(id)) != 1) {
 		error_print();
 		goto end;
 	}
-	printf("%s %s\n", prog, ret ? "success" : "failure");
+	printf("%s success\n", prog);
+	ret = 0;
 
 end:
 	if (infile && infp) fclose(infp);
@@ -140,7 +141,6 @@ end:
 	if (sigfile && sigfp) fclose(sigfp);
 	return ret;
 }
-
 
 
 

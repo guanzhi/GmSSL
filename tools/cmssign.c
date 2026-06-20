@@ -35,6 +35,7 @@ int cmssign_main(int argc, char **argv)
 	FILE *outfp = stdout;
 	SM2_KEY sm2_key;
 	X509_KEY public_key;
+	X509_KEY sign_key;
 	uint8_t cert[8192];
 	size_t certlen;
 	uint8_t *in = NULL;
@@ -134,11 +135,15 @@ bad:
 		fprintf(stderr, "%s: key and cert are not match!\n", prog);
 		goto end;
 	}
+	if (x509_key_set_sm2_key(&sign_key, &sm2_key) != 1) {
+		fprintf(stderr, "%s: invalid signing key\n", prog);
+		goto end;
+	}
 
 
 	cert_and_key.certs = cert;
 	cert_and_key.certs_len = certlen;
-	cert_and_key.sign_key = &public_key;
+	cert_and_key.sign_key = &sign_key;
 
 	if (file_size(infp, &inlen) != 1) {
 		fprintf(stderr, "%s: get input length failed\n", prog);
