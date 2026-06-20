@@ -1041,7 +1041,7 @@ int asn1_object_identifier_from_octets(uint32_t *nodes, size_t *nodes_cnt, const
 
 	while (inlen) {
 		uint32_t val;
-		if (*nodes_cnt > ASN1_OID_MAX_NODES) {
+		if (*nodes_cnt >= ASN1_OID_MAX_NODES) {
 			error_print();
 			return -1;
 		}
