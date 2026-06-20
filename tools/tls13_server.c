@@ -329,7 +329,7 @@ int tls13_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-tls13_change_cipher_spec")) {
 			tls13_change_cipher_spec = 1;
 		} else if (!strcmp(*argv, "-verbose")) {
-			verbose = 5;
+			verbose = TLS_verbose;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;

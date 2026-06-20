@@ -735,6 +735,16 @@ static int test_tls_server_name_ext(void)
 		return -1;
 	}
 	tls_server_name_print(stderr, 0, 0, ext_data, ext_datalen);
+	if (tls_extension_print(stderr, 0, 0, TLS_handshake_client_hello,
+		ext_type, ext_data, ext_datalen) != 1) {
+		error_print();
+		return -1;
+	}
+	if (tls_extension_print(stderr, 0, 0, TLS_handshake_server_hello,
+		TLS_extension_server_name, NULL, 0) != 1) {
+		error_print();
+		return -1;
+	}
 
 
 	// 这里应该补充一个包含多个host_name的例子

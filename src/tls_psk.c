@@ -602,7 +602,9 @@ int tls13_add_pre_shared_key_from_session_file(TLS_CONNECT *conn, FILE *fp)
 	// FIXME: compute obfuscated_ticket_age from ticket_issue_time and ticket_age_add.
 	uint32_t obfuscated_ticket_age = 0;
 
-	format_print(stderr, 0, 0, "read SESSION\n");
+	if (conn->verbose) {
+		format_print(stderr, 0, 0, "read SESSION\n");
+	}
 
 	if ((ret = tls_uint16array_from_file(buf, &len, sizeof(buf), fp)) < 0) {
 		error_print();
@@ -650,7 +652,9 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 	int ret;
 	size_t padding_len;
 
-	tls_trace("send {NewSessionTicket*}\n");
+	if (conn->verbose) {
+		tls_trace("send {NewSessionTicket*}\n");
+	}
 
 	if (conn->recordlen == 0) {
 		// new_session_ticket
@@ -688,7 +692,9 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 		tls13_hkdf_expand_label(conn->digest, resumption_master_secret, "resumption",
 			ticket_nonce, sizeof(ticket_nonce), dgstlen, pre_shared_key);
 
-		format_bytes(stderr, 0, 0, ">>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
+		if (conn->verbose == TLS_verbose_print_key) {
+			format_bytes(stderr, 0, 0, ">>>> pre_shared_key", pre_shared_key, sizeof(pre_shared_key));
+		}
 
 		if (tls13_ticket_encrypt(conn->ctx->session_ticket_key,
 			pre_shared_key, conn->protocol, conn->cipher_suite,
@@ -715,13 +721,17 @@ int tls13_send_new_session_ticket(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+		if (conn->verbose) {
+			tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+		}
 
-		format_print(stderr, 0, 0, "update server secrets\n");
-		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
-		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
-		format_bytes(stderr, 0, 4, "server_seq_num", conn->server_seq_num, 8);
-		format_print(stderr, 0, 0, "\n");
+		if (conn->verbose == TLS_verbose_print_key) {
+			format_print(stderr, 0, 0, "update server secrets\n");
+			format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, 48);
+			format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, 12);
+			format_bytes(stderr, 0, 4, "server_seq_num", conn->server_seq_num, 8);
+			format_print(stderr, 0, 0, "\n");
+		}
 
 		tls13_padding_len_rand(&padding_len);
 		if (tls13_record_encrypt(conn->cipher_suite, &conn->server_write_key, conn->server_write_iv,
@@ -826,7 +836,9 @@ int tls13_process_new_session_ticket(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if(conn->verbose) tls13_session_print(stderr, 0, 0, "SESSION", session, sessionlen);
+	if (conn->verbose == TLS_verbose_print_key) {
+		tls13_session_print(stderr, 0, 0, "SESSION", session, sessionlen);
+	}
 
 	if (conn->session_out) {
 		FILE *fp;
@@ -1798,9 +1810,13 @@ int tls13_send_end_of_early_data(TLS_CONNECT *conn)
 			error_print();
 			return -1;
 		}
-		tls_trace("send EndOfEarlyData\n");
+		if (conn->verbose) {
+			tls_trace("send EndOfEarlyData\n");
+		}
 
-		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+		if (conn->verbose == TLS_verbose_print_key) {
+			format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+		}
 
 		size_t padding_len;
 		tls13_padding_len_rand(&padding_len);
@@ -1812,7 +1828,9 @@ int tls13_send_end_of_early_data(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		if (conn->verbose) {
+			tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		}
 	}
 
 	if ((ret = tls_send_record(conn)) != 1) {
@@ -1831,10 +1849,12 @@ int tls13_send_end_of_early_data(TLS_CONNECT *conn)
 	tls_seq_num_reset(conn->client_seq_num);
 
 	// client_early_traffic_secret 用来加密early_data, end_of_early_data
-	format_print(stderr, 0, 0, "client_write_key/iv <= client_handshake_traffic_secret\n");
-	format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 32);
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	if (conn->verbose == TLS_verbose_print_key) {
+		format_print(stderr, 0, 0, "client_write_key/iv <= client_handshake_traffic_secret\n");
+		format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 32);
+		format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
+		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	}
 
 	tls_clean_record(conn);
 	return 1;
@@ -1844,7 +1864,9 @@ int tls13_send_end_of_early_data(TLS_CONNECT *conn)
 int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 {
 	int ret;
-	tls_trace("recv {EndOfEarlyData}\n");
+	if (conn->verbose) {
+		tls_trace("recv {EndOfEarlyData}\n");
+	}
 
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
@@ -1853,7 +1875,9 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 		return ret;
 	}
 
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	if (conn->verbose == TLS_verbose_print_key) {
+		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	}
 
 	if (tls13_record_decrypt(conn->cipher_suite, &conn->client_write_key, conn->client_write_iv,
 		conn->client_seq_num, conn->record, conn->recordlen,
@@ -1862,7 +1886,9 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 		tls13_send_alert(conn, TLS_alert_bad_record_mac);
 		return -1;
 	}
-	tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+	if (conn->verbose) {
+		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
+	}
 
 	if ((ret = tls13_record_get_handshake_end_of_early_data(conn->plain_record)) < 0) {
 		error_print();
@@ -1883,10 +1909,12 @@ int tls13_recv_end_of_early_data(TLS_CONNECT *conn)
 	tls13_hkdf_expand_label(conn->digest, conn->client_handshake_traffic_secret, "iv", NULL, 0, 12, conn->client_write_iv);
 	tls_seq_num_reset(conn->client_seq_num);
 
-	format_print(stderr, 0, 0, "client_write_key/iv <= client_handshake_traffic_secret\n");
-	format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 32);
-	format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
-	format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	if (conn->verbose == TLS_verbose_print_key) {
+		format_print(stderr, 0, 0, "client_write_key/iv <= client_handshake_traffic_secret\n");
+		format_bytes(stderr, 0, 4, "client_handshake_traffic_secret", conn->client_handshake_traffic_secret, 32);
+		format_bytes(stderr, 0, 4, "client_write_key", client_write_key, 16);
+		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, 12);
+	}
 
 	return 1;
 }

@@ -806,6 +806,11 @@ enum {
 	TLS_client_mode = 1,
 };
 
+enum {
+	TLS_verbose = 1,
+	TLS_verbose_print_key = 5,
+};
+
 #define TLS_MAX_CIPHER_SUITES_COUNT	64
 
 

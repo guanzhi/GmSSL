@@ -260,7 +260,7 @@ int tls12_server_main(int argc , char **argv)
 		} else if (!strcmp(*argv, "-renegotiation_info")) {
 			renegotiation_info = 1;
 		} else if (!strcmp(*argv, "-verbose")) {
-			verbose = 5;
+			verbose = TLS_verbose;
 		} else {
 			fprintf(stderr, "%s: invalid option '%s'\n", prog, *argv);
 			return 1;

@@ -2998,7 +2998,7 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 			return -1;
 		}
 
-		if (conn->verbose >= 5) {
+		if (conn->verbose) {
 			format_bytes(stderr, 0, 0, "server verify_data", local_verify_data, 12);
 		}
 

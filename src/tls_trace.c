@@ -500,12 +500,29 @@ int tls_extension_print(FILE *fp, int fmt, int ind, int handshake_type, int type
 	const uint8_t *p;
 	size_t len;
 
-	(void)handshake_type;
-
 	format_print(fp, fmt, ind, "%s (%d)\n", tls_extension_name(type), type);
 	ind += 4;
 
 	switch (type) {
+	case TLS_extension_server_name:
+		switch (handshake_type) {
+		case TLS_handshake_client_hello:
+			if (tls_server_name_print(fp, fmt, ind, data, datalen) != 1) {
+				error_print();
+				return -1;
+			}
+			break;
+		case TLS_handshake_server_hello:
+			if (datalen) {
+				error_print();
+				return -1;
+			}
+			format_print(fp, fmt, ind, "(empty)\n");
+			break;
+		default:
+			format_bytes(fp, fmt, ind, "raw_data", data, datalen);
+		}
+		break;
 	// FIXME: 不支持ServerHello
 	case TLS_extension_supported_versions:
 		if (tls_uint16array_from_bytes(&p, &len, &data, &datalen) != 1

@@ -652,7 +652,7 @@ int tls13_generate_early_keys(TLS_CONNECT *conn)
 	}
 	tls_seq_num_reset(conn->client_seq_num);
 
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "generate_early_keys\n");
 		format_bytes(stderr, 0, 4, "early_secret", conn->early_secret, conn->digest->digest_size);
 		format_bytes(stderr, 0, 4, "client_early_traffic_secret", conn->client_early_traffic_secret, conn->digest->digest_size);
@@ -705,7 +705,7 @@ int tls13_generate_handshake_secrets(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "generate_handshake_secrets\n");
 		format_bytes(stderr, 0, 4, "early_secret", conn->early_secret, conn->digest->digest_size);
 		format_bytes(stderr, 0, 4, "derived_secret", derived_secret, conn->digest->digest_size);
@@ -740,7 +740,7 @@ int tls13_generate_master_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "generate_master_secret\n");
 		format_bytes(stderr, 0, 4, "master_secret", conn->master_secret, conn->digest->digest_size);
 	}
@@ -767,7 +767,7 @@ int tls13_generate_client_handshake_keys(TLS_CONNECT *conn)
 	}
 	tls_seq_num_reset(conn->client_seq_num);
 
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "generate_client_handshake_keys\n");
 		format_bytes(stderr, 0, 4, "client_write_key", client_write_key, client_write_key_len);
 		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, TLS13_IV_SIZE);
@@ -798,7 +798,7 @@ int tls13_generate_server_handshake_keys(TLS_CONNECT *conn)
 	}
 	tls_seq_num_reset(conn->server_seq_num);
 
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "generate_server_handshake_keys\n");
 		format_bytes(stderr, 0, 4, "server_write_key", server_write_key, server_write_key_len);
 		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, TLS13_IV_SIZE);
@@ -820,7 +820,7 @@ int tls13_generate_application_secrets(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "generate_application_secrets\n");
 		format_bytes(stderr, 0, 4, "client_application_traffic_secret", conn->client_application_traffic_secret, conn->dgst_ctx.digest->digest_size);
 		format_bytes(stderr, 0, 4, "server_application_traffic_secret", conn->server_application_traffic_secret, conn->dgst_ctx.digest->digest_size);
@@ -839,7 +839,7 @@ int tls13_update_client_application_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "update_client_application_secret\n");
 		format_bytes(stderr, 0, 4, "client_application_traffic_secret",
 			conn->client_application_traffic_secret, conn->digest->digest_size);
@@ -858,7 +858,7 @@ int tls13_update_server_application_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "update_server_application_secret\n");
 		format_bytes(stderr, 0, 4, "server_application_traffic_secret",
 			conn->server_application_traffic_secret, conn->digest->digest_size);
@@ -886,7 +886,7 @@ int tls13_generate_client_application_keys(TLS_CONNECT *conn)
 	}
 	tls_seq_num_reset(conn->client_seq_num);
 
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "update_client_application_keys\n");
 		format_bytes(stderr, 0, 4, "client_write_key", client_write_key, client_write_key_len);
 		format_bytes(stderr, 0, 4, "client_write_iv", conn->client_write_iv, TLS13_IV_SIZE);
@@ -917,7 +917,7 @@ int tls13_generate_server_application_keys(TLS_CONNECT *conn)
 	}
 	tls_seq_num_reset(conn->server_seq_num);
 
-	if (conn->verbose >= 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_print(stderr, 0, 0, "update_server_application_keys\n");
 		format_bytes(stderr, 0, 4, "server_write_key", server_write_key, server_write_key_len);
 		format_bytes(stderr, 0, 4, "server_write_iv", conn->server_write_iv, TLS13_IV_SIZE);

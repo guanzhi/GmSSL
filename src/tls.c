@@ -929,7 +929,7 @@ int tls_derive_master_secret(TLS_CONNECT *conn)
 		error_print();
 		return -1;
 	}
-	if (conn->verbose == 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_bytes(stderr, 0, 0, "master_secret", conn->master_secret, 48);
 	}
 	return 1;
@@ -968,7 +968,7 @@ int tls_derive_key_block(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	if (conn->verbose == 5) {
+	if (conn->verbose == TLS_verbose_print_key) {
 		format_bytes(stderr, 0, 0, "key_blocks", conn->key_block, conn->key_block_len);
 	}
 	return 1;
@@ -1015,7 +1015,7 @@ int tls_init_application_keys(TLS_CONNECT *conn)
 					return -1;
 				}
 			}
-			if (conn->verbose >= 5) {
+			if (conn->verbose == TLS_verbose_print_key) {
 				format_bytes(stderr, 0, 0, "client_write_mac_key", conn->key_block, dgstlen);
 				format_bytes(stderr, 0, 0, "server_write_mac_key", conn->key_block + dgstlen, dgstlen);
 				format_bytes(stderr, 0, 0, "client_write_key", conn->key_block + dgstlen * 2, keylen);
@@ -1036,7 +1036,7 @@ int tls_init_application_keys(TLS_CONNECT *conn)
 		memset(conn->server_write_iv, 0, sizeof(conn->server_write_iv));
 		memcpy(conn->client_write_iv, conn->key_block + keylen * 2, 4);
 		memcpy(conn->server_write_iv, conn->key_block + keylen * 2 + 4, 4);
-		if (conn->verbose >= 5) {
+		if (conn->verbose == TLS_verbose_print_key) {
 			format_bytes(stderr, 0, 0, "client_write_key", conn->key_block, keylen);
 			format_bytes(stderr, 0, 0, "server_write_key", conn->key_block + keylen, keylen);
 			format_bytes(stderr, 0, 0, "client_write_iv", conn->key_block + keylen * 2, 4);
@@ -2835,7 +2835,7 @@ int tls_ctx_set_verbose(TLS_CTX *ctx, int verbose)
 		error_print();
 		return -1;
 	}
-	if (verbose < 0 || verbose > 5) {
+	if (verbose < 0 || verbose > TLS_verbose_print_key) {
 		error_print();
 		return -1;
 	}
@@ -2849,7 +2849,7 @@ int tls_ctx_enable_verbose(TLS_CTX *ctx, int enable)
 		error_print();
 		return -1;
 	}
-	ctx->verbose = enable ? 1 : 0;
+	ctx->verbose = enable ? TLS_verbose : 0;
 	return 1;
 }
 
@@ -3376,7 +3376,7 @@ int tls_set_verbose(TLS_CONNECT *conn, int verbose)
 		error_print();
 		return -1;
 	}
-	if (verbose < 0 || verbose > 5) {
+	if (verbose < 0 || verbose > TLS_verbose_print_key) {
 		error_print();
 		return -1;
 	}
