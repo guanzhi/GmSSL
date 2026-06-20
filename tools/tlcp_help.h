@@ -9,8 +9,8 @@
 
 "\n"
 "Supported cipher suites:\n"
-"      TLS_ECC_SM4_GCM_SM3\n"
 "      TLS_ECC_SM4_CBC_SM3\n"
+"      TLS_ECC_SM4_GCM_SM3\n"
 "\n"
 "\n"
 "Examples\n"

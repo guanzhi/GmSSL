@@ -763,9 +763,11 @@ if(ENABLE_TLS AND NOT WIN32)
 	add_test(NAME tlcp_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tlcp_sm4_cbc_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_cbc_sni -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
 	add_test(NAME tlcp_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tlcp_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tlcp_commands.cmake")
-	add_test(NAME tls12_sm4_cbc COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_cbc -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
-	add_test(NAME tls12_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
-	add_test(NAME tls13_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tls12_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls12_sm4_cbc_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_cbc_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls12_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls13_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
+	add_test(NAME tls13_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	add_test(NAME tls13_hrr_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_hrr_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	add_test(NAME tls13_psk_dhe_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_psk_dhe_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	add_test(NAME tls13_psk_only_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_psk_only_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
@@ -774,9 +776,11 @@ if(ENABLE_TLS AND NOT WIN32)
 		tlcp_sm4_gcm_sni
 		tlcp_sm4_cbc_sni
 		tlcp_sm4_gcm_client_cert
-		tls12_sm4_cbc
-		tls12_sm4_gcm
-		tls13_sm4_gcm
+		tls12_sm4_gcm_sni
+		tls12_sm4_cbc_sni
+		tls12_sm4_gcm_client_cert
+		tls13_sm4_gcm_sni
+		tls13_sm4_gcm_client_cert
 		tls13_hrr_sm4_gcm
 		tls13_psk_dhe_sm4_gcm
 		tls13_psk_only_sm4_gcm
@@ -827,7 +831,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1113")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1114")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
