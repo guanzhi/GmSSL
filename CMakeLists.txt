@@ -766,6 +766,8 @@ if(ENABLE_TLS AND NOT WIN32)
 	add_test(NAME tls12_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tls12_sm4_cbc_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_cbc_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tls12_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls12_sm4_gcm_renegotiation_info COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_renegotiation_info -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
+	add_test(NAME tls12_sm4_gcm_renegotiation_info_scsv COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls12_sm4_gcm_renegotiation_info_scsv -P "${CMAKE_SOURCE_DIR}/cmake/tls12_commands.cmake")
 	add_test(NAME tls13_sm4_gcm_sni COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm_sni -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	add_test(NAME tls13_sm4_gcm_client_cert COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_sm4_gcm_client_cert -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
 	add_test(NAME tls13_hrr_sm4_gcm COMMAND ${CMAKE_COMMAND} -DTEST_CASE=tls13_hrr_sm4_gcm -P "${CMAKE_SOURCE_DIR}/cmake/tls13_commands.cmake")
@@ -779,6 +781,8 @@ if(ENABLE_TLS AND NOT WIN32)
 		tls12_sm4_gcm_sni
 		tls12_sm4_cbc_sni
 		tls12_sm4_gcm_client_cert
+		tls12_sm4_gcm_renegotiation_info
+		tls12_sm4_gcm_renegotiation_info_scsv
 		tls13_sm4_gcm_sni
 		tls13_sm4_gcm_client_cert
 		tls13_hrr_sm4_gcm
@@ -793,6 +797,8 @@ if(ENABLE_TLS AND NOT WIN32)
 		PROPERTIES DISABLED TRUE)
 	if(OPENSSL_EXECUTABLE AND GMSSL_OPENSSL_INTEROP_ENABLED)
 		add_test(NAME tls12_openssl_server COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_server -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
+		add_test(NAME tls12_openssl_server_renegotiation_info COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_server_renegotiation_info -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
+		add_test(NAME tls12_openssl_server_renegotiation_info_scsv COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_server_renegotiation_info_scsv -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
 		add_test(NAME tls12_openssl_client COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_client -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
 		add_test(NAME tls13_openssl_server COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls13_openssl_server -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
 		add_test(NAME tls13_openssl_client COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls13_openssl_client -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
@@ -803,6 +809,8 @@ if(ENABLE_TLS AND NOT WIN32)
 		add_test(NAME tls13_psk_only_openssl_client COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls13_psk_only_openssl_client -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
 		set_tests_properties(
 			tls12_openssl_server
+			tls12_openssl_server_renegotiation_info
+			tls12_openssl_server_renegotiation_info_scsv
 			tls12_openssl_client
 			tls13_openssl_server
 			tls13_openssl_client
@@ -831,7 +839,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1118")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1119")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

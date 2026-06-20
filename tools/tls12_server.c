@@ -33,7 +33,7 @@ static const char *help =
 "    -cacert pem            CA certificate for client certificate verification\n"
 "    -verify_depth num      Certificate verification depth\n"
 "    -client_cert_optional  Allow client send empty Certificate\n"
-"    -renegotiation_info    Send renegotiation_info response when client supports RFC 5746\n"
+"    -renegotiation_info    Accepted for compatibility; RFC 5746 response is automatic\n"
 "    -verbose               Print TLS handshake messages\n"
 "\n"
 #include "tls12_help.h"

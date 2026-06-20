@@ -15,6 +15,18 @@ if(TEST_CASE STREQUAL tls12_sm4_gcm_sni)
 	set(TEST_PORT 4434)
 	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_GCM_SM3)
 	set(TEST_CLIENT_CERT OFF)
+elseif(TEST_CASE STREQUAL tls12_sm4_gcm_renegotiation_info)
+	set(TEST_NAME tls12_sm4_gcm_renegotiation_info)
+	set(TEST_PORT 4461)
+	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_GCM_SM3)
+	set(TEST_CLIENT_CERT OFF)
+	set(TEST_RENEGOTIATION_ARG -renegotiation_info)
+elseif(TEST_CASE STREQUAL tls12_sm4_gcm_renegotiation_info_scsv)
+	set(TEST_NAME tls12_sm4_gcm_renegotiation_info_scsv)
+	set(TEST_PORT 4462)
+	set(TEST_CIPHER_SUITE TLS_ECDHE_SM4_GCM_SM3)
+	set(TEST_CLIENT_CERT OFF)
+	set(TEST_RENEGOTIATION_ARG -renegotiation_info_scsv)
 elseif(TEST_CASE STREQUAL tls12_sm4_cbc_sni)
 	set(TEST_NAME tls12_sm4_cbc_sni)
 	set(TEST_PORT 4432)
@@ -49,6 +61,10 @@ set(TEST_CLIENT_ARGS
 	-supported_group sm2p256v1
 	-sig_alg sm2sig_sm3
 	-in ${TEST_NAME}_message.txt)
+
+if(TEST_RENEGOTIATION_ARG)
+	list(APPEND TEST_CLIENT_ARGS ${TEST_RENEGOTIATION_ARG})
+endif()
 
 if(TEST_CLIENT_CERT)
 	list(APPEND TEST_SERVER_ARGS

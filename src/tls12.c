@@ -1660,7 +1660,7 @@ int tls_recv_server_hello_done(TLS_CONNECT *conn)
 int tls_send_client_certificate(TLS_CONNECT *conn)
 {
 	int ret;
-	if(conn->verbose) tls_trace("send ClientCertificate\n");
+	if(conn->verbose) tls_trace("send client Certificate\n");
 
 	if (conn->client_certs_len == 0) {
 		error_print();
@@ -1916,6 +1916,9 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		tls12_send_alert(conn, TLS_alert_internal_error);
 		return -1;
 	}
+
+	if (conn->verbose)
+		tls_trace("recv server {Finished}\n");
 
 	// Finished
 	if ((ret = tls_recv_record(conn)) != 1) {
@@ -2177,7 +2180,8 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 			return -1;
 		}
 	}
-	if (conn->ctx->renegotiation_info && (renegotiation_info || empty_renegotiation_info_scsv)) {
+	// RFC 5746 signaling is supported for the initial handshake only.
+	if (renegotiation_info || empty_renegotiation_info_scsv) {
 		conn->secure_renegotiation = 1;
 	}
 
@@ -2441,7 +2445,7 @@ int tls_send_server_certificate(TLS_CONNECT *conn)
 {
 	int ret;
 
-	if (conn->verbose) tls_trace("send ServerCertificate\n");
+	if (conn->verbose) tls_trace("send server Certificate\n");
 
 	if (conn->recordlen == 0) {
 		if (tls_record_set_handshake_certificate(conn->record, &conn->recordlen,
@@ -2662,7 +2666,7 @@ int tls_recv_client_certificate(TLS_CONNECT *conn)
 	int ret;
 	int verify_result = 0;
 
-	if(conn->verbose) tls_trace("recv ClientCertificate\n");
+	if(conn->verbose) tls_trace("recv client Certificate\n");
 
 	if (conn->ctx->cacertslen == 0) {
 		error_print();
