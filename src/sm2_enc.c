@@ -322,6 +322,9 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 	uint8_t x2y2[64];
 	SM3_CTX sm3_ctx;
 	uint8_t hash[32];
+	uint8_t plaintext[SM2_MAX_PLAINTEXT_SIZE];
+
+	*outlen = 0;
 
 	// check C1 is on sm2 curve
 	if (sm2_z256_point_from_bytes(&C1, (uint8_t *)&in->point) != 1) {
@@ -334,20 +337,19 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 
 	// t = KDF(x2 || y2, klen) and check t is not all zeros
 	sm2_z256_point_to_bytes(&C1, x2y2);
-	sm2_kdf(x2y2, 64, in->ciphertext_size, out);
-	if (all_zero(out, in->ciphertext_size)) {
+	sm2_kdf(x2y2, 64, in->ciphertext_size, plaintext);
+	if (all_zero(plaintext, in->ciphertext_size)) {
 		error_print();
 		goto end;
 	}
 
 	// M = C2 xor t
-	gmssl_memxor(out, out, in->ciphertext, in->ciphertext_size);
-	*outlen = in->ciphertext_size;
+	gmssl_memxor(plaintext, plaintext, in->ciphertext, in->ciphertext_size);
 
 	// u = Hash(x2 || M || y2)
 	sm3_init(&sm3_ctx);
 	sm3_update(&sm3_ctx, x2y2, 32);
-	sm3_update(&sm3_ctx, out, in->ciphertext_size);
+	sm3_update(&sm3_ctx, plaintext, in->ciphertext_size);
 	sm3_update(&sm3_ctx, x2y2 + 32, 32);
 	sm3_finish(&sm3_ctx, hash);
 
@@ -356,11 +358,15 @@ int sm2_do_decrypt(const SM2_KEY *key, const SM2_CIPHERTEXT *in, uint8_t *out, s
 		error_print();
 		goto end;
 	}
+	memcpy(out, plaintext, in->ciphertext_size);
+	*outlen = in->ciphertext_size;
 	ret = 1;
 
 end:
 	gmssl_secure_clear(&C1, sizeof(SM2_Z256_POINT));
 	gmssl_secure_clear(x2y2, sizeof(x2y2));
+	gmssl_secure_clear(hash, sizeof(hash));
+	gmssl_secure_clear(plaintext, sizeof(plaintext));
 	return ret;
 }
 

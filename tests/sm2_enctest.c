@@ -113,6 +113,40 @@ static int test_sm2_do_encrypt(void)
 	return 1;
 }
 
+static int test_sm2_do_decrypt_bad_hash_does_not_output_plaintext(void)
+{
+	SM2_KEY sm2_key;
+	uint8_t plaintext[] = "Hello World!";
+	SM2_CIPHERTEXT ciphertext;
+	uint8_t out[SM2_MAX_PLAINTEXT_SIZE];
+	size_t outlen = sizeof(out);
+	size_t i;
+
+	if (sm2_key_generate(&sm2_key) != 1
+		|| sm2_do_encrypt(&sm2_key, plaintext, sizeof(plaintext), &ciphertext) != 1) {
+		error_print();
+		return -1;
+	}
+
+	ciphertext.hash[0] ^= 0x01;
+	memset(out, 0xa5, sizeof(out));
+
+	if (sm2_do_decrypt(&sm2_key, &ciphertext, out, &outlen) != -1
+		|| outlen != 0) {
+		error_print();
+		return -1;
+	}
+	for (i = 0; i < sizeof(out); i++) {
+		if (out[i] != 0xa5) {
+			error_print();
+			return -1;
+		}
+	}
+
+	printf("%s() ok\n", __FUNCTION__);
+	return 1;
+}
+
 static int test_sm2_do_encrypt_fixlen(void)
 {
 	struct {
@@ -323,6 +357,7 @@ int main(void)
 {
 	if (test_sm2_ciphertext() != 1) goto err;
 	if (test_sm2_do_encrypt() != 1) goto err;
+	if (test_sm2_do_decrypt_bad_hash_does_not_output_plaintext() != 1) goto err;
 	if (test_sm2_do_encrypt_fixlen() != 1) goto err;
 	if (test_sm2_encrypt() != 1) goto err;
 	if (test_sm2_encrypt_fixlen() != 1) goto err;
@@ -335,4 +370,3 @@ err:
 	error_print();
 	return -1;
 }
-
