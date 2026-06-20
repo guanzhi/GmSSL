@@ -1925,7 +1925,7 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		return ret;
 	}
 	if(conn->verbose)
-		tls_trace("recv server Finished\n");
+		tls_trace("recv server {Finished}\n");
 
 	if (tls_record_protocol(conn->record) != conn->protocol) {
 		error_print();
@@ -2989,7 +2989,7 @@ int tls_send_server_finished(TLS_CONNECT *conn)
 	tls_record_set_protocol(conn->plain_record, conn->protocol);
 
 	if (conn->recordlen == 0) {
-		if(conn->verbose) tls_trace("send server Finished\n");
+		if(conn->verbose) tls_trace("send server {Finished}\n");
 
 		if (tls_compute_verify_data(conn->digest, conn->master_secret,
 			"server finished", &conn->dgst_ctx, local_verify_data) != 1) {

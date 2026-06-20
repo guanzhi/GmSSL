@@ -1387,7 +1387,7 @@ int tls13_do_recv(TLS_CONNECT *conn)
 
 	conn->recordlen = tls_record_length(conn->record);
 
-	if(conn->verbose) tls_trace("recv {ApplicationData}\n");
+	if(conn->verbose) tls_trace("recv {Record}\n");
 	tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 
@@ -1511,7 +1511,7 @@ int tls13_do_recv(TLS_CONNECT *conn)
 			return -1;
 		}
 		if (alert_description == TLS_alert_close_notify) {
-			if(conn->verbose) tls_trace("recv Alert.close_notify\n");
+			if(conn->verbose) tls_trace("recv {Alert.close_notify}\n");
 			conn->close_notify_received = 1;
 			conn->data = NULL;
 			conn->datalen = 0;

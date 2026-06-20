@@ -2341,7 +2341,6 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 		seq_num = conn->client_seq_num;
 	}
 
-	if(conn->verbose) tls_trace("recv Encrypted Record\n");
 	if (conn->send_state) {
 		return TLS_ERROR_SEND_AGAIN;
 	}
@@ -2453,14 +2452,14 @@ static int tls12_tlcp_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_
 			int alert;
 			tls_record_get_alert(conn->databuf, &level, &alert);
 			if (alert == TLS_alert_close_notify) {
-				if(conn->verbose) tls_trace("recv Alert.close_notify\n");
+				if(conn->verbose) tls_trace("recv {Alert.close_notify}\n");
 				conn->close_notify_received = 1;
 				conn->data = NULL;
 				conn->datalen = 0;
 				tls_clean_record(conn);
 				return 0;
 			}
-			if(conn->verbose) tls_trace("alert received\n");
+			if(conn->verbose) tls_trace("recv {Alert}\n");
 			conn->data = NULL;
 			conn->datalen = 0;
 			tls_clean_record(conn);
@@ -2526,7 +2525,7 @@ static int tls12_send_close_notify(TLS_CONNECT *conn)
 			seq_num = conn->server_seq_num;
 		}
 
-		if(conn->verbose) tls_trace("send Alert.close_notify\n");
+		if(conn->verbose) tls_trace("send {Alert.close_notify}\n");
 
 		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen,
 			TLS_alert_level_warning, TLS_alert_close_notify);
@@ -2579,7 +2578,7 @@ static int tls13_send_close_notify(TLS_CONNECT *conn)
 			seq_num = conn->server_seq_num;
 		}
 
-		if(conn->verbose) tls_trace("send Alert.close_notify\n");
+		if(conn->verbose) tls_trace("send {Alert.close_notify}\n");
 
 		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen,
 			TLS_alert_level_warning, TLS_alert_close_notify);
@@ -2667,7 +2666,6 @@ int tls_shutdown(TLS_CONNECT *conn)
 	}
 
 	if (conn->shutdown_state == TLS_state_shutdown_recv_close_notify) {
-		if(conn->verbose) tls_trace("recv Alert.close_notify\n");
 		for (;;) {
 			ret = tls_recv(conn, buf, sizeof(buf), &len);
 			if (ret == 1 && len > 0) {

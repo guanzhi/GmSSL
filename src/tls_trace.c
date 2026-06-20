@@ -1168,7 +1168,7 @@ int tls_connect_print(FILE *fp, int fmt, int ind, const char *label, const TLS_C
 
 	format_print(fp, fmt, ind, "%s\n", TLS_CONNECTION_ESTABLISHED_STRING);
 	format_print(fp, fmt, ind, "Protocol: %s\n", tls_protocol_name(conn->protocol));
-	format_print(fp, fmt, ind, "Cipher suite: %s\n", tls_cipher_suite_name(conn->cipher_suite));
+	format_print(fp, fmt, ind, "CipherSuite: %s\n", tls_cipher_suite_name(conn->cipher_suite));
 	if (conn->alpn_selected) {
 		format_print(fp, fmt, ind, "ALPN protocol: %s\n", conn->alpn_selected);
 	}
@@ -1177,13 +1177,14 @@ int tls_connect_print(FILE *fp, int fmt, int ind, const char *label, const TLS_C
 		&& x509_certs_get_cert_by_index(conn->peer_cert_chain,
 			conn->peer_cert_chain_len, 0, &cert, &certlen) == 1) {
 		if (x509_cert_get_subject(cert, certlen, &name, &namelen) == 1) {
-			x509_name_print(fp, fmt, ind, "Peer certificate subject", name, namelen);
+			x509_name_print(fp, fmt, ind, "Certificate.subject", name, namelen);
 		}
 		if (x509_cert_get_issuer(cert, certlen, &name, &namelen) == 1) {
-			x509_name_print(fp, fmt, ind, "Peer certificate issuer", name, namelen);
+			x509_name_print(fp, fmt, ind, "Certificate.issuer", name, namelen);
 		}
 	}
 
+	fprintf(fp, "\n");
 	return 1;
 }
 
@@ -1291,7 +1292,7 @@ int tls_encrypted_record_print(FILE *fp, const uint8_t *record,  size_t recordle
 	}
 
 	protocol = tls_record_protocol(record);
-	format_print(fp, fmt, ind, "EncryptedRecord\n"); ind += 4;
+	format_print(fp, fmt, ind, "recv {Record}\n"); ind += 4;
 	format_print(fp, fmt, ind, "ContentType: %s (%d)\n", tls_record_type_name(record[0]), record[0]);
 	format_print(fp, fmt, ind, "Version: %s (%04x)\n", tls_protocol_name(protocol), protocol);
 	format_print(fp, fmt, ind, "Length: %d\n", tls_record_data_length(record));
@@ -1341,6 +1342,7 @@ int tls_handshake_digest_print(FILE *fp, int fmt, int ind, const char *label, co
 
 	format_print(fp, fmt, ind, "transcript_hash ");
 	format_bytes(fp, 0, 0, label, dgst, dgstlen);
+	fprintf(fp, "\n");
 
 	return 1;
 }
