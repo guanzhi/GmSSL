@@ -938,7 +938,7 @@ int tls_send_client_hello(TLS_CONNECT *conn)
 		uint8_t exts[TLS_MAX_EXTENSIONS_SIZE];
 		uint8_t *pexts = exts;
 		size_t extslen = 0;
-		int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT + 1];
+		int cipher_suites[TLS_MAX_CIPHER_SUITES + 1];
 		const int *client_cipher_suites = conn->ctx->cipher_suites;
 		size_t client_cipher_suites_cnt = conn->ctx->cipher_suites_cnt;
 
@@ -1924,9 +1924,6 @@ int tls_recv_server_finished(TLS_CONNECT *conn)
 		}
 		return ret;
 	}
-	if(conn->verbose)
-		tls_trace("recv server {Finished}\n");
-
 	if (tls_record_protocol(conn->record) != conn->protocol) {
 		error_print();
 		tls12_send_alert(conn, TLS_alert_unexpected_message);
@@ -2001,7 +1998,7 @@ int tls_recv_client_hello(TLS_CONNECT *conn)
 	const uint8_t *renegotiation_info = NULL;
 	size_t renegotiation_info_len = 0;
 	int empty_renegotiation_info_scsv = 0;
-	int common_cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
+	int common_cipher_suites[TLS_MAX_CIPHER_SUITES];
 	size_t common_cipher_suites_cnt = 0;
 	int common_supported_groups[32];
 	size_t common_supported_groups_cnt = 0;
@@ -2913,16 +2910,12 @@ int tls_recv_client_finished(TLS_CONNECT *conn)
 		return -1;
 	}
 
-	// recv ClientFinished
-	if(conn->verbose) tls_trace("recv client {Finished}\n");
 	if ((ret = tls_recv_record(conn)) != 1) {
 		if (ret != TLS_ERROR_RECV_AGAIN) {
 			error_print();
 		}
 		return ret;
 	}
-	//tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, conn->recordlen);
-
 	if (tls_record_protocol(conn->record) != conn->protocol) {
 		error_print();
 		tls_send_alert(conn, TLS_alert_unexpected_message);
@@ -3144,6 +3137,7 @@ int tls12_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentl
 			error_print();
 			return -1;
 		}
+		if(conn->verbose) tls_trace("send {ApplicationData}\n");
 		if(conn->verbose) tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->databuf, tls_record_length(conn->databuf));
 
 		switch (conn->cipher_suite) {
@@ -3195,7 +3189,6 @@ int tls12_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentl
 		conn->record_offset = 0;
 		conn->sentlen = inlen;
 		conn->send_state = TLS_state_send_record;
-		if(conn->verbose) tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->record, recordlen);
 	}
 
 	ret = tls_send_record(conn);
@@ -3264,6 +3257,9 @@ static int tls12_send_alert_ex(TLS_CONNECT *conn, int level, int alert)
 			return -1;
 		}
 		if (conn->verbose) {
+			tls_trace("send {Alert}\n");
+		}
+		if (conn->verbose) {
 			tls_record_print(stderr, 0, 0, conn->cipher_suite, conn->plain_record, conn->plain_recordlen);
 		}
 
@@ -3278,10 +3274,6 @@ static int tls12_send_alert_ex(TLS_CONNECT *conn, int level, int alert)
 		tls_seq_num_incr(seq_num);
 		conn->record_offset = 0;
 		conn->send_state = TLS_state_send_record;
-
-		if (conn->verbose) {
-			tls_encrypted_record_print(stderr, conn->record, conn->recordlen, 0, 0);
-		}
 	}
 
 	ret = tls_send_record(conn);

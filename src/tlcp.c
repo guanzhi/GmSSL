@@ -1910,7 +1910,6 @@ int tlcp_send(TLS_CONNECT *conn, const uint8_t *in, size_t inlen, size_t *sentle
 		conn->record_offset = 0;
 		conn->sentlen = inlen;
 		conn->send_state = TLS_state_send_record;
-		if(conn->verbose) tls_encrypted_record_trace(stderr, conn->record, recordlen, 0, 0);
 	}
 
 	ret = tls_send_record(conn);

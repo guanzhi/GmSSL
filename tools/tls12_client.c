@@ -199,7 +199,7 @@ int tls12_client_main(int argc, char *argv[])
 	char *prog = argv[0];
 	char *host = NULL;
 	int port = 443;
-	int cipher_suites[4];
+	int cipher_suites[TLS_MAX_CIPHER_SUITES];
 	size_t cipher_suites_cnt = 0;
 	int supported_groups[4];
 	size_t supported_groups_cnt = 0;

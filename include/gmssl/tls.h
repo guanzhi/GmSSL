@@ -811,7 +811,7 @@ enum {
 	TLS_verbose_print_key = 5,
 };
 
-#define TLS_MAX_CIPHER_SUITES_COUNT	64
+#define TLS_MAX_CIPHER_SUITES	16
 
 
 typedef struct {
@@ -836,7 +836,7 @@ typedef struct {
 	int protocol;
 
 
-	int cipher_suites[TLS_MAX_CIPHER_SUITES_COUNT];
+	int cipher_suites[TLS_MAX_CIPHER_SUITES];
 	size_t cipher_suites_cnt;
 
 	uint8_t cert_chains[8192];
@@ -994,6 +994,9 @@ extern const int tls13_signature_algorithms[];
 extern const size_t tls13_signature_algorithms_cnt;
 extern const int tls13_cipher_suites[];
 extern const size_t tls13_cipher_suites_cnt;
+
+extern const int tls_cipher_suites[];
+extern const size_t tls_cipher_suites_cnt;
 
 
 

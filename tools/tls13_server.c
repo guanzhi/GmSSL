@@ -132,7 +132,7 @@ int tls13_server_main(int argc , char **argv)
 	char buf[1600] = {0};
 	size_t len = sizeof(buf);
 
-	int cipher_suites[4];
+	int cipher_suites[TLS_MAX_CIPHER_SUITES];
 	size_t cipher_suites_cnt = 0;
 
 

@@ -26,6 +26,33 @@
 #include <gmssl/tls.h>
 
 
+const int tls_cipher_suites[] = {
+	TLS_cipher_ecc_sm4_cbc_sm3,
+	TLS_cipher_ecc_sm4_gcm_sm3,
+	TLS_cipher_ecdhe_sm4_cbc_sm3,
+	TLS_cipher_ecdhe_sm4_gcm_sm3,
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2) && defined(ENABLE_SECP256R1)
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+#ifdef ENABLE_AES_CCM
+	TLS_cipher_ecdhe_ecdsa_with_aes_128_ccm,
+#endif
+#endif
+	TLS_cipher_sm4_gcm_sm3,
+#ifdef ENABLE_SM4_CCM
+	TLS_cipher_sm4_ccm_sm3,
+#endif
+#if defined(ENABLE_AES) && defined(ENABLE_SHA2)
+	TLS_cipher_aes_128_gcm_sha256,
+#ifdef ENABLE_AES_CCM
+	TLS_cipher_aes_128_ccm_sha256,
+#endif
+#endif
+};
+const size_t tls_cipher_suites_cnt =
+	sizeof(tls_cipher_suites)/sizeof(tls_cipher_suites[0]);
+
+
 void tls_uint8_to_bytes(uint8_t a, uint8_t **out, size_t *outlen)
 {
 	if (out && *out) {
@@ -1415,7 +1442,7 @@ int tls_record_set_handshake_client_hello(uint8_t *record, size_t *recordlen,
 			return -1;
 		}
 	}
-	if (cipher_suites_count > TLS_MAX_CIPHER_SUITES_COUNT) {
+	if (cipher_suites_count > TLS_MAX_CIPHER_SUITES) {
 		error_print();
 		return -1;
 	}
@@ -2356,11 +2383,7 @@ int tls_decrypt_recv(TLS_CONNECT *conn)
 	conn->recv_state = 0;
 	recordlen = conn->recordlen;
 	if (conn->verbose) {
-		if (conn->protocol == TLS_protocol_tls12) {
-			tls_encrypted_record_print(stderr, record, recordlen, 0, 0);
-		} else {
-			tls_encrypted_record_trace(stderr, record, recordlen, 0, 0);
-		}
+		tls_trace("recv {Record}\n");
 	}
 
 	if (conn->protocol == TLS_protocol_tls12) {
@@ -2452,14 +2475,12 @@ static int tls12_tlcp_recv(TLS_CONNECT *conn, uint8_t *out, size_t outlen, size_
 			int alert;
 			tls_record_get_alert(conn->databuf, &level, &alert);
 			if (alert == TLS_alert_close_notify) {
-				if(conn->verbose) tls_trace("recv {Alert.close_notify}\n");
 				conn->close_notify_received = 1;
 				conn->data = NULL;
 				conn->datalen = 0;
 				tls_clean_record(conn);
 				return 0;
 			}
-			if(conn->verbose) tls_trace("recv {Alert}\n");
 			conn->data = NULL;
 			conn->datalen = 0;
 			tls_clean_record(conn);
@@ -2527,8 +2548,13 @@ static int tls12_send_close_notify(TLS_CONNECT *conn)
 
 		if(conn->verbose) tls_trace("send {Alert.close_notify}\n");
 
+		tls_record_set_protocol(conn->plain_record, conn->protocol);
 		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen,
 			TLS_alert_level_warning, TLS_alert_close_notify);
+		if (conn->verbose) {
+			tls_record_print(stderr, 0, 0, conn->cipher_suite,
+				conn->plain_record, conn->plain_recordlen);
+		}
 
 		if (tls_record_encrypt(conn->cipher_suite, hmac, key, iv, seq_num,
 			conn->plain_record, conn->plain_recordlen,
@@ -2580,8 +2606,13 @@ static int tls13_send_close_notify(TLS_CONNECT *conn)
 
 		if(conn->verbose) tls_trace("send {Alert.close_notify}\n");
 
+		tls_record_set_protocol(conn->plain_record, TLS_protocol_tls12);
 		tls_record_set_alert(conn->plain_record, &conn->plain_recordlen,
 			TLS_alert_level_warning, TLS_alert_close_notify);
+		if (conn->verbose) {
+			tls13_record_print(stderr, 0, 0,
+				conn->plain_record, conn->plain_recordlen);
+		}
 		tls13_padding_len_rand(&padding_len);
 		if (tls13_record_encrypt(conn->cipher_suite, key, iv, seq_num, conn->plain_record, conn->plain_recordlen,
 			padding_len, conn->record, &conn->recordlen) != 1) {

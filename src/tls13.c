@@ -1273,7 +1273,7 @@ int tls13_send(TLS_CONNECT *conn, const uint8_t *data, size_t datalen, size_t *s
 
 
 		if(conn->verbose) tls_trace("send {ApplicationData}\n");
-		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
+		tls13_record_print(stderr, 0, 0, conn->plain_record, conn->plain_recordlen);
 
 	}
 
@@ -1511,7 +1511,6 @@ int tls13_do_recv(TLS_CONNECT *conn)
 			return -1;
 		}
 		if (alert_description == TLS_alert_close_notify) {
-			if(conn->verbose) tls_trace("recv {Alert.close_notify}\n");
 			conn->close_notify_received = 1;
 			conn->data = NULL;
 			conn->datalen = 0;
@@ -7233,7 +7232,7 @@ int tls13_recv_client_hello(TLS_CONNECT *conn)
 	//	* [server_name.host_name]
 	//
 	if (common_key_exchange_modes & TLS_KE_CERT_DHE) {
-		int common_cipher_suites[4];
+		int common_cipher_suites[TLS_MAX_CIPHER_SUITES];
 		size_t common_cipher_suites_cnt;
 
 		if (!conn->ctx->cert_chains_len) {
@@ -8831,8 +8830,6 @@ int tls13_send_client_key_update(TLS_CONNECT *conn, int request_update)
 		// xxxxxxxx
 		conn->record_offset = 0;
 
-		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
-
 		tls13_update_client_application_secret(conn);
 		tls13_generate_client_application_keys(conn);
 
@@ -8881,7 +8878,6 @@ int tls13_send_server_key_update(TLS_CONNECT *conn, int request_update)
 			error_print();
 			return -1;
 		}
-		tls13_record_print(stderr, 0, 0, conn->record, conn->recordlen);
 
 		conn->record_offset = 0;
 

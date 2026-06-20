@@ -230,7 +230,7 @@ int tls13_client_main(int argc, char *argv[])
 	int port = 443;
 
 	// cipher_suites
-	int cipher_suites[4];
+	int cipher_suites[TLS_MAX_CIPHER_SUITES];
 	size_t cipher_suites_cnt = 0;
 
 	// CA certificates
