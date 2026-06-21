@@ -33,7 +33,7 @@ make test
 sudo make install
 ```
 
-在`make install`完成后，GmSSL会在默认安装目录中安装`gmssl`命令行工具，在头文件目录中创建`gmssl`目录，并且在库目录中安装`libgmssl.a`、`libgmssl.so`等库文件。
+在`make install`完成后，GmSSL会在默认安装目录中安装`gmssl`命令行工具，在头文件目录中创建`gmssl`目录，并且在库目录中安装`libgmssl.so`或`libgmssl.dylib`等动态库文件。需要静态库时，可以在配置阶段指定`-DBUILD_SHARED_LIBS=OFF`生成`libgmssl.a`。
 
 ### Visual Studio环境编译
 

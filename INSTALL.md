@@ -4,24 +4,52 @@
 
 ## 概述
 
-GmSSL当前版本采用CMake构建系统。由于CMake是一个跨平台的编译、安装工具，因此GmSSL可以在大多数主流操作系统上编译、安装和运行。GmSSL项目官方测试了Windows (包括Visual Stduio和Cygwin)、Linux、Mac、Android和iOS这几个主流操作系统上的编译，并通过GitHub的CI工作流对提交的最新代码进行自动化的编译测试。
+GmSSL当前版本采用CMake构建系统。由于CMake是一个跨平台的编译、安装工具，因此GmSSL可以在大多数主流操作系统上编译、安装和运行。GmSSL项目官方测试了Windows (包括Visual Studio和Cygwin)、Linux、macOS、Android和iOS这几个主流操作系统上的编译，并通过GitHub的CI工作流对提交的最新代码进行自动化的编译测试。
 
-和其他基于CMake的开源项目类似，GmSSL的构建过程主要包含配置、编译、测试、安装这几个步骤。以Linux操作系统环境为例，在下载并解压GmSSL源代码后，进入源代码目录，执行如下命令：
+和其他基于CMake的开源项目类似，GmSSL的构建过程主要包含配置、编译、测试、安装这几个步骤。默认配置会生成动态库；如果需要静态库，可以在配置阶段设置`-DBUILD_SHARED_LIBS=OFF`。
+
+### Linux/macOS源码安装
+
+在Linux或macOS环境下，下载并解压GmSSL源代码后，进入源码目录，执行如下命令：
 
 ```bash
 mkdir build
 cd build
-cmake ..
-make
-make test
-sudo make install
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+ctest --output-on-failure
+sudo cmake --install .
 ```
 
 就可以完成配置、编译、测试和安装。
 
-在执行`make`编译成功后，在`build/bin`目录下会生成项目的可执行文件和库文件。对于密码工具来说，在安装使用之前通过`make test`进行测试是重要的一步，如果测试失败，那么不应该使用这个软件。在发生某个测试错误后，可以执行`build/bin`下的具体某个测试命令行，如`sm4test`，这样可以看到具体的错误打印信息。
+在执行`cmake --build .`编译成功后，在`build/bin`目录下会生成项目的可执行文件和库文件。对于密码工具来说，在安装使用之前通过`ctest --output-on-failure`进行测试是重要的一步，如果测试失败，那么不应该使用这个软件。在发生某个测试错误后，可以执行`build/bin`下的具体某个测试命令行，如`sm4test`，这样可以看到具体的错误打印信息。
 
-执行`sudo make install`，安装完成后，可以命令行中调用`gmssl`命令行工具。在Linux和Mac环境下，头文件通常被安装在`/usr/local/include/gmssl`目录下，库文件被安装在`/usr/local/lib`目录下。
+执行`sudo cmake --install .`，安装完成后，可以命令行中调用`gmssl`命令行工具。在Linux和macOS环境下，头文件通常被安装在`/usr/local/include/gmssl`目录下，库文件被安装在`/usr/local/lib`目录下。Linux默认动态库名称为`libgmssl.so`，macOS默认动态库名称为`libgmssl.dylib`。
+
+如果不希望安装到系统目录，可以指定安装前缀：
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/local/gmssl
+cmake --build .
+ctest --output-on-failure
+cmake --install .
+```
+
+### Windows源码安装
+
+在Windows上建议使用Visual Studio 2022或更新版本。在"Developer Command Prompt for VS 2022"中执行：
+
+```bat
+mkdir build
+cd build
+cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+nmake
+ctest --output-on-failure
+nmake install
+```
+
+默认安装目录通常为`C:\Program Files\GmSSL`，命令行工具、头文件和库文件分别安装到`bin`、`include`和`lib`目录。普通用户执行安装可能会因为权限不足失败，需要以管理员身份打开开发者命令提示符，或者通过`-DCMAKE_INSTALL_PREFIX=C:\path\to\gmssl`指定用户可写的目录。
 
 ## 项目源代码
 
@@ -50,10 +78,10 @@ GmSSL项目的源代码在GitHub中发布和维护。
 在执行`cmake`阶段可以对项目的默认编译配置进行修改，修改是通过设置CMake变量来完成的，可以查看项目源代码中的`CMakeLists.txt`中所有的`option`指令来查看可选的配置。例如：
 
 ```cmake
-option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 ```
 
-表明项目默认生成静态库，不生成动态库。
+表明项目默认生成动态库。
 
 ###设置生成动态库或静态库
 
@@ -61,6 +89,7 @@ GmSSL的CMake默认生成动态库，可以通过设定CMake变量`BUILD_SHARED_
 
 ```
 cmake .. -DBUILD_SHARED_LIBS=ON
+cmake .. -DBUILD_SHARED_LIBS=OFF
 ```
 
  ### 设置优化的密码算法实现
@@ -195,9 +224,7 @@ make install
 
 ### 存在的问题
 
-似乎CMake选项`BUILD_SHARED_LIBS` 不起作用，总会同时生成静态库和动态库。
-
-Cygwin的动态库名称比较特殊，是以`cyg`开头的。
+Cygwin的动态库名称比较特殊，是以`cyg`开头的。使用Cygwin生成的可执行程序和动态库通常依赖`cygwin1.dll`，发布给非Cygwin环境使用时需要额外处理这个运行时依赖。
 
 ## 面向iOS/iPhoneOS的交叉编译
 
@@ -248,8 +275,7 @@ cpack -G RPM
 ```
 mkdir build; cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-cpack -G DEB
-make package
+cpack -G STGZ
 ```
 
 ## 生成二进制包
@@ -258,23 +284,46 @@ make package
 
 在正式发布之前，需要在测试平台上编译、测试、安装。验证`gmssl`命令行可以正确使用，验证`sm3_demo.c`可以正确和`-lgmssl`编译，并且可以正确输出哈希值。
 
-完成编译和测试后，在`build`目录下执行如下操作
+完成编译和测试后，在源码目录下执行如下操作。二进制包需要同时提供动态库和静态库，因此使用两个构建目录：先安装动态库，再安装静态库到同一个打包目录。第二次安装会覆盖`bin/gmssl`，使发布包中的命令行工具链接静态`libgmssl`，同时`lib`目录中保留动态库和静态库。
 
-``` bash
+```bash
 #!/bin/bash -x
 VERSION=3.2.0
 OS=macos
 ARCH=arm64
-mkdir build; cd build; cmake ..; make
-cmake .. -DBUILD_SHARED_LIBS=OFF; make
-mkdir gmssl-$VERSION
-cd gmssl-$VERSION
-mkdir bin; mkdir lib; mkdir include
-cp ../bin/gmssl bin
-cp -P ../bin/libgmssl* lib
-cp -r ../../include/gmssl include
-cd ..
+
+PREFIX="$PWD/gmssl-$VERSION"
+rm -rf "$PREFIX" build-shared build-static
+
+cmake -S . -B build-shared -DCMAKE_BUILD_TYPE=Release \
+	-DBUILD_SHARED_LIBS=ON \
+	-DCMAKE_INSTALL_PREFIX="$PREFIX"
+cmake --build build-shared
+ctest --test-dir build-shared --output-on-failure
+cmake --install build-shared
+
+cmake -S . -B build-static -DCMAKE_BUILD_TYPE=Release \
+	-DBUILD_SHARED_LIBS=OFF \
+	-DCMAKE_INSTALL_PREFIX="$PREFIX"
+cmake --build build-static
+ctest --test-dir build-static --output-on-failure
+cmake --install build-static
+
 tar czvf gmssl-$VERSION-$OS-$ARCH.tar.gz gmssl-$VERSION
 ```
 
-其中`cmake .. -DBUILD_SHARED_LIBS=OFF; make`重新生成了静态库，以及和静态库连接的`gmssl`二进制程序，因此最终打包的`gmssl`命令行不依赖系统库之外的动态库。
+发布包目录结构如下：
+
+```bash
+gmssl-$VERSION/
+  bin/
+    gmssl
+  include/
+    gmssl/
+  lib/
+    libgmssl.a
+    libgmssl.so      # Linux动态库
+    libgmssl.dylib   # macOS动态库
+```
+
+其中静态库和动态库的具体文件名会随操作系统变化。例如Linux通常生成`libgmssl.so`及其版本符号链接，macOS通常生成`libgmssl.dylib`及其版本符号链接，Windows通常生成`.dll`和导入库。打包前需要在目标平台上确认`bin/gmssl version`可以运行，并确认一个外部C程序可以通过`-I<package>/include`和`-L<package>/lib -lgmssl`完成编译和链接。
