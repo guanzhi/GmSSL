@@ -49,7 +49,12 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="${STATIC_PREFIX}"
         cmake --build build-static --config "${BUILD_TYPE}"
         cmake --install build-static --prefix "${STATIC_PREFIX}"
+        cp "${STATIC_PREFIX}/bin/gmssl" "${PREFIX}/bin/gmssl"
         cp "${STATIC_PREFIX}/lib/libgmssl.a" "${PREFIX}/lib/libgmssl.a"
+        if ldd "${PREFIX}/bin/gmssl" | grep -q libgmssl; then
+          echo "gmssl must not depend on libgmssl.so" >&2
+          exit 1
+        fi
 
         cat > smoke.c <<'EOF'
         #include <stdio.h>
@@ -119,12 +124,18 @@ jobs:
         cmake --build build-static --config "$env:BUILD_TYPE"
         cmake --install build-static --prefix "$StaticPrefix"
 
+        Copy-Item (Join-Path $StaticPrefix "bin\gmssl.exe") (Join-Path $Prefix "bin\gmssl.exe") -Force
         $StaticLib = Join-Path $StaticPrefix "lib\gmssl.lib"
         if (Test-Path $StaticLib) {
           Copy-Item $StaticLib (Join-Path $Prefix "lib\gmssl_static.lib") -Force
         }
 
         & (Join-Path $Prefix "bin\gmssl.exe") version | Select-String "GmSSL $Version"
+        $Dependents = & dumpbin /dependents (Join-Path $Prefix "bin\gmssl.exe")
+        $Dependents | Out-String | Write-Host
+        if ($Dependents -match "gmssl.dll") {
+          throw "gmssl.exe must not depend on gmssl.dll"
+        }
         @"
         #include <stdio.h>
         #include <gmssl/version.h>
