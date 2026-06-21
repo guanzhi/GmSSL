@@ -418,6 +418,8 @@ static int test_x509_sign(void)
 	uint8_t sig[40969];
 	size_t siglen;
 
+	memset(msg, 0xa5, sizeof(msg));
+
 	for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
 		if (tests[i].algor == OID_kyber_kem) {
 			continue;

@@ -2148,6 +2148,8 @@ int x509_verify_init(X509_SIGN_CTX *ctx, const X509_KEY *key, const void *args, 
 		}
 	}
 
+	memset(ctx, 0, sizeof(X509_SIGN_CTX));
+
 	switch (key->algor) {
 	case OID_ec_public_key:
 		switch (key->algor_param) {

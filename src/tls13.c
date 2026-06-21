@@ -7605,6 +7605,20 @@ int tls13_send_hello_retry_request(TLS_CONNECT *conn)
 	return 1;
 }
 
+/*
+ * 处理 HelloRetryRequest 之后客户端重新发送的 ClientHello。
+ *
+ * 旧实现按扩展在 ClientHello1 和 ClientHello2 中出现的顺序逐项比较。
+ * 但合法客户端在 HRR 后可能调整扩展顺序，例如重新发送的 key_share
+ * 可能移动到和第一次 ClientHello 不同的位置；顺序比较会把这种合法
+ * ClientHello2 误判为非法并中止握手。
+ *
+ * 这里改为按扩展类型在 ClientHello1 中查找对应项，再分别校验 HRR
+ * 允许变化的扩展：key_share 必须替换为服务端要求的组，pre_shared_key
+ * 可以是第一次 identities 的子集，early_data 必须被删除，cookie 只在
+ * 服务端要求时允许新增；其他扩展仍要求内容保持不变，同时拒绝重复扩展
+ * 和不允许的扩展丢失。
+ */
 int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 {
 	int ret;
