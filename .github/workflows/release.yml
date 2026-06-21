@@ -79,6 +79,84 @@ jobs:
         VERSION="${TAG#v}"
         gh release upload "${TAG}" "GmSSL-${VERSION}-Linux-x86_64.tar.gz" --clobber
 
+  macos:
+    strategy:
+      matrix:
+        include:
+        - arch: arm64
+          runner: macos-15
+        - arch: x86_64
+          runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.tag }}
+
+    - name: Build, test, and package
+      env:
+        TAG: ${{ inputs.tag }}
+        ARCH: ${{ matrix.arch }}
+      run: |
+        set -eux
+        VERSION="${TAG#v}"
+        PACKAGE="GmSSL-${VERSION}-macOS-${ARCH}"
+        PREFIX="${PWD}/${PACKAGE}"
+        STATIC_PREFIX="${PWD}/${PACKAGE}-static"
+
+        rm -rf build-shared build-static "${PREFIX}" "${STATIC_PREFIX}" "${PACKAGE}.tar.gz"
+
+        cmake -S . -B build-shared \
+          -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+          -DCMAKE_OSX_ARCHITECTURES="${ARCH}" \
+          -DBUILD_SHARED_LIBS=ON \
+          -DCMAKE_INSTALL_PREFIX="${PREFIX}"
+        cmake --build build-shared --config "${BUILD_TYPE}"
+        cmake --install build-shared --prefix "${PREFIX}"
+        "${PREFIX}/bin/gmssl" version | grep "GmSSL ${VERSION}"
+
+        cmake -S . -B build-static \
+          -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+          -DCMAKE_OSX_ARCHITECTURES="${ARCH}" \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="${STATIC_PREFIX}"
+        cmake --build build-static --config "${BUILD_TYPE}"
+        cmake --install build-static --prefix "${STATIC_PREFIX}"
+        cp "${STATIC_PREFIX}/bin/gmssl" "${PREFIX}/bin/gmssl"
+        cp "${STATIC_PREFIX}/lib/libgmssl.a" "${PREFIX}/lib/libgmssl.a"
+
+        file "${PREFIX}/bin/gmssl" | grep "${ARCH}"
+        if otool -L "${PREFIX}/bin/gmssl" | grep -q libgmssl; then
+          echo "gmssl must not depend on libgmssl.dylib" >&2
+          exit 1
+        fi
+        "${PREFIX}/bin/gmssl" version | grep "GmSSL ${VERSION}"
+
+        cat > smoke.c <<'EOF'
+        #include <stdio.h>
+        #include <gmssl/version.h>
+
+        int main(void)
+        {
+                puts(gmssl_version_str());
+                return 0;
+        }
+        EOF
+        cc smoke.c -I"${PREFIX}/include" "${PREFIX}/lib/libgmssl.a" -o smoke-static
+        ./smoke-static | grep "GmSSL ${VERSION}"
+
+        tar czf "${PACKAGE}.tar.gz" "${PACKAGE}"
+
+    - name: Upload macOS package
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ inputs.tag }}
+        ARCH: ${{ matrix.arch }}
+      run: |
+        VERSION="${TAG#v}"
+        gh release upload "${TAG}" "GmSSL-${VERSION}-macOS-${ARCH}.tar.gz" --clobber
+
   windows:
     runs-on: windows-latest
 
