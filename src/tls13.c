@@ -7634,11 +7634,15 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 
 	// Extensions
 	const uint8_t *key_share = NULL;
-	size_t key_share_len;
+	size_t key_share_len = 0;
 	const uint8_t *pre_shared_key = NULL;
-	size_t pre_shared_key_len;
+	size_t pre_shared_key_len = 0;
 	const uint8_t *cookie = NULL;
-	size_t cookie_len;
+	size_t cookie_len = 0;
+	const uint8_t *client_hello1_exts;
+	size_t client_hello1_exts_len;
+	const uint8_t *client_hello2_exts;
+	size_t client_hello2_exts_len;
 
 	const uint8_t *key_exchange;
 	size_t key_exchange_len;
@@ -7702,19 +7706,48 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 
 	// update client_server
 	memcpy(conn->client_random, random, 32);
+	client_hello1_exts = _exts;
+	client_hello1_exts_len = _extslen;
+	client_hello2_exts = exts;
+	client_hello2_exts_len = extslen;
 
 	while (extslen) {
 		int ext_type;
 		const uint8_t *ext_data;
 		size_t ext_datalen;
-		int _ext_type;
-		const uint8_t *_ext_data;
-		size_t _ext_datalen;
+		const uint8_t *matching_ext_data = NULL;
+		size_t matching_ext_datalen = 0;
+		int matching_ext_found = 0;
+		const uint8_t *search_exts = client_hello1_exts;
+		size_t search_exts_len = client_hello1_exts_len;
 
 		if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &exts, &extslen) != 1) {
 			error_print();
 			tls13_send_alert(conn, TLS_alert_decode_error);
 			return -1;
+		}
+
+		{
+		const uint8_t *dup_exts = exts;
+		size_t dup_exts_len = extslen;
+
+		while (dup_exts_len) {
+			int dup_ext_type;
+			const uint8_t *dup_ext_data;
+			size_t dup_ext_datalen;
+
+			if (tls_ext_from_bytes(&dup_ext_type, &dup_ext_data, &dup_ext_datalen,
+				&dup_exts, &dup_exts_len) != 1) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			}
+			if (dup_ext_type == ext_type) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
+		}
 		}
 
 		// ClientHello2 extensions
@@ -7747,20 +7780,30 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 			continue;
 		}
 
-		// get ext in ClientHello1 (omit early_data)
-		if (tls_ext_from_bytes(&_ext_type, &_ext_data, &_ext_datalen, &_exts, &_extslen) != 1) {
-			error_print();
-			tls13_send_alert(conn, TLS_alert_decode_error);
-			return -1;
-		}
-		if (_ext_type == TLS_extension_early_data) {
-			if (tls_ext_from_bytes(&_ext_type, &_ext_data, &_ext_datalen, &_exts, &_extslen) != 1) {
+		// Find the corresponding ClientHello1 extension by type. The order
+		// can change after HRR; early_data is intentionally omitted.
+		while (search_exts_len) {
+			int _ext_type;
+			const uint8_t *_ext_data;
+			size_t _ext_datalen;
+
+			if (tls_ext_from_bytes(&_ext_type, &_ext_data, &_ext_datalen, &search_exts, &search_exts_len) != 1) {
 				error_print();
 				tls13_send_alert(conn, TLS_alert_decode_error);
 				return -1;
 			}
+
+			if (_ext_type == TLS_extension_early_data) {
+				continue;
+			}
+			if (ext_type == _ext_type) {
+				matching_ext_data = _ext_data;
+				matching_ext_datalen = _ext_datalen;
+				matching_ext_found = 1;
+				break;
+			}
 		}
-		if (ext_type != _ext_type) {
+		if (!matching_ext_found) {
 			error_print();
 			tls13_send_alert(conn, TLS_alert_illegal_parameter);
 			return -1;
@@ -7774,6 +7817,11 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 				tls13_send_alert(conn, TLS_alert_decode_error);
 				return -1;
 			}
+			if (key_share) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
+				return -1;
+			}
 			key_share = ext_data;
 			key_share_len = ext_datalen;
 			break;
@@ -7785,11 +7833,18 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 			const uint8_t *binders;
 			size_t binders_len;
 			const uint8_t *_psk_identities;
+			const uint8_t *_psk_identities_start;
 			size_t _psk_identities_len;
+			size_t _psk_identities_start_len;
 
 			if (!ext_data) {
 				error_print();
 				tls13_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			}
+			if (pre_shared_key) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
 			if (tls13_client_pre_shared_key_from_bytes(&psk_identities, &psk_identities_len,
@@ -7799,10 +7854,12 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 				return -1;
 			}
 			if (tls13_client_pre_shared_key_from_bytes(&_psk_identities, &_psk_identities_len,
-				&binders, &binders_len, _ext_data, _ext_datalen) != 1) {
+				&binders, &binders_len, matching_ext_data, matching_ext_datalen) != 1) {
 				error_print();
 				return -1;
 			}
+			_psk_identities_start = _psk_identities;
+			_psk_identities_start_len = _psk_identities_len;
 			while (psk_identities_len) {
 				const uint8_t *id;
 				size_t idlen;
@@ -7810,6 +7867,8 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 				const uint8_t *_id;
 				size_t _idlen;
 				int match = 0;
+				_psk_identities = _psk_identities_start;
+				_psk_identities_len = _psk_identities_start_len;
 
 				if (tls13_psk_identity_from_bytes(&id, &idlen, &age, &psk_identities, &psk_identities_len) != 1) {
 					error_print();
@@ -7838,12 +7897,59 @@ int tls13_recv_client_hello_again(TLS_CONNECT *conn)
 			break;
 
 		default:
-			if (ext_datalen != _ext_datalen
-				|| memcmp(ext_data, _ext_data, _ext_datalen) != 0) {
+			if (ext_datalen != matching_ext_datalen
+				|| (ext_datalen && memcmp(ext_data, matching_ext_data, matching_ext_datalen) != 0)) {
 				error_print();
 				tls13_send_alert(conn, TLS_alert_illegal_parameter);
 				return -1;
 			}
+		}
+	}
+
+	// ClientHello2 must not drop any ClientHello1 extension except early_data.
+	while (client_hello1_exts_len) {
+		int _ext_type;
+		const uint8_t *_ext_data;
+		size_t _ext_datalen;
+		const uint8_t *search_exts = client_hello2_exts;
+		size_t search_exts_len = client_hello2_exts_len;
+		int found = 0;
+
+		if (tls_ext_from_bytes(&_ext_type, &_ext_data, &_ext_datalen,
+			&client_hello1_exts, &client_hello1_exts_len) != 1) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_decode_error);
+			return -1;
+		}
+		if (_ext_type == TLS_extension_early_data) {
+			continue;
+		}
+		if (_ext_type == TLS_extension_key_share && key_share) {
+			continue;
+		}
+		if (_ext_type == TLS_extension_pre_shared_key && pre_shared_key) {
+			continue;
+		}
+		while (!found && search_exts_len) {
+			int ext_type;
+			const uint8_t *ext_data;
+			size_t ext_datalen;
+
+			if (tls_ext_from_bytes(&ext_type, &ext_data, &ext_datalen, &search_exts, &search_exts_len) != 1) {
+				error_print();
+				tls13_send_alert(conn, TLS_alert_decode_error);
+				return -1;
+			}
+			if (ext_type == _ext_type
+				&& ext_datalen == _ext_datalen
+				&& (!ext_datalen || memcmp(ext_data, _ext_data, _ext_datalen) == 0)) {
+				found = 1;
+			}
+		}
+		if (!found) {
+			error_print();
+			tls13_send_alert(conn, TLS_alert_illegal_parameter);
+			return -1;
 		}
 	}
 

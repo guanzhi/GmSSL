@@ -825,11 +825,6 @@ if(ENABLE_TLS AND NOT WIN32)
 		tool_tls13_psk_only_sm4_gcm
 		tool_tls13_early_data_sm4_gcm
 		PROPERTIES FIXTURES_REQUIRED gmssl_cert_files)
-	set_tests_properties(
-		tool_tls13_hrr_sm4_gcm
-		tool_tls13_psk_only_sm4_gcm
-		tool_tls13_early_data_sm4_gcm
-		PROPERTIES DISABLED TRUE)
 	if(OPENSSL_EXECUTABLE AND GMSSL_OPENSSL_INTEROP_ENABLED)
 		add_test(NAME tool_tls12_openssl_server COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_server -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
 		add_test(NAME tool_tls12_openssl_server_renegotiation_info COMMAND ${CMAKE_COMMAND} -DOPENSSL_EXECUTABLE=${OPENSSL_EXECUTABLE} -DTEST_CASE=tls12_openssl_server_renegotiation_info -P "${CMAKE_SOURCE_DIR}/cmake/openssl_interop_commands.cmake")
@@ -855,10 +850,6 @@ if(ENABLE_TLS AND NOT WIN32)
 			tool_tls13_psk_only_openssl_server
 			tool_tls13_psk_only_openssl_client
 			PROPERTIES FIXTURES_REQUIRED gmssl_cert_files)
-		set_tests_properties(
-			tool_tls13_psk_only_openssl_server
-			tool_tls13_psk_only_openssl_client
-			PROPERTIES DISABLED TRUE)
 	elseif(NOT OPENSSL_EXECUTABLE)
 		message(STATUS "openssl executable not found; skipping OpenSSL TLS interop tests")
 	endif()
@@ -874,7 +865,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1133")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1134")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
