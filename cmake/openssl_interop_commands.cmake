@@ -7,6 +7,21 @@ if(NOT OPENSSL_EXECUTABLE)
 	message(FATAL_ERROR "openssl executable not found")
 endif()
 
+function(gmssl_openssl_s_client_supports option result)
+	execute_process(
+		COMMAND ${OPENSSL_EXECUTABLE} s_client -help
+		OUTPUT_VARIABLE OPENSSL_S_CLIENT_HELP_OUT
+		ERROR_VARIABLE OPENSSL_S_CLIENT_HELP_ERR
+	)
+	set(OPENSSL_S_CLIENT_HELP "${OPENSSL_S_CLIENT_HELP_OUT}\n${OPENSSL_S_CLIENT_HELP_ERR}")
+	string(FIND "${OPENSSL_S_CLIENT_HELP}" "${option}" OPTION_INDEX)
+	if(${OPTION_INDEX} EQUAL -1)
+		set(${result} OFF PARENT_SCOPE)
+	else()
+		set(${result} ON PARENT_SCOPE)
+	endif()
+endfunction()
+
 gmssl_require_file(p256_root_ca_cert.pem)
 gmssl_require_file(p256_tls_server_ca2_cert.pem)
 gmssl_require_file(p256_tls_server_cert.pem)
@@ -134,6 +149,11 @@ elseif(TEST_CASE STREQUAL tls13_psk_only_openssl_server)
 		EXPECT_CLIENT_LOG "HTTP/1.0 200 ok")
 elseif(TEST_CASE STREQUAL tls13_psk_only_openssl_client)
 	set(TEST_NAME tls13_psk_only_openssl_client)
+	gmssl_openssl_s_client_supports("-prefer_no_dhe_kex" OPENSSL_S_CLIENT_HAS_PREFER_NO_DHE_KEX)
+	if(NOT OPENSSL_S_CLIENT_HAS_PREFER_NO_DHE_KEX)
+		message(STATUS "skipping ${TEST_NAME}: openssl s_client does not support -prefer_no_dhe_kex")
+		return()
+	endif()
 	set(TEST_PORT 4458)
 	set(SERVER_COMMAND "bin/gmssl tls13_server -port ${TEST_PORT} -cert p256_tls_server_certs.pem -key p256_tls_server_key.pem -pass P@ssw0rd -cipher_suite TLS_AES_128_GCM_SHA256 -psk_ke -psk_identity 001 -psk_cipher_suite TLS_AES_128_GCM_SHA256 -psk_key ${TLS13_PSK}")
 	set(CLIENT_COMMAND "printf 'GET / HTTP/1.0\\r\\n\\r\\n' | ${OPENSSL_EXECUTABLE} s_client -connect 127.0.0.1:${TEST_PORT} -tls1_3 -psk_identity 001 -psk ${TLS13_PSK} -ciphersuites TLS_AES_128_GCM_SHA256 -allow_no_dhe_kex -prefer_no_dhe_kex -no_middlebox -brief")
