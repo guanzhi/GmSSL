@@ -27,6 +27,19 @@ sudo cmake --install .
 
 执行`sudo cmake --install .`，安装完成后，可以命令行中调用`gmssl`命令行工具。在Linux和macOS环境下，头文件通常被安装在`/usr/local/include/gmssl`目录下，库文件被安装在`/usr/local/lib`目录下。Linux默认动态库名称为`libgmssl.so`，macOS默认动态库名称为`libgmssl.dylib`。
 
+在Linux上安装动态库时，安装程序不会自动修改`/etc/ld.so.conf.d`或执行`ldconfig`。如果安装后系统找不到`libgmssl.so`，可以临时设置动态库搜索路径：
+
+```bash
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+```
+
+也可以配置系统级动态库搜索路径：
+
+```bash
+echo /usr/local/lib | sudo tee /etc/ld.so.conf.d/gmssl.conf
+sudo ldconfig
+```
+
 如果不希望安装到系统目录，可以指定安装前缀：
 
 ```bash
@@ -70,10 +83,12 @@ GmSSL项目的源代码在GitHub中发布和维护。
 * CMake macos-latest
 * CMake-Android
 * CMake-iOS
+* CMake-OpenHarmony
+* MSVC CMake
 
 通过查看这些CI的状态，可以判断当前代码是否可以在对应操作系统上成功编译。如果当前最新代码无法在某个平台上编译，那么可以选择之前某个通过测试的Commit版本。
 
-##配置编译选项
+## 配置编译选项
 
 在执行`cmake`阶段可以对项目的默认编译配置进行修改，修改是通过设置CMake变量来完成的，可以查看项目源代码中的`CMakeLists.txt`中所有的`option`指令来查看可选的配置。例如：
 
@@ -83,7 +98,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 表明项目默认生成动态库。
 
-###设置生成动态库或静态库
+### 设置生成动态库或静态库
 
 GmSSL的CMake默认生成动态库，可以通过设定CMake变量`BUILD_SHARED_LIBS`为`ON`或者`OFF`来指定生成动态库或静态库。
 
@@ -92,34 +107,36 @@ cmake .. -DBUILD_SHARED_LIBS=ON
 cmake .. -DBUILD_SHARED_LIBS=OFF
 ```
 
- ### 设置优化的密码算法实现
+### 设置优化的密码算法实现
 
-GmSSL包含了针对特定硬件和处理指令集的密码算法优化实现，如针对Intel AVX2等指令集的优化，针对GPU的优化等，这些优化实现在匹配的处理器上的实现速度或安全性会大大超过默认的C语言实现。
+GmSSL包含了针对特定硬件和处理指令集的密码算法优化实现，如针对Intel AVX2、AES-NI、ARMv8/AArch64和OpenCL等平台的优化。这些优化实现在匹配的处理器上的实现速度或安全性会大大超过默认的C语言实现。
 
 在配置阶段可以显式地指定采用优化实现，可选的CMake配置变量包括：
 
-* `ENABLE_SM3_AVX_BMI2`  SM3算法的AVX + BMI2指令集实现。
-* `ENABLE_SM3_X8_AVX2` SM3算法的AVX2指令集并行实现。
-* `ENABLE_SM3_X16_AVX512` SM3算法的AVX512指令集并行实现。
-* `ENABLE_SM4_AESNI_AVX` SM4算法的AESNI +AVX指令集实现。
-* `ENABLE_RDRND` 基于Intel RDRND指令的硬件随机数生成器。
-* `ENABLE_GF128_PCLMULQDQ` 基于Intel PCLMULQDQ指令的GCM模式实现。
+* `ENABLE_SM2_ARM64` SM2算法的ARMv8汇编实现。
+* `ENABLE_SM2_AMD64` SM2算法的x86_64汇编实现。
+* `ENABLE_SM3_ARM64` SM3算法的ARM NEON实现。
+* `ENABLE_SM3_SSE` SM3算法的SSE实现。
+* `ENABLE_SM4_ARM64` SM4算法的AArch64汇编实现。
+* `ENABLE_SM4_CE` SM4算法的ARMv8 Cryptography Extensions实现。
+* `ENABLE_SM4_AVX2` SM4算法的AVX2并行实现。
+* `ENABLE_SM4_AESNI` SM4算法的AES-NI实现。
+* `ENABLE_SM4_CTR_AESNI_AVX` SM4 CTR模式的AES-NI + AVX实现。
+* `ENABLE_GMUL_ARM64` GF(2^128)乘法的AArch64实现。
+* `ENABLE_INTEL_RDRAND` 基于Intel RDRAND指令的硬件随机数生成器。
+* `ENABLE_INTEL_RDSEED` 基于Intel RDSEED指令的硬件随机数生成器。
+* `ENABLE_SM4_CL` SM4算法的OpenCL实现。
 
-### 编译不安全的密码算法
+### 裁剪可选算法和模块
 
-处于教学目的，GmSSL源代码中包含了一组不安全的密码算法，这些算法默认情况下不被编译到二进制文件中，可以通过设置`ENABLE_BROKEN_CRYPTO`，在配置阶段启用这些算法，在当前`build`目录中执行：
+GmSSL的部分算法、协议和硬件接口可以在配置阶段关闭，以减少二进制体积或满足特定部署要求。例如：
 
 ```bash
-cmake .. -DENABLE_BROKEN_CRYPTO=ON
-make
+cmake .. -DENABLE_SHA1=OFF -DENABLE_AES=OFF -DENABLE_SKF=OFF -DENABLE_SDF=OFF
+cmake --build .
 ```
 
-重新编译后，加入GmSSL库文件的算法包括：
-
-* DES分组密码
-* SHA1哈希函数
-* MD5哈希函数
-* RC4序列密码
+可选开关以`CMakeLists.txt`中的`option(...)`定义为准。关闭底层算法可能会影响依赖它的协议、工具和测试用例。
 
 ## 在Visual Studio环境中编译
 
@@ -135,7 +152,7 @@ mkdir build
 cd build
 cmake .. -G "NMake Makefiles"
 nmake
-nmake test
+ctest --output-on-failure
 ```
 
 在编译完成后直接执行安装会报权限错误，这是因为安装过程需要向系统目录中写入文件，而当前打开命令行环境的用户不具备该权限。可以通过右键选择“更多-以管理员身份运行”打开x64 Native Tools Command Prompt for VS 2022终端，执行
@@ -181,7 +198,7 @@ cmake ..
 
 ## 在Cygwin环境中编译
 
-Cygwin是Windows上的Linux模拟运行环境。Cygwin提供了Linux Shell和大量Linux命令行工具，也提供了应用程序开发必须的编译工具、头文件和库文件。面向Linux开发的应用通常依赖`unistd.h`、`sys/socket.h`等头文件及函数，但是Visual Studio的C库并没有提供这些POSIX函数实现，因此这些Linux应用没有办法直接在Windows环境下编译。Cygwin通过封装Windows操作系统原生功能，提供了一个POSIX接口层，以及封装这些功能的动态库(`cygwin1.dll`)，并且提供了GCC、CMake等完整的Linux编译工具链，这意味着标准所有Linux环境下的标准头文件都存在，并且代码中依赖GCC编译器的特殊语法都可以被编译器识别（Visual Studio的`cl`编译器不能完整支持C99语法），因此标准的Linux应用都可以通过Cygwin移植到Windows环境，编译为Windows本地应用。Cygwin提供的Linux Shell环境意味Shell脚本也是可以使用的。
+Cygwin是Windows上的Linux模拟运行环境。Cygwin提供了Linux Shell和大量Linux命令行工具，也提供了应用程序开发必须的编译工具、头文件和库文件。面向Linux开发的应用通常依赖`unistd.h`、`sys/socket.h`等头文件及函数，但是Visual Studio的C库并没有提供这些POSIX函数实现，因此这些Linux应用没有办法直接在Windows环境下编译。Cygwin通过封装Windows操作系统原生功能，提供了一个POSIX接口层，以及封装这些功能的动态库(`cygwin1.dll`)，并且提供了GCC、CMake等完整的Linux编译工具链，这意味着标准Linux环境下的头文件都存在，并且代码中依赖GCC编译器的特殊语法都可以被编译器识别（Visual Studio的`cl`编译器不能完整支持C99语法），因此标准的Linux应用都可以通过Cygwin移植到Windows环境，编译为Windows本地应用。Cygwin提供的Linux Shell环境意味着Shell脚本也是可以使用的。
 
 在Cygwin环境下编译生成的可执行程序是原生的Windows程序，和Visual Studio编译的程序的主要区别在于，Cygwin下编译的程序都必须依赖`cygwin1.dll`这个动态库，因为应用所有的POSIX函数调用都需要通过这个动态库翻译为Windows本地的系统调用（如WinSock2），因此发布Cygwin的程序不太方便，必须要包含一个较大的`cygwin1.dll`库文件。另外如果应用涉及大量的系统调用，那么通过Cygwin中间层会引入一定的开销，理论上会比Visual Studio编译的应用效率略低。
 
@@ -211,12 +228,12 @@ cd GmSSL-master
 mkdir build
 cd build
 cmake ..
-make
-make test
-make install
+cmake --build .
+ctest --output-on-failure
+cmake --install .
 ```
 
-注意，由于在Cygwin环境中用户本身具有系统权限，因此在执行`make install`时不需要`sudo`。
+注意，由于在Cygwin环境中用户本身具有系统权限，因此在执行`cmake --install .`时不需要`sudo`。
 
 在安装完成之后，可以在Cygwin的命令行环境下执行`gmssl`命令行，或者运行源代码`demo`目录下的演示脚本。
 
@@ -245,7 +262,7 @@ cmake --build . --config Release
 ```bash
 mkdir build; cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake  -DANDROID_ABI=arm64-v8a  -DANDROID_PLATFORM=android-23
-make
+cmake --build .
 ```
 
 ## 安装包构建
@@ -259,6 +276,7 @@ make
 ```
 mkdir build; cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
 cpack -G DEB
 ```
 
@@ -267,6 +285,7 @@ cpack -G DEB
 ```
 mkdir build; cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
 cpack -G RPM
 ```
 
@@ -275,6 +294,7 @@ cpack -G RPM
 ```
 mkdir build; cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
 cpack -G STGZ
 ```
 

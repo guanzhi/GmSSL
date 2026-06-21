@@ -706,13 +706,13 @@ SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/gmssl DESTINATION include)
 
-if(UNIX AND NOT APPLE)
-	message(STATUS "Detected Linux, configuring /etc/ld.so.conf.d/gmssl.conf")
-	install(CODE "
-		execute_process(COMMAND mkdir -p /etc/ld.so.conf.d)
-		execute_process(COMMAND bash -c \"echo /usr/local/lib > /etc/ld.so.conf.d/gmssl.conf\")
-		execute_process(COMMAND ldconfig)
-	")
+if(UNIX AND NOT APPLE AND BUILD_SHARED_LIBS)
+	install(CODE [[
+		message(STATUS "GmSSL shared library installed to: ${CMAKE_INSTALL_PREFIX}/lib")
+		message(STATUS "If gmssl or external applications cannot find libgmssl.so, configure the runtime library path manually.")
+		message(STATUS "For a temporary shell: export LD_LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH")
+		message(STATUS "For a system-wide setup: echo ${CMAKE_INSTALL_PREFIX}/lib | sudo tee /etc/ld.so.conf.d/gmssl.conf && sudo ldconfig")
+	]])
 endif()
 
 
@@ -865,7 +865,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1141")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1142")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
