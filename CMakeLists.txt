@@ -641,7 +641,7 @@ if (ENABLE_SKF)
 		src/skf/skf_wisec.c)
 	list(APPEND tools tools/skfutil.c)
 	add_library(skf_dummy SHARED src/skf/skf_dummy.c)
-	set_target_properties(skf_dummy PROPERTIES VERSION 3.1 SOVERSION 3)
+	set_target_properties(skf_dummy PROPERTIES VERSION 3.2 SOVERSION 3)
 endif()
 
 if (ENABLE_SDF)
@@ -700,7 +700,7 @@ endif()
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
-SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.1 SOVERSION 3)
+SET_TARGET_PROPERTIES(gmssl PROPERTIES VERSION 3.2 SOVERSION 3)
 
 
 install(TARGETS gmssl ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
@@ -865,7 +865,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.2.0-dev.1142")
+set(CPACK_PACKAGE_VERSION "3.2.0-dev.1143")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)
