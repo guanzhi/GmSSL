@@ -27,6 +27,30 @@ sudo cmake --install .
 
 执行`sudo cmake --install .`，安装完成后，可以命令行中调用`gmssl`命令行工具。在Linux和macOS环境下，头文件通常被安装在`/usr/local/include/gmssl`目录下，库文件被安装在`/usr/local/lib`目录下。Linux默认动态库名称为`libgmssl.so`，macOS默认动态库名称为`libgmssl.dylib`。
 
+### macOS二进制包的Gatekeeper提示
+
+GmSSL发布的macOS二进制包当前未进行Apple Developer ID签名和notarization。从浏览器下载并解压后，macOS可能会为文件添加`com.apple.quarantine`属性，运行`gmssl`时提示Apple无法验证该程序是否不含恶意软件。
+
+如果确认二进制包来自GmSSL GitHub Release页面，可以在解压后的目录上执行：
+
+```bash
+xattr -dr com.apple.quarantine GmSSL-3.2.0-macOS-arm64
+```
+
+Intel x86_64版本对应执行：
+
+```bash
+xattr -dr com.apple.quarantine GmSSL-3.2.0-macOS-x86_64
+```
+
+然后再运行：
+
+```bash
+./GmSSL-3.2.0-macOS-arm64/bin/gmssl version
+```
+
+或者将对应`bin`目录加入`PATH`。这个处理方式只移除下载隔离标记，不修改`gmssl`二进制内容。
+
 在Linux上安装动态库时，安装程序不会自动修改`/etc/ld.so.conf.d`或执行`ldconfig`。如果安装后系统找不到`libgmssl.so`，可以临时设置动态库搜索路径：
 
 ```bash
