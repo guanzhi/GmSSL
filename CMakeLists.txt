@@ -616,6 +616,7 @@ if (ENABLE_TLS)
 		src/tls_sct.c
 		src/tls_ocsp.c
 		src/tls_cookie.c
+		src/quic.c
 		src/tls_trace.c
 		src/tls_vrf.c
 		src/tlcp.c
@@ -629,7 +630,7 @@ if (ENABLE_TLS)
 		tools/tls13_client.c
 		tools/tls13_server.c
 		tools/sctverify.c)
-	list(APPEND tests tls tls13 tls_ocsp)
+	list(APPEND tests tls tls13 tls_ocsp quic)
 endif()
 
 
@@ -919,7 +920,7 @@ endif()
 #
 set(CPACK_PACKAGE_NAME "GmSSL")
 set(CPACK_PACKAGE_VENDOR "GmSSL develop team")
-set(CPACK_PACKAGE_VERSION "3.3.0-dev.1159")
+set(CPACK_PACKAGE_VERSION "3.3.0-dev.1160")
 set(CPACK_PACKAGE_DESCRIPTION_FILE ${PROJECT_SOURCE_DIR}/README.md)
 set(CPACK_NSIS_MODIFY_PATH ON)
 include(CPack)

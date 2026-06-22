@@ -50,9 +50,9 @@ if(ENABLE_SM4_XTS)
 	gmssl_files_equal(tool_sm4_xts.plain tool_sm4_xts.decrypt)
 endif()
 if(ENABLE_SM4_FF1)
-	gmssl_expect_stdout("2326982895499381"
+	gmssl_expect_stdout("2326982895499381\n"
 		sm4_ff1 -encrypt -key ${SM4_FF1_KEY} -tweak 39383736353433323130 -digits 6226090102675688)
-	gmssl_expect_stdout("6226090102675688"
+	gmssl_expect_stdout("6226090102675688\n"
 		sm4_ff1 -decrypt -key ${SM4_FF1_KEY} -tweak 39383736353433323130 -digits 2326982895499381)
 endif()
 if(ENABLE_SM4_CBC_MAC)

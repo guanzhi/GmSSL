@@ -344,6 +344,10 @@ bad:
 		fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
 		goto end;
 	}
+	if (fputc('\n', stdout) == EOF) {
+		fprintf(stderr, "gmssl %s: output failure : %s\n", prog, strerror(errno));
+		goto end;
+	}
 
 	ret = 0;
 
